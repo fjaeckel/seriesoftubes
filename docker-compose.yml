@@ -7,7 +7,6 @@ services:
     environment:
       # SERVER_CODE: change-me      # require this code to sign up
       # REGISTRATION: closed        # or close sign-ups entirely
-      # SECURE_COOKIES: "1"         # behind HTTPS
       # TRUST_PROXY: "1"            # behind a reverse proxy
       IDLE_PAUSE: "1"
     restart: unless-stopped

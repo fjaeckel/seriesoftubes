@@ -439,6 +439,8 @@ table.rv a{color:var(--me);font-weight:800;text-decoration:none}
     <button data-act="speed" data-args='{"v":2}' id="sp2">2×</button>
     <button data-act="speed" data-args='{"v":4}' id="sp4">4×</button>
     <button data-act="speed" data-args='{"v":8}' id="sp8">8×</button>
+    <button data-act="citySearch" aria-label="Find a city" title="Find a city (/)">🔍</button>
+    <button data-act="citySet" id="smallBtn" aria-label="Hide or show small cities" title="Hide or show small cities">🏙</button>
     <button data-act="dash" aria-label="NOC dashboard" title="NOC dashboard"><svg width="16" height="14" viewBox="0 0 16 14" aria-hidden="true"><path d="M1 13h14M2 10l4-5 3 3 5-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <button data-act="help" aria-label="How to play">?</button>
     <button data-act="mute" id="muteBtn" aria-label="Toggle sound">♪</button>
@@ -494,7 +496,7 @@ const DAY_MS=2500, ROUTER_COST=15000, ROUTER_MO=1500, GEN_COST=12000, GEN_MO=600
 const RU_BOX=40000, RU_BOX_MO=2000;
 const UAE_LIC=15000,KSA_LIC=25000;
 const SITE2_COST=45000,SITE2_MO=3000,TE_COST=60000,TE_MO=4000;
-const SITE2_N=['The Other Building','Campus B (the one with parking)','Across-the-River DC','The Annex','Suburban Mega-shed','The Cheaper One','Formerly a Shopping Mall','Bunker Two'];
+const SITE2_N=['Secondary data center','Campus B','Metro site B','Colocation hall 2','Disaster recovery site','Edge data center','Carrier hotel annex','Backup facility'];
 const siteName=(c,s)=>s==='b'?SITE2_N[hstr(c)%SITE2_N.length]:CITY[c].dc;
 const popCost=c=>POP_COST+(c&&CITY[c]&&CITY[c].ru?RU_BOX:0)+(c&&CITY[c]&&CITY[c].uae?UAE_LIC:0)+(c&&CITY[c]&&CITY[c].saudi?KSA_LIC:0);
 const CN_LIC=150000, CN_JV_MO=6000, SCRUB_COST=60000, SCRUB_MO=5000;
@@ -505,7 +507,7 @@ const myFab=c=>MYIX_FAB[Math.min(MYIX_FAB.length-1,Math.max(0,(S.myIx[c]&&S.myIx
 const LT=[{n:'10G',g:10,m:1},{n:'100G',g:100,m:2.8},{n:'400G',g:400,m:6},{n:'800G',g:800,m:9},{n:'1.6T',g:1600,m:13},{n:'6.4T',g:6400,m:28,note:'handed off as 4×1.6T'}];
 const PORT=[{n:'10G',g:10,setup:500,tmo:150,ix:400,pni:200},{n:'100G',g:100,setup:1500,tmo:400,ix:1500,pni:350},{n:'400G',g:400,setup:4000,tmo:900,ix:4000,pni:600},{n:'800G',g:800,setup:8000,tmo:1600,ix:7000,pni:1000},{n:'1.6T',g:1600,setup:16000,tmo:2800,ix:12000,pni:1600}];
 const RG=[
- {n:'Rusty Router 9000',pn:'100G',cap:400,cost:0,mo:0,maxLT:1,maxP:1,ports:8,cls:0,lvl:1,boot:6,slowP:10,chip:'a mystery ASIC',blurb:'Bought used on eBuy. The fans sound like a jet engine.'},
+ {n:'Rusty Router 9000',pn:'100G',cap:400,cost:0,mo:0,maxLT:1,maxP:1,ports:8,cls:0,lvl:1,boot:6,slowP:10,chip:'a mystery ASIC',blurb:'Bought used on eBay. The fans sound like a jet engine.'},
  {n:'Edge Lord 400',pn:'400G',cap:3200,cost:30000,mo:1000,maxLT:2,maxP:2,ports:24,cls:1,lvl:2,boot:11,slowP:20,chip:'merchant silicon',blurb:'Sharp, edgy, and finally speaks 400G and 400ZR+.'},
  {n:'Chonk 800',pn:'800G',cap:12800,cost:90000,mo:3000,maxLT:3,maxP:3,ports:36,cls:2,lvl:3,boot:25,slowP:45,chip:'Junipurr PacketOinker™',blurb:'An absolute unit with 800G ports, built around the Junipurr PacketOinker™ forwarding chip. Oinks at line rate. Takes 800ZR+ optics.'},
  {n:'Absolute Unit 1.6T',pn:'1.6T',cap:51200,cost:250000,mo:8000,maxLT:5,maxP:4,ports:40,cls:3,lvl:4,boot:40,slowP:60,chip:'PacketOinker² (two pigs, one chassis)',blurb:'1.6T ports, its own weather system and two PacketOinker² chips per line card. Takes 6.4T waves as 4×1.6T. Needs a forklift.'},
@@ -708,7 +710,7 @@ const CC_ARPU={IN:.45,PK:.4,BD:.3,LK:.5,NP:.3,ID:.6,PH:.6,VN:.6,TH:.8,CN:.6,MM:.
 {
   const baseLand=new Set(CITIES.map(c=>c.land));
   const baseCities=CITIES.slice();
-  for(const C of CITIES){const w=WORLD.base[C.id];if(!w)continue;C.cc=w.cc;C.ix=w.ix||'';if(w.dc)C.dc=w.dc;}
+  for(const C of CITIES){const w=WORLD.base[C.id];if(!w)continue;C.cc=w.cc;C.ix=w.ix||'';C.dc=w.dc||C.name+' data center';}
   const bi=new Set(CITIES.map(c=>c.id));
   const fresh=[];
   for(const r of WORLD.cities){
@@ -916,72 +918,72 @@ for(const m in WORLD.ix)WORLD.ix[m].forEach(([name,members,size],i,list)=>{if(!i
 const XIXM=Object.fromEntries(XIX.map(x=>[x.id,x]));
 /* The long tail: odd little networks with a sliver of traffic each, on one or two exchanges. */
 const TAIL=[
- ['Grandma’s Basement Hosting','cdn',['fra'],'Three servers, one dehumidifier and a very patient grandmother.'],
- ['Hamster Wheel Networks','eye',['ams'],'Powered by renewable rodents. Uptime depends on snack schedule.'],
- ['Fjordnet Kooperativ','eye',['osl'],'A fiber co-op for one valley. Every member owns a metre of cable.'],
- ['Kebab-Link','eye',['ber','fra'],'An ISP run from the back of a kebab shop. Late-night support is excellent.'],
- ['Mesh Collective e.V.','eye',['ber','fra'],'Volunteers with rooftop antennas and strong opinions about IPv6.'],
- ['Village Fibre Co-op','eye',['lon'],'Dug the trench themselves, one field at a time.'],
- ['Tiny Swiss Bank Shield','cdn',['zrh'],'Hosts exactly one website and three lawyers.'],
- ['Clockwork ISP','eye',['zrh'],'Packets leave on time, to the second.'],
- ['LAN-Party Federation','cdn',['ams','fra'],'Game servers, energy drinks and a ping obsession.'],
- ['Former Church Datacenter','cdn',['ams'],'Racks in the nave, cooling in the crypt. Divine uptime.'],
- ['WISP on a Silo','eye',['dal','chi'],'Wireless internet from the top of a grain silo.'],
- ['Cornfield Broadband','eye',['chi'],'Rural fiber that follows the tractor routes.'],
- ['Moose Lake Telephone Co-op','eye',['tor','mtl'],'Has served the lake since 1912. Now with fiber.'],
- ['Surf Shop Networks','cdn',['lax'],'Hosting for surfboard shops. Closed when the waves are good.'],
- ['Ski Lift Fiber','eye',['den','zrh'],'Fiber strung along the chairlifts. Seasonal latency.'],
- ['Tumbleweed Telecom','eye',['phx','dal'],'Covers a lot of empty ground.'],
- ['Crypto Bro Colo','cdn',['ash','mia'],'Ten thousand GPUs and a podcast.'],
- ['Ye Olde University Network','eye',['bos','lon'],'Has had a /8 since before you were born.'],
- ['Mom & Pop Packet Shop','eye',['nyc'],'Family-run since dial-up. Still answers the phone.'],
- ['Space Cowboy Broadband','eye',['hou','dal'],'Yee-haw and low Earth orbit.'],
- ['Fry Sauce Fibre','eye',['slc'],'Utah’s dipping-sauce of an ISP.'],
- ['Sauna Uplink Oy','cdn',['hel','sto'],'Servers cooled by the lake, then used to heat the sauna.'],
- ['Reindeer Relay','eye',['sto','osl','hel'],'Wireless links across the tundra. Antlers occasionally in the way.'],
- ['Pierogi Hosting','cdn',['waw'],'Cheap, filling hosting. Ask for the potato-and-cheese plan.'],
- ['Sunflower Uplink','eye',['kyv','waw'],'Kept the lights on in its town through every blackout.'],
- ['Tram Line Telecom','eye',['prg','vie'],'Fiber laid under the tram tracks during a night shift.'],
- ['Paprika Peering','eye',['bud'],'Spicy pricing, mild latency.'],
- ['Dracula Datacenter','cdn',['buh'],'Only comes online at night.'],
- ['Bosphorus Ferry Net','eye',['ist'],'Wi-Fi on every ferry, backhaul on every bridge.'],
- ['Gondola Gigabit','eye',['mil','rom'],'Started in Venice. Upgraded to land.'],
- ['Nonna’s Pasta Pipes','cdn',['rom','pmo'],'Hosting for every family restaurant in the south.'],
- ['Tram 28 Telecom','eye',['lis'],'Slow on the hills, fast on the flat.'],
- ['Olive Grove Online','eye',['ath'],'Rural broadband for the islands, one olive tree at a time.'],
- ['Siesta Server Hotel','cdn',['mad'],'Down from 2 to 5 p.m. every day. By design.'],
- ['Bouillabaisse Bits','cdn',['mrs','par'],'A rich mix of everything the fishermen brought in.'],
- ['Baguette Bandwidth Associés','eye',['par'],'Delivered fresh every morning.'],
- ['Pub Quiz Internet','eye',['dub','lon'],'Founded after a pub quiz, by the losing team.'],
- ['Gaming Café Net','eye',['lag'],'Internet cafe turned ISP. The gamers came for the ping.'],
- ['Matatu Mobile Mesh','eye',['nbo'],'Wi-Fi on minibuses, and the music is free.'],
- ['Load-Shedding Survivors','eye',['jnb','cpt'],'Has more batteries than customers.'],
- ['Bollywood Buffer','cdn',['bom','del'],'Three-hour films, zero-second start times.'],
- ['Hawker Centre Hosting','cdn',['sin','kul'],'Cheap, fast and open late.'],
- ['Karaoke Box Networks','cdn',['tok','osa','icn'],'Lyrics servers, low latency, high pitch.'],
- ['Night Market Net','eye',['tpe','hkg'],'Comes alive after dark.'],
- ['Kangaroo Courier','eye',['syd','mel','bne'],'Packets hop. Sometimes backwards.'],
- ['Hobbit Hole Hosting','cdn',['akl'],'Cosy racks under a hill. Second breakfast at 11.'],
- ['Capybara Connect','eye',['sao','bue'],'Gets along with every other network. Famously chill.'],
- ['Llama Link','eye',['lim','scl','bog'],'Mountain wireless. Will spit at bad routes.'],
- ['Supercar Hosting','cdn',['dxb'],'Gold-plated servers, valet parking for packets.'],
- ['Tango Transit Co-op','eye',['bue'],'It takes two to peer.'],
- ['Bánh Mì Broadband','eye',['sgn'],'Crispy on the outside, cheap on the inside.'],
- ['Jeepney Jumpnet','eye',['mnl'],'Colourful, crowded and gets you there eventually.'],
- ['Game Server Gremlins','cdn',['fra','ams','lon','nyc','sjc'],'Hosts every game you play at 2 a.m. Hates jitter.',0.003],
- ['Discord-ant Voice Relay','cdn',['ams','fra','ash'],'Voice chat for millions of gamers who all talk at once.',0.003],
- ['Mastodon Instance Herd','cdn',['ber','ams','par'],'A thousand tiny social networks on one rack.'],
- ['Dutch Bike Fibre','eye',['ams'],'Fiber laid along the bike lanes. Fastest in the rain.'],
- ['Chip Fab Cleanroom Net','cdn',['tpe','phx'],'Bunny suits mandatory in the server room.'],
- ['Volunteer Fire Brigade Wi-Fi','eye',['vie','zrh'],'Runs the village network between call-outs.'],
- ['Peach State Hosting','cdn',['atn'],'Sweet, fuzzy and surprisingly reliable.'],
- ['Chowder Hosting','cdn',['bos'],'Thick, comforting and very New England.'],
+ ['Hinterland Hosting','cdn',['fra'],'Three servers, one dehumidifier and a very patient grandmother.'],
+ ['Gracht Broadband','eye',['ams'],'Powered by renewable rodents. Uptime depends on snack schedule.'],
+ ['Fjordnet Fiber Cooperative','eye',['osl'],'A fiber co-op for one valley. Every member owns a metre of cable.'],
+ ['Spreenet Telekommunikation','eye',['ber','fra'],'An ISP run from the back of a kebab shop. Late-night support is excellent.'],
+ ['Freifunk Mesh e.V.','eye',['ber','fra'],'Volunteers with rooftop antennas and strong opinions about IPv6.'],
+ ['Greenfield Fibre Co-op','eye',['lon'],'Dug the trench themselves, one field at a time.'],
+ ['Alpenhost AG','cdn',['zrh'],'Hosts exactly one website and three lawyers.'],
+ ['Uhrwerk Internet AG','eye',['zrh'],'Packets leave on time, to the second.'],
+ ['Gameserver Federation','cdn',['ams','fra'],'Game servers, energy drinks and a ping obsession.'],
+ ['Kloosterhosting','cdn',['ams'],'Racks in the nave, cooling in the crypt. Divine uptime.'],
+ ['Heartland Wireless','eye',['dal','chi'],'Wireless internet from the top of a grain silo.'],
+ ['Prairie Fiber Cooperative','eye',['chi'],'Rural fiber that follows the tractor routes.'],
+ ['Lakeland Telephone Co-op','eye',['tor','mtl'],'Has served the lake since 1912. Now with fiber.'],
+ ['Pacific Coast Hosting','cdn',['lax'],'Hosting for surfboard shops. Closed when the waves are good.'],
+ ['Alpine Valley Fibre','eye',['den','zrh'],'Fiber strung along the chairlifts. Seasonal latency.'],
+ ['Sonoran Broadband','eye',['phx','dal'],'Covers a lot of empty ground.'],
+ ['Hashrate Colocation','cdn',['ash','mia'],'Ten thousand GPUs and a podcast.'],
+ ['Metropolitan Research Network','eye',['bos','lon'],'Has had a /8 since before you were born.'],
+ ['Hudson Valley Internet','eye',['nyc'],'Family-run since dial-up. Still answers the phone.'],
+ ['Lone Star Broadband','eye',['hou','dal'],'Yee-haw and low Earth orbit.'],
+ ['Wasatch Fibre','eye',['slc'],'Utah’s dipping-sauce of an ISP.'],
+ ['Nordlake Hosting Oy','cdn',['hel','sto'],'Servers cooled by the lake, then used to heat the sauna.'],
+ ['Arctic Wireless AB','eye',['sto','osl','hel'],'Wireless links across the tundra. Antlers occasionally in the way.'],
+ ['Wisła Hosting','cdn',['waw'],'Cheap, filling hosting. Ask for the potato-and-cheese plan.'],
+ ['Sunflower Telecom','eye',['kyv','waw'],'Kept the lights on in its town through every blackout.'],
+ ['Danube Fibre','eye',['prg','vie'],'Fiber laid under the tram tracks during a night shift.'],
+ ['Duna Net','eye',['bud'],'Spicy pricing, mild latency.'],
+ ['Carpathia Datacenter','cdn',['buh'],'Only comes online at night.'],
+ ['Boğaziçi Net','eye',['ist'],'Wi-Fi on every ferry, backhaul on every bridge.'],
+ ['Laguna Gigabit','eye',['mil','rom'],'Started in Venice. Upgraded to land.'],
+ ['Mezzogiorno Hosting','cdn',['rom','pmo'],'Hosting for every family restaurant in the south.'],
+ ['Alfama Telecom','eye',['lis'],'Slow on the hills, fast on the flat.'],
+ ['Aegean Broadband','eye',['ath'],'Rural broadband for the islands, one olive tree at a time.'],
+ ['Meseta Colocation','cdn',['mad'],'Down from 2 to 5 p.m. every day. By design.'],
+ ['Phocéa Hosting','cdn',['mrs','par'],'A rich mix of everything the fishermen brought in.'],
+ ['Seine Bande Passante SAS','eye',['par'],'Delivered fresh every morning.'],
+ ['Liffey Internet','eye',['dub','lon'],'Founded after a pub quiz, by the losing team.'],
+ ['Lagos Cyber Net','eye',['lag'],'Internet cafe turned ISP. The gamers came for the ping.'],
+ ['Savanna Wireless','eye',['nbo'],'Wi-Fi on minibuses, and the music is free.'],
+ ['Cape Power Internet','eye',['jnb','cpt'],'Has more batteries than customers.'],
+ ['Deccan Media Hosting','cdn',['bom','del'],'Three-hour films, zero-second start times.'],
+ ['Straits Hosting','cdn',['sin','kul'],'Cheap, fast and open late.'],
+ ['Sakura Content Networks','cdn',['tok','osa','icn'],'Lyrics servers, low latency, high pitch.'],
+ ['Formosa Broadband','eye',['tpe','hkg'],'Comes alive after dark.'],
+ ['Outback Internet','eye',['syd','mel','bne'],'Packets hop. Sometimes backwards.'],
+ ['Southern Alps Hosting','cdn',['akl'],'Cosy racks under a hill. Second breakfast at 11.'],
+ ['Pantanal Conecta','eye',['sao','bue'],'Gets along with every other network. Famously chill.'],
+ ['Andes Wireless','eye',['lim','scl','bog'],'Mountain wireless. Will spit at bad routes.'],
+ ['Gulf Premium Hosting','cdn',['dxb'],'Gold-plated servers, valet parking for packets.'],
+ ['Pampa Cooperativa de Internet','eye',['bue'],'It takes two to peer.'],
+ ['Saigon Broadband','eye',['sgn'],'Crispy on the outside, cheap on the inside.'],
+ ['Luzon Broadband','eye',['mnl'],'Colourful, crowded and gets you there eventually.'],
+ ['Pingline Game Hosting','cdn',['fra','ams','lon','nyc','sjc'],'Hosts every game you play at 2 a.m. Hates jitter.',0.003],
+ ['Voxline Voice Relay','cdn',['ams','fra','ash'],'Voice chat for millions of gamers who all talk at once.',0.003],
+ ['Fediverse Hosting Collective','cdn',['ber','ams','par'],'A thousand tiny social networks on one rack.'],
+ ['Polder Fibre','eye',['ams'],'Fiber laid along the bike lanes. Fastest in the rain.'],
+ ['Cleanroom Industrial Network','cdn',['tpe','phx'],'Bunny suits mandatory in the server room.'],
+ ['Gemeindenetz Wi-Fi','eye',['vie','zrh'],'Runs the village network between call-outs.'],
+ ['Georgia Hosting','cdn',['atn'],'Sweet, fuzzy and surprisingly reliable.'],
+ ['New England Hosting','cdn',['bos'],'Thick, comforting and very New England.'],
 ];
 function ixStatic(c){const o=[];if(CITY[c]&&CITY[c].ix)o.push(c);for(const x of XIX)if(x.c===c)o.push(x.id);return o;}
 TAIL.forEach(([name,type,home,blurb,sh],i)=>{const h=hstr(name),cand=home.flatMap(ixStatic),ix=[];
   if(cand.length){ix.push(cand[h%cand.length]);if(cand.length>1&&(h>>>8)%100<40){const o=cand[(h>>>12)%cand.length];if(!ix.includes(o))ix.push(o);}}
   const sel=(h>>>4)%10>=8;
-  NETS.push({id:'tail'+i,name,asn:200000+(h%190000),type,tail:true,pol:sel?'selective':'open',...(sel?{minIx:1+(h>>>16)%3,minPni:6+(h>>>18)%8}:{}),share:sh||+(0.0006+((h>>>20)%15)*0.0001).toFixed(4),col:`hsl(${h%360} 55% 46%)`,pops:home.slice(),ix,blurb});});
+  NETS.push({id:'tail'+i,name,asn:200000+(h%190000),type,tail:true,pol:sel?'selective':'open',...(sel?{minIx:1+(h>>>16)%3,minPni:6+(h>>>18)%8}:{}),share:sh||+(0.0006+((h>>>20)%15)*0.0001).toFixed(4),col:`hsl(${h%360} 55% 46%)`,pops:home.slice(),ix,blurb:type==='eye'?'Small regional internet provider.':'Small hosting and content provider.'});});
 for(const a of WORLD.added)NETS.push({...a,pops:[],ix:[],blurb:''});
 { // Real names, real ASNs, real footprints. Traffic shares, prices and peering policies stay game design.
   const TYPE_BL={t1:'Tier 1 transit backbone',t2:'Transit carrier',eye:'Eyeball network',cdn:'Content and cloud network'};
@@ -1009,22 +1011,22 @@ const BIZ_T={
  l2vpn:{l:'L2VPN circuit',opts:[1,10,40,100],rate:0,l2:true,km:1,lv:1},
  stream:{l:'Streaming startup',opts:[50,100,200],rate:80,lv:2},
  edu:{l:'University network',opts:[20,50,100],rate:90,lv:2},
- gpu:{l:'AI GPU data center',opts:[200,400,800],rate:70,lv:3,names:['Neural Noodles AI','GPUs R Us','Hallucination Labs','Transformers & Sons','Token Burners Inc.','Very Large Language Co.','Prompt Engineering Ltd','DeepThought Farms','Parameter Pastures','Gradient Descent Diner','Attention Is All We Need LLC','Overfit Analytics']},
+ gpu:{l:'AI GPU data center',opts:[200,400,800],rate:70,lv:3,names:['Northwind Compute','Helix AI Labs','Meridian GPU Cloud','Cascade Machine Learning','Orbital Inference','Lattice Training Systems','Tensorworks','Quanta Cloud Services','Vector Compute Partners','Ridgeline AI','Summit GPU Hosting','Atlas Model Labs']},
  onramp:{l:'Cloud on-ramp',opts:[100,200,400],rate:0,l2:true,km:0.7,lv:3,names:["Amazon on-ramp","Microsoft Azure on-ramp",'Google Cloud on-ramp','Alibaba Cloud on-ramp','Oracle Cloud on-ramp']},
- ai:{l:'AI training interconnect',opts:[400,800,1600],rate:0,l2:true,div:true,km:0.9,lv:4,names:['Skynet-ish Compute','Galaxy Brain Training Run','Megawatt Minds','The Big Model Co.','Infinite Context Corp','Sentient Spreadsheet Inc.']},
+ ai:{l:'AI training interconnect',opts:[400,800,1600],rate:0,l2:true,div:true,km:0.9,lv:4,names:['Frontier Compute Alliance','Large Model Training Consortium','Megawatt AI Campus','Foundation Models Group','Hyperion Research Compute','Continental AI Cloud']},
  hyper:{l:'Hyperscaler DCI',opts:[1600,3200,6400],rate:0,l2:true,div:true,km:0.5,lv:4,names:["Amazon DCI","Microsoft Azure DCI",'Google Cloud DCI','Meta Infra DCI','Alibaba Cloud DCI']},
- hft:{l:'High-frequency trading link',opts:[1,5,10],rate:0,l2:true,lat:true,km:6,lv:2,names:['Flash Boys Capital','Nanosecond Nancy Trading','Speed of Light Securities','Arbitrage & Sons','Front-Run Fund','Microwave Tower Capital','Tick-Tock Quant','Low Latency Larry LLC']},
- bulk:{l:'Bulk backup transfer (latency does not matter)',opts:[100,200,400],rate:0,l2:true,scenic:true,km:0.1,lv:2,names:['Glacier Slow Storage','Tape Backup Tortoise','Scenic Route Archives','Cold Storage Cold Cuts','Sloth Sync','Eventually Consistent Inc.','Snail Mail Data Co.']},
- event:{l:'Event network',opts:[100,200,400,800,1600,3200],rate:0,event:true,lv:2,names:['Carnaval-ish Parade','Diwali-ish Streaming Night','The World Cup-ish Final','NANOG-ish 99','Burning Router Festival','Eurovisión-ish Song Contest','Formula Ping Grand Prix','The Big Game','Olympic Pings','A Pop Megastar Stadium Tour','LAN Party of the Century','The Keynote (One More Thing)','Gamescom-ish Expo','Oktoberfest-ish Livestream']},
- sdwan:{l:'SD-WAN for a chain',opts:[1,2,5,10],rate:0,l2:true,sdwan:true,km:0,lv:2,names:['Kebab Kingdom','Pretzel Palace','Burger Router Inc.','Café Latte-ncy','Hardware Hut Stores','Pharma-See Pharmacies','Bank of Tiny Branches','Supermarket Superhighway','Fitness Pings Gyms','Hotel Hops Group','Doughnut Data Diners']},
- wwave:{l:'Wholesale wave',opts:[1],rate:0,fiber:true,lv:2,names:['Zay-No Fiber','Loomin’ Technologies','Clown Castle Fiber','GTT (Got Tangled Twice)','A Hyperscaler Who Shall Not Be Named','Megapork','youNetworks']},
- dfpair:{l:'Dark fiber pair lease',opts:[1],rate:0,fiber:true,lv:3,names:['A Hyperscaler Who Shall Not Be Named','Google Fiber Division','Meta Infra','Amazon Backbone Team','A Very Secretive Trading Firm']},
+ hft:{l:'High-frequency trading link',opts:[1,5,10],rate:0,l2:true,lat:true,km:6,lv:2,names:['Meridian Quantitative Trading','Citadel Row Capital','Speedwell Securities','Arbor Arbitrage Partners','Tick Data Capital','Microwave Path Trading','Quantlane Holdings','Lowlatency Markets LLC']},
+ bulk:{l:'Bulk backup transfer (latency does not matter)',opts:[100,200,400],rate:0,l2:true,scenic:true,km:0.1,lv:2,names:['Glacier Cold Storage','Archive Tape Services','Offsite Backup Corp','Cold Vault Archives','Replication Partners','Eventual Storage Inc.','Longterm Data Co.']},
+ event:{l:'Event network',opts:[100,200,400,800,1600,3200],rate:0,event:true,lv:2,names:['Rio Carnival Livestream','Diwali Festival Livestream','World Cup Final','NANOG Conference','Burning Man Livestream','Eurovision Song Contest','Formula 1 Grand Prix','Super Bowl','Olympic Games','Stadium Tour Livestream','Esports World Cup','Product Keynote Livestream','Gamescom','Oktoberfest Livestream']},
+ sdwan:{l:'SD-WAN for a chain',opts:[1,2,5,10],rate:0,l2:true,sdwan:true,km:0,lv:2,names:['Harbor Coffee Co.','Greenfield Pharmacies','Metro Hardware Stores','Summit Fitness Clubs','Alpine Hotel Group','Urban Burger Kitchen','Northern Credit Union','Cityline Supermarkets','Riverside Bakeries','Pioneer Auto Parts','Bluebird Dental Group']},
+ wwave:{l:'Wholesale wave',opts:[1],rate:0,fiber:true,lv:2,names:['Zayo','Lumen','Crown Castle Fiber','GTT','Amazon Web Services','Megaport','euNetworks']},
+ dfpair:{l:'Dark fiber pair lease',opts:[1],rate:0,fiber:true,lv:3,names:['Google','Meta','Amazon Web Services','Microsoft','A quantitative trading firm']},
  scrub:{l:'DDoS protection + DIA',opts:[1,5,10,20],rate:900},
- aiwan:{l:'AI WAN between two AI factories',opts:[3200,6400,12800],rate:0,l2:true,div:true,mega:true,km:0.45,lv:4,names:['Fairwater-ish AI WAN','Planet-Scale Superfactory Link','Two Brains One Model Inc.','Distributed Godlike Compute','The Gigawatt Handshake']},
- mtrain:{l:'Multi-site training run',opts:[1600,3200,6400],rate:0,l2:true,sdwan:true,mega:true,lv:4,names:['Gemini-ish Ultra Training Run','Frontier Model 9000','The Very Big Model','Checkpoint-Free Training Co.','Model Too Big For One Building']},
- ingest:{l:'Dataset ingest (elephant flow)',opts:[1600,3200,6400],rate:0,event:true,mega:true,lv:3,names:['Scrape-the-Whole-Web Ingest','Checkpoint Sync Storm','Video Dataset Firehose','Every Book Ever (allegedly licensed)','Synthetic Data Tsunami']},
- pairs:{l:'Hundreds of fiber pairs',opts:[1],rate:0,fiber:true,mega:true,lv:4,names:['A Hyperscaler Who Shall Not Be Named','Planet-Scale AI WAN Team','The Fiber-Hungry Giant','Project Very Long Glass']},
- provedor:{l:'Provedor (small regional ISP)',opts:[5,10,20,40],rate:20,br:true,names:['Provedor Capivara Net','Fibra do Sertão','Rapidinho Telecom','Net Jabuticaba','Caipirinha Online','Wi-Fi do Zé','Pão de Queijo Fibra','Açaí Net','Tucano Telecom','Forró Fibra','Saci Net','Brigadeiro Banda Larga','Mandioca Online','Churrasco Connect']},
+ aiwan:{l:'AI WAN between two AI factories',opts:[3200,6400,12800],rate:0,l2:true,div:true,mega:true,km:0.45,lv:4,names:['Microsoft Fairwater AI WAN','Meta Hyperion–Prometheus backbone','Amazon Project Rainier backbone','Google TPU fabric interconnect','Stargate campus interconnect']},
+ mtrain:{l:'Multi-site training run',opts:[1600,3200,6400],rate:0,l2:true,sdwan:true,mega:true,lv:4,names:['Frontier model pre-training run','Multi-site foundation model run','Mixture-of-experts training run','Reinforcement learning cluster','Distributed pre-training job']},
+ ingest:{l:'Dataset ingest (elephant flow)',opts:[1600,3200,6400],rate:0,event:true,mega:true,lv:3,names:['Web crawl ingest','Checkpoint sync','Video dataset ingest','Book corpus ingest','Synthetic data generation burst']},
+ pairs:{l:'Hundreds of fiber pairs',opts:[1],rate:0,fiber:true,mega:true,lv:4,names:['Amazon Web Services','Microsoft','Google','Meta']},
+ provedor:{l:'Provedor (small regional ISP)',opts:[5,10,20,40],rate:20,br:true,names:['Rede Sul Telecom','Fibra Sertão','Conecta Minas','NetVale Telecom','Ultra Fibra','Brasil Link Telecom','Vale Digital','Costa Verde Internet','Planalto Fibra','Serra Net','Litoral Telecom','Central Fibra','Cerrado Online','Pampa Telecom']},
 };
 const LEVELS=[
  {n:'Local ISP',req:'Start here',unlock:'Enterprises, game servers, hosting, L2VPNs and DDoS protection.'},
@@ -1034,7 +1036,7 @@ const LEVELS=[
 ];
 const lvl=()=>(S&&S.lvl)||1;
 function custLevel(){const pops=Object.keys(S.pops).length,pk=S.stats.peak;if(pk>=3000&&pops>=10&&regionsCount()>=3)return 4;if(pk>=1000&&pops>=6)return 3;if(pk>=200&&pops>=3)return 2;return 1;}
-const BIZ_N=['Byte-Size Bakery','Hamster Wheel Power Co.','Llama Logistics','Cloud Nine Hosting','Rural Rabbit Broadband','Tiny Telco','Pixel Pirates Games','Moo-Moo Dairy Corp','Snack Overflow','Git Happens Ltd','Kernel Sanders Fried Code','Lag-Free Llamas','404 Bistro','Ping Pong Sports','Null Pointer Pets','Buffer Bloat Boats','Packet Pizza','Latency Lattes','Ctrl-Alt-Deli','Sudo Sandwiches','Cache Me Outside','Hertz So Good Radio','Jitterbug Dance Hall','Bit Barn Hosting','Fiber Optimists','The Daily Ping','Squirrel Mesh Wireless','Spam & Eggs Diner','Router Rooter Plumbing','Kilobyte Kebab','Gigglebit Studios','Uptime Funk Records','Ohm Sweet Ohm','Dial-Up Nostalgia Club','Two-Factor Tacos'];
+const BIZ_N=['Harbor Bakery','Northfield Power Co.','Redwood Logistics','Cloudline Hosting','Prairie Broadband','Clearwater Telecom','Pixel Harbor Games','Meadow Dairy Corp','Stackbyte Software','Fernhill Systems','Hollis & Grant Law','Kestrel Pet Supplies','Blue Heron Marine','Packwell Pizza','Daybreak Coffee Roasters','Ironbridge Sandwiches','Lakeside Radio','Marlow Dance Hall','Granite Hosting','Open Fiber Trust','The Daily Courier','Maple Street Pharmacy','Copperfield Analytics','Silverline Cinemas','Foxglove Florists','Brightwater Dental','Oakmont Insurance','Tidewater Shipping','Willow Creek Farms','Beacon Print Works','Summit Ski Resort','Halcyon Games Studio','Pinecrest Realty','Anchor Point Brewing','Cobalt Cybersecurity','Driftwood Travel','Evergreen Nurseries','Ashford Accountants','Larkspur Software','Quarry Hill Vineyards','Mapleton Hospital','Sunrise Bakery Group','Vantage Fitness','Westbrook Hotels','Zenith Components','Harvest Table Grocers','Atlas Freight','Juniper Street Studios','Kingfisher Outdoors','Bridgeway Credit Union','Thornton Engineering','Lumina Labs'];
 
 /* ================= GOALS ================= */
 const GOALS=[
@@ -1068,17 +1070,17 @@ function emptyR(){return {teBlack:0,tNet:{},egT:{},netEg:{},l2lat:{},nodeLoad:{}
    is a fixed monthly payment that shows up in your costs; conditions are checked
    daily and breaking one costs a penalty. */
 const BANKS={
- gs:{name:'Goldman Sacks',col:'#6F8FAF',min:'A',apr:[.07,.11],amt:[4,9],term:[24,48],covs:['peer30','continents2','golf'],blurb:'Only lends to people who do not need it.'},
- db:{name:'Deutsche Bankrupt',col:'#0018A8',min:'BBB',apr:[.08,.13],amt:[3,7],term:[18,36],covs:['nocog','gen','fax'],blurb:'Very solid. Mostly.'},
- jpm:{name:'JP Morgain',col:'#5B4636',min:'BBB',apr:[.09,.14],amt:[3,6],term:[12,36],covs:['uptime','logo'],blurb:'Lends you money and also a little bit of their own.'},
- cs:{name:'Credit Sweaty',col:'#7A9CC6',min:'BB',apr:[.11,.17],amt:[2,5],term:[12,30],covs:['cash50','nochina'],blurb:'Nervous, but enthusiastic.'},
- wf:{name:'Wells Far-Gone',col:'#D71E28',min:'BB',apr:[.12,.18],amt:[2,4],term:[12,24],covs:['nosub','logo'],blurb:'Opened three accounts for you while you read this.'},
- spk:{name:'Spätzle-Sparkasse',col:'#E30613',min:'B',apr:[.05,.08],amt:[1,3],term:[24,60],covs:['spaetzle','kehrwoche'],blurb:'Cheap, patient, and very particular about Stuttgart.'},
- rev:{name:'Revoloot',col:'#191C1F',min:'B',apr:[.13,.2],amt:[1,3],term:[6,18],covs:['app'],blurb:'Instant approval. Instant regret.'},
- gov:{name:'Ministry of Tubes',col:'#2E7D32',min:'CCC',apr:[.01,.02],amt:[1,2],term:[36,60],covs:['rural','forms'],blurb:'Cheap state money for connecting the underserved. Bring a pen.'},
- crypto:{name:'Crypto Bros Capital',col:'#F7931A',min:'CCC',apr:[.15,.25],amt:[2,6],term:[6,18],covs:['hodl'],crypto:true,blurb:'Pays out in TubeCoin. Value may vary. A lot.'},
- vult:{name:'Venture Vultures',col:'#8E44AD',min:'CCC',amt:[6,12],share:[.1,.15],covs:['blitz'],equity:true,blurb:'No repayments, ever. Just a slice of your revenue, forever, and a lot of opinions.'},
- shark:{name:'Loan Shark Telecom Finance',col:'#37474F',min:'C',apr:[.6,.9],amt:[1,2],term:[4,8],covs:[],shark:true,blurb:'Always open. Ask no questions. Do not be late.'},
+ gs:{name:'Meridian Merchant Bank',col:'#6F8FAF',min:'A',apr:[.07,.11],amt:[4,9],term:[24,48],covs:['peer30','continents2','golf'],blurb:'Selective lender for established networks.'},
+ db:{name:'Hanseatic Commercial Bank',col:'#0018A8',min:'BBB',apr:[.08,.13],amt:[3,7],term:[18,36],covs:['nocog','gen','fax'],blurb:'Conservative and well capitalised.'},
+ jpm:{name:'Atlantic Trust & Co.',col:'#5B4636',min:'BBB',apr:[.09,.14],amt:[3,6],term:[12,36],covs:['uptime','logo'],blurb:'Large balance sheet, strict covenants.'},
+ cs:{name:'Alpine Credit',col:'#7A9CC6',min:'BB',apr:[.11,.17],amt:[2,5],term:[12,30],covs:['cash50','nochina'],blurb:'Mid-market lender with moderate rates.'},
+ wf:{name:'Pacific Union Bank',col:'#D71E28',min:'BB',apr:[.12,.18],amt:[2,4],term:[12,24],covs:['nosub','logo'],blurb:'Retail and business lending.'},
+ spk:{name:'Württemberg Savings Bank',col:'#E30613',min:'B',apr:[.05,.08],amt:[1,3],term:[24,60],covs:['spaetzle','kehrwoche'],blurb:'Cheap and patient, tied to its home region.'},
+ rev:{name:'Instant Capital',col:'#191C1F',min:'B',apr:[.13,.2],amt:[1,3],term:[6,18],covs:['app'],blurb:'Fast approval, high rates.'},
+ gov:{name:'Ministry of Digital Infrastructure',col:'#2E7D32',min:'CCC',apr:[.01,.02],amt:[1,2],term:[36,60],covs:['rural','forms'],blurb:'Subsidised loans for connecting underserved areas.'},
+ crypto:{name:'Blockchain Capital Partners',col:'#F7931A',min:'CCC',apr:[.15,.25],amt:[2,6],term:[6,18],covs:['hodl'],crypto:true,blurb:'Pays out in TubeCoin, so the amount can vary a lot.'},
+ vult:{name:'Venture Growth Partners',col:'#8E44AD',min:'CCC',amt:[6,12],share:[.1,.15],covs:['blitz'],equity:true,blurb:'No repayments, but a share of your revenue.'},
+ shark:{name:'Quick Cash Telecom Finance',col:'#37474F',min:'C',apr:[.6,.9],amt:[1,2],term:[4,8],covs:[],shark:true,blurb:'Always open, very expensive. Do not be late.'},
 };
 const RATINGS=['C','CCC','B','BB','BBB','A','AA','AAA'];
 const COVS={
@@ -1146,10 +1148,10 @@ Math.random=function(){if(S&&typeof S.rng==='number'){let t=(S.rng=(S.rng+0x6D2B
 function isoWeek(dt){const d=new Date(Date.UTC(dt.getFullYear(),dt.getMonth(),dt.getDate()));const n=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-n);const y0=new Date(Date.UTC(d.getUTCFullYear(),0,1));return {y:d.getUTCFullYear(),w:Math.ceil(((d-y0)/864e5+1)/7)};}
 function pathExists(a,b){if(!S.pops[a]||!S.pops[b])return false;const adj={};for(const l of S.links){if(linkDown(l))continue;(adj[l.a]=adj[l.a]||[]).push(l.b);(adj[l.b]=adj[l.b]||[]).push(l.a);}const seen=new Set([a]),q=[a];while(q.length){const u=q.shift();if(u===b)return true;for(const v of adj[u]||[])if(!seen.has(v)){seen.add(v);q.push(v);}}return false;}
 const SCN=[
- {id:'stg',n:'Only Spätzle-IX',city:'stg',cash:400000,days:730,rules:{noTransit:true},d:'Start in Stuttgart, where nobody sells transit. Reach the internet through peering, PNIs, caches and your own fiber only. No transit anywhere, ever.',goal:'Serve 200 Gbps',ok:()=>R.served>=200},
+ {id:'stg',n:'Only Stuttgart-IX',city:'stg',cash:400000,days:730,rules:{noTransit:true},d:'Start in Stuttgart with transit switched off. Reach the internet through peering, PNIs, caches and your own fiber only. No transit anywhere, ever.',goal:'Serve 200 Gbps',ok:()=>R.served>=200},
  {id:'redsea',n:'Red Sea Crisis',city:'mrs',cash:2500000,days:540,rules:{banCities:['cai','jed'],banPairs:['eig:dxb-mrs','gbi:fuj-mrs','smw4:khi-mrs','smw6:mrs-bom','smw6:mrs-sin','peace:mrs-sin','aae:mrs-hkg','twoaf:mrs-bom','medn:cai-mrs','medn:ist-mrs','twoaf:jnb-mrs','eassy:nbo-mrs']},d:'Every cable through the Red Sea is cut, and so is the hop to Egypt. Get Marseille talking to Singapore anyway: round Africa, overland, or the other way round the planet.',goal:'A path from Marseille to Singapore, and 300 Gbps served',ok:()=>pathExists('mrs','sin')&&R.served>=300},
  {id:'spat',n:'The Cogent Spat',city:'nyc',cash:700000,days:540,rules:{spat:true},d:'In this fictional scenario Cogent and Google have stopped peering for good. Buy the cheap transit if you dare.',goal:'99% reach and 150 Gbps served',ok:()=>R.reach>=0.99&&R.served>=150},
- {id:'carnaval',n:'Carnaval',city:'rio',cash:600000,days:100,rules:{},setup:()=>{S.biz.push({id:uid(),scripted:true,city:'rio',city2:null,reqs:[],name:'Carnaval-ish Parade in Rio de Janeiro',type:'event',bw:400,rate:0,mood:100,since:0,start:90,dur:5,fee:400*5*70});},d:'Rio from scratch. Carnaval-ish starts in 90 days and wants 400 Gbps for five days straight. The whole world is watching.',goal:'Deliver Carnaval in full',ok:()=>(S.stats.evFull||0)>=1},
+ {id:'carnaval',n:'Carnaval',city:'rio',cash:600000,days:100,rules:{},setup:()=>{S.biz.push({id:uid(),scripted:true,city:'rio',city2:null,reqs:[],name:'Carnaval Parade in Rio de Janeiro',type:'event',bw:400,rate:0,mood:100,since:0,start:90,dur:5,fee:400*5*70});},d:'Rio from scratch. Carnaval starts in 90 days and wants 400 Gbps for five days straight. The whole world is watching.',goal:'Deliver Carnaval in full',ok:()=>(S.stats.evFull||0)>=1},
  {id:'darien',n:'Mind the Gap',city:'pan',cash:900000,days:730,rules:{},d:'Start in Panama City. Nothing crosses the Darién Gap by land, and the Andes are in the way of everything else.',goal:'POPs in Bogotá, Lima, Santiago and São Paulo, and 150 Gbps served',ok:()=>['bog','lim','scl','sao'].every(c=>S.pops[c])&&R.served>=150},
  {id:'baltic',n:'Anchors Away',city:'tll',cash:500000,days:540,rules:{anchors:3},d:'Tallinn. Ships drag their anchors over Baltic cables three times as often as usual.',goal:'90 days in a row with 99.5% of demand served',ok:()=>(S.stats.clean||0)>=90},
 ];
@@ -1167,7 +1169,7 @@ function beginGame(nm,city,o={}){newGame(nm,city,o.asn);S.mode=o.mode||'normal';
   toast(S.scn?`<b>${esc(S.scn.name)}</b><br>${esc(o.scn.goal||'Serve as much traffic as you can in one year.')} You have ${S.scn.days} days.`:S.mode==='sandbox'?`<b>Sandbox mode</b><br>A billion dollars, every unlock, and nothing ever breaks. Build the internet you always wanted.`:`<b>Welcome, ${esc(nm)}!</b><br>${o.asn?'You announce':rirFor(city)+' assigned you'} AS${S.asn}. Your first router is humming in ${CITY[city].name}.`,'goal');
   renderAll();save();if(!S.scn&&S.mode!=='sandbox')tutorialStart();}
 /* ---------- conference season ---------- */
-const CONFS=[{n:'NANOG-ish',c:'chi',m:1},{n:'APRICOT-ish',c:'sin',m:1},{n:'Peering Days-ish',c:'waw',m:2},{n:'UKNOF-ish',c:'lon',m:3},{n:'MENOG-ish',c:'dxb',m:3},{n:'NZNOG-ish',c:'akl',m:3},{n:'RIPE-ish',c:'ams',m:4},{n:'NANOG-ish',c:'sea',m:5},{n:'IX Forum-ish',c:'tok',m:6},{n:'AfPIF-ish',c:'nbo',m:7},{n:'AusNOG-ish',c:'syd',m:8},{n:'LACNOG-ish',c:'sao',m:9},{n:'NANOG-ish',c:'ash',m:9},{n:'DENOG-ish',c:'fra',m:10},{n:'RIPE-ish',c:'ber',m:10},{n:'PTT Forum-ish',c:'sao',m:11}];
+const CONFS=[{n:'NANOG',c:'chi',m:1},{n:'APRICOT',c:'sin',m:1},{n:'Peering Days',c:'waw',m:2},{n:'UKNOF',c:'lon',m:3},{n:'MENOG',c:'dxb',m:3},{n:'NZNOG',c:'akl',m:3},{n:'RIPE Meeting',c:'ams',m:4},{n:'NANOG',c:'sea',m:5},{n:'IX Forum',c:'tok',m:6},{n:'AfPIF',c:'nbo',m:7},{n:'AusNOG',c:'syd',m:8},{n:'LACNOG',c:'sao',m:9},{n:'NANOG',c:'ash',m:9},{n:'DENOG',c:'fra',m:10},{n:'RIPE Meeting',c:'ber',m:10},{n:'PTT Forum',c:'sao',m:11}];
 const CONF_COST=8000,CONF_DAYS=45;
 const confDay=(cf,y)=>y*360+cf.m*30+9;
 function confKey(cf,y){return cf.n+'@'+cf.c+'@'+y;}
@@ -1176,7 +1178,7 @@ function confBoost(id){const cb=S.conf;if(!cb||!(cb.until>S.day))return 1;const 
 function confTick(d){S.confReg=S.confReg||{};
   for(const cf of upcomingConfs(30)){if(cf.day-d===30&&!S.confReg[cf.key])toast(`<b>${esc(cf.n)} comes to ${esc(CITY[cf.c].name)} in 30 days.</b><br>Peering coordinators, hallway track, free stickers. Register in the Deals tab.`,'goal',[{l:'Show me',act:'leftTab',args:{t:'deals'}}]);}
   for(const cf of upcomingConfs(0)){if(cf.day!==d||!S.confReg[cf.key])continue;const reg=CITY[cf.c].reg;S.conf={until:d+CONF_DAYS,reg,name:cf.n};S.stats.confs=(S.stats.confs||0)+1;
-    const r=Math.random();let extra='';if(r<0.3){const cash=5000+Math.floor(Math.random()*4)*5000;S.cash+=cash;extra=` You also won the raffle: ${fmt$(cash)} worth of optics, sold on eBuy the same evening.`;}else if(r<0.5)extra=' Someone from Google bought you a beer. You did not get their name, only a sticker.';
+    const r=Math.random();let extra='';if(r<0.3){const cash=5000+Math.floor(Math.random()*4)*5000;S.cash+=cash;extra=` You also won the raffle: ${fmt$(cash)} worth of optics, sold on eBay the same evening.`;}else if(r<0.5)extra=' Someone from Google bought you a beer. You did not get their name, only a sticker.';
     toast(`<b>${esc(cf.n)} in ${esc(CITY[cf.c].name)}</b><br>You shook a lot of hands. For ${CONF_DAYS} days, selective networks with a presence in ${esc(REG[reg])} want half the usual traffic before they peer.${extra}`,'goal');sfx('coin');}}
 function confSection(){const up=upcomingConfs(75).slice(0,3),cb=S.conf&&S.conf.until>S.day?S.conf:null;if(!up.length&&!cb)return '';
   return `<h3 style="font-size:15px;margin:10px 0 4px">Conferences</h3>${cb?`<div class="inc" style="background:#EAF7EE"><div class="nm">${esc(cb.name)} glow: ${cb.until-S.day} days left</div><div class="meta">Selective networks in ${esc(REG[cb.reg])} need half the usual traffic to peer. Now is the time to ask for that PNI.</div></div>`:''}${up.map(cf=>{const reg=S.confReg&&S.confReg[cf.key];return `<div class="row"><div class="grow"><div class="nm">${esc(cf.n)} · ${esc(CITY[cf.c].name)}</div><div class="meta">${cf.day===S.day?'Today':`in ${cf.day-S.day} days`} · ${esc(REG[CITY[cf.c].reg])}</div></div>${reg?'<span class="tag st on">Registered</span>':cf.day<=S.day?'<span class="tag st">Registration closed</span>':btn(`Attend <small>${fmt$(CONF_COST)}</small>`,'confGo',{key:cf.key},'sm',S.cash<CONF_COST)}</div>`;}).join('')}`;}
@@ -1739,7 +1741,7 @@ function eventTick(b,d){if(!BIZ_T[b.type].event)return false;if(d<b.start)return
   const avg=b.srvDays?b.srv/b.srvDays:0;if(avg>=0.95)S.stats.evFull=(S.stats.evFull||0)+1;const pay=avg>=0.95?b.fee:avg>=0.7?Math.round(b.fee*avg):-Math.round(b.fee*0.2);S.cash+=pay;S.biz=S.biz.filter(x=>x!==b);
   toast(pay>=0?`<b>${esc(b.name)} is over: +${fmt$(pay)}</b><br>You delivered ${pct(avg)} of what the crowd wanted.${avg>=0.95?' Flawless.':''}`:`<b>${esc(b.name)} was a disaster.</b><br>Only ${pct(avg)} delivered, and it trended on social media. Penalty: ${fmt$(-pay)}.`,pay>=0?'good':'bad');sfx(pay>=0?'coin':'err');return true;}
 /* Where the giants actually build: gigawatt AI campuses and cloud regions, mapped to the nearest city on the map. */
-const MEGA=[{c:'ash',n:'Data Center Alley-ish'},{c:'ash',n:'Prometheus-ish Ohio'},{c:'dal',n:'Star-Gait Abilene'},{c:'dal',n:'Hyperion-ish Louisiana'},{c:'dal',n:'Colossal Ego Memphis'},{c:'chi',n:'Fairwater-ish Wisconsin'},{c:'chi',n:'Project Rainier-ish Indiana'},{c:'chi',n:'Cornfield Cluster Iowa'},{c:'nyc',n:'Neocloud New Jersey'},{c:'sto',n:'Star-Gait Fjord-way'},{c:'mad',n:'Aragón Mega-shed'},{c:'dub',n:'Bring-Your-Own-Power Dublin'},{c:'auh',n:'Star-Gait UAE'},{c:'ruh',n:'Desert Kingdom AI Campus'},{c:'doh',n:'Lusail-ish Data Oasis'},{c:'kul',n:'Johor-ish Overflow'},{c:'hyd',n:'Vizag-ish AI Hub'},{c:'icn',n:'Ulsan-ish AI Campus'},{c:'tok',n:'HokkaiNTT Docomo Snow DC'},{c:'syd',n:'Star-Gait Down Under'},{c:'mex',n:'Querétaro-ish Cluster'},{c:'for',n:'Short-Video Ceará Campus'},{c:'scl',n:'Quilicura-ish Region'}];
+const MEGA=[{c:'ash',n:'Data Center Alley'},{c:'ash',n:'Meta Prometheus, Ohio'},{c:'dal',n:'Stargate Abilene'},{c:'dal',n:'Meta Hyperion, Louisiana'},{c:'dal',n:'xAI Colossus, Memphis'},{c:'chi',n:'Microsoft Fairwater, Wisconsin'},{c:'chi',n:'Amazon Project Rainier, Indiana'},{c:'chi',n:'Iowa Hyperscale Cluster'},{c:'nyc',n:'New Jersey Neocloud Campus'},{c:'sto',n:'Stargate Norway'},{c:'mad',n:'Aragón Hyperscale Campus'},{c:'dub',n:'Dublin Hyperscale Campus'},{c:'auh',n:'Stargate UAE'},{c:'ruh',n:'Saudi AI Campus'},{c:'doh',n:'Qatar AI Campus'},{c:'kul',n:'Johor Hyperscale Campus'},{c:'hyd',n:'Visakhapatnam AI Hub'},{c:'icn',n:'Ulsan AI Campus'},{c:'tok',n:'Hokkaido AI Data Center'},{c:'syd',n:'Sydney Hyperscale Campus'},{c:'mex',n:'Querétaro Cluster'},{c:'for',n:'Ceará Hyperscale Campus'},{c:'scl',n:'Santiago Cloud Region'}];
 function spawnMega(t,T,nm,mine){
   const megaMine=MEGA.filter(m=>mine.includes(m.c));if(!megaMine.length)return;
   if(t==='ingest'){const m=pick(megaMine),bw=pick(T.opts),dur=3+Math.floor(Math.random()*4),start=S.day+10+Math.floor(Math.random()*12);
@@ -1995,7 +1997,7 @@ function fireEvent(){
   if(e==='gulf'){const dur=60+Math.floor(Math.random()*60);S.ev.gulf=S.day+dur;toast(`<b>The neighbours have fallen out.</b><br>A diplomatic spat closes borders and airspace around Qatar. Every link between Doha and Saudi Arabia or the UAE is down for about ${dur} days. Route the long way round, by sea.`,'bad');sfx('alert');}
   if(e==='mega'){const c=pick(Object.keys(S.pops).filter(x=>CITY[x].saudi)),bw=pick([800,1600,3200]),start=S.day+15;S.offers.push({id:uid(),city:c,city2:null,name:`A futuristic city that is not built yet, demo day in ${CITY[c].name}`,type:'event',bw,rate:0,reqs:[],start,dur:4,fee:bw*4*90,exp:start-2});toast(`<b>A gigaproject wants a demo.</b><br>${fmtG(bw)} for four days in ${CITY[c].name}, to show off a city that is still mostly renderings. Check the Deals tab.`,'goal');}
   if(e==='sanctionLink'){const l=S.links.find(x=>x.kind==='df'&&sanctionedPair(x.a,x.b));if(!l)return;const fine=Math.min(Math.max(0,S.cash),Math.max(50000,Math.round(S.cash*0.12)));S.cash-=fine;l.cut=S.day+45;toast(`<b>Sanctioned!</b><br>Your dark fiber between ${esc(CITY[l.a].name)} and ${esc(CITY[l.b].name)} drew the attention of regulators. Fine: ${fmt$(fine)}, and the link is shut for 45 days.`,'bad');sfx('alert');compute();return;}
-  if(e==='sanction'){S.ev.sanction=S.day+60;toast('<b>Sanctions!</b><br>The Republic of Paperworkistan sanctioned your router vendor’s favorite screw supplier. Spare parts are slow: router crashes take twice as long to fix for 60 days.','bad');sfx('alert');return;}
+  if(e==='sanction'){S.ev.sanction=S.day+60;toast('<b>Sanctions!</b><br>A government sanctioned one of your router vendor’s suppliers. Spare parts are slow: router crashes take twice as long to fix for 60 days.','bad');sfx('alert');return;}
   if(e==='tariff'){S.ev.tariff=S.day+90;toast('<b>Trade war on optics</b><br>Two governments slapped tariffs on each other’s lasers. Optics cost 40% more for 90 days.','bad');sfx('alert');return;}
   if(e==='hijack'){const nh=NETS.map(n=>n.id).filter(()=>Math.random()<0.6),old=S.ev.rpki&&S.ev.rpki.until>S.day?S.ev.rpki:null;S.ev.rpki=old?{until:Math.max(old.until,S.day+1),nets:[...new Set(old.nets.concat(nh))]}:{until:S.day+1,nets:nh};addInc({type:'hijack',ref:'rpki',until:S.day+1,msg:'A state-owned ISP “accidentally” announced your prefixes for 18 minutes. Their apology press release was suspiciously well written. Many networks are still routing your traffic into the void.',cost:1500,fix:'Call everyone you know'});toast('<b>BGP hijack</b><br>Someone else is announcing your prefixes. Reach is down until it is cleaned up.','bad');sfx('alert');return;}
   if(e==='landban'){const lc=[...new Set(CABLE_PAIRS.flatMap(c=>[c.a,c.b]))];const c=pick(lc);S.ev.landban={city:c,until:S.day+45};toast(`<b>Landing permit dispute in ${CITY[c].name}</b><br>Two ministries both claim the beach. No new subsea links can land there for 45 days.`,'bad');return;}
@@ -2214,6 +2216,9 @@ const ACT={
  tab:({t})=>{UI.tab=t;UI.confirm=null;renderPanel();},
  leftTab:({t})=>{UI.left=t;UI.leftOpen=true;renderLeft();},
  toggleLeft:()=>{UI.leftOpen=!UI.leftOpen;renderLeft();},
+ citySet:({v})=>{UI.hideSmall=v===undefined?!UI.hideSmall:v==='hide';try{localStorage.setItem('sot-small',UI.hideSmall?'hide':'show');}catch(e){}const m=$('modalCard'),r=m&&m.querySelector('.setrow');if(r)r.outerHTML=settingsRow();const b=$('smallBtn');if(b)b.classList.toggle('on',!!UI.hideSmall);},
+ citySearch:()=>{if(!S||!UI.started)return;openModal(`<div style="display:flex;align-items:center"><div><div class="eyebrow">${CITIES.length.toLocaleString()} cities</div><h2 style="font-size:28px">Find a city</h2></div><button class="x" data-act="closeModal" aria-label="Close">×</button></div><input class="t" id="fcQ" placeholder="Type a city or a country" autocomplete="off" style="margin-top:8px"><div class="res" id="fcRes"></div><div class="btns" style="margin-top:10px">${btn(UI.hideSmall?'Show small cities':'Hide small cities','citySet',{v:UI.hideSmall?'show':'hide'},'ghost sm')}</div>`);const q=$('fcQ');if(q)q.focus();},
+ flyTo:({city})=>{if(!S||!CITY[city])return;closeModal();const C=CITY[city];cam.x=C.x;cam.y=C.y;cam.z=Math.max(cam.z,2.4);selectCity(city);if(innerWidth<760)UI.leftOpen=false;renderLeft();},
  focusCity:({city})=>{selectCity(city);const C=CITY[city];cam.x=C.x;cam.y=C.y;cam.z=Math.max(cam.z,1.2);if(innerWidth<760)UI.leftOpen=false;renderLeft();},
  selLink:({id})=>{UI.sel={type:'link',id};UI.confirm=null;renderPanel();},
  buildPop:({city})=>{if(S.pops[city])return;if(cnCity(city)&&!cnOk()){toast('<b>You need a license first.</b><br>Foreign networks need a joint venture to build in mainland China.','bad');sfx('err');return;}if(!spend(popCost(city)))return;S.pops[city]={day:S.day,bb:null,boost:0,down:0,routers:1,gen:false};floater(CITY[city].x,CITY[city].y-30,'New POP!','#FF4F9A');UI.tab='cust';after();},
@@ -2865,11 +2870,11 @@ function showHelp(){
   <dt>Embedded cache</dt><dd>A CDN's server in your rack. Serves most of that CDN's traffic locally, for the price of power.</dd>
   <dt>DE-CIX</dt><dd>The group behind several big exchanges (Frankfurt, Madrid, Marseille, Dubai, Mumbai, New York) treats price lists as a state secret. Ports are quoted per customer and go up the bigger you look. Haggling can work, backfire or stall for a week. Prices get "harmonised" upwards once a year, add-ons appear on your invoice until you opt out, and trying to leave earns you a retention discount that ends with a fee.</dd><dt>Remote peering</dt><dd>Reach an IX over a fabric circuit without a POP there. It works, and the route server still gets you every open network, but it is discouraged: the reseller charges 1.5× for the port and oversubscribes it to 80%, latency rides the fabric, one fabric outage drops every session, and many selective networks refuse remote members outright.</dd><dt>Peering policy</dt><dd>Open peers with anyone. Selective wants to see traffic first. Restrictive (Tier 1s) only peers with giants, over PNIs. Paid means exactly that. Big selective networks also have moods: in some cities they refuse new peers for a few months, or only take PNIs, and now and then they tear down a session you already had. Try another city or a PNI, and ask again later.</dd>
   <dt>Waves</dt><dd>Your fiber links are leased waves at a flat monthly rate. Longer and bigger costs more (10G → 6.4T), and subsea is 1.8× the price.</dd><dt>95th percentile</dt><dd>Transit bills sample your usage every day and charge the 95th percentile of the last 30 days, so short spikes are forgiven but long ones are not.</dd><dt>Routers</dt><dd>Each POP's router model caps its fastest port (100G, 400G, 800G, 1.6T) and how much it can forward. Bigger waves and ports need better routers at both ends. Better models unlock with your customer level. With one router, upgrades mean a day of downtime.</dd><dt>Dark fiber</dt><dd>Lease an IRU or build your own (slow, with delays), then buy a line system with amplifiers and light channels with 400ZR+, 800ZR+ or 1.6T transponders. Much cheaper than waves at scale, but the gear can fail. A spares kit speeds up repairs.</dd><dt>Subsea cables</dt><dd>Subsea waves can only follow real-ish cable systems, drawn faintly on the map (tap a city to highlight its cables). Teal ones are new and cheap, purple ones pricey, dashed ones old and cut-prone. All your waves on one cable die together when it is cut. Between continents on land, you can often choose overland (2.5×, many borders) or a cable.</dd><dt>Latency</dt><dd>Every link has latency. High-frequency traders pay a fortune for a circuit within their latency budget; route them “Lowest latency”. Bulk backup customers do not care, so route them “Scenic” over your quiet links to keep busy ones free.</dd><dt>NOC dashboard</dt><dd>The chart button at the top opens traffic graphs by exit (caches, PNIs, IX, transit), money over time, per-ASN traffic with how it reaches you and what its transit costs, plus your busiest links and routers.</dd><dt>Asia</dt><dd>A weird, underserved market. Transit costs 2.5× what it does in Europe (Africa 2×, Oceania 1.8×), local incumbents mostly peer only for pay, and IXs are fragmented. But demand is enormous and users sign up 60% faster than anywhere else. Peering and caches pay off most here.</dd><dt>Russia</dt><dd>Moscow needs a mandatory government box in every POP, Western CDNs are mostly gone, Google video is throttled to half speed, and the sovereign internet drills now and then cut Moscow off for a day.</dd><dt>Events, chains and wholesale</dt><dd>Event networks (a final, a festival, a keynote) need a burst of capacity in one city for a few days and pay once at the end, prorated by how much of the crowd you served; below 70% you pay a penalty. SD-WAN chains connect 3–6 of your POPs hub-and-spoke, so one broken spoke upsets the whole contract. Once you run your own dark fiber, carriers want to rent spare channels as alien waves, and on fiber you built yourself, a spare pair.</dd><dt>Bank</dt><dd>Tap your cash to open the bank. Lenders make offers now and then, and much more often when you are in the red. Each loan has a monthly payment and some odd conditions; break one and you pay a penalty. Your credit rating decides which banks talk to you. The loan shark is always there. Do not be late.</dd><dt>LAGs</dt><dd>Out of port speed? Bundle up to 8 identical ports to the same transit provider, IX or PNI into a LAG. Each member costs a full port; flow hashing is never perfectly even, so a bundle carries about 95% of the sum.</dd><dt>Traffic engineering</dt><dd>Tap a link to see which networks, which entry points and which customer cities fill it. Raise a link's metric to steer traffic around it, or set an egress (transit, IX, PNI) to Prefer or Backup only.</dd><dt>China</dt><dd>Mainland China needs a license and a local joint venture. Many foreign services are blocked there, and traffic crossing the border loses packets unless you pay for premium routes.</dd><dt>Weird requirements</dt><dd>Some customers come with conditions: no Cogent anywhere, no subsea cables because of sharks, two routers, a generator, Netflix on-net, low-loss China reach and more. Each pays a bonus. Unmet ones make them grumpy until you fix it or they leave.</dd><dt>Customer levels</dt><dd>As your peak traffic and footprint grow, bigger customers show up: streaming startups and universities, then AI GPU data centers and cloud on-ramps, then AI training interconnects and hyperscaler DCI deals measured in terabits. Pink $$ bubbles mark the big ones.</dd><dt>L2VPN & DDoS protection</dt><dd>Businesses may want a private circuit between two of your POPs (it rides your backbone), or DDoS protection (needs your own scrubbing center).</dd><dt>NNI fabrics</dt><dd>Megapork, PocketFabric and Consolation Connect sell a port plus virtual circuits between cities. Great for small links and remote peering at an IX where you have no POP.</dd>
-  <dt>Conferences</dt><dd>NANOG-ish, RIPE-ish, DENOG-ish and friends come round every year. Register in the Deals tab for $8k. For 45 days after, selective networks with a presence in that region need only half the usual traffic before they peer with you. Sometimes you also win the raffle.</dd><dt>Modes</dt><dd>Sandbox gives you a billion dollars, every unlock and no failures, but no badges. Scenarios are hand-built challenges with a goal and a deadline, and the weekly challenge gives everyone the same world for a week. Share your result with the card in the menu.</dd><dt>Traceroute</dt><dd>Tap 🔍 Traceroute on any of your cities, or open it from the NOC tab, to see the exact path to a network or POP, hop by hop, with latency, the exit and the AS path.</dd><dt>Badges</dt><dd>Below your goals sits a wall of badges, from common to legendary. Some take luck, some take years, and a couple are secret. Badges you earned in earlier games stay on this device with a dashed outline.</dd><dt>The giants</dt><dd>At customer level 3 and 4, hyperscalers and AI clouds show up with deals only they would ask for: terabit AI WANs between gigawatt campuses, training runs spread over several sites, week-long dataset ingests, and hundreds of fiber pairs in a trench you dug yourself. They pay like nobody else, and they want diverse paths, two sites per metro and zero excuses. Cities near their campuses list them under “Who’s here”.</dd><dt>RouteScript</dt><dd>Once Auto-TE is installed, you can program it from the NOC tab. Rules include <code>spill at 80%</code>, <code>prefer pni for goggle</code>, <code>avoid transit for netchill</code>, <code>cap transit cogentle at 20 gbps</code>, <code>drain paris</code>, <code>avoid link fra-ams</code> and <code>blackhole ddos</code>. Check runs a dry run against live traffic; Deploy makes it real, mistakes included.</dd><dt>Auto-TE</dt><dd>Traffic follows the shortest path by distance and link metric, and reroutes by itself when links fail. When a path is merely full, the overflow is dropped, just like a real IGP. From customer level 3 you can install Auto-TE in the NOC tab: it spills overflow onto up to two alternate paths with free capacity, as long as they are no more than twice as long.</dd><dt>Metro diversity</dt><dd>A POP is one building until you add a second site in the Infra tab. Then a power cut, cleaner or A/C failure only takes out half the city, and you choose which site each transit, PNI and IX port plugs into, or pick Both to split a LAG across the two buildings. Spread them out, or both halves of your redundancy will sit in the same dark room. Watch out for metro ring cuts, which cut site B off.</dd><dt>Wave markets</dt><dd>What a wave costs depends on where it runs. Europe is cheap (lots of competing fiber), North America is average, Asia and South America are pricier, and anything into Africa is several times the price. Every route has its own going rate, and new leases get about 8% cheaper each year, so waiting can pay. The link planner tells you how a route compares.</dd><dt>Regional quirks</dt><dd>In the Gulf, Saudi POPs need a local telecom licence and data on Saudi users stays in the Kingdom; gigaprojects ask for huge demo networks; and now and then the neighbours fall out and every link between Qatar and Saudi Arabia or the UAE goes dark for months, so keep a sea route. South America hangs off Miami: transit is pricier, nothing crosses the Darién Gap by land, and fiber over the Andes costs double and breaks often. IX.br in Brazil is run by a nonprofit with cheap public prices, and small Brazilian provedores buy transit in bulk. Inside the UAE only the duopoly may run fiber, so no dark fiber and 3× waves. Taiwan’s cables meet a lot of anchors, Indian fiber meets road widening and the monsoon, and South Africa has load shedding: bring a generator.</dd><dt>Boot times</dt><dd>Some routers take forever to boot. The Infra tab shows how long yours takes. Slow booters make crashes last longer and turn a one-router swap into a three-day outage. Bigger chassis, especially anything with a PacketOinker™ inside, are slow more often. Twin routers make it someone else’s problem.</dd><dt>Failures</dt><dd>Things break all the time: fiber cuts, router crashes, power cuts, IX loops, fabric outages, route leaks, DDoS, fat fingers, cooling failures, and geopolitics: sanctions, tariffs, BGP hijacks, landing permit disputes, exam-day shutdowns and Red Sea cable cuts. Traffic reroutes automatically over other paths and upstreams. Parallel links on diverse routes, a second router and a backup generator all help. Or pay to rush repairs.</dd>
+  <dt>Conferences</dt><dd>NANOG, RIPE Meeting, DENOG and friends come round every year. Register in the Deals tab for $8k. For 45 days after, selective networks with a presence in that region need only half the usual traffic before they peer with you. Sometimes you also win the raffle.</dd><dt>Modes</dt><dd>Sandbox gives you a billion dollars, every unlock and no failures, but no badges. Scenarios are hand-built challenges with a goal and a deadline, and the weekly challenge gives everyone the same world for a week. Share your result with the card in the menu.</dd><dt>Traceroute</dt><dd>Tap 🔍 Traceroute on any of your cities, or open it from the NOC tab, to see the exact path to a network or POP, hop by hop, with latency, the exit and the AS path.</dd><dt>Badges</dt><dd>Below your goals sits a wall of badges, from common to legendary. Some take luck, some take years, and a couple are secret. Badges you earned in earlier games stay on this device with a dashed outline.</dd><dt>The giants</dt><dd>At customer level 3 and 4, hyperscalers and AI clouds show up with deals only they would ask for: terabit AI WANs between gigawatt campuses, training runs spread over several sites, week-long dataset ingests, and hundreds of fiber pairs in a trench you dug yourself. They pay like nobody else, and they want diverse paths, two sites per metro and zero excuses. Cities near their campuses list them under “Who’s here”.</dd><dt>RouteScript</dt><dd>Once Auto-TE is installed, you can program it from the NOC tab. Rules include <code>spill at 80%</code>, <code>prefer pni for goggle</code>, <code>avoid transit for netchill</code>, <code>cap transit cogentle at 20 gbps</code>, <code>drain paris</code>, <code>avoid link fra-ams</code> and <code>blackhole ddos</code>. Check runs a dry run against live traffic; Deploy makes it real, mistakes included.</dd><dt>Auto-TE</dt><dd>Traffic follows the shortest path by distance and link metric, and reroutes by itself when links fail. When a path is merely full, the overflow is dropped, just like a real IGP. From customer level 3 you can install Auto-TE in the NOC tab: it spills overflow onto up to two alternate paths with free capacity, as long as they are no more than twice as long.</dd><dt>Metro diversity</dt><dd>A POP is one building until you add a second site in the Infra tab. Then a power cut, cleaner or A/C failure only takes out half the city, and you choose which site each transit, PNI and IX port plugs into, or pick Both to split a LAG across the two buildings. Spread them out, or both halves of your redundancy will sit in the same dark room. Watch out for metro ring cuts, which cut site B off.</dd><dt>Wave markets</dt><dd>What a wave costs depends on where it runs. Europe is cheap (lots of competing fiber), North America is average, Asia and South America are pricier, and anything into Africa is several times the price. Every route has its own going rate, and new leases get about 8% cheaper each year, so waiting can pay. The link planner tells you how a route compares.</dd><dt>Regional quirks</dt><dd>In the Gulf, Saudi POPs need a local telecom licence and data on Saudi users stays in the Kingdom; gigaprojects ask for huge demo networks; and now and then the neighbours fall out and every link between Qatar and Saudi Arabia or the UAE goes dark for months, so keep a sea route. South America hangs off Miami: transit is pricier, nothing crosses the Darién Gap by land, and fiber over the Andes costs double and breaks often. IX.br in Brazil is run by a nonprofit with cheap public prices, and small Brazilian provedores buy transit in bulk. Inside the UAE only the duopoly may run fiber, so no dark fiber and 3× waves. Taiwan’s cables meet a lot of anchors, Indian fiber meets road widening and the monsoon, and South Africa has load shedding: bring a generator.</dd><dt>Boot times</dt><dd>Some routers take forever to boot. The Infra tab shows how long yours takes. Slow booters make crashes last longer and turn a one-router swap into a three-day outage. Bigger chassis, especially anything with a PacketOinker™ inside, are slow more often. Twin routers make it someone else’s problem.</dd><dt>Failures</dt><dd>Things break all the time: fiber cuts, router crashes, power cuts, IX loops, fabric outages, route leaks, DDoS, fat fingers, cooling failures, and geopolitics: sanctions, tariffs, BGP hijacks, landing permit disputes, exam-day shutdowns and Red Sea cable cuts. Traffic reroutes automatically over other paths and upstreams. Parallel links on diverse routes, a second router and a backup generator all help. Or pay to rush repairs.</dd>
   </dl><div class="btns" style="margin-top:14px">${btn(UI.started?'Back to the map':'Got it','helpClose',{},'big')}${RELEASE_NOTES.length?btn(`What’s new in ${esc(APP_VERSION)}`,'whatsNewShow',{},'ghost'):''}${UI.started&&S&&!S.lost?btn('Start a new network','resetAsk',{},'ghost sm'):''}</div><div class="btns" style="margin-top:6px">${UI.started&&S&&!S.lost?btn('Export save','exportSave',{},'ghost sm'):''}${btn('Import a save','importPick',{},'ghost sm')}${btn('Multiplayer','mpOpen',{},'ghost')}</div>${settingsRow()}`);
 }
 function showWin(){setTimeout(()=>{const m=$('modalCard');if(m&&!m.querySelector('[data-act=share]'))m.insertAdjacentHTML('beforeend',`<div class="btns" style="margin-top:8px">${btn('Share my network','share',{},'pink')}</div>`);},0);openModal(`<h1 style="font-family:var(--display);font-size:44px;margin:0">You're a <span style="color:var(--me)">Tier 1</span>!</h1><p class="tagline">${esc(S.name)} (AS${S.asn}) is transit-free. You peer with every giant on the planet and pay nobody to reach the internet. Took you ${S.day} days and ${S.stats.incidents} incidents.</p>${btn('Keep building','keepPlaying',{},'pink big')}`);sfx('coin');}
-function showLose(){openModal(`<h1 style="font-family:var(--display);font-size:40px;margin:0">Bankrupt</h1><p class="tagline">The bank repossessed your routers and sold them on eBuy. ${esc(S.name)} lasted ${S.day} days and peaked at ${fmtG(S.stats.peak)}.</p>${btn('Try again','newgame',{},'pink big')}`);try{localStorage.removeItem('sot-save-v1');}catch(e){}}
+function showLose(){openModal(`<h1 style="font-family:var(--display);font-size:40px;margin:0">Bankrupt</h1><p class="tagline">The bank repossessed your routers and sold them on eBay. ${esc(S.name)} lasted ${S.day} days and peaked at ${fmtG(S.stats.peak)}.</p>${btn('Try again','newgame',{},'pink big')}`);try{localStorage.removeItem('sot-save-v1');}catch(e){}}
 function openLinkModal(a,b){
   if((cnCity(a)||cnCity(b))&&!cnOk()){openModal(`<div style="display:flex;align-items:center"><h2 style="font-size:24px">Not without a license</h2><button class="x" data-act="closeModal" aria-label="Close">×</button></div><p class="lead" style="margin-top:8px">Building into mainland China needs a joint venture and an operating license. Open ${CITY[cnCity(a)?a:b].name} to apply.</p>`);return;}
   let route='';UI.pending={a,b};const km=kmBetween(a,b),sub=isSub(a,b),pop=S.pops[b]?0:popCost(b),sib=pairLinks(a,b).filter(l=>l.kind!=='vxc');
@@ -2942,7 +2947,7 @@ const FLOATS=[];
 function floater(x,y,text,col){if(!animOn())return;FLOATS.push({x,y,text,col,t:performance.now()});}
 /* Animation setting: auto follows the system's reduced-motion preference, or force it on or off. */
 function settingsRow(){const seg=(lab,act,cur,opts)=>`<div class="setline"><span>${lab}</span><div class="seg">${opts.map(([v,l])=>btn(l,act,{v},cur===v?'pink sm':'ghost sm')).join('')}</div></div>`;
-  return `<div class="setrow"><h3 style="font-size:15px;margin:12px 0 4px">Settings</h3>${seg('Animations','animSet',UI.anim||'auto',[['auto','Auto'],['on','On'],['off','Off']])}${seg('Sound','soundSet',UI.muted?'off':'on',[['on','On'],['off','Off']])}<p class="meta" style="margin:2px 0 0">Auto follows your device’s reduce-motion setting. Off freezes the map: no moving packets, pulses or floating text.</p></div>`;}
+  return `<div class="setrow"><h3 style="font-size:15px;margin:12px 0 4px">Settings</h3>${seg('Animations','animSet',UI.anim||'auto',[['auto','Auto'],['on','On'],['off','Off']])}${seg('Sound','soundSet',UI.muted?'off':'on',[['on','On'],['off','Off']])}${seg('Small cities','citySet',UI.hideSmall?'hide':'show',[['show','Show'],['hide','Hide']])}<p class="meta" style="margin:2px 0 0">Auto follows your device’s reduce-motion setting. Off freezes the map: no moving packets, pulses or floating text.</p></div>`;}
 function animOn(){const m=UI.anim||'auto';if(m==='on')return true;if(m==='off')return false;try{return !matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){return true;}}
 function applyAnim(){const r=document.documentElement;r.classList.toggle('no-anim',UI.anim==='off');r.classList.toggle('anim-force',UI.anim==='on');if(!animOn())FLOATS.length=0;}
 const toS=(wx,wy,k=0)=>[(wx+k*W-cam.x)*cam.z+CW/2,(wy-cam.y)*cam.z+CH/2];
@@ -3091,7 +3096,7 @@ function drawBackhoe(x,y,now,sub){
 }
 /* With thousands of cities on the map only the big ones are drawn until you zoom in. Anything you use
    (POPs, link ends, the selection) is always drawn, so a small town you built in never disappears. */
-const lodMinP=z=>z<1.15?260:z<1.5?140:z<2.1?70:z<3?32:z<4.5?16:0;
+const lodMinP=z=>{const m=z<1.15?260:z<1.5?140:z<2.1?70:z<3?32:z<4.5?16:0;return UI.hideSmall?Math.max(m,200):m;};
 function lodList(){const m=lodMinP(cam.z);if(m===0&&!S)return CITIES;const need=new Set();
   if(S){for(const c in S.pops)need.add(c);for(const l of S.links){need.add(l.a);need.add(l.b);}}
   if(UI.sel&&UI.sel.type==='city')need.add(UI.sel.id);if(UI.hover)need.add(UI.hover);if(UI.drag&&UI.drag.from)need.add(UI.drag.from);if(UI.snap)need.add(UI.snap.id);if(UI.pending){need.add(UI.pending.a);need.add(UI.pending.b);}
@@ -3181,7 +3186,7 @@ cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',canc
 const ZMIN=0.35,ZMAX=6;
 function zoomAt(mx,my,f){const wx=cam.x+(mx-CW/2)/cam.z,wy=cam.y+(my-CH/2)/cam.z;cam.z=clamp(cam.z*f,ZMIN,ZMAX);cam.x=wx-(mx-CW/2)/cam.z;cam.y=wy-(my-CH/2)/cam.z;wrapCam();}
 cv.addEventListener('wheel',e=>{e.preventDefault();zoomAt(e.clientX,e.clientY,Math.exp(-e.deltaY*0.0015));},{passive:false});
-addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]'))return;if(e.ctrlKey||e.metaKey||e.altKey)return;if(e.code==='Space'&&e.target.closest&&e.target.closest('button,a'))return;if(e.code==='Space'){e.preventDefault();if(MP.on)ACT.speed({v:UI.speed?0:1});else{UI.speed=UI.speed?0:1;renderHUD();}}if(e.key==='0')ACT.speed({v:0.5});if(e.key==='1')ACT.speed({v:1});if(e.key==='2')ACT.speed({v:2});if(e.key==='3')ACT.speed({v:4});if(e.key==='4')ACT.speed({v:8});if(e.key==='Escape'&&!$('bankBox').hidden){$('bankBox').hidden=true;return;}if(e.key==='Escape'&&!$('dash').hidden){$('dash').hidden=true;return;}if(e.key==='Escape'){if(!$('modal').hidden){if(S&&UI.started&&!S.lost)closeModal();}else{UI.sel=null;renderPanel();}}});
+addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]'))return;if(e.ctrlKey||e.metaKey||e.altKey)return;if(e.code==='Space'&&e.target.closest&&e.target.closest('button,a'))return;if(e.code==='Space'){e.preventDefault();if(MP.on)ACT.speed({v:UI.speed?0:1});else{UI.speed=UI.speed?0:1;renderHUD();}}if(e.key==='/'&&S&&UI.started){e.preventDefault();ACT.citySearch();}if(e.key==='0')ACT.speed({v:0.5});if(e.key==='1')ACT.speed({v:1});if(e.key==='2')ACT.speed({v:2});if(e.key==='3')ACT.speed({v:4});if(e.key==='4')ACT.speed({v:8});if(e.key==='Escape'&&!$('bankBox').hidden){$('bankBox').hidden=true;return;}if(e.key==='Escape'&&!$('dash').hidden){$('dash').hidden=true;return;}if(e.key==='Escape'){if(!$('modal').hidden){if(S&&UI.started&&!S.lost)closeModal();}else{UI.sel=null;renderPanel();}}});
 
 /* ---------- click delegation ---------- */
 let pressing=false;
@@ -3189,7 +3194,7 @@ document.addEventListener('pointerdown',e=>{if(e.target.closest('#panel,#left'))
 addEventListener('pointerup',()=>setTimeout(()=>pressing=false,0));
 addEventListener('pointercancel',()=>{pressing=false;});addEventListener('blur',()=>{pressing=false;});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='rvQ'){e.preventDefault();ACT.rvSearch();}});
-document.addEventListener('input',e=>{const t=e.target;if(t.id==='cityQ'){const m=cityMatches(t.value),r=$('cityRes');if(r)r.innerHTML=m.map(C=>`<button data-act="pickStart" data-args='${esc(JSON.stringify({city:C.id}))}'>${esc(C.name)} <small>${esc(countryName(C.cc))}${sellersAt(C.id).length?'':' · no transit'}</small></button>`).join('');}else if(t.id==='asnIn')asnNote();});
+document.addEventListener('input',e=>{const t=e.target;if(t.id==='fcQ'){const m=cityMatches(t.value),r=$('fcRes');if(r)r.innerHTML=m.map(C=>`<button data-act="flyTo" data-args='${esc(JSON.stringify({city:C.id}))}'>${esc(C.name)} <small>${esc(countryName(C.cc))}${S&&S.pops[C.id]?' · your POP':''}</small></button>`).join('');}else if(t.id==='cityQ'){const m=cityMatches(t.value),r=$('cityRes');if(r)r.innerHTML=m.map(C=>`<button data-act="pickStart" data-args='${esc(JSON.stringify({city:C.id}))}'>${esc(C.name)} <small>${esc(countryName(C.cc))}${sellersAt(C.id).length?'':' · no transit'}</small></button>`).join('');}else if(t.id==='asnIn')asnNote();});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b||b.disabled)return;audioInit();const fn=ACT[b.dataset.act];if(!fn)return;if(!S&&!['start','pickStart','rollAsn','mpOpen','mpTab','mpLogin','mpRegister','mpLogout','mpServer','mpRollAsn','mpCreate','mpJoin','mpEnter','mpPickCity','mpLeave','cont','help','helpClose','newgame','mute','animSet','soundSet','closeModal','speed','bankClose','whatsNewShow','updateNow','updateLater','importPick','importGo','modeSet','scenarios','startScn','startWeekly'].includes(b.dataset.act))return;let a={};try{a=JSON.parse(b.dataset.args||'{}');}catch(_){}fn(a);});
 
 /* ================= MULTIPLAYER SUPPORT =================
@@ -3197,7 +3202,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(
    shared by everyone on the team. Browsers send their clicks as commands (an action name and its arguments, plus the
    little bit of UI state some actions read) and receive snapshots of S. Nothing below runs in single player. */
 // Actions that only change what *you* are looking at. Everything else is a command to the shared network.
-const MP_LOCAL=new Set(['help','dash','dashClose','dashSort','bank','bankClose','dashLink','animSet','soundSet','mute','closePanel','closeModal','tab','leftTab','toggleLeft','focusCity','selLink','teEdit','teClose','teExample','teCheck','tailTog','trace','traceRun','traceCopy','share','shareDl','shareGo','tutSkip','models','via','route','dfMode','dfSrc','dfSys','cnPrem','menu','resetAsk','whatsNewShow','updateNow','updateLater','helpClose','routes','rvTab','rvSearch','rvNet','start','rollAsn','modeSet','scenarios','startScn','startWeekly','pickStart','cont','newgame','keepPlaying','exportSave','importPick','importGo','mpOpen','mpTab','mpLogin','mpRegister','mpLogout','mpServer','mpRollAsn','mpCreate','mpJoin','mpEnter','mpPickCity','mpTeam','mpTeamClose','mpChat','mpRole','mpRotate','mpLite','mpLeave']);
+const MP_LOCAL=new Set(['help','dash','dashClose','dashSort','bank','bankClose','dashLink','animSet','soundSet','mute','closePanel','closeModal','tab','leftTab','toggleLeft','focusCity','selLink','teEdit','teClose','teExample','teCheck','tailTog','trace','traceRun','traceCopy','share','shareDl','shareGo','tutSkip','models','via','route','dfMode','dfSrc','dfSys','cnPrem','menu','resetAsk','whatsNewShow','updateNow','updateLater','helpClose','routes','rvTab','rvSearch','rvNet','start','rollAsn','modeSet','scenarios','startScn','startWeekly','pickStart','cont','newgame','keepPlaying','exportSave','importPick','importGo','citySearch','flyTo','citySet','mpOpen','mpTab','mpLogin','mpRegister','mpLogout','mpServer','mpRollAsn','mpCreate','mpJoin','mpEnter','mpPickCity','mpTeam','mpTeamClose','mpChat','mpRole','mpRotate','mpLeave']);
 // UI state that commands read and may change (two-step confirms, the link you are drawing, the open tab).
 const MP_CTX=['confirm','tab','sel','pending','route','cnPrem','via','lmode','dfSrc','dfSys'];
 const MP_OUT=[];
@@ -3221,18 +3226,6 @@ function serverDrain(){return MP_OUT.splice(0,MP_OUT.length);}
 function serverBegin(name,home,asn){beginGame(name,home,{mode:'normal',asn});UI.speed=1;}
 function serverLoad(json){S=migrate(JSON.parse(json));UI.started=true;UI.speed=1;compute();renderAll();}
 function serverState(){return {S,speed:UI.speed};}
-/* Server side: what the plain-HTML dashboard shows, from the shared game. */
-function liteData(q){
-  const pops=Object.keys(S.pops);
-  const d={day:S.day,date:dateStr(S.day),cash:Math.round(S.cash),tier:tierLabel(),served:+(R.served||0).toFixed(1),demand:+(R.demand||0).toFixed(1),reach:R.reach||0,revMo:Math.round(R.revMo||0),costMo:Math.round(R.costMo||0),speed:UI.speed,q:q||''};
-  d.pops=pops.map(c=>({id:c,name:CITY[c].name,up:!!popUp(c),bb:S.pops[c].bb?+S.pops[c].bb.d.toFixed(1):0}));
-  d.transitOffers=pops.filter(c=>sellersAt(c).length).map(c=>({cityId:c,city:CITY[c].name,sellers:sellersAt(c).slice(0,8).map(n=>({id:n.id,name:n.name,mo:PORT[1].tmo}))}));
-  d.ixOffers=[];for(const c of pops)for(const x of ixIdsIn(c))d.ixOffers.push({id:x,name:ixName(x),city:CITY[c].name,members:ixMembers(x).length,joined:S.ixp[x]!==undefined,rs:!!S.rs[x],mo:ixPortMo(x,1)});
-  d.links=S.links.map(l=>({a:CITY[l.a].name,b:CITY[l.b].name,cap:capName(l),util:+linkUtil(l).toFixed(3)}));
-  d.offers=S.offers.map(o=>({id:o.id,name:String(o.name).slice(0,60),what:String((BIZ_T[o.type]&&BIZ_T[o.type].l)||o.type).slice(0,80),rate:o.rate}));
-  d.incidents=S.inc.filter(i=>i.until>=S.day).slice(0,20).map(i=>({id:i.id,msg:String(i.msg).replace(/<[^>]*>/g,'').slice(0,200),cost:i.cost||0}));
-  d.found=q?cityMatches(q).filter(c=>!S.pops[c.id]).map(c=>({id:c.id,name:c.name,country:countryName(c.cc),sellers:sellersAt(c.id).length,cost:popCost(c.id)})):[];
-  return d;}
 if(window.__TUBES_SERVER__){const _t=toast;toast=(h,k)=>{MP_OUT.push([h,k||'']);};}
 
 /* ================= MULTIPLAYER (browser side) =================
@@ -3275,7 +3268,7 @@ function mpModal(){
     h+=`<div class="btns" style="margin-top:14px">${btn('Log out','mpLogout',{},'ghost sm')}</div>`;
   }
   h+=`<details style="margin-top:12px"><summary class="meta" style="cursor:pointer">Server address</summary><div class="btns" style="margin-top:6px"><input class="t" id="mpSrv" value="${esc(MP.base)}" placeholder="${esc(location.origin)} (this site)" style="flex:1;font-size:14px">${btn('Use it','mpServer',{},'sm')}</div></details>
-  <p class="meta" style="margin-top:8px">Prefer a page that works on any device? <a href="${esc(MP.base||'')}/lite" target="_blank" rel="noopener">The lite site</a> has the same teams in plain HTML.</p>`;
+`;
   openModal(h);}
 async function mpShow(tab){
   if(tab)MP.tab=tab;MP.msg='';
@@ -3354,7 +3347,7 @@ function mpTeam(){UI.mpTeam=true;
   openModal(`<div style="display:flex;align-items:center"><div><div class="eyebrow">AS${MP.asn} · you are ${esc(MP.name)} (${esc(MP.role)})</div><h2 style="font-size:28px">Team</h2></div><button class="x" data-act="mpTeamClose" aria-label="Close">×</button></div>
   <p class="meta">Online now: ${pres}</p><div class="rvw" id="mpLog" style="max-height:30vh">${MP.chat.map(m=>`<div style="padding:3px 8px"><b>${esc(m.who)}</b> ${esc(m.text)}</div>`).join('')||'<p class="empty">No messages yet.</p>'}</div>
   ${MP.role!=='viewer'?`<div class="btns" style="margin-top:8px"><input class="t" id="mpSay" maxlength="300" placeholder="Say something to the team" style="flex:1;font-size:15px" autocomplete="off">${btn('Send','mpChat',{},'sm')}</div>`:''}
-  <div id="mpOwner"></div><div class="btns" style="margin-top:12px">${btn('Open the lite site','mpLite',{},'ghost sm')}${btn('Leave this network','mpLeave',{},'ghost sm')}</div>`);
+  <div id="mpOwner"></div><div class="btns" style="margin-top:12px">${btn('Leave this network','mpLeave',{},'ghost sm')}</div>`);
   const lg=$('mpLog');if(lg)lg.scrollTop=lg.scrollHeight;
   if(MP.role==='owner')mpFetch(`/api/networks/${MP.asn}`).then(j=>{const el=$('mpOwner');if(!el||!UI.mpTeam)return;el.innerHTML=`<h3 style="margin-top:12px">Members</h3><p class="note">Invite code: <code>${esc(j.invite)}</code> (share it with the AS number).</p>`+j.members.map(m=>`<div class="kv"><span>${esc(m.name)} · ${esc(m.role)}</span><b>${m.role==='owner'?'':[m.role==='operator'?btn('Make viewer','mpRole',{uid:m.id,role:'viewer'},'ghost sm'):btn('Make operator','mpRole',{uid:m.id,role:'operator'},'ghost sm'),btn('Remove','mpRole',{uid:m.id,role:'remove'},'ghost sm')].join(' ')}</b></div>`).join('')+`<div class="btns" style="margin-top:6px">${btn('New invite code','mpRotate',{},'ghost sm')}</div>`;}).catch(()=>{});}
 Object.assign(ACT,{
@@ -3377,7 +3370,6 @@ Object.assign(ACT,{
  mpChat:async()=>{const i=$('mpSay');const text=i&&i.value.trim();if(!text)return;i.value='';try{await mpFetch(`/api/networks/${MP.asn}/chat`,{method:'POST',body:{text}});}catch(e){toast(`<b>Not sent.</b><br>${esc(e.message)}`,'bad');}},
  mpRole:async({uid,role})=>{try{await mpFetch(`/api/networks/${MP.asn}/member`,{method:'POST',body:{uid,role}});mpTeam();}catch(e){toast(esc(e.message),'bad');}},
  mpRotate:async()=>{try{await mpFetch(`/api/networks/${MP.asn}/invite`,{method:'POST'});mpTeam();}catch(e){toast(esc(e.message),'bad');}},
- mpLite:()=>{window.open(mpUrl('/lite/net/'+MP.asn),'_blank','noopener');},
  mpLeave:()=>{UI.mpTeam=false;mpStop();S=null;UI.started=false;UI.sel=null;$('panel').hidden=true;renderAll();showTitle();},
 });
 document.addEventListener('input',e=>{const t=e.target;if(t.id==='mpCity'){const m=cityMatches(t.value),r=$('mpRes');if(r)r.innerHTML=m.map(C=>`<button data-act="mpPickCity" data-args='${esc(JSON.stringify({city:C.id}))}'>${esc(C.name)} <small>${esc(countryName(C.cc))}${sellersAt(C.id).length?'':' · no transit'}</small></button>`).join('');}else if(t.id==='mpAsn')mpAsnLive();});
@@ -3395,8 +3387,8 @@ function frame(now){
   if(!window.__TUBES_TEST__)requestAnimationFrame(frame);
 }
 function boot(data){
-  try{UI.muted=localStorage.getItem('sot-mute')==='1';UI.anim=localStorage.getItem('sot-anim')||'auto';}catch(e){}
-  applyAnim();
+  try{UI.muted=localStorage.getItem('sot-mute')==='1';UI.anim=localStorage.getItem('sot-anim')||'auto';UI.hideSmall=localStorage.getItem('sot-small')==='hide';}catch(e){}
+  applyAnim();{const b=$('smallBtn');if(b)b.classList.toggle('on',!!UI.hideSmall);}
   if(data&&data.S){S=migrate(data.S);UI.started=true;if(data.cam)Object.assign(cam,data.cam);compute();renderAll();}
   else{const sv=loadSave();
     let okSave=false;if(sv){try{S=migrate(sv);compute();okSave=true;}catch(e){S=null;UI.started=false;try{localStorage.setItem('sot-save-broken',JSON.stringify(sv));localStorage.removeItem('sot-save-v1');}catch(e2){}}}

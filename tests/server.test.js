@@ -192,54 +192,9 @@ test('public AS pages: player networks, real networks, search; all plain HTML', 
     assert.equal((await get('/as/65000')).s, 404);
     const sr = await get('/search?q=64603'); assert.equal(sr.s, 303);
     const sn = await get('/search?q=cloudf'); assert.match(sn.t, /AS13335/);
-    const lite = await get('/lite'); assert.equal(lite.s, 200); assert.match(lite.t, /Player networks/); assert.match(lite.t, /64603/);
-    assert.equal((await get('/lite/me')).s, 303, 'private pages send you to log in');
+    const all = await get('/search'); assert.equal(all.s, 200); assert.match(all.t, /Player networks/); assert.match(all.t, /64603/);
+    assert.equal((await get('/lite')).s, 404, 'the old lite pages are gone');
     assert.equal(pg.h.get('x-frame-options'), 'DENY');
-  } finally { await s.close(); }
-});
-
-test('lite site: log in with a form, start a network, play with plain forms, no JavaScript needed', async () => {
-  const s = await boot();
-  try {
-    let cookie = '';
-    const req = async (method, p, form) => {
-      const r = await fetch(s.base + p, { method, redirect: 'manual', headers: { ...(cookie ? { Cookie: cookie } : {}), 'Content-Type': 'application/x-www-form-urlencoded', Origin: s.base }, body: form ? new URLSearchParams(form).toString() : undefined });
-      const sc = r.headers.get('set-cookie'); if (sc) cookie = sc.split(';')[0];
-      return { s: r.status, t: await r.text(), loc: r.headers.get('location') };
-    };
-    const bad = await req('POST', '/lite/register', { name: 'frank', password: 'x' });
-    assert.equal(bad.s, 400); assert.match(bad.t, /at least 8/);
-    const reg = await req('POST', '/lite/register', { name: 'frank', password: 'a long password' });
-    assert.equal(reg.s, 303); assert.equal(reg.loc, '/lite/me'); assert.match(cookie, /^sot=/);
-    assert.match((await req('GET', '/lite/me')).t, /My networks/);
-    const find = await req('GET', '/lite/new?q=mancheste');
-    assert.match(find.t, /Manchester/);
-    const id = find.t.match(/city=([A-Za-z0-9:_-]+)&amp;/)[1];
-    const card = await req('GET', '/lite/new?city=' + id + '&asn=64700&name=Lite');
-    assert.match(card.t, /transit seller/);
-    const made = await req('POST', '/lite/new', { home: id, name: 'Lite Net', asn: '64700' });
-    assert.equal(made.s, 303); assert.equal(made.loc, '/lite/net/64700');
-    const dup = await req('POST', '/lite/new', { home: id, name: 'Again', asn: '64700' });
-    assert.equal(dup.s, 409); assert.match(dup.t, /already taken/);
-    let dash = await req('GET', '/lite/net/64700');
-    assert.match(dash.t, /Lite Net/); assert.match(dash.t, /Launch broadband/);
-    // click "Launch broadband" and buy transit with the same forms the page shows
-    const post = async (fields) => req('POST', '/lite/net/64700/do', fields);
-    const bb = await post({ act: 'launchBB', 'a.city': id });
-    assert.equal(bb.s, 303);
-    dash = await req('GET', '/lite/net/64700');
-    assert.match(dash.t, /Buy transit/);
-    const net = dash.t.match(/name="a.net" value="([a-z0-9]+)"/)[1];
-    await post({ act: 'buyTransit', 'a.city': id, 'a.net': net, 'a.tier': '1' });
-    dash = await req('GET', '/lite/net/64700');
-    assert.match(dash.t, /<td class="n">[^<]*<\/td><\/tr>/);
-    assert.equal(s.app.host.rooms.get(64700).ev('S.transit.length'), 1);
-    assert.equal((await post({ act: 'resetAsk' })).s, 400, 'only the lite action list is reachable');
-    // a foreign origin cannot drive the account
-    const evil = await fetch(s.base + '/lite/net/64700/do', { method: 'POST', redirect: 'manual', headers: { Cookie: cookie, 'Content-Type': 'application/x-www-form-urlencoded', Origin: 'https://evil.example' }, body: 'act=speed&a.v=0' });
-    assert.equal(evil.status, 403);
-    const out = await req('POST', '/lite/logout');
-    assert.equal(out.s, 303);
   } finally { await s.close(); }
 });
 

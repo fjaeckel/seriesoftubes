@@ -10,7 +10,7 @@ app.listen(port, hostname).then((a) => {
   const shown = hostname === '0.0.0.0' || hostname === '::' ? 'localhost' : hostname;
   console.log(`Series of Tubes ${require('../package.json').version} is up on http://${shown}:${a.port}`);
   console.log(`  game        http://${shown}:${a.port}/`);
-  console.log(`  lite pages  http://${shown}:${a.port}/lite   (plain HTML, works on anything)`);
+  console.log(`  networks    http://${shown}:${a.port}/search   (AS pages, plain HTML)`);
   console.log(`  data dir    ${app.cfg.dataDir}`);
   if (app.cfg.registration === 'open' && !app.cfg.serverCode) console.log('  sign-ups are open: set SERVER_CODE=... to require an invite code, or REGISTRATION=closed');
 }).catch((e) => { console.error(e.message); process.exit(1); });

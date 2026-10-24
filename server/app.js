@@ -1,5 +1,5 @@
 // The whole server: static game files, the JSON API the game client talks to, the realtime stream,
-// and the plain-HTML pages (/lite, /as/<asn>, /search) that need no client-side JavaScript.
+// and the plain-HTML AS pages (/as/<asn>, /search) that need no client-side JavaScript.
 'use strict';
 const http = require('node:http');
 const path = require('node:path');
@@ -12,7 +12,6 @@ const H = require('./http');
 const P = require('./pages');
 
 const PKG = require('../package.json');
-const ACTS_LITE = new Set(['speed', 'buildPop', 'launchBB', 'addRouter', 'buyTransit', 'buyIx', 'rs', 'peerAll', 'buildLink', 'accept', 'decline', 'fixInc']);
 const MAX_PER_USER = 5;
 
 function createApp(opts = {}) {
@@ -23,7 +22,6 @@ function createApp(opts = {}) {
     registration: opts.registration || process.env.REGISTRATION || 'open',      // open | closed
     serverCode: opts.serverCode !== undefined ? opts.serverCode : (process.env.SERVER_CODE || ''), // required to sign up when set
     trustProxy: opts.trustProxy !== undefined ? opts.trustProxy : process.env.TRUST_PROXY === '1',
-    secureCookies: opts.secureCookies !== undefined ? opts.secureCookies : process.env.SECURE_COOKIES === '1',
     maxGames: +(opts.maxGames || process.env.MAX_GAMES || 25),
     maxNets: +(opts.maxNets || process.env.MAX_NETWORKS || 500),
     idlePause: opts.idlePause !== undefined ? opts.idlePause : process.env.IDLE_PAUSE !== '0',
@@ -44,28 +42,20 @@ function createApp(opts = {}) {
   const ipOf = (req) => (cfg.trustProxy && req.headers['x-forwarded-for'] ? String(req.headers['x-forwarded-for']).split(',')[0].trim() : req.socket.remoteAddress) || '?';
   const publicUser = (u) => ({ id: u.id, name: u.name });
   function sessionOf(req) {
-    const h = req.headers.authorization, c = H.cookies(req).sot;
-    const tok = h && /^Bearer /i.test(h) ? h.slice(7).trim() : c;
+    const h = req.headers.authorization;
+    const tok = h && /^Bearer /i.test(h) ? h.slice(7).trim() : null;
     if (!tok) return null;
     const s = store.sessions.get(auth.tokenHash(tok));
     if (!s || s.exp < Date.now()) return null;
     const user = store.users.get(s.uid);
-    return user ? { user, token: tok, viaCookie: !(h && /^Bearer /i.test(h)) } : null;
-  }
-  function csrfOk(req, sess) { // cookie-authenticated writes must come from our own pages
-    if (!sess || !sess.viaCookie || req.method === 'GET' || req.method === 'HEAD') return true;
-    const o = req.headers.origin;
-    if (o) { try { return new URL(o).host === req.headers.host; } catch (_) { return false; } }
-    const sf = req.headers['sec-fetch-site'];
-    return !sf || sf === 'same-origin' || sf === 'none';
+    return user ? { user, token: tok } : null;
   }
   function login(res, user, extra = {}) {
     const token = auth.newToken();
     store.sessions.set(auth.tokenHash(token), { uid: user.id, exp: Date.now() + 30 * 864e5 });
     store.save();
-    return { token, cookie: `sot=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${30 * 86400}${cfg.secureCookies ? '; Secure' : ''}`, ...extra };
+    return { token };
   }
-  const clearCookie = `sot=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${cfg.secureCookies ? '; Secure' : ''}`;
   const roleOf = (net, user) => (user && net.members[user.id]) || null;
   const needNet = (asn) => { const n = store.nets.get(Number(asn)); if (!n) throw new H.HttpError(404, 'No network with that AS number'); return n; };
   const cleanName = (s, max = 24) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, max);
@@ -147,11 +137,11 @@ function createApp(opts = {}) {
     if (p === '/api/health') return H.json(res, 200, { ok: true, version, players: store.users.size, networks: store.nets.size, running: host.rooms.size, cities: world.cityCount, registration: cfg.registration, needsCode: !!cfg.serverCode });
     if (m === 'POST' && p === '/api/register') {
       const u = await register(ip, await H.readJson(req));
-      const s = login(res, u); return H.json(res, 200, { token: s.token, user: publicUser(u) }, { 'Set-Cookie': s.cookie });
+      const s = login(res, u); return H.json(res, 200, { token: s.token, user: publicUser(u) });
     }
     if (m === 'POST' && p === '/api/login') {
       const u = await authenticate(ip, await H.readJson(req));
-      const s = login(res, u); return H.json(res, 200, { token: s.token, user: publicUser(u) }, { 'Set-Cookie': s.cookie });
+      const s = login(res, u); return H.json(res, 200, { token: s.token, user: publicUser(u) });
     }
     if (m === 'GET' && p === '/api/networks') return H.json(res, 200, directory());
     if (m === 'GET' && p === '/api/search') {
@@ -170,7 +160,7 @@ function createApp(opts = {}) {
     }
     if (!sess) throw new H.HttpError(401, 'Log in first.');
     const user = sess.user;
-    if (m === 'POST' && p === '/api/logout') { store.sessions.delete(auth.tokenHash(sess.token)); store.save(); return H.json(res, 200, { ok: true }, { 'Set-Cookie': clearCookie }); }
+    if (m === 'POST' && p === '/api/logout') { store.sessions.delete(auth.tokenHash(sess.token)); store.save(); return H.json(res, 200, { ok: true }); }
     if (m === 'GET' && p === '/api/me') {
       const nets = [...store.nets.values()].filter((n) => n.members[user.id]).map((n) => ({ ...netMeta(n), role: n.members[user.id] }));
       return H.json(res, 200, { user: publicUser(user), networks: nets });
@@ -230,100 +220,27 @@ function createApp(opts = {}) {
   }
 
   /* ---------- plain HTML pages ---------- */
-  async function pages(req, res, url, sess) {
-    const m = req.method, p = url.pathname, user = sess && sess.user, ip = ipOf(req);
-    const V = { user, version };
+  async function pages(req, res, url) {
+    const m = req.method, p = url.pathname;
+    const V = { version };
     let mm;
-    const back = (to, extra) => H.redirect(res, to, extra);
-    if ((m === 'GET' || m === 'HEAD') && (p === '/lite' || p === '/lite/')) return H.html(res, 200, P.directoryPage({ nets: directory(), world, ...V }));
-    if (m === 'GET' && p === '/search') {
+    if ((m === 'GET' || m === 'HEAD') && p === '/search') {
       const q = String(url.searchParams.get('q') || '').trim().slice(0, 60), ql = q.toLowerCase(), qa = ql.replace(/^as/, '');
-      const players = q ? directory().map((n) => ({ ...n, summary: { tier: n.tier } })).filter((n) => String(n.asn) === qa || n.name.toLowerCase().includes(ql)) : [];
-      if (/^\d+$/.test(qa) && (store.nets.has(+qa) || world.byAsn.has(+qa))) return back('/as/' + +qa);
-      return H.html(res, 200, P.searchPage({ q, players, nets: q ? world.netsByName(qa) : [], ...V }));
+      const all = directory();
+      const players = q ? all.filter((n) => String(n.asn) === qa || n.name.toLowerCase().includes(ql)) : [];
+      if (/^\d+$/.test(qa) && (store.nets.has(+qa) || world.byAsn.has(+qa))) return H.redirect(res, '/as/' + +qa);
+      return H.html(res, 200, P.searchPage({ q, players, nets: q ? world.netsByName(qa) : [], all, ...V }));
     }
-    if (m === 'GET' && (mm = p.match(/^\/as\/(?:AS)?(\d{1,10})$/i))) {
+    if ((m === 'GET' || m === 'HEAD') && (mm = p.match(/^\/as\/(?:AS)?(\d{1,10})$/i))) {
       const asn = +mm[1], net = store.nets.get(asn);
       if (net) {
         const v = playerView(asn);
         if (!v) return H.html(res, 200, P.notFoundPage({ what: `AS${asn} (${net.name}) has no data yet. It appears after the network has been started once.`, ...V }));
-        return H.html(res, 200, P.playerAsPage({ v, meta: { online: host.online(asn), role: user && net.members[user.id] }, ...V }));
+        return H.html(res, 200, P.playerAsPage({ v, meta: { online: host.online(asn) }, ...V }));
       }
       const np = world.netPage(asn);
       if (np) return H.html(res, 200, P.worldAsPage({ n: np, seenBy: seenBy(asn), ...V }));
       return H.html(res, 404, P.notFoundPage({ what: `Nobody has AS${asn} in this world. It could be yours: start a network and pick it.`, ...V }));
-    }
-    if (m === 'GET' && p === '/lite/login') return H.html(res, 200, P.loginPage({ mode: 'login', open: cfg.registration !== 'closed', ...V }));
-    if (m === 'GET' && p === '/lite/register') return H.html(res, 200, P.loginPage({ mode: 'register', needCode: !!cfg.serverCode, ...V }));
-    if (m === 'POST' && (p === '/lite/login' || p === '/lite/register')) {
-      const mode = p.endsWith('login') ? 'login' : 'register', f = await H.readForm(req);
-      try {
-        const u = mode === 'login' ? await authenticate(ip, f) : await register(ip, f);
-        const s = login(res, u); return back('/lite/me', { 'Set-Cookie': s.cookie });
-      } catch (e) { if (!(e instanceof H.HttpError)) throw e; return H.html(res, e.status, P.loginPage({ mode, error: e.message, needCode: !!cfg.serverCode, open: cfg.registration !== 'closed', ...V })); }
-    }
-    if (m === 'POST' && p === '/lite/logout') { if (sess) { store.sessions.delete(auth.tokenHash(sess.token)); store.save(); } return back('/lite', { 'Set-Cookie': clearCookie }); }
-    if (!p.startsWith('/lite/')) return false;
-    if (!user) return back('/lite/login');
-    const mine = () => [...store.nets.values()].filter((n) => n.members[user.id]).map((n) => ({ ...netMeta(n), role: n.members[user.id], summary: n.summary }));
-    if (m === 'GET' && p === '/lite/me') return H.html(res, 200, P.mePage({ user, nets: mine(), version }));
-    if (m === 'POST' && p === '/lite/join') {
-      const f = await H.readForm(req);
-      try {
-        const net = needNet(String(f.asn).replace(/\D/g, ''));
-        if (!net.members[user.id]) {
-          if (!limiter.allow('join:' + user.id, 10, 3600e3)) throw new H.HttpError(429, 'Too many tries.');
-          if (String(f.invite || '').trim().toLowerCase() !== net.invite) throw new H.HttpError(403, 'That invite code is wrong.');
-          net.members[user.id] = 'operator'; store.save();
-        }
-        return back('/lite/net/' + net.asn);
-      } catch (e) { if (!(e instanceof H.HttpError)) throw e; return H.html(res, e.status, P.mePage({ user, nets: mine(), error: e.message, version })); }
-    }
-    if (p === '/lite/new') {
-      const q = String(url.searchParams.get('q') || '').trim(), city = url.searchParams.get('city');
-      const asn = url.searchParams.get('asn') || '', name = url.searchParams.get('name') || '';
-      if (m === 'GET') {
-        const chosen = city ? world.city(city) : null;
-        return H.html(res, 200, P.newNetPage({ user, q, results: q ? world.cityMatches(q) : [], chosen, card: chosen ? world.cityCard(chosen.id) : '', asn, name, version }));
-      }
-      const f = await H.readForm(req);
-      try { const net = createNetwork(user, { name: f.name, asn: f.asn, home: f.home }); return back('/lite/net/' + net.asn); } catch (e) {
-        if (!(e instanceof H.HttpError)) throw e;
-        const chosen = world.city(f.home);
-        return H.html(res, e.status, P.newNetPage({ user, chosen, card: chosen ? world.cityCard(chosen.id) : '', asn: f.asn, name: f.name, error: e.message, version }));
-      }
-    }
-    if ((mm = p.match(/^\/lite\/net\/(\d{1,10})(?:\/([a-z]+))?$/))) {
-      const net = needNet(mm[1]), role = roleOf(net, user), sub = mm[2] || '';
-      if (!role) throw new H.HttpError(403, 'You are not on this team.');
-      if (m === 'GET' && sub === 'play') return back('/?net=' + net.asn);
-      const room = host.get(net.asn);
-      if (m === 'GET' && sub === '') {
-        const q = String(url.searchParams.get('q') || '').trim().slice(0, 40);
-        const d = JSON.parse(room.ev(`JSON.stringify(liteData(${JSON.stringify(q)}))`));
-        d.members = memberList(net);
-        const notices = (url.searchParams.get('msg') || '').split('\n').filter(Boolean).slice(0, 4).map(P.esc);
-        return H.html(res, 200, P.dashboardPage({ net, role, d, view: JSON.parse(room.view()), online: room.presence(), notices, chat: room.chat.slice(-12), user, version }));
-      }
-      if (m === 'POST' && sub === 'do') {
-        const f = await H.readForm(req);
-        if (!ACTS_LITE.has(f.act)) throw new H.HttpError(400, 'That action is not available here.');
-        const args = {}, ctx = {};
-        for (const [k, v] of Object.entries(f)) {
-          if (k.startsWith('a.')) args[k.slice(2)] = v === 'true' ? true : v;
-        }
-        if (f['ctx.a'] && f['ctx.b']) ctx.pending = { a: f['ctx.a'], b: f['ctx.b'] };
-        const r = command(net, user, role, { act: f.act, args, ctx });
-        const msg = r.msgs.map((x) => String(x[0]).replace(/<br>/g, ' ').replace(/<[^>]*>/g, '')).join('\n');
-        return back(`/lite/net/${net.asn}?msg=${encodeURIComponent(msg)}`);
-      }
-      if (m === 'POST' && sub === 'chat') { const f = await H.readForm(req); const text = cleanName(f.text, 300); if (text && role !== 'viewer') room.say(user.name, text); return back('/lite/net/' + net.asn); }
-      if (role === 'owner' && m === 'POST' && sub === 'invite') { net.invite = auth.newCode(12); store.save(); return back('/lite/net/' + net.asn); }
-      if (role === 'owner' && m === 'POST' && sub === 'member') {
-        const f = await H.readForm(req);
-        if (net.members[f.uid] && net.members[f.uid] !== 'owner') { if (f.role === 'remove') delete net.members[f.uid]; else if (f.role === 'operator' || f.role === 'viewer') net.members[f.uid] = f.role; store.save(); }
-        return back('/lite/net/' + net.asn);
-      }
     }
     return false;
   }
@@ -341,13 +258,12 @@ function createApp(opts = {}) {
       }
       if (req.method === 'OPTIONS') { res.writeHead(204, { ...H.SEC }); return res.end(); }
       const sess = sessionOf(req);
-      if (!csrfOk(req, sess)) throw new H.HttpError(403, 'Cross-site request refused.');
       if (url.pathname.startsWith('/api/')) return await api(req, res, url, sess);
-      if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'POST') {
-        if (/^\/(lite|as|search)(\/|$)/.test(url.pathname)) { const done = await pages(req, res, url, sess); if (done !== false) return; }
+      if (req.method === 'GET' || req.method === 'HEAD') {
+        if (/^\/(as|search)(\/|$)/.test(url.pathname)) { const done = await pages(req, res, url); if (done !== false) return; }
       }
       if ((req.method === 'GET' || req.method === 'HEAD') && files(req, res, url.pathname)) return;
-      H.html(res, 404, P.notFoundPage({ what: 'That page does not exist.', user: sess && sess.user, version }));
+      H.html(res, 404, P.notFoundPage({ what: 'That page does not exist.', version }));
     } catch (e) {
       if (res.headersSent) { try { res.end(); } catch (_) {} return; }
       const status = e.status || 500;

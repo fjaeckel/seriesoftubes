@@ -71,26 +71,24 @@ code, headless), so nobody can cheat by editing their browser, and a weak device
 | `MAX_GAMES` | `25` | networks simulated at once; idle ones are saved and unloaded |
 | `IDLE_PAUSE` | `1` | the clock only runs while someone is connected; `0` keeps every loaded network ticking |
 | `ALLOW_ORIGIN` | none | CORS origins (comma separated, or `*`) if the game page is hosted elsewhere |
-| `TRUST_PROXY`, `SECURE_COOKIES` | off | set both to `1` behind an HTTPS reverse proxy |
+| `TRUST_PROXY` | off | set to `1` behind a reverse proxy so rate limits see the real client address |
 
-Passwords are hashed with scrypt, sessions are random tokens stored hashed, sign-ups and log-ins are rate
-limited, and the form pages refuse cross-site posts. There is no email, so there is no password reset: the
+Passwords are hashed with scrypt, sessions are random bearer tokens stored hashed, and sign-ups and log-ins are rate
+limited. There is no email, so there is no password reset: the
 server owner can delete `db.json` entries. Put it behind HTTPS if it leaves your LAN.
 
 The hosted game at seriesoftub.es is static, so its Multiplayer button needs a server address (Menu, then
 Multiplayer, then *Server address*) that allows its origin with `ALLOW_ORIGIN`.
 
-**On a device that cannot take the map.** `/lite` is the same game as plain server-rendered HTML with no
-JavaScript: log in, start or join a team, see the dashboard, and build POPs, buy transit, join exchanges,
-lay waves, take customers and fix incidents with ordinary forms. The page and everything on it is a
-couple of kilobytes. The main page is also served Brotli/gzip-compressed (about a third of its size) and
-only draws the big cities until you zoom in.
+**On a weak device.** The main page is served Brotli/gzip-compressed (about a third of its size), only the
+big cities are drawn until you zoom in, and the multiplayer simulation runs on the server, so the browser only
+draws snapshots. Hide the small cities entirely with the 🏙 button, find any city with 🔍 (or press `/`).
 
 **The route viewer.** Menu or NOC, then *Routes*: your AS, upstreams, peers (with how you peer: route server,
 bilateral, PNI, cache), the prefixes you originate with RPKI status, the best AS path to every network, and a
 search for any AS number or name. The same pages exist server-side without JavaScript as `/as/<asn>`, for
 player networks and for every real network in the world ("which players use Lumen as an upstream?"), plus
-`/search?q=`.
+`/search` (every player network) and `/search?q=`.
 
 ## The real world in the game
 

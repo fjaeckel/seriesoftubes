@@ -9,8 +9,7 @@ All notable changes to this project are documented here. The project follows
 - Multiplayer. Run the server with `npm start` (or Docker), log in, start a network with any AS number you like
   and play it together with a team: shared clock, shared network, chat, invite codes, owner/operator/viewer roles.
   The simulation runs on the server, so it is the same for everybody and cannot be tampered with.
-- Plain-HTML pages that need no JavaScript (`/lite`): the same teams and a playable dashboard for devices that
-  cannot take the map, plus public AS pages (`/as/<asn>`) and search.
+- Public AS pages that need no JavaScript (`/as/<asn>`, `/search`) for player networks and the real ones.
 - A route viewer in the style of bgp.tools: your upstreams and peers, prefixes with RPKI status, the AS path to every
   network, and a search for any AS number or name. Find it under Menu and NOC, then Routes.
 - Real names. Networks, exchanges and cable systems now carry their real names and AS numbers, with a notice that the
@@ -21,9 +20,11 @@ All notable changes to this project are documented here. The project follows
 - Latency behaves like fibre: route inflation per link, equipment delay, rerouting carriers, queueing under load and
   jitter in traceroutes.
 - Lighter on weak devices: only big cities are drawn until you zoom in, and the server compresses the page.
+- Find any city with the 🔍 button (or `/`), and hide the small cities with 🏙 or in the settings.
+- Realistic names everywhere: customers, banks, conferences, small networks, campuses and cable operators.
 - Kyiv to Moscow (and any Ukraine to Russia link) can be built again, but only as dark fiber you light yourself, with a
   sanctions warning: you may be fined and the link cut for weeks.
-- Credits to the original game and its author on the title screen, the lite pages and in the README.
+- Credits to the original game and its author on the title screen, the AS pages and in the README.
 - Old saves are repaired on load: transit ports at networks that are not in that city any more are removed.
 
 ## [1.10.0] — 2026-10-24

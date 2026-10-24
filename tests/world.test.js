@@ -121,3 +121,35 @@ test('Ukraine to Russia: no waves, dark fiber only, with a sanctions risk', () =
   for (let i = 0; i < 40; i++) ev('fireEvent()');
   assert.ok(ev('S.links[0].cut') > ev('S.day'), 'sooner or later the regulators notice');
 });
+
+test('find any city on the map, and hide the small ones', () => {
+  const { ev, dom } = load();
+  ev("ACT.start({})");
+  ev('ACT.citySearch()');
+  const d = dom.window.document;
+  const q = d.getElementById('fcQ'); q.value = 'manch';
+  q.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+  d.querySelector('#fcRes button').click();
+  assert.equal(ev("UI.sel.type"), 'city');
+  assert.match(ev("CITY[UI.sel.id].name"), /Manchester/);
+  assert.ok(ev('cam.z') >= 2.4, 'zoomed in on it');
+  const all = ev('lodList().length');
+  ev("ACT.citySet({v:'hide'})");
+  assert.equal(ev('UI.hideSmall'), true);
+  ev('cam.z=3.5');
+  const hidden = ev('lodList().length');
+  ev("ACT.citySet({v:'show'})");
+  assert.ok(hidden < ev('lodList().length'), 'small cities come back');
+  assert.ok(ev("lodList().some(c=>c.id===UI.sel.id)") , 'the selected city is always drawn');
+  assert.ok(ev("lodList().every(c=>c.P>=200||UI.sel.id===c.id||S.pops[c.id])===false")); // sanity: shown now
+  ev("ACT.citySet({v:'hide'})");
+  assert.ok(ev("lodList().every(c=>c.P>=200||UI.sel.id===c.id||S.pops[c.id]||S.links.some(l=>l.a===c.id||l.b===c.id))"));
+  void all;
+});
+
+test('no joke names are left in the customer, bank and network lists', () => {
+  const { ev } = load();
+  const bad = /Hamster|Kebab|Llama|Snack|Git Happens|Skynet|Goldman Sacks|Crypto Bros|Dracula|-ish\b|eBuy|Paperworkistan/;
+  const text = ev("JSON.stringify([BIZ_N,Object.values(BIZ_T).map(t=>t.names),Object.values(BANKS).map(b=>[b.name,b.blurb]),NETS.map(n=>[n.name,n.blurb]),CONFS.map(c=>c.n),MEGA.map(m=>m.n),SITE2_N])");
+  assert.doesNotMatch(text, bad);
+});

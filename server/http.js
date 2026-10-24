@@ -22,16 +22,6 @@ async function readJson(req, limit) {
   try { const j = JSON.parse(t); if (j && typeof j === 'object') return j; } catch (_) {}
   throw new HttpError(400, 'Body must be a JSON object');
 }
-async function readForm(req, limit = 32 * 1024) {
-  const t = await readBody(req, limit), o = {};
-  for (const [k, v] of new URLSearchParams(t)) o[k] = v;
-  return o;
-}
-function cookies(req) {
-  const o = {};
-  for (const p of String(req.headers.cookie || '').split(';')) { const i = p.indexOf('='); if (i > 0) o[p.slice(0, i).trim()] = decodeURIComponent(p.slice(i + 1).trim()); }
-  return o;
-}
 const SEC = {
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'same-origin',
@@ -78,4 +68,4 @@ function staticFiles(root, transform) {
   };
 }
 
-module.exports = { HttpError, readBody, readJson, readForm, cookies, send, json, html, redirect, staticFiles, SEC };
+module.exports = { HttpError, readBody, readJson, send, json, html, redirect, staticFiles, SEC };
