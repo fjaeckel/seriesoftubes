@@ -501,6 +501,10 @@ const siteName=(c,s)=>s==='b'?SITE2_N[hstr(c)%SITE2_N.length]:CITY[c].dc;
 const popCost=c=>POP_COST+(c&&CITY[c]&&CITY[c].ru?RU_BOX:0)+(c&&CITY[c]&&CITY[c].uae?UAE_LIC:0)+(c&&CITY[c]&&CITY[c].saudi?KSA_LIC:0);
 const CN_LIC=150000, CN_JV_MO=6000, SCRUB_COST=60000, SCRUB_MO=5000;
 const MYIX_COST=80000, MYIX_MO=3000, MYIX_FEE=1500, START_CASH=200000;
+// A distributed IX is one L2 fabric over your own links with a port in every site (think GNM-IX, NINE or FogIXP). It can live in a city that already has an exchange.
+const DIX_SITE_COST=30000, DIX_SITE_MO=1800, DIX_SITE_MEMBERS=4, DIX_MAX_SITES=12;
+const myIxSites=x=>(S.myIx[x]&&S.myIx[x].sites&&S.myIx[x].sites.length)?S.myIx[x].sites:[String(x).split('~')[0]];
+const myIxMax=x=>myFab(x).max+DIX_SITE_MEMBERS*(myIxSites(x).length-1);
 // Your own exchange's switching fabric. Bigger fabrics carry more and attract more members.
 const MYIX_FAB=[{n:'400G',g:400,cost:0,mo:3000,max:12},{n:'1.6T',g:1600,cost:60000,mo:6000,max:20,lvl:2},{n:'6.4T',g:6400,cost:200000,mo:12000,max:30,lvl:3},{n:'25.6T',g:25600,cost:600000,mo:25000,max:45,lvl:4}];
 const myFab=c=>MYIX_FAB[Math.min(MYIX_FAB.length-1,Math.max(0,(S.myIx[c]&&S.myIx[c].fab)|0))];
@@ -535,7 +539,7 @@ function portsUsed(c){let u=0;
   for(const t of S.transit)if(t.city===c)u+=PORT_SLOT(t.tier)*(t.n||1);
   for(const x of S.pni)if(x.city===c)u+=PORT_SLOT(x.tier)*(x.n||1);
   for(const x of ixIdsIn(c))if(S.ixp[x]!==undefined&&!S.myIx[x])u+=PORT_SLOT(S.ixp[x])*((S.ixn||{})[x]||1);
-  if(S.myIx[c])u+=1;
+  for(const k in S.myIx)if(myIxSites(k).includes(c))u+=1;
   u+=S.caches.filter(x=>x.city===c).length+(S.nni||[]).filter(x=>x.city===c).length;
   return u;}
 function portsMax(c,g,rt){const p=S.pops[c];if(!p)return 0;return RG[g===undefined?(p.rgen||0):g].ports*(rt||p.routers||1);}
@@ -1370,7 +1374,7 @@ const isSub=(a,b)=>CITY[a].land!==CITY[b].land;
 const popUp=c=>S.pops[c]&&!(S.pops[c].down>S.day);
 const regionsCount=()=>new Set(Object.keys(S.pops).map(c=>CITY[c].reg)).size;
 const ixCity=x=>String(x).split('~')[0];
-function ixIdsIn(c){const o=ixStatic(c);if(S&&S.myIx&&S.myIx[c]&&!o.includes(c))o.unshift(c);return o;}
+function ixIdsIn(c){const o=ixStatic(c);if(S&&S.myIx){if(S.myIx[c]&&!o.includes(c))o.unshift(c);for(const k in S.myIx)if(k!==c&&!o.includes(k)&&myIxSites(k).includes(c))o.push(k);}return o;}
 const hasIxAt=c=>ixIdsIn(c).some(x=>S.ixp[x]!==undefined);
 function ixName(c){if(XIXM[c])return XIXM[c].name;return S.myIx[c]?S.myIx[c].name:CITY[c].ix;}
 function ixMembers(c){if(XIXM[c])return XIXM[c].members.slice();if(S.myIx[c])return S.myIx[c].members.slice();if(!CITY[c].ix)return [];return NETS.filter(n=>n.ix==='ALL'||(Array.isArray(n.ix)&&n.ix.includes(c))).map(n=>n.id);}
@@ -1378,7 +1382,7 @@ function ixMembers(c){if(XIXM[c])return XIXM[c].members.slice();if(S.myIx[c])ret
 const LAG_MAX=8;
 function lagCap(g,n){n=n||1;return g*n*(n>1?0.95:1);}
 function lagName(tier,n){return (n||1)>1?`${n}×${PORT[tier].n} LAG`:`${PORT[tier].n} port`;}
-function ixCap(c){return S.myIx[c]?myFab(c).g*(S.pops[c]&&(siteDown(c,'a'))?0:1):liveCap(PORT[S.ixp[c]].g,ixCity(c),(S.ixSite||{})[c],(S.ixn||{})[c])*(isRemote(c)?REMOTE_CAP:1);}
+function ixCap(c){return S.myIx[c]?myFab(c).g*(S.pops[ixCity(c)]&&(siteDown(ixCity(c),'a'))?0:1):liveCap(PORT[S.ixp[c]].g,ixCity(c),(S.ixSite||{})[c],(S.ixn||{})[c])*(isRemote(c)?REMOTE_CAP:1);}
 function ixSessions(c){
   const s=new Set(); if(S.ixp[c]===undefined)return s;
   for(const id of ixMembers(c)){const n=NET[id];
@@ -1552,8 +1556,9 @@ function compute(){
   const depeer=ev.depeer>day||scnRule('spat'), leak=ev.leak&&ev.leak.until>day?ev.leak.net:null;
   for(const t of S.transit){if(!popUp(t.city)||t.down>day||!liveN(t.city,t.site,t.n))continue;
     E.push({k:'t',prem:!!t.premium&&t.city==='hkg',pref:t.pref||'normal',lab:NET[t.net].name+' transit',id:t.id,city:t.city,cap:Math.min(liveCap(PORT[t.tier].g,t.city,t.site,t.n),TRX&&TRX.cap[t.net]!==undefined?TRX.cap[t.net]:Infinity),used:0,rank:3,ok:n=>!(depeer&&t.net==='cog'&&n==='ggl')&&n!==leak});}
-  for(const c in S.ixp){const ct=ixCity(c);if(!(popUp(ct)||remote.includes(ct))||(S.ev.ixdown&&S.ev.ixdown[c]>day)||!liveN(ct,(S.ixSite||{})[c],(S.ixn||{})[c]))continue;const set=ixSessions(c);R2.sessions+=set.size;
-    E.push({k:'ix',pref:(S.ixPref&&S.ixPref[c])||'normal',lab:ixName(c)+' peering',id:c,city:ct,cap:ixCap(c),used:0,rank:2,ok:n=>set.has(n)});}
+  for(const c in S.ixp){const sites=S.myIx[c]&&S.myIx[c].dist?myIxSites(c):[ixCity(c)];let counted=false;
+    for(const ct of sites){if(!(popUp(ct)||remote.includes(ct))||(S.ev.ixdown&&S.ev.ixdown[c]>day)||!liveN(ct,(S.ixSite||{})[c],(S.ixn||{})[c]))continue;const set=ixSessions(c);if(!counted){R2.sessions+=set.size;counted=true;}
+      E.push({k:'ix',pref:(S.ixPref&&S.ixPref[c])||'normal',lab:ixName(c)+' peering',id:c,city:ct,cap:ixCap(c)/sites.length,used:0,rank:2,ok:n=>set.has(n)});}}
   for(const p of S.pni){if(!popUp(p.city)||!liveN(p.city,p.site,p.n))continue;R2.sessions++;E.push({k:'p',pnc:!!NET[p.net].cn,pref:p.pref||'normal',lab:'PNI with '+NET[p.net].name,id:p.id,city:p.city,cap:liveCap(PORT[p.tier].g,p.city,p.site,p.n),used:0,rank:1,ok:n=>n===p.net});}
   for(const c of S.caches){if(!popUp(c.city)||siteDown(c.city,'a'))continue;E.push({k:'c',pref:'normal',lab:NET[c.net].cache.name+' cache',id:c.id,city:c.city,cap:CACHE_CAP,used:0,rank:0,ok:n=>n===c.net});}
   {const rp=ev.rpki&&ev.rpki.until>day?new Set(ev.rpki.nets):null;if(rp)for(const e of E){if(e.k==='c')continue;const o=e.ok;e.ok=n=>!rp.has(n)&&o(n);}}
@@ -1638,7 +1643,7 @@ function compute(){
   }
   for(const k in edges){const e=edges[k],ld=eload[k]||0;for(const l of e.links)R2.load[l.id]=ld*capOf(l)/e.cap;}
   R2.peerShare=R2.served>0?R2.peered/R2.served:0;
-  for(const e of E){if(e.k==='t')R2.useT[e.id]=e.used;else if(e.k==='ix')R2.useIx[e.id]=e.used;else if(e.k==='p')R2.usePni[e.id]=e.used;else R2.useCache[e.id]=e.used;}
+  for(const e of E){if(e.k==='t')R2.useT[e.id]=e.used;else if(e.k==='ix')R2.useIx[e.id]=(R2.useIx[e.id]||0)+e.used;else if(e.k==='p')R2.usePni[e.id]=e.used;else R2.useCache[e.id]=e.used;}
   // money
   const C=R2.cost,V=R2.rev,pm=S.priceMul;
   C.pops=Object.values(S.pops).reduce((a,p)=>a+POP_MO+((p.routers||1)-1)*ROUTER_MO+(p.routers||1)*RG[p.rgen||0].mo+(p.gen?GEN_MO:0),0);
@@ -1646,7 +1651,7 @@ function compute(){
   C.links=S.links.reduce((a,l)=>a+(l.mo||0),0);
   C.nni=(S.nni||[]).reduce((a,x)=>a+NNI[x.tier].mo,0);
   C.transit=S.transit.reduce((a,t)=>{const q=p95(t,R2.useT[t.id]||0);R2.p95[t.id]=q;const n=t.n||1;return a+Math.max(q,PORT[t.tier].g*n*0.2)*NET[t.net].price*(t.premium&&t.city==='hkg'?NET[t.net].premium:1)*pm*regionMult(t.city)+PORT[t.tier].tmo*n;},0);
-  C.ix=Object.keys(S.ixp).reduce((a,c)=>a+(S.myIx[c]?myFab(c).mo:ixPortMo(c,S.ixp[c])*((S.ixn||{})[c]||1)+dkAddonMo(c)),0);
+  C.ix=Object.keys(S.ixp).reduce((a,c)=>a+(S.myIx[c]?myFab(c).mo+(myIxSites(c).length-1)*DIX_SITE_MO:ixPortMo(c,S.ixp[c])*((S.ixn||{})[c]||1)+dkAddonMo(c)),0);
   C.pni=S.pni.reduce((a,p)=>a+PORT[p.tier].pni*(p.n||1)+(NET[p.net].pol==='paid'?NET[p.net].paidFee:0),0);
   C.caches=S.caches.length*CACHE_MO;
   C.loans=(S.loans||[]).reduce((a,l)=>a+(BANKS[l.bank].equity?0:l.pay),0);
@@ -1667,11 +1672,12 @@ function nniUsed(c,prov){return S.links.filter(l=>l.kind==='vxc'&&l.prov===prov&
 function nniPort(c,prov){return (S.nni||[]).find(x=>x.city===c&&x.prov===prov);}
 function repayCost(l,B){return B.equity?Math.round(l.amount*3):Math.round(Math.max(l.bal,B.crypto&&l.got?l.got:0)*1.02);}
 const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
-const isCity=c=>typeof c==='string'&&own(CITY,c),isIx=x=>typeof x==='string'&&(own(CITY,x)||own(XIXM,x)),isNet=n=>typeof n==='string'&&own(NET,n);
+const isCity=c=>typeof c==='string'&&own(CITY,c),isIx=x=>typeof x==='string'&&(own(CITY,x)||own(XIXM,x)||!!(S&&S.myIx&&own(S.myIx,x)&&S.myIx[x].dist)),isNet=n=>typeof n==='string'&&own(NET,n);
 const num=(v,d=0)=>{v=+v;return Number.isFinite(v)?v:d;},int=(v,lo,hi,d)=>{v=Math.round(num(v,d));return Math.min(hi,Math.max(lo,v));};
 /* Saves come from localStorage or from imported files, so treat them as untrusted: fill in anything
    missing, drop references to cities, networks or types that do not exist, and force numbers to be numbers. */
 function sanitize(s){
+  const isIxS=x=>isIx(x)||(typeof x==='string'&&s.myIx&&own(s.myIx,x)&&!!s.myIx[x].dist);
   const arr=k=>{if(!Array.isArray(s[k]))s[k]=[];},obj=k=>{if(!s[k]||typeof s[k]!=='object'||Array.isArray(s[k]))s[k]={};};
   ['links','nni','transit','pni','caches','biz','offers','inc','usedNames','loans','loanOffers','hist','log'].forEach(arr);
   ['pops','ixp','rs','peers','myIx','done','ev','stats','ixn','ixPref','ixSite','confReg','ach'].forEach(obj);
@@ -1686,11 +1692,11 @@ function sanitize(s){
   s.transit=s.transit.filter(t=>t&&isCity(t.city)&&isNet(t.net)&&NET[t.net].pops.includes(t.city)).map(t=>(t.site=['a','b','ab'].includes(t.site)?t.site:'a',t.id=sid(t.id),t.tier=tier(t.tier),t.n=lag(t.n),t.down=num(t.down,0),t));
   s.pni=s.pni.filter(x=>x&&isCity(x.city)&&isNet(x.net)&&NET[x.net].pops.includes(x.city)).map(x=>(x.site=['a','b','ab'].includes(x.site)?x.site:'a',x.id=sid(x.id),x.tier=tier(x.tier),x.n=lag(x.n),x));
   s.caches=s.caches.filter(x=>x&&isCity(x.city)&&isNet(x.net)&&NET[x.net].cache).map(x=>(x.id=sid(x.id),x));
-  for(const c of Object.keys(s.ixp)){if(!isIx(c))delete s.ixp[c];else s.ixp[c]=tier(s.ixp[c]);}
-  for(const k of ['rs','ixn','ixPref','ixSite'])for(const c of Object.keys(s[k]))if(!isIx(c))delete s[k][c];if(s.ixCut&&typeof s.ixCut==='object'){for(const c of Object.keys(s.ixCut))if(!isIx(c))delete s.ixCut[c];else s.ixCut[c]=Math.min(1,Math.max(0.6,num(s.ixCut[c],1)));}else delete s.ixCut;
+  for(const c of Object.keys(s.myIx)){const m=s.myIx[c];if(!isCity(String(c).split('~')[0])||!m||typeof m!=='object'){delete s.myIx[c];continue;}m.members=Array.isArray(m.members)?m.members.filter(isNet):[];m.name=String(m.name||'Your IX').slice(0,40);m.next=num(m.next,s.day);m.fab=int(m.fab,0,MYIX_FAB.length-1,0);if(m.dist){m.sites=[...new Set((Array.isArray(m.sites)?m.sites:[]).filter(isCity))].slice(0,DIX_MAX_SITES);const home=String(c).split('~')[0];if(!m.sites.includes(home))m.sites.unshift(home);}else delete m.sites;}
+  for(const c of Object.keys(s.ixp)){if(!isIxS(c))delete s.ixp[c];else s.ixp[c]=tier(s.ixp[c]);}
+  for(const k of ['rs','ixn','ixPref','ixSite'])for(const c of Object.keys(s[k]))if(!isIxS(c))delete s[k][c];if(s.ixCut&&typeof s.ixCut==='object'){for(const c of Object.keys(s.ixCut))if(!isIxS(c))delete s.ixCut[c];else s.ixCut[c]=Math.min(1,Math.max(0.6,num(s.ixCut[c],1)));}else delete s.ixCut;
   for(const c of Object.keys(s.ixn))s.ixn[c]=lag(s.ixn[c]);for(const c of Object.keys(s.ixSite))if(!['a','b','ab'].includes(s.ixSite[c]))s.ixSite[c]='a';
-  for(const k of Object.keys(s.peers)){const [n,c]=k.split('@');if(!isNet(n)||!isIx(c))delete s.peers[k];}
-  for(const c of Object.keys(s.myIx)){const m=s.myIx[c];if(!isCity(c)||!m||typeof m!=='object'){delete s.myIx[c];continue;}m.members=Array.isArray(m.members)?m.members.filter(isNet):[];m.name=String(m.name||'Your IX').slice(0,40);m.next=num(m.next,s.day);m.fab=int(m.fab,0,MYIX_FAB.length-1,0);}
+  for(const k of Object.keys(s.peers)){const [n,c]=k.split('@');if(!isNet(n)||!isIxS(c))delete s.peers[k];}
   const okBiz=b=>b&&own(BIZ_T,b.type)&&isCity(b.city)&&(!b.city2||isCity(b.city2))&&(!b.sites||Array.isArray(b.sites)&&b.sites.every(isCity));
   const fixBiz=b=>{b.id=sid(b.id);b.name=String(b.name||'Customer').slice(0,80);b.bw=num(b.bw,1);b.rate=num(b.rate,0);if(b.fee!==undefined)b.fee=num(b.fee,0);if(b.start!==undefined)b.start=num(b.start,0);if(b.dur!==undefined)b.dur=num(b.dur,1);if(b.slots!==undefined)b.slots=num(b.slots,0);if(b.what!==undefined)b.what=String(b.what).slice(0,200);if(!Array.isArray(b.reqs))b.reqs=[];b.reqs=b.reqs.filter(r=>own(REQS,r));if(b.mood!==undefined)b.mood=num(b.mood,100);if(b.exp!==undefined)b.exp=num(b.exp,0);if(b.latMax!=null)b.latMax=num(b.latMax,10);if(b.route&&!own(RT,b.route))b.route='normal';return b;};
   s.biz=s.biz.filter(okBiz).map(fixBiz);s.offers=s.offers.filter(okBiz).map(fixBiz);
@@ -2066,8 +2072,9 @@ function dayTick(){
       else if(b.mood<30&&!b.warned){b.warned=true;toast(`<b>${esc(b.name)} is furious.</b><br>Fix service in ${CITY[b.city].name} or they leave.`,'bad',[{l:'Show me',act:'focusCity',args:{city:b.city}}]);}}
     if(b.mood>60)b.warned=false;}
   // own IX members join
-  for(const c in S.myIx){const m=S.myIx[c];if(d>=m.next&&m.members.length<myFab(c).max){
-    const cands=NETS.filter(n=>n.type!=='t1'&&!m.members.includes(n.id)&&(n.pops.includes(c)||n.pops.some(p=>CITY[p].reg===CITY[c].reg)));
+  for(const c in S.myIx){const m=S.myIx[c];if(d>=m.next&&m.members.length<myIxMax(c)){
+    const sites=myIxSites(c);
+    const cands=NETS.filter(n=>n.type!=='t1'&&!m.members.includes(n.id)&&n.pops.some(p=>sites.includes(p)||sites.some(x=>CITY[p].reg===CITY[x].reg)));
     if(cands.length){cands.sort((a,b)=>(a.pol==='open'?0:1)-(b.pol==='open'?0:1)||b.share-a.share);const n=Math.random()<.6?cands[0]:pick(cands);m.members.push(n.id);toast(`<b>${esc(n.name)} joined ${esc(m.name)}!</b><br>Another member paying ${fmt$(MYIX_FEE)}/mo for a port.`,'good');sfx('coin');}
     m.next=d+8+Math.floor(Math.random()*10);}}
   loanTick(d);
@@ -2300,6 +2307,16 @@ const ACT={
  fixInc:({id})=>{const i=S.inc.find(x=>x.id===id);if(!i||!(i.cost>0))return;if(i.slow&&i.rushed)return;if(!spend(i.cost))return;
    if(i.slow&&i.until>S.day+1){i.rushed=true;i.cost=0;i.until=S.day+1;const p=S.pops[i.ref];if(p)p.down=Math.min(p.down,S.day+1);toast(`<b>Power-cycled.</b><br>The router in ${esc(CITY[i.ref].name)} is booting again. It will be up tomorrow, the ${esc(RG[(p&&p.rgen)||0].chip)} willing.`,'good');after();return;}clearInc(i);toast(`<b>Fixed.</b> ${incTitle(i.type)} resolved early.`,'good');after();},
  myIxUp:({city})=>{const m=S.myIx[city];if(!m)return;const f=(m.fab|0)+1,N=MYIX_FAB[f];if(!N)return;if(N.lvl>lvl()){toast(`<b>A ${N.n} fabric unlocks at customer level ${N.lvl}.</b>`,'bad');sfx('err');return;}if(!spend(N.cost))return;m.fab=f;toast(`<b>${esc(m.name)} now runs a ${N.n} fabric.</b><br>Room for ${N.max} members. Expect a few more to join.`,'good');m.next=Math.min(m.next,S.day+3);after();},
+ foundDix:({city,name})=>{if(!S.pops[city]||CITY[city].cn)return;if(Object.values(S.myIx).filter(m=>m.dist).length>=6){toast('<b>That is enough exchanges to run.</b><br>Six distributed IXs per network.','bad');sfx('err');return;}
+   let nm=String(name||'').replace(/[^\p{L}\p{N} .&-]/gu,'').trim().slice(0,24);if(!nm)nm=(S.name.split(' ')[0]||'My').replace(/[^A-Za-z0-9]/g,'').slice(0,10)+'-IX';
+   if(!spend(MYIX_COST))return;let k=1;while(S.myIx[city+'~y'+k])k++;const id=city+'~y'+k;S.myIx[id]={name:nm,members:[],next:S.day+4,dist:true,sites:[city]};S.ixp[id]=2;
+   toast(`<b>You founded ${esc(nm)}!</b><br>A distributed L2 exchange, starting in ${esc(CITY[city].name)}${CITY[city].ix?` next to ${esc(CITY[city].ix)}`:''}. Add more of your POPs as sites and networks will join from all of them.`,'goal');after();},
+ foundDixN:({city})=>{const el=$('dixName');ACT.foundDix({city,name:el?el.value:''});},
+ addDixSite:({id,city})=>{const m=S.myIx[id];if(!m||!m.dist||!S.pops[city]||m.sites.includes(city)||m.sites.length>=DIX_MAX_SITES)return;
+   const home=m.sites[0],P=trPaths(home);if(P.dist[city]===undefined){toast(`<b>${esc(CITY[city].name)} is not connected to ${esc(m.name)}.</b><br>An L2 exchange needs a working link path between its sites. Lay a link first.`,'bad');sfx('err');return;}
+   if(!portGate(city,1))return;if(!spend(DIX_SITE_COST))return;m.sites.push(city);m.next=Math.min(m.next,S.day+3);toast(`<b>${esc(m.name)} now has a switch in ${esc(CITY[city].name)}.</b><br>Room for ${DIX_SITE_MEMBERS} more members, and local traffic stays local.`,'good');after();},
+ dropDixSite:({id,city})=>{const m=S.myIx[id];if(!m||!m.dist||m.sites[0]===city||!m.sites.includes(city))return;if(UI.confirm!=='ds'+id+city){UI.confirm='ds'+id+city;renderPanel();return;}m.sites=m.sites.filter(x=>x!==city);UI.confirm=null;after();},
+ closeDix:({id})=>{const m=S.myIx[id];if(!m||!m.dist)return;if(UI.confirm!=='dx'+id){UI.confirm='dx'+id;renderPanel();return;}delete S.myIx[id];delete S.ixp[id];delete S.rs[id];if(S.ixn)delete S.ixn[id];if(S.ixPref)delete S.ixPref[id];if(S.ixSite)delete S.ixSite[id];for(const k in S.peers)if(k.endsWith('@'+id))delete S.peers[k];UI.confirm=null;toast(`<b>${esc(m.name)} has closed.</b><br>Its members have gone elsewhere.`,'');after();},
  foundIx:({city})=>{if(!S.pops[city]||S.myIx[city]||CITY[city].ix||CITY[city].cn)return;if(!spend(MYIX_COST))return;const nm=(S.name.split(' ')[0]||'My').replace(/[^A-Za-z0-9]/g,'').slice(0,10)+'-IX '+CITY[city].name;
    S.myIx[city]={name:nm,members:[],next:S.day+4};S.ixp[city]=2;toast(`<b>You founded ${esc(nm)}!</b><br>Networks will join over time and pay you for ports. Open members peer with you for free.`,'goal');after();},
  buildLink:({tier})=>{tier=+tier;const p=UI.pending;if(!p)return;const {a,b}=p;if(sanctionedPair(a,b)){toast('<b>Nobody sells that wave.</b><br>Between Ukraine and Russia only dark fiber is possible, and it risks sanctions.','bad');sfx('err');return;}const km=kmBetween(a,b),sub=isSub(a,b),sib=pairLinks(a,b).filter(l=>l.kind!=='vxc'),same=sib.length>0&&UI.route==='same',border=cnCity(a)!==cnCity(b),mult=(sib.length&&!same?DIVERSE:1)*(border?3*(UI.cnPrem&&(a==='hkg'||b==='hkg')?1.6:1):1);
@@ -2571,6 +2588,7 @@ function cityPanel(c){
   }else if(UI.tab==='peer'){
     h+=portNote(c);
     h+=ixSection(c);
+    h+=dixSection(c);
     h+=`<section><h3>Private interconnects (PNI)</h3><p class="lead">A dedicated cross-connect to one network in ${esc(C.dc)}. Needs more traffic than IX peering, but has its own capacity.</p>`;
     const here=NETS.filter(n=>n.pops.includes(c));
     for(const n of here){const pn=S.pni.find(x=>x.city===c&&x.net===n.id),chk=peerOk(n.id,'pni',c);
@@ -2618,11 +2636,18 @@ function cityPanel(c){
   }
   return h+`</div>`;
 }
+function dixSection(c){if(!S.pops[c])return '';
+  const mine=Object.keys(S.myIx).filter(k=>S.myIx[k].dist);
+  let h=`<section><h3>Distributed exchange</h3><p class="lead">Build an L2 exchange of your own that spans several of your POPs, the way GNM-IX, NINE or FogIXP do. It works even where another exchange already exists. Members join over time from the region of every site, and each extra site makes room for ${DIX_SITE_MEMBERS} more.</p>`;
+  for(const k of mine){const m=S.myIx[k],sites=myIxSites(k),here=sites.includes(c),home=k.split('~')[0]===c;
+    h+=`<div class="row"><div class="grow"><div class="nm">${esc(m.name)} <span class="tag st on">distributed</span></div><div class="meta">${sites.map(x=>esc(CITY[x].name)).join(' · ')} · ${m.members.length} of ${myIxMax(k)} members · ${fmt$(myFab(k).mo+(sites.length-1)*DIX_SITE_MO)}/mo</div></div>${!here&&sites.length<DIX_MAX_SITES?btn(`Add ${esc(CITY[c].name)} <small>${fmt$(DIX_SITE_COST)} + ${fmt$(DIX_SITE_MO)}/mo</small>`,'addDixSite',{id:k,city:c},'pink sm',S.cash<DIX_SITE_COST):''}${here&&!home?btn(UI.confirm==='ds'+k+c?'Really drop it?':'Drop this site','dropDixSite',{id:k,city:c},'ghost sm'):''}${home?btn(UI.confirm==='dx'+k?'Really close it?':'Close it','closeDix',{id:k},'ghost sm'):''}</div>`;}
+  h+=`<div class="btns"><input class="t" id="dixName" maxlength="24" placeholder="Name it, e.g. FogIXP" style="flex:1;font-size:15px" autocomplete="off" aria-label="Name of the new exchange">${btn(`Found one here <small>${fmt$(MYIX_COST)} + ${fmt$(MYIX_MO)}/mo</small>`,'foundDixN',{city:c},'pink sm',S.cash<MYIX_COST)}</div></section>`;
+  return h;}
 function ixSection(c){const ids=ixIdsIn(c);if(ids.length<2)return ixBlock(c,false);
   let h=`<section><h3>Internet Exchanges</h3><p class="lead">${ids.length} exchanges compete in ${esc(CITY[c].name)}. Members overlap, but not completely, and the challengers undercut the incumbent. Small networks often sit on just one of them.</p></section>`;
   for(const x of ids)h+=ixBlock(x,true);return h;}
 function ixBlock(c,multi){const city=ixCity(c),C=CITY[city],ix=ixName(c),X=XIXM[c];let h='';
-    h+=`<section><h3>${multi?esc(ix)+(X?' <span class="tag st">challenger</span>':' <span class="tag st">incumbent</span>'):'Internet Exchange'}</h3>`;
+    h+=`<section><h3>${multi?esc(ix)+(S.myIx[c]&&S.myIx[c].dist?' <span class="tag st on">your distributed IX</span>':X?' <span class="tag st">challenger</span>':' <span class="tag st">incumbent</span>'):(S.myIx[c]&&S.myIx[c].dist?'Your distributed IX':'Internet Exchange')}</h3>`;
     if(!ix&&C.cn){h+=`<p class="lead">Running an exchange in mainland China takes a different license entirely. Peer with Chinese networks over PNIs, or meet them in Hong Kong.</p>`;}
     else if(!ix){h+=`<p class="lead">There's no IX in ${C.name} yet. Found one: networks join over time, pay you for ports, and peer with you for free.</p>${S.pops[city]?btn(`Found your own IX <small>${fmt$(MYIX_COST)} + ${fmt$(MYIX_MO)}/mo</small>`,'foundIx',{city:c},'pink',S.cash<MYIX_COST):'<p class="note">Build a POP here first.</p>'}`;}
     else if(S.ixp[c]===undefined){h+=`<p class="lead">${esc(ix)} is a shared switch. One port lets you peer with every member for free. Members: ${(()=>{const m=ixMembers(c),big=m.filter(id=>!NET[id].tail),t=m.length-big.length;return (big.map(id=>esc(NET[id].name)).join(', ')||'nobody yet')+(t?`, plus ${t} small network${t===1?'':'s'}`:'');})()}.</p>${S.pops[city]?'':REMOTE_WARN}${X?`<p class="note">${esc(X.blurb)} Ports at ${Math.round(ixMul(c)*100)}% of the usual price.</p>`:''}${CITY[city].ixCheap?`<p class="note"><b>Run by a nonprofit.</b> Public prices at a fraction of what other exchanges charge, and almost everyone is here.</p>`:''}${isDk(c)?`<p class="note"><b>Run by DE-CIX Group.</b> No public price list. Ask sales for a personalised quote and bring your haggling face.</p>`:''}<div class="btns">${PORT.map((P2,i)=>btn(`${P2.n} port <small>${isDk(c)?'Price on request ☎':fmt$(ixPortMo(c,i))+'/mo'}</small>`,'buyIx',{city:c,tier:i},'',(!isDk(c)&&S.cash<ixPortMo(c,i))||(!!S.pops[city]&&!portOk(city,i))||(!S.pops[city]&&i>1))).join('')}</div>`;}
@@ -2631,7 +2656,7 @@ function ixBlock(c,multi){const city=ixCity(c),C=CITY[city],ix=ixName(c),X=XIXM[
       if(isDk(c)&&S.dk){const ad=S.dk.add[c]||[],rt=S.dk.ret[c];h+=`<p class="note">DE-CIX personalised pricing: ${Math.round(dkMult(c)*100)}% of what a normal IX would charge${rt&&rt>S.day?` (promo, ${rt-S.day} days left)`:''}.</p>`;
         for(const x of ad)h+=`<div class="row"><div class="grow"><div class="nm">${esc(x.n)} <span class="tag paid">auto-enrolled</span></div><div class="meta">${esc(x.blurb)} · ${fmt$(x.mo)}/mo</div></div>${btn(UI.confirm==='dk'+c+x.n?'Lose exclusive benefits?':'Opt out','dkOptOut',{city:c,n:x.n},'ghost sm')}</div>`;}
       if(isRemote(c))h+=`<p class="note">Remote port via a reseller: 1.5× price, 80% usable, and ${ixMembers(c).filter(noRemote).length} member${ixMembers(c).filter(noRemote).length===1?'':'s'} here refuse remote peers.</p>`;
-      if(mine){const f=S.myIx[c].fab|0,N=MYIX_FAB[f+1];h+=`<div class="kv"><span>Members paying you</span><b>${S.myIx[c].members.length} of up to ${myFab(c).max} · ${fmt$(S.myIx[c].members.length*MYIX_FEE)}/mo</b></div>${N?`<div class="btns">${btn(N.lvl>lvl()?`${N.n} fabric <small>level ${N.lvl}</small>`:`Upgrade fabric to ${N.n} <small>${fmt$(N.cost)} + ${fmt$(N.mo)}/mo</small>`,'myIxUp',{city:c},'pink sm',N.lvl>lvl()||S.cash<N.cost)}</div><p class="note">A bigger fabric carries more traffic and has room for more members. Your router here still has to keep up.</p>`:'<p class="note">Biggest fabric money can buy.</p>'}`;}
+      if(mine){const f=S.myIx[c].fab|0,N=MYIX_FAB[f+1];h+=`<div class="kv"><span>Members paying you</span><b>${S.myIx[c].members.length} of up to ${myIxMax(c)} · ${fmt$(S.myIx[c].members.length*MYIX_FEE)}/mo</b></div>${S.myIx[c].dist?`<div class="kv"><span>Sites</span><b>${myIxSites(c).map(x=>esc(CITY[x].name)).join(' · ')}</b></div>`:''}${N?`<div class="btns">${btn(N.lvl>lvl()?`${N.n} fabric <small>level ${N.lvl}</small>`:`Upgrade fabric to ${N.n} <small>${fmt$(N.cost)} + ${fmt$(N.mo)}/mo</small>`,'myIxUp',{city:c},'pink sm',N.lvl>lvl()||S.cash<N.cost)}</div><p class="note">A bigger fabric carries more traffic and has room for more members. Your router here still has to keep up.</p>`:'<p class="note">Biggest fabric money can buy.</p>'}`;}
       else h+=`<div class="btns">${PORT.map((P2,i)=>i>S.ixp[c]?btn(`Upgrade ${P2.n} <small>${fmt$(ixPortMo(c,i)*((S.ixn||{})[c]||1))}/mo</small>`,'buyIx',{city:c,tier:i},'sm',(!!S.pops[city]&&!portOk(city,i))||(!S.pops[city]&&i>1)):'').join('')}${S.pops[city]&&((S.ixn||{})[c]||1)<LAG_MAX?btn(`+ LAG member <small>${fmt$(ixPortMo(c,S.ixp[c]))}/mo</small>`,'lagIx',{city:c,d:1},'sm',S.cash<ixPortMo(c,S.ixp[c])):''}${((S.ixn||{})[c]||1)>1?btn('− member','lagIx',{city:c,d:-1},'ghost sm'):''}${btn(S.rs[c]?'Leave route server':'Join route server','rs',{city:c},S.rs[c]?'ghost sm':'pink sm')}${btn(UI.confirm==='ix'+c?'Really leave?':'Leave IX','cancelIx',{city:c},'ghost sm')}</div>`;
       h+=`<div style="margin-top:8px">`;
       {const elig=mine?[]:ixMembers(c).filter(id=>!set.has(id)&&peerOk(id,'ix',c).ok);if(elig.length>1)h+=`<div class="btns">${btn(`Request all ${elig.length} willing peers`,'peerAll',{city:c},'pink sm')}</div>`;}
@@ -3214,7 +3239,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(
    shared by everyone on the team. Browsers send their clicks as commands (an action name and its arguments, plus the
    little bit of UI state some actions read) and receive snapshots of S. Nothing below runs in single player. */
 // Actions that only change what *you* are looking at. Everything else is a command to the shared network.
-const MP_LOCAL=new Set(['help','dash','dashClose','dashSort','bank','bankClose','dashLink','animSet','soundSet','mute','closePanel','closeModal','tab','leftTab','toggleLeft','focusCity','selLink','teEdit','teClose','teExample','teCheck','tailTog','trace','traceRun','traceCopy','share','shareDl','shareGo','tutSkip','models','via','route','dfMode','dfSrc','dfSys','cnPrem','menu','resetAsk','whatsNewShow','updateNow','updateLater','helpClose','routes','rvTab','rvSearch','rvNet','start','rollAsn','modeSet','scenarios','startScn','startWeekly','pickStart','cont','newgame','keepPlaying','exportSave','importPick','importGo','addChN','rmChN','citySearch','flyTo','citySet','mpOpen','mpTab','mpLogin','mpRegister','mpLogout','mpServer','mpRollAsn','mpCreate','mpJoin','mpEnter','mpPickCity','mpTeam','mpTeamClose','mpChat','mpRole','mpRotate','mpLeave']);
+const MP_LOCAL=new Set(['help','dash','dashClose','dashSort','bank','bankClose','dashLink','animSet','soundSet','mute','closePanel','closeModal','tab','leftTab','toggleLeft','focusCity','selLink','teEdit','teClose','teExample','teCheck','tailTog','trace','traceRun','traceCopy','share','shareDl','shareGo','tutSkip','models','via','route','dfMode','dfSrc','dfSys','cnPrem','menu','resetAsk','whatsNewShow','updateNow','updateLater','helpClose','routes','rvTab','rvSearch','rvNet','start','rollAsn','modeSet','scenarios','startScn','startWeekly','pickStart','cont','newgame','keepPlaying','exportSave','importPick','importGo','foundDixN','addChN','rmChN','citySearch','flyTo','citySet','mpOpen','mpTab','mpLogin','mpRegister','mpLogout','mpServer','mpRollAsn','mpCreate','mpJoin','mpEnter','mpPickCity','mpTeam','mpTeamClose','mpChat','mpRole','mpRotate','mpLeave']);
 // UI state that commands read and may change (two-step confirms, the link you are drawing, the open tab).
 const MP_CTX=['confirm','tab','sel','pending','route','cnPrem','via','lmode','dfSrc','dfSys'];
 const MP_OUT=[];

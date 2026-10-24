@@ -184,3 +184,36 @@ test('real routers and optics, and dark fiber takes any number of transceivers a
   assert.equal(ev(`S.links.find(l=>l.id==='${id}').sys`), 'cl');
   assert.deepEqual(errors, []);
 });
+
+test('distributed L2 IXPs: found one anywhere, even where an exchange exists, and spread it over your POPs', () => {
+  const { ev, errors } = load({ seed: 8 });
+  ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.buildPop({city:'ams'});ACT.buildPop({city:'lon'});ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1})");
+  assert.ok(ev("CITY.fra.ix"), 'Frankfurt already has an exchange');
+  ev("ACT.foundDix({city:'fra',name:'FogIXP'})");
+  assert.equal(ev("JSON.stringify(Object.keys(S.myIx))"), '["fra~y1"]');
+  assert.ok(ev("ixIdsIn('fra').includes('fra~y1')&&ixIdsIn('fra').includes('fra')"), 'next to the incumbent');
+  assert.equal(ev("ixName('fra~y1')"), 'FogIXP');
+  // a site needs a working link path
+  ev("ACT.addDixSite({id:'fra~y1',city:'ams'})");
+  assert.equal(ev("myIxSites('fra~y1').length"), 1, 'no link, no site');
+  ev("UI.pending={a:'fra',b:'ams'};ACT.buildLink({tier:1});UI.pending={a:'ams',b:'lon'};ACT.buildLink({tier:1})");
+  const cash = ev('S.cash');
+  ev("ACT.addDixSite({id:'fra~y1',city:'ams'});ACT.addDixSite({id:'fra~y1',city:'lon'})");
+  assert.equal(ev("myIxSites('fra~y1').join()"), 'fra,ams,lon');
+  assert.ok(cash - ev('S.cash') >= 60000, 'sites cost money');
+  assert.equal(ev("myIxMax('fra~y1')"), ev("myFab('fra~y1').max") + 8, 'every extra site makes room for more members');
+  assert.ok(ev("ixIdsIn('ams').includes('fra~y1')"), 'it shows up in every site city');
+  for (let i = 0; i < 150; i++) ev('dayTick()');
+  assert.ok(ev("S.myIx['fra~y1'].members.length") > 3, 'members join');
+  assert.ok(ev("R.sessions") > 3 && ev("R.useIx['fra~y1']") >= 0);
+  ev("selectCity('ams');ACT.tab({t:'peer'})");
+  assert.match(ev("document.getElementById('panelBody').textContent"), /FogIXP/);
+  // saves keep it, closing removes it
+  ev("S=migrate(JSON.parse(JSON.stringify(S)))");
+  assert.equal(ev("S.ixp['fra~y1']"), 2);
+  assert.equal(ev("myIxSites('fra~y1').length"), 3);
+  ev("ACT.closeDix({id:'fra~y1'});ACT.closeDix({id:'fra~y1'})");
+  assert.equal(ev("Object.keys(S.myIx).length"), 0);
+  assert.equal(ev("S.ixp['fra~y1']"), undefined);
+  assert.deepEqual(errors, []);
+});

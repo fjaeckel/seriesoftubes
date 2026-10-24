@@ -25,6 +25,9 @@ All notable changes to this project are documented here. The project follows
   7750, MikroTik, an Edgecore SONiC box and the Tomahawk 6 and Silicon One G300 class for 1.6T ports), optics are real
   (100ZR, 400ZR+, 800ZR+, ICE-X, WaveLogic 6) and the line systems are Adtran and Ciena, with a new C+L-band system.
   No router sells ports faster than 1.6T yet, so there is no 3.2T.
+- Distributed IXPs: found your own L2 exchange in any city, even where an exchange already exists (Peering tab), name it
+  (FogIXP, NINE, GNM-IX style) and spread it over your POPs. Every site needs a working link path, costs a one-off fee plus
+  a monthly fee, and makes room for more members. Traffic can exit at any site.
 - Dark fiber optics take a number: type how many transceivers to light (or remove) at once.
 - Realistic names everywhere: customers, banks, conferences, small networks, campuses and cable operators.
 - Kyiv to Moscow (and any Ukraine to Russia link) can be built again, but only as dark fiber you light yourself, with a
