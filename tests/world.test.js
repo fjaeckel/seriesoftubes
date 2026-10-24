@@ -153,3 +153,34 @@ test('no joke names are left in the customer, bank and network lists', () => {
   const text = ev("JSON.stringify([BIZ_N,Object.values(BIZ_T).map(t=>t.names),Object.values(BANKS).map(b=>[b.name,b.blurb]),NETS.map(n=>[n.name,n.blurb]),CONFS.map(c=>c.n),MEGA.map(m=>m.n),SITE2_N])");
   assert.doesNotMatch(text, bad);
 });
+
+test('real routers and optics, and dark fiber takes any number of transceivers at once', () => {
+  const { ev, errors } = load({ seed: 4 });
+  assert.match(ev("RG.map(r=>r.n).join()"), /Juniper MX204.*Cisco 8201.*PTX10001.*Silicon One G300.*MikroTik.*Edgecore.*Arista 7280.*Arista 7800.*Cisco 8808.*Tomahawk 6.*Nokia 7750/);
+  assert.equal(ev("RG.some(r=>/Rusty|Chonk|Absolute|Arrrhipster|Knockia/.test(r.n))"), false);
+  assert.equal(ev("PORT[PORT.length-1].n"), '1.6T', 'no router port is faster than 1.6T today');
+  assert.equal(ev("Object.values(OPT).some(o=>/Ackackia|Sizzle|Sienna/.test(o.n))"), false);
+  ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0");
+  ev("ACT.buildPop({city:'ams'});for(const c of ['fra','ams'])S.pops[c].rgen=3;");
+  ev("UI.pending={a:'fra',b:'ams'};UI.lmode='df';UI.dfSrc='lease';ACT.orderDf()");
+  const id = ev("S.links.find(l=>l.kind==='df').id");
+  ev(`S.links.find(l=>l.id==='${id}').ready=0;S.links.find(l=>l.id==='${id}').sys='lite'`);
+  ev(`ACT.addCh({id:'${id}',o:'zr4',n:5})`);
+  assert.equal(ev(`S.links.find(l=>l.id==='${id}').ch.filter(x=>x==='zr4').length`), 5, 'five 400ZR+ at once');
+  ev(`ACT.addCh({id:'${id}',o:'zr4',n:99})`);
+  assert.equal(ev(`S.links.find(l=>l.id==='${id}').ch.length`), 16, 'stops at what the line system can light');
+  ev(`ACT.rmCh({id:'${id}',o:'zr4',n:3})`);
+  assert.equal(ev(`S.links.find(l=>l.id==='${id}').ch.length`), 13);
+  // the page: a number box per optic
+  ev(`UI.sel={type:'link',id:'${id}'};renderPanel()`);
+  ev("document.getElementById('chn-zr4').value='2'");
+  ev(`ACT.addChN({id:'${id}',o:'zr4'})`);
+  assert.equal(ev(`S.links.find(l=>l.id==='${id}').ch.length`), 15);
+  // a better line system unlocks the big transponders
+  assert.match(ev(`chWhy(S.links.find(l=>l.id==='${id}'),'tp16')`), /Ciena 6500 ROADM/);
+  ev(`ACT.upSys({id:'${id}',to:'roadm'})`);
+  assert.equal(ev(`chWhy(S.links.find(l=>l.id==='${id}'),'tp16')`), '');
+  ev(`ACT.upSys({id:'${id}',to:'cl'})`);
+  assert.equal(ev(`S.links.find(l=>l.id==='${id}').sys`), 'cl');
+  assert.deepEqual(errors, []);
+});

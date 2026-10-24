@@ -76,7 +76,7 @@ test('conferences: register, attend, and selective peers get easier for a while'
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e9;for(const g of GOALS)S.done[g.id]=0");
   ev("S.day=confDay(CONFS.find(c=>c.c==='fra'),0)-20;ACT.leftTab({t:'deals'})");
-  assert.match(ev("document.body.textContent"), /DENOG-ish/);
+  assert.match(ev("document.body.textContent"), /DENOG/);
   const key = ev("upcomingConfs(30).find(c=>c.c==='fra').key");
   ev(`ACT.confGo({key:'${key}'})`);
   const need0 = ev("(()=>{R.demTo.nfx=0;return peerOk('nfx','ix','fra').why})()");

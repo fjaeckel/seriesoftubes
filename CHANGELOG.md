@@ -21,6 +21,11 @@ All notable changes to this project are documented here. The project follows
   jitter in traceroutes.
 - Lighter on weak devices: only big cities are drawn until you zoom in, and the server compresses the page.
 - Find any city with the 🔍 button (or `/`), and hide the small cities with 🏙 or in the settings.
+- Real hardware: routers are now real models (Juniper MX204 and PTX, Cisco 8201 and 8808, Arista 7280 and 7800, Nokia
+  7750, MikroTik, an Edgecore SONiC box and the Tomahawk 6 and Silicon One G300 class for 1.6T ports), optics are real
+  (100ZR, 400ZR+, 800ZR+, ICE-X, WaveLogic 6) and the line systems are Adtran and Ciena, with a new C+L-band system.
+  No router sells ports faster than 1.6T yet, so there is no 3.2T.
+- Dark fiber optics take a number: type how many transceivers to light (or remove) at once.
 - Realistic names everywhere: customers, banks, conferences, small networks, campuses and cable operators.
 - Kyiv to Moscow (and any Ukraine to Russia link) can be built again, but only as dark fiber you light yourself, with a
   sanctions warning: you may be fined and the link cut for weeks.

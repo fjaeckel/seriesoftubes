@@ -66,12 +66,12 @@ test('#6 full transit, IX, caches and routers show up in the NOC and on the map'
   assert.deepEqual(errors, []);
 });
 
-test('some routers take forever to boot, PacketOinkers most of all', () => {
+test('some routers take forever to boot, big chassis most of all', () => {
   const { ev, errors } = load();
   base(ev);
   const pct = JSON.parse(ev("JSON.stringify(RG.map((G,g)=>{let n=0;for(const c of ALLC){S.pops[c]=S.pops[c]||{rgen:g,routers:1};S.pops[c].rgen=g;if(slowBoot(c))n++;}return n/ALLC.length;}))"));
   assert.ok(pct[0] < pct[2] && pct[2] > 0.2 && pct[0] < 0.3, `bigger chassis are slow more often (${pct})`);
-  assert.match(ev("RG[2].chip"), /PacketOinker/);
+  assert.match(ev("RG[2].chip"), /Express 5/);
   // find a slow and a fast POP and crash them
   ev("for(const c of ALLC)if(c!=='fra')delete S.pops[c];S.pops.fra.rgen=2;S.pops.fra.routers=1");
   const slowCity = ev("ALLC.find(c=>{S.pops[c]={rgen:2,routers:1,down:0};const s=slowBoot(c);if(!s)delete S.pops[c];return s;})");
