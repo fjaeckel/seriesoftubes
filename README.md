@@ -22,6 +22,13 @@ You start with one router in one city and grow into a transit-free Tier 1:
   mishaps, DDoS, cooling failures, Red Sea and Baltic cable cuts, sanctions and
   sovereign internet drills.
 
+## Credits
+
+This is a fork of **[Series of Tubes](https://github.com/fjaeckel/seriesoftubes)** by Frederic Jung
+([fjaeckel](https://github.com/fjaeckel)), playable at **[seriesoftub.es](https://seriesoftub.es)**. The game, its
+simulation, art and humour are theirs; this version adds real-world data, multiplayer, the route viewer and a few
+other things (see the changelog). Go play and support the original.
+
 ## This is fiction
 
 Series of Tubes is a game. Network, exchange and cable names are real because that is what makes the

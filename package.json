@@ -3,6 +3,7 @@
   "version": "1.10.0",
   "description": "A cartoon browser game about building the internet, with real networks, real PoPs and multiplayer teams.",
   "private": true,
+  "author": "Frederic Jung (original game); multiplayer and real-world data fork",
   "homepage": "https://seriesoftub.es/",
   "repository": {
     "type": "git",

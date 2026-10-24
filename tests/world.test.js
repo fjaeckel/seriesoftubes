@@ -106,3 +106,18 @@ test('old saves lose transit ports that no longer match a real PoP', () => {
   assert.equal(ev("S.transit.some(t=>t.id==='x1')"), false);
   assert.equal(ev("S.ixp['nope~9']"), undefined);
 });
+
+test('Ukraine to Russia: no waves, dark fiber only, with a sanctions risk', () => {
+  const { ev } = load({ seed: 5 });
+  ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.buildPop({city:'kyv'});ACT.buildPop({city:'mos'})");
+  assert.equal(ev("sanctionedPair('kyv','mos')"), true);
+  assert.equal(ev("sanctionedPair('fra','mos')"), false);
+  ev("openLinkModal('kyv','mos')");
+  assert.match(ev("document.getElementById('modalCard').textContent"), /may get sanctioned/);
+  assert.equal(ev("document.querySelector('#modalCard [data-act=dfMode]')"), null, 'no wave tab');
+  ev("UI.pending={a:'kyv',b:'mos'};ACT.buildLink({tier:1})");
+  assert.equal(ev('S.links.length'), 0, 'waves are refused');
+  ev("S.links.push({id:'z',a:'kyv',b:'mos',kind:'df',km:900,mo:1,ch:[],sys:'lite',ready:0})");
+  for (let i = 0; i < 40; i++) ev('fireEvent()');
+  assert.ok(ev('S.links[0].cut') > ev('S.day'), 'sooner or later the regulators notice');
+});

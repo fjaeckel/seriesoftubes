@@ -21,6 +21,9 @@ All notable changes to this project are documented here. The project follows
 - Latency behaves like fibre: route inflation per link, equipment delay, rerouting carriers, queueing under load and
   jitter in traceroutes.
 - Lighter on weak devices: only big cities are drawn until you zoom in, and the server compresses the page.
+- Kyiv to Moscow (and any Ukraine to Russia link) can be built again, but only as dark fiber you light yourself, with a
+  sanctions warning: you may be fined and the link cut for weeks.
+- Credits to the original game and its author on the title screen, the lite pages and in the README.
 - Old saves are repaired on load: transit ports at networks that are not in that city any more are removed.
 
 ## [1.10.0] — 2026-10-24

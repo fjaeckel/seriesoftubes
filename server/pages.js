@@ -32,7 +32,7 @@ const DISCLAIMER = 'Series of Tubes is a work of fiction. Network, exchange and 
 function layout({ title, body, user, refresh, version }) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · Series of Tubes</title>${refresh ? `<meta http-equiv="refresh" content="${refresh}">` : ''}<meta name="robots" content="noindex"><style>${CSS}</style></head><body>
 <header class="top"><b class="brand">Series of Tubes</b><a href="/lite">Networks</a><a href="/search">Search</a><a href="/">Full game</a><span class="sp"></span>${user ? `<a href="/lite/me">${esc(user.name)}</a><form class="inline" method="post" action="/lite/logout"><button class="ghost" type="submit">Log out</button></form>` : '<a href="/lite/login">Log in</a>'}</header>
-<main>${body}</main><p class="disc"><b>Fiction.</b> ${esc(DISCLAIMER)}${version ? ` v${esc(version)}` : ''}</p></body></html>`;
+<main>${body}</main><p class="disc"><b>Fiction.</b> ${esc(DISCLAIMER)} Based on <a href="https://github.com/fjaeckel/seriesoftubes">Series of Tubes</a> by Frederic Jung (<a href="https://seriesoftub.es">seriesoftub.es</a>).${version ? ` v${esc(version)}` : ''}</p></body></html>`;
 }
 
 const table = (head, rows, empty = 'Nothing here yet.') => `<div class="scroll"><table><thead><tr>${head.map((h) => `<th${/^#/.test(h) ? ' class="n"' : ''}>${esc(h.replace(/^#/, ''))}</th>`).join('')}</tr></thead><tbody>${rows.length ? rows.join('') : `<tr><td colspan="${head.length}" class="meta">${esc(empty)}</td></tr>`}</tbody></table></div>`;
