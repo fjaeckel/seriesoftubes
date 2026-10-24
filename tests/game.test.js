@@ -11,8 +11,11 @@ test('page boots to the title screen without errors', () => {
 
 test('every city sits on its landmass', () => {
   const { ev } = load();
-  const off = ev("CITIES.filter(c=>!inPoly(c.x,c.y,LANDS.find(l=>l.id===c.land).pts)).map(c=>c.id).join()");
+  const off = ev("CITIES.filter(c=>!c.gen&&!inPoly(c.x,c.y,LANDS.find(l=>l.id===c.land).pts)).map(c=>c.id).join()");
   assert.equal(off, '');
+  // generated cities are on a known landmass or on an island of their own, and islands are not inside any polygon
+  const bad = ev("CITIES.filter(c=>c.gen&&(c.land.startsWith('i:')?LANDS.some(l=>inPoly(c.x,c.y,l.pts)):!LANDS.some(l=>l.id===c.land))).map(c=>c.id).join()");
+  assert.equal(bad, '');
 });
 
 test('every cable lands at two known cities and has a length', () => {
@@ -126,12 +129,15 @@ test('goal rewards are paid once, even for goals finished on day 0', () => {
   assert.equal(c1 - c0, ev("GOALS.find(g=>g.id==='bb').r") - ev("bbCost('fra')"));
 });
 
-test('Stuttgart has only the Spätzle-IX: no transit, no PNIs', () => {
+test('transit is only sold where a transit network really has a PoP', () => {
   const { ev } = load();
-  assert.equal(ev("CITY.stg.ix"), 'Spätzle-IX');
-  assert.equal(ev("NETS.filter(n=>n.pops.includes('stg')).length"), 0);
+  assert.ok(ev("CITIES.some(c=>!NETS.some(n=>n.price&&n.pops.includes(c.id)))"), 'some cities have nobody to buy from');
   ev('ACT.start({})');
-  assert.ok(ev("ixMembers('stg').length") > 0, 'networks still peer at the exchange');
+  // buying transit in a city without a seller does nothing
+  const none = ev("CITIES.find(c=>!NETS.some(n=>n.price&&n.pops.includes(c.id))).id");
+  ev(`S.cash=1e9;ACT.buildPop({city:'${none}'});ACT.buyTransit({city:'${none}',net:'cog',tier:0})`);
+  assert.equal(ev('S.transit.length'), 0);
+  assert.ok(ev("ixMembers('stg').length") > 0, 'networks peer at the local exchange');
 });
 
 test('bank: offers arrive, loans pay out, cost money monthly and get paid off', () => {

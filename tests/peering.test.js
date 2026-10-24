@@ -73,7 +73,7 @@ test('remote peering is offered but costs more, gives less and gets refused more
   assert.deepEqual(errors, []);
 });
 
-test('DE-KICKS hides prices, haggles, harmonises upwards, auto-enrolls add-ons and fights to keep you', () => {
+test('DE-CIX hides prices, haggles, harmonises upwards, auto-enrolls add-ons and fights to keep you', () => {
   const { ev, errors } = load();
   setup(ev);
   ev("selectCity('fra');ACT.tab({t:'peer'})");

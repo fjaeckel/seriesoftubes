@@ -60,7 +60,7 @@ test('#6 full transit, IX, caches and routers show up in the NOC and on the map'
   ev("ACT.leftTab({t:'noc'})");  // NOC reads R as it is now (router forced hot above)
   const noc = ev("document.getElementById('leftBody')?document.getElementById('leftBody').textContent:document.body.textContent");
   assert.match(noc, /running hot/);
-  assert.match(noc, /Akamaybe Box cache/);
+  assert.match(noc, /Akamai Edge Cache cache/);
   assert.match(noc, /transit/);
   ev("draw&&draw(performance.now())");
   assert.deepEqual(errors, []);

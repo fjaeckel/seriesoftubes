@@ -8,13 +8,13 @@ test('new cities exist, sit on land and have sellers, cables and IX members', ()
   const { ev, errors } = load();
   start(ev);
   const ids = ['for', 'rio', 'bue', 'scl', 'lim', 'bog', 'pan', 'del', 'maa', 'blr', 'hyd', 'tpe', 'auh', 'fuj', 'cpt'];
-  for (const c of ids) {
-    assert.ok(ev(`!!CITY['${c}']`), c);
+  for (const c of ids) assert.ok(ev(`!!CITY['${c}']`), c);
+  // PeeringDB decides who sells where; these are known to have sellers
+  for (const c of ['for', 'bue', 'scl', 'lim', 'bog', 'pan', 'del', 'tpe', 'fuj', 'cpt'])
     assert.ok(ev(`NETS.some(n=>n.price&&n.pops.includes('${c}'))`), `${c} has a transit seller`);
-  }
   for (const c of ['for', 'rio', 'bue', 'scl', 'lim', 'bog', 'pan', 'maa', 'tpe', 'fuj', 'cpt'])
     assert.ok(ev(`CABLE_PAIRS.some(p=>p.a==='${c}'||p.b==='${c}')`), `${c} has a cable`);
-  assert.ok(ev("ixMembers('sao').includes('clr')&&ixMembers('del').includes('jio')&&ixMembers('tpe').includes('cht')"));
+  assert.ok(ev("ixMembers('sao').length>20&&ixMembers('tpe').includes('cht')"));
   assert.ok(ev("CABLE_PAIRS.some(p=>(p.a==='scl'&&p.b==='syd')||(p.a==='syd'&&p.b==='scl'))"), 'Humboldt-ish cable to Sydney');
   assert.deepEqual(errors, []);
 });
@@ -89,11 +89,14 @@ test('every new city panel renders', () => {
   assert.deepEqual(errors, []);
 });
 
-test('Asia-Pacific and Eastern Europe POPs exist with sellers', () => {
+test('Asia-Pacific and Eastern Europe POPs exist; the real sellers are where PeeringDB says', () => {
   const { ev } = load();
   start(ev);
   for (const c of ['mel', 'bne', 'drw', 'osa', 'kul', 'bkk', 'sgn', 'khi', 'dac', 'cbo', 'waw', 'prg', 'vie', 'bud', 'buh', 'tll', 'ist'])
-    assert.ok(ev(`!!CITY['${c}']&&NETS.some(n=>n.price&&n.pops.includes('${c}'))`), c);
+    assert.ok(ev(`!!CITY['${c}']`), c);
+  for (const c of ['mel', 'osa', 'kul', 'bkk', 'khi', 'waw', 'prg', 'vie', 'bud', 'buh', 'ist'])
+    assert.ok(ev(`NETS.some(n=>n.price&&n.pops.includes('${c}'))`), `${c} has a transit seller`);
+  for (const c of ['drw', 'cbo', 'dac', 'sgn']) assert.equal(ev(`NETS.some(n=>n.price&&n.pops.includes('${c}'))`), false, `${c} has none, so you must haul`);
   assert.ok(ev("CABLE_PAIRS.some(p=>p.cid==='balt')&&CABLE_PAIRS.some(p=>p.cid==='darwin')&&CABLE_PAIRS.some(p=>p.cid==='smw4')"));
 });
 
@@ -194,12 +197,13 @@ test('London–Amsterdam: many cheap cables and dark fiber you can lease under t
 test('#10 your own IX fabric can be upgraded, and grows', () => {
   const { ev, errors } = load();
   start(ev);
-  ev("ACT.buildPop({city:'mex'});ACT.foundIx({city:'mex'});compute()");
-  assert.equal(ev("ixCap('mex')"), 400);
-  ev("ACT.myIxUp({city:'mex'});compute()");
-  assert.equal(ev("ixCap('mex')"), 1600);
-  assert.equal(ev("myFab('mex').max"), 20);
-  ev("selectCity('mex');ACT.tab({t:'peer'})");
+  const c = ev("CITIES.find(c=>!c.gen&&!c.ix&&!c.cn&&!c.ru&&!c.uae&&!c.saudi).id");
+  ev(`ACT.buildPop({city:'${c}'});ACT.foundIx({city:'${c}'});compute()`);
+  assert.equal(ev(`ixCap('${c}')`), 400);
+  ev(`ACT.myIxUp({city:'${c}'});compute()`);
+  assert.equal(ev(`ixCap('${c}')`), 1600);
+  assert.equal(ev(`myFab('${c}').max`), 20);
+  ev(`selectCity('${c}');ACT.tab({t:'peer'})`);
   assert.match(ev("document.getElementById('panelBody').textContent"), /Your own fabric · 1.6T/);
   assert.deepEqual(errors, []);
 });
@@ -253,7 +257,9 @@ test('network ids are unique, and the long tail is small and spread over exchang
 test('several exchanges per city: overlapping members, cheaper challengers, separate ports', () => {
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;ACT.buildPop({city:'ams'})");
-  assert.deepEqual(JSON.parse(ev("JSON.stringify(ixIdsIn('ams'))")), ['ams', 'ams~2', 'ams~3']);
+  const ids = JSON.parse(ev("JSON.stringify(ixIdsIn('ams'))"));
+  assert.equal(ids[0], 'ams');
+  assert.ok(ids.length >= 3 && ids.slice(1).every((x, i) => x === `ams~${i + 2}`), ids.join());
   const a = JSON.parse(ev("JSON.stringify(ixMembers('ams'))")), b = JSON.parse(ev("JSON.stringify(ixMembers('ams~2'))"));
   assert.ok(a.some(x => b.includes(x)), 'shared members');
   assert.ok(b.some(x => !a.includes(x)) && a.some(x => !b.includes(x)), 'and different ones');
@@ -266,8 +272,8 @@ test('several exchanges per city: overlapping members, cheaper challengers, sepa
   ev("ACT.peerAll({city:'ams~2'})");
   ev("selectCity('ams');ACT.tab({t:'peer'})");
   const t = ev("document.getElementById('panelBody').textContent");
-  assert.match(t, /3 exchanges compete/);
-  assert.match(t, /NL-Nyx/);
+  assert.match(t, /4 exchanges compete/);
+  assert.match(t, /NL-ix/);
   ev("save();load2=JSON.parse(localStorage.getItem('sot-save-v1'));sanitize(load2)");
   assert.equal(ev("load2.ixp['ams~2']"), 1, 'saves keep challenger ports');
   ev("ACT.cancelIx({city:'ams~2'});ACT.cancelIx({city:'ams~2'})");
@@ -276,7 +282,7 @@ test('several exchanges per city: overlapping members, cheaper challengers, sepa
   assert.deepEqual(errors, []);
 });
 
-test('Voda-Phony only peers for money now, and EU price wars cut port prices', () => {
+test('Vodafone only peers for money now, and EU price wars cut port prices', () => {
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;ACT.buildPop({city:'ams'})");
   assert.equal(ev("NET.vdp.pol"), 'paid');
