@@ -2,11 +2,12 @@
 
 > Series of Tubes is a free cartoon browser game about building the internet.
 > Play it at https://seriesoftub.es/ — it runs entirely in the browser, needs no
-> account, and saves progress locally.
+> account, and saves progress locally. A self-hosted server adds multiplayer teams.
 
 You start as a small network with one router in one city and grow into a
-transit-free Tier 1. The game models real internet engineering, with pun names
-for every company:
+transit-free Tier 1. The game models real internet engineering, with real network,
+exchange and cable names (a work of fiction, not affiliated with any of them) and
+footprints taken from PeeringDB:
 
 - **Access and customers:** home broadband ("eyeballs"), enterprise DIA, hosting,
   game servers, L2VPNs, DDoS protection, high-frequency trading circuits with

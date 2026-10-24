@@ -53,13 +53,13 @@ const grid = new Map();
 const cellKey = (lat, lon) => Math.floor(lat / CELL) + ',' + Math.floor(lon / CELL);
 const metros = [];
 function addToGrid(m) { const k = cellKey(m.lat, m.lon); if (!grid.has(k)) grid.set(k, []); grid.get(k).push(m); }
-function nearest(p, maxKm, pred) {
+function nearest(p, maxKm, pred, rad) {
   const spanLat = Math.ceil(maxKm / 111 / CELL), spanLon = Math.ceil(maxKm / (111 * Math.max(0.2, Math.cos(p.lat * R))) / CELL);
   let best = null, bd = maxKm;
   const ci = Math.floor(p.lat / CELL), cj = Math.floor(p.lon / CELL);
   for (let i = -spanLat; i <= spanLat; i++) for (let j = -spanLon; j <= spanLon; j++) {
     const l = grid.get((ci + i) + ',' + (cj + j)); if (!l) continue;
-    for (const m of l) { if (pred && !pred(m)) continue; const d = hav(p, m); if (d < bd && d <= (m.snap || maxKm)) { bd = d; best = m; } }
+    for (const m of l) { if (pred && !pred(m)) continue; const d = hav(p, m); if (d < bd && d <= (rad ? rad(m) : maxKm)) { bd = d; best = m; } }
   }
   return best;
 }
@@ -72,7 +72,7 @@ for (const b of BASE) {
 }
 // Hong Kong, Macau and Taiwan are not "China" for the game's licence rules; Singapore/Johor merge across the border on purpose.
 for (const p of places.slice().sort((a, b) => b.pop - a.pop || (a.gid < b.gid ? -1 : 1))) {
-  const m = nearest(p, 25, (x) => x.base || x.cc === p.cc);
+  const m = nearest(p, 40, (x) => x.base || x.cc === p.cc, (x) => (x.base ? 40 : 25));
   if (m) { m.pop += p.pop; continue; }
   const nm = { id: 'g' + p.gid, name: /[^\u0000-ɏ]/.test(p.name) ? p.ascii : p.name, cc: p.cc, lat: p.lat, lon: p.lon, pop: p.pop, base: false, facs: [], ixs: [] };
   metros.push(nm); addToGrid(nm);
@@ -88,7 +88,7 @@ for (const f of facs) {
   let pt = f.latitude && f.longitude ? { lat: f.latitude, lon: f.longitude } : null;
   if (!pt) { const p = placeByName.get(f.country + '|' + lower(f.city)); if (p) { pt = { lat: p.lat, lon: p.lon }; facGeo++; } }
   if (!pt) { facLost++; continue; }
-  let m = nearest(pt, 55);
+  let m = nearest(pt, 55, (x) => x.base, (x) => x.snap) || nearest(pt, 35);
   if (!m) { m = { id: 'f' + f.id, name: String(f.city || f.name).split(',')[0].trim(), cc: f.country, lat: pt.lat, lon: pt.lon, pop: 0, base: false, facs: [], ixs: [] }; metros.push(m); addToGrid(m); facNew++; }
   m.facs.push(f); facMetro.set(f.id, m);
 }
@@ -106,7 +106,7 @@ for (const ix of ixs) {
   for (const fid of ixFacs.get(ix.id) || []) { const m = facMetro.get(fid); if (m) tally.set(m, (tally.get(m) || 0) + 1); }
   let m = [...tally.entries()].sort((a, b) => b[1] - a[1] || (a[0].id < b[0].id ? -1 : 1))[0];
   m = m && m[0];
-  if (!m) { const p = placeByName.get(ix.country + '|' + lower(ix.city)); if (p) m = nearest(p, 55); }
+  if (!m) { const p = placeByName.get(ix.country + '|' + lower(ix.city)); if (p) m = nearest(p, 55, (x) => x.base, (x) => x.snap) || nearest(p, 35); }
   if (m) ixMetro.set(ix.id, m);
 }
 const exchanges = new Map(); // metro -> [{id,name,size,asns}]
@@ -146,12 +146,15 @@ const netIx = new Map(allNets.map((n) => [n.id, []]));
 for (const r of pdb('netfac')) { const id = netIdToGame.get(r.net_id); const m = id && facMetro.get(r.fac_id); if (m) netPops.get(id).add(m); }
 const carrierOf = new Map(); for (const n of allNets) for (const c of n.carriers || []) carrierOf.set(c, n.id);
 for (const r of carrierfac) { const id = carrierOf.get(r.carrier_id); const m = id && facMetro.get(r.fac_id); if (m) netPops.get(id).add(m); }
-for (const m of metros) m.ixs.forEach((x, i) => {
-  x.nets = [];
-  for (const a of x.asns) { const id = asnToNet.get(a); if (!id) continue; if (!x.nets.includes(id)) x.nets.push(id); }
-  x.id = i === 0 ? m.id : m.id + '~' + (i + 1);
-  for (const id of x.nets) { netIx.get(id).push(x.id); netPops.get(id).add(m); }
-});
+for (const m of metros) {
+  for (const x of m.ixs) { x.nets = []; for (const a of x.asns) { const id = asnToNet.get(a); if (id && !x.nets.includes(id)) x.nets.push(id); } }
+  // The biggest exchange of a metro always stays; a challenger nobody in the game is on would only be dead weight.
+  m.ixs = m.ixs.filter((x, i) => i === 0 || x.nets.length > 0);
+  m.ixs.forEach((x, i) => {
+    x.id = i === 0 ? m.id : m.id + '~' + (i + 1);
+    for (const id of x.nets) { netIx.get(id).push(x.id); netPops.get(id).add(m); }
+  });
+}
 // Networks that publish (almost) no facilities get an estimated footprint, flagged as such in the game.
 const estimated = new Set();
 for (const [id, e] of Object.entries(NETS.est)) {

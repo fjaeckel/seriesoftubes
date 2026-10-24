@@ -1,50 +1,6 @@
 // Loads site/index.html in jsdom with the animation loop disabled, so tests can
 // drive the simulation directly through the game's globals (ACT, S, R, dayTick…).
-const fs = require('node:fs');
-const path = require('node:path');
-const { JSDOM, VirtualConsole } = require('jsdom');
-
-function load(opts = {}) {
-  const file = opts.file || path.join(__dirname, '..', 'site', 'index.html');
-  const html = fs.readFileSync(file, 'utf8');
-  const errors = [];
-  const vc = new VirtualConsole();
-  vc.on('jsdomError', (e) => {
-    // jsdom has no canvas; drawing calls are expected to be unimplemented.
-    if (!/getContext|Not implemented/.test(e.message)) errors.push(e.message);
-  });
-  const dom = new JSDOM(html, {
-    url: 'https://tests.invalid/',
-    runScripts: 'dangerously',
-    pretendToBeVisual: true,
-    virtualConsole: vc,
-    beforeParse(window) {
-      window.__TUBES_TEST__ = true;
-      // Seed before the game script runs, so nothing random happens at load time either.
-      if (opts.seed !== false) { let r = opts.seed || 12345; window.Math.random = () => { r = (r * 16807) % 2147483647; return r / 2147483647; }; window.__reseed = (n) => { r = n; }; }
-      for (const [k, v] of Object.entries(opts.storage || {})) window.localStorage.setItem(k, v);
-      window.Path2D = class { moveTo() {} lineTo() {} quadraticCurveTo() {} bezierCurveTo() {} arc() {} rect() {} closePath() {} };
-      // A recording 2D context, so draw code really runs under test (jsdom has no canvas).
-      const fake = () => { const calls = { n: 0 };
-        const grad = { addColorStop() {} };
-        return new Proxy({ calls }, { get(t, k) {
-          if (k in t) return t[k];
-          if (k === 'measureText') return (s) => ({ width: String(s).length * 7 });
-          if (k === 'createLinearGradient' || k === 'createRadialGradient' || k === 'createPattern') return () => grad;
-          if (k === 'getImageData') return () => ({ data: new Uint8ClampedArray(4) });
-          if (k === 'canvas') return null;
-          return (...a) => { calls.n++; };
-        }, set(t, k, v) { t[k] = v; return true; } }); };
-      window.HTMLCanvasElement.prototype.getContext = function () { return this.__ctx || (this.__ctx = fake()); };
-      window.HTMLCanvasElement.prototype.toDataURL = () => 'data:image/png;base64,';
-      window.HTMLCanvasElement.prototype.toBlob = (cb) => cb(null);
-    },
-  });
-  const ev = (src) => dom.window.eval(src);
-  // Deterministic by default so a test never passes or fails by luck; pass {seed:false} to opt out.
-  // (Seeded in beforeParse, so the game's own seeded-games wrapper around Math.random stays in place.)
-  return { dom, ev, errors };
-}
+const { load } = require('../server/headless');
 
 // Deterministic Math.random so failures are reproducible.
 function seed(ev, n) {

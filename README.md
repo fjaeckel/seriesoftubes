@@ -22,11 +22,18 @@ You start with one router in one city and grow into a transit-free Tier 1:
   mishaps, DDoS, cooling failures, Red Sea and Baltic cable cuts, sanctions and
   sovereign internet drills.
 
-Every company is a pun. No real company names are used.
+## This is fiction
 
-## Playing locally
+Series of Tubes is a game. Network, exchange and cable names are real because that is what makes the
+map worth playing, but they are used only to identify real-world organisations. There is no affiliation
+with, or endorsement by, any of them, and everything that happens to them in the game (prices, outages,
+disputes, peering decisions) is invented. Footprints come from public PeeringDB records and may be
+incomplete or out of date. Trademarks belong to their owners. The same notice is on the title screen and
+at the bottom of every server-rendered page.
 
-It is a single static page with no build step for development:
+## Playing
+
+**Alone, in a browser.** The game is a single static page:
 
 ```sh
 open site/index.html          # or: npm run serve
@@ -34,17 +41,80 @@ open site/index.html          # or: npm run serve
 
 Progress is saved in your browser's local storage.
 
+**With a team.** Run the server (one command, no database to install) and everybody opens the same address:
+
+```sh
+npm ci
+npm start                     # http://127.0.0.1:8080
+HOST=0.0.0.0 npm start        # reachable from your LAN
+docker compose up -d          # or with Docker, data in a volume
+```
+
+Create an account, start a network (pick any home city and **any AS number** that is free), and share the
+AS number and invite code with your team. Everyone on the team operates the same network at the same time:
+you see each other's changes, share the clock and chat. The simulation runs **on the server** (the game's own
+code, headless), so nobody can cheat by editing their browser, and a weak device only has to draw snapshots.
+
+| Setting | Default | |
+| --- | --- | --- |
+| `PORT`, `HOST` | `8080`, `127.0.0.1` | where to listen |
+| `DATA_DIR` | `./data` | accounts, networks and saved games (plain JSON) |
+| `SERVER_CODE` | none | a code people must enter to sign up |
+| `REGISTRATION` | `open` | `closed` stops sign-ups entirely |
+| `MAX_GAMES` | `25` | networks simulated at once; idle ones are saved and unloaded |
+| `IDLE_PAUSE` | `1` | the clock only runs while someone is connected; `0` keeps every loaded network ticking |
+| `ALLOW_ORIGIN` | none | CORS origins (comma separated, or `*`) if the game page is hosted elsewhere |
+| `TRUST_PROXY`, `SECURE_COOKIES` | off | set both to `1` behind an HTTPS reverse proxy |
+
+Passwords are hashed with scrypt, sessions are random tokens stored hashed, sign-ups and log-ins are rate
+limited, and the form pages refuse cross-site posts. There is no email, so there is no password reset: the
+server owner can delete `db.json` entries. Put it behind HTTPS if it leaves your LAN.
+
+The hosted game at seriesoftub.es is static, so its Multiplayer button needs a server address (Menu, then
+Multiplayer, then *Server address*) that allows its origin with `ALLOW_ORIGIN`.
+
+**On a device that cannot take the map.** `/lite` is the same game as plain server-rendered HTML with no
+JavaScript: log in, start or join a team, see the dashboard, and build POPs, buy transit, join exchanges,
+lay waves, take customers and fix incidents with ordinary forms. The page and everything on it is a
+couple of kilobytes. The main page is also served Brotli/gzip-compressed (about a third of its size) and
+only draws the big cities until you zoom in.
+
+**The route viewer.** Menu or NOC, then *Routes*: your AS, upstreams, peers (with how you peer: route server,
+bilateral, PNI, cache), the prefixes you originate with RPKI status, the best AS path to every network, and a
+search for any AS number or name. The same pages exist server-side without JavaScript as `/as/<asn>`, for
+player networks and for every real network in the world ("which players use Lumen as an upstream?"), plus
+`/search?q=`.
+
+## The real world in the game
+
+* **5,000+ cities.** Every metro with 100k+ people (GeoNames) and every metro that hosts a registered
+  interconnection facility or exchange (PeeringDB). Pick any of them as your home city.
+* **Real footprints.** A network has a PoP in a metro when PeeringDB lists a facility of its organisation there,
+  or it has a port on an exchange there. Transit is only sold where a transit network has a PoP, so in a
+  city nobody serves you have to haul a wave to the nearest carrier hotel. A few networks publish no facilities at all
+  (Lumen, for one); their footprint is estimated from their home countries and flagged as such.
+* **Real exchanges** with their real members, and challengers that undercut the incumbent.
+* **Free AS numbers.** Any number from 1 to 4294967294 except the reserved ones, the real networks in the game
+  and (on a server) the ones other teams hold.
+* **Realistic latency.** Light covers about 204 km per millisecond in glass, but every link gets its own route
+  inflation, equipment adds a little at each end, carriers reroute now and then, loaded links queue and every
+  traceroute probe jitters. It is a function of the link, your AS and the day, so a save replays identically.
+
+Regenerate the data with `npm run world` (downloads GeoNames and PeeringDB into `.cache/`, needs `curl` and
+`unzip`). It rewrites the block between the `__WORLD_BEGIN__` markers in `site/index.html`; traffic shares,
+prices and peering policies are game design and live in the game and in `scripts/data/networks.js`.
+
 ## Development
 
 ```sh
 npm ci
-npm test       # headless tests: boot, geography, a year of play, every incident, every panel
+npm test       # headless tests: boot, geography, a year of play, every incident, every panel, the server
 npm run build  # writes the deployable site to _site/ with version and date stamped in
 ```
 
 ```
 site/                  everything that is deployed
-  index.html           the whole game (HTML, CSS and JS in one file)
+  index.html           the whole game (HTML, CSS and JS in one file, plus the generated world data)
   images/og-image.png  social preview (1200×630)
   favicon.*, icon-*    favicons, app icons, manifest
   robots.txt, sitemap.xml, llms.txt, 404.html, CNAME

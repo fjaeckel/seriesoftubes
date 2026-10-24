@@ -1,0 +1,15 @@
+# docker compose up -d   ->   http://localhost:8080
+services:
+  tubes:
+    build: .
+    ports: ["8080:8080"]
+    volumes: ["tubes-data:/data"]
+    environment:
+      # SERVER_CODE: change-me      # require this code to sign up
+      # REGISTRATION: closed        # or close sign-ups entirely
+      # SECURE_COOKIES: "1"         # behind HTTPS
+      # TRUST_PROXY: "1"            # behind a reverse proxy
+      IDLE_PAUSE: "1"
+    restart: unless-stopped
+volumes:
+  tubes-data:

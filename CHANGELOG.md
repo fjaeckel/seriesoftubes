@@ -6,6 +6,23 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Multiplayer. Run the server with `npm start` (or Docker), log in, start a network with any AS number you like
+  and play it together with a team: shared clock, shared network, chat, invite codes, owner/operator/viewer roles.
+  The simulation runs on the server, so it is the same for everybody and cannot be tampered with.
+- Plain-HTML pages that need no JavaScript (`/lite`): the same teams and a playable dashboard for devices that
+  cannot take the map, plus public AS pages (`/as/<asn>`) and search.
+- A route viewer in the style of bgp.tools: your upstreams and peers, prefixes with RPKI status, the AS path to every
+  network, and a search for any AS number or name. Find it under Menu and NOC, then Routes.
+- Real names. Networks, exchanges and cable systems now carry their real names and AS numbers, with a notice that the
+  game is fiction. Footprints come from PeeringDB.
+- Every city: 5,000+ metros, searchable, and any of them can be your home. Transit is only sold where a transit
+  network really has a PoP. Islands get a regional cable.
+- Free AS number: choose your own on the title screen (or roll one).
+- Latency behaves like fibre: route inflation per link, equipment delay, rerouting carriers, queueing under load and
+  jitter in traceroutes.
+- Lighter on weak devices: only big cities are drawn until you zoom in, and the server compresses the page.
+- Old saves are repaired on load: transit ports at networks that are not in that city any more are removed.
+
 ## [1.10.0] — 2026-10-24
 
 - Router ports are finite. Every transit, IX, PNI and cache port, every wave
