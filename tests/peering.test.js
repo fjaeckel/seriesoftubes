@@ -113,3 +113,76 @@ test('DE-KICKS hides prices, haggles, harmonises upwards, auto-enrolls add-ons a
   assert.equal(ev("ixPortMo('ams',1)"), ev("Math.round(PORT[1].ix*ixMul('ams'))"), 'other IXs keep open pricing');
   assert.deepEqual(errors, []);
 });
+
+test('Amsterdam has FRIES-IX, with free 10G and 100G ports and paid larger ports', () => {
+  const { ev, errors } = load();
+  setup(ev);
+  assert.deepEqual(JSON.parse(ev("JSON.stringify(ixIdsIn('ams'))")), ['ams', 'ams~2', 'ams~3']);
+  ev("ACT.buildPop({city:'ams'});S.pops.ams.rgen=RG.length-1;compute()");
+  const cash = () => ev('S.cash');
+  let c0 = cash();
+  assert.equal(ev("ixPortMo('ams~3',0)"), 0, '10G port is free');
+  ev("ACT.buyIx({city:'ams~3',tier:1})");
+  assert.equal(ev("S.ixp['ams~3']"), 1);
+  assert.equal(cash(), c0, '100G port is free');
+  assert.equal(ev("S.ixp.ams"), undefined, 'HAMS-IX is separate');
+  c0 = cash();
+  ev("ACT.lagIx({city:'ams~3',d:1})");
+  assert.equal(cash(), c0, 'LAG members are free too');
+  assert.equal(ev("ixPortMo('ams~3',2)"), ev("Math.round(PORT[2].ix*ixMul('ams~3'))"), '400G is a paid game tier');
+  ev("ACT.buyIx({city:'ams',tier:1});ACT.rs({city:'ams~3'});compute()");
+  assert.ok(ev("ixSessions('ams~3').has('drz')"));
+  assert.equal(ev("ixSessions('ams~3').has('ggl')"), false, 'Goggle is not a member');
+  assert.equal(ev("R.useIx['ams~3']!==undefined&&R.useIx.ams!==undefined"), true, 'both fabrics carry traffic');
+  assert.equal(ev("R.cost.ix"), ev("ixPortMo('ams',1)"), "only the HAMS-IX port is billed");
+  ev("selectCity('ams');ACT.tab({t:'peer'})");
+  const txt = ev("document.getElementById('panelBody').textContent");
+  assert.match(txt, /FRIES-IX/); assert.match(txt, /HAMS-IX/);
+  assert.match(ev("ixBlock('ams~3',true)"), /LAG member <small>free/);
+  ev("save();restored=migrate(JSON.parse(localStorage.getItem('sot-save-v1')));");
+  assert.equal(ev("restored.ixp['ams~3']"), 1, 'free port survives save migration');
+  assert.equal(ev("restored.ixn['ams~3']"), 2, 'free LAG survives save migration');
+  ev("S.ev.ixdown={'ams~3':S.day+2};compute()");
+  assert.equal(ev("R.useIx['ams~3']"), undefined, 'a FRIES-IX outage drops only that fabric');
+  assert.notEqual(ev("R.useIx.ams"), undefined);
+  ev("S.ev.ixdown={};compute()");
+  c0 = cash();
+  ev("ACT.buyIx({city:'ams~3',tier:2})");
+  assert.equal(ev("S.ixp['ams~3']"), 2);
+  assert.equal(c0 - cash(), ev("2*ixPortMo('ams~3',2)"), 'upgrading bills both LAG members');
+  assert.equal(ev("R.cost.ix"), ev("ixPortMo('ams',1)+2*ixPortMo('ams~3',2)"), 'larger ports also have a recurring charge');
+  ev("ACT.cancelIx({city:'ams~3'});ACT.cancelIx({city:'ams~3'})");
+  assert.equal(ev("S.ixp['ams~3']"), undefined);
+  assert.equal(ev("S.ixp.ams"), 1, 'leaving FRIES-IX keeps the HAMS-IX port');
+  assert.equal(ev("Object.keys(S.rs).filter(k=>S.rs[k]).length"), 0);
+  assert.deepEqual(errors, []);
+});
+
+test('community exchanges are wired up in every city, and Barcelona has Catnip-IX', () => {
+  const { ev, errors } = load();
+  setup(ev);
+  const exchanges = ['ams~3', 'mad~2', 'fra~2', 'lon~2', 'jnb~2', 'syd~2', 'tok~2'];
+  assert.deepEqual(JSON.parse(ev("JSON.stringify(ixIdsIn('nyc'))")), ['nyc', 'nyc~2'], 'NYC keeps its two existing exchanges');
+  assert.equal(ev("ixName('nyc')"), 'NY-Yikes');
+  assert.equal(ev("isDk('nyc')"), true, 'NY-Yikes is already part of DE-KICKS Group');
+  const bad = ev("XIX.filter(x=>x.core).map(x=>x.id).flatMap(k=>XIXM[k].members.filter(id=>!NET[id]||!NET[id].pops.includes(XIXM[k].c)).map(id=>k+':'+id)).join()");
+  assert.equal(bad, '', 'every member has a POP in the city');
+  assert.ok(ev("Object.keys(XIXM).every(k=>CITY[XIXM[k].c].ix&&ixIdsIn(XIXM[k].c).includes(k))"), 'each sits beside a main IX');
+  ev("ACT.buildPop({city:'mad'})");
+  assert.equal(ev("ixPortMo('mad~2',1)"), ev("Math.round(PORT[1].ix*0.6*IX_REG.EU)"), 'Paella-NIX is cheaper than Siesta-IX');
+  assert.equal(ev("ixName('bcn')"), 'Catnip-IX');
+  for (const k of exchanges) {
+    const c = k.split('~')[0];
+    ev(`if(!S.pops.${c})ACT.buildPop({city:'${c}'});S.pops.${c}.rgen=RG.length-1;ACT.buyIx({city:'${k}',tier:1});ACT.rs({city:'${k}'})`);
+    assert.equal(ev(`S.ixp['${k}']`), 1, `port at ${k}`);
+  }
+  ev('compute()');
+  for (const k of exchanges)
+    assert.ok(ev(`ixSessions('${k}').size`) > 0, `route server sessions at ${k}`);
+  for (const c of ['ams', 'mad', 'fra', 'lon', 'nyc', 'jnb', 'syd', 'tok', 'bcn']) {
+    ev(`selectCity('${c}');ACT.tab({t:'peer'})`);
+    const txt = ev("document.getElementById('panelBody').textContent");
+    for (const k of JSON.parse(ev(`JSON.stringify(ixIdsIn('${c}'))`))) assert.ok(txt.includes(ev(`ixName('${k}')`)), `${k} shown in ${c}`);
+  }
+  assert.deepEqual(errors, []);
+});
