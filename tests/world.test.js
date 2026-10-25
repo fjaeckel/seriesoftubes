@@ -217,3 +217,52 @@ test('distributed L2 IXPs: found one anywhere, even where an exchange exists, an
   assert.equal(ev("S.ixp['fra~y1']"), undefined);
   assert.deepEqual(errors, []);
 });
+
+test('no cap on routers per POP, and add or remove them by the dozen', () => {
+  const { ev, errors } = load({ seed: 6 });
+  ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0");
+  ev("ACT.addRouter({city:S.home,n:40})");
+  assert.equal(ev('S.pops[S.home].routers'), 41, 'far past the old limit of six');
+  ev("selectCity(S.home);ACT.tab({t:'infra'});document.getElementById('rtn').value='9';ACT.rmRouterN({city:S.home})");
+  assert.equal(ev('S.pops[S.home].routers'), 32);
+  assert.equal(ev("portsMax(S.home)"), ev("RG[S.pops[S.home].rgen||0].ports*32"));
+  ev("S=migrate(JSON.parse(JSON.stringify(S)))");
+  assert.equal(ev('S.pops[S.home].routers'), 32, 'saves keep them');
+  assert.deepEqual(errors, []);
+});
+
+test('build your own datacenter: construction, colocation income, power bills, expansion', () => {
+  const { ev, errors } = load({ seed: 2 });
+  ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:S.home});ACT.buyTransit({city:S.home,net:'cog',tier:1})");
+  ev("selectCity(S.home);ACT.tab({t:'infra'})");
+  assert.ok(ev("!!document.getElementById('dcRacks')"), 'the Infra tab offers it');
+  const rent = ev("R.cost.pops");
+  ev("document.getElementById('dcRacks').value='40';document.getElementById('dcKw').value='8';ACT.dcTierSet({t:'iv'});document.getElementById('dcRacks').value='40';document.getElementById('dcKw').value='8';ACT.buildDcN({city:S.home})");
+  assert.deepEqual(JSON.parse(ev("JSON.stringify(S.pops[S.home].dcx)")), { racks: 40, kw: 8, tier: 'iv', occ: 0.02, ready: ev('S.pops[S.home].dcx.ready'), built: 0 });
+  assert.equal(ev("dcStats(S.home)"), null, 'nothing to rent while it is being built');
+  for (let i = 0; i < 400; i++) ev('dayTick()');
+  const st = JSON.parse(ev("JSON.stringify(dcStats(S.home))"));
+  assert.ok(st.leased > 5 && st.rev > st.cost, `racks fill and pay (${JSON.stringify(st)})`);
+  assert.ok(ev("R.rev.dc") > 0 && ev("R.cost.dc") > 0);
+  assert.ok(ev("R.cost.pops") < rent, 'no more colo rent for this POP');
+  const racks = ev('S.pops[S.home].dcx.racks');
+  ev("selectCity(S.home);ACT.tab({t:'infra'});document.getElementById('dcAdd').value='25';ACT.addDcRacksN({city:S.home})");
+  assert.equal(ev('S.pops[S.home].dcx.racks'), racks + 25);
+  // a remote small town fills slowly, a carrier hotel fills fast
+  const big = ev("dcTarget('fra')"), tiny = ev("dcTarget(CITIES.filter(c=>c.gen&&c.P<20&&!NETS.some(n=>n.pops.includes(c.id)))[0].id)");
+  assert.ok(big > tiny * 2, `${big} vs ${tiny}`);
+  ev("ACT.closeDc({city:S.home});ACT.closeDc({city:S.home})");
+  assert.equal(ev('S.pops[S.home].dcx'), undefined);
+  assert.deepEqual(errors, []);
+});
+
+test('typing in a box is not interrupted by the panel redrawing every tick', () => {
+  const { ev, dom } = load();
+  ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0");
+  ev("selectCity(S.home);ACT.tab({t:'infra'})");
+  const d = dom.window.document, i = d.getElementById('rtn');
+  i.focus(); i.value = '37';
+  for (let k = 0; k < 6; k++) ev('renderPanel();renderLeft()');
+  const j = d.getElementById('rtn');
+  assert.equal(j.value, '37'); assert.equal(d.activeElement, j);
+});

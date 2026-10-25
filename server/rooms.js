@@ -13,7 +13,7 @@ class Room {
     this.clients = new Map();   // res -> {uid, name, role}
     this.chat = [];
     this.acc = 0; this.speed = 1; this.dirty = false; this.lastSent = 0; this.lastSaved = Date.now(); this.lastTouch = Date.now();
-    this.stateJson = ''; this.version = 0; this.viewCache = null; this.viewAt = 0; this.saveDirty = false;
+    this.stateJson = ''; this.version = 0; this.saveDirty = false;
   }
   init() {
     const g = load({ seed: false, url: 'http://localhost/', server: true });
@@ -58,7 +58,7 @@ class Room {
       const notes = r.msgs.filter((m) => m[1] !== 'bad').slice(0, 2);
       for (const [h, k] of notes) for (const res of this.clients.keys()) if (this.clients.get(res).name !== who) this.send(res, 'toast', JSON.stringify([`<b>${escapeHtml(who)}</b> · ${h}`, k]));
     }
-    this.viewCache = null; this.refresh(); this.saveDirty = true; this.lastTouch = Date.now();
+    this.refresh(); this.saveDirty = true; this.lastTouch = Date.now();
     return r;
   }
   step(dt, now) {
@@ -75,19 +75,13 @@ class Room {
     if (this.dirty && now - this.lastSent >= SEND_EVERY_MS) { this.lastSent = now; this.dirty = false; for (const res of this.clients.keys()) this.sendState(res); }
     if (this.saveDirty && now - this.lastSaved > 60e3) this.persist();
   }
-  /** The route viewer's data, a few seconds old at most. */
-  view() {
-    const now = Date.now();
-    if (!this.viewCache || now - this.viewAt > 4000) { this.viewCache = this.ev('JSON.stringify(routeView())'); this.viewAt = now; }
-    return this.viewCache;
-  }
   summary() {
     return JSON.parse(this.ev('JSON.stringify({tier:tierLabel(),day:S.day,cash:Math.round(S.cash),reach:+(R.reach||0).toFixed(3),pops:Object.keys(S.pops).length,peak:+((S.stats&&S.stats.peak)||0).toFixed(1),lost:!!S.lost,won:!!S.won})'));
   }
   persist() {
     const s = this.summary();
     Object.assign(this.net, { summary: s });
-    this.host.store.writeSnap(this.asn, this.ev('JSON.stringify(S)'), this.view());
+    this.host.store.writeSnap(this.asn, this.ev('JSON.stringify(S)'));
     this.host.store.save(); this.lastSaved = Date.now(); this.saveDirty = false;
   }
   close() {

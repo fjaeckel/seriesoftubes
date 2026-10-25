@@ -33,13 +33,12 @@ class Store {
     fs.renameSync(tmp, this.file);
   }
   snapPath(asn, ext) { return path.join(this.dir, 'snap', `${Number(asn)}.${ext}`); }
-  writeSnap(asn, json, view) {
-    const w = (ext, data) => { const p = this.snapPath(asn, ext), t = p + '.tmp'; fs.writeFileSync(t, data, { mode: 0o600 }); fs.renameSync(t, p); };
-    w('json', json); if (view) w('view', view);
+  writeSnap(asn, json) {
+    const p = this.snapPath(asn, 'json'), t = p + '.tmp';
+    fs.writeFileSync(t, json, { mode: 0o600 }); fs.renameSync(t, p);
   }
   readSnap(asn) { try { return fs.readFileSync(this.snapPath(asn, 'json'), 'utf8'); } catch (e) { return null; } }
-  readView(asn) { try { return JSON.parse(fs.readFileSync(this.snapPath(asn, 'view'), 'utf8')); } catch (e) { return null; } }
-  removeSnap(asn) { for (const e of ['json', 'view']) { try { fs.unlinkSync(this.snapPath(asn, e)); } catch (_) {} } }
+  removeSnap(asn) { for (const e of ['json']) { try { fs.unlinkSync(this.snapPath(asn, e)); } catch (_) {} } }
 }
 
 module.exports = { Store };

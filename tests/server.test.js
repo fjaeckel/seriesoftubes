@@ -78,9 +78,6 @@ test('networks: any free AS number, no reserved or real ones, no duplicates, own
     assert.equal((await make('AS64512', B)).s, 409, 'taken by alice');
     assert.equal((await s.api('GET', '/api/asn?asn=64512', null, B)).b.err.includes('already taken'), true);
     assert.equal((await make('4200000007', B)).s, 200, 'every player can pick their own');
-    const dir = (await s.api('GET', '/api/networks')).b;
-    assert.deepEqual(dir.map((n) => n.asn).sort((a, b) => a - b), [64512, 4200000007]);
-    assert.ok(!JSON.stringify(dir).includes(ok.b.invite), 'the directory never leaks invite codes');
     // joining
     assert.equal((await s.api('POST', '/api/networks/64512/join', { invite: 'wrong' }, B)).s, 403);
     assert.equal((await s.api('GET', '/api/networks/64512', null, B)).s, 403, 'not on the team yet');
@@ -161,40 +158,13 @@ test('networks survive a restart, and an idle network does not run', async () =>
   try {
     const t = (await s.api('POST', '/api/login', { name: 'alice', password: 'correct horse battery' })).b.token;
     assert.ok(t, 'accounts persist');
-    const as = await s.api('GET', '/api/as/64602');
-    assert.equal(as.s, 200); assert.equal(as.b.view.name, 'Keeper'); assert.equal(as.b.view.pops.length, 1, 'public data is served without loading the game');
-    assert.equal(s.app.host.rooms.size, 0);
+    assert.equal(s.app.host.rooms.size, 0, 'nothing is loaded until somebody opens it');
+    const me = await s.api('GET', '/api/me', null, t);
+    assert.equal(me.b.networks[0].name, 'Keeper');
     await s.api('POST', '/api/networks/64602/cmd', { act: 'addRouter', args: { city: 'ams' } }, t);
     const room = s.app.host.rooms.get(64602);
     assert.equal(room.ev('S.day'), day);
     assert.ok(room.ev('!!S.pops.ams.bb'), 'the saved game came back with its state');
-  } finally { await s.close(); }
-});
-
-test('public AS pages: player networks, real networks, search; all plain HTML', async () => {
-  const s = await boot();
-  try {
-    const A = (await s.signup('alice')).token;
-    await s.api('POST', '/api/networks', { name: 'Page <b>Test</b>', asn: '64603', home: 'fra' }, A);
-    await s.api('POST', '/api/networks/64603/cmd', { act: 'launchBB', args: { city: 'fra' } }, A);
-    await s.api('POST', '/api/networks/64603/cmd', { act: 'buyTransit', args: { city: 'fra', net: 'cog', tier: 1 } }, A);
-    const get = async (p) => { const r = await fetch(s.base + p, { redirect: 'manual' }); return { s: r.status, t: await r.text(), h: r.headers }; };
-    const pg = await get('/as/64603');
-    assert.equal(pg.s, 200);
-    assert.match(pg.t, /AS64603/); assert.match(pg.t, /Cogent/); assert.match(pg.t, /AS174/); assert.match(pg.t, /Upstreams/); assert.match(pg.t, /100\.\d+\.\d+\.0\/22/);
-    assert.ok(!pg.t.includes('<b>Test</b>'), 'names are escaped');
-    assert.ok(!/<script/i.test(pg.t), 'no JavaScript at all');
-    assert.match(pg.t, /work of fiction|Fiction/);
-    const real = await get('/as/3356');
-    assert.equal(real.s, 200); assert.match(real.t, /Lumen/); assert.match(real.t, /Player networks using it/);
-    const cg = await get('/as/174');
-    assert.match(cg.t, /Page bTest\/b/, 'Cogent shows the player who buys transit from it (markup characters are stripped from names)');
-    assert.equal((await get('/as/65000')).s, 404);
-    const sr = await get('/search?q=64603'); assert.equal(sr.s, 303);
-    const sn = await get('/search?q=cloudf'); assert.match(sn.t, /AS13335/);
-    const all = await get('/search'); assert.equal(all.s, 200); assert.match(all.t, /Player networks/); assert.match(all.t, /64603/);
-    assert.equal((await get('/lite')).s, 404, 'the old lite pages are gone');
-    assert.equal(pg.h.get('x-frame-options'), 'DENY');
   } finally { await s.close(); }
 });
 
@@ -219,5 +189,14 @@ test('server health and CORS', async () => {
     assert.equal(ok.headers.get('access-control-allow-origin'), 'https://seriesoftub.es');
     const no = await fetch(s.base + '/api/health', { headers: { Origin: 'https://evil.example' } });
     assert.equal(no.headers.get('access-control-allow-origin'), null);
+  } finally { await s.close(); }
+});
+
+test('there are no public search or AS pages, only the game and the API', async () => {
+  const s = await boot();
+  try {
+    for (const p of ['/search', '/as/174', '/lite']) assert.equal((await fetch(s.base + p)).status, 404, p);
+    const tok = (await s.signup('zed')).token;
+    for (const p of ['/api/search?q=x', '/api/networks', '/api/as/174', '/api/cities?q=fra']) assert.equal((await s.api('GET', p, null, tok)).s, 404, p);
   } finally { await s.close(); }
 });

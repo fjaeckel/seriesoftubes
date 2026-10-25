@@ -85,10 +85,13 @@ big cities are drawn until you zoom in, and the multiplayer simulation runs on t
 draws snapshots. Hide the small cities entirely with the 🏙 button, find any city with 🔍 (or press `/`).
 
 **The route viewer.** Menu or NOC, then *Routes*: your AS, upstreams, peers (with how you peer: route server,
-bilateral, PNI, cache), the prefixes you originate with RPKI status, the best AS path to every network, and a
-search for any AS number or name. The same pages exist server-side without JavaScript as `/as/<asn>`, for
-player networks and for every real network in the world ("which players use Lumen as an upstream?"), plus
-`/search` (every player network) and `/search?q=`.
+bilateral, PNI, cache), the prefixes you originate with RPKI status, the best AS path to every network, and the IPv4
+transfer market where you can buy and sell /24 blocks.
+
+**Your own datacenter.** The Infra tab of any POP lets you build one: pick the tier, the number of racks and the kW
+per rack. Customers rent by the kW and pay for cross-connects, you pay for power at the local price and for staff.
+How full it gets depends on the city and on how many carriers are in the building. There is no limit on routers per
+POP either.
 
 ## The real world in the game
 

@@ -1,5 +1,4 @@
-// The whole server: static game files, the JSON API the game client talks to, the realtime stream,
-// and the plain-HTML AS pages (/as/<asn>, /search) that need no client-side JavaScript.
+// The whole server: static game files, the JSON API the game client talks to, and the realtime stream.
 'use strict';
 const http = require('node:http');
 const path = require('node:path');
@@ -9,7 +8,6 @@ const auth = require('./auth');
 const { GameHost } = require('./rooms');
 const { World } = require('./world');
 const H = require('./http');
-const P = require('./pages');
 
 const PKG = require('../package.json');
 const MAX_PER_USER = 5;
@@ -60,7 +58,6 @@ function createApp(opts = {}) {
   const needNet = (asn) => { const n = store.nets.get(Number(asn)); if (!n) throw new H.HttpError(404, 'No network with that AS number'); return n; };
   const cleanName = (s, max = 24) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, max);
   const netMeta = (n) => ({ asn: n.asn, name: n.name, tier: (n.summary || {}).tier || 'Tier 3', day: (n.summary || {}).day || 0, reach: (n.summary || {}).reach, pops: (n.summary || {}).pops || 1, online: host.online(n.asn), members: Object.keys(n.members).length, created: n.created });
-  const directory = () => [...store.nets.values()].map(netMeta).sort((a, b) => b.online - a.online || a.asn - b.asn);
   const memberList = (n) => Object.entries(n.members).map(([uid, role]) => ({ id: uid, name: (store.users.get(uid) || {}).name || '?', role }));
 
   async function register(ip, body) {
@@ -113,23 +110,6 @@ function createApp(opts = {}) {
     const room = host.get(net.asn);
     return room.exec(user.name, act, args, ctx, body.dom && typeof body.dom === 'object' ? body.dom : null);
   }
-  function playerView(asn) {
-    const room = host.rooms.get(Number(asn));
-    if (room) return JSON.parse(room.view());
-    return store.readView(asn);
-  }
-  function seenBy(netAsn) {
-    const out = [];
-    for (const n of store.nets.values()) {
-      const v = playerView(n.asn); if (!v) continue;
-      const rel = [];
-      if (v.upstreams.some((u) => u.asn === netAsn)) rel.push('upstream');
-      const p = v.peers.find((x) => x.asn === netAsn); if (p) rel.push('peer (' + [...new Set(p.sessions.map((s) => s.kind))].join(', ') + ')');
-      if (rel.length) out.push({ asn: n.asn, name: n.name, rel: rel.join(' + ') });
-    }
-    return out;
-  }
-
   /* ---------- JSON API ---------- */
   async function api(req, res, url, sess) {
     const m = req.method, p = url.pathname, ip = ipOf(req);
@@ -143,30 +123,14 @@ function createApp(opts = {}) {
       const u = await authenticate(ip, await H.readJson(req));
       const s = login(res, u); return H.json(res, 200, { token: s.token, user: publicUser(u) });
     }
-    if (m === 'GET' && p === '/api/networks') return H.json(res, 200, directory());
-    if (m === 'GET' && p === '/api/search') {
-      const q = String(url.searchParams.get('q') || '').trim().slice(0, 60).toLowerCase();
-      if (!q) return H.json(res, 200, { players: [], nets: [] });
-      const qa = q.replace(/^as/, '');
-      const players = directory().filter((n) => String(n.asn) === qa || n.name.toLowerCase().includes(q)).slice(0, 25);
-      return H.json(res, 200, { players, nets: world.netsByName(qa).map((n) => ({ asn: n.asn, name: n.name, type: n.type })) });
-    }
-    let mm;
-    if (m === 'GET' && (mm = p.match(/^\/api\/as\/(\d{1,10})$/))) {
-      const asn = +mm[1], net = store.nets.get(asn);
-      if (net) { const v = playerView(asn); return H.json(res, v ? 200 : 404, v ? { player: true, meta: netMeta(net), view: v } : { error: 'No data yet' }); }
-      const np = world.netPage(asn); if (!np) throw new H.HttpError(404, 'Nobody has that AS number here');
-      return H.json(res, 200, { player: false, net: np, seenBy: seenBy(asn) });
-    }
     if (!sess) throw new H.HttpError(401, 'Log in first.');
     const user = sess.user;
+    let mm;
     if (m === 'POST' && p === '/api/logout') { store.sessions.delete(auth.tokenHash(sess.token)); store.save(); return H.json(res, 200, { ok: true }); }
     if (m === 'GET' && p === '/api/me') {
       const nets = [...store.nets.values()].filter((n) => n.members[user.id]).map((n) => ({ ...netMeta(n), role: n.members[user.id] }));
       return H.json(res, 200, { user: publicUser(user), networks: nets });
     }
-    if (m === 'GET' && p === '/api/cities') return H.json(res, 200, world.cityMatches(String(url.searchParams.get('q') || '').slice(0, 40)));
-    if (m === 'GET' && (mm = p.match(/^\/api\/cities\/([A-Za-z0-9:_-]{1,40})$/))) { const c = world.city(mm[1]); if (!c) throw new H.HttpError(404, 'No such city'); return H.json(res, 200, { ...c, card: world.cityCard(mm[1]) }); }
     if (m === 'GET' && p === '/api/asn') { const r = world.asnCheck(url.searchParams.get('asn')); if (!r.err && store.nets.has(r.n)) r.err = `AS${r.n} is already taken by ${store.nets.get(r.n).name}.`; return H.json(res, 200, r); }
     if (m === 'POST' && p === '/api/networks') {
       const net = createNetwork(user, await H.readJson(req));
@@ -219,32 +183,6 @@ function createApp(opts = {}) {
     throw new H.HttpError(404, 'Not found');
   }
 
-  /* ---------- plain HTML pages ---------- */
-  async function pages(req, res, url) {
-    const m = req.method, p = url.pathname;
-    const V = { version };
-    let mm;
-    if ((m === 'GET' || m === 'HEAD') && p === '/search') {
-      const q = String(url.searchParams.get('q') || '').trim().slice(0, 60), ql = q.toLowerCase(), qa = ql.replace(/^as/, '');
-      const all = directory();
-      const players = q ? all.filter((n) => String(n.asn) === qa || n.name.toLowerCase().includes(ql)) : [];
-      if (/^\d+$/.test(qa) && (store.nets.has(+qa) || world.byAsn.has(+qa))) return H.redirect(res, '/as/' + +qa);
-      return H.html(res, 200, P.searchPage({ q, players, nets: q ? world.netsByName(qa) : [], all, ...V }));
-    }
-    if ((m === 'GET' || m === 'HEAD') && (mm = p.match(/^\/as\/(?:AS)?(\d{1,10})$/i))) {
-      const asn = +mm[1], net = store.nets.get(asn);
-      if (net) {
-        const v = playerView(asn);
-        if (!v) return H.html(res, 200, P.notFoundPage({ what: `AS${asn} (${net.name}) has no data yet. It appears after the network has been started once.`, ...V }));
-        return H.html(res, 200, P.playerAsPage({ v, meta: { online: host.online(asn) }, ...V }));
-      }
-      const np = world.netPage(asn);
-      if (np) return H.html(res, 200, P.worldAsPage({ n: np, seenBy: seenBy(asn), ...V }));
-      return H.html(res, 404, P.notFoundPage({ what: `Nobody has AS${asn} in this world. It could be yours: start a network and pick it.`, ...V }));
-    }
-    return false;
-  }
-
   /* ---------- the server ---------- */
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://x');
@@ -259,18 +197,15 @@ function createApp(opts = {}) {
       if (req.method === 'OPTIONS') { res.writeHead(204, { ...H.SEC }); return res.end(); }
       const sess = sessionOf(req);
       if (url.pathname.startsWith('/api/')) return await api(req, res, url, sess);
-      if (req.method === 'GET' || req.method === 'HEAD') {
-        if (/^\/(as|search)(\/|$)/.test(url.pathname)) { const done = await pages(req, res, url); if (done !== false) return; }
-      }
       if ((req.method === 'GET' || req.method === 'HEAD') && files(req, res, url.pathname)) return;
-      H.html(res, 404, P.notFoundPage({ what: 'That page does not exist.', version }));
+      H.html(res, 404, '<!doctype html><meta charset="utf-8"><title>Not found</title><p>Not found. <a href="/">Back to the game</a>');
     } catch (e) {
       if (res.headersSent) { try { res.end(); } catch (_) {} return; }
       const status = e.status || 500;
       if (status >= 500) console.error(e);
       const wantsJson = url.pathname.startsWith('/api/');
       if (wantsJson) H.json(res, status, { error: status >= 500 ? 'Something broke on the server.' : e.message });
-      else H.html(res, status, P.notFoundPage({ what: status >= 500 ? 'Something broke on the server.' : e.message, version }));
+      else H.html(res, status, '<!doctype html><meta charset="utf-8"><title>Error</title><p>' + String(status >= 500 ? 'Something broke on the server.' : e.message).replace(/[<>&]/g, '') + ' <a href="/">Back to the game</a>');
     }
   });
   server.requestTimeout = 30e3;

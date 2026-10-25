@@ -37,22 +37,13 @@ test('route viewer: an expired ROA shows up as RPKI invalid', () => {
   assert.ok(ev('routeView().prefixes.every(p=>p.rpki==="invalid")'));
 });
 
-test('route viewer: every tab renders, search finds networks by AS number and name', () => {
-  const { ev, errors, dom } = load();
+test('route viewer: every tab renders', () => {
+  const { ev, errors } = load();
   play(ev);
-  for (const t of ['ov', 'up', 'pe', 'px', 'pa', 'se']) {
+  for (const t of ['ov', 'up', 'pe', 'px', 'pa']) {
     ev(`routesModal('${t}')`);
     assert.ok(ev("document.getElementById('modalCard').textContent.length") > 40, t);
   }
-  ev("UI.rv.q='3356';routesModal('se')");
-  ev("ACT.rvNet({id:'lvl'})");
-  const t = ev("document.getElementById('modalCard').textContent");
-  assert.match(t, /AS3356/); assert.match(t, /Lumen/); assert.match(t, /Your path/);
-  ev("ACT.routes()");
-  dom.window.document.querySelector('[data-act=rvTab][data-args*=se]').click();
-  const q = dom.window.document.getElementById('rvQ'); q.value = 'cloudfl';
-  dom.window.document.querySelector('[data-act=rvSearch]').click();
-  assert.match(ev("document.getElementById('modalCard').textContent"), /AS13335/);
   assert.deepEqual(errors, []);
 });
 
@@ -61,4 +52,18 @@ test('the NOC tab links to the route viewer', () => {
   play(ev);
   ev("ACT.leftTab({t:'noc'})");
   assert.ok(ev("!!document.querySelector('[data-act=routes]')"));
+});
+
+test('IPv4 blocks are an asset: buy and sell /24s and see them in the route viewer', () => {
+  const { ev } = load();
+  play(ev);
+  const before = JSON.parse(ev("JSON.stringify(routeView().prefixes.filter(p=>p.family===4).length)"));
+  const cash = ev('S.cash');
+  ev("ACT.buyIp4({n:3})");
+  assert.equal(ev("S.ip4x"), 3);
+  assert.equal(ev("routeView().prefixes.filter(p=>p.family===4).length"), before + 3);
+  assert.ok(ev("routeView().prefixes.some(p=>/\\/24$/.test(p.prefix))"));
+  assert.ok(cash - ev('S.cash') >= 3 * 9000 * 0.8);
+  ev("ACT.sellIp4({n:2})");
+  assert.equal(ev("S.ip4x"), 1);
 });

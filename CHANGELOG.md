@@ -9,9 +9,8 @@ All notable changes to this project are documented here. The project follows
 - Multiplayer. Run the server with `npm start` (or Docker), log in, start a network with any AS number you like
   and play it together with a team: shared clock, shared network, chat, invite codes, owner/operator/viewer roles.
   The simulation runs on the server, so it is the same for everybody and cannot be tampered with.
-- Public AS pages that need no JavaScript (`/as/<asn>`, `/search`) for player networks and the real ones.
 - A route viewer in the style of bgp.tools: your upstreams and peers, prefixes with RPKI status, the AS path to every
-  network, and a search for any AS number or name. Find it under Menu and NOC, then Routes.
+  network, and an IPv4 market for /24 blocks. Find it under Menu and NOC, then Routes.
 - Real names. Networks, exchanges and cable systems now carry their real names and AS numbers, with a notice that the
   game is fiction. Footprints come from PeeringDB.
 - Every city: 5,000+ metros, searchable, and any of them can be your home. Transit is only sold where a transit
@@ -25,6 +24,11 @@ All notable changes to this project are documented here. The project follows
   7750, MikroTik, an Edgecore SONiC box and the Tomahawk 6 and Silicon One G300 class for 1.6T ports), optics are real
   (100ZR, 400ZR+, 800ZR+, ICE-X, WaveLogic 6) and the line systems are Adtran and Ciena, with a new C+L-band system.
   No router sells ports faster than 1.6T yet, so there is no 3.2T.
+- Build your own datacenter in any POP: choose racks, kW per rack and a tier, wait for construction, then rent racks and
+  cross-connects to the market. Power is billed at the local price, and occupancy depends on the city and on how many
+  carriers are in the building. POP rent is waived while it is open.
+- No more limit of six routers per POP: add or remove as many as you like in one go.
+- Typing in a number box no longer gets cancelled by the panels redrawing, which was easy to hit at 8x.
 - Distributed IXPs: found your own L2 exchange in any city, even where an exchange already exists (Peering tab), name it
   (FogIXP, NINE, GNM-IX style) and spread it over your POPs. Every site needs a working link path, costs a one-off fee plus
   a monthly fee, and makes room for more members. Traffic can exit at any site.
