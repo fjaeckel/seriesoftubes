@@ -1,6 +1,7 @@
 // The whole server: static game files, the JSON API the game client talks to, and the realtime stream.
 'use strict';
 const http = require('node:http');
+const { WebSocketServer } = require('ws');
 const path = require('node:path');
 const fs = require('node:fs');
 const { Store } = require('./store');
@@ -41,7 +42,9 @@ function createApp(opts = {}) {
   const publicUser = (u) => ({ id: u.id, name: u.name });
   function sessionOf(req) {
     const h = req.headers.authorization;
-    const tok = h && /^Bearer /i.test(h) ? h.slice(7).trim() : null;
+    return sessionOfToken(h && /^Bearer /i.test(h) ? h.slice(7).trim() : null);
+  }
+  function sessionOfToken(tok) {
     if (!tok) return null;
     const s = store.sessions.get(auth.tokenHash(tok));
     if (!s || s.exp < Date.now()) return null;
@@ -203,7 +206,10 @@ function createApp(opts = {}) {
       for (const n of [net, other]) { const r = host.rooms.get(n.asn); if (r && note) r.say('NOC', note); }
       return H.json(res, 200, peeringOf(net));
     }
-    if (m === 'POST' && sub === 'cmd') return H.json(res, 200, command(net, user, role, await H.readJson(req, 16 * 1024)));
+    if (m === 'POST' && sub === 'cmd') {
+      const r = command(net, user, role, await H.readJson(req, 16 * 1024));
+      return H.json(res, 200, { ...r, st: JSON.parse(host.get(net.asn).envelope()) }); // the fresh state rides along, so the page updates at once
+    }
     if (m === 'POST' && sub === 'chat') {
       if (role === 'viewer') throw new H.HttpError(403, 'Viewers cannot chat.');
       if (!limiter.allow('chat:' + user.id, 10, 10e3)) throw new H.HttpError(429, 'Slow down a little.');
@@ -253,13 +259,77 @@ function createApp(opts = {}) {
       else H.html(res, status, '<!doctype html><meta charset="utf-8"><title>Error</title><p>' + String(status >= 500 ? 'Something broke on the server.' : e.message).replace(/[<>&]/g, '') + ' <a href="/">Back to the game</a>');
     }
   });
+  /* ---------- WebSocket: commands and state over one open connection ----------
+     Frames are `event\njson`, the same events as the SSE stream, plus `ack` for a command. */
+  const wss = new WebSocketServer({ noServer: true, maxPayload: 32 * 1024, perMessageDeflate: { threshold: 1024 } });
+  const refuse = (socket, code, text) => { try { socket.write(`HTTP/1.1 ${code} ${text}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`); } catch (_) {} socket.destroy(); };
+  server.on('upgrade', (req, socket, head) => {
+    try {
+      const url = new URL(req.url, 'http://x'), mm = url.pathname.match(/^\/api\/networks\/(\d{1,10})\/ws$/);
+      if (!mm) return refuse(socket, 404, 'Not Found');
+      const o = req.headers.origin;
+      if (o) {
+        const host = req.headers['x-forwarded-host'] || req.headers.host;
+        let same = false; try { same = new URL(o).host === host; } catch (_) {}
+        const allowed = cfg.allowOrigin && (cfg.allowOrigin === '*' || cfg.allowOrigin.split(',').map((x) => x.trim()).includes(o));
+        if (!same && !allowed) return refuse(socket, 403, 'Forbidden');
+      }
+      if (!limiter.allow('ws:' + ipOf(req), 60, 60e3)) return refuse(socket, 429, 'Too Many Requests');
+      wss.handleUpgrade(req, socket, head, (ws) => onSocket(ws, Number(mm[1])));
+    } catch (e) { refuse(socket, 400, 'Bad Request'); }
+  });
+  function onSocket(ws, asn) {
+    let client = null, user = null, net = null, room = null, alive = true;
+    const out = (event, obj) => { try { if (ws.readyState === 1) ws.send(`${event}\n${typeof obj === 'string' ? obj : JSON.stringify(obj)}`); } catch (_) {} };
+    const fail = (status, error) => { out('error', { status, error }); try { ws.close(4000 + (status % 1000)); } catch (_) {} };
+    const authT = setTimeout(() => { if (!client) fail(408, 'Say who you are first.'); }, 5000);
+    const hb = setInterval(() => { if (!alive) return ws.terminate(); alive = false; try { ws.ping(); } catch (_) {} }, 25e3);
+    ws.on('pong', () => { alive = true; });
+    ws.on('error', () => {});
+    ws.on('close', () => { clearTimeout(authT); clearInterval(hb); if (room && client) room.remove(client); });
+    ws.on('message', (data, isBinary) => {
+      if (isBinary) return;
+      let m; try { m = JSON.parse(data.toString()); } catch (_) { return; }
+      if (!m || typeof m !== 'object') return;
+      try {
+        if (!client) {
+          if (m.t !== 'auth') return;
+          const sess = sessionOfToken(String(m.token || ''));
+          if (!sess) return fail(401, 'Log in first.');
+          user = sess.user; net = store.nets.get(asn);
+          if (!net) return fail(404, 'No network with that AS number');
+          const role = roleOf(net, user);
+          if (!role) return fail(403, 'You are not on this team.');
+          room = host.get(net.asn);
+          if ([...room.clients.values()].filter((c) => c.uid === user.id).length >= 5 || room.clients.size >= 60) return fail(429, 'Too many open connections to this network.');
+          clearTimeout(authT);
+          client = { ws, end() { try { ws.close(); } catch (_) {} } };
+          room.add(client, { uid: user.id, name: user.name, role });
+          return;
+        }
+        const role = roleOf(net, user);
+        if (!role) return fail(403, 'You are not on this team.');
+        if (m.t === 'ping') return out('pong', {});
+        if (m.t === 'cmd') {
+          let ack;
+          try { ack = { id: m.id, ...command(net, user, role, m) }; } catch (e) { ack = { id: m.id, ok: false, msgs: [[e.status ? e.message : 'Something broke on the server.', 'bad']], ui: {} }; if (!e.status) console.error(e); }
+          return out('ack', ack);
+        }
+        if (m.t === 'chat') {
+          if (role === 'viewer') return out('toast', ['<b>Viewers cannot chat.</b>', 'bad']);
+          if (!limiter.allow('chat:' + user.id, 10, 10e3)) return out('toast', ['<b>Slow down a little.</b>', 'bad']);
+          const text = cleanName(m.text, 300); if (text) room.say(user.name, text);
+        }
+      } catch (e) { if (!e.status) console.error(e); fail(e.status || 500, e.status ? e.message : 'Something broke on the server.'); }
+    });
+  }
   server.requestTimeout = 30e3;
   server.headersTimeout = 15e3;
 
   return {
     server, store, host, world, cfg,
     listen: (port, hostname) => new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, hostname, () => resolve(server.address())); }),
-    close: () => new Promise((resolve) => { host.closeAll(); store.flush(); server.closeAllConnections && server.closeAllConnections(); server.close(() => resolve()); }),
+    close: () => new Promise((resolve) => { host.closeAll(); store.flush(); for (const c of wss.clients) c.terminate(); server.closeAllConnections && server.closeAllConnections(); server.close(() => resolve()); }),
   };
 }
 

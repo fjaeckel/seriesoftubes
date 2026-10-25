@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Multiplayer is much snappier. Commands and state now travel over one WebSocket (with the old SSE and HTTP path as a
+  fallback). After every command the server pushes the new state to the whole team immediately instead of waiting for
+  the next throttled update, and the answer to a command carries the state, so your own screen updates after a single
+  round trip. Dropped connections reconnect by themselves.
 - A much longer game. A new network cannot open its second POP until it has served 120 Gbps and been around for 100
   days, the third needs 260 Gbps and day 200, and so on (twelve steps up to 13 Tbps). If every city you have is nearly
   saturated, the next POP opens anyway. Sandbox, scenarios and big networks are exempt. The Goals tab shows where you

@@ -269,3 +269,51 @@ test('multiplayer: modals the server cannot draw reach the browser as a request 
     assert.ok(room.ev('S.ixp.fra!==undefined'), 'accepting buys the port');
   } finally { await s.close(); }
 });
+
+test('websocket: one connection carries state, commands and their answers, with the fresh state pushed at once', async () => {
+  const s = await boot();
+  try {
+    const A = (await s.signup('alice')).token, B = (await s.signup('bob')).token;
+    await s.api('POST', '/api/networks', { name: 'Alpha', asn: 64512, home: 'fra' }, A);
+    const open = (token) => new Promise((resolve, reject) => {
+      const ws = new WebSocket(s.base.replace(/^http/, 'ws') + '/api/networks/64512/ws');
+      const got = []; const waiters = [];
+      ws.onmessage = (m) => { const i = m.data.indexOf('\n'); const e = { ev: m.data.slice(0, i), j: JSON.parse(m.data.slice(i + 1)) }; got.push(e); for (const w of waiters.splice(0)) w(); };
+      ws.onopen = () => ws.send(JSON.stringify({ t: 'auth', token }));
+      ws.onerror = () => reject(new Error('socket error'));
+      const next = async (ev, ms = 4000) => { const t = Date.now(); for (;;) { const k = got.findIndex((x) => x.ev === ev); if (k >= 0) return got.splice(k, 1)[0].j; if (Date.now() - t > ms) throw new Error('no ' + ev); await new Promise((r) => { waiters.push(r); setTimeout(r, 100); }); } };
+      resolve({ ws, got, next });
+    });
+    const a = await open(A);
+    const hello = await a.next('hello'); assert.equal(hello.role, 'owner');
+    const st0 = await a.next('state'); assert.ok(st0.d.S.asn === 64512);
+    const t0 = Date.now();
+    a.ws.send(JSON.stringify({ t: 'cmd', id: 7, act: 'opsFreeze', args: {}, ctx: {} }));
+    const ack = await a.next('ack'); assert.equal(ack.id, 7); assert.equal(ack.ok, true);
+    const st1 = await a.next('state', 1000); assert.ok(st1.v > st0.v, 'new state straight away, not at the next throttled send');
+    assert.ok(Date.now() - t0 < 800, `round trip ${Date.now() - t0} ms`);
+    assert.equal(st1.d.S.ops.frozen, true);
+    // the same command over HTTP also carries the new state in its answer
+    const h = await s.api('POST', '/api/networks/64512/cmd', { act: 'opsFreeze', args: {}, ctx: {} }, A);
+    assert.equal(h.b.st.d.S.ops.frozen, false);
+    // strangers and bad tokens are refused
+    const bad = await open('nope'); const err = await bad.next('error'); assert.equal(err.status, 401);
+    const stranger = await open(B); assert.equal((await stranger.next('error')).status, 403);
+    a.ws.close();
+  } finally { await s.close(); }
+});
+
+test('websocket: cross-site pages cannot open a socket', async () => {
+  const s = await boot();
+  try {
+    const A = (await s.signup('alice')).token;
+    await s.api('POST', '/api/networks', { name: 'Alpha', asn: 64512, home: 'fra' }, A);
+    const r = await new Promise((resolve) => {
+      const http = require('node:http');
+      const u = new URL(s.base);
+      const req = http.request({ host: u.hostname, port: u.port, path: '/api/networks/64512/ws', headers: { Connection: 'Upgrade', Upgrade: 'websocket', 'Sec-WebSocket-Version': '13', 'Sec-WebSocket-Key': 'dGhlIHNhbXBsZSBub25jZQ==', Origin: 'https://evil.example' } });
+      req.on('response', (res) => resolve(res.statusCode)); req.on('upgrade', () => resolve(101)); req.on('error', () => resolve(0)); req.end();
+    });
+    assert.equal(r, 403);
+  } finally { await s.close(); }
+});

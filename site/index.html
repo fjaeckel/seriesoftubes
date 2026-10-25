@@ -3941,9 +3941,31 @@ async function mpEnter(asn){
   mpStream();}
 function mpWrap(){for(const k of Object.keys(ACT)){if(MP_LOCAL.has(k)||MP.orig[k])continue;MP.orig[k]=ACT[k];ACT[k]=(a)=>{mpCmd(k,a||{});};}}
 function mpUnwrap(){for(const k in MP.orig)ACT[k]=MP.orig[k];MP.orig={};}
-function mpStop(){MP.on=false;if(MP.abort)try{MP.abort.abort();}catch(e){}MP.abort=null;mpUnwrap();$('hMp').hidden=true;}
+function mpStop(){MP.on=false;if(MP.abort)try{MP.abort.abort();}catch(e){}MP.abort=null;if(MP.sock){try{MP.sock.close();}catch(e){}MP.sock=null;}mpUnwrap();$('hMp').hidden=true;}
+function mpFatal(status,message){MP.token=status===401?null:MP.token;mpSaveAuth();mpStop();S=null;UI.started=false;showTitle();toast(`<b>Cannot open that network.</b><br>${esc(message)}`,'bad');}
+/* One WebSocket carries the state, the commands and their answers. If it cannot be opened (an old proxy, say) we fall back to the SSE stream plus plain HTTP. */
+function mpSocket(){return new Promise(done=>{
+  let opened=false,ws;MP.fatal=null;MP.acks=new Map();
+  try{ws=new WebSocket(mpUrl(`/api/networks/${MP.asn}/ws`).replace(/^http/,'ws'));}catch(e){return done('fallback');}
+  MP.sock=ws;const to=setTimeout(()=>{if(!opened){try{ws.close();}catch(e){}}},8000);
+  ws.onopen=()=>{ws.send(JSON.stringify({t:'auth',token:MP.token}));};
+  ws.onmessage=m=>{if(typeof m.data!=='string')return;const i=m.data.indexOf('\n');if(i<0)return;const ev=m.data.slice(0,i);let j;try{j=JSON.parse(m.data.slice(i+1));}catch(e){return;}
+    if(ev==='ack'){const f=MP.acks.get(j.id);if(f){MP.acks.delete(j.id);f(j);}return;}
+    if(ev==='error'){MP.fatal=j;return;}
+    if(ev==='pong')return;
+    if(ev==='hello'){opened=true;MP.retry=0;MP.status='live';clearTimeout(to);done('ok');}
+    mpHandle(ev,j);};
+  ws.onerror=()=>{};
+  ws.onclose=()=>{clearTimeout(to);if(MP.sock===ws)MP.sock=null;
+    for(const f of MP.acks.values())f({ok:false,msgs:[['The connection dropped. Try that again.','bad']],ui:{}});MP.acks.clear();
+    if(!MP.on)return;
+    if(MP.fatal&&[401,403,404].includes(MP.fatal.status)){mpFatal(MP.fatal.status,MP.fatal.error);return done('fatal');}
+    if(!opened){done('fallback');return;}
+    MP.status='reconnecting';mpHud();setTimeout(mpStream,Math.min(15000,1000*2**Math.min(4,MP.retry++)));};
+  if(MP.pingT)clearInterval(MP.pingT);MP.pingT=setInterval(()=>{if(MP.sock&&MP.sock.readyState===1)MP.sock.send('{"t":"ping"}');},20000);});}
 async function mpStream(){
   if(!MP.on)return;
+  if(!MP.noWs&&typeof WebSocket==='function'){const r=await mpSocket();if(r==='ok'||r==='fatal')return;MP.noWs=true;if(!MP.on)return;}
   const ctl=new AbortController();MP.abort=ctl;
   try{
     const r=await fetch(mpUrl(`/api/networks/${MP.asn}/stream`),{headers:{Authorization:'Bearer '+MP.token},signal:ctl.signal});
@@ -3960,6 +3982,8 @@ async function mpStream(){
 function mpEvent(block){
   let ev='message',data='';for(const l of block.split('\n')){if(l.startsWith('event:'))ev=l.slice(6).trim();else if(l.startsWith('data:'))data+=l.slice(5).trim();}
   if(!data)return;let j;try{j=JSON.parse(data);}catch(e){return;}
+  mpHandle(ev,j);}
+function mpHandle(ev,j){
   if(ev==='hello'){MP.role=j.role;MP.name=j.you||MP.name;MP.chat=j.chat||[];}
   else if(ev==='state')mpApply(j);
   else if(ev==='presence'){MP.presence=j;mpHud();if(UI.mpTeam)mpTeam();}
@@ -3987,7 +4011,10 @@ async function mpCmd(act,args){
   const ctx={};for(const k of MP_CTX)ctx[k]=UI[k]===undefined?null:UI[k];
   const dom=act==='teDeploy'?{teSrc:($('teSrc')||{}).value||''}:null,modalOpen=!$('modal').hidden;
   const v0=MP.ver;
-  try{const r=await mpFetch(`/api/networks/${MP.asn}/cmd`,{method:'POST',body:{act,args,ctx,dom},timeout:20000});
+  try{let r;
+    if(MP.sock&&MP.sock.readyState===1){const id=(MP.cid=(MP.cid||0)+1);
+      r=await new Promise(done=>{MP.acks.set(id,done);MP.sock.send(JSON.stringify({t:'cmd',id,act,args,ctx,dom}));setTimeout(()=>{if(MP.acks.delete(id))done({ok:false,msgs:[['The server did not answer.','bad']],ui:{}});},20000);});}
+    else{r=await mpFetch(`/api/networks/${MP.asn}/cmd`,{method:'POST',body:{act,args,ctx,dom},timeout:20000});if(r.st)mpApply(r.st);}
     for(const [h,k] of r.msgs)toast(h,k);
     MP.pendingModal=r.modal||null;MP.pendingVer=v0;if(MP.pendingModal)setTimeout(()=>{MP.pendingModal=null;},6000);
     if(r.ui)for(const k in r.ui)UI[k]=r.ui[k];

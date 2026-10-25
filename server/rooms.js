@@ -46,9 +46,16 @@ class Room {
     for (const c of this.clients.values()) by.set(c.uid, { name: c.name, role: c.role });
     return [...by.values()];
   }
-  send(res, event, data) { try { res.write(`event: ${event}\ndata: ${data}\n\n`); } catch (_) {} }
+  // A client is either an SSE response or a WebSocket adapter ({ ws, end() }). A WebSocket frame is the event name,
+  // a newline, then the JSON, so the (large) state is not wrapped and escaped a second time.
+  send(res, event, data) {
+    try { if (res.ws) { if (res.ws.readyState === 1) res.ws.send(`${event}\n${data}`); } else res.write(`event: ${event}\ndata: ${data}\n\n`); } catch (_) {}
+  }
+  envelope() { return `{"v":${this.version},"d":${this.stateJson}}`; }
+  /** Everybody gets the new state now, not at the next throttled send: after a command that is what the player is waiting for. */
+  pushNow() { this.lastSent = Date.now(); this.dirty = false; const e = this.envelope(); for (const res of this.clients.keys()) this.send(res, 'state', e); }
   broadcast(event, data) { for (const res of this.clients.keys()) this.send(res, event, data); }
-  sendState(res) { this.send(res, 'state', `{"v":${this.version},"d":${this.stateJson}}`); }
+  sendState(res) { this.send(res, 'state', this.envelope()); }
   add(res, who) {
     this.clients.set(res, who); this.lastTouch = Date.now();
     this.send(res, 'hello', JSON.stringify({ asn: this.asn, name: this.net.name, role: who.role, you: who.name, chat: this.chat.slice(-30) }));
@@ -70,6 +77,7 @@ class Room {
       for (const [h, k] of notes) for (const res of this.clients.keys()) if (this.clients.get(res).name !== who) this.send(res, 'toast', JSON.stringify([`<b>${escapeHtml(who)}</b> · ${h}`, k]));
     }
     this.refresh(); this.saveDirty = true; this.lastTouch = Date.now();
+    this.pushNow();
     return r;
   }
   step(dt, now) {

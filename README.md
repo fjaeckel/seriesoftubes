@@ -173,6 +173,34 @@ Pre-releases never deploy, also not when run by hand, and a version older than
 the live one is refused unless you tick `allow_older` (a deliberate rollback).
 To redeploy an existing release, run the workflow manually with its tag.
 
+## Running the multiplayer server behind nginx
+
+The browser talks to the server over one WebSocket (`/api/networks/<asn>/ws`) and falls back to server-sent events plus
+plain HTTP if that cannot be opened. Behind nginx, pass the upgrade through and do not buffer:
+
+```nginx
+map $http_upgrade $connection_upgrade { default upgrade; '' close; }
+
+server {
+    listen 443 ssl http2;
+    server_name tubes.example.com;
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+        proxy_read_timeout 1h;
+    }
+}
+```
+
+Run the server with `TRUST_PROXY=1` behind a proxy.
+
 ## Hosting setup
 
 GitHub Pages serves the site with **Source: GitHub Actions** and the custom domain
