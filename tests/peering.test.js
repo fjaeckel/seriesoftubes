@@ -159,7 +159,7 @@ test('Amsterdam has FRIES-IX, with free 10G and 100G ports and paid larger ports
   assert.equal(ev("ixPortMo('ams~3',2)"), ev("Math.round(PORT[2].ix*ixMul('ams~3'))"), '400G is a paid game tier');
   ev("ACT.buyIx({city:'ams',tier:1});ACT.rs({city:'ams~3'});compute()");
   assert.ok(ev("ixSessions('ams~3').has('drz')"));
-  assert.equal(ev("ixSessions('ams~3').has('ggl')"), false, 'Goggle is not a member');
+  assert.equal(ev("ixSessions('ams~3').has('ggl')"), false, 'Google is not a member');
   assert.equal(ev("R.useIx['ams~3']!==undefined&&R.useIx.ams!==undefined"), true, 'both fabrics carry traffic');
   assert.equal(ev("R.cost.ix"), ev("ixPortMo('ams',1)"), "only the HAMS-IX port is billed");
   ev("selectCity('ams');ACT.tab({t:'peer'})");

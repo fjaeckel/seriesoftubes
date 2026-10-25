@@ -20,7 +20,7 @@ test('networks carry their real names and AS numbers', () => {
   assert.deepEqual([asn('lvl'), asn('cog'), asn('ggl'), asn('cfl'), asn('nfx'), asn('drz'), asn('ntt'), asn('tly')], [3356, 174, 15169, 13335, 2906, 6939, 2914, 1299]);
   assert.deepEqual([name('lvl'), name('cog'), name('ggl'), name('nfx')], ['Lumen', 'Cogent', 'Google', 'Netflix']);
   assert.equal(ev("new Set(NETS.map(n=>n.asn)).size"), ev('NETS.length'), 'no AS number appears twice');
-  assert.equal(ev("NETS.some(n=>/Cogentle|Goggle|Faceplant|Level Tree/.test(JSON.stringify(n)))"), false, 'no cartoon names left');
+  assert.equal(ev("NETS.some(n=>/Cogent|Google|Meta|Lumen/.test(JSON.stringify(n)))"), false, 'no cartoon names left');
 });
 
 test('transit is sold only in cities where a transit network really has a PoP', () => {

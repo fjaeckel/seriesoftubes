@@ -27,6 +27,7 @@ function load(opts = {}) {
     beforeParse(window) {
       window.__TUBES_TEST__ = true;
       if (opts.server) window.__TUBES_SERVER__ = true;
+      if (opts.noPacing) window.__NO_PACING__ = true; // tests build POPs on day 0; the pacing tests turn this off
       // Seed before the game script runs, so nothing random happens at load time either.
       if (opts.seed !== false) { let r = opts.seed || 12345; window.Math.random = () => { r = (r * 16807) % 2147483647; return r / 2147483647; }; window.__reseed = (n) => { r = n; }; }
       for (const [k, v] of Object.entries(opts.storage || {})) window.localStorage.setItem(k, v);

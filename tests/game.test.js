@@ -349,7 +349,7 @@ test('loans: good terms need good credit, big loans want revenue, and the weird 
   assert.equal(c1 - ev('S.cash'), 400, 'pizza after every incident');
   assert.match(ev("covLabel('yacht')"), /\$8\.0k\/mo/);
   assert.equal(ev("COVS.oddpops.ok()"), true);
-  ev("ACT.buildPop({city:'ams'})");
+  ev("S.lvl=4;ACT.buildPop({city:'ams'})");
   assert.equal(ev("COVS.oddpops.ok()"), false, 'two POPs break the numerologist');
   // the bank screen renders every model
   ev("S.loanOffers=[{id:'o1',bank:'balloon',amount:1e5,exp:S.day+20,covs:['oddpops'],apr:0.1,term:12,pay:0,model:'balloon'},{id:'o2',bank:'ppp',amount:1e5,exp:S.day+20,covs:['nocache'],term:24,model:'transit',cut:0.3,owe:130000},{id:'o3',bank:'astro',amount:1e5,exp:S.day+20,covs:['friday'],apr:0.2,term:12,pay:5000,model:'astro'}];ACT.bank({})");

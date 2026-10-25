@@ -383,7 +383,7 @@ test('#31 #33 #38 connections overview lists every port, filters it and jumps to
   ev("ACT.connF({f:'all'})");
   ev("ACT.connNet({v:'ggl'})");
   assert.ok(rows() >= 1, 'a network filter finds its PNI and the exchanges it peers at');
-  assert.ok([...doc.querySelectorAll('#connSec tbody tr')].every((tr) => /Goggle|IX/.test(tr.textContent)));
+  assert.ok([...doc.querySelectorAll('#connSec tbody tr')].every((tr) => /Google|IX/.test(tr.textContent)));
   ev("ACT.connCity({v:'nope'});ACT.connNet({v:'nope'});ACT.connF({f:'k',v:'nope'})");
   assert.deepEqual(JSON.parse(ev('JSON.stringify(UI.cf)')), { k: '', city: '', net: '' }, 'bad filter values are ignored');
   // Open closes the dashboard and goes to the right tab of that POP
@@ -395,9 +395,9 @@ test('#31 #33 #38 connections overview lists every port, filters it and jumps to
   assert.equal(ev('UI.tab'), 'peer');
   // the Networks tab says where each network is connected (#33)
   ev("UI.left='nets';UI.leftOpen=true;renderLeft()");
-  const cog = [...doc.querySelectorAll('#leftBody .row')].find((r) => /Cogentle/.test(r.textContent));
+  const cog = [...doc.querySelectorAll('#leftBody .row')].find((r) => /Cogent/.test(r.textContent));
   const jump = cog.querySelector('[data-act="goConn"]');
-  assert.ok(jump, 'Cogentle shows a jump button');
+  assert.ok(jump, 'Cogent shows a jump button');
   assert.match(jump.textContent, /Transit.*Frankfurt/);
   assert.deepEqual(errors, []);
 });
@@ -814,7 +814,7 @@ test('cancelling from the Connections list confirms once, without forging the pa
 test('diversity offers respect buildable cable routes, not current infrastructure', () => {
   const { ev, dom, errors } = load();
   base(ev);
-  assert.equal(ev("diversityPossible('cbo','den')"), false, 'both Colombo exits share SEE-ME-WAVE 4');
+  assert.equal(ev("diversityPossible('cbo','den')"), false, 'both Colombo exits share SEA-ME-WE 4');
   assert.equal(ev("diversityPossible('den','cbo')"), false, 'same in reverse');
   assert.equal(ev("diversityPossible('fra','den')"), true, 'expansion is allowed before links are built');
   ev("S.ev.landban={city:'cbo',until:S.day+100}");
@@ -980,7 +980,7 @@ test('#69 embedded caches can sit in either metro building, so one dark building
 test('#63 incidents you can fix with one click sit above hot ports in the NOC', () => {
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:0});compute()");
-  ev("R.useT[S.transit[0].id]=10;window.hotPorts=()=>[{k:'t',city:'fra',lab:'Cogentle transit',u:0.97,tip:'Upgrade it.'}]");
+  ev("R.useT[S.transit[0].id]=10;window.hotPorts=()=>[{k:'t',city:'fra',lab:'Cogent transit',u:0.97,tip:'Upgrade it.'}]");
   ev("S.inc.push({id:'x1',type:'loss',ref:'l',until:S.day+5,msg:'Free one',start:S.day},{id:'x2',type:'optic',ref:'l',until:S.day+9,msg:'A transceiver died.',cost:7000,fix:'Replace the optic',start:S.day})");
   ev("UI.left='noc';UI.leftOpen=true;UI.sel=null;renderLeft()");
   const t = ev("document.getElementById('leftBody').textContent");

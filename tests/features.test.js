@@ -233,7 +233,7 @@ test('city codes are the ones operators use', () => {
 });
 
 test('pacing: the second POP has to be earned, by peak traffic and by time, and the gate explains itself', () => {
-  const { ev, errors } = load();
+  const { ev, errors } = load({ noPacing: false });
   ev("ACT.start({});S.cash=1e9;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:S.home})");
   assert.ok(ev('popGate()'), 'a brand new network cannot open another POP');
   const before = ev('Object.keys(S.pops).length');
@@ -256,7 +256,7 @@ test('pacing: the second POP has to be earned, by peak traffic and by time, and 
 });
 
 test('pacing: early growth is slow and cities keep growing for years', () => {
-  const { ev } = load();
+  const { ev } = load({ noPacing: false });
   ev("ACT.start({});S.cash=1e9;ACT.launchBB({city:S.home});const t=NETS.filter(n=>n.price&&n.pops.includes(S.home))[0];ACT.buyTransit({city:S.home,net:t.id,tier:2});compute()");
   const d0 = ev('S.pops[S.home].bb.d');
   for (let i = 0; i < 60; i++) ev('dayTick()');
