@@ -118,5 +118,10 @@ module.exports = {
     sfc: { cc: ['KE'], top: 2 },
     tmx: { cc: ['MX'], top: 4 },
     bcd: { cc: ['CA'], top: 4 },
+    ktt: { cc: ['KR'], top: 3, plus: ['icn'], force: true },
+    btt: { cc: ['GB'], top: 4, plus: ['lon', 'man', 'edi'], force: true },
+    sky: { cc: ['GB'], top: 4, plus: ['lon', 'man', 'edi'], force: true },
+    vmo: { cc: ['GB'], top: 4, plus: ['lon', 'man', 'edi'], force: true },
+    tnr: { cc: ['NO'], top: 3, plus: ['svg'], force: true },
   },
 };

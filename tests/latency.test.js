@@ -84,7 +84,7 @@ test('traceroute crosses oceans in many hops with the provider\'s own rDNS and o
   assert.match(t, /\.gin\.ntt\.net/);
   assert.match(t, /ibone\.comcast\.net/);
   assert.ok(!/\.-\d/.test(t), 'no negative octets');
-  assert.ok(!/\(\d+\.\d+\.\d+\.\d+\)/.test(t.replace(/\((?:100\.66|192\.0\.2|198\.51\.100|203\.0\.113|185\.1)\.[\d.]+\)/g, '')), 'reserved ranges only');
+  assert.ok(!/\(\d+\.\d+\.\d+\.\d+\)/.test(t.replace(/\((?:100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])|192\.0\.2|198\.51\.100|203\.0\.113|185\.1)\.[\d.]+\)/g, '')), 'reserved ranges only');
   assert.deepEqual(errors, []);
 });
 

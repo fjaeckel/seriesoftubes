@@ -20,7 +20,7 @@ test('networks carry their real names and AS numbers', () => {
   assert.deepEqual([asn('lvl'), asn('cog'), asn('ggl'), asn('cfl'), asn('nfx'), asn('drz'), asn('ntt'), asn('tly')], [3356, 174, 15169, 13335, 2906, 6939, 2914, 1299]);
   assert.deepEqual([name('lvl'), name('cog'), name('ggl'), name('nfx')], ['Lumen', 'Cogent', 'Google', 'Netflix']);
   assert.equal(ev("new Set(NETS.map(n=>n.asn)).size"), ev('NETS.length'), 'no AS number appears twice');
-  assert.equal(ev("NETS.some(n=>/Cogent|Google|Meta|Lumen/.test(JSON.stringify(n)))"), false, 'no cartoon names left');
+  assert.equal(ev("NETS.some(n=>/Cogentle|Goggle|Faceplant|Level Tree/.test(JSON.stringify(n)))"), false, 'no cartoon names left');
 });
 
 test('transit is sold only in cities where a transit network really has a PoP', () => {
@@ -156,9 +156,9 @@ test('no joke names are left in the customer, bank and network lists', () => {
 
 test('real routers and optics, and dark fiber takes any number of transceivers at once', () => {
   const { ev, errors } = load({ seed: 4 });
-  assert.match(ev("RG.map(r=>r.n).join()"), /Juniper MX204.*Cisco 8201.*PTX10001.*Silicon One G300.*MikroTik.*Edgecore.*Arista 7280.*Arista 7800.*Cisco 8808.*Tomahawk 6.*Nokia 7750/);
+  assert.match(ev("RG.map(r=>r.n).join()"), /Juniper MX204.*Cisco 8201.*PTX10001.*Silicon One G300.*MikroTik.*Edgecore.*Arista 7280.*Arista 7800.*Cisco 8808.*Tomahawk 6.*Cisco 8812.*Silicon One G400.*Nokia 7950.*Nokia 7750/);
   assert.equal(ev("RG.some(r=>/Rusty|Chonk|Absolute|Arrrhipster|Knockia/.test(r.n))"), false);
-  assert.equal(ev("PORT[PORT.length-1].n"), '1.6T', 'no router port is faster than 1.6T today');
+  assert.equal(ev("PORT[PORT.length-1].n"), '3.2T', 'the fastest port is the 3.2T of the last levels');
   assert.equal(ev("Object.values(OPT).some(o=>/Ackackia|Sizzle|Sienna/.test(o.n))"), false);
   ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0");
   ev("ACT.buildPop({city:'ams'});for(const c of ['fra','ams'])S.pops[c].rgen=3;");

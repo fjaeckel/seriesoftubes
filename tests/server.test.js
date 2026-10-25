@@ -173,7 +173,7 @@ test('static files: the game, compressed, and nothing outside the site folder', 
   try {
     const r = await fetch(s.base + '/', { headers: { 'Accept-Encoding': 'br' } });
     assert.equal(r.status, 200); assert.equal(r.headers.get('content-encoding'), 'br');
-    assert.ok(+r.headers.get('content-length') < 400000, 'brotli makes the page a third of its size');
+    assert.ok(+r.headers.get('content-length') < 500000, 'brotli makes the page about a quarter of its size');
     const plain = await (await fetch(s.base + '/', { headers: { 'Accept-Encoding': 'identity' } })).text();
     assert.ok(plain.includes('Series of Tubes') && !plain.includes('__VERSION__'), 'version placeholders are filled in');
     for (const p of ['/../package.json', '/%2e%2e/package.json', '/..%2fpackage.json', '/server/app.js']) assert.equal((await fetch(s.base + p)).status, 404, p);

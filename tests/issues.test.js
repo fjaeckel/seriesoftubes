@@ -568,18 +568,18 @@ test('#64 leased and own land fiber stay near their route next to a trench full 
 test('buttons behind an open modal stay quiet, and a declined PNI clears its stale button', () => {
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e7;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});ACT.buildPop({city:'mrs'});ACT.buyTransit({city:'mrs',net:'cog',tier:1});compute()");
-  // the PNI button was drawn while Tangerine still wanted our traffic; by the click it doesn't
-  ev("R.demTo.tng=50;UI.sel={type:'city',id:'mrs'};UI.tab='peer';renderAll();R.demTo.tng=0;window.__n=0;const o=toast;toast=function(h){if(/declined/.test(h))window.__n++;return o.apply(this,arguments);}");
-  const btn = "document.querySelector('#panel [data-act=pni][data-args*=tng]')";
+  // the PNI button was drawn while Microsoft still wanted our traffic; by the click it doesn't
+  ev("R.demTo.msf=50;UI.sel={type:'city',id:'mrs'};UI.tab='peer';renderAll();R.demTo.msf=0;window.__n=0;const o=toast;toast=function(h){if(/declined/.test(h))window.__n++;return o.apply(this,arguments);}");
+  const btn = "document.querySelector('#panel [data-act=pni][data-args*=msf]')";
   assert.ok(ev(`!!${btn}`), 'a stale button to start with');
   ev(`${btn}.focus();${btn}.click()`);
   assert.equal(ev('__n'), 1);
   assert.equal(ev(`!!${btn}`), false, 'the panel redraws and shows why instead');
   // with a modal open, a click (from Enter, Space or anything else) on something behind it does nothing
-  ev("R.demTo.tng=50;renderAll();R.demTo.tng=0;const b=" + btn + ";b.focus();ACT.buyIx({city:ixIdsIn('mrs')[0],tier:1})");
+  ev("R.demTo.msf=50;renderAll();R.demTo.msf=0;const b=" + btn + ";b.focus();ACT.buyIx({city:ixIdsIn('mrs')[0],tier:1})");
   assert.equal(ev("$('modal').hidden"), false, 'the DE-KICKS quote is open');
   assert.notEqual(ev("document.activeElement&&document.activeElement.dataset.act"), 'pni', 'focus left the hidden button');
-  ev(`for(let i=0;i<5;i++)document.querySelector('#panel [data-act=pni][data-args*=tng]').click()`);
+  ev(`for(let i=0;i<5;i++)document.querySelector('#panel [data-act=pni][data-args*=msf]').click()`);
   assert.equal(ev('__n'), 1, 'no declines from behind the quote');
   ev("document.querySelector('#modal [data-act=dkWalk]').click()");
   assert.equal(ev("$('modal').hidden"), true, 'buttons inside the modal still work');
