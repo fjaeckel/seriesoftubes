@@ -1200,6 +1200,10 @@ const SCN=[
  {id:'spat',n:'The Cogent Spat',city:'nyc',cash:700000,days:540,rules:{spat:true},d:'In this fictional scenario Cogent and Google have stopped peering for good. Buy the cheap transit if you dare.',goal:'99% reach and 150 Gbps served',ok:()=>R.reach>=0.99&&R.served>=150},
  {id:'carnaval',n:'Carnaval',city:'rio',cash:600000,days:100,rules:{},setup:()=>{S.biz.push({id:uid(),scripted:true,city:'rio',city2:null,reqs:[],name:'Carnaval Parade in Rio de Janeiro',type:'event',bw:400,rate:0,mood:100,since:0,start:90,dur:5,fee:400*5*70});},d:'Rio from scratch. Carnaval starts in 90 days and wants 400 Gbps for five days straight. The whole world is watching.',goal:'Deliver Carnaval in full',ok:()=>(S.stats.evFull||0)>=1},
  {id:'darien',n:'Mind the Gap',city:'pan',cash:900000,days:730,rules:{},d:'Start in Panama City. Nothing crosses the Darién Gap by land, and the Andes are in the way of everything else.',goal:'POPs in Bogotá, Lima, Santiago and São Paulo, and 150 Gbps served',ok:()=>['bog','lim','scl','sao'].every(c=>S.pops[c])&&R.served>=150},
+ {id:'fb2021',n:'The Day Facebook Vanished',city:'nyc',cash:2500000,days:420,rules:{fb:true},d:'Based on the October 2021 outage. Build a network, and on day 120 a routine command withdraws every BGP route you announce. The tool to fix it is behind the same network. Hire engineers and keep an out-of-band path in mind.',goal:'Recover and serve 150 Gbps',ok:()=>!!S.scn.rec&&R.served>=150},
+ {id:'pkyt',n:'The YouTube Hijack',city:'fra',cash:1500000,days:360,rules:{hijacks:[100,200,300]},setup:()=>{S.sec={roa:null,auto:false,rov:false,irr:false};},d:'Based on the 2008 incident where a Pakistani ISP took YouTube offline. You start without a ROA. Somebody will announce your prefixes on days 100, 200 and 300. Sign a ROA and turn on ROV.',goal:'Survive with a valid ROA and ROV on, and 97% reach',ok:()=>S.day>=330&&roaOk()&&sec().rov&&R.reach>=0.97},
+ {id:'dyn',n:'Dyn Day',city:'ash',cash:2000000,days:360,rules:{dyn:true},d:'Based on the October 2016 attack on a DNS provider. A huge botnet hits your home city on day 150 for four days. Scrubbing, blackhole rules and multiple sites help.',goal:'Recover and serve 120 Gbps',ok:()=>!!S.scn.rec&&R.served>=120},
+ {id:'luzon',n:'Luzon Strait',city:'hkg',cash:2500000,days:420,rules:{luzon:true},d:'Based on the 2006 and 2022 Taiwan earthquakes that cut most of the cables in and out of East Asia. On day 120 a quake breaks the Luzon Strait cables. Have a plan B.',goal:'Serve 200 Gbps with the strait broken',ok:()=>S.day>=200&&R.served>=200},
  {id:'baltic',n:'Anchors Away',city:'tll',cash:500000,days:540,rules:{anchors:3},d:'Tallinn. Ships drag their anchors over Baltic cables three times as often as usual.',goal:'90 days in a row with 99.5% of demand served',ok:()=>(S.stats.clean||0)>=90},
 ];
 const WEEK_CITIES=['fra','ams','lon','nyc','ash','sjc','sin','tok','syd','sao','jnb','bom','waw','ist','scl','hkg'];
@@ -1252,10 +1256,11 @@ function trPaths(src){const live=S.links.filter(l=>!linkDown(l)),rem=remoteCitie
   for(const l of live){if(!ok(l.a)||!ok(l.b))continue;const w=(l.km+60)*MET[l.metric||'normal'].f;(adj[l.a]=adj[l.a]||[]).push([l.b,l,w]);(adj[l.b]=adj[l.b]||[]).push([l.a,l,w]);}
   const dist={[src]:0},prev={},done=new Set();for(;;){let u=null,ud=Infinity;for(const k in dist)if(!done.has(k)&&dist[k]<ud){u=k;ud=dist[k];}if(u===null)break;done.add(u);for(const [v,l,w] of adj[u]||[]){const nd=ud+w;if(nd<(dist[v]??Infinity)){dist[v]=nd;prev[v]=l;}}}
   const path=dst=>{if(dist[dst]===undefined)return null;const out=[];let v=dst;while(v!==src){const l=prev[v];out.unshift({l,from:l.a===v?l.b:l.a,to:v});v=l.a===v?l.b:l.a;}return out;};return {dist,path};}
-function trExits(net){const day=S.day,ev=S.ev,leak=ev.leak&&ev.leak.until>day?ev.leak.net:null,out=[];
+function trExits(net){const day=S.day,ev=S.ev;if(ev.fbout>day)return [];const leak=ev.leak&&ev.leak.until>day?ev.leak.net:null,out=[];
+  const dsp=ev.dispute&&ev.dispute.until>day&&ev.dispute.net===net;
   for(const x of S.caches)if(x.net===net&&popUp(x.city)&&!siteDown(x.city,'a'))out.push({k:'c',rank:0,city:x.city,pref:'normal',lab:NET[net].cache.name+' cache',used:R.useCache[x.id]||0,cap:CACHE_CAP});
-  for(const p of S.pni)if(p.net===net&&popUp(p.city)&&liveN(p.city,p.site,p.n))out.push({k:'p',rank:1,city:p.city,pref:p.pref||'normal',lab:'PNI with '+NET[net].name,used:R.usePni[p.id]||0,cap:liveCap(PORT[p.tier].g,p.city,p.site,p.n)});
-  for(const c in S.ixp)if(ixSessions(c).has(net)&&(popUp(ixCity(c))||remoteCities().includes(ixCity(c)))&&!(ev.ixdown&&ev.ixdown[c]>day))out.push({k:'ix',rank:2,city:ixCity(c),id:c,pref:(S.ixPref&&S.ixPref[c])||'normal',lab:ixName(c)+' peering',used:R.useIx[c]||0,cap:ixCap(c)});
+  for(const p of S.pni)if(!dsp&&p.net===net&&popUp(p.city)&&liveN(p.city,p.site,p.n))out.push({k:'p',rank:1,city:p.city,pref:p.pref||'normal',lab:'PNI with '+NET[net].name,used:R.usePni[p.id]||0,cap:liveCap(PORT[p.tier].g,p.city,p.site,p.n)});
+  for(const c in S.ixp)if(!dsp&&ixSessions(c).has(net)&&(popUp(ixCity(c))||remoteCities().includes(ixCity(c)))&&!(ev.ixdown&&ev.ixdown[c]>day))out.push({k:'ix',rank:2,city:ixCity(c),id:c,pref:(S.ixPref&&S.ixPref[c])||'normal',lab:ixName(c)+' peering',used:R.useIx[c]||0,cap:ixCap(c)});
   for(const t of S.transit)if(popUp(t.city)&&!(t.down>day)&&liveN(t.city,t.site,t.n)&&net!==leak&&!((ev.depeer>day||scnRule('spat'))&&t.net==='cog'&&net==='ggl'))out.push({k:'t',rank:3,city:t.city,pref:t.pref||'normal',lab:NET[t.net].name+' transit',tnet:t.net,used:R.useT[t.id]||0,cap:liveCap(PORT[t.tier].g,t.city,t.site,t.n)});
   return out;}
 /* ---------- reverse DNS, the way real networks name their routers ---------- */
@@ -1358,17 +1363,52 @@ function traceroute(src,to){const P=trPaths(src),me=slug(S.name)+'.net',lines=[]
   const order={c:'caches beat PNIs',p:'PNIs beat IX peering',ix:'IX peering beats transit',t:'transit is the last resort'}[e.k];
   const cn=cnCity(src)!==!!N.cn?` Crossing the Great Firewall here loses about ${S.ev.gfw>S.day?35:20}% of packets.`:'';
   return {text:lines.join('\n'),why:`Exit: ${e.lab} in ${CITY[e.city].name}. ${order[0].toUpperCase()+order.slice(1)}, and closer exits win ties${e.pref!=='normal'?`; this one is set to ${e.pref==='high'?'Prefer':'Backup only'}`:''}.${e.used>=e.cap*0.999?' It is full, so some traffic overflows to the next exit.':''}${cn} Addresses are from documentation ranges, so none of them belong to a real network.`,asPath};}
+/* ---------- ping, mtr and a BGP looking glass, all derived from the same routing as traceroute ---------- */
+function diagParse(text){const hops=[];for(const l of text.split('\n')){let m=l.match(/^\s*(\d+)\s+(\S+) \(([\d.:a-f]+)\)\s+([\d.]+) ms\s+([\d.]+) ms\s+([\d.]+) ms/);
+  if(m)hops.push({n:+m[1],host:m[2],addr:m[3],rtt:[+m[4],+m[5],+m[6]]});else if((m=l.match(/^\s*(\d+)\s+\* \* \*/)))hops.push({n:+m[1],star:true});}return hops;}
+function pathLoss(src){const d=R.cityDem&&R.cityDem[src],sv=R.citySrv&&R.citySrv[src];return d>0&&sv!==undefined?Math.max(0,Math.min(0.9,1-sv/d)):0;}
+function pingTool(src,to){const r=traceroute(src,to),hops=diagParse(r.text),dst=(r.text.match(/^traceroute to (\S+) \(([^)]+)\)/)||[])[1]||'?',ip=(r.text.match(/^traceroute to \S+ \(([\d.]+)\)/)||[])[1];
+  const last=hops.filter(h=>!h.star).pop(),reach=!/unreachable|no working path/.test(r.text)&&last&&hops.length>3;
+  if(!ip||!reach)return {text:`PING ${dst}: 56 data bytes\nFrom ${last?last.addr:'0.0.0.0'}: Destination Net Unreachable\n\n--- ${dst} ping statistics ---\n5 packets transmitted, 0 received, 100% packet loss`,loss:100};
+  const base=(last.rtt[0]+last.rtt[1]+last.rtt[2])/3,loss=pathLoss(src),sd=Math.max(0.08,base*0.012,Math.abs(last.rtt[0]-last.rtt[2])/2),got=[],ttl=64-Math.min(40,hops.length);let out=`PING ${dst} (${ip}): 56 data bytes\n`;
+  for(let i=0;i<5;i++){if(Math.random()<loss){out+=`Request timeout for icmp_seq ${i}\n`;continue;}const t=Math.max(base*0.97,base+sd*Math.abs(gauss()));got.push(t);out+=`64 bytes from ${ip}: icmp_seq=${i} ttl=${ttl} time=${t.toFixed(t<10?2:1)} ms\n`;}
+  const mn=got.length?Math.min(...got):0,mx=got.length?Math.max(...got):0,av=got.length?got.reduce((a,b)=>a+b,0)/got.length:0;
+  out+=`\n--- ${dst} ping statistics ---\n5 packets transmitted, ${got.length} received, ${Math.round((5-got.length)/5*100)}% packet loss\n`+(got.length?`round-trip min/avg/max = ${mn.toFixed(2)}/${av.toFixed(2)}/${mx.toFixed(2)} ms`:'');
+  return {text:out,loss:Math.round((5-got.length)/5*100),avg:av};}
+function mtrTool(src,to){const r=traceroute(src,to),hops=diagParse(r.text),loss=pathLoss(src),cnt=10;if(!hops.length)return {text:r.text};
+  // Real loss starts at the first congested hop and continues to the end; ICMP rate limiting only affects a single hop.
+  const lossAt=loss>0?Math.max(1,Math.floor(hops.length*0.55)):Infinity;
+  let o=`                                       My traceroute  [v0.95]\n${slug(S.name)} (${S.asn}) -> ${(r.text.match(/^traceroute to (\S+)/)||[])[1]||'?'}\n`+
+   ` Host${' '.repeat(52)}Loss%   Snt   Last   Avg  Best  Wrst StDev\n`;
+  hops.forEach((h,i)=>{const label=h.star?'???':h.host,lp=h.star?100:(i>=lossAt?Math.round(loss*100):0),snt=cnt;
+    let row=` ${String(h.n).padStart(2)}.|-- ${label}`.padEnd(61)+`${lp.toFixed(1).padStart(5)}%${String(snt).padStart(6)}`;
+    if(h.star)row+='   0.0   0.0   0.0   0.0   0.0';else{const a=h.rtt,avg=(a[0]+a[1]+a[2])/3,best=Math.min(...a)*0.98,wst=Math.max(...a)*1.08,sd=(Math.max(...a)-Math.min(...a))/2;const f=x=>x.toFixed(1).padStart(6);row+=f(a[2])+f(avg)+f(best)+f(wst)+f(sd);}
+    o+=row+'\n';});
+  return {text:o};}
+function lookingGlass(net){const N=NET[net];if(!N)return {text:'% Network not found'};const P=trPaths(S.pops[UI.trFrom]?UI.trFrom:S.home),TR=teRules(),pfx=prefixesFor(N.asn,1).v4[0];
+  const ex=trExits(net).filter(e=>P.dist[e.city]!==undefined);
+  if(!ex.length)return {text:`BGP routing table entry for ${pfx}\n% Network not in table`};
+  const lp=e=>({c:400,p:300,ix:200,t:100})[e.k]+(e.pref==='high'?50:e.pref==='low'?-50:0)+(TR&&TR.net[net]?(TR.net[net].prefer===e.k?80:TR.net[net].avoid===e.k?-80:0):0)+(TR&&e.k==='t'&&TR.low.has(e.tnet)?-90:0),
+    pp=e=>{const a=[S.asn];if(e.k==='t'){const n=1+((TR&&TR.prep[e.tnet])||0);for(let i=0;i<n;i++)a.push(NET[e.tnet].asn);}if(!a.includes(N.asn))a.push(N.asn);else if(e.k==='t')a.push(N.asn);return a.slice(1);};
+  const rows=ex.map(e=>({e,lp:lp(e),path:pp(e),igp:Math.round(P.dist[e.city])})).sort((a,b)=>b.lp-a.lp||a.path.length-b.path.length||a.igp-b.igp);
+  let o=`BGP routing table entry for ${pfx}, version ${1000+hstr(net)%9000}\nPaths: (${rows.length} available, best #1)\n  Advertised to update-groups: ${1+(S.transit.length?1:0)} ${Object.keys(S.ixp).length?'2':''}\n`;
+  rows.forEach((x,i)=>{const nh=x.e.k==='t'?`203.0.113.${hstr(x.e.tnet+x.e.city)%250}`:x.e.k==='ix'?`185.1.${hstr(x.e.city)%250}.${hstr(net)%250}`:`100.64.${hstr(x.e.city)%250}.${hstr(net)%250}`;
+    o+=`  ${x.path.map(a=>a).join(' ')||'Local'}\n    ${nh} from ${nh} (${x.e.k==='t'?'AS'+NET[x.e.tnet].asn:'AS'+N.asn})\n      Origin IGP, metric ${x.igp}, localpref ${x.lp}, valid, external${i===0?', best':''}\n      Community: ${x.e.k==='t'?`${NET[x.e.tnet].asn}:${x.e.k==='t'?'100':'0'}`:`${S.asn}:${({c:400,p:300,ix:200})[x.e.k]}`}${S.roa&&S.roa.until>S.day?'\n      Origin validation state: valid (ROA AS'+S.asn+')':''}\n      via ${x.e.lab}, ${CITY[x.e.city].name}, ${x.e.used>=x.e.cap*0.999?'FULL':Math.round(x.e.used/Math.max(1e-9,x.e.cap)*100)+'% used'}\n`;});
+  return {text:o};}
 function traceModal(src,to){const pops=Object.keys(S.pops).sort((a,b)=>CITY[a].name.localeCompare(CITY[b].name));src=src&&S.pops[src]?src:UI.trFrom&&S.pops[UI.trFrom]?UI.trFrom:S.home&&S.pops[S.home]?S.home:pops[0];
-  const nets=NETS.slice().sort((a,b)=>b.share-a.share),t=to||UI.trTo||'net:ggl';UI.trFrom=src;UI.trTo=t;
-  const r=t.startsWith('net:')?traceroute(src,{net:t.slice(4)}):traceroute(src,{city:t.slice(5)});
-  openModal(`<div style="display:flex;align-items:center"><div><div class="eyebrow">Looking glass</div><h2 style="font-size:26px">Traceroute</h2></div><button class="x" data-act="closeModal" aria-label="Close">×</button></div>
+  const nets=NETS.slice().sort((a,b)=>b.share-a.share),t=to||UI.trTo||'net:ggl',tool=UI.trTool||'trace';UI.trFrom=src;UI.trTo=t;
+  const dest=t.startsWith('net:')?{net:t.slice(4)}:{city:t.slice(5)};
+  const r=tool==='ping'?pingTool(src,dest):tool==='mtr'?mtrTool(src,dest):tool==='lg'&&dest.net?lookingGlass(dest.net):traceroute(src,dest);
+  const tt=[['trace','Traceroute'],['ping','Ping'],['mtr','MTR'],['lg','BGP']];
+  openModal(`<div style="display:flex;align-items:center"><div><div class="eyebrow">Looking glass</div><h2 style="font-size:26px">${(tt.find(x=>x[0]===tool)||tt[0])[1]}</h2></div><button class="x" data-act="closeModal" aria-label="Close">×</button></div>
+  <div class="btns" style="margin:4px 0 8px">${tt.map(([k,l])=>btn(l,'trTool',{tool:k},tool===k?'pink sm':'ghost sm')).join('')}</div>
   <div class="trsel"><label>From <select id="trFrom">${pops.map(c=>`<option value="${c}"${c===src?' selected':''}>${esc(CITY[c].name)}</option>`).join('')}</select></label>
   <label>To <select id="trTo"><optgroup label="Networks">${nets.map(n=>`<option value="net:${n.id}"${t==='net:'+n.id?' selected':''}>${esc(n.name)} (AS${n.asn})</option>`).join('')}</optgroup><optgroup label="Your POPs">${pops.filter(c=>c!==src).map(c=>`<option value="city:${c}"${t==='city:'+c?' selected':''}>${esc(CITY[c].name)}</option>`).join('')}</optgroup></select></label>${btn('Run','traceRun',{},'pink sm')}</div>
-  <pre class="term">${esc(r.text)}</pre>${r.asPath?`<p class="meta"><b>AS path:</b> ${r.asPath.map(a=>'AS'+a).join(' → ')}</p>`:''}<p class="note">${esc(r.why)}</p>
+  <pre class="term">${esc(r.text)}</pre>${r.asPath&&tool==='trace'?`<p class="meta"><b>AS path:</b> ${r.asPath.map(a=>'AS'+a).join(' → ')}</p>`:''}${tool==='trace'&&r.why?`<p class="note">${esc(r.why)}</p>`:''}${tool==='lg'&&!dest.net?'<p class="note">The BGP view needs a network as the target.</p>':''}
   <div class="btns">${btn('Copy','traceCopy',{},'ghost sm')}</div>`);UI.trText=r.text;}
 
 /* ---------- route viewer: a bgp.tools for your own network ---------- */
-const NET_TYPE_LABEL={t1:'Tier 1',t2:'Transit',eye:'Eyeball',cdn:'Content'};
+const NET_TYPE_LABEL={team:'Another team',t1:'Tier 1',t2:'Transit',eye:'Eyeball',cdn:'Content'};
 function prefixesFor(asn,n){const h=hstr('p4|'+asn),v4=[];for(let k=0;k<n;k++){const b=(h+k*7919)%4096;v4.push(`100.${64+(b>>6)}.${(b&63)*4}.0/22`);}
   return {v4,v6:[`2001:db8:${(hstr('p6|'+asn)&0xffff).toString(16)}::/48`]};}
 function routeTo(P,net){const ex=trExits(net).filter(e=>P.dist[e.city]!==undefined);if(!ex.length)return null;
@@ -1377,11 +1417,18 @@ function routeTo(P,net){const ex=trExits(net).filter(e=>P.dist[e.city]!==undefin
   const asPath=[S.asn];if(e.k==='t')asPath.push(NET[e.tnet].asn);if(!asPath.includes(N.asn))asPath.push(N.asn);
   return {kind:e.k,city:CITY[e.city].name,via:e.lab,asPath,rtt:+(rtt+(e.k==='t'?1.4:e.k==='ix'?0.8:e.k==='p'?0.7:0.4)).toFixed(1),hops:path.length};}
 /* Everything the viewer shows, as plain data. The multiplayer server serves the same object over HTTP. */
+/* ---------- routing security: ROAs, ROV and prefix filters ---------- */
+const SEC_ROV_MO=180;
+function sec(){return S.sec||(S.sec={roa:S.day+365,auto:false,rov:false,irr:false});}
+function roaOk(){const x=sec();return x.auto||x.roa>S.day;}
+// Who drops RPKI-invalid routes. Big transit and content networks all do; eyeballs mostly do.
+function rovNet(id){const n=NET[id];if(!n)return false;return n.type==='eye'?hstr('rov|'+id)%100<62:hstr('rov|'+id)%100<92;}
+function rpkiState(){return S.ev&&S.ev.rpki&&S.ev.rpki.until>S.day?'invalid':roaOk()?'valid':'unknown';}
 function routeView(){if(!S)return null;
   const pops=Object.keys(S.pops),src=S.pops[S.home]&&popUp(S.home)?S.home:(pops.find(popUp)||S.home);
-  const nPfx=Math.max(1,Math.ceil(pops.length/3)),pf=prefixesFor(S.asn,nPfx),rpki=S.ev&&S.ev.rpki&&S.ev.rpki.until>S.day;
+  const nPfx=Math.max(1,Math.ceil(pops.length/3)),pf=prefixesFor(S.asn,nPfx),rpki=rpkiState()!=='valid';
   const sessions=NETS.filter(n=>!n.tail).length;
-  const v={asn:S.asn,name:S.name,tier:tierLabel(),day:S.day,rir:rirFor(S.home),home:CITY[S.home].name,rpki:rpki?'invalid':'valid',
+  const v={asn:S.asn,name:S.name,tier:tierLabel(),day:S.day,rir:rirFor(S.home),home:CITY[S.home].name,rpki:rpkiState(),sec:{...sec(),roaOk:roaOk(),mrs:roaOk()&&sec().rov&&sec().irr},
     pops:pops.map(c=>({id:c,name:CITY[c].name,cc:CITY[c].cc||'',up:!!popUp(c)})),upstreams:[],peers:[],paths:[],reach:R.reach||0,peerShare:R.peerShare||0,sessions};
   const sees=Math.max(1,S.transit.length+Object.keys(S.ixp).length);
   {const h=hstr('p24|'+S.asn);for(let k=0;k<(S.ip4x||0)&&k<64;k++){const b=(h+(nPfx+k)*104729)%16384;pf.v4.push(`100.${64+(b>>8)}.${b&255}.0/24`);}}
@@ -1392,7 +1439,10 @@ function routeView(){if(!S)return null;
   for(const p of S.pni)add(p.net,{kind:'pni',where:'PNI '+lagName(p.tier,p.n),city:CITY[p.city].name,how:'private'});
   for(const x of S.caches)if(NET[x.net])add(x.net,{kind:'cache',where:NET[x.net].cache.name,city:CITY[x.city].name,how:'embedded'});
   for(const id in by){const N=NET[id],e=R.netEg[id]||{};v.peers.push({asn:N.asn,id,name:N.name,type:N.type,policy:N.pol,sessions:by[id].sessions,gbps:+((e.c||0)+(e.p||0)+(e.ix||0)).toFixed(2),routes:20+hstr(id)%900});}
+  for(const t of S.teamPeers||[])v.peers.push({asn:t.asn,id:'',name:t.name,type:'team',policy:'settlement-free',sessions:[{kind:'team',where:'Team peering',city:CITY[S.home].name,how:'bilateral'}],gbps:0,routes:1});
   v.peers.sort((a,b)=>b.gbps-a.gbps||a.name.localeCompare(b.name));
+  // Customers announce prefixes to you with private AS numbers, which you strip before they reach the internet.
+  v.customers=S.biz.filter(b=>!BIZ_T[b.type].l2&&!BIZ_T[b.type].fiber&&!BIZ_T[b.type].event).map(b=>({id:b.id,name:b.name,kind:BIZ_T[b.type].l,asn:64512+hstr('cust|'+b.id)%1000,city:CITY[b.city].name,gbps:b.bw,mood:Math.round(b.mood==null?100:b.mood),prefixes:1+hstr('cp|'+b.id)%4,mo:Math.round(b.bw*b.rate)}));
   const P=popUp(src)||pops.length?trPaths(src):null;let tailOk=0,tailAll=0;
   if(P)for(const N of NETS){const r=routeTo(P,N.id);if(N.tail){tailAll++;if(r)tailOk++;continue;}
     v.paths.push({asn:N.asn,id:N.id,name:N.name,type:N.type,gbps:+(R.demTo[N.id]||0).toFixed(2),...(r||{reachable:false}),reachable:!!r});}
@@ -1405,17 +1455,27 @@ const rvTable=(head,rows)=>`<div class="rvw"><table class="rv"><thead><tr>${head
 const rvAsn=(a)=>`AS${a}`;
 function routesModal(tab,arg){UI.rv=UI.rv||{tab:'ov',q:''};UI.rv.tab=tab||UI.rv.tab||'ov';if(arg!==undefined)UI.rv.arg=arg;
   const v=routeView();if(!v)return;const t=UI.rv.tab;
-  const tabs=[['ov','Overview'],['up','Upstreams'],['pe','Peers'],['px','Prefixes'],['pa','Paths']];
+  const tabs=[['ov','Overview'],['up','Upstreams'],['pe','Peers'],['px','Prefixes'],['pa','Paths'],['cu','Customers'],['sec','Security']];
   let h=`<div style="display:flex;align-items:center"><div><div class="eyebrow">Route viewer · AS${v.asn}</div><h2 style="font-size:28px">${esc(v.name)}</h2></div><button class="x" data-act="closeModal" aria-label="Close">×</button></div>
   <div class="btns" style="margin:6px 0 10px">${tabs.map(([k,l])=>btn(l,'rvTab',{tab:k},t===k?'pink sm':'ghost sm')).join('')}</div>`;
   if(t==='ov'){h+=`<div class="kv"><span>AS number</span><b>AS${v.asn}</b></div><div class="kv"><span>Name</span><b>${esc(v.name)}</b></div><div class="kv"><span>Registry</span><b>${esc(v.rir)}</b></div><div class="kv"><span>Rank</span><b>${esc(v.tier)}</b></div>
-    <div class="kv"><span>Prefixes originated</span><b>${v.prefixes.filter(p=>p.family===4).length} IPv4 · ${v.prefixes.filter(p=>p.family===6).length} IPv6</b></div><div class="kv"><span>RPKI</span><b style="color:${v.rpki==='valid'?'var(--ok)':'var(--bad)'}">${v.rpki==='valid'?'all valid':'INVALID: ROAs expired'}</b></div>
+    <div class="kv"><span>Prefixes originated</span><b>${v.prefixes.filter(p=>p.family===4).length} IPv4 · ${v.prefixes.filter(p=>p.family===6).length} IPv6</b></div><div class="kv"><span>RPKI</span><b style="color:${v.rpki==='valid'?'var(--ok)':v.rpki==='invalid'?'var(--bad)':'inherit'}">${v.rpki==='valid'?'all valid':v.rpki==='invalid'?'INVALID: ROAs expired':'not found: no ROA'}</b></div>${v.sec.mrs?'<div class="kv"><span>MANRS</span><b style="color:var(--ok)">participant</b></div>':''}
     <div class="kv"><span>Upstreams</span><b>${v.upstreams.length}</b></div><div class="kv"><span>Peers</span><b>${v.peers.length} networks</b></div><div class="kv"><span>Reachability</span><b>${pct(v.reach)} of the internet</b></div><div class="kv"><span>POPs</span><b>${v.pops.length}</b></div>
     <p class="note">Seen from ${esc(v.src)}. Open Paths to see the AS path to every network.</p>
     <div class="rvw"><table class="rv"><tbody>${v.pops.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.cc)}</td><td>${p.up?'up':'<b style="color:var(--bad)">down</b>'}</td></tr>`).join('')}</tbody></table></div>`;}
   else if(t==='up')h+=rvTable(['AS','Network','Where','Port','Traffic','Routes'],v.upstreams.map(u=>`<tr><td>${rvAsn(u.asn,u.id)}</td><td>${esc(u.name)}${u.down?' <b style="color:var(--bad)">down</b>':''}</td><td>${esc(u.city)}</td><td>${esc(u.port)}</td><td class="num">${fmtG(u.gbps)}</td><td class="num">${u.routes.toLocaleString()}</td></tr>`))+'<p class="note">An upstream sends you the full table and carries your prefixes to everyone.</p>';
   else if(t==='pe')h+=rvTable(['AS','Network','Type','Sessions','Traffic','Routes'],v.peers.map(p=>`<tr><td>${rvAsn(p.asn,p.id)}</td><td>${esc(p.name)}</td><td>${esc(NET_TYPE_LABEL[p.type]||p.type)} · ${esc(p.policy)}</td><td>${p.sessions.map(s=>`<span class="tag st${s.kind==='ix'?'':' on'}">${esc(s.kind)}</span> ${esc(s.where)}, ${esc(s.city)} <small>(${esc(s.how)})</small>`).join('<br>')}</td><td class="num">${fmtG(p.gbps)}</td><td class="num">${p.routes}</td></tr>`))+'<p class="note">Peers only announce their own customers and themselves, so these routes are shorter than transit.</p>';
-  else if(t==='px')h+=rvTable(['Prefix','Origin','RPKI','IRR','Seen by'],v.prefixes.map(p=>`<tr><td><code>${esc(p.prefix)}</code></td><td>AS${p.origin}</td><td style="color:${p.rpki==='valid'?'var(--ok)':'var(--bad)'}">${p.rpki}</td><td>${p.irr}</td><td class="num">${p.seen} sessions</td></tr>`))+`<div class="btns"><input class="t chn" id="ip4n" type="number" min="1" max="1000" value="1" aria-label="How many /24 blocks" style="width:84px;font-size:15px;padding:4px 6px">${btn(`Buy /24 <small>${fmt$(ip4Price())} each</small>`,'buyIp4N',{},'sm',S.cash<ip4Price())}${(S.ip4x||0)>0?btn(`Sell /24 <small>${fmt$(Math.round(ip4Price()*0.9))} each</small>`,'sellIp4N',{},'ghost sm'):''}</div><p class="note">You hold ${(S.ip4x||0)} extra IPv4 /24 blocks bought on the transfer market (${fmt$(ip4Price())} each today, and it drifts). Your base space comes from documentation and CGNAT ranges, so it never collides with the real internet.</p>`;
+  else if(t==='cu')h+=(v.customers.length?rvTable(['AS','Customer','Service','Where','Commit','Prefixes','Happy','$/mo'],v.customers.map(c=>`<tr><td>AS${c.asn} <small>(private)</small></td><td>${esc(c.name)}</td><td>${esc(c.kind)}</td><td>${esc(c.city)}</td><td class="num">${fmtG(c.gbps)}</td><td class="num">${c.prefixes}</td><td style="color:${c.mood>=70?'var(--ok)':'var(--bad)'}">${c.mood}%</td><td class="num">${fmt$(c.mo)}</td></tr>`)):`<p class="empty">No BGP customers yet. Take offers in the Deals tab.</p>`)+`<p class="meta">Customers announce their space to you with private AS numbers; you strip them before they reach the internet. A customer that is underserved pays you less and leaves if it stays unhappy.</p>`;
+  else if(t==='sec'){const x=v.sec,left=Math.round(x.roa-v.day);
+    h+=`<p class="lead">Routing security is what stops other people's mistakes (and bad actors) from taking your prefixes, and yours from taking theirs.</p>
+    <div class="kv"><span>ROA</span><b style="color:${x.roaOk?'var(--ok)':'var(--bad)'}">${x.auto?'hosted by your RIR, renews itself':x.roaOk?`valid, ${left} days left`:x.roa==null?'none yet':'expired'}</b></div>
+    <div class="btns">${btn(x.auto?'Switch to manual ROAs':'Use hosted RPKI (auto-renew)','secAuto',{},'sm ghost')}${!x.auto?btn('Renew ROA for a year','secRenew',{},'sm pink'):''}</div>
+    <div class="kv"><span>Route origin validation on your routers</span><b>${x.rov?'dropping invalid routes':'off'}</b></div>
+    <div class="btns">${btn(x.rov?'Turn ROV off':`Turn ROV on <small>${fmt$(SEC_ROV_MO*Math.max(1,v.pops.length))}/mo</small>`,'secRov',{},x.rov?'sm ghost':'sm pink')}</div>
+    <div class="kv"><span>IRR objects and customer prefix filters</span><b>${x.irr?'enforced':'off'}</b></div>
+    <div class="btns">${btn(x.irr?'Stop filtering':'Filter customers and peers','secIrr',{},x.irr?'sm ghost':'sm pink')}</div>
+    <p class="meta"><b>With a valid ROA</b>, networks that do ROV ignore a hijacker's announcement of your space (${NETS.filter(n=>rovNet(n.id)).length} of ${NETS.length} networks here). <b>Without it</b> a hijack reaches everyone. <b>ROV</b> and <b>filtering</b> shorten route leaks that come in through your transit. All three together make you a MANRS participant.</p>`;}
+  else if(t==='px')h+=rvTable(['Prefix','Origin','RPKI','IRR','Seen by'],v.prefixes.map(p=>`<tr><td><code>${esc(p.prefix)}</code></td><td>AS${p.origin}</td><td style="color:${p.rpki==='valid'?'var(--ok)':p.rpki==='invalid'?'var(--bad)':'inherit'}">${p.rpki}</td><td>${p.irr}</td><td class="num">${p.seen} sessions</td></tr>`))+`<div class="btns"><input class="t chn" id="ip4n" type="number" min="1" max="1000" value="1" aria-label="How many /24 blocks" style="width:84px;font-size:15px;padding:4px 6px">${btn(`Buy /24 <small>${fmt$(ip4Price())} each</small>`,'buyIp4N',{},'sm',S.cash<ip4Price())}${(S.ip4x||0)>0?btn(`Sell /24 <small>${fmt$(Math.round(ip4Price()*0.9))} each</small>`,'sellIp4N',{},'ghost sm'):''}</div><p class="note">You hold ${(S.ip4x||0)} extra IPv4 /24 blocks bought on the transfer market (${fmt$(ip4Price())} each today, and it drifts). Your base space comes from documentation and CGNAT ranges, so it never collides with the real internet.</p>`;
   else if(t==='pa')h+=rvTable(['AS','Network','AS path','Exit','RTT','Traffic'],v.paths.map(p=>`<tr><td>${rvAsn(p.asn,p.id)}</td><td>${esc(p.name)}</td><td>${p.reachable?p.asPath.map(a=>'AS'+a).join(' → '):'<b style="color:var(--bad)">unreachable</b>'}</td><td>${p.reachable?esc(p.via)+' · '+esc(p.city):'—'}</td><td class="num">${p.reachable?p.rtt+' ms':'—'}</td><td class="num">${fmtG(p.gbps)}</td></tr>`))+`<p class="note">Best path from ${esc(v.src)}, the way the traceroute tool picks it. ${v.tail.total?`The long tail: ${v.tail.reached} of ${v.tail.total} small networks reachable.`:''}</p>`;
   openModal(h);}
 /* ---------- share card ---------- */
@@ -1441,7 +1501,14 @@ function shareCanvas(){const Wc=1200,Hc=630,cv=document.createElement('canvas');
 function shareModal(){const cv=shareCanvas();if(!cv){toast('<b>Your browser cannot draw the card.</b>','bad');return;}let url='';try{url=cv.toDataURL('image/png');}catch(e){}
   UI.shareCv=cv;openModal(`<div style="display:flex;align-items:center"><div><div class="eyebrow">Share</div><h2 style="font-size:26px">Your network card</h2></div><button class="x" data-act="closeModal" aria-label="Close">×</button></div>${url?`<img src="${url}" alt="Stats card for ${esc(S.name)}" style="width:100%;border:3px solid var(--ink);border-radius:12px;margin-top:8px">`:''}<div class="btns" style="margin-top:10px">${navigator.share?btn('Share…','shareGo',{},'pink'):''}${btn('Download PNG','shareDl',{},navigator.share?'':'pink')}</div><p class="note">Post it wherever your peering friends hang out.</p>`);track('share_open');}
 function shareFile(cb){const cv=UI.shareCv;if(!cv||!cv.toBlob){cb(null);return;}cv.toBlob(b=>cb(b?new File([b],`series-of-tubes-${slug(S.name)}.png`,{type:'image/png'}):null),'image/png');}
-function scnTick(d){const sc=S.scn;if(!sc||sc.done||sc.failed)return;
+function scnEvents(d){const sc=S.scn,ev=S.ev;if(!sc)return;
+  if(sc.rules.fb&&d===120){ev.fbout=d+(ops().eng>=4?2:3);addInc({type:'fbout',ref:'fb',until:ev.fbout,msg:'A routine maintenance command withdrew every BGP route you announce, and the DNS servers went with them. The tools to fix it are behind the same network. Engineers are driving to the data center to get in.',cost:0});toast('<b>Everything is gone.</b><br>Every route you announce was withdrawn. You are not on the internet.','bad');sfx('alert');}
+  if((sc.rules.fb||sc.rules.dyn)&&!sc.rec&&sc.hit&&d>sc.hit)sc.rec=d;
+  if(sc.rules.fb&&d===120)sc.hit=ev.fbout;
+  if(sc.rules.hijacks&&sc.rules.hijacks.includes(d)){fireEvent('hijack');}
+  if(sc.rules.dyn&&d===150){ev.ddos={city:S.home,until:d+4};sc.hit=d+3;addInc({type:'ddos',ref:S.home,until:d+4,msg:'A botnet of two million cameras and toasters is aimed at your home city. This is the one you read about.',cost:0});toast('<b>Botnet incoming.</b><br>The biggest DDoS anyone has seen is pointed at your home city.','bad');sfx('alert');}
+  if(sc.rules.luzon&&d===120){fireEvent('quake');}}
+function scnTick(d){const sc=S.scn;if(!sc||sc.done||sc.failed)return;scnEvents(d);
   if(sc.id==='weekly'){if(d>=sc.days){sc.done=d;const score=Math.round(S.stats.peak||0);sc.score=score;let best=null;try{const wk=JSON.parse(localStorage.getItem('sot-weekly')||'{}');best=wk[sc.key];if(!best||score>best){wk[sc.key]=score;localStorage.setItem('sot-weekly',JSON.stringify(wk));}}catch(e){}
       const h=scnHof();h.weekly=h.weekly||{d:new Date().toISOString().slice(0,10)};try{localStorage.setItem('sot-scn',JSON.stringify(h));}catch(e){}
       openModal(`<div class="eyebrow">Weekly challenge ${esc(sc.key)}</div><h2 style="font-size:30px">Your score: ${fmtG(score)}</h2><p class="tagline">Peak traffic served in one year${best&&best>score?`. Your best this week is ${fmtG(best)}`:best?'. A new personal best for this week!':''}.</p><div class="btns">${btn('Share my result','share',{},'pink big')}${btn('Keep playing','closeModal',{},'ghost big')}</div>`);track('weekly_done');}return;}
@@ -1618,7 +1685,7 @@ function teFind(word,list,label){const w=slug(word);if(!w)return {err:`missing $
   const pre=list.filter(x=>w.length>=3&&slug(x.name).startsWith(w));if(pre.length===1)return {v:pre[0].id};
   const best=list.map(x=>({x,d:Math.min(lev(w,slug(x.name)),lev(w,x.id))})).sort((a,b)=>a.d-b.d)[0];
   return {err:`unknown ${label} “${word}”${best&&best.d<=3?`. Did you mean ${best.x.name}?`:''}`};}
-function teParse(src){const out={spill:null,cap:{},net:{},drain:new Set(),avoid:new Set(),blackhole:false,errors:[],n:0};
+function teParse(src){const out={spill:null,cap:{},net:{},prep:{},low:new Set(),drain:new Set(),avoid:new Set(),blackhole:false,errors:[],n:0};
   const lines=String(src||'').split('\n').slice(0,60);
   lines.forEach((raw,i)=>{const line=raw.replace(/#.*/,'').trim().toLowerCase();if(!line)return;const L=i+1;let m;
     if(m=line.match(/^spill\s+at\s+(\d{1,3})\s*%$/)){const v=+m[1];if(v<20||v>100)out.errors.push(`line ${L}: spill must be between 20% and 100%`);else{out.spill=v/100;out.n++;}return;}
@@ -1626,8 +1693,10 @@ function teParse(src){const out={spill:null,cap:{},net:{},drain:new Set(),avoid:
     if(m=line.match(/^cap\s+transit\s+(.+?)\s+at\s+(\d+(?:\.\d+)?)\s*(gbps|tbps|g|t)$/)){const r=teFind(m[1],NETS.filter(n=>n.price),'transit provider');if(r.err){out.errors.push(`line ${L}: ${r.err}`);return;}out.cap[r.v]=+m[2]*(m[3][0]==='t'?1000:1);out.n++;return;}
     if(m=line.match(/^drain\s+(.+)$/)){const r=teFind(m[1],CITIES,'city');if(r.err){out.errors.push(`line ${L}: ${r.err}`);return;}out.drain.add(r.v);out.n++;return;}
     if(m=line.match(/^avoid\s+link\s+(.+?)\s*(?:-|\bto\b|→)\s*(.+)$/)){const a=teFind(m[1],CITIES,'city'),b=teFind(m[2],CITIES,'city');if(a.err||b.err){out.errors.push(`line ${L}: ${a.err||b.err}`);return;}out.avoid.add(a.v<b.v?a.v+'|'+b.v:b.v+'|'+a.v);out.n++;return;}
+    if(m=line.match(/^prepend\s+(?:transit\s+)?(.+?)\s+(?:x|by\s+)?([1-5])$/)){const r=teFind(m[1],NETS.filter(n=>n.price),'transit provider');if(r.err){out.errors.push(`line ${L}: ${r.err}`);return;}out.prep[r.v]=+m[2];out.n++;return;}
+    if(m=line.match(/^(?:lowpref|local-pref\s+low)\s+(?:transit\s+)?(.+)$/)){const r=teFind(m[1],NETS.filter(n=>n.price),'transit provider');if(r.err){out.errors.push(`line ${L}: ${r.err}`);return;}out.low.add(r.v);out.n++;return;}
     if(line==='blackhole ddos'){out.blackhole=true;out.n++;return;}
-    out.errors.push(`line ${L}: I don't understand “${raw.trim().slice(0,40)}”. Try: spill at 80%, prefer pni for goggle, avoid transit for netchill, cap transit cogentle at 20 gbps, drain paris, avoid link fra-ams, blackhole ddos`);});
+    out.errors.push(`line ${L}: I don't understand “${raw.trim().slice(0,40)}”. Try: spill at 80%, prepend transit cogentle x3, lowpref transit cogentle, prefer pni for goggle, avoid transit for netchill, cap transit cogentle at 20 gbps, drain paris, avoid link fra-ams, blackhole ddos`);});
   return out;}
 let TE_CACHE={src:null,p:null};
 function teRules(){if(!S||!S.te||!S.te.on||!S.te.script)return null;if(TE_CACHE.src!==S.te.script)TE_CACHE={src:S.te.script,p:teParse(S.te.script)};return TE_CACHE.p.errors.length?null:TE_CACHE.p;}
@@ -1636,7 +1705,7 @@ function teModal(msg){const src=UI.teDraft!==undefined?UI.teDraft:(S.te.script||
   <p class="tagline">Write rules, check them against live traffic, then deploy. A bad deploy is a very real way to break your network.</p>
   <textarea id="teSrc" class="tecode" spellcheck="false" autocapitalize="off" autocomplete="off" rows="12">${esc(src)}</textarea>
   ${msg||''}<div class="btns" style="margin-top:8px">${btn('Check (dry run)','teCheck',{},'')}${btn('Deploy','teDeploy',{},'pink')}${S.te.script?btn('Remove script','teClear',{},'ghost sm'):''}${btn('Reset to example','teExample',{},'ghost sm')}</div>
-  <p class="meta" style="margin-top:8px"><b>Rules:</b> <code>spill at 80%</code> · <code>prefer pni|ix|transit for NETWORK</code> · <code>avoid pni|ix|transit for NETWORK</code> · <code>cap transit PROVIDER at 20 gbps</code> · <code>drain CITY</code> · <code>avoid link CITY-CITY</code> · <code>blackhole ddos</code></p>
+  <p class="meta" style="margin-top:8px"><b>Rules:</b> <code>spill at 80%</code> · <code>prefer pni|ix|transit for NETWORK</code> · <code>avoid pni|ix|transit for NETWORK</code> · <code>cap transit PROVIDER at 20 gbps</code> · <code>drain CITY</code> · <code>avoid link CITY-CITY</code> · <code>prepend transit PROVIDER x3</code> · <code>lowpref transit PROVIDER</code> · <code>blackhole ddos</code></p>
   ${S.te.script?`<p class="meta">Live: ${S.te.on?'deployed':'controller is off'} · ${teRules()?teRules().n+' rules active':'not active'}</p>`:''}`);}
 function teTrial(src){const keep=S.te.script,on=S.te.on,before={served:R.served,tc:R.cost.transit||0,moved:R.teMoved||0};
   S.te.script=src;S.te.on=true;compute();const after={served:R.served,tc:R.cost.transit||0,moved:R.teMoved||0,bh:R.teBlack||0};
@@ -1654,12 +1723,14 @@ function compute(){
   const E=[], ev=S.ev;
   const depeer=ev.depeer>day||scnRule('spat'), leak=ev.leak&&ev.leak.until>day?ev.leak.net:null;
   for(const t of S.transit){if(!popUp(t.city)||t.down>day||!liveN(t.city,t.site,t.n))continue;
-    E.push({k:'t',prem:!!t.premium&&t.city==='hkg',pref:t.pref||'normal',lab:NET[t.net].name+' transit',id:t.id,city:t.city,cap:Math.min(liveCap(PORT[t.tier].g,t.city,t.site,t.n),TRX&&TRX.cap[t.net]!==undefined?TRX.cap[t.net]:Infinity),used:0,rank:3,ok:n=>!(depeer&&t.net==='cog'&&n==='ggl')&&n!==leak});}
+    E.push({k:'t',tnet:t.net,prem:!!t.premium&&t.city==='hkg',pref:t.pref||'normal',lab:NET[t.net].name+' transit',id:t.id,city:t.city,cap:Math.min(liveCap(PORT[t.tier].g,t.city,t.site,t.n),TRX&&TRX.cap[t.net]!==undefined?TRX.cap[t.net]:Infinity),used:0,rank:3,ok:n=>!(depeer&&t.net==='cog'&&n==='ggl')&&n!==leak});}
   for(const c in S.ixp){const sites=S.myIx[c]&&S.myIx[c].dist?myIxSites(c):[ixCity(c)];let counted=false;
     for(const ct of sites){if(!(popUp(ct)||remote.includes(ct))||(S.ev.ixdown&&S.ev.ixdown[c]>day)||!liveN(ct,(S.ixSite||{})[c],(S.ixn||{})[c]))continue;const set=ixSessions(c);if(!counted){R2.sessions+=set.size;counted=true;}
       E.push({k:'ix',pref:(S.ixPref&&S.ixPref[c])||'normal',lab:ixName(c)+' peering',id:c,city:ct,cap:ixCap(c)/sites.length,used:0,rank:2,ok:n=>set.has(n)});}}
   for(const p of S.pni){if(!popUp(p.city)||!liveN(p.city,p.site,p.n))continue;R2.sessions++;E.push({k:'p',pnc:!!NET[p.net].cn,pref:p.pref||'normal',lab:'PNI with '+NET[p.net].name,id:p.id,city:p.city,cap:liveCap(PORT[p.tier].g,p.city,p.site,p.n),used:0,rank:1,ok:n=>n===p.net});}
   for(const c of S.caches){if(!popUp(c.city)||siteDown(c.city,'a'))continue;E.push({k:'c',pref:'normal',lab:NET[c.net].cache.name+' cache',id:c.id,city:c.city,cap:CACHE_CAP,used:0,rank:0,ok:n=>n===c.net});}
+  if(ev.fbout>day)E.length=0;
+  {const dp=ev.dispute&&ev.dispute.until>day?ev.dispute.net:null;if(dp)for(const e of E)if(e.k==='p'||e.k==='ix'){const o=e.ok;e.ok=n=>n!==dp&&o(n);}}
   {const rp=ev.rpki&&ev.rpki.until>day?new Set(ev.rpki.nets):null;if(rp)for(const e of E){if(e.k==='c')continue;const o=e.ok;e.ok=n=>!rp.has(n)&&o(n);}}
   for(const n of NETS){R2.reachable[n.id]=E.some(e=>e.rank>0&&e.ok(n.id));if(R2.reachable[n.id])R2.reach+=NSH[n.id];}
   const cacheNets=new Set(S.caches.filter(c=>popUp(c.city)).map(c=>c.net));
@@ -1699,8 +1770,8 @@ function compute(){
     if(dist[dst]===undefined||dist[dst]>2*base+60){teCache[key]=false;return null;}
     const P=spPath({prev},src,dst);teCache[key]=P;return P;};
   const base=e=>e.pref==='low'?4:e.rank;
-  const eff=(e,n)=>{let r=base(e);if(TR){if(e.k!=='c'&&TR.drain.has(e.city))r=4.6;const o=TR.net[n];if(o){if(o.prefer===e.k)r=0.5;else if(o.avoid===e.k)r=4.5;}}return r;};
-  const RANKS=TR?[0,0.5,1,2,3,4,4.5,4.6]:[0,1,2,3,4];
+  const eff=(e,n)=>{let r=base(e);if(TR){if(e.k!=='c'&&TR.drain.has(e.city))r=4.6;if(e.k==='t'&&e.tnet){if(TR.low.has(e.tnet))r=Math.max(r,4);else if(TR.prep[e.tnet])r=Math.max(r,3+TR.prep[e.tnet]/10);}const o=TR.net[n];if(o){if(o.prefer===e.k)r=0.5;else if(o.avoid===e.k)r=4.5;}}return r;};
+  const RANKS=TR?[0,0.5,1,2,3,3+1/10,3+2/10,3+3/10,3+4/10,3+5/10,4,4.5,4.6]:[0,1,2,3,4];
   for(const rank of RANKS){
     const Er=TR?E:E.filter(e=>base(e)===rank);if(!Er.length)continue;const sorted={};
     for(const f of flows){
@@ -1749,13 +1820,13 @@ function compute(){
   C.optical=S.links.filter(l=>l.kind==='df').reduce((a,l)=>a+(l.ready>S.day?0:ampCount(l.km,l.sys)*ampMo(l.sys)*dfPairs(l)+(l.ownSub?Math.round(l.km*0.3*dfPairs(l)):0))+(l.spares?Math.round(150+(l.ch||[]).length*80):0),0);
   C.links=S.links.reduce((a,l)=>a+(l.mo||0),0);
   C.nni=(S.nni||[]).reduce((a,x)=>a+NNI[x.tier].mo,0);
-  C.transit=S.transit.reduce((a,t)=>{const q=p95(t,R2.useT[t.id]||0);R2.p95[t.id]=q;const n=t.n||1;return a+Math.max(q,PORT[t.tier].g*n*0.2)*NET[t.net].price*(t.premium&&t.city==='hkg'?NET[t.net].premium:1)*pm*regionMult(t.city)+PORT[t.tier].tmo*n;},0);
+  C.transit=S.transit.reduce((a,t)=>{const q=p95(t,R2.useT[t.id]||0);R2.p95[t.id]=q;const n=t.n||1;return a+Math.max(q,PORT[t.tier].g*n*commitOf(t))*(1-commitDisc(t))*NET[t.net].price*(t.premium&&t.city==='hkg'?NET[t.net].premium:1)*pm*regionMult(t.city)+PORT[t.tier].tmo*n;},0);
   C.ix=Object.keys(S.ixp).reduce((a,c)=>a+(S.myIx[c]?myFab(c).mo+(myIxSites(c).length-1)*DIX_SITE_MO:ixPortMo(c,S.ixp[c])*((S.ixn||{})[c]||1)+dkAddonMo(c)),0);
   C.pni=S.pni.reduce((a,p)=>a+PORT[p.tier].pni*(p.n||1)+(NET[p.net].pol==='paid'?NET[p.net].paidFee:0),0);
   C.caches=S.caches.length*CACHE_MO;
   C.dc=0;V.dc=0;for(const c in S.pops){const st=dcStats(c);if(st){C.dc+=st.cost;V.dc+=st.rev;}}
   C.loans=(S.loans||[]).reduce((a,l)=>a+(BANKS[l.bank].equity?0:l.pay),0);
-  C.extras=(S.cnLic&&S.cnLic.state==='ok'?CN_JV_MO:0)+scrubList().length*SCRUB_MO+Object.keys(S.pops).filter(ruCity).length*RU_BOX_MO+Object.values(S.pops).filter(p=>p.site2).length*SITE2_MO+(S.te?TE_MO:0);
+  C.extras=(S.cnLic&&S.cnLic.state==='ok'?CN_JV_MO:0)+scrubList().length*SCRUB_MO+Object.keys(S.pops).filter(ruCity).length*RU_BOX_MO+Object.values(S.pops).filter(p=>p.site2).length*SITE2_MO+(S.te?TE_MO:0)+((S.ops&&S.ops.eng)||0)*ENG_MO+Object.values(S.paid||{}).reduce((a,b)=>a+b,0)+(S.sec&&S.sec.rov?SEC_ROV_MO*Math.max(1,Object.keys(S.pops).length):0);
   V.eyeballs=0;V.business=0;V.ix=0;
   for(const c in S.pops){const sf=sfOf(R2,c);V.eyeballs+=R2.cityEye[c]*sf*EYE_RATE*(CITY[c].arpu||1);}
   for(const b of S.biz){const sf=BIZ_T[b.type].fiber?(fiberOk(b)?1:0):BIZ_T[b.type].l2?clamp((R2.l2[b.id]||0)/b.bw,0,1):sfOf(R2,b.city);V.business+=b.bw*b.rate*Math.min(1,sf/0.95);}
@@ -1765,6 +1836,9 @@ function compute(){
   R2.revMo=V.eyeballs+V.business+V.ix+(V.dc||0);
   R=R2;UI.hotMap=hotByCity();
 }
+const COMMITS=[[0.2,0],[0.5,0.12],[0.8,0.25]];
+function commitOf(t){return t.commit||0.2;}
+function commitDisc(t){return (COMMITS.find(c=>c[0]===commitOf(t))||COMMITS[0])[1];}
 function p95(t,cur){const h=(t.hist||[]).slice(-29).concat([cur]).sort((a,b)=>a-b);return h[Math.max(0,Math.ceil(.95*h.length)-1)];}
 function linkDown(l){return l.cut>S.day||(S.ev.runet>S.day&&ruCity(l.a)!==ruCity(l.b))||(S.ev.gulf>S.day&&((CITY[l.a].qa&&(CITY[l.b].gcc||CITY[l.b].uae))||(CITY[l.b].qa&&(CITY[l.a].gcc||CITY[l.a].uae))))||(l.kind==='vxc'&&!!S.ev.fab&&S.ev.fab[l.prov]>S.day)||(l.kind==='df'&&dfCap(l)<=0);}
 function remoteCities(){return [...new Set(S.links.filter(l=>l.kind==='vxc').flatMap(l=>[l.a,l.b]))].filter(c=>!S.pops[c]);}
@@ -1997,7 +2071,7 @@ const HARMLESS=[
  ['Naming committee','A two-hour meeting about router hostnames ended with a vote for “router-final-v2-NEW”.'],
  ['Vendor TAC','Vendor support asked you to “try turning it off and on again”. For the router you already rebooted. Ticket closed.'],
 ];
-function fireFailure(){
+function fireFailure(force){
   const opts=[];
   const live=S.links.filter(l=>l.kind!=='vxc'&&!linkDown(l));const fabsUsed=[...new Set(S.links.filter(l=>l.kind==='vxc').map(l=>l.prov))];
   if(live.length){opts.push(['cut',2+Math.min(6,live.length/2)]);}
@@ -2005,7 +2079,7 @@ function fireFailure(){
   if(Object.values(S.pops).some(p=>p.site2))opts.push(['ring',1.2]);
   if(S.transit.some(t=>!(t.down>S.day)))opts.push(['transit',3]);
   if(Object.keys(S.ixp).length)opts.push(['ixloop',2]);
-  if(S.transit.length&&S.day>60)opts.push(['leak',2]);
+  if(S.transit.length&&S.day>60)opts.push(['leak',sec().rov?1:2]);
   if(S.day>40)opts.push(['ddos',2]);
   if(fabsUsed.length)opts.push(['fabric',1.5]);
   const lit=S.links.filter(l=>l.kind==='df'&&dfCap(l)>0&&!linkDown(l));if(lit.length)opts.push(['amp',1.5+lit.length*0.3],['optic',1.5+lit.length*0.3]);
@@ -2013,7 +2087,8 @@ function fireFailure(){
   if(!opts.length)return;
   let tot=opts.reduce((a,o)=>a+o[1],0),r=Math.random()*tot,type=opts[0][0];
   for(const o of opts){r-=o[1];if(r<=0){type=o[0];break;}}
-  if(type==='funny'){const f=['oops','cleaner','harmless','harmless','harmless','ac'];if(live.length)f.push('fatwave','fatwave','mtu','label');if(Object.keys(S.ixp).length)f.push('maxpfx');if(S.transit.length)f.push('prepend');if(S.day>30)f.push('rpki');if(lit.length)f.push('roadmff');type=pick(f);}
+  if(force&&(force==='rpki'||opts.some(o=>o[0]===force)))type=force;
+  if(type==='funny'){const f=['oops','cleaner','harmless','harmless','harmless','ac'];if(live.length)f.push('fatwave','fatwave','mtu','label');if(Object.keys(S.ixp).length)f.push('maxpfx');if(S.transit.length)f.push('prepend');if(lit.length)f.push('roadmff');if(S.ops&&S.ops.frozen){const HE=['oops','fatwave','mtu','label','roadmff','prepend','maxpfx'];const g=f.filter(x=>!HE.includes(x));type=pick(g.length?g:['harmless']);}else type=pick(f);}
   const before=R.served;
   if(type==='harmless'){const m=pick(HARMLESS);S.stats.incidents++;S.stats.survived++;toast(`<b>${m[0]}</b><br>${m[1]}`,'goal');sfx('alert');return;}
   if(type==='ring'){const cs=Object.keys(S.pops).filter(c=>S.pops[c].site2),c=pick(cs),pp=S.pops[c],dur=2+Math.floor(Math.random()*3);pp.ringcut=S.day+dur;
@@ -2041,7 +2116,7 @@ function fireFailure(){
   }else if(type==='prepend'){
     const t=pick(S.transit);t.down=Math.max(t.down||0,S.day+2);addInc({type,ref:t.id,until:t.down,msg:`${NET[t.net].name} fat-fingered a route-map and prepended your AS ${30+Math.floor(Math.random()*60)} times in ${CITY[t.city].name}. Nobody wants that path.`,cost:0});
   }else if(type==='rpki'){
-    S.ev.rpki={until:S.day+3,nets:NETS.map(n=>n.id).filter(()=>Math.random()<0.5)};addInc({type,ref:'rpki',until:S.day+3,msg:'Your ROA expired over the weekend. Your prefixes are RPKI-invalid and about half the internet is dropping them.',cost:1000,fix:'Renew the ROA'});
+    if(sec().auto){toast('<b>RIR portal outage</b><br>Your hosted RPKI was down for an hour. Nothing expired.','goal');return;}sec().roa=S.day-1;S.ev.rpki={until:S.day+30,nets:NETS.map(n=>n.id).filter(rovNet)};addInc({type,ref:'rpki',until:S.day+30,msg:'Your ROA expired. Your prefixes are RPKI-invalid and every network that does route origin validation is dropping them.',cost:1000,fix:'Renew the ROA'});
   }else if(type==='amp'||type==='roadmff'){
     const l=pick(lit),A=CITY[l.a].name,B=CITY[l.b].name,dur=type==='roadmff'?1:(l.spares?1:2+Math.floor(Math.random()*3));l.eqDown=S.day+dur;
     const msg=type==='roadmff'?`You fat-fingered the channel plan on ${A}–${B} and lit a new channel right on top of every existing one.`:pick([`An in-line amplifier hut between ${A} and ${B} lost power. A family of mice had moved in.`,`Someone stole the copper grounding from an amp hut on ${A}–${B}. All channels dark.`,`A firmware bug in the ${DF_SYS[l.sys].n} at ${A} set every channel to “maintenance”.`,`Lightning hit an amp site on ${A}–${B}. The surge protector was decorative.`]);
@@ -2056,7 +2131,7 @@ function fireFailure(){
     const msg=vn(l)&&Math.random()<0.8?pick([`Another of Vietnam’s subsea cables is broken: your ${A}–${B} link. The repair ship will come after the holidays. Which holidays is unclear.`,`Your ${A}–${B} cable broke in the same spot as last time. The repair crew recognised it.`]):!l.sub&&(l.a==='drw'||l.b==='drw')&&Math.random()<0.7?pick([`A crocodile took a bite out of your ${A}–${B} fiber. It was not impressed.`,`Termites ate the duct on ${A}–${B}. Then the fiber. Then the replacement duct.`]):tw(l)&&Math.random()<0.8?pick([`A cargo ship “forgot” to raise its anchor and dragged it across your ${A}–${B} cable. The owners are very sorry, and somewhat hard to reach.`,`Another anchor, another cut: your ${A}–${B} cable. The ship’s flag changed twice during the investigation.`,`A fishing boat with an unusually heavy anchor cut ${A}–${B}. It was not fishing.`]):!l.sub&&andesPair(l.a,l.b)?pick([`A landslide in the Andes buried your ${A}–${B} fiber.`,`Snow closed the mountain pass, and the repair crew with it: ${A}–${B} is down.`,`An earthquake shook your ${A}–${B} fiber loose somewhere above 4,000 metres.`,`A llama herd trampled the fiber marker on ${A}–${B}. Then a backhoe found the fiber.`]):!l.sub&&(CITY[l.a].india||CITY[l.b].india)?pick([`Road widening near ${A} cut your fiber to ${B}. It is always road widening.`,`The monsoon flooded a manhole on ${A}–${B}. The fiber is now underwater, as is the manhole.`,`A JCB-ish digger found your ${A}–${B} fiber. A different JCB-ish digger is coming to fix it.`]):l.sub?pick([`A curious shark bit your subsea cable ${A}–${B}.`,`A ship dragged its anchor across your ${A}–${B} cable.`,`An undersea landslide snapped ${A}–${B}.`]):pick([`A backhoe found your fiber between ${A} and ${B}.`,`Squirrels chewed through ${A}–${B}. They regret nothing.`,`Road works cut ${A}–${B}. Nobody called before digging.`]);
     addInc({type,ref:tr,until:S.day+dur,msg:msg+(hit.length>1?` All ${hit.length} links in that trench went down with it.`:''),cost:Math.max(4000,Math.round(hit.reduce((a,x)=>a+x.mo,0)*0.5))});
   }else if(type==='crash'||type==='power'){
-    const c=pick(Object.keys(S.pops).flatMap(x=>type==='power'&&(CITY[x].za||CITY[x].blackout)?[x,x,x]:type==='crash'&&RG[S.pops[x].rgen||0].flaky?[x,x,x]:[x])),pp=S.pops[c],slow=slowBoot(c),dur=(type==='crash'?2+Math.floor(Math.random()*2):3+Math.floor(Math.random()*3))*(type==='crash'&&S.ev.sanction>S.day?2:1)+(slow?2+Math.floor(Math.random()*3):0);
+    const c=pick(Object.keys(S.pops).flatMap(x=>type==='power'&&(CITY[x].za||CITY[x].blackout)?[x,x,x]:type==='crash'?(RG[S.pops[x].rgen||0].flaky?[x,x,x,x,x,x]:S.pops[x].patched>S.day?[x]:[x,x]):[x])),pp=S.pops[c],slow=slowBoot(c),dur=(type==='crash'?2+Math.floor(Math.random()*2):3+Math.floor(Math.random()*3))*(type==='crash'&&S.ev.sanction>S.day?2:1)+(slow?2+Math.floor(Math.random()*3):0);
     if(type==='crash'&&(pp.routers||1)>=2){pp.rdown=S.day+dur;S.stats.incidents++;S.stats.survived++;toast(`<b>Router crash in ${CITY[c].name}</b><br>One router panicked and its twin took over.${slow?` The crashed one ${esc(pick(SLOW_BOOT))}.`:''} Capacity there is down one router for ${dur} days.`,'good');sfx('alert');return;}
     if(type==='power'&&!pp.gen&&pp.site2){const sd=Math.random()<0.5?'a':'b';addInc({type:'site',ref:c,site:sd,until:S.day+dur,msg:`${CITY[c].za?'Load shedding':'A power cut'} took out ${siteName(c,sd)} in ${CITY[c].name}. ${siteName(c,sd==='a'?'b':'a')} kept going, so the POP runs at half capacity. Anything plugged in only at the dark site is offline.`,cost:5000,fix:'Rent a generator'});S.stats.survived++;return;}
     if(type==='power'&&pp.gen&&CITY[c].blackout){S.stats.incidents++;S.stats.survived++;S.stats.shed=(S.stats.shed||0)+1;toast(`<b>Blackout in ${CITY[c].name}</b><br>The grid went dark again. Your generator started on the first try, like it always does here.`,'good');sfx('alert');return;}
@@ -2071,8 +2146,8 @@ function fireFailure(){
     const c=pick(Object.keys(S.ixp));S.ev.ixdown=S.ev.ixdown||{};S.ev.ixdown[c]=Math.max(S.ev.ixdown[c]||0,S.day+2+Math.floor(Math.random()*2));
     addInc({type,ref:c,until:S.ev.ixdown[c],msg:`Someone plugged a loop into the ${ixName(c)} fabric. Broadcast storm! All peering there is down.`,cost:0});
   }else if(type==='leak'){
-    const n=pick(['nfx','ggl','fbk','amz','msf']);S.ev.leak={net:n,until:S.day+4};
-    addInc({type,ref:n,until:S.day+4,msg:`BGP route leak: a small ISP is announcing ${NET[n].name}'s prefixes. Traffic to them over transit is black-holed. Direct peering still works.`,cost:0});
+    const n=pick(['nfx','ggl','fbk','amz','msf']),dur=4-(sec().rov?2:0)-(sec().irr?1:0);S.ev.leak={net:n,until:S.day+dur};
+    addInc({type,ref:n,until:S.day+dur,msg:`BGP route leak: a small ISP is announcing ${NET[n].name}'s prefixes. Traffic to them over transit is black-holed. Direct peering still works.`,cost:0});
   }else if(type==='fabric'){
     const f=pick(fabsUsed);S.ev.fab=S.ev.fab||{};S.ev.fab[f]=S.day+2+Math.floor(Math.random()*3);
     addInc({type,ref:f,until:S.ev.fab[f],msg:`${FAB[f].name} is having a bad day. Every virtual circuit on their fabric is down.`,cost:0});
@@ -2101,8 +2176,10 @@ function clearInc(i){
   else if(POPDOWN.includes(T)){if(S.pops[i.ref])S.pops[i.ref].down=remainUntil(x=>POPDOWN.includes(x.type)&&x.ref===i.ref);}
   else if(IXDOWN.includes(T)){if(S.ev.ixdown)S.ev.ixdown[i.ref]=remainUntil(x=>IXDOWN.includes(x.type)&&x.ref===i.ref);}
   else if(TDOWN.includes(T)){const t=S.transit.find(x=>x.id===i.ref);if(t)t.down=remainUntil(x=>TDOWN.includes(x.type)&&x.ref===i.ref);}
-  else if(T==='rpki'||T==='hijack'){if(!S.inc.some(x=>x.type==='rpki'||x.type==='hijack'))S.ev.rpki=null;}
+  else if(T==='rpki'||T==='hijack'){if(T==='rpki')sec().roa=S.day+365;if(!S.inc.some(x=>x.type==='rpki'||x.type==='hijack'))S.ev.rpki=null;}
   else if(T==='leak'){S.ev.leak=null;}
+  else if(T==='dispute'){S.ev.dispute=null;}
+  else if(T==='fbout'){S.ev.fbout=0;}
   else if(T==='ddos'){S.ev.ddos=null;}
   else if(T==='fabric'){if(S.ev.fab)S.ev.fab[i.ref]=remainUntil(x=>x.type==='fabric'&&x.ref===i.ref);}
   else if(T==='mtu'){const l=S.links.find(x=>x.id===i.ref);if(l)l.deg=remainUntil(x=>x.type==='mtu'&&x.ref===i.ref);}
@@ -2112,24 +2189,78 @@ function clearInc(i){
   else if(T==='optic'){const l=S.links.find(x=>x.id===i.ref);if(l&&!S.inc.some(x=>x.type==='optic'&&x.ref===i.ref))l.chFail=null;}
 }
 function purgeInc(){S.inc=S.inc.filter(i=>{const T=i.type;if(LINKCUT_TR.includes(T))return S.links.some(l=>(l.trench||l.id)===i.ref);if(LINKCUT_ID.includes(T)||LINKEQ.includes(T))return S.links.some(l=>l.id===i.ref);if(TDOWN.includes(T))return S.transit.some(t=>t.id===i.ref);if(IXDOWN.includes(T))return S.ixp[i.ref]!==undefined;if(POPDOWN.includes(T)||T==='ac')return !!S.pops[i.ref];return true;});}
-function fireEvent(){
+/* ---------- peering disputes: a network that suddenly wants money for what used to be free ---------- */
+function disputeNets(){const ns=new Set();for(const p of S.pni)if(NET[p.net]&&NET[p.net].pol!=='open'&&!(S.paid&&S.paid[p.net]))ns.add(p.net);for(const c in S.ixp)for(const id of ixSessions(c))if(NET[id]&&NET[id].pol!=='open'&&NET[id].type!=='tail'&&!NET[id].tail&&!(S.paid&&S.paid[id]))ns.add(id);return [...ns];}
+function disputeModal(){const d=S.ev.dispute;if(!d||d.until<=S.day)return;const N=NET[d.net];
+  openModal(`<div style="display:flex;align-items:center"><div><div class="eyebrow">Peering dispute</div><h2 style="font-size:26px">${esc(N.name)} wants to be paid</h2></div><button class="x" data-act="closeModal" aria-label="Close">×</button></div>
+  <p class="lead">Their peering coordinator says your traffic is too lopsided for settlement-free peering. Until it is settled, their sessions with you are down and the traffic goes over transit.</p>
+  <div class="btns">${btn(`Pay ${fmt$(d.fee)}/mo (paid peering)`,'dispPay',{},'pink')}${btn('Refuse and wait it out','dispRefuse',{},'ghost')}${btn('Post about it on the NANOG list','dispPublic',{},'ghost')}</div>
+  <p class="meta">Refusing costs you the direct path for up to ${Math.max(0,Math.round(d.until-S.day))} days. A public post has a decent chance of shaming them into backing down, and a decent chance of making it worse.</p>`);}
+const CABLE_EVENTS={
+ quake:{title:'Earthquake off Taiwan',cables:['apg','fast','jup','plcn','ncp','tse','sjcph','aagony','smw4','smw6','bbg'],days:[28,55],ship:'weeks away in Busan, and typhoon season has closed the strait',msg:'A magnitude 7 quake triggered submarine landslides in the Luzon Strait, the same bottleneck that broke half of Asia in 2006.'},
+ canyon:{title:'Congo Canyon slump',cables:['wacs','safe','equi','sacs'],days:[30,60],ship:'weeks away in Cape Town',msg:'A turbidity current raced down the Congo Canyon at 100 km/h and snapped every cable in its path, as it did in 2020.'},
+ volcano:{title:'Submarine volcano',cables:['hwk','scx','tasman','indigo','guam'],days:[25,45],ship:'weeks away in Sydney, and the ash cloud is closing the sea lanes',msg:'A submarine volcano erupted, and the shock wave and ash flow cut the cables around it, like Hunga Tonga in 2022.'}};
+/* ---------- operations: engineers, change freezes, maintenance windows ---------- */
+const ENG_MO=9000,ENG_MAX=24,FIXABLE=['crash','power','site','ring','transit','ixloop','optic','amp','roadmff','cut','fabric','fatwave','label','mtu','oops','cleaner','ac','maint'];
+function ops(){return S.ops||(S.ops={eng:0,frozen:false,maint:[]});}
+function engCover(){const e=ops().eng;return e>=4?1:e/4;}
+const CHANGE_ACTS=['teDeploy','buildLink','buyTransit','buyIx','pni','buyNni','lagT','addRouter'];
+function opsModal(){const o=ops();
+  openModal(`<div style="display:flex;align-items:center"><div><div class="eyebrow">Operations</div><h2 style="font-size:26px">NOC and change management</h2></div><button class="x" data-act="closeModal" aria-label="Close">×</button></div>
+  <p class="lead">People fix things faster, and a change freeze stops people from breaking things. Both cost something.</p>
+  <div class="kv"><span>Network engineers</span><b>${o.eng} · ${fmt$(o.eng*ENG_MO)}/mo</b></div>
+  <div class="meta">${o.eng===0?'Nobody is on call. You are the NOC.':o.eng<4?`Coverage ${Math.round(engCover()*100)}%. It takes four to cover nights and weekends.`:'24/7 coverage.'} Each day an engineer has a chance to fix an outage before it would have ended on its own, and a bad config push is less likely to get through review.</div>
+  <div class="btns">${btn(`Hire one <small>${fmt$(ENG_MO)}/mo</small>`,'opsHire',{d:1},'pink sm',o.eng>=ENG_MAX)}${btn('Let one go','opsHire',{d:-1},'ghost sm',o.eng<=0)}</div>
+  <div class="kv" style="margin-top:10px"><span>Change freeze</span><b>${o.frozen?'ON: no builds or script deploys':'off'}</b></div>
+  <div class="btns">${btn(o.frozen?'Lift the freeze':'Start a change freeze','opsFreeze',{},o.frozen?'ghost sm':'pink sm')}</div>
+  <div class="meta">While frozen, human-error incidents (fat-fingered configs, wrong cables) do not happen. Nothing new gets built either.</div>
+  <h3 style="margin-top:12px">Maintenance windows</h3>
+  ${Object.keys(S.pops).map(c=>{const p=S.pops[c],m=o.maint.find(x=>x.city===c);return `<div class="kv"><span>${esc(CITY[c].name)}${p.patched>S.day?' · patched':''}</span><b>${m?`window in ${Math.max(0,Math.round(m.start-S.day))} days`:btn('Schedule','opsMaint',{city:c},'ghost sm')}</b></div>`;}).join('')}
+  <p class="meta">A one-day window in three days: the site goes dark for a day, then runs on patched firmware and is half as likely to crash for the next 90 days.</p>`);}
+function opsTick(d){const o=ops();
+  for(const m of o.maint.slice()){if(d>=m.start){if(S.pops[m.city]){const p=S.pops[m.city];p.down=Math.max(p.down||0,d+1);p.patched=d+90;addInc({type:'maint',ref:m.city,until:d+1,msg:`Planned maintenance in ${CITY[m.city].name}: firmware upgrade and a fresh cable-management argument.`,cost:0});toast(`<b>Maintenance window in ${esc(CITY[m.city].name)}</b><br>Down for a day, then patched.`,'');}o.maint=o.maint.filter(x=>x!==m);}}
+  if(o.eng>0)for(const i of S.inc.slice()){if(!FIXABLE.includes(i.type)||i.slow||i.until<=d+1||i.start===d)continue;if(Math.random()<Math.min(0.4,0.05*o.eng*(0.5+0.5*engCover()))){clearInc(i);toast(`<b>Your engineers fixed it.</b> ${incTitle(i.type)} resolved ahead of schedule.`,'good');}}}
+/* ---------- timelapse: a log of what you built and when, played back on the map ---------- */
+const TL_MAX=4000;let TL_KNOWN=null;
+function tlRecord(d){const t=S.tl||(S.tl={e:[],g:[]});
+  if(!TL_KNOWN||TL_KNOWN.s!==S){TL_KNOWN={s:S,p:new Set(),l:new Set()};for(const e of t.e){if(e[1]==='p')TL_KNOWN.p.add(e[2]);else if(e[1]==='l')TL_KNOWN.l.add(e[2]+'|'+e[3]);}}
+  for(const c in S.pops)if(!TL_KNOWN.p.has(c)){TL_KNOWN.p.add(c);t.e.push([d,'p',c]);}
+  for(const l of S.links){const k=(l.a<l.b?l.a+'|'+l.b:l.b+'|'+l.a);if(!TL_KNOWN.l.has(k)){TL_KNOWN.l.add(k);t.e.push([d,'l',l.a<l.b?l.a:l.b,l.a<l.b?l.b:l.a]);}}
+  if(d%15===0)t.g.push([d,Math.round(R.served||0)]);if(t.e.length>TL_MAX)t.e.splice(0,t.e.length-TL_MAX);if(t.g.length>400)t.g.shift();}
+let TL_RAF=0;
+function timelapseModal(){tlRecord(S.day);const t=S.tl,end=Math.max(S.day,1);
+  openModal(`<div style="display:flex;align-items:center"><div><div class="eyebrow">Timelapse</div><h2 style="font-size:26px">${esc(S.name)} · AS${S.asn}</h2></div><button class="x" data-act="tlClose" aria-label="Close">×</button></div>
+  <canvas id="tlc" width="800" height="400" style="width:100%;border-radius:12px;background:#0b1730"></canvas><div class="meta" id="tlInfo">Day 0</div>
+  <div class="btns">${btn('Replay','timelapse',{},'pink sm')}</div>`);
+  const cv=$('tlc');if(!cv||!cv.getContext)return;const g=cv.getContext('2d');if(!g)return;cancelAnimationFrame(TL_RAF);const T0=performance.now(),DUR=Math.min(20000,6000+end*20);
+  const X=x=>x/W*cv.width,Y=y=>y/H*cv.height;
+  const draw=now=>{const day=Math.min(end,Math.floor((now-T0)/DUR*end));g.clearRect(0,0,cv.width,cv.height);g.fillStyle='#0b1730';g.fillRect(0,0,cv.width,cv.height);
+    g.strokeStyle='rgba(255,79,154,.55)';g.lineWidth=1;
+    for(const e of t.e){if(e[0]>day)break;if(e[1]!=='l'||!CITY[e[2]]||!CITY[e[3]])continue;const a=CITY[e[2]],b=CITY[e[3]];if(Math.abs(a.x-b.x)>W/2)continue;g.beginPath();g.moveTo(X(a.x),Y(a.y));g.lineTo(X(b.x),Y(b.y));g.stroke();}
+    g.fillStyle='#ffd6e8';let n=0;for(const e of t.e){if(e[0]>day)break;if(e[1]!=='p'||!CITY[e[2]])continue;n++;g.beginPath();g.arc(X(CITY[e[2]].x),Y(CITY[e[2]].y),2.4,0,6.3);g.fill();}
+    let gb=0;for(const q of t.g){if(q[0]<=day)gb=q[1];}
+    const info=$('tlInfo');if(info)info.textContent=`${dateStr(day)} · day ${day} · ${n} POPs · ${fmtG(gb)} served`;
+    if(day<end&&$('tlc'))TL_RAF=requestAnimationFrame(draw);};
+  TL_RAF=requestAnimationFrame(draw);}
+function fireEvent(force){
   const opts=['viral','price','grant'];
   if(S.links.some(l=>l.kind==='df'&&sanctionedPair(l.a,l.b)))opts.push('sanctionLink','sanctionLink','sanctionLink');
-  if(S.day>50)opts.push('sanction','tariff','hijack','landban','shutdown','redsea','baltic');
+  if(S.day>50)opts.push('sanction','tariff','hijack','landban','shutdown','redsea','baltic','quake','canyon','volcano');
   if(Object.keys(S.pops).some(ruCity))opts.push('runet','runet');
   if(S.pops.doh&&Object.keys(S.pops).some(c=>CITY[c].gcc||CITY[c].uae)&&!(S.ev.gulf>S.day))opts.push('gulf');
   if(Object.keys(S.pops).some(c=>CITY[c].saudi))opts.push('mega');
   if(['mnl','hkg','tok','icn','sha','jkt'].some(c=>S.pops[c]))opts.push('typhoon');
   if(Object.keys(S.pops).some(cnCity)||R.gfwCross>1)opts.push('golden','gfw');
   if(S.transit.some(t=>t.net==='cog'))opts.push('depeer','depeer');
+  if(disputeNets().length&&!(S.ev.dispute&&S.ev.dispute.until>S.day))opts.push('dispute','dispute');
   if(Object.keys(S.peers).some(k=>k.startsWith('drz@'))||Object.keys(S.rs).length)opts.push('cake');
-  const e=pick(opts);
+  const e=force||pick(opts);
   if(e==='gulf'){const dur=60+Math.floor(Math.random()*60);S.ev.gulf=S.day+dur;toast(`<b>The neighbours have fallen out.</b><br>A diplomatic spat closes borders and airspace around Qatar. Every link between Doha and Saudi Arabia or the UAE is down for about ${dur} days. Route the long way round, by sea.`,'bad');sfx('alert');}
   if(e==='mega'){const c=pick(Object.keys(S.pops).filter(x=>CITY[x].saudi)),bw=pick([800,1600,3200]),start=S.day+15;S.offers.push({id:uid(),city:c,city2:null,name:`A futuristic city that is not built yet, demo day in ${CITY[c].name}`,type:'event',bw,rate:0,reqs:[],start,dur:4,fee:bw*4*90,exp:start-2});toast(`<b>A gigaproject wants a demo.</b><br>${fmtG(bw)} for four days in ${CITY[c].name}, to show off a city that is still mostly renderings. Check the Deals tab.`,'goal');}
   if(e==='sanctionLink'){const l=S.links.find(x=>x.kind==='df'&&sanctionedPair(x.a,x.b));if(!l)return;const fine=Math.min(Math.max(0,S.cash),Math.max(50000,Math.round(S.cash*0.12)));S.cash-=fine;l.cut=S.day+45;toast(`<b>Sanctioned!</b><br>Your dark fiber between ${esc(CITY[l.a].name)} and ${esc(CITY[l.b].name)} drew the attention of regulators. Fine: ${fmt$(fine)}, and the link is shut for 45 days.`,'bad');sfx('alert');compute();return;}
   if(e==='sanction'){S.ev.sanction=S.day+60;toast('<b>Sanctions!</b><br>A government sanctioned one of your router vendor’s suppliers. Spare parts are slow: router crashes take twice as long to fix for 60 days.','bad');sfx('alert');return;}
   if(e==='tariff'){S.ev.tariff=S.day+90;toast('<b>Trade war on optics</b><br>Two governments slapped tariffs on each other’s lasers. Optics cost 40% more for 90 days.','bad');sfx('alert');return;}
-  if(e==='hijack'){const nh=NETS.map(n=>n.id).filter(()=>Math.random()<0.6),old=S.ev.rpki&&S.ev.rpki.until>S.day?S.ev.rpki:null;S.ev.rpki=old?{until:Math.max(old.until,S.day+1),nets:[...new Set(old.nets.concat(nh))]}:{until:S.day+1,nets:nh};addInc({type:'hijack',ref:'rpki',until:S.day+1,msg:'A state-owned ISP “accidentally” announced your prefixes for 18 minutes. Their apology press release was suspiciously well written. Many networks are still routing your traffic into the void.',cost:1500,fix:'Call everyone you know'});toast('<b>BGP hijack</b><br>Someone else is announcing your prefixes. Reach is down until it is cleaned up.','bad');sfx('alert');return;}
+  if(e==='hijack'){const ok=roaOk(),nh=NETS.map(n=>n.id).filter(n=>Math.random()<0.6&&!(ok&&rovNet(n))),old=S.ev.rpki&&S.ev.rpki.until>S.day?S.ev.rpki:null;S.ev.rpki=old?{until:Math.max(old.until,S.day+1),nets:[...new Set(old.nets.concat(nh))]}:{until:S.day+1,nets:nh};addInc({type:'hijack',ref:'rpki',until:S.day+1,msg:'A state-owned ISP “accidentally” announced your prefixes for 18 minutes. Their apology press release was suspiciously well written. Many networks are still routing your traffic into the void.',cost:1500,fix:'Call everyone you know'});toast('<b>BGP hijack</b><br>Someone else is announcing your prefixes. Reach is down until it is cleaned up.','bad');sfx('alert');return;}
   if(e==='landban'){const lc=[...new Set(CABLE_PAIRS.flatMap(c=>[c.a,c.b]))];const c=pick(lc);S.ev.landban={city:c,until:S.day+45};toast(`<b>Landing permit dispute in ${CITY[c].name}</b><br>Two ministries both claim the beach. No new subsea links can land there for 45 days.`,'bad');return;}
   if(e==='shutdown'){const ps=Object.keys(S.pops).filter(c=>c!==S.home);if(!ps.length)return;const c=pick(ps);S.pops[c].down=Math.max(S.pops[c].down||0,S.day+1);addInc({type:'shutdown',ref:c,until:S.day+1,msg:`Regulators ordered every network in ${CITY[c].name} to switch off for a day during national school exams. Yes, this really happens.`,cost:0});toast(`<b>Ordered offline in ${CITY[c].name}</b><br>A government exam-day shutdown. Your POP there is dark for a day.`,'bad');sfx('alert');return;}
   if(e==='typhoon'){const c=pick(['mnl','hkg','tok','icn','sha','jkt'].filter(x=>S.pops[x])),p=S.pops[c],nm=pick(['Typhoon Bandwidth','Typhoon Latency','Typhoon Jitter','Typhoon Packet-Loss']);
@@ -2140,6 +2271,12 @@ function fireEvent(){
     if(!hit.length){toast('<b>Baltic cable damaged</b><br>A cargo ship dragged its anchor for 100 km and swears it noticed nothing. You have no links on those cables.','goal');return;}
     const dur=15+Math.floor(Math.random()*15);for(const tr of new Set(hit.map(l=>l.trench||l.id))){S.links.filter(l=>(l.trench||l.id)===tr).forEach(l=>l.cut=Math.max(l.cut||0,S.day+dur));addInc({type:'redsea',ref:tr,until:S.day+dur,msg:'A cargo ship dragged its anchor along the Baltic seabed for 100 km and swears it noticed nothing. Investigators are “looking into it”.',cost:0});}
     toast(`<b>Baltic cable damaged</b><br>${hit.length} of your links are down for about ${dur} days.`,'bad');sfx('alert');compute();return;}
+  if(CABLE_EVENTS[e]){const C=CABLE_EVENTS[e],hit=S.links.filter(l=>l.cable&&C.cables.includes(l.cable)&&!(l.cut>S.day));
+    if(!hit.length){toast(`<b>${C.title}</b><br>${C.msg} You have no links on the cables it hit.`,'goal');return;}
+    // Repair ships are few. If one is already busy with another cut, yours waits for it.
+    const busy=S.inc.filter(i=>i.type==='redsea'&&i.until>S.day).length,dur=Math.round((C.days[0]+Math.floor(Math.random()*(C.days[1]-C.days[0])))*(1+Math.min(0.6,busy*0.25)));
+    for(const tr of new Set(hit.map(l=>l.trench||l.id))){S.links.filter(l=>(l.trench||l.id)===tr).forEach(l=>l.cut=Math.max(l.cut||0,S.day+dur));addInc({type:'redsea',ref:tr,until:S.day+dur,msg:`${C.msg} The nearest repair ship is ${C.ship}${busy?' and the one that was closer is busy with another break':''}.`,cost:0});}
+    toast(`<b>${C.title}</b><br>${hit.length} of your subsea links are down for about ${dur} days.`,'bad');sfx('alert');compute();return;}
   if(e==='redsea'){const RED=['twoaf','smw6','peace','aae','eig','eassy'];const hit=S.links.filter(l=>l.cable&&RED.includes(l.cable)&&!(l.cut>S.day));
     if(!hit.length){toast('<b>Cables cut in the Red Sea</b><br>A ship dragged its anchor across several cables. Everyone blames everyone. Luckily you do not use those cables.','goal');return;}
     const dur=20+Math.floor(Math.random()*15);for(const tr of new Set(hit.map(l=>l.trench||l.id))){S.links.filter(l=>(l.trench||l.id)===tr).forEach(l=>l.cut=Math.max(l.cut||0,S.day+dur));addInc({type:'redsea',ref:tr,until:S.day+dur,msg:`A ship drifting without power dragged its anchor through the Red Sea cables. Everyone blames everyone. Repair ships need permits from three governments.`,cost:0});}
@@ -2149,6 +2286,8 @@ function fireEvent(){
   if(e==='viral'){S.ev.viral=S.day+8;toast('<b>New season of “Stranger Pings” just dropped!</b><br>Eyeball demand is up 25% for a week. Got headroom?','goal');}
   else if(e==='price'){S.priceMul*=0.92;toast('<b>Transit prices fell 8%.</b><br>They do this every year. Nobody knows where the bottom is.','good');}
   else if(e==='grant'){S.cash+=30000;toast('<b>Rural broadband grant: +$30k</b><br>The Ministry of Tubes likes what you are doing.','good');sfx('coin');}
+  else if(e==='dispute'){const ns=disputeNets();if(!ns.length)return;const n=pick(ns),g=(R.netEg[n]&&((R.netEg[n].p||0)+(R.netEg[n].ix||0)))||5,fee=Math.round(Math.max(2500,g*350)/100)*100;
+    S.ev.dispute={net:n,until:S.day+45,fee};addInc({type:'dispute',ref:n,until:S.day+45,msg:`${NET[n].name} says the traffic ratio is wrong and wants ${fmt$(fee)} a month to keep peering with you, or the sessions go down.`,cost:0});disputeModal();sfx('alert');compute();}
   else if(e==='depeer'){S.ev.depeer=S.day+20;addInc({type:'depeer',ref:'cog',until:S.day+20,msg:'Cogent and Google are in a peering spat. Google is unreachable through Cogent transit.',cost:0});toast('<b>Peering spat!</b><br>Cogent de-peered Google for 20 days. Google traffic over Cogent transit is gone. Peer with Google directly or use another upstream.','bad');sfx('alert');}
   else if(e==='cake'){S.cash+=8000;toast('<b>Hurricane Electric sent you an IPv6 cake.</b><br>You sold it for $8k.','good');sfx('coin');}
 }
@@ -2196,6 +2335,11 @@ function dayTick(){
     if(cands.length){cands.sort((a,b)=>(a.pol==='open'?0:1)-(b.pol==='open'?0:1)||b.share-a.share);const n=Math.random()<.6?cands[0]:pick(cands);m.members.push(n.id);toast(`<b>${esc(n.name)} joined ${esc(m.name)}!</b><br>Another member paying ${fmt$(MYIX_FEE)}/mo for a port.`,'good');sfx('coin');}
     m.next=d+8+Math.floor(Math.random()*10);}}
   loanTick(d);
+  opsTick(d);
+  tlRecord(d);
+  {const x=sec();if(!x.auto&&typeof x.roa==='number'&&!(S.ev.rpki&&S.ev.rpki.until>d)){const left=x.roa-d;
+    if(left===30||left===7)toast(`<b>Your ROA expires in ${left} days.</b><br>Renew it under Routes, Security, or hijacks get a lot easier.`,'goal');
+    if(left<=0&&!S.inc.some(i=>i.type==='rpki'))fireFailure('rpki');}}
   if(S.mode==='sandbox'&&S.cash<1e12)S.cash=1e13;
   // offers
   S.offers=S.offers.filter(o=>o.exp>d);
@@ -2387,6 +2531,21 @@ const ACT={
  teToggle:()=>{if(!S.te)return;S.te.on=!S.te.on;after();},
  trace:({city})=>traceModal(city),
  routes:()=>routesModal('ov'),rvTab:({tab})=>routesModal(tab),
+ setCommit:({id,v})=>{const t=S.transit.find(x=>x.id===id);v=+v;if(!t||!COMMITS.some(c=>c[0]===v))return;t.commit=v;toast(`<b>${esc(NET[t.net].name)} commit set to ${Math.round(v*100)}%.</b><br>You pay for at least that much of the port, whatever you send.`,'good');after();},
+ dispPay:()=>{const d=S.ev.dispute;if(!d||!NET[d.net])return;(S.paid=S.paid||{})[d.net]=d.fee;const i=S.inc.find(x=>x.type==='dispute');if(i)clearInc(i);toast(`<b>Paid peering with ${esc(NET[d.net].name)}.</b><br>${fmt$(d.fee)} a month, and the sessions are back up.`,'good');closeModal();after();},
+ dispRefuse:()=>{closeModal();toast('<b>You told them no.</b><br>The sessions stay down while the two of you stare at each other.','');},
+ dispPublic:()=>{const d=S.ev.dispute;if(!d)return;closeModal();if(Math.random()<0.5){const i=S.inc.find(x=>x.type==='dispute');if(i)clearInc(i);toast(`<b>${esc(NET[d.net].name)} backed down.</b><br>Their peering team posted “this was a misunderstanding”. Settlement-free again.`,'good');}else{d.until+=15;const i=S.inc.find(x=>x.type==='dispute');if(i)i.until=d.until;toast(`<b>It made things worse.</b><br>Their CEO replied on LinkedIn. +15 days of no direct peering.`,'bad');}after();},
+ ops:()=>opsModal(),
+ timelapse:()=>timelapseModal(),
+ tlClose:()=>{cancelAnimationFrame(TL_RAF);closeModal();},
+ opsHire:({d})=>{const o=ops();o.eng=Math.max(0,Math.min(ENG_MAX,o.eng+(+d||0)));opsModal();after();},
+ opsFreeze:()=>{const o=ops();o.frozen=!o.frozen;toast(o.frozen?'<b>Change freeze.</b><br>No builds or deploys until you lift it.':'<b>Freeze lifted.</b>','');opsModal();after();},
+ opsMaint:({city})=>{const o=ops();if(!S.pops[city]||o.maint.some(x=>x.city===city))return;o.maint.push({city,start:S.day+3});opsModal();after();},
+ secRenew:()=>{sec().roa=S.day+365;toast('<b>ROA renewed.</b><br>Valid for another year.','good');after();},
+ secAuto:()=>{const x=sec();x.auto=!x.auto;if(x.auto)x.roa=S.day+365;toast(x.auto?'<b>Hosted RPKI on.</b><br>Your RIR signs and renews for you.':'<b>Manual ROAs.</b><br>Put the renewal in your calendar.','good');after();},
+ secRov:()=>{const x=sec();x.rov=!x.rov;toast(x.rov?'<b>ROV is on.</b><br>Invalid routes are dropped at your edge.':'<b>ROV is off.</b>','good');after();},
+ secIrr:()=>{const x=sec();x.irr=!x.irr;toast(x.irr?'<b>Filtering on.</b><br>Customers and peers only get through with registered prefixes.':'<b>Filtering off.</b>','good');after();},
+ trTool:({tool})=>{UI.trTool=tool;const f=$('trFrom'),t=$('trTo');traceModal(f&&f.value,t&&t.value);},
  traceRun:()=>{const f=$('trFrom'),t=$('trTo');traceModal(f&&f.value,t&&t.value);},
  traceCopy:()=>{try{navigator.clipboard.writeText(UI.trText||'');toast('<b>Copied.</b> Paste it into your favourite NOC chat.','good');}catch(e){}},
  share:()=>shareModal(),
@@ -2654,7 +2813,7 @@ function renderLeft0(){
       h+=`<div class="row"><div class="grow"><div class="nm">${esc(o.name)}</div><div class="meta">${esc(BIZ_T[o.type].l)} · ${CITY[o.city].name}${o.city2?' ⇄ '+CITY[o.city2].name:''} · <b>${bTerms(o)}</b> · ${o.exp-S.day}d left${(o.reqs||[]).length?` · ${o.reqs.length} special requirement${o.reqs.length>1?'s':''}`:''}</div>${reqList(o)}
       <div class="btns">${has?btn('Accept','accept',{id:o.id},'green sm'):btn('Go there','focusCity',{city:o.city},'ghost sm')}${btn('Decline','decline',{id:o.id},'ghost sm')}</div>${has?'':`<div class="why">Needs a POP in ${bCities(o).filter(x=>!S.pops[x]).map(x=>CITY[x].name).join(', ')}</div>`}</div></div>`;}
   }else if(UI.left==='noc'){
-    h+=`<div class="btns" style="margin-bottom:8px">${btn('Open NOC dashboard','dash',{},'pink')}${btn('Traceroute','trace',{},'')}${btn('Routes','routes',{},'')}</div>`;
+    h+=`<div class="btns" style="margin-bottom:8px">${btn('Open NOC dashboard','dash',{},'pink')}${btn('Traceroute','trace',{},'')}${btn('Routes','routes',{},'')}${btn('Ops','ops',{},'')}${btn('Timelapse','timelapse',{},'')}</div>`;
     h+=`<p class="lead">Your Network Operations Center. Every notification also lands here. Things fail all the time on the internet. Redundant links and multiple upstreams let traffic reroute by itself.</p>`;
     h+=`<div class="kv"><span>DDoS scrubbing</span><b>${scrubList().length?'On · '+scrubList().map(x=>CITY[x].name).join(', '):'None (build one from a POP\'s Infra tab)'}</b></div>`;
     h+=S.te?`<div class="kv"><span>Auto-TE</span><b>${S.te.on?`On · moving ${fmtG(R.teMoved||0)} onto alternate paths`:'Off'}</b></div><div class="btns">${btn(S.te.on?'Turn Auto-TE off':'Turn Auto-TE on','teToggle',{},'ghost sm')}${btn(S.te.script?'Edit RouteScript':'Write a RouteScript','teEdit',{},'pink sm')}</div>${S.te.script?`<p class="meta" style="margin:2px 0 6px">RouteScript: ${teRules()?teRules().n+' rules live':S.te.on?'has errors, not running':'controller off'}${R.teBlack?` · blackholing ${fmtG(R.teBlack)}`:''}</p>`:''}`
@@ -2742,7 +2901,7 @@ function cityPanel(c){
     for(const n of prov){const t=S.transit.find(x=>x.city===c&&x.net===n.id);const pr=n.price*S.priceMul*(t&&t.premium&&c==='hkg'?n.premium:1)*regionMult(c);
       h+=`<div class="row">${logo(n)}<div class="grow"><div class="nm">${esc(n.name)} <span class="tag ${n.type}">${TYPE_L[n.type]}</span></div><div class="meta">$${pr.toFixed(2)} per Gbps / month · billed on 95th percentile</div>`;
       if(t){const u=R.useT[t.id]||0,cap=lagCap(PORT[t.tier].g,t.n),tdown=t.down>S.day;
-        h+=`<div class="kv"><span>${lagName(t.tier,t.n)}${tdown?' · <b style="color:var(--bad)">OUTAGE</b>':''}</span><b>${fmtG(u)}</b></div><div class="bar ${barCls(u/cap)}"><i style="width:${u/cap*100}%"></i></div>${prefCtl('t',t.id,t.pref)}${siteCtl('t',t.id,c,t.site)}${n.premium&&c==='hkg'?`<div class="btns">${btn(t.premium?'CN-Too premium on ✓':`Switch to CN-Too premium <small>${n.premium}× price · ~3% loss into China</small>`,'togglePrem',{id:t.id},t.premium?'green sm':'sm')}</div>`:''}${(()=>{const top=transitTop([t.id],4);return top.length?`<div class="ttop"><div class="meta"><b>Top destinations on this port</b></div>${top.map(([id,v])=>`<div class="meta">${esc(NET[id].name)} · ${fmtG(v)} · <i>${esc(offTransitHint(id,c))}</i></div>`).join('')}</div>`:'';})()}<div class="meta">95th pct ${fmtG(R.p95[t.id]||0)} · commit ${fmtG(cap*.2)} · bill ${fmt$(Math.max(R.p95[t.id]||0,PORT[t.tier].g*(t.n||1)*.2)*pr+PORT[t.tier].tmo*(t.n||1))}/mo</div>
+        h+=`<div class="kv"><span>${lagName(t.tier,t.n)}${tdown?' · <b style="color:var(--bad)">OUTAGE</b>':''}</span><b>${fmtG(u)}</b></div><div class="bar ${barCls(u/cap)}"><i style="width:${u/cap*100}%"></i></div>${prefCtl('t',t.id,t.pref)}${siteCtl('t',t.id,c,t.site)}${n.premium&&c==='hkg'?`<div class="btns">${btn(t.premium?'CN-Too premium on ✓':`Switch to CN-Too premium <small>${n.premium}× price · ~3% loss into China</small>`,'togglePrem',{id:t.id},t.premium?'green sm':'sm')}</div>`:''}${(()=>{const top=transitTop([t.id],4);return top.length?`<div class="ttop"><div class="meta"><b>Top destinations on this port</b></div>${top.map(([id,v])=>`<div class="meta">${esc(NET[id].name)} · ${fmtG(v)} · <i>${esc(offTransitHint(id,c))}</i></div>`).join('')}</div>`:'';})()}<div class="meta">95th pct ${fmtG(R.p95[t.id]||0)} · commit ${fmtG(cap*commitOf(t))} · bill ${fmt$(Math.max(R.p95[t.id]||0,PORT[t.tier].g*(t.n||1)*commitOf(t))*(1-commitDisc(t))*pr+PORT[t.tier].tmo*(t.n||1))}/mo</div><div class="btns">${COMMITS.map(([f,d])=>btn(`Commit ${Math.round(f*100)}%${d?` <small>−${Math.round(d*100)}% rate</small>`:''}`,'setCommit',{id:t.id,v:f},commitOf(t)===f?'pink sm':'ghost sm')).join('')}</div>
         <div class="btns">${PORT.map((P2,i)=>i>t.tier?btn(`Upgrade ${(t.n||1)>1?'all to ':''}${P2.n} <small>${fmt$(P2.setup*(t.n||1))} + ${fmt$(P2.tmo*(t.n||1))}/mo</small>`,'buyTransit',{city:c,net:n.id,tier:i},'sm',S.cash<P2.setup*(t.n||1)||!portOk(c,i)):'').join('')}${(t.n||1)<LAG_MAX?btn(`+ LAG member <small>${fmt$(PORT[t.tier].setup)} + ${fmt$(PORT[t.tier].tmo)}/mo</small>`,'lagT',{id:t.id,d:1},'sm',S.cash<PORT[t.tier].setup||!portOk(c,t.tier)):''}${(t.n||1)>1?btn('− member','lagT',{id:t.id,d:-1},'ghost sm'):''}${btn(UI.confirm===t.id?'Really cancel?':'Cancel','cancelTransit',{id:t.id},'ghost sm')}</div>`;}
       else h+=`<div class="btns">${PORT.map((P2,i)=>btn(`${P2.n} <small>${fmt$(P2.setup)} + ${fmt$(P2.tmo)}/mo</small>`,'buyTransit',{city:c,net:n.id,tier:i},'sm',S.cash<P2.setup||!portOk(c,i))).join('')}</div>`;
       h+=`</div></div>`;}
@@ -3430,7 +3589,11 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(
    shared by everyone on the team. Browsers send their clicks as commands (an action name and its arguments, plus the
    little bit of UI state some actions read) and receive snapshots of S. Nothing below runs in single player. */
 // Actions that only change what *you* are looking at. Everything else is a command to the shared network.
-const MP_LOCAL=new Set(['help','dash','dashClose','dashSort','bank','bankClose','dashLink','animSet','soundSet','mute','closePanel','closeModal','tab','leftTab','toggleLeft','focusCity','selLink','teEdit','teClose','teExample','teCheck','tailTog','trace','traceRun','traceCopy','share','shareDl','shareGo','tutSkip','models','via','route','dfMode','dfSrc','dfSys','cnPrem','menu','resetAsk','whatsNewShow','updateNow','updateLater','helpClose','routes','rvTab','start','rollAsn','modeSet','scenarios','startScn','startWeekly','pickStart','cont','newgame','keepPlaying','exportSave','importPick','importGo','orderDfN','addPairsN','buildDcN','dcTierSet','addDcRacksN','buyIp4N','sellIp4N','addRouterN','rmRouterN','foundDixN','addChN','rmChN','citySearch','flyTo','citySet','mpOpen','mpTab','mpLogin','mpRegister','mpLogout','mpServer','mpRollAsn','mpCreate','mpJoin','mpEnter','mpPickCity','mpTeam','mpTeamClose','mpChat','mpRole','mpRotate','mpLeave']);
+// A change freeze blocks the actions that change the network, and a rushed script deploy can break something.
+for(const k of CHANGE_ACTS){const f=ACT[k];if(typeof f==='function')ACT[k]=a=>{if(S&&S.ops&&S.ops.frozen){toast('<b>Change freeze.</b><br>Lift it under Ops before you build or deploy.','bad');sfx('err');return;}
+  if(k==='teDeploy'&&S){const o=ops(),pr=Math.max(0.01,0.07*(1-Math.min(0.85,o.eng*0.15)));if(Math.random()<pr){const ps=Object.keys(S.pops);if(ps.length){const c=pick(ps);S.pops[c].down=Math.max(S.pops[c].down||0,S.day+1);addInc({type:'crash',ref:c,until:S.day+1,msg:`A config push went out without review and took ${CITY[c].name} off the air. The rollback was in the other repo.`,cost:0});}}}
+  return f(a);};}
+const MP_LOCAL=new Set(['ops','opsModal','timelapse','tlClose','help','dash','dashClose','dashSort','bank','bankClose','dashLink','animSet','soundSet','mute','closePanel','closeModal','tab','leftTab','toggleLeft','focusCity','selLink','teEdit','teClose','trTool','dispRefuse','mpPeerReq','mpPeerAcc','mpPeerDel','teExample','teCheck','tailTog','trace','traceRun','traceCopy','share','shareDl','shareGo','tutSkip','models','via','route','dfMode','dfSrc','dfSys','cnPrem','menu','resetAsk','whatsNewShow','updateNow','updateLater','helpClose','routes','rvTab','start','rollAsn','modeSet','scenarios','startScn','startWeekly','pickStart','cont','newgame','keepPlaying','exportSave','importPick','importGo','orderDfN','addPairsN','buildDcN','dcTierSet','addDcRacksN','buyIp4N','sellIp4N','addRouterN','rmRouterN','foundDixN','addChN','rmChN','citySearch','flyTo','citySet','mpOpen','mpTab','mpLogin','mpRegister','mpLogout','mpServer','mpRollAsn','mpCreate','mpJoin','mpEnter','mpPickCity','mpTeam','mpTeamClose','mpChat','mpRole','mpRotate','mpLeave']);
 // UI state that commands read and may change (two-step confirms, the link you are drawing, the open tab).
 const MP_CTX=['confirm','tab','sel','pending','route','cnPrem','via','lmode','dfSrc','dfSys'];
 const MP_OUT=[];
@@ -3453,6 +3616,7 @@ function serverTick(){if(!S||S.lost)return;dayTick();$('modal').hidden=true;$('b
 function serverDrain(){return MP_OUT.splice(0,MP_OUT.length);}
 function serverBegin(name,home,asn){beginGame(name,home,{mode:'normal',asn});UI.speed=1;}
 function serverLoad(json){S=migrate(JSON.parse(json));UI.started=true;UI.speed=1;compute();renderAll();}
+function setTeamPeers(l){if(!S)return;S.teamPeers=(Array.isArray(l)?l:[]).slice(0,200).map(x=>({asn:+x.asn,name:String(x.name||'').slice(0,40)}));}
 function serverState(){return {S,speed:UI.speed};}
 if(window.__TUBES_SERVER__){const _t=toast;toast=(h,k)=>{MP_OUT.push([h,k||'']);};}
 
@@ -3574,10 +3738,19 @@ function mpTeam(){UI.mpTeam=true;
   openModal(`<div style="display:flex;align-items:center"><div><div class="eyebrow">AS${MP.asn} · you are ${esc(MP.name)} (${esc(MP.role)})</div><h2 style="font-size:28px">Team</h2></div><button class="x" data-act="mpTeamClose" aria-label="Close">×</button></div>
   <p class="meta">Online now: ${pres}</p><div class="rvw" id="mpLog" style="max-height:30vh">${MP.chat.map(m=>`<div style="padding:3px 8px"><b>${esc(m.who)}</b> ${esc(m.text)}</div>`).join('')||'<p class="empty">No messages yet.</p>'}</div>
   ${MP.role!=='viewer'?`<div class="btns" style="margin-top:8px"><input class="t" id="mpSay" maxlength="300" placeholder="Say something to the team" style="flex:1;font-size:15px" autocomplete="off">${btn('Send','mpChat',{},'sm')}</div>`:''}
-  <div id="mpOwner"></div><div class="btns" style="margin-top:12px">${btn('Leave this network','mpLeave',{},'ghost sm')}</div>`);
+  <div id="mpPeer"></div><div id="mpOwner"></div><div class="btns" style="margin-top:12px">${btn('Leave this network','mpLeave',{},'ghost sm')}</div>`);
   const lg=$('mpLog');if(lg)lg.scrollTop=lg.scrollHeight;
+  mpPeerLoad();
   if(MP.role==='owner')mpFetch(`/api/networks/${MP.asn}`).then(j=>{const el=$('mpOwner');if(!el||!UI.mpTeam)return;el.innerHTML=`<h3 style="margin-top:12px">Members</h3><p class="note">Invite code: <code>${esc(j.invite)}</code> (share it with the AS number).</p>`+j.members.map(m=>`<div class="kv"><span>${esc(m.name)} · ${esc(m.role)}</span><b>${m.role==='owner'?'':[m.role==='operator'?btn('Make viewer','mpRole',{uid:m.id,role:'viewer'},'ghost sm'):btn('Make operator','mpRole',{uid:m.id,role:'operator'},'ghost sm'),btn('Remove','mpRole',{uid:m.id,role:'remove'},'ghost sm')].join(' ')}</b></div>`).join('')+`<div class="btns" style="margin-top:6px">${btn('New invite code','mpRotate',{},'ghost sm')}</div>`;}).catch(()=>{});}
+function mpPeerLoad(){mpFetch(`/api/networks/${MP.asn}/peering`).then(j=>{const el=$('mpPeer');if(!el||!UI.mpTeam)return;const w=MP.role!=='viewer';
+  el.innerHTML=`<h3 style="margin-top:12px">Peering with other teams</h3>`+
+   (j.peers.length?j.peers.map(x=>`<div class="kv"><span>AS${x.asn} · ${esc(x.name)}</span><b>${w?btn('End peering','mpPeerDel',{asn:x.asn},'ghost sm'):''}</b></div>`).join(''):'<p class="note">No peers yet. Ask another team for their AS number.</p>')+
+   j.incoming.map(x=>`<div class="kv"><span>AS${x.asn} · ${esc(x.name)} wants to peer</span><b>${w?btn('Accept','mpPeerAcc',{asn:x.asn},'pink sm')+' '+btn('Decline','mpPeerDel',{asn:x.asn},'ghost sm'):''}</b></div>`).join('')+
+   j.outgoing.map(x=>`<div class="kv"><span>AS${x.asn} · ${esc(x.name)}</span><b>asked, waiting ${w?btn('Withdraw','mpPeerDel',{asn:x.asn},'ghost sm'):''}</b></div>`).join('')+
+   (w?`<div class="btns" style="margin-top:6px"><input class="t" id="mpPAsn" inputmode="numeric" placeholder="AS number" style="flex:1;max-width:170px;font-size:15px" autocomplete="off">${btn('Ask to peer','mpPeerReq',{},'sm')}</div>`:'');}).catch(()=>{});}
+const mpPeerCall=async(sub,asn)=>{try{await mpFetch(`/api/networks/${MP.asn}/${sub}`,{method:'POST',body:{asn:+asn}});mpPeerLoad();}catch(e){toast(esc(e.message),'bad');}};
 Object.assign(ACT,{
+ mpPeerReq:()=>mpPeerCall('peerreq',(($('mpPAsn')||{}).value||'').replace(/\D/g,'')),mpPeerAcc:({asn})=>mpPeerCall('peeracc',asn),mpPeerDel:({asn})=>mpPeerCall('peerdel',asn),
  mpOpen:()=>mpShow(),
  mpTab:({t})=>mpShow(t),
  mpLogin:()=>mpAuth('login'),mpRegister:()=>mpAuth('register'),

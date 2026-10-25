@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- RouteScript: `prepend transit PROVIDER x3` and `lowpref transit PROVIDER`. Ping, MTR and a BGP looking glass next to
+  traceroute, all driven by the same routing.
+- Routing security. ROAs that expire, hosted RPKI, ROV and prefix filtering, MANRS, and a Security tab in the route
+  viewer. A signed ROA makes networks that do ROV ignore a hijack of your space; ROV and filtering shorten leaks.
+- Peering disputes (a network wants to be paid, or the sessions go down), transit commit levels with a rate discount,
+  and a Customers tab in the route viewer.
+- Teams in multiplayer can ask each other for peering and see each other in the route viewer.
+- More cable events (Luzon Strait quake, Congo Canyon slump, submarine volcano) with repair ships that queue.
+- Ops: engineers who fix outages early, change freezes, maintenance windows, and bad config pushes.
+- Four historical scenarios: The Day Facebook Vanished, The YouTube Hijack, Dyn Day, Luzon Strait.
+- A timelapse of your network growing. A random-play fuzz test in CI.
 - Sandbox mode has infinite money: the bank shows ∞, monthly bills no longer drain it and the per-month loss readout is gone.
 - Fixed the game freezing after a while. A bad exchange id in the max-prefix event threw inside the animation loop and
   stopped it for good. The loop now survives errors in a tick and reports them instead of dying.

@@ -200,3 +200,26 @@ test('there are no public search or AS pages, only the game and the API', async 
     for (const p of ['/api/search?q=x', '/api/networks', '/api/as/174', '/api/cities?q=fra']) assert.equal((await s.api('GET', p, null, tok)).s, 404, p);
   } finally { await s.close(); }
 });
+
+test('team peering: ask, accept, see each other in the route viewer, end it', async () => {
+  const s = await boot();
+  try {
+    const A = (await s.signup('alice')).token, B = (await s.signup('bob')).token;
+    const make = (asn, tok) => s.api('POST', '/api/networks', { name: 'Net ' + asn, asn, home: 'fra' }, tok);
+    await make('64512', A); await make('4200000007', B);
+    assert.equal((await s.api('POST', '/api/networks/64512/peerreq', { asn: 99999 }, A)).s, 404);
+    assert.equal((await s.api('POST', '/api/networks/64512/peerreq', { asn: 64512 }, A)).s, 404, 'not with yourself');
+    let r = await s.api('POST', '/api/networks/64512/peerreq', { asn: 4200000007 }, A);
+    assert.equal(r.s, 200); assert.equal(r.b.outgoing.length, 1);
+    assert.equal((await s.api('GET', '/api/networks/4200000007/peering', null, B)).b.incoming[0].asn, 64512);
+    assert.equal((await s.api('POST', '/api/networks/4200000007/peeracc', { asn: 4200000007 }, B)).s, 404);
+    r = await s.api('POST', '/api/networks/4200000007/peeracc', { asn: 64512 }, B);
+    assert.equal(r.b.peers[0].asn, 64512);
+    const room = s.app.host.get(64512);
+    const names = JSON.parse(room.ev('JSON.stringify(routeView().peers.filter(p=>p.type==="team").map(p=>p.asn))'));
+    assert.deepEqual(names, [4200000007]);
+    r = await s.api('POST', '/api/networks/64512/peerdel', { asn: 4200000007 }, A);
+    assert.equal(r.b.peers.length, 0);
+    assert.equal(JSON.parse(room.ev('JSON.stringify(routeView().peers.filter(p=>p.type==="team").length)')), 0);
+  } finally { await s.close(); }
+});

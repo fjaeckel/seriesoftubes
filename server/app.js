@@ -56,6 +56,10 @@ function createApp(opts = {}) {
   }
   const roleOf = (net, user) => (user && net.members[user.id]) || null;
   const needNet = (asn) => { const n = store.nets.get(Number(asn)); if (!n) throw new H.HttpError(404, 'No network with that AS number'); return n; };
+  const peeringOf = (n) => {
+    const row = (a) => { const o = store.nets.get(a); return o ? { asn: a, name: o.name } : null; };
+    return { peers: (n.peers || []).map(row).filter(Boolean), incoming: (n.peerIn || []).map(row).filter(Boolean), outgoing: (n.peerOut || []).map(row).filter(Boolean) };
+  };
   const cleanName = (s, max = 24) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, max);
   const netMeta = (n) => ({ asn: n.asn, name: n.name, tier: (n.summary || {}).tier || 'Tier 3', day: (n.summary || {}).day || 0, reach: (n.summary || {}).reach, pops: (n.summary || {}).pops || 1, online: host.online(n.asn), members: Object.keys(n.members).length, created: n.created });
   const memberList = (n) => Object.entries(n.members).map(([uid, role]) => ({ id: uid, name: (store.users.get(uid) || {}).name || '?', role }));
@@ -157,6 +161,32 @@ function createApp(opts = {}) {
       const ka = setInterval(() => { try { res.write(': ka\n\n'); } catch (_) {} }, 20e3);
       req.on('close', () => { clearInterval(ka); room.remove(res); });
       return;
+    }
+    // Peering between teams: one network asks another, the other accepts, and both see each other as a peer.
+    if (sub === 'peering' && m === 'GET') return H.json(res, 200, peeringOf(net));
+    if (m === 'POST' && (sub === 'peerreq' || sub === 'peeracc' || sub === 'peerdel')) {
+      if (role === 'viewer') throw new H.HttpError(403, 'Viewers cannot change peering.');
+      if (!limiter.allow('peer:' + user.id, 20, 3600e3)) throw new H.HttpError(429, 'Too many peering changes. Try again later.');
+      const asn = Number((await H.readJson(req, 1024)).asn), other = store.nets.get(asn);
+      if (!other || asn === net.asn) throw new H.HttpError(404, 'No network with that AS number on this server.');
+      net.peers = net.peers || []; net.peerIn = net.peerIn || []; net.peerOut = net.peerOut || [];
+      other.peers = other.peers || []; other.peerIn = other.peerIn || []; other.peerOut = other.peerOut || [];
+      const pull = (arr, x) => { const i = arr.indexOf(x); if (i >= 0) arr.splice(i, 1); };
+      let note = '';
+      if (sub === 'peerreq') {
+        if (net.peers.includes(asn)) throw new H.HttpError(400, 'You already peer with them.');
+        if (net.peerIn.includes(asn)) { pull(net.peerIn, asn); pull(other.peerOut, net.asn); net.peers.push(asn); other.peers.push(net.asn); note = `AS${net.asn} and AS${asn} now peer.`; }
+        else if (!net.peerOut.includes(asn)) { net.peerOut.push(asn); other.peerIn.push(net.asn); note = `AS${net.asn} (${net.name}) asked AS${asn} for peering.`; }
+      } else if (sub === 'peeracc') {
+        if (!net.peerIn.includes(asn)) throw new H.HttpError(400, 'They have not asked you.');
+        pull(net.peerIn, asn); pull(other.peerOut, net.asn); net.peers.push(asn); other.peers.push(net.asn); note = `AS${net.asn} and AS${asn} now peer.`;
+      } else {
+        pull(net.peers, asn); pull(other.peers, net.asn); pull(net.peerIn, asn); pull(other.peerOut, net.asn); pull(net.peerOut, asn); pull(other.peerIn, net.asn);
+        note = `AS${net.asn} ended peering with AS${asn}.`;
+      }
+      store.save();
+      for (const n of [net, other]) { const r = host.rooms.get(n.asn); if (r) { r.syncPeers(); if (note) r.say('NOC', note); } }
+      return H.json(res, 200, peeringOf(net));
     }
     if (m === 'POST' && sub === 'cmd') return H.json(res, 200, command(net, user, role, await H.readJson(req, 16 * 1024)));
     if (m === 'POST' && sub === 'chat') {

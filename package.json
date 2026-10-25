@@ -11,7 +11,7 @@
   },
   "scripts": {
     "start": "node server/index.js",
-    "test": "node --test --test-concurrency=1 tests/game.test.js tests/build.test.js tests/persist.test.js tests/services.test.js tests/peering.test.js tests/issues.test.js tests/regions.test.js tests/modes.test.js tests/world.test.js tests/latency.test.js tests/routes.test.js tests/server.test.js",
+    "test": "node --test --test-concurrency=1 tests/game.test.js tests/build.test.js tests/persist.test.js tests/services.test.js tests/peering.test.js tests/issues.test.js tests/regions.test.js tests/modes.test.js tests/world.test.js tests/latency.test.js tests/routes.test.js tests/features.test.js tests/fuzz.test.js tests/server.test.js",
     "build": "bash scripts/build.sh",
     "serve": "npm run build && npx --yes serve@14.2.4 _site",
     "world": "node scripts/build-world.js"

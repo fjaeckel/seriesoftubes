@@ -18,6 +18,15 @@ You start with one router in one city and grow into a transit-free Tier 1:
   generations that cap your port speeds, and LAGs to bundle ports when one isn't enough.
 - **Traffic engineering:** see exactly what fills each link, tune link metrics and
   egress preferences, and route traders over the fastest path and backups the scenic way.
+- **BGP policy and routing security:** RouteScript has `prepend` and `lowpref` next to prefer, avoid and
+  blackhole rules. Ping, MTR and a BGP looking glass sit next to traceroute. Sign ROAs, turn on ROV and prefix
+  filtering, and watch hijacks and leaks hit you less (or more).
+- **Running the NOC:** hire engineers, call a change freeze, schedule maintenance windows, negotiate transit
+  commits, and decide whether to pay a network that suddenly wants money for peering. A timelapse replays your growth.
+- **Teams peer with each other:** in multiplayer, teams can ask each other for peering and show up in each
+  other's route viewer.
+- **Historical scenarios:** the 2021 Facebook outage, the 2008 YouTube hijack, the 2016 Dyn attack and the Luzon
+  Strait earthquakes.
 - **Things break, constantly:** backhoes, sharks, fat fingers, route leaks, RPKI
   mishaps, DDoS, cooling failures, Red Sea and Baltic cable cuts, sanctions and
   sovereign internet drills.

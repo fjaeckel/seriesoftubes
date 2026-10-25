@@ -22,7 +22,14 @@ class Room {
     if (snap) { this.win.__snap = snap; this.ev('serverLoad(__snap)'); }
     else { this.win.__nm = this.net.name; this.ev(`serverBegin(__nm,${JSON.stringify(this.net.home)},${this.asn})`); }
     this.ev('serverDrain()');
+    this.syncPeers(true);
     this.refresh(); this.persist();
+  }
+  /** Tell the game which other teams this network peers with (names come from the server's records). */
+  syncPeers(quiet) {
+    const list = (this.net.peers || []).map((a) => this.host.store.nets.get(a)).filter(Boolean).map((n) => ({ asn: n.asn, name: n.name }));
+    this.win.__tp = JSON.stringify(list); this.ev('setTeamPeers(JSON.parse(__tp))');
+    if (!quiet) { this.refresh(); this.saveDirty = true; }
   }
   refresh() {
     this.stateJson = this.ev('JSON.stringify(serverState())');
