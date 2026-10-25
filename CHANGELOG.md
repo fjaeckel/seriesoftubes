@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Fixed the game freezing after a while. A bad exchange id in the max-prefix event threw inside the animation loop and
+  stopped it for good. The loop now survives errors in a tick and reports them instead of dying.
+- Traceroutes look like real ones: your own gw/agg/core routers, the provider's customer edge and backbone hops across
+  the metros the traffic really crosses, `* * *` hops, and reverse DNS in each network's own style (`ntt.net`,
+  `cogentco.com`, `twelve99.net`, `ibone.comcast.net`, `1e100.net` and so on).
 - Multiplayer. Run the server with `npm start` (or Docker), log in, start a network with any AS number you like
   and play it together with a team: shared clock, shared network, chat, invite codes, owner/operator/viewer roles.
   The simulation runs on the server, so it is the same for everybody and cannot be tampered with.

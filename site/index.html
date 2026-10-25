@@ -1258,30 +1258,106 @@ function trExits(net){const day=S.day,ev=S.ev,leak=ev.leak&&ev.leak.until>day?ev
   for(const c in S.ixp)if(ixSessions(c).has(net)&&(popUp(ixCity(c))||remoteCities().includes(ixCity(c)))&&!(ev.ixdown&&ev.ixdown[c]>day))out.push({k:'ix',rank:2,city:ixCity(c),id:c,pref:(S.ixPref&&S.ixPref[c])||'normal',lab:ixName(c)+' peering',used:R.useIx[c]||0,cap:ixCap(c)});
   for(const t of S.transit)if(popUp(t.city)&&!(t.down>day)&&liveN(t.city,t.site,t.n)&&net!==leak&&!((ev.depeer>day||scnRule('spat'))&&t.net==='cog'&&net==='ggl'))out.push({k:'t',rank:3,city:t.city,pref:t.pref||'normal',lab:NET[t.net].name+' transit',tnet:t.net,used:R.useT[t.id]||0,cap:liveCap(PORT[t.tier].g,t.city,t.site,t.n)});
   return out;}
-function traceroute(src,to){const P=trPaths(src),me=slug(S.name)+'.net',lines=[],ip=(a,b)=>`100.64.${a%250}.${b%250}`;let rtt=0.3,n=1,sig=0.03;
-  const hop=(host,addr,extra,note,js)=>{rtt+=extra;sig=Math.sqrt(sig*sig+(js===undefined?0.02:js)**2);
-    const probe=()=>Math.max(0.05,rtt+sig*gauss()).toFixed(rtt<10?2:1);
+/* ---------- reverse DNS, the way real networks name their routers ---------- */
+const IATA_X={tok:'tyo',ash:'iad',dal:'dfw',atn:'atl',tor:'yyz',mtl:'yul',lag:'los',cbo:'cmb',mos:'mow',kyv:'iev',icn:'sel',stg:'str',sha:'pvg',hou:'iah',osa:'osa',rio:'rio',sao:'sao',bue:'bue'};
+const CLLI_X={fra:'frnkge',nyc:'nycmny',lon:'lndnuk',ams:'amstnl',par:'parsfr',sin:'sngpsi',tok:'tokyjp',hkg:'hkgnhk',sjc:'snjsca',lax:'lsanca',ash:'asbnva',chi:'chcgil',dal:'dllstx',mia:'miamfl',sea:'sttlwa',mad:'mdrdsp',mil:'mlanit',zrh:'zrchsz',syd:'sydnau',sto:'stkhse',vie:'vienat',ber:'brlngr',mrs:'mrslfr',bom:'mumbin',jnb:'jhbrza'};
+const cityIata=c=>IATA_X[c]||(CITY[c]&&!CITY[c].gen&&/^[a-z]{3}$/.test(c)?c:slug(CITY[c].name).replace(/-/g,'').slice(0,3)||'xxx');
+const cityWord=c=>CITY[c].name.normalize('NFKD').replace(/[^A-Za-z]/g,'');
+const cityClli=c=>(CLLI_X[c]||(cityWord(c).toLowerCase().replace(/[aeiou]/g,'').padEnd(4,'x').slice(0,4)+(CITY[c].cc||'xx').toLowerCase()))+String(1+hstr('clli'+c)%19).padStart(2,'0');
+const ccOf=c=>(CITY[c].cc||'xx').toLowerCase();
+const AWS_REGION={fra:'eu-central-1',lon:'eu-west-2',par:'eu-west-3',dub:'eu-west-1',nyc:'us-east-1',ash:'us-east-1',sjc:'us-west-1',lax:'us-west-1',sea:'us-west-2',sin:'ap-southeast-1',tok:'ap-northeast-1',syd:'ap-southeast-2',sao:'sa-east-1',bom:'ap-south-1',icn:'ap-northeast-2',sto:'eu-north-1',mil:'eu-south-1',jnb:'af-south-1',tor:'ca-central-1',hkg:'ap-east-1'};
+// Domains of networks that do not have a bespoke naming scheme below.
+const RDNS_DOM={atl:'airtel.in',jio:'jio.com',cht:'hinet.net',kdi:'kddi.ne.jp',duu:'docomo.ne.jp',tsf:'telkomsel.co.id',pld:'pldt.net',spk:'spark.co.nz',opt:'optus.net.au',tru:'truecorp.co.th',vtl:'viettel.com.vn',ptc:'ptcl.net.pk',tmy:'tm.net.my',ttk:'turktelekom.com.tr',dgi:'rcs-rds.ro',ups:'libertyglobal.com',kys:'kyivstar.net',stc:'stc.com.sa',ord:'ooredoo.qa',tim:'telecomitalia.it',fwb:'fastweb.it',meo:'meo.pt',nos:'nos.pt',cos:'ote.gr',ets:'etisalat.ae',tmx:'uninet.net.mx',bcd:'bell.ca',clr:'claro.com.br',viv:'vivo.com.br',mlv:'globo.com',teg:'te.eg',sfc:'safaricom.co.ke',rtc:'rascom.ru',ydx:'yandex.net',vkl:'vk.com',ctc:'chinatelecom.com.cn',cun:'chinaunicom.com',cmb:'chinamobile.com',tcs:'tencent.com',abc:'alibaba.com',byd:'baidu.com',bdc:'bytedance.com',scm:'seacom.com',lqd:'liquid.tech',anc:'angolacables.co.ao',mtn:'mtn.com',tsa:'telkom.co.za',iam:'iam.ma',kpn:'kpn.net',swc:'swisscom.ch'};
+/* One router name in one city. kind: 'bb' core router, 'edge' the customer or peer facing side, 'dst' the end host. */
+function rdns(id,kind,c,k=0){
+  const N=NET[id],h=hstr(id+'|'+c+'|'+k+'|'+kind),ia=cityIata(c),IA=ia.toUpperCase(),cc=ccOf(c),W=cityWord(c),n=(m,o=0)=>o+h%m,dig=1+(h>>>5)%3,me=slug(S.name);
+  const R={
+    ntt:()=>kind==='edge'?`ae-${n(9,1)}.a0${n(4,1)}.${cityClli(c)}.${cc}.ra.gin.ntt.net`:`ae-${n(9,1)}.r${n(6,20)}.${cityClli(c)}.${cc}.bb.gin.ntt.net`,
+    tly:()=>kind==='edge'?`${me}-ic-${300000+h%99999}-${ia}-b${n(3,1)}.c.telia.net`:`${({fra:'ffm',nyc:'nyk',lon:'ldn',par:'prs',sto:'sth',ash:'ash',chi:'chi',sjc:'sjo'})[c]||ia}-bb${n(5,1)}-link.ip.twelve99.net`,
+    cog:()=>kind==='edge'?`te0-${n(8)}-0-${n(4)}.agr${n(30,11)}.${ia}0${dig}.atlas.cogentco.com`:`be${n(1999,2000)}.ccr${n(60,21)}.${ia}0${dig}.atlas.cogentco.com`,
+    lvl:()=>kind==='edge'?`ae-${n(5,1)}-${n(40,60)}.edge${n(4,1)}.${W}${n(2,1)}.Level3.net`:`ae-${n(9,1)}-${n(90,3)}.ebr${n(4,1)}.${W}${n(2,1)}.Level3.net`,
+    tat:()=>`if-ae-${n(9,1)}-${n(3,2)}.tcore${n(3,1)}.${cc.toUpperCase()}${n(9)}-${W}.as6453.net`,
+    drz:()=>kind==='edge'?`port-channel${n(12,1)}.core${n(2,1)}.${ia}${n(5,1)}.he.net`:`100ge${n(2)}-${n(40,10)}.core${n(2,1)}.${ia}${n(5,1)}.he.net`,
+    tng:()=>`ae${n(30,1)}-0.nc${ia}${dig}.${W}.opentransit.net`,
+    vdp:()=>`ae${n(9,1)}.${ia}-${n(4,1)}-cr${n(3,1)}.cw.net`,
+    skl:()=>`${['xe','et','ae'][h%3]}-${n(4)}-${n(2)}-${n(8)}.${ia}${n(4,1)}.seabone.net`,
+    gtt:()=>kind==='edge'?`ae${n(9,1)}.er${n(3,1)}-${ia}${dig}.ip4.gtt.net`:`ae${n(9,1)}.cr${n(4,1)}-${ia}${dig}.ip4.gtt.net`,
+    zyo:()=>kind==='edge'?`ae${n(9,1)}.mpr${n(4,1)}.${ia}${n(9,1)}.${cc}.zip.zayo.com`:`ae${n(9,1)}.cs${n(4,1)}.${ia}${n(9,1)}.${cc}.eth.zayo.com`,
+    att:()=>`cr${n(3,1)}.${ia}${n(9,1)}.ip.att.net`,
+    pcw:()=>`HundredGE0-${n(4)}-0-${n(9)}.br0${n(3,1)}.${ia}${n(9,1)}.pccwbtn.net`,
+    txs:()=>`ae${n(9,1)}.${ia}${dig}-cr${n(2,1)}.telxius.net`,
+    ret:()=>`ae${n(9,1)}-${n(900,100)}.xcr${n(3,1)}.${ia}.${cc}.retn.net`,
+    btg:()=>cc==='gb'?`core${n(3,1)}-hu${n(4)}-${n(3)}-${n(2)}-${n(9)}.${['faraday','telehouse','ealing','manchester'][h%4]}.ukcore.bt.net`:`t${n(9,1)}c${n(3,1)}.${ia}.bt.net`,
+    dtk:()=>`ae${n(9,1)}.cr${n(4,1)}.${ia}${dig}.${cc}.net.dtag.de`,
+    cmc:()=>`be-${n(5,1)}${n(9)}-cr0${n(3,1)}.${slug(W)}.${cc}.ibone.comcast.net`,
+    spc:()=>kind==='edge'?`bu-ether${n(40,1)}.${slug(W)}.${cc}.charter.com`:`lag-${n(40,1)}.${slug(W)}.${cc}.charter.com`,
+    vzn:()=>`ae${n(9,1)}.BR${n(4,1)}.${IA}${dig}.ALTER.NET`,
+    tsy:()=>`bundle-ether${n(9,1)}.${ia}-core${n(12,1)}.${slug(W)}.telstra.net`,
+    sgt:()=>`ae${n(9,1)}.cr${n(4,1)}.${ia}${dig}.singtel.com`,
+    msf:()=>`ae${n(9,1)}-0.ear0${n(4,1)}.${ia}30.ntwk.msn.net`,
+    amz:()=>kind==='dst'?`ec2-${hostIp(id,c,k)}.${AWS_REGION[c]||'us-east-1'}.compute.amazonaws.com`.replace(/\.(\d+)\./g,'-$1.').replace(/(\d+)\.(\d+)\.(\d+)\.(\d+)/,'$1-$2-$3-$4'):`ae${n(9,1)}.${ia}${dig}.amazon.com`,
+    ggl:()=>kind==='dst'?`${ia}${n(30,10)}s${n(60,10)}-in-f${n(30,2)}.1e100.net`:`${ia}${n(30,10)}-ae${n(9,1)}.google.com`,
+    cfl:()=>kind==='dst'?'one.one.one.one':`${ia}-ae${n(9,1)}.cloudflare.com`,
+    nfx:()=>kind==='dst'?`ipv4-c${n(900,100)}-${ia}${dig}-ix.1.oca.nflxvideo.net`:`ae${n(9,1)}.${ia}${dig}.netflix.com`,
+    fbk:()=>kind==='dst'?`edge-star-mini-shv-0${n(3,1)}-${ia}${n(9,1)}.facebook.com`:`psw${n(9,1)}a.${ia}${n(9,1)}.tfbnw.net`,
+    akm:()=>kind==='dst'?`a${n(250,10)}-${n(250)}-${n(99)}-${n(250)}.deploy.static.akamaitechnologies.com`:`ae${n(9,1)}.${ia}${dig}.akamai.com`,
+    slw:()=>kind==='dst'?`cache-${ia}${n(9000,1000)}-${IA}.fastly.net`:`ae${n(9,1)}.${ia}${dig}.fastly.net`,
+  };
+  if(R[id])return R[id]();
+  const dom=RDNS_DOM[id]||(slug(N.name)+'.net');
+  return kind==='dst'?`www.${dom}`:`ae${n(9,1)}.${kind==='edge'?'pe':'cr'}${n(4,1)}.${ia}${dig}.${dom}`;}
+/* Addresses come from documentation ranges so they can never belong to a real network. */
+function hostIp(id,c,k=0){const h=hstr(id+'|ip|'+c+'|'+k),b=['192.0.2','198.51.100','203.0.113'][h%3];return `${b}.${1+(h>>>4)%253}`;}
+function ownIp(c,k=0){const pf=prefixesFor(S.asn,1).v4[0].split('/')[0].split('.');const h=hstr('own|'+c+'|'+k);return `${pf[0]}.${pf[1]}.${(+pf[2]+(h%4))%256}.${1+(h>>>3)%253}`;}
+function traceroute(src,to){const P=trPaths(src),me=slug(S.name)+'.net',lines=[];let rtt=0.3,n=1,sig=0.03;
+  const probe=()=>Math.max(0.05,rtt+sig*gauss()).toFixed(rtt<10?2:1);
+  const hop=(host,addr,extra,note,js,star)=>{rtt+=extra;sig=Math.sqrt(sig*sig+(js===undefined?0.02:js)**2);
+    if(star){lines.push(`${String(n++).padStart(2)}  * * *`);return;}
     lines.push(`${String(n++).padStart(2)}  ${host} (${addr})  ${probe()} ms  ${probe()} ms  ${probe()} ms${note?'   ← '+note:''}`);};
-  hop(`lo0.cr1.${src}.${me}`,ip(hstr(src),1),0,`${CITY[src].name}, your router`);
-  const walk=path=>{for(const h of path){const l=h.l,lat=linkLive(l)*2+0.15,js=linkJit(l)*Math.SQRT2;hop(`ae${1+hstr(l.id)%9}.cr1.${h.to}.${me}`,ip(hstr(h.to),2),lat,`${CITY[h.to].name} · ${l.kind==='df'?'own dark fiber':l.kind==='vxc'?'fabric circuit':l.cable?CAB[l.cable].name:'terrestrial wave'} · ${capName(l)}${detourFactor(l)>1?' · rerouted by the carrier today':''}`,js);}};
-  if(to.city){const path=P.path(to.city);lines.unshift(`traceroute to ${to.city}.${me} (${CITY[to.city].name}), 30 hops max`);if(!path){lines.push(' 2  * * *   ← no working path between these POPs');return {text:lines.join('\n'),why:'No path: every route between these cities is down or missing.'};}walk(path);return {text:lines.join('\n'),why:`Internal path over ${path.length} link${path.length===1?'':'s'}, chosen by distance and link metrics${S.te&&S.te.on?'. Auto-TE may move overflow elsewhere when this is full':''}.`};}
+  const rttKm=km=>2*km*1.4/FIBER_KM_MS;
+  // Your own network: a gateway, an aggregation switch and a core router in the first city, a core router in each city after that.
+  const own=(c,role,k)=>`${role}.${cityIata(c)}.${me}`;
+  hop(own(src,'gw'+(1+hstr(src)%2),0),ownIp(src,1),0,`${CITY[src].name}, your network`);
+  hop(`ae${hstr(src)%4}.agg1.${cityIata(src)}.${me}`,ownIp(src,2),0.25);
+  hop(`ae${1+hstr(src)%3}.cr1.${cityIata(src)}.${me}`,ownIp(src,3),0.2);
+  const walk=path=>{for(const h of path){const l=h.l,lat=linkLive(l)*2+0.1,js=linkJit(l)*Math.SQRT2,k=hstr(l.id);
+    hop(`et-${k%2}-0-${k%4}.cr${1+k%2}.${cityIata(h.to)}.${me}`,ownIp(h.to,4+k%5),lat,`${CITY[h.to].name} · ${l.kind==='df'?'own dark fiber':l.kind==='vxc'?'fabric circuit':l.ownSub?'your own subsea cable':l.cable?CAB[l.cable].name:'terrestrial wave'} · ${capName(l)}${detourFactor(l)>1?' · rerouted by the carrier today':''}`,js);}};
+  if(to.city){const path=P.path(to.city);lines.unshift(`traceroute to ${cityIata(to.city)}.${me} (${CITY[to.city].name}), 30 hops max`);if(!path){lines.push(' 4  * * *   ← no working path between these POPs');return {text:lines.join('\n'),why:'No path: every route between these cities is down or missing.'};}walk(path);
+    hop(`gw1.${cityIata(to.city)}.${me}`,ownIp(to.city,1),0.3,`${CITY[to.city].name}, your network`);
+    return {text:lines.join('\n'),why:`Internal path over ${path.length} link${path.length===1?'':'s'}, chosen by distance and link metrics${S.te&&S.te.on?'. Auto-TE may move overflow elsewhere when this is full':''}.`};}
   const N=NET[to.net],ex=trExits(to.net).filter(e=>P.dist[e.city]!==undefined);
-  lines.unshift(`traceroute to www.${slug(N.name)}.example (${N.name}, AS${N.asn}) from ${CITY[src].name}, 30 hops max`);
-  if(!ex.length){lines.push(' 2  * * *\n 3  * * *   ← !N network unreachable');return {text:lines.join('\n'),why:`Nothing on your network reaches ${N.name}: no transit, IX session, PNI or cache with a working path from ${CITY[src].name}.`,asPath:null};}
+  lines.unshift(`traceroute to ${rdns(N.id,'dst',ex.length?ex[0].city:src,0)} (${hostIp(N.id,src,0)}), 30 hops max, 60 byte packets`);
+  if(!ex.length){lines.push(' 4  * * *\n 5  * * *   ← !N network unreachable');return {text:lines.join('\n'),why:`Nothing on your network reaches ${N.name}: no transit, IX session, PNI or cache with a working path from ${CITY[src].name}.`,asPath:null};}
   ex.sort((a,b)=>(a.pref==='low'?4:a.rank)-(b.pref==='low'?4:b.rank)||(a.pref==='high'?0:1)-(b.pref==='high'?0:1)||P.dist[a.city]-P.dist[b.city]);
   const e=ex.find(x=>x.used<x.cap*0.999)||ex[0];walk(P.path(e.city));
+  if(e.city!==src||true)hop(`ae${hstr(e.city)%4}.edge1.${cityIata(e.city)}.${me}`,ownIp(e.city,9),0.2,e.k==='t'?'your transit edge':e.k==='ix'?'your exchange edge':e.k==='p'?'your PNI edge':'your cache edge');
   let asPath=[S.asn];
-  if(e.k==='t'){const T=NET[e.tnet];asPath.push(T.asn);hop(`be-${S.asn}.${e.city}.${slug(T.name)}.net`,`203.0.113.${hstr(e.city)%250}`,0.4,`hand-off to ${T.name}`);
-    if(T.id!==N.id){const far=(N.pops&&N.pops.length?N.pops:[e.city]).reduce((a,c)=>kmBetween(e.city,c)<kmBetween(e.city,a)?c:a,(N.pops||[e.city])[0]);const km=CITY[far]?kmBetween(e.city,far):0;
-      hop(`ae-2.core.${far}.${slug(T.name)}.net`,`203.0.113.${(hstr(far)+7)%250}`,km*1.3/100+0.3,CITY[far]?`${T.name} carries it to ${CITY[far].name}`:'');
-      hop(`${slug(N.name)}-peer.${far}.${slug(T.name)}.net`,`198.51.100.${hstr(N.id)%250}`,0.4,`${T.name} hands it to ${N.name}`);}}
-  else if(e.k==='ix'){hop(`${slug(ixName(e.city))}.peering.${e.city}`,`185.0.${hstr(e.city)%250}.${hstr(N.id)%250}`,0.3,`across the ${ixName(e.city)} switch`);}
-  else if(e.k==='p'){hop(`pni-${slug(N.name)}.${e.city}.${me}`,ip(hstr(N.id),3),0.2,'private cross-connect');}
-  else{hop(`cache-${slug(N.name)}.${e.city}.${me}`,ip(hstr(N.id),4),0.1,'embedded cache in your rack');}
-  asPath.push(N.asn);if(e.k!=='c')hop(`www.${slug(N.name)}.example`,`198.51.100.${(hstr(N.id)+1)%250}`,0.5+(e.k==='t'?1:0.2),`${N.name}`);
+  const far0=(N.pops&&N.pops.length?N.pops:[e.city]);
+  const nearest=(from,list)=>list.reduce((a,c)=>kmBetween(from,c)<kmBetween(from,a)?c:a,list[0]);
+  if(e.k==='t'){const T=NET[e.tnet];asPath.push(T.asn);
+    const far=T.id===N.id?e.city:nearest(e.city,far0.filter(c=>CITY[c])),D=kmBetween(e.city,far);
+    hop(rdns(T.id,'edge',e.city,1),hostIp(T.id,e.city,1),0.35,`hand-off to ${T.name} · AS${T.asn}`);
+    hop(rdns(T.id,'bb',e.city,2),hostIp(T.id,e.city,2),0.3);
+    // The carrier's backbone: a few core routers in the metros on the way, never one jump.
+    if(D>150){const mids=T.pops.filter(c=>CITY[c]&&c!==e.city&&c!==far&&kmBetween(e.city,c)+kmBetween(c,far)<1.25*D).sort((a,b)=>kmBetween(e.city,a)-kmBetween(e.city,b));
+      const pick3=[];for(const c of mids){if(pick3.length>=3)break;if(!pick3.length||kmBetween(pick3[pick3.length-1],c)>D*0.2&&kmBetween(e.city,c)>D*0.15)pick3.push(c);}
+      let from=e.city;const route=pick3.concat([far]);
+      for(let i=0;i<route.length;i++){const c=route[i],km=kmBetween(from,c),star=hstr(T.id+c+'star')%100<9&&i<route.length-1;
+        hop(rdns(T.id,'bb',c,3+i),hostIp(T.id,c,3+i),rttKm(km)+0.3,i===route.length-1?`${T.name} carries it to ${CITY[c].name}`:'',0.08,star);from=c;}}
+    if(T.id!==N.id){hop(rdns(T.id,'bb',far,9),hostIp(T.id,far,9),0.3);
+      hop(rdns(N.id,'edge',far,1),hostIp(N.id,far,1),0.4,`${T.name} hands it to ${N.name} · AS${N.asn}`);
+      hop(rdns(N.id,'bb',far,2),hostIp(N.id,far,2),0.35);hop(rdns(N.id,'bb',far,3),hostIp(N.id,far,3),0.3);
+      hop(rdns(N.id,'dst',far,0),hostIp(N.id,src,0),0.6,N.name);}
+    else{hop(rdns(N.id,'bb',far,6),hostIp(N.id,far,6),0.3);hop(rdns(N.id,'dst',far,0),hostIp(N.id,src,0),0.6,N.name);}}
+  else if(e.k==='ix'){hop(rdns(N.id,'edge',e.city,1),`185.1.${hstr(e.city)%250}.${hstr(N.id)%250}`,0.3,`across the ${ixName(e.id||e.city)} switch · ${N.name} AS${N.asn}`);
+    hop(rdns(N.id,'bb',e.city,2),hostIp(N.id,e.city,2),0.35);hop(rdns(N.id,'dst',e.city,0),hostIp(N.id,src,0),0.5,N.name);}
+  else if(e.k==='p'){hop(rdns(N.id,'edge',e.city,1),hostIp(N.id,e.city,1),0.2,`private cross-connect to ${N.name}`);
+    hop(rdns(N.id,'bb',e.city,2),hostIp(N.id,e.city,2),0.35);hop(rdns(N.id,'dst',e.city,0),hostIp(N.id,src,0),0.5,N.name);}
+  else{hop(`cache-${slug(N.name)}.${cityIata(e.city)}.${me}`,ownIp(e.city,10),0.1,'embedded cache in your rack');}
+  asPath.push(N.asn);
   const order={c:'caches beat PNIs',p:'PNIs beat IX peering',ix:'IX peering beats transit',t:'transit is the last resort'}[e.k];
   const cn=cnCity(src)!==!!N.cn?` Crossing the Great Firewall here loses about ${S.ev.gfw>S.day?35:20}% of packets.`:'';
-  return {text:lines.join('\n'),why:`Exit: ${e.lab} in ${CITY[e.city].name}. ${order[0].toUpperCase()+order.slice(1)}, and closer exits win ties${e.pref!=='normal'?`; this one is set to ${e.pref==='high'?'Prefer':'Backup only'}`:''}.${e.used>=e.cap*0.999?' It is full, so some traffic overflows to the next exit.':''}${cn}`,asPath};}
+  return {text:lines.join('\n'),why:`Exit: ${e.lab} in ${CITY[e.city].name}. ${order[0].toUpperCase()+order.slice(1)}, and closer exits win ties${e.pref!=='normal'?`; this one is set to ${e.pref==='high'?'Prefer':'Backup only'}`:''}.${e.used>=e.cap*0.999?' It is full, so some traffic overflows to the next exit.':''}${cn} Addresses are from documentation ranges, so none of them belong to a real network.`,asPath};}
 function traceModal(src,to){const pops=Object.keys(S.pops).sort((a,b)=>CITY[a].name.localeCompare(CITY[b].name));src=src&&S.pops[src]?src:UI.trFrom&&S.pops[UI.trFrom]?UI.trFrom:S.home&&S.pops[S.home]?S.home:pops[0];
   const nets=NETS.slice().sort((a,b)=>b.share-a.share),t=to||UI.trTo||'net:ggl';UI.trFrom=src;UI.trTo=t;
   const r=t.startsWith('net:')?traceroute(src,{net:t.slice(4)}):traceroute(src,{city:t.slice(5)});
@@ -1961,7 +2037,7 @@ function fireFailure(){
     addInc({type,ref:c,until:pp.down,msg:msg+(type==='oops'&&(pp.routers||1)>=2?' Automation pushed it to every router, so redundancy did not help.':''),cost:1500,fix:type==='oops'?'Roll back the config':'Hide the vacuum'});
   }else if(type==='maxpfx'){
     const c=pick(Object.keys(S.ixp));S.ev.ixdown=S.ev.ixdown||{};S.ev.ixdown[c]=Math.max(S.ev.ixdown[c]||0,S.day+1+Math.floor(Math.random()*2));
-    addInc({type,ref:c,until:S.ev.ixdown[c],msg:`A member at ${ixName(c)} leaked the full routing table into the route server. Max-prefix limits tripped everywhere. Peering in ${CITY[c].name} is down.`,cost:0});
+    addInc({type,ref:c,until:S.ev.ixdown[c],msg:`A member at ${ixName(c)} leaked the full routing table into the route server. Max-prefix limits tripped everywhere. Peering in ${CITY[ixCity(c)].name} is down.`,cost:0});
   }else if(type==='prepend'){
     const t=pick(S.transit);t.down=Math.max(t.down||0,S.day+2);addInc({type,ref:t.id,until:t.down,msg:`${NET[t.net].name} fat-fingered a route-map and prepended your AS ${30+Math.floor(Math.random()*60)} times in ${CITY[t.city].name}. Nobody wants that path.`,cost:0});
   }else if(type==='rpki'){
@@ -3528,15 +3604,23 @@ document.addEventListener('input',e=>{const t=e.target;if(t.id==='mpCity'){const
 /* ================= LOOP ================= */
 let last=performance.now(),acc=0,hudT=0,animT=0;
 function frame(now){
+  /* One bad day must never stop the game: an exception in here used to kill the animation loop, and the game froze for good. */
+  try{
   const dt=Math.min(250,now-last);last=now;
   if(ANALYTICS.host&&S&&!S.lost&&UI.speed&&document.visibilityState==='visible'){UI.playMs=(UI.playMs||0)+dt;const m=UI.playMs/60000;for(const k of PLAY_MARKS)if(m>=k)track('play_'+k+'m',true);}
   if(S&&UI.started&&!S.lost&&now-(UI.lastSave||0)>5000)save();
-  if(S&&!S.lost&&!MP.on&&$('modal').hidden&&UI.speed){acc+=dt*UI.speed;let n=0;while(acc>=DAY_MS&&n<4){acc-=DAY_MS;dayTick();n++;}
+  if(S&&!S.lost&&!MP.on&&$('modal').hidden&&UI.speed){acc+=dt*UI.speed;let n=0;
+    while(acc>=DAY_MS&&n<4){acc-=DAY_MS;try{dayTick();}catch(e){simFault(e);}n++;}
     if(n){renderHUD();if(!pressing){renderPanel();renderLeft();if(!$('dash').hidden)renderDash();renderBank();}renderHint();}}
   if(UI.speed&&!(S&&S.lost))animT+=dt; /* paused = frozen dots, waves and clouds */
   draw(animOn()?animT:0);
+  }catch(e){simFault(e);}
   if(!window.__TUBES_TEST__)requestAnimationFrame(frame);
 }
+/* Log it, tell the player once, and carry on. If the same fault repeats every tick, pause instead of spamming. */
+let _faults=0,_faultT=0;
+function simFault(e){try{console.error(e);_faults++;const now=performance.now();if(now-_faultT>10000){_faultT=now;toast(`<b>Something went wrong in the simulation.</b><br>The game kept going. If it keeps happening, save and reload. (${esc(String(e&&e.message||e).slice(0,80))})`,'bad');}
+  if(_faults>40&&UI.speed){UI.speed=0;_faults=0;toast('<b>Paused.</b><br>Too many errors in a row. Your game is saved: reload the page.','bad');}}catch(x){}}
 function boot(data){
   try{UI.muted=localStorage.getItem('sot-mute')==='1';UI.anim=localStorage.getItem('sot-anim')||'auto';UI.hideSmall=localStorage.getItem('sot-small')==='hide';}catch(e){}
   applyAnim();{const b=$('smallBtn');if(b)b.classList.toggle('on',!!UI.hideSmall);}

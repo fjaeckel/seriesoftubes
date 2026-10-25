@@ -74,3 +74,23 @@ test('latency contracts can be met by a sane direct route', () => {
   const max = +(km / 204 * 1.55 + 0.4).toFixed(1);
   assert.ok(ev("bestLat('fra','ams')") < max, 'a direct link beats the contract ceiling');
 });
+
+test('traceroute crosses oceans in many hops with the provider\'s own rDNS and only documentation addresses', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'ntt',tier:1});compute()");
+  const t = ev("traceroute('fra',{net:'cmc'}).text");
+  const hops = t.split('\n').filter((l) => /^\s*\d+ /.test(l));
+  assert.ok(hops.length >= 10, 'a transatlantic path has many hops');
+  assert.match(t, /\.gin\.ntt\.net/);
+  assert.match(t, /ibone\.comcast\.net/);
+  assert.ok(!/\.-\d/.test(t), 'no negative octets');
+  assert.ok(!/\(\d+\.\d+\.\d+\.\d+\)/.test(t.replace(/\((?:100\.66|192\.0\.2|198\.51\.100|203\.0\.113|185\.1)\.[\d.]+\)/g, '')), 'reserved ranges only');
+  assert.deepEqual(errors, []);
+});
+
+test('a thrown error in the day tick does not stop the frame loop', () => {
+  const { ev } = load();
+  ev("ACT.start({});window.__orig=dayTick;dayTick=()=>{throw new Error('boom')};");
+  ev("try{frame(performance.now()+1000)}catch(e){window.__escaped=e}");
+  assert.equal(ev("window.__escaped===undefined"), true);
+});
