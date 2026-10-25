@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { load } = require('./harness');
 
 function setup(ev) {
-  ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0");
+  ev("ACT.start({});S.cash=1e8;S.lvl=4;for(const g of GOALS)S.done[g.id]=0");
 }
 
 test('big selective peers refuse in some cities, with a reason, and only for a while', () => {

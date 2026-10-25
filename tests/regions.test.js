@@ -256,7 +256,7 @@ test('network ids are unique, and the long tail is small and spread over exchang
 
 test('several exchanges per city: overlapping members, cheaper challengers, separate ports', () => {
   const { ev, errors } = load();
-  ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;ACT.buildPop({city:'ams'})");
+  ev("ACT.start({});S.cash=1e8;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.buildPop({city:'ams'})");
   const ids = JSON.parse(ev("JSON.stringify(ixIdsIn('ams'))"));
   assert.equal(ids[0], 'ams');
   assert.ok(ids.length >= 3 && ids.slice(1).every((x, i) => x === `ams~${i + 2}`), ids.join());
@@ -284,7 +284,7 @@ test('several exchanges per city: overlapping members, cheaper challengers, sepa
 
 test('Vodafone only peers for money now, and EU price wars cut port prices', () => {
   const { ev, errors } = load();
-  ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;ACT.buildPop({city:'ams'})");
+  ev("ACT.start({});S.cash=1e8;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.buildPop({city:'ams'})");
   assert.equal(ev("NET.vdp.pol"), 'paid');
   assert.equal(ev("peerOk('vdp','ix','ams').ok"), false);
   assert.ok(ev("peerOk('vdp','pni','ams').fee") > 0);

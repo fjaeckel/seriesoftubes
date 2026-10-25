@@ -1077,12 +1077,20 @@ const BIZ_T={
 };
 const LEVELS=[
  {n:'Local ISP',req:'Start here',unlock:'Enterprises, game servers, hosting, L2VPNs and DDoS protection.'},
- {n:'Regional player',req:'peak 200 Gbps and 3 POPs',unlock:'Downstream ISPs, streaming startups and universities. Gear: Cisco 8201 routers, dark fiber leases, Adtran FSP 3000 DWDM, 400ZR+ optics.'},
- {n:'Serious backbone',req:'peak 1 Tbps and 6 POPs',unlock:'AI GPU data centers and cloud on-ramps. Gear: Juniper PTX 800G routers, 800ZR+ optics, Ciena 6500 ROADM line systems, building your own fiber.'},
- {n:'Big league',req:'peak 3 Tbps, 10 POPs, 3 continents',unlock:'AI training interconnects and hyperscaler DCI deals in the terabits. Gear: 1.6T routers, WaveLogic 6 Extreme 1.6T transponders and C+L-band line systems.'},
+ {n:'Regional player',req:'peak 400 Gbps and 4 POPs',unlock:'Downstream ISPs, streaming startups and universities. Gear: Cisco 8201 routers, dark fiber leases, Adtran FSP 3000 DWDM, 400ZR+ optics.'},
+ {n:'Serious backbone',req:'peak 2.5 Tbps and 9 POPs',unlock:'AI GPU data centers and cloud on-ramps. Gear: Juniper PTX 800G routers, 800ZR+ optics, Ciena 6500 ROADM line systems, building your own fiber.'},
+ {n:'Big league',req:'peak 8 Tbps, 14 POPs, 3 continents',unlock:'AI training interconnects and hyperscaler DCI deals in the terabits. Gear: 1.6T routers, WaveLogic 6 Extreme 1.6T transponders and C+L-band line systems.'},
 ];
 const lvl=()=>(S&&S.lvl)||1;
-function custLevel(){const pops=Object.keys(S.pops).length,pk=S.stats.peak;if(pk>=3000&&pops>=10&&regionsCount()>=3)return 4;if(pk>=1000&&pops>=6)return 3;if(pk>=200&&pops>=3)return 2;return 1;}
+/* ---------- pacing: a network earns its next POP ---------- */
+const POP_STEPS=[[0,1],[120,2],[260,3],[450,4],[700,5],[1000,7],[1600,9],[2500,12],[4000,16],[6500,22],[9500,30],[13000,9999]];
+function popLimit(){const pk=(S.stats&&S.stats.peak)||0;let n=1;for(const [g,c] of POP_STEPS)if(pk>=g)n=c;return n;}
+function popGate(){if(!S||S.mode==='sandbox'||S.scn||(S.lvl||1)>=4)return null;const n=Object.keys(S.pops).length,pk=(S.stats&&S.stats.peak)||0;
+  const full=Object.entries(S.pops).filter(([c,p])=>p.bb).length>0&&Object.entries(S.pops).filter(([c,p])=>p.bb).every(([c,p])=>p.bb.d>=0.9*cityCap(c));
+  if(n>=popLimit()&&!full){const nx=POP_STEPS.find(([g])=>g>pk);return `You run ${n} POP${n>1?'s':''}. The next one opens at a peak of ${fmtG(nx[0])} served, and you are at ${fmtG(pk)}. Grow what you have first.`;}
+  const day=100*n;if(S.day<day)return `Too soon for POP number ${n+1}: it opens on day ${day}. Use the time to grow the city you have.`;return null;}
+const cityCap=c=>CITY[c].P*(1+Math.min(2,(S?S.day:0)/2400));
+function custLevel(){const pops=Object.keys(S.pops).length,pk=S.stats.peak;if(pk>=8000&&pops>=14&&regionsCount()>=3)return 4;if(pk>=2500&&pops>=9)return 3;if(pk>=400&&pops>=4)return 2;return 1;}
 const BIZ_N=['Harbor Bakery','Northfield Power Co.','Redwood Logistics','Cloudline Hosting','Prairie Broadband','Clearwater Telecom','Pixel Harbor Games','Meadow Dairy Corp','Stackbyte Software','Fernhill Systems','Hollis & Grant Law','Kestrel Pet Supplies','Blue Heron Marine','Packwell Pizza','Daybreak Coffee Roasters','Ironbridge Sandwiches','Lakeside Radio','Marlow Dance Hall','Granite Hosting','Open Fiber Trust','The Daily Courier','Maple Street Pharmacy','Copperfield Analytics','Silverline Cinemas','Foxglove Florists','Brightwater Dental','Oakmont Insurance','Tidewater Shipping','Willow Creek Farms','Beacon Print Works','Summit Ski Resort','Halcyon Games Studio','Pinecrest Realty','Anchor Point Brewing','Cobalt Cybersecurity','Driftwood Travel','Evergreen Nurseries','Ashford Accountants','Larkspur Software','Quarry Hill Vineyards','Mapleton Hospital','Sunrise Bakery Group','Vantage Fitness','Westbrook Hotels','Zenith Components','Harvest Table Grocers','Atlas Freight','Juniper Street Studios','Kingfisher Outdoors','Bridgeway Credit Union','Thornton Engineering','Lumina Labs'];
 
 /* ================= GOALS ================= */
@@ -2524,7 +2532,7 @@ function dayTick(){
   for(const i of S.inc.slice())if(i.until<=d){clearInc(i);toast(`<b>Resolved:</b> ${incTitle(i.type).toLowerCase()} is fixed.`,'good');}
   // eyeball growth / churn uses last computed service
   for(const c in S.pops){const p=S.pops[c];if(!p.bb)continue;const sf=sfOf(R,c),P=CITY[c].P;
-    if(sf>=0.9){const g=0.025*(scnRule('boom')?1.5:1)*(p.boost>d?2:1)*(focusOn('growth')?1.2:1)*sf*(0.7+0.6*(R.peerShare||0))*(CITY[c].reg==='AS'&&!CITY[c].cn?1.6:1);p.bb.d+=g*p.bb.d*(1-p.bb.d/P);}
+    if(sf>=0.9){const g=0.0085*(scnRule('boom')?1.5:1)*(p.boost>d?2:1)*(focusOn('growth')?1.2:1)*sf*(0.7+0.6*(R.peerShare||0))*(CITY[c].reg==='AS'&&!CITY[c].cn?1.6:1);p.bb.d+=g*p.bb.d*(1-p.bb.d/(P*(1+Math.min(2,d/2400))));}
     else p.bb.d=Math.max(3,p.bb.d*(1-(0.9-sf)*0.04));}
   compute();
   for(const t of S.transit){(t.hist=t.hist||[]).push(R.useT[t.id]||0);if(t.hist.length>30)t.hist.shift();}
@@ -2712,7 +2720,7 @@ const ACT={
  flyTo:({city})=>{if(!S||!CITY[city])return;closeModal();const C=CITY[city];cam.x=C.x;cam.y=C.y;cam.z=Math.max(cam.z,2.4);selectCity(city);if(innerWidth<760)UI.leftOpen=false;renderLeft();},
  focusCity:({city})=>{selectCity(city);const C=CITY[city];cam.x=C.x;cam.y=C.y;cam.z=Math.max(cam.z,1.2);if(innerWidth<760)UI.leftOpen=false;renderLeft();},
  selLink:({id})=>{UI.sel={type:'link',id};UI.confirm=null;renderPanel();},
- buildPop:({city})=>{if(S.pops[city])return;if(cnCity(city)&&!cnOk()){toast('<b>You need a license first.</b><br>Foreign networks need a joint venture to build in mainland China.','bad');sfx('err');return;}if(!spend(popCost(city)))return;S.pops[city]={day:S.day,bb:null,boost:0,down:0,routers:1,gen:false};floater(CITY[city].x,CITY[city].y-30,'New POP!','#FF4F9A');UI.tab='cust';after();},
+ buildPop:({city})=>{if(S.pops[city])return;{const g=popGate();if(g){toast(`<b>Not yet.</b><br>${esc(g)}`,'bad');sfx('err');return;}}if(cnCity(city)&&!cnOk()){toast('<b>You need a license first.</b><br>Foreign networks need a joint venture to build in mainland China.','bad');sfx('err');return;}if(!spend(popCost(city)))return;S.pops[city]={day:S.day,bb:null,boost:0,down:0,routers:1,gen:false};floater(CITY[city].x,CITY[city].y-30,'New POP!','#FF4F9A');UI.tab='cust';after();},
  launchBB:({city})=>{const p=S.pops[city];if(!p||p.bb)return;const C=CITY[city];if(!spend(bbCost(city)))return;p.bb={d:Math.max(8,C.P*0.03)};floater(C.x,C.y-30,'Eyeballs online!','#16A866');after();},
  ad:({city})=>{const p=S.pops[city];if(!p||!p.bb)return;if(!spend(8000))return;p.boost=S.day+30;floater(CITY[city].x,CITY[city].y-30,'Ad campaign!','#FF8A3D');after();},
  buyTransit:({city,net,tier})=>{tier=+tier;if(scnRule('noTransit')){toast('<b>No transit in this scenario.</b><br>Peering, PNIs, caches and your own fiber only.','bad');sfx('err');return;}if(!S.pops[city]||!NET[net]||!NET[net].price||!NET[net].pops.includes(city)||!PORT[tier])return;if(!portOk(city,tier)){toast(`<b>Your router can't take a ${PORT[tier].n} port.</b><br>Upgrade it in the Infra tab.`,'bad');sfx('err');return;}const ex=S.transit.find(t=>t.city===city&&t.net===net);if(ex&&tier<=ex.tier)return;if(!portGate(city,ex?(PORT_SLOT(tier)-PORT_SLOT(ex.tier))*(ex.n||1):PORT_SLOT(tier)))return;if(!spend(PORT[tier].setup*(ex&&ex.n||1)))return;if(ex)ex.tier=tier;else S.transit.push({id:uid(),city,net,tier,down:0});toast(`<b>${esc(NET[net].name)} transit is live in ${CITY[city].name}.</b><br>Full table received: ~1,000,000 routes.`,'good');after();},
@@ -2830,6 +2838,7 @@ const ACT={
  buildLink:({tier})=>{tier=+tier;const p=UI.pending;if(!p)return;const {a,b}=p;if(sanctionedPair(a,b)){toast('<b>Nobody sells that wave.</b><br>Between Ukraine and Russia only dark fiber is possible, and it risks sanctions.','bad');sfx('err');return;}const km=kmBetween(a,b),sub=isSub(a,b),sib=pairLinks(a,b).filter(l=>l.kind!=='vxc'),same=sib.length>0&&UI.route==='same',border=cnCity(a)!==cnCity(b),mult=(sib.length&&!same?DIVERSE:1)*(border?3*(UI.cnPrem&&(a==='hkg'||b==='hkg')?1.6:1):1);
    if((cnCity(a)||cnCity(b))&&!cnOk())return;
    if(!waveOk(a,b,tier)){toast(`<b>A ${LT[tier].n} wave needs ${esc(waveNeed(tier))} routers at both ends.</b>`,'bad');sfx('err');return;}
+   if(!S.pops[b]){const g=popGate();if(g){toast(`<b>Not yet.</b><br>${esc(g)}`,'bad');sfx('err');return;}}
    const wr=waveRoute(a,b,mult,border);if(!wr){toast('<b>No cable available for that route right now.</b>','bad');sfx('err');return;}const base=Math.round(waveMo(wr.km,wr.sub,tier)*wr.wm),cost=base+(S.pops[b]?0:popCost(b));
    if(!portGate(a,1)||!portGate(b,1))return;if(!spend(cost))return;if(!S.pops[b])S.pops[b]={day:S.day,bb:null,boost:0,down:0,routers:1,gen:false};
    const id=uid();const l={id,a,b,kind:'wave',border,premium:border&&!!UI.cnPrem&&(a==='hkg'||b==='hkg'),tier,km:wr.km,sub:wr.sub,cable:wr.cab,mo:base,mult:wr.wm,trench:wr.cab?'cab:'+wr.cab:(same?(sib[0].trench||sib[0].id):id),cut:0,day:S.day};S.links.push(l);closeModal();
@@ -2886,6 +2895,7 @@ const ACT={
    const km=sc?sc.km:ownSub?Math.round(kmBetween(a,b)*1.18):kmBetween(a,b);
    const own=ownSub||(UI.dfSrc==='build'&&lvl()>=3&&!sc),sys=ownSub?'sub':(DF_SYS[UI.dfSys]&&DF_SYS[UI.dfSys].lvl<=lvl()?UI.dfSys:'lite');if(lvl()<2)return;
    const glass=ownSub?subBuildCost(km,pairs):own?Math.round(dfBuildCost(km)*(1+0.25*(pairs-1))):0;
+   if(!S.pops[b]){const g=popGate();if(g){toast(`<b>Not yet.</b><br>${esc(g)}`,'bad');sfx('err');return;}}
    const up=glass+pairs*(DF_SYS[sys].cost+ampCount(km,sys)*ampCost(sys))+(S.pops[b]?0:popCost(b));if(!spend(up))return;
    if(!S.pops[b])S.pops[b]={day:S.day,bb:null,boost:0,down:0,routers:1,gen:false,rgen:0};
    const sib=pairLinks(a,b).filter(l=>l.kind!=='vxc'),id=uid();
@@ -3034,6 +3044,8 @@ function renderLeft0(){
   let h='';
   if(UI.left==='goals'){
     const cur=GOALS.find(g=>S.done[g.id]===undefined);
+    {const n=Object.keys(S.pops).length,g=popGate(),nx=POP_STEPS.find(([x])=>x>(S.stats.peak||0));
+     if(S.mode!=='sandbox'&&!S.scn&&(S.lvl||1)<4)h+=`<div class="goal cur"><div class="ck">⏳</div><div><div class="gt">${n} POP${n>1?'s':''} · ${g?'next one is locked':'you can open another'}</div><div class="gd">${g?esc(g):'Your network has earned a new POP.'}</div>${nx?`<div class="gr">Peak so far ${fmtG(S.stats.peak||0)} · next step at ${fmtG(nx[0])}</div>`:''}</div></div>`;}
     h+=GOALS.map(g=>{const d=S.done[g.id]!==undefined,c=g===cur;return `<div class="goal ${d?'done':''} ${c?'cur':''}"><div class="ck">${d?'✓':''}</div><div><div class="gt">${esc(g.t)}</div>${c||!d?`<div class="gd">${esc(g.d)}</div>`:''}${!d&&g.r?`<div class="gr">Reward ${fmt$(g.r)}</div>`:''}</div></div>`;}).join('');
     h+=badgeGrid();
   }else if(UI.left==='deals'){
@@ -3093,7 +3105,7 @@ function cityPanel(c){
   if(!p){
     h+=`<div class="scroll">${C.note?`<p class="note" style="margin-top:0">${esc(C.note)}</p>`:''}
     ${C.cn?chinaSection(c):''}${C.cn&&!cnOk()?'':`<section><h3>Open a POP here</h3><p class="lead">A POP (point of presence) is your router in a rack here. Then connect it: lay fiber from one of your POPs, or buy transit right here.</p>
-    ${C.ru?`<p class="why">Includes the mandatory government box in your rack: ${fmt$(RU_BOX)} + ${fmt$(RU_BOX_MO)}/mo. It comes with its own listener.</p>`:''}${btn(`Build POP <small>${fmt$(popCost(c))} + ${fmt$(POP_MO)}/mo</small>`,'buildPop',{city:c},'pink big',S.cash<popCost(c))}
+    ${C.ru?`<p class="why">Includes the mandatory government box in your rack: ${fmt$(RU_BOX)} + ${fmt$(RU_BOX_MO)}/mo. It comes with its own listener.</p>`:''}${btn(`Build POP <small>${fmt$(popCost(c))} + ${fmt$(POP_MO)}/mo</small>`,'buildPop',{city:c},'pink big',S.cash<popCost(c)||!!popGate())}${popGate()?`<p class="why">${esc(popGate())}</p>`:''}
     <p class="note">Or drag from one of your routers to this city to lay fiber and build the POP in one go.</p></section>`}`;
     h+=offersHere(c);
     const tr=NETS.filter(n=>n.price&&n.pops.includes(c));

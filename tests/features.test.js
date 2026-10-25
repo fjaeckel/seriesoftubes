@@ -231,3 +231,36 @@ test('city codes are the ones operators use', () => {
   assert.match(ev("traceroute('mos',{city:'fra'}).text"), /\.msk\./);
   assert.ok(!/\.mos\./.test(ev("traceroute('mos',{city:'fra'}).text")));
 });
+
+test('pacing: the second POP has to be earned, by peak traffic and by time, and the gate explains itself', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});S.cash=1e9;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:S.home})");
+  assert.ok(ev('popGate()'), 'a brand new network cannot open another POP');
+  const before = ev('Object.keys(S.pops).length');
+  ev("ACT.buildPop({city:'ams'})");
+  assert.equal(ev('Object.keys(S.pops).length'), before, 'buildPop refused');
+  assert.match(ev("document.getElementById('toasts').textContent"), /Not yet/);
+  ev("S.stats.peak=130;S.day=50");
+  assert.match(ev('popGate()'), /day 100/, 'peak alone is not enough');
+  ev("S.day=120");
+  assert.equal(ev('popGate()'), null);
+  ev("ACT.buildPop({city:'ams'})");
+  assert.equal(ev('Object.keys(S.pops).length'), before + 1);
+  assert.ok(ev('popGate()'), 'and the third is locked again');
+  ev("S.pops[S.home].bb.d=cityCap(S.home);S.pops.ams.bb={d:cityCap('ams')};S.day=300");
+  assert.equal(ev('popGate()'), null, 'saturated cities open the way even if the peak lags');
+  // sandbox, scenarios and big networks are exempt
+  ev("S.mode='sandbox'");
+  assert.equal(ev('popGate()'), null);
+  assert.deepEqual(errors, []);
+});
+
+test('pacing: early growth is slow and cities keep growing for years', () => {
+  const { ev } = load();
+  ev("ACT.start({});S.cash=1e9;ACT.launchBB({city:S.home});const t=NETS.filter(n=>n.price&&n.pops.includes(S.home))[0];ACT.buyTransit({city:S.home,net:t.id,tier:2});compute()");
+  const d0 = ev('S.pops[S.home].bb.d');
+  for (let i = 0; i < 60; i++) ev('dayTick()');
+  const d60 = ev('S.pops[S.home].bb.d');
+  assert.ok(d60 < d0 * 1.8, `${d0} -> ${d60} in 60 days is too fast`);
+  assert.ok(ev('cityCap(S.home)') > ev('CITY[S.home].P'), 'the market grows');
+});

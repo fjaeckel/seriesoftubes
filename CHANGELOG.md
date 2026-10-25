@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- A much longer game. A new network cannot open its second POP until it has served 120 Gbps and been around for 100
+  days, the third needs 260 Gbps and day 200, and so on (twelve steps up to 13 Tbps). If every city you have is nearly
+  saturated, the next POP opens anyway. Sandbox, scenarios and big networks are exempt. The Goals tab shows where you
+  are and what unlocks the next POP.
+- Cities grow more slowly (about a third of the old rate) but keep growing for years: the market in each city is up to
+  three times larger by year 13. Customer levels ask for more (level 2 at 400 Gbps and 4 POPs, level 3 at 2.5 Tbps and
+  9 POPs, level 4 at 8 Tbps, 14 POPs and 3 continents).
 - Teams meet at public exchanges: buy a port, turn on the route server and peer with the other teams there. Each team
   sets a peering policy (open, selective with a minimum, restrictive, paid with a fee), the exchange view shows who
   you can peer with and why not, and paid-peering fees show up in both teams' revenue and costs.

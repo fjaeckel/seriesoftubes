@@ -5,7 +5,10 @@ the internet really works. Play it at **[seriesoftub.es](https://seriesoftub.es)
 
 ![Series of Tubes](site/images/og-image.png)
 
-You start with one router in one city and grow into a transit-free Tier 1:
+You start with one router in one city and grow into a transit-free Tier 1. It is a long game: a new network has to
+fill its first city before it earns a second POP, and every POP after that is earned the same way, so a run to Tier 1
+takes hours, not minutes.
+
 
 - **Customers:** home broadband ("eyeballs"), enterprises, hosting, L2VPNs, DDoS
   protection, high-frequency traders with latency budgets, AI GPU data centers and

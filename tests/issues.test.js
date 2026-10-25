@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { load } = require('./harness');
 
 function base(ev) {
-  ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'})");
+  ev("ACT.start({});S.cash=1e8;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'})");
 }
 
 test('#4 several transits in one city share the load instead of filling one by one', () => {
