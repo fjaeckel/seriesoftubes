@@ -254,7 +254,7 @@ test('route servers: two teams at the same exchange peer by policy, and the fee 
   } finally { await s.close(); }
 });
 
-test('multiplayer: modals the server cannot draw reach the browser as a request (DE-CIX quote)', async () => {
+test('multiplayer: modals the server cannot draw reach the browser as a request (DE-KICKS quote)', async () => {
   const s = await boot();
   try {
     const A = (await s.signup('alice')).token;

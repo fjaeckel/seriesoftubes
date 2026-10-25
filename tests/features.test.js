@@ -208,7 +208,7 @@ test('timelapse records builds, the route viewer lists customers and team peers'
 test('team panel renders the policy and exchange tables from the server data', async () => {
   const { ev, errors, dom } = boot();
   ev("MP.asn=64512;MP.role='owner';MP.on=true;UI.mpTeam=true;MP.presence=[];MP.chat=[]");
-  ev(`window.mpFetch=mpFetch=async()=>({peers:[],incoming:[{asn:2,name:'Bob'}],outgoing:[],policy:{pol:'paid',min:50,fee:5000},sessions:[{asn:3,name:'Cy',via:'DE-CIX Frankfurt',kind:'ix',fee:-5000,policy:'open'}],ixes:[{ix:'fra',name:'DE-CIX Frankfurt',rs:true,members:[{asn:3,name:'Cy',pol:'open',min:0,fee:0,rs:true,up:true,why:''},{asn:4,name:'Di',pol:'selective',min:100,fee:0,rs:true,up:false,why:'wants 100 Gbps'}]}]})`);
+  ev(`window.mpFetch=mpFetch=async()=>({peers:[],incoming:[{asn:2,name:'Bob'}],outgoing:[],policy:{pol:'paid',min:50,fee:5000},sessions:[{asn:3,name:'Cy',via:'DE-KICKS Frankfurt',kind:'ix',fee:-5000,policy:'open'}],ixes:[{ix:'fra',name:'DE-KICKS Frankfurt',rs:true,members:[{asn:3,name:'Cy',pol:'open',min:0,fee:0,rs:true,up:true,why:''},{asn:4,name:'Di',pol:'selective',min:100,fee:0,rs:true,up:false,why:'wants 100 Gbps'}]}]})`);
   ev("mpTeam()");
   await new Promise((r) => setTimeout(r, 30));
   const t = ev("document.getElementById('mpPeer').textContent");

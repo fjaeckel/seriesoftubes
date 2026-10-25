@@ -18,7 +18,7 @@ test('networks carry their real names and AS numbers', () => {
   const { ev } = load();
   const asn = (id) => ev(`NET.${id}.asn`), name = (id) => ev(`NET.${id}.name`);
   assert.deepEqual([asn('lvl'), asn('cog'), asn('ggl'), asn('cfl'), asn('nfx'), asn('drz'), asn('ntt'), asn('tly')], [3356, 174, 15169, 13335, 2906, 6939, 2914, 1299]);
-  assert.deepEqual([name('lvl'), name('cog'), name('ggl'), name('nfx')], ['Lumen', 'Cogent', 'Google', 'Netflix']);
+  assert.deepEqual([name('lvl'), name('cog'), name('ggl'), name('nfx')], ['Lumen', 'Cogentle', 'Goggle', 'NetChill']);
   assert.equal(ev("new Set(NETS.map(n=>n.asn)).size"), ev('NETS.length'), 'no AS number appears twice');
   assert.equal(ev("NETS.some(n=>/Cogentle|Goggle|Faceplant|Level Tree/.test(JSON.stringify(n)))"), false, 'no cartoon names left');
 });
@@ -73,7 +73,7 @@ test('AS numbers: any free number works, reserved and taken ones do not', () => 
   assert.equal(chk(1).n, 1);
   for (const bad of ['0', '23456', '65535', '4294967295', '-5', '1.5', 'abc', '', '99999999999']) assert.ok(chk(bad).err, `${bad} is refused`);
   assert.match(chk(3356).err, /Lumen/);
-  assert.match(chk(174).err, /Cogent/);
+  assert.match(chk(174).err, /Cogentle/);
   const r = ev('randomAsn()');
   assert.ok(r >= 1 && !ev(`NETS.some(n=>n.asn===${r})`));
   assert.equal(ev("rirFor('fra')"), 'RIPE NCC');
@@ -156,7 +156,7 @@ test('no joke names are left in the customer, bank and network lists', () => {
 
 test('real routers and optics, and dark fiber takes any number of transceivers at once', () => {
   const { ev, errors } = load({ seed: 4 });
-  assert.match(ev("RG.map(r=>r.n).join()"), /Juniper MX204.*Cisco 8201.*PTX10001.*Silicon One G300.*MikroTik.*Edgecore.*Arista 7280.*Arista 7800.*Cisco 8808.*Tomahawk 6.*Cisco 8812.*Silicon One G400.*Nokia 7950.*Nokia 7750/);
+  assert.match(ev("RG.map(r=>r.n).join()"), /Rusty Router 9000.*Cisco 8201.*PTX10001.*Silicon One G300.*MikroTik.*Edgecore.*Arista 7280.*Arista 7800.*Disco 8K.*Tomahawk 6.*Disco 8K Ultra.*Silicon One G400.*Nokia 7950.*Nokia 7750/);
   assert.equal(ev("RG.some(r=>/Rusty|Chonk|Absolute|Arrrhipster|Knockia/.test(r.n))"), false);
   assert.equal(ev("PORT[PORT.length-1].n"), '3.2T', 'the fastest port is the 3.2T of the last levels');
   assert.equal(ev("Object.values(OPT).some(o=>/Ackackia|Sizzle|Sienna/.test(o.n))"), false);

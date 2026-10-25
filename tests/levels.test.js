@@ -44,7 +44,7 @@ test('new routers: the 3.2T main line, side-grades, and 3.2T ports only once unl
   fresh(ev);
   ev('S.lvl=4');
   const up = ev("RG[mainRG(RG[3].cls+1)].n");
-  assert.equal(up, 'Cisco Silicon One G400 system', 'the 1.6T line upgrades to its big sibling');
+  assert.equal(up, 'Absolute Unit 3.2T', 'the 1.6T line upgrades to its big sibling');
   assert.equal(ev("mainRG(1)"), 1, 'old main line keeps its indexes');
   assert.equal(ev('portShown(5)'), false, 'no 3.2T port buttons at level 4');
   assert.equal(ev('waveShown(6)'), false);
@@ -52,9 +52,9 @@ test('new routers: the 3.2T main line, side-grades, and 3.2T ports only once unl
   assert.equal(ev('portShown(5)'), true);
   assert.equal(ev('waveShown(6)'), true);
   ev("S.pops.fra.rgen=3;S.pops.fra.routers=1;ACT.upRouter({city:'fra'})");
-  assert.equal(ev("RG[S.pops.fra.rgen].n"), 'Cisco Silicon One G400 system');
+  assert.equal(ev("RG[S.pops.fra.rgen].n"), 'Absolute Unit 3.2T');
   ev("const g=RG.findIndex(r=>r.lvl===13);ACT.upRouter({city:'fra',g})");
-  assert.equal(ev("RG[S.pops.fra.rgen].n"), 'Cisco Silicon One G400 system', 'the Router at the End of the Universe waits for level 13');
+  assert.equal(ev("RG[S.pops.fra.rgen].n"), 'Absolute Unit 3.2T', 'the Router at the End of the Universe waits for level 13');
   ev("S.lvl=13;ACT.upRouter({city:'fra',g:RG.findIndex(r=>r.lvl===13)})");
   assert.equal(ev("RG[S.pops.fra.rgen].ports"), 256);
   // every model's numbers make sense for its class

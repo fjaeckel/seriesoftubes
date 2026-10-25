@@ -73,7 +73,7 @@ test('remote peering is offered but costs more, gives less and gets refused more
   assert.deepEqual(errors, []);
 });
 
-test('DE-CIX hides prices, haggles, harmonises upwards, auto-enrolls add-ons and fights to keep you', () => {
+test('DE-KICKS hides prices, haggles, harmonises upwards, auto-enrolls add-ons and fights to keep you', () => {
   const { ev, errors } = load();
   setup(ev);
   ev("selectCity('fra');ACT.tab({t:'peer'})");
@@ -159,7 +159,7 @@ test('Amsterdam has Frys-IX, with free 10G and 100G ports and paid larger ports'
   assert.equal(ev("ixPortMo('ams~3',2)"), ev("Math.round(PORT[2].ix*ixMul('ams~3'))"), '400G is a paid game tier');
   ev("ACT.buyIx({city:'ams',tier:1});ACT.rs({city:'ams~3'});compute()");
   assert.ok(ev("ixSessions('ams~3').has('drz')"));
-  assert.equal(ev("ixSessions('ams~3').has('ggl')"), false, 'Google is not a member');
+  assert.equal(ev("ixSessions('ams~3').has('ggl')"), false, 'Goggle is not a member');
   assert.equal(ev("R.useIx['ams~3']!==undefined&&R.useIx.ams!==undefined"), true, 'both fabrics carry traffic');
   assert.equal(ev("R.cost.ix"), ev("ixPortMo('ams',1)"), "only the AMS-IX port is billed");
   ev("selectCity('ams');ACT.tab({t:'peer'})");
@@ -190,8 +190,8 @@ test('community exchanges are wired up in every city, and Barcelona has Catnip-I
   setup(ev);
   const exchanges = ['ams~3', 'mad~2', 'fra~2', 'lon~2', 'jnb~2', 'syd~2', 'tok~2'];
   assert.deepEqual(JSON.parse(ev("JSON.stringify(ixIdsIn('nyc').slice(0,2))")), ['nyc', 'nyc~2'], 'NYC keeps its existing exchanges first');
-  assert.equal(ev("ixName('nyc')"), 'DE-CIX New York');
-  assert.equal(ev("isDk('nyc')"), true, 'DE-CIX New York is already part of DE-CIX Group');
+  assert.equal(ev("ixName('nyc')"), 'DE-KICKS New York');
+  assert.equal(ev("isDk('nyc')"), true, 'DE-KICKS New York is already part of DE-KICKS Group');
   const bad = ev("XIX.filter(x=>x.core).map(x=>x.id).flatMap(k=>XIXM[k].members.filter(id=>!NET[id]||!NET[id].pops.includes(XIXM[k].c)).map(id=>k+':'+id)).join()");
   assert.equal(bad, '', 'every member has a POP in the city');
   assert.ok(ev("Object.keys(XIXM).every(k=>CITY[XIXM[k].c].ix&&ixIdsIn(XIXM[k].c).includes(k))"), 'each sits beside a main IX');

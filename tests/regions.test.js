@@ -282,7 +282,7 @@ test('several exchanges per city: overlapping members, cheaper challengers, sepa
   assert.deepEqual(errors, []);
 });
 
-test('Vodafone only peers for money now, and EU price wars cut port prices', () => {
+test('Voda-Phony only peers for money now, and EU price wars cut port prices', () => {
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e8;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.buildPop({city:'ams'})");
   assert.equal(ev("NET.vdp.pol"), 'paid');
@@ -359,7 +359,7 @@ test('Korea: sender pays, pricey transit, Glitch leaves and Meta detours', () =>
   assert.deepEqual(errors, []);
 });
 
-test('TI Sparkle is a Tier 1 now, but old saves keep the five they played for', () => {
+test('Sparkly Seabone is a Tier 1 now, but old saves keep the five they played for', () => {
   const { ev, errors } = load();
   ev("ACT.start({})");
   assert.equal(ev("NET.skl.type"), 't1');
@@ -467,13 +467,13 @@ test('#76 Kansas City, Calgary, Vancouver and Ottawa, with two more Canadian gia
   assert.deepEqual(errors, []);
 });
 
-test('#70 Google throttling in Russia no longer counts as traffic you failed to deliver', () => {
+test('#70 Goggle throttling in Russia no longer counts as traffic you failed to deliver', () => {
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});ACT.buildPop({city:'mos'});ACT.launchBB({city:'mos'})");
   ev("S.pops.fra.rgen=S.pops.mos.rgen=3;S.pops.fra.routers=S.pops.mos.routers=3;ACT.buyTransit({city:'fra',net:'cog',tier:4});ACT.lagT({id:S.transit[0].id,d:1});UI.via=null;UI.lmode='wave';openLinkModal('fra','mos');ACT.buildLink({tier:4});closeModal();S.pops.mos.bb.d=300;compute()");
   assert.equal(ev('S.links.length'), 1);
   assert.ok(ev("sfOf(R,'mos')") > 0.99, `Moscow is fully served (${ev("sfOf(R,'mos')")})`);
-  // demand toward Google is half of what it would be without the throttle
+  // demand toward Goggle is half of what it would be without the throttle
   const g = ev("NSH_RU.ggl"), d0 = ev("R.cityEye.mos");
   assert.ok(Math.abs(ev("R.cityDem.mos") - d0 * (1 - g / 2)) < 1e-6);
   // a game-server customer judged on the city's service stays happy

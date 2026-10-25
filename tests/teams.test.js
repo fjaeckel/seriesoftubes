@@ -2,11 +2,11 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const T = require('../server/teams');
 
-const net = (asn, o = {}) => ({ asn, name: 'Net' + asn, policy: o.policy, peers: o.peers || [], ix: { ports: o.ports || ['fra'], rs: o.rs || ['fra'], names: { fra: 'DE-CIX Frankfurt', ams: 'AMS-IX' }, served: o.served ?? 10 } });
+const net = (asn, o = {}) => ({ asn, name: 'Net' + asn, policy: o.policy, peers: o.peers || [], ix: { ports: o.ports || ['fra'], rs: o.rs || ['fra'], names: { fra: 'DE-KICKS Frankfurt', ams: 'AMS-IX' }, served: o.served ?? 10 } });
 
 test('open and open meet on a shared route server, for free', () => {
   const m = T.computePeers([net(1), net(2)]);
-  assert.deepEqual(m.get(1).map((p) => [p.asn, p.via, p.fee, p.kind]), [[2, 'DE-CIX Frankfurt', 0, 'ix']]);
+  assert.deepEqual(m.get(1).map((p) => [p.asn, p.via, p.fee, p.kind]), [[2, 'DE-KICKS Frankfurt', 0, 'ix']]);
   assert.equal(m.get(2)[0].asn, 1);
 });
 

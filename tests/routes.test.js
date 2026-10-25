@@ -15,7 +15,7 @@ test('route viewer: your AS, upstreams, peers, prefixes and the AS path to every
   assert.equal(v.asn, ev('S.asn'));
   assert.equal(v.upstreams.length, 1);
   assert.equal(v.upstreams[0].asn, 174);
-  assert.equal(v.upstreams[0].name, 'Cogent');
+  assert.equal(v.upstreams[0].name, 'Cogentle');
   assert.ok(v.peers.length > 3, 'the route server brings peers');
   assert.ok(v.peers.every((p) => p.sessions.length && p.asn > 0));
   assert.ok(v.prefixes.some((p) => p.family === 4 && /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.\d+\.\d+\/22$/.test(p.prefix)), 'IPv4 from CGNAT space, never real addresses');

@@ -156,7 +156,7 @@ test('RouteScript: parses safely, reports errors helpfully, and changes routing'
   ev("ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.buyTransit({city:'fra',net:'lvl',tier:1});ACT.buyTE();compute()");
   let p = JSON.parse(ev("JSON.stringify(teParse('spill at 80%\\ncap transit cogent at 3 gbps\\nprefer ix for google\\nnonsense here\\navoid transit for gogle'))"));
   assert.equal(p.errors.length, 2, 'the nonsense line and the typo fail');
-  assert.match(p.errors[1], /Did you mean Google/, 'typos get a suggestion');
+  assert.match(p.errors[1], /Did you mean Goggle/, 'typos get a suggestion');
   p = JSON.parse(ev("JSON.stringify(teParse('avoid transit for zzzzqqq').errors)"));
   assert.match(p[0], /unknown network/);
   assert.match(ev("teParse('drain pariss').errors[0]"), /Did you mean Paris/);
@@ -164,7 +164,7 @@ test('RouteScript: parses safely, reports errors helpfully, and changes routing'
   const cog = "R.useT[S.transit.find(t=>t.net==='cog').id]||0";
   const before = ev(cog);
   ev("ACT.teEdit();document.getElementById('teSrc').value='cap transit cogent at 3 gbps';ACT.teDeploy()");
-  assert.ok(ev(cog) <= 3.0001 && before > 3, `Cogent capped (${before} -> ${ev(cog)})`);
+  assert.ok(ev(cog) <= 3.0001 && before > 3, `Cogentle capped (${before} -> ${ev(cog)})`);
   assert.ok(ev("R.useT[S.transit.find(t=>t.net==='lvl').id]") > 0, 'overflow went to the other upstream');
   // a fat-fingered deploy earns its badge
   ev("ACT.teEdit();document.getElementById('teSrc').value='drain frankfurt\\ncap transit lumen at 0 gbps\\ncap transit cogent at 0 gbps';ACT.teDeploy();checkGoals()");
