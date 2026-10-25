@@ -5,6 +5,8 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY server ./server
 COPY site ./site
+# The data volume has to belong to the unprivileged user or the server cannot save anything.
+RUN mkdir -p /data && chown node:node /data
 ENV HOST=0.0.0.0 PORT=8080 DATA_DIR=/data NODE_ENV=production
 VOLUME /data
 EXPOSE 8080
