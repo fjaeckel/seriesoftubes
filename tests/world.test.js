@@ -180,7 +180,7 @@ test('real routers and optics, and dark fiber takes any number of transceivers a
   assert.match(ev(`chWhy(S.links.find(l=>l.id==='${id}'),'tp16')`), /Ciena 6500 ROADM/);
   ev(`ACT.upSys({id:'${id}',to:'roadm'})`);
   assert.equal(ev(`chWhy(S.links.find(l=>l.id==='${id}'),'tp16')`), '');
-  ev(`ACT.upSys({id:'${id}',to:'cl'})`);
+  ev(`S.lvl=6;ACT.upSys({id:'${id}'})`);
   assert.equal(ev(`S.links.find(l=>l.id==='${id}').sys`), 'cl');
   assert.deepEqual(errors, []);
 });
