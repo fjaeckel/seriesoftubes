@@ -64,17 +64,6 @@ All notable changes to this project are documented here. The project follows
   7750, MikroTik, an Edgecore SONiC box and the Tomahawk 6 and Silicon One G300 class for 1.6T ports), optics are real
   (100ZR, 400ZR+, 800ZR+, ICE-X, WaveLogic 6) and the line systems are Adtran and Ciena, with a new C+L-band system.
   No router sells ports faster than 1.6T yet, so there is no 3.2T.
-- Dark fiber now follows physics. Every channel takes a slice of spectrum (a 400G channel 75 GHz, a 1.6T channel 240 GHz) and
-  every fiber pair has a line system's worth of it (C-band 4.8 THz, C+L 9.6 THz), so a pair carries about 25 Tbps. Light as
-  many fiber pairs as you like on a link (type the number), each with its own line system, for hundreds of Tbps on one link.
-- Realistic transceivers: reach trades against speed. Long-haul modes from 1.6T down to 200G reach 15,000 km, a subsea line
-  system with powered repeaters (usable on land as well) and subsea 800G to 200G terminals reach across oceans. Past an
-  optic's reach it needs regeneration sites, which multiply its price, so 9,000 km terrestrial links work. Shelf
-  transponders take a slice of a router port, pluggables a whole one.
-- Tier 1 networks can build their own subsea cable between two coastal cities: choose the fiber pairs, wait about three
-  years, light it, sell what you do not need. It is a very expensive way to own the ocean.
-- DDoS scrubbing centers: run as many as you like. An attack is pulled to the nearest center and hairpinned across your
-  backbone, so a center far from the victim adds latency and works worse.
 - Build your own datacenter in any POP: choose racks, kW per rack and a tier, wait for construction, then rent racks and
   cross-connects to the market. Power is billed at the local price, and occupancy depends on the city and on how many
   carriers are in the building. POP rent is waived while it is open.
