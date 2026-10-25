@@ -2,6 +2,7 @@
 // ticks it, applies players' commands to it and pushes snapshots to everybody on the team.
 'use strict';
 const { load } = require('./headless');
+const teams = require('./teams');
 
 const DAY_MS = 2500;      // same as the browser: one in-game day per 2.5 s at 1x
 const STEP_MS = 250;
@@ -26,13 +27,16 @@ class Room {
     this.refresh(); this.persist();
   }
   /** Tell the game which other teams this network peers with (names come from the server's records). */
-  syncPeers(quiet) {
-    const list = (this.net.peers || []).map((a) => this.host.store.nets.get(a)).filter(Boolean).map((n) => ({ asn: n.asn, name: n.name }));
-    this.win.__tp = JSON.stringify(list); this.ev('setTeamPeers(JSON.parse(__tp))');
+  syncPeers(quiet, list) {
+    if (!list) list = (this.host.peerMap().get(this.asn) || []);
+    const json = JSON.stringify(list);
+    if (json === this.tpJson) return;
+    this.tpJson = json; this.win.__tp = json; this.ev('setTeamPeers(JSON.parse(__tp));compute()');
     if (!quiet) { this.refresh(); this.saveDirty = true; }
   }
   refresh() {
     this.stateJson = this.ev('JSON.stringify(serverState())');
+    try { this.net.ix = JSON.parse(this.ev('JSON.stringify(teamIx())')); } catch (_) {}
     this.speed = this.ev('UI.speed');
     this.version++; this.dirty = true;
   }
@@ -107,6 +111,7 @@ class GameHost {
     this.rooms = new Map();
     this.last = Date.now();
     this.timer = setInterval(() => this.step(), STEP_MS);
+    this.teamAt = 0;
     this.timer.unref && this.timer.unref();
   }
   /** The loaded room for a network, loading it from its save if needed. */
@@ -127,11 +132,21 @@ class GameHost {
   }
   step() {
     const now = Date.now(), dt = Math.min(1000, now - this.last); this.last = now;
+    if (now - this.teamAt > 3000) { this.teamAt = now; try { this.teamSync(); } catch (e) { console.error('teamSync', e); } }
     for (const r of [...this.rooms.values()]) {
       try { r.step(dt, now); } catch (e) { console.error('room', r.asn, e); }
       if (r.clients.size === 0 && now - r.lastTouch > this.idleUnloadMs) { r.close(); this.rooms.delete(r.asn); }
     }
   }
+  /** Every network's team-peering view, recomputed when anything it depends on changes. */
+  peerMap() {
+    const nets = [...this.store.nets.values()].map((n) => ({ asn: n.asn, name: n.name, policy: n.policy, ix: n.ix || {}, peers: n.peers || [] }));
+    const key = JSON.stringify(nets);
+    if (key !== this._peerKey) { this._peerKey = key; this._peerMap = teams.computePeers(nets); this._peerNets = nets; }
+    return this._peerMap;
+  }
+  exchanges(asn) { this.peerMap(); const me = this._peerNets.find((n) => n.asn === Number(asn)); return me ? teams.exchangeView(this._peerNets, me) : []; }
+  teamSync() { const m = this.peerMap(); for (const r of this.rooms.values()) { try { r.syncPeers(false, m.get(r.asn) || []); } catch (e) { console.error('peers', r.asn, e); } } }
   drop(asn) { const r = this.rooms.get(Number(asn)); if (r) { r.clients.clear(); try { r.win.close(); } catch (_) {} this.rooms.delete(Number(asn)); } }
   closeAll() { clearInterval(this.timer); for (const r of this.rooms.values()) r.close(); this.rooms.clear(); }
   online(asn) { const r = this.rooms.get(Number(asn)); return r ? r.online : 0; }

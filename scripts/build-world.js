@@ -28,6 +28,7 @@ const BEGIN = '/*__WORLD_BEGIN__*/', END = '/*__WORLD_END__*/';
 const SRC = {
   'cities15000.zip': 'https://download.geonames.org/export/dump/cities15000.zip',
   'countryInfo.txt': 'https://download.geonames.org/export/dump/countryInfo.txt',
+  'airports.dat': 'https://raw.githubusercontent.com/jpatokal/openflights/master/data/airports.dat',
   ...Object.fromEntries(['fac', 'ix', 'ixfac', 'ixlan', 'net', 'netfac', 'netixlan', 'carrierfac'].map((t) => [t + '.json', `https://www.peeringdb.com/api/${t}?depth=0`])),
 };
 fs.mkdirSync(CACHE, { recursive: true });
@@ -175,16 +176,49 @@ const cleanFac = (s, city) => { let t = String(s).replace(/\s+/g, ' ').trim(); c
 const dcOf = (m) => { const f = m.facs.slice().sort((a, b) => (b.net_count || 0) - (a.net_count || 0) || a.id - b.id)[0]; return f ? cleanFac(f.name) : ''; };
 const round = (v, d = 2) => +v.toFixed(d);
 
+/* ---------- short codes: what operators actually write in router names ---------- */
+// IATA airport codes (OpenFlights) matched by place, with the codes the industry uses where they differ from the
+// airport (Moscow is msk, Tokyo is tyo, Seoul is sel). The curated base cities keep their ids unless listed here.
+const CODE_OVERRIDE = { mos: 'msk', tok: 'tyo', kyv: 'iev', cbo: 'cmb', atn: 'atl', lag: 'los', stg: 'str', icn: 'sel', ash: 'iad', tor: 'yyz', mtl: 'yul', hou: 'iah', dal: 'dfw', sha: 'sha', pek: 'pek', rek: 'rkv' };
+const airports = [];
+for (const l of fs.readFileSync(path.join(CACHE, 'airports.dat'), 'utf8').split('\n')) {
+  const f = []; let cur = '', q = false; for (const ch of l) { if (ch === '"') q = !q; else if (ch === ',' && !q) { f.push(cur); cur = ''; } else cur += ch; } f.push(cur);
+  if (!/^[A-Z]{3}$/.test(f[4] || '') || f[12] !== 'airport') continue;
+  airports.push({ iata: f[4].toLowerCase(), name: lower(f[1]), city: lower(f[2]), lat: +f[6], lon: +f[7] });
+}
+const apGrid = new Map();
+for (const a of airports) { const k = Math.floor(a.lat) + ',' + Math.floor(a.lon); if (!apGrid.has(k)) apGrid.set(k, []); apGrid.get(k).push(a); }
+const used = new Set(Object.values(CODE_OVERRIDE));
+for (const m of keep) if (m.base && !CODE_OVERRIDE[m.id]) used.add(m.id);
+const codeOf = {};
+for (const m of keep) {
+  if (m.base) { codeOf[m.id] = CODE_OVERRIDE[m.id] || m.id; continue; }
+}
+for (const m of keep) {
+  if (m.base) continue;
+  const nm = lower(m.name), cand = [];
+  for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (const a of apGrid.get((Math.floor(m.lat) + i) + ',' + (Math.floor(m.lon) + j)) || []) { const d = hav(m, a); if (d <= 90) cand.push({ a, d, hit: a.city === nm || a.city.startsWith(nm) || nm.startsWith(a.city) }); }
+  const intl = (c) => /international/.test(c.a.name) ? 1 : 0;
+  cand.sort((x, y) => (y.hit - x.hit) || (intl(y) - intl(x)) || (x.d - y.d));
+  let code = (cand.find((c) => c.hit && !used.has(c.a.iata)) || cand.find((c) => !used.has(c.a.iata) && c.d < 40) || {}).a;
+  code = code && code.iata;
+  if (!code) { const w = lower(m.name).replace(/[^a-z]/g, ''); for (const t of [w.slice(0, 3), w.replace(/[aeiou]/g, '').slice(0, 3), w.slice(0, 4), w.slice(0, 2) + w.slice(-1)]) if (t.length >= 3 && !used.has(t)) { code = t; break; } }
+  if (!code) { let n = 2; const w = (lower(m.name).replace(/[^a-z]/g, '') + 'xxx').slice(0, 2); while (used.has(w + n)) n++; code = w + n; }
+  used.add(code); codeOf[m.id] = code;
+}
+
 const world = {
   snapshot: new Date().toISOString().slice(0, 10),
   cc: {},
   base: {},
+  code: {},
   cities: [],
   ix: {},
   nets: {},
   added: NETS.added.map((n) => ({ id: n.id, name: n.name, asn: n.asns[0], type: n.type, pol: n.pol, ...(n.minIx ? { minIx: n.minIx, minPni: n.minPni } : {}), share: n.share, ...(n.price ? { price: n.price } : {}), col: n.col })),
 };
 for (const m of keep) {
+  if (codeOf[m.id] !== m.id) world.code[m.id] = codeOf[m.id];
   const cont = continent[m.cc];
   world.cc[m.cc] = cont === 'NA' ? 'AM' : cont === 'SA' ? 'SA' : cont === 'EU' ? 'EU' : cont === 'AF' ? 'AF' : cont === 'OC' ? 'OC' : 'AS';
   const exch = m.ixs.map((x) => [x.name, x.nets.join(','), x.size]);

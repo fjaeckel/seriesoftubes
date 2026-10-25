@@ -30,8 +30,10 @@ You start with one router in one city and grow into a transit-free Tier 1:
   links and strategy stay with you. People level up, want raises, make mistakes and get poached.
 - **A loop worth coming back to:** contracts with streaks, a year-end review where you pick a focus, legacy points
   that buy permanent perks across games, and deal flow (acquire a local ISP, bulk IPv4, sponsorships, star hires).
-- **Teams peer with each other:** in multiplayer, teams can ask each other for peering and show up in each
-  other's route viewer.
+- **Teams peer with each other:** in multiplayer, buy a port at a public exchange, turn on the route server and meet
+  the other teams there. Every team sets its own peering policy (open, selective with a traffic minimum, restrictive,
+  or paid with a monthly fee for smaller networks), and the fees really move between their bank accounts. Bilateral
+  requests work under any policy.
 - **Historical scenarios:** the 2021 Facebook outage, the 2008 YouTube hijack, the 2016 Dyn attack and the Luzon
   Strait earthquakes.
 - **Things break, constantly:** backhoes, sharks, fat fingers, route leaks, RPKI
@@ -110,6 +112,9 @@ How full it gets depends on the city and on how many carriers are in the buildin
 POP either.
 
 ## The real world in the game
+
+Cities carry the short codes operators really write in router names: IATA codes from OpenFlights, with the
+industry's own where they differ (msk, tyo, sel, iad), so a Moscow router is `cr1.msk`, not `cr1.mos`.
 
 * **5,000+ cities.** Every metro with 100k+ people (GeoNames) and every metro that hosts a registered
   interconnection facility or exchange (PeeringDB). Pick any of them as your home city.

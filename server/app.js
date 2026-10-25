@@ -58,8 +58,13 @@ function createApp(opts = {}) {
   const needNet = (asn) => { const n = store.nets.get(Number(asn)); if (!n) throw new H.HttpError(404, 'No network with that AS number'); return n; };
   const peeringOf = (n) => {
     const row = (a) => { const o = store.nets.get(a); return o ? { asn: a, name: o.name } : null; };
-    return { peers: (n.peers || []).map(row).filter(Boolean), incoming: (n.peerIn || []).map(row).filter(Boolean), outgoing: (n.peerOut || []).map(row).filter(Boolean) };
+    return {
+      peers: (n.peers || []).map(row).filter(Boolean), incoming: (n.peerIn || []).map(row).filter(Boolean), outgoing: (n.peerOut || []).map(row).filter(Boolean),
+      policy: { pol: 'open', min: 0, fee: 0, ...(n.policy || {}) }, ixes: host.exchanges(n.asn),
+      sessions: (host.peerMap().get(n.asn) || []),
+    };
   };
+
   const cleanName = (s, max = 24) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, max);
   const netMeta = (n) => ({ asn: n.asn, name: n.name, tier: (n.summary || {}).tier || 'Tier 3', day: (n.summary || {}).day || 0, reach: (n.summary || {}).reach, pops: (n.summary || {}).pops || 1, online: host.online(n.asn), members: Object.keys(n.members).length, created: n.created });
   const memberList = (n) => Object.entries(n.members).map(([uid, role]) => ({ id: uid, name: (store.users.get(uid) || {}).name || '?', role }));
@@ -164,6 +169,15 @@ function createApp(opts = {}) {
     }
     // Peering between teams: one network asks another, the other accepts, and both see each other as a peer.
     if (sub === 'peering' && m === 'GET') return H.json(res, 200, peeringOf(net));
+    if (m === 'POST' && sub === 'policy') {
+      if (role === 'viewer') throw new H.HttpError(403, 'Viewers cannot change the peering policy.');
+      const b = await H.readJson(req, 1024), pol = String(b.pol || '');
+      if (!['open', 'selective', 'restrictive', 'paid'].includes(pol)) throw new H.HttpError(400, 'Policy must be open, selective, restrictive or paid.');
+      const num = (v, max) => { v = Number(v); return Number.isFinite(v) ? Math.max(0, Math.min(max, Math.round(v))) : 0; };
+      net.policy = { pol, min: num(b.min, 100000), fee: num(b.fee, 1e6) };
+      store.save(); host.teamSync();
+      return H.json(res, 200, peeringOf(net));
+    }
     if (m === 'POST' && (sub === 'peerreq' || sub === 'peeracc' || sub === 'peerdel')) {
       if (role === 'viewer') throw new H.HttpError(403, 'Viewers cannot change peering.');
       if (!limiter.allow('peer:' + user.id, 20, 3600e3)) throw new H.HttpError(429, 'Too many peering changes. Try again later.');
@@ -185,7 +199,8 @@ function createApp(opts = {}) {
         note = `AS${net.asn} ended peering with AS${asn}.`;
       }
       store.save();
-      for (const n of [net, other]) { const r = host.rooms.get(n.asn); if (r) { r.syncPeers(); if (note) r.say('NOC', note); } }
+      host.teamSync();
+      for (const n of [net, other]) { const r = host.rooms.get(n.asn); if (r && note) r.say('NOC', note); }
       return H.json(res, 200, peeringOf(net));
     }
     if (m === 'POST' && sub === 'cmd') return H.json(res, 200, command(net, user, role, await H.readJson(req, 16 * 1024)));

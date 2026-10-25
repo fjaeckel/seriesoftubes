@@ -204,3 +204,30 @@ test('timelapse records builds, the route viewer lists customers and team peers'
   assert.ok(Array.isArray(JSON.parse(ev('JSON.stringify(routeView().customers)'))));
   assert.deepEqual(errors, []);
 });
+
+test('team panel renders the policy and exchange tables from the server data', async () => {
+  const { ev, errors, dom } = boot();
+  ev("MP.asn=64512;MP.role='owner';MP.on=true;UI.mpTeam=true;MP.presence=[];MP.chat=[]");
+  ev(`window.mpFetch=mpFetch=async()=>({peers:[],incoming:[{asn:2,name:'Bob'}],outgoing:[],policy:{pol:'paid',min:50,fee:5000},sessions:[{asn:3,name:'Cy',via:'DE-CIX Frankfurt',kind:'ix',fee:-5000,policy:'open'}],ixes:[{ix:'fra',name:'DE-CIX Frankfurt',rs:true,members:[{asn:3,name:'Cy',pol:'open',min:0,fee:0,rs:true,up:true,why:''},{asn:4,name:'Di',pol:'selective',min:100,fee:0,rs:true,up:false,why:'wants 100 Gbps'}]}]})`);
+  ev("mpTeam()");
+  await new Promise((r) => setTimeout(r, 30));
+  const t = ev("document.getElementById('mpPeer').textContent");
+  assert.match(t, /Our peering policy/);
+  assert.match(t, /session up/);
+  assert.match(t, /wants 100 Gbps/);
+  assert.match(t, /you pay \$5\.0k\/mo/);
+  assert.deepEqual(errors, []);
+});
+
+test('city codes are the ones operators use', () => {
+  const { ev } = boot();
+  assert.equal(ev("cityCode('mos')"), 'msk');
+  assert.equal(ev("cityCode('tok')"), 'tyo');
+  assert.equal(ev("cityCode('fra')"), 'fra');
+  assert.equal(ev("cityCode('kyv')"), 'iev');
+  assert.ok(ev("Object.keys(CITY).every(c=>/^[a-z0-9]{3,4}$/.test(cityCode(c)))"));
+  assert.equal(ev("new Set(Object.keys(CITY).map(cityCode)).size"), ev("Object.keys(CITY).length"), 'codes are unique');
+  ev("ACT.start({});S.cash=1e9;S.lvl=4;ACT.buildPop({city:'mos'});S.links.push({id:'m1',a:'fra',b:'mos',kind:'wave',tier:1,km:2000,mo:1,mult:1,trench:'m1',cut:0,day:0});compute()");
+  assert.match(ev("traceroute('mos',{city:'fra'}).text"), /\.msk\./);
+  assert.ok(!/\.mos\./.test(ev("traceroute('mos',{city:'fra'}).text")));
+});

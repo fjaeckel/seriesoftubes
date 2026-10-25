@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Teams meet at public exchanges: buy a port, turn on the route server and peer with the other teams there. Each team
+  sets a peering policy (open, selective with a minimum, restrictive, paid with a fee), the exchange view shows who
+  you can peer with and why not, and paid-peering fees show up in both teams' revenue and costs.
+- City short codes are the real ones: IATA codes (OpenFlights) and the industry's own where they differ. Moscow is
+  `msk`, Tokyo `tyo`, Seoul `sel`, and every city has one in router names and the city panel.
 - Staff. Hire sales engineers, NOC engineers, senior NOC engineers, network architects, peering coordinators and
   marketing managers. Per-role rules (off, ask, auto) with a monthly budget and a cash reserve, an inbox of proposals,
   skills, XP, traits, raises, mistakes and poaching, and a list of what is worth doing right now. They only improve

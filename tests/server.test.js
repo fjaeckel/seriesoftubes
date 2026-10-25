@@ -223,3 +223,33 @@ test('team peering: ask, accept, see each other in the route viewer, end it', as
     assert.equal(JSON.parse(room.ev('JSON.stringify(routeView().peers.filter(p=>p.type==="team").length)')), 0);
   } finally { await s.close(); }
 });
+
+test('route servers: two teams at the same exchange peer by policy, and the fee shows up in the game', async () => {
+  const s = await boot();
+  try {
+    const A = (await s.signup('alice')).token, B = (await s.signup('bob')).token;
+    await s.api('POST', '/api/networks', { name: 'Alpha', asn: 64512, home: 'fra' }, A);
+    await s.api('POST', '/api/networks', { name: 'Beta', asn: 4200000007, home: 'fra' }, B);
+    const host = s.app.host, ra = host.get(64512), rb = host.get(4200000007);
+    const up = "ACT.start&&0;S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.buyIx({city:'fra',tier:1,signed:true});ACT.rs({city:'fra'});compute()";
+    ra.ev(up); rb.ev(up); ra.refresh(); rb.refresh(); host.teamSync();
+    let r = await s.api('GET', '/api/networks/64512/peering', null, A);
+    assert.equal(r.b.sessions.length, 1, 'open meets open on the route server');
+    assert.equal(r.b.sessions[0].asn, 4200000007);
+    assert.equal(r.b.ixes[0].members[0].up, true);
+    // Alpha goes paid: Beta is below the minimum, so it pays every month
+    r = await s.api('POST', '/api/networks/64512/policy', { pol: 'paid', min: 1000, fee: 7000 }, A);
+    assert.equal(r.s, 200); assert.equal(r.b.sessions[0].fee, 7000);
+    const costBefore = rb.ev('R.costMo'), revBefore = ra.ev('R.revMo');
+    host.teamSync();
+    assert.equal(JSON.parse(ra.ev('JSON.stringify(S.teamPeers[0].fee)')), 7000);
+    assert.equal(JSON.parse(rb.ev('JSON.stringify(S.teamPeers[0].fee)')), -7000);
+    assert.ok(rb.ev('R.costMo') - costBefore >= 6999 || rb.ev('R.costMo') >= 7000, 'Beta pays');
+    assert.ok(ra.ev('R.revMo') >= 7000, 'Alpha earns');
+    // restrictive: no route server sessions at all
+    r = await s.api('POST', '/api/networks/64512/policy', { pol: 'restrictive' }, A);
+    assert.equal(r.b.sessions.length, 0);
+    assert.equal((await s.api('POST', '/api/networks/64512/policy', { pol: 'nonsense' }, A)).s, 400);
+    assert.equal((await s.api('POST', '/api/networks/64512/policy', { pol: 'open' }, B)).s, 403, 'not your network');
+  } finally { await s.close(); }
+});
