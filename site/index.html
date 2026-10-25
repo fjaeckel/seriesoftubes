@@ -1208,12 +1208,12 @@ function weekly(){const {y,w}=isoWeek(new Date());let r=(y*100+w)*2654435761>>>0
 const scnRule=k=>!!(S&&S.scn&&S.scn.rules&&S.scn.rules[k]);
 function scnHof(){try{return JSON.parse(localStorage.getItem('sot-scn')||'{}')||{};}catch(e){return {};}}
 function beginGame(nm,city,o={}){newGame(nm,city,o.asn);S.mode=o.mode||'normal';
-  if(S.mode==='sandbox'){S.cash=1e9;S.lvl=4;S.nextFail=1e9;S.nextEvent=1e9;}
+  if(S.mode==='sandbox'){S.cash=1e13;S.lvl=4;S.nextFail=1e9;S.nextEvent=1e9;}
   if(o.scn){const sc=o.scn;S.scn={id:sc.id,rules:sc.rules||{},days:sc.days,name:sc.n||('Weekly challenge '+sc.key),key:sc.key||null,mods:(sc.mods||[]).map(m=>m.id)};S.rng=(o.seed||hstr(sc.id))|0;S.mode='scenario';
     if(sc.cash)S.cash=sc.cash;if(sc.setup)sc.setup();
     for(const m of S.scn.mods){if(m==='pricey')S.priceMul=1.3;if(m==='poor')S.cash=100000;if(m==='chaos')S.scn.rules.chaos=true;if(m==='boom')S.scn.rules.boom=true;if(m==='dk')S.scn.rules.dkAll=true;if(m==='sharks')S.scn.rules.sharks=true;}}
   track('game_new');UI.started=true;closeModal();compute();cam.x=CITY[city].x;cam.y=CITY[city].y;cam.z=innerWidth<760?1.1:1.4;selectCity(city);
-  toast(S.scn?`<b>${esc(S.scn.name)}</b><br>${esc(o.scn.goal||'Serve as much traffic as you can in one year.')} You have ${S.scn.days} days.`:S.mode==='sandbox'?`<b>Sandbox mode</b><br>A billion dollars, every unlock, and nothing ever breaks. Build the internet you always wanted.`:`<b>Welcome, ${esc(nm)}!</b><br>${o.asn?'You announce':rirFor(city)+' assigned you'} AS${S.asn}. Your first router is humming in ${CITY[city].name}.`,'goal');
+  toast(S.scn?`<b>${esc(S.scn.name)}</b><br>${esc(o.scn.goal||'Serve as much traffic as you can in one year.')} You have ${S.scn.days} days.`:S.mode==='sandbox'?`<b>Sandbox mode</b><br>Infinite money, every unlock, no monthly bills, and nothing ever breaks. Build the internet you always wanted.`:`<b>Welcome, ${esc(nm)}!</b><br>${o.asn?'You announce':rirFor(city)+' assigned you'} AS${S.asn}. Your first router is humming in ${CITY[city].name}.`,'goal');
   renderAll();save();if(!S.scn&&S.mode!=='sandbox')tutorialStart();}
 /* ---------- conference season ---------- */
 const CONFS=[{n:'NANOG',c:'chi',m:1},{n:'APRICOT',c:'sin',m:1},{n:'Peering Days',c:'waw',m:2},{n:'UKNOF',c:'lon',m:3},{n:'MENOG',c:'dxb',m:3},{n:'NZNOG',c:'akl',m:3},{n:'RIPE Meeting',c:'ams',m:4},{n:'NANOG',c:'sea',m:5},{n:'IX Forum',c:'tok',m:6},{n:'AfPIF',c:'nbo',m:7},{n:'AusNOG',c:'syd',m:8},{n:'LACNOG',c:'sao',m:9},{n:'NANOG',c:'ash',m:9},{n:'DENOG',c:'fra',m:10},{n:'RIPE Meeting',c:'ber',m:10},{n:'PTT Forum',c:'sao',m:11}];
@@ -2174,7 +2174,7 @@ function dayTick(){
     else p.bb.d=Math.max(3,p.bb.d*(1-(0.9-sf)*0.04));}
   compute();
   for(const t of S.transit){(t.hist=t.hist||[]).push(R.useT[t.id]||0);if(t.hist.length>30)t.hist.shift();}
-  S.cash+=(R.revMo-R.costMo)/30;
+  if(S.mode!=='sandbox')S.cash+=(R.revMo-R.costMo)/30;
   S.stats.peak=Math.max(S.stats.peak,R.served);
   S.hist=S.hist||[];S.hist.push({d,dem:+R.demand.toFixed(2),srv:+R.served.toFixed(2),c:+(R.egT.c||0).toFixed(2),p:+(R.egT.p||0).toFixed(2),ix:+(R.egT.ix||0).toFixed(2),t:+(R.egT.t||0).toFixed(2),l2:+(R.egT.l2||0).toFixed(2),rev:Math.round(R.revMo),cost:Math.round(R.costMo),cash:Math.round(S.cash),inc:S.inc.length});if(S.hist.length>180)S.hist.shift();
   {const lv=custLevel();if(lv>(S.lvl||1)){S.lvl=lv;track('level_'+lv);toast(`<b>Customer level ${lv}: ${LEVELS[lv-1].n}</b><br>New customers unlocked: ${LEVELS[lv-1].unlock}`,'goal');sfx('coin');}}
@@ -2196,7 +2196,7 @@ function dayTick(){
     if(cands.length){cands.sort((a,b)=>(a.pol==='open'?0:1)-(b.pol==='open'?0:1)||b.share-a.share);const n=Math.random()<.6?cands[0]:pick(cands);m.members.push(n.id);toast(`<b>${esc(n.name)} joined ${esc(m.name)}!</b><br>Another member paying ${fmt$(MYIX_FEE)}/mo for a port.`,'good');sfx('coin');}
     m.next=d+8+Math.floor(Math.random()*10);}}
   loanTick(d);
-  if(S.mode==='sandbox'&&S.cash<1e8)S.cash=1e9;
+  if(S.mode==='sandbox'&&S.cash<1e12)S.cash=1e13;
   // offers
   S.offers=S.offers.filter(o=>o.exp>d);
   if(S.offers.length<5&&Math.random()<0.05+0.01*(S.lvl||1))spawnOffer();
@@ -2621,8 +2621,8 @@ function renderHUD(){
   $('muteBtn').style.opacity=UI.muted?.4:1;
   if(!S)return;
   $('hName').textContent=S.name;$('hAsn').textContent='AS'+S.asn+(S.mode==='sandbox'?' · Sandbox':S.scn?' · '+(S.scn.id==='weekly'?'Weekly '+S.scn.key:S.scn.name)+(S.scn.done||S.scn.failed?'':` · ${Math.max(0,S.scn.days-S.day)}d left`):'');
-  $('hCash').textContent=fmt$(S.cash);$('hCash').style.color=S.cash<0?'var(--bad)':'';
-  const net=R.revMo-R.costMo;$('hRate').innerHTML=`<span class="${net>=0?'up':'down'}">${net>=0?'▲':'▼'} ${fmt$(Math.abs(net))}/mo</span>`;
+  $('hCash').textContent=S.mode==='sandbox'?'∞':fmt$(S.cash);$('hCash').style.color=S.cash<0?'var(--bad)':'';
+  const net=R.revMo-R.costMo;$('hRate').innerHTML=S.mode==='sandbox'?'<span class="up">Sandbox</span>':`<span class="${net>=0?'up':'down'}">${net>=0?'▲':'▼'} ${fmt$(Math.abs(net))}/mo</span>`;
   $('hTraffic').textContent=`${fmtG(R.served)}`;
   $('hTrafBar').style.width=(R.demand?R.served/R.demand*100:0)+'%';
   $('hTrafBar').style.background=R.demand&&R.served/R.demand<0.9?'var(--bad)':'var(--ok)';

@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Sandbox mode has infinite money: the bank shows ∞, monthly bills no longer drain it and the per-month loss readout is gone.
 - Fixed the game freezing after a while. A bad exchange id in the max-prefix event threw inside the animation loop and
   stopped it for good. The loop now survives errors in a tick and reports them instead of dying.
 - Traceroutes look like real ones: your own gw/agg/core routers, the provider's customer edge and backbone hops across

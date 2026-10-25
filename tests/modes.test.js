@@ -12,6 +12,11 @@ test('sandbox: endless money, every unlock, nothing breaks, no badges', () => {
   assert.equal(ev("S.stats.incidents"), 0, 'no failures');
   assert.equal(ev("Object.keys(S.ach||{}).length"), 0, 'no badges in sandbox');
   assert.match(ev("document.getElementById('hAsn').textContent"), /Sandbox/);
+  ev("renderHUD()");
+  assert.equal(ev("document.getElementById('hCash').textContent"), '∞');
+  assert.ok(!/\/mo/.test(ev("document.getElementById('hRate').textContent")), 'no monthly loss shown');
+  ev("S.cash=2e12;R.revMo=0;R.costMo=1e9;dayTick()");
+  assert.ok(ev("S.cash") >= 1e12, 'bills do not drain the bank');
   assert.deepEqual(errors, []);
 });
 
