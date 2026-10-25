@@ -23,6 +23,13 @@ You start with one router in one city and grow into a transit-free Tier 1:
   filtering, and watch hijacks and leaks hit you less (or more).
 - **Running the NOC:** hire engineers, call a change freeze, schedule maintenance windows, negotiate transit
   commits, and decide whether to pay a network that suddenly wants money for peering. A timelapse replays your growth.
+- **A team that runs the network you built:** hire sales, NOC, senior NOC, network architects, peering
+  coordinators and marketing managers. Each role works under rules you set (off, ask first, or act alone within a
+  monthly budget and a cash reserve): signing customers, fixing outages early, steering load off hot ports, upgrading
+  congested waves, ports and optics, cancelling idle links, ordering PNIs, running ad campaigns. New cities, long-haul
+  links and strategy stay with you. People level up, want raises, make mistakes and get poached.
+- **A loop worth coming back to:** contracts with streaks, a year-end review where you pick a focus, legacy points
+  that buy permanent perks across games, and deal flow (acquire a local ISP, bulk IPv4, sponsorships, star hires).
 - **Teams peer with each other:** in multiplayer, teams can ask each other for peering and show up in each
   other's route viewer.
 - **Historical scenarios:** the 2021 Facebook outage, the 2008 YouTube hijack, the 2016 Dyn attack and the Luzon

@@ -1212,6 +1212,7 @@ function weekly(){const {y,w}=isoWeek(new Date());let r=(y*100+w)*2654435761>>>0
 const scnRule=k=>!!(S&&S.scn&&S.scn.rules&&S.scn.rules[k]);
 function scnHof(){try{return JSON.parse(localStorage.getItem('sot-scn')||'{}')||{};}catch(e){return {};}}
 function beginGame(nm,city,o={}){newGame(nm,city,o.asn);S.mode=o.mode||'normal';
+  if(S.mode!=='sandbox'&&!window.__TUBES_SERVER__)S.cash+=legacyLevel('cash')*50000;
   if(S.mode==='sandbox'){S.cash=1e13;S.lvl=4;S.nextFail=1e9;S.nextEvent=1e9;}
   if(o.scn){const sc=o.scn;S.scn={id:sc.id,rules:sc.rules||{},days:sc.days,name:sc.n||('Weekly challenge '+sc.key),key:sc.key||null,mods:(sc.mods||[]).map(m=>m.id)};S.rng=(o.seed||hstr(sc.id))|0;S.mode='scenario';
     if(sc.cash)S.cash=sc.cash;if(sc.setup)sc.setup();
@@ -1502,7 +1503,7 @@ function shareModal(){const cv=shareCanvas();if(!cv){toast('<b>Your browser cann
   UI.shareCv=cv;openModal(`<div style="display:flex;align-items:center"><div><div class="eyebrow">Share</div><h2 style="font-size:26px">Your network card</h2></div><button class="x" data-act="closeModal" aria-label="Close">×</button></div>${url?`<img src="${url}" alt="Stats card for ${esc(S.name)}" style="width:100%;border:3px solid var(--ink);border-radius:12px;margin-top:8px">`:''}<div class="btns" style="margin-top:10px">${navigator.share?btn('Share…','shareGo',{},'pink'):''}${btn('Download PNG','shareDl',{},navigator.share?'':'pink')}</div><p class="note">Post it wherever your peering friends hang out.</p>`);track('share_open');}
 function shareFile(cb){const cv=UI.shareCv;if(!cv||!cv.toBlob){cb(null);return;}cv.toBlob(b=>cb(b?new File([b],`series-of-tubes-${slug(S.name)}.png`,{type:'image/png'}):null),'image/png');}
 function scnEvents(d){const sc=S.scn,ev=S.ev;if(!sc)return;
-  if(sc.rules.fb&&d===120){ev.fbout=d+(ops().eng>=4?2:3);addInc({type:'fbout',ref:'fb',until:ev.fbout,msg:'A routine maintenance command withdrew every BGP route you announce, and the DNS servers went with them. The tools to fix it are behind the same network. Engineers are driving to the data center to get in.',cost:0});toast('<b>Everything is gone.</b><br>Every route you announce was withdrawn. You are not on the internet.','bad');sfx('alert');}
+  if(sc.rules.fb&&d===120){ev.fbout=d+(nocCover()>=1?2:3);addInc({type:'fbout',ref:'fb',until:ev.fbout,msg:'A routine maintenance command withdrew every BGP route you announce, and the DNS servers went with them. The tools to fix it are behind the same network. Engineers are driving to the data center to get in.',cost:0});toast('<b>Everything is gone.</b><br>Every route you announce was withdrawn. You are not on the internet.','bad');sfx('alert');}
   if((sc.rules.fb||sc.rules.dyn)&&!sc.rec&&sc.hit&&d>sc.hit)sc.rec=d;
   if(sc.rules.fb&&d===120)sc.hit=ev.fbout;
   if(sc.rules.hijacks&&sc.rules.hijacks.includes(d)){fireEvent('hijack');}
@@ -1826,13 +1827,13 @@ function compute(){
   C.caches=S.caches.length*CACHE_MO;
   C.dc=0;V.dc=0;for(const c in S.pops){const st=dcStats(c);if(st){C.dc+=st.cost;V.dc+=st.rev;}}
   C.loans=(S.loans||[]).reduce((a,l)=>a+(BANKS[l.bank].equity?0:l.pay),0);
-  C.extras=(S.cnLic&&S.cnLic.state==='ok'?CN_JV_MO:0)+scrubList().length*SCRUB_MO+Object.keys(S.pops).filter(ruCity).length*RU_BOX_MO+Object.values(S.pops).filter(p=>p.site2).length*SITE2_MO+(S.te?TE_MO:0)+((S.ops&&S.ops.eng)||0)*ENG_MO+Object.values(S.paid||{}).reduce((a,b)=>a+b,0)+(S.sec&&S.sec.rov?SEC_ROV_MO*Math.max(1,Object.keys(S.pops).length):0);
+  C.extras=(S.cnLic&&S.cnLic.state==='ok'?CN_JV_MO:0)+scrubList().length*SCRUB_MO+Object.keys(S.pops).filter(ruCity).length*RU_BOX_MO+Object.values(S.pops).filter(p=>p.site2).length*SITE2_MO+(S.te?TE_MO:0)+staffCost()+Object.values(S.paid||{}).reduce((a,b)=>a+b,0)+(S.sec&&S.sec.rov?SEC_ROV_MO*Math.max(1,Object.keys(S.pops).length):0);
   V.eyeballs=0;V.business=0;V.ix=0;
   for(const c in S.pops){const sf=sfOf(R2,c);V.eyeballs+=R2.cityEye[c]*sf*EYE_RATE*(CITY[c].arpu||1);}
   for(const b of S.biz){const sf=BIZ_T[b.type].fiber?(fiberOk(b)?1:0):BIZ_T[b.type].l2?clamp((R2.l2[b.id]||0)/b.bw,0,1):sfOf(R2,b.city);V.business+=b.bw*b.rate*Math.min(1,sf/0.95);}
   for(const c in S.myIx)V.ix+=S.myIx[c].members.length*MYIX_FEE;
   C.revshare=(S.loans||[]).reduce((a,l)=>a+(BANKS[l.bank].equity?l.share:0),0)*(V.eyeballs+V.business+V.ix+(V.dc||0));
-  R2.costMo=Object.values(C).reduce((a,b)=>a+b,0);
+  R2.costMo=Object.values(C).reduce((a,b)=>a+b,0)*(focusOn('efficiency')?0.96:1);
   R2.revMo=V.eyeballs+V.business+V.ix+(V.dc||0);
   R=R2;UI.hotMap=hotByCity();
 }
@@ -2200,26 +2201,237 @@ const CABLE_EVENTS={
  quake:{title:'Earthquake off Taiwan',cables:['apg','fast','jup','plcn','ncp','tse','sjcph','aagony','smw4','smw6','bbg'],days:[28,55],ship:'weeks away in Busan, and typhoon season has closed the strait',msg:'A magnitude 7 quake triggered submarine landslides in the Luzon Strait, the same bottleneck that broke half of Asia in 2006.'},
  canyon:{title:'Congo Canyon slump',cables:['wacs','safe','equi','sacs'],days:[30,60],ship:'weeks away in Cape Town',msg:'A turbidity current raced down the Congo Canyon at 100 km/h and snapped every cable in its path, as it did in 2020.'},
  volcano:{title:'Submarine volcano',cables:['hwk','scx','tasman','indigo','guam'],days:[25,45],ship:'weeks away in Sydney, and the ash cloud is closing the sea lanes',msg:'A submarine volcano erupted, and the shock wave and ash flow cut the cables around it, like Hunga Tonga in 2022.'}};
-/* ---------- operations: engineers, change freezes, maintenance windows ---------- */
-const ENG_MO=9000,ENG_MAX=24,FIXABLE=['crash','power','site','ring','transit','ixloop','optic','amp','roadmff','cut','fabric','fatwave','label','mtu','oops','cleaner','ac','maint'];
-function ops(){return S.ops||(S.ops={eng:0,frozen:false,maint:[]});}
-function engCover(){const e=ops().eng;return e>=4?1:e/4;}
+/* ---------- operations and staff: people who run the network you built ---------- */
+const ENG_MAX=24,FIXABLE=['crash','power','site','ring','transit','ixloop','optic','amp','roadmff','cut','fabric','fatwave','label','mtu','oops','cleaner','ac','maint'];
 const CHANGE_ACTS=['teDeploy','buildLink','buyTransit','buyIx','pni','buyNni','lagT','addRouter'];
-function opsModal(){const o=ops();
-  openModal(`<div style="display:flex;align-items:center"><div><div class="eyebrow">Operations</div><h2 style="font-size:26px">NOC and change management</h2></div><button class="x" data-act="closeModal" aria-label="Close">×</button></div>
-  <p class="lead">People fix things faster, and a change freeze stops people from breaking things. Both cost something.</p>
-  <div class="kv"><span>Network engineers</span><b>${o.eng} · ${fmt$(o.eng*ENG_MO)}/mo</b></div>
-  <div class="meta">${o.eng===0?'Nobody is on call. You are the NOC.':o.eng<4?`Coverage ${Math.round(engCover()*100)}%. It takes four to cover nights and weekends.`:'24/7 coverage.'} Each day an engineer has a chance to fix an outage before it would have ended on its own, and a bad config push is less likely to get through review.</div>
-  <div class="btns">${btn(`Hire one <small>${fmt$(ENG_MO)}/mo</small>`,'opsHire',{d:1},'pink sm',o.eng>=ENG_MAX)}${btn('Let one go','opsHire',{d:-1},'ghost sm',o.eng<=0)}</div>
-  <div class="kv" style="margin-top:10px"><span>Change freeze</span><b>${o.frozen?'ON: no builds or script deploys':'off'}</b></div>
-  <div class="btns">${btn(o.frozen?'Lift the freeze':'Start a change freeze','opsFreeze',{},o.frozen?'ghost sm':'pink sm')}</div>
-  <div class="meta">While frozen, human-error incidents (fat-fingered configs, wrong cables) do not happen. Nothing new gets built either.</div>
-  <h3 style="margin-top:12px">Maintenance windows</h3>
-  ${Object.keys(S.pops).map(c=>{const p=S.pops[c],m=o.maint.find(x=>x.city===c);return `<div class="kv"><span>${esc(CITY[c].name)}${p.patched>S.day?' · patched':''}</span><b>${m?`window in ${Math.max(0,Math.round(m.start-S.day))} days`:btn('Schedule','opsMaint',{city:c},'ghost sm')}</b></div>`;}).join('')}
-  <p class="meta">A one-day window in three days: the site goes dark for a day, then runs on patched firmware and is half as likely to crash for the next 90 days.</p>`);}
+const ROLES={
+ sales:{n:'Sales engineer',sal:7500,i:'🤝',d:'Signs customers from the offer board, and quietly raises rates on happy ones.'},
+ noc:{n:'NOC engineer',sal:6500,i:'🎧',d:'Fixes outages ahead of schedule and pays for quick repairs.'},
+ srnoc:{n:'Senior NOC engineer',sal:12000,i:'🧭',d:'Steers traffic off hot ports and keeps routing preferences tidy.'},
+ arch:{n:'Network architect',sal:15000,i:'📐',d:'Upgrades congested waves, ports and optics, adds routers, and cancels links nobody uses.'},
+ peer:{n:'Peering coordinator',sal:9500,i:'🔌',d:'Turns on route servers, adds sessions, and orders PNIs for the heaviest talkers.'},
+ mkt:{n:'Marketing manager',sal:8000,i:'📣',d:'Runs ad campaigns where growth has stalled and there is capacity to sell.'}};
+const ROLE_ORDER=['sales','noc','srnoc','arch','peer','mkt'];
+const POL_DEF={sales:0,noc:30000,srnoc:0,arch:150000,peer:60000,mkt:40000};
+const BUDGETS=[0,10000,25000,50000,100000,250000,500000,1000000,5000000],RESERVES=[0,50000,150000,500000,1000000,5000000];
+const XPT=[0,10,30,70,140];
+const TRAITS={frugal:'Frugal: spends 15% less per job',bold:'Bold: acts sooner, slips more often',careful:'Careful: never makes a mistake',networker:'Networker: sales and peering land more often',quick:'Quick learner: levels up faster'};
+const FNAMES=['Priya','Marcus','Yuki','Elena','Tomás','Amara','Lars','Mei','Kofi','Sofia','Dmitri','Nadia','Ravi','Chloe','Jamal','Ingrid','Mateo','Hana','Oluwaseun','Camille','Aarav','Zofia','Diego','Leila','Henrik','Thandi','Kenji','Bianca','Emre','Aisha'];
+const LNAMES=['Okafor','Lindqvist','Tanaka','Moreau','Silva','Patel','Novak','Haddad','Kowalski','Nguyen','Fischer','Rossi','Mbeki','Castillo','Johansson','Ahmed','Kim','Dubois','Petrov','Alvarez','Chen','Murphy','Santos','Berg','Yilmaz','Sato','Costa','Ivanov','Hoang','Bauer'];
+const monthIdx=()=>Math.floor(S.day/30);
+function ops(){return S.ops||(S.ops={frozen:false,maint:[]});}
+function stf(){const s=S.staff||(S.staff={people:[],pool:[],poolDay:-999,pol:{},spent:{},inbox:[],log:[],idle:{},born:S.day});
+  if(S.ops&&S.ops.eng>0){for(let k=0;k<S.ops.eng;k++)s.people.push(mkPerson('noc',2));S.ops.eng=0;}return s;}
+const skillOf=p=>p.skill;
+function marketSal(role,skill){const lg=typeof legacyLevel==='function'?legacyLevel('hr'):0;return Math.round(ROLES[role].sal*(0.7+0.22*skill)*(1-0.05*lg)/500)*500;}
+function mkPerson(role,skill){const tr=Object.keys(TRAITS);return {id:uid(),name:pick(FNAMES)+' '+pick(LNAMES),role,skill,xp:XPT[skill-1],trait:pick(tr),sal:marketSal(role,skill),hired:S.day,mood:75,acts:0};}
+function people(role){return stf().people.filter(p=>!role||p.role===role);}
+function polOf(role){const s=stf();return s.pol[role]||(s.pol[role]={mode:'ask',budget:POL_DEF[role],reserve:150000,region:'any'});}
+function spentOf(role){const s=stf(),m=monthIdx(),x=s.spent[role];if(!x||x.m!==m)return (s.spent[role]={m,v:0});return x;}
+function staffLog(who,text){const s=stf();s.log.unshift({d:S.day,who,text});if(s.log.length>60)s.log.length=60;}
+function staffCost(){return people().reduce((a,p)=>a+p.sal,0);}
+function nocCover(){const n=people('noc').length+people('srnoc').length;return n>=4?1:n/4;}
+function connectedWithout(skip){const ps=Object.keys(S.pops);if(ps.length<2)return true;const adj={};for(const l of S.links){if(l===skip||l.kind==='vxc'||linkDown(l))continue;(adj[l.a]=adj[l.a]||[]).push(l.b);(adj[l.b]=adj[l.b]||[]).push(l.a);}
+  const comps=(ex)=>{const seen=new Set();let n=0;for(const p of ps){if(seen.has(p))continue;n++;const q=[p];seen.add(p);while(q.length){const u=q.pop();for(const v of adj[u]||[])if(!seen.has(v)){seen.add(v);q.push(v);}}}return n;};
+  const all={};for(const l of S.links){if(l.kind==='vxc'||linkDown(l))continue;(all[l.a]=all[l.a]||[]).push(l.b);(all[l.b]=all[l.b]||[]).push(l.a);}
+  const base=(()=>{const seen=new Set();let n=0;for(const p of ps){if(seen.has(p))continue;n++;const q=[p];seen.add(p);while(q.length){const u=q.pop();for(const v of all[u]||[])if(!seen.has(v)){seen.add(v);q.push(v);}}}return n;})();
+  return comps()<=base;}
+/* What each role would do right now. A proposal is plain data so it can be shown, saved in the inbox and run later. */
+const BRAINS={
+ sales(){const out=[];
+  for(const o of S.offers){if(!bHas(o)||o.type==='wwave'||(o.reqs&&o.reqs.length)||!BIZ_T[o.type])continue;if(BIZ_T[o.type].event&&S.day>=o.start-3)continue;
+    if(!BIZ_T[o.type].l2&&sfOf(R,o.city)<0.93)continue;
+    out.push({key:'acc'+o.id,kind:'accept',args:{id:o.id},cost:0,title:`Sign ${o.name}`,why:`${fmtG(o.bw)} for ${o.rate?fmt$(Math.round(o.bw*o.rate))+'/mo':fmt$(o.fee||0)}`});}
+  for(const b of S.biz){if(!BIZ_T[b.type]||BIZ_T[b.type].l2||b.mood<85||b.rate<=0||S.day-(b.lastUp||b.since)<180)continue;
+    out.push({key:'up'+b.id,kind:'upsell',args:{id:b.id},cost:0,title:`Raise the rate for ${b.name}`,why:'Happy customer, 5% more'});}
+  return out;},
+ noc(){const out=[];for(const i of S.inc){if(!(i.cost>0)||(i.slow&&i.rushed)||i.until-S.day<2)continue;out.push({key:'fx'+i.id,kind:'fixInc',args:{id:i.id},cost:i.cost,title:`Pay ${fmt$(i.cost)} to fix: ${incTitle(i.type)}`,why:i.fix||'Quicker repair'});}return out;},
+ srnoc(){const out=[];
+  for(const t of S.transit){const u=(R.useT[t.id]||0)/lagCap(PORT[t.tier].g,t.n),p=t.pref||'normal';
+    if(u>0.92&&p!=='low'&&S.transit.length>1)out.push({key:'pt'+t.id,kind:'pref',args:{kind:'t',id:t.id,v:'low'},cost:0,title:`Deprioritise ${NET[t.net].name} transit in ${CITY[t.city].name}`,why:`${Math.round(u*100)}% full`});
+    else if(u<0.55&&p==='low')out.push({key:'pt'+t.id,kind:'pref',args:{kind:'t',id:t.id,v:'normal'},cost:0,title:`Restore ${NET[t.net].name} transit in ${CITY[t.city].name}`,why:`${Math.round(u*100)}% full again`});}
+  for(const p of S.pni){const u=(R.usePni[p.id]||0)/lagCap(PORT[p.tier].g,p.n),pf=p.pref||'normal';
+    if(u>0.92&&pf!=='low')out.push({key:'pp'+p.id,kind:'pref',args:{kind:'p',id:p.id,v:'low'},cost:0,title:`Ease off the ${NET[p.net].name} PNI in ${CITY[p.city].name}`,why:`${Math.round(u*100)}% full`});
+    else if(u<0.55&&pf==='low')out.push({key:'pp'+p.id,kind:'pref',args:{kind:'p',id:p.id,v:'normal'},cost:0,title:`Restore the ${NET[p.net].name} PNI in ${CITY[p.city].name}`,why:'Load is back down'});}
+  for(const c in S.ixp){const u=(R.useIx[c]||0)/Math.max(1e-9,ixCap(c)),pf=(S.ixPref&&S.ixPref[c])||'normal';
+    if(u>0.92&&pf!=='low')out.push({key:'pi'+c,kind:'pref',args:{kind:'ix',id:c,v:'low'},cost:0,title:`Ease off ${ixName(c)}`,why:`${Math.round(u*100)}% full`});
+    else if(u<0.55&&pf==='low')out.push({key:'pi'+c,kind:'pref',args:{kind:'ix',id:c,v:'normal'},cost:0,title:`Restore ${ixName(c)}`,why:'Load is back down'});}
+  return out;},
+ arch(){const out=[],s=stf();
+  for(const t of S.transit){const cap=lagCap(PORT[t.tier].g,t.n),u=(R.useT[t.id]||0)/cap;if(u<0.85)continue;
+    if(PORT[t.tier+1]&&portOk(t.city,t.tier+1))out.push({key:'tt'+t.id,kind:'buyTransit',args:{city:t.city,net:t.net,tier:t.tier+1},cost:PORT[t.tier+1].setup,title:`Upgrade ${NET[t.net].name} transit in ${CITY[t.city].name} to ${PORT[t.tier+1].n}`,why:`${Math.round(u*100)}% full`});
+    else if((t.n||1)<LAG_MAX&&portOk(t.city,t.tier))out.push({key:'tl'+t.id,kind:'lagT',args:{id:t.id,d:1},cost:PORT[t.tier].setup,title:`Add a ${PORT[t.tier].n} LAG member to ${NET[t.net].name} in ${CITY[t.city].name}`,why:`${Math.round(u*100)}% full`});}
+  const seen=new Set();
+  for(const l of S.links){if(l.kind==='vxc'||linkDown(l)||l.ready>S.day)continue;const k=l.a<l.b?l.a+'|'+l.b:l.b+'|'+l.a;const u=linkUtil(l);
+    if(u>=0.85&&!seen.has(k)){seen.add(k);const A=CITY[l.a].name,B=CITY[l.b].name;
+      if(l.kind==='wave'){if(LT[l.tier+1]&&waveOk(l.a,l.b,l.tier+1)){const d=Math.round(waveMo(l.km,l.sub,l.tier+1)*(l.mult||1))-l.mo;out.push({key:'uw'+l.id,kind:'upLink',args:{id:l.id,tier:l.tier+1},cost:Math.max(0,d)*2,title:`Upgrade ${A}–${B} to ${LT[l.tier+1].n}`,why:`${Math.round(u*100)}% full`});}
+        else out.push({key:'nw'+k,kind:'parallel',args:{a:l.a,b:l.b,tier:l.tier},cost:Math.round(waveMo(l.km,l.sub,l.tier)*2),title:`Light a second ${LT[l.tier].n} wave ${A}–${B}`,why:`${Math.round(u*100)}% full, nothing bigger to upgrade to`});}
+      else if(l.kind==='df'){const best=Object.keys(OPT).filter(o=>!chWhy(l,o)).sort((a,b)=>OPT[b].g-OPT[a].g)[0];
+        if(best)out.push({key:'ch'+l.id,kind:'addCh',args:{id:l.id,o:best,n:1},cost:chCost(l,best),title:`Light another ${OPT[best].n} on ${A}–${B}`,why:`${Math.round(u*100)}% full`});
+        else if(dfPairs(l)<200)out.push({key:'pr'+l.id,kind:'addPairs',args:{id:l.id,n:1},cost:pairGlass(l)+pairEquip(l),title:`Add a fiber pair on ${A}–${B}`,why:`${Math.round(u*100)}% full and no free spectrum`});}}}
+  for(const c in S.pops){if(!popUp(c))continue;const cap=R.nodeCap[c]||0,ld=R.nodeLoad[c]||0;if(cap>0&&ld/cap>0.85)out.push({key:'rt'+c,kind:'addRouter',args:{city:c,n:1},cost:routerCost(S.pops[c].rgen||0),title:`Add a router in ${CITY[c].name}`,why:`${Math.round(ld/cap*100)}% of the node`});}
+  for(const l of S.links){if(l.kind==='vxc'||l.ready>S.day)continue;const u=linkUtil(l);s.idle[l.id]=u<0.03?(s.idle[l.id]||0)+1:0;}
+  for(const id in s.idle){if(!S.links.some(l=>l.id===id))delete s.idle[id];}
+  for(const l of S.links){if((s.idle[l.id]||0)<(l.kind==='df'?180:90)||l.kind==='vxc'||S.offers.some(o=>o.link===l.id)||S.biz.some(b=>b.link===l.id)||!connectedWithout(l))continue;
+    const A=CITY[l.a].name,B=CITY[l.b].name;out.push({key:'rm'+l.id,kind:'rmLink',args:{id:l.id},cost:0,title:`Cancel ${A}–${B}`,why:`Idle for ${s.idle[l.id]} days${l.mo?`, saves ${fmt$(l.mo)}/mo`:''}`});}
+  return out;},
+ peer(){const out=[];
+  for(const c in S.ixp){if(!S.rs[c]&&isIx(c))out.push({key:'rs'+c,kind:'rs',args:{city:c},cost:0,title:`Turn on the route server at ${ixName(c)}`,why:'Every open network, in one go'});
+    else if(isIx(c)&&ixMembers(c).some(id=>!ixSessions(c).has(id)&&peerOk(id,'ix',c).ok))out.push({key:'pa'+c,kind:'peerAll',args:{city:c},cost:0,title:`Ask the rest of ${ixName(c)} for sessions`,why:'Networks that now qualify'});}
+  for(const n of NETS){const e=R.netEg[n.id];if(!e||e.t<15||S.pni.some(p=>p.net===n.id))continue;const city=Object.keys(S.pops).find(c=>n.pops.includes(c)&&popUp(c));if(!city||!peerOk(n.id,'pni',city).ok)continue;
+    let tier=PORT.findIndex(P=>P.g>=e.t*1.5);if(tier<0)tier=PORT.length-1;while(tier>0&&!portOk(city,tier))tier--;
+    out.push({key:'pn'+n.id,kind:'pni',args:{city,net:n.id,tier},cost:1500+PORT[tier].setup/2,title:`Order a ${PORT[tier].n} PNI with ${n.name} in ${CITY[city].name}`,why:`${fmtG(e.t)} goes to them over transit`});}
+  return out;},
+ mkt(){const out=[],region=polOf('mkt').region;
+  for(const c in S.pops){const p=S.pops[c];if(!p.bb||p.boost>S.day||!popUp(c))continue;if(region!=='any'&&CITY[c].reg!==region)continue;const room=CITY[c].P-p.bb.d;if(p.bb.d>CITY[c].P*0.8||sfOf(R,c)<0.9)continue;
+    out.push({key:'ad'+c,kind:'ad',args:{city:c},cost:8000,room,title:`Run an ad campaign in ${CITY[c].name}`,why:`${fmtG(room)} of room to grow`});}
+  out.sort((a,b)=>b.room-a.room);return out;}};
+/* Run one proposal. Returns whether it worked. Toasts from the underlying actions are swallowed. */
+function execProp(p){const t=toast,before=S.cash;let ok=false;toast=()=>{};
+  try{const a=p.args;switch(p.kind){
+    case 'accept':ACT.accept(a);ok=S.biz.some(b=>b.id===a.id);break;
+    case 'upsell':{const b=S.biz.find(x=>x.id===a.id);if(b){b.rate=Math.round(b.rate*1.05);b.mood-=4;b.lastUp=S.day;ok=true;}break;}
+    case 'fixInc':{const n=S.inc.length;ACT.fixInc(a);ok=S.cash<before||S.inc.length<n;break;}
+    case 'pref':ACT.setPref(a);ok=true;break;
+    case 'buyTransit':{const x=S.transit.find(q=>q.city===a.city&&q.net===a.net);ACT.buyTransit(a);ok=!!x&&x.tier===a.tier;break;}
+    case 'lagT':{const x=S.transit.find(q=>q.id===a.id),n=x?(x.n||1):0;ACT.lagT(a);ok=!!x&&(x.n||1)>n;break;}
+    case 'upLink':{ACT.upLink(a);const l=S.links.find(q=>q.id===a.id);ok=!!l&&l.tier===a.tier;break;}
+    case 'parallel':{const n=S.links.length;UI.pending={a:a.a,b:a.b};UI.route='diverse';ACT.buildLink({tier:a.tier});ok=S.links.length>n;break;}
+    case 'addCh':{const l=S.links.find(q=>q.id===a.id),n=l?(l.ch||[]).length:0;ACT.addCh(a);ok=!!l&&(l.ch||[]).length>n;break;}
+    case 'addPairs':{const l=S.links.find(q=>q.id===a.id),n=l?dfPairs(l):0;ACT.addPairs(a);ok=!!l&&dfPairs(l)>n;break;}
+    case 'addRouter':{const q=S.pops[a.city],n=q?(q.routers||1):0;ACT.addRouter(a);ok=!!q&&(q.routers||1)>n;break;}
+    case 'rmLink':{UI.confirm=a.id;ACT.rmLink(a);ok=!S.links.some(q=>q.id===a.id);break;}
+    case 'rs':ACT.rs(a);ok=!!S.rs[a.city];break;
+    case 'peerAll':{const n=Object.keys(S.peers).length;ACT.peerAll(a);ok=Object.keys(S.peers).length>n;break;}
+    case 'pni':{const n=S.pni.length;ACT.pni(a);ok=S.pni.length>n;break;}
+    case 'ad':{const q=S.pops[a.city];ACT.ad(a);ok=!!q&&q.boost>S.day;break;}}}
+  catch(e){ok=false;}finally{toast=t;}
+  p.spent=Math.max(0,before-S.cash);return ok;}
+function staffWork(role,who,p){const s=stf(),pol=polOf(role),w=who||people(role)[0];
+  const ok=execProp(p);spentOf(role).v+=p.spent||0;
+  if(ok&&w){w.acts++;w.xp+=(w.trait==='quick'?1.6:1);const lv=XPT.filter(x=>w.xp>=x).length;if(lv>w.skill&&w.skill<5){w.skill=lv;w.ask=true;staffLog(w.name,`levelled up to ${lv}/5 and would like a raise.`);toast(`<b>${esc(w.name)} levelled up.</b><br>${ROLES[role].n}, now ${lv}/5. Expect a conversation about salary.`,'good');}
+    if(w.skill<=2&&w.trait!=='careful'&&Math.random()<(w.trait==='bold'?0.14:0.07)){const lost=Math.round(1000+Math.random()*4000);S.cash-=lost;staffLog(w.name,`slipped: ${pick(['ordered the wrong optics','sent the cross-connect to the wrong cage','pushed a change to the wrong router','typed 10x instead of 1x'])}. ${fmt$(lost)} wasted.`);}
+    staffLog(w.name,p.title+(p.spent?` (${fmt$(p.spent)})`:''));}
+  return ok;}
+function staffRun(role,d){const ppl=people(role);if(!ppl.length)return;const pol=polOf(role);if(pol.mode==='off')return;
+  const best=Math.max(...ppl.map(skillOf)),period=Math.max(2,8-best);if((d+ROLE_ORDER.indexOf(role))%period!==0)return;
+  const maxA=Math.min(3,ppl.length+(best>=4?1:0)),props=BRAINS[role]().slice(0,8);let acted=0,queued=0;const s=stf();
+  const net=ppl.some(p=>p.trait==='networker')&&(role==='sales'||role==='peer');
+  for(const p of props){if(acted>=maxA)break;const who=ppl[acted%ppl.length],frug=ppl.some(q=>q.trait==='frugal')?0.85:1,cost=Math.round(p.cost*frug);
+    const afford=spentOf(role).v+cost<=pol.budget&&S.cash-cost>=pol.reserve&&(role!=='sales'||true);
+    if(pol.mode==='auto'&&afford&&(p.cost>0||pol.budget>=0)&&(!net||Math.random()<1)){p.cost=cost;if(staffWork(role,who,p))acted++;else acted++;}
+    else if(!s.inbox.some(x=>x.key===p.key)&&s.inbox.length<15){s.inbox.push({...p,id:uid(),role,day:d});queued++;}}
+  if(queued&&(!s.lastNote||d-s.lastNote>=5)){s.lastNote=d;toast(`<b>${queued} proposal${queued===1?'':'s'} from your team.</b><br>Approve them in the inbox.`,'goal',[{l:'Open inbox',act:'opsTab',args:{t:'inbox'}}]);}}
+function poolRefresh(d){const s=stf();if(d-s.poolDay<30)return;s.poolDay=d;s.pool=[];
+  for(let k=0;k<6;k++){const role=ROLE_ORDER[Math.floor(Math.random()*ROLE_ORDER.length)],base=1+Math.floor(d/240),skill=clamp(base+Math.floor(Math.random()*3)-1,1,5);s.pool.push(mkPerson(role,skill));}}
+function staffTick(d){const s=stf();poolRefresh(d);
+  s.inbox=s.inbox.filter(x=>d-x.day<=21);
+  for(const r of ROLE_ORDER)staffRun(r,d);
+  // free early fixes by the on-call team
+  const ppl=people('noc').concat(people('srnoc'));
+  if(ppl.length)for(const i of S.inc.slice()){if(!FIXABLE.includes(i.type)||i.slow||i.until<=d+1||i.start===d)continue;const sk=ppl.reduce((a,p)=>a+p.skill,0);
+    if(Math.random()<Math.min(0.4,0.02*sk*(0.5+0.5*nocCover()))){clearInc(i);const w=pick(ppl);w.acts++;w.xp+=1;staffLog(w.name,`fixed ${incTitle(i.type).toLowerCase()} ahead of schedule.`);toast(`<b>${esc(w.name)} fixed it.</b> ${incTitle(i.type)} resolved ahead of schedule.`,'good');}}
+  // mood, salary pressure and poaching
+  for(const p of s.people.slice()){const mkt=marketSal(p.role,p.skill);p.mood=clamp(p.mood+(p.sal>=mkt*0.97?0.25:-0.4)+(p.ask?-0.2:0),0,100);
+    if(p.mood<20&&Math.random()<0.02){s.people=s.people.filter(x=>x!==p);staffLog(p.name,'quit. A hyperscaler offered more.');toast(`<b>${esc(p.name)} quit.</b><br>${ROLES[p.role].n} gone to a hyperscaler. Underpaid people leave.`,'bad');}}}
+function staffModal(tab){const s=stf();tab=tab||UI.opsTab||'team';UI.opsTab=tab;const o=ops();
+  const tabs=[['team','Team'],['inbox','Inbox'+(s.inbox.length?` (${s.inbox.length})`:'')],['hire','Hire'],['pol','Rules'],['chg','Changes']];
+  const row=p=>`<div class="row"><div class="grow"><div class="nm">${ROLES[p.role].i} ${esc(p.name)} <span class="tag">${ROLES[p.role].n}</span> <span class="tag st">★ ${p.skill}/5</span></div>
+    <div class="meta">${esc(TRAITS[p.trait])} · ${fmt$(p.sal)}/mo · mood ${Math.round(p.mood)}% · ${p.acts} jobs${p.ask?' · <b style="color:var(--bad)">wants a raise</b>':''}</div></div></div>
+    <div class="btns">${btn(`Raise 12% <small>${fmt$(Math.round(p.sal*0.12))}/mo</small>`,'stRaise',{id:p.id},p.ask?'pink sm':'ghost sm')}${btn(`Train <small>${fmt$(8000*p.skill)}</small>`,'stTrain',{id:p.id},'ghost sm',p.skill>=5)}${btn(UI.confirm==='f'+p.id?'Really let go?':'Let go','stFire',{id:p.id},'ghost sm')}</div>`;
+  let h=`<div style="display:flex;align-items:center"><div><div class="eyebrow">Operations</div><h2 style="font-size:26px">Team and NOC</h2></div><button class="x" data-act="closeModal" aria-label="Close">×</button></div>
+  <div class="btns" style="margin:4px 0 8px">${tabs.map(([k,l])=>btn(l,'opsTab',{t:k},tab===k?'pink sm':'ghost sm')).join('')}</div>`;
+  if(tab==='team'){h+=`<div class="kv"><span>Payroll</span><b>${fmt$(staffCost())}/mo · ${s.people.length} people</b></div><div class="meta">${nocCover()>=1?'The on-call rota covers nights and weekends.':'It takes four on-call engineers to cover nights and weekends.'}</div>`;
+    h+=s.people.length?s.people.map(row).join(''):`<p class="empty">Nobody works for you yet. You are the NOC, the sales team and the marketing department.</p>`;
+    const adv=adviceList().slice(0,4);if(adv.length)h+=`<h3 style="margin-top:12px">Worth doing now</h3>`+adv.map(p=>`<div class="kv"><span>${esc(p.title)}<br><small>${esc(p.why||'')}</small></span><b>${btn(p.cost?`Do it <small>${fmt$(p.cost)}</small>`:'Do it','stDo',{k:p.key},'sm')}</b></div>`).join('');
+    if(s.log.length)h+=`<h3 style="margin-top:12px">What the team did</h3><div class="rvw" style="max-height:24vh">${s.log.slice(0,14).map(x=>`<div style="padding:2px 8px"><small>${dateStr(x.d)}</small> <b>${esc(x.who)}</b> ${esc(x.text)}</div>`).join('')}</div>`;}
+  else if(tab==='inbox')h+=s.inbox.length?s.inbox.map(p=>`<div class="row"><div class="grow"><div class="nm">${ROLES[p.role].i} ${esc(p.title)}</div><div class="meta">${esc(p.why||'')} · ${ROLES[p.role].n}${p.cost?` · ${fmt$(p.cost)}`:''}</div></div></div><div class="btns">${btn('Approve','stApprove',{id:p.id},'pink sm',S.cash<p.cost)}${btn('Not now','stReject',{id:p.id},'ghost sm')}</div>`).join('')+`<div class="btns">${btn('Approve all I can afford','stApproveAll',{},'sm')}${btn('Clear','stReject',{id:'all'},'ghost sm')}</div>`:`<p class="empty">Nothing waiting. Proposals show up when someone on your team has an idea and the rule for their role says to ask first.</p>`;
+  else if(tab==='hire')h+=`<p class="meta">New candidates every month, better ones as the game goes on. Hiring costs one month's salary up front.</p>`+(s.pool.length?s.pool.map(p=>`<div class="row"><div class="grow"><div class="nm">${ROLES[p.role].i} ${esc(p.name)} <span class="tag">${ROLES[p.role].n}</span> <span class="tag st">★ ${p.skill}/5</span></div><div class="meta">${esc(TRAITS[p.trait])} · asks ${fmt$(p.sal)}/mo</div><div class="meta">${esc(ROLES[p.role].d)}</div></div></div><div class="btns">${btn(`Hire <small>${fmt$(p.sal)} now</small>`,'stHire',{id:p.id},'pink sm',S.cash<p.sal||s.people.length>=ENG_MAX)}</div>`).join(''):`<p class="empty">Nobody is looking right now. Check back next month.</p>`);
+  else if(tab==='pol'){h+=`<p class="lead">Each role works inside the rules you set. In <b>ask</b> mode they propose and you decide. In <b>auto</b> mode they act alone, but only inside their monthly budget and never below the cash reserve. Strategy stays with you: new cities, long-haul links, customers' special requests, financing and anything unusual.</p>`;
+    for(const r of ROLE_ORDER){const pol=polOf(r),n=people(r).length;h+=`<div class="row"><div class="grow"><div class="nm">${ROLES[r].i} ${ROLES[r].n} <span class="tag st">${n} hired</span></div><div class="meta">${esc(ROLES[r].d)}</div>
+      <div class="btns">${['off','ask','auto'].map(m=>btn(m,'stMode',{role:r,v:m},pol.mode===m?'pink sm':'ghost sm')).join('')}</div>
+      <div class="kv"><span>Monthly budget</span><b>${btn('−','stBud',{role:r,d:-1},'ghost sm')} ${fmt$(pol.budget)} (${fmt$(spentOf(r).v)} used) ${btn('+','stBud',{role:r,d:1},'ghost sm')}</b></div>
+      <div class="kv"><span>Keep this much cash</span><b>${btn('−','stRes',{role:r,d:-1},'ghost sm')} ${fmt$(pol.reserve)} ${btn('+','stRes',{role:r,d:1},'ghost sm')}</b></div>
+      ${r==='mkt'?`<div class="kv"><span>Advertise in</span><b>${['any','AS','EU','AM','AF','OC','SA'].filter(x=>x==='any'||REG[x]).map(x=>btn(x==='any'?'anywhere':x,'stReg',{v:x},pol.region===x?'pink sm':'ghost sm')).join(' ')}</b></div>`:''}</div></div>`;}}
+  else{h+=`<div class="kv"><span>Change freeze</span><b>${o.frozen?'ON: no builds or script deploys':'off'}</b></div><div class="btns">${btn(o.frozen?'Lift the freeze':'Start a change freeze','opsFreeze',{},o.frozen?'ghost sm':'pink sm')}</div>
+    <div class="meta">While frozen, human-error incidents (fat-fingered configs, wrong cables) do not happen. Nothing new gets built either, including by your team.</div>
+    <h3 style="margin-top:12px">Maintenance windows</h3>${Object.keys(S.pops).map(c=>{const p=S.pops[c],m=o.maint.find(x=>x.city===c);return `<div class="kv"><span>${esc(CITY[c].name)}${p.patched>S.day?' · patched':''}</span><b>${m?`window in ${Math.max(0,Math.round(m.start-S.day))} days`:btn('Schedule','opsMaint',{city:c},'ghost sm')}</b></div>`;}).join('')}
+    <p class="meta">A one-day window in three days: the site goes dark for a day, then runs on patched firmware and is half as likely to crash for the next 90 days.</p>`;}
+  openModal(h);}
+function adviceList(){const out=[];for(const r of ROLE_ORDER)try{for(const p of BRAINS[r]())out.push({...p,role:r});}catch(e){}return out.sort((a,b)=>(a.cost||0)-(b.cost||0)).filter((p,i,a)=>a.findIndex(q=>q.key===p.key)===i);}
 function opsTick(d){const o=ops();
   for(const m of o.maint.slice()){if(d>=m.start){if(S.pops[m.city]){const p=S.pops[m.city];p.down=Math.max(p.down||0,d+1);p.patched=d+90;addInc({type:'maint',ref:m.city,until:d+1,msg:`Planned maintenance in ${CITY[m.city].name}: firmware upgrade and a fresh cable-management argument.`,cost:0});toast(`<b>Maintenance window in ${esc(CITY[m.city].name)}</b><br>Down for a day, then patched.`,'');}o.maint=o.maint.filter(x=>x!==m);}}
-  if(o.eng>0)for(const i of S.inc.slice()){if(!FIXABLE.includes(i.type)||i.slow||i.until<=d+1||i.start===d)continue;if(Math.random()<Math.min(0.4,0.05*o.eng*(0.5+0.5*engCover()))){clearInc(i);toast(`<b>Your engineers fixed it.</b> ${incTitle(i.type)} resolved ahead of schedule.`,'good');}}}
+  if(!(o.frozen))staffTick(d);else{const s=stf();poolRefresh(d);}}
+
+/* ---------- contracts: short goals with deadlines, rewards and a streak ---------- */
+const metaOn=()=>!!S&&S.mode!=='sandbox'&&!S.scn&&!window.__TUBES_SERVER__;
+function ctr(){return S.ctr||(S.ctr={active:[],done:0,streak:0,best:0,swapDay:-99,fails:0});}
+const CTR_T={
+ serve:{mk(){const g=Math.max(10,Math.ceil(R.served*1.25/5)*5);return {goal:g,days:60,title:`Serve ${fmtG(g)} at once`,unit:'Gbps'};},prog:c=>R.served,ok:c=>R.served>=c.goal,cur:c=>fmtG(R.served)},
+ clean:{mk(){const g=14+Math.floor(Math.random()*3)*7;return {goal:g,days:g+10,title:`${g} days without a new incident`,base:S.stats.incidents,unit:'days'};},prog:c=>S.stats.incidents>c.base?0:S.day-c.start,ok:c=>S.stats.incidents<=c.base&&S.day-c.start>=c.goal,fail:c=>S.stats.incidents>c.base,cur:c=>`${Math.max(0,S.day-c.start)} days`},
+ peers:{mk(){const g=R.sessions+3+Math.floor(Math.random()*5);return {goal:g,days:75,title:`Reach ${g} peering sessions`,unit:'sessions'};},prog:c=>R.sessions,ok:c=>R.sessions>=c.goal,cur:c=>String(R.sessions)},
+ biz:{mk(){const n=2+Math.floor(Math.random()*3);return {goal:S.biz.length+n,days:60,title:`Sign ${n} more customers`,unit:'customers'};},prog:c=>S.biz.length,ok:c=>S.biz.length>=c.goal,cur:c=>String(S.biz.length)},
+ pops:{mk(){const n=1+Math.floor(Math.random()*2);return {goal:Object.keys(S.pops).length+n,days:90,title:`Open ${n} new POP${n>1?'s':''}`,unit:'POPs'};},prog:c=>Object.keys(S.pops).length,ok:c=>Object.keys(S.pops).length>=c.goal,cur:c=>String(Object.keys(S.pops).length)},
+ cool:{mk(){const g=10+Math.floor(Math.random()*3)*5;return {goal:g,days:g+30,title:`Keep every link under 80% for ${g} days`,days0:0,unit:'days'};},prog:c=>c.run||0,ok:c=>(c.run||0)>=c.goal,cur:c=>`${c.run||0} days`},
+ profit:{mk(){const g=Math.max(5000,Math.ceil(Math.max(0,R.revMo-R.costMo)*1.3/1000)*1000);return {goal:g,days:75,title:`Earn ${fmt$(g)} a month in profit`,unit:'$/mo'};},prog:c=>R.revMo-R.costMo,ok:c=>R.revMo-R.costMo>=c.goal,cur:c=>fmt$(R.revMo-R.costMo)}};
+function ctrMake(){const c=ctr(),have=new Set(c.active.map(x=>x.t)),ids=Object.keys(CTR_T).filter(k=>!have.has(k));if(!ids.length)return;
+  const t=pick(ids),m=CTR_T[t].mk(),reward=clamp(Math.round(Math.max(0,R.revMo)*0.4/1000)*1000,8000,500000);
+  c.active.push({id:uid(),t,...m,start:S.day,due:S.day+m.days,reward,pts:1+Math.floor(m.days/45)});}
+function ctrTick(d){if(!metaOn()||d<15)return;const c=ctr();
+  while(c.active.length<3)ctrMake();
+  for(const x of c.active.slice()){const T=CTR_T[x.t];
+    if(x.t==='cool'){const hot=S.links.some(l=>l.kind!=='vxc'&&!linkDown(l)&&linkUtil(l)>0.8);x.run=hot?0:(x.run||0)+1;}
+    if(T.ok(x)){const mult=1+0.25*Math.min(4,c.streak),cash=Math.round(x.reward*mult);S.cash+=cash;c.done++;c.streak++;c.best=Math.max(c.best,c.streak);const pts=x.pts;legacyAward(pts);
+      toast(`<b>Contract complete: ${esc(x.title)}</b><br>+${fmt$(cash)}${c.streak>1?` (streak ×${mult.toFixed(2)})`:''} and ${pts} legacy point${pts>1?'s':''}.`,'good');sfx('coin');c.active=c.active.filter(q=>q!==x);ctrMake();}
+    else if((T.fail&&T.fail(x))||d>x.due){c.streak=0;c.fails++;toast(`<b>Contract missed: ${esc(x.title)}</b><br>Your streak is back to zero. A new one is on the board.`,'');c.active=c.active.filter(q=>q!==x);ctrMake();}}}
+function ctrModal(){const c=ctr();if(!c.active.length&&metaOn())for(let i=0;i<3;i++)ctrMake();
+  openModal(`<div style="display:flex;align-items:center"><div><div class="eyebrow">Contracts</div><h2 style="font-size:26px">Short goals, real rewards</h2></div><button class="x" data-act="closeModal" aria-label="Close">×</button></div>
+  <div class="kv"><span>Streak</span><b>${c.streak} in a row · ×${(1+0.25*Math.min(4,c.streak)).toFixed(2)} rewards · best ${c.best}</b></div><div class="kv"><span>Completed</span><b>${c.done}</b></div>
+  ${metaOn()?'':'<p class="empty">Contracts run in the normal single-player game.</p>'}
+  ${c.active.map(x=>{const T=CTR_T[x.t],left=Math.max(0,Math.round(x.due-S.day)),pr=clamp(x.t==='serve'||x.t==='peers'||x.t==='pops'||x.t==='biz'||x.t==='profit'?T.prog(x)/Math.max(1,x.goal):T.prog(x)/Math.max(1,x.goal),0,1);
+    return `<div class="row"><div class="grow"><div class="nm">${esc(x.title)}</div><div class="bar ${pr>0.8?'':'ok'}"><i style="width:${Math.round(pr*100)}%"></i></div><div class="meta">${T.cur(x)} of ${x.t==='profit'?fmt$(x.goal):x.goal} · ${left} days left · pays ${fmt$(Math.round(x.reward*(1+0.25*Math.min(4,c.streak))))} + ${x.pts} point${x.pts>1?'s':''}</div></div></div><div class="btns">${btn(S.day-c.swapDay>=30?'Swap (free, once a month)':'Swap on cooldown','ctrSwap',{id:x.id},'ghost sm',S.day-c.swapDay<30)}</div>`;}).join('')}
+  <p class="meta">Miss one and the streak resets. Points go to your legacy, which carries into every future game.</p>`);}
+/* ---------- legacy: points you keep between games, spent on small permanent perks ---------- */
+const LEGACY_PERKS={cash:{n:'Seed money',d:'+$50k starting cash',max:5,cost:[3,5,8,12,18]},hr:{n:'Good recruiter',d:'Staff salaries 5% lower',max:3,cost:[4,8,14]},luck:{n:'Lucky network',d:'Random failures 6% rarer',max:3,cost:[5,9,15]}};
+function legacyGet(){if(window.__TUBES_SERVER__)return {pts:0,tot:0,perks:{}};try{const j=JSON.parse(localStorage.getItem('sot-legacy')||'{}');return {pts:+j.pts||0,tot:+j.tot||0,perks:j.perks||{}};}catch(e){return {pts:0,tot:0,perks:{}};}}
+function legacySet(j){try{localStorage.setItem('sot-legacy',JSON.stringify(j));}catch(e){}}
+function legacyAward(n){if(window.__TUBES_SERVER__||!(n>0))return;const j=legacyGet();j.pts+=n;j.tot+=n;legacySet(j);}
+function legacyLevel(k){if(window.__TUBES_SERVER__||(S&&S.mode==='sandbox'))return 0;return Math.min(LEGACY_PERKS[k].max,+legacyGet().perks[k]||0);}
+function legacyModal(){const j=legacyGet();
+  openModal(`<div style="display:flex;align-items:center"><div><div class="eyebrow">Legacy</div><h2 style="font-size:26px">${j.pts} point${j.pts===1?'':'s'} to spend</h2></div><button class="x" data-act="closeModal" aria-label="Close">×</button></div>
+  <p class="lead">You earn points from contracts and every year you survive. Perks apply to every new game on this device. ${j.tot} earned so far.</p>
+  ${Object.entries(LEGACY_PERKS).map(([k,P])=>{const lv=Math.min(P.max,+j.perks[k]||0),next=P.cost[lv];return `<div class="row"><div class="grow"><div class="nm">${P.n} <span class="tag st">level ${lv}/${P.max}</span></div><div class="meta">${P.d} per level</div></div></div><div class="btns">${next?btn(`Level up <small>${next} points</small>`,'legacyBuy',{k},'pink sm',j.pts<next):'<span class="tag st on">maxed</span>'}</div>`;}).join('')}`);}
+/* ---------- annual report and the year-end focus ---------- */
+const FOCI={growth:{n:'Growth',d:'Eyeball demand grows 20% faster'},resilience:{n:'Resilience',d:'Random failures arrive 30% less often'},efficiency:{n:'Efficiency',d:'Every bill is 4% smaller'}};
+const focusOn=k=>!!(S&&S.focus&&S.focus.k===k&&S.focus.until>S.day);
+function yrTick(d){const y=S.yr||(S.yr={rev:0,cost:0,inc0:S.stats.incidents,pops0:Object.keys(S.pops).length,peak:0,start:d});y.rev+=Math.max(0,R.revMo)/30;y.cost+=Math.max(0,R.costMo)/30;y.peak=Math.max(y.peak,R.served||0);
+  if(d>0&&d%360===0&&metaOn())yrReport();}
+function yrReport(){const y=S.yr,yr=Math.floor(S.day/360),profit=y.rev-y.cost,pts=2+(profit>0?2:0)+Math.floor(y.peak/100);legacyAward(pts);
+  const inc=S.stats.incidents-y.inc0,pops=Object.keys(S.pops).length-y.pops0;
+  openModal(`<div class="eyebrow">Year ${yr} in review</div><h2 style="font-size:28px">${esc(S.name)} · AS${S.asn}</h2>
+  <div class="kv"><span>Revenue</span><b>${fmt$(y.rev)}</b></div><div class="kv"><span>Costs</span><b>${fmt$(y.cost)}</b></div><div class="kv"><span>Profit</span><b style="color:${profit>=0?'var(--ok)':'var(--bad)'}">${fmt$(profit)}</b></div>
+  <div class="kv"><span>Peak traffic</span><b>${fmtG(y.peak)}</b></div><div class="kv"><span>Incidents</span><b>${inc}</b></div><div class="kv"><span>New POPs</span><b>${pops}</b></div><div class="kv"><span>Team</span><b>${people().length} people</b></div>
+  <p class="tagline">+${pts} legacy point${pts===1?'':'s'}. Now pick where the next year goes.</p>
+  <div class="btns">${Object.entries(FOCI).map(([k,F])=>btn(`${F.n} <small>${F.d}</small>`,'focus',{k},'pink')).join('')}</div>`);
+  S.yr={rev:0,cost:0,inc0:S.stats.incidents,pops0:Object.keys(S.pops).length,peak:0,start:S.day};}
+/* ---------- deal flow: things that show up and want an answer ---------- */
+const ISP_A=['Northern','Coastal','Metro','Valley','Lakeside','Prime','Citywide','Riverside','Highland','Unity'],ISP_B=['Broadband','Fibre','Cable','Telecom','Networks','Online','Connect'];
+function dealMake(){const ks=['sponsor','ip4'];const ps=Object.keys(S.pops).filter(c=>CITY[c].P>40);if(ps.length)ks.push('acq','acq');if(S.day>180)ks.push('star');const k=pick(ks),id=uid(),exp=S.day+30;
+  if(k==='acq'){const c=pick(ps),p=S.pops[c],gain=Math.max(2,CITY[c].P*0.1),name=`${pick(ISP_A)} ${pick(ISP_B)}`,cost=Math.round(gain*EYE_RATE*(CITY[c].arpu||1)*18/1000)*1000;return {id,k,exp,city:c,gain,name,cost,title:`Buy ${name} in ${CITY[c].name}`,why:`A local ISP with about ${fmtG(gain)} of eyeballs. They come with their own customers, and you get them tomorrow.`};}
+  if(k==='ip4'){const n=4+Math.floor(Math.random()*13),cost=Math.round(n*ip4Price()*0.6/100)*100;return {id,k,exp,n,cost,title:`${n} IPv4 /24 blocks, 40% off`,why:'A liquidating hosting company is selling its address space in bulk.'};}
+  if(k==='sponsor'){const cost=Math.max(20000,Math.round(Math.max(0,R.revMo)*0.5/1000)*1000);return {id,k,exp,cost,title:'Sponsor a football league',why:'Your name on the shirts. Ad campaigns run in every POP with broadband for 30 days.'};}
+  const role=pick(ROLE_ORDER),sal=Math.round(marketSal(role,5)*1.1/500)*500;return {id,k:'star',exp,role,cost:sal,title:`Hire a star ${ROLES[role].n.toLowerCase()}`,why:`Five stars, ${fmt$(sal)}/mo, and they start now. A hyperscaler wants them too.`};}
+function dealTick(d){if(!metaOn()||d<90)return;S.deals=(S.deals||[]).filter(x=>x.exp>d);if(S.deals.length<3&&Math.random()<1/40){const x=dealMake();S.deals.push(x);toast(`<b>New deal: ${esc(x.title)}</b><br>${esc(x.why)}`,'goal',[{l:'Look',act:'deals'}]);}}
+function dealsModal(){const L=(S.deals||[]).filter(x=>x.exp>S.day);
+  openModal(`<div style="display:flex;align-items:center"><div><div class="eyebrow">Deal flow</div><h2 style="font-size:26px">Opportunities</h2></div><button class="x" data-act="closeModal" aria-label="Close">×</button></div>
+  ${L.length?L.map(x=>`<div class="row"><div class="grow"><div class="nm">${esc(x.title)}</div><div class="meta">${esc(x.why)} · ${Math.round(x.exp-S.day)} days left</div></div></div><div class="btns">${btn(`Take it <small>${fmt$(x.cost)}</small>`,'dealTake',{id:x.id},'pink sm',S.cash<x.cost)}${btn('Pass','dealPass',{id:x.id},'ghost sm')}</div>`).join(''):`<p class="empty">Nothing on the table. Deals show up now and then once you have been around a few months.</p>`}`);}
+function dealTake(id){const x=(S.deals||[]).find(q=>q.id===id);if(!x||!spend(x.cost))return;S.deals=S.deals.filter(q=>q!==x);
+  if(x.k==='acq'){const p=S.pops[x.city];if(p){if(p.bb)p.bb.d=Math.min(CITY[x.city].P,p.bb.d+x.gain);else p.bb={d:x.gain};}toast(`<b>${esc(x.name)} is yours.</b><br>${fmtG(x.gain)} of eyeballs in ${esc(CITY[x.city].name)}, on your network from today.`,'good');}
+  else if(x.k==='ip4'){S.ip4x=(S.ip4x||0)+x.n;toast(`<b>${x.n} × /24 bought.</b>`,'good');}
+  else if(x.k==='sponsor'){for(const c in S.pops)if(S.pops[c].bb)S.pops[c].boost=Math.max(S.pops[c].boost||0,S.day+30);toast('<b>Your logo is everywhere.</b><br>Growth is doubled in every city for a month.','good');}
+  else{const s=stf(),p=mkPerson(x.role,5);p.trait=pick(['careful','quick','networker']);p.sal=x.cost;s.people.push(p);staffLog(p.name,'joined as a star hire.');toast(`<b>${esc(p.name)} joined.</b><br>${ROLES[x.role].n}, five stars.`,'good');}
+  sfx('coin');after();}
+
 /* ---------- timelapse: a log of what you built and when, played back on the map ---------- */
 const TL_MAX=4000;let TL_KNOWN=null;
 function tlRecord(d){const t=S.tl||(S.tl={e:[],g:[]});
@@ -2309,7 +2521,7 @@ function dayTick(){
   for(const i of S.inc.slice())if(i.until<=d){clearInc(i);toast(`<b>Resolved:</b> ${incTitle(i.type).toLowerCase()} is fixed.`,'good');}
   // eyeball growth / churn uses last computed service
   for(const c in S.pops){const p=S.pops[c];if(!p.bb)continue;const sf=sfOf(R,c),P=CITY[c].P;
-    if(sf>=0.9){const g=0.025*(scnRule('boom')?1.5:1)*(p.boost>d?2:1)*sf*(0.7+0.6*(R.peerShare||0))*(CITY[c].reg==='AS'&&!CITY[c].cn?1.6:1);p.bb.d+=g*p.bb.d*(1-p.bb.d/P);}
+    if(sf>=0.9){const g=0.025*(scnRule('boom')?1.5:1)*(p.boost>d?2:1)*(focusOn('growth')?1.2:1)*sf*(0.7+0.6*(R.peerShare||0))*(CITY[c].reg==='AS'&&!CITY[c].cn?1.6:1);p.bb.d+=g*p.bb.d*(1-p.bb.d/P);}
     else p.bb.d=Math.max(3,p.bb.d*(1-(0.9-sf)*0.04));}
   compute();
   for(const t of S.transit){(t.hist=t.hist||[]).push(R.useT[t.id]||0);if(t.hist.length>30)t.hist.shift();}
@@ -2336,6 +2548,7 @@ function dayTick(){
     m.next=d+8+Math.floor(Math.random()*10);}}
   loanTick(d);
   opsTick(d);
+  ctrTick(d);yrTick(d);dealTick(d);
   tlRecord(d);
   {const x=sec();if(!x.auto&&typeof x.roa==='number'&&!(S.ev.rpki&&S.ev.rpki.until>d)){const left=x.roa-d;
     if(left===30||left===7)toast(`<b>Your ROA expires in ${left} days.</b><br>Renew it under Routes, Security, or hijacks get a lot easier.`,'goal');
@@ -2346,7 +2559,7 @@ function dayTick(){
   if(S.offers.length<5&&Math.random()<0.05+0.01*(S.lvl||1))spawnOffer();
   // failures & events
   let dirty=false;
-  if(d>=S.nextFail){dirty=true;fireFailure();const size=S.links.length+Object.keys(S.pops).length;S.nextFail=d+Math.round((Math.max(22,50-size*1.5)+Math.floor(Math.random()*25))*(scnRule('chaos')?0.5:1));}
+  if(d>=S.nextFail){dirty=true;fireFailure();const size=S.links.length+Object.keys(S.pops).length;S.nextFail=d+Math.round((Math.max(22,50-size*1.5)+Math.floor(Math.random()*25))*(scnRule('chaos')?0.5:1)*(focusOn('resilience')?1.3:1)*(1+0.06*legacyLevel('luck')));}
   if(d>=S.nextEvent){dirty=true;fireEvent();S.nextEvent=d+45+Math.floor(Math.random()*45);}
   if(dirty)compute();
   // payday floaters
@@ -2535,12 +2748,27 @@ const ACT={
  dispPay:()=>{const d=S.ev.dispute;if(!d||!NET[d.net])return;(S.paid=S.paid||{})[d.net]=d.fee;const i=S.inc.find(x=>x.type==='dispute');if(i)clearInc(i);toast(`<b>Paid peering with ${esc(NET[d.net].name)}.</b><br>${fmt$(d.fee)} a month, and the sessions are back up.`,'good');closeModal();after();},
  dispRefuse:()=>{closeModal();toast('<b>You told them no.</b><br>The sessions stay down while the two of you stare at each other.','');},
  dispPublic:()=>{const d=S.ev.dispute;if(!d)return;closeModal();if(Math.random()<0.5){const i=S.inc.find(x=>x.type==='dispute');if(i)clearInc(i);toast(`<b>${esc(NET[d.net].name)} backed down.</b><br>Their peering team posted “this was a misunderstanding”. Settlement-free again.`,'good');}else{d.until+=15;const i=S.inc.find(x=>x.type==='dispute');if(i)i.until=d.until;toast(`<b>It made things worse.</b><br>Their CEO replied on LinkedIn. +15 days of no direct peering.`,'bad');}after();},
- ops:()=>opsModal(),
  timelapse:()=>timelapseModal(),
  tlClose:()=>{cancelAnimationFrame(TL_RAF);closeModal();},
- opsHire:({d})=>{const o=ops();o.eng=Math.max(0,Math.min(ENG_MAX,o.eng+(+d||0)));opsModal();after();},
- opsFreeze:()=>{const o=ops();o.frozen=!o.frozen;toast(o.frozen?'<b>Change freeze.</b><br>No builds or deploys until you lift it.':'<b>Freeze lifted.</b>','');opsModal();after();},
- opsMaint:({city})=>{const o=ops();if(!S.pops[city]||o.maint.some(x=>x.city===city))return;o.maint.push({city,start:S.day+3});opsModal();after();},
+ ops:()=>staffModal(),opsTab:({t})=>staffModal(t),contracts:()=>ctrModal(),deals:()=>dealsModal(),legacy:()=>legacyModal(),
+ opsFreeze:()=>{const o=ops();o.frozen=!o.frozen;toast(o.frozen?'<b>Change freeze.</b><br>No builds or deploys until you lift it. Your team stands down too.':'<b>Freeze lifted.</b>','');staffModal('chg');after();},
+ opsMaint:({city})=>{const o=ops();if(!S.pops[city]||o.maint.some(x=>x.city===city))return;o.maint.push({city,start:S.day+3});staffModal('chg');after();},
+ stHire:({id})=>{const s=stf(),p=s.pool.find(x=>x.id===id);if(!p||s.people.length>=ENG_MAX||!spend(p.sal))return;s.pool=s.pool.filter(x=>x!==p);p.hired=S.day;s.people.push(p);staffLog(p.name,`joined as ${ROLES[p.role].n.toLowerCase()}.`);toast(`<b>${esc(p.name)} joined.</b><br>${ROLES[p.role].n}. Check their rules under Rules.`,'good');staffModal('team');after();},
+ stFire:({id})=>{const s=stf(),p=s.people.find(x=>x.id===id);if(!p)return;if(UI.confirm!=='f'+id){UI.confirm='f'+id;staffModal('team');return;}UI.confirm=null;S.cash-=p.sal;s.people=s.people.filter(x=>x!==p);staffLog(p.name,'left the company.');staffModal('team');after();},
+ stRaise:({id})=>{const p=stf().people.find(x=>x.id===id);if(!p)return;p.sal=Math.round(p.sal*1.12/100)*100;p.ask=false;p.mood=Math.min(100,p.mood+25);staffModal('team');after();},
+ stTrain:({id})=>{const p=stf().people.find(x=>x.id===id);if(!p||p.skill>=5||!spend(8000*p.skill))return;p.xp+=12;const lv=XPT.filter(x=>p.xp>=x).length;if(lv>p.skill){p.skill=lv;p.ask=true;}staffModal('team');after();},
+ stApprove:({id})=>{const s=stf(),p=s.inbox.find(x=>x.id===id);if(!p)return;s.inbox=s.inbox.filter(x=>x!==p);const ok=staffWork(p.role,people(p.role)[0],p);toast(ok?`<b>Done.</b> ${esc(p.title)}`:`<b>That did not work out.</b><br>${esc(p.title)}`,ok?'good':'bad');staffModal('inbox');after();},
+ stApproveAll:()=>{const s=stf();let n=0;for(const p of s.inbox.slice()){if(S.cash<p.cost)continue;s.inbox=s.inbox.filter(x=>x!==p);if(staffWork(p.role,people(p.role)[0],p))n++;}toast(`<b>${n} approved.</b>`,'good');staffModal('inbox');after();},
+ stReject:({id})=>{const s=stf();s.inbox=id==='all'?[]:s.inbox.filter(x=>x.id!==id);staffModal('inbox');},
+ stDo:({k})=>{const p=adviceList().find(x=>x.key===k);if(!p)return;const ok=execProp(p);toast(ok?`<b>Done.</b> ${esc(p.title)}`:`<b>That did not work.</b><br>${esc(p.title)}`,ok?'good':'bad');staffModal('team');after();},
+ stMode:({role,v})=>{if(!ROLES[role]||!['off','ask','auto'].includes(v))return;polOf(role).mode=v;staffModal('pol');},
+ stBud:({role,d})=>{if(!ROLES[role])return;const pl=polOf(role);let i=BUDGETS.indexOf(pl.budget);if(i<0)i=BUDGETS.findIndex(x=>x>=pl.budget);pl.budget=BUDGETS[clamp(i+(+d>0?1:-1),0,BUDGETS.length-1)];staffModal('pol');},
+ stRes:({role,d})=>{if(!ROLES[role])return;const pl=polOf(role);let i=RESERVES.indexOf(pl.reserve);if(i<0)i=RESERVES.findIndex(x=>x>=pl.reserve);pl.reserve=RESERVES[clamp(i+(+d>0?1:-1),0,RESERVES.length-1)];staffModal('pol');},
+ stReg:({v})=>{polOf('mkt').region=(v==='any'||REG[v])?v:'any';staffModal('pol');},
+ ctrSwap:({id})=>{const c=ctr();if(S.day-c.swapDay<30)return;const x=c.active.find(q=>q.id===id);if(!x)return;c.active=c.active.filter(q=>q!==x);c.swapDay=S.day;ctrMake();ctrModal();},
+ focus:({k})=>{if(!FOCI[k])return;S.focus={k,until:S.day+360};closeModal();toast(`<b>Focus for the year: ${FOCI[k].n}.</b><br>${FOCI[k].d}.`,'good');after();},
+ dealTake:({id})=>{dealTake(id);dealsModal();},dealPass:({id})=>{S.deals=(S.deals||[]).filter(x=>x.id!==id);dealsModal();},
+ legacyBuy:({k})=>{const P=LEGACY_PERKS[k];if(!P)return;const j=legacyGet(),lv=+j.perks[k]||0,c=P.cost[lv];if(!c||j.pts<c||lv>=P.max)return;j.pts-=c;j.perks[k]=lv+1;legacySet(j);legacyModal();},
  secRenew:()=>{sec().roa=S.day+365;toast('<b>ROA renewed.</b><br>Valid for another year.','good');after();},
  secAuto:()=>{const x=sec();x.auto=!x.auto;if(x.auto)x.roa=S.day+365;toast(x.auto?'<b>Hosted RPKI on.</b><br>Your RIR signs and renews for you.':'<b>Manual ROAs.</b><br>Put the renewal in your calendar.','good');after();},
  secRov:()=>{const x=sec();x.rov=!x.rov;toast(x.rov?'<b>ROV is on.</b><br>Invalid routes are dropped at your edge.':'<b>ROV is off.</b>','good');after();},
@@ -2813,7 +3041,7 @@ function renderLeft0(){
       h+=`<div class="row"><div class="grow"><div class="nm">${esc(o.name)}</div><div class="meta">${esc(BIZ_T[o.type].l)} · ${CITY[o.city].name}${o.city2?' ⇄ '+CITY[o.city2].name:''} · <b>${bTerms(o)}</b> · ${o.exp-S.day}d left${(o.reqs||[]).length?` · ${o.reqs.length} special requirement${o.reqs.length>1?'s':''}`:''}</div>${reqList(o)}
       <div class="btns">${has?btn('Accept','accept',{id:o.id},'green sm'):btn('Go there','focusCity',{city:o.city},'ghost sm')}${btn('Decline','decline',{id:o.id},'ghost sm')}</div>${has?'':`<div class="why">Needs a POP in ${bCities(o).filter(x=>!S.pops[x]).map(x=>CITY[x].name).join(', ')}</div>`}</div></div>`;}
   }else if(UI.left==='noc'){
-    h+=`<div class="btns" style="margin-bottom:8px">${btn('Open NOC dashboard','dash',{},'pink')}${btn('Traceroute','trace',{},'')}${btn('Routes','routes',{},'')}${btn('Ops','ops',{},'')}${btn('Timelapse','timelapse',{},'')}</div>`;
+    h+=`<div class="btns" style="margin-bottom:8px">${btn('Open NOC dashboard','dash',{},'pink')}${btn('Traceroute','trace',{},'')}${btn('Routes','routes',{},'')}${btn('Team','ops',{},'')}${btn('Contracts','contracts',{},'')}${btn('Deals','deals',{},'')}${btn('Legacy','legacy',{},'')}${btn('Timelapse','timelapse',{},'')}</div>`;
     h+=`<p class="lead">Your Network Operations Center. Every notification also lands here. Things fail all the time on the internet. Redundant links and multiple upstreams let traffic reroute by itself.</p>`;
     h+=`<div class="kv"><span>DDoS scrubbing</span><b>${scrubList().length?'On · '+scrubList().map(x=>CITY[x].name).join(', '):'None (build one from a POP\'s Infra tab)'}</b></div>`;
     h+=S.te?`<div class="kv"><span>Auto-TE</span><b>${S.te.on?`On · moving ${fmtG(R.teMoved||0)} onto alternate paths`:'Off'}</b></div><div class="btns">${btn(S.te.on?'Turn Auto-TE off':'Turn Auto-TE on','teToggle',{},'ghost sm')}${btn(S.te.script?'Edit RouteScript':'Write a RouteScript','teEdit',{},'pink sm')}</div>${S.te.script?`<p class="meta" style="margin:2px 0 6px">RouteScript: ${teRules()?teRules().n+' rules live':S.te.on?'has errors, not running':'controller off'}${R.teBlack?` · blackholing ${fmtG(R.teBlack)}`:''}</p>`:''}`
@@ -3591,9 +3819,9 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(
 // Actions that only change what *you* are looking at. Everything else is a command to the shared network.
 // A change freeze blocks the actions that change the network, and a rushed script deploy can break something.
 for(const k of CHANGE_ACTS){const f=ACT[k];if(typeof f==='function')ACT[k]=a=>{if(S&&S.ops&&S.ops.frozen){toast('<b>Change freeze.</b><br>Lift it under Ops before you build or deploy.','bad');sfx('err');return;}
-  if(k==='teDeploy'&&S){const o=ops(),pr=Math.max(0.01,0.07*(1-Math.min(0.85,o.eng*0.15)));if(Math.random()<pr){const ps=Object.keys(S.pops);if(ps.length){const c=pick(ps);S.pops[c].down=Math.max(S.pops[c].down||0,S.day+1);addInc({type:'crash',ref:c,until:S.day+1,msg:`A config push went out without review and took ${CITY[c].name} off the air. The rollback was in the other repo.`,cost:0});}}}
+  if(k==='teDeploy'&&S){const pr=Math.max(0.01,0.07*(1-Math.min(0.85,Math.min(8,people('noc').length+people('srnoc').length*2)*0.1)));if(Math.random()<pr){const ps=Object.keys(S.pops);if(ps.length){const c=pick(ps);S.pops[c].down=Math.max(S.pops[c].down||0,S.day+1);addInc({type:'crash',ref:c,until:S.day+1,msg:`A config push went out without review and took ${CITY[c].name} off the air. The rollback was in the other repo.`,cost:0});}}}
   return f(a);};}
-const MP_LOCAL=new Set(['ops','opsModal','timelapse','tlClose','help','dash','dashClose','dashSort','bank','bankClose','dashLink','animSet','soundSet','mute','closePanel','closeModal','tab','leftTab','toggleLeft','focusCity','selLink','teEdit','teClose','trTool','dispRefuse','mpPeerReq','mpPeerAcc','mpPeerDel','teExample','teCheck','tailTog','trace','traceRun','traceCopy','share','shareDl','shareGo','tutSkip','models','via','route','dfMode','dfSrc','dfSys','cnPrem','menu','resetAsk','whatsNewShow','updateNow','updateLater','helpClose','routes','rvTab','start','rollAsn','modeSet','scenarios','startScn','startWeekly','pickStart','cont','newgame','keepPlaying','exportSave','importPick','importGo','orderDfN','addPairsN','buildDcN','dcTierSet','addDcRacksN','buyIp4N','sellIp4N','addRouterN','rmRouterN','foundDixN','addChN','rmChN','citySearch','flyTo','citySet','mpOpen','mpTab','mpLogin','mpRegister','mpLogout','mpServer','mpRollAsn','mpCreate','mpJoin','mpEnter','mpPickCity','mpTeam','mpTeamClose','mpChat','mpRole','mpRotate','mpLeave']);
+const MP_LOCAL=new Set(['ops','opsTab','contracts','deals','legacy','legacyBuy','timelapse','tlClose','help','dash','dashClose','dashSort','bank','bankClose','dashLink','animSet','soundSet','mute','closePanel','closeModal','tab','leftTab','toggleLeft','focusCity','selLink','teEdit','teClose','trTool','dispRefuse','mpPeerReq','mpPeerAcc','mpPeerDel','teExample','teCheck','tailTog','trace','traceRun','traceCopy','share','shareDl','shareGo','tutSkip','models','via','route','dfMode','dfSrc','dfSys','cnPrem','menu','resetAsk','whatsNewShow','updateNow','updateLater','helpClose','routes','rvTab','start','rollAsn','modeSet','scenarios','startScn','startWeekly','pickStart','cont','newgame','keepPlaying','exportSave','importPick','importGo','orderDfN','addPairsN','buildDcN','dcTierSet','addDcRacksN','buyIp4N','sellIp4N','addRouterN','rmRouterN','foundDixN','addChN','rmChN','citySearch','flyTo','citySet','mpOpen','mpTab','mpLogin','mpRegister','mpLogout','mpServer','mpRollAsn','mpCreate','mpJoin','mpEnter','mpPickCity','mpTeam','mpTeamClose','mpChat','mpRole','mpRotate','mpLeave']);
 // UI state that commands read and may change (two-step confirms, the link you are drawing, the open tab).
 const MP_CTX=['confirm','tab','sel','pending','route','cnPrem','via','lmode','dfSrc','dfSys'];
 const MP_OUT=[];

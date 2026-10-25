@@ -27,7 +27,7 @@ for (const seed of SEEDS) {
           `{const a='${any()}',b='${any()}';if(a!==b){UI.pending={a,b};ACT.buildLink({tier:${Math.floor(rnd() * 4)}});}}`,
           `ACT.addRouter({city:'${any()}',n:${1 + Math.floor(rnd() * 5)}})`, `ACT.buyIx({city:'${any()}',tier:${Math.floor(rnd() * 4)},signed:true})`,
           `ACT.rs({city:'${any()}'})`, `ACT.peerAll({city:'${any()}'})`, `{const i=S.inc[0];if(i)ACT.fixInc({id:i.id});}`,
-          'ACT.opsHire({d:1})', 'ACT.opsFreeze()', `ACT.opsMaint({city:'${any()}'})`, 'ACT.secRov()', 'ACT.secIrr()', 'ACT.secAuto()', 'ACT.secRenew()',
+          "{const s=stf();if(s.pool.length)ACT.stHire({id:s.pool[0].id});}", "{const s=stf();if(s.people.length){const r=['sales','noc','srnoc','arch','peer','mkt']["+Math.floor(rnd()*6)+"];polOf(r).mode=['ask','auto']["+Math.floor(rnd()*2)+"];polOf(r).budget=1e6;polOf(r).reserve=0;}}", 'if(stf().inbox.length)ACT.stApprove({id:stf().inbox[0].id})', 'ACT.contracts();ACT.deals();ACT.legacy();ACT.ops()', 'if((S.deals||[]).length)ACT.dealTake({id:S.deals[0].id})', 'ACT.opsFreeze()', `ACT.opsMaint({city:'${any()}'})`, 'ACT.secRov()', 'ACT.secIrr()', 'ACT.secAuto()', 'ACT.secRenew()',
           `{const t=S.transit[0];if(t)ACT.setCommit({id:t.id,v:[0.2,0.5,0.8][${Math.floor(rnd() * 3)}]});}`,
           `S.te={on:true,script:['prepend transit cogent x2','lowpref transit ntt','prefer pni for netflix','spill at 80%'][${Math.floor(rnd() * 4)}]};`,
           `fireEvent('${FORCE[Math.floor(rnd() * FORCE.length)]}')`, `fireFailure('${['cut', 'crash', 'power', 'leak', 'rpki', 'ddos', 'transit'][Math.floor(rnd() * 7)]}')`,

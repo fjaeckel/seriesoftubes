@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Staff. Hire sales engineers, NOC engineers, senior NOC engineers, network architects, peering coordinators and
+  marketing managers. Per-role rules (off, ask, auto) with a monthly budget and a cash reserve, an inbox of proposals,
+  skills, XP, traits, raises, mistakes and poaching, and a list of what is worth doing right now. They only improve
+  what exists: new cities, long-haul links and strategy are yours. Replaces the simple engineer count in Ops.
+- Single player: contracts with a streak multiplier, a year-end review with a focus choice (growth, resilience or
+  efficiency), legacy points and permanent perks that carry across games, and deal flow with acquisitions, bulk IPv4,
+  sponsorships and star hires.
 - RouteScript: `prepend transit PROVIDER x3` and `lowpref transit PROVIDER`. Ping, MTR and a BGP looking glass next to
   traceroute, all driven by the same routing.
 - Routing security. ROAs that expire, hosted RPKI, ROV and prefix filtering, MANRS, and a Security tab in the route
