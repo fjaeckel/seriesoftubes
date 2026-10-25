@@ -273,7 +273,7 @@ test('several exchanges per city: overlapping members, cheaper challengers, sepa
   ev("selectCity('ams');ACT.tab({t:'peer'})");
   const t = ev("document.getElementById('panelBody').textContent");
   assert.match(t, /\d+ exchanges compete/);
-  assert.match(t, /NL-ix/);
+  assert.match(t, /NL-Nyx/);
   ev("save();load2=JSON.parse(localStorage.getItem('sot-save-v1'));sanitize(load2)");
   assert.equal(ev("load2.ixp['ams~2']"), 1, 'saves keep challenger ports');
   ev("ACT.cancelIx({city:'ams~2'});ACT.cancelIx({city:'ams~2'})");
@@ -312,15 +312,15 @@ test('router ports are finite: plugging in fills them, more routers or bigger mo
   assert.equal(ev("portsUsed('ams')"), 8.25, '10G rides a breakout');
   ev("ACT.rmRouter({city:'ams'})");
   assert.equal(ev("S.pops.ams.routers"), 2, 'cannot remove a router whose ports are in use');
-  const arr = ev("RG.findIndex(r=>/Arista 7280CR3/.test(r.n))");
+  const arr = ev("RG.findIndex(r=>/Arrrhipster 7280R/.test(r.n))");
   assert.ok(arr > 0);
   ev(`ACT.upRouter({city:'ams',g:${arr}})`);
   assert.equal(ev("S.pops.ams.rgen"), arr, 'swapped to the Arista');
   assert.equal(ev("portsMax('ams')"), 72);
   assert.equal(ev("bootMin('ams')") < 30, true, 'boots fast');
   ev("selectCity('ams');ACT.tab({t:'infra'});ACT.models()");
-  assert.match(ev("document.getElementById('panelBody').textContent"), /Nokia 7750/);
-  const mk = ev("RG.findIndex(r=>/MikroTik/.test(r.n))");
+  assert.match(ev("document.getElementById('panelBody').textContent"), /Knockia 7750/);
+  const mk = ev("RG.findIndex(r=>/Mikrowtik/.test(r.n))");
   ev("ACT.buyTransit({city:'ams',net:'cog',tier:2})");
   assert.equal(ev("S.transit.find(t=>t.net==='cog'&&t.city==='ams').tier"), 2);
   ev(`ACT.upRouter({city:'ams',g:${mk}})`);
@@ -333,7 +333,7 @@ test('Barcelona is wired up: a coastal cable, CDNs and a proper Tokyo challenger
   const { ev, errors } = load();
   assert.ok(ev("cablesFor('bcn','mrs').length>0&&cablesFor('lis','bcn').length>0"));
   assert.ok(ev("NET.fbk.pops.includes('bcn')&&NET.amz.pops.includes('bcn')"));
-  assert.equal(ev("ixName('tok~2')"), 'JPIX TOKYO');
+  assert.equal(ev("ixName('tok~2')"), 'Bento-IX');
   assert.ok(ev("ixMul('tok~2')<1"), 'challengers undercut the incumbent');
   assert.deepEqual(errors, []);
 });

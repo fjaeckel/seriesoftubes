@@ -67,7 +67,7 @@ test('networks: any free AS number, no reserved or real ones, no duplicates, own
   try {
     const A = (await s.signup('alice')).token, B = (await s.signup('bob')).token;
     const make = (asn, tok = A, extra = {}) => s.api('POST', '/api/networks', { name: 'Net ' + asn, asn, home: 'fra', ...extra }, tok);
-    assert.equal((await make('3356')).s, 400, 'AS3356 is Lumen');
+    assert.equal((await make('3535')).s, 400, 'AS3356 is Level Tree');
     assert.equal((await make('0')).s, 400);
     assert.equal((await make('23456')).s, 400);
     assert.equal((await make('abc')).s, 400);

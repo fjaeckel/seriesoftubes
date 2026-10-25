@@ -10,12 +10,12 @@ test('RouteScript: prepend and lowpref move traffic between two transits, and th
   const used = () => JSON.parse(ev('JSON.stringify(S.transit.map(t=>[t.net,R.useT[t.id]||0]))'));
   const before = Object.fromEntries(used());
   assert.ok(before.ntt + before.cog > 1);
-  ev("S.te={on:true,script:'prepend transit cogent x3'};compute()");
+  ev("S.te={on:true,script:'prepend transit cogentle x3'};compute()");
   assert.equal(ev("teParse(S.te.script).errors.length"), 0);
   const after = Object.fromEntries(used());
-  assert.ok(after.cog <= before.cog && after.ntt >= before.ntt, 'prepending cogent pushes load to ntt');
+  assert.ok(after.cog <= before.cog && after.ntt >= before.ntt, 'prepending cogentle pushes load to ntt');
   const lg = ev("lookingGlass('cmc').text");
-  assert.match(lg, /174 174 174 174/, 'three prepends show up in the path');
+  assert.match(lg, /714 714 714 714/, 'three prepends show up in the path');
   assert.match(lg, /best/);
   ev("S.te.script='lowpref transit ntt';compute()");
   assert.equal(ev("teParse(S.te.script).errors.length"), 0);

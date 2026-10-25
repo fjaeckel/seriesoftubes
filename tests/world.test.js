@@ -14,13 +14,13 @@ test('the world: thousands of cities, every PoP and exchange refers to a real on
   assert.deepEqual(errors, []);
 });
 
-test('networks carry their real names and AS numbers', () => {
+test('networks carry their game names and scrambled AS numbers', () => {
   const { ev } = load();
   const asn = (id) => ev(`NET.${id}.asn`), name = (id) => ev(`NET.${id}.name`);
-  assert.deepEqual([asn('lvl'), asn('cog'), asn('ggl'), asn('cfl'), asn('nfx'), asn('drz'), asn('ntt'), asn('tly')], [3356, 174, 15169, 13335, 2906, 6939, 2914, 1299]);
-  assert.deepEqual([name('lvl'), name('cog'), name('ggl'), name('nfx')], ['Lumen', 'Cogentle', 'Goggle', 'NetChill']);
+  assert.deepEqual([asn('lvl'), asn('cog'), asn('ggl'), asn('cfl'), asn('nfx'), asn('drz'), asn('ntt'), asn('tly')], [3535, 714, 15961, 13353, 2906, 9369, 2941, 1229]);
+  assert.deepEqual([name('lvl'), name('cog'), name('ggl'), name('nfx')], ['Level Tree', 'Cogentle', 'Goggle', 'NetChill']);
   assert.equal(ev("new Set(NETS.map(n=>n.asn)).size"), ev('NETS.length'), 'no AS number appears twice');
-  assert.equal(ev("NETS.some(n=>/Cogentle|Goggle|Faceplant|Level Tree/.test(JSON.stringify(n)))"), false, 'no cartoon names left');
+  assert.equal(ev("NETS.some(n=>/Cogent\\b|Google|Meta\\b|Lumen/.test(JSON.stringify(n)))"), false, 'no real brands left');
 });
 
 test('transit is sold only in cities where a transit network really has a PoP', () => {
@@ -72,8 +72,8 @@ test('AS numbers: any free number works, reserved and taken ones do not', () => 
   assert.equal(chk('AS4200000001').n, 4200000001);
   assert.equal(chk(1).n, 1);
   for (const bad of ['0', '23456', '65535', '4294967295', '-5', '1.5', 'abc', '', '99999999999']) assert.ok(chk(bad).err, `${bad} is refused`);
-  assert.match(chk(3356).err, /Lumen/);
-  assert.match(chk(174).err, /Cogentle/);
+  assert.match(chk(3535).err, /Level Tree/);
+  assert.match(chk(714).err, /Cogentle/);
   const r = ev('randomAsn()');
   assert.ok(r >= 1 && !ev(`NETS.some(n=>n.asn===${r})`));
   assert.equal(ev("rirFor('fra')"), 'RIPE NCC');
@@ -93,7 +93,7 @@ test('the title screen takes a chosen AS number', () => {
   assert.match(ev("document.getElementById('toasts').textContent"), /You announce AS65001/);
   const t = load();
   t.ev("showTitle()");
-  t.dom.window.document.getElementById('asnIn').value = '3356';
+  t.dom.window.document.getElementById('asnIn').value = '3535';
   t.dom.window.document.querySelector('[data-act=start]').click();
   assert.equal(t.ev('S'), null, 'a taken number stops the game from starting');
 });
@@ -147,19 +147,10 @@ test('find any city on the map, and hide the small ones', () => {
   void all;
 });
 
-test('no joke names are left in the customer, bank and network lists', () => {
-  const { ev } = load();
-  const bad = /Hamster|Kebab|Llama|Snack|Git Happens|Skynet|Goldman Sacks|Crypto Bros|Dracula|-ish\b|eBuy|Paperworkistan/;
-  const text = ev("JSON.stringify([BIZ_N,Object.values(BIZ_T).map(t=>t.names),Object.values(BANKS).map(b=>[b.name,b.blurb]),NETS.map(n=>[n.name,n.blurb]),CONFS.map(c=>c.n),MEGA.map(m=>m.n),SITE2_N])");
-  assert.doesNotMatch(text, bad);
-});
-
-test('real routers and optics, and dark fiber takes any number of transceivers at once', () => {
+test('router models and optics, and dark fiber takes any number of transceivers at once', () => {
   const { ev, errors } = load({ seed: 4 });
-  assert.match(ev("RG.map(r=>r.n).join()"), /Rusty Router 9000.*Cisco 8201.*PTX10001.*Silicon One G300.*MikroTik.*Edgecore.*Arista 7280.*Arista 7800.*Disco 8K.*Tomahawk 6.*Disco 8K Ultra.*Silicon One G400.*Nokia 7950.*Nokia 7750/);
-  assert.equal(ev("RG.some(r=>/Rusty|Chonk|Absolute|Arrrhipster|Knockia/.test(r.n))"), false);
+  assert.match(ev("RG.map(r=>r.n).join()"), /Rusty Router 9000.*Edge Lord 400.*Chonk 800/);
   assert.equal(ev("PORT[PORT.length-1].n"), '3.2T', 'the fastest port is the 3.2T of the last levels');
-  assert.equal(ev("Object.values(OPT).some(o=>/Ackackia|Sizzle|Sienna/.test(o.n))"), false);
   ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0");
   ev("ACT.buildPop({city:'ams'});for(const c of ['fra','ams'])S.pops[c].rgen=3;");
   ev("UI.pending={a:'fra',b:'ams'};UI.lmode='df';UI.dfSrc='lease';ACT.orderDf()");
@@ -177,7 +168,7 @@ test('real routers and optics, and dark fiber takes any number of transceivers a
   ev(`ACT.addChN({id:'${id}',o:'zr4'})`);
   assert.equal(ev(`S.links.find(l=>l.id==='${id}').ch.length`), 15);
   // a better line system unlocks the big transponders
-  assert.match(ev(`chWhy(S.links.find(l=>l.id==='${id}'),'tp16')`), /Ciena 6500 ROADM/);
+  assert.match(ev(`chWhy(S.links.find(l=>l.id==='${id}'),'tp16')`), /ROADMaster 9000/);
   ev(`ACT.upSys({id:'${id}',to:'roadm'})`);
   assert.equal(ev(`chWhy(S.links.find(l=>l.id==='${id}'),'tp16')`), '');
   ev(`S.lvl=6;ACT.upSys({id:'${id}'})`);

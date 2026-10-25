@@ -1957,9 +1957,9 @@ function dijkstra(adj,src,wf,skip,stop){const dist={[src]:0},prev={},done=new Se
 const TE_KINDS={pni:'p',ix:'ix',transit:'t'};
 const TE_EXAMPLE=`# RouteScript for your Auto-TE controller. One rule per line.
 # Keep Cogentle at its 20 Gbps commit; overflow goes elsewhere
-cap transit cogent at 20 gbps
+cap transit cogentle at 20 gbps
 # Goggle should come over peering, not transit
-avoid transit for google
+avoid transit for goggle
 # Move traffic before links are completely full
 spill at 85%
 # Maintenance window? Drain a POP's exits, or steer around a link
@@ -1984,7 +1984,7 @@ function teParse(src){const out={spill:null,cap:{},net:{},prep:{},low:new Set(),
     if(m=line.match(/^prepend\s+(?:transit\s+)?(.+?)\s+(?:x|by\s+)?([1-5])$/)){const r=teFind(m[1],NETS.filter(n=>n.price),'transit provider');if(r.err){out.errors.push(`line ${L}: ${r.err}`);return;}out.prep[r.v]=+m[2];out.n++;return;}
     if(m=line.match(/^(?:lowpref|local-pref\s+low)\s+(?:transit\s+)?(.+)$/)){const r=teFind(m[1],NETS.filter(n=>n.price),'transit provider');if(r.err){out.errors.push(`line ${L}: ${r.err}`);return;}out.low.add(r.v);out.n++;return;}
     if(line==='blackhole ddos'){out.blackhole=true;out.n++;return;}
-    out.errors.push(tr("line {n}: I don't understand “{text}”. Try: spill at 80%, prepend transit cogent x3, lowpref transit cogent, prefer pni for google, avoid transit for netflix, cap transit cogent at 20 gbps, drain paris, avoid link fra-ams, blackhole ddos",{n:L,text:raw.trim().slice(0,40)}));});
+    out.errors.push(tr("line {n}: I don't understand “{text}”. Try: spill at 80%, prepend transit cogentle x3, lowpref transit cogentle, prefer pni for goggle, avoid transit for netchill, cap transit cogentle at 20 gbps, drain paris, avoid link fra-ams, blackhole ddos",{n:L,text:raw.trim().slice(0,40)}));});
   return out;}
 let TE_CACHE={src:null,p:null};
 function teRules(){if(!S||!S.te||!S.te.on||!S.te.script)return null;if(TE_CACHE.src!==S.te.script)TE_CACHE={src:S.te.script,p:teParse(S.te.script)};return TE_CACHE.p.errors.length?null:TE_CACHE.p;}

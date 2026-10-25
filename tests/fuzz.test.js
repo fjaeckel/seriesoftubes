@@ -29,7 +29,7 @@ for (const seed of SEEDS) {
           `ACT.rs({city:'${any()}'})`, `ACT.peerAll({city:'${any()}'})`, `{const i=S.inc[0];if(i)ACT.fixInc({id:i.id});}`,
           "{const s=stf();if(s.pool.length)ACT.stHire({id:s.pool[0].id});}", "{const s=stf();if(s.people.length){const r=['sales','noc','srnoc','arch','peer','mkt']["+Math.floor(rnd()*6)+"];polOf(r).mode=['ask','auto']["+Math.floor(rnd()*2)+"];polOf(r).budget=1e6;polOf(r).reserve=0;}}", 'if(stf().inbox.length)ACT.stApprove({id:stf().inbox[0].id})', 'ACT.contracts();ACT.deals();ACT.legacy();ACT.ops()', 'if((S.deals||[]).length)ACT.dealTake({id:S.deals[0].id})', 'ACT.opsFreeze()', `ACT.opsMaint({city:'${any()}'})`, 'ACT.secRov()', 'ACT.secIrr()', 'ACT.secAuto()', 'ACT.secRenew()',
           `{const t=S.transit[0];if(t)ACT.setCommit({id:t.id,v:[0.2,0.5,0.8][${Math.floor(rnd() * 3)}]});}`,
-          `S.te={on:true,script:['prepend transit cogent x2','lowpref transit ntt','prefer pni for netflix','spill at 80%'][${Math.floor(rnd() * 4)}]};`,
+          `S.te={on:true,script:['prepend transit cogentle x2','lowpref transit ntt','prefer pni for netchill','spill at 80%'][${Math.floor(rnd() * 4)}]};`,
           `fireEvent('${FORCE[Math.floor(rnd() * FORCE.length)]}')`, `fireFailure('${['cut', 'crash', 'power', 'leak', 'rpki', 'ddos', 'transit'][Math.floor(rnd() * 7)]}')`,
           'if(S.ev.dispute)ACT.dispPay()', 'ACT.dispPublic()', `ACT.trace({});ACT.trTool({tool:['ping','mtr','lg','trace'][${Math.floor(rnd() * 4)}]})`,
           'ACT.timelapse();ACT.tlClose()', "routesModal(['ov','up','pe','px','pa','cu','sec'][" + Math.floor(rnd() * 7) + '])',

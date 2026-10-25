@@ -154,7 +154,7 @@ test('RouteScript: parses safely, reports errors helpfully, and changes routing'
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'})");
   ev("ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.buyTransit({city:'fra',net:'lvl',tier:1});ACT.buyTE();compute()");
-  let p = JSON.parse(ev("JSON.stringify(teParse('spill at 80%\\ncap transit cogent at 3 gbps\\nprefer ix for google\\nnonsense here\\navoid transit for gogle'))"));
+  let p = JSON.parse(ev("JSON.stringify(teParse('spill at 80%\\ncap transit cogentle at 3 gbps\\nprefer ix for goggle\\nnonsense here\\navoid transit for gogle'))"));
   assert.equal(p.errors.length, 2, 'the nonsense line and the typo fail');
   assert.match(p.errors[1], /Did you mean Goggle/, 'typos get a suggestion');
   p = JSON.parse(ev("JSON.stringify(teParse('avoid transit for zzzzqqq').errors)"));
@@ -163,11 +163,11 @@ test('RouteScript: parses safely, reports errors helpfully, and changes routing'
   assert.equal(ev("teParse('alert(1)').n"), 0, 'nothing is ever evaluated');
   const cog = "R.useT[S.transit.find(t=>t.net==='cog').id]||0";
   const before = ev(cog);
-  ev("ACT.teEdit();document.getElementById('teSrc').value='cap transit cogent at 3 gbps';ACT.teDeploy()");
+  ev("ACT.teEdit();document.getElementById('teSrc').value='cap transit cogentle at 3 gbps';ACT.teDeploy()");
   assert.ok(ev(cog) <= 3.0001 && before > 3, `Cogentle capped (${before} -> ${ev(cog)})`);
   assert.ok(ev("R.useT[S.transit.find(t=>t.net==='lvl').id]") > 0, 'overflow went to the other upstream');
   // a fat-fingered deploy earns its badge
-  ev("ACT.teEdit();document.getElementById('teSrc').value='drain frankfurt\\ncap transit lumen at 0 gbps\\ncap transit cogent at 0 gbps';ACT.teDeploy();checkGoals()");
+  ev("ACT.teEdit();document.getElementById('teSrc').value='drain frankfurt\\ncap transit level tree at 0 gbps\\ncap transit cogentle at 0 gbps';ACT.teDeploy();checkGoals()");
   assert.ok(ev("S.ach.fat!==undefined"));
   // errors block a deploy
   ev("ACT.teEdit();document.getElementById('teSrc').value='spill at 5%';ACT.teDeploy()");

@@ -14,7 +14,7 @@ test('route viewer: your AS, upstreams, peers, prefixes and the AS path to every
   const v = JSON.parse(ev('JSON.stringify(routeView())'));
   assert.equal(v.asn, ev('S.asn'));
   assert.equal(v.upstreams.length, 1);
-  assert.equal(v.upstreams[0].asn, 174);
+  assert.equal(v.upstreams[0].asn, 714);
   assert.equal(v.upstreams[0].name, 'Cogentle');
   assert.ok(v.peers.length > 3, 'the route server brings peers');
   assert.ok(v.peers.every((p) => p.sessions.length && p.asn > 0));
@@ -22,9 +22,9 @@ test('route viewer: your AS, upstreams, peers, prefixes and the AS path to every
   assert.ok(v.prefixes.some((p) => p.family === 6 && p.prefix.startsWith('2001:db8:')), 'IPv6 from the documentation range');
   assert.equal(v.rpki, 'valid');
   const g = v.paths.find((p) => p.id === 'ggl');
-  assert.ok(g.reachable && g.asPath[0] === v.asn && g.asPath.at(-1) === 15169 && g.rtt > 0);
+  assert.ok(g.reachable && g.asPath[0] === v.asn && g.asPath.at(-1) === 15961 && g.rtt > 0);
   const viaTransit = v.paths.find((p) => p.kind === 't');
-  assert.deepEqual(viaTransit.asPath.slice(0, 2), [v.asn, 174], 'transit paths go through the upstream first');
+  assert.deepEqual(viaTransit.asPath.slice(0, 2), [v.asn, 714], 'transit paths go through the upstream first');
   assert.ok(v.paths.every((p, i, a) => !i || a[i - 1].gbps >= p.gbps), 'sorted by traffic');
   assert.deepEqual(errors, []);
 });
