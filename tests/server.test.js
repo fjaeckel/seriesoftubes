@@ -253,3 +253,19 @@ test('route servers: two teams at the same exchange peer by policy, and the fee 
     assert.equal((await s.api('POST', '/api/networks/64512/policy', { pol: 'open' }, B)).s, 403, 'not your network');
   } finally { await s.close(); }
 });
+
+test('multiplayer: modals the server cannot draw reach the browser as a request (DE-CIX quote)', async () => {
+  const s = await boot();
+  try {
+    const A = (await s.signup('alice')).token;
+    await s.api('POST', '/api/networks', { name: 'Alpha', asn: 64512, home: 'fra' }, A);
+    const r = await s.api('POST', '/api/networks/64512/cmd', { act: 'buyIx', args: { city: 'fra', tier: 0 }, ctx: {} }, A);
+    assert.equal(r.s, 200);
+    assert.equal(r.b.modal, 'dkQuote', 'the browser is told to open the quote');
+    const room = s.app.host.get(64512);
+    assert.ok(room.ev('!!(S.dk&&S.dk.q&&S.dk.q.city==="fra")'), 'and the quote is in the shared state');
+    const r2 = await s.api('POST', '/api/networks/64512/cmd', { act: 'dkAccept', args: {}, ctx: {} }, A);
+    assert.equal(r2.b.ok, true);
+    assert.ok(room.ev('S.ixp.fra!==undefined'), 'accepting buys the port');
+  } finally { await s.close(); }
+});

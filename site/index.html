@@ -1617,8 +1617,14 @@ const DK_STALL=['Your account manager would love to "align on value" first. Stra
 function dkMult(c){if(!S||!isDk(c)||!S.dk||!S.dk.m[c])return 1;const ret=S.dk.ret[c];return S.dk.m[c]*(ret&&ret>S.day?0.6:1);}
 function dkAddonMo(c){return S.dk&&S.dk.add[c]?S.dk.add[c].reduce((a,x)=>a+x.mo,0):0;}
 function dkState(){S.dk=S.dk||{m:{},add:{},ret:{},retUsed:{},stall:0,q:null};return S.dk;}
+/* Modals opened by something that runs on the multiplayer server cannot be drawn there. The server notes which one
+   was wanted (for the player who clicked, or for the whole team) and the browser opens it when the state arrives. */
+let MP_MODAL=null;
+function uiModal(k,fn,all){if(window.__TUBES_SERVER__){if(all)S.uiReq={k,id:uid()};else MP_MODAL=k;return;}fn();}
+function dkRetModal(){const city=S.dk&&S.dk.retCity;if(!city)return;openModal(`<div class="eyebrow">DE-CIX Group · Customer Success</div><h2 style="font-size:26px">Wait! Before you go…</h2><p class="tagline">We value our partnership too much to let a little thing like price get in the way.</p><div class="kv"><span>Retention offer</span><b>40% off for 6 months</b></div><p class="note">After that, the normal price returns, plus a small loyalty administration fee.</p><div class="btns">${btn('Stay, take the discount','dkStay',{city},'pink')}${btn('Leave anyway','cancelIx',{city,sure:1},'ghost')}</div>`);}
 function dkQuoteMult(){const pops=Object.keys(S.pops).length,big=Math.min(1.2,pops*0.04+(R.served||0)/20000);return +(0.95+Math.random()*0.45+big).toFixed(2);}
-function dkQuoteModal(){const q=S.dk.q,c=q.city,mo=Math.round(PORT[q.tier].ix*(S.pops[c]?1:REMOTE_FEE)*q.m*ixMul(c));
+function dkQuoteModal(){uiModal('dkQuote',dkQuoteModal0);}
+function dkQuoteModal0(){const q=S.dk.q,c=q.city,mo=Math.round(PORT[q.tier].ix*(S.pops[c]?1:REMOTE_FEE)*q.m*ixMul(c));
   openModal(`<div class="eyebrow">DE-CIX Group · Sales</div><h2 style="font-size:26px">Your personalised ${PORT[q.tier].n} quote for ${esc(ixName(c))}</h2>
   <p class="tagline">“Thanks for your interest! We don't publish prices, because every customer is unique.”</p>
   <div class="kv"><span>Monthly price, just for you</span><b>${fmt$(mo)}/mo</b></div>
@@ -2203,7 +2209,8 @@ function clearInc(i){
 function purgeInc(){S.inc=S.inc.filter(i=>{const T=i.type;if(LINKCUT_TR.includes(T))return S.links.some(l=>(l.trench||l.id)===i.ref);if(LINKCUT_ID.includes(T)||LINKEQ.includes(T))return S.links.some(l=>l.id===i.ref);if(TDOWN.includes(T))return S.transit.some(t=>t.id===i.ref);if(IXDOWN.includes(T))return S.ixp[i.ref]!==undefined;if(POPDOWN.includes(T)||T==='ac')return !!S.pops[i.ref];return true;});}
 /* ---------- peering disputes: a network that suddenly wants money for what used to be free ---------- */
 function disputeNets(){const ns=new Set();for(const p of S.pni)if(NET[p.net]&&NET[p.net].pol!=='open'&&!(S.paid&&S.paid[p.net]))ns.add(p.net);for(const c in S.ixp)for(const id of ixSessions(c))if(NET[id]&&NET[id].pol!=='open'&&NET[id].type!=='tail'&&!NET[id].tail&&!(S.paid&&S.paid[id]))ns.add(id);return [...ns];}
-function disputeModal(){const d=S.ev.dispute;if(!d||d.until<=S.day)return;const N=NET[d.net];
+function disputeModal(){uiModal('dispute',disputeModal0,true);}
+function disputeModal0(){const d=S.ev.dispute;if(!d||d.until<=S.day)return;const N=NET[d.net];
   openModal(`<div style="display:flex;align-items:center"><div><div class="eyebrow">Peering dispute</div><h2 style="font-size:26px">${esc(N.name)} wants to be paid</h2></div><button class="x" data-act="closeModal" aria-label="Close">×</button></div>
   <p class="lead">Their peering coordinator says your traffic is too lopsided for settlement-free peering. Until it is settled, their sessions with you are down and the traffic goes over transit.</p>
   <div class="btns">${btn(`Pay ${fmt$(d.fee)}/mo (paid peering)`,'dispPay',{},'pink')}${btn('Refuse and wait it out','dispRefuse',{},'ghost')}${btn('Post about it on the NANOG list','dispPublic',{},'ghost')}</div>
@@ -2417,13 +2424,15 @@ const FOCI={growth:{n:'Growth',d:'Eyeball demand grows 20% faster'},resilience:{
 const focusOn=k=>!!(S&&S.focus&&S.focus.k===k&&S.focus.until>S.day);
 function yrTick(d){const y=S.yr||(S.yr={rev:0,cost:0,inc0:S.stats.incidents,pops0:Object.keys(S.pops).length,peak:0,start:d});y.rev+=Math.max(0,R.revMo)/30;y.cost+=Math.max(0,R.costMo)/30;y.peak=Math.max(y.peak,R.served||0);
   if(d>0&&d%360===0&&metaOn())yrReport();}
+function yrModal(){const v=S.yrView;if(!v)return;const profit=v.rev-v.cost;
+  openModal(`<div class="eyebrow">Year ${v.yr} in review</div><h2 style="font-size:28px">${esc(S.name)} · AS${S.asn}</h2>
+  <div class="kv"><span>Revenue</span><b>${fmt$(v.rev)}</b></div><div class="kv"><span>Costs</span><b>${fmt$(v.cost)}</b></div><div class="kv"><span>Profit</span><b style="color:${profit>=0?'var(--ok)':'var(--bad)'}">${fmt$(profit)}</b></div>
+  <div class="kv"><span>Peak traffic</span><b>${fmtG(v.peak)}</b></div><div class="kv"><span>Incidents</span><b>${v.inc}</b></div><div class="kv"><span>New POPs</span><b>${v.pops}</b></div><div class="kv"><span>Team</span><b>${v.team} people</b></div>
+  <p class="tagline">+${v.pts} legacy point${v.pts===1?'':'s'}. Now pick where the next year goes.</p>
+  <div class="btns">${Object.entries(FOCI).map(([k,F])=>btn(`${F.n} <small>${F.d}</small>`,'focus',{k},'pink')).join('')}</div>`);}
 function yrReport(){const y=S.yr,yr=Math.floor(S.day/360),profit=y.rev-y.cost,pts=2+(profit>0?2:0)+Math.floor(y.peak/100);legacyAward(pts);
   const inc=S.stats.incidents-y.inc0,pops=Object.keys(S.pops).length-y.pops0;
-  openModal(`<div class="eyebrow">Year ${yr} in review</div><h2 style="font-size:28px">${esc(S.name)} · AS${S.asn}</h2>
-  <div class="kv"><span>Revenue</span><b>${fmt$(y.rev)}</b></div><div class="kv"><span>Costs</span><b>${fmt$(y.cost)}</b></div><div class="kv"><span>Profit</span><b style="color:${profit>=0?'var(--ok)':'var(--bad)'}">${fmt$(profit)}</b></div>
-  <div class="kv"><span>Peak traffic</span><b>${fmtG(y.peak)}</b></div><div class="kv"><span>Incidents</span><b>${inc}</b></div><div class="kv"><span>New POPs</span><b>${pops}</b></div><div class="kv"><span>Team</span><b>${people().length} people</b></div>
-  <p class="tagline">+${pts} legacy point${pts===1?'':'s'}. Now pick where the next year goes.</p>
-  <div class="btns">${Object.entries(FOCI).map(([k,F])=>btn(`${F.n} <small>${F.d}</small>`,'focus',{k},'pink')).join('')}</div>`);
+  S.yrView={yr,rev:y.rev,cost:y.cost,peak:y.peak,inc,pops,team:people().length,pts};uiModal('yr',yrModal,true);
   S.yr={rev:0,cost:0,inc0:S.stats.incidents,pops0:Object.keys(S.pops).length,peak:0,start:S.day};}
 /* ---------- deal flow: things that show up and want an answer ---------- */
 const ISP_A=['Northern','Coastal','Metro','Valley','Lakeside','Prime','Citywide','Riverside','Highland','Unity'],ISP_B=['Broadband','Fibre','Cable','Telecom','Networks','Online','Connect'];
@@ -2731,7 +2740,7 @@ const ACT={
  buyIx:({city,tier,signed})=>{tier=+tier;if(!PORT[tier]||!ixName(city)||(!S.pops[ixCity(city)]&&(!remoteCities().includes(ixCity(city))||tier>1))||(S.ixp[city]!==undefined&&tier<=S.ixp[city]))return;if(S.pops[ixCity(city)]&&!portOk(ixCity(city),tier)){toast(`<b>Your router can't take a ${PORT[tier].n} port.</b><br>Upgrade it in the Infra tab.`,'bad');sfx('err');return;}{const h0=S.ixp[city]!==undefined;if(!S.myIx[city]&&!portGate(ixCity(city),h0?(PORT_SLOT(tier)-PORT_SLOT(S.ixp[city]))*((S.ixn||{})[city]||1):PORT_SLOT(tier)))return;}
    if(isDk(city)&&S.ixp[city]===undefined&&!signed){const dk=dkState();if(dk.stall>S.day){toast(`<b>DE-CIX sales is still "aligning".</b><br>They will get back to you in ${dk.stall-S.day} days.`,'bad');sfx('err');return;}dk.lastQ=dk.lastQ||{};const lq=dk.lastQ[city];dk.q={city,tier,m:lq&&lq.until>S.day?lq.m:dkQuoteMult(),h:lq&&lq.until>S.day?lq.h:0};dk.lastQ[city]={m:dk.q.m,h:dk.q.h,until:S.day+90};dkQuoteModal();return;}const had=S.ixp[city]!==undefined;if(!spend(ixPortMo(city,tier)*(had?((S.ixn||{})[city]||1):1)))return;S.ixp[city]=tier;if(!had)toast(S.pops[ixCity(city)]?`<b>Port up at ${esc(ixName(city))}!</b><br>Now request peering, or join the route server.`:`<b>Remote port up at ${esc(ixName(city))}.</b><br>It came through a reseller, so expect a markup, a crowded port and some networks that won't talk to you. The route server is your friend here.`,'good');after();},
  cancelIx:({city,sure})=>{if(UI.confirm!=='ix'+city){UI.confirm='ix'+city;renderPanel();return;}
-   if(isDk(city)&&!sure){const dk=dkState();if(!dk.retUsed[city]){openModal(`<div class="eyebrow">DE-CIX Group · Customer Success</div><h2 style="font-size:26px">Wait! Before you go…</h2><p class="tagline">We value our partnership too much to let a little thing like price get in the way.</p><div class="kv"><span>Retention offer</span><b>40% off for 6 months</b></div><p class="note">After that, the normal price returns, plus a small loyalty administration fee.</p><div class="btns">${btn('Stay, take the discount','dkStay',{city},'pink')}${btn('Leave anyway','cancelIx',{city,sure:1},'ghost')}</div>`);return;}}
+   if(isDk(city)&&!sure){const dk=dkState();if(!dk.retUsed[city]){dk.retCity=city;uiModal('dkRet',dkRetModal);return;}}
    closeModal();if(S.dk){if(S.dk.m[city]){S.dk.lastQ=S.dk.lastQ||{};S.dk.lastQ[city]={m:S.dk.m[city],h:3,until:S.day+365};}delete S.dk.m[city];delete S.dk.add[city];delete S.dk.ret[city];}delete S.ixp[city];delete S.rs[city];if(S.ixn)delete S.ixn[city];for(const k in S.peers)if(k.endsWith('@'+city))delete S.peers[k];UI.confirm=null;after();},
  rs:({city})=>{if(!isIx(city)||S.ixp[city]===undefined)return;S.rs[city]=!S.rs[city];if(S.rs[city])toast('<b>Route server session up.</b><br>You now peer with every open network on this IX, in one go.','good');sfx('build');after();},
  dkAccept:()=>{const dk=dkState(),q=dk.q;if(!q)return;dk.m[q.city]=q.m;dk.q=null;closeModal();ACT.buyIx({city:q.city,tier:q.tier,signed:true});if(S.ixp[q.city]===undefined)delete dk.m[q.city];else toast(`<b>Signed with DE-CIX.</b><br>Welcome to the family. Please don't tell anyone what you pay.`,'good');},
@@ -2777,7 +2786,7 @@ const ACT={
  stRes:({role,d})=>{if(!ROLES[role])return;const pl=polOf(role);let i=RESERVES.indexOf(pl.reserve);if(i<0)i=RESERVES.findIndex(x=>x>=pl.reserve);pl.reserve=RESERVES[clamp(i+(+d>0?1:-1),0,RESERVES.length-1)];staffModal('pol');},
  stReg:({v})=>{polOf('mkt').region=(v==='any'||REG[v])?v:'any';staffModal('pol');},
  ctrSwap:({id})=>{const c=ctr();if(S.day-c.swapDay<30)return;const x=c.active.find(q=>q.id===id);if(!x)return;c.active=c.active.filter(q=>q!==x);c.swapDay=S.day;ctrMake();ctrModal();},
- focus:({k})=>{if(!FOCI[k])return;S.focus={k,until:S.day+360};closeModal();toast(`<b>Focus for the year: ${FOCI[k].n}.</b><br>${FOCI[k].d}.`,'good');after();},
+ focus:({k})=>{if(!FOCI[k])return;S.focus={k,until:S.day+360};S.yrView=null;closeModal();toast(`<b>Focus for the year: ${FOCI[k].n}.</b><br>${FOCI[k].d}.`,'good');after();},
  dealTake:({id})=>{dealTake(id);dealsModal();},dealPass:({id})=>{S.deals=(S.deals||[]).filter(x=>x.id!==id);dealsModal();},
  legacyBuy:({k})=>{const P=LEGACY_PERKS[k];if(!P)return;const j=legacyGet(),lv=+j.perks[k]||0,c=P.cost[lv];if(!c||j.pts<c||lv>=P.max)return;j.pts-=c;j.perks[k]=lv+1;legacySet(j);legacyModal();},
  secRenew:()=>{sec().roa=S.day+365;toast('<b>ROA renewed.</b><br>Valid for another year.','good');after();},
@@ -3853,7 +3862,8 @@ function remoteExec(act,args,ctx,dom){
   finally{toast=T;openModal=OM;closeModal=CM;sfx=SF;if(el)el.remove();}
   const ui={};for(const k of MP_CTX){ui[k]=UI[k]===undefined?null:UI[k];UI[k]=keep[k];}
   if(msgs.some(m=>m[1]==='bad'))ok=false;
-  return {ok,msgs,ui};}
+  const modal=MP_MODAL;MP_MODAL=null;
+  return {ok,msgs,ui,modal};}
 /* Server side: one day of simulation, and whatever the game wanted to tell the players meanwhile. */
 function serverTick(){if(!S||S.lost)return;dayTick();$('modal').hidden=true;$('bankBox').hidden=true;}
 function serverDrain(){return MP_OUT.splice(0,MP_OUT.length);}
@@ -3956,6 +3966,10 @@ function mpEvent(block){
   else if(ev==='toast'){toast(j[0],j[1]||'');}
   else if(ev==='chat'){MP.chat.push(j);if(MP.chat.length>60)MP.chat.shift();if(UI.mpTeam)mpTeam();else if(j.who!==MP.name)toast(`<b>${esc(j.who)}</b>: ${esc(j.text)}`,'');}
   else if(ev==='bye'){MP.status='reconnecting';}}
+const MP_MODALS={dkQuote:()=>{if(!(S.dk&&S.dk.q))return false;dkQuoteModal0();return true;},dkRet:()=>{if(!(S.dk&&S.dk.retCity))return false;dkRetModal();return true;},yr:()=>{if(!S.yrView)return false;yrModal();return true;},dispute:()=>{if(!(S.ev&&S.ev.dispute&&S.ev.dispute.until>S.day))return false;disputeModal0();return true;}};
+function mpOpenModals(){
+  if(MP.pendingModal&&MP.ver>MP.pendingVer&&MP_MODALS[MP.pendingModal]){try{if(MP_MODALS[MP.pendingModal]())MP.pendingModal=null;}catch(e){}}
+  if(S){const u=S.uiReq;if(UI.uiSeen===undefined)UI.uiSeen=u?u.id:null;else if(u&&u.id!==UI.uiSeen){UI.uiSeen=u.id;try{if(MP_MODALS[u.k])MP_MODALS[u.k]();}catch(e){}}}}
 function mpApply(env){
   if(env.v<=MP.ver)return;MP.ver=env.v;
   const first=!S;
@@ -3964,7 +3978,7 @@ function mpApply(env){
   compute();
   if(first){const h=CITY[S.home];if(h){cam.x=h.x;cam.y=h.y;cam.z=innerWidth<760?1.1:1.4;}closeModal();selectCity(S.home);renderAll();}
   else{if(UI.sel&&UI.sel.type==='city'&&!CITY[UI.sel.id])UI.sel=null;renderHUD();if(!pressing){renderPanel();renderLeft();if(!$('dash').hidden)renderDash();renderBank();}renderHint();}
-  mpHud();}
+  mpHud();mpOpenModals();}
 function mpHud(){const el=$('hMp');if(!el)return;el.hidden=!MP.on;if(!MP.on)return;
   el.querySelector('.val').textContent=MP.status==='live'?'👥 '+Math.max(1,MP.presence.length):'⏳';el.querySelector('.lbl').textContent=MP.status==='live'?'AS'+MP.asn:MP.status;}
 /* One click on the shared network: send the command, show what happened, adopt the UI state the server settled on. */
@@ -3972,11 +3986,13 @@ async function mpCmd(act,args){
   if(MP.role==='viewer'){toast('<b>Viewers can look, not touch.</b><br>Ask the owner to make you an operator.','bad');sfx('err');return;}
   const ctx={};for(const k of MP_CTX)ctx[k]=UI[k]===undefined?null:UI[k];
   const dom=act==='teDeploy'?{teSrc:($('teSrc')||{}).value||''}:null,modalOpen=!$('modal').hidden;
+  const v0=MP.ver;
   try{const r=await mpFetch(`/api/networks/${MP.asn}/cmd`,{method:'POST',body:{act,args,ctx,dom},timeout:20000});
     for(const [h,k] of r.msgs)toast(h,k);
+    MP.pendingModal=r.modal||null;MP.pendingVer=v0;if(MP.pendingModal)setTimeout(()=>{MP.pendingModal=null;},6000);
     if(r.ui)for(const k in r.ui)UI[k]=r.ui[k];
     if(r.ok&&modalOpen)closeModal();
-    sfx(r.ok?'build':'err');if(S){renderPanel();renderLeft();}
+    sfx(r.ok?'build':'err');if(S){renderPanel();renderLeft();}mpOpenModals();
   }catch(e){toast(`<b>The server said no.</b><br>${esc(e.message)}`,'bad');sfx('err');}}
 function mpTeam(){UI.mpTeam=true;
   const pres=MP.presence.map(p=>`<span class="tag st${p.role==='owner'?' on':''}">${esc(p.name)}</span>`).join(' ')||'nobody';
