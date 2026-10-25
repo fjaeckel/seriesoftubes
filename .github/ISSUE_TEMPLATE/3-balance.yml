@@ -1,0 +1,40 @@
+name: Balance or realism
+description: Something works, but prices, odds or behaviour feel off compared with the real internet.
+title: "[balance] "
+labels: [balance, triage]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What feels off?
+      description: For example "Overland waves between continents are cheaper than subsea, but in real life it's the other way round."
+    validations:
+      required: true
+  - type: textarea
+    id: real
+    attributes:
+      label: How it is in real life
+      description: Real prices, ratios, links or experience from your own network.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: What would you change? (optional)
+  - type: input
+    id: version
+    attributes:
+      label: Game version
+      description: Shown at the bottom of the title screen, and in the menu under "What's new".
+      placeholder: "1.25.1"
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you submit
+      options:
+        - label: I searched the existing issues and this is not already reported.
+          required: true
+        - label: This issue is about one topic only.
+          required: true

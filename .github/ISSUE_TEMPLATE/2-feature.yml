@@ -1,0 +1,54 @@
+name: Feature request
+description: An idea for something new in the game.
+title: "[feature] "
+labels: [enhancement, triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ideas are welcome! The best ones describe what happens in real networks and how it could become a fun mechanic.
+        **One idea per issue, please.**
+  - type: dropdown
+    id: area
+    attributes:
+      label: Part of the game
+      options:
+        - Map and interface
+        - Phones and tablets
+        - Network building (POPs, links, fiber, routers)
+        - Peering, transit and exchanges
+        - Customers
+        - Money, banks and prices
+        - Incidents and events
+        - Scenarios, goals and badges
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does it solve, or what is missing?
+      description: For example "When I reach Tier 1 I can't find where my transit ports are."
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: How would it work in the game?
+    validations:
+      required: true
+  - type: textarea
+    id: real
+    attributes:
+      label: How does this work in real life? (optional)
+      description: Links, war stories and real-world numbers make an idea much easier to model well.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you submit
+      options:
+        - label: I searched the existing issues and nobody suggested this yet.
+          required: true
+        - label: This issue is about one idea only.
+          required: true

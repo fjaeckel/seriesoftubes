@@ -73,3 +73,19 @@ test('the new offers spawn on their own during play', () => {
   ev("for(const c of ['cust','up','peer','links']){selectCity('fra');ACT.tab({t:c})};ACT.leftTab({t:'deals'})");
   assert.deepEqual(errors, []);
 });
+
+test('customers on an interconnection fabric come in over your NNI port', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});S.cash=1e8;S.lvl=2;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});ACT.buildPop({city:'ams'})");
+  let o = null;
+  for (let i = 0; i < 400 && !o; i++) o = JSON.parse(ev("S.offers=[];spawnOffer();JSON.stringify(S.offers.find(x=>BIZ_T[x.type].nni)||null)"));
+  assert.ok(o, 'fabric customers show up');
+  assert.ok(ev(`FAB['${o.prov}'].cities.includes('${o.city}')`));
+  assert.deepEqual(o.reqs, ['nni']);
+  ev(`S.offers=[${JSON.stringify(o)}];ACT.accept({id:'${o.id}'});compute()`);
+  assert.equal(ev(`reqOk(S.biz.find(b=>b.id==='${o.id}'))`), false, 'no NNI port yet');
+  ev(`ACT.buyNni({city:'${o.city}',prov:'${o.prov}',tier:1});compute()`);
+  assert.equal(ev(`reqOk(S.biz.find(b=>b.id==='${o.id}'))`), true, 'an NNI port with room fixes it');
+  assert.ok(ev(`nniUsed('${o.city}','${o.prov}')`) >= o.bw, 'the customer uses NNI capacity');
+  assert.deepEqual(errors, []);
+});

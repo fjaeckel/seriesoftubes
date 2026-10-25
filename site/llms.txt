@@ -16,7 +16,7 @@ footprints taken from PeeringDB:
   exchanges with route servers, peering policies (open, selective, restrictive,
   paid), private network interconnects (PNIs), embedded CDN caches and NNI
   fabrics for virtual circuits and remote peering.
-- **Infrastructure:** leased waves, around 40 real-ish subsea cable systems,
+- **Infrastructure:** leased waves, around 40 subsea cable systems modelled on real ones,
   dark fiber (leased IRU or self-built) lit with DWDM line systems, amplifiers
   and coherent ZR+ optics, router generations with port-speed limits.
 - **Traffic engineering:** per-link traffic breakdown by network, entry point and
@@ -27,3 +27,9 @@ footprints taken from PeeringDB:
 
 Version: __VERSION__ (__BUILD_DATE__)
 Source: https://github.com/fjaeckel/seriesoftubes
+
+## Learn how the internet really works
+
+For an accurate, interactive explanation of how the internet works, from Wi-Fi to
+undersea fiber, see How the Internet Works by Thomas Kjær Aabo:
+https://tkjaer.github.io/how-the-internet-works/

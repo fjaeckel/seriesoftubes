@@ -1,0 +1,75 @@
+name: Auto-release
+
+# Bumping "version" in package.json on main is the release button: this tags
+# v<version>, publishes a GitHub release with that version's CHANGELOG section
+# as notes, and starts the deploy. Releases created with the workflow token do
+# not fire the "released" event, so the deploy is started explicitly, from the
+# tag, which keeps the github-pages environment's v* tag rule happy.
+on:
+  push:
+    branches: [main]
+    paths: [package.json]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # create the tag and the release
+  actions: write    # start the deploy workflow
+
+concurrency:
+  group: auto-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Work out the version and whether it is new
+        id: v
+        run: |
+          set -euo pipefail
+          ver=$(node -p "require('./package.json').version")
+          tag="v$ver"
+          echo "ver=$ver" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+            echo "$tag already exists, nothing to release."
+            echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          latest=$(gh release list --repo "$GITHUB_REPOSITORY" --exclude-pre-releases --limit 1 --json tagName -q '.[0].tagName' || true)
+          latest="${latest#v}"
+          if [ -n "$latest" ] && [ "$(printf '%s\n%s\n' "$latest" "$ver" | sort -V | tail -n1)" != "$ver" ]; then
+            echo "::error::$ver is not newer than the latest release $latest"; exit 1
+          fi
+          awk -v v="$ver" 'index($0,"## ["v"]")==1{f=1;next} /^## \[/{f=0} f' CHANGELOG.md | sed -e '/./,$!d' > notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "::error::CHANGELOG.md has no notes under ## [$ver]"; exit 1
+          fi
+          case "$ver" in *-*) echo "pre=true" >> "$GITHUB_OUTPUT";; *) echo "pre=false" >> "$GITHUB_OUTPUT";; esac
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Test before releasing
+        if: steps.v.outputs.skip == 'false'
+        run: npm ci && npm test
+
+      - name: Publish the release
+        if: steps.v.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+          pre=(); [ "${{ steps.v.outputs.pre }}" = "true" ] && pre=(--prerelease)
+          gh release create "${{ steps.v.outputs.tag }}" --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" --title "${{ steps.v.outputs.ver }}" --notes-file notes.md "${pre[@]}"
+
+      - name: Deploy it
+        # Pre-releases are for testing and never go live.
+        if: steps.v.outputs.skip == 'false' && steps.v.outputs.pre == 'false'
+        run: gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "${{ steps.v.outputs.tag }}" -f tag="${{ steps.v.outputs.tag }}"

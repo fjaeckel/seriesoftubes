@@ -16,7 +16,7 @@ fi
 
 rm -rf "$OUT"
 cp -R site "$OUT"
-for f in "$OUT/index.html" "$OUT/sitemap.xml" "$OUT/llms.txt"; do
+for f in "$OUT/index.html" "$OUT/sitemap.xml" "$OUT/llms.txt" "$OUT/sw.js"; do
   sed -i.bak -e "s/__VERSION__/${VERSION}/g" -e "s/__BUILD_DATE__/${BUILD_DATE}/g" "$f"
   rm -f "$f.bak"
 done

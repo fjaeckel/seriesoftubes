@@ -2,8 +2,9 @@ name: Release to GitHub Pages
 
 # The live site at https://seriesoftub.es only ever serves a published release.
 # Pushes to main run CI but never deploy. To ship: bump "version" in
-# package.json, add a CHANGELOG entry, merge, then publish a GitHub release
-# tagged v<version>.
+# package.json and date its CHANGELOG section; auto-release.yml then tags,
+# publishes the release and starts this workflow from the tag. Publishing a
+# release by hand works too.
 on:
   release:
     # "released" also fires when a pre-release is promoted to a full release.

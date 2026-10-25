@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: How the internet really works
+    url: https://tkjaer.github.io/how-the-internet-works/
+    about: Curious how the real thing works? This interactive map explains it far better than any game.

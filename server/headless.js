@@ -30,6 +30,9 @@ function load(opts = {}) {
       // Seed before the game script runs, so nothing random happens at load time either.
       if (opts.seed !== false) { let r = opts.seed || 12345; window.Math.random = () => { r = (r * 16807) % 2147483647; return r / 2147483647; }; window.__reseed = (n) => { r = n; }; }
       for (const [k, v] of Object.entries(opts.storage || {})) window.localStorage.setItem(k, v);
+      if (opts.navigatorLanguage) Object.defineProperty(window.navigator, 'language', { value: opts.navigatorLanguage });
+      // A non-English game: jsdom does not fetch the dictionary script, so register it up front.
+      if (opts.lang) { window.localStorage.setItem('sot-lang', opts.lang); window.eval(require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'site', 'i18n', opts.lang + '.js'), 'utf8')); }
       window.Path2D = class { moveTo() {} lineTo() {} quadraticCurveTo() {} bezierCurveTo() {} arc() {} rect() {} closePath() {} };
       // A recording 2D context, so draw code really runs under test (jsdom has no canvas).
       const fake = () => { const calls = { n: 0 };

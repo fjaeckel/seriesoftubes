@@ -1,0 +1,42 @@
+name: Translation
+description: A wrong, awkward or missing translation, or a new language.
+title: "[translation] "
+labels: [translation, triage]
+body:
+  - type: dropdown
+    id: lang
+    attributes:
+      label: Language
+      options:
+        - Italiano
+        - A new language (say which below)
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where in the game?
+      description: Which screen, panel or message? A screenshot helps.
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current text
+    validations:
+      required: true
+  - type: textarea
+    id: suggested
+    attributes:
+      label: Suggested text
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you submit
+      options:
+        - label: I am a fluent speaker of this language.
+          required: true
+        - label: I searched the existing issues first.
+          required: true
