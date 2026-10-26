@@ -360,3 +360,14 @@ test('loans: good terms need good credit, big loans want revenue, and the weird 
   assert.match(t, /numerologist/);
   assert.deepEqual(errors, []);
 });
+
+test('tampered saves cannot break the newer systems: wrong-shaped fields are dropped and rebuilt', () => {
+  const { ev, dom, errors } = load();
+  ev("ACT.start({})");
+  const bad = { staff: {}, ops: { maint: 5 }, deals: 7, tl: {}, sec: 5, ctr: 3, focus: 9, teamPeers: 4, paid: 'x', roa: 7, yr: 3, uiReq: 1, yrView: [] };
+  for (const [k, v] of Object.entries(bad)) {
+    dom.window.__v = v;
+    ev(`(()=>{const s=JSON.parse(JSON.stringify(S));s[${JSON.stringify(k)}]=__v;S=migrate(s);for(let i=0;i<5;i++)dayTick();renderAll();})()`);
+  }
+  assert.deepEqual(errors, []);
+});

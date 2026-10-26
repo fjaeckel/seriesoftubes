@@ -114,12 +114,13 @@ test('commands: operators change the shared network, viewers cannot, strangers c
 
 test('realtime: a team shares one world; everybody sees every change; the server runs the clock', async () => {
   const s = await boot();
+  let g;
   try {
     const A = (await s.signup('alice')).token, B = (await s.signup('bob')).token;
     const net = (await s.api('POST', '/api/networks', { name: 'Team', asn: '64601', home: 'fra' }, A)).b;
     await s.api('POST', '/api/networks/64601/join', { invite: net.invite }, B);
     // a real browser client (the game page in jsdom) as bob
-    const g = load({ seed: false, url: s.base + '/' });
+    g = load({ seed: false, url: s.base + '/' });
     g.dom.window.fetch = (u, o) => fetch(new URL(u, s.base), o);
     g.dom.window.TextDecoder = TextDecoder;
     g.ev(`MP.token=${JSON.stringify(B)};mpEnter(64601)`);
@@ -138,8 +139,7 @@ test('realtime: a team shares one world; everybody sees every change; the server
     await until(() => g.ev('UI.speed') === 8 && g.ev('S.day') > d0 + 1, 9000);
     assert.equal(g.ev('MP.presence.length'), 1);
     assert.deepEqual(g.errors, []);
-    g.ev('mpStop()');
-  } finally { await s.close(); }
+  } finally { if (g) try { g.ev('mpStop()'); } catch (e) { /* page already gone */ } await s.close(); }
 });
 
 test('networks survive a restart, and an idle network does not run', async () => {

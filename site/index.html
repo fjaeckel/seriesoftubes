@@ -666,25 +666,25 @@ const myFab=c=>MYIX_FAB[Math.min(MYIX_FAB.length-1,Math.max(0,(S.myIx[c]&&S.myIx
 const LT=[{n:'10G',g:10,m:1},{n:'100G',g:100,m:2.8},{n:'400G',g:400,m:6},{n:'800G',g:800,m:9},{n:'1.6T',g:1600,m:13},{n:'6.4T',g:6400,m:28,car:1600,note:tr('handed off as 4×1.6T')},{n:'12.8T',g:12800,m:45,car:3200,note:tr('handed off as 4×3.2T')}];
 const PORT=[{n:'10G',g:10,setup:500,tmo:150,ix:400,pni:200},{n:'100G',g:100,setup:1500,tmo:400,ix:1500,pni:350},{n:'400G',g:400,setup:4000,tmo:900,ix:4000,pni:600},{n:'800G',g:800,setup:8000,tmo:1600,ix:7000,pni:1000},{n:'1.6T',g:1600,setup:16000,tmo:2800,ix:12000,pni:1600},{n:'3.2T',g:3200,setup:32000,tmo:5000,ix:20000,pni:2600}];
 const RG=[
- {n:'Rusty Router 9000',pn:'100G',cap:400,cost:0,mo:0,maxLT:1,maxP:1,ports:8,cls:0,lvl:1,boot:6,slowP:10,fs:0,chip:'Juniper Trio',blurb:'4×100G plus 10G breakouts in one rack unit. The small edge router that half the internet started on.'},
- {n:'Edge Lord 400',pn:'400G',cap:3200,cost:30000,mo:1000,maxLT:2,maxP:2,ports:32,cls:1,lvl:2,boot:11,slowP:20,fs:1,chip:'Cisco Silicon One Q200',blurb:'32×400G in one rack unit, and finally speaks 400G and 400ZR+.'},
- {n:'Chonk 800',pn:'800G',cap:12800,cost:90000,mo:3000,maxLT:3,maxP:3,ports:36,cls:2,lvl:3,boot:25,slowP:45,fs:2,chip:'Juniper Express 5',blurb:'A 36-port core router with 800G capable ports on the Express 5 chip. Takes 800ZR+ optics.'},
- {n:'Absolute Unit 1.6T',pn:'1.6T',cap:51200,cost:250000,mo:8000,maxLT:5,maxP:4,ports:64,cls:3,lvl:4,boot:40,slowP:60,fs:2,chip:'Cisco Silicon One G300 (102.4T)',blurb:'1.6T ports on a 102.4T chip, announced in February 2026 with first systems due in the second half of 2026. Takes 6.4T waves as 4×1.6T.'},
- {n:'Mikrowtik CCR',pn:'100G',cap:300,cost:4000,mo:150,maxLT:1,maxP:1,ports:14,cls:0,lvl:1,boot:2,slowP:5,badge:'M',fs:1,chip:'Marvell AL73400 ARM64, 16 cores',blurb:'2×100G and 12×25G on a software router running RouterOS. Costs less than lunch.'},
- {n:'Sonic the Whitebox 32',pn:'400G',cap:3200,cost:14000,mo:400,maxLT:2,maxP:2,ports:32,cls:1,lvl:2,boot:9,slowP:25,flaky:true,badge:'W',fs:1,chip:'Broadcom Tomahawk 3',blurb:'A bare-metal 32×400G switch running open-source SONiC. Saves a fortune, until it crashes and there is nobody to call.'},
- {n:'Arrrhipster 7280R',pn:'400G',cap:4800,cost:42000,mo:1300,maxLT:2,maxP:2,ports:36,cls:1,lvl:2,boot:3,slowP:2,badge:'A',fs:2,chip:'Broadcom Jericho2c+ (deep buffers)',blurb:'32×100G and 4×400G with deep buffers, running EOS. Boots fast and behaves.'},
- {n:'Arrrhipster 7800R',pn:'800G',cap:16000,cost:130000,mo:4200,maxLT:3,maxP:3,ports:96,cls:2,lvl:3,boot:7,slowP:4,badge:'A',fs:2,chip:'Broadcom Jericho3 (deep buffers)',blurb:'The modular one: lots of 800G ports and buffers deep enough to ride out any burst.'},
- {n:'Disco 8K',pn:'800G',cap:12800,cost:80000,mo:4800,maxLT:3,maxP:3,ports:64,cls:2,lvl:3,boot:20,slowP:35,badge:'C',fs:2,chip:'Cisco Silicon One P100',blurb:'A modular 8-slot chassis with 800G line cards. Cheap to buy, but every port and feature wants a Smart Licence.'},
- {n:'Knockia 7750',pn:'1.6T',cap:40000,cost:200000,mo:7000,maxLT:5,maxP:4,ports:64,cls:3,lvl:4,boot:30,slowP:15,flaky:true,badge:'B',fs:2,chip:'Broadcom Tomahawk 6 (102.4T)',blurb:'64×1.6T on a 102.4T chip, shipping in whitebox form. Cheaper than a chassis, with you as the support desk.'},
+ {n:'Rusty Router 9000',pn:'100G',cap:400,cost:0,mo:0,maxLT:1,maxP:1,ports:8,cls:0,lvl:1,boot:6,slowP:10,fs:0,chip:'Junipurr Trio',blurb:'4×100G plus 10G breakouts in one rack unit. The small edge router that half the internet started on.'},
+ {n:'Edge Lord 400',pn:'400G',cap:3200,cost:30000,mo:1000,maxLT:2,maxP:2,ports:32,cls:1,lvl:2,boot:11,slowP:20,fs:1,chip:'Disco Silicon Won Q200',blurb:'32×400G in one rack unit, and finally speaks 400G and 400ZR+.'},
+ {n:'Chonk 800',pn:'800G',cap:12800,cost:90000,mo:3000,maxLT:3,maxP:3,ports:36,cls:2,lvl:3,boot:25,slowP:45,fs:2,chip:'Junipurr Express 5',blurb:'A 36-port core router with 800G capable ports on the Express 5 chip. Takes 800ZR+ optics.'},
+ {n:'Absolute Unit 1.6T',pn:'1.6T',cap:51200,cost:250000,mo:8000,maxLT:5,maxP:4,ports:64,cls:3,lvl:4,boot:40,slowP:60,fs:2,chip:'Disco Silicon Won G300 (102.4T)',blurb:'1.6T ports on a 102.4T chip, announced in February 2026 with first systems due in the second half of 2026. Takes 6.4T waves as 4×1.6T.'},
+ {n:'Mikrowtik CCR',pn:'100G',cap:300,cost:4000,mo:150,maxLT:1,maxP:1,ports:14,cls:0,lvl:1,boot:2,slowP:5,badge:'M',fs:1,chip:'Marvelous AL73400 ARM64, 16 cores',blurb:'2×100G and 12×25G on a software router running RouterOS. Costs less than lunch.'},
+ {n:'Sonic the Whitebox 32',pn:'400G',cap:3200,cost:14000,mo:400,maxLT:2,maxP:2,ports:32,cls:1,lvl:2,boot:9,slowP:25,flaky:true,badge:'W',fs:1,chip:'Broadcomb Tomahawk 3',blurb:'A bare-metal 32×400G switch running open-source SONiC. Saves a fortune, until it crashes and there is nobody to call.'},
+ {n:'Arrrhipster 7280R',pn:'400G',cap:4800,cost:42000,mo:1300,maxLT:2,maxP:2,ports:36,cls:1,lvl:2,boot:3,slowP:2,badge:'A',fs:2,chip:'Broadcomb Jericho2c+ (deep buffers)',blurb:'32×100G and 4×400G with deep buffers, running EOS. Boots fast and behaves.'},
+ {n:'Arrrhipster 7800R',pn:'800G',cap:16000,cost:130000,mo:4200,maxLT:3,maxP:3,ports:96,cls:2,lvl:3,boot:7,slowP:4,badge:'A',fs:2,chip:'Broadcomb Jericho3 (deep buffers)',blurb:'The modular one: lots of 800G ports and buffers deep enough to ride out any burst.'},
+ {n:'Disco 8K',pn:'800G',cap:12800,cost:80000,mo:4800,maxLT:3,maxP:3,ports:64,cls:2,lvl:3,boot:20,slowP:35,badge:'C',fs:2,chip:'Disco Silicon Won P100',blurb:'A modular 8-slot chassis with 800G line cards. Cheap to buy, but every port and feature wants a Smart Licence.'},
+ {n:'Knockia 7750',pn:'1.6T',cap:40000,cost:200000,mo:7000,maxLT:5,maxP:4,ports:64,cls:3,lvl:4,boot:30,slowP:15,flaky:true,badge:'B',fs:2,chip:'Broadcomb Tomahawk 6 (102.4T)',blurb:'64×1.6T on a 102.4T chip, shipping in whitebox form. Cheaper than a chassis, with you as the support desk.'},
  {n:'Sonic the Whitebox 64',pn:'1.6T',cap:25600,cost:60000,mo:1500,maxLT:5,maxP:4,ports:64,cls:3,lvl:5,boot:9,slowP:25,flaky:true,badge:'W',fs:1,chip:'merchant silicon, 102.4T class',blurb:'Sixty-four 1.6T ports on open-source software for the price of one line card. Nobody to call at 3 a.m., but now the crashes are 1.6T crashes.'},
- {n:'Disco 8K Ultra',pn:'1.6T',cap:51200,cost:140000,mo:11000,maxLT:5,maxP:4,ports:72,cls:3,lvl:6,boot:22,slowP:35,badge:'D',fs:2,chip:'Cisco Silicon One G3',blurb:'A 12-slot chassis with 1.6T line cards. Cheap to buy, and every port needs a licence from a licence server that needs a licence.'},
- {n:'Absolute Unit 3.2T',pn:'3.2T',cap:204800,cost:600000,mo:18000,maxLT:6,maxP:5,ports:48,cls:4,lvl:7,boot:50,slowP:60,fs:2,chip:'Cisco Silicon One G400 (class)',blurb:'3.2T ports, and 12.8T waves handed off as 4×3.2T. Draws as much power as a small town and ships with its own substation.'},
- {n:'Arrrhipster 7800R5',pn:'3.2T',cap:160000,cost:450000,mo:14000,maxLT:6,maxP:5,ports:144,cls:4,lvl:9,boot:8,slowP:4,badge:'A',fs:2,chip:'Broadcom Jericho deep-buffer silicon (next generation)',blurb:'A hundred and forty-four 3.2T ports and buffers deep enough to ride out any fleet-wide burst. Still boots fast.'},
- {n:'Knockia 7950 XRS',pn:'3.2T',cap:180000,cost:520000,mo:15000,maxLT:6,maxP:5,ports:96,cls:4,lvl:10,boot:32,slowP:15,badge:'K',fs:2,chip:'Nokia FP6',blurb:'Built like a sauna door: heavy, hot and nearly impossible to break. The config is thoroughly hierarchical.'},
+ {n:'Disco 8K Ultra',pn:'1.6T',cap:51200,cost:140000,mo:11000,maxLT:5,maxP:4,ports:72,cls:3,lvl:6,boot:22,slowP:35,badge:'D',fs:2,chip:'Disco Silicon Won G3',blurb:'A 12-slot chassis with 1.6T line cards. Cheap to buy, and every port needs a licence from a licence server that needs a licence.'},
+ {n:'Absolute Unit 3.2T',pn:'3.2T',cap:204800,cost:600000,mo:18000,maxLT:6,maxP:5,ports:48,cls:4,lvl:7,boot:50,slowP:60,fs:2,chip:'Disco Silicon Won G400 (class)',blurb:'3.2T ports, and 12.8T waves handed off as 4×3.2T. Draws as much power as a small town and ships with its own substation.'},
+ {n:'Arrrhipster 7800R5',pn:'3.2T',cap:160000,cost:450000,mo:14000,maxLT:6,maxP:5,ports:144,cls:4,lvl:9,boot:8,slowP:4,badge:'A',fs:2,chip:'Broadcomb Jericho deep-buffer silicon (next generation)',blurb:'A hundred and forty-four 3.2T ports and buffers deep enough to ride out any fleet-wide burst. Still boots fast.'},
+ {n:'Knockia 7950 XRS',pn:'3.2T',cap:180000,cost:520000,mo:15000,maxLT:6,maxP:5,ports:96,cls:4,lvl:10,boot:32,slowP:15,badge:'K',fs:2,chip:'Knockia FP6',blurb:'Built like a sauna door: heavy, hot and nearly impossible to break. The config is thoroughly hierarchical.'},
  {n:'Mikrowtik CCR 3.2T',pn:'3.2T',cap:51200,cost:45000,mo:900,maxLT:6,maxP:5,ports:32,cls:4,lvl:11,boot:3,slowP:5,flaky:true,badge:'M',fs:1,chip:'several hundred ARM cores',blurb:'A 3.2T router for the price of a used car. The web interface has nine hundred tabs, and one of them is the one you need.'},
- {n:'The Router at the End of the Universe',pn:'3.2T',cap:819200,cost:3000000,mo:60000,maxLT:6,maxP:5,ports:256,cls:4,lvl:13,boot:42,slowP:42,badge:'U',fs:2,chip:'Cisco Silicon One G500 (class)',blurb:'Two hundred and fifty-six 3.2T ports and enough forwarding for a small galaxy. Boots in 42 minutes.'},
- {n:'Knockia 7750 SR-14s',pn:'800G',cap:14000,cost:110000,mo:4000,maxLT:3,maxP:3,ports:56,cls:2,lvl:3,boot:30,slowP:15,badge:'N',fs:2,chip:'Nokia FP5',blurb:'The service-provider workhorse: thorough, stable and configured in hierarchical CLI.'},
- {n:'Junipurr MX304',pn:'400G',cap:4800,cost:55000,mo:1700,maxLT:2,maxP:2,ports:48,cls:1,lvl:2,boot:8,slowP:8,badge:'J',fs:2,chip:'Juniper Trio 6',blurb:'A compact edge router with 400G ports and the full Junos feature set.'}
+ {n:'The Router at the End of the Universe',pn:'3.2T',cap:819200,cost:3000000,mo:60000,maxLT:6,maxP:5,ports:256,cls:4,lvl:13,boot:42,slowP:42,badge:'U',fs:2,chip:'Disco Silicon Won G500 (class)',blurb:'Two hundred and fifty-six 3.2T ports and enough forwarding for a small galaxy. Boots in 42 minutes.'},
+ {n:'Knockia 7750 SR-14s',pn:'800G',cap:14000,cost:110000,mo:4000,maxLT:3,maxP:3,ports:56,cls:2,lvl:3,boot:30,slowP:15,badge:'N',fs:2,chip:'Knockia FP5',blurb:'The service-provider workhorse: thorough, stable and configured in hierarchical CLI.'},
+ {n:'Junipurr MX304',pn:'400G',cap:4800,cost:55000,mo:1700,maxLT:2,maxP:2,ports:48,cls:1,lvl:2,boot:8,slowP:8,badge:'J',fs:2,chip:'Junipurr Trio 6',blurb:'A compact edge router with 400G ports and the full Junos feature set.'}
 ];
 /* Some routers take forever to boot. Each POP's chassis has a personality per model: most come
    back in minutes, a few sit through every line card self-test known to the vendor. */
@@ -805,10 +805,10 @@ const WORLD={"snapshot":"2026-10-25","cc":{"CN":"AS","HK":"AS","JP":"AS","BR":"S
 const CITY_LL={"man":[-2.24,53.48],"edi":[-3.19,55.95],"bde":[-4.54,50.83],"svg":[5.73,58.97],"bcn":[2.17,41.39],"mil":[9.19,45.46],"rom":[12.5,41.9],"pmo":[13.36,38.12],"lis":[-9.14,38.72],"ath":[23.73,37.98],"atn":[-84.39,33.75],"den":[-104.99,39.74],"phx":[-112.07,33.45],"bos":[-71.06,42.36],"hou":[-95.37,29.76],"slc":[-111.89,40.76],"jed":[39.25,21.55],"ruh":[46.72,24.71],"doh":[51.45,25.28],"kyv":[30.52,50.45],"mel":[144.96, -37.81],"bne":[153.03, -27.47],"drw":[131.05,-12.46],"osa":[135.5, 34.69],"kul":[101.69, 3.14],"bkk":[100.5, 13.76],"sgn":[106.66, 10.76],"khi":[67.14,25.0],"dac":[90.41, 23.81],"cbo":[80.0, 6.95],"waw":[21.01, 52.23],"prg":[14.42, 50.08],"vie":[16.37, 48.21],"bud":[19.04, 47.5],"buh":[26.1, 44.43],"tll":[24.45,58.9],"ist":[28.98, 41.01],"for":[-38.54, -3.73],"rio":[-43.11,-22.57],"bue":[-58.38, -34.6],"scl":[-70.67, -33.45],"lim":[-76.85,-12.05],"bog":[-74.07, 4.71],"pan":[-79.52, 8.98],"del":[77.21, 28.61],"maa":[80.18,13.25],"blr":[77.59, 12.97],"hyd":[78.49, 17.39],"tpe":[121.56, 25.03],"auh":[54.37, 24.45],"fuj":[56.15,25.07],"cpt":[18.42, -33.92],"stg":[9.18,48.78],"ber":[13.4,52.52],"zrh":[8.54,47.37],"nbo":[36.82,-1.29],"cai":[31.24,30.04],"sea":[-122.33,47.61],"sjc":[-121.89,37.34],"lax":[-118.24,34.05],"dal":[-96.8,32.78],"chi":[-87.63,41.88],"ash":[-77.49,39.04],"nyc":[-74.0,40.71],"mia":[-80.19,25.76],"tor":[-79.38,43.65],"kcy":[-94.58,39.1],"cal":[-114.07,51.05],"van":[-123.12,49.28],"ott":[-75.7,45.42],"mtl":[-73.57,45.5],"mex":[-99.13,19.43],"sao":[-46.63,-23.55],"lon":[-0.13,51.51],"dub":[-6.26,53.35],"rek":[-21.94,64.15],"ams":[4.9,52.37],"fra":[8.68,50.11],"par":[2.35,48.86],"mrs":[5.37,43.3],"mad":[-3.7,40.42],"sto":[18.07,59.33],"osl":[10.75,59.91],"cph":[12.57,55.68],"hel":[24.94,60.17],"beg":[20.46,44.79],"sof":[23.32,42.7],"mos":[37.62,55.76],"lag":[3.38,6.52],"jnb":[28.05,-26.2],"dxb":[55.27,25.2],"bom":[72.88,19.08],"sin":[103.82,1.35],"jkt":[106.85,-6.2],"mnl":[120.98,14.6],"hkg":[114.17,22.32],"sha":[121.47,31.23],"pek":[116.4,39.9],"icn":[126.98,37.57],"tok":[139.69,35.69],"syd":[151.21,-33.87],"per":[115.86,-31.95],"akl":[174.76,-36.85]};
 const CITIES=[
  {id:'sea',name:'Seattle',x:205,y:245,land:'am',reg:'AM',P:300,ix:'Sea-IX',dc:'Westerly Carrier Hotel'},
- {id:'sjc',name:'San Jose',x:240,y:345,land:'am',reg:'AM',P:500,ix:'Silly-Con Valley IX',dc:'Equinix SV'},
+ {id:'sjc',name:'San Jose',x:240,y:345,land:'am',reg:'AM',P:500,ix:'Silly-Con Valley IX',dc:'Equinox SV'},
  {id:'dal',name:'Dallas',x:385,y:415,land:'am',reg:'AM',P:450,ix:'Yee-Haw-IX',dc:'Infomaniac Building'},
  {id:'chi',name:'Chicago',x:470,y:270,land:'am',reg:'AM',P:600,ix:'Windy-IX',dc:'350 Cermak'},
- {id:'ash',name:'Ashburn',x:572,y:332,land:'am',reg:'AM',P:250,ix:'Equinix Ashburn IX',dc:'Data Center Alley',note:tr('The data-center capital. Rumor says 70% of the internet passes through here, and nobody has checked.')},
+ {id:'ash',name:'Ashburn',x:572,y:332,land:'am',reg:'AM',P:250,ix:'Equinox Ashburn IX',dc:'Data Center Alley',note:tr('The data-center capital. Rumor says 70% of the internet passes through here, and nobody has checked.')},
  {id:'nyc',name:'New York',x:615,y:283,land:'am',reg:'AM',P:1200,ix:'NY-Yikes',dc:'60 Hudson'},
  {id:'mia',name:'Miami',x:530,y:482,land:'am',reg:'AM',P:400,ix:'Miam-IX',dc:'Nap of the Americas',note:tr('Cable landing hub for South America.')},
  {id:'sao',name:'São Paulo',x:640,y:730,land:'sa',reg:'SA',P:900,br:true,andes:'e',ix:'IX.brrr',ixCheap:0.3,dc:'Digital Reality SP',note:tr('South America’s biggest market, and home of IX.brrr: run by a nonprofit, public prices, and nearly everyone is on it.')},
@@ -849,7 +849,7 @@ const CITIES=[
  {id:'lag',name:'Lagos',x:1010,y:565,land:'af',reg:'AF',P:500,ix:'Jollof-IX',dc:'Rack-n-Roll Centre'},
  {id:'jnb',name:'Johannesburg',x:1130,y:730,land:'af',reg:'AF',P:400,za:true,ix:'Braai-IX',dc:'Tera-Cotta Campus'},
  {id:'bom',name:'Mumbai',x:1385,y:488,land:'eu',reg:'AS',P:1100,india:true,ix:'Mumb-IX',dc:'Goregaon Tech Park'},
- {id:'sin',name:'Singapore',x:1556,y:568,land:'eu',reg:'AS',P:450,ix:'Lah-IX',dc:'Equinix SG',note:tr('Asia\'s hub. Expensive, humid, very well connected.')},
+ {id:'sin',name:'Singapore',x:1556,y:568,land:'eu',reg:'AS',P:450,ix:'Lah-IX',dc:'Equinox SG',note:tr('Asia\'s hub. Expensive, humid, very well connected.')},
  {id:'hkg',name:'Hong Kong',x:1645,y:440,land:'eu',reg:'AS',P:600,ix:'HK-Kicks',dc:'Mega-Eye Plus'},
  {id:'icn',name:'Seoul',x:1722,y:302,land:'eu',reg:'AS',P:900,kr:true,ix:'Kimch-IX',dc:'Gasan Digital Complex',note:tr('Some of the fastest home broadband on the planet, and the strangest peering market. Under “sender pays”, the big three ISPs charge for every gigabit handed to them, and transit here is among the priciest anywhere.')},
  {id:'pek',name:'Beijing',x:1652,y:318,land:'eu',reg:'AS',P:1800,cn:true,arpu:0.6,ix:'',dc:'Zhongguancun DC',note:tr('Mainland China. Behind the Great Firewall, with its own rules for foreign networks.')},
@@ -1286,7 +1286,7 @@ const LEVELS=[
  {n:tr('Global backbone'),q:tr("Your ASN now shows up in other people's traceroutes, and in their tickets."),req:tr('peak 12 Tbps, 25 POPs, 5 continents'),unlock:tr('A free PNI with Voda-Phony. Gear: Absolute Unit 3.2T routers, 3.2T ports and 12.8T waves.')},
  {n:tr('Packet empire'),q:tr('Your maintenance window is 2 a.m. in every time zone at once.'),req:tr('peak 16 Tbps and 32 POPs'),era:1.15,unlock:tr('Cloud gaming platforms, and the cloud gaming era: eyeballs want another 15%. A free PNI with Tel-Mess. Gear: Sienna WaveMagic 3.2T transponders.')},
  {n:tr('Six-continent carrier'),q:tr('Somewhere, on every continent, a backhoe is thinking about you.'),req:tr('peak 21 Tbps, 40 POPs, 6 continents'),unlock:tr('Metaverse platforms (it finally took off), and a free PNI with Etis-a-lot. Gear: Arrrhipster 7800R5 routers, 102.4T fabrics for your own exchange.')},
- {n:tr('Backbone of backbones'),q:tr('Your routing table needs its own routing table.'),req:tr('peak 26 Tbps and 50 POPs'),era:1.2,unlock:tr('The VR era: eyeballs want 20% more. A free PNI with China Moble. Gear: Nokia 7950 XRS routers, 100T scrubbing.')},
+ {n:tr('Backbone of backbones'),q:tr('Your routing table needs its own routing table.'),req:tr('peak 26 Tbps and 50 POPs'),era:1.2,unlock:tr('The VR era: eyeballs want 20% more. A free PNI with China Moble. Gear: Knockia 7950 XRS routers, 100T scrubbing.')},
  {n:tr('Internet weather system'),q:tr('When your BGP sneezes, a small country catches a cold.'),req:tr('peak 33 Tbps and 60 POPs'),unlock:tr('AGI labs (allegedly) wanting AI WANs of 12.8 to 25.6 Tbps, and free PNIs with du and Ooh-redoo. Gear: MikroTik CCR 3.2T routers.')},
  {n:tr('Too big to route'),q:tr('Your last fat-fingered route leak has its own Wikipedia page.'),req:tr('peak 40 Tbps and 70 POPs'),era:1.25,unlock:tr('The AI agent era: eyeballs want 25% more, because bots now browse the web for people and they never sleep. Gear: eight fiber pairs in your own land trenches.')},
  {n:tr('The Internet'),q:tr('People phone you to ask if the internet is down. You are the internet. Have you tried turning yourself off and on again?'),req:tr('peak 50 Tbps and 80 POPs'),unlock:tr('Mars mission ground stations. Gear: The Router at the End of the Universe.')},
@@ -1531,51 +1531,12 @@ function trExits(net){const day=S.day,ev=S.ev;if(ev.fbout>day)return [];const le
 /* ---------- reverse DNS, the way real networks name their routers ---------- */
 // The short code operators write in router names: IATA, or the industry's own (msk, tyo, sel), from the world build.
 const cityCode=c=>(WORLD.code&&WORLD.code[c])||c;
-const CLLI_X={fra:'frnkge',nyc:'nycmny',lon:'lndnuk',ams:'amstnl',par:'parsfr',sin:'sngpsi',tok:'tokyjp',hkg:'hkgnhk',sjc:'snjsca',lax:'lsanca',ash:'asbnva',chi:'chcgil',dal:'dllstx',mia:'miamfl',sea:'sttlwa',mad:'mdrdsp',mil:'mlanit',zrh:'zrchsz',syd:'sydnau',sto:'stkhse',vie:'vienat',ber:'brlngr',mrs:'mrslfr',bom:'mumbin',jnb:'jhbrza'};
 const cityIata=cityCode;
-const cityWord=c=>CITY[c].name.normalize('NFKD').replace(/[^A-Za-z]/g,'');
-const cityClli=c=>(CLLI_X[c]||(cityWord(c).toLowerCase().replace(/[aeiou]/g,'').padEnd(4,'x').slice(0,4)+(CITY[c].cc||'xx').toLowerCase()))+String(1+hstr('clli'+c)%19).padStart(2,'0');
-const ccOf=c=>(CITY[c].cc||'xx').toLowerCase();
-const AWS_REGION={fra:'eu-central-1',lon:'eu-west-2',par:'eu-west-3',dub:'eu-west-1',nyc:'us-east-1',ash:'us-east-1',sjc:'us-west-1',lax:'us-west-1',sea:'us-west-2',sin:'ap-southeast-1',tok:'ap-northeast-1',syd:'ap-southeast-2',sao:'sa-east-1',bom:'ap-south-1',icn:'ap-northeast-2',sto:'eu-north-1',mil:'eu-south-1',jnb:'af-south-1',tor:'ca-central-1',hkg:'ap-east-1'};
 // Domains of networks that do not have a bespoke naming scheme below.
-const RDNS_DOM={atl:'airtel.in',jio:'jio.com',cht:'hinet.net',kdi:'kddi.ne.jp',duu:'docomo.ne.jp',tsf:'telkomsel.co.id',pld:'pldt.net',spk:'spark.co.nz',opt:'optus.net.au',tru:'truecorp.co.th',vtl:'viettel.com.vn',ptc:'ptcl.net.pk',tmy:'tm.net.my',ttk:'turktelekom.com.tr',dgi:'rcs-rds.ro',ups:'libertyglobal.com',kys:'kyivstar.net',stc:'stc.com.sa',ord:'ooredoo.qa',tim:'telecomitalia.it',fwb:'fastweb.it',meo:'meo.pt',nos:'nos.pt',cos:'ote.gr',ets:'etisalat.ae',tmx:'uninet.net.mx',bcd:'bell.ca',clr:'claro.com.br',viv:'vivo.com.br',mlv:'globo.com',teg:'te.eg',sfc:'safaricom.co.ke',rtc:'rascom.ru',ydx:'yandex.net',vkl:'vk.com',ctc:'chinatelecom.com.cn',cun:'chinaunicom.com',cmb:'chinamobile.com',tcs:'tencent.com',abc:'alibaba.com',byd:'baidu.com',bdc:'bytedance.com',scm:'seacom.com',lqd:'liquid.tech',anc:'angolacables.co.ao',mtn:'mtn.com',tsa:'telkom.co.za',iam:'iam.ma',kpn:'kpn.net',swc:'swisscom.ch'};
 /* One router name in one city. kind: 'bb' core router, 'edge' the customer or peer facing side, 'dst' the end host. */
 function rdns(id,kind,c,k=0){
-  const N=NET[id],h=hstr(id+'|'+c+'|'+k+'|'+kind),ia=cityIata(c),IA=ia.toUpperCase(),cc=ccOf(c),W=cityWord(c),n=(m,o=0)=>o+h%m,dig=1+(h>>>5)%3,me=slug(S.name);
-  const R={
-    ntt:()=>kind==='edge'?`ae-${n(9,1)}.a0${n(4,1)}.${cityClli(c)}.${cc}.ra.gin.ntt.net`:`ae-${n(9,1)}.r${n(6,20)}.${cityClli(c)}.${cc}.bb.gin.ntt.net`,
-    tly:()=>kind==='edge'?`${me}-ic-${300000+h%99999}-${ia}-b${n(3,1)}.c.telia.net`:`${({fra:'ffm',nyc:'nyk',lon:'ldn',par:'prs',sto:'sth',ash:'ash',chi:'chi',sjc:'sjo'})[c]||ia}-bb${n(5,1)}-link.ip.twelve99.net`,
-    cog:()=>kind==='edge'?`te0-${n(8)}-0-${n(4)}.agr${n(30,11)}.${ia}0${dig}.atlas.cogentco.com`:`be${n(1999,2000)}.ccr${n(60,21)}.${ia}0${dig}.atlas.cogentco.com`,
-    lvl:()=>kind==='edge'?`ae-${n(5,1)}-${n(40,60)}.edge${n(4,1)}.${W}${n(2,1)}.Level3.net`:`ae-${n(9,1)}-${n(90,3)}.ebr${n(4,1)}.${W}${n(2,1)}.Level3.net`,
-    tat:()=>`if-ae-${n(9,1)}-${n(3,2)}.tcore${n(3,1)}.${cc.toUpperCase()}${n(9)}-${W}.as6453.net`,
-    drz:()=>kind==='edge'?`port-channel${n(12,1)}.core${n(2,1)}.${ia}${n(5,1)}.he.net`:`100ge${n(2)}-${n(40,10)}.core${n(2,1)}.${ia}${n(5,1)}.he.net`,
-    tng:()=>`ae${n(30,1)}-0.nc${ia}${dig}.${W}.opentransit.net`,
-    vdp:()=>`ae${n(9,1)}.${ia}-${n(4,1)}-cr${n(3,1)}.cw.net`,
-    skl:()=>`${['xe','et','ae'][h%3]}-${n(4)}-${n(2)}-${n(8)}.${ia}${n(4,1)}.seabone.net`,
-    gtt:()=>kind==='edge'?`ae${n(9,1)}.er${n(3,1)}-${ia}${dig}.ip4.gtt.net`:`ae${n(9,1)}.cr${n(4,1)}-${ia}${dig}.ip4.gtt.net`,
-    zyo:()=>kind==='edge'?`ae${n(9,1)}.mpr${n(4,1)}.${ia}${n(9,1)}.${cc}.zip.zayo.com`:`ae${n(9,1)}.cs${n(4,1)}.${ia}${n(9,1)}.${cc}.eth.zayo.com`,
-    att:()=>`cr${n(3,1)}.${ia}${n(9,1)}.ip.att.net`,
-    pcw:()=>`HundredGE0-${n(4)}-0-${n(9)}.br0${n(3,1)}.${ia}${n(9,1)}.pccwbtn.net`,
-    txs:()=>`ae${n(9,1)}.${ia}${dig}-cr${n(2,1)}.telxius.net`,
-    ret:()=>`ae${n(9,1)}-${n(900,100)}.xcr${n(3,1)}.${ia}.${cc}.retn.net`,
-    btt:()=>cc==='gb'?`core${n(3,1)}-hu${n(4)}-${n(3)}-${n(2)}-${n(9)}.${['faraday','telehouse','ealing','manchester'][h%4]}.ukcore.bt.net`:`t${n(9,1)}c${n(3,1)}.${ia}.bt.net`,
-    dtk:()=>`ae${n(9,1)}.cr${n(4,1)}.${ia}${dig}.${cc}.net.dtag.de`,
-    cmc:()=>`be-${n(5,1)}${n(9)}-cr0${n(3,1)}.${slug(W)}.${cc}.ibone.comcast.net`,
-    spc:()=>kind==='edge'?`bu-ether${n(40,1)}.${slug(W)}.${cc}.charter.com`:`lag-${n(40,1)}.${slug(W)}.${cc}.charter.com`,
-    vzn:()=>`ae${n(9,1)}.BR${n(4,1)}.${IA}${dig}.ALTER.NET`,
-    tsy:()=>`bundle-ether${n(9,1)}.${ia}-core${n(12,1)}.${slug(W)}.telstra.net`,
-    sgt:()=>`ae${n(9,1)}.cr${n(4,1)}.${ia}${dig}.singtel.com`,
-    msf:()=>`ae${n(9,1)}-0.ear0${n(4,1)}.${ia}30.ntwk.msn.net`,
-    amz:()=>kind==='dst'?`ec2-${hostIp(id,c,k)}.${AWS_REGION[c]||'us-east-1'}.compute.amazonaws.com`.replace(/\.(\d+)\./g,'-$1.').replace(/(\d+)\.(\d+)\.(\d+)\.(\d+)/,'$1-$2-$3-$4'):`ae${n(9,1)}.${ia}${dig}.amazon.com`,
-    ggl:()=>kind==='dst'?`${ia}${n(30,10)}s${n(60,10)}-in-f${n(30,2)}.1e100.net`:`${ia}${n(30,10)}-ae${n(9,1)}.google.com`,
-    cfl:()=>kind==='dst'?'one.one.one.one':`${ia}-ae${n(9,1)}.cloudflare.com`,
-    nfx:()=>kind==='dst'?`ipv4-c${n(900,100)}-${ia}${dig}-ix.1.oca.nflxvideo.net`:`ae${n(9,1)}.${ia}${dig}.netflix.com`,
-    fbk:()=>kind==='dst'?`edge-star-mini-shv-0${n(3,1)}-${ia}${n(9,1)}.facebook.com`:`psw${n(9,1)}a.${ia}${n(9,1)}.tfbnw.net`,
-    akm:()=>kind==='dst'?`a${n(250,10)}-${n(250)}-${n(99)}-${n(250)}.deploy.static.akamaitechnologies.com`:`ae${n(9,1)}.${ia}${dig}.akamai.com`,
-    slw:()=>kind==='dst'?`cache-${ia}${n(9000,1000)}-${IA}.fastly.net`:`ae${n(9,1)}.${ia}${dig}.fastly.net`,
-  };
-  if(R[id])return R[id]();
-  const dom=RDNS_DOM[id]||(slug(N.name)+'.net');
+  const N=NET[id],h=hstr(id+'|'+c+'|'+k+'|'+kind),ia=cityIata(c),n=(m,o=0)=>o+h%m,dig=1+(h>>>5)%3;
+  const dom=slug(N.name)+'.net';
   return kind==='dst'?`www.${dom}`:`ae${n(9,1)}.${kind==='edge'?'pe':'cr'}${n(4,1)}.${ia}${dig}.${dom}`;}
 /* Addresses come from documentation ranges so they can never belong to a real network. */
 function hostIp(id,c,k=0){const h=hstr(id+'|ip|'+c+'|'+k),b=['192.0.2','198.51.100','203.0.113'][h%3];return `${b}.${1+(h>>>4)%253}`;}
@@ -1601,7 +1562,7 @@ function traceroute(src,to){const P=trPaths(src),me=slug(S.name)+'.net',lines=[]
   if(!ex.length){lines.push(' 4  * * *\n 5  * * *   ← '+tr('!N network unreachable'));return {text:lines.join('\n'),why:tr('Nothing on your network reaches {net}: no transit, IX session, PNI or cache with a working path from {city}.',{net:N.name,city:CITY[src].name}),asPath:null};}
   ex.sort((a,b)=>(a.pref==='low'?4:a.rank)-(b.pref==='low'?4:b.rank)||(a.pref==='high'?0:1)-(b.pref==='high'?0:1)||P.dist[a.city]-P.dist[b.city]);
   const e=ex.find(x=>x.used<x.cap*0.999)||ex[0];walk(P.path(e.city));
-  if(e.city!==src||true)hop(`ae${hstr(e.city)%4}.edge1.${cityIata(e.city)}.${me}`,ownIp(e.city,9),0.2,e.k==='t'?'your transit edge':e.k==='ix'?'your exchange edge':e.k==='p'?'your PNI edge':'your cache edge');
+  hop(`ae${hstr(e.city)%4}.edge1.${cityIata(e.city)}.${me}`,ownIp(e.city,9),0.2,e.k==='t'?'your transit edge':e.k==='ix'?'your exchange edge':e.k==='p'?'your PNI edge':'your cache edge');
   let asPath=[S.asn];
   const far0=(N.pops&&N.pops.length?N.pops:[e.city]);
   const nearest=(from,list)=>list.reduce((a,c)=>kmBetween(from,c)<kmBetween(from,a)?c:a,list[0]);
@@ -1793,7 +1754,7 @@ function scenarioModal(){const wk=weekly(),h=scnHof();let best=null;try{best=JSO
 function newGame(name,home,asn){
   S={v:1,name,asn:asn||randomAsn(),home,day:0,cash:START_CASH,
     ltv:2,t1v:2,seen:NETS.map(n=>n.id),spares:{},pops:{[home]:{day:0,bb:null,boost:0,down:0,routers:1,gen:false}},links:[],nni:[],transit:[],ixp:{},rs:{},peers:{},pni:[],caches:[],biz:[],offers:[],myIx:{},
-    done:{},inc:[],ev:{},priceMul:1,nextFail:45,nextEvent:40,usedNames:[],stats:{survived:0,incidents:0,peak:0},cnLic:{state:'none'},scrubAt:null,scrubTier:0,scrubMode:'always',won:false,lost:false,neg:0,loans:[],loanOffers:[],loanStrikes:0};
+    done:{},inc:[],ev:{},priceMul:1,nextFail:45,nextEvent:40,usedNames:[],stats:{survived:0,incidents:0,peak:0},cnLic:{state:'none'},scrubAt:null,scrubTier:0,scrubMode:'always',won:false,lost:false,neg:0,loans:[],loanOffers:[],loanStrikes:0,ops:{frozen:false,maint:[]},deals:[],paid:{},teamPeers:[]};
 }
 
 /* ================= HELPERS ================= */
@@ -2188,6 +2149,10 @@ function sanitize(s){
   const arr=k=>{if(!Array.isArray(s[k]))s[k]=[];},obj=k=>{if(!s[k]||typeof s[k]!=='object'||Array.isArray(s[k]))s[k]={};};
   ['links','nni','transit','pni','caches','biz','offers','inc','usedNames','loans','loanOffers','hist','log'].forEach(arr);
   ['pops','ixp','rs','peers','myIx','done','ev','stats','ixn','ixPref','ixSite','confReg','ach'].forEach(obj);
+  // Newer systems create their state lazily; a wrong-shaped value from a tampered save is dropped so it gets recreated.
+  {const isO=v=>v&&typeof v==='object'&&!Array.isArray(v),shape={staff:v=>isO(v)&&['people','pool','inbox','log'].every(k=>Array.isArray(v[k]))&&['pol','spent','idle'].every(k=>isO(v[k])),ops:v=>isO(v)&&Array.isArray(v.maint),sec:isO,ctr:v=>isO(v)&&Array.isArray(v.active),deals:Array.isArray,tl:v=>isO(v)&&Array.isArray(v.e)&&Array.isArray(v.g),focus:v=>isO(v)&&typeof v.k==='string',teamPeers:Array.isArray,uiReq:isO,yrView:isO,paid:isO,roa:isO,yr:isO};
+   for(const k in shape)if(s[k]!=null&&!shape[k](s[k]))delete s[k];
+   if(s.staff)s.staff.people=s.staff.people.filter(isO);if(s.ops)s.ops.maint=s.ops.maint.filter(isO);if(s.deals)s.deals=s.deals.filter(isO);if(s.teamPeers)s.teamPeers=s.teamPeers.filter(isO);if(s.tl){s.tl.e=s.tl.e.filter(Array.isArray);s.tl.g=s.tl.g.filter(Array.isArray);}}
   s.v=1;s.name=String(s.name==null?'Packet Pals':s.name).slice(0,24);s.day=int(s.day,0,1e7,0);s.cash=num(s.cash,0);s.asn=int(s.asn,1,4294967294,200000);
   s.priceMul=num(s.priceMul,1);s.nextFail=num(s.nextFail,s.day+45);s.nextEvent=num(s.nextEvent,s.day+40);s.lvl=int(s.lvl,1,LEVELS.length,1);s.neg=int(s.neg,0,1e7,0);s.loanStrikes=int(s.loanStrikes,0,1e3,0);
   for(const k of Object.keys(s.stats)){const v=s.stats[k];if(k==='by'||k==='f'){if(!v||typeof v!=='object')s.stats[k]={};else for(const j of Object.keys(v))v[j]=num(v[j],0);}else if(typeof v!=='boolean')s.stats[k]=num(v,0);}
@@ -2664,17 +2629,17 @@ const CABLE_EVENTS={
 const ENG_MAX=24,FIXABLE=['crash','power','site','ring','transit','ixloop','optic','amp','roadmff','cut','fabric','fatwave','label','mtu','oops','cleaner','ac','maint'];
 const CHANGE_ACTS=['teDeploy','buildLink','buyTransit','buyIx','pni','buyNni','lagT','addRouter'];
 const ROLES={
- sales:{n:'Sales engineer',sal:7500,i:'🤝',d:'Signs customers from the offer board, and quietly raises rates on happy ones.'},
- noc:{n:'NOC engineer',sal:6500,i:'🎧',d:'Fixes outages ahead of schedule and pays for quick repairs.'},
- srnoc:{n:'Senior NOC engineer',sal:12000,i:'🧭',d:'Steers traffic off hot ports and keeps routing preferences tidy.'},
- arch:{n:'Network architect',sal:15000,i:'📐',d:'Upgrades congested waves, ports and optics, adds routers, and cancels links nobody uses.'},
- peer:{n:'Peering coordinator',sal:9500,i:'🔌',d:'Turns on route servers, adds sessions, and orders PNIs for the heaviest talkers.'},
- mkt:{n:'Marketing manager',sal:8000,i:'📣',d:'Runs ad campaigns where growth has stalled and there is capacity to sell.'}};
+ sales:{n:tr('Sales engineer'),sal:7500,i:'🤝',d:tr('Signs customers from the offer board, and quietly raises rates on happy ones.')},
+ noc:{n:tr('NOC engineer'),sal:6500,i:'🎧',d:tr('Fixes outages ahead of schedule and pays for quick repairs.')},
+ srnoc:{n:tr('Senior NOC engineer'),sal:12000,i:'🧭',d:tr('Steers traffic off hot ports and keeps routing preferences tidy.')},
+ arch:{n:tr('Network architect'),sal:15000,i:'📐',d:tr('Upgrades congested waves, ports and optics, adds routers, and cancels links nobody uses.')},
+ peer:{n:tr('Peering coordinator'),sal:9500,i:'🔌',d:tr('Turns on route servers, adds sessions, and orders PNIs for the heaviest talkers.')},
+ mkt:{n:tr('Marketing manager'),sal:8000,i:'📣',d:tr('Runs ad campaigns where growth has stalled and there is capacity to sell.')}};
 const ROLE_ORDER=['sales','noc','srnoc','arch','peer','mkt'];
 const POL_DEF={sales:0,noc:30000,srnoc:0,arch:150000,peer:60000,mkt:40000};
 const BUDGETS=[0,10000,25000,50000,100000,250000,500000,1000000,5000000],RESERVES=[0,50000,150000,500000,1000000,5000000];
 const XPT=[0,10,30,70,140];
-const TRAITS={frugal:'Frugal: spends 15% less per job',bold:'Bold: acts sooner, slips more often',careful:'Careful: never makes a mistake',networker:'Networker: sales and peering land more often',quick:'Quick learner: levels up faster'};
+const TRAITS={frugal:tr('Frugal: spends 15% less per job'),bold:tr('Bold: acts sooner, slips more often'),careful:tr('Careful: never makes a mistake'),networker:tr('Networker: sales and peering land more often'),quick:tr('Quick learner: levels up faster')};
 const FNAMES=['Priya','Marcus','Yuki','Elena','Tomás','Amara','Lars','Mei','Kofi','Sofia','Dmitri','Nadia','Ravi','Chloe','Jamal','Ingrid','Mateo','Hana','Oluwaseun','Camille','Aarav','Zofia','Diego','Leila','Henrik','Thandi','Kenji','Bianca','Emre','Aisha'];
 const LNAMES=['Okafor','Lindqvist','Tanaka','Moreau','Silva','Patel','Novak','Haddad','Kowalski','Nguyen','Fischer','Rossi','Mbeki','Castillo','Johansson','Ahmed','Kim','Dubois','Petrov','Alvarez','Chen','Murphy','Santos','Berg','Yilmaz','Sato','Costa','Ivanov','Hoang','Bauer'];
 const monthIdx=()=>Math.floor(S.day/30);
@@ -2682,7 +2647,7 @@ function ops(){return S.ops||(S.ops={frozen:false,maint:[]});}
 function stf(){const s=S.staff||(S.staff={people:[],pool:[],poolDay:-999,pol:{},spent:{},inbox:[],log:[],idle:{},born:S.day});
   if(S.ops&&S.ops.eng>0){for(let k=0;k<S.ops.eng;k++)s.people.push(mkPerson('noc',2));S.ops.eng=0;}return s;}
 const skillOf=p=>p.skill;
-function marketSal(role,skill){const lg=typeof legacyLevel==='function'?legacyLevel('hr'):0;return Math.round(ROLES[role].sal*(0.7+0.22*skill)*(1-0.05*lg)/500)*500;}
+function marketSal(role,skill){const lg=legacyLevel('hr');return Math.round(ROLES[role].sal*(0.7+0.22*skill)*(1-0.05*lg)/500)*500;}
 function mkPerson(role,skill){const tr=Object.keys(TRAITS);return {id:uid(),name:pick(FNAMES)+' '+pick(LNAMES),role,skill,xp:XPT[skill-1],trait:pick(tr),sal:marketSal(role,skill),hired:S.day,mood:75,acts:0};}
 function people(role){return stf().people.filter(p=>!role||p.role===role);}
 function polOf(role){const s=stf();return s.pol[role]||(s.pol[role]={mode:'ask',budget:POL_DEF[role],reserve:150000,region:'any'});}
@@ -2826,13 +2791,13 @@ function opsTick(d){const o=ops();
 const metaOn=()=>!!S&&S.mode!=='sandbox'&&!S.scn&&!window.__TUBES_SERVER__;
 function ctr(){return S.ctr||(S.ctr={active:[],done:0,streak:0,best:0,swapDay:-99,fails:0});}
 const CTR_T={
- serve:{mk(){const g=Math.max(10,Math.ceil(R.served*1.25/5)*5);return {goal:g,days:60,title:`Serve ${fmtG(g)} at once`,unit:'Gbps'};},prog:c=>R.served,ok:c=>R.served>=c.goal,cur:c=>fmtG(R.served)},
- clean:{mk(){const g=14+Math.floor(Math.random()*3)*7;return {goal:g,days:g+10,title:`${g} days without a new incident`,base:S.stats.incidents,unit:'days'};},prog:c=>S.stats.incidents>c.base?0:S.day-c.start,ok:c=>S.stats.incidents<=c.base&&S.day-c.start>=c.goal,fail:c=>S.stats.incidents>c.base,cur:c=>`${Math.max(0,S.day-c.start)} days`},
- peers:{mk(){const g=R.sessions+3+Math.floor(Math.random()*5);return {goal:g,days:75,title:`Reach ${g} peering sessions`,unit:'sessions'};},prog:c=>R.sessions,ok:c=>R.sessions>=c.goal,cur:c=>String(R.sessions)},
- biz:{mk(){const n=2+Math.floor(Math.random()*3);return {goal:S.biz.length+n,days:60,title:`Sign ${n} more customers`,unit:'customers'};},prog:c=>S.biz.length,ok:c=>S.biz.length>=c.goal,cur:c=>String(S.biz.length)},
- pops:{mk(){const n=1+Math.floor(Math.random()*2);return {goal:Object.keys(S.pops).length+n,days:90,title:`Open ${n} new POP${n>1?'s':''}`,unit:'POPs'};},prog:c=>Object.keys(S.pops).length,ok:c=>Object.keys(S.pops).length>=c.goal,cur:c=>String(Object.keys(S.pops).length)},
- cool:{mk(){const g=10+Math.floor(Math.random()*3)*5;return {goal:g,days:g+30,title:`Keep every link under 80% for ${g} days`,days0:0,unit:'days'};},prog:c=>c.run||0,ok:c=>(c.run||0)>=c.goal,cur:c=>`${c.run||0} days`},
- profit:{mk(){const g=Math.max(5000,Math.ceil(Math.max(0,R.revMo-R.costMo)*1.3/1000)*1000);return {goal:g,days:75,title:`Earn ${fmt$(g)} a month in profit`,unit:'$/mo'};},prog:c=>R.revMo-R.costMo,ok:c=>R.revMo-R.costMo>=c.goal,cur:c=>fmt$(R.revMo-R.costMo)}};
+ serve:{mk(){const g=Math.max(10,Math.ceil(R.served*1.25/5)*5);return {goal:g,days:60,title:tr('Serve {g} at once',{g:fmtG(g)}),unit:'Gbps'};},prog:c=>R.served,ok:c=>R.served>=c.goal,cur:c=>fmtG(R.served)},
+ clean:{mk(){const g=14+Math.floor(Math.random()*3)*7;return {goal:g,days:g+10,title:tr('{g} days without a new incident',{g}),base:S.stats.incidents,unit:'days'};},prog:c=>S.stats.incidents>c.base?0:S.day-c.start,ok:c=>S.stats.incidents<=c.base&&S.day-c.start>=c.goal,fail:c=>S.stats.incidents>c.base,cur:c=>`${Math.max(0,S.day-c.start)} days`},
+ peers:{mk(){const g=R.sessions+3+Math.floor(Math.random()*5);return {goal:g,days:75,title:tr('Reach {g} peering sessions',{g}),unit:'sessions'};},prog:c=>R.sessions,ok:c=>R.sessions>=c.goal,cur:c=>String(R.sessions)},
+ biz:{mk(){const n=2+Math.floor(Math.random()*3);return {goal:S.biz.length+n,days:60,title:tr('Sign {n} more customers',{n}),unit:'customers'};},prog:c=>S.biz.length,ok:c=>S.biz.length>=c.goal,cur:c=>String(S.biz.length)},
+ pops:{mk(){const n=1+Math.floor(Math.random()*2);return {goal:Object.keys(S.pops).length+n,days:90,title:trn('Open {n} new POP','Open {n} new POPs',n,{n}),unit:'POPs'};},prog:c=>Object.keys(S.pops).length,ok:c=>Object.keys(S.pops).length>=c.goal,cur:c=>String(Object.keys(S.pops).length)},
+ cool:{mk(){const g=10+Math.floor(Math.random()*3)*5;return {goal:g,days:g+30,title:tr('Keep every link under 80% for {g} days',{g}),days0:0,unit:'days'};},prog:c=>c.run||0,ok:c=>(c.run||0)>=c.goal,cur:c=>`${c.run||0} days`},
+ profit:{mk(){const g=Math.max(5000,Math.ceil(Math.max(0,R.revMo-R.costMo)*1.3/1000)*1000);return {goal:g,days:75,title:tr('Earn {g} a month in profit',{g:fmt$(g)}),unit:'$/mo'};},prog:c=>R.revMo-R.costMo,ok:c=>R.revMo-R.costMo>=c.goal,cur:c=>fmt$(R.revMo-R.costMo)}};
 function ctrMake(){const c=ctr(),have=new Set(c.active.map(x=>x.t)),ids=Object.keys(CTR_T).filter(k=>!have.has(k));if(!ids.length)return;
   const t=pick(ids),m=CTR_T[t].mk(),reward=clamp(Math.round(Math.max(0,R.revMo)*0.4/1000)*1000,8000,500000);
   c.active.push({id:uid(),t,...m,start:S.day,due:S.day+m.days,reward,pts:1+Math.floor(m.days/45)});}
