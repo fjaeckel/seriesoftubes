@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Hire construction crews in one batch to bring your own fiber below 30 days remaining, or as far as your cash allows (#103). The link panel shows how many crews you can hire, their total price and the time left afterward.
+
 ## [1.31.0] — 2026-10-26
 
 - Series of Tubes now speaks French. The game follows your browser's language the first time, and you can switch to Français under Settings or on the title screen.

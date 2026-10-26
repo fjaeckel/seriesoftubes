@@ -2631,4 +2631,10 @@
 "via a capacity broker":"via un courtier en capacité",
 "List it with a capacity broker <small>they keep 10%</small>":"La confier à un courtier en capacité <small>il garde 10 %</small>",
 "Nothing spare to sell on this fiber right now.":"Rien à vendre sur cette fibre pour l’instant.",
+"Hire max crews <small>{n} crew · {price}</small>":"Engager le maximum d’équipes <small>{n} équipe · {price}</small>",
+"Hire max crews <small>{n} crews · {price}</small>":"Engager le maximum d’équipes <small>{n} équipes · {price}</small>",
+"After hiring: {n} day left.":"Après embauche : il reste {n} jour.",
+"After hiring: {n} days left.":"Après embauche : il reste {n} jours.",
+"<b>{n} extra crew hired.</b><br>Ready on day {day}.":"<b>{n} équipe supplémentaire engagée.</b><br>Prête le jour {day}.",
+"<b>{n} extra crews hired.</b><br>Ready on day {day}.":"<b>{n} équipes supplémentaires engagées.</b><br>Prête le jour {day}.",
 };

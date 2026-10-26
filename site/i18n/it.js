@@ -2631,4 +2631,10 @@
 "via a capacity broker":"tramite un broker di capacità",
 "List it with a capacity broker <small>they keep 10%</small>":"Mettila in vendita con un broker di capacità <small>trattiene il 10%</small>",
 "Nothing spare to sell on this fiber right now.":"Per ora non c’è niente da vendere su questa fibra.",
+"Hire max crews <small>{n} crew · {price}</small>":"Assumi il massimo delle squadre <small>{n} squadra · {price}</small>",
+"Hire max crews <small>{n} crews · {price}</small>":"Assumi il massimo delle squadre <small>{n} squadre · {price}</small>",
+"After hiring: {n} day left.":"Dopo l’assunzione: manca {n} giorno.",
+"After hiring: {n} days left.":"Dopo l’assunzione: mancano {n} giorni.",
+"<b>{n} extra crew hired.</b><br>Ready on day {day}.":"<b>{n} squadra aggiuntiva assunta.</b><br>Pronta il giorno {day}.",
+"<b>{n} extra crews hired.</b><br>Ready on day {day}.":"<b>{n} squadre aggiuntive assunte.</b><br>Pronta il giorno {day}.",
 };

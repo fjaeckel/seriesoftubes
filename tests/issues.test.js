@@ -6,6 +6,91 @@ function base(ev) {
   ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'})");
 }
 
+function crewBuild(ev) {
+  base(ev);
+  ev("ACT.buildPop({city:'ams'});S.lvl=3;UI.pending={a:'fra',b:'ams'};UI.dfSrc='build';UI.dfSys='roadm';ACT.orderDf();window.__fiber=S.links.find(l=>l.kind==='df'&&l.own);S.day=100;__fiber.day=90;UI.sel={type:'link',id:__fiber.id}");
+}
+
+test('#103 bulk crews stop below 30 days without buying an unnecessary crew', () => {
+  const { ev, dom, errors } = load();
+  crewBuild(ev);
+  const price = ev('Math.round(15000+__fiber.km*6)');
+  for (const [days, crews, left] of [[29,0,29],[30,1,1],[31,1,1],[59,1,29],[60,2,1],[61,2,1],[90,3,1],[365,12,5]]) {
+    ev(`__fiber.ready=S.day+${days};S.cash=1e8;renderPanel()`);
+    const button = [...dom.window.document.querySelectorAll('#panelBody [data-act=crews]')].find(b => JSON.parse(b.dataset.args).max);
+    if (crews) {
+      assert.ok(button, `bulk crews available with ${days} days left`);
+      assert.match(button.textContent, new RegExp(`${crews} crew`));
+      assert.ok(button.textContent.includes(ev(`fmt$(${crews*price})`)), 'preview shows the batch price');
+      assert.match(dom.window.document.querySelector('#panelBody').textContent, new RegExp(`After hiring: ${left} day`));
+      button.click();
+    } else {
+      assert.equal(button, undefined, 'already below the target');
+      ev('ACT.crews({id:__fiber.id,max:true})');
+    }
+    assert.equal(ev('__fiber.ready-S.day'), left, `${days} days uses ${crews} crews`);
+    assert.equal(ev('S.cash'), 1e8-crews*price, 'same price per crew as individual hires');
+    assert.equal(ev('S.day'), 100, 'hiring does not advance the game');
+  }
+  assert.deepEqual(errors, []);
+});
+
+test('#103 bulk crews use only affordable hires and recheck cash when clicked', () => {
+  const { ev, dom, errors } = load();
+  crewBuild(ev);
+  const price = ev('Math.round(15000+__fiber.km*6)');
+  const maxButton = () => [...dom.window.document.querySelectorAll('#panelBody [data-act=crews]')].find(b => JSON.parse(b.dataset.args).max);
+  ev(`__fiber.ready=S.day+120;S.cash=${price*2};renderPanel()`);
+  assert.match(maxButton().textContent, /2 crews/);
+  maxButton().click();
+  assert.equal(ev('__fiber.ready-S.day'), 60, 'cash can limit the order before the 30-day target');
+  assert.equal(ev('S.cash'), 0);
+  assert.equal(maxButton().disabled, true);
+  ev(`S.cash=${price-1};ACT.crews({id:__fiber.id,max:true})`);
+  assert.equal(ev('S.cash'), price-1);
+  assert.equal(ev('__fiber.ready-S.day'), 60);
+  ev(`S.cash=${price*2};renderPanel()`);
+  const staleButton = maxButton();
+  ev(`S.cash=${price}`);
+  staleButton.click();
+  assert.equal(ev('__fiber.ready-S.day'), 30, 'rechecks live affordability');
+  assert.equal(ev('S.cash'), 0);
+  ev(`S.cash=${price};renderPanel()`);
+  maxButton().click();
+  assert.equal(ev('__fiber.ready-S.day'), 1, 'exactly 30 days still needs one crew');
+  assert.equal(ev('S.cash'), 0);
+  assert.equal(maxButton(), undefined);
+  assert.deepEqual(errors, []);
+});
+
+test('#103 crew actions reject invalid links and preserve the single-hire option', () => {
+  const { ev, dom, errors } = load();
+  crewBuild(ev);
+  const price = ev('Math.round(15000+__fiber.km*6)');
+  ev('S.cash=1e8;__fiber.ready=S.day+90');
+  for (const setup of ["__fiber.own=false", "__fiber.kind='wave'", '__fiber.ready=S.day', 'delete __fiber.ready']) {
+    ev(`__fiber.own=true;__fiber.kind='df';__fiber.ready=S.day+90;${setup};window.__before=JSON.stringify([S.cash,S.links]);ACT.crews({id:__fiber.id});ACT.crews({id:__fiber.id,max:true})`);
+    assert.equal(ev('JSON.stringify([S.cash,S.links])'), ev('__before'), 'invalid or finished construction cannot spend cash');
+  }
+  ev("__fiber.own=true;__fiber.kind='df';__fiber.ready=S.day+90;ACT.crews({id:'missing'});ACT.crews({id:'missing',max:true})");
+  assert.equal(ev('S.cash'), 1e8);
+  ev(`S.cash=${price-1};ACT.crews({id:__fiber.id})`);
+  assert.equal(ev('__fiber.ready-S.day'), 90);
+  assert.equal(ev('S.cash'), price-1);
+  ev('S.cash=1e8;renderPanel()');
+  const single = [...dom.window.document.querySelectorAll('#panelBody [data-act=crews]')].find(b => !JSON.parse(b.dataset.args).max);
+  single.click();
+  assert.equal(ev('__fiber.ready-S.day'), 60, 'original button still hires one crew');
+  assert.equal(ev('S.cash'), 1e8-price);
+  ev('ACT.crews({id:__fiber.id});ACT.crews({id:__fiber.id})');
+  assert.equal(ev('__fiber.ready-S.day'), 1);
+  assert.equal(ev('S.cash'), 1e8-price*3);
+  ev('__fiber.ready=S.day+20;ACT.crews({id:__fiber.id})');
+  assert.equal(ev('__fiber.ready-S.day'), 1, 'single hire still works below 30 days');
+  assert.equal(ev('S.cash'), 1e8-price*4);
+  assert.deepEqual(errors, []);
+});
+
 test('#4 several transits in one city share the load instead of filling one by one', () => {
   const { ev, errors } = load();
   base(ev);
