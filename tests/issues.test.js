@@ -6,6 +6,70 @@ function base(ev) {
   ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'})");
 }
 
+function metricPair(ev) {
+  ev("UI.startCity='cai';ACT.start({});S.cash=1e10;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'cai'});ACT.buildPop({city:'ath'});S.pops.cai.rgen=3;S.pops.ath.rgen=3");
+  ev("UI.via='ouzo';openLinkModal('cai','ath');ACT.buildLink({tier:1});closeModal();UI.pending={a:'ath',b:'cai'};S.won=true;ACT.orderCable();S.links.find(l=>l.kind==='df').ready=S.day;ACT.addCh({id:S.links.find(l=>l.kind==='df').id,o:'zr4'});ACT.buyTransit({city:'ath',net:'cog',tier:2});S.pops.cai.bb.d=50;compute()");
+}
+
+test('#122 changing a link metric leaves its parallel link alone, including on a phone', () => {
+  const { ev, dom, errors } = load();
+  metricPair(ev);
+  assert.equal(ev('S.links.length'), 2, 'a wave and dark fiber, with reversed endpoints');
+  dom.window.innerWidth = 360;
+  ev("ACT.selLink({id:S.links[0].id})");
+  const button = [...dom.window.document.querySelectorAll('#panelBody [data-act="setMetric"]')]
+    .find(b => JSON.parse(b.dataset.args).v === 'backup');
+  assert.ok(button, 'the selected link has a Backup only control');
+  button.click();
+  assert.equal(ev('S.links[0].metric'), 'backup');
+  assert.equal(ev("S.links[1].metric||'normal'"), 'normal', 'the other link keeps its metric');
+  assert.equal(ev('R.load[S.links[0].id]||0'), 0, 'the backup wave stays idle');
+  assert.ok(ev('R.load[S.links[1].id]') > 0, 'dark fiber carries the traffic');
+  assert.match(ev("trafficSection(S.links[0])"), /No traffic right now/);
+  assert.doesNotMatch(ev("metricSection(S.links[0])"), /Applies to every link/);
+  ev("ACT.setMetric({id:S.links[1].id,v:'prefer'});ACT.setMetric({id:S.links[0].id,v:'normal'})");
+  assert.equal(ev('S.links[1].metric'), 'prefer', 'changing the wave again preserves the fiber preference');
+  ev("S=migrate(JSON.parse(JSON.stringify(S)));compute()");
+  assert.equal(ev('S.links[0].metric'), 'normal');
+  assert.equal(ev('S.links[1].metric'), 'prefer', 'independent metrics survive a save round trip');
+  assert.deepEqual(errors, []);
+});
+
+test('#122 parallel metric groups keep backup capacity separate and fail over after a cut', () => {
+  const { ev, errors } = load();
+  metricPair(ev);
+  ev("S.biz.push({id:'metric-circuit',type:'l2vpn',name:'Backup Bandwidth',city:'cai',city2:'ath',bw:20,rate:1000,reqs:[],route:'normal',mood:100,start:S.day});ACT.setMetric({id:S.links[1].id,v:'backup'});S.pops.cai.bb.d=150;compute()");
+  assert.equal(ev('R.load[S.links[1].id]||0'), 0, 'backup fiber is not pooled with the normal wave');
+  assert.equal(ev("R.l2['metric-circuit']"), 20, 'L2 circuits also follow the normal link metric');
+  assert.ok(ev('R.served') <= ev('capOf(S.links[0])') + 1e-6, 'the normal wave caps throughput');
+  ev("S.links[0].cut=S.day+2;compute()");
+  assert.ok(ev('R.load[S.links[1].id]') > 140, 'the backup fiber takes over when the wave fails');
+  assert.equal(ev("R.ef[routeKey(S.links[1])].eg['l2:metric-circuit']"), 20, 'circuit traffic follows the backup metric group');
+  ev("S.links[0].cut=0;ACT.setMetric({id:S.links[1].id,v:'normal'})");
+  assert.ok(ev('R.served') > 140, 'equal metrics combine both links again');
+  assert.ok(ev('S.links.every(l=>(R.load[l.id]||0)>0)'), 'both equal-metric links share traffic');
+  const utilization = JSON.parse(ev('JSON.stringify(S.links.map(l=>R.load[l.id]/capOf(l)))'));
+  assert.ok(Math.abs(utilization[0] - utilization[1]) < 1e-6, 'equal metrics share in proportion to capacity');
+  assert.deepEqual(errors, []);
+});
+
+test('#122 Auto-TE spills onto another metric group and RouteScript avoids the whole city pair', () => {
+  const { ev, errors } = load();
+  metricPair(ev);
+  ev("for(const l of S.links)l.km=1000;S.pops.cai.bb.d=150;ACT.setMetric({id:S.links[0].id,v:'prefer'})");
+  assert.ok(ev('R.served') <= 100 + 1e-6, 'without TE only the preferred 100G wave carries traffic');
+  ev("ACT.buyTE();compute()");
+  assert.ok(ev('R.served') > 140, 'TE can use normal fiber after the preferred wave fills');
+  assert.ok(ev('R.teMoved') > 40);
+  assert.ok(ev('R.load[S.links[1].id]') > 40);
+  ev("ACT.buildPop({city:'ist'});for(const [id,a,b] of [['via1','cai','ist'],['via2','ist','ath']])S.links.push({id,a,b,kind:'wave',tier:2,km:1000,cut:0,mo:100});S.te.script='avoid link cai-ath';compute()");
+  assert.ok(ev('teRules()'), 'the city-pair avoidance rule is valid');
+  assert.equal(ev('R.load[S.links[0].id]||0'), 0, 'the preferred group is avoided');
+  assert.equal(ev('R.load[S.links[1].id]||0'), 0, 'the normal group is also avoided');
+  assert.ok(ev('R.load.via1') > 140, 'traffic takes the route through Istanbul');
+  assert.deepEqual(errors, []);
+});
+
 test('#4 several transits in one city share the load instead of filling one by one', () => {
   const { ev, errors } = load();
   base(ev);
@@ -216,7 +280,7 @@ test('#28 scenic routing stays put, and splits over two equally quiet paths', ()
   ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'})");
   ev("for(const c of ['ams','lon','par'])ACT.buildPop({city:c});const L=(a,b,t,v)=>{UI.via=v||null;openLinkModal(a,b);ACT.buildLink({tier:t});closeModal();};L('fra','ams',1);L('ams','lon',1,'uly');L('fra','par',1);L('par','lon',1,'chn')");
   ev("S.biz.push({id:'bulk1',type:'bulk',name:'Sloth Sync',city:'fra',city2:'lon',bw:60,rate:1000,reqs:[],route:'scenic',mood:100,start:S.day});compute()");
-  const loads = () => JSON.parse(ev("JSON.stringify(['fra|par','ams|fra'].map(k=>Math.round((R.ef[k]&&R.ef[k].eg['l2:bulk1'])||0)))"));
+  const loads = () => JSON.parse(ev("JSON.stringify(['fra|par|normal','ams|fra|normal'].map(k=>Math.round((R.ef[k]&&R.ef[k].eg['l2:bulk1'])||0)))"));
   const seen = [];
   for (let d = 0; d < 6; d++) { ev('compute()'); seen.push(loads().join('/')); }
   assert.equal(new Set(seen).size, 1, `no flapping day to day (${seen})`);

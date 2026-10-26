@@ -721,6 +721,7 @@ const vxcMo=(km,sub,t)=>Math.round((150+km*0.12)*VXC[t].m*(sub?2:1));
 const MET={prefer:{l:tr('Prefer'),f:0.5},normal:{l:tr('Normal'),f:1},avoid:{l:tr('Avoid'),f:4},backup:{l:tr('Backup only'),f:60}};
 const PREF={high:tr('Prefer'),normal:tr('Normal'),low:tr('Backup only')};
 const edgeKey=l=>l.a<l.b?l.a+'|'+l.b:l.b+'|'+l.a;
+const routeKey=l=>edgeKey(l)+'|'+(l.metric||'normal');
 /* Reach (#17, #30). Coherent optics trade speed for distance: past full-rate reach they drop to a
    slower, more robust modulation, and a bigger optic can always fall back to anything a smaller one does (#107). Regeneration sites go further: each one turns the light back into
    bits and sends it on fresh, so every optical span is shorter. Each site needs a regen card per channel. */
@@ -1923,8 +1924,9 @@ function compute(){
   // The graph works on city indices: adj[i] lists [neighbour, edge] in S.links order.
   const remote=remoteCities(),adj=new Array(NC); pops.concat(remote).forEach(p=>adj[CIDX[p]]=[]);
   const edges={},TRX=teRules(),live=[];let NE=0;R2.bizDem={};R2.bizSrv={};
-  for(const l of S.links){const ai=CIDX[l.a],bi=CIDX[l.b];if(linkDown(l)||!adj[ai]||!adj[bi])continue;live.push(l);const key=l.a<l.b?l.a+'|'+l.b:l.b+'|'+l.a;let e=edges[key];
-    if(!e){e=edges[key]={id:key,a:l.a,b:l.b,ai,bi,i:NE++,km:l.km,cap:0,w:Infinity,lat:Infinity,links:[],res:0,ld:0,tr:null,pl:0};adj[ai].push([bi,e]);adj[bi].push([ai,e]);}e.cap+=capOf(l);e.links.push(l);e.w=Math.min(e.w,(l.km+60)*MET[l.metric||'normal'].f*(TRX&&TRX.avoid.has(key)?60:1));e.lat=Math.min(e.lat,linkLat(l));}
+  // Only links with the same metric share capacity; a backup must not fill alongside a normal link.
+  for(const l of S.links){const ai=CIDX[l.a],bi=CIDX[l.b];if(linkDown(l)||!adj[ai]||!adj[bi])continue;live.push(l);const key=routeKey(l);let e=edges[key];
+    if(!e){e=edges[key]={id:key,a:l.a,b:l.b,ai,bi,i:NE++,km:l.km,cap:0,w:Infinity,lat:Infinity,links:[],res:0,ld:0,tr:null,pl:0};adj[ai].push([bi,e]);adj[bi].push([ai,e]);}e.cap+=capOf(l);e.links.push(l);e.w=Math.min(e.w,(l.km+60)*MET[l.metric||'normal'].f*(TRX&&TRX.avoid.has(edgeKey(l))?60:1));e.lat=Math.min(e.lat,linkLat(l));}
   // Shortest paths from every POP: SPD[pop] the distance to each city index (Infinity: no path), SPP[pop] the edge it arrives by.
   // ALONE[i]: no other city lies within 1e-6 of POP i (so only its own exits can be at distance 0 from it).
   const SPD={},SPP={},SDi=[],SPi=[],ALONE=new Uint8Array(NC),wW=e=>e.w,wLat=e=>e.lat+0.05;
@@ -3039,7 +3041,7 @@ const ACT={
  upVxc:({id,t})=>{t=+t;const l=S.links.find(x=>x.id===id);if(!l||l.kind!=='vxc'||!VXC[t]||t<=l.vt)return;const extra=VXC[t].g-VXC[l.vt].g;for(const c of [l.a,l.b]){const pt=nniPort(c,l.prov);if(pt&&nniUsed(c,l.prov)+extra>NNI[pt.tier].g){toast(tr('<b>Fabric port in {city} is full.</b>',{city:CITY[c].name}),'bad');sfx('err');return;}}const mo=vxcMo(l.km,l.sub,t);if(!spend(mo))return;l.vt=t;l.mo=mo;after();},
  cancelVxc:({id})=>{if(UI.confirm!==id){UI.confirm=id;renderPanel();return;}S.links=S.links.filter(l=>l.id!==id);const rem=remoteCities();for(const c in S.ixp){if(!S.pops[ixCity(c)]&&!rem.includes(ixCity(c))){delete S.ixp[c];delete S.rs[c];for(const k in S.peers)if(k.endsWith('@'+c))delete S.peers[k];}}UI.sel=null;UI.confirm=null;after();},
  setPref:({kind,id,v})=>{if(!own(PREF,v))return;if(kind!=='t'&&kind!=='p'&&!(isIx(id)&&S.ixp[id]!==undefined))return;if(kind==='t'){const t=S.transit.find(x=>x.id===id);if(t)t.pref=v;}else if(kind==='p'){const x=S.pni.find(y=>y.id===id);if(x)x.pref=v;}else{S.ixPref=S.ixPref||{};S.ixPref[id]=v;}sfx('click');after();},
- setMetric:({id,v})=>{if(!own(MET,v))return;const l=S.links.find(x=>x.id===id);if(!l)return;for(const x of pairLinks(l.a,l.b))x.metric=v;sfx('click');after();},
+ setMetric:({id,v})=>{if(!own(MET,v))return;const l=S.links.find(x=>x.id===id);if(!l)return;l.metric=v;sfx('click');after();},
  goEgress:({city,k})=>{ACT.focusCity({city});UI.tab=k==='t'?'up':k==='l2'?'cust':k==='nni'?'links':'peer';renderPanel();},
  custGo:({id})=>{const b=S.biz.find(x=>x.id===id);if(!b)return;$('dash').hidden=true;ACT.focusCity({city:b.city});UI.tab='cust';renderPanel();},
  listMore:({k})=>{if(k!=='conn'&&k!=='cust')return;UI.listN=UI.listN||{};UI.listN[k]=listN(k)+LIST_PAGE;renderDash();},
@@ -3547,24 +3549,24 @@ function vxcPanel(l){
 }
 function prefCtl(kind,id,cur){cur=cur||'normal';return `<div class="btns"><span class="meta" style="align-self:center">${tr('Egress:')}</span>${Object.keys(PREF).map(v=>btn(PREF[v],'setPref',{kind,id,v},cur===v?'pink sm':'ghost sm')).join('')}</div>`;}
 function trafficSection(l){
-  const rec=R.ef[edgeKey(l)],n=pairLinks(l.a,l.b).length;
+  const key=routeKey(l),rec=!linkDown(l)&&R.ef[key],links=pairLinks(l.a,l.b).filter(x=>!linkDown(x)&&routeKey(x)===key),n=links.length;
   let h=`<section><h3>${tr("What's on this link")}</h3>`;
   if(!rec){return h+`<p class="empty">${tr('No traffic right now.')}</p></section>`;}
   const tot=Object.values(rec.net).reduce((a,b)=>a+b,0)||1;
   const nets=Object.entries(rec.net).sort((a,b)=>b[1]-a[1]);
   const col=id=>id==='junk'?'#FF4D5E':id==='l2vpn'?'#7B61FF':NET[id].col,nm=id=>id==='junk'?tr('DDoS junk'):id==='l2vpn'?tr('L2VPN customers'):NET[id].name;
-  h+=`${n>1?`<p class="note" style="margin-top:0">${tr('Totals for all {n} links between these cities.',{n})}</p>`:''}<div class="stack">${nets.map(([id,v])=>`<i style="width:${v/tot*100}%;background:${col(id)}" title="${esc(nm(id))}"></i>`).join('')}</div>`;
+  h+=`${n>1?`<p class="note" style="margin-top:0">${tr('Totals for {n} links with this routing metric.',{n})}</p>`:''}<div class="stack">${nets.map(([id,v])=>`<i style="width:${v/tot*100}%;background:${col(id)}" title="${esc(nm(id))}"></i>`).join('')}</div>`;
   h+=`<h4 class="sub4">${tr('Content from')}</h4>`+nets.slice(0,6).map(([id,v])=>`<div class="kv"><span><span class="dot" style="background:${col(id)}"></span>${esc(nm(id))}</span><b>${fmtG(v)} · ${pct(v/tot)}</b></div>`).join('');
   const egs=Object.entries(rec.eg).sort((a,b)=>b[1]-a[1]);
   h+=`<h4 class="sub4">${tr('Enters your network at')}</h4>`+egs.slice(0,6).map(([k,v])=>{const d=R.egDesc[k];return `<div class="row"><div class="grow"><div class="nm">${esc(d.lab)}</div><div class="meta">${CITY[d.city].name} · ${fmtG(v)} · ${pct(v/tot)}</div></div>${btn(tr('Open'),'goEgress',{city:d.city,k:d.k},'ghost sm')}</div>`;}).join('');
   const dst=Object.entries(rec.dst).sort((a,b)=>b[1]-a[1]);
   h+=`<h4 class="sub4">${tr('Going to customers in')}</h4>`+dst.slice(0,6).map(([c,v])=>`<div class="kv"><span>${CITY[c].name}</span><b>${fmtG(v)} · ${pct(v/tot)}</b></div>`).join('');
-  const u=tot/pairLinks(l.a,l.b).filter(x=>!linkDown(x)).reduce((a,x)=>a+capOf(x),0);
+  const u=tot/links.reduce((a,x)=>a+capOf(x),0);
   if(u>=0.8&&egs.length){const d=R.egDesc[egs[0][0]];h+=`<p class="why">${tr("Biggest feeder: {egress} in {city}. Set it to “Backup only”, give the customers a closer egress (peering, a cache, local transit), or raise this link's metric.",{egress:esc(d.lab),city:CITY[d.city].name})}</p>`;}
   return h+`</section>`;
 }
 function metricSection(l){const cur=l.metric||'normal';
-  return `<section><h3>${tr('Routing metric')}</h3><p class="lead">${tr('Your routers pick the lowest-cost path. Raise the metric to push traffic onto other paths. “Backup only” keeps it idle unless nothing else works. Applies to every link between these two cities.')}</p><div class="btns">${Object.keys(MET).map(k=>btn(MET[k].l,'setMetric',{id:l.id,v:k},cur===k?'pink sm':'ghost sm')).join('')}</div></section>`;}
+  return `<section><h3>${tr('Routing metric')}</h3><p class="lead">${tr('Your routers pick the lowest-cost path. Raise the metric to push traffic onto other paths. “Backup only” keeps it idle unless nothing else works. Applies only to this link.')}</p><div class="btns">${Object.keys(MET).map(k=>btn(MET[k].l,'setMetric',{id:l.id,v:k},cur===k?'pink sm':'ghost sm')).join('')}</div></section>`;}
 function chinaSection(c){const st=S.cnLic?S.cnLic.state:'none',loss=S.ev.gfw>S.day?0.35:0.2;
   let h=`<section><h3>${tr('Behind the Great Firewall')}</h3><p class="lead">${tr('Mainland China plays by its own rules. {list} and other foreign services are blocked here, so users mostly reach Chinese networks. Traffic crossing the border loses about {pct} to filtering and congestion, unless it rides a premium route: CN-Too transit or a premium cross-border circuit (both sold only in Hong Kong), or a PNI with a Chinese network. Revenue per user is lower here.',{list:CN_BLOCKED.slice(0,4).map(esc).join(', '),pct:pct(loss)})}</p>`;
   if(st==='none')h+=`<p class="lead">${tr('Foreign networks need a local joint venture and an operating license to build infrastructure here.')}</p>${btn(tr('Apply for a license <small>{price} + {mo}/mo · ~45 days</small>',{price:fmt$(CN_LIC),mo:fmt$(CN_JV_MO)}),'applyCn',{},'pink',S.cash<CN_LIC)}`;
@@ -4334,7 +4336,7 @@ function draw(now){
       ctx.fillStyle='#1E2640';rr(lx-tw/2,ly-12,tw,24,12);ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(t,lx,ly+1);}
   }
   // cities
-  UI.feed=null;if(UI.sel&&UI.sel.type==='link'){const sl=S.links.find(x=>x.id===UI.sel.id);const rec=sl&&R.ef[edgeKey(sl)];if(rec){UI.feed=new Set(Object.keys(rec.eg).map(k=>R.egDesc[k].city));UI.dest=new Set(Object.keys(rec.dst));}}
+  UI.feed=null;if(UI.sel&&UI.sel.type==='link'){const sl=S.links.find(x=>x.id===UI.sel.id);const rec=sl&&!linkDown(sl)&&R.ef[routeKey(sl)];if(rec){UI.feed=new Set(Object.keys(rec.eg).map(k=>R.egDesc[k].city));UI.dest=new Set(Object.keys(rec.dst));}}
   // Place labels: your POPs and the selected city first, then others; a label that would overlap moves above its city or hides.
   const vis=[];for(const C of CITIES)for(const k of ks){const [sx,sy]=toS(C.x,C.y,k);if(sx<-60||sx>CW+60||sy<-60||sy>CH+60)continue;vis.push({C,sx,sy});}
   const prio=v=>(UI.sel&&UI.sel.type==='city'&&UI.sel.id===v.C.id?0:S.pops[v.C.id]?1:2);vis.sort((a,b)=>prio(a)-prio(b)||b.C.P-a.C.P);
