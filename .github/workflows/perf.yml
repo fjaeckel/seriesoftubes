@@ -1,0 +1,55 @@
+name: Performance
+
+# Times the PR against its base on a very large network, headless and in Chrome (desktop and a throttled phone),
+# and uploads the tables. A separate workflow
+# (perf-comment.yml) posts it on the PR: runs for pull requests from forks have no write access.
+on:
+  pull_request:
+    paths:
+      - 'site/**'
+      - 'scripts/perf-*.js'
+      - 'tests/fixtures/**'
+      - 'tests/harness.js'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Base version of the game
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git fetch --depth=1 origin "$BASE_SHA"
+          git show FETCH_HEAD:site/index.html > "$RUNNER_TEMP/base.html"
+          echo "BASE_ARG=--base $RUNNER_TEMP/base.html" >> "$GITHUB_ENV"
+      - name: Benchmark
+        # The runner image ships Google Chrome; playwright-core (a dev dependency) drives it, no browser download.
+        run: |
+          export PERF_CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium)"
+          echo "Chrome: $PERF_CHROME ($("$PERF_CHROME" --version))"
+          node scripts/perf-bench.js $BASE_ARG --browser --md perf.md --summary "$GITHUB_STEP_SUMMARY"
+      - name: Remember the PR number
+        if: github.event_name == 'pull_request'
+        env:
+          PR: ${{ github.event.pull_request.number }}
+        run: echo "$PR" > pr-number.txt
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'pull_request'
+        with:
+          name: perf
+          path: |
+            perf.md
+            pr-number.txt
+          retention-days: 7

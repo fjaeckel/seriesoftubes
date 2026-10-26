@@ -1,10 +1,10 @@
 {
   "name": "seriesoftubes",
-  "version": "1.27.0",
-  "description": "A cartoon browser game about building the internet, with real networks, real PoPs and multiplayer teams.",
+  "version": "1.30.0",
+  "description": "A cartoon browser game about building the internet.",
   "private": true,
   "license": "MIT",
-  "author": "Frederic Jung (original game); multiplayer and real-world data fork",
+  "author": "Frederic Jung",
   "homepage": "https://seriesoftub.es/",
   "repository": {
     "type": "git",
@@ -12,10 +12,11 @@
   },
   "scripts": {
     "start": "node server/index.js",
-    "test": "node --test --test-concurrency=1 tests/game.test.js tests/build.test.js tests/persist.test.js tests/services.test.js tests/peering.test.js tests/issues.test.js tests/regions.test.js tests/modes.test.js tests/levels.test.js tests/i18n.test.js tests/world.test.js tests/latency.test.js tests/routes.test.js tests/features.test.js tests/teams.test.js tests/fuzz.test.js tests/server.test.js",
+    "test": "node --test --test-concurrency=1 tests/game.test.js tests/build.test.js tests/persist.test.js tests/services.test.js tests/peering.test.js tests/issues.test.js tests/regions.test.js tests/modes.test.js tests/levels.test.js tests/speed.test.js tests/i18n.test.js tests/routing-reference.test.js tests/perf.test.js tests/world.test.js tests/latency.test.js tests/routes.test.js tests/features.test.js tests/teams.test.js tests/fuzz.test.js tests/server.test.js",
     "build": "bash scripts/build.sh",
     "i18n:check": "node scripts/i18n-check.js",
     "serve": "npm run build && npx --yes serve@14.2.4 _site",
+    "perf": "node scripts/perf-bench.js",
     "world": "node scripts/build-world.js"
   },
   "engines": {
@@ -24,5 +25,8 @@
   "dependencies": {
     "jsdom": "24.1.3",
     "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "playwright-core": "1.56.0"
   }
 }

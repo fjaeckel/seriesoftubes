@@ -53,9 +53,9 @@ test('new routers: the 3.2T main line, side-grades, and 3.2T ports only once unl
   assert.equal(ev('waveShown(6)'), true);
   ev("S.pops.fra.rgen=3;S.pops.fra.routers=1;ACT.upRouter({city:'fra'})");
   assert.equal(ev("RG[S.pops.fra.rgen].n"), 'Absolute Unit 3.2T');
-  ev("const g=RG.findIndex(r=>r.lvl===13);ACT.upRouter({city:'fra',g})");
+  ev("S.day++;const g=RG.findIndex(r=>r.lvl===13);ACT.upRouter({city:'fra',g})");
   assert.equal(ev("RG[S.pops.fra.rgen].n"), 'Absolute Unit 3.2T', 'the Router at the End of the Universe waits for level 13');
-  ev("S.lvl=13;ACT.upRouter({city:'fra',g:RG.findIndex(r=>r.lvl===13)})");
+  ev("S.lvl=13;S.day++;ACT.upRouter({city:'fra',g:RG.findIndex(r=>r.lvl===13)})");
   assert.equal(ev("RG[S.pops.fra.rgen].ports"), 256);
   // every model's numbers make sense for its class
   assert.equal(ev("RG.every(r=>PORT[r.maxP]&&LT[r.maxLT]&&r.pn===PORT[r.maxP].n&&r.lvl>=1&&r.lvl<=LEVELS.length)"), true);

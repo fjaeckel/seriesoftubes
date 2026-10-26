@@ -52,6 +52,8 @@ gh api repos/fjaeckel/seriesoftubes/releases/latest --jq '.tag_name+" "+.publish
    - `package.json` → `"version"`
    - `package-lock.json` → top-level `"version"` and `packages[""].version`
 4. `npm test` once more.
+   Then compare performance with the previous release and mention anything notable to Frederic:
+   `git show v<last>:site/index.html > /tmp/base.html && npm run perf -- --base /tmp/base.html`.
 5. Commit on `main` as Frederic, with no attribution trailers:
    ```bash
    git -c user.name="Frederic Jung" -c user.email="frederic@jc-ix.net" commit \

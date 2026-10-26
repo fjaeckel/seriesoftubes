@@ -93,7 +93,6 @@ module.exports = {
     { id: 'txs', name: 'Telxius', asns: [12956], carriers: [330], type: 't2', pol: 'selective', minIx: 12, minPni: 35, share: 0.015, price: 6, col: '#0066FF' },
     { id: 'ret', name: 'RETN', asns: [9002], carriers: [185], type: 't2', pol: 'selective', minIx: 10, minPni: 30, share: 0.01, price: 5, col: '#F26522' },
     { id: 'lqd', name: 'Liquid Intelligent Technologies', asns: [30844], type: 't2', pol: 'selective', minIx: 8, minPni: 25, share: 0.006, price: 9, col: '#00B2A9' },
-    { id: 'scm', name: 'SEACOM', asns: [37100], type: 't2', pol: 'selective', minIx: 8, minPni: 25, share: 0.006, price: 8, col: '#E4002B' },
     { id: 'anc', name: 'Angola Cables', asns: [37468], type: 't2', pol: 'selective', minIx: 8, minPni: 25, share: 0.004, price: 8, col: '#F5A800' },
     { id: 'kpn', name: 'KPN', asns: [1136], type: 't2', pol: 'selective', minIx: 12, minPni: 35, share: 0.008, price: 6, col: '#009900' },
     { id: 'swc', name: 'Swisscom', asns: [3303], type: 't2', pol: 'selective', minIx: 12, minPni: 35, share: 0.008, price: 8, col: '#E4002B' },

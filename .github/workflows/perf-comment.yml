@@ -1,0 +1,40 @@
+name: Performance comment
+
+# Posts the table from the Performance workflow on its pull request, and updates the same comment on every push.
+# Runs in this repository's context with write access, so it only reads the uploaded text and never runs PR code.
+on:
+  workflow_run:
+    workflows: [Performance]
+    types: [completed]
+
+permissions:
+  pull-requests: write
+  issues: write
+  actions: read
+
+jobs:
+  comment:
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: perf
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Post or update the comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          pr=$(tr -cd '0-9' < pr-number.txt)
+          [ -n "$pr" ] || { echo "no PR number"; exit 0; }
+          # Trust the number only if that PR's head is the commit that was benchmarked.
+          head=$(gh api "repos/$REPO/pulls/$pr" --jq .head.sha)
+          [ "$head" = "$HEAD_SHA" ] || { echo "PR #$pr has moved on since this run"; exit 0; }
+          { echo '<!-- perf-bench -->'; head -c 60000 perf.md; } > body.md
+          id=$(gh api "repos/$REPO/issues/$pr/comments" --paginate --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- perf-bench -->"))) | .id' | head -n 1)
+          if [ -n "$id" ]; then gh api -X PATCH "repos/$REPO/issues/comments/$id" -F body=@body.md > /dev/null
+          else gh api -X POST "repos/$REPO/issues/$pr/comments" -F body=@body.md > /dev/null; fi
+          echo "Posted to #$pr"

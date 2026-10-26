@@ -43,21 +43,11 @@ takes hours, not minutes.
   mishaps, DDoS, cooling failures, Red Sea and Baltic cable cuts, sanctions and
   sovereign internet drills.
 
-## Credits
-
-This is a fork of **[Series of Tubes](https://github.com/fjaeckel/seriesoftubes)** by Frederic Jung
-([fjaeckel](https://github.com/fjaeckel)), playable at **[seriesoftub.es](https://seriesoftub.es)**. The game, its
-simulation, art and humour are theirs; this version adds real-world data, multiplayer, the route viewer and a few
-other things (see the changelog). Go play and support the original.
-
 ## This is fiction
 
-Series of Tubes is a game. Network, exchange and cable names are real because that is what makes the
-map worth playing, but they are used only to identify real-world organisations. There is no affiliation
-with, or endorsement by, any of them, and everything that happens to them in the game (prices, outages,
-disputes, peering decisions) is invented. Footprints come from public PeeringDB records and may be
-incomplete or out of date. Trademarks belong to their owners. The same notice is on the title screen and
-at the bottom of every server-rendered page.
+Series of Tubes is a game. Every company is a pun and no real company names are used. Exchange and
+network footprints are loosely modelled on public PeeringDB records, but everything that happens in the game
+(prices, outages, disputes, peering decisions) is invented.
 
 ## Learn how it really works
 
@@ -79,75 +69,7 @@ open site/index.html          # or: npm run serve
 
 Progress is saved in your browser's local storage.
 
-**With a team.** Run the server (one command, no database to install) and everybody opens the same address:
-
-```sh
-npm ci
-npm start                     # http://127.0.0.1:8080
-HOST=0.0.0.0 npm start        # reachable from your LAN
-docker compose up -d          # or with Docker, data in a volume
-```
-
-Create an account, start a network (pick any home city and **any AS number** that is free), and share the
-AS number and invite code with your team. Everyone on the team operates the same network at the same time:
-you see each other's changes, share the clock and chat. The simulation runs **on the server** (the game's own
-code, headless), so nobody can cheat by editing their browser, and a weak device only has to draw snapshots.
-
-| Setting | Default | |
-| --- | --- | --- |
-| `PORT`, `HOST` | `8080`, `127.0.0.1` | where to listen |
-| `DATA_DIR` | `./data` | accounts, networks and saved games (plain JSON) |
-| `SERVER_CODE` | none | a code people must enter to sign up |
-| `REGISTRATION` | `open` | `closed` stops sign-ups entirely |
-| `MAX_GAMES` | `25` | networks simulated at once; idle ones are saved and unloaded |
-| `IDLE_PAUSE` | `1` | the clock only runs while someone is connected; `0` keeps every loaded network ticking |
-| `ALLOW_ORIGIN` | none | CORS origins (comma separated, or `*`) if the game page is hosted elsewhere |
-| `TRUST_PROXY` | off | set to `1` behind a reverse proxy so rate limits see the real client address |
-
-Passwords are hashed with scrypt, sessions are random bearer tokens stored hashed, and sign-ups and log-ins are rate
-limited. There is no email, so there is no password reset: the
-server owner can delete `db.json` entries. Put it behind HTTPS if it leaves your LAN.
-
-The hosted game at seriesoftub.es is static, so its Multiplayer button needs a server address (Menu, then
-Multiplayer, then *Server address*) that allows its origin with `ALLOW_ORIGIN`.
-
-**On a weak device.** The main page is served Brotli/gzip-compressed (about a third of its size), only the
-big cities are drawn until you zoom in, and the multiplayer simulation runs on the server, so the browser only
-draws snapshots. Hide the small cities entirely with the 🏙 button, find any city with 🔍 (or press `/`).
-
-**The route viewer.** Menu or NOC, then *Routes*: your AS, upstreams, peers (with how you peer: route server,
-bilateral, PNI, cache), the prefixes you originate with RPKI status, the best AS path to every network, and the IPv4
-transfer market where you can buy and sell /24 blocks.
-
-**Your own datacenter.** The Infra tab of any POP lets you build one: pick the tier, the number of racks and the kW
-per rack. Customers rent by the kW and pay for cross-connects, you pay for power at the local price and for staff.
-How full it gets depends on the city and on how many carriers are in the building. There is no limit on routers per
-POP either.
-
-## The real world in the game
-
-Cities carry the short codes operators really write in router names: IATA codes from OpenFlights, with the
-industry's own where they differ (msk, tyo, sel, iad), so a Moscow router is `cr1.msk`, not `cr1.mos`.
-
-* **5,000+ cities.** Every metro with 100k+ people (GeoNames) and every metro that hosts a registered
-  interconnection facility or exchange (PeeringDB). Pick any of them as your home city.
-* **Real footprints.** A network has a PoP in a metro when PeeringDB lists a facility of its organisation there,
-  or it has a port on an exchange there. Transit is only sold where a transit network has a PoP, so in a
-  city nobody serves you have to haul a wave to the nearest carrier hotel. A few networks publish no facilities at all
-  (Lumen, for one); their footprint is estimated from their home countries and flagged as such.
-* **Real exchanges** with their real members, and challengers that undercut the incumbent.
-* **Free AS numbers.** Any number from 1 to 4294967294 except the reserved ones, the real networks in the game
-  and (on a server) the ones other teams hold.
-* **Realistic latency.** Light covers about 204 km per millisecond in glass, but every link gets its own route
-  inflation, equipment adds a little at each end, carriers reroute now and then, loaded links queue and every
-  traceroute probe jitters. It is a function of the link, your AS and the day, so a save replays identically.
-
-Regenerate the data with `npm run world` (downloads GeoNames and PeeringDB into `.cache/`, needs `curl` and
-`unzip`). It rewrites the block between the `__WORLD_BEGIN__` markers in `site/index.html`; traffic shares,
-prices and peering policies are game design and live in the game and in `scripts/data/networks.js`.
-
-
-The game speaks English and Italian. It follows your browser's language the first time
+The game speaks English, Italian, Portuguese and French. It follows your browser's language the first time
 and remembers the one you pick under Settings or on the title screen.
 
 ## Development
@@ -163,6 +85,8 @@ npm run i18n:check  # lists text missing from (or stale in) the translations
 site/                  everything that is deployed
   index.html           the whole game (HTML, CSS and JS in one file, plus the generated world data)
   i18n/it.js           Italian translation, loaded only when the game runs in Italian
+  i18n/pt.js           Portuguese (Brazil) translation, loaded only when the game runs in Portuguese
+  i18n/fr.js           French translation, loaded only when the game runs in French
   images/og-image.png  social preview (1200×630)
   favicon.*, icon-*    favicons, app icons, manifest
   robots.txt, sitemap.xml, llms.txt, 404.html, CNAME
@@ -276,6 +200,12 @@ sites:
   - domain: seriesoftub.es
     origins: ["https://seriesoftub.es", "https://www.seriesoftub.es"]
 ```
+
+## Community
+
+Come hang out in the **[Series of Tubes Signal group](https://signal.group/#CjQKIJwvEt5fYt1pvw7J2pV664CyUyGJXmAJLV8ia3nUdAD7EhA_FzdxflEzkNmcvDHdVgLQ)**. Share screenshots of your
+network, report bugs, suggest cities, and argue about peering policy with other players.
+There are fewer backhoes there than in the real thing.
 
 ## Contributing
 

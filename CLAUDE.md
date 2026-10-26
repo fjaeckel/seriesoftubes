@@ -17,6 +17,8 @@ npm test                     # node:test + jsdom, all suites, must stay green
 node scripts/i18n-check.js   # must report "0 missing, 0 unused, 0 broken"
 npm run build                # builds _site/ (stamps version, bakes release notes)
 npm run serve                # build and serve locally
+npm run perf -- --base /tmp/base.html   # big-network benchmark vs another version (see `performance`)
+npm run perf -- --base /tmp/base.html --browser   # the same, also in real Chromium (desktop and phone)
 ```
 
 To play during development, open `site/index.html` directly or run `npm run serve`.
@@ -46,6 +48,10 @@ To play during development, open `site/index.html` directly or run `npm run serv
   and bottom sheets. Check `isPhone()` layouts, not just desktop.
 - **Saves are sacred.** Old saves must keep loading. Any new state field gets a default
   in `newGame()` and a check/repair in `sanitize()`; renamed fields are migrated there.
+- **Performance is always demonstrated.** Every change to `site/` is measured on the big-network
+  fixture against `main` (`npm run perf -- --base /tmp/base.html`, see the `performance` skill),
+  and the numbers go into the PR and into your summary. Every PR also gets them as a comment from
+  CI. Anything slower needs a reason or a fix.
 - **Tests come with features.** Add or extend a test in `tests/` for every feature or
   fix. Tests are seeded, so they must not depend on luck.
 - **CHANGELOG style:** plain English, written for players, one bullet per change,

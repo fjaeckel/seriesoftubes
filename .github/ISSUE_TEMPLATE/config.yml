@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Chat with other players on Signal
+    url: https://signal.group/#CjQKIJwvEt5fYt1pvw7J2pV664CyUyGJXmAJLV8ia3nUdAD7EhA_FzdxflEzkNmcvDHdVgLQ
+    about: Questions, screenshots, ideas you're not sure about yet, or just peering-policy flame wars. Bugs and concrete feature requests still go here as issues.
   - name: How the internet really works
     url: https://tkjaer.github.io/how-the-internet-works/
     about: Curious how the real thing works? This interactive map explains it far better than any game.

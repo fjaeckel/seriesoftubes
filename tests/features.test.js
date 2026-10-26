@@ -5,19 +5,19 @@ const { load } = require('./harness');
 const base = "ACT.start({});S.cash=1e12;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'ntt',tier:1});ACT.buyTransit({city:'fra',net:'cog',tier:1});compute()";
 const boot = () => { const g = load(); g.ev(base); return g; };
 
-test('RouteScript: prepend and lowpref move traffic between two transits, and the looking glass shows why', () => {
+test('RouteScript: prepend and avoid move traffic between two transits, and the looking glass shows why', () => {
   const { ev, errors } = boot();
   const used = () => JSON.parse(ev('JSON.stringify(S.transit.map(t=>[t.net,R.useT[t.id]||0]))'));
   const before = Object.fromEntries(used());
   assert.ok(before.ntt + before.cog > 1);
-  ev("S.te={on:true,script:'prepend transit cogentle x3'};compute()");
+  ev("S.te={on:true,script:'prepend transit cogentle 3'};compute()");
   assert.equal(ev("teParse(S.te.script).errors.length"), 0);
   const after = Object.fromEntries(used());
   assert.ok(after.cog <= before.cog && after.ntt >= before.ntt, 'prepending cogentle pushes load to ntt');
   const lg = ev("lookingGlass('cmc').text");
   assert.match(lg, /714 714 714 714/, 'three prepends show up in the path');
   assert.match(lg, /best/);
-  ev("S.te.script='lowpref transit ntt';compute()");
+  ev("S.te.script='avoid transit ntt';compute()");
   assert.equal(ev("teParse(S.te.script).errors.length"), 0);
   assert.match(ev("lookingGlass('cmc').text"), /localpref 10\b/);
   assert.deepEqual(errors, []);

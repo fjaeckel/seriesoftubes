@@ -2,7 +2,7 @@
    The page always comes from the network when there is one, so a new release shows up on the
    next visit; everything else is served from the cache and refreshed in the background. */
 const CACHE = 'sot-__VERSION__';
-const CORE = ['/', '/index.html', '/site.webmanifest', '/favicon.svg', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png', '/i18n/it.js?v=__VERSION__'];
+const CORE = ['/', '/index.html', '/site.webmanifest', '/favicon.svg', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png', '/i18n/it.js?v=__VERSION__', '/i18n/pt.js?v=__VERSION__', '/i18n/fr.js?v=__VERSION__'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));

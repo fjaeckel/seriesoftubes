@@ -177,6 +177,44 @@ test('RouteScript: parses safely, reports errors helpfully, and changes routing'
   assert.deepEqual(errors, []);
 });
 
+test('RouteScript BGP: local-pref and prepending move transit, protected customers go first, the optimizer drafts a script', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'})");
+  ev("ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.buyTransit({city:'fra',net:'lvl',tier:1});ACT.buyTE();for(let i=0;i<30;i++)dayTick();compute()");
+  const use = n => ev(`R.useT[S.transit.find(t=>t.net==='${n}').id]||0`);
+  const p = JSON.parse(ev("JSON.stringify(teParse('prefer transit level tree\\navoid transit cogentle\\nprepend transit cogentle 2\\nprotect customers\\nprepend transit cogentle 9'))"));
+  assert.equal(p.n, 4);
+  assert.match(p.errors[0], /prepend 1 to 3/);
+  assert.equal(p.up.lvl, 'prefer');
+  assert.equal(p.prep.cog, 2);
+  ev("S.te.script='prefer transit level tree';compute()");
+  assert.ok(use('cog') < 1e-6 && use('lvl') > 0, 'local-pref sends everything to the preferred upstream');
+  const tot = use('lvl');
+  ev("S.te.script='prepend transit level tree 2';compute()");
+  assert.ok(use('lvl') < tot * 0.5 && use('cog') > 0, 'prepending moves traffic off, but not all of it');
+  assert.ok(Math.abs(use('lvl') + use('cog') - tot) < 0.5, 'nothing is lost');
+  // Congest the city, then protect business customers: they keep their service, home users take the hit.
+  ev("S.biz.push({id:uid(),city:'fra',city2:null,reqs:[],name:'Test DIA',type:'dia',bw:5,rate:600,mood:100,since:0});S.pops.fra.bb.d*=40;S.te.script='';compute()");
+  const plain = ev("bizSf(S.biz[S.biz.length-1])");
+  assert.ok(plain < 0.95, `the city is congested (${plain})`);
+  ev("S.te.script='protect customers';compute()");
+  assert.ok(ev("bizSf(S.biz[S.biz.length-1])") >= 0.95, 'protected customer stays happy (95%+ served)');
+  assert.ok(ev("sfOf(R,'fra')") <= plain + 0.01, 'the city as a whole is not better off');
+  const draft = ev('teOptimize()');
+  assert.match(draft, /spill at 85%/);
+  assert.match(draft, /protect customers/);
+  assert.match(draft, /prefer transit cogentle/);
+  assert.match(draft, /peers at DE-KICKS/);
+  assert.equal(ev('teParse(teOptimize()).errors.length'), 0, 'the draft is a valid script');
+  // With room to spare, protecting customers would only cost a second routing pass, so it is not suggested.
+  ev("S.pops.fra.bb.d=5;S.te.script='';compute()");
+  assert.ok(ev("sfOf(R,'fra')") >= 0.95);
+  assert.doesNotMatch(ev('teOptimize()'), /protect customers/);
+  ev("S.te.script='';ACT.teEdit();ACT.teOpt()");
+  assert.match(ev("document.getElementById('teSrc').value"), /Suggested by the optimizer/);
+  assert.deepEqual(errors, []);
+});
+
 test('#27 new networks get a random name, and "Another one" never repeats it', () => {
   const { ev, errors } = load();
   assert.ok(ev("NETWORK_NAMES.every(n=>n.length<=24)&&new Set(NETWORK_NAMES).size===NETWORK_NAMES.length"));
@@ -353,4 +391,20 @@ test('DKNOG in Copenhagen is on the conference calendar', () => {
   assert.equal(ev("S.conf&&S.conf.reg"), 'EU', 'the glow helps with European peers');
   assert.match(ev("S.log.map(e=>e.t).join(' | ')"), /just one more drink/, 'and the evening went as DKNOG evenings go');
   assert.deepEqual(errors, []);
+});
+
+test('the Signal group is linked from the title screen, the menu and How to play, in every language', () => {
+  for (const lang of ['en', 'it', 'pt', 'fr']) {
+    const { ev, errors } = load(lang === 'en' ? {} : { lang });
+    const links = (setup) => ev(`(()=>{${setup};return [...document.querySelectorAll('#modal a[href^="https://signal.group/#"]')].map(a=>a.target+'|'+a.rel+'|'+a.textContent.trim()).join('\\n');})()`);
+    const title = links('showTitle()');
+    assert.match(title, /^_blank\|noopener\|/, `${lang}: title footer links the group in a new tab`);
+    ev('ACT.start({})');
+    for (const [where, setup] of [['menu', 'ACT.menu()'], ['help', 'showHelp()']]) {
+      const l = links(setup);
+      assert.equal(l.split('\n').length, 1, `${lang}: one chat card in ${where}`);
+      if (lang !== 'en') assert.doesNotMatch(l, /Join the NOC chat/, `${lang}: ${where} card is translated`);
+    }
+    assert.deepEqual(errors, []);
+  }
 });

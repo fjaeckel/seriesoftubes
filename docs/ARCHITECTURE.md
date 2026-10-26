@@ -33,10 +33,13 @@ Other files:
 | Path | What it is |
 | --- | --- |
 | `site/i18n/it.js` | Italian dictionary: English text → Italian, loaded when the language is `it` |
+| `site/i18n/pt.js` | Portuguese (Brazil) dictionary: English text → Portuguese, loaded when the language is `pt` |
+| `site/i18n/fr.js` | French dictionary: English text → French, loaded when the language is `fr` |
 | `site/sw.js` | Service worker: network-first for pages, stale-while-revalidate for assets. Cache name is stamped with the version |
 | `site/site.webmanifest`, icons | PWA install metadata |
 | `scripts/build.sh` | Copies `site/` to `_site/`, stamps `__VERSION__`/`__BUILD_DATE__`, bakes release notes, writes `version.json` |
 | `scripts/release-notes.js` | Extracts a version's CHANGELOG bullets |
+| `scripts/perf-bench.js`, `scripts/perf-browser.js`, `scripts/perf-stats.js`, `scripts/perf-fixture.js` | Big-network benchmark, base vs head, headless and in Chromium as a desktop and a throttled phone, with a significance test per row (posted on every PR by `perf.yml` + `perf-comment.yml`), and the generator of its save, `tests/fixtures/big-network.json` |
 | `scripts/i18n-check.js` | Compares every `tr`/`trn`/`N_` literal and `data-i18n` text with each dictionary |
 | `tests/harness.js` | Loads the page in jsdom with a seeded `Math.random` and a fake canvas |
 | `.github/workflows/ci.yml` | Tests and build on every push and PR |
@@ -90,6 +93,10 @@ never freezes the game.
 5. Layer-2 customers (L2VPN, SD-WAN, waves) are carved out of link capacity first.
 6. Totals costs (`R.cost`) and revenue (`R.rev`) per month.
 
+It runs every day and after every action, so it is built for big networks: the graph works on city
+indices (`CIDX`), each exit is asked once per network what it can reach, and `R.ef` (what crosses each
+link) is only put together for a link when something reads it.
+
 Served share per city (`sfOf`) drives eyeball revenue and customer mood.
 
 ## Actions and rendering
@@ -102,6 +109,8 @@ Served share per city (`sfOf`) drives eyeball revenue and customer mood.
 - `renderLeft()` draws the left tabs (deals, NOC, customers…), `renderPanel()` the
   selection panel (city, link, network). On phones these become bottom sheets
   controlled by `renderTabbar()`.
+- These panels and the dashboard are rebuilt as HTML every tick and written with `morph()`, which
+  patches only what changed. Buttons whose action changed are replaced, so taps stay safe (#44).
 - The map is a canvas drawn every frame by `draw()`. Zoomed out (`lodFar()`) it uses
   a simplified style; parallel waves are grouped by `linkGroups()`.
 

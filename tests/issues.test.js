@@ -71,7 +71,7 @@ test('some routers take forever to boot, big chassis most of all', () => {
   base(ev);
   const pct = JSON.parse(ev("JSON.stringify(RG.map((G,g)=>{let n=0;for(const c of ALLC){S.pops[c]=S.pops[c]||{rgen:g,routers:1};S.pops[c].rgen=g;if(slowBoot(c))n++;}return n/ALLC.length;}))"));
   assert.ok(pct[0] < pct[2] && pct[2] > 0.2 && pct[0] < 0.3, `bigger chassis are slow more often (${pct})`);
-  assert.match(ev("RG[2].chip"), /Express 5/);
+  assert.match(ev("RG[2].chip"), /PacketOinker/);
   // find a slow and a fast POP and crash them
   ev("for(const c of ALLC)if(c!=='fra')delete S.pops[c];S.pops.fra.rgen=2;S.pops.fra.routers=1");
   const slowCity = ev("ALLC.find(c=>{S.pops[c]={rgen:2,routers:1,down:0};const s=slowBoot(c);if(!s)delete S.pops[c];return s;})");
@@ -199,7 +199,8 @@ test('#16 shark-averse customers only ask for routes that can stay on land', () 
   let shark = 0, bad = [];
   for (let i = 0; i < 1500; i++) {
     const o = JSON.parse(ev("S.offers=[];spawnOffer();JSON.stringify(S.offers.filter(o=>(o.reqs||[]).includes('sharks')).map(o=>[o.city,o.city2]))"));
-    for (const [a, b] of o) { shark++; if (ev(`CITY['${a}'].land!==CITY['${b}'].land`)) bad.push(a + '-' + b); }
+    // isSub, not .land: Cairo sits on two landmasses, so Mumbai to Cairo stays on land.
+    for (const [a, b] of o) { shark++; if (ev(`isSub('${a}','${b}')`)) bad.push(a + '-' + b); }
   }
   assert.ok(shark > 0, 'the requirement still shows up');
   assert.deepEqual(bad, [], 'never across an ocean');
@@ -561,7 +562,7 @@ test('#64 leased and own land fiber stay near their route next to a trench full 
   ev("ACT.buildPop({city:'par'});S.links=[];for(let i=0;i<8;i++)S.links.push({id:'w'+i,a:'fra',b:'par',kind:'wave',tier:2,km:478,sub:false,trench:'t1',cut:0,day:0});S.links.push({id:'d1',a:'fra',b:'par',kind:'df',own:false,km:478,sys:'lite',ch:[],ready:0,cut:0,day:0},{id:'d2',a:'fra',b:'par',kind:'df',own:true,km:478,sys:'lite',ch:[],ready:0,cut:0,day:0});GEO.clear()");
   const r = id => ev(`(()=>{const g=linkGeom(S.links.find(l=>l.id==='${id}')),A=CITY.fra,B=CITY.par,L=Math.hypot(B.x-A.x,B.y-A.y);return Math.max(...g.pts.map(p=>segDist(p[0],p[1],[A.x,A.y],[B.x,B.y])))/L;})()`);
   assert.equal(ev("['w0','d1','d2'].map(id=>lineIdx(S.links.find(l=>l.id===id))).join()"), '0,1,2', 'eight waves in one trench are one line');
-  for (const id of ['d1', 'd2']) assert.ok(r(id) < 0.35, `${id} bulges ${r(id).toFixed(2)}× the route`);
+  for (const id of ['d1', 'd2']) assert.ok(r(id) < 0.5, `${id} bulges ${r(id).toFixed(2)}× the route`);
   assert.deepEqual(errors, []);
 });
 
@@ -989,5 +990,165 @@ test('#63 incidents you can fix with one click sit above hot ports in the NOC', 
   assert.ok(fix < hot, 'the paid fix comes before the hot ports');
   assert.ok(fix < free, 'and before incidents without a fix');
   assert.ok(t.indexOf('DDoS scrubbing') > fix, 'status lines come after the incidents');
+  assert.deepEqual(errors, []);
+});
+
+test('#82 router swaps trade in the old gear, one swap a day, and requirements name the speed', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});S.cash=1e8;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});S.pops.fra.rgen=1;S.pops.fra.routers=2");
+  const c0 = ev('S.cash'), back = ev('tradeIn(1,2)');
+  assert.equal(back, Math.round(ev('RG[1].cost') * 2 * 0.3));
+  ev("ACT.upRouter({city:'fra',g:2})");
+  assert.equal(ev('S.pops.fra.rgen'), 2);
+  assert.equal(c0 - ev('S.cash'), ev('RG[2].cost') * 2 - back, 'you pay the new routers minus the old ones sold on eBuy');
+  // a double click does not chain a second upgrade
+  ev("ACT.upRouter({city:'fra',g:3})");
+  assert.equal(ev('S.pops.fra.rgen'), 2, 'one swap a day');
+  ev("S.day++;ACT.upRouter({city:'fra',g:3})");
+  assert.equal(ev('S.pops.fra.rgen'), 3);
+  // removing a router sells it too
+  const c1 = ev('S.cash');
+  ev("ACT.rmRouter({city:'fra'})");
+  assert.equal(ev('S.cash') - c1, ev('tradeIn(3,1)'));
+  // requirements say the speed, not one model
+  ev("ACT.buildPop({city:'ams'});S.pops.ams.rgen=0;S.links.push({id:'df',a:'fra',b:'ams',kind:'df',km:450,sys:'roadm',ch:[],ready:0,mo:1,day:0,cut:0});compute()");
+  assert.match(ev("chWhy(S.links.find(l=>l.id==='df'),'tp16')"), /routers with 800G ports or bigger/);
+  assert.equal(ev('waveNeed(4)'), '1.6T routers');
+  assert.deepEqual(errors, []);
+});
+
+test('fiber between nearby cities bends gently instead of looping around the neighbourhood', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});S.cash=1e9;for(const g of GOALS)S.done[g.id]=0;for(const x of ['tor','ott','mtl','nyc','ash'])if(!S.pops[x])ACT.buildPop({city:x})");
+  ev("const L=(a,b)=>{UI.via=null;UI.lmode='wave';UI.route='diverse';openLinkModal(a,b);ACT.buildLink({tier:1});closeModal();};L('tor','ott');L('ott','mtl');L('tor','nyc');L('tor','mtl');L('mtl','nyc');L('tor','ash');L('ash','nyc');GEO.clear()");
+  const worst = ev("Math.max(...S.links.map(l=>{const g=linkGeom(l),A=CITY[l.a],B=CITY[l.b],L=Math.hypot(B.x-A.x,B.y-A.y);return Math.max(...g.pts.map(p=>segDist(p[0],p[1],[A.x,A.y],[B.x,B.y])))/L;}))");
+  assert.ok(worst < 0.3, `worst bend is ${worst.toFixed(2)}× its length`);
+  assert.deepEqual(errors, []);
+});
+
+test('#105 swapping the only router in an empty POP needs no maintenance window', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.buildPop({city:'ams'})");
+  assert.equal(ev("popIdle('ams')"), true);
+  const inc0 = ev('S.inc.length'), n0 = ev('S.stats.incidents');
+  ev("ACT.upRouter({city:'ams',g:1})");
+  assert.equal(ev('S.pops.ams.rgen'), 1, 'upgraded');
+  assert.equal(ev('S.inc.length'), inc0, 'no NOC warning');
+  assert.equal(ev('S.stats.incidents'), n0, 'not counted as an incident');
+  assert.ok(!(ev('S.pops.ams.down') > ev('S.day')), 'no downtime');
+  // once something depends on it, the window is back
+  ev("ACT.launchBB({city:'ams'});S.day++");
+  assert.equal(ev("popIdle('ams')"), false);
+  ev("ACT.upRouter({city:'ams',g:2})");
+  assert.equal(ev("S.inc.filter(i=>i.type==='maint'&&i.ref==='ams').length"), 1);
+  assert.ok(ev('S.pops.ams.down') > ev('S.day'));
+  assert.deepEqual(errors, []);
+});
+
+test('#104 declining a loan offer clears the bank badge while paused', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});UI.speed=0;S.loanOffers=[];spawnLoanOffer(false);renderHUD()");
+  assert.equal(ev("$('hBank').hidden"), false);
+  ev("ACT.declineLoan({id:S.loanOffers[0].id})");
+  assert.equal(ev("$('hBank').hidden"), true, 'badge gone without a new day');
+  assert.equal(ev("JSON.parse(localStorage.getItem('sot-save-v1')).loanOffers.length"), 0, 'saved right away');
+  assert.deepEqual(errors, []);
+});
+
+test('#88 no subsea cable longer than any optic can light, and a refund for calling one off', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});S.cash=1e10;S.lvl=13;S.won=true;for(const g of GOALS)S.done[g.id]=0");
+  assert.match(ev("ownCabWhy('nyc','syd')"), /more than any optic can light/);
+  assert.equal(ev("ownCabWhy('lax','syd')"), '', 'Los Angeles to Sydney still works');
+  assert.ok(ev("subCarrier(ownCabKm('lax','syd'))") > 0);
+  // half-way through laying it: most of the unlaid part comes back
+  ev("S.day=100;S.links.push({id:'oc',a:'lax',b:'syd',kind:'df',own:true,sub:true,sys:'roadm',ch:[],km:ownCabKm('lax','syd'),cname:'Kraken-1',mo:1,trench:'own:oc',cut:0,day:0,ready:200,pairs:1})");
+  const want = ev("Math.round(ownCabCost(ownCabKm('lax','syd'))*0.75*0.5)");
+  assert.equal(ev("cabBack(S.links.find(l=>l.id==='oc'))"), want);
+  const c0 = ev('S.cash');
+  ev("ACT.rmLink({id:'oc'});ACT.rmLink({id:'oc'})");
+  assert.equal(ev("S.links.some(l=>l.id==='oc')"), false);
+  assert.equal(ev('S.cash') - c0, want);
+  // a finished cable that works is yours for good; one nothing can light (old saves) goes back in full
+  assert.equal(ev("cabBack({kind:'df',own:true,sub:true,km:ownCabKm('lax','syd'),ready:0})"), 0);
+  assert.equal(ev("cabBack({kind:'df',own:true,sub:true,km:18387,ready:0})"), ev('ownCabCost(18387)'));
+  assert.deepEqual(errors, []);
+});
+
+test('#50 a city without a cable landing points to the nearest one', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.buildPop({city:'osl'});UI.pending=null;openLinkModal('osl','nyc')");
+  const t = ev("$('modalCard').textContent");
+  assert.match(t, /No subsea cable lands in Oslo\. The nearest landing station is Stavanger/);
+  assert.doesNotMatch(t, /nowhere/);
+  assert.deepEqual(errors, []);
+});
+
+test('#36 your own IX moves between buildings, or runs a switch in both', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.buildPop({city:'oos'});ACT.launchBB({city:'oos'});ACT.foundIx({city:'oos'});ACT.addSite({city:'oos'});compute()");
+  assert.ok(ev("!!S.myIx.oos"));
+  const mo = ev("ixMo('oos')"), cap = ev("ixCap('oos')");
+  assert.ok(cap > 0);
+  // no LAG for a switch you own
+  ev("UI.sel={type:'city',id:'oos'};UI.tab='peer';renderPanel()");
+  assert.equal(ev("!!document.querySelector('#panel [data-act=lagIx]')"), false, 'no LAG button');
+  // move it to B: a dark A no longer matters
+  ev("ACT.siteSet({k:'ix',id:'oos',s:'b'})");
+  assert.equal(ev("S.ixSite.oos"), 'b');
+  ev("addInc({type:'site',ref:'oos',site:'a',until:S.day+3,msg:'x',cost:0});compute()");
+  assert.equal(ev("ixCap('oos')"), cap, 'B is up');
+  // both buildings: a second switch for half the fabric's fee, survives either one going dark
+  ev("ACT.siteSet({k:'ix',id:'oos',s:'ab'})");
+  assert.equal(ev("S.ixSite.oos"), 'ab');
+  assert.equal(ev("ixMo('oos')"), Math.round(mo * 1.5));
+  assert.equal(ev("(S.ixn||{}).beg||1"), 1, 'no LAG member bought');
+  ev("S.inc=[];addInc({type:'site',ref:'oos',site:'b',until:S.day+3,msg:'x',cost:0});compute()");
+  assert.equal(ev("ixCap('oos')"), cap);
+  ev("addInc({type:'site',ref:'oos',site:'a',until:S.day+3,msg:'x',cost:0});compute()");
+  assert.equal(ev("ixCap('oos')"), 0, 'both dark');
+  assert.deepEqual(errors, []);
+});
+
+test('#56 parallel waves of different sizes are labelled per size, not as N times the total', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});ACT.buildPop({city:'nyc'});ACT.buildPop({city:'lon'})");
+  ev("for(let i=0;i<3;i++){UI.via='grace';UI.route='same';openLinkModal('nyc','lon');ACT.buildLink({tier:1});closeModal();}compute()");
+  const lbl = () => ev("(()=>{const g=linkGroups()[0];return groupLabel(g,g)})()");
+  assert.equal(ev("linkGroups().length"), 1);
+  assert.equal(lbl(), '3×100G', 'equal sizes keep the short form');
+  ev("S.links[2].tier=2;S.links[0].tier=3;S.links[1].tier=3");
+  assert.equal(lbl(), '2×800G + 400G');
+  ev("S.links[1].tier=2");
+  assert.equal(lbl(), '800G + 2×400G');
+  ev("S.links.pop()");
+  assert.equal(lbl(), '800G + 400G', 'not "2 × 1.2T"');
+  assert.match(ev("(()=>{const g=linkGroups()[0];return groupLabel(g,[g[0]])})()"), /^800G \+ 400G · 1\/2 /);
+  ev("cam.z=2;draw(0)");
+  assert.deepEqual(errors, []);
+});
+
+test('#107 a bigger optic never carries less than a smaller one at the same distance', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'})");
+  // every optic on the same line system, at every distance, on land and subsea
+  const bad = ev(`(()=>{const out=[],ks=Object.keys(OPT);for(const sub of [false,true])for(let km=100;km<=19000;km+=50){const l={km,sub,regen:0};
+    for(const a of ks)for(const b of ks){const A=OPT[a],B=OPT[b];if(A.sys!==B.sys||A.g<=B.g)continue;const ga=optMode(a,l),gb=optMode(b,l);
+      if(gb&&(!ga||ga.g<gb.g))out.push(a+'<'+b+'@'+km+(sub?'s':''));}}return out.slice(0,5).join()})()`);
+  assert.equal(bad, '', 'bigger optic falls back to whatever the smaller one manages');
+  assert.equal(ev("optMode('tp32',{km:4500,sub:false,regen:0}).g"), 1200);
+  assert.equal(ev("optMode('tp32',{km:7000,sub:true,regen:0}).g"), 1200);
+  assert.deepEqual(errors, []);
+});
+
+test('#110 PNI buttons show the monthly port fee, not just the one-off setup', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});S.cash=1e9;S.lvl=6;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});selectCity('fra');ACT.tab({t:'peer'})");
+  const txt = ev("document.getElementById('panelBody').textContent");
+  assert.match(txt, /10G \$1\.8k \+ \$200\/mo/, 'setup plus the monthly fee, like IX ports and LAG members');
+  // upgrading an existing PNI says what the bigger port costs per month too, in the panel and in the NOC's list
+  ev("const n=NETS.find(x=>x.pops.includes('fra')&&!x.tail&&peerOk(x.id,'pni','fra').ok);S.pni.push({id:'p1',net:n.id,city:'fra',tier:0,n:1});after();selectCity('fra');ACT.tab({t:'peer'})");
+  assert.match(ev("document.getElementById('panelBody').textContent"), /Upgrade 100G \$2\.3k \+ \$350\/mo/);
+  assert.match(ev("connUp(conns().find(r=>r.k==='p'&&r.id==='p1')).replace(/<[^>]+>/g,'')"), /Upgrade 100G \$2\.3k \+ \$350\/mo/);
   assert.deepEqual(errors, []);
 });

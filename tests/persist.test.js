@@ -92,3 +92,13 @@ test('in-app release notes stay short and link to the full notes on GitHub', () 
   assert.equal(ev(`slimNote('${'x'.repeat(300)}')`).length <= 140, true);
   assert.deepEqual(errors, []);
 });
+
+test('the big-network benchmark save loads cleanly and routes traffic', () => {
+  const fs = require('node:fs'), path = require('node:path');
+  const save = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
+  const { ev, errors } = load();
+  ev(`S=migrate(JSON.parse(${JSON.stringify(save)}));UI.started=true;compute();renderAll()`);
+  assert.ok(ev('Object.keys(S.pops).length') >= 100 && ev('S.pni.length') >= 900 && ev('S.caches.length') >= 800, 'still a big network');
+  assert.ok(ev('R.served') > 10000, 'and it carries traffic');
+  assert.deepEqual(errors, []);
+});

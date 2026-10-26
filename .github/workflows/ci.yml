@@ -21,3 +21,15 @@ jobs:
       - run: npm test
       - name: Build (not deployed — only releases deploy)
         run: npm run build
+
+  translations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Translation coverage
+        run: node scripts/i18n-check.js --summary "$GITHUB_STEP_SUMMARY"

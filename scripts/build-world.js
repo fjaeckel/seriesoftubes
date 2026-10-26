@@ -180,6 +180,10 @@ const round = (v, d = 2) => +v.toFixed(d);
 
 function bogonize(world) {
   for (const [id, n] of Object.entries(world.nets)) if (BOGON.nets[id]) Object.assign(n, BOGON.nets[id]);
+  // The cartoon world keeps the footprints its authors drew, on top of whatever PeeringDB says, so the game's own scenarios still work.
+  const cityIds = new Set([...world.cities.map((c) => c[0]), ...Object.keys(world.base)]);
+  const union = (csv, extra) => [...new Set([...(csv ? csv.split(',') : []), ...extra.filter((c) => cityIds.has(c))])].join(',');
+  for (const [id, n] of Object.entries(world.nets)) { const u = BOGON.up[id]; if (!u) continue; n.pops = union(n.pops, u.pops || []); n.ix = union(n.ix, Array.isArray(u.ix) ? u.ix : []); }
   for (const a of world.added) if (BOGON.nets[a.id]) Object.assign(a, BOGON.nets[a.id]);
   const label = new Map(world.cities.map((c) => [c[0], c[1]]));
   for (const [m, list] of Object.entries(world.ix)) list.forEach((x, i) => {
@@ -187,7 +191,7 @@ function bogonize(world) {
     x[0] = (i ? BOGON.xix[id] : BOGON.cityIx[m]) || (label.get(m) || m.toUpperCase()) + '-IX' + (i ? ' ' + (i + 1) : '');
   });
   for (const c of world.cities) { c[6] = world.ix[c[0]] ? world.ix[c[0]][0][0] : ''; c[7] = ''; }
-  for (const [m, b] of Object.entries(world.base)) { if (world.ix[m]) b.ix = world.ix[m][0][0]; b.dc = BOGON.dc[m] || ''; }
+  for (const [m, b] of Object.entries(world.base)) { b.ix = world.ix[m] ? world.ix[m][0][0] : BOGON.cityIx[m] || ''; if (!b.ix) delete b.ix; b.dc = BOGON.dc[m] || ''; }
 }
 
 /* ---------- short codes: what operators actually write in router names ---------- */
