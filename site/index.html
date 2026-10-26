@@ -4506,7 +4506,7 @@ function endPtr(e){
 // A cancelled pointer (scroll takeover, palm rejection, system gesture) is not a tap or a drop.
 function cancelPtr(e){ptrs.delete(e.pointerId);if(ptrs.size)return;UI.drag=null;UI.snap=null;cv.classList.remove('linking');cv.style.cursor='grab';renderHint();}
 cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',cancelPtr);
-const ZMIN=0.35,ZMAX=6;
+const ZMIN=0.35,ZMAX=12; // Close cities need enough space between their fixed-size tap targets (#126).
 function zoomAt(mx,my,f){const wx=cam.x+(mx-CW/2)/cam.z,wy=cam.y+(my-CH/2)/cam.z;cam.z=clamp(cam.z*f,ZMIN,ZMAX);cam.x=wx-(mx-CW/2)/cam.z;cam.y=wy-(my-CH/2)/cam.z;wrapCam();}
 cv.addEventListener('wheel',e=>{e.preventDefault();zoomAt(e.clientX,e.clientY,Math.exp(-e.deltaY*0.0015));},{passive:false});
 addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]'))return;if(e.ctrlKey||e.metaKey||e.altKey)return;if(e.code==='Space'&&e.target.closest&&e.target.closest('button,a'))return;if(e.code==='Space'){e.preventDefault();UI.speed=UI.speed?0:1;renderHUD();}if(e.key==='0')ACT.speed({v:0.5});if(e.key==='1')ACT.speed({v:1});if(e.key==='2')ACT.speed({v:2});if(e.key==='3')ACT.speed({v:4});if(e.key==='4')ACT.speed({v:8});if(e.key==='Escape'&&!$('bankBox').hidden){$('bankBox').hidden=true;return;}if(e.key==='Escape'&&!$('dash').hidden){$('dash').hidden=true;return;}if(e.key==='Escape'){if(!$('modal').hidden){if(S&&UI.started&&!S.lost)closeModal();}else{UI.sel=null;renderPanel();}}});

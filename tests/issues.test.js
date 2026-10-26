@@ -2,6 +2,62 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
 
+for (const [screen, width, height, gesture] of [['desktop', 1280, 800, 'wheel'], ['phone portrait', 360, 800, 'pinch'], ['phone landscape', 640, 360, 'pinch']]) {
+  test(`#126 ${gesture} zoom exposes the Porto Alegre–Florianópolis link on ${screen}`, () => {
+    const { ev, dom, errors } = load();
+    const w = dom.window;
+    w.innerWidth = width; w.innerHeight = height;
+    ev("resize();UI.pitched=true;UI.startCity='poa';ACT.start({});S.cash=1e8;S.lvl=4;ACT.buildPop({city:'fln'});UI.via=null;openLinkModal('poa','fln');ACT.buildLink({tier:0});closeModal();UI.sel=null;renderPanel();const g=linkGeom(S.links[0]),m=polyAt(g.pts,g.cum,.5);cam.x=m[0];cam.y=m[1];cam.z=6");
+    const canvas = w.document.getElementById('map'), x = width / 2, y = height / 2;
+    canvas.setPointerCapture = () => {};
+    const pointer = (type, id, px, py) => {
+      const e = new w.MouseEvent(type, { clientX: px, clientY: py, bubbles: true });
+      Object.defineProperty(e, 'pointerId', { value: id });
+      canvas.dispatchEvent(e);
+    };
+    const tap = (px = x, py = y) => { pointer('pointerdown', 1, px, py); pointer('pointerup', 1, px, py); };
+    tap();
+    assert.equal(ev('UI.sel.type'), 'city', 'the old zoom limit lets a city intercept the link tap');
+    ev('ACT.closePanel()');
+    if (gesture === 'wheel') {
+      canvas.dispatchEvent(new w.WheelEvent('wheel', { clientX: x, clientY: y, deltaY: -1000, cancelable: true }));
+    } else {
+      pointer('pointerdown', 1, x - 25, y);
+      pointer('pointerdown', 2, x + 25, y);
+      pointer('pointermove', 1, x - 75, y);
+      pointer('pointermove', 2, x + 75, y);
+      pointer('pointerup', 1, x - 75, y);
+      pointer('pointerup', 2, x + 75, y);
+      assert.equal(ev('UI.drag'), null, 'ending the pinch leaves the map ready for a tap');
+    }
+    assert.equal(ev('cam.z'), 12, 'both gestures reach the same higher limit');
+    const mid = JSON.parse(ev('JSON.stringify((()=>{const g=linkGeom(S.links[0]);return toS(...polyAt(g.pts,g.cum,.5));})())'));
+    assert.equal(ev(`hitCity(${mid[0]},${mid[1]})`), null, 'the link has room outside every city tap target');
+    tap(...mid);
+    assert.equal(ev('UI.sel.type'), 'link');
+    assert.equal(ev('UI.sel.id'), ev('S.links[0].id'));
+    assert.match(w.document.getElementById('panelBody').textContent, /Porto Alegre/);
+    assert.match(w.document.getElementById('panelBody').textContent, /Florianópolis/);
+    ev('draw(0)');
+    assert.deepEqual(errors, []);
+    w.close();
+  });
+}
+
+test('#126 wheel zoom keeps the point under the cursor fixed at both limits', () => {
+  const { ev, dom, errors } = load();
+  ev('cam.x=1000;cam.y=500;cam.z=6');
+  const point = () => JSON.parse(ev('JSON.stringify([cam.x+40/cam.z,cam.y+20/cam.z])'));
+  const before = point(), canvas = dom.window.document.getElementById('map');
+  for (const [deltaY, zoom] of [[-10000, 12], [-10000, 12], [10000, 0.35], [10000, 0.35]]) {
+    canvas.dispatchEvent(new dom.window.WheelEvent('wheel', { clientX: ev('CW/2+40'), clientY: ev('CH/2+20'), deltaY, cancelable: true }));
+    assert.equal(ev('cam.z'), zoom);
+    point().forEach((n, i) => assert.ok(Math.abs(n - before[i]) < 1e-9, 'zoom stays anchored without camera drift'));
+  }
+  assert.deepEqual(errors, []);
+  dom.window.close();
+});
+
 function base(ev) {
   ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'})");
 }

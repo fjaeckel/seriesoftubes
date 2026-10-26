@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- You can zoom in twice as far to select short links between crowded cities, such as Porto Alegre and Florianópolis (#126).
+
 ## [1.31.0] — 2026-10-26
 
 - Series of Tubes now speaks French. The game follows your browser's language the first time, and you can switch to Français under Settings or on the title screen.
