@@ -1328,3 +1328,23 @@ test('#51 a dark fiber shows what is rented out, and spare capacity can be liste
   assert.equal(ev('S.offers[0].broker'), true);
   assert.deepEqual(errors, []);
 });
+
+test('#126 you can zoom in far enough, and pick a short link between two close cities', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({city:'sao'});S.cash=1e9;for(const g of GOALS)S.done[g.id]=0;for(const c of ['poa','fln'])ACT.buildPop({city:c});UI.pending=null;UI.via=null;UI.lmode='wave';UI.route='main';openLinkModal('poa','fln');ACT.buildLink({tier:1});closeModal()");
+  assert.ok(ev('ZMAX') >= 16);
+  const id = ev("S.links.find(l=>l.a==='poa'||l.b==='poa').id");
+  // the middle of the drawn link, on screen, fully zoomed in on it
+  const at = (z) => JSON.parse(ev(`(()=>{const l=S.links.find(x=>x.id==='${id}'),g=linkGeom(l,pairIdx().get(edgeKey(l))),p=g.pts[Math.floor(g.pts.length/2)];
+    cam.x=p[0];cam.y=p[1];cam.z=1;zoomAt(CW/2,CH/2,${z});const [sx,sy]=toS(p[0],p[1],visibleKs()[0]);const c=toS(CITY.poa.x,CITY.poa.y,visibleKs()[0]);return JSON.stringify({sx,sy,cx:c[0],cy:c[1],z:cam.z});})()`));
+  const m = at(100);
+  assert.equal(m.z, ev('ZMAX'), 'zoom stops at the new maximum');
+  assert.equal(ev(`pickCity(${m.sx},${m.sy})`), null, 'the middle of the link is not grabbed by a city');
+  assert.equal(ev(`hitLink(${m.sx},${m.sy})`), id);
+  assert.equal(ev(`pickCity(${m.cx},${m.cy-4}).id`), 'poa', 'tapping the city icon still picks the city');
+  // even at the old maximum, a click on the link now picks the link where it is not under a city icon
+  const o = at(6);
+  assert.ok(Math.abs(o.z - 6) < 1e-9);
+  assert.equal(ev(`pickCity(${o.sx},${o.sy})`), null);
+  assert.deepEqual(errors, []);
+});

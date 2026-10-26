@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 - Decommissioning a link keeps the inspector open on another link between the same cities, so you can manage parallel links without reopening the panel (#119).
+- You can zoom in much further on the map, and a short link between two close cities can now be picked (#126). Dense regions like southern Brazil spread out properly when you zoom in, and tapping right on a link next to a city opens the link instead of the city.
 
 ## [1.31.0] — 2026-10-26
 
