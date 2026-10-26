@@ -90,6 +90,64 @@ test('conferences: register, attend, and selective peers get easier for a while'
   assert.deepEqual(errors, []);
 });
 
+function conferenceTier1(ev) {
+  // An existing Tier 1 save with courtesy routes for networks added by an update.
+  ev("S.won=true;S.transit=[];S.pni=t1Need().map(n=>({id:n.id,net:n.id,city:'fra',tier:0}));S.grace={nets:NETS.map(n=>n.id),until:S.day+360,told:true};compute()");
+}
+
+test('#101 conference reminders follow current Tier 1 status, not the permanent badge', () => {
+  const { ev, errors } = load({ seed: 101 });
+  ev("ACT.start({});S.cash=1e9;for(const g of GOALS)S.done[g.id]=0;S.day=confDay(CONFS.find(c=>c.n==='DENOG'),0)-30;window.__notices=[];const originalToast=toast;toast=(h,...a)=>{window.__notices.push(h);return originalToast(h,...a)};confTick(S.day)");
+  const reminders = () => ev("window.__notices.filter(h=>h.includes('Register in the Deals tab.')).length");
+  assert.ok(reminders() > 0, 'a growing network still hears about conferences');
+  conferenceTier1(ev);
+  assert.equal(ev('tierLabel()'), 'Tier 1');
+  ev('window.__notices=[];confTick(S.day)');
+  assert.equal(reminders(), 0, 'current Tier 1 networks get no registration advertisements');
+  ev("ACT.buyTransit({city:'fra',net:'cog',tier:0});window.__notices=[];confTick(S.day)");
+  assert.equal(ev('S.won'), true, 'the achievement stays earned');
+  assert.equal(ev('isTier1()'), false);
+  assert.ok(reminders() > 0, 'buying transit again restores reminders');
+  ev('S.transit=[];S.grace=null;compute();window.__notices=[];confTick(S.day)');
+  assert.equal(ev('isTier1()'), false);
+  assert.ok(reminders() > 0, 'lost reach also restores reminders');
+  conferenceTier1(ev);
+  ev('window.__notices=[];confTick(S.day)');
+  assert.equal(reminders(), 0, 'regaining Tier 1 suppresses reminders again');
+  assert.deepEqual(errors, []);
+});
+
+test('#101 Tier 1 players can still register, attend and receive conference rewards', () => {
+  const { ev, dom, errors } = load({ seed: 101 });
+  ev("ACT.start({});S.cash=1e9;for(const g of GOALS)S.done[g.id]=0;S.day=confDay(CONFS.find(c=>c.n==='DENOG'),0)-30");
+  conferenceTier1(ev);
+  assert.equal(ev('tierLabel()'), 'Tier 1');
+  assert.equal(ev("confBoost('nfx')"), 1);
+  dom.window.innerWidth = 360;
+  ev("ACT.leftTab({t:'deals'})");
+  const key = ev("upcomingConfs(30).find(c=>c.n==='DENOG').key");
+  const attend = [...dom.window.document.querySelectorAll('[data-act=confGo]')].find(b => JSON.parse(b.dataset.args).key === key);
+  assert.ok(attend, 'manual registration remains in the phone Deals panel');
+  const cash = ev('S.cash');
+  attend.click();
+  assert.equal(ev(`S.confReg[${JSON.stringify(key)}]`), true);
+  assert.equal(ev('S.cash'), cash-ev('CONF_COST'));
+  assert.equal(ev('tierLabel()'), 'Tier 1');
+  assert.match(dom.window.document.querySelector('#left').textContent, /Registered/);
+  ev("window.__notices=[];const originalToast=toast;toast=(h,...a)=>{window.__notices.push(h);return originalToast(h,...a)};S.day=confDay(CONFS.find(c=>c.n==='DENOG'),0);__reseed(1);confTick(S.day)");
+  assert.equal(ev('S.stats.confs'), 1);
+  assert.equal(ev('S.conf.until'), ev('S.day+CONF_DAYS'));
+  assert.equal(ev("confBoost('nfx')"), 0.5, 'the regional peering boost is unchanged');
+  assert.equal(ev('S.cash'), cash-ev('CONF_COST')+5000, 'the seeded raffle still pays out');
+  assert.match(ev("window.__notices.join(' ')"), /DENOG in Frankfurt.*won the raffle/);
+  assert.doesNotMatch(ev("window.__notices.join(' ')"), /Register in the Deals tab/);
+  ev('checkGoals()');
+  assert.ok(ev('S.ach.hallway!==undefined'), 'attendance still earns the conference badge');
+  ev('S.day=S.conf.until');
+  assert.equal(ev("confBoost('nfx')"), 1, 'the boost still expires normally');
+  assert.deepEqual(errors, []);
+});
+
 test('the guided tutorial walks through the first steps and can be skipped', () => {
   const { ev, dom, errors } = load();
   dom.window.__TUBES_TUT__ = true;
