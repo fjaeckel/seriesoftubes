@@ -132,7 +132,8 @@ test('half speed and deeper zoom', () => {
   ev("ACT.speed({v:7})");
   assert.equal(ev("UI.speed"), 0.5, 'bogus speeds are ignored');
   ev("cam.z=1;for(let i=0;i<40;i++)zoomAt(100,100,1.2)");
-  assert.equal(ev("cam.z"), 6);
+  assert.equal(ev("cam.z"), ev("ZMAX"), 'zooming in stops at the maximum');
+  assert.ok(ev("ZMAX") >= 16, 'deep enough for dense regions (#126)');
   assert.deepEqual(errors, []);
 });
 
