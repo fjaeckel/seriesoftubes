@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- You can zoom in much further on the map, and a short link between two close cities can now be picked (#126). Dense regions like southern Brazil spread out properly when you zoom in, and tapping right on a link next to a city opens the link instead of the city.
 - Hire construction crews in one batch to bring your own fiber below 30 days remaining, or as far as your cash allows (#103). The link panel shows how many crews you can hire, their total price and the time left afterward.
 
 ## [1.31.0] — 2026-10-26
