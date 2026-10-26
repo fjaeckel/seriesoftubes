@@ -2,6 +2,59 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
 
+for (const [width, height] of [[1280, 800], [360, 800], [640, 360]]) {
+  test(`#119 parallel-link inspector stays open after each confirmed removal at ${width}x${height}`, () => {
+    const { ev, dom, errors } = load();
+    dom.window.innerWidth = width;
+    dom.window.innerHeight = height;
+    ev('UI.pitched=true');
+    ev("ACT.start({});S.cash=1e9;for(const g of GOALS)S.done[g.id]=0;ACT.buildPop({city:'ams'});ACT.buildPop({city:'par'});for(let i=0;i<3;i++){UI.via=null;UI.route='same';openLinkModal(i===1?'ams':'fra',i===1?'fra':'ams');ACT.buildLink({tier:1});closeModal();}UI.via=null;openLinkModal('fra','par');ACT.buildLink({tier:1});closeModal();selectLink(S.links[0].id)");
+    assert.equal(ev("pairLinks('fra','ams').length"), 3);
+    const remove = () => dom.window.document.querySelector('#panel [data-act="rmLink"]');
+    for (let left = 3; left > 0; left--) {
+      const id = ev('UI.sel.id');
+      const cash = ev('S.cash');
+      remove().click();
+      assert.equal(ev('UI.confirm'), id);
+      assert.equal(ev("pairLinks('fra','ams').length"), left, 'confirmation does not remove a link');
+      remove().click();
+      assert.equal(ev("pairLinks('fra','ams').length"), left - 1);
+      assert.equal(ev('UI.confirm'), null, 'the next link requires a fresh confirmation');
+      assert.equal(ev('S.cash'), cash, 'wave decommissioning keeps existing economics');
+      if (left > 1) {
+        assert.equal(ev("pairLinks('fra','ams').some(l=>l.id===UI.sel.id)"), true);
+        assert.notEqual(ev('UI.sel.id'), id);
+        assert.equal(dom.window.document.getElementById('panel').hidden, false);
+        assert.equal(JSON.parse(remove().dataset.args).id, ev('UI.sel.id'));
+        assert.equal(remove().textContent, 'Decommission link');
+      } else {
+        assert.equal(ev('UI.sel'), null);
+        assert.equal(dom.window.document.getElementById('panel').hidden, true);
+      }
+    }
+    assert.equal(ev("pairLinks('fra','par').length"), 1, 'an unrelated route is untouched');
+    assert.deepEqual(errors, []);
+  });
+}
+
+test('#119 removal can select a parallel dark fiber and ignores stale link actions', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.buildPop({city:'ams'});UI.via=null;openLinkModal('fra','ams');ACT.buildLink({tier:1});closeModal();UI.dfSrc='build';UI.dfSys='lite';openLinkModal('ams','fra');ACT.orderDf();closeModal();selectLink(S.links.find(l=>l.kind==='wave').id)");
+  assert.equal(ev("pairLinks('fra','ams').length"), 2);
+  ev("const gone=UI.sel.id;ACT.rmLink({id:gone});ACT.rmLink({id:gone})");
+  assert.equal(ev("S.links.find(l=>l.id===UI.sel.id).kind"), 'df');
+  const state = ev('JSON.stringify(S)');
+  const selected = ev('UI.sel.id');
+  ev("ACT.rmLink({id:'missing'});ACT.rmLink({id:'missing'})");
+  assert.equal(ev('JSON.stringify(S)'), state);
+  assert.equal(ev('UI.sel.id'), selected);
+  assert.equal(ev('UI.confirm'), null);
+  ev("selectCity('ams');ACT.rmLink({id:S.links[0].id});ACT.rmLink({id:S.links[0].id})");
+  assert.equal(ev('UI.sel.type'), 'city', 'a different selection is preserved');
+  assert.equal(ev('UI.sel.id'), 'ams');
+  assert.deepEqual(errors, []);
+});
+
 function base(ev) {
   ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'})");
 }

@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Decommissioning a link keeps the inspector open on another link between the same cities, so you can manage parallel links without reopening the panel (#119).
+
 ## [1.31.0] — 2026-10-26
 
 - Series of Tubes now speaks French. The game follows your browser's language the first time, and you can switch to Français under Settings or on the title screen.
