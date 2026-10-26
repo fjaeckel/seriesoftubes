@@ -6,7 +6,9 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Changing a link's routing preference now affects only that link, so a backup can stay idle while another link between the same cities carries traffic (#122).
 - You can zoom in much further on the map, and a short link between two close cities can now be picked (#126). Dense regions like southern Brazil spread out properly when you zoom in, and tapping right on a link next to a city opens the link instead of the city.
+
 ## [1.31.0] — 2026-10-26
 
 - Series of Tubes now speaks French. The game follows your browser's language the first time, and you can switch to Français under Settings or on the title screen.
