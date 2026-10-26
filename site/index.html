@@ -2936,10 +2936,9 @@ function staffLog(who,text){const s=stf();s.log.unshift({d:S.day,who,text});if(s
 function staffCost(){return people().reduce((a,p)=>a+p.sal,0);}
 function nocCover(){const n=people('noc').length+people('srnoc').length;return n>=4?1:n/4;}
 function connectedWithout(skip){const ps=Object.keys(S.pops);if(ps.length<2)return true;const adj={};for(const l of S.links){if(l===skip||l.kind==='vxc'||linkDown(l))continue;(adj[l.a]=adj[l.a]||[]).push(l.b);(adj[l.b]=adj[l.b]||[]).push(l.a);}
-  const comps=(ex)=>{const seen=new Set();let n=0;for(const p of ps){if(seen.has(p))continue;n++;const q=[p];seen.add(p);while(q.length){const u=q.pop();for(const v of adj[u]||[])if(!seen.has(v)){seen.add(v);q.push(v);}}}return n;};
+  const comps=g=>{const seen=new Set();let n=0;for(const p of ps){if(seen.has(p))continue;n++;const q=[p];seen.add(p);while(q.length){const u=q.pop();for(const v of g[u]||[])if(!seen.has(v)){seen.add(v);q.push(v);}}}return n;};
   const all={};for(const l of S.links){if(l.kind==='vxc'||linkDown(l))continue;(all[l.a]=all[l.a]||[]).push(l.b);(all[l.b]=all[l.b]||[]).push(l.a);}
-  const base=(()=>{const seen=new Set();let n=0;for(const p of ps){if(seen.has(p))continue;n++;const q=[p];seen.add(p);while(q.length){const u=q.pop();for(const v of all[u]||[])if(!seen.has(v)){seen.add(v);q.push(v);}}}return n;})();
-  return comps()<=base;}
+  return comps(adj)<=comps(all);}
 /* What each role would do right now. A proposal is plain data so it can be shown, saved in the inbox and run later. */
 const BRAINS={
  sales(){const out=[];
