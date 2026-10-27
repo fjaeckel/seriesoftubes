@@ -1,6 +1,15 @@
 /* Decommissioning POPs. Customers that touch a decommissioned city, or ride a removed link, are let go
    with an early-termination penalty of three months of their contract. */
 const DECOM_MONTHS=3;
+function decomIneffModal(){const bad=UI.ineff||[],ids=UI.ineffSel||new Set();
+  const rows=bad.map(l=>{const id=l.id,cost=l.mo||0,rev=(R2.linkRev||{})[id]||0,net=rev-cost;return `<label class="row" style="cursor:pointer"><input type="checkbox" data-act="decomIneffToggle" data-args='${esc(JSON.stringify({id}))}' ${ids.has(id)?'checked':''}><div class="grow"><div class="nm">${CITY[l.a].name} ⇄ ${CITY[l.b].name} ${l.sub?'<span class="tag st">SUB</span>':''}</div><div class="meta">${tr('common.price_mo',{price:fmt$(cost)})}/mo · ${tr('link_panels.earn_n_vs_cost_mo',{earned:fmt$(rev),cost:fmt$(cost)})} · <span style="color:${net<0?'var(--bad)':'var(--eye)'}">${net>=0?'+':''}${fmt$(net)}/mo</span></div></div></label>`;}).join('');
+  const totalMo=bad.reduce((a,l)=>a+(l.mo||0),0),totalRev=bad.reduce((a,l)=>a+(R2.linkRev||{})[l.id]||0,0);
+  openModal(`<div style="display:flex;align-items:center"><h2 style="font-size:24px">${tr('links.decommission_inefficient_links')}</h2><button class="x" data-act="closeModal" aria-label="${tr('common.close')}">×</button></div>
+  <p class="lead" style="margin-top:6px">${tr('links.links_losing_money_are_shown')}</p>
+  ${bad.length?`<div class="kv"><span>${tr('common.total_links')}</span><b>${bad.length}</b></div><div class="kv"><span>${tr('links.total_cost_mo')}</span><b>${fmt$(totalMo)}</b></div><div class="kv"><span>${tr('links.estimated_revenue')}</span><b>${fmt$(totalRev)}</b></div><div class="kv"><span>${tr('links.net_loss')}</span><b style="color:var(--bad)">${fmt$(totalRev-totalMo)}</b></div>`:''}
+  ${rows}
+  <div class="btns" style="margin-top:10px">${btn(bad.length?trn('decommission.decommission_n_selected',ids.length):tr('links.pick_links_to_decommission'),'decomIneffGo',{},'red',!ids.size)}${btn(tr('common.cancel'),'closeModal',{},'ghost')}</div>`);}
+
 function decomImpact(cities){const set=new Set(cities),links=S.links.filter(l=>set.has(l.a)||set.has(l.b)),lids=new Set(links.map(l=>l.id));
   const biz=S.biz.filter(b=>bCities(b).some(c=>set.has(c))||(b.link&&lids.has(b.link)));
   const pen=b=>Math.max(2000,Math.round(b.fee?b.fee*0.5:b.bw*b.rate*DECOM_MONTHS));

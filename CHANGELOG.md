@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Neptoon Internet: a new Australian T2 eyeball carrier with IXs in Sydney, Melbourne, Brisbane and Perth (#154).
+- Coax Spectre-um's US reach extends: 4 new cities (Miami, Ashburn, Seattle, Toronto) and 3 new domestic US cables — a coast-to-coast ring, an Ashburn hub line, and a Seattle–Ashburn express route (#155).
+- Reunion Island: a new Indian Ocean city with a cable from Durban and a local IX (#152).
+- Conference notifications stop when you reach Tier 1: the toast pop-ups about upcoming conferences disappear once you no longer need to register (#101).
+- Decommission inefficient links: a button in the NOC overview identifies waves and VXC circuits that cost more than they earn, lets you review them as a batch, and removes them in one go (#102).
+
 ## [1.34.1] — 2026-10-27
 
 - The game starts faster in Italian, Portuguese and French: their translations are about 40% smaller to download.

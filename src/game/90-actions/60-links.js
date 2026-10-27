@@ -30,4 +30,7 @@ Object.assign(ACT,{
  setPref:({kind,id,v})=>{if(!own(PREF,v))return;if(kind!=='t'&&kind!=='p'&&!(isIx(id)&&S.ixp[id]!==undefined))return;if(kind==='t'){const t=S.transit.find(x=>x.id===id);if(t)t.pref=v;}else if(kind==='p'){const x=S.pni.find(y=>y.id===id);if(x)x.pref=v;}else{S.ixPref=S.ixPref||{};S.ixPref[id]=v;}sfx('click');after();},
  setMetric:({id,v})=>{if(!own(MET,v))return;const l=S.links.find(x=>x.id===id);if(!l)return;for(const x of pairLinks(l.a,l.b))x.metric=v;sfx('click');after();},
  goEgress:({city,k})=>{ACT.focusCity({city});UI.tab=k==='t'?'up':k==='l2'?'cust':k==='nni'?'links':'peer';renderPanel();},
+ decomIneffOpen:()=>{const bad=S.links.filter(l=>{if(l.kind!=='wave'&&l.kind!=='vxc')return false;if(l.sub)return false;const rev=(R2.linkRev||{})[l.id]||0;return rev<(l.mo||0)*0.5;}).sort((a,b)=>((R2.linkRev||{})[a.id]-(a.mo||0))-((R2.linkRev||{})[b.id]-(b.mo||0)));UI.ineff=bad.slice(0,20);decomIneffModal();},
+ decomIneffToggle:({id})=>{UI.ineffSel=UI.ineffSel||new Set();if(UI.ineffSel.has(id))UI.ineffSel.delete(id);else UI.ineffSel.add(id);decomIneffModal();},
+ decomIneffGo:()=>{const ids=UI.ineffSel;if(!ids?.size)return;closeModal();UI.ineffSel=null;let saved=0;for(const l of S.links){if(!ids.has(l.id))continue;const back=cabBack(l);saved+=back;S.links=S.links.filter(x=>x.id!==l.id);}S.cash+=saved;UI.sel=null;sfx('alert');after();toast(tr('links.decommissioned_n_inefficient_links_saved_mo',{n:ids.size,saved:fmt$(saved)}),'good');},
 });

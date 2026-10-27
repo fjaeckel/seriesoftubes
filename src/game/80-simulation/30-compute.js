@@ -264,5 +264,13 @@ function compute(){
   C.revshare=(S.loans||[]).reduce((a,l)=>a+(BANKS[l.bank].equity||l.bal>0?l.share||0:0),0)*(V.eyeballs+V.business+V.ix);
   R2.costMo=Object.values(C).reduce((a,b)=>a+b,0);
   R2.revMo=V.eyeballs+V.business+V.ix;
+  // per-link approximate profitability: share of total revenue proportional to load, minus monthly cost
+  R2.linkRev={};
+  for(const l of S.links){
+    if(l.kind!=='wave'&&l.kind!=='vxc'){R2.linkRev[l.id]=0;continue;}
+    const ld=R.load[l.id]||0,cap=LT[l.tier].g;
+    const share=cap>0?ld/cap:0;
+    R2.linkRev[l.id]=Math.round((V.eyeballs+V.business+V.ix)*share);
+  }
   R=R2;UI.hotMap=hotByCity();
 }
