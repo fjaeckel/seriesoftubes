@@ -31,6 +31,7 @@ function weekly(){const {y,w}=isoWeek(new Date());let r=(y*100+w)*2654435761>>>0
 const scnRule=k=>!!(S&&S.scn&&S.scn.rules&&S.scn.rules[k]);
 function scnHof(){try{return JSON.parse(localStorage.getItem('sot-scn')||'{}')||{};}catch(e){return {};}}
 function beginGame(nm,city,o={}){if(needPitch()&&!UI.pitched){UI.pendGame=[nm,city,o];openModal(pitchHtml(true));return;}newGame(nm,city);S.mode=o.mode||'normal';
+  if(o.asn)S.asn=o.asn;
   if(S.mode==='sandbox'){S.cash=1e9;S.lvl=LEVELS.length;S.nextFail=1e9;S.nextEvent=1e9;}
   if(o.scn){const sc=o.scn;S.scn={id:sc.id,rules:sc.rules||{},days:sc.days,name:sc.n||tr('features.weekly_challenge_key',{key:sc.key}),key:sc.key||null,mods:(sc.mods||[]).map(m=>m.id)};S.rng=(o.seed||hstr(sc.id))|0;S.mode='scenario';S.asn=200000+Math.floor(Math.random()*15000);
     if(sc.cash)S.cash=sc.cash;if(sc.setup)sc.setup();

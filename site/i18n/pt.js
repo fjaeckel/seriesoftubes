@@ -2859,6 +2859,8 @@
 "title.continue_name_date":"Continuar {name} · {date}",
 "title.cookieless_stats_no_tracking":"Estatísticas sem cookies, sem rastreamento",
 "title.crossroads_of_europe_de_kicks_ix":"Encruzilhada da Europa. IX DE-KICKS, transit barato.",
+"title.custom_asn":"ASN personalizada (opcional)",
+"title.custom_asn_hint":"Insira uma ASN privada de 4 bytes (64512-65534), ou deixe em branco para geração automática.",
 "title.hard_mode_everything_overseas_costs":"Modo difícil. Tudo que vai para fora custa uma fortuna, os locais pagam caro, principalmente para a Nearly Broadband Network, e todo o resto quer te matar.",
 "title.huge_eyeball_market_pricey":"Mercado enorme de eyeballs. Vizinhos caros.",
 "title.name_your_network":"Dê um nome à sua rede",

@@ -2860,6 +2860,8 @@
 "title.continue_name_date":"Continue {name} · {date}",
 "title.cookieless_stats_no_tracking":"Cookieless stats, no tracking",
 "title.crossroads_of_europe_de_kicks_ix":"Crossroads of Europe. DE-KICKS IX, cheap transit.",
+"title.custom_asn":"Custom ASN (optional)",
+"title.custom_asn_hint":"Enter a 4-byte private ASN (64512–65534), or leave blank for auto-generated.",
 "title.hard_mode_everything_overseas_costs":"Hard mode. Everything overseas costs a fortune, locals pay top dollar, mostly to the Nearly Broadband Network, and everything else is trying to kill you.",
 "title.huge_eyeball_market_pricey":"Huge eyeball market. Pricey neighbours.",
 "title.name_your_network":"Name your network",
