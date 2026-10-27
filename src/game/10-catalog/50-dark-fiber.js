@@ -37,3 +37,4 @@ const vxcMo=(km,sub,t)=>Math.round((150+km*0.12)*VXC[t].m*(sub?2:1));
 const MET={prefer:{l:tr('common.prefer'),f:0.5},normal:{l:tr('common.normal'),f:1},avoid:{l:tr('common.avoid'),f:4},backup:{l:tr('common.backup_only'),f:60}};
 const PREF={high:tr('common.prefer'),normal:tr('common.normal'),low:tr('common.backup_only')};
 const edgeKey=l=>l.a<l.b?l.a+'|'+l.b:l.b+'|'+l.a;
+const routeKey=l=>edgeKey(l)+'|'+(l.metric||'normal');

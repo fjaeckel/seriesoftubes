@@ -34,13 +34,13 @@ test('what crosses each link adds up, and is put together when it is looked at',
   assert.ok(ev("Object.keys(R.ef).length") > 5, 'traffic on many links');
   // every push adds the same amount to one egress, one network and one source city
   const bad = ev(`Object.keys(R.ef).filter(k=>{const r=R.ef[k],s=o=>Object.values(o).reduce((a,b)=>a+b,0),n=s(r.net);
-    const load=S.links.filter(l=>edgeKey(l)===k).reduce((a,l)=>a+(R.load[l.id]||0),0);
+    const load=S.links.filter(l=>routeKey(l)===k).reduce((a,l)=>a+(R.load[l.id]||0),0);
     return Math.abs(n-s(r.eg))>1e-6*(1+n)||Math.abs(n-s(r.dst))>1e-6*(1+n)||Math.abs(n-load)>1e-6*(1+n);}).join()`);
   assert.equal(bad, '', 'per network, per egress, per source city and the link load agree');
   assert.equal(ev("const k=Object.keys(R.ef)[0];R.ef[k]===R.ef[k]"), true, 'the same record every time');
   assert.equal(ev("JSON.parse(JSON.stringify(R)).ef[Object.keys(R.ef)[0]].net!==undefined"), true);
   // the link panel reads it
-  ev("const k=Object.keys(R.ef)[0],l=S.links.find(x=>edgeKey(x)===k);selectLink(l.id)");
+  ev("const k=Object.keys(R.ef)[0],l=S.links.find(x=>routeKey(x)===k);selectLink(l.id)");
   assert.match(ev("document.getElementById('panelBody').textContent"), /Content from/);
   assert.deepEqual(errors, []);
 });

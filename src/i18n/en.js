@@ -2098,7 +2098,7 @@
 "link_panels.your_joint_venture_holds_an":"Your joint venture holds an operating license.",
 "link_panels.your_own_build":"your own build",
 "link_panels.your_own_fabric_name":"Your own fabric · {name}",
-"link_panels.your_routers_pick_the_lowest_cost":"Your routers pick the lowest-cost path. Raise the metric to push traffic onto other paths. “Backup only” keeps it idle unless nothing else works. Applies to every link between these two cities.",
+"link_panels.your_routers_pick_the_lowest_cost":"Your routers pick the lowest-cost path. Raise the metric to push traffic onto other paths. “Backup only” keeps it idle unless nothing else works. Applies only to this link.",
 "link_panels.your_traffic_crossing_the_border":"Your traffic crossing the border",
 "link_panels.your_wave_was_sold_before_the":"Your wave was sold before the cable owner re-engineered it, so it keeps running.",
 "links.a_fab_fabric_unlocks_at_customer":"<b>A {fab} fabric unlocks at customer level {lv}.</b>",

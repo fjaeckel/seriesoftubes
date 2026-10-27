@@ -35,7 +35,7 @@ function vxcPanel(l){
 }
 function prefCtl(kind,id,cur){cur=cur||'normal';return `<div class="btns"><span class="meta" style="align-self:center">${tr('common.egress')}</span>${Object.keys(PREF).map(v=>btn(PREF[v],'setPref',{kind,id,v},cur===v?'pink sm':'ghost sm')).join('')}</div>`;}
 function trafficSection(l){
-  const rec=R.ef[edgeKey(l)],n=pairLinks(l.a,l.b).length;
+  const key=routeKey(l),rec=!linkDown(l)&&R.ef[key],links=pairLinks(l.a,l.b).filter(x=>!linkDown(x)&&routeKey(x)===key),n=links.length;
   let h=`<section><h3>${tr('link_panels.what_s_on_this_link')}</h3>`;
   if(!rec){return h+`<p class="empty">${tr('link_panels.no_traffic_right_now')}</p></section>`;}
   const tot=Object.values(rec.net).reduce((a,b)=>a+b,0)||1;
@@ -47,7 +47,7 @@ function trafficSection(l){
   h+=`<h4 class="sub4">${tr('link_panels.enters_your_network_at')}</h4>`+egs.slice(0,6).map(([k,v])=>{const d=R.egDesc[k];return `<div class="row"><div class="grow"><div class="nm">${esc(d.lab)}</div><div class="meta">${CITY[d.city].name} · ${fmtG(v)} · ${pct(v/tot)}</div></div>${btn(tr('common.open'),'goEgress',{city:d.city,k:d.k},'ghost sm')}</div>`;}).join('');
   const dst=Object.entries(rec.dst).sort((a,b)=>b[1]-a[1]);
   h+=`<h4 class="sub4">${tr('link_panels.going_to_customers_in')}</h4>`+dst.slice(0,6).map(([c,v])=>`<div class="kv"><span>${CITY[c].name}</span><b>${fmtG(v)} · ${pct(v/tot)}</b></div>`).join('');
-  const u=tot/pairLinks(l.a,l.b).filter(x=>!linkDown(x)).reduce((a,x)=>a+capOf(x),0);
+  const u=tot/links.reduce((a,x)=>a+capOf(x),0);
   if(u>=0.8&&egs.length){const d=R.egDesc[egs[0][0]];h+=`<p class="why">${tr('link_panels.biggest_feeder_egress_in_city_set',{egress:esc(d.lab),city:CITY[d.city].name})}</p>`;}
   return h+`</section>`;
 }
