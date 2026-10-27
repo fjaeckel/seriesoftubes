@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Neptoon Internet: a new Australian T2 eyeball carrier with IXs in Sydney, Melbourne, Brisbane and Perth (#154).
+- Coax Spectre-um's US reach extends: 4 new cities (Miami, Ashburn, Seattle, Toronto) and 3 new domestic US cables — a coast-to-coast ring, an Ashburn hub line, and a Seattle–Ashburn express route (#155).
+- Reunion Island: a new Indian Ocean city with a cable from Durban and a local IX (#152).
+
 ## [1.34.1] — 2026-10-27
 
 - The game starts faster in Italian, Portuguese and French: their translations are about 40% smaller to download.

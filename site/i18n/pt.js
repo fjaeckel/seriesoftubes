@@ -524,6 +524,7 @@
 "cities.the_data_center_capital_rumor_says":"A capital dos data centers. Dizem que 70% da internet passa por aqui, e ninguém conferiu.",
 "cities.the_deep_south_halfway_to_buenos":"O extremo sul, a meio caminho de Buenos Aires. Churrasco todo domingo e uma cuia de chimarrão em cada mão, até no verão.",
 "cities.the_easternmost_city_of_the_americas":"A cidade mais a leste das Américas, onde o sol nasce primeiro. Seu plantão no NOC começa cedo também.",
+"cities.the_french_island_with_a_volcano":"A ilha francesa com um vulcão que entra em erupção a cada duas semanas, ciclones que se renomeiam, e um lag que vai nos dois sentidos.",
 "cities.the_garden_city_and_the_biggest":"A Cidade Jardim, e a maior cidade da Ilha Sul, que os locais chamam de «o Continente» sem rir. Tudo o que vai para a Ilha Norte atravessa o Estreito de Cook.",
 "cities.the_geographic_center_of_south":"O centro geográfico da América do Sul e uma das cidades mais quentes do Brasil. Os chillers nunca tiram folga.",
 "cities.the_geographic_middle_of_the_us":"O centro geográfico dos EUA. Os data centers ficam em antigas minas de calcário subterrâneas: temperatura estável, nada de tornados, e alguém vive achando os sapatos da Dorothy.",

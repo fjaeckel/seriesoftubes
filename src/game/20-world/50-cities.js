@@ -138,6 +138,7 @@ const CITIES=[
  {id:'kgl',name:'Kigali',x:0,y:0,land:'af',reg:'AF',P:60,cc:'RW',ix:'Umuganda-IX',dc:'Clean Streets Colo',note:tr('cities.probably_the_cleanest_capital_in')},
  {id:'mpm',name:'Maputo',x:0,y:0,land:'af',reg:'AF',P:70,cc:'MZ',ix:'Matapa-IX',dc:'Polana Point DC',note:tr('cities.mozambique_s_capital_an_hour_from')},
  {id:'dur',name:'Durban',x:0,y:0,land:'af',reg:'AF',P:130,cc:'ZA',za:true,ix:'Bunny Chow-IX',dc:'Golden Mile Colo',note:tr('cities.south_africa_s_east_coast_surf')},
+ {id:'run',name:'Saint-Denis',x:0,y:0,land:'re',reg:'AF',P:40,cc:'RE',ix:'Lagon-IX',dc:'Piton-de-la-Fournaise Colo',note:tr('cities.the_french_island_with_a_volcano')},
  {id:'wdh',name:'Windhoek',x:0,y:0,land:'af',reg:'AF',P:25,cc:'NA',ix:'Kapana-IX',dc:'Desert Breeze DC',note:tr('cities.a_small_capital_in_the_middle')},
  {id:'lun',name:'Lusaka',x:0,y:0,land:'af',reg:'AF',P:100,cc:'ZM',blackout:true,ix:'Nshima-IX',dc:'Copperbelt Colo',note:tr('cities.zambia_runs_on_hydro_power_from')},
  {id:'hre',name:'Harare',x:0,y:0,land:'af',reg:'AF',P:70,cc:'ZW',blackout:true,ix:'Sadza-IX',dc:'Jacaranda DC',note:tr('cities.purple_jacaranda_trees_and_long')},
