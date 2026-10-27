@@ -2230,6 +2230,7 @@
 "networks.australia_s_number_two_once_took":"Le numéro deux de l’Australie. A un jour mis tout le pays hors ligne pendant douze heures avec une mise à jour de routine.",
 "networks.beams_the_outback_online_from_550":"Connecte l’outback depuis 550 km d’altitude, puis atterrit dans un data center de Sydney comme tout le monde.",
 "networks.bought_by_speedyloop_and_still":"Racheté par Speedyloop, et cherche encore quel nom mettre sur la facture.",
+"networks.neptoon_the_deep_blue_net":"Le profond réseau bleu — le plus récent opérateur d'Australie. Si ça se branche, ça a un câble.",
 "networks.brazil_s_mobile_giant_very_much":"Le géant mobile du Brésil. Bien vivant.",
 "networks.bridges_europe_and_asia_and":"Relie l’Europe et l’Asie, et parfois aussi ta table BGP.",
 "networks.cable_broadband_across_central":"Haut débit par le câble dans toute l’Europe centrale. À plus tard, dans la file d’attente du support.",

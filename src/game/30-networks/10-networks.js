@@ -79,6 +79,7 @@ NETS.push(
  {id:'spn',name:'Spin2wintel',asn:18390,type:'eye',pol:'open',up:['voc'],share:.00015,col:'#0072CE',pops:['syd','mel','bne','per','adl'],ix:['syd','mel','bne','per','adl'],blurb:tr('networks.cheap_broadband_with_the_sales_pitch')},
  {id:'lpt',name:'Frogtel',asn:134090,type:'eye',pol:'open',share:.0001,col:'#7AC143',pops:['syd','mel','bne','adl','per','drw'],ix:['syd','mel','bne','per','adl'],blurb:tr('networks.small_fast_and_always_leaping_to')},
  {id:'ext',name:'Lintel',asn:10143,type:'eye',pol:'open',up:['spl'],share:.0001,col:'#F26522',pops:['syd','mel','bne','per','adl'],ix:[],blurb:tr('networks.bought_by_speedyloop_and_still')},
+ {id:'ntp',name:'Neptoon Internet',asn:137802,type:'t2',pol:'selective',minIx:8,minPni:20,share:.006,price:5,col:'#0055A4',pops:['syd','mel','bne','per','adl','cbr','chc'],ix:['syd','mel','bne','per'],blurb:tr('networks.neptoon_the_deep_blue_net')},
  {id:'tru',name:'Mostly-True Move',asn:7740,type:'eye',pol:'selective',minIx:5,minPni:20,share:.006,col:'#E4002B',pops:['bkk'],ix:['bkk'],blurb:tr('networks.thailand_s_mobile_giant_its_coverage')},
  {id:'vtl',name:'Viet-tell',asn:7525,type:'t2',pol:'selective',minIx:10,minPni:30,share:.005,price:7,col:'#EE0033',pops:['sgn','hkg','sin'],ix:['sgn'],blurb:tr('networks.vietnam_s_giant_will_tell_you')},
  {id:'ptc',name:'PTC-hell',asn:17577,type:'t2',pol:'selective',minIx:10,minPni:30,share:.004,price:8,col:'#00843D',pops:['khi','dxb'],ix:['khi'],blurb:tr('networks.pakistan_s_incumbent_every_session')},

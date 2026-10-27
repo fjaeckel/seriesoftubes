@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 - Buy spare optics in bulk: a "Buy 10" button alongside the existing "Stock a spare" button lets you buy ten of the same optic at once (#99).
+- Neptoon Internet: a new Australian T2 eyeball carrier with IXs in Sydney, Melbourne, Brisbane and Perth (#154).
 
 ## [1.34.1] — 2026-10-27
 
