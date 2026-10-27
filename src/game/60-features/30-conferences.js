@@ -6,7 +6,7 @@ function confKey(cf,y){return cf.n+'@'+cf.c+'@'+y;}
 function upcomingConfs(within){const y0=Math.floor(S.day/360),out=[];for(const y of [y0,y0+1])for(const cf of CONFS){const d=confDay(cf,y);if(d>=S.day&&d-S.day<=within)out.push({...cf,day:d,key:confKey(cf,y)});}return out.sort((a,b)=>a.day-b.day);}
 function confBoost(id){const cb=S.conf;if(!cb||!(cb.until>S.day))return 1;const n=NET[id];return n&&n.pops.some(c=>CITY[c]&&CITY[c].reg===cb.reg)?0.5:1;}
 function confTick(d){S.confReg=S.confReg||{};
-  for(const cf of upcomingConfs(30)){if(cf.day-d===30&&!S.confReg[cf.key])toast(tr('conferences.conf_comes_to_city_in_30',{conf:esc(cf.n),city:esc(CITY[cf.c].name)}),'goal',[{l:tr('common.show_me'),act:'leftTab',args:{t:'deals'}}]);}
+  if(!isTier1())for(const cf of upcomingConfs(30)){if(cf.day-d===30&&!S.confReg[cf.key])toast(tr('conferences.conf_comes_to_city_in_30',{conf:esc(cf.n),city:esc(CITY[cf.c].name)}),'goal',[{l:tr('common.show_me'),act:'leftTab',args:{t:'deals'}}]);}
   for(const cf of upcomingConfs(0)){if(cf.day!==d||!S.confReg[cf.key])continue;const reg=CITY[cf.c].reg;S.conf={until:d+CONF_DAYS,reg,name:cf.n};S.stats.confs=(S.stats.confs||0)+1;
     const r=Math.random();let extra='';if(r<0.3){const cash=5000+Math.floor(Math.random()*4)*5000;S.cash+=cash;extra=' '+tr('conferences.you_also_won_the_raffle_cash',{cash:fmt$(cash)});}else if(r<0.5)extra=' '+tr('conferences.someone_from_goggle_bought_you_a');if(cf.j)extra=' '+tr(cf.j)+(r<0.3?extra:'');
     toast(tr('conferences.conf_in_city_you_shook_a',{conf:esc(cf.n),city:esc(CITY[cf.c].name),n:CONF_DAYS,region:esc(REG[reg])})+extra,'goal');sfx('coin');}}
