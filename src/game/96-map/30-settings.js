@@ -6,10 +6,12 @@ function i18nDom(){if(LANG==='en')return;for(const el of document.querySelectorA
 function segBtns(act,cur,opts){return opts.map(([v,l])=>btn(l,act,{v},cur===v?'pink sm':'ghost sm')).join('');}
 /* Animation setting: auto follows the system's reduced-motion preference, or force it on or off. */
 /* Settings are per device (localStorage), not part of the save: they are about how you like to play. */
-const PREF_DEF={pauseFurious:true,warnUnhappy:true,pauseIncident:false};
+const PREF_DEF={pauseFurious:true,warnUnhappy:true,pauseIncident:false,quickPni:false,easyMode:false,richStart:false};
 let PREFS=(()=>{try{const j=JSON.parse(localStorage.getItem('sot-prefs')||'{}');return j&&typeof j==='object'?j:{};}catch(e){return {};}})();
 const pref=k=>typeof PREFS[k]==='boolean'?PREFS[k]:PREF_DEF[k];
 function setPref(k,v){if(!own(PREF_DEF,k))return;PREFS[k]=!!v;try{localStorage.setItem('sot-prefs',JSON.stringify(PREFS));}catch(e){}}
+// Apply difficulty pref effects at runtime: quickPni clears pending PNIs from order immediately.
+function applyDiffPrefs(){if(!S)return;const qp=pref('quickPni');if(qp){for(const p of S.pni){if(p.ready<=S.day+1){p.ready=S.day;}}}const rs=pref('richStart');if(rs&&S.day===0){S.cash+=START_CASH;}}
 // Stop the clock for something the player must see. Nothing happens if the game is already paused.
 function autoPause(){if(!S||!UI.speed)return false;UI.resumeSpeed=UI.speed;UI.speed=0;renderHUD();return true;}
 const resumeAct=()=>({l:tr('common.resume'),act:'speed',args:{v:UI.resumeSpeed||1}});
@@ -25,6 +27,10 @@ function settingsHtml(){const seg=(lab,act,cur,opts,note)=>`<div class="setline"
   ${seg(tr('common.sound'),'soundSet',UI.muted?'off':'on',[['on',tr('common.on')],['off',tr('common.off')]])}
   ${seg(tr('common.language'),'langSet',LANG,Object.entries(LANGS))}
   ${seg(tr('common.viewport_info'),'vpSet',VP_T?'on':'off',[['on',tr('common.on')],['off',tr('common.off')]],tr('settings.for_reporting_layout_bugs_shows_what'))}
+  <h3 class="sub4">${tr('settings.difficulty')}</h3>
+  ${seg(tr('settings.quick_pni'),'quickPniSet',cur('quickPni'),onoff('quickPni'),tr('settings.quick_pni_help'))}
+  ${seg(tr('settings.easy_mode'),'easyModeSet',cur('easyMode'),onoff('easyMode'),tr('settings.easy_mode_help'))}
+  ${seg(tr('settings.rich_start'),'richStartSet',cur('richStart'),onoff('richStart'),tr('settings.rich_start_help'))}
   ${installRow()}<div class="btns" style="margin-top:12px">${btn(tr('common.done_8dd3'),'settingsClose',{},'pink')}</div>`;}
 const refreshSettings=()=>{if(UI.setOpen)openModal(settingsHtml());};
 function animOn(){const m=UI.anim||'auto';if(m==='on')return true;if(m==='off')return false;try{return !matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){return true;}}

@@ -1,7 +1,8 @@
 function fireFailure(){
   const opts=[];
   const live=S.links.filter(l=>l.kind!=='vxc'&&!linkDown(l));const fabsUsed=[...new Set(S.links.filter(l=>l.kind==='vxc').map(l=>l.prov))];
-  if(live.length){opts.push(['cut',2+Math.min(6,live.length/2)]);}
+  const easy=PREFS.easyMode?0.4:1;
+  if(live.length){opts.push(['cut',Math.max(1,Math.round((2+Math.min(6,live.length/2))*easy))]);}
   if(Object.keys(S.pops).length)opts.push(['crash',3],['power',2]);
   if(Object.values(S.pops).some(p=>p.site2))opts.push(['ring',1.2]);
   if(S.transit.some(t=>!(t.down>S.day)))opts.push(['transit',3]);

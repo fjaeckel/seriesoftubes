@@ -1,6 +1,7 @@
 /* ---------- daily tick ---------- */
 function dayTick(){
   if(!S||S.lost)return;
+  applyDiffPrefs();
   S.day++;
   const d=S.day;
   dkTick(d);ixPriceWar(d);inboxDay(d);pniDay(d);
