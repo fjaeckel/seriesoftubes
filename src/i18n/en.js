@@ -1992,6 +1992,7 @@
 "link_panels.biggest_fabric_money_can_buy":"Biggest fabric money can buy.",
 "link_panels.biggest_feeder_egress_in_city_set":"Biggest feeder: {egress} in {city}. Set it to “Backup only”, give the customers a closer egress (peering, a cache, local transit), or raise this link's metric.",
 "link_panels.build_a_pop_here_first":"Build a POP here first.",
+"link_panels.buy_10_optic_price_bulk":"Buy 10 {optic} <small>{price}</small>",
 "link_panels.cancel_the_iru":"Cancel the IRU",
 "link_panels.click_to_tear_down":"Click to tear down",
 "link_panels.collecting_data_check_back_in_a":"Collecting data. Check back in a few days.",

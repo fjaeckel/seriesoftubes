@@ -1991,6 +1991,7 @@
 "link_panels.biggest_fabric_money_can_buy":"Le plus gros fabric que l’argent puisse acheter.",
 "link_panels.biggest_feeder_egress_in_city_set":"Plus gros contributeur : {egress} à {city}. Passe-le en « Secours seul », donne aux clients une sortie plus proche (peering, cache, transit local) ou augmente la métrique de ce lien.",
 "link_panels.build_a_pop_here_first":"Construis d’abord un POP ici.",
+"link_panels.buy_10_optic_price_bulk":"Acheter 10 {optic} <small>{price}</small>",
 "link_panels.cancel_the_iru":"Résilier l’IRU",
 "link_panels.click_to_tear_down":"Clique pour couper la session",
 "link_panels.collecting_data_check_back_in_a":"Collecte des données en cours. Repasse dans quelques jours.",

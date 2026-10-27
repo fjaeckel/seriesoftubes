@@ -1,4 +1,4 @@
-Object.assign(ACT,{
+﻿﻿Object.assign(ACT,{
  dfMode:({m})=>{UI.lmode=m;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
  seaPackage:({k})=>{if(!own(SUB_UPGRADES,k))return;UI['sea'+k]=!UI['sea'+k];if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
  subUpgrade:({id,k})=>{const l=S.links.find(l=>l.id===id);if(!l||l.kind!=='df'||!l.own||!l.sub||!own(SUB_UPGRADES,k)||lvl()<4||l['sub'+k]!==undefined)return;if(!spend(subUpgradeCost(l,k)))return;l.paid=(l.paid>0?l.paid:ownCabCost(l.km))+subUpgradeCost(l,k);l['sub'+k]=Math.max(S.day,l.ready||0)+SUB_UPGRADES[k].days;after();},
@@ -28,6 +28,7 @@ Object.assign(ACT,{
  rmCh:({id,o})=>{const l=S.links.find(x=>x.id===id);if(!l||!OPT[o])return;const i=(l.ch||[]).lastIndexOf(o);if(i<0)return;l.ch.splice(i,1);S.spares=S.spares||{};S.spares[o]=(S.spares[o]||0)+1;floater((CITY[l.a].x+CITY[l.b].x)/2,(CITY[l.a].y+CITY[l.b].y)/2-20,tr('fiber_and_hardware.optic_to_spares',{optic:OPT[o].n}),'#7B61FF');after();},
  hwLock:()=>{if(hwLock())return;const c=hwLockCost();if(!spend(c))return;S.hw=S.hw||{};S.hw.lock={until:S.day+HW_LOCK_DAYS,mul:hwTrend(S.day)};toast(tr('fiber_and_hardware.prices_locked_until_date_your_vendor',{date:dateStr(S.hw.lock.until)}),'good');after();},
  buySpare:({o})=>{if(!OPT[o]||OPT[o].lvl>lvl()||spareN(o)>=64)return;if(!spend(optCost(o)))return;S.spares=S.spares||{};S.spares[o]=(S.spares[o]||0)+1;sfx('build');after();},
+  buySpareBulk:({o})=>{const n=10;if(!OPT[o]||OPT[o].lvl>lvl()||spareN(o)+n>64)return;const c=optCost(o)*n;if(!spend(c))return;S.spares=S.spares||{};S.spares[o]=(S.spares[o]||0)+n;sfx('build');after();},
  sellSpare:({o})=>{if(!OPT[o]||spareN(o)<1)return;S.spares[o]--;const v=spareValue(o);S.cash+=v;toast(tr('fiber_and_hardware.sold_a_spare_optic_on_ebuy',{optic:OPT[o].n,price:fmt$(v),p:pct(SPARE_RESALE)}),'good');sfx('coin');after();},
  addPair:({id})=>{const l=S.links.find(x=>x.id===id);if(!l||l.kind!=='df'||!l.own||!isRdm(l.sys)||l.ready>S.day)return;const n=Math.max(1,l.pairs|0);if(n>=pairsMax(l))return;if((l.ch||[]).length+soldSlots(l)<chMax(l)){toast(tr('fiber_and_hardware.fill_this_pair_first_light_all',{max:chMax(l)}),'bad');sfx('err');return;}if(!spend(pairCost(l)))return;l.pairs=n+1;toast(tr('fiber_and_hardware.fiber_pair_n_is_lit_a',{n:n+1,a:CITY[l.a].name,b:CITY[l.b].name,m:DF_SYS[l.sys].max}),'good');sfx('build');after();},
  upSys:({id})=>{const l=S.links.find(x=>x.id===id),to=l&&sysNext(l);if(!to||DF_SYS[to].lvl>lvl())return;if(!spend(sysUpCost(l)))return;l.sys=to;if(l.ready<=S.day){l.eqDown=S.day+1;toast(tr('fiber_and_hardware.line_system_swap_all_channels_are'),'bad');}after();},

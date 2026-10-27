@@ -1991,6 +1991,7 @@
 "link_panels.biggest_fabric_money_can_buy":"Il fabric più grosso che si possa comprare.",
 "link_panels.biggest_feeder_egress_in_city_set":"Fonte principale: {egress} a {city}. Impostala su “Solo backup”, dai ai clienti un’uscita più vicina (peering, una cache, transit locale) o alza la metrica di questo link.",
 "link_panels.build_a_pop_here_first":"Prima costruisci un POP qui.",
+"link_panels.buy_10_optic_price_bulk":"Acquista 10 {optic} <small>{price}</small>",
 "link_panels.cancel_the_iru":"Disdici l’IRU",
 "link_panels.click_to_tear_down":"Clicca per chiudere la sessione",
 "link_panels.collecting_data_check_back_in_a":"Raccolta dati in corso. Ripassa tra qualche giorno.",

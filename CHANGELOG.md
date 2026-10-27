@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Buy spare optics in bulk: a "Buy 10" button alongside the existing "Stock a spare" button lets you buy ten of the same optic at once (#99).
+
 ## [1.34.1] — 2026-10-27
 
 - The game starts faster in Italian, Portuguese and French: their translations are about 40% smaller to download.
