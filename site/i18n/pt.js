@@ -2776,6 +2776,8 @@
 "settings.pause_on_outages_that_hurt":"Pausar em falhas que doem",
 "settings.pause_when_a_customer_is_furious":"Pausar quando um cliente estiver furioso",
 "settings.saved_on_this_device":"Salvo neste dispositivo.",
+"settings.dark_mode":"Modo escuro",
+"settings.dark_mode_help":"Ativa um tema escuro. Painéis mais escuros, mapa mais suave, menos cansaço visual.",
 "settings.stops_the_game_when_a_failure":"Para o jogo quando uma falha custa tráfego de verdade, não quando ela se reroteia sozinha.",
 "settings.the_game_stops_so_you_can":"O jogo para para você consertar o serviço antes que cancelem. Muito útil em alta velocidade.",
 "settings.warn_when_a_customer_gets_unhappy":"Avisar quando um cliente ficar insatisfeito",

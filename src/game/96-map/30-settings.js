@@ -6,10 +6,12 @@ function i18nDom(){if(LANG==='en')return;for(const el of document.querySelectorA
 function segBtns(act,cur,opts){return opts.map(([v,l])=>btn(l,act,{v},cur===v?'pink sm':'ghost sm')).join('');}
 /* Animation setting: auto follows the system's reduced-motion preference, or force it on or off. */
 /* Settings are per device (localStorage), not part of the save: they are about how you like to play. */
-const PREF_DEF={pauseFurious:true,warnUnhappy:true,pauseIncident:false};
+const PREF_DEF={pauseFurious:true,warnUnhappy:true,pauseIncident:false,darkMode:false};
 let PREFS=(()=>{try{const j=JSON.parse(localStorage.getItem('sot-prefs')||'{}');return j&&typeof j==='object'?j:{};}catch(e){return {};}})();
 const pref=k=>typeof PREFS[k]==='boolean'?PREFS[k]:PREF_DEF[k];
-function setPref(k,v){if(!own(PREF_DEF,k))return;PREFS[k]=!!v;try{localStorage.setItem('sot-prefs',JSON.stringify(PREFS));}catch(e){}}
+function setPref(k,v){if(!own(PREF_DEF,k))return;PREFS[k]=!!v;try{localStorage.setItem('sot-prefs',JSON.stringify(PREFS));}catch(e){}
+  if(k==='darkMode'){try{localStorage.setItem('sot-dark',v?'1':'0');}catch(e){}
+    document.documentElement.setAttribute('data-theme',v?'dark':'');}}
 // Stop the clock for something the player must see. Nothing happens if the game is already paused.
 function autoPause(){if(!S||!UI.speed)return false;UI.resumeSpeed=UI.speed;UI.speed=0;renderHUD();return true;}
 const resumeAct=()=>({l:tr('common.resume'),act:'speed',args:{v:UI.resumeSpeed||1}});
@@ -23,6 +25,7 @@ function settingsHtml(){const seg=(lab,act,cur,opts,note)=>`<div class="setline"
   <h3 class="sub4">${tr('settings.display_and_sound')}</h3>
   ${seg(tr('common.animations'),'animSet',UI.anim||'auto',[['auto',tr('common.auto')],['on',tr('common.on')],['off',tr('common.off')]],tr('settings.auto_follows_your_device_s_reduce'))}
   ${seg(tr('common.sound'),'soundSet',UI.muted?'off':'on',[['on',tr('common.on')],['off',tr('common.off')]])}
+   ${seg(tr('settings.dark_mode'),'darkModeSet',cur('darkMode'),onoff('darkMode'),tr('settings.dark_mode_help'))}
   ${seg(tr('common.language'),'langSet',LANG,Object.entries(LANGS))}
   ${seg(tr('common.viewport_info'),'vpSet',VP_T?'on':'off',[['on',tr('common.on')],['off',tr('common.off')]],tr('settings.for_reporting_layout_bugs_shows_what'))}
   ${installRow()}<div class="btns" style="margin-top:12px">${btn(tr('common.done_8dd3'),'settingsClose',{},'pink')}</div>`;}

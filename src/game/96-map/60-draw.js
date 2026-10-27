@@ -2,7 +2,7 @@ function draw(now){
   if(!ctx)return;
   ctx.setTransform(DPR,0,0,DPR,0,0);
   // sea
-  const g=ctx.createLinearGradient(0,0,0,CH);g.addColorStop(0,'#62CBEA');g.addColorStop(1,'#43AED6');ctx.fillStyle=g;ctx.fillRect(0,0,CW,CH);
+  const g=ctx.createLinearGradient(0,0,0,CH);g.addColorStop(0,PREFS.darkMode?'#1A3A5A':'#62CBEA');g.addColorStop(1,PREFS.darkMode?'#0E2A4A':'#43AED6');ctx.fillStyle=g;ctx.fillRect(0,0,CW,CH);
   const ks=visibleKs(),z=cam.z;
   const wl=worldLayer(z);
   for(const k of ks){

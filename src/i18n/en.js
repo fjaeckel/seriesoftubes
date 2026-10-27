@@ -2777,6 +2777,8 @@
 "settings.pause_on_outages_that_hurt":"Pause on outages that hurt",
 "settings.pause_when_a_customer_is_furious":"Pause when a customer is furious",
 "settings.saved_on_this_device":"Saved on this device.",
+"settings.dark_mode":"Dark mode",
+"settings.dark_mode_help":"Switches the game to a dark colour scheme. Darker panels, dimmer map, easier on the eyes.",
 "settings.stops_the_game_when_a_failure":"Stops the game when a failure costs you real traffic, not when it reroutes by itself.",
 "settings.the_game_stops_so_you_can":"The game stops so you can fix their service before they cancel. Most useful at high speed.",
 "settings.warn_when_a_customer_gets_unhappy":"Warn when a customer gets unhappy",

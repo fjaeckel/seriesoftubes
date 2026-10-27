@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Fix IX.brrr São Paulo name (was just "IX.brrr", now "IX.brrr São Paulo") (#166).
+- Fibre cuts in America happen more often and last longer (#141).
+- Dark mode: a darker theme for panels and the map (#80).
+
 ## [1.34.1] — 2026-10-27
 
 - The game starts faster in Italian, Portuguese and French: their translations are about 40% smaller to download.

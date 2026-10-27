@@ -153,6 +153,8 @@
 <div id="modal" hidden><div class="card" id="modalCard" role="dialog" aria-modal="true"></div></div>
 
 <script>
+// Theme: dark mode persists in localStorage, applied immediately to avoid flash.
+(function(){try{if(localStorage.getItem('sot-dark')==='1')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();
 // Language: the player's saved choice, else the browser's, else English. Non-English dictionaries load before the game.
 (function(){const langs=window.SOT_LANGS={en:'English',it:'Italiano',pt:'Português',fr:'Français'};let l=null;try{l=localStorage.getItem('sot-lang');}catch(e){}
   const b=(navigator.language||'').slice(0,2).toLowerCase();if(!Object.hasOwn(langs,l))l=Object.hasOwn(langs,b)?b:'en';

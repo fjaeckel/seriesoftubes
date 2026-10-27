@@ -6,7 +6,7 @@ const CITIES=[
  {id:'ash',name:'Ashburn',x:572,y:332,land:'am',reg:'AM',P:250,ix:'Equinox Ashburn IX',dc:'Data Center Alley',note:tr('cities.the_data_center_capital_rumor_says')},
  {id:'nyc',name:'New York',x:615,y:283,land:'am',reg:'AM',P:1200,ix:'NY-Yikes',dc:'60 Hudson'},
  {id:'mia',name:'Miami',x:530,y:482,land:'am',reg:'AM',P:400,ix:'Miam-IX',dc:'Nap of the Americas',note:tr('cities.cable_landing_hub_for_south_america')},
- {id:'sao',name:'São Paulo',x:640,y:730,land:'sa',reg:'SA',P:900,br:true,andes:'e',ix:'IX.brrr',ixCheap:0.3,dc:'Digital Reality SP',note:tr('cities.south_america_s_biggest_market_and')},
+ {id:'sao',name:'São Paulo',x:640,y:730,land:'sa',reg:'SA',P:900,br:true,andes:'e',ix:'IX.brrr São Paulo',ixCheap:0.3,dc:'Digital Reality SP',note:tr('cities.south_america_s_biggest_market_and')},
  {id:'lon',name:'London',x:935,y:275,land:'uk',reg:'EU',P:1000,ix:'LYNX',dc:'Telly-House Docklands',note:tr('cities.on_an_island_so_every_link')},
  {id:'ams',name:'Amsterdam',x:1015,y:245,land:'eu',reg:'EU',P:350,ix:'HAMS-IX',dc:'Science Park'},
  {id:'fra',name:'Frankfurt',x:1075,y:295,land:'eu',reg:'EU',P:600,ix:'DE-KICKS',dc:'Kleyerstraße Campus',note:tr('cities.europe_s_crossroads_lots_of_networks')},

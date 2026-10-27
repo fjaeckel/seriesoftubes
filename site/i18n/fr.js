@@ -2776,6 +2776,8 @@
 "settings.pause_on_outages_that_hurt":"Pause sur les pannes qui font mal",
 "settings.pause_when_a_customer_is_furious":"Pause quand un client est furieux",
 "settings.saved_on_this_device":"Sauvegardées sur cet appareil.",
+"settings.dark_mode":"Mode sombre",
+"settings.dark_mode_help":"Active un thème sombre. Panneaux plus foncés, carte plus douce, moins de fatigue oculaire.",
 "settings.stops_the_game_when_a_failure":"Arrête le jeu quand une panne te coûte du vrai trafic, pas quand elle se reroute toute seule.",
 "settings.the_game_stops_so_you_can":"Le jeu s’arrête pour que tu répares leur service avant qu’ils résilient. Surtout utile à grande vitesse.",
 "settings.warn_when_a_customer_gets_unhappy":"Prévenir quand un client devient mécontent",

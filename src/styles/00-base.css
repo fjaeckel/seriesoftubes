@@ -8,6 +8,13 @@
   --body:'Nunito',system-ui,-apple-system,sans-serif;
   color-scheme:light;
 }
+[data-theme="dark"]{
+  --sea:#1A2A4A; --sea2:#243555; --wave:#2A4A6A; --land:#3A5A2A; --land2:#4A7A3A; --sand:#5A5A3A;
+  --ink:#D5DEEC; --ink2:#8A95B5; --paper:#1E2640; --soft:#243050; --line:#2A3A5A;
+  --me:#FF7BB5; --sun:#FFE57F; --ok:#5AEEB0; --warn:#FFD07F; --bad:#FF7A8A;
+  --t1:#A590FF; --t2:#6AB0FF; --cdn:#FFB07F; --eye:#5AE0A0;
+  color-scheme:dark;
+}
 [hidden]{display:none!important}
 html,body{height:100%}
 body{margin:0}
