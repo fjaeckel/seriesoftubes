@@ -23,7 +23,7 @@ function hwCard(){if(!S||(S.day<=HW_FREE&&!hwShock()&&!hwLock()))return '';const
 const routerCost=g=>Math.round((ROUTER_COST+RG[g].cost*0.8)*hwMul('rt'));
 // Old routers go on eBuy when you swap models or remove one (#82), like spare optics (#45). Chassis age faster.
 const ROUTER_RESALE=0.3,tradeIn=(g,n)=>Math.round(RG[g].cost*n*ROUTER_RESALE),swapCost=(c,g)=>{const p=S.pops[c],rt=p.routers||1;return Math.max(0,Math.round(RG[g].cost*rt*hwMul('rt'))-tradeIn(p.rgen||0,rt));};
-const RMAX=6;
+const RMAX=10;
 // The plain, badge-less model of each class is the default upgrade path; the others are side-grades.
 const mainRG=k=>RG.findIndex(r=>r.cls===k&&!r.badge);
 // Ports and waves beyond 1.6T / 6.4T only show once a router that takes them is unlocked.
