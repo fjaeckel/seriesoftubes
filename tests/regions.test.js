@@ -645,3 +645,16 @@ test('Pacific islands: real landings, real exchanges only, and island hops carry
   ev('cam.z=0.5;draw(0);cam.z=2;draw(0)');
   assert.deepEqual(errors, []);
 });
+
+test('the city panel shows the broadband price the city really pays', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});S.cash=1e8;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.buildPop({city:'del'})");
+  const arpu = ev("CITY.del.arpu");
+  assert.ok(arpu && arpu < 1, 'Delhi pays less than the base rate');
+  ev("selectCity('del')");
+  assert.ok(ev("document.getElementById('panelBody').textContent").includes(ev(`fmt$(EYE_RATE*${arpu})`)), 'the lead line quotes the city rate');
+  ev("ACT.launchBB({city:'del'});compute();selectCity('del')");
+  const rev = ev("fmt$(S.pops.del.bb.d*sfOf(R,'del')*EYE_RATE*CITY.del.arpu)");
+  assert.ok(ev("document.getElementById('panelBody').textContent").includes(rev), 'the revenue line uses it too');
+  assert.deepEqual(errors, []);
+});

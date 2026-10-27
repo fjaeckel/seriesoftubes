@@ -4003,11 +4003,11 @@ function cityPanel(c){
   if(UI.tab==='cust'){
     {const nl=R.nodeLoad[c]||0,nc=R.nodeCap[c]||1;if(nl>=nc*0.95)h+=`<section><h3 style="color:var(--bad)">${tr('Router maxed out')}</h3><p class="lead">${tr('Your routers here are forwarding {load} of {cap}. Traffic is being dropped. Upgrade or add a router in the Infra tab.',{load:fmtG(nl),cap:fmtG(nc)})}</p>${btn(tr('Open Infra'),'tab',{t:'links'},'pink sm')}</section>`;}
     h+=`<section><h3>${tr('Home broadband')}</h3>`;
-    if(!p.bb){const s=Math.max(8,C.P*0.03);h+=`<p class="lead">${tr('Sell internet to homes here. Starts around {start} and grows toward {max} while service is good. Pays {rate} per Gbps served, every month.',{start:fmtG(s),max:fmtG(eyeP(c)),rate:fmt$(EYE_RATE)})}</p>${btn(tr('Launch broadband <small>{cost}</small>',{cost:fmt$(bbCost(c))}),'launchBB',{city:c},'pink big',S.cash<bbCost(c))}`;}
+    if(!p.bb){const s=Math.max(8,C.P*0.03);h+=`<p class="lead">${tr('Sell internet to homes here. Starts around {start} and grows toward {max} while service is good. Pays {rate} per Gbps served, every month.',{start:fmtG(s),max:fmtG(eyeP(c)),rate:fmt$(EYE_RATE*(C.arpu||1))})}</p>${btn(tr('Launch broadband <small>{cost}</small>',{cost:fmt$(bbCost(c))}),'launchBB',{city:c},'pink big',S.cash<bbCost(c))}`;}
     else{const eye=R.cityEye[c]||0;
       h+=`<div class="kv"><span>${tr('Eyeball demand')}</span><b>${tr('{a} of {b}',{a:fmtG(eye),b:fmtG(eyeP(c))})}</b></div><div class="bar me"><i style="width:${Math.min(100,eye/eyeP(c)*100)}%"></i></div>
       <div class="kv"><span>${tr('Served in {city}',{city:C.name})}</span><b style="color:${sf<0.9?'var(--bad)':'var(--eye)'}">${pct(sf)}</b></div><div class="bar ${sf<0.9?'bad':''}"><i style="width:${sf*100}%"></i></div>
-      <div class="kv"><span>${tr('Revenue')}</span><b>${tr('{price}/mo',{price:fmt$(eye*sf*EYE_RATE)})}</b></div>
+      <div class="kv"><span>${tr('Revenue')}</span><b>${tr('{price}/mo',{price:fmt$(eye*sf*EYE_RATE*(C.arpu||1))})}</b></div>
       <div class="kv"><span>${tr('Network-wide peering ratio')}</span><b>${pct(R.peerShare||0)}</b></div><p class="note">${tr('More traffic over peering, PNIs and caches means lower latency, and happier users grow faster.')}</p>
       ${sf<0.9?`<p class="why">${tr('Customers are unhappy and leaving. Add upstream capacity, peering, or a bigger link.')}</p>`:''}
       <div class="btns">${p.boost>S.day?`<span class="tag st on">${tr('Ad campaign: {n}d left',{n:p.boost-S.day})}</span>`:btn(tr('Run ad campaign <small>$8k · 2× growth 30d</small>'),'ad',{city:c},'',S.cash<8000)}</div>`;}

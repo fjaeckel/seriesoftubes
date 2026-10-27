@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- The city panel now shows the broadband price a city really pays, not always the base rate.
+
 - Multiplayer is much snappier. Commands and state now travel over one WebSocket (with the old SSE and HTTP path as a
   fallback). After every command the server pushes the new state to the whole team immediately instead of waiting for
   the next throttled update, and the answer to a command carries the state, so your own screen updates after a single
