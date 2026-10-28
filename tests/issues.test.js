@@ -1326,3 +1326,20 @@ test('#166 every Brazilian exchange is named after its city, São Paulo included
   assert.deepEqual(odd, []);
   assert.deepEqual(errors, []);
 });
+
+test('#186 a new network always starts paused, whatever speed the old one was at', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({})");
+  ev("ACT.speed({v:8})");
+  assert.equal(ev('UI.speed'), 8, 'the old game runs at 8\u00d7');
+  // Starting a new network from the menu goes through the same ACT.start; the fresh
+  // game must come up paused, not inherit the old one's speed, and the pause is what
+  // beginGame's save() persists (so a reload does not bring 8\u00d7 back either).
+  ev("ACT.start({})");
+  assert.equal(ev('UI.speed'), 0, 'the new network starts paused');
+  assert.equal(ev('S.uiSpeed'), 0, 'the pause is what gets saved');
+  assert.equal(ev('UI.lastSpeed'), 1, 'resuming starts at the default 1\u00d7');
+  ev("ACT.speed({v:1})");
+  assert.equal(ev('UI.speed'), 1, 'the player can still pick a speed as usual');
+  assert.deepEqual(errors, []);
+});
