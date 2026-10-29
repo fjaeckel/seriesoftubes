@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 - Manila gets real exchanges: GotchaFIX Manila, the free community Bayanihan-IX and In-Vitro-IX, run by PLDTea Time. Snow Globe, Diverge, Smarty Pants, Ditto and RISE & Shine join as Philippine networks, and PLDTea Time and Snow Globe now sell transit.
+- Cebu joins the map on its own island, with GotchaFIX Cebu and two domestic cables from Manila: the Pan de Sal Cable Network and the Philippines Long Distance Relationship. PLDTea Time, Snow Globe and Diverge reach Cebu, and typhoons can hit it too.
 
 ## [1.37.0] — 2026-10-28
 

@@ -62,3 +62,25 @@ test('Manila: RISE & Shine peers openly on all three Manila exchanges, across As
     assert.ok(ids(ev, `ixMembers('${x}')`).includes('rsh'), `RISE & Shine on ${x}`);
   assert.deepEqual(errors, []);
 });
+
+test('Cebu: its own island, GotchaFIX Cebu, reached by two domestic cables, in the typhoon belt', () => {
+  const { ev, errors } = load();
+  start(ev);
+  assert.ok(ev("isSub('ceb','mnl')"), 'Cebu is an island');
+  assert.ok(ev('onLand(CITY.ceb.x,CITY.ceb.y)'), 'Cebu is drawn on land');
+  assert.equal(ev('CITY.ceb.ix'), 'GotchaFIX Cebu');
+  assert.equal(ev('CITY.ceb.dc'), "Magellan's Last Rack");
+  assert.deepEqual(ids(ev, "cablesFor('mnl','ceb').map(p=>p.cid)").sort(), ['dfon', 'pdscn']);
+  for (const n of ['pld', 'glb']) assert.ok(ev(`sellsAt(NET.${n},'ceb')`), `${n} sells transit in Cebu`);
+  assert.ok(ev("NET.cvg.pops.includes('ceb')"));
+  // a subsea wave from Manila to Cebu carries traffic
+  for (const c of ['mnl', 'ceb']) ev(`ACT.buildPop({city:'${c}'});S.pops.${c}.rgen=3`);
+  ev("UI.via='pdscn';UI.route='same';openLinkModal('mnl','ceb');ACT.buildLink({tier:2});closeModal()");
+  ev('compute()');
+  assert.equal(ev("S.links.filter(l=>l.sub&&l.cable==='pdscn').length"), 1);
+  // typhoons can now hit a Cebu PoP
+  ev("S.pops={ceb:S.pops.ceb};delete S.pops.ceb.gen;for(let i=0;i<2000&&!(S.pops.ceb.down>S.day);i++)fireEvent()");
+  assert.ok(ev("S.pops.ceb.down>S.day&&S.inc.some(i=>i.type==='power'&&i.ref==='ceb')"), 'a typhoon knocked out Cebu');
+  ev('cam.z=5;cam.x=CITY.ceb.x;cam.y=CITY.ceb.y;draw(0)');
+  assert.deepEqual(errors, []);
+});

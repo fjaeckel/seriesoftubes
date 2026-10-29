@@ -37,9 +37,9 @@ NETS.push(
  {id:'bcd',name:'Bell Canad-eh',asn:577,type:'eye',pol:'selective',minIx:10,minPni:30,share:.01,col:'#00549A',pops:['hfx','tor','mtl','nyc','chi','ott','cal','van'],ix:['tor','mtl','ott'],blurb:tr('networks.polite_enormous_and_sorry_about_the')});
 NETS.push(
  {id:'tsf',name:'Telkom-selfie',asn:7713,type:'eye',pol:'selective',minIx:10,minPni:30,share:.01,col:'#E4002B',pops:['jkt','sin'],ix:['jkt','sin'],blurb:tr('networks.indonesia_s_mobile_giant_every')},
- {id:'pld',name:'PLDTea Time',asn:9299,type:'t2',pol:'selective',minIx:10,minPni:30,share:.008,price:7,col:'#D62027',pops:['mnl','hkg','sin'],ix:['hkg','mnl~3'],blurb:tr('networks.philippine_giant_peering_requests')},
- {id:'glb',name:'Snow Globe',asn:4775,type:'t2',pol:'open',share:.007,price:6,col:'#1A3D8F',pops:['mnl','hkg','sin'],ix:['mnl','mnl~2','hkg','sin'],blurb:tr('networks.shake_it_and_coverage_falls_gently')},
- {id:'cvg',name:'Diverge',asn:17639,type:'eye',pol:'open',share:.005,col:'#F26B21',pops:['mnl','hkg','sin'],ix:['mnl','mnl~2','hkg','sin'],blurb:tr('networks.the_fiber_upstart_from_the_provinces')},
+ {id:'pld',name:'PLDTea Time',asn:9299,type:'t2',pol:'selective',minIx:10,minPni:30,share:.008,price:7,col:'#D62027',pops:['mnl','ceb','hkg','sin'],ix:['hkg','mnl~3'],blurb:tr('networks.philippine_giant_peering_requests')},
+ {id:'glb',name:'Snow Globe',asn:4775,type:'t2',pol:'open',share:.007,price:6,col:'#1A3D8F',pops:['mnl','ceb','hkg','sin'],ix:['mnl','mnl~2','hkg','sin'],blurb:tr('networks.shake_it_and_coverage_falls_gently')},
+ {id:'cvg',name:'Diverge',asn:17639,type:'eye',pol:'open',share:.005,col:'#F26B21',pops:['mnl','ceb','hkg','sin'],ix:['mnl','mnl~2','hkg','sin'],blurb:tr('networks.the_fiber_upstart_from_the_provinces')},
  {id:'smt',name:'Smarty Pants',asn:10139,type:'eye',pol:'selective',up:['pld'],minIx:10,minPni:30,share:.006,col:'#00A859',pops:['mnl'],ix:[],blurb:tr('networks.pldtea_time_s_mobile_sibling_buy')},
  {id:'dto',name:'Ditto',asn:139831,type:'eye',pol:'open',share:.002,col:'#B5121B',pops:['mnl'],ix:['mnl','mnl~2'],blurb:tr('networks.the_third_mobile_network_same_towers')},
  {id:'rsh',name:'RISE & Shine',asn:63927,type:'eye',pol:'open',share:.002,col:'#F5A623',pops:['mnl','sin','hkg','tok','fra','ams','lon','sto','lax'],ix:['mnl','mnl~2','mnl~3','sin','sin~2','hkg','hkg~2','tok','fra','ams','lon','sto','lax'],blurb:tr('networks.up_early_in_cebu_and_already')},

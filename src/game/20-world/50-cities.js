@@ -240,6 +240,8 @@ const CITIES=[
  {id:'mct',name:'Muscat',x:0,y:0,land:'eu',reg:'AS',cc:'OM',P:50,ix:'Halwa-IX',dc:'Frankincense Colo',note:tr('cities.oman_s_capital_just_outside_the')},
  {id:'mle',name:'Malé',x:0,y:0,land:'mv',reg:'AS',cc:'MV',P:4,ix:'',dc:'One-Metre-Up DC',note:tr('cities.the_maldives_capital_a_stop_on')},
  {id:'fuk',name:'Fukuoka',x:0,y:0,land:'jp',reg:'AS',P:120,ix:'Mentaiko-IX',dc:'Hakata Ramen Racks',note:tr('cities.japan_s_closest_city_to_korea')},
+ // The Philippines beyond Luzon
+ {id:'ceb',name:'Cebu',x:0,y:0,land:'ceb',reg:'AS',P:100,ix:'GotchaFIX Cebu',dc:"Magellan's Last Rack",note:tr('cities.the_philippines_second_city_reached')},
 ];
 // Display-only nudges for cities that sit on top of each other at map scale; distances still use real lon/lat.
 const CITY_NUDGE={

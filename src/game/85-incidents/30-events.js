@@ -6,7 +6,7 @@ function fireEvent(){
   if(Object.keys(S.pops).some(ruCity))opts.push('runet','runet');
   if(S.pops.doh&&Object.keys(S.pops).some(c=>CITY[c].gcc||CITY[c].uae)&&!(S.ev.gulf>S.day))opts.push('gulf');
   if(Object.keys(S.pops).some(c=>CITY[c].saudi))opts.push('mega');
-  if(['mnl','hkg','tok','icn','sha','jkt'].some(c=>S.pops[c]))opts.push('typhoon');
+  if(['mnl','ceb','hkg','tok','icn','sha','jkt'].some(c=>S.pops[c]))opts.push('typhoon');
   if(S.pops.icn&&!S.krExit)opts.push('krexit');if(S.pops.icn&&!(S.ev.krroute>S.day))opts.push('krroute');
   if(Object.keys(S.pops).some(cnCity)||R.gfwCross>1)opts.push('golden','gfw');
   if(S.transit.some(t=>t.net==='cog'))opts.push('depeer','depeer');
@@ -32,7 +32,7 @@ function fireEvent(){
   if(e==='hijack'){const nh=NETS.map(n=>n.id).filter(()=>Math.random()<0.6),old=S.ev.rpki&&S.ev.rpki.until>S.day?S.ev.rpki:null;S.ev.rpki=old?{until:Math.max(old.until,S.day+1),nets:[...new Set(old.nets.concat(nh))]}:{until:S.day+1,nets:nh};addInc({type:'hijack',ref:'rpki',until:S.day+1,msg:tr('events.a_state_owned_isp_accidentally'),cost:1500,fix:tr('events.call_everyone_you_know')});toast(tr('events.bgp_hijack_someone_else_is'),'bad');sfx('alert');return;}
   if(e==='landban'){const lc=[...new Set(CABLE_PAIRS.flatMap(c=>[c.a,c.b]))];const c=pick(lc);S.ev.landban={city:c,until:S.day+45};toast(tr('events.landing_permit_dispute_in_city_two',{city:CITY[c].name}),'bad');return;}
   if(e==='shutdown'){const ps=Object.keys(S.pops).filter(c=>c!==S.home);if(!ps.length)return;const c=pick(ps);S.pops[c].down=Math.max(S.pops[c].down||0,S.day+1);addInc({type:'shutdown',ref:c,until:S.day+1,msg:tr('events.regulators_ordered_every_network_in',{city:CITY[c].name}),cost:0});toast(tr('events.ordered_offline_in_city_a_government',{city:CITY[c].name}),'bad');sfx('alert');return;}
-  if(e==='typhoon'){const c=pick(['mnl','hkg','tok','icn','sha','jkt'].filter(x=>S.pops[x])),p=S.pops[c],nm=pick([tr('common.typhoon_bandwidth'),tr('common.typhoon_latency'),tr('common.typhoon_jitter'),tr('events.typhoon_packet_loss')]);
+  if(e==='typhoon'){const c=pick(['mnl','ceb','hkg','tok','icn','sha','jkt'].filter(x=>S.pops[x])),p=S.pops[c],nm=pick([tr('common.typhoon_bandwidth'),tr('common.typhoon_latency'),tr('common.typhoon_jitter'),tr('events.typhoon_packet_loss')]);
     if(p.gen){S.stats.survived++;toast(tr('events.name_hits_city_the_grid_is',{name:nm,city:CITY[c].name}),'good');sfx('alert');return;}
     p.down=Math.max(p.down||0,S.day+2);addInc({type:'power',ref:c,until:p.down,msg:tr('events.name_knocked_out_power_in_city',{name:nm,city:CITY[c].name}),cost:7000,fix:tr('incidents.rent_a_generator')});toast(tr('events.name_hits_city_power_is_out',{name:nm,city:CITY[c].name}),'bad');sfx('alert');compute();return;}
   if(e==='runet'){S.ev.runet=S.day+1;toast(tr('events.sovereign_internet_drill_moscow'),'bad');sfx('alert');compute();return;}

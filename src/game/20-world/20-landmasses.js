@@ -79,4 +79,8 @@ LANDS_LL.push(
 LANDS_LL.push(
  {id:'mv',ll:[[73.11,4.48],[73.91,4.48],[73.91,3.88],[73.11,3.88]]},
 );
+// The Visayas: Cebu is its own island, reached from Luzon only by domestic cable.
+LANDS_LL.push(
+ {id:'ceb',ll:[[123.3,11.3],[124.1,11.3],[124.1,9.4],[123.3,9.4]]},
+);
 const LANDS=LANDS_LL.map(l=>({id:l.id,hide:true,pts:l.ll.map(q=>proj(q[0],q[1]))}));
