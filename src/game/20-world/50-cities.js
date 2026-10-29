@@ -35,7 +35,7 @@ const CITIES=[
  {id:'akl',name:'Auckland',x:1964,y:826,land:'nz',reg:'OC',P:250,ix:'Kiwi-IX',dc:'Sheep-cooled Shed',note:tr('cities.far_from_everything_every_packet')},
  {id:'per',name:'Perth',x:1712,y:785,land:'oc',reg:'OC',au:true,arpu:AU_ARPU,P:200,ix:'Beard-IX',dc:'Very Remote DC',dc2:'Next-Door-DC P#',dc2N:2,note:tr('cities.the_most_isolated_big_city_on')},
  {id:'jkt',name:'Jakarta',x:1614,y:624,land:'idn',reg:'AS',P:900,ix:'Nasi-IX',dc:'Monsoon-proof DC',note:tr('cities.270_million_people_on_17_000')},
- {id:'mnl',name:'Manila',x:1714,y:494,land:'ph',reg:'AS',P:600,ix:'',dc:'Typhoon-rated DC',note:tr('cities.typhoons_earthquakes_and_a_lot_of')},
+ {id:'mnl',name:'Manila',x:1714,y:494,land:'ph',reg:'AS',P:600,ix:'GotchaFIX Manila',dc:'Typhoon-rated DC',note:tr('cities.typhoons_earthquakes_and_a_lot_of')},
  {id:'ber',name:'Berlin',x:0,y:0,land:'eu',reg:'EU',P:450,ix:'Currywurst-IX',dc:'Former Brewery DC',note:tr('cities.startups_techno_and_a_surprising')},
  {id:'ham',name:'Hamburg',x:0,y:0,land:'eu',reg:'EU',P:250,ix:'Moin-IX',dc:'Speicherstadt Colo',note:tr('cities.germany_s_port_city_everyone_says')},
  {id:'dus',name:'Düsseldorf',x:0,y:0,land:'eu',reg:'EU',P:300,ix:'Altbier-IX',dc:'Königsallee Cage',note:tr('cities.the_rhine_ruhr_hub_more_carrier')},
