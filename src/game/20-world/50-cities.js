@@ -35,7 +35,7 @@ const CITIES=[
  {id:'akl',name:'Auckland',x:1964,y:826,land:'nz',reg:'OC',P:250,ix:'Kiwi-IX',dc:'Sheep-cooled Shed',note:tr('cities.far_from_everything_every_packet')},
  {id:'per',name:'Perth',x:1712,y:785,land:'oc',reg:'OC',au:true,arpu:AU_ARPU,P:200,ix:'Beard-IX',dc:'Very Remote DC',dc2:'Next-Door-DC P#',dc2N:2,note:tr('cities.the_most_isolated_big_city_on')},
  {id:'jkt',name:'Jakarta',x:1614,y:624,land:'idn',reg:'AS',P:900,ix:'Nasi-IX',dc:'Monsoon-proof DC',note:tr('cities.270_million_people_on_17_000')},
- {id:'mnl',name:'Manila',x:1714,y:494,land:'ph',reg:'AS',P:600,ix:'GotchaFIX Manila',dc:'Typhoon-rated DC',note:tr('cities.typhoons_earthquakes_and_a_lot_of')},
+ {id:'mnl',name:'Manila',x:1714,y:494,land:'ph',reg:'AS',ph:true,arpu:PH_ARPU,P:600,ix:'GotchaFIX Manila',dc:'Typhoon-rated DC',note:tr('cities.typhoons_earthquakes_and_a_lot_of')},
  {id:'ber',name:'Berlin',x:0,y:0,land:'eu',reg:'EU',P:450,ix:'Currywurst-IX',dc:'Former Brewery DC',note:tr('cities.startups_techno_and_a_surprising')},
  {id:'ham',name:'Hamburg',x:0,y:0,land:'eu',reg:'EU',P:250,ix:'Moin-IX',dc:'Speicherstadt Colo',note:tr('cities.germany_s_port_city_everyone_says')},
  {id:'dus',name:'Düsseldorf',x:0,y:0,land:'eu',reg:'EU',P:300,ix:'Altbier-IX',dc:'Königsallee Cage',note:tr('cities.the_rhine_ruhr_hub_more_carrier')},
@@ -241,8 +241,8 @@ const CITIES=[
  {id:'mle',name:'Malé',x:0,y:0,land:'mv',reg:'AS',cc:'MV',P:4,ix:'',dc:'One-Metre-Up DC',note:tr('cities.the_maldives_capital_a_stop_on')},
  {id:'fuk',name:'Fukuoka',x:0,y:0,land:'jp',reg:'AS',P:120,ix:'Mentaiko-IX',dc:'Hakata Ramen Racks',note:tr('cities.japan_s_closest_city_to_korea')},
  // The Philippines beyond Luzon
- {id:'ceb',name:'Cebu',x:0,y:0,land:'ceb',reg:'AS',P:100,ix:'GotchaFIX Cebu',dc:"Magellan's Last Rack",note:tr('cities.the_philippines_second_city_reached')},
- {id:'dvo',name:'Davao',x:0,y:0,land:'mdn',reg:'AS',P:80,ix:'GotchaFIX Davao',dc:"Heimdall's Hut",note:tr('cities.mindanao_s_big_city_and_the')},
+ {id:'ceb',name:'Cebu',x:0,y:0,land:'ceb',reg:'AS',ph:true,arpu:PH_ARPU,P:100,ix:'GotchaFIX Cebu',dc:"Magellan's Last Rack",note:tr('cities.the_philippines_second_city_reached')},
+ {id:'dvo',name:'Davao',x:0,y:0,land:'mdn',reg:'AS',ph:true,arpu:PH_ARPU,P:80,ix:'GotchaFIX Davao',dc:"Heimdall's Hut",note:tr('cities.mindanao_s_big_city_and_the')},
 ];
 // Display-only nudges for cities that sit on top of each other at map scale; distances still use real lon/lat.
 const CITY_NUDGE={

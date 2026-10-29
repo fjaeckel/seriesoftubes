@@ -132,3 +132,19 @@ test('Cebu and Davao: RISE & Shine is on GotchaFIX Cebu and GotchaFIX Davao', ()
   for (const c of ['ceb', 'dvo']) assert.ok(ids(ev, `ixMembers('${c}')`).includes('rsh'), `RISE & Shine on ${c}`);
   assert.deepEqual(errors, []);
 });
+
+test('the Philippines: transit about 1.9 times the Asian rate, homes pay about US$25 a month', () => {
+  const { ev, errors } = load();
+  start(ev);
+  for (const c of ['mnl', 'ceb', 'dvo']) {
+    assert.equal(ev(`regionMult('${c}')`), ev('PH_TRANSIT'), `${c} pays the Philippine transit rate`);
+    assert.equal(ev(`CITY.${c}.arpu`), ev('PH_ARPU'));
+  }
+  // Manila's 100 GigE transit is about 1.9 times Jakarta's
+  assert.ok(Math.abs(ev("regionMult('mnl')/regionMult('jkt')") - 1.9) < 0.1);
+  assert.equal(ev("regionMult('sin')"), 2.5, 'the rest of Asia is unchanged');
+  // the same transit port costs more in Manila than in Jakarta
+  ev("ACT.buildPop({city:'mnl'});ACT.buildPop({city:'jkt'})");
+  assert.ok(ev("transitMo({net:'sgt',city:'mnl',tier:1},10)>transitMo({net:'sgt',city:'jkt',tier:1},10)"));
+  assert.deepEqual(errors, []);
+});

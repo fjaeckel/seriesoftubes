@@ -1,5 +1,5 @@
 function cnOk(){return S.cnLic&&S.cnLic.state==='ok';}
-function regionMult(c){const C=CITY[c];if(!C||C.cn)return 1;if(C.kr)return KR_TRANSIT;if(C.au)return AU_TRANSIT;if(C.tape)return 1.5;return C.reg==='AS'?2.5:C.reg==='AF'?2:C.reg==='OC'?1.8:C.reg==='SA'?1.6:1;}
+function regionMult(c){const C=CITY[c];if(!C||C.cn)return 1;if(C.kr)return KR_TRANSIT;if(C.au)return AU_TRANSIT;if(C.ph)return PH_TRANSIT;if(C.tape)return 1.5;return C.reg==='AS'?2.5:C.reg==='AF'?2:C.reg==='OC'?1.8:C.reg==='SA'?1.6:1;}
 // A network's own markup on top of that, where it is far from home (Glowball Sakura Lager in Asia and New Zealand).
 const netMult=(n,c)=>regionMult(c)*((n&&n.far&&CITY[c]&&n.far[CITY[c].reg])||1);
 const uaePair=(a,b)=>!!CITY[a].uae&&!!CITY[b].uae;

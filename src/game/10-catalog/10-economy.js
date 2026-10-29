@@ -14,6 +14,10 @@ const AU_TRANSIT=3,AU_WAVE={land:1.8,sub:2.6,ew:1.3},AU_IX=0.8,AU_ARPU=1.8,AU_WH
 // Fibre to the Basement: on your own fibre you skip the wholesale cut, but competing networks pay the
 // Regional Broadband Scheme levy instead (about $7 a month on a ~$90 bill).
 const AU_LEVY=0.08;
+/* The Philippines: few, thin routes out and an incumbent that owns most of them. 100 GigE transit in Manila
+   costs about 1.9 times Jakarta's (TeleGeography, 2026: $2.25 against $1.21 per Mbps), so the islands pay
+   1.9 times the Asian rate. Homes pay about ₱1,450 (US$25) a month, the incumbent's own figure (PLDT, 2025). */
+const PH_TRANSIT=4.7,PH_ARPU=0.7;
 const SITE2_COST=45000,SITE2_MO=3000,TE_COST=60000,TE_MO=4000;
 const SITE2_N=[tr('economy.the_other_building'),tr('economy.campus_b_the_one_with_parking'),tr('economy.across_the_river_dc'),tr('common.the_annex'),tr('economy.suburban_mega_shed'),tr('economy.the_cheaper_one'),tr('economy.formerly_a_shopping_mall'),tr('common.bunker_two')];
 // A city's buildings: '#' becomes a site number from 1 to dcN (dc2N for the second building) that stays put for this network.
