@@ -112,12 +112,17 @@ never freezes the game.
    handed back to links the active ones fill first and standby links take the rest.
 2. Builds the exit list `E`: embedded caches (rank 0), PNIs (1), IX ports (2),
    transit (3). Each exit has a capacity, the networks it can reach (`ok(net)`) and an
-   egress preference (`high`, `normal`, `low` = backup only).
+   egress preference (`high`, `normal`, `low` = backup only). A transit port can also be set to
+   carry (`t.carry`): see step 4.
 3. Builds flows: for every POP, its demand (eyeballs and customers) split across
    destination networks by their traffic share (`NSH`, with regional variants for
    China, Russia and Korea). Incidents can add junk flows or scale demand.
 4. Routes flows rank by rank: the nearest usable exit first, ECMP across equal exits,
-   consuming link, router (`nodeCap`) and exit capacity. With Auto-TE, overflow spills
+   consuming link, router (`nodeCap`) and exit capacity. A carrier's own transit port also
+   goes first, before plain transit, for traffic bound for that carrier or for a network that buys
+   transit from it (`25-direct-egress.js`: the shorter AS path): always at its own POP, and from every
+   POP when the port is set to carry. Such a port is still an ordinary transit exit for the other
+   POPs. A Prefer-marked port, backup, RouteScript and Auto-TE rules keep their say. With Auto-TE, overflow spills
    onto alternate paths; RouteScript rules (`teRules()`) can prefer, avoid, cap, drain
    or blackhole.
 5. Layer-2 customers (L2VPN, SD-WAN, waves) are carved out of link capacity first.

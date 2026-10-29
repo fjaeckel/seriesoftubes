@@ -34,6 +34,10 @@ function vxcPanel(l){
   return h;
 }
 function prefCtl(kind,id,cur){cur=cur||'normal';return `<div class="btns"><span class="meta" style="align-self:center">${tr('common.egress')}</span>${Object.keys(PREF).map(v=>btn(PREF[v],'setPref',{kind,id,v},cur===v?'pink sm':'ghost sm')).join('')}</div>`;}
+// At its own POP a carrier's port always takes that carrier's traffic (25-direct-egress.js). From POPs with no port of it, the
+// traffic goes to the nearest transit port, or across your network to this one. Only worth asking when something else could take it.
+function carryCtl(t){if(Object.keys(S.pops).length<2||!S.transit.some(x=>x.net!==t.net))return '';const n=esc(NET[t.net].name);
+  return `<div class="btns"><span class="meta" style="align-self:center">${tr('link_panels.traffic_for_net',{net:n})}</span>${btn(tr('link_panels.nearest_port'),'setCarry',{id:t.id,on:0},t.carry?'ghost sm':'pink sm')}${btn(tr('link_panels.carry_here'),'setCarry',{id:t.id,on:1},t.carry?'pink sm':'ghost sm')}</div><div class="meta">${t.carry?tr('link_panels.every_pop_carries_net_s_traffic',{net:n}):tr('link_panels.at_this_pop_net_s_traffic_always',{net:n})}</div>`;}
 function trafficSection(l){
   const rec=R.ef[edgeKey(l)],n=pairLinks(l.a,l.b).length;
   let h=`<section><h3>${tr('link_panels.what_s_on_this_link')}</h3>`;

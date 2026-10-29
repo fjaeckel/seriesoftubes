@@ -14,6 +14,9 @@ function network(ev) {
       S.links.push({id:'df'+i,a:cities[i],b:cities[(i+1)%cities.length],kind:'df',own:true,sys:'roadm',ch:Array(32).fill('tp16'),km:800,ready:0,cut:0,mo:100});
       S.links.push({id:'w'+i,a:cities[i],b:cities[(i+2)%cities.length],kind:'wave',tier:2,km:1200,cut:0,mo:100});
       S.transit.push({id:'transit'+i,net:'cog',city:cities[i],tier:1,down:0});
+      // Other carriers at some of the same POPs: a carrier's own port beats the rest for traffic bound for it.
+      if(i%2===0)S.transit.push({id:'transitL'+i,net:'lvl',city:cities[i],tier:1,down:0});
+      if(i%3===0)S.transit.push({id:'transitT'+i,net:'tly',city:cities[i],tier:1,down:0});
       S.biz.push({id:'l2-'+i,name:'Circuit '+i,city:cities[i],city2:cities[(i+4)%cities.length],type:'l2vpn',bw:50,rate:100,reqs:['diverse'],route:i%3===0?'scenic':i%3===1?'fast':'normal'});
     }
     compute();`);
@@ -32,9 +35,14 @@ test('indexed routing matches the simple allocation loop across network changes'
     network(ev);
     const changes = [
       '',
+      // Ports set to carry pull their carrier's traffic from every POP; the rest only take their own POP's.
+      "S.transit.filter(t=>t.net==='lvl').forEach((t,i)=>{if(i%2===0)t.carry=true})",
+      "S.transit.filter(t=>t.net==='tly').forEach(t=>{t.carry=true})",
+      "S.transit.filter(t=>t.net==='lvl').forEach((t,i)=>{t.pref=i%2?'low':'normal'})",
       "S.pni.forEach((p,i)=>p.pref=i%3===0?'high':i%3===1?'low':'normal')",
       "S.te={on:true,script:''}",
       "S.te.script='prefer pni for goggle\\nspill at 80%\\navoid transit for netchill'",
+      "S.te.script='avoid transit level tree\\nprefer transit tell-ya\\nspill at 80%'",
       "S.te.script='prefer transit Cogentle\\nprepend transit Cogentle 2\\nprotect customers'",
       "S.ev.rpki={nets:['ggl','nfx'],until:S.day+3};S.ev.depeer=S.day+3",
       "S.ev.ddos={city:'fra',until:S.day+3,gbps:300,vec:'syn',entry:{k:'edge'}}",

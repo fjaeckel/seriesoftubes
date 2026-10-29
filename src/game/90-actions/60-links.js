@@ -29,6 +29,7 @@ Object.assign(ACT,{
  cancelVxc:({id})=>{if(UI.confirm!==id){UI.confirm=id;renderPanel();return;}S.links=S.links.filter(l=>l.id!==id);prunePairMet();const rem=remoteCities();for(const c in S.ixp){if(!S.pops[ixCity(c)]&&!rem.includes(ixCity(c))){delete S.ixp[c];delete S.rs[c];for(const k in S.peers)if(k.endsWith('@'+c))delete S.peers[k];}}UI.sel=null;UI.confirm=null;after();},
  setPref:({kind,id,v})=>{if(!own(PREF,v))return;if(kind!=='t'&&kind!=='p'&&!(isIx(id)&&S.ixp[id]!==undefined))return;if(kind==='t'){const t=S.transit.find(x=>x.id===id);if(t)t.pref=v;}else if(kind==='p'){const x=S.pni.find(y=>y.id===id);if(x)x.pref=v;}else{S.ixPref=S.ixPref||{};S.ixPref[id]=v;}sfx('click');after();},
  setMetric:({id,v})=>{if(!own(MET,v))return;const l=S.links.find(x=>x.id===id);if(!l)return;const m=S.pairMet||(S.pairMet={}),k=edgeKey(l);if(v==='normal')delete m[k];else m[k]=v;sfx('click');after();},
+ setCarry:({id,on})=>{const t=S.transit.find(x=>x.id===id);if(!t)return;if(on)t.carry=true;else delete t.carry;sfx('click');after();},
  setStandby:({id,on})=>{const l=S.links.find(x=>x.id===id);if(!l)return;if(on)l.standby=true;else delete l.standby;sfx('click');after();},
  goEgress:({city,k})=>{ACT.focusCity({city});UI.tab=k==='t'?'up':k==='l2'?'cust':k==='nni'?'links':'peer';renderPanel();},
 });
