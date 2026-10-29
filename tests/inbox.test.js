@@ -214,6 +214,30 @@ test('now and then a route is sold out of a wave size, for a while, and asking a
   assert.deepEqual(errors, []);
 });
 
+test('#201 upgrading an existing wave respects sold-out route capacity', () => {
+  const { ev, errors } = load();
+  setup(ev);
+  ev("ACT.buildPop({city:'ams'});S.pops.ams.rgen=3");
+  const day = ev("(()=>{for(let d=90;d<20000;d++){S.day=d;if(soldOut('fra','ams',2,null))return d;}return -1;})()");
+  assert.ok(day > 0);
+  ev(`S.day=${day}`);
+  const so = JSON.parse(ev("JSON.stringify(soldOut('fra','ams',2,null))"));
+  ev("UI.via=null;openLinkModal('fra','ams');ACT.buildLink({tier:1})");
+  assert.equal(ev('S.links.length'), 1);
+  assert.equal(ev('S.links[0].tier'), 1);
+  const linkId = ev('S.links[0].id');
+  ev(`UI.sel={type:'link',id:'${linkId}'};renderPanel()`);
+  assert.match(ev("document.getElementById('panelBody').textContent"), /sold out for \d+ days/);
+  ev(`ACT.upLink({id:'${linkId}',tier:2})`);
+  assert.equal(ev('S.links[0].tier'), 1, 'wave was not upgraded');
+  assert.match(ev("document.getElementById('toasts').textContent"), /No 400G capacity on this route/);
+  ev(`S.day=${so.until};renderPanel()`);
+  assert.doesNotMatch(ev("document.getElementById('panelBody').textContent"), /sold out for \d+ days/);
+  ev(`ACT.upLink({id:'${linkId}',tier:2})`);
+  assert.equal(ev('S.links[0].tier'), 2, 'wave upgraded when capacity becomes available');
+  assert.deepEqual(errors, []);
+});
+
 test('peering policy: open accepts everyone, selective is quieter but manual, closed scares customers; raise all limits at once', () => {
   const { ev, errors } = load();
   setup(ev);

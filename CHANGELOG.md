@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Upgrading an existing wave now respects sold-out route capacity (#201). When a wave size is sold out on a route, upgrading a smaller wave to that size is disabled until capacity frees up.
+
 ## [1.37.0] — 2026-10-28
 
 - Series of Tubes now speaks German. The game follows your browser's language the first time, and you can switch to German under Settings or on the title screen. Networking terms like Peering and Transit stay in English, the way network engineers say them.
