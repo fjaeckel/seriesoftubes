@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Your IP address lessor can now take its space back, now and then: one of your waves or fibers goes dark for 7 to 60 days, mostly at the shorter end, while the /31 on its point-to-point link is renumbered. Lair-us is the lessor, it only strikes once you have a few links to lose and never while an earlier outage is still being fixed, and the link panel says why the link is dark and when it returns. A parallel link on another path rides it out, and no rush repair can speed it up.
+
 ## [1.37.0] — 2026-10-28
 
 - Series of Tubes now speaks German. The game follows your browser's language the first time, and you can switch to German under Settings or on the title screen. Networking terms like Peering and Transit stay in English, the way network engineers say them.

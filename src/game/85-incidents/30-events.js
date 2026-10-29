@@ -3,6 +3,7 @@ function fireEvent(){
   if(S.day>50)opts.push('sanction','tariff','hijack','landban','shutdown','redsea','baltic');
   if(S.day>HW_FREE&&!hwShock())opts.push('hwshock');
   if(S.day>90&&S.links.filter(l=>l.kind==='wave'&&!l.sub).length>=3)opts.push('ctrlplane');
+  if(S.day>60&&!S.inc.some(i=>i.type==='ipspace')&&ipsLinks().length>=3)opts.push('ipspace');
   if(Object.keys(S.pops).some(ruCity))opts.push('runet','runet');
   if(S.pops.doh&&Object.keys(S.pops).some(c=>CITY[c].gcc||CITY[c].uae)&&!(S.ev.gulf>S.day))opts.push('gulf');
   if(Object.keys(S.pops).some(c=>CITY[c].saudi))opts.push('mega');
@@ -21,6 +22,7 @@ function fireEvent(){
     const RN={EU:tr('common.europe'),AM:tr('common.north_america'),SA:tr('common.south_america'),AS:tr('common.asia'),OC:tr('common.oceania'),AF:tr('common.africa')};
     addInc({type:'ctrlplane',ref:'reg:'+reg,links:hit.map(l=>l.id),until,msg:tr('events.your_wave_supplier_pushed_one',{n:hit.length,reg:RN[reg]||reg}),cost:Math.round(hit.reduce((a,l)=>a+l.mo,0)*0.3),fix:tr('events.escalate_to_their_cto')},'ctrlplane');
     toast(tr('events.optical_control_plane_meltdown_every',{reg:RN[reg]||reg}),'bad');sfx('alert');return;}
+  if(e==='ipspace'){fireIpSpace();return;}
   if(e==='krexit'){S.krExit=S.day+1;S.stats.incidents++;S.stats.survived++;
     toast(tr('events.glitch_is_leaving_korea_the_game'),'bad');sfx('alert');return;}
   if(e==='krroute'){S.ev.krroute=S.day+20;addInc({type:'krroute',ref:'icn',until:S.day+20,msg:tr('events.faceplant_got_tired_of_korean_usage'),cost:0},'krroute');

@@ -61,7 +61,7 @@ test('every incident and event type fires and clears cleanly', () => {
     ev('dayTick()');
   }
   const evSrc = ev('fireEvent.toString()');
-  for (const e of ['viral','price','grant','sanction','tariff','hijack','landban','shutdown','redsea','baltic','runet','typhoon','golden','gfw']) {
+  for (const e of ['viral','price','grant','sanction','tariff','hijack','landban','shutdown','redsea','baltic','ipspace','runet','typhoon','golden','gfw']) {
     ev('window.__fe=' + evSrc.replace(/^function fireEvent/, 'function').replace('const e=pick(opts);', `const e='${e}';`));
     ev('__fe()');
     ev('dayTick()');
