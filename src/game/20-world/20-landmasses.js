@@ -79,8 +79,9 @@ LANDS_LL.push(
 LANDS_LL.push(
  {id:'mv',ll:[[73.11,4.48],[73.91,4.48],[73.91,3.88],[73.11,3.88]]},
 );
-// The Visayas: Cebu is its own island, reached from Luzon only by domestic cable.
+// The Visayas and Mindanao: Cebu and Davao are islands of their own, reached from Luzon only by cable.
 LANDS_LL.push(
  {id:'ceb',ll:[[123.3,11.3],[124.1,11.3],[124.1,9.4],[123.3,9.4]]},
+ {id:'mdn',ll:[[121.9,7],[123,8.4],[125.4,9.8],[126.6,7.5],[126.2,5.6],[125,5.6],[122,6.6]]},
 );
 const LANDS=LANDS_LL.map(l=>({id:l.id,hide:true,pts:l.ll.map(q=>proj(q[0],q[1]))}));

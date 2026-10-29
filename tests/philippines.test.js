@@ -84,3 +84,42 @@ test('Cebu: its own island, GotchaFIX Cebu, reached by two domestic cables, in t
   ev('cam.z=5;cam.x=CITY.ceb.x;cam.y=CITY.ceb.y;draw(0)');
   assert.deepEqual(errors, []);
 });
+
+test('Davao: Mindanao, GotchaFIX Davao, the trans-Pacific landings moved from Manila, and cables from Cebu', () => {
+  const { ev, errors } = load();
+  start(ev);
+  assert.ok(ev("isSub('dvo','mnl')&&isSub('dvo','ceb')"), 'Davao is on Mindanao');
+  assert.ok(ev('onLand(CITY.dvo.x,CITY.dvo.y)'), 'Davao is drawn on land');
+  assert.equal(ev('CITY.dvo.ix'), 'GotchaFIX Davao');
+  assert.equal(ev('CITY.dvo.dc'), "Heimdall's Hut");
+  // Bi-Frosted's Philippine branch and SEA-US land at Davao, not Manila
+  const at = (cid, c) => ids(ev, `CABLE_PAIRS.filter(p=>p.cid==='${cid}'&&(p.a==='${c}'||p.b==='${c}')).map(p=>p.a==='${c}'?p.b:p.a)`).sort();
+  assert.deepEqual(at('bifrost', 'mnl'), []);
+  assert.deepEqual(at('bifrost', 'dvo'), ['gum', 'jkt']);
+  assert.deepEqual(at('seaus', 'mnl'), []);
+  assert.deepEqual(at('seaus', 'dvo'), ['gum']);
+  assert.ok(ev("cablesFor('jkt','gum').some(p=>p.cid==='bifrost')&&cablesFor('gum','lax').some(p=>p.cid==='bifrost')"), 'the trunk stays');
+  assert.deepEqual(ids(ev, "cablesFor('ceb','dvo').map(p=>p.cid)").sort(), ['dfon', 'pdscn', 'vismin']);
+  for (const n of ['pld', 'glb']) assert.ok(ev(`sellsAt(NET.${n},'dvo')`), `${n} sells transit in Davao`);
+  assert.ok(ev("NET.cvg.pops.includes('dvo')"));
+  ev('cam.z=5;cam.x=CITY.dvo.x;cam.y=CITY.dvo.y;draw(0)');
+  assert.deepEqual(errors, []);
+});
+
+test('Davao: a saved link on a Bi-Frosted or SEA-US pair that moved keeps working, without the cable', () => {
+  const { ev, errors } = load();
+  start(ev);
+  for (const c of ['mnl', 'jkt', 'hkg']) ev(`ACT.buildPop({city:'${c}'});S.pops.${c}.rgen=3`);
+  ev("UI.via='sjcph';UI.route='same';openLinkModal('mnl','hkg');ACT.buildLink({tier:2});closeModal()");
+  ev("UI.via='sjcph';UI.route='same';openLinkModal('mnl','hkg');ACT.buildLink({tier:2});closeModal()");
+  assert.equal(ev('S.links.length'), 2);
+  // as an old save had them: Bi-Frosted Jakarta–Manila and an untouched Manila–Hong Kong link
+  ev("const l=S.links[0];l.a='jkt';l.b='mnl';l.km=kmBetween('jkt','mnl');l.cable='bifrost'");
+  ev('const o=JSON.parse(JSON.stringify(S));sanitize(o);window.__o=o');
+  assert.equal(ev('__o.links.length'), 2, 'the link survives');
+  assert.equal(ev("__o.links.find(l=>l.a==='jkt').cable"), null, 'its cable tag is dropped');
+  assert.equal(ev("__o.links.find(l=>l.b==='hkg').cable"), 'sjcph', 'a pair that still exists keeps its cable');
+  ev('S=__o;after();compute()');
+  ev('cam.z=1;draw(0)');
+  assert.deepEqual(errors, []);
+});
