@@ -24,7 +24,7 @@ const XIX=[
  {id:'sin~2',c:'sin',name:'Kopi-IX',cheap:0.6,take:0.5,blurb:tr('rival_exchanges.strong_sweet_and_cheaper_than_the')},
  {id:'hkg~2',c:'hkg',name:'Dim-Sum-IX',cheap:0.6,take:0.5,blurb:tr('rival_exchanges.lots_of_small_sessions_on_little')},
  {id:'mnl~2',c:'mnl',name:'Bayanihan-IX',cheap:0.3,take:0.4,blurb:tr('rival_exchanges.the_whole_neighbourhood_carries_the')},
- {id:'mnl~3',c:'mnl',name:'In-Vitro-IX',cheap:1.4,take:0.2,core:['pld','smt'],blurb:tr('rival_exchanges.grown_in_a_lab_by_the')},
+ {id:'mnl~3',c:'mnl',name:'In-Vitro-IX',cheap:2.2,take:0.2,core:['pld','smt'],blurb:tr('rival_exchanges.grown_in_a_lab_by_the')},
  {id:'tok~2',c:'tok',name:'Bento-IX',cheap:0.65,take:0.5,core:['drz','akm','cfl','sgt','msf','amz'],blurb:tr('rival_exchanges.tokyo_has_more_exchanges_than_anyone')},
  {id:'syd~2',c:'syd',name:'At-The-Edge IX',cheap:.7,take:0.5,core:['drz','nfx','ggl','fbk','akm','cfl','amz','msf','bdc','slw','abb','voc','stb','spl','lpt','npt','mag'],blurb:tr('rival_exchanges.the_challenger_to_ix_straya_pops')},
  {id:'bom~2',c:'bom',name:'Vada-Pav-IX',cheap:0.45,take:0.45,blurb:tr('rival_exchanges.mumbai_s_street_food_exchange_fast')},

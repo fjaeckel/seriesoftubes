@@ -21,6 +21,12 @@ test('Manila: GotchaFIX, Bayanihan-IX and the incumbent-run In-Vitro-IX', () => 
   const vitro = ids(ev, "ixMembers('mnl~3')");
   assert.ok(vitro.includes('pld') && vitro.includes('smt'));
   assert.ok(ids(ev, "ixMembers('mnl~2')").includes('dto'));
+  // GetaFIX's price list: 10G for $700 and 100G for $2,800 a month, within a few percent
+  for (const c of ['mnl', 'ceb', 'dvo']) {
+    ev(`ACT.buildPop({city:'${c}'})`);
+    assert.ok(Math.abs(ev(`ixPortMo('${c}',0)`) - 700) <= 35, `${c} 10G is ${ev(`ixPortMo('${c}',0)`)}`);
+    assert.ok(Math.abs(ev(`ixPortMo('${c}',1)`) - 2800) <= 140, `${c} 100G is ${ev(`ixPortMo('${c}',1)`)}`);
+  }
   // the community exchange is the cheapest port in town, the incumbent's the dearest
   assert.ok(ev("ixMul('mnl~2')<ixMul('mnl')&&ixMul('mnl')<ixMul('mnl~3')"));
   assert.deepEqual(errors, []);
