@@ -422,7 +422,7 @@
 "cables.the_incumbent_s_own_line_south":"La linea dell'operatore storico verso sud: via terra fino a Lucena, poi sotto il mare fino a Cebu. Chiama ancora ogni sera.",
 "cables.the_newest_cable_from_south_africa":"Il cavo più recente dal Sudafrica a Madagascar, Riunione e Mauritius, condiviso dalle telco delle isole.",
 "cables.the_old_workhorse_s_younger_sibling":"Il fratellino del vecchio cavallo da tiro: da Los Angeles a Sydney con una diramazione per le Figi.",
-"cables.the_philippines_longest_domestic_cable_fresh":"Il cavo nazionale più lungo delle Filippine, fresco ogni mattina. Da Luzon a Cebu, isola dopo isola.",
+"cables.the_philippines_longest_domestic_cable_fresh":"Il cavo nazionale più lungo delle Filippine, fresco ogni mattina. Da Luzon a Cebu e Mindanao, isola dopo isola.",
 "cables.the_pretty_way_around_east_asia":"Il giro panoramico dell’Asia orientale.",
 "cables.the_previous_generation_still":"La generazione precedente. Porta ancora quasi tutto il traffico di Pakistan, Sri Lanka e Bangladesh, tenuto insieme dalla speranza.",
 "cables.the_sea_stallion_blackpool_to":"Lo Stallone del Mare: da Blackpool alla Danimarca, al galoppo attorno al nord della Scozia.",

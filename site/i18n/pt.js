@@ -422,7 +422,7 @@
 "cables.the_incumbent_s_own_line_south":"A linha própria da operadora histórica rumo ao sul: por terra até Lucena, depois sob o mar até Cebu. Ainda liga toda noite.",
 "cables.the_newest_cable_from_south_africa":"O cabo mais novo da África do Sul para Madagascar, Reunião e Maurício, compartilhado pelas operadoras das próprias ilhas.",
 "cables.the_old_workhorse_s_younger_sibling":"O irmão mais novo do velho burro de carga: de Los Angeles a Sydney com um ramal para Fiji.",
-"cables.the_philippines_longest_domestic_cable_fresh":"O cabo nacional mais longo das Filipinas, fresquinho toda manhã. De Luzon a Cebu, ilha por ilha.",
+"cables.the_philippines_longest_domestic_cable_fresh":"O cabo nacional mais longo das Filipinas, fresquinho toda manhã. De Luzon a Cebu e Mindanao, ilha por ilha.",
 "cables.the_pretty_way_around_east_asia":"O caminho bonito pela Ásia Oriental.",
 "cables.the_previous_generation_still":"A geração anterior. Ainda leva quase tudo de Paquistão, Sri Lanka e Bangladesh, na base da esperança.",
 "cables.the_sea_stallion_blackpool_to":"O Sea Stallion: de Blackpool à Dinamarca, galopando pelo norte da Escócia.",

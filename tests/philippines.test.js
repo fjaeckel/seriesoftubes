@@ -100,6 +100,8 @@ test('Davao: Mindanao, GotchaFIX Davao, the trans-Pacific landings moved from Ma
   assert.deepEqual(at('seaus', 'dvo'), ['gum']);
   assert.ok(ev("cablesFor('jkt','gum').some(p=>p.cid==='bifrost')&&cablesFor('gum','lax').some(p=>p.cid==='bifrost')"), 'the trunk stays');
   assert.deepEqual(ids(ev, "cablesFor('ceb','dvo').map(p=>p.cid)").sort(), ['dfon', 'pdscn', 'vismin']);
+  // PDSCN's Luzon–Mindanao segment runs the whole way, so Manila reaches Davao in one hop
+  assert.deepEqual(ids(ev, "cablesFor('mnl','dvo').map(p=>p.cid)"), ['pdscn']);
   for (const n of ['pld', 'glb']) assert.ok(ev(`sellsAt(NET.${n},'dvo')`), `${n} sells transit in Davao`);
   assert.ok(ev("NET.cvg.pops.includes('dvo')"));
   ev('cam.z=5;cam.x=CITY.dvo.x;cam.y=CITY.dvo.y;draw(0)');

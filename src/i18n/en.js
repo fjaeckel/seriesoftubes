@@ -423,7 +423,7 @@
 "cables.the_incumbent_s_own_line_south":"The incumbent's own line south: overland to Lucena, then under the sea to Cebu. Still calls every night.",
 "cables.the_newest_cable_from_south_africa":"The newest cable from South Africa to Madagascar, Réunion and Mauritius, shared by the islands’ own telcos.",
 "cables.the_old_workhorse_s_younger_sibling":"The old workhorse’s younger sibling: Los Angeles to Sydney with a branch to Fiji.",
-"cables.the_philippines_longest_domestic_cable_fresh":"The Philippines' longest domestic cable, fresh every morning. Luzon to Cebu, island by island.",
+"cables.the_philippines_longest_domestic_cable_fresh":"The Philippines' longest domestic cable, fresh every morning. Luzon to Cebu and Mindanao, island by island.",
 "cables.the_pretty_way_around_east_asia":"The pretty way around East Asia.",
 "cables.the_previous_generation_still":"The previous generation. Still carries most of Pakistan, Sri Lanka and Bangladesh, held together with hope.",
 "cables.the_sea_stallion_blackpool_to":"The Sea Stallion: Blackpool to Denmark, galloping round the north of Scotland.",

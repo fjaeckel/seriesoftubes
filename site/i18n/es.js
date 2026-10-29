@@ -422,7 +422,7 @@
 "cables.the_incumbent_s_own_line_south":"La línea propia del operador histórico hacia el sur: por tierra hasta Lucena y luego bajo el mar hasta Cebú. Sigue llamando cada noche.",
 "cables.the_newest_cable_from_south_africa":"El cable más nuevo de Sudáfrica a Madagascar, Reunión y Mauricio, compartido por las telcos de las propias islas.",
 "cables.the_old_workhorse_s_younger_sibling":"El hermano menor del viejo caballo de batalla: de Los Ángeles a Sídney con una rama a Fiyi.",
-"cables.the_philippines_longest_domestic_cable_fresh":"El cable nacional más largo de Filipinas, recién hecho cada mañana. De Luzón a Cebú, isla a isla.",
+"cables.the_philippines_longest_domestic_cable_fresh":"El cable nacional más largo de Filipinas, recién hecho cada mañana. De Luzón a Cebú y Mindanao, isla a isla.",
 "cables.the_pretty_way_around_east_asia":"El camino bonito alrededor de Asia Oriental.",
 "cables.the_previous_generation_still":"La generación anterior. Aún lleva la mayor parte de Pakistán, Sri Lanka y Bangladés, sostenida con esperanza.",
 "cables.the_sea_stallion_blackpool_to":"El Semental del Mar: de Blackpool a Dinamarca, galopando por el norte de Escocia.",
