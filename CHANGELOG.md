@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Manage redundant links between cities: the link panel's Redundancy section now opens a manager to review all parallel links on the route, select idle or standby circuits with one click, and decommission them in bulk with safety checks that keep at least one link, verify remaining traffic capacity, protect customer leases, and guard diverse paths.
 ## [1.37.0] — 2026-10-28
 
 - Series of Tubes now speaks German. The game follows your browser's language the first time, and you can switch to German under Settings or on the title screen. Networking terms like Peering and Transit stay in English, the way network engineers say them.
