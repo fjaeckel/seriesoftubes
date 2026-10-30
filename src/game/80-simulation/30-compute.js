@@ -182,8 +182,8 @@ function compute(){
       let V=L;if(NCOMP>1){const cs=[];for(const e of L){const k=COMP[e.ci];if(k>=0)(cs[k]||(cs[k]=[])).push(e);}for(const s of cs)if(s)idx(s);V={cs};}else idx(L);LIST.set(key,V);m[r]=V;}}
   // The flow being routed, and from its POP: distances, arriving edges and the paths walked so far, by city index.
   let f=null,Dv=null,Pv=null,PP=null,vis=0;const walked=[],G=[],REST=[],NEG=[];
-  // An exit the flow can still try: not visited yet, not full when the flow started, and reachable from the POP.
-  const usable=e=>e.vis!==vis&&e.used<e.cap&&Dv[e.ci]<Infinity,byDist=(a,b)=>a.hp-b.hp||Dv[a.ci]-Dv[b.ci];
+  // An exit the flow can still try: not visited yet, not full when the flow started, reachable, and not on a saturated path.
+  const usable=e=>e.vis!==vis&&e.used<e.cap&&Dv[e.ci]<Infinity&&!gone(e),byDist=(a,b)=>a.hp-b.hp||Dv[a.ci]-Dv[b.ci];
   // Push up to `want` along one path to exit e; returns what fitted. Capacity only shrinks while routing, so a
   // path with one full link or node fits nothing for the rest of this pass: mark it, and later tries cost nothing
   // (most tries are into paths that filled up earlier).
@@ -238,7 +238,7 @@ function compute(){
          when it does not fit. Most often the group is the POP's own exits: with no preferred exit on the list
          and no other city at distance 0, the usable ones here are exactly the first group, already in order. */
       G.length=0;
-      if(!lst.hi&&ALONE[f.ci]){const here=lst.at.get(f.ci);if(here)for(const e of here)if(e.used<e.cap)G.push(e);}
+      if(!lst.hi&&ALONE[f.ci]){const here=lst.at.get(f.ci);if(here)for(const e of here)if(e.used<e.cap&&!gone(e))G.push(e);}
       if(!G.length){
         // One scan: the best (preference, distance) so far and, in list order, the exits within 1e-6 of it. The best
         // distance only goes down, so dropping the ones it leaves behind gives exactly the exits a second scan would.
@@ -247,9 +247,9 @@ function compute(){
            them still have room no other exit can have become better, and the scan would find the same group (an
            empty one, no usable exit, stays empty). */
         const gc=lst.gc||(lst.gc=[]),c=gc[f.ci];
-        if(c!==undefined&&c.every(e=>e.used<e.cap)){if(!c.length)continue;for(let k=0;k<c.length;k++)G.push(c[k]);}else{
+        if(c!==undefined&&c.every(e=>e.used<e.cap&&!gone(e))){if(!c.length)continue;for(let k=0;k<c.length;k++)G.push(c[k]);}else{
         let bh=2,bd=Infinity,full=0;
-        for(let li=0,LN=lst.length;li<LN;li++){const e=lst[li];if(e.used>=e.cap){full++;continue;}const d=Dv[e.ci];if(d===Infinity)continue;const h=e.hp;
+        for(let li=0,LN=lst.length;li<LN;li++){const e=lst[li];if(e.used>=e.cap||gone(e)){full++;continue;}const d=Dv[e.ci];if(d===Infinity)continue;const h=e.hp;
           if(h<bh){bh=h;bd=d;G.length=0;G.push(e);}
           else if(h===bh){if(d<bd){bd=d;let k=0;for(let gi=0;gi<G.length;gi++){const x=G[gi];if(Dv[x.ci]-d<1e-6)G[k++]=x;}G.length=k;G.push(e);}else if(d-bd<1e-6)G.push(e);}}
         if(full*4>=lst.length&&full){let k=0;for(let li=0;li<lst.length;li++){const e=lst[li];if(e.used<e.cap)lst[k++]=e;}lst.length=k;}

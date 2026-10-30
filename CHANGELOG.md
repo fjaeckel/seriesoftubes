@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Saturated shortest paths are skipped during the candidate exit scan and usable exit filtering, preventing routing freezes on congested networks (#210).
 - Premium submarine terminals and Optical engineering can no longer be bought on a cable where they would change nothing (#198). The button now says so, and an upgrade that only helps together with the other one stays available.
 - A wave size that is sold out on a route can no longer be reached by upgrading a smaller wave on it (#201). The upgrade button says how long it is sold out, just like when buying.
 - Choosing Both for a PNI with one member now really splits it: the second member arrives in the other building when the augment lands, instead of joining the first (#219).
