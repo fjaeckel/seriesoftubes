@@ -9,6 +9,7 @@ All notable changes to this project are documented here. The project follows
 - In cities with two data centres, splitting a single-member PNI across both buildings now orders the second LAG member and sets the PNI to both sites right away, instead of ignoring the click.
 - The NOC dashboard's Customers tab can now sort contracts by requested bandwidth, largest or smallest first, and shows the bandwidth on each contract line.
 - The Customers tab also gains a filter for contracts with pending requirements, showing who is still waiting on fiber, generators, extra routers or diverse paths even while they are happy or in provisioning grace.
+- Manage redundant links between cities: the link panel's Redundancy section now opens a manager to review all parallel links on the route, select idle or standby circuits with one click, and decommission them in bulk with safety checks that keep at least one link, verify remaining traffic capacity, protect customer leases, and guard diverse paths.
 
 ## [1.37.0] — 2026-10-28
 
