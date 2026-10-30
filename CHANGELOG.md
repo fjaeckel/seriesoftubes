@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Filter customer contracts by pending requirements: the NOC dashboard Customers tab can now filter contracts down to those whose requirements (such as diverse routes, local transit/IX breakout, or IPv6) are currently unmet.
+- Sort customer contracts by bandwidth: the NOC dashboard Customers tab now supports sorting by contract bandwidth (ascending or descending), with quick sort controls on the mobile card list and a clickable header on the desktop table.
 - Premium submarine terminals and Optical engineering can no longer be bought on a cable where they would change nothing (#198). The button now says so, and an upgrade that only helps together with the other one stays available.
 - A wave size that is sold out on a route can no longer be reached by upgrading a smaller wave on it (#201). The upgrade button says how long it is sold out, just like when buying.
 - Choosing Both for a PNI with one member now really splits it: the second member arrives in the other building when the augment lands, instead of joining the first (#219).
