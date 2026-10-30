@@ -29,6 +29,9 @@ test('Manila: GotchaFIX, Bayanihan-IX and the incumbent-run In-Vitro-IX', () => 
   }
   // the community exchange is the cheapest port in town, the incumbent's the dearest
   assert.ok(ev("ixMul('mnl~2')<ixMul('mnl')&&ixMul('mnl')<ixMul('mnl~3')"));
+  // the incumbent charges double GotchaFIX's price
+  assert.equal(ev("ixPortMo('mnl~3',0)"), 1760);
+  assert.equal(ev("ixPortMo('mnl~3',1)"), 6600);
   assert.deepEqual(errors, []);
 });
 
