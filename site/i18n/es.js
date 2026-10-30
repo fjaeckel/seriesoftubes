@@ -955,6 +955,7 @@
 "common.backup_generator":"Generador de respaldo",
 "common.backup_only":"Solo respaldo",
 "common.badges":"Insignias",
+"common.bandwidth":"Ancho de banda",
 "common.bank":"Banco",
 "common.bankrupt":"En quiebra",
 "common.being_spliced":"Empalmando",
