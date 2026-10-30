@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- In cities with two data centres, splitting a single-member PNI across both buildings now orders the second LAG member and sets the PNI to both sites right away, instead of ignoring the click.
+
 ## [1.37.0] — 2026-10-28
 
 - Series of Tubes now speaks German. The game follows your browser's language the first time, and you can switch to German under Settings or on the title screen. Networking terms like Peering and Transit stay in English, the way network engineers say them.

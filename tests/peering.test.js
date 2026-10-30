@@ -268,3 +268,32 @@ test('community exchanges are wired up in every city, and Barcelona has Catnip-I
   }
   assert.deepEqual(errors, []);
 });
+
+test('splitting a single-member PNI across both sites orders a LAG augment and applies both sites', () => {
+  const { ev, errors } = load();
+  setup(ev);
+  ev("ACT.addSite({city:'fra'});S.pops.fra.rgen=RG.length-1;R.demTo.ggl=1e4;ACT.pni({city:'fra',net:'ggl',tier:1})");
+  ev('S.pni[0].ready=S.day;dayTick();compute()');
+  assert.equal(ev('S.pni.length'), 1);
+  assert.equal(ev('S.pni[0].n||1'), 1);
+  assert.equal(ev("S.pni[0].site || 'a'"), 'a');
+  assert.equal(ev('S.pni[0].up'), undefined);
+
+  // splitting across both sites adds a LAG member augment
+  ev("ACT.siteSet({k:'p',id:S.pni[0].id,s:'ab'})");
+  assert.equal(ev('S.pni[0].site'), 'ab', 'site is set to ab immediately');
+  assert.ok(ev('!!S.pni[0].up'), 'augment was ordered');
+  assert.equal(ev('S.pni[0].up.n'), 2);
+
+  // delivery promotes the augment and keeps both sites
+  ev('S.day=S.pni[0].up.ready-1;dayTick();compute()');
+  assert.equal(ev('S.pni[0].n'), 2);
+  assert.equal(ev('S.pni[0].up'), undefined);
+  assert.equal(ev('S.pni[0].site'), 'ab');
+
+  // traffic survives either site going dark
+  assert.equal(ev("liveN('fra','ab',S.pni[0].n)"), 2);
+  ev("addInc({type:'site',ref:'fra',site:'a',until:S.day+3,msg:'x',cost:0});compute()");
+  assert.equal(ev("liveN('fra','ab',S.pni[0].n)"), 1);
+  assert.deepEqual(errors, []);
+});
