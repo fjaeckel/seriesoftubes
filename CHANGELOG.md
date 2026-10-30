@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 - The NOC dashboard's Customers tab can now sort contracts by requested bandwidth, largest or smallest first, and shows the bandwidth on each contract line.
+- The Customers tab also gains a filter for contracts with pending requirements, showing who is still waiting on fiber, generators, extra routers or diverse paths even while they are happy or in provisioning grace.
 
 ## [1.37.0] — 2026-10-28
 
