@@ -3,7 +3,7 @@ Object.assign(ACT,{
  listMore:({k})=>{if(k!=='conn'&&k!=='cust')return;UI.listN=UI.listN||{};UI.listN[k]=listN(k)+LIST_PAGE;renderDash();},
  custF:({v})=>{UI.kf=UI.kf||{};UI.kf.f=v==='sad'?'sad':'';listReset('cust');renderDash();},
  custCity:({v})=>{UI.kf=UI.kf||{};UI.kf.city=isCity(v)?v:'';listReset('cust');renderDash();},
- custSort:({k})=>{if(!['mood','mo','name','city'].includes(k))return;listReset('cust');if(UI.custSort===k)UI.custDir=-(UI.custDir||1);else{UI.custSort=k;UI.custDir=k==='mo'?-1:1;}renderDash();},
+ custSort:({k})=>{if(!['mood','mo','bw','name','city'].includes(k))return;listReset('cust');if(UI.custSort===k)UI.custDir=-(UI.custDir||1);else{UI.custSort=k;UI.custDir=k==='mo'||k==='bw'?-1:1;}renderDash();},
  custOpen:({sad}={})=>{if(!S)return;UI.kf=sad?{f:'sad'}:{};listReset('cust');UI.dtab='cust';const d=$('dash');d.hidden=false;renderDash();d.scrollTop=0;},
  goConn:({city,k})=>{if(!isCity(city)||!own(CONN_K,k))return;$('dash').hidden=true;ACT.goEgress({city,k});},
  connF:({f,v})=>{const F=UI.cf=UI.cf||{};listReset('conn');if(f==='all'){UI.cf={};}else if(f==='k'){F.k=own(CONN_K,v)?v:'';}renderDash();},

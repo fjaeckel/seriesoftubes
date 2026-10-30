@@ -807,6 +807,7 @@
 "common.backup_generator":"Gerador de backup",
 "common.backup_only":"Só backup",
 "common.badges":"Medalhas",
+"common.bandwidth":"Banda",
 "common.bank":"Banco",
 "common.bankrupt":"Falência",
 "common.being_spliced":"Sendo emendada",

@@ -808,6 +808,7 @@
 "common.backup_generator":"Backup generator",
 "common.backup_only":"Backup only",
 "common.badges":"Badges",
+"common.bandwidth":"Bandwidth",
 "common.bank":"Bank",
 "common.bankrupt":"Bankrupt",
 "common.being_spliced":"Being spliced",

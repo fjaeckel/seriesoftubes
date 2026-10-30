@@ -807,6 +807,7 @@
 "common.backup_generator":"Generatore di riserva",
 "common.backup_only":"Solo backup",
 "common.badges":"Badge",
+"common.bandwidth":"Larghezza di banda",
 "common.bank":"Banca",
 "common.bankrupt":"In bancarotta",
 "common.being_spliced":"Giunzioni in corso",

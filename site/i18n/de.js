@@ -809,6 +809,7 @@
 "common.backup_generator":"Notstromgenerator",
 "common.backup_only":"Nur Backup",
 "common.badges":"Abzeichen",
+"common.bandwidth":"Bandbreite",
 "common.bank":"Bank",
 "common.bankrupt":"Bankrott",
 "common.being_spliced":"Wird gespleißt",

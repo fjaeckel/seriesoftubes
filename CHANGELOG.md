@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- The NOC dashboard's Customers tab can now sort contracts by requested bandwidth, largest or smallest first, and shows the bandwidth on each contract line.
+
 ## [1.37.0] — 2026-10-28
 
 - Series of Tubes now speaks German. The game follows your browser's language the first time, and you can switch to German under Settings or on the title screen. Networking terms like Peering and Transit stay in English, the way network engineers say them.

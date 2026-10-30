@@ -807,6 +807,7 @@
 "common.backup_generator":"Groupe électrogène de secours",
 "common.backup_only":"Secours seul",
 "common.badges":"Badges",
+"common.bandwidth":"Bande passante",
 "common.bank":"Banque",
 "common.bankrupt":"Faillite",
 "common.being_spliced":"Épissurage en cours",
