@@ -29,7 +29,7 @@ function mapStill(t,now){const sl=UI.sel,dr=UI.drag;
 function tickErr(e){console.error('[tubes] tick failed',e);if(UI.tickErr)return;UI.tickErr=true;track('tick_error',true);
   toast(tr('loop.something_in_the_noc_glitched_the'),'bad');}
 function boot(data){
-  i18nDom();
+  i18nDom();claimSave();
   try{UI.muted=localStorage.getItem('sot-mute')==='1';UI.anim=localStorage.getItem('sot-anim')||'auto';}catch(e){}
   applyAnim();
   if(data&&data.S){S=migrate(data.S);UI.started=true;if(data.cam)Object.assign(cam,data.cam);compute();renderAll();}

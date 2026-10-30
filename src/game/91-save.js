@@ -2,7 +2,17 @@
 /* A network too big for the browser's storage fails to save every time, and turning it into text takes a
    moment on huge saves, every 5 seconds and after every click. After a failure the autosave waits before trying
    again (1 minute, then 2, 4, at most 5); leaving the page, exporting or another game (a new S) still try at once. */
-function save(force){if(!S||S.lost)return;S.uiSpeed=UI.speed;S.cam={x:cam.x,y:cam.y,z:cam.z};const f=UI.saveFail;
+/* One game, one tab (#200): every tab writes the same save, so a forgotten tab with an older game overwrote a
+   newer one every 5 seconds. A tab claims the save when it opens; once another tab has claimed it, this one
+   stops saving and asks which game to keep. */
+const TAB=(self.crypto&&crypto.randomUUID?crypto.randomUUID():'')+Date.now().toString(36)+performance.now();
+const saveMine=()=>{try{const t=localStorage.getItem('sot-save-tab');return !t||t===TAB;}catch(e){return true;}};
+function claimSave(){UI.otherTab=false;try{localStorage.setItem('sot-save-tab',TAB);}catch(e){}}
+function otherTab(){UI.otherTab=true;if(!$('modal').hidden)return;
+  openModal(`<h2 style="font-size:26px">${tr('save.this_game_is_open_in_another')}</h2><p class="tagline">${tr('save.another_tab_saved_this_game_more')}</p><div class="btns">${btn(tr('save.load_the_newer_save'),'tabReload',{},'pink big')}${btn(tr('save.keep_playing_here'),'tabTakeOver',{},'ghost big')}</div>`);}
+function save(force){if(!S||S.lost)return;
+  if(UI.otherTab||!saveMine()){UI.lastSave=performance.now();otherTab();return;}
+  S.uiSpeed=UI.speed;S.cam={x:cam.x,y:cam.y,z:cam.z};const f=UI.saveFail;
   if(!force&&f&&f.s===S&&performance.now()-f.at<f.wait){UI.lastSave=performance.now();return;}
   const txt=JSON.stringify(packSave(S));
   const seq=UI.saveSeq=(UI.saveSeq||0)+1;
@@ -25,7 +35,7 @@ const unb64=t=>{const s=atob(t),u=new Uint8Array(s.length);for(let i=0;i<s.lengt
 const gzip=async txt=>GZ+b64(await gzPipe(new TextEncoder().encode(txt),new CompressionStream('gzip')));
 const gunzip=async raw=>new TextDecoder().decode(await gzPipe(unb64(raw.slice(GZ.length)),new DecompressionStream('gzip')));
 function gzSave(s,txt,seq){if(UI.gzBusy){UI.gzNext={s,txt,seq};return;}UI.gzBusy=true;
-  gzip(txt).then(v=>{if(s!==S||seq!==UI.saveSeq)return;try{localStorage.setItem('sot-save-v1',v);UI.saveFail=null;}catch(e){saveErr(e,s);}})
+  gzip(txt).then(v=>{if(s!==S||seq!==UI.saveSeq||!saveMine())return;try{localStorage.setItem('sot-save-v1',v);UI.saveFail=null;}catch(e){saveErr(e,s);}})
     .catch(e=>{console.error('[tubes] compressing the save failed',e);})
     .finally(()=>{UI.gzBusy=false;const n=UI.gzNext;UI.gzNext=null;if(n&&n.s===S)gzSave(n.s,n.txt,n.seq);});}
 // A compressed save is unpacked before the game boots, so loadSave() stays synchronous for everything else.

@@ -78,7 +78,8 @@ Development runs on `npm run dev` (assembles on every request, reloads on save);
 
 - **`S`**: the whole saved game (one JSON object). Cash, day, POPs, links, transit,
   IX ports, PNIs, caches, customers (`biz`), offers, incidents (`inc`), live events
-  (`ev`), stats, settings. Saved to `localStorage` key `sot-save-v1`.
+  (`ev`), stats, settings. Saved to `localStorage` key `sot-save-v1`; `sot-save-tab` names the
+  tab that may write it (the one opened last), so a forgotten tab cannot overwrite it.
 - **`R`**: results of the last `compute()`: per-link load, per-exit use, served and
   demanded traffic, reach, costs and revenue. Never saved; always rebuilt.
 - **`UI`**: view state (selection, open tabs, speed, confirmations). Not game state.
