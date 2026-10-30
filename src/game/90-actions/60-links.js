@@ -3,6 +3,40 @@ Object.assign(ACT,{
  decomOpen:({city})=>{UI.decom=new Set(city&&S.pops[city]?[city]:[]);decomModal();},
  decomToggle:({city})=>{if(!S.pops[city])return;UI.decom=UI.decom||new Set();if(UI.decom.has(city))UI.decom.delete(city);else UI.decom.add(city);decomModal();},
  decomGo:()=>{const sel=[...(UI.decom||[])].filter(c=>S.pops[c]);if(!sel.length||sel.length>=Object.keys(S.pops).length)return;closeModal();UI.decom=null;UI.sel=null;decommission(sel);sfx('alert');after();},
+ redundOpen:({a,b})=>{UI.redund={a,b,sel:new Set(),confirm:false};redundModal();},
+ redundToggle:({id})=>{if(!UI.redund)return;const s=UI.redund.sel;if(s.has(id))s.delete(id);else s.add(id);UI.redund.confirm=false;redundModal();},
+ redundSelectAll:()=>{if(!UI.redund)return;const {a,b,sel}=UI.redund,pl=pairLinks(a,b);
+   UI.redund.confirm=false;
+   const isL=l=>S.biz.some(x=>x.link===l.id)||S.offers.some(x=>x.link===l.id);
+   const eligible=pl.filter(l=>!isL(l));
+   if(eligible.length&&eligible.every(l=>sel.has(l.id))){for(const l of eligible)sel.delete(l.id);}
+   else{for(const l of eligible)sel.add(l.id);}
+   redundModal();},
+ redundSelectIdle:()=>{if(!UI.redund)return;const {a,b,sel}=UI.redund,pl=pairLinks(a,b);
+   UI.redund.confirm=false;
+   const isL=l=>S.biz.some(x=>x.link===l.id)||S.offers.some(x=>x.link===l.id);
+   const idle=pl.filter(l=>!isL(l)&&((R.load[l.id]||0)<1e-3||l.standby));
+   const sorted=idle.slice().sort((x,y)=>capOf(y)-capOf(x)||x.mo-y.mo);
+   const target=idle.length===pl.length?sorted.slice(1):idle;
+   if(target.length&&target.every(l=>sel.has(l.id))){for(const l of target)sel.delete(l.id);}
+   else{for(const l of target)sel.add(l.id);}
+   redundModal();},
+ redundGo:()=>{const RUI=UI.redund;if(!RUI)return;const {a,b,sel}=RUI,pl=pairLinks(a,b);
+   const isL=l=>S.biz.some(x=>x.link===l.id)||S.offers.some(x=>x.link===l.id);
+   const toRemove=pl.filter(l=>sel.has(l.id)&&!isL(l));
+   if(!toRemove.length)return;
+   const remLinks=pl.filter(l=>!sel.has(l.id));
+   const wouldCutAll=remLinks.length===0;
+   if(wouldCutAll&&!RUI.confirm){RUI.confirm=true;redundModal();return;}
+   let backTotal=0,moTotal=0;
+   for(const l of toRemove){const bk=cabBack(l);if(bk>0)backTotal+=bk;moTotal+=(l.mo||0);}
+   if(backTotal>0)S.cash+=backTotal;
+   const rIds=new Set(toRemove.map(l=>l.id));
+   S.links=S.links.filter(l=>!rIds.has(l.id));
+   prunePairMet();
+   closeModal();UI.redund=null;UI.sel=null;
+   toast(tr('link_panels.n_links_decommissioned_saved_mo',{n:toRemove.length,a:CITY[a].name,b:CITY[b].name,mo:fmt$(moTotal)}),'good');
+   sfx('coin');after();},
  rmLink:({id})=>{if(UI.confirm!==id){UI.confirm=id;renderPanel();return;}{const l=S.links.find(x=>x.id===id),back=cabBack(l);if(back>0){S.cash+=back;toast(tr('links.name_is_called_off_the_cable',{name:esc(l.cname||tr('common.your_cable')),price:fmt$(back)}),'good');}}S.links=S.links.filter(l=>l.id!==id);prunePairMet();UI.sel=null;UI.confirm=null;after();},
  // The chaos monkey takes a banana and goes home early (no bonus).
  mkBanana:()=>{if(!mkOn())return;if(!spend(mkBananaCost()))return;S.stats.bananas=(S.stats.bananas||0)+1;mkLeave('banana');track('monkey_banana');after();},
