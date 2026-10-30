@@ -170,3 +170,13 @@ test('Philippines: waves between the islands cost more than waves out of the cou
   assert.ok(w('ceb', 'dvo') > w('mnl', 'hkg'), 'even the short Cebu–Davao hop costs more than Hong Kong');
   assert.deepEqual(errors, []);
 });
+
+test('Philippines: eyeballs at about 40G per million people, like the rest of the map', () => {
+  const { ev, errors } = load();
+  // Demographia 2022 urban area for Manila, the 2020 census for Metro Cebu and Metro Davao
+  for (const [c, millions] of [['mnl', 24.9], ['ceb', 3.17], ['dvo', 3.34]]) {
+    const perM = ev(`CITY.${c}.P`) / millions;
+    assert.ok(perM > 37 && perM < 43, `${c} has ${perM.toFixed(1)}G per million people`);
+  }
+  assert.deepEqual(errors, []);
+});
