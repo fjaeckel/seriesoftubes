@@ -2478,6 +2478,7 @@
 "networks.the_third_mobile_network_same_towers":"Das dritte Mobilfunknetz: dasselbe noch mal, nur neuer. Peert offen, um aufzuholen.",
 "networks.the_tier_1_that_grew_up":"Der Tier 1, der in Sizilien aufgewachsen ist. Sein Seabone-Backbone beherrscht das Mittelmeer und reicht tief nach Amerika, und trotzdem nennt er Palermo sein Zuhause.",
 "networks.ukraine_s_biggest_mobile_network_has":"Das größte Mobilfunknetz der Ukraine. Hat Dinge überstanden, die die meisten Netze nie einplanen müssen.",
+"networks.up_early_in_cebu_and_already":"Früh auf in Cebu und schon auf drei Kontinenten im Peering. Offen für alle.",
 "networks.updates_so_many_updates":"Updates. So viele Updates.",
 "networks.uruguay_s_state_telco_fast":"Uruguays staatliche Telco. Schnell, überall und ein bisschen stolz darauf.",
 "networks.vietnam_s_giant_will_tell_you":"Vietnams Riese. Sagt dir, welches Seekabel diese Woche kaputt ist.",

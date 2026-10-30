@@ -51,3 +51,14 @@ test('Manila: an exchange the player founded there before GotchaFIX existed keep
   assert.ok(ev('!S.myIx.mnl'));
   assert.deepEqual(errors, []);
 });
+
+test('Manila: RISE & Shine peers openly on all three Manila exchanges, across Asia and in Europe', () => {
+  const { ev, errors } = load();
+  start(ev);
+  assert.equal(ev('NET.rsh.name'), 'RISE & Shine');
+  assert.equal(ev('NET.rsh.pol'), 'open');
+  // GetaFIX Manila, PhOpenIX and VIX, Singapore, Hong Kong, JPNAP, DE-CIX, AMS-IX, LINX, Netnod, Any2
+  for (const x of ['mnl', 'mnl~2', 'mnl~3', 'sin', 'sin~2', 'hkg', 'hkg~2', 'tok', 'fra', 'ams', 'lon', 'sto', 'lax'])
+    assert.ok(ids(ev, `ixMembers('${x}')`).includes('rsh'), `RISE & Shine on ${x}`);
+  assert.deepEqual(errors, []);
+});
