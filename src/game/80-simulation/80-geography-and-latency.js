@@ -23,7 +23,7 @@ function linkLat(l){const f=l.kind==='df'?(l.own?(l.sub?seaLatencyFactor(l):1.1)
 const WAVE_LAND={EU:0.65,AM:1,SA:1.6,AS:1.4,OC:1.2,AF:2.2},WAVE_SUB={EU:0.8,AM:1,SA:2,AS:1.5,OC:1.5,AF:4.5};
 const WAVE_NAME={EU:tr('common.europe'),AM:tr('common.north_america'),SA:tr('common.south_america'),AS:tr('common.asia'),OC:tr('common.oceania'),AF:tr('common.africa')};
 function waveMarket(a,b,sub){const ra=CITY[a].reg,rb=CITY[b].reg,T=sub?WAVE_SUB:WAVE_LAND,au=sub?AU_WAVE.sub:AU_WAVE.land;
-  const fa=CITY[a].au?au:(T[ra]||1),fb=CITY[b].au?au:(T[rb]||1),reg=sub&&nullPair(a,b)?AU_WAVE.ew:sub?Math.max(fa,fb):(fa+fb)/2;
+  const fa=CITY[a].au?au:(T[ra]||1),fb=CITY[b].au?au:(T[rb]||1),reg=sub&&nullPair(a,b)?AU_WAVE.ew:sub&&CITY[a].ph&&CITY[b].ph?PH_WAVE:sub?Math.max(fa,fb):(fa+fb)/2;
   const key=a<b?a+b:b+a,mood=0.85+(hstr(key+'|mood')%31)/100;
   const ero=Math.max(0.55,Math.pow(0.92,Math.floor((S?S.day:0)/360)));
   return {m:reg*mood*ero,reg,mood,ero};}
