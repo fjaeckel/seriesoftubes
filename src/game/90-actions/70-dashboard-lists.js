@@ -1,10 +1,10 @@
 Object.assign(ACT,{
  custGo:({id})=>{const b=S.biz.find(x=>x.id===id);if(!b)return;$('dash').hidden=true;ACT.focusCity({city:b.city});UI.tab='cust';renderPanel();},
  listMore:({k})=>{if(k!=='conn'&&k!=='cust'&&k!=='nets'&&k!=='pni')return;UI.listN=UI.listN||{};UI.listN[k]=listN(k)+LIST_PAGE;if(k==='nets'){renderLeft();return;}if(k==='pni'){renderPanel();return;}renderDash();},
- custF:({v})=>{UI.kf=UI.kf||{};UI.kf.f=v==='sad'?'sad':'';listReset('cust');renderDash();},
+ custF:({v})=>{UI.kf=UI.kf||{};UI.kf.f=v==='sad'?'sad':v==='req'?'req':'';listReset('cust');renderDash();},
  custCity:({v})=>{UI.kf=UI.kf||{};UI.kf.city=isCity(v)?v:'';listReset('cust');renderDash();},
  custSort:({k})=>{if(!['mood','mo','bw','name','city'].includes(k))return;listReset('cust');if(UI.custSort===k)UI.custDir=-(UI.custDir||1);else{UI.custSort=k;UI.custDir=k==='mo'||k==='bw'?-1:1;}renderDash();},
- custOpen:({sad}={})=>{if(!S)return;UI.kf=sad?{f:'sad'}:{};listReset('cust');UI.dtab='cust';const d=$('dash');d.hidden=false;renderDash();d.scrollTop=0;},
+ custOpen:({sad,req}={})=>{if(!S)return;UI.kf=sad?{f:'sad'}:req?{f:'req'}:{};listReset('cust');UI.dtab='cust';const d=$('dash');d.hidden=false;renderDash();d.scrollTop=0;},
  goConn:({city,k})=>{if(!isCity(city)||!own(CONN_K,k))return;$('dash').hidden=true;ACT.goEgress({city,k});},
  connF:({f,v})=>{const F=UI.cf=UI.cf||{};listReset('conn');if(f==='all'){UI.cf={};}else if(f==='k'){F.k=own(CONN_K,v)?v:'';}renderDash();},
  connCity:({v})=>{UI.cf=UI.cf||{};listReset('conn');UI.cf.city=isCity(v)?v:'';renderDash();},

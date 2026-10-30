@@ -464,6 +464,17 @@ test('#14 customers overview lists everyone with happiness, reasons and a jump',
   assert.match(names()[0], /Grumpy Goat/, 'highest paying first ($2,000/mo)');
   ev("ACT.custSort({k:'mo'})");
   assert.match(names()[0], /Happy Hamster/, 'lowest paying first ($1,000/mo)');
+  // filter by pending requirements
+  ev("S.biz.push({id:'c3',city:'fra',city2:null,reqs:['routers'],name:'Router Rabbit',type:'dia',bw:5,rate:100,mood:100,since:0});compute();renderAll()");
+  ev("ACT.custF({v:'req'})");
+  assert.equal(names().length, 1);
+  assert.match(names()[0], /Router Rabbit/);
+  assert.match(doc.querySelector('#custSec .row .why').textContent, /two routers/);
+  ev("S.pops.fra.routers=2;compute();renderDash()");
+  assert.equal(names().length, 0);
+  assert.match(doc.querySelector('#custSec .empty').textContent, /Every requirement is met/);
+  ev("ACT.custF({v:''})");
+  assert.equal(names().length, 3);
   ev("ACT.custGo({id:'c2'})");
   assert.equal(ev("$('dash').hidden"), true);
   assert.equal(ev('UI.sel.id'), 'ams');
