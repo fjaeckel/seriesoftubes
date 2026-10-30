@@ -125,3 +125,10 @@ test('Davao: a saved link on a Bi-Frosted or SEA-US pair that moved keeps workin
   ev('cam.z=1;draw(0)');
   assert.deepEqual(errors, []);
 });
+
+test('Cebu and Davao: RISE & Shine is on GotchaFIX Cebu and GotchaFIX Davao', () => {
+  const { ev, errors } = load();
+  start(ev);
+  for (const c of ['ceb', 'dvo']) assert.ok(ids(ev, `ixMembers('${c}')`).includes('rsh'), `RISE & Shine on ${c}`);
+  assert.deepEqual(errors, []);
+});
