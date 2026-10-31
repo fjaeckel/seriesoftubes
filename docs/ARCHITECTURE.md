@@ -32,7 +32,7 @@ hoisted across files, and top-level statements run in path order. Find code by n
 | `60-features/` | Banks and loans, scenarios and the weekly challenge, puzzles and the published weekly puzzle, conferences, the tutorial, traceroute, the share card, `newGame()`, the offer trial (`autoOffer()`), standing orders (`S.ops`, `opsDay()`, run from `dayTick()`) |
 | `70-rules/` | Formatting helpers and market rules: exchanges, PNIs, the peering desk (requests answered by policy), peering policy and snubs, DE-KICKS, sold-out routes, hot ports and the Tier 1/2/3 rank |
 | `80-simulation/` | Dijkstra, RouteScript, where a DDoS flood goes (`ddosLoad()`/`ddosAfter()`, called by `compute()`), `compute()`, monthly prices, `sanitize()`/`migrate()`, customer requirements, events, geography pricing and latency, second sites and service |
-| `85-incidents/` | `addInc()`, DDoS attacks (targets, sizes, scoring, the NOC card) and scrubbing, `fireFailure()`, `clearInc()`, `fireEvent()` |
+| `85-incidents/` | `addInc()`, DDoS attacks (targets, sizes, scoring, the NOC card) and scrubbing, `fireFailure()`, `clearInc()`, `fireEvent()`, revoked IP space (`40-ip-space.js`) |
 | `88-days/` | `dayTick()`, new offers, badges, `checkGoals()` |
 | `90-actions/` | The `ACT` map, one file per area (`const ACT` in `10-interface.js`, `Object.assign(ACT,…)` in the rest), and their helpers |
 | `91-save.js`, `92-audio.js` | Save, export and import; sound effects |

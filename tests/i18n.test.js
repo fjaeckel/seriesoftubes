@@ -47,7 +47,7 @@ function tour(ev) {
   // A cable the Baltic event can hit, so the anchor badge does not depend on what the random days built.
   step('baltic cable', "if(!S.pops.hel)ACT.buildPop({city:'hel'});UI.via='clion';openLinkModal('fra','hel');ACT.buildLink({tier:0});closeModal();UI.via=null");
   const evSrc = ev('fireEvent.toString()');
-  for (const e of ['viral', 'price', 'grant', 'sanction', 'tariff', 'hijack', 'landban', 'shutdown', 'redsea', 'baltic', 'runet', 'typhoon', 'golden', 'gfw', 'gulf']) {
+  for (const e of ['viral', 'price', 'grant', 'sanction', 'tariff', 'hijack', 'landban', 'shutdown', 'redsea', 'baltic', 'ipspace', 'runet', 'typhoon', 'golden', 'gfw', 'gulf']) {
     const patched = evSrc.replace(/^function fireEvent/, 'function').replace('const e=pick(opts);', `const e='${e}';`);
     assert.ok(patched.includes(`const e='${e}';`), 'fireEvent still has the hook this tour forces');
     step('event ' + e, `window.__fe=${patched};__fe();dayTick();ACT.leftTab({t:'deals'})`);

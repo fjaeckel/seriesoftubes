@@ -13,6 +13,7 @@ All notable changes to this project are documented here. The project follows
 - Waves between Philippine islands now cost more than waves out of the country: Manila to Cebu costs about twice Manila to Hong Kong.
 - Manila, Cebu and Davao have more people online, in line with their real populations.
 - Cable names on the map no longer pile on top of each other when you zoom in. Where short cables crowd together, a name that would cover another is left out, and selecting a city shows the names of all its cables.
+- Your IP address lessor can now take its space back, now and then: one of your waves or fibers goes dark for 7 to 60 days, mostly at the shorter end, while the /31 on its point-to-point link is renumbered. Lair-us is the lessor, it only strikes once you have a few links to lose and never while an earlier outage is still being fixed, and the link panel says why the link is dark and when it returns. A parallel link on another path rides it out, and no rush repair can speed it up.
 
 ## [2.2.0] — 2026-10-31
 
