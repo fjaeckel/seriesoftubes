@@ -27,5 +27,15 @@ function bbCost(c){return 15000+CITY[c].P*20;}
 function after(){if(pzOn()){pzAfter();return;}if(S)purgeInc();compute();checkGoals();renderAll();if(S&&!$('dash').hidden)renderDash();save();}
 const isTablet=()=>innerWidth>760&&innerWidth<=1200;
 function selectLink(id){UI.sel={type:'link',id};UI.confirm=null;if(isTablet()||isPhone())UI.leftOpen=false;$('panel').classList.remove('full');renderPanel();renderLeft();}
+// Frame the whole drawn line (cables bend far from the straight one) in the part of the map the panel leaves free:
+// above a phone's bottom sheet, left of the side panel. Long links zoom out to fit; short ones zoom in like a city.
+// A puzzle keeps its own framing beside the puzzle card (pzCam).
+function focusLink(id){if(pzOn())return;const l=S.links.find(x=>x.id===id);if(!l||!CITY[l.a]||!CITY[l.b])return;const pts=linkGeom(l).pts;
+  let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity;for(const [x,y] of pts){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}
+  const P=$('panel'),r=P&&!P.hidden&&P.getBoundingClientRect();let fl=0,fr=CW,ft=70,fb=CH;
+  if(r&&r.width>0){if(r.width>CW*0.6)fb=Math.min(fb,r.top);else fr=Math.min(fr,r.left);}
+  // Phones leave a thin strip above the sheet: a fixed margin would eat most of it.
+  const m=(a,b)=>Math.max(40,b-a-Math.min(100,(b-a)*0.3)),fw=m(fl,fr),fh=m(ft,fb),z=clamp(Math.min(fw/Math.max(1,x1-x0),fh/Math.max(1,y1-y0),Math.max(cam.z,1.2)),ZMIN,ZMAX);
+  cam.z=z;cam.x=(x0+x1)/2-((fl+fr)/2-CW/2)/z;cam.y=(y0+y1)/2-((ft+fb)/2-CH/2)/z;wrapCam();}
 function selectCity(c){UI.sel={type:'city',id:c};UI.confirm=null;if(isTablet()||isPhone())UI.leftOpen=false;const P=$('panel');if(P)P.classList.remove('full');if(!S.pops[c])UI.tab='cust';renderPanel();}
 
