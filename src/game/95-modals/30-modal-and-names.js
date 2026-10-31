@@ -1,5 +1,6 @@
 // Keyboard focus moves into the modal, so Enter or Space can't keep pressing a hidden button behind it.
-function openModal(html){if($('modal').hidden)markLayer();$('modalCard').innerHTML=html;$('modal').hidden=false;const a=document.activeElement;if(a&&a!==document.body&&!a.closest('#modal')){a.blur();const m=$('modalCard');m.tabIndex=-1;m.focus({preventScroll:true});}}
+// The link check on phones sits above the tab bar and is not modal, so the tabs stay usable.
+function openModal(html,cls=''){$('modal').className=cls;$('modalCard').setAttribute('aria-modal',cls==='link-check'&&isPhone()?'false':'true');if($('modal').hidden)markLayer();$('modalCard').innerHTML=html;$('modal').hidden=false;const a=document.activeElement;if(a&&a!==document.body&&!a.closest('#modal')){a.blur();const m=$('modalCard');m.tabIndex=-1;m.focus({preventScroll:true});}}
 function closeModal(){if(!$('modal').hidden)markLayer();$('modal').hidden=true;UI.pending=null;}
 const NETWORK_NAMES=[
   'Packet Pals','Shinternet','Post, Telegraph & Tubes','Peering Pressure','Best Effort Telecom',

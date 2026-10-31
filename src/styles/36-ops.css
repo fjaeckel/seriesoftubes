@@ -1,0 +1,16 @@
+/* Standing orders: the intern's card in the NOC and the Ops sheet */
+.ops-card{border:2px solid #8E5CF7;background:#F7F2FF;border-radius:12px;padding:8px 10px;margin:8px 0}
+.ops-card .nm{font-weight:800}
+.ops-o{border:2px solid var(--line);border-radius:12px;padding:8px 10px;margin:8px 0;background:var(--paper)}
+.ops-o.on{border-color:var(--ok)}
+.ops-h{display:flex;align-items:center;gap:8px}
+.ops-h .grow{flex:1;min-width:0}
+.ops-h .nm{font-weight:800;font-size:13.5px;line-height:1.2}
+.ops-h .b{min-height:36px;flex:none}
+.ops-i{font-size:22px;line-height:1;flex:none}
+.ops-p{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.ops-p .b{white-space:normal;text-align:left;min-height:36px}
+.ops-log{white-space:pre-wrap;font-size:11.5px;max-height:160px;overflow:auto}
+.ops-mood{margin:6px 0 0;font-style:italic;font-size:13px;color:var(--ink2)}
+.ops-rep{border-left:3px solid #8E5CF7;background:#F7F2FF;border-radius:0 8px 8px 0;padding:6px 8px;margin:6px 0;font-size:13px;line-height:1.35;overflow-wrap:anywhere}
+.ops-rep .eyebrow{margin-bottom:2px}

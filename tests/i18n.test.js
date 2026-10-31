@@ -32,12 +32,12 @@ function tour(ev) {
   for (const [label, src] of [['dash', 'ACT.dash({});ACT.dashClose()'], ['bank', 'ACT.bank();ACT.bankClose()'],
     ['help', 'showHelp();closeModal()'], ['menu', 'ACT.menu();closeModal()'], ['reset', 'ACT.resetAsk();closeModal()'],
     ['scenarios', 'scenarioModal();closeModal()'], ['trace', "traceModal('fra');closeModal()"],
-    ['route script', 'ACT.buyTE();ACT.teEdit();ACT.teExample();ACT.teCheck();closeModal()'],
+    ['route script', 'S.lvl=Math.max(S.lvl,3);S.cash+=1e6;ACT.coreUp();ACT.coreUp();ACT.buyTE();ACT.teEdit();ACT.teExample();ACT.teCheck();closeModal()'],
     ['routers', "selectCity('fra');ACT.tab({t:'links'});ACT.models()"], ['vxc', "openVxcModal({from:'fra',to:'ams'});closeModal()"],
     ['tutorial', 'S.tut=0;renderCoach();S.tut=3;renderCoach();S.tut=null;renderCoach()'], ['win', 'showWin()']]) step(label, src);
   const failSrc = ev('fireFailure.toString()');
-  for (const t of ['harmless', 'fatwave', 'label', 'mtu', 'oops', 'cleaner', 'maxpfx', 'prepend', 'rpki', 'amp', 'roadmff', 'optic', 'ac', 'cut', 'crash', 'power', 'transit', 'ixloop', 'leak', 'ddos']) {
-    const kind = ['harmless', 'fatwave', 'label', 'mtu', 'oops', 'cleaner', 'maxpfx', 'prepend', 'rpki', 'roadmff', 'ac'].includes(t) ? 'funny' : t;
+  for (const t of ['harmless', 'fatwave', 'label', 'mtu', 'oops', 'cleaner', 'prepend', 'rpki', 'amp', 'roadmff', 'optic', 'ac', 'cut', 'crash', 'power', 'transit', 'ixloop', 'leak', 'ddos']) {
+    const kind = ['harmless', 'fatwave', 'label', 'mtu', 'oops', 'cleaner', 'prepend', 'rpki', 'roadmff', 'ac'].includes(t) ? 'funny' : t;
     const patched = failSrc.replace(/^function fireFailure/, 'function')
       .replace('let tot=opts.reduce', `if(!opts.some(o=>o[0]==='${kind}'))return;opts.splice(0,opts.length,['${kind}',1]);let tot=opts.reduce`)
       .replace('type=pick(f);}', `type=f.includes('${t}')?'${t}':pick(f);}`);
@@ -82,8 +82,8 @@ test('missing translations fall back to the English, with placeholders filled', 
   assert.equal(ev("tr('test.no_such_label {n}',{n:3})"), 'test.no_such_label 3', 'an unknown label comes back as it is');
   assert.equal(ev("trn('test.cats',1)"), '1 cat');
   assert.equal(ev("trn('test.cats',2)"), '2 cats');
-  assert.equal(ev("trn('peering_inbox.n_day_ago',1)"), '1 giorno fa');
-  assert.equal(ev("trn('peering_inbox.n_day_ago',3)"), '3 giorni fa');
+  assert.equal(ev("trn('slots.n_day_ago',1)"), '1 giorno fa');
+  assert.equal(ev("trn('slots.n_day_ago',3)"), '3 giorni fa');
 });
 
 test('text that old saves stored in English is still translated', () => {
@@ -122,7 +122,7 @@ test('picking a language saves the choice and the game, then reloads', () => {
   ev('ACT.start({});dayTick()');
   ev("ACT.langSet({v:'it'})");
   assert.equal(ev("localStorage.getItem('sot-lang')"), 'it');
-  assert.ok(ev("localStorage.getItem('sot-save-v1')"));
+  assert.ok(ev("slotRaw(UI.slot)"));
   ev("ACT.langSet({v:'klingon'})");
   assert.equal(ev("localStorage.getItem('sot-lang')"), 'it');
 });
@@ -130,7 +130,7 @@ test('picking a language saves the choice and the game, then reloads', () => {
 test('a scenario started in English shows its Italian name after switching', () => {
   const en = load();
   en.ev("ACT.startScn({id:'stg'});save()");
-  const { ev } = load({ lang: 'it', storage: { 'sot-save-v1': en.ev("localStorage.getItem('sot-save-v1')") } });
+  const { ev } = load({ lang: 'it', storage: { 'sot-save-v1': en.ev("slotRaw(UI.slot)") } });
   const name = ev("SCN.find(x=>x.id==='stg').n");
   assert.notEqual(name, en.ev("SCN.find(x=>x.id==='stg').n"));
   assert.ok(ev("document.getElementById('hAsn').textContent").includes(name));
@@ -155,8 +155,9 @@ for (const lang of ['en', 'it', 'pt', 'fr', 'es', 'de']) {
     }
     if (lang === 'de') {
       assert.match(ev("document.getElementById('modalCard').textContent"), /Spielanleitung/);
-      // the link card to the real "How the Internet Works" site used to be hard-coded English
-      assert.match(ev("document.getElementById('modalCard').textContent"), /Wie funktioniert das Internet\?/);
+      // the link card to the real "How the Internet Works" site used to be hard-coded English; it lives in How to play
+      assert.match(ev("(()=>{showHelp&&showHelp();return document.getElementById('modalCard').textContent})()"), /Wie funktioniert das Internet\?/);
+      ev("showTitle()");
       assert.equal(ev("document.querySelector('#hud [data-act=bank] .lbl').textContent"), 'Kasse · Bank');
       // networking jargon stays English in German (Peering, Dark Fiber); plain "fiber" is Glasfaser
       assert.equal(ev("tr('common.peering')"), 'Peering');

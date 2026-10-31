@@ -43,7 +43,7 @@ test('#5 export writes a file and import restores it, with checks', () => {
   ev(`UI.importing=parseSave(${JSON.stringify(txt)}).s;ACT.importGo()`);
   assert.equal(ev("S.name"), 'Export Me');
   assert.equal(ev("S.cash"), 1234567);
-  assert.equal(ev("JSON.parse(localStorage.getItem('sot-save-v1')).name"), 'Export Me', 'saved on this device');
+  assert.equal(ev("JSON.parse(slotRaw(UI.slot)).name"), 'Export Me', 'saved on this device');
   ev("showHelp()");
   assert.match(ev("document.getElementById('modalCard').textContent"), /Export save.*Import a save/);
   assert.deepEqual(errors, []);
@@ -95,7 +95,7 @@ test('the network name opens a menu with save, load and start over', () => {
   ev("document.querySelector('#modalCard [data-act=resetAsk]').click()");
   assert.match(ev("document.getElementById('modalCard').textContent"), /cannot be undone/);
   ev("document.querySelector('#modalCard [data-act=newgame]').click()");
-  assert.equal(ev("!!localStorage.getItem('sot-save-v1')&&JSON.parse(localStorage.getItem('sot-save-v1')).day>0"), false);
+  assert.equal(ev("!!slotRaw(UI.slot)&&JSON.parse(slotRaw(UI.slot)).day>0"), false);
   assert.deepEqual(errors, []);
 });
 
@@ -139,7 +139,8 @@ test('Auto-TE spills overflow onto an alternate path when the shortest one is fu
   ev("for(const c of ['ams','lon','par'])ACT.buildPop({city:c});const L=(a,b,t,v)=>{UI.via=v||null;openLinkModal(a,b);ACT.buildLink({tier:t});closeModal();};L('fra','ams',0);L('ams','lon',1,'uly');L('fra','par',1);L('par','lon',1,'chn');ACT.buyTransit({city:'lon',net:'lvl',tier:1});compute()");
   const dem = ev("R.demand");
   assert.ok(ev("R.served") < dem - 1, 'without TE the 10G link caps it');
-  ev("ACT.buyTE();compute()");
+  // Auto-TE needs an RSVP-TE backbone, and routers that can run it: Chonk 800s.
+  ev("for(const c in S.pops)S.pops[c].rgen=RG.findIndex(r=>r.n==='Chonk 800');ACT.coreUp();ACT.coreUp();ACT.buyTE();compute()");
   assert.ok(ev("R.served") > dem * 0.97, 'with TE nearly everything is served');
   assert.ok(ev("R.teMoved") > 1);
   assert.ok(ev("R.load[S.links.find(l=>l.a==='fra'&&l.b==='par').id]") > 1, 'the Paris path carries the overflow');
@@ -154,7 +155,7 @@ test('rare badges hook into incidents and deals', () => {
   const { ev, errors } = load();
   base(ev);
   ev("addInc({type:'cut',ref:'x',until:S.day+1,msg:'A crocodile took a bite. A ship dragged its anchor.'});checkGoals()");
-  assert.ok(ev("S.ach.croc!==undefined&&S.ach.anchor!==undefined&&S.ach.backhoe!==undefined"));
+  assert.ok(ev("S.ach.croc!==undefined&&S.ach.anchor!==undefined&&S.ach.backhoe===undefined"), "a cut alone earns no Met the Chaos Monkey");
   ev("S.stats.survived=100;checkGoals()");
   assert.ok(ev("S.ach.unbreak!==undefined"));
   assert.equal(ev("BADGES.length>=46&&new Set(BADGES.map(b=>b.id)).size===BADGES.length"), true);
@@ -356,7 +357,7 @@ test('#31 #33 #38 connections overview lists every port, filters it and jumps to
   const { ev, dom, errors } = load();
   base(ev);
   const doc = dom.window.document;
-  ev("ACT.buildPop({city:'ams'});S.pops.fra.rgen=S.pops.ams.rgen=RG.length-1;S.pops.ams.bb={d:200};compute()");
+  ev("ACT.buildPop({city:'ams'});S.pops.fra.rgen=S.pops.ams.rgen=RG_TOP;S.pops.ams.bb={d:200};compute()");
   ev("ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.buyTransit({city:'ams',net:'lvl',tier:1});ACT.buyIx({city:'ams~3',tier:1});ACT.buyIx({city:'ams',tier:1});compute()");
   ev("S.pni.push({id:uid(),city:'fra',net:'ggl',tier:1});R.demTo.nfx=1e4;ACT.cache({city:'fra',net:'nfx'});R.demTo.nfx=1e4;ACT.cache({city:'fra',net:'nfx'});compute()");
   const all = JSON.parse(ev('JSON.stringify(conns())'));
@@ -496,7 +497,7 @@ test('#42 the share card draws links across the date line on both edges of the m
 test('#45 unplugged optics go on a spares shelf, get reused for free, or sold for 40%', () => {
   const { ev, errors } = load();
   base(ev);
-  ev("S.lvl=4;ACT.buildPop({city:'ams'});S.pops.fra.rgen=S.pops.ams.rgen=RG.length-1;S.links.push({id:'df1',a:'fra',b:'ams',kind:'df',km:450,sys:'roadm',ch:[],ready:0,mo:500,day:0,cut:0});compute()");
+  ev("S.lvl=4;ACT.buildPop({city:'ams'});S.pops.fra.rgen=S.pops.ams.rgen=RG_TOP;S.links.push({id:'df1',a:'fra',b:'ams',kind:'df',km:450,sys:'roadm',ch:[],ready:0,mo:500,day:0,cut:0});compute()");
   const o = ev("Object.keys(OPT).find(k=>!chWhy(S.links[0],k))");
   const c0 = ev('S.cash');
   ev(`ACT.addCh({id:'df1',o:'${o}'})`);
@@ -521,7 +522,7 @@ test('#45 unplugged optics go on a spares shelf, get reused for free, or sold fo
 test('#35 your own trench can light another fiber pair once a ROADMaster is full', () => {
   const { ev, errors } = load();
   base(ev);
-  ev("S.lvl=4;ACT.buildPop({city:'ams'});S.pops.fra.rgen=S.pops.ams.rgen=RG.length-1;S.pops.fra.routers=S.pops.ams.routers=RMAX;S.links.push({id:'own1',a:'fra',b:'ams',kind:'df',own:true,km:450,sys:'roadm',ch:[],ready:0,mo:500,day:0,cut:0});compute()");
+  ev("S.lvl=4;ACT.buildPop({city:'ams'});S.pops.fra.rgen=S.pops.ams.rgen=RG_TOP;S.pops.fra.routers=S.pops.ams.routers=RMAX;S.links.push({id:'own1',a:'fra',b:'ams',kind:'df',own:true,km:450,sys:'roadm',ch:[],ready:0,mo:500,day:0,cut:0});compute()");
   assert.equal(ev("chMax(S.links[0])"), 64);
   ev("ACT.addPair({id:'own1'})");
   assert.equal(ev("S.links[0].pairs||1"), 1, 'not before the first pair is full');
@@ -571,7 +572,8 @@ test('buttons behind an open modal stay quiet, and a declined PNI clears its sta
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e7;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});ACT.buildPop({city:'mrs'});ACT.buyTransit({city:'mrs',net:'cog',tier:1});compute()");
   // the PNI button was drawn while Tangerine still wanted our traffic; by the click it doesn't
-  ev("R.demTo.tng=50;UI.sel={type:'city',id:'mrs'};UI.tab='peer';renderAll();R.demTo.tng=0;window.__n=0;const o=toast;toast=function(h){if(/declined/.test(h))window.__n++;return o.apply(this,arguments);}");
+  // Tier 2 is folded when nothing there is worth a PNI (#175): open it, as a player would.
+  ev("UI.pniOpen={t2:true};R.demTo.tng=50;UI.sel={type:'city',id:'mrs'};UI.tab='peer';renderAll();R.demTo.tng=0;window.__n=0;const o=toast;toast=function(h){if(/declined/.test(h))window.__n++;return o.apply(this,arguments);}");
   const btn = "document.querySelector('#panel [data-act=pni][data-args*=tng]')";
   assert.ok(ev(`!!${btn}`), 'a stale button to start with');
   ev(`${btn}.focus();${btn}.click()`);
@@ -1052,7 +1054,7 @@ test('#104 declining a loan offer clears the bank badge while paused', () => {
   assert.equal(ev("$('hBank').hidden"), false);
   ev("ACT.declineLoan({id:S.loanOffers[0].id})");
   assert.equal(ev("$('hBank').hidden"), true, 'badge gone without a new day');
-  assert.equal(ev("JSON.parse(localStorage.getItem('sot-save-v1')).loanOffers.length"), 0, 'saved right away');
+  assert.equal(ev("JSON.parse(slotRaw(UI.slot)).loanOffers.length"), 0, 'saved right away');
   assert.deepEqual(errors, []);
 });
 
@@ -1258,23 +1260,24 @@ test('#51 a dark fiber shows what is rented out, and spare capacity can be liste
   ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.buildPop({city:'ams'});S.offers=[];S.links.push({id:'df1',a:'fra',b:'ams',kind:'df',own:true,sys:'roadm',ch:['tp16','tp16'],km:450,ready:0,day:0,cut:0,mo:100,trench:'own:df1',pairs:1});after();UI.sel={type:'link',id:'df1'};renderPanel()");
   const txt = () => ev("document.getElementById('panelBody').textContent");
   assert.match(txt(), /Selling spare capacity/); assert.match(txt(), /Free channels\s*62 \/ 64/);
-  // a broker finds a buyer for free channels at once, and keeps 10%
-  ev("__reseed(9);ACT.advertise({id:'df1'})");
-  const o = JSON.parse(ev("JSON.stringify(S.offers.find(x=>x.link==='df1'))"));
-  assert.equal(o.type, 'wwave'); assert.ok(o.broker);
-  assert.equal(o.rate, ev(`Math.round(waveMo(450,false,2)*0.55*${o.slots}*0.9)`), 'the usual alien-wave price minus the broker');
-  assert.match(txt(), /via a capacity broker/);
-  ev("ACT.advertise({id:'df1'})"); assert.equal(ev("S.offers.filter(x=>x.link==='df1').length"), 1, 'one listing at a time');
-  ev(`document.querySelector('#panelBody [data-act=accept]').click()`);
-  assert.ok(txt().includes(o.name), 'the customer is listed on the fiber');
-  assert.match(txt(), new RegExp(`Free channels\\s*${62 - o.slots} / 64`));
-  // when every channel is lit or sold, the spare pair in your own trench is offered instead; then nothing is left
-  ev("const l=S.links[0];l.ch=Array(chMax(l)-soldSlots(l)).fill('tp16');after();ACT.advertise({id:'df1'})");
-  assert.equal(ev("S.offers.find(x=>x.link==='df1').type"), 'dfpair');
-  ev("for(const x of S.offers.filter(x=>x.link==='df1'))ACT.accept({id:x.id});S.biz.push({id:'p2',type:'dfpair',link:'df1',city:'fra',city2:'ams',name:'X',bw:1,rate:1,reqs:[]});S.offers=[];renderPanel()");
+  // a broker keeps a listing and sells it as the route's market wants (#203), keeping 10%
+  ev("__reseed(9);ACT.listFiber({id:'df1',w:4})");
+  assert.equal(ev("S.links[0].list.w"), 4);
+  assert.match(txt(), /Listed with a capacity broker/);
+  ev("for(let i=0;i<120&&!S.biz.some(b=>b.link==='df1');i++)brTick();renderPanel()");
+  const b = JSON.parse(ev("JSON.stringify(S.biz.find(x=>x.link==='df1'))"));
+  assert.equal(b.type, 'wwave');
+  assert.equal(b.rate, ev(`Math.round(waveMo(450,false,2)*0.55*${b.slots}*0.9)`), 'the usual alien-wave price minus the broker');
+  assert.ok(txt().includes(b.name), 'the customer is listed on the fiber');
+  assert.match(txt(), new RegExp(`Free channels\\s*${62 - b.slots} / 64`));
+  assert.equal(ev("S.links[0].list?S.links[0].list.w:0"), 4 - b.slots, 'the listing shrinks by what sold');
+  // when every channel is lit or sold, only the spare pair in your own trench can be listed; then nothing is left
+  ev("const l=S.links[0];delete l.list;l.ch=Array(chMax(l)-soldSlots(l)).fill('tp16');after();ACT.listFiber({id:'df1',w:4,p:1})");
+  assert.deepEqual(JSON.parse(ev("JSON.stringify(S.links[0].list)")), { w: 0, p: 1 });
+  ev("S.biz.push({id:'p1',type:'dfpair',link:'df1',city:'fra',city2:'ams',name:'X',bw:1,rate:1,reqs:[]},{id:'p2',type:'dfpair',link:'df1',city:'fra',city2:'ams',name:'Y',bw:1,rate:1,reqs:[]});delete S.links[0].list;S.offers=[];renderPanel()");
   assert.match(txt(), /Nothing spare to sell on this fiber right now/);
-  ev("ACT.advertise({id:'df1'})"); assert.equal(ev("S.offers.length"), 0);
-  // a broker offer survives a save, and random offers still come the same way
+  ev("ACT.listFiber({id:'df1',w:1,p:1})"); assert.equal(ev("S.links[0].list===undefined"), true);
+  // an old broker offer still survives a save
   ev("S.offers=[{...fiberOffer('dfpair',S.links[0],()=>'Y',0.9),broker:'yes'}];S=sanitize(S)");
   assert.equal(ev('S.offers[0].broker'), true);
   assert.deepEqual(errors, []);
@@ -1310,7 +1313,7 @@ test('#134 an exchange named after its city does not repeat the city in messages
   const labs = JSON.parse(ev("JSON.stringify(lagsN().filter(o=>o.k==='ix').map(o=>o.lab))"));
   assert.ok(labs.includes('IX.brrr Campinas LAG'), labs.join(' | '));
   assert.ok(labs.some(l => / LAG in Frankfurt$/.test(l)), labs.join(' | '));
-  ev("S.inc=[];eval('('+fireFailure.toString().replace('type=pick(f);}',\"type='maxpfx';}\").replace(\"const c=pick(Object.keys(S.ixp));\",\"const c='cpq';\")+')')()");
+  ev("S.inc=[];eval('('+fireFailure.toString().replace(\"if(only)type=only;\",\"type='ixloop';\").replace(\"const c=pick(Object.keys(S.ixp));\",\"const c='cpq';\")+')')()");
   const msg = ev("S.inc.map(i=>i.msg).join(' ')");
   assert.match(msg, /IX\.brrr Campinas/);
   assert.doesNotMatch(msg, /in Campinas/);
@@ -1324,5 +1327,75 @@ test('#166 every Brazilian exchange is named after its city, São Paulo included
   assert.equal(ev("ixNamesCity('sao')"), true);
   const odd = JSON.parse(ev("JSON.stringify(CITIES.filter(c=>c.br&&c.ix&&c.ix.trim()==='IX.brrr').map(c=>c.id))"));
   assert.deepEqual(odd, []);
+  assert.deepEqual(errors, []);
+});
+
+test('link redundancy trials distinguish a bridge, a full fallback and a healthy alternate path without changing the game',()=>{
+ const {ev,errors}=load();
+ ev("ACT.start({});S.cash=1e8;ACT.buildPop({city:'bde'});ACT.buildPop({city:'ams'});S.biz=[{id:'circuit',name:'Test Circuit',type:'l2vpn',city:'fra',city2:'bde',bw:80,rate:1,reqs:[]}];S.links=[{id:'main',a:'fra',b:'bde',kind:'wave',tier:1,km:100,mo:100,cut:0,trench:'main'}];compute();window.state=JSON.stringify(S);window.live=R;window.hot=UI.hotMap;window.cache=TE_CACHE");
+ let t=JSON.parse(ev("JSON.stringify(linkTrial('main'))"));assert.equal(t.split,true);assert.equal(t.loss,80);
+ assert.equal(ev('JSON.stringify(S)'),ev('state'));assert.equal(ev('R===live&&UI.hotMap===hot&&TE_CACHE===cache'),true);
+ ev("S.links.push({id:'a',a:'fra',b:'ams',kind:'wave',tier:0,km:100,mo:100,cut:0},{id:'b',a:'ams',b:'bde',kind:'wave',tier:0,km:100,mo:100,cut:0});compute()");
+ t=JSON.parse(ev("JSON.stringify(linkTrial('main'))"));assert.equal(t.split,false);assert.equal(t.loss,70);assert.equal(t.busy.length,2);
+ ev("S.links[1].tier=1;S.links[2].tier=1;compute()");t=JSON.parse(ev("JSON.stringify(linkTrial('main'))"));assert.equal(t.split,false);assert.equal(t.loss,0);
+ ev("S.links[1].cut=S.day+5;compute()");assert.equal(ev("linkTrial('main').split"),true,'existing failures are respected');assert.equal(ev("linkTrial('a')"),null,'an already failed link is not tested');
+ ev("S.links=S.links.slice(0,1);S.links.push({...S.links[0],id:'parallel'});compute()");assert.equal(ev("linkTrial('main').split"),false,'only the selected link fails even when a trench is shared');assert.equal(ev("linkTrial('main').loss"),0);
+ ev("S.links[0]={...S.links[0],kind:'df',sys:'roadm',ch:['tp16'],pairs:1,regen:0,ready:0,own:true};compute()");assert.equal(ev("linkTrial('main').loss"),0,'dark fiber is tested as one link');
+ ev("window.innerWidth=360;ACT.linkCheck({id:'main'})");assert.match(ev("$('modalCard').textContent"),/One backhoe is not enough/);assert.equal(ev("$('modal').className"),'link-check');ev("ACT.phoneTab({t:'noc'})");assert.equal(ev("$('modal').hidden"),true);
+ ev("S.links[0]={...S.links[0],kind:'vxc',vt:1,prov:FABS[0].id};compute()");assert.equal(ev("linkTrial('main').loss"),0,'virtual circuits are tested individually');
+ ev("window.saveRef=S;window.liveRef=R;window.originalCompute=compute;compute=()=>{throw Error('trial failed')}");assert.throws(()=>ev("linkTrial('main')"),/trial failed/);ev('compute=originalCompute');assert.equal(ev('S===saveRef&&R===liveRef'),true,'even a failed trial restores the live state');
+ assert.deepEqual(errors,[]);
+});
+
+test('#219 splitting a one-member PNI across both sites splits it when the augment lands', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});S.cash=1e8;UI.speed=0;for(const g of GOALS)S.done[g.id]=0;Object.assign(S.pops.fra,{site2:true,routers:4});S.pni.push({id:'x',net:'nfx',city:'fra',tier:1,ready:0});compute()");
+  const cash = ev('S.cash');
+  ev("ACT.siteSet({k:'p',id:'x',s:'ab'})");
+  assert.equal(ev('S.pni[0].up.n'), 2, 'second member ordered');
+  assert.equal(ev('S.pni[0].up.site'), 'ab', 'remembers the split');
+  assert.ok(ev('S.cash') < cash, 'paid once');
+  // clicking again while it is on order buys nothing more
+  const paid = ev('S.cash');
+  ev("ACT.siteSet({k:'p',id:'x',s:'ab'})");
+  assert.equal(ev('S.cash'), paid);
+  // the panel shows Both as chosen meanwhile
+  ev("selectCity('fra');ACT.tab({t:'peer'})");
+  assert.equal(ev(`[...document.querySelectorAll('[data-act=siteSet].pink')].filter(b=>JSON.parse(b.dataset.args).k==='p').map(b=>JSON.parse(b.dataset.args).s).join()`), 'ab', 'Both is shown as chosen');
+  assert.equal(ev("(()=>{const m=siteCtl('p','x','fra',S.pni[0].up&&S.pni[0].up.site==='ab'?'ab':S.pni[0].site).match(/<button[^>]*class=\"[^\"]*pink[^>]*>(.*?)<\\/button>/);return m&&m[1].includes(tr('common.site'))?'':m&&m[1]})()").startsWith('Both'), true);
+  // survives a save and load
+  ev('S=migrate(JSON.parse(JSON.stringify(S)));compute()');
+  assert.equal(ev('S.pni[0].up.site'), 'ab');
+  ev('S.day=S.pni[0].up.ready-1;dayTick()');
+  assert.equal(ev('S.pni[0].n'), 2);
+  assert.equal(ev('S.pni[0].site'), 'ab', 'one member in each building');
+  assert.equal(ev("liveN('fra','ab',2)"), 2);
+  assert.deepEqual(errors, []);
+});
+
+test('#219 choosing one site again while the augment is on order keeps the LAG in that site', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});S.cash=1e8;UI.speed=0;for(const g of GOALS)S.done[g.id]=0;Object.assign(S.pops.fra,{site2:true,routers:4});S.pni.push({id:'x',net:'nfx',city:'fra',tier:1,ready:0});compute()");
+  ev("ACT.siteSet({k:'p',id:'x',s:'ab'})");
+  ev("ACT.siteSet({k:'p',id:'x',s:'b'})");
+  assert.equal(ev('S.pni[0].up.site'), undefined);
+  ev('S.day=S.pni[0].up.ready-1;dayTick()');
+  assert.equal(ev('S.pni[0].site'), 'b');
+  assert.deepEqual(errors, []);
+});
+
+test('#210 candidate exits on saturated shortest paths are skipped to avoid fallback churn', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});S.cash=1e8;UI.speed=0;for(const g of GOALS)S.done[g.id]=0;");
+  ev("ACT.buyTransit({city:'fra',net:'cog',tier:1});");
+  ev("ACT.buildPop({city:'par'});ACT.launchBB({city:'par'});");
+  ev("S.links.push({id:'x1',a:'fra',b:'par',kind:'wave',tier:0,km:450,mult:1,mo:1000,ready:0,cut:0});");
+  ev("compute();");
+  assert.ok(ev("R.load['x1'] >= 10 - 1e-6"), 'intercity wave is saturated');
+  assert.ok(ev("R.load['x1'] <= 10 + 1e-6"), 'and carries no more than it can');
+  // Skipping exits behind the full wave changes nothing: routing again gives the same answer.
+  const first = ev('JSON.stringify([R.served,R.citySrv,R.load])');
+  ev("compute();");
+  assert.equal(ev('JSON.stringify([R.served,R.citySrv,R.load])'), first);
   assert.deepEqual(errors, []);
 });

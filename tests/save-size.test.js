@@ -4,7 +4,7 @@ const { load } = require('./harness');
 
 // Make the browser's storage refuse the save: 'QuotaExceededError' (too big) or 'SecurityError' (not allowed).
 const refuse = name => `window.__err=${JSON.stringify(name)};{const P=Object.getPrototypeOf(localStorage),set=P.setItem;
-  P.setItem=function(k,v){if(k==='sot-save-v1'&&__err){const e=new Error('no');e.name=__err;throw e;}return set.call(this,k,v);};}`;
+  P.setItem=function(k,v){if(k.startsWith('sot-save-v1')&&__err){const e=new Error('no');e.name=__err;throw e;}return set.call(this,k,v);};}`;
 
 test('#176 a save that does not fit tells the player once, with Export, and the menu says so', () => {
   const { ev, dom, errors } = load();
@@ -55,8 +55,8 @@ test('#176 saves leave customer defaults out, and loading puts them back exactly
   assert.deepEqual(norm(after), norm(want));
   assert.equal(ev("S.biz.find(b=>b.id==='l2').route"), 'fast', 'a chosen route is kept');
   assert.equal(ev("S.biz.find(b=>b.id==='w7').what"), ev("wwWhat(S.links.find(l=>l.id==='df1'),4)"), 'alien waves get their description back');
-  assert.match(ev("localStorage.getItem('sot-save-v1')"), /"Carrier 1"/);
-  assert.doesNotMatch(ev("localStorage.getItem('sot-save-v1')"), /alien wave on your/, 'descriptions are not stored');
+  assert.match(ev("slotRaw(UI.slot)"), /"Carrier 1"/);
+  assert.doesNotMatch(ev("slotRaw(UI.slot)"), /alien wave on your/, 'descriptions are not stored');
   assert.deepEqual(errors, []);
 });
 
@@ -77,7 +77,7 @@ const huge = "for(let i=0;i<12000;i++){const slots=1+i%4;S.biz.push({id:'h'+i,ci
 test('#176 small saves stay plain JSON, written at once', () => {
   const { ev, errors } = load({ gzip: true });
   ev("ACT.start({});save(true)");
-  assert.equal(ev("localStorage.getItem('sot-save-v1')[0]"), '{');
+  assert.equal(ev("slotRaw(UI.slot)[0]"), '{');
   assert.deepEqual(errors, []);
 });
 
@@ -86,8 +86,8 @@ test('#176 a huge save is gzipped into storage and the next visit loads it', asy
   a.ev(bigBiz + ';' + huge);
   assert.ok(a.ev('JSON.stringify(packSave(S)).length') >= a.ev('GZ_MIN'), 'big enough to compress');
   a.ev('save(true)');
-  await settle(a.ev, "(localStorage.getItem('sot-save-v1')||'').startsWith(GZ)");
-  const raw = a.ev("localStorage.getItem('sot-save-v1')"), full = a.ev('JSON.stringify(packSave(S)).length');
+  await settle(a.ev, "(slotRaw(UI.slot)||'').startsWith(GZ)");
+  const raw = a.ev("slotRaw(UI.slot)"), full = a.ev('JSON.stringify(packSave(S)).length');
   assert.ok(raw.length < full / 4, `much smaller in storage (${raw.length} vs ${full})`);
   const before = a.ev("JSON.stringify([S.name,S.day,S.biz.length,S.biz.find(b=>b.id==='h77').what])");
   // The next visit: the page unpacks it before booting and continues the same network.
@@ -102,22 +102,22 @@ test('#176 a newer save is never overwritten by an older one still compressing',
   const { ev, errors } = load({ gzip: true });
   ev(bigBiz + ';' + huge);
   ev("save(true);S.name='Newer';save(true);S.name='Newest';save(true)");
-  await settle(ev, "!UI.gzBusy&&(localStorage.getItem('sot-save-v1')||'').startsWith(GZ)");
-  ev("gunzip(localStorage.getItem('sot-save-v1')).then(t=>window.__t=JSON.parse(t).name)");
+  await settle(ev, "!UI.gzBusy&&(slotRaw(UI.slot)||'').startsWith(GZ)");
+  ev("gunzip(slotRaw(UI.slot)).then(t=>window.__t=JSON.parse(t).name)");
   await settle(ev, "!!window.__t");
   assert.equal(ev('__t'), 'Newest');
   // A new game started while a big save compresses: the old network does not come back.
   ev("save(true);ACT.newgame();ACT.start({});window.__new=S.name");
   await settle(ev, '!UI.gzBusy');
-  assert.equal(ev("JSON.parse(localStorage.getItem('sot-save-v1')).name"), ev('__new'), 'the new game stays saved');
+  assert.equal(ev("JSON.parse(slotRaw(UI.slot)).name"), ev('__new'), 'the new game stays saved');
   assert.deepEqual(errors, []);
 });
 
-test('#176 a damaged compressed save is kept aside and the player is told', async () => {
+test('#176 a damaged compressed save is kept, marked damaged, and the player is told', async () => {
   const { ev, dom, errors } = load({ gzip: true, storage: { 'sot-save-v1': 'gz:bm90IGd6aXA=' } });
-  await settle(ev, "localStorage.getItem('sot-save-broken')!==null");
-  assert.match(dom.window.document.body.textContent, /could not be/);
-  assert.equal(ev("localStorage.getItem('sot-save-broken')"), 'gz:bm90IGd6aXA=');
-  assert.equal(ev("localStorage.getItem('sot-save-v1')"), null);
+  await settle(ev, "slotIdx().length===1&&/could not be/.test(document.getElementById('toasts').textContent)");
+  assert.equal(ev("slotIdx()[0].broken"), true, 'listed as damaged, so it can still be exported or deleted');
+  assert.equal(ev("slotRaw('main')"), 'gz:bm90IGd6aXA=', 'the damaged save is kept as it was');
+  assert.equal(ev('!!UI.started'), false);
   assert.deepEqual(errors, []);
 });

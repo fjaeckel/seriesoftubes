@@ -35,7 +35,7 @@ fell back to English. Long sentences as keys made dictionary diffs hard to read 
 - **`npm run i18n:check`** verifies that every label used in `src/` is defined in English, every
   English label is used, every translation keeps its English's placeholders, HTML tags and plural forms,
   and every dictionary is sorted.
-- **Saves:** a few things in a save hold text to show later (the peering inbox log, sold-out reasons,
+- **Saves:** a few things in a save hold text to show later (sold-out reasons,
   attack names). New saves hold labels. Saves from before labels (1.34 and older) hold the English text; `tr()` maps it
   back to its label the first time it sees one, so old saves still show the player's language.
 - **Translators** read `src/i18n/en.js` next to their file; both are sorted by the same labels, so the

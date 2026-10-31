@@ -8,7 +8,7 @@ const AMP_EVERY=100, AMP_COST=8000, AMP_MO=300;
 /* Your own trench holds more than one fiber pair (#35). Once a ROADMaster is full you can light the next pair:
    another ROADMaster and another chain of amplifiers, 64 more channels. Regen huts are shared. */
 const isRdm=y=>y==='roadm'||y==='cl';
-const PAIRS_MAX=4,PAIRS_BIG=8,PAIRS_LV=12,SUB_PAIRS_MAX=8,SUB_PAIR_UP=1500000,pairsMax=l=>l.sub?SUB_PAIRS_MAX:lvl()>=PAIRS_LV?PAIRS_BIG:PAIRS_MAX,chMax=l=>DF_SYS[l.sys].max*(isRdm(l.sys)&&l.own?Math.max(1,l.pairs|0):1),
+const PAIRS_MAX=4,PAIRS_BIG=8,PAIRS_LV=12,SUB_PAIRS_MAX=8,SUB_PAIR_UP=1500000,pairsMax=l=>l.seat?Math.max(1,l.pairs|0):l.sub?SUB_PAIRS_MAX:lvl()>=PAIRS_LV?PAIRS_BIG:PAIRS_MAX,chMax=l=>DF_SYS[l.sys].max*(isRdm(l.sys)&&l.own?Math.max(1,l.pairs|0):1),
   pairCost=l=>DF_SYS[isRdm(l.sys)?l.sys:'roadm'].cost+(l.sub?SUB_PAIR_UP:ampCount(l.km)*AMP_COST);
 const OPT={
  zr4:{n:'Ackackia 400ZR+',g:400,cost:12000,reach:1500,modes:[[400,1500],[200,3000]],rg:1,lvl:2,sys:'lite',blurb:tr('dark_fiber.coherent_pluggable_in_the_router_no')},
@@ -18,7 +18,7 @@ const OPT={
 };
 const dfLeaseMo=km=>Math.round(400+km*1.0);
 const dfBuildCost=km=>Math.round((25000+km*120)*hwMul('build'));
-const dfBuildDays=km=>Math.round(120+km*0.25);
+const dfBuildDays=km=>leadDays(Math.round(120+km*0.25)),IRU_DAYS=30;
 const ampCount=km=>Math.max(0,Math.floor(km/AMP_EVERY));
 const fmtCap=g=>g>=1000?(+(g/1000).toFixed(1))+'T':g+'G';
 const WAVECO=['Zay-No Fiber','Loomin’ Technologies','Clown Castle Fiber','Bolt Technology','youNetworks','G&T (Gin and Transit)'];
@@ -35,7 +35,14 @@ const NNI=[{n:'10G',g:10,mo:500},{n:'100G',g:100,mo:1200}];
 const VXC=[{n:'10G',g:10,m:1},{n:'50G',g:50,m:2.4},{n:'100G',g:100,m:3.6}];
 const vxcMo=(km,sub,t)=>Math.round((150+km*0.12)*VXC[t].m*(sub?2:1));
 const MET={prefer:{l:tr('common.prefer'),f:0.5},normal:{l:tr('common.normal'),f:1},avoid:{l:tr('common.avoid'),f:4},backup:{l:tr('common.backup_only'),f:60}};
+// Custom metrics: a multiplier on the distance cost (f) or an absolute IGP cost (w), capped like an OSPF metric.
+const MET_LIM={f:[0.1,100],w:[1,65535]};
+const clampM=(k,v)=>{const [lo,hi]=MET_LIM[k];v=Math.min(hi,Math.max(lo,v));return k==='w'?Math.round(v):Math.round(v*100)/100;};
 const PREF={high:tr('common.prefer'),normal:tr('common.normal'),low:tr('common.backup_only')};
 const edgeKey=l=>l.a<l.b?l.a+'|'+l.b:l.b+'|'+l.a;
 // The routing metric of a city pair (edgeKey), set for every link between the two cities.
-function pairMet(k){return (S.pairMet&&S.pairMet[k])||'normal';}
+// A custom metric is stored as {k:'f'|'w',v}: a multiplier, or an exact cost whatever the distance.
+function pairMet(k){const m=S.pairMet&&S.pairMet[k];return m?(typeof m==='object'?'custom':m):'normal';}
+function pairCm(k){const m=S.pairMet&&S.pairMet[k];return m&&typeof m==='object'?m:null;}
+// The cost of one link of km on the pair k, as Dijkstra sees it.
+function pairW(k,km){const m=S.pairMet&&S.pairMet[k];return m&&typeof m==='object'?(m.k==='w'?m.v:(km+60)*m.v):(km+60)*MET[m||'normal'].f;}

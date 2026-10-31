@@ -6,7 +6,129 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
-- Your IP address lessor can now take its space back, now and then: one of your waves or fibers goes dark for 7 to 60 days, mostly at the shorter end, while the /31 on its point-to-point link is renumbered. Lair-us is the lessor, it only strikes once you have a few links to lose and never while an earlier outage is still being fixed, and the link panel says why the link is dark and when it returns. A parallel link on another path rides it out, and no rush repair can speed it up.
+- Cities on the map now show how big they are: zoomed out, bigger cities are bigger dots and megacities glow; zoomed in, a city's skyline grows from a hut to a megacity's towers. When cities crowd together, the smaller ones step back to a dot until you zoom in, so the map stays readable, and exchanges you haven't joined are quieter tags.
+## [2.1.0] — 2026-10-31
+
+- Your backbone now runs a technology you choose: plain IGP, LDP/MPLS, RSVP-TE, SR-MPLS or SRv6. Each step up costs plenty and uses less router CPU: label switching makes traffic that only passes through a POP cheaper for its router, and Auto-TE and RouteScript now need RSVP-TE or higher. Routers only run what they support, so a POP with an older router stays outside the backbone, and mixing vendors at the very top of what their routers can do brings interop failures. Networks that already have Auto-TE keep it exactly as it is.
+- An upgraded backbone brings new customers: L3VPNs for enterprises from LDP/MPLS, flex-algo low-latency links from SR-MPLS and network slices from SRv6.
+- A seat on a consortium cable can be lit with the optics you have: add regen sites in the landing stations along the cable. Before, a seat bought at level 2 or 3 stayed dark until long-haul transponders arrived at level 4.
+- List spare capacity with a capacity broker as a standing listing: pick how many alien waves (or your spare pair) to sell, and the broker sells them off over time as carriers on that route want capacity. Each route's market is sized by the eyeballs at both ends, and a busy route sells in days while a road to nowhere sells maybe once, so renting out long empty fibers is no longer a money machine (#203).
+- Two new routers for RSVP-TE backbones: the refurbished Brocadabra MLX-16 with 400G ports, and the Extremely Networks SLX 9740 with 1.6T ports.
+- From RSVP-TE up, fast reroute has backup paths ready, so customers lose only half as much happiness while a link is cut.
+- An interop lab in the NOC tests your vendors against each other first and cuts interop incidents by 60%.
+- Four new badges for your backbone: Label switcher, Bleeding edge, Single-vendor shop and Vendor zoo.
+- The chaos monkey's notice in the NOC no longer has an Open button that did nothing; the monkey's own card is right above it (#226).
+- The puzzle list counts each section's own stars: architect runs show theirs next to their title, and the pack total now sits right above the packs, the stars that unlock the next one (#231).
+- The intern's notes now name the exchanges it peered at: a city's first exchange showed as the city, so "Apfelwein-IX, London" really meant Apfelwein-IX and LYNX (#228).
+- Cancelling an IRU, giving up your own fiber or decommissioning a POP now puts the optics on its fibers back on the spares shelf, instead of throwing them away (#229).
+- Big networks freeze for less on every game day and every click: working out where traffic goes skips exits whose route is already full, so a game day takes about 40% less time (#210). Traffic goes exactly where it went before.
+- Premium submarine terminals and Optical engineering can no longer be bought on a cable where they would change nothing (#198). The button now says so, and an upgrade that only helps together with the other one stays available.
+- A wave size that is sold out on a route can no longer be reached by upgrading a smaller wave on it (#201). The upgrade button says how long it is sold out, just like when buying.
+- Choosing Both for a PNI with one member now really splits it: the second member arrives in the other building when the augment lands, instead of joining the first (#219).
+- The Open button next to your intern's weekly shift report in the NOC now opens the Standing orders sheet, where the whole week is laid out (#226). Before, it did nothing.
+
+## [2.0.0] — 2026-10-30
+
+**Series of Tubes 2.0: one game, four doors.** Some of you wanted a calmer game, some a harder one, some a quick puzzle over coffee and some a playground where nothing can go wrong. So now every network starts behind a door, and the rules you pick stay with that network for good. Your saved games carry on exactly as they were.
+
+**Normal** comes in three flavours. Change Freeze is the calm one: a third of the outages, no DDoS floods, and deliveries in days instead of months. On-call is the game you know. BGP at 3 a.m. is for people whose pager is a personality: more outages, longer ones, more attacks, and fiery badges to prove you survived. In your first month you also pick a charter: a global backbone, or a low-latency boutique racing the speed of light.
+
+**Sandbox** is a real sandbox now: everything unlocked from day one, money that never runs out, and a chaos dial from nothing ever breaks to spicy.
+
+**Puzzles** are small networks that carry real traffic, routed exactly like the big game. Deliver every flow for the first star, stay on budget for the second, and survive any single cut for the third. When your build earns a star, the chaos monkey runs round the map snipping every trench and cable to prove it. A new puzzle arrives every Sunday morning, the same for everyone.
+
+**Architect runs** grow one network brief by brief. New sites sign up, some become mission-critical, a city closes, traffic outgrows its tubes, and the chaos monkey reviews every brief before the next customer signs. Three handmade runs to start, and a fresh one every Sunday with its HQ somewhere new.
+
+**Scenarios** are themed crises against the clock: a cut cable, a peering spat, a flood week, a race for low latency. A new one comes out every Sunday too.
+
+And in On-call and BGP at 3 a.m., a **chaos monkey** sometimes moves into your network for a few months and snips tubes on purpose, the ones without a backup path first. Outlast it without a customer noticing and it pays; throw it a banana if you have had enough.
+
+**Also new:** Tier 1 works like the real thing, so peering with the big club brings their customers along. A NOC intern carries out your standing orders. Customers call when your network can serve them, not only when your level says so. You can buy a seat on a consortium subsea cable, see at a glance whether a PNI is worth it, keep several networks and play two side by side, and every router model has its own face.
+
+### One game, four doors
+
+- A new start screen with four doors: Puzzles, Sandbox, Normal, and Scenarios & weekly. Every network now picks its rules when it starts, and they stay locked for that network; your saved games carry on exactly as before.
+- Normal comes in three flavours. Change Freeze has a third of the outages and no DDoS floods, delivers PNIs, cross-connects and builds in days instead of months (#151), and skips hardware shortages, sold-out routes and de-peering at exchanges. On-call is the classic game. BGP at 3 a.m. brings almost twice the outages, lasting half as long again, and twice the DDoS. The HUD and the share card show which one you picked.
+- Sandbox is a real sandbox now (#188): everything is unlocked from day one, your own subsea cable included, money never runs out, deliveries are quick, and you pick how much chaos you want, from none to spicy.
+- Pick a charter in your first month of a Normal game: Global backbone (the game as you know it, and the default) or Low-latency boutique (#187). The boutique gets more trading firms, pays them 40% more and has its own win, Speed of Light: beat the fastest leased latency on three finance routes with your own glass while two latency customers pay you. It comes with a badge and shows on your share card.
+- Badges now come in variants: games under the Change Freeze rules earn frosted Freeze-dried badges, and games under BGP at 3 a.m. earn fiery ones worth bragging about. Earning a badge under harder rules than before upgrades it in your collection on this device, and the badge list counts how many of each kind you have. On-call games earn the standard badges; Sandbox and puzzles earn none.
+- Keep several networks on one device, and play two of them side by side in two browser windows. The title screen lists your networks, newest first, with their day, tier, cash and when you last played; tap one to continue it, or use ⋯ to export or delete it. Starting a scenario, the weekly challenge or a new network, or importing a save, now adds a network instead of replacing the one you have, and you can rename a network from the menu. Each window remembers its own network when you reload it. If a network is already open in another window, you can switch to it or take it over, and the other window steps aside instead of both saving over each other. Your existing save carries on as your first network.
+- A tidier start screen: language first, then your network's name, the doors, three compact difficulty buttons with the chosen one explained below, and one drop-down for your home city with the five suggested homes at the top.
+- Pick your own AS number next to your network's name when you start (#135). Leave it empty and the game picks one, and the round green arrow in the name box suggests another name.
+
+### Puzzles
+
+- Puzzles: small networks that carry real traffic, routed exactly like the main game (#190). Each puzzle has flows to deliver (eyeballs pulling from a content origin, circuits between two cities with a latency cap, best-effort traffic that may drop), and the map shows every link's load as it fills. Earn up to three stars: everything delivered, under budget, and still delivered when any single trench or cable is cut. Build with the real tools: link sizes from 10G to 800G, parallel links in the same trench or on a diverse route (also from the link panel), routers with real ports and limits, routing metrics, standby, lowest-latency paths for circuits, and the redundancy check. The whole world is open: any city can get a POP if it helps. Parallel links show their count and sizes, and selecting a city lights up every path it has. Eighteen puzzles in five packs, each teaching one idea: Fat Pipes, Router Rodeo, Traffic Cops, N-1 Club and Grand Tour. No clock, no bills, nothing breaks, and your main game is never touched.
+- A new weekly puzzle every Sunday morning, the same for everyone: a themed puzzle with its own traffic, such as an ocean crossing, a ring, a latency sprint, island hopping or a detour around a busy hub, with its own name and a budget tuned so three stars take a smart design. The Puzzles door says "New this Sunday!" until you have played it, the list counts down to the next one, and your streak and share line use the week's name. A new puzzle week starts on Sunday at 06:00 Berlin time; offline, the game still has a weekly puzzle of its own.
+- Every puzzle now has the chaos monkey: when your build earns a new star, it runs round the map snipping each trench and cable in turn, and the cities that lose traffic say how much. Let it loose again whenever you like, or skip straight to the stars.
+- In puzzles, the map now shows whether the tubes between two cities share one trench or take separate paths, at any zoom: one trench is drawn as a bundle with a "2× one trench" tag, separate paths bow apart with a "2 paths" tag.
+- When a new release changes prices so that this week's or a coming week's puzzle no longer adds up, that puzzle gets a fair new budget, and only its stars start again. Weeks that are over keep theirs.
+
+### Architect runs
+
+- Architect runs, under Puzzles: grow one network brief by brief, from a single tube to a ring that shrugs off any cut. Your build carries over between briefs, mission-critical sites must survive any single trench or cable cut with room on the detour, and a chaos monkey runs round the map snipping tubes before the next customer signs. Three runs to start: Euro Run, Coast to Coast and Pacific Rim.
+- A new Architect run every week: every Sunday a fresh HQ somewhere in the world and six or seven briefs, each built around the network you already have, with its own stars. Sites can outgrow their tubes, so some briefs are about making room. Later briefs stay a surprise in every Architect run: their cities only appear when they come.
+
+### Scenarios
+
+- A new weekly scenario every Sunday morning too, the same for everyone: a themed crisis such as a cut cable, a peering spat, a big event, a flood week, island hopping, a race for low latency, a push across a continent or a shoestring budget, in about a year of game days. It sits at the top of Scenarios & weekly with a countdown and a "New this Sunday!" badge, has its own goal and progress card, a par to beat, a weekly streak and a result line to share. Offline, the classic weekly challenge stands in.
+- Scenario tuning: every handmade scenario now asks for what its story is about, with shorter clocks where it was won in a tenth of the time. Mind the Gap, Cape to Cairo and Order and Progress count cities and IX.brrr ports only when your network joins them up; Fibre to the Basement also wants 500 Gbps served; in Anchors Away nobody sells transit in Tallinn and ships really do drag their anchors over the Baltic links, while the Great Firewall's losses no longer break your 99.5% streak; in the Cogentle Spat, Goggle wants a lot more of your traffic before it peers; Flood Season's terabit floods count when your scrubbing or Flowspec took them; Stepping Stones and Mid-Atlantic Accent start with 5M, enough to light the whole 1.6T chain. Gangnam Style Peering is now really about sender pays: Seoul transit carries a fee on every Gbps, the three incumbents only peer over a paid PNI, and Korean users notice every millisecond, so you win by hauling cheap Tokyo transit while keeping Seoul fast and in profit.
+
+### The chaos monkey
+
+- A chaos monkey now and then moves into your network in On-call and BGP at 3 a.m., and snips a tube every couple of weeks for 120 to 240 days, tubes with no backup path first. Its snips replace the usual random outages while it is here; get through the visit without a customer noticing for a resilience bonus and a new badge, or throw it a banana to send it home early. The "Met the Backhoe" badge is now "Met the Chaos Monkey", earned on its first visit; badges you already have stay yours.
+
+### Build your network your way
+
+- Customers now call when your network can already serve them, not only when your level says so (#187). A fast path between two finance cities brings trading firms, lit dark fiber brings AI interconnects, two diverse paths in one country bring sovereign clouds and broadband in a big city brings cloud gaming, each at its smallest size and with a note on what they spotted; your level still makes them bigger and more frequent.
+- Routers, line systems and optics one level above yours can be had early as a vendor demo unit (#187). Ask the vendor, wait about two weeks, then pay 60% over list until your level catches up; and you can dig your own dark fiber from level 2 as a pioneer, at 60% more than the level 3 price.
+- Take a seat on a new consortium subsea cable (#173). Capacity conferences offer them, and now and then a consortium calls from level 2: pay your share of the build, wait for the ship, then own one, two or four fiber pairs and light them with your own optics, your way onto your own subsea glass before Tier 1. A cut on that cable cuts your pairs too.
+- Hire a NOC intern and give them standing orders: from customer level 2, Kevin from the night shift, Anycast Annie or Tracy Route runs your rules once a game day and pays exactly what your own clicks would. Keep transit above a multiple of its peak, add or swap routers above a load, take free caches, peer at every IX and PNI with the big networks every week, sign ready customers and decline tiny ones, rush repairs, light more fiber and retire small parallel waves. Each order has a pause switch, its own settings, a monthly budget and per-POP exceptions, never breaks a customer's or a bank's transit requirement, and shows what it adds to your monthly bill. The Ops sheet opens with the intern's mood and a weekly shift report, which is also the one notice a week the intern leaves in the NOC (#98, #100, #102, #181, #185, #192, #177).
+- The intern only signs a customer after a trial run shows the network can carry them without hurting anyone else, and rushes every repair that has a price, while the budget lasts (#185). The bulk peering and PNI batches live in the Ops sheet, next to the orders that repeat them (#181, #192).
+- Open a new city from a template in one tap: POP, broadband, transit, an IX port and the redundancy kit, priced up front, with your standing orders taking it from there (#98, #192).
+- Utilities join route servers and request eligible peers across every joined IX, install missing PoP redundancy hardware and balance caches between sites, and request a cache from each eligible provider at each site. A POP's Infra tab shows the redundancy kit as one line with its price, above the rows it fills in.
+- Order PNIs with one network or every network at all shared POPs from the Ops sheet: choose a port size, review the total cost, and add missing connections or upgrade smaller ones in one go. Each network keeps its own smallest PNI size and delivery time.
+- Set the number of each optic model directly on land and subsea fiber links. Apply a whole change at once, with its total price shown before buying; removed optics return to the spares shelf.
+- Every router model has its own picture: open one of your POPs and its router sits next to the city's name.
+
+### Peering and Tier 1
+
+- Tier 1 now works like the real thing: peer with the Tier 1 club and their customers come along for free (#85). A PNI or an exchange session reaches the networks you peer with and everyone who buys transit from them, so you no longer chase every tiny ISP for the win; only networks that buy transit from nobody, like the content giants and the big incumbents, still need peering of their own. Small networks and more real eyeball ISPs now buy transit from real-world upstreams, a peer's customers are tried after your direct peers and before transit (so peering widely still pays), the traceroute shows the hand-off, and the Road to Tier 1 card counts who already comes along. Games already won stay won.
+- The peering inbox is gone: your peering policy now answers every peering request for you. Open accepts everyone, Selective accepts small networks on the exchange and newcomers with an up-to-date PeeringDB and quietly declines the rest, and Closed declines them all; once a week the NOC log sums it up, like "Peering desk: 7 new sessions at DE-KICKS and HAMS-IX, 3 declined (Selective)". Max-prefix alerts, the button that raised every limit at once, max-prefix outages at exchanges, your peering reputation and the Large Peering Model are gone too. The policy picker sits in the Networks tab, saved games keep their policy, and a game that hired the AI simply stops paying for it.
+- Every network in a POP's PNI list now shows how you reach it today and whether a PNI there is worth the cross-connect (#175, #172). A chip says PNI here (with size and load), PNI elsewhere, which exchanges you peer at, whose customer cone carries it, transit only or not reached; a value line shows how much of its traffic leaves from that POP over transit, exchanges or other PNIs, and what a PNI there would save or cost a month. The best candidates get a ⭐ Worth it tag, the list sorts them first, filters to All, Via transit, Worth it or Already PNI, and groups networks by type, with idle groups folded. The same chip shows in the Networks tab and in the bulk PNI preview.
+- Only Spätzle-IX now asks for 50% reach instead of 45%, since peering with the Tier 1 club brings their customers along. Two Tier 1 PNIs and the exchange are no longer quite enough (#114).
+- Every country on the map now has at least two homegrown eyeball networks. Sixty-three real consumer ISPs and mobile operators join, from Angola and Bangladesh to Iceland, Japan and Zimbabwe, each with its real AS number and a pun name. They buy transit from the big carriers, so peering with the Tier 1 club reaches them too, and saved games get the usual courtesy route to them for their first 60 days.
+- Palau's and the Marshall Islands' main networks now show their real AS numbers instead of ones borrowed from networks elsewhere.
+
+### Prices, routing and money
+
+- Prices now follow how connected each city really is, based on public peering and routing data. Every city on the map now has it, from Düsseldorf and Riga to Malé, the Caribbean and the Russian Arctic. Transit costs up to 1.8× more in cities where few networks are present, a POP costs 1.25× to 1.5× where there is little or no carrier-neutral data center, and countries with thousands of networks, like Brazil and the US, bring more ISP customers. Big hubs such as Frankfurt, Amsterdam, New York and São Paulo keep their prices.
+- Every city now knows its country. Long-distance waves cost double only where they cross a border inside Africa, as they always meant to; a few northern routes, such as Kristiansand to Esbjerg and Anchorage to Halifax, lose a surcharge they picked up by mistake.
+- Transit bills no longer change when you click something later in the day. After each day, the 95th percentile counted that day twice and dropped the oldest day, so building or changing anything could nudge your transit bill (and the bank's view of it) until the next day came round.
+- Links can now use a custom routing metric, set either as a multiplier or as an exact cost. Pick Custom under Routing metric to fine-tune where your traffic goes; it explains how a link's cost is worked out and what each preset comes to on that link.
+- Check a selected link’s redundancy against current demand: see disconnected endpoints, additional service loss and full fallback links without changing the live network.
+
+### Attacks
+
+- Attacks are more varied: sizes and lengths change from one attack to the next, and several can hit at once, each with its own controls in the NOC. Hosting game servers or cloud gaming makes attacks more frequent, as it does in real life (#153).
+- Hosting game servers or cloud gaming brings RackNet and TeamSpooked attacks. Both bypass Flowspec and require dedicated mitigation (#153).
+- Attacks can now use Memcached amplification or an ACK flood. Flowspec catches the former; the latter need mitigation (#153).
+- Game server and cloud gaming customers now carry a “Gaming attracts attacks” note on their offers and customer lists, so you can see the DDoS risk before signing them (#153).
+- Each live attack in the NOC now shows incoming bandwidth, upstream scrubbing, edge filtering, scrubbing-center use and any traffic still leaking through (#153).
+- DDoS bandwidth now adds up: upstream scrubbing, edge filters and scrubbing centers work in sequence. The NOC uses the same figures as traffic routing, including floods that cannot reach a remote center (#153).
+- Live attacks now show how much traffic Flowspec actually drops. Routers without TCAM no longer claim to filter attacks, and Flowspec drops are counted separately from other edge filters (#153).
+- Live attacks now show one scrubbing detour from the attacked city to its nearest active scrubbing center, using the links' one-way latency (#153).
+- The link traffic breakdown now shows the correct source city for scrubbing traffic. Cities using the same center no longer overwrite each other's labels (#153).
+- Flood Season keeps sending ever larger attacks when you keep playing after winning or running out of time. Finishing the challenge no longer switches the floods off (#153).
+- Flood Season escalates again: ordinary floods mixed with terabit monsters, all growing through the year, and floods go for the POPs that serve customers, so empty POPs no longer hold them for free.
+
+### Smoother and safer
+
+- Big networks load faster: on a phone, the map of a late-game network now appears about a second and a half sooner.
+- The Networks list shows 100 networks at a time, with a button for the rest, so it opens quickly now that every country has its own networks.
+- When your browser's storage is full, the warning now lists your other networks by size so you can export or delete one to make room. Closing the tab in the middle of a puzzle no longer loses recent progress on the network you set aside.
+- The China licence follows quick lead times: about 5 days instead of 45 under Change Freeze and in Sandbox.
+- Imported saves can no longer change a network's rules or slip HTML into a Flood Season attacker's name.
 
 ## [1.37.0] — 2026-10-28
 

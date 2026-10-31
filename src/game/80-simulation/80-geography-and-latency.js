@@ -1,14 +1,25 @@
 function cnOk(){return S.cnLic&&S.cnLic.state==='ok';}
-function regionMult(c){const C=CITY[c];if(!C||C.cn)return 1;if(C.kr)return KR_TRANSIT;if(C.au)return AU_TRANSIT;if(C.tape)return 1.5;return C.reg==='AS'?2.5:C.reg==='AF'?2:C.reg==='OC'?1.8:C.reg==='SA'?1.6:1;}
+// Few networks in the building means few transit sellers to haggle with: up to 1.8× where almost nobody is present.
+// Hand-set markets (Korea, Australia, Belgian red tape) keep their own price.
+const txComp=c=>{const q=CITY_PDB[c];return q?clamp((1000/Math.max(q[1],10))**0.15,1,1.8):1;};
+// No neutral data center means building your own room: POPs cost more to build and to run.
+const colo=c=>{const q=CITY_PDB[c];return !q?1:q[0]===0?1.5:q[0]<=2?1.25:1;};
+const popMo=c=>Math.round(POP_MO*colo(c));
+function regionMult(c){const C=CITY[c];if(!C||C.cn)return 1;if(C.kr)return KR_TRANSIT;if(C.au)return AU_TRANSIT;if(C.tape)return 1.5;const base=C.reg==='AS'?2.5:C.reg==='AF'?2:C.reg==='OC'?1.8:C.reg==='SA'?1.6:1;return Math.round(base*txComp(c)*10)/10;}
 // A network's own markup on top of that, where it is far from home (Glowball Sakura Lager in Asia and New Zealand).
+// What a home pays, against the usual bill.
+const arpuOf=c=>CITY[c].arpu||(CITY[c].kr&&scnRule('sender')?KR_ARPU:1);
 const netMult=(n,c)=>regionMult(c)*((n&&n.far&&CITY[c]&&n.far[CITY[c].reg])||1);
 const uaePair=(a,b)=>!!CITY[a].uae&&!!CITY[b].uae;
 const rainPair=(a,b)=>!!(CITY[a].rain||CITY[b].rain);
-const borderPair=(a,b)=>!!CITY[a].cc&&!!CITY[b].cc&&CITY[a].cc!==CITY[b].cc;
+// Every city has a country (cc), but the border toll is Africa's: elsewhere a wave crosses borders at the plain price.
+const borderPair=(a,b)=>CITY[a].reg==='AF'&&CITY[b].reg==='AF'&&CITY[a].cc!==CITY[b].cc;
 // Perth to the east coast: the sea route round the south coast is domestic (AU_WAVE.ew), and the Nullarbor
 // fiber costs a little more again because the incumbents own it.
 const NULLARBOR=1.7,nullPair=(a,b)=>!!CITY[a].au&&!!CITY[b].au&&(a==='per')!==(b==='per');
 const andesPair=(a,b)=>!!CITY[a].andes&&!!CITY[b].andes&&CITY[a].andes!==CITY[b].andes;
+// A pair an anchor-prone cable serves (the Baltic): the map calls it overland, but the fibre lies on the seabed (Anchors Away).
+let ANCHOR_P=null;const anchorPair=l=>(ANCHOR_P||(ANCHOR_P=new Set(CABLE_PAIRS.filter(p=>CAB[p.cid]&&CAB[p.cid].anchor).map(p=>edgeKey(p))))).has(edgeKey(l));
 /* Overland between continents (Europe to the Middle East and Asia) crosses a dozen borders and as many
    carriers, each taking a cut: in real life it costs ten times the subsea route or more (#40). */
 const LAND_X=45,landX=(a,b)=>!isSub(a,b)&&CITY[a].reg!==CITY[b].reg;
@@ -38,4 +49,4 @@ function waveRoute(a,b,mult,border){const cabs=cablesOk(a,b),sub=isSub(a,b);let 
 function viaSeg(a,b){const cabs=cablesOk(a,b),sub=isSub(a,b);if(!cabs.length)return landMult(a,b)>1?`<p class="note">${landWhy(a,b)}</p>`:'';const wr=waveRoute(a,b,1,false);
   const opts=(sub?[]:[{v:'land',l:`${tr('common.overland')} <small>${landMult(a,b)>1?landMult(a,b)+'× · ':''}${(kmBetween(a,b)*1.3/200).toFixed(1)} ms</small>`}]).concat(cabs.map(c=>({v:c.cid,l:`${esc(CAB[c.cid].name)} <small>${CAB[c.cid].price}× · ${(c.km*(CAB[c.cid].lat||1)/200).toFixed(1)} ms${CAB[c.cid].age==='old'?' · '+tr('geography_and_latency.old_cuts_often'):''}</small>`})));
   return `<h4 class="sub4">${tr('common.route')}</h4><div class="seg">${opts.map(o=>btn(o.l,'via',{v:o.v},wr&&wr.via===o.v?'pink':'ghost')).join('')}</div>${wr&&wr.cab?`<p class="note">${esc(CAB[wr.cab].blurb)} ${tr('geography_and_latency.all_your_waves_on_one_cable')}</p>`:''}`;}
-function bestLat(a,b){const ls=S.links.filter(l=>!linkDown(l));const dist={[a]:0},done=new Set();for(;;){let u=null,ud=Infinity;for(const k in dist)if(!done.has(k)&&dist[k]<ud){u=k;ud=dist[k];}if(u===null)break;if(u===b)return ud;done.add(u);for(const l of ls){if(l.a!==u&&l.b!==u)continue;const v=l.a===u?l.b:l.a,nd=ud+linkLat(l)+0.05;if(nd<(dist[v]??Infinity))dist[v]=nd;}}return Infinity;}
+function bestLat(a,b,f){const ls=S.links.filter(l=>!linkDown(l)&&(!f||f(l)));const dist={[a]:0},done=new Set();for(;;){let u=null,ud=Infinity;for(const k in dist)if(!done.has(k)&&dist[k]<ud){u=k;ud=dist[k];}if(u===null)break;if(u===b)return ud;done.add(u);for(const l of ls){if(l.a!==u&&l.b!==u)continue;const v=l.a===u?l.b:l.a,nd=ud+linkLat(l)+0.05;if(nd<(dist[v]??Infinity))dist[v]=nd;}}return Infinity;}

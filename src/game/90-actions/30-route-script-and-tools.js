@@ -14,7 +14,7 @@ Object.assign(ACT,{
    if(drop>0.1&&UI.slop===src){if(drop>0.3)S.stats.fat=1;toast(tr('route_script_and_tools.commit_complete_traffic_down_p_the',{p:pct(drop)}),'bad');sfx('alert');}
    else if(drop>0.3){S.stats.fat=1;toast(tr('route_script_and_tools.commit_complete_traffic_down_p_you',{p:pct(drop)}),'bad');sfx('alert');}
    else{if(saved>0.1&&drop<0.01)S.stats.kiddie=1;toast(`<b>${tr('common.commit_complete')}</b><br>${saved>0.01?trn('route_script_and_tools.n_rule_live_transit_bill_down',p.n,{p:pct(saved)}):trn('route_script_and_tools.n_rule_live',p.n)}`,'good');sfx('build');}closeModal();UI.slop=undefined;checkGoals();},
- buyTE:()=>{if(S.te)return;if(lvl()<3){toast(tr('route_script_and_tools.auto_te_unlocks_at_customer_level'),'bad');sfx('err');return;}if(!spend(TE_COST))return;S.te={on:true,day:S.day};toast(tr('route_script_and_tools.auto_te_is_live_the_controller'),'good');after();},
+ buyTE:()=>{if(S.te)return;if(lvl()<3){toast(tr('route_script_and_tools.auto_te_unlocks_at_customer_level'),'bad');sfx('err');return;}if(!coreTE()){toast(tr('core.auto_te_needs_an_rsvp_te_or'),'bad');sfx('err');return;}if(!spend(TE_COST))return;S.te={on:true,day:S.day};toast(tr('route_script_and_tools.auto_te_is_live_the_controller'),'good');after();},
  teToggle:()=>{if(!S.te)return;S.te.on=!S.te.on;after();},
  trace:({city})=>traceModal(city),
  traceRun:()=>{const f=$('trFrom'),t=$('trTo');traceModal(f&&f.value,t&&t.value);},

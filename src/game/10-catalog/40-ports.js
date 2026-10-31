@@ -3,7 +3,8 @@
 const PORT_SLOT=i=>i===0?0.25:1;
 function portsUsed(c){let u=0;
   for(const l of S.links){if(l.a!==c&&l.b!==c||l.kind==='vxc')continue;u+=l.kind==='df'?(l.ch||[]).length:1;}
-  for(const t of S.transit)if(t.city===c)u+=PORT_SLOT(t.tier)*(t.n||1);
+  // A puzzle's content origin (t.pz) hands off on a port of its own: it takes none of yours.
+  for(const t of S.transit)if(t.city===c&&!t.pz)u+=PORT_SLOT(t.tier)*(t.n||1);
   for(const x of S.pni)if(x.city===c)u+=PORT_SLOT(x.tier)*(x.n||1);
   for(const x of ixIdsIn(c))if(S.ixp[x]!==undefined&&!S.myIx[x])u+=PORT_SLOT(S.ixp[x])*((S.ixn||{})[x]||1);
   if(S.myIx[c])u+=1;
@@ -17,6 +18,6 @@ const popIdle=c=>{const p=S.pops[c];return !!p&&!p.bb&&portsUsed(c)===0&&!S.biz.
 const fmtPorts=u=>Number.isInteger(u)?String(u):u.toFixed(2).replace(/0+$/,'');
 function modelFits(c,g){const G=RG[g],p=S.pops[c];if(!p)return '';
   if(S.links.some(l=>(l.a===c||l.b===c)&&l.kind==='wave'&&l.tier>G.maxLT))return tr('ports.a_wave_here_is_faster_than',{pn:G.pn});
-  if([...S.transit,...S.pni].some(t=>t.city===c&&t.tier>G.maxP)||ixIdsIn(c).some(x=>S.ixp[x]!==undefined&&!S.myIx[x]&&S.ixp[x]>G.maxP))return tr('ports.a_port_here_is_bigger_than',{pn:G.pn});
+  if([...S.transit,...S.pni].some(t=>t.city===c&&!t.pz&&t.tier>G.maxP)||ixIdsIn(c).some(x=>S.ixp[x]!==undefined&&!S.myIx[x]&&S.ixp[x]>G.maxP))return tr('ports.a_port_here_is_bigger_than',{pn:G.pn});
   if(S.links.some(l=>(l.a===c||l.b===c)&&l.kind==='df'&&(l.ch||[]).some(o=>OPT[o]&&OPT[o].rg>G.cls)))return tr('ports.a_fibre_here_uses_optics_this');
   if(portsUsed(c)>portsMax(c,g))return tr('ports.you_use_u_ports_here_and',{u:fmtPorts(portsUsed(c)),r:p.routers||1,model:G.n,max:portsMax(c,g)});return '';}

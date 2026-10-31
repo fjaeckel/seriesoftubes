@@ -13,6 +13,8 @@ Read these before larger changes:
 - `docs/adr/`: decisions that are settled (GitHub Pages only; one page assembled at build).
 - `.claude/skills/`: step-by-step procedures (`edit-the-game`, `github-pages`, release,
   translations, tests, performance).
+- `.claude/skills/gameplay-rules/`: the game's design rules (W1, N3, F2…), each enforced by
+  `tests/gameplay-rules.test.js`; run it before changing cities, networks, cables, modes or balance.
 
 ## Commands
 

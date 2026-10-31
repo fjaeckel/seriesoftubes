@@ -6,7 +6,7 @@
 // static markup, in the inlined English and in every translation file, and the page ends up about the
 // size it was when the English text itself was the key.
 //
-// Labels passed to N_() are kept whole: those are the ones the game stores (in saves, in the inbox log)
+// Labels passed to N_() are kept whole: those are the ones the game stores (in saves)
 // and shows later, and an id would mean something else in the next release.
 const { CALL } = require('../legacy/labels');
 const D = require('./dict');

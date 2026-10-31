@@ -18,6 +18,6 @@ const GOALS=[
  {id:'c5',t:tr('common.five_continents'),d:tr('goals.pops_in_five_of_the_six'),r:100000,ok:()=>regionsCount()>=5},
  {id:'gi',t:tr('goals.sign_a_giant'),d:tr('goals.land_an_ai_wan_a_multi'),r:150000,ok:()=>S.biz.some(b=>BIZ_T[b.type]&&BIZ_T[b.type].mega&&!BIZ_T[b.type].event)},
  {id:'t10',t:tr('goals.serve_10_tbps'),d:tr('goals.ten_terabits_per_second_of_happy'),r:250000,ok:()=>R.served>=10000},
- {id:'t1',t:tr('common.go_transit_free_tier_1'),d:tr('goals.peer_with_every_tier_1_over'),r:0,win:true,ok:()=>isTier1()},
+ {id:'t1',t:tr('common.go_transit_free_tier_1'),d:tr('goals.peer_with_every_tier_1_their_customers'),r:0,win:true,ok:()=>isTier1()},
 ];
 

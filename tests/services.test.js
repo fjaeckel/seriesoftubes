@@ -9,6 +9,30 @@ function network(ev) {
   ev("const L=(a,b,t,v)=>{UI.via=v||null;openLinkModal(a,b);ACT.buildLink({tier:t});};L('fra','ams',3);L('fra','par',3);L('ams','lon',2,'uly');closeModal()");
 }
 
+test('gaming offers and signed customers show their DDoS risk in Deals, city panels and customer lists', () => {
+  const { ev, errors, dom } = load();
+  ev("ACT.start({});S.cash=1e9;ACT.buyTransit({city:'fra',net:'cog',tier:1});S.offers=['game','cgame','host'].map(type=>({id:type,city:'fra',name:type,bw:5,rate:100,reqs:[],exp:S.day+30,type}));UI.left='deals';UI.leftOpen=true;renderLeft()");
+  const notes = (root, action) => {
+    const buttons = [...root.querySelectorAll(`[data-act="${action}"]`)];
+    assert.equal(buttons.length, 3);
+    for (const button of buttons) {
+      const id = JSON.parse(button.dataset.args).id;
+      const count = (button.closest('.row').textContent.match(/Gaming attracts attacks/g)||[]).length;
+      assert.equal(count, id==='game'||id==='cgame'?1:0, `risk note for ${id}`);
+    }
+  };
+  assert.equal(ev('gamingCount()'), 0, 'offers disclose future risk before signing');
+  notes(dom.window.document.getElementById('leftBody'), 'accept');
+  ev("selectCity('fra');ACT.tab({t:'cust'})");
+  notes(dom.window.document.getElementById('panelBody'), 'accept');
+  ev("for(const id of ['game','cgame','host'])ACT.accept({id});UI.tab='cust';renderPanel()");
+  assert.equal(ev('gamingCount()'), 2, 'the note uses the same customer classification as the attack calculation');
+  notes(dom.window.document.getElementById('panelBody'), 'dropBiz');
+  ev('ACT.custOpen({})');
+  notes(dom.window.document.getElementById('custSec'), 'custGo');
+  assert.deepEqual(errors, []);
+});
+
 test('event networks pay in full when the crowd is served, nothing up front', () => {
   const { ev, errors } = load();
   seed(ev, 4);

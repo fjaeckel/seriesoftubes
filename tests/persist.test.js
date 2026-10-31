@@ -10,7 +10,7 @@ const root = path.join(__dirname, '..');
 function playedGame() {
   const a = load();
   a.ev("ACT.start({});ACT.launchBB({city:'fra'});for(let i=0;i<25;i++)dayTick();UI.speed=2;save()");
-  return { a, saved: a.ev("localStorage.getItem('sot-save-v1')"), day: a.ev('S.day') };
+  return { a, saved: a.ev("slotRaw(UI.slot)"), day: a.ev('S.day') };
 }
 
 test('a reload drops you straight back into your saved network', () => {
@@ -25,16 +25,16 @@ test('a reload drops you straight back into your saved network', () => {
 
 test('leaving the page saves the game', () => {
   const a = load();
-  a.ev("ACT.start({});for(let i=0;i<7;i++)dayTick();localStorage.removeItem('sot-save-v1')");
+  a.ev("ACT.start({});for(let i=0;i<7;i++)dayTick();localStorage.removeItem(SLOT_K+UI.slot)");
   a.ev("dispatchEvent(new Event('pagehide'))");
-  assert.equal(JSON.parse(a.ev("localStorage.getItem('sot-save-v1')")).day, a.ev('S.day'));
+  assert.equal(JSON.parse(a.ev("slotRaw(UI.slot)")).day, a.ev('S.day'));
 });
 
 test('a save too big for the browser is not retried every few seconds, but leaving still tries', () => {
   const a = load();
   // A storage that counts tries and refuses the game save, like a full quota.
   a.ev(`window.__tries=0;window.__full=true;const P=Object.getPrototypeOf(localStorage),set=P.setItem;
-    P.setItem=function(k,v){if(k==='sot-save-v1'){__tries++;if(__full){const e=new Error('full');e.name='QuotaExceededError';throw e;}}return set.call(this,k,v);};
+    P.setItem=function(k,v){if(k.startsWith('sot-save-v1')){__tries++;if(__full){const e=new Error('full');e.name='QuotaExceededError';throw e;}}return set.call(this,k,v);};
     ACT.start({});for(let i=0;i<7;i++)dayTick();__tries=0;UI.saveFail=null;save()`);
   assert.equal(a.ev('__tries'), 1);
   a.ev('save();save();after()');
@@ -44,7 +44,7 @@ test('a save too big for the browser is not retried every few seconds, but leavi
   assert.equal(a.ev('UI.saveFail.wait'), 120000, 'and each failure waits longer');
   a.ev('__full=false;UI.saveFail.at-=120001;save()');
   assert.equal(a.ev('__tries'), 3, 'tried again once the wait is over');
-  assert.equal(JSON.parse(a.ev("localStorage.getItem('sot-save-v1')")).day, a.ev('S.day'));
+  assert.equal(JSON.parse(a.ev("slotRaw(UI.slot)")).day, a.ev('S.day'));
   assert.equal(a.ev('UI.saveFail'), null);
   a.ev('save()');
   assert.equal(a.ev('__tries'), 4, 'a save that works keeps saving every time');

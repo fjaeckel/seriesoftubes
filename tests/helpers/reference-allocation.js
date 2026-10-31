@@ -1,12 +1,14 @@
 // Deliberately scan all exits for every flow, without byRank, local-city
 // shortcuts or first-group selection. Stable sorting preserves E order on ties.
+// Without Auto-TE, an exit whose shortest path from this POP is already full fits nothing, so it counts as
+// unusable, like a full exit (#210).
 module.exports = `
   for(const pass of PASSES||[null])for(const rank of RANKS){
     for(f of flows){
       if(f.rem<=1e-6||(rank===0&&!f.cache)||(pass&&!pass(f)))continue;
       Dv=SDi[f.ci];Pv=SPi[f.ci];PP=walked[f.ci]||(walked[f.ci]=[]);vis++;
       const candidates=E.filter(e=>e.used<e.cap&&e.ok(f.n)&&
-        (TR?eff(e,f.n):base(e))===rank&&Dv[CIDX[e.city]]<Infinity)
+        (TR?eff(e,f.n):base(e,f.n))===rank&&Dv[CIDX[e.city]]<Infinity&&!gone(e))
         .sort((a,b)=>(a.pref==='high'?0:1)-(b.pref==='high'?0:1)||Dv[CIDX[a.city]]-Dv[CIDX[b.city]]);
       for(let i=0;i<candidates.length&&f.rem>1e-6;){
         let j=i+1;while(j<candidates.length&&(candidates[j].pref==='high')===(candidates[i].pref==='high')&&

@@ -57,7 +57,7 @@ function teOptimize(){const L=[tr('routescript.suggested_by_the_optimizer_from_l
   return L.join('\n');}
 // Ready-made RouteScripts, filled in from the live network. Players load them from the help; the AI button picks them too.
 const teUps=()=>[...new Set(S.transit.map(t=>t.net))].map(n=>({n,p:Math.min(...S.transit.filter(t=>t.net===n).map(t=>NET[n].price*netMult(NET[n],t.city)))})).sort((a,b)=>a.p-b.p);
-const teNm=n=>NET[n].name.toLowerCase(),teAtk=()=>!!(S.ev.ddos&&S.ev.ddos.until>S.day);
+const teNm=n=>NET[n].name.toLowerCase(),teAtk=()=>ddosAll().length>0;
 const teSad=()=>S.biz.some(b=>!BIZ_T[b.type].l2&&!BIZ_T[b.type].fiber&&!BIZ_T[b.type].event&&sfOf(R,b.city)<0.95);
 const TE_RECIPES=[
  {id:'shield',n:N_('common.shields_up'),d:N_('routescript.for_a_ddos_drop_the_junk'),fit:()=>teAtk()?9:0.3,
@@ -116,7 +116,7 @@ function teHelpModal(){const rule=(code,what)=>`<dt><code>${code}</code></dt><dd
   ${TE_RECIPES.map(r=>`<div class="terec"><div><b>${tr(r.n)}</b><div class="meta">${tr(r.d)}</div></div>${btn(tr('common.load'),'teRecipe',{id:r.id},'sm')}</div>`).join('')}</div>
   <div class="btns" style="margin-top:12px">${btn(tr('routescript.back_to_the_editor'),'teBack',{},'big')}</div>`);}
 let TE_CACHE={src:null,p:null};
-function teRules(){if(!S||!S.te||!S.te.on||!S.te.script)return null;if(TE_CACHE.src!==S.te.script)TE_CACHE={src:S.te.script,p:teParse(S.te.script)};return TE_CACHE.p.errors.length?null:TE_CACHE.p;}
+function teRules(){if(!S||!S.te||!S.te.on||!S.te.script||!coreTE())return null;if(TE_CACHE.src!==S.te.script)TE_CACHE={src:S.te.script,p:teParse(S.te.script)};return TE_CACHE.p.errors.length?null:TE_CACHE.p;}
 function teModal(msg){const src=UI.teDraft!==undefined?UI.teDraft:(S.te.script||TE_EXAMPLE);
   openModal(`<div style="display:flex;align-items:center"><div><div class="eyebrow">${tr('routescript.auto_te_controller')}</div><h2 style="font-size:26px">RouteScript</h2></div><button class="x" data-act="teClose" aria-label="${tr('common.close')}">×</button></div>
   <p class="tagline">${tr('routescript.write_rules_check_them_against_live')}</p>

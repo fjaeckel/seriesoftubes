@@ -27,5 +27,7 @@ function t1Card(){const cur=GOALS.find(g=>S.done[g.id]===undefined);if(!((cur&&c
   h+=pRow({l:tr('meet_a_network.pnis_with_every_tier_1'),v:need.length-miss.length,max:need.length,txt:`${need.length-miss.length} / ${need.length}`});
   if(miss.length)h+=`<div class="btns">${miss.map(nb).join('')}</div>`+(club.ok?'':`<p class="why">${tr('meet_a_network.tier_1s_only_take_a_pni',{list:club.missing.join(', ')})}</p>`);
   h+=pRow({l:tr('meet_a_network.reach_without_transit'),v:Math.min(R.reachNT,0.999),max:0.999,txt:`${reachPct(R.reachNT)} / 99.9%`});
+  // Their customers come along for free (#85): say how many, so the long tail does not look like homework.
+  {const nc=Object.keys(R.cone||{}).length;h+=`<p class="why">${nc?trn('meet_a_network.peer_with_the_tier_1_club_n',nc):tr('meet_a_network.peer_with_the_tier_1_club')}</p>`;}
   if(lost.length)h+=`<div class="btns">${lost.slice(0,3).map(nb).join('')}${btn(trn('meet_a_network.all_n_out_of_reach',lost.length),'netFilter',{f:'out'},'pink sm')}</div>`;
   return h+'</div>';}

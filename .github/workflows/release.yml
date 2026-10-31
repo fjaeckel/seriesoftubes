@@ -4,7 +4,8 @@ name: Release to GitHub Pages
 # Pushes to main run CI but never deploy. To ship: bump "version" in
 # package.json and date its CHANGELOG section; auto-release.yml then tags,
 # publishes the release and starts this workflow from the tag. Publishing a
-# release by hand works too.
+# release by hand works too. Every Sunday weekly-puzzle.yml redeploys the live
+# release from its tag with the new weekly puzzle added (input weekly).
 on:
   release:
     # "released" also fires when a pre-release is promoted to a full release.
@@ -16,6 +17,10 @@ on:
         required: true
       allow_older:
         description: Allow deploying a version older than what is live (rollback)
+        type: boolean
+        default: false
+      weekly:
+        description: Only the weekly puzzles changed (weekly-puzzle.yml); the release itself was tested when it shipped
         type: boolean
         default: false
 
@@ -63,8 +68,36 @@ jobs:
           if [ "$ALLOW_OLDER" != "true" ] && [ "$(printf '%s\n%s\n' "$live" "$new" | sort -V | tail -n1)" != "$new" ]; then
             echo "::error::$new is older than the live $live. Re-run with allow_older to roll back on purpose."; exit 1
           fi
+      # Weekly puzzles are published on main between releases (weekly-puzzle.yml). Every deploy ships all of them,
+      # so neither a release nor a weekly redeploy ever drops a week that is already out.
+      - name: Weekly puzzles and scenarios from main
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin main
+          for d in site/puzzles/weekly site/scenarios/weekly site/architect/weekly; do
+            if git cat-file -e "FETCH_HEAD:$d" 2>/dev/null; then
+              rm -rf "$d"
+              git checkout FETCH_HEAD -- "$d"
+              echo "$d: $(ls "$d" | grep -c '^[0-9].*\.json$')"
+            fi
+          done
       - run: npm ci
+      # This release's prices may no longer fit a week already published: --check regenerates every week not over
+      # yet whose budget no longer verifies (deterministically, so main's next weekly run commits the same files),
+      # and fails the deploy only if that fails. Before the tests, which check the weeks too.
+      - name: Fit the weekly puzzles to this release
+        run: |
+          set -euo pipefail
+          # A release from before the weekly puzzles ships the files without reading them: nothing to check.
+          if [ ! -f scripts/weekly-puzzle.js ]; then echo "This release does not read weekly puzzles yet."; exit 0; fi
+          node scripts/weekly-puzzle.js --check
+          if [ -f scripts/weekly-scenario.js ]; then node scripts/weekly-scenario.js --check; fi
+          if [ -f scripts/weekly-architect.js ]; then node scripts/weekly-architect.js --check; fi
       - run: npm test
+        if: ${{ !inputs.weekly }}
+      - name: Test the weekly puzzles against this release
+        if: ${{ inputs.weekly && hashFiles('scripts/weekly-puzzle.js') != '' }}
+        run: npm test -- tests/weekly-puzzle.test.js tests/puzzles.test.js $(ls tests/weekly-scenario.test.js tests/weekly-architect.test.js 2>/dev/null)
       - name: Build site
         run: VERSION="${TAG#v}" REQUIRE_NOTES=1 npm run build
       - uses: actions/upload-pages-artifact@v5
@@ -88,6 +121,7 @@ jobs:
   # the site is live.
   indexnow:
     needs: deploy
+    if: ${{ !inputs.weekly }}
     runs-on: ubuntu-latest
     env:
       # IndexNow keys are public by design (also served at /<key>.txt).

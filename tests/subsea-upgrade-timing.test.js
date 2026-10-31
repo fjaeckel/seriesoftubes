@@ -4,7 +4,7 @@ const { load } = require('./harness');
 
 function setup(ev) {
   ev(`ACT.start({});S.cash=1e11;S.lvl=13;S.day=100;for(const g of GOALS)S.done[g.id]=0;
-    S.links=[{id:'cable',a:'lag',b:'bde',kind:'df',own:true,sub:true,sys:'roadm',km:7000,ch:[],day:100,ready:1000,cut:0,mo:1}];`);
+    S.links=[{id:'cable',a:'lag',b:'bde',kind:'df',own:true,sub:true,sys:'roadm',km:15000,ch:[],day:100,ready:1000,cut:0,mo:1}];`);
 }
 
 function dates(ev) {
@@ -55,7 +55,7 @@ test('packages included in the original order stay aligned with its accelerated 
   const { ev, dom } = load();
   try {
     setup(ev);
-    ev("S.won=true;UI.pending={a:'lag',b:'bde'};UI.seaterminal=UI.seaengineering=true;ACT.orderCable();S.links=[S.links.at(-1)]");
+    ev("S.won=true;UI.pending={a:'sin',b:'lax'};UI.seaterminal=UI.seaengineering=true;ACT.orderCable();S.links=[S.links.at(-1)]");
     assert.equal(ev('S.links[0].subterminal'), ev('S.links[0].ready'));
     assert.equal(ev('S.links[0].subengineering'), ev('S.links[0].ready'));
     ev("ACT.crews({id:S.links[0].id})");
@@ -129,11 +129,11 @@ test('one-click completion costs the same as repeated crew hires and advances pe
     const button = [...dom.window.document.querySelectorAll('#panelBody [data-act=crews]')].find(b => JSON.parse(b.dataset.args).all);
     assert.ok(button && !button.disabled, 'one-click option is available');
     const cash = ev('S.cash');
-    assert.ok(button.textContent.includes(ev('fmt$(30*Math.round(15000+7000*6))')), 'full price is shown before purchase');
+    assert.ok(button.textContent.includes(ev('fmt$(30*Math.round(15000+15000*6))')), 'full price is shown before purchase');
     button.click();
     const bulkDates = dates(ev), bulkCash = ev('S.cash');
     assert.deepEqual(bulkDates, [101, 131, 281]);
-    assert.equal(cash - bulkCash, 30 * 57000);
+    assert.equal(cash - bulkCash, 30 * 105000);
     const after = [...dom.window.document.querySelectorAll('#panelBody [data-act=crews]')];
     assert.ok(after.every(b => b.disabled), 'both options stop at one day');
     ev("ACT.crews({id:'cable',all:1})");
@@ -150,18 +150,18 @@ test('one-click completion is atomic when unaffordable and handles short or comp
   const { ev, dom } = load();
   try {
     setup(ev);
-    ev("S.cash=30*57000-1;UI.sel={type:'link',id:'cable'};renderPanel()");
+    ev("S.cash=30*105000-1;UI.sel={type:'link',id:'cable'};renderPanel()");
     const bulk = [...dom.window.document.querySelectorAll('#panelBody [data-act=crews]')].find(b => JSON.parse(b.dataset.args).all);
     assert.equal(bulk.disabled, true);
     ev("ACT.crews({id:'cable',all:1})");
-    assert.equal(ev('S.cash'), 30 * 57000 - 1);
+    assert.equal(ev('S.cash'), 30 * 105000 - 1);
     assert.equal(ev('S.links[0].ready'), 1000, 'no partial purchase');
-    ev("S.cash=57000;S.links[0].ready=102;ACT.crews({id:'cable',all:1})");
+    ev("S.cash=105000;S.links[0].ready=102;ACT.crews({id:'cable',all:1})");
     assert.equal(ev('S.cash'), 0);
     assert.equal(ev('S.links[0].ready'), 101, 'two days remaining costs one normal hire');
     assert.match(dom.window.document.body.textContent, /Construction is 1 day ahead\./);
-    ev("S.cash=57000;S.day=101;ACT.crews({id:'cable',all:1})");
-    assert.equal(ev('S.cash'), 57000, 'completed construction cannot be rushed');
+    ev("S.cash=105000;S.day=101;ACT.crews({id:'cable',all:1})");
+    assert.equal(ev('S.cash'), 105000, 'completed construction cannot be rushed');
     ev("S.day=100;S.links[0].ready=1000;S.links[0].own=false;ACT.crews({id:'cable',all:1})");
     assert.equal(ev('S.links[0].ready'), 1000, 'leased handovers cannot buy construction crews');
   } finally { dom.window.close(); }

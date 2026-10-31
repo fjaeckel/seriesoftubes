@@ -1,13 +1,14 @@
 /* ================= ACTIONS ================= */
 function spend(c){if(S.cash<c){toast(tr('interface.not_enough_cash_wait_for_revenue'),'bad');sfx('err');return false;}S.cash-=c;sfx('build');return true;}
 const ACT={
- speed:({v})=>{v=+v;if(![0,0.5,1,2,4,8].includes(v))return;if(v)UI.lastSpeed=v;UI.speed=v;renderHUD();},
+ linkCheck:({id})=>{const l=S.links.find(x=>x.id===id);if(!l||linkDown(l))return;linkCheckModal(l);},
+ speed:({v})=>{v=+v;if(pzOn())return;if(![0,0.5,1,2,4,8].includes(v)||(S&&!rule('clock')&&v))return;if(v)UI.lastSpeed=v;UI.speed=v;renderHUD();},
  help:()=>showHelp(),
- dash:()=>{if(!S)return;const d=$('dash');d.hidden=!d.hidden;if(!d.hidden)renderDash();},
+ dash:()=>{if(!S||pzOn())return;const d=$('dash');d.hidden=!d.hidden;if(!d.hidden)renderDash();},
  dashClose:()=>{$('dash').hidden=true;},
  dashTab:({k})=>{if(!DTABS.includes(k))return;UI.dtab=k;renderDash();const d=$('dash');if(d)d.scrollTop=0;},
  dashSort:({k})=>{if(!['name','asn','type','traffic','cost','lost'].includes(k))return;if(UI.dashSort===k)UI.dashDir=-(UI.dashDir||-1);else{UI.dashSort=k;UI.dashDir=k==='name'||k==='type'||k==='asn'?1:-1;}renderDash();},
- bank:()=>{if(!S)return;UI.confirm=null;$('dash').hidden=true;const b=$('bankBox');b.hidden=false;UI._bh=null;renderBank();},
+ bank:()=>{if(!S||pzOn())return;UI.confirm=null;$('dash').hidden=true;const b=$('bankBox');b.hidden=false;UI._bh=null;renderBank();},
  bankClose:()=>{UI.confirm=null;$('bankBox').hidden=true;},
  takeLoan:({id})=>{const o=S.loanOffers.find(x=>x.id===id);if(!o)return;S.stats.loans=(S.stats.loans||0)+1;const B=BANKS[o.bank];let got=o.amount,note='';
    if(B.crypto){const f=0.55+Math.random()*0.8;got=Math.round(o.amount*f);note=' '+(f>=1?tr('interface.tubecoin_moved_up_p_on_the',{p:Math.round(Math.abs(f-1)*100)}):tr('interface.tubecoin_moved_down_p_on_the',{p:Math.round(Math.abs(f-1)*100)}));}
@@ -29,12 +30,12 @@ const ACT={
  tab:({t})=>{UI.tab=t;UI.confirm=null;renderPanel();},
  leftTab:({t})=>{UI.left=t;UI.leftOpen=true;renderLeft();},
  netFocus:({id})=>{if(!NET[id])return;$('dash').hidden=true;UI.netFocus=id;UI.nf='all';UI.left='nets';UI.leftOpen=true;UI.sel=null;renderPanel();renderLeft();const b=$('leftBody');if(b)b.scrollTop=0;},
- netFilter:({f})=>{UI.nf=f==='out'?'out':'all';UI.netFocus=null;$('dash').hidden=true;UI.left='nets';UI.leftOpen=true;UI.sel=null;renderPanel();renderLeft();const b=$('leftBody');if(b)b.scrollTop=0;},
+ netFilter:({f})=>{UI.nf=f==='out'?'out':'all';listReset('nets');UI.netFocus=null;$('dash').hidden=true;UI.left='nets';UI.leftOpen=true;UI.sel=null;renderPanel();renderLeft();const b=$('leftBody');if(b)b.scrollTop=0;},
  meetGo:({city})=>{if(!isCity(city))return;$('dash').hidden=true;ACT.focusCity({city});if(S.pops[city]){UI.tab='peer';renderPanel();}},
  toggleLeft:()=>{UI.leftOpen=!UI.leftOpen;renderLeft();},
- phoneTab:({t})=>{if(!['goals','deals','noc','nets'].includes(t))return;haptic(8);if(UI.leftOpen&&UI.left===t&&!UI.sel){UI.leftOpen=false;}else{UI.left=t;UI.leftOpen=true;UI.sel=null;renderPanel();}$('left').classList.remove('full');renderLeft();},
- phonePlay:()=>{haptic(10);if(UI.speed){UI.lastSpeed=UI.speed;UI.speed=0;}else UI.speed=UI.lastSpeed||1;renderHUD();},
- phoneSpeed:()=>{haptic(8);const cur=UI.speed||UI.lastSpeed||1,i=SPEEDS.indexOf(cur),n=SPEEDS[(i+1)%SPEEDS.length];UI.speed=n;UI.lastSpeed=n;renderHUD();},
+ phoneTab:({t})=>{if(!['goals','deals','noc','nets'].includes(t))return;if($('modal').classList.contains('link-check'))closeModal();haptic(8);if(UI.leftOpen&&UI.left===t&&!UI.sel){UI.leftOpen=false;}else{UI.left=t;UI.leftOpen=true;UI.sel=null;renderPanel();}$('left').classList.remove('full');renderLeft();},
+ phonePlay:()=>{if(pzOn())return;if(S&&!rule('clock'))return;haptic(10);if(UI.speed){UI.lastSpeed=UI.speed;UI.speed=0;}else UI.speed=UI.lastSpeed||1;renderHUD();},
+ phoneSpeed:()=>{if(pzOn())return;if(S&&!rule('clock'))return;haptic(8);const cur=UI.speed||UI.lastSpeed||1,i=SPEEDS.indexOf(cur),n=SPEEDS[(i+1)%SPEEDS.length];UI.speed=n;UI.lastSpeed=n;renderHUD();},
  install:()=>{if(installEvt){installEvt.prompt();installEvt.userChoice.finally(()=>{installEvt=null;});return;}
    openModal(pitchHtml(false));},
  pitchSkip:()=>{const p=UI.pendGame;UI.pendGame=null;UI.pitched=true;if(p)beginGame(...p);else closeModal();},
@@ -42,7 +43,7 @@ const ACT={
   if(o.a==='city'&&isCity(o.v)){ACT.focusCity({city:o.v});return;}
   if(o.a==='link'){if(S.links.some(l=>l.id===o.v)){ACT.selLink({id:o.v});return;}toast(tr('interface.that_link_is_gone_it_was'),'');return;}
   if(o.a==='cust'){if(S.biz.some(b=>b.id===o.v)){ACT.custGo({id:o.v});return;}toast(tr('interface.that_customer_is_gone_the_contract'),'');return;}
-  if(o.a==='bank'){ACT.bank({});return;}if(o.a==='inbox'){ACT.inbox({});return;}if(o.a==='tab'&&LOG_TABS.includes(o.v))ACT.leftTab({t:o.v});},
+  if(o.a==='bank'){ACT.bank({});return;}if(o.a==='ops'){ACT.opsOpen();return;}if(o.a==='tab'&&LOG_TABS.includes(o.v))ACT.leftTab({t:o.v});},
  logAll:()=>{UI.logAll=!UI.logAll;renderLeft();},
  focusCity:({city})=>{selectCity(city);const C=CITY[city];cam.x=C.x;cam.y=C.y;cam.z=Math.max(cam.z,1.2);if(innerWidth<760)UI.leftOpen=false;renderLeft();},
  selLink:({id})=>selectLink(id),

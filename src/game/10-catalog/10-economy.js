@@ -6,6 +6,10 @@ const RU_BOX=40000, RU_BOX_MO=2000;
 const UAE_LIC=15000,KSA_LIC=25000;
 // Korea: "sender pays" interconnection makes transit into Seoul about four times the usual price.
 const KR_TRANSIT=4;
+/* Gangnam Style Peering (scenario rule `sender`) turns sender pays all the way up: every Gbps a carrier delivers into
+   Korea is billed again as a sender-pays fee, the incumbents take traffic only over a paid PNI, home gigabit is cheap,
+   and users notice every millisecond of a haul to Tokyo or Hong Kong. */
+const KR_FEE=180,KR_ARPU=0.85,KR_LAT_OK=8,KR_LAT_BAD=40;
 /* Australia: a long way from everywhere. Every gigabit out of the country rides a long, thin subsea
    cable, so transit and waves cost more than almost anywhere else. IX ports are the exception: a
    nonprofit exchange sells 10G for about AUD 350 a month. Retail broadband is dear, but the national
@@ -20,7 +24,7 @@ const SITE2_N=[tr('economy.the_other_building'),tr('economy.campus_b_the_one_wit
 const siteNo=(name,n)=>name.replace('#',1+((S&&S.asn)|0)%(n||1));
 const siteName=(c,s)=>s==='b'?CITY[c].dc2?siteNo(CITY[c].dc2,CITY[c].dc2N):SITE2_N[hstr(c)%SITE2_N.length]:siteNo(CITY[c].dc,CITY[c].dcN);
 const BE_TAPE=30000;
-const popCost=c=>POP_COST+(c&&CITY[c]&&CITY[c].tape?BE_TAPE:0)+(c&&CITY[c]&&CITY[c].ru?RU_BOX:0)+(c&&CITY[c]&&CITY[c].uae?UAE_LIC:0)+(c&&CITY[c]&&CITY[c].saudi?KSA_LIC:0);
+const popCost=c=>Math.round(POP_COST*colo(c))+(c&&CITY[c]&&CITY[c].tape?BE_TAPE:0)+(c&&CITY[c]&&CITY[c].ru?RU_BOX:0)+(c&&CITY[c]&&CITY[c].uae?UAE_LIC:0)+(c&&CITY[c]&&CITY[c].saudi?KSA_LIC:0);
 const CN_LIC=150000, CN_JV_MO=6000;
 // Scrubbing centers come in tiers by clean bandwidth. Always-on diverts instantly; on-demand is cheaper
 // but takes a couple of days to engage. A clean-pipe add-on on a transit scrubs upstream, per port.
@@ -38,9 +42,13 @@ const FS_RES=[1,0.4,0.15];
 const DDOS_VEC={
  dns:{n:tr('common.dns_reflection'),fs:true},
  ntp:{n:tr('common.ntp_amplification'),fs:true},
+ memcached:{n:tr('common.memcached_amplification'),fs:true},
+ ack:{n:tr('common.ack_flood'),fs:false},
  cldap:{n:tr('common.cldap_flood'),fs:true},
  syn:{n:tr('common.syn_flood'),fs:true},
  http:{n:tr('common.http_flood'),fs:false},
+ racknet:{n:tr('common.racknet'),fs:false,gaming:true},
+ teamspooked:{n:tr('common.teamspooked'),fs:false,gaming:true},
 };
 const MYIX_COST=80000, MYIX_MO=3000, MYIX_FEE=1500, START_CASH=200000;
 // Your own exchange's switching fabric. Bigger fabrics carry more and attract more members.

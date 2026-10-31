@@ -4,7 +4,8 @@
 const REGEN_COST=30000,REGEN_MO=900,REGEN_CH=0.5,REGEN_MAX=8;
 const spanKm=l=>Math.ceil(l.km/((l.regen|0)+1));
 /* Subsea glass is engineered end to end for one route: ultra-low-loss, large-area fiber and a repeater every
-   ~70 km, no regens (#66, #68). Optics reach about half as far again as on land, and the same physics caps
+   ~70 km, no regens in the middle of the sea (#66, #68). A consortium cable lands in several countries on its way, so a
+   seat on one can regenerate in those landing stations; your own point-to-point cable cannot. Optics reach about half as far again as on land, and the same physics caps
    every wave on a cable, leased or your own: transatlantic gets 1.6T, transpacific 800G. */
 const SUB_REACH=1.5,reachOn=(r,sub)=>sub?Math.round(r*SUB_REACH):r;
 const SUB_MAXKM=()=>subReach(1,1);
@@ -53,7 +54,11 @@ const subMaxTier=km=>{let t=0;LT.forEach((T,i)=>{if(!subWaveWhy(i,km,true))t=i;}
 // What an optic carries depends only on the optic, the span length and subsea or not; the map and compute() ask a lot.
 // Cached per optic, span and cable state: subsea, and which submarine upgrades are in service (#78).
 const OPTG={};const optG=(o,l)=>{const km=spanKm(l),fl=l.sub?1+(subUpgradeReady(l,'terminal')?2:0)+(subUpgradeReady(l,'engineering')?4:0):0,c=OPTG[o]||(OPTG[o]=[]),m=c[fl]||(c[fl]=new Map());let g=m.get(km);if(g===undefined){const x=optMode(o,l);m.set(km,g=x?x.g:0);}return g;};
-const regenNeed=(o,l)=>Math.max(0,Math.ceil(l.km/OPT[o].reach)-1);
+// Whether upgrade k changes what any optic carries on a subsea cable this long (#198). has: the other upgrade is
+// already in; otherwise k also counts when it only helps together with the other one.
+const subOther=k=>k==='terminal'?'engineering':'terminal',subHelps=(km,k,has)=>{const j=subOther(k),c=(on,o)=>({kind:'df',own:true,sub:true,km,['sub'+k]:on?0:undefined,['sub'+j]:o?0:undefined});
+  return (has?[1]:[0,1]).some(o=>Object.keys(OPT).some(x=>optG(x,c(1,o))!==optG(x,c(0,o))));};
+const regenNeed=(o,l)=>Math.max(0,Math.ceil(l.km/reachOn(OPT[o].reach,l.sub))-1);
 // The map asks for every fiber's capacity several times per frame (width, colour, label, up or down), each time over
 // all its channels. Nothing changes while a frame is drawn, so draw() keeps the answers in DFC for that frame.
 let DFC=null;

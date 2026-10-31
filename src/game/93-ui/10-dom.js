@@ -22,6 +22,6 @@ function morphKids(a,b){let x=a.firstChild,y=b.firstChild;
     else if(x.nodeValue!==y.nodeValue)x.nodeValue=y.nodeValue;
     x=x&&x.nextSibling;y=ny;}
   while(x){const nx=x.nextSibling;a.removeChild(x);x=nx;}}
-function renderAll(){if(isTablet()&&!UI.sel)UI.leftOpen=false;renderHUD();renderLeft();renderPanel();renderHint();renderMega();renderCoach();}
+function renderAll(){if(isTablet()&&!UI.sel)UI.leftOpen=false;renderHUD();renderLeft();renderPanel();renderHint();renderMega();renderCoach();pzRender();}
 function renderMega(){const el=$('mega');if(!el)return;const on=!!(S&&S.ev&&S.ev.php>S.day);if(el.hidden===!on)return;el.hidden=!on;}
 
