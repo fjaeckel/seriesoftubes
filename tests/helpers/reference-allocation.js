@@ -7,8 +7,10 @@ module.exports = `
     for(f of flows){
       if(f.rem<=1e-6||(rank===0&&!f.cache)||(pass&&!pass(f)))continue;
       Dv=SDi[f.ci];Pv=SPi[f.ci];PP=walked[f.ci]||(walked[f.ci]=[]);vis++;
+      // A carrier's own port (dr) is also a plain transit exit; one not set to carry only takes its own POP's traffic.
       const candidates=E.filter(e=>e.used<e.cap&&e.ok(f.n)&&
-        (TR?eff(e,f.n):base(e,f.n))===rank&&Dv[CIDX[e.city]]<Infinity&&!gone(e))
+        ((TR?eff(e,f.n):base(e,f.n))===rank||(dr(e,f.n)||-1)===rank)&&
+        (rank!==DIRECT_RANK[1][1]&&rank!==DIRECT_RANK[2][1]||CIDX[e.city]===f.ci)&&Dv[CIDX[e.city]]<Infinity&&!gone(e))
         .sort((a,b)=>(a.pref==='high'?0:1)-(b.pref==='high'?0:1)||Dv[CIDX[a.city]]-Dv[CIDX[b.city]]);
       for(let i=0;i<candidates.length&&f.rem>1e-6;){
         let j=i+1;while(j<candidates.length&&(candidates[j].pref==='high')===(candidates[i].pref==='high')&&

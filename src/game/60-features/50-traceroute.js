@@ -11,7 +11,7 @@ function trExits(net){const day=S.day,ev=S.ev,leak=ev.leak&&ev.leak.until>day?ev
   // A peer's customer cone (#85): one AS hop more, so tried after direct peering and before transit, as in compute().
   for(const p of S.pni)if(CONE_S[p.net].has(net)&&pniOn(p)&&popUp(p.city)&&liveN(p.city,p.site,p.n))out.push({k:'p',rank:p.net===net?1:CONE_RANK,via:p.net===net?null:p.net,city:p.city,pref:p.pref||'normal',lab:tr('common.pni_with_net',{net:NET[p.net].name}),used:R.usePni[p.id]||0,cap:liveCap(pniG(p),p.city,p.site,p.n)});
   for(const c in S.ixp){const ses=ixSessions(c),via=ses.has(net)?null:ANC[net].find(u=>ses.has(u))||null;if((ses.has(net)||via)&&(popUp(ixCity(c))||remoteCities().includes(ixCity(c)))&&!(ev.ixdown&&ev.ixdown[c]>day))out.push({k:'ix',rank:via?CONE_RANK:2,via,city:ixCity(c),id:c,pref:(S.ixPref&&S.ixPref[c])||'normal',lab:tr('common.ix_peering',{ix:ixName(c)}),used:R.useIx[c]||0,cap:ixCap(c)});}
-  for(const t of S.transit)if(popUp(t.city)&&!(t.down>day)&&liveN(t.city,t.site,t.n)&&net!==leak&&!((ev.depeer>day||scnRule('spat'))&&t.net==='cog'&&net==='ggl'))out.push({k:'t',rank:3,city:t.city,pref:t.pref||'normal',lab:tr('traceroute.name_transit',{name:NET[t.net].name}),tnet:t.net,used:R.useT[t.id]||0,cap:liveCap(PORT[t.tier].g,t.city,t.site,t.n)});
+  for(const t of S.transit)if(popUp(t.city)&&!(t.down>day)&&liveN(t.city,t.site,t.n)&&net!==leak&&!((ev.depeer>day||scnRule('spat'))&&t.net==='cog'&&net==='ggl'))out.push({k:'t',rank:3,city:t.city,pref:t.pref||'normal',carry:!!t.carry,lab:tr('traceroute.name_transit',{name:NET[t.net].name}),tnet:t.net,used:R.useT[t.id]||0,cap:liveCap(PORT[t.tier].g,t.city,t.site,t.n)});
   return out;}
 // coneChain(peer,net): [peer, …, net], the shortest walk down customer links (the network's up lists, read backwards).
 function coneChain(top,id){const prev={[id]:null},q=[id];while(q.length){const x=q.shift();if(x===top)break;for(const u of NET[x].up||[])if(NET[u]&&!(u in prev)){prev[u]=x;q.push(u);}}
@@ -24,8 +24,12 @@ function traceroute(src,to){const P=trPaths(src),me=slug(S.name)+'.net',lines=[]
   const N=NET[to.net],ex=trExits(to.net).filter(e=>P.dist[e.city]!==undefined);
   lines.unshift(`traceroute to www.${slug(N.name)}.example (${N.name}, AS${N.asn}) from ${CITY[src].name}, 30 hops max`);
   if(!ex.length){lines.push(' 2  * * *\n 3  * * *   ← '+tr('traceroute.n_network_unreachable'));return {text:lines.join('\n'),why:tr('traceroute.nothing_on_your_network_reaches_net',{net:N.name,city:CITY[src].name}),asPath:null};}
-  ex.sort((a,b)=>(a.pref==='low'?4:a.rank)-(b.pref==='low'?4:b.rank)||(a.pref==='high'?0:1)-(b.pref==='high'?0:1)||P.dist[a.city]-P.dist[b.city]);
+  // As in compute(): a carrier's own port (or its customers' carrier) goes before other transit, at this POP or anywhere when it carries.
+  const hiAny=S.transit.some(t=>t.pref==='high'&&popUp(t.city)&&!(t.down>S.day)&&liveN(t.city,t.site,t.n)),dtier=e=>hiAny||e.k!=='t'||e.pref==='low'?0:directTier(e.tnet,N.id);
+  const rk=e=>{const r=e.pref==='low'?4:e.rank,t=dtier(e);return t&&(e.carry||e.city===src)?Math.min(r,DIRECT_RANK[t][e.carry?0:1]):r;};
+  ex.sort((a,b)=>rk(a)-rk(b)||(a.pref==='high'?0:1)-(b.pref==='high'?0:1)||P.dist[a.city]-P.dist[b.city]);
   const e=ex.find(x=>x.used<x.cap*0.999)||ex[0];walk(P.path(e.city));
+  const direct=e.k==='t'&&rk(e)<3?' '+(dtier(e)===1?tr('traceroute.the_carrier_s_own_port_beats_other',{net:N.name}):tr('traceroute.net_buys_transit_from_carrier_so_that',{net:N.name,carrier:NET[e.tnet].name})):'';
   let asPath=[S.asn];
   if(e.k==='t'){const T=NET[e.tnet];asPath.push(T.asn);hop(`be-${S.asn}.${e.city}.${slug(T.name)}.net`,`203.0.113.${hstr(e.city)%250}`,0.4,tr('traceroute.hand_off_to_net',{net:T.name}));
     if(T.id!==N.id){const far=(N.pops&&N.pops.length?N.pops:[e.city]).reduce((a,c)=>kmBetween(e.city,c)<kmBetween(e.city,a)?c:a,(N.pops||[e.city])[0]);const km=CITY[far]?kmBetween(e.city,far):0;
@@ -39,7 +43,7 @@ function traceroute(src,to){const P=trPaths(src),me=slug(S.name)+'.net',lines=[]
   asPath.push(N.asn);if(e.k!=='c')hop(`www.${slug(N.name)}.example`,`198.51.100.${(hstr(N.id)+1)%250}`,0.5+(e.k==='t'?1:0.2),`${N.name}`);
   const order=e.via?tr('traceroute.a_peer_s_customers_come_after'):{c:tr('traceroute.caches_beat_pnis'),p:tr('traceroute.pnis_beat_ix_peering'),ix:tr('traceroute.ix_peering_beats_transit'),t:tr('traceroute.transit_is_the_last_resort')}[e.k];
   const cn=cnCity(src)!==!!N.cn?' '+tr('traceroute.crossing_the_great_firewall_here',{p:S.ev.gfw>S.day?35:20}):'';
-  return {text:lines.join('\n'),why:`${tr('traceroute.exit_exit_in_city',{exit:e.lab,city:CITY[e.city].name})} ${tr('traceroute.rule_and_closer_exits_win_ties',{rule:order[0].toUpperCase()+order.slice(1)})}${e.pref!=='normal'?tr('traceroute.this_one_is_set_to_mode',{mode:e.pref==='high'?tr('common.prefer'):tr('common.backup_only')}):''}.${e.used>=e.cap*0.999?' '+tr('traceroute.it_is_full_so_some_traffic'):''}${cn}`,asPath};}
+  return {text:lines.join('\n'),why:`${tr('traceroute.exit_exit_in_city',{exit:e.lab,city:CITY[e.city].name})} ${tr('traceroute.rule_and_closer_exits_win_ties',{rule:order[0].toUpperCase()+order.slice(1)})}${e.pref!=='normal'?tr('traceroute.this_one_is_set_to_mode',{mode:e.pref==='high'?tr('common.prefer'):tr('common.backup_only')}):''}.${direct}${e.used>=e.cap*0.999?' '+tr('traceroute.it_is_full_so_some_traffic'):''}${cn}`,asPath};}
 function traceModal(src,to){const pops=Object.keys(S.pops).sort((a,b)=>CITY[a].name.localeCompare(CITY[b].name));src=src&&S.pops[src]?src:UI.trFrom&&S.pops[UI.trFrom]?UI.trFrom:S.home&&S.pops[S.home]?S.home:pops[0];
   const nets=NETS.slice().sort((a,b)=>b.share-a.share),t=to||UI.trTo||'net:ggl';UI.trFrom=src;UI.trTo=t;
   const r=t.startsWith('net:')?traceroute(src,{net:t.slice(4)}):traceroute(src,{city:t.slice(5)});

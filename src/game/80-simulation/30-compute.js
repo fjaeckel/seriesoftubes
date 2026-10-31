@@ -25,7 +25,7 @@ function compute(){
   for(const t of S.transit){if(!popUp(t.city)||t.down>day||!liveN(t.city,t.site,t.n))continue;
     // AS-path prepending (#96) moves part of the port to a last-resort exit of its own.
     const cap=Math.min(liveCap(PORT[t.tier].g,t.city,t.site,t.n)*lagF(t),TRX&&TRX.cap[t.net]!==undefined?TRX.cap[t.net]:Infinity),pf=TRX&&TRX.prep[t.net]?PREPEND_F[TRX.prep[t.net]]:0;
-    const ex={k:'t',net:t.net,clean:!!t.clean,prem:premOn(t),pref:t.pref||'normal',lab:labOf(N_('common.net_transit'),'net',NET[t.net].name),id:t.id,city:t.city,cap:cap*(1-pf),used:0,rank:3,ok:n=>!(depeer&&t.net==='cog'&&n==='ggl')&&n!==leak&&!(snd&&NET[n].kr)};
+    const ex={k:'t',net:t.net,clean:!!t.clean,prem:premOn(t),pref:t.pref||'normal',carry:!!t.carry,lab:labOf(N_('common.net_transit'),'net',NET[t.net].name),id:t.id,city:t.city,cap:cap*(1-pf),used:0,rank:3,ok:n=>!(depeer&&t.net==='cog'&&n==='ggl')&&n!==leak&&!(snd&&NET[n].kr)};
     E.push(ex);if(pf)E.push({...ex,cap:cap*pf,prep:true});}
   // `nets`: every network ok() can say yes to, so it need not be asked about the other hundred.
   for(const c in S.ixp){const ct=ixCity(c);if(!(popUp(ct)||remote.includes(ct))||(S.ev.ixdown&&S.ev.ixdown[c]>day)||!(S.myIx[c]?myIxLive(c):liveN(ct,(S.ixSite||{})[c],(S.ixn||{})[c])))continue;const set=ixSessions(c);R2.sessions+=set.size;
@@ -150,7 +150,12 @@ function compute(){
   const base=(e,n)=>e.pref==='low'?4:e.rank>0&&e.rank<3&&coneOf(e,n)?CONE_RANK:e.rank;
   // LOCAL_PREF on an upstream moves it ahead of or behind the other transits, never ahead of peering (#96).
   const eff=(e,n)=>{let r=base(e,n);if(TR){if(e.k==='t'&&TR.up[e.net])r=TR.up[e.net]==='prefer'?2.9:3.5;if(e.prep)r=4.4;if(e.k!=='c'&&TR.drain.has(e.city))r=4.6;const o=TR.net[n];if(o){if(o.prefer===e.k)r=0.5;else if(o.avoid===e.k)r=4.5;}}return r;};
-  const RANKS=TR?[0,0.5,1,2,CONE_RANK,2.9,3,3.5,4,4.4,4.5,4.6]:[0,1,2,CONE_RANK,3,4];
+  // A carrier's own port for traffic bound for it or for its customers (25-direct-egress.js): tried before plain transit, but
+  // never over RouteScript, a Prefer-marked port or a port set to backup, which all keep the say they had. Such a port is
+  // also an ordinary transit exit (rank 3), so POPs without one of its own can still use it.
+  const hiAny=E.some(e=>e.k==='t'&&e.pref==='high');
+  const dr=(e,n)=>{if(hiAny||e.k!=='t')return 0;const t=directTier(e.net,n);return t&&eff(e,n)===3?DIRECT_RANK[t][e.carry?0:1]:0;};
+  const RANKS=TR?[0,0.5,1,2,CONE_RANK,2.9,2.92,2.93,2.94,2.95,3,3.5,4,4.4,4.5,4.6]:[0,1,2,CONE_RANK,2.92,2.93,2.94,2.95,3,4];
   // With `protect customers`, business flows take every rank first; home users get what is left.
   const PASSES=TR&&TR.protect?[x=>x.bz,x=>!x.bz]:null;
   // Each network's exits by the rank they route at (RouteScript can move an exit per network), in E's order.
@@ -159,7 +164,8 @@ function compute(){
   const idx=L=>{L.hi=L.some(e=>e.hp===0);L.at=new Map();for(const e of L){const h=L.at.get(e.ci);if(h)h.push(e);else L.at.set(e.ci,[e]);}};
   // Networks with the same exits at a rank share one list (LIST, by content), so what one flow learns serves them all.
   const LIST=new Map();for(let i=0;i<E.length;i++)E[i].xi=i;
-  const byRank={},RSET=new Set();for(const id of NET_IDS){const m=byRank[id]={};for(const e of okBy[id]){const r=TR?eff(e,id):base(e,id);RSET.add(r);(m[r]||(m[r]=[])).push(e);}
+  const byRank={},RSET=new Set();for(const id of NET_IDS){const m=byRank[id]={};for(const e of okBy[id]){const r=TR?eff(e,id):base(e,id);RSET.add(r);(m[r]||(m[r]=[])).push(e);
+      const d=dr(e,id);if(d){RSET.add(d);(m[d]||(m[d]=[])).push(e);}}
     for(const r in m){const L=m[r],key=L.map(e=>e.xi).join(','),o=LIST.get(key);if(o){m[r]=o;continue;}
       let V=L;if(NCOMP>1){const cs=[];for(const e of L){const k=COMP[e.ci];if(k>=0)(cs[k]||(cs[k]=[])).push(e);}for(const s of cs)if(s)idx(s);V={cs};}else idx(L);LIST.set(key,V);m[r]=V;}}
   // The flow being routed, and from its POP: distances, arriving edges and the paths walked so far, by city index.
@@ -211,11 +217,14 @@ function compute(){
   const sortD=a=>{const n=a.length;if(n>24){a.sort(byDist);return;}for(let i=1;i<n;i++){const x=a[i];let j=i-1;while(j>=0&&byDist(a[j],x)>0){a[j+1]=a[j];j--;}a[j+1]=x;}};
   for(const pass of PASSES||[null])for(const rank of RANKS){
     if(!RSET.has(rank))continue;
+    // A carrier's own port that is not set to carry only takes the traffic of the POP it sits in.
+    const LOC=rank===DIRECT_RANK[1][1]||rank===DIRECT_RANK[2][1];
     // Index loops in here: plain for…of allocates an iterator per loop until V8 has optimised compute().
     for(let fi=0,FN=flows.length;fi<FN;fi++){f=flows[fi];
       if(f.rem<=1e-6||(rank===0&&!f.cache)||(pass&&!pass(f)))continue;
       Dv=SDi[f.ci];Pv=SPi[f.ci];PP=walked[f.ci]||(walked[f.ci]=[]);vis++;
       let lst=byRank[f.n][rank];if(!lst)continue;if(lst.cs){lst=lst.cs[COMP[f.ci]];if(!lst)continue;}
+      if(LOC){G.length=0;const here=lst.at.get(f.ci);if(!here)continue;for(let h=0;h<here.length;h++){const e=here[h];if(e.used<e.cap&&!gone(e))G.push(e);}if(G.length)sendGroup(G,0,G.length);continue;}
       /* Groups are tried nearest first, preferred exits before the rest, in the order a stable sort of the usable
          exits gives. Exits only fill up once tried, so the usable ones stay the same until then. Nearly every flow
          fits in its first group: find that one with a scan (nothing is visited yet), and sort only what is left
