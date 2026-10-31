@@ -127,7 +127,7 @@ test('PNI: weekly, big enough networks only, paid peering left out by default, a
   const { ev, errors } = game(t, "ACT.buildPop({city:'ams'});S.pops.ams.rgen=1;compute()");
   hire(ev); on(ev, 'pni', { g: 5, tier: 1 }, 0);
   ev('S.day=17;S.pops.fra.bb.d=3000;S.pops.ams.bb={d:3000};compute()');
-  const plan = JSON.parse(ev("JSON.stringify(pniBatch(null,1).orders.filter(q=>(R.cityDem[q.city]||0)*NSH[q.net]>=5&&(NET[q.net].pol!=='paid'||paidFree(NET[q.net]))).map(q=>({k:q.city+q.net,cost:q.cost,tier:q.tier,big:pniBig(q.net)})))"));
+  const plan = JSON.parse(ev("JSON.stringify(pniBatch(null,1).orders.filter(q=>pniVal(q.net,q.city).want>=5&&(NET[q.net].pol!=='paid'||paidFree(NET[q.net]))).map(q=>({k:q.city+q.net,cost:q.cost,tier:q.tier,big:pniBig(q.net)})))"));
   assert.ok(plan.length > 0);
   const c0 = cash(ev);
   shift(ev);
@@ -617,5 +617,21 @@ test('#227 transit "Already connected" grows the providers you have, the smalles
   assert.equal(ev("opsVal('transit','prov')"), 'Already connected');
   ev('S=migrate(JSON.parse(JSON.stringify(S)))');
   assert.equal(ev("opsP('transit','prov')"), 'have');
+  assert.deepEqual(errors, []);
+});
+
+test('#244 the PNI order counts the traffic the PNI list shows at that POP, not what cache boxes there already serve', t => {
+  const { ev, errors } = game(t, "ACT.buildPop({city:'ham'});for(const c of ['fra','ham']){S.pops[c].rgen=mainRG(4);S.pops[c].routers=6;if(!S.pops[c].bb)ACT.launchBB({city:c});S.pops[c].bb.d=CITY[c].P*0.9;}UI.pending={a:'fra',b:'ham'};ACT.buildLink({tier:3});closeModal();ACT.buyTransit({city:'fra',net:'cog',tier:3});ACT.buyTransit({city:'ham',net:'cog',tier:3});for(let i=0;i<6;i++)S.caches.push({id:'nfx'+i,city:'ham',net:'nfx'});compute()");
+  // Hamburg's users want a lot from NetChill, but its cache boxes there serve most of it: little is left for a PNI
+  const whole = ev("(R.cityDem.ham||0)*NSH.nfx"), here = ev("pniVal('nfx','ham').want");
+  assert.ok(whole >= 10 && here < 10, `whole demand ${whole}, left for a PNI ${here}`);
+  hire(ev); on(ev, 'pni', { g: 10, tier: 0 }, 0);
+  ev('S.day=Math.ceil((S.day+1)/7)*7+3'); shift(ev);
+  assert.equal(ev("S.pni.some(p=>p.city==='ham'&&p.net==='nfx')"), false, 'no NetChill PNI in Hamburg for 2-odd Gbps');
+  // without the cache boxes all of it goes over transit, and the same order does buy the PNI
+  ev("S.caches=S.caches.filter(x=>x.city!=='ham');compute()");
+  assert.ok(ev("pniVal('nfx','ham').want") >= 10);
+  ev('S.day+=7'); shift(ev);
+  assert.equal(ev("S.pni.some(p=>p.city==='ham'&&p.net==='nfx')"), true, 'ordered once the traffic is really there');
   assert.deepEqual(errors, []);
 });
