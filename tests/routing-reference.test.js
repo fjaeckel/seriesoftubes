@@ -40,12 +40,13 @@ test('indexed routing matches the simple allocation loop across network changes'
       "S.transit.filter(t=>t.net==='tly').forEach(t=>{t.carry=true})",
       "S.transit.filter(t=>t.net==='lvl').forEach((t,i)=>{t.pref=i%2?'low':'normal'})",
       "S.pni.forEach((p,i)=>p.pref=i%3===0?'high':i%3===1?'low':'normal')",
-      "S.te={on:true,script:''}",
+      "S.te={on:true,script:''};S.core={lv:2,run:2,legacy:true}",
       "S.te.script='prefer pni for goggle\\nspill at 80%\\navoid transit for netchill'",
       "S.te.script='avoid transit level tree\\nprefer transit tell-ya\\nspill at 80%'",
       "S.te.script='prefer transit Cogentle\\nprepend transit Cogentle 2\\nprotect customers'",
       "S.ev.rpki={nets:['ggl','nfx'],until:S.day+3};S.ev.depeer=S.day+3",
       "S.ev.ddos={city:'fra',until:S.day+3,gbps:300,vec:'syn',entry:{k:'edge'}}",
+      "S.ev.ddosMore=[{id:'x2',city:'nyc',until:S.day+3,gbps:200,vec:'http',entry:{k:'t',id:'transit4'}}]",
       "S.links[0].eqDown=S.day+2;S.links[1].cut=S.day+2;S.links[2].loss={until:S.day+2,f:0.5}",
       "S.links[4].chFail={until:S.day+2,o:'tp16'};S.links[6].ch.push('zr4');S.links[8].regen=2",
       "S.day+=4;S.pni.splice(0,20);S.caches.splice(0,10);S.transit[0].pref='high'",
@@ -61,3 +62,28 @@ test('indexed routing matches the simple allocation loop across network changes'
   } finally { dom.window.close(); }
 });
 
+
+// Islands: POPs no backbone joins. Exit lists are split per island (a flow only scans exits it can reach),
+// and must route exactly like the full scan, also when a cut splits an island or joins two.
+test('indexed routing matches the simple allocation loop on a network of islands', () => {
+  const { ev, dom, errors } = load();
+  try {
+    network(ev);
+    ev("S.links=S.links.filter(l=>!['df4','df9','w3','w4','w8','w9'].includes(l.id));compute()");
+    assert.ok(ev("Object.keys(S.pops).some(c=>!pathExists('fra',c))"), 'the network is in pieces');
+    const changes = [
+      '',
+      "S.pni.forEach((p,i)=>p.pref=i%3===0?'high':i%3===1?'low':'normal')",
+      "S.te={on:true,script:'prefer pni for goggle\\nspill at 80%'};S.core={lv:2,run:2,legacy:true}",
+      "S.ev.ddos={city:'fra',until:S.day+3,gbps:300,vec:'syn',entry:{k:'edge'}}",
+      "S.links[0].cut=S.day+2",
+      "S.te=null;S.links[0].cut=0;S.links.push({id:'join',a:'par',b:'pek',kind:'wave',tier:2,km:8000,cut:0,mo:100})",
+    ];
+    for (const change of changes) {
+      ev(change);
+      ev('window.priorR=JSON.stringify(R);referenceCompute();window.expectedR=JSON.stringify(R);R=JSON.parse(priorR);compute()');
+      assert.deepEqual(JSON.parse(ev('JSON.stringify(R)')), JSON.parse(ev('expectedR')), change || 'baseline');
+    }
+    assert.deepEqual(errors, []);
+  } finally { dom.window.close(); }
+});

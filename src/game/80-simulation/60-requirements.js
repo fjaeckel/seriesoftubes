@@ -37,20 +37,31 @@ function diversityPossible(a,b,state=S){
   if(!CITY[a]||!CITY[b]||a===b)return false;
   const rules=state.scn&&state.scn.rules||{},key=JSON.stringify([!!state.won,rules]);
   if(!diversityMap||diversityMap.key!==key){
-    const links=[],cities=CITIES.filter(c=>!(rules.banCities||[]).includes(c.id)).map(c=>c.id);
-    const add=(a,b,id)=>links.push({a,b,id});
-    for(let i=0;i<cities.length;i++)for(let j=i+1;j<cities.length;j++){
-      const a=cities[i],b=cities[j];
-      if(!isSub(a,b)){add(a,b,'land:'+a+':'+b+':1');add(a,b,'land:'+a+':'+b+':2');}
-      for(const c of cablesFor(a,b))if(!(rules.banPairs||[]).some(p=>p===c.cid+':'+a+'-'+b||p===c.cid+':'+b+'-'+a))add(a,b,'cab:'+c.cid);
-      if(state.won&&seaCab(a,b)&&landing(a)&&landing(b)&&!cnCity(a)&&!cnCity(b))add(a,b,'own:'+a+':'+b);
-      for(const f of FABS)if(f.cities.includes(a)&&f.cities.includes(b))add(a,b,'fab:'+f.id);
+    /* Built once per ruleset, over every city pair, so it runs on the first load of every save: on city indices, with
+       the cables between each pair from a table. A link is the number of its risk: each land trench and your own cable
+       on its own, every segment of one cable (or one fabric) the same; adj[i] lists [neighbour, risk] in the order the
+       links were added, as a graph built from a list of them would. */
+    const cities=CITIES.filter(c=>!(rules.banCities||[]).includes(c.id)).map(c=>c.id),N=cities.length,ix=new Map(cities.map((c,i)=>[c,i]));
+    const cab=new Map();for(const c of CABLE_PAIRS){const k=c.a<c.b?c.a+'|'+c.b:c.b+'|'+c.a;let L=cab.get(k);if(!L)cab.set(k,L=[]);L.push(c);}
+    const LS=cities.map(c=>lands(CITY[c])),land=cities.map(landing),cn=cities.map(cnCity),fab=cities.map(c=>FABS.filter(f=>f.cities.includes(c))),ban=rules.banPairs||[];
+    const adj=cities.map(()=>[]),grp=new Map();let n=0,k=0;const add=(i,j,g)=>{let r;if(g===undefined)r=k++;else{r=grp.get(g);if(r===undefined)grp.set(g,r=k++);}adj[i].push(j,r);adj[j].push(i,r);n++;};
+    for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){
+      const a=cities[i],b=cities[j],cs=cab.get(a<b?a+'|'+b:b+'|'+a),sub=!LS[i].some(x=>LS[j].includes(x));
+      if(!sub){add(i,j);add(i,j);}
+      if(cs)for(const c of cs)if(!ban.some(p=>p===c.cid+':'+a+'-'+b||p===c.cid+':'+b+'-'+a))add(i,j,'cab:'+c.cid);
+      if(state.won&&land[i]&&land[j]&&(sub||cs)&&!cn[i]&&!cn[j])add(i,j);
+      if(fab[i].length&&fab[j].length)for(const f of FABS)if(fab[i].includes(f)&&fab[j].includes(f))add(i,j,'fab:'+f.id);
     }
-    diversityMap={key,links,answers:{}};
+    diversityMap={key,ix,adj,links:n,answers:{}};
   }
-  const pair=[a,b].sort().join(':');
-  return diversityMap.answers[pair]??(diversityMap.answers[pair]=disjointRoutes(a,b,diversityMap.links));
+  const pair=[a,b].sort().join(':'),M=diversityMap;
+  return M.answers[pair]??(M.answers[pair]=M.ix.has(a)&&M.ix.has(b)&&disjointOn(M.adj,M.ix.get(a),M.ix.get(b)));
 }
+// disjointRoutes() on such a graph: a shortest path by hops, then another one that shares none of its risks.
+function disjointOn(adj,a,b){const N=adj.length,bfs=skip=>{const prev=new Int32Array(N).fill(-1),pl=new Int32Array(N),q=[a];prev[a]=a;
+    for(let h=0;h<q.length;h++){const u=q[h];if(u===b)break;const L=adj[u];for(let k=0;k<L.length;k+=2){const v=L[k];if(prev[v]<0&&!(skip&&skip.has(L[k+1]))){prev[v]=u;pl[v]=L[k+1];q.push(v);}}}
+    if(prev[b]<0)return null;const used=new Set();for(let v=b;v!==a;v=prev[v])used.add(pl[v]);return used;};
+  const p1=bfs(null);return !!p1&&!!bfs(p1);}
 // Big networks have thousands of links and customers: callers that ask about all of them (compute(), the daily mood
 // check, new offers) look links up and add up what is sold in one pass (linkIds(), fiberUse()), not once per item.
 const linkIds=()=>{const m=new Map();for(const l of S.links)if(!m.has(l.id))m.set(l.id,l);return m;};

@@ -3,31 +3,29 @@ const assert = require('node:assert/strict');
 const { load } = require('./harness');
 
 const choose = (ev, v) => ev(`(()=>{const s=document.getElementById('homeSel');s.value=${JSON.stringify(v)};s.dispatchEvent(new Event('change',{bubbles:true}));})()`);
-const onTiles = ev => JSON.parse(ev("JSON.stringify([...document.querySelectorAll('.starts .start.on')].map(b=>b.dataset.city||'own'))"));
-
-test('the title screen offers five homes and a sixth tile for any city, grouped by continent', () => {
+test('the title screen has one drawer for the home city: the five suggested first, then every city by continent', () => {
   const { ev, errors } = load();
   assert.equal(ev('S'), null, 'before any game exists');
-  assert.equal(ev("document.querySelectorAll('.starts .start').length"), 6);
-  const opts = JSON.parse(ev("JSON.stringify([...document.querySelectorAll('#homeSel option')].map(o=>o.value).filter(Boolean))"));
+  const opts = JSON.parse(ev("JSON.stringify([...document.querySelectorAll('#homeSel option')].map(o=>o.value))"));
+  assert.deepEqual(opts.slice(0, 5), ['fra', 'nyc', 'sin', 'sao', 'syd'], 'the suggested homes come first');
+  assert.equal(new Set(opts).size, opts.length, 'no city twice');
   assert.ok(opts.length > 150, `lots of cities (${opts.length})`);
   assert.ok(opts.every(c => ev(`homeOk('${c}')`)), 'only cities that work as a home');
   assert.ok(!opts.some(c => ev(`!!CITY['${c}'].cn||!!CITY['${c}'].off`)), 'no hidden or Chinese cities');
   assert.ok(!opts.includes('stg'), 'no city without transit to buy');
-  assert.ok(ev("document.querySelectorAll('#homeSel optgroup').length") >= 5, 'grouped by continent');
+  assert.ok(ev("document.querySelectorAll('#homeSel optgroup').length") >= 6, 'suggested plus continents');
+  assert.equal(ev("document.getElementById('homeSel').value"), 'fra');
+  assert.equal(ev("document.querySelectorAll('.starts .start').length"), 0, 'no tiles any more');
   assert.deepEqual(errors, []);
 });
 
-test('picking any city starts the network there, and the tiles follow the choice', () => {
+test('picking any city starts the network there, and the line under the drawer follows the choice', () => {
   const { ev, errors } = load();
   choose(ev, 'lis');
   assert.equal(ev('UI.startCity'), 'lis');
-  assert.deepEqual(onTiles(ev), ['own'], 'the sixth tile lights up');
   assert.equal(ev("document.getElementById('homeWhat').textContent"), 'Lisbon · ' + ev("REG[CITY.lis.reg]"), 'and names the city in full');
-  ev("document.querySelector('.start[data-city=nyc]').click()");
-  assert.deepEqual(onTiles(ev), ['nyc'], 'a suggested tile takes over again');
-  assert.equal(ev("document.getElementById('homeSel').value"), '', 'and the dropdown resets');
-  assert.match(ev("document.getElementById('homeWhat').textContent"), /more cities/);
+  choose(ev, 'nyc');
+  assert.equal(ev("document.getElementById('homeWhat').textContent"), ev("tr('title.huge_eyeball_market_pricey')"), 'a suggested home says what it is like');
   choose(ev, 'akl');
   ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip()");
   assert.equal(ev('S.home'), 'akl');
@@ -45,12 +43,15 @@ test('a home that cannot work is refused, and the game falls back to Frankfurt',
   assert.deepEqual(errors, []);
 });
 
-test('the sixth tile works on a phone and in every language', () => {
+test('the title screen works on a phone in every language: language first, the name on top, compact presets', () => {
   for (const lang of ['en', 'it', 'pt', 'fr', 'es', 'de']) {
     const { ev, errors } = load(lang === 'en' ? {} : { lang });
     ev('window.innerWidth=360;showTitle()');
-    assert.equal(ev("document.querySelector('label.start.own b').textContent"), ev("tr('title.anywhere_else')"), lang);
-    if (lang !== 'en') assert.notEqual(ev("tr('title.anywhere_else')"), 'Anywhere else', `${lang}: translated`);
+    const order = ev("(()=>{const c=document.getElementById('modalCard');const at=s=>[...c.querySelectorAll('*')].indexOf(c.querySelector(s));return [at('#langTitle'),at('.title-art'),at('#nmIn'),at('.doors'),at('#homeSel')].join(',')})()").split(',').map(Number);
+    assert.ok(order.every((v, i) => v >= 0 && (i === 0 || v > order[i - 1])), `${lang}: language, title, name, doors, home (${order})`);
+    assert.equal(ev("document.querySelectorAll('#modalCard .preset small,#modalCard .preset span').length"), 0, `${lang}: presets are just icon and name`);
+    assert.ok(ev("document.getElementById('presetWhat').textContent.length") > 10, `${lang}: the chosen preset explained below`);
+    if (lang !== 'en') assert.notEqual(ev("tr('title.suggested')"), 'Suggested', `${lang}: translated`);
     assert.deepEqual(errors, []);
   }
 });

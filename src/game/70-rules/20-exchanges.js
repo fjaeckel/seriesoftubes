@@ -5,7 +5,9 @@
    Not That Telecom and Level Tree (whose real-world network lists no sites in PeeringDB at all, but sells in Sydney). Others can sit in
    an Australian city, like the Pacific carriers backhauling to Sydney (or Glowball Sakura Lager), but reach Australian
    customers only from overseas. */
-const AU_SELLERS=['tsy','voc','spl','sgt','drz','cog','ntt','lvl'],sellsAt=(n,c)=>!!n.price&&(n.pops.includes(c)||!!n.premOnly&&n.premOnly.includes(c))&&(!CITY[c].au||AU_SELLERS.includes(n.id));
+const AU_SELLERS=['tsy','voc','spl','sgt','drz','cog','ntt','lvl'],sellsAt=(n,c)=>!!n.price&&(n.pops.includes(c)||!!n.premOnly&&n.premOnly.includes(c))&&(!CITY[c].au||AU_SELLERS.includes(n.id))&&!noTransitIn(c);
+// A scenario city where nobody sells transit (Anchors Away: Tallinn's internet is across the water).
+const noTransitIn=c=>{const x=S&&S.scn&&S.scn.rules&&S.scn.rules.noTransitIn;return Array.isArray(x)&&x.includes(c);};
 /* China Telecomet's premium crossing into China (CN-Too) is sold where its border routes start: Hong Kong, and Moscow
    (#195), where it rides the land route east and nothing else of theirs is on offer (premOnly). It costs the same
    wherever you buy it: the Hong Kong price. */
@@ -23,7 +25,7 @@ function ixCap(c){return ixLagF(c)*(S.myIx[c]?myFab(c).g*(myIxLive(c)?1:0):liveC
 function ixSessions(c){
   const s=new Set(); if(S.ixp[c]===undefined)return s;
   for(const id of ixMembers(c)){const n=NET[id];
-    if(S.peers[id+'@'+c]&&!snub(id,c)&&!(isRemote(c)&&noRemote(id))&&!mpDown(id,c))s.add(id);
+    if(S.peers[id+'@'+c]&&!snub(id,c)&&!(isRemote(c)&&noRemote(id)))s.add(id);
     else if(S.rs[c]&&n.pol==='open'&&ppol()==='open')s.add(id);
     else if(S.myIx[c]&&(n.pol==='open'||n.pol==='selective'))s.add(id);}
   return s;

@@ -4,7 +4,8 @@ const RARITY={c:{n:tr('common.common'),col:'#16A866'},r:{n:tr('common.rare'),col
 const st=()=>S.stats||{};
 const BADGES=[
  {id:'hello',i:'👋',t:tr('common.hello_neighbour'),d:tr('badges.bring_up_your_first_peering_session'),r:'c',ok:()=>R.sessions>=1},
- {id:'backhoe',i:'🚜',t:tr('badges.met_the_backhoe'),d:tr('badges.have_a_fiber_cut'),r:'c',ok:()=>(st().by||{}).cut>=1},
+ // Keeps its old id so badges already earned (in saves and the hall of fame) carry over.
+ {id:'backhoe',i:'🐒',t:tr('badges.met_the_chaos_monkey'),d:tr('badges.get_a_visit_from_the_chaos_monkey'),r:'c',ok:()=>(st().mkMet||0)>=1},
  {id:'debt',i:'🏦',t:tr('badges.in_debt_we_trust'),d:tr('badges.take_out_a_loan'),r:'c',ok:()=>(st().loans||0)>=1||(S.loans||[]).length>0},
  {id:'twins',i:'👯',t:tr('common.twins'),d:tr('badges.run_two_routers_in_one_pop'),r:'c',ok:()=>Object.values(S.pops).some(p=>(p.routers||1)>=2)},
  {id:'shark',i:'🦈',t:tr('common.shark_week'),d:tr('badges.get_a_subsea_cable_bitten_by'),r:'r',ok:()=>(st().sharks||0)>=1},
@@ -26,6 +27,8 @@ const BADGES=[
  {id:'giants',i:'🏭',t:tr('badges.friend_of_giants'),d:tr('badges.hold_deals_at_3_different_ai'),r:'e',ok:()=>new Set(S.biz.filter(b=>BIZ_T[b.type]&&BIZ_T[b.type].mega).flatMap(b=>bCities(b))).size>=3},
  {id:'landlord',i:'🧵',t:tr('common.trench_landlord'),d:tr('badges.lease_hundreds_of_fiber_pairs_to'),r:'e',ok:()=>S.biz.some(b=>b.type==='pairs')},
  {id:'t1',i:'👑',t:tr('common.tier_1'),d:tr('badges.go_transit_free'),r:'e',ok:()=>!!S.won},
+ {id:'sol',i:'⚡',t:tr('specialist.speed_of_light'),d:tr('specialist.win_as_a_low_latency_boutique'),r:'e',ok:()=>!!S.solWon},
+ {id:'seat',i:'🚢',t:tr('specialist.part_owner_of_the_sea'),d:tr('specialist.take_a_seat_on_a_consortium'),r:'r',ok:()=>S.links.some(l=>l.seat)},
  {id:'bait',i:'🎣',t:tr('common.shark_bait'),d:tr('badges.get_bitten_by_sharks_3_times'),r:'l',ok:()=>(st().sharks||0)>=3},
  {id:'nines',i:'💎',t:tr('common.five_nines'),d:tr('badges.serve_99_5_of_demand_every'),r:'l',ok:()=>(st().clean||0)>=365},
  {id:'fifty',i:'🗺️',t:tr('badges.everywhere_at_once'),d:tr('badges.have_pops_in_50_cities'),r:'l',ok:()=>Object.keys(S.pops).length>=50},
@@ -66,20 +69,43 @@ const BADGES=[
  {id:'toaster',i:'🍞',t:tr('common.toaster_wrangler'),d:tr('badges.weather_a_ddos_with_your_defences'),r:'c',ok:()=>(st().ddosHeld||0)>=1},
  {id:'cleanpipe',i:'🚿',t:tr('common.clean_pipes'),d:tr('badges.turn_on_a_transit_clean_pipe'),r:'r',ok:()=>S.transit.some(t=>t.clean)},
  {id:'lamb',i:'🐐',t:tr('common.sacrificial_lamb'),d:tr('badges.run_a_sacrificial_pni_choke_point'),r:'r',ok:()=>S.pni.some(p=>p.sacrif)},
+ {id:'monkey',i:'🛡️',t:tr('badges.monkey_proof'),d:tr('badges.outlast_a_chaos_monkey_visit'),r:'e',ok:()=>(st().mkSurv||0)>=1},
  {id:'flood',i:'🌊',t:tr('badges.held_the_flood'),d:tr('badges.weather_a_multi_terabit_ddos'),r:'e',ok:()=>(st().ddosMonster||0)>=1},
  {id:'skynot',i:'🤖',t:tr('common.skynot_smiles'),d:tr('badges.land_a_hackback_3000tm_that_actually'),r:'e',secret:true,ok:()=>(st().hackWin||0)>=1},
+ {id:'label',i:'🏷️',t:tr('core.label_switcher'),d:tr('core.run_an_mpls_backbone'),r:'c',ok:()=>coreOn()&&S.core.run>=1},
+ {id:'bleed',i:'🩸',t:tr('core.bleeding_edge'),d:tr('core.run_an_srv6_backbone'),r:'r',ok:()=>coreOn()&&S.core.run>=4},
+ {id:'mono',i:'🏪',t:tr('core.single_vendor_shop'),d:tr('core.run_sr_mpls_or_srv6_on'),r:'e',ok:()=>coreOn()&&S.core.run>=3&&Object.keys(S.pops).length>=8&&!coreOut().length&&coreVendors().size===1},
+ {id:'zoo',i:'🦓',t:tr('core.vendor_zoo'),d:tr('core.run_an_mpls_backbone_with_4'),r:'r',ok:()=>coreOn()&&S.core.run>=1&&coreVendors().size>=4},
  {id:'zero',i:'🕳️',t:tr('badges.zero_peers_given'),d:tr('badges.reach_tier_2_with_every_single'),r:'l',secret:true,ok:()=>isTier2()&&!Object.keys(S.peers).length&&!S.pni.length},
 ];
-function hof(){try{return JSON.parse(localStorage.getItem('sot-badges')||'{}')||{};}catch(e){return {};}}
-function checkBadges(){S.ach=S.ach||{};if(S.mode==='sandbox')return;let h=null;
-  for(const b of BADGES){if(S.ach[b.id]!==undefined)continue;let ok=false;try{ok=b.ok();}catch(e){}
-    if(!ok)continue;S.ach[b.id]=S.day;const R0=RARITY[b.r];
-    if(!h)h=hof();if(!h[b.id])h[b.id]={d:new Date().toISOString().slice(0,10),n:S.name};
-    toast(`<b>${b.i} ${tr('badges.badge_unlocked_name',{name:esc(b.t)})}</b><br><span style="color:${R0.col};font-weight:900">${R0.n}</span> · ${esc(b.d)}`,'goal',[],{a:'tab',v:'goals'});sfx('coin');track('badge_'+b.id);}
+/* Badge variants by ruleset (2.0): On-call earns the standard badge, Change Freeze a frosted one and BGP at 3 a.m. a
+   fiery one; Sandbox and the puzzles earn none (puzzles have stars). Earning a badge again under a harder preset
+   upgrades its look, here and in the hall of fame. S.ach[id] stays the day it was earned; S.achP[id] is its variant. */
+const BVAR={freeze:{k:'freeze',lv:1,i:'🧊',n:N_('badges.variant_freeze_dried'),col:'#5BC0EB'},oncall:{k:'oncall',lv:2,i:'⭐',n:N_('badges.variant_on_call'),col:'#FFD23F'},bgp:{k:'bgp',lv:3,i:'🔥',n:N_('badges.variant_forged_at_3_a_m'),col:'#FF5A1F'}};
+const BVAR_IDS=['freeze','oncall','bgp'],bvar=k=>own(BVAR,k)?BVAR[k]:BVAR.oncall;
+// The preset this save plays under ('oncall' for every save from before rulesets), and the variant it earns (null: none).
+const rulePre=()=>(typeof rulePreset==='function'?rulePreset():(S&&S.rules&&S.rules.preset))||'oncall';
+function badgeVar(){if(!S||S.mode==='sandbox')return null;const p=rulePre();return p==='sandbox'||p==='puzzle'?null:own(BVAR,p)?p:'oncall';}
+// The hall of fame is this device's localStorage, so it is checked like a save: unknown variants count as standard.
+function hof(){let h;try{h=JSON.parse(localStorage.getItem('sot-badges')||'{}');}catch(e){h=null;}if(!h||typeof h!=='object'||Array.isArray(h))return {};
+  for(const k of Object.keys(h)){const x=h[k];if(!x||typeof x!=='object'){delete h[k];continue;}const vs=x.vs&&typeof x.vs==='object'&&!Array.isArray(x.vs)?x.vs:{};
+    x.vs={};for(const v of BVAR_IDS)if(typeof vs[v]==='string')x.vs[v]=vs[v];if(!Object.keys(x.vs).length)x.vs.oncall=typeof x.d==='string'?x.d:'';
+    x.v=BVAR_IDS.filter(v=>x.vs[v]!==undefined).pop();}
+  return h;}
+function checkBadges(){S.ach=S.ach||{};S.achP=S.achP||{};const v=badgeVar();if(!v)return;let h=null;const V=BVAR[v];
+  for(const b of BADGES){const had=S.ach[b.id]!==undefined;if(had&&bvar(S.achP[b.id]).lv>=V.lv)continue;let ok=false;try{ok=b.ok();}catch(e){}
+    if(!ok)continue;if(!had)S.ach[b.id]=S.day;S.achP[b.id]=v;const R0=RARITY[b.r];
+    // "Upgraded" is about this device's collection: the hall of fame already held the badge, only in a lower variant.
+    if(!h)h=hof();const today=new Date().toISOString().slice(0,10),up=!!h[b.id]&&bvar(h[b.id].v).lv<V.lv,x=h[b.id]||(h[b.id]={d:today,n:S.name,vs:{}});if(x.vs[v]===undefined)x.vs[v]=today;if(bvar(x.v).lv<V.lv||!x.v)x.v=v;
+    toast(`<b>${b.i} ${up?tr('badges.badge_upgraded_name',{name:esc(b.t)}):tr('badges.badge_unlocked_name',{name:esc(b.t)})}</b><br><span style="color:${R0.col};font-weight:900">${R0.n}</span>${v==='oncall'?'':` · <span class="bvt v-${v}">${V.i} ${tr(V.n)}</span>`} · ${esc(b.d)}`,'goal',[],{a:'tab',v:'goals'});sfx('coin');track('badge_'+b.id+(v==='oncall'?'':'_'+v));}
   if(h)try{localStorage.setItem('sot-badges',JSON.stringify(h));}catch(e){}}
-function badgeGrid(){const h=hof(),got=BADGES.filter(b=>S.ach&&S.ach[b.id]!==undefined).length;
-  return `<h3 style="font-size:15px;margin:14px 0 6px">${tr('common.badges')} <span class="meta">${tr('badges.got_total_this_game_ever_ever',{got,total:BADGES.length,ever:Object.keys(h).filter(k=>BADGES.some(b=>b.id===k)).length})}</span></h3><div class="badges">${BADGES.map(b=>{const on=S.ach&&S.ach[b.id]!==undefined,ever=!!h[b.id],R0=RARITY[b.r],hide=b.secret&&!on&&!ever;
-    return `<div class="bdg ${on?'on':ever?'ever':''}" style="--rc:${R0.col}" title="${esc(hide?tr('badges.a_secret_badge'):b.t+': '+b.d)}"><span class="bi">${hide?'❔':b.i}</span><span class="bt">${esc(hide?'???':b.t)}</span><span class="br">${R0.n}${ever&&!on?' · '+tr('common.earned_before'):''}</span>${hide?'':`<span class="bd">${esc(b.d)}</span>`}</div>`;}).join('')}</div>`;}
+// How many badges this device has ever earned in each variant: the collection.
+function badgeShelf(h){const o={freeze:0,oncall:0,bgp:0};for(const b of BADGES){const x=h[b.id];if(x)for(const v of BVAR_IDS)if(x.vs[v]!==undefined)o[v]++;}return o;}
+function badgeGrid(){const h=hof(),got=BADGES.filter(b=>S.ach&&S.ach[b.id]!==undefined).length,sh=badgeShelf(h),V=badgeVar();
+  return `<h3 style="font-size:15px;margin:14px 0 6px">${tr('common.badges')} <span class="meta">${tr('badges.got_total_this_game_ever_ever',{got,total:BADGES.length,ever:Object.keys(h).filter(k=>BADGES.some(b=>b.id===k)).length})}</span></h3>
+  <div class="bshelf">${BVAR_IDS.map(v=>`<span class="bsh v-${v}${V===v?' cur':''}">${BVAR[v].i} ${esc(tr(BVAR[v].n))} <b>${sh[v]}/${BADGES.length}</b></span>`).join('')}</div>${V&&V!=='oncall'?`<p class="meta" style="margin:0 0 6px">${V==='bgp'?tr('badges.this_game_earns_fiery_badges'):tr('badges.this_game_earns_frosted_badges')}</p>`:''}
+  <div class="badges">${BADGES.map(b=>{const on=S.ach&&S.ach[b.id]!==undefined,ever=!!h[b.id],R0=RARITY[b.r],hide=b.secret&&!on&&!ever,vk=on?bvar(S.achP&&S.achP[b.id]).k:ever?h[b.id].v:'',vn=vk&&vk!=='oncall'?' · '+BVAR[vk].i+' '+tr(BVAR[vk].n):'';
+    return `<div class="bdg ${on?'on':ever?'ever':''}${vk?' v-'+vk:''}" style="--rc:${R0.col}" title="${esc(hide?tr('badges.a_secret_badge'):b.t+': '+b.d+vn)}"><span class="bi">${hide?'❔':b.i}</span><span class="bt">${esc(hide?'???':b.t)}</span><span class="br">${R0.n}${ever&&!on?' · '+tr('common.earned_before'):''}</span>${vk&&vk!=='oncall'?`<span class="bv">${BVAR[vk].i} ${esc(tr(BVAR[vk].n))}</span>`:''}${hide?'':`<span class="bd">${esc(b.d)}</span>`}</div>`;}).join('')}</div>`;}
 function checkGoals(){checkBadges();
   for(const g of GOALS){if(S.done[g.id]!==undefined)continue;let ok=false;try{ok=g.ok();}catch(e){}
     if(ok){S.done[g.id]=S.day;if(g.r&&S.mode!=='sandbox'){S.cash+=g.r;}

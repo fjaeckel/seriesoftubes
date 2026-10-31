@@ -1,7 +1,9 @@
 function fireEvent(){
   const opts=['viral','price','grant'];
   if(S.day>50)opts.push('sanction','tariff','hijack','landban','shutdown','redsea','baltic');
-  if(S.day>HW_FREE&&!hwShock())opts.push('hwshock');
+  // Without a market (Change Freeze), no shortages and no trade war on optics.
+  if(!rule('market')&&opts.includes('tariff'))opts.splice(opts.indexOf('tariff'),1);
+  if(S.day>HW_FREE&&!hwShock()&&rule('market'))opts.push('hwshock');
   if(S.day>90&&S.links.filter(l=>l.kind==='wave'&&!l.sub).length>=3)opts.push('ctrlplane');
   if(Object.keys(S.pops).some(ruCity))opts.push('runet','runet');
   if(S.pops.doh&&Object.keys(S.pops).some(c=>CITY[c].gcc||CITY[c].uae)&&!(S.ev.gulf>S.day))opts.push('gulf');

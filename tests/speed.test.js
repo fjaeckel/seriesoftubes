@@ -303,7 +303,7 @@ test('fast routing gives exactly the same result as the plain path it replaces',
     for(const c of cs)for(const x of ixIdsIn(c)){try{ACT.buyIx({city:x,tier:1});}catch(e){}if(S.dk&&S.dk.q){S.dk.q=null;closeModal();}if(S.ixp[x]!==undefined&&!S.rs[x])ACT.rs({city:x});}
     compute();for(const n of NETS)for(const c of cs)if(n.pops.includes(c)&&peerOk(n.id,'pni',c).ok&&S.pni.length<150)S.pni.push({id:'p'+n.id+c,net:n.id,city:c,tier:1,n:1});
     for(const n of NETS.filter(n=>n.cache))for(const c of cs.slice(0,15))for(const k of [1,2])S.caches.push({id:'c'+k+n.id+c,city:c,net:n.id,site:'a'});
-    if(S.pni[3])S.pni[3].pref='high';if(S.transit[1])S.transit[1].pref='low';S.te={on:true,day:0};S.nextFail=1e9;S.nextEvent=1e9;`);
+    if(S.pni[3])S.pni[3].pref='high';if(S.transit[1])S.transit[1].pref='low';S.te={on:true,day:0};S.core={lv:2,run:2,legacy:true};S.nextFail=1e9;S.nextEvent=1e9;`);
   const sig = () => ev(`JSON.stringify({served:R.served,demand:R.demand,reach:R.reach,peered:R.peered,teMoved:R.teMoved,egT:R.egT,
     srv:Object.keys(R.citySrv).sort().map(c=>[c,R.citySrv[c]]),load:S.links.map(l=>R.load[l.id]||0),node:Object.keys(R.nodeLoad).sort().map(c=>[c,R.nodeLoad[c]]),
     t:Object.keys(R.useT).sort().map(k=>[k,R.useT[k]]),p:Object.keys(R.usePni).sort().map(k=>[k,R.usePni[k]]),ix:Object.keys(R.useIx).sort().map(k=>[k,R.useIx[k]]),c:Object.keys(R.useCache).sort().map(k=>[k,R.useCache[k]])})`);
@@ -326,11 +326,11 @@ test('Auto-TE routes around a full link exactly like the plain path', () => {
   plainCompute(ev);
   // Frankfurt reaches its only upstream in Amsterdam over a 10G wave, or the long way through Brussels on 800G.
   ev(`ACT.start({});S.cash=1e12;S.lvl=13;for(const g of GOALS)S.done[g.id]=0;for(const c of ['ams','bru'])ACT.buildPop({city:c});
-    for(const c of ['fra','ams','bru']){S.pops[c].rgen=RG.length-1;S.pops[c].routers=RMAX;}if(!S.pops.fra.bb)ACT.launchBB({city:'fra'});S.pops.fra.bb.d=CITY.fra.P*0.8;
+    for(const c of ['fra','ams','bru']){S.pops[c].rgen=RG_TOP;S.pops[c].routers=RMAX;}if(!S.pops.fra.bb)ACT.launchBB({city:'fra'});S.pops.fra.bb.d=CITY.fra.P*0.8;
     const L=(a,b,t)=>{UI.via=null;UI.lmode='wave';UI.route='main';openLinkModal(a,b);ACT.buildLink({tier:t});closeModal();};
     L('fra','ams',0);L('fra','bru',3);L('bru','ams',3);
     S.transit=[];const t=NETS.find(n=>n.price&&n.pops.includes('ams')&&n.type==='t1');ACT.buyTransit({city:'ams',net:t.id,tier:3});
-    S.ixp={};S.pni=[];S.caches=[];S.te={on:true,day:0};S.nextFail=1e9;S.nextEvent=1e9;`);
+    S.ixp={};S.pni=[];S.caches=[];S.te={on:true,day:0};S.core={lv:2,run:2,legacy:true};S.nextFail=1e9;S.nextEvent=1e9;`);
   const sig = () => ev('JSON.stringify({served:R.served,teMoved:R.teMoved,egT:R.egT,load:S.links.map(l=>R.load[l.id]||0),node:R.nodeLoad,t:R.useT})');
   for (const script of ['', 'spill at 70%']) {
     ev(`S.te.script=${JSON.stringify(script)}`);

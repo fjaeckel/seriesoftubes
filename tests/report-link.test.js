@@ -20,10 +20,11 @@ test('bugs and ideas point to GitHub from the menu and How to play, and the chat
   }
 });
 
-test('the GitHub card fits a phone', () => {
+test('the GitHub link fits a phone: a small link next to the chat link in the menu', () => {
   const { ev, errors } = load();
   ev("ACT.start({});window.innerWidth=360;ACT.menu()");
   assert.ok(ev('isPhone()'));
-  assert.ok(ev(`!!document.querySelector('#modal a.plug[href="${ISSUES}"] .go')`), 'same card layout as the chat card');
+  assert.ok(ev(`!!document.querySelector('#modal .menu-plugs a.mplug[href="${ISSUES}"]')`), 'bug link in the menu');
+  assert.ok(ev(`!!document.querySelector('#modal .menu-plugs a.mplug[href="'+SIGNAL+'"]')`), 'chat link beside it');
   assert.deepEqual(errors, []);
 });

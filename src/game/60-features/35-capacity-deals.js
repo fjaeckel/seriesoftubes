@@ -26,7 +26,7 @@ function capOffer(a,b,t,nm){const T=BIZ_T[t],km=kmBetween(a,b),n=pick(T.opts),o=
   if(t==='capfib'){o.bw=1;o.slots=n;o.rate=Math.round(dfLeaseMo(km)*n*1.5);o.win=dfBuildDays(km)+150;}
   else{o.bw=t==='capw'?n*400:n;o.rate=Math.round((150+km*0.08)*T.km);o.win=t==='capsub'?300+Math.floor(Math.random()*121):180+Math.floor(Math.random()*91);}
   return o;}
-function capDealTick(d){const q=S.capDeal;if(!q||q.at!==d)return;S.capDeal=null;const pool=(CAP_ROUTES[q.c]||[]).filter(r=>isCity(r[0])&&isCity(r[1])).slice(),out=[];
+function capDealTick(d){const q=S.capDeal;if(!q||q.at!==d)return;S.capDeal=null;seatConf(q.c);const pool=(CAP_ROUTES[q.c]||[]).filter(r=>isCity(r[0])&&isCity(r[1])).slice(),out=[];
   while(out.length<3&&pool.length){const [a,b,t]=pool.splice(Math.floor(Math.random()*pool.length),1)[0],T=BIZ_T[t];
     const nm=()=>{const list=T.names.filter(n=>!S.usedNames.includes(n)),n=list.length?pick(list):pick(T.names);useName(n);return n;};out.push(capOffer(a,b,t,nm));}
   if(!out.length)return;S.offers.push(...out);

@@ -1,5 +1,5 @@
 /* ---------- hit tests & input ---------- */
-function hitCity(x,y,r=28){let best=null,bd=r*iconScale();const KS=visibleKs();for(const C of CITIES){if(C.off&&!cityOn(C.id))continue;for(const k of KS){const [sx,sy]=toS(C.x,C.y,k);const d=Math.hypot(sx-x,sy+4-y);if(d<bd){bd=d;best={id:C.id,sx,sy};}}}return best;}
+function hitCity(x,y,r=28){let best=null,bd=r*iconScale();const KS=visibleKs();const pz=pzOn();for(const C of CITIES){if(C.off&&!cityOn(C.id))continue;if(pz&&!pzKind(C.id))continue;for(const k of KS){const [sx,sy]=toS(C.x,C.y,k);const d=Math.hypot(sx-x,sy+4-y);if(d<bd){bd=d;best={id:C.id,sx,sy};}}}return best;}
 // A tap on a city's icon picks the city; in the rest of its (generous) tap circle, a link right under the finger wins,
 // or a short link between two close cities could not be picked at all (#126).
 function pickCity(x,y){const h=hitCity(x,y);if(!h)return null;if(Math.hypot(h.sx-x,h.sy+4-y)<=16*iconScale())return h;return hitLink(x,y)?null:h;}
@@ -25,7 +25,8 @@ cv.addEventListener('pointermove',e=>{
 function endPtr(e){
   ptrs.delete(e.pointerId);const d=UI.drag;if(!d)return;
   if(d.mode==='pinch'){if(ptrs.size===0){UI.drag=null;UI.snap=null;cv.classList.remove('linking');}return;}
-  if(d.mode==='link'){if(UI.snap&&UI.snap.id!==d.from){openLinkModal(d.from,UI.snap.id);sfx('click');}}
+  if(d.mode==='link'){if(UI.snap&&UI.snap.id!==d.from){if(pzOn())pzLinkModal(d.from,UI.snap.id);else openLinkModal(d.from,UI.snap.id);sfx('click');}}
+  else if(!d.moved&&S&&mkOn()&&mkHit(e.clientX,e.clientY)){sfx('click');toast(tr('chaos_monkey.tap'),'',[{l:tr('chaos_monkey.banana',{cost:fmt$(mkBananaCost())}),act:'mkBanana',args:{}}]);}
   else if(!d.moved&&S){const h=pickCity(e.clientX,e.clientY);
     if(h){selectCity(h.id);renderLeft();sfx('click');}
     else{const l=hitLink(e.clientX,e.clientY);if(l){selectLink(l);sfx('click');}else{UI.sel=null;renderPanel();renderLeft();}}}
@@ -38,5 +39,5 @@ cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',canc
 const ZMIN=0.35,ZMAX=16;
 function zoomAt(mx,my,f){const wx=cam.x+(mx-CW/2)/cam.z,wy=cam.y+(my-CH/2)/cam.z;cam.z=clamp(cam.z*f,ZMIN,ZMAX);cam.x=wx-(mx-CW/2)/cam.z;cam.y=wy-(my-CH/2)/cam.z;wrapCam();}
 cv.addEventListener('wheel',e=>{e.preventDefault();zoomAt(e.clientX,e.clientY,Math.exp(-e.deltaY*0.0015));},{passive:false});
-addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]'))return;if(e.ctrlKey||e.metaKey||e.altKey)return;if(e.code==='Space'&&e.target.closest&&e.target.closest('button,a'))return;if(e.code==='Space'){e.preventDefault();UI.speed=UI.speed?0:1;renderHUD();}if(e.key==='0')ACT.speed({v:0.5});if(e.key==='1')ACT.speed({v:1});if(e.key==='2')ACT.speed({v:2});if(e.key==='3')ACT.speed({v:4});if(e.key==='4')ACT.speed({v:8});if(e.key==='Escape'&&!$('bankBox').hidden){$('bankBox').hidden=true;return;}if(e.key==='Escape'&&!$('dash').hidden){$('dash').hidden=true;return;}if(e.key==='Escape'){if(!$('modal').hidden){if(S&&UI.started&&!S.lost)closeModal();}else{UI.sel=null;renderPanel();}}});
+addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='metIn'){ACT.metricSet({id:e.target.dataset.id});return;}if(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]'))return;if(e.ctrlKey||e.metaKey||e.altKey)return;if(e.code==='Space'&&e.target.closest&&e.target.closest('button,a'))return;if(e.code==='Space'&&(!S||rule('clock'))&&!pzOn()){e.preventDefault();UI.speed=UI.speed?0:1;renderHUD();}if(e.key==='0')ACT.speed({v:0.5});if(e.key==='1')ACT.speed({v:1});if(e.key==='2')ACT.speed({v:2});if(e.key==='3')ACT.speed({v:4});if(e.key==='4')ACT.speed({v:8});if(e.key==='Escape'&&!$('bankBox').hidden){$('bankBox').hidden=true;return;}if(e.key==='Escape'&&!$('dash').hidden){$('dash').hidden=true;return;}if(e.key==='Escape'){if(!$('modal').hidden){if(S&&UI.started&&!S.lost)closeModal();}else{UI.sel=null;renderPanel();}}});
 

@@ -40,6 +40,17 @@ publishes the GitHub release and starts `release.yml`: test, `REQUIRE_NOTES=1 np
 `pages: write`. Pushes to `main` and pull requests build but never deploy. The `release` skill has the
 steps.
 
+**The one exception: the weekly puzzle.** Every Sunday at 03:37 UTC `weekly-puzzle.yml` commits the new
+`site/puzzles/weekly/<key>.json` to `main` (data only, no version bump) and starts `release.yml` for the **live
+release tag** with `weekly=true`. That run rebuilds exactly the live release, with every weekly file from `main`
+added, checks them with `scripts/weekly-puzzle.js --check`, and deploys it in the same `pages` concurrency group.
+Players get no update banner (the version does not change). Every release build also copies all weekly files from
+`main`, so a release never drops a published week, and regenerates (in the build, deterministically) any week
+not over yet that the release's prices no longer fit. Weekly files are plain JSON the game fetches only when the
+Puzzles list opens and never trusts; the service worker serves them network-first. The weekly scenario rides along in
+the same run: `scripts/weekly-scenario.js` writes `site/scenarios/weekly/<key>.json` (fetched when the Scenarios list
+opens), committed and deployed with the puzzle, never by a second workflow. See `docs/ARCHITECTURE.md`.
+
 ## Before you hand back a change that touches the build, deploy or loading
 
 ```bash

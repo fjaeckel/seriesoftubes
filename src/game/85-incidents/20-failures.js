@@ -1,4 +1,6 @@
-function fireFailure(){
+// Anchors Away (Baltic): a link on an anchor-prone cable, or on a pair one serves (the map calls those overland).
+const anchorProne=l=>!!(l.cable&&CAB[l.cable]&&CAB[l.cable].anchor)||anchorPair(l);
+function fireFailure(only){
   const opts=[];
   const live=S.links.filter(l=>l.kind!=='vxc'&&!linkDown(l));const fabsUsed=[...new Set(S.links.filter(l=>l.kind==='vxc').map(l=>l.prov))];
   if(live.length){opts.push(['cut',2+Math.min(6,live.length/2)]);}
@@ -7,20 +9,29 @@ function fireFailure(){
   if(S.transit.some(t=>!(t.down>S.day)))opts.push(['transit',3]);
   if(Object.keys(S.ixp).length)opts.push(['ixloop',2]);
   if(S.transit.length&&S.day>60)opts.push(['leak',2]);
-  if(S.day>40&&!scnRule('ddos'))opts.push(['ddos',2]); // Flood Season brings its own
+  // Flood Season brings its own; Change Freeze (calm) has none. Gaming customers put DDoS on its own, busier schedule
+  // (ddosTick) instead of this one, so it is never counted twice. Spicy failures already come 1.8x as often; a slightly
+  // heavier weight makes that twice On-call's DDoS, as BGP at 3 a.m. promises.
+  if(S.day>40&&!scnRule('ddos')&&!ddosOff()&&!gamingCount())opts.push(['ddos',rule('chaos')==='spicy'?2.25:2]);
   if(fabsUsed.length)opts.push(['fabric',1.5]);
   const lit=S.links.filter(l=>l.kind==='df'&&dfCap(l)>0&&!linkDown(l));if(lit.length)opts.push(['amp',1.5+lit.length*0.3],['optic',1.5+lit.length*0.3]);
+  // Two vendors' idea of the same protocol: the higher the backbone runs, the more often they disagree.
+  const iop=coreIopRisk()?coreIopLinks(live):[];if(iop.length)opts.push(['interop',3*coreIopRisk()]);
   opts.push(['funny',4]);
   if(!opts.length)return;
   let tot=opts.reduce((a,o)=>a+o[1],0),r=Math.random()*tot,type=opts[0][0];
   for(const o of opts){r-=o[1];if(r<=0){type=o[0];break;}}
-  if(type==='funny'){const f=['oops','cleaner','harmless','harmless','harmless','ac'];if(live.length)f.push('fatwave','fatwave','mtu','label','loss','loss');if(lagsN().length)f.push('lacp','lacp');if(R.demand>1)f.push('pmtud');if(Object.keys(S.ixp).length)f.push('maxpfx');if(S.transit.length)f.push('prepend');if(S.day>30)f.push('rpki');if(lit.length)f.push('roadmff');type=pick(f);}
+  if(only)type=only;
+  if(type==='funny'){const f=['oops','cleaner','harmless','harmless','harmless','ac'];if(live.length)f.push('fatwave','fatwave','mtu','label','loss','loss');if(lagsN().length)f.push('lacp','lacp');if(R.demand>1)f.push('pmtud');if(S.transit.length)f.push('prepend');if(S.day>30)f.push('rpki');if(lit.length)f.push('roadmff');type=pick(f);}
   const before=R.served;
   if(type==='harmless'){const m=pick(HARMLESS);S.stats.incidents++;S.stats.survived++;toast(`<b>${m[0]}</b><br>${m[1]}`,'goal');sfx('alert');return;}
   if(type==='ring'){const cs=Object.keys(S.pops).filter(c=>S.pops[c].site2),c=pick(cs),pp=S.pops[c],dur=2+Math.floor(Math.random()*3);pp.ringcut=S.day+dur;
     addInc({type,ref:c,until:pp.ringcut,msg:pick([tr('failures.a_backhoe_cut_the_metro_ring',{city:CITY[c].name}),tr('failures.someone_pulled_the_wrong_cross',{city:CITY[c].name,siteB:siteName(c,'b'),siteA:siteName(c,'a')}),tr('failures.a_tram_line_construction_project_in',{city:CITY[c].name})]),cost:3000,fix:tr('failures.splice_it_tonight')});}
   else if(type==='ac'){const c=pick(Object.keys(S.pops)),pp=S.pops[c];pp.hot=S.day+2;
     addInc({type,ref:c,until:pp.hot,msg:CITY[c].lux&&Math.random()<0.7?tr('failures.a_forestry_strike_stopped_the_waste',{dc:siteName(c,'a'),city:CITY[c].name}):pick([tr('failures.the_a_c_at_dc_died',{dc:siteName(c,'a'),city:CITY[c].name}),tr('failures.someone_set_the_data_center',{city:CITY[c].name}),tr('failures.the_cooling_contractor_in_city',{city:CITY[c].name})]),cost:2000,fix:tr('failures.buy_40_desk_fans')});
+  }else if(type==='interop'){
+    const ls=coreIopLinks(live);if(!ls.length)return;const l=pick(ls),dur=1+Math.floor(Math.random()*2),A=CITY[l.a].name,B=CITY[l.b].name,va=RG_V[RG[S.pops[l.a].rgen||0].v],vb=RG_V[RG[S.pops[l.b].rgen||0].v],L=tr(CORE_LV[S.core.run]);l.cut=Math.max(l.cut||0,S.day+dur);
+    addInc({type,ref:l.id,until:l.cut,msg:pick([tr('core.va_and_vb_disagree_about',{va,vb,lv:L,a:A,b:B}),tr('core.a_firmware_update_on_the_va',{va,vb,lv:L,a:A,b:B}),tr('core.both_tacs_say_it_is',{va,vb,a:A,b:B})]),cost:2500,fix:tr('core.open_a_ticket_with_both')});
   }else if(type==='fatwave'||type==='label'){
     const l=pick(live),dur=1+Math.floor(Math.random()*2),A=CITY[l.a].name,B=CITY[l.b].name,W=pick(WAVECO);l.cut=Math.max(l.cut||0,S.day+dur);
     const msg=type==='label'?pick([tr('failures.someone_in_dc_labeled_every_patch',{dc:siteName(l.a,'a'),a:A,b:B}),tr('failures.a_remote_hands_tech_in_a',{a:A,b:B}),tr('failures.a_new_tech_in_a_tidied',{a:A,b:B})])
@@ -61,9 +72,6 @@ function fireFailure(){
     pp.down=Math.max(pp.down||0,S.day+1);
     const msg=type==='cleaner'?tr('failures.the_cleaner_at_dc_unplugged_your',{dc:siteName(c,'a')}):pick([tr('failures.your_on_call_engineer_typed_clear',{city:C}),tr('failures.an_intern_pushed_an_acl_in',{city:C}),tr('failures.someone_ran_reload_on_the_city',{city:C}),tr('failures.a_config_template_rendered_router_id',{city:C}),tr('failures.someone_committed_a_config_in_city',{city:C}),tr('failures.someone_deployed_to_city_on_a',{city:C}),tr('failures.a_cosmic_ray_flipped_a_bit',{city:C}),tr('failures.an_automation_script_in_city_ran',{city:C})]);
     addInc({type,ref:c,until:pp.down,msg:msg+(type==='oops'&&(pp.routers||1)>=2?' '+tr('failures.automation_pushed_it_to_every_router'):''),cost:1500,fix:type==='oops'?tr('failures.roll_back_the_config'):tr('failures.hide_the_vacuum')});
-  }else if(type==='maxpfx'){
-    const c=pick(Object.keys(S.ixp));S.ev.ixdown=S.ev.ixdown||{};S.ev.ixdown[c]=Math.max(S.ev.ixdown[c]||0,S.day+1+Math.floor(Math.random()*2));
-    addInc({type,ref:c,until:S.ev.ixdown[c],msg:ixNamesCity(c)?tr('failures.a_member_at_ix_leaked_the',{ix:ixName(c)}):tr('failures.a_member_at_ix_leaked_the_5563',{ix:ixName(c),city:CITY[ixCity(c)].name}),cost:0});
   }else if(type==='prepend'){
     const t=pick(S.transit);t.down=Math.max(t.down||0,S.day+2);addInc({type,ref:t.id,until:t.down,msg:tr('failures.net_fat_fingered_a_route_map',{net:NET[t.net].name,n:30+Math.floor(Math.random()*60),city:CITY[t.city].name}),cost:0});
   }else if(type==='rpki'){
@@ -76,8 +84,8 @@ function fireFailure(){
     const l=pick(lit),A=CITY[l.a].name,B=CITY[l.b].name,o=pick(l.ch),dur=l.spares?1:4;l.chFail={n:1,o,until:S.day+dur};
     addInc({type,ref:l.id,until:S.day+dur,msg:pick([tr('failures.a_optic_on_a_b_overheated',{optic:OPT[o].n,a:A,b:B}),tr('failures.the_laser_in_a_optic_on',{optic:OPT[o].n,a:A,b:B}),tr('failures.a_optic_on_a_b_started',{optic:OPT[o].n,a:A,b:B})])+(l.spares?' '+tr('failures.swapped_from_your_spares_kit_by'):''),cost:l.spares?0:OPT[o].cost,fix:tr('failures.buy_a_replacement')});
   }else if(type==='cut'){
-    const mon=Math.floor((S.day%365)/30.42),monsoon=mon>=5&&mon<=8,tw=x=>x.sub&&(x.a==='tpe'||x.b==='tpe'||(x.cable&&CAB[x.cable].anchor)),vn=x=>x.sub&&(x.a==='sgn'||x.b==='sgn'),inl=x=>!x.sub&&(CITY[x.a].india||CITY[x.b].india);
-    const l=pick(live.flatMap(x=>{const w=(x.cable&&CAB[x.cable].age==='old'?3:1)*(x.cable&&CAB[x.cable].fragile?3:1)*(tw(x)?4*(scnRule('anchors')?3:1):1)*(scnRule('sharks')&&x.sub?2:1)*(vn(x)?3:1)*(!x.sub&&andesPair(x.a,x.b)?4:1)*(monsoon&&inl(x)?3:1)*(x.sub&&(x.a==='oos'||x.b==='oos')?3:1);return Array(w).fill(x);})),dur=10+Math.floor(Math.random()*8),trc=l.trench||l.id,hit=S.links.filter(x=>(x.trench||x.id)===trc);hit.forEach(x=>x.cut=Math.max(x.cut||0,S.day+dur));
+    const mon=Math.floor((S.day%365)/30.42),monsoon=mon>=5&&mon<=8,tw=x=>(x.sub&&(x.a==='tpe'||x.b==='tpe'||(x.cable&&CAB[x.cable].anchor)))||(scnRule('anchors')&&anchorProne(x)),vn=x=>x.sub&&(x.a==='sgn'||x.b==='sgn'),inl=x=>!x.sub&&(CITY[x.a].india||CITY[x.b].india);
+    const pool=only&&scnRule('anchors')?live.filter(anchorProne):live;if(!pool.length)return;const l=pick(pool.flatMap(x=>{const w=(x.cable&&CAB[x.cable].age==='old'?3:1)*(x.cable&&CAB[x.cable].fragile?3:1)*(tw(x)?4*(scnRule('anchors')?3:1):1)*(scnRule('sharks')&&x.sub?2:1)*(vn(x)?3:1)*(!x.sub&&andesPair(x.a,x.b)?4:1)*(monsoon&&inl(x)?3:1)*(x.sub&&(x.a==='oos'||x.b==='oos')?3:1);return Array(w).fill(x);})),dur=10+Math.floor(Math.random()*8),trc=l.trench||l.id,hit=S.links.filter(x=>(x.trench||x.id)===trc);hit.forEach(x=>x.cut=Math.max(x.cut||0,S.day+dur));
     const A=CITY[l.a].name,B=CITY[l.b].name,au=CITY[l.a].au&&CITY[l.b].au,auSummer=mon>=11||mon<=1;
     const en=l.sub&&(CITY[l.a].au||CITY[l.b].au)&&!(l.cable&&CAB[l.cable].fragile)&&Math.random()<0.35?pick([N_('failures.box_jellyfish_season_at_the_a'),N_('failures.a_great_white_took_an_interest')]):l.cable&&CAB[l.cable].fragile&&Math.random()<0.8?pick([N_('failures.your_a_b_cable_is_cut'),N_('failures.a_b_is_down_same_cable')]):!l.sub&&CITY[l.a].land==='nzs'&&CITY[l.b].land==='nzs'&&Math.random()<0.75?pick([N_('failures.a_kea_pulled_the_rubber_seals'),N_('failures.the_sandflies_drove_your_splicing'),N_('failures.a_farmer_s_post_hole_digger')]):l.cable==='cook'&&Math.random()<0.6?N_('failures.a_ferry_dropped_anchor_in_cook'):!l.sub&&au&&Math.random()<0.75?pick([N_('failures.a_sulphur_crested_cockatoo_chewed'),N_('failures.a_kangaroo_hit_the_fiber_hut'),N_('failures.thieves_dug_up_your_a_b'),N_('failures.a_kilometre_of_copper_went_missing'),N_('failures.a_backhoe_putting_in_a_new'),N_('failures.the_emus_won_again_a_mob'),N_('failures.a_kangaroo_boxed_your_field_tech'),N_('failures.a_drop_bear_fell_on_the'),N_('failures.an_eastern_brown_snake_moved_into'),...((S.day%365)/30.42>=8&&(S.day%365)/30.42<11?[N_('failures.magpie_swooping_season_the_field')]:[]),...(auSummer?[N_('failures.bushfire_season_the_fiber_along_a')]:[]),...(nullPair(l.a,l.b)?[N_('failures.your_a_b_fiber_broke_somewhere')]:[])]):l.sub&&(l.a==='bda'||l.b==='bda')&&Math.random()<0.7?pick([N_('failures.your_a_b_cable_went_quiet'),N_('failures.the_repair_ship_s_compass_spun')]):l.sub&&(l.a==='tbu'||l.b==='tbu')&&Math.random()<0.7?pick([N_('failures.an_undersea_volcano_erupted_next_to'),N_('failures.the_seabed_off_tonga_slid_down')]):vn(l)&&Math.random()<0.8?pick([N_('failures.another_of_vietnam_s_subsea_cables'),N_('failures.your_a_b_cable_broke_in')]):!l.sub&&(l.a==='drw'||l.b==='drw')&&Math.random()<0.7?pick([N_('failures.a_crocodile_took_a_bite_out'),N_('failures.termites_ate_the_duct_on_a')]):tw(l)&&Math.random()<0.8?pick([N_('failures.a_cargo_ship_forgot_to_raise'),N_('failures.another_anchor_another_cut_your_a'),N_('failures.a_fishing_boat_with_an_unusually')]):l.sub&&(l.a==='oos'||l.b==='oos')&&Math.random()<0.8?pick([N_('failures.a_trawler_off_ostend_dragged_its'),N_('failures.a_wind_farm_service_vessel_dropped')]):!l.sub&&(CITY[l.a].ca||CITY[l.b].ca)&&Math.random()<0.4?pick([N_('failures.a_beaver_chewed_through_your_a'),N_('failures.your_a_b_fiber_is_down'),N_('failures.frost_heave_cracked_the_duct_on')]):!l.sub&&andesPair(l.a,l.b)?pick([N_('failures.a_landslide_in_the_andes_buried'),N_('failures.snow_closed_the_mountain_pass_and'),N_('failures.an_earthquake_shook_your_a_b'),N_('failures.a_llama_herd_trampled_the_fiber')]):!l.sub&&(CITY[l.a].india||CITY[l.b].india)?pick([N_('failures.road_widening_near_a_cut_your'),N_('failures.the_monsoon_flooded_a_manhole_on'),N_('failures.a_digger_found_your_a_b')]):l.sub?pick([N_('failures.a_curious_shark_bit_your_subsea'),N_('failures.a_ship_dragged_its_anchor_across'),N_('failures.an_undersea_landslide_snapped_a_b')]):pick([N_('failures.a_backhoe_found_your_fiber_between'),N_('failures.squirrels_chewed_through_a_b_they'),N_('failures.road_works_cut_a_b_nobody')]);
     addInc({type,ref:trc,until:S.day+dur,msg:tr(en,{a:A,b:B})+(hit.length>1?' '+tr('failures.all_n_links_in_that_trench',{n:hit.length}):''),cost:Math.max(4000,Math.round(hit.reduce((a,x)=>a+x.mo,0)*0.5))},en);
@@ -111,30 +119,66 @@ function fireFailure(){
   else{const paused=pref('pauseIncident')&&autoPause();toast(`<b>${incTitle(type)}</b><br>${esc(last.msg)}${paused?`<br><b>${tr('common.game_paused')}</b>`:''}`,'bad',(last.cost?[{l:`${last.fix||tr('common.rush_repair')} ${fmt$(last.cost)}`,act:'fixInc',args:{id:last.id}}]:[]).concat(paused?[resumeAct()]:[]),incOpen(last));}
   sfx('alert');
 }
-// A DDoS attack: mostly short, modest spikes; now and then a "botnet of toasters" monster into the terabits.
-// In Flood Season (scenario rule ddos) they come more often, a third are monsters, and they grow over the year.
-function ddosAttack(){const type='ddos',fl=scnRule('ddos'),grow=fl?1+S.day/180:1;if(S.ev.ddos&&S.ev.ddos.until>S.day)ddosDone(S.ev.ddos);
-    const c=pick(Object.keys(S.pops)),vec=pick(Object.keys(DDOS_VEC)),V=DDOS_VEC[vec];
-    const monster=Math.random()<(fl?0.33:0.15),base=Math.max(R.cityDem[c]||0,4);
-    const gbps=Math.round((monster?800+Math.random()*2600:2+Math.random()*Math.max(18,base*0.9))*grow);
-    const dur=2+Math.floor(Math.random()*4),entry=ddosEntry(c);
-    S.ev.ddos={city:c,vec,gbps,until:S.day+dur,entry,bh:false,start:S.day};
+const gamingCount=()=>S.biz.reduce((n,b)=>n+(BIZ_T[b.type]?.gaming?1:0),0);
+const ddosVectors=()=>Object.keys(DDOS_VEC).filter(k=>!DDOS_VEC[k].gaming||gamingCount()>0);
+// Expected starts per week in normal play; the rolling 14-start limit is a separate ceiling.
+// Spread gaming exposure over dozens of customers, including the first, rather than switching baselines.
+const ddosRate=()=>0.5+6.5*(1-Math.exp(-gamingCount()/50*(1+Math.max(1,S.lvl||1)/LEVELS.length)));
+const ddosPressure=()=>1-Math.exp(-(.01+Math.max(0,(S.lvl||1)-1)/12+gamingCount()/10+(scnRule('ddos')?.2+S.day/365:0)));
+// Normalize the vector mix so smaller gaming-only floods do not lower the advertised overall mean (Flood Season sizes its own).
+function ddosSizeMean(){const stage=Math.max(1,S.lvl||1)/LEVELS.length,games=gamingCount();
+  const base=Math.max(10,(R.demand||0)*4/3*stage);
+  // Relative to no gaming: 3x at one customer, 8x at 50, approaching the existing 12x balance.
+  const mean=base*(games?1.2-0.9*Math.pow(4/9,(games-1)/49):0.1),vectors=ddosVectors(),weight=vectors.reduce((n,k)=>n+(DDOS_VEC[k].gaming?1/3:1),0)/vectors.length;
+  return mean/weight;}
+// Normal rolls: 98% uniform 0.2–2, 2% uniform 8–12. Their mean is 1.278, so spikes do not inflate the balance.
+const ddosSizeMax=()=>ddosSizeMean()*12/1.278;
+/* Flood Season (as in 1.36): a third are terabit monsters, the rest ordinary floods sized to the city; all of it grows
+   through the year, and on after it. One draw picks both, so fixed draws give fixed sizes. */
+function ddosSize(vec,c){const fl=scnRule('ddos'),r=Math.random();
+  if(fl){const games=gamingCount(),grow=(1+S.day/365)*(1+0.2*games/(games+10))*(DDOS_VEC[vec].gaming?1/3:1);
+    const raw=r<1/3?800+2600*r*3:2+(r-1/3)*1.5*Math.max(18,((R.cityDem||{})[c]||0)*0.9);return Math.max(2,Math.floor(raw*grow));}
+  const roll=(r<.98?.2+1.8*r/.98:8+4*(r-.98)/.02)/12,raw=ddosSizeMax()*(DDOS_VEC[vec].gaming?1/3:1)*roll;
+  return Math.max(0.001,Math.floor(raw*1000)/1000);}
+// Calm (Change Freeze) and no chaos at all mean no attacks, gamers or not.
+const ddosOff=()=>{const c=rule('chaos');return c==='calm'||c==='none';};
+// More frequent attacks are opt-in: the spicy chaos setting, or hosting gamers (who attract them in real life).
+// Outside Flood Season, only gamers move attacks onto ddosTick's daily schedule; spicy alone doubles the usual one.
+const ddosSpicy=()=>!ddosOff()&&(rule('chaos')==='spicy'||gamingCount()>0);
+function ddosTick(){if(ddosOff()&&!scnRule('ddos'))return;if(scnRule('ddos')){let next=+S.scn.nextDdos||3,n=0;
+    // Unless spicy, floods take turns as they always did: the next one waits until the last is over.
+    if(!ddosSpicy()&&ddosAll().length)return;
+    while(S.day>=next&&n++<2){ddosAttack(false);next+=floodGap();}S.scn.nextDdos=next<S.day?S.day+floodGap():next;}
+  else if(!ddosOff()&&gamingCount())for(let i=0;i<2;i++)if(Math.random()<ddosRate()/14)ddosAttack(false);}
+// Size, duration and starts are randomized independently; overlapping floods never replace each other.
+function ddosAttack(recompute=true){const type='ddos',fl=scnRule('ddos');ddosExpire();
+    S.ddosStarts=(S.ddosStarts||[]).filter(d=>d>S.day-7&&d<=S.day);if(S.ddosStarts.length>=14||!Object.keys(S.pops).length)return;S.ddosStarts.push(S.day);
+    // Flood Season goes for the POPs that serve someone, so empty ones cannot soak up floods for a free win.
+    const all=Object.keys(S.pops),served=fl?all.filter(x=>(R.cityDem||{})[x]>1e-6):[];
+    const c=pick(served.length?served:all),vec=pick(ddosVectors()),V=DDOS_VEC[vec];
+    const gbps=ddosSize(vec,c);
+    const dur=1+Math.floor(Math.random()*(1+6*ddosPressure())),entry=ddosEntry(c);
+    const a={id:uid(),city:c,vec,gbps,until:S.day+dur,entry,bh:false,start:S.day};
+    if(!S.ev.ddos)S.ev.ddos=a;else(S.ev.ddosMore||(S.ev.ddosMore=[])).push(a);
     const soaked=(V.fs&&fsAt(c))||hasScrub();
     const how=entry&&entry.lab?tr('failures.in_via_e',{e:entry.lab}):'';
     const msg=tr('failures.a_size_vec_attack_is_hitting',{size:fmtG(gbps),vec:V.n,city:CITY[c].name,how})+' '+(soaked?tr('failures.your_mitigation_is_eating_most_of'):tr('failures.junk_traffic_is_eating_your_capacity'));
-    if(fl)S.ev.ddos.who=pick(FLOOD_WHO);
-    addInc({type,ref:c,until:S.day+dur,msg:fl?msg+' '+tr('failures.attacker_who',{who:tr(S.ev.ddos.who)}):msg,cost:0});
+    if(fl)a.who=pick(FLOOD_WHO);
+    addInc({type,ref:c,atk:a.id,until:S.day+dur,msg:fl?msg+' '+tr('failures.attacker_who',{who:tr(a.who)}):msg,cost:0});
     if(soaked){S.stats.survived++;S.stats.ddosHeld=(S.stats.ddosHeld||0)+1;if(gbps>=1000)S.stats.ddosMonster=(S.stats.ddosMonster||0)+1;}
-    compute();
-    toast(`<b>${incTitle('ddos')}: ${esc(CITY[c].name)}</b><br>${esc(msg)}${fl?`<br><i>${esc(tr('failures.attacker_who',{who:tr(S.ev.ddos.who)}))}</i>`:''}`,soaked?'goal':'bad',[{l:tr('common.open_noc'),act:'leftTab',args:{t:'noc'}}],{a:'city',v:c});
+    if(recompute){compute();a.worst=ddosSf(a);}
+    toast(`<b>${incTitle('ddos')}: ${esc(CITY[c].name)}</b><br>${esc(msg)}${fl?`<br><i>${esc(tr('failures.attacker_who',{who:tr(a.who)}))}</i>`:''}`,soaked?'goal':'bad',[{l:tr('common.open_noc'),act:'leftTab',args:{t:'noc'}}],{a:'city',v:c});
     sfx('alert');}
 // When an attack is over: was it held? Held means the city under attack got at least 97% of its traffic every day.
-function ddosDone(a){if(!a||a.done)return;a.done=1;if(a.worst===undefined&&S.pops[a.city])a.worst=sfOf(R,a.city);const ok=(a.worst===undefined?1:a.worst)>=0.97;
-  if(ok){S.stats.ddosOk=(S.stats.ddosOk||0)+1;if(a.gbps>=1000)S.stats.ddosOkBig=(S.stats.ddosOkBig||0)+1;}else S.stats.ddosLost=(S.stats.ddosLost||0)+1;
-  if(scnRule('ddos')){const who=tr(a.who||FLOOD_WHO[0]);toast(ok?tr('failures.flood_held_g_who_gave_up',{g:fmtG(a.gbps),who:who.charAt(0).toUpperCase()+who.slice(1)}):tr('failures.that_one_got_through_g_city',{g:fmtG(a.gbps),city:CITY[a.city]?CITY[a.city].name:tr('common.your_network'),p:pct(a.worst||0),who}),ok?'goal':'bad');}}
+function ddosDone(a){if(!a||a.done)return;a.done=1;if(a.worst===undefined&&S.pops[a.city])a.worst=ddosSf(a);const ok=(a.worst===undefined?1:a.worst)>=0.97;
+  // In Flood Season a terabit flood counts only when scrubbing or Flowspec took it: spare exits held some by luck (playtest).
+  if(ok){S.stats.ddosOk=(S.stats.ddosOk||0)+1;if(a.gbps>=1000&&(!scnRule('ddos')||hasScrub()||(DDOS_VEC[a.vec]&&DDOS_VEC[a.vec].fs&&fsAt(a.city))))S.stats.ddosOkBig=(S.stats.ddosOkBig||0)+1;}else S.stats.ddosLost=(S.stats.ddosLost||0)+1;
+  if(scnRule('ddos')){const w=tr(FLOOD_WHO.includes(a.who)?a.who:FLOOD_WHO[0]),who=esc(w.charAt(0).toUpperCase()+w.slice(1));toast(ok?tr('failures.flood_held_g_who_gave_up',{g:fmtG(a.gbps),who}):tr('failures.that_one_got_through_g_city',{g:fmtG(a.gbps),city:esc(CITY[a.city]?CITY[a.city].name:tr('common.your_network')),p:pct(a.worst||0),who:esc(w)}),ok?'goal':'bad');}}
+// Flood Season: 3 to 7 days apart as before, shrinking with age, level and gamers only when attacks are spicy.
+const floodGap=()=>!ddosSpicy()?3+Math.floor(Math.random()*5):Math.max(0.05,(3+Math.random()*5)/(Math.sqrt(1+S.day/180)*(1+gamingCount()/10+Math.max(0,(S.lvl||1)-1)/12)));
 const FLOOD_WHO=[N_('failures.a_botnet_of_40_000_smart'),N_('failures.every_unpatched_baby_monitor_in'),N_('failures.a_gaming_clan_that_lost_one'),N_('failures.a_fridge_that_achieved_sentience_and'),N_('failures.a_crypto_bro_shorting_your_stock'),N_('failures.a_teenager_with_a_stolen_credit'),N_('failures.a_rival_isp_s_stress_test'),N_('failures.ten_thousand_smart_light_bulbs'),N_('failures.a_printer_just_one_printer_nobody'),N_('failures.a_botnet_run_from_a_cloud'),N_('failures.somebody_who_did_not_like_your'),N_('failures.the_internet_connected_kettles_of_a')];
-function incTitle(t){return {ring:tr('failures.metro_ring_cut'),site:tr('common.site_outage'),cut:tr('common.fiber_cut'),crash:tr('common.router_crash'),power:tr('common.power_outage'),transit:tr('common.upstream_outage'),ixloop:tr('common.ix_meltdown'),leak:tr('common.route_leak'),ddos:tr('common.ddos_attack'),fabric:tr('common.fabric_outage'),depeer:tr('common.peering_spat'),fatwave:tr('failures.fat_fingered_wave'),label:tr('failures.patch_panel_mishap'),mtu:tr('common.mtu_mismatch'),krroute:tr('failures.rerouted_via_hong_kong'),ctrlplane:tr('failures.control_plane_meltdown'),lacp:tr('common.lacp_trouble'),loss:tr('common.packet_loss'),pmtud:tr('failures.pmtud_black_hole'),oops:tr('common.oops'),cleaner:tr('common.vacuum_incident'),maxpfx:tr('failures.max_prefix_meltdown'),prepend:tr('common.prepend_ageddon'),rpki:tr('common.rpki_invalid'),amp:tr('common.amplifier_failure'),roadmff:tr('failures.fat_fingered_roadm'),optic:tr('common.dead_optic'),maint:tr('common.maintenance_window_3a92'),ac:tr('common.cooling_failure'),hijack:tr('common.bgp_hijack'),shutdown:tr('common.government_shutdown'),redsea:tr('failures.geopolitical_cable_cut')}[t]||tr('common.incident');}
-const LINKCUT_TR=['cut','redsea'],LINKCUT_ID=['fatwave','label'],POPDOWN=['crash','power','oops','cleaner','maint','shutdown'],IXDOWN=['ixloop','maxpfx'],TDOWN=['transit','prepend'],LINKEQ=['mtu','amp','roadmff','optic'];
+function incTitle(t){return {ring:tr('failures.metro_ring_cut'),site:tr('common.site_outage'),cut:tr('common.fiber_cut'),crash:tr('common.router_crash'),power:tr('common.power_outage'),transit:tr('common.upstream_outage'),ixloop:tr('common.ix_meltdown'),leak:tr('common.route_leak'),ddos:tr('common.ddos_attack'),fabric:tr('common.fabric_outage'),depeer:tr('common.peering_spat'),fatwave:tr('failures.fat_fingered_wave'),label:tr('failures.patch_panel_mishap'),interop:tr('core.interop_failure'),mtu:tr('common.mtu_mismatch'),krroute:tr('failures.rerouted_via_hong_kong'),ctrlplane:tr('failures.control_plane_meltdown'),lacp:tr('common.lacp_trouble'),loss:tr('common.packet_loss'),pmtud:tr('failures.pmtud_black_hole'),oops:tr('common.oops'),cleaner:tr('common.vacuum_incident'),prepend:tr('common.prepend_ageddon'),rpki:tr('common.rpki_invalid'),amp:tr('common.amplifier_failure'),roadmff:tr('failures.fat_fingered_roadm'),optic:tr('common.dead_optic'),maint:tr('common.maintenance_window_3a92'),ac:tr('common.cooling_failure'),hijack:tr('common.bgp_hijack'),shutdown:tr('common.government_shutdown'),redsea:tr('failures.geopolitical_cable_cut')}[t]||tr('common.incident');}
+const LINKCUT_TR=['cut','redsea'],LINKCUT_ID=['fatwave','label','interop'],POPDOWN=['crash','power','oops','cleaner','maint','shutdown'],IXDOWN=['ixloop'],TDOWN=['transit','prepend'],LINKEQ=['mtu','amp','roadmff','optic'];
 function remainUntil(pred){let u=0;for(const x of S.inc)if(pred(x))u=Math.max(u,x.until);return u;}
 // Remove an incident, then restore each affected thing to whatever other incidents still hold it down.
 function clearInc(i){
@@ -146,7 +190,7 @@ function clearInc(i){
   else if(TDOWN.includes(T)){const t=S.transit.find(x=>x.id===i.ref);if(t)t.down=remainUntil(x=>TDOWN.includes(x.type)&&x.ref===i.ref);}
   else if(T==='rpki'||T==='hijack'){if(!S.inc.some(x=>x.type==='rpki'||x.type==='hijack'))S.ev.rpki=null;}
   else if(T==='leak'){S.ev.leak=null;}
-  else if(T==='ddos'){const a=S.ev.ddos;if(a&&a.city===i.ref&&(a.start===undefined||a.start===i.start)){ddosDone(a);S.ev.ddos=null;}}
+  else if(T==='ddos'){const a=ddosAll(S,false).find(a=>i.atk?a.id===i.atk:a.city===i.ref&&(a.start===undefined||a.start===i.start));if(a){ddosDone(a);ddosDrop(a);}}
   else if(T==='fabric'){if(S.ev.fab)S.ev.fab[i.ref]=remainUntil(x=>x.type==='fabric'&&x.ref===i.ref);}
   else if(T==='mtu'){const l=S.links.find(x=>x.id===i.ref);if(l)l.deg=remainUntil(x=>x.type==='mtu'&&x.ref===i.ref);}
   else if(T==='loss'){const l=S.links.find(x=>x.id===i.ref);if(l&&!S.inc.some(x=>x.type==='loss'&&x.ref===i.ref))l.loss=null;}

@@ -1,0 +1,7 @@
+/* Router pictures (src/game/10-catalog/25-router-art.js): your POP's model in the city panel's header, left of the
+   name, on a small map-green stage that looks the same in both themes. */
+.rgpic{flex:0 0 auto;display:block;width:58px;height:46px;border:2px solid #1E2640;border-radius:10px;background:radial-gradient(circle at 50% 125%,#94D168 0 55%,#A8DE7C 56%);overflow:hidden}
+.rgpic.big{width:96px;height:77px;border-width:3px;border-radius:14px}
+.rgpic .rgart{display:block;width:100%;height:100%}
+.ph .phpic{align-self:center}
+@media (max-width:420px){.rgpic.big{width:76px;height:61px}}

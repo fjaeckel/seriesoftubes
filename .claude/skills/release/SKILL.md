@@ -12,6 +12,26 @@ that version's CHANGELOG section as notes, and dispatches `release.yml`, which b
 to GitHub Pages (https://seriesoftub.es). GitHub Pages is the only host, ever: see the
 `github-pages` skill.
 
+## Weekly puzzles are not releases
+
+`weekly-puzzle.yml` publishes a new puzzle every Sunday morning without a release: it commits the JSON under
+`site/puzzles/weekly/` to `main` and redeploys the live tag through `release.yml` (`weekly=true`). Never bump the
+version for a weekly puzzle. To publish or fix one by hand: `node scripts/weekly-puzzle.js --key 2026-W45 --force`,
+`node scripts/weekly-puzzle.js --check`, commit to `main`, then run the "Weekly puzzle" workflow (or
+`gh workflow run release.yml --ref <live tag> -f tag=<live tag> -f weekly=true`). A release includes every weekly
+file on `main` when it builds.
+
+The weekly scenario (`site/scenarios/weekly/`, `scripts/weekly-scenario.js`) ships in the same run and the same way:
+`--key`, `--force` and `--check` work alike. Its `--check` replays each week not over yet with the reference plan in
+the file; a new par is just written, a week the reference no longer wins is regenerated with `rev` + 1.
+
+**Prices change, weeks follow.** `--check` re-solves every week not over yet with the game it runs; a week whose
+budget no longer verifies is regenerated deterministically (the same puzzle with a new budget if that works, else a
+fresh one for the same key) with `rev` + 1, which resets players' stars for that week only. Past weeks are left alone
+unless the game rejects them. `release.yml` runs it before the tests on every deploy and fails only if a week cannot be
+regenerated. A change to prices, cables or cities fails `npm test` until you run `node scripts/weekly-puzzle.js --check`
+and commit the regenerated files with it (and `node scripts/weekly-scenario.js --check` for the scenarios).
+
 ## Only release when Frederic says so
 
 Never bump the version on your own. Finished work is committed and pushed with its

@@ -1,0 +1,4 @@
+.optic-count{display:flex;flex-wrap:wrap;align-items:end;gap:8px;margin-top:8px}
+.optic-count label{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:800}
+.optic-count input.t{width:88px;font-size:16px;min-height:44px}
+.optic-count .b{min-height:44px}

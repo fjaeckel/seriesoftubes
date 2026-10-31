@@ -268,7 +268,7 @@ test('several exchanges per city: overlapping members, cheaper challengers, sepa
   const t = ev("document.getElementById('panelBody').textContent");
   assert.match(t, /3 exchanges compete/);
   assert.match(t, /NL-Nyx/);
-  ev("save();load2=JSON.parse(localStorage.getItem('sot-save-v1'));sanitize(load2)");
+  ev("save();load2=JSON.parse(slotRaw(UI.slot));sanitize(load2)");
   assert.equal(ev("load2.ixp['ams~2']"), 1, 'saves keep challenger ports');
   ev("ACT.cancelIx({city:'ams~2'});ACT.cancelIx({city:'ams~2'})");
   assert.equal(ev("S.ixp['ams~2']"), undefined);
@@ -563,8 +563,10 @@ test('the Amazon doubles overland fiber, and there is a national-operator scenar
   assert.equal(ev('S.scn.id'), 'ixbr');
   assert.equal(ev('brIxN()'), 0);
   ev("S.cash=1e9;for(const c of ['sao','rio','mao'])ACT.buildPop({city:c});S.ixp.sao=1;S.ixp.mao=1;compute()");
-  assert.equal(ev('brIxN()'), 2);
+  assert.equal(ev('brIxN()'), 1, 'a Manaus port on a POP the backbone does not reach does not count');
   assert.equal(ev("scnProg().items[1].v"), 1, 'Manaus step done');
+  ev("S.links.push({id:'y1',a:'sao',b:'mao',km:2700,sub:false,kind:'wave',tier:0,mo:1});compute()");
+  assert.equal(ev('brIxN()'), 2, 'joined up, it counts');
   assert.deepEqual(errors, []);
 });
 
@@ -605,12 +607,13 @@ test('Africa: more countries, cables along both coasts, border costs and Cape to
 test('Australia: hard mode start in Sydney, dear transit and waves, cheap IX ports, NBN takes its cut', () => {
   const { ev, errors } = load();
   ev("showTitle()");
-  assert.ok(ev("!!document.querySelector('.start[data-city=\"syd\"]')"), 'Sydney is on the start screen');
+  assert.ok(ev("!!document.querySelector('#homeSel optgroup:first-child option[value=syd]')"), 'Sydney is among the suggested homes');
   ev("ACT.pickStart({city:'syd'});ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0");
   assert.equal(ev('S.home'), 'syd');
   assert.equal(ev("regionMult('syd')"), 3, 'transit into Australia costs more than Asia');
   assert.ok(ev("regionMult('syd')>regionMult('sin')&&regionMult('syd')<regionMult('icn')"));
-  assert.equal(ev("regionMult('akl')"), 1.8, 'Auckland keeps the Oceania price');
+  assert.ok(ev("regionMult('akl')") < ev('AU_TRANSIT'), 'Auckland is not priced like Australia');
+  assert.equal(ev("regionMult('akl')"), ev("Math.round(1.8*txComp('akl')*10)/10"), 'Auckland pays the Oceania price, adjusted for its market');
   assert.equal(ev("waveMarket('syd','lax',true).reg"), 2.6, 'any subsea wave touching Australia');
   assert.equal(ev("waveMarket('mel','syd',false).reg"), 1.8);
   assert.ok(ev("ixPortMo('syd',1)<PORT[1].ix"), 'IX ports are the cheap exception');
@@ -669,8 +672,10 @@ test('Fibre to the Basement: own fibre skips the wholesale cut but pays the levy
   assert.equal(ev("SCN.find(s=>s.id==='fttb').ok()"), false, 'still needs cables overseas');
   ev("S.links.push({id:'x1',a:'syd',b:'tok',km:8000,sub:true,cable:'sushi',kind:'wave',tier:1,mo:1},{id:'x2',a:'per',b:'sin',km:4000,sub:true,cable:'avo',kind:'wave',tier:1,mo:1},{id:'x3',a:'mel',b:'hba',km:600,sub:true,cable:'ferry',kind:'wave',tier:1,mo:1})");
   assert.equal(ev('auExits()'), 2, 'Bass Strait does not count as overseas');
+  assert.equal(ev("SCN.find(s=>s.id==='fttb').ok()"), false, 'still needs the traffic');
+  ev('R.served=FTTB_G');
   assert.equal(ev("SCN.find(s=>s.id==='fttb').ok()"), true);
-  assert.equal(ev("SCN_PROG.fttb().length"), 6);
+  assert.equal(ev("SCN_PROG.fttb().length"), 7);
   assert.deepEqual(errors, []);
 });
 
@@ -898,10 +903,11 @@ test('submarine terminal and engineering upgrades commission independently and c
 test('new subsea builds include chosen transmission packages in the quote and saved order', () => {
   const { ev, dom, errors } = load();
   try {
-    ev("ACT.start({});S.cash=1e9;S.lvl=4;S.won=true;for(const g of GOALS)S.done[g.id]=0;ACT.buildPop({city:'lon'});ACT.buildPop({city:'nyc'});UI.lmode='df';UI.dfSrc='cable';openLinkModal('lon','nyc')");
-    const baseline = JSON.parse(ev("JSON.stringify(seaQuote('lon','nyc'))"));
+    ev("ACT.start({});S.cash=1e9;S.lvl=4;S.won=true;for(const g of GOALS)S.done[g.id]=0;ACT.buildPop({city:'sin'});ACT.buildPop({city:'lax'});UI.lmode='df';UI.dfSrc='cable';openLinkModal('sin','lax')");
+    // Across the Pacific, where the two packages together lift it from 400G to 800G (#198).
+    const baseline = JSON.parse(ev("JSON.stringify(seaQuote('sin','lax'))"));
     ev("document.querySelector('#modalCard [data-act=seaPackage][data-args*=terminal]').click();document.querySelector('#modalCard [data-act=seaPackage][data-args*=engineering]').click()");
-    const quote = JSON.parse(ev("JSON.stringify(seaQuote('lon','nyc','standard',{terminal:true,engineering:true}))"));
+    const quote = JSON.parse(ev("JSON.stringify(seaQuote('sin','lax','standard',{terminal:true,engineering:true}))"));
     assert.equal(quote.days, baseline.days + 210);
     assert.equal(quote.cost, baseline.cost + 5000000 + 12000000 + baseline.km * 1000);
     assert.equal(quote.ms, baseline.ms);
@@ -972,9 +978,12 @@ test('own subsea cables after #78: refunds of what was paid, upgrades a route ne
   const syd = JSON.parse(ev("JSON.stringify(S.links.at(-1))"));
   assert.equal(syd.b, 'syd'); assert.equal(syd.subterminal, syd.ready);
   ev('S.day=S.links.at(-1).ready'); assert.equal(ev("optG('tp16',S.links.at(-1))"), 400, 'lit across 18,387 km');
-  // upgrades bought later count toward the price; sanitize keeps a sane price and drops junk
+  // engineering adds nothing once the terminals light it (#198); upgrades bought later count toward the price
   ev("S.links.at(-1).subengineering=undefined;ACT.subUpgrade({id:S.links.at(-1).id,k:'engineering'})");
+  assert.equal(ev('S.links.at(-1).paid'), syd.paid);
+  ev("S.links.at(-1).subterminal=undefined;ACT.subUpgrade({id:S.links.at(-1).id,k:'engineering'})");
   assert.ok(ev('S.links.at(-1).paid') > syd.paid);
+  // sanitize keeps a sane price and drops junk
   ev("S.links.at(-1).paid='lots';S.links[0].paid=-5;S=sanitize(S)");
   assert.equal(ev('S.links.at(-1).paid'), undefined); assert.equal(ev('S.links[0].paid'), undefined);
   // advice about upgrades only on cables you own
@@ -1034,16 +1043,16 @@ test('an old save with Australian POPs is told once that Australia changed', () 
   const a = load();
   start(a.ev);
   a.ev("ACT.buildPop({city:'syd'});for(let d=0;d<3;d++)dayTick();delete S.auV;save()");
-  const sv = a.ev("localStorage.getItem('sot-save-v1')");
+  const sv = a.ev("slotRaw(UI.slot)");
   const { ev, errors } = load({ storage: { 'sot-save-v1': sv } });
   assert.match(ev("S.log.map(e=>e.t).join(' | ')"), /Australia got more Australian/);
   assert.equal(ev("S.auV"), 1);
   assert.equal(ev("S.auNews"), undefined, 'only once');
-  const again = load({ storage: { 'sot-save-v1': ev("save();localStorage.getItem('sot-save-v1')") } });
+  const again = load({ storage: { 'sot-save-v1': ev("save();slotRaw(UI.slot)") } });
   assert.equal(again.ev("S.log.filter(e=>/Australia got more Australian/.test(e.t)).length"), 1, 'not told twice');
   // a new game never sees it, and neither does a save without Australia
   const b = load(); start(b.ev); b.ev("for(let d=0;d<3;d++)dayTick();delete S.auV;save()");
-  const c = load({ storage: { 'sot-save-v1': b.ev("localStorage.getItem('sot-save-v1')") } });
+  const c = load({ storage: { 'sot-save-v1': b.ev("slotRaw(UI.slot)") } });
   assert.doesNotMatch(c.ev("S.log.map(e=>e.t).join(' | ')"), /Australia got more/);
   assert.deepEqual(errors, []);
 });
@@ -1068,5 +1077,32 @@ test('city density: no small city crowds a bigger one, Brazil is slimmer than Eu
   assert.ok(ev("!!S.pops.cpv&&cityOn('cpv')"));
   assert.ok(ev("R.cityDem.cpv>0"));
   ev('cam.x=CITY.cpv.x;cam.y=CITY.cpv.y;cam.z=6;draw(0)');
+  assert.deepEqual(errors, []);
+});
+
+test('prices follow real connectivity: thin markets cost more, hubs stay put', () => {
+  const { ev, errors } = load();
+  start(ev);
+  assert.deepEqual(JSON.parse(ev('JSON.stringify(Object.keys(CITY_PDB).filter(c=>!CITY[c]))')), [], 'every entry is a city on the map');
+  assert.deepEqual(JSON.parse(ev('JSON.stringify(CITIES.filter(c=>!CITY_PDB[c.id]).map(c=>c.id))')), [], 'every city has data, so none keeps the plain price by accident');
+  assert.ok(ev('Object.values(CITY_PDB).every(q=>Array.isArray(q)&&q.length===3&&q.every(x=>Number.isInteger(x)&&x>=0)&&q[1]>=0)'), '[facilities, presences, ASNs], whole numbers');
+  // The cities that used to have none: thin markets cost more than Frankfurt, and the Arctic has no neutral data center.
+  for (const c of ['dus', 'rix', 'mct', 'mle', 'fuk', 'sju', 'kin', 'anc', 'tik']) assert.ok(ev(`txComp('${c}')`) > 1, `${c} is no hub`);
+  for (const c of ['brw', 'tik', 'pvs', 'hav']) assert.equal(ev(`colo('${c}')`), 1.5, `${c}: no carrier-neutral data center`);
+  assert.ok(ev("txComp('dus')") < ev("txComp('rix')") && ev("txComp('rix')") < ev("txComp('mle')"), 'Düsseldorf, Riga, Malé: ever thinner');
+  // A city without data keeps the plain regional price.
+  assert.equal(ev("(()=>{const q=CITY_PDB.fra;delete CITY_PDB.fra;const r=[txComp('fra'),colo('fra'),popMo('fra')];CITY_PDB.fra=q;return r.join()})()"), `1,1,${ev('POP_MO')}`);
+  assert.equal(ev("regionMult('syd')"), ev('AU_TRANSIT'), 'Australia keeps its hand-set transit price');
+  for (const c of ['fra', 'ams', 'lon', 'nyc']) assert.equal(ev(`txComp('${c}')`), 1, `${c} is a hub`);
+  assert.equal(ev("regionMult('sao')"), 1.6, 'São Paulo keeps the South American price');
+  assert.ok(ev("regionMult('rbr')") > ev("regionMult('sao')") * 1.5, 'Rio Branco has few sellers');
+  assert.ok(ev("txComp('rbr')") <= 1.8);
+  assert.equal(ev("colo('rbr')"), 1.5, 'no neutral data center');
+  assert.equal(ev("popCost('rbr')"), ev('POP_COST') * 1.5);
+  assert.equal(ev("popMo('fra')"), ev('POP_MO'));
+  ev("ACT.buildPop({city:'rbr'});compute()");
+  assert.ok(ev('R.cost.pops') >= ev("popMo('rbr')"), 'running cost uses the city rent');
+  ev("selectCity('rbr')");
+  assert.ok(ev("CITY_PDB.sao[2]>=2000&&CITY_PDB.nyc[2]>=2000&&CITY_PDB.kgl[2]<2000"), 'Brazil and the US are dense in ASNs, Rwanda is not');
   assert.deepEqual(errors, []);
 });

@@ -51,6 +51,15 @@ section h3{font-size:17px;margin-bottom:6px;display:flex;align-items:center;gap:
 .tag.t1{background:var(--t1)} .tag.t2{background:var(--t2)} .tag.cdn{background:var(--cdn)} .tag.eye{background:var(--eye)}
 .tag.open{background:var(--ok)} .tag.selective{background:var(--warn);color:var(--ink)} .tag.restrictive{background:var(--bad)} .tag.paid{background:var(--me)}
 .tag.st{background:var(--paper);color:var(--ink)}
+/* PNI list (#175): one status chip per network, a one-line value, folded groups. Chips wrap on narrow screens. */
+.tag.worth{background:var(--warn);color:var(--ink)}
+.pchips{display:flex;flex-wrap:wrap;gap:4px;margin:3px 0}
+.pchip{display:inline-block;max-width:100%;border:1.5px solid var(--ink);border-radius:999px;padding:0 7px;font-size:11px;font-weight:800;line-height:1.5;background:var(--paper);color:var(--ink);overflow-wrap:anywhere}
+.pchip.pk-here,.pchip.pk-else{background:var(--ok);color:#fff}
+.pchip.pk-ix{background:var(--t2);color:#fff}
+.pchip.pk-none{background:var(--bad);color:#fff}
+.pval{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.pgrp{margin:8px 0 2px}.pgrp .b{width:100%;text-align:left}
 .tag.st.on{background:var(--ink);color:#fff}
 .bar{height:11px;border:2px solid var(--ink);border-radius:7px;background:var(--paper);overflow:hidden;margin:3px 0}
 .stack{display:flex;height:16px;border:2px solid var(--ink);border-radius:8px;overflow:hidden;margin:4px 0 6px;background:var(--paper)}
@@ -74,3 +83,5 @@ section h3{font-size:17px;margin-bottom:6px;display:flex;align-items:center;gap:
 .inc .nm{font-weight:900}
 .inc .meta{font-size:12px;color:var(--ink2);margin-top:2px;line-height:1.35}
 
+/* The NOC tab only says whether something is broken, never how many notifications wait (2.0). */
+.cnt.dot{min-width:0;width:9px;height:9px;padding:0;border-radius:50%;vertical-align:middle}

@@ -4,6 +4,8 @@
 const APP_VERSION='__VERSION__';
 // Filled in by scripts/build.sh from CHANGELOG.md for this version.
 const RELEASE_NOTES=/*__RELEASE_NOTES__*/[];
+// A big release's story, shown in full in "What's new" (paragraphs; **bold** allowed). Empty for most releases.
+const RELEASE_STORY=/*__RELEASE_STORY__*/[];
 const IS_DEV=APP_VERSION.startsWith('__');
 // Only report from the real site; previews, localhost and the Claude viewer stay silent.
 const ANALYTICS={host:/(^|\.)seriesoftub\.es$/.test(location.hostname)?'https://stats.seriesoftub.es':'',site:'seriesoftub.es'};

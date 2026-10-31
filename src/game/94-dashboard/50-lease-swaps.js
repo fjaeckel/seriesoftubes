@@ -17,13 +17,13 @@ function leaseSwaps(){const by={};
     const ws=ls.filter(l=>l.kind!=='df'),wmo=ws.reduce((s,l)=>s+(l.mo||0),0),sc=sub?subDfCable(a,b):null;x.iru=ls.find(l=>l.kind==='df');
     if(ws.length&&x.iru){x.fit=litOn(x.iru,leaseCap(ws));if(x.fit.fits)x.lit=wmo;}
     else if(ws.length&&lvl()>=2&&(sub?sc:dfAllowed(a,b))){const km=sc?sc.km:kmBetween(a,b),sys=lvl()>=3?'roadm':'lite',wc=leaseCap(ws),op=swapOptics(km,wc,sub,sys);
-      if(op&&op.n<=DF_SYS[sys].max)x.opts.push(swapOpt('iru',DF_SYS[sys].cost+ampCount(km)*AMP_COST+op.up,dfLeaseMo(km)+ampCount(km)*AMP_MO+op.mo,30,wmo));}
+      if(op&&op.n<=DF_SYS[sys].max)x.opts.push(swapOpt('iru',DF_SYS[sys].cost+ampCount(km)*AMP_COST+op.up,dfLeaseMo(km)+ampCount(km)*AMP_MO+op.mo,leadDays(IRU_DAYS),wmo));}
     // Dig on land, lay a cable between landing stations (even ones that share a landmass), or both.
     const whys=[];for(const cab of [false,true]){if(cab?!seaCab(a,b):sub)continue;
-      const why=cab?ownCabWhy(a,b):!dfAllowed(a,b)?tr('lease_swaps.nobody_lets_you_dig_on_this'):lvl()<3?tr('lease_swaps.digging_your_own_fiber_unlocks_at'):'';
+      const why=cab?ownCabWhy(a,b):!dfAllowed(a,b)?tr('lease_swaps.nobody_lets_you_dig_on_this'):lvl()<2?tr('lease_swaps.digging_your_own_fiber_unlocks_at'):'';
       if(why){whys.push(why);continue;}const km=cab?ownCabKm(a,b):kmBetween(a,b),op=swapOptics(km,cap,cab,'roadm');
       if(!op){whys.push(tr('lease_swaps.no_optic_you_can_buy_reaches',{km:km.toLocaleString()}));continue;}
-      x.opts.push(swapOpt(cab?'cab':'own',(cab?ownCabCost(km):dfBuildCost(km)+DF_SYS.roadm.cost+ampCount(km)*AMP_COST)+op.up,(cab?ownCabMo(km):Math.round(km*0.15)+ampCount(km)*AMP_MO)+op.mo,cab?ownCabDays(km):dfBuildDays(km),mo));}
+      x.opts.push(swapOpt(cab?'cab':'own',(cab?ownCabCost(km):digCost(km)+DF_SYS.roadm.cost+ampCount(km)*AMP_COST)+op.up,(cab?ownCabMo(km):Math.round(km*0.15)+ampCount(km)*AMP_MO)+op.mo,cab?ownCabDays(km):dfBuildDays(km),mo));}
     x.why=x.opts.some(o=>o.k!=='iru')?'':whys.join(' ');
     const sv=[...x.opts.map(o=>o.save),x.lit].filter(v=>v!==undefined);if(sv.length)x.best=Math.max(...sv);return x;})
   .sort((p,q)=>((p.best===undefined)-(q.best===undefined))||(q.best||0)-(p.best||0)||q.mo-p.mo);}

@@ -41,8 +41,11 @@ if (process.env.REQUIRE_NOTES === '1' && notes === '[]') die(`CHANGELOG.md has n
 const page = path.join(OUT, 'index.html'), PH = '/*__RELEASE_NOTES__*/[]', html = fs.readFileSync(page, 'utf8');
 if (!html.includes(PH)) die('release-notes placeholder missing from the page');
 // Function replacer: no $& / $$ expansion. Escape "<" so a note can never close the <script>.
-fs.writeFileSync(page, html.replace(PH, () => notes.replace(/</g, '\\u003c')));
-fs.writeFileSync(path.join(OUT, 'version.json'), JSON.stringify({ version: VERSION, date: BUILD_DATE, notes: JSON.parse(notes) }, null, 2) + '\n');
+// A release can also open with a story (prose before its first bullet), shown in full in "What's new".
+const story = execFileSync(process.execPath, [path.join(__dirname, 'release-notes.js'), VERSION, '--story'], { encoding: 'utf8' }), PS = '/*__RELEASE_STORY__*/[]';
+if (!html.includes(PS)) die('release-story placeholder missing from the page');
+fs.writeFileSync(page, html.replace(PH, () => notes.replace(/</g, '\\u003c')).replace(PS, () => story.replace(/</g, '\\u003c')));
+fs.writeFileSync(path.join(OUT, 'version.json'), JSON.stringify({ version: VERSION, date: BUILD_DATE, notes: JSON.parse(notes), story: JSON.parse(story) }, null, 2) + '\n');
 
 // Nothing may ship half-stamped.
 const left = [];

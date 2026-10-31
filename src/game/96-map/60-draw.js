@@ -25,10 +25,11 @@ function drawFrame(now){
   // cable systems
   drawCables(ks);
   // links
+  AR_PILLS.length=0;
   const far=lodFar(),PI=pairIdx(),LG=linkGroups(),GM=LG.map(g=>linkGeom(g[0],PI.get(edgeKey(g[0])))),busy=linesOnScreen(GM,ks)>MAP_BUSY;
   for(let gi=0;gi<LG.length;gi++){const grp=LG[gi],l=grp[0],many=grp.length>1,up=many?grp.filter(x=>!linkDown(x)):null;
     const gm=GM[gi],cap=many?up.reduce((a,x)=>a+capOf(x),0):capOf(l),load=many?grp.reduce((a,x)=>a+(R.load[x.id]||0),0):(R.load[l.id]||0),u=cap?load/cap:0,df=l.kind==='df',bld=df&&l.ready>day,cut=!bld&&(many?!up.length:linkDown(l))&&!(df&&!(l.ch||[]).length),dark=df&&!bld&&!(l.ch||[]).length,vx=l.kind==='vxc',idle=!cut&&!bld&&load<1e-3&&(many?up.length>0&&up.every(x=>x.standby):!!l.standby);
-    const sel=UI.sel&&UI.sel.type==='link'&&grp.some(x=>x.id===UI.sel.id);let lab=null;
+    const pz=pzOn(),arPz=pz&&!!S.ar,sel=(UI.sel&&UI.sel.type==='link'&&grp.some(x=>x.id===UI.sel.id))||(pz&&pzLinkHot(grp));let lab=null;
     const w=(vx?2.2:(2.5+Math.max(...grp.map(tierW))*1.8+(many?Math.min(1.5,(grp.length-1)*0.5):0)))*sc*(far?0.5:1),np=gm.pts.length;
     if(SX.length<np){SX=new Float64Array(np*2);SY=new Float64Array(np*2);}
     for(const k of ks){
@@ -41,6 +42,8 @@ function drawFrame(now){
       if(sel){ctx.strokeStyle='rgba(255,79,154,.35)';ctx.lineWidth=w+14;path();ctx.stroke();}
       ctx.strokeStyle='#1E2640';ctx.lineWidth=w+4;ctx.setLineDash(cut?[8,8]:vx?[2,7]:bld?[10,8]:idle?[4,6]:[]);path();ctx.stroke();
       ctx.strokeStyle=bld?'#C9B27C':dark?'#5D6788':cut?'#FF4D5E':idle?'#9AA3BE':vx?FAB[l.prov].col:l.sub?(u>0.001?utilCol(u):'#7FD8EE'):utilCol(u);ctx.lineWidth=w;ctx.stroke();ctx.setLineDash([]);
+      // Architect runs: tubes sharing one trench are drawn as strands of one bundle (one snip takes them all).
+      if(pz&&many){ctx.strokeStyle='#1E2640';ctx.lineWidth=1.3;for(let j=1;j<grp.length;j++){const d=w*(j/grp.length-0.5);ctx.beginPath();for(let i=0;i<np;i++){const a=Math.max(0,i-1),b=Math.min(np-1,i+1),dx=SX[b]-SX[a],dy=SY[b]-SY[a],n=Math.hypot(dx,dy)||1,x=SX[i]-dy/n*d,y=SY[i]+dx/n*d;i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();}path();}
       // Still the same path: strokes keep it, so the dotted fiber line goes on top without building it again.
       if(df&&!bld&&!dark&&!busy){ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=Math.max(1,w*0.25);ctx.setLineDash([1,6]);ctx.stroke();ctx.setLineDash([]);}
       const at=t=>polyAtXY(SX,SY,gm.cum,t);
@@ -49,8 +52,10 @@ function drawFrame(now){
         const rr2=far?1.6:Math.max(2.2,w*.42),base=now/1000*spd/Math.max(len,40);ctx.beginPath();for(let i=0;i<n;i++){let t=(base+i/n)%1;if(i%2)t=1-t;const [px,py]=at(t);ctx.moveTo(px+rr2,py);ctx.arc(px,py,rr2,0,7);}ctx.fill();ctx.stroke();}
       const [mx2,my]=at(.5);const mxx=mx2;
       if(bld){if(far){ctx.fillStyle='#FF8A3D';ctx.strokeStyle='#1E2640';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(mxx,my,4,0,7);ctx.fill();ctx.stroke();}else drawCone(mxx,my,now);}
-      else if(cut&&!vx){if(far){ctx.fillStyle='#FF4D5E';ctx.strokeStyle='#1E2640';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(mxx,my,5,0,7);ctx.fill();ctx.stroke();ctx.fillStyle='#fff';ctx.font='900 8px Nunito, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('!',mxx,my+0.5);}else drawBackhoe(mxx,my,now,l.sub);}
-      else if(sel||(z>0.9&&!busy)){const t=lab||(lab=many?groupLabel(grp,up):capName(l));ctx.font='800 11px "Baloo 2", sans-serif';let tw=LINKW.get(t);if(tw===undefined)LINKW.set(t,tw=ctx.measureText(t).width+10);ctx.fillStyle='#fff';ctx.strokeStyle='#1E2640';ctx.lineWidth=2;rr(mxx-tw/2,my-9,tw,17,8);ctx.fill();ctx.stroke();ctx.fillStyle='#1E2640';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(t,mxx,my+1);}
+      else if(cut&&!vx){if(far){ctx.fillStyle='#FF4D5E';ctx.strokeStyle='#1E2640';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(mxx,my,5,0,7);ctx.fill();ctx.stroke();ctx.fillStyle='#fff';ctx.font='900 8px Nunito, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('!',mxx,my+0.5);}else if(!arPz)drawBackhoe(mxx,my,now,l.sub);}
+      else if(sel||(pz?!S.ar:z>0.9&&!busy)){const t=lab||(lab=pz?pzLinkLab(grp,up||[l],load,cap):many?groupLabel(grp,up):capName(l));ctx.font='800 11px "Baloo 2", sans-serif';let tw=LINKW.get(t);if(tw===undefined)LINKW.set(t,tw=ctx.measureText(t).width+10);ctx.fillStyle='#fff';ctx.strokeStyle='#1E2640';ctx.lineWidth=2;rr(mxx-tw/2,my-9,tw,17,8);ctx.fill();ctx.stroke();ctx.fillStyle='#1E2640';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(t,mxx,my+1);}
+      // Every puzzle: say whether the tubes between two cities share one trench or take separate paths.
+      if(pz&&!cut&&!bld&&(many||arPaths(l)>1)&&(many||lineIdx(l,PI.get(edgeKey(l)))===0))AR_PILLS.push([mxx,my+(sel||!S.ar?19:0),many?tr('architect.n_in_one_trench',{n:grp.length}):'✓ '+tr('architect.n_paths',{n:arPaths(l)}),many]);
     }
   }
   // drag preview
@@ -69,23 +74,30 @@ function drawFrame(now){
   // cities
   UI.feed=null;if(UI.sel&&UI.sel.type==='link'){const sl=S.links.find(x=>x.id===UI.sel.id);const rec=sl&&R.ef[edgeKey(sl)];if(rec){UI.feed=new Set(Object.keys(rec.eg).map(k=>R.egDesc[k].city));UI.dest=new Set(Object.keys(rec.dst));}}
   // Place labels: your POPs and the selected city first, then others; a label that would overlap moves above its city or hides.
-  const vis=[];for(const C of CITIES){if(C.off&&!cityOn(C.id))continue;for(const k of ks){const [sx,sy]=toS(C.x,C.y,k);if(sx<-60||sx>CW+60||sy<-60||sy>CH+60)continue;vis.push({C,sx,sy});}}
+  const vis=[];for(const C of CITIES){if(C.off&&!cityOn(C.id))continue;if(arHide(C.id))continue;for(const k of ks){const [sx,sy]=toS(C.x,C.y,k);if(sx<-60||sx>CW+60||sy<-60||sy>CH+60)continue;vis.push({C,sx,sy});}}
   const prio=v=>(UI.sel&&UI.sel.type==='city'&&UI.sel.id===v.C.id?0:S.pops[v.C.id]?1:2);vis.sort((a,b)=>prio(a)-prio(b)||b.C.P-a.C.P);
   const rects=[],labs=[],hit=(r)=>rects.some(q=>r.x<q.x+q.w&&q.x<r.x+r.w&&r.y<q.y+q.h&&q.y<r.y+r.h);
   const farL=lodFar();
-  for(const v of vis){if(farL){rects.push({x:v.sx-7,y:v.sy-7,w:14,h:14});continue;}const h=(12+Math.sqrt(v.C.P)*0.75)*sc;rects.push({x:v.sx-18*sc,y:v.sy-h-4*sc,w:40*sc,h:h+14*sc});}
+  // Which cities show an offer bubble (a big one?) or an incident marker, worked out once for all of them.
+  CM.off=new Set();CM.big=new Set();for(const o of S.offers){const big=BIZ_T[o.type].lv>=3||BIZ_T[o.type].event;for(const c of bCities(o)){CM.off.add(c);if(big)CM.big.add(c);}}
+  CM.inc=new Set(S.inc.filter(i=>i.type!=='leak').map(i=>i.ref));CM.far=farL;
+  // Zoomed in, crowded small cities give way to bigger ones and become dots (75-city-size.js).
+  const csc=cityScale(sc);if(farL)for(const v of vis)v.dem=false;else cityRoom(vis,csc);
+  for(const v of vis){if(farL){const r=FAR_R[cTier(v.C.id)]+3;rects.push({x:v.sx-r,y:v.sy-r,w:2*r,h:2*r});continue;}
+    if(v.dem){rects.push({x:v.sx-5*csc,y:v.sy-5*csc,w:10*csc,h:10*csc});continue;}const h=cityTop(v.C.id,S.pops[v.C.id])*csc;rects.push({x:v.sx-v.r,y:v.sy-h,w:2*v.r,h:h+10*csc});}
   for(const v of vis){const p=S.pops[v.C.id];ctx.font=`800 ${p?13:12}px "Baloo 2", sans-serif`;const tw=(LBLW[v.C.id+(p?1:0)]||(LBLW[v.C.id+(p?1:0)]=ctx.measureText(v.C.name).width+14));
-    if(farL&&prio(v)>1&&UI.hover!==v.C.id){v.ly=null;continue;}
-    const h=farL?6:12+Math.sqrt(v.C.P)*0.75;const below=farL?v.sy+15:v.sy+16*sc+8,above=farL?v.sy-15:v.sy-h*sc-17*sc;let ly=null;
+    if((farL&&prio(v)>1&&UI.hover!==v.C.id)||v.dem){v.ly=null;continue;}
+    const h=farL?6:cityTop(v.C.id,p);const below=farL?v.sy+15:v.sy+16*csc+8,above=farL?v.sy-15:v.sy-h*csc-17*csc;let ly=null;
     for(const y of [below,above]){const r={x:v.sx-tw/2-2,y:y-10,w:tw+4,h:21};if(!hit(r)){ly=y;rects.push(r);labs.push(r);break;}}
     // Your POPs may sit over a city icon, but not over another name: that one waits until you zoom in.
     if(ly===null&&prio(v)===1)for(const y of [below,above]){const r={x:v.sx-tw/2,y:y-10,w:tw,h:21};if(!labs.some(q=>r.x<q.x+q.w&&q.x<r.x+r.w&&r.y<q.y+q.h&&q.y<r.y+r.h)){ly=y;rects.push(r);labs.push(r);break;}}
     if(ly===null&&(prio(v)===0||(prio(v)===1&&(v.C.id===S.home||UI.hover===v.C.id)))){ly=below;const r={x:v.sx-tw/2,y:below-10,w:tw,h:21};rects.push(r);labs.push(r);}
     v.ly=ly;}
-  // Which cities show an offer bubble (a big one?) or an incident marker, worked out once for all of them.
-  CM.off=new Set();CM.big=new Set();for(const o of S.offers){const big=BIZ_T[o.type].lv>=3||BIZ_T[o.type].event;for(const c of bCities(o)){CM.off.add(c);if(big)CM.big.add(c);}}
-  CM.inc=new Set(S.inc.filter(i=>i.type!=='leak').map(i=>i.ref));CM.far=farL;
-  for(const v of vis.slice().reverse())drawCity(v.C,v.sx,v.sy,sc,now,v.ly);
+  if(pzOn()){for(const v of vis.slice().reverse())pzDrawCity(v,csc,now);}else for(const v of vis.slice().reverse())drawCity(v.C,v.sx,v.sy,csc,now,v.ly,v.dem);
+  // Architect runs: what the tubes between two cities are (one trench, or separate paths), above the cities.
+  for(const [x,y,t,one] of AR_PILLS){ctx.font='800 11px "Baloo 2", sans-serif';const tw=ctx.measureText(t).width+12;ctx.fillStyle=one?'#FFE3C2':'#DDF7E7';ctx.strokeStyle=one?'#FF8A3D':'#16A866';ctx.lineWidth=2;rr(x-tw/2,y-9,tw,17,8);ctx.fill();ctx.stroke();ctx.fillStyle='#1E2640';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(t,x,y+1);}
+  // the chaos monkey (woken here after a reload, wherever it last snipped)
+  if(UI.mk)mkDraw(ks);else if(mkOn()&&!pzOn()&&CITY[S.monkey.c])mkStart(S.monkey.c);
   // floaters
   for(let i=FLOATS.length-1;i>=0;i--){const f=FLOATS[i],a=(now-f.t)/1600;if(a>1){FLOATS.splice(i,1);continue;}
     for(const k of ks){const [sx,sy]=toS(f.x,f.y,k);ctx.globalAlpha=1-a*a;ctx.font='800 17px "Baloo 2", sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineWidth=4;ctx.strokeStyle='#fff';ctx.strokeText(f.text,sx,sy-a*40);ctx.fillStyle=f.col;ctx.fillText(f.text,sx,sy-a*40);ctx.globalAlpha=1;}}

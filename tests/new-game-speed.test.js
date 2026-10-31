@@ -31,7 +31,7 @@ test('#186 on a phone, play after pause resumes at half speed, not the old game\
 test('#186 a saved game still continues at the speed it was saved at', () => {
   const a = load();
   a.ev("ACT.start({});ACT.speed({v:4});save(true)");
-  const b = load({ storage: { 'sot-save-v1': a.ev("localStorage.getItem('sot-save-v1')") } });
+  const b = load({ storage: { 'sot-save-v1': a.ev("slotRaw(UI.slot)") } });
   assert.equal(b.ev('UI.speed'), 4);
   assert.deepEqual(a.errors, []);
   assert.deepEqual(b.errors, []);

@@ -35,6 +35,7 @@ button,.chip,.b,a{touch-action:manipulation;-webkit-tap-highlight-color:transpar
   #tabbar button.play.paused{background:#FFE3F0}
   #tabbar .cnt{position:absolute;top:2px;right:calc(50% - 22px);min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--me);color:#fff;font-size:10px;line-height:16px;box-sizing:border-box}
   #tabbar .cnt.red{background:var(--bad)}
+  #tabbar .cnt.dot{min-width:0;width:10px;height:10px;padding:0;top:6px;right:calc(50% - 16px)}
   #left,#panel{top:auto !important;left:0 !important;right:0 !important;width:auto !important;bottom:var(--tabbar) !important;max-height:min(62%,calc(100% - var(--tabbar) - 70px)) !important;border-radius:20px 20px 0 0 !important;border-bottom:0 !important;box-shadow:0 -3px 0 var(--ink) !important;transition:max-height .22s ease,transform .22s ease;z-index:7}
   #left.full,#panel.full{max-height:calc(100% - var(--tabbar) - 56px - env(safe-area-inset-top,0px)) !important}
   #left.closed{display:none}
@@ -54,9 +55,16 @@ button,.chip,.b,a{touch-action:manipulation;-webkit-tap-highlight-color:transpar
   #coach{top:auto !important;bottom:calc(var(--tabbar) + 8px);width:calc(100% - 16px);padding:7px 10px;font-size:13px}
   body.sheet-open #coach{bottom:calc(var(--tabbar) + 8px + min(62vh,520px))}
   #modal{align-items:end;padding:0}
+  #modal.link-check{bottom:var(--tabbar)}
   #modal .cta{position:sticky;bottom:calc(-16px - env(safe-area-inset-bottom,0px));z-index:1;background:var(--paper);margin:12px -16px 0 !important;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));border-top:2px solid var(--line)}
   .title-art h1{font-size:34px}.title-art svg{width:54px;height:54px}
   .tagline{font-size:13.5px;margin:8px 0 10px}
+  .slots{max-height:38vh}.slot-go{padding:7px 4px 7px 9px;gap:8px}.slot-go>i{font-size:22px}.slot .sn b{font-size:16px}.slot .sm em{font-size:13.5px}.slot .sn small,.slot .sm small{font-size:11.5px}
+  .door{padding:7px 9px 6px}.door i{font-size:22px}.door b{font-size:16px}.door span{font-size:11.5px}
+  .presets{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .presets .preset{flex-direction:column;align-items:center;text-align:center;padding:6px 4px;gap:0}
+  .presets .preset i{font-size:20px}.presets .preset b{font-size:13.5px}
+  .chaos{grid-template-columns:repeat(2,minmax(0,1fr))}
   #modal .card{box-sizing:border-box;width:100%;max-height:calc(100% - env(safe-area-inset-top,0px) - 24px);border-radius:22px 22px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));border-bottom:0}
   #dash{padding:calc(env(safe-area-inset-top,0px) + 6px) 0 0}
   #dash>.card{border-radius:20px 20px 0 0;min-height:100%}
@@ -71,6 +79,8 @@ button,.chip,.b,a{touch-action:manipulation;-webkit-tap-highlight-color:transpar
   #left,#panel{left:auto !important;right:0 !important;width:min(440px,58%) !important;top:calc(env(safe-area-inset-top,0px) + 50px) !important;max-height:none !important;border-radius:20px 0 0 0 !important;border-right:0 !important}
   #left.full,#panel.full{width:min(640px,80%) !important}
   #tabbar button .ic{font-size:16px}
+  .doors{grid-template-columns:repeat(4,minmax(0,1fr))}.chaos{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .presets{grid-template-columns:repeat(3,minmax(0,1fr))}.preset{display:flex}
   body.sheet-open #coach{bottom:calc(var(--tabbar) + 8px);left:8px;transform:none;width:calc(42% - 16px)}
 }
 /* Installed as an app: no browser chrome, so leave room for the notch and the home indicator. */

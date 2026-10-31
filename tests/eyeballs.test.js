@@ -47,7 +47,7 @@ test('Coax gets Spectre-um’d a year in, and Final Frontear joins Very-Zone a y
   start(ev2);
   ev2("ACT.buildPop({city:'chi'});S.pni.push({id:'a',net:'cxc',city:'chi',tier:1,ready:0},{id:'b',net:'spc',city:'chi',tier:1,ready:0});S.day=400;dayTick()");
   assert.equal(ev2("S.pni.filter(p=>p.city==='chi').map(p=>p.net).join()"), 'spc');
-  // the inbox never brings requests from a brand that no longer exists, and saves keep the record
+  // saves keep the record of who merged
   ev("const o=JSON.parse(JSON.stringify(S));S=migrate(o)");
   assert.equal(ev("merged('cxc')&&merged('ftr')"), true);
   ev("S.merged={cxc:'x',zzz:3};S=migrate(JSON.parse(JSON.stringify(S)))");

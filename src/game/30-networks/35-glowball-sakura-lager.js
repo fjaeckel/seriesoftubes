@@ -6,7 +6,7 @@
    (far), so it never undercuts the locals there. Sits before 40-traffic-shares.js, which indexes NETS. */
 const GSL_POPS=['adl','akl','ams','bne','bom','chi','dal','fra','hkg','icn','ist','jkt','lax','lon','mel','mia','mil','mnl','nyc','osa','par','per','phx','sin','syd','tok','waw'];
 NETS.push(
- {id:'gsl',name:'Glowball Sakura Lager',asn:137409,type:'t2',pol:'open',up:['lvl','cog','ntt'],share:.02,price:5,far:{AS:1.6,OC:2},col:'#C94F7C',auIx:['syd','mel','bne','per'],pops:GSL_POPS,ix:GSL_POPS,blurb:tr('glowball_sakura_lager.on_tap_in_the_big_hubs')});
+ {id:'gsl',name:'Glowball Sakura Lager',asn:137409,type:'t2',pol:'open',up:['lvl','cog','ntt'],share:.02,price:5,far:{AS:1.6,OC:2},col:'#C94F7C',auIx:['syd','mel','bne','per'],pops:GSL_POPS,ix:GSL_POPS.filter(c=>CITY[c].ix),blurb:tr('glowball_sakura_lager.on_tap_in_the_big_hubs')});
 /* Its downstreams: networks that buy their transit from it, so a PNI with it reaches them too. Only where it has
    PoPs itself, and no Australians: a PNI with it is no back door into Australia. One per line, sorted within each. */
 const GSL_DOWN=[

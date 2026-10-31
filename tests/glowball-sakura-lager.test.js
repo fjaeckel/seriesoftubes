@@ -100,7 +100,7 @@ test('networks in its own regions buy their transit from it, so a PNI with it re
 test('a game saved before it existed gets the courtesy route to it', () => {
   const a = load();
   a.ev("ACT.start({});S.day=40;S.seen=S.seen.filter(x=>x!=='gsl');save(true)");
-  const b = load({ storage: { 'sot-save-v1': a.ev("localStorage.getItem('sot-save-v1')") } });
+  const b = load({ storage: { 'sot-save-v1': a.ev("slotRaw(UI.slot)") } });
   assert.equal(b.ev("S.grace.nets.includes('gsl')"), true);
   assert.equal(b.ev("S.seen.includes('gsl')"), true);
   assert.equal(b.ev("R.reachable.gsl"), true, 'reachable through the courtesy route until you find your own way');

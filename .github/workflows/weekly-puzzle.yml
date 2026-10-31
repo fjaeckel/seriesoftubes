@@ -1,0 +1,88 @@
+name: Weekly puzzle
+
+# Every Sunday morning: make this week's puzzle (scripts/weekly-puzzle.js), scenario (scripts/weekly-scenario.js) and
+# Architect run (scripts/weekly-architect.js),
+# commit them to main as a data-only change, and redeploy the live release with them, once. Weeks start Sunday
+# 06:00 Berlin time; 03:37 UTC is 04:37 in winter and 05:37 in summer, so the files are live before the week starts.
+#
+# No version bump, so no release: auto-release.yml only runs when package.json changes (and pushes made with
+# the workflow token start no workflows at all). The deploy itself is release.yml, still the only workflow
+# that can write to Pages, started from the live release's tag with weekly=true: it rebuilds exactly that
+# release with every weekly puzzle from main added, in the same "pages" concurrency group as any release.
+on:
+  schedule:
+    - cron: '37 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      key:
+        description: Week to make, e.g. 2026-W45 (default the week starting this Sunday)
+        required: false
+      deploy:
+        description: Redeploy the live release with it
+        type: boolean
+        default: true
+
+permissions:
+  contents: write   # commit the puzzle to main
+  actions: write    # start release.yml
+
+concurrency:
+  group: weekly-puzzle
+  cancel-in-progress: false
+
+jobs:
+  puzzle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      KEY: ${{ inputs.key }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # Weeks already out that main's prices no longer fit are regenerated first, so the new week's history is current.
+      - name: Fit the published weeks to main
+        run: node scripts/weekly-puzzle.js --check && node scripts/weekly-scenario.js --check && node scripts/weekly-architect.js --check
+      - name: Make the puzzle and the scenario
+        run: |
+          set -euo pipefail
+          if [ -n "$KEY" ]; then
+            [[ "$KEY" =~ ^[0-9]{4}-W[0-9]{2}$ ]] || { echo "::error::$KEY is not a week key"; exit 1; }
+            node scripts/weekly-puzzle.js --key "$KEY"
+            node scripts/weekly-scenario.js --key "$KEY"
+            node scripts/weekly-architect.js --key "$KEY"
+          else
+            node scripts/weekly-puzzle.js
+            node scripts/weekly-scenario.js
+            node scripts/weekly-architect.js
+          fi
+      - name: Check every weekly puzzle
+        run: node scripts/weekly-puzzle.js --check && node scripts/weekly-scenario.js --check && node scripts/weekly-architect.js --check && npm test -- tests/weekly-puzzle.test.js tests/puzzles.test.js tests/weekly-scenario.test.js tests/weekly-architect.test.js
+      - name: Commit it to main
+        run: |
+          set -euo pipefail
+          git add site/puzzles/weekly site/scenarios/weekly site/architect/weekly
+          # Data only: anything else changed means something is wrong.
+          if git status --porcelain | grep -v -e ' site/puzzles/weekly/' -e ' site/scenarios/weekly/' -e ' site/architect/weekly/' | grep -q .; then git status --porcelain; echo "::error::unexpected changes"; exit 1; fi
+          if git diff --cached --quiet; then echo "Nothing new to commit."; exit 0; fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "Weekly puzzle and scenario $(git diff --cached --name-only | grep -o '[0-9]\{4\}-W[0-9]\{2\}' | sort -u | paste -sd ' ')"
+          git push origin HEAD:main
+      - name: Redeploy the live release with it
+        if: github.event_name == 'schedule' || inputs.deploy
+        run: |
+          set -euo pipefail
+          tag=$(gh release list --repo "$GITHUB_REPOSITORY" --exclude-pre-releases --exclude-drafts --limit 1 --json tagName -q '.[0].tagName')
+          [ -n "$tag" ] || { echo "::error::no release to redeploy"; exit 1; }
+          # Releases from before the weekly puzzles cannot take them (and their game would not read them).
+          if ! git fetch --no-tags --depth=1 origin "refs/tags/$tag" || ! git show FETCH_HEAD:.github/workflows/release.yml | grep -q '^      weekly:'; then
+            echo "::notice::$tag predates weekly puzzles; the puzzle is on main and ships with the next release."; exit 0
+          fi
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$tag" -f tag="$tag" -f weekly=true
+          echo "Redeploying $tag with the weekly puzzles."

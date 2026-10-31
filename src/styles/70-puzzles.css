@@ -1,0 +1,60 @@
+/* Puzzles (#190): one card for the goal, the stars and the budget; on phones a bottom sheet you can shrink. */
+body.pz #hud .chip:not(.brand):not(.speed),body.pz #hud .speed button:not(#muteBtn),body.pz #leftToggle,body.pz #left{display:none !important}
+#pzBox{position:fixed;top:calc(env(safe-area-inset-top,0px) + 76px);left:max(12px,env(safe-area-inset-left,0px));width:300px;max-height:calc(100% - 96px - env(safe-area-inset-top,0px));overflow:auto;z-index:4;padding:10px 14px 12px;box-sizing:border-box}
+#pzBox .pzh{display:flex;align-items:center;gap:8px}#pzBox h3{font-size:19px}
+.pzj{margin:4px 0 6px;font-size:12.5px;color:var(--ink2);line-height:1.35}
+.pzs{display:flex;gap:6px;margin:6px 0}.pzs span{flex:1;display:flex;flex-direction:column;align-items:center;border:2.5px solid var(--ink);border-radius:11px;padding:3px 0;font-size:20px;filter:grayscale(1);opacity:.45;transition:transform .25s,opacity .25s}
+.pzs span small{font:900 10px var(--body);text-transform:uppercase;letter-spacing:.05em}.pzs span.on{filter:none;opacity:1;background:#FFF3C4;transform:scale(1.05)}
+.pzck{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}.pzc{font-weight:900;font-size:12px;border:2px solid var(--ink);border-radius:999px;padding:1px 8px;background:#fff}
+.pzc i{font-style:normal}
+.pzc.s1{background:#FFE3F0}.pzc.s2{background:var(--ok);color:#fff}
+.pzsrc{font-size:12px;font-weight:800;color:var(--ink2);margin:4px 0}
+.pzfl{margin:4px 0 6px}.pzf{margin:4px 0;padding:3px 6px;border:2px solid var(--line);border-radius:10px}.pzf.ok{border-color:var(--ok)}
+.pzf .kv{font-size:12px;gap:6px}.pzf .bar{margin:2px 0}.pzf .meta .bad{color:var(--bad);font-weight:900}.pzf .seg.pzrt{margin-top:3px}
+.pzpair{border-top:2px dashed var(--line);padding-top:4px;margin-top:4px}.pzhave{font-size:13px;font-weight:800;margin:6px 0;padding:4px 8px;border-radius:10px;background:#FFF4D6}
+.pznote{font-weight:800;font-size:13.5px;margin:8px 0;padding:8px 10px;border:2.5px solid var(--ink);border-radius:12px;background:#FFF3C4}
+.row.on{background:#FFE3F0;border-radius:10px}
+.pztw{font-size:12.5px;font-weight:800;color:var(--bad);margin:3px 0}.pztw.ok{color:var(--eye)}.pztw.rule{color:var(--ink2)}
+.pzbud{margin:6px 0}.pzbud .kv{font-size:12.5px}
+.pzn1{font-size:12.5px;font-weight:800;margin:6px 0;padding:4px 8px;border:2px solid var(--line);border-radius:10px;color:var(--ink2)}
+.pzn1.on{border-color:var(--ok);background:#DFFBEA;color:var(--ink);animation:pzglow 1.6s ease-in-out infinite}.pzn1.bad{border-color:var(--warn);background:#FFF4D6;color:var(--ink)}
+@keyframes pzglow{50%{box-shadow:0 0 0 4px rgba(34,196,122,.25)}}
+#pzBox .btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+#pzBox .grab{display:none}
+.pzprog{margin:6px 0 4px}.pzpack{font-size:17px;margin:14px 0 2px}.pzst{font-size:12px;letter-spacing:-1px;white-space:nowrap}
+.scn.lock{opacity:.5}
+.pzres{position:relative}.pzstars{display:flex;justify-content:center;gap:10px;margin:10px 0 2px}
+.pzbig{font-size:46px;filter:grayscale(1);opacity:.3}.pzbig.on{filter:none;opacity:1}
+.pzleft{text-align:center;font-weight:900;font-size:13px;margin:2px 0 0;color:var(--ink2)}
+.btns.pzdone .pznext{flex:1 1 100%;font-size:22px;padding:10px 18px 8px;animation:pznudge 1.8s ease-in-out 1.6s infinite}
+@keyframes pznudge{50%{transform:translateY(-2px);box-shadow:0 5px 0 var(--ink)}}
+@media (prefers-reduced-motion:reduce){.btns.pzdone .pznext{animation:none}}
+.pzbig.pop{animation:pzpop .5s cubic-bezier(.3,1.6,.5,1) var(--d) both}
+@keyframes pzpop{0%{transform:scale(0) rotate(-40deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
+.pzconf{position:absolute;inset:-16px;pointer-events:none;overflow:hidden;z-index:2}
+.pzconf i{position:absolute;top:-12px;left:var(--x);width:8px;height:12px;background:var(--c);border:1.5px solid var(--ink);border-radius:2px;animation:pzfall var(--t) ease-in var(--dl) both}
+@keyframes pzfall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(420px) rotate(var(--r));opacity:0}}
+@media (max-width:760px),(max-height:500px) and (pointer:coarse){
+  #pzBox{top:auto;left:0;right:0;width:auto;bottom:0;max-height:min(46%,330px);border-radius:20px 20px 0 0;border-bottom:0;box-shadow:0 -3px 0 var(--ink);padding:0 12px calc(10px + env(safe-area-inset-bottom,0px))}
+  #pzBox .grab{display:block}
+  #pzBox .btns .b,#pzBox .pzh .b{min-height:40px;min-width:40px;padding:4px 12px}
+  /* Long languages make the sheet scroll: Undo, Reset and Back stay pinned at its foot. */
+  #pzBox>.btns{position:sticky;bottom:0;background:var(--paper);margin:6px -12px 0;padding:6px 12px 0;box-shadow:0 -6px 6px -6px rgba(30,38,64,.25)}
+  #pzBox.mini{max-height:none}#pzBox.mini>:not(.grab):not(.pzh):not(.pzs){display:none}
+  #pzBox.mini .pzs{margin-top:0}
+  body.pz.sheet-open #pzBox{display:none}
+  body.pz #panel{bottom:0 !important}
+  body.pz #hint{bottom:calc(min(46%,330px) + 8px) !important}
+  .pzbig{font-size:40px}
+}
+@media (orientation:landscape) and (max-height:500px) and (pointer:coarse),(orientation:landscape) and (max-width:760px) and (max-height:500px){
+  #pzBox{left:auto;right:0;width:min(360px,52%);top:calc(env(safe-area-inset-top,0px) + 50px);max-height:calc(100% - 50px - env(safe-area-inset-top,0px));overscroll-behavior:contain;border-radius:20px 0 0 0;border-right:0}
+  #pzBox .pzj{display:none}#pzBox .pzs span{font-size:16px;padding:1px 0}
+  body.pz #hint{bottom:12px !important;left:30% !important}
+  body.pz #toasts{left:8px !important;transform:none !important;width:calc(48% - 16px) !important}
+}
+/* The weekly puzzle: a badge on the Puzzles door and in the list while this week's puzzle is unplayed. */
+.pznew{display:inline-block;font:900 10.5px/1.2 var(--body);font-style:normal;text-transform:uppercase;letter-spacing:.04em;background:var(--me);color:#fff;border:2px solid var(--ink);border-radius:999px;padding:1px 7px;white-space:nowrap;vertical-align:1px}
+.door .pznew{position:absolute;top:-9px;right:8px;transform:rotate(4deg);animation:pznew 2.4s ease-in-out infinite}
+@keyframes pznew{50%{transform:rotate(-3deg) scale(1.08)}}
+.scn.wk{flex-wrap:wrap}.scn.wk .grow{min-width:0;flex:1 1 200px}.pzcd{font-weight:800;color:var(--ink)}
