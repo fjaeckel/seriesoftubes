@@ -26,19 +26,23 @@ const siteName=(c,s)=>s==='b'?CITY[c].dc2?siteNo(CITY[c].dc2,CITY[c].dc2N):SITE2
 const BE_TAPE=30000;
 const popCost=c=>Math.round(POP_COST*colo(c))+(c&&CITY[c]&&CITY[c].tape?BE_TAPE:0)+(c&&CITY[c]&&CITY[c].ru?RU_BOX:0)+(c&&CITY[c]&&CITY[c].uae?UAE_LIC:0)+(c&&CITY[c]&&CITY[c].saudi?KSA_LIC:0);
 const CN_LIC=150000, CN_JV_MO=6000;
-// Scrubbing centers come in tiers by clean bandwidth. Always-on diverts instantly; on-demand is cheaper
-// but takes a couple of days to engage. A clean-pipe add-on on a transit scrubs upstream, per port.
+// Scrubbing centers come in tiers by clean bandwidth, and each brings its own dirty-side ingress of that size: when
+// engaged it announces the target's prefix more specifically, so the flood comes to it instead of your ports (a
+// magnet) and it cleans up to its tier (a sponge). Always-on is engaged from the first minute; on-demand is cheaper
+// and pulls half the flood on the first day while the diversion starts. A clean-pipe add-on scrubs upstream, per port.
 const SCRUB_TIERS=[{n:'100G',g:100,cost:60000,mo:5000,lvl:1},{n:'1T',g:1000,cost:180000,mo:15000,lvl:3},{n:'10T',g:10000,cost:500000,mo:40000,lvl:4},{n:'100T',g:100000,cost:1500000,mo:110000,lvl:10}];
-const SCRUB_DELAY=2, SLA_PEN=20000;
+const SLA_PEN=20000;
 const scrubMo1=x=>Math.round(SCRUB_TIERS[x.tier||0].mo*(S.scrubMode==='ondemand'?0.6:1)),scrubMo=()=>S.scrubs.reduce((a,x)=>a+scrubMo1(x),0);
 const hasScrub=()=>!!(S&&S.scrubs&&S.scrubs.length),SCRUB_FAR_MS=30;
 const cleanMo=t=>Math.round(PORT[t.tier].g*(t.n||1)*5);
-// DDoS has a shape now: a vector, a size and an entry point. A vector's `fs` is whether Flowspec can drop
-// it at the edge — it catches the known volumetric UDP floods, but an application-layer HTTP flood sails
-// through. Whether a POP can run Flowspec at all is a router-model property (`fs` on RG): the rules live in
-// hardware TCAM, and the budget differs by platform. FS_RES is the junk left after filtering, by capability
-// (0 none → no help · 1 basic merchant/whitebox → 40% leaks · 2 full big iron → 15% leaks).
-const FS_RES=[1,0.4,0.15];
+/* DDoS (see docs: sizes come from the world, a flood enters on every port it can reach, each tool acts where it does in
+   real networks). A vector's `fs` is whether Flowspec has a signature for it: the known volumetric floods, not ACK or
+   application floods. Flowspec lives in each router's TCAM: RG[].fsN is how many rules one POP's routers hold; a live
+   attack takes one per vector on every router it enters, four for a carpet bomb spread over a whole prefix. */
+const FS_DROP=0.95,FS_CARPET=4;
+// Upstream blackholing (RTBH): what still arrives on a port after the victim /32 is tagged. Transit honours it, an IX
+// route server mostly does, a private peer about half the time (by network).
+const RTBH_LEFT={t:0,ix:0.3};
 const DDOS_VEC={
  dns:{n:tr('common.dns_reflection'),fs:true},
  ntp:{n:tr('common.ntp_amplification'),fs:true},

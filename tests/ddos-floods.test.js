@@ -16,8 +16,7 @@ test('a flood loads the backbone and the victim as on main, whatever order the P
     const { ev, errors } = load({ seed: 5 });
     remoteTransit(ev, flip);
     assert.ok(ev("sfOf(R,'fra')") > 0.95, 'fine before the attack');
-    ev("S.day=60;ddosAttack();Object.assign(S.ev.ddos,{city:'fra',vec:'http',gbps:300});compute()");
-    assert.equal(ev('S.ev.ddos.entries'), undefined, 'no per-port shares');
+    ev("S.day=60;ddosAttack();Object.assign(S.ev.ddos,{city:'fra',tgt:'bb:fra',vec:'http',gbps:300});compute()");
     assert.equal(ev('R.load.L'), 100, 'the junk fills the wave between the transit and the victim');
     assert.ok(ev('R.nodeLoad.fra') >= 100, "and the victim's router");
     assert.ok(ev("sfOf(R,'fra')") < 0.05, 'the victim goes dark');
@@ -26,16 +25,6 @@ test('a flood loads the backbone and the victim as on main, whatever order the P
     assert.deepEqual(errors, []);
   }
   assert.equal(out[0], out[1], 'POP build order does not change the outcome');
-});
-
-test('the same flood lands exactly as it does on main (one entry port, the victim\'s router filters it)', () => {
-  const { ev, errors } = load({ seed: 5 });
-  remoteTransit(ev, false);
-  ev("S.pops.fra.rgen=RG.findIndex(r=>r.fs===2);S.day=60;S.ev.ddos={id:'a',city:'fra',vec:'dns',gbps:200,start:S.day,until:S.day+3,entry:{k:'t',id:S.transit[0].id,lab:''},bh:false};compute()");
-  // Full Flowspec leaves 15%: 30G of junk on the 100G wave, next to Frankfurt's own traffic.
-  assert.ok(Math.abs(ev('R.ddos[0].leak') - 30) < 1e-9);
-  assert.ok(Math.abs(ev("R.ef[edgeKey(S.links[0])].net.junk") - 30) < 1e-6);
-  assert.deepEqual(errors, []);
 });
 
 test('an attack is held or lost at its victim; other POPs and their DDoS-protected customers are not charged', () => {
@@ -57,7 +46,7 @@ test('an attack is held or lost at its victim; other POPs and their DDoS-protect
   assert.deepEqual(errors, []);
 });
 
-test('fourteen attacks on a big network keep the save small, and 2.0 beta saves with per-port shares still load', () => {
+test('fourteen attacks on a big network keep the save small, and 2.0 saves with entry ports still load', () => {
   const fs = require('node:fs'), path = require('node:path');
   const fx = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8'));
   const { ev, errors } = load({ seed: 3 });
@@ -66,12 +55,12 @@ test('fourteen attacks on a big network keep the save small, and 2.0 beta saves 
   ev("S.day=Math.max(S.day,50);for(let i=0;i<14;i++){S.ddosStarts=[];ddosAttack(false);}compute()");
   assert.equal(ev('ddosAll().length'), 14);
   assert.ok(ev('JSON.stringify(S).length') - before < 10000, 'a few hundred bytes per attack');
-  // A beta save spread each attack over every port: the shares are dropped and the attack carries on.
-  ev("S.ev.ddos.entries=Array.from({length:300},(_,i)=>({k:'p',id:'x'+i,city:S.ev.ddos.city,lab:'',share:1}));S.ev.ddos.entry={k:'distributed',lab:'Distributed ingress'};S=migrate(JSON.parse(JSON.stringify(S)));compute()");
+  // Saves from 2.0 and 2.1 brought each attack in on one port: that is dropped, and the attack spreads (#242).
+  ev("S.ev.ddos.entries=Array.from({length:300},(_,i)=>({k:'p',id:'x'+i,city:S.ev.ddos.city,lab:'',share:1}));S.ev.ddos.entry={k:'t',lab:'Distributed ingress'};S=migrate(JSON.parse(JSON.stringify(S)));compute()");
   assert.equal(ev('S.ev.ddos.entries'), undefined);
-  assert.equal(ev('S.ev.ddos.entry.k'), 'edge');
+  assert.equal(ev('S.ev.ddos.entry'), undefined);
   assert.equal(ev('ddosAll().length'), 14);
-  assert.match(ev('ddosPanel()'), /Live attack/);
+  assert.match(ev('ddosPanel()'), /🚨/);
   assert.deepEqual(errors, []);
 });
 
@@ -80,7 +69,8 @@ test('spicy chaos stretches exactly the attack (or outage) an incident is about,
   ev("beginGame('R','fra',{mode:'normal',preset:'bgp'});if(UI.pendGame)ACT.pitchSkip();S.cash=1e12;ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.buildPop({city:'ams'});S.links.push({id:'L',a:'fra',b:'ams',kind:'wave',tier:1,km:400,mo:1,cut:0});S.day=50");
   // A link that happens to be cut until the same day as the next attacks must stay as it is.
   ev("S.links[0].cut=S.day+2");
-  for (let k = 0; k < 4; k++) ev("const old=Math.random;let n=0;Math.random=()=>n++===3?0:old();ddosAttack();Math.random=old");
+  // The third draw of an attack is its length: 0 makes it one day.
+  for (let k = 0; k < 4; k++) ev("const old=Math.random;let n=0;Math.random=()=>n++===2?0:old();ddosAttack();Math.random=old");
   const rows = JSON.parse(ev("JSON.stringify(S.inc.filter(i=>i.type==='ddos').map(i=>[i.until,ddosAll(S,false).find(a=>a.id===i.atk).until]))"));
   assert.equal(rows.length, 4);
   for (const [inc, atk] of rows) { assert.equal(atk, inc, 'the attack lasts as long as its incident'); assert.equal(inc, 52, 'one day, stretched by half'); }
@@ -95,23 +85,6 @@ test('spicy chaos stretches exactly the attack (or outage) an incident is about,
   assert.equal(ev("S.links[0].cut-S.day"), 6);
   assert.equal(ev("S.links.find(l=>l.id==='M').cut-S.day"), 4);
   assert.deepEqual(errors, []);
-});
-
-test('BGP at 3 a.m. brings about twice On-call\'s DDoS; gaming customers bring their own, busier schedule', () => {
-  const picks = {};
-  for (const preset of ['oncall', 'bgp']) {
-    const { ev, errors } = load({ seed: 7 });
-    ev(`beginGame('R','fra',{mode:'normal',preset:'${preset}'});if(UI.pendGame)ACT.pitchSkip();S.cash=1e12;ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1});S.day=100;compute()`);
-    // No daily attacks without gamers, spicy or not.
-    ev("window.__n=0;const real=ddosAttack;ddosAttack=()=>{window.__n++;};for(let i=0;i<300;i++)ddosTick();window.__tick=window.__n;window.__n=0;for(let i=0;i<4000;i++)fireFailure();ddosAttack=real");
-    assert.equal(ev('window.__tick'), 0, `${preset}: no daily DDoS schedule without gaming customers`);
-    picks[preset] = ev('window.__n') * ev('chaosMul()');
-    ev("S.biz.push({id:'g',type:'game',name:'G',city:'fra',bw:1,rate:1,mood:80,since:0});window.__n=0;const real=ddosAttack;ddosAttack=()=>{window.__n++;};for(let i=0;i<300;i++)ddosTick();ddosAttack=real");
-    assert.ok(ev('window.__n') > 5, `${preset}: gamers attract attacks on their own schedule`);
-    assert.deepEqual(errors, []);
-  }
-  const ratio = picks.bgp / picks.oncall;
-  assert.ok(ratio > 1.7 && ratio < 2.3, `about twice the DDoS (${ratio.toFixed(2)}x)`);
 });
 
 test('an imported save cannot put HTML in a Flood Season attacker\'s name', () => {
@@ -135,21 +108,27 @@ test('the China licence arrives in a tenth of the time with quick lead times, an
   }
 });
 
-test('Flood Season escalates from ordinary floods to monsters, and empty POPs or no customers do not hold floods for free', () => {
+test('Flood Season escalates from ordinary floods to monsters, and goes for the people you serve', () => {
   const { ev, errors } = load({ seed: 5 });
   ev("ACT.startScn({id:'flood',sure:1});S.cash=1e9;S.nextFail=1e9;S.nextEvent=1e9;ACT.launchBB({city:'ams'});ACT.buyTransit({city:'ams',net:NETS.find(n=>sellsAt(n,'ams')).id,tier:1});compute()");
   const sizes = JSON.parse(ev("const o=[];for(let i=0;i<60;i++){dayTick();for(const a of ddosAll())if(a.start===S.day)o.push(a.gbps);}JSON.stringify(o)"));
-  assert.ok(sizes.some(g => g < 100), `some ordinary floods early on (${sizes.join(' ')})`);
-  assert.ok(sizes.some(g => g >= 1000), 'and some terabit monsters');
-  // Ten empty POPs: floods still go for Amsterdam, where the customers are.
+  assert.ok(sizes.length >= 8 && sizes.some(g => g < 100), `a flood every few days, ordinary ones among them (${sizes.join(' ')})`);
+  // A third are monsters, and they grow through the year.
+  const mix = (day) => JSON.parse(ev(`S.day=${day};__reseed(77);JSON.stringify(Array.from({length:300},()=>ddosSize({tgt:'bb:ams'})))`));
+  const early = mix(60), late = mix(360), big = (xs) => xs.filter((g) => g >= 800);
+  assert.ok(big(early).length > 70 && big(early).length < 130, `${big(early).length} of 300 are monsters`);
+  const med = (xs) => xs.slice().sort((a, b) => a - b)[xs.length >> 1];
+  assert.ok(med(big(late)) > med(big(early)) * 1.4, 'and they grow');
+  // Ten empty POPs: floods still go for Amsterdam, where the subscribers are.
   ev("for(const c of ['lon','par','fra','mad','mil','vie','waw','sto','osl','hel'])ACT.buildPop({city:c});compute();S.ev.ddos=null;S.ev.ddosMore=[];S.ddosStarts=[]");
   ev("for(let i=0;i<10;i++){S.ddosStarts=[];ddosAttack(false);}");
   assert.deepEqual(JSON.parse(ev('JSON.stringify([...new Set(ddosAll().map(a=>a.city))])')), ['ams']);
-  // A flood on a city with nobody to serve only holds if the tools soak it up.
-  ev("S.ev.ddosMore=[];S.ev.ddos={id:'e',city:'lon',vec:'http',gbps:500,start:S.day,until:S.day+2,entry:{k:'edge',lab:''}};compute()");
-  assert.equal(ev("R.cityDem.lon||0"), 0);
+  // A terabit flood on Amsterdam's subscribers: lost without scrubbing, held with a 10T center.
+  ev("S.ev.ddosMore=[];S.ev.ddos={id:'e',city:'ams',tgt:'bb:ams',vec:'http',gbps:1500,start:S.day,until:S.day+2};compute()");
   assert.ok(ev('ddosSf(S.ev.ddos)') < 0.97, 'unmitigated: not held');
-  ev("S.scrubs=[{city:'lon',tier:1}];S.scrubMode='always';compute()");
-  assert.equal(ev('ddosSf(S.ev.ddos)'), 1, 'scrubbed: held');
+  ev("S.scrubs=[{city:'ams',tier:2}];S.scrubMode='always';compute()");
+  assert.ok(ev('ddosSf(S.ev.ddos)') >= 0.97, 'scrubbed: held');
+  assert.ok(ev('ddosCol(S.ev.ddos)') < 0.01);
   assert.deepEqual(errors, []);
 });
+

@@ -11,7 +11,7 @@ function sanitize(s){
   ['pops','ixp','rs','peers','myIx','done','ev','stats','ixn','ixPref','ixSite','confReg','ach','pairMet'].forEach(obj);
   s.v=1;s.name=String(s.name==null?'Packet Pals':s.name).slice(0,24);s.day=int(s.day,0,1e7,0);s.cash=num(s.cash,0);s.asn=int(s.asn,1,4294967294,200000);
   s.priceMul=num(s.priceMul,1);s.nextFail=num(s.nextFail,s.day+45);s.nextEvent=num(s.nextEvent,s.day+40);s.lvl=int(s.lvl,1,LEVELS.length,1);s.neg=int(s.neg,0,1e7,0);s.loanStrikes=int(s.loanStrikes,0,1e3,0);
-  for(const k of Object.keys(s.stats)){const v=s.stats[k];if(k==='by'||k==='f'){if(!v||typeof v!=='object')s.stats[k]={};else for(const j of Object.keys(v))v[j]=num(v[j],0);}else if(typeof v!=='boolean')s.stats[k]=num(v,0);}
+  for(const k of Object.keys(s.stats)){const v=s.stats[k];if(k==='by'||k==='f'||k==='ddT'){if(!v||typeof v!=='object')s.stats[k]={};else for(const j of Object.keys(v))v[j]=num(v[j],0);}else if(typeof v!=='boolean')s.stats[k]=num(v,0);}
   for(const k of ['survived','incidents','peak'])s.stats[k]=num(s.stats[k],0);
   // The chaos monkey (2.0): saves without one get their first visit scheduled on the next day tick.
   {const m=s.monkey&&typeof s.monkey==='object'&&!Array.isArray(s.monkey)?s.monkey:{},on=m.on?1:0,o={next:m.next==null?null:int(m.next,0,1e7,s.day+90),on};
@@ -67,13 +67,19 @@ function sanitize(s){
   if(!Array.isArray(s.scrubs))s.scrubs=s.scrubAt&&isCity(s.scrubAt)?[{city:s.scrubAt,tier:s.scrubTier}]:[];delete s.scrubAt;delete s.scrubTier;
   {const seen=new Set();s.scrubs=s.scrubs.filter(x=>x&&typeof x==='object'&&isCity(x.city)&&s.pops[x.city]&&!seen.has(x.city)&&seen.add(x.city)).map(x=>({city:x.city,tier:int(x.tier,0,SCRUB_TIERS.length-1,0)}));}
   s.scrubMode=s.scrubMode==='ondemand'?'ondemand':'always';
+  {const A=s.ddosAuto&&typeof s.ddosAuto==='object'?s.ddosAuto:{};s.ddosAuto={rtbh:A.rtbh===true,scrub:A.scrub!==false};}
+  if(s.stats&&s.stats.ddT&&typeof s.stats.ddT==='object')s.stats.ddT={port:s.stats.ddT.port?1:0,fs:s.stats.ddT.fs?1:0,rtbh:s.stats.ddT.rtbh?1:0};else if(s.stats)delete s.stats.ddT;
   // Keep the legacy primary attack so old saves and imports remain compatible; additional floods overlap it.
   const repairAttack=a=>{if(!a||typeof a!=='object'||!isCity(a.city)||!s.pops[a.city]||!own(DDOS_VEC,a.vec))return null;
-    a.id=sid(a.id);a.gbps=Math.max(0,num(a.gbps,2));a.until=num(a.until,s.day);a.bh=!!a.bh;a.ixbh=!!a.ixbh;a.start=Math.max(0,Math.min(s.day,num(a.start,s.day)));a.until=Math.min(a.until,a.start+Math.ceil(7*SPICY_LONG));
-    delete a.entries; // 2.0 betas spread attacks over every ingress port; they arrive on one again
+    a.id=sid(a.id);a.gbps=Math.max(0,num(a.gbps,2));a.until=num(a.until,s.day);a.bh=!!a.bh;a.start=Math.max(0,Math.min(s.day,num(a.start,s.day)));a.until=Math.min(a.until,a.start+Math.ceil(7*SPICY_LONG));
+    // Attacks before 2.2 hit a city and came in on one port: they now hit someone in it, and spread (#242).
+    delete a.entries;delete a.entry;delete a.ixbh;delete a.fresh;
+    if(typeof a.tgt!=='string'||(a.tgt.startsWith('bb:')?a.tgt!=='bb:'+a.city:!s.biz.some(b=>b.id===a.tgt&&b.city===a.city))){
+      const bs=s.biz.filter(b=>b.city===a.city&&BIZ_T[b.type]&&!BIZ_T[b.type].l2&&!BIZ_T[b.type].fiber).sort((x,y)=>(DD_W[y.type]||1)-(DD_W[x.type]||1)||y.bw-x.bw);a.tgt=bs.length?bs[0].id:'bb:'+a.city;}
+    a.carpet=!!a.carpet;a.sac=a.sac?1:0;a.colMax=clamp(num(a.colMax,0),0,1);if(a.worst!==undefined)a.worst=clamp(num(a.worst,1),0,1);
+    if(a.eng!==undefined){a.eng=num(a.eng,a.start);a.eng=Math.max(a.start,Math.min(s.day,a.eng));}
     if(a.who!==undefined&&!FLOOD_WHO.includes(a.who))delete a.who; // a label from the list, never text from the file
-    a.sla=Array.isArray(a.sla)?a.sla.filter(x=>typeof x==='string').slice(0,s.biz.length):[];
-    if(!a.entry||typeof a.entry!=='object'||!['t','ix','p','edge'].includes(a.entry.k))a.entry={k:'edge',lab:''};else{a.entry.lab=String(a.entry.lab||'').slice(0,60);a.entry.id=a.entry.id==null?undefined:String(a.entry.id).slice(0,40);}return a;};
+    a.sla=Array.isArray(a.sla)?a.sla.filter(x=>typeof x==='string').slice(0,s.biz.length):[];return a;};
   const attacks=[s.ev.ddos,...(Array.isArray(s.ev.ddosMore)?s.ev.ddosMore:[])].map(repairAttack).filter(Boolean).slice(0,14);
   if(attacks.length)s.ev.ddos=attacks[0];else delete s.ev.ddos;s.ev.ddosMore=attacks.slice(1);
   s.ddosStarts=(Array.isArray(s.ddosStarts)?s.ddosStarts:attacks.map(a=>a.start)).filter(d=>typeof d==='number'||typeof d==='string').map(Number).filter(d=>Number.isFinite(d)&&d>s.day-7&&d<=s.day).sort((a,b)=>a-b).slice(-14);

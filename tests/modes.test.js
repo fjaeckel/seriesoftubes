@@ -355,19 +355,18 @@ test('Flood Season: attacks keep coming, grow, and only count when service held'
   const { ev, errors } = load();
   ev("ACT.startScn({id:'flood',sure:1})");
   assert.equal(ev("S.scn.id"), 'flood');
-  assert.ok(ev('S.lvl') >= 3, 'starts with bigger gear unlocked');
+  assert.ok(ev('S.lvl') >= 4, 'starts with bigger gear unlocked: a 10T scrubbing center');
   // a few weeks in: several attacks start on their own schedule
   let n = 0;
   for (let i = 0; i < 40; i++) { ev('dayTick()'); if (ev('ddosAll().some(a=>a.start===S.day)')) n++; }
   assert.ok(n >= 4, `attacks keep coming (${n} in 40 days)`);
   assert.ok(ev('(S.stats.ddosOk||0)+(S.stats.ddosLost||0)') >= 3, 'finished attacks are scored');
-  // scoring: held only if service stayed at 97%+, and a terabit one only with scrubbing or Flowspec
-  ev("S.stats.ddosOk=0;S.stats.ddosOkBig=0;S.stats.ddosLost=0;ddosDone({city:'ams',gbps:1500,vec:'http',worst:0.99})");
-  assert.equal(ev('S.stats.ddosOk+S.stats.ddosOkBig'), 1, 'held, but no terabit credit without mitigation');
-  ev("S.scrubs.push({city:'ams',tier:1});S.stats.ddosOk=0;S.stats.ddosOkBig=0;S.stats.ddosLost=0;ddosDone({city:'ams',gbps:1500,worst:0.99});ddosDone({city:'ams',gbps:20,worst:0.5});ddosDone({city:'xyz',gbps:30,worst:1})");
-  assert.equal(ev('S.stats.ddosOk'), 2);
-  assert.equal(ev('S.stats.ddosOkBig'), 1);
-  assert.equal(ev('S.stats.ddosLost'), 1);
+  // Scoring: held only if the target got 97% and nobody else lost 1%; a flood you blackhole is sacrificed, not held.
+  ev("S.stats.ddosOk=0;S.stats.ddosOkBig=0;S.stats.ddosLost=0;S.stats.ddosSac=0;ddosDone({city:'ams',gbps:1500,worst:0.99});ddosDone({city:'ams',gbps:20,worst:0.5});ddosDone({city:'ams',gbps:30,worst:1,colMax:0.05});ddosDone({city:'ams',gbps:40,worst:0,sac:1})");
+  assert.equal(ev('S.stats.ddosOk'), 1);
+  assert.equal(ev('S.stats.ddosOkBig'), 1, 'a terabit flood held counts as terabit');
+  assert.equal(ev('S.stats.ddosLost'), 2, 'the target down, or everyone else hurt');
+  assert.equal(ev('S.stats.ddosSac'), 1);
   const P = JSON.parse(ev('JSON.stringify(scnProg())'));
   assert.match(P.items.map((x) => x.l).join(' '), /Floods held.*Terabit floods held/);
   ev('S.stats.ddosOk=20;S.stats.ddosOkBig=5;scnTick(S.day)');
@@ -490,7 +489,7 @@ test('Flood Season keeps attacking and escalating after both success and timeout
     ev("S.rules.chaos='spicy'");
     const gaps = JSON.parse(ev('const old=Math.random;Math.random=()=>0.5;S.day=0;const early=floodGap();S.day=1000;const late=floodGap();Math.random=old;JSON.stringify([early,late])'));
     assert.ok(gaps[1] < gaps[0], 'frequency keeps increasing with scenario age');
-    const sizes = JSON.parse(ev('const old=Math.random;Math.random=()=>0.9;S.day=0;ddosAttack();const early=ddosAll().at(-1).gbps;S.day=1000;ddosAttack();const late=ddosAll().at(-1).gbps;Math.random=old;JSON.stringify([early,late])'));
+    const sizes = JSON.parse(ev('const old=Math.random;Math.random=()=>0.2;S.day=0;ddosAttack();const early=ddosAll().at(-1).gbps;S.day=1000;ddosAttack();const late=ddosAll().at(-1).gbps;Math.random=old;JSON.stringify([early,late])'));
     assert.ok(sizes[1] > sizes[0], 'intensity keeps increasing with scenario age');
     assert.deepEqual(errors, []);
     dom.window.close();

@@ -31,8 +31,8 @@ const PLAY = {
   // Sender pays: Seoul transit to start (dear, but fast), one paid PNI with Kay-Tea for reach, then haul the bulk from
   // Tokyo and keep Seoul transit as the last resort. Seoul alone loses money on the sender-pays fee and never wins.
   gangnam: { ref: GN_REF, win: [130, 190], cheese: [...home('icn'), ['loans']], by: null },
-  // Bigger routers bring Flowspec, which also takes floods: without a scrubbing center it takes twice as long.
-  flood: { ref: [...home('ams'), ['scrub', 'ams', 1], ['tr', 'ams', 1], HIRE], win: [80, 200], cheese: [...home('ams'), ['tr', 'ams', 1], ['loans']], by: 180 },
+  // 2.2: a center pulls the whole flood onto its own ingress, so a terabit flood needs a center that size (10T, level 4).
+  flood: { ref: [...home('ams'), ['scrub', 'ams', 2], ['tr', 'ams', 1], HIRE], win: [80, 200], cheese: [...home('ams'), ['tr', 'ams', 1], ['loans']], by: 180 },
   fttb: { ref: [...home('syd'), ['link', 'syd', 'akl', 0, 'tasman'], ['link', 'syd', 'nou', 0, 'gond'], ...['mel', 'bne', 'adl', 'per'].flatMap((c) => [['bb', c], ['tr', c, 1]]), ['link', 'syd', 'mel', 1], ['link', 'syd', 'bne', 1], ['link', 'mel', 'adl', 1], ['link', 'adl', 'per', 0], HIRE],
     win: [80, 200], cheese: [...['syd', 'mel', 'bne', 'adl', 'per'].map((c) => ['bb', c]), ['tr', 'syd', 1], ['link', 'syd', 'akl', 0, 'tasman'], ['link', 'syd', 'nou', 0, 'gond'], ['loans']], by: 60 },
   // Tallinn has no transit: over the water to Helsinki and Stockholm on two cables each way, and round by land to Riga.
