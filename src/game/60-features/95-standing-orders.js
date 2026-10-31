@@ -11,7 +11,7 @@ const INTERNS={
 // The orders, in the order the panel shows them. pop: can be switched off per POP. cap: default monthly budget, of setup
 // fees, or (mo) of the running costs the order adds, for caches, which are free to rack but cost rent every month.
 const OPS=[
- {k:'transit',i:'📈',pop:1,cap:50000,t:N_('ops.o_transit'),d:N_('ops.o_transit_d'),p:{x:{d:1.5,v:[1.25,1.5,2,3],l:N_('ops.p_x'),f:v=>v+'×'},prov:{d:'cheap',ok:v=>v==='cheap'||(isNet(v)&&!!NET[v].price),l:N_('ops.p_prov')}}},
+ {k:'transit',i:'📈',pop:1,cap:50000,t:N_('ops.o_transit'),d:N_('ops.o_transit_d'),p:{x:{d:1.5,v:[1.25,1.5,2,3],l:N_('ops.p_x'),f:v=>v+'×'},prov:{d:'cheap',ok:v=>v==='cheap'||v==='have'||(isNet(v)&&!!NET[v].price),l:N_('ops.p_prov')}}},
  {k:'routers',i:'🧠',pop:1,cap:250000,t:N_('ops.o_routers'),d:N_('ops.o_routers_d'),p:{at:{d:80,v:[60,70,80,90],l:N_('ops.p_at'),f:v=>v+'%'},how:{d:'auto',v:['auto','add','swap'],l:N_('ops.p_how'),f:v=>tr({auto:N_('ops.how_auto'),add:N_('ops.how_add'),swap:N_('ops.how_swap')}[v])}}},
  {k:'caches',i:'📦',pop:1,cap:5000,mo:1,t:N_('ops.o_caches'),d:N_('ops.o_caches_d'),p:{g:{d:5,v:[1,5,10,25,50],l:N_('ops.p_g'),f:v=>fmtG(v)}}},
  {k:'ix',i:'🔀',t:N_('ops.o_ix'),d:N_('ops.o_ix_d'),p:{}},
@@ -137,15 +137,19 @@ const OPS_RUN={
    for(const c of opsPops('transit')){let ts=S.transit.filter(t=>t.city===c);if(!ts.length)continue;
      // Thirty days of 95th-percentile-ish history per port; their peaks summed is a safe (high) estimate of the POP's peak.
      const peak=ts.reduce((a,t)=>a+(t.hist||[]).reduce((m,v)=>Math.max(m,v),0),0);if(!(peak>0))continue;
-     const n=opsProv(c);if(!n)continue;
+     // "Already connected" (#227): only the providers you buy from here, the smallest first, never a new contract.
+     const have=opsP('transit','prov')==='have',n=have?null:opsProv(c);if(!have&&!n)continue;
+     const grow=t=>{const k=t.n||1,up=t.tier+1;
+       if(k<4&&portOk(c,t.tier))return {cost:PORT[t.tier].setup,go:()=>ACT.lagT({id:t.id,d:1}),w:'+1×'+PORT[t.tier].n};
+       if(PORT[up]&&portShown(up)&&portOk(c,up))return {cost:PORT[up].setup*k,go:()=>ACT.buyTransit({city:c,net:t.net,tier:up}),w:PORT[t.tier].n+'→'+PORT[up].n};
+       if(k<LAG_MAX&&portOk(c,t.tier))return {cost:PORT[t.tier].setup,go:()=>ACT.lagT({id:t.id,d:1}),w:'+1×'+PORT[t.tier].n};return null;};
      for(let step=0;step<4;step++){const cap=ts.reduce((a,t)=>a+lagCap(PORT[t.tier].g,t.n),0);if(cap>=N*peak)break;
-       const t=ts.find(x=>x.net===n.id);let job=null;
-       if(t){const k=t.n||1,up=t.tier+1;
-         if(k<4&&portOk(c,t.tier))job={cost:PORT[t.tier].setup,go:()=>ACT.lagT({id:t.id,d:1}),w:'+1×'+PORT[t.tier].n};
-         else if(PORT[up]&&portShown(up)&&portOk(c,up))job={cost:PORT[up].setup*k,go:()=>ACT.buyTransit({city:c,net:n.id,tier:up}),w:PORT[t.tier].n+'→'+PORT[up].n};
-         else if(k<LAG_MAX&&portOk(c,t.tier))job={cost:PORT[t.tier].setup,go:()=>ACT.lagT({id:t.id,d:1}),w:'+1×'+PORT[t.tier].n};}
-       else{const need=N*peak-cap,ok=PORT.map((P,i)=>i).filter(i=>portShown(i)&&portOk(c,i)),i=ok.find(i=>PORT[i].g>=need)??ok.at(-1);
-         if(i!==undefined)job={cost:PORT[i].setup,go:()=>ACT.buyTransit({city:c,net:n.id,tier:i}),w:'+'+PORT[i].n};}
+       let job=null;
+       if(have){for(const t of ts.slice().sort((a,b)=>lagCap(PORT[a.tier].g,a.n)-lagCap(PORT[b.tier].g,b.n)||transitPerG(NET[a.net],c,!!a.premium)-transitPerG(NET[b.net],c,!!b.premium))){job=grow(t);if(job)break;}}
+       else{const t=ts.find(x=>x.net===n.id);
+         if(t)job=grow(t);
+         else{const need=N*peak-cap,ok=PORT.map((P,i)=>i).filter(i=>portShown(i)&&portOk(c,i)),i=ok.find(i=>PORT[i].g>=need)??ok.at(-1);
+           if(i!==undefined)job={cost:PORT[i].setup,go:()=>ACT.buyTransit({city:c,net:n.id,tier:i}),w:'+'+PORT[i].n};}}
        if(!job||!X.can('transit',job.cost)||!X.pay('transit',job.go))break;
        X.did('transit',c+' '+job.w);ts=S.transit.filter(t=>t.city===c);}}},
  optics(X){const at=opsP('optics','at')/100;
