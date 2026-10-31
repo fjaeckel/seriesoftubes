@@ -168,7 +168,10 @@ const OPS_RUN={
    for(const row of utilityPeers())for(const id of row.requests){S.peers[id+'@'+row.ix]=true;X.did('peer',row.ix);}},
  // Weekly too: every willing network above the threshold, at its own minimum size and lead time (#181).
  pni(X){if(S.day%7!==3)return;const b=pniBatch(null,opsP('pni','tier'));if(!b)return;const g=opsP('pni','g'),paid=opsP('pni','paid');
-   const loc=q=>(R.cityDem[q.city]||0)*(NSH[q.net]||0);
+   // The traffic a PNI there would take over: what your users at that POP send to the network today over transit, an
+   // exchange or a PNI elsewhere, the same figure the PNI list shows. Not the city's whole demand: a network's own
+   // cache boxes in that POP already serve most of it (#244).
+   const loc=q=>pniVal(q.net,q.city).want;
    for(const q of b.orders.filter(q=>opsHere('pni',q.city)&&loc(q)>=g&&(paid||NET[q.net].pol!=='paid'||paidFree(NET[q.net]))).sort((a,b)=>loc(b)-loc(a))){
      if(!X.can('pni',q.cost))break;if(X.pay('pni',()=>{if(!spend(q.cost))return false;pniPlace(q);return true;}))X.did('pni',q.city+' '+q.net);}},
  // Hand back smaller waves once a bigger link between the same cities carries the pair with a quarter to spare (#102).
