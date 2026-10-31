@@ -2794,6 +2794,7 @@
 "notifications.n_min_ago":{"one":"{n} min fa","other":"{n} min fa"},
 "notifications.nothing_in_the_last_10_minutes":"Niente negli ultimi 10 minuti.",
 "notifications.show_all_n":"Mostra tutte e {n}",
+"ops.already_connected":"Solo quelli già collegati",
 "ops.annie":"Annie",
 "ops.annie_d":"Risponde dalla scrivania più vicina. Adora le porte economiche e gli IX pieni.",
 "ops.anycast_annie":"Annie Anycast",

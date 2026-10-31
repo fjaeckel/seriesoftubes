@@ -5,7 +5,7 @@ function opsCard(){if(!S)return '';const last=opsHired()&&S.ops.log[0];
     <div class="meta">${opsHired()?esc(last?opsEntry(last):tr('ops.l_quiet',{name:opsName()})):opsCanHire()?tr('ops.hire_pitch_short'):tr('ops.locked',{lv:2})}</div>
     <div class="btns">${btn(opsHired()?tr('ops.standing_orders'):tr('ops.hire_an_intern'),'opsOpen',{},opsHired()?'sm':'pink sm',!opsHired()&&!opsCanHire())}</div></div>`;}
 const opsEntry=e=>(e.f!==undefined?opsFFLine(e)+' ':'')+(e.r.length||e.f===undefined?opsLine(e):'');
-function opsVal(k,p){const P=OPSK[k].p[p],v=opsP(k,p);return p==='prov'?(v==='cheap'?tr('ops.cheapest'):NET[v].name):P.f(v);}
+function opsVal(k,p){const P=OPSK[k].p[p],v=opsP(k,p);return p==='prov'?(v==='cheap'?tr('ops.cheapest'):v==='have'?tr('ops.already_connected'):NET[v].name):P.f(v);}
 function opsOrderHtml(d){const k=d.k,on=S.ops.on[k],cap=d.cap?opsCap(k):0,sp=S.ops.spent[k]||0,am=Math.round(S.ops.addMo[k]||0);
   return `<div class="ops-o${on?' on':''}"><div class="ops-h"><span class="ops-i" aria-hidden="true">${d.i}</span><div class="grow"><div class="nm">${tr(d.t)}</div><div class="meta">${tr(d.d)}${k==='caches'?' '+tr('ops.caches_rent',{price:fmt$(CACHE_MO)}):''}</div></div>
     <button class="b sm ${on?'green':'ghost'}" data-act="opsToggle" data-args='{"k":"${k}"}' aria-pressed="${on}" aria-label="${esc(tr(d.t))}">${on?tr('common.on'):tr('ops.paused')}</button></div>

@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- The intern's transit order has a new provider choice, Already connected: it only grows the transit you already buy at each POP, the smallest port first, and never signs a new provider, so several upstreams grow together and no customer's "no Cogentle" gets a surprise (#227).
 - The intern's PNI order now counts the traffic the PNI list shows at each POP, so it no longer orders a PNI where a network's own cache boxes already serve most of its traffic (#244).
 - Find any city with the new 🔍 button in the top bar, or press / on a keyboard (#218). Type a city, a country (in your language or in English) or an exchange, and the map jumps there.
 - Cities on the map now show how big they are: zoomed out, bigger cities are bigger dots and megacities glow; zoomed in, a city's skyline grows from a hut to a megacity's towers. When cities crowd together, the smaller ones step back to a dot until you zoom in, so the map stays readable, and exchanges you haven't joined are quieter tags.
