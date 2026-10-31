@@ -67,8 +67,9 @@ test('Manila: RISE & Shine peers openly on all three Manila exchanges, across As
   start(ev);
   assert.equal(ev('NET.rsh.name'), 'RISE & Shine');
   assert.equal(ev('NET.rsh.pol'), 'open');
-  // GetaFIX Manila, PhOpenIX and VIX, Singapore, Hong Kong, JPNAP, DE-CIX, AMS-IX, LINX, Netnod, Any2
-  for (const x of ['mnl', 'mnl~2', 'mnl~3', 'sin', 'sin~2', 'hkg', 'hkg~2', 'tok', 'fra', 'ams', 'lon', 'sto', 'lax'])
+  // GetaFIX Manila, PhOpenIX and VIX, Singapore, Hong Kong, DE-CIX, AMS-IX, LINX, Netnod. Tokyo and Los Angeles are left
+  // out: an open eyeball network there makes the Stepping Stones scenario too easy.
+  for (const x of ['mnl', 'mnl~2', 'mnl~3', 'sin', 'sin~2', 'hkg', 'hkg~2', 'fra', 'ams', 'lon', 'sto'])
     assert.ok(ids(ev, `ixMembers('${x}')`).includes('rsh'), `RISE & Shine on ${x}`);
   assert.deepEqual(errors, []);
 });

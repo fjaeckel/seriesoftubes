@@ -2793,7 +2793,7 @@
 "networks.the_third_mobile_network_same_towers":"The third mobile network: the same again, but newer. Peers openly to catch up.",
 "networks.the_tier_1_that_grew_up":"The Tier 1 that grew up in Sicily. Its Seabone backbone owns the Mediterranean and reaches deep into the Americas, and it still calls Palermo home.",
 "networks.ukraine_s_biggest_mobile_network_has":"Ukraine’s biggest mobile network. Has kept working through things most networks never have to plan for.",
-"networks.up_early_in_cebu_and_already":"Up early in Cebu and already peering on three continents. Open to all.",
+"networks.up_early_in_cebu_and_already":"Up early in Cebu and already peering across Asia and Europe. Open to all.",
 "networks.updates_so_many_updates":"Updates. So many updates.",
 "networks.uruguay_s_state_telco_fast":"Uruguay’s state telco. Fast, everywhere, and a little proud of it.",
 "networks.vietnam_s_giant_will_tell_you":"Vietnam’s giant. Will tell you which subsea cable is broken this week.",

@@ -2792,7 +2792,7 @@
 "networks.the_third_mobile_network_same_towers":"A terceira operadora móvel: idem, só que mais nova. Faz peering aberto para alcançar as outras.",
 "networks.the_tier_1_that_grew_up":"A Tier 1 que cresceu na Sicília. Seu backbone Seabone domina o Mediterrâneo e vai fundo nas Américas, e ela ainda chama Palermo de casa.",
 "networks.ukraine_s_biggest_mobile_network_has":"A maior rede mobile da Ucrânia. Continuou funcionando em situações que a maioria das redes nunca precisa planejar.",
-"networks.up_early_in_cebu_and_already":"Acorda cedo em Cebu e já faz peering em três continentes. Aberto a todos.",
+"networks.up_early_in_cebu_and_already":"Acorda cedo em Cebu e já faz peering pela Ásia e pela Europa. Aberto a todos.",
 "networks.updates_so_many_updates":"Atualizações. Tantas atualizações.",
 "networks.uruguay_s_state_telco_fast":"A telco estatal do Uruguai. Rápida, em todo lugar, e um pouco orgulhosa disso.",
 "networks.vietnam_s_giant_will_tell_you":"O gigante do Vietnã. Te conta qual cabo submarino está rompido esta semana.",
