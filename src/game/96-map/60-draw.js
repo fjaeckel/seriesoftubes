@@ -78,19 +78,22 @@ function drawFrame(now){
   const prio=v=>(UI.sel&&UI.sel.type==='city'&&UI.sel.id===v.C.id?0:S.pops[v.C.id]?1:2);vis.sort((a,b)=>prio(a)-prio(b)||b.C.P-a.C.P);
   const rects=[],labs=[],hit=(r)=>rects.some(q=>r.x<q.x+q.w&&q.x<r.x+r.w&&r.y<q.y+q.h&&q.y<r.y+r.h);
   const farL=lodFar();
-  for(const v of vis){if(farL){rects.push({x:v.sx-7,y:v.sy-7,w:14,h:14});continue;}const h=(12+Math.sqrt(v.C.P)*0.75)*sc;rects.push({x:v.sx-18*sc,y:v.sy-h-4*sc,w:40*sc,h:h+14*sc});}
+  // Which cities show an offer bubble (a big one?) or an incident marker, worked out once for all of them.
+  CM.off=new Set();CM.big=new Set();for(const o of S.offers){const big=BIZ_T[o.type].lv>=3||BIZ_T[o.type].event;for(const c of bCities(o)){CM.off.add(c);if(big)CM.big.add(c);}}
+  CM.inc=new Set(S.inc.filter(i=>i.type!=='leak').map(i=>i.ref));CM.far=farL;
+  // Zoomed in, crowded small cities give way to bigger ones and become dots (75-city-size.js).
+  const csc=cityScale(sc);if(farL)for(const v of vis)v.dem=false;else cityRoom(vis,csc);
+  for(const v of vis){if(farL){const r=FAR_R[cTier(v.C.id)]+3;rects.push({x:v.sx-r,y:v.sy-r,w:2*r,h:2*r});continue;}
+    if(v.dem){rects.push({x:v.sx-5*csc,y:v.sy-5*csc,w:10*csc,h:10*csc});continue;}const h=cityTop(v.C.id,S.pops[v.C.id])*csc;rects.push({x:v.sx-v.r,y:v.sy-h,w:2*v.r,h:h+10*csc});}
   for(const v of vis){const p=S.pops[v.C.id];ctx.font=`800 ${p?13:12}px "Baloo 2", sans-serif`;const tw=(LBLW[v.C.id+(p?1:0)]||(LBLW[v.C.id+(p?1:0)]=ctx.measureText(v.C.name).width+14));
-    if(farL&&prio(v)>1&&UI.hover!==v.C.id){v.ly=null;continue;}
-    const h=farL?6:12+Math.sqrt(v.C.P)*0.75;const below=farL?v.sy+15:v.sy+16*sc+8,above=farL?v.sy-15:v.sy-h*sc-17*sc;let ly=null;
+    if((farL&&prio(v)>1&&UI.hover!==v.C.id)||v.dem){v.ly=null;continue;}
+    const h=farL?6:cityTop(v.C.id,p);const below=farL?v.sy+15:v.sy+16*csc+8,above=farL?v.sy-15:v.sy-h*csc-17*csc;let ly=null;
     for(const y of [below,above]){const r={x:v.sx-tw/2-2,y:y-10,w:tw+4,h:21};if(!hit(r)){ly=y;rects.push(r);labs.push(r);break;}}
     // Your POPs may sit over a city icon, but not over another name: that one waits until you zoom in.
     if(ly===null&&prio(v)===1)for(const y of [below,above]){const r={x:v.sx-tw/2,y:y-10,w:tw,h:21};if(!labs.some(q=>r.x<q.x+q.w&&q.x<r.x+r.w&&r.y<q.y+q.h&&q.y<r.y+r.h)){ly=y;rects.push(r);labs.push(r);break;}}
     if(ly===null&&(prio(v)===0||(prio(v)===1&&(v.C.id===S.home||UI.hover===v.C.id)))){ly=below;const r={x:v.sx-tw/2,y:below-10,w:tw,h:21};rects.push(r);labs.push(r);}
     v.ly=ly;}
-  // Which cities show an offer bubble (a big one?) or an incident marker, worked out once for all of them.
-  CM.off=new Set();CM.big=new Set();for(const o of S.offers){const big=BIZ_T[o.type].lv>=3||BIZ_T[o.type].event;for(const c of bCities(o)){CM.off.add(c);if(big)CM.big.add(c);}}
-  CM.inc=new Set(S.inc.filter(i=>i.type!=='leak').map(i=>i.ref));CM.far=farL;
-  if(pzOn()){for(const v of vis.slice().reverse())pzDrawCity(v,sc,now);}else for(const v of vis.slice().reverse())drawCity(v.C,v.sx,v.sy,sc,now,v.ly);
+  if(pzOn()){for(const v of vis.slice().reverse())pzDrawCity(v,csc,now);}else for(const v of vis.slice().reverse())drawCity(v.C,v.sx,v.sy,csc,now,v.ly,v.dem);
   // Architect runs: what the tubes between two cities are (one trench, or separate paths), above the cities.
   for(const [x,y,t,one] of AR_PILLS){ctx.font='800 11px "Baloo 2", sans-serif';const tw=ctx.measureText(t).width+12;ctx.fillStyle=one?'#FFE3C2':'#DDF7E7';ctx.strokeStyle=one?'#FF8A3D':'#16A866';ctx.lineWidth=2;rr(x-tw/2,y-9,tw,17,8);ctx.fill();ctx.stroke();ctx.fillStyle='#1E2640';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(t,x,y+1);}
   // the chaos monkey (woken here after a reload, wherever it last snipped)

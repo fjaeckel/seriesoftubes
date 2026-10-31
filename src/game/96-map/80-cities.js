@@ -11,7 +11,9 @@ function drawCityFar(C,sx,sy,sc,now,lyOverride){
     if(p.site2){ctx.setLineDash([2,2]);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(9,6);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=col;rr(5,3,9,7,3);ctx.fill();ctx.stroke();}
     if((p.routers||1)>=2){ctx.fillStyle=down?'#6E7590':'#D63B7F';rr(-6,-7,15,10,4);ctx.fill();ctx.stroke();}
     ctx.fillStyle=col;rr(-8,-5,16,10,4);ctx.fill();ctx.stroke();
-  }else{ctx.fillStyle=hasIxAt(C.id)?'#FFD23F':'#FFFFFF';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(0,0,hov?4.5:3.4,0,7);ctx.fill();ctx.stroke();}
+  }else{// The dot grows with the city's eyeballs; a megacity glows a little (75-city-size.js).
+    const t=cTier(C.id),r=FAR_R[t]*(hov?1.3:1);if(t===4){ctx.fillStyle='rgba(255,255,255,.55)';ctx.beginPath();ctx.arc(0,0,r+4.5,0,7);ctx.fill();}
+    ctx.fillStyle=hasIxAt(C.id)?'#FFD23F':'#FFFFFF';ctx.lineWidth=t>=3?1.6:1.3;ctx.beginPath();ctx.arc(0,0,r,0,7);ctx.fill();ctx.stroke();}
   if(CM.off.has(C.id)){ctx.fillStyle='#16A866';ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(p?9:5,p?-7:-5,3,0,7);ctx.fill();ctx.stroke();}
   if(CM.inc.has(C.id)){ctx.fillStyle='#FF4D5E';ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(p?-9:-5,p?-7:-5,3.4,0,7);ctx.fill();ctx.stroke();}
   ctx.restore();
@@ -19,20 +21,25 @@ function drawCityFar(C,sx,sy,sc,now,lyOverride){
     ctx.fillStyle=p?'#FF4F9A':'#FFFFFF';ctx.strokeStyle='#1E2640';ctx.lineWidth=1.6;rr(sx-tw/2,ly-8,tw,16,8);ctx.fill();ctx.stroke();
     ctx.fillStyle=p?'#FFFFFF':'#1E2640';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(t,sx,ly+1);}
 }
-function drawCity(C,sx,sy,sc,now,lyOverride){
+function drawCity(C,sx,sy,sc,now,lyOverride,dem){
   if(CM.far)return drawCityFar(C,sx,sy,sc,now,lyOverride);
   const hot=(UI.hotMap||{})[C.id];
   const p=S.pops[C.id],down=p&&p.down>S.day,sel=UI.sel&&UI.sel.type==='city'&&UI.sel.id===C.id,hov=UI.hover===C.id||(UI.snap&&UI.snap.id===C.id);
+  // No room for its skyline here: a quiet dot, a little bigger for bigger cities, until you zoom in (cityRoom).
+  if(dem&&!p&&!sel&&!hov){const r=(2.6+cTier(C.id)*0.35)*sc;ctx.fillStyle=hasIxAt(C.id)?'#FFD23F':'#FFFFFF';ctx.strokeStyle='#1E2640';ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(sx,sy+2*sc,r,0,7);ctx.fill();ctx.stroke();return;}
+  const t=cTier(C.id),cs=p?1:CSC[t];
   const k=sc*(hov?1.15:1);
   ctx.save();ctx.translate(sx,sy);
   if(UI.feed&&UI.feed.has(C.id)){ctx.strokeStyle='#FF8A3D';ctx.lineWidth=4;ctx.setLineDash([3,5]);ctx.beginPath();ctx.arc(0,-6*k,36*k,0,7);ctx.stroke();ctx.setLineDash([]);}
   if(sel){ctx.strokeStyle='#FF4F9A';ctx.lineWidth=3;ctx.setLineDash([6,6]);ctx.lineDashOffset=-now/40;ctx.beginPath();ctx.arc(0,-6*k,30*k,0,7);ctx.stroke();ctx.setLineDash([]);}
   if(p&&!down&&R.cityDem[C.id]>0&&sfOf(R,C.id)<0.9){const a=.35+.25*Math.sin(now/200);ctx.fillStyle=`rgba(255,77,94,${a})`;ctx.beginPath();ctx.arc(0,-6*k,26*k,0,7);ctx.fill();}
-  ctx.scale(k,k);
-  ctx.fillStyle='rgba(30,38,64,.2)';ctx.beginPath();ctx.ellipse(0,9,20,5,0,0,7);ctx.fill();
-  const h=p?18:12+Math.sqrt(C.P)*0.75;
+  ctx.scale(k*cs,k*cs);
+  ctx.fillStyle='rgba(30,38,64,.2)';ctx.beginPath();ctx.ellipse(0,9,p?20:SKY_W[t]/2+5,5,0,0,7);ctx.fill();
+  const h=p?18:SKY_H[t];
   ctx.strokeStyle='#1E2640';ctx.lineWidth=2.2;
-  if(!p){const bl=[[-15,h*.65,'#FFFFFF'],[-5,h,'#FFE7A1'],[5,h*.5,'#BDE8FF']];
+  // The skyline says how big the city is: a hut for an outpost, up to five towers for a megacity.
+  if(!p){const bl=SKY[t];
+    if(t===4){ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,8-h);ctx.lineTo(0,1-h);ctx.stroke();ctx.fillStyle='#FF4D5E';ctx.beginPath();ctx.arc(0,-h,2.2,0,7);ctx.fill();ctx.stroke();ctx.lineWidth=2.2;}
     for(const [x,hh,col] of bl){ctx.fillStyle=col;rr(x,8-hh,10,hh,2);ctx.fill();ctx.stroke();}
     ctx.fillStyle='rgba(30,38,64,.35)';ctx.beginPath();for(const [x,hh] of bl)for(let yy=8-hh+4;yy<5;yy+=5){ctx.rect(x+2.5,yy,2,2);ctx.rect(x+5.5,yy,2,2);}ctx.fill();}
   if(p){
@@ -56,8 +63,10 @@ function drawCity(C,sx,sy,sc,now,lyOverride){
     ctx.translate(0,-2);
   }
   const ixn=ixName(C.id);
-  if(ixn){const mine=!!S.myIx[C.id],joined=hasIxAt(C.id);const ixHot=hot&&hot.ix;ctx.fillStyle=ixHot?(Math.sin(now/180)>0?'#FF4D5E':'#FF8A3D'):mine?'#FF4F9A':joined?'#FFD23F':'#FFFFFF';ctx.beginPath();for(let i=0;i<6;i++){const a=Math.PI/3*i+Math.PI/6;ctx.lineTo(19+8.5*Math.cos(a),-h+2+8.5*Math.sin(a));}ctx.closePath();ctx.fill();ctx.lineWidth=2;ctx.stroke();
-    ctx.fillStyle=mine||ixHot?'#fff':'#1E2640';ctx.font='900 8px Nunito, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('IX',19,-h+2.5);}
+  // The IX badge sits at the skyline's top right, whatever its width.
+  if(ixn&&(ixShown(C.id,p)||(hot&&hot.ix)||sel||hov)){const mine=!!S.myIx[C.id],joined=hasIxAt(C.id),ixHot=hot&&hot.ix,q=!p&&!ixHot&&ixQuiet(C.id),R=q?6.5:8.5,ix=p?19:SKY_W[t]/2+(q?2:4);
+    ctx.fillStyle=ixHot?(Math.sin(now/180)>0?'#FF4D5E':'#FF8A3D'):mine?'#FF4F9A':joined?'#FFD23F':'#FFFFFF';ctx.beginPath();for(let i=0;i<6;i++){const a=Math.PI/3*i+Math.PI/6;ctx.lineTo(ix+R*Math.cos(a),-h+2+R*Math.sin(a));}ctx.closePath();ctx.fill();ctx.lineWidth=q?1.4:2;ctx.stroke();
+    ctx.fillStyle=mine||ixHot?'#fff':'#1E2640';ctx.font=`900 ${q?6.5:8}px Nunito, sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('IX',ix,-h+2.5);}
   if(hot&&p){let y=-14;const pulse=.75+.25*Math.sin(now/200);for(const k of ['r','t','p','c']){if(!hot[k])continue;ctx.globalAlpha=pulse;ctx.fillStyle='#FF4D5E';ctx.beginPath();ctx.arc(-29,y,6.5,0,7);ctx.fill();ctx.globalAlpha=1;ctx.lineWidth=2;ctx.strokeStyle='#1E2640';ctx.stroke();ctx.fillStyle='#fff';ctx.font='900 8px Nunito, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(HOTL[k],-29,y+0.5);y+=14;}}
   const off=CM.off.has(C.id);
   if(off){const by=-h-16+Math.sin(now/250)*3;ctx.fillStyle='#fff';ctx.lineWidth=2.2;ctx.beginPath();ctx.ellipse(-2,by,11,9,0,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(-5,by+8);ctx.lineTo(-7,by+14);ctx.lineTo(0,by+8);ctx.fillStyle='#fff';ctx.fill();const big=CM.big.has(C.id);ctx.fillStyle=big?'#FF4F9A':'#16A866';ctx.font='900 13px "Baloo 2", sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(big?'$$':'$',-2,by+1);}
