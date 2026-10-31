@@ -248,10 +248,10 @@ function compute(){
       }
     }
   }
+  for(const i of NORD)R2.nodeLoad[CITIES[i].id]=NLOAD[i];
   if(DD){let rem=0,jf=0;for(const f of flows)if(f.rem>1e-6)rem+=f.rem;if(JK)for(const k in edges){const e=edges[k];if(e.res<=1e-6&&e.jk)jf+=e.jk;}
     ddosAfter(DD,{E,R2,squeeze:Math.min(rem,jf),
       lost:(ci,x,y,e)=>{SRV[ci]-=x;R2.served-=x;const c=CITIES[ci].id;if(y)R2.bizSrv[c]-=y;R2.egT[e.k]-=x;if(e.rank<=2)R2.peered-=x;}});}
-  for(const i of NORD)R2.nodeLoad[CITIES[i].id]=NLOAD[i];
   for(const c of Object.keys(S.pops)){const i=CIDX[c];R2.citySrv[c]=SRV[i];
     if(LATP[i]>0&&SRV[i]>0)R2.latF[c]=clamp(1-LATP[i]/SRV[i],0,1);}
   // Each city's slowest big exit: (path, source, exit) triples, one per path that went far, in the order they first did.

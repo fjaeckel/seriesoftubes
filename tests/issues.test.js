@@ -1349,7 +1349,7 @@ test('link redundancy trials distinguish a bridge, a full fallback and a healthy
 
 test('#219 splitting a one-member PNI across both sites splits it when the augment lands', () => {
   const { ev, errors } = load();
-  ev("ACT.start({});S.cash=1e8;UI.speed=0;for(const g of GOALS)S.done[g.id]=0;Object.assign(S.pops.fra,{site2:true,routers:4});S.pni.push({id:'x',net:'nfx',city:'fra',tier:1,ready:0});compute()");
+  ev("ACT.start({});S.cash=1e8;UI.speed=0;S.nextFail=S.nextEvent=1e9;for(const g of GOALS)S.done[g.id]=0;Object.assign(S.pops.fra,{site2:true,routers:4});S.pni.push({id:'x',net:'nfx',city:'fra',tier:1,ready:0});compute()");
   const cash = ev('S.cash');
   ev("ACT.siteSet({k:'p',id:'x',s:'ab'})");
   assert.equal(ev('S.pni[0].up.n'), 2, 'second member ordered');

@@ -88,12 +88,12 @@ test('--check: a week the reference no longer wins is regenerated as a new revis
   const now = g.ev(`pzWeekStart('${j.key}')`);
   let r = G.refresh(g, dir, now);
   assert.ok(r.fixed.includes(`${j.key}: new par ${j.par}`), r.fixed.join('; '));
-  assert.equal(JSON.parse(fs.readFileSync(path.join(dir, j.key + '.json'), 'utf8')).rev, undefined, 'a new par keeps the revision');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(dir, j.key + '.json'), 'utf8')).rev, j.rev, 'a new par keeps the revision');
   // A goal its reference plan never reaches: as if a release changed the world under the week.
   fs.writeFileSync(path.join(dir, j.key + '.json'), JSON.stringify({ ...j, goal: { t: 'pops', p: { cs: ['scl'] } }, ref: { ...j.ref, steps: [] } }) + '\n');
   r = G.refresh(g, dir, now);
   const n = JSON.parse(fs.readFileSync(path.join(dir, j.key + '.json'), 'utf8'));
-  assert.equal(n.rev, 2, r.fixed.join('; ') + r.bad.join('; '));
+  assert.equal(n.rev, (j.rev || 1) + 1, r.fixed.join('; ') + r.bad.join('; '));
   assert.ok(G.verify(g, n).ok);
   // Past weeks keep their files.
   assert.deepEqual(G.refresh(g, dir, now + 30 * 864e5).fixed, []);

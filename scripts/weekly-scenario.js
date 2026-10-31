@@ -30,7 +30,7 @@ const TEMPLATES = {
   spat: { goal: 'reach', home: 'big', days: [240, 300], cash: [500000, 800000], lvl: 2, rules: { spat: true }, plan: 'spread', hops: 3, tr2: true, avoid: ['cog'] },
   region: { goal: 'ix', home: 'ixrich', days: [270, 365], cash: [200000, 350000], lvl: 2, plan: 'exchanges', hops: 14 },
   event: { goal: 'event', home: 'big', days: [180, 240], cash: [500000, 900000], lvl: 2, plan: 'spread', hops: 2, sizes: [1600, 800, 400, 200] },
-  flood: { goal: 'floods', home: 'big', days: [240, 300], cash: [1500000, 2500000], lvl: 3, rules: { ddos: true }, plan: 'spread', hops: 2, scrub: 1 },
+  flood: { goal: 'floods', home: 'big', days: [240, 300], cash: [1500000, 2500000], lvl: 4, rules: { ddos: true }, plan: 'spread', hops: 2, scrub: 2 },
   island: { goal: 'pops', home: 'island', days: [240, 365], cash: [250000, 500000], lvl: 3, plan: 'islands', hops: 3 },
   cable: { goal: 'path', home: 'landing', days: [270, 365], cash: [200000, 400000], lvl: 3, plan: 'detour', g: [400, 800], n: 45 },
   latency: { goal: 'lat', home: 'fast', days: [180, 270], cash: [300000, 600000], lvl: 3, plan: 'fast', n: 60 },
