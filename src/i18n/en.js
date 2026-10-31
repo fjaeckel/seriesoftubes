@@ -2804,6 +2804,7 @@
 "notifications.n_min_ago":{"one":"{n} min ago","other":"{n} min ago"},
 "notifications.nothing_in_the_last_10_minutes":"Nothing in the last 10 minutes.",
 "notifications.show_all_n":"Show all {n}",
+"ops.already_connected":"Already connected",
 "ops.annie":"Annie",
 "ops.annie_d":"Answers from whichever desk is closest. Loves a cheap port and a full IX.",
 "ops.anycast_annie":"Anycast Annie",

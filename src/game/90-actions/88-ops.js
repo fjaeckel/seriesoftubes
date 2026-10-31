@@ -10,7 +10,7 @@ Object.assign(ACT,{
    toast(esc(tr('ops.fired',{name:nm})),'');after();opsModal();},
  opsToggle:({k})=>{if(!opsHired()||!own(OPSK,k))return;S.ops.on[k]=!S.ops.on[k];sfx('click');after();opsModal();},
  opsParam:({k,p})=>{if(!opsHired()||!own(OPSK,k)||!own(OPSK[k].p,p))return;const P=OPSK[k].p[p];let v;
-   if(p==='prov'){const ids=['cheap',...NETS.filter(n=>n.price&&Object.keys(S.pops).some(c=>sellsAt(n,c))).map(n=>n.id)];v=opsCycle(ids,opsP(k,p));}else v=opsCycle(P.v,opsP(k,p));
+   if(p==='prov'){const ids=['cheap','have',...NETS.filter(n=>n.price&&Object.keys(S.pops).some(c=>sellsAt(n,c))).map(n=>n.id)];v=opsCycle(ids,opsP(k,p));}else v=opsCycle(P.v,opsP(k,p));
    (S.ops.p[k]||(S.ops.p[k]={}))[p]=v;sfx('click');after();opsModal();},
  opsCap:({k})=>{if(!opsHired()||!own(OPSK,k)||!OPSK[k].cap)return;S.ops.cap[k]=opsCycle(opsCaps(k),opsCap(k));sfx('click');after();opsModal();},
  opsFloor:()=>{if(!opsHired())return;S.ops.floor=opsCycle(OPS_FLOORS,S.ops.floor);sfx('click');after();opsModal();},
