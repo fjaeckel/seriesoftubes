@@ -50,16 +50,12 @@ function renderLeft(){checkLayer();
   }else if(UI.left==='noc'){
     h+=`<div class="btns" style="margin-bottom:8px">${btn(tr('hud_and_panels.open_noc_dashboard'),'dash',{},'pink')}${btn(tr('common.connections'),'connOpen',{},'')}${btn(tr('common.traceroute'),'trace',{},'')}</div>`;
     h+=`<p class="lead">${tr('hud_and_panels.your_network_operations_center_every')}</p>`;
-    h+=opsCard()+mkCard();
+    h+=opsCard()+mkCard()+ddosPanel();
     // Incidents come first, the ones you can fix with one click at the top (#63): no scrolling past hot ports to replace an optic.
     for(const i of S.inc.filter(i=>i.type!=='ddos').sort((a,b)=>(b.cost?1:0)-(a.cost?1:0)||(b.impact||0)-(a.impact||0))){h+=`<div class="inc"><div class="nm">${incTitle(i.type)}</div><div class="meta">${esc(i.msg)}</div><div class="meta">${trn('hud_and_panels.auto_fix_in_n_day',i.until-S.day)}${i.impact?` · ${tr('hud_and_panels.g_lost',{g:fmtG(i.impact)})}`:''}</div>${i.cost?`<div class="btns">${btn(`${esc(i.fix||tr('common.rush_repair'))} ${fmt$(i.cost)}`,'fixInc',{id:i.id},'red sm',S.cash<i.cost)}</div>`:''}</div>`;}
     h+=logSection();UI.logSeen=Date.now();
-    h+=`<div class="kv"><span>${tr('common.ddos_scrubbing')}</span><b>${hasScrub()?tr('hud_and_panels.on_city',{city:S.scrubs.map(x=>CITY[x.city].name).join(', ')}):tr('hud_and_panels.none_build_one_from_a_pop')}</b></div>`;
-    {const pops=Object.keys(S.pops),nfs=pops.filter(c=>fsAt(c)).length;
-     h+=`<div class="kv"><span>${tr('hud_and_panels.flowspec_capable_pops')}</span><b>${nfs}/${pops.length}</b></div>`;
-     if(nfs<pops.length)h+=`<p class="meta" style="margin:2px 0 6px">${tr('hud_and_panels.flowspec_drop_rules_live_in_router')}</p>`;}
+    h+=ddosSettings();
     if(S.grace&&S.grace.until>S.day&&R.graceNets)h+=`<div class="kv"><span>${tr('common.courtesy_route')}</span><b>${tr('hud_and_panels.n_networks_d_days_left',{n:R.graceNets,d:S.grace.until-S.day})}</b></div><p class="meta" style="margin:0 0 6px">${tr('hud_and_panels.reaches_networks_from_the_last')}</p>`;
-    h+=ddosPanel();
     h+=corePanel();
     h+=S.te&&!coreTE()?`<div class="kv"><span>Auto-TE</span><b>${tr('core.paused')}</b></div><p class="why">${tr('core.auto_te_is_paused_it_needs')}</p>`:S.te?`<div class="kv"><span>Auto-TE</span><b>${S.te.on?tr('hud_and_panels.on_moving_g_onto_alternate_paths',{g:fmtG(R.teMoved||0)}):tr('common.off')}</b></div><div class="btns">${btn(S.te.on?tr('hud_and_panels.turn_auto_te_off'):tr('hud_and_panels.turn_auto_te_on'),'teToggle',{},'ghost sm')}${btn(S.te.script?tr('common.edit_routescript'):tr('hud_and_panels.write_a_routescript'),'teEdit',{},'pink sm')}</div>${S.te.script?`<p class="meta" style="margin:2px 0 6px">RouteScript: ${teRules()?tr('hud_and_panels.n_rules_live',{n:teRules().n}):S.te.on?tr('hud_and_panels.has_errors_not_running'):tr('common.controller_off')}${R.teBlack?` · ${tr('hud_and_panels.blackholing_g',{g:fmtG(R.teBlack)})}`:''}</p>`:''}`
       :`<div class="kv"><span>Auto-TE</span><b>${lvl()<3?tr('hud_and_panels.unlocks_at_customer_level_3'):tr('common.not_installed')}</b></div><p class="meta" style="margin:2px 0 6px">${tr('hud_and_panels.traffic_takes_the_shortest_path_even')}</p>${coreTE()?'':`<p class="why">${tr('core.auto_te_needs_an_rsvp_te_or')}</p>`}<div class="btns">${btn(tr('hud_and_panels.install_auto_te_cost_mo_mo',{cost:fmt$(TE_COST),mo:fmt$(TE_MO)}),'buyTE',{},'pink sm',lvl()<3||S.cash<TE_COST||!coreTE())}</div>`;

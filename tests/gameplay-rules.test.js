@@ -391,6 +391,55 @@ test('F5: rented capacity never outgrows the route\'s market (#203)', () => {
   assert.deepEqual(g.errors, []);
 });
 
+// D1–D4: DDoS as networks see it (#242). tests/ddos-model.test.js plays each one in detail.
+const ddFra = (ev) => ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;S.lvl=4;S.nextFail=1e9;S.nextEvent=1e9;ACT.launchBB({city:'fra'});S.pops.fra.bb.d=40;ACT.buyTransit({city:'fra',net:'cog',tier:1});S.pops.fra.rgen=RG.findIndex(r=>r.fsN===8);S.biz.push({id:'g',type:'game',name:'G',city:'fra',bw:10,rate:1,mood:80,since:0,reqs:[]},{id:'d',type:'dia',name:'D',city:'fra',bw:5,rate:1,mood:80,since:0,reqs:[]});compute()");
+const ddHit = (ev, g) => ev(`S.ev.ddos={id:'x',city:'fra',tgt:'g',vec:'dns',gbps:${g},start:S.day,until:S.day+2,bh:false};compute()`);
+test('D1: attack sizes come from the world, never from your network', () => {
+  const g = load();
+  ddFra(g.ev);
+  g.ev('S.day=400');
+  const draw = () => g.ev("__reseed(8);JSON.stringify(Array.from({length:500},()=>ddosSize({tgt:'d'})))");
+  const a = draw();
+  g.ev('S.pops.fra.bb.d*=10;compute()');
+  assert.equal(draw(), a, 'D1: ten times the subscribers, the same attacks');
+  assert.ok(Math.max(...JSON.parse(a)) <= g.ev('DD_REC'), 'D1: never past the record');
+  g.ev('S.day=10');
+  assert.ok(Math.max(...JSON.parse(g.ev("__reseed(8);JSON.stringify(Array.from({length:500},()=>ddosSize({tgt:'d'})))"))) <= 2 * g.ev('ddMaxPort()'), 'D1: early floods stay within twice your biggest port');
+  assert.deepEqual(g.errors, []);
+});
+test('D2: a full port slows everyone on it', () => {
+  const g = load();
+  ddFra(g.ev);
+  ddHit(g.ev, 200);
+  assert.equal(g.ev('R.ddos[0].full'), 1, 'D2: the port is full');
+  assert.ok(g.ev("bizSf(S.biz.find(b=>b.id==='d'),linkIds())") < 0.9, 'D2: the bystander loses traffic');
+  assert.deepEqual(g.errors, []);
+});
+test('D3: only upstream tools and scrubbing keep a flood off your ports; Flowspec works behind them, within its budget', () => {
+  const g = load();
+  ddFra(g.ev);
+  ddHit(g.ev, 200);
+  assert.ok(g.ev('R.ddos[0].fs') > 0 && g.ev('R.ddos[0].full') === 1, 'D3: Flowspec drops what got in, the port stays full');
+  assert.deepEqual(JSON.parse(g.ev('JSON.stringify(R.fsUse.fra)')), { used: 1, cap: 8 }, 'D3: one rule of the router\'s own eight');
+  g.ev("S.transit[0].clean=true;compute()");
+  assert.equal(g.ev('R.ddos[0].full'), 0, 'D3: a clean pipe scrubs upstream');
+  g.ev("S.transit[0].clean=false;S.scrubs=[{city:'fra',tier:1}];S.scrubMode='always';compute()");
+  assert.equal(g.ev('R.ddos[0].full'), 0, 'D3: an engaged center pulls it off the ports');
+  assert.deepEqual(g.errors, []);
+});
+test('D4: RTBH costs only the target', () => {
+  const g = load();
+  ddFra(g.ev);
+  ddHit(g.ev, 200);
+  g.ev("ACT.rtbh({id:'x'})");
+  assert.equal(g.ev("bizSf(S.biz.find(b=>b.id==='g'),linkIds())"), 0, 'D4: the target is dark');
+  assert.ok(g.ev("bizSf(S.biz.find(b=>b.id==='d'),linkIds())") >= 0.97, 'D4: everyone else is saved');
+  g.ev('S.ev.ddos.until=S.day;dayTick()');
+  assert.equal(g.ev('S.stats.ddosSac'), 1, 'D4: sacrificed, not held');
+  assert.equal(g.ev('S.stats.ddosOk||0'), 0);
+  assert.deepEqual(g.errors, []);
+});
+
 test('no page errors while checking the rules', () => {
   assert.deepEqual(errors, []);
 });

@@ -29,7 +29,7 @@ const SCN=[
   // Sender pays, turned up: with Korea at the usual prices broadband swamped every bill and Seoul alone won on day 73
  // (playtest). Now Seoul transit is dear, the incumbents want a paid PNI and Korean users mind every far exit.
  {id:'gangnam',n:tr('scenarios.gangnam_style_peering'),city:'icn',cash:900000,days:240,rules:{sender:true},d:tr('scenarios.seoul_sender_pays_d'),goal:tr('scenarios.seoul_sender_pays_goal',{g:GN_G,q:Math.round(GN_Q*100)}),ok:()=>R.reach>=0.99&&R.served>=GN_G&&sfOf(R,'icn')>=GN_Q&&R.revMo>=R.costMo},
- {id:'flood',n:tr('common.flood_season'),city:'ams',cash:2000000,days:365,rules:{ddos:true},setup:()=>{S.lvl=Math.max(S.lvl||1,3);},d:tr('scenarios.amsterdam_hosting_capital_of_europe'),goal:tr('scenarios.hold_20_floods_5_of_them'),ok:()=>(S.stats.ddosOk||0)>=20&&(S.stats.ddosOkBig||0)>=5},
+ {id:'flood',n:tr('common.flood_season'),city:'ams',cash:2000000,days:365,rules:{ddos:true},setup:()=>{S.lvl=Math.max(S.lvl||1,4);},d:tr('scenarios.amsterdam_hosting_capital_of_europe'),goal:tr('scenarios.hold_20_floods_5_terabit'),ok:()=>(S.stats.ddosOk||0)>=20&&(S.stats.ddosOkBig||0)>=5},
  // Traffic served too: broadband in five cities and two cables were bought on day 1 and won on day 2 (playtest).
  {id:'fttb',n:tr('scenarios.fibre_to_the_basement'),city:'syd',cash:1500000,days:365,rules:{levy:true},d:tr('scenarios.sydney_2013_the_toilet_paper_group'),goal:tr('scenarios.broadband_in_sydney_melbourne_served'),ok:()=>AU_BB.every(c=>S.pops[c]&&S.pops[c].bb)&&auExits()>=2&&R.served>=FTTB_G},
  // Nobody sells transit in Tallinn here: with local transit, a network that never crossed the water won (playtest).

@@ -19,7 +19,7 @@ spill at 85%
 # Maintenance window? Drain a POP's exits, or steer around a link
 # drain paris
 # avoid link frankfurt-amsterdam
-# Under DDoS: drop the junk at the edge (takes some real traffic with it)
+# Under DDoS: blackhole the target upstream (saves everyone else)
 # blackhole ddos`;
 function lev(a,b){const m=a.length,n=b.length,d=Array.from({length:m+1},(_,i)=>[i]);for(let j=1;j<=n;j++)d[0][j]=j;for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[m][n];}
 function teFind(word,list,label){const w=slug(word);if(!w)return {err:tr('routescript.missing_what',{what:label})};
@@ -60,7 +60,7 @@ const teUps=()=>[...new Set(S.transit.map(t=>t.net))].map(n=>({n,p:Math.min(...S
 const teNm=n=>NET[n].name.toLowerCase(),teAtk=()=>ddosAll().length>0;
 const teSad=()=>S.biz.some(b=>!BIZ_T[b.type].l2&&!BIZ_T[b.type].fiber&&!BIZ_T[b.type].event&&sfOf(R,b.city)<0.95);
 const TE_RECIPES=[
- {id:'shield',n:N_('common.shields_up'),d:N_('routescript.for_a_ddos_drop_the_junk'),fit:()=>teAtk()?9:0.3,
+ {id:'shield',n:N_('common.shields_up'),d:N_('routescript.for_a_ddos_rtbh_the_target'),fit:()=>teAtk()?9:0.3,
   src:()=>[tr('routescript.shields_up_for_the_length_of'),'blackhole ddos','protect customers','spill at 80%']},
  {id:'care',n:N_('common.customer_care'),d:N_('routescript.business_customers_first_when_links'),fit:()=>teSad()?5:0.5,
   src:()=>[tr('routescript.customer_care_the_people_who_pay'),'protect customers','spill at 75%']},
@@ -111,7 +111,7 @@ function teHelpModal(){const rule=(code,what)=>`<dt><code>${code}</code></dt><dd
   ${rule('protect customers',tr('routescript.when_links_are_congested_business'))}
   ${rule('drain paris',tr('routescript.move_traffic_off_a_pop_s'))}
   ${rule('avoid link frankfurt-amsterdam',tr('routescript.steer_traffic_around_one_link_unless'))}
-  ${rule('blackhole ddos',tr('routescript.during_an_attack_drop_the_flood'))}
+  ${rule('blackhole ddos',tr('routescript.during_an_attack_rtbh_the_target'))}
   </dl><h3>${tr('routescript.ready_made_scripts')}</h3><p class="meta">${tr('routescript.filled_in_from_your_network_as')}</p>
   ${TE_RECIPES.map(r=>`<div class="terec"><div><b>${tr(r.n)}</b><div class="meta">${tr(r.d)}</div></div>${btn(tr('common.load'),'teRecipe',{id:r.id},'sm')}</div>`).join('')}</div>
   <div class="btns" style="margin-top:12px">${btn(tr('routescript.back_to_the_editor'),'teBack',{},'big')}</div>`);}

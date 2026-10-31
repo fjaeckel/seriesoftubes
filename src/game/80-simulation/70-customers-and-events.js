@@ -1,4 +1,4 @@
-function bizSf(b,ids){const T=BIZ_T[b.type];return T.fiber?(fiberOk(b,ids)?1:0):T.l2?clamp((R.l2[b.id]||0)/b.bw,0,1):bizSfOf(R,b.city);}
+function bizSf(b,ids){const T=BIZ_T[b.type];return T.fiber?(fiberOk(b,ids)?1:0):T.l2?clamp((R.l2[b.id]||0)/b.bw,0,1):bizSfOf(R,b.city)*((R.tgtF&&R.tgtF[b.id])??1);}
 // Protected business traffic has its own served share; without the rule it shares the city's.
 function bizSfOf(r,c){const d=r.bizDem&&r.bizDem[c];return teRules()&&teRules().protect&&d>1e-6?clamp(r.bizSrv[c]/d,0,1):sfOf(r,c);}
 function bCities(o){return o.sites?o.sites.slice():[o.city,o.city2].filter(Boolean);}

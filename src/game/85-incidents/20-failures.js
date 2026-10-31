@@ -9,10 +9,6 @@ function fireFailure(only){
   if(S.transit.some(t=>!(t.down>S.day)))opts.push(['transit',3]);
   if(Object.keys(S.ixp).length)opts.push(['ixloop',2]);
   if(S.transit.length&&S.day>60)opts.push(['leak',2]);
-  // Flood Season brings its own; Change Freeze (calm) has none. Gaming customers put DDoS on its own, busier schedule
-  // (ddosTick) instead of this one, so it is never counted twice. Spicy failures already come 1.8x as often; a slightly
-  // heavier weight makes that twice On-call's DDoS, as BGP at 3 a.m. promises.
-  if(S.day>40&&!scnRule('ddos')&&!ddosOff()&&!gamingCount())opts.push(['ddos',rule('chaos')==='spicy'?2.25:2]);
   if(fabsUsed.length)opts.push(['fabric',1.5]);
   const lit=S.links.filter(l=>l.kind==='df'&&dfCap(l)>0&&!linkDown(l));if(lit.length)opts.push(['amp',1.5+lit.length*0.3],['optic',1.5+lit.length*0.3]);
   // Two vendors' idea of the same protocol: the higher the backbone runs, the more often they disagree.
@@ -120,62 +116,6 @@ function fireFailure(only){
   sfx('alert');
 }
 const gamingCount=()=>S.biz.reduce((n,b)=>n+(BIZ_T[b.type]?.gaming?1:0),0);
-const ddosVectors=()=>Object.keys(DDOS_VEC).filter(k=>!DDOS_VEC[k].gaming||gamingCount()>0);
-// Expected starts per week in normal play; the rolling 14-start limit is a separate ceiling.
-// Spread gaming exposure over dozens of customers, including the first, rather than switching baselines.
-const ddosRate=()=>0.5+6.5*(1-Math.exp(-gamingCount()/50*(1+Math.max(1,S.lvl||1)/LEVELS.length)));
-const ddosPressure=()=>1-Math.exp(-(.01+Math.max(0,(S.lvl||1)-1)/12+gamingCount()/10+(scnRule('ddos')?.2+S.day/365:0)));
-// Normalize the vector mix so smaller gaming-only floods do not lower the advertised overall mean (Flood Season sizes its own).
-function ddosSizeMean(){const stage=Math.max(1,S.lvl||1)/LEVELS.length,games=gamingCount();
-  const base=Math.max(10,(R.demand||0)*4/3*stage);
-  // Relative to no gaming: 3x at one customer, 8x at 50, approaching the existing 12x balance.
-  const mean=base*(games?1.2-0.9*Math.pow(4/9,(games-1)/49):0.1),vectors=ddosVectors(),weight=vectors.reduce((n,k)=>n+(DDOS_VEC[k].gaming?1/3:1),0)/vectors.length;
-  return mean/weight;}
-// Normal rolls: 98% uniform 0.2–2, 2% uniform 8–12. Their mean is 1.278, so spikes do not inflate the balance.
-const ddosSizeMax=()=>ddosSizeMean()*12/1.278;
-/* Flood Season (as in 1.36): a third are terabit monsters, the rest ordinary floods sized to the city; all of it grows
-   through the year, and on after it. One draw picks both, so fixed draws give fixed sizes. */
-function ddosSize(vec,c){const fl=scnRule('ddos'),r=Math.random();
-  if(fl){const games=gamingCount(),grow=(1+S.day/365)*(1+0.2*games/(games+10))*(DDOS_VEC[vec].gaming?1/3:1);
-    const raw=r<1/3?800+2600*r*3:2+(r-1/3)*1.5*Math.max(18,((R.cityDem||{})[c]||0)*0.9);return Math.max(2,Math.floor(raw*grow));}
-  const roll=(r<.98?.2+1.8*r/.98:8+4*(r-.98)/.02)/12,raw=ddosSizeMax()*(DDOS_VEC[vec].gaming?1/3:1)*roll;
-  return Math.max(0.001,Math.floor(raw*1000)/1000);}
-// Calm (Change Freeze) and no chaos at all mean no attacks, gamers or not.
-const ddosOff=()=>{const c=rule('chaos');return c==='calm'||c==='none';};
-// More frequent attacks are opt-in: the spicy chaos setting, or hosting gamers (who attract them in real life).
-// Outside Flood Season, only gamers move attacks onto ddosTick's daily schedule; spicy alone doubles the usual one.
-const ddosSpicy=()=>!ddosOff()&&(rule('chaos')==='spicy'||gamingCount()>0);
-function ddosTick(){if(ddosOff()&&!scnRule('ddos'))return;if(scnRule('ddos')){let next=+S.scn.nextDdos||3,n=0;
-    // Unless spicy, floods take turns as they always did: the next one waits until the last is over.
-    if(!ddosSpicy()&&ddosAll().length)return;
-    while(S.day>=next&&n++<2){ddosAttack(false);next+=floodGap();}S.scn.nextDdos=next<S.day?S.day+floodGap():next;}
-  else if(!ddosOff()&&gamingCount())for(let i=0;i<2;i++)if(Math.random()<ddosRate()/14)ddosAttack(false);}
-// Size, duration and starts are randomized independently; overlapping floods never replace each other.
-function ddosAttack(recompute=true){const type='ddos',fl=scnRule('ddos');ddosExpire();
-    S.ddosStarts=(S.ddosStarts||[]).filter(d=>d>S.day-7&&d<=S.day);if(S.ddosStarts.length>=14||!Object.keys(S.pops).length)return;S.ddosStarts.push(S.day);
-    // Flood Season goes for the POPs that serve someone, so empty ones cannot soak up floods for a free win.
-    const all=Object.keys(S.pops),served=fl?all.filter(x=>(R.cityDem||{})[x]>1e-6):[];
-    const c=pick(served.length?served:all),vec=pick(ddosVectors()),V=DDOS_VEC[vec];
-    const gbps=ddosSize(vec,c);
-    const dur=1+Math.floor(Math.random()*(1+6*ddosPressure())),entry=ddosEntry(c);
-    const a={id:uid(),city:c,vec,gbps,until:S.day+dur,entry,bh:false,start:S.day};
-    if(!S.ev.ddos)S.ev.ddos=a;else(S.ev.ddosMore||(S.ev.ddosMore=[])).push(a);
-    const soaked=(V.fs&&fsAt(c))||hasScrub();
-    const how=entry&&entry.lab?tr('failures.in_via_e',{e:entry.lab}):'';
-    const msg=tr('failures.a_size_vec_attack_is_hitting',{size:fmtG(gbps),vec:V.n,city:CITY[c].name,how})+' '+(soaked?tr('failures.your_mitigation_is_eating_most_of'):tr('failures.junk_traffic_is_eating_your_capacity'));
-    if(fl)a.who=pick(FLOOD_WHO);
-    addInc({type,ref:c,atk:a.id,until:S.day+dur,msg:fl?msg+' '+tr('failures.attacker_who',{who:tr(a.who)}):msg,cost:0});
-    if(soaked){S.stats.survived++;S.stats.ddosHeld=(S.stats.ddosHeld||0)+1;if(gbps>=1000)S.stats.ddosMonster=(S.stats.ddosMonster||0)+1;}
-    if(recompute){compute();a.worst=ddosSf(a);}
-    toast(`<b>${incTitle('ddos')}: ${esc(CITY[c].name)}</b><br>${esc(msg)}${fl?`<br><i>${esc(tr('failures.attacker_who',{who:tr(a.who)}))}</i>`:''}`,soaked?'goal':'bad',[{l:tr('common.open_noc'),act:'leftTab',args:{t:'noc'}}],{a:'city',v:c});
-    sfx('alert');}
-// When an attack is over: was it held? Held means the city under attack got at least 97% of its traffic every day.
-function ddosDone(a){if(!a||a.done)return;a.done=1;if(a.worst===undefined&&S.pops[a.city])a.worst=ddosSf(a);const ok=(a.worst===undefined?1:a.worst)>=0.97;
-  // In Flood Season a terabit flood counts only when scrubbing or Flowspec took it: spare exits held some by luck (playtest).
-  if(ok){S.stats.ddosOk=(S.stats.ddosOk||0)+1;if(a.gbps>=1000&&(!scnRule('ddos')||hasScrub()||(DDOS_VEC[a.vec]&&DDOS_VEC[a.vec].fs&&fsAt(a.city))))S.stats.ddosOkBig=(S.stats.ddosOkBig||0)+1;}else S.stats.ddosLost=(S.stats.ddosLost||0)+1;
-  if(scnRule('ddos')){const w=tr(FLOOD_WHO.includes(a.who)?a.who:FLOOD_WHO[0]),who=esc(w.charAt(0).toUpperCase()+w.slice(1));toast(ok?tr('failures.flood_held_g_who_gave_up',{g:fmtG(a.gbps),who}):tr('failures.that_one_got_through_g_city',{g:fmtG(a.gbps),city:esc(CITY[a.city]?CITY[a.city].name:tr('common.your_network')),p:pct(a.worst||0),who:esc(w)}),ok?'goal':'bad');}}
-// Flood Season: 3 to 7 days apart as before, shrinking with age, level and gamers only when attacks are spicy.
-const floodGap=()=>!ddosSpicy()?3+Math.floor(Math.random()*5):Math.max(0.05,(3+Math.random()*5)/(Math.sqrt(1+S.day/180)*(1+gamingCount()/10+Math.max(0,(S.lvl||1)-1)/12)));
 const FLOOD_WHO=[N_('failures.a_botnet_of_40_000_smart'),N_('failures.every_unpatched_baby_monitor_in'),N_('failures.a_gaming_clan_that_lost_one'),N_('failures.a_fridge_that_achieved_sentience_and'),N_('failures.a_crypto_bro_shorting_your_stock'),N_('failures.a_teenager_with_a_stolen_credit'),N_('failures.a_rival_isp_s_stress_test'),N_('failures.ten_thousand_smart_light_bulbs'),N_('failures.a_printer_just_one_printer_nobody'),N_('failures.a_botnet_run_from_a_cloud'),N_('failures.somebody_who_did_not_like_your'),N_('failures.the_internet_connected_kettles_of_a')];
 function incTitle(t){return {ring:tr('failures.metro_ring_cut'),site:tr('common.site_outage'),cut:tr('common.fiber_cut'),crash:tr('common.router_crash'),power:tr('common.power_outage'),transit:tr('common.upstream_outage'),ixloop:tr('common.ix_meltdown'),leak:tr('common.route_leak'),ddos:tr('common.ddos_attack'),fabric:tr('common.fabric_outage'),depeer:tr('common.peering_spat'),fatwave:tr('failures.fat_fingered_wave'),label:tr('failures.patch_panel_mishap'),interop:tr('core.interop_failure'),mtu:tr('common.mtu_mismatch'),krroute:tr('failures.rerouted_via_hong_kong'),ctrlplane:tr('failures.control_plane_meltdown'),lacp:tr('common.lacp_trouble'),loss:tr('common.packet_loss'),pmtud:tr('failures.pmtud_black_hole'),oops:tr('common.oops'),cleaner:tr('common.vacuum_incident'),prepend:tr('common.prepend_ageddon'),rpki:tr('common.rpki_invalid'),amp:tr('common.amplifier_failure'),roadmff:tr('failures.fat_fingered_roadm'),optic:tr('common.dead_optic'),maint:tr('common.maintenance_window_3a92'),ac:tr('common.cooling_failure'),hijack:tr('common.bgp_hijack'),shutdown:tr('common.government_shutdown'),redsea:tr('failures.geopolitical_cable_cut')}[t]||tr('common.incident');}
 const LINKCUT_TR=['cut','redsea'],LINKCUT_ID=['fatwave','label','interop'],POPDOWN=['crash','power','oops','cleaner','maint','shutdown'],IXDOWN=['ixloop'],TDOWN=['transit','prepend'],LINKEQ=['mtu','amp','roadmff','optic'];

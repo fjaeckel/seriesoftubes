@@ -32,6 +32,8 @@ function drawCity(C,sx,sy,sc,now,lyOverride,dem){
   ctx.save();ctx.translate(sx,sy);
   if(UI.feed&&UI.feed.has(C.id)){ctx.strokeStyle='#FF8A3D';ctx.lineWidth=4;ctx.setLineDash([3,5]);ctx.beginPath();ctx.arc(0,-6*k,36*k,0,7);ctx.stroke();ctx.setLineDash([]);}
   if(sel){ctx.strokeStyle='#FF4F9A';ctx.lineWidth=3;ctx.setLineDash([6,6]);ctx.lineDashOffset=-now/40;ctx.beginPath();ctx.arc(0,-6*k,30*k,0,7);ctx.stroke();ctx.setLineDash([]);}
+  // A flood is filling ports here: they pulse until it is over (#242).
+  if(p&&R.ddosHot&&R.ddosHot[C.id]){ctx.strokeStyle='#FF4D5E';ctx.lineWidth=3;ctx.setLineDash([4,4]);ctx.lineDashOffset=now/30;ctx.beginPath();ctx.arc(0,-6*k,33*k,0,7);ctx.stroke();ctx.setLineDash([]);}
   if(p&&!down&&R.cityDem[C.id]>0&&sfOf(R,C.id)<0.9){const a=.35+.25*Math.sin(now/200);ctx.fillStyle=`rgba(255,77,94,${a})`;ctx.beginPath();ctx.arc(0,-6*k,26*k,0,7);ctx.fill();}
   ctx.scale(k*cs,k*cs);
   ctx.fillStyle='rgba(30,38,64,.2)';ctx.beginPath();ctx.ellipse(0,9,p?20:SKY_W[t]/2+5,5,0,0,7);ctx.fill();
