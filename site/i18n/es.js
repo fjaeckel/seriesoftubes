@@ -2787,6 +2787,7 @@
 "notifications.n_min_ago":{"one":"hace {n} min","other":"hace {n} min"},
 "notifications.nothing_in_the_last_10_minutes":"Nada en los últimos 10 minutos.",
 "notifications.show_all_n":"Mostrar las {n}",
+"ops.already_connected":"Solo los que ya tengo",
 "ops.annie":"Annie",
 "ops.annie_d":"Responde desde el escritorio más cercano. Le encantan los puertos baratos y los IX llenos.",
 "ops.anycast_annie":"Annie Anycast",

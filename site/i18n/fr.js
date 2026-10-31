@@ -2787,6 +2787,7 @@
 "notifications.n_min_ago":{"one":"il y a {n} min","other":"il y a {n} min"},
 "notifications.nothing_in_the_last_10_minutes":"Rien ces 10 dernières minutes.",
 "notifications.show_all_n":"Tout afficher ({n})",
+"ops.already_connected":"Déjà branchés",
 "ops.annie":"Annie",
 "ops.annie_d":"Répond depuis le bureau le plus proche. Adore les ports pas chers et les IX bien remplis.",
 "ops.anycast_annie":"Annie Anycast",

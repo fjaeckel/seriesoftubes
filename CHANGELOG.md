@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- The intern's transit order has a new provider choice, Already connected: it only grows the transit you already buy at each POP, the smallest port first, and never signs a new provider, so several upstreams grow together and no customer's "no Cogentle" gets a surprise (#227).
 - Cities on the map now show how big they are: zoomed out, bigger cities are bigger dots and megacities glow; zoomed in, a city's skyline grows from a hut to a megacity's towers. When cities crowd together, the smaller ones step back to a dot until you zoom in, so the map stays readable, and exchanges you haven't joined are quieter tags.
 - DDoS attacks are realistic now: most are small, the big ones are rare, and their size no longer grows with your network, so a big network is no longer hit by floods larger than the internet's record. Attacks go after one customer (gamers and hosting attract the most) or one city's subscribers, last one to three days, and On-call sees about one a month (#242).
 - A flood now arrives on every port the internet reaches you on, so more POPs and more exits spread it thinner, and a port it fills slows every customer on it. Flowspec and scrubbing behind a full port can no longer empty it (#242).

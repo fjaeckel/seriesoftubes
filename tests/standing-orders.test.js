@@ -595,3 +595,27 @@ test('#228 the intern names the exchanges it peered at, even one that shares its
   assert.match(ev("opsLine({i:'kevin',r:[['routers',1,['lon +1']]],up:0,mo:0})"), /London \+1/);
   assert.deepEqual(errors, []);
 });
+
+test('#227 transit "Already connected" grows the providers you have, the smallest first, and never signs a new one', t => {
+  const { ev, errors } = game(t, "ACT.buyTransit({city:'fra',net:'ntt',tier:1});compute()");
+  hire(ev); on(ev, 'transit', { x: 1.5, prov: 'have' });
+  const capOf = net => ev(`(()=>{const t=S.transit.find(x=>x.city==='fra'&&x.net==='${net}');return lagCap(PORT[t.tier].g,t.n)})()`);
+  const c0 = capOf('cog'), n0 = capOf('ntt');
+  assert.equal(c0, n0, 'two equal ports to start');
+  ev('for(const t of S.transit)t.hist=[100]'); shift(ev);
+  assert.equal(ev("JSON.stringify(S.transit.filter(t=>t.city==='fra').map(t=>t.net).sort())"), '["cog","ntt"]', 'no new provider');
+  assert.ok(capOf('cog') > c0 && capOf('ntt') > n0, 'both grew, not just one');
+  assert.equal(capOf('cog'), capOf('ntt'), 'evenly, smallest first');
+  // a POP whose only upstream is not the cheapest never gets the cheapest added (Cheapest would buy Cogentle there)
+  ev("ACT.buildPop({city:'ams'});S.pops.ams.rgen=1;ACT.launchBB({city:'ams'});ACT.buyTransit({city:'ams',net:'ntt',tier:1});compute()");
+  assert.equal(ev("cheapestTransit('ams').id"), 'cog');
+  ev("for(const t of S.transit)t.hist=[400]"); ev('S.day++'); shift(ev);
+  assert.equal(ev("JSON.stringify(S.transit.filter(t=>t.city==='ams').map(t=>t.net))"), '["ntt"]');
+  // the setting cycles through it, reads "Already connected" and survives a save
+  ev("S.ops.p.transit.prov='cheap';ACT.opsParam({k:'transit',p:'prov'})");
+  assert.equal(ev("opsP('transit','prov')"), 'have');
+  assert.equal(ev("opsVal('transit','prov')"), 'Already connected');
+  ev('S=migrate(JSON.parse(JSON.stringify(S)))');
+  assert.equal(ev("opsP('transit','prov')"), 'have');
+  assert.deepEqual(errors, []);
+});

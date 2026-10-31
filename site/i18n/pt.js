@@ -2787,6 +2787,7 @@
 "notifications.n_min_ago":{"one":"há {n} min","other":"há {n} min"},
 "notifications.nothing_in_the_last_10_minutes":"Nada nos últimos 10 minutos.",
 "notifications.show_all_n":"Mostrar todas as {n}",
+"ops.already_connected":"Só os já conectados",
 "ops.annie":"Annie",
 "ops.annie_d":"Responde da mesa mais próxima. Adora uma porta barata e um IX cheio.",
 "ops.anycast_annie":"Annie Anycast",
