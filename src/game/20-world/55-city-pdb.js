@@ -49,6 +49,7 @@ const CITY_PDB={
  cbo:[1,0,33],
  cbr:[5,60,3196], // est.
  ccs:[6,32,296],
+ ceb:[4,25,750], // est.
  cgb:[4,5,9693],
  cgr:[4,4,9693],
  chc:[4,30,755], // est.
@@ -75,6 +76,7 @@ const CITY_PDB={
  dur:[4,137,879],
  dus:[13,350,3705], // 14 listed, one closed; Digital Realty DUS1-3 alone has 141 networks
  dut:[0,0,33300], // est.
+ dvo:[2,10,750], // est.
  dxb:[8,135,231],
  dyr:[0,0,6683], // est.
  ebj:[1,5,529], // est.

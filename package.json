@@ -1,6 +1,6 @@
 {
   "name": "seriesoftubes",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "A cartoon browser game about building the internet.",
   "private": true,
   "license": "MIT",
@@ -11,6 +11,7 @@
   },
   "scripts": {
     "test": "node scripts/test.js",
+    "test:timings": "node scripts/test-timings.js",
     "build": "node scripts/build.js",
     "i18n:check": "node scripts/i18n-check.js",
     "i18n:fix": "node scripts/i18n-check.js --fix",

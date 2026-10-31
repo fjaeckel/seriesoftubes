@@ -5,7 +5,7 @@ const txComp=c=>{const q=CITY_PDB[c];return q?clamp((1000/Math.max(q[1],10))**0.
 // No neutral data center means building your own room: POPs cost more to build and to run.
 const colo=c=>{const q=CITY_PDB[c];return !q?1:q[0]===0?1.5:q[0]<=2?1.25:1;};
 const popMo=c=>Math.round(POP_MO*colo(c));
-function regionMult(c){const C=CITY[c];if(!C||C.cn)return 1;if(C.kr)return KR_TRANSIT;if(C.au)return AU_TRANSIT;if(C.tape)return 1.5;const base=C.reg==='AS'?2.5:C.reg==='AF'?2:C.reg==='OC'?1.8:C.reg==='SA'?1.6:1;return Math.round(base*txComp(c)*10)/10;}
+function regionMult(c){const C=CITY[c];if(!C||C.cn)return 1;if(C.kr)return KR_TRANSIT;if(C.au)return AU_TRANSIT;if(C.ph)return PH_TRANSIT;if(C.tape)return 1.5;const base=C.reg==='AS'?2.5:C.reg==='AF'?2:C.reg==='OC'?1.8:C.reg==='SA'?1.6:1;return Math.round(base*txComp(c)*10)/10;}
 // A network's own markup on top of that, where it is far from home (Glowball Sakura Lager in Asia and New Zealand).
 // What a home pays, against the usual bill.
 const arpuOf=c=>CITY[c].arpu||(CITY[c].kr&&scnRule('sender')?KR_ARPU:1);
@@ -34,7 +34,7 @@ function linkLat(l){const f=l.kind==='df'?(l.own?(l.sub?seaLatencyFactor(l):1.1)
 const WAVE_LAND={EU:0.65,AM:1,SA:1.6,AS:1.4,OC:1.2,AF:2.2},WAVE_SUB={EU:0.8,AM:1,SA:2,AS:1.5,OC:1.5,AF:4.5};
 const WAVE_NAME={EU:tr('common.europe'),AM:tr('common.north_america'),SA:tr('common.south_america'),AS:tr('common.asia'),OC:tr('common.oceania'),AF:tr('common.africa')};
 function waveMarket(a,b,sub){const ra=CITY[a].reg,rb=CITY[b].reg,T=sub?WAVE_SUB:WAVE_LAND,au=sub?AU_WAVE.sub:AU_WAVE.land;
-  const fa=CITY[a].au?au:(T[ra]||1),fb=CITY[b].au?au:(T[rb]||1),reg=sub&&nullPair(a,b)?AU_WAVE.ew:sub?Math.max(fa,fb):(fa+fb)/2;
+  const fa=CITY[a].au?au:(T[ra]||1),fb=CITY[b].au?au:(T[rb]||1),reg=sub&&nullPair(a,b)?AU_WAVE.ew:sub&&CITY[a].ph&&CITY[b].ph?PH_WAVE:sub?Math.max(fa,fb):(fa+fb)/2;
   const key=a<b?a+b:b+a,mood=0.85+(hstr(key+'|mood')%31)/100;
   const ero=Math.max(0.55,Math.pow(0.92,Math.floor((S?S.day:0)/360)));
   return {m:reg*mood*ero,reg,mood,ero};}

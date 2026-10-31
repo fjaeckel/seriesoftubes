@@ -29,3 +29,5 @@
 .minibar{height:6px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:2px;width:100%}
 .minibar i{display:block;height:100%;background:var(--ok)}
 
+/* Find a city: a square chip with just the magnifier. */
+#hud .chip.find{justify-content:center;align-items:center;padding:0;width:44px;min-width:44px;font-size:19px;cursor:pointer}

@@ -8,8 +8,34 @@ on:
 permissions:
   contents: read
 
+# A newer push to the same pull request makes the older run pointless: cancel it instead of queueing behind it.
+# Runs on main always finish.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  test:
+  # The tests in four parts of about equal time, each on its own runner, each running as many files at once as
+  # it has cores (scripts/test.js; the split comes from tests/durations.json).
+  part:
+    name: test ${{ matrix.part }}/4
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test -- --shard ${{ matrix.part }}/4
+
+  build:
+    name: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -18,9 +44,19 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm test
       - name: Build (not deployed — only releases deploy)
         run: npm run build
+
+  # The one check to look at, named as before: green only when every part and the build are.
+  test:
+    needs: [part, build]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every part and the build passed
+        run: |
+          echo "parts: ${{ needs.part.result }}, build: ${{ needs.build.result }}"
+          test "${{ needs.part.result }}" = success && test "${{ needs.build.result }}" = success
 
   translations:
     runs-on: ubuntu-latest
