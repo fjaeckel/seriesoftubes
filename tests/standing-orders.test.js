@@ -635,3 +635,12 @@ test('#244 the PNI order counts the traffic the PNI list shows at that POP, not 
   assert.equal(ev("S.pni.some(p=>p.city==='ham'&&p.net==='nfx')"), true, 'ordered once the traffic is really there');
   assert.deepEqual(errors, []);
 });
+
+test('#249 a city without a POP opens while the transit order is set to Already connected', t => {
+  const { ev, dom, errors } = game(t, '');
+  hire(ev); on(ev, 'transit', { x: 1.5, prov: 'have' });
+  ev("selectCity('lon')");
+  assert.match(dom.window.document.getElementById('panelBody').textContent, /London/);
+  assert.equal(ev("opsProv('lon')&&opsProv('lon').id"), ev("cheapestTransit('lon')&&cheapestTransit('lon').id"), 'the quote uses the cheapest seller');
+  assert.deepEqual(errors, []);
+});

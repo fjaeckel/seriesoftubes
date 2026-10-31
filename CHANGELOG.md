@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Clicking a city without a POP works again while the intern's transit order is set to Already connected (#249). Before, the city panel failed to open and the map stuck to the mouse.
 - The intern's Accept free caches order, and the Request caches button, now add more cache boxes as demand to a network outgrows the ones you have (#248). Before, they stopped at one box per site.
 - Manila gets real exchanges: GotchaFIX Manila, the free community Bayanihan-IX and In-Vitro-IX, run by PLDTea Time. Diverge, Smarty Pants, Ditto and RISE & Shine join as Philippine networks, and PLDTea Time and Globe-Trotter Telecom now sell transit.
 - Cebu joins the map on its own island, with GotchaFIX Cebu and two domestic cables from Manila: the Pan de Sal Cable Network and the Philippines Long Distance Relationship. PLDTea Time, Globe-Trotter Telecom, Diverge and RISE & Shine reach Cebu, and typhoons can hit it too.
