@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- The intern's Accept free caches order, and the Request caches button, now add more cache boxes as demand to a network outgrows the ones you have (#248). Before, they stopped at one box per site.
 - Manila gets real exchanges: GotchaFIX Manila, the free community Bayanihan-IX and In-Vitro-IX, run by PLDTea Time. Diverge, Smarty Pants, Ditto and RISE & Shine join as Philippine networks, and PLDTea Time and Globe-Trotter Telecom now sell transit.
 - Cebu joins the map on its own island, with GotchaFIX Cebu and two domestic cables from Manila: the Pan de Sal Cable Network and the Philippines Long Distance Relationship. PLDTea Time, Globe-Trotter Telecom, Diverge and RISE & Shine reach Cebu, and typhoons can hit it too.
 - Davao joins the map on Mindanao, with GotchaFIX Davao. Bi-Frosted and SEA-US Later now land in Davao, as the real cables do, instead of Manila; a link you already run on their old Manila landings keeps working as a plain subsea link. Three domestic cables reach Davao from Cebu: the Pan de Sal Cable Network, the Philippines Long Distance Relationship and the new Diverge VisMin Express. RISE & Shine peers at GotchaFIX Davao. The Pan de Sal Cable Network also runs straight from Manila to Davao.

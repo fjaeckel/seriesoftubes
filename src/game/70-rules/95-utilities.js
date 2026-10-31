@@ -10,9 +10,13 @@ function utilityCacheMoves(city){if(!S||!S.pops[city])return [];const groups=new
   const from=diff>0?'a':'b',to=from==='a'?'b':'a';let left=Math.floor(Math.abs(diff)/2);
   for(const g of groups.values())if(left&&g[from].length>g[to].length){move(g,from,1);left--;}
   return moves;}
-function utilityCaches(city){const p=S&&S.pops[city];if(!p)return null;const sites=p.site2?['a','b']:['a'],add=[],have=new Set();
-  for(const c of S.caches)if(c.city===city)have.add(c.net+'@'+(c.site==='b'?'b':'a'));
-  for(const n of NETS)if(n.cache&&(R.demTo[n.id]||0)>=n.cache.min)for(const site of sites)if(!have.has(n.id+'@'+site))add.push({net:n.id,site});
+// One box per site first; then more boxes while this city's demand to the network outgrows them (100G each, #248).
+function utilityCaches(city){const p=S&&S.pops[city];if(!p)return null;const sites=p.site2?['a','b']:['a'],add=[],have={};
+  for(const c of S.caches)if(c.city===city){const k=c.net+'@'+(c.site==='b'?'b':'a');have[k]=(have[k]||0)+1;}
+  for(const n of NETS)if(n.cache&&(R.demTo[n.id]||0)>=n.cache.min){const box=sites.map(st=>have[n.id+'@'+st]||0);
+    sites.forEach((site,i)=>{if(!box[i]){add.push({net:n.id,site});box[i]=1;}});
+    const need=Math.ceil(((R.cityDem&&R.cityDem[city])||0)*(NSH[n.id]||0)/CACHE_CAP-1e-9);
+    for(let t=box.reduce((a,b)=>a+b,0);t<need;t++){const i=box.indexOf(Math.min(...box));add.push({net:n.id,site:sites[i]});box[i]++;}}
   return {add,key:add.map(c=>c.net+'@'+c.site).join(','),mo:add.length*CACHE_MO,free:Math.max(0,portsMax(city)-portsUsed(city))};}
 function utilityKit(city){const p=S&&S.pops[city];if(!p)return null;
   const gen=!p.gen,site=!p.site2,router=(p.routers||1)<2,g=p.rgen||0;
