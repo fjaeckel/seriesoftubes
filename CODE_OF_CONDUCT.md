@@ -29,7 +29,7 @@ project, online or at a conference bar after NANOG.
 - **Own your mistakes.** We all fat-finger a config now and then. Apologise, fix it,
   move on.
 - **Keep the jokes kind.** This game runs on puns. The target of a joke is a network,
-  a cable or a backhoe, never a person or a group of people.
+  a cable or a router, never a person or a group of people.
 
 ## What we don't accept
 
