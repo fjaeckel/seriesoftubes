@@ -297,13 +297,14 @@ test('clean-pipe on the entry transit, a sacrificial PNI, and an IX blackhole ea
   // Clean-pipe on the transit the attack enters: the provider scrubs it upstream.
   const clean = ev(`S.transit[0].clean=true;compute();const s=R.served;S.transit[0].clean=false;s`);
   assert.ok(clean > raw, 'clean-pipe on the entry transit recovers traffic');
-  // A sacrificial CN PNI contains a flood entering over it (capped at the small port).
-  ev("S.pni.push({id:'pn1',city:'fra',net:'ctc',tier:1,n:1,site:'a',sacrif:true});S.ev.ddos.entry={k:'p',id:'pn1'}");
+  // A sacrificial CN PNI contains a flood entering over it (capped at the small port). The carrier's own traffic
+  // takes its share of the one transit port first, so the flood has to be small enough to leave the rest some room.
+  ev("S.pni.push({id:'pn1',city:'fra',net:'ctc',tier:0,n:1,site:'a',sacrif:true});S.ev.ddos.entry={k:'p',id:'pn1'}");
   const contained = ev("compute();R.served");
   const uncontained = ev("S.pni[0].sacrif=false;compute();const s=R.served;S.pni[0].sacrif=true;s");
   assert.ok(contained > uncontained, 'a sacrificial PNI contains the flood');
   // IX blackhole: ~half the junk gone, victim stays up. Shrink the flood so the drop shows in served.
-  ev("ACT.buyIx({city:'fra',tier:1,signed:true});S.ev.ddos.entry={k:'t',id:S.transit[0].id};S.ev.ddos.gbps=180");
+  ev("ACT.buyIx({city:'fra',tier:1,signed:true});S.ev.ddos.entry={k:'t',id:S.transit[0].id};S.ev.ddos.gbps=120");
   const before = ev("compute();R.served");
   ev("ACT.ixbh()");
   assert.equal(ev('S.ev.ddos.ixbh'), true, 'blackhole announced');

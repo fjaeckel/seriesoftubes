@@ -31,7 +31,7 @@ test('at its own POP a carrier\'s port takes the traffic bound for that carrier,
   assert.ok(via(ev, lvl, 'lvl') > 1, 'Level Tree traffic goes out of the Level Tree port');
   assert.equal(via(ev, tly, 'lvl'), 0, 'and none of it out of Tell-Ya');
   assert.ok(via(ev, tly, 'tly') > 1 && via(ev, lvl, 'tly') === 0, 'the same for Tell-Ya');
-  assert.ok(via(ev, lvl, 'cog') > 1 && via(ev, tly, 'cog') > 1, 'traffic for a carrier you have no port of still shares both ports');
+  assert.ok(via(ev, lvl, 'ntt') > 1 && via(ev, tly, 'ntt') > 1, 'traffic for a carrier you have no port of still shares both ports');
   assert.deepEqual(errors, []);
 });
 
@@ -70,7 +70,7 @@ test('Prefer, Backup only and RouteScript keep the say they had', () => {
   assert.deepEqual(g.errors, []);
   // RouteScript's avoid transit is policy, and beats the shorter path.
   g = newYork(1, 150);
-  g.ev("S.te={on:true,script:'avoid transit level tree'};compute()");
+  g.ev("S.te={on:true,script:'avoid transit level tree'};S.core={lv:2,run:2,legacy:true};compute()");
   assert.ok(g.ev("!!teRules()"), 'the script is active');
   assert.equal(via(g.ev, g.lvl, 'lvl'), 0, 'avoid transit level tree keeps even its own traffic off it');
   assert.ok(via(g.ev, g.tly, 'lvl') > 1);
@@ -116,7 +116,7 @@ test('traceroute shows the exit that routing uses, and says why', () => {
 test('the carry setting is saved, repaired and optional', () => {
   const { ev, errors } = twoPops();
   ev(`ACT.setCarry({id:'${port(ev, 'lvl')}',on:1});save(true)`);
-  const saved = ev("localStorage.getItem('sot-save-v1')");
+  const saved = ev('slotRaw(UI.slot)');
   const again = load({ storage: { 'sot-save-v1': saved } });
   assert.equal(again.ev("S.transit.find(t=>t.net==='lvl').carry"), true, 'survives a reload');
   assert.equal(again.ev("S.transit.find(t=>t.net==='tly').carry"), undefined, 'and is off for the others');
