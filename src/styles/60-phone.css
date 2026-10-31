@@ -119,3 +119,5 @@ button,.chip,.b,a{touch-action:manipulation;-webkit-tap-highlight-color:transpar
 }
 @media (prefers-reduced-motion:reduce){:root:not(.anim-force) *{animation:none !important;transition:none !important}}
 :root.no-anim *{animation:none !important;transition:none !important}
+/* The narrowest phones: a slimmer find chip so the date still fits. */
+@media (max-width:340px){#hud .chip.find{width:34px;min-width:34px;font-size:15px}#hud .menubtn .caret{display:none}}

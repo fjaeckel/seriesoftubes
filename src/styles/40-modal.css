@@ -196,3 +196,9 @@ h2 .rn{font-size:18px;vertical-align:middle;padding:2px 4px}
 .menu-links .lnk{background:none;border:0;padding:4px 2px;font-weight:700;font-size:14px;font-family:inherit;color:var(--ink2);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .menu-plugs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
 .mplug{border:2px solid var(--line);border-radius:12px;padding:8px 10px;font-weight:700;font-size:13px;line-height:1.25;color:var(--ink);text-decoration:none;background:var(--soft);display:flex;align-items:center}
+/* Find a city: big tap targets, the first result (what Enter picks) highlighted. */
+.findlist{margin-top:8px}
+.findrow{width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);font:inherit;color:var(--ink);min-height:48px;padding:6px 8px;cursor:pointer;border-radius:0}
+.findrow .nm,.findrow .meta{display:block}
+.findrow.on{background:var(--soft);border-radius:10px}
+.findrow:hover{background:var(--soft)}

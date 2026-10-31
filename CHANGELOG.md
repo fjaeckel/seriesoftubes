@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 - The intern's PNI order now counts the traffic the PNI list shows at each POP, so it no longer orders a PNI where a network's own cache boxes already serve most of its traffic (#244).
+- Find any city with the new 🔍 button in the top bar, or press / on a keyboard (#218). Type a city, a country (in your language or in English) or an exchange, and the map jumps there.
 - Cities on the map now show how big they are: zoomed out, bigger cities are bigger dots and megacities glow; zoomed in, a city's skyline grows from a hut to a megacity's towers. When cities crowd together, the smaller ones step back to a dot until you zoom in, so the map stays readable, and exchanges you haven't joined are quieter tags.
 - DDoS attacks are realistic now: most are small, the big ones are rare, and their size no longer grows with your network, so a big network is no longer hit by floods larger than the internet's record. Attacks go after one customer (gamers and hosting attract the most) or one city's subscribers, last one to three days, and On-call sees about one a month (#242).
 - A flood now arrives on every port the internet reaches you on, so more POPs and more exits spread it thinner, and a port it fills slows every customer on it. Flowspec and scrubbing behind a full port can no longer empty it (#242).

@@ -36,3 +36,8 @@
   .chip{padding:2px 7px}
 }
 
+/* Narrow tablets: a slim find chip and slimmer speed buttons keep the HUD on one row. */
+@media (min-width:761px) and (max-width:860px){
+  #hud .chip.find{width:32px;min-width:32px;font-size:15px}
+  .speed button{min-width:23px;padding-left:2px;padding-right:2px}
+}
