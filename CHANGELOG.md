@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 - Cities on the map now show how big they are: zoomed out, bigger cities are bigger dots and megacities glow; zoomed in, a city's skyline grows from a hut to a megacity's towers. When cities crowd together, the smaller ones step back to a dot until you zoom in, so the map stays readable, and exchanges you haven't joined are quieter tags.
+- Your IP address lessor can now take its space back, now and then: one of your waves or fibers goes dark for 7 to 60 days, mostly at the shorter end, while the /31 on its point-to-point link is renumbered. Lair-us is the lessor, it only strikes once you have a few links to lose and never while an earlier outage is still being fixed, and the link panel says why the link is dark and when it returns. A parallel link on another path rides it out, and no rush repair can speed it up.
 ## [2.1.0] — 2026-10-31
 
 - Your backbone now runs a technology you choose: plain IGP, LDP/MPLS, RSVP-TE, SR-MPLS or SRv6. Each step up costs plenty and uses less router CPU: label switching makes traffic that only passes through a POP cheaper for its router, and Auto-TE and RouteScript now need RSVP-TE or higher. Routers only run what they support, so a POP with an older router stays outside the backbone, and mixing vendors at the very top of what their routers can do brings interop failures. Networks that already have Auto-TE keep it exactly as it is.

@@ -143,7 +143,7 @@ test('saves keep a revocation, old saves load as before, and a dangling one is h
   const g = network();
   strike(g.ev, [0.5, 0.5, 0]);
   g.ev('save()');
-  const saved = g.ev("localStorage.getItem('sot-save-v1')");
+  const saved = g.ev('slotRaw(UI.slot)');
   const b = load({ storage: { 'sot-save-v1': saved } });
   assert.equal(b.ev("S.inc.filter(i=>i.type==='ipspace').length"), 1, 'the revocation survives a reload');
   assert.equal(b.ev("S.links.filter(l=>linkDown(l)).length"), 1);
