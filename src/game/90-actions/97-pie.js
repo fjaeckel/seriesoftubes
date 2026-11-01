@@ -28,6 +28,7 @@ Object.assign(ACT,{
  pieSafe:()=>{const P=pieGet();if(!P||!P.co)return;P.safe=!P.safe;sfx('click');pieRe();},
  pieName:()=>{const P=pieGet();if(!P||!P.co)return;const i=PIE_NAMES.indexOf(P.co.name);P.co.name=PIE_NAMES[(i+1)%PIE_NAMES.length];pieFounder(N_('pie.fp_rename'));pieRe();},
  pieRename:()=>{const P=pieGet(),el=$('pieNm');if(!P||!P.co||!el)return;const v=el.value.replace(/\s+/g,' ').trim().slice(0,40);if(!v)return;P.co.name=v;pieFounder(N_('pie.fp_rename'));pieRe();},
- pieTab:({t})=>{if(!['co','fly','dish','book'].includes(t))return;UI.pieTab=t;pieModal();},
+ pieTab:({t})=>{if(!PIE_TABS.includes(t))return;UI.pieTab=t;pieModal();},
+ pieHi:({id})=>{if(typeof id!=='string')return;sfx('click');pieHiSet(id);},
  pieCity:({v})=>{if(!S||!S.pops[v])return;UI.pieCity=v;pieModal();},
 });

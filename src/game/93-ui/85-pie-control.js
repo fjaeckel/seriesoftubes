@@ -4,18 +4,20 @@ function pieLicCountry(cc){try{PIE_CCN=PIE_CCN&&PIE_CCN.l===LANG?PIE_CCN:{l:LANG
 function pieCard(){if(!pieOn())return '';const P=S.pie;
   return `<div class="ops-card pie-card"><div class="nm">🥧 ${tr('pie.pie_in_the_sky')}</div><div class="meta">${P&&P.co?esc(pieCoName())+' · '+tr('pie.card_live',{n:Object.keys(CRUSTS).reduce((a,id)=>a+pieLive(id),0),q:P.q.length}):tr('pie.card_pitch')}</div>
     ${pieSpatCard()}<div class="btns">${btn(tr('pie.open_pie_control'),'pieOpen',{},P&&P.co?'sm':'pink sm')}</div></div>`;}
+const PIE_TABS=['traffic','co','fly','dish','book'];
 const pieTag=(t,on)=>`<span class="tag ${on?'open':'selective'}">${t}</span>`;
-function pieModal(){if(!S||!pieOn())return;const P=S.pie||pieBlank(S.day),can=pieCanBuild(),T=['co','fly','dish','book'].includes(UI.pieTab)?UI.pieTab:'co';
+function pieModal(){if(!S||!pieOn())return;const P=S.pie||pieBlank(S.day),can=pieCanBuild(),T=PIE_TABS.includes(UI.pieTab)?UI.pieTab:'traffic';
   let h=`<div style="display:flex;align-items:center"><div class="grow"><div class="eyebrow">${tr('pie.pie_in_the_sky')}</div><h2 style="font-size:24px">${P.co?esc(pieCoName()):tr('pie.pie_control')}</h2></div><button class="x" data-act="closeModal" aria-label="${tr('common.close')}">×</button></div>`;
   if(!can)h+=`<p class="why">${tr('pie.why_not_t1')}</p>`;
   if(pieSand())h+=`<p class="note">${tr('pie.sandbox_note',{amt:fmt$(P.book.wouldHave)})}</p>`;
   if(!P.co){h+=`<p class="lead">${tr('pie.found_pitch')}</p><div class="btns">${btn(tr('pie.found_price',{price:fmt$(piePrice(PIE_CO)),mo:fmt$(PIE_CO_MO)}),'pieFound',{},'pink',!can)}</div>`;openModal(h,'pie');return;}
   const tab=(k,l)=>`<button class="b sm ${T===k?'pink':'ghost'}" data-act="pieTab" data-args='{"t":"${k}"}' aria-pressed="${T===k}">${l}</button>`;
   h+=pieGlobeHtml()+pieSpatCard();
-  h+=`<div class="seg" style="margin:6px 0 10px">${tab('co',tr('pie.tab_company'))}${tab('fly',tr('pie.tab_launch'))}${tab('dish',tr('pie.tab_dishes'))}${tab('book',tr('pie.tab_founder'))}</div>`;
+  h+=`<div class="seg" style="margin:6px 0 10px">${tab('traffic',tr('pie_traffic.tab'))}${tab('co',tr('pie.tab_company'))}${tab('fly',tr('pie.tab_launch'))}${tab('dish',tr('pie.tab_dishes'))}${tab('book',tr('pie.tab_founder'))}</div>`;
   const cities=Object.keys(S.pops).sort((a,b)=>CITY[a].name.localeCompare(CITY[b].name)),c=S.pops[UI.pieCity]?UI.pieCity:cities[0];
   const sel=`<div class="trsel"><label>${tr('common.your_pop')}<select data-chg="pieCity">${cities.map(x=>`<option value="${x}"${x===c?' selected':''}>${esc(CITY[x].name)}</option>`).join('')}</select></label></div>`;
-  if(T==='co'){
+  if(T==='traffic')h+=pieTrafficHtml();
+  else if(T==='co'){
     h+=`<div class="kv"><span>${tr('pie.running_costs')}</span><b>${tr('common.price_mo',{price:fmt$(pieMo())})}</b></div>`;
     h+=`<div class="ops-o${P.fac?' on':''}"><div class="nm">🏭 ${tr('pie.factory')}</div><div class="meta">${P.fac?tr('pie.factory_stock',{n:Math.floor(P.stock),m:PIE_FAC_MONTH}):tr('pie.factory_pitch',{m:PIE_FAC_MONTH,mo:fmt$(PIE_FAC_MO)})}</div>${P.fac?'':`<div class="btns">${btn(tr('pie.build_price',{price:fmt$(piePrice(PIE_FAC))}),'pieFactory',{},'pink sm',!can)}</div>`}</div>`;
     h+=`<div class="ops-o"><div class="nm">🧪 ${tr('pie.rd')}</div>${Object.keys(PIE_RD).map(k=>`<div class="kv"><span>${tr(PIE_RD[k].n)}</span>${P.rd[k]?`<b>✓</b>`:btn(fmt$(piePrice(PIE_RD[k].cost)),'pieRd',{k},'ghost sm',!can)}</div>`).join('')}

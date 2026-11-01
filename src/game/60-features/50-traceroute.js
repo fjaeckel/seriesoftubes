@@ -49,12 +49,26 @@ function traceroute(src,to,mode){mode=TR_MODES.includes(mode)?mode:'normal';cons
   const order=e.via?tr('traceroute.a_peer_s_customers_come_after'):{c:tr('traceroute.caches_beat_pnis'),p:tr('traceroute.pnis_beat_ix_peering'),ix:tr('traceroute.ix_peering_beats_transit'),t:tr('traceroute.transit_is_the_last_resort')}[e.k];
   const cn=cnCity(src)!==!!N.cn?' '+tr('traceroute.crossing_the_great_firewall_here',{p:S.ev.gfw>S.day?35:20}):'';
   return {text:lines.join('\n'),why:`${tr('traceroute.exit_exit_in_city',{exit:e.lab,city:CITY[e.city].name})} ${tr('traceroute.rule_and_closer_exits_win_ties',{rule:order[0].toUpperCase()+order.slice(1)})}${e.pref!=='normal'?tr('traceroute.this_one_is_set_to_mode',{mode:e.pref==='high'?tr('common.prefer'):tr('common.backup_only')}):''}.${direct}${e.used>=e.cap*0.999?' '+tr('traceroute.it_is_full_so_some_traffic'):''}${cn}`,asPath};}
+// A circuit riding orbit (R.pie.flows, kind 'c'): its hops as compute() routed them, fiber legs, up, across space and down.
+const trSkyList=()=>R&&R.pie&&R.pie.flows?R.pie.flows.filter(f=>f.k==='c'&&f.hops&&f.hops.some(h=>h.k==='las')):[];
+function trSky(id){const f=trSkyList().find(x=>x.id===id),b=f&&S.biz.find(x=>x.id===id);if(!f||!b)return null;const me=slug(S.name)+'.net',lines=[],ip=(a,c)=>`100.64.${a%250}.${c%250}`;let rtt=0.3,n=1;
+  const hop=(host,addr,ms,note)=>{rtt+=ms;lines.push(`${String(n++).padStart(2)}  ${host} (${addr})  ${rtt.toFixed(1)} ms${note?'   ← '+note:''}`);};
+  lines.push(`traceroute to ${f.b}.${me} (${CITY[f.b].name}) for ${b.name}, 30 hops max`);
+  hop(`lo0.cr1.${f.a}.${me}`,ip(hstr(f.a),1),0,tr('traceroute.city_your_router',{city:CITY[f.a].name}));
+  // Round trip, as for the fiber hops: twice the one-way latency.
+  for(const h of f.hops){const ms=h.ms*2+0.05,cr=h.cr&&CRUSTS[h.cr]?CRUSTS[h.cr]:null;
+    if(h.k==='f')hop(`ae1.cr1.${h.city}.${me}`,ip(hstr(h.city),2),ms,CITY[h.city].name);
+    else if(h.k==='up')hop(`dish.${h.city}.${me}`,ip(hstr(h.city),5),ms,tr('traceroute.sky_up',{city:CITY[h.city].name,crust:cr?tr(cr.n):''}));
+    else if(h.k==='las')hop(`laser.${h.cr||'sky'}.${me}`,`10.255.${hstr(h.cr||'x')%250}.${(h.km|0)%250}`,ms,tr('traceroute.sky_laser',{km:Math.round(h.km).toLocaleString()}));
+    else hop(`dish.${h.city}.${me}`,ip(hstr(h.city),6),ms,tr('traceroute.sky_down',{city:CITY[h.city].name}));}
+  const fm=pieFiberMs(f);
+  return {text:lines.join('\n'),why:isFinite(fm)?tr('traceroute.sky_why',{o:pieMs(f.ms||0),f:pieMs(fm)}):tr('traceroute.sky_why_nofiber',{o:pieMs(f.ms||0)}),asPath:null};}
 function traceModal(src,to,mode){const pops=Object.keys(S.pops).sort((a,b)=>CITY[a].name.localeCompare(CITY[b].name));src=src&&S.pops[src]?src:UI.trFrom&&S.pops[UI.trFrom]?UI.trFrom:S.home&&S.pops[S.home]?S.home:pops[0];
   const nets=NETS.slice().sort((a,b)=>b.share-a.share),t=to||UI.trTo||'net:ggl';UI.trFrom=src;UI.trTo=t;mode=TR_MODES.includes(mode)?mode:UI.trMode||'normal';UI.trMode=mode;
-  const r=t.startsWith('net:')?traceroute(src,{net:t.slice(4)},mode):traceroute(src,{city:t.slice(5)},mode);
+  const sky=trSkyList(),r=(t.startsWith('sky:')&&trSky(t.slice(4)))||(t.startsWith('net:')||t.startsWith('sky:')?traceroute(src,{net:t.startsWith('net:')?t.slice(4):'ggl'},mode):traceroute(src,{city:t.slice(5)},mode));
   openModal(`<div style="display:flex;align-items:center"><div><div class="eyebrow">${tr('common.looking_glass')}</div><h2 style="font-size:26px">${tr('common.traceroute')}</h2></div><button class="x" data-act="closeModal" aria-label="${tr('common.close')}">×</button></div>
   <div class="trsel"><label>${tr('common.from')} <select id="trFrom">${pops.map(c=>`<option value="${c}"${c===src?' selected':''}>${esc(CITY[c].name)}</option>`).join('')}</select></label>
-  <label>${tr('common.to')} <select id="trTo"><optgroup label="${tr('common.networks')}">${nets.map(n=>`<option value="net:${n.id}"${t==='net:'+n.id?' selected':''}>${esc(n.name)} (AS${n.asn})</option>`).join('')}</optgroup><optgroup label="${tr('common.your_pops')}">${pops.filter(c=>c!==src).map(c=>`<option value="city:${c}"${t==='city:'+c?' selected':''}>${esc(CITY[c].name)}</option>`).join('')}</optgroup></select></label>${btn(tr('common.run'),'traceRun',{},'pink sm')}</div>
+  <label>${tr('common.to')} <select id="trTo"><optgroup label="${tr('common.networks')}">${nets.map(n=>`<option value="net:${n.id}"${t==='net:'+n.id?' selected':''}>${esc(n.name)} (AS${n.asn})</option>`).join('')}</optgroup><optgroup label="${tr('common.your_pops')}">${pops.filter(c=>c!==src).map(c=>`<option value="city:${c}"${t==='city:'+c?' selected':''}>${esc(CITY[c].name)}</option>`).join('')}</optgroup>${sky.length?`<optgroup label="${tr('traceroute.circuits_through_orbit')}">${sky.map(f=>{const b=S.biz.find(x=>x.id===f.id);return `<option value="sky:${esc(f.id)}"${t==='sky:'+f.id?' selected':''}>🛰️ ${esc(b?b.name:f.id)}</option>`;}).join('')}</optgroup>`:''}</select></label>${btn(tr('common.run'),'traceRun',{},'pink sm')}</div>
   <div class="btns"><span class="meta" style="align-self:center">${tr('common.route_4a2e')}</span>${TR_MODES.map(m=>btn(RT[m],'traceMode',{m},mode===m?'pink sm':'ghost sm')).join('')}</div>
   ${mode!=='normal'?`<p class="note">${tr('traceroute.your_traffic_follows_the_metrics_this',{mode:RT[mode]})}</p>`:''}<pre class="term">${esc(r.text)}</pre>${r.asPath?`<p class="meta">${tr('traceroute.as_path_path',{path:r.asPath.map(a=>'AS'+a).join(' → ')})}</p>`:''}<p class="note">${esc(r.why)}</p>
   <div class="btns">${btn(tr('common.copy'),'traceCopy',{},'ghost sm')}</div>`);UI.trText=r.text;}

@@ -2,7 +2,6 @@
 const LBLW={},LINKW=new Map(),LBLF=new Map(),FKEY=new Map(),QKEY=new Map(),CM={off:new Set(),big:new Set(),inc:new Set(),far:false,dish:null};
 // Pie dishes (Pie in the Sky): city -> up?, or null without any, so most maps pay one null check per city.
 function pieDishMap(){const d=S.pie&&S.pie.dishes;if(!Array.isArray(d)||!d.length)return null;const m=new Map();for(const x of d)if(x&&x.city)m.set(x.city,m.get(x.city)||!(x.down>S.day));return m;}
-// Painted once per look and drawn as a sprite, so it shows on the graphics-card map as well.
 // Painted once per look (the load in 5% steps) and drawn as a sprite, so it shows on the graphics-card map as well.
 function dishBadge(x,y,up,u,k=1){const q=u>0.005?Math.min(20,Math.round(u*20)):0;stamp('dish|'+(up?1:0)+'|'+q,20,20,10,10,k,x,y,()=>dishPaint(0,0,up,q/20));}
 function dishPaint(x,y,up,u){if(u>0.005){ctx.lineWidth=1.8;ctx.strokeStyle='rgba(30,38,64,.3)';ctx.beginPath();ctx.arc(x,y,8,0,7);ctx.stroke();ctx.strokeStyle=u>=0.9?'#FF4D5E':u>=0.6?'#FFAA1F':'#22C47A';ctx.beginPath();ctx.arc(x,y,8,-Math.PI/2,-Math.PI/2+Math.min(1,u)*2*Math.PI);ctx.stroke();}
