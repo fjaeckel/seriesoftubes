@@ -1106,3 +1106,14 @@ test('prices follow real connectivity: thin markets cost more, hubs stay put', (
   assert.ok(ev("CITY_PDB.sao[2]>=2000&&CITY_PDB.nyc[2]>=2000&&CITY_PDB.kgl[2]<2000"), 'Brazil and the US are dense in ASNs, Rwanda is not');
   assert.deepEqual(errors, []);
 });
+
+test('#213 Clarovision sells peering only as a paid PNI, free only for the biggest', () => {
+  const { ev, errors } = load();
+  start(ev);
+  assert.equal(ev('NET.clr.pol'), 'paid');
+  assert.equal(ev("peerOk('clr','ix','sao').ok"), false, 'no free IX session');
+  assert.equal(ev("peerOk('clr','pni','sao').fee"), ev('NET.clr.paidFee'), 'a PNI, for a fee');
+  ev('S.lvl=NET.clr.freeLv');
+  assert.equal(ev("peerOk('clr','pni','sao').free"), true);
+  assert.deepEqual(errors, []);
+});
