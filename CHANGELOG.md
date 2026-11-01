@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- A 1.6T transponder on routers with 800G ports now takes two ports at each end, one for each 800G it hands over, and the optics list says so (#256). Before, a full 1.6T fit into a single 800G port. On 1.6T routers it still takes one.
+- The calendar is real now: months have 28 to 31 days and every fourth year has a 29 February (#257). Monthly prices, loan statements, the intern's budget and paydays follow calendar months, and conferences fall on the 10th of their month.
 - On big networks, clicks that change nothing about your traffic now answer at once: dismissing an offer or renaming your network no longer works out every route again, which also saves battery on phones.
 - Working out where traffic goes takes about a fifth less work on big networks, with exactly the same result.
 - The game no longer freezes while it routes each day's traffic on big networks. A background thread of the game does the routing, so the map, panels and buttons keep responding while days go by; what the day brings is exactly what it was before. Clicks that change your network still route right away.
@@ -15,6 +17,7 @@ All notable changes to this project are documented here. The project follows
 - Transit uses one upstream per destination, with updated Tier 1s and customer cones. New games use the full 16-network Tier 1 roster. Cogentle and Drizzle Electric's IPv6 partition affects connectivity and shows as partial reach. Each city offers the Tier 1s present and up to four Tier 2 sellers. Selective peers check traffic. Restrictive peers also need two active shared PoPs, with country-specific requirements where published. IX membership grants no automatic agreement with selective or bilateral-only peers, and selected APAC carriers have different policies at their overseas gateways. Existing transit and PNI contracts remain usable and upgradeable.
 - More accurate coastlines, lakes, subtle country borders and closer zoom make the enlarged map easier to use.
 - Severe conflicts and closed borders restrict new circuits. Existing circuits stay in saves.
+- A plug-in optic that is too short for your subsea cable no longer sends you to submarine terminals and optical engineering, which cannot stretch it (#253). The hint now names the optics that do reach, such as the Sienna WaveMagic 1.6T for Perth to Cape Town. Optics the upgrades can stretch still get the advice.
 
 ## [2.4.0] — 2026-11-01
 

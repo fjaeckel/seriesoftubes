@@ -193,7 +193,7 @@ test('the monthly budget cap and the cash floor stop the intern; a new month res
   shift(ev);
   assert.equal(cash(ev), c1, 'the same month: nothing more');
   // The next step (four 100G members to 400G, $16k) never fits a $10k month; the budget still starts again.
-  ev('S.day+=30;S.ops.cap.transit=50000');
+  ev('S.day+=monLen(S.day);S.ops.cap.transit=50000');
   shift(ev);
   assert.ok(cash(ev) < c1, 'a new month, a new budget');
   assert.equal(ev('S.ops.spent.transit'), c1 - cash(ev), 'counted from zero');
@@ -545,7 +545,7 @@ test('caches: the cash floor and a running-cost budget hold; the panel and the l
   assert.match(txt, /each box costs \$400\/mo/);
   assert.match(txt, /Adds at most: \+\$1\.0k\/mo/);
   assert.match(txt, /This month: \$0 up front, \+\$800\/mo on the bill/);
-  ev('S.day+=30;S.ops.cap.caches=0'); shift(ev);
+  ev('S.day+=monLen(S.day);S.ops.cap.caches=0'); shift(ev);
   assert.equal(ev('S.ops.addMo.caches'), (ev('S.caches.length') - 2) * 400, 'a new month counts from zero');
   assert.deepEqual(errors, []);
 });

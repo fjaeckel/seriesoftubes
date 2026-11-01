@@ -124,5 +124,7 @@ function migrate(s){sanitize(s);
     s.seen=all;}
   // Australian pricing and peering changed in place (#148): a save that was already there gets told once.
   if(s.auV!==1){if((s.day||0)>0&&Object.keys(s.pops).some(c=>CITY[c].au))s.auNews=true;s.auV=1;}
+  // Months were 30 days before #257: the intern's budget month counts calendar months now, so it does not reset early.
+  if(s.calV!==1){if(s.ops&&s.ops.mon===Math.floor((s.day||0)/30))s.ops.mon=monthIdx(s.day||0);s.calV=1;}
   if(s.grace&&(typeof s.grace!=='object'||!isFinite(s.grace.until)||!Array.isArray(s.grace.nets)))s.grace=null;if(s.grace)s.grace.nets=s.grace.nets.filter(isNet);
   return s;}
