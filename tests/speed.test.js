@@ -276,7 +276,9 @@ function plainCompute(ev) {
     .replace('if(!G.length){\n        // One scan', 'if(false){\n        // One scan')
     .replace('const ns=e.nets||NET_IDS;', 'const ns=NET_IDS;')
     .replace('if(P.dead)return 0;', '').replaceAll('if(r<=1e-6){P.dead=1;return 0;}', '')
-    .replace('if(!P.dead)room-=push(', 'room-=push(').replace(/const gone=e=>\{[^\n]*\};/, 'const gone=e=>false;');
+    .replace('if(!P.dead)room-=push(', 'room-=push(').replace(/const gone=e=>\{[^\n]*\};/, 'const gone=e=>false;')
+    // ...and without what routing keeps between calls (29-route-cache.js): the plain path builds everything afresh.
+    .replace('RCON=RC.on', 'RCON=false');
   // ...and the group split and sorting written the plain way, with array copies, as before they were made allocation-free
   const sg = plain.indexOf('const ROOM=[],sendGroup='), sd = plain.indexOf('const sortD=');
   assert.ok(sg > 0 && sd > sg, 'found the group sender and the sort');
@@ -287,6 +289,7 @@ function plainCompute(ev) {
   assert.equal((plain.match(/if\(false\)/g) || []).length, 2, 'both shortcuts were found and switched off');
   assert.ok(!plain.includes('e.nets||NET_IDS'), 'the exit index was switched off');
   assert.ok(!plain.includes('P.dead'), 'the full-path mark was switched off');
+  assert.ok(plain.includes('RCON=false') && !plain.includes('RC.on'), 'the kept routing tables were switched off');
   assert.ok(plain.includes('const sortD=a=>a.sort(byDist);') && plain.includes('g.forEach('), 'the plain group split and sort are in');
   ev('window.__plain=' + plain.replace(/^function compute/, 'function'));
 }
