@@ -222,25 +222,23 @@ function compute(){
   const directPass=(rank,pass)=>{const DS=DSEL.get(rank),LOC=rank===DIRECT_RANK[1][1]||rank===DIRECT_RANK[2][1];
     for(let fi=0,FN=AF.length;fi<FN;fi++){f=AF[fi];
       if(f.rem<=1e-6||DS[f.nj]===0||PREFC[f.ci]===1||(pass&&!pass(f)))continue;
-      Dv=SDi[f.ci];Pv=SPi[f.ci];PP=walked[f.ci]||(walked[f.ci]=[]);vis++;
       let lst=(f.br||(f.br=byRank[f.n]))[rank];if(!lst)continue;if(lst.cs){lst=lst.cs[COMP[f.ci]];if(!lst)continue;}
+      Dv=SDi[f.ci];Pv=SPi[f.ci];PP=walked[f.ci]||(walked[f.ci]=[]);vis++;
       REST.length=0;
       if(LOC){const here=lst.at.get(f.ci);if(!here)continue;for(let h=0;h<here.length;h++)if(usable(here[h]))REST.push(here[h]);}
       else for(let li=0;li<lst.length;li++)if(usable(lst[li]))REST.push(lst[li]);
       sortD(REST);
       for(let i=0;i<REST.length&&f.rem>1e-6;){let j=i+1;while(j<REST.length&&REST[j].hp===REST[i].hp&&Math.abs(Dv[REST[j].ci]-Dv[REST[i].ci])<1e-6)j++;sendGroup(REST,i,j);i=j;}}};
-  // AF: the flows with traffic left. A flow never gets traffic back, so one that is done is dropped after each rank
-  // instead of being skipped again by every later one (same flows, same order).
-  let AF=flows;
+  // The tables of a flow's city (distances, paths) are set up only once it has an exit list at this rank.
+  const AF=flows;
   for(const pass of PASSES||[null])for(const rank of RANKS){
     if(!RSET.has(rank))continue;
-    if(AF.length>64){let k=0;const A=AF===flows?AF.slice():AF;for(let i=0;i<A.length;i++)if(A[i].rem>1e-6)A[k++]=A[i];A.length=k;AF=A;}
     if(DSEL.has(rank)){directPass(rank,pass);continue;}
     // Index loops in here: plain for…of allocates an iterator per loop until V8 has optimised compute().
     for(let fi=0,FN=AF.length;fi<FN;fi++){f=AF[fi];
       if(f.rem<=1e-6||(rank===0&&!f.cache)||(pass&&!pass(f)))continue;
-      Dv=SDi[f.ci];Pv=SPi[f.ci];PP=walked[f.ci]||(walked[f.ci]=[]);vis++;
       let lst=(f.br||(f.br=byRank[f.n]))[rank];if(!lst)continue;if(lst.cs){lst=lst.cs[COMP[f.ci]];if(!lst)continue;}
+      Dv=SDi[f.ci];Pv=SPi[f.ci];PP=walked[f.ci]||(walked[f.ci]=[]);vis++;
       /* Groups are tried nearest first, preferred exits before the rest, in the order a stable sort of the usable
          exits gives. Exits only fill up once tried, so the usable ones stay the same until then. Nearly every flow
          fits in its first group: find that one with a scan (nothing is visited yet), and sort only what is left
