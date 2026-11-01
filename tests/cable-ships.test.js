@@ -65,6 +65,7 @@ test('a waiting cut gets the first club ship home', () => {
   ev(start + `S.links=[${wave('med', 'bcn', 'mrs', 'medusa', 365)}];S.inc=[];`
     + "S.fleet.mend={inc:null,link:'x',t:0.5,e:'a',dep:190,arr:195,done:200,back:202,fx:0,fy:0};S.fleet.tea={...S.fleet.mend,back:260};" + cut('c1', 'med', 0.5));
   assert.equal(ev("S.inc[0].seaq"), 1);
+  assert.equal(ev("S.inc[0].cost"), 0, 'no charter on offer: waiting two days for the club ship is quicker than a ship from Cornwall');
   ev('dayTick();dayTick()');
   assert.equal(ev("S.inc[0].ship"), 'mend');
   assert.equal(ev("S.inc[0].until"), ev("S.fleet.mend.done"));

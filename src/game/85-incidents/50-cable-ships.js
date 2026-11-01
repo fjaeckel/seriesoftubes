@@ -38,8 +38,10 @@ function shipUntil(i,u){i.until=u;for(const l of S.links)if((l.trench||l.id)===i
 function shipSend(i,l,P,D){const g=linkGeom(l),pt=polyAt(g.pts,g.cum,i.st);
   S.fleet[P.s.id]={inc:i.id,link:l.id,t:i.st,e:shipEnd(P.s,l,D),dep:P.dep,arr:P.arr,done:P.done,back:P.back,fx:pt[0],fy:pt[1]};
   i.ship=P.s.id;delete i.seaq;shipUntil(i,P.done);}
-// The quickest free ship from anywhere, if it would finish sooner than the plan: what a private charter offers.
-function shipQuote(i,l,D){D=D||shipFrom(i,l);let best=null;const cur=i.ship!=null&&S.fleet[i.ship]?S.fleet[i.ship].done:Infinity;
+// A cut waiting for its club: when the first of the club's ships home again would have it mended.
+function shipWait(i,l,D){const z=shipZone(D);let best=Infinity;for(const s of SHIPS)if(s.club===z){const f=S.fleet[s.id];best=Math.min(best,shipPlan(s,i,l,D).done+(f?Math.max(0,f.back-S.day):0));}return best;}
+// The quickest free ship from anywhere, if it would finish sooner than the plan (or than waiting): what a private charter offers.
+function shipQuote(i,l,D){D=D||shipFrom(i,l);let best=null;const cur=i.ship!=null&&S.fleet[i.ship]?S.fleet[i.ship].done:i.seaq?shipWait(i,l,D):Infinity;
   for(const s of SHIPS)if(shipFree(s)){const P=shipPlan(s,i,l,D);if(!best||P.done<best.done)best=P;}
   if(best&&best.done<cur-1){i.cost=Math.round(SHIP_FIX+best.km*SHIP_FIX_KM);i.fix=tr('cable_ships.charter_ship',{ship:best.s.n});}else{i.cost=0;delete i.fix;}return best;}
 // Send the zone's club ship that gets there first; with none free, the cut waits for one.
