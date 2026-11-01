@@ -6,20 +6,22 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+## [2.4.0] — 2026-11-01
+
+- Cable ships now sail out to fix your subsea cables, and you can watch them on the map. A cut at sea calls the nearest free ship of its region's repair club, from ports such as Cornwall, Curaçao, Cape Town, Marseille, Vancouver, Tokyo, Manila and Singapore. The cut lasts while the ship sails out (about 500 km a day), splices for 3 to 5 days in shallow water or a week or two in the deep, and in some countries waits weeks for a repair permit. A ship is busy until it is home again.
+- Doitsche Telekomm and Tangerine Telecom are now Tier 1s, as in real life (#194). In new games, going transit-free means a PNI with both of them too; games you already started keep the Tier 1s they were playing for. Doitsche now sells transit at the highest price in Europe and still charges for peering, and like the other Tier 1s, Tangerine now starts its PNIs at 100G.
+- Cache boxes now share router ports through an aggregation switch: one port carries as many 100G boxes as its speed holds, so 32 fit on a 3.2T port (#252). Each site gets its own.
+- Pick a standard POP: in any POP's Infra tab, make its routers the standard, and every new POP gets that model and number of routers right away, while it is still empty (#240).
+- Big networks run faster: routing skips traffic it has already placed, the map skips links off screen without working out their shape, and the Networks tab and the zoomed-in map draw faster. Where traffic goes does not change.
 - A network the game once failed to load is no longer stuck as damaged: the next version of the game tries it again, and its menu has a Try again button. Before, it could only be exported or deleted, even after the cause was fixed.
 - Save files of very large networks import again: the limit went from 8 MB to 64 MB.
-- Big networks run faster: routing skips traffic it has already placed, the map skips links off screen without working out their shape, and the Networks tab and the zoomed-in map draw faster. Where traffic goes does not change.
 - 400G cache boxes: a POP whose routers have 400G or faster ports now gets 400G boxes, at $1,000 a month instead of $400 for 100G, so big caches need fewer boxes and cost less per Gbps. Boxes you already have stay as they are.
-- Pick a standard POP: in any POP's Infra tab, make its routers the standard, and every new POP gets that model and number of routers right away, while it is still empty (#240).
 - Clarovision now peers only over paid PNIs, like the real carrier, and free only with networks at customer level 11 or above (#213). A PNI you already have with it starts paying the fee.
-- Cache boxes now share router ports through an aggregation switch: one port carries as many 100G boxes as its speed holds, so 32 fit on a 3.2T port (#252). Each site gets its own.
 - Opening a link from a list now moves the map to it, zoomed so the whole line fits beside the open panel.
 - Traffic for a carrier now leaves through that carrier's own transit port at the same POP, instead of being shared with every other transit port there. Networks that buy transit from the carrier get the same treatment, and a new switch on each transit port, Carry here, pulls that traffic across your network from POPs that have no port of that carrier. Prefer, Backup only and RouteScript still win, and Prefer only does so at the POP where you set it.
-- Cable ships now sail out to fix your subsea cables, and you can watch them on the map. A cut at sea calls the nearest free ship of its region's repair club, from ports such as Cornwall, Curaçao, Cape Town, Marseille, Vancouver, Tokyo, Manila and Singapore. The cut lasts while the ship sails out (about 500 km a day), splices for 3 to 5 days in shallow water or a week or two in the deep, and in some countries waits weeks for a repair permit. A ship is busy until it is home again.
 - When every ship of a region's club is out, a subsea cut waits for the first one back. A private charter of the quickest free ship anywhere jumps the queue for $1M plus $200 per km it sails; the NOC intern's rush-repair order can pay it within its budget.
 - Building your own subsea cable now shows the survey, permits and cable factory first, then a lay ship laying about 150 km a day. Crews can no longer speed up a cable at sea: book a second lay ship before laying starts instead, for $3M plus $150k a day, and it lays from the other end to halve that part.
 - Tap a cable ship on the map to see its name, its club and what it is doing.
-- Doitsche Telekomm and Tangerine Telecom are now Tier 1s, as in real life (#194). In new games, going transit-free means a PNI with both of them too; games you already started keep the Tier 1s they were playing for. Doitsche now sells transit at the highest price in Europe and still charges for peering, and like the other Tier 1s, Tangerine now starts its PNIs at 100G.
 
 ## [2.3.0] — 2026-10-31
 
