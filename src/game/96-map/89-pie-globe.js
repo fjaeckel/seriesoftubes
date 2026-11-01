@@ -26,12 +26,13 @@ function pgRot(src,dst,n){const m=PG.m;for(let i=0;i<n*3;i+=3){const x=src[i],y=
 const pgBuf=n=>(PG.buf&&PG.buf.length>=n*3)?PG.buf:(PG.buf=new Float32Array(Math.max(n*3,4096)));
 // Data from the panel, read once a second, never trusted: bad entries are dropped, not drawn.
 const pgNum=(x,d)=>typeof x==='number'&&isFinite(x)?x:d,pgArr=x=>Array.isArray(x)?x:[];
-function pgPlace(list,cap){const out=[];for(const o of pgArr(list)){if(out.length>=cap)break;if(!o)continue;const C=o.city&&typeof CITY!=='undefined'?CITY[o.city]:null;
+// A place is {lat,lon} or a city id in .city (or .pad, as launches name their pad).
+function pgPlace(list,cap){const out=[];for(const o of pgArr(list)){if(out.length>=cap)break;if(!o)continue;const id=typeof o.city==='string'?o.city:typeof o.pad==='string'?o.pad:null,C=id&&Object.prototype.hasOwnProperty.call(CITY,id)?CITY[id]:null;
   const lat=pgNum(o.lat,C?C.lat:NaN),lon=pgNum(o.lon,C?C.lon:NaN);if(!isFinite(lat)||!isFinite(lon))continue;const v=new Float32Array(3);pgUnit(lon,lat,v,0);out.push({v,up:o.up!==false});}return out;}
 function pgRefresh(now){PG.dAt=now;let d=null;try{d=PG.get?PG.get():null;}catch(e){d=null;}d=d&&typeof d==='object'?d:{};
   const cr=pgArr(d.crusts).filter(c=>c&&pgNum(c.n,0)>0).slice(0,8),ph=isPhone(),cap=ph?80:160;
   const sig=ph+'|'+cr.map(c=>[c.id,c.n,c.alt,c.inc,!!c.las].join(':')).join(',');
-  if(sig!==PG.sig){PG.sig=sig;PG.sm=cr.map((c,j)=>{const n=Math.floor(pgNum(c.n,0)),full=PG_FULL[c.id]||1000,alt=Math.max(200,Math.min(2000,pgNum(c.alt,550)));
+  if(sig!==PG.sig){PG.sig=sig;PG.sm=cr.map((c,j)=>{const n=Math.floor(pgNum(c.n,0)),full=typeof CRUSTS!=='undefined'&&CRUSTS[c.id]&&CRUSTS[c.id].full||PG_FULL[c.id]||1000,alt=Math.max(200,Math.min(2000,pgNum(c.alt,550)));
       // A sample, not every pie: more dots as the crust fills, up to the cap.
       const cnt=Math.min(n,Math.max(Math.min(n,6),Math.round(cap*Math.min(1,n/full)))),inc=Math.max(0,Math.min(180,pgNum(c.inc,53))),polar=inc>=80;
       const P=Math.max(1,Math.round(polar?Math.sqrt(cnt/2):Math.sqrt(cnt*1.2))),K=Math.ceil(cnt/P),span=polar?Math.PI:2*Math.PI;

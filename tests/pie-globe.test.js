@@ -6,7 +6,7 @@ const { load } = require('./harness');
 
 const DATA = `({crusts:[{id:'short',alt:550,inc:53,n:1584,las:true},{id:'frozen',alt:560,inc:97.6,n:260,las:false},{id:'upper',alt:1100,inc:60,n:5000,las:true},{id:'flaky',alt:340,inc:42,n:3,las:false}],
   dishes:[{city:'fra',up:true},{city:'nyc',up:false},{city:'sin',lat:1.3,lon:103.8,up:true},{city:'nowhere'}],
-  pads:[{city:'mia'},{city:'nowhere'}],launches:[{city:'mia',at:1}]})`;
+  pads:[{city:'mia'},{city:'nowhere'}],launches:[{city:'mia',at:1},{id:7,rk:'punch',cr:'short',n:20,day:3,pad:'lis'},{pad:'mia'},{pad:'nowhere'}]})`;
 
 // A page with a canvas in the document, rAF and listeners counted.
 const open = [];
@@ -59,6 +59,7 @@ test('it draws a capped sample of every crust, beams, lasers and launches', () =
   assert.equal(c[3], 3, 'never more dots than pies');
   assert.equal(ev('PG.dish.length'), 3, 'a dish at an unknown city is dropped');
   assert.equal(ev('PG.pads.length'), 1);
+  assert.equal(ev('PG.lch.length'), 3, 'launches by city or by pad id; unknown cities dropped');
   // Satellites stay in their crust: radius 1 + alt/6371 x 2.6.
   const r = ev('const a=PG.sm[0].pos;Math.hypot(a[0],a[1],a[2])');
   assert.ok(Math.abs(r - (1 + 550 / 6371 * 2.6)) < 1e-4);
