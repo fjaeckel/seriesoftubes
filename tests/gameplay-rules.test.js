@@ -541,6 +541,52 @@ test('O1: the rocket company unlocks only on a Tier 1 win of its version, or in 
   assert.deepEqual([...g.errors, ...sb.errors, ...won.errors], []);
 });
 
+// A sandbox with London and New York (a transatlantic wave), Frankfurt, transit, a full dish at each, and a full Shortcrust.
+const orbit = (las = true, n = 'CRUSTS.short.full') => { const g = load();
+  g.ev("ACT.modeSet({m:'sandbox'});ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.nextFail=1e9;S.nextEvent=1e9;for(const c of ['lon','nyc','fra'])if(!S.pops[c])ACT.buildPop({city:c});S.links=[]");
+  g.ev("S.links.push({id:'ln',a:'lon',b:'nyc',kind:'wave',tier:3,km:5818,sub:true,cable:'grace',cut:0,mo:1},{id:'lf',a:'lon',b:'fra',kind:'wave',tier:3,km:640,sub:false,cut:0,mo:1});for(const c of ['lon','nyc','fra'])ACT.buyTransit({city:c,net:'cog',tier:1})");
+  g.ev(`ACT.pieFound();for(const c of ['lon','nyc','fra']){ACT.pieDish({city:c});S.pie.lic[CITY[c].cc]={state:'ok',until:1e6};}for(const x of S.pie.dishes)x.ant=PIE_ANT_MAX;S.pie.crusts.short.cohorts=[{n:${n},day:S.day,las:${las}}];compute()`);
+  g.c = (id, a, b, t = 'hft', bw = 5) => g.ev(`S.biz.push({id:'${id}',type:'${t}',city:'${a}',city2:${b ? `'${b}'` : 'null'},bw:${bw},rate:1,reqs:[],latMax:null,route:'${b ? 'fast' : 'normal'}',name:'${id}',mood:100,since:0,sites:null});compute()`);
+  g.sky = (id) => g.ev(`Object.keys(R.ef).some(k=>k.startsWith('pie:')&&R.ef[k].eg['l2:${id}']>0)`);
+  return g; };
+
+test('O2: a half-baked crust carries nothing; orbit never carries more than the dishes', () => {
+  const g = orbit(true, 'Math.floor(CRUSTS.short.full*0.59)');
+  g.c('h', 'lon', 'nyc'); g.c('p', 'pcn', null, 'pizza', 50);
+  assert.equal(g.sky('h'), false, 'O2: a half-baked crust carried a circuit');
+  assert.equal(g.ev('R.pie.sf.p'), 0, 'O2: a half-baked crust served a terminal');
+  g.ev("S.pie.crusts.short.cohorts=[{n:CRUSTS.short.full,day:S.day,las:true}];for(let i=0;i<20;i++)S.biz.push({id:'b'+i,type:'boat',city:'pcn',city2:null,bw:800,rate:1,reqs:[],route:'normal',name:'b'+i,mood:100,since:0,sites:null});compute()");
+  for (const d of JSON.parse(g.ev('JSON.stringify(pieDishes())'))) assert.ok(g.ev(`R.pie.used.${d.city}`) <= d.g + 1e-6, `O2: the ${d.city} dish carries ${g.ev(`R.pie.used.${d.city}`)} G on ${d.g} G of antennas`);
+  assert.deepEqual(g.errors, []);
+});
+
+test('O3: a dish off the backbone carries no transit', () => {
+  const g = orbit();
+  g.ev("ACT.buildPop({city:'syd'});ACT.pieDish({city:'syd'});S.pie.lic.AU={state:'ok',until:1e6};compute()");
+  assert.ok(g.ev("R.pie.isl.includes('syd')"), 'O3: the island dish is flagged');
+  g.c('h', 'lon', 'syd');
+  assert.equal(g.ev('R.l2.h||0'), 0, 'O3: traffic crossed an island dish');
+  assert.equal(g.ev("Object.keys(R.ef).some(k=>k.includes('syd'))"), false);
+  assert.deepEqual(g.errors, []);
+});
+
+test('O4: vacuum latency, and orbit never beats fiber under 3,000 km or carries bulk', () => {
+  const g = orbit();
+  g.c('h', 'lon', 'nyc');
+  const km = g.ev("pieKm('lon','nyc')");
+  assert.equal(g.sky('h'), true, 'O4: a long latency circuit takes the lasers');
+  assert.ok(Math.abs(g.ev('R.l2lat.h') - g.ev(`pieSkyMs(${km},CRUSTS.short.alt)`)) < 1.5, 'O4: priced at c in vacuum along the great circle');
+  assert.ok(Math.abs(g.ev('PIE_C') / 200 - 1.47) < 0.05, 'O4: vacuum (km/ms) is ~1.47x the glass the links are priced at (200 km/ms)');
+  g.c('n', 'lon', 'fra');
+  assert.equal(g.sky('n'), false, 'O4: orbit carried a route under 3,000 km');
+  g.c('b', 'lon', 'nyc', 'l2vpn', 10);
+  assert.equal(g.sky('b'), false, 'O4: orbit carried a circuit that does not need the latency');
+  assert.equal(g.ev("Object.keys(R.ef).filter(k=>k.startsWith('pie:')).every(k=>Object.keys(R.ef[k].eg).every(e=>e.startsWith('l2:')))"), true, 'O4: IP traffic crossed orbit');
+  g.ev("S.pie.crusts.short.cohorts=[{n:CRUSTS.short.full,day:S.day,las:false}];compute()");
+  assert.equal(g.sky('h'), false, 'O4: no lasers, no space path');
+  assert.deepEqual(g.errors, []);
+});
+
 test('O5: launches fail only with chaos on, never in the first 90 days after the unlock', () => {
   const fly = (setup, after) => {
     const g = load();
@@ -577,6 +623,39 @@ test('O7: a fresh Tier 1 cannot afford a full Shortcrust in its first year', () 
   const full = g.ev("pieFullCost('short')");
   assert.ok(full > 5e9, `O7: a full Shortcrust costs ${Math.round(full / 1e6)}M`);
   assert.ok(year < full, `O7: ${Math.round(year / 1e6)}M in a year buys a full Shortcrust (${Math.round(full / 1e6)}M); make orbit dearer`);
+  assert.deepEqual(g.errors, []);
+});
+
+// Years a full crust takes to pay for itself: the build (company, factory, pad, rockets, lasered pies, the dishes it needs
+// and landing rights) over a year's orbit income less running costs, licences and replacing the pies as they age out.
+const PAYBACK = `((cr,rev,dishes,lic)=>{const C=CRUSTS[cr],ndish=dishes??Math.ceil(C.g*PIE_SELL/(PIE_ANT_MAX*PIE_ANT_G));
+  const build=pieFullCost(cr)+C.full*PIE_LAS+ndish*piePrice(PIE_DISH+PIE_ANT*PIE_ANT_MAX)+lic;
+  const renew=(C.full*(PIE_PIE+PIE_LAS)+Math.ceil(C.full/ROCKETS.heavy.pies)*ROCKETS.heavy.cost)/(C.life/360);
+  return build/(12*rev-12*(PIE_CO_MO+PIE_FAC_MO+PIE_PAD_MO+ndish*PIE_DISH_MO)-lic-renew);})`;
+
+test('O7: a full constellation never pays back in under 5 years, and a strong network’s pays back in 5 to 10', () => {
+  const g = load();
+  // (A negative answer: it never pays back.) The best case for every crust: every Gbps the sky can sell is sold, the capped kinds at their cap, the rest at the
+  // dearest rate, all served. A dish needs a city of its own (one per POP), so the dishes it takes pay the cheapest
+  // landing rights any set of that many covered cities in the world could have.
+  const best = JSON.parse(g.ev(`JSON.stringify(Object.keys(CRUSTS).map(cr=>{const T=Object.values(BIZ_T).filter(t=>t.orbit);let left=1,r=0;
+    for(const t of T.filter(t=>t.share)){r+=t.share*t.rate;left-=t.share;}r+=left*Math.max(...T.filter(t=>!t.share).map(t=>t.rate));
+    const nd=Math.ceil(CRUSTS[cr].g*PIE_SELL/(PIE_ANT_MAX*PIE_ANT_G)),n={};for(const c of CITIES)if(pieCovers(cr,c.id))n[c.cc]=(n[c.cc]||0)+1;
+    let k=0,lic=0;for(const cc of Object.keys(n).sort((a,b)=>pieLicPrice(a)/n[a]-pieLicPrice(b)/n[b])){if(k>=nd)break;k+=n[cc];lic+=pieLicPrice(cc);}
+    return [cr,${PAYBACK}(cr,CRUSTS[cr].g*PIE_SELL*r,nd,lic)];}))`));
+  for (const [cr, y] of best) assert.ok(y < 0 || y >= 5, `O7: a full ${cr} pays back in ${y.toFixed(1)} years at best; make orbit dearer or its customers cheaper`);
+  // The seeded reference: the big-network save, a full lasered Shortcrust, 32 full dishes in the cheapest countries to
+  // license, and every orbit customer the market offers signed (the real offers, routed by compute()).
+  const save = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
+  g.ev(`S=migrate(JSON.parse(${JSON.stringify(save)}));S.pieV=1;S.nextFail=1e9;S.nextEvent=1e9;__reseed(7);compute()`);
+  const ref = JSON.parse(g.ev(`(()=>{pieInit();const P=S.pie;P.co={name:PIE_NAMES[0]};P.fac=true;P.pads=[{city:'mia',next:0,boosters:[]}];
+    const pops=Object.keys(S.pops).filter(c=>pieCovers('short',c)),n={};for(const c of pops)n[CITY[c].cc]=(n[CITY[c].cc]||0)+1;
+    const top=pops.sort((a,b)=>pieLicPrice(CITY[a].cc)/n[CITY[a].cc]-pieLicPrice(CITY[b].cc)/n[CITY[b].cc]||CITY[b].P-CITY[a].P).slice(0,32);
+    for(const c of top){P.dishes.push({id:'d'+c,city:c,ant:PIE_ANT_MAX,down:0});P.lic[CITY[c].cc]={state:'ok',until:1e6};}
+    P.crusts.short.cohorts=[{n:CRUSTS.short.full,day:S.day,las:true}];compute();
+    for(let i=0;i<4000&&pieSold()<pieMarket()-20;i++){S.offers=S.offers.filter(o=>!BIZ_T[o.type].orbit);const t=pieOfferTypes();if(!t.length)break;pieSpawn(pick(t));const o=S.offers.find(o=>BIZ_T[o.type].orbit);if(o)ACT.accept({id:o.id});}
+    compute();const lic=Object.keys(P.lic).reduce((a,cc)=>a+pieLicPrice(cc),0);return JSON.stringify({rev:R.pie.rev,y:${PAYBACK}('short',R.pie.rev,top.length,lic)});})()`));
+  assert.ok(ref.y >= 5 && ref.y <= 10, `O7: the reference Shortcrust pays back in ${ref.y.toFixed(1)} years on ${Math.round(ref.rev / 1e6)}M/mo from orbit; aim for 6 to 10`);
   assert.deepEqual(g.errors, []);
 });
 
