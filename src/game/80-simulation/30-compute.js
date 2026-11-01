@@ -39,6 +39,8 @@ function compute(){RW.gen++;
   // ALONE and the islands (COMP). Kept between calls while the graph is the same (29-route-cache.js).
   const wW=e=>e.w,wLat=e=>e.lat+0.05,RCON=RC.on,GK=RCON?rcGraphKey(pops,remote,EA):null,
     {SPD,SPP,SDi,SPi,ALONE,COMP,NCOMP}=rcGraph(GK,pops,adj,EA,NC,wW);
+  // Orbit (35-pie-paths.js): sky nodes and edges, after the IGP paths, which never use them.
+  const PX=S.pie?pieGraph(adj,edges,COMP,pops,NE):null;if(PX)NE=PX.ne;
   const ev=S.ev;
   const depeer=ev.depeer>day||scnRule('spat'), leak=ev.leak&&ev.leak.until>day?ev.leak.net:null;
   // Sender pays (Gangnam Style Peering): no carrier hands traffic to the Korean incumbents for you, only a paid PNI does.
@@ -89,7 +91,7 @@ function compute(){RW.gen++;
      index FNJ[F] and has FREM[F] left to place. Gathered in FLB here, then copied into this call's own columns below. */
   FLB.n=0;const NN=NETS.length,CNB=[],NCN=NETS.map(n=>!!n.cn),flow=(ci,j,rem,cache,bz)=>{const k=FLB.n;if(k===FLB.cap)flbGrow();FLB.rem[k]=rem;FLB.ci[k]=ci;FLB.nj[k]=j;FLB.ca[k]=cache?1:0;FLB.bz[k]=bz?1:0;FLB.n=k+1;};
   // Customer demand per city, added up in S.biz order (what filtering S.biz for each city would give).
-  const bizBw={};for(const b of S.biz){const T=BIZ_T[b.type];if(!T.l2&&!T.fiber&&(!T.event||eventLive(b))){const v=bizBw[b.city];bizBw[b.city]=(v===undefined?0:v)+b.bw;}}
+  const bizBw={};for(const b of S.biz){const T=BIZ_T[b.type];if(!T.l2&&!T.fiber&&(!T.event||eventLive(b))){if(T.orbit){const g=PX&&PX.gs[b.id];if(g)bizBw[g]=(bizBw[g]||0)+PX.term[b.id];continue;}const v=bizBw[b.city];bizBw[b.city]=(v===undefined?0:v)+b.bw;}}
   // Traffic shares by network index, and their sums, for each share table (and with Russia's throttle).
   const shArr=new Map(),shSum=new Map(),DEMTO=new Float64Array(NN),loc=scnRule('local');
   (()=>{for(const c of Object.keys(S.pops)){
@@ -144,6 +146,7 @@ function compute(){RW.gen++;
   const disjointI=(A,B)=>{const a=CIDX[A],b=CIDX[B],p1=bfsI(a,b,null);return !!p1&&!!bfsI(a,b,new Set(p1.map(srlg)));};
   for(const k in edges){const e=edges[k];let ld=0;for(const l of e.links)ld+=(R.load&&R.load[l.id])||0;e.pl=ld;}
   const l2Routes=(A,B,b)=>{const m=b.route||'normal',Ai=CIDX[A],Bi=CIDX[B];
+    if(PX&&m==='fast')return pieFast(PX,fastSP,A,B,b,wLat);
     if(m!=='scenic')return [{...walkI(m==='fast'?(fastSP[A]||(fastSP[A]=dijkstra(adj,Ai,wLat))).P:SPP[A],Ai,Bi),share:1}];
     const ek='l2:'+b.id,own=e=>(R.efg&&R.efg[e.id]&&R.efg[e.id].get(ek))||0;
     const wf=e=>e.w*(1+10*(e.cap?Math.max(0,e.pl-own(e))/e.cap:0));
@@ -345,13 +348,13 @@ function compute(){RW.gen++;
   for(const e of TORD){const m=R2.tNet[e.id]={},b=e.ts*NN;for(const j of TNK[e.ts])m[NET_IDS[j]]=TNA[b+j];}
   R2.peerShare=R2.served>0?R2.peered/R2.served:0;
   for(const e of E){if(e.k==='t')R2.useT[e.id]=(R2.useT[e.id]||0)+e.used;else if(e.k==='ix')R2.useIx[e.id]=e.used;else if(e.k==='p')R2.usePni[e.id]=e.used;else R2.useCache[e.id]=e.used;}})();
-  computeMoney(R2);
+  computeMoney(R2,PX);
   // R.fl: from this call's own columns, made into objects only when something asks.
   flDefine(R2,{NF,FREM,FCI,FNJ,FCA,FBZ,FGT,FGI,FGP,FGH,FTI,FII,E,CNB,NCN});
   R=R2;UI.hotMap=hotByCity();
 }
 // What the network costs and earns per month, from what compute() routed.
-function computeMoney(R2){
+function computeMoney(R2,PX=null){
   const C=R2.cost,V=R2.rev,pm=S.priceMul;
   C.pops=Object.entries(S.pops).reduce((a,[c,p])=>a+popMo(c)+((p.routers||1)-1)*ROUTER_MO+cageMo(p.routers)+(p.routers||1)*RG[p.rgen||0].mo+(p.gen?GEN_MO:0),0);
   C.optical=S.links.filter(l=>l.kind==='df').reduce((a,l)=>a+(l.ready>S.day?0:ampCount(l.km)*AMP_MO*(l.own&&isRdm(l.sys)&&!l.sub?Math.max(1,l.pairs|0):1)+(l.regen|0)*REGEN_MO)+(l.spares?Math.round(150+(l.ch||[]).length*80):0),0);
@@ -366,9 +369,10 @@ function computeMoney(R2){
   if(S.pie&&S.mode!=='sandbox')C.pie=pieMo();
   V.eyeballs=0;V.business=0;V.ix=0;V.grant=grantOn(R2)?GRANT_MO:0;
   C.wholesale=0;C.levy=0;const lev=scnRule('levy');for(const c in S.pops){const sf=sfOf(R2,c)*(R2.bbF[c]??1),v=R2.cityEye[c]*sf*EYE_RATE*arpuOf(c);V.eyeballs+=v;if(CITY[c].au){if(lev)C.levy+=v*AU_LEVY;else C.wholesale+=v*AU_WHOLESALE;}}
-  const ids=linkIds();for(const b of S.biz){if(capPend(b))continue;const sf=BIZ_T[b.type].fiber?(fiberOk(b,ids)?1:0):BIZ_T[b.type].l2?clamp((R2.l2[b.id]||0)/b.bw,0,1):sfOf(R2,b.city)*(R2.tgtF[b.id]??1);V.business+=b.bw*b.rate*Math.min(1,sf/0.95);}
+  const ids=linkIds();for(const b of S.biz){if(capPend(b)||BIZ_T[b.type].orbit)continue;const sf=BIZ_T[b.type].fiber?(fiberOk(b,ids)?1:0):BIZ_T[b.type].l2?clamp((R2.l2[b.id]||0)/b.bw,0,1):sfOf(R2,b.city)*(R2.tgtF[b.id]??1);V.business+=b.bw*b.rate*Math.min(1,sf/0.95);}
   for(const c in S.myIx)V.ix+=S.myIx[c].members.length*MYIX_FEE;
-  C.revshare=(S.loans||[]).reduce((a,l)=>a+(BANKS[l.bank].equity||l.bal>0?l.share||0:0),0)*(V.eyeballs+V.business+V.ix);
+  if(PX)pieMoney(PX,R2,V);
+  C.revshare=(S.loans||[]).reduce((a,l)=>a+(BANKS[l.bank].equity||l.bal>0?l.share||0:0),0)*(V.eyeballs+V.business+V.ix+(V.orbit||0));
   R2.costMo=Object.values(C).reduce((a,b)=>a+b,0);
-  R2.revMo=V.eyeballs+V.business+V.ix+V.grant;
+  R2.revMo=V.eyeballs+V.business+V.ix+V.grant+(V.orbit||0);
 }

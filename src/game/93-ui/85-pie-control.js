@@ -41,6 +41,7 @@ function pieModal(){if(!S||!pieOn())return;const P=S.pie||pieBlank(S.day),can=pi
   }else{
     const F=P.founder;h+=`<div class="kv"><span>${tr('pie.promises')}</span><b>${tr('pie.promises_line',{n:F.promises,b:F.broken})}</b></div>`;
     h+=`<div class="kv"><span>${tr('pie.spent')}</span><b>${fmt$(P.book.spent)}</b></div><div class="kv"><span>${tr('pie.earned')}</span><b>${fmt$(P.book.earned)}</b></div>`;
+    if(R&&R.pie)h+=`<p class="meta">${tr('pie.earned_mo',{amt:fmt$(R.pie.rev),n:R.pie.isl.length})}</p>`;
     if(pieSand())h+=`<div class="kv"><span>${tr('pie.would_have')}</span><b>${fmt$(P.book.wouldHave)}</b></div>`;
     h+=`<h3 style="font-size:15px;margin:10px 0 4px">${tr('pie.founder_feed')}</h3>`+(F.posts.length?F.posts.map(p=>`<div class="ops-rep"><div class="eyebrow">${esc(dateStr(p.d))}</div><div>${esc(pieFpText(p))}</div></div>`).join(''):`<p class="meta">${tr('pie.feed_empty')}</p>`);
   }

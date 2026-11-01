@@ -1,8 +1,8 @@
-function bizSf(b,ids){const T=BIZ_T[b.type];return T.fiber?(fiberOk(b,ids)?1:0):T.l2?clamp((R.l2[b.id]||0)/b.bw,0,1):bizSfOf(R,b.city)*((R.tgtF&&R.tgtF[b.id])??1);}
+function bizSf(b,ids){const T=BIZ_T[b.type];return T.orbit?((R.pie&&R.pie.sf[b.id])||0):T.fiber?(fiberOk(b,ids)?1:0):T.l2?clamp((R.l2[b.id]||0)/b.bw,0,1):bizSfOf(R,b.city)*((R.tgtF&&R.tgtF[b.id])??1);}
 // Protected business traffic has its own served share; without the rule it shares the city's.
 function bizSfOf(r,c){const d=r.bizDem&&r.bizDem[c];return teRules()&&teRules().protect&&d>1e-6?clamp(r.bizSrv[c]/d,0,1):sfOf(r,c);}
 function bCities(o){return o.sites?o.sites.slice():[o.city,o.city2].filter(Boolean);}
-function bHas(o){return !!BIZ_T[o.type].cap||bCities(o).every(c=>S.pops[c]);}
+function bHas(o){return !!BIZ_T[o.type].cap||!!BIZ_T[o.type].orbit||bCities(o).every(c=>S.pops[c]);}
 function eventLive(b){return BIZ_T[b.type].event&&S.day>=b.start&&S.day<b.start+b.dur;}
 // No warning where nobody attacks (Best Effort, Change Freeze, puzzles, the sandbox's calm).
 function bRisk(b){return BIZ_T[b.type]?.gaming&&!ddosOff()?`<div class="meta">⚠️ ${tr('customers_and_events.gaming_attracts_attacks')}</div>`:'';}
