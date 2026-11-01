@@ -39,6 +39,7 @@ Object.assign(ACT,{
    const w=pairW(key,l.km);S.pairMet[key]={k,v:clampM(k,k==='w'?w:w/(l.km+60))};metBlur();sfx('click');after();},
  metricSet:({id})=>{const l=S.links.find(x=>x.id===id),t=$('metIn');if(!l||!t)return;const key=edgeKey(l),c=pairCm(key);if(!c)return;const v=parseFloat(String(t.value).replace(',','.'));if(!Number.isFinite(v)){sfx('err');return;}
    t.blur();S.pairMet[key]={k:c.k,v:clampM(c.k,v)};sfx('click');after();},
+ setCarry:({id,on})=>{const t=S.transit.find(x=>x.id===id);if(!t)return;if(on)t.carry=true;else delete t.carry;sfx('click');after();},
  setStandby:({id,on})=>{const l=S.links.find(x=>x.id===id);if(!l)return;if(on)l.standby=true;else delete l.standby;sfx('click');after();},
  goEgress:({city,k})=>{ACT.focusCity({city});UI.tab=k==='t'?'up':k==='l2'?'cust':k==='nni'?'links':'peer';renderPanel();},
 });

@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 - Opening a link from a list now moves the map to it, zoomed so the whole line fits beside the open panel.
+- Traffic for a carrier now leaves through that carrier's own transit port at the same POP, instead of being shared with every other transit port there. Networks that buy transit from the carrier get the same treatment, and a new switch on each transit port, Carry here, pulls that traffic across your network from POPs that have no port of that carrier. Prefer, Backup only and RouteScript still win, and Prefer only does so at the POP where you set it.
 
 ## [2.3.0] — 2026-10-31
 

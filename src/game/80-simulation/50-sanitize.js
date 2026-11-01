@@ -31,7 +31,7 @@ function sanitize(s){
      if(v&&typeof v==='object'&&ks.has(k)){const mk=v.k==='w'?'w':'f';pm[k]={k:mk,v:clampM(mk,num(v.v,mk==='w'?60:1))};continue;}
      if(!ks.has(k)||typeof v!=='string'||!own(MET,v)||v==='normal')delete pm[k];}}
   const degO=v=>v&&typeof v==='object'?{until:num(v.until,0),f:Math.min(1,Math.max(0,num(v.f,1)))}:null;
-  s.transit=s.transit.filter(t=>t&&isCity(t.city)&&isNet(t.net)).map(t=>(t.lacp=degO(t.lacp),t.site=['a','b','ab'].includes(t.site)?t.site:'a',t.id=sid(t.id),t.tier=tier(t.tier),t.n=lag(t.n),t.down=num(t.down,0),t.clean=!!t.clean,t.premium=premOnlyAt(NET[t.net],t.city)||!!t.premium&&premCity(NET[t.net],t.city),t));
+  s.transit=s.transit.filter(t=>t&&isCity(t.city)&&isNet(t.net)).map(t=>(t.lacp=degO(t.lacp),t.site=['a','b','ab'].includes(t.site)?t.site:'a',t.id=sid(t.id),t.tier=tier(t.tier),t.n=lag(t.n),t.down=num(t.down,0),t.clean=!!t.clean,t.carry===true||delete t.carry,t.premium=premOnlyAt(NET[t.net],t.city)||!!t.premium&&premCity(NET[t.net],t.city),t));
   s.pni=s.pni.filter(x=>x&&isCity(x.city)&&isNet(x.net)).map(x=>(x.lacp=degO(x.lacp),x.site=['a','b','ab'].includes(x.site)?x.site:'a',x.id=sid(x.id),x.tier=tier(x.tier),x.n=lag(x.n),x.sacrif=!!x.sacrif,x));
   // PNIs on order (#…): delivery day, a pending augment, and 1G for the one network that sells it
   for(const x of s.pni){if(x.ready!==undefined)x.ready=num(x.ready,0);if(x.g1)x.g1=x.tier===0&&x.net==='dtk'?true:undefined;else delete x.g1;if(x.up){const u=x.up;x.up=u&&typeof u==='object'?{tier:tier(u.tier),n:lag(u.n),ready:num(u.ready,0),g1:!!u.g1&&x.net==='dtk'&&tier(u.tier)===0,...(u.site==='ab'?{site:'ab'}:{})}:undefined;if(!x.up)delete x.up;}}
