@@ -9,7 +9,7 @@ Object.assign(ACT,{
  dfSys:({v})=>{UI.dfSys=v;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
  orderCable:()=>{const p=UI.pending;if(!p)return;const {a,b}=p;if(ownCabWhy(a,b))return;const design=own(SEA_DESIGNS,UI.seaDesign)?UI.seaDesign:'standard',up=seaUps(seaQuote(a,b,design).km),q=seaQuote(a,b,design,up),km=q.km,cost=q.cost+(S.pops[b]?0:popCost(b));if(seaLack(km,up).length||!spend(cost))return;
    if(!S.pops[b])S.pops[b]={day:S.day,bb:null,boost:0,down:0,routers:1,gen:false,rgen:0};
-   const used=new Set(S.links.map(l=>l.cname).filter(Boolean)),cname=OWNCAB_NAMES.find(n=>!used.has(n))||`${pick(OWNCAB_NAMES)} ${used.size+1}`,ship=pick(OWNCAB_SHIPS),id=uid(),days=q.days;
+   const used=new Set(S.links.map(l=>l.cname).filter(Boolean)),cname=OWNCAB_NAMES.find(n=>!used.has(n))||`${pick(OWNCAB_NAMES)} ${used.size+1}`,id=uid(),ship=layName({id}),days=q.days;
    S.links.push({id,a,b,kind:'df',own:true,sub:true,seaDesign:design,seaPath:q.pts.map(p=>p.slice()),sys:'roadm',ch:[],km,cable:null,cname,mo:Math.round(km*OWNCAB_OM),trench:'own:'+id,cut:0,day:S.day,ready:S.day+days,spares:false,pairs:1});
    const laid=S.links[S.links.length-1];laid.paid=q.cost;for(const k of Object.keys(SUB_UPGRADES))if(up[k])laid['sub'+k]=laid.ready;UI.seaDesign='standard';UI.seaterminal=UI.seaengineering=false;
    S.stats.ownCab=(S.stats.ownCab||0)+1;UI.dfSrc='lease';closeModal();UI.sel={type:'link',id};

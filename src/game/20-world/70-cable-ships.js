@@ -22,8 +22,8 @@ const SHIPS=[
  {id:'tea',n:'Spliced Tea',club:'med',home:'mrs'},
 ];
 const SHIP=Object.fromEntries(SHIPS.map(s=>[s.id,s]));
-// The installation fleet lays new cables: your own cable gets one of these, and a second one can be booked.
-const LAY_SHIPS=['Lay-Z Susan','Long Haul Lass','Reel Estate','Spoolhardy'];
+// The installation fleet lays new cables (not the repair ships above): your own cable gets one, and a second can be booked.
+const LAY_SHIPS=['HMS Unplugged','Knot Today','Lay-Z Susan','Long Haul Lass','Reel Estate','Seas the Day','Spoolhardy','Wet Willy'];
 /* Real numbers, rounded: a cable ship cruises at 10 to 12 knots (about 500 km a day) and leaves within a day of the
    call; a repair takes 3 to 5 days on site in shallow water and a week or two in deep water; most faults (anchors and
    fishing gear) are in shallow water near the shore; some countries take weeks to grant a repair permit in their
