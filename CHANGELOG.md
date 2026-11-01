@@ -19,6 +19,7 @@ All notable changes to this project are documented here. The project follows
 - When every ship of a region's club is out, a subsea cut waits for the first one back. A private charter of the quickest free ship anywhere jumps the queue for $1M plus $200 per km it sails; the NOC intern's rush-repair order can pay it within its budget.
 - Building your own subsea cable now shows the survey, permits and cable factory first, then a lay ship laying about 150 km a day. Crews can no longer speed up a cable at sea: book a second lay ship before laying starts instead, for $3M plus $150k a day, and it lays from the other end to halve that part.
 - Tap a cable ship on the map to see its name, its club and what it is doing.
+- Doitsche Telekomm and Tangerine Telecom are now Tier 1s, as in real life (#194). In new games, going transit-free means a PNI with both of them too; games you already started keep the Tier 1s they were playing for. Doitsche now sells transit at the highest price in Europe and still charges for peering, and like the other Tier 1s, Tangerine now starts its PNIs at 100G.
 
 ## [2.3.0] — 2026-10-31
 

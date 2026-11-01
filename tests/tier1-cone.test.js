@@ -57,9 +57,9 @@ test('a transit-free network with PNIs to every Tier 1 reaches the long tail thr
 test('a network in nobody\'s cone still needs reaching directly', () => {
   const { ev, errors } = load();
   t1Club(ev);
-  // Doitsche Telekomm buys from no one: no Tier 1 PNI reaches it
-  assert.equal(ev("(NET.dtk.up||[]).length"), 0);
-  assert.equal(ev("R.reachable.dtk"), false);
+  // Comecast buys from no one: no Tier 1 PNI reaches it
+  assert.equal(ev("(NET.cmc.up||[]).length"), 0);
+  assert.equal(ev("R.reachable.cmc"), false);
   assert.equal(ev("isTier1()"), false);
   assert.match(ev('t1Why()'), /nobody you peer with sells transit to/);
   // peer with every island directly and the win comes
@@ -92,7 +92,8 @@ test('a peer\'s cone comes after direct peering and before transit, so peering w
   assert.ok(ev(`(R.netEg.${id}||{}).p`) > 0, 'over the PNI with its upstream, not over transit');
   assert.equal(ev(`(R.netEg.${id}||{}).t||0`), 0);
   // a direct session beats the cone: peer with it at the exchange and its traffic moves there
-  ev(`S.pops.fra.bb.d=500;ACT.buyIx({city:'fra',tier:1,signed:true});ACT.rs({city:'fra'});compute()`);
+  // eight Tier 1 PNIs and the transit port fill the router (#194): a second one makes room for the exchange port
+  ev(`S.pops.fra.bb.d=500;S.pops.fra.routers=2;ACT.buyIx({city:'fra',tier:1,signed:true});ACT.rs({city:'fra'});compute()`);
   if (ev(`ixSessions('fra').has('${id}')`)) {
     assert.ok(ev(`(R.netEg.${id}||{}).ix`) > 0, 'direct peering wins over the cone');
     assert.equal(ev(`(R.netEg.${id}||{}).p||0`), 0);

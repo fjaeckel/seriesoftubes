@@ -41,7 +41,6 @@ const EXCEPTIONS = {
     cun: 'China (#59)',
     cxc: 'buys from Spectre-um, which is transit-free',
     drz: 'a transit-free Tier 2',
-    dtk: 'transit-free incumbent',
     etc: 'Cuba: buys from Sparkly Seabone, a Tier 1 only for games since 1.12',
     ets: 'transit-free in the Gulf',
     ftr: 'buys from Very-Zone, which is transit-free',
@@ -69,7 +68,6 @@ const EXCEPTIONS = {
     tmt: 'buys from Sparkly Seabone, a Tier 1 only for games since 1.12',
     tmx: 'transit-free in Mexico',
     tmy: 'Malaysian incumbent, peers for its own reach',
-    tng: 'a transit-free Tier 2',
     tpr: 'Australian (#148)',
     tsf: 'Indonesian incumbent, peers for its own reach',
     tsy: 'Australian, transit-free (#148)',
@@ -121,9 +119,9 @@ test('W1: every city has a country code, a region and real coordinates', () => {
 
 test('W2: every country on the map has at least two consumer networks of its own', () => {
   // "Own": the network names the country in its home markets (cc) and has a PoP there. Consumer networks are the
-  // eyeballs, and the Tier 2 incumbents that sell to homes and phones in their home markets.
+  // eyeballs, and the Tier 1 and Tier 2 incumbents (Doitsche, Tangerine) that sell to homes and phones there.
   const rows = J(`(()=>{const cs={};for(const c of CITIES)if(!c.off)(cs[c.cc]=cs[c.cc]||[]).push(c.id);
-    return Object.keys(cs).sort().map(cc=>[cc,NETS.filter(n=>(n.type==='eye'||n.type==='t2')&&[].concat(n.cc||[]).includes(cc)&&n.pops.some(p=>CITY[p].cc===cc)).map(n=>n.name)]);})()`);
+    return Object.keys(cs).sort().map(cc=>[cc,NETS.filter(n=>n.type!=='cdn'&&[].concat(n.cc||[]).includes(cc)&&n.pops.some(p=>CITY[p].cc===cc)).map(n=>n.name)]);})()`);
   const bad = rows.filter(([cc, own]) => own.length < 2 && !ex('W2', cc))
     .map(([cc, own]) => `${country(cc)} (${cc}) has ${own.length} own eyeball network${own.length === 1 ? '' : 's'}${own.length ? ': ' + own.join(', ') : ''}`);
   fail('W2', bad, 'add a real operator of that country (src/game/30-networks/32-homegrown-eyeballs.js) or list it in EXCEPTIONS with a reason');

@@ -572,8 +572,8 @@ test('buttons behind an open modal stay quiet, and a declined PNI clears its sta
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e7;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});ACT.buildPop({city:'mrs'});ACT.buyTransit({city:'mrs',net:'cog',tier:1});compute()");
   // the PNI button was drawn while Tangerine still wanted our traffic; by the click it doesn't
-  // Tier 2 is folded when nothing there is worth a PNI (#175): open it, as a player would.
-  ev("UI.pniOpen={t2:true};R.demTo.tng=50;UI.sel={type:'city',id:'mrs'};UI.tab='peer';renderAll();R.demTo.tng=0;window.__n=0;const o=toast;toast=function(h){if(/declined/.test(h))window.__n++;return o.apply(this,arguments);}");
+  // Tier 1 is folded when nothing there is worth a PNI (#175): open it, as a player would.
+  ev("UI.pniOpen={t1:true};R.demTo.tng=50;UI.sel={type:'city',id:'mrs'};UI.tab='peer';renderAll();R.demTo.tng=0;window.__n=0;const o=toast;toast=function(h){if(/declined/.test(h))window.__n++;return o.apply(this,arguments);}");
   const btn = "document.querySelector('#panel [data-act=pni][data-args*=tng]')";
   assert.ok(ev(`!!${btn}`), 'a stale button to start with');
   ev(`${btn}.focus();${btn}.click()`);

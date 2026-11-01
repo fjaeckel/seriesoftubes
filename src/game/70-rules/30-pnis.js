@@ -2,7 +2,7 @@
    Big content networks, Tier 1s and big eyeball networks usually deliver a PNI or an augment in about 30 days, but
    15% of orders get lost in provisioning for 6 to 12 months. The content networks and Tier 1s start at 100G. Doitsche Telekomm sells PNIs down to 1G, and takes its time too. */
 const pniBig=id=>{const n=NET[id];return n.type==='t1'||(n.type==='cdn'&&n.pol!=='open')||(n.type==='eye'&&n.share>=0.02);};
-const pniMin=id=>{const n=NET[id];return n.type==='t1'||(n.type==='cdn'&&n.pol!=='open')?1:0;};
+const pniMin=id=>{const n=NET[id];return n.type==='t1'&&!pniG1(id)||(n.type==='cdn'&&n.pol!=='open')?1:0;};
 const pniG1=id=>id==='dtk';
 // A beer with their peering coordinator at a conference halves the wait. It is how it really works.
 const PNI_SLOW=0.15,pniLead=id=>{const n=pniBig(id)?(Math.random()<PNI_SLOW?180+Math.floor(Math.random()*186):30):14+Math.floor(Math.random()*29);return leadDays(S.conf&&S.conf.until>S.day?Math.round(n/2):n);};
