@@ -118,3 +118,17 @@ test('balanced caches keep serving when either site fails', t => {
   }
   assert.deepEqual(errors, []);
 });
+
+test('more boxes while demand outgrows them, balanced across sites (#248)', t => {
+  const { ev, errors } = setup(t);
+  ev("Object.assign(S.pops.fra,{site2:true,routers:2});S.caches=[{id:'a1',city:'fra',net:'cfl',site:'a'},{id:'b1',city:'fra',net:'cfl',site:'b'}];compute();R.demTo={cfl:NET.cfl.cache.min};R.cityDem.fra=450/NSH.cfl");
+  const add = JSON.parse(ev("JSON.stringify(utilityCaches('fra').add)"));
+  assert.deepEqual(add.map(x => x.net + '@' + x.site), ['cfl@a', 'cfl@b', 'cfl@a'], '450G needs five 100G boxes: three more, spread over both sites');
+  ev("R.cityDem.fra=150/NSH.cfl");
+  assert.equal(ev("utilityCaches('fra').add.length"), 0, 'two boxes already carry 150G');
+  // Requesting them adds just what is missing.
+  ev("R.cityDem.fra=350/NSH.cfl");
+  ev("ACT.utilityCaches({city:'fra',quote:utilityCaches('fra').key})");
+  assert.equal(ev("S.caches.filter(c=>c.net==='cfl').length"), 4);
+  assert.deepEqual(errors, []);
+});
