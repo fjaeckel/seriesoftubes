@@ -90,7 +90,7 @@ function loanTick(d){
       else{const fee=Math.round(l.bal*0.05);l.bal+=fee;l.pay=Math.round(annuity(l.bal,l.apr,Math.max(1,l.left)));S.loanStrikes=(S.loanStrikes||0)+1;toast(tr('banks.penalty_from_bank_fee_added_to',{bank:esc(B.name),fee:fmt$(fee),pay:fmt$(l.pay)}),'bad');}
       sfx('err');}}
   // monthly statement: payments already leave your cash daily as part of costs
-  for(const l of S.loans.slice()){const B0=BANKS[l.bank];if(B0.equity||(d-l.start)%30!==0||d===l.start)continue;
+  for(const l of S.loans.slice()){const B0=BANKS[l.bank];if(B0.equity||!monthiversary(l.start,d))continue;
     if(l.model==='transit')l.bal=Math.max(0,l.bal-Math.round(((R.cost&&R.cost.transit)||0)*(l.cut||0.3)));else l.bal=Math.max(0,l.bal*(1+l.apr/12)-l.pay);l.left--;
     // A balloon, or what a transit-free network never paid, is due in one go at the end.
     if(l.left<=0&&l.bal>=1&&(l.model==='balloon'||l.model==='transit')){S.cash-=Math.round(l.bal);toast(tr('banks.bank_the_balloon_popped_the',{bank:esc(B0.name),price:fmt$(l.bal)}),'bad');sfx('err');l.bal=0;}

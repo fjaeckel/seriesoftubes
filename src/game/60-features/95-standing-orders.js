@@ -196,7 +196,7 @@ function opsDecomSafe(l){const bz=S.biz.filter(b=>(b.reqs||[]).some(k=>k==='dive
   const was=bz.filter(chk),all=S.links;S.links=all.filter(x=>x!==l);try{return was.every(chk);}finally{S.links=all;}}
 const OPS_ORDER=['repair','sales','routers','transit','optics','caches','ix','pni','decom'];
 // The shift: once per game day from dayTick, after outages and events have had their turn.
-function opsDay(d){if(!opsHired())return;const O=S.ops,m=Math.floor(d/30);if(m!==O.mon){O.mon=m;for(const k in O.spent)O.spent[k]=0;O.addMo={};}
+function opsDay(d){if(!opsHired())return;const O=S.ops,m=monthIdx(d);if(m!==O.mon){O.mon=m;for(const k in O.spent)O.spent[k]=0;O.addMo={};}
   // A new week: last week's tally becomes the shift report, and the one NOC notice of the week.
   const w=Math.floor(d/7);if(!O.wk||O.wk.w!==w){if(opsWkAny(O.wk)&&O.wk.w<w){O.rep=O.wk;logNote(`<b>${esc(tr('ops.shift_report',{name:opsName()}))}</b> ${esc(opsWeekLine(O.rep))}`,O.rep.rev>0?'good':'',[],{a:'ops'});}O.wk=opsWkNew(w);}
   const X=opsShift();

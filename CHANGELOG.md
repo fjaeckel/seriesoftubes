@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- A 1.6T transponder on routers with 800G ports now takes two ports at each end, one for each 800G it hands over, and the optics list says so (#256). Before, a full 1.6T fit into a single 800G port. On 1.6T routers it still takes one.
+- The calendar is real now: months have 28 to 31 days and every fourth year has a 29 February (#257). Monthly prices, loan statements, the intern's budget and paydays follow calendar months, and conferences fall on the 10th of their month.
 - On big networks, clicks that change nothing about your traffic now answer at once: dismissing an offer or renaming your network no longer works out every route again, which also saves battery on phones.
 - Working out where traffic goes takes about a fifth less work on big networks, with exactly the same result.
 - The game no longer freezes while it routes each day's traffic on big networks. A background thread of the game does the routing, so the map, panels and buttons keep responding while days go by; what the day brings is exactly what it was before. Clicks that change your network still route right away.

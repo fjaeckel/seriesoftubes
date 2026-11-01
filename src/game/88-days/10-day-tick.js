@@ -34,7 +34,7 @@ function dayPre(){
 function dayPost(d){
   ddosNews();ddosTrack();
   for(const t of S.transit){(t.hist=t.hist||[]).push(R.useT[t.id]||0);if(t.hist.length>30)t.hist.shift();}
-  S.cash+=(R.revMo-R.costMo)/30;
+  S.cash+=(R.revMo-R.costMo)/monLen(d);
   S.stats.peak=Math.max(S.stats.peak,R.served);
   S.hist=S.hist||[];S.hist.push({d,dem:+R.demand.toFixed(2),srv:+R.served.toFixed(2),c:+(R.egT.c||0).toFixed(2),p:+(R.egT.p||0).toFixed(2),ix:+(R.egT.ix||0).toFixed(2),t:+(R.egT.t||0).toFixed(2),l2:+(R.egT.l2||0).toFixed(2),rev:Math.round(R.revMo),cost:Math.round(R.costMo),cash:Math.round(S.cash),inc:S.inc.length});if(S.hist.length>180)S.hist.shift();
   {const top=custLevel();if(top>(S.lvl||1)){for(let lv=(S.lvl||1)+1;lv<=top;lv++){track('level_'+lv);toast(tr('day_tick.customer_level_lv_name_new_customers',{lv,name:LEVELS[lv-1].n,unlock:LEVELS[lv-1].unlock})+`<br><i>${esc(LEVELS[lv-1].q)}</i>`,'goal');}S.lvl=top;sfx('coin');}}
@@ -79,7 +79,7 @@ function dayPost(d){
   if(dirty)compute();
   opsDay(d);
   // payday floaters
-  if(d%30===0){for(const c in S.pops){let v=(R.cityEye[c]*sfOf(R,c)*EYE_RATE)+S.biz.filter(b=>b.city===c).reduce((a,b)=>a+b.bw*b.rate,0);v=v-R.cityEye[c]*sfOf(R,c)*EYE_RATE*(1-arpuOf(c));if(v>500)floater(CITY[c].x,CITY[c].y-30,'+'+fmt$(v),'#16A866');}sfx('coin');}
+  if(cal(d).d===1){for(const c in S.pops){let v=(R.cityEye[c]*sfOf(R,c)*EYE_RATE)+S.biz.filter(b=>b.city===c).reduce((a,b)=>a+b.bw*b.rate,0);v=v-R.cityEye[c]*sfOf(R,c)*EYE_RATE*(1-arpuOf(c));if(v>500)floater(CITY[c].x,CITY[c].y-30,'+'+fmt$(v),'#16A866');}sfx('coin');}
   checkGoals();
   scnTick(d);
   confTick(d);
@@ -88,7 +88,7 @@ function dayPost(d){
   if(S.cash<0){S.neg++;if(S.neg===1)toast(tr('day_tick.you_are_in_the_red_cancel'),'bad');}
   else S.neg=0;
   if(S.cash<-100000){S.lost=true;track('bankrupt');showLose();return;}
-  if(d%360===0&&[1,2,4].includes(d/360))track('game_year_'+(d/360+1),true);
+  {const c=cal(d);if(c.m===0&&c.d===1&&[2,3,5].includes(c.y))track('game_year_'+c.y,true);}
   if(d%10===0)save();
 }
 function spawnOffer(){

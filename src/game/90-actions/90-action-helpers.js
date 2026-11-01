@@ -27,7 +27,7 @@ function bbCost(c){return 15000+CITY[c].P*20;}
 /* A click that changes nothing routing reads (the log, offers, cash, names, settings…) keeps the routing it has:
    compute() gives the same R again for the same state (tests/compute-idempotent), so it is skipped. The key is the save
    without the fields routing never reads (tests/route-skip checks each one); any other change routes again. */
-const RK_SKIP=new Set(['name','log','offers','usedNames','stats','cash','seen','tut','ach','achP','won','loanOffers','loanStrikes','uiSpeed','cam','richTold','demo','nextEvent','nextFail','done','confReg','auNews','solWon','seatOff','chartSet','t1Now','ltv','capDeal','auV','pdeskRep','sv']);
+const RK_SKIP=new Set(['name','log','offers','usedNames','stats','cash','seen','tut','ach','achP','won','loanOffers','loanStrikes','uiSpeed','cam','richTold','demo','nextEvent','nextFail','done','confReg','auNews','calV','solWon','seatOff','chartSet','t1Now','ltv','capDeal','auV','pdeskRep','sv']);
 function routeKey(){const o={};for(const k in S)if(!RK_SKIP.has(k))o[k]=S[k];return JSON.stringify(o);}
 function routeIfChanged(){const k=S&&!pzOn()?routeKey():null;if(k&&k===UI.rk&&R===UI.rkR)return false;compute();UI.rk=k;UI.rkR=R;return true;}
 function after(){if(pzOn()){pzAfter();return;}if(S)purgeInc();routeIfChanged();checkGoals();renderAll();if(S&&!$('dash').hidden)renderDash();save();}
