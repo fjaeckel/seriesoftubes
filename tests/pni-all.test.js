@@ -47,7 +47,7 @@ test('bulk PNIs skip router speed, port capacity and policy restrictions with ci
   const { dom, ev, errors } = load();
   setup(ev, ['ams', 'lon', 'ash']);
   ev(`S.pops.fra.rgen=0;S.pops.ams.rgen=1;
-    S.caches=Array.from({length:portsMax('ams')},()=>({id:uid(),city:'ams',net:'cfl'}));
+    S.caches=Array.from({length:portsMax('ams')*cachePerPort('ams')},()=>({id:uid(),city:'ams',net:'cfl'}));
     while(['ams','lon'].some(c=>snub('msf',c)?.all))S.asn++;
     compute();R.demTo.msf=1e4;ACT.pniAllOpen({net:'msf'});ACT.pniAllSize({v:'2'})`);
   assert.equal(ev("pniBatch('msf',2).orders.length"), 1);
