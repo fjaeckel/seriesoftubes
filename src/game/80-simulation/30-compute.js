@@ -8,7 +8,18 @@ function flbGrow(){const c=Math.max(4096,FLB.cap*2),g=(A,o)=>{const a=new A(c);i
   FLB.rem=g(Float64Array,FLB.rem);FLB.ci=g(Int32Array,FLB.ci);FLB.nj=g(Int32Array,FLB.nj);FLB.ca=g(Uint8Array,FLB.ca);FLB.bz=g(Uint8Array,FLB.bz);FLB.cap=c;}
 // R.efg[link]: what each egress put on that link, read by scenic routing the next day (t.g gives each egress its slot in t.v).
 class EgSums{constructor(t){this.t=t;}get(k){const s=this.t.g.get(k);return s===undefined?undefined:this.t.v[s];}}
-function compute(){
+/* R.ef and R.efg from what routing added up per edge (L: [link id, edge index, its sums t]), and R.fl from the flow
+   columns (c). Also how a route worker's answer is put back together (28-route-worker.js): getters do not cross
+   threads, so it sends these plain pieces (R.efp, R.flc) and the page rebuilds the same lazy R. */
+function efBuild(R2,L,ACN,ACD,NKN,NC,NN){const efg={};for(const [id,i,t] of L){let rec=null;efg[id]=new EgSums(t);
+    Object.defineProperty(R2.ef,id,{enumerable:true,configurable:true,get(){if(!rec){rec={eg:{},net:{},dst:{}};for(const [k,s] of t.g)rec.eg[k]=t.v[s];
+      for(const j of t.n)rec.net[j<NN?NETS[j].id:j===NN?'junk':'l2vpn']=ACN[i*NKN+j];for(const ci of t.d)rec.dst[CITIES[ci].id]=ACD[i*NC+ci];}return rec;}});}
+  Object.defineProperty(R2,'efg',{value:efg});Object.defineProperty(R2,'efp',{value:{L,ACN,ACD,NKN,NC,NN}});}
+// R.fl: the flows as objects, made only when something asks (38-pni-value.js). E: the exits FTI and FII point into.
+function flDefine(R2,c){const {NF,FREM,FCI,FNJ,FCA,FBZ,FGT,FGI,FGP,FGH,FTI,FII,E,CNB,NCN}=c;let fl=null;Object.defineProperty(R2,'flc',{value:c});
+  Object.defineProperty(R2,'fl',{get(){if(!fl){fl=new Array(NF);for(let i=0;i<NF;i++){const ci=FCI[i],j=FNJ[i];
+    fl[i]={c:CITIES[ci].id,n:NET_IDS[j],rem:FREM[i],cache:FCA[i]===1,junk:false,bz:FBZ[i]===1,ci,cn:CNB[ci],ncn:NCN[j],nj:j,nr:j,gt:FGT[i],gi:FGI[i],gp:FGP[i],gh:FGH[i],ti:FTI[i]<0?null:E[FTI[i]].id,ii:FII[i]<0?null:E[FII[i]].id};}}return fl;}});}
+function compute(){RW.gen++;
   const day=S.day, R2=emptyR(), pops=Object.keys(S.pops).filter(popUp), NC=CITIES.length;
   // The graph works on city indices: adj[i] lists [neighbour, edge] in S.links order.
   const remote=remoteCities(),adj=new Array(NC); pops.concat(remote).forEach(p=>adj[CIDX[p]]=[]);
@@ -302,10 +313,7 @@ function compute(){
    for(const o of G.values()){const c=CITIES[o.src].id,cur=R2.latFar[c];if(!cur||o.g>cur.g)R2.latFar[c]={to:CITIES[o.to].id,g:o.g,ms:o.ms,share:SRV[o.src]>0?o.g/SRV[o.src]:0};}}
   // R.ef is read for the link you inspect: each edge's record is put together the first time it is asked for. Scenic
   // routing only needs the egress amounts, so R.efg keeps those as they are (not listed, so R reads the same).
-  {const efg={};for(const l of EL){const t=l.tr,i=l.i;let rec=null;efg[l.id]=new EgSums(t);
-    Object.defineProperty(R2.ef,l.id,{enumerable:true,configurable:true,get(){if(!rec){rec={eg:{},net:{},dst:{}};for(const [k,s] of t.g)rec.eg[k]=t.v[s];
-      for(const j of t.n)rec.net[j<NN?NETS[j].id:j===NN?'junk':'l2vpn']=ACN[i*NKN+j];for(const ci of t.d)rec.dst[CITIES[ci].id]=ACD[i*NC+ci];}return rec;}});}
-   Object.defineProperty(R2,'efg',{value:efg});}
+  efBuild(R2,EL.map(l=>[l.id,l.i,l.tr]),ACN,ACD,NKN,NC,NN);
   // Active links fill first, by capacity; standby links take what is left over.
   for(const k in edges){const e=edges[k],ld=e.ld||0,ac=e.cap-e.scap,a=Math.min(ld,ac),sp=ld-a;for(const l of e.links){const c=capOf(l);R2.load[l.id]=l.standby?(e.scap>0?sp*c/e.scap:0):(ac>0?a*c/ac:0);}}
   for(const e of TORD){const m=R2.tNet[e.id]={},b=e.ts*NN;for(const j of TNK[e.ts])m[NET_IDS[j]]=TNA[b+j];}
@@ -330,8 +338,7 @@ function compute(){
   C.revshare=(S.loans||[]).reduce((a,l)=>a+(BANKS[l.bank].equity||l.bal>0?l.share||0:0),0)*(V.eyeballs+V.business+V.ix);
   R2.costMo=Object.values(C).reduce((a,b)=>a+b,0);
   R2.revMo=V.eyeballs+V.business+V.ix+V.grant;
-  // R.fl: the flows as objects, made only when something asks (38-pni-value.js), from this call's own columns.
-  {let fl=null;Object.defineProperty(R2,'fl',{get(){if(!fl){fl=new Array(NF);for(let i=0;i<NF;i++){const ci=FCI[i],j=FNJ[i];
-    fl[i]={c:CITIES[ci].id,n:NET_IDS[j],rem:FREM[i],cache:FCA[i]===1,junk:false,bz:FBZ[i]===1,ci,cn:CNB[ci],ncn:NCN[j],nj:j,nr:j,gt:FGT[i],gi:FGI[i],gp:FGP[i],gh:FGH[i],ti:FTI[i]<0?null:E[FTI[i]].id,ii:FII[i]<0?null:E[FII[i]].id};}}return fl;}});}
+  // R.fl: from this call's own columns, made into objects only when something asks.
+  flDefine(R2,{NF,FREM,FCI,FNJ,FCA,FBZ,FGT,FGI,FGP,FGH,FTI,FII,E,CNB,NCN});
   R=R2;UI.hotMap=hotByCity();
 }

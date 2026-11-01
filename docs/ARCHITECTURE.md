@@ -141,6 +141,29 @@ link) is only put together for a link when something reads it.
 
 Served share per city (`sfOf`) drives eyeball revenue and customer mood.
 
+## Routing in a worker
+
+During play, each day's `compute()` runs off the main thread (`src/game/80-simulation/28-route-worker.js`), so a big
+network does not freeze the page once a day.
+
+- **Built from the page itself.** The worker is the page's own inline game script (`document.currentScript.textContent`)
+  run again from a Blob URL, after a short prelude of inert stand-ins for `document`, storage and the other DOM globals,
+  and the player's dictionary. Nothing is fetched: GitHub Pages still serves one page, and a release cannot mismatch.
+  In the worker `RW_IN` is true and `boot()` never runs; the catalogs are rebuilt by the same top-level code.
+- **The day split.** `dayTick()` is `dayPre()` (the world moves on), `compute()`, `dayPost()` (bills, moods, offers,
+  goals). In play, `frame()` calls `rwDay()` instead: `dayPre()`, then S and what routing reads of yesterday's R
+  (`R.load`, `R.l2route`, `R.efg`) are posted, and the next day waits until R comes back and `dayPost()` has run. So a day
+  sees exactly the routing it would have had in one go: same results, same random numbers. Half a day is never saved.
+- **What crosses.** `R.ef` and `R.fl` are lazy getters; their pieces (`R.efp`, `R.flc`) travel instead, typed arrays
+  transferred, and `efBuild()`/`flDefine()` (in `30-compute.js`) rebuild the same lazy R on the page.
+- **Actions mid-day.** Every `compute()` bumps `RW.gen`. If an action routed while a day was in flight, the worker's
+  answer is stale: it is dropped and the day ends with the action's R.
+- **Fallbacks.** Tests (`__TUBES_TEST__`, and jsdom has no Worker), `window.__TUBES_SYNC__`, a browser without workers, a
+  post that fails or a worker that errors take the synchronous path (`rwKill()` routes the day in flight on the page).
+- **Still on the main thread**, because the caller reads R right away: actions (`after()`), loading a game, failures and
+  events that fire during a day, standing orders, the chaos monkey, RouteScript what-ifs, the link panel's cut check and
+  automatic offers.
+
 ## Actions and rendering
 
 - Player actions live in `ACT`. Buttons render as `btn(label, act, args, cls, disabled)`

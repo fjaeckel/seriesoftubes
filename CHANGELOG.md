@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- The game no longer freezes while it routes each day's traffic on big networks. A background thread of the game does the routing, so the map, panels and buttons keep responding while days go by; what the day brings is exactly what it was before. Clicks that change your network still route right away.
+
 ## [2.4.0] — 2026-11-01
 
 - Cable ships now sail out to fix your subsea cables, and you can watch them on the map. A cut at sea calls the nearest free ship of its region's repair club, from ports such as Cornwall, Curaçao, Cape Town, Marseille, Vancouver, Tokyo, Manila and Singapore. The cut lasts while the ship sails out (about 500 km a day), splices for 3 to 5 days in shallow water or a week or two in the deep, and in some countries waits weeks for a repair permit. A ship is busy until it is home again.
