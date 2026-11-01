@@ -17,7 +17,7 @@ const world = (ev, opt = {}) => {
 };
 const circuit = (ev, id, a, b, type = 'hft', bw = 5) => ev(`S.biz.push({id:'${id}',type:'${type}',city:'${a}',city2:'${b}',bw:${bw},rate:1000,reqs:[],latMax:null,route:'fast',name:'${id}',mood:100,since:0,sites:null});compute()`);
 const term = (ev, id, city, type = 'pizza', bw = 50) => ev(`S.biz.push({id:'${id}',type:'${type}',city:'${city}',city2:null,bw:${bw},rate:BIZ_T.${type}.rate,reqs:[],latMax:null,route:'normal',name:'${id}',mood:100,since:0,sites:null});compute()`);
-const skyOf = (ev, id) => ev(`R.l2route?false:false`) || ev(`Object.keys(R.ef).filter(k=>k.startsWith('pie:')&&R.ef[k].eg['l2:${id}']>0).length>0`);
+const skyOf = (ev, id) => ev(`Object.keys(R.ef).filter(k=>k.startsWith('pie:')&&R.ef[k].eg['l2:${id}']>0).length>0`);
 
 test('London to New York: a latency customer takes the lasers when they are on, and the fiber otherwise', () => {
   const { ev, errors } = load();
