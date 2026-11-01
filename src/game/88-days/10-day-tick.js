@@ -27,7 +27,8 @@ function dayTick(){
   for(const c in S.pops){const p=S.pops[c];if(!p.bb)continue;const sf=sfOf(R,c)*((R.bbF&&R.bbF[c])??1),P=eyeP(c);
     if(sf>=0.9){const g=(CITY[c].be&&!(p.boost>d)?0.35:1)*0.025*(scnRule('boom')?1.5:1)*(p.boost>d?2:1)*sf*(0.7+0.6*(R.peerShare||0))*(CITY[c].reg==='AS'&&!CITY[c].cn?1.6:1);p.bb.d+=g*p.bb.d*(1-p.bb.d/P);}
     else p.bb.d=Math.max(Math.min(3,P),p.bb.d*(1-(0.9-sf)*0.04));}
-  compute();
+  // Only demand has moved since the last routing on most days: reuse it if nothing else did (32-reuse.js).
+  routeDay();
   ddosNews();ddosTrack();
   for(const t of S.transit){(t.hist=t.hist||[]).push(R.useT[t.id]||0);if(t.hist.length>30)t.hist.shift();}
   S.cash+=(R.revMo-R.costMo)/30;

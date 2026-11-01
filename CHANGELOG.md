@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Days on big networks pass faster: when nothing but demand has changed since the last routing, the game scales the paths it already worked out instead of routing every flow again. Any change to the network, an incident or an event still routes everything in full.
 - A network the game once failed to load is no longer stuck as damaged: the next version of the game tries it again, and its menu has a Try again button. Before, it could only be exported or deleted, even after the cause was fixed.
 - Save files of very large networks import again: the limit went from 8 MB to 64 MB.
 - Big networks run faster: routing skips traffic it has already placed, the map skips links off screen without working out their shape, and the Networks tab and the zoomed-in map draw faster. Where traffic goes does not change.

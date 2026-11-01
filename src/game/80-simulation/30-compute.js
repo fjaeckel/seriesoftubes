@@ -53,13 +53,13 @@ function compute(){
   const cacheNets=new Set(S.caches.filter(c=>popUp(c.city)).map(c=>c.net));
   const viral=(ev.viral>day?1.25:1)*(ev.php&&ev.php>day?0.7:1);
   // Every flow has the same shape and carries what routing asks about it again and again (nj: its network's index).
-  const NN=NETS.length,flows=[],flow=(c,ci,cn,j,rem,cache,junk,bz=false)=>{const n=NETS[j],f={c,n:n.id,rem,cache,junk,bz,ci,cn,ncn:!!n.cn,nj:j,nr:junk?NN:j,gt:0,gi:0,gp:0,gh:0,ti:null,ii:null,br:null};flows.push(f);return f;};
+  const NN=NETS.length,flows=[],flow=(c,ci,cn,j,rem,cache,junk,bz=false)=>{const n=NETS[j],f={c,n:n.id,rem,cache,junk,bz,ci,cn,ncn:!!n.cn,nj:j,nr:junk?NN:j,gt:0,gi:0,gp:0,gh:0,ti:null,ii:null,br:null,fi:flows.length,a0:rem};flows.push(f);return f;};
   // Customer demand per city, added up in S.biz order (what filtering S.biz for each city would give).
   const bizBw={};for(const b of S.biz){const T=BIZ_T[b.type];if(!T.l2&&!T.fiber&&(!T.event||eventLive(b))){const v=bizBw[b.city];bizBw[b.city]=(v===undefined?0:v)+b.bw;}}
   // Traffic shares by network index, and their sums, for each share table (and with Russia's throttle).
-  const shArr=new Map(),shSum=new Map(),DEMTO=new Float64Array(NN),loc=scnRule('local');
+  const shArr=new Map(),shSum=new Map(),DEMTO=new Float64Array(NN),loc=scnRule('local'),D0B=new Float64Array(NC),BZB=new Float64Array(NC);
   for(const c of Object.keys(S.pops)){
-    const p=S.pops[c],ci=CIDX[c],cn=cnCity(c),SH=cn?NSH_CN:ruCity(c)?NSH_RU:CITY[c].kr&&S.krExit?NSH_KRX:NSH;const eye=(p.bb?p.bb.d:0)*viral*(cn&&ev.golden>day?1.4:1);const biz=bizBw[c]??0;const d0=eye+biz;
+    const p=S.pops[c],ci=CIDX[c],cn=cnCity(c),SH=cn?NSH_CN:ruCity(c)?NSH_RU:CITY[c].kr&&S.krExit?NSH_KRX:NSH;const eye=(p.bb?p.bb.d:0)*viral*(cn&&ev.golden>day?1.4:1);const biz=bizBw[c]??0;const d0=eye+biz;D0B[ci]=d0;BZB[ci]=biz;
     // Goggle video is throttled in Russia (#70): people there get half of it, so they ask for half. It is not
     // traffic you failed to deliver, and it does not cross your links only to be thrown away.
     const ru=ruCity(c),thr=n=>n==='ggl'&&ru?0.5:1;let sa=shArr.get(SH),sm=shSum.get(SH);if(!sa){shArr.set(SH,sa=NETS.map(n=>SH[n.id]||0));shSum.set(SH,sm=[]);}
@@ -138,6 +138,8 @@ function compute(){
     const {path,ni}=walkI(SPP[B],Bi,Ai);let amt=g;for(const l of path)amt=Math.min(amt,l.res);for(const i of ni)if(HAS[i])amt=Math.min(amt,NRES[i]);amt=Math.max(0,amt);if(amt<=1e-9)return 0;
     if(!R2.egDesc[ek])R2.egDesc[ek]={lab:clean?labOf(N_('compute.scrubbed_traffic_from_city'),'city',CITY[A].name):labOf(N_('compute.attack_entering_in_city'),'city',CITY[from].name),city:B,k:'l2'};
     for(const i of ni)if(HAS[i])nodeTake(i,amt);for(const l of path){l.res-=amt;l.ld+=amt;if(!clean){l.jk=(l.jk||0)+amt;JK=1;}carry(l,ek,NN,Bi,amt);}return amt;};
+  // What the circuits left, for reusing this routing on a later day (32-reuse.js).
+  const SNAP=REUSE.on?reuseSnap(edges,EL,ACN,ACD,SEN,SED,NRES,NLOAD,NSEEN,NORD):null,RC=SNAP?{f:[],x:[],P:[],a:[],ok:[],lt:[]}:null;
   const DD=ddosLoad({E,okBy,R2,autoBh:!!(TRX&&TRX.blackhole),haul,ms:msOf});
   const TE=!!(S.te&&S.te.on)&&coreTE(),TR=TE?teRules():null,REACH=coreTeReach();R2.teMoved=0;const teCache=new Map(),SPILL=TR&&TR.spill?TR.spill:1;
   const altPath=(src,dst,base)=>{const key=src*NC+dst,c0=teCache.get(key);
@@ -184,17 +186,18 @@ function compute(){
     const ek=e.ek,nr=f.nr,ci=f.ci;if(!e.told||e.dup){R2.egDesc[ek]=e.desc||(e.desc={lab:e.lab,city:e.city,k:e.k});e.told=true;}
     for(const l of path){l.res-=amt;l.ld+=amt;carry(l,ek,nr,ci,amt);}
     e.used+=amt;f.rem-=amt;
-    if(!f.junk){let ok=amt;const cf=f.cn,ce=e.cn,cn=f.ncn;
-      if(cf!==ce||(cf&&!cn)||(!cf&&cn&&e.k==='t')){const prem=(e.k==='t'&&e.prem)||(e.k==='p'&&e.pnc)||path.some(x=>x.links&&x.links.some(y=>y.premium));const loss=prem?0.03:(ev.gfw>day?0.35:0.2);R2.gfwLost+=amt*loss;R2.gfwCross+=amt;ok=amt*(1-loss);}
+    let rl=-1,rg=0;if(!f.junk){let ok=amt;const cf=f.cn,ce=e.cn,cn=f.ncn;
+      if(cf!==ce||(cf&&!cn)||(!cf&&cn&&e.k==='t')){const prem=(e.k==='t'&&e.prem)||(e.k==='p'&&e.pnc)||path.some(x=>x.links&&x.links.some(y=>y.premium));const loss=rg=prem?0.03:(ev.gfw>day?0.35:0.2);R2.gfwLost+=amt*loss;R2.gfwCross+=amt;ok=amt*(1-loss);}
       SRV[f.ci]+=ok;R2.served+=ok;if(f.bz)R2.bizSrv[f.c]+=ok;if(e.rank<=2)R2.peered+=ok;if(e.k==='t'){const m=R2.tNet[e.id]||(R2.tNet[e.id]={});m[f.n]=(m[f.n]||0)+ok;}
         // Backhaul to transit: users notice the round trip to the exit. Up to 20 ms (about 1,500 km) is free, then
         // it gets worse, and past 50 ms broadband and internet services count as bad service (#…). Under sender pays,
         // Korean users notice any exit far away, transit or not, and much sooner.
         if(path.length&&(e.k==='t'||snd&&CITIES[f.ci].kr)){let ms=P.ms;if(ms===undefined){ms=0;for(const l of path)ms+=l.lat;P.ms=ms;}const rtt=2*ms,kl=snd&&CITIES[f.ci].kr;
-          if(rtt>(kl?KR_LAT_OK:LAT_OK)){LATP[f.ci]+=ok*(kl?krLatLoss(rtt):latLoss(rtt));if(!P.fg){P.fg=0;FARL.push(P,f.ci,e.ci);}P.fg+=ok;}}R2.egT[e.k]=(R2.egT[e.k]||0)+ok;const ne=NEG[f.nj]||(NEG[f.nj]=R2.netEg[f.n]={c:0,p:0,ix:0,t:0});ne[e.k]+=ok;
+          if(rtt>(kl?KR_LAT_OK:LAT_OK)){rl=kl?krLatLoss(rtt):latLoss(rtt);LATP[f.ci]+=ok*rl;if(!P.fg){P.fg=0;FARL.push(P,f.ci,e.ci);}P.fg+=ok;}}R2.egT[e.k]=(R2.egT[e.k]||0)+ok;const ne=NEG[f.nj]||(NEG[f.nj]=R2.netEg[f.n]={c:0,p:0,ix:0,t:0});ne[e.k]+=ok;
       // Where each flow left (the PNI list asks what a PNI here would take over, #175).
       if(e.J>0){const m=e.byC||(e.byC=new Map()),v=m.get(f.ci);if(v){v[0]+=ok;if(f.bz)v[1]+=ok;}else m.set(f.ci,[ok,f.bz?ok:0]);}
       if(e.k==='t'){f.gt+=ok;f.ti=e.id;}else if(e.k==='ix'){f.gi+=ok;f.ii=e.id;}else if(e.k==='p'){if(e.net===f.n&&e.city===f.c)f.gh+=ok;else f.gp+=ok;}}
+    if(RC){RC.ok.push(rg);RC.f.push(f.fi);RC.x.push(e.xi);RC.P.push(P);RC.a.push(amt);RC.lt.push(rl);}
     return amt;
   };
   // Shortest path first. With Auto-TE, whatever does not fit spills onto up to two alternate paths
@@ -290,7 +293,13 @@ function compute(){
   for(const k in edges){const e=edges[k],ld=e.ld||0,ac=e.cap-e.scap,a=Math.min(ld,ac),sp=ld-a;for(const l of e.links){const c=capOf(l);R2.load[l.id]=l.standby?(e.scap>0?sp*c/e.scap:0):(ac>0?a*c/ac:0);}}
   R2.peerShare=R2.served>0?R2.peered/R2.served:0;
   for(const e of E){if(e.k==='t')R2.useT[e.id]=(R2.useT[e.id]||0)+e.used;else if(e.k==='ix')R2.useIx[e.id]=e.used;else if(e.k==='p')R2.usePni[e.id]=e.used;else R2.useCache[e.id]=e.used;}
-  // money
+  routeMoney(R2);
+  // Kept for the next days while nothing but demand changes (32-reuse.js).
+  RB=SNAP&&!DD&&!TE?{sig:REUSE.sig||routeSig(),day,R:R2,E,edges:Object.values(edges),flows,rc:RC,snap:SNAP,D0B,BZB,HAS,PASS,NC,NN,NE,prot:!!(TRX&&TRX.protect),res:Float64Array.from(Object.values(edges),e=>e.res),nres:NRES.slice(),used:Float64Array.from(E,e=>e.used)}:null;REUSE.sig=null;
+  Object.defineProperty(R2,'fl',{value:flows});R=R2;UI.hotMap=hotByCity();
+}
+// Costs and revenue for a routing result (also used by the reused routing, 32-reuse.js).
+function routeMoney(R2){
   const C=R2.cost,V=R2.rev,pm=S.priceMul;
   C.pops=Object.entries(S.pops).reduce((a,[c,p])=>a+popMo(c)+((p.routers||1)-1)*ROUTER_MO+cageMo(p.routers)+(p.routers||1)*RG[p.rgen||0].mo+(p.gen?GEN_MO:0),0);
   C.optical=S.links.filter(l=>l.kind==='df').reduce((a,l)=>a+(l.ready>S.day?0:ampCount(l.km)*AMP_MO*(l.own&&isRdm(l.sys)&&!l.sub?Math.max(1,l.pairs|0):1)+(l.regen|0)*REGEN_MO)+(l.spares?Math.round(150+(l.ch||[]).length*80):0),0);
@@ -309,5 +318,4 @@ function compute(){
   C.revshare=(S.loans||[]).reduce((a,l)=>a+(BANKS[l.bank].equity||l.bal>0?l.share||0:0),0)*(V.eyeballs+V.business+V.ix);
   R2.costMo=Object.values(C).reduce((a,b)=>a+b,0);
   R2.revMo=V.eyeballs+V.business+V.ix+V.grant;
-  Object.defineProperty(R2,'fl',{value:flows});R=R2;UI.hotMap=hotByCity();
 }
