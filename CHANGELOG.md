@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Pick a standard POP: in any POP's Infra tab, make its routers the standard, and every new POP gets that model and number of routers right away, while it is still empty (#240).
 - Clarovision now peers only over paid PNIs, like the real carrier, and free only with networks at customer level 11 or above (#213). A PNI you already have with it starts paying the fee.
 - Cache boxes now share router ports through an aggregation switch: one port carries as many 100G boxes as its speed holds, so 32 fit on a 3.2T port (#252). Each site gets its own.
 - Opening a link from a list now moves the map to it, zoomed so the whole line fits beside the open panel.
