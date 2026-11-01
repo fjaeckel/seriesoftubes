@@ -11,7 +11,7 @@ module.exports = `
     for(F=0;F<NF;F++){fci=FCI[F];fnj=FNJ[F];const n=NET_IDS[fnj];
       if(FREM[F]<=1e-6||(rank===0&&!FCA[F])||(pass===1&&!FBZ[F])||(pass===2&&FBZ[F]))continue;
       Dv=SDi[fci];Pv=SPi[fci];PP=walked[fci]||(walked[fci]=[]);vis++;
-      const candidates=E.filter(e=>e.used<e.cap&&e.ok(n)&&
+      const candidates=E.filter(e=>e.used<e.cap&&e.ok(n)&&permits(e)&&
         ((TR?eff(e,n):base(e,n))===rank||(dr(e,fci,n)||-1)===rank)&&
         (rank!==DIRECT_RANK[1][1]&&rank!==DIRECT_RANK[2][1]||CIDX[e.city]===fci)&&Dv[CIDX[e.city]]<Infinity&&!gone(e))
         .sort((a,b)=>(a.pref==='high'?0:1)-(b.pref==='high'?0:1)||Dv[CIDX[a.city]]-Dv[CIDX[b.city]]);

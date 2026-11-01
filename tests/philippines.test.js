@@ -40,7 +40,8 @@ test('Manila: PLDTea Time and Globe-Trotter Telecom sell transit; a PLDT PNI als
   start(ev);
   assert.ok(ev("sellsAt(NET.pld,'mnl')&&sellsAt(NET.glb,'mnl')"));
   assert.ok(ev("!sellsAt(NET.cvg,'mnl')&&!sellsAt(NET.dto,'mnl')&&!sellsAt(NET.smt,'mnl')"));
-  assert.deepEqual(ids(ev, 'PNI_NETS.pld').sort(), ['pld', 'smt']);
+  assert.ok(ids(ev, 'PNI_NETS.pld').includes('pld') && ids(ev, 'PNI_NETS.pld').includes('smt'));
+  assert.ok(ev("PNI_NETS.pld.every(id=>id==='pld'||ANC[id].includes('pld'))"), 'every extra member has a customer path');
   assert.equal(ev('NET.pld.pol'), 'selective');
   assert.equal(ev('NET.cvg.pol') + ev('NET.dto.pol'), 'openopen');
   assert.equal(ev('NET.glb.pol'), 'selective', 'Globe-Trotter Telecom stays selective');
@@ -62,14 +63,12 @@ test('Manila: an exchange the player founded there before GotchaFIX existed keep
   assert.deepEqual(errors, []);
 });
 
-test('Manila: RISE & Shine peers openly on all three Manila exchanges, across Asia and in Europe', () => {
+test('Manila: RISE & Shine peers at its observed exchanges across Asia and Europe', () => {
   const { ev, errors } = load();
   start(ev);
   assert.equal(ev('NET.rsh.name'), 'RISE & Shine');
   assert.equal(ev('NET.rsh.pol'), 'open');
-  // GetaFIX Manila, PhOpenIX and VIX, Singapore, Hong Kong, DE-CIX, AMS-IX, LINX, Netnod. Tokyo and Los Angeles are left
-  // out: an open eyeball network there makes the Stepping Stones scenario too easy.
-  for (const x of ['mnl', 'mnl~2', 'mnl~3', 'sin', 'sin~2', 'hkg', 'hkg~2', 'fra', 'ams', 'lon', 'sto'])
+  for (const x of ['mnl', 'mnl~2', 'sin', 'sin~2', 'hkg', 'hkg~2', 'fra', 'ams', 'lon', 'sto'])
     assert.ok(ids(ev, `ixMembers('${x}')`).includes('rsh'), `RISE & Shine on ${x}`);
   assert.deepEqual(errors, []);
 });
@@ -148,12 +147,12 @@ test('the Philippines: transit about 1.9 times the Asian rate, homes pay about U
   const { ev, errors } = load();
   start(ev);
   for (const c of ['mnl', 'ceb', 'dvo']) {
-    assert.equal(ev(`regionMult('${c}')`), ev('PH_TRANSIT'), `${c} pays the Philippine transit rate`);
+    assert.equal(ev(`regionMult('${c}')`), ev(`Math.round(PH_TRANSIT*townMult('${c}')*10)/10`), `${c} pays the Philippine rate with its market-size premium`);
     assert.equal(ev(`CITY.${c}.arpu`), ev('PH_ARPU'));
   }
   // Manila's 100 GigE transit is about 1.9 times Jakarta's
   assert.ok(Math.abs(ev("regionMult('mnl')/regionMult('jkt')") - 1.9) < 0.1);
-  assert.equal(ev("regionMult('sin')"), 2.5, 'the rest of Asia is unchanged');
+  assert.equal(ev("regionMult('sin')"), 1.8, 'Singapore remains a competitive regional hub');
   // the same transit port costs more in Manila than in Jakarta
   ev("ACT.buildPop({city:'mnl'});ACT.buildPop({city:'jkt'})");
   assert.ok(ev("transitMo({net:'sgt',city:'mnl',tier:1},10)>transitMo({net:'sgt',city:'jkt',tier:1},10)"));

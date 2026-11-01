@@ -5,7 +5,7 @@
    Not That Telecom and Level Tree (whose real-world network lists no sites in PeeringDB at all, but sells in Sydney). Others can sit in
    an Australian city, like the Pacific carriers backhauling to Sydney (or Glowball Sakura Lager), but reach Australian
    customers only from overseas. */
-const AU_SELLERS=['tsy','voc','spl','sgt','drz','cog','ntt','lvl'],sellsAt=(n,c)=>!!n.price&&(n.pops.includes(c)||!!n.premOnly&&n.premOnly.includes(c))&&(!CITY[c].au||AU_SELLERS.includes(n.id))&&!noTransitIn(c);
+const AU_SELLERS=['tsy','voc','spl','sgt','drz','cog','ntt','lvl'],sellsAt=(n,c)=>!!n.price&&(!n.homeOnly||(Array.isArray(n.cc)?n.cc:[n.cc]).includes(CITY[c].cc))&&(n.pops.includes(c)||!!n.premOnly&&n.premOnly.includes(c))&&(!CITY[c].au||AU_SELLERS.includes(n.id))&&(n.type==='t1'||(TRANSIT_T2[c]||[]).includes(n.id))&&!noTransitIn(c);
 // A scenario city where nobody sells transit (Anchors Away: Tallinn's internet is across the water).
 const noTransitIn=c=>{const x=S&&S.scn&&S.scn.rules&&S.scn.rules.noTransitIn;return Array.isArray(x)&&x.includes(c);};
 /* China Telecomet's premium crossing into China (CN-Too) is sold where its border routes start: Hong Kong, and Moscow
@@ -17,7 +17,7 @@ const premOn=t=>!!t.premium&&!!NET[t.net]&&premCity(NET[t.net],t.city);
 const transitPerG=(n,c,prem)=>prem&&premCity(n,c)?n.price*n.premium*netMult(n,'hkg'):n.price*netMult(n,c);
 // Exchange lists are fixed once the page has loaded, so each is looked up through a Set built on first use.
 const IX_SET=new WeakMap(),inIxList=(a,c)=>{let s=IX_SET.get(a);if(!s)IX_SET.set(a,s=new Set(a));return s.has(c);};
-const onIx=(n,c)=>CITY[c].au&&n.auIx?inIxList(n.auIx,c):n.ix==='ALL'||Array.isArray(n.ix)&&inIxList(n.ix,c);
+const onIx=(n,c)=>CITY[c].au&&n.auIx?inIxList(n.auIx,c):n.ix==='ALL'?(n.pops.includes(c)||!!CITY[c].ixOnly):Array.isArray(n.ix)&&inIxList(n.ix,c);
 function ixMembers(c){if(XIXM[c])return XIXM[c].members.slice();if(S.myIx[c])return S.myIx[c].members.slice();if(!CITY[c].ix)return [];return (IX_MEM[c]||(IX_MEM[c]=NETS.filter(n=>onIx(n,c)).map(n=>n.id))).slice();}
 // A city exchange's members only depend on the networks, which are fixed after load.
 const IX_MEM={};
@@ -30,8 +30,7 @@ function ixSessions(c){
   const s=new Set(); if(S.ixp[c]===undefined)return s;
   for(const id of ixMembers(c)){const n=NET[id];
     if(S.peers[id+'@'+c]&&!snub(id,c)&&!(isRemote(c)&&noRemote(id)))s.add(id);
-    else if(S.rs[c]&&n.pol==='open'&&ppol()==='open')s.add(id);
-    else if(S.myIx[c]&&(n.pol==='open'||n.pol==='selective'))s.add(id);}
+    else if(n.pol==='open'&&!PEER_NORS.has(id)&&(S.myIx[c]||S.rs[c]&&ppol()==='open')&&peerOk(id,'ix',c).ok)s.add(id);}
   return s;
 }
 function t1Club(){

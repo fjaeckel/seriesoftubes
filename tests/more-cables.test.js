@@ -44,15 +44,7 @@ test('the Indian Ocean and Asia-Pacific: the big real cables, Muscat, the Maldiv
   // no route jumps across the whole map at the ±180° seam: waypoints keep continuous longitudes (#183)
   assert.deepEqual(JSON.parse(ev("JSON.stringify(CABLE_PAIRS.filter(p=>p.pts.some((q,i)=>i&&Math.abs(q[0]-p.pts[i-1][0])>W/3)).map(p=>p.cid+':'+p.a+'-'+p.b))")), []);
   assert.ok(ev("cablePair('fast','sea','osa').km") < 9500, 'FASTEST to Osaka crosses the Pacific, not the world');
-  // subsea cables stay at sea: a stretch over land with sea on both sides is the line cutting across a coast.
-  // Allowed: the Suez Canal and the Dardanelles (not water in the coastline), and Quintillion's overland Alaska leg.
-  const cross = JSON.parse(ev(`JSON.stringify((()=>{const big=COAST.filter(p=>ringArea(p)>=40).map(p=>{let a=1e9,b=-1e9,c=1e9,d=-1e9;for(const [x,y] of p){a=Math.min(a,x);b=Math.max(b,x);c=Math.min(c,y);d=Math.max(d,y);}return {p,a,b,c,d};});
-    const on=(x,y)=>{x=((x%W)+W)%W;return big.some(q=>x>=q.a&&x<=q.b&&y>=q.c&&y<=q.d&&inPoly(x,y,q.p));};const out=[];
-    for(const p of CABLE_PAIRS){if(p.cid==='qtl'&&[p.a,p.b].sort().join()==='anc,brw')continue;const s=[];
-      for(let i=1;i<p.pts.length;i++){const [x0,y0]=p.pts[i-1],[x1,y1]=p.pts[i];const n=Math.max(1,Math.ceil(Math.hypot(x1-x0,y1-y0)/1.5));for(let k=(i===1?0:1);k<=n;k++)s.push([x0+(x1-x0)*k/n,y0+(y1-y0)*k/n]);}
-      const L=s.map(q=>on(q[0],q[1]));let i=0;while(i<L.length){if(!L[i]){i++;continue;}let j=i;while(j+1<L.length&&L[j+1])j++;const km=(j-i+1)*p.km/s.length;if(i>0&&j<L.length-1&&km>160)out.push(p.cid+':'+p.a+'-'+p.b+' '+Math.round(km)+' km');i=j+1;}}
-    return out;})())`));
-  assert.deepEqual(cross, [], 'cables cutting across land');
+  // Published landing spurs and legacy schematic routes are checked in landing-stations.test.js.
   // a hop on one of the new cables carries traffic
   ev("for(const c of ['sin','hkg']){ACT.buildPop({city:c});S.pops[c].rgen=3;}UI.via='sjc2';UI.route='same';openLinkModal('sin','hkg');ACT.buildLink({tier:2});closeModal();compute()");
   assert.ok(ev("S.links.some(l=>l.cable==='sjc2')"), 'a wave on SJC2');

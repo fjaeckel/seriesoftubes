@@ -11,9 +11,9 @@ function utilityCacheMoves(city){if(!S||!S.pops[city])return [];const groups=new
   for(const g of groups.values())if(left&&g[from].length>g[to].length){move(g,from,1);left--;}
   return moves;}
 // One box per site first; then more boxes while this city's demand to the network outgrows them (100G each, #248).
-function utilityCaches(city){const p=S&&S.pops[city];if(!p)return null;const sites=p.site2?['a','b']:['a'],add=[],have={};
+function utilityCaches(city){const p=S&&S.pops[city];if(!p||CITY[city].kp)return null;const sites=p.site2?['a','b']:['a'],add=[],have={};
   for(const c of S.caches)if(c.city===city){const k=c.net+'@'+(c.site==='b'?'b':'a');have[k]=(have[k]||0)+1;}
-  for(const n of NETS)if(n.cache&&(R.demTo[n.id]||0)>=n.cache.min){const box=sites.map(st=>have[n.id+'@'+st]||0);
+  for(const n of NETS)if(n.cache&&(R.demTo[n.id]||0)+1e-9>=n.cache.min){const box=sites.map(st=>have[n.id+'@'+st]||0);
     sites.forEach((site,i)=>{if(!box[i]){add.push({net:n.id,site,...cacheBox(city)});box[i]=1;}});
     const dem=((R.cityDem&&R.cityDem[city])||0)*(NSH[n.id]||0),nb=cacheBox(city);
     let cap=S.caches.filter(c=>c.city===city&&c.net===n.id).reduce((a,c)=>a+cacheG(c),0)+add.filter(x=>x.net===n.id).length*cacheG(nb);

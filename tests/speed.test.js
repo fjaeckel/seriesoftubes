@@ -17,8 +17,9 @@ function bigNet(ev) {
 
 test('a preferred exit far away still wins over a normal one next door', () => {
   const { ev, errors } = load();
+  ev("NSH_CC.DE={ntt:1}"); // Isolate ordinary transit from the carrier-direct rule.
   ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});ACT.buildPop({city:'ams'})");
-  ev("UI.via=null;openLinkModal('fra','ams');ACT.buildLink({tier:1});closeModal();ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.buyTransit({city:'ams',net:'tly',tier:1});compute()");
+  ev("UI.via=null;openLinkModal('fra','ams');ACT.buildLink({tier:1});closeModal();ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.buyTransit({city:'ams',net:'cog',tier:1});compute()");
   assert.equal(ev('S.links.length'), 1);
   const use = () => JSON.parse(ev("JSON.stringify(S.transit.map(t=>R.useT[t.id]||0))"));
   assert.equal(use()[1], 0, 'normal: the local transit carries it all');
@@ -274,18 +275,21 @@ function plainCompute(ev) {
   let plain = src
     .replace('if(!lst.hi&&ALONE[fci])', 'if(false)')
     .replace('if(!G.length){\n        // One scan', 'if(false){\n        // One scan')
-    .replace('const ns=e.nets||NET_IDS;', 'const ns=NET_IDS;')
+    .replace("const ns=e.k==='p'&&!snd?CONE_I[e.net]:e.nets?Array.from(e.nets,n=>NIDX[n]):NET_J,known=!!e.nets&&!rp;", 'const ns=NET_J,known=false;')
     .replace('if(P.dead)return 0;', '').replaceAll('if(r<=1e-6){P.dead=1;return 0;}', '')
     .replace('if(!P.dead)room-=push(', 'room-=push(').replace(/const gone=e=>\{[^\n]*\};/, 'const gone=e=>false;');
+  const ts = plain.indexOf('const bestTransit='), te = plain.indexOf('const permits=', ts);
+  assert.ok(ts > 0 && te > ts, 'found the upstream selector');
+  plain = plain.slice(0, ts) + require('./helpers/reference-transit') + plain.slice(te);
   // ...and the group split and sorting written the plain way, with array copies, as before they were made allocation-free
   const sg = plain.indexOf('const ROOM=[],sendGroup='), sd = plain.indexOf('const sortD=');
   assert.ok(sg > 0 && sd > sg, 'found the group sender and the sort');
-  plain = plain.slice(0, sg) + `const ROOM=[],sendGroup=(g0,i0=0,i1=g0.length)=>{const g=g0.slice(i0,i1);for(const e of g)e.vis=vis;
+  plain = plain.slice(0, sg) + `const ROOM=[],sendGroup=(g0,i0=0,i1=g0.length)=>{const g=g0.slice(i0,i1).filter(permits);for(const e of g)e.vis=vis;
     if(g.length>1){const room=g.map(e=>Math.max(0,e.cap-e.used)),tot=room.reduce((a,b)=>a+b,0),want=FREM[F];if(tot>1e-6)g.forEach((e,k)=>send(e,want*room[k]/tot));}
     for(const e of g){if(FREM[F]<=1e-6)break;send(e,FREM[F]);}};\n  ` + plain.slice(sd).replace(/^const sortD=a=>\{[^\n]*\};/, 'const sortD=a=>a.sort(byDist);');
   for (const [a, b] of [[src, plain]]) assert.notEqual(a, b);
   assert.equal((plain.match(/if\(false\)/g) || []).length, 2, 'both shortcuts were found and switched off');
-  assert.ok(!plain.includes('e.nets||NET_IDS'), 'the exit index was switched off');
+  assert.ok(plain.includes('const ns=NET_J,known=false;'), 'the exit index was switched off');
   assert.ok(!plain.includes('P.dead'), 'the full-path mark was switched off');
   assert.ok(plain.includes('const sortD=a=>a.sort(byDist);') && plain.includes('g.forEach('), 'the plain group split and sort are in');
   ev('window.__plain=' + plain.replace(/^function compute/, 'function'));

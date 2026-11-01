@@ -115,7 +115,7 @@ function opsTransitOk(n,c){if(n.id==='cog'&&(scnRule('spat')||S.ev.depeer>S.day)
   const was=chk(),all=S.transit;S.transit=all.concat({net:n.id,city:c});try{const now=chk();return was.every((v,i)=>!v||now[i]);}finally{S.transit=all;}}
 const cheapestTransit=c=>NETS.filter(n=>sellsAt(n,c)&&opsTransitOk(n,c)).sort((a,b)=>transitPerG(a,c,premOnlyAt(a,c))-transitPerG(b,c,premOnlyAt(b,c)))[0];
 // 'cheap' and 'have' (Already connected) name no network: quote the cheapest seller (#249).
-const opsProv=c=>{const pv=opsP('transit','prov'),n=isNet(pv)?NET[pv]:null;return n&&sellsAt(n,c)&&opsTransitOk(n,c)?n:cheapestTransit(c);};
+const opsProv=c=>{const pv=opsP('transit','prov'),n=isNet(pv)?NET[pv]:null;return n&&(sellsAt(n,c)||S.transit.some(t=>t.city===c&&t.net===n.id))&&opsTransitOk(n,c)?n:cheapestTransit(c);};
 // The orders. Each takes the shift and does its jobs through the player's own actions.
 const OPS_RUN={
  repair(X){purgeInc();for(const i of S.inc.slice())if(i.type!=='ddos'&&i.until>S.day&&i.cost>0&&!(i.slow&&i.rushed)&&X.can('repair',i.cost)&&X.pay('repair',()=>ACT.fixInc({id:i.id})))X.did('repair');},

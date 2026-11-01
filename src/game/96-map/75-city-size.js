@@ -1,5 +1,5 @@
 /* City size: a city's icon says how many eyeballs live there, in five steps from an outpost to a megacity.
-   P is the city's eyeball demand (about 40G per million people), so it stands in for population.
+   P is the city's potential eyeball demand, used here as a proxy for population.
    Zoomed out the dots grow with it; zoomed in the skyline does. Crowded cities give way to bigger ones. */
 const CTIER_AT=[15,100,350,800],ctier=P=>{let t=0;while(t<4&&P>=CTIER_AT[t])t++;return t;};
 const CTIER=new Map(CITIES.map(C=>[C.id,ctier(C.P)])),cTier=id=>{const t=CTIER.get(id);return t===undefined?ctier((CITY[id]||{}).P||0):t;};

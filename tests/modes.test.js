@@ -56,7 +56,7 @@ test('traceroute shows hops, the exit and the AS path', () => {
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'})");
   ev("ACT.buildPop({city:'ams'});UI.via=null;openLinkModal('fra','ams');ACT.buildLink({tier:1});closeModal();ACT.buyTransit({city:'ams',net:'lvl',tier:1});ACT.buyIx({city:'fra',tier:1,signed:true});ACT.rs({city:'fra'});compute()");
-  let r = JSON.parse(ev("JSON.stringify(traceroute('fra',{net:'nfx'}))"));
+  let r = JSON.parse(ev("JSON.stringify(traceroute('fra',{net:'att'}))"));
   assert.match(r.text, /traceroute to/);
   assert.match(r.text, /ams/, 'goes via Amsterdam to transit');
   assert.deepEqual(r.asPath.slice(0, 2), [ev('S.asn'), ev("NET.lvl.asn")]);
@@ -65,7 +65,7 @@ test('traceroute shows hops, the exit and the AS path', () => {
   r = JSON.parse(ev("JSON.stringify(traceroute('ams',{city:'fra'}))"));
   assert.match(r.text, /fra/);
   ev("S.links[0].cut=S.day+3;compute()");
-  r = JSON.parse(ev("JSON.stringify(traceroute('fra',{net:'nfx'}))"));
+  r = JSON.parse(ev("JSON.stringify(traceroute('fra',{net:'att'}))"));
   assert.ok(/unreachable/.test(r.text) || /peering/i.test(r.why));
   ev("ACT.trace({city:'fra'})");
   assert.match(ev("document.getElementById('modalCard').textContent"), /Traceroute/);
@@ -421,7 +421,7 @@ test('#114 Only Spätzle-IX can be won by peering alone', () => {
   const tick = (n) => { for (let i = 0; i < n; i++) { ev('dayTick()'); if (i % 5 === 0) ev("for(const x of Object.keys(S.ixp))ACT.peerAll({city:x})"); } };
   tick(20);
   const early = ev('R.served');
-  assert.ok(ev('R.reach') < 0.9, 'far from the whole internet');
+  assert.equal(ev('S.transit.length'), 0, 'all reach comes from peers and their customers');
   tick(60);
   assert.ok(ev('R.served') > early * 1.5, `customers stay and grow (${early.toFixed(1)} → ${ev('R.served').toFixed(1)} Gbps)`);
   assert.ok(ev("sfOf(R,'stg')") >= 0.9);

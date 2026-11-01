@@ -94,7 +94,7 @@ test('reads the world and the network: networks, cities, search, traceroute, pee
   assert.equal(dt.type, 'Tier 1');
   assert.equal(dt.neededForTier1, true);
   assert.match(dt.you.howToPeer, /Paid peering only/);
-  assert.equal(T('network', { network: '3203' }).id, 'dtk', 'by ASN too');
+  assert.equal(T('network', { network: '3320' }).id, 'dtk', 'by ASN too');
   const ams = T('city', { city: 'Amsterdam' });
   assert.ok(ams.exchanges.length >= 2 && ams.transit.length > 3);
   assert.deepEqual(ams.transit.map((x) => x.perGbps), ams.transit.map((x) => x.perGbps).slice().sort((x, y) => x - y), 'cheapest transit first');
@@ -102,7 +102,7 @@ test('reads the world and the network: networks, cities, search, traceroute, pee
   assert.ok(T('find', { query: 'kicks', kind: 'exchange' }).exchanges.some((x) => x.id === 'fra'));
   const t = T('traceroute', { from: 'Frankfurt', to: 'ggl' });
   assert.match(t.text, /traceroute to www\.goggle/);
-  assert.equal(t.asPath[1], 714, 'out through Cogentle');
+  assert.equal(t.asPath[1], 174, 'out through Cogentle');
   assert.throws(() => T('traceroute', { from: 'Tokyo', to: 'ggl' }), /no POP in Tokyo/);
   const p = T('peering_check', { network: 'nfx' });
   assert.ok(p.checks.some((c) => c.via === 'pni' && c.ok === false && /Gbps/.test(c.why)));
@@ -112,6 +112,36 @@ test('reads the world and the network: networks, cities, search, traceroute, pee
   const st = T('status');
   assert.match(st.whyNotTier1, /you buy transit/);
   assert.ok(st.monthly.costBy.transit > 0);
+  assert.deepEqual(s.errors(), []);
+});
+
+test('reports IPv6 reach, mandatory premium transit and live peering requirements', () => {
+  const s = createSession(), T = tools(s);
+  T('new_game', { city: 'fra', preset: 'sandbox' });
+  T('act', { action: 'buyTransit', args: { city: 'fra', net: 'cog', tier: 1 } });
+  assert.equal(T('status').traffic.reach, 'Partial');
+  T('act', { action: 'buyTransit', args: { city: 'fra', net: 'drz', tier: 1 } });
+  assert.equal(T('status').traffic.reach, '100%');
+  assert.match(T('network', { network: '6939' }).type, /IPv6/);
+  assert.match(T('city', { city: 'fra' }).transit.find((n) => n.id === 'drz').type, /IPv6/);
+  assert.match(T('find', { query: '6939', kind: 'network' }).networks[0].type, /IPv6/);
+  assert.equal(T('peering_check', { network: 'dtk', via: 'pni' }).checks[0].minimumPort, '1G');
+  const hk = T('city', { city: 'hkg' }).transit.find((n) => n.id === 'ctc').perGbps;
+  const mos = T('city', { city: 'mos' }).transit.find((n) => n.id === 'ctc').perGbps;
+  assert.equal(mos, Math.round(hk * s.game.ev('NET.ctc.premium') * 10) / 10, 'Moscow only sells the Hong Kong premium crossing');
+  T('new_game', { city: 'tor', preset: 'sandbox' });
+  for (const city of ['tor', 'sjc']) {
+    const check = T('peering_check', { network: 'gfb', city, via: 'pni' }).checks[0];
+    assert.equal(check.ok, false, 'both networks must have a POP in the requested city');
+    assert.match(check.why, /no POPs in common/);
+  }
+  T('new_game', { city: 'hnl', preset: 'sandbox' });
+  let p = T('peering_check', { network: 'hwt', via: 'pni' });
+  assert.ok(p.checks.some((c) => !c.ok && /two shared PoPs/.test(c.why)));
+  T('act', { action: 'buildPop', args: { city: 'lax' } });
+  p = T('peering_check', { network: 'hwt', via: 'pni' });
+  assert.ok(p.checks.some((c) => !c.ok && /Gbps/.test(c.why)), 'two sites do not waive the traffic requirement');
+  assert.equal(T('peering_check', { network: 'ctc', city: 'lax', via: 'pni' }).policy, 'selective');
   assert.deepEqual(s.errors(), []);
 });
 

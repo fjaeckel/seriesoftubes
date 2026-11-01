@@ -24,7 +24,7 @@ test('five city sizes from eyeballs: megacities are rare, outposts are huts', t 
   assert.equal(ev("cTier('dks')"), 0, 'Dikson');
   const n = JSON.parse(ev("JSON.stringify([0,1,2,3,4].map(t=>CITIES.filter(C=>cTier(C.id)===t).length))"));
   assert.ok(n.every(x => x > 0), `every size is used: ${n}`);
-  assert.ok(n[4] <= 20, `megacities stay rare: ${n[4]}`);
+  assert.ok(n[4] <= ev('CITIES.length') * 0.1, `megacities stay rare: ${n[4]}`);
   // bigger cities draw bigger, near and far
   assert.equal(ev("[1,2,3,4].every(t=>SKY_H[t]>SKY_H[t-1]&&SKY_W[t]>SKY_W[t-1]&&FAR_R[t]>FAR_R[t-1])"), true);
   assert.deepEqual(errors, []);
@@ -51,7 +51,7 @@ test('crowded small cities give way to bigger ones as dots; your POPs and the se
 test('zooming in gives every city its skyline back; zoomed out the map is dots sized by eyeballs', t => {
   const { ev, errors } = game(t);
   const dots = z => frame(ev, z).filter(x => x.dem).length;
-  const a = dots(1.05), b = dots(1.7), c = dots(3.2);
+  const a = dots(1.05), b = dots(1.7), c = dots(ev('ZMAX'));
   assert.ok(a > b && b > c, `fewer dots as you zoom in: ${a}, ${b}, ${c}`);
   assert.equal(c, 0, 'close in, every city in view has its skyline');
   // far view: no room to share, every city is a dot drawn by size (cityRoom is not needed)

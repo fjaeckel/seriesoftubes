@@ -19,22 +19,22 @@ test('bulk PNIs add missing shared POPs and upgrade smaller ports once, preservi
     {id:'augment',net:'drz',city:'nyc',tier:0,up:{tier:1,n:1,ready:S.day+20}});compute()`);
   const before = ev('JSON.stringify(S)');
   assert.deepEqual(JSON.parse(ev("JSON.stringify((b=>({shared:b.shared.length,orders:b.orders.length,kept:b.kept,cost:b.cost,mo:b.mo}))(pniBatch('drz',1)))")),
-    { shared: 6, orders: 2, kept: 4, cost: 6750, mo: 650 });
+    { shared: 7, orders: 3, kept: 4, cost: 9000, mo: 1000 });
   assert.equal(ev('JSON.stringify(S)'), before, 'preview does not change the save');
   const cash = ev('S.cash');
   const existing = JSON.parse(ev("JSON.stringify(S.pni.filter(p=>p.id!=='small'))"));
   ev("const originalAfter=after;window.after=()=>{window.afterCount=(window.afterCount||0)+1;originalAfter()};ACT.pniAll({net:'drz',tier:1})");
   assert.equal(ev('window.afterCount'), 1, 'one recompute/render/save for the whole batch');
-  assert.equal(ev('S.cash'), cash - 6750);
-  assert.equal(ev('S.pni.length'), 6);
-  assert.equal(ev("S.pni.filter(p=>p.city==='sao'||p.city==='tok').length"), 0, 'only shared owned POPs');
+  assert.equal(ev('S.cash'), cash - 9000);
+  assert.equal(ev('S.pni.length'), 7);
+  assert.equal(ev("S.pni.filter(p=>p.city==='tok').length"), 0, 'only shared owned POPs');
   assert.deepEqual(JSON.parse(ev("JSON.stringify(S.pni.filter(p=>['big','equal','pending','augment'].includes(p.id)))")), existing);
   assert.equal(ev("S.pni.find(p=>p.id==='small').up.n"), 2);
   assert.equal(ev("S.pni.find(p=>p.id==='small').site"), 'ab');
   assert.equal(ev("S.pni.find(p=>p.id==='small').pref"), 'high');
   assert.ok(ev("S.pni.find(p=>p.city==='sjc').ready>S.day"), 'new PNIs still take time');
   ev("ACT.pniAll({net:'drz',tier:1})");
-  assert.equal(ev('S.cash'), cash - 6750, 'repeat clicks neither charge nor duplicate');
+  assert.equal(ev('S.cash'), cash - 9000, 'repeat clicks neither charge nor duplicate');
   assert.equal(ev('window.afterCount'), 1);
   ev('S=migrate(JSON.parse(JSON.stringify(packSave(S))));S.day=Math.max(...S.pni.map(p=>p.up?p.up.ready:p.ready||0));pniDay(S.day);compute()');
   assert.equal(ev("S.pni.find(p=>p.id==='small').tier"), 1, 'augment survives save migration and delivers');

@@ -12,10 +12,11 @@ const big = (t) => { const h = load({ seed: 777 }); t.after(() => h.dom.window.c
   h.dom.window.structuredClone = globalThis.structuredClone;   // what postMessage does between the threads
   h.ev(`S=migrate(JSON.parse(${JSON.stringify(BIG)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();autoPause=()=>false;compute();`); return h; };
 // R with its lazy parts (R.ef, R.fl) read out, attacks by id.
-const SIG = "(()=>{const o={};for(const k in R)o[k]=R[k];o.ef={};for(const k in R.ef)o.ef[k]=R.ef[k];o.fl=(R.fl||[]).map(f=>[f.c,f.n,f.junk,f.rem,f.gt,f.gi,f.gp,f.gh,f.ti,f.ii]);return JSON.stringify(o,(k,v)=>k==='attack'?(v&&v.id):k==='ports'?undefined:v);})()";
+const SIG = "(()=>{const o={};for(const k in R)o[k]=R[k];o.ef={};for(const k in R.ef)o.ef[k]=R.ef[k];o.fl=(R.fl||[]).map(f=>[f.c,f.n,f.junk,f.rem,f.gt,f.gi,f.gp,f.gh,f.ti,f.ii,f.v6,f.tn]);return JSON.stringify(o,(k,v)=>k==='attack'?(v&&v.id):k==='ports'?undefined:v);})()";
 
 test('R packed, cloned and unpacked is the same R, lazy parts and key order included', (t) => {
   const { ev, errors } = big(t);
+  assert.equal(ev('R.fl.some(f=>f.v6)&&R.fl.some(f=>f.tn)'), true, 'the fixture exercises IPv6 and selected upstreams');
   const want = ev(SIG);
   ev("{const {o,p,tr}=rwPack(R);const c=structuredClone({o,p},{transfer:tr});R=rwUnpack(c.o,c.p);UI.hotMap=hotByCity();}");
   assert.equal(ev(SIG), want);
@@ -45,4 +46,17 @@ test('a day split around its routing is the same day; tests never use the worker
   assert.equal(b.ev(st), a.ev(st));
   assert.equal(a.ev('rwOn()'), false);
   assert.deepEqual([...a.errors, ...b.errors], []);
+});
+
+test('a late worker answer or failure cannot bill a replacement save', t => {
+  for (const finish of ['rwDone({seq:1})', 'rwKill()']) {
+    const { ev, dom, errors } = load(); t.after(() => dom.window.close());
+    ev("beginGame('Old','fra',{mode:'sandbox'});RW.job={seq:1,d:S.day,gen:RW.gen,state:S};beginGame('New','sin',{mode:'sandbox'})");
+    const state = () => ev('JSON.stringify({day:S.day,cash:S.cash,pops:S.pops,stats:S.stats,offers:S.offers,biz:S.biz,inc:S.inc})');
+    const before = state();
+    ev(finish);
+    assert.equal(state(), before, finish);
+    assert.equal(ev('RW.job'), null);
+    assert.deepEqual(errors, []);
+  }
 });

@@ -12,9 +12,10 @@ Object.assign(ACT,{
    if(shipSea(i)){if(shipRush(i)){const s=SHIP[i.ship];toast(tr('cable_ships.ship_chartered',{ship:esc(s.n),home:esc(CITY[s.home].name),n:Math.max(1,i.until-S.day)}),'good');sfx('coin');after();}return;}if(i.slow&&i.rushed)return;if(!spend(i.cost))return;
    if(i.slow&&i.until>S.day+1){i.rushed=true;i.cost=0;i.until=S.day+1;const p=S.pops[i.ref];if(p)p.down=Math.min(p.down,S.day+1);toast(tr('links.power_cycled_the_router_in_city',{city:esc(CITY[i.ref].name),chip:esc(RG[(p&&p.rgen)||0].chip)}),'good');after();return;}clearInc(i);toast(tr('links.fixed_what_resolved_early',{what:incTitle(i.type)}),'good');after();},
  myIxUp:({city})=>{const m=S.myIx[city];if(!m)return;const f=(m.fab|0)+1,N=MYIX_FAB[f];if(!N)return;if(N.lvl>lvl()){toast(tr('links.a_fab_fabric_unlocks_at_customer',{fab:N.n,lv:N.lvl}),'bad');sfx('err');return;}if(!spend(N.cost))return;m.fab=f;toast(tr('links.ix_now_runs_a_fab_fabric',{ix:esc(m.name),fab:N.n,max:N.max}),'good');m.next=Math.min(m.next,S.day+3);after();},
- foundIx:({city})=>{if(!S.pops[city]||S.myIx[city]||CITY[city].ix||CITY[city].cn)return;if(!spend(MYIX_COST))return;const nm=(S.name.split(' ')[0]||'My').replace(/[^A-Za-z0-9]/g,'').slice(0,10)+'-IX '+CITY[city].name;
+ foundIx:({city})=>{if(!S.pops[city]||S.myIx[city]||CITY[city].ix||CITY[city].cn||CITY[city].kp)return;if(!spend(MYIX_COST))return;const nm=(S.name.split(' ')[0]||'My').replace(/[^A-Za-z0-9]/g,'').slice(0,10)+'-IX '+CITY[city].name;
    S.myIx[city]={name:nm,members:[],next:S.day+4};S.ixp[city]=2;toast(tr('links.you_founded_ix_networks_will_join',{ix:esc(nm)}),'goal');after();},
  buildLink:({tier})=>{tier=+tier;const p=UI.pending;if(!p)return;const {a,b}=p;const km=kmBetween(a,b),sub=isSub(a,b),sib=pairLinks(a,b).filter(l=>l.kind!=='vxc'),jn=sib.length?routeJoin(a,b):null,same=!!jn,border=cnCity(a)!==cnCity(b),mult=(sib.length&&!(jn&&jn.k===(landTrenches(a,b)[0]||{}).k)?DIVERSE:1)*(border?3*(UI.cnPrem&&(a==='hkg'||b==='hkg')?1.6:1):1);
+   if(closedPair(a,b)){toast(corridorWhy(a,b),'bad');sfx('err');return;}
    if((cnCity(a)||cnCity(b))&&!cnOk())return;
    if(!waveOk(a,b,tier)){toast(tr('links.a_wave_wave_needs_need_at',{wave:LT[tier].n,need:esc(waveNeed(tier))}),'bad');sfx('err');return;}
    const wr=waveRoute(a,b,mult,border);if(!wr){toast(tr('links.no_cable_available_for_that_route'),'bad');sfx('err');return;}

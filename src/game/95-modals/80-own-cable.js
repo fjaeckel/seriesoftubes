@@ -195,7 +195,7 @@ const cabBack=l=>{if(!l||l.kind!=='df'||!l.own||!l.sub)return 0;const c=l.paid>0
   if(l.ready>S.day){const tot=Math.max(1,l.ready-(l.day||0));return Math.round(c*0.75*Math.min(1,(l.ready-S.day)/tot));}return 0;};
 // Your own subsea cable is a Tier 1 privilege, or a sandbox toy (open gates).
 const cabOpen=()=>!!S.won||gatesOpen();
-function ownCabWhy(a,b){if(!seaCab(a,b))return tr('own_cable.this_route_is_on_land_build');
+function ownCabWhy(a,b){if(CITY[a].kp||CITY[b].kp)return tr('city_panel.pyongyang_rules',{net:NET.kpt.name});if(closedPair(a,b))return corridorWhy(a,b);if(!seaCab(a,b))return tr('own_cable.this_route_is_on_land_build');
   if(!cabOpen())return tr('own_cable.laying_your_own_subsea_cable_is');
   for(const c of [a,b])if(!landing(c))return tr('own_cable.city_has_no_cable_landing_station',{city:CITY[c].name});
   if(cnCity(a)||cnCity(b))return tr('own_cable.nobody_gives_a_foreign_network_a');

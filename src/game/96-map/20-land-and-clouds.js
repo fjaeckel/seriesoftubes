@@ -5,12 +5,15 @@ const polyBox=pts=>{let b=pts.box;if(!b){let x0=Infinity,y0=Infinity,x1=-Infinit
 function inPoly(x,y,pts){const b=polyBox(pts);if(x<b[0]||x>b[2]||y<b[1]||y>b[3])return false;let ins=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const P=pts[i],Q=pts[j],xi=P[0],yi=P[1],xj=Q[0],yj=Q[1];if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))ins=!ins;}return ins;}
 function smoothPath(pts){const p=new Path2D();const n=pts.length;const mid=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2];let m=mid(pts[n-1],pts[0]);p.moveTo(m[0],m[1]);for(let i=0;i<n;i++){const nx=pts[(i+1)%n];m=mid(pts[i],nx);p.quadraticCurveTo(pts[i][0],pts[i][1],m[0],m[1]);}p.closePath();return p;}
 const LANDP_ALL=COAST.map(smoothPath);
+const LAKEP=LAKES.map(smoothPath);
+const BORDERP=new Path2D();for(const r of BORDERS){BORDERP.moveTo(...r[0]);for(let i=1;i<r.length;i++)BORDERP.lineTo(...r[i]);}
+const CABLEP=CABLE_PAIRS.map(c=>{const p=new Path2D();p.moveTo(...c.pts[0]);for(let i=1;i<c.pts.length;i++)p.lineTo(...c.pts[i]);return p;});
 // Zoomed out, hundreds of tiny Arctic and Pacific islets, each with a thick outline, turn into noise.
 // The far view skips islands smaller than ~600 map px² (Sardinia-sized) unless a city is on them.
 const ringArea=p=>{let a=0;for(let i=0,j=p.length-1;i<p.length;j=i++)a+=(p[j][0]+p[i][0])*(p[j][1]-p[i][1]);return Math.abs(a/2);};
 const LANDP_FAR=COAST.map((p,i)=>ringArea(p)>=600||CITIES.some(c=>inPoly(c.x,c.y,p))?LANDP_ALL[i]:null).filter(Boolean);
 const ALLPOLY=COAST;
-const onLand=(x,y)=>ALLPOLY.some(p=>inPoly(x,y,p));
+const onLand=(x,y)=>ALLPOLY.some(p=>inPoly(x,y,p))&&!LAKES.some(p=>inPoly(x,y,p));
 const R1=rng(7),WAVES=[],HILLS=[];
 while(WAVES.length<220){const x=R1()*W,y=R1()*H;if(!onLand(x,y)&&!onLand(x+12,y)&&!onLand(x-12,y))WAVES.push([x,y,R1()]);}
 while(HILLS.length<130){const x=R1()*W,y=R1()*H;if(onLand(x,y)&&!CITIES.some(c=>Math.hypot(c.x-x,c.y-y)<40))HILLS.push([x,y,6+R1()*10,R1()]);}

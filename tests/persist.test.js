@@ -86,7 +86,7 @@ test('version comparison for the update banner', () => {
 test('#46 an update that adds networks gives a courtesy route, and Tier 1 is shown only while it is true', () => {
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1});compute()");
-  assert.ok(ev('R.reach') > 0.99);
+  assert.ok(ev('R.reach4') > 0.99);
   assert.ok(Array.isArray(JSON.parse(ev('JSON.stringify(S.seen)'))), 'new games remember which networks existed');
   // a transit-free network that has never heard of two of today's networks
   ev("S.transit=[];S.day=400;S.seen=S.seen.filter(id=>id!=='btt'&&id!=='sky');const s=JSON.parse(JSON.stringify(S));S=migrate(s);compute()");

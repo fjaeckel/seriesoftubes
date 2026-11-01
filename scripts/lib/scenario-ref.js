@@ -19,7 +19,7 @@ Q.can=x=>S.cash>=x+Q.reserve();
 Q.cheap=c=>NETS.filter(n=>n.price&&sellsAt(n,c)&&!(Q.avoid||[]).includes(n.id)&&!S.transit.some(t=>t.city===c&&t.net===n.id)).sort((a,b)=>a.price*netMult(a,c)-b.price*netMult(b,c))[0];
 Q.pop=c=>{if(!S.pops[c])ACT.buildPop({city:c});return !!S.pops[c];};
 Q.bb=c=>{Q.pop(c);if(S.pops[c]&&!S.pops[c].bb)ACT.launchBB({city:c});return !!(S.pops[c]&&S.pops[c].bb);};
-Q.tr=(c,tier=1)=>{Q.pop(c);const n=Q.cheap(c);if(!n)return true;ACT.buyTransit({city:c,net:n.id,tier});return true;};
+Q.tr=(c,tier=1,id)=>{Q.pop(c);const n=id?NET[id]:Q.cheap(c);if(!n)return true;ACT.buyTransit({city:c,net:n.id,tier});return true;};
 Q.last=c=>{for(const t of S.transit)if(t.city===c)ACT.setPref({kind:'t',id:t.id,v:'low'});return true;};
 Q.ix=(c,tier=1)=>{if(!S.pops[c])return false;for(const x of ixIdsIn(c)){if(!ixName(x))continue;if(S.ixp[x]===undefined)ACT.buyIx({city:x,tier,signed:true});if(S.ixp[x]===undefined)continue;if(!S.rs[x])ACT.rs({city:x});ACT.peerAll({city:x});}return true;};
 // A wave: big waves need big routers at both ends, and a router swap takes a day, so the step waits (null) until they fit.
@@ -51,6 +51,7 @@ Q.upkeep=()=>{
   if(!(opsHired()&&S.ops.on.transit))for(const t of S.transit.slice()){const u=(R.useT&&R.useT[t.id])||0,cap=lagCap(PORT[t.tier].g,t.n);if(u<cap*0.75)continue;
     if((t.n||1)<2||t.tier>=PORT.length-1||!portOk(t.city,t.tier+1)){if(Q.can(PORT[t.tier].setup+20000))ACT.lagT({id:t.id,d:1});if(lagCap(PORT[t.tier].g,t.n)===cap&&Q.can(80000))ACT.upRouter({city:t.city});}
     else if(Q.can(PORT[t.tier+1].setup+30000))ACT.buyTransit({city:t.city,net:t.net,tier:t.tier+1});}
+  for(const p of S.pni)if(pniOn(p)&&!p.up&&(p.n||1)<LAG_MAX&&(R.usePni[p.id]||0)>=lagCap(pniG(p),p.n)*0.75&&Q.can(1500+PORT[p.tier].setup/2))ACT.lagP({id:p.id,d:1});
   for(const x in S.ixp){if(S.myIx&&S.myIx[x])continue;const u=(R.useIx&&R.useIx[x])||0;if(u>=lagCap(PORT[S.ixp[x]].g,(S.ixn||{})[x])*0.75&&Q.can(30000))ACT.lagIx({city:x,d:1});}
   if(!(opsHired()&&S.ops.on.routers))for(const c in S.pops){if((R.nodeLoad[c]||0)/(R.nodeCap[c]||nodeCap(c)||1)>0.8&&Q.can(80000)){if((S.pops[c].routers||1)<2)ACT.addRouter({city:c});else ACT.upRouter({city:c});}}};
 Q.step=()=>{for(let k=0;k<6;k++){const s=Q.steps[Q.i];if(!s)return;const [op,...a]=s;

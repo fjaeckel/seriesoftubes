@@ -14,7 +14,7 @@ function renderHUD(){
   $('hTraffic').textContent=`${fmtG(R.served)}`;
   $('hTrafBar').style.width=(R.demand?R.served/R.demand*100:0)+'%';
   $('hTrafBar').style.background=R.demand&&R.served/R.demand<0.9?'var(--bad)':'var(--ok)';
-  $('hReach').textContent=reachPct(R.reach);$('hReach').style.color=R.reach<0.99?'var(--bad)':'var(--eye)';
+  {const gap=!!Object.keys(R.v6Gap).length;$('hReach').textContent=gap?tr('common.partial'):reachPct(R.reach);$('hReach').style.color=gap||R.reach<0.99?'var(--bad)':'var(--eye)';$('hReach').title=tr('hud_and_panels.ipv4_ipv6_reach',{v4:reachPct(R.reach4),v6:gap?tr('common.partial'):reachPct(R.reach6)});}
   $('hTier').textContent=tierLabel()+' · '+tr('hud_and_panels.lv_n',{n:S.lvl||1});
   {const P=scnProg(),hs=$('hScn');hs.hidden=!P;if(P){const sc=S.scn;$('hScnVal').textContent=sc.done?tr('common.done'):sc.failed?tr('common.time_s_up'):`${Math.round(P.f*100)}% · ${tr('ui.n_d_left',{n:Math.max(0,sc.days-S.day)})}`;}}
   $('hDate').textContent=dateStr(S.day);
@@ -32,7 +32,8 @@ function renderLeft(){checkLayer();
   if(!S||pzOn()){L.hidden=true;return;}L.hidden=false;
   const ndone=GOALS.filter(g=>S.done[g.id]!==undefined).length;
   const tabs=[['goals',`${tr('common.goals')}<span class="cnt">${ndone}/${GOALS.length}</span>`],['deals',`${tr('common.deals')}${S.offers.length?`<span class="cnt">${S.offers.length}</span>`:''}`],['noc',`NOC${S.inc.length?`<span class="cnt red dot" aria-hidden="true"></span>`:''}`],['nets',tr('common.networks')]];
-  $('leftTabs').innerHTML=tabs.map(([k,l])=>`<button class="${UI.left===k?'on':''}" data-act="leftTab" data-args='{"t":"${k}"}'>${l}</button>`).join('')+(innerWidth<760?`<button data-act="toggleLeft" style="margin-left:auto" aria-label="${tr('common.close')}">×</button>`:'');
+  const th=tabs.map(([k,l])=>`<button class="${UI.left===k?'on':''}" data-act="leftTab" data-args='{"t":"${k}"}'>${l}</button>`).join('')+(innerWidth<760?`<button data-act="toggleLeft" style="margin-left:auto" aria-label="${tr('common.close')}">×</button>`:'');
+  if(th!==UI._lth||!$('leftTabs').firstChild){UI._lth=th;morph($('leftTabs'),th);}
   let h='';
   if(UI.left==='goals'){
     h+=charterCard()+scnCard()+lvlCard()+t1Card();
@@ -79,7 +80,7 @@ function renderLeft(){checkLayer();
     // Shown 100 at a time like the dashboard lists: every country's own eyeballs made this list long (2.0).
     const nl=(foc?[foc]:out?ntLost():NETS).filter(n=>!n.tail||UI.tailOpen||foc||out);
     for(const n of nl.slice(0,listN('nets'))){
-      h+=`<div class="row">${logo(n)}<div class="grow"><div class="nm">${esc(n.name)} <span class="meta">AS${n.asn}</span></div><div class="meta"><span class="tag ${n.type}">${TYPE_L[n.type]}</span> <span class="tag ${n.pol}">${n.pol}</span> · ${tr('hud_and_panels.p_of_traffic',{p:(NSH[n.id]*100).toFixed(1)})}${n.price?` · ${tr('hud_and_panels.transit_price_gbps',{price:(n.price*S.priceMul).toFixed(2)})}`:''}</div><div class="pchips">${pniChip(n.id,null)}</div><div class="meta">${esc(n.blurb)}</div>${netWhere(n,where)}${(foc||out)&&!R.nt[n.id]?`<p class="why">${esc(offTransitHint(n.id))}</p>`:''}${(foc||out)&&coneVia(n.id)&&(R.cone[n.id]||!R.nt[n.id])?`<p class="meta">${R.cone[n.id]?tr('hud_and_panels.reached_through_the_customer_cone_of',{net:esc((NET[R.cone[n.id]]||coneVia(n.id)).name)}):tr('hud_and_panels.buys_transit_from_net_peer_with',{net:esc(coneVia(n.id).name)})}</p>`:''}${foc||out&&!R.nt[n.id]?meetLine(n,foc?24:4):''}</div></div>`;}
+      h+=`<div class="row">${logo(n)}<div class="grow"><div class="nm">${esc(n.name)} <span class="meta">AS${n.asn}</span></div><div class="meta"><span class="tag ${n.type}">${netTier(n)}</span> <span class="tag ${n.pol}">${n.pol}</span> · ${tr('hud_and_panels.p_of_traffic',{p:(NSH[n.id]*100).toFixed(1)})}${n.price?` · ${tr('hud_and_panels.transit_price_gbps',{price:(n.price*S.priceMul).toFixed(2)})}`:''}</div><div class="pchips">${pniChip(n.id,null)}</div><div class="meta">${esc(n.blurb)}</div>${netWhere(n,where)}${(foc||out)&&!R.nt[n.id]?`<p class="why">${esc(offTransitHint(n.id))}</p>`:''}${(foc||out)&&coneVia(n.id)&&(R.cone[n.id]||!R.nt[n.id])?`<p class="meta">${R.cone[n.id]?tr('hud_and_panels.reached_through_the_customer_cone_of',{net:esc((NET[R.cone[n.id]]||coneVia(n.id)).name)}):tr('hud_and_panels.buys_transit_from_net_peer_with',{net:esc(coneVia(n.id).name)})}</p>`:''}${foc||out&&!R.nt[n.id]?meetLine(n,foc?24:4):''}</div></div>`;}
     h+=listMore('nets',nl.length,n=>trn('hud_and_panels.n_more_networks',n));
     if(!foc&&!out)h+=`<div class="row"><div class="grow"><div class="nm">${tr('hud_and_panels.the_long_tail')} <span class="meta">${tr('hud_and_panels.n_small_networks',{n:tl.length})}</span></div><div class="meta">${tr('hud_and_panels.p_of_traffic_between_them_scattered',{p:(tl.reduce((a,n)=>a+NSH[n.id],0)*100).toFixed(1),n:tlOn})}</div></div>${btn(UI.tailOpen?tr('common.hide'):tr('common.show'),'tailTog',{},'ghost sm')}</div>`;
   }

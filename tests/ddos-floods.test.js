@@ -5,7 +5,7 @@ const { load } = require('./harness');
 
 // Frankfurt has the eyeballs and no transit; all transit is in Amsterdam, 100G of wave away.
 const remoteTransit = (ev, flip) => {
-  ev("ACT.start({});S.cash=1e9;S.nextFail=1e9;S.nextEvent=1e9;ACT.buildPop({city:'ams'});ACT.launchBB({city:'fra'});S.links.push({id:'L',a:'fra',b:'ams',kind:'wave',tier:1,km:400,mo:1,cut:0});ACT.buyTransit({city:'ams',net:NETS.find(n=>sellsAt(n,'ams')).id,tier:1})");
+  ev("ACT.start({});S.cash=1e9;S.nextFail=1e9;S.nextEvent=1e9;ACT.buildPop({city:'ams'});ACT.launchBB({city:'fra'});S.links.push({id:'L',a:'fra',b:'ams',kind:'wave',tier:1,km:400,mo:1,cut:0});ACT.buyTransit({city:'ams',net:'lvl',tier:1})");
   if (flip) ev("const p=S.pops;S.pops={ams:p.ams,fra:p.fra}");
   ev("compute()");
 };
@@ -30,7 +30,7 @@ test('a flood loads the backbone and the victim as on main, whatever order the P
 test('an attack is held or lost at its victim; other POPs and their DDoS-protected customers are not charged', () => {
   const { ev, errors } = load({ seed: 5 });
   ev("ACT.start({});S.cash=1e9;S.lvl=6;S.nextFail=1e9;S.nextEvent=1e9;ACT.buildPop({city:'nyc'});for(const c of ['fra','nyc']){S.pops[c].bb={d:50};S.pops[c].rgen=3}");
-  ev("S.transit=[{id:'tf',city:'fra',net:'cog',tier:2},{id:'tn',city:'nyc',net:'cog',tier:0}];S.scrubs=[{city:'fra',tier:1}];S.scrubMode='always'");
+  ev("S.transit=[{id:'tf',city:'fra',net:'lvl',tier:2},{id:'tn',city:'nyc',net:'lvl',tier:0}];S.scrubs=[{city:'fra',tier:1}];S.scrubMode='always'");
   // New York is struggling on its own (a 10G port for 200G of eyeballs), and has a DDoS-protected customer.
   ev("S.pops.nyc.bb.d=200;S.biz.push({id:'sc',type:'scrub',name:'Shield',city:'nyc',bw:1,rate:1000,mood:80,since:0})");
   ev("S.day=60;S.ev.ddos={id:'a',city:'fra',vec:'http',gbps:20,start:S.day,until:S.day+3,entry:{k:'t',id:'tf',lab:''}};compute()");
@@ -66,7 +66,7 @@ test('fourteen attacks on a big network keep the save small, and 2.0 saves with 
 
 test('spicy chaos stretches exactly the attack (or outage) an incident is about, and saves keep it', () => {
   const { ev, errors } = load({ seed: 99 });
-  ev("beginGame('R','fra',{mode:'normal',preset:'bgp'});if(UI.pendGame)ACT.pitchSkip();S.cash=1e12;ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.buildPop({city:'ams'});S.links.push({id:'L',a:'fra',b:'ams',kind:'wave',tier:1,km:400,mo:1,cut:0});S.day=50");
+  ev("beginGame('R','fra',{mode:'normal',preset:'bgp'});if(UI.pendGame)ACT.pitchSkip();S.cash=1e12;ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'lvl',tier:1});ACT.buildPop({city:'ams'});S.links.push({id:'L',a:'fra',b:'ams',kind:'wave',tier:1,km:400,mo:1,cut:0});S.day=50");
   // A link that happens to be cut until the same day as the next attacks must stay as it is.
   ev("S.links[0].cut=S.day+2");
   // The third draw of an attack is its length: 0 makes it one day.
@@ -110,7 +110,7 @@ test('the China licence arrives in a tenth of the time with quick lead times, an
 
 test('Flood Season escalates from ordinary floods to monsters, and goes for the people you serve', () => {
   const { ev, errors } = load({ seed: 5 });
-  ev("ACT.startScn({id:'flood',sure:1});S.cash=1e9;S.nextFail=1e9;S.nextEvent=1e9;ACT.launchBB({city:'ams'});ACT.buyTransit({city:'ams',net:NETS.find(n=>sellsAt(n,'ams')).id,tier:1});compute()");
+  ev("ACT.startScn({id:'flood',sure:1});S.cash=1e9;S.nextFail=1e9;S.nextEvent=1e9;ACT.launchBB({city:'ams'});ACT.buyTransit({city:'ams',net:'lvl',tier:1});compute()");
   const sizes = JSON.parse(ev("const o=[];for(let i=0;i<60;i++){dayTick();for(const a of ddosAll())if(a.start===S.day)o.push(a.gbps);}JSON.stringify(o)"));
   assert.ok(sizes.length >= 8 && sizes.some(g => g < 100), `a flood every few days, ordinary ones among them (${sizes.join(' ')})`);
   // A third are monsters, and they grow through the year.

@@ -40,7 +40,7 @@ test('#195 European traffic hauled to Moscow crosses into China with far less lo
   // Russians in the game send little to China; the point is Europe: carry Frankfurt's traffic to Moscow and hand it over there.
   const lost = premium => {
     const { ev, errors } = load();
-    ev(start + ";ACT.launchBB({city:'fra'});S.pops.fra.bb.d=300;ACT.buildPop({city:'mos'});ACT.buyTransit({city:'mos',net:'ctc',tier:1})");
+    ev(start + ";ACT.launchBB({city:'fra'});S.pops.fra.bb.d=50;ACT.buildPop({city:'mos'});ACT.buyTransit({city:'mos',net:'ctc',tier:1})");
     ev("S.links.push({id:'w1',a:'fra',b:'mos',kind:'wave',tier:3,km:2000,sub:false,mo:1,mult:1,trench:'w1',cut:0,day:0})");
     if (!premium) ev("S.transit.find(t=>t.net==='ctc').premium=false");
     ev('compute()');
@@ -62,7 +62,7 @@ test('#195 Hong Kong still works as before, and premium is not offered where it 
   assert.equal(ev(`${t}.premium`), true, 'switched on');
   ev(`ACT.togglePrem({id:${t}.id})`);
   assert.equal(ev(`${t}.premium`), false, 'and off again');
-  ev("ACT.buyTransit({city:'fra',net:'ctc',tier:1})");
+  ev("S.transit.push({id:'old-ctc',city:'fra',net:'ctc',tier:1,down:0})");
   ev("const f=S.transit.find(t=>t.city==='fra'&&t.net==='ctc');ACT.togglePrem({id:f.id})");
   assert.equal(ev("!!S.transit.find(t=>t.city==='fra'&&t.net==='ctc').premium"), false, 'no premium in Frankfurt');
   assert.deepEqual(errors, []);
@@ -70,7 +70,7 @@ test('#195 Hong Kong still works as before, and premium is not offered where it 
 
 test('#195 saves: a Moscow port stays premium, a bogus premium elsewhere is dropped, and it meets the China requirement', () => {
   const { ev, errors } = load();
-  ev(start + ";ACT.buildPop({city:'mos'});ACT.buyTransit({city:'mos',net:'ctc',tier:1});ACT.buyTransit({city:'fra',net:'ctc',tier:1})");
+  ev(start + ";ACT.buildPop({city:'mos'});ACT.buyTransit({city:'mos',net:'ctc',tier:1});S.transit.push({id:'old-ctc',city:'fra',net:'ctc',tier:1,down:0})");
   ev("const s=JSON.parse(JSON.stringify(S));for(const t of s.transit){if(t.city==='mos')t.premium=false;else if(t.net==='ctc')t.premium=true;}window.__t=migrate(s)");
   assert.equal(ev("__t.transit.find(t=>t.city==='mos').premium"), true);
   assert.equal(ev("__t.transit.find(t=>t.city==='fra'&&t.net==='ctc').premium"), false);

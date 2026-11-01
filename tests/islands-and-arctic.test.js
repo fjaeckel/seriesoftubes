@@ -21,7 +21,8 @@ test('the Caribbean: islands on their own landmass, real landings, exchanges onl
   // PR-IX, the Jamaica exchange, TTIX and AMS-IX Caribbean; none in Santo Domingo (they are in Santiago), Havana,
   // Nassau, Bridgetown or Martinique
   assert.deepEqual(isl.filter(c => ev(`!!CITY.${c}.ix`)), ['sju', 'kin', 'pos', 'cur']);
-  for (const c of ['sju', 'kin', 'pos', 'cur']) assert.ok(ev(`ixMembers('${c}').length`) >= 5, `${c} has members`);
+  for (const [c, local] of [['sju', 'tmo'], ['kin', 'dgc'], ['pos', 'tst'], ['cur', 'cwt']])
+    assert.ok(ev(`ixMembers('${c}').includes('${local}')&&ixMembers('${c}').includes('ggl')`), `${c} has local access and content peers`);
   // Cuba's only cable comes from Venezuela, nothing from Florida
   assert.deepEqual(JSON.parse(ev("JSON.stringify([...new Set(CABLE_PAIRS.filter(p=>p.a==='hav'||p.b==='hav').map(p=>p.cid))])")), ['alba']);
   assert.ok(lands(ev, 'alba', 'ccs', 'hav') && lands(ev, 'arcos', 'mia', 'nas') && lands(ev, 'arcos', 'sju', 'cur') && lands(ev, 'am2', 'pos', 'for'));

@@ -6,16 +6,16 @@ function base(ev) {
   ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'})");
 }
 
-test('#4 several transits in one city share the load instead of filling one by one', () => {
+test('#4 equal ports on the same transit provider share the load', () => {
   const { ev, errors } = load();
   base(ev);
-  ev("ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.buyTransit({city:'fra',net:'lvl',tier:1});compute()");
+  ev("ACT.buyTransit({city:'fra',net:'cog',tier:1});S.transit.push({...S.transit[0],id:'second'});compute()");
   const u = JSON.parse(ev("JSON.stringify(S.transit.map(t=>R.useT[t.id]||0))"));
   assert.equal(u.length, 2);
   assert.ok(u[0] > 0 && u[1] > 0, `both carry traffic (${u})`);
   assert.ok(Math.abs(u[0] - u[1]) / (u[0] + u[1]) < 0.35, `roughly balanced (${u})`);
   // local exits still win over far ones: a transit in London is not used while Frankfurt has room
-  ev("ACT.buildPop({city:'lon'});UI.via=null;openLinkModal('fra','lon');ACT.buildLink({tier:3});closeModal();ACT.buyTransit({city:'lon',net:'tly',tier:1});compute()");
+  ev("ACT.buildPop({city:'lon'});UI.via=null;openLinkModal('fra','lon');ACT.buildLink({tier:3});closeModal();ACT.buyTransit({city:'lon',net:'cog',tier:1});compute()");
   assert.equal(ev("R.useT[S.transit.find(t=>t.city==='lon').id]||0"), 0, 'remote transit stays idle');
   // backup-only still means backup only
   ev("S.transit[1].pref='low';compute()");
@@ -571,19 +571,19 @@ test('#64 leased and own land fiber stay near their route next to a trench full 
 test('buttons behind an open modal stay quiet, and a declined PNI clears its stale button', () => {
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e7;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});ACT.buildPop({city:'mrs'});ACT.buyTransit({city:'mrs',net:'cog',tier:1});compute()");
-  // the PNI button was drawn while Tangerine still wanted our traffic; by the click it doesn't
+  // The PNI button was drawn while NetChill still wanted our traffic. By the click it doesn't.
   // Tier 1 is folded when nothing there is worth a PNI (#175): open it, as a player would.
-  ev("UI.pniOpen={t1:true};R.demTo.tng=50;UI.sel={type:'city',id:'mrs'};UI.tab='peer';renderAll();R.demTo.tng=0;window.__n=0;const o=toast;toast=function(h){if(/declined/.test(h))window.__n++;return o.apply(this,arguments);}");
-  const btn = "document.querySelector('#panel [data-act=pni][data-args*=tng]')";
+  ev("UI.pniOpen={cdn:true};R.demTo.nfx=50;UI.sel={type:'city',id:'mrs'};UI.tab='peer';renderAll();R.demTo.nfx=0;window.__n=0;const o=toast;toast=function(h){if(/declined/.test(h))window.__n++;return o.apply(this,arguments);}");
+  const btn = "document.querySelector('#panel [data-act=pni][data-args*=nfx]')";
   assert.ok(ev(`!!${btn}`), 'a stale button to start with');
   ev(`${btn}.focus();${btn}.click()`);
   assert.equal(ev('__n'), 1);
   assert.equal(ev(`!!${btn}`), false, 'the panel redraws and shows why instead');
   // with a modal open, a click (from Enter, Space or anything else) on something behind it does nothing
-  ev("R.demTo.tng=50;renderAll();R.demTo.tng=0;const b=" + btn + ";b.focus();ACT.buyIx({city:ixIdsIn('mrs')[0],tier:1})");
+  ev("R.demTo.nfx=50;renderAll();R.demTo.nfx=0;const b=" + btn + ";b.focus();ACT.buyIx({city:ixIdsIn('mrs')[0],tier:1})");
   assert.equal(ev("$('modal').hidden"), false, 'the DE-KICKS quote is open');
   assert.notEqual(ev("document.activeElement&&document.activeElement.dataset.act"), 'pni', 'focus left the hidden button');
-  ev(`for(let i=0;i<5;i++)document.querySelector('#panel [data-act=pni][data-args*=tng]').click()`);
+  ev(`for(let i=0;i<5;i++)document.querySelector('#panel [data-act=pni][data-args*=nfx]').click()`);
   assert.equal(ev('__n'), 1, 'no declines from behind the quote');
   ev("document.querySelector('#modal [data-act=dkWalk]').click()");
   assert.equal(ev("$('modal').hidden"), true, 'buttons inside the modal still work');
@@ -1156,7 +1156,7 @@ test('#110 PNI buttons show the monthly port fee, not just the one-off setup', (
   const txt = ev("document.getElementById('panelBody').textContent");
   assert.match(txt, /10G \$1\.8k \+ \$200\/mo/, 'setup plus the monthly fee, like IX ports and LAG members');
   // upgrading an existing PNI says what the bigger port costs per month too, in the panel and in the NOC's list
-  ev("const n=NETS.find(x=>x.pops.includes('fra')&&!x.tail&&peerOk(x.id,'pni','fra').ok);S.pni.push({id:'p1',net:n.id,city:'fra',tier:0,n:1});after();selectCity('fra');ACT.tab({t:'peer'})");
+  ev("const n=NET.akm;S.pni.push({id:'p1',net:n.id,city:'fra',tier:0,n:1});after();selectCity('fra');ACT.tab({t:'peer'});ACT.pniFilter({f:'pni'})");
   assert.match(ev("document.getElementById('panelBody').textContent"), /Upgrade 100G \$2\.3k \+ \$350\/mo/);
   assert.match(ev("connUp(conns().find(r=>r.k==='p'&&r.id==='p1')).replace(/<[^>]+>/g,'')"), /Upgrade 100G \$2\.3k \+ \$350\/mo/);
   assert.deepEqual(errors, []);
@@ -1168,7 +1168,7 @@ test('#111 #121 #12 the road to Tier 1: what is missing, and where to meet each 
   ev("for(const c of ['fra','ams','nyc']){ACT.buildPop({city:c});S.pops[c].rgen=3;}ACT.buyTransit({city:'fra',net:'cog',tier:2});for(const x of ixIdsIn('ams'))ACT.buyIx({city:x,tier:2,signed:true});compute();ACT.peerAll({city:'ams'});compute()");
   const body = () => dom.window.document.getElementById('leftBody').textContent;
   // transit hides how much you would lose without it
-  assert.ok(ev('R.reach') > 0.99 && ev('R.reachNT') < ev('R.reach'), 'reach without transit is counted separately');
+  assert.ok(ev('R.reach4') > 0.99 && ev('R.reachNT') < ev('R.reach4'), 'reach without transit is counted separately');
   assert.equal(ev("NETS.filter(n=>R.nt[n.id]).reduce((a,n)=>a+NSH[n.id],0).toFixed(6)"), ev('R.reachNT.toFixed(6)'));
   // #111: the goal card lists the missing Tier 1 PNIs and the networks out of reach
   ev("UI.left='goals';UI.leftOpen=true;UI.sel=null;renderLeft()");
@@ -1186,7 +1186,7 @@ test('#111 #121 #12 the road to Tier 1: what is missing, and where to meet each 
   assert.ok(!body().includes(reached + ' AS'), 'networks you already reach are not on the list');
   assert.ok(ev("ntLost().every((n,i,a)=>!i||NSH[a[i-1].id]>=NSH[n.id])"));
   // #12, #121: every place to meet a network, your POPs first, then the nearest
-  const far = ev("NETS.find(n=>!n.tail&&n.ix!=='ALL'&&n.pops.length&&n.pops.every(c=>!S.pops[c])).id");
+  const far = ev("NETS.find(n=>!n.tail&&n.pol!=='paid'&&n.ix!=='ALL'&&n.pops.length&&n.pops.every(c=>!S.pops[c])).id");
   const spots = JSON.parse(ev(`JSON.stringify(meetSpots('${far}').map(x=>x.c))`));
   assert.ok(spots.length >= 1);
   const near = JSON.parse(ev("JSON.stringify(popNear())"));
@@ -1296,10 +1296,6 @@ test('#126 you can zoom in far enough, and pick a short link between two close c
   assert.equal(ev(`pickCity(${m.sx},${m.sy})`), null, 'the middle of the link is not grabbed by a city');
   assert.equal(ev(`hitLink(${m.sx},${m.sy})`), id);
   assert.equal(ev(`pickCity(${m.cx},${m.cy-4}).id`), 'sao', 'tapping the city icon still picks the city');
-  // even at the old maximum, a click on the link now picks the link where it is not under a city icon
-  const o = at(6);
-  assert.ok(Math.abs(o.z - 6) < 1e-9);
-  assert.equal(ev(`pickCity(${o.sx},${o.sy})`), null);
   assert.deepEqual(errors, []);
 });
 

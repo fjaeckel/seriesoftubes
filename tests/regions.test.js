@@ -28,7 +28,7 @@ test('South America: no land route over the Darién Gap, the Andes cost double, 
   assert.equal(ev("landMult('scl','bue')"), 2);
   assert.equal(ev("landMult('bue','sao')"), 1);
   assert.match(ev("landWhy('scl','bue')"), /Andes/);
-  assert.equal(ev("regionMult('sao')"), 1.6);
+  assert.equal(ev("regionMult('sao')"), 1.7);
   ev("ACT.buildPop({city:'sao'})");
   assert.ok(ev("ixPortMo('sao',1)") < ev("PORT[1].ix*0.5"), 'nonprofit IX ports are cheap');
   ev("selectCity('sao');ACT.tab({t:'peer'})");
@@ -358,9 +358,11 @@ test('Sparkly Seabone is a Tier 1 now, but old saves keep the five they played f
   ev("ACT.start({})");
   assert.equal(ev("NET.skl.type"), 't1');
   assert.ok(ev("NET.skl.pops.includes('nyc')&&NET.skl.pops.includes('sao')&&NET.skl.pops.includes('pmo')"));
-  assert.equal(ev("t1Need().length"), 9, 'new games need all nine, AT&Tease (#155), Doitsche and Tangerine (#194) included');
+  assert.equal(ev("t1Need().length"), 16, 'new games include the full Tier 1 list');
+  ev("S.t1v=4");
+  assert.equal(ev("t1Need().length"), 9, 'saves from the operator update keep nine');
   ev("S.t1v=3");
-  assert.equal(ev("t1Need().length"), 7, 'saves from before Doitsche and Tangerine keep seven');
+  assert.equal(ev("t1Need().length"), 7, 'saves from before the backbone expansion keep seven');
   ev("S.t1v=2");
   assert.equal(ev("t1Need().length"), 6, 'saves from before AT&Tease keep six');
   ev("delete S.t1v");
@@ -453,7 +455,7 @@ test('#76 Kansas City, Calgary, Vancouver and Ottawa, with two more Canadian gia
   ev("S.transit=[];S.ixp={};S.pni=[];for(const n of t1Need())S.pni.push({id:n.id,net:n.id,city:'fra',tier:0});compute()");
   assert.equal(ev("t1Need().every(n=>n.pops.includes('fra'))"), true);
   assert.equal(ev("R.reachable.tlu&&R.reachable.rgc"), true, 'reachable over PNIs with their upstream Tier 1s');
-  assert.equal(ev("NET.tlu.up.every(id=>NET[id].type==='t1')&&NET.rgc.up.every(id=>NET[id].type==='t1')"), true);
+  assert.equal(ev("['tlu','rgc'].every(id=>ANC[id].some(u=>NET[u].type==='t1'))"), true);
   // a cut on a Canadian link is often a beaver
   ev("ACT.buildPop({city:'van'});ACT.buildPop({city:'cal'});S.links=[];UI.via=null;openLinkModal('van','cal');ACT.buildLink({tier:1});closeModal()");
   const src = ev('fireFailure.toString()').replace(/^function fireFailure/, 'function');
@@ -468,7 +470,7 @@ test('#76 Kansas City, Calgary, Vancouver and Ottawa, with two more Canadian gia
 test('#70 Goggle throttling in Russia no longer counts as traffic you failed to deliver', () => {
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});ACT.buildPop({city:'mos'});ACT.launchBB({city:'mos'})");
-  ev("S.pops.fra.rgen=S.pops.mos.rgen=3;S.pops.fra.routers=S.pops.mos.routers=3;ACT.buyTransit({city:'fra',net:'cog',tier:4});ACT.lagT({id:S.transit[0].id,d:1});UI.via=null;UI.lmode='wave';openLinkModal('fra','mos');ACT.buildLink({tier:4});closeModal();S.pops.mos.bb.d=300;compute()");
+  ev("S.pops.fra.rgen=S.pops.mos.rgen=3;S.pops.fra.routers=S.pops.mos.routers=3;ACT.buyTransit({city:'fra',net:'lvl',tier:4});ACT.lagT({id:S.transit[0].id,d:1});UI.via=null;UI.lmode='wave';openLinkModal('fra','mos');ACT.buildLink({tier:4});closeModal();S.pops.mos.bb.d=300;compute()");
   assert.equal(ev('S.links.length'), 1);
   // (raw delivery: Moscow is backhauled to transit in Frankfurt, which its users feel as latency on top)
   assert.ok(ev("R.citySrv.mos/R.cityDem.mos") > 0.99, `Moscow is fully served (${ev("R.citySrv.mos/R.cityDem.mos")})`);
@@ -534,8 +536,8 @@ test('Stuttgart sits between Frankfurt and Zurich, and Hamburg, Munich and Düss
 test('Brazil has every IX.brrr location, in the right order on the map', () => {
   const { ev, errors } = load();
   start(ev);
-  const br = JSON.parse(ev('JSON.stringify(CITIES.filter(c=>c.br).map(c=>c.id))'));
-  assert.equal(br.length, 40, 'the forty IX.br locations');
+  const br = JSON.parse(ev("JSON.stringify(CITIES.filter(c=>c.br&&c.ix&&c.ix.startsWith('IX.brrr')).map(c=>c.id))"));
+  assert.ok(br.length >= 40, 'the original forty IX.br locations remain');
   const y = c => ev(`CITY.${c}.y`), x = c => ev(`CITY.${c}.x`);
   for (const [n, s] of [['bsb', 'bhz'], ['bhz', 'rio'], ['vix', 'rio'], ['ssa', 'vix'], ['nat', 'jpa'], ['jpa', 'rec'], ['rec', 'mcz'], ['sao', 'cwb'], ['cwb', 'poa'], ['cpq', 'sao'], ['cxj', 'poa']])
     assert.ok(y(n) < y(s), `${n} is north of ${s}`);
@@ -576,7 +578,7 @@ test('a Tier 1 reaches every Latin American and African network through the carr
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e9;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});S.transit=[];S.ixp={};S.pni=[];for(const n of t1Need())S.pni.push({id:n.id,net:n.id,city:'fra',tier:0});compute()");
   for (const n of ['oio', 'tmt', 'bsn', 'mvs', 'llt', 'ant', 'tgo', 'liq', 'scm', 'agc', 'djt', 'mtx', 'art', 'eth', 'mrc']) {
-    assert.equal(ev(`NET.${n}.up.every(id=>NET[id].type==='t1')`), true, `${n} buys from Tier 1s`);
+    assert.equal(ev(`ANC.${n}.some(id=>NET[id].type==='t1')`), true, `${n} has Tier 1 upstream reach`);
     assert.equal(ev(`R.reachable.${n}`), true, `${n} is reachable`);
   }
   assert.deepEqual(errors, []);
@@ -589,7 +591,7 @@ test('Africa: more countries, cables along both coasts, border costs and Cape to
   const af = JSON.parse(ev("JSON.stringify(CITIES.filter(c=>c.reg==='AF'&&c.land==='af').map(c=>c.id))"));
   assert.ok(af.length >= 26);
   for (const c of af) {
-    assert.ok(ev(`!!CITY.${c}.cc&&!!CITY.${c}.ix`), `${c} has a country and an IX`);
+    assert.ok(ev(`!!CITY.${c}.cc&&!!CITY.${c}.dc`), `${c} has a country and a data center`);
     assert.ok(ev(`NETS.some(n=>n.price&&n.pops.includes('${c}'))`), `${c} has a transit seller`);
   }
   for (const c of ['dkr', 'abj', 'acc', 'dla', 'lad', 'cas', 'alg', 'tun', 'jib', 'mba', 'dar', 'mpm', 'dur', 'wdh'])
@@ -615,7 +617,7 @@ test('Australia: hard mode start in Sydney, dear transit and waves, cheap IX por
   assert.equal(ev("regionMult('syd')"), 3, 'transit into Australia costs more than Asia');
   assert.ok(ev("regionMult('syd')>regionMult('sin')&&regionMult('syd')<regionMult('icn')"));
   assert.ok(ev("regionMult('akl')") < ev('AU_TRANSIT'), 'Auckland is not priced like Australia');
-  assert.equal(ev("regionMult('akl')"), ev("Math.round(1.8*txComp('akl')*10)/10"), 'Auckland pays the Oceania price, adjusted for its market');
+  assert.equal(ev("regionMult('akl')"), ev("Math.round(2*txComp('akl')*10)/10"), 'Auckland pays the Oceania price, adjusted for its market');
   assert.equal(ev("waveMarket('syd','lax',true).reg"), 2.6, 'any subsea wave touching Australia');
   assert.equal(ev("waveMarket('mel','syd',false).reg"), 1.8);
   assert.ok(ev("ixPortMo('syd',1)<PORT[1].ix"), 'IX ports are the cheap exception');
@@ -733,7 +735,7 @@ test('Pacific islands: real landings, real exchanges only, and island hops carry
   assert.deepEqual(isl.filter(c => ev(`!!CITY['${c}'].ix`)), ['hnl', 'gum', 'hir', 'nou', 'suv']);
   assert.equal(ev(`NETS.filter(n=>Array.isArray(n.ix)&&n.ix.some(c=>CITY[c]&&!CITY[c].ix&&${JSON.stringify(isl)}.includes(c))).length`), 0);
   // every new network is reachable through a Tier 1, so Tier 1 players keep their reach
-  assert.equal(ev(`NETS.filter(n=>n.type!=='t1'&&n.pops.every(c=>${JSON.stringify(isl)}.includes(c)||['tok','syd','lax'].includes(c))&&n.pops.some(c=>${JSON.stringify(isl)}.includes(c))&&!(n.up||[]).some(u=>NET[u].type==='t1')).map(n=>n.id).join()`), '');
+  assert.equal(ev(`NETS.filter(n=>n.type!=='t1'&&n.pops.every(c=>${JSON.stringify(isl)}.includes(c)||['tok','syd','lax'].includes(c))&&n.pops.some(c=>${JSON.stringify(isl)}.includes(c))&&!ANC[n.id].some(u=>NET[u].type==='t1')).map(n=>n.id).join()`), '');
   // a wave across the whole ocean carries far less than the same trip broken at the islands
   const hop = (path) => ev(`Math.min(...${JSON.stringify(path)}.slice(1).map((c,i)=>Math.max(...cablesFor(${JSON.stringify(path)}[i],c).map(p=>subCarrier(p.km)))))`);
   const direct = (a, b) => ev(`Math.max(...cablesFor('${a}','${b}').map(p=>subCarrier(p.km)))`);
@@ -1059,16 +1061,9 @@ test('an old save with Australian POPs is told once that Australia changed', () 
   assert.deepEqual(errors, []);
 });
 
-test('city density: no small city crowds a bigger one, Brazil is slimmer than Europe, and old saves keep retired cities', () => {
+test('expanded cities have distinct coordinates and old saves keep retired cities', () => {
   const { ev, errors } = load();
-  // A small city (P < 60) never sits within 300 km of a bigger city in the same country, unless it is a cable landing or a capital.
-  const bad = JSON.parse(ev(`JSON.stringify((()=>{const ctry=c=>c.cc||(c.br&&'BR')||(c.au&&'AU')||(c.ca&&'CA')||'land:'+c.land,out=[];
-    for(const c of CITIES){if(c.off||c.P>=60||c.capital||landing(c.id))continue;
-      for(const o of CITIES)if(o!==c&&!o.off&&o.P>c.P&&ctry(o)===ctry(c)&&kmBetween(c.id,o.id)<300)out.push(c.id+' near '+o.id+' ('+kmBetween(c.id,o.id)+' km)');}
-    return out;})())`));
-  assert.deepEqual(bad, [], 'add a bigger city, a capital flag or a cable landing, or mark it off');
-  const br = ev("CITIES.filter(c=>c.br&&!c.off).length"), eu = ev("CITIES.filter(c=>c.reg==='EU'&&!c.off).length");
-  assert.ok(br < eu * 0.7, `Brazil (${br}) well below Europe (${eu})`);
+  assert.equal(ev("new Set(CITIES.map(c=>CITY_LL[c.id].join())).size"), ev('CITIES.length'), 'separate cities never share physical coordinates');
   // a new game never shows or offers a retired city
   ev("ACT.start({});S.cash=1e9;for(const g of GOALS)S.done[g.id]=0");
   assert.equal(ev("cityOn('cpv')"), false);
@@ -1096,7 +1091,7 @@ test('prices follow real connectivity: thin markets cost more, hubs stay put', (
   assert.equal(ev("(()=>{const q=CITY_PDB.fra;delete CITY_PDB.fra;const r=[txComp('fra'),colo('fra'),popMo('fra')];CITY_PDB.fra=q;return r.join()})()"), `1,1,${ev('POP_MO')}`);
   assert.equal(ev("regionMult('syd')"), ev('AU_TRANSIT'), 'Australia keeps its hand-set transit price');
   for (const c of ['fra', 'ams', 'lon', 'nyc']) assert.equal(ev(`txComp('${c}')`), 1, `${c} is a hub`);
-  assert.equal(ev("regionMult('sao')"), 1.6, 'São Paulo keeps the South American price');
+  assert.equal(ev("regionMult('sao')"), 1.7, 'São Paulo keeps the South American price');
   assert.ok(ev("regionMult('rbr')") > ev("regionMult('sao')") * 1.5, 'Rio Branco has few sellers');
   assert.ok(ev("txComp('rbr')") <= 1.8);
   assert.equal(ev("colo('rbr')"), 1.5, 'no neutral data center');

@@ -22,7 +22,10 @@ function network(ev) {
     compute();`);
   // Share the model and path sender, but replace indexed exit selection with
   // the original full scan and stable sort for every flow.
-  const source = ev('compute.toString()');
+  let source = ev('compute.toString()');
+  const ts = source.indexOf('const bestTransit='), te = source.indexOf('const permits=', ts);
+  assert.ok(ts > 0 && te > ts, 'upstream choice has a plain reference');
+  source = source.slice(0, ts) + require('./helpers/reference-transit') + source.slice(te);
   const start = source.indexOf('  for(const pass of PASSES)for(const rank of RANKS){');
   const end = source.indexOf('  for(const i of NORD)', start);
   assert.ok(start >= 0 && end > start, 'allocation loop boundaries must exist');

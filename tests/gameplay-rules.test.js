@@ -11,71 +11,22 @@ const { load } = require('./harness');
 const EXCEPTIONS = {
   // W2: countries with fewer than two consumer networks of their own, because real life has fewer.
   W2: {
+    BN: 'Brunei retail brands share the national UNN access network and ASN',
     CU: 'Cuba has one state operator (ETECSA); Cubacel is its own mobile brand',
     DJ: 'Djibouti Telecom is the monopoly for homes and phones',
+    KP: 'public Internet uses the state-approved Star Joint Venture network',
     MH: 'the Marshall Islands have one telco (NTA)',
     PN: 'Pitcairn has no network at all: land your own cable (#124)',
     SH: 'St Helena has one operator (Sure South Atlantic)',
   },
   // W3: cities nobody sells transit in.
   W3: {
-    ivc: 'Invercargill waits for its AI campus; nobody sells transit there yet',
     pcn: 'Pitcairn: no cable, no network, land your own (#124)',
-    prr: 'Prince Rupert is a remote town with no carrier in it',
     stg: 'Stuttgart is the Only Spätzle-IX scenario city: peering only, by design (#114)',
   },
-  // N3: networks in no founding Tier 1's customer cone. Old saves need PNIs with the founding five for Tier 1,
-  // so anyone outside their cones has to be peered with directly.
+  // N3: regional transit-free networks outside the global backbones' customer cones.
   N3: {
-    abb: 'Australians buy only from Australian carriers (#148)',
-    atl: 'transit-free in India',
-    bcd: 'transit-free in Canada',
-    blg: 'Australian, buys from Telstraya (#148)',
-    btt: 'transit-free incumbent',
-    cht: 'transit-free in Taiwan',
-    clr: 'America Movil, transit-free across Latin America',
-    cmb: 'China (#59): reached through the Chinese carriers',
-    cmc: 'transit-free incumbent',
-    cos: 'Greek incumbent, peers for its own reach',
-    ctc: 'China (#59)',
-    cun: 'China (#59)',
-    cxc: 'buys from Spectre-um, which is transit-free',
-    drz: 'a transit-free Tier 2',
-    etc: 'Cuba: buys from Sparkly Seabone, a Tier 1 only for games since 1.12',
-    ets: 'transit-free in the Gulf',
-    ftr: 'buys from Very-Zone, which is transit-free',
-    inp: 'Australian, buys from Toilet Paper Group (#148)',
     jio: 'transit-free in India',
-    kdi: 'transit-free in Japan',
-    ktt: 'Korea: sender pays, peer with it yourself',
-    lgu: 'Korea: sender pays',
-    lnt: 'Australian (#148)',
-    lpt: 'Australian (#148)',
-    meo: 'Portuguese incumbent, peers for its own reach',
-    mgf: 'Russia: buys from Rostelecomedy (#70)',
-    npt: 'Australian (#148)',
-    ert: 'Russia: buys from Rostelecomedy (#70)',
-    opt: 'Australian, buys from SingTell (#148)',
-    pnt: 'Australian (#148)',
-    rtc: 'Russia (#70)',
-    sgt: 'a transit-free Tier 2',
-    skb: 'Korea: sender pays',
-    spc: 'transit-free incumbent',
-    stb: 'satellite: peers for its own reach',
-    stc: 'transit-free in Saudi Arabia',
-    teg: 'owns the land crossing; transit-free',
-    tim: 'buys from Sparkly Seabone, a Tier 1 only for games since 1.12',
-    tmt: 'buys from Sparkly Seabone, a Tier 1 only for games since 1.12',
-    tmx: 'transit-free in Mexico',
-    tmy: 'Malaysian incumbent, peers for its own reach',
-    tpr: 'Australian (#148)',
-    tsf: 'Indonesian incumbent, peers for its own reach',
-    tsy: 'Australian, transit-free (#148)',
-    ttk: 'transit-free in Turkey',
-    ups: 'European cable group, peers for its own reach',
-    vdp: 'a transit-free Tier 2',
-    viv: 'transit-free in Brazil',
-    vzn: 'transit-free incumbent',
   },
   // N7: an exchange port where the network has no PoP.
   N7: {
@@ -88,11 +39,11 @@ const EXCEPTIONS = {
 // The real names the puns are based on. No network, cable, exchange, data center, router or optic may be called one.
 const REAL_NAMES = [
   // Tier 1s and carriers
-  'AT&T', 'BICS', 'Cogent', 'GTT', 'Hurricane Electric', 'Level 3', 'Level3', 'Liquid', 'Liquid Intelligent Technologies', 'Lumen', 'NTT', 'Orange', 'PCCW', 'Seacom', 'Singtel', 'Sparkle', 'Tata', 'Tata Communications', 'Telia', 'Telxius', 'Vodafone', 'Zayo',
+  'AT&T', 'BICS', 'Lintasarta', 'Moratelindo', 'Cogent', 'GTT', 'Hurricane Electric', 'Level 3', 'Level3', 'Liquid', 'Liquid Intelligent Technologies', 'Lumen', 'Nexlinx', 'NTT', 'Orange', 'PCCW', 'RETN', 'Seacom', 'Singtel', 'Sparkle', 'Tata', 'Tata Communications', 'Telia', 'Telxius', 'Vodafone', 'Zayo',
   // content and clouds
   'Akamai', 'Alibaba Cloud', 'Amazon', 'Amazon Web Services', 'AWS', 'Baidu', 'ByteDance', 'Cloudflare', 'Facebook', 'Fastly', 'Google', 'Mercado Libre', 'Meta', 'Microsoft', 'Netflix', 'Tencent', 'TikTok', 'VK', 'VKontakte', 'Yandex',
   // eyeballs and incumbents
-  'A1', 'A1 Telekom Austria', 'AIS', 'Airtel', 'Algérie Télécom', 'Altibox', 'Altice', 'America Movil', 'Angola Cables', 'Antel', 'ASTCA', 'Aussie Broadband', 'Bell', 'Bell Canada', 'Belong', 'Bemobile', 'Brisanet', 'BT', 'BTC', 'Cable & Wireless', 'Cable Bahamas', "CAN'L", 'Canal+', 'CANTV', 'CelcomDigi', 'China Mobile', 'China Telecom', 'China Unicom', 'Chunghwa Telecom', 'Citymesh', 'Claro', 'Comcast', 'Cosmote', 'Cox', 'CV Telecom', 'Deutsche Telekom', 'Dhiraagu', 'Dialog', 'Digi', 'Digicel', 'Djezzy', 'Djibouti Telecom', 'DNA', 'Docomo', 'Docomo Pacific', 'Dodo', 'du', 'Eastlink', 'Elisa', 'Emtel', 'Entel', 'ER-Telecom', 'Etisalat', 'ETECSA', 'Ethio Telecom', 'Exetel', 'Far EasTone', 'Fastweb', 'FINTEL', 'Flow', 'Free', 'Frontier', 'GCI', 'Globe', 'Google Fiber', 'Grameenphone', 'GSL Networks', 'GTA', 'Hawaiian Telcom', 'HKBN', 'HKT', 'iiNet', 'Jazz', 'Jio', 'KDDI', 'KPN', 'KT', 'Kyivstar', 'Launtel', 'Leaptel', 'LG U+', 'Liberty Latin America', 'lifecell', 'LMT', 'Magyar Telekom', 'Maroc Telecom', 'Mascom', 'Mauritius Telecom', 'MegaFon', 'MEO', 'Mobily', 'Movicel', 'Movistar', 'Movitel', 'MTC', 'MTN', 'mts', 'Neptune', 'Netvigator', 'Norlys', 'NOS', 'Nova', 'NTA', 'NTT Docomo', 'Oi', 'Omantel', 'One Communications', 'One NZ', 'Ooredoo', 'OPT', 'Optimum', 'Optus', 'Palau Mobile', 'Paradise Mobile', 'Pentanet', 'PLDT', 'PNCC', 'POST', 'Proximus', 'PTCL', 'Reliance Jio', 'Robi', 'Rogers', 'Rostelecom', 'Safaricom', 'SFR', 'Síminn', 'SK Broadband', 'Sky', 'SLT', 'Sonic', 'Spark', 'Spectrum', 'Spintel', 'Starlink', 'StarHub', 'STC', 'Superloop', 'Sure', 'Swisscom', 'T-Mobile', 'Tango', 'TCC', 'TDC', 'Tele2', 'Telecel', 'Telecom Argentina', 'Telecom Egypt', 'Telecom Fiji', 'Telecom Namibia', 'Telekom Malaysia', 'Telekom Srbija', 'Telenet', 'Telenor', 'Telikom PNG', 'Telkomsel', 'Telma', 'Telmex', 'TelOne', 'Telstra', 'Telus', 'Tet', 'TIM', 'Tigo', 'TPG', 'True', 'True Move', 'TSTT', 'Turk Telekom', 'Unitel', 'UPC', 'Verizon', 'Viettel', 'Vini', 'Virgin Media', 'Vivacom', 'Vivo', 'VNPT', 'Vocus', 'Yas', 'Yettel', 'YouSee', 'Zeop',
+  'A1', 'A1 Telekom Austria', 'AIS', 'Airtel', 'Algérie Télécom', 'Altibox', 'Altice', 'America Movil', 'Angola Cables', 'Antel', 'ASTCA', 'Aussie Broadband', 'Bell', 'Bell Canada', 'Belong', 'Bemobile', 'Brisanet', 'BT', 'BTC', 'Cable & Wireless', 'Cable Bahamas', "CAN'L", 'Canal+', 'CANTV', 'CelcomDigi', 'China Mobile', 'China Telecom', 'China Unicom', 'Chunghwa Telecom', 'Citymesh', 'Claro', 'Comcast', 'Cosmote', 'Cox', 'CV Telecom', 'Deutsche Telekom', 'Dhiraagu', 'Dialog', 'Digi', 'Digicel', 'Djezzy', 'Djibouti Telecom', 'DNA', 'Docomo', 'Docomo Pacific', 'Dodo', 'du', 'Eastlink', 'Elisa', 'Emtel', 'Entel', 'ER-Telecom', 'Etisalat', 'ETECSA', 'Ethio Telecom', 'Exetel', 'Far EasTone', 'Fastweb', 'FINTEL', 'Flow', 'FPT', 'FPT Telecom', 'Free', 'Frontier', 'GCI', 'Globe', 'Google Fiber', 'Grameenphone', 'GSL Networks', 'Cable One', 'Sparklight', 'TDS Telecom', 'Mediacom', 'Metronet', 'WideOpenWest', 'WOW', 'Xplore', 'Novus', 'GTA', 'Hawaiian Telcom', 'Biznet', 'MyRepublic', 'Sony Network Communications', 'Kyrgyztelecom', 'Extra Line', 'ETL', 'Cgates', 'izzi', 'Polkomtel', 'Bredband2', 'Antik', 'ZET-Mobile', 'Turksat', 'Kbro', 'Homeplus', 'Digitel', 'Mobifone', 'Vox', 'Cell C', 'Connect Communications', 'Fibia', 'HKBN', 'HKT', 'iiNet', 'Jazz', 'Jio', 'KDDI', 'KPN', 'KT', 'Kyivstar', 'Launtel', 'Leaptel', 'LG U+', 'Liberty Latin America', 'lifecell', 'LMT', 'Magyar Telekom', 'Maroc Telecom', 'Mascom', 'Mauritius Telecom', 'MegaFon', 'MEO', 'Mobily', 'Movicel', 'Movistar', 'Movitel', 'MTC', 'MTN', 'mts', 'Neptune', 'Netvigator', 'Norlys', 'NOS', 'Nova', 'NTA', 'NTT Docomo', 'Oi', 'Omantel', 'One Communications', 'One NZ', 'Ooredoo', 'OPT', 'Optimum', 'Optus', 'Palau Mobile', 'Paradise Mobile', 'Pentanet', 'PLDT', 'PNCC', 'POST', 'Proximus', 'PTCL', 'Reliance Jio', 'Robi', 'Rogers', 'Rostelecom', 'Safaricom', 'SFR', 'Síminn', 'SK Broadband', 'Sky', 'SLT', 'Sonic', 'Spark', 'Spectrum', 'Spintel', 'Starlink', 'StarHub', 'STC', 'Superloop', 'Sure', 'Swisscom', 'T-Mobile', 'Tango', 'TCC', 'TDC', 'Tele2', 'Telecel', 'Telecom Argentina', 'Telecom Egypt', 'Telecom Fiji', 'Telecom Namibia', 'Telekom Malaysia', 'Telekom Srbija', 'Telenet', 'Telenor', 'Telikom PNG', 'Telkomsel', 'Telma', 'Telmex', 'TelOne', 'Telstra', 'Telus', 'Tet', 'TIM', 'Tigo', 'TPG', 'True', 'True Move', 'TSTT', 'Turk Telekom', 'Unitel', 'Uniti', 'UPC', 'Verizon', 'Windstream', 'Viettel', 'Vini', 'Virgin Media', 'Vivacom', 'Vivo', 'VNPT', 'Vocus', 'Yas', 'Yettel', 'YouSee', 'Zeop',
   // exchanges and data centers
   'AMS-IX', 'Any2', 'BCIX', 'CoreSite', 'DE-CIX', 'Digital Realty', 'Equinix', 'France-IX', 'Interxion', 'IX.br', 'JPIX', 'LINX', 'NAPAfrica', 'NetIX', 'NIX', 'NL-ix', 'SIX', 'Telehouse',
   // cables
@@ -168,10 +119,10 @@ test('N2: names are puns: no network, cable, exchange, data center, router, opti
   fail('N2', names.filter(([, n]) => /-ish\b/i.test(n)).map(([k, n]) => `${k} “${n}”`), 'no lazy -ish names: find a real pun, or keep the plain word');
 });
 
-test('N3: every network sits in a founding Tier 1’s customer cone, or is a documented island', () => {
-  // The founding five (t1Need() of the oldest saves): every save can reach a network in their cones by peering with them.
-  const out = J(`NETS.filter(n=>n.type!=='t1'&&n.type!=='cdn'&&!['lvl','ntt','tly','cog','tat'].some(t=>CONE_S[t].has(n.id))).map(n=>n.id)`);
-  fail('N3', out.filter((id) => !ex('N3', id)).map((id) => `${id} (${ev(`NET.${id}.name`)})`), 'give it a realistic upstream (up) in a founding Tier 1’s cone, or list it in EXCEPTIONS with a reason');
+test('N3: every network sits in a global backbone’s customer cone, or is a documented island', () => {
+  // The current global IPv4 Tier 1s. Drizzle Electric buys IPv4 transit.
+  const out = J(`NETS.filter(n=>n.type!=='t1'&&n.type!=='cdn'&&!NETS.filter(t=>t.type==='t1'&&!t.t1v6).some(t=>CONE_S[t.id].has(n.id))).map(n=>n.id)`);
+  fail('N3', out.filter((id) => !ex('N3', id)).map((id) => `${id} (${ev(`NET.${id}.name`)})`), 'give it a realistic upstream (up) in a global backbone’s cone, or list it in EXCEPTIONS with a reason');
   fail('N3', Object.keys(EXCEPTIONS.N3).filter((id) => !out.includes(id)), 'these exceptions are no longer needed; remove them');
   fail('N3', J("NETS.filter(n=>(n.up||[]).some(u=>!NET[u]||NET[u].type==='cdn'||u===n.id)).map(n=>n.id)"), 'an upstream is another network that exists and sells transit, never content');
 });
@@ -392,7 +343,7 @@ test('F5: rented capacity never outgrows the route\'s market (#203)', () => {
 });
 
 // D1–D4: DDoS as networks see it (#242). tests/ddos-model.test.js plays each one in detail.
-const ddFra = (ev) => ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;S.lvl=4;S.nextFail=1e9;S.nextEvent=1e9;ACT.launchBB({city:'fra'});S.pops.fra.bb.d=40;ACT.buyTransit({city:'fra',net:'cog',tier:1});S.pops.fra.rgen=RG.findIndex(r=>r.fsN===8);S.biz.push({id:'g',type:'game',name:'G',city:'fra',bw:10,rate:1,mood:80,since:0,reqs:[]},{id:'d',type:'dia',name:'D',city:'fra',bw:5,rate:1,mood:80,since:0,reqs:[]});compute()");
+const ddFra = (ev) => ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;S.lvl=4;S.nextFail=1e9;S.nextEvent=1e9;ACT.launchBB({city:'fra'});S.pops.fra.bb.d=40;ACT.buyTransit({city:'fra',net:'lvl',tier:1});S.pops.fra.rgen=RG.findIndex(r=>r.fsN===8);S.biz.push({id:'g',type:'game',name:'G',city:'fra',bw:10,rate:1,mood:80,since:0,reqs:[]},{id:'d',type:'dia',name:'D',city:'fra',bw:5,rate:1,mood:80,since:0,reqs:[]});compute()");
 const ddHit = (ev, g) => ev(`S.ev.ddos={id:'x',city:'fra',tgt:'g',vec:'dns',gbps:${g},start:S.day,until:S.day+2,bh:false};compute()`);
 test('D1: attack sizes come from the world, never from your network', () => {
   const g = load();
@@ -430,10 +381,11 @@ test('D3: only upstream tools and scrubbing keep a flood off your ports; Flowspe
 test('D4: RTBH costs only the target', () => {
   const g = load();
   ddFra(g.ev);
+  const before = g.ev("bizSf(S.biz.find(b=>b.id==='d'),linkIds())");
   ddHit(g.ev, 200);
   g.ev("ACT.rtbh({id:'x'})");
   assert.equal(g.ev("bizSf(S.biz.find(b=>b.id==='g'),linkIds())"), 0, 'D4: the target is dark');
-  assert.ok(g.ev("bizSf(S.biz.find(b=>b.id==='d'),linkIds())") >= 0.97, 'D4: everyone else is saved');
+  assert.ok(g.ev("bizSf(S.biz.find(b=>b.id==='d'),linkIds())") >= before - 1e-9, 'D4: everyone else keeps their service');
   g.ev('S.ev.ddos.until=S.day;dayTick()');
   assert.equal(g.ev('S.stats.ddosSac'), 1, 'D4: sacrificed, not held');
   assert.equal(g.ev('S.stats.ddosOk||0'), 0);

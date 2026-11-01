@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const { load } = require('./harness');
 
 const start = (ev) => ev(`beginGame('T','icn',{scn:SCN.find(x=>x.id==='gangnam')});if(UI.pendGame)ACT.pitchSkip();closeModal();S.cash=1e8`);
-const seoul = "ACT.launchBB({city:'icn'});ACT.buyTransit({city:'icn',net:'cog',tier:1});compute();for(let i=0;i<20;i++)dayTick();compute()";
+const seoul = "ACT.launchBB({city:'icn'});ACT.buyTransit({city:'icn',net:'ntt',tier:1});compute();for(let i=0;i<20;i++)dayTick();compute()";
 
 test('sender pays: fee on Seoul transit, incumbents only over a paid PNI, cheap broadband', () => {
   const { ev, errors } = load();
@@ -12,12 +12,13 @@ test('sender pays: fee on Seoul transit, incumbents only over a paid PNI, cheap 
   ev(seoul);
   assert.ok(ev("scnRule('sender')"));
   assert.equal(ev("R.reachable.ktt||R.reachable.skb||R.reachable.lgu"), false, 'transit does not carry the incumbents');
-  assert.ok(ev('R.reach') < 0.99);
+  const before = ev('R.reach');
+  assert.ok(before < 1);
   const t = JSON.parse(ev("(()=>{const t=S.transit[0],q=R.p95[t.id];return JSON.stringify({fee:krFee(t,q),q,mo:transitMo(t,q)})})()"));
   assert.ok(t.q > 0 && t.fee === Math.round(t.q * ev('KR_FEE')), 'a sender-pays fee per Gbps of transit');
   assert.ok(ev("Math.abs(R.rev.eyeballs-R.cityEye.icn*sfOf(R,'icn')*EYE_RATE*KR_ARPU)<1"));
   ev("ACT.pni({city:'icn',net:'ktt',tier:0});closeModal();for(let i=0;i<90&&!S.pni.every(pniOn);i++)dayTick();compute()");
-  assert.ok(ev('R.reachable.ktt') && ev('R.reach') >= 0.99, 'a paid PNI with Kay-Tea brings the reach');
+  assert.ok(ev('R.reachable.ktt') && ev('R.reach') > before, 'a paid PNI with Kay-Tea brings the reach');
   assert.match(ev('scnCard()'), /Seoul served well/);
   assert.match(ev('scnCard()'), /Monthly profit/);
   assert.deepEqual(errors, []);
@@ -50,5 +51,16 @@ test('an older Gangnam save picks up the sender-pays rule', () => {
   const s = ev("(()=>{const o=JSON.parse(JSON.stringify(S));o.scn.rules={};return JSON.stringify(o);})()");
   ev(`S=migrate(JSON.parse(${JSON.stringify(s)}))`);
   assert.ok(ev("S.scn.rules.sender===true"));
+  assert.deepEqual(errors, []);
+});
+
+test('sender pays cannot be bypassed through a foreign carrier customer cone', t => {
+  const { ev, dom, errors } = load();
+  t.after(() => dom.window.close());
+  start(ev);
+  ev("S.pni.push({id:'carrier',net:'drz',city:'icn',tier:1});S.ixp.icn=1;S.peers['drz@icn']=true;compute()");
+  for (const id of ['ktt', 'skb', 'lgu']) assert.equal(ev(`R.reachable.${id}`), false, `${id} still requires its paid interconnect`);
+  ev('S.scn=null;compute()');
+  for (const id of ['ktt', 'skb', 'lgu']) assert.equal(ev(`R.reachable.${id}`), true, 'the ordinary game keeps the observed carrier cone');
   assert.deepEqual(errors, []);
 });

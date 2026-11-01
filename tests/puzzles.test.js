@@ -362,7 +362,7 @@ test('best spend: kept for the best star count, and a cheaper build at the same 
 
 test('weekly puzzle (seeded stand-in): stable per week, carries traffic, its reference ring earns three stars, streak', () => {
   const { ev, errors } = load();
-  const a = ev("JSON.stringify(pzWeekly(new Date(2026,9,28)))"), b = ev("JSON.stringify(pzWeekly(new Date(2026,10,1)))"), c = ev("JSON.stringify(pzWeekly(new Date(2026,10,2)))");
+  const a = ev("JSON.stringify(pzWeekly(new Date('2026-10-28T12:00:00Z')))"), b = ev("JSON.stringify(pzWeekly(new Date('2026-11-01T04:59:59Z')))"), c = ev("JSON.stringify(pzWeekly(new Date('2026-11-01T05:00:00Z')))");
   assert.equal(a, b, 'same week, same puzzle');
   assert.notEqual(a, c, 'next week, a new one');
   const w = JSON.parse(a);

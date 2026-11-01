@@ -108,7 +108,7 @@
       monthly: { revenue: Math.round(R.revMo), cost: Math.round(R.costMo), profit: Math.round(R.revMo - R.costMo),
         revenueBy: Object.fromEntries(Object.entries(R.rev || {}).map(([k, v]) => [k, Math.round(v)]).filter(([, v]) => v)),
         costBy: Object.fromEntries(Object.entries(R.cost || {}).map(([k, v]) => [k, Math.round(v)]).filter(([, v]) => v)) },
-      traffic: { demandGbps: r1(R.demand), servedGbps: r1(R.served), reach: r1((R.reach || 0) * 100) + '%', peeringSessions: R.sessions },
+      traffic: { demandGbps: r1(R.demand), servedGbps: r1(R.served), reach: Object.keys(R.v6Gap).length ? tr('common.partial') : r1((R.reach || 0) * 100) + '%', peeringSessions: R.sessions },
       counts: { pops: Object.keys(S.pops).length, links: S.links.length, transitPorts: S.transit.length, exchangePorts: Object.keys(S.ixp).length,
         pnis: S.pni.length, cacheBoxes: S.caches.length, customers: S.biz.length, offers: S.offers.length },
       pops: Object.keys(S.pops).map(cityName),
@@ -120,7 +120,7 @@
   const network = (q) => {
     const n = netOf(q), id = n.id, eg = R.netEg && R.netEg[id];
     return {
-      id, name: n.name, asn: n.asn, type: TYPE_L[n.type], policy: n.pol,
+      id, name: n.name, asn: n.asn, type: netTier(n), policy: n.pol,
       requirements: { minIxGbps: n.minIx, minPniGbps: n.minPni, paidFeePerMonth: n.paidFee, freeFromLevel: n.freeLv },
       trafficShare: r1(NSH[id] * 100) + '%', transitPerGbps: n.price ? r1(n.price * S.priceMul) : null,
       homeMarkets: n.cc ? [].concat(n.cc) : [], pops: n.pops.map(cityName),
@@ -146,7 +146,7 @@
       id: c, name: C.name, country: C.cc, region: C.reg, about: C.note ? text(C.note) : undefined, dataCenter: C.dc,
       canBeHome: homeOk(c),
       exchanges: ixIdsIn(c).map((x) => ({ id: x, name: ixName(x), members: ixMembers(x).length, yourPort: S.ixp[x] !== undefined })),
-      transit: NETS.filter((n) => sellsAt(n, c)).map((n) => ({ id: n.id, name: n.name, type: TYPE_L[n.type], perGbps: r1(transitPerG(n, c, false) * S.priceMul) })).sort((a, b) => a.perGbps - b.perGbps),
+      transit: NETS.filter((n) => sellsAt(n, c)).map((n) => ({ id: n.id, name: n.name, type: netTier(n), perGbps: r1(transitPerG(n, c, premOnlyAt(n, c)) * S.priceMul) })).sort((a, b) => a.perGbps - b.perGbps),
       networksHere: here.length, biggestNetworksHere: here.slice(0, 15).map((n) => n.name), cables: cab,
       you: P ? { demandGbps: r1((R.cityDem || {})[c] || 0), servedGbps: r1((R.citySrv || {})[c] || 0), routers: P.routers, down: P.down > S.day ? dateStr(P.down) : false,
         broadband: !!P.bb, links: S.links.filter((l) => l.a === c || l.b === c).length } : null,
@@ -157,7 +157,7 @@
     const n = norm(q), hit = (...k) => k.some((v) => norm(v).includes(n)), out = {};
     if (!n) fail('Give a word to search for.');
     if (!kind || kind === 'city') out.cities = CITIES.filter((c) => hit(c.id, c.name)).slice(0, 20).map((c) => ({ id: c.id, name: c.name, country: c.cc }));
-    if (!kind || kind === 'network') out.networks = NETS.filter((x) => hit(x.id, x.name, String(x.asn))).slice(0, 20).map((x) => ({ id: x.id, name: x.name, asn: x.asn, type: TYPE_L[x.type] }));
+    if (!kind || kind === 'network') out.networks = NETS.filter((x) => hit(x.id, x.name, String(x.asn))).slice(0, 20).map((x) => ({ id: x.id, name: x.name, asn: x.asn, type: netTier(x) }));
     if (!kind || kind === 'cable') out.cables = Object.values(CAB).filter((x) => hit(x.id, x.name)).slice(0, 20).map((x) => ({ id: x.id, name: x.name, lands: [...new Set(x.pairs.flatMap((p) => [p[0], p[1]]))].map(cityName) }));
     if (!kind || kind === 'exchange') out.exchanges = allIx().filter((x) => hit(x, ixName(x))).slice(0, 20).map((x) => ({ id: x, name: ixName(x), city: cityName(ixCity(x)) }));
     return out;
@@ -177,14 +177,14 @@
   const peering = (q, where, via) => {
     const n = netOf(q), id = n.id, out = [];
     if (!via || via === 'pni') for (const c of (where ? [cityOf(where).id] : Object.keys(S.pops).filter((c) => n.pops.includes(c)))) {
-      const r = peerOk(id, 'pni', c);
-      out.push({ via: 'pni', city: cityName(c), ok: !!r.ok, why: r.why ? text(r.why) : undefined, feePerMonth: r.fee, free: r.free, minimumPort: PORT[pniMin(id)].n });
+      const r = S.pops[c] && n.pops.includes(c) ? peerOk(id, 'pni', c) : { ok: false, why: tr('pni_all.no_shared_pops') };
+      out.push({ via: 'pni', city: cityName(c), ok: !!r.ok, why: r.why ? text(r.why) : undefined, feePerMonth: r.fee, free: r.free, minimumPort: pniPN({ tier: pniMin(id), g1: pniG1(id) }) });
     }
     if (!via || via === 'ix') for (const x of Object.keys(S.ixp).filter((x) => ixMembers(x).includes(id) && (!where || ixCity(x) === cityOf(where).id))) {
       const r = peerOk(id, 'ix', x);
       out.push({ via: 'ix', exchange: ixName(x), ok: !!r.ok, why: r.why ? text(r.why) : undefined, session: ixSessions(x).has(id) });
     }
-    return { network: n.name, policy: n.pol, hint: text(offTransitHint(id, where ? cityOf(where).id : S.home)),
+    return { network: n.name, policy: peerPolicy(n, where ? cityOf(where).id : S.home), hint: text(offTransitHint(id, where ? cityOf(where).id : S.home)),
       checks: out, note: out.length ? undefined : 'No POP or exchange port of yours is where this network is. Build one first: see network.' };
   };
 

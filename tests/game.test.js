@@ -11,7 +11,7 @@ test('page boots to the title screen without errors', () => {
 
 test('every city sits on its landmass', () => {
   const { ev } = load();
-  const off = ev("CITIES.filter(c=>!inPoly(c.x,c.y,LANDS.find(l=>l.id===c.land).pts)).map(c=>c.id).join()");
+  const off = ev("CITIES.filter(c=>!LANDS.some(l=>l.id===c.land)||!onLand(c.x,c.y)).map(c=>c.id).join()");
   assert.equal(off, '');
 });
 

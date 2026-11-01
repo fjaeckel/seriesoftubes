@@ -7,9 +7,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { load } = require('./harness');
 
-// Frankfurt with 200 G of subscribers, one 100G Cogentle transit, a game server (the target) and a DIA customer.
+// Frankfurt with 200 G of subscribers, one full-reach 100G transit, a game server (the target) and a DIA customer.
 function fra(ev, rg = 'Arrrhipster 7280R') {
-  ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;S.lvl=4;S.nextFail=1e9;S.nextEvent=1e9;ACT.launchBB({city:'fra'});S.pops.fra.bb.d=40;ACT.buyTransit({city:'fra',net:'cog',tier:1})");
+  ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;S.lvl=4;S.nextFail=1e9;S.nextEvent=1e9;ACT.launchBB({city:'fra'});S.pops.fra.bb.d=40;ACT.buyTransit({city:'fra',net:'ntt',tier:1})");
   ev(`S.pops.fra.rgen=RG.findIndex(r=>r.n===${JSON.stringify(rg)})`);
   ev("S.biz.push({id:'g',type:'game',name:'Lag Lords',city:'fra',bw:10,rate:100,mood:80,since:0,reqs:[]},{id:'d',type:'dia',name:'Bystander',city:'fra',bw:5,rate:100,mood:80,since:0,reqs:[]});compute()");
 }
@@ -66,7 +66,7 @@ test('RTBH saves everyone else and sends only the target dark', () => {
 test('the same flood spread over eight POPs fills no port', () => {
   const { ev, errors } = load();
   fra(ev);
-  ev("const cs=['ams','lon','par','zrh','mad','mil','vie'];for(const c of cs){ACT.buildPop({city:c});ACT.buyTransit({city:c,net:'cog',tier:1});}let p='fra';for(const c of cs){UI.pending={a:p,b:c};ACT.buildLink({tier:1});p=c;}closeModal();compute()");
+  ev("const cs=['ams','lon','par','zrh','mad','mil','vie'];for(const c of cs){ACT.buildPop({city:c});S.pops[c].rgen=3;ACT.buyTransit({city:c,net:NETS.find(n=>n.type==='t1'&&sellsAt(n,c)).id,tier:1});}let p='fra';for(const c of cs){UI.pending={a:p,b:c};ACT.buildLink({tier:2});p=c;}closeModal();compute()");
   const id = flood(ev, { gbps: 200 });
   assert.equal(rep(ev, id, 'm.portList.length'), 8);
   assert.equal(rep(ev, id, 'm.full'), 0);
@@ -170,7 +170,7 @@ test('saves before 2.2 load: an attack on a city finds its target, and an IX bla
 
 test('the NOC card fits a phone and the sandbox can send a test flood', () => {
   const { ev, errors, dom } = load();
-  ev("beginGame('T','fra',{mode:'sandbox',preset:'sandbox'});if(UI.pendGame)ACT.pitchSkip();ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1});UI.left='noc';renderLeft()");
+  ev("beginGame('T','fra',{mode:'sandbox',preset:'sandbox'});if(UI.pendGame)ACT.pitchSkip();ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'ntt',tier:1});UI.left='noc';renderLeft()");
   const b = dom.window.document.querySelector('[data-act=ddosTest]');
   assert.ok(b, 'a test flood button in Sandbox');
   b.click();
@@ -232,7 +232,7 @@ test('a sacrificial PNI takes all of its peer\'s junk, and a clean pipe scrubs a
   const id = flood(ev, { gbps: 150 });
   const ports = JSON.parse(rep(ev, id, 'JSON.stringify(m.portList.map(p=>[p.lab,Math.round(p.off)]))'));
   assert.equal(ports.length, 2);
-  assert.ok(ports.find((p) => /Cogentle/.test(p[0]))[1] < ports.find((p) => !/Cogentle/.test(p[0]))[1] / 5, `the clean pipe took most of its share: ${JSON.stringify(ports)}`);
+  assert.ok(ports.find(p => p[0].includes(ev('NET.ntt.name')))[1] < ports.find(p => p[0].includes(ev('NET.lvl.name')))[1] / 5, `the clean pipe took most of its share: ${JSON.stringify(ports)}`);
   // A PNI with a network that also comes in over transit: once sacrificial, that network's junk goes only there.
   ev("S.pni.push({id:'px',city:'fra',net:'ggl',tier:1,ready:0,sacrif:true});S.ev.ddos=null;S.ev.ddosMore=[];compute()");
   const id2 = flood(ev, { gbps: 150 });

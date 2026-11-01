@@ -30,7 +30,7 @@ test('Rackstar requests require enough Crowdflare traffic and a free router port
 test('Rackstar serves cacheable Crowdflare traffic locally and overflow uses transit', () => {
   const { ev, errors } = load();
   setup(ev);
-  ev("S.pops.fra.rgen=RG_TOP;S.pops.fra.bb={d:200/NSH.cfl};ACT.buyTransit({city:'fra',net:'cog',tier:PORT.length-1});ACT.lagT({id:S.transit[0].id,d:1});ACT.lagT({id:S.transit[0].id,d:1});compute()");
+  ev("S.pops.fra.rgen=RG_TOP;S.pops.fra.bb={d:200/NSH.cfl};ACT.buyTransit({city:'fra',net:'lvl',tier:PORT.length-1});ACT.lagT({id:S.transit[0].id,d:1});ACT.lagT({id:S.transit[0].id,d:1});compute()");
   const transit = ev('R.useT[S.transit[0].id]');
   const box = "ACT.cache({city:'fra',net:'cfl'});for(const c of S.caches)delete c.g;compute()"; // 100G boxes, as in this test
   ev(box);

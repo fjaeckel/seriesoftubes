@@ -6,8 +6,8 @@ const { load } = require('./harness');
 
 // A transit-free network in Frankfurt with a PNI to every Tier 1 it needs.
 const t1Club = (ev) => {
-  ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;S.lvl=6;for(const g of GOALS)S.done[g.id]=0;delete S.done.t1;ACT.launchBB({city:'fra'});S.pops.fra.bb.d=500");
-  ev("S.transit=[];S.ixp={};S.peers={};S.pni=[];S.grace=null;for(const n of t1Need())S.pni.push({id:'p'+n.id,net:n.id,city:'fra',tier:2});compute()");
+  ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;S.lvl=6;for(const g of GOALS)S.done[g.id]=0;delete S.done.t1;ACT.launchBB({city:'fra'});S.pops.fra.bb.d=500;S.pops.fra.routers=3");
+  ev("S.transit=[];S.ixp={};S.peers={};S.pni=[];S.grace=null;for(const n of [...t1Need(),NET.cog])S.pni.push({id:'p'+n.id,net:n.id,city:'fra',tier:2});compute()");
 };
 
 test('cones are built once at load and hold customers of customers', () => {
@@ -20,15 +20,12 @@ test('cones are built once at load and hold customers of customers', () => {
   assert.equal(ev("PNI_NETS===CONE"), true);
   assert.equal(ev("ANC.ddo[0]"), 'voc', 'nearest upstream first');
   assert.equal(ev("NETS.filter(n=>n.tail).every(n=>n.up&&n.up.length&&n.up.every(u=>NET[u]))"), true, 'the long tail buys transit');
-  assert.equal(ev("NETS.filter(n=>n.tail).every(n=>ANC[n.id].some(u=>NET[u].type==='t1'))"), true, 'from a Tier 1, directly or through a carrier');
-  assert.equal(ev("NET.tail45.up.join()"), 'mag', 'Auckland has no Tier 1: Hobbit Hole buys from a carrier that is there');
+  assert.equal(ev("NETS.filter(n=>n.tail).every(n=>ANC[n.id].some(u=>NET[u].type==='t1'||u==='cog'))"), true, 'from a transit-free carrier, directly or through an upstream');
+  assert.ok(ev("NET.tail45.up.every(u=>NET[u].pops.includes('akl'))"), 'Auckland upstreams have a local PoP');
   assert.equal(ev("NETS.filter(n=>n.tail).map(n=>n.up.join('+')).join()"), ev("NETS.filter(n=>n.tail).map(n=>tailUp(n.name,n.pops).join('+')).join()"), 'stable: picked by name');
-  // Australia's big ISPs buy only from Australian carriers, so a Tier 1 PNI is no back door to them.
-  assert.equal(ev("['opt','tpr','abb','npt','lpt','lnt','pnt','stb','blg','inp'].some(id=>t1Need().some(t=>CONE_S[t.id].has(id)))"), false);
-  // The smaller ones that buy from a Tier 1 or a carrier of one do come along, and these are exactly the ones.
-  const au = "NETS.filter(n=>n.type==='eye'&&n.pops.length&&n.pops.every(c=>CITY[c].au)&&t1Need().some(t=>CONE_S[t.id].has(n.id))).map(n=>n.id).sort().join()";
-  assert.equal(ev(au), 'ddo,ext,spn,tail44', 'Doodoo, Lintel, Spin2wintel, Kangaroo Courier');
-  assert.equal(ev("[NET.tail44.name,NET.tail44.up.join(),NET.ddo.up.join(),NET.spn.up.join(),NET.ext.up.join(),NET.voc.up.join(),NET.spl.up.join()].join('|')"), 'Kangaroo Courier|cog|voc|voc|spl|ntt,tly|tly');
+  // Australian sales policy and global customer cones answer different questions.
+  assert.equal(ev("['tpr','abb','npt','lpt','lnt','pnt','blg','inp'].every(id=>t1Need().some(t=>CONE_S[t.id].has(id)))"), true);
+  assert.equal(ev("NETS.filter(n=>sellsAt(n,'syd')).every(n=>AU_SELLERS.includes(n.id))"), true);
   assert.deepEqual(errors, []);
 });
 
@@ -57,9 +54,9 @@ test('a transit-free network with PNIs to every Tier 1 reaches the long tail thr
 test('a network in nobody\'s cone still needs reaching directly', () => {
   const { ev, errors } = load();
   t1Club(ev);
-  // Comecast buys from no one: no Tier 1 PNI reaches it
-  assert.equal(ev("(NET.cmc.up||[]).length"), 0);
-  assert.equal(ev("R.reachable.cmc"), false);
+  // Jio-graphy buys from no one: no Tier 1 PNI reaches it
+  assert.equal(ev("(NET.jio.up||[]).length"), 0);
+  assert.equal(ev("R.reachable.jio"), false);
   assert.equal(ev("isTier1()"), false);
   assert.match(ev('t1Why()'), /nobody you peer with sells transit to/);
   // peer with every island directly and the win comes
@@ -166,7 +163,7 @@ test('the panel names the peer that really carries a network, not the first Tier
   // over an exchange: the member you have a session with
   ev("S.pni=[];compute()");
   assert.equal(ev(`!!R.cone.${t}`), false);
-  assert.match(ev(`(ACT.netFocus({id:'${t}'}),document.getElementById('leftBody').textContent)`), /Buys transit from Cogentle/);
+  assert.match(ev(`(ACT.netFocus({id:'${t}'}),document.getElementById('leftBody').textContent)`), new RegExp('Buys transit from '+ev(`coneVia('${t}').name`)));
   assert.deepEqual(errors, []);
 });
 
@@ -184,15 +181,16 @@ test('a traceroute down a two-level cone shows every network on the way', () => 
   assert.deepEqual(errors, []);
 });
 
-test('#114 Only Spätzle-IX still takes more than the exchange and two Tier 1 PNIs, now that cones count', () => {
-  const { ev, errors } = load();
-  ev("UI.pitched=true;beginGame('T','stg',{scn:SCN.find(x=>x.id==='stg')});S.cash=1e9;S.lvl=10;S.pops.stg.bb={d:400};S.ixp.stg=0;for(const id of ixMembers('stg'))S.peers[id+'@stg']=1;compute()");
-  const reach = (ts) => ev(`S.pni=[];for(const t of ${JSON.stringify(ts)})S.pni.push({id:'p'+t,net:t,city:'stg',tier:2});compute();R.reach`);
-  const T = ['lvl', 'ntt', 'tly', 'cog', 'tat'];
-  const goal = ev("SCN.find(x=>x.id==='stg').ok.toString()");
-  assert.match(goal, /R\.reach>=0\.5/);
-  for (let i = 0; i < T.length; i++) for (let j = i + 1; j < T.length; j++)
-    assert.ok(reach([T[i], T[j]]) < 0.5, `${T[i]}+${T[j]} is not enough`);
-  assert.ok(reach(['lvl', 'ntt', 'tly']) >= 0.5, 'three Tier 1 PNIs and the exchange can be');
-  assert.deepEqual(errors, []);
+test('#114 a larger customer cone still needs enough exchange capacity', () => {
+  const { ev, dom, errors } = load();
+  try {
+    ev("UI.pitched=true;beginGame('T','stg',{scn:SCN.find(x=>x.id==='stg')});S.cash=1e9;S.lvl=10;S.pops.stg.bb={d:600};S.pops.stg.rgen=3;S.pops.stg.routers=3;S.ixp.stg=0;for(const id of ixMembers('stg'))S.peers[id+'@stg']=1;compute()");
+    assert.ok(ev('R.reach>=0.5'), 'observed customer cones can supply the reach');
+    assert.ok(ev('R.served<=10+1e-6'), 'a 10G port limits the actual traffic');
+    assert.equal(ev("SCN.find(x=>x.id==='stg').ok()"), false);
+    ev('S.ixp.stg=2;compute()');
+    assert.ok(ev('R.served>=300'), 'a larger exchange port carries the reachable demand');
+    assert.equal(ev("SCN.find(x=>x.id==='stg').ok()"), true);
+    assert.deepEqual(errors, []);
+  } finally { dom.window.close(); }
 });

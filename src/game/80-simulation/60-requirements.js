@@ -47,9 +47,9 @@ function diversityPossible(a,b,state=S){
     const adj=cities.map(()=>[]),grp=new Map();let n=0,k=0;const add=(i,j,g)=>{let r;if(g===undefined)r=k++;else{r=grp.get(g);if(r===undefined)grp.set(g,r=k++);}adj[i].push(j,r);adj[j].push(i,r);n++;};
     for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){
       const a=cities[i],b=cities[j],cs=cab.get(a<b?a+'|'+b:b+'|'+a),sub=!LS[i].some(x=>LS[j].includes(x));
-      if(!sub){add(i,j);add(i,j);}
-      if(cs)for(const c of cs)if(!ban.some(p=>p===c.cid+':'+a+'-'+b||p===c.cid+':'+b+'-'+a))add(i,j,'cab:'+c.cid);
-      if(state.won&&land[i]&&land[j]&&(sub||cs)&&!cn[i]&&!cn[j])add(i,j);
+      if(!sub&&!closedPair(a,b)){add(i,j);add(i,j);}
+      if(cs&&!closedPair(a,b))for(const c of cs)if(!ban.some(p=>p===c.cid+':'+a+'-'+b||p===c.cid+':'+b+'-'+a))add(i,j,'cab:'+c.cid);
+      if(state.won&&land[i]&&land[j]&&(sub||cs)&&!cn[i]&&!cn[j]&&!closedPair(a,b)&&!CITY[a].kp&&!CITY[b].kp)add(i,j);
       if(fab[i].length&&fab[j].length)for(const f of FABS)if(fab[i].includes(f)&&fab[j].includes(f))add(i,j,'fab:'+f.id);
     }
     diversityMap={key,ix,adj,links:n,answers:{}};

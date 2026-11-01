@@ -28,7 +28,7 @@ function dayPre(){
     toast(where?tr('day_tick.resolved_what_where_is_back_to',{what:incTitle(i.type),where:esc(where)}):tr('day_tick.resolved_what',{what:incTitle(i.type)}),'good',[],o);}
   // eyeball growth / churn uses last computed service
   for(const c in S.pops){const p=S.pops[c];if(!p.bb)continue;const sf=sfOf(R,c)*((R.bbF&&R.bbF[c])??1),P=eyeP(c);
-    if(sf>=0.9){const g=(CITY[c].be&&!(p.boost>d)?0.35:1)*0.025*(scnRule('boom')?1.5:1)*(p.boost>d?2:1)*sf*(0.7+0.6*(R.peerShare||0))*(CITY[c].reg==='AS'&&!CITY[c].cn?1.6:1);p.bb.d+=g*p.bb.d*(1-p.bb.d/P);}
+    if(sf>=0.9){const g=(CITY[c].be&&!(p.boost>d)?0.35:1)*0.025*(scnRule('boom')?1.5:1)*(p.boost>d?2:1)*sf*(0.7+0.6*(R.peerShare||0))*(CITY[c].reg==='AS'&&!CITY[c].cn&&!CITY[c].kp?1.6:1);p.bb.d+=g*p.bb.d*(1-p.bb.d/P);}
     else p.bb.d=Math.max(Math.min(3,P),p.bb.d*(1-(0.9-sf)*0.04));}
   return d;}
 function dayPost(d){

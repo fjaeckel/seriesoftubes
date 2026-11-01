@@ -40,7 +40,8 @@ function drawCables(ks){const z=cam.z,selC=UI.drag&&UI.drag.mode==='link'?UI.dra
       for(let cx=c0;cx<=c1;cx++)for(let cy=r0;cy<=r1;cy++){const o=LG.get(cx*8192+cy);if(o)for(const q of o)if(b[0]<q[2]&&b[2]>q[0]&&b[1]<q[3]&&b[3]>q[1])return false;}}
     for(let cx=c0;cx<=c1;cx++)for(let cy=r0;cy<=r1;cy++){const k=cx*8192+cy;let o=LG.get(k);if(!o)LG.set(k,o=[]);o.push(b);}return true;};
   const ar=arOn();for(const cp of CABLE_PAIRS){const C=CAB[cp.cid],hot=!!selC&&(cp.a===selC||cp.b===selC);if(!hot&&cached&&z<1.7)continue;if(ar&&!hot&&!(arKind(cp.a)&&arKind(cp.b)))continue;const col=cableCol(C);
-    for(const k of ks){const sp=cp.pts.map(p=>toS(p[0],p[1],k));let mn=Infinity,mx=-Infinity;for(const q of sp){if(q[0]<mn)mn=q[0];if(q[0]>mx)mx=q[0];}if(mx<-20||mn>CW+20)continue;
+    const box=polyBox(cp.pts);
+    for(const k of ks){if(toS(box[2],0,k)[0]<-20||toS(box[0],0,k)[0]>CW+20)continue;const sp=cp.pts.map(p=>toS(p[0],p[1],k));
       if(hot||!cached){ctx.globalAlpha=hot?0.95:0.4;ctx.strokeStyle=col;ctx.lineWidth=hot?3:1.6;ctx.lineJoin='round';ctx.setLineDash(C.age==='old'?[6,5]:[]);ctx.beginPath();ctx.moveTo(sp[0][0],sp[0][1]);for(let i=1;i<sp.length;i++)ctx.lineTo(sp[i][0],sp[i][1]);ctx.stroke();ctx.setLineDash([]);}
       if((hot||(z>=1.7&&!ar))&&lbOk(sp[Math.floor(sp.length/2)][0],sp[Math.floor(sp.length/2)][1]-8,labW(C.name),sp,hot)){const m=sp[Math.floor(sp.length/2)];ctx.globalAlpha=hot?1:0.75;ctx.lineWidth=3;ctx.strokeStyle='rgba(255,255,255,.85)';ctx.strokeText(C.name,m[0],m[1]-8);ctx.fillStyle=col;ctx.fillText(C.name,m[0],m[1]-8);}
       ctx.globalAlpha=1;}}}

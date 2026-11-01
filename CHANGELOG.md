@@ -9,6 +9,12 @@ All notable changes to this project are documented here. The project follows
 - On big networks, clicks that change nothing about your traffic now answer at once: dismissing an offer or renaming your network no longer works out every route again, which also saves battery on phones.
 - Working out where traffic goes takes about a fifth less work on big networks, with exactly the same result.
 - The game no longer freezes while it routes each day's traffic on big networks. A background thread of the game does the routing, so the map, panels and buttons keep responding while days go by; what the day brings is exactly what it was before. Clicks that change your network still route right away.
+- Loading another save while daily routing is running no longer lets the old result charge the new save.
+- Explore 503 cities across 181 countries, with 695 networks and 196 submarine cable systems. The expansion adds 264 cities and 31 cable systems, including more Chinese and Russian hubs, Pyongyang and St. John's. New landing stations include Port Sudan, Nicosia, Tel Aviv and St. John's. Facility names, exchanges and carrier footprints follow current records, with regional limits on domestic networks' overseas presence. Original cities remain available.
+- Country demand and access-network rankings now follow population data and Cloudflare Radar. Major domestic operators receive their observed relative traffic shares, while wholesale carriers carry their customers' traffic.
+- Transit uses one upstream per destination, with updated Tier 1s and customer cones. New games use the full 16-network Tier 1 roster. Cogentle and Drizzle Electric's IPv6 partition affects connectivity and shows as partial reach. Each city offers the Tier 1s present and up to four Tier 2 sellers. Selective peers check traffic. Restrictive peers also need two active shared PoPs, with country-specific requirements where published. IX membership grants no automatic agreement with selective or bilateral-only peers, and selected APAC carriers have different policies at their overseas gateways. Existing transit and PNI contracts remain usable and upgradeable.
+- More accurate coastlines, lakes, subtle country borders and closer zoom make the enlarged map easier to use.
+- Severe conflicts and closed borders restrict new circuits. Existing circuits stay in saves.
 
 ## [2.4.0] — 2026-11-01
 
@@ -52,6 +58,7 @@ All notable changes to this project are documented here. The project follows
 - Flood Season starts at customer level 4, so a 10T scrubbing center is within reach for the terabit floods; a flood you blackhole to save everyone else no longer counts as held.
 - The intern's transit order has a new provider choice, Already connected: it only grows the transit you already buy at each POP, the smallest port first, and never signs a new provider, so several upstreams grow together and no customer's "no Cogentle" gets a surprise (#227).
 - The intern's PNI order now counts the traffic the PNI list shows at each POP, so it no longer orders a PNI where a network's own cache boxes already serve most of its traffic (#244).
+
 ## [2.1.0] — 2026-10-31
 
 - Your backbone now runs a technology you choose: plain IGP, LDP/MPLS, RSVP-TE, SR-MPLS or SRv6. Each step up costs plenty and uses less router CPU: label switching makes traffic that only passes through a POP cheaper for its router, and Auto-TE and RouteScript now need RSVP-TE or higher. Routers only run what they support, so a POP with an older router stays outside the backbone, and mixing vendors at the very top of what their routers can do brings interop failures. Networks that already have Auto-TE keep it exactly as it is.
@@ -274,6 +281,7 @@ And in On-call and BGP at 3 a.m., a **chaos monkey** sometimes moves into your n
 - The 3.2T transponder now falls back to 1.2T between 4,000 and 5,500 km (6,000 to 8,250 km subsea), like the 1.6T one, instead of dropping to 800G (#107). A bigger optic now carries at least as much as a smaller one at every distance.
 - Parallel waves of different sizes now show each size on the map, like 800G + 400G, instead of a misleading 2 × 1.2T (#56).
 - Picking a subsea route from a city without a cable landing, like Oslo, now names the nearest landing station instead of saying its cables reach "nowhere" (#50).
+
 ## [1.29.0] — 2026-10-26
 
 - Big networks lag a lot less: on a network with a hundred POPs and a thousand peering ports, the NOC dashboard opens six times faster, the side panels three times faster, and each game day takes about a third less time. The map needs about a third fewer drawing steps per frame, and open panels only update what changed, which keeps them smooth and lets the traffic bars glide to their new values. The connection and customer lists in the NOC dashboard show 100 rows at a time, with a button for more. While the game is paused or animations are off, the map is only redrawn when something on it changes, which saves a lot of battery on phones. On a phone, the map also rests while the NOC dashboard fills the screen, so scrolling it stays smooth.
@@ -705,8 +713,8 @@ And in On-call and BGP at 3 a.m., a **chaos monkey** sometimes moves into your n
 
 - RouteScript: program your Auto-TE controller from the NOC tab with a tiny
   rule language: `spill at 80%`, `prefer pni for goggle`, `avoid transit for
-  netchill`, `cap transit cogentle at 20 gbps`, `drain paris`, `avoid link
-  fra-ams` and `blackhole ddos`. Check runs a dry run against live traffic
+netchill`, `cap transit cogentle at 20 gbps`, `drain paris`, `avoid link
+fra-ams` and `blackhole ddos`. Check runs a dry run against live traffic
   and shows what would change; Deploy makes it real. Typos get a "did you
   mean". Two new badges: Script Kiddie and Fat Finger.
 - Zoom in twice as far as before, handy for crowded spots like the UAE,

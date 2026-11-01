@@ -5,9 +5,13 @@ const { load } = require('./harness');
 const port = (ev, carrier, city) => ev(`S.transit.find(t=>t.net==='${carrier}'${city ? `&&t.city==='${city}'` : ''}).id`);
 const via = (ev, id, dest) => ev(`((R.tNet['${id}']||{})['${dest}'])||0`);
 
+// Fixed demand keeps routing-policy tests independent of country traffic observations.
+const shares=ev=>ev("NSH_CC.US={lvl:.08,tly:.08,ntt:.08,dcp:.08,spc:.08,ggl:.6}");
+
 // New York with eyeballs, and Level Tree and Tell-Ya ports in the same POP.
-function newYork(lvlTier = 1, demand = 800) {
+function newYork(lvlTier = 1, demand = 100) {
   const g = load();
+  shares(g.ev);
   g.ev(`ACT.pickStart({city:'nyc'});ACT.start({});S.cash=1e9;ACT.launchBB({city:'nyc'});S.pops.nyc.bb.d=${demand};
     ACT.buyTransit({city:'nyc',net:'lvl',tier:${lvlTier}});ACT.buyTransit({city:'nyc',net:'tly',tier:1});compute()`);
   g.lvl = port(g.ev, 'lvl'); g.tly = port(g.ev, 'tly');
@@ -17,6 +21,7 @@ function newYork(lvlTier = 1, demand = 800) {
 // Chicago has the eyeballs; Level Tree is in New York, Tell-Ya in Chicago, and a 100G wave joins them.
 function twoPops() {
   const g = load();
+  shares(g.ev);
   g.ev(`ACT.pickStart({city:'nyc'});ACT.start({});S.cash=1e9;ACT.buildPop({city:'chi'});
     UI.via=null;UI.route='same';UI.lmode=null;openLinkModal('nyc','chi');ACT.buildLink({tier:1});closeModal();
     ACT.launchBB({city:'chi'});S.pops.chi.bb.d=80;
@@ -31,28 +36,29 @@ test('at its own POP a carrier\'s port takes the traffic bound for that carrier,
   assert.ok(via(ev, lvl, 'lvl') > 1, 'Level Tree traffic goes out of the Level Tree port');
   assert.equal(via(ev, tly, 'lvl'), 0, 'and none of it out of Tell-Ya');
   assert.ok(via(ev, tly, 'tly') > 1 && via(ev, lvl, 'tly') === 0, 'the same for Tell-Ya');
-  assert.ok(via(ev, lvl, 'ntt') > 1 && via(ev, tly, 'ntt') > 1, 'traffic for a carrier you have no port of still shares both ports');
+  assert.ok(via(ev, tly, 'ntt') > 1 && via(ev, lvl, 'ntt') === 0, 'other traffic chooses one upstream with a stable tie-break');
   assert.deepEqual(errors, []);
 });
 
 test('traffic for a carrier\'s customers prefers that carrier too, and a carrier beats its own customers\' other upstreams', () => {
   const { ev, lvl, tly, errors } = newYork();
-  // Tee-Hee Mobile buys from Level Tree and Not That Telecom, not from Tell-Ya.
-  assert.deepEqual(JSON.parse(ev("JSON.stringify(NET.tmo.up)")), ['lvl', 'ntt']);
-  assert.ok(via(ev, lvl, 'tmo') > 0 && via(ev, tly, 'tmo') === 0, 'Tee-Hee Mobile goes out of the Level Tree port');
-  // Add Not That Telecom: it is just as good an upstream for Tee-Hee, so the two share it. Its own traffic stays on its own port.
+  assert.ok(ev("NET.dcp.up.includes('lvl')&&NET.dcp.up.includes('ntt')&&!NET.dcp.up.includes('tly')"));
+  assert.ok(via(ev, lvl, 'dcp') > 0 && via(ev, tly, 'dcp') === 0, 'Docomoco Pacific goes out of the Level Tree port');
+  // Equal customer paths choose one carrier. Its own traffic stays on its own port.
   ev("ACT.buyTransit({city:'nyc',net:'ntt',tier:1});compute()");
   const ntt = port(ev, 'ntt');
-  assert.ok(via(ev, lvl, 'tmo') > 0 && via(ev, ntt, 'tmo') > 0 && via(ev, tly, 'tmo') === 0, 'two upstreams of the same network share its traffic');
+  assert.ok(via(ev, lvl, 'dcp') === 0 && via(ev, ntt, 'dcp') > 0 && via(ev, tly, 'dcp') === 0, 'equal paths choose one upstream by ASN');
   assert.ok(via(ev, ntt, 'ntt') > 0 && via(ev, lvl, 'ntt') === 0 && via(ev, tly, 'ntt') === 0);
   assert.deepEqual(errors, []);
 });
 
-test('when the carrier\'s own port is full, the rest spills onto the other transit ports', () => {
-  const { ev, lvl, tly, errors } = newYork(0);   // a 10G Level Tree port
+test('a full carrier port drops excess traffic until its route is withdrawn', () => {
+  const { ev, lvl, tly, errors } = newYork(0, 800);   // a 10G Level Tree port
   assert.ok(ev(`R.useT['${lvl}']`) > 9.99, 'the small port is full');
   assert.ok(via(ev, lvl, 'lvl') > 9, 'mostly with Level Tree traffic');
-  assert.ok(via(ev, tly, 'lvl') > 1, 'and the rest of Level Tree\'s traffic goes out of Tell-Ya');
+  assert.equal(via(ev, tly, 'lvl'), 0, 'congestion does not move a route to another carrier');
+  ev(`S.transit.find(t=>t.id==='${lvl}').down=S.day+1;S.pops.nyc.bb.d=100;compute()`);
+  assert.ok(via(ev, tly, 'lvl') > 1, 'a withdrawn route fails over');
   assert.deepEqual(errors, []);
 });
 
@@ -80,6 +86,7 @@ test('Prefer, Backup only and RouteScript keep the say they had', () => {
 // New York and Chicago, both with eyeballs, a Level Tree and a Tell-Ya port each, and a 100G wave between them.
 function bothPops() {
   const g = load();
+  shares(g.ev);
   g.ev(`ACT.pickStart({city:'nyc'});ACT.start({});S.cash=1e9;ACT.buildPop({city:'chi'});
     UI.via=null;UI.route='same';UI.lmode=null;openLinkModal('nyc','chi');ACT.buildLink({tier:1});closeModal();
     for(const c of ['nyc','chi']){ACT.launchBB({city:c});S.pops[c].bb.d=40;ACT.buyTransit({city:c,net:'lvl',tier:1});ACT.buyTransit({city:c,net:'tly',tier:1});}compute()`);
@@ -134,7 +141,7 @@ test('traceroute shows the exit that routing uses, and says why', () => {
   assert.ok(via(ev, lvl, 'lvl') > 1 && via(ev, tly, 'lvl') < 0.001, 'routing now uses the carrying port too');
   assert.match(why('lvl'), /Level Tree.*New York/, 'the carrying port, in New York');
   assert.match(why('lvl'), /straight to Level Tree/, 'because it goes straight to the carrier');
-  assert.match(why('tmo'), /Tee-Hee Mobile buys transit from Level Tree/, 'and for its customers');
+  assert.match(why('dcp'), /Docomoco Pacific buys transit from Level Tree/, 'and for its customers');
   assert.match(why('lvl', 'nyc'), /Level Tree.*New York/, 'at its own POP the carrier\'s port wins without carrying');
   ev(`ACT.setCarry({id:'${lvl}',on:0})`);
   assert.match(why('lvl', 'nyc'), /Level Tree.*New York.*straight to Level Tree/, 'also with carry off');

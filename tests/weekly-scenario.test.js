@@ -38,10 +38,12 @@ test('generator: deterministic for a week, and every theme a template the game k
   assert.deepEqual(g.errors, []);
 });
 
-test('every committed week verifies: not won on day 0, the reference wins on its par with time to spare', () => {
+test('weekly files stay valid and current weeks keep a winning reference with time to spare', () => {
   const g = G.game(), files = committed();
   assert.ok(files.length >= 3, 'this week and the next two are committed');
   for (const j of files) {
+    assert.ok(g.ev(`!!wsValid(${JSON.stringify(j)},'${j.key}')`));
+    if (g.ev(`pzWeekStart('${j.key}')+7*864e5<=Date.now()`)) continue;
     const v = G.verify(g, j);
     assert.ok(v.ok, `${j.key}: ${v.why}`);
     assert.equal(v.par, j.par, `${j.key}: par`);
@@ -83,7 +85,7 @@ test('the file is checked field by field, and --check rejects a tampered one', (
 });
 
 test('--check: a week the reference no longer wins is regenerated as a new revision, a new par is just written', () => {
-  const g = G.game(), dir = tmp(), j = committed()[0];
+  const g = G.game(), dir = tmp(), j = committed().at(-1);
   fs.writeFileSync(path.join(dir, j.key + '.json'), JSON.stringify({ ...j, par: j.par + 1 }) + '\n');
   const now = g.ev(`pzWeekStart('${j.key}')`);
   let r = G.refresh(g, dir, now);

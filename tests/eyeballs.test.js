@@ -11,13 +11,13 @@ test('American eyeballs follow PeeringDB, and the ones with upstreams are reache
   const asn = { att: 7018, tmo: 21928, cxc: 22773, pes: 6128, ftr: 5650, gfb: 16591, snc: 46375 };
   for (const [id, a] of Object.entries(asn)) assert.equal(ev(`NET.${id}.asn`), a, id);
   assert.equal(ev('NET.att.type'), 't1');
-  assert.ok(ev("NET.att.price>0&&NET.att.ix.length===0"), 'AT&Tease sells transit and never peers at an IX');
+  assert.ok(ev("NET.att.price>0&&NET.att.pol==='restrictive'&&!peerOk('att','ix','nyc').ok"), 'AT&Tease sells transit but IX presence grants no public peering');
   assert.ok(ev("NET.tmo.pol==='selective'&&NET.pes.pol==='open'&&NET.gfb.pol==='open'&&NET.snc.pol==='open'"));
   assert.ok(ev("NET.gfb.ix.includes('kcy')"), 'GFibber gives the Kansas City exchange some eyeballs');
   assert.ok(ev("NET.tmo.ix.includes('sju')"), 'Tee-Hee Mobile is on the Puerto Rico exchange');
   assert.equal(ev("NET.cxc.ix.length"), 0, 'Coax: PNIs only');
-  assert.deepEqual(JSON.parse(ev('JSON.stringify(NET.cxc.up)')), ['spc']);
-  assert.deepEqual(JSON.parse(ev('JSON.stringify(NET.ftr.up)')), ['vzn']);
+  assert.deepEqual(JSON.parse(ev('JSON.stringify(NET.cxc.up)')), ['gtt', 'tly']);
+  assert.deepEqual(JSON.parse(ev('JSON.stringify(NET.ftr.up)')), ['lvl', 'cog', 'vzn']);
   // with PNIs to every Tier 1 and no transit, the small ones with Tier 1 upstreams are still reachable
   ev("S.transit=[];S.ixp={};S.pni=[];for(const n of t1Need())S.pni.push({id:n.id,net:n.id,city:'fra',tier:0});compute()");
   assert.ok(ev("t1Need().every(n=>n.pops.includes('fra'))"), 'every Tier 1, AT&Tease included, is in Frankfurt');

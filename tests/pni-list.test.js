@@ -56,13 +56,28 @@ test('the value line matches the transit bill by hand, and the worth-it rule', (
   const small = ev("pniVal('pst','fra')");
   assert.ok(small.g < 1 && !small.worth);
   // A full transit port drops traffic: a PNI that carries it is worth it even if it saves no transit.
-  ev("S.pops.fra.bb.d=400;compute()");
+  ev("S.pops.fra.bb.d=400;S.transit[0].tier=0;compute()");
   const big = ev("pniVal('nfx','fra')");
   assert.ok(big.u >= 1 && big.drop >= 1 && big.worth, 'dropped traffic makes it worth it');
   // Information only: routing is the same with or without the list reading it.
   const before = ev("JSON.stringify(R.usePni)+R.served");
   ev("renderAll();UI.sel={type:'city',id:'fra'};UI.tab='peer';renderPanel();compute()");
   assert.equal(ev("JSON.stringify(R.usePni)+R.served"), before);
+  assert.deepEqual(errors, []);
+});
+
+test('a wholesale PNI values its customers and matches the traffic it takes off transit', t => {
+  const { ev, dom, errors } = load();
+  t.after(() => dom.window.close());
+  fra(ev);
+  ev("S.transit[0].net='lvl';compute()");
+  assert.equal(ev('NSH.scm'), 0, 'the carrier has no invented residential demand');
+  const v = ev("pniVal('scm','fra')");
+  const before = ev('R.useT[S.transit[0].id]');
+  assert.ok(v.t > 0 && v.u < 1e-6, 'its customers currently use transit');
+  ev(`S.pni.push({id:'carrier',net:'scm',city:'fra',tier:${v.tier}});compute()`);
+  assert.ok(Math.abs(ev('R.usePni.carrier') - v.g) < 1e-6, 'the quoted customer traffic uses the PNI');
+  assert.ok(Math.abs(before - ev('R.useT[S.transit[0].id]') - v.g) < 1e-6, 'the same traffic leaves transit');
   assert.deepEqual(errors, []);
 });
 
@@ -81,6 +96,7 @@ test('the PNI list: worth it first, filters, groups by type folded when idle, ph
   const rows = ev("(()=>{const r=NETS.filter(n=>n.pops.includes('fra')&&n.type==='cdn'&&n.pol!=='paid').map(n=>({id:n.id,v:pniVal(n.id,'fra')})).filter(x=>!S.pni.some(p=>p.net===x.id));return r})()");
   const w = rows.filter(r => r.v.worth).sort((a, b) => b.v.val - a.v.val);
   assert.ok(w.length, 'some content network is worth it at 400G of demand');
+  ev("ACT.listMore({k:'pni'})");p = panel();
   const names = [...p.querySelectorAll('.prow .nm')].map(x => x.textContent);
   const first = ev(`NET.${w[0].id}.name`);
   assert.ok(names.some(n => n.startsWith(first) && /Worth it/.test(n)), 'best candidate is tagged');

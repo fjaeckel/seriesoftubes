@@ -11,14 +11,14 @@ test('diversity map: the indexed graph answers like disjointRoutes() over every 
   // The plain map: one record per possible link, in the order the indexed one adds them.
   ev(`window.plainLinks=state=>{const rules=state.scn&&state.scn.rules||{},links=[],cities=CITIES.filter(c=>!(rules.banCities||[]).includes(c.id)).map(c=>c.id),add=(a,b,id)=>links.push({a,b,id});
     for(let i=0;i<cities.length;i++)for(let j=i+1;j<cities.length;j++){const a=cities[i],b=cities[j];
-      if(!isSub(a,b)){add(a,b,'land:'+a+':'+b+':1');add(a,b,'land:'+a+':'+b+':2');}
-      for(const c of cablesFor(a,b))if(!(rules.banPairs||[]).some(p=>p===c.cid+':'+a+'-'+b||p===c.cid+':'+b+'-'+a))add(a,b,'cab:'+c.cid);
-      if(state.won&&seaCab(a,b)&&landing(a)&&landing(b)&&!cnCity(a)&&!cnCity(b))add(a,b,'own:'+a+':'+b);
+      if(!isSub(a,b)&&!closedPair(a,b)){add(a,b,'land:'+a+':'+b+':1');add(a,b,'land:'+a+':'+b+':2');}
+      for(const c of cablesFor(a,b))if(!closedPair(a,b)&&!(rules.banPairs||[]).some(p=>p===c.cid+':'+a+'-'+b||p===c.cid+':'+b+'-'+a))add(a,b,'cab:'+c.cid);
+      if(state.won&&seaCab(a,b)&&landing(a)&&landing(b)&&!cnCity(a)&&!cnCity(b)&&!closedPair(a,b)&&!CITY[a].kp&&!CITY[b].kp)add(a,b,'own:'+a+':'+b);
       for(const f of FABS)if(f.cities.includes(a)&&f.cities.includes(b))add(a,b,'fab:'+f.id);}return links;}`);
   const cp = ev('CABLE_PAIRS[0].cid+":"+CABLE_PAIRS[0].a+"-"+CABLE_PAIRS[0].b');
   for (const st of [{ won: false }, { won: true }, { won: false, scn: { rules: { banCities: ['jam', 'lon'], banPairs: [cp] } } }]) {
     const r = JSON.parse(ev(`(()=>{const st=${JSON.stringify(st)},L=plainLinks(st);diversityMap=null;diversityPossible('fra','nyc',st);
-      const ids=CITIES.map(c=>c.id),bad=[];let n=0;for(let i=0;i<ids.length;i+=3)for(let j=i+1;j<ids.length;j+=3){n++;const a=ids[i],b=ids[j];
+      const ids=CITIES.map(c=>c.id),bad=[],step=Math.max(3,Math.ceil(ids.length/80));let n=0;for(let i=0;i<ids.length;i+=step)for(let j=i+1;j<ids.length;j+=step){n++;const a=ids[i],b=ids[j];
         const want=(st.scn&&st.scn.rules.banCities.some(x=>x===a||x===b))?diversityPossible(a,b,st):disjointRoutes(a,b,L);if(diversityPossible(a,b,st)!==want)bad.push(a+'-'+b);}
       return JSON.stringify({links:L.length,mine:diversityMap.links,n,bad})})()`));
     assert.equal(r.mine, r.links, 'the same possible links');

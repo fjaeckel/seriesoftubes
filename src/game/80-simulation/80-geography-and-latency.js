@@ -5,11 +5,57 @@ const txComp=c=>{const q=CITY_PDB[c];return q?clamp((1000/Math.max(q[1],10))**0.
 // No neutral data center means building your own room: POPs cost more to build and to run.
 const colo=c=>{const q=CITY_PDB[c];return !q?1:q[0]===0?1.5:q[0]<=2?1.25:1;};
 const popMo=c=>Math.round(POP_MO*colo(c));
-function regionMult(c){const C=CITY[c];if(!C||C.cn)return 1;if(C.kr)return KR_TRANSIT;if(C.au)return AU_TRANSIT;if(C.ph)return PH_TRANSIT;if(C.tape)return 1.5;const base=C.reg==='AS'?2.5:C.reg==='AF'?2:C.reg==='OC'?1.8:C.reg==='SA'?1.6:1;return Math.round(base*txComp(c)*10)/10;}
+const townMult=c=>clamp((150/Math.max(CITY[c].P,25))**0.35,1,2);
+// Broad market bands, not carrier quotes. Dense hubs cost less than regional backhaul.
+const TX_COUNTRY={
+ AE:3.5,
+ BD:4,
+ BH:3.5,
+ BR:1.7,
+ CD:4,
+ CO:2.5,
+ EG:3.5,
+ ET:4,
+ FJ:4,
+ GH:3,
+ HK:1.8,
+ ID:4.5,
+ IN:4,
+ JP:2,
+ KE:3,
+ KH:4,
+ KW:4,
+ LA:5,
+ LK:4,
+ MX:1.5,
+ MY:3,
+ NG:3,
+ NP:5,
+ NZ:2,
+ OM:4,
+ PF:4,
+ PG:5,
+ PK:4,
+ QA:4,
+ SA:4,
+ SD:4,
+ SG:1.8,
+ SS:5,
+ TH:3,
+ TW:2.8,
+ UG:4,
+ VN:3.5,
+ WS:4,
+ YE:5,
+ ZA:2,
+};
+function regionMult(c){const C=CITY[c];if(!C)return 1;const fixed=C.cn||C.kr||C.au||C.ph||C.tape,base=C.cn?1:C.kr?KR_TRANSIT:C.au?AU_TRANSIT:C.ph?PH_TRANSIT:C.tape?1.5:TX_COUNTRY[C.cc]||(C.reg==='AS'?2.5:C.reg==='AF'?3:C.reg==='OC'?3:C.reg==='SA'?2:1);return Math.round(base*(fixed?1:txComp(c))*townMult(c)*10)/10;}
 // A network's own markup on top of that, where it is far from home (Glowball Sakura Lager in Asia and New Zealand).
 // What a home pays, against the usual bill.
 const arpuOf=c=>CITY[c].arpu||(CITY[c].kr&&scnRule('sender')?KR_ARPU:1);
-const netMult=(n,c)=>regionMult(c)*((n&&n.far&&CITY[c]&&n.far[CITY[c].reg])||1);
+// Large domestic access networks charge for their market power. Wholesale backbones have no retail premium.
+const eyeMarkup=(n,c)=>n&&n.type==='t2'&&!n.wholesale?1+1.5*(COUNTRY_EYES[CITY[c].cc]?.[n.id]||0):1;
+const netMult=(n,c)=>regionMult(c)*((n&&n.far&&CITY[c]&&n.far[CITY[c].reg])||1)*eyeMarkup(n,c);
 const uaePair=(a,b)=>!!CITY[a].uae&&!!CITY[b].uae;
 const rainPair=(a,b)=>!!(CITY[a].rain||CITY[b].rain);
 // Every city has a country (cc), but the border toll is Africa's: elsewhere a wave crosses borders at the plain price.
@@ -22,10 +68,10 @@ const andesPair=(a,b)=>!!CITY[a].andes&&!!CITY[b].andes&&CITY[a].andes!==CITY[b]
 let ANCHOR_P=null;const anchorPair=l=>(ANCHOR_P||(ANCHOR_P=new Set(CABLE_PAIRS.filter(p=>CAB[p.cid]&&CAB[p.cid].anchor).map(p=>edgeKey(p))))).has(edgeKey(l));
 /* Overland between continents (Europe to the Middle East and Asia) crosses a dozen borders and as many
    carriers, each taking a cut: in real life it costs ten times the subsea route or more (#40). */
-const LAND_X=45,landX=(a,b)=>!isSub(a,b)&&CITY[a].reg!==CITY[b].reg;
+const LAND_X=45,landX=(a,b)=>!isSub(a,b)&&CITY[a].cc!==CITY[b].cc&&CITY[a].reg!==CITY[b].reg;
 function landMult(a,b){if(isSub(a,b))return 1;if(uaePair(a,b))return 3;return (landX(a,b)?LAND_X:1)*(andesPair(a,b)?2:1)*(nullPair(a,b)?NULLARBOR:1)*(rainPair(a,b)?2:1)*(borderPair(a,b)?2:1);}
 function landWhy(a,b){if(isSub(a,b))return '';if(uaePair(a,b))return tr('geography_and_latency.inside_the_uae_only_the_two');
-  const r=[];if(CITY[a].reg!==CITY[b].reg)r.push(tr('geography_and_latency.overland_between_continents_crosses',{x:LAND_X}));if(andesPair(a,b))r.push(tr('geography_and_latency.this_route_crosses_the_andes_2'));if(nullPair(a,b))r.push(tr('geography_and_latency.this_route_crosses_the_nullarbor_x',{x:NULLARBOR}));if(borderPair(a,b))r.push(tr('geography_and_latency.this_route_crosses_a_border_in'));if(rainPair(a,b))r.push(tr('geography_and_latency.this_route_goes_into_the_amazon'));return r.join(' ');}
+  const r=[];if(landX(a,b))r.push(tr('geography_and_latency.overland_between_continents_crosses',{x:LAND_X}));if(andesPair(a,b))r.push(tr('geography_and_latency.this_route_crosses_the_andes_2'));if(nullPair(a,b))r.push(tr('geography_and_latency.this_route_crosses_the_nullarbor_x',{x:NULLARBOR}));if(borderPair(a,b))r.push(tr('geography_and_latency.this_route_crosses_a_border_in'));if(rainPair(a,b))r.push(tr('geography_and_latency.this_route_goes_into_the_amazon'));return r.join(' ');}
 function linkLat(l){const f=l.kind==='df'?(l.own?(l.sub?seaLatencyFactor(l):1.1):1.25):l.kind==='vxc'?1.4:l.cable?(CAB[l.cable].lat||1):1.3;return l.km*f/200;}
 /* Wave prices differ a lot by market (TeleGeography): Europe's dense, competitive metro and
    long-haul routes are cheap (Frankfurt–London 100G ≈ $1,150/mo), the US costs more, and

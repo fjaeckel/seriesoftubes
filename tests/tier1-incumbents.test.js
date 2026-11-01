@@ -17,7 +17,9 @@ test('#194 new games need both for Tier 1, old saves keep their set', () => {
   const { ev, errors } = load();
   ev("ACT.start({})");
   const need = () => ev("t1Need().map(n=>n.id).sort().join()");
-  assert.equal(need(), 'att,cog,dtk,lvl,ntt,skl,tat,tly,tng', 'new games need all nine');
+  assert.equal(need(), 'att,cog,drz,dtk,gtt,lvl,ntt,pcw,skl,tat,tlx,tly,tng,ups,vzn,zay', 'new games need the researched Tier 1 club');
+  ev("S.t1v=4");
+  assert.equal(need(), 'att,cog,dtk,lvl,ntt,skl,tat,tly,tng', 'operator-update saves keep nine');
   ev("S.t1v=3");
   assert.equal(need(), 'att,cog,lvl,ntt,skl,tat,tly', 'saves from 1.x and 2.x keep seven');
   ev("S.t1v=4;const o=JSON.parse(JSON.stringify(S));S=migrate(o)");
@@ -37,20 +39,23 @@ test('#194 the Road to Tier 1 names them when the PNIs are missing', () => {
   assert.deepEqual(errors, []);
 });
 
-test('#194 Doitsche sells the dearest transit in Europe and still charges for peering; Tangerine sells it cheaper', () => {
+test('#194 Doitsche sells premium transit below Very-Zone and AT&Tease and still charges for peering', () => {
   const { ev, errors } = load();
   ev("ACT.start({})");
   assert.equal(ev("sellsAt(NET.dtk,'fra')"), true, 'Doitsche sells transit in Frankfurt');
-  assert.equal(ev("NETS.filter(n=>n.id!=='dtk'&&!n.cn&&n.price&&n.pops.some(c=>CITY[c].reg==='EU')).every(n=>n.price<NET.dtk.price)"), true, 'dearer than every carrier in Europe but the Chinese ones, whose price is the crossing into China');
+  assert.equal(ev("NETS.filter(n=>!['dtk','vzn','att'].includes(n.id)&&n.type==='t1'&&n.price).every(n=>n.price<NET.dtk.price)"), true, 'above the competitive and premium wholesale bands');
   assert.ok(ev("NET.tng.price") < ev("NET.dtk.price"));
+  assert.ok(ev("NET.dtk.price<NET.vzn.price&&NET.vzn.price<NET.att.price"));
   // its peering stays paid only over a PNI, and it still sells PNIs down to 1G
   assert.equal(ev("NET.dtk.pol"), 'paid');
   assert.equal(ev("peerOk('dtk','ix','fra').ok"), false);
   assert.equal(ev("peerOk('dtk','pni','fra').fee"), ev("NET.dtk.paidFee"));
   assert.equal(ev("pniMin('dtk')"), 0);
   assert.match(ev("offTransitHint('dtk','fra')"), /Paid peering only/);
-  // Tangerine keeps its selective policy: enough traffic gets you a PNI, no Tier 1 club needed
+  // Tangerine's published restrictive policy requires the global peering footprint too.
   ev("R.demTo.tng=50");
+  assert.equal(ev("peerOk('tng','pni','par').ok"), false);
+  ev("S.cash=1e9;for(const c of ['ams','ash','lon','nyc','par','sin','tok','syd','sjc'])ACT.buildPop({city:c});R.served=1600;R.sessions=20");
   assert.equal(ev("peerOk('tng','pni','par').ok"), true);
   assert.deepEqual(errors, []);
 });

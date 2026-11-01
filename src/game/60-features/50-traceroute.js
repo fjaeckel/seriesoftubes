@@ -28,8 +28,8 @@ function traceroute(src,to){const P=trPaths(src),me=slug(S.name)+'.net',lines=[]
   // carries, except from a POP with a Prefer-marked transit port, where Prefer keeps the say.
   const hiHere=S.transit.some(t=>t.city===src&&t.pref==='high'&&popUp(t.city)&&!(t.down>S.day)&&liveN(t.city,t.site,t.n)),dtier=e=>hiHere||e.k!=='t'||e.pref==='low'?0:directTier(e.tnet,N.id);
   const rk=e=>{const r=e.pref==='low'?4:e.rank,t=dtier(e);return t&&(e.carry||e.city===src)?Math.min(r,DIRECT_RANK[t][e.carry?0:1]):r;};
-  ex.sort((a,b)=>rk(a)-rk(b)||(a.pref==='high'?0:1)-(b.pref==='high'?0:1)||P.dist[a.city]-P.dist[b.city]);
-  const e=ex.find(x=>x.used<x.cap*0.999)||ex[0];walk(P.path(e.city));
+  ex.sort((a,b)=>rk(a)-rk(b)||(a.pref==='high'?0:1)-(b.pref==='high'?0:1)||(a.k==='t'&&b.k==='t'?transitHops(a.tnet,N.id,a.carry||a.city===src)-transitHops(b.tnet,N.id,b.carry||b.city===src):0)||P.dist[a.city]-P.dist[b.city]||(a.k==='t'&&b.k==='t'?NET[a.tnet].asn-NET[b.tnet].asn:0));
+  const tn=ex.find(x=>x.k==='t')?.tnet,chosen=ex.filter(x=>x.k!=='t'||x.tnet===tn),e=chosen.find(x=>x.used<x.cap*0.999)||chosen[0];walk(P.path(e.city));
   const direct=e.k==='t'&&rk(e)<3?' '+(dtier(e)===1?tr('traceroute.the_carrier_s_own_port_beats_other',{net:N.name}):tr('traceroute.net_buys_transit_from_carrier_so_that',{net:N.name,carrier:NET[e.tnet].name})):'';
   let asPath=[S.asn];
   if(e.k==='t'){const T=NET[e.tnet];asPath.push(T.asn);hop(`be-${S.asn}.${e.city}.${slug(T.name)}.net`,`203.0.113.${hstr(e.city)%250}`,0.4,tr('traceroute.hand_off_to_net',{net:T.name}));

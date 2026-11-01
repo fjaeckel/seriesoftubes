@@ -123,8 +123,10 @@ function paintWorld(c,z,withCables){const LANDP=lodFar()?LANDP_FAR:LANDP_ALL;
   c.fillStyle='#9BDA6C';for(const o of [0,W,-W]){c.save();c.translate(o,0);for(const p of LANDP)c.fill(p);c.restore();}
   c.fillStyle='#86CB5B';c.beginPath();for(const [x,y,r] of HILLS){c.moveTo(x+r*1.4,y);c.ellipse(x,y,r*1.4,r*.8,0,0,Math.PI*2);}c.fill();
   c.fillStyle='rgba(255,255,255,.18)';c.beginPath();for(const [x,y,r] of HILLS){c.moveTo(x-r*.3+r*.6,y-r*.25);c.ellipse(x-r*.3,y-r*.25,r*.6,r*.3,0,0,Math.PI*2);}c.fill();
+  c.fillStyle='#55BEDF';c.strokeStyle='#1E2640';c.lineWidth=1.3/z;for(const o of [0,W,-W]){c.save();c.translate(o,0);for(const p of LAKEP){c.fill(p);c.stroke(p);}c.restore();}
+  if(z>=1.2){c.strokeStyle='rgba(30,38,64,.18)';c.lineWidth=.65/z;c.lineJoin='round';for(const o of [0,W,-W]){c.save();c.translate(o,0);c.stroke(BORDERP);c.restore();}}
   c.strokeStyle='#1E2640';c.lineWidth=2.5/z;for(const o of [0,W,-W]){c.save();c.translate(o,0);for(const p of LANDP)c.stroke(p);c.restore();}
-  if(withCables)for(const off of [0,W,-W]){c.save();c.translate(off,0);for(const cp of CABLE_PAIRS){const C=CAB[cp.cid];c.globalAlpha=0.4;c.strokeStyle=cableCol(C);c.lineWidth=1.6/z;c.lineJoin='round';c.setLineDash(C.age==='old'?[6/z,5/z]:[]);c.beginPath();c.moveTo(cp.pts[0][0],cp.pts[0][1]);for(let i=1;i<cp.pts.length;i++)c.lineTo(cp.pts[i][0],cp.pts[i][1]);c.stroke();}c.restore();}
+  if(withCables)for(const off of [0,W,-W]){c.save();c.translate(off,0);for(let i=0;i<CABLE_PAIRS.length;i++){const C=CAB[CABLE_PAIRS[i].cid];c.globalAlpha=0.4;c.strokeStyle=cableCol(C);c.lineWidth=1.6/z;c.lineJoin='round';c.setLineDash(C.age==='old'?[6/z,5/z]:[]);c.stroke(CABLEP[i]);}c.restore();}
   c.globalAlpha=1;c.setLineDash([]);
 }
 const WL={key:null,cv:null,zAt:0,lastZ:0,sc:1,ox:0,oy:0,full:true};const MAXPX=4096;

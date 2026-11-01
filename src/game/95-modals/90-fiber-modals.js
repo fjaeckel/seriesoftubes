@@ -1,8 +1,10 @@
 function dfModalBody(a,b,km,pop){
+  if(CITY[a].kp||CITY[b].kp)return `<p class="lead">${esc(tr('city_panel.pyongyang_rules',{net:NET.kpt.name}))}</p>`;
+  if(closedPair(a,b))return `<p class="lead">${esc(corridorWhy(a,b))}</p>`;
   if(seaCab(a,b)&&UI.dfSrc==='cable')return ownCabBody(a,b,pop);
-  const sea=!isSub(a,b)&&seaCab(a,b)?ownCabTeaser(a,b):'';
-  if(isSub(a,b)&&!subDfCable(a,b))return `<p class="lead" style="margin-top:10px">${tr('fiber_modals.nobody_sells_dark_fiber_on_a')}</p>`+ownCabTeaser(a,b);
-  const sc=isSub(a,b)?subDfCable(a,b):null;if(sc)km=sc.km;
+  const sub=isSub(a,b),sea=!sub&&seaCab(a,b)?ownCabTeaser(a,b):'';
+  if(sub&&!subDfCable(a,b))return `<p class="lead" style="margin-top:10px">${tr('fiber_modals.nobody_sells_dark_fiber_on_a')}</p>`+ownCabTeaser(a,b);
+  const sc=sub?subDfCable(a,b):null;if(sc)km=sc.km;
   if(uaePair(a,b))return `<p class="lead" style="margin-top:10px">${tr('fiber_modals.no_dark_fiber_inside_the_uae')}</p>`+sea;
   if(landX(a,b)&&cnCity(a)===cnCity(b))return `<p class="lead" style="margin-top:10px">${tr('fiber_modals.nobody_sells_one_fiber_pair_across')}</p>`+sea;
   if(!dfAllowed(a,b))return `<p class="lead" style="margin-top:10px">${tr('fiber_modals.dark_fiber_across_the_chinese_border')}</p>`+sea;

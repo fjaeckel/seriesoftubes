@@ -24,15 +24,16 @@ if(${dict})self.I18N[${JSON.stringify(L)}]=${dict};
   }catch(e){console.error('[tubes] no route worker',e);rwKill();}
   return RW.w;}
 // Gone for good this session: the day it was routing is routed here instead.
-function rwKill(){RW.dead=true;if(RW.w)try{RW.w.terminate();}catch(e){}RW.w=null;const j=RW.job;RW.job=null;if(j){try{compute();dayPost(j.d);}catch(e){tickErr(e);}rwDayDone();}}
+function rwKill(){RW.dead=true;if(RW.w)try{RW.w.terminate();}catch(e){}RW.w=null;const j=RW.job;RW.job=null;if(j){try{if(j.state===S){compute();dayPost(j.d);}}catch(e){tickErr(e);}rwDayDone();}}
 // One day in play: the first half here, the routing in the worker, the second half when it answers.
 function rwDay(){const d=dayPre();if(d===false)return;const w=rwStart();
   if(!w){compute();dayPost(d);rwDayDone();return;}
   const t=performance.now(),seq=++RW.seq;
   // The worker also needs what compute() reads from yesterday's R: link loads, and the scenic circuits' paths.
   try{w.postMessage({seq,S,load:R.load,l2route:R.l2route,efg:rwEfgOut(R.efg)});}catch(e){console.error('[tubes] route worker post',e);rwKill();compute();dayPost(d);rwDayDone();return;}
-  const t1=performance.now();RW.stat.post+=t1-t;RW.job={seq,d,gen:RW.gen,t:t1};}
+  const t1=performance.now();RW.stat.post+=t1-t;RW.job={seq,d,gen:RW.gen,t:t1,state:S};}
 function rwDone(m){const j=RW.job;if(!j||m.seq!==j.seq)return;RW.job=null;const t=performance.now();
+  if(j.state!==S){rwDayDone();return;}
   if(m.err){console.error('[tubes] route worker',m.err);compute();}
   else if(RW.gen===j.gen){R=rwUnpack(m.R,m.ef);UI.hotMap=hotByCity();}
   const t1=performance.now(),st=RW.stat;st.n++;st.apply+=t1-t;st.wait+=t-j.t;st.work+=m.ms||0;
@@ -41,7 +42,7 @@ function rwDayDone(){UI.ticking=true;renderHUD();UI.ticking=false;UI.panelsDue=t
 /* R as plain data. R.ef and R.fl are lazy getters, sent as the pieces they are built from (R.efp, R.flc, see efBuild()
    and flDefine() in 30-compute.js), their typed arrays moved, not copied. Exits become their ids (all R.fl reads), and an
    attack record names its attack in S by id. */
-const FL_COLS=['FREM','FCI','FNJ','FCA','FBZ','FGT','FGI','FGP','FGH','FTI','FII'];
+const FL_COLS=['FREM','FCI','FNJ','FCA','FBZ','FV6','FGT','FGI','FGP','FGH','FTI','FII'];
 function rwPack(R){const o={};for(const k in R)o[k]=k==='ef'?0:k==='ddos'?R.ddos.map(m=>({...m,attack:m.attack?m.attack.id:null,ports:null})):R[k];
   const p=R.efp,c={...R.flc,E:R.flc.E.map(e=>({id:e.id}))},tr=[p.ACN.buffer,p.ACD.buffer];for(const k of FL_COLS)tr.push(c[k].buffer);
   return {o,p:{...p,flc:c},tr};}

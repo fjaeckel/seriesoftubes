@@ -8,7 +8,7 @@ function pniIdx(){if(PNIX&&PNIX.R===R)return PNIX;
   const ix={},pn={};
   for(const c in S.ixp){const nm=ixName(c);for(const id of ixSessions(c)){const a=ix[id]||(ix[id]=[]);if(!a.includes(nm))a.push(nm);}}
   for(const p of S.pni)(pn[p.net]||(pn[p.net]=[])).push(p);
-  return PNIX={R,fl:{},ix,pn};}
+  return PNIX={R,fl:{},v:{},ix,pn};}
 // One POP's flows by network, added up the first time that POP is asked about.
 function pniFlows(c){const X=pniIdx();let m=X.fl[c];if(m)return m;m=X.fl[c]={};
   for(const f of R.fl||[]){if(f.junk||f.c!==c)continue;let o=m[f.n];if(!o)o=m[f.n]={t:0,ix:0,p:0,h:0,u:0,T:{},I:{}};
@@ -33,7 +33,10 @@ function pniChip(id,c){const s=pniStat(id,c);let t;
 /* What a new PNI with `id` at `c` would carry and save per month. It takes your users' traffic there that now
    leaves over transit, an exchange or a PNI elsewhere, or does not leave at all for want of room, up to its port; transit is billed on the 95th percentile,
    so the saving is the bill now minus the bill with that much less (commits included). */
-function pniVal(id,c){const o=pniFlows(c)[id]||{t:0,ix:0,p:0,h:0,u:0,T:{},I:{}},want=o.t+o.ix+o.p+o.u;
+function pniVal(id,c){const X=pniIdx(),V=X.v[c]||(X.v[c]={});if(V[id])return V[id];const fl=pniFlows(c);let o=fl[id]||{t:0,ix:0,p:0,h:0,u:0,T:{},I:{}};
+  // A carrier can take its customers off transit. Their direct peering still wins over its cone.
+  if(DOWN[id].length){o={...o,T:{...o.T}};for(const x of DOWN[id]){if(scnRule('sender')&&NET[x].kr)continue;const f=fl[x];if(!f)continue;o.t+=f.t;o.u+=f.u;for(const t in f.T)o.T[t]=(o.T[t]||0)+f.T[t];}}
+  const want=o.t+o.ix+o.p+o.u;
   const lo=pniMin(id);let tier=-1;for(let i=lo;i<PORT.length;i++)if(portShown(i)){tier=i;if(PORT[i].g*0.8>=want)break;}
   if(tier<0)tier=lo;const g=Math.min(want,PORT[tier].g),gt=Math.min(o.t,g);let saved=0;
   if(gt>0)for(const tid in o.T){const t=S.transit.find(x=>x.id===tid);if(!t)continue;const q=R.p95[tid]??(R.useT[tid]||0),x=gt*o.T[tid]/o.t;saved+=transitMo(t,q)-transitMo(t,Math.max(0,q-x));}
@@ -41,4 +44,4 @@ function pniVal(id,c){const o=pniFlows(c)[id]||{t:0,ix:0,p:0,h:0,u:0,T:{},I:{}},
   // Then what you drop today for want of room, then a hot exchange port's share.
   const drop=Math.min(o.u,g-gt);let ixLeft=g-gt-drop,hot=0;for(const x in o.I){if(ixLeft<=0)break;const m=Math.min(ixLeft,o.I[x]);ixLeft-=m;const cp=S.ixp[x]!==undefined?ixCap(x):0;if(cp>0&&(R.useIx[x]||0)>=PNI_HOT*cp)hot+=m;}
   const val=saved-cost,worth=g>=1&&(val>0||hot>=1||drop>=1);
-  return {...o,want,g,tier,saved,cost,val,hot,drop,worth};}
+  return V[id]={...o,want,g,tier,saved,cost,val,hot,drop,worth};}
