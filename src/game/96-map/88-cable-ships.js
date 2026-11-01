@@ -32,7 +32,7 @@ function shipSprite(x,y,face,sc,col,now,mode){const c=ctx;c.save();c.translate(x
   if(mode==='work'&&Math.floor(now/350)%2){c.fillStyle='#FFD23F';c.font='900 11px sans-serif';c.textAlign='center';c.fillText('✦',12,-8);}
   c.restore();}
 function drawShips(ks,now){SHIP_HITS.length=0;if(!S||pzOn()||!S.fleet)return;
-  const T=S.day+(UI.speed?clamp(acc/DAY_MS,0,0.999):0),z=cam.z,sc=Math.max(0.9,Math.min(1.6,Math.sqrt(z)))*(lodFar()?1:1.25),list=[];
+  const T=S.day+(UI.speed?clamp(acc/DAY_MS,0,0.999):0),z=cam.z,sc=Math.max(0.85,Math.min(1.5,Math.sqrt(z)))*(lodFar()?0.9:1.05),list=[];
   for(const s of SHIPS){const p=shipAt(s,T);if(p.m==='port'&&z<1.1)continue;list.push({p,s,col:s.club==='prv'?'#7A5CFF':'#FF4D5E'});}
   for(const l of S.links)if(layOwn(l)&&l.ready>S.day&&T>=layStart(l)){const g=linkGeom(l),q=layDone(l,T),two=!!l.ship2;
     const put=(t,k,dir)=>{const [x,y]=polyAt(g.pts,g.cum,clamp(t,0,1)),[x2]=polyAt(g.pts,g.cum,clamp(t+dir*0.01,0,1));list.push({p:{x,y,m:'lay',dx:x2-x||dir},lay:l,k,col:'#16A866'});};

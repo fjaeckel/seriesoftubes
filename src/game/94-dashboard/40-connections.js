@@ -3,6 +3,8 @@
    network, with a jump to the POP that holds it. The Networks tab shows the same per network. */
 const CONN_K={t:N_('common.transit'),p:'PNI',ix:'IX',c:N_('common.cache'),nni:'NNI'},CONN_ORD=['t','p','ix','c','nni'],CONN_COL={t:'#FF8A3D',p:'#7B61FF',ix:'#2DB7F5',c:'#16A866',nni:'#1E2640'};
 const connTab=k=>k==='t'?'up':k==='nni'?'links':'peer';
+// How many rows conns() gives, without building them (the Networks tab only shows the count).
+const connsN=()=>S.transit.length+S.pni.length+Object.keys(S.ixp).length+new Set(S.caches.map(x=>x.city+'|'+x.net)).size+(S.nni||[]).filter(x=>FAB[x.prov]&&NNI[x.tier]).length;
 function conns(){const out=[],pn=(tier,n)=>(n||1)>1?`${n}×${PORT[tier].n} LAG`:PORT[tier].n;
   for(const t of S.transit){const q=(R.p95&&R.p95[t.id])||0;out.push({k:'t',id:t.id,city:t.city,net:t.net,name:NET[t.net].name,port:pn(t.tier,t.n),cap:lagCap(PORT[t.tier].g,t.n),use:R.useT[t.id]||0,mo:transitMo(t,q),down:t.down>S.day||!popUp(t.city),low:t.pref==='low',note:tr('connections.95th_percentile_g',{g:fmtG(q)})});}
   for(const x of S.pni){const u=R.usePni[x.id]||0;out.push({k:'p',id:x.id,city:x.city,net:x.net,name:NET[x.net].name,port:x.g1?((x.n||1)>1?x.n+'×1G':'1G'):pn(x.tier,x.n),cap:lagCap(pniG(x),x.n),use:u,mo:pniMo(x,u),down:!popUp(x.city)||!pniOn(x),low:x.pref==='low',note:!pniOn(x)?tr('connections.on_order_n_days',{n:x.ready-S.day}):NET[x.net].pol==='paid'?tr('common.paid_peering'):''});}

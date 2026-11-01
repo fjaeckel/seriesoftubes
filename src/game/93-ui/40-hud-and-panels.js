@@ -71,7 +71,7 @@ function renderLeft(){checkLayer();
   }else{
     if(Object.keys(S.ixp).length||ppol()!=='open')h+=pdeskCard();
     h+=`<p class="lead">${tr('hud_and_panels.every_network_on_the_map_traffic')}</p>`;
-    {const nc=conns().length;if(nc)h+=`<div class="btns" style="margin-bottom:8px">${btn(tr('hud_and_panels.all_connections_n',{n:nc}),'connOpen',{},'pink sm')}</div>`;}
+    {const nc=connsN();if(nc)h+=`<div class="btns" style="margin-bottom:8px">${btn(tr('hud_and_panels.all_connections_n',{n:nc}),'connOpen',{},'pink sm')}</div>`;}
     const where=netWhereIdx(),tl=NETS.filter(n=>n.tail),tlOn=tl.filter(n=>where(n.id).some(x=>x[2]==='ix')).length;
     const foc=UI.netFocus&&NET[UI.netFocus]?NET[UI.netFocus]:null,out=!foc&&UI.nf==='out',lostN=ntLost().length;
     h+=`<div class="btns" style="margin-bottom:8px">${btn(tr('common.all_networks'),'netFilter',{f:'all'},!foc&&!out?'sm':'ghost sm')}${btn(tr('hud_and_panels.out_of_reach_without_transit_n',{n:lostN}),'netFilter',{f:'out'},out?'sm':'ghost sm')}</div>`;

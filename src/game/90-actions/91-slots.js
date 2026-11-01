@@ -6,6 +6,8 @@ Object.assign(ACT,{
  // Back to the title with this network kept and saved.
  toTitle:()=>{if(pzOn()){pzLeave();}slotLeave();gameClear();showTitle();},
  slotBack:()=>{if(S&&UI.started)closeModal();else showTitle();},
+ // A damaged save, opened once more: if it loads, it is no longer damaged; if not, it is marked again.
+ slotRetry:({id})=>{const l=slotIdx(),e=l.find(x=>x.id===id);if(!e)return;e.broken=false;slotIdxPut(l);closeModal();ACT.cont({id});},
  slotMenu:({id})=>{const h=slotMenuHtml(id);if(h)openModal(h);},
  slotExport:({id})=>exportSlot(id),
  slotDel:({id,back})=>{const e=slotIdx().find(x=>x.id===id);if(!e)return;

@@ -68,7 +68,7 @@ function parseSave(txt){if(typeof txt!=='string')return {err:tr('save.that_file_
   if(s.lost)return {err:tr('save.that_network_went_bankrupt_it_cannot')};
   for(const c of Object.keys(s.pops))if(!isCity(c))return {err:tr('save.that_save_has_a_pop_in',{city:esc(String(c).slice(0,12))})};
   return {s,ver:j.version||'?',name:String(s.name||tr('common.unnamed_network'))};}
-function importFile(file){if(!file)return;if(file.size>8e6){toast(tr('save.that_file_is_too_big_to'),'bad');return;}
+function importFile(file){if(!file)return;if(file.size>64e6){toast(tr('save.that_file_is_too_big_to'),'bad');return;}
   const rd=new FileReader();rd.onload=()=>{const r=parseSave(String(rd.result));if(r.err){toast(tr('save.import_failed_err',{err:esc(r.err)}),'bad');sfx('err');return;}
     UI.importing=r.s;openModal(`<div class="eyebrow">${tr('common.import_a_save')}</div><h2 style="font-size:26px">${tr('save.load_name',{name:esc(r.name)})}</h2><p class="tagline">${esc(dateStr(r.s.day))} · ${tr('save.cash_in_the_bank',{cash:fmt$(r.s.cash)})} · ${trn('save.n_pop',Object.keys(r.s.pops).length)} · ${tr('save.saved_by_v_ver',{ver:esc(r.ver)})}</p><p class="note">${tr('slots.it_joins_your_networks_on_this')}</p><div class="btns">${btn(tr('save.load_this_network'),'importGo',{},'pink big')}${btn(tr('common.cancel'),UI.started?'closeModal':'helpClose',{},'ghost big')}</div>`);};
   rd.readAsText(file);}
