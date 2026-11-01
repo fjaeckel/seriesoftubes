@@ -27,16 +27,22 @@ let SX=new Float64Array(64),SY=new Float64Array(64);
 function segDist(x,y,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],L=dx*dx+dy*dy||1;const t=clamp(((x-a[0])*dx+(y-a[1])*dy)/L,0,1);return Math.hypot(x-a[0]-t*dx,y-a[1]-t*dy);}
 // `cached`: the cables are already painted into the world layer. Zoomed in, the layer is painted without
 // them (#49), so they are drawn here every frame instead.
+// Cable names are drawn in one font, so each width is measured once.
+const LBW=new Map(),labW=t=>{let w=LBW.get(t);if(w===undefined)LBW.set(t,w=ctx.measureText(t).width);return w;};
+try{document.fonts&&document.fonts.ready.then(()=>LBW.clear());}catch(e){}
 function drawCables(ks){const z=cam.z,selC=UI.drag&&UI.drag.mode==='link'?UI.drag.from:(UI.sel&&UI.sel.type==='city'?UI.sel.id:null),cached=!!(WL.cv&&WL.key&&WL.cab);
   if(!selC&&z<1.7&&cached)return;
   ctx.font='800 10px Nunito, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
   // Labels that would sit on another, or on a segment shorter than the name, are left out (a selected city's always show).
-  const LB=[],lbOk=(x,y,w,sp,hot)=>{const b=[x-w/2-3,y-7,x+w/2+3,y+7];if(!hot){let mn=Infinity,mx=-Infinity,my=Infinity,My=-Infinity;for(const q of sp){mn=Math.min(mn,q[0]);mx=Math.max(mx,q[0]);my=Math.min(my,q[1]);My=Math.max(My,q[1]);}
-      if(Math.hypot(mx-mn,My-my)<w*0.8)return false;if(LB.some(o=>b[0]<o[2]&&b[2]>o[0]&&b[1]<o[3]&&b[3]>o[1]))return false;}LB.push(b);return true;};
+  // Placed labels go in a 64px grid, so each check only looks at its neighbours.
+  const LG=new Map(),lbOk=(x,y,w,sp,hot)=>{const b=[x-w/2-3,y-7,x+w/2+3,y+7],c0=Math.floor(b[0]/64),c1=Math.floor(b[2]/64),r0=Math.floor(b[1]/64),r1=Math.floor(b[3]/64);
+    if(!hot){const a=sp[0],z=sp[sp.length-1];let L=Math.hypot(z[0]-a[0],z[1]-a[1]);if(L<w*0.8)for(const q of sp)L=Math.max(L,Math.hypot(q[0]-a[0],q[1]-a[1]));if(L<w*0.8)return false;
+      for(let cx=c0;cx<=c1;cx++)for(let cy=r0;cy<=r1;cy++){const o=LG.get(cx*8192+cy);if(o)for(const q of o)if(b[0]<q[2]&&b[2]>q[0]&&b[1]<q[3]&&b[3]>q[1])return false;}}
+    for(let cx=c0;cx<=c1;cx++)for(let cy=r0;cy<=r1;cy++){const k=cx*8192+cy;let o=LG.get(k);if(!o)LG.set(k,o=[]);o.push(b);}return true;};
   const ar=arOn();for(const cp of CABLE_PAIRS){const C=CAB[cp.cid],hot=!!selC&&(cp.a===selC||cp.b===selC);if(!hot&&cached&&z<1.7)continue;if(ar&&!hot&&!(arKind(cp.a)&&arKind(cp.b)))continue;const col=cableCol(C);
     for(const k of ks){const sp=cp.pts.map(p=>toS(p[0],p[1],k));let mn=Infinity,mx=-Infinity;for(const q of sp){if(q[0]<mn)mn=q[0];if(q[0]>mx)mx=q[0];}if(mx<-20||mn>CW+20)continue;
       if(hot||!cached){ctx.globalAlpha=hot?0.95:0.4;ctx.strokeStyle=col;ctx.lineWidth=hot?3:1.6;ctx.lineJoin='round';ctx.setLineDash(C.age==='old'?[6,5]:[]);ctx.beginPath();ctx.moveTo(sp[0][0],sp[0][1]);for(let i=1;i<sp.length;i++)ctx.lineTo(sp[i][0],sp[i][1]);ctx.stroke();ctx.setLineDash([]);}
-      if((hot||(z>=1.7&&!ar))&&lbOk(sp[Math.floor(sp.length/2)][0],sp[Math.floor(sp.length/2)][1]-8,ctx.measureText(C.name).width,sp,hot)){const m=sp[Math.floor(sp.length/2)];ctx.globalAlpha=hot?1:0.75;ctx.lineWidth=3;ctx.strokeStyle='rgba(255,255,255,.85)';ctx.strokeText(C.name,m[0],m[1]-8);ctx.fillStyle=col;ctx.fillText(C.name,m[0],m[1]-8);}
+      if((hot||(z>=1.7&&!ar))&&lbOk(sp[Math.floor(sp.length/2)][0],sp[Math.floor(sp.length/2)][1]-8,labW(C.name),sp,hot)){const m=sp[Math.floor(sp.length/2)];ctx.globalAlpha=hot?1:0.75;ctx.lineWidth=3;ctx.strokeStyle='rgba(255,255,255,.85)';ctx.strokeText(C.name,m[0],m[1]-8);ctx.fillStyle=col;ctx.fillText(C.name,m[0],m[1]-8);}
       ctx.globalAlpha=1;}}}
 function bezGeom(l,at){const A=CITY[l.a],B=CITY[l.b];const i=at!==undefined?at:lineIdx(l);const key=l.id+'|b'+i;const hit=GEO.get(key);if(hit)return hit;
   const bx=A.x+wrapDx(A.x,B.x),by=B.y;const dx=bx-A.x,dy=by-A.y,len=Math.hypot(dx,dy)||1;let nx=-dy/len,ny=dx/len;if(ny>0){nx=-nx;ny=-ny;}
