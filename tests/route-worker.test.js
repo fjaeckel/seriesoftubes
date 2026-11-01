@@ -27,7 +27,7 @@ test('the worker side routes what it is sent: same R as routing on the page', (t
   const { ev, errors } = big(t);
   // rwServe() in the page itself stands in for the worker: it posts back what the worker would.
   ev("window.__got=null;window.postMessage=(m)=>{window.__got=m;};");
-  ev("{window.__R0=R;const prev={load:R.load,l2route:R.l2route,efg:R.efg};const keep=S;window.__S0=JSON.stringify(S);rwServe(structuredClone({seq:1,S,...prev}));S=keep;}");
+  ev("{window.__R0=R;const prev={load:R.load,l2route:R.l2route,efg:rwEfgOut(R.efg)};const keep=S;window.__S0=JSON.stringify(S);rwServe(structuredClone({seq:1,S,...prev}));S=keep;}");
   ev("R=rwUnpack(structuredClone(__got.R),__got.ef)");
   const fromWorker = ev(SIG);
   ev('R=__R0;S=JSON.parse(__S0);compute()');
