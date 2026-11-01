@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- A plug-in optic that is too short for your subsea cable no longer sends you to submarine terminals and optical engineering, which cannot stretch it (#253). The hint now names the optics that do reach, such as the Sienna WaveMagic 1.6T for Perth to Cape Town. Optics the upgrades can stretch still get the advice.
+
 - 400G cache boxes: a POP whose routers have 400G or faster ports now gets 400G boxes, at $1,000 a month instead of $400 for 100G, so big caches need fewer boxes and cost less per Gbps. Boxes you already have stay as they are.
 - Pick a standard POP: in any POP's Infra tab, make its routers the standard, and every new POP gets that model and number of routers right away, while it is still empty (#240).
 - Clarovision now peers only over paid PNIs, like the real carrier, and free only with networks at customer level 11 or above (#213). A PNI you already have with it starts paying the fee.

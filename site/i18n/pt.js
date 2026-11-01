@@ -11,6 +11,7 @@
 "action_helpers.this_channel_reaches_max_km_on":"Este canal alcança {max} km neste cabo; a rota tem {span} km. Considere terminais submarinos ou engenharia óptica.",
 "action_helpers.too_far_even_at_its_slowest":"Longe demais até na configuração mais lenta: um span óptico aqui tem {span} km e ela alcança {max} km. Adicione um site de regeneração (Line system).",
 "action_helpers.unlocks_at_customer_level_n":"Desbloqueia no nível de cliente {n}.",
+"action_helpers.upgrades_cannot_stretch_this_optic":"Este canal alcança {max} km neste cabo; a rota tem {span} km. Terminais submarinos e engenharia óptica não esticam esta óptica. Estas chegam lá: {optics}.",
 "actions.your_router_can_t_take_a":"<b>Seu router não aguenta uma porta {port}.</b><br>Faça upgrade na aba Infra.",
 "architect.anchor":"🐒 Tchibum!",
 "architect.architect_runs":"Partidas de arquiteto",
