@@ -31,7 +31,7 @@ These are what the game promises, held up by `tests/gameplay-rules.test.js` (one
 | Id | Rule | Why |
 | --- | --- | --- |
 | N1 | Network ids and ASNs are unique; ASNs are public (the real one for real-world networks). | Saves key on ids; players look ASNs up. |
-| N2 | Names are puns: no network, cable, exchange, data center, router or optic is called by a real name (blocklist `REAL_NAMES` in the test), and no lazy "-ish" names. | CLAUDE.md. Add the real name to the blocklist whenever you add its pun. |
+| N2 | Names are puns: no network, cable, exchange, data center, router, optic, cable ship or maintenance club is called by a real name (blocklist `REAL_NAMES` in the test), and no lazy "-ish" names. | CLAUDE.md. Add the real name to the blocklist whenever you add its pun. |
 | N3 | Every non-Tier-1, non-content network is in a founding Tier 1's customer cone (`up`), or is a documented island (transit-free incumbents, China, Korea, Australia…). Upstreams exist and are never content. | Tier 1 by customer cone (#85): a new network outside the cones makes Tier 1 harder for every save, old ones included. |
 | N4 | No upstream cycles. | Cones must be trees, not loops. |
 | N5 | Traffic shares are positive and below 20%; `NSH` and the regional tables sum to 1; content carries at least 30%. | Shares drive every flow; eyeballs mostly ask for traffic. |

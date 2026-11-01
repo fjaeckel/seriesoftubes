@@ -18,6 +18,8 @@ function dayTick(){
   for(const k in S.peers){const [id,c]=k.split('@'),sn=snub(id,c);if(!sn)continue;delete S.peers[k];S.stats.depeered=(S.stats.depeered||0)+1;
     {const v={net:esc(NET[id].name),ix:esc(ixName(c)),city:esc(CITY[ixCity(c)].name),why:esc(sn.why)};toast(ixNamesCity(c)?tr('day_tick.net_de_peered_you_at_ix',v):tr('day_tick.net_de_peered_you_at_ix_caef',v),'bad');}}
   if(S.cnLic&&S.cnLic.state==='pending'&&d>=S.cnLic.ready){S.cnLic.state='ok';toast(tr('day_tick.license_granted_your_joint_venture'),'goal');sfx('coin');}
+  // cable ships: home again, sent to waiting cuts (50-cable-ships.js)
+  shipDay();
   // resolve incidents
   for(const i of S.inc.slice())if(i.until<=d){const o=incOpen(i),l=o&&o.a==='link'&&S.links.find(x=>x.id===o.v),where=l?CITY[l.a].name+'–'+CITY[l.b].name:o&&o.a==='city'?CITY[o.v].name:'';clearInc(i);
     toast(where?tr('day_tick.resolved_what_where_is_back_to',{what:incTitle(i.type),where:esc(where)}):tr('day_tick.resolved_what',{what:incTitle(i.type)}),'good',[],o);}

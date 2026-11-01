@@ -7,7 +7,9 @@ Object.assign(ACT,{
    const n=chBack(l?[l]:[]);if(n)toast(trn('links.n_optic_back_on_the_spares_shelf',n),'good');}S.links=S.links.filter(l=>l.id!==id);prunePairMet();UI.sel=null;UI.confirm=null;after();},
  // The chaos monkey takes a banana and goes home early (no bonus).
  mkBanana:()=>{if(!mkOn())return;if(!spend(mkBananaCost()))return;S.stats.bananas=(S.stats.bananas||0)+1;mkLeave('banana');track('monkey_banana');after();},
- fixInc:({id})=>{const i=S.inc.find(x=>x.id===id);if(!i||!(i.cost>0))return;if(i.slow&&i.rushed)return;if(!spend(i.cost))return;
+ fixInc:({id})=>{const i=S.inc.find(x=>x.id===id);if(!i||!(i.cost>0))return;
+   // At sea, paying means a private charter: another ship sails, it does not appear (50-cable-ships.js).
+   if(shipSea(i)){if(shipRush(i)){const s=SHIP[i.ship];toast(tr('cable_ships.ship_chartered',{ship:esc(s.n),home:esc(CITY[s.home].name),n:Math.max(1,i.until-S.day)}),'good');sfx('coin');after();}return;}if(i.slow&&i.rushed)return;if(!spend(i.cost))return;
    if(i.slow&&i.until>S.day+1){i.rushed=true;i.cost=0;i.until=S.day+1;const p=S.pops[i.ref];if(p)p.down=Math.min(p.down,S.day+1);toast(tr('links.power_cycled_the_router_in_city',{city:esc(CITY[i.ref].name),chip:esc(RG[(p&&p.rgen)||0].chip)}),'good');after();return;}clearInc(i);toast(tr('links.fixed_what_resolved_early',{what:incTitle(i.type)}),'good');after();},
  myIxUp:({city})=>{const m=S.myIx[city];if(!m)return;const f=(m.fab|0)+1,N=MYIX_FAB[f];if(!N)return;if(N.lvl>lvl()){toast(tr('links.a_fab_fabric_unlocks_at_customer',{fab:N.n,lv:N.lvl}),'bad');sfx('err');return;}if(!spend(N.cost))return;m.fab=f;toast(tr('links.ix_now_runs_a_fab_fabric',{ix:esc(m.name),fab:N.n,max:N.max}),'good');m.next=Math.min(m.next,S.day+3);after();},
  foundIx:({city})=>{if(!S.pops[city]||S.myIx[city]||CITY[city].ix||CITY[city].cn)return;if(!spend(MYIX_COST))return;const nm=(S.name.split(' ')[0]||'My').replace(/[^A-Za-z0-9]/g,'').slice(0,10)+'-IX '+CITY[city].name;

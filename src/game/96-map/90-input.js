@@ -26,6 +26,7 @@ function endPtr(e){
   ptrs.delete(e.pointerId);const d=UI.drag;if(!d)return;
   if(d.mode==='pinch'){if(ptrs.size===0){UI.drag=null;UI.snap=null;cv.classList.remove('linking');}return;}
   if(d.mode==='link'){if(UI.snap&&UI.snap.id!==d.from){if(pzOn())pzLinkModal(d.from,UI.snap.id);else openLinkModal(d.from,UI.snap.id);sfx('click');}}
+  else if(!d.moved&&S&&shipHit(e.clientX,e.clientY))shipTap(shipHit(e.clientX,e.clientY));
   else if(!d.moved&&S&&mkOn()&&mkHit(e.clientX,e.clientY)){sfx('click');toast(tr('chaos_monkey.tap'),'',[{l:tr('chaos_monkey.banana',{cost:fmt$(mkBananaCost())}),act:'mkBanana',args:{}}]);}
   else if(!d.moved&&S){const h=pickCity(e.clientX,e.clientY);
     if(h){selectCity(h.id);renderLeft();sfx('click');}

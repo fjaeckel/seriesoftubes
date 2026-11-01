@@ -2,51 +2,50 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
 
-function setup(ev) {
+// A 15,000 km cable of your own: 100 days of laying at the end of the build, and a second lay ship saves 50.
+function setup(ev, sub = true) {
   ev(`ACT.start({});S.cash=1e11;S.lvl=13;S.day=100;for(const g of GOALS)S.done[g.id]=0;
-    S.links=[{id:'cable',a:'lag',b:'bde',kind:'df',own:true,sub:true,sys:'roadm',km:15000,ch:[],day:100,ready:1000,cut:0,mo:1}];`);
+    S.links=[{id:'cable',a:'lag',b:'bde',kind:'df',own:true,sub:${sub},sys:'roadm',km:15000,ch:[],day:100,ready:1000,cut:0,mo:1}];`);
 }
 
 function dates(ev) {
   return JSON.parse(ev('JSON.stringify([S.links[0].ready,S.links[0].subterminal,S.links[0].subengineering])'));
 }
 
-test('upgrades queued during construction follow crews and keep their 30/180-day commissioning time', () => {
+test('upgrades queued during construction follow a second lay ship and keep their 30/180-day commissioning time', () => {
   const { ev, dom, errors } = load();
   try {
     setup(ev);
     ev("ACT.subUpgrade({id:'cable',k:'terminal'});ACT.subUpgrade({id:'cable',k:'engineering'})");
     assert.deepEqual(dates(ev), [1000, 1030, 1180]);
     const paid = ev('S.links[0].paid');
-    ev("ACT.crews({id:'cable'})");
-    assert.deepEqual(dates(ev), [970, 1000, 1150]);
-    ev("for(let i=0;i<29;i++)ACT.crews({id:'cable'})");
-    assert.deepEqual(dates(ev), [101, 131, 281], 'last crew purchase shifts dates by 29 days, not 30');
+    ev("ACT.layShip({id:'cable'})");
+    assert.deepEqual(dates(ev), [950, 980, 1130]);
     const cash = ev('S.cash');
-    ev("ACT.crews({id:'cable'})");
-    assert.equal(ev('S.cash'), cash, 'one day remaining: crews cannot charge for saving zero days');
-    assert.deepEqual(dates(ev), [101, 131, 281], 'commissioning cannot be rushed further through the cable');
+    ev("ACT.layShip({id:'cable'})");
+    assert.equal(ev('S.cash'), cash, 'one second ship: a second booking charges nothing');
+    assert.deepEqual(dates(ev), [950, 980, 1130], 'commissioning cannot be rushed further through the cable');
     ev("UI.sel={type:'link',id:'cable'};renderPanel()");
-    assert.equal(dom.window.document.querySelector('#panelBody [data-act=crews]').disabled, true);
+    assert.equal(dom.window.document.querySelector('#panelBody [data-act=layShip]'), null);
     assert.equal(ev('S.links[0].paid'), paid, 'no second upgrade charge');
     ev('S=migrate(JSON.parse(JSON.stringify(S)))');
-    assert.deepEqual(dates(ev), [101, 131, 281], 'save round trip preserves commissioning windows');
-    ev('S.day=130');assert.equal(ev("subUpgradeReady(S.links[0],'terminal')"), false);
-    ev('S.day=131');assert.equal(ev("subUpgradeReady(S.links[0],'terminal')"), true);
-    ev('S.day=280');assert.equal(ev("subUpgradeReady(S.links[0],'engineering')"), false);
-    ev('S.day=281');assert.equal(ev("subUpgradeReady(S.links[0],'engineering')"), true);
+    assert.deepEqual(dates(ev), [950, 980, 1130], 'save round trip preserves commissioning windows');
+    ev('S.day=979');assert.equal(ev("subUpgradeReady(S.links[0],'terminal')"), false);
+    ev('S.day=980');assert.equal(ev("subUpgradeReady(S.links[0],'terminal')"), true);
+    ev('S.day=1129');assert.equal(ev("subUpgradeReady(S.links[0],'engineering')"), false);
+    ev('S.day=1130');assert.equal(ev("subUpgradeReady(S.links[0],'engineering')"), true);
     assert.deepEqual(errors, []);
   } finally { dom.window.close(); }
 });
 
-test('ordering upgrades early is as fast as ordering after rushing the cable', () => {
+test('ordering upgrades early is as fast as ordering after booking the second lay ship', () => {
   const { ev, dom } = load();
   try {
     setup(ev);
-    ev("ACT.subUpgrade({id:'cable',k:'terminal'});ACT.subUpgrade({id:'cable',k:'engineering'});for(let i=0;i<30;i++)ACT.crews({id:'cable'})");
+    ev("ACT.subUpgrade({id:'cable',k:'terminal'});ACT.subUpgrade({id:'cable',k:'engineering'});ACT.layShip({id:'cable'})");
     const early = dates(ev);
     setup(ev);
-    ev("for(let i=0;i<30;i++)ACT.crews({id:'cable'});S.day=101;ACT.subUpgrade({id:'cable',k:'terminal'});ACT.subUpgrade({id:'cable',k:'engineering'})");
+    ev("ACT.layShip({id:'cable'});S.day=101;ACT.subUpgrade({id:'cable',k:'terminal'});ACT.subUpgrade({id:'cable',k:'engineering'})");
     assert.deepEqual(dates(ev), early);
   } finally { dom.window.close(); }
 });
@@ -58,7 +57,9 @@ test('packages included in the original order stay aligned with its accelerated 
     ev("S.won=true;UI.pending={a:'sin',b:'lax'};UI.seaterminal=UI.seaengineering=true;ACT.orderCable();S.links=[S.links.at(-1)]");
     assert.equal(ev('S.links[0].subterminal'), ev('S.links[0].ready'));
     assert.equal(ev('S.links[0].subengineering'), ev('S.links[0].ready'));
-    ev("ACT.crews({id:S.links[0].id})");
+    const ready = ev('S.links[0].ready');
+    ev("ACT.layShip({id:S.links[0].id})");
+    assert.ok(ev('S.links[0].ready') < ready, 'the second lay ship finishes sooner');
     assert.equal(ev('S.links[0].subterminal'), ev('S.links[0].ready'));
     assert.equal(ev('S.links[0].subengineering'), ev('S.links[0].ready'));
     ev('S=migrate(JSON.parse(JSON.stringify(S)))');
@@ -103,11 +104,11 @@ test('old saves repair excessive pending waits without changing valid dates, cha
   } finally { dom.window.close(); }
 });
 
-test('land fiber, leased cables, invalid upgrades and rejected crew purchases remain unaffected', () => {
+test('land fiber, leased cables, invalid upgrades and rejected lay ship bookings remain unaffected', () => {
   const { ev, dom } = load();
   try {
     setup(ev);
-    ev("S.links[0].subterminal=1030;S.links[0].subengineering=1180;S.cash=0;ACT.crews({id:'cable'})");
+    ev("S.links[0].subterminal=1030;S.links[0].subengineering=1180;S.cash=0;ACT.layShip({id:'cable'})");
     assert.deepEqual(dates(ev), [1000, 1030, 1180]);
     ev(`S.links.push({...S.links[0],id:'land',sub:false},{...S.links[0],id:'leased',own:false});
       setCableReady(S.links[1],970);setCableReady(S.links[2],970);`);
@@ -121,27 +122,32 @@ test('land fiber, leased cables, invalid upgrades and rejected crew purchases re
   } finally { dom.window.close(); }
 });
 
-test('one-click completion costs the same as repeated crew hires and advances pending upgrades identically', () => {
+test('one-click completion on land costs the same as repeated crew hires', () => {
   const { ev, dom, errors } = load();
   try {
-    setup(ev);
-    ev("ACT.subUpgrade({id:'cable',k:'terminal'});ACT.subUpgrade({id:'cable',k:'engineering'});UI.sel={type:'link',id:'cable'};renderPanel()");
+    setup(ev, false);
+    ev("UI.sel={type:'link',id:'cable'};renderPanel()");
     const button = [...dom.window.document.querySelectorAll('#panelBody [data-act=crews]')].find(b => JSON.parse(b.dataset.args).all);
     assert.ok(button && !button.disabled, 'one-click option is available');
     const cash = ev('S.cash');
-    assert.ok(button.textContent.includes(ev('fmt$(30*Math.round(3000000+15000*500))')), 'full price is shown before purchase');
+    assert.ok(button.textContent.includes(ev('fmt$(30*Math.round(15000+15000*6))')), 'full price is shown before purchase');
     button.click();
-    const bulkDates = dates(ev), bulkCash = ev('S.cash');
-    assert.deepEqual(bulkDates, [101, 131, 281]);
-    assert.equal(cash - bulkCash, 30 * 10500000);
+    const bulkReady = ev('S.links[0].ready'), bulkCash = ev('S.cash');
+    assert.equal(bulkReady, 101);
+    assert.equal(cash - bulkCash, 30 * 105000);
     const after = [...dom.window.document.querySelectorAll('#panelBody [data-act=crews]')];
     assert.ok(after.every(b => b.disabled), 'both options stop at one day');
     ev("ACT.crews({id:'cable',all:1})");
     assert.equal(ev('S.cash'), bulkCash, 'repeat submission cannot charge again');
-    setup(ev);
-    ev("ACT.subUpgrade({id:'cable',k:'terminal'});ACT.subUpgrade({id:'cable',k:'engineering'});for(let i=0;i<30;i++)ACT.crews({id:'cable'})");
-    assert.deepEqual(dates(ev), bulkDates);
+    setup(ev, false);
+    ev("for(let i=0;i<30;i++)ACT.crews({id:'cable'})");
+    assert.equal(ev('S.links[0].ready'), bulkReady);
     assert.equal(ev('S.cash'), bulkCash);
+    // At sea crews cannot help: no crew buttons, and the action does nothing.
+    setup(ev);
+    ev("UI.sel={type:'link',id:'cable'};renderPanel();ACT.crews({id:'cable',all:1})");
+    assert.equal(dom.window.document.querySelector('#panelBody [data-act=crews]'), null);
+    assert.equal(ev('S.links[0].ready'), 1000);
     assert.deepEqual(errors, []);
   } finally { dom.window.close(); }
 });
@@ -149,19 +155,19 @@ test('one-click completion costs the same as repeated crew hires and advances pe
 test('one-click completion is atomic when unaffordable and handles short or completed construction', () => {
   const { ev, dom } = load();
   try {
-    setup(ev);
-    ev("S.cash=30*10500000-1;UI.sel={type:'link',id:'cable'};renderPanel()");
+    setup(ev, false);
+    ev("S.cash=30*105000-1;UI.sel={type:'link',id:'cable'};renderPanel()");
     const bulk = [...dom.window.document.querySelectorAll('#panelBody [data-act=crews]')].find(b => JSON.parse(b.dataset.args).all);
     assert.equal(bulk.disabled, true);
     ev("ACT.crews({id:'cable',all:1})");
-    assert.equal(ev('S.cash'), 30 * 10500000 - 1);
+    assert.equal(ev('S.cash'), 30 * 105000 - 1);
     assert.equal(ev('S.links[0].ready'), 1000, 'no partial purchase');
-    ev("S.cash=10500000;S.links[0].ready=102;ACT.crews({id:'cable',all:1})");
+    ev("S.cash=105000;S.links[0].ready=102;ACT.crews({id:'cable',all:1})");
     assert.equal(ev('S.cash'), 0);
     assert.equal(ev('S.links[0].ready'), 101, 'two days remaining costs one normal hire');
-    assert.match(dom.window.document.body.textContent, /The cable is 1 day ahead\./);
-    ev("S.cash=10500000;S.day=101;ACT.crews({id:'cable',all:1})");
-    assert.equal(ev('S.cash'), 10500000, 'completed construction cannot be rushed');
+    assert.match(dom.window.document.body.textContent, /Construction is 1 day ahead\./);
+    ev("S.cash=105000;S.day=101;ACT.crews({id:'cable',all:1})");
+    assert.equal(ev('S.cash'), 105000, 'completed construction cannot be rushed');
     ev("S.day=100;S.links[0].ready=1000;S.links[0].own=false;ACT.crews({id:'cable',all:1})");
     assert.equal(ev('S.links[0].ready'), 1000, 'leased handovers cannot buy construction crews');
   } finally { dom.window.close(); }

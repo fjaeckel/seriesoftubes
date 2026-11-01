@@ -35,7 +35,7 @@ function mkSnip(){const M=S.monkey,live=S.links.filter(l=>l.kind!=='vxc'&&!linkD
   const smp=live.length>40?Array.from({length:40},()=>pick(live)):live,l=pick(smp.flatMap(x=>mkWeak(x)?[x,x,x,x,x]:[x]));
   const dur=rint(3,4),trc=l.trench||l.id,hit=S.links.filter(x=>(x.trench||x.id)===trc),A=CITY[l.a].name,B=CITY[l.b].name,before=R.served;
   hit.forEach(x=>x.cut=Math.max(x.cut||0,S.day+dur));M.n++;M.c=l.a;
-  addInc({type:'cut',ref:trc,until:S.day+dur,msg:tr(pick(MK_SNIPS),{a:A,b:B}),...cutFix(l,hit)},'');
+  addInc({type:'cut',ref:trc,until:S.day+dur,msg:tr(pick(MK_SNIPS),{a:A,b:B}),cost:Math.max(4000,Math.round(hit.reduce((a,x)=>a+x.mo,0)*0.5))},'');
   compute();const i=S.inc[S.inc.length-1],imp=Math.max(0,before-R.served);if(i)i.impact=imp;
   const felt=before>1&&imp>=before*0.03;if(felt)M.hurt++;else S.stats.survived++;
   toast(felt?`<b>🐒 ${incTitle('cut')}</b><br>${esc(i?i.msg:'')}`:tr('chaos_monkey.rerouted',{a:A,b:B}),felt?'bad':'good',[],i?incOpen(i):null);sfx(felt?'err':'alert');

@@ -62,6 +62,16 @@ function sanitize(s){
   {const c=s.core&&typeof s.core==='object'?s.core:null,lv=c?int(c.lv,0,4,0):(s.te?2:0);s.core={lv,run:c?int(c.run,0,lv,lv):lv};if(c?c.legacy===true:!!s.te)s.core.legacy=true;if(c&&c.lab===true)s.core.lab=true;if(c&&c.since!==undefined)s.core.since=num(c.since,0);}
   s.capDeal=s.capDeal&&typeof s.capDeal==='object'&&own(CAP_ROUTES,s.capDeal.c)?{at:num(s.capDeal.at,0),c:s.capDeal.c}:null;
   s.inc=s.inc.filter(i=>i&&typeof i.type==='string').map(i=>(i.type==='maxpfx'&&(i.type='ixloop'),i.id=sid(i.id),i.until=num(i.until,s.day),i.cost=num(i.cost,0),i.msg=String(i.msg||'').slice(0,400),i.fix=i.fix==null?undefined:String(i.fix).slice(0,60),i));
+  // Cable ships (85-incidents/50-cable-ships.js): voyages of known ships, and what a subsea cut knows about its ship.
+  {const F=s.fleet&&typeof s.fleet==='object'&&!Array.isArray(s.fleet)?s.fleet:{},o={};
+   for(const id of Object.keys(F)){const f=F[id];if(!own(SHIP,id)||!f||typeof f!=='object')continue;const n=k=>num(f[k],s.day);
+     const v={inc:typeof f.inc==='string'?f.inc.slice(0,40):null,link:typeof f.link==='string'?f.link.slice(0,40):'',t:clamp(num(f.t,0.5),0,1),e:f.e==='b'?'b':'a',dep:n('dep'),arr:n('arr'),done:n('done'),back:n('back'),fx:num(f.fx,0),fy:num(f.fy,0)};
+     if(f.rs!=null){v.rs=n('rs');v.rt=clamp(num(f.rt,0),0,1);}v.arr=Math.max(v.arr,v.dep);v.done=Math.max(v.done,v.arr);v.back=Math.max(v.back,v.done);if(v.back>s.day)o[id]=v;}
+   s.fleet=o;
+   for(const i of s.inc){if(i.type!=='cut'||i.st==null){for(const k of ['ship','seaq','st','sw','sp','sl'])delete i[k];continue;}
+     i.st=clamp(num(i.st,0.5),0.03,0.97);i.sw=int(i.sw,1,30,4);i.sp=int(i.sp,0,60,0);i.sl=typeof i.sl==='string'?i.sl.slice(0,40):'';i.rushed=!!i.rushed||undefined;
+     if(i.ship!=null&&!(own(SHIP,i.ship)&&o[i.ship]&&o[i.ship].inc===i.id))i.ship=null;if(i.ship==null){i.ship=null;i.seaq=1;}else delete i.seaq;}
+   for(const l of s.links)if(l.ship2&&l.kind==='df'&&l.own&&l.sub)l.ship2=1;else delete l.ship2;}
   s.loans=s.loans.filter(l=>l&&own(BANKS,l.bank));for(const l of s.loans){if(l.model!==undefined&&!['balloon','storm','transit','astro'].includes(l.model))delete l.model;for(const k of ['apr0','cut','share'])if(l[k]!==undefined&&!isFinite(+l[k]))delete l[k];if(!Array.isArray(l.covs))l.covs=[];l.covs=l.covs.filter(c=>own(COVS,c));}s.loanOffers=s.loanOffers.filter(l=>l&&own(BANKS,l.bank));
   s.usedNames=[...new Set(s.usedNames.filter(x=>typeof x==='string'))];s.log=s.log.filter(e=>e&&typeof e.t==='string').slice(0,LOG_KEEP).map(e=>{const o=e.o&&typeof e.o==='object'&&e.o.a==='inbox'?{a:'tab',v:'nets'}:e&&e.o&&typeof e.o==='object'&&LOG_OPEN.includes(e.o.a)?(e.o.a==='bank'||e.o.a==='ops'?{a:e.o.a}:typeof e.o.v==='string'&&e.o.v.length<=64&&(e.o.a!=='city'||isCity(e.o.v))&&(e.o.a!=='tab'||LOG_TABS.includes(e.o.v))?{a:e.o.a,v:e.o.v}:null):null;
     return {id:typeof e.id==='string'&&e.id.length<=40?e.id:uid(),d:num(e.d,0),t:e.t.slice(0,600),h:typeof e.h==='string'?e.h.slice(0,200):'',k:LOG_KINDS.includes(e.k)?e.k:'',at:Number.isFinite(+e.at)?+e.at:0,o,n:int(e.n,1,9999,1)};});
