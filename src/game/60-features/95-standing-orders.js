@@ -166,8 +166,8 @@ const OPS_RUN={
        cap+=optG(o,l);X.did('optics',l.a+'|'+l.b);}}},
  caches(X){const g=opsP('caches','g');
    for(const c of opsPops('caches')){const q=utilityCaches(c);if(!q||!q.add.length)continue;
-     const want=q.add.filter(x=>(R.cityDem[c]||0)*(NSH[x.net]||0)>=g),free=Math.floor(portsMax(c)-portsUsed(c)+1e-9);
-     for(const x of want.slice(0,Math.max(0,free))){if(!X.can('caches',0,CACHE_MO))return;S.caches.push({id:uid(),city:c,net:x.net,site:x.site});X.book('caches',0,CACHE_MO);X.did('caches',c);}}},
+     const want=q.add.filter(x=>(R.cityDem[c]||0)*(NSH[x.net]||0)>=g),free=()=>portsMax(c)-portsUsed(c)+1e-9;
+     for(const x of want){if(cachePortsAdd(c,[x])>free())continue;if(!X.can('caches',0,CACHE_MO))return;S.caches.push({id:uid(),city:c,net:x.net,site:x.site});X.book('caches',0,CACHE_MO);X.did('caches',c);}}},
  // Weekly, like a person going through PeeringDB on a Monday: route servers, then every willing member (#192).
  ix(X){if(S.day%7)return;for(const ix of utilityRouteServers()){S.rs[ix]=true;X.did('rs');}
    for(const row of utilityPeers())for(const id of row.requests){S.peers[id+'@'+row.ix]=true;X.did('peer',row.ix);}},

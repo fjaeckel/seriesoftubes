@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Cache boxes now share router ports through an aggregation switch: one port carries as many 100G boxes as its speed holds, so 32 fit on a 3.2T port (#252). Each site gets its own.
 - Opening a link from a list now moves the map to it, zoomed so the whole line fits beside the open panel.
 - Traffic for a carrier now leaves through that carrier's own transit port at the same POP, instead of being shared with every other transit port there. Networks that buy transit from the carrier get the same treatment, and a new switch on each transit port, Carry here, pulls that traffic across your network from POPs that have no port of that carrier. Prefer, Backup only and RouteScript still win, and Prefer only does so at the POP where you set it.
 - Hurrying anything at sea now takes a cable ship, and there are only a few dozen in the world, so it costs millions. Speeding up your own subsea cable charters another ship for $3M plus $500 per km for every 30 days saved, and a rush repair on a subsea cut costs $1M plus $200 per km, where a cut on land still costs a few thousand.

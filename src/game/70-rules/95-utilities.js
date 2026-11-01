@@ -17,7 +17,7 @@ function utilityCaches(city){const p=S&&S.pops[city];if(!p)return null;const sit
     sites.forEach((site,i)=>{if(!box[i]){add.push({net:n.id,site});box[i]=1;}});
     const need=Math.ceil(((R.cityDem&&R.cityDem[city])||0)*(NSH[n.id]||0)/CACHE_CAP-1e-9);
     for(let t=box.reduce((a,b)=>a+b,0);t<need;t++){const i=box.indexOf(Math.min(...box));add.push({net:n.id,site:sites[i]});box[i]++;}}
-  return {add,key:add.map(c=>c.net+'@'+c.site).join(','),mo:add.length*CACHE_MO,free:Math.max(0,portsMax(city)-portsUsed(city))};}
+  return {add,ports:cachePortsAdd(city,add),key:add.map(c=>c.net+'@'+c.site).join(','),mo:add.length*CACHE_MO,free:Math.max(0,portsMax(city)-portsUsed(city))};}
 function utilityKit(city){const p=S&&S.pops[city];if(!p)return null;
   const gen=!p.gen,site=!p.site2,router=(p.routers||1)<2,g=p.rgen||0;
   return {gen,site,router,moves:utilityCacheMoves(city),cost:(gen?GEN_COST:0)+(site?SITE2_COST:0)+(router?routerCost(g,1):0),
