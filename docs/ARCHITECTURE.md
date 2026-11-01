@@ -128,7 +128,8 @@ never freezes the game.
    goes first, before plain transit, for traffic bound for that carrier or for a network that buys
    transit from it (`25-direct-egress.js`: the shorter AS path): always at its own POP, and from every
    POP when the port is set to carry. Such a port is still an ordinary transit exit for the other
-   POPs. A Prefer-marked port, backup, RouteScript and Auto-TE rules keep their say. With Auto-TE, overflow spills
+   POPs. Backup, RouteScript and Auto-TE rules keep their say, and so does a Prefer-marked port at its own POP (the other
+   POPs keep the rule). With Auto-TE, overflow spills
    onto alternate paths; RouteScript rules (`teRules()`) can prefer, avoid, cap, drain
    or blackhole.
 5. Layer-2 customers (L2VPN, SD-WAN, waves) are carved out of link capacity first.

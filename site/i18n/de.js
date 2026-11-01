@@ -2158,7 +2158,7 @@
 "help.want_to_know_how_it_really":"Willst du wissen, wie es wirklich funktioniert?",
 "help.what_a_wave_costs_depends_on":"Was eine Wave kostet, hängt davon ab, wo sie läuft. Europa ist günstig (viel konkurrierende Glasfaser), Nordamerika Durchschnitt, Asien und Südamerika teurer, und alles nach Afrika kostet ein Mehrfaches. Jede Route hat ihren eigenen Marktpreis, und neue Mieten werden jedes Jahr etwa 8 % günstiger, also kann Warten sich lohnen. Der Link-Planer sagt dir, wie eine Route im Vergleich dasteht.",
 "help.you_built_a_cartoon_internet_now":"Du hast ein Cartoon-Internet gebaut. Jetzt schau dir an, wie das echte funktioniert:",
-"help.you_pay_a_bigger_network_per":"Du bezahlst ein größeres Netz pro Gbps, und es liefert deinen Traffic überallhin. Einfach, volle Reichweite, nie kostenlos.",
+"help.you_pay_a_bigger_network_per":"Du bezahlst ein größeres Netz pro Gbps, und es liefert deinen Traffic überallhin. Einfach, volle Reichweite, nie kostenlos. Der eigene Port eines Carriers nimmt den Traffic, der für diesen Carrier bestimmt ist. Im echten BGP gilt das von jedem POP aus, weil der kürzere AS-Pfad die IGP-Distanz schlägt; hier ist es der Schalter Hierher leiten an einem Port, und Nächster Port ist die Voreinstellung.",
 "help.you_re_a_tier_1":"Du bist <span style=\"color:var(--me)\">Tier 1</span>!",
 "help.your_fiber_links_are_leased_waves":"Deine Glasfaser-Links sind gemietete Waves zu einer festen Monatsrate. Länger und größer kostet mehr (10G → 6.4T), und Subsea kostet das 1,8-Fache.",
 "helpers.y_y_mon_d":"J{y} · {d}. {mon}",

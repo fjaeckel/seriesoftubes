@@ -2156,7 +2156,7 @@
 "help.want_to_know_how_it_really":"Quer saber como funciona de verdade?",
 "help.what_a_wave_costs_depends_on":"Quanto custa uma wave depende de onde ela passa. A Europa é barata (muita fibra concorrendo), a América do Norte é mediana, a Ásia e a América do Sul são mais caras, e qualquer coisa indo para a África custa várias vezes mais. Cada rota tem seu preço de mercado, e novos aluguéis ficam uns 8% mais baratos a cada ano, então esperar pode compensar. O planejador de links diz como uma rota se compara.",
 "help.you_built_a_cartoon_internet_now":"Você construiu uma internet de desenho animado. Agora veja como a de verdade funciona:",
-"help.you_pay_a_bigger_network_per":"Você paga uma rede maior por Gbps e ela entrega seu tráfego em qualquer lugar. Fácil, alcance total, nunca de graça.",
+"help.you_pay_a_bigger_network_per":"Você paga uma rede maior por Gbps e ela entrega seu tráfego em qualquer lugar. Fácil, alcance total, nunca de graça. A porta de um carrier recebe o tráfego destinado a esse carrier. No BGP de verdade isso vale a partir de todo POP, porque o caminho AS mais curto vence a distância IGP; aqui é o botão Trazer para cá de uma porta, e Porta mais próxima é o padrão.",
 "help.you_re_a_tier_1":"Você é <span style=\"color:var(--me)\">Tier 1</span>!",
 "help.your_fiber_links_are_leased_waves":"Seus links de fibra são waves alugadas a uma mensalidade fixa. Mais longa e maior custa mais (10G → 6.4T), e subsea custa 1,8×.",
 "helpers.y_y_mon_d":"A{y} · {d} {mon}",

@@ -2156,7 +2156,7 @@
 "help.want_to_know_how_it_really":"Tu veux savoir comment ça marche vraiment ?",
 "help.what_a_wave_costs_depends_on":"Le prix d’une longueur d’onde dépend de là où elle passe. L’Europe est bon marché (beaucoup de fibre en concurrence), l’Amérique du Nord dans la moyenne, l’Asie et l’Amérique du Sud plus chères, et tout ce qui va vers l’Afrique coûte plusieurs fois plus. Chaque route a son prix du marché, et les nouvelles locations baissent d’environ 8 % par an, donc attendre peut payer. Le planificateur de liens t’indique comment une route se situe.",
 "help.you_built_a_cartoon_internet_now":"Tu as construit un Internet de dessin animé. Découvre maintenant comment marche le vrai :",
-"help.you_pay_a_bigger_network_per":"Tu paies un plus gros réseau au Gbps et il livre ton trafic partout. Facile, couverture totale, jamais gratuit.",
+"help.you_pay_a_bigger_network_per":"Tu paies un plus gros réseau au Gbps et il livre ton trafic partout. Facile, couverture totale, jamais gratuit. Le port d’un carrier prend le trafic qui lui est destiné. Dans le vrai BGP, cela vaut depuis chaque POP, car le chemin AS le plus court l’emporte sur la distance IGP ; ici, c’est l’interrupteur Acheminer ici d’un port, et Port le plus proche est le réglage par défaut.",
 "help.you_re_a_tier_1":"Tu es un <span style=\"color:var(--me)\">Tier 1</span> !",
 "help.your_fiber_links_are_leased_waves":"Tes liens en fibre sont des longueurs d’onde louées à tarif mensuel fixe. Plus c’est long et gros, plus c’est cher (10G → 6.4T), et le sous-marin coûte 1,8× plus.",
 "helpers.y_y_mon_d":"A{y} · {d} {mon}",

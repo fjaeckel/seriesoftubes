@@ -39,6 +39,8 @@ test('indexed routing matches the simple allocation loop across network changes'
       "S.transit.filter(t=>t.net==='lvl').forEach((t,i)=>{if(i%2===0)t.carry=true})",
       "S.transit.filter(t=>t.net==='tly').forEach(t=>{t.carry=true})",
       "S.transit.filter(t=>t.net==='lvl').forEach((t,i)=>{t.pref=i%2?'low':'normal'})",
+      // Prefer keeps the say at its own POP: the POPs with a Prefer-marked port skip the carrier-direct rule, the others keep it.
+      "S.transit.forEach((t,i)=>{if(t.net!=='lvl')t.pref=i%3===0?'high':'normal'})",
       "S.pni.forEach((p,i)=>p.pref=i%3===0?'high':i%3===1?'low':'normal')",
       "S.te={on:true,script:''};S.core={lv:2,run:2,legacy:true}",
       "S.te.script='prefer pni for goggle\\nspill at 80%\\navoid transit for netchill'",

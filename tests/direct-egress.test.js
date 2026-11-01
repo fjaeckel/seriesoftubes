@@ -77,6 +77,34 @@ test('Prefer, Backup only and RouteScript keep the say they had', () => {
   assert.deepEqual(g.errors, []);
 });
 
+// New York and Chicago, both with eyeballs, a Level Tree and a Tell-Ya port each, and a 100G wave between them.
+function bothPops() {
+  const g = load();
+  g.ev(`ACT.pickStart({city:'nyc'});ACT.start({});S.cash=1e9;ACT.buildPop({city:'chi'});
+    UI.via=null;UI.route='same';UI.lmode=null;openLinkModal('nyc','chi');ACT.buildLink({tier:1});closeModal();
+    for(const c of ['nyc','chi']){ACT.launchBB({city:c});S.pops[c].bb.d=40;ACT.buyTransit({city:c,net:'lvl',tier:1});ACT.buyTransit({city:c,net:'tly',tier:1});}compute()`);
+  g.p = (carrier, city) => port(g.ev, carrier, city);
+  return g;
+}
+
+test('a Prefer-marked port keeps the say at its own POP only; the other POPs still use their own carrier ports', () => {
+  const { ev, p, errors } = bothPops();
+  const lvlNyc = p('lvl', 'nyc'), lvlChi = p('lvl', 'chi'), tlyNyc = p('tly', 'nyc'), tlyChi = p('tly', 'chi');
+  assert.ok(via(ev, lvlNyc, 'lvl') > 1 && via(ev, lvlChi, 'lvl') > 1, 'each POP sends Level Tree traffic out of its own Level Tree port');
+  assert.equal(via(ev, tlyNyc, 'lvl') + via(ev, tlyChi, 'lvl'), 0, 'and none of it out of Tell-Ya');
+  const chicago = via(ev, lvlChi, 'lvl');
+  ev(`ACT.setPref({kind:'t',id:'${tlyNyc}',v:'high'});compute()`);
+  assert.ok(via(ev, tlyNyc, 'lvl') > 1 && via(ev, lvlNyc, 'lvl') === 0, 'New York: Prefer on Tell-Ya takes Level Tree traffic too, as it always did');
+  assert.ok(Math.abs(via(ev, lvlChi, 'lvl') - chicago) < 1e-6 && via(ev, tlyChi, 'lvl') === 0, 'Chicago: still its own Level Tree port, not hauled across to the Prefer port');
+  // Traceroute says the same.
+  assert.match(ev("traceroute('nyc',{net:'lvl'}).why"), /Tell-Ya.*New York/, 'traceroute from New York');
+  assert.match(ev("traceroute('chi',{net:'lvl'}).why"), /Level Tree.*Chicago.*straight to Level Tree/, 'and from Chicago');
+  // Take the Prefer away again: back to each POP on its own carrier's port.
+  ev(`ACT.setPref({kind:'t',id:'${tlyNyc}',v:'normal'});compute()`);
+  assert.ok(via(ev, lvlNyc, 'lvl') > 1 && via(ev, tlyNyc, 'lvl') === 0);
+  assert.deepEqual(errors, []);
+});
+
 test('from a POP without the carrier\'s port, traffic uses the nearest port, or crosses your network when the port carries', () => {
   const { ev, lvl, tly, link, errors } = twoPops();
   ev("S.te=null");

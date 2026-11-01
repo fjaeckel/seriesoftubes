@@ -2157,7 +2157,7 @@
 "help.want_to_know_how_it_really":"Want to know how it really works?",
 "help.what_a_wave_costs_depends_on":"What a wave costs depends on where it runs. Europe is cheap (lots of competing fiber), North America is average, Asia and South America are pricier, and anything into Africa is several times the price. Every route has its own going rate, and new leases get about 8% cheaper each year, so waiting can pay. The link planner tells you how a route compares.",
 "help.you_built_a_cartoon_internet_now":"You built a cartoon internet. Now see how the real one works:",
-"help.you_pay_a_bigger_network_per":"You pay a bigger network per Gbps and it delivers your traffic anywhere. Easy, full reach, never free.",
+"help.you_pay_a_bigger_network_per":"You pay a bigger network per Gbps and it delivers your traffic anywhere. Easy, full reach, never free. A carrier’s own port takes the traffic bound for that carrier. In real BGP that holds from every POP, because the shorter AS path beats IGP distance; here it is a port’s Carry here switch, and Nearest port is the default.",
 "help.you_re_a_tier_1":"You're a <span style=\"color:var(--me)\">Tier 1</span>!",
 "help.your_fiber_links_are_leased_waves":"Your fiber links are leased waves at a flat monthly rate. Longer and bigger costs more (10G → 6.4T), and subsea is 1.8× the price.",
 "helpers.y_y_mon_d":"Y{y} · {mon} {d}",

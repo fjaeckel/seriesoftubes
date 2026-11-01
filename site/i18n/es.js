@@ -2156,7 +2156,7 @@
 "help.want_to_know_how_it_really":"¿Quieres saber cómo funciona de verdad?",
 "help.what_a_wave_costs_depends_on":"Lo que cuesta una onda depende de por dónde pase. Europa es barata (mucha fibra compitiendo), Norteamérica es media, Asia y Sudamérica son más caras, y cualquier cosa hacia África cuesta varias veces más. Cada ruta tiene su precio de mercado, y los alquileres nuevos son un 8 % más baratos cada año, así que esperar puede compensar. El planificador de enlaces te dice cómo se compara una ruta.",
 "help.you_built_a_cartoon_internet_now":"Construiste un internet de dibujos animados. Ahora mira cómo funciona el de verdad:",
-"help.you_pay_a_bigger_network_per":"Pagas a una red mayor por Gbps y entrega tu tráfico a cualquier parte. Fácil, alcance total, nunca gratis.",
+"help.you_pay_a_bigger_network_per":"Pagas a una red mayor por Gbps y entrega tu tráfico a cualquier parte. Fácil, alcance total, nunca gratis. El puerto de un carrier recibe el tráfico destinado a ese carrier. En el BGP real eso vale desde cada POP, porque la ruta AS más corta gana a la distancia IGP; aquí es el interruptor Llevar aquí de un puerto, y Puerto más cercano es lo predeterminado.",
 "help.you_re_a_tier_1":"¡Eres un <span style=\"color:var(--me)\">Tier 1</span>!",
 "help.your_fiber_links_are_leased_waves":"Tus enlaces de fibra son ondas alquiladas a tarifa mensual plana. Más largo y más grande cuesta más (10G → 6.4T), y lo submarino cuesta 1,8×.",
 "helpers.y_y_mon_d":"A{y} · {mon} {d}",
