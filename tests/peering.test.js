@@ -32,10 +32,11 @@ test('Rackstar serves cacheable Crowdflare traffic locally and overflow uses tra
   setup(ev);
   ev("S.pops.fra.rgen=RG_TOP;S.pops.fra.bb={d:200/NSH.cfl};ACT.buyTransit({city:'fra',net:'cog',tier:PORT.length-1});ACT.lagT({id:S.transit[0].id,d:1});ACT.lagT({id:S.transit[0].id,d:1});compute()");
   const transit = ev('R.useT[S.transit[0].id]');
-  ev("ACT.cache({city:'fra',net:'cfl'})");
+  const box = "ACT.cache({city:'fra',net:'cfl'});for(const c of S.caches)delete c.g;compute()"; // 100G boxes, as in this test
+  ev(box);
   assert.equal(ev('R.useCache[S.caches[0].id]'), ev('CACHE_CAP'), 'first box fills to 100G');
   assert.ok(Math.abs(ev('R.useT[S.transit[0].id]') - (transit - 100)) < 1e-6);
-  ev("ACT.cache({city:'fra',net:'cfl'})");
+  ev(box);
   assert.ok(Math.abs(ev('Object.values(R.useCache).reduce((a,b)=>a+b,0)') - 170) < 1e-6, '85% is cacheable, the rest still needs an external exit');
   ev("ACT.rmCache({id:S.caches[0].id});ACT.rmCache({id:S.caches[0].id})");
   assert.ok(Math.abs(ev('R.useT[S.transit[0].id]') - transit) < 1e-6, 'removal returns traffic to transit');
