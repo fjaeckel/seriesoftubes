@@ -139,6 +139,18 @@ It runs every day and after every action, so it is built for big networks: the g
 indices (`CIDX`), each exit is asked once per network what it can reach, and `R.ef` (what crosses each
 link) is only put together for a link when something reads it.
 
+What follows from the network's shape alone is kept from one call to the next (`29-route-cache.js`): the shortest
+paths from every POP, and who reaches whom with each network's exit lists. Each has a key made of everything it is
+built from (the live graph with its weights; every exit with what it reaches and how it is preferred, RouteScript and
+the events that move routes), so most days, when only demand changes, they are reused, and any other change rebuilds
+them. Only indices are kept: exits, lists and paths are made fresh every call, because routing writes on them.
+`tests/route-cache.test.js` checks the keys, and the equivalence tests route with and without the kept tables.
+
+Each loop of `compute()` runs in a function of its own (the stages are closures, the busiest is `rankPass`;
+the money is `computeMoney()`). V8 optimises a small function quickly and keeps it; `compute()` as one 33 KB function
+never stayed optimised: it ran in baseline code, boxing every number, and was compiled again and again in the background
+only to be thrown away, which cost more CPU than the routing itself. Keep it that way: a new loop goes in a function.
+
 Served share per city (`sfOf`) drives eyeball revenue and customer mood.
 
 ## Routing in a worker

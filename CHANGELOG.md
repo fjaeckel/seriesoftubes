@@ -9,6 +9,7 @@ All notable changes to this project are documented here. The project follows
 - On big networks, clicks that change nothing about your traffic now answer at once: dismissing an offer or renaming your network no longer works out every route again, which also saves battery on phones.
 - Working out where traffic goes takes about a fifth less work on big networks, with exactly the same result.
 - The game no longer freezes while it routes each day's traffic on big networks. A background thread of the game does the routing, so the map, panels and buttons keep responding while days go by; what the day brings is exactly what it was before. Clicks that change your network still route right away.
+- Big networks use about half the battery they did: each day's routing takes half the processor time, and reuses what it worked out the day before when only demand has changed. Where traffic goes does not change.
 
 ## [2.4.0] — 2026-11-01
 
