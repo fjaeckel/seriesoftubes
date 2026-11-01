@@ -433,3 +433,32 @@ test('the networks list fits a 360 px phone and has a tap target and a ⋯ menu 
     assert.deepEqual(a.errors, [], lang);
   }
 });
+
+test('a save the game could not load is tried again: by the next version, or with Try again', async () => {
+  const b = browser();
+  const a = load({ browser: b });
+  play(a.ev, 'Phoenix');
+  const id = a.ev('UI.slot'), q = JSON.stringify(id);
+  a.ev('save(true)');
+  await flush();
+  // This version cannot load it (a bug, not the save): it is marked damaged, with the version that failed.
+  a.ev('ACT.toTitle()');
+  await flush();
+  a.ev(`window.__m=migrate;migrate=s=>{throw new Error('bug')};ACT.cont({id:${q}})`);
+  await flush();
+  a.ev('migrate=__m');
+  assert.equal(idx(a.ev)[0].broken, true);
+  assert.equal(JSON.parse(b.ls.get('sot-slots')).slots[0].bv, a.ev('APP_VERSION'));
+  a.ev(`ACT.slotMenu({id:${q}})`);
+  assert.match(card(a.ev), /Try again/);
+  // Try again, with the bug gone: it opens, and is no longer damaged.
+  a.ev(`ACT.slotRetry({id:${q}})`);
+  await flush();
+  assert.equal(a.ev('!!UI.started&&S.name'), 'Phoenix');
+  assert.equal(idx(a.ev)[0].broken, false);
+  // Marked damaged by an older version: the index reads it as worth another try.
+  const ix = JSON.parse(b.ls.get('sot-slots'));ix.slots[0].broken = true;ix.slots[0].bv = '0.0.1';
+  b.ls.set('sot-slots', JSON.stringify(ix));
+  assert.equal(JSON.parse(a.ev('JSON.stringify(slotIdx(true))'))[0].broken, false);
+  assert.deepEqual(a.errors, []);
+});

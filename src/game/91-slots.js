@@ -19,13 +19,16 @@ const slotRaw=id=>slotOkId(id)?lsGet(SLOT_K+id)??(id===SLOT_MAIN?lsGet(SLOT_OLD)
 function slotClean(e){if(!e||typeof e!=='object'||!slotOkId(e.id))return null;
   return {id:e.id,name:String(e.name==null?'':e.name).slice(0,24),asn:int(e.asn,0,4294967294,0),mode:['normal','sandbox','scenario'].includes(e.mode)?e.mode:'normal',
     preset:typeof e.preset==='string'&&own(PRESETS,e.preset)?e.preset:'oncall',scn:typeof e.scn==='string'?e.scn.slice(0,60):null,day:int(e.day,0,1e7,0),
-    tier:['Tier 1','Tier 2','Tier 3'].includes(e.tier)?e.tier:null,cash:num(e.cash,0),at:num(e.at,0),size:int(e.size,0,1e10,0),seq:int(e.seq,0,1e15,0),gz:!!e.gz,broken:!!e.broken};}
+    tier:['Tier 1','Tier 2','Tier 3'].includes(e.tier)?e.tier:null,cash:num(e.cash,0),at:num(e.at,0),size:int(e.size,0,1e10,0),seq:int(e.seq,0,1e15,0),gz:!!e.gz,
+    // A save marked damaged (bv: the game version that could not load it) is tried again by the next version: the fault is
+    // usually in the game, and the save itself is fine once it is fixed.
+    ...(e.broken&&e.bv===APP_VERSION?{broken:true,bv:e.bv}:{broken:false})};}
 const slotMeta=(s,tier)=>({name:s.name,asn:s.asn,mode:s.mode,preset:s.rules&&s.rules.preset,scn:s.scn&&s.scn.name||null,day:s.day,cash:s.cash,tier});
 function slotKeys(){const out=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k===SLOT_OLD)out.old=true;else if(k&&k.startsWith(SLOT_K)&&slotOkId(k.slice(SLOT_K.length)))out.push(k.slice(SLOT_K.length));}}catch(e){}return out;}
 // An index entry rebuilt from the save itself. A compressed one can only be read in the background: slotFix() fills it in.
 function slotFromKey(id){const raw=slotRaw(id)||'';if(raw.startsWith(GZ))return slotClean({id,gz:true,size:raw.length});
   try{const s=JSON.parse(raw);if(s&&s.v===1&&typeof s.day==='number')return slotClean({id,...slotMeta(s,null),seq:s.sv&&s.sv.seq,at:s.sv&&s.sv.at,size:raw.length});}catch(e){}
-  return slotClean({id,size:raw.length,broken:true});}
+  return slotClean({id,size:raw.length,broken:true,bv:APP_VERSION});}
 /* The list of networks. scan also looks at the keys themselves (cheap: no save is read unless its entry is missing):
    a save whose index write failed is added back, an entry whose save is gone is dropped. A damaged index is rebuilt. */
 function slotIdx(scan){const raw=lsGet(SLOT_IX);let list=null;
@@ -43,7 +46,7 @@ function slotIdx(scan){const raw=lsGet(SLOT_IX);let list=null;
 function slotIdxPut(list){const t=JSON.stringify({v:1,slots:list});try{localStorage.setItem(SLOT_IX,t);SLOT.ixRaw=t;SLOT.ixList=list.map(e=>({...e}));return true;}catch(e){SLOT.ixRaw=null;return false;}}
 function slotFix(list){for(const e of list)if(e.gz&&!e.name&&!e.broken&&!SLOT['fix'+e.id]){SLOT['fix'+e.id]=1;const raw=slotRaw(e.id);
   gunzip(raw).then(t=>{const s=JSON.parse(t);return s&&s.v===1?slotMeta(s,null):null;},()=>null).then(m=>{const l=slotIdx(),x=l.find(y=>y.id===e.id);if(!x)return;
-    if(m)Object.assign(x,slotClean({...x,...m}));else x.broken=true;slotIdxPut(l);slotRefresh();});}}
+    if(m)Object.assign(x,slotClean({...x,...m}));else{x.broken=true;x.bv=APP_VERSION;}slotIdxPut(l);slotRefresh();});}}
 const slotByAt=l=>l.slice().sort((a,b)=>b.at-a.at);
 // ---------- one writer per slot ----------
 // The heartbeat: who has a slot open, refreshed every few seconds. A hidden tab's timers can be slowed to once a
@@ -104,7 +107,7 @@ function slotOpen(id,steal,done){if(!slotIdx(true).some(e=>e.id===id)){showTitle
       slotIn(id,sv);gameResume();if(done)done();};
     const raw=slotRaw(id);if(raw==null){slotFree(id);slotDrop(id);showTitle();toast(tr('slots.that_network_is_gone'),'bad');return;}
     if(raw.startsWith(GZ)){if(raw===UI.gzRaw)go(UI.gzText);else gunzip(raw).then(go,()=>slotBroke(id));}else go(raw);});}
-function slotBroke(id){const l=slotIdx(),e=l.find(x=>x.id===id);if(e){e.broken=true;slotIdxPut(l);}
+function slotBroke(id){const l=slotIdx(),e=l.find(x=>x.id===id);if(e){e.broken=true;e.bv=APP_VERSION;slotIdxPut(l);}
   if(UI.slot===id){UI.slot=null;ssSet(SLOT_SS,null);}slotFree(id);
   S=null;R=emptyR();UI.started=false;UI.sel=null;$('dash').hidden=true;$('bankBox').hidden=true;renderAll();showTitle();toast(tr('loop.your_saved_game_could_not_be'),'bad');}
 function slotDrop(id){if(!slotOkId(id))return;SLOT.no.add(id);lsDel(SLOT_K+id);if(id===SLOT_MAIN)lsDel(SLOT_OLD);slotUnbeat(id);
@@ -123,7 +126,7 @@ function slotMigrate(cb){const raw=lsGet(SLOT_OLD);
   const done=s=>{if(s&&s.lost){cb();return;}
     let ok=false;try{localStorage.setItem(SLOT_K+SLOT_MAIN,raw);ok=localStorage.getItem(SLOT_K+SLOT_MAIN)===raw;}catch(e){}
     if(!ok)lsDel(SLOT_K+SLOT_MAIN);
-    const l=slotIdx();l.push(slotClean({id:SLOT_MAIN,...(s?slotMeta(s,null):{}),seq:0,at:Date.now(),size:raw.length,gz:raw.startsWith(GZ),broken:!s}));slotIdxPut(l);if(!s)UI.bootBroken=true;cb();};
+    const l=slotIdx();l.push(slotClean({id:SLOT_MAIN,...(s?slotMeta(s,null):{}),seq:0,at:Date.now(),size:raw.length,gz:raw.startsWith(GZ),broken:!s,bv:APP_VERSION}));slotIdxPut(l);if(!s)UI.bootBroken=true;cb();};
   if(!raw.startsWith(GZ)){let s=null;try{s=JSON.parse(raw);}catch(e){}done(s&&s.v===1?s:null);return;}
   if(!gzOk()){done(null);return;}
   gunzip(raw).then(t=>{UI.gzRaw=raw;UI.gzText=t;let s=null;try{s=JSON.parse(t);}catch(e){}done(s&&s.v===1?s:null);},()=>done(null));}
