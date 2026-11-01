@@ -12,6 +12,7 @@ All notable changes to this project are documented here. The project follows
 - Working out where traffic goes takes about a fifth less work on big networks, with exactly the same result.
 - The game no longer freezes while it routes each day's traffic on big networks. A background thread of the game does the routing, so the map, panels and buttons keep responding while days go by; what the day brings is exactly what it was before. Clicks that change your network still route right away.
 - A plug-in optic that is too short for your subsea cable no longer sends you to submarine terminals and optical engineering, which cannot stretch it (#253). The hint now names the optics that do reach, such as the Sienna WaveMagic 1.6T for Perth to Cape Town. Optics the upgrades can stretch still get the advice.
+- Big networks use about half the battery they did: each day's routing takes half the processor time, and reuses what it worked out the day before when only demand has changed. Where traffic goes does not change.
 
 ## [2.4.0] — 2026-11-01
 
