@@ -116,6 +116,8 @@ const REAL_NAMES = [
   '2Africa', 'Amitié', 'BDSNi', 'CADMOS', 'CARCIP', 'Ceiba-1', 'Ceiba-2', 'DARE1', 'Darwin-Jakarta-Singapore Cable', 'Deep Blue One', 'Dunant', 'East Micronesia Cable', 'Eastern Caribbean Fiber System', 'EllaLink', 'Epic Malta-Sicily Cable System', 'Equiano', 'FALCON', 'Fibralink', 'GO-1', 'Grace Hopper', 'Greenland Connect', 'Greenland Connect North', 'Hibernia Express', 'ICN1', 'Interchange Cable Network 1', 'Jupiter', 'MAREA', 'MedNautilus', 'Melita 1', 'North West Cable System', 'PEACE', 'SEA-ME-WE 6', 'SG-SCS', 'Southern Caribbean Fiber', 'TLSSC', 'Tuvalu Vaka Cable', 'UGARIT', 'Vaka', 'X-Link',
   // cable ships, their operators and maintenance clubs
   'ACMA', 'ASEAN Explorer', 'ASEAN Protector', 'ASEAN Restorer', 'Cable Innovator', 'Cable Retriever', 'Global Marine', 'Léon Thévenin', 'MECMA', 'Orange Marine', 'Pierre de Fermat', 'René Descartes', 'SEAIOCMA', 'Sophie Germain', 'Sovereign', 'Wave Sentinel', 'Yokohama Zone',
+  // rockets and satellite networks (Pie in the Sky)
+  'Blue Origin', 'Falcon 9', 'Falcon Heavy', 'Iridium', 'Kuiper', 'OneWeb', 'Project Kuiper', 'SpaceX', 'Starship', 'Starlink',
   // vendors
   'Arista', 'Brocade', 'Ciena', 'Cisco', 'Extreme Networks', 'Huawei', 'Infinera', 'Juniper', 'MikroTik', 'Nokia',
 ];
@@ -180,7 +182,7 @@ test('N2: names are puns: no network, cable, exchange, data center, router, opti
   const norm = (s) => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[’`]/g, "'").replace(/\s+/g, ' ').trim();
   const real = new Set(REAL_NAMES.map(norm));
   const names = J(`[...NETS.map(n=>['network',n.name]),...CABLES.map(c=>['cable',c.name]),...XIX.map(x=>['exchange',x.name]),
-    ...CITIES.flatMap(c=>[['exchange',c.ix],['data center',c.dc],['data center',c.dc2]]),...RG.map(r=>['router',r.n]),...Object.values(OPT).map(o=>['optic',o.n]),...Object.values(SEAT_ROUTES).flat().map(r=>['cable',r[2]]),...SHIPS.map(x=>['cable ship',x.n]),...LAY_SHIPS.map(n=>['cable ship',n]),...Object.values(SHIP_CLUBS).map(c=>['maintenance club',c.n])].filter(x=>x[1])`);
+    ...CITIES.flatMap(c=>[['exchange',c.ix],['data center',c.dc],['data center',c.dc2]]),...RG.map(r=>['router',r.n]),...Object.values(OPT).map(o=>['optic',o.n]),...Object.values(SEAT_ROUTES).flat().map(r=>['cable',r[2]]),...SHIPS.map(x=>['cable ship',x.n]),...LAY_SHIPS.map(n=>['cable ship',n]),...Object.values(SHIP_CLUBS).map(c=>['maintenance club',c.n]),...PIE_NAMES.map(n=>['rocket company',tr(n)]),...Object.values(ROCKETS).map(r=>['rocket',tr(r.n)]),...Object.values(CRUSTS).map(c=>['constellation',tr(c.n)])].filter(x=>x[1])`);
   fail('N2', names.filter(([, n]) => real.has(norm(n))).map(([k, n]) => `${k} “${n}” is a real name`), 'find a pun');
   fail('N2', names.filter(([, n]) => /-ish\b/i.test(n)).map(([k, n]) => `${k} “${n}”`), 'no lazy -ish names: find a real pun, or keep the plain word');
 });
@@ -506,6 +508,66 @@ test('D4: RTBH costs only the target', () => {
   g.ev('S.ev.ddos.until=S.day;dayTick()');
   assert.equal(g.ev('S.stats.ddosSac'), 1, 'D4: sacrificed, not held');
   assert.equal(g.ev('S.stats.ddosOk||0'), 0);
+  assert.deepEqual(g.errors, []);
+});
+
+// ---------- Orbit ----------
+
+// A Tier 1 one step from the win (as in tests/pie-in-the-sky.test.js).
+const pieT1 = (g) => {
+  g.ev("S.cash=1e11;S.lvl=6;for(const x of GOALS)S.done[x.id]=0;delete S.done.t1;ACT.launchBB({city:'fra'});S.pops.fra.bb.d=500;S.transit=[];S.ixp={};S.peers={};S.pni=[];S.grace=null;S.nextFail=1e9;S.nextEvent=1e9");
+  g.ev("for(const n of t1Need())S.pni.push({id:'p'+n.id,net:n.id,city:'fra',tier:2});compute();for(const n of NETS)if(!R.reachable[n.id]){if(!S.pops[n.pops[0]])S.pops[n.pops[0]]={day:0,bb:null,boost:0,down:0,routers:1,gen:false};S.pni.push({id:'i'+n.id,net:n.id,city:n.pops[0],tier:0});}compute()");
+};
+test('O1: the rocket company unlocks only on a Tier 1 win of its version, or in sandbox', () => {
+  const g = load();
+  g.ev("beginGame('Pie','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip()");
+  assert.equal(g.ev('S.pieV'), 1, 'O1: newGame() sets pieV');
+  pieT1(g);
+  assert.equal(g.ev('pieOn()'), false, 'O1: locked before the win');
+  g.ev('checkGoals()');
+  assert.equal(g.ev('pieOn()&&pieCanBuild()'), true, 'O1: open on the win');
+  g.ev("const o=JSON.parse(JSON.stringify(S));delete o.pieV;delete o.pie;S=migrate(o);compute();checkGoals()");
+  assert.equal(g.ev('pieOn()'), false, 'O1: an old won save stays locked');
+  g.ev("const o=JSON.parse(JSON.stringify(S));o.pieV=1;o.pie={};o.scn={id:'redsea'};S=migrate(o)");
+  assert.equal(g.ev('pieOn()'), false, 'O1: never in a scenario');
+  const sb = load();
+  sb.ev("ACT.modeSet({m:'sandbox'});ACT.start({});if(UI.pendGame)ACT.pitchSkip()");
+  assert.equal(sb.ev('S.day===0&&pieOn()&&pieCanBuild()'), true, 'O1: sandbox from day 0');
+  const won = load();
+  won.ev("beginGame('Pie','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip()");
+  pieT1(won);
+  won.ev("checkGoals();ACT.buildPop({city:'sin'});S.transit.push({id:'tt',city:'fra',net:'cog',tier:1,n:1,down:0});compute()");
+  assert.equal(won.ev('pieCanBuild()'), false, 'O1: no longer Tier 1, nothing new');
+  assert.deepEqual([...g.errors, ...sb.errors, ...won.errors], []);
+});
+
+test('O5: launches fail only with chaos on, never in the first 90 days after the unlock', () => {
+  const fly = (setup, after) => {
+    const g = load();
+    g.ev(setup);
+    if (!g.ev('gatesOpen()')) { pieT1(g); g.ev('checkGoals()'); }
+    g.ev("ACT.buildPop({city:'sin'});ACT.pieFound();ACT.pieFactory();ACT.piePad({city:'sin'});S.pie.stock=100");
+    g.ev(`S.day=S.pie.born+${after};S.pie.pads[0].next=0;Math.random=()=>0;ACT.pieLaunch({rk:'falcon',cr:'short'});S.pie.q[0].day=S.day;pieDay(S.day)`);
+    assert.deepEqual(g.errors, []);
+    return g.ev("pieLive('short')");
+  };
+  const oncall = "beginGame('Pie','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip()";
+  assert.equal(fly(oncall, 89), 20, 'O5: quiet for 90 days');
+  assert.equal(fly(oncall, 90), 0, 'O5: then chaos can take a launch');
+  assert.equal(fly("ACT.modeSet({m:'sandbox'});ACT.start({});if(UI.pendGame)ACT.pitchSkip()", 400), 20, 'O5: chaos none, nothing fails');
+});
+
+test('O7: a fresh Tier 1 cannot afford a full Shortcrust in its first year', () => {
+  // Reference: the big-network benchmark save, a won network far larger than a fresh Tier 1. A year of its profit at
+  // today's revenue (costs ignored, so generously) plus the largest loan any bank offers (12x monthly revenue).
+  const g = load();
+  const save = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
+  g.ev(`S=migrate(JSON.parse(${JSON.stringify(save)}));compute()`);
+  const rev = g.ev('R.revMo'), loan = g.ev('Math.max(...Object.values(BANKS).map(b=>b.amt[1]))') * rev, cash = Math.max(0, g.ev('S.cash'));
+  const year = 12 * rev + loan + Math.min(cash, 12 * rev);
+  const full = g.ev("pieFullCost('short')");
+  assert.ok(full > 5e9, `O7: a full Shortcrust costs ${Math.round(full / 1e6)}M`);
+  assert.ok(year < full, `O7: ${Math.round(year / 1e6)}M in a year buys a full Shortcrust (${Math.round(full / 1e6)}M); make orbit dearer`);
   assert.deepEqual(g.errors, []);
 });
 

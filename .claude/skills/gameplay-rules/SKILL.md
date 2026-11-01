@@ -78,3 +78,12 @@ These are what the game promises, held up by `tests/gameplay-rules.test.js` (one
 | D2 | A flood enters on every port the internet reaches you on, by each network's share, and a port carries only what fits: everyone on a full port loses the same share. | Real floods are spread by geography; one fat port at a single POP is the weak spot (#242). |
 | D3 | Only upstream tools (RTBH, clean pipe) and an engaged scrubbing center keep a flood off your ports. Flowspec acts on the ingress router, after the port, within that router's own rule budget. | Flowspec protects customers, not the external connections; TCAM is finite. |
 | D4 | RTBH costs only the target: it goes dark (and its mood drops once), everyone else is saved, and the attack counts as sacrificed, not held. | RTBH is the tool that saves the network and is bad for that one customer, so it must be a real choice. |
+
+## Orbit (Pie in the Sky, `docs/plans/pie-in-the-sky.md`)
+
+| Id | Rule | Why |
+| --- | --- | --- |
+| O1 | The rocket company unlocks only on the Tier 1 win of a save started on its version (`S.pieV>=1`, set by `newGame()`; a save without it loads as 0), or from day 0 with open gates (sandbox). Never in puzzles, the Architect or scenarios. Losing Tier 1 keeps everything flying but builds nothing new. | An endgame for people who earned it; old won saves must not change under their players. |
+| O5 | Launches fail only with chaos on (`rule('chaos')`), and never in the first 90 days after the unlock; heavy test flights explode by design, not by chance. (The incidents built later follow the same rule.) | Like F1: learn the thing before it punishes you. |
+| O7 | A fresh Tier 1 cannot afford a full Shortcrust from its first year's money: even a big network's yearly profit plus the largest loan a bank would offer stays below the cheapest full build (`pieFullCost('short')`). | Obscenely expensive is the joke and the goal; a constellation in year one would be a cheat code. |
+
