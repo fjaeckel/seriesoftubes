@@ -14,7 +14,7 @@ Object.assign(ACT,{
    if(why){toast(tr('fiber_and_hardware.can_t_add_optic_why',{optic:OPT[o].n,why:esc(why)}),'bad');sfx('err');return;}
    const free=chMax(l)-(l.ch||[]).length-soldSlots(l);
    if(d>free){toast(tr('optic_counts.only_n_channels_free',{n:free}),'bad');sfx('err');return;}
-   if(!portGate(l.a,d)||!portGate(l.b,d)||!spend(opticCountCost(l,o,n)))return;
+   if(!portGate(l.a,d*chPorts(o,l.a))||!portGate(l.b,d*chPorts(o,l.b))||!spend(opticCountCost(l,o,n)))return;
    const sp=Math.min(d,spareN(o));if(sp)S.spares[o]-=sp;
    (l.ch=l.ch||[]).push(...Array(d).fill(o));
   }else{

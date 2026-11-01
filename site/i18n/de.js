@@ -2535,6 +2535,7 @@
 "link_panels.stock_a_spare_optic_price":"Eine Reserve-{optic} einlagern <small>{price}</small>",
 "link_panels.sys_level_n":"{sys} <small>Level {n}</small>",
 "link_panels.take_it_off_standby":"Aus dem Standby holen",
+"link_panels.takes_n_router_ports_per_end":{"one":"belegt {n} Router-Port an jedem Ende","other":"belegt {n} Router-Ports an jedem Ende"},
 "link_panels.there_s_no_ix_in_city":"In {city} gibt es noch keinen IX. Gründe einen: Netze treten mit der Zeit bei, zahlen dir Ports und peeren kostenlos mit dir.",
 "link_panels.they_need_the_full_internet_your":"Sie brauchen das volle Internet. Deine Erreichbarkeit ist {pct}.",
 "link_panels.this_backhoe_wins":"Dieser Bagger gewinnt.",

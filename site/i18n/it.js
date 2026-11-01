@@ -2533,6 +2533,7 @@
 "link_panels.stock_a_spare_optic_price":"Metti da parte un {optic} di scorta <small>{price}</small>",
 "link_panels.sys_level_n":"{sys} <small>livello {n}</small>",
 "link_panels.take_it_off_standby":"Toglilo dallo standby",
+"link_panels.takes_n_router_ports_per_end":{"one":"occupa {n} porta del router a ogni capo","other":"occupa {n} porte del router a ogni capo"},
 "link_panels.there_s_no_ix_in_city":"A {city} non c’è ancora un IX. Fondane uno: le reti si uniscono col tempo, ti pagano le porte e fanno peering con te gratis.",
 "link_panels.they_need_the_full_internet_your":"Vogliono internet per intero. La tua copertura è del {pct}.",
 "link_panels.this_backhoe_wins":"Questa ruspa vince.",

@@ -2534,6 +2534,7 @@
 "link_panels.stock_a_spare_optic_price":"Stock a spare {optic} <small>{price}</small>",
 "link_panels.sys_level_n":"{sys} <small>level {n}</small>",
 "link_panels.take_it_off_standby":"Take it off standby",
+"link_panels.takes_n_router_ports_per_end":{"one":"takes {n} router port at each end","other":"takes {n} router ports at each end"},
 "link_panels.there_s_no_ix_in_city":"There's no IX in {city} yet. Found one: networks join over time, pay you for ports, and peer with you for free.",
 "link_panels.they_need_the_full_internet_your":"They need the full internet. Your reach is {pct}.",
 "link_panels.this_backhoe_wins":"This backhoe wins.",

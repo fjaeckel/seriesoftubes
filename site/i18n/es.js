@@ -2533,6 +2533,7 @@
 "link_panels.stock_a_spare_optic_price":"Tener una {optic} de repuesto <small>{price}</small>",
 "link_panels.sys_level_n":"{sys} <small>nivel {n}</small>",
 "link_panels.take_it_off_standby":"Sacarlo de la espera",
+"link_panels.takes_n_router_ports_per_end":{"one":"ocupa {n} puerto de router en cada extremo","other":"ocupa {n} puertos de router en cada extremo"},
 "link_panels.there_s_no_ix_in_city":"Aún no hay IX en {city}. Funda uno: las redes se unen con el tiempo, te pagan por los puertos y hacen peering contigo gratis.",
 "link_panels.they_need_the_full_internet_your":"Necesitan todo internet. Tu alcance es del {pct}.",
 "link_panels.this_backhoe_wins":"Esta retroexcavadora gana.",

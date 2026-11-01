@@ -11,8 +11,11 @@ const cacheBox=c=>{const p=S.pops[c];return p&&portG(p.rgen||0)>=CACHE_BIG?{g:CA
 function cachePorts(c,extra=[],g){const n={a:0,b:0};for(const x of S.caches)if(x.city===c)n[x.site==='b'?'b':'a']+=cacheG(x);for(const x of extra)n[x.site==='b'?'b':'a']+=cacheG(x);
   const p=S.pops[c],k=p?portG(g===undefined?(p.rgen||0):g):CACHE_CAP;return Math.ceil(n.a/k-1e-9)+Math.ceil(n.b/k-1e-9);}
 const cachePortsAdd=(c,adds)=>cachePorts(c,adds)-cachePorts(c);
+/* A dark fiber channel takes as many router ports at each end as the optic's speed needs (#256): a pluggable sits
+   in one port, but a 1.6T transponder shelf hands off to an 800G router as two 800G clients. */
+const chPorts=(o,c,g)=>{const p=S.pops[c];return p&&OPT[o]?Math.max(1,Math.ceil(OPT[o].g/portG(g===undefined?(p.rgen||0):g)-1e-9)):1;};
 function portsUsed(c,g){let u=0;
-  for(const l of S.links){if(l.a!==c&&l.b!==c||l.kind==='vxc')continue;u+=l.kind==='df'?(l.ch||[]).length:1;}
+  for(const l of S.links){if(l.a!==c&&l.b!==c||l.kind==='vxc')continue;if(l.kind!=='df'){u++;continue;}for(const o of l.ch||[])u+=chPorts(o,c,g);}
   // A puzzle's content origin (t.pz) hands off on a port of its own: it takes none of yours.
   for(const t of S.transit)if(t.city===c&&!t.pz)u+=PORT_SLOT(t.tier)*(t.n||1);
   for(const x of S.pni)if(x.city===c)u+=PORT_SLOT(x.tier)*(x.n||1);
