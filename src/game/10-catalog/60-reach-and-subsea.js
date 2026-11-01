@@ -20,7 +20,11 @@ function setCableReady(l,ready,day=S.day){const shift=ready-l.ready;
     const f='sub'+k;if(Number.isFinite(l[f])&&l[f]>day)l[f]=Math.max(day+1,l[f]+shift);
   }l.ready=ready;
 }
-const crewCost=l=>Math.round(15000+l.km*6);
+// Hurrying anything at sea means a cable ship, and there are only a few dozen in the world, booked months ahead:
+// a second one for your build is a multi-million charter, and jumping the repair queue costs about what a repair does.
+const SHIP_MOB=3000000,SHIP_KM=500,SHIP_FIX=1000000,SHIP_FIX_KM=200;
+const crewCost=l=>Math.round(l.sub?SHIP_MOB+l.km*SHIP_KM:15000+l.km*6);
+const shipFix=km=>Math.round(SHIP_FIX+km*SHIP_FIX_KM);
 const crewSteps=l=>Math.max(0,Math.ceil((l.ready-S.day-1)/30));
 // Old saves lack purchase dates. Only shorten dates beyond any valid remaining
 // commissioning window. Credit elapsed time since the actual cable finish;
