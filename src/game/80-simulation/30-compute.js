@@ -45,15 +45,15 @@ function compute(){
   const okBy={};for(const id of NET_IDS)okBy[id]=[];
   const ekN={};for(const e of E){e.ek=e.k+':'+e.id;ekN[e.ek]=(ekN[e.ek]||0)+1;}
   // dup: shares its key with another exit (a hand-edited save), so R.egDesc shows whichever pushed last.
-  for(const e of E){e.J=0;e.byC=null;e.desc={lab:e.lab,city:e.city,k:e.k};e.dup=ekN[e.ek]>1;e.told=false;e.hp=e.pref==='high'?0:1;e.ci=CIDX[e.city];e.cn=cnCity(e.city);e.vis=0;for(const n of e.nets||NET_IDS){const L=okBy[n];if(L&&L[L.length-1]!==e&&e.ok(n))L.push(e);}}
-  for(const n of NETS){R2.reachable[n.id]=okBy[n.id].some(e=>e.rank>0);if(R2.reachable[n.id])R2.reach+=NSH[n.id];if(okBy[n.id].some(e=>e.rank>0&&e.k!=='t')){R2.nt[n.id]=1;R2.reachNT+=NSH[n.id];
+  for(const e of E){e.J=0;e.byC=null;e.desc=null;e.dup=ekN[e.ek]>1;e.told=false;e.hp=e.pref==='high'?0:1;e.ci=CIDX[e.city];e.cn=cnCity(e.city);e.vis=0;for(const n of e.nets||NET_IDS){const L=okBy[n];if(L&&L[L.length-1]!==e&&e.ok(n))L.push(e);}}
+  for(const n of NETS){let any=false,nt=false;for(const e of okBy[n.id])if(e.rank>0){any=true;if(e.k!=='t'){nt=true;break;}}R2.reachable[n.id]=any;if(any)R2.reach+=NSH[n.id];if(nt){R2.nt[n.id]=1;R2.reachNT+=NSH[n.id];
     // Reached without transit only through the customers of networks you peer with (#85). R.cone[id]: the peer that
     // carries it, the first PNI's network or else the nearest upstream that is a member of an exchange you are on.
     if(!okBy[n.id].some(e=>(e.k==='p'||e.k==='ix')&&!coneOf(e,n.id)))R2.cone[n.id]=coneBy(okBy[n.id],n.id);}}
   const cacheNets=new Set(S.caches.filter(c=>popUp(c.city)).map(c=>c.net));
   const viral=(ev.viral>day?1.25:1)*(ev.php&&ev.php>day?0.7:1);
   // Every flow has the same shape and carries what routing asks about it again and again (nj: its network's index).
-  const NN=NETS.length,flows=[],flow=(c,ci,cn,j,rem,cache,junk,bz=false)=>{const n=NETS[j],f={c,n:n.id,rem,cache,junk,bz,ci,cn,ncn:!!n.cn,nj:j,nr:junk?NN:j,gt:0,gi:0,gp:0,gh:0,ti:null,ii:null};flows.push(f);return f;};
+  const NN=NETS.length,flows=[],flow=(c,ci,cn,j,rem,cache,junk,bz=false)=>{const n=NETS[j],f={c,n:n.id,rem,cache,junk,bz,ci,cn,ncn:!!n.cn,nj:j,nr:junk?NN:j,gt:0,gi:0,gp:0,gh:0,ti:null,ii:null,br:null};flows.push(f);return f;};
   // Customer demand per city, added up in S.biz order (what filtering S.biz for each city would give).
   const bizBw={};for(const b of S.biz){const T=BIZ_T[b.type];if(!T.l2&&!T.fiber&&(!T.event||eventLive(b))){const v=bizBw[b.city];bizBw[b.city]=(v===undefined?0:v)+b.bw;}}
   // Traffic shares by network index, and their sums, for each share table (and with Russia's throttle).
@@ -181,7 +181,7 @@ function compute(){
     for(let k=0;k<=last;k++){const i=ni[k];if(!HAS[i])continue;const r=NRES[i];if(r<=1e-6){P.dead=1;return 0;}const w=k&&k<last?PASS[i]:1;amt=Math.min(amt,r/w);}
     if(amt<=1e-6)return 0;
     for(let k=0;k<=last;k++){const i=ni[k];if(HAS[i])nodeTake(i,k&&k<last?amt*PASS[i]:amt);}
-    const ek=e.ek,nr=f.nr,ci=f.ci;if(!e.told||e.dup){R2.egDesc[ek]=e.desc;e.told=true;}
+    const ek=e.ek,nr=f.nr,ci=f.ci;if(!e.told||e.dup){R2.egDesc[ek]=e.desc||(e.desc={lab:e.lab,city:e.city,k:e.k});e.told=true;}
     for(const l of path){l.res-=amt;l.ld+=amt;carry(l,ek,nr,ci,amt);}
     e.used+=amt;f.rem-=amt;
     if(!f.junk){let ok=amt;const cf=f.cn,ce=e.cn,cn=f.ncn;
@@ -220,23 +220,27 @@ function compute(){
   // networks that have an exit there, and nothing from a POP where Prefer has the say; a port that is not set to carry only takes
   // its own POP's traffic. Kept in a function of its own so the loop below stays as it was: the JIT is sensitive to its shape.
   const directPass=(rank,pass)=>{const DS=DSEL.get(rank),LOC=rank===DIRECT_RANK[1][1]||rank===DIRECT_RANK[2][1];
-    for(let fi=0,FN=flows.length;fi<FN;fi++){f=flows[fi];
+    for(let fi=0,FN=AF.length;fi<FN;fi++){f=AF[fi];
       if(f.rem<=1e-6||DS[f.nj]===0||PREFC[f.ci]===1||(pass&&!pass(f)))continue;
       Dv=SDi[f.ci];Pv=SPi[f.ci];PP=walked[f.ci]||(walked[f.ci]=[]);vis++;
-      let lst=byRank[f.n][rank];if(!lst)continue;if(lst.cs){lst=lst.cs[COMP[f.ci]];if(!lst)continue;}
+      let lst=(f.br||(f.br=byRank[f.n]))[rank];if(!lst)continue;if(lst.cs){lst=lst.cs[COMP[f.ci]];if(!lst)continue;}
       REST.length=0;
       if(LOC){const here=lst.at.get(f.ci);if(!here)continue;for(let h=0;h<here.length;h++)if(usable(here[h]))REST.push(here[h]);}
       else for(let li=0;li<lst.length;li++)if(usable(lst[li]))REST.push(lst[li]);
       sortD(REST);
       for(let i=0;i<REST.length&&f.rem>1e-6;){let j=i+1;while(j<REST.length&&REST[j].hp===REST[i].hp&&Math.abs(Dv[REST[j].ci]-Dv[REST[i].ci])<1e-6)j++;sendGroup(REST,i,j);i=j;}}};
+  // AF: the flows with traffic left. A flow never gets traffic back, so one that is done is dropped after each rank
+  // instead of being skipped again by every later one (same flows, same order).
+  let AF=flows;
   for(const pass of PASSES||[null])for(const rank of RANKS){
     if(!RSET.has(rank))continue;
+    if(AF.length>64){let k=0;const A=AF===flows?AF.slice():AF;for(let i=0;i<A.length;i++)if(A[i].rem>1e-6)A[k++]=A[i];A.length=k;AF=A;}
     if(DSEL.has(rank)){directPass(rank,pass);continue;}
     // Index loops in here: plain for…of allocates an iterator per loop until V8 has optimised compute().
-    for(let fi=0,FN=flows.length;fi<FN;fi++){f=flows[fi];
+    for(let fi=0,FN=AF.length;fi<FN;fi++){f=AF[fi];
       if(f.rem<=1e-6||(rank===0&&!f.cache)||(pass&&!pass(f)))continue;
       Dv=SDi[f.ci];Pv=SPi[f.ci];PP=walked[f.ci]||(walked[f.ci]=[]);vis++;
-      let lst=byRank[f.n][rank];if(!lst)continue;if(lst.cs){lst=lst.cs[COMP[f.ci]];if(!lst)continue;}
+      let lst=(f.br||(f.br=byRank[f.n]))[rank];if(!lst)continue;if(lst.cs){lst=lst.cs[COMP[f.ci]];if(!lst)continue;}
       /* Groups are tried nearest first, preferred exits before the rest, in the order a stable sort of the usable
          exits gives. Exits only fill up once tried, so the usable ones stay the same until then. Nearly every flow
          fits in its first group: find that one with a scan (nothing is visited yet), and sort only what is left

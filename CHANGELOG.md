@@ -8,7 +8,7 @@ All notable changes to this project are documented here. The project follows
 
 - A network the game once failed to load is no longer stuck as damaged: the next version of the game tries it again, and its menu has a Try again button. Before, it could only be exported or deleted, even after the cause was fixed.
 - Save files of very large networks import again: the limit went from 8 MB to 64 MB.
-- The Networks tab and the zoomed-in map draw faster on big networks.
+- Big networks run faster: routing skips traffic it has already placed, the map skips links off screen without working out their shape, and the Networks tab and the zoomed-in map draw faster. Where traffic goes does not change.
 - 400G cache boxes: a POP whose routers have 400G or faster ports now gets 400G boxes, at $1,000 a month instead of $400 for 100G, so big caches need fewer boxes and cost less per Gbps. Boxes you already have stay as they are.
 - Pick a standard POP: in any POP's Infra tab, make its routers the standard, and every new POP gets that model and number of routers right away, while it is still empty (#240).
 - Clarovision now peers only over paid PNIs, like the real carrier, and free only with networks at customer level 11 or above (#213). A PNI you already have with it starts paying the fee.
