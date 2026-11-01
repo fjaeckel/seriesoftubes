@@ -39,6 +39,8 @@ function optModes(o,l){return (OPT[o].modes||[[OPT[o].g,OPT[o].reach]]).map(([g,
   }
   return [g,reach];});}
 function optMode(o,l){const km=spanKm(l);for(const [g,r] of optModes(o,l))if(km<=r)return {g,reach:r,full:g===OPT[o].g};return null;}
+// The same cable with both subsea upgrades in service: if an optic still falls short, no upgrade can stretch it.
+const withSubUps=l=>({...l,subterminal:0,subengineering:0});
 // The longest subsea span any optic lights with these upgrades in service, and the cheapest upgrades a length needs
 // (null: nothing can light it). The length limit, the order screen and refunds all use these, so they agree.
 const SUBR=[],subReach=(t,e)=>SUBR[(t?1:0)+(e?2:0)]??(SUBR[(t?1:0)+(e?2:0)]=Math.max(...Object.keys(OPT).flatMap(o=>optModes(o,{kind:'df',own:true,sub:true,subterminal:t?0:undefined,subengineering:e?0:undefined}).map(m=>m[1])))),

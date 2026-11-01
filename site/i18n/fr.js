@@ -11,6 +11,7 @@
 "action_helpers.this_channel_reaches_max_km_on":"Ce canal porte à {max} km sur ce câble ; le tracé fait {span} km. Pense aux terminaux sous-marins ou à l’ingénierie optique.",
 "action_helpers.too_far_even_at_its_slowest":"Trop loin, même au débit le plus lent : ici une portée optique fait {span} km et l’optique va jusqu’à {max} km. Ajoute un site de régénération (Système de ligne).",
 "action_helpers.unlocks_at_customer_level_n":"Se débloque au niveau client {n}.",
+"action_helpers.upgrades_cannot_stretch_this_optic":"Ce canal porte à {max} km sur ce câble ; le tracé fait {span} km. Les terminaux sous-marins et l’ingénierie optique n’allongent pas cette optique. Celles-ci y arrivent : {optics}.",
 "actions.your_router_can_t_take_a":"<b>Ton routeur ne supporte pas de port {port}.</b><br>Mets-le à niveau dans l’onglet Infra.",
 "architect.anchor":"🐒 Plouf !",
 "architect.architect_runs":"Parties d’architecte",
