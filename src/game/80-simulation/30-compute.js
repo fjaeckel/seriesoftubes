@@ -22,7 +22,9 @@ function flDefine(R2,c){const {NF,FREM,FCI,FNJ,FCA,FBZ,FGT,FGI,FGP,FGH,FTI,FII,E
 /* Every exit has the same fields in the same order, whatever its kind, so the routing loop reads them from one object shape
    (exits of six shapes made each property read there a slow lookup). */
 function mkEx(k,id,city,cap,rank,pref,lab,ok,nets,net){return {k,net,id,city,lab,cap,used:0,rank,pref,ok,nets,dir:null,clean:false,prem:false,carry:false,prep:false,sac:false,pnc:false,
-  ek:'',J:0,byC:null,desc:null,dup:false,told:false,hp:1,ci:0,cn:false,vis:0,ts:-1,xi:0,fac:undefined};}
+  ek:'',J:0,byC:null,desc:null,dup:false,told:false,hp:1,ci:0,cn:false,vis:0,ts:-1,xi:0,kx:EXK.indexOf(k),fac:undefined};}
+// The exit kinds by number (mkEx's kx), for what routing adds up per kind in typed arrays.
+const EXK=['t','ix','p','c'];
 function compute(){RW.gen++;
   const day=S.day, R2=emptyR(), pops=Object.keys(S.pops).filter(popUp), NC=CITIES.length;
   // The graph works on city indices: adj[i] lists [neighbour, edge] in S.links order.
@@ -209,7 +211,11 @@ function compute(){RW.gen++;
     if(RCH)rcExitKeep(XK,E,okBy,RCH,LIST,BRJ,DSEL,RSET);})();
   // The flow being routed, and from its POP: distances, arriving edges and the paths walked so far, by city index.
   // F: its index; fci, fnj: its city and network index.
-  let F=0,fci=0,fnj=0,Dv=null,Pv=null,PP=null,vis=0;const walked=[],G=[],REST=[],NEG=[];
+  let F=0,fci=0,fnj=0,Dv=null,Pv=null,PP=null,vis=0;const walked=[],G=[],REST=[],NEG=[];let GN=0;
+  /* What each kind of exit served, in all (EGT) and per network (NEA, by network index and kind): numbers in typed arrays,
+     where a sum by key would box every new value. EGO and NEO keep the order each first got traffic, which is the order
+     R.egT and R.netEg list them in; both are written back after routing. */
+  const EGT=new Float64Array(4),EGO=[],NEA=new Float64Array(NN*4),NEO=[];
   // An exit the flow can still try: not visited yet, not full when the flow started, reachable, and not on a saturated path.
   const usable=e=>e.vis!==vis&&e.used<e.cap&&Dv[e.ci]<Infinity&&!gone(e),byDist=(a,b)=>a.hp-b.hp||Dv[a.ci]-Dv[b.ci];
   // Push up to `want` along one path to exit e; returns what fitted. Index loops: for…of allocates an iterator until optimised. Capacity only shrinks while routing, so a
@@ -231,7 +237,7 @@ function compute(){RW.gen++;
         // it gets worse, and past 50 ms broadband and internet services count as bad service (#…). Under sender pays,
         // Korean users notice any exit far away, transit or not, and much sooner.
         if(path.length&&(e.k==='t'||snd&&CITIES[ci].kr)){let ms=P.ms;if(ms<0){ms=0;for(let k=0;k<PN;k++)ms+=path[k].lat;P.ms=ms;}const rtt=2*ms,kl=snd&&CITIES[ci].kr;
-          if(rtt>(kl?KR_LAT_OK:LAT_OK)){LATP[ci]+=ok*(kl?krLatLoss(rtt):latLoss(rtt));if(!P.fg){P.fg=0;FARL.push(P,ci,e.ci);}P.fg+=ok;}}R2.egT[e.k]=(R2.egT[e.k]||0)+ok;const ne=NEG[nr]||(NEG[nr]=R2.netEg[NET_IDS[nr]]={c:0,p:0,ix:0,t:0});ne[e.k]+=ok;
+          if(rtt>(kl?KR_LAT_OK:LAT_OK)){LATP[ci]+=ok*(kl?krLatLoss(rtt):latLoss(rtt));if(!P.fg){P.fg=0;FARL.push(P,ci,e.ci);}P.fg+=ok;}}const kx=e.kx;if(EGT[kx]===0&&!EGO.includes(kx))EGO.push(kx);EGT[kx]+=ok;if(!NEG[nr]){NEG[nr]=R2.netEg[NET_IDS[nr]]={c:0,p:0,ix:0,t:0};NEO.push(nr);}NEA[nr*4+kx]+=ok;
       // Where each flow left (the PNI list asks what a PNI here would take over, #175).
       if(e.J>0){const m=e.byC||(e.byC=new Map()),v=m.get(ci);if(v){v[0]+=ok;if(bz)v[1]+=ok;}else m.set(ci,[ok,bz?ok:0]);}
       if(e.k==='t'){FGT[F]+=ok;FTI[F]=e.xi;}else if(e.k==='ix'){FGI[F]+=ok;FII[F]=e.xi;}else if(e.k==='p'){if(e.ci===ci&&e.net===NET_IDS[nr])FGH[F]+=ok;else FGP[F]+=ok;}}
@@ -256,7 +262,8 @@ function compute(){RW.gen++;
     for(let k=i0;k<i1;k++){if(FREM[F]<=1e-6)break;if(!gone(g[k]))send(g[k],FREM[F]);}};
   // Stable, in place: short lists by insertion (no garbage), long ones by the built-in sort. Both are stable with the
   // same comparison, so the order is the same either way.
-  const sortD=a=>{const n=a.length;if(n>24){a.sort(byDist);return;}for(let i=1;i<n;i++){const x=a[i];let j=i-1;while(j>=0&&byDist(a[j],x)>0){a[j+1]=a[j];j--;}a[j+1]=x;}};
+  // n: sort only a[0..n) (the group G holds GN exits).
+  const sortD=(a,n=a.length)=>{if(n>24){if(n===a.length)a.sort(byDist);else{const t=a.slice(0,n).sort(byDist);for(let i=0;i<n;i++)a[i]=t[i];}return;}for(let i=1;i<n;i++){const x=a[i];let j=i-1;while(j>=0&&byDist(a[j],x)>0){a[j+1]=a[j];j--;}a[j+1]=x;}};
   // The direct ranks (25-direct-egress.js) have short lists, one carrier's ports, so they take the plain way: the usable exits
   // nearest first, tried in groups of equal distance, as the reference loop in the tests does. A direct rank only concerns the
   // networks that have an exit there, and nothing from a POP where Prefer has the say; a port that is not set to carry only takes
@@ -284,10 +291,11 @@ function compute(){RW.gen++;
          exits gives. Exits only fill up once tried, so the usable ones stay the same until then. Nearly every flow
          fits in its first group: find that one with a scan (nothing is visited yet), and sort only what is left
          when it does not fit. Most often the group is the POP's own exits: with no preferred exit on the list
-         and no other city at distance 0, the usable ones here are exactly the first group, already in order. */
-      G.length=0;
-      if(!lst.hi&&ALONE[fci]){const here=lst.at.get(fci);if(here)for(let h=0;h<here.length;h++){const e=here[h];if(e.used<e.cap&&!gone(e))G.push(e);}}
-      if(!G.length){
+         and no other city at distance 0, the usable ones here are exactly the first group, already in order.
+         The group is G[0..GN): emptying an array (length=0) gives back its storage, and the next push allocates it again. */
+      GN=0;
+      if(!lst.hi&&ALONE[fci]){const here=lst.at.get(fci);if(here)for(let h=0;h<here.length;h++){const e=here[h];if(e.used<e.cap&&!gone(e))G[GN++]=e;}}
+      if(!GN){
         // One scan: the best (preference, distance) so far and, in list order, the exits within 1e-6 of it. The best
         // distance only goes down, so dropping the ones it leaves behind gives exactly the exits a second scan would.
         // Exits that are full stay full for this pass: when a quarter of a list is, it is rewritten without them.
@@ -295,15 +303,15 @@ function compute(){RW.gen++;
            them still have room no other exit can have become better, and the scan would find the same group (an
            empty one, no usable exit, stays empty). */
         const gc=lst.gc||(lst.gc=[]),c=gc[fci];
-        if(c!==undefined&&allRoom(c)){if(!c.length)continue;for(let k=0;k<c.length;k++)G.push(c[k]);}else{
+        if(c!==undefined&&allRoom(c)){if(!c.length)continue;for(let k=0;k<c.length;k++)G[GN++]=c[k];}else{
         let bh=2,bd=Infinity,full=0;
         for(let li=0,LN=lst.length;li<LN;li++){const e=lst[li];if(e.used>=e.cap||gone(e)){full++;continue;}const d=Dv[e.ci];if(d===Infinity)continue;const h=e.hp;
-          if(h<bh){bh=h;bd=d;G.length=0;G.push(e);}
-          else if(h===bh){if(d<bd){bd=d;let k=0;for(let gi=0;gi<G.length;gi++){const x=G[gi];if(Dv[x.ci]-d<1e-6)G[k++]=x;}G.length=k;G.push(e);}else if(d-bd<1e-6)G.push(e);}}
+          if(h<bh){bh=h;bd=d;GN=0;G[GN++]=e;}
+          else if(h===bh){if(d<bd){bd=d;let k=0;for(let gi=0;gi<GN;gi++){const x=G[gi];if(Dv[x.ci]-d<1e-6)G[k++]=x;}GN=k;G[GN++]=e;}else if(d-bd<1e-6)G[GN++]=e;}}
         if(full*4>=lst.length&&full){let k=0;for(let li=0;li<lst.length;li++){const e=lst[li];if(e.used<e.cap)lst[k++]=e;}lst.length=k;}
         if(bh>1){gc[fci]=NOG;continue;}
-        if(G.length>1)sortD(G);gc[fci]=G.slice();}}
-      sendGroup(G,0,G.length);
+        if(GN>1)sortD(G,GN);gc[fci]=G.slice(0,GN);}}
+      sendGroup(G,0,GN);
       if(FREM[F]<=1e-6)continue;
       REST.length=0;for(let li=0;li<lst.length;li++)if(usable(lst[li]))REST.push(lst[li]);sortD(REST);
       for(let i=0;i<REST.length&&FREM[F]>1e-6;){
@@ -317,6 +325,7 @@ function compute(){RW.gen++;
     rankPass(rank,pass);
   }
   for(const i of NORD)R2.nodeLoad[CITIES[i].id]=NLOAD[i];
+  for(const k of EGO)R2.egT[EXK[k]]=EGT[k];for(const j of NEO){const ne=NEG[j];for(let k=0;k<4;k++)ne[EXK[k]]=NEA[j*4+k];}
   (()=>{
   if(DD){let rem=0,jf=0;for(let i=0;i<NF;i++)if(FREM[i]>1e-6)rem+=FREM[i];if(JK)for(const k in edges){const e=edges[k];if(e.res<=1e-6&&e.jk)jf+=e.jk;}
     ddosAfter(DD,{E,R2,squeeze:Math.min(rem,jf),
