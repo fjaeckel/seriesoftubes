@@ -104,7 +104,7 @@ function drawFrame(now){
   const farL=lodFar();
   // Which cities show an offer bubble (a big one?) or an incident marker, worked out once for all of them.
   CM.off=new Set();CM.big=new Set();for(const o of S.offers){const big=BIZ_T[o.type].lv>=3||BIZ_T[o.type].event;for(const c of bCities(o)){CM.off.add(c);if(big)CM.big.add(c);}}
-  CM.inc=new Set(S.inc.filter(i=>i.type!=='leak').map(i=>i.ref));CM.far=farL;CM.dish=pieDishMap();
+  CM.inc=new Set(S.inc.filter(i=>i.type!=='leak').map(i=>i.ref));CM.far=farL;CM.dish=pieDishMap();CM.dl=CM.dish&&R&&R.pie?R.pie.load:null;
   // Zoomed in, crowded small cities give way to bigger ones and become dots (75-city-size.js).
   const csc=cityScale(sc);if(farL)for(const v of vis)v.dem=false;else cityRoom(vis,csc);
   if(pzOn()&&!farL)for(const v of vis)if(pzQuiet(v.C.id))v.dem=true;

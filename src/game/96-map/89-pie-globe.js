@@ -1,14 +1,17 @@
 /* Pie in the Sky globe (Pie Control panel): an orthographic Earth on a 2D canvas with a sample of your pies in their
    crusts, laser links, pie-dish beams and launches. Never drawn on the world map. It costs nothing until the panel calls
    pieGlobeOpen(canvas,getData): then one rAF loop, at most 30 frames a second, idle while the canvas is hidden; it stops
-   by itself (pieGlobeClose()) once the canvas leaves the page. Positions come from the clock, so nothing is saved. */
-const PG_D=Math.PI/180,PG_XF=2.6,PG_FPS=30,PG_FULL={short:1584,frozen:520,upper:1200,flaky:2500},PG_CI={short:0,frozen:1,upper:2,flaky:3};
+   by itself (pieGlobeClose()) once the canvas leaves the page. Positions come from the clock, so nothing is saved.
+   Traffic (data.flows, from the last compute): a sky circuit is a glowing arc from one dish up to its crust, across and
+   down to the other, as wide as its Gbps (log scale, capped), with packets riding it; a terminal customer is a hop from
+   its city off the sky to its dish. Each dish has a load ring. data.hi (a flow id) is drawn on top, the rest dimmed. */
+const PG_FLOWS=[24,48],PG_ARC=24,PG_D=Math.PI/180,PG_XF=2.6,PG_FPS=30,PG_FULL={short:1584,frozen:520,upper:1200,flaky:2500},PG_CI={short:0,frozen:1,upper:2,flaky:3};
 const PG_ST={
-  day:{sea:'#57C4E5',sea2:'#3AA6CF',land:'#9BDA6C',ink:'#1E2640',grid:'rgba(255,255,255,.35)',sat:['#FFFFFF','#FFD23F','#FF4F9A','#B9A6FF'],laser:'#FF4F9A',beam:['#FF8A3D','#FFD23F'],dish:'#FF4F9A',off:'#8A91A8'},
-  night:{bg:'#0B1030',sea:'#14234F',sea2:'#0B1638',land:'#24396F',ink:'#3E5BB0',grid:'rgba(120,150,255,.10)',sat:['#7DF9FF','#FFD23F','#FF7AC0','#C9B8FF'],laser:'rgba(255,79,154,.75)',beam:['rgba(255,210,63,.65)','rgba(255,138,61,.5)'],dish:'#FFD23F',off:'#4A5378'}};
+  day:{sea:'#57C4E5',sea2:'#3AA6CF',land:'#9BDA6C',ink:'#1E2640',grid:'rgba(255,255,255,.35)',sat:['#FFFFFF','#FFD23F','#FF4F9A','#B9A6FF'],laser:'#FF4F9A',beam:['#FF8A3D','#FFD23F'],dish:'#FF4F9A',off:'#8A91A8',flow:'#FFD23F',fglow:'#1E2640',hi:'#FF4F9A',pkt:'#FFFFFF'},
+  night:{bg:'#0B1030',sea:'#14234F',sea2:'#0B1638',land:'#24396F',ink:'#3E5BB0',grid:'rgba(120,150,255,.10)',sat:['#7DF9FF','#FFD23F','#FF7AC0','#C9B8FF'],laser:'rgba(255,79,154,.75)',beam:['rgba(255,210,63,.65)','rgba(255,138,61,.5)'],dish:'#FFD23F',off:'#4A5378',flow:'rgba(255,230,140,.9)',fglow:'rgba(255,210,63,.22)',hi:'#FF7AC0',pkt:'#FFFFFF'}};
 // The whole state of the globe. cv is null whenever it is closed, and then nothing below runs.
 const PG={cv:null,ctx:null,get:null,raf:0,last:0,t:0,yaw:-20,tilt:18,vy:0,drag:null,night:null,anim:true,dirty:true,
-  data:null,dAt:-1e9,sig:'',sm:[],dish:[],pads:[],lch:[],on:null,g:null,frames:0,m:new Float64Array(9)};
+  data:null,dAt:-1e9,sig:'',sm:[],dish:[],fl:[],hi:null,pads:[],lch:[],on:null,g:null,frames:0,m:new Float64Array(9)};
 let PG_LAND=null,PG_GRID=null,PG_LIGHT=null,PG_STAR=null;
 const pgNightPref=()=>{if(PG.night===null){try{PG.night=localStorage.getItem('sot-globe')==='night';}catch(e){PG.night=false;}}return PG.night;};
 // Unit vectors for the land rings (LANDS_LL), the graticule, city lights and stars: worked out once, on first open.
@@ -28,7 +31,7 @@ const pgBuf=n=>(PG.buf&&PG.buf.length>=n*3)?PG.buf:(PG.buf=new Float32Array(Math
 const pgNum=(x,d)=>typeof x==='number'&&isFinite(x)?x:d,pgArr=x=>Array.isArray(x)?x:[];
 // A place is {lat,lon} or a city id in .city (or .pad, as launches name their pad).
 function pgPlace(list,cap){const out=[];for(const o of pgArr(list)){if(out.length>=cap)break;if(!o)continue;const id=typeof o.city==='string'?o.city:typeof o.pad==='string'?o.pad:null,C=id&&Object.prototype.hasOwnProperty.call(CITY,id)?CITY[id]:null;
-  const lat=pgNum(o.lat,C?C.lat:NaN),lon=pgNum(o.lon,C?C.lon:NaN);if(!isFinite(lat)||!isFinite(lon))continue;const v=new Float32Array(3);pgUnit(lon,lat,v,0);out.push({v,up:o.up!==false});}return out;}
+  const lat=pgNum(o.lat,C?C.lat:NaN),lon=pgNum(o.lon,C?C.lon:NaN);if(!isFinite(lat)||!isFinite(lon))continue;const v=new Float32Array(3);pgUnit(lon,lat,v,0);out.push({v,up:o.up!==false,u:typeof o.u==='number'&&isFinite(o.u)?Math.max(0,Math.min(1,o.u)):null});}return out;}
 function pgRefresh(now){PG.dAt=now;let d=null;try{d=PG.get?PG.get():null;}catch(e){d=null;}d=d&&typeof d==='object'?d:{};
   const cr=pgArr(d.crusts).filter(c=>c&&pgNum(c.n,0)>0).slice(0,8),ph=isPhone(),cap=ph?80:160;
   const sig=ph+'|'+cr.map(c=>[c.id,c.n,c.alt,c.inc,!!c.las].join(':')).join(',');
@@ -38,7 +41,19 @@ function pgRefresh(now){PG.dAt=now;let d=null;try{d=PG.get?PG.get():null;}catch(
       const P=Math.max(1,Math.round(polar?Math.sqrt(cnt/2):Math.sqrt(cnt*1.2))),K=Math.ceil(cnt/P),span=polar?Math.PI:2*Math.PI;
       const co=new Float32Array(P),so=new Float32Array(P);for(let p=0;p<P;p++){co[p]=Math.cos(p/P*span);so[p]=Math.sin(p/P*span);}
       return {cnt,P,K,co,so,ci:Math.cos(inc*PG_D),si:Math.sin(inc*PG_D),rr:1+alt/6371*PG_XF,w:0.18*Math.pow(550/alt,1.5),las:!!c.las,col:PG_CI[c.id]!=null?PG_CI[c.id]:j%4,pos:new Float32Array(cnt*3)};});}
-  PG.dish=pgPlace(d.dishes,ph?60:150);PG.pads=pgPlace(d.pads,24);PG.lch=pgPlace(d.launches,ph?4:8);PG.dirty=true;}
+  PG.dish=pgPlace(d.dishes,ph?60:150);PG.pads=pgPlace(d.pads,24);PG.lch=pgPlace(d.launches,ph?4:8);PG.hi=typeof d.hi==='string'?d.hi:null;
+  PG.fl=pgFlows(d.flows,PG_FLOWS[ph?0:1],PG.hi);PG.dirty=true;}
+/* Flows as arcs of PG_ARC+1 points in world coordinates, rebuilt once a second. A sky circuit climbs to its crust in the
+   first and last 15% and crosses at that height; a terminal bounces off the sky halfway. The highlighted one is always kept. */
+function pgFlows(list,cap,hi){const out=[],L=pgArr(list),seen=new Set();let n=0;
+  const take=f=>{if(!f||typeof f.id!=='string'||seen.has(f.id))return;const g=pgNum(f.g,0),pts=pgPlace(pgArr(f.pts).map(c=>({city:c})),2);if(!(g>0)||pts.length<2)return;
+    const a=pts[0].v,b=pts[1].v,dot=Math.max(-1,Math.min(1,a[0]*b[0]+a[1]*b[1]+a[2]*b[2])),om=Math.acos(dot);if(om<1e-3)return;seen.add(f.id);
+    const sky=f.k==='c',h=(sky?Math.max(200,Math.min(2000,pgNum(f.alt,550))):550)/6371*PG_XF,raw=new Float32Array((PG_ARC+1)*3),so=Math.sin(om);
+    for(let i=0;i<=PG_ARC;i++){const s=i/PG_ARC,p=Math.sin((1-s)*om)/so,q=Math.sin(s*om)/so,r=1+h*(sky?Math.min(1,s/0.15,(1-s)/0.15):Math.sin(Math.PI*s));
+      raw[i*3]=(p*a[0]+q*b[0])*r;raw[i*3+1]=(p*a[1]+q*b[1])*r;raw[i*3+2]=(p*a[2]+q*b[2])*r;}
+    out.push({id:f.id,sky,w:Math.min(7,1.2+1.5*Math.log10(1+g)),raw,pos:new Float32Array(raw.length),pk:Math.min(4,1+Math.floor(Math.log10(1+g)))});};
+  if(hi)take(L.find(f=>f&&f.id===hi));for(const f of L){if(out.length>=cap)break;take(f);}return out;}
+const pgLoadCol=u=>u>=0.9?'#FF4D5E':u>=0.6?'#FFAA1F':'#22C47A';
 function pgSats(){for(const c of PG.sm){const raw=pgBuf(c.cnt);let i=0;
   for(let p=0;p<c.P&&i<c.cnt;p++)for(let k=0;k<c.K&&i<c.cnt;k++,i++){const u=k/c.K*2*Math.PI+PG.t*c.w+p*0.37,x=Math.cos(u),s=Math.sin(u),y=s*c.ci,z=s*c.si;
     raw[i*3]=c.rr*(x*c.co[p]-y*c.so[p]);raw[i*3+1]=c.rr*(x*c.so[p]+y*c.co[p]);raw[i*3+2]=c.rr*z;}
@@ -108,8 +123,13 @@ function pgDraw(ctx,W,H){
       const j=p*K+(k+1)%K;if(j<n&&j!==i&&a[j*3]>=0){ctx.moveTo(x,y);ctx.lineTo(cx+R*a[j*3+1],cy-R*a[j*3+2]);}
       const q=((p+1)%c.P)*K+k;if(i%2===0&&q<n&&q!==i&&a[q*3]>=0){ctx.moveTo(x,y);ctx.lineTo(cx+R*a[q*3+1],cy-R*a[q*3+2]);}}
     ctx.strokeStyle=st.laser;ctx.lineWidth=1.2;ctx.globalAlpha=.55;ctx.stroke();ctx.globalAlpha=1;}
+  if(PG.fl.length)pgDrawFlows(ctx,st,night,cx,cy,R,t);
   for(const up of [true,false]){ctx.beginPath();let any=false;for(const d of ds){if(d.up!==up)continue;const [x,y]=P(d.s,0);ctx.moveTo(x+4.5,y);ctx.arc(x,y,4.5,0,7);any=true;}
     if(any){ctx.fillStyle=up?st.dish:st.off;ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle=night?'#0B1030':st.ink;ctx.stroke();}}
+  // Load rings: a faint full ring, and the used share in green, amber or red; one stroke per colour.
+  {const rg=ds.filter(d=>d.u!==null);if(rg.length){ctx.beginPath();for(const d of rg){const [x,y]=P(d.s,0);ctx.moveTo(x+7.5,y);ctx.arc(x,y,7.5,0,7);}ctx.lineWidth=2.5;ctx.strokeStyle=night?'rgba(255,255,255,.18)':'rgba(30,38,64,.25)';ctx.stroke();
+    for(const col of ['#22C47A','#FFAA1F','#FF4D5E']){ctx.beginPath();let any=false;for(const d of rg){if(!(d.u>0.005)||pgLoadCol(d.u)!==col)continue;const [x,y]=P(d.s,0),a0=-Math.PI/2;ctx.moveTo(x+7.5*Math.cos(a0),y+7.5*Math.sin(a0));ctx.arc(x,y,7.5,a0,a0+d.u*2*Math.PI);any=true;}
+      if(any){ctx.strokeStyle=col;ctx.stroke();}}}}
   sats(true);
   // Launch pads, and a rocket climbing from each launch every five seconds, staggered.
   ctx.beginPath();let np=0;for(const d of PG.pads){const b=pgRot(d.v,d.s||(d.s=new Float32Array(3)),1);if(b[0]<0.05)continue;const [x,y]=P(b,0);ctx.moveTo(x-4,y+3);ctx.lineTo(x,y-5);ctx.lineTo(x+4,y+3);ctx.closePath();np++;}
@@ -121,6 +141,19 @@ function pgDraw(ctx,W,H){
     pgRot(tv,tp,11);ctx.beginPath();for(let s=0;s<=10;s++){const x=cx+R*tp[s*3+1],y=cy-R*tp[s*3+2];if(s)ctx.lineTo(x,y);else ctx.moveTo(x,y);}
     ctx.lineCap='round';ctx.lineWidth=4;ctx.strokeStyle='rgba(255,138,61,.85)';ctx.stroke();ctx.lineWidth=1.5;ctx.strokeStyle='#FFD23F';ctx.stroke();ctx.lineCap='butt';
     ctx.beginPath();ctx.arc(cx+R*tp[31],cy-R*tp[32],3.5,0,7);ctx.fillStyle='#FFFFFF';ctx.fill();ctx.strokeStyle=night?'#0B1030':st.ink;ctx.lineWidth=1.2;ctx.stroke();});}
+// The arcs: near-side pieces only, glow then core, dimmed when another flow is highlighted; that one goes last, in the accent.
+function pgDrawFlows(ctx,st,night,cx,cy,R,t){const hi=PG.hi&&PG.fl.some(f=>f.id===PG.hi)?PG.hi:null,n=PG_ARC+1;
+  const line=(f)=>{const a=f.pos;let on=false;ctx.beginPath();for(let i=0;i<n*3;i+=3){if(pgHid(a,i)||(a[i]<0&&!f.sky)){on=false;continue;}const x=cx+R*a[i+1],y=cy-R*a[i+2];if(on)ctx.lineTo(x,y);else ctx.moveTo(x,y);on=true;}};
+  const one=(f,me)=>{line(f);ctx.globalAlpha=hi&&!me?0.3:1;ctx.lineCap='round';
+    if(night){ctx.lineWidth=f.w*3;ctx.strokeStyle=me?'rgba(255,79,154,.35)':st.fglow;ctx.stroke();ctx.lineWidth=f.w;ctx.strokeStyle=me?st.hi:st.flow;ctx.stroke();}
+    else{ctx.lineWidth=f.w+3;ctx.strokeStyle=st.fglow;ctx.stroke();ctx.lineWidth=f.w;ctx.strokeStyle=me?st.hi:st.flow;ctx.stroke();}
+    if(!f.sky){ctx.setLineDash([2,4]);ctx.lineWidth=Math.max(1,f.w*.4);ctx.strokeStyle=night?'rgba(11,16,48,.7)':'rgba(255,255,255,.8)';ctx.stroke();ctx.setLineDash([]);}
+    // Packets: a few dots riding the arc, more for a bigger flow.
+    ctx.beginPath();let any=false;for(let k=0;k<f.pk;k++){const s=((t*0.25+k/f.pk)%1)*(n-1),i=Math.floor(s),j=Math.min(n-1,i+1),u=s-i,a=f.pos;
+      if(pgHid(a,i*3)||(a[i*3]<0&&!f.sky))continue;const x=cx+R*(a[i*3+1]*(1-u)+a[j*3+1]*u),y=cy-R*(a[i*3+2]*(1-u)+a[j*3+2]*u),r=Math.max(1.6,f.w*.45);ctx.moveTo(x+r,y);ctx.arc(x,y,r,0,7);any=true;}
+    if(any){ctx.fillStyle=st.pkt;ctx.fill();if(!night){ctx.lineWidth=1;ctx.strokeStyle=st.ink;ctx.stroke();}}
+    ctx.globalAlpha=1;ctx.lineCap='butt';};
+  let top=null;for(const f of PG.fl){pgRot(f.raw,f.pos,n);if(f.id===hi)top=f;else one(f,false);}if(top)one(top,true);}
 function pgLoop(now){PG.raf=0;if(!PG.cv)return;pgFrame(now,false);if(PG.cv)PG.raf=requestAnimationFrame(pgLoop);}
 // Drag to turn the Earth; it keeps turning a little after you let go.
 function pgDown(e){const cv=PG.cv;if(!cv)return;PG.drag={x:e.clientX,y:e.clientY,yaw:PG.yaw,tilt:PG.tilt,lx:e.clientX,lt:performance.now(),v:0};PG.vy=0;try{cv.setPointerCapture(e.pointerId);}catch(_){}cv.style.cursor='grabbing';}
@@ -133,7 +166,7 @@ function pieGlobeOpen(canvas,getData){
   if(PG.cv)pieGlobeClose();
   const ctx=canvas.getContext('2d');if(!ctx)return false;
   pgVecs();pgNightPref();
-  Object.assign(PG,{cv:canvas,ctx,get:getData||null,last:0,dAt:-1e9,sig:'',sm:[],dish:[],pads:[],lch:[],g:null,dirty:true,drag:null,vy:0,anim:animOn()});
+  Object.assign(PG,{cv:canvas,ctx,get:getData||null,last:0,dAt:-1e9,sig:'',sm:[],dish:[],fl:[],hi:null,pads:[],lch:[],g:null,dirty:true,drag:null,vy:0,anim:animOn()});
   PG.on=[['pointerdown',pgDown],['pointermove',pgMove],['pointerup',pgUp],['pointercancel',pgUp],['lostpointercapture',pgUp]];
   for(const [k,f] of PG.on)canvas.addEventListener(k,f);
   canvas.style.touchAction='none';canvas.style.cursor='grab';
@@ -141,7 +174,7 @@ function pieGlobeOpen(canvas,getData){
 function pieGlobeClose(){
   if(PG.raf)cancelAnimationFrame(PG.raf);PG.raf=0;
   const cv=PG.cv;if(cv&&PG.on)for(const [k,f] of PG.on)cv.removeEventListener(k,f);
-  Object.assign(PG,{cv:null,ctx:null,get:null,on:null,drag:null,sm:[],dish:[],pads:[],lch:[],g:null,sig:'',buf:null});}
+  Object.assign(PG,{cv:null,ctx:null,get:null,on:null,drag:null,sm:[],dish:[],fl:[],hi:null,pads:[],lch:[],g:null,sig:'',buf:null});}
 // Night view: a per-device preference, like the other display settings.
 function pieGlobeNight(on){PG.night=!!on;PG.g=null;PG.dirty=true;try{localStorage.setItem('sot-globe',PG.night?'night':'day');}catch(e){}
   for(const b of document.querySelectorAll('.pgnight')){b.setAttribute('aria-pressed',String(PG.night));b.setAttribute('aria-label',pgNightLbl());b.textContent=PG.night?'☀️':'🌙';}
