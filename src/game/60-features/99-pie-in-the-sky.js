@@ -9,7 +9,7 @@
    - pieLicOk(cc)           -> true when landing rights in that country are held and in force
    - pieCov(id), pieBaked(id), pieUp(id), pieLive(id), pieLiveLas(id)   (10-catalog/70-pie.js and below)
    - PIE_ON.day / .launch / .fail: arrays of f(d) / f(L,ok) / f(L), called by pieDay() and pieFly()
-   - S.pie.spat[id] with PIE_SPATS[id]={fix(o,s),day?(o,d)}: a spat's state, repaired by pieSanitize(), ticked and
+   - S.pie.spat[id] with PIE_SPATS[id]={fix(o,s),day?(o,d),end?(o)}: a spat's state, repaired by pieSanitize(), ticked and
      dropped when o.until<=d by pieSpatDay(d)
    - S.pie.crusts[id].down: day a crust is out until (a solar storm); S.pie.dishes[i].down likewise (a backhoe)
    - pieGlobeData()         -> {crusts:[{id,alt,inc,n,las}],dishes:[{city,lat,lon}],pads:[{city,lat,lon,next}],
@@ -31,15 +31,15 @@ const pieCoName=()=>{const n=S.pie&&S.pie.co&&S.pie.co.name;return !n?tr(PIE_NAM
 function pieSpend(v){const P=S.pie;if(pieSand()){P.book.wouldHave+=v;sfx('build');return true;}if(!spend(v))return false;P.book.spent+=v;return true;}
 function pieCharge(v){const P=S.pie;if(!P||!(v>0))return;if(pieSand())P.book.wouldHave+=v;else{S.cash-=v;P.book.spent+=v;}}
 function pieMo(){const P=S.pie;if(!P||!P.co)return 0;return PIE_CO_MO+(P.fac?PIE_FAC_MO:0)+P.pads.length*PIE_PAD_MO+P.dishes.length*PIE_DISH_MO;}
-const pieLiveLas=id=>{const c=S.pie&&S.pie.crusts[id];let n=0;if(c)for(const k of c.cohorts)if(k.las&&S.day-k.day<CRUSTS[id].life)n+=k.n;return n;};
+const pieLiveLas=id=>{const c=S.pie&&S.pie.crusts[id];let n=0;if(pieLasCut(id))return 0;if(c)for(const k of c.cohorts)if(k.las&&S.day-k.day<CRUSTS[id].life)n+=k.n;return n;};
 const pieLicOk=cc=>{const l=S.pie&&S.pie.lic[cc];return !!l&&l.state==='ok'&&l.until>S.day;};
-function pieDishes(){const P=S&&S.pie;if(!P)return [];const o=[];for(const x of P.dishes){if(!S.pops[x.city]||x.down>S.day)continue;const cc=CITY[x.city].cc;if(pieLicOk(cc))o.push({id:x.id,city:x.city,cc,ant:x.ant,g:x.ant*PIE_ANT_G});}return o;}
+function pieDishes(){const P=S&&S.pie;if(!P)return [];const o=[];for(const x of P.dishes){if(!S.pops[x.city]||x.down>S.day)continue;const cc=CITY[x.city].cc;if(pieLicOk(cc))o.push({id:x.id,city:x.city,cc,ant:x.ant,g:x.ant*PIE_ANT_G*pieDishMul(x)});}return o;}
 function pieHubs(){return S&&S.pie?Object.keys(CRUSTS).filter(pieUp):[];}
 function pieGlobeData(){const P=S&&S.pie;if(!P)return {crusts:[],dishes:[],pads:[],launches:[]};const ll=c=>({city:c,lat:CITY[c].lat,lon:CITY[c].lon});
   return {crusts:Object.keys(CRUSTS).map(id=>({id,alt:CRUSTS[id].alt,inc:CRUSTS[id].inc,n:pieLive(id),las:pieLiveLas(id)})),
     dishes:P.dishes.map(x=>ll(x.city)),pads:P.pads.map(p=>({...ll(p.city),next:p.next})),launches:P.q.map(L=>({id:L.id,rk:L.rk,cr:L.cr,n:L.n,day:L.day,pad:L.pad}))};}
 // Spats (geopolitics) register in PIE_SPATS and keep their state in S.pie.spat; this ticks and ends them.
-function pieSpatDay(d){const sp=S.pie.spat;for(const k of Object.keys(sp)){const o=sp[k],D=PIE_SPATS[k];if(!D||o.until<=d){delete sp[k];continue;}if(D.day)D.day(o,d);}}
+function pieSpatDay(d){const sp=S.pie.spat;for(const k of Object.keys(sp)){const o=sp[k],D=PIE_SPATS[k];if(!D||o.until<=d){delete sp[k];if(D&&D.end)D.end(o);continue;}if(D.day)D.day(o,d);}}
 const pieYear=d=>1+Math.floor(d/360);
 function pieFounder(k,v={}){const F=S.pie.founder,p={d:S.day,k};if(v.n!==undefined)p.n=v.n;if(v.c)p.c=v.c;F.posts.unshift(p);if(F.posts.length>PIE_POSTS)F.posts.length=PIE_POSTS;}
 // Every promise slips by a year: made today, due in a year, broken then.
@@ -60,7 +60,7 @@ function pieQuote(rk,cr,o={}){const P=S.pie;if(!P||!own(ROCKETS,rk)||!own(CRUSTS
   if(!test&&P.stock<n)return {why:tr('pie.why_stock',{n,have:Math.floor(P.stock)})};
   if(!test&&pieLive(cr)+P.crusts[cr].queued+n>C.full*PIE_SPARE)return {why:tr('pie.why_full')};
   const t0=S.day+leadDays(PIE_PREP),pad=pads.slice().sort((a,b)=>Math.max(t0,a.next)-Math.max(t0,b.next)||Math.abs(CITY[a.city].lat)-Math.abs(CITY[b.city].lat))[0];
-  const rocket=piePrice(R0.cost)*(1-pieEq(pad.city)),boost=rk==='again'&&!pad.boosters.length?piePrice(PIE_BOOST):0,pies=n*piePrice(PIE_PIE+(o.las?PIE_LAS:0));
+  const rocket=piePrice(R0.cost)*(1-pieEq(pad.city))*pieCrMul(cr),boost=rk==='again'&&!pad.boosters.length?piePrice(PIE_BOOST):0,pies=n*piePrice(PIE_PIE+(o.las?PIE_LAS:0));
   const ins=o.ins&&!test?Math.round((rocket+pies)*PIE_INS):0;
   return {ok:true,test,n,pad:pad.city,day:Math.max(t0,pad.next),cost:Math.round(rocket+boost+pies+ins),insured:Math.round(rocket+pies),ins:!!ins};}
 // The cheapest a crust can be filled from nothing (one-off costs only): rule O7.

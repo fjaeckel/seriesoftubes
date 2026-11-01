@@ -84,6 +84,6 @@ These are what the game promises, held up by `tests/gameplay-rules.test.js` (one
 | Id | Rule | Why |
 | --- | --- | --- |
 | O1 | The rocket company unlocks only on the Tier 1 win of a save started on its version (`S.pieV>=1`, set by `newGame()`; a save without it loads as 0), or from day 0 with open gates (sandbox). Never in puzzles, the Architect or scenarios. Losing Tier 1 keeps everything flying but builds nothing new. | An endgame for people who earned it; old won saves must not change under their players. |
-| O5 | Launches fail only with chaos on (`rule('chaos')`), and never in the first 90 days after the unlock; heavy test flights explode by design, not by chance. (The incidents built later follow the same rule.) | Like F1: learn the thing before it punishes you. |
+| O5 | Launches fail only with chaos on (`rule('chaos')`), and never in the first 90 days after the unlock; heavy test flights explode by design, not by chance. Orbit incidents and geopolitical spats (`pieChaos()`) follow the same rule. | Like F1: learn the thing before it punishes you. |
 | O7 | A fresh Tier 1 cannot afford a full Shortcrust from its first year's money: even a big network's yearly profit plus the largest loan a bank would offer stays below the cheapest full build (`pieFullCost('short')`). | Obscenely expensive is the joke and the goal; a constellation in year one would be a cheat code. |
 

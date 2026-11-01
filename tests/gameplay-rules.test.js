@@ -555,6 +555,15 @@ test('O5: launches fail only with chaos on, never in the first 90 days after the
   assert.equal(fly(oncall, 89), 20, 'O5: quiet for 90 days');
   assert.equal(fly(oncall, 90), 0, 'O5: then chaos can take a launch');
   assert.equal(fly("ACT.modeSet({m:'sandbox'});ACT.start({});if(UI.pendGame)ACT.pitchSkip()", 400), 20, 'O5: chaos none, nothing fails');
+  // orbit incidents and spats: the same gate
+  const g = load();
+  g.ev("beginGame('Pie','fra',{mode:'normal',preset:'oncall',rules:{gates:'open'}});if(UI.pendGame)ACT.pitchSkip();S.cash=1e12;ACT.pieFound()");
+  assert.ok(g.ev('!!S.pie.co'), 'a company to annoy');
+  assert.ok(g.ev("['pieIncDay','pieSpatDayAll'].every(f=>window[f].toString().includes('pieChaos()'))&&pieChaos.toString().includes('chaosMul()')&&pieChaos.toString().includes('PIE_QUIET')"), 'O5: incidents and spats read pieChaos()');
+  assert.equal(g.ev('S.day=S.pie.born+89;pieChaos()'), false, 'O5: quiet for 90 days');
+  assert.equal(g.ev('S.day=S.pie.born+90;pieChaos()'), true, 'O5: then they may come');
+  assert.equal(g.ev("S.rules.chaos='none';pieChaos()"), false, 'O5: never without chaos');
+  assert.deepEqual(g.errors, []);
 });
 
 test('O7: a fresh Tier 1 cannot afford a full Shortcrust in its first year', () => {

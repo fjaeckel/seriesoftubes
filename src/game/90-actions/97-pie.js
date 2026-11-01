@@ -14,7 +14,7 @@ Object.assign(ACT,{
    P.rd[k]=true;toast(tr('pie.t_rd',{rd:tr(PIE_RD[k].n)}),'good');if(k==='heavy')piePromise();pieRe();},
  pieLaunch:({rk,cr})=>{const P=pieGet();if(!P)return;const o={ins:!!UI.pieIns,las:!!UI.pieLas},q=pieQuote(rk,cr,o);if(!q.ok)return pieNo(q.why);if(!pieSpend(q.cost))return pieRe();
    const pad=P.pads.find(p=>p.city===q.pad);pad.next=q.day+leadDays(ROCKETS[rk].gap);if(rk==='again'&&!pad.boosters.length)pad.boosters.push({id:uid(),flights:0});
-   P.stock=Math.max(0,P.stock-q.n);P.crusts[cr].queued+=q.n;P.q.push({id:uid(),rk,cr,pad:q.pad,n:q.n,day:q.day,cost:q.ins?q.insured:0,ins:q.ins,las:o.las&&!q.test,test:q.test});
+   P.stock=Math.max(0,P.stock-q.n);P.crusts[cr].queued+=q.n;P.q.push({id:uid(),rk,cr,pad:q.pad,n:q.n,day:q.day,cost:q.ins?q.insured:0,ins:q.ins,las:o.las&&!q.test,test:q.test});pieGrabUse(q);
    {const v={n:q.n,crust:tr(CRUSTS[cr].n),city:CITY[q.pad].name,d:dateStr(q.day)};toast(q.test?tr('pie.t_queued_test',v):tr('pie.t_queued',v),'good');}pieRe();},
  pieIns:()=>{UI.pieIns=!UI.pieIns;sfx('click');pieModal();},
  pieLas:()=>{UI.pieLas=!UI.pieLas;sfx('click');pieModal();},

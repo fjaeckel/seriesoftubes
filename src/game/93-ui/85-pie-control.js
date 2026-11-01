@@ -3,7 +3,7 @@ let PIE_CCN=null;
 function pieLicCountry(cc){try{PIE_CCN=PIE_CCN&&PIE_CCN.l===LANG?PIE_CCN:{l:LANG,d:new Intl.DisplayNames([LANG],{type:'region'})};return PIE_CCN.d.of(cc)||cc;}catch(e){return cc;}}
 function pieCard(){if(!pieOn())return '';const P=S.pie;
   return `<div class="ops-card pie-card"><div class="nm">🥧 ${tr('pie.pie_in_the_sky')}</div><div class="meta">${P&&P.co?esc(pieCoName())+' · '+tr('pie.card_live',{n:Object.keys(CRUSTS).reduce((a,id)=>a+pieLive(id),0),q:P.q.length}):tr('pie.card_pitch')}</div>
-    <div class="btns">${btn(tr('pie.open_pie_control'),'pieOpen',{},P&&P.co?'sm':'pink sm')}</div></div>`;}
+    ${pieSpatCard()}<div class="btns">${btn(tr('pie.open_pie_control'),'pieOpen',{},P&&P.co?'sm':'pink sm')}</div></div>`;}
 const pieTag=(t,on)=>`<span class="tag ${on?'open':'selective'}">${t}</span>`;
 function pieModal(){if(!S||!pieOn())return;const P=S.pie||pieBlank(S.day),can=pieCanBuild(),T=['co','fly','dish','book'].includes(UI.pieTab)?UI.pieTab:'co';
   let h=`<div style="display:flex;align-items:center"><div class="grow"><div class="eyebrow">${tr('pie.pie_in_the_sky')}</div><h2 style="font-size:24px">${P.co?esc(pieCoName()):tr('pie.pie_control')}</h2></div><button class="x" data-act="closeModal" aria-label="${tr('common.close')}">×</button></div>`;
@@ -11,6 +11,7 @@ function pieModal(){if(!S||!pieOn())return;const P=S.pie||pieBlank(S.day),can=pi
   if(pieSand())h+=`<p class="note">${tr('pie.sandbox_note',{amt:fmt$(P.book.wouldHave)})}</p>`;
   if(!P.co){h+=`<p class="lead">${tr('pie.found_pitch')}</p><div class="btns">${btn(tr('pie.found_price',{price:fmt$(piePrice(PIE_CO)),mo:fmt$(PIE_CO_MO)}),'pieFound',{},'pink',!can)}</div>`;openModal(h,'pie');return;}
   const tab=(k,l)=>`<button class="b sm ${T===k?'pink':'ghost'}" data-act="pieTab" data-args='{"t":"${k}"}' aria-pressed="${T===k}">${l}</button>`;
+  h+=pieGlobeHtml()+pieSpatCard();
   h+=`<div class="seg" style="margin:6px 0 10px">${tab('co',tr('pie.tab_company'))}${tab('fly',tr('pie.tab_launch'))}${tab('dish',tr('pie.tab_dishes'))}${tab('book',tr('pie.tab_founder'))}</div>`;
   const cities=Object.keys(S.pops).sort((a,b)=>CITY[a].name.localeCompare(CITY[b].name)),c=S.pops[UI.pieCity]?UI.pieCity:cities[0];
   const sel=`<div class="trsel"><label>${tr('common.your_pop')}<select data-chg="pieCity">${cities.map(x=>`<option value="${x}"${x===c?' selected':''}>${esc(CITY[x].name)}</option>`).join('')}</select></label></div>`;
@@ -43,4 +44,4 @@ function pieModal(){if(!S||!pieOn())return;const P=S.pie||pieBlank(S.day),can=pi
     if(pieSand())h+=`<div class="kv"><span>${tr('pie.would_have')}</span><b>${fmt$(P.book.wouldHave)}</b></div>`;
     h+=`<h3 style="font-size:15px;margin:10px 0 4px">${tr('pie.founder_feed')}</h3>`+(F.posts.length?F.posts.map(p=>`<div class="ops-rep"><div class="eyebrow">${esc(dateStr(p.d))}</div><div>${esc(pieFpText(p))}</div></div>`).join(''):`<p class="meta">${tr('pie.feed_empty')}</p>`);
   }
-  openModal(h,'pie');}
+  openModal(h,'pie');{const cv=document.querySelector('#modal .pgcv');if(cv)pieGlobeOpen(cv,pieGlobeData);}}
