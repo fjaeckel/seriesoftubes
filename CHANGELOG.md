@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Opening a link from a list now moves the map to it, zoomed so the whole line fits beside the open panel.
+
 ## [2.3.0] — 2026-10-31
 
 - Clicking a city without a POP works again while the intern's transit order is set to Already connected (#249). Before, the city panel failed to open and the map stuck to the mouse.
@@ -17,7 +19,6 @@ All notable changes to this project are documented here. The project follows
 - Waves between Philippine islands now cost more than waves out of the country: Manila to Cebu costs about twice Manila to Hong Kong.
 - Manila, Cebu and Davao have more people online, in line with their real populations.
 - Cable names on the map no longer pile on top of each other when you zoom in. Where short cables crowd together, a name that would cover another is left out, and selecting a city shows the names of all its cables.
-- Inspecting a congested or busy link now moves the map to it, zoomed so the whole line fits beside the open panel.
 
 ## [2.2.0] — 2026-10-31
 
