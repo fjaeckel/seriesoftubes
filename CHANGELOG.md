@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- On big networks, clicks that change nothing about your traffic now answer at once: dismissing an offer or renaming your network no longer works out every route again, which also saves battery on phones.
+- Working out where traffic goes takes about a fifth less work on big networks, with exactly the same result.
 - The game no longer freezes while it routes each day's traffic on big networks. A background thread of the game does the routing, so the map, panels and buttons keep responding while days go by; what the day brings is exactly what it was before. Clicks that change your network still route right away.
 
 ## [2.4.0] — 2026-11-01
@@ -14,7 +16,7 @@ All notable changes to this project are documented here. The project follows
 - Doitsche Telekomm and Tangerine Telecom are now Tier 1s, as in real life (#194). In new games, going transit-free means a PNI with both of them too; games you already started keep the Tier 1s they were playing for. Doitsche now sells transit at the highest price in Europe and still charges for peering, and like the other Tier 1s, Tangerine now starts its PNIs at 100G.
 - Cache boxes now share router ports through an aggregation switch: one port carries as many 100G boxes as its speed holds, so 32 fit on a 3.2T port (#252). Each site gets its own.
 - Pick a standard POP: in any POP's Infra tab, make its routers the standard, and every new POP gets that model and number of routers right away, while it is still empty (#240).
-- Big networks run faster: routing skips traffic it has already placed, the map skips links off screen without working out their shape, and the Networks tab and the zoomed-in map draw faster. Where traffic goes does not change.
+- Big networks run faster: the map skips links off screen without working out their shape, and the Networks tab and the zoomed-in map draw faster. Where traffic goes does not change.
 - A network the game once failed to load is no longer stuck as damaged: the next version of the game tries it again, and its menu has a Try again button. Before, it could only be exported or deleted, even after the cause was fixed.
 - Save files of very large networks import again: the limit went from 8 MB to 64 MB.
 - 400G cache boxes: a POP whose routers have 400G or faster ports now gets 400G boxes, at $1,000 a month instead of $400 for 100G, so big caches need fewer boxes and cost less per Gbps. Boxes you already have stay as they are.
