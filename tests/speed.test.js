@@ -228,9 +228,9 @@ test('payday money floaters fade after a long pause instead of piling up', () =>
   run(2000);
   assert.equal(ev('FLOATS.length'), 0, 'floaters from building the network have faded');
   ev('UI.speed=0;__clk+=600000;frame(__clk)');
-  ev('while(S.day%30!==29)dayTick();UI.speed=1;acc=DAY_MS');
+  ev('while(cal(S.day+1).d!==1)dayTick();UI.speed=1;acc=DAY_MS');
   run(16);
-  assert.equal(ev('S.day%30'), 0);
+  assert.equal(ev('cal(S.day).d'), 1, 'the first of a month');
   assert.ok(ev('FLOATS.length') > 0, 'payday shows the money');
   run(2000);
   assert.equal(ev('FLOATS.length'), 0, 'and it fades within two seconds of play');
