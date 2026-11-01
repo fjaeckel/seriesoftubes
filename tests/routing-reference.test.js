@@ -23,7 +23,7 @@ function network(ev) {
   // Share the model and path sender, but replace indexed exit selection with
   // the original full scan and stable sort for every flow.
   const source = ev('compute.toString()');
-  const start = source.indexOf('  for(const pass of PASSES||[null])for(const rank of RANKS){');
+  const start = source.indexOf('  for(const pass of PASSES)for(const rank of RANKS){');
   const end = source.indexOf('  for(const i of NORD)', start);
   assert.ok(start >= 0 && end > start, 'allocation loop boundaries must exist');
   ev(`window.referenceCompute=eval('('+${JSON.stringify(source.slice(0,start)+referenceAllocation+source.slice(end))}+')')`);

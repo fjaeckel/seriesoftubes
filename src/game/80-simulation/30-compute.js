@@ -2,6 +2,12 @@
 const LABS=new Map();function labOf(s,k,v){const key=s+'|'+v;let o=LABS.get(key);if(o===undefined)LABS.set(key,o=tr(s,{[k]:v}));return o;}
 // Who carries a network reached only through a cone (kept out of compute(), whose size the JIT is sensitive to).
 function coneBy(L,id){let by=null;for(const e of L){if(e.k==='p')return e.net;if(!by&&e.k==='ix'&&e.dir)by=ANC[id].find(u=>e.dir.has(u))||null;}return by||1;}
+// Scratch columns compute() gathers its flows in, kept between calls: it copies out what it keeps, so no R shares them.
+const FLB={n:0,cap:0,rem:null,ci:null,nj:null,ca:null,bz:null};
+function flbGrow(){const c=Math.max(4096,FLB.cap*2),g=(A,o)=>{const a=new A(c);if(o)a.set(o);return a;};
+  FLB.rem=g(Float64Array,FLB.rem);FLB.ci=g(Int32Array,FLB.ci);FLB.nj=g(Int32Array,FLB.nj);FLB.ca=g(Uint8Array,FLB.ca);FLB.bz=g(Uint8Array,FLB.bz);FLB.cap=c;}
+// R.efg[link]: what each egress put on that link, read by scenic routing the next day (t.g gives each egress its slot in t.v).
+class EgSums{constructor(t){this.t=t;}get(k){const s=this.t.g.get(k);return s===undefined?undefined:this.t.v[s];}}
 function compute(){
   const day=S.day, R2=emptyR(), pops=Object.keys(S.pops).filter(popUp), NC=CITIES.length;
   // The graph works on city indices: adj[i] lists [neighbour, edge] in S.links order.
@@ -43,17 +49,22 @@ function compute(){
   // ok() cannot change during one compute, so ask each exit once per network, not once per flow and rank.
   // okBy[net] lists the exits that reach it in E's order, like E.filter(e=>e.ok(net)).
   const okBy={};for(const id of NET_IDS)okBy[id]=[];
-  const ekN={};for(const e of E){e.ek=e.k+':'+e.id;ekN[e.ek]=(ekN[e.ek]||0)+1;}
+  const okAdd=(e,n)=>{const L=okBy[n];if(L&&L[L.length-1]!==e&&e.ok(n))L.push(e);};
+  // TSL: a slot per transit port id, for what it carries to each network (R.tNet, added up in TNA).
+  const ekN={},TSL=new Map();for(const e of E){e.ek=e.k+':'+e.id;ekN[e.ek]=(ekN[e.ek]||0)+1;}
   // dup: shares its key with another exit (a hand-edited save), so R.egDesc shows whichever pushed last.
-  for(const e of E){e.J=0;e.byC=null;e.desc=null;e.dup=ekN[e.ek]>1;e.told=false;e.hp=e.pref==='high'?0:1;e.ci=CIDX[e.city];e.cn=cnCity(e.city);e.vis=0;for(const n of e.nets||NET_IDS){const L=okBy[n];if(L&&L[L.length-1]!==e&&e.ok(n))L.push(e);}}
+  for(const e of E){e.J=0;e.byC=null;e.desc=null;e.dup=ekN[e.ek]>1;e.told=false;e.hp=e.pref==='high'?0:1;e.ci=CIDX[e.city];e.cn=cnCity(e.city);e.vis=0;e.ts=-1;if(e.k==='t'){let t=TSL.get(e.id);if(t===undefined)TSL.set(e.id,t=TSL.size);e.ts=t;}
+    // Index loops or forEach (same order): for…of here made an iterator result per exit and network.
+    const ns=e.nets||NET_IDS;if(Array.isArray(ns)){for(let q=0;q<ns.length;q++)okAdd(e,ns[q]);}else ns.forEach(n=>okAdd(e,n));}
   for(const n of NETS){let any=false,nt=false;for(const e of okBy[n.id])if(e.rank>0){any=true;if(e.k!=='t'){nt=true;break;}}R2.reachable[n.id]=any;if(any)R2.reach+=NSH[n.id];if(nt){R2.nt[n.id]=1;R2.reachNT+=NSH[n.id];
     // Reached without transit only through the customers of networks you peer with (#85). R.cone[id]: the peer that
     // carries it, the first PNI's network or else the nearest upstream that is a member of an exchange you are on.
     if(!okBy[n.id].some(e=>(e.k==='p'||e.k==='ix')&&!coneOf(e,n.id)))R2.cone[n.id]=coneBy(okBy[n.id],n.id);}}
   const cacheNets=new Set(S.caches.filter(c=>popUp(c.city)).map(c=>c.net));
   const viral=(ev.viral>day?1.25:1)*(ev.php&&ev.php>day?0.7:1);
-  // Every flow has the same shape and carries what routing asks about it again and again (nj: its network's index).
-  const NN=NETS.length,flows=[],flow=(c,ci,cn,j,rem,cache,junk,bz=false)=>{const n=NETS[j],f={c,n:n.id,rem,cache,junk,bz,ci,cn,ncn:!!n.cn,nj:j,nr:junk?NN:j,gt:0,gi:0,gp:0,gh:0,ti:null,ii:null,br:null};flows.push(f);return f;};
+  /* Flows are columns, not objects (tens of thousands of them on a big network): flow F starts in city FCI[F] for network
+     index FNJ[F] and has FREM[F] left to place. Gathered in FLB here, then copied into this call's own columns below. */
+  FLB.n=0;const NN=NETS.length,CNB=[],NCN=NETS.map(n=>!!n.cn),flow=(ci,j,rem,cache,bz)=>{const k=FLB.n;if(k===FLB.cap)flbGrow();FLB.rem[k]=rem;FLB.ci[k]=ci;FLB.nj[k]=j;FLB.ca[k]=cache?1:0;FLB.bz[k]=bz?1:0;FLB.n=k+1;};
   // Customer demand per city, added up in S.biz order (what filtering S.biz for each city would give).
   const bizBw={};for(const b of S.biz){const T=BIZ_T[b.type];if(!T.l2&&!T.fiber&&(!T.event||eventLive(b))){const v=bizBw[b.city];bizBw[b.city]=(v===undefined?0:v)+b.bw;}}
   // Traffic shares by network index, and their sums, for each share table (and with Russia's throttle).
@@ -66,17 +77,21 @@ function compute(){
     const tt=sm[+ru]||(sm[+ru]=[NETS.reduce((t,n,j)=>t+sa[j]*thr(n.id),0),NETS.reduce((t,n,j)=>t+sa[j],0)]),lf=loc?NETS.reduce((t,n,j)=>t+(R2.reachable[n.id]?sa[j]*thr(n.id):0),0)/(tt[0]||1):1,d=d0*tt[0]/(tt[1]||1)*lf;
     R2.cityEye[c]=eye;R2.cityDem[c]=d;R2.citySrv[c]=0;R2.demand+=d;
     for(let j=0;j<NN;j++)DEMTO[j]=(DEMTO[j]||0)+d0*sa[j]*thr(NETS[j].id);
-    if(!popUp(c))continue;
+    if(!popUp(c))continue;CNB[ci]=cn;
     R2.cityBlocked=R2.cityBlocked||{};
     const mtuH=ev.pmtud&&ev.pmtud.until>day?ev.pmtud:null,kr=CITY[c].kr;
     for(let j=0;j<NN;j++){const n=NETS[j],a=(loc&&!R2.reachable[n.id]?0:d0)*sa[j]*thr(n.id)*(mtuH&&mtuH.net===n.id?mtuH.f:1)*(kr&&ev.krroute>day&&n.id==='fbk'?0.8:1);if(a<=0)continue;
       // With `protect customers`, the business part first, then the rest (no arrays: this runs per city and network).
       const bf=d0>0?biz/d0:0,sp=!!(TRX&&TRX.protect&&bf>0),cn2=cacheNets.has(n.id);
-      for(let q=0;q<(sp?2:1);q++){const x=sp?(q?a*(1-bf):a*bf):a,bz=sp&&!q;if(x<=0)continue;if(cn2){flow(c,ci,cn,j,x*0.85,true,false,bz);flow(c,ci,cn,j,x*0.15,false,false,bz);}
-      else flow(c,ci,cn,j,x,false,false,bz);}}
+      for(let q=0;q<(sp?2:1);q++){const x=sp?(q?a*(1-bf):a*bf):a,bz=sp&&!q;if(x<=0)continue;if(cn2){flow(ci,j,x*0.85,true,bz);flow(ci,j,x*0.15,false,bz);}
+      else flow(ci,j,x,false,bz);}}
     R2.bizDem[c]=biz*d/(d0||1);R2.bizSrv[c]=0;
   }
   if(Object.keys(S.pops).length)for(let j=0;j<NN;j++)R2.demTo[NETS[j].id]=DEMTO[j];
+  // What each flow got by kind of exit (FGT transit, FGI exchange, FGP PNI elsewhere, FGH PNI with that network here) and
+  // the last transit and exchange exit it used (FTI, FII: an index into E, -1 for none). Fresh each call: R.fl reads them.
+  const NF=FLB.n,FREM=FLB.rem?FLB.rem.slice(0,NF):new Float64Array(0),FCI=FLB.ci?FLB.ci.slice(0,NF):new Int32Array(0),FNJ=FLB.nj?FLB.nj.slice(0,NF):new Int32Array(0),FCA=FLB.ca?FLB.ca.slice(0,NF):new Uint8Array(0),FBZ=FLB.bz?FLB.bz.slice(0,NF):new Uint8Array(0),
+    FGT=new Float64Array(NF),FGI=new Float64Array(NF),FGP=new Float64Array(NF),FGH=new Float64Array(NF),FTI=new Int32Array(NF).fill(-1),FII=new Int32Array(NF).fill(-1);
   /* While routing, each edge keeps its own room (res) and load (ld). Routers only exist in POPs (HAS): their room,
      load and served traffic are kept per city index. What crosses each edge (R.ef) is added up by egress, and in
      arrays by network (then 'junk' and 'l2vpn') and by source city, each key in the order it first got traffic. */
@@ -85,8 +100,10 @@ function compute(){
   // The core (backbone technology): what passing-through traffic costs each router, and which POPs TE must avoid.
   const CORE=coreOn()&&S.core.run>=1;if(CORE)for(const c of pops){const i=CIDX[c];PASS[i]=corePass(c);OUT[i]=inCore(c)?0:1;}
   const nodeTake=(i,a)=>{NRES[i]-=a;if(!NSEEN[i]){NSEEN[i]=1;NORD.push(i);}NLOAD[i]=(NLOAD[i]||0)+a;};
+  const TNA=new Float64Array(TSL.size*NN),TNS=new Uint8Array(TSL.size*NN),TNK=[],TORD=[];
   const NKN=NN+2,ACN=new Float64Array(NE*NKN),SEN=new Uint8Array(NE*NKN),ACD=new Float64Array(NE*NC),SED=new Uint8Array(NE*NC),EL=[];
-  const carry=(l,eg,nr,ci,a)=>{let t=l.tr;if(!t){t=l.tr={g:new Map(),n:[],d:[]};EL.push(l);}t.g.set(eg,(t.g.get(eg)||0)+a);
+  // t.g gives each egress a slot in t.v, so adding to it allocates nothing (a Map of numbers boxes every new sum).
+  const carry=(l,eg,nr,ci,a)=>{let t=l.tr;if(!t){t=l.tr={g:new Map(),v:[],n:[],d:[]};EL.push(l);}const s=t.g.get(eg);if(s===undefined){t.g.set(eg,t.v.length);t.v.push(0+a);}else t.v[s]+=a;
     let k=l.i*NKN+nr;if(!SEN[k]){SEN[k]=1;t.n.push(nr);}ACN[k]=(ACN[k]||0)+a;k=l.i*NC+ci;if(!SED[k]){SED[k]=1;t.d.push(ci);}ACD[k]=(ACD[k]||0)+a;};
   R2.l2route={};R2.l2split={};
   /* compute() reads only S, except here: scenic circuits remember yesterday's path in R.l2route and R.efg (deliberate
@@ -157,61 +174,65 @@ function compute(){
   const DIR=directSetup(E,NC),PREFC=DIR.prefc,dirOf=DIR.dirOf,DSEL=new Map();
   const RANKS=TR?[0,0.5,1,2,CONE_RANK,2.9,2.92,2.93,2.94,2.95,3,3.5,4,4.4,4.5,4.6]:[0,1,2,CONE_RANK,2.92,2.93,2.94,2.95,3,4];
   // With `protect customers`, business flows take every rank first; home users get what is left.
-  const PASSES=TR&&TR.protect?[x=>x.bz,x=>!x.bz]:null;
+  // Passes by FBZ: 0 every flow, 1 business only, 2 the rest.
+  const PASSES=TR&&TR.protect?[1,2]:[0];
   // Each network's exits by the rank they route at (RouteScript can move an exit per network), in E's order.
   // Each list also knows whether it holds a preferred exit (hi) and its exits by city (at), in list order.
   // With several islands (POPs no backbone joins), each list is split by island: a flow only scans exits it can reach.
   const idx=L=>{L.hi=L.some(e=>e.hp===0);L.at=new Map();for(const e of L){const h=L.at.get(e.ci);if(h)h.push(e);else L.at.set(e.ci,[e]);}};
   // Networks with the same exits at a rank share one list (LIST, by content), so what one flow learns serves them all.
   const LIST=new Map();for(let i=0;i<E.length;i++)E[i].xi=i;
-  const byRank={},RSET=new Set();for(let j=0;j<NET_IDS.length;j++){const id=NET_IDS[j],m=byRank[id]={},dm=dirOf(id);for(const e of okBy[id]){const r=TR?eff(e,id):base(e,id);RSET.add(r);(m[r]||(m[r]=[])).push(e);
+  const byRank={},BRJ=[],RSET=new Set();for(let j=0;j<NET_IDS.length;j++){const id=NET_IDS[j],m=BRJ[j]=byRank[id]={},dm=dirOf(id);for(const e of okBy[id]){const r=TR?eff(e,id):base(e,id);RSET.add(r);(m[r]||(m[r]=[])).push(e);
       if(dm&&r===3&&e.k==='t'){const t=dm.get(e.net);if(t){const d=DIRECT_RANK[t][e.carry?0:1];let ds=DSEL.get(d);if(!ds)DSEL.set(d,ds=new Uint8Array(NET_IDS.length));ds[j]=1;RSET.add(d);(m[d]||(m[d]=[])).push(e);}}}
     for(const r in m){const L=m[r],key=L.map(e=>e.xi).join(','),o=LIST.get(key);if(o){m[r]=o;continue;}
       let V=L;if(NCOMP>1){const cs=[];for(const e of L){const k=COMP[e.ci];if(k>=0)(cs[k]||(cs[k]=[])).push(e);}for(const s of cs)if(s)idx(s);V={cs};}else idx(L);LIST.set(key,V);m[r]=V;}}
   // The flow being routed, and from its POP: distances, arriving edges and the paths walked so far, by city index.
-  let f=null,Dv=null,Pv=null,PP=null,vis=0;const walked=[],G=[],REST=[],NEG=[];
+  // F: its index; fci, fnj: its city and network index.
+  let F=0,fci=0,fnj=0,Dv=null,Pv=null,PP=null,vis=0;const walked=[],G=[],REST=[],NEG=[];
   // An exit the flow can still try: not visited yet, not full when the flow started, reachable, and not on a saturated path.
   const usable=e=>e.vis!==vis&&e.used<e.cap&&Dv[e.ci]<Infinity&&!gone(e),byDist=(a,b)=>a.hp-b.hp||Dv[a.ci]-Dv[b.ci];
-  // Push up to `want` along one path to exit e; returns what fitted. Capacity only shrinks while routing, so a
+  // Push up to `want` along one path to exit e; returns what fitted. Index loops: for…of allocates an iterator until optimised. Capacity only shrinks while routing, so a
   // path with one full link or node fits nothing for the rest of this pass: mark it, and later tries cost nothing
   // (most tries are into paths that filled up earlier).
   const push=(e,P,want,keep=0)=>{if(P.dead)return 0;const path=P.path,ni=P.ni;let amt=want;
-    for(const l of path){const r=l.res;if(r<=1e-6){P.dead=1;return 0;}amt=Math.min(amt,r-l.cap*keep);}
+    const PN=path.length;for(let k=0;k<PN;k++){const l=path[k],r=l.res;if(r<=1e-6){P.dead=1;return 0;}amt=Math.min(amt,r-l.cap*keep);}
     const last=ni.length-1;
     for(let k=0;k<=last;k++){const i=ni[k];if(!HAS[i])continue;const r=NRES[i];if(r<=1e-6){P.dead=1;return 0;}const w=k&&k<last?PASS[i]:1;amt=Math.min(amt,r/w);}
     if(amt<=1e-6)return 0;
     for(let k=0;k<=last;k++){const i=ni[k];if(HAS[i])nodeTake(i,k&&k<last?amt*PASS[i]:amt);}
-    const ek=e.ek,nr=f.nr,ci=f.ci;if(!e.told||e.dup){R2.egDesc[ek]=e.desc||(e.desc={lab:e.lab,city:e.city,k:e.k});e.told=true;}
-    for(const l of path){l.res-=amt;l.ld+=amt;carry(l,ek,nr,ci,amt);}
-    e.used+=amt;f.rem-=amt;
-    if(!f.junk){let ok=amt;const cf=f.cn,ce=e.cn,cn=f.ncn;
+    const ek=e.ek,nr=fnj,ci=fci;if(!e.told||e.dup){R2.egDesc[ek]=e.desc||(e.desc={lab:e.lab,city:e.city,k:e.k});e.told=true;}
+    for(let k=0;k<PN;k++){const l=path[k];l.res-=amt;l.ld+=amt;carry(l,ek,nr,ci,amt);}
+    e.used+=amt;FREM[F]-=amt;
+    {let ok=amt;const cf=CNB[ci],ce=e.cn,cn=NCN[nr],bz=FBZ[F]===1;
       if(cf!==ce||(cf&&!cn)||(!cf&&cn&&e.k==='t')){const prem=(e.k==='t'&&e.prem)||(e.k==='p'&&e.pnc)||path.some(x=>x.links&&x.links.some(y=>y.premium));const loss=prem?0.03:(ev.gfw>day?0.35:0.2);R2.gfwLost+=amt*loss;R2.gfwCross+=amt;ok=amt*(1-loss);}
-      SRV[f.ci]+=ok;R2.served+=ok;if(f.bz)R2.bizSrv[f.c]+=ok;if(e.rank<=2)R2.peered+=ok;if(e.k==='t'){const m=R2.tNet[e.id]||(R2.tNet[e.id]={});m[f.n]=(m[f.n]||0)+ok;}
+      SRV[ci]+=ok;R2.served+=ok;if(bz)R2.bizSrv[CITIES[ci].id]+=ok;if(e.rank<=2)R2.peered+=ok;if(e.k==='t'){const k=e.ts*NN+nr;if(!TNS[k]){TNS[k]=1;if(!TNK[e.ts]){TNK[e.ts]=[];TORD.push(e);}TNK[e.ts].push(nr);}TNA[k]+=ok;}
         // Backhaul to transit: users notice the round trip to the exit. Up to 20 ms (about 1,500 km) is free, then
         // it gets worse, and past 50 ms broadband and internet services count as bad service (#…). Under sender pays,
         // Korean users notice any exit far away, transit or not, and much sooner.
-        if(path.length&&(e.k==='t'||snd&&CITIES[f.ci].kr)){let ms=P.ms;if(ms===undefined){ms=0;for(const l of path)ms+=l.lat;P.ms=ms;}const rtt=2*ms,kl=snd&&CITIES[f.ci].kr;
-          if(rtt>(kl?KR_LAT_OK:LAT_OK)){LATP[f.ci]+=ok*(kl?krLatLoss(rtt):latLoss(rtt));if(!P.fg){P.fg=0;FARL.push(P,f.ci,e.ci);}P.fg+=ok;}}R2.egT[e.k]=(R2.egT[e.k]||0)+ok;const ne=NEG[f.nj]||(NEG[f.nj]=R2.netEg[f.n]={c:0,p:0,ix:0,t:0});ne[e.k]+=ok;
+        if(path.length&&(e.k==='t'||snd&&CITIES[ci].kr)){let ms=P.ms;if(ms===undefined){ms=0;for(let k=0;k<PN;k++)ms+=path[k].lat;P.ms=ms;}const rtt=2*ms,kl=snd&&CITIES[ci].kr;
+          if(rtt>(kl?KR_LAT_OK:LAT_OK)){LATP[ci]+=ok*(kl?krLatLoss(rtt):latLoss(rtt));if(!P.fg){P.fg=0;FARL.push(P,ci,e.ci);}P.fg+=ok;}}R2.egT[e.k]=(R2.egT[e.k]||0)+ok;const ne=NEG[nr]||(NEG[nr]=R2.netEg[NET_IDS[nr]]={c:0,p:0,ix:0,t:0});ne[e.k]+=ok;
       // Where each flow left (the PNI list asks what a PNI here would take over, #175).
-      if(e.J>0){const m=e.byC||(e.byC=new Map()),v=m.get(f.ci);if(v){v[0]+=ok;if(f.bz)v[1]+=ok;}else m.set(f.ci,[ok,f.bz?ok:0]);}
-      if(e.k==='t'){f.gt+=ok;f.ti=e.id;}else if(e.k==='ix'){f.gi+=ok;f.ii=e.id;}else if(e.k==='p'){if(e.net===f.n&&e.city===f.c)f.gh+=ok;else f.gp+=ok;}}
+      if(e.J>0){const m=e.byC||(e.byC=new Map()),v=m.get(ci);if(v){v[0]+=ok;if(bz)v[1]+=ok;}else m.set(ci,[ok,bz?ok:0]);}
+      if(e.k==='t'){FGT[F]+=ok;FTI[F]=e.xi;}else if(e.k==='ix'){FGI[F]+=ok;FII[F]=e.xi;}else if(e.k==='p'){if(e.ci===ci&&e.net===NET_IDS[nr])FGH[F]+=ok;else FGP[F]+=ok;}}
     return amt;
   };
   // Shortest path first. With Auto-TE, whatever does not fit spills onto up to two alternate paths
   // with free capacity, as long as they are no more than twice as long.
   const send=(e,want)=>{
-    let room=Math.min(want,f.rem,e.cap-e.used);if(room<=1e-6)return;
-    const P=PP[e.ci]||(PP[e.ci]=walkI(Pv,f.ci,e.ci));if(!P.dead)room-=push(e,P,room,TE&&SPILL<1?1-SPILL:0);
-    if(TE&&room>1e-6&&f.rem>1e-6&&e.used<e.cap&&e.city!==f.c)for(let k=0;k<2&&room>1e-6;k++){const P=altPath(f.ci,e.ci,Dv[e.ci]);if(!P)break;const m=push(e,P,Math.min(room,e.cap-e.used));if(m<=1e-6)break;room-=m;R2.teMoved+=m;}
+    let room=Math.min(want,FREM[F],e.cap-e.used);if(room<=1e-6)return;
+    const P=PP[e.ci]||(PP[e.ci]=walkI(Pv,fci,e.ci));if(!P.dead)room-=push(e,P,room,TE&&SPILL<1?1-SPILL:0);
+    if(TE&&room>1e-6&&FREM[F]>1e-6&&e.used<e.cap&&e.ci!==fci)for(let k=0;k<2&&room>1e-6;k++){const P=altPath(fci,e.ci,Dv[e.ci]);if(!P)break;const m=push(e,P,Math.min(room,e.cap-e.used));if(m<=1e-6)break;room-=m;R2.teMoved+=m;}
   };
   // Exits with the same preference and the same IGP distance form an ECMP group: spread the flow over
   // them by free capacity (like several transits in one city), then top up in order if one fills.
   // The group is g[i0..i1): plain loops and one scratch array, since this runs for most flows (same sums, same order).
   // Without Auto-TE an exit whose path from here is full takes nothing: skip the call (and the numbers it boxes).
   const gone=e=>{if(TE)return false;const P=PP[e.ci];return !!P&&P.dead===1;};
+  // Every exit of a remembered group still has room (a loop, not every(): no closure per flow). NOG: no group.
+  const allRoom=c=>{for(let k=0;k<c.length;k++){const e=c[k];if(!(e.used<e.cap)||gone(e))return false;}return true;},NOG=[];
   const ROOM=[],sendGroup=(g,i0=0,i1=g.length)=>{for(let k=i0;k<i1;k++)g[k].vis=vis;
-    if(i1-i0>1){let tot=0;for(let k=i0;k<i1;k++){const e=g[k],r=Math.max(0,e.cap-e.used);ROOM[k-i0]=r;tot+=r;}const want=f.rem;if(tot>1e-6)for(let k=i0;k<i1;k++)if(!gone(g[k]))send(g[k],want*ROOM[k-i0]/tot);}
-    for(let k=i0;k<i1;k++){if(f.rem<=1e-6)break;if(!gone(g[k]))send(g[k],f.rem);}};
+    if(i1-i0>1){let tot=0;for(let k=i0;k<i1;k++){const e=g[k],r=Math.max(0,e.cap-e.used);ROOM[k-i0]=r;tot+=r;}const want=FREM[F];if(tot>1e-6)for(let k=i0;k<i1;k++)if(!gone(g[k]))send(g[k],want*ROOM[k-i0]/tot);}
+    for(let k=i0;k<i1;k++){if(FREM[F]<=1e-6)break;if(!gone(g[k]))send(g[k],FREM[F]);}};
   // Stable, in place: short lists by insertion (no garbage), long ones by the built-in sort. Both are stable with the
   // same comparison, so the order is the same either way.
   const sortD=a=>{const n=a.length;if(n>24){a.sort(byDist);return;}for(let i=1;i<n;i++){const x=a[i];let j=i-1;while(j>=0&&byDist(a[j],x)>0){a[j+1]=a[j];j--;}a[j+1]=x;}};
@@ -220,32 +241,31 @@ function compute(){
   // networks that have an exit there, and nothing from a POP where Prefer has the say; a port that is not set to carry only takes
   // its own POP's traffic. Kept in a function of its own so the loop below stays as it was: the JIT is sensitive to its shape.
   const directPass=(rank,pass)=>{const DS=DSEL.get(rank),LOC=rank===DIRECT_RANK[1][1]||rank===DIRECT_RANK[2][1];
-    for(let fi=0,FN=AF.length;fi<FN;fi++){f=AF[fi];
-      if(f.rem<=1e-6||DS[f.nj]===0||PREFC[f.ci]===1||(pass&&!pass(f)))continue;
-      let lst=(f.br||(f.br=byRank[f.n]))[rank];if(!lst)continue;if(lst.cs){lst=lst.cs[COMP[f.ci]];if(!lst)continue;}
-      Dv=SDi[f.ci];Pv=SPi[f.ci];PP=walked[f.ci]||(walked[f.ci]=[]);vis++;
+    for(F=0;F<NF;F++){fnj=FNJ[F];fci=FCI[F];
+      if(FREM[F]<=1e-6||DS[fnj]===0||PREFC[fci]===1||(pass!==0&&FBZ[F]!==(pass===1?1:0)))continue;
+      let lst=BRJ[fnj][rank];if(!lst)continue;if(lst.cs){lst=lst.cs[COMP[fci]];if(!lst)continue;}
+      Dv=SDi[fci];Pv=SPi[fci];PP=walked[fci]||(walked[fci]=[]);vis++;
       REST.length=0;
-      if(LOC){const here=lst.at.get(f.ci);if(!here)continue;for(let h=0;h<here.length;h++)if(usable(here[h]))REST.push(here[h]);}
+      if(LOC){const here=lst.at.get(fci);if(!here)continue;for(let h=0;h<here.length;h++)if(usable(here[h]))REST.push(here[h]);}
       else for(let li=0;li<lst.length;li++)if(usable(lst[li]))REST.push(lst[li]);
       sortD(REST);
-      for(let i=0;i<REST.length&&f.rem>1e-6;){let j=i+1;while(j<REST.length&&REST[j].hp===REST[i].hp&&Math.abs(Dv[REST[j].ci]-Dv[REST[i].ci])<1e-6)j++;sendGroup(REST,i,j);i=j;}}};
+      for(let i=0;i<REST.length&&FREM[F]>1e-6;){let j=i+1;while(j<REST.length&&REST[j].hp===REST[i].hp&&Math.abs(Dv[REST[j].ci]-Dv[REST[i].ci])<1e-6)j++;sendGroup(REST,i,j);i=j;}}};
   // The tables of a flow's city (distances, paths) are set up only once it has an exit list at this rank.
-  const AF=flows;
-  for(const pass of PASSES||[null])for(const rank of RANKS){
+  for(const pass of PASSES)for(const rank of RANKS){
     if(!RSET.has(rank))continue;
     if(DSEL.has(rank)){directPass(rank,pass);continue;}
     // Index loops in here: plain for…of allocates an iterator per loop until V8 has optimised compute().
-    for(let fi=0,FN=AF.length;fi<FN;fi++){f=AF[fi];
-      if(f.rem<=1e-6||(rank===0&&!f.cache)||(pass&&!pass(f)))continue;
-      let lst=(f.br||(f.br=byRank[f.n]))[rank];if(!lst)continue;if(lst.cs){lst=lst.cs[COMP[f.ci]];if(!lst)continue;}
-      Dv=SDi[f.ci];Pv=SPi[f.ci];PP=walked[f.ci]||(walked[f.ci]=[]);vis++;
+    for(F=0;F<NF;F++){
+      if(FREM[F]<=1e-6||(rank===0&&FCA[F]===0)||(pass!==0&&FBZ[F]!==(pass===1?1:0)))continue;
+      fnj=FNJ[F];let lst=BRJ[fnj][rank];if(!lst)continue;fci=FCI[F];if(lst.cs){lst=lst.cs[COMP[fci]];if(!lst)continue;}
+      Dv=SDi[fci];Pv=SPi[fci];PP=walked[fci]||(walked[fci]=[]);vis++;
       /* Groups are tried nearest first, preferred exits before the rest, in the order a stable sort of the usable
          exits gives. Exits only fill up once tried, so the usable ones stay the same until then. Nearly every flow
          fits in its first group: find that one with a scan (nothing is visited yet), and sort only what is left
          when it does not fit. Most often the group is the POP's own exits: with no preferred exit on the list
          and no other city at distance 0, the usable ones here are exactly the first group, already in order. */
       G.length=0;
-      if(!lst.hi&&ALONE[f.ci]){const here=lst.at.get(f.ci);if(here)for(const e of here)if(e.used<e.cap&&!gone(e))G.push(e);}
+      if(!lst.hi&&ALONE[fci]){const here=lst.at.get(fci);if(here)for(let h=0;h<here.length;h++){const e=here[h];if(e.used<e.cap&&!gone(e))G.push(e);}}
       if(!G.length){
         // One scan: the best (preference, distance) so far and, in list order, the exits within 1e-6 of it. The best
         // distance only goes down, so dropping the ones it leaves behind gives exactly the exits a second scan would.
@@ -253,26 +273,26 @@ function compute(){
         /* gc[ci]: the first group this list gave a flow from city ci. Exits only fill up during routing, so while all of
            them still have room no other exit can have become better, and the scan would find the same group (an
            empty one, no usable exit, stays empty). */
-        const gc=lst.gc||(lst.gc=[]),c=gc[f.ci];
-        if(c!==undefined&&c.every(e=>e.used<e.cap&&!gone(e))){if(!c.length)continue;for(let k=0;k<c.length;k++)G.push(c[k]);}else{
+        const gc=lst.gc||(lst.gc=[]),c=gc[fci];
+        if(c!==undefined&&allRoom(c)){if(!c.length)continue;for(let k=0;k<c.length;k++)G.push(c[k]);}else{
         let bh=2,bd=Infinity,full=0;
         for(let li=0,LN=lst.length;li<LN;li++){const e=lst[li];if(e.used>=e.cap||gone(e)){full++;continue;}const d=Dv[e.ci];if(d===Infinity)continue;const h=e.hp;
           if(h<bh){bh=h;bd=d;G.length=0;G.push(e);}
           else if(h===bh){if(d<bd){bd=d;let k=0;for(let gi=0;gi<G.length;gi++){const x=G[gi];if(Dv[x.ci]-d<1e-6)G[k++]=x;}G.length=k;G.push(e);}else if(d-bd<1e-6)G.push(e);}}
         if(full*4>=lst.length&&full){let k=0;for(let li=0;li<lst.length;li++){const e=lst[li];if(e.used<e.cap)lst[k++]=e;}lst.length=k;}
-        if(bh>1){gc[f.ci]=[];continue;}
-        if(G.length>1)sortD(G);gc[f.ci]=G.slice();}}
+        if(bh>1){gc[fci]=NOG;continue;}
+        if(G.length>1)sortD(G);gc[fci]=G.slice();}}
       sendGroup(G,0,G.length);
-      if(f.rem<=1e-6)continue;
+      if(FREM[F]<=1e-6)continue;
       REST.length=0;for(let li=0;li<lst.length;li++)if(usable(lst[li]))REST.push(lst[li]);sortD(REST);
-      for(let i=0;i<REST.length&&f.rem>1e-6;){
+      for(let i=0;i<REST.length&&FREM[F]>1e-6;){
         let j=i+1;while(j<REST.length&&REST[j].hp===REST[i].hp&&Math.abs(Dv[REST[j].ci]-Dv[REST[i].ci])<1e-6)j++;
         sendGroup(REST,i,j);i=j;
       }
     }
   }
   for(const i of NORD)R2.nodeLoad[CITIES[i].id]=NLOAD[i];
-  if(DD){let rem=0,jf=0;for(const f of flows)if(f.rem>1e-6)rem+=f.rem;if(JK)for(const k in edges){const e=edges[k];if(e.res<=1e-6&&e.jk)jf+=e.jk;}
+  if(DD){let rem=0,jf=0;for(let i=0;i<NF;i++)if(FREM[i]>1e-6)rem+=FREM[i];if(JK)for(const k in edges){const e=edges[k];if(e.res<=1e-6&&e.jk)jf+=e.jk;}
     ddosAfter(DD,{E,R2,squeeze:Math.min(rem,jf),
       lost:(ci,x,y,e)=>{SRV[ci]-=x;R2.served-=x;const c=CITIES[ci].id;if(y)R2.bizSrv[c]-=y;R2.egT[e.k]-=x;if(e.rank<=2)R2.peered-=x;}});}
   for(const c of Object.keys(S.pops)){const i=CIDX[c];R2.citySrv[c]=SRV[i];
@@ -282,12 +302,13 @@ function compute(){
    for(const o of G.values()){const c=CITIES[o.src].id,cur=R2.latFar[c];if(!cur||o.g>cur.g)R2.latFar[c]={to:CITIES[o.to].id,g:o.g,ms:o.ms,share:SRV[o.src]>0?o.g/SRV[o.src]:0};}}
   // R.ef is read for the link you inspect: each edge's record is put together the first time it is asked for. Scenic
   // routing only needs the egress amounts, so R.efg keeps those as they are (not listed, so R reads the same).
-  {const efg={};for(const l of EL){const t=l.tr,i=l.i;let rec=null;efg[l.id]=t.g;
-    Object.defineProperty(R2.ef,l.id,{enumerable:true,configurable:true,get(){if(!rec){rec={eg:{},net:{},dst:{}};for(const [k,v] of t.g)rec.eg[k]=v;
+  {const efg={};for(const l of EL){const t=l.tr,i=l.i;let rec=null;efg[l.id]=new EgSums(t);
+    Object.defineProperty(R2.ef,l.id,{enumerable:true,configurable:true,get(){if(!rec){rec={eg:{},net:{},dst:{}};for(const [k,s] of t.g)rec.eg[k]=t.v[s];
       for(const j of t.n)rec.net[j<NN?NETS[j].id:j===NN?'junk':'l2vpn']=ACN[i*NKN+j];for(const ci of t.d)rec.dst[CITIES[ci].id]=ACD[i*NC+ci];}return rec;}});}
    Object.defineProperty(R2,'efg',{value:efg});}
   // Active links fill first, by capacity; standby links take what is left over.
   for(const k in edges){const e=edges[k],ld=e.ld||0,ac=e.cap-e.scap,a=Math.min(ld,ac),sp=ld-a;for(const l of e.links){const c=capOf(l);R2.load[l.id]=l.standby?(e.scap>0?sp*c/e.scap:0):(ac>0?a*c/ac:0);}}
+  for(const e of TORD){const m=R2.tNet[e.id]={},b=e.ts*NN;for(const j of TNK[e.ts])m[NET_IDS[j]]=TNA[b+j];}
   R2.peerShare=R2.served>0?R2.peered/R2.served:0;
   for(const e of E){if(e.k==='t')R2.useT[e.id]=(R2.useT[e.id]||0)+e.used;else if(e.k==='ix')R2.useIx[e.id]=e.used;else if(e.k==='p')R2.usePni[e.id]=e.used;else R2.useCache[e.id]=e.used;}
   // money
@@ -309,5 +330,8 @@ function compute(){
   C.revshare=(S.loans||[]).reduce((a,l)=>a+(BANKS[l.bank].equity||l.bal>0?l.share||0:0),0)*(V.eyeballs+V.business+V.ix);
   R2.costMo=Object.values(C).reduce((a,b)=>a+b,0);
   R2.revMo=V.eyeballs+V.business+V.ix+V.grant;
-  Object.defineProperty(R2,'fl',{value:flows});R=R2;UI.hotMap=hotByCity();
+  // R.fl: the flows as objects, made only when something asks (38-pni-value.js), from this call's own columns.
+  {let fl=null;Object.defineProperty(R2,'fl',{get(){if(!fl){fl=new Array(NF);for(let i=0;i<NF;i++){const ci=FCI[i],j=FNJ[i];
+    fl[i]={c:CITIES[ci].id,n:NET_IDS[j],rem:FREM[i],cache:FCA[i]===1,junk:false,bz:FBZ[i]===1,ci,cn:CNB[ci],ncn:NCN[j],nj:j,nr:j,gt:FGT[i],gi:FGI[i],gp:FGP[i],gh:FGH[i],ti:FTI[i]<0?null:E[FTI[i]].id,ii:FII[i]<0?null:E[FII[i]].id};}}return fl;}});}
+  R=R2;UI.hotMap=hotByCity();
 }
