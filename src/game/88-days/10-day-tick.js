@@ -1,6 +1,9 @@
 /* ---------- daily tick ---------- */
-function dayTick(){
-  if(!S||S.lost||!rule('clock'))return; // no clock (puzzles): no days, no bills, nothing fires
+/* A day is two halves around its routing: dayPre() (the world moves on), compute(), dayPost() (bills, moods, offers).
+   In play the routing can run in a worker in between (28-route-worker.js); tests and the fallback run it in one go. */
+function dayTick(){const d=dayPre();if(d===false)return;compute();dayPost(d);}
+function dayPre(){
+  if(!S||S.lost||!rule('clock'))return false; // no clock (puzzles): no days, no bills, nothing fires
   S.day++;
   const d=S.day;
   dkTick(d);ixPriceWar(d);peeringDeskDay(d);pniDay(d);mergerDay(d);
@@ -27,7 +30,8 @@ function dayTick(){
   for(const c in S.pops){const p=S.pops[c];if(!p.bb)continue;const sf=sfOf(R,c)*((R.bbF&&R.bbF[c])??1),P=eyeP(c);
     if(sf>=0.9){const g=(CITY[c].be&&!(p.boost>d)?0.35:1)*0.025*(scnRule('boom')?1.5:1)*(p.boost>d?2:1)*sf*(0.7+0.6*(R.peerShare||0))*(CITY[c].reg==='AS'&&!CITY[c].cn?1.6:1);p.bb.d+=g*p.bb.d*(1-p.bb.d/P);}
     else p.bb.d=Math.max(Math.min(3,P),p.bb.d*(1-(0.9-sf)*0.04));}
-  compute();
+  return d;}
+function dayPost(d){
   ddosNews();ddosTrack();
   for(const t of S.transit){(t.hist=t.hist||[]).push(R.useT[t.id]||0);if(t.hist.length>30)t.hist.shift();}
   S.cash+=(R.revMo-R.costMo)/30;

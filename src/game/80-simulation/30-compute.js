@@ -2,7 +2,13 @@
 const LABS=new Map();function labOf(s,k,v){const key=s+'|'+v;let o=LABS.get(key);if(o===undefined)LABS.set(key,o=tr(s,{[k]:v}));return o;}
 // Who carries a network reached only through a cone (kept out of compute(), whose size the JIT is sensitive to).
 function coneBy(L,id){let by=null;for(const e of L){if(e.k==='p')return e.net;if(!by&&e.k==='ix'&&e.dir)by=ANC[id].find(u=>e.dir.has(u))||null;}return by||1;}
-function compute(){
+/* R.ef from what routing added up per edge (L: [link id, edge index, egress map, network keys, source cities]). Also
+   rebuilds it from a worker's answer (35-route-worker.js), which sends these plain pieces: getters do not cross. */
+function efBuild(R2,L,ACN,ACD,NKN,NC,NN){const efg={};for(const [id,i,g,n,d] of L){let rec=null;efg[id]=g;
+    Object.defineProperty(R2.ef,id,{enumerable:true,configurable:true,get(){if(!rec){rec={eg:{},net:{},dst:{}};for(const [k,v] of g)rec.eg[k]=v;
+      for(const j of n)rec.net[j<NN?NETS[j].id:j===NN?'junk':'l2vpn']=ACN[i*NKN+j];for(const ci of d)rec.dst[CITIES[ci].id]=ACD[i*NC+ci];}return rec;}});}
+  Object.defineProperty(R2,'efg',{value:efg});Object.defineProperty(R2,'efp',{value:{L,ACN,ACD,NKN,NC,NN}});}
+function compute(){RW.gen++;
   const day=S.day, R2=emptyR(), pops=Object.keys(S.pops).filter(popUp), NC=CITIES.length;
   // The graph works on city indices: adj[i] lists [neighbour, edge] in S.links order.
   const remote=remoteCities(),adj=new Array(NC); pops.concat(remote).forEach(p=>adj[CIDX[p]]=[]);
@@ -282,10 +288,7 @@ function compute(){
    for(const o of G.values()){const c=CITIES[o.src].id,cur=R2.latFar[c];if(!cur||o.g>cur.g)R2.latFar[c]={to:CITIES[o.to].id,g:o.g,ms:o.ms,share:SRV[o.src]>0?o.g/SRV[o.src]:0};}}
   // R.ef is read for the link you inspect: each edge's record is put together the first time it is asked for. Scenic
   // routing only needs the egress amounts, so R.efg keeps those as they are (not listed, so R reads the same).
-  {const efg={};for(const l of EL){const t=l.tr,i=l.i;let rec=null;efg[l.id]=t.g;
-    Object.defineProperty(R2.ef,l.id,{enumerable:true,configurable:true,get(){if(!rec){rec={eg:{},net:{},dst:{}};for(const [k,v] of t.g)rec.eg[k]=v;
-      for(const j of t.n)rec.net[j<NN?NETS[j].id:j===NN?'junk':'l2vpn']=ACN[i*NKN+j];for(const ci of t.d)rec.dst[CITIES[ci].id]=ACD[i*NC+ci];}return rec;}});}
-   Object.defineProperty(R2,'efg',{value:efg});}
+  efBuild(R2,EL.map(l=>[l.id,l.i,l.tr.g,l.tr.n,l.tr.d]),ACN,ACD,NKN,NC,NN);
   // Active links fill first, by capacity; standby links take what is left over.
   for(const k in edges){const e=edges[k],ld=e.ld||0,ac=e.cap-e.scap,a=Math.min(ld,ac),sp=ld-a;for(const l of e.links){const c=capOf(l);R2.load[l.id]=l.standby?(e.scap>0?sp*c/e.scap:0):(ac>0?a*c/ac:0);}}
   R2.peerShare=R2.served>0?R2.peered/R2.served:0;

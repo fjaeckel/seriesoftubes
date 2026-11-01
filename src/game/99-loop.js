@@ -8,8 +8,11 @@ function frame(now){
   if(S&&UI.started&&!S.lost&&now-(UI.lastSave||0)>5000)save();
   // The panels catch up on the frame after a day, so one frame does not carry both the day's simulation and them.
   if(UI.panelsDue){UI.panelsDue=false;if(!pressing){renderPanel();renderLeft();if(!$('dash').hidden)renderDash();renderBank();}renderHint();}
-  if(S&&!S.lost&&$('modal').hidden&&UI.speed&&!pzOn()){acc+=dt*UI.speed;let n=0;while(acc>=DAY_MS&&n<4&&UI.speed){acc-=DAY_MS;try{dayTick();}catch(e){tickErr(e);}n++;}
-    if(n){UI.ticking=true;renderHUD();UI.ticking=false;UI.panelsDue=true;}}
+  if(S&&!S.lost&&$('modal').hidden&&UI.speed&&!pzOn()){acc+=dt*UI.speed;let n=0;
+    // With the route worker one day is in flight at a time; time does not pile up behind it.
+    if(rwOn()){if(!RW.w)rwStart();if(RW.job)acc=Math.min(acc,DAY_MS);else if(acc>=DAY_MS){acc=Math.min(acc-DAY_MS,DAY_MS);try{rwDay();}catch(e){tickErr(e);}}}
+    else{while(acc>=DAY_MS&&n<4&&UI.speed){acc-=DAY_MS;try{dayTick();}catch(e){tickErr(e);}n++;}
+    if(n){UI.ticking=true;renderHUD();UI.ticking=false;UI.panelsDue=true;}}}
   if((UI.speed||pzOn())&&!(S&&S.lost))animT+=dt; /* paused = frozen dots, waves and clouds */
   const t=animOn()?animT:0;
   if(!(UI.mapHid=mapHidden())&&!mapStill(t,now)){try{draw(t);}catch(e){tickErr(e);}UI.drawnAt=now;}
@@ -47,4 +50,4 @@ function boot(data){
   window.claude?.hot?.snapshot?.(()=>({S:S&&JSON.parse(JSON.stringify(S)),cam:{...cam}}));
   if(!window.__TUBES_TEST__){requestAnimationFrame(frame);setTimeout(checkUpdate,4000);setInterval(checkUpdate,10*60*1000);}
 }
-slotBoot(()=>window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {}));
+if(!RW_IN)slotBoot(()=>window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {}));
