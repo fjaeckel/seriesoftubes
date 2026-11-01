@@ -290,7 +290,11 @@ function compute(){
   for(const k in edges){const e=edges[k],ld=e.ld||0,ac=e.cap-e.scap,a=Math.min(ld,ac),sp=ld-a;for(const l of e.links){const c=capOf(l);R2.load[l.id]=l.standby?(e.scap>0?sp*c/e.scap:0):(ac>0?a*c/ac:0);}}
   R2.peerShare=R2.served>0?R2.peered/R2.served:0;
   for(const e of E){if(e.k==='t')R2.useT[e.id]=(R2.useT[e.id]||0)+e.used;else if(e.k==='ix')R2.useIx[e.id]=e.used;else if(e.k==='p')R2.usePni[e.id]=e.used;else R2.useCache[e.id]=e.used;}
-  // money
+  routeMoney(R2);
+  Object.defineProperty(R2,'fl',{value:flows});R=R2;UI.hotMap=hotByCity();
+}
+// The bills and income for routing result R2 (also run on its own for a day that reuses yesterday's routing, 35-route-reuse.js).
+function routeMoney(R2){
   const C=R2.cost,V=R2.rev,pm=S.priceMul;
   C.pops=Object.entries(S.pops).reduce((a,[c,p])=>a+popMo(c)+((p.routers||1)-1)*ROUTER_MO+cageMo(p.routers)+(p.routers||1)*RG[p.rgen||0].mo+(p.gen?GEN_MO:0),0);
   C.optical=S.links.filter(l=>l.kind==='df').reduce((a,l)=>a+(l.ready>S.day?0:ampCount(l.km)*AMP_MO*(l.own&&isRdm(l.sys)&&!l.sub?Math.max(1,l.pairs|0):1)+(l.regen|0)*REGEN_MO)+(l.spares?Math.round(150+(l.ch||[]).length*80):0),0);
@@ -309,5 +313,4 @@ function compute(){
   C.revshare=(S.loans||[]).reduce((a,l)=>a+(BANKS[l.bank].equity||l.bal>0?l.share||0:0),0)*(V.eyeballs+V.business+V.ix);
   R2.costMo=Object.values(C).reduce((a,b)=>a+b,0);
   R2.revMo=V.eyeballs+V.business+V.ix+V.grant;
-  Object.defineProperty(R2,'fl',{value:flows});R=R2;UI.hotMap=hotByCity();
 }

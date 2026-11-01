@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Big networks keep up better at 4x and 8x: on a quiet day the game reuses yesterday's routing, scaled to today's traffic, and routes everything again after anything you do and whenever a link, port, POP, peer or incident changes. At 0.5x, 1x and 2x every day is routed in full, as before.
 - A network the game once failed to load is no longer stuck as damaged: the next version of the game tries it again, and its menu has a Try again button. Before, it could only be exported or deleted, even after the cause was fixed.
 - Save files of very large networks import again: the limit went from 8 MB to 64 MB.
 - Big networks run faster: routing skips traffic it has already placed, the map skips links off screen without working out their shape, and the Networks tab and the zoomed-in map draw faster. Where traffic goes does not change.
