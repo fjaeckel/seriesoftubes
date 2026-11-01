@@ -146,6 +146,8 @@ built from (the live graph with its weights; every exit with what it reaches and
 the events that move routes), so most days, when only demand changes, they are reused, and any other change rebuilds
 them. Only indices are kept: exits, lists and paths are made fresh every call, because routing writes on them.
 `tests/route-cache.test.js` checks the keys, and the equivalence tests route with and without the kept tables.
+`scripts/route-fuzz.js` plays hundreds of random seeded games on main's page and this checkout's at once, comparing all
+of R and S after every move and day, with the kept tables and without (`tests/route-fuzz.test.js` plays a few).
 
 Each loop of `compute()` runs in a function of its own (the stages are closures, the busiest is `rankPass`;
 the money is `computeMoney()`). V8 optimises a small function quickly and keeps it; `compute()` as one 33 KB function
