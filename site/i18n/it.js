@@ -2821,7 +2821,7 @@
 "ops.budget_running":"Aggiunge al massimo",
 "ops.by_hand":"Lotti una tantum",
 "ops.by_hand_note":"Per quando vuoi tutto fatto subito: ogni peer su ogni exchange, un kit di ridondanza, PNI con tutti.",
-"ops.caches_rent":"Gratis da montare, ma ogni box costa {price}/mese di spazio e corrente.",
+"ops.caches_rent":"Gratis da montare, ma ogni box costa {price}/mese di spazio ed energia, o {big}/mese per un box da 400G dietro porte router da 400G o più.",
 "ops.cheapest":"Il più economico",
 "ops.day_d":"Giorno {d}",
 "ops.ff_desc":"ha etichettato una porta a {city} «TODO: sistemare dopo (non sistemare)»",

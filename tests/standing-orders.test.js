@@ -525,6 +525,7 @@ test('the fat-fingered LAG member respects a paused transit order and per-POP ex
 test('caches: the cash floor and a running-cost budget hold; the panel and the log show what a month costs', t => {
   const { ev, errors } = game(t);
   hire(ev); on(ev, 'caches', { g: 1 });
+  ev('S.pops.fra.rgen=0;compute()'); // 100G ports: 100G boxes at $400/mo
   const add = () => ev("utilityCaches('fra').add.filter(x=>(R.cityDem.fra||0)*NSH[x.net]>=1).length");
   assert.ok(add() >= 2, 'several boxes on offer');
   ev('S.ops.floor=50000;S.cash=1000');

@@ -2821,7 +2821,7 @@
 "ops.budget_running":"Ajoute au plus",
 "ops.by_hand":"Lots ponctuels",
 "ops.by_hand_note":"Pour quand tu veux tout, tout de suite : chaque peer sur chaque exchange, un kit de redondance, des PNI avec tout le monde.",
-"ops.caches_rent":"Gratuit à installer, mais chaque boîtier coûte {price}/mois en espace et en électricité.",
+"ops.caches_rent":"Gratuit à installer, mais chaque boîtier coûte {price}/mois d'espace et d'énergie, ou {big}/mois pour un boîtier 400G derrière des ports routeur de 400G ou plus.",
 "ops.cheapest":"Le moins cher",
 "ops.day_d":"Jour {d}",
 "ops.ff_desc":"a étiqueté un port à {city} « TODO : corriger plus tard (ne pas corriger) »",

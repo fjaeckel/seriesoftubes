@@ -85,7 +85,7 @@ const opsMo$=v=>(v>0?'+':'')+fmt$(v);
 const opsPaid=e=>e.up||e.mo?' '+tr('ops.l_paid',{cost:fmt$(e.up||0),mo:opsMo$(e.mo||0)}):'';
 // What the network costs every month before traffic: what a job adds to the bill (ports, routers, rent, links, cache boxes).
 // PNIs count from the day they are ordered, at the size they are going to be.
-function opsMoNow(){let m=S.caches.length*CACHE_MO;
+function opsMoNow(){let m=cachesMo();
   for(const c in S.pops){const p=S.pops[c],rt=p.routers||1;m+=(rt-1)*ROUTER_MO+cageMo(rt)+rt*RG[p.rgen||0].mo;}
   for(const l of S.links)m+=(l.mo||0)+(l.kind==='df'?(l.spares?Math.round(150+(l.ch||[]).length*80):0)+(l.regen|0)*REGEN_MO:0);
   for(const t of S.transit)m+=transitMo(t,0);
@@ -167,7 +167,7 @@ const OPS_RUN={
  caches(X){const g=opsP('caches','g');
    for(const c of opsPops('caches')){const q=utilityCaches(c);if(!q||!q.add.length)continue;
      const want=q.add.filter(x=>(R.cityDem[c]||0)*(NSH[x.net]||0)>=g),free=()=>portsMax(c)-portsUsed(c)+1e-9;
-     for(const x of want){if(cachePortsAdd(c,[x])>free())continue;if(!X.can('caches',0,CACHE_MO))return;S.caches.push({id:uid(),city:c,net:x.net,site:x.site});X.book('caches',0,CACHE_MO);X.did('caches',c);}}},
+     for(const x of want){if(cachePortsAdd(c,[x])>free())continue;if(!X.can('caches',0,cacheMo(x)))return;S.caches.push({id:uid(),city:c,net:x.net,site:x.site,...(x.g?{g:x.g}:{})});X.book('caches',0,cacheMo(x));X.did('caches',c);}}},
  // Weekly, like a person going through PeeringDB on a Monday: route servers, then every willing member (#192).
  ix(X){if(S.day%7)return;for(const ix of utilityRouteServers()){S.rs[ix]=true;X.did('rs');}
    for(const row of utilityPeers())for(const id of row.requests){S.peers[id+'@'+row.ix]=true;X.did('peer',row.ix);}},

@@ -2821,7 +2821,7 @@
 "ops.budget_running":"Añade como máximo",
 "ops.by_hand":"Lotes puntuales",
 "ops.by_hand_note":"Para cuando lo quieres todo hecho ya: cada peer en cada exchange, un kit de redundancia, PNIs con todos.",
-"ops.caches_rent":"Instalarla es gratis, pero cada caja cuesta {price}/mes en espacio y energía.",
+"ops.caches_rent":"Instalarlo es gratis, pero cada caja cuesta {price}/mes en espacio y energía, o {big}/mes por una caja de 400G tras puertos de router de 400G o más.",
 "ops.cheapest":"El más barato",
 "ops.day_d":"Día {d}",
 "ops.ff_desc":"etiquetó un puerto en {city} como «TODO: arreglar luego (no arreglar)»",

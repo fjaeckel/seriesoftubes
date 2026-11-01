@@ -2821,7 +2821,7 @@
 "ops.budget_running":"Adiciona no máximo",
 "ops.by_hand":"Lotes avulsos",
 "ops.by_hand_note":"Para quando você quer tudo feito agora: cada peer em cada exchange, um kit de redundância, PNIs com todo mundo.",
-"ops.caches_rent":"Instalar é grátis, mas cada caixa custa {price}/mês em espaço e energia.",
+"ops.caches_rent":"Instalar é grátis, mas cada caixa custa {price}/mês em espaço e energia, ou {big}/mês para uma caixa de 400G atrás de portas de roteador de 400G ou mais.",
 "ops.cheapest":"O mais barato",
 "ops.day_d":"Dia {d}",
 "ops.ff_desc":"etiquetou uma porta em {city} como “TODO: corrigir depois (não corrigir)”",

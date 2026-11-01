@@ -44,7 +44,7 @@ function sanitize(s){
    const wk=(x,rep)=>{if(!x||typeof x!=='object'||Array.isArray(x))return null;const o={w:int(x.w,0,1e7,0),a:int(x.a,0,1e5,0),d:int(x.d,0,1e5,0),ix:[...new Set((Array.isArray(x.ix)?x.ix:[]).filter(isIx))].slice(0,PDESK_IX)};if(rep)o.p=PPOL.includes(x.p)?x.p:'open';return o;};
    s.pdesk=wk(s.pdesk);s.pdeskRep=wk(s.pdeskRep,1);}
   {const sp={};if(s.spares&&typeof s.spares==='object')for(const k in s.spares)if(own(OPT,k)){const v=Math.floor(+s.spares[k]);if(v>0)sp[k]=Math.min(999,v);}s.spares=sp;}
-  s.caches=s.caches.filter(x=>x&&isCity(x.city)&&isNet(x.net)&&NET[x.net].cache).map(x=>(x.id=sid(x.id),x.site=x.site==='b'&&s.pops[x.city]&&s.pops[x.city].site2?'b':'a',x));
+  s.caches=s.caches.filter(x=>x&&isCity(x.city)&&isNet(x.net)&&NET[x.net].cache).map(x=>(x.id=sid(x.id),x.site=x.site==='b'&&s.pops[x.city]&&s.pops[x.city].site2?'b':'a',x.g===CACHE_BIG?x.g=CACHE_BIG:delete x.g,x));
   for(const c of Object.keys(s.ixp)){if(!isIx(c))delete s.ixp[c];else s.ixp[c]=tier(s.ixp[c]);}
   for(const k of ['rs','ixn','ixPref','ixSite'])for(const c of Object.keys(s[k]))if(!isIx(c))delete s[k][c];if(s.ixCut&&typeof s.ixCut==='object'){for(const c of Object.keys(s.ixCut))if(!isIx(c))delete s.ixCut[c];else s.ixCut[c]=Math.min(1,Math.max(0.6,num(s.ixCut[c],1)));}else delete s.ixCut;
   for(const c of Object.keys(s.ixn))s.ixn[c]=lag(s.ixn[c]);for(const c of Object.keys(s.ixSite))if(!['a','b','ab'].includes(s.ixSite[c]))s.ixSite[c]='a';

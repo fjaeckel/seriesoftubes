@@ -14,10 +14,11 @@ function utilityCacheMoves(city){if(!S||!S.pops[city])return [];const groups=new
 function utilityCaches(city){const p=S&&S.pops[city];if(!p)return null;const sites=p.site2?['a','b']:['a'],add=[],have={};
   for(const c of S.caches)if(c.city===city){const k=c.net+'@'+(c.site==='b'?'b':'a');have[k]=(have[k]||0)+1;}
   for(const n of NETS)if(n.cache&&(R.demTo[n.id]||0)>=n.cache.min){const box=sites.map(st=>have[n.id+'@'+st]||0);
-    sites.forEach((site,i)=>{if(!box[i]){add.push({net:n.id,site});box[i]=1;}});
-    const need=Math.ceil(((R.cityDem&&R.cityDem[city])||0)*(NSH[n.id]||0)/CACHE_CAP-1e-9);
-    for(let t=box.reduce((a,b)=>a+b,0);t<need;t++){const i=box.indexOf(Math.min(...box));add.push({net:n.id,site:sites[i]});box[i]++;}}
-  return {add,ports:cachePortsAdd(city,add),key:add.map(c=>c.net+'@'+c.site).join(','),mo:add.length*CACHE_MO,free:Math.max(0,portsMax(city)-portsUsed(city))};}
+    sites.forEach((site,i)=>{if(!box[i]){add.push({net:n.id,site,...cacheBox(city)});box[i]=1;}});
+    const dem=((R.cityDem&&R.cityDem[city])||0)*(NSH[n.id]||0),nb=cacheBox(city);
+    let cap=S.caches.filter(c=>c.city===city&&c.net===n.id).reduce((a,c)=>a+cacheG(c),0)+add.filter(x=>x.net===n.id).length*cacheG(nb);
+    while(cap+1e-9<dem){const i=box.indexOf(Math.min(...box));add.push({net:n.id,site:sites[i],...nb});box[i]++;cap+=cacheG(nb);}}
+  return {add,ports:cachePortsAdd(city,add),key:add.map(c=>c.net+'@'+c.site).join(','),mo:add.reduce((a,x)=>a+cacheMo(x),0),free:Math.max(0,portsMax(city)-portsUsed(city))};}
 function utilityKit(city){const p=S&&S.pops[city];if(!p)return null;
   const gen=!p.gen,site=!p.site2,router=(p.routers||1)<2,g=p.rgen||0;
   return {gen,site,router,moves:utilityCacheMoves(city),cost:(gen?GEN_COST:0)+(site?SITE2_COST:0)+(router?routerCost(g,1):0),

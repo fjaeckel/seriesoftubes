@@ -35,9 +35,29 @@ test('requesting caches only needs the ports the boxes really take', () => {
   setup(ev, 'Absolute Unit 3.2T');
   ev("R.demTo={cfl:NET.cfl.cache.min};R.cityDem.fra=900/NSH.cfl");
   const q = JSON.parse(ev("JSON.stringify(utilityCaches('fra'))"));
-  assert.equal(q.add.length, 9);
-  assert.equal(q.ports, 1, 'nine boxes, one port');
+  assert.equal(q.add.length, 3, 'three 400G boxes');
+  assert.equal(q.ports, 1, 'all on one port');
   ev("ACT.utilityCaches({city:'fra',quote:utilityCaches('fra').key})");
-  assert.equal(ev("S.caches.length"), 9);
+  assert.equal(ev("S.caches.length"), 3);
+  assert.deepEqual(errors, []);
+});
+
+test('400G cache boxes behind 400G or faster ports: fewer boxes, cheaper per Gbps, packed by speed', () => {
+  const { ev, errors } = load();
+  setup(ev, 'Absolute Unit 3.2T');
+  ev("R.demTo={cfl:NET.cfl.cache.min};R.cityDem.fra=1000/NSH.cfl");
+  const q = JSON.parse(ev("JSON.stringify(utilityCaches('fra'))"));
+  assert.deepEqual(q.add.map(x => x.g), [400, 400, 400], '1T of demand: three 400G boxes');
+  assert.equal(q.mo, 3 * ev('CACHE_BIG_MO'));
+  ev("ACT.utilityCaches({city:'fra',quote:utilityCaches('fra').key});compute()");
+  assert.equal(ev("cachePorts('fra')"), 1, '1.2T behind one 3.2T port');
+  assert.equal(ev("R.cost.caches"), 3 * ev('CACHE_BIG_MO'));
+  assert.equal(ev("utilityCaches('fra').add.length"), 0);
+  // A 100G router still gets 100G boxes; a saved 400G box survives a save, garbage sizes do not.
+  ev(`S.pops.ams={day:0,routers:1};R.demTo={cfl:NET.cfl.cache.min};ACT.cache({city:'ams',net:'cfl'})`);
+  assert.equal(ev("S.caches.find(c=>c.city==='ams').g"), undefined);
+  ev("S.caches.push({id:'x',city:'fra',net:'cfl',g:999});S=sanitize(JSON.parse(JSON.stringify(S)))");
+  assert.equal(ev("S.caches.filter(c=>c.g===400).length"), 3);
+  assert.equal(ev("S.caches.find(c=>c.id==='x').g"), undefined);
   assert.deepEqual(errors, []);
 });

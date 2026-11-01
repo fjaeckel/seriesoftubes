@@ -2823,7 +2823,7 @@
 "ops.budget_running":"Höchstens dazu",
 "ops.by_hand":"Einmal alles",
 "ops.by_hand_note":"Für den Moment, in dem alles sofort erledigt sein soll: jeder Peer an jedem Exchange, ein Redundanz-Kit, PNIs mit allen.",
-"ops.caches_rent":"Kostenlos ins Rack, aber jede Box kostet {price}/Monat für Platz und Strom.",
+"ops.caches_rent":"Einbauen ist gratis, aber jede Box kostet {price}/Monat für Platz und Strom, oder {big}/Monat für eine 400G-Box hinter Routerports ab 400G.",
 "ops.cheapest":"Günstigster",
 "ops.day_d":"Tag {d}",
 "ops.ff_desc":"hat einen Port in {city} „TODO: später fixen (nicht fixen)“ beschriftet",

@@ -2822,7 +2822,7 @@
 "ops.budget_running":"Adds at most",
 "ops.by_hand":"One-off batches",
 "ops.by_hand_note":"For when you want it all done right now: every peer at every exchange, a redundancy kit, PNIs with everyone.",
-"ops.caches_rent":"Free to rack, but each box costs {price}/mo in space and power.",
+"ops.caches_rent":"Free to rack, but each box costs {price}/mo in space and power, or {big}/mo for a 400G box behind 400G or faster router ports.",
 "ops.cheapest":"Cheapest",
 "ops.day_d":"Day {d}",
 "ops.ff_desc":"labelled a port in {city} “TODO: fix later (do not fix)”",
