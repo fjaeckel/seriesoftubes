@@ -18,7 +18,8 @@
     "dev": "node scripts/dev.js",
     "page": "node scripts/lib/page.js",
     "serve": "npm run build && npx --yes serve@14.2.4 _site",
-    "perf": "node scripts/perf-bench.js"
+    "perf": "node scripts/perf-bench.js",
+    "mcp": "node scripts/mcp.js"
   },
   "engines": {
     "node": ">=20"

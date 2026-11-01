@@ -28,6 +28,7 @@ npm run build                # builds _site/ for GitHub Pages (assembles src/, s
 npm run serve                # build and serve the production site locally
 npm run perf -- --base-ref origin/main             # big-network benchmark vs main (see `performance`)
 npm run perf -- --base-ref origin/main --browser   # the same, also in real Chromium (desktop and phone)
+npm run mcp                  # the game as a local MCP server for AI clients (docs/MCP.md)
 ```
 
 ## Hard rules
