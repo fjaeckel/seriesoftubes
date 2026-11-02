@@ -5,7 +5,8 @@ const { load } = require('./harness');
 function setup(t) {
   const h = load();
   t.after(() => h.dom.window.close());
-  h.ev("ACT.start({});S.cash=1e8;UI.speed=0;for(const g of GOALS)S.done[g.id]=0;compute()");
+  // Frankfurt sells broadband, so it sends every network some traffic (no traffic, no box: #260).
+  h.ev("ACT.start({});S.cash=1e8;UI.speed=0;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});compute()");
   return h;
 }
 
@@ -130,5 +131,25 @@ test('more boxes while demand outgrows them, balanced across sites (#248)', t =>
   ev("R.cityDem.fra=350/NSH.cfl");
   ev("ACT.utilityCaches({city:'fra',quote:utilityCaches('fra').key})");
   assert.equal(ev("S.caches.filter(c=>c.net==='cfl').length"), 4);
+  assert.deepEqual(errors, []);
+});
+
+test('boxes follow the traffic each city really sends: Russia and China have their own networks (#260)', t => {
+  const { ev, errors } = setup(t);
+  // Murmansk and Shanghai, every cache network eligible, plenty of demand.
+  ev("for(const c of ['mmk','sha'])S.pops[c]={day:0,routers:2};S.caches=[];compute();R.demTo=Object.fromEntries(NETS.filter(n=>n.cache).map(n=>[n.id,n.cache.min]));R.cityDem.mmk=5000;R.cityDem.sha=5000");
+  const nets = c => JSON.parse(ev(`JSON.stringify(utilityCaches('${c}').add.map(x=>x.net))`));
+  const count = (c, id) => nets(c).filter(n => n === id).length;
+  // NetChill and Faceplant reach nobody in Russia: no boxes. Akamaybe and Crowdflare have more of Russia than of the world.
+  assert.equal(count('mmk', 'nfx'), 0);
+  assert.equal(count('mmk', 'fbk'), 0);
+  assert.ok(ev("cacheDem('mmk','cfl')") > 5000 * ev('NSH.cfl') * 2, 'Crowdflare: more than twice its world share');
+  assert.equal(count('mmk', 'cfl') * ev("cacheG(cacheBox('mmk'))") >= ev("cacheDem('mmk','cfl')") - 1e-6, true, 'enough Crowdflare boxes');
+  // Goggle is throttled to half in Russia.
+  assert.ok(Math.abs(ev("cacheDem('mmk','ggl')/cacheDem('mmk','akm')") - ev('NSH_RU.ggl*0.5/NSH_RU.akm')) < 1e-9);
+  // In China only the networks on its own list get boxes.
+  for (const id of nets('sha')) assert.ok(ev(`NSH_CN[${JSON.stringify(id)}]>0`), `${id} reaches Shanghai`);
+  // Elsewhere nothing changes: the world share.
+  assert.ok(Math.abs(ev("cacheDem('fra','nfx')") - ev('(R.cityDem.fra||0)*NSH.nfx')) < 1e-6);
   assert.deepEqual(errors, []);
 });
