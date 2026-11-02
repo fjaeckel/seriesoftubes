@@ -274,10 +274,11 @@ function plainCompute(ev) {
   const src = ev('compute.toString()');
   let plain = src
     .replace('if(!lst.hi&&ALONE[fci])', 'if(false)')
-    .replace('if(!G.length){\n        // One scan', 'if(false){\n        // One scan')
+    .replace('if(!GN){\n        // One scan', 'if(false){\n        // One scan')
     .replace("const ns=e.k==='p'&&!snd?CONE_I[e.net]:e.nets?Array.from(e.nets,n=>NIDX[n]):NET_J,known=!!e.nets&&!rp;", 'const ns=NET_J,known=false;')
     .replace('if(P.dead)return 0;', '').replaceAll('if(r<=1e-6){P.dead=1;return 0;}', '')
-    .replace('if(!P.dead)room-=push(', 'room-=push(').replace(/const gone=e=>\{[^\n]*\};/, 'const gone=e=>false;');
+    .replace('if(!P.dead)room-=push(', 'room-=push(').replace(/const gone=e=>\{[^\n]*\};/, 'const gone=e=>false;')
+    .replace('RCON=RC.on', 'RCON=false');
   const ts = plain.indexOf('const bestTransit='), te = plain.indexOf('const permits=', ts);
   assert.ok(ts > 0 && te > ts, 'found the upstream selector');
   plain = plain.slice(0, ts) + require('./helpers/reference-transit') + plain.slice(te);
@@ -286,12 +287,13 @@ function plainCompute(ev) {
   assert.ok(sg > 0 && sd > sg, 'found the group sender and the sort');
   plain = plain.slice(0, sg) + `const ROOM=[],sendGroup=(g0,i0=0,i1=g0.length)=>{const g=g0.slice(i0,i1).filter(permits);for(const e of g)e.vis=vis;
     if(g.length>1){const room=g.map(e=>Math.max(0,e.cap-e.used)),tot=room.reduce((a,b)=>a+b,0),want=FREM[F];if(tot>1e-6)g.forEach((e,k)=>send(e,want*room[k]/tot));}
-    for(const e of g){if(FREM[F]<=1e-6)break;send(e,FREM[F]);}};\n  ` + plain.slice(sd).replace(/^const sortD=a=>\{[^\n]*\};/, 'const sortD=a=>a.sort(byDist);');
+    for(const e of g){if(FREM[F]<=1e-6)break;send(e,FREM[F]);}};\n  ` + plain.slice(sd).replace(/^const sortD=\(a,n=a\.length\)=>\{[^\n]*\};/, 'const sortD=(a,n=a.length)=>{const t=a.slice(0,n).sort(byDist);for(let i=0;i<n;i++)a[i]=t[i];};');
   for (const [a, b] of [[src, plain]]) assert.notEqual(a, b);
   assert.equal((plain.match(/if\(false\)/g) || []).length, 2, 'both shortcuts were found and switched off');
   assert.ok(plain.includes('const ns=NET_J,known=false;'), 'the exit index was switched off');
   assert.ok(!plain.includes('P.dead'), 'the full-path mark was switched off');
-  assert.ok(plain.includes('const sortD=a=>a.sort(byDist);') && plain.includes('g.forEach('), 'the plain group split and sort are in');
+  assert.ok(plain.includes('RCON=false') && !plain.includes('RC.on'), 'the kept routing tables were switched off');
+  assert.ok(plain.includes('const sortD=(a,n=a.length)=>{const t=a.slice(0,n).sort(byDist);') && plain.includes('g.forEach('), 'the plain group split and sort are in');
   ev('window.__plain=' + plain.replace(/^function compute/, 'function'));
 }
 

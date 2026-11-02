@@ -15,3 +15,5 @@ function dijkstra(adj,src,wf,skip,stop){const n=adj.length,D=new Float64Array(n)
   return {D,P};}
 // The edges of a dijkstra() path back from city index B to A, and the cities on it (B first), as indices.
 function walkI(P,A,B){const path=[],ni=[B];let v=B;while(v!==A){const l=P[v];path.push(l);v=l.ai===v?l.bi:l.ai;ni.push(v);}return {path,ni};}
+// The same for compute()'s sender, with the marks it keeps on a path (full, its latency, its far-exit traffic) there from the start: one object shape.
+function walkP(P,A,B){const path=[],ni=[B];let v=B;while(v!==A){const l=P[v];path.push(l);v=l.ai===v?l.bi:l.ai;ni.push(v);}return {path,ni,dead:0,ms:-1,fg:0};}

@@ -29,7 +29,10 @@ function network(ev) {
   const start = source.indexOf('  for(const pass of PASSES)for(const rank of RANKS){');
   const end = source.indexOf('  for(const i of NORD)', start);
   assert.ok(start >= 0 && end > start, 'allocation loop boundaries must exist');
-  ev(`window.referenceCompute=eval('('+${JSON.stringify(source.slice(0,start)+referenceAllocation+source.slice(end))}+')')`);
+  // The reference also builds every table afresh, so the comparison covers what routing keeps between calls.
+  assert.ok(source.includes('RCON=RC.on'), 'compute() can be told not to keep its tables');
+  const ref = (source.slice(0,start)+referenceAllocation+source.slice(end)).replace('RCON=RC.on', 'RCON=false');
+  ev(`window.referenceCompute=eval('('+${JSON.stringify(ref)}+')')`);
 }
 
 test('indexed routing matches the simple allocation loop across network changes', () => {
