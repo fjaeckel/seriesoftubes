@@ -5,6 +5,8 @@
 function popStdQuote(){const d=S.popStd;if(!d||pzOn())return null;const g=techOk('rg',d.g,RG[d.g].lvl)?d.g:0;
   let cost=g?Math.max(0,Math.round(RG[g].cost*hwMul('rt')*techMul(RG[g].lvl))-tradeIn(0,1)):0;for(let n=1;n<d.rt;n++)cost+=routerCost(g,n);
   const mo=(d.rt-1)*ROUTER_MO+cageMo(d.rt)+d.rt*RG[g].mo-RG[0].mo;return cost||mo?{cost,mo,g,rt:d.rt}:null;}
+// A new POP's setup with the standard's routers, for every way a POP gets built (links, cables, seats).
+function newPopCost(c){const q=popStdQuote();return popCost(c)+(q?q.cost:0);}
 function popStdApply(city){const d=S.popStd,p=S.pops[city];if(!d||!p||pzOn())return;let miss=false;const c0=S.cash;
   if(d.g!==(p.rgen||0)){if(techOk('rg',d.g,RG[d.g].lvl)&&S.cash>=swapCost(city,d.g)){spend(swapCost(city,d.g));p.rgen=d.g;}else miss=true;}
   while((p.routers||1)<d.rt){const k=routerCost(p.rgen||0,p.routers||1);if(S.cash<k){miss=true;break;}spend(k);p.routers=(p.routers||1)+1;}

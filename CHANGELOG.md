@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
-- The Build POP button now shows the whole price of a new POP, including the routers of your standard POP (#261). Before, it showed only the site, although the standard routers were paid for on top; a note under the button now lists them, and the intern's one-tap template prices them in as well.
+- The Build POP button now shows the whole price of a new POP, including the routers of your standard POP (#261). Before, it showed only the site, although the standard routers were paid for on top; a note under the button now lists them, and the intern's one-tap template prices them in as well. POPs that come with a new wave, dark fiber, your own subsea cable or a consortium seat now get the standard routers too, and those offers show the price with them.
 
 ## [2.5.0] — 2026-11-02
 

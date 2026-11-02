@@ -19,7 +19,7 @@ Object.assign(ACT,{
    if(!waveOk(a,b,tier)){toast(tr('links.a_wave_wave_needs_need_at',{wave:LT[tier].n,need:esc(waveNeed(tier))}),'bad');sfx('err');return;}
    const wr=waveRoute(a,b,mult,border);if(!wr){toast(tr('links.no_cable_available_for_that_route'),'bad');sfx('err');return;}
    {const so=soldOut(a,b,tier,wr.cab);if(so){toast(tr('links.no_wave_capacity_on_this_route',{wave:LT[tier].n,why:tr(so.why),n:Math.max(1,so.until-S.day)}),'bad');sfx('err');return;}}{const w=subWaveWhy(tier,wr.km,wr.sub);if(w){toast(tr('links.no_wave_waves_on_this_cable',{wave:LT[tier].n,why:esc(w)}),'bad');sfx('err');return;}}const base=Math.round(waveMo(wr.km,wr.sub,tier)*wr.wm),cost=base+(S.pops[b]?0:popCost(b));
-   if(!portGate(a,1)||!portGate(b,1))return;if(!spend(cost))return;if(!S.pops[b])S.pops[b]={day:S.day,bb:null,boost:0,down:0,routers:1,gen:false};
+   if(!portGate(a,1)||!portGate(b,1))return;if(!spend(cost))return;if(!S.pops[b]){S.pops[b]={day:S.day,bb:null,boost:0,down:0,routers:1,gen:false};popStdApply(b);}
    const id=uid();const l={id,a,b,kind:'wave',border,premium:border&&!!UI.cnPrem&&(a==='hkg'||b==='hkg'),tier,km:wr.km,sub:wr.sub,cable:wr.cab,mo:base,mult:wr.wm,trench:wr.cab?'cab:'+wr.cab:(jn?jn.k:id),cut:0,day:S.day};S.links.push(l);closeModal();
    if(sib.length){UI.sel={type:'link',id};}else{UI.sel={type:'city',id:b};UI.tab='cust';}
    floater((CITY[a].x+CITY[a].x+wrapDx(CITY[a].x,CITY[b].x))/2,(CITY[a].y+CITY[b].y)/2-20,tr('links.wave_lit',{wave:LT[tier].n}),'#FF4F9A');after();},

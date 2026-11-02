@@ -61,3 +61,27 @@ test('the price of a new POP includes the standard routers, on the button and in
   assert.equal(ev('popStdQuote()'), null);
   assert.deepEqual(errors, []);
 });
+
+test('POPs built by a link, dark fiber or a consortium seat get the standard too, at the quoted price (#261)', () => {
+  const { ev, errors } = load();
+  const A = g('Arrrhipster 7280R'), Ai = ev(A);
+  ev(start + `;S.lvl=4;S.pops.fra.rgen=${A};S.pops.fra.routers=2;ACT.popStdSet({city:'fra'})`);
+  const std = ev('popStdQuote().cost');
+  assert.equal(ev("newPopCost('ams')"), ev("popCost('ams')") + std);
+  // A wave to a city without a POP.
+  ev("UI.pending={a:'fra',b:'ams'};UI.lmode='wave';ACT.buildLink({tier:0})");
+  assert.ok(ev('!!S.pops.ams'), 'the wave built the POP');
+  assert.equal(ev('S.pops.ams.rgen'), Ai);
+  assert.equal(ev('S.pops.ams.routers'), 2);
+  // Dark fiber to a city without a POP.
+  ev("UI.pending={a:'fra',b:'par'};UI.lmode='df';UI.dfSys='lite';ACT.orderDf()");
+  assert.equal(ev('S.pops.par.rgen'), Ai);
+  assert.equal(ev('S.pops.par.routers'), 2);
+  // A consortium seat with a landing that has no POP yet; its offer is priced with the standard.
+  ev("S.seatOff={a:'fra',b:'lis',name:'Test',km:seatKm('fra','lis'),exp:S.day+30};UI.tab='links'");
+  assert.ok(ev("seatSection()").includes(ev("fmt$(newPopCost('lis'))")));
+  ev('ACT.seatBuy({n:1})');
+  assert.equal(ev('S.pops.lis.rgen'), Ai);
+  assert.equal(ev('S.pops.lis.routers'), 2);
+  assert.deepEqual(errors, []);
+});
