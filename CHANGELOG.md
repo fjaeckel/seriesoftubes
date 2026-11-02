@@ -6,14 +6,17 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+## [2.5.0] — 2026-11-02
+
+**Mostly a performance release.** Big networks route their traffic on about half the processor time, days no longer freeze the game, and clicks that change nothing about your traffic answer at once, so phones last longer. Same routes, same results, just faster.
+
+- Big networks use about half the battery they did: each day's routing takes half the processor time, and reuses what it worked out the day before when only demand has changed. Where traffic goes does not change.
+- The game no longer freezes while it routes each day's traffic on big networks. A background thread of the game does the routing, so the map, panels and buttons keep responding while days go by; what the day brings is exactly what it was before. Clicks that change your network still route right away.
+- On big networks, clicks that change nothing about your traffic now answer at once: dismissing an offer or renaming your network no longer works out every route again, which also saves battery on phones.
+- The calendar is real now: months have 28 to 31 days and every fourth year has a 29 February (#257). Monthly prices, loan statements, the intern's budget and paydays follow calendar months, and conferences fall on the 10th of their month.
 - Cache boxes are sized for the traffic each city really sends (#260): Russian and Chinese cities get boxes for the networks people there actually use, and none for networks they cannot reach. Boxes already installed stay; remove idle ones from the POP.
 - A 1.6T transponder on routers with 800G ports now takes two ports at each end, one for each 800G it hands over, and the optics list says so (#256). Before, a full 1.6T fit into a single 800G port. On 1.6T routers it still takes one.
-- The calendar is real now: months have 28 to 31 days and every fourth year has a 29 February (#257). Monthly prices, loan statements, the intern's budget and paydays follow calendar months, and conferences fall on the 10th of their month.
-- On big networks, clicks that change nothing about your traffic now answer at once: dismissing an offer or renaming your network no longer works out every route again, which also saves battery on phones.
-- Working out where traffic goes takes about a fifth less work on big networks, with exactly the same result.
-- The game no longer freezes while it routes each day's traffic on big networks. A background thread of the game does the routing, so the map, panels and buttons keep responding while days go by; what the day brings is exactly what it was before. Clicks that change your network still route right away.
 - A plug-in optic that is too short for your subsea cable no longer sends you to submarine terminals and optical engineering, which cannot stretch it (#253). The hint now names the optics that do reach, such as the Sienna WaveMagic 1.6T for Perth to Cape Town. Optics the upgrades can stretch still get the advice.
-- Big networks use about half the battery they did: each day's routing takes half the processor time, and reuses what it worked out the day before when only demand has changed. Where traffic goes does not change.
 
 ## [2.4.0] — 2026-11-01
 
