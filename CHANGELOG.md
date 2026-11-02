@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- The Build POP button now shows the whole price of a new POP, including the routers of your standard POP (#261). Before, it showed only the site, although the standard routers were paid for on top; a note under the button now lists them, and the intern's one-tap template prices them in as well.
+
 ## [2.5.0] — 2026-11-02
 
 **Mostly a performance release.** Big networks route their traffic on about half the processor time, days no longer freeze the game, and clicks that change nothing about your traffic answer at once, so phones last longer. Same routes, same results, just faster.

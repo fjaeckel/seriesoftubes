@@ -8,7 +8,7 @@ function cityPanel(c){
   if(!p){
     h+=`<div class="scroll">${C.note?`<p class="note" style="margin-top:0">${esc(C.note)}</p>`:''}
     ${C.cn?chinaSection(c):''}${C.cn&&!cnOk()?'':`<section><h3>${tr('city_panel.open_a_pop_here')}</h3><p class="lead">${tr('city_panel.a_pop_point_of_presence_is')}</p>
-    ${C.ru?`<p class="why">${tr('city_panel.includes_the_mandatory_government',{cost:fmt$(RU_BOX),mo:fmt$(RU_BOX_MO)})}</p>`:''}${btn(tr('city_panel.build_pop_cost_mo_mo',{cost:fmt$(popCost(c)),mo:fmt$(popMo(c))}),'buildPop',{city:c},'pink big',S.cash<popCost(c))}
+    ${C.ru?`<p class="why">${tr('city_panel.includes_the_mandatory_government',{cost:fmt$(RU_BOX),mo:fmt$(RU_BOX_MO)})}</p>`:''}${(q=>btn(tr('city_panel.build_pop_cost_mo_mo',{cost:fmt$(popCost(c)+(q?q.cost:0)),mo:fmt$(popMo(c)+(q?q.mo:0))}),'buildPop',{city:c},'pink big',S.cash<popCost(c))+(q?`<p class="note">${tr('pop_std.includes_the_standard_n_model',{n:q.rt,model:esc(RG[q.g].n),cost:fmt$(q.cost),mo:fmt$(q.mo)})}</p>`:''))(popStdQuote())}
     <p class="note">${tr('city_panel.or_drag_from_one_of_your')}</p></section>${opsTplHtml(c)}`}`;
     h+=offersHere(c);
     const trs=NETS.filter(n=>sellsAt(n,c));

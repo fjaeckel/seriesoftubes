@@ -219,7 +219,9 @@ function opsTplQuote(c){if(!S||S.pops[c]||!cityOn(c)||(cnCity(c)&&!cnOk()))retur
   if(T.bb){cost+=bbCost(c);parts.push(tr('ops.tpl_bb'));}
   if(T.transit&&!scnRule('noTransit')){net=opsProv(c);if(net){cost+=PORT[0].setup;parts.push(tr('ops.tpl_transit'));}}
   // Priced as if the POP were already there (an IX port is dearer from afar). DE-KICKS wants a sales call first, so not those.
-  S.pops[c]={day:S.day,bb:null,boost:0,down:0,routers:1,gen:false};
+  // The standard routers go in first (#261), so they are in the price and the kit is priced for them.
+  const sq=popStdQuote();if(sq){cost+=sq.cost;parts.push(tr('ops.tpl_std'));}
+  S.pops[c]={day:S.day,bb:null,boost:0,down:0,routers:sq?sq.rt:1,gen:false,rgen:sq?sq.g:0};
   try{if(T.ix&&CITY[c].ix&&!isDk(c)&&S.ixp[c]===undefined){ix=c;cost+=ixPortMo(c,0);parts.push(tr('ops.tpl_ix'));}
     if(T.kit){kit=utilityKit(c);if(kit&&kit.cost){cost+=kit.cost;parts.push(tr('ops.tpl_kit'));}}}finally{delete S.pops[c];}
   return {cost,net:net&&net.id,ix,kit:!!(kit&&kit.cost),parts};}

@@ -35,3 +35,29 @@ test('without the cash or the level, a new POP gets what fits; clearing and save
   assert.equal(ev('S.popStd'), null, 'old saves have none');
   assert.deepEqual(errors, []);
 });
+
+test('the price of a new POP includes the standard routers, on the button and in the template (#261)', () => {
+  const { ev, dom, errors } = load();
+  const U = g('The Router at the End of the Universe');
+  ev(start + `;S.pops.fra.rgen=${U};S.pops.fra.routers=4;ACT.popStdSet({city:'fra'})`);
+  const q = JSON.parse(ev('JSON.stringify(popStdQuote())'));
+  assert.equal(q.rt, 4);
+  assert.ok(q.cost > 5e6, 'four of the biggest routers cost millions, not thousands');
+  ev("selectCity('ams');renderPanel()");
+  const btnText = dom.window.document.querySelector('[data-act="buildPop"]').textContent;
+  assert.ok(btnText.includes(ev(`fmt$(popCost('ams')+${q.cost})`)), 'the button shows the whole price: ' + btnText);
+  assert.match(dom.window.document.getElementById('panelBody').textContent, /Includes your standard routers: 4 ×/);
+  const cash = ev('S.cash');
+  ev("ACT.buildPop({city:'ams'})");
+  assert.equal(cash - ev('S.cash'), ev("popCost('ams')") + q.cost, 'and that is exactly what it costs');
+  // The one-tap template prices the standard too, so it is all or nothing.
+  ev("S.ops.hired=true;S.ops.tpl={};");
+  const t = JSON.parse(ev("JSON.stringify(opsTplQuote('par'))"));
+  assert.equal(t.cost, ev("popCost('par')") + q.cost);
+  // A locked model is not quoted: what fits is the plain routers.
+  ev('S.lvl=1');
+  assert.equal(ev('popStdQuote().g'), 0);
+  ev('S.popStd=null');
+  assert.equal(ev('popStdQuote()'), null);
+  assert.deepEqual(errors, []);
+});
