@@ -106,4 +106,8 @@ LANDS_LL.push(
  {id:'cyp',hide:true,ll:[[32.98,35.49],[33.78,35.49],[33.78,34.89],[32.98,34.89]]},
  {id:'mlt',hide:true,ll:[[14.11,36.20],[14.91,36.20],[14.91,35.60],[14.11,35.60]]},
 );
+// Bahrain, an island of its own: reached by its cables (and the causeway's fibre, which the game leaves out).
+LANDS_LL.push(
+ {id:'bhr',hide:true,ll:[[50.19,26.53],[50.99,26.53],[50.99,25.93],[50.19,25.93]]},
+);
 const LANDS=LANDS_LL.map(l=>({id:l.id,hide:true,pts:l.ll.map(q=>proj(q[0],q[1]))}));

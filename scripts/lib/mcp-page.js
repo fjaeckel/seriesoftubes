@@ -17,6 +17,8 @@
       if (n.nodeType === 3) { out.push(n.nodeValue); return; }
       if (n.nodeType !== 1 || n.hidden || /^(SCRIPT|STYLE|SVG|CANVAS)$/i.test(n.tagName)) return;
       if (n.tagName === 'BR') { out.push('\n'); return; }
+      // A dropdown reads as its choice: hundreds of options would crowd out the rest (the catalog lists them).
+      if (n.tagName === 'SELECT') { const o = n.options[n.selectedIndex]; out.push(' ', o ? o.text : '', ' '); return; }
       // Blocks get their own line; inline tags a space, so "Revenue<b>$2k</b>" does not read as one word.
       const sep = BLOCK.test(n.tagName) ? '\n' : ' ';
       out.push(sep);

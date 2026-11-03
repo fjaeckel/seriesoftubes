@@ -19,6 +19,8 @@ const EXCEPTIONS = {
     MH: 'the Marshall Islands have one telco (NTA)',
     PN: 'Pitcairn has no network at all: land your own cable (#124)',
     SH: 'St Helena has one operator (Sure South Atlantic)',
+    TM: 'Turkmentelecom is the state gateway, and TMCell the state mobile operator behind it',
+    YE: "In Sanaa, YemenNet is the only internet gateway; the mobile operators' data goes through it",
   },
   // W3: cities nobody sells transit in.
   W3: {
@@ -99,11 +101,11 @@ const REAL_NAMES = [
   // content and clouds
   'Akamai', 'Alibaba Cloud', 'Amazon', 'Amazon Web Services', 'AWS', 'Baidu', 'ByteDance', 'Cloudflare', 'Facebook', 'Fastly', 'Google', 'Mercado Libre', 'Meta', 'Microsoft', 'Netflix', 'Tencent', 'TikTok', 'VK', 'VKontakte', 'Yandex',
   // eyeballs and incumbents
-  ', ', 'A1', 'A1 Telekom Austria', 'Airtel', 'AIS', 'Algérie Télécom', 'Altibox', 'Altice', 'America Movil', 'Andorra Telecom', 'Angola Cables', 'Antel', 'ASTCA', 'Aussie Broadband', 'Belize Telemedia', 'Bell', 'Bell Canada', 'Belong', 'Beltelecom', 'Bemobile', 'BH Telecom', 'Bitė', 'Brisanet', 'BT', 'BTC', 'Cable & Wireless', 'Cable Bahamas', 'Cablenet', 'Crnogorski Telekom', 'Cyta', 'FL1', 'GO', 'Guyana Telephone & Telegraph', 'Hoi Internet', 'Hrvatski Telekom', 'L", ', 'Melita', 'Moldtelecom', 'Monaco Telecom', 'Natcom', 'One Albania', 'Slovak Telekom', 'SMART', 'Speednet', 'Telecom Liechtenstein', 'Telekom Slovenije', 'Telenet San Marino', 'Telesur', 'Telia Lietuva',
+  ', ', 'A1', 'A1 Telekom Austria', 'Afghan Telecom', 'Airtel', 'AIS', 'Algérie Télécom', 'Altibox', 'Altice', 'America Movil', 'Andorra Telecom', 'Angola Cables', 'Antel', 'ASTCA', 'Aussie Broadband', 'AWCC', 'Azercell', 'Aztelekom', 'Batelco', 'Belize Telemedia', 'Bell', 'Bell Canada', 'Belong', 'Beltelecom', 'Bemobile', 'Bezeq International', 'BH Telecom', 'Bitė', 'Brisanet', 'BT', 'BTC', 'Cable & Wireless', 'Cable Bahamas', 'Cablenet', 'Crnogorski Telekom', 'Cyta', 'Earthlink', 'FL1', 'GO', 'Guyana Telephone & Telegraph', 'Hoi Internet', 'Hrvatski Telekom', 'Kazakhtelecom', 'Kcell', 'Kyrgyztelecom', 'L", ', 'Magticom', 'MCI', 'Melita', 'Moldtelecom', 'Monaco Telecom', 'Natcom', 'O!', 'Ogero', 'One Albania', 'Partner', 'Silknet', 'Slovak Telekom', 'SMART', 'Speednet', 'Syrian Telecom', 'Syriatel', 'TCI', 'Team Telecom Armenia', 'Telecom Liechtenstein', 'Telekom Slovenije', 'Telenet San Marino', 'Telesur', 'Telia Lietuva', 'Tojiktelecom', 'touch', 'Turkmentelecom', 'Ucom', 'Unitel', 'Uztelecom', 'YemenNet', 'Zain',
   // exchanges and data centers
-  'AMS-IX', 'ANIX', 'Any2', 'BALT-IX', 'BCIX', 'BHNIX', 'BY-IX', 'CIX', 'CoreSite', 'CyIX', 'DANIX', 'DE-CIX', 'DigiCo', 'Digital Realty', 'Equinix', 'France-IX', 'GREX', 'HIX', 'Interxion', 'iseek', 'IX.br', 'IXP-HN', 'IXP.mk', 'JPIX', 'KIVIX', 'LINX', 'MD-IX', 'MIXP', 'NAPAfrica', 'NetIX', 'NEXTDC', 'NIX', 'NIX.SK', 'NL-ix', 'SIX', 'SIX.SK', 'SKNIX', 'SUR-IX', 'SVGIX', 'Telehouse',
+  'AMS-IX', 'ANIX', 'Any2', 'ArmIX', 'BALT-IX', 'BCIX', 'BHNIX', 'BY-IX', 'CIX', 'CoreSite', 'CyIX', 'DANIX', 'DE-CIX', 'DigiCo', 'Digital Realty', 'Equinix', 'France-IX', 'GREX', 'HIX', 'Interxion', 'IRAQ-IXP', 'iseek', 'IX.br', 'ix.kw', 'IXP-HN', 'IXP.ge', 'IXP.mk', 'JPIX', 'KAZ-GOV-IX', 'KG-IX', 'KIVIX', 'LebIX', 'LINX', 'Manama IX', 'MD-IX', 'MIXP', 'NAPAfrica', 'NetIX', 'NEXTDC', 'NIX', 'NIX.SK', 'NIXA', 'NL-ix', 'RegPEX', 'SIX', 'SIX.SK', 'SKNIX', 'SNS-IX', 'SUR-IX', 'SVGIX', 'Tehran IX', 'Telehouse', 'TJ-IX',
   // cables
-  '2Africa', 'Amitié', 'BDSNi', 'CARCIP', 'Darwin-Jakarta-Singapore Cable', 'Deep Blue One', 'Dunant', 'Eastern Caribbean Fiber System', 'EllaLink', 'Epic Malta-Sicily Cable System', 'Equiano', 'Fibralink', 'GO-1', 'Grace Hopper', 'Greenland Connect', 'Greenland Connect North', 'Hibernia Express', 'Jupiter', 'MAREA', 'MedNautilus', 'Melita 1', 'North West Cable System', 'PEACE', 'SEA-ME-WE 6', 'SG-SCS', 'Southern Caribbean Fiber', 'X-Link',
+  '2Africa', 'Amitié', 'BDSNi', 'CADMOS', 'CARCIP', 'Darwin-Jakarta-Singapore Cable', 'Deep Blue One', 'Dunant', 'Eastern Caribbean Fiber System', 'EllaLink', 'Epic Malta-Sicily Cable System', 'Equiano', 'FALCON', 'Fibralink', 'GO-1', 'Grace Hopper', 'Greenland Connect', 'Greenland Connect North', 'Hibernia Express', 'Jupiter', 'MAREA', 'MedNautilus', 'Melita 1', 'North West Cable System', 'PEACE', 'SEA-ME-WE 6', 'SG-SCS', 'Southern Caribbean Fiber', 'UGARIT', 'X-Link',
   // cable ships, their operators and maintenance clubs
   'ACMA', 'ASEAN Explorer', 'ASEAN Protector', 'ASEAN Restorer', 'Cable Innovator', 'Cable Retriever', 'Global Marine', 'Léon Thévenin', 'MECMA', 'Orange Marine', 'Pierre de Fermat', 'René Descartes', 'SEAIOCMA', 'Sophie Germain', 'Sovereign', 'Wave Sentinel', 'Yokohama Zone',
   // vendors

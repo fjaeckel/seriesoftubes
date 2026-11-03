@@ -34,6 +34,22 @@ const EUROPE = {
   'SE Stockholm': [18.07, 59.33], 'CH Bern': [7.45, 46.95], 'UA Kyiv': [30.52, 50.45], 'GB London': [-0.13, 51.51],
 };
 
+const MIDEAST = {
+  'AF Kabul': [69.17, 34.53], 'AM Yerevan': [44.51, 40.18], 'AZ Baku': [49.87, 40.41], 'BH Manama': [50.59, 26.23], 'GE Tbilisi': [44.79, 41.72],
+  'IR Tehran': [51.39, 35.69], 'IQ Baghdad': [44.37, 33.31], 'IL Jerusalem': [35.21, 31.77], 'JO Amman': [35.93, 31.95], 'KZ Astana': [71.45, 51.17],
+  'KW Kuwait City': [47.99, 29.38], 'KG Bishkek': [74.59, 42.87], 'LB Beirut': [35.50, 33.89], 'OM Muscat': [58.41, 23.59], 'PK Islamabad': [73.05, 33.68],
+  'QA Doha': [51.53, 25.29], 'SA Riyadh': [46.68, 24.71], 'SY Damascus': [36.29, 33.51], 'TJ Dushanbe': [68.77, 38.56], 'TR Ankara': [32.86, 39.93],
+  'TM Ashgabat': [58.38, 37.95], 'AE Abu Dhabi': [54.37, 24.45], 'UZ Tashkent': [69.24, 41.30], 'YE Sanaa': [44.19, 15.37],
+};
+
+test('every capital of the Middle East, the Caucasus and Central Asia is a city', () => {
+  assert.equal(Object.keys(MIDEAST).length, 24);
+  assert.deepEqual(missing(MIDEAST), []);
+  // Bahrain is an island on its cables; the groups already in the game serve the new countries they really run
+  assert.ok(ev("CITY.bah.land!==CITY.ruh.land&&CABLE_PAIRS.some(p=>p.cid==='falcon'&&(p.a==='bah'||p.b==='bah'))"));
+  for (const [n, cc] of [['stc', 'KW'], ['ord', 'IQ'], ['tng', 'JO'], ['mgf', 'TJ'], ['zai', 'BH']]) assert.ok(ev(`[].concat(NET.${n}.cc).includes('${cc}')`), `${n} serves ${cc}`);
+});
+
 test('every capital of Europe is a city', () => {
   assert.equal(Object.keys(EUROPE).length, 44, 'the 44 UN members in Europe (Turkey is with the Middle East)');
   assert.deepEqual(missing(EUROPE), []);

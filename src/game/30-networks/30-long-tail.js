@@ -116,7 +116,7 @@ NETS.push(
  {id:'cws',name:'Cable & Witless Seychelles',asn:36958,type:'t2',cc:'SC',pol:'open',share:.0003,price:12,up:['tat'],col:'#E4007C',pops:['sez','mba'],ix:[],blurb:tr('long_tail.the_seychelles_old_telco_open_to')},
  {id:'acs',name:'Alaska Commotions',asn:7782,type:'eye',cc:'US',pol:'open',share:.0008,up:['lvl','cog'],col:'#0072CE',pops:['anc','jnu','sea'],ix:['anc'],blurb:tr('long_tail.alaska_s_old_phone_company_and')},
  {id:'gci',name:'Glacier Comms Inc.',asn:8047,type:'t2',cc:'US',pol:'open',share:.0015,price:11,up:['lvl','ntt'],col:'#00467F',pops:['anc','jnu','ome','brw','dut','sea'],ix:['sea'],blurb:tr('long_tail.alaska_s_biggest_network_from_anchorage')},
- {id:'mgf',name:'MegaPhone',asn:31133,type:'eye',cc:'RU',pol:'selective',minIx:4,minPni:15,share:.003,up:['rtc'],col:'#00B956',pops:['mos','vvo','uus','pkc','mmk','gdx'],ix:['mos','vvo'],blurb:tr('long_tail.one_of_russia_s_big_mobile')},
+ {id:'mgf',name:'MegaPhone',asn:31133,type:'eye',cc:['RU','TJ'],pol:'selective',minIx:4,minPni:15,share:.003,up:['rtc'],col:'#00B956',pops:['mos','vvo','uus','pkc','mmk','gdx','dyu'],ix:['mos','vvo'],blurb:tr('long_tail.one_of_russia_s_big_mobile')},
  {id:'ert',name:'Er-Um Telecom',asn:9049,type:'eye',cc:'RU',pol:'open',share:.002,up:['rtc'],col:'#E30613',pops:['mos','vvo'],ix:['mos','vvo'],blurb:tr('long_tail.broadband_in_dozens_of_russian_cities')});
 NETS.push(
  {id:'tet',name:'Tet-à-Tête',asn:12578,type:'eye',cc:'LV',pol:'selective',minIx:2,minPni:10,share:.001,up:['tly'],col:'#3F2A56',pops:['rix','sto'],ix:['rix'],blurb:tr('long_tail.latvia_s_incumbent_peers_face_to')},
