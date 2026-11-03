@@ -51,6 +51,35 @@ test('- and = zoom the map out and in around its middle, within the zoom limits'
   assert.deepEqual(errors, []);
 });
 
+test('the arrow keys and W A S D move the map while held, at the same speed on screen at any zoom', (t) => {
+  const { ev, dom, errors } = load();
+  // A key left held (a failed assertion) would keep the page's frame loop, and this test file, running.
+  t.after(() => dom.window.dispatchEvent(new dom.window.Event('blur')));
+  const doc = dom.window.document, key = keyer(dom);
+  const up = k => doc.body.dispatchEvent(new dom.window.KeyboardEvent('keyup', { key: k, bubbles: true }));
+  const at = () => [ev('cam.x'), ev('cam.y')].map(v => Math.round(v * 100) / 100);
+  // Frames are driven by hand: panAt=null makes the first one a start, the next one 50 ms later moves.
+  const frames = (a, b) => ev(`panAt=null;panFrame(${a});panFrame(${b})`);
+  ev(start + ';cam.z=1;cam.x=1000;cam.y=500');
+  key('ArrowRight'); frames(1000, 1050); assert.deepEqual(at(), [1035, 500], '700 px a second: 35 px in 50 ms');
+  up('ArrowRight'); frames(1000, 1050); assert.deepEqual(at(), [1035, 500], 'letting go stops it');
+  key('w'); key('a'); frames(0, 50); assert.deepEqual(at(), [1000, 465], 'W and A together: up and left');
+  up('w'); up('A');
+  assert.equal(ev('panHeld.size'), 0, 'a key let go with Shift held still counts');
+  ev('cam.z=2'); key('s'); frames(0, 50); assert.deepEqual(at(), [1000, 482.5], 'zoomed in, the same 35 px on screen');
+  frames(0, 2000); assert.deepEqual(at(), [1000, 500], 'a slow frame moves at most 50 ms worth');
+  up('s');
+  key('ArrowDown'); key('ArrowDown', null, { repeat: true }); assert.equal(ev('panHeld.size'), 1, 'key repeat is the same key');
+  dom.window.dispatchEvent(new dom.window.Event('blur')); assert.equal(ev('panHeld.size'), 0, 'leaving the window lets go');
+  key('d'); ev('ACT.keys()'); frames(0, 50); assert.deepEqual(at(), [1000, 500], 'a window opening stops it');
+  assert.equal(ev('panHeld.size'), 0);
+  ev('closeModal();ACT.dash()'); key('ArrowLeft'); assert.equal(ev('panHeld.size'), 0, 'arrows scroll the NOC dashboard instead');
+  ev("$('dash').hidden=true;ACT.rename()"); key('a', doc.getElementById('rnIn')); key('a'); assert.equal(ev('panHeld.size'), 0, 'not while typing or behind a window');
+  ev('closeModal()'); key('ArrowLeft', null, { altKey: true }); key('ArrowLeft', null, { metaKey: true });
+  assert.equal(ev('panHeld.size'), 0, 'Alt or Cmd with an arrow is the browser\'s');
+  assert.deepEqual(errors, []);
+});
+
 test('n opens the NOC dashboard, and n followed by a letter opens one of its tabs', () => {
   const { ev, dom, errors } = load();
   const key = keyer(dom), open = () => !ev("$('dash').hidden"), tab = () => ev("UI.dtab||'overview'");
@@ -79,9 +108,9 @@ test('? shows every keyboard shortcut and closes again; Help links to it on a co
   key('?');
   assert.equal(ev("$('modal').className"), 'keys', '? opens the list');
   const txt = doc.getElementById('modalCard').textContent;
-  for (const s of ['Keyboard shortcuts', 'Space', 'Pause or play', 'Find a city', 'Previous or next of your POPs', 'Zoom the map out or in', 'NOC dashboard', 'Connections', 'Leased lines', 'Esc', 'Show this list'])
+  for (const s of ['Keyboard shortcuts', 'Move around the map', 'Space', 'Pause or play', 'Find a city', 'Previous or next of your POPs', 'Zoom the map out or in', 'NOC dashboard', 'Connections', 'Leased lines', 'Esc', 'Show this list'])
     assert.ok(txt.includes(s), s);
-  for (const k of ['[', ']', '-', '=', '/', '?', '0', '4', 'n', 'o', 'u', 'c', 't', 'r', 'l']) assert.ok([...doc.querySelectorAll('#modalCard .kbd')].some(e => e.textContent === k), k);
+  for (const k of ['←', '↑', '↓', '→', 'w', 'a', 's', 'd', '[', ']', '-', '=', '/', '?', '0', '4', 'n', 'o', 'u', 'c', 't', 'r', 'l']) assert.ok([...doc.querySelectorAll('#modalCard .kbd')].some(e => e.textContent === k), k);
   key('?', null, { repeat: true }); assert.equal(ev("$('modal').hidden"), false, 'holding ? does not flicker it');
   key('?'); assert.equal(ev("$('modal').hidden"), true, '? again closes it');
   key('?'); key('Escape'); assert.equal(ev("$('modal').hidden"), true, 'so does Escape');

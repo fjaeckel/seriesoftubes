@@ -2374,6 +2374,7 @@
 "keys.esc":"Esc",
 "keys.game_speed":"Spielgeschwindigkeit: ½×, 1×, 2×, 4×, 8×",
 "keys.keyboard_shortcuts":"Tastenkürzel",
+"keys.move_around_the_map":"Karte verschieben",
 "keys.noc_dashboard_a_letter_right":"NOC-Dashboard. Ein Buchstabe direkt danach öffnet einen Tab:",
 "keys.pause_or_play":"Pause oder weiter",
 "keys.previous_or_next_of_your":"Vorheriger oder nächster deiner POPs",

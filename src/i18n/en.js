@@ -2373,6 +2373,7 @@
 "keys.esc":"Esc",
 "keys.game_speed":"Game speed: ½×, 1×, 2×, 4×, 8×",
 "keys.keyboard_shortcuts":"Keyboard shortcuts",
+"keys.move_around_the_map":"Move around the map",
 "keys.noc_dashboard_a_letter_right":"NOC dashboard. A letter right after it opens a tab:",
 "keys.pause_or_play":"Pause or play",
 "keys.previous_or_next_of_your":"Previous or next of your POPs",

@@ -2372,6 +2372,7 @@
 "keys.esc":"Échap",
 "keys.game_speed":"Vitesse du jeu : ½×, 1×, 2×, 4×, 8×",
 "keys.keyboard_shortcuts":"Raccourcis clavier",
+"keys.move_around_the_map":"Déplacer la carte",
 "keys.noc_dashboard_a_letter_right":"Tableau de bord NOC. Une lettre juste après ouvre un onglet :",
 "keys.pause_or_play":"Pause ou reprise",
 "keys.previous_or_next_of_your":"Ton POP précédent ou suivant",

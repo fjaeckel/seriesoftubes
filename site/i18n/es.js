@@ -2372,6 +2372,7 @@
 "keys.esc":"Esc",
 "keys.game_speed":"Velocidad del juego: ½×, 1×, 2×, 4×, 8×",
 "keys.keyboard_shortcuts":"Atajos de teclado",
+"keys.move_around_the_map":"Mover el mapa",
 "keys.noc_dashboard_a_letter_right":"Panel del NOC. Una letra justo después abre una pestaña:",
 "keys.pause_or_play":"Pausar o reanudar",
 "keys.previous_or_next_of_your":"Tu POP anterior o siguiente",
