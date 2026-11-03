@@ -225,7 +225,7 @@ test('a dry run prices every command that has a price, and changes nothing', () 
     crews: { id: df }, addCh: { id: df, o: 'zr4' }, addPair: { id: df }, upSys: { id: df }, regen: { id: df, d: 1 }, buySpare: { o: 'zr4' }, sellSpare: { o: 'zr4' },
     setChCount: { id: df, o: 'zr4', n: 2 }, repayLoan: { id: 'none' }, buildScrub: { city: 'ams', tier: 1 }, scrubUp: { city: 'fra', tier: 1 },
     fixInc: { id: 'none' }, confGo: { key: T('catalog', { name: 'conferences' })[0].key }, confSponsor: { key: T('catalog', { name: 'conferences' })[0].key },
-    opsHire: { id: ev('Object.keys(INTERNS)[0]') }, opsNewPop: { city: 'nyc' }, pniAll: { net: 'cog', tier: 1 }, seatBuy: { n: 2 }, layShip: { id: df },
+    opsHire: { id: ev('Object.keys(INTERNS)[0]') }, opsNewPop: { city: 'nyc' }, pniAll: { net: 'cog', tier: 1 }, seatBuy: { n: 2 }, layShip: { id: df }, seaRush: { id: df },
     utilityKit: { city: 'fra' }, utilityCaches: { city: 'fra' }, teDeploy: { script: 'spill at 85%' }, upLinkX: {},
   };
   const missing = quoted.filter((n) => !sample[n] && T('schema', { section: 'commands' })[n].args.some((a) => a.required));

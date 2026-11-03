@@ -34,6 +34,7 @@ Object.assign(ACT,{
  upSys:({id})=>{const l=S.links.find(x=>x.id===id),to=l&&sysNext(l);if(!to||!techOk('sys',to,DF_SYS[to].lvl))return;if(!spend(sysUpCost(l)))return;l.sys=to;if(l.ready<=S.day){l.eqDown=S.day+1;toast(tr('fiber_and_hardware.line_system_swap_all_channels_are'),'bad');}after();},
  spares:({id})=>{const l=S.links.find(x=>x.id===id);if(!l)return;l.spares=!l.spares;sfx('click');after();},
  // Your own subsea cable: book a second lay ship before laying starts; it lays from the other end (50-cable-ships.js).
+ seaRush:({id,all})=>{const l=S.links.find(x=>x.id===id);if(!l)return;const k=prepSteps(l);if(!k)return;const n=all?k:1;if(!spend(n*prepCost(l)))return;const ready=Math.max(prepFloor(l),l.ready-PREP_STEP*n),saved=l.ready-ready;setCableReady(l,ready);toast(trn('cable_ships.the_factory_runs_a_night_shift',saved,{n:saved}),'good');sfx('build');after();},
  layShip:({id})=>{const l=S.links.find(x=>x.id===id);const q=l&&layQuote(l);if(!q||!spend(q.cost))return;l.ship2=1;setCableReady(l,l.ready-q.save);
    toast(trn('cable_ships.second_lay_ship_booked',q.save,{ship:esc(layName(l,1)),n:q.save}),'good');sfx('coin');after();},
  crews:({id,all})=>{const l=S.links.find(x=>x.id===id);if(!l||l.kind!=='df'||!l.own||l.sub||l.ready<=S.day+1)return;const n=all?crewSteps(l):1,c=n*crewCost(l);if(!spend(c))return;const ready=Math.max(S.day+1,l.ready-30*n),saved=l.ready-ready;setCableReady(l,ready);toast(trn('fiber_and_hardware.more_crews_on_site_construction_is',saved,{n:saved}),'good');after();},
