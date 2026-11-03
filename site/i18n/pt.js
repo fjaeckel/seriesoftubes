@@ -2378,6 +2378,7 @@
 "keys.game_speed":"Velocidade do jogo: ½×, 1×, 2×, 4×, 8×",
 "keys.keyboard_shortcuts":"Atalhos de teclado",
 "keys.move_around_the_map":"Mover o mapa",
+"keys.next_open_offer_soonest_to":"Próxima oferta aberta, primeiro a que vence antes",
 "keys.noc_dashboard_a_letter_right":"Dashboard do NOC. Uma letra logo depois abre uma aba:",
 "keys.pause_or_play":"Pausar ou continuar",
 "keys.previous_or_next_of_your":"Seu POP anterior ou próximo",

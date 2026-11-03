@@ -36,6 +36,28 @@ test('[ and ] step through your POPs in name order, wrap around, and move the ma
   assert.deepEqual(errors, []);
 });
 
+test('$ steps through the open offers, soonest to expire first, and marks each one in its city', () => {
+  const { ev, dom, errors } = load();
+  const doc = dom.window.document, key = keyer(dom);
+  ev(start + ";S.offers=[];for(let i=0;i<60&&S.offers.length<3;i++)spawnOffer()");
+  assert.equal(ev('S.offers.length'), 3);
+  // Two offers in Frankfurt (a POP) and one in Tokyo (no POP), expiring Tokyo first, then both in Frankfurt.
+  ev("(([a,b,c])=>{Object.assign(a,{city:'fra',city2:null,exp:S.day+30,name:'Alpha'});Object.assign(b,{city:'tok',city2:null,exp:S.day+10,name:'Bravo'});Object.assign(c,{city:'fra',city2:null,exp:S.day+20,name:'Charlie'});})(S.offers);UI.tab='up'");
+  const sel = () => ev('UI.sel&&UI.sel.id'), marked = () => [...doc.querySelectorAll('#panelBody .row.on .nm')].map(e => e.textContent);
+  key('$'); assert.equal(sel(), 'tok'); assert.deepEqual(marked(), ['Bravo'], 'the soonest to expire first, marked in its city');
+  assert.equal(ev('cam.x'), ev('CITY.tok.x'), 'with the map on it');
+  key('$'); assert.equal(sel(), 'fra'); assert.equal(ev('UI.tab'), 'cust', 'a POP opens on Customers, where its offers are');
+  assert.deepEqual(marked(), ['Charlie']);
+  key('$'); assert.equal(sel(), 'fra'); assert.deepEqual(marked(), ['Alpha'], 'a second offer in the same city gets its own press');
+  key('$'); assert.deepEqual(marked(), ['Bravo'], 'and round again');
+  ev("selectCity('ams')"); assert.equal(ev('UI.offerAt'), null, 'selecting something else clears the mark');
+  key('$'); assert.deepEqual(marked(), ['Bravo'], 'so $ starts from the top');
+  ev('ACT.decline({id:UI.offerAt})'); key('$'); assert.deepEqual(marked(), ['Charlie'], 'a declined offer drops out');
+  ev('S.offers=[]'); key('$');
+  assert.match(doc.getElementById('toasts').textContent, /No open offers right now/, 'no offers: it says so');
+  assert.deepEqual(errors, []);
+});
+
 test('- and = zoom the map out and in around its middle, within the zoom limits', () => {
   const { ev, dom, errors } = load();
   const key = keyer(dom);
@@ -108,9 +130,9 @@ test('? shows every keyboard shortcut and closes again; Help links to it on a co
   key('?');
   assert.equal(ev("$('modal').className"), 'keys', '? opens the list');
   const txt = doc.getElementById('modalCard').textContent;
-  for (const s of ['Keyboard shortcuts', 'Move around the map', 'Space', 'Pause or play', 'Find a city', 'Previous or next of your POPs', 'Zoom the map out or in', 'NOC dashboard', 'Connections', 'Leased lines', 'Esc', 'Show this list'])
+  for (const s of ['Keyboard shortcuts', 'Move around the map', 'Space', 'Pause or play', 'Find a city', 'Previous or next of your POPs', 'Next open offer, soonest to expire first', 'Zoom the map out or in', 'NOC dashboard', 'Connections', 'Leased lines', 'Esc', 'Show this list'])
     assert.ok(txt.includes(s), s);
-  for (const k of ['←', '↑', '↓', '→', 'w', 'a', 's', 'd', '[', ']', '-', '=', '/', '?', '0', '4', 'n', 'o', 'u', 'c', 't', 'r', 'l']) assert.ok([...doc.querySelectorAll('#modalCard .kbd')].some(e => e.textContent === k), k);
+  for (const k of ['←', '↑', '↓', '→', 'w', 'a', 's', 'd', '[', ']', '$', '-', '=', '/', '?', '0', '4', 'n', 'o', 'u', 'c', 't', 'r', 'l']) assert.ok([...doc.querySelectorAll('#modalCard .kbd')].some(e => e.textContent === k), k);
   key('?', null, { repeat: true }); assert.equal(ev("$('modal').hidden"), false, 'holding ? does not flicker it');
   key('?'); assert.equal(ev("$('modal').hidden"), true, '? again closes it');
   key('?'); key('Escape'); assert.equal(ev("$('modal').hidden"), true, 'so does Escape');

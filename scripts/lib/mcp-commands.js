@@ -544,6 +544,7 @@ const API_VIEW={
  findOpen:{args:[],doc:'Open the city finder (the 🔍 in the top bar).'},
  findGo:{args:[['city','cityId']],doc:'Close the finder and jump to a city.'},
  popStep:{args:[['d','integer']],doc:'Select and centre the previous (d<0) or next (d>0) of your POPs, by name: the [ and ] keys.'},
+ offerStep:{args:[],doc:'Select the next open offer (soonest to expire first), centre its city and mark it under Offers here: the $ key.'},
  zoomStep:{args:[['d','integer']],doc:'Zoom the map out (d<0) or in (d>0) around its middle: the - and = keys.'},
  keys:{args:[],doc:'Open the list of keyboard shortcuts (the ? key).'},
  routingOpen:{args:[],doc:'Open the Routing & DDoS window: backbone, Auto-TE and DDoS settings (the button at the top of the NOC tab).'},
