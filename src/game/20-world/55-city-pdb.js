@@ -15,6 +15,7 @@ const CITY_PDB={
  anc:[3,12,33300], // est.
  apw:[0,0,11],
  ash:[86,1010,33300],
+ asp:[0,0,3196], // est.: no carrier-neutral facility, the incumbent's exchange
  asu:[3,8,124],
  ath:[6,108,307],
  atn:[42,589,33300],
@@ -177,6 +178,7 @@ const CITY_PDB={
  pdl:[1,3,187], // est.
  pek:[10,15,6717],
  per:[12,248,3196],
+ phe:[1,3,3196], // est.: one carrier-neutral facility
  phx:[26,279,33300],
  pkc:[1,2,6683], // est.
  pmo:[3,46,1534],
@@ -233,6 +235,7 @@ const CITY_PDB={
  tok:[58,917,1330],
  tor:[46,509,2595],
  tpe:[15,274,500],
+ tsv:[1,2,3196], // est.
  tun:[2,0,30],
  uio:[9,16,287],
  uus:[1,3,6683], // est.

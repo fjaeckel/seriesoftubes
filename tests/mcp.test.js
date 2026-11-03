@@ -31,7 +31,7 @@ test('speaks MCP over stdio: initialize, list tools, call one, and errors as err
     await ask({ method: 'notifications/initialized' });
     const list = await ask({ id: 2, method: 'tools/list' });
     const names = list.result.tools.map((t) => t.name);
-    for (const n of ['new_game', 'load_save', 'export_save', 'status', 'advance', 'network', 'city', 'find', 'traceroute', 'peering_check', 'hot_spots', 'actions', 'act', 'screen', 'panel', 'click', 'open_link']) assert.ok(names.includes(n), n);
+    for (const n of ['new_game', 'load_save', 'export_save', 'status', 'advance', 'network', 'city', 'find', 'traceroute', 'peering_check', 'hot_spots', 'actions', 'act', 'screen', 'panel', 'click', 'open_link', 'schema', 'catalog', 'state', 'results', 'ui']) assert.ok(names.includes(n), n);
     assert.ok(list.result.tools.every((t) => t.description && t.inputSchema && t.inputSchema.type === 'object'));
     const st = await ask({ id: 3, method: 'tools/call', params: { name: 'status', arguments: {} } });
     assert.equal(st.result.isError, undefined);
@@ -122,7 +122,7 @@ test('panels and the network list read as text with buttons', () => {
   assert.match(p.text, /DE-KICKS/);
   assert.ok(p.buttons.some((b) => b.act === 'tab'));
   const l = T('panel', { network: 'ggl' });
-  assert.equal(l.where, 'network list');
+  assert.equal(l.where, 'left');
   assert.match(l.text, /Goggle/);
   assert.deepEqual(s.errors(), []);
 });
