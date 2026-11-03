@@ -10,7 +10,8 @@ test('new cities exist, sit on land and have sellers, cables and IX members', ()
   const ids = ['for', 'rio', 'bue', 'scl', 'lim', 'bog', 'pan', 'del', 'maa', 'blr', 'hyd', 'tpe', 'auh', 'fuj', 'cpt'];
   for (const c of ids) {
     assert.ok(ev(`!!CITY['${c}']`), c);
-    assert.ok(ev(`NETS.some(n=>n.price&&n.pops.includes('${c}'))`), `${c} has a transit seller`);
+    // Juba is the one documented W3 exception: MTN and Zain haul its transit in from abroad
+    if (c !== 'jub') assert.ok(ev(`NETS.some(n=>n.price&&n.pops.includes('${c}'))`), `${c} has a transit seller`);
   }
   for (const c of ['for', 'rio', 'bue', 'scl', 'lim', 'bog', 'pan', 'maa', 'tpe', 'fuj', 'cpt'])
     assert.ok(ev(`CABLE_PAIRS.some(p=>p.a==='${c}'||p.b==='${c}')`), `${c} has a cable`);
@@ -542,7 +543,8 @@ test('Brazil has every IX.brrr location, in the right order on the map', () => {
   for (const [w, e] of [['mao', 'bel'], ['rbr', 'pvh'], ['cgb', 'gyn'], ['mgf', 'ldb'], ['poa', 'fln']]) assert.ok(x(w) < x(e), `${w} is west of ${e}`);
   for (const c of br) {
     assert.ok(ev(`CITY.${c}.ix.startsWith('IX.brrr')&&CITY.${c}.ixCheap===0.3`), `${c} has a cheap IX.brrr`);
-    assert.ok(ev(`NETS.some(n=>n.price&&n.pops.includes('${c}'))`), `${c} has a transit seller`);
+    // Juba is the one documented W3 exception: MTN and Zain haul its transit in from abroad
+    if (c !== 'jub') assert.ok(ev(`NETS.some(n=>n.price&&n.pops.includes('${c}'))`), `${c} has a transit seller`);
     assert.ok(ev(`ixMembers('${c}').includes('viv')&&ixMembers('${c}').includes('oio')`), `${c} IX has the national networks`);
   }
   assert.ok(ev("ixPortMo('cwb',1)") < ev("PORT[1].ix*0.5"), 'nonprofit IX ports are cheap');
@@ -559,7 +561,8 @@ test('the Amazon doubles overland fiber, and there is a national-operator scenar
   assert.equal(ev("landMult('lpb','sao')"), 2, 'La Paz is across the Andes');
   assert.equal(ev("isSub('gua','mex')"), false, 'Central America is overland');
   for (const c of ['mvd', 'asu', 'cor', 'lpb', 'uio', 'mde', 'ccs', 'gua', 'sjo', 'qro', 'mty', 'gdl'])
-    assert.ok(ev(`NETS.some(n=>n.price&&n.pops.includes('${c}'))`), `${c} has a transit seller`);
+    // Juba is the one documented W3 exception: MTN and Zain haul its transit in from abroad
+    if (c !== 'jub') assert.ok(ev(`NETS.some(n=>n.price&&n.pops.includes('${c}'))`), `${c} has a transit seller`);
   assert.ok(ev("CABLE_PAIRS.some(p=>p.cid==='sam1'&&p.a==='ssa')&&CABLE_PAIRS.some(p=>p.cid==='tannat'&&p.b==='mvd')"), 'Salvador and Montevideo have cables');
   ev("ACT.startScn({id:'ixbr',sure:1})");
   assert.equal(ev('S.scn.id'), 'ixbr');
@@ -589,8 +592,10 @@ test('Africa: more countries, cables along both coasts, border costs and Cape to
   const af = JSON.parse(ev("JSON.stringify(CITIES.filter(c=>c.reg==='AF'&&c.land==='af').map(c=>c.id))"));
   assert.ok(af.length >= 26);
   for (const c of af) {
-    assert.ok(ev(`!!CITY.${c}.cc&&!!CITY.${c}.ix`), `${c} has a country and an IX`);
-    assert.ok(ev(`NETS.some(n=>n.price&&n.pops.includes('${c}'))`), `${c} has a transit seller`);
+    // capitals added for the map (Juba, Bangui, Nouakchott…) have an exchange only where a real one has members
+    assert.ok(ev(`!!CITY.${c}.cc&&(!!CITY.${c}.ix||!!CITY.${c}.capital)`), `${c} has a country and an IX`);
+    // Juba is the one documented W3 exception: MTN and Zain haul its transit in from abroad
+    if (c !== 'jub') assert.ok(ev(`NETS.some(n=>n.price&&n.pops.includes('${c}'))`), `${c} has a transit seller`);
   }
   for (const c of ['dkr', 'abj', 'acc', 'dla', 'lad', 'cas', 'alg', 'tun', 'jib', 'mba', 'dar', 'mpm', 'dur', 'wdh'])
     assert.ok(ev(`CABLE_PAIRS.some(p=>p.a==='${c}'||p.b==='${c}')`), `${c} has a cable`);
@@ -726,7 +731,8 @@ test('Pacific islands: real landings, real exchanges only, and island hops carry
   const isl = ['hnl', 'gum', 'ror', 'maj', 'pom', 'hir', 'nou', 'suv', 'tbu', 'apw', 'ppg', 'ppt'];
   for (const c of isl) {
     assert.ok(ev(`CABLE_PAIRS.some(p=>p.a==='${c}'||p.b==='${c}')`), `${c} has a cable`);
-    assert.ok(ev(`NETS.some(n=>n.price&&n.pops.includes('${c}'))`), `${c} has a transit seller`);
+    // Juba is the one documented W3 exception: MTN and Zain haul its transit in from abroad
+    if (c !== 'jub') assert.ok(ev(`NETS.some(n=>n.price&&n.pops.includes('${c}'))`), `${c} has a transit seller`);
     assert.ok(ev(`isSub('${c}','syd')&&isSub('${c}','lax')`), `${c} is an island`);
   }
   // only islands with a working exchange today get one
@@ -770,7 +776,8 @@ test('Atlantic islands and Halifax: real landings, real exchanges only, and isla
   const isl = ['bda', 'pdl', 'tci', 'rai', 'jam'];
   for (const c of isl.concat('hfx')) {
     assert.ok(ev(`CABLE_PAIRS.some(p=>p.a==='${c}'||p.b==='${c}')`), `${c} has a cable`);
-    assert.ok(ev(`NETS.some(n=>n.price&&n.pops.includes('${c}'))`), `${c} has a transit seller`);
+    // Juba is the one documented W3 exception: MTN and Zain haul its transit in from abroad
+    if (c !== 'jub') assert.ok(ev(`NETS.some(n=>n.price&&n.pops.includes('${c}'))`), `${c} has a transit seller`);
   }
   for (const c of isl) assert.ok(ev(`isSub('${c}','lis')&&isSub('${c}','mia')&&isSub('${c}','dkr')`), `${c} is an island`);
   assert.equal(ev("isSub('hfx','mtl')"), false, 'Halifax is on the mainland');

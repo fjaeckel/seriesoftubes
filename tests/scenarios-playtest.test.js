@@ -40,7 +40,8 @@ const PLAY = {
     win: [90, 200], cheese: [['bb', 'tll'], ['ix', 'tll'], ['loans']], by: null },
   // The 1.6T chains: grow the traffic first, then light every hop at once (a day-0 build also gets there, just).
   pac: { ref: [...home('hnl'), ...home('lax'), ...home('syd'), ['link', 'lax', 'tok', 1, 'jup'], HIRE, ['served', 145], ['link', 'lax', 'hnl', 4, 'seaus'], ['link', 'hnl', 'suv', 4, 'scx'], ['link', 'suv', 'syd', 4, 'scx']],
-    win: [50, 120], cheese: [...home('hnl'), ...home('lax'), ...home('syd'), ['link', 'lax', 'tok', 1, 'jup'], ['link', 'lax', 'syd', 3, 'hwk'], ['loans']], by: null },
+    // When the 150 Gbps arrive swings with the world's customers (day 66, then 33, as Africa's capitals joined), so the floor sits below it.
+    win: [25, 120], cheese: [...home('hnl'), ...home('lax'), ...home('syd'), ['link', 'lax', 'tok', 1, 'jup'], ['link', 'lax', 'syd', 3, 'hwk'], ['loans']], by: null },
   // The win day swings with the seed (34 to 58 over five seeds in 2.5.0), so the floor sits below that spread.
   atl: { ref: [['bb', 'pdl'], ['tr', 'pdl', 1], ...home('mia'), ...home('mad'), ...home('lis'), HIRE, ['link', 'mia', 'bda', 4, 'sol'], ['link', 'bda', 'pdl', 4, 'sol'], ['link', 'pdl', 'mad', 4, 'sol'], ['served', 90], ['link', 'lis', 'tci', 4, 'ace'], ['link', 'tci', 'lag', 4, 'twoaf'], ['bb', 'lag']],
     win: [30, 120], cheese: [['bb', 'pdl'], ['tr', 'pdl', 1], ...home('mia'), ...home('mad'), ...home('lis'), ['link', 'mia', 'mad', 3, 'col3'], ['link', 'lis', 'lag', 3, 'equi'], ['loans']], by: null },

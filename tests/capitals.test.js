@@ -42,6 +42,20 @@ const MIDEAST = {
   'TM Ashgabat': [58.38, 37.95], 'AE Abu Dhabi': [54.37, 24.45], 'UZ Tashkent': [69.24, 41.30], 'YE Sanaa': [44.19, 15.37],
 };
 
+const AFRICA = {
+  'AO Luanda': [13.23, -8.84], 'BF Ouagadougou': [-1.53, 12.37], 'BI Gitega': [29.92, -3.43], 'BJ Porto-Novo': [2.63, 6.50], 'BW Gaborone': [25.91, -24.65],
+  'CD Kinshasa': [15.27, -4.32], 'CF Bangui': [18.56, 4.39], 'CG Brazzaville': [15.24, -4.27], 'CI Yamoussoukro': [-5.28, 6.82], 'CM Yaoundé': [11.50, 3.87],
+  'CV Praia': [-23.51, 14.93], 'DJ Djibouti': [43.15, 11.59], 'DZ Algiers': [3.06, 36.75], 'EG Cairo': [31.24, 30.04], 'ER Asmara': [38.93, 15.32],
+  'ET Addis Ababa': [38.75, 9.03], 'GA Libreville': [9.45, 0.39], 'GH Accra': [-0.19, 5.60], 'GM Banjul': [-16.58, 13.45], 'GN Conakry': [-13.68, 9.64],
+  'GQ Malabo': [8.78, 3.75], 'GW Bissau': [-15.60, 11.86], 'KE Nairobi': [36.82, -1.29], 'KM Moroni': [43.26, -11.70], 'LR Monrovia': [-10.80, 6.30],
+  'LS Maseru': [27.48, -29.31], 'LY Tripoli': [13.19, 32.89], 'MA Rabat': [-6.84, 34.02], 'MG Antananarivo': [47.52, -18.88], 'ML Bamako': [-8.00, 12.64],
+  'MR Nouakchott': [-15.98, 18.09], 'MU Port Louis': [57.50, -20.16], 'MW Lilongwe': [33.79, -13.96], 'MZ Maputo': [32.57, -25.97], 'NA Windhoek': [17.08, -22.56],
+  'NE Niamey': [2.11, 13.51], 'NG Abuja': [7.49, 9.06], 'RW Kigali': [30.06, -1.94], 'SC Victoria': [55.45, -4.62], 'SD Khartoum': [32.53, 15.50],
+  'SL Freetown': [-13.23, 8.48], 'SN Dakar': [-17.45, 14.69], 'SO Mogadishu': [45.32, 2.05], 'SS Juba': [31.58, 4.86], 'ST São Tomé': [6.73, 0.34],
+  'SZ Mbabane': [31.14, -26.31], 'TD N’Djamena': [15.04, 12.13], 'TG Lomé': [1.22, 6.13], 'TN Tunis': [10.18, 36.81], 'TZ Dodoma': [35.74, -6.16],
+  'UG Kampala': [32.58, 0.35], 'ZA Pretoria': [28.19, -25.75], 'ZM Lusaka': [28.32, -15.39], 'ZW Harare': [31.05, -17.83],
+};
+
 const ASIAPAC = {
   'AU Canberra': [149.13, -35.28], 'BD Dhaka': [90.41, 23.81], 'BN Bandar Seri Begawan': [114.94, 4.89], 'BT Thimphu': [89.64, 27.47], 'CN Beijing': [116.40, 39.90],
   'FJ Suva': [178.44, -18.14], 'FM Palikir': [158.16, 6.92], 'ID Jakarta': [106.85, -6.21], 'IN New Delhi': [77.21, 28.61], 'JP Tokyo': [139.69, 35.69],
@@ -52,6 +66,17 @@ const ASIAPAC = {
   'TL Dili': [125.57, -8.56], 'TO Nukuʻalofa': [-175.20, -21.14], 'TV Funafuti': [179.19, -8.52], 'VN Hanoi': [105.85, 21.03], 'VU Port Vila': [168.32, -17.73],
   'WS Apia': [-171.76, -13.83],
 };
+
+test('the five tables are the 193 UN members, each once', () => {
+  const all = [AMERICAS, EUROPE, MIDEAST, ASIAPAC, AFRICA].flatMap((t) => Object.keys(t).map((k) => k.slice(0, 2)));
+  assert.equal(all.length, 193);
+  assert.equal(new Set(all).size, 193);
+});
+
+test('every capital of Africa is a city', () => {
+  assert.equal(Object.keys(AFRICA).length, 54);
+  assert.deepEqual(missing(AFRICA), []);
+});
 
 test('every capital of Asia and the Pacific is a city', () => {
   assert.equal(Object.keys(ASIAPAC).length, 36);
