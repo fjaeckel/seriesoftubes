@@ -17,6 +17,8 @@ function peeringDeskDay(d){const w=Math.floor(d/7);let D=S.pdesk;
   if(!ixs.length||Math.random()>=Math.min(0.9,0.15*ixs.length)*PDESK_ASK[p])return;
   const c=pick(ixs),real=ixMembers(c).filter(id=>{const n=NET[id];return !S.peers[id+'@'+c]&&!merged(id)&&n.type!=='t1'&&n.type!=='cdn'&&n.pol!=='paid'&&n.share<=0.006;});
   const net=real.length&&Math.random()<0.4?pick(real):null,fresh=Math.random()>=0.6;
+  // A network you already reach (route server, your own exchange) needs no session of its own (#265).
+  if(net&&ixSessions(c).has(net))return;
   if(!pdeskWant(p,net,fresh)){D.d++;return;}
   if(net)S.peers[net+'@'+c]=true;D.a++;if(!D.ix.includes(c)&&D.ix.length<PDESK_IX)D.ix.push(c);}
 // "Peering desk: 7 new sessions at DE-KICKS and LINX, 3 declined (Selective)."
