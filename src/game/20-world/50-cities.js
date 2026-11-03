@@ -363,6 +363,23 @@ const CITIES=[
  {id:'bah',name:'Manama',x:0,y:0,land:'bhr',reg:'AS',cc:'BH',capital:true,P:70,ix:'Pearl-IX',dc:'Pearl Diver DC',note:tr('cities.a_cloud_region_on_an_island')},
  {id:'esb',name:'Ankara',x:0,y:0,land:'eu',reg:'AS',cc:'TR',capital:true,P:350,ix:'Simit-IX',dc:'Mausoleum Hill Colo'},
  {id:'isb',name:'Islamabad',x:0,y:0,land:'eu',reg:'AS',cc:'PK',capital:true,P:150,ix:'',dc:'Margalla Hills DC'},
+ // South, East and Southeast Asia and the Pacific: every capital, and Hanoi and Wellington
+ {id:'pbh',name:'Thimphu',x:0,y:0,land:'eu',reg:'AS',cc:'BT',capital:true,P:15,ix:'Ema-Datshi-IX',dc:'Dzong Colo',note:tr('cities.bhutan_peers_at_home_and_crosses')},
+ {id:'ktm',name:'Kathmandu',x:0,y:0,land:'eu',reg:'AS',cc:'NP',capital:true,P:150,ix:'Momo-IX',dc:'Everest Base Rack',note:tr('cities.a_second_way_out_over_the')},
+ {id:'bwn',name:'Bandar Seri Begawan',x:0,y:0,land:'brn',reg:'AS',cc:'BN',capital:true,P:25,ix:'Hornbill-IX',dc:'Water Village DC',note:tr('cities.one_state_company_owns_every_wire')},
+ {id:'pnh',name:'Phnom Penh',x:0,y:0,land:'eu',reg:'AS',cc:'KH',capital:true,P:120,ix:'Amok-IX',dc:'Riverside Colo'},
+ {id:'vte',name:'Vientiane',x:0,y:0,land:'eu',reg:'AS',cc:'LA',capital:true,P:50,ix:'',dc:'Patuxai Rack',note:tr('cities.no_exchange_so_lao_traffic_detours')},
+ {id:'uln',name:'Ulaanbaatar',x:0,y:0,land:'eu',reg:'AS',cc:'MN',capital:true,P:60,ix:'Buuz-IX',dc:'Ger District DC',note:tr('cities.no_sea_three_exchanges_and_barely')},
+ {id:'nyt',name:'Naypyidaw',x:0,y:0,land:'eu',reg:'AS',cc:'MM',capital:true,P:150,ix:'',dc:'Twenty-Lane Highway Colo',note:tr('cities.a_capital_built_from_scratch_with')},
+ {id:'fnj',name:'Pyongyang',x:0,y:0,land:'eu',reg:'AS',cc:'KP',capital:true,P:2,ix:'',dc:'Ryugyong Hotel Rack',note:tr('cities.the_whole_country_is_one_network')},
+ {id:'dil',name:'Dili',x:0,y:0,land:'tim',reg:'AS',cc:'TL',capital:true,P:15,ix:'',dc:'Cristo Rei Colo',note:tr('cities.timor_leste_s_first_cable_switched_on')},
+ {id:'trw',name:'South Tarawa',x:0,y:0,land:'kir',reg:'OC',cc:'KI',capital:true,P:3,ix:'',dc:'Atoll Hut DC',note:tr('cities.tarawa_s_first_cable_came_in')},
+ {id:'pni',name:'Palikir',x:0,y:0,land:'pnp',reg:'OC',cc:'FM',capital:true,P:2,ix:'',dc:'Nan Madol Rack'},
+ {id:'inu',name:'Yaren',x:0,y:0,land:'nru',reg:'OC',cc:'NR',capital:true,P:0.5,ix:'',dc:'Phosphate Pit DC',note:tr('cities.twelve_thousand_people_and_their_first')},
+ {id:'fun',name:'Funafuti',x:0,y:0,land:'tuv',reg:'OC',cc:'TV',capital:true,P:0.4,ix:'',dc:'Runway Rack',note:tr('cities.when_the_cable_arrived_the_whole')},
+ {id:'vli',name:'Port Vila',x:0,y:0,land:'vut',reg:'OC',cc:'VU',capital:true,P:6,ix:'Kava-IX',dc:'Kava Bar Colo'},
+ {id:'han',name:'Hanoi',x:0,y:0,land:'eu',reg:'AS',cc:'VN',capital:true,P:300,ix:'Bun-Cha-IX',dc:'Old Quarter Colo'},
+ {id:'wlg',name:'Wellington',x:0,y:0,land:'nz',reg:'OC',cc:'NZ',capital:true,P:40,ix:'Windy-Welly-IX',dc:'Beehive Basement DC'},
 ];
 // Display-only nudges for cities that sit on top of each other at map scale; distances still use real lon/lat.
 const CITY_NUDGE={

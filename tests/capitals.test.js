@@ -42,6 +42,22 @@ const MIDEAST = {
   'TM Ashgabat': [58.38, 37.95], 'AE Abu Dhabi': [54.37, 24.45], 'UZ Tashkent': [69.24, 41.30], 'YE Sanaa': [44.19, 15.37],
 };
 
+const ASIAPAC = {
+  'AU Canberra': [149.13, -35.28], 'BD Dhaka': [90.41, 23.81], 'BN Bandar Seri Begawan': [114.94, 4.89], 'BT Thimphu': [89.64, 27.47], 'CN Beijing': [116.40, 39.90],
+  'FJ Suva': [178.44, -18.14], 'FM Palikir': [158.16, 6.92], 'ID Jakarta': [106.85, -6.21], 'IN New Delhi': [77.21, 28.61], 'JP Tokyo': [139.69, 35.69],
+  'KH Phnom Penh': [104.92, 11.56], 'KI Tarawa': [172.98, 1.33], 'KP Pyongyang': [125.76, 39.04], 'KR Seoul': [126.98, 37.57], 'LA Vientiane': [102.63, 17.97],
+  'LK Sri Jayawardenepura Kotte': [79.89, 6.89], 'MH Majuro': [171.38, 7.09], 'MM Naypyidaw': [96.13, 19.76], 'MN Ulaanbaatar': [106.92, 47.92], 'MV Malé': [73.51, 4.18],
+  'MY Kuala Lumpur': [101.69, 3.14], 'NP Kathmandu': [85.32, 27.72], 'NR Yaren': [166.92, -0.55], 'NZ Wellington': [174.78, -41.29], 'PG Port Moresby': [147.18, -9.44],
+  'PH Manila': [120.98, 14.60], 'PW Ngerulmud': [134.62, 7.50], 'SB Honiara': [159.95, -9.43], 'SG Singapore': [103.82, 1.35], 'TH Bangkok': [100.50, 13.76],
+  'TL Dili': [125.57, -8.56], 'TO Nukuʻalofa': [-175.20, -21.14], 'TV Funafuti': [179.19, -8.52], 'VN Hanoi': [105.85, 21.03], 'VU Port Vila': [168.32, -17.73],
+  'WS Apia': [-171.76, -13.83],
+};
+
+test('every capital of Asia and the Pacific is a city', () => {
+  assert.equal(Object.keys(ASIAPAC).length, 36);
+  assert.deepEqual(missing(ASIAPAC), []);
+});
+
 test('every capital of the Middle East, the Caucasus and Central Asia is a city', () => {
   assert.equal(Object.keys(MIDEAST).length, 24);
   assert.deepEqual(missing(MIDEAST), []);

@@ -12,14 +12,18 @@ const EXCEPTIONS = {
   // W2: countries with fewer than two consumer networks of their own, because real life has fewer.
   W2: {
     AD: 'Andorra Telecom is by law the only telecom operator',
+    BN: "Since 2019 the state's UNN owns every network in Brunei; the retail brands have none of their own",
     CU: 'Cuba has one state operator (ETECSA); Cubacel is its own mobile brand',
     DJ: 'Djibouti Telecom is the monopoly for homes and phones',
+    FM: 'FSM Telecom is the only operator on Pohnpei',
     GL: 'Greenland has one operator (Tusass), for homes, phones and the cables',
+    KP: 'Star JV is the only network in North Korea',
     MC: "Monaco Telecom is the principality's only fixed and mobile operator",
     MH: 'the Marshall Islands have one telco (NTA)',
     PN: 'Pitcairn has no network at all: land your own cable (#124)',
     SH: 'St Helena has one operator (Sure South Atlantic)',
     TM: 'Turkmentelecom is the state gateway, and TMCell the state mobile operator behind it',
+    TV: 'Tuvalu Telecommunications Corporation is the only telco',
     YE: "In Sanaa, YemenNet is the only internet gateway; the mobile operators' data goes through it",
   },
   // W3: cities nobody sells transit in.
@@ -50,6 +54,7 @@ const EXCEPTIONS = {
     cun: 'China (#59)',
     cxc: 'buys from Spectre-um, which is transit-free',
     drz: 'a transit-free Tier 2',
+    ert: 'Russia: buys from Rostelecomedy (#70)',
     etc: 'Cuba: buys from Sparkly Seabone, a Tier 1 only for games since 1.12',
     ets: 'transit-free in the Gulf',
     ftr: 'buys from Very-Zone, which is transit-free',
@@ -63,7 +68,6 @@ const EXCEPTIONS = {
     meo: 'Portuguese incumbent, peers for its own reach',
     mgf: 'Russia: buys from Rostelecomedy (#70)',
     npt: 'Australian (#148)',
-    ert: 'Russia: buys from Rostelecomedy (#70)',
     opt: 'Australian, buys from SingTell (#148)',
     pnt: 'Australian (#148)',
     rtc: 'Russia (#70)',
@@ -72,6 +76,7 @@ const EXCEPTIONS = {
     spc: 'transit-free incumbent',
     stb: 'satellite: peers for its own reach',
     stc: 'transit-free in Saudi Arabia',
+    stj: 'North Korea’s only links are China Unicorn and Rostelecomedy',
     teg: 'owns the land crossing; transit-free',
     tim: 'buys from Sparkly Seabone, a Tier 1 only for games since 1.12',
     tmt: 'buys from Sparkly Seabone, a Tier 1 only for games since 1.12',
@@ -101,11 +106,11 @@ const REAL_NAMES = [
   // content and clouds
   'Akamai', 'Alibaba Cloud', 'Amazon', 'Amazon Web Services', 'AWS', 'Baidu', 'ByteDance', 'Cloudflare', 'Facebook', 'Fastly', 'Google', 'Mercado Libre', 'Meta', 'Microsoft', 'Netflix', 'Tencent', 'TikTok', 'VK', 'VKontakte', 'Yandex',
   // eyeballs and incumbents
-  ', ', 'A1', 'A1 Telekom Austria', 'Afghan Telecom', 'Airtel', 'AIS', 'Algérie Télécom', 'Altibox', 'Altice', 'America Movil', 'Andorra Telecom', 'Angola Cables', 'Antel', 'ASTCA', 'Aussie Broadband', 'AWCC', 'Azercell', 'Aztelekom', 'Batelco', 'Belize Telemedia', 'Bell', 'Bell Canada', 'Belong', 'Beltelecom', 'Bemobile', 'Bezeq International', 'BH Telecom', 'Bitė', 'Brisanet', 'BT', 'BTC', 'Cable & Wireless', 'Cable Bahamas', 'Cablenet', 'Crnogorski Telekom', 'Cyta', 'Earthlink', 'FL1', 'GO', 'Guyana Telephone & Telegraph', 'Hoi Internet', 'Hrvatski Telekom', 'Kazakhtelecom', 'Kcell', 'Kyrgyztelecom', 'L", ', 'Magticom', 'MCI', 'Melita', 'Moldtelecom', 'Monaco Telecom', 'Natcom', 'O!', 'Ogero', 'One Albania', 'Partner', 'Silknet', 'Slovak Telekom', 'SMART', 'Speednet', 'Syrian Telecom', 'Syriatel', 'TCI', 'Team Telecom Armenia', 'Telecom Liechtenstein', 'Telekom Slovenije', 'Telenet San Marino', 'Telesur', 'Telia Lietuva', 'Tojiktelecom', 'touch', 'Turkmentelecom', 'Ucom', 'Unitel', 'Uztelecom', 'YemenNet', 'Zain',
+  ', ', 'A1', 'A1 Telekom Austria', 'Afghan Telecom', 'Airtel', 'AIS', 'Algérie Télécom', 'Altibox', 'Altice', 'America Movil', 'Andorra Telecom', 'Angola Cables', 'Antel', 'ASTCA', 'ATH Kiribati', 'Aussie Broadband', 'AWCC', 'Azercell', 'Aztelekom', 'Batelco', 'Belize Telemedia', 'Bell', 'Bell Canada', 'Belong', 'Beltelecom', 'Bemobile', 'Bezeq International', 'BH Telecom', 'Bhutan Telecom', 'Bitė', 'Brisanet', 'BT', 'BTC', 'Cable & Wireless', 'Cable Bahamas', 'Cablenet', 'Cenpac', 'Crnogorski Telekom', 'Cyta', 'Earthlink', 'FL1', 'FSM Telecommunications Corporation', 'GO', 'Guyana Telephone & Telegraph', 'Hoi Internet', 'Hrvatski Telekom', 'Kazakhtelecom', 'Kcell', 'Kyrgyztelecom', 'L", ', 'Lao Telecom', 'Magticom', 'MCI', 'Melita', 'MobiCom', 'Moldtelecom', 'Monaco Telecom', 'MPT', 'Natcom', 'Ncell', 'Nepal Telecom', 'O!', 'Ocean Link', 'Ogero', 'One Albania', 'Partner', 'Silknet', 'Slovak Telekom', 'SMART', 'Smart Axiata', 'Speednet', 'Star JV', 'Syrian Telecom', 'Syriatel', 'Tashi InfoComm', 'TashiCell', 'TCI', 'Team Telecom Armenia', 'Telecom Liechtenstein', 'Telecom Vanuatu', 'Telekom Slovenije', 'Telenet San Marino', 'Telesur', 'Telia Lietuva', 'Timor Telecom', 'Tojiktelecom', 'touch', 'Turkmentelecom', 'Tuvalu Telecommunications Corporation', 'Ucom', 'Unified National Networks', 'Unitel', 'Univision', 'UNN', 'Uztelecom', 'YemenNet', 'Zain',
   // exchanges and data centers
-  'AMS-IX', 'ANIX', 'Any2', 'ArmIX', 'BALT-IX', 'BCIX', 'BHNIX', 'BY-IX', 'CIX', 'CoreSite', 'CyIX', 'DANIX', 'DE-CIX', 'DigiCo', 'Digital Realty', 'Equinix', 'France-IX', 'GREX', 'HIX', 'Interxion', 'IRAQ-IXP', 'iseek', 'IX.br', 'ix.kw', 'IXP-HN', 'IXP.ge', 'IXP.mk', 'JPIX', 'KAZ-GOV-IX', 'KG-IX', 'KIVIX', 'LebIX', 'LINX', 'Manama IX', 'MD-IX', 'MIXP', 'NAPAfrica', 'NetIX', 'NEXTDC', 'NIX', 'NIX.SK', 'NIXA', 'NL-ix', 'RegPEX', 'SIX', 'SIX.SK', 'SKNIX', 'SNS-IX', 'SUR-IX', 'SVGIX', 'Tehran IX', 'Telehouse', 'TJ-IX',
+  'AMS-IX', 'ANIX', 'Any2', 'ArmIX', 'BALT-IX', 'BCIX', 'BHNIX', 'Borneo-IX', 'btIX', 'BY-IX', 'CIX', 'CNX', 'CoreSite', 'CyIX', 'DANIX', 'DE-CIX', 'DigiCo', 'Digital Realty', 'Equinix', 'France-IX', 'GREX', 'HIX', 'Interxion', 'IRAQ-IXP', 'iseek', 'IX.br', 'ix.kw', 'IXP-HN', 'IXP.ge', 'IXP.mk', 'JPIX', 'KAZ-GOV-IX', 'KG-IX', 'KIVIX', 'LebIX', 'LINX', 'Manama IX', 'MD-IX', 'MISPA-IXP', 'MIXP', 'NAPAfrica', 'NetIX', 'NEXTDC', 'NIX', 'NIX.SK', 'NIXA', 'NL-ix', 'npIX', 'RegPEX', 'SIX', 'SIX.SK', 'SKNIX', 'SNS-IX', 'SUR-IX', 'SVGIX', 'Tehran IX', 'Telehouse', 'TJ-IX', 'VIX.VU', 'VNIX-HN', 'WIX-NZ', 'WLG-IX',
   // cables
-  '2Africa', 'Amitié', 'BDSNi', 'CADMOS', 'CARCIP', 'Darwin-Jakarta-Singapore Cable', 'Deep Blue One', 'Dunant', 'Eastern Caribbean Fiber System', 'EllaLink', 'Epic Malta-Sicily Cable System', 'Equiano', 'FALCON', 'Fibralink', 'GO-1', 'Grace Hopper', 'Greenland Connect', 'Greenland Connect North', 'Hibernia Express', 'Jupiter', 'MAREA', 'MedNautilus', 'Melita 1', 'North West Cable System', 'PEACE', 'SEA-ME-WE 6', 'SG-SCS', 'Southern Caribbean Fiber', 'UGARIT', 'X-Link',
+  '2Africa', 'Amitié', 'BDSNi', 'CADMOS', 'CARCIP', 'Darwin-Jakarta-Singapore Cable', 'Deep Blue One', 'Dunant', 'East Micronesia Cable', 'Eastern Caribbean Fiber System', 'EllaLink', 'Epic Malta-Sicily Cable System', 'Equiano', 'FALCON', 'Fibralink', 'GO-1', 'Grace Hopper', 'Greenland Connect', 'Greenland Connect North', 'Hibernia Express', 'ICN1', 'Interchange Cable Network 1', 'Jupiter', 'MAREA', 'MedNautilus', 'Melita 1', 'North West Cable System', 'PEACE', 'SEA-ME-WE 6', 'SG-SCS', 'Southern Caribbean Fiber', 'TLSSC', 'Tuvalu Vaka Cable', 'UGARIT', 'Vaka', 'X-Link',
   // cable ships, their operators and maintenance clubs
   'ACMA', 'ASEAN Explorer', 'ASEAN Protector', 'ASEAN Restorer', 'Cable Innovator', 'Cable Retriever', 'Global Marine', 'Léon Thévenin', 'MECMA', 'Orange Marine', 'Pierre de Fermat', 'René Descartes', 'SEAIOCMA', 'Sophie Germain', 'Sovereign', 'Wave Sentinel', 'Yokohama Zone',
   // vendors

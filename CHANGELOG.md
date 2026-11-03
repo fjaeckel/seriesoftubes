@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Every capital in South, East and Southeast Asia and the Pacific is on the map: Thimphu, Kathmandu, Bandar Seri Begawan, Phnom Penh, Vientiane, Ulaanbaatar, Naypyidaw, Pyongyang, Dili, Hanoi and Wellington, with the island capitals Tarawa, Palikir, Yaren, Funafuti and Port Vila. Each country brings its real telcos, North Korea reaches the world only through China and Russia, and the islands hang on their real cables.
 - Every capital in the Middle East, the Caucasus and Central Asia is on the map, from Yerevan and Baku to Kabul, Tehran, Baghdad, Jerusalem, Amman, Kuwait City, Beirut, Damascus, Sanaa and Manama, with Ankara and Islamabad. Each country brings its real telcos, and Bahrain is an island on the Gulf's cables.
 - Every capital in Europe is on the map: Tirana, Andorra la Vella, Minsk, Sarajevo, Zagreb, Nicosia, Vaduz, Vilnius, Valletta, Chișinău, Monaco, Podgorica, Skopje, San Marino, Bratislava, Ljubljana and Bern. Each country brings its real telcos, exchanges sit only where real ones do, and Malta and Cyprus are islands on the real PEACE, MedNautilus and Blue cables.
 - Every capital in the Americas is on the map: the eastern Caribbean islands, Central America, Haiti, Guyana, Suriname and Bolivia's constitutional capital Sucre. The islands land the real cables (ECFS and Southern Caribbean Fiber), Flow and Digicel serve all of them, and Belize, Guyana, Suriname and Haiti get their own national telcos.

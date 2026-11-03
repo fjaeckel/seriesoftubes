@@ -100,9 +100,9 @@ const CABLES=[
  {"id":"tea","name":"Boston Tea Party Line","price":0.9,"age":"mid","blurb":tr('cables.boston_to_dublin_nobody_has_thrown'),"pairs":[["bos","dub",[[-65.25,43],[-26,51],[-8.5,51],[-5.75,52.25],[-5.5,53.25]]]]},
  {"id":"clementine","name":"Clementine","price":0.6,"age":"new","df":true,"blurb":tr('cables.a_small_sweet_cable_from_broadstairs'),"pairs":[["lon","oos",[[1.44,51.36],[2.92,51.23]]]]},
  {"id":"seaus","name":"SEA-US Later","price":1.0,"age":"mid","blurb":tr('cables.los_angeles_to_hawaii_guam_and'),"pairs":[["lax","hnl",[[-119,33.5],[-140,27],[-157.6,21.6]]],["hnl","gum",[[-158.3,21.2],[-180,18],[-200,15],[-214.6,13.5]]],["gum","dvo",[[144,13.7],[135,10.5],[128,6.8],[126.4,5.7],[125.85,6.2],[125.7,6.75]]],["gum","ror",[[144.5,13.1],[139,9.5],[134.8,7.5]]]]},
- {"id":"aag","name":"Asia-America Gateaux","price":1.25,"age":"old","blurb":tr('cables.california_to_hong_kong_via_hawaii'),"pairs":[["sjc","hnl",[[-122.8,35],[-140,27.5],[-158.2,21.4]]],["hnl","gum",[[-158.4,21.5],[-180,19],[-200,16],[-214.4,13.7]]],["gum","hkg",[[144.5,14],[130,17.5],[121,20],[115,21.6],[114.3,22.2]]]]},
+ {"id":"aag","name":"Asia-America Gateaux","price":1.25,"age":"old","blurb":tr('cables.california_to_hong_kong_via_hawaii'),"pairs":[["bwn","sin",[[113.5,4.8],[109,2.8],[105,1.6]]],["sjc","hnl",[[-122.8,35],[-140,27.5],[-158.2,21.4]]],["hnl","gum",[[-158.4,21.5],[-180,19],[-200,16],[-214.4,13.7]]],["gum","hkg",[[144.5,14],[130,17.5],[121,20],[115,21.6],[114.3,22.2]]]]},
  {"id":"echo","name":"Echo-Chamber","price":0.85,"age":"new","blurb":tr('cables.california_to_singapore_via_guam'),"pairs":[["sjc","gum",[[-125,38],[-150,30],[-180,21],[-214.8,14]]],["gum","sin",[[137.45,12.58],[125,10.25],[123.75,9],[122,9],[108,5],[104.25,1.25]]]]},
- {"id":"hantru","name":"HANTRU-ly Yours","price":1.3,"age":"mid","blurb":tr('cables.guam_to_the_marshall_islands_with'),"pairs":[["gum","maj",[[145,13.3],[158,7],[167,8.5],[171.2,7.2]]]]},
+ {"id":"hantru","name":"HANTRU-ly Yours","price":1.3,"age":"mid","blurb":tr('cables.guam_to_the_marshall_islands_with'),"pairs":[["pni","gum",[[155,9],[150,11.5],[146,13.2]]],["pni","maj",[[162,6.5],[168,7]]],["gum","maj",[[145,13.3],[158,7],[167,8.5],[171.2,7.2]]]]},
  {"id":"coral","name":"Coral Sea Shanty","price":1.0,"age":"new","blurb":tr('cables.sydney_to_papua_new_guinea_and'),"pairs":[["syd","pom",[[153,-32.75],[154.25,-29.25],[153.75,-26]]],["syd","hir",[[152,-33.5],[156.5,-25],[160.5,-14],[160,-9.6]]]]},
  {"id":"gond","name":"Gondwanna-Be","price":1.1,"age":"mid","blurb":tr('cables.sydney_to_noumea_wishes_it_were'),"pairs":[["syd","nou",[[152,-33.5],[158,-28],[164,-23.5],[166.2,-22.5]]]]},
  {"id":"tonga","name":"Tonga Twister","price":1.3,"age":"mid","blurb":tr('cables.fiji_to_tonga_the_only_way'),"pairs":[["suv","tbu",[[178.8,-18.5],[181.5,-20],[184.6,-21]]]]},
@@ -173,7 +173,11 @@ const CABLES=[
  {"id":"bdsn","name":"Bahama-Drama Sub Net","price":1.3,"age":"mid","blurb":tr('cables.the_bahamas_island_chain_with_a'),"pairs":[["nas","pap",[[-76,24],[-73.6,21],[-72.8,19]]]]},
  {"id":"mlsc","name":"Sicily Shuttle","price":1.1,"age":"mid","blurb":tr('cables.malta_s_three_operators_each_lay'),"pairs":[["mla","pmo",[[14.2,36.05],[12.3,37.2],[12.7,38.25]]]]},
  {"id":"cadm","name":"Cad-Moss","price":1.2,"age":"old","blurb":tr('cables.cyprus_to_beirut_a_short_hop'),"pairs":[["nic","bey",[[33.9,34.7],[35.2,34]]]]},
- {"id":"ugar","name":"U-Got-It","price":1.3,"age":"old","blurb":tr('cables.cyprus_to_syria_s_one_port'),"pairs":[["nic","dam",[[34,34.9],[35.7,34.9]]]]}
+ {"id":"ugar","name":"U-Got-It","price":1.3,"age":"old","blurb":tr('cables.cyprus_to_syria_s_one_port'),"pairs":[["nic","dam",[[34,34.9],[35.7,34.9]]]]},
+ {"id":"emc","name":"East Micro-Nation Cable","price":1.3,"age":"new","blurb":tr('cables.tarawa_nauru_and_pohnpei_on_one'),"pairs":[["trw","inu",[[171,0.8],[168.5,-0.1]]],["inu","pni",[[164,2.5],[160.5,5.6]]]]},
+ {"id":"vaka","name":"Vaka-tion Cable","price":1.3,"age":"new","blurb":tr('cables.a_branch_down_to_funafuti_off'),"pairs":[["fun","suv",[[179.6,-12],[179,-16.5]]]]},
+ {"id":"icn1","name":"Inter-Change-Purse","price":1.2,"age":"mid","blurb":tr('cables.port_vila_to_suva_the_cable'),"pairs":[["vli","suv",[[170.5,-18.3],[176.5,-18.5]]]]},
+ {"id":"tlssc","name":"Timor-row Cable","price":1.2,"age":"new","blurb":tr('cables.timor_leste_s_first_cable_down'),"pairs":[["dil","drw",[[125.8,-8.9],[127.8,-10.5],[130,-12]]]]}
 ];
 const CAB=Object.fromEntries(CABLES.map(c=>[c.id,c]));
 const CABLE_PAIRS=CABLES.flatMap(c=>c.pairs.map(([a,b,mid])=>{const A=CITY[a],B=CITY[b];const near=(x,ref)=>x+W*Math.round((ref-x)/W);
