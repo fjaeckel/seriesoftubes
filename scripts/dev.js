@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Development server: http://localhost:8080 (PORT=… to change). The page is assembled from src/ on every
 // request, static files come straight from site/, and the browser reloads itself when you save a file.
-// The page is not version-stamped, so the game runs in dev mode (IS_DEV) like a local copy always has.
+// The page is not version-stamped, so the game runs in dev mode (IS_DEV) like a local copy always has, and it is
+// the development page: with the agent facade (src/agent/, window.TUBES) that the page players get has not.
 // No dependencies: plain node:http. For the production build as GitHub Pages will serve it: npm run serve.
 const fs = require('node:fs');
 const http = require('node:http');
@@ -17,7 +18,7 @@ const RELOAD = '<script>new EventSource("/__dev").onmessage=()=>location.reload(
 const clients = new Set();
 
 function page() {
-  const { html, map } = assemble();
+  const { html, map } = assemble({ dev: true });
   // Errors report a line of the assembled page; the console also says which file under src/ that is.
   const hint = `<script>addEventListener('error',e=>{const n=e.lineno,m=n&&(${JSON.stringify(map)}).find(m=>n>=m.from&&n<=m.to);if(m)console.warn('↑ src/'+m.file+':'+(n-m.from+1))});</script>`;
   return html.replace('</body>', `${hint}${RELOAD}</body>`);

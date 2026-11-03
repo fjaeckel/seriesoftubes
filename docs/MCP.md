@@ -69,14 +69,18 @@ moves only with `advance`. There is no tool that evaluates code in the page.
 ## Code
 
 - `scripts/mcp.js`: the stdio transport (JSON-RPC 2.0, one message per line) and the protocol methods.
-- `scripts/lib/mcp-game.js`: the session (one game page) and the tool list with input schemas.
-- `scripts/lib/mcp-commands.js`: runs inside the page: every action's class, arguments, domains, price and
-  description, and the `state`/`results` field reference.
-- `scripts/lib/mcp-page.js`: runs inside the page and reads or drives the game through its own globals.
+- `scripts/lib/mcp-game.js`: the session (one game page: the development page, which has the facade) and the tool
+  list with input schemas.
+- `src/agent/`: the facade (`window.TUBES.call(tool, args)`), in the page's own scope: every action's class,
+  arguments, domains, price and description (`20-commands.js`), the `state`/`results` field reference (`30-docs.js`),
+  the reads, screens, dispatch and time. It is part of the development page only, never of the page players get
+  ([ADR 0004](adr/0004-dev-only-code.md)).
+- `scripts/lib/mcp-headless.js`: added to the server's own page to start, load and export games.
+- `tests/agent-api.test.js`: the facade is inert until called, and the page players get has none of it.
 - `tests/mcp.test.js`: the protocol, a game played through the tools, determinism, saves, and what stays out of reach.
 - `tests/mcp-commands.test.js`: every action classified and its arguments real, outcomes, quotes, typed text,
   multi-step builds, confirmations, the reads and the screens.
 
 The tools read the game's internals (`S`, `R`, `ACT`, `NETS`…), which are not a stable API: a refactor in `src/` can
 break a tool, and the tests are there to catch that in CI. A new action in `ACT` needs an entry in
-`scripts/lib/mcp-commands.js` or the server's `DENY` list, or `tests/mcp-commands.test.js` fails.
+`src/agent/20-commands.js` (a class, or `API_DENY`), or `tests/mcp-commands.test.js` fails.

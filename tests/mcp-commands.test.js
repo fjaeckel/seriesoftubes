@@ -1,4 +1,4 @@
-// The MCP server's act tool (scripts/lib/mcp-commands.js, scripts/lib/mcp-page.js): typed, checked commands with
+// The MCP server's act tool (the page's agent facade, src/agent/): typed, checked commands with
 // outcomes and quotes, the raw reads (schema, catalog, state, results, ui), and screens beyond the side panel.
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -28,7 +28,7 @@ test('every action in the game is in exactly one class, so a new one forces a de
   assert.deepEqual(JSON.parse(acts).filter((x) => !all.includes(x)), [], 'every action is classified');
   assert.deepEqual(all.filter((x) => !JSON.parse(acts).includes(x)), [], 'every classified action exists');
   // Every argument domain resolves, and the tools' fixed vocabularies are the game's.
-  const bad = ev(`(()=>{const {API_CMD,API_VIEW,API_SESSION,API_DOMAINS,API_TABLES,API_MADE}=window.__mcpCmds,out=[];
+  const bad = ev(`(()=>{const out=[];
     for(const [n,s] of Object.entries({...API_CMD,...API_VIEW,...API_SESSION}))
       for(const [nm,d] of (s.args||[])) if(!['string','boolean','integer'].includes(d)&&!API_DOMAINS[d]) out.push(n+'.'+nm+': no domain '+d);
     for(const [n,d] of Object.entries(API_DOMAINS)) if(d.table&&!API_TABLES[d.table]&&!(d.table in API_MADE)) out.push('domain '+n+': no table '+d.table);

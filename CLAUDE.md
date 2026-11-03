@@ -5,7 +5,8 @@ https://seriesoftub.es, hosted on GitHub Pages. The game is one static page with
 Its source is many small files in `src/` (`src/styles/*.css`, `src/game/**/*.js`, the shell
 `src/index.html`); the build pastes them together, in path order, into a single `index.html`, the
 same one-file page players have always loaded. Static files (dictionaries, icons, service worker)
-live in `site/`.
+live in `site/`. `src/agent/` (the facade the MCP server plays through) goes into the development page only,
+never into the page players get, and nothing in `src/game/` may use it (`docs/adr/0004-dev-only-code.md`).
 
 Read these before larger changes:
 
