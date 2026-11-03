@@ -78,4 +78,9 @@ const layOwn=l=>l.kind==='df'&&l.own&&l.sub;
 const layName=(l,k=0)=>{let h=0;for(const ch of String(l.id))h=(h*31+ch.charCodeAt(0))>>>0;return LAY_SHIPS[(h+k)%LAY_SHIPS.length];};
 function layQuote(l){if(!layOwn(l)||l.ship2||S.day>=layStart(l)||l.ready<=S.day+1)return null;const save=Math.floor(layDays(l)/2);if(save<1)return null;return {save,cost:SHIP_MOB+save*LAY_DAY};}
 // How much of the cable is on the seabed, 0 to 1.
+/* Money hurries the survey, the permits and the factory (#258), 30 days a step, but only so far: the cable still has to
+   be made, about two months plus a day for every 80 km of it, before the ships can sail and lay it. */
+const PREP_STEP=30,prepMin=l=>leadDays(Math.round(60+(l.km||0)*0.012)),prepCost=l=>Math.round((500000+(l.km||0)*60)*hwMul('build')),
+  prepFloor=l=>Math.max(S.day+1,(l.day||0)+prepMin(l))+layLen(l),
+  prepSteps=l=>layOwn(l)&&l.ready>S.day&&S.day<layStart(l)?Math.max(0,Math.ceil((l.ready-prepFloor(l))/PREP_STEP)):0;
 const layDone=(l,T)=>clamp((T-layStart(l))/layLen(l),0,1);

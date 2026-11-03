@@ -105,6 +105,9 @@ const shipNote=i=>{const t=i&&shipStatus(i);return t?`<p class="note">🚢 ${esc
 function layPanel(l){const d=S.day,st=layStart(l),q=layQuote(l),km=Math.round(layDone(l,d)*l.km),two=l.ship2?tr('cable_ships.ship_and_ship',{a:layName(l),b:layName(l,1)}):layName(l);
   let h=d<st?`<div class="kv"><span>${tr('cable_ships.survey_permits_and_the_cable_factory')}</span><b>${trn('cable_ships.laying_starts_in_n_days',st-d)}</b></div>`
     :`<div class="kv"><span>${tr('cable_ships.ships_lay_the_cable',{ships:esc(two)})}</span><b>${tr('cable_ships.km_of_km',{km:km.toLocaleString(),of:Math.round(l.km).toLocaleString()})}</b></div>`;
+  const k=prepSteps(l),pc=prepCost(l),fast=Math.min(k*PREP_STEP,l.ready-prepFloor(l));
+  if(k)h+=`<div class="btns">${btn(tr('cable_ships.hurry_the_permits_and_the',{n:Math.min(PREP_STEP,fast),price:fmt$(pc)}),'seaRush',{id:l.id},'sm',S.cash<pc)}${k>1?btn(tr('cable_ships.as_fast_as_money_goes',{n:fast,price:fmt$(k*pc)}),'seaRush',{id:l.id,all:1},'sm',S.cash<k*pc):''}</div>`;
+  if(d<st)h+=`<p class="note">${tr('cable_ships.money_only_goes_so_far',{n:prepMin(l)})}</p>`;
   if(q)h+=`<div class="btns">${btn(tr('cable_ships.book_a_second_lay_ship',{price:fmt$(q.cost),n:q.save}),'layShip',{id:l.id},'sm',S.cash<q.cost)}</div><p class="note">${tr('link_panels.only_a_few_dozen_cable_ships')}</p>`;
   else if(!l.ship2&&d<st)h+=`<p class="note">${tr('link_panels.only_a_few_dozen_cable_ships')}</p>`;
   return h;}
