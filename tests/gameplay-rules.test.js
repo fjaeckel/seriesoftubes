@@ -11,9 +11,11 @@ const { load } = require('./harness');
 const EXCEPTIONS = {
   // W2: countries with fewer than two consumer networks of their own, because real life has fewer.
   W2: {
+    AD: 'Andorra Telecom is by law the only telecom operator',
     CU: 'Cuba has one state operator (ETECSA); Cubacel is its own mobile brand',
     DJ: 'Djibouti Telecom is the monopoly for homes and phones',
     GL: 'Greenland has one operator (Tusass), for homes, phones and the cables',
+    MC: "Monaco Telecom is the principality's only fixed and mobile operator",
     MH: 'the Marshall Islands have one telco (NTA)',
     PN: 'Pitcairn has no network at all: land your own cable (#124)',
     SH: 'St Helena has one operator (Sure South Atlantic)',
@@ -23,6 +25,7 @@ const EXCEPTIONS = {
     ivc: 'Invercargill waits for its AI campus; nobody sells transit there yet',
     pcn: 'Pitcairn: no cable, no network, land your own (#124)',
     prr: 'Prince Rupert is a remote town with no carrier in it',
+    smr: 'San Marino buys its transit from Italian carriers in Bologna and Rimini; nobody sells it in the town',
     sre: "Sucre has no exchange or carrier facility: Bolivia's transit is bought in La Paz",
     stg: 'Stuttgart is the Only Spätzle-IX scenario city: peering only, by design (#114)',
     yfb: 'Iqaluit has no fiber, only satellite: land your own cable (the real plan runs from Nuuk)',
@@ -96,11 +99,11 @@ const REAL_NAMES = [
   // content and clouds
   'Akamai', 'Alibaba Cloud', 'Amazon', 'Amazon Web Services', 'AWS', 'Baidu', 'ByteDance', 'Cloudflare', 'Facebook', 'Fastly', 'Google', 'Mercado Libre', 'Meta', 'Microsoft', 'Netflix', 'Tencent', 'TikTok', 'VK', 'VKontakte', 'Yandex',
   // eyeballs and incumbents
-  ', ', 'A1', 'A1 Telekom Austria', 'Airtel', 'AIS', 'Algérie Télécom', 'Altibox', 'Altice', 'America Movil', 'Angola Cables', 'Antel', 'ASTCA', 'Aussie Broadband', 'Belize Telemedia', 'Bell', 'Bell Canada', 'Belong', 'Bemobile', 'Brisanet', 'BT', 'BTC', 'Cable & Wireless', 'Cable Bahamas', 'Guyana Telephone & Telegraph', 'L", ', 'Natcom', 'SMART', 'Speednet', 'Telesur',
+  ', ', 'A1', 'A1 Telekom Austria', 'Airtel', 'AIS', 'Algérie Télécom', 'Altibox', 'Altice', 'America Movil', 'Andorra Telecom', 'Angola Cables', 'Antel', 'ASTCA', 'Aussie Broadband', 'Belize Telemedia', 'Bell', 'Bell Canada', 'Belong', 'Beltelecom', 'Bemobile', 'BH Telecom', 'Bitė', 'Brisanet', 'BT', 'BTC', 'Cable & Wireless', 'Cable Bahamas', 'Cablenet', 'Crnogorski Telekom', 'Cyta', 'FL1', 'GO', 'Guyana Telephone & Telegraph', 'Hoi Internet', 'Hrvatski Telekom', 'L", ', 'Melita', 'Moldtelecom', 'Monaco Telecom', 'Natcom', 'One Albania', 'Slovak Telekom', 'SMART', 'Speednet', 'Telecom Liechtenstein', 'Telekom Slovenije', 'Telenet San Marino', 'Telesur', 'Telia Lietuva',
   // exchanges and data centers
-  'AMS-IX', 'Any2', 'BCIX', 'CoreSite', 'DANIX', 'DE-CIX', 'DigiCo', 'Digital Realty', 'Equinix', 'France-IX', 'GREX', 'HIX', 'Interxion', 'iseek', 'IX.br', 'IXP-HN', 'JPIX', 'LINX', 'NAPAfrica', 'NetIX', 'NEXTDC', 'NIX', 'NL-ix', 'SIX', 'SKNIX', 'SUR-IX', 'SVGIX', 'Telehouse',
+  'AMS-IX', 'ANIX', 'Any2', 'BALT-IX', 'BCIX', 'BHNIX', 'BY-IX', 'CIX', 'CoreSite', 'CyIX', 'DANIX', 'DE-CIX', 'DigiCo', 'Digital Realty', 'Equinix', 'France-IX', 'GREX', 'HIX', 'Interxion', 'iseek', 'IX.br', 'IXP-HN', 'IXP.mk', 'JPIX', 'KIVIX', 'LINX', 'MD-IX', 'MIXP', 'NAPAfrica', 'NetIX', 'NEXTDC', 'NIX', 'NIX.SK', 'NL-ix', 'SIX', 'SIX.SK', 'SKNIX', 'SUR-IX', 'SVGIX', 'Telehouse',
   // cables
-  '2Africa', 'Amitié', 'BDSNi', 'CARCIP', 'Darwin-Jakarta-Singapore Cable', 'Deep Blue One', 'Dunant', 'Eastern Caribbean Fiber System', 'EllaLink', 'Equiano', 'Fibralink', 'Grace Hopper', 'Greenland Connect', 'Greenland Connect North', 'Hibernia Express', 'Jupiter', 'MAREA', 'North West Cable System', 'PEACE', 'SEA-ME-WE 6', 'SG-SCS', 'Southern Caribbean Fiber', 'X-Link',
+  '2Africa', 'Amitié', 'BDSNi', 'CARCIP', 'Darwin-Jakarta-Singapore Cable', 'Deep Blue One', 'Dunant', 'Eastern Caribbean Fiber System', 'EllaLink', 'Epic Malta-Sicily Cable System', 'Equiano', 'Fibralink', 'GO-1', 'Grace Hopper', 'Greenland Connect', 'Greenland Connect North', 'Hibernia Express', 'Jupiter', 'MAREA', 'MedNautilus', 'Melita 1', 'North West Cable System', 'PEACE', 'SEA-ME-WE 6', 'SG-SCS', 'Southern Caribbean Fiber', 'X-Link',
   // cable ships, their operators and maintenance clubs
   'ACMA', 'ASEAN Explorer', 'ASEAN Protector', 'ASEAN Restorer', 'Cable Innovator', 'Cable Retriever', 'Global Marine', 'Léon Thévenin', 'MECMA', 'Orange Marine', 'Pierre de Fermat', 'René Descartes', 'SEAIOCMA', 'Sophie Germain', 'Sovereign', 'Wave Sentinel', 'Yokohama Zone',
   // vendors

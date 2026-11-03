@@ -101,4 +101,9 @@ LANDS_LL.push(
  {id:'vct',hide:true,ll:[[-61.62,13.46],[-60.82,13.46],[-60.82,12.86],[-61.62,12.86]]},
  {id:'grd',hide:true,ll:[[-62.15,12.35],[-61.35,12.35],[-61.35,11.75],[-62.15,11.75]]},
 );
+// Malta and Cyprus, islands reached only by their cables
+LANDS_LL.push(
+ {id:'cyp',hide:true,ll:[[32.98,35.49],[33.78,35.49],[33.78,34.89],[32.98,34.89]]},
+ {id:'mlt',hide:true,ll:[[14.11,36.20],[14.91,36.20],[14.91,35.60],[14.11,35.60]]},
+);
 const LANDS=LANDS_LL.map(l=>({id:l.id,hide:true,pts:l.ll.map(q=>proj(q[0],q[1]))}));
