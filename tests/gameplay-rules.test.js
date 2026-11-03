@@ -13,6 +13,7 @@ const EXCEPTIONS = {
   W2: {
     CU: 'Cuba has one state operator (ETECSA); Cubacel is its own mobile brand',
     DJ: 'Djibouti Telecom is the monopoly for homes and phones',
+    GL: 'Greenland has one operator (Tusass), for homes, phones and the cables',
     MH: 'the Marshall Islands have one telco (NTA)',
     PN: 'Pitcairn has no network at all: land your own cable (#124)',
     SH: 'St Helena has one operator (Sure South Atlantic)',
@@ -23,6 +24,8 @@ const EXCEPTIONS = {
     pcn: 'Pitcairn: no cable, no network, land your own (#124)',
     prr: 'Prince Rupert is a remote town with no carrier in it',
     stg: 'Stuttgart is the Only Spätzle-IX scenario city: peering only, by design (#114)',
+    yfb: 'Iqaluit has no fiber, only satellite: land your own cable (the real plan runs from Nuuk)',
+    yyj: 'Victoria buys from Telus and Rogers, consumer networks only in the game: link it from Vancouver',
   },
   // N3: networks in no founding Tier 1's customer cone. Old saves need PNIs with the founding five for Tier 1,
   // so anyone outside their cones has to be peered with directly.
@@ -88,7 +91,7 @@ const EXCEPTIONS = {
 // The real names the puns are based on. No network, cable, exchange, data center, router or optic may be called one.
 const REAL_NAMES = [
   // Tier 1s and carriers
-  'AT&T', 'BICS', 'Cogent', 'GTT', 'Hurricane Electric', 'Level 3', 'Level3', 'Liquid', 'Liquid Intelligent Technologies', 'Lumen', 'NTT', 'Orange', 'PCCW', 'Seacom', 'Singtel', 'Sparkle', 'Tata', 'Tata Communications', 'Telia', 'Telxius', 'Vodafone', 'Zayo',
+  'AT&T', 'Bell Aliant', 'BICS', 'Cogent', 'GTT', 'Hurricane Electric', 'Level 3', 'Level3', 'Liquid', 'Liquid Intelligent Technologies', 'Lumen', 'Northwestel', 'NTT', 'Orange', 'PCCW', 'SaskTel', 'Seacom', 'Singtel', 'Sparkle', 'Tata', 'Tata Communications', 'Telia', 'Telxius', 'Tusass', 'Vodafone', 'Zayo',
   // content and clouds
   'Akamai', 'Alibaba Cloud', 'Amazon', 'Amazon Web Services', 'AWS', 'Baidu', 'ByteDance', 'Cloudflare', 'Facebook', 'Fastly', 'Google', 'Mercado Libre', 'Meta', 'Microsoft', 'Netflix', 'Tencent', 'TikTok', 'VK', 'VKontakte', 'Yandex',
   // eyeballs and incumbents
@@ -96,7 +99,7 @@ const REAL_NAMES = [
   // exchanges and data centers
   'AMS-IX', 'Any2', 'BCIX', 'CoreSite', 'DE-CIX', 'DigiCo', 'Digital Realty', 'Equinix', 'France-IX', 'Interxion', 'iseek', 'IX.br', 'JPIX', 'LINX', 'NAPAfrica', 'NetIX', 'NEXTDC', 'NIX', 'NL-ix', 'SIX', 'Telehouse',
   // cables
-  '2Africa', 'Amitié', 'Darwin-Jakarta-Singapore Cable', 'Dunant', 'EllaLink', 'Equiano', 'Grace Hopper', 'Hibernia Express', 'Jupiter', 'MAREA', 'North West Cable System', 'PEACE', 'SEA-ME-WE 6',
+  '2Africa', 'Amitié', 'Darwin-Jakarta-Singapore Cable', 'Dunant', 'EllaLink', 'Equiano', 'Grace Hopper', 'Greenland Connect', 'Greenland Connect North', 'Hibernia Express', 'Jupiter', 'MAREA', 'North West Cable System', 'PEACE', 'SEA-ME-WE 6',
   // cable ships, their operators and maintenance clubs
   'ACMA', 'ASEAN Explorer', 'ASEAN Protector', 'ASEAN Restorer', 'Cable Innovator', 'Cable Retriever', 'Global Marine', 'Léon Thévenin', 'MECMA', 'Orange Marine', 'Pierre de Fermat', 'René Descartes', 'SEAIOCMA', 'Sophie Germain', 'Sovereign', 'Wave Sentinel', 'Yokohama Zone',
   // vendors

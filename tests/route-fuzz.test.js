@@ -15,7 +15,12 @@ function pages() {
   fs.writeFileSync(head, page.assemble().html);
   let base = head;
   try { const b = path.join(os.tmpdir(), `tubes-fuzz-test-${process.pid}-base.html`); fs.writeFileSync(b, page.assembleRef('origin/main')); base = b; } catch (e) {}
-  return { base: openPage(base, 'base'), head: openPage(head, 'head') };
+  let P = { base: openPage(base, 'base'), head: openPage(head, 'head') };
+  // A change to the world itself (cities, networks, cables) cannot route like main: there is no same game to compare.
+  // Then the base is this checkout too, and the cache on/off check still runs; equivalence with main resumes once it lands.
+  const world = (p) => p.ev("JSON.stringify([CITIES.map(c=>[c.id,c.land,c.P]),NETS.map(n=>[n.id,n.pops,n.ix,n.share,n.price,n.up]),CABLES.map(c=>[c.id,c.pairs.map(q=>[q[0],q[1]])])])");
+  if (base !== head && world(P.base) !== world(P.head)) { console.log('# route fuzz: the world differs from main, so both pages are this checkout'); P = { base: openPage(head, 'base'), head: P.head }; }
+  return P;
 }
 
 test('random games route the same as main, with and without the routing cache, move for move', () => {

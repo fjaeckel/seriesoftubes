@@ -122,3 +122,9 @@ NETS.push(
  {id:'tet',name:'Tet-à-Tête',asn:12578,type:'eye',cc:'LV',pol:'selective',minIx:2,minPni:10,share:.001,up:['tly'],col:'#3F2A56',pops:['rix','sto'],ix:['rix'],blurb:tr('long_tail.latvia_s_incumbent_peers_face_to')},
  {id:'omt',name:'Omantell',asn:8529,type:'t2',cc:'OM',pol:'selective',minIx:3,minPni:12,share:.002,price:9,up:['tat','tly'],col:'#2F6E3B',pops:['mct','fuj','mrs','lon','bom'],ix:['mct'],blurb:tr('long_tail.oman_s_incumbent_and_owner_of')},
  {id:'dhr',name:'Dhiraa-goo',asn:7642,type:'t2',cc:'MV',pol:'open',share:.0003,price:12,up:['tat'],col:'#E2231A',pops:['mle','cbo'],ix:[],blurb:tr('long_tail.the_maldives_telco_on_islands_one')});
+// The far north and Canada's regional incumbents: the carriers that sell transit where the big ones never went.
+NETS.push(
+ {id:'bal',name:'Bell Alien',asn:855,type:'t2',cc:'CA',pol:'selective',minIx:2,minPni:10,share:.0012,price:8,up:['bcd','lvl'],col:'#00549A',pops:['yfc','yyg','yyt','hfx','mtl'],ix:[],blurb:tr('long_tail.atlantic_canada_s_phone_company_landed')},
+ {id:'nwt',name:'Northwest Passage Tel',asn:22573,type:'t2',cc:'CA',pol:'open',share:.0004,price:12,up:['bcd','lvl'],col:'#0067B1',pops:['yxy','yzf','yeg','van'],ix:[],blurb:tr('long_tail.the_north_s_only_carrier_fiber')},
+ {id:'skt',name:'SaskTell-Tale',asn:803,type:'t2',cc:'CA',pol:'selective',minIx:2,minPni:10,share:.0012,price:8,up:['lvl','tly'],col:'#00A0DF',pops:['yqr','yxe','cal'],ix:[],blurb:tr('long_tail.saskatchewan_s_own_phone_company_still')},
+ {id:'tus',name:'Too Sassy',asn:8818,type:'t2',cc:'GL',pol:'open',share:.0002,price:14,up:['tly'],col:'#C8102E',pops:['nuk','qaq','sis','aas'],ix:[],blurb:tr('long_tail.greenland_s_one_telco_answers_back')});

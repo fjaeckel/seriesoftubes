@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Every US state capital and Washington, DC are on the map, with every Canadian provincial and territorial capital and Greenland. Greenland's capital Nuuk and three towns up the coast hang on the real Greenland Connect cables; Iqaluit has only satellites, so land your own cable there. New carriers sell transit in the north and the Canadian provinces, and exchanges sit only where real ones do.
 ## [2.7.0] — 2026-11-03
 
 - Three new cities in northern Australia: Port Hedland, Townsville and Alice Springs (#255). Port Hedland lands a new cable up the coast to Darwin and a branch of Darwin's cable out to Singapore; Alice Springs has no sea at all. In the wet season, November to April, fiber cuts in the tropical north, Darwin included, take twice as long to reach.
