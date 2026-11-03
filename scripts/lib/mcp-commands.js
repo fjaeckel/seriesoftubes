@@ -627,7 +627,7 @@ const API_STATE_DOC={
  cash:{type:'number',doc:'Cash on hand. Goes negative into the red; -100k is bankruptcy.'},
  priceMul:{type:'number',doc:'Multiplier on transit prices (weekly modifier).'},
  mode:{type:'string',doc:'normal | sandbox | scenario | puzzle.'},
- rules:{type:'map',doc:'The rules this network locked in at its door: preset (oncall, freeze, bgp3am), the chaos dial, and what is switched off in Change Freeze. They stay for the network\'s whole life.'},
+ rules:{type:'map',doc:'The rules this network locked in at its door: preset (soft, freeze, oncall, bgp, sandbox or puzzle), the chaos dial, lead times, the market, and Best Effort's extras (sea, confs, broke, moods, pnis), which are only written where they differ from the classic game. They stay for the network\'s whole life.'},
  charter:{type:'string',doc:'The charter picked in the first month of a normal game: global | boutique.'},
  chartSet:{type:'boolean',doc:'The charter has been picked; false while the choice is still open.'},
  solWon:{type:'integer',doc:'The day the Speed of Light win landed (boutique charter), or 0.'},

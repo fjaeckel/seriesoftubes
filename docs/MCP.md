@@ -22,7 +22,7 @@ the same seed and the same moves give the same game.
 
 | Tool | What it does |
 |---|---|
-| `new_game` | Start a network in any home city with a preset (`freeze`, `oncall`, `bgp`, `sandbox`), a seed, your own ASN, and the sandbox's chaos dial |
+| `new_game` | Start a network in any home city with a preset (`soft` for Best Effort, `freeze`, `oncall`, `bgp`, `sandbox`), a seed, your own ASN, and the sandbox's chaos dial |
 | `load_save`, `export_save` | Load an exported save (a path or JSON text, migrated as the game does) or write one the real game can import |
 | `status` | Date, cash, revenue and costs by kind, level, tier and why it is not Tier 1, the goal, traffic, reach, POPs, incidents |
 | `advance` | Run N days through `dayTick()`. Stops when a window opens or the network goes bankrupt. Returns the log, new incidents, cash and the time each day took |

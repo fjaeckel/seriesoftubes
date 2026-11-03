@@ -56,9 +56,9 @@ const WHERE = ['modal', 'bank', 'dash', 'panel', 'left', 'puzzle'];
 const TOOLS = [
   {
     name: 'new_game',
-    description: 'Start a new network, replacing the current one. Presets: freeze (Change Freeze, gentle), oncall (On-call, the classic game), bgp (BGP at 3 a.m., harsh), sandbox (endless money, every level; chaos sets how often things break, default none). Seeded, so the same seed and the same moves give the same game. Scenarios, puzzles and architect runs start with act (startScn, pzStart, pzArStart).',
+    description: 'Start a new network, replacing the current one. Presets: soft (Best Effort, the gentlest: no DDoS, no cable ships, no conferences, instant PNIs, patient customers, a rescue loan instead of game over), freeze (Change Freeze, gentle), oncall (On-call, the classic game), bgp (BGP at 3 a.m., harsh), sandbox (endless money, every level; chaos sets how often things break, default none). Seeded, so the same seed and the same moves give the same game. Scenarios, puzzles and architect runs start with act (startScn, pzStart, pzArStart).',
     inputSchema: obj({ city: str('Home city: id (fra) or name (Frankfurt). Default Frankfurt.'), name: str('Network name (24 characters at most). Default: a random pun.'),
-      preset: str('Rules preset', { enum: ['freeze', 'oncall', 'bgp', 'sandbox'] }), seed: num('Random seed, default 12345.'),
+      preset: str('Rules preset', { enum: ['soft', 'freeze', 'oncall', 'bgp', 'sandbox'] }), seed: num('Random seed, default 12345.'),
       asn: num('Your own AS number, as the title screen takes it. Default: a free one.'), chaos: str('Sandbox only: how often things break. Default none.', { enum: ['none', 'calm', 'normal', 'spicy'] }) }),
     run: (s, a) => s.call('newGame', a),
   },

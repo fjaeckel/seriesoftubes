@@ -116,7 +116,7 @@
   const newGame = ({ city = 'fra', name, preset = 'oncall', seed, asn, chaos }) => {
     const c = cityOf(city).id;
     if (!homeOk(c)) fail(`${cityName(c)} cannot be a home city.`);
-    if (!['freeze', 'oncall', 'bgp', 'sandbox'].includes(preset)) fail('preset is one of freeze, oncall, bgp, sandbox');
+    if (!['soft', 'freeze', 'oncall', 'bgp', 'sandbox'].includes(preset)) fail('preset is one of soft, freeze, oncall, bgp, sandbox');
     if (asn !== undefined && !asnOk(+asn)) fail(`AS${asn} cannot be yours: it is reserved, private or another network's. Leave asn out for a free one.`);
     if (chaos !== undefined && preset !== 'sandbox') fail('chaos is the sandbox\'s dial: give preset "sandbox" with it.');
     if (chaos !== undefined && !own(CHAOS, chaos)) fail(`chaos is one of ${Object.keys(CHAOS).join(', ')}.`);
