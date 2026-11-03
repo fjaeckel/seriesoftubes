@@ -11,7 +11,7 @@ function pniQuote(city,net,tier,reserved=0){tier=+tier;const g1=tier===-1;if(g1)
   return {city,net,tier,g1,ex,cost,slots,why};}
 function pniPlace(q){const {city,net,tier,g1,ex}=q,lead=pniLead(net);
   if(S.conf&&S.conf.until>S.day)S.stats.beerPni=1;
-  if(ex)ex.up={tier,n:ex.n||1,ready:S.day+lead,g1:false};else S.pni.push({id:uid(),city,net,tier,g1:g1||undefined,ready:S.day+lead});
+  if(ex){ex.up={tier,n:ex.n||1,ready:S.day+lead,g1:false};if(!lead)pniUpDone(ex);}else S.pni.push({id:uid(),city,net,tier,g1:g1||undefined,ready:S.day+lead});
   return lead;}
 function pniBatch(net,tier){tier=+tier;const all=net===null;if(!S||(!all&&!isNet(net))||!Number.isInteger(tier)||(tier===-1?all||!pniG1(net):!PORT[tier]||!portShown(tier)))return null;
   const shared=[],orders=[],blocked=[],reserved={};let kept=0,cost=0,mo=0,raised=0;

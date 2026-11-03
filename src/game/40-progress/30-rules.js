@@ -5,12 +5,13 @@
    Scenarios and the weekly challenge run on On-call plus their own S.scn.rules (scnRule()). */
 // sea: cable ships sail out to subsea cuts, or (timer) a cut mends on its own clock. confs: conference season.
 // broke: deep in the red ends the game, or (rescue) a state loan keeps it going. moods: patient customers sour half as fast.
-const RULE_DEF={clock:true,chaos:'normal',lead:'real',market:true,money:'normal',gates:'ladder',sea:'ships',confs:true,broke:'lose',moods:'normal',mods:[]};
-const RULE_LATE=['sea','confs','broke','moods'];
-const RULE_OK={clock:[true,false],chaos:['none','calm','normal','spicy'],lead:['real','quick'],market:[true,false],money:['normal','infinite'],gates:['ladder','open'],sea:['ships','timer'],confs:[true,false],broke:['lose','rescue'],moods:['normal','patient']};
+// pnis: PNIs and their augments wait for the other network's team, or (instant) are up the moment they are ordered.
+const RULE_DEF={clock:true,chaos:'normal',lead:'real',market:true,money:'normal',gates:'ladder',sea:'ships',confs:true,broke:'lose',moods:'normal',pnis:'wait',mods:[]};
+const RULE_LATE=['sea','confs','broke','moods','pnis'];
+const RULE_OK={clock:[true,false],chaos:['none','calm','normal','spicy'],lead:['real','quick'],market:[true,false],money:['normal','infinite'],gates:['ladder','open'],sea:['ships','timer'],confs:[true,false],broke:['lose','rescue'],moods:['normal','patient'],pnis:['wait','instant']};
 // i: icon, n: name, d: the one-line joke, x: what is different, in small print.
 const PRESETS={
- soft:{i:'☕',n:tr('rules.best_effort'),d:tr('rules.no_sla_no_pager_no_promises'),x:tr('rules.rare_outages_no_ddos_no_conferences'),clock:true,chaos:'calm',lead:'quick',market:false,money:'normal',gates:'ladder',sea:'timer',confs:false,broke:'rescue',moods:'patient'},
+ soft:{i:'☕',n:tr('rules.best_effort'),d:tr('rules.no_sla_no_pager_no_promises'),x:tr('rules.rare_outages_no_ddos_pnis_at_once'),clock:true,chaos:'calm',lead:'quick',market:false,money:'normal',gates:'ladder',sea:'timer',confs:false,broke:'rescue',moods:'patient',pnis:'instant'},
  freeze:{i:'🧊',n:tr('rules.change_freeze'),d:tr('rules.nobody_touches_prod_even_the_backhoes'),x:tr('rules.a_third_of_the_outages_no_ddos_pnis'),clock:true,chaos:'calm',lead:'quick',market:false,money:'normal',gates:'ladder'},
  oncall:{i:'📟',n:tr('rules.on_call'),d:tr('rules.the_real_thing_your_pager_has'),x:tr('rules.real_lead_times_real_outages_a_real'),clock:true,chaos:'normal',lead:'real',market:true,money:'normal',gates:'ladder'},
  bgp:{i:'🔥',n:tr('rules.bgp_at_3_a_m'),d:tr('rules.everything_is_on_fire_and_it'),x:tr('rules.more_and_longer_outages_more_ddos'),clock:true,chaos:'spicy',lead:'real',market:true,money:'normal',gates:'ladder'},

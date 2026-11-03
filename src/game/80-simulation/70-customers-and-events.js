@@ -4,7 +4,8 @@ function bizSfOf(r,c){const d=r.bizDem&&r.bizDem[c];return teRules()&&teRules().
 function bCities(o){return o.sites?o.sites.slice():[o.city,o.city2].filter(Boolean);}
 function bHas(o){return !!BIZ_T[o.type].cap||bCities(o).every(c=>S.pops[c]);}
 function eventLive(b){return BIZ_T[b.type].event&&S.day>=b.start&&S.day<b.start+b.dur;}
-function bRisk(b){return BIZ_T[b.type]?.gaming?`<div class="meta">⚠️ ${tr('customers_and_events.gaming_attracts_attacks')}</div>`:'';}
+// No warning where nobody attacks (Best Effort, Change Freeze, puzzles, the sandbox's calm).
+function bRisk(b){return BIZ_T[b.type]?.gaming&&!ddosOff()?`<div class="meta">⚠️ ${tr('customers_and_events.gaming_attracts_attacks')}</div>`:'';}
 function bTerms(o){const T=BIZ_T[o.type];if(T.cap)return capTerms(o);
   if(T.event){const live=S.day>=o.start;return tr('customers_and_events.bw_extra_for_d_days_when',{bw:fmtG(o.bw),d:o.dur,when:live?tr('customers_and_events.day_n_of_d',{n:S.day-o.start+1,d:o.dur}):tr('customers_and_events.starting_in_n_d',{n:o.start-S.day}),fee:fmt$(o.fee)});}
   if(T.sdwan)return tr('customers_and_events.n_sites_list_bw_per_site',{n:o.sites.length,list:o.sites.map(c=>CITY[c].name).join(', '),bw:fmtG(o.bw),price:fmt$(o.bw*o.rate)});

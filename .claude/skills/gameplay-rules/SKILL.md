@@ -43,8 +43,8 @@ These are what the game promises, held up by `tests/gameplay-rules.test.js` (one
 | Id | Rule | Why |
 | --- | --- | --- |
 | M1 | On-call is the classic game: it equals `RULE_DEF`, and a save without rules loads as On-call. The seeded suites (`tests/game.test.js`, `tests/rules.test.js`) are its behaviour. | Old saves never change under them. |
-| M2 | Presets are ordered: Best Effort never harsher than Change Freeze, Change Freeze never harsher than On-call, BGP at 3 a.m. never gentler (chaos, lead times, market; and a seeded year of incidents). Only Best Effort mends sea cuts without ships, skips conferences, rescues instead of game over and has patient customers. | The names promise it. |
-| M3 | Every subsystem that can annoy the player reads a rule: outages and events (`chaos`), DDoS, sold-out routes, de-peering and hardware prices (`market`), lead times (`lead`), the clock, cable ships (`sea`), conferences (`confs`), going broke (`broke`), customer patience (`moods`), and the day's toasts (quiet notifications). A quiet ruleset gives a quiet year. | Rules are presets of flags, not separate code. |
+| M2 | Presets are ordered: Best Effort never harsher than Change Freeze, Change Freeze never harsher than On-call, BGP at 3 a.m. never gentler (chaos, lead times, market; and a seeded year of incidents). Only Best Effort mends sea cuts without ships, skips conferences, rescues instead of game over, has patient customers and instant PNIs. | The names promise it. |
+| M3 | Every subsystem that can annoy the player reads a rule: outages and events (`chaos`), DDoS, sold-out routes, de-peering and hardware prices (`market`), lead times (`lead`), the clock, cable ships (`sea`), conferences (`confs`), going broke (`broke`), customer patience (`moods`), PNI delivery (`pnis`), and the day's toasts (quiet notifications). A quiet ruleset gives a quiet year. | Rules are presets of flags, not separate code. |
 | M4 | Scenarios and the weekly challenge always run On-call plus their own `S.scn.rules`. | Fair scores. |
 | M5 | Sandbox has no locked feature: open gates, every level, own cables, endless money. | It is a sandbox. |
 

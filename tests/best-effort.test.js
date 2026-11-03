@@ -12,7 +12,7 @@ test('Best Effort is a Normal preset with its own rules, kept through save and l
   const { ev, errors } = load();
   start(ev, 'soft');
   assert.equal(ev('rulePreset()'), 'soft');
-  assert.deepEqual(J(ev, "['chaos','lead','market','sea','confs','broke','moods'].map(rule)"), ['calm', 'quick', false, 'timer', false, 'rescue', 'patient']);
+  assert.deepEqual(J(ev, "['chaos','lead','market','sea','confs','broke','moods','pnis'].map(rule)"), ['calm', 'quick', false, 'timer', false, 'rescue', 'patient', 'instant']);
   assert.equal(ev('ddosOff()'), true, 'no DDoS');
   assert.equal(ev('mkElig()'), false, 'no chaos monkey');
   ev("S.rules.confs=true;S.rules.sea='ships';const t=JSON.stringify(packSave(S));S=migrate(JSON.parse(t))");
@@ -20,7 +20,7 @@ test('Best Effort is a Normal preset with its own rules, kept through save and l
   // Every other preset keeps the classic game's ships, conferences, game over and moods.
   for (const p of ['freeze', 'oncall', 'bgp']) {
     start(ev, p);
-    assert.deepEqual(J(ev, "['sea','confs','broke','moods'].map(rule)"), ['ships', true, 'lose', 'normal'], p);
+    assert.deepEqual(J(ev, "['sea','confs','broke','moods','pnis'].map(rule)"), ['ships', true, 'lose', 'normal', 'wait'], p);
   }
   assert.deepEqual(errors, []);
 });
@@ -126,5 +126,35 @@ test('the title screen offers Best Effort first, and it earns Freeze-dried badge
   assert.equal(ev('rulePreset()'), 'soft');
   assert.match(ev("document.getElementById('hAsn').textContent"), /Best Effort/);
   assert.equal(ev('badgeVar()'), 'freeze');
+  assert.deepEqual(errors, []);
+});
+
+test('Best Effort: PNIs and their augments are up the moment they are ordered', () => {
+  const { ev, errors } = load();
+  ev("beginGame('Soft Serve','fra',{mode:'normal',preset:'soft'});if(UI.pendGame)ACT.pitchSkip();closeModal();S.cash=1e9;S.lvl=6;for(const g of GOALS)S.done[g.id]=0;S.nextFail=S.nextEvent=1e9;ACT.launchBB({city:'fra'});for(const c in S.pops)S.pops[c].rgen=3;compute()");
+  assert.equal(ev("pniEta('nfx')"), 'Up the moment you order it');
+  ev("document.getElementById('toasts').innerHTML='';R.demTo.nfx=1e4;ACT.pni({city:'fra',net:'nfx',tier:1})");
+  assert.equal(ev('pniOn(S.pni[0])'), true, 'a PNI with a big network, up at once');
+  assert.match(ev("document.getElementById('toasts').textContent"), /PNI with NetChill is up/);
+  ev('compute()');
+  assert.ok(ev('R.usePni[S.pni[0].id]') > 0, 'and carrying traffic');
+  ev("R.demTo.nfx=1e4;ACT.pni({city:'fra',net:'nfx',tier:2})");
+  assert.deepEqual(J(ev, '[S.pni[0].tier,S.pni[0].up===undefined]'), [2, true], 'an upgrade, at once');
+  ev('ACT.lagP({id:S.pni[0].id,d:1})');
+  assert.deepEqual(J(ev, '[S.pni[0].n,S.pni[0].up===undefined]'), [2, true], 'a LAG member, at once');
+  // Change Freeze still waits, if only days.
+  start(ev, 'freeze');
+  ev("S.cash=1e9;S.lvl=6;ACT.launchBB({city:'mrs'});for(const c in S.pops)S.pops[c].rgen=3;compute();R.demTo.nfx=1e4;ACT.pni({city:'mrs',net:'nfx',tier:1})");
+  assert.ok(ev('S.pni[0].ready') > ev('S.day'));
+  assert.deepEqual(errors, []);
+});
+
+test('no "attracts attacks" warning where nobody attacks', () => {
+  const { ev, errors } = load();
+  const risk = () => ev("bRisk({type:Object.keys(BIZ_T).find(k=>BIZ_T[k].gaming)})");
+  start(ev, 'soft');
+  assert.equal(risk(), '');
+  start(ev, 'oncall');
+  assert.match(risk(), /Gaming attracts attacks/);
   assert.deepEqual(errors, []);
 });

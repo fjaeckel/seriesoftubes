@@ -218,8 +218,8 @@ test('M2: presets are ordered: Best Effort never harsher than Change Freeze, Cha
   assert.ok(lead[P.soft.lead] <= lead[P.freeze.lead] && lead[P.freeze.lead] <= lead[P.oncall.lead] && lead[P.oncall.lead] <= lead[P.bgp.lead], 'M2: lead times');
   assert.ok((!P.soft.market || P.freeze.market) && (!P.freeze.market || P.oncall.market), 'M2: market');
   // The softenings only Best Effort has: every other Normal preset keeps the classic game's.
-  for (const k of ['sea', 'confs', 'broke', 'moods']) for (const p of ['freeze', 'oncall', 'bgp']) assert.equal(v(p, k), D[k], `M2: ${p} keeps ${k}`);
-  assert.deepEqual(['sea', 'confs', 'broke', 'moods'].map((k) => v('soft', k)), ['timer', false, 'rescue', 'patient'], 'M2: Best Effort softens them all');
+  for (const k of ['sea', 'confs', 'broke', 'moods', 'pnis']) for (const p of ['freeze', 'oncall', 'bgp']) assert.equal(v(p, k), D[k], `M2: ${p} keeps ${k}`);
+  assert.deepEqual(['sea', 'confs', 'broke', 'moods', 'pnis'].map((k) => v('soft', k)), ['timer', false, 'rescue', 'patient', 'instant'], 'M2: Best Effort softens them all');
   assert.ok(P.bgp.market && P.bgp.money === 'normal' && P.bgp.gates === 'ladder', 'M2: BGP keeps every hardship');
   // seeded: the same network for a year under each preset
   const n = {};
@@ -237,7 +237,7 @@ test('M3: every subsystem that can annoy the player reads a rule', () => {
   const reads = [['dayPost', 'chaosMul()'], ['fireEvent', "rule('market')"], ['ddosTick', 'ddosOff()'],
     ['soldOut', "rule('market')"], ['hwMul', "rule('market')"], ['leadDays', "rule('lead')"], ['pniLead', 'leadDays'],
     ['dfBuildDays', 'leadDays'], ['dayPre', "rule('clock')"], ['snub', "rule('market')"], ['fireFailure', 'shipsOn()'],
-    ['upcomingConfs', 'confsOn()'], ['dayPost', "rule('broke')"], ['dayPost', "rule('moods')"], ['toast', 'quietOn()']];
+    ['upcomingConfs', 'confsOn()'], ['pniLead', 'pniNow()'], ['dayPost', "rule('broke')"], ['dayPost', "rule('moods')"], ['toast', 'quietOn()']];
   fail('M3', reads.filter(([f, r]) => !ev(`typeof ${f}==='function'&&${f}.toString().includes(${JSON.stringify(r)})`)).map(([f, r]) => `${f}() does not read ${r}`), 'gate it on the ruleset (src/game/40-progress/30-rules.js)');
   // and in play: no chaos and no market means a quiet year
   const g = load();
