@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Traceroute no longer shows an "embedded cache in your rack" hop on paths that leave over transit, an exchange or a PNI. Only traffic that really ends at one of your cache boxes shows it now.
+
 ## [2.6.0] — 2026-11-03
 
 - New Best Effort mode, the gentlest way to play: rare outages, no DDoS, no chaos monkey, no conferences and no cable ships, with sea cuts that mend on their own. PNIs are up the moment you order them, customers are more patient, a rescue loan from the Ministry of Tubes replaces game over, builds take days and prices never spike. A new Quiet notifications setting, on by default in Best Effort and available in every mode, only pops up trouble and milestones; everything else goes into the NOC log.

@@ -40,7 +40,7 @@ function traceroute(src,to){const P=trPaths(src),me=slug(S.name)+'.net',lines=[]
   else if(e.k==='p'){hop(`pni-${slug(NET[e.via||N.id].name)}.${e.city}.${me}`,ip(hstr(N.id),3),0.2,tr('traceroute.private_cross_connect'));}
   // Down the cone one customer at a time: the shortest chain of upstreams from the peer to the network, each AS on the path.
   if(e.via){const ch=coneChain(e.via,N.id);for(let i=0;i<ch.length-1;i++){const V=NET[ch[i]],C=NET[ch[i+1]];asPath.push(V.asn);hop(`${slug(C.name)}-cust.${e.city}.${slug(V.name)}.net`,`198.51.100.${(hstr(V.id)+3)%250}`,1.2,tr('traceroute.net_hands_it_to_its_customer',{net:V.name,to:C.name}));}}
-  else{hop(`cache-${slug(N.name)}.${e.city}.${me}`,ip(hstr(N.id),4),0.1,tr('traceroute.embedded_cache_in_your_rack'));}
+  else if(e.k==='c'){hop(`cache-${slug(N.name)}.${e.city}.${me}`,ip(hstr(N.id),4),0.1,tr('traceroute.embedded_cache_in_your_rack'));}
   asPath.push(N.asn);if(e.k!=='c')hop(`www.${slug(N.name)}.example`,`198.51.100.${(hstr(N.id)+1)%250}`,0.5+(e.k==='t'?1:0.2),`${N.name}`);
   const order=e.via?tr('traceroute.a_peer_s_customers_come_after'):{c:tr('traceroute.caches_beat_pnis'),p:tr('traceroute.pnis_beat_ix_peering'),ix:tr('traceroute.ix_peering_beats_transit'),t:tr('traceroute.transit_is_the_last_resort')}[e.k];
   const cn=cnCity(src)!==!!N.cn?' '+tr('traceroute.crossing_the_great_firewall_here',{p:S.ev.gfw>S.day?35:20}):'';
