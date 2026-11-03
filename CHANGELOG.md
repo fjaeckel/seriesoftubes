@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- The NOC intern has a new order, Keep peering headroom, that adds capacity to your PNI and IX ports before they fill up (#234). A single port at a POP with several routers gets a second port in a LAG, so no router is its only way out; any other port moves up to the smallest port size that fits. It has the same Headroom and Budget dials as the transit order, can be switched off per POP, waits out a DDoS flood instead of buying ports for it, and a PNI with an augment already on order waits for it to land. The monthly figure in the intern's log now counts IX ports too.
 - You can pay to hurry the survey, permits and factory of your own subsea cable, 30 days at a time (#258). Money only goes so far: the cable still has to be made, about two months plus a day for every 80 km, before the lay ships sail.
 - Three new cities in northern Australia: Port Hedland, Townsville and Alice Springs (#255). Port Hedland lands a new cable up the coast to Darwin and a branch of Darwin's cable out to Singapore; Alice Springs has no sea at all. In the wet season, November to April, fiber cuts in the tropical north, Darwin included, take twice as long to reach.
 - Traceroute no longer shows an "embedded cache in your rack" hop on paths that leave over transit, an exchange or a PNI. Only traffic that really ends at one of your cache boxes shows it now.

@@ -12,6 +12,7 @@ const INTERNS={
 // fees, or (mo) of the running costs the order adds, for caches, which are free to rack but cost rent every month.
 const OPS=[
  {k:'transit',i:'📈',pop:1,cap:50000,t:N_('ops.o_transit'),d:N_('ops.o_transit_d'),p:{x:{d:1.5,v:[1.25,1.5,2,3],l:N_('ops.p_x'),f:v=>v+'×'},prov:{d:'cheap',ok:v=>v==='cheap'||v==='have'||(isNet(v)&&!!NET[v].price),l:N_('ops.p_prov')}}},
+ {k:'ports',i:'🔌',pop:1,cap:50000,t:N_('ops.o_ports'),d:N_('ops.o_ports_d'),p:{x:{d:1.5,v:[1.25,1.5,2,3],l:N_('ops.p_x'),f:v=>v+'×'}}},
  {k:'routers',i:'🧠',pop:1,cap:250000,t:N_('ops.o_routers'),d:N_('ops.o_routers_d'),p:{at:{d:80,v:[60,70,80,90],l:N_('ops.p_at'),f:v=>v+'%'},how:{d:'auto',v:['auto','add','swap'],l:N_('ops.p_how'),f:v=>tr({auto:N_('ops.how_auto'),add:N_('ops.how_add'),swap:N_('ops.how_swap')}[v])}}},
  {k:'caches',i:'📦',pop:1,cap:5000,mo:1,t:N_('ops.o_caches'),d:N_('ops.o_caches_d'),p:{g:{d:5,v:[1,5,10,25,50],l:N_('ops.p_g'),f:v=>fmtG(v)}}},
  {k:'ix',i:'🔀',t:N_('ops.o_ix'),d:N_('ops.o_ix_d'),p:{}},
@@ -24,7 +25,7 @@ const OPS=[
 const OPSK=Object.fromEntries(OPS.map(o=>[o.k,o])),OPS_POP=OPS.filter(o=>o.pop).map(o=>o.k);
 const OPS_TPL=['bb','transit','ix','kit'];
 // What the shift log can say. One line per day: "{name} did this, that and the other."
-const OPS_SAY={transit:N_('ops.l_transit'),routers:N_('ops.l_routers'),caches:N_('ops.l_caches'),rs:N_('ops.l_rs'),peer:N_('ops.l_peer'),pni:N_('ops.l_pni'),sales:N_('ops.l_sales'),decline:N_('ops.l_decline'),repair:N_('ops.l_repair'),optics:N_('ops.l_optics'),decom:N_('ops.l_decom'),broke:N_('ops.l_broke'),snag:N_('ops.l_snag')};
+const OPS_SAY={transit:N_('ops.l_transit'),ports:N_('ops.l_ports'),routers:N_('ops.l_routers'),caches:N_('ops.l_caches'),rs:N_('ops.l_rs'),peer:N_('ops.l_peer'),pni:N_('ops.l_pni'),sales:N_('ops.l_sales'),decline:N_('ops.l_decline'),repair:N_('ops.l_repair'),optics:N_('ops.l_optics'),decom:N_('ops.l_decom'),broke:N_('ops.l_broke'),snag:N_('ops.l_snag')};
 // Fat fingers: rare, visible, harmless. Only the LAG one costs anything, and only a little.
 const OPS_FF=[N_('ops.ff_desc'),N_('ops.ff_hostname'),N_('ops.ff_typo'),N_('ops.ff_lag'),N_('ops.ff_ping')];
 const OPS_TRIALS=1,OPS_FF_RATE={oncall:1/150,bgp:1/60};
@@ -90,6 +91,7 @@ function opsMoNow(){let m=cachesMo();
   for(const l of S.links)m+=(l.mo||0)+(l.kind==='df'?(l.spares?Math.round(150+(l.ch||[]).length*80):0)+(l.regen|0)*REGEN_MO:0);
   for(const t of S.transit)m+=transitMo(t,0);
   for(const p of S.pni){const q=p.up||p,N=NET[p.net];m+=(q.g1?Math.round(PORT[0].pni/2):PORT[q.tier].pni)*(q.n||1)+(N.pol==='paid'&&!paidFree(N)?N.paidFee:0);}
+  for(const c in S.ixp)if(!S.myIx[c])m+=ixPortMo(c,S.ixp[c])*((S.ixn||{})[c]||1);
   return m;}
 const opsFFLine=e=>tr('ops.ff_line',{name:tr(INTERNS[e.i].s),what:tr(OPS_FF[e.f],{city:CITY[e.c].name})});
 // Mute what a click would show (toasts, sounds, floaters, the full redraw) and keep the player's selection.
@@ -154,6 +156,28 @@ const OPS_RUN={
            if(i!==undefined)job={cost:PORT[i].setup,go:()=>ACT.buyTransit({city:c,net:n.id,tier:i}),w:'+'+PORT[i].n};}}
        if(!job||!X.can('transit',job.cost)||!X.pay('transit',job.go))break;
        X.did('transit',c+' '+job.w);ts=S.transit.filter(t=>t.city===c);}}},
+ // PNIs and IX ports keep Headroom times today's traffic, hottest first. One port at a POP with several routers gets a
+ // second in a LAG, so it is not the only way out; anything else moves up to the smallest port size that fits. A PNI
+ // augment lands weeks later, so that port waits for it. A flood fills ports for a day or two: not worth buying for.
+ ports(X){if(ddosAll().length)return;const N=opsP('ports','x'),L=[],
+   // Router ports that pending PNI augments will take when they land are spoken for.
+   resv=c=>S.pni.reduce((a,p)=>p.up&&p.city===c?a+Math.max(0,PORT_SLOT(p.up.tier)*(p.up.n||1)-PORT_SLOT(p.tier)*(p.n||1)):a,0),room=c=>portsMax(c)-portsUsed(c)+1e-9-resv(c);
+   // Each port: cap() now, use today, lag() and ups() the jobs it could have as {cost, cap after, w for the log, go}, sig() to see a job took.
+   for(const p of S.pni){const c=p.city,use=R.usePni[p.id]||0,cap=()=>lagCap(pniG(p),p.n),n=()=>p.n||1;if(!pniOn(p)||p.up||!(use>0)||cap()>=N*use||!opsHere('ports',c))continue;
+     L.push({city:c,use,u:use/cap(),cap,n,rt:(S.pops[c]||{}).routers||1,busy:()=>!!p.up,sig:()=>[p.tier,n(),!!p.g1,!!p.up].join(),
+       lag:()=>n()<LAG_MAX&&!msfNope(p.net,c)&&PORT_SLOT(p.tier)<=room(c)?{cost:1500+PORT[p.tier].setup/2,cap:lagCap(pniG(p),n()+1),w:'+1×'+pniPN(p),go:()=>ACT.lagP({id:p.id,d:1})}:null,
+       ups:()=>{const out=[];for(let t=p.g1?0:p.tier+1;t<PORT.length&&portShown(t);t++){const q=pniQuote(c,p.net,t,resv(c));if(q&&!q.why)out.push({cost:q.cost,cap:lagCap(PORT[t].g,n()),w:pniPN(p)+'→'+PORT[t].n,go:()=>ACT.pni({city:c,net:p.net,tier:t})});}return out;}});}
+   for(const x in S.ixp){const c=ixCity(x),use=R.useIx[x]||0,cap=()=>ixCap(x),n=()=>(S.ixn||{})[x]||1,pop=S.pops[c];if(S.myIx[x]||!(use>0)||!(cap()>0)||cap()>=N*use||!opsHere('ports',c))continue;
+     const g=()=>PORT[S.ixp[x]].g;
+     L.push({city:c,use,u:use/cap(),cap,n,rt:pop?pop.routers||1:1,busy:()=>false,sig:()=>S.ixp[x]+','+n(),
+       lag:()=>pop&&n()<LAG_MAX&&PORT_SLOT(S.ixp[x])<=room(c)?{cost:ixPortMo(x,S.ixp[x]),cap:cap()*lagCap(g(),n()+1)/lagCap(g(),n()),w:'+1×'+PORT[S.ixp[x]].n,go:()=>ACT.lagIx({city:x,d:1})}:null,
+       // A remote port (no POP there) stops at 100G; at a POP the router has to take the bigger port.
+       ups:()=>{const out=[],t0=S.ixp[x];for(let t=t0+1;t<PORT.length&&portShown(t);t++){if(pop?!portOk(c,t)||(PORT_SLOT(t)-PORT_SLOT(t0))*n()>room(c):t>1)continue;
+         out.push({cost:ixPortMo(x,t)*n(),cap:cap()*lagCap(PORT[t].g,n())/lagCap(g(),n()),w:PORT[t0].n+'→'+PORT[t].n,go:()=>ACT.buyIx({city:x,tier:t})});}return out;}});}
+   for(const o of L.sort((a,b)=>b.u-a.u))for(let step=0;step<3&&!o.busy()&&o.cap()<N*o.use;step++){
+     const lag=o.lag(),ups=o.ups(),fit=ups.find(u=>u.cap>=N*o.use)||ups.at(-1),job=o.n()<2&&o.rt>1?lag||fit:fit||lag,was=o.sig();
+     if(!job||!X.can('ports',job.cost)||!X.pay('ports',()=>{job.go();return o.sig()!==was;}))break;
+     X.did('ports',o.city+' '+job.w);}},
  optics(X){const at=opsP('optics','at')/100,big=opsP('optics','pick')==='big',gpd=(o,l)=>optG(o,l)/optCost(o);
    for(const l of S.links){if(l.kind!=='df'||l.ready>S.day||l.eqDown>S.day||l.standby||l.cut>S.day)continue;
      let cap=dfCap(l);const load=(R.load&&R.load[l.id])||0;
@@ -197,7 +221,7 @@ const OPS_RUN={
 function opsDecomSafe(l){const bz=S.biz.filter(b=>(b.reqs||[]).some(k=>k==='diverse'||k==='sharks'||k==='lat')&&b.city2);if(!bz.length)return true;
   const chk=b=>(b.reqs||[]).every(k=>k==='diverse'?diversePaths(b.city,b.city2):k==='sharks'?terrestrialPath(b.city,b.city2):k==='lat'?bestLat(b.city,b.city2)<=b.latMax:true);
   const was=bz.filter(chk),all=S.links;S.links=all.filter(x=>x!==l);try{return was.every(chk);}finally{S.links=all;}}
-const OPS_ORDER=['repair','sales','routers','transit','optics','caches','ix','pni','decom'];
+const OPS_ORDER=['repair','sales','routers','transit','ports','optics','caches','ix','pni','decom'];
 // The shift: once per game day from dayTick, after outages and events have had their turn.
 function opsDay(d){if(!opsHired())return;const O=S.ops,m=monthIdx(d);if(m!==O.mon){O.mon=m;for(const k in O.spent)O.spent[k]=0;O.addMo={};}
   // A new week: last week's tally becomes the shift report, and the one NOC notice of the week.
