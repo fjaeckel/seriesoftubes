@@ -9,7 +9,7 @@ All notable changes to this project are documented here. The project follows
 - You can pay to hurry the survey, permits and factory of your own subsea cable, 30 days at a time (#258). Money only goes so far: the cable still has to be made, about two months plus a day for every 80 km, before the lay ships sail.
 - Three new cities in northern Australia: Port Hedland, Townsville and Alice Springs (#255). Port Hedland lands a new cable up the coast to Darwin and a branch of Darwin's cable out to Singapore; Alice Springs has no sea at all. In the wet season, November to April, fiber cuts in the tropical north, Darwin included, take twice as long to reach.
 - Traceroute no longer shows an "embedded cache in your rack" hop on paths that leave over transit, an exchange or a PNI. Only traffic that really ends at one of your cache boxes shows it now.
-- New keyboard shortcuts: [ and ] step through your POPs, - and = zoom the map out and in, n opens the NOC dashboard, and ? lists every shortcut. A letter right after n opens one of the dashboard's tabs, such as n c for Connections, and Help links to the list too.
+- New keyboard shortcuts: the arrow keys and W A S D move the map, [ and ] step through your POPs, $ through the open offers, - and = zoom out and in, n opens the NOC dashboard, and ? lists every shortcut. A letter right after n opens one of the dashboard's tabs, such as n c for Connections, and Help links to the list too.
 
 ## [2.6.0] — 2026-11-03
 
