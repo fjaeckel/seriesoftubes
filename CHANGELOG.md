@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Three new cities in northern Australia: Port Hedland, Townsville and Alice Springs (#255). Port Hedland lands a new cable up the coast to Darwin and a branch of Darwin's cable out to Singapore; Alice Springs has no sea at all. In the wet season, November to April, fiber cuts in the tropical north, Darwin included, take twice as long to reach.
 - Traceroute no longer shows an "embedded cache in your rack" hop on paths that leave over transit, an exchange or a PNI. Only traffic that really ends at one of your cache boxes shows it now.
 
 ## [2.6.0] — 2026-11-03

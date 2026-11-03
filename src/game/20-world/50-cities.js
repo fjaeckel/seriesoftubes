@@ -144,7 +144,7 @@ const CITIES=[
  {id:'gbe',name:'Gaborone',x:0,y:0,land:'af',reg:'AF',P:25,cc:'BW',ix:'Seswaa-IX',dc:'Diamond Dust DC',note:tr('cities.botswana_quiet_safe_and_rich_in')},
 {id:'mel',name:'Melbourne',x:0,y:0,land:'oc',reg:'OC',cc:'AU',au:true,arpu:AU_ARPU,P:450,ix:'Flat-White-IX',dc:'Four-Seasons-a-Day DC',dc2:'Next-Door-DC M#',dc2N:3,note:tr('cities.four_seasons_in_one_day_and')},
  {id:'bne',name:'Brisbane',x:0,y:0,land:'oc',reg:'OC',cc:'AU',au:true,arpu:AU_ARPU,P:250,ix:'Bris-Vegas-IX',dc:'Sunshine State Shed',dc2:'Next-Door-DC B#',dc2N:2,note:tr('cities.brisvegas_big_sky_a_thunderstorm_at')},
- {id:'drw',name:'Darwin',x:0,y:0,land:'oc',reg:'OC',cc:'AU',au:true,arpu:AU_ARPU,P:15,ix:'Gator-IX',dc:'Crocodile-proof Landing Station',note:tr('cities.tiny_tropical_and_the_closest')},
+ {id:'drw',name:'Darwin',x:0,y:0,land:'oc',reg:'OC',cc:'AU',au:true,wet:true,arpu:AU_ARPU,P:15,ix:'Gator-IX',dc:'Crocodile-proof Landing Station',note:tr('cities.tiny_tropical_and_the_closest')},
  {id:'adl',name:'Adelaide',x:0,y:0,land:'oc',reg:'OC',cc:'AU',au:true,arpu:AU_ARPU,P:150,ix:'Vineyard-IX',dc:'OurDC',dc2:'Next-Door-DC A1',note:tr('cities.twenty_minutes_from_everything')},
  {id:'cbr',capital:true,name:'Canberra',x:0,y:0,land:'oc',reg:'OC',cc:'AU',au:true,arpu:AU_ARPU,P:50,ix:'Capital-IX',dc:'Classified Data Cupboard',dc2:'Next-Door-DC C1',note:tr('cities.built_for_the_government_the_data')},
  {id:'chc',name:'Christchurch',x:0,y:0,land:'nzs',reg:'OC',cc:'NZ',P:40,ix:'Garden-City-IX',dc:'Mainland Colo',note:tr('cities.the_garden_city_and_the_biggest')},
@@ -243,6 +243,9 @@ const CITIES=[
  // The Philippines beyond Luzon
  {id:'ceb',name:'Cebu',x:0,y:0,land:'ceb',reg:'AS',cc:'PH',ph:true,arpu:PH_ARPU,P:125,ix:'GotchaFIX Cebu',ixCheap:1.8,dc:"Magellan's Last Rack",note:tr('cities.the_philippines_second_city_reached')},
  {id:'dvo',name:'Davao',x:0,y:0,land:'mdn',reg:'AS',cc:'PH',ph:true,arpu:PH_ARPU,P:135,ix:'GotchaFIX Davao',ixCheap:1.8,dc:"Heimdall's Hut",note:tr('cities.mindanao_s_big_city_and_the')},
+ {id:'phe',name:'Port Hedland',x:0,y:0,land:'oc',reg:'OC',cc:'AU',au:true,wet:true,arpu:AU_ARPU,P:2,ix:'',dc:'Next-Door-DC PH1',note:tr('cities.iron_ore_red_dust_and_two')},
+ {id:'tsv',name:'Townsville',x:0,y:0,land:'oc',reg:'OC',cc:'AU',au:true,wet:true,arpu:AU_ARPU,P:20,ix:'',dc:'DigiCroc TSV1',note:tr('cities.north_queensland_s_capital_in_waiting')},
+ {id:'asp',name:'Alice Springs',x:0,y:0,land:'oc',reg:'OC',cc:'AU',au:true,arpu:AU_ARPU,P:3,ix:'',dc:'Old Telegraph Station',note:tr('cities.the_middle_of_everywhere_no_sea')},
 ];
 // Display-only nudges for cities that sit on top of each other at map scale; distances still use real lon/lat.
 const CITY_NUDGE={
