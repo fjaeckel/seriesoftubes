@@ -1,7 +1,8 @@
 /* ---------- daily tick ---------- */
 /* A day is two halves around its routing: dayPre() (the world moves on), compute(), dayPost() (bills, moods, offers).
    In play the routing can run in a worker in between (28-route-worker.js); tests and the fallback run it in one go. */
-function dayTick(){const d=dayPre();if(d===false)return;compute();dayPost(d);}
+// UI.tick: what the day itself announces, which quiet notifications may keep to the NOC log.
+function dayTick(){UI.tick=true;try{const d=dayPre();if(d===false)return;compute();dayPost(d);}finally{UI.tick=false;}}
 function dayPre(){
   if(!S||S.lost||!rule('clock'))return false; // no clock (puzzles): no days, no bills, nothing fires
   S.day++;
@@ -47,7 +48,7 @@ function dayPost(d){
       (a.sla||(a.sla=[])).push(b.id);b.slaFor=a.start;S.cash-=SLA_PEN;b.mood=Math.max(0,b.mood-18);S.stats.sla=(S.stats.sla||0)+1;
       toast(tr('day_tick.sla_breach_name_the_attack_on',{name:esc(b.name),city:CITY[a.city].name,pen:fmt$(SLA_PEN)}),'bad');sfx('err');}}
   // businesses mood
-  const ids=linkIds(),frr=coreFrr()&&S.links.some(l=>l.cut)?.5:1;const bhT=new Set(ddosAll().filter(a=>a.bh).map(a=>a.tgt));for(const b of S.biz.slice()){if(eventTick(b,d)||capPendTick(b,d))continue;b.pm=b.mood;if(bhT.has(b.id))continue;const sf=bizSf(b,ids),reachOk=BIZ_T[b.type].l2||BIZ_T[b.type].fiber||R.reach>0.99||scnRule('local'),scrubOk=b.type!=='scrub'||(hasScrub()&&!scrubFar(b.city)),divOk=reqOk(b);
+  const ids=linkIds(),frr=(coreFrr()&&S.links.some(l=>l.cut)?.5:1)*(rule('moods')==='patient'?.5:1);const bhT=new Set(ddosAll().filter(a=>a.bh).map(a=>a.tgt));for(const b of S.biz.slice()){if(eventTick(b,d)||capPendTick(b,d))continue;b.pm=b.mood;if(bhT.has(b.id))continue;const sf=bizSf(b,ids),reachOk=BIZ_T[b.type].l2||BIZ_T[b.type].fiber||R.reach>0.99||scnRule('local'),scrubOk=b.type!=='scrub'||(hasScrub()&&!scrubFar(b.city)),divOk=reqOk(b);
     if(sf>=0.95&&reachOk&&scrubOk&&divOk)b.mood=Math.min(100,b.mood+2);
     else if(S.day-(b.since||0)<15){}
     else{b.mood-=frr*(Math.max(0,0.95-sf)*45+(!reachOk?3:0)+(!scrubOk?4:0)+(!divOk?3:0));
@@ -87,7 +88,7 @@ function dayPost(d){
   // money trouble
   if(S.cash<0){S.neg++;if(S.neg===1)toast(tr('day_tick.you_are_in_the_red_cancel'),'bad');}
   else S.neg=0;
-  if(S.cash<-100000){S.lost=true;track('bankrupt');showLose();return;}
+  if(S.cash<-100000){if(rule('broke')==='rescue')rescueLoan();else{S.lost=true;track('bankrupt');showLose();return;}}
   {const c=cal(d);if(c.m===0&&c.d===1&&[2,3,5].includes(c.y))track('game_year_'+c.y,true);}
   if(d%10===0)save();
 }

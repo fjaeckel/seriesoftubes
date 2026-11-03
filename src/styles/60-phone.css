@@ -61,7 +61,7 @@ button,.chip,.b,a{touch-action:manipulation;-webkit-tap-highlight-color:transpar
   .tagline{font-size:13.5px;margin:8px 0 10px}
   .slots{max-height:38vh}.slot-go{padding:7px 4px 7px 9px;gap:8px}.slot-go>i{font-size:22px}.slot .sn b{font-size:16px}.slot .sm em{font-size:13.5px}.slot .sn small,.slot .sm small{font-size:11.5px}
   .door{padding:7px 9px 6px}.door i{font-size:22px}.door b{font-size:16px}.door span{font-size:11.5px}
-  .presets{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .presets{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
   .presets .preset{flex-direction:column;align-items:center;text-align:center;padding:6px 4px;gap:0}
   .presets .preset i{font-size:20px}.presets .preset b{font-size:13.5px}
   .chaos{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -80,7 +80,7 @@ button,.chip,.b,a{touch-action:manipulation;-webkit-tap-highlight-color:transpar
   #left.full,#panel.full{width:min(640px,80%) !important}
   #tabbar button .ic{font-size:16px}
   .doors{grid-template-columns:repeat(4,minmax(0,1fr))}.chaos{grid-template-columns:repeat(4,minmax(0,1fr))}
-  .presets{grid-template-columns:repeat(3,minmax(0,1fr))}.preset{display:flex}
+  .presets{grid-template-columns:repeat(4,minmax(0,1fr))}.preset{display:flex}
   body.sheet-open #coach{bottom:calc(var(--tabbar) + 8px);left:8px;transform:none;width:calc(42% - 16px)}
 }
 /* Installed as an app: no browser chrome, so leave room for the notch and the home indicator. */

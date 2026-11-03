@@ -3,29 +3,35 @@
    these rules, not separate code: Normal comes as Change Freeze, On-call (the classic game) and BGP at 3 a.m.;
    Sandbox and Puzzles are presets too. Saves without rules load as On-call, so nothing changes for them.
    Scenarios and the weekly challenge run on On-call plus their own S.scn.rules (scnRule()). */
-const RULE_DEF={clock:true,chaos:'normal',lead:'real',market:true,money:'normal',gates:'ladder',mods:[]};
-const RULE_OK={clock:[true,false],chaos:['none','calm','normal','spicy'],lead:['real','quick'],market:[true,false],money:['normal','infinite'],gates:['ladder','open']};
+// sea: cable ships sail out to subsea cuts, or (timer) a cut mends on its own clock. confs: conference season.
+// broke: deep in the red ends the game, or (rescue) a state loan keeps it going. moods: patient customers sour half as fast.
+const RULE_DEF={clock:true,chaos:'normal',lead:'real',market:true,money:'normal',gates:'ladder',sea:'ships',confs:true,broke:'lose',moods:'normal',mods:[]};
+const RULE_LATE=['sea','confs','broke','moods'];
+const RULE_OK={clock:[true,false],chaos:['none','calm','normal','spicy'],lead:['real','quick'],market:[true,false],money:['normal','infinite'],gates:['ladder','open'],sea:['ships','timer'],confs:[true,false],broke:['lose','rescue'],moods:['normal','patient']};
 // i: icon, n: name, d: the one-line joke, x: what is different, in small print.
 const PRESETS={
+ soft:{i:'☕',n:tr('rules.best_effort'),d:tr('rules.no_sla_no_pager_no_promises'),x:tr('rules.rare_outages_no_ddos_no_conferences'),clock:true,chaos:'calm',lead:'quick',market:false,money:'normal',gates:'ladder',sea:'timer',confs:false,broke:'rescue',moods:'patient'},
  freeze:{i:'🧊',n:tr('rules.change_freeze'),d:tr('rules.nobody_touches_prod_even_the_backhoes'),x:tr('rules.a_third_of_the_outages_no_ddos_pnis'),clock:true,chaos:'calm',lead:'quick',market:false,money:'normal',gates:'ladder'},
  oncall:{i:'📟',n:tr('rules.on_call'),d:tr('rules.the_real_thing_your_pager_has'),x:tr('rules.real_lead_times_real_outages_a_real'),clock:true,chaos:'normal',lead:'real',market:true,money:'normal',gates:'ladder'},
  bgp:{i:'🔥',n:tr('rules.bgp_at_3_a_m'),d:tr('rules.everything_is_on_fire_and_it'),x:tr('rules.more_and_longer_outages_more_ddos'),clock:true,chaos:'spicy',lead:'real',market:true,money:'normal',gates:'ladder'},
  sandbox:{i:'🏖️',n:tr('common.sandbox'),d:tr('rules.a_billion_dollars_every_unlock_your'),x:tr('rules.infinite_money_everything_unlocked_quick'),clock:true,chaos:'none',lead:'quick',market:true,money:'infinite',gates:'open'},
  puzzle:{i:'🧩',n:tr('rules.puzzle'),d:tr('rules.one_small_network_one_tricky_goal'),x:tr('rules.no_clock_no_bills_nothing_breaks'),clock:false,chaos:'none',lead:'quick',market:false,money:'normal',gates:'open'},
 };
-const NORMAL_PRESETS=['freeze','oncall','bgp'];
+const NORMAL_PRESETS=['soft','freeze','oncall','bgp'];
 // How often things break, against the classic game. Spicy outages also last half as long again.
 const CHAOS={none:{i:'😴',n:tr('rules.chaos_none'),d:tr('rules.nothing_ever_breaks'),m:0},calm:{i:'🧊',n:tr('rules.chaos_calm'),d:tr('rules.a_cut_now_and_then'),m:0.35},normal:{i:'📟',n:tr('rules.chaos_normal'),d:tr('rules.like_the_real_game'),m:1},spicy:{i:'🔥',n:tr('rules.chaos_spicy'),d:tr('rules.your_pager_never_sleeps'),m:1.8}};
 const SPICY_LONG=1.5,LEAD_QUICK=10;
 function rule(k){const r=S&&S.rules;return r&&r[k]!==undefined?r[k]:RULE_DEF[k];}
 function rulePreset(){const p=S&&S.rules&&S.rules.preset;return p&&Object.prototype.hasOwnProperty.call(PRESETS,p)?p:'oncall';}
+const shipsOn=()=>rule('sea')!=='timer',confsOn=()=>rule('confs')!==false;
 function gatesOpen(){return rule('gates')==='open';}
 function chaosMul(){const c=CHAOS[rule('chaos')];return c?c.m:1;}
 // Days until something ordered arrives: as quoted, or a tenth of it (at least a day) with quick lead times.
 function leadDays(n){return rule('lead')==='quick'?Math.max(1,Math.round(n/LEAD_QUICK)):n;}
 // A fresh, valid rules object: the preset's values, with any valid overrides on top.
 function makeRules(preset,o){const p=Object.prototype.hasOwnProperty.call(PRESETS,preset)?preset:'oncall',P=PRESETS[p],r={preset:p};o=o&&typeof o==='object'?o:{};
-  for(const k of Object.keys(RULE_OK)){const d=P[k]!==undefined?P[k]:RULE_DEF[k];r[k]=RULE_OK[k].includes(o[k])?o[k]:d;}
+  // The later rules are written only where they differ from the classic game, so older networks' rules stay as they were.
+  for(const k of Object.keys(RULE_OK)){const d=P[k]!==undefined?P[k]:RULE_DEF[k],v=RULE_OK[k].includes(o[k])?o[k]:d;if(!RULE_LATE.includes(k)||v!==RULE_DEF[k])r[k]=v;}
   r.mods=Array.isArray(o.mods)?[...new Set(o.mods.filter(m=>typeof m==='string'&&/^[a-z0-9_-]{1,24}$/.test(m)))].slice(0,16):[];
   return r;}
 // What the HUD and the share card say about the rules. On-call says nothing: it is the game.

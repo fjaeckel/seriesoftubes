@@ -78,6 +78,13 @@ function spawnLoanOffer(emergency){
   S.loanOffers.push(o);
   toast(tr('banks.bank_would_like_to_lend_you',{bank:esc(B.name),amount:fmt$(amount)})+'<br>'+(emergency?tr('banks.they_heard_you_might_be_in'):tr('banks.terms_apply_several_terms')),emergency?'bad':'goal',[{l:tr('common.open_bank'),act:'bank',args:{}}]);
 }
+// Best Effort has no game over: deep in the red, the Ministry of Tubes lends what it takes to be back in the black,
+// cheap, over five years, no conditions. The repayments are still yours.
+const RESCUE_APR=0.02,RESCUE_TERM=60;
+function rescueLoan(){const amount=niceAmt(Math.max(250000,-S.cash+Math.max(150000,(R.costMo||0)*2)));
+  S.cash+=amount;S.stats.rescues=(S.stats.rescues||0)+1;S.neg=0;
+  S.loans.push({id:uid(),bank:'gov',start:S.day,amount,got:amount,bal:amount,apr:RESCUE_APR,apr0:RESCUE_APR,pay:Math.round(annuity(amount,RESCUE_APR,RESCUE_TERM)),left:RESCUE_TERM,term:RESCUE_TERM,share:0,covs:[],base:{sub:S.links.filter(x=>x.sub).length}});
+  track('rescue');toast(`<b>${tr('banks.bank_stepped_in',{bank:esc(BANKS.gov.name)})}</b><br>${tr('banks.a_rescue_loan_of_amount_keeps',{amount:fmt$(amount),pay:fmt$(Math.round(annuity(amount,RESCUE_APR,RESCUE_TERM)))})}`,'bad',[{l:tr('common.open_bank'),act:'bank',args:{}}]);sfx('coin');}
 function loanTick(d){
   // conditions: 15-day grace, then a penalty every 30 days while broken
   for(const l of S.loans){const B=BANKS[l.bank];

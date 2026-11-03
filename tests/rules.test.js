@@ -45,12 +45,12 @@ test('rules survive save and load, and junk is repaired', () => {
   assert.deepEqual(errors, []);
 });
 
-test('the title screen: four doors, three Normal presets, a chaos picker for Sandbox, at 360 px', () => {
+test('the title screen: four doors, four Normal presets, a chaos picker for Sandbox, at 360 px', () => {
   const { ev, dom, errors } = load();
   const doc = dom.window.document;
   ev('window.innerWidth=360;showTitle()');
   assert.equal(doc.querySelectorAll('#modal .door').length, 4);
-  assert.equal(doc.querySelectorAll('#modal .preset').length, 3);
+  assert.equal(doc.querySelectorAll('#modal .preset').length, 4);
   assert.equal(doc.querySelectorAll('#modal .chs').length, 4);
   assert.equal(doc.getElementById('doorSandbox').hidden, true);
   assert.ok(doc.querySelector('.preset[data-preset=oncall].on'), 'On-call is the default');

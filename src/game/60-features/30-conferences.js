@@ -8,7 +8,8 @@ const confSp=cf=>!cf.cap&&[...cf.key].reduce((a,ch)=>(a*31+ch.charCodeAt(0))>>>0
 const confCost=cf=>cf.cap?CAP_COST:CONF_COST;
 const confDay=(cf,y)=>dayOf(y+1,cf.m,10);
 function confKey(cf,y){return cf.n+'@'+cf.c+'@'+y;}
-function upcomingConfs(within){const y0=cal(S.day).y-1,out=[];for(const y of [y0,y0+1])for(const cf of CONFS){const d=confDay(cf,y);if(d>=S.day&&d-S.day<=within)out.push({...cf,day:d,key:confKey(cf,y)});}return out.sort((a,b)=>a.day-b.day);}
+// No conference season in Best Effort: nothing to register for, nothing in the panel, no invitations.
+function upcomingConfs(within){if(!confsOn())return [];const y0=cal(S.day).y-1,out=[];for(const y of [y0,y0+1])for(const cf of CONFS){const d=confDay(cf,y);if(d>=S.day&&d-S.day<=within)out.push({...cf,day:d,key:confKey(cf,y)});}return out.sort((a,b)=>a.day-b.day);}
 function confBoost(id){const cb=S.conf;if(!cb||!(cb.until>S.day))return 1;const n=NET[id];return n&&n.pops.some(c=>CITY[c]&&CITY[c].reg===cb.reg)?0.5:1;}
 function confTick(d){S.confReg=S.confReg||{};
   for(const cf of upcomingConfs(30)){if(cf.day-d===30&&!S.confReg[cf.key])toast(tr('conferences.conf_comes_to_city_in_30',{conf:esc(cf.n),city:esc(CITY[cf.c].name)}),'goal',[{l:tr('common.show_me'),act:'leftTab',args:{t:'deals'}}]);}

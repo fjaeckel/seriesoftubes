@@ -206,33 +206,38 @@ test('N7: presence is real: PoPs are cities, exchange ports only where the netwo
 // ---------- Modes and rules ----------
 
 test('M1: On-call is the classic game: the default rules, and what old saves load as', () => {
-  assert.deepEqual(J("(({preset,mods,...r})=>r)(makeRules('oncall'))"), J("(({mods,...r})=>r)(RULE_DEF)"), 'M1: On-call is RULE_DEF');
+  assert.deepEqual(J("(({preset,mods,...r})=>r)(makeRules('oncall'))"), J("(({mods,...r})=>{for(const k of RULE_LATE)delete r[k];return r;})(RULE_DEF)"), 'M1: On-call is RULE_DEF');
+  assert.deepEqual(J("(()=>{const o=S.rules;S.rules=makeRules('oncall');const v=Object.keys(RULE_OK).map(rule);S.rules=o;return v;})()"), J("Object.keys(RULE_OK).map(k=>RULE_DEF[k])"), 'M1: and plays as RULE_DEF');
   assert.equal(ev("(()=>{const o=S.rules;delete S.rules;const p=rulePreset();S.rules=o;return p;})()"), 'oncall', 'M1: no rules means On-call');
   // the seeded On-call games are the rest of the suite (tests/game.test.js, tests/rules.test.js); they must stay green
 });
 
-test('M2: presets are ordered: Change Freeze never harsher than On-call, BGP at 3 a.m. never gentler', () => {
-  const P = J('PRESETS'), C = J('CHAOS'), lead = { quick: 0, real: 1 };
-  assert.ok(C[P.freeze.chaos].m <= C[P.oncall.chaos].m && C[P.oncall.chaos].m <= C[P.bgp.chaos].m, 'M2: chaos');
-  assert.ok(lead[P.freeze.lead] <= lead[P.oncall.lead] && lead[P.oncall.lead] <= lead[P.bgp.lead], 'M2: lead times');
-  assert.ok(!P.freeze.market || P.oncall.market, 'M2: market');
+test('M2: presets are ordered: Best Effort never harsher than Change Freeze, Change Freeze never harsher than On-call, BGP at 3 a.m. never gentler', () => {
+  const P = J('PRESETS'), C = J('CHAOS'), D = J('RULE_DEF'), lead = { quick: 0, real: 1 }, v = (p, k) => P[p][k] !== undefined ? P[p][k] : D[k];
+  assert.ok(C[P.soft.chaos].m <= C[P.freeze.chaos].m && C[P.freeze.chaos].m <= C[P.oncall.chaos].m && C[P.oncall.chaos].m <= C[P.bgp.chaos].m, 'M2: chaos');
+  assert.ok(lead[P.soft.lead] <= lead[P.freeze.lead] && lead[P.freeze.lead] <= lead[P.oncall.lead] && lead[P.oncall.lead] <= lead[P.bgp.lead], 'M2: lead times');
+  assert.ok((!P.soft.market || P.freeze.market) && (!P.freeze.market || P.oncall.market), 'M2: market');
+  // The softenings only Best Effort has: every other Normal preset keeps the classic game's.
+  for (const k of ['sea', 'confs', 'broke', 'moods']) for (const p of ['freeze', 'oncall', 'bgp']) assert.equal(v(p, k), D[k], `M2: ${p} keeps ${k}`);
+  assert.deepEqual(['sea', 'confs', 'broke', 'moods'].map((k) => v('soft', k)), ['timer', false, 'rescue', 'patient'], 'M2: Best Effort softens them all');
   assert.ok(P.bgp.market && P.bgp.money === 'normal' && P.bgp.gates === 'ladder', 'M2: BGP keeps every hardship');
   // seeded: the same network for a year under each preset
   const n = {};
-  for (const p of ['freeze', 'oncall', 'bgp']) {
+  for (const p of ['soft', 'freeze', 'oncall', 'bgp']) {
     const g = load();
     g.ev(`beginGame('Order','fra',${JSON.stringify({ mode: 'normal', preset: p })});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1});__reseed(4242);for(let i=0;i<360;i++)dayTick()`);
     n[p] = g.ev('S.inc.length+S.stats.survived+(S.stats.incidents||0)');
     assert.deepEqual(g.errors, []);
   }
-  assert.ok(n.freeze <= n.oncall && n.oncall <= n.bgp, `M2: incidents in a year: freeze ${n.freeze}, on-call ${n.oncall}, bgp ${n.bgp}`);
+  assert.ok(n.soft <= n.freeze && n.freeze <= n.oncall && n.oncall <= n.bgp, `M2: incidents in a year: soft ${n.soft}, freeze ${n.freeze}, on-call ${n.oncall}, bgp ${n.bgp}`);
 });
 
 test('M3: every subsystem that can annoy the player reads a rule', () => {
   // [function, what it must read]
   const reads = [['dayPost', 'chaosMul()'], ['fireEvent', "rule('market')"], ['ddosTick', 'ddosOff()'],
     ['soldOut', "rule('market')"], ['hwMul', "rule('market')"], ['leadDays', "rule('lead')"], ['pniLead', 'leadDays'],
-    ['dfBuildDays', 'leadDays'], ['dayPre', "rule('clock')"], ['snub', "rule('market')"]];
+    ['dfBuildDays', 'leadDays'], ['dayPre', "rule('clock')"], ['snub', "rule('market')"], ['fireFailure', 'shipsOn()'],
+    ['upcomingConfs', 'confsOn()'], ['dayPost', "rule('broke')"], ['dayPost', "rule('moods')"], ['toast', 'quietOn()']];
   fail('M3', reads.filter(([f, r]) => !ev(`typeof ${f}==='function'&&${f}.toString().includes(${JSON.stringify(r)})`)).map(([f, r]) => `${f}() does not read ${r}`), 'gate it on the ruleset (src/game/40-progress/30-rules.js)');
   // and in play: no chaos and no market means a quiet year
   const g = load();
