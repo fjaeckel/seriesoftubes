@@ -47,7 +47,10 @@ next to it. `npm run page -- -o /tmp/page.html` writes the assembled page if you
   anything runs after boot. When in doubt, put constants in an earlier file and logic in functions.
 - **Actions:** add `name:(args)=>{…},` to the matching `src/game/90-actions/*.js`. Only
   `10-interface.js` declares `const ACT={`; the others are `Object.assign(ACT,{ … });`. A new area can get
-  a new `NN-area.js` file of that second form.
+  a new `NN-area.js` file of that second form. The MCP server types every action: a new one also gets
+  an entry in `scripts/lib/mcp-commands.js` (a game command with its argument domains, a view, a draft
+  or a session action) or in the server's `DENY` list in `scripts/lib/mcp-page.js`;
+  `tests/mcp-commands.test.js` fails until it has one.
 - **Panels and modals:** `93-ui/` (HUD, side panels), `94-dashboard/` (NOC dashboard, bank), `95-modals/`.
 - **Styles:** the matching `src/styles/*.css`; phone rules go in `60-phone.css`.
 - **Data tables** (cities, cables, networks): one entry per line, and keep id-keyed objects such as
