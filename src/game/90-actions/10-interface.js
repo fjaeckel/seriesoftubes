@@ -48,5 +48,8 @@ const ACT={
  findOpen:()=>findOpen(),
  findGo:({city})=>{if(!isCity(city))return;closeModal();$('dash').hidden=true;ACT.focusCity({city});},
  focusCity:({city})=>{selectCity(city);const C=CITY[city];cam.x=C.x;cam.y=C.y;cam.z=Math.max(cam.z,1.2);if(innerWidth<760)UI.leftOpen=false;renderLeft();},
+ popStep:({d})=>{const L=popOrder(),n=L.length;if(!n)return;const i=UI.sel&&UI.sel.type==='city'?L.indexOf(UI.sel.id):-1;$('dash').hidden=true;ACT.focusCity({city:L[i<0?(d>0?0:n-1):(i+(d>0?1:n-1))%n]});},
+ zoomStep:({d})=>zoomAt(CW/2,CH/2,d>0?1.25:0.8),
+ keys:()=>showKeys(),
  selLink:({id})=>{selectLink(id);focusLink(id);},
 };
