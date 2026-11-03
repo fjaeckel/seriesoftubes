@@ -73,7 +73,7 @@ Development runs on `npm run dev` (assembles the development page on every reque
 | `scripts/test.js` | `npm test`: runs every `tests/*.test.js` |
 | `scripts/release-notes.js` | Extracts a version's CHANGELOG bullets |
 | `scripts/perf-bench.js`, `perf-browser.js`, `perf-stats.js`, `perf-fixture.js` | Big-network benchmark, base vs head, headless and in Chromium as a desktop and a throttled phone, with a significance test per row (posted on every PR by `perf.yml` + `perf-comment.yml`), and the generator of its save, `tests/fixtures/big-network.json` |
-| `scripts/mcp.js`, `scripts/lib/mcp-game.js`, `scripts/lib/mcp-headless.js`, `src/agent/` | The game as a local MCP server: typed tools to play, inspect and debug it from an AI client ([MCP.md](MCP.md)) |
+| `scripts/mcp.js`, `scripts/lib/mcp-game.js`, `scripts/lib/mcp-headless.js`, `src/agent/` | The game as a local MCP server, on the official SDK over stdio or HTTP: typed tools to play, inspect and debug it from an AI client ([MCP.md](MCP.md)) |
 | `scripts/i18n-check.js`, `scripts/i18n-add.js`, `scripts/lib/dict.js` | Translation coverage and dictionary order; adding, renaming and removing entries |
 | `scripts/legacy/` | The splitter that made `src/` from the old `site/index.html` (and gave its text labels), and `port-branch.js`, which carries older branches over |
 | `tests/harness.js` | Loads the assembled page in jsdom with a seeded `Math.random` and a fake canvas: the players' page, or the development page with `{agent: true}` |

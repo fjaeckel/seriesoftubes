@@ -1,4 +1,5 @@
-// The MCP server (scripts/mcp.js): an AI client plays, inspects and debugs the game through typed tools.
+// The MCP server (scripts/mcp.js): an AI client plays, inspects and debugs the game through typed tools. Over stdio
+// here; tests/mcp-http.test.js has the HTTP transport.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -27,7 +28,7 @@ test('speaks MCP over stdio: initialize, list tools, call one, and errors as err
     assert.equal(init.result.protocolVersion, '2025-06-18');
     assert.equal(init.result.serverInfo.name, 'seriesoftubes');
     assert.ok(init.result.capabilities.tools);
-    assert.equal((await ask({ id: 9, method: 'initialize', params: { protocolVersion: '1999-01-01' } })).result.protocolVersion, '2025-11-25', 'an unknown version gets the newest');
+    assert.equal((await ask({ id: 9, method: 'initialize', params: { protocolVersion: '1999-01-01', capabilities: {}, clientInfo: { name: 'test', version: '1' } } })).result.protocolVersion, '2025-11-25', 'an unknown version gets the newest');
     await ask({ method: 'notifications/initialized' });
     const list = await ask({ id: 2, method: 'tools/list' });
     const names = list.result.tools.map((t) => t.name);

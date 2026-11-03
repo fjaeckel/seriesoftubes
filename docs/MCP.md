@@ -1,9 +1,10 @@
 # Series of Tubes as an MCP server
 
 `scripts/mcp.js` lets an AI client (Claude Code, Claude Desktop, any MCP client) play, inspect and debug the game
-through typed tools. It runs on your machine over stdio and loads the game from this checkout's `src/`, the way the
-tests do: one page in jsdom, seeded, with no animation loop. Nothing is hosted and the game page does not change, so
-it stays within [ADR 0001](adr/0001-github-pages-only.md): it is a local tool, like `npm run dev`.
+through typed tools. It runs on your machine, over stdio or over HTTP, and loads the game from this checkout's
+`src/`, the way the tests do: one page in jsdom, seeded, with no animation loop. Nothing is hosted and the game page
+does not change, so it stays within [ADR 0001](adr/0001-github-pages-only.md): it is a local tool, like `npm run dev`,
+not a server for the game. The protocol is the official SDK's (`@modelcontextprotocol/server`, a dev dependency).
 
 ## Set it up
 
@@ -14,6 +15,30 @@ claude mcp add seriesoftubes -- node /path/to/seriesoftubes/scripts/mcp.js
 
 Other clients take the same command (`node /path/to/seriesoftubes/scripts/mcp.js`) in their MCP server settings.
 `npm run mcp` starts it by hand; clients should use the `node` command, because `npm run` prints a line of its own first.
+
+### Over HTTP
+
+For a client that connects to a running server instead of starting one (another process, a container, another
+machine), serve Streamable HTTP:
+
+```sh
+node scripts/mcp.js --http 7777                       # http://127.0.0.1:7777/mcp, this machine only
+claude mcp add --transport http seriesoftubes http://127.0.0.1:7777/mcp
+```
+
+- **Where it listens is your choice.** `--http 7777` binds loopback. `--http 0.0.0.0:7777` (or one address) lets
+  other machines in, and then anyone who can reach it can play; the server says so when it starts.
+- **Token (optional).** With `SOT_MCP_TOKEN=…` or `--token-file FILE`, every request needs
+  `Authorization: Bearer <token>` (`claude mcp add … --header "Authorization: Bearer …"`). Without a token, a server
+  bound beyond loopback warns. There is no TLS: beyond a network you trust, use `ssh -L 7777:127.0.0.1:7777` or a
+  TLS proxy in front.
+- **Always checked, wherever it listens:** the `Host` must be an address of this machine (or a name given with
+  `--allow-host`), which stops DNS rebinding, and a request from a web page (an `Origin` other than localhost) is
+  refused, so no website can drive the game through your browser.
+- **Files:** over HTTP, `load_save` and `export_save` take and give JSON only. `--save-dir DIR` lets them read and
+  write files under `DIR` and nowhere else (symbolic links that lead out are refused).
+- **One game for every client.** Calls run one at a time, in the order they arrive; `new_game` or `load_save` from
+  any client replaces the game for all of them.
 
 A game is always loaded: a fresh On-call game in Frankfurt until you start or load another. Every game is seeded, so
 the same seed and the same moves give the same game.
@@ -68,7 +93,9 @@ moves only with `advance`. There is no tool that evaluates code in the page.
 
 ## Code
 
-- `scripts/mcp.js`: the stdio transport (JSON-RPC 2.0, one message per line) and the protocol methods.
+- `scripts/mcp.js`: the server on the SDK: the tools registered from `TOOLS`, stdio or Streamable HTTP, the Host,
+  Origin and token checks, the one-at-a-time queue.
+- `tests/mcp-http.test.js`: the HTTP transport, its checks, the token and the save directory.
 - `scripts/lib/mcp-game.js`: the session (one game page: the development page, which has the facade) and the tool
   list with input schemas.
 - `src/agent/`: the facade (`window.TUBES.call(tool, args)`), in the page's own scope: every action's class,

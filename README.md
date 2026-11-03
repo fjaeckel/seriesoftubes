@@ -56,7 +56,7 @@ npm run dev    # development server: assembles src/ on every request, reloads on
 npm test       # headless tests: boot, geography, a year of play, every incident, every panel
 npm run build  # writes the site for GitHub Pages to _site/, with version and date stamped in
 npm run i18n:check  # lists text missing from (or stale in) the translations
-npm run mcp    # the game as an MCP server, so an AI client can play and debug it (docs/MCP.md)
+npm run mcp    # the game as an MCP server, so an AI client can play and debug it (docs/MCP.md; --http for HTTP)
 ```
 
 ## Community

@@ -33,7 +33,21 @@ function pageCall(g, tool, args = {}) {
   return JSON.parse(g.ev('JSON.stringify(TUBES.call(__mcpTool,__mcpArgs))') || 'null');
 }
 
+// Where load_save and export_save may touch files. stdio (saveDir undefined): anywhere, as the operator's own client
+// asks. Over HTTP the client may be another machine: nowhere (null), or only under one directory, symlinks included.
+function savePath(s, p, write) {
+  if (s.saveDir === undefined) return path.resolve(p);
+  if (s.saveDir === null) throw new Error('This server takes saves as JSON only: give json instead of path (the server can allow a directory with --save-dir).');
+  const root = s.saveDir, full = path.resolve(root, String(p));
+  let real;
+  try { real = write ? path.join(fs.realpathSync(path.dirname(full)), path.basename(full)) : fs.realpathSync(full); } catch (e) { throw new Error(`${p}: no such file or directory under the save directory`); }
+  if (!real.startsWith(root + path.sep)) throw new Error(`${p} is outside the save directory.`);
+  if (write && fs.existsSync(real) && fs.lstatSync(real).isSymbolicLink()) throw new Error(`${p} is a symbolic link: write to a plain file.`);
+  return real;
+}
+
 // opts.seed, opts.file as tests/harness.js takes them (a file must be a development page: it carries the facade).
+// opts.saveDir: see savePath.
 function createSession(opts = {}) {
   let game = null;
   const boot = () => {
@@ -44,6 +58,7 @@ function createSession(opts = {}) {
     return g;
   };
   const session = {
+    saveDir: opts.saveDir,
     get game() { return game || (game = boot()); },
     // The page's own tools (TUBES.call).
     call(name, args) { return pageCall(session.game, name, args); },
@@ -79,7 +94,7 @@ const TOOLS = [
     inputSchema: obj({ path: str('Path to a .json save file.'), json: str('The save itself, as JSON text.') }),
     run: (s, a) => {
       if (!a.path === !a.json) throw new Error('Give either path or json.');
-      const txt = a.path ? fs.readFileSync(path.resolve(a.path), 'utf8') : a.json;
+      const txt = a.path ? fs.readFileSync(savePath(s, a.path, false), 'utf8') : a.json;
       return s.loadSave(txt);
     },
   },
@@ -89,7 +104,7 @@ const TOOLS = [
     inputSchema: obj({ path: str('Where to write the .json file.') }),
     run: (s, a) => {
       const txt = s.headless('exportSave', require('../../package.json').version);
-      if (a.path) { fs.writeFileSync(path.resolve(a.path), txt); return { wrote: path.resolve(a.path), bytes: Buffer.byteLength(txt) }; }
+      if (a.path) { const f = savePath(s, a.path, true); fs.writeFileSync(f, txt); return { wrote: f, bytes: Buffer.byteLength(txt) }; }
       if (txt.length > MAX_INLINE_SAVE) throw new Error(`The save is ${txt.length} characters; give a path to write it to.`);
       return JSON.parse(txt);
     },
@@ -215,4 +230,4 @@ const TOOLS = [
   },
 ];
 
-module.exports = { createSession, TOOLS, actArgs };
+module.exports = { createSession, TOOLS, actArgs, savePath };

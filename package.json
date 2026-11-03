@@ -25,6 +25,8 @@
     "node": ">=20"
   },
   "devDependencies": {
+    "@modelcontextprotocol/node": "2.1.2",
+    "@modelcontextprotocol/server": "2.4.0",
     "jsdom": "24.1.3",
     "playwright-core": "1.56.0"
   }
