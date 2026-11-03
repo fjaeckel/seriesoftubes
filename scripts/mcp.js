@@ -13,7 +13,7 @@ const { version } = require('../package.json');
 
 const VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
 const INSTRUCTIONS = `Series of Tubes is a cartoon game about building an internet backbone: POPs in cities, links between them, transit, exchanges, PNIs, customers. A game is always loaded (a fresh On-call game in Frankfurt until you start or load another).
-Read with status, network, city, find, traceroute, peering_check and hot_spots. Change things with act (see actions), or with screen, panel and click, which show the game's own panels and windows as text with numbered buttons. Time moves only with advance. Games are seeded: the same seed and moves give the same game.
+Read with status, network, city, find, traceroute, peering_check and hot_spots, or raw with state, results and catalog; schema is the typed contract of every action. Change things with act (arguments are checked, outcome says what happened, dryRun prices a move first), or with screen, panel and click, which show the game's own panels and windows as text with numbered buttons. Time moves only with advance. Games are seeded: the same seed and moves give the same game.
 To look into a bug report: load_save with the attached save, then status, hot_spots, and advance with timings.`;
 
 const session = createSession();
