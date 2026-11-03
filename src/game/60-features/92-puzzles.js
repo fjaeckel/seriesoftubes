@@ -132,7 +132,7 @@ function pzBegin(def){if(!def)return;pzMkStop();mkStop();
   if(live)pzFlush();go();}
 function pzLeave(){pzMkStop();if(S&&S.ar)arStop(true);mkStop();const from=UI.pzFrom;pzToastsClear();document.body.classList.remove('pz');UI.sel=null;UI.pzHist=null;UI.pzFrom=null;UI.pzEv=null;closeModal();$('panel').hidden=true;$('pzBox').hidden=true;S=null;R=emptyR();UI.started=false;
   if(from==='game'){const sv=UI.pzKeep||loadSave();UI.pzKeep=null;
-    if(sv){try{S=migrate(sv);compute();UI.started=true;UI.speed=[0,0.5,1,2,4,8].includes(S.uiSpeed)?S.uiSpeed:1;if(S.cam&&isFinite(S.cam.x))Object.assign(cam,S.cam);renderAll();return;}catch(e){console.error('[tubes] loading the network failed',e);S=null;UI.started=false;}}
+    if(sv){try{S=migrate(sv);compute();UI.started=true;setSpeed([0,0.5,1,2,4,8].includes(S.uiSpeed)?S.uiSpeed:1);if(S.cam&&isFinite(S.cam.x))Object.assign(cam,S.cam);renderAll();return;}catch(e){console.error('[tubes] loading the network failed',e);S=null;UI.started=false;}}
     // It cannot be loaded back: marked damaged (kept, so it can be exported), and the player is told.
     if(UI.slot&&(sv||UI.loadBad)){slotBroke(UI.slot);return;}}
   renderAll();showTitle();}

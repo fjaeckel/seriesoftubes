@@ -56,7 +56,10 @@ next to it. `npm run page -- -o /tmp/page.html` writes the page players get if y
   development page only (`<!-- @include-dev agent -->`): players never download it. Its top-level names
   start with `api`/`API_`, and **nothing in `src/game/` may name them**: that would work in `npm run dev`
   and break for players (`tests/build.test.js` checks). Tests load the players' page; a test of the
-  facade asks for `load({ agent: true })`. See docs/adr/0004-dev-only-code.md.
+  facade asks for `load({ agent: true })`. Where agent code must change what the game does (agent mode
+  locks the clock, adds a Settings section and a HUD badge), the game calls `HOOKS.x?.()` and reads
+  `UI.clockLocked` (`50-state.js`), and agent code fills them in: add a hook there rather than an `if` for
+  the agent in a game file. See docs/adr/0004-dev-only-code.md.
 - **Panels and modals:** `93-ui/` (HUD, side panels), `94-dashboard/` (NOC dashboard, bank), `95-modals/`.
 - **Styles:** the matching `src/styles/*.css`; phone rules go in `60-phone.css`.
 - **Data tables** (cities, cables, networks): one entry per line, and keep id-keyed objects such as

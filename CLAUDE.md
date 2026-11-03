@@ -21,7 +21,7 @@ Read these before larger changes:
 
 ```bash
 npm ci                       # once: installs jsdom for the tests
-npm run dev                  # play while developing: http://localhost:8080, reloads on save
+npm run dev                  # play while developing: http://localhost:8080, reloads on save (--host to share)
 npm test                     # node:test + jsdom, every tests/*.test.js, must stay green
 node scripts/i18n-check.js   # must report "0 missing, 0 unused, 0 broken" (and sorted dictionaries)
 node scripts/i18n-add.js FILE.json   # add/change/remove translations (see `add-strings`)

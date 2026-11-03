@@ -273,7 +273,7 @@ test('everything an action needs can be read: loan offers, conference keys, reci
   assert.equal(T('state', { path: 'no.such.path' }), null);
   assert.ok('pending' in T('ui') && !('hover' in T('ui')), 'the view state, without render scratch');
   assert.throws(() => T('schema', { section: 'nope' }), /No section/);
-  assert.deepEqual(Object.keys(T('schema')).sort(), ['clock', 'commands', 'denied', 'domains', 'drafts', 'results', 'session', 'state', 'view']);
+  assert.deepEqual(Object.keys(T('schema')).sort(), ['clock', 'commands', 'denied', 'domains', 'drafts', 'mode', 'results', 'session', 'state', 'view']);
   const a = T('actions');
   for (const x of ['buildLink(a,b,tier,cable?,route?,premiumCrossing?)', 'orderDf(a,b,source,system)', 'teDeploy(script)', 'renameGo(name)', 'rtbh(id?)', 'startScn(id)', 'dfSrc(v)']) assert.ok(a.includes(x), x);
   assert.deepEqual(s.errors(), []);

@@ -23,7 +23,10 @@ function load(opts = {}) {
     if (!/getContext|Not implemented/.test(e.message)) errors.push(e.message);
   });
   const dom = new JSDOM(html, {
-    url: 'https://tests.invalid/',
+    // opts.url: the origin the page is "served" from. Tests that dial the agent relay pass the relay's own host, so
+    // the page's WebSocket Origin matches (the relay refuses a cross-site one); everything else stays on a made-up
+    // https origin nothing can reach.
+    url: opts.url || 'https://tests.invalid/',
     runScripts: 'dangerously',
     pretendToBeVisual: true,
     virtualConsole: vc,

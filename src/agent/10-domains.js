@@ -1,8 +1,9 @@
 /* ================= AGENT API: argument domains =================
    The agent facade (window.TUBES, this folder) is how tools play the game: the MCP server (scripts/mcp.js) calls it in
-   its own jsdom page. It is part of the development page only (<!-- @include-dev agent -->): the page players get has
-   none of it, so nothing in src/game/ may name anything defined here. Nothing here runs until a tool calls it: these
-   files only define tables and functions.
+   its own jsdom page, or in the player's tab through the agent relay (80-relay.js). It is part of the development page
+   only (<!-- @include-dev agent -->): the page players get has none of it, so nothing in src/game/ may name anything
+   defined here; the game offers HOOKS instead. Nothing here runs until a tool calls it or the player switches agent
+   mode on: these files define tables and functions, and 99-start.js wires agent mode in.
    A domain is what an argument may be: an id in a catalog table, a key, an index, a small fixed list, or a check. */
 const API_DOMAINS={
   // Tables from the catalog: an id in a list, a key in an object, or an index into a list.

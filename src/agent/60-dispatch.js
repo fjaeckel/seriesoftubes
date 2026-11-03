@@ -34,7 +34,7 @@ function apiMeter(){const real=window.spend;let paid=0;window.spend=c=>{const ok
 /* typed: through the command table (bind the UI, type into fields, pass the confirmation); otherwise as a button click
    does it, with the button's own arguments. */
 function apiDispatch(name,kind,spec,args,typed){
-  const mine=apiIsSheet()||(typed&&kind==='game'&&!!spec.open);
+  const mine=apiIsSheet()||(typed&&kind==='game'&&!!spec.open),held=apiPlayerWin()?apiHold():null;
   apiTake();
   const ref=S,cash=S?S.cash:0,f0=apiFp(spec&&spec.watch,args),paid=apiMeter();
   let threw=null,report;
@@ -49,19 +49,25 @@ function apiDispatch(name,kind,spec,args,typed){
       const a=spec.pass?spec.pass(args):args;
       ACT[name](a);
       if(spec.confirm==='double')ACT[name](a);
-      if(spec.reads==='modal'&&apiModalOpen()){report=apiText($('modal'));closeModal();}
+      if(spec.reads==='modal'&&apiModalOpen()&&!apiPlayerWin()){report=apiText($('modal'));closeModal();}
     }else ACT[name](args);
   }catch(e){threw=e;}
   const charged=paid();
+  if(held&&(threw||!apiDecision())){
+    // The tool's own sheet is read before the player's window goes back over it.
+    const shot=!threw&&apiModalOpen()&&!apiPlayerWin()?apiScreen('modal'):null;
+    apiRestore(held);
+    if(shot)shot.note='The player has a window open, so this one was shown to you and closed again.';
+    held.shot=shot;}
   if(threw){apiTake();apiFail(`${name} failed: ${threw&&threw.message||threw}`);}
-  if(!apiModalOpen())API_SHEET=null;
+  if(!apiModalOpen()||apiPlayerWin())API_SHEET=null;
   else if(mine||kind!=='game')apiMarkSheet();
   else API_SHEET=null;
   const said=apiTake(),d=apiDecision();
   const outcome=d?'decision':S!==ref||apiFp(spec&&spec.watch,args)!==f0||report!==undefined?'applied'
     :said.some(t=>t.kind==='bad')?'rejected':kind==='view'||kind==='draft'?'shown':'no_effect';
   return {action:name,outcome,toasts:apiToastLines(said),charged,cashChange:Math.round((S?S.cash:0)-cash),
-    ...(report!==undefined?{report}:{}),...(d?{decision:d}:{}),screen:apiScreen()};}
+    ...(report!==undefined?{report}:{}),...(d?{decision:d}:{}),screen:held&&held.shot||apiScreen()};}
 // While the game waits for an answer, game commands other than its options report the question instead.
 function apiWaiting(name){
   const d=apiDecision();
@@ -82,10 +88,11 @@ function apiQuote(name,spec,args){
   }catch(e){apiFail(`${name}: the price could not be worked out: ${e&&e.message||e}`);}finally{Math.random=dice;for(const k of Object.keys(ui0))UI[k]=ui0[k];}
   return {action:name,outcome:'quote',quote:{setup:0,monthly:0,...q,blocked:(q.blocked||[]).map(b=>apiText(String(b),400))},consistent:apiFp(spec.watch,args)===f0,
     ...(spec.quote?{}:{note:'This command has no price of its own: it costs nothing up front.'})};}
-// Checks shared by act and click: what no tool runs.
+// Checks shared by act and click: what no tool runs, and what only the player runs in their own tab.
 function apiAllowed(name,what){
   const no=apiDenied(name);
   if(no)apiFail(`${name} is not available here: ${no}.`);
+  if(API_CTX.relay&&API_PLAYER_OWNS[name])apiFail(`${name} is not available here: ${API_OWN_WHY}.`);
   const kind=apiKind(name);
   if(!kind||typeof ACT[name]!=='function')apiFail(what);
   return kind;}
@@ -107,6 +114,7 @@ function apiClick(n,value){
   const b=API_LAST[n];
   if(!b)apiFail(`No button ${n} on the last screen. Call screen first.`);
   if(b.disabled)apiFail(`"${b.label}" is greyed out.`);
+  if(b.player&&apiPlayerWin())apiFail(`"${b.label}" is in a window the player opened: it is theirs to press.`);
   const name=b.select||b.act,args=b.select?{v:value===undefined?undefined:String(value)}:b.args;
   if(b.select&&!b.options.some(o=>o.value===args.v))apiFail(`"${b.label}" is a list: click it with a value, one of ${b.options.map(o=>JSON.stringify(o.value)).join(', ')}.`);
   const kind=apiAllowed(name,`"${b.label}" runs ${name}, which is not an action.`);

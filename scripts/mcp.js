@@ -1,11 +1,14 @@
 #!/usr/bin/env node
-// Series of Tubes as an MCP server: an AI client can play, inspect and debug the game through typed tools.
-// It loads the game from this checkout's src/ (scripts/lib/mcp-game.js) and speaks MCP through the official SDK
+// Series of Tubes as an MCP server: an AI client can play, inspect and debug the game through typed tools, in one of
+// two sessions: headless, a game of its own loaded from this checkout's src/ (scripts/lib/mcp-game.js), or the game in
+// the player's browser tab over the agent relay (scripts/lib/mcp-browser.js). It speaks MCP through the official SDK
 // (@modelcontextprotocol/server), over stdio or over HTTP. Nothing is hosted: this is a local tool, like npm run dev,
 // and the game page players get does not change.
 //
-//   node scripts/mcp.js                         # stdio, for a client that starts the server itself
-//   node scripts/mcp.js --http 7777             # Streamable HTTP on http://127.0.0.1:7777/mcp
+//   node scripts/mcp.js                         # stdio, headless, the agent's clock (advance)
+//   node scripts/mcp.js --clock realtime        #   a clock that runs on its own (--pace ms per day; wait)
+//   node scripts/mcp.js --browser               # the player's tab, through the relay npm run dev hosts
+//   node scripts/mcp.js --http 7777             # Streamable HTTP on http://127.0.0.1:7777/mcp (with any of the above)
 //   node scripts/mcp.js --http 0.0.0.0:7777     # the same on every interface: anyone who can reach it can play
 //
 //   claude mcp add seriesoftubes -- node /path/to/seriesoftubes/scripts/mcp.js
@@ -18,17 +21,32 @@ const http = require('node:http');
 const os = require('node:os');
 const path = require('node:path');
 const { McpServer, fromJsonSchema, createMcpHandler, validateHostHeader, validateOriginHeader, localhostAllowedHostnames, localhostAllowedOrigins } = require('@modelcontextprotocol/server');
-const { createSession, TOOLS } = require('./lib/mcp-game');
+const { createSession, toolsFor, CLOCKS, DEFAULT_PACE_MS } = require('./lib/mcp-game');
 const { version } = require('../package.json');
 
-const INSTRUCTIONS = `Series of Tubes is a cartoon game about building an internet backbone: POPs in cities, links between them, transit, exchanges, PNIs, customers. A game is always loaded (a fresh On-call game in Frankfurt until you start or load another).
-Read with status, network, city, find, traceroute, peering_check and hot_spots, or raw with state, results and catalog; schema is the typed contract of every action. Change things with act (arguments are checked, outcome says what happened, dryRun prices a move first), or with screen, panel and click, which show the game's own panels and windows as text with numbered buttons. Time moves only with advance. Games are seeded: the same seed and moves give the same game.
+const READ = 'Read with status, network, city, find, traceroute, peering_check and hot_spots, or raw with state, results and catalog; schema is the typed contract of every action, and its mode section says which session this is. Change things with act (arguments are checked, outcome says what happened, dryRun prices a move first), or with screen, panel and click, which show the game\'s own panels and windows as text with numbered buttons.';
+const CLOCK = {
+  agent: 'Time moves only with advance.',
+  realtime: 'The clock runs on its own, a day at a fixed pace, and you cannot stop it: decide while it runs, and use wait to let days pass.',
+};
+const instructions = (mode, clock) => mode === 'browser'
+  ? `Series of Tubes is a cartoon game about building an internet backbone: POPs in cities, links between them, transit, exchanges, PNIs, customers. You are playing the game in the player's own browser tab while they watch: the game, its saves and its settings are theirs, and so is any window they open (you play behind it). ${READ} The player picks the clock in Settings: either it runs on its own at a pace and you use wait, or it is yours and you use advance (schema mode.clock says which).`
+  : `Series of Tubes is a cartoon game about building an internet backbone: POPs in cities, links between them, transit, exchanges, PNIs, customers. A game is always loaded (a fresh On-call game in Frankfurt until you start or load another). ${READ} ${CLOCK[clock]} Games are seeded: the same seed and moves give the same game.
 To look into a bug report: load_save with the attached save, then status, hot_spots, and advance with timings.`;
+const INSTRUCTIONS = instructions('headless', 'agent');
 const MCP_PATH = '/mcp';
 
 const usage = () => `Usage: node scripts/mcp.js [options]
 
-  (no options)            stdio: the client starts this process and talks over stdin and stdout
+  (no options)            headless over stdio: a game of its own, from this checkout's src/; the client starts this process
+  --clock agent|realtime  headless: who moves time (default agent: advance; realtime: a day every --pace ms, and wait)
+  --pace MS               headless, realtime clock: real milliseconds per simulated day (default ${DEFAULT_PACE_MS})
+  --seed N                headless: the random seed of the first game (default 12345)
+  --browser               the game in the player's browser instead, over the agent relay (Settings → Agent API)
+  --relay-host HOST       browser: where npm run dev serves the page; the relay rides it (default 127.0.0.1)
+  --relay-port N          browser: the port it serves the page on (default 8080)
+  --page-wait-ms N        browser: how long to wait for a game page to connect (default 90000)
+  --call-ms N             browser: how long one tool call may wait for the page (default 30000)
   --http [HOST:]PORT      Streamable HTTP at http://HOST:PORT${MCP_PATH} instead (HOST defaults to 127.0.0.1)
   --token-file FILE       HTTP: require "Authorization: Bearer <the file's contents>" (or set SOT_MCP_TOKEN)
   --allow-host NAME       HTTP: also accept this Host name (repeatable), e.g. for a tunnel or a LAN name
@@ -57,11 +75,11 @@ function serial() {
 // One MCP server definition over the game session: the SDK asks for a fresh one per connection (stdio) or per request
 // (HTTP); they all share the session and its queue.
 function serverFactory(session) {
-  const queue = serial();
-  const schemas = new Map(TOOLS.map((t) => [t.name, fromJsonSchema(t.inputSchema)]));
+  const queue = serial(), tools = toolsFor(session.mode || 'headless'), text = instructions(session.mode || 'headless', session.clock || 'agent');
+  const schemas = new Map(tools.map((t) => [t.name, fromJsonSchema(t.inputSchema)]));
   return () => {
-    const server = new McpServer({ name: 'seriesoftubes', title: 'Series of Tubes', version }, { capabilities: { tools: {} }, instructions: INSTRUCTIONS });
-    for (const tool of TOOLS) {
+    const server = new McpServer({ name: 'seriesoftubes', title: 'Series of Tubes', version }, { capabilities: { tools: {} }, instructions: text });
+    for (const tool of tools) {
       server.registerTool(tool.name, { description: tool.description, inputSchema: schemas.get(tool.name) }, (args) => queue(async () => {
         try {
           const out = await tool.run(session, args || {});
@@ -145,11 +163,24 @@ async function main() {
   const die = (m) => { console.error(`error: ${m}`); process.exit(1); };
   // The game page logs nothing to stdout, but a stray console.log anywhere must not break the stdio protocol.
   console.log = console.info = (...a) => console.error(...a);
+  const flag = (k) => `--${k.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase())}`;
+  if (!args.http) for (const k of ['tokenFile', 'allowHost', 'saveDir']) if (args[k] !== undefined) die(`${flag(k)} is an --http option`);
+  if (args.browser) {
+    for (const k of ['clock', 'pace', 'seed', 'saveDir']) if (args[k] !== undefined) die(`${flag(k)} is the headless session's: in the browser the player owns the game and sets the clock in Settings`);
+  } else {
+    for (const k of ['relayHost', 'relayPort', 'pageWaitMs', 'callMs']) if (args[k] !== undefined) die(`${flag(k)} is a --browser option`);
+    if (args.clock !== undefined && !CLOCKS.includes(args.clock)) die(`--clock is one of ${CLOCKS.join(', ')}`);
+  }
   if (!args.http) {
-    for (const k of ['tokenFile', 'allowHost', 'saveDir']) if (args[k] !== undefined) die(`--${k.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase())} is an --http option`);
     const { serveStdio } = require('@modelcontextprotocol/server/stdio');
-    const session = createSession();
+    const session = open(args);
     serveStdio(serverFactory(session));
+    const shutdown = () => { try { session.close(); } catch {} process.exit(0); };
+    process.stdin.on('close', shutdown);
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
+    // stdio has one client, which needs the page: without one, it is better told by the server stopping.
+    started(session, args, say, true);
     return;
   }
   let listen, token;
@@ -160,7 +191,7 @@ async function main() {
     try { saveDir = fs.realpathSync(path.resolve(String(args.saveDir))); } catch (e) { die(`--save-dir ${args.saveDir}: ${e.message}`); }
     if (!fs.statSync(saveDir).isDirectory()) die(`--save-dir ${args.saveDir} is not a directory`);
   }
-  const session = createSession({ saveDir });
+  const session = open(args, { saveDir });
   const server = createHttpServer(serverFactory(session), { host: listen.host, allow: [].concat(args.allowHost || []), token });
   server.on('error', (e) => die(`could not listen on ${bracket(listen.host)}:${listen.port}: ${e.message}`));
   server.listen(listen.port, listen.host, () => {
@@ -168,13 +199,41 @@ async function main() {
     say(`MCP server ${version} on http://${at}${MCP_PATH} (one game, shared by every client; calls run one at a time)`);
     say(token ? 'a bearer token is required' : 'no token: anything that can reach this address may play');
     if (!isLoopback(listen.host) && !token) say(`WARNING: bound to ${listen.host}, beyond this machine, without a token. Set SOT_MCP_TOKEN or --token-file to require one.`);
-    say(saveDir ? `load_save and export_save files: under ${saveDir}` : 'load_save and export_save take JSON only (no files: --save-dir DIR allows some)');
+    if (session.mode === 'headless') say(saveDir ? `load_save and export_save files: under ${saveDir}` : 'load_save and export_save take JSON only (no files: --save-dir DIR allows some)');
+    started(session, args, say, false);
   });
-  const shutdown = () => server.close(() => process.exit(0));
+  const shutdown = () => { try { session.close(); } catch {} server.close(() => process.exit(0)); };
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
 }
 
+// The session the flags ask for: headless (with its clock), or the player's browser over the relay.
+function open(args, extra = {}) {
+  if (args.browser) {
+    const { createBrowserSession } = require('./lib/mcp-browser');
+    return createBrowserSession({ host: args.relayHost, port: args.relayPort, callMs: args.callMs });
+  }
+  return createSession({ clock: args.clock, paceMs: args.pace, seed: +args.seed || undefined, ...extra });
+}
+
+// What the session is, said once it is up. In the browser the handshake is answered at once; the page may arrive
+// later, and must be built from this checkout. Over stdio a missing or stale page stops the server (its one client
+// is better told so); over HTTP the server stays up and says why its tools fail.
+function started(session, args, say, stopOnFail) {
+  if (session.mode !== 'browser') {
+    say(`MCP server ${version}: headless, ${session.clock === 'realtime' ? `a running clock, a day every ${session.paceMs} ms` : 'the agent\'s clock'}`);
+    return;
+  }
+  say(`MCP server ${version}: the player's browser, over the relay ${session.relay.url}`);
+  session.ready({ waitMs: +args.pageWaitMs || 90000, onWait: () => say(`waiting for the game page on the relay (${session.relay.url})...`) }).then((r) => {
+    if (r.ok) { say('the game page serves this checkout\'s contract: ready'); return; }
+    say(r.why);
+    if (r.stale) say('Its tab is older than this checkout: reload the page in the browser (npm run dev assembles it from src/ on every request).');
+    else say('Turn agent mode on in the game (Settings → Agent API), which connects it to the relay. The page must come from npm run dev, which hosts the relay (the deployed seriesoftub.es has none), opened by address (http://localhost or http://127.0.0.1, or the IP it is bound to), not a DNS name, which the relay refuses.');
+    if (stopOnFail) process.exit(1);
+  });
+}
+
 if (require.main === module) main();
 
-module.exports = { serverFactory, createHttpServer, serial, parseArgs, parseListen, allowedHosts, INSTRUCTIONS, MCP_PATH };
+module.exports = { serverFactory, createHttpServer, serial, parseArgs, parseListen, allowedHosts, instructions, INSTRUCTIONS, MCP_PATH };

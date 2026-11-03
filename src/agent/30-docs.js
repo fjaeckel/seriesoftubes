@@ -143,3 +143,12 @@ const API_RESULTS_DOC={
  cityBlocked:{type:'map',doc:'Set up per city by the traffic computation; nothing fills it at present.'},
  ddosHot:{type:'map',doc:'Cities whose ports a flood is filling, for the map\'s pulse. Keyed by city id.'},
 };
+
+/* The dice rather than the board: in the player's tab (over the relay) state never returns these, and schema says why.
+   The MCP server's own page returns them, for debugging. */
+const API_WITHHELD={
+  rng:'the seed: it predicts every future random draw',
+  nextFail:'the day the next failure fires',
+  nextEvent:'the day the next world event fires',
+  'scn.nextDdos':'the day of the next scripted attack in a scenario',
+};

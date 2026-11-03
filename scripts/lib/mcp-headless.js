@@ -30,5 +30,7 @@
     return { savedBy: r.ver, ...apiStatus() };
   };
   const exportSave = (version) => JSON.stringify({ app: 'series-of-tubes', version: /^\d/.test(APP_VERSION) ? APP_VERSION : version, exported: new Date().toISOString(), S: packSave(S) });
-  window.__mcpHeadless = { newGame, loadSave, exportSave };
+  // The server's clock: the agent's (advance), or a running one it ticks itself (apiTick) at paceMs.
+  const setClock = (mode, paceMs, running) => { API_CLK = { mode, paceMs: mode === 'realtime' ? paceMs : 0, running: !!running }; };
+  window.__mcpHeadless = { newGame, loadSave, exportSave, setClock };
 })();

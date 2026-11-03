@@ -19,7 +19,8 @@
     "page": "node scripts/lib/page.js",
     "serve": "npm run build && npx --yes serve@14.2.4 _site",
     "perf": "node scripts/perf-bench.js",
-    "mcp": "node scripts/mcp.js"
+    "mcp": "node scripts/mcp.js",
+    "mcp:browser": "node scripts/mcp.js --browser"
   },
   "engines": {
     "node": ">=20"
@@ -28,6 +29,7 @@
     "@modelcontextprotocol/node": "2.1.2",
     "@modelcontextprotocol/server": "2.4.0",
     "jsdom": "24.1.3",
-    "playwright-core": "1.56.0"
+    "playwright-core": "1.56.0",
+    "ws": "8.22.0"
   }
 }

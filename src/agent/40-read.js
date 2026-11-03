@@ -183,19 +183,20 @@ function apiArgDoc([name,dom,req]){
   else{const v=apiDomValues(dom);if(Array.isArray(v))a.values=v;else if(v&&v.from!==undefined)a.range=v;}
   return a;}
 function apiSchema(section){
-  const cmd=s=>({args:(s.args||[]).map(apiArgDoc),doc:s.doc});
+  const cmd=s=>({args:(s.args||[]).map(apiArgDoc),doc:s.doc}),relay=API_CTX.relay;
   const doc={
+    mode:apiMode(),
     clock:apiClockDoc(),
     commands:Object.fromEntries(Object.entries(API_CMD).map(([n,s])=>[n,{...cmd(s),dryRun:!!s.quote,
       ...(s.decides?{decides:true}:{}),...(s.confirm?{confirm:s.confirm}:{}),...(s.open?{opens:s.open}:{}),...(s.reads?{report:true}:{})}])),
     view:Object.fromEntries(Object.entries(API_VIEW).map(([n,s])=>[n,cmd(s)])),
-    session:Object.fromEntries(Object.entries(API_SESSION).map(([n,s])=>[n,cmd(s)])),
+    session:Object.fromEntries(Object.entries(API_SESSION).map(([n,s])=>[n,{...cmd(s),...(relay&&API_PLAYER_OWNS[n]?{refused:API_OWN_WHY}:{})}])),
     drafts:API_BOUND,
     denied:Object.fromEntries(Object.keys(API_DENY).sort().map(n=>[n,apiDenied(n)])),
     domains:Object.fromEntries(Object.entries(API_DOMAINS).map(([n,d])=>{const v=apiDomValues(n);
       return [n,{kind:d.kind==='fn'?'custom':d.kind,...(d.table?{from:d.table}:{}),
         ...(!d.table&&Array.isArray(v)?{values:v}:v&&v.from!==undefined?{range:v}:v&&v.of?{of:v.of}:{})}];})),
-    state:API_STATE_DOC,
+    state:relay?Object.fromEntries(Object.entries(API_STATE_DOC).map(([k,d])=>[k,API_WITHHELD[k]?{...d,withheld:API_WITHHELD[k]}:d])):API_STATE_DOC,
     results:API_RESULTS_DOC,
   };
   if(section===undefined||section===null||section==='')return doc;
@@ -208,7 +209,19 @@ function apiCatalog(name){
   if(name in API_MADE)return apiJson(API_MADE[name]());
   if(name in API_TABLES)return apiJson(API_TABLES[name]);
   apiFail(`No table "${name}". Call catalog without a name for the list.`);}
-function apiState(path){if(!S)return null;const v=apiJson(apiPath(S,path));return v===undefined?null:v;}
+// In the player's tab the dice are held back: a withheld field, or one inside the subtree asked for, is left out.
+function apiState(path){
+  if(!S)return null;
+  const p=path===undefined||path===null?'':String(path),v=apiJson(apiPath(S,p));
+  if(v===undefined)return null;
+  if(!API_CTX.relay)return v;
+  for(const w of Object.keys(API_WITHHELD)){
+    if(w===p||p.startsWith(w+'.'))return null;
+    if(p&&!w.startsWith(p+'.'))continue;
+    const ks=(p?w.slice(p.length+1):w).split('.');let o=v;
+    for(let i=0;i<ks.length-1&&o&&typeof o==='object';i++)o=o[ks[i]];
+    if(o&&typeof o==='object')delete o[ks[ks.length-1]];}
+  return v;}
 function apiResults(path){const v=apiJson(apiPath(R,path));return v===undefined?null:v;}
 function apiUi(){const o={};for(const k of Object.keys(UI))if(!API_UI_HIDDEN[k])o[k]=apiJson(UI[k]);return o;}
 function apiActions(){

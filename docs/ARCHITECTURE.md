@@ -49,7 +49,9 @@ hoisted across files, and top-level statements run in path order. Find code by n
 `src/agent/` is the agent facade (`window.TUBES`): the typed commands, reads and screens the MCP server plays
 through. It is assembled into the **development page** only (`npm run dev`, the MCP server, tests that ask for it);
 the page players get never has it ([ADR 0004](adr/0004-dev-only-code.md)). Its top-level names all start with
-`api`/`API_`, and nothing outside `src/agent/` may use them.
+`api`/`API_`, and nothing outside `src/agent/` may use them. Where it must reach into the game (agent mode in the
+player's tab locks the clock and draws its badge and Settings section), the game offers `HOOKS` and the flag
+`UI.clockLocked` (`50-state.js`), empty and false in the page players get, and `runClock(dt)` (`99-loop.js`).
 
 Rules for the source (checked by `tests/build.test.js` and the assembler): files are named
 `NN-lower-case.js`/`.css`, end with a newline and never close their `<script>`/`<style>`; top-level code
@@ -69,11 +71,12 @@ Development runs on `npm run dev` (assembles the development page on every reque
 | `scripts/lib/page.js` | Assembles the page from `src/` (also from a git ref with `--ref`, for performance baselines) |
 | `scripts/lib/compile-labels.js` | Shrinks labels to short ids in the shipped page and dictionaries |
 | `scripts/build.js` | Builds `_site/` for GitHub Pages: copies `site/`, writes the page, stamps `__VERSION__`/`__BUILD_DATE__`, bakes release notes, writes `version.json` |
-| `scripts/dev.js` | `npm run dev`: development server, no dependencies |
+| `scripts/dev.js` | `npm run dev`: development server (loopback unless `--host`), serving the development page and hosting the agent relay |
 | `scripts/test.js` | `npm test`: runs every `tests/*.test.js` |
 | `scripts/release-notes.js` | Extracts a version's CHANGELOG bullets |
 | `scripts/perf-bench.js`, `perf-browser.js`, `perf-stats.js`, `perf-fixture.js` | Big-network benchmark, base vs head, headless and in Chromium as a desktop and a throttled phone, with a significance test per row (posted on every PR by `perf.yml` + `perf-comment.yml`), and the generator of its save, `tests/fixtures/big-network.json` |
-| `scripts/mcp.js`, `scripts/lib/mcp-game.js`, `scripts/lib/mcp-headless.js`, `src/agent/` | The game as a local MCP server, on the official SDK over stdio or HTTP: typed tools to play, inspect and debug it from an AI client ([MCP.md](MCP.md)) |
+| `scripts/mcp.js`, `scripts/lib/mcp-game.js`, `scripts/lib/mcp-headless.js`, `src/agent/` | The game as a local MCP server, on the official SDK over stdio or HTTP: typed tools to play, inspect and debug it from an AI client, headless or in the player's own tab ([MCP.md](MCP.md)) |
+| `scripts/agent/relay.js`, `scripts/lib/mcp-browser.js`, `scripts/lib/relay-client.js` | The agent relay `npm run dev` hosts at `/agent`, and the MCP server's side of it: how a tool reaches the game in the player's tab |
 | `scripts/i18n-check.js`, `scripts/i18n-add.js`, `scripts/lib/dict.js` | Translation coverage and dictionary order; adding, renaming and removing entries |
 | `scripts/legacy/` | The splitter that made `src/` from the old `site/index.html` (and gave its text labels), and `port-branch.js`, which carries older branches over |
 | `tests/harness.js` | Loads the assembled page in jsdom with a seeded `Math.random` and a fake canvas: the players' page, or the development page with `{agent: true}` |

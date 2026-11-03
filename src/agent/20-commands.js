@@ -510,7 +510,8 @@ const API_BOUND={
 
 /* Starting, retrying and leaving scenarios, puzzles and architect runs, and the screens a player dismisses. They run
    as their buttons run them; new_game, load_save and export_save are the other half of the session, and exist only in
-   the MCP server's own page (scripts/lib/mcp-headless.js). */
+   the MCP server's own page (scripts/lib/mcp-headless.js). In the player's tab the player owns the game, so the ones
+   that replace or leave it are refused there (API_PLAYER_OWNS). */
 const API_SESSION={
  startScn:{args:[['id','scnId']],doc:'Start a scenario (ids from catalog SCN), replacing the current game.'},
  startWeekly:{args:[],doc:'Start this week\'s weekly scenario, replacing the current game. The week follows the real date.'},
@@ -523,11 +524,14 @@ const API_SESSION={
  pitchSkip:{args:[],doc:'Skip the opening pitch; a game waiting behind it starts.'},
  tutSkip:{args:[],doc:'Skip the tutorial coaching.'},
 };
+// Session actions that would replace or leave the game in the player's tab: refused over the relay.
+const API_OWN_WHY='the game in this tab is the player\'s: only the player starts, loads or leaves one';
+const API_PLAYER_OWNS={startScn:1,startWeekly:1,pzStart:1,pzWeekly:1,pzArStart:1,pzRetry:1,pzLeave:1};
 
 /* Actions no tool runs, by reason: files, storage slots, settings and the title screen are not the game's, and time
    moves only through advance (or the page's own clock). */
 const API_WHY={
-  time:'use advance to move time',start:'use new_game',files:'use load_save or export_save',
+  time:'use advance to move time, or wait when the clock runs on its own',start:'use new_game',files:'use load_save or export_save',
   slots:'saved networks in browser storage are not part of this game',prefs:'device and player settings are not part of the game',
   browser:'it needs the browser itself (a share sheet, the clipboard, an install prompt or a reload)',
 };
