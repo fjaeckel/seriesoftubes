@@ -160,6 +160,10 @@ input.t{width:100%;box-sizing:border-box;border:3px solid var(--ink);border-radi
 .gl dt{font-family:var(--display);font-weight:800;font-size:16px;margin-top:10px}
 .gl dd{margin:2px 0 0;color:var(--ink2);line-height:1.45;font-size:13px}
 .kbd{display:inline-block;border:2px solid var(--ink);border-radius:6px;padding:0 5px;font-weight:900;font-size:11px;background:var(--soft)}
+.keylist{display:grid;grid-template-columns:auto 1fr;gap:10px 16px;align-items:center;margin:14px 0 0}
+.keylist dt{margin:0;white-space:nowrap}.keylist dd{margin:0;color:var(--ink2);font-size:14px}
+.keylist .kbd{font-size:13px;padding:1px 7px;min-width:12px;text-align:center}
+.keylist .keytab{display:inline-block;margin:6px 10px 0 0;white-space:nowrap}
 
 /* "Your networks" on the title screen: one big tap target per network, a small ⋯ for export and delete. */
 .slots{display:flex;flex-direction:column;gap:7px;margin-bottom:6px;max-height:min(46vh,330px);overflow:auto;padding:2px 2px 5px}
