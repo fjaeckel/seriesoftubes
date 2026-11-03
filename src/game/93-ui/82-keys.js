@@ -17,6 +17,6 @@ document.addEventListener('keydown',e=>{
   const lead=Date.now()-keyLead<KEY_LEAD;keyLead=0;
   if(lead&&DASH_KEYS[k]&&!$('dash').hidden){e.preventDefault();ACT.dashTab({k:DASH_KEYS[k]});return;}
   if(k==='n'){if(!S||!UI.started||!$('modal').hidden)return;e.preventDefault();if($('dash').hidden)ACT.dash();if(!$('dash').hidden)keyLead=Date.now();return;}
-  if(k==='?'){if(e.repeat)return;if($('modal').hidden){if(S&&UI.started){e.preventDefault();ACT.keys();}}else if($('modal').className==='keys'){e.preventDefault();closeModal();}return;}
+  if(k==='?'){if(e.repeat)return;if($('modal').hidden){if(S&&UI.started){e.preventDefault();ACT.keys();}}else if($('modal').className==='keys'){e.preventDefault();ACT.helpClose();}return;}
   if(!(step||zoom)||!S||!UI.started||!$('modal').hidden)return;
   e.preventDefault();if(step)ACT.popStep({d:step});else ACT.zoomStep({d:zoom});});

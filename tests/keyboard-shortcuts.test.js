@@ -106,3 +106,16 @@ test('the shortcut list in German', () => {
   assert.match(txt, /Leertaste/);
   assert.deepEqual(errors, []);
 });
+
+test('on the title screen, Help opens the shortcut list and both ways out lead back to the title', () => {
+  const { ev, dom, errors } = load();
+  const doc = dom.window.document, key = keyer(dom), title = () => !ev("$('modal').hidden") && ev("$('modal').className") !== 'keys';
+  assert.ok(ev('!S'), 'no game yet');
+  ev('ACT.help()');
+  doc.querySelector('#modalCard [data-act="keys"]').click();
+  assert.equal(ev("$('modal').className"), 'keys', 'the button works before a game starts');
+  key('?'); assert.ok(title(), '? goes back to the title, not to an empty map');
+  ev('ACT.help()'); doc.querySelector('#modalCard [data-act="keys"]').click();
+  doc.querySelector('#modalCard .btns [data-act="helpClose"]').click(); assert.ok(title(), 'and so does its button');
+  assert.deepEqual(errors, []);
+});
