@@ -58,7 +58,14 @@
     if (w.where === 'city') { UI.sel = { type: 'city', id: w.city }; UI.tab = w.tab; renderAll(); return btns($('panel')); }
     if (w.where === 'link') { if (!S.links.some((l) => l.id === w.id)) return []; UI.sel = { type: 'link', id: w.id }; renderAll(); return btns($('panel')); }
     if (w.where === 'dash') { $('dash').hidden = false; UI.dtab = w.tab; renderDash(); const b = btns($('dash')); return b; }
-    if (w.where === 'left') { UI.left = w.tab; UI.leftOpen = true; renderLeft(); return btns($('leftBody')); }
+    if (w.where === 'left') {
+      UI.left = w.tab; UI.leftOpen = true; renderLeft(); let b = btns($('leftBody'));
+      if (w.tab !== 'noc') return b;
+      // The backbone, Auto-TE and DDoS settings moved from the NOC tab into the Routing & DDoS modal: offer them here on
+      // both pages, in one order, so main's page (settings in the tab) and this one (behind the button) stay in lockstep.
+      if (typeof routingBody === 'function' && b.some((x) => x.act === 'routingOpen')) { const d = document.createElement('div'); d.innerHTML = routingBody(); b = b.filter((x) => x.act !== 'routingOpen').concat(btns(d)); }
+      return b.sort((x, y) => (sig(x) < sig(y) ? -1 : sig(x) > sig(y) ? 1 : 0));
+    }
     if (w.where === 'openLink') { if (!S.pops[w.a]) return []; openLinkModal(w.a, w.b); return modalOpen() ? btns($('modal')) : []; }
     return [];
   };

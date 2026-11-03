@@ -170,12 +170,12 @@ test('saves before 2.2 load: an attack on a city finds its target, and an IX bla
 
 test('the NOC card fits a phone and the sandbox can send a test flood', () => {
   const { ev, errors, dom } = load();
-  ev("beginGame('T','fra',{mode:'sandbox',preset:'sandbox'});if(UI.pendGame)ACT.pitchSkip();ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1});UI.left='noc';renderLeft()");
-  const b = dom.window.document.querySelector('[data-act=ddosTest]');
+  ev("beginGame('T','fra',{mode:'sandbox',preset:'sandbox'});if(UI.pendGame)ACT.pitchSkip();ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1});UI.left='noc';renderLeft();ACT.routingOpen()");
+  const b = dom.window.document.querySelector('#modal [data-act=ddosTest]');
   assert.ok(b, 'a test flood button in Sandbox');
   b.click();
   assert.equal(ev('ddosAll().length'), 1);
-  ev("UI.left='noc';renderLeft()");
+  ev("closeModal();UI.left='noc';renderLeft()");
   const card = dom.window.document.querySelector('#left .inc.ddos');
   assert.ok(card, 'the card is shown');
   assert.ok(card.querySelectorAll('.btns').length <= 2, 'one suggestion, the rest behind More');

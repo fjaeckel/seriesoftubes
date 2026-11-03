@@ -290,7 +290,8 @@ test('notifications: the NOC keeps the last ten minutes, folds repeats and opens
   ev("UI.left='noc';UI.leftOpen=true;UI.sel=null;renderLeft();renderHUD()");
   const body = doc.getElementById('leftBody').textContent;
   assert.match(body, /Notifications\s*last 10 minutes/);
-  assert.ok(body.indexOf('Notifications') < body.indexOf('DDoS scrubbing'), 'near the top, not at the bottom');
+  assert.ok(body.indexOf('Notifications') < body.indexOf('Incidents so far'), 'near the top, not at the bottom');
+  assert.doesNotMatch(body, /DDoS scrubbing/, 'the settings moved to Routing & DDoS');
   assert.match(body, /×5/); assert.match(body, /just now/);
   assert.equal(doc.querySelectorAll('#leftBody [data-act=logOpen]').length, 2, 'Open only where it leads somewhere (2 of the 5 shown)');
   assert.equal(ev("logUnread()"), 0);

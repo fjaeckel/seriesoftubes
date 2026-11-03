@@ -992,7 +992,7 @@ test('#63 incidents you can fix with one click sit above hot ports in the NOC', 
   assert.ok(fix >= 0 && hot >= 0 && free >= 0, 'all three are shown');
   assert.ok(fix < hot, 'the paid fix comes before the hot ports');
   assert.ok(fix < free, 'and before incidents without a fix');
-  assert.ok(t.indexOf('DDoS scrubbing') > fix, 'status lines come after the incidents');
+  assert.ok(t.indexOf('Incidents so far') > fix, 'status lines come after the incidents');
   assert.deepEqual(errors, []);
 });
 

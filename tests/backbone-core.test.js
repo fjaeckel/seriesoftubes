@@ -160,7 +160,7 @@ test('the backbone panel and the router panels, on a phone too', () => {
   for (const w of [1280, 360]) {
     const { ev, dom, errors } = load();
     ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip()");
-    ev(`window.innerWidth=${w};` + start.replace('ACT.start({});', '') + `;ACT.buildPop({city:'ams'});S.pops.fra.rgen=${g('Disco 8K')};ACT.coreUp();ACT.coreUp();ACT.leftTab({t:'noc'});renderAll()`);
+    ev(`window.innerWidth=${w};` + start.replace('ACT.start({});', '') + `;ACT.buildPop({city:'ams'});S.pops.fra.rgen=${g('Disco 8K')};ACT.coreUp();ACT.coreUp();ACT.leftTab({t:'noc'});ACT.routingOpen();renderAll()`);
     const txt = dom.window.document.body.textContent;
     assert.match(txt, /RSVP-TE\/MPLS/, `${w}px`);
     assert.match(txt, /outside the backbone/, 'Amsterdam is left out');

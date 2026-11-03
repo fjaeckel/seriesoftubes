@@ -6,6 +6,7 @@ Object.assign(ACT,{
    toast(tr('core.your_backbone_now_runs_lv',{lv:tr(CORE_LV[n])})+(out?' '+trn('core.n_pops_stay_outside',out):''),'good');sfx('build');after();},
  coreLab:()=>{if(!coreOn()||S.core.lab||S.core.lv<1)return;if(!spend(CORE_LAB))return;
    S.core.lab=true;toast(tr('core.interop_lab_open_vendors_now'),'good');sfx('coin');after();},
+ routingOpen:()=>{if(S&&!pzOn())routingModal();},
  coreSet:({v})=>{if(!S.core)return;v=+v;if(!(v>=0&&v<=S.core.lv)||(v===S.core.run&&!S.core.legacy))return;S.core.run=v;delete S.core.legacy;sfx('click');after();},
  via:({v})=>{UI.via=v;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
  setRoute:({id,m})=>{if(!own(RT,m))return;const b=S.biz.find(x=>x.id===id);if(b){b.route=m;sfx('click');after();}},

@@ -2,10 +2,15 @@
 #left{position:fixed;top:calc(env(safe-area-inset-top,0px) + 76px);left:max(12px,env(safe-area-inset-left,0px));width:300px;max-height:calc(100% - 96px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;z-index:4}
 #panel{position:fixed;top:calc(env(safe-area-inset-top,0px) + 76px);right:max(12px,env(safe-area-inset-right,0px));width:370px;max-height:calc(100% - 96px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;z-index:4}
 .scroll{overflow:auto;padding:12px 14px 14px;overscroll-behavior:contain}
+/* Labels stay on one line and give way (with an ellipsis) before the bar overflows the panel; the counts sit on
+   the tab's corner so they cost no width. */
 .tabs{display:flex;gap:4px;padding:8px 8px 0;border-bottom:3px solid var(--ink);flex:none}
-.tabs button{border:2.5px solid var(--ink);border-bottom:none;border-radius:11px 11px 0 0;background:var(--soft);padding:4px 10px 3px;font-family:var(--display);font-weight:800;cursor:pointer;font-size:13.5px;position:relative;top:3px}
-.tabs button.on{background:var(--paper);padding-bottom:6px}
-.tabs .cnt{display:inline-block;background:var(--me);color:#fff;border-radius:9px;padding:0 6px;font-size:11px;margin-left:4px}
+#leftTabs{padding-top:11px}
+.tabs button{border:2.5px solid var(--ink);border-bottom:none;border-radius:11px 11px 0 0;background:var(--soft);padding:4px 10px 3px;font-family:var(--display);font-weight:800;cursor:pointer;font-size:13.5px;position:relative;top:3px;flex:0 1 auto;min-width:0;display:flex;align-items:center}
+.tabs .tl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.tabs button.on{background:var(--paper);padding-bottom:6px;flex-shrink:0}
+.tabs .cnt{position:absolute;top:-10px;right:-6px;z-index:1;background:var(--me);color:#fff;border:1.5px solid var(--ink);border-radius:9px;padding:0 5px;font-size:10.5px;line-height:15px;white-space:nowrap}
+.tabs .cnt.dot{top:-5px;right:-4px;width:11px;height:11px}
 .tabs .cnt.red{background:var(--bad)}
 #leftToggle{display:none}
 

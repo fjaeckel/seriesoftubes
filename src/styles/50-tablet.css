@@ -2,6 +2,8 @@
    bigger touch targets so the map keeps some room in the middle. */
 @media (min-width:761px) and (max-width:1200px){
   #left{width:272px}
+  #leftTabs{gap:3px;padding-left:6px;padding-right:6px}
+  #leftTabs button{padding-left:6px;padding-right:6px;font-size:12.5px}
   #panel{width:336px}
   #left.closed{display:none}
   #leftToggle{display:flex;position:fixed;left:max(12px,env(safe-area-inset-left,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 14px);z-index:4}
