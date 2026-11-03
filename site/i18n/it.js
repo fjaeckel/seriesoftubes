@@ -2381,6 +2381,8 @@
 "keys.esc":"Esc",
 "keys.game_speed":"Velocità di gioco: ½×, 1×, 2×, 4×, 8×",
 "keys.keyboard_shortcuts":"Scorciatoie da tastiera",
+"keys.move_around_the_map":"Sposta la mappa",
+"keys.next_open_offer_soonest_to":"Prossima offerta aperta, prima quella che scade prima",
 "keys.noc_dashboard_a_letter_right":"Dashboard NOC. Una lettera subito dopo apre una scheda:",
 "keys.pause_or_play":"Pausa o riprendi",
 "keys.previous_or_next_of_your":"Il tuo POP precedente o successivo",

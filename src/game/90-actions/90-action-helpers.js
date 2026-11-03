@@ -46,5 +46,5 @@ function focusLink(id){if(pzOn())return;const l=S.links.find(x=>x.id===id);if(!l
   // Phones leave a thin strip above the sheet: a fixed margin would eat most of it.
   const m=(a,b)=>Math.max(40,b-a-Math.min(100,(b-a)*0.3)),fw=m(fl,fr),fh=m(ft,fb),z=clamp(Math.min(fw/Math.max(1,x1-x0),fh/Math.max(1,y1-y0),Math.max(cam.z,1.2)),ZMIN,ZMAX);
   cam.z=z;cam.x=(x0+x1)/2-((fl+fr)/2-CW/2)/z;cam.y=(y0+y1)/2-((ft+fb)/2-CH/2)/z;wrapCam();}
-function selectCity(c){UI.sel={type:'city',id:c};UI.confirm=null;if(isTablet()||isPhone())UI.leftOpen=false;const P=$('panel');if(P)P.classList.remove('full');if(!S.pops[c])UI.tab='cust';renderPanel();}
+function selectCity(c){UI.sel={type:'city',id:c};UI.confirm=null;UI.offerAt=null;if(isTablet()||isPhone())UI.leftOpen=false;const P=$('panel');if(P)P.classList.remove('full');if(!S.pops[c])UI.tab='cust';renderPanel();}
 
