@@ -6,13 +6,15 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
-- Backbone, Auto-TE and DDoS settings now open from a Routing & DDoS button at the top of the NOC tab. They used to sit at the very bottom, below every notification; a red dot on the button says when Auto-TE is paused.
-- The tabs above the left panel no longer run off its edge on smaller screens and tablets. Counts such as finished goals now sit on the corner of their tab.
-- Networks you reach through an exchange's route server now stay "via RS" (#265). With an Open peering policy, the peering desk used to turn some of them into separate sessions of their own.
-- The intern's "Light more fiber" order has a new Optics setting: light new fiber with the biggest optic it can afford, to save channels for later (#262). Once a fiber is lit, the intern still adds more of the same optic and never swaps what is in there.
-- Gaming customers no longer warn that they attract attacks in modes without DDoS attacks, such as Change Freeze.
+## [2.6.0] — 2026-11-03
+
 - New Best Effort mode, the gentlest way to play: rare outages, no DDoS, no chaos monkey, no conferences and no cable ships, with sea cuts that mend on their own. PNIs are up the moment you order them, customers are more patient, a rescue loan from the Ministry of Tubes replaces game over, builds take days and prices never spike. A new Quiet notifications setting, on by default in Best Effort and available in every mode, only pops up trouble and milestones; everything else goes into the NOC log.
+- Backbone, Auto-TE and DDoS settings now open from a Routing & DDoS button at the top of the NOC tab. They used to sit at the very bottom, below every notification; a red dot on the button says when Auto-TE is paused.
 - The Build POP button now shows the whole price of a new POP, including the routers of your standard POP (#261). Before, it showed only the site, although the standard routers were paid for on top; a note under the button now lists them, and the intern's one-tap template prices them in as well. POPs that come with a new wave, dark fiber, your own subsea cable or a consortium seat now get the standard routers too, and those offers show the price with them.
+- The intern's "Light more fiber" order has a new Optics setting: light new fiber with the biggest optic it can afford, to save channels for later (#262). Once a fiber is lit, the intern still adds more of the same optic and never swaps what is in there.
+- Networks you reach through an exchange's route server now stay "via RS" (#265). With an Open peering policy, the peering desk used to turn some of them into separate sessions of their own.
+- The tabs above the left panel no longer run off its edge on smaller screens and tablets. Counts such as finished goals now sit on the corner of their tab.
+- Gaming customers no longer warn that they attract attacks in modes without DDoS attacks, such as Change Freeze.
 
 ## [2.5.0] — 2026-11-02
 
