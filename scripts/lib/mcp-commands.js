@@ -543,6 +543,7 @@ const API_VIEW={
  linkCheck:{args:[['id','entityId']],doc:'Open the redundancy check for a link: what a single cut would drop, without changing anything.'},
  findOpen:{args:[],doc:'Open the city finder (the 🔍 in the top bar).'},
  findGo:{args:[['city','cityId']],doc:'Close the finder and jump to a city.'},
+ routingOpen:{args:[],doc:'Open the Routing & DDoS window: backbone, Auto-TE and DDoS settings (the button at the top of the NOC tab).'},
  opsOpen:{args:[],doc:'Open the Ops sheet: the NOC intern\'s mood, weekly shift report and standing orders.'},
  opsCity:{args:[['v','cityId',false]],doc:'Show one POP\'s standing-order exceptions in the Ops sheet.'},
  utilities:{args:[['city','cityId',false]],doc:'Open the utilities sheet: route servers, the redundancy kit, caches and bulk peering, for one city or the whole network.'},
