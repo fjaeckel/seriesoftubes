@@ -51,6 +51,27 @@ test('- and = zoom the map out and in around its middle, within the zoom limits'
   assert.deepEqual(errors, []);
 });
 
+test('n opens the NOC dashboard, and n followed by a letter opens one of its tabs', () => {
+  const { ev, dom, errors } = load();
+  const key = keyer(dom), open = () => !ev("$('dash').hidden"), tab = () => ev("UI.dtab||'overview'");
+  ev(start);
+  key('n'); assert.ok(open(), 'n opens it');
+  assert.equal(tab(), 'overview');
+  key('c'); assert.equal(tab(), 'conn', 'n c: Connections');
+  key('n'); assert.ok(open(), 'n does not close it, so n c can switch tabs without a flash');
+  key('u'); assert.equal(tab(), 'cust');
+  for (const [l, t] of [['o', 'overview'], ['t', 'traffic'], ['r', 'infra'], ['l', 'lease'], ['c', 'conn']]) { key('n'); key(l); assert.equal(tab(), t, 'n ' + l); }
+  key('o'); assert.equal(tab(), 'conn', 'a letter on its own does nothing');
+  key('n'); key('Shift'); key('T'); assert.equal(tab(), 'traffic', 'Shift on the way does not cancel it');
+  key('n'); ev('keyLead=Date.now()-KEY_LEAD-1'); key('c'); assert.equal(tab(), 'traffic', 'too late: the letter stands alone');
+  key('n'); key('x'); key('c'); assert.equal(tab(), 'traffic', 'another key in between ends the wait');
+  key('Escape'); assert.ok(!open(), 'Escape closes it');
+  key('n'); key('c', null, { ctrlKey: true }); assert.equal(tab(), 'traffic', 'not with Ctrl');
+  ev("$('dash').hidden=true;ACT.rename()"); key('n', dom.window.document.getElementById('rnIn')); key('n');
+  assert.ok(!open(), 'not while typing or behind a window');
+  assert.deepEqual(errors, []);
+});
+
 test('? shows every keyboard shortcut and closes again; Help links to it on a computer, not on a phone', () => {
   const { ev, dom, errors } = load();
   const doc = dom.window.document, key = keyer(dom);
@@ -58,9 +79,9 @@ test('? shows every keyboard shortcut and closes again; Help links to it on a co
   key('?');
   assert.equal(ev("$('modal').className"), 'keys', '? opens the list');
   const txt = doc.getElementById('modalCard').textContent;
-  for (const s of ['Keyboard shortcuts', 'Space', 'Pause or play', 'Find a city', 'Previous or next of your POPs', 'Zoom the map out or in', 'Esc', 'Show this list'])
+  for (const s of ['Keyboard shortcuts', 'Space', 'Pause or play', 'Find a city', 'Previous or next of your POPs', 'Zoom the map out or in', 'NOC dashboard', 'Connections', 'Leased lines', 'Esc', 'Show this list'])
     assert.ok(txt.includes(s), s);
-  for (const k of ['[', ']', '-', '=', '/', '?', '0', '4']) assert.ok([...doc.querySelectorAll('#modalCard .kbd')].some(e => e.textContent === k), k);
+  for (const k of ['[', ']', '-', '=', '/', '?', '0', '4', 'n', 'o', 'u', 'c', 't', 'r', 'l']) assert.ok([...doc.querySelectorAll('#modalCard .kbd')].some(e => e.textContent === k), k);
   key('?', null, { repeat: true }); assert.equal(ev("$('modal').hidden"), false, 'holding ? does not flicker it');
   key('?'); assert.equal(ev("$('modal').hidden"), true, '? again closes it');
   key('?'); key('Escape'); assert.equal(ev("$('modal').hidden"), true, 'so does Escape');

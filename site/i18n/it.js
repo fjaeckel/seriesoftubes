@@ -2372,6 +2372,7 @@
 "keys.esc":"Esc",
 "keys.game_speed":"Velocità di gioco: ½×, 1×, 2×, 4×, 8×",
 "keys.keyboard_shortcuts":"Scorciatoie da tastiera",
+"keys.noc_dashboard_a_letter_right":"Dashboard NOC. Una lettera subito dopo apre una scheda:",
 "keys.pause_or_play":"Pausa o riprendi",
 "keys.previous_or_next_of_your":"Il tuo POP precedente o successivo",
 "keys.show_this_list":"Mostra questo elenco",

@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
-- New keyboard shortcuts: [ and ] step through your POPs, - and = zoom the map out and in, and ? lists every shortcut. Help links to the list too.
+- New keyboard shortcuts: [ and ] step through your POPs, - and = zoom the map out and in, n opens the NOC dashboard, and ? lists every shortcut. A letter right after n opens one of the dashboard's tabs, such as n c for Connections, and Help links to the list too.
 
 ## [2.6.0] — 2026-11-03
 
