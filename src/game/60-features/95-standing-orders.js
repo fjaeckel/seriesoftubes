@@ -18,7 +18,7 @@ const OPS=[
  {k:'pni',i:'🤝',pop:1,cap:50000,t:N_('ops.o_pni'),d:N_('ops.o_pni_d'),p:{g:{d:25,v:[5,10,25,50,100],l:N_('ops.p_g'),f:v=>fmtG(v)},tier:{d:0,v:[0,1,2],l:N_('ops.p_tier'),f:v=>tr('ops.at_least_port',{port:PORT[v].n})},paid:{d:false,v:[false,true],l:N_('ops.p_paid'),f:v=>tr(v?'common.on':'common.off')}}},
  {k:'sales',i:'💼',t:N_('ops.o_sales'),d:N_('ops.o_sales_d'),p:{acc:{d:true,v:[true,false],l:N_('ops.p_acc'),f:v=>tr(v?'common.on':'common.off')},min:{d:0,v:[0,2000,5000,10000,25000,50000],l:N_('ops.p_min'),f:v=>v?tr('common.price_mo',{price:fmt$(v)}):tr('ops.never')}}},
  {k:'repair',i:'🔧',cap:50000,t:N_('ops.o_repair'),d:N_('ops.o_repair_d'),p:{}},
- {k:'optics',i:'🌈',cap:250000,t:N_('ops.o_optics'),d:N_('ops.o_optics_d'),p:{at:{d:70,v:[50,60,70,80,90],l:N_('ops.p_at'),f:v=>v+'%'}}},
+ {k:'optics',i:'🌈',cap:250000,t:N_('ops.o_optics'),d:N_('ops.o_optics_d'),p:{at:{d:70,v:[50,60,70,80,90],l:N_('ops.p_at'),f:v=>v+'%'},pick:{d:'cheap',v:['cheap','big'],l:N_('ops.p_pick'),f:v=>tr({cheap:N_('ops.pick_cheap'),big:N_('ops.pick_big')}[v])}}},
  {k:'decom',i:'🧹',t:N_('ops.o_decom'),d:N_('ops.o_decom_d'),p:{keep:{d:true,v:[true,false],l:N_('ops.p_keep'),f:v=>tr(v?'common.on':'common.off')}}},
 ];
 const OPSK=Object.fromEntries(OPS.map(o=>[o.k,o])),OPS_POP=OPS.filter(o=>o.pop).map(o=>o.k);
@@ -101,8 +101,9 @@ function opsQuiet(fn){const a=after,t=toast,s=sfx,f=floater,sel=UI.sel,cf=UI.con
 function opsShift(){const r=new Map(),broke=new Set();
   return {r,broke,dirty:false,up:0,mo:0,rev:0,did(k,w){if(k!=='decline')this.dirty=true;const x=r.get(k)||{n:0,w:[]};x.n++;if(w&&x.w.length<3&&!x.w.includes(w))x.w.push(w);r.set(k,x);},
     // A job that costs nothing up front still has to pass the cash floor if it adds to the monthly bill.
-    can(k,cost,mo=0){const O=S.ops,cap=opsCap(k);if(cost<=0&&!(mo>0))return true;
-      if(S.cash-Math.max(0,cost)<O.floor||(cap&&(OPSK[k].mo?(O.addMo[k]||0)+mo:(O.spent[k]||0)+cost)>cap)){broke.add(k);return false;}return true;},
+    // quiet: only asking, so a no is not logged as the budget running out.
+    can(k,cost,mo=0,quiet){const O=S.ops,cap=opsCap(k);if(cost<=0&&!(mo>0))return true;
+      if(S.cash-Math.max(0,cost)<O.floor||(cap&&(OPSK[k].mo?(O.addMo[k]||0)+mo:(O.spent[k]||0)+cost)>cap)){if(!quiet)broke.add(k);return false;}return true;},
     book(k,d,dm){const O=S.ops;if(d>0){this.up+=d;if(OPSK[k].cap)O.spent[k]=(O.spent[k]||0)+d;}if(dm){this.mo+=dm;O.addMo[k]=(O.addMo[k]||0)+dm;}},
     // Run a click and book what it really cost; false when the action refused (no ports, no cash, a quote changed).
     pay(k,fn){const c0=S.cash,m0=opsMoNow(),x=fn();this.book(k,c0-S.cash,opsMoNow()-m0);return x===undefined?c0-S.cash>0:x;}};}
@@ -153,14 +154,16 @@ const OPS_RUN={
            if(i!==undefined)job={cost:PORT[i].setup,go:()=>ACT.buyTransit({city:c,net:n.id,tier:i}),w:'+'+PORT[i].n};}}
        if(!job||!X.can('transit',job.cost)||!X.pay('transit',job.go))break;
        X.did('transit',c+' '+job.w);ts=S.transit.filter(t=>t.city===c);}}},
- optics(X){const at=opsP('optics','at')/100;
+ optics(X){const at=opsP('optics','at')/100,big=opsP('optics','pick')==='big',gpd=(o,l)=>optG(o,l)/optCost(o);
    for(const l of S.links){if(l.kind!=='df'||l.ready>S.day||l.eqDown>S.day||l.standby||l.cut>S.day)continue;
      let cap=dfCap(l);const load=(R.load&&R.load[l.id])||0;
      // New fiber gets its first channel; lit fiber gets more while it runs hot.
      for(let step=0;step<8&&(cap<=0?!(l.ch||[]).length:load>=cap*at);step++){if(chMax(l)-(l.ch||[]).length-soldSlots(l)<=0)break;
        const cnt={};for(const k of l.ch||[])cnt[k]=(cnt[k]||0)+1;
-       // More of what is already lit, or else the most Gbps per dollar that reaches.
-       const fit=Object.keys(OPT).filter(o=>!chWhy(l,o)),o=fit.filter(o=>cnt[o]).sort((a,b)=>cnt[b]-cnt[a])[0]||fit.sort((a,b)=>optG(b,l)/optCost(b)-optG(a,l)/optCost(a))[0];if(!o)break;
+       // More of what is already lit, or else the most Gbps per dollar that reaches. Told to go big (#262), the intern
+       // picks the most Gbps per channel it can afford for a new kind of optic, but never swaps what is already lit.
+       const fit=Object.keys(OPT).filter(o=>!chWhy(l,o)),cheap=fit.slice().sort((a,b)=>gpd(b,l)-gpd(a,l)),
+         o=fit.filter(o=>cnt[o]).sort((a,b)=>cnt[b]-cnt[a])[0]||(big&&fit.slice().sort((a,b)=>optG(b,l)-optG(a,l)||gpd(b,l)-gpd(a,l)).find(o=>X.can('optics',opticCountCost(l,o,1),0,true)))||cheap[0];if(!o)break;
        const n=(cnt[o]||0)+1,cost=opticCountCost(l,o,n),before=(l.ch||[]).length;if(!X.can('optics',cost))break;
        X.pay('optics',()=>{ACT.setChCount({id:l.id,o,n});return (l.ch||[]).length>before;});if((l.ch||[]).length<=before)break;
        cap+=optG(o,l);X.did('optics',l.a+'|'+l.b);}}},
