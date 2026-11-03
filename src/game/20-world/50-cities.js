@@ -309,6 +309,21 @@ const CITIES=[
  {id:'qaq',name:'Qaqortoq',x:0,y:0,land:'glq',reg:'AM',cc:'GL',P:0.3,blackout:true,ix:'',dc:'Cable Landing Shed'},
  {id:'sis',name:'Sisimiut',x:0,y:0,land:'gls',reg:'AM',cc:'GL',P:0.5,blackout:true,ix:'',dc:'Dog Sled Depot'},
  {id:'aas',name:'Aasiaat',x:0,y:0,land:'gla',reg:'AM',cc:'GL',P:0.3,blackout:true,ix:'',dc:'Iceberg View Rack'},
+ // Central America, the Caribbean and the Guianas: every capital (and Sucre, Bolivia's constitutional one)
+ {id:'anu',name:"Saint John's",x:0,y:0,land:'anu',reg:'AM',cc:'AG',capital:true,P:6,ix:'',dc:'Beach-a-Day Colo'},
+ {id:'bas',name:'Basseterre',x:0,y:0,land:'kna',reg:'AM',cc:'KN',capital:true,P:3,ix:'Sugar-Train-IX',dc:'Sugar Mill Rack',note:tr('cities.four_cables_land_on_st_kitts')},
+ {id:'dom',name:'Roseau',x:0,y:0,land:'dma',reg:'AM',cc:'DM',capital:true,P:3,ix:'Nature-Isle-IX',dc:'Boiling Lake DC'},
+ {id:'slu',name:'Castries',x:0,y:0,land:'lca',reg:'AM',cc:'LC',capital:true,P:8,ix:'',dc:'Twin Pitons Colo'},
+ {id:'svd',name:'Kingstown',x:0,y:0,land:'vct',reg:'AM',cc:'VC',capital:true,P:5,ix:'Vincy-IX',dc:'Grenadines Hop DC',note:tr('cities.a_cable_strings_the_grenadines_together')},
+ {id:'gnd',name:"Saint George's",x:0,y:0,land:'grd',reg:'AM',cc:'GD',capital:true,P:6,ix:'Nutmeg-IX',dc:'Spice Isle Rack',note:tr('cities.grenada_s_exchange_has_a_dozen')},
+ {id:'bcv',name:'Belmopan',x:0,y:0,land:'am',reg:'AM',cc:'BZ',capital:true,P:2,ix:'',dc:'Jungle Capital Colo',note:tr('cities.a_capital_built_inland_after_a')},
+ {id:'sal',name:'San Salvador',x:0,y:0,land:'am',reg:'AM',cc:'SV',capital:true,P:70,ix:'',dc:'Pupusa Racks',note:tr('cities.san_salvador_has_an_exchange_and')},
+ {id:'tgu',name:'Tegucigalpa',x:0,y:0,land:'am',reg:'AM',cc:'HN',capital:true,P:50,ix:'Baleada-IX',dc:'Hilltop Colo',note:tr('cities.the_capital_s_exchange_is_small')},
+ {id:'mga',name:'Managua',x:0,y:0,land:'am',reg:'AM',cc:'NI',capital:true,P:45,ix:'',dc:'Lake & Volcano DC'},
+ {id:'geo',name:'Georgetown',x:0,y:0,land:'sa',reg:'SA',cc:'GY',capital:true,P:12,ix:'',dc:'Stilt House Colo'},
+ {id:'pbm',name:'Paramaribo',x:0,y:0,land:'sa',reg:'SA',cc:'SR',capital:true,P:12,ix:'Pom-IX',dc:'Wooden Cathedral Colo',note:tr('cities.suriname_s_first_cable_comes_ashore')},
+ {id:'pap',name:'Port-au-Prince',x:0,y:0,land:'hs',reg:'AM',cc:'HT',capital:true,P:50,ix:'Kompa-IX',dc:'Gingerbread House DC'},
+ {id:'sre',name:'Sucre',x:0,y:0,land:'sa',reg:'SA',cc:'BO',capital:true,P:10,ix:'',dc:'White City Colo',note:tr('cities.bolivia_s_constitutional_capital_the_courts')},
 ];
 // Display-only nudges for cities that sit on top of each other at map scale; distances still use real lon/lat.
 const CITY_NUDGE={

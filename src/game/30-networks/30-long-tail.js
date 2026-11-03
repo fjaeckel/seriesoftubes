@@ -101,7 +101,7 @@ NETS.push(
  {id:'pss',name:'Pretty Sure South Atlantic',asn:210841,type:'t2',cc:'SH',pol:'open',share:.0005,price:12,up:['tat'],col:'#7D2B8B',pops:['jam','cpt'],ix:[],blurb:tr('long_tail.the_telco_for_st_helena_ascension')},
  {id:'bst',name:'Beastlink',asn:11260,type:'eye',cc:'CA',pol:'selective',minIx:2,minPni:10,share:.002,up:['cog','lvl'],col:'#EE3124',pops:['hfx','tor'],ix:['hfx'],blurb:tr('long_tail.atlantic_canada_s_cable_company')});
 NETS.push(
- {id:'dgc',name:'Digi-Sell Caribbean',asn:40786,type:'eye',cc:['JM','TT','BB','MQ','CW'],pol:'open',share:.002,up:['tly','lvl'],col:'#E2001A',pops:['kin','pos','bgi','fdf','cur','mia'],ix:['kin'],blurb:tr('long_tail.the_same_phone_company_as_in')},
+ {id:'dgc',name:'Digi-Sell Caribbean',asn:40786,type:'eye',cc:['JM','TT','BB','MQ','CW','AG','DM','GD','GY','HT','KN','LC','SR','VC'],pol:'open',share:.002,up:['tly','lvl'],col:'#E2001A',pops:['kin','pos','bgi','fdf','cur','mia','anu','bas','dom','slu','svd','gnd','geo','pap','pbm'],ix:['kin'],blurb:tr('long_tail.the_same_phone_company_as_in')},
  {id:'wnt',name:'Whirled Net',asn:11367,type:'eye',cc:'PR',pol:'open',share:.0005,up:['lvl'],col:'#1F6FB2',pops:['sju'],ix:['sju'],blurb:tr('long_tail.puerto_rico_s_own_business_isp')},
  {id:'cbh',name:'Cable Bahamamama',asn:15146,type:'eye',cc:'BS',pol:'selective',minIx:2,minPni:10,share:.0008,up:['lvl','cog'],col:'#00A3AD',pops:['nas','mia'],ix:[],blurb:tr('long_tail.cable_tv_and_broadband_for_the')},
  {id:'etc',name:'Etecs-ah',asn:27725,type:'eye',cc:'CU',pol:'open',share:.002,up:['skl'],col:'#0055A4',pops:['hav'],ix:[],blurb:tr('long_tail.cuba_s_state_telco_and_only')},
