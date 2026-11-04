@@ -11,6 +11,7 @@ All notable changes to this project are documented here. The project follows
 - Puzzles are easier to read, above all on phones: the three stars are now three goals in plain words, and the one you are working on says what is wrong and what to do, with a Show me button. The map marks it too: a red ring around a city that still needs traffic, and a pulsing ✂ on a link whose cut would hurt. On phones the sheet starts small so the map gets the screen; swipe it up for the rest. Cities far from the puzzle are left off the map, and stepping stones you are not using are small dots without a name until you tap one, build there or zoom in.
 - The map is now drawn by the graphics card wherever the browser can, so panning, zooming and fast play stay smooth on big networks and big screens. The map looks the same; Settings › Map drawing › Always 2D keeps the old drawing, and browsers without WebGL2 or without a usable graphics card keep it on their own, as does a game whose graphics card fails while you play.
 - Cities, labels, building cones, ships, offer bubbles and money pop-ups are painted once and then reused, so the usual map also draws far fewer shapes each frame.
+- Long zooms stay on the graphics card: the pictures of cities and labels are painted on one shared canvas instead of each keeping its own, so the browser no longer runs out of room for them and switches to the slower drawing.
 
 ## [2.9.1] — 2026-11-04
 

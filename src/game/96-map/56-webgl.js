@@ -19,7 +19,7 @@ function mapGl(on,keep=true){GLX.want=!!on;if(keep)try{on?localStorage.removeIte
 function glShow(on){on=!!on;if(GLX.shown===on)return;GLX.shown=on;const e=document.getElementById('mapgl'),fx=document.getElementById('mapfx');if(e)e.hidden=!on;if(fx)fx.hidden=!on;}
 // Marks an error as the card's own, so draw() falls back to 2D instead of trying WebGL again every frame.
 function glErr(e){const x=e instanceof Error?e:new Error(String(e));x.glErr=true;return x;}
-function glKill(why){console.warn('[tubes] the map stays 2D:',why&&why.message||why);GLX.dead=true;GLX.gl=null;glShow(false);}
+function glKill(why){console.warn('[tubes] the map stays 2D:',why&&why.message||why);GLX.dead=true;GLX.gl=null;spritesDrop();glShow(false);}
 const GL_HEAD='#version 300 es\nprecision highp float;precision highp int;\n';
 // Clip space from CSS px (the shaders work in CSS px, as the 2D map does, and use uDpr only for anti-aliasing).
 const GL_CLIP='vec4 clip(vec2 p,vec2 v,float z){return vec4(p.x/v.x*2.-1.,1.-p.y/v.y*2.,z,1.);}\n';

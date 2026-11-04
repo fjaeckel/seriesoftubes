@@ -26,30 +26,46 @@ function glsInit(gl){GLS.prog=glProg(gl,SPR_VS,SPR_FS);const {v,b}=glVao(gl,[4,4
   GLS.shx=GLS.shy=GLS.shh=0;}
 // Forgets every picture and starts the atlas again, after the pictures already queued are drawn (they point into it).
 function spritesReset(){glsDrawNow();SPRS.clear();GLS.shx=GLS.shy=GLS.shh=0;}
+// The card given up: its pictures go (they have no canvas to be drawn from in 2D) and the atlas is forgotten.
+function spritesDrop(){GLS.n=0;SPRS.clear();GLS.shx=GLS.shy=GLS.shh=0;}
+/* The card's pictures are painted on one canvas, reused, and each goes into the atlas as soon as it is painted: a
+   canvas kept per picture made the browser hold thousands of them while you zoomed, until it lost the graphics context
+   and the map fell back to 2D. The 2D map, and a picture too big for the atlas, keep their own canvas. */
+const GLS_PAD={cv:null,g:null};
+function glsPad(pw,ph){const P=GLS_PAD;if(!P.cv){P.cv=document.createElement('canvas');P.cv.width=P.cv.height=256;}
+  if(P.cv.width<pw||P.cv.height<ph){P.cv.width=Math.max(P.cv.width,Math.ceil(pw/64)*64);P.cv.height=Math.max(P.cv.height,Math.ceil(ph/64)*64);P.g=null;}
+  if(!P.g)P.g=P.cv.getContext('2d',{willReadFrequently:true});return P;}
 // A picture of w×h CSS px with its anchor at (ax,ay): painted once by paint(g) (the 2D canvas, at the screen's pixel
-// density, which is part of the key), and kept in SPRS.
-function spriteEntry(key,w,h,ax,ay,paint){key=DPR+'|'+key;let e=SPRS.get(key);if(e)return e;
+// density, which is part of the key), and kept in SPRS. The card's pictures and the 2D map's are kept apart ('g', 'c').
+function spriteEntry(key,w,h,ax,ay,paint){const gpu=GLS.frame&&!!GLX.gl&&!!GLS.prog;key=(gpu?'g':'c')+DPR+'|'+key;let e=SPRS.get(key);if(e)return e;
   if(SPRS.size>=SPR_MAX)spritesReset();
-  const cv=document.createElement('canvas');cv.width=Math.ceil(w*DPR);cv.height=Math.ceil(h*DPR);
-  const g=cv.getContext('2d'),saved=ctx;ctx=g;
-  try{g.setTransform(DPR,0,0,DPR,0,0);paint(g);}finally{ctx=saved;}
-  e={cv,w,h,ax,ay,up:false,u0:0,v0:0,u1:1,v1:1};SPRS.set(key,e);return e;}
-// Puts a picture into the atlas (once), shelf by shelf. A full atlas starts again; this picture then waits a frame.
-function glsEnsure(e){if(e.up)return true;const gl=GLX.gl;if(!gl||!GLS.prog)return false;
-  try{return glsPut(gl,e);}catch(x){throw glErr(x);}}
-function glsPut(gl,e){const pw=e.cv.width,ph=e.cv.height,A=GLS.size;if(pw>A||ph>A)return false;
+  const pw=Math.ceil(w*DPR),ph=Math.ceil(h*DPR),saved=ctx;
+  e={cv:null,pw,ph,w,h,ax,ay,up:false,u0:0,v0:0,u1:1,v1:1};
+  if(gpu&&pw<=GLS.size&&ph<=GLS.size){const P=glsPad(pw,ph),g=P.g;
+    g.save();g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,pw,ph);ctx=g;
+    try{g.setTransform(DPR,0,0,DPR,0,0);paint(g);}finally{ctx=saved;g.restore();}
+    // A full atlas starts again (glsPut), and the picture goes into the empty one at once: the pad is reused next.
+    try{if(!glsPut(GLX.gl,e,P.cv))glsPut(GLX.gl,e,P.cv);}catch(x){throw glErr(x);}
+  }else{const cv=document.createElement('canvas');cv.width=pw;cv.height=ph;const g=cv.getContext('2d');ctx=g;
+    try{g.setTransform(DPR,0,0,DPR,0,0);paint(g);}finally{ctx=saved;}e.cv=cv;}
+  SPRS.set(key,e);return e;}
+// Puts a picture with its own canvas into the atlas (once), shelf by shelf. A full atlas starts again; this picture then waits a frame.
+function glsEnsure(e){if(e.up)return true;const gl=GLX.gl;if(!gl||!GLS.prog||!e.cv)return false;
+  try{return glsPut(gl,e,e.cv);}catch(x){throw glErr(x);}}
+function glsPut(gl,e,src){const pw=e.pw,ph=e.ph,A=GLS.size;if(pw>A||ph>A)return false;
   if(GLS.shx+pw>A){GLS.shx=0;GLS.shy+=GLS.shh;GLS.shh=0;}
   if(GLS.shy+ph>A){spritesReset();return false;}
   const x=GLS.shx,y=GLS.shy;GLS.shx+=pw;GLS.shh=Math.max(GLS.shh,ph);
   gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,GLS.tex);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,true);
-  gl.texSubImage2D(gl.TEXTURE_2D,0,x,y,gl.RGBA,gl.UNSIGNED_BYTE,e.cv);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
+  // Only the picture's corner of the source: the pad is bigger than most pictures.
+  gl.texSubImage2D(gl.TEXTURE_2D,0,x,y,pw,ph,gl.RGBA,gl.UNSIGNED_BYTE,src);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
   Object.assign(e,{up:true,u0:x/A,v0:y/A,u1:(x+pw)/A,v1:(y+ph)/A});return true;}
 // The next record in GLS.data, which grows as needed: take it before reading GLS.data, which it may replace.
 function glsNext(){if((GLS.n+1)*SPR_STRIDE>GLS.data.length){const nd=new Float32Array(GLS.data.length*2);nd.set(GLS.data);GLS.data=nd;}return GLS.n++*SPR_STRIDE;}
 // Draws a picture at (x,y) of w×h CSS px, on the card for a frame drawn there, else with the 2D canvas.
 function blit(e,x,y,w,h){if(GLS.frame&&glsEnsure(e)){const o=glsNext(),d=GLS.data;
     d[o]=x;d[o+1]=y;d[o+2]=w;d[o+3]=h;d[o+4]=e.u0;d[o+5]=e.v0;d[o+6]=e.u1;d[o+7]=e.v1;d[o+8]=d[o+9]=d[o+10]=0;d[o+11]=ctx.globalAlpha;d[o+12]=0;}
-  else ctx.drawImage(e.cv,x,y,w,h);}
+  else if(e.cv)ctx.drawImage(e.cv,x,y,w,h);}
 // A round dot of radius r at (x,y), in colour col (CSS colour string) at opacity a, on the card or the 2D canvas.
 function dot(x,y,r,col,a){if(GLS.frame){const c=glColor(col),o=glsNext(),d=GLS.data;
     d[o]=x;d[o+1]=y;d[o+2]=r;d[o+3]=d[o+4]=d[o+5]=d[o+6]=d[o+7]=0;d[o+8]=c[0];d[o+9]=c[1];d[o+10]=c[2];d[o+11]=(a===undefined?ctx.globalAlpha:a)*c[3];d[o+12]=1;}
