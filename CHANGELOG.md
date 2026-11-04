@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- The NOC charts have tooltips, on the dashboard and on the wallboard in the NOC window: hover (or touch) a chart to see every series on that day, with a total. Click an entry in the legend to hide or show that series, and the scale follows what is left. The "how it arrives" bars on the Traffic tab show the same kind of tooltip, and its legend picks which ways in (caches, PNIs, IX peering, transit) the table counts.
 ## [2.9.1] — 2026-11-04
 
 - Jokes in the game now poke fun at networks, cables and routers, never at people, countries or beliefs. A few networks have new names (Atlas Hold-the-Line Telecom, Star-Blink, Telekom Malay-tency, Oh Yas Sénégal, Afghan Tele-Pass, Island-Hop Micronesia, Tel-One-derful, Tango Two-Step), so do three of the names for your own cables, and about forty descriptions of networks, cities, cables and events were rewritten.

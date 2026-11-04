@@ -1755,6 +1755,7 @@
 "dashboard.all_n":"Toutes ({n})",
 "dashboard.amp_huts_and_spares":"Abris d’amplis et rechanges",
 "dashboard.caches_pnis_and_ix":"caches, PNI et IX",
+"dashboard.chart_total":"Total",
 "dashboard.customers_are_upset":"les clients râlent",
 "dashboard.delivered_30_days":"Livré, 30 jours",
 "dashboard.five_nines_ish":"cinq neuf, ou presque",

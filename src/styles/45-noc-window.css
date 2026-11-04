@@ -1,7 +1,7 @@
 /* The NOC window (?noc=<slot>): a dark wallboard for a second display, and the dashboard's own tabs under Details. */
 body.noc-window{background:#0B1224;overflow:auto}
 #nocBoard{color:#E8EEFA}
-body.noc-window>*:not(#nocBoard):not(#dash):not(#toasts):not(script){display:none !important}
+body.noc-window>*:not(#nocBoard):not(#dash):not(#toasts):not(.chtip):not(.chcur):not(script){display:none !important}
 body.noc-window #dash{position:static;background:none;overflow:visible;padding:0 12px 16px}
 body.noc-window #toasts{z-index:20}
 body.noc-window [data-act="dashClose"]{display:none}

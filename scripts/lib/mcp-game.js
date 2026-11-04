@@ -11,7 +11,7 @@ const path = require('node:path');
 const { load } = require('../../tests/harness');
 
 const HEADLESS_JS = fs.readFileSync(path.join(__dirname, 'mcp-headless.js'), 'utf8');
-const ACT_DIR = path.join(__dirname, '..', '..', 'src', 'game', '90-actions');
+const ACT_DIRS = ['90-actions', '94-dashboard', '96-map'].map((d) => path.join(__dirname, '..', '..', 'src', 'game', d));
 
 // The arguments of the actions the command tables do not type (the drafts), read from their source
 // (`dfSrc:({v})=>`): in the page the actions are wrapped for puzzle mode, so their own parameter lists are not visible.
@@ -20,8 +20,8 @@ function actArgs() {
   if (ACT_ARGS) return ACT_ARGS;
   ACT_ARGS = {};
   const re = /(?:^|[\s,{])([A-Za-z]\w*):\s*(?:async\s*)?\(\s*\{([^}]*)\}\s*(?:=\s*\{\s*\}\s*)?\)\s*=>/g;
-  for (const f of fs.readdirSync(ACT_DIR).filter((f) => f.endsWith('.js')).sort()) {
-    const src = fs.readFileSync(path.join(ACT_DIR, f), 'utf8');
+  for (const [dir, f] of ACT_DIRS.flatMap((d) => fs.readdirSync(d).filter((f) => f.endsWith('.js')).sort().map((f) => [d, f]))) {
+    const src = fs.readFileSync(path.join(dir, f), 'utf8');
     for (const m of src.matchAll(re)) if (!ACT_ARGS[m[1]]) ACT_ARGS[m[1]] = m[2].split(',').map((a) => a.split('=')[0].trim()).filter(Boolean);
   }
   return ACT_ARGS;

@@ -161,8 +161,9 @@ function linkPanel(id){
   return h;
 }
 const EGC={c:[tr('common.caches'),'#16A866'],p:[tr('common.pnis'),'#7B61FF'],ix:[tr('common.ix_peering_0631'),'#FFD23F'],t:[tr('common.transit'),'#FF8A3D'],l2:[tr('common.l2_circuits'),'#2F8CFF']};
-function svgChart(rows,stackKeys,lines,fmtY){
-  const W=600,H=180,L=50,B=20,T=8,Rr=8;if(rows.length<2)return `<p class="empty">${tr('link_panels.collecting_data_check_back_in_a')}</p>`;
+const CHBOX={W:600,H:180,L:50,B:20,T:8,R:8};
+function svgChart(rows,stackKeys,lines,fmtY,id){
+  const {W,H,L,B,T,R:Rr}=CHBOX,off=(id&&UI.chartOff&&UI.chartOff[id])||{};stackKeys=stackKeys.filter(k=>!off[k]);lines=lines.filter(ln=>!off[ln.k]);if(rows.length<2)return `<p class="empty">${tr('link_panels.collecting_data_check_back_in_a')}</p>`;
   let ymax=1;for(const r of rows){let s=0;for(const k of stackKeys)s+=r[k]||0;ymax=Math.max(ymax,s);for(const ln of lines)ymax=Math.max(ymax,r[ln.k]||0);}ymax*=1.1;
   const x=i=>L+(W-L-Rr)*i/(rows.length-1),y=v=>T+(H-T-B)*(1-v/ymax);let g='';
   for(let j=0;j<=3;j++){const v=ymax*j/3,yy=y(v);g+=`<line x1="${L}" x2="${W-Rr}" y1="${yy}" y2="${yy}" stroke="#D5DEEC" stroke-width="1"/><text x="${L-6}" y="${yy+3}" text-anchor="end" font-size="10" fill="#55608A" font-weight="700">${fmtY(v)}</text>`;}
@@ -170,7 +171,7 @@ function svgChart(rows,stackKeys,lines,fmtY){
   for(const k of stackKeys){const top=rows.map((r,i)=>base[i]+(r[k]||0));let d=`M${x(0)},${y(top[0])}`;for(let i=1;i<rows.length;i++)d+=`L${x(i)},${y(top[i])}`;for(let i=rows.length-1;i>=0;i--)d+=`L${x(i)},${y(base[i])}`;g+=`<path d="${d}Z" fill="${EGC[k][1]}" fill-opacity=".85" stroke="#1E2640" stroke-width=".8"/>`;top.forEach((v,i)=>base[i]=v);}
   for(const ln of lines){let d='';rows.forEach((r,i)=>{d+=(i?'L':'M')+x(i)+','+y(r[ln.k]||0);});g+=`<path d="${d}" fill="none" stroke="${ln.col}" stroke-width="2.5" ${ln.dash?'stroke-dasharray="5 4"':''} stroke-linejoin="round"/>`;const last=rows[rows.length-1][ln.k]||0;g+=`<circle cx="${x(rows.length-1)}" cy="${y(last)}" r="3.5" fill="${ln.col}" stroke="#1E2640" stroke-width="1.5"/>`;}
   g+=`<text x="${L}" y="${H-5}" font-size="10" fill="#55608A" font-weight="700">${dateStr(rows[0].d)}</text><text x="${W-Rr}" y="${H-5}" text-anchor="end" font-size="10" fill="#55608A" font-weight="700">${dateStr(rows[rows.length-1].d)}</text>`;
-  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`;}
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img"${id?` data-ch="${id}"`:''}>${g}</svg>`;}
 // For a network you currently reach over transit: the cheapest way to move it to peering.
 // Exchange members as sets, rebuilt once per routing pass: hints are asked for many networks at a time.
 let IXMR=null,IXMC={};const ixHas=(x,id)=>{if(IXMR!==R){IXMR=R;IXMC={};}return (IXMC[x]||(IXMC[x]=new Set(ixMembers(x)))).has(id);};

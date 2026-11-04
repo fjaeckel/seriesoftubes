@@ -313,3 +313,34 @@ test('the board\'s light text stays on the board: Details is the game\'s own das
   assert.doesNotMatch(body, /(^|;)\s*color:/, 'a colour on body would be inherited by the white dashboard card and its toasts');
   assert.match(css, /#nocBoard\{color:/);
 });
+
+test('the wallboard charts have the same tooltip, and the Details legend works in the window', async (t) => {
+  const { G, W } = await pair(t);
+  G.ev("S.hist=[];for(let d=1;d<=40;d++)S.hist.push({d,dem:100+d,srv:90+d,c:10,p:20,ix:30,t:40+d,l2:5,rev:1000+d*10,cost:900+d*5})");
+  G.ev('NOC.dirty=true');pump(G);
+  await settle(W.ev, '(S.hist||[]).length===40', 'the window got the history');
+  W.ev('nocRender()');
+  const doc = W.dom.window.document;
+  const svg = doc.querySelector('svg.nw-chart[data-ch="traffic"]');
+  assert.ok(svg, 'the wallboard traffic chart is tagged');
+  assert.ok(doc.querySelector('svg.nw-chart[data-ch="money"]'), 'and so is the money chart');
+  svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 900, height: 260, right: 900, bottom: 260 });
+  svg.dispatchEvent(new W.dom.window.MouseEvent('pointermove', { clientX: 900 - 8, clientY: 100, bubbles: true }));   // the newest day
+  const tip = doc.querySelector('.chtip');
+  assert.ok(tip && !tip.hidden, 'the tooltip appears in the window');
+  assert.match(tip.textContent, /Transit/);
+  assert.equal(tip.textContent.includes('80.0 Gbps'), true, 'newest transit 40+40 Gbps');
+  W.ev("nocView('details')");
+  W.ev("UI.dtab='traffic';renderDash()");
+  W.ev("ACT.chartToggle({c:'traffic',k:'t'})");
+  assert.equal(W.ev("!!(UI.chartOff&&UI.chartOff.traffic&&UI.chartOff.traffic.t)"), true, "the legend changes the window's own view");
+  assert.equal(G.ev("!!(UI.chartOff&&UI.chartOff.traffic)"), false, 'and does not travel to the game');
+});
+
+test('the stylesheet of the window leaves the chart tooltip and its cursor line alone', () => {
+  const css = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'src', 'styles', '45-noc-window.css'), 'utf8');
+  const hide = css.split('\n').find((l) => l.startsWith('body.noc-window>*:not(#nocBoard)'));
+  assert.ok(hide, 'the rule that hides the game page is there');
+  assert.ok(hide.includes(':not(.chtip)'), 'the tooltip stays');
+  assert.ok(hide.includes(':not(.chcur)'), 'and so does its cursor line');
+});
