@@ -3937,6 +3937,7 @@
 "sites_and_service.path_latency_lat":"Latencia de la ruta: <b>{lat}</b>",
 "sites_and_service.pn_routers":"{pn} routers",
 "sites_and_service.scenic_quietest_links":"Panorámica (enlaces más tranquilos)",
+"sites_and_service.show_on_map":"Ver en el mapa",
 "sites_and_service.split_over_two_equally_quiet_paths":"repartido entre dos rutas igual de tranquilas",
 "sites_and_service.swap_cost_mo_mo":"Cambiar <small>{cost} + {mo}/mes</small>",
 "sites_and_service.your_model_here_tops_out_at":"Tu {model} de aquí llega como mucho a {pn} puertos. Los puertos mayores necesitan una mejora de router (pestaña Infra).",

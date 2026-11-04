@@ -3937,6 +3937,7 @@
 "sites_and_service.path_latency_lat":"Latência do caminho: <b>{lat}</b>",
 "sites_and_service.pn_routers":"routers de {pn}",
 "sites_and_service.scenic_quietest_links":"Panorâmica (links mais tranquilos)",
+"sites_and_service.show_on_map":"Mostrar no mapa",
 "sites_and_service.split_over_two_equally_quiet_paths":"dividido em dois caminhos igualmente tranquilos",
 "sites_and_service.swap_cost_mo_mo":"Trocar <small>{cost} + {mo}/mês</small>",
 "sites_and_service.your_model_here_tops_out_at":"Seu {model} aqui só vai até portas de {pn}. Portas maiores pedem upgrade do router (aba Infra).",

@@ -3937,6 +3937,7 @@
 "sites_and_service.path_latency_lat":"Latence du chemin : <b>{lat}</b>",
 "sites_and_service.pn_routers":"routeurs {pn}",
 "sites_and_service.scenic_quietest_links":"Chemin des écoliers (liens les plus calmes)",
+"sites_and_service.show_on_map":"Voir sur la carte",
 "sites_and_service.split_over_two_equally_quiet_paths":"réparti sur deux chemins aussi calmes l’un que l’autre",
 "sites_and_service.swap_cost_mo_mo":"Remplacer <small>{cost} + {mo}/mois</small>",
 "sites_and_service.your_model_here_tops_out_at":"Ton {model} ici plafonne à des ports {pn}. Pour des ports plus gros, il faut mettre à niveau le routeur (onglet Infra).",

@@ -3939,6 +3939,7 @@
 "sites_and_service.path_latency_lat":"Pfad-Latenz: <b>{lat}</b>",
 "sites_and_service.pn_routers":"{pn}-Router",
 "sites_and_service.scenic_quietest_links":"Panoramaroute (ruhigste Links)",
+"sites_and_service.show_on_map":"Auf der Karte zeigen",
 "sites_and_service.split_over_two_equally_quiet_paths":"auf zwei gleich ruhige Pfade aufgeteilt",
 "sites_and_service.swap_cost_mo_mo":"Tauschen <small>{cost} + {mo}/Monat</small>",
 "sites_and_service.your_model_here_tops_out_at":"Dein {model} hier schafft höchstens {pn}-Ports. Größere Ports brauchen ein Router-Upgrade (Tab Infra).",

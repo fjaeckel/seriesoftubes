@@ -414,6 +414,7 @@ const API_CMD={
 };
 
 const API_VIEW={
+ hlRoute:{args:[['id','entityId']],doc:'Light up, or switch off, the route an L2VPN circuit takes on the map.'},
  traceMode:{args:[['m','string']],doc:'Redo the open traceroute in a routing mode: normal, fast or scenic.'},
  help:{args:[],doc:'Open the how-to-play modal.'},
  dash:{args:[],doc:'Open the NOC dashboard.'},
