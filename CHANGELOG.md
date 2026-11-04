@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- France beyond Paris and Marseille: Lyon, Toulouse, Lille, Bordeaux, Strasbourg and Rennes, with the exchanges that really run (Quenelle-IX, Cassoulet-IX, Maroilles-IX, Claret-IX, Choucroute-IX and Galette-IX), and Nantes. SF-Error Telecom (SFR), Boy-Egg Telecom (Bouygues), Ov-Hatch Cloud (OVH) and Scale-Away (Scaleway) join the map; Tangerine Telecom and Free as in Beer reach the new cities, Cogentle reaches Toulouse, Lille, Bordeaux and Strasbourg as PeeringDB lists it, and Andorable Telecom comes up to Toulouse. The Atlantic cables now come ashore where they really do: Ami-Tea at Bordeaux and Dunno-ant at Nantes, both without a line across the country to inland Paris, and Dunno-ant starts at Virginia Beach.
 ## [2.9.1] — 2026-11-04
 
 - Jokes in the game now poke fun at networks, cables and routers, never at people, countries or beliefs. A few networks have new names (Atlas Hold-the-Line Telecom, Star-Blink, Telekom Malay-tency, Oh Yas Sénégal, Afghan Tele-Pass, Island-Hop Micronesia, Tel-One-derful, Tango Two-Step), so do three of the names for your own cables, and about forty descriptions of networks, cities, cables and events were rewritten.
