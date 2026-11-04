@@ -13,12 +13,16 @@ const SAVE = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'
 
 /* A WebGL2 context that compiles everything, as tests/webgl-map.test.js's, and that refuses memory as asked in
    window.__FAIL: atlas (the texture sizes refused), land (the first static buffer after setup), tubes (the tubes'
-   points). A refusal sets OUT_OF_MEMORY, read once by getError(); the reads are counted. */
-const GL = `(()=>{window.CanvasRenderingContext2D=window.CanvasRenderingContext2D||class{};window.__GE=0;window.__ERR=0;
-  const F=window.__FAIL;let setup=true;const c=document.getElementById('mapgl');
+   points), sprites (every picture sent into the atlas). A refusal sets OUT_OF_MEMORY, read once by getError(); the
+   reads are counted. It also counts the pictures sent (__SUB), what is deleted (__DEL) and the context let go (__LOST). */
+const GL = `(()=>{window.CanvasRenderingContext2D=window.CanvasRenderingContext2D||class{};window.__GE=0;window.__ERR=0;window.__SUB=0;window.__DEL=[];window.__LOST=0;window.__LOSTEV=0;
+  const F=window.__FAIL;let setup=true,lost=false;const c=document.getElementById('mapgl');c.addEventListener('webglcontextlost',()=>{__LOSTEV++;});
   c.getContext=(t)=>t!=='webgl2'?null:new Proxy({},{get(t,k){
     if(typeof k==='string'&&/^[A-Z_0-9]+$/.test(k))return k;
-    if(k==='getExtension')return ()=>({UNMASKED_RENDERER_WEBGL:'REN'});
+    if(k==='getExtension')return (n)=>n==='WEBGL_lose_context'?{loseContext:()=>{__LOST++;lost=true;c.dispatchEvent(new window.Event('webglcontextlost'));}}:{UNMASKED_RENDERER_WEBGL:'REN'};
+    if(k==='isContextLost')return ()=>lost||!!window.__lostNow;
+    if(k==='deleteTexture'||k==='deleteBuffer')return (x)=>{__DEL.push(x);};
+    if(k==='texSubImage2D')return ()=>{__SUB++;if(F.sprites)__ERR='OUT_OF_MEMORY';};
     if(k==='getParameter')return (p)=>p==='REN'?'Stub GPU':p==='ACTIVE_UNIFORMS'?0:4096;
     if(k==='getShaderParameter'||k==='getProgramParameter')return (x,p)=>p==='ACTIVE_UNIFORMS'?0:true;
     if(k==='getError')return ()=>{__GE++;const e=__ERR;__ERR=0;return e;};
@@ -76,7 +80,31 @@ test('an ordinary frame never asks the card for its errors', () => {
   ev('__T+=16;draw(__T);');
   assert.equal(ev('GLX.dead'), false);
   assert.ok(ev('__GE') > 0, 'the first frame checked its uploads');
-  ev('__GE=0;for(let i=0;i<30;i++){cam.x+=3;__T+=16;draw(__T);}');
-  assert.equal(ev('__GE'), 0, 'panning sends nothing big, so nothing is read');
+  // Panning brings new cities into view, whose pictures are sent: only those frames ask, once each.
+  const pan = JSON.parse(ev(`(()=>{let quiet=0,asked=0,sent=0,most=0;for(let i=0;i<30;i++){const s=__SUB,g=__GE;cam.x+=3;__T+=16;draw(__T);
+    if(__SUB===s){quiet++;if(__GE>g)asked++;}else{sent++;most=Math.max(most,__GE-g);}}return JSON.stringify({quiet,asked,sent,most});})()`));
+  assert.ok(pan.quiet > 0, 'some frames send no picture');
+  assert.equal(pan.asked, 0, 'a frame that sends nothing big reads nothing');
+  assert.ok(pan.most <= 4, 'a frame that sends pictures asks once (getError() read up to four flags), not once per picture');
+  ev('__GE=0;for(let i=0;i<10;i++){__T+=16;draw(__T);}');
+  assert.equal(ev('__GE'), 0, 'a still map reads nothing');
+  assert.deepEqual(errors, []);
+});
+
+/* A picture the card refused without throwing (texSubImage2D only leaves OUT_OF_MEMORY) was kept as sent, and drawn
+   from an atlas that never got it. The frame now checks its new pictures before drawing them, and gives the map to 2D
+   in that same frame: no picture is kept as sent. */
+test('a picture the card refuses without throwing gives the map to 2D in the same frame', () => {
+  const { ev, errors } = open({ sprites: true });
+  assert.equal(ev('glInit()'), true);
+  ev('UI.tickErr=false;const h=CITY[S.home];cam.x=h.x;cam.y=h.y;cam.z=1.4;__T+=16;draw(__T);');
+  assert.ok(ev('__SUB') > 0, 'pictures were sent');
+  assert.equal(ev('GLX.dead'), true, 'the card is given up');
+  assert.equal(ev('SPRS.size'), 0, 'no picture is kept as sent to the card');
+  assert.equal(ev('glOn()'), false);
+  assert.equal(ev('document.getElementById("mapgl").hidden'), true);
+  assert.ok(ev('SPRC.size') > 0, 'the same frame was drawn again in 2D, with its own pictures');
+  assert.equal(ev('!!UI.tickErr'), false, 'no glitch for the player');
+  ev('__T+=16;draw(__T);');
   assert.deepEqual(errors, []);
 });

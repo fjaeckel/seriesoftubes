@@ -5,7 +5,7 @@
 const SPR_MAX=1400,SPR_STRIDE=13;
 // The card's pictures (SPRS) and the 2D map's (SPRC), by key; both at the screen's pixel density SPR_DPR.
 const SPRS=new Map(),SPRC=new Map();let SPR_DPR=0;
-const GLS={prog:null,vao:null,buf:null,tex:null,size:4096,shx:0,shy:0,shh:0,frame:false,data:new Float32Array(SPR_STRIDE*2048),n:0};
+const GLS={prog:null,vao:null,buf:null,tex:null,size:4096,shx:0,shy:0,shh:0,frame:false,data:new Float32Array(SPR_STRIDE*2048),n:0,up:0};
 /* One record is 13 floats: x,y,w,h (CSS px) | u0,v0,u1,v1 (atlas) | r,g,b,a | kind. A picture (kind 0) takes its
    colours from the atlas and a from the record; a disc (kind 1) is centred on x,y with radius w, in colour r,g,b,a. */
 const SPR_VS=GL_HEAD+`layout(location=0) in vec4 aP;layout(location=1) in vec4 aUV;layout(location=2) in vec4 aC;layout(location=3) in float aK;
@@ -30,7 +30,7 @@ function glsInit(gl){GLS.prog=glProg(gl,SPR_VS,SPR_FS);const {v,b}=glVao(gl,[4,4
 // Forgets every picture and starts the atlas again, after the pictures already queued are drawn (they point into it).
 function spritesReset(){glsDrawNow();SPRS.clear();SPRC.clear();GLS.shx=GLS.shy=GLS.shh=0;}
 // The card given up: its pictures go (they have no canvas to be drawn from in 2D) and the atlas is forgotten.
-function spritesDrop(){GLS.n=0;SPRS.clear();GLS.shx=GLS.shy=GLS.shh=0;}
+function spritesDrop(){GLS.n=GLS.up=0;SPRS.clear();GLS.shx=GLS.shy=GLS.shh=0;}
 /* The card's pictures are painted on one canvas, reused, and each goes into the atlas as soon as it is painted: a
    canvas kept per picture made the browser hold thousands of them while you zoomed, until it lost the graphics context
    and the map fell back to 2D. The 2D map, and a picture too big for the atlas, keep their own canvas. */
@@ -70,7 +70,7 @@ function glsPut(gl,e,src){const pw=e.pw,ph=e.ph,A=GLS.size;if(pw>A||ph>A)return 
   gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,GLS.tex);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,true);
   // Only the picture's corner of the source: the pad is bigger than most pictures.
   gl.texSubImage2D(gl.TEXTURE_2D,0,x,y,pw,ph,gl.RGBA,gl.UNSIGNED_BYTE,src);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
-  Object.assign(e,{up:true,u0:x/A,v0:y/A,u1:(x+pw)/A,v1:(y+ph)/A});return true;}
+  GLS.up++;Object.assign(e,{up:true,u0:x/A,v0:y/A,u1:(x+pw)/A,v1:(y+ph)/A});return true;}
 // The next record in GLS.data, which grows as needed: take it before reading GLS.data, which it may replace.
 function glsNext(){if((GLS.n+1)*SPR_STRIDE>GLS.data.length){const nd=new Float32Array(GLS.data.length*2);nd.set(GLS.data);GLS.data=nd;}return GLS.n++*SPR_STRIDE;}
 // Draws a picture at (x,y) of w×h CSS px, on the card for a frame drawn there, else with the 2D canvas.
@@ -116,5 +116,8 @@ function glsDraw(gl,n){gl.useProgram(GLS.prog.p);gl.bindVertexArray(GLS.vao);gl.
   gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,GLS.tex);
   gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.disable(gl.DEPTH_TEST);
   gl.drawArraysInstanced(gl.TRIANGLE_STRIP,0,4,n);gl.bindVertexArray(null);}
-// The end of a frame on the card: the pictures go up over the tubes. The frame is over even if that draw fails.
-function glsFrameEnd(){if(!GLS.frame)return;GLS.frame=false;glsDrawNow();}
+/* The end of a frame on the card: the pictures go up over the tubes. The frame is over even if that draw fails.
+   A frame that sent new pictures first asks the card if it took them (once, however many): a card short of memory
+   may refuse one without throwing, and the picture would be kept as sent. It then gives the map to 2D (glMem() throws,
+   draw() draws the frame again there and glKill() forgets the card's pictures). A frame that only reuses the atlas asks nothing. */
+function glsFrameEnd(){if(!GLS.frame)return;GLS.frame=false;const up=GLS.up;GLS.up=0;if(up&&GLX.gl)glMem(GLX.gl,'the pictures');glsDrawNow();}
