@@ -52,11 +52,11 @@ and remembers the one you pick under Settings or on the title screen.
 
 ```sh
 npm ci
-npm run dev    # development server: assembles src/ on every request, reloads on save
+npm run dev    # development server on localhost (--host to share): assembles src/ on every request, reloads on save
 npm test       # headless tests: boot, geography, a year of play, every incident, every panel
 npm run build  # writes the site for GitHub Pages to _site/, with version and date stamped in
 npm run i18n:check  # lists text missing from (or stale in) the translations
-npm run mcp    # the game as an MCP server, so an AI client can play and debug it (docs/MCP.md)
+npm run mcp    # the game as an MCP server, so an AI client can play and debug it, headless or in your tab (docs/MCP.md)
 ```
 
 ## Community

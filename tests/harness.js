@@ -1,17 +1,21 @@
 // Loads the game page in jsdom with the animation loop disabled, so tests can drive the simulation
 // directly through the game's globals (ACT, S, R, dayTick…). The page is assembled from src/ once per
 // test process (scripts/lib/page.js), so tests always run what is in src/, never a stale build.
+// It is the page players get; {agent: true} loads the development page instead, with the agent facade
+// (src/agent/) the MCP server drives. Only the tests of that facade ask for it, so core code that leans on
+// it fails here rather than in production.
 const fs = require('node:fs');
 const path = require('node:path');
 const { JSDOM, VirtualConsole } = require('jsdom');
 const { assemble } = require('../scripts/lib/page');
 
-let PAGE = null;
-const page = () => PAGE || (PAGE = assemble().html);
+const PAGE = {};
+const page = (dev) => PAGE[dev] || (PAGE[dev] = assemble({ dev }).html);
 
 // opts.file: a built or older page to load instead (the perf bench, the release build test).
+// opts.agent: the development page, with src/agent/.
 function load(opts = {}) {
-  const html = opts.file ? fs.readFileSync(opts.file, 'utf8') : page();
+  const html = opts.file ? fs.readFileSync(opts.file, 'utf8') : page(!!opts.agent);
   const errors = [];
   const vc = new VirtualConsole();
   vc.on('jsdomError', (e) => {
@@ -19,7 +23,10 @@ function load(opts = {}) {
     if (!/getContext|Not implemented/.test(e.message)) errors.push(e.message);
   });
   const dom = new JSDOM(html, {
-    url: 'https://tests.invalid/',
+    // opts.url: the origin the page is "served" from. Tests that dial the agent relay pass the relay's own host, so
+    // the page's WebSocket Origin matches (the relay refuses a cross-site one); everything else stays on a made-up
+    // https origin nothing can reach.
+    url: opts.url || 'https://tests.invalid/',
     runScripts: 'dangerously',
     pretendToBeVisual: true,
     virtualConsole: vc,

@@ -7,7 +7,8 @@ description: Write deterministic jsdom tests for Series of Tubes features and fi
 
 Tests use `node:test` and `tests/harness.js`, which assembles the game page from `src/`
 (once per test file) and loads it in jsdom with the animation loop off, a seeded `Math.random` and a recording fake canvas.
-Code runs inside the page through `ev()`.
+Code runs inside the page through `ev()`. `load()` is the page players get; tests of the agent facade
+(`src/agent/`, `window.TUBES`) ask for the development page with `load({ agent: true })`.
 
 ## Pattern
 

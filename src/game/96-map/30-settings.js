@@ -15,12 +15,14 @@ const pref=k=>typeof PREFS[k]==='boolean'?PREFS[k]:PREF_DEF[k];
 // Quiet notifications: the player's choice once made, until then on in Best Effort only.
 const quietOn=()=>typeof PREFS.quiet==='boolean'?PREFS.quiet:rulePreset()==='soft';
 function setPref(k,v){if(!own(PREF_DEF,k))return;PREFS[k]=!!v;try{localStorage.setItem('sot-prefs',JSON.stringify(PREFS));}catch(e){}}
-// Stop the clock for something the player must see. Nothing happens if the game is already paused.
-function autoPause(){if(!S||!UI.speed)return false;UI.resumeSpeed=UI.speed;UI.speed=0;renderHUD();return true;}
+// Stop the clock for something the player must see. Nothing happens if the game is already paused, or not the player's.
+function autoPause(){if(!S||!UI.speed||UI.clockLocked)return false;UI.resumeSpeed=UI.speed;UI.speed=0;renderHUD();return true;}
+// Put the clock back at a speed (a new game, a loaded or resumed one): unless it is locked, then it runs as the lock says.
+function setSpeed(v){UI.speed=UI.clockLocked&&HOOKS.speed?HOOKS.speed():v;}
 const resumeAct=()=>({l:tr('common.resume'),act:'speed',args:{v:UI.resumeSpeed||1}});
 function settingsHtml(){const seg=(lab,act,cur,opts,note)=>`<div class="setline"><span>${lab}</span><div class="seg">${segBtns(act,cur,opts)}</div></div>${note?`<p class="meta" style="margin:0 0 6px">${note}</p>`:''}`;
   const onoff=k=>[[k+':1',tr('common.on')],[k+':0',tr('common.off')]],cur=k=>k+':'+((k==='quiet'?quietOn():pref(k))?1:0);
-  return `<div style="display:flex;align-items:center"><h2 style="font-size:26px">⚙️ ${tr('common.settings')}</h2><button class="x" data-act="settingsClose" aria-label="${tr('common.close')}">×</button></div><p class="tagline">${tr('settings.saved_on_this_device')}</p>
+  return `<div style="display:flex;align-items:center"><h2 style="font-size:26px">⚙️ ${tr('common.settings')}</h2><button class="x" data-act="settingsClose" aria-label="${tr('common.close')}">×</button></div><p class="tagline">${tr('settings.saved_on_this_device')}</p>${HOOKS.settings?HOOKS.settings():''}
   <h3 class="sub4">${tr('settings.customers_and_alerts')}</h3>
   ${seg(tr('settings.pause_when_a_customer_is_furious'),'prefSet',cur('pauseFurious'),onoff('pauseFurious'),tr('settings.the_game_stops_so_you_can'))}
   ${seg(tr('settings.warn_when_a_customer_gets_unhappy'),'prefSet',cur('warnUnhappy'),onoff('warnUnhappy'),tr('settings.an_early_heads_up_below_60'))}

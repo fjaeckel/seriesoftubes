@@ -14,6 +14,7 @@ load, so splitting code across files costs nothing at runtime. Why it works this
 src/index.html            the shell: <head>, static markup, `<!-- @include styles -->`, `<!-- @include game -->`
 src/styles/NN-*.css        CSS, in order (phones last)
 src/game/NN-area/NN-*.js   the game script, in order (see the map in docs/ARCHITECTURE.md)
+src/agent/NN-*.js          the agent facade the MCP server drives: in the development page only
 site/                      static files copied as they are (dictionaries, icons, service worker)
 ```
 
@@ -34,7 +35,8 @@ npm test -- tests/peering.test.js    # one suite
 ```
 
 A browser error points at a line of the assembled page; the dev server prints the `src/` file and line
-next to it. `npm run page -- -o /tmp/page.html` writes the assembled page if you want to look at it.
+next to it. `npm run page -- -o /tmp/page.html` writes the page players get if you want to look at it;
+`npm run page -- --source --dev -o /tmp/page.html` the development page `npm run dev` serves.
 
 ## Where new code goes
 
@@ -48,9 +50,16 @@ next to it. `npm run page -- -o /tmp/page.html` writes the assembled page if you
 - **Actions:** add `name:(args)=>{…},` to the matching `src/game/90-actions/*.js`. Only
   `10-interface.js` declares `const ACT={`; the others are `Object.assign(ACT,{ … });`. A new area can get
   a new `NN-area.js` file of that second form. The MCP server types every action: a new one also gets
-  an entry in `scripts/lib/mcp-commands.js` (a game command with its argument domains, a view, a draft
-  or a session action) or in the server's `DENY` list in `scripts/lib/mcp-page.js`;
-  `tests/mcp-commands.test.js` fails until it has one.
+  an entry in `src/agent/20-commands.js` (a game command with its argument domains, a view, a draft,
+  a session action, or `API_DENY`); `tests/mcp-commands.test.js` fails until it has one.
+- **Agent code** (`src/agent/`, the facade the MCP server plays through) is assembled into the
+  development page only (`<!-- @include-dev agent -->`): players never download it. Its top-level names
+  start with `api`/`API_`, and **nothing in `src/game/` may name them**: that would work in `npm run dev`
+  and break for players (`tests/build.test.js` checks). Tests load the players' page; a test of the
+  facade asks for `load({ agent: true })`. Where agent code must change what the game does (agent mode
+  locks the clock, adds a Settings section and a HUD badge), the game calls `HOOKS.x?.()` and reads
+  `UI.clockLocked` (`50-state.js`), and agent code fills them in: add a hook there rather than an `if` for
+  the agent in a game file. See docs/adr/0004-dev-only-code.md.
 - **Panels and modals:** `93-ui/` (HUD, side panels), `94-dashboard/` (NOC dashboard, bank), `95-modals/`.
 - **Styles:** the matching `src/styles/*.css`; phone rules go in `60-phone.css`.
 - **Data tables** (cities, cables, networks): one entry per line, and keep id-keyed objects such as

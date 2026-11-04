@@ -31,6 +31,10 @@ one, redesign the feature.
 - **Limits:** about 1 GB for the whole site, 100 MB per file.
 - **Paths:** the site lives at the domain root (`site/CNAME`), so `/` paths are fine; unknown paths get
   `404.html`.
+- **Local tools are not hosting.** `npm run dev` and the MCP server (`npm run mcp`, also over `--http`)
+  run on a developer's own machine against a checkout; nothing they serve is deployed, and the game
+  never depends on them. Their code stays out of `_site/` (`src/agent/` is development-only, see
+  `docs/adr/0004-dev-only-code.md`).
 
 ## How it deploys
 

@@ -46,10 +46,28 @@ test('src: partials follow the layout rules (docs/adr/0002-one-page-assembled-at
   const src = path.join(root, 'src');
   for (const f of listFiles(src)) {
     if (f === 'index.html' || f === 'i18n/en.js') continue;
-    assert.match(f, /^(styles\/(\d\d-[a-z0-9-]+\/)*\d\d-[a-z0-9-]+\.css|game\/(\d\d-[a-z0-9-]+\/)*\d\d-[a-z0-9-]+\.js)$/, `${f}: name it NN-lower-case under styles/ or game/`);
+    assert.match(f, /^(styles\/(\d\d-[a-z0-9-]+\/)*\d\d-[a-z0-9-]+\.css|(game|agent)\/(\d\d-[a-z0-9-]+\/)*\d\d-[a-z0-9-]+\.js)$/, `${f}: name it NN-lower-case under styles/, game/ or agent/`);
   }
-  const { html, map } = assemble();
-  assert.equal((html.match(/^const ACT=\{$/gm) || []).length, 1, 'ACT is declared once; other action files use Object.assign(ACT,{…})');
-  assert.equal((html.match(/<script>/g) || []).length, 2, 'the language loader and the game: one inline game script');
-  assert.ok(map.length > 50 && map.every((m) => m.to >= m.from), 'the line map covers every partial');
+  for (const dev of [false, true]) {
+    const { html, map } = assemble({ dev });
+    assert.equal((html.match(/^const ACT=\{$/gm) || []).length, 1, 'ACT is declared once; other action files use Object.assign(ACT,{…})');
+    assert.equal((html.match(/<script>/g) || []).length, 2, 'the language loader and the game: one inline game script');
+    assert.ok(map.length > 50 && map.every((m) => m.to >= m.from), 'the line map covers every partial');
+  }
+});
+
+test('src: the game never names the agent code, which only the development page has (docs/adr/0004-dev-only-code.md)', () => {
+  // Everything src/agent/ defines at the top level is named api…, API_… (or is window.TUBES), so one pattern finds any
+  // use of it elsewhere: such code would work in development and break in the page players get.
+  const { listFiles } = require('../scripts/lib/page');
+  const src = path.join(root, 'src'), read = (f) => fs.readFileSync(path.join(src, f), 'utf8'), AGENT = /\b(api[A-Z]\w*|API_[A-Z0-9_]+|TUBES)\b/;
+  let n = 0;
+  for (const f of listFiles(path.join(src, 'agent'))) {
+    for (const m of read('agent/' + f).matchAll(/^(?:const|let|var|function|async function)\s+([A-Za-z_$][\w$]*)/gm)) { n++; assert.match(m[1], AGENT, `src/agent/${f}: top-level ${m[1]} is named api… or API_…`); }
+  }
+  assert.ok(n > 30, `found the agent's top-level names (${n})`);
+  for (const f of listFiles(src).filter((f) => !f.startsWith('agent/'))) {
+    const m = read(f).match(AGENT);
+    assert.equal(m, null, `src/${f} names ${m && m[0]}, which only the development page defines`);
+  }
 });

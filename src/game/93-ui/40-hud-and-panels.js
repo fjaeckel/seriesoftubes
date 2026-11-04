@@ -3,7 +3,8 @@ function fitHud(){const h=$('hud');if(!h)return;h.classList.remove('fit1','fit2'
   for(const c of ['fit1','fit2','fit3']){if(h.offsetHeight<=row()*1.5)break;h.classList.add(c);}}
 function renderHUD(){
   // No clock (puzzles): there is no time to speed up, so the speed buttons go.
-  {const ck=!S||rule('clock');for(const v of [0,0.5,1,2,4,8]){const b=$('sp'+v);if(b){b.classList.toggle('on',UI.speed===v);b.hidden=!ck;}}}
+  // A locked clock has no buttons: whoever locked it shows what it runs at (HOOKS.hud).
+  {const ck=!S||rule('clock'),lk=UI.clockLocked;for(const v of [0,0.5,1,2,4,8]){const b=$('sp'+v);if(b){b.classList.toggle('on',!lk&&UI.speed===v);b.hidden=lk||!ck;}}HOOKS.hud?.();}
   $('muteBtn').style.opacity=UI.muted?.4:1;
   if(!S)return;
   if(pzOn()){$('hName').textContent=pzName(pzDef(S.pz.id)||S.pz);$('hAsn').textContent=tr('puzzles.puzzle');renderTabbar();return;}

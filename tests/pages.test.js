@@ -58,6 +58,20 @@ test('pages: every local file the site refers to is in the build', () => {
   for (const m of html.matchAll(/<link[^>]*rel="stylesheet"[^>]*href="(https?:[^"]+)"/g)) assert.match(m[1], /^https:\/\/fonts\.googleapis\.com\//);
 });
 
+test('pages: the build carries no agent code, and is the page assembled without it', () => {
+  // src/agent/ (the facade the MCP server drives) is development-only: one line in src/index.html, expanded by
+  // the dev server and the MCP server, never by the build (docs/adr/0004-dev-only-code.md).
+  const html = read('index.html');
+  assert.doesNotMatch(html, /@include/, 'no include marker survives');
+  for (const n of ['TUBES', 'API_CMD', 'API_DOMAINS', 'apiCall', 'apiDispatch']) assert.doesNotMatch(html, new RegExp(`\\b${n}\\b`), `${n} is not shipped`);
+  const { load } = require('./harness');
+  const { ev, errors } = load({ file: path.join(OUT, 'index.html') });
+  assert.equal(ev('typeof TUBES'), 'undefined');
+  ev("ACT.start({});ACT.launchBB({city:'fra'});for(let i=0;i<10;i++)dayTick()");
+  assert.ok(ev('S.day') >= 10);
+  assert.deepEqual(errors, []);
+});
+
 test('pages: only the release workflow deploys, and only with the GitHub Pages actions', () => {
   const dir = path.join(root, '.github', 'workflows');
   for (const f of fs.readdirSync(dir)) {

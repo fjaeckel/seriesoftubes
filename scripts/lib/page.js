@@ -3,8 +3,14 @@
 // The result is the same single, self-contained index.html the game has always shipped: one request,
 // no module loader, no runtime cost. See docs/ARCHITECTURE.md ("Source layout") and docs/adr/.
 //
+// A line `<!-- @include-dev DIR -->` is the same, but only in the development page (dev: true): the
+// tools' side of the game (src/agent/, the agent facade the MCP server drives) for npm run dev, the
+// MCP server's own page and the tests that ask for it. Everywhere else the line is dropped whole, so
+// the page players get is exactly what it would be without it (docs/adr/0004-dev-only-code.md).
+//
 //   node scripts/lib/page.js [-o FILE]                     the page as it ships (stdout by default)
-//   node scripts/lib/page.js --source [-o FILE]            assembled only, labels as in src/ (what tests and npm run dev use)
+//   node scripts/lib/page.js --source [-o FILE]            assembled only, labels as in src/ (what tests use)
+//   node scripts/lib/page.js --source --dev [-o FILE]      the development page: with src/agent/ (what npm run dev serves)
 //   node scripts/lib/page.js --ref origin/main -o FILE     the page as it ships at a git ref
 //
 // --ref uses that commit's own assembler, so it keeps working when this file changes; refs from before
@@ -15,7 +21,7 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
 const ROOT = path.join(__dirname, '..', '..');
-const INCLUDE = /^<!-- @include ([\w./-]+) -->$/;
+const INCLUDE = /^<!-- @include(-dev)? ([\w./-]+) -->$/;
 
 // Every file under dir, as paths relative to dir with '/' separators, in a stable order
 // (plain code-unit comparison, so the order never depends on the machine's locale).
@@ -45,7 +51,8 @@ function partials(src, dir) {
 }
 
 // The assembled page as a string, plus a map of which output line came from which source file.
-function assemble({ src = path.join(ROOT, 'src') } = {}) {
+// dev: also the @include-dev parts (the development page); without it, their lines are left out entirely.
+function assemble({ src = path.join(ROOT, 'src'), dev = false } = {}) {
   const shell = fs.readFileSync(path.join(src, 'index.html'), 'utf8');
   const out = [], map = [];
   let line = 1;
@@ -57,7 +64,8 @@ function assemble({ src = path.join(ROOT, 'src') } = {}) {
       line++;
       return;
     }
-    for (const p of partials(src, m[1])) {
+    if (m[1] && !dev) return;
+    for (const p of partials(src, m[2])) {
       const n = p.text.split('\n').length - 1;
       map.push({ file: p.file, from: line, to: line + n - 1 });
       out.push(p.text);
@@ -104,7 +112,7 @@ module.exports = { assemble, assembleRef, shipped, pageFile, locate, listFiles, 
 if (require.main === module) {
   const args = process.argv.slice(2);
   const opt = (k) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : null; };
-  const html = opt('--ref') ? assembleRef(opt('--ref')) : args.includes('--source') ? assemble().html : shipped().html;
+  const html = opt('--ref') ? assembleRef(opt('--ref')) : args.includes('--source') ? assemble({ dev: args.includes('--dev') }).html : shipped().html;
   const out = opt('-o');
   if (out) { fs.mkdirSync(path.dirname(path.resolve(out)), { recursive: true }); fs.writeFileSync(out, html); }
   else process.stdout.write(html);
