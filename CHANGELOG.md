@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- The NOC intern has a new order, Keep peering headroom, that adds capacity to your PNI and IX ports before they fill up (#234). A single port at a POP with several routers gets a second port in a LAG, so no router is its only way out; any other port moves up to the smallest port size that fits. It has the same Headroom and Budget dials as the transit order, can be switched off per POP, waits out a DDoS flood instead of buying ports for it, and a PNI with an augment already on order waits for it to land. The monthly figure in the intern's log now counts IX ports too.
 - Latency customers only ask for a ceiling something you can build meets. Before, a Mars ground station could ask for 4.3 ms between Pevek and Anadyr, where the only sea route takes 7.7 ms at best. (#273)
 - Money now shows billions (`$1.20B`) and bandwidth shows petabits (`1.00 Pbps`) instead of running on in millions and terabits, including on the NOC graph and the fiber labels on the map.
 - DE-Kicks ports stop getting dearer once they cost four times the list price. Before, the yearly price harmonisation kept compounding, so a long game ended up paying $100k a month for one port at Frankfurt or Mumbai.
