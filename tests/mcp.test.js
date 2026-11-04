@@ -1,4 +1,5 @@
-// The MCP server (scripts/mcp.js): an AI client plays, inspects and debugs the game through typed tools.
+// The MCP server (scripts/mcp.js): an AI client plays, inspects and debugs the game through typed tools. Over stdio
+// here; tests/mcp-http.test.js has the HTTP transport.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -27,7 +28,7 @@ test('speaks MCP over stdio: initialize, list tools, call one, and errors as err
     assert.equal(init.result.protocolVersion, '2025-06-18');
     assert.equal(init.result.serverInfo.name, 'seriesoftubes');
     assert.ok(init.result.capabilities.tools);
-    assert.equal((await ask({ id: 9, method: 'initialize', params: { protocolVersion: '1999-01-01' } })).result.protocolVersion, '2025-11-25', 'an unknown version gets the newest');
+    assert.equal((await ask({ id: 9, method: 'initialize', params: { protocolVersion: '1999-01-01', capabilities: {}, clientInfo: { name: 'test', version: '1' } } })).result.protocolVersion, '2025-11-25', 'an unknown version gets the newest');
     await ask({ method: 'notifications/initialized' });
     const list = await ask({ id: 2, method: 'tools/list' });
     const names = list.result.tools.map((t) => t.name);
@@ -161,4 +162,37 @@ test('only game actions: files, slots, settings and the clock stay out of reach'
   assert.throws(() => T('act', { action: 'speed', args: { s: 4 } }), /use advance/);
   assert.throws(() => T('act', { action: 'noSuchThing' }), /no action/);
   assert.throws(() => T('click', { button: 99 }), /No button 99/);
+});
+test('a running clock: days pass on their own, advance is refused and wait reads them', async () => {
+  const s = createSession({ clock: 'realtime', paceMs: 30 }), T = tools(s);
+  try {
+    assert.equal(T('schema', { section: 'mode' }).clock, 'realtime');
+    assert.match(T('schema', { section: 'clock' }), /runs on its own/);
+    assert.throws(() => T('advance', { days: 1 }), /use wait/);
+    const w = await T('wait', { days: 3, maxSeconds: 10 });
+    assert.ok(w.daysRun >= 3, `three days passed by themselves (${w.daysRun})`);
+    assert.equal(w.stoppedBecause, null);
+    assert.ok(Array.isArray(w.log) && typeof w.cashChange === 'number');
+    assert.deepEqual(s.errors(), []);
+  } finally { s.close(); }
+  // The agent's clock stands still between calls, and wait says to use advance.
+  const s2 = createSession(), T2 = tools(s2);
+  const d0 = T2('status').day;
+  await new Promise((r) => setTimeout(r, 100));
+  assert.equal(T2('status').day, d0);
+  await assert.rejects(T2('wait', { days: 1 }), /use advance/);
+});
+
+test('--clock realtime over stdio: the instructions and the schema say whose clock it is', async () => {
+  const child = spawn(process.execPath, [path.join(__dirname, '..', 'scripts', 'mcp.js'), '--clock', 'realtime', '--pace', '50'], { stdio: ['pipe', 'pipe', 'pipe'] });
+  let buf = '';
+  const lines = [], waiters = [];
+  child.stdout.on('data', (d) => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { lines.push(JSON.parse(buf.slice(0, i))); buf = buf.slice(i + 1); waiters.splice(0).forEach((w) => w()); } });
+  const ask = async (msg) => { child.stdin.write(JSON.stringify({ jsonrpc: '2.0', ...msg }) + '\n'); const f = () => lines.find((l) => l.id === msg.id); while (!f()) await new Promise((r) => waiters.push(r)); return f(); };
+  try {
+    const init = await ask({ id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test', version: '1' } } });
+    assert.match(init.result.instructions, /runs on its own/);
+    const mode = JSON.parse((await ask({ id: 2, method: 'tools/call', params: { name: 'schema', arguments: { section: 'mode' } } })).result.content[0].text);
+    assert.deepEqual({ backend: mode.backend, clock: mode.clock, paceMs: mode.paceMs, transport: mode.transport }, { backend: 'headless', clock: 'realtime', paceMs: 50, transport: 'jsdom' });
+  } finally { child.kill(); }
 });

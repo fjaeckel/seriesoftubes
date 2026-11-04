@@ -5,7 +5,8 @@ https://seriesoftub.es, hosted on GitHub Pages. The game is one static page with
 Its source is many small files in `src/` (`src/styles/*.css`, `src/game/**/*.js`, the shell
 `src/index.html`); the build pastes them together, in path order, into a single `index.html`, the
 same one-file page players have always loaded. Static files (dictionaries, icons, service worker)
-live in `site/`.
+live in `site/`. `src/agent/` (the facade the MCP server plays through) goes into the development page only,
+never into the page players get, and nothing in `src/game/` may use it (`docs/adr/0004-dev-only-code.md`).
 
 Read these before larger changes:
 
@@ -20,7 +21,7 @@ Read these before larger changes:
 
 ```bash
 npm ci                       # once: installs jsdom for the tests
-npm run dev                  # play while developing: http://localhost:8080, reloads on save
+npm run dev                  # play while developing: http://localhost:8080, reloads on save (--host to share)
 npm test                     # node:test + jsdom, every tests/*.test.js, must stay green
 node scripts/i18n-check.js   # must report "0 missing, 0 unused, 0 broken" (and sorted dictionaries)
 node scripts/i18n-add.js FILE.json   # add/change/remove translations (see `add-strings`)
@@ -28,7 +29,7 @@ npm run build                # builds _site/ for GitHub Pages (assembles src/, s
 npm run serve                # build and serve the production site locally
 npm run perf -- --base-ref origin/main             # big-network benchmark vs main (see `performance`)
 npm run perf -- --base-ref origin/main --browser   # the same, also in real Chromium (desktop and phone)
-npm run mcp                  # the game as a local MCP server for AI clients (docs/MCP.md)
+npm run mcp                  # the game as a local MCP server for AI clients, stdio or --http (docs/MCP.md)
 ```
 
 ## Hard rules

@@ -1,4 +1,4 @@
-// Runs inside a game page (scripts/route-fuzz.js loads two: main's and this checkout's), next to scripts/lib/mcp-page.js.
+// Runs inside a game page (scripts/route-fuzz.js loads two: main's and this checkout's).
 // The driver picks every move with its own seeded random numbers and sends the same calls to both pages, so the pages
 // stay in lockstep; this file only offers what a player could do now (buttons on screen, POPs, cities) and digests what
 // routing gave, as strings the driver compares.

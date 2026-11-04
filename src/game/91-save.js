@@ -8,7 +8,8 @@ function save(force,st){if(!st)st=pzOn()?UI.pzKeep:S;const id=UI.slot;
   // Half a day (its routing still in the worker) is never saved: the day's end saves instead.
   if(RW.job&&st===S){UI.saveDue=true;UI.lastSave=performance.now();return;}
   if(!st||st.lost||st.mode==='puzzle'||!id||SLOT.no.has(id))return;
-  if(st===S){S.uiSpeed=UI.speed;S.cam={x:cam.x,y:cam.y,z:cam.z};}const f=UI.saveFail,failed=f&&f.s===st;
+  // A locked clock's speed is not the player's: the one they left the game at stays saved.
+  if(st===S){if(!UI.clockLocked)S.uiSpeed=UI.speed;S.cam={x:cam.x,y:cam.y,z:cam.z};}const f=UI.saveFail,failed=f&&f.s===st;
   if(!force&&failed&&performance.now()-f.at<f.wait){UI.lastSave=performance.now();return;}
   UI.lastSave=performance.now();
   // Set aside for a puzzle, it cannot change: once its save has landed (or is still compressing), there is nothing to do.
