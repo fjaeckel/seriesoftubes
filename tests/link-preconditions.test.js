@@ -1,7 +1,7 @@
-// Typed orders (the MCP act tool) name both ends of a link and any city for a POP, where the map only offers what
-// a player can reach: a link dragged from one of your POPs, a POP in a city that is on the map. These hold the same
-// lines: a link from a city with no POP is refused, and so is a POP in a retired small city, each with a toast that
-// says why and a dry run that reports it as blocked.
+// Typed orders (the MCP act tool) name both ends of a link and any city for a POP or an exchange, where the map only
+// offers what a player can reach: a link dragged from one of your POPs, a POP in a city that is on the map, Found your
+// own IX where the panel shows it. These hold the same lines: what the game refuses, it refuses with a toast that says
+// why and a dry run that reports it as blocked.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createSession, TOOLS } = require('../scripts/lib/mcp-game');
@@ -87,5 +87,35 @@ test('an old save that kept a POP in a retired city keeps it, and buildPop there
   assert.deepEqual(r.toasts, []);
   // and a link may start there, since it is one of your POPs
   assert.equal(act('orderDf', { a: 'aju', b: 'rec', source: 'lease', system: 'roadm' }).outcome, 'applied');
+  assert.deepEqual(s.errors(), []);
+});
+
+test('founding your own exchange says why it cannot: mainland China, an exchange already there, yours already there, no POP', () => {
+  const { s, ev, act } = sandbox();
+  const name = (c) => ev(`CITY.${c}.name`);
+  const refused = (city, why) => {
+    const q = act('foundIx', { city }, true);
+    assert.equal(q.quote.blocked.length, 1, `${city}: ${JSON.stringify(q.quote.blocked)}`);
+    assert.match(q.quote.blocked[0], why, city);
+    const r = act('foundIx', { city });
+    assert.equal(r.outcome, 'rejected', city);
+    assert.ok(r.toasts.some((t) => why.test(t)), `${city}: ${JSON.stringify(r.toasts)}`);
+    assert.equal(r.charged, 0);
+  };
+  // mainland China comes first: a POP there would not help (Charlie's Shanghai and Beijing had POPs)
+  refused('pek', /Running an exchange in mainland China takes a different license/);
+  ev('S.pops.sha={day:0,bb:null,boost:0,down:0,routers:1,gen:false}');
+  refused('sha', /Running an exchange in mainland China takes a different license/);
+  refused('sao', new RegExp(`${name('sao')} already has an exchange, ${ev('CITY.sao.ix')}`));
+  refused('mex', new RegExp(`You have no POP in ${name('mex')}.*\\n.*found the exchange`, 's'));
+  act('buildPop', { city: 'mex' });
+  assert.deepEqual(act('foundIx', { city: 'mex' }, true).quote.blocked, []);
+  assert.equal(act('foundIx', { city: 'mex' }).outcome, 'applied');
+  refused('mex', new RegExp(`You already run ${ev('S.myIx.mex.name')} in ${name('mex')}`));
+  assert.equal(ev('Object.keys(S.myIx).join()'), 'mex');
+  // the panel's own button still founds one
+  ev("ACT.buildPop({city:'rek'});ACT.foundIx({city:'rek'})");
+  assert.ok(ev('!!S.myIx.rek'));
+  ev("ACT.foundIx({city:'nope'})");
   assert.deepEqual(s.errors(), []);
 });

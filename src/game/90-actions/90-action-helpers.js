@@ -15,6 +15,11 @@ function linkFromOk(a){const w=linkFromWhy(a);if(w){toast(w,'bad');sfx('err');}r
 // A retired small city (off: true) takes no new POP; the nearest open city in its country stands in for it.
 function popOffWhy(c){const C=CITY[c],near=CITIES.filter(o=>!o.off&&o.cc===C.cc).sort((x,y)=>kmBetween(c,x.id)-kmBetween(c,y.id))[0];
   return tr('action_helpers.city_is_off_the_map_small',{city:C.name,near:near?near.name:''});}
+// Why a city takes no exchange of your own. The reasons a POP would not fix come first.
+function foundIxWhy(c){const C=CITY[c];if(C.cn)return tr('link_panels.running_an_exchange_in_mainland');
+  if(S.myIx[c])return tr('action_helpers.you_already_run_ix_in_city',{ix:esc(S.myIx[c].name),city:C.name});
+  if(C.ix)return tr('action_helpers.city_already_has_an_exchange_ix',{city:C.name,ix:esc(C.ix)});
+  return S.pops[c]?'':tr('action_helpers.you_have_no_pop_in_city_build',{city:C.name});}
 /* Optics you unplug go on a spares shelf instead of in the bin (#45): the next channel of that type uses a spare
    for free (only the regen sites' transponders are new), or you sell it on eBuy for part of the price. */
 const SPARE_RESALE=0.4,spareN=o=>(S&&S.spares&&S.spares[o])|0,spareValue=o=>Math.round(optCost(o)*SPARE_RESALE);

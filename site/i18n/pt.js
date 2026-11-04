@@ -1,6 +1,7 @@
 // Portuguese (Brazil). Keys are the English text exactly as passed to tr()/trn()/N_() in src/ (or as it stands
 // in its data-i18n markup, aria-label or title); sorted; check with: npm run i18n:check, add with scripts/i18n-add.js
 (window.I18N=window.I18N||{}).pt={
+"action_helpers.city_already_has_an_exchange_ix":"<b>{city} já tem um exchange, {ix}.</b><br>Pegue uma porta nele em vez de fundar o seu.",
 "action_helpers.city_is_off_the_map_small":"<b>{city} saiu do mapa.</b><br>Cidades pequenas tão perto de uma maior não entram mais em jogos novos. Construa em {near}.",
 "action_helpers.light_fiber_pair_n_price":"Acender par {n} <small>{price}</small>",
 "action_helpers.light_fiber_pair_n_price_mo":"Acender par {n} <small>{price} + {mo}/mês</small>",
@@ -13,7 +14,9 @@
 "action_helpers.too_far_even_at_its_slowest":"Longe demais até na configuração mais lenta: um span óptico aqui tem {span} km e ela alcança {max} km. Adicione um site de regeneração (Line system).",
 "action_helpers.unlocks_at_customer_level_n":"Desbloqueia no nível de cliente {n}.",
 "action_helpers.upgrades_cannot_stretch_this_optic":"Este canal alcança {max} km neste cabo; a rota tem {span} km. Terminais submarinos e engenharia óptica não esticam esta óptica. Estas chegam lá: {optics}.",
+"action_helpers.you_already_run_ix_in_city":"<b>Você já opera o {ix} em {city}.</b>",
 "action_helpers.you_have_no_pop_in_city":"<b>Você não tem POP em {city}.</b><br>Um link começa em um dos seus POPs e abre um POP na outra ponta, se precisar.",
+"action_helpers.you_have_no_pop_in_city_build":"<b>Você não tem POP em {city}.</b><br>Construa um lá primeiro e depois funde o exchange.",
 "actions.your_router_can_t_take_a":"<b>Seu router não aguenta uma porta {port}.</b><br>Faça upgrade na aba Infra.",
 "architect.anchor":"🐒 Tchibum!",
 "architect.architect_runs":"Partidas de arquiteto",
