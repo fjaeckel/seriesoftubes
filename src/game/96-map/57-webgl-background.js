@@ -4,8 +4,8 @@
 const glPm=s=>{const [r,g,b,a]=glColor(s);return [r*a,g*a,b*a,a];}; // premultiplied, as the card blends
 const SEA_TOP=glPm('#62CBEA'),SEA_BOT=glPm('#43AED6'),CLOUD_COL=glPm('rgba(255,255,255,.55)');
 const LAND_SHADOW=glPm('rgba(20,90,130,.35)'),LAND_GRASS=glPm('#9BDA6C'),HILL_COL=glPm('#86CB5B'),HILL_SHINE=glPm('rgba(255,255,255,.18)');
-// The land's fill: a fan of triangles per coastline, counted in the stencil (each pixel flips once per triangle over
-// it, so what is inside ends odd), then one cover where the stencil is odd. uOff shifts it in CSS px (the shadow).
+// The land's fill: a fan of triangles per coastline, counted in the stencil (how many times the coasts wind round each
+// pixel: glLandFill()), then one cover where the count is not zero. uOff shifts it in CSS px (the shadow).
 const FAN_VS=GL_HEAD+GL_CLIP+`layout(location=0) in vec2 aV;uniform vec2 uView,uOff;uniform vec3 uCam;
 void main(){gl_Position=clip((aV-uCam.xy)*uCam.z+uView*.5+uOff,uView,0.);}`;
 const FAN_FS=GL_HEAD+`out vec4 o;void main(){o=vec4(0.);}`;
@@ -22,7 +22,9 @@ const CIRC_FS=GL_HEAD+`in vec2 vq;flat in float vr;out vec4 o;void main(){if(len
    lv (powers of 2): the fan for the fills, the coastlines as line segments (paintWorld()'s curves, four segments each)
    for the sand and the dark edge, and the hills. Zoomed out a coastline has far more points than pixels, and its
    vertices were most of the card's work: at level lv it is simplified so that no point moves more than COAST_TOL px at
-   the level's zoom (Douglas-Peucker). Without lv, the whole coastline. COAST and onLand() are not touched. */
+   the level's zoom (Douglas-Peucker). Without lv, the whole coastline. COAST and onLand() are not touched.
+   Each level stays on the card once built (GLX.land, freed with the card): from 0.4 MB zoomed out to 3 MB at the
+   closest zoom, about 15 MB if a game visits every zoom, so zooming back never builds one again mid-gesture. */
 const COAST_TOL=0.25,COASTP=[];
 // A coastline as paintWorld() draws it (smoothPath(): a quadratic curve from the middle of each side to the next,
 // through the corner between them), four segments per curve; the first point is repeated at the end.
