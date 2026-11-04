@@ -49,3 +49,15 @@ test('no circuit of any kind between North and South Korea, and still none betwe
   assert.ok(ev("latFloor('icn','fnj')") > ev("latMaxOf('icn','fnj')"));
   assert.deepEqual(errors, []);
 });
+
+test('nothing leaves South Korea over land: every way out is a subsea cable', () => {
+  const { ev, errors } = load();
+  ev(start);
+  for (const c of ['pek', 'sha', 'vvo', 'fnj']) assert.equal(ev(`isSub('icn','${c}')`), true, `Seoul–${c}: by sea only`);
+  assert.equal(ev("CITIES.filter(c=>c.cc!=='KR'&&!isSub('icn',c.id)).length"), 0, 'no city anywhere is overland from Seoul');
+  assert.equal(ev("dfAllowed('icn','pek')"), false, 'no terrestrial dark fiber to Beijing');
+  assert.equal(ev("isSub('pek','fnj')"), false, 'the rest of the peninsula still borders China');
+  ev("UI.via=null;UI.lmode='wave';openLinkModal('icn','tok')");
+  assert.match(ev("document.getElementById('modalCard').textContent"), /Subsea/);
+  assert.deepEqual(errors, []);
+});

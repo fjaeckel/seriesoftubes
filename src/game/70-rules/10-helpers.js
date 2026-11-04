@@ -30,7 +30,9 @@ const lands=C=>C.land2?[C.land,C.land2]:[C.land];
 // On one landmass, so fiber can go overland: the same landmass, or two cities of one country on the land a no-road
 // landmass is really part of (Pevek and Moscow, Juneau and Seattle, Nuuk and Sisimiut).
 const LAND_ON=Object.fromEntries(LANDS_LL.filter(l=>l.on).map(l=>[l.id,l.on])),landOf=x=>LAND_ON[x]||x;
-const overland=(A,B)=>{const P=lands(A),Q=lands(B);return P.some(x=>Q.includes(x))||A.cc===B.cc&&P.some(x=>Q.some(y=>landOf(x)===landOf(y)));};
+// South Korea's only land border is the DMZ: everything out of the country goes by sea.
+const SEALED=['KR'];
+const overland=(A,B)=>{if(A.cc!==B.cc&&(SEALED.includes(A.cc)||SEALED.includes(B.cc)))return false;const P=lands(A),Q=lands(B);return P.some(x=>Q.includes(x))||A.cc===B.cc&&P.some(x=>Q.some(y=>landOf(x)===landOf(y)));};
 const isSub=(a,b)=>!overland(CITY[a],CITY[b]);
 const popUp=c=>S.pops[c]&&!(S.pops[c].down>S.day);
 const regionsCount=()=>new Set(Object.keys(S.pops).map(c=>CITY[c].reg)).size;
