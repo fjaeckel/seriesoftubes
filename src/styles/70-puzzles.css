@@ -21,6 +21,18 @@ body.pz #hud .chip:not(.brand):not(.speed),body.pz #hud .speed button:not(#muteB
 @keyframes pzglow{50%{box-shadow:0 0 0 4px rgba(34,196,122,.25)}}
 #pzBox .btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 #pzBox .grab{display:none}
+/* The status bar: name, stars, money and the one thing to fix next stay put while the rest scrolls. */
+#pzBox .pztop{position:sticky;top:-10px;z-index:2;background:var(--paper);margin:-10px -14px 0;padding:10px 14px 4px}
+#pzBox .pzh .b.sm{min-width:34px;padding:3px 8px;font-size:16px}#pzBox .pzh .grow{flex:1 1 auto;min-width:0}#pzBox .pzs span small{white-space:nowrap}
+/* The three goals, one per star: ⭐ met, 👉 the one to work on (with what to do and Show me), a number while it waits. */
+.pzgoals{margin:2px 0 4px}.pzgoal{padding:3px 2px}
+.pzgl{display:flex;align-items:center;gap:8px;font-size:14px}.pzgl b{flex:1;min-width:0;font-weight:800}
+.pzgi{width:24px;flex:none;text-align:center;font-size:16px}.pzgi i{font-style:normal;display:inline-block;width:20px;height:20px;border:2px solid var(--line);border-radius:50%;font:900 11px/16px var(--body);color:var(--ink2);box-sizing:border-box}
+.pzgv{font-size:12.5px;font-weight:800;color:var(--ink2);white-space:nowrap}
+.pzgoal.done b{font-weight:700;color:var(--ink2)}.pzgoal:not(.done):not(.cur){opacity:.6}
+.pzgoal.cur{background:#FFF4D6;border:2px solid var(--warn);border-radius:12px;padding:6px 8px;margin:3px 0}
+.pzgh{font-size:13px;line-height:1.4;margin:3px 0 1px 32px}#pzBox .pzgh .pzshow{margin:2px 0 0 2px;padding:2px 10px;min-height:0;vertical-align:middle}
+.pzchips{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0}.pzchip{font-size:12px;font-weight:800;border:2px solid var(--ok);border-radius:999px;padding:1px 9px;background:#fff;white-space:nowrap}.pzchip b{font-weight:900}
 .pzprog{margin:6px 0 4px}.pzpack{font-size:17px;margin:14px 0 2px}.pzst{font-size:12px;letter-spacing:-1px;white-space:nowrap}
 .scn.lock{opacity:.5}
 .pzres{position:relative}.pzstars{display:flex;justify-content:center;gap:10px;margin:10px 0 2px}
@@ -40,8 +52,12 @@ body.pz #hud .chip:not(.brand):not(.speed),body.pz #hud .speed button:not(#muteB
   #pzBox .btns .b,#pzBox .pzh .b{min-height:40px;min-width:40px;padding:4px 12px}
   /* Long languages make the sheet scroll: Undo, Reset and Back stay pinned at its foot. */
   #pzBox>.btns{position:sticky;bottom:0;background:var(--paper);margin:6px -12px 0;padding:6px 12px 0;box-shadow:0 -6px 6px -6px rgba(30,38,64,.25)}
-  #pzBox.mini{max-height:none}#pzBox.mini>:not(.grab):not(.pzh):not(.pzs){display:none}
-  #pzBox.mini .pzs{margin-top:0}
+  #pzBox .pztop{top:0;margin:0 -12px;padding:0 12px 2px}
+  /* Peek: only the status bar, so the map keeps the screen while you build; tap or swipe it up for the rest. */
+  #pzBox.mini{max-height:none}#pzBox.mini>:not(.pztop){display:none}
+  #pzBox .pzh .eyebrow{display:none}#pzBox h3{font-size:17px}
+  #pzBox .pzgl{font-size:14.5px}#pzBox .pzgh{font-size:13.5px}#pzBox .pzgh .pzshow{min-height:32px}
+  body.pz:has(#pzBox.mini) #hint{bottom:calc(150px + env(safe-area-inset-bottom,0px)) !important}
   body.pz.sheet-open #pzBox{display:none}
   body.pz #panel{bottom:0 !important}
   body.pz #hint{bottom:calc(min(46%,330px) + 8px) !important}

@@ -14,3 +14,14 @@ function pzDrawCity(v,sc,now){const k=pzKind(v.C.id);
 // In a puzzle every line says what it is ("2×100G · 70%"), and a selected POP lights up every pair it has links on.
 function pzLinkLab(grp,up,load,cap){if(S.ar)return groupLabel(grp,up)+(cap?` · ${Math.round(load/cap*100)}%`:'');return groupLabel(grp,up)+(cap?` · ${Math.round(load/cap*100)}%`:'');}
 const pzLinkHot=grp=>!!(UI.sel&&UI.sel.type==='city'&&grp.some(x=>x.a===UI.sel.id||x.b===UI.sel.id));
+// The goal being worked on, marked where it is: a red ring round each city it is about, and on a cut that would hurt,
+// a pulsing ✂ on the link (pzGoals sets UI.pzMark; the monkey's own show has the map while it runs).
+function pzDrawMarks(ks,now){const m=UI.pzMark;if(!m||UI.pzMk)return;const a=animOn()?.6+.4*Math.sin(now/260):1,sc=CM.far?.6:1;
+  ctx.save();ctx.lineWidth=3;ctx.strokeStyle=`rgba(255,77,94,${a})`;ctx.setLineDash([7,6]);ctx.lineDashOffset=animOn()?-now/45:0;
+  for(const c of m.cities||[]){const C=CITY[c];if(!C)continue;for(const k of ks){const [x,y]=toS(C.x,C.y,k);ctx.beginPath();ctx.arc(x,y-6*sc,46*sc,0,7);ctx.stroke();}}
+  ctx.setLineDash([]);const l=m.link&&S.links.find(q=>q.id===m.link);
+  if(l){const pts=linkGeom(l).pts,q=pts[Math.floor(pts.length/2)];
+    for(const k of ks){const [x,y]=toS(q[0],q[1],k);if(x<-30||x>CW+30||y<-30||y>CH+30)continue;const r=15+2*a;
+      ctx.fillStyle='#FF4D5E';ctx.strokeStyle='#1E2640';ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.stroke();
+      ctx.fillStyle='#fff';ctx.font='900 17px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('✂',x,y+1);}}
+  ctx.restore();}

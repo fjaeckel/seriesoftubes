@@ -76,7 +76,7 @@ function drawFrame(now){
   // cities
   UI.feed=null;if(UI.sel&&UI.sel.type==='link'){const sl=S.links.find(x=>x.id===UI.sel.id);const rec=sl&&R.ef[edgeKey(sl)];if(rec){UI.feed=new Set(Object.keys(rec.eg).map(k=>R.egDesc[k].city));UI.dest=new Set(Object.keys(rec.dst));}}
   // Place labels: your POPs and the selected city first, then others; a label that would overlap moves above its city or hides.
-  const vis=[];for(const C of CITIES){if(C.off&&!cityOn(C.id))continue;if(arHide(C.id))continue;for(const k of ks){const [sx,sy]=toS(C.x,C.y,k);if(sx<-60||sx>CW+60||sy<-60||sy>CH+60)continue;vis.push({C,sx,sy});}}
+  const vis=[];for(const C of CITIES){if(C.off&&!cityOn(C.id))continue;if(pzHide(C.id))continue;for(const k of ks){const [sx,sy]=toS(C.x,C.y,k);if(sx<-60||sx>CW+60||sy<-60||sy>CH+60)continue;vis.push({C,sx,sy});}}
   const prio=v=>(UI.sel&&UI.sel.type==='city'&&UI.sel.id===v.C.id?0:S.pops[v.C.id]?1:2);vis.sort((a,b)=>prio(a)-prio(b)||b.C.P-a.C.P);
   const rects=[],labs=[],hit=(r)=>rects.some(q=>r.x<q.x+q.w&&q.x<r.x+r.w&&r.y<q.y+q.h&&q.y<r.y+r.h);
   const farL=lodFar();
@@ -85,6 +85,7 @@ function drawFrame(now){
   CM.inc=new Set(S.inc.filter(i=>i.type!=='leak').map(i=>i.ref));CM.far=farL;
   // Zoomed in, crowded small cities give way to bigger ones and become dots (75-city-size.js).
   const csc=cityScale(sc);if(farL)for(const v of vis)v.dem=false;else cityRoom(vis,csc);
+  if(pzOn()&&!farL)for(const v of vis)if(pzQuiet(v.C.id))v.dem=true;
   for(const v of vis){if(farL){const r=FAR_R[cTier(v.C.id)]+3;rects.push({x:v.sx-r,y:v.sy-r,w:2*r,h:2*r});continue;}
     if(v.dem){rects.push({x:v.sx-5*csc,y:v.sy-5*csc,w:10*csc,h:10*csc});continue;}const h=cityTop(v.C.id,S.pops[v.C.id])*csc;rects.push({x:v.sx-v.r,y:v.sy-h,w:2*v.r,h:h+10*csc});}
   for(const v of vis){const p=S.pops[v.C.id];ctx.font=`800 ${p?13:12}px "Baloo 2", sans-serif`;const tw=(LBLW[v.C.id+(p?1:0)]||(LBLW[v.C.id+(p?1:0)]=ctx.measureText(v.C.name).width+14));
@@ -95,7 +96,7 @@ function drawFrame(now){
     if(ly===null&&prio(v)===1)for(const y of [below,above]){const r={x:v.sx-tw/2,y:y-10,w:tw,h:21};if(!labs.some(q=>r.x<q.x+q.w&&q.x<r.x+r.w&&r.y<q.y+q.h&&q.y<r.y+r.h)){ly=y;rects.push(r);labs.push(r);break;}}
     if(ly===null&&(prio(v)===0||(prio(v)===1&&(v.C.id===S.home||UI.hover===v.C.id)))){ly=below;const r={x:v.sx-tw/2,y:below-10,w:tw,h:21};rects.push(r);labs.push(r);}
     v.ly=ly;}
-  if(pzOn()){for(const v of vis.slice().reverse())pzDrawCity(v,csc,now);}else for(const v of vis.slice().reverse())drawCity(v.C,v.sx,v.sy,csc,now,v.ly,v.dem);
+  if(pzOn()){for(const v of vis.slice().reverse())pzDrawCity(v,csc,now);pzDrawMarks(ks,now);}else for(const v of vis.slice().reverse())drawCity(v.C,v.sx,v.sy,csc,now,v.ly,v.dem);
   // cable ships at sea (88-cable-ships.js), over the city labels so a ship leaving port stays in sight
   drawShips(ks,now);
   // Architect runs: what the tubes between two cities are (one trench, or separate paths), above the cities.

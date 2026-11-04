@@ -13,6 +13,9 @@ Object.assign(ACT,{
  pzFinish:()=>{if(!pzOn())return;if(S.ar){arResults(false);return;}const e=pzEval();if(e.stars)pzResults(e,e.stars);},
  pzRetry:()=>{if(!pzOn())return;if(S.ar){arBegin(arRun());return;}pzBegin(S.pz.id==='weekly'?pzWkDef():pzDef(S.pz.id));},
  pzLeave:()=>{if(pzOn())pzLeave();},
+ // The sheet's next-fix line: bring the city, or the link a cut hurts most, into view (the zoom stays).
+ pzLook:({c,u})=>{if(!pzOn())return;let x,y;if(c&&isCity(c)){x=CITY[c].x;y=CITY[c].y;}else{const l=u&&S.links.find(q=>pzUnit(q)===u);if(!l)return;const A=CITY[l.a],B=CITY[l.b];x=A.x+wrapDx(A.x,B.x)/2;y=(A.y+B.y)/2;}
+   const sh=isPhone()&&CW<=CH?($('pzBox').offsetHeight||0):0;cam.x=x;cam.y=y+sh/2/cam.z;wrapCam();haptic(8);},
  pzPop:({city})=>{if(!pzOn()||S.pops[city]||!['goal','via','off'].includes(pzKind(city)))return;pzSnap();S.pops[city]=pzNewPop(city);sfx('build');haptic(10);floater(CITY[city].x,CITY[city].y-30,tr('common.new_pop'),'#FF4F9A');pzAfter();},
  pzRmPop:({city})=>{if(!pzOn()||!S.pops[city]||(S.ar&&city===S.ar.hq))return;pzSnap();if(S.ar)arSink([city],S.links.filter(l=>l.a===city||l.b===city));delete S.pops[city];S.links=S.links.filter(l=>l.a!==city&&l.b!==city);prunePairMet();sfx('click');UI.sel=null;pzAfter();},
  pzLinkTo:({a,b})=>{if(!pzOn()||!S.pops[a]||a===b)return;pzLinkModal(a,b);},

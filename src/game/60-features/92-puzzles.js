@@ -11,7 +11,18 @@ const pzOn=()=>!!(S&&S.mode==='puzzle'&&S.pz);
 const pzDef=id=>PZ.find(p=>p.id===id)||null;
 // goal: a city the traffic starts or ends in; via: a suggested stepping stone; avoid: off limits; off: any other city
 // (the whole world is open, it just is not part of the plan).
-const pzKind=c=>!pzOn()?null:S.ar?arKind(c):S.pz.cities.includes(c)?'goal':S.pz.via.includes(c)?'via':S.pz.avoid.includes(c)?'avoid':pzCityOk(c)?'off':null;
+const pzKind=c=>!pzOn()?null:S.ar?arKind(c):S.pz.cities.includes(c)?'goal':S.pz.via.includes(c)?'via':S.pz.avoid.includes(c)?'avoid':pzCityOk(c)&&(S.pops[c]||pzNear(c))?'off':null;
+// The puzzle's area: its cities' box plus a margin. Stepping stones outside it are off the map (a far capital is no use).
+function pzArea(){const P=S.pz,k=P.id+'|'+(P.key||'')+'|'+P.cities.join();if(UI.pzArea&&UI.pzArea.k===k)return UI.pzArea;
+  const cs=[...new Set([...P.cities,...P.via,...P.avoid])].map(c=>CITY[c]).filter(Boolean),x0=cs[0].x;let a=Infinity,b=-Infinity,c=Infinity,d=-Infinity;
+  for(const C of cs){const x=x0+wrapDx(x0,C.x);a=Math.min(a,x);b=Math.max(b,x);c=Math.min(c,C.y);d=Math.max(d,C.y);}
+  const m=20+0.15*Math.max(b-a,d-c);return UI.pzArea={k,x0,a:a-m,b:b+m,c:c-m,d:d+m};}
+const pzNear=c=>{const A=pzArea(),C=CITY[c],x=A.x0+wrapDx(A.x0,C.x);return x>=A.a&&x<=A.b&&C.y>=A.c&&C.y<=A.d;};
+// Not drawn at all: Architect's cities outside the run, a puzzle's cities outside its area.
+const pzHide=c=>pzOn()&&!pzKind(c);
+// A stepping stone with no part to play yet is a quiet dot with no name, until it is picked, used or zoomed in on
+// (twice the zoom the puzzle opened at: a phone and a desktop open at very different zooms).
+const pzQuiet=c=>pzKind(c)==='off'&&!S.pops[c]&&cam.z<2*(UI.pzZ0||1)&&!(UI.sel&&UI.sel.id===c)&&UI.hover!==c&&!(UI.snap&&UI.snap.id===c)&&!(UI.drag&&UI.drag.from===c)&&!(UI.pending&&(UI.pending.a===c||UI.pending.b===c));
 const pzName=d=>d.id==='weekly'?(d.wn?pzTxt(d.wn):tr('puzzles.weekly_puzzle_key',{key:d.key})):d.n;
 const pzStarStr=n=>'⭐'.repeat(n)+'⬜'.repeat(3-n);
 // Every city a puzzle's traffic touches, origins first.
@@ -139,8 +150,8 @@ function pzLeave(){pzMkStop();if(S&&S.ar)arStop(true);mkStop();const from=UI.pzF
 // The camera frames the puzzle's cities beside the puzzle card: left on wide screens, right on phones on their side, a bottom sheet on phones.
 function pzCam(){const cs=[...S.pz.cities,...S.pz.via].map(c=>CITY[c]),x0=cs[0].x;let a=Infinity,b=-Infinity,c=Infinity,d=-Infinity;
   for(const C of cs){const x=x0+wrapDx(x0,C.x);a=Math.min(a,x);b=Math.max(b,x);c=Math.min(c,C.y);d=Math.max(d,C.y);}
-  const ph=isPhone(),side=ph&&CW>CH,pl=side?-Math.min(360,CW*0.52):ph?0:S.ar&&CW>760&&CH>500?410:330,pb=ph&&!side?Math.min(230,CH*0.4):0,aw=Math.max(120,CW-Math.abs(pl)-90),ah=Math.max(120,CH-pb-150);
-  cam.z=clamp(Math.min(aw/Math.max(40,b-a),ah/Math.max(40,d-c)),0.5,4);cam.x=(a+b)/2-pl/2/cam.z;cam.y=(c+d)/2+(pb/2-30)/cam.z;wrapCam();}
+  const ph=isPhone(),side=ph&&CW>CH,pl=side?-Math.min(360,CW*0.52):ph?0:S.ar&&CW>760&&CH>500?410:330,pb=ph&&!side?(S.ar?Math.min(230,CH*0.4):Math.min(230,CH*0.3)):0,aw=Math.max(120,CW-Math.abs(pl)-90),ah=Math.max(120,CH-pb-150);
+  cam.z=clamp(Math.min(aw/Math.max(40,b-a),ah/Math.max(40,d-c)),0.5,4);UI.pzZ0=cam.z;cam.x=(a+b)/2-pl/2/cam.z;cam.y=(c+d)/2+(pb/2-30)/cam.z;wrapCam();}
 // ---------- building ----------
 function pzSnap(){pzMkStop();if(S.ar)arStop();const h=UI.pzHist||(UI.pzHist=[]);h.push(JSON.stringify({p:S.pops,l:S.links,m:S.pairMet||{},r:S.biz.map(b=>b.route),k:S.ar?S.ar.sunk:0}));if(h.length>60)h.shift();}
 function pzAfter(){if(UI.sel&&((UI.sel.type==='link'&&!S.links.some(l=>l.id===UI.sel.id))||(UI.sel.type==='city'&&!pzKind(UI.sel.id))))UI.sel=null;

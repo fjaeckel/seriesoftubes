@@ -112,7 +112,7 @@ test('stars come from traffic: capacity, latency caps, best effort and N-1 under
   e = evalP(ev);
   assert.ok(e.goal && !e.n1, 'still connected after a cut, but short');
   assert.equal(Math.round(e.worst.g), 50, 'cutting the trench with two waves leaves 100G for 150G: 50G drop');
-  assert.match(ev("document.getElementById('pzBox').textContent"), /A cut on Frankfurt ⇄ Paris drops 50\.\d Gbps/);
+  assert.match(ev("document.getElementById('pzBox').textContent"), /If Frankfurt ⇄ Paris is cut, 50\.\d Gbps is lost on the way to Paris/);
   build(ev, [['fra', 'par', 'land', 1, 2]]);
   assert.ok(evalP(ev).n1, 'two waves in each trench: either one carries Paris alone');
   // A latency cap: Grace Hopscotch is too slow for the traders; the eyeballs are best effort and may drop on a cut.

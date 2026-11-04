@@ -471,6 +471,7 @@ const API_VIEW={
  pzFinish:{args:[],doc:'Puzzles only: run the star count and show the results sheet.'},
  pzMonkey:{args:[],doc:'Puzzles only: send the chaos monkey round the build to prove the N-1 star.'},
  pzMkSkip:{args:[],doc:'Puzzles only: skip the monkey\'s tour to the verdict.'},
+ pzLook:{args:[['c','cityId',false],['u','string',false]],doc:'Puzzles only: move the map to the city (c) or the cut (u, a link unit) that the sheet\'s next line names.'},
  pzArAll:{args:[],doc:'Architect runs only: show every city on the map, not just the run\'s own.'},
  tailTog:{args:[],doc:'Show or hide the long tail of small networks.'},
  teEdit:{args:[],doc:'Open the RouteScript editor.'},
