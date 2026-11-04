@@ -18,7 +18,7 @@
    - book.earned: revenue from orbit, for the customers that come with routing. */
 function pieBlank(day){const crusts={};for(const id in CRUSTS)crusts[id]={cohorts:[],queued:0};
   return {born:day,co:null,fac:false,stock:0,rd:{reuse:false,heavy:false,heavyTests:0},pads:[],crusts,dishes:[],lic:{},q:[],
-    founder:{posts:[],promises:0,broken:0,due:[]},book:{spent:0,earned:0,wouldHave:0},spat:{},safe:false};}
+    founder:{posts:[],promises:0,broken:0,due:[]},book:{spent:0,earned:0,wouldHave:0},spat:{},safe:false,gov:pieGovBlank()};}
 function pieInit(){if(!S.pie)S.pie=pieBlank(S.day);return S.pie;}
 // The unlock: only on the Tier 1 transition of a save of this version, and only in a normal game.
 function pieUnlock(){if(S.pie||!(S.pieV>=1)||S.mode!=='normal'||S.scn)return;pieInit();track('pie_unlock');
@@ -107,7 +107,7 @@ function pieDay(d){const P=S.pie;if(!P)return;
 function pieTier(){const P=S.pie,t1=pieT1();if(P.t1&&!t1&&P.q.length&&!S.stats.pieTour){S.stats.pieTour=1;pieFounder(N_('pie.fp_tour'));}P.t1=t1;}
 /* The save gate for S.pie: everything clamped, unknown crusts, rockets and cities dropped, pads and dishes only where a
    POP is. A save without pieV (older versions) never unlocks it; puzzles, scenarios and the Architect never have it. */
-function pieSanitize(s){s.pieV=int(s.pieV,0,1,0);const p=s.pie,ob=x=>x&&typeof x==='object'&&!Array.isArray(x);
+function pieSanitize(s){s.pieV=int(s.pieV,0,1,0);pieEximFix(s);const p=s.pie,ob=x=>x&&typeof x==='object'&&!Array.isArray(x);
   if(!ob(p)||(s.pieV<1&&s.mode!=='sandbox')||s.scn||s.mode==='puzzle'){s.pie=null;return;}
   const o=pieBlank(int(p.born,0,s.day,s.day)),day=s.day,n=(v,hi)=>int(v,0,hi,0),m=(v,hi)=>clamp(num(v,0),0,hi);
   if(ob(p.co)){const nm=p.co.name;o.co={name:typeof nm==='string'&&nm.trim()?(PIE_NAMES.includes(nm)?nm:nm.replace(/\s+/g,' ').trim().slice(0,40)):PIE_NAMES[0]};}
@@ -132,5 +132,6 @@ function pieSanitize(s){s.pieV=int(s.pieV,0,1,0);const p=s.pie,ob=x=>x&&typeof x
     o.founder.due=(Array.isArray(F.due)?F.due:[]).map(v=>int(v,0,day+720,day)).sort((a,b)=>a-b).slice(-8);}
   if(ob(p.book))for(const k of ['spent','earned','wouldHave'])o.book[k]=m(p.book[k],1e15);
   if(ob(p.spat))for(const k of Object.keys(p.spat)){const D=PIE_SPATS[k];if(!D||!ob(p.spat[k]))continue;const v=D.fix?D.fix(p.spat[k],s):null;if(v)o.spat[k]=v;}
+  o.gov=pieGovFix(p.gov,s);
   s.pie=o;}
 const sid0=v=>typeof v==='string'&&v&&v.length<=40?v:uid();

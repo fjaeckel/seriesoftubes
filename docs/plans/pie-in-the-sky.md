@@ -87,6 +87,19 @@ Reuse the existing sanctions / sovereign-drill / China licence machinery where i
 - Not over my airspace: two countries each demand their traffic avoid the other's dishes.
 Each spat is a notification with 2 choices; outcomes deterministic per seed.
 
+## Government money (`60-features/99-pie-subsidies.js`, Pie Control's Gov tab)
+
+- Rural Digital Pie Fund: reverse auctions for towns only orbit reaches (a cut-off POP on backhaul, or a small town of
+  your terminal customers). You ask 90%, 70% or 50% of the reserve; a rival asks 40-100%; the lower ask wins and is paid
+  monthly for 5 years. From a 90-day deadline the town's service, averaged per month, must stay at 70%, or the award is
+  revoked and half of what it paid is clawed back. Counts in `book.earned`.
+- Ex-Im Pie Bank: a BANKS loan (never offered by the usual banks) of half the value of the pies flying and booked, at most
+  20% of a full Shortcrust (O7 counts it), 1.5-2.5% over 60 months. Covenants: launch n pies in a year, keep a dish in the
+  lending country. A breach: the bank's penalty, +3 points, the launch deadline moved, and with chaos a spat there
+  (`home` or `lic`). Off the books: financing, not orbit income.
+- Pitcairn: served from orbit (its POP on backhaul, or home terminals there) at 90% of its demand, latency forgiven, the UK
+  pays `GRANT_SKY_MO` instead of `GRANT_MO`. Counts in `book.earned`.
+
 ## Visualisation: a separate animated 3D globe
 
 Satellites are NEVER drawn on the existing map (no cost there). The map only gets static pie dish icons

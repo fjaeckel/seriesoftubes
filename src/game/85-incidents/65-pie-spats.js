@@ -102,11 +102,11 @@ function pieSpatFix(id,o,s){const D=PIE_SPAT_DEF[id],A=pieCcAll(),day=s.day,cc=v
 // The day: an unanswered spat decides itself on its deadline.
 function pieSpatTick(id,o,d){const D=PIE_SPAT_DEF[id];if(o.st==='ask'&&d>=o.ask){pieSpatChoose(id,D.def,true);return;}if(D.day)D.day(o,d);}
 for(const id of PIE_SPAT_KEYS)PIE_SPATS[id]={fix:(o,s)=>pieSpatFix(id,o,s),day:(o,d)=>pieSpatTick(id,o,d),end:o=>{const D=PIE_SPAT_DEF[id];if(D.end)D.end(o);pieRelease(o);}};
-// Starts one (id forces which, for tests and the astronomers); true when it did.
-function pieSpatStart(id){const P=S.pie;if(!P||!P.co)return false;
+// Starts one (id forces which, for tests, the astronomers and the Ex-Im Pie Bank; cc which country); true when it did.
+function pieSpatStart(id,cc){const P=S.pie;if(!P||!P.co)return false;
   if(!id){const ok=PIE_SPAT_KEYS.filter(k=>k!=='astro'&&!P.spat[k]&&PIE_SPAT_DEF[k].can().length);if(!ok.length)return false;id=pick(ok);}
   const D=PIE_SPAT_DEF[id];if(!D||P.spat[id])return false;const cs=D.can();if(!cs.length)return false;
-  const o={st:'ask',ask:S.day+PIE_SPAT_ASK,c:-1};D.start(o,pick(cs));if(!o.until)o.until=o.ask+1;P.spat[id]=o;
+  if(cc&&!cs.includes(cc))return false;const o={st:'ask',ask:S.day+PIE_SPAT_ASK,c:-1};D.start(o,cc||pick(cs));if(!o.until)o.until=o.ask+1;P.spat[id]=o;
   S.stats.incidents++;S.stats.pieSpat=(S.stats.pieSpat||0)+1;pieFounder(N_('pie.fp_spat'));
   const t=D.txt(o);toast(`<b>🌍 ${t.t}</b><br>${t.b}`,'bad',[{l:tr('pie_spat.decide'),act:'pieSpatOpen',args:{id}}]);sfx('alert');return true;}
 // The answer: what it costs (sandbox keeps count), what happens, and the press office's line.

@@ -28,6 +28,12 @@ Object.assign(ACT,{
  pieSafe:()=>{const P=pieGet();if(!P||!P.co)return;P.safe=!P.safe;sfx('click');pieRe();},
  pieName:()=>{const P=pieGet();if(!P||!P.co)return;const i=PIE_NAMES.indexOf(P.co.name);P.co.name=PIE_NAMES[(i+1)%PIE_NAMES.length];pieFounder(N_('pie.fp_rename'));pieRe();},
  pieRename:()=>{const P=pieGet(),el=$('pieNm');if(!P||!P.co||!el)return;const v=el.value.replace(/\s+/g,' ').trim().slice(0,40);if(!v)return;P.co.name=v;pieFounder(N_('pie.fp_rename'));pieRe();},
+ // Government money (60-features/99-pie-subsidies.js): Pie Control's Gov tab, a bid, the Ex-Im loan.
+ pieGovOpen:()=>{if(!S||pzOn()||!pieOn())return;UI.pieTab='gov';UI.confirm=null;pieModal();},
+ pieBid:({id,f})=>{const P=pieGet();f=+f;const a=P&&P.gov.auc.find(x=>x.id===id);if(!a||!PIE_RDF_BIDS.includes(f))return;if(!pieCanBuild())return pieNo(tr('pie.why_not_t1'));
+   a.bid=f;toast(tr('pie_gov.t_bid',{city:esc(CITY[a.city].name),mo:fmt$(Math.round(a.ask*f)),d:dateStr(a.close)}),'good');sfx('click');pieRe();},
+ pieExim:()=>{const P=pieGet();if(!P||!P.co)return;if(!pieCanBuild())return pieNo(tr('pie.why_not_t1'));if(!pieEximTake())return pieRe();
+   const l=pieEximLoan();toast(`<b>${tr('interface.amt_from_bank_has_landed',{amt:fmt$(l.amount),bank:esc(BANKS.exim.name)})}</b><br>${loanSummary(l)}`,'good');sfx('coin');pieRe();},
  pieTab:({t})=>{if(!PIE_TABS.includes(t))return;UI.pieTab=t;pieModal();},
  pieHi:({id})=>{if(typeof id!=='string')return;sfx('click');pieHiSet(id);},
  pieCity:({v})=>{if(!S||!S.pops[v])return;UI.pieCity=v;pieModal();},

@@ -273,7 +273,7 @@ test('Pie Control renders every tab on a phone', () => {
   ev('window.innerWidth=360');
   won(ev);
   company(ev);
-  for (const t of ['co', 'fly', 'dish', 'book']) {
+  for (const t of ['co', 'fly', 'dish', 'gov', 'book']) {
     ev(`ACT.pieTab({t:'${t}'})`);
     assert.equal(ev("$('modal').hidden"), false);
     assert.ok(dom.window.document.querySelectorAll('#modalCard [data-act]').length > 2, t);

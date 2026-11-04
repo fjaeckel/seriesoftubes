@@ -174,7 +174,9 @@ test('orbit earnings go into the book, day by day', () => {
   const { ev, errors } = load();
   world(ev);
   term(ev, 'pz', 'pcn');
-  const mo = ev('R.pie.rev');
+  // Homes on Pitcairn online through the pies also bring the UK's satellite grant (tests/pie-gov.test.js).
+  assert.equal(ev('R.pie.gov.sky'), ev('GRANT_SKY_MO'));
+  const mo = ev('R.pie.rev+R.pie.gov.rdf+R.pie.gov.sky');
   ev('for(let i=0;i<30;i++)dayTick()');
   assert.ok(Math.abs(ev('S.pie.book.earned') - mo) / mo < 0.05, `${ev('S.pie.book.earned')} ≈ ${mo}`);
   assert.deepEqual(errors, []);

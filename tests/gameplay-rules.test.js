@@ -627,11 +627,12 @@ test('O5: launches fail only with chaos on, never in the first 90 days after the
 
 test('O7: a fresh Tier 1 cannot afford a full Shortcrust in its first year', () => {
   // Reference: the big-network benchmark save, a won network far larger than a fresh Tier 1. A year of its profit at
-  // today's revenue (costs ignored, so generously) plus the largest loan any bank offers (12x monthly revenue).
+  // today's revenue (costs ignored, so generously) plus the largest loan any bank offers (12x monthly revenue), and the
+  // most the Ex-Im Pie Bank lends a rocket company on top.
   const g = load();
   const save = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
   g.ev(`S=migrate(JSON.parse(${JSON.stringify(save)}));compute()`);
-  const rev = g.ev('R.revMo'), loan = g.ev('Math.max(...Object.values(BANKS).map(b=>b.amt[1]))') * rev, cash = Math.max(0, g.ev('S.cash'));
+  const rev = g.ev('R.revMo'), loan = g.ev('Math.max(...Object.values(BANKS).map(b=>b.amt[1]))') * rev + g.ev('pieEximCap()'), cash = Math.max(0, g.ev('S.cash'));
   const year = 12 * rev + loan + Math.min(cash, 12 * rev);
   const full = g.ev("pieFullCost('short')");
   assert.ok(full > 5e9, `O7: a full Shortcrust costs ${Math.round(full / 1e6)}M`);
