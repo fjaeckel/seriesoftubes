@@ -2,6 +2,8 @@
    device in a hall of fame, so there is always something grand to work towards. */
 const RARITY={c:{n:tr('common.common'),col:'#16A866'},r:{n:tr('common.rare'),col:'#3A7BEA'},e:{n:tr('common.epic'),col:'#9D4EDD'},l:{n:tr('common.legendary'),col:'#FF8A3D'}};
 const st=()=>S.stats||{};
+// Round Cape Horn: a wave on the old ring, or your own cable whose surveyed path passes south of Tierra del Fuego (#272).
+const hornLink=l=>(l.cable==='sam1'&&[l.a,l.b].includes('bue')&&[l.a,l.b].includes('scl'))||(l.kind==='df'&&l.own&&l.sub&&Array.isArray(l.seaPath)&&l.seaPath.some(p=>p[1]<-55&&p[0]>-75&&p[0]<-60));
 const BADGES=[
  {id:'hello',i:'👋',t:tr('common.hello_neighbour'),d:tr('badges.bring_up_your_first_peering_session'),r:'c',ok:()=>R.sessions>=1},
  // Keeps its old id so badges already earned (in saves and the hall of fame) carry over.
@@ -22,7 +24,7 @@ const BADGES=[
  {id:'shed',i:'🔌',t:tr('common.stage_six'),d:tr('badges.ride_out_load_shedding_on_your'),r:'r',ok:()=>(st().shed||0)>=1},
  {id:'metro3',i:'🏢',t:tr('badges.two_buildings_three_cities'),d:tr('badges.have_a_second_site_in_3'),r:'r',ok:()=>Object.values(S.pops).filter(p=>p.site2).length>=3},
  {id:'penguin',i:'🐧',t:tr('common.lonely_penguin'),d:tr('badges.light_a_wave_on_the_humboldt'),r:'e',ok:()=>S.links.some(l=>l.cable==='humb')},
- {id:'horn',i:'⛵',t:tr('badges.the_long_way_round'),d:tr('badges.run_a_link_round_cape_horn'),r:'e',ok:()=>S.links.some(l=>l.cable==='sam1'&&[l.a,l.b].includes('bue')&&[l.a,l.b].includes('scl'))},
+ {id:'horn',i:'⛵',t:tr('badges.the_long_way_round'),d:tr('badges.run_a_link_round_cape_horn'),r:'e',ok:()=>S.links.some(hornLink)},
  {id:'six',i:'🌍',t:tr('common.six_continents'),d:tr('badges.pops_in_every_region_on_the'),r:'e',ok:()=>regionsCount()>=6},
  {id:'giants',i:'🏭',t:tr('badges.friend_of_giants'),d:tr('badges.hold_deals_at_3_different_ai'),r:'e',ok:()=>new Set(S.biz.filter(b=>BIZ_T[b.type]&&BIZ_T[b.type].mega).flatMap(b=>bCities(b))).size>=3},
  {id:'landlord',i:'🧵',t:tr('common.trench_landlord'),d:tr('badges.lease_hundreds_of_fiber_pairs_to'),r:'e',ok:()=>S.biz.some(b=>b.type==='pairs')},
