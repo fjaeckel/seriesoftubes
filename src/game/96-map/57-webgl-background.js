@@ -18,15 +18,33 @@ void main(){float d=(length(vq/vr)-1.)*min(vr.x,vr.y),a=clamp(.5-d*uDpr,0.,1.);i
 const CIRC_VS=GL_HEAD+GL_CLIP+`layout(location=0) in vec4 aC;uniform vec2 uView;uniform vec3 uCam;out vec2 vq;flat out float vr;
 void main(){vec2 c=(aC.xy-uCam.xy)*uCam.z+uView*.5;float r=aC.z*uCam.z,m=r+1.;vq=vec2((gl_VertexID&1)==0?-m:m,(gl_VertexID&2)==0?-m:m);vr=r;gl_Position=clip(c+vq,uView,0.);}`;
 const CIRC_FS=GL_HEAD+`in vec2 vq;flat in float vr;out vec4 o;void main(){if(length(vq)>vr)discard;o=vec4(1.);}`;
-/* The land, built once per level of detail (the far view leaves out the islets as LANDP_FAR does): the fan for the
-   fills, the coastlines as line segments (paintWorld()'s curves, four segments each) for the sand and the dark edge,
-   and the hills. */
-function glLandGeo(gl,far){const key=far?'far':'all';let G=GLX.land[key];if(G)return G;
-  const keep=far?new Set(LANDP_FAR):null,fan=[],sand=[],edge=[],SAND=glColor('#F8E6A8'),EDGE=glColor('#1E2640');
-  COAST.forEach((ring,ri)=>{if(keep&&!keep.has(LANDP_ALL[ri]))return;const n=ring.length;if(n<3)return;
-    // As smoothPath(): a quadratic curve from the middle of each side to the next, through the corner between them.
-    const mid=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2],P=[];let m=mid(ring[n-1],ring[0]);P.push(m);
-    for(let i=0;i<n;i++){const c=ring[i],e=mid(c,ring[(i+1)%n]);for(let j=1;j<=4;j++){const t=j/4,u=1-t;P.push([u*u*m[0]+2*u*t*c[0]+t*t*e[0],u*u*m[1]+2*u*t*c[1]+t*t*e[1]]);}m=e;}
+/* The land, built once per level of detail (the far view leaves out the islets as LANDP_FAR does) and per zoom level
+   lv (powers of 2): the fan for the fills, the coastlines as line segments (paintWorld()'s curves, four segments each)
+   for the sand and the dark edge, and the hills. Zoomed out a coastline has far more points than pixels, and its
+   vertices were most of the card's work: at level lv it is simplified so that no point moves more than COAST_TOL px at
+   the level's zoom (Douglas-Peucker). Without lv, the whole coastline. COAST and onLand() are not touched. */
+const COAST_TOL=0.25,COASTP=[];
+// A coastline as paintWorld() draws it (smoothPath(): a quadratic curve from the middle of each side to the next,
+// through the corner between them), four segments per curve; the first point is repeated at the end.
+function coastPts(ri){let P=COASTP[ri];if(P)return P;const ring=COAST[ri],n=ring.length;P=[];
+  const mid=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2];let m=mid(ring[n-1],ring[0]);P.push(m);
+  for(let i=0;i<n;i++){const c=ring[i],e=mid(c,ring[(i+1)%n]);for(let j=1;j<=4;j++){const t=j/4,u=1-t;P.push([u*u*m[0]+2*u*t*c[0]+t*t*e[0],u*u*m[1]+2*u*t*c[1]+t*t*e[1]]);}m=e;}
+  return COASTP[ri]=P;}
+// The points of P to keep so that none of the others is further than tol from the line kept (Douglas-Peucker).
+function coastSimplify(P,tol){const n=P.length;if(n<4||!(tol>0))return P;const keep=new Uint8Array(n),st=[0,n-1],t2=tol*tol;keep[0]=keep[n-1]=1;
+  while(st.length){const b=st.pop(),a=st.pop(),ax=P[a][0],ay=P[a][1],dx=P[b][0]-ax,dy=P[b][1]-ay,L=dx*dx+dy*dy||1e-12;let m=-1,md=t2;
+    for(let i=a+1;i<b;i++){let t=((P[i][0]-ax)*dx+(P[i][1]-ay)*dy)/L;t=t<0?0:t>1?1:t;const ex=ax+t*dx-P[i][0],ey=ay+t*dy-P[i][1],d=ex*ex+ey*ey;if(d>md){md=d;m=i;}}
+    if(m>=0){keep[m]=1;st.push(a,m,m,b);}}
+  const o=[];for(let i=0;i<n;i++)if(keep[i])o.push(P[i]);return o;}
+// The zoom level the land is drawn at: 2^lv ≤ zoom < 2^(lv+1). Zooming in takes the finer level at once; zooming out
+// keeps the finer one (only more points, never less detail) until the zoom is 10 % under it, so a zoom that hovers
+// around a power of 2 does not switch back and forth.
+function coastLevel(z){const want=Math.floor(Math.log2(Math.max(z,1/64))),cur=GLX.coastLv;
+  if(cur===undefined||want>cur||z<Math.pow(2,cur)/1.1)GLX.coastLv=want;return GLX.coastLv;}
+function glLandGeo(gl,far,lv){const key=(far?'far':'all')+(lv===undefined?'':'@'+lv);let G=GLX.land[key];if(G)return G;
+  const keep=far?new Set(LANDP_FAR):null,tol=lv===undefined?0:COAST_TOL/Math.pow(2,lv),fan=[],sand=[],edge=[],SAND=glColor('#F8E6A8'),EDGE=glColor('#1E2640');
+  COAST.forEach((ring,ri)=>{if(keep&&!keep.has(LANDP_ALL[ri]))return;if(ring.length<3)return;
+    const P=coastSimplify(coastPts(ri),tol);if(P.length<4)return;
     for(let i=1;i+1<P.length;i++)fan.push(P[0][0],P[0][1],P[i][0],P[i][1],P[i+1][0],P[i+1][1]);
     // Round ends make the joins round, as lineJoin='round' does; both lines are opaque, so the overlaps do not show.
     for(let i=0;i+1<P.length;i++){glSeg(sand,P[i],P[i+1],0,10,0,LINE_ROUND,SAND);glSeg(edge,P[i],P[i+1],0,2.5,0,LINE_ROUND,EDGE);}});
@@ -45,7 +63,7 @@ function glLandFill(gl,G,ks,ox,oy,col){const P=GLX.fan;gl.enable(gl.STENCIL_TEST
 function glEllipses(gl,vao,n,ks,col){const P=GLX.ell;gl.useProgram(P.p);gl.bindVertexArray(vao);gl.uniform2f(P.u.uView,CW,CH);gl.uniform1f(P.u.uDpr,DPR);gl.uniform4fv(P.u.uCol,col);
   for(const k of ks){gl.uniform3f(P.u.uCam,cam.x-k*W,cam.y,cam.z);gl.drawArraysInstanced(gl.TRIANGLE_STRIP,0,4,n);}}
 // In paintWorld()'s order: the shadow (5, 7 px down and right), the sand, the grass, the hills, the coastline.
-function glLand(gl,ks){const G=glLandGeo(gl,lodFar());
+function glLand(gl,ks){const G=glLandGeo(gl,lodFar(),coastLevel(cam.z));
   glLandFill(gl,G,ks,5,7,LAND_SHADOW);
   glLines(gl,G.sand,G.nSeg,ks);
   glLandFill(gl,G,ks,0,0,LAND_GRASS);

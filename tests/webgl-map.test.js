@@ -108,14 +108,15 @@ test('the land is geometry on the card: one fan per coastline, its outlines, its
     const pts=COAST.reduce((a,p)=>a+p.length,0);
     GLX.gl.calls.length=0;cam.z=1.4;draw(1000);
     const fans=GLX.gl.calls.filter(c=>c[0]==='drawArrays'&&c[1]==='TRIANGLES').map(c=>c[3]);
-    return JSON.stringify({nFan:all.nFan,nSeg:all.nSeg,farSeg:far.nSeg,pts,hills:all.nHill,again:glLandGeo(GLX.gl,false)===all,fans,
+    const lv=glLandGeo(GLX.gl,false,coastLevel(1.4));
+    return JSON.stringify({nFan:all.nFan,nSeg:all.nSeg,farSeg:far.nSeg,pts,hills:all.nHill,again:glLandGeo(GLX.gl,false)===all,fans,lvFan:lv.nFan,
       wl:GLX.gl.calls.some(c=>c[0]==='texImage2D'&&c[6]===WL.cv)});})()`));
   assert.equal(r.nFan % 3, 0, 'whole triangles');
   assert.equal(r.nSeg, r.pts * 4, 'each curve of the coast in four segments');
   assert.ok(r.farSeg < r.nSeg, 'zoomed out, the islets are left out as in 2D');
   assert.equal(r.hills, ev('HILLS.length'));
   assert.ok(r.again, 'built once');
-  assert.ok(r.fans.length >= 2 && r.fans.every(n => n === r.nFan), 'shadow and grass are filled each frame from the same fan');
+  assert.ok(r.fans.length >= 2 && r.fans.every(n => n === r.lvFan), 'shadow and grass are filled each frame from the same fan (the zoom level’s)');
   assert.equal(r.wl, false, 'no picture of the land is uploaded');
   assert.deepEqual(errors, []);
 });
