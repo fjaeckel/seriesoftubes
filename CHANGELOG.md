@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- An exchange port, a transit port or a PNI can now be stepped down one size from its panel, so shrinking a port no longer means leaving and rejoining (a PNI cannot while an augment is on order).
 - Every capital in Africa is on the map, which puts every capital of the world in the game: 33 new cities from Porto-Novo, Bamako and Niamey to Khartoum, Juba, Mogadishu, Brazzaville, Tripoli, Rabat and Pretoria. Each country brings its real telcos, Nigeria gets its wholesale backbone up to Abuja, and the island capitals of the Comoros, São Tomé and Equatorial Guinea sit on their real cables.
 - Every capital in South, East and Southeast Asia and the Pacific is on the map: Thimphu, Kathmandu, Bandar Seri Begawan, Phnom Penh, Vientiane, Ulaanbaatar, Naypyidaw, Pyongyang, Dili, Hanoi and Wellington, with the island capitals Tarawa, Palikir, Yaren, Funafuti and Port Vila. Each country brings its real telcos, North Korea reaches the world only through China and Russia, and the islands hang on their real cables.
 - Every capital in the Middle East, the Caucasus and Central Asia is on the map, from Yerevan and Baku to Kabul, Tehran, Baghdad, Jerusalem, Amman, Kuwait City, Beirut, Damascus, Sanaa and Manama, with Ankara and Islamabad. Each country brings its real telcos, and Bahrain is an island on the Gulf's cables.

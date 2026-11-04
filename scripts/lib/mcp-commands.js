@@ -111,6 +111,9 @@ function apiDomValues(dom){
 }
 
 const API_CMD={
+ downIx:{args:[['city','ixId']],watch:['ixp'],doc:'Step an exchange port down one size.'},
+ downT:{args:[['id','entityId']],watch:['transit.#id'],doc:'Step a transit port down one size (a LAG steps down together).'},
+ downP:{args:[['id','entityId']],watch:['pni.#id'],doc:'Step a PNI down one size. Not while an augment is on order.'},
 /* ---------- footprint: buildings, routers, POPs ---------- */
  buildPop:{args:[['city','cityId']],
   quote:a=>({setup:popCost(a.city),blocked:cnCity(a.city)&&!cnOk()?[tr('pops_transit_ix.you_need_a_license_first_foreign')]:[]}),
