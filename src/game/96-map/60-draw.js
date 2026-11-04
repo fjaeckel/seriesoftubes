@@ -96,7 +96,7 @@ function drawFrame(now){
   // cities
   UI.feed=null;if(UI.sel&&UI.sel.type==='link'){const sl=S.links.find(x=>x.id===UI.sel.id);const rec=sl&&R.ef[edgeKey(sl)];if(rec){UI.feed=new Set(Object.keys(rec.eg).map(k=>R.egDesc[k].city));UI.dest=new Set(Object.keys(rec.dst));}}
   // Place labels: your POPs and the selected city first, then others; a label that would overlap moves above its city or hides.
-  const vis=[];for(const C of CITIES){if(C.off&&!cityOn(C.id))continue;if(pzHide(C.id))continue;for(const k of ks){const [sx,sy]=toS(C.x,C.y,k);if(sx<-60||sx>CW+60||sy<-60||sy>CH+60)continue;vis.push({C,sx,sy});}}
+  const vis=[];for(const C of CITIES){const sy=(C.y-cam.y)*cam.z+CH/2;if(sy<-60||sy>CH+60)continue;if(C.off&&!cityOn(C.id))continue;if(pzHide(C.id))continue;for(const k of ks){const sx=(C.x+k*W-cam.x)*cam.z+CW/2;if(sx<-60||sx>CW+60)continue;vis.push({C,sx,sy});}}
   const prio=v=>(UI.sel&&UI.sel.type==='city'&&UI.sel.id===v.C.id?0:S.pops[v.C.id]?1:2);vis.sort((a,b)=>prio(a)-prio(b)||b.C.P-a.C.P);
   const rects=new RGrid(),labs=new RGrid(),hit=(r)=>rects.hits(r);
   const farL=lodFar();
@@ -116,7 +116,7 @@ function drawFrame(now){
     if(ly===null&&prio(v)===1)for(const y of [below,above]){const r={x:v.sx-tw/2,y:y-10,w:tw,h:21};if(!labs.hits(r)){ly=y;rects.push(r);labs.push(r);break;}}
     if(ly===null&&(prio(v)===0||(prio(v)===1&&(v.C.id===S.home||UI.hover===v.C.id)))){ly=below;const r={x:v.sx-tw/2,y:below-10,w:tw,h:21};rects.push(r);labs.push(r);}
     v.ly=ly;}
-  if(pzOn()){for(const v of vis.slice().reverse())pzDrawCity(v,csc,now);pzDrawMarks(ks,now);}else for(const v of vis.slice().reverse())drawCity(v.C,v.sx,v.sy,csc,now,v.ly,v.dem);
+  if(pzOn()){for(let i=vis.length-1;i>=0;i--)pzDrawCity(vis[i],csc,now);pzDrawMarks(ks,now);}else for(let i=vis.length-1;i>=0;i--){const v=vis[i];drawCity(v.C,v.sx,v.sy,csc,now,v.ly,v.dem);}
   // cable ships at sea (88-cable-ships.js), over the city labels so a ship leaving port stays in sight
   drawShips(ks,now);
   // Architect runs: what the tubes between two cities are (one trench, or separate paths), above the cities.

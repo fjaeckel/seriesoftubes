@@ -35,7 +35,7 @@ test('on the card, pictures are painted on one canvas and each goes into the atl
   const r = JSON.parse(ev(`(()=>{const subs=GLX.gl.calls.filter(c=>c[0]==='texSubImage2D'),es=[...SPRS.values()];
     return JSON.stringify({canvases:__canvases,subs:subs.length,sprites:es.length,mine:es.filter(e=>e.cv).length,
       allUp:es.every(e=>e.up),rect:subs.every(c=>c.length===10&&c[9]===GLS_PAD.cv&&c[5]>0&&c[6]>0),
-      fit:subs.every(c=>c[5]<=GLS_PAD.cv.width&&c[6]<=GLS_PAD.cv.height),keys:es.length?[...SPRS.keys()].every(k=>k[0]==='g'):false});})()`));
+      fit:subs.every(c=>c[5]<=GLS_PAD.cv.width&&c[6]<=GLS_PAD.cv.height),keys:es.length>0&&SPRC.size===0});})()`));
   assert.ok(r.sprites > 50, `a zoom paints many pictures (${r.sprites})`);
   assert.ok(r.canvases <= 1, `one canvas for all of them, not one each (${r.canvases} made)`);
   assert.equal(r.mine, 0, 'no picture keeps a canvas of its own');
@@ -53,7 +53,7 @@ test('a full atlas starts again and the picture that did not fit goes into the n
   const r = JSON.parse(ev(`(()=>{GLS.frame=true;GLS.n=0;ctx=GLX.fx;GLS.shy=GLS.size-4;GLS.shx=GLS.size-2;GLS.shh=4;
     const before=SPRS.size;let draws=0;const gd=glsDraw;glsDraw=function(){draws++;};
     const e=spriteEntry('big',40,40,20,20,g=>{g.fillRect(0,0,40,40);});blit(e,10,10,40,40);
-    glsDraw=gd;const r={up:e.up,u0:e.u0,v0:e.v0,kept:SPRS.get('g'+DPR+'|big')===e,size:SPRS.size,n:GLS.n,cv:!!e.cv,shy:GLS.shy};GLS.frame=false;GLS.n=0;ctx=CTX0;return JSON.stringify(r);})()`));
+    glsDraw=gd;const r={up:e.up,u0:e.u0,v0:e.v0,kept:SPRS.get('big')===e,size:SPRS.size,n:GLS.n,cv:!!e.cv,shy:GLS.shy};GLS.frame=false;GLS.n=0;ctx=CTX0;return JSON.stringify(r);})()`));
   assert.equal(r.up, true, 'the picture is in the atlas');
   assert.equal(r.u0, 0); assert.equal(r.v0, 0);
   assert.equal(r.kept, true, 'and kept under its key after the restart');
@@ -66,7 +66,7 @@ test('a full atlas starts again and the picture that did not fit goes into the n
 test('the 2D map keeps a canvas per picture, and its pictures are not the card’s', () => {
   const { ev, errors } = open();
   ev(`mapGl(false);const h=CITY[S.home];cam.x=h.x;cam.y=h.y;cam.z=1.4;draw(1000);`);
-  const r = JSON.parse(ev(`(()=>{const es=[...SPRS.entries()];return JSON.stringify({n:es.length,cv:es.every(([k,e])=>k[0]==='c'&&e.cv&&e.cv.width===e.pw&&e.cv.height===e.ph),up:es.some(([,e])=>e.up)});})()`));
+  const r = JSON.parse(ev(`(()=>{const es=[...SPRC.entries()];return JSON.stringify({n:es.length,cv:SPRS.size===0&&es.every(([k,e])=>e.cv&&e.cv.width===e.pw&&e.cv.height===e.ph),up:es.some(([,e])=>e.up)});})()`));
   assert.ok(r.n > 10);
   assert.equal(r.cv, true, 'each with its own canvas, at its size');
   assert.equal(r.up, false, 'nothing went to a card');
@@ -82,8 +82,8 @@ test('giving the card up drops its pictures; the 2D map paints its own', () => {
   assert.equal(ev('SPRS.size'), 0, 'no picture without a canvas is left behind');
   assert.equal(ev('GLS.shx+GLS.shy+GLS.shh'), 0, 'the atlas is forgotten');
   ev('draw(1016)');
-  assert.ok(ev('SPRS.size') > 10);
-  assert.equal(ev(`[...SPRS.values()].every(e=>e.cv)`), true, 'the 2D map’s pictures have their canvas');
+  assert.ok(ev('SPRC.size') > 10);
+  assert.equal(ev(`[...SPRC.values()].every(e=>e.cv)`), true, 'the 2D map’s pictures have their canvas');
   assert.ok(ev('ctx===CTX0'));
   assert.deepEqual(errors, []);
 });

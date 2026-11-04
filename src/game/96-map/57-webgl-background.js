@@ -74,13 +74,17 @@ function glLand(gl,ks){const G=glLandGeo(gl,lodFar(),coastLevel(cam.z));
 const WAVE_COL=glColor('rgba(255,255,255,.45)');
 function glWaves(gl,now,ks){const A=GLX.wa||(GLX.wa=new Float32Array(WAVES.length*8*LINE_STRIDE)),ph0=now/900;let m=0;
   for(const [x,y,ph] of WAVES){const o=Math.sin(ph0+ph*6)*3;
-    for(const [x0,cx,cy,x1] of [[x-9+o,x-4.5+o,y-4,x+o],[x+o,x+4.5+o,y+4,x+9+o]]){let px=x0,py=y;
+    // Two curves: up from x-9 to x, then down to x+9 (no array literals per wave: they were garbage every frame).
+    for(let c=0;c<2;c++){const x0=x+o+(c?0:-9),cx=x0+4.5,cy=y+(c?4:-4),x1=x0+9;let px=x0,py=y;
       for(let j=1;j<=4;j++){const t=j/4,u=1-t,qx=u*u*x0+2*u*t*cx+t*t*x1,qy=u*u*y+2*u*t*cy+t*t*y;glSegAt(A,m++,px,py,qx,qy,0,2,0,0,WAVE_COL[3],WAVE_COL);px=qx;py=qy;}}}
   gl.bindBuffer(gl.ARRAY_BUFFER,GLX.wv.b);gl.bufferData(gl.ARRAY_BUFFER,A.subarray(0,m*LINE_STRIDE),gl.DYNAMIC_DRAW);glLines(gl,GLX.wv.v,m,ks);}
 // The clouds: their puffs are stencilled as one shape, then filled once, so overlapping puffs do not stack.
-function glClouds(gl,now,ks){const A=[];for(const k of ks)for(const c of CLOUDS){const x=((c.x+now/1000*c.v)%(W+200))-100+k*W,y=c.y;
-  A.push(x,y,16*c.s,0, x+18*c.s,y-8*c.s,20*c.s,0, x+40*c.s,y,15*c.s,0);}
-  if(!A.length)return;const F=new Float32Array(A),P=GLX.circ;gl.bindBuffer(gl.ARRAY_BUFFER,GLX.cl.b);gl.bufferData(gl.ARRAY_BUFFER,F,gl.DYNAMIC_DRAW);
+function glClouds(gl,now,ks){const need=ks.length*CLOUDS.length*12;if(!need)return;
+  // Written into one array kept from frame to frame, grown when more copies of the map show.
+  if(!GLX.ca||GLX.ca.length<need)GLX.ca=new Float32Array(need);const A=GLX.ca;let n=0;
+  for(const k of ks)for(const c of CLOUDS){const x=((c.x+now/1000*c.v)%(W+200))-100+k*W,y=c.y,s=c.s;
+    A[n++]=x;A[n++]=y;A[n++]=16*s;A[n++]=0;A[n++]=x+18*s;A[n++]=y-8*s;A[n++]=20*s;A[n++]=0;A[n++]=x+40*s;A[n++]=y;A[n++]=15*s;A[n++]=0;}
+  const F=A.subarray(0,n),P=GLX.circ;gl.bindBuffer(gl.ARRAY_BUFFER,GLX.cl.b);gl.bufferData(gl.ARRAY_BUFFER,F,gl.DYNAMIC_DRAW);
   gl.enable(gl.STENCIL_TEST);gl.stencilFunc(gl.ALWAYS,1,255);gl.stencilOp(gl.KEEP,gl.KEEP,gl.REPLACE);gl.colorMask(false,false,false,false);
   gl.useProgram(P.p);gl.bindVertexArray(GLX.cl.v);gl.uniform2f(P.u.uView,CW,CH);gl.uniform3f(P.u.uCam,cam.x,cam.y,cam.z);gl.drawArraysInstanced(gl.TRIANGLE_STRIP,0,4,F.length/4);
   gl.colorMask(true,true,true,true);gl.stencilFunc(gl.EQUAL,1,255);gl.stencilOp(gl.KEEP,gl.KEEP,gl.KEEP);glFill(gl,CLOUD_COL);gl.disable(gl.STENCIL_TEST);}

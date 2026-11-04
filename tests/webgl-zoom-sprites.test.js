@@ -27,8 +27,8 @@ const STUB = `(()=>{const calls=[];const gl=new Proxy({calls},{get(t,k){if(k in 
 // One POP's city pictures painted during frames from zoom z0 to z1 (the clock moving 16 ms a frame), by scale.
 const ZOOM = (z0, z1, n) => `(()=>{const id=S.home,C=CITY[id];cam.x=C.x;cam.y=C.y;const seen=new Set(),bad=[];
   for(let i=0;i<=${n};i++){cam.z=${z0}+(${z1}-${z0})*i/${n};__T+=16;draw(__T);
-    for(const k of SPRS.keys()){const p=k.split('|');if(p[1]==='city'&&p[2]===id)seen.add(+p[4]);}
-    const k=cityScale(iconScale()),kq=[...SPRS.keys()].filter(x=>x.split('|')[1]==='city'&&x.split('|')[2]===id).map(x=>+x.split('|')[4]);
+    for(const k of SPRS.keys()){const p=k.split('|');if(p[0]==='city'&&p[1]===id)seen.add(+p[3]);}
+    const k=cityScale(iconScale()),kq=[...SPRS.keys()].filter(x=>x.split('|')[0]==='city'&&x.split('|')[1]===id).map(x=>+x.split('|')[3]);
     if(kq.length&&!kq.some(q=>Math.max(q/k,k/q)<=1.25*(1+.5/24/0.7)))bad.push(i);}
   return JSON.stringify({steps:[...seen].sort(),bad});})()`;
 
@@ -45,7 +45,7 @@ test('on the card a zoom keeps each city’s picture for a while, and paints it 
   assert.equal(ev('zoomMoving()'), true);
   ev('__T+=300;draw(__T)');
   const rest = JSON.parse(ev(`(()=>{const id=S.home,want=Math.round(cityScale(iconScale())*24)/24;
-    return JSON.stringify({f:ZH.f,want,has:[...SPRS.keys()].some(k=>{const p=k.split('|');return p[1]==='city'&&p[2]===id&&+p[4]===want;}),moving:zoomMoving()});})()`));
+    return JSON.stringify({f:ZH.f,want,has:[...SPRS.keys()].some(k=>{const p=k.split('|');return p[0]==='city'&&p[1]===id&&+p[3]===want;}),moving:zoomMoving()});})()`));
   assert.equal(rest.moving, false);
   assert.equal(rest.f, 1, 'at rest nothing is stretched');
   assert.equal(rest.has, true, 'the city is painted again at its own step');
@@ -56,8 +56,8 @@ test('the 2D map paints cities at their own step on every frame of a zoom, as be
   const { ev, errors } = open();
   ev(`mapGl(false);cam.z=0.8;draw(__T);`);
   const r = JSON.parse(ev(`(()=>{const id=S.home,C=CITY[id];cam.x=C.x;cam.y=C.y;const bad=[];
-    for(let i=0;i<=30;i++){cam.z=0.8+i/30;__T+=16;SPRS.clear();draw(__T);const want=Math.round(cityScale(iconScale())*24)/24;
-      if(ZH.f!==1||![...SPRS.keys()].some(k=>{const p=k.split('|');return p[1]==='city'&&p[2]===id&&+p[4]===want;}))bad.push(i);}
+    for(let i=0;i<=30;i++){cam.z=0.8+i/30;__T+=16;SPRC.clear();draw(__T);const want=Math.round(cityScale(iconScale())*24)/24;
+      if(ZH.f!==1||![...SPRC.keys()].some(k=>{const p=k.split('|');return p[0]==='city'&&p[1]===id&&+p[3]===want;}))bad.push(i);}
     return JSON.stringify({bad});})()`));
   assert.deepEqual(r.bad, []);
   assert.deepEqual(errors, []);
@@ -83,7 +83,7 @@ test('pictures that keep their size whatever the zoom (far-view cities, cones, d
   ev(STUB);
   const r = JSON.parse(ev(`(()=>{cam.z=1;draw(__T);__T+=1000;cam.z=1;draw(__T);cam.z=1.4;__T+=16;draw(__T);GLS.frame=true;GLS.n=0;ctx=GLX.fx;
     const f=ZH.f;drawCone(100,100,0);drawBackhoe(200,100,0,false);const D=GLS.data,o=[D[2],D[3],D[SPR_STRIDE+2],D[SPR_STRIDE+3]];
-    const keys=[...SPRS.keys()].filter(k=>['cone','hoe'].includes(k.split('|')[1]));GLS.frame=false;GLS.n=0;ctx=CTX0;return JSON.stringify({f,o,keys});})()`));
+    const keys=[...SPRS.keys()].filter(k=>['cone','hoe'].includes(k.split('|')[0]));GLS.frame=false;GLS.n=0;ctx=CTX0;return JSON.stringify({f,o,keys});})()`));
   assert.notEqual(r.f, 1, 'the zoom is moving and city pictures are held');
   assert.deepEqual(r.o, [26, 28, 38, 32], 'drawn at their own size');
   assert.ok(r.keys.length >= 2 && r.keys.every(k => k.endsWith('|1')), 'painted at scale 1: ' + r.keys);

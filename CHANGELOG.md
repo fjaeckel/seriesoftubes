@@ -14,6 +14,7 @@ All notable changes to this project are documented here. The project follows
 - Long zooms stay on the graphics card: the pictures of cities and labels are painted on one shared canvas instead of each keeping its own, so the browser no longer runs out of room for them and switches to the slower drawing.
 - Zooming is smoother on big maps: while you zoom, cities and ships keep their picture and are only redrawn sharp once the zoom stops, instead of being repainted at every small step.
 - The graphics card draws the coastlines with fewer points when you zoom out, where the extra detail was smaller than a pixel, so the map costs it a lot less work, which helps phones most.
+- The map leaves far less memory behind it on every frame for the browser to clean up while you play.
 
 ## [2.9.1] — 2026-11-04
 

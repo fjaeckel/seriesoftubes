@@ -1,11 +1,15 @@
 // Label widths by text (city labels by id, link labels and far-view labels by text): measuring text every frame is slow.
-const LBLW={},LINKW=new Map(),LBLF=new Map(),CM={off:new Set(),big:new Set(),inc:new Set(),far:false};
+const LBLW={},LINKW=new Map(),LBLF=new Map(),FKEY=new Map(),QKEY=new Map(),CM={off:new Set(),big:new Set(),inc:new Set(),far:false};
 try{document.fonts&&document.fonts.ready.then(()=>{for(const k in LBLW)delete LBLW[k];LINKW.clear();LBLF.clear();FRAME.length=0;spritesReset();});}catch(e){}
 // A label on a pill: its text and look never change, so it is painted once (spriteEntry) and drawn as a picture. The
 // centre is x, y; the text sits at y+ty. The pill's box is w×h with corners r; the picture also takes the outline.
+// Keys are kept by text (PILLK), one per look: joining them for every label on every frame was most of the map's garbage.
+const PILLK=new Map();
 function pill(t,font,w,h,r,fill,ink,stroke,lw,x,y,ty){
-  const pad=lw+2,W=Math.ceil(w+pad*2),H=Math.ceil(h+pad*2),key=['pill',t,font,w,h,r,fill,ink,stroke,lw,ty].join('|');
-  const e=spriteEntry(key,W,H,W/2,H/2,g=>{g.translate(W/2,H/2);g.fillStyle=fill;g.strokeStyle=stroke;g.lineWidth=lw;
+  const pad=lw+2,W=Math.ceil(w+pad*2),H=Math.ceil(h+pad*2);let L=PILLK.get(t),m=null;
+  if(L)for(let i=0;i<L.length;i++){const q=L[i];if(q.font===font&&q.w===w&&q.h===h&&q.r===r&&q.fill===fill&&q.ink===ink&&q.stroke===stroke&&q.lw===lw&&q.ty===ty){m=q;break;}}
+  if(!m){if(!L){if(PILLK.size>4000)PILLK.clear();PILLK.set(t,L=[]);}L.push(m={font,w,h,r,fill,ink,stroke,lw,ty,k:['pill',t,font,w,h,r,fill,ink,stroke,lw,ty].join('|')});}
+  const e=spriteHas(m.k)||spriteEntry(m.k,W,H,W/2,H/2,g=>{g.translate(W/2,H/2);g.fillStyle=fill;g.strokeStyle=stroke;g.lineWidth=lw;
     rr(-w/2,-h/2,w,h,r);g.fill();g.stroke();g.fillStyle=ink;g.font=font;g.textAlign='center';g.textBaseline='middle';g.fillText(t,0,ty);});
   // Whole device pixels, so the text stays as sharp as before.
   blit(e,Math.round((x-e.w/2)*DPR)/DPR,Math.round((y-e.h/2)*DPR)/DPR,e.w,e.h);}
@@ -13,8 +17,10 @@ function pill(t,font,w,h,r,fill,ink,stroke,lw,x,y,ty){
 function drawCityFar(C,sx,sy,sc,now,lyOverride){
   const p=S.pops[C.id],down=p&&p.down>S.day,sel=UI.sel&&UI.sel.type==='city'&&UI.sel.id===C.id,hov=UI.hover===C.id||(UI.snap&&UI.snap.id===C.id);
   if(p&&!down&&R.cityDem[C.id]>0&&sfOf(R,C.id)<0.9)dot(sx,sy,12,'rgba(255,77,94,1)',.35+.25*Math.sin(now/200));
-  const t=cTier(C.id),ph=sel?Math.floor(now/40)%8:-1,key=['far',p?1:0,down?1:0,p&&p.site2?1:0,p?(p.routers||1)>=2?1:0:0,t,hov?1:0,hasIxAt(C.id)?1:0,CM.off.has(C.id)?1:0,CM.inc.has(C.id)?1:0,ph].join('|');
-  stamp(key,36,36,18,18,1,sx,sy,()=>cityFarStatic(C,p,down,sel,hov,ph));
+  const t=cTier(C.id),ph=sel?Math.floor(now/40)%8:-1,f=(p?1:0)|(down?2:0)|(p&&p.site2?4:0)|(p&&(p.routers||1)>=2?8:0)|(hov?16:0)|(hasIxAt(C.id)?32:0)|(CM.off.has(C.id)?64:0)|(CM.inc.has(C.id)?128:0);
+  // The key, kept per city and built again only when the picture changes.
+  let m=FKEY.get(C.id);if(!m||m.f!==f||m.t!==t||m.ph!==ph)FKEY.set(C.id,m={f,t,ph,k:'far|'+t+'|'+f+'|'+ph});
+  stamp(m.k,36,36,18,18,1,sx,sy,()=>cityFarStatic(C,p,down,sel,hov,ph));
   if(lyOverride!==null&&(p||sel||hov)){ctx.font=`800 ${p?12:11}px "Baloo 2", sans-serif`;const t=C.name,wk=C.id+(p?1:0);let tw=LBLF.get(wk);if(tw===undefined)LBLF.set(wk,tw=ctx.measureText(t).width+12);const ly=lyOverride==null?sy+15:lyOverride;
     pill(t,ctx.font,tw,16,8,p?'#FF4F9A':'#FFFFFF',p?'#FFFFFF':'#1E2640','#1E2640',1.6,sx,ly,1);}
 }
@@ -79,18 +85,25 @@ function cityStatic(C,p,t,cs,k,ph,st){const down=st.down;
   if(st.inc){ctx.fillStyle='#FF4D5E';ctx.beginPath();ctx.arc(-20,-h+2,7,0,7);ctx.fill();ctx.lineWidth=2;ctx.stroke();ctx.fillStyle='#fff';ctx.font='900 11px Nunito, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('!',-20,-h+3);}
 }
 // The picture of a city in a given state, at the quantised scale kq: painted once and kept until it is not needed.
-function citySprite(C,p,t,cs,kq,ph,st){
-  const key=['city',C.id,t,kq,st.down?1:0,p?1:0,p&&p.site2?1:0,p&&p.site2&&siteDown(C.id,'b')?1:0,p&&p.ringcut>S.day?1:0,p?(p.routers||1):0,p&&p.gen?1:0,p?(p.rgen||0):0,C.au?1:0,
-    st.ixDraw?1:0,st.ixHot?1:0,ixName(C.id)||'',S.myIx[C.id]?1:0,hasIxAt(C.id)?1:0,!p&&ixQuiet(C.id)?1:0,st.feed?1:0,st.sel?ph.sel:-1,ph.dd,st.inc?1:0].join('|');
+// Its key is kept per city (CKEY) and joined again only when one of its parts changes: the yes/no parts are bits of f.
+const CKEY=new Map();
+function citySprite(C,p,t,cs,kq,ph,st){const id=C.id,
+    f=(st.down?1:0)|(p?2:0)|(p&&p.site2?4:0)|(p&&p.site2&&siteDown(id,'b')?8:0)|(p&&p.ringcut>S.day?16:0)|(p&&p.gen?32:0)|(C.au?64:0)|(st.ixDraw?128:0)|
+      (st.ixHot?256:0)|(S.myIx[id]?512:0)|(hasIxAt(id)?1024:0)|(!p&&ixQuiet(id)?2048:0)|(st.feed?4096:0)|(st.inc?8192:0),
+    ro=p?(p.routers||1):0,rg=p?(p.rgen||0):0,ix=ixName(id)||'',sp=st.sel?ph.sel:-1,dd=ph.dd;
+  let m=CKEY.get(id);
+  if(!m||m.t!==t||m.kq!==kq||m.f!==f||m.ro!==ro||m.rg!==rg||m.ix!==ix||m.sp!==sp||m.dd!==dd)CKEY.set(id,m={t,kq,f,ro,rg,ix,sp,dd,k:['city',id,t,kq,f,ro,rg,ix,sp,dd].join('|')});
+  const e=spriteHas(m.k);if(e)return e;
   const W=Math.ceil(92*kq),H=Math.ceil(84*kq),ax=45*kq,ay=46*kq;
-  return spriteEntry(key,W,H,ax,ay,g=>{g.translate(ax,ay);cityStatic(C,p,t,cs,kq,ph,st);});}
+  return spriteEntry(m.k,W,H,ax,ay,g=>{g.translate(ax,ay);cityStatic(C,p,t,cs,kq,ph,st);});}
 // The parts that move, in the city's frame at the true scale k.
 function cityMoving(C,p,t,cs,k,sx,sy,now,h,st,hot){const down=st.down,K=k*cs;
   if(p){// The POP's own frame is shifted 2 down, and mirrored Down Under (C.au): mp() takes a point of that frame to the city's.
-    const fl=!!C.au,mp=(x,y)=>fl?[-x,-y-2]:[x,y+2],sf=sfOf(R,C.id),at=(x,y)=>{const q=mp(x,y);return [sx+q[0]*K,sy+q[1]*K];};
-    if(!down&&(R.nodeLoad[C.id]||0)>=(R.nodeCap[C.id]||1e12)*0.95){for(let i=0;i<3;i++){const tt=(now/700+i/3)%1,[x,y]=at(6+i*3,-12-tt*18);dot(x,y,(3+tt*4)*K,'rgba(90,98,130,1)',0.55*(1-tt));}}
+    // A point (x,y) of that frame is at sx+(fl?-x:x)*K, sy+(fl?-y-2:y+2)*K (written out: no array per light per frame).
+    const fl=!!C.au,sf=sfOf(R,C.id);
+    if(!down&&(R.nodeLoad[C.id]||0)>=(R.nodeCap[C.id]||1e12)*0.95){for(let i=0;i<3;i++){const tt=(now/700+i/3)%1,x=6+i*3,y=-12-tt*18;dot(sx+(fl?-x:x)*K,sy+(fl?-y-2:y+2)*K,(3+tt*4)*K,'rgba(90,98,130,1)',0.55*(1-tt));}}
     // The four lights: a disc each, lit or not.
-    for(let i=0;i<4;i++){const lit=down?false:(((now/(160+i*37))|0)+i)%3!==0,[x,y]=at(-10+i*6.6,1),col=down?'#3B4260':lit?(sf<0.9?'#FF4D5E':'#7CFFB2'):'#2A3150';dot(x,y,2.1*K,col,1);}
+    for(let i=0;i<4;i++){const lit=down?false:(((now/(160+i*37))|0)+i)%3!==0,x=-10+i*6.6,col=down?'#3B4260':lit?(sf<0.9?'#FF4D5E':'#7CFFB2'):'#2A3150';dot(sx+(fl?-x:x)*K,sy+(fl?-3:3)*K,2.1*K,col,1);}
   }
   // A flashing IX: two pictures, one per colour.
   if(st.ixDraw&&st.ixHot){const on=Math.sin(now/180)>0,ix=p?19:SKY_W[t]/2+4;stamp('ixhot'+(on?1:0),22,22,11,11,K,sx+ix*K,sy+(2-h)*K,()=>{ctx.translate(-ix,h-2);ctx.strokeStyle='#1E2640';cityIX(C,p,t,h,true,on?1:-1);},true);}
@@ -106,7 +119,8 @@ function drawCity(C,sx,sy,sc,now,lyOverride,dem){
   const p=S.pops[C.id],down=p&&p.down>S.day,sel=UI.sel&&UI.sel.type==='city'&&UI.sel.id===C.id,hov=UI.hover===C.id||(UI.snap&&UI.snap.id===C.id);
   // No room for its skyline here: a quiet dot, a little bigger for bigger cities, until you zoom in (cityRoom).
   if(dem&&!p&&!sel&&!hov){const r=(2.6+cTier(C.id)*0.35)*sc,rq=Math.round(r*4)/4,fill=hasIxAt(C.id)?'#FFD23F':'#FFFFFF',S2=Math.ceil(rq*2+4);
-    const e=spriteEntry(['quiet',rq,fill].join('|'),S2,S2,S2/2,S2/2,g=>{g.translate(S2/2,S2/2);g.fillStyle=fill;g.strokeStyle='#1E2640';g.lineWidth=1.6;g.beginPath();g.arc(0,0,rq,0,7);g.fill();g.stroke();});
+    const qk=rq*8+(fill==='#FFFFFF'?0:1);let key=QKEY.get(qk);if(!key)QKEY.set(qk,key=['quiet',rq,fill].join('|'));
+    const e=spriteHas(key)||spriteEntry(key,S2,S2,S2/2,S2/2,g=>{g.translate(S2/2,S2/2);g.fillStyle=fill;g.strokeStyle='#1E2640';g.lineWidth=1.6;g.beginPath();g.arc(0,0,rq,0,7);g.fill();g.stroke();});
     blit(e,sx-e.ax,sy+2*sc-e.ay,e.w,e.h);return;}
   const t=cTier(C.id),cs=p?1:CSC[t],k=sc*(hov?1.15:1),kq=sprQ(k);
   const ixn=ixName(C.id),ixDraw=!!ixn&&(ixShown(C.id,p)||(hot&&hot.ix)||sel||hov),ixHot=!!(ixDraw&&hot&&hot.ix);

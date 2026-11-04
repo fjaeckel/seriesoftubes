@@ -3,7 +3,8 @@
    as instanced quads, with the small round things (lights, steam, glows) as discs, in one draw per frame after the
    tubes. Without WebGL the same calls draw the pictures with the 2D canvas, so the map's code does not care which. */
 const SPR_MAX=1400,SPR_STRIDE=13;
-const SPRS=new Map();
+// The card's pictures (SPRS) and the 2D map's (SPRC), by key; both at the screen's pixel density SPR_DPR.
+const SPRS=new Map(),SPRC=new Map();let SPR_DPR=0;
 const GLS={prog:null,vao:null,buf:null,tex:null,size:4096,shx:0,shy:0,shh:0,frame:false,data:new Float32Array(SPR_STRIDE*2048),n:0};
 /* One record is 13 floats: x,y,w,h (CSS px) | u0,v0,u1,v1 (atlas) | r,g,b,a | kind. A picture (kind 0) takes its
    colours from the atlas and a from the record; a disc (kind 1) is centred on x,y with radius w, in colour r,g,b,a. */
@@ -25,7 +26,7 @@ function glsInit(gl){GLS.prog=glProg(gl,SPR_VS,SPR_FS);const {v,b}=glVao(gl,[4,4
   for(const k of [gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T])gl.texParameteri(gl.TEXTURE_2D,k,gl.CLAMP_TO_EDGE);
   GLS.shx=GLS.shy=GLS.shh=0;}
 // Forgets every picture and starts the atlas again, after the pictures already queued are drawn (they point into it).
-function spritesReset(){glsDrawNow();SPRS.clear();GLS.shx=GLS.shy=GLS.shh=0;}
+function spritesReset(){glsDrawNow();SPRS.clear();SPRC.clear();GLS.shx=GLS.shy=GLS.shh=0;}
 // The card given up: its pictures go (they have no canvas to be drawn from in 2D) and the atlas is forgotten.
 function spritesDrop(){GLS.n=0;SPRS.clear();GLS.shx=GLS.shy=GLS.shh=0;}
 /* The card's pictures are painted on one canvas, reused, and each goes into the atlas as soon as it is painted: a
@@ -35,10 +36,14 @@ const GLS_PAD={cv:null,g:null};
 function glsPad(pw,ph){const P=GLS_PAD;if(!P.cv){P.cv=document.createElement('canvas');P.cv.width=P.cv.height=256;}
   if(P.cv.width<pw||P.cv.height<ph){P.cv.width=Math.max(P.cv.width,Math.ceil(pw/64)*64);P.cv.height=Math.max(P.cv.height,Math.ceil(ph/64)*64);P.g=null;}
   if(!P.g)P.g=P.cv.getContext('2d',{willReadFrequently:true});return P;}
+// Where this frame's pictures are kept: the card's or the 2D map's. A new pixel density starts both again.
+function sprMap(){if(DPR!==SPR_DPR){SPR_DPR=DPR;spritesReset();}return GLS.frame&&!!GLX.gl&&!!GLS.prog?SPRS:SPRC;}
+// The picture already painted under key, if any: callers ask first, so a picture drawn every frame costs no closure.
+const spriteHas=key=>sprMap().get(key);
 // A picture of w×h CSS px with its anchor at (ax,ay): painted once by paint(g) (the 2D canvas, at the screen's pixel
-// density, which is part of the key), and kept in SPRS. The card's pictures and the 2D map's are kept apart ('g', 'c').
-function spriteEntry(key,w,h,ax,ay,paint){const gpu=GLS.frame&&!!GLX.gl&&!!GLS.prog;key=(gpu?'g':'c')+DPR+'|'+key;let e=SPRS.get(key);if(e)return e;
-  if(SPRS.size>=SPR_MAX)spritesReset();
+// density), and kept by key in SPRS (the card's) or SPRC (the 2D map's).
+function spriteEntry(key,w,h,ax,ay,paint){const M=sprMap(),gpu=M===SPRS;let e=M.get(key);if(e)return e;
+  if(SPRS.size+SPRC.size>=SPR_MAX)spritesReset();
   const pw=Math.ceil(w*DPR),ph=Math.ceil(h*DPR),saved=ctx;
   e={cv:null,pw,ph,w,h,ax,ay,up:false,u0:0,v0:0,u1:1,v1:1};
   if(gpu&&pw<=GLS.size&&ph<=GLS.size){const P=glsPad(pw,ph),g=P.g;
@@ -48,7 +53,7 @@ function spriteEntry(key,w,h,ax,ay,paint){const gpu=GLS.frame&&!!GLX.gl&&!!GLS.p
     try{if(!glsPut(GLX.gl,e,P.cv))glsPut(GLX.gl,e,P.cv);}catch(x){throw glErr(x);}
   }else{const cv=document.createElement('canvas');cv.width=pw;cv.height=ph;const g=cv.getContext('2d');ctx=g;
     try{g.setTransform(DPR,0,0,DPR,0,0);paint(g);}finally{ctx=saved;}e.cv=cv;}
-  SPRS.set(key,e);return e;}
+  M.set(key,e);return e;}
 // Puts a picture with its own canvas into the atlas (once), shelf by shelf. A full atlas starts again; this picture then waits a frame.
 function glsEnsure(e){if(e.up)return true;const gl=GLX.gl;if(!gl||!GLS.prog||!e.cv)return false;
   try{return glsPut(gl,e,e.cv);}catch(x){throw glErr(x);}}
@@ -85,8 +90,11 @@ const sprQ=k=>Math.max(1/CSPR_STEP,Math.round(k*ZH.f*CSPR_STEP)/CSPR_STEP);
 // (k in steps of 1/24, as the cities; zoomed: k grows with the zoom, and is held while it moves, sprQ()), then drawn with
 // the anchor at (x,y). Things that bob or pulse are drawn as these at a moving place, so the overlay above the card
 // stays untouched (repainting it costs a whole screen of pixels).
+// The full key of a stamp at scale kq, kept per key: it was built again for every stamp on every frame.
+const STK=new Map();
 function stamp(key,w,h,ax,ay,k,x,y,paint,zoomed){const kq=zoomed?sprQ(k):Math.max(1/CSPR_STEP,Math.round(k*CSPR_STEP)/CSPR_STEP),r=k/kq;
-  const e=spriteEntry(key+'|'+kq,Math.ceil(w*kq),Math.ceil(h*kq),ax*kq,ay*kq,g=>{g.translate(ax*kq,ay*kq);g.scale(kq,kq);paint(g);});
+  let m=STK.get(key);if(!m||m.kq!==kq){if(STK.size>4000)STK.clear();STK.set(key,m={kq,k:key+'|'+kq});}
+  const e=spriteHas(m.k)||spriteEntry(m.k,Math.ceil(w*kq),Math.ceil(h*kq),ax*kq,ay*kq,g=>{g.translate(ax*kq,ay*kq);g.scale(kq,kq);paint(g);});
   blit(e,x-e.ax*r,y-e.ay*r,e.w*r,e.h*r);}
 // Text with an outline, centred on (x,y), as a picture placed on whole device pixels; tw is its width, px its size.
 function textStamp(t,font,px,tw,fill,stroke,lw,x,y){const W=Math.ceil(tw+lw+4),H=Math.ceil(px*1.5+lw+2);
