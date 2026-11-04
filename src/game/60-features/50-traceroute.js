@@ -4,10 +4,12 @@ const slug=t=>String(t).toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g,'').r
 // lowest latency, or the quietest links (one path; a scenic circuit may share the load between two).
 const TR_MODES=['normal','fast','scenic'];
 const trUtil=l=>{const c=capOf(l);return c>0?Math.max(0,((R.load&&R.load[l.id])||0)/c):0;};
-function trPaths(src,mode){const live=S.links.filter(l=>!linkDown(l)),rem=remoteCities(),ok=c=>popUp(c)||rem.includes(c),adj={};
+// bh: a cut-off POP whose backhaul through orbit (R.pie.bh, as compute() routed it) the trace may take: only to or from that POP.
+function trPaths(src,mode,bh){const live=S.links.filter(l=>!linkDown(l)),rem=remoteCities(),ok=c=>popUp(c)||rem.includes(c),adj={};
   // Every link between two cities costs what the pair costs, as in compute(); the trace shows an active link over one on standby.
   const pw={};for(const l of live){const k=edgeKey(l);pw[k]=Math.min(pw[k]??Infinity,pairW(k,l.km));}
   for(const l of live){if(!ok(l.a)||!ok(l.b))continue;const k=edgeKey(l),w=(mode==='fast'?linkLat(l)+0.05:mode==='scenic'?pw[k]*(1+10*trUtil(l)):pw[k])+(l.standby?1e-6:0);(adj[l.a]=adj[l.a]||[]).push([l.b,l,w]);(adj[l.b]=adj[l.b]||[]).push([l.a,l,w]);}
+  const B=trBh(bh);if(B){const l={id:'pie:bh:'+B.city,a:B.city,b:B.land,bh:B};(adj[l.a]=adj[l.a]||[]).push([l.b,l,PIE_BH_W]);(adj[l.b]=adj[l.b]||[]).push([l.a,l,PIE_BH_W]);}
   const dist={[src]:0},prev={},done=new Set();for(;;){let u=null,ud=Infinity;for(const k in dist)if(!done.has(k)&&dist[k]<ud){u=k;ud=dist[k];}if(u===null)break;done.add(u);for(const [v,l,w] of adj[u]||[]){const nd=ud+w;if(nd<(dist[v]??Infinity)){dist[v]=nd;prev[v]=l;}}}
   const path=dst=>{if(dist[dst]===undefined)return null;const out=[];let v=dst;while(v!==src){const l=prev[v];out.unshift({l,from:l.a===v?l.b:l.a,to:v});v=l.a===v?l.b:l.a;}return out;};return {dist,path};}
 function trExits(net){const day=S.day,ev=S.ev,leak=ev.leak&&ev.leak.until>day?ev.leak.net:null,out=[];
@@ -20,11 +22,18 @@ function trExits(net){const day=S.day,ev=S.ev,leak=ev.leak&&ev.leak.until>day?ev
 // coneChain(peer,net): [peer, …, net], the shortest walk down customer links (the network's up lists, read backwards).
 function coneChain(top,id){const prev={[id]:null},q=[id];while(q.length){const x=q.shift();if(x===top)break;for(const u of NET[x].up||[])if(NET[u]&&!(u in prev)){prev[u]=x;q.push(u);}}
   if(!(top in prev))return [top,id];const out=[];for(let x=top;x!==null;x=prev[x])out.push(x);return out;}
-function traceroute(src,to,mode){mode=TR_MODES.includes(mode)?mode:'normal';const P=trPaths(src,mode),me=slug(S.name)+'.net',lines=[],ip=(a,b)=>`100.64.${a%250}.${b%250}`;let rtt=0.3,n=1;
+// The backhaul of cut-off POP c, if it has one today.
+const trBh=c=>c&&R&&R.pie&&R.pie.bh?R.pie.bh.find(b=>b.city===c&&b.cap>0)||null:null;
+function traceroute(src,to,mode){mode=TR_MODES.includes(mode)?mode:'normal';const bh=trBh(src)?src:to.city&&trBh(to.city)?to.city:null,P=trPaths(src,mode,bh),me=slug(S.name)+'.net',lines=[],ip=(a,b)=>`100.64.${a%250}.${b%250}`;let rtt=0.3,n=1;
   const hop=(host,addr,extra,note)=>{rtt+=extra;lines.push(`${String(n++).padStart(2)}  ${host} (${addr})  ${rtt.toFixed(1)} ms${note?'   ← '+note:''}`);};
   hop(`lo0.cr1.${src}.${me}`,ip(hstr(src),1),0,tr('traceroute.city_your_router',{city:CITY[src].name}));
-  const walk=path=>{for(const h of path){const l=h.l,lat=linkLat(l)*2+0.15;hop(`ae${1+hstr(l.id)%9}.cr1.${h.to}.${me}`,ip(hstr(h.to),2),lat,`${CITY[h.to].name} · ${l.kind==='df'?tr('common.own_dark_fiber'):l.kind==='vxc'?tr('common.fabric_circuit'):l.cable?CAB[l.cable].name:tr('common.terrestrial_wave')} · ${capName(l)}`);}};
-  if(to.city){const path=P.path(to.city);lines.unshift(`traceroute to ${to.city}.${me} (${CITY[to.city].name}), 30 hops max`);if(!path){lines.push(' 2  * * *   ← '+tr('traceroute.no_working_path_between_these_pops'));return {text:lines.join('\n'),why:tr('traceroute.no_path_every_route_between_these')};}walk(path);return {text:lines.join('\n'),why:S.te&&S.te.on?trn('traceroute.internal_path_over_n_link_chosen',path.length):trn('traceroute.internal_path_over_n_link_chosen_8620',path.length)};}
+  // Through orbit: up at one dish, across space with lasers, down at the other, each hop's round trip as compute() priced it.
+  const walk=path=>{for(const h of path){const l=h.l;if(l.bh){const b=l.bh,cr=CRUSTS[b.cr],e={bh:{city:b.city,land:b.land,cr:b.cr,las:b.las,km:b.km}};
+      for(const x of pieBhHops(e,h.from===b.city)){const ms=x.ms*2+0.05;if(x.k==='up')hop(`dish.${x.city}.${me}`,ip(hstr(x.city),5),ms,tr('traceroute.sky_up',{city:CITY[x.city].name,crust:tr(cr.n)}));
+        else if(x.k==='las')hop(`laser.${b.cr}.${me}`,`10.255.${hstr(b.cr)%250}.${(x.km|0)%250}`,ms,tr('traceroute.sky_laser',{km:Math.round(x.km).toLocaleString()}));
+        else hop(`dish.${x.city}.${me}`,ip(hstr(x.city),6),ms,tr('traceroute.sky_down',{city:CITY[x.city].name}));}continue;}
+    const lat=linkLat(l)*2+0.15;hop(`ae${1+hstr(l.id)%9}.cr1.${h.to}.${me}`,ip(hstr(h.to),2),lat,`${CITY[h.to].name} · ${l.kind==='df'?tr('common.own_dark_fiber'):l.kind==='vxc'?tr('common.fabric_circuit'):l.cable?CAB[l.cable].name:tr('common.terrestrial_wave')} · ${capName(l)}`);}};
+  if(to.city){const path=P.path(to.city);lines.unshift(`traceroute to ${to.city}.${me} (${CITY[to.city].name}), 30 hops max`);if(!path){lines.push(' 2  * * *   ← '+tr('traceroute.no_working_path_between_these_pops'));return {text:lines.join('\n'),why:tr('traceroute.no_path_every_route_between_these')};}walk(path);const bw=trBhWhy(bh,path);return {text:lines.join('\n'),why:bw+(S.te&&S.te.on?trn('traceroute.internal_path_over_n_link_chosen',path.length):trn('traceroute.internal_path_over_n_link_chosen_8620',path.length))};}
   const N=NET[to.net],ex=trExits(to.net).filter(e=>P.dist[e.city]!==undefined);
   lines.unshift(`traceroute to www.${slug(N.name)}.example (${N.name}, AS${N.asn}) from ${CITY[src].name}, 30 hops max`);
   if(!ex.length){lines.push(' 2  * * *\n 3  * * *   ← '+tr('traceroute.n_network_unreachable'));return {text:lines.join('\n'),why:tr('traceroute.nothing_on_your_network_reaches_net',{net:N.name,city:CITY[src].name}),asPath:null};}
@@ -33,7 +42,7 @@ function traceroute(src,to,mode){mode=TR_MODES.includes(mode)?mode:'normal';cons
   const hiHere=S.transit.some(t=>t.city===src&&t.pref==='high'&&popUp(t.city)&&!(t.down>S.day)&&liveN(t.city,t.site,t.n)),dtier=e=>hiHere||e.k!=='t'||e.pref==='low'?0:directTier(e.tnet,N.id);
   const rk=e=>{const r=e.pref==='low'?4:e.rank,t=dtier(e);return t&&(e.carry||e.city===src)?Math.min(r,DIRECT_RANK[t][e.carry?0:1]):r;};
   ex.sort((a,b)=>rk(a)-rk(b)||(a.pref==='high'?0:1)-(b.pref==='high'?0:1)||P.dist[a.city]+(a.k==='ix'?PNI_TIE:0)-P.dist[b.city]-(b.k==='ix'?PNI_TIE:0));
-  const e=ex.find(x=>x.used<x.cap*0.999)||ex[0];walk(P.path(e.city));
+  const e=ex.find(x=>x.used<x.cap*0.999)||ex[0],ep=P.path(e.city);walk(ep);
   const direct=e.k==='t'&&rk(e)<3?' '+(dtier(e)===1?tr('traceroute.the_carrier_s_own_port_beats_other',{net:N.name}):tr('traceroute.net_buys_transit_from_carrier_so_that',{net:N.name,carrier:NET[e.tnet].name})):'';
   let asPath=[S.asn];
   if(e.k==='t'){const T=NET[e.tnet];asPath.push(T.asn);hop(`be-${S.asn}.${e.city}.${slug(T.name)}.net`,`203.0.113.${hstr(e.city)%250}`,0.4,tr('traceroute.hand_off_to_net',{net:T.name}));
@@ -48,7 +57,9 @@ function traceroute(src,to,mode){mode=TR_MODES.includes(mode)?mode:'normal';cons
   asPath.push(N.asn);if(e.k!=='c')hop(`www.${slug(N.name)}.example`,`198.51.100.${(hstr(N.id)+1)%250}`,0.5+(e.k==='t'?1:0.2),`${N.name}`);
   const order=e.via?tr('traceroute.a_peer_s_customers_come_after'):{c:tr('traceroute.caches_beat_pnis'),p:tr('traceroute.pnis_beat_ix_peering'),ix:tr('traceroute.ix_peering_beats_transit'),t:tr('traceroute.transit_is_the_last_resort')}[e.k];
   const cn=cnCity(src)!==!!N.cn?' '+tr('traceroute.crossing_the_great_firewall_here',{p:S.ev.gfw>S.day?35:20}):'';
-  return {text:lines.join('\n'),why:`${tr('traceroute.exit_exit_in_city',{exit:e.lab,city:CITY[e.city].name})} ${tr('traceroute.rule_and_closer_exits_win_ties',{rule:order[0].toUpperCase()+order.slice(1)})}${e.pref!=='normal'?tr('traceroute.this_one_is_set_to_mode',{mode:e.pref==='high'?tr('common.prefer'):tr('common.backup_only')}):''}.${direct}${e.used>=e.cap*0.999?' '+tr('traceroute.it_is_full_so_some_traffic'):''}${cn}`,asPath};}
+  return {text:lines.join('\n'),why:`${trBhWhy(bh,ep)}${tr('traceroute.exit_exit_in_city',{exit:e.lab,city:CITY[e.city].name})} ${tr('traceroute.rule_and_closer_exits_win_ties',{rule:order[0].toUpperCase()+order.slice(1)})}${e.pref!=='normal'?tr('traceroute.this_one_is_set_to_mode',{mode:e.pref==='high'?tr('common.prefer'):tr('common.backup_only')}):''}.${direct}${e.used>=e.cap*0.999?' '+tr('traceroute.it_is_full_so_some_traffic'):''}${cn}`,asPath};}
+// A note when the trace rode a cut-off POP's backhaul: why, and what orbit adds.
+function trBhWhy(c,path){const b=trBh(c);return b&&path&&path.some(h=>h.l.bh)?tr('traceroute.bh_why',{city:CITY[c].name,dish:CITY[b.land].name,ms:pieMs(2*b.ms)})+' ':'';}
 // A circuit riding orbit (R.pie.flows, kind 'c'): its hops as compute() routed them, fiber legs, up, across space and down.
 const trSkyList=()=>R&&R.pie&&R.pie.flows?R.pie.flows.filter(f=>f.k==='c'&&f.hops&&f.hops.some(h=>h.k==='las')):[];
 function trSky(id){const f=trSkyList().find(x=>x.id===id),b=f&&S.biz.find(x=>x.id===id);if(!f||!b)return null;const me=slug(S.name)+'.net',lines=[],ip=(a,c)=>`100.64.${a%250}.${c%250}`;let rtt=0.3,n=1;

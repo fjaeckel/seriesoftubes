@@ -13,7 +13,7 @@
      dropped when o.until<=d by pieSpatDay(d)
    - S.pie.crusts[id].down: day a crust is out until (a solar storm); S.pie.dishes[i].down likewise (a backhoe)
    - pieGlobeData()         -> {crusts:[{id,alt,inc,n,las}],dishes:[{city,lat,lon,up,u}],pads:[{city,lat,lon,next}],
-                                launches:[{id,rk,cr,n,day,pad}],flows:[{id,k,g,pts:[city,city],alt?}],hi}
+                                launches:[{id,rk,cr,n,day,pad}],flows:[{id,k:'c'|'t'|'b',g,pts:[city,city],alt?}],hi}
    - pieFounder(k,{n,c})    -> a Founder post (k from FOUNDER_POSTS); pieCharge(v) bills a cost (book kept)
    - book.earned: revenue from orbit, for the customers that come with routing. */
 function pieBlank(day){const crusts={};for(const id in CRUSTS)crusts[id]={cohorts:[],queued:0};
@@ -36,9 +36,11 @@ const pieLicOk=cc=>{const l=S.pie&&S.pie.lic[cc];return !!l&&l.state==='ok'&&l.u
 function pieDishes(){const P=S&&S.pie;if(!P)return [];const o=[];for(const x of P.dishes){if(!S.pops[x.city]||x.down>S.day)continue;const cc=CITY[x.city].cc;if(pieLicOk(cc))o.push({id:x.id,city:x.city,cc,ant:x.ant,g:x.ant*PIE_ANT_G*pieDishMul(x)});}return o;}
 function pieHubs(){return S&&S.pie?Object.keys(CRUSTS).filter(pieUp):[];}
 function pieGlobeData(){const P=S&&S.pie;if(!P)return {crusts:[],dishes:[],pads:[],launches:[]};const ll=c=>({city:c,lat:CITY[c].lat,lon:CITY[c].lon}),Q=R&&R.pie,ld=Q&&Q.load||{};
-  // Traffic from the last compute: sky circuits dish to dish (k 'c'), terminals from their city to their dish (k 't').
+  // Traffic from the last compute: sky circuits dish to dish (k 'c'), terminals from their city to their dish (k 't'), and a
+  // cut-off POP's backhaul up from its dish and down at the landing dish (k 'b').
   const flows=[];if(Q&&Q.flows)for(const f of Q.flows){if(!(f.g>0))continue;if(f.k==='c'&&f.via.length>1)flows.push({id:f.id,k:'c',g:f.g,pts:[f.via[0],f.via[f.via.length-1]],alt:f.cr?CRUSTS[f.cr].alt:550});
-    else if(f.k==='t'&&f.dish)flows.push({id:f.id,k:'t',g:f.g,pts:[f.city,f.dish]});}
+    else if(f.k==='t'&&f.dish)flows.push({id:f.id,k:'t',g:f.g,pts:[f.city,f.dish]});
+    else if(f.k==='b')flows.push({id:f.id,k:'b',g:f.g,pts:[f.city,f.dish],alt:CRUSTS[f.cr].alt});}
   return {crusts:Object.keys(CRUSTS).map(id=>({id,alt:CRUSTS[id].alt,inc:CRUSTS[id].inc,n:pieLive(id),las:pieLiveLas(id)})),
     dishes:P.dishes.map(x=>({...ll(x.city),up:!(x.down>S.day),u:ld[x.city]})),pads:P.pads.map(p=>({...ll(p.city),next:p.next})),launches:P.q.map(L=>({id:L.id,rk:L.rk,cr:L.cr,n:L.n,day:L.day,pad:L.pad})),
     flows:flows.sort((a,b)=>b.g-a.g),hi:UI.pieHi||null};}

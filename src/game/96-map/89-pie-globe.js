@@ -4,7 +4,7 @@
    by itself (pieGlobeClose()) once the canvas leaves the page. Positions come from the clock, so nothing is saved.
    Traffic (data.flows, from the last compute): a sky circuit is a glowing arc from one dish up to its crust, across and
    down to the other, as wide as its Gbps (log scale, capped), with packets riding it; a terminal customer is a hop from
-   its city off the sky to its dish. Each dish has a load ring. data.hi (a flow id) is drawn on top, the rest dimmed. */
+   its city off the sky to its dish; a cut-off POP's backhaul (k 'b') is drawn like a sky circuit. Each dish has a load ring. data.hi (a flow id) is drawn on top, the rest dimmed. */
 const PG_FLOWS=[24,48],PG_ARC=24,PG_D=Math.PI/180,PG_XF=2.6,PG_FPS=30,PG_FULL={short:1584,frozen:520,upper:1200,flaky:2500},PG_CI={short:0,frozen:1,upper:2,flaky:3};
 const PG_ST={
   day:{sea:'#57C4E5',sea2:'#3AA6CF',land:'#9BDA6C',ink:'#1E2640',grid:'rgba(255,255,255,.35)',sat:['#FFFFFF','#FFD23F','#FF4F9A','#B9A6FF'],laser:'#FF4F9A',beam:['#FF8A3D','#FFD23F'],dish:'#FF4F9A',off:'#8A91A8',flow:'#FFD23F',fglow:'#1E2640',hi:'#FF4F9A',pkt:'#FFFFFF'},
@@ -48,7 +48,7 @@ function pgRefresh(now){PG.dAt=now;let d=null;try{d=PG.get?PG.get():null;}catch(
 function pgFlows(list,cap,hi){const out=[],L=pgArr(list),seen=new Set();let n=0;
   const take=f=>{if(!f||typeof f.id!=='string'||seen.has(f.id))return;const g=pgNum(f.g,0),pts=pgPlace(pgArr(f.pts).map(c=>({city:c})),2);if(!(g>0)||pts.length<2)return;
     const a=pts[0].v,b=pts[1].v,dot=Math.max(-1,Math.min(1,a[0]*b[0]+a[1]*b[1]+a[2]*b[2])),om=Math.acos(dot);if(om<1e-3)return;seen.add(f.id);
-    const sky=f.k==='c',h=(sky?Math.max(200,Math.min(2000,pgNum(f.alt,550))):550)/6371*PG_XF,raw=new Float32Array((PG_ARC+1)*3),so=Math.sin(om);
+    const sky=f.k==='c'||f.k==='b',h=(sky?Math.max(200,Math.min(2000,pgNum(f.alt,550))):550)/6371*PG_XF,raw=new Float32Array((PG_ARC+1)*3),so=Math.sin(om);
     for(let i=0;i<=PG_ARC;i++){const s=i/PG_ARC,p=Math.sin((1-s)*om)/so,q=Math.sin(s*om)/so,r=1+h*(sky?Math.min(1,s/0.15,(1-s)/0.15):Math.sin(Math.PI*s));
       raw[i*3]=(p*a[0]+q*b[0])*r;raw[i*3+1]=(p*a[1]+q*b[1])*r;raw[i*3+2]=(p*a[2]+q*b[2])*r;}
     out.push({id:f.id,sky,w:Math.min(7,1.2+1.5*Math.log10(1+g)),raw,pos:new Float32Array(raw.length),pk:Math.min(4,1+Math.floor(Math.log10(1+g)))});};
