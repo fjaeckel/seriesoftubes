@@ -7,6 +7,8 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 - A new button next to the speed controls opens a NOC screen in a window of its own, to keep on a second display beside the map. It is a dark wallboard with a live world map of your links and POPs, traffic and money graphs, alarms, and your hottest ports with their upgrade buttons, which work on the running game; click a POP to see its ports. Details has the full dashboard, and Full screen fills the display. The new window only shows and sends clicks: your network is still played and saved in the game window. Phones do not show the button.
+- The map zooms in twice as far, for crowded regions like New England or around Washington.
+- Cable ships at anchor sit a little further out from their port, and a tap on a city picks the city even with a ship close by.
 
 ## [2.8.0] — 2026-11-04
 

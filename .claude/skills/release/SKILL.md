@@ -65,17 +65,16 @@ gh api repos/fjaeckel/seriesoftubes/releases/latest --jq '.tag_name+" "+.publish
 
 ## Steps
 
-1. Make sure `main` is green: `npm test` and `node scripts/i18n-check.js`
-   ("0 missing, 0 unused, 0 broken").
+1. Don't run the test suite, the game or benchmarks before a release: CI and the
+   auto-release workflow test it, and the Performance workflow benchmarks it. Just
+   check that the latest CI run on `main` is green (`gh run list --repo fjaeckel/seriesoftubes --limit 4`).
 2. In `CHANGELOG.md`, move the bullets from `## [Unreleased]` into a new section
    right below it: `## [x.y.z] — YYYY-MM-DD` (em dash, today's date). Keep an empty
    `## [Unreleased]` heading above it. The build fails if the section has no bullets.
 3. Bump the version in **both** files:
    - `package.json` → `"version"`
    - `package-lock.json` → top-level `"version"` and `packages[""].version`
-4. `npm test` once more.
-   Then compare performance with the previous release and mention anything notable to Frederic:
-   `npm run perf -- --base-ref v<last>`.
+4. (Nothing to run here: the workflow tests the release before it tags it.)
 5. Commit on `main` as Frederic, with no attribution trailers:
    ```bash
    git -c user.name="Frederic Jung" -c user.email="frederic@jc-ix.net" commit \
