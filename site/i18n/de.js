@@ -14,6 +14,7 @@
 "action_helpers.too_far_even_at_its_slowest":"Zu weit, selbst in der langsamsten Einstellung: Ein optischer Abschnitt ist hier {span} km lang, die Reichweite beträgt {max} km. Füge einen Regenerator-Standort hinzu (Line System).",
 "action_helpers.unlocks_at_customer_level_n":"Wird ab Kundenlevel {n} freigeschaltet.",
 "action_helpers.upgrades_cannot_stretch_this_optic":"Dieser Kanal reicht auf diesem Kabel {max} km weit; die Strecke ist {span} km lang. Unterwasser-Terminals und optisches Engineering verlängern diese Optik nicht. Diese reichen so weit: {optics}.",
+"action_helpers.you_have_no_pop_in_city":"<b>Du hast keinen POP in {city}.</b><br>Ein Link beginnt an einem deiner POPs und eröffnet am anderen Ende einen POP, wenn dort keiner ist.",
 "actions.your_router_can_t_take_a":"<b>Dein Router kann keinen {port}-Port aufnehmen.</b><br>Rüste ihn im Tab Infra auf.",
 "architect.anchor":"🐒 Platsch!",
 "architect.architect_runs":"Architekt-Runs",

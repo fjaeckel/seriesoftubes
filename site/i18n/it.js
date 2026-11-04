@@ -12,6 +12,7 @@
 "action_helpers.too_far_even_at_its_slowest":"Troppo lontano anche alla velocità più bassa: qui una tratta ottica è di {span} km e l’ottica arriva a {max} km. Aggiungi un sito di rigenerazione (Sistema di linea).",
 "action_helpers.unlocks_at_customer_level_n":"Si sblocca al livello cliente {n}.",
 "action_helpers.upgrades_cannot_stretch_this_optic":"Questo canale raggiunge {max} km su questo cavo; il percorso è di {span} km. Terminali sottomarini e ingegneria ottica non allungano quest’ottica. Ci arrivano: {optics}.",
+"action_helpers.you_have_no_pop_in_city":"<b>Non hai nessun POP a {city}.</b><br>Un link parte da uno dei tuoi POP e, se serve, apre un POP all’altro capo.",
 "actions.your_router_can_t_take_a":"<b>Il tuo router non regge una porta {port}.</b><br>Aggiornalo nella scheda Infra.",
 "architect.anchor":"🐒 Splash!",
 "architect.architect_runs":"Partite da architetto",

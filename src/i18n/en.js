@@ -13,6 +13,7 @@
 "action_helpers.too_far_even_at_its_slowest":"Too far even at its slowest setting: an optical span here is {span} km and it reaches {max} km. Add a regen site (Line system).",
 "action_helpers.unlocks_at_customer_level_n":"Unlocks at customer level {n}.",
 "action_helpers.upgrades_cannot_stretch_this_optic":"This channel reaches {max} km on this cable; the route is {span} km. Submarine terminals and optical engineering do not stretch this optic. These reach it: {optics}.",
+"action_helpers.you_have_no_pop_in_city":"<b>You have no POP in {city}.</b><br>A link starts at one of your POPs, and opens a POP at the far end if it needs one.",
 "actions.your_router_can_t_take_a":"<b>Your router can't take a {port} port.</b><br>Upgrade it in the Infra tab.",
 "architect.anchor":"🐒 Splash!",
 "architect.architect_runs":"Architect runs",

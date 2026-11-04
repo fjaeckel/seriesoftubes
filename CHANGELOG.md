@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The project follows
 
 - The map zooms in twice as far, for crowded regions like New England or around Washington.
 - Cable ships at anchor sit a little further out from their port, and a tap on a city picks the city even with a ship close by.
+- Agents playing through the Agent API can no longer start a link in a city where you have no POP, just as on the map. Before, an agent could sign a dark fiber IRU, lease a wave or lay a cable from such a city; now it is told why, and so is its dry run.
 
 ## [2.8.0] — 2026-11-04
 

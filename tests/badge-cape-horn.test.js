@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const { load } = require('./harness');
 
 const horn = (ev) => ev("BADGES.find(b=>b.id==='horn').ok()");
-const start = (ev) => ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=5e9;S.lvl=4;S.won=true;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'bue'})");
+const start = (ev) => ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=5e9;S.lvl=4;S.won=true;for(const g of GOALS)S.done[g.id]=0;ACT.buildPop({city:'bue'});ACT.launchBB({city:'bue'})");
 
 test('#272 your own subsea cable from Buenos Aires to Santiago earns The Long Way Round', () => {
   const { ev, errors } = load();

@@ -54,7 +54,7 @@ test('packages included in the original order stay aligned with its accelerated 
   const { ev, dom } = load();
   try {
     setup(ev);
-    ev("S.won=true;UI.pending={a:'sin',b:'lax'};UI.seaterminal=UI.seaengineering=true;ACT.orderCable();S.links=[S.links.at(-1)]");
+    ev("S.won=true;ACT.buildPop({city:'sin'});UI.pending={a:'sin',b:'lax'};UI.seaterminal=UI.seaengineering=true;ACT.orderCable();S.links=[S.links.at(-1)]");
     assert.equal(ev('S.links[0].subterminal'), ev('S.links[0].ready'));
     assert.equal(ev('S.links[0].subengineering'), ev('S.links[0].ready'));
     const ready = ev('S.links[0].ready');

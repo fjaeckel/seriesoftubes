@@ -12,6 +12,7 @@
 "action_helpers.too_far_even_at_its_slowest":"Demasiado lejos incluso en su ajuste más lento: aquí un tramo óptico mide {span} km y el alcance es de {max} km. Añade un sitio regenerador (Sistema de línea).",
 "action_helpers.unlocks_at_customer_level_n":"Se desbloquea en el nivel de cliente {n}.",
 "action_helpers.upgrades_cannot_stretch_this_optic":"Este canal llega a {max} km en este cable; la ruta mide {span} km. Las terminales submarinas y la ingeniería óptica no alargan esta óptica. Estas sí llegan: {optics}.",
+"action_helpers.you_have_no_pop_in_city":"<b>No tienes ningún POP en {city}.</b><br>Un enlace empieza en uno de tus POP y abre un POP en el otro extremo si hace falta.",
 "actions.your_router_can_t_take_a":"<b>Tu router no admite un puerto de {port}.</b><br>Mejóralo en la pestaña Infra.",
 "architect.anchor":"🐒 ¡Chof!",
 "architect.architect_runs":"Partidas de arquitecto",

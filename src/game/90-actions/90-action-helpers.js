@@ -9,6 +9,9 @@ function prunePairMet(){const m=S.pairMet;if(!m)return;const k=new Set(S.links.m
 // Short, busy subsea routes (London–Amsterdam, London–Paris) sell dark fiber pairs too.
 function subDfCable(a,b){return cablesOk(a,b).filter(c=>CAB[c.cid].df).sort((x,y)=>x.km-y.km)[0]||null;}
 function dfAllowed(a,b){if(isSub(a,b))return !!subDfCable(a,b);return cnCity(a)===cnCity(b)&&!uaePair(a,b)&&!landX(a,b);}
+// A link starts at one of your POPs. The map only drags one from a POP, but a typed order (the agent API) names both ends.
+function linkFromWhy(a){return S.pops[a]?'':tr('action_helpers.you_have_no_pop_in_city',{city:CITY[a].name});}
+function linkFromOk(a){const w=linkFromWhy(a);if(w){toast(w,'bad');sfx('err');}return !w;}
 /* Optics you unplug go on a spares shelf instead of in the bin (#45): the next channel of that type uses a spare
    for free (only the regen sites' transponders are new), or you sell it on eBuy for part of the price. */
 const SPARE_RESALE=0.4,spareN=o=>(S&&S.spares&&S.spares[o])|0,spareValue=o=>Math.round(optCost(o)*SPARE_RESALE);
