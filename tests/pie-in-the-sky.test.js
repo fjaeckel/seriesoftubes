@@ -81,7 +81,7 @@ test('actions cost what they should', () => {
   assert.equal(step(`ACT.pieAnt({id:'${id}'})`), ev('piePrice(PIE_ANT)'));
   assert.equal(step("ACT.pieLic({cc:'DE'})"), ev("pieLicPrice('DE')"));
   assert.ok(ev("pieLicPrice('US')") > ev("pieLicPrice('LU')"), 'big markets cost more');
-  assert.ok(ev("pieLicPrice('US')") <= 200e6 && ev("pieLicPrice('MH')") >= 10e6);
+  assert.ok(ev("pieLicPrice('US')<=PIE_LIC_MAX") && ev("pieLicPrice('MH')") >= 10e6);
   assert.equal(ev("pieLicOk('DE')&&pieDishes().length"), 1, 'a licensed dish is live');
   // a launch: rocket with the equatorial discount, 20 pies, the party later
   ev('S.pie.stock=100');

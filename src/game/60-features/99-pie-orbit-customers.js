@@ -5,7 +5,7 @@
    your crusts can sell (PIE_SELL of their capacity, the rest flies over ocean and empty land) caps what is signed and
    on offer, so orbit income cannot outgrow the sky (like F5). Remote towns (no POP of yours, few people) are the first
    to call: Pitcairn, the Arctic, the outer islands. */
-const PIE_SELL=0.25,PIE_REMOTE=0.6,PIE_OFFER_RATE=1/6,PIE_OFFERS=2;
+const PIE_SELL=0.4,PIE_REMOTE=0.6,PIE_OFFER_RATE=1/3,PIE_OFFERS=2;
 // Orbit customers know the sky has bad weeks: without service they lose at most PIE_PATIENCE happiness a day (the day tick),
 // so they grumble, then fume, and cancel only after about a month of nothing, not in three days like a fiber customer.
 const PIE_PATIENCE=4;
@@ -27,5 +27,5 @@ function pieSpawn(t){const T=BIZ_T[t],min=T.opts[0],ok=pieCands(t).filter(c=>{if
   const left=Math.min(pieRoom(t),pieServe(city,t).left-S.offers.reduce((a,o)=>a+(BIZ_T[o.type].orbit?o.bw:0),0)),opts=T.opts.filter(g=>g<=left),bw=opts.length?pick(opts):0;if(!bw)return;
   const list=T.names.filter(n=>!S.usedNames.includes(n)),name=list.length?pick(list):pick(T.names);useName(name);
   S.offers.push({id:uid(),city,city2:null,name,type:t,bw,rate:T.rate,reqs:[],exp:S.day+40});}
-// Orbit has its own sales desk, so the ground's offers keep their odds: about one call a week, two on the table at most.
+// Orbit has its own sales desk, so the ground's offers keep their odds: about one call every three days, two on the table at most.
 PIE_ON.day.push(()=>{if(S.offers.filter(o=>BIZ_T[o.type].orbit).length>=PIE_OFFERS)return;const t=pieOfferTypes();if(t.length&&Math.random()<PIE_OFFER_RATE)pieSpawn(pick(t));});

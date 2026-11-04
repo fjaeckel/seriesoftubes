@@ -639,38 +639,8 @@ test('O7: a fresh Tier 1 cannot afford a full Shortcrust in its first year', () 
   assert.deepEqual(g.errors, []);
 });
 
-// Years a full crust takes to pay for itself: the build (company, factory, pad, rockets, lasered pies, the dishes it needs
-// and landing rights) over a year's orbit income less running costs, licences and replacing the pies as they age out.
-const PAYBACK = `((cr,rev,dishes,lic)=>{const C=CRUSTS[cr],ndish=dishes??Math.ceil(C.g*PIE_SELL/(PIE_ANT_MAX*PIE_ANT_G));
-  const build=pieFullCost(cr)+C.full*PIE_LAS+ndish*piePrice(PIE_DISH+PIE_ANT*PIE_ANT_MAX)+lic;
-  const renew=(C.full*(PIE_PIE+PIE_LAS)+Math.ceil(C.full/ROCKETS.heavy.pies)*ROCKETS.heavy.cost)/(C.life/360);
-  return build/(12*rev-12*(PIE_CO_MO+PIE_FAC_MO+PIE_PAD_MO+ndish*PIE_DISH_MO)-lic-renew);})`;
-
-test('O7: a full constellation never pays back in under 5 years, and a strong network’s pays back in 5 to 10', () => {
-  const g = load();
-  // (A negative answer: it never pays back.) The best case for every crust: every Gbps the sky can sell is sold, the capped kinds at their cap, the rest at the
-  // dearest rate, all served. A dish needs a city of its own (one per POP), so the dishes it takes pay the cheapest
-  // landing rights any set of that many covered cities in the world could have.
-  const best = JSON.parse(g.ev(`JSON.stringify(Object.keys(CRUSTS).map(cr=>{const T=Object.values(BIZ_T).filter(t=>t.orbit);let left=1,r=0;
-    for(const t of T.filter(t=>t.share)){r+=t.share*t.rate;left-=t.share;}r+=left*Math.max(...T.filter(t=>!t.share).map(t=>t.rate));
-    const nd=Math.ceil(CRUSTS[cr].g*PIE_SELL/(PIE_ANT_MAX*PIE_ANT_G)),n={};for(const c of CITIES)if(pieCovers(cr,c.id))n[c.cc]=(n[c.cc]||0)+1;
-    let k=0,lic=0;for(const cc of Object.keys(n).sort((a,b)=>pieLicPrice(a)/n[a]-pieLicPrice(b)/n[b])){if(k>=nd)break;k+=n[cc];lic+=pieLicPrice(cc);}
-    return [cr,${PAYBACK}(cr,CRUSTS[cr].g*PIE_SELL*r,nd,lic)];}))`));
-  for (const [cr, y] of best) assert.ok(y < 0 || y >= 5, `O7: a full ${cr} pays back in ${y.toFixed(1)} years at best; make orbit dearer or its customers cheaper`);
-  // The seeded reference: the big-network save, a full lasered Shortcrust, 32 full dishes in the cheapest countries to
-  // license, and every orbit customer the market offers signed (the real offers, routed by compute()).
-  const save = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
-  g.ev(`S=migrate(JSON.parse(${JSON.stringify(save)}));S.pieV=1;S.nextFail=1e9;S.nextEvent=1e9;__reseed(7);compute()`);
-  const ref = JSON.parse(g.ev(`(()=>{pieInit();const P=S.pie;P.co={name:PIE_NAMES[0]};P.fac=true;P.pads=[{city:'mia',next:0,boosters:[]}];
-    const pops=Object.keys(S.pops).filter(c=>pieCovers('short',c)),n={};for(const c of pops)n[CITY[c].cc]=(n[CITY[c].cc]||0)+1;
-    const top=pops.sort((a,b)=>pieLicPrice(CITY[a].cc)/n[CITY[a].cc]-pieLicPrice(CITY[b].cc)/n[CITY[b].cc]||CITY[b].P-CITY[a].P).slice(0,32);
-    for(const c of top){P.dishes.push({id:'d'+c,city:c,ant:PIE_ANT_MAX,down:0});P.lic[CITY[c].cc]={state:'ok',until:1e6};}
-    P.crusts.short.cohorts=[{n:CRUSTS.short.full,day:S.day,las:true}];compute();
-    for(let i=0;i<4000&&pieSold()<pieMarket()-20;i++){S.offers=S.offers.filter(o=>!BIZ_T[o.type].orbit);const t=pieOfferTypes();if(!t.length)break;pieSpawn(pick(t));const o=S.offers.find(o=>BIZ_T[o.type].orbit);if(o)ACT.accept({id:o.id});}
-    compute();const lic=Object.keys(P.lic).reduce((a,cc)=>a+pieLicPrice(cc),0);return JSON.stringify({rev:R.pie.rev,y:${PAYBACK}('short',R.pie.rev,top.length,lic)});})()`));
-  assert.ok(ref.y >= 5 && ref.y <= 10, `O7: the reference Shortcrust pays back in ${ref.y.toFixed(1)} years on ${Math.round(ref.rev / 1e6)}M/mo from orbit; aim for 6 to 10`);
-  assert.deepEqual(g.errors, []);
-});
+// O7's other half (a full lasered Shortcrust pays back in 5 to 10 years, never sooner) is played through the game loop
+// in tests/pie-balance.test.js, so it counts launches, aging, incidents, churn and every running cost.
 
 test('no page errors while checking the rules', () => {
   assert.deepEqual(errors, []);

@@ -4,10 +4,10 @@
    of the game. The economy and the daily tick are in 60-features/99-pie-in-the-sky.js. */
 const PIE_MUL=1;
 const PIE_CO=250e6,PIE_CO_MO=5e6,PIE_FAC=1e9,PIE_FAC_MO=8e6,PIE_FAC_MONTH=120,PIE_STOCK_MAX=480,
-  PIE_PIE=1e6,PIE_LAS=0.5e6,PIE_PAD=400e6,PIE_PAD_MO=2e6,PIE_PAD_MAX=6,PIE_EQ=0.15,
+  PIE_PIE=0.5e6,PIE_LAS=0.25e6,PIE_PAD=400e6,PIE_PAD_MO=2e6,PIE_PAD_MAX=6,PIE_EQ=0.15,
   PIE_REUSE=500e6,PIE_HEAVY=3e9,PIE_HEAVY_TESTS=3,PIE_BOOST=40e6,PIE_BOOST_MAX=20,PIE_BOOSTERS=6,PIE_INS=0.08,
   PIE_DISH=25e6,PIE_ANT=2e6,PIE_ANT_MAX=16,PIE_ANT_G=20,PIE_DISH_MO=3e5,PIE_DISH_MAX=200,
-  PIE_LIC_MIN=10e6,PIE_LIC_MAX=200e6,PIE_LIC_DAYS=360,PIE_LEOIX=50e6,PIE_LEOIX_MO=1e6,PIE_PARTY=2e6,
+  PIE_LIC_MIN=10e6,PIE_LIC_MAX=100e6,PIE_LIC_P=12000,PIE_LIC_DAYS=360,PIE_LEOIX=50e6,PIE_LEOIX_MO=1e6,PIE_PARTY=2e6,
   PIE_QUIET=90,PIE_PREP=7,PIE_Q_MAX=40,PIE_COHORTS=240,PIE_POSTS=20,PIE_RAW=0.4,PIE_BAKED=0.6,PIE_SPARE=1.1,PIE_WEAR=0.3;
 // In generation order. fail: chance a launch is lost (x chaos); land: chance a reused booster does not come back.
 const ROCKETS={
@@ -63,7 +63,7 @@ function pieCoast(c){if(!isCity(c))return false;if(PIE_COAST.has(c))return PIE_C
 // Launching nearer the equator saves fuel: up to 15% off a launch, nothing above 45 degrees.
 const pieEq=c=>PIE_EQ*clamp((45-Math.abs(CITY[c].lat))/35,0,1);
 // Landing rights by market size: the eyeballs of every city in the country.
-const pieLicPrice=cc=>Math.round(clamp(PIE_LIC_MIN+CITIES.reduce((a,c)=>a+(c.cc===cc?c.P:0),0)*28000,PIE_LIC_MIN,PIE_LIC_MAX)/1e6)*1e6;
+const pieLicPrice=cc=>Math.round(clamp(PIE_LIC_MIN+CITIES.reduce((a,c)=>a+(c.cc===cc?c.P:0),0)*PIE_LIC_P,PIE_LIC_MIN,PIE_LIC_MAX)/1e6)*1e6;
 // The feature is here: unlocked by becoming Tier 1 in a save of this version, or open gates (sandbox). Never in puzzles,
 // the Architect or scenarios.
 function pieOn(){return !!S&&!S.scn&&S.mode!=='puzzle'&&(!!S.pie||gatesOpen());}

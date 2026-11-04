@@ -38,14 +38,14 @@ Pies are cohorts, never one object per satellite. `sanitize()` clamps all of it.
 | --- | --- | --- |
 | Found company | $250M | $5M/mo |
 | Pie factory | $1B | $8M/mo, 120 pies/mo |
-| Pie | $1M (+$0.5M lasers) | - |
+| Pie | $0.5M (+$0.25M lasers) | - |
 | Launch pad (coastal/beach city with a POP) | $400M | $2M/mo, equatorial -15% per launch |
 | Falcon Punch launch | $60M, 20 pies | - |
 | Reuse R&D (Falcon Punch Again) | $500M; launch $30M; booster lost $40M | - |
 | Heavy R&D (Starshipping & Handling) | $3B; $100M/launch, 100 pies, first 3 test flights explode | - |
 | Insurance | 8% of launch, optional | - |
 | Pie dish (city with a POP) | $25M + $2M per antenna | $300k/mo |
-| Landing rights | $10M-$200M per country by market size | yearly |
+| Landing rights | $10M-$100M per country by market size | yearly |
 | LEO-IX port | $50M | $1M/mo |
 | Founder launch party | $2M per launch, automatic | - |
 
