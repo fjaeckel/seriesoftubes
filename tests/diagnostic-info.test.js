@@ -63,21 +63,22 @@ test('it measures frames per second, the slowest frames and draw()', () => {
   const { ev, errors } = h;
   try {
     ev('diagOn(true)');
-    // 60 frames, so 59 intervals: 58 of 16 ms and a last one of 50 ms (978 ms in all), each map drawn in 2 ms.
-    ev('let t=1000;for(let i=0;i<60;i++){t+=i===59?50:16;DIAG.dms=2;diagFrame(t);}diagShow();');
+    // 60 frames, so 59 intervals: 58 of 16 ms and a last one of 50 ms (978 ms in all); the map drawn on every other
+    // one (a still map is not drawn again), in 2 ms: 30 in 978 ms, 31 a second.
+    ev('let t=1000;for(let i=0;i<60;i++){t+=i===59?50:16;if(i%2)DIAG.dms=2;diagFrame(t);}diagShow();');
     const t = text(ev);
-    assert.match(t, /\b60 fps · p95 16 ms · max 50 ms/);
+    assert.match(t, /\b60 fps · map drawn 31\/s · p95 16 ms · max 50 ms/);
     assert.match(t, /draw 2\.0 ms · x0 · zoom /);
     assert.deepEqual(errors, []);
   } finally { h.done(); }
 });
 
-test('?fps and ?vp open it, ?nofps closes it, and the old frame meter setting carries over', () => {
-  for (const [url, storage, want] of [['?fps', {}, true], ['?vp', {}, true], ['?nofps', { 'sot-vp': '1' }, false], ['', { 'sot-fps': '1' }, true], ['', {}, false]]) {
+test('?fps and ?vp open it, ?nofps closes it, and it stays open on this device', () => {
+  for (const [url, storage, want] of [['?fps', {}, true], ['?vp', {}, true], ['?nofps', { 'sot-vp': '1' }, false], ['', { 'sot-vp': '1' }, true], ['', {}, false]]) {
     const h = load({ seed: 777, url: 'https://tests.invalid/' + url, storage });
     try {
       assert.equal(h.ev('!!document.getElementById("diag")'), want, `${url || 'no flag'} ${JSON.stringify(storage)}`);
-      assert.equal(h.ev('localStorage.getItem("sot-fps")'), null, 'the old key is gone');
+      assert.equal(h.ev('localStorage.getItem("sot-vp")'), want ? '1' : null, 'remembered as one setting');
     } finally { h.dom.window.close(); }
   }
 });
