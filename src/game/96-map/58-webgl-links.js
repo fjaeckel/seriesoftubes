@@ -1,6 +1,7 @@
 /* The tubes on the card: every tube is one instanced draw per layer (halo, casing, colour, fiber dots, packets), and
    the packets travel their paths in the vertex shader, so a frame costs a few uniforms however many tubes there are.
-   The buffers are rebuilt only when the network, the routing, the day or the selection change. Depth stands in for
+   The buffers are rebuilt only when the network, the routing or the day change; a selection only rebuilds the halo,
+   a buffer of the selected tube's own segments. Depth stands in for
    the 2D painting order: a later tube's casing still covers an earlier tube's colour and packets. */
 // The line program's passes: a tube's layers in drawFrame()'s order, and plain lines (coasts, waves, cables).
 const LP={halo:0,casing:1,colour:2,dots:3,plain:4};
@@ -58,29 +59,37 @@ void main(){float d=length(vLoc),out_=clamp((vR+vLw*.5-d)*uDpr+.5,0.,1.);if(out_
   float inn=clamp((vR-vLw*.5-d)*uDpr+.5,0.,1.);vec3 c=mix(vec3(30./255.,38./255.,64./255.),vec3(1.),inn);o=vec4(c*out_,out_);}`;
 /* The tubes as instance data: their segments (see LINE_STRIDE; later tubes are nearer), their packets (first point,
    points, length, packets | which, base width, depth, -), and every tube's points in the texture. */
-function glBuild(LG,GM,looks,selId){const gl=GLX.gl,N=LG.length;let ns=0,np=0,nk=0;
+const glDepth=(gi,N)=>1-(gi+1)/(N+2);
+function glBuild(LG,GM,looks){const gl=GLX.gl,N=LG.length;let ns=0,np=0,nk=0;
   for(let gi=0;gi<N;gi++){ns+=GM[gi].pts.length-1;np+=GM[gi].pts.length;nk+=looks[gi].pk;}
   const SEG=new Float32Array(ns*LINE_STRIDE),PK=new Float32Array(nk*8),TH=Math.max(1,Math.ceil(np/GL_PTS_W)),PT=new Float32Array(GL_PTS_W*TH*4);
-  let si=0,ki=0,pi=0,sel=false;
-  for(let gi=0;gi<N;gi++){const L=looks[gi],{pts,cum,len}=GM[gi],dep=1-(gi+1)/(N+2),col=glColor(L.col);
-    const hot=!!selId&&LG[gi].some(x=>x.id===selId);if(hot)sel=true;const fl=(hot?LINE_SEL:0)|(L.df&&!L.bld&&!L.dark?LINE_FIBER:0),p0=pi;
+  let si=0,ki=0,pi=0;
+  for(let gi=0;gi<N;gi++){const L=looks[gi],{pts,cum,len}=GM[gi],dep=glDepth(gi,N),col=glColor(L.col);
+    const fl=L.df&&!L.bld&&!L.dark?LINE_FIBER:0,p0=pi;
     for(let j=0;j<pts.length;j++){PT[pi*4]=pts[j][0];PT[pi*4+1]=pts[j][1];PT[pi*4+2]=cum[j];pi++;}
     for(let j=0;j+1<pts.length;j++)glSegAt(SEG,si++,pts[j][0],pts[j][1],pts[j+1][0],pts[j+1][1],cum[j]*len,L.w0,L.dash,fl,dep,col);
     for(let i=0;i<L.pk;i++){const o=ki*8;PK[o]=p0;PK[o+1]=pts.length;PK[o+2]=len;PK[o+3]=L.pk;PK[o+4]=i;PK[o+5]=L.w0;PK[o+6]=dep;ki++;}}
   gl.bindBuffer(gl.ARRAY_BUFFER,GLX.lv.b);gl.bufferData(gl.ARRAY_BUFFER,SEG,gl.DYNAMIC_DRAW);
   gl.bindBuffer(gl.ARRAY_BUFFER,GLX.pv.b);gl.bufferData(gl.ARRAY_BUFFER,PK,gl.DYNAMIC_DRAW);
   gl.bindTexture(gl.TEXTURE_2D,GLX.tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA32F,GL_PTS_W,TH,0,gl.RGBA,gl.FLOAT,PT);
-  Object.assign(GLX,{nSeg:ns,nPk:nk,sel});return {SEG,PK,PT};}
+  Object.assign(GLX,{nSeg:ns,nPk:nk});return {SEG,PK,PT};}
+// The selected tube's halo: its segments again, at its own depth (so later tubes still cover it), and nothing else.
+function glHalo(LG,GM,looks,selId){const gl=GLX.gl,N=LG.length,A=[];
+  if(selId)for(let gi=0;gi<N;gi++){if(!LG[gi].some(x=>x.id===selId))continue;const L=looks[gi],{pts,cum,len}=GM[gi],dep=glDepth(gi,N),col=glColor(L.col);
+    for(let j=0;j+1<pts.length;j++)A.push(pts[j][0],pts[j][1],pts[j+1][0],pts[j+1][1],cum[j]*len,L.w0,L.dash,LINE_SEL,dep,col[0],col[1],col[2]);}
+  const F=new Float32Array(A);if(F.length){gl.bindBuffer(gl.ARRAY_BUFFER,GLX.hv.b);gl.bufferData(gl.ARRAY_BUFFER,F,gl.DYNAMIC_DRAW);}
+  GLX.nHalo=F.length/LINE_STRIDE;return F;}
 // Draws the tubes and their packets over the background glBegin() painted (ML: mapLinks(), sc: the icon scale).
 function glFrame(ML,ks,far,busy,now,sc){const gl=GLX.gl;
-  const selId=UI.sel&&UI.sel.type==='link'?UI.sel.id:'',key=[ML,selId];
-  if(key.some((v,i)=>v!==GLX.key[i])){glBuild(ML.LG,ML.GM,ML.looks,selId);GLX.key=key;}
+  const selId=UI.sel&&UI.sel.type==='link'?UI.sel.id:'',net=GLX.key[0]!==ML;
+  if(net)glBuild(ML.LG,ML.GM,ML.looks);
+  if(net||GLX.key[1]!==selId){glHalo(ML.LG,ML.GM,ML.looks,selId);GLX.key=[ML,selId];}
   gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.depthMask(true);
-  const L=GLX.line,K=GLX.pk,wm=sc*(far?0.5:1),lines=(pass)=>{gl.useProgram(L.p);gl.bindVertexArray(GLX.lv.v);gl.uniform1f(L.u.uBusy,busy?1:0);gl.uniform1i(L.u.uPass,pass);
-    for(const k of ks){glSet(gl,L,k,wm);gl.drawArraysInstanced(gl.TRIANGLE_STRIP,0,4,GLX.nSeg);}};
+  const L=GLX.line,K=GLX.pk,wm=sc*(far?0.5:1),lines=(pass,v=GLX.lv.v,n=GLX.nSeg)=>{gl.useProgram(L.p);gl.bindVertexArray(v);gl.uniform1f(L.u.uBusy,busy?1:0);gl.uniform1i(L.u.uPass,pass);
+    for(const k of ks){glSet(gl,L,k,wm);gl.drawArraysInstanced(gl.TRIANGLE_STRIP,0,4,n);}};
   if(GLX.nSeg)for(const pass of [LP.casing,LP.colour,LP.dots])lines(pass);
   if(GLX.nPk){gl.useProgram(K.p);gl.bindVertexArray(GLX.pv.v);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,GLX.tex);gl.uniform1i(K.u.uPts,0);
     gl.uniform1f(K.u.uT,now/1000);gl.uniform1f(K.u.uFar,far?1:0);for(const k of ks){glSet(gl,K,k,wm);gl.drawArraysInstanced(gl.TRIANGLE_STRIP,0,4,GLX.nPk);}}
   // The selection's halo goes over earlier tubes but under its own line and later ones, as in 2D.
-  if(GLX.sel&&GLX.nSeg){gl.depthFunc(gl.LESS);gl.depthMask(false);lines(LP.halo);gl.depthMask(true);}
+  if(GLX.nHalo){gl.depthFunc(gl.LESS);gl.depthMask(false);lines(LP.halo,GLX.hv.v,GLX.nHalo);gl.depthMask(true);}
   gl.bindVertexArray(null);}

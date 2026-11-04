@@ -21,7 +21,7 @@ const STUB = `(()=>{const calls=[];const gl=new Proxy({calls},{get(t,k){if(k in 
   return (...a)=>{calls.push([k,...a]);return {};};}});
   const c=document.getElementById('mapgl'),f=document.getElementById('mapfx');
   const P=()=>({p:{},u:{}}),B=()=>({v:{},b:{}});
-  Object.assign(GLX,{want:true,dead:false,gl,c,f,fx:f.getContext('2d'),line:P(),pk:P(),fill:P(),fan:P(),ell:P(),land:{},circ:P(),tex:{},lv:B(),pv:B(),cb:B(),wv:B(),cl:B(),empty:{},key:[],gpu:'stub'});return gl;})()`;
+  Object.assign(GLX,{want:true,dead:false,gl,c,f,fx:f.getContext('2d'),line:P(),pk:P(),fill:P(),fan:P(),ell:P(),land:{},circ:P(),tex:{},lv:B(),hv:B(),pv:B(),cb:B(),wv:B(),cl:B(),empty:{},key:[],gpu:'stub'});return gl;})()`;
 
 test('without WebGL2 the map stays 2D, and asking for WebGL changes nothing', () => {
   const { ev, errors } = open();
@@ -38,23 +38,24 @@ test('the instance data says what the 2D map draws: points, colours, dashes, pac
   const { ev } = open();
   ev(STUB);
   const r = JSON.parse(ev(`(()=>{const PI=pairIdx(),LG=linkGroups(),GM=LG.map(g=>linkGeom(g[0],PI.get(edgeKey(g[0]))));
-    const sel=LG[3][0].id,looks=LG.map(g=>linkLook(g,S.day)),{SEG,PK,PT}=glBuild(LG,GM,looks,sel);let si=0,ki=0,pi=0,bad=[];const deps=[];
+    const sel=LG[3][0].id,looks=LG.map(g=>linkLook(g,S.day)),{SEG,PK,PT}=glBuild(LG,GM,looks),H=glHalo(LG,GM,looks,sel);let si=0,ki=0,pi=0,hi=0,bad=[];const deps=[];
     for(let gi=0;gi<LG.length;gi++){const gm=GM[gi],L=looks[gi],[r,g,b]=glColor(L.col),hot=LG[gi].some(x=>x.id===sel);
       for(let j=0;j<gm.pts.length;j++){if(PT[pi*4]!==Math.fround(gm.pts[j][0])||PT[pi*4+2]!==Math.fround(gm.cum[j]))bad.push('pt '+gi);pi++;}
       for(let j=0;j+1<gm.pts.length;j++){const o=si*12;
         if(SEG[o]!==Math.fround(gm.pts[j][0])||SEG[o+3]!==Math.fround(gm.pts[j+1][1]))bad.push('seg '+gi);
         if(SEG[o+6]!==L.dash||SEG[o+5]!==Math.fround(L.w0)||SEG[o+9]!==Math.fround(r)||SEG[o+11]!==Math.fround(b))bad.push('look '+gi);
-        if(((SEG[o+7]&1)===1)!==hot||((SEG[o+7]&2)===2)!==(L.df&&!L.bld&&!L.dark))bad.push('flags '+gi);
+        if((SEG[o+7]&1)===1||((SEG[o+7]&2)===2)!==(L.df&&!L.bld&&!L.dark))bad.push('flags '+gi);
+        if(hot){const h=hi*12;for(let x=0;x<12;x++)if(H[h+x]!==(x===7?1:SEG[o+x]))bad.push('halo '+gi);hi++;}
         if(j===0)deps.push(SEG[o+8]);si++;}
       const n=!L.cut&&L.load>0.01?clamp(Math.round(2+L.u*10),2,12):0;for(let i=0;i<n;i++){if(PK[ki*8+3]!==n||PK[ki*8+4]!==i)bad.push('pk '+gi);ki++;}}
     return JSON.stringify({bad:bad.slice(0,5),si,segs:SEG.length/12,ki,pks:PK.length/8,groups:LG.length,
-      order:deps.every((d,i)=>!i||d<deps[i-1]),inRange:deps.every(d=>d>0&&d<1),sel:GLX.sel,moving:looks.filter(L=>!L.cut&&L.load>0.01).length});})()`));
+      order:deps.every((d,i)=>!i||d<deps[i-1]),inRange:deps.every(d=>d>0&&d<1),sel:hi>0&&hi===GLX.nHalo,moving:looks.filter(L=>!L.cut&&L.load>0.01).length});})()`));
   assert.deepEqual(r.bad, []);
   assert.equal(r.si, r.segs, 'one instance per segment');
   assert.equal(r.ki, r.pks, 'one instance per packet');
   assert.ok(r.groups > 50 && r.moving > 20, 'a big map with traffic');
   assert.ok(r.order && r.inRange, 'later tubes are nearer, so they paint over earlier ones as in 2D');
-  assert.equal(r.sel, true, 'the selected tube gets its halo');
+  assert.equal(r.sel, true, 'the selected tube, and only it, gets its halo: its own segments at its own depth');
 });
 
 test('with WebGL the lines go to the card, the rest to the overlay, and the map gets its canvas back', () => {
@@ -191,5 +192,116 @@ test('Settings › Map drawing: Auto uses the card, Always 2D keeps the 2D map a
   assert.equal(ev(`localStorage.getItem('sot-map')`), null);
   assert.equal(ev('glOn()'), true);
   assert.equal(ev(`document.getElementById('mapgl').hidden`), false);
+  assert.deepEqual(errors, []);
+});
+
+test('a sprite record that makes the queue grow is kept, for pictures and for discs', () => {
+  const { ev, errors } = open();
+  // Pictures and discs alternate, so both cross a growth (2048, then 4096 records); each record says which one it is.
+  const bad = JSON.parse(ev(`(()=>{const e={up:true,u0:.1,v0:.2,u1:.3,v1:.4,cv:null};GLS.frame=true;GLS.n=0;GLS.data=new Float32Array(SPR_STRIDE*2048);
+    for(let i=0;i<4100;i++){ctx.globalAlpha=(i%7+1)/8;if(i%2)dot(i,i*2,3+i%5,'#FF4D5E',(i%3+1)/4);else blit(e,i,i*2,10+i%9,20+i%11);}
+    ctx.globalAlpha=1;const D=GLS.data,n=GLS.n,cap=D.length/SPR_STRIDE,bad=[];GLS.frame=false;GLS.n=0;
+    for(let i=0;i<n;i++){const o=i*SPR_STRIDE,want=i%2?[i,i*2,3+i%5,1,(i%3+1)/4]:[i,i*2,10+i%9,0,(i%7+1)/8];
+      const got=i%2?[D[o],D[o+1],D[o+2],D[o+12],D[o+11]]:[D[o],D[o+1],D[o+2],D[o+12],D[o+11]];
+      if(i%2===0&&(D[o+3]!==20+i%11||D[o+4]!==Math.fround(.1)||D[o+7]!==Math.fround(.4)))bad.push(i);
+      else if(i%2&&D[o+8]!==1)bad.push(i);
+      else if(want.some((v,j)=>Math.fround(v)!==got[j]))bad.push(i);}
+    return JSON.stringify({n,cap,bad:bad.slice(0,8),edges:[2047,2048,2049,4096,4097].filter(i=>bad.includes(i))});})()`));
+  assert.equal(bad.n, 4100);
+  assert.ok(bad.cap >= 4100, 'the queue grew past 4096 records');
+  assert.deepEqual(bad.edges, [], 'the records at each growth are where they were drawn');
+  assert.deepEqual(bad.bad, [], 'and so is every other record');
+  assert.deepEqual(errors, []);
+});
+
+test('a city under attack never reuses its picture without the attack ring, and gets it back after', () => {
+  const { ev, errors } = open();
+  const r = JSON.parse(ev(`(()=>{const id=Object.keys(S.pops).find(c=>!S.pops[c].down||S.pops[c].down<=S.day),C=CITY[id],p=S.pops[id],t=cTier(id);
+    const st={down:false,feed:false,sel:false,inc:false,ixDraw:false,ixHot:false,off:false,big:false};
+    const spr=now=>{const ph=cityPhase(C,p,false,now);return [ph.dd,citySprite(C,p,t,1,1,ph,st)];};
+    R.ddosHot={};const [d0,quiet]=spr(0);
+    R.ddosHot={[id]:1};const [d1,hit0]=spr(0),[d2,hit3]=spr(90);
+    R.ddosHot={};const [d3,after]=spr(0);
+    // Animations off: the map's clock stays at 0, so the attack is always at step 0.
+    R.ddosHot={[id]:1};const [d4,still]=spr(0);
+    return JSON.stringify({dd:[d0,d1,d2,d3,d4],sameAtZero:quiet===hit0,step:hit0===hit3,back:after===quiet,still:still===hit0});})()`));
+  assert.deepEqual(r.dd, [-1, 0, 3, -1, 0]);
+  assert.equal(r.sameAtZero, false, 'step 0 of an attack is not the picture without one');
+  assert.equal(r.step, false, 'the ring turns');
+  assert.equal(r.back, true, 'once over, the plain picture is back');
+  assert.equal(r.still, true, 'with animations off the attack keeps its own picture');
+  assert.deepEqual(errors, []);
+});
+
+test('leaving a game hides the card’s layers, and the next game shows them again', () => {
+  const { ev, errors } = open();
+  ev(STUB);
+  const shown = () => JSON.parse(ev(`JSON.stringify([GLX.shown,!document.getElementById('mapgl').hidden,!document.getElementById('mapfx').hidden])`));
+  ev('draw(1000)');
+  assert.deepEqual(shown(), [true, true, true], 'a game on the card');
+  ev('ACT.toTitle();draw(1016)');
+  assert.deepEqual(shown(), [false, false, false], 'back to the title: the old network is not left behind it');
+  assert.ok(ev('ctx===CTX0'));
+  ev(`S=migrate(JSON.parse(${JSON.stringify(SAVE)}));UI.started=true;compute();draw(1032)`);
+  assert.deepEqual(shown(), [true, true, true], 'the next game is on the card again');
+  ev(`slotBroke(UI.slot||'x');draw(1048)`);
+  assert.deepEqual(shown(), [false, false, false], 'a damaged save leaves the title with an empty map too');
+  assert.deepEqual(errors, []);
+});
+
+// Faults injected into the card at each step of a frame: WebGL is given up once, the same frame is drawn in 2D, the
+// layers are hidden, and the next frames are 2D without another try or another error.
+for (const [where, inject] of [
+  ['the start of a frame', `GLX.gl.clear=()=>{throw new Error('boom')};`],
+  ['an upload of the tubes', `GLX.key=[];GLX.gl.texImage2D=()=>{throw new Error('boom')};`],
+  ['the pictures’ draw', `GLS.prog={p:{},u:{}};GLS.vao={};GLS.tex={};glsDraw=()=>{throw new Error('boom')};`],
+  ['a picture going into the atlas', `GLS.prog={p:{},u:{}};GLS.vao={};GLS.tex={};SPRS.clear();GLX.gl.texSubImage2D=()=>{throw new Error('boom')};`],
+]) {
+  test(`a fault in ${where} falls back to 2D once and for all`, () => {
+    const { ev, errors } = open();
+    ev(STUB);
+    ev(`draw(1000);${inject}window.__tries=0;const gb=glBegin;glBegin=function(){__tries++;return gb.apply(this,arguments);};
+      window.__warn=0;console.warn=function(){__warn++;};`);
+    const c0 = ev('CTX0.calls.n');
+    ev('draw(1016);draw(1032);draw(1048)');
+    assert.equal(ev('GLX.dead'), true, 'WebGL is given up');
+    assert.equal(ev('__tries'), 1, 'and not tried again every frame');
+    assert.equal(ev('__warn'), 1, 'said once');
+    assert.ok(ev('ctx===CTX0'), 'the 2D context is back');
+    assert.equal(ev('GLS.frame'), false);
+    assert.equal(ev('GLS.n'), 0);
+    assert.equal(ev(`document.getElementById('mapgl').hidden&&document.getElementById('mapfx').hidden`), true, 'the layers are hidden');
+    assert.ok(ev('CTX0.calls.n') - c0 > 1000, 'the 2D map is drawn, from the frame that failed on');
+    assert.deepEqual(errors, []);
+  });
+}
+
+test('an error outside the card still reaches the loop, and leaves the frame clean', () => {
+  const { ev, errors } = open();
+  ev(STUB);
+  ev(`draw(1000);window.__dc=drawCity;drawCity=function(){throw new Error('not the card');};`);
+  assert.throws(() => ev('draw(1016)'), /not the card/);
+  assert.equal(ev('GLX.dead'), false, 'WebGL stays on: the card did nothing wrong');
+  assert.ok(ev('ctx===CTX0'));
+  assert.equal(ev('GLS.frame'), false);
+  ev('drawCity=__dc;draw(1032)');
+  assert.equal(ev('GLX.shown'), true);
+  assert.deepEqual(errors, []);
+});
+
+test('selecting a tube sends its halo to the card, not the network again', () => {
+  const { ev, errors } = open();
+  ev(STUB);
+  const r = JSON.parse(ev(`(()=>{const h=CITY[S.home];cam.x=h.x;cam.y=h.y;cam.z=1.4;draw(1000);const c=GLX.gl.calls,nSeg=GLX.nSeg;
+    const sent=()=>{const b=c.filter(x=>x[0]==='bufferData').map(x=>x[2]&&x[2].length||0),t=c.filter(x=>x[0]==='texImage2D').length;c.length=0;return {b,t};};
+    sent();const l=S.links.find(l=>l.kind!=='vxc'&&!linkDown(l));UI.sel={type:'link',id:l.id};draw(1016);const on=sent(),halo=GLX.nHalo;
+    UI.sel=null;draw(1032);const off=sent();
+    return JSON.stringify({nSeg,on,off,halo,haloDraw:GLX.nHalo});})()`));
+  const tubes = r.nSeg * 12;
+  assert.ok(r.halo > 0, 'the halo has the selected tube’s segments');
+  assert.ok(!r.on.b.includes(tubes) && r.on.t === 0, 'selecting sends no tube, packet or point again');
+  assert.ok(r.on.b.includes(r.halo * 12), 'only the halo goes up');
+  assert.ok(!r.off.b.includes(tubes) && r.off.t === 0, 'nor does unselecting');
+  assert.equal(r.haloDraw, 0, 'and the halo is gone');
   assert.deepEqual(errors, []);
 });

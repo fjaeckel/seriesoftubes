@@ -1,4 +1,9 @@
-function draw(now){DFC=new Map();try{drawFrame(now);}finally{DFC=null;glsFrameEnd();ctx=CTX0;}}
+/* A frame. An error from the card itself (glErr()) gives WebGL up for this session and draws the same frame again in
+   2D, once; any other error goes on to the loop's tickErr(). Either way the 2D context and the sprite queue are reset. */
+function draw(now){for(let pass=0;;pass++){let err=null;DFC=new Map();
+  try{drawFrame(now);}catch(e){err=e;}
+  try{glsFrameEnd();}catch(e){if(!err)err=e;}finally{DFC=null;GLS.frame=false;GLS.n=0;ctx=CTX0;}
+  if(!err)return;if(!err.glErr||pass)throw err;glKill(err);}}
 // Rectangles on a 64 px grid: a new one is compared only with the few that share its cells (a plain list made the
 // label placement quadratic in the number of cities).
 class RGrid{constructor(){this.m=new Map();}
@@ -7,10 +12,11 @@ class RGrid{constructor(){this.m=new Map();}
   hits(r){let h=false;this.cells(r,k=>{if(h)return;const a=this.m.get(k);if(a)for(const q of a)if(r.x<q.x+q.w&&q.x<r.x+r.w&&r.y<q.y+q.h&&q.y<r.y+r.h){h=true;return;}});return h;}}
 function drawFrame(now){
   if(!ctx)return;
-  const ks=visibleKs(),z=cam.z;
+  const ks=visibleKs(),z=cam.z,G=glOn();
   // WebGL on: the sea, land, waves, clouds and cables are on the card (glBegin); the 2D canvas below them stays empty.
-  if(glOn())glBegin(now,ks);
-  else{GLX.c0clean=false;const wl=worldLayer(z);
+  // Off (2D chosen, no game, a puzzle, the card given up), its layers are hidden here, before anything can return early.
+  if(G){try{glBegin(now,ks);}catch(e){throw glErr(e);}}
+  else{glShow(false);GLX.c0clean=false;const wl=worldLayer(z);
   ctx.setTransform(DPR,0,0,DPR,0,0);
   // sea
   const g=ctx.createLinearGradient(0,0,0,CH);g.addColorStop(0,'#62CBEA');g.addColorStop(1,'#43AED6');ctx.fillStyle=g;ctx.fillRect(0,0,CW,CH);
@@ -37,7 +43,7 @@ function drawFrame(now){
   AR_PILLS.length=0;
   const far=lodFar(),ML=mapLinks(day),LG=ML.LG,GM=ML.GM,PI=ML.PI,busy=linesOnScreen(GM,ks)>MAP_BUSY;
   // WebGL on: the card draws every line and packet now, and the rest (labels, markers, cities…) goes on the overlay.
-  const G=glOn();if(G)glFrame(ML,ks,far,busy,now,sc);else glShow(false);
+  if(G)try{glFrame(ML,ks,far,busy,now,sc);}catch(e){throw glErr(e);}
   for(let gi=0;gi<LG.length;gi++){const grp=LG[gi],{l,many,up,cap,load,df,bld,cut,dark,vx,w0,col,dash,pk}=ML.looks[gi],gm=GM[gi];
     const pz=pzOn(),arPz=pz&&!!S.ar,sel=(UI.sel&&UI.sel.type==='link'&&grp.some(x=>x.id===UI.sel.id))||(pz&&pzLinkHot(grp));let lab=null;
     // Only what sits at the middle of a line is still painted here when the card draws the lines.

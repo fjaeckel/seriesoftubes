@@ -34,7 +34,8 @@ function cityFarStatic(C,p,down,sel,hov,ph){ctx.strokeStyle='#1E2640';
 // (cityMoving): the lights, the steam, a flashing IX, the hot badges and the offer bubble. The rings and the glow move too,
 // but in steps (cityPhase), so their sprite changes only at a step.
 const CSPR_STEP=24;
-function cityPhase(C,p,sel,now){const ph={sel:0,dd:0,gl:-1};
+// dd is -1 without an attack: the attack's ring at step 0 must not share a sprite with no ring at all.
+function cityPhase(C,p,sel,now){const ph={sel:0,dd:-1,gl:-1};
   if(sel)ph.sel=Math.floor(now/40)%12;                       // dash period 12 px, lineDashOffset -now/40
   if(p&&R.ddosHot&&R.ddosHot[C.id])ph.dd=Math.floor(now/30)%8; // dash period 8 px, lineDashOffset now/30
   if(p&&!(p.down>S.day)&&R.cityDem[C.id]>0&&sfOf(R,C.id)<0.9)ph.gl=Math.round((Math.sin(now/200)+1)*3.5); // 8 levels of .35+.25·sin
@@ -43,11 +44,12 @@ function cityPhase(C,p,sel,now){const ph={sel:0,dd:0,gl:-1};
 function cityIX(C,p,t,h,hot,now){const mine=!!S.myIx[C.id],joined=hasIxAt(C.id),q=!p&&!hot&&ixQuiet(C.id),Rr=q?6.5:8.5,ix=p?19:SKY_W[t]/2+(q?2:4);
   ctx.fillStyle=hot?(Math.sin(now/180)>0?'#FF4D5E':'#FF8A3D'):mine?'#FF4F9A':joined?'#FFD23F':'#FFFFFF';ctx.beginPath();for(let i=0;i<6;i++){const a=Math.PI/3*i+Math.PI/6;ctx.lineTo(ix+Rr*Math.cos(a),-h+2+Rr*Math.sin(a));}ctx.closePath();ctx.fill();ctx.lineWidth=q?1.4:2;ctx.stroke();
   ctx.fillStyle=mine||hot?'#fff':'#1E2640';ctx.font=`900 ${q?6.5:8}px Nunito, sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('IX',ix,-h+2.5);}
-// Everything about the city that does not move, in the city's own frame (origin on the city). Drawn into a sprite.
+// Everything about the city that does not move, in the city's own frame (origin on the city). Drawn into a sprite, so
+// it reads only what citySprite() puts in the key.
 function cityStatic(C,p,t,cs,k,ph,st){const down=st.down;
   if(st.feed){ctx.strokeStyle='#FF8A3D';ctx.lineWidth=4;ctx.setLineDash([3,5]);ctx.beginPath();ctx.arc(0,-6*k,36*k,0,7);ctx.stroke();ctx.setLineDash([]);}
   if(st.sel){ctx.strokeStyle='#FF4F9A';ctx.lineWidth=3;ctx.setLineDash([6,6]);ctx.lineDashOffset=-ph.sel;ctx.beginPath();ctx.arc(0,-6*k,30*k,0,7);ctx.stroke();ctx.setLineDash([]);ctx.lineDashOffset=0;}
-  if(p&&R.ddosHot&&R.ddosHot[C.id]){ctx.strokeStyle='#FF4D5E';ctx.lineWidth=3;ctx.setLineDash([4,4]);ctx.lineDashOffset=ph.dd;ctx.beginPath();ctx.arc(0,-6*k,33*k,0,7);ctx.stroke();ctx.setLineDash([]);ctx.lineDashOffset=0;}
+  if(ph.dd>=0){ctx.strokeStyle='#FF4D5E';ctx.lineWidth=3;ctx.setLineDash([4,4]);ctx.lineDashOffset=ph.dd;ctx.beginPath();ctx.arc(0,-6*k,33*k,0,7);ctx.stroke();ctx.setLineDash([]);ctx.lineDashOffset=0;}
   ctx.scale(k*cs,k*cs);
   ctx.fillStyle='rgba(30,38,64,.2)';ctx.beginPath();ctx.ellipse(0,9,p?20:SKY_W[t]/2+5,5,0,0,7);ctx.fill();
   const h=p?18:SKY_H[t];

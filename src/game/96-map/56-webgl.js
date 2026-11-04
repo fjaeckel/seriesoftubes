@@ -6,13 +6,15 @@
    packets (58) and the pictures of cities, labels and markers (59); and #mapfx, a transparent 2D canvas over it for
    the few things still painted shape by shape (the drag preview, the chaos monkey), cleared only after it was used.
    Puzzles, and any browser without WebGL2 or whose context fails or is lost, keep the 2D map. */
-const GLX={want:true,dead:false,gl:null,c:null,f:null,fx:null,key:[],nSeg:0,nPk:0,sel:false,shown:false,gpu:''};
+const GLX={want:true,dead:false,gl:null,c:null,f:null,fx:null,key:[],nSeg:0,nPk:0,nHalo:0,shown:false,gpu:''};
 try{GLX.want=localStorage.getItem('sot-map')!=='2d';}catch(e){}
 const glOn=()=>GLX.want&&!GLX.dead&&!!S&&!pzOn()&&glInit();
 // Switches the WebGL map on or off: the setting keeps the choice in this browser (keep), the GPU benchmark does not.
 function mapGl(on,keep=true){GLX.want=!!on;if(keep)try{on?localStorage.removeItem('sot-map'):localStorage.setItem('sot-map','2d');}catch(e){}
   if(!on)glShow(false);GLX.key=[];UI.drawnAt=0;return on&&!GLX.dead;}
 function glShow(on){on=!!on;if(GLX.shown===on)return;GLX.shown=on;const e=document.getElementById('mapgl'),fx=document.getElementById('mapfx');if(e)e.hidden=!on;if(fx)fx.hidden=!on;}
+// Marks an error as the card's own, so draw() falls back to 2D instead of trying WebGL again every frame.
+function glErr(e){const x=e instanceof Error?e:new Error(String(e));x.glErr=true;return x;}
 function glKill(why){console.warn('[tubes] the map stays 2D:',why&&why.message||why);GLX.dead=true;GLX.gl=null;glShow(false);}
 const GL_HEAD='#version 300 es\nprecision highp float;precision highp int;\n';
 // Clip space from CSS px (the shaders work in CSS px, as the 2D map does, and use uDpr only for anti-aliasing).
@@ -42,7 +44,7 @@ function glInit(){if(GLX.gl)return true;if(GLX.dead)return false;
     const fx=f.getContext('2d'),CP=CanvasRenderingContext2D.prototype;
     for(const m of ['fill','stroke','fillRect','strokeRect','fillText','strokeText','drawImage','putImageData']){const fn=CP[m];fx[m]=function(){GLX.fxUsed=true;return fn.apply(this,arguments);};}
     const V=s=>glVao(gl,s);
-    Object.assign(GLX,progs,{gl,c,f,fx,fxUsed:true,tex,land:{},lv:V([4,4,4]),pv:V([4,4]),cb:V([4,4,4]),wv:V([4,4,4]),cl:V([4]),empty:gl.createVertexArray()});return true;}
+    Object.assign(GLX,progs,{gl,c,f,fx,fxUsed:true,tex,land:{},lv:V([4,4,4]),hv:V([4,4,4]),pv:V([4,4]),cb:V([4,4,4]),wv:V([4,4,4]),cl:V([4]),empty:gl.createVertexArray()});return true;}
   catch(e){glKill(e);return false;}}
 // Colours as [r,g,b,a] from '#rrggbb', '#rgb' or 'rgba(r,g,b,a)', kept by string.
 const GLCOL=new Map();
