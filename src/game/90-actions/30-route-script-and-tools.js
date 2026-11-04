@@ -18,6 +18,7 @@ Object.assign(ACT,{
  teToggle:()=>{if(!S.te)return;S.te.on=!S.te.on;after();},
  trace:({city})=>traceModal(city),
  traceRun:()=>{const f=$('trFrom'),t=$('trTo');traceModal(f&&f.value,t&&t.value);},
+ traceMode:({m})=>{if(!TR_MODES.includes(m))return;const f=$('trFrom'),t=$('trTo');sfx('click');traceModal(f&&f.value,t&&t.value,m);},
  traceCopy:()=>{try{navigator.clipboard.writeText(UI.trText||'');toast(tr('route_script_and_tools.copied_paste_it_into_your_favourite'),'good');}catch(e){}},
  share:()=>shareModal(),
  shareDl:()=>shareFile(f=>{if(!f)return;const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);track('share_download');}),
