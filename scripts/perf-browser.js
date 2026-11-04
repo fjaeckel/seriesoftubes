@@ -36,10 +36,15 @@ async function openPage(browser, profile, file, save, errors) {
   // One run of a workload, timed inside the page so the round trip to Node does not count. Garbage is collected
   // first, so a run never pays for the one before it (its own garbage still costs it, as in the game).
   // The browser leaves layout and canvas drawing for the next frame, so code that changes the DOM or draws the map
-  // would look free: each run ends by forcing both (reading a size, and one pixel back from the map canvas).
+  // would look free: each run ends by forcing both (reading a size, and one pixel back from the surface the map was
+  // last drawn on: the WebGL canvas when the card drew it, which waits for the card to finish, else the 2D canvas).
+  // A run also says which map drew (gl, 2d, or none when it drew nothing).
   const time = async (k, body) => { await cdp.send('HeapProfiler.collectGarbage'); return page.evaluate(([k, body]) => {
     const F = window.__fx || (window.__fx = {}); const f = F[k] || (F[k] = new Function(body)); const map = document.getElementById('map').getContext('2d');
-    const t = performance.now(); f(); void document.documentElement.offsetHeight; map.getImageData(0, 0, 1, 1); return performance.now() - t; }, [k, body]); };
+    const G = typeof GLX === 'object' ? GLX : null, px = window.__px || (window.__px = new Uint8Array(4));
+    const t = performance.now(); f(); void document.documentElement.offsetHeight;
+    const gl = G && G.shown && G.gl; if (gl) gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); else map.getImageData(0, 0, 1, 1);
+    return { ms: performance.now() - t, map: G && G.shown ? 'gl' : '2d' }; }, [k, body]); };
   return { ctx, time };
 }
 
@@ -54,15 +59,18 @@ async function runBrowser({ head, base, save, metrics, runs, exe }) {
     for (const p of PROFILES) {
       const h = await openPage(hb, p, head, save, errors), b = base ? await openPage(bb, p, base, save, errors) : null;
       const res = out.profiles[p.key] = {};
+      // Which map each version drew with, over all the runs that drew one (a version falling back mid-run shows both).
+      const maps = res.maps = { head: new Set(), base: new Set() };
       for (const [k, , body] of metrics) {
-        const H = [], B = [];
+        const H = [], B = [], go = async (v, into, m) => { const r = await v.time(k, body); into.push(r.ms); if (k === 'map') m.add(r.map); };
         for (const v of [h, b].filter(Boolean)) { await v.time(k, body); await v.time(k, body); }   // warm up
         for (let i = 0; i < runs; i++) {
           // Alternate who goes first, like the jsdom runs.
-          if (b && i % 2) { B.push(await b.time(k, body)); H.push(await h.time(k, body)); } else { H.push(await h.time(k, body)); if (b) B.push(await b.time(k, body)); }
+          if (b && i % 2) { await go(b, B, maps.base); await go(h, H, maps.head); } else { await go(h, H, maps.head); if (b) await go(b, B, maps.base); }
         }
         res[k] = { head: median(H), base: b ? median(B) : null, samples: { head: H.map((x) => +x.toFixed(1)), base: b ? B.map((x) => +x.toFixed(1)) : null } };
       }
+      res.maps = { head: [...maps.head], base: b ? [...maps.base] : null };
       await h.ctx.close(); if (b) await b.ctx.close();
     }
   } finally { await hb.close(); if (bb) await bb.close(); }
