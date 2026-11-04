@@ -2,7 +2,10 @@
    GPU canvas implementations (Firefox on Android) garble big paths (#43). It is painted into an offscreen image
    instead: the whole world when that fits in MAXPX, otherwise the visible area plus a margin, repainted when you
    pan out of it. While a zoom gesture is still moving, the last image is scaled rather than repainted. */
-const SOFT_CANVAS=/Firefox\//.test(navigator.userAgent);
+/* Only Firefox on Android gets that image as a software canvas (willReadFrequently). Firefox on a computer drew it
+   fine on the graphics card, and a software canvas there is sent to the card again on every frame, a cost that grows
+   with the image: zoomed in, the 2D map ran at half its speed. */
+const softCanvas=ua=>/Android.*Firefox\//.test(ua),SOFT_CANVAS=softCanvas(navigator.userAgent);
 function wlCovers(z){if(WL.full)return true;const hw=CW/2/z,hh=CH/2/z,w=WL.cv.width/WL.sc,h=WL.cv.height/WL.sc;
   return cam.x-hw>=WL.ox&&cam.x+hw<=WL.ox+w&&cam.y-hh>=WL.oy&&cam.y+hh<=WL.oy+h;}
 function worldLayer(z){

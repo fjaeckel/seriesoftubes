@@ -15,6 +15,7 @@ All notable changes to this project are documented here. The project follows
 - Zooming is smoother on big maps: while you zoom, cities and ships keep their picture and are only redrawn sharp once the zoom stops, instead of being repainted at every small step.
 - The graphics card draws the coastlines with fewer points when you zoom out, where the extra detail was smaller than a pixel, so the map costs it a lot less work, which helps phones most.
 - The map leaves far less memory behind it on every frame for the browser to clean up while you play.
+- In Firefox on a computer, the 2D map is up to three times as fast when zoomed in: its land picture now stays on the graphics card instead of being sent to it again on every frame. Firefox on Android keeps the old way, which avoids its drawing glitches.
 - Settings › Viewport info is now Diagnostic info: besides your screen's size, it shows how the map is drawn (by the graphics card or in 2D, and why) and how fast, ready to copy into a bug report.
 
 ## [2.9.1] — 2026-11-04
