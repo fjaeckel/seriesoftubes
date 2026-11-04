@@ -5,6 +5,18 @@
 const SPR_MAX=1400,SPR_STRIDE=13;
 // The card's pictures (SPRS) and the 2D map's (SPRC), by key; both at the screen's pixel density SPR_DPR.
 const SPRS=new Map(),SPRC=new Map();let SPR_DPR=0;
+/* The 2D map's pictures each keep a canvas, so they are also held to a size: a long zoom on a big network paints every
+   city again at each step, and the list (only capped at SPR_MAX) held up to 180 MB of them where a frame shows 2 to
+   23 MB. At the end of a frame over SPRC_BUDGET bytes, the pictures it did not use go, those unused the longest first,
+   down to 3/4 of the budget (so this happens once in a while, not every frame). The frame's own are always kept: a
+   screen that needs more than the budget keeps what it needs. A canvas let go is emptied (0×0) at once, which frees
+   its pixels without waiting for the collector. The card's atlas has its own fixed size (GLS.size).
+   SPR_F counts frames (draw()); finding or drawing a picture marks it as used in this one (e.f). */
+const SPRC_BUDGET=48*1048576;let SPRC_B=0,SPR_F=0;
+const sprFree=e=>{if(e.cv){e.cv.width=e.cv.height=0;e.cv=null;}};
+function sprcTrim(){if(SPRC_B<=SPRC_BUDGET)return;const old=[];for(const [k,e] of SPRC)if(e.f<SPR_F)old.push([e.f,k,e]);
+  old.sort((a,b)=>a[0]-b[0]);const goal=SPRC_BUDGET*0.75;
+  for(const [,k,e] of old){if(SPRC_B<=goal)break;SPRC.delete(k);SPRC_B-=e.pw*e.ph*4;sprFree(e);}}
 const GLS={prog:null,vao:null,buf:null,tex:null,size:4096,shx:0,shy:0,shh:0,frame:false,data:new Float32Array(SPR_STRIDE*2048),n:0,up:0};
 /* One record is 13 floats: x,y,w,h (CSS px) | u0,v0,u1,v1 (atlas) | r,g,b,a | kind. A picture (kind 0) takes its
    colours from the atlas and a from the record; a disc (kind 1) is centred on x,y with radius w, in colour r,g,b,a. */
@@ -28,7 +40,7 @@ function glsInit(gl){GLS.prog=glProg(gl,SPR_VS,SPR_FS);const {v,b}=glVao(gl,[4,4
   for(const k of [gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T])gl.texParameteri(gl.TEXTURE_2D,k,gl.CLAMP_TO_EDGE);
   GLS.shx=GLS.shy=GLS.shh=0;}
 // Forgets every picture and starts the atlas again, after the pictures already queued are drawn (they point into it).
-function spritesReset(){glsDrawNow();SPRS.clear();SPRC.clear();GLS.shx=GLS.shy=GLS.shh=0;}
+function spritesReset(){glsDrawNow();for(const e of SPRC.values())sprFree(e);SPRS.clear();SPRC.clear();SPRC_B=0;GLS.shx=GLS.shy=GLS.shh=0;}
 // The card given up: its pictures go (they have no canvas to be drawn from in 2D) and the atlas is forgotten.
 function spritesDrop(){GLS.n=GLS.up=0;SPRS.clear();GLS.shx=GLS.shy=GLS.shh=0;}
 /* The card's pictures are painted on one canvas, reused, and each goes into the atlas as soon as it is painted: a
@@ -41,20 +53,21 @@ function glsPad(pw,ph){const P=GLS_PAD;if(!P.cv){P.cv=document.createElement('ca
 // Where this frame's pictures are kept: the card's or the 2D map's. A new pixel density starts both again.
 function sprMap(){if(DPR!==SPR_DPR){SPR_DPR=DPR;spritesReset();}return GLS.frame&&!!GLX.gl&&!!GLS.prog?SPRS:SPRC;}
 // The picture already painted under key, if any: callers ask first, so a picture drawn every frame costs no closure.
-const spriteHas=key=>sprMap().get(key);
+const spriteHas=key=>{const e=sprMap().get(key);if(e)e.f=SPR_F;return e;};
 // A picture of w×h CSS px with its anchor at (ax,ay): painted once by paint(g) (the 2D canvas, at the screen's pixel
 // density), and kept by key in SPRS (the card's) or SPRC (the 2D map's).
-function spriteEntry(key,w,h,ax,ay,paint){const M=sprMap(),gpu=M===SPRS;let e=M.get(key);if(e)return e;
+function spriteEntry(key,w,h,ax,ay,paint){const M=sprMap(),gpu=M===SPRS;let e=M.get(key);if(e){e.f=SPR_F;return e;}
   if(SPRS.size+SPRC.size>=SPR_MAX)spritesReset();
   const pw=Math.ceil(w*DPR),ph=Math.ceil(h*DPR),saved=ctx;
-  e={cv:null,pw,ph,w,h,ax,ay,up:false,u0:0,v0:0,u1:1,v1:1};
+  e={cv:null,pw,ph,w,h,ax,ay,up:false,u0:0,v0:0,u1:1,v1:1,f:SPR_F};
   if(gpu&&pw<=GLS.size&&ph<=GLS.size){const P=glsPad(pw,ph),g=P.g;
     g.save();g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,pw,ph);ctx=g;
     try{g.setTransform(DPR,0,0,DPR,0,0);sprPen(g);paint(g);}finally{ctx=saved;g.restore();}
     // A full atlas starts again (glsPut), and the picture goes into the empty one at once: the pad is reused next.
     try{if(!glsPut(GLX.gl,e,P.cv))glsPut(GLX.gl,e,P.cv);}catch(x){throw glErr(x);}
   }else{const cv=document.createElement('canvas');cv.width=pw;cv.height=ph;const g=cv.getContext('2d');ctx=g;
-    try{g.setTransform(DPR,0,0,DPR,0,0);sprPen(g);paint(g);}finally{ctx=saved;}e.cv=cv;}
+    try{g.setTransform(DPR,0,0,DPR,0,0);sprPen(g);paint(g);}finally{ctx=saved;}e.cv=cv;
+    if(M===SPRC)SPRC_B+=pw*ph*4;}
   M.set(key,e);return e;}
 /* A picture starts with the pen the map's own canvas has when it draws cities and markers: the tubes leave it with
    round line ends and corners, the labels with text centred on its middle. Drawn straight on the map, the dashed rings,

@@ -1,8 +1,8 @@
 /* A frame. An error from the card itself (glErr()) gives WebGL up for this session and draws the same frame again in
    2D, once; any other error goes on to the loop's tickErr(). Either way the 2D context and the sprite queue are reset. */
-function draw(now){for(let pass=0;;pass++){let err=null;DFC=new Map();
+function draw(now){for(let pass=0;;pass++){let err=null;DFC=new Map();SPR_F++;
   try{drawFrame(now);}catch(e){err=e;}
-  try{glsFrameEnd();}catch(e){if(!err)err=e;}finally{DFC=null;GLS.frame=false;GLS.n=0;ctx=CTX0;}
+  try{glsFrameEnd();}catch(e){if(!err)err=e;}finally{DFC=null;GLS.frame=false;GLS.n=0;ctx=CTX0;sprcTrim();}
   if(!err)return;if(!err.glErr||pass)throw err;glKill(err);}}
 // Rectangles on a 64 px grid: a new one is compared only with the few that share its cells (a plain list made the
 // label placement quadratic in the number of cities).
