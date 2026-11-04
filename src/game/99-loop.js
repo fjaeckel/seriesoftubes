@@ -9,15 +9,18 @@ function frame(now){
   // The panels catch up on the frame after a day, so one frame does not carry both the day's simulation and them.
   if(UI.panelsDue){NOC.dirty=true;UI.panelsDue=false;if(!pressing){renderPanel();renderLeft();if(!$('dash').hidden)renderDash();renderBank();}renderHint();}
   if(NOC.peer)nocPump(now);
-  if(S&&!S.lost&&$('modal').hidden&&UI.speed&&!pzOn()){acc+=dt*UI.speed;let n=0;
-    // With the route worker one day is in flight at a time; time does not pile up behind it.
-    if(rwOn()){if(!RW.w)rwStart();if(RW.job)acc=Math.min(acc,DAY_MS);else if(acc>=DAY_MS){acc=Math.min(acc-DAY_MS,DAY_MS);try{rwDay();}catch(e){tickErr(e);}}}
-    else{while(acc>=DAY_MS&&n<4&&UI.speed){acc-=DAY_MS;try{dayTick();}catch(e){tickErr(e);}n++;}
-    if(n){UI.ticking=true;renderHUD();UI.ticking=false;UI.panelsDue=true;}}}
+  if(S&&!S.lost&&$('modal').hidden&&UI.speed&&!pzOn())runClock(dt);
   if((UI.speed||pzOn())&&!(S&&S.lost))animT+=dt; /* paused = frozen dots, waves and clouds */
   const t=animOn()?animT:0;
   if(!(UI.mapHid=mapHidden())&&!mapStill(t,now)){try{draw(t);}catch(e){tickErr(e);}UI.drawnAt=now;}
 }
+// dt of real time at UI.speed: the days it adds up to. The frame calls it; so may a clock that also runs where frames
+// do not (src/agent/, a hidden tab), under the frame's own conditions otherwise.
+function runClock(dt){acc+=dt*UI.speed;let n=0;
+  // With the route worker one day is in flight at a time; time does not pile up behind it.
+  if(rwOn()){if(!RW.w)rwStart();if(RW.job)acc=Math.min(acc,DAY_MS);else if(acc>=DAY_MS){acc=Math.min(acc-DAY_MS,DAY_MS);try{rwDay();}catch(e){tickErr(e);}}}
+  else{while(acc>=DAY_MS&&n<4&&UI.speed){acc-=DAY_MS;try{dayTick();}catch(e){tickErr(e);}n++;}
+  if(n){UI.ticking=true;renderHUD();UI.ticking=false;UI.panelsDue=true;}}}
 /* On a phone the NOC dashboard (or the bank), scrolled past its top edge, covers the whole map. Drawing the map
    under it is work nobody sees, so it waits until the map shows again (and no payday money piles up meanwhile). */
 function mapHidden(){for(const id of ['dashCard','bankCard']){const c=$(id);if(c.parentNode.hidden)continue;
@@ -39,7 +42,7 @@ function boot(data){
   if(data&&data.S){S=migrate(data.S);UI.started=true;if(data.cam)Object.assign(cam,data.cam);compute();renderAll();}
   else{const sv=UI.slot?loadSave():null,stamp=sv&&sv.sv;if(sv)delete sv.sv;
     let okSave=false;if(sv){try{S=migrate(sv);compute();okSave=true;}catch(e){console.error('[tubes] loading the network failed',e);S=null;UI.started=false;}}
-    if(okSave){slotIn(UI.slot,stamp);UI.started=true;UI.speed=[0,0.5,1,2,4,8].includes(S.uiSpeed)?S.uiSpeed:1;
+    if(okSave){slotIn(UI.slot,stamp);UI.started=true;setSpeed([0,0.5,1,2,4,8].includes(S.uiSpeed)?S.uiSpeed:1);
       if(S.cam&&isFinite(S.cam.x))Object.assign(cam,S.cam);else{const h=CITY[S.home];if(h){cam.x=h.x;cam.y=h.y;cam.z=innerWidth<760?1.1:1.4;}}
       renderAll();if(S.grace&&S.grace.until>S.day&&R.graceNets&&!S.grace.told){S.grace.told=1;toast(tr('loop.new_networks_on_the_map_this',{n:S.grace.until-S.day}),'goal',[{l:tr('common.open_noc'),act:'leftTab',args:{t:'noc'}}]);}
       if(S.auNews){delete S.auNews;const c=Object.keys(S.pops).find(x=>CITY[x].au);toast(tr('loop.australia_got_more_australian'),'bad',[{l:tr('common.open'),act:'focusCity',args:{city:c}}],{a:'city',v:c});}

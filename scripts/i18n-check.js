@@ -16,7 +16,8 @@ const D = require('./lib/dict');
 const { CALL } = require('./legacy/labels');
 
 const SITE = path.join(__dirname, '..', 'site');
-const page = () => require('./lib/page').assemble().html;
+// The development page: it has every label, the agent's (src/agent/) too.
+const page = () => require('./lib/page').assemble({ dev: true }).html;
 const LABEL = /^[a-z0-9_]+(\.[a-z0-9_]+)+$/;
 
 // The labels the game uses, with problems in how they are used.

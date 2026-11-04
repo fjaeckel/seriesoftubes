@@ -1,116 +1,17 @@
-// Runs inside the game page before scripts/lib/mcp-page.js, in the game's own global scope: the typed command
-// tables the MCP server's act tool dispatches through. Data and small helpers only, no state.
-//
-// Every action in ACT is in exactly one class (tests/mcp-commands.test.js fails otherwise, so a new action forces a
-// decision): CMD, a game command with typed arguments; VIEW, which changes only what is on screen; BOUND, which only
-// drafts an input another command reads; SESSION, which starts, retries or leaves a game or dismisses a coaching
-// screen; or the server's DENY list (scripts/lib/mcp-page.js). CMD fields: args [name, domain|'string'|'boolean'|'integer', required]; bind(args) writes the UI
-// a panel would set (bindsUI: the UI keys it touches, restored after a dry run); open/dom: the window an input lives
-// in and the fields that must exist before dispatch; pass(args) reshapes the args for the action (confirmations);
-// confirm 'arg' (passed through) or 'double' (the game arms a button first); decides (may end in a question); reads
-// 'modal' (the window's text is the report); watch (extra fingerprint paths, #name filled from args); quote (the dry
-// run, priced with the game's own helpers); doc.
-window.__mcpCmds = (() => {
-const API_DOMAINS={
-  // Tables from the catalog: an id in a list, a key in an object, or an index into a list.
-  cityId:{table:'CITIES',kind:'id'},
-  netId:{table:'NETS',kind:'id'},
-  cableId:{table:'CABLES',kind:'id'},
-  fabId:{table:'FAB',kind:'key'},
-  opticId:{table:'OPT',kind:'key'},
-  systemId:{table:'DF_SYS',kind:'key'},
-  designId:{table:'SEA_DESIGNS',kind:'key'},
-  upgradeId:{table:'SUB_UPGRADES',kind:'key'},
-  bizTypeId:{table:'BIZ_T',kind:'key'},
-  portTier:{table:'PORT',kind:'index'},
-  linkTier:{table:'LT',kind:'index'},
-  nniTier:{table:'NNI',kind:'index'},
-  vxcTier:{table:'VXC',kind:'index'},
-  routerModel:{table:'RG',kind:'index'},
-  scrubTier:{table:'SCRUB_TIERS',kind:'index'},
-  // Small fixed vocabularies the game itself checks by list membership.
-  // The link metric presets, plus "custom" for a hand-tuned number (ACT.setMetric).
-  metric:{kind:'enum',values:()=>[...Object.keys(MET),'custom']},
-  egress:{table:'PREF',kind:'key'},
-  routeMode:{table:'RT',kind:'key'},
-  site:{kind:'enum',values:['a','b','ab']},
-  step:{kind:'enum',values:[1,-1]},
-  connKind:{kind:'enum',values:['t','p','ix','c','nni']},
-  egressKind:{kind:'enum',values:['t','p','ix','c','nni','l2']},
-  peerPolicy:{table:'PPOL',kind:'enum'},
-  // The intern, their orders and the new-POP template (opsHire, opsToggle, opsParam…).
-  internId:{table:'INTERNS',kind:'key'},
-  opsKey:{table:'OPSK',kind:'key'},
-  opsPopKind:{kind:'enum',values:()=>OPS_POP.slice()},
-  opsTplKey:{kind:'enum',values:()=>OPS_TPL.slice()},
-  // The specialist's offers: a seat on a consortium cable, the charter, a vendor demo.
-  seatPairs:{kind:'enum',values:()=>SEAT_N.slice()},
-  charterKey:{table:'CHARTERS',kind:'key'},
-  // The link metric editor: a factor or an exact weight (metricMode, metricSet).
-  metricKind:{kind:'enum',values:['f','w']},
-  // The NOC's auto-mitigation switches (ddosAuto).
-  ddosKey:{kind:'enum',values:['rtbh','scrub']},
-  // Puzzle and architect builds: the tiers a puzzle may light, the router models it offers.
-  pztTier:{kind:'fn',ok:v=>PZ_TIERS.includes(+v)||AR_TIERS.includes(+v)},
-  pzRouterModel:{table:'PZ_RG',kind:'index'},
-  pzRouteMode:{kind:'enum',values:['normal','fast']},
-  // The bulk PNI order takes one network or null for every network at every shared POP (ACT.pniAll).
-  pniAllNet:{kind:'fn',ok:v=>v===null||(typeof v==='string'&&!!NET[v])},
-  dashTab:{kind:'enum',values:()=>DTABS.slice()},
-  dashSortKey:{kind:'enum',values:['name','asn','type','traffic','cost','lost']},
-  leftTab:{kind:'enum',values:['goals','deals','noc','nets']},
-  netFilter:{kind:'enum',values:['all','out']},
-  pniFilter:{kind:'enum',values:['all','t','worth','pni']},
-  listPage:{kind:'enum',values:['conn','cust','nets','pni']},
-  custSortKey:{kind:'enum',values:['mood','mo','name','city']},
-  connFilter:{kind:'enum',values:['all','k']},
-  connSortKey:{kind:'enum',values:['k','city','name','use','mo']},
-  dfSource:{kind:'enum',values:['lease','build','cable']},
-  cityIdArray:{kind:'array',of:'cityId'},
-  // Anything a panel can reach: an exchange city, a rival exchange id, one of your own exchanges.
-  ixId:{kind:'fn',ok:v=>isIx(v)},
-  // A PNI also takes tier:-1, the 1G courtesy port a network may offer (ACT.pni).
-  pniTier:{kind:'fn',ok:v=>v===-1||(Number.isInteger(v)&&v>=0&&v<PORT.length)},
-  // Keys are built at render time by confKey(), so they can only be resolved against the calendar.
-  confKey:{kind:'fn',ok:v=>typeof v==='string'&&upcomingConfs(75).some(c=>c.key===v)},
-  // traceroute goes to your own POPs and to networks; traceModal parses a net:/city: prefix.
-  traceTo:{kind:'fn',ok:v=>typeof v==='string'&&(NET[v]||isCity(v))},
-  // Entity ids (uid()) cannot be validated against a table: shape only. A wrong id is the game's
-  // to answer, honestly, with no_effect — never a refusal invented on this side of the wall.
-  entityId:{kind:'string'},
-  scnId:{table:'SCN',kind:'id'},
-  // A traceroute target in the modal's own terms.
-};
-
-/* Type names an arg can take instead of a domain: 'string' | 'boolean' | 'integer'. */
-
-function apiDomCheck(dom,v){
-  const d=API_DOMAINS[dom];
-  // The game's own buttons ship truthiness as 0 and 1 (custOpen's {"sad":0}); accept the game's dialect.
-  if(dom==='boolean')return {ok:v===true||v===false||v===0||v===1};
-  if(!d)return {ok:dom==='integer'?Number.isInteger(v):typeof v===dom}; // 'string' | 'integer'
-  if(d.kind==='array')return {ok:Array.isArray(v)&&v.every(x=>apiDomCheck(d.of,x).ok)};
-  const t=d.table?API_CATALOG_TABLE(d.table):null;
-  if(d.kind==='id')return {ok:!!t&&t.some(x=>x&&x.id===v)};
-  if(d.kind==='string')return {ok:typeof v==='string'};
-  if(d.kind==='key'||d.kind==='enum'){
-    const vs=d.kind==='key'?Object.keys(t||{}):(t||(typeof d.values==='function'?d.values():d.values)||[]);
-    return {ok:vs.includes(v)};}
-  if(d.kind==='index')return {ok:Number.isInteger(v)&&v>=0&&v<(t?t.length:0)};
-  return {ok:!!d.ok&&d.ok(v)};
-}
-function apiDomValues(dom){
-  const d=API_DOMAINS[dom];if(!d)return null;
-  const t=d.table?API_CATALOG_TABLE(d.table):null;
-  if(d.kind==='array')return {of:d.of};
-  if(d.kind==='id')return t?t.map(x=>x.id):[];
-  if(d.kind==='key')return t?Object.keys(t):[];
-  if(d.kind==='enum')return t||(typeof d.values==='function'?d.values():d.values)||[];
-  if(d.kind==='index')return {from:0,to:(t?t.length:1)-1};
-  return null;
-}
-
+/* ================= AGENT API: the command tables =================
+   Every action in ACT is in exactly one class (tests/mcp-commands.test.js fails otherwise, so a new action forces a
+   decision): API_CMD, a game command with typed arguments; API_VIEW, which changes only what is on screen; API_BOUND,
+   which only drafts an input another command reads; API_SESSION, which starts, retries or leaves a game or dismisses a
+   coaching screen; or API_DENY, never run by a tool. CMD fields: args [name, domain|'string'|'boolean'|'integer',
+   required]; bind(args) writes the UI a panel would set (bindsUI: the UI keys it touches, restored after a dry run);
+   open/dom: the window an input lives in and the fields that must exist before dispatch; pass(args) reshapes the args
+   for the action (confirmations); confirm 'arg' (passed through) or 'double' (the game arms a button first); decides
+   (may end in a question); reads 'modal' (the window's text is the report); watch (extra fingerprint paths, #name
+   filled from args); quote (the dry run, priced with the game's own helpers); doc. */
 const API_CMD={
+ downIx:{args:[['city','ixId']],watch:['ixp'],doc:'Step an exchange port down one size.'},
+ downT:{args:[['id','entityId']],watch:['transit.#id'],doc:'Step a transit port down one size (a LAG steps down together).'},
+ downP:{args:[['id','entityId']],watch:['pni.#id'],doc:'Step a PNI down one size. Not while an augment is on order.'},
 /* ---------- footprint: buildings, routers, POPs ---------- */
  buildPop:{args:[['city','cityId']],
   quote:a=>({setup:popCost(a.city),blocked:cnCity(a.city)&&!cnOk()?[tr('pops_transit_ix.you_need_a_license_first_foreign')]:[]}),
@@ -509,6 +410,7 @@ const API_CMD={
 };
 
 const API_VIEW={
+ traceMode:{args:[['m','string']],doc:'Redo the open traceroute in a routing mode: normal, fast or scenic.'},
  help:{args:[],doc:'Open the how-to-play modal.'},
  dash:{args:[],doc:'Open the NOC dashboard.'},
  dashClose:{args:[],doc:'Close the NOC dashboard.'},
@@ -612,7 +514,9 @@ const API_BOUND={
 };
 
 /* Starting, retrying and leaving scenarios, puzzles and architect runs, and the screens a player dismisses. They run
-   as their buttons run them; new_game, load_save and export_save are the other half of the session (mcp-page.js). */
+   as their buttons run them; new_game, load_save and export_save are the other half of the session, and exist only in
+   the MCP server's own page (scripts/lib/mcp-headless.js). In the player's tab the player owns the game, so the ones
+   that replace or leave it are refused there (API_PLAYER_OWNS). */
 const API_SESSION={
  startScn:{args:[['id','scnId']],doc:'Start a scenario (ids from catalog SCN), replacing the current game.'},
  startWeekly:{args:[],doc:'Start this week\'s weekly scenario, replacing the current game. The week follows the real date.'},
@@ -625,200 +529,22 @@ const API_SESSION={
  pitchSkip:{args:[],doc:'Skip the opening pitch; a game waiting behind it starts.'},
  tutSkip:{args:[],doc:'Skip the tutorial coaching.'},
 };
+// Session actions that would replace or leave the game in the player's tab: refused over the relay.
+const API_OWN_WHY='the game in this tab is the player\'s: only the player starts, loads or leaves one';
+const API_PLAYER_OWNS={startScn:1,startWeekly:1,pzStart:1,pzWeekly:1,pzArStart:1,pzRetry:1,pzLeave:1};
 
-const API_STATE_DOC={
- v:{type:'integer',doc:'Save format version.'},
- name:{type:'string',doc:'Your network\'s name.'},
- asn:{type:'integer',doc:'Your AS number.'},
- home:{type:'string',doc:'The city you started in.'},
- day:{type:'integer',doc:'Days since the company was founded.'},
- cash:{type:'number',doc:'Cash on hand. Goes negative into the red; -100k is bankruptcy.'},
- priceMul:{type:'number',doc:'Multiplier on transit prices (weekly modifier).'},
- mode:{type:'string',doc:'normal | sandbox | scenario | puzzle.'},
- rules:{type:'map',doc:'The rules this network locked in at its door: preset (soft, freeze, oncall, bgp, sandbox or puzzle), the chaos dial, lead times, the market, and the Best Effort extras (sea, confs, broke, moods, pnis), which are only written where they differ from the classic game. They stay for the network\'s whole life.'},
- charter:{type:'string',doc:'The charter picked in the first month of a normal game: global | boutique.'},
- chartSet:{type:'boolean',doc:'The charter has been picked; false while the choice is still open.'},
- solWon:{type:'integer',doc:'The day the Speed of Light win landed (boutique charter), or 0.'},
- lvl:{type:'integer',doc:'Customer level (unlocks customer types).'},
- ltv:{type:'integer',doc:'Level at which Tier 1 vendors were visible (title-screen pick).'},
- t1v:{type:'integer',doc:'Level at which Tier 1 transit was offered.'},
- auV:{type:'integer',doc:'Australia content level gate.'},
- seen:{type:'array',doc:'Network ids the deals panel has already shown. Vestigial: written by newGame, read nowhere.'},
- pops:{type:'map',doc:'Your POPs by city id: day opened, broadband (bb), ad boost, downtime, routers, generator, second site.'},
- links:{type:'array',doc:'Your links: waves, dark fiber (df), own cables and fabric circuits (vxc), each with an entity id.'},
- transit:{type:'array',doc:'Transit ports: city, net, tier, LAG members, port history for 95th-percentile billing.'},
- ixp:{type:'map',doc:'IX ports by exchange city; tier per port (may exceed 1 with LAG members in ixn).'},
- rs:{type:'map',doc:'Route-server sessions by exchange city.'},
- ixn:{type:'map',doc:'LAG members on IX ports by exchange city.'},
- ixSite:{type:'map',doc:'Which building each IX port sits in (a, b or ab).'},
- ixPref:{type:'map',doc:'Egress preference per IX port.'},
- myIx:{type:'map',doc:'Exchanges you founded: name, members, join schedule, fabric step.'},
- peers:{type:'map',doc:'Peering sessions, keyed "net@ix".'},
- pairMet:{type:'map',doc:'Routing metric per city pair (prefer/avoid/backup/normal), keyed by pair.'},
- pni:{type:'array',doc:'Private interconnects: city, net, tier, ready day, augments (up), LAG, sacrificial flag.'},
- caches:{type:'array',doc:'CDN cache boxes: city, net, building.'},
- nni:{type:'array',doc:'Fabric ports: city, provider, tier.'},
- biz:{type:'array',doc:'Signed customers: type, cities, bandwidth, rate, mood, contract dates.'},
- offers:{type:'array',doc:'Pending customer offers, each expiring on a day.'},
- done:{type:'map',doc:'Goals landed, by goal id → day.'},
- ach:{type:'map',doc:'Badges earned this game, by badge id → day.'},
- inc:{type:'array',doc:'Open incidents: type, what they hit, until when, optional rush-repair price.'},
- ddosStarts:{type:'array',doc:'The days the attacks of the last week started; at most 14 a week.'},
- ev:{type:'map',doc:'Live world events: the running DDoS, route leaks, fabric failures, price shocks.'},
- stats:{type:'map',doc:'Counters: incidents survived, loans taken, sharks, conferences attended, peak traffic…'},
- log:{type:'array',doc:'The NOC notification feed, newest first, capped at 60; identical notices within a minute fold with a count.'},
- nextFail:{type:'integer',doc:'The day the next failure fires.'},
- nextEvent:{type:'integer',doc:'The day the next world event fires.'},
- rng:{type:'integer',doc:'The scenario seed; it predicts every future random draw.'},
- usedNames:{type:'array',doc:'Customer names already handed out.'},
- spares:{type:'map',doc:'Spare optics on the shelf, by optic id.'},
- scrubs:{type:'array',doc:'Scrubbing centres: city and tier.'},
- scrubMode:{type:'string',doc:'always | ondemand.'},
- cnLic:{type:'map',doc:'Mainland China licence: none | pending (with ready day) | ok.'},
- ppol:{type:'string',doc:'Your published peering policy: open | selective | closed.'},
- pdesk:{type:'map',doc:'This week\'s peering desk summary: sessions accepted and declined at which exchanges.'},
- pdeskRep:{type:'map',doc:'Last week\'s peering desk summary, as the NOC log reported it.'},
- ops:{type:'map',doc:'The NOC intern: who is hired, each standing order\'s on/off switch and settings, the monthly budget and what it spent, per-POP exceptions, the new-POP template and the weekly log.'},
- core:{type:'map',doc:'Your backbone technology: lv bought, the level it runs at, the interop lab.'},
- ddosAuto:{type:'map',doc:'The NOC\'s auto-mitigation switches: rtbh and scrub.'},
- popStd:{type:'map',doc:'The standard POP: router model and count new POPs start with, or null for none.'},
- demo:{type:'map',doc:'Vendor demo units on order, by "kind:id" → ready day.'},
- seatOff:{type:'map',doc:'The pending consortium-cable seat offer: landings, km, name, expiry day.'},
- monkey:{type:'map',doc:'The chaos monkey: next visit day, whether it is in your network now, days left, whether anyone noticed.'},
- fleet:{type:'map',doc:'Cable-ship voyages by ship id: the cut it sails to, when it arrives, splices and comes home.'},
- achP:{type:'map',doc:'Which rule set each badge was earned under (oncall, freeze, bgp), by badge id.'},
- calV:{type:'integer',doc:'Calendar save-format marker: 1 once the real calendar (28-31-day months) applies.'},
- pz:{type:'map',doc:'The running puzzle: its id, cities, flows to deliver, budget and stars.'},
- ar:{type:'map',doc:'The running architect run: its HQ, brief index, gold sites, spend and the build it started from.'},
- loans:{type:'array',doc:'Active loans: bank, balance, APR, term, share (equity banks).'},
- loanOffers:{type:'array',doc:'Pending loan offers.'},
- loanStrikes:{type:'integer',doc:'How many loan offers you have let lapse.'},
- confReg:{type:'map',doc:'Conferences registered for, by key; "sp" when sponsoring.'},
- hw:{type:'map',doc:'Hardware market: price shocks and any price lock.'},
- capDeal:{type:'map',doc:'The pending capacity deal from a capacity conference.'},
- cam:{type:'map',doc:'Map camera position. View state that save() happens to store inside S.'},
- uiSpeed:{type:'number',doc:'The speed you left the game at. View state that save() stores inside S.'},
- won:{type:'boolean',doc:'You reached Tier 1.'},
- t1Now:{type:'boolean',doc:'Tier 1 right now, as of the last day; falling out of it is announced.'},
- lost:{type:'boolean',doc:'The bank repossessed the routers.'},
- neg:{type:'integer',doc:'Days in the red in a row.'},
- hist:{type:'array',doc:'Daily history for the graphs: demand, served, exit split, revenue, cost, cash.'},
- scn:{type:'map',doc:'The running scenario: id, rules, day limit, done/failed, and the day of the next scripted attack (nextDdos).'},
- dk:{type:'map',doc:'De-Kicks state: per-exchange multipliers, add-ons, retention, the live quote (q) and the remembered one (lastQ).'},
- grace:{type:'map',doc:'Courtesy transit after a merger wave, until a day.'},
- merged:{type:'map',doc:'Networks merged into others this game.'},
- tut:{type:'map',doc:'Tutorial progress.'},
- conf:{type:'map',doc:'The conference glow: region and until when; sp when you sponsored.'},
- phpDone:{type:'boolean',doc:'One-shot flag.'},
- krExit:{type:'map',doc:'Korea exit state.'},
- auNews:{type:'boolean',doc:'One-shot flag: the Australia news toast.'},
- richTold:{type:'boolean',doc:'One-shot flag: the cash milestone toast.'},
+/* Actions no tool runs, by reason: files, storage slots, settings and the title screen are not the game's, and time
+   moves only through advance (or the page's own clock). */
+const API_WHY={
+  time:'use advance to move time, or wait when the clock runs on its own',start:'use new_game',files:'use load_save or export_save',
+  slots:'saved networks in browser storage are not part of this game',prefs:'device and player settings are not part of the game',
+  browser:'it needs the browser itself (a share sheet, the clipboard, an install prompt or a reload)',
 };
-
-const API_RESULTS_DOC={
- nt:{type:'map',doc:'Traffic per network through transit, by net id.'},
- tNet:{type:'map',doc:'Traffic per network you hand to each upstream, by "net@upstream".'},
- reachNT:{type:'number',doc:'Networks reachable without transit.'},
- teBlack:{type:'number',doc:'Traffic blackholed by RouteScript rules.'},
- teMoved:{type:'number',doc:'Traffic Auto-TE spilled onto alternate paths.'},
- egT:{type:'map',doc:'Egress split by exit kind (c/p/ix/t/l2) in Gbps.'},
- egDesc:{type:'map',doc:'RouteScript drains per exit.'},
- netEg:{type:'map',doc:'Per-network egress split: which exit carries which network.'},
- ef:{type:'map',doc:'LAZY per-link exit breakdown: what crosses each link, per network, built only when a panel asks. What is in here depends on which panels have rendered.'},
- l2:{type:'map',doc:'Layer-2 traffic per customer (L2VPN, SD-WAN, waves).'},
- l2lat:{type:'map',doc:'Latency per L2 customer.'},
- l2route:{type:'map',doc:'Which path an L2 customer\'s traffic takes.'},
- l2split:{type:'map',doc:'L2 traffic split per path.'},
- nodeLoad:{type:'map',doc:'Router forwarding load per city.'},
- nodeCap:{type:'map',doc:'Router forwarding capacity per city.'},
- div:{type:'map',doc:'Traffic diversity per customer (how split their paths are).'},
- gfwLost:{type:'number',doc:'Traffic lost to the Great Firewall.'},
- gfwCross:{type:'number',doc:'Traffic crossing into mainland China.'},
- p95:{type:'map',doc:'95th-percentile transit readings per port.'},
- peered:{type:'number',doc:'Share of traffic that stays on peering.'},
- peerShare:{type:'number',doc:'Fraction of traffic served by peers (mood driver).'},
- load:{type:'map',doc:'Load per link in Gbps.'},
- useT:{type:'map',doc:'Transit use per port id.'},
- useIx:{type:'map',doc:'IX use per exchange city.'},
- usePni:{type:'map',doc:'PNI use per port id.'},
- useCache:{type:'map',doc:'Cache use per box id.'},
- cityDem:{type:'map',doc:'Eyeball + customer demand per city.'},
- citySrv:{type:'map',doc:'Traffic served per city.'},
- cityEye:{type:'map',doc:'Eyeballs online per city.'},
- latF:{type:'map',doc:'Fraction of each city\'s traffic that goes far (over a threshold latency).'},
- latFar:{type:'map',doc:'The far exit each slow city sends traffic through.'},
- demTo:{type:'map',doc:'Your traffic destined to each network, in Gbps. The number CDN caches ask about.'},
- served:{type:'number',doc:'Total traffic served, in Gbps.'},
- demand:{type:'number',doc:'Total traffic demanded, in Gbps.'},
- reach:{type:'number',doc:'Fraction of the internet you can reach (0..1).'},
- sessions:{type:'number',doc:'Peering sessions up.'},
- revMo:{type:'number',doc:'Revenue per month.'},
- costMo:{type:'number',doc:'Cost per month.'},
- cost:{type:'map',doc:'Monthly cost by category (transit, pni, ix, links…).'},
- rev:{type:'map',doc:'Monthly revenue by source.'},
- reachable:{type:'map',doc:'Networks reachable per net id.'},
- cone:{type:'map',doc:'Which peer\'s customer cone carries each network you reach without transit of your own, by net id.'},
- ddos:{type:'array',doc:'Per live attack: the target, its size, which ports it fills, what Flowspec and each scrubbing centre cleaned, and what reaches the target.'},
- haul:{type:'array',doc:'Scrubbing detours: from the attacked city to each centre, one-way latency and how much they carry.'},
- tgtF:{type:'map',doc:'The share of a targeted customer\'s traffic that survives the attack, by customer id.'},
- bbF:{type:'map',doc:'The share of a city\'s broadband subscribers that survive an attack on them, by city id.'},
- fsUse:{type:'map',doc:'Flowspec rules in use per city: used of the routers\' rule capacity.'},
- bizDem:{type:'map',doc:'Business customers\' share of each city\'s demand, in Gbps (what RouteScript\'s protect customers serves first).'},
- bizSrv:{type:'map',doc:'Of that business demand, what was served, per city.'},
- graceNets:{type:'number',doc:'Networks reached over the courtesy route after a merger wave.'},
- cityBlocked:{type:'map',doc:'Set up per city by the traffic computation; nothing fills it at present.'},
- ddosHot:{type:'map',doc:'Cities whose ports a flood is filling, for the map\'s pulse. Keyed by city id.'},
+const API_DENY={
+  speed:'time',phonePlay:'time',phoneSpeed:'time',
+  start:'start',newgame:'start',cont:'start',toTitle:'start',resetAsk:'start',
+  exportSave:'files',importGo:'files',importPick:'files',slotExport:'files',
+  slotBack:'slots',slotDel:'slots',slotDelGo:'slots',slotMenu:'slots',slotRetry:'slots',slotSpace:'slots',slotSwitch:'slots',slotTake:'slots',
+  animSet:'prefs',langSet:'prefs',menu:'prefs',mute:'prefs',prefSet:'prefs',settings:'prefs',settingsClose:'prefs',soundSet:'prefs',vpSet:'prefs',
+  install:'browser',share:'browser',shareDl:'browser',shareGo:'browser',traceCopy:'browser',updateLater:'browser',updateNow:'browser',wsShare:'browser',pzShare:'browser',
 };
-
-/* One arg of a spec as the schema states it: the domain when there is one (catalog() resolves
-   it), the bare type otherwise, and the concrete value list or range where it is fixed. */
-function apiArgSpec([name,dom,req]){
-  const a={name,required:req!==false};
-  if(API_DOMAINS[dom])a.domain=dom;else a.type=dom;
-  const v=apiDomValues(dom);
-  if(Array.isArray(v))a.values=v;else if(v&&v.from!==undefined)a.range=v;
-  return a;}
-
-/* Dotted subtrees, no wildcards. An array walks by index (`biz.3`) or by entity id (`links[#id]`). */
-function apiPath(o,p){
-  if(p===undefined||p===null||p==='')return o;
-  let v=o;
-  for(const k of String(p).split('.')){
-    if(v==null)return undefined;
-    if(Array.isArray(v)){const i=Number(k);
-      v=(Number.isInteger(i)&&String(i)===k&&i>=0&&i<v.length)?v[i]:v.find(x=>x&&typeof x==='object'&&x.id===k);}
-    else if(v instanceof Set)v=[...v];
-    else if(v instanceof Map)v=Object.fromEntries(v);
-    else if(typeof v==='object')v=v[k];
-    else return undefined;}
-  return v;}
-
-function apiJson(v){
-  if(v instanceof Set)return [...v].map(apiJson);
-  if(v instanceof Map)return apiJson(Object.fromEntries(v));
-  if(v&&typeof v==='object')return Array.isArray(v)?v.map(apiJson):Object.fromEntries(Object.entries(v).map(([k,x])=>[k,apiJson(x)]));
-  if(typeof v==='function')return undefined;
-  return v;}
-
-/* The tables the argument domains point at. Everything is a static reference except three,
-   each computed for a reason: BADGES hides unearned secrets like the badge wall; conferences
-   carries the keys confGo/confSponsor need, which exist in no field of S; TE_RECIPES renders
-   each recipe's script, because the source is a function and some read the live network. The
-   recipes' relevance score is not exposed: judging which one fits is the agent's job. */
-const API_TABLES={CITIES,NETS,CABLES,XIX,PORT,LT,NNI,VXC,RG,OPT,DF_SYS,FAB,SCRUB_TIERS,BIZ_T,LEVELS,GOALS,SCN,BANKS,REQS,NSH,MET,PREF,RT,PPOL,CONFS,LAG_MAX,RMAX,REGEN_MAX,START_CASH,CONF_COST,CONF_SP,CAP_COST,CAP_LV,CONF_DAYS,SUB_UPGRADES,SEA_DESIGNS,TE_COST,TE_MO,MYIX_COST,CN_LIC,SITE2_COST,MYIX_FAB,INTERNS,OPSK,CHARTERS,SEAT_N,CORE_LV,CORE_COST,CORE_REQ,CORE_LAB,INTERN_MO,PZ_TIERS,AR_TIERS,PZ_RG};
-const API_MADE={
-  BADGES:()=>!S?[]:BADGES.map(b=>{const on=S.ach&&S.ach[b.id]!==undefined,ever=!!hof()[b.id];
-    return b.secret&&!on&&!ever?{id:b.id,i:'❔',t:'???',d:tr('badges.a_secret_badge'),r:b.r,secret:true}:{...b,ever};}),
-  conferences:()=>!S?[]:upcomingConfs(75).map(cf=>({key:cf.key,name:cf.n,city:cf.c,day:cf.day,capacity:!!cf.cap,cost:confCost(cf),sponsorCost:confSp(cf)?CONF_SP:null})),
-  TE_RECIPES:()=>!S?[]:TE_RECIPES.map(r=>({id:r.id,name:tr(r.n),description:tr(r.d),script:r.src().join('\n')})),
-};
-function API_CATALOG_TABLE(name){return name in API_MADE?API_MADE[name]():API_TABLES[name];}
-
-/* UI minus the render caches and pointer scratch, which are inputs to nothing.
-   Everything a command binds (pending, route, via, dfSrc, dfSys, seaDesign, cnPrem, decom,
-   teDraft, confirm) stays, so an agent can see what it was given. */
-const API_UI_HIDDEN={_lh:1,_ph:1,_tb:1,_layer:1,layerAt:1,hover:1,drag:1,snap:1};
-
-return {API_DOMAINS,API_CMD,API_VIEW,API_BOUND,API_SESSION,API_STATE_DOC,API_RESULTS_DOC,API_TABLES,API_MADE,API_UI_HIDDEN,
-  apiDomCheck,apiDomValues,apiArgSpec,apiPath,apiJson};
-})();

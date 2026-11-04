@@ -29,6 +29,6 @@ Object.assign(ACT,{
 // No game on screen: the map stays empty behind the title.
 function gameClear(){S=null;R=emptyR();UI.started=false;UI.sel=null;UI.nm=null;UI.confirm=null;$('dash').hidden=true;$('bankBox').hidden=true;renderAll();}
 // Back from the title (or a puzzle) into a loaded network.
-function gameResume(){UI.started=true;UI.sel=null;UI.confirm=null;$('dash').hidden=true;$('bankBox').hidden=true;UI.speed=[0,0.5,1,2,4,8].includes(S.uiSpeed)?S.uiSpeed:1;
+function gameResume(){UI.started=true;UI.sel=null;UI.confirm=null;$('dash').hidden=true;$('bankBox').hidden=true;setSpeed([0,0.5,1,2,4,8].includes(S.uiSpeed)?S.uiSpeed:1);
   if(S.cam&&isFinite(S.cam.x))Object.assign(cam,S.cam);else{const h=CITY[S.home];if(h){cam.x=h.x;cam.y=h.y;cam.z=innerWidth<760?1.1:1.4;}}
   closeModal();renderAll();toast(tr('loop.welcome_back_name_your_network_is',{name:esc(S.name),date:dateStr(S.day)}),'good');}

@@ -11,8 +11,10 @@ src/                         the game page, in pieces
   i18n/en.js                 the English for every label → inlined at the top of the page's <script>
   styles/NN-*.css            → pasted into the page's <style>, in path order
   game/NN-area/NN-*.js       → pasted into the page's <script>, in path order
+  agent/NN-*.js              → the agent facade the MCP server drives: development page only (@include-dev)
 site/                        static files copied to the build as they are (dictionaries, icons, sw.js…)
-scripts/lib/page.js          the assembler: <!-- @include DIR --> → every file under src/DIR, sorted
+scripts/lib/page.js          the assembler: <!-- @include DIR --> → every file under src/DIR, sorted;
+                             <!-- @include-dev DIR --> the same, in the development page only
 scripts/build.js             _site/ = site/ + the assembled page, version-stamped, release notes baked in
 ```
 
@@ -44,12 +46,19 @@ hoisted across files, and top-level statements run in path order. Find code by n
 
 `src/styles/` holds the CSS the same way: base, HUD, drawers, toasts, modal, tablet, then phone.
 
+`src/agent/` is the agent facade (`window.TUBES`): the typed commands, reads and screens the MCP server plays
+through. It is assembled into the **development page** only (`npm run dev`, the MCP server, tests that ask for it);
+the page players get never has it ([ADR 0004](adr/0004-dev-only-code.md)). Its top-level names all start with
+`api`/`API_`, and nothing outside `src/agent/` may use them. Where it must reach into the game (agent mode in the
+player's tab locks the clock and draws its badge and Settings section), the game offers `HOOKS` and the flag
+`UI.clockLocked` (`50-state.js`), empty and false in the page players get, and `runClock(dt)` (`99-loop.js`).
+
 Rules for the source (checked by `tests/build.test.js` and the assembler): files are named
 `NN-lower-case.js`/`.css`, end with a newline and never close their `<script>`/`<style>`; top-level code
 may only use top-level values from earlier files; tables people add to have one entry per line, the
 id-keyed ones sorted. New features get their own file in the right folder (`edit-the-game` skill).
-Development runs on `npm run dev` (assembles on every request, reloads on save);
-`npm run page -- -o FILE` writes the assembled page.
+Development runs on `npm run dev` (assembles the development page on every request, reloads on save);
+`npm run page -- -o FILE` writes the page players get, `npm run page -- --source --dev -o FILE` the development page.
 
 ## Other files
 
@@ -62,21 +71,22 @@ Development runs on `npm run dev` (assembles on every request, reloads on save);
 | `scripts/lib/page.js` | Assembles the page from `src/` (also from a git ref with `--ref`, for performance baselines) |
 | `scripts/lib/compile-labels.js` | Shrinks labels to short ids in the shipped page and dictionaries |
 | `scripts/build.js` | Builds `_site/` for GitHub Pages: copies `site/`, writes the page, stamps `__VERSION__`/`__BUILD_DATE__`, bakes release notes, writes `version.json` |
-| `scripts/dev.js` | `npm run dev`: development server, no dependencies |
+| `scripts/dev.js` | `npm run dev`: development server (loopback unless `--host`), serving the development page and hosting the agent relay |
 | `scripts/test.js` | `npm test`: runs every `tests/*.test.js` |
 | `scripts/release-notes.js` | Extracts a version's CHANGELOG bullets |
 | `scripts/perf-bench.js`, `perf-browser.js`, `perf-stats.js`, `perf-fixture.js` | Big-network benchmark, base vs head, headless and in Chromium as a desktop and a throttled phone, with a significance test per row (posted on every PR by `perf.yml` + `perf-comment.yml`), and the generator of its save, `tests/fixtures/big-network.json` |
-| `scripts/mcp.js`, `scripts/lib/mcp-game.js`, `scripts/lib/mcp-commands.js`, `scripts/lib/mcp-page.js` | The game as a local MCP server: typed tools to play, inspect and debug it from an AI client ([MCP.md](MCP.md)) |
+| `scripts/mcp.js`, `scripts/lib/mcp-game.js`, `scripts/lib/mcp-headless.js`, `src/agent/` | The game as a local MCP server, on the official SDK over stdio or HTTP: typed tools to play, inspect and debug it from an AI client, headless or in the player's own tab ([MCP.md](MCP.md)) |
+| `scripts/agent/relay.js`, `scripts/lib/mcp-browser.js`, `scripts/lib/relay-client.js` | The agent relay `npm run dev` hosts at `/agent`, and the MCP server's side of it: how a tool reaches the game in the player's tab |
 | `scripts/i18n-check.js`, `scripts/i18n-add.js`, `scripts/lib/dict.js` | Translation coverage and dictionary order; adding, renaming and removing entries |
 | `scripts/legacy/` | The splitter that made `src/` from the old `site/index.html` (and gave its text labels), and `port-branch.js`, which carries older branches over |
-| `tests/harness.js` | Loads the assembled page in jsdom with a seeded `Math.random` and a fake canvas |
+| `tests/harness.js` | Loads the assembled page in jsdom with a seeded `Math.random` and a fake canvas: the players' page, or the development page with `{agent: true}` |
 | `.github/workflows/ci.yml` | Tests and build on every push and PR |
 | `.github/workflows/auto-release.yml` | On a `package.json` version bump on `main`: test, tag, GitHub release from the CHANGELOG, start the deploy |
 | `.github/workflows/release.yml` | Builds and deploys to GitHub Pages, the only workflow that can |
 | `.github/workflows/weekly-puzzle.yml` | Sunday 03:37 UTC: makes the week's puzzle, commits it to `main` (data only, no release) and starts `release.yml` for the live release tag with `weekly=true` |
 | `scripts/weekly-puzzle.js`, `site/puzzles/weekly/` | The weekly puzzle generator and its output, one `<key>.json` per week plus `index.json` (see below) |
 | `scripts/weekly-scenario.js`, `scripts/lib/scenario-bot.js`, `site/scenarios/weekly/` | The weekly scenario generator, its reference player and its output (see below) |
-| `docs/adr/` | Decisions: GitHub Pages only (0001), one page assembled at build (0002), translations by label (0003) |
+| `docs/adr/` | Decisions: GitHub Pages only (0001), one page assembled at build (0002), translations by label (0003), development-only code (0004) |
 
 ## Globals
 
