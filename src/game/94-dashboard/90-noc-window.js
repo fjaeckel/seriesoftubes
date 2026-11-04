@@ -70,8 +70,9 @@ function nocWinBoot(){i18nDom();document.body.classList.add('noc-window');UI.dta
   NOC.yoAt=performance.now();nocBar();nocPost({t:'hello',id:NOC.id});if(!window.__TUBES_TEST__)setInterval(nocBeat,NOC_HB);}
 addEventListener('pagehide',()=>{if(!NOC.win&&NOC.peer&&UI.slot)nocPost({t:'bye',id:UI.slot});});
 Object.assign(ACT,{
- // A second click finds the window that is already there. A blocked pop-up can only be told by its silence (noopener gives no handle).
+ // A second click finds the window that is already there. A blocked pop-up can only be told by its silence (noopener gives no
+ // handle): wait as long as a window may go quiet, since a slow machine loading the whole page can take seconds to say hello.
  nocWindow:()=>{if(!S||pzOn()||!UI.slot)return;const id=UI.slot;if(NOC.peer){nocPost({t:'focus',id});return;}
    window.open(location.pathname+'?noc='+id,'_blank','noopener,popup,width=1320,height=860');
-   if(!window.__TUBES_TEST__)setTimeout(()=>{if(!NOC.peer&&UI.slot===id)toast(tr('noc.your_browser_blocked_the_window'),'bad');},4000);},
+   if(!window.__TUBES_TEST__)setTimeout(()=>{if(!NOC.peer&&UI.slot===id)toast(tr('noc.your_browser_blocked_the_window'),'bad');},NOC_LOST);},
 });
