@@ -20,6 +20,12 @@ function glShow(on){on=!!on;if(GLX.shown===on)return;GLX.shown=on;const e=docume
 // Marks an error as the card's own, so draw() falls back to 2D instead of trying WebGL again every frame.
 function glErr(e){const x=e instanceof Error?e:new Error(String(e));x.glErr=true;return x;}
 function glKill(why){console.warn('[tubes] the map stays 2D:',why&&why.message||why);GLX.dead=true;GLX.gl=null;spritesDrop();glShow(false);}
+/* A card short of memory may refuse a texture or a buffer without throwing: it only leaves OUT_OF_MEMORY for
+   getError(), and the texture then draws black (every picture a black box) or the buffer draws nothing. So the big
+   uploads (the atlas, the land, the tubes, the cables) read it, and give the card up like any of its errors. Never
+   every frame: each read waits for the card. Up to four flags are read, as one call returns only one. */
+function glMem(gl,what){for(let i=0;i<4;i++){const e=gl.getError();if(!e||e===gl.CONTEXT_LOST_WEBGL)return;
+  if(e===gl.OUT_OF_MEMORY)throw glErr(new Error('the graphics card is out of memory ('+what+')'));}}
 const GL_HEAD='#version 300 es\nprecision highp float;precision highp int;\n';
 // Clip space from CSS px (the shaders work in CSS px, as the 2D map does, and use uDpr only for anti-aliasing).
 const GL_CLIP='vec4 clip(vec2 p,vec2 v,float z){return vec4(p.x/v.x*2.-1.,1.-p.y/v.y*2.,z,1.);}\n';

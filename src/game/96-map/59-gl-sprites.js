@@ -18,10 +18,12 @@ const SPR_FS=GL_HEAD+`uniform sampler2D uTex;uniform float uDpr;in vec2 vUV,vQ;i
 void main(){if(vK>.5){float a=clamp((vR-length(vQ))*uDpr+.5,0.,1.)*vC.a;if(a<=0.)discard;o=vec4(vC.rgb*a,a);}
   else o=texture(uTex,vUV)*vC.a;}`;
 function glsInit(gl){GLS.prog=glProg(gl,SPR_VS,SPR_FS);const {v,b}=glVao(gl,[4,4,4,1]);GLS.vao=v;GLS.buf=b;
-  // 4096 px square (64 MB), or what the card allows if that is less (some phones).
-  GLS.size=Math.min(4096,gl.getParameter(gl.MAX_TEXTURE_SIZE)||4096);
-  GLS.tex=gl.createTexture();gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,GLS.tex);
-  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,GLS.size,GLS.size,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+  // 4096 px square (64 MB), or what the card allows if that is less (some phones). A card that has not the memory for
+  // it gets 2048 (16 MB: more resets of the atlas, the same map); without even that, the map stays 2D (glMem).
+  GLS.tex=gl.createTexture();gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,GLS.tex);glMem(gl,'setup');
+  for(GLS.size=Math.min(4096,gl.getParameter(gl.MAX_TEXTURE_SIZE)||4096);;GLS.size>>=1){
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,GLS.size,GLS.size,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+    try{glMem(gl,'the pictures');break;}catch(e){if(GLS.size<=2048)throw e;}}
   for(const k of [gl.TEXTURE_MIN_FILTER,gl.TEXTURE_MAG_FILTER])gl.texParameteri(gl.TEXTURE_2D,k,gl.LINEAR);
   for(const k of [gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T])gl.texParameteri(gl.TEXTURE_2D,k,gl.CLAMP_TO_EDGE);
   GLS.shx=GLS.shy=GLS.shh=0;}

@@ -71,7 +71,7 @@ function glBuild(LG,GM,looks){const gl=GLX.gl,N=LG.length;let ns=0,np=0,nk=0;
     for(let i=0;i<L.pk;i++){const o=ki*8;PK[o]=p0;PK[o+1]=pts.length;PK[o+2]=len;PK[o+3]=L.pk;PK[o+4]=i;PK[o+5]=L.w0;PK[o+6]=dep;ki++;}}
   gl.bindBuffer(gl.ARRAY_BUFFER,GLX.lv.b);gl.bufferData(gl.ARRAY_BUFFER,SEG,gl.DYNAMIC_DRAW);
   gl.bindBuffer(gl.ARRAY_BUFFER,GLX.pv.b);gl.bufferData(gl.ARRAY_BUFFER,PK,gl.DYNAMIC_DRAW);
-  gl.bindTexture(gl.TEXTURE_2D,GLX.tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA32F,GL_PTS_W,TH,0,gl.RGBA,gl.FLOAT,PT);
+  gl.bindTexture(gl.TEXTURE_2D,GLX.tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA32F,GL_PTS_W,TH,0,gl.RGBA,gl.FLOAT,PT);glMem(gl,'the tubes');
   Object.assign(GLX,{nSeg:ns,nPk:nk});return {SEG,PK,PT};}
 // The selected tube's halo: its segments again, at its own depth (so later tubes still cover it), and nothing else.
 function glHalo(LG,GM,looks,selId){const gl=GLX.gl,N=LG.length,A=[];
