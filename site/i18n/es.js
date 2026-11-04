@@ -3477,7 +3477,6 @@
 "puzzles.monkey_snip":"🐒 ¡Zas!",
 "puzzles.more_puzzles":"Más puzles",
 "puzzles.n_1_club":"Club N-1",
-"puzzles.n_1_deliver_everything_first":"N-1: primero entrégalo todo",
 "puzzles.n_circuits":{"one":"{n} circuito","other":"{n} circuitos"},
 "puzzles.n_g_of_eyeballs":"{n} de usuarios",
 "puzzles.n_links_on_this_pair":"{n} enlaces en este par: {what}",

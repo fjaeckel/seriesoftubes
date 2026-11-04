@@ -3478,7 +3478,6 @@
 "puzzles.monkey_snip":"🐒 Snip!",
 "puzzles.more_puzzles":"More puzzles",
 "puzzles.n_1_club":"N-1 Club",
-"puzzles.n_1_deliver_everything_first":"N-1: deliver everything first",
 "puzzles.n_circuits":{"one":"{n} circuit","other":"{n} circuits"},
 "puzzles.n_g_of_eyeballs":"{n} of eyeballs",
 "puzzles.n_links_on_this_pair":"{n} links on this pair: {what}",

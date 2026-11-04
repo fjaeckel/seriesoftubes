@@ -3477,7 +3477,6 @@
 "puzzles.monkey_snip":"🐒 Clac !",
 "puzzles.more_puzzles":"Plus de puzzles",
 "puzzles.n_1_club":"Club N-1",
-"puzzles.n_1_deliver_everything_first":"N-1 : livre tout d'abord",
 "puzzles.n_circuits":{"one":"{n} circuit","other":"{n} circuits"},
 "puzzles.n_g_of_eyeballs":"{n} d'internautes",
 "puzzles.n_links_on_this_pair":"{n} liens sur cette paire : {what}",

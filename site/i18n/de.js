@@ -3479,7 +3479,6 @@
 "puzzles.monkey_snip":"🐒 Schnipp!",
 "puzzles.more_puzzles":"Mehr Puzzles",
 "puzzles.n_1_club":"N-1-Club",
-"puzzles.n_1_deliver_everything_first":"N-1: erst alles liefern",
 "puzzles.n_circuits":{"one":"{n} Leitung","other":"{n} Leitungen"},
 "puzzles.n_g_of_eyeballs":"{n} Privatkunden",
 "puzzles.n_links_on_this_pair":"{n} Links auf diesem Paar: {what}",

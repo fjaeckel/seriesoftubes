@@ -3477,7 +3477,6 @@
 "puzzles.monkey_snip":"🐒 Zac!",
 "puzzles.more_puzzles":"Altri puzzle",
 "puzzles.n_1_club":"Club N-1",
-"puzzles.n_1_deliver_everything_first":"N-1: prima consegna tutto",
 "puzzles.n_circuits":{"one":"{n} circuito","other":"{n} circuiti"},
 "puzzles.n_g_of_eyeballs":"{n} di utenti",
 "puzzles.n_links_on_this_pair":"{n} link su questa coppia: {what}",
