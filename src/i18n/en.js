@@ -1756,6 +1756,7 @@
 "dashboard.all_n":"All ({n})",
 "dashboard.amp_huts_and_spares":"Amp huts and spares",
 "dashboard.caches_pnis_and_ix":"caches, PNIs and IX",
+"dashboard.chart_total":"Total",
 "dashboard.customers_are_upset":"customers are upset",
 "dashboard.delivered_30_days":"Delivered, 30 days",
 "dashboard.five_nines_ish":"five nines-ish",

@@ -12,7 +12,7 @@ const nwG=v=>v>=1000?(+(v/1000).toFixed(1))+'T':(v>=10||v===0?Math.round(v):+v.t
 const nwMapBox=()=>{let y0=Infinity,y1=-Infinity;for(const p of COAST){const b=polyBox(p);if(ringArea(p)>=600){y0=Math.min(y0,b[1]);y1=Math.max(y1,b[3]);}}return [0,Math.floor(y0),W,Math.ceil(y1-y0)];};
 function nwLand(){let d='';for(const p of COAST){if(ringArea(p)<600&&!CITIES.some(c=>inPoly(c.x,c.y,p)))continue;d+='M'+p.map(q=>Math.round(q[0])+' '+Math.round(q[1])).join('L')+'Z';}return d;}
 // ---------- charts ----------
-function nwChart(rows,stack,lines,fmtY,CW=900,CH=260,L=62){if(rows.length<2)return `<p class="nw-empty">${tr('link_panels.collecting_data_check_back_in_a')}</p>`;
+function nwChart(rows,stack,lines,fmtY,CW=900,CH=260,L=62,id=''){if(rows.length<2)return `<p class="nw-empty">${tr('link_panels.collecting_data_check_back_in_a')}</p>`;
   const B=22,T=8,Rr=8;let ymax=1;for(const r of rows){let s=0;for(const k of stack)s+=r[k]||0;ymax=Math.max(ymax,s);for(const ln of lines)ymax=Math.max(ymax,r[ln.k]||0);}ymax*=1.1;
   const x=i=>+(L+(CW-L-Rr)*i/(rows.length-1)).toFixed(1),y=v=>+(T+(CH-T-B)*(1-v/ymax)).toFixed(1);let g='';
   for(let j=0;j<=4;j++){const v=ymax*j/4,yy=y(v);g+=`<line class="nw-grid" x1="${L}" x2="${CW-Rr}" y1="${yy}" y2="${yy}"/><text class="nw-ax" x="${L-6}" y="${yy+3}" text-anchor="end">${esc(fmtY(v))}</text>`;}
@@ -21,7 +21,7 @@ function nwChart(rows,stack,lines,fmtY,CW=900,CH=260,L=62){if(rows.length<2)retu
     g+=`<path d="${d}Z" fill="${EGC[k][1]}" fill-opacity=".55"/><path d="${e}" fill="none" stroke="${EGC[k][1]}" stroke-width="1.5"/>`;top.forEach((v,i)=>base[i]=v);}
   for(const ln of lines){let d='';rows.forEach((r,i)=>{d+=(i?'L':'M')+x(i)+','+y(r[ln.k]||0);});g+=`<path d="${d}" fill="none" stroke="${ln.col}" stroke-width="2" ${ln.dash?'stroke-dasharray="5 4"':''} stroke-linejoin="round"/><circle cx="${x(rows.length-1)}" cy="${y(rows[rows.length-1][ln.k]||0)}" r="3.5" fill="${ln.col}"/>`;}
   g+=`<text class="nw-ax" x="${L}" y="${CH-6}">${esc(dateStr(rows[0].d))}</text><text class="nw-ax" x="${CW-Rr}" y="${CH-6}" text-anchor="end">${esc(dateStr(rows[rows.length-1].d))}</text>`;
-  return `<svg class="nw-chart" viewBox="0 0 ${CW} ${CH}" role="img">${g}</svg>`;}
+  return `<svg class="nw-chart" viewBox="0 0 ${CW} ${CH}" role="img"${id?` data-ch="${id}" data-box="${CW},${CH},${L},${T},${B},${Rr}"`:''}>${g}</svg>`;}
 function nwSpark(vals,col){if(vals.length<2)return '';let a=Infinity,b=-Infinity;for(const v of vals){if(v<a)a=v;if(v>b)b=v;}const sp=b-a||1;
   const pts=vals.map((v,i)=>(100*i/(vals.length-1)).toFixed(1)+','+(26-22*(v-a)/sp).toFixed(1)).join(' ');
   return `<svg class="nw-spark" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;}
@@ -80,11 +80,11 @@ function nocWall(){if(!NOCW.built)nwBuild();const rows=(S.hist||[]).slice(-90),A
   NOCW.sum={bad:A.filter(a=>a.k==='bad').length,warn:A.filter(a=>a.k==='warn').length};
   const put=(id,h)=>{const e=$(id);if(e._h!==h){e._h=h;morph(e,h);}};
   put('nwTiles',nwTiles());put('nwOver',nwMap());put('nwAlarms',nwAlarmsHtml(A));
-  put('nwTraffic',`<div class="nw-h"><h3>${esc(tr('dashboard.traffic_by_way_out'))}</h3><div class="nw-legend">${Object.keys(EGC).filter(k=>(R.egT[k]||0)>0.01||rows.some(r=>(r[k]||0)>0)).map(k=>`<span><i style="background:${EGC[k][1]}"></i>${esc(EGC[k][0])} <b class="num">${esc(fmtG(R.egT[k]||0))}</b></span>`).join('')}<span><i class="dash"></i>${esc(tr('common.demand'))}</span></div></div>${nwChart(rows,['c','p','ix','t','l2'],[{k:'dem',col:'#E8EEFA',dash:true}],nwG)}`);
+  put('nwTraffic',`<div class="nw-h"><h3>${esc(tr('dashboard.traffic_by_way_out'))}</h3><div class="nw-legend">${Object.keys(EGC).filter(k=>(R.egT[k]||0)>0.01||rows.some(r=>(r[k]||0)>0)).map(k=>`<span><i style="background:${EGC[k][1]}"></i>${esc(EGC[k][0])} <b class="num">${esc(fmtG(R.egT[k]||0))}</b></span>`).join('')}<span><i class="dash"></i>${esc(tr('common.demand'))}</span></div></div>${nwChart(rows,['c','p','ix','t','l2'],[{k:'dem',col:'#E8EEFA',dash:true}],nwG,900,260,62,'traffic')}`);
   put('nwPorts',nwPorts());
   put('nwRouters',nwBars(tr('common.router_load'),Object.keys(S.pops).map(c=>[CITY[c].name,`${S.pops[c].routers||1} × ${RG[S.pops[c].rgen||0].n}`,(R.nodeLoad[c]||0)/(R.nodeCap[c]||1)]).sort((a,b)=>b[2]-a[2]).slice(0,6)));
   put('nwLinks',nwBars(tr('common.busiest_links'),S.links.filter(l=>capOf(l)>0).map(l=>[`${CITY[l.a].name} ⇄ ${CITY[l.b].name}`,capName(l),(R.load[l.id]||0)/capOf(l)]).sort((a,b)=>b[2]-a[2]).slice(0,6)));
-  put('nwMoney',`<div class="nw-h"><h3>${esc(tr('dashboard.money_per_month'))}</h3><div class="nw-legend"><span><i style="background:${NW_COL.ok}"></i>${esc(tr('common.revenue'))}</span><span><i style="background:${NW_COL.bad}"></i>${esc(tr('common.costs'))}</span></div></div>${nwChart(rows,[],[{k:'rev',col:NW_COL.ok},{k:'cost',col:NW_COL.bad}],fmt$,520,220,74)}`);}
+  put('nwMoney',`<div class="nw-h"><h3>${esc(tr('dashboard.money_per_month'))}</h3><div class="nw-legend"><span><i style="background:${NW_COL.ok}"></i>${esc(tr('common.revenue'))}</span><span><i style="background:${NW_COL.bad}"></i>${esc(tr('common.costs'))}</span></div></div>${nwChart(rows,[],[{k:'rev',col:NW_COL.ok},{k:'cost',col:NW_COL.bad}],fmt$,520,220,74,'money')}`);}
 // The window's own controls never reach the game: they change what this screen shows.
 function nocUiClick(e){const b=e.target.closest&&e.target.closest('[data-nc]');if(!b)return;const v=b.getAttribute('data-nc');
   if(v==='wall'||v==='details')nocView(v);

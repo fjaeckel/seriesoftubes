@@ -1755,6 +1755,7 @@
 "dashboard.all_n":"Todo ({n})",
 "dashboard.amp_huts_and_spares":"Casetas de amplificación y repuestos",
 "dashboard.caches_pnis_and_ix":"cachés, PNIs e IX",
+"dashboard.chart_total":"Total",
 "dashboard.customers_are_upset":"los clientes están molestos",
 "dashboard.delivered_30_days":"Entregado, 30 días",
 "dashboard.five_nines_ish":"casi cinco nueves",

@@ -1757,6 +1757,7 @@
 "dashboard.all_n":"Alle ({n})",
 "dashboard.amp_huts_and_spares":"Verstärkerhütten und Ersatzteile",
 "dashboard.caches_pnis_and_ix":"Caches, PNIs und IX",
+"dashboard.chart_total":"Gesamt",
 "dashboard.customers_are_upset":"Kunden sind verärgert",
 "dashboard.delivered_30_days":"Geliefert, 30 Tage",
 "dashboard.five_nines_ish":"fünf Neunen, so ungefähr",

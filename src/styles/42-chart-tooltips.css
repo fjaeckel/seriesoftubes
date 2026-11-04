@@ -1,0 +1,15 @@
+.legend .lg{font:inherit;color:inherit;background:none;border:0;padding:2px 4px;margin:-2px -4px;border-radius:6px;cursor:pointer}
+.legend .lg:hover{background:rgba(30,38,64,.08)}
+.legend .lg.off{opacity:.45;text-decoration:line-through}
+.chart[data-ch]{touch-action:pan-y;cursor:crosshair}
+.chtip{position:fixed;z-index:60;pointer-events:none;background:var(--ink);color:#fff;border-radius:8px;padding:6px 9px;font-size:11.5px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.3);min-width:130px}
+.chtip[hidden],.chcur[hidden]{display:none}
+.chtip div{display:flex;align-items:center;gap:6px;margin-top:2px}
+.chtip div span{margin-left:auto;padding-left:10px;font-variant-numeric:tabular-nums}
+.chtip i{width:9px;height:9px;border-radius:3px;border:1px solid #fff}
+.chtip .tot{border-top:1px solid rgba(255,255,255,.35);margin-top:4px;padding-top:3px}
+.chcur{position:fixed;z-index:59;pointer-events:none;width:0;border-left:1px dashed var(--ink)}
+.mix[data-mix]{cursor:help}
+.nw-chart[data-ch]{touch-action:pan-y;cursor:crosshair}
+.noc-window .chtip{border:1px solid #3A4A78}
+.noc-window .chcur{border-left-color:#E8EEFA}

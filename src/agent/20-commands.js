@@ -415,6 +415,7 @@ const API_CMD={
 
 const API_VIEW={
  traceMode:{args:[['m','string']],doc:'Redo the open traceroute in a routing mode: normal, fast or scenic.'},
+ chartToggle:{args:[['c','string'],['k','string']],doc:'Hide or show one series of a dashboard chart (a legend click); hiding every series shows them all again.'},
  help:{args:[],doc:'Open the how-to-play modal.'},
  dash:{args:[],doc:'Open the NOC dashboard.'},
  dashClose:{args:[],doc:'Close the NOC dashboard.'},

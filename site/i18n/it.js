@@ -1755,6 +1755,7 @@
 "dashboard.all_n":"Tutte ({n})",
 "dashboard.amp_huts_and_spares":"Shelter amplificatori e ricambi",
 "dashboard.caches_pnis_and_ix":"cache, PNI e IX",
+"dashboard.chart_total":"Totale",
 "dashboard.customers_are_upset":"clienti furiosi",
 "dashboard.delivered_30_days":"Consegnato, 30 giorni",
 "dashboard.five_nines_ish":"cinque nove, più o meno",
