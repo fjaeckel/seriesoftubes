@@ -9,7 +9,7 @@ function diagFrame(now){const D=DIAG;if(D.last)D.fr.push(now-D.last);D.last=now;
   if(D.fr.length>600)D.fr.splice(0,300);if(D.dr.length>600)D.dr.splice(0,300);}
 // What draws the map, and why it is the 2D canvas when it is.
 function diagMap(){if(!S)return 'map: none (title screen)';if(pzOn())return 'map: 2D (puzzle)';if(!GLX.want)return 'map: 2D (Always 2D)';
-  if(GLX.dead)return 'map: 2D ('+(GLX.why||'no WebGL2')+')';return GLX.gl&&GLX.shown?'map: WebGL2 · '+(GLX.gpu||'unknown GPU'):'map: WebGL2 (starting)';}
+  if(GLX.dead)return 'map: 2D ('+(GLX.why||'no WebGL2')+')';if(GLX.lost)return 'map: 2D (graphics context lost, waiting for it back)';return GLX.gl&&GLX.shown?'map: WebGL2 · '+(GLX.gpu||'unknown GPU'):'map: WebGL2 (starting)';}
 // Frames since the last readout: per second, the 95th percentile and the slowest, and draw()'s mean.
 function diagPerf(){const f=DIAG.fr.splice(0),d=DIAG.dr.splice(0),s=f.slice().sort((a,b)=>a-b),sum=f.reduce((a,x)=>a+x,0),
     q=x=>s.length?s[Math.min(s.length-1,Math.floor(s.length*x))].toFixed(0):'-',gl=GLX.shown&&!GLX.dead;

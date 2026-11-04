@@ -135,13 +135,14 @@ test('a setup that fails half-way lets its context go too', () => {
   assert.deepEqual(errors, []);
 });
 
+// A context the browser lost may come back (tests/webgl-context-restore.test.js): it is waited for, not let go.
 test('a context the browser lost is not let go a second time', () => {
   const { ev, errors } = open({});
   assert.equal(ev('glInit()'), true);
   ev('__T+=16;draw(__T);');
-  ev('window.__lostNow=true;document.getElementById("mapgl").dispatchEvent(new window.Event("webglcontextlost"));');
-  assert.equal(ev('GLX.dead'), true);
-  assert.equal(ev('GLX.why'), 'the graphics context was lost');
+  ev('window.__lostNow=true;document.getElementById("mapgl").dispatchEvent(new window.Event("webglcontextlost",{cancelable:true}));');
+  assert.equal(ev('GLX.dead'), false, 'waiting for it to come back');
+  assert.equal(ev('GLX.lost&&!glOn()'), true, 'the 2D map draws meanwhile');
   assert.equal(ev('__LOST'), 0, 'nothing to let go: the browser already did');
   ev('__T+=16;draw(__T);');
   assert.deepEqual(errors, []);

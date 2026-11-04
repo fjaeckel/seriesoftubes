@@ -47,7 +47,9 @@ test('it says what draws the map, and why it is the 2D canvas', () => {
     assert.equal(map(), 'map: 2D (Always 2D)');
     ev('mapGl(true,false);glKill(new Error("the graphics card is out of memory (the pictures)"))');
     assert.equal(map(), 'map: 2D (the graphics card is out of memory (the pictures))');
-    ev('GLX.dead=false;GLX.gl={};GLX.shown=true;GLX.gpu="ANGLE (NVIDIA GeForce GTX 980)"');
+    ev('GLX.dead=false;GLX.lost=true');
+    assert.equal(map(), 'map: 2D (graphics context lost, waiting for it back)');
+    ev('GLX.lost=false;GLX.gl={};GLX.shown=true;GLX.gpu="ANGLE (NVIDIA GeForce GTX 980)"');
     assert.equal(map(), 'map: WebGL2 · ANGLE (NVIDIA GeForce GTX 980)');
     ev('const s=S;S=null;window.__S=s');
     assert.equal(map(), 'map: none (title screen)');
