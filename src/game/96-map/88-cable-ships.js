@@ -30,7 +30,7 @@ function shipSprite(x,y,face,sc,col,now,mode){const bl=mode==='work'&&Math.floor
   c.fillStyle=col;c.strokeStyle='#1E2640';c.lineWidth=1.6;c.lineJoin='round';c.beginPath();c.moveTo(-11,0);c.lineTo(11,0);c.lineTo(8,6);c.lineTo(-9,6);c.closePath();c.fill();c.stroke();
   c.fillStyle='#fff';c.beginPath();c.rect(-7,-7,8,7);c.fill();c.stroke();c.fillStyle='#1E2640';c.fillRect(-5,-5,4,2);
   c.beginPath();c.arc(9,-2,2.6,0,7);c.fillStyle='#FFD23F';c.fill();c.stroke();
-  if(bl){c.fillStyle='#FFD23F';c.font='900 11px sans-serif';c.textAlign='center';c.fillText('✦',12,-8);}});}
+  if(bl){c.fillStyle='#FFD23F';c.font='900 11px sans-serif';c.textAlign='center';c.fillText('✦',12,-8);}},true);}
 function drawShips(ks,now){SHIP_HITS.length=0;if(!S||pzOn()||!S.fleet)return;
   const T=S.day+(UI.speed?clamp(acc/DAY_MS,0,0.999):0),z=cam.z,sc=Math.max(0.85,Math.min(1.5,Math.sqrt(z)))*(lodFar()?0.9:1.05),list=[];
   for(const s of SHIPS){const p=shipAt(s,T);if(p.m==='port'&&z<1.1)continue;list.push({p,s,col:s.club==='prv'?'#7A5CFF':'#FF4D5E'});}

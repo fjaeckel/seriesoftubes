@@ -32,8 +32,7 @@ function cityFarStatic(C,p,down,sel,hov,ph){ctx.strokeStyle='#1E2640';
   if(CM.inc.has(C.id)){ctx.fillStyle='#FF4D5E';ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(p?-9:-5,p?-7:-5,3.4,0,7);ctx.fill();ctx.stroke();}}
 // A city's picture is painted once per state and kept as a sprite (citySprite). What moves every frame is painted on top
 // (cityMoving): the lights, the steam, a flashing IX, the hot badges and the offer bubble. The rings and the glow move too,
-// but in steps (cityPhase), so their sprite changes only at a step.
-const CSPR_STEP=24;
+// but in steps (cityPhase), so their sprite changes only at a step; so does its scale (sprQ(), 59-gl-sprites.js).
 // dd is -1 without an attack: the attack's ring at step 0 must not share a sprite with no ring at all.
 function cityPhase(C,p,sel,now){const ph={sel:0,dd:-1,gl:-1};
   if(sel)ph.sel=Math.floor(now/40)%12;                       // dash period 12 px, lineDashOffset -now/40
@@ -94,13 +93,13 @@ function cityMoving(C,p,t,cs,k,sx,sy,now,h,st,hot){const down=st.down,K=k*cs;
     for(let i=0;i<4;i++){const lit=down?false:(((now/(160+i*37))|0)+i)%3!==0,[x,y]=at(-10+i*6.6,1),col=down?'#3B4260':lit?(sf<0.9?'#FF4D5E':'#7CFFB2'):'#2A3150';dot(x,y,2.1*K,col,1);}
   }
   // A flashing IX: two pictures, one per colour.
-  if(st.ixDraw&&st.ixHot){const on=Math.sin(now/180)>0,ix=p?19:SKY_W[t]/2+4;stamp('ixhot'+(on?1:0),22,22,11,11,K,sx+ix*K,sy+(2-h)*K,()=>{ctx.translate(-ix,h-2);ctx.strokeStyle='#1E2640';cityIX(C,p,t,h,true,on?1:-1);});}
+  if(st.ixDraw&&st.ixHot){const on=Math.sin(now/180)>0,ix=p?19:SKY_W[t]/2+4;stamp('ixhot'+(on?1:0),22,22,11,11,K,sx+ix*K,sy+(2-h)*K,()=>{ctx.translate(-ix,h-2);ctx.strokeStyle='#1E2640';cityIX(C,p,t,h,true,on?1:-1);},true);}
   // Hot badges: the red disc pulses, the ring and the letter over it stay.
   if(hot&&p){let y=-14;const pulse=.75+.25*Math.sin(now/200);for(const kk of ['r','t','p','c']){if(!hot[kk])continue;const bx=sx-29*K,by=sy+y*K;dot(bx,by,6.5*K,'#FF4D5E',pulse);
-    stamp('hotb|'+HOTL[kk],18,18,9,9,K,bx,by,g=>{g.lineWidth=2;g.strokeStyle='#1E2640';g.beginPath();g.arc(0,0,6.5,0,7);g.stroke();g.fillStyle='#fff';g.font='900 8px Nunito, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(HOTL[kk],0,0.5);});y+=14;}}
+    stamp('hotb|'+HOTL[kk],18,18,9,9,K,bx,by,g=>{g.lineWidth=2;g.strokeStyle='#1E2640';g.beginPath();g.arc(0,0,6.5,0,7);g.stroke();g.fillStyle='#fff';g.font='900 8px Nunito, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(HOTL[kk],0,0.5);},true);y+=14;}}
   // The offer bubble bobs over the city.
   if(st.off)stamp('offer|'+(st.big?2:1),30,28,15,12,K,sx-2*K,sy+(-h-16+Math.sin(now/250)*3)*K,g=>{g.fillStyle='#fff';g.strokeStyle='#1E2640';g.lineWidth=2.2;g.beginPath();g.ellipse(0,0,11,9,0,0,7);g.fill();g.stroke();
-    g.beginPath();g.moveTo(-3,8);g.lineTo(-5,14);g.lineTo(2,8);g.fill();g.fillStyle=st.big?'#FF4F9A':'#16A866';g.font='900 13px "Baloo 2", sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(st.big?'$$':'$',0,1);});}
+    g.beginPath();g.moveTo(-3,8);g.lineTo(-5,14);g.lineTo(2,8);g.fill();g.fillStyle=st.big?'#FF4F9A':'#16A866';g.font='900 13px "Baloo 2", sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(st.big?'$$':'$',0,1);},true);}
 function drawCity(C,sx,sy,sc,now,lyOverride,dem){
   if(CM.far)return drawCityFar(C,sx,sy,sc,now,lyOverride);
   const hot=(UI.hotMap||{})[C.id];
@@ -109,7 +108,7 @@ function drawCity(C,sx,sy,sc,now,lyOverride,dem){
   if(dem&&!p&&!sel&&!hov){const r=(2.6+cTier(C.id)*0.35)*sc,rq=Math.round(r*4)/4,fill=hasIxAt(C.id)?'#FFD23F':'#FFFFFF',S2=Math.ceil(rq*2+4);
     const e=spriteEntry(['quiet',rq,fill].join('|'),S2,S2,S2/2,S2/2,g=>{g.translate(S2/2,S2/2);g.fillStyle=fill;g.strokeStyle='#1E2640';g.lineWidth=1.6;g.beginPath();g.arc(0,0,rq,0,7);g.fill();g.stroke();});
     blit(e,sx-e.ax,sy+2*sc-e.ay,e.w,e.h);return;}
-  const t=cTier(C.id),cs=p?1:CSC[t],k=sc*(hov?1.15:1),kq=Math.round(k*CSPR_STEP)/CSPR_STEP;
+  const t=cTier(C.id),cs=p?1:CSC[t],k=sc*(hov?1.15:1),kq=sprQ(k);
   const ixn=ixName(C.id),ixDraw=!!ixn&&(ixShown(C.id,p)||(hot&&hot.ix)||sel||hov),ixHot=!!(ixDraw&&hot&&hot.ix);
   const st={down:!!down,feed:!!(UI.feed&&UI.feed.has(C.id)),sel:!!sel,inc:CM.inc.has(C.id),ixDraw,ixHot,off:CM.off.has(C.id),big:CM.big.has(C.id)};
   const ph=cityPhase(C,p,sel,now),spr=citySprite(C,p,t,cs,kq,ph,st),r=k/kq;

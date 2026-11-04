@@ -36,7 +36,7 @@ function drawFrame(now){
   }
   ctx.setTransform(DPR,0,0,DPR,0,0);
   if(!S)return;
-  const sc=iconScale(),day=S.day;
+  const sc=iconScale(),day=S.day;zoomHold(sc,G);
   // cable systems
   drawCables(ks);
   // links

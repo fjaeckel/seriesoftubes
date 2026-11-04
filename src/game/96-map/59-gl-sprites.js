@@ -70,10 +70,22 @@ function blit(e,x,y,w,h){if(GLS.frame&&glsEnsure(e)){const o=glsNext(),d=GLS.dat
 function dot(x,y,r,col,a){if(GLS.frame){const c=glColor(col),o=glsNext(),d=GLS.data;
     d[o]=x;d[o+1]=y;d[o+2]=r;d[o+3]=d[o+4]=d[o+5]=d[o+6]=d[o+7]=0;d[o+8]=c[0];d[o+9]=c[1];d[o+10]=c[2];d[o+11]=(a===undefined?ctx.globalAlpha:a)*c[3];d[o+12]=1;}
   else{const sa=ctx.globalAlpha;if(a!==undefined)ctx.globalAlpha=a;ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.globalAlpha=sa;}}
+/* Pictures that grow with the zoom (cities, ships, badges) are painted at steps of 1/24 of their scale. On the card,
+   while the zoom moves, they keep the step of the scale they had when it began, stretched by up to 1.25× either way
+   (the card filters them smoothly), and are painted again at the right step once the zoom rests (ZOOM_REST ms): a
+   pinch otherwise repainted every city at every step, hundreds of pictures a frame, and filled the atlas over and
+   over. ZH.sc is the icon scale held, ZH.f how much a picture is painted smaller (<1) or bigger than it shows. */
+const CSPR_STEP=24,ZOOM_REST=250,ZH={z:0,t:-1e9,sc:0,f:1};
+function zoomHold(sc,G){const t=performance.now();if(cam.z!==ZH.z){ZH.z=cam.z;ZH.t=t;}
+  if(!G||!ZH.sc||t-ZH.t>=ZOOM_REST||sc/ZH.sc>1.25||ZH.sc/sc>1.25)ZH.sc=sc;ZH.f=ZH.sc/sc;}
+// The zoom moved a moment ago: the pictures may be stretched, so a still map is drawn again once it rests (mapStill()).
+const zoomMoving=()=>performance.now()-ZH.t<ZOOM_REST;
+const sprQ=k=>Math.max(1/CSPR_STEP,Math.round(k*ZH.f*CSPR_STEP)/CSPR_STEP);
 // A small picture w×h px at scale k with its anchor at (ax,ay), painted once by paint(g) with the origin on the anchor
-// (k in steps of 1/24, as the cities), then drawn with the anchor at (x,y). Things that bob or pulse are drawn as these
-// at a moving place, so the overlay above the card stays untouched (repainting it costs a whole screen of pixels).
-function stamp(key,w,h,ax,ay,k,x,y,paint){const kq=Math.max(1/24,Math.round(k*24)/24),r=k/kq;
+// (k in steps of 1/24, as the cities; zoomed: k grows with the zoom, and is held while it moves, sprQ()), then drawn with
+// the anchor at (x,y). Things that bob or pulse are drawn as these at a moving place, so the overlay above the card
+// stays untouched (repainting it costs a whole screen of pixels).
+function stamp(key,w,h,ax,ay,k,x,y,paint,zoomed){const kq=zoomed?sprQ(k):Math.max(1/CSPR_STEP,Math.round(k*CSPR_STEP)/CSPR_STEP),r=k/kq;
   const e=spriteEntry(key+'|'+kq,Math.ceil(w*kq),Math.ceil(h*kq),ax*kq,ay*kq,g=>{g.translate(ax*kq,ay*kq);g.scale(kq,kq);paint(g);});
   blit(e,x-e.ax*r,y-e.ay*r,e.w*r,e.h*r);}
 // Text with an outline, centred on (x,y), as a picture placed on whole device pixels; tw is its width, px its size.

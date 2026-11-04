@@ -31,7 +31,7 @@ function mapHidden(){for(const id of ['dashCard','bankCard']){const c=$(id);if(c
    a second anyway, and every frame while the land picture is still catching up with a zoom (the WebGL map has none). */
 const FRAME=[];
 function mapStill(t,now){const sl=UI.sel,dr=UI.drag;
-  const v=[t,cam.x,cam.y,cam.z,CW,CH,DPR,S,R,S&&S.day,S&&S.links.length,S&&S.offers.length,S&&S.inc.length,sl&&sl.type,sl&&sl.id,UI.hover,UI.snap&&UI.snap.id,dr&&dr.mode,dr&&dr.cx,dr&&dr.cy,FLOATS.length,UI.mk?UI.mk.tx:0,UI.mk?UI.mk.mood:0];
+  const v=[t,cam.x,cam.y,cam.z,CW,CH,DPR,S,R,S&&S.day,S&&S.links.length,S&&S.offers.length,S&&S.inc.length,sl&&sl.type,sl&&sl.id,UI.hover,UI.snap&&UI.snap.id,dr&&dr.mode,dr&&dr.cx,dr&&dr.cy,FLOATS.length,UI.mk?UI.mk.tx:0,UI.mk?UI.mk.mood:0,zoomMoving()];
   let same=v.length===FRAME.length;for(let i=0;i<v.length;i++)if(FRAME[i]!==v[i]){same=false;FRAME[i]=v[i];}
   return same&&now-(UI.drawnAt||0)<1000&&(glOn()||!!(WL.cv&&WL.key===(cam.z*DPR).toFixed(4)&&wlCovers(cam.z)));}
 function tickErr(e){console.error('[tubes] tick failed',e);if(UI.tickErr)return;UI.tickErr=true;track('tick_error',true);
