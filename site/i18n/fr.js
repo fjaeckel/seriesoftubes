@@ -1,6 +1,8 @@
 // French: the translation of every label in src/i18n/en.js. One entry per line, sorted by label; plurals are
 // {"one":…,"other":…}. Add or change entries with scripts/i18n-add.js, check with npm run i18n:check.
 (window.I18N=window.I18N||{}).fr={
+"action_helpers.city_already_has_an_exchange_ix":"<b>{city} a déjà un IX, {ix}.</b><br>Prends-y un port au lieu de fonder le tien.",
+"action_helpers.city_is_off_the_map_small":"<b>{city} n’est plus sur la carte.</b><br>Les petites villes aussi proches d’une plus grande ne figurent plus dans les nouvelles parties. Construis plutôt à {near}.",
 "action_helpers.light_fiber_pair_n_price":"Allumer la paire {n} <small>{price}</small>",
 "action_helpers.light_fiber_pair_n_price_mo":"Allumer la paire {n} <small>{price} + {mo}/mois</small>",
 "action_helpers.n_fiber_pairs_lit_the_trench":"{n} paires de fibres allumées, la tranchée est pleine",
@@ -12,6 +14,9 @@
 "action_helpers.too_far_even_at_its_slowest":"Trop loin, même au débit le plus lent : ici une portée optique fait {span} km et l’optique va jusqu’à {max} km. Ajoute un site de régénération (Système de ligne).",
 "action_helpers.unlocks_at_customer_level_n":"Se débloque au niveau client {n}.",
 "action_helpers.upgrades_cannot_stretch_this_optic":"Ce canal porte à {max} km sur ce câble ; le tracé fait {span} km. Les terminaux sous-marins et l’ingénierie optique n’allongent pas cette optique. Celles-ci y arrivent : {optics}.",
+"action_helpers.you_already_run_ix_in_city":"<b>Tu gères déjà {ix} à {city}.</b>",
+"action_helpers.you_have_no_pop_in_city":"<b>Tu n’as pas de POP à {city}.</b><br>Un lien part d’un de tes POP, et ouvre un POP à l’autre bout s’il en faut un.",
+"action_helpers.you_have_no_pop_in_city_build":"<b>Tu n’as pas de POP à {city}.</b><br>Construis-en d’abord un là-bas, puis fonde l’IX.",
 "actions.your_router_can_t_take_a":"<b>Ton routeur ne supporte pas de port {port}.</b><br>Mets-le à niveau dans l’onglet Infra.",
 "architect.anchor":"🐒 Plouf !",
 "architect.architect_runs":"Parties d’architecte",

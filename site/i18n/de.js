@@ -3,6 +3,8 @@
 // Style: informal "du"; networking terms stay English (Peering, Transit, Dark Fiber, Wave, Port, POP, IX…), but
 // plain "fiber" is "Glasfaser" and "fiber pair" is "Faserpaar". The add-strings skill has the full style notes.
 (window.I18N=window.I18N||{}).de={
+"action_helpers.city_already_has_an_exchange_ix":"<b>{city} hat schon einen Exchange, {ix}.</b><br>Nimm dort einen Port, statt einen eigenen zu gründen.",
+"action_helpers.city_is_off_the_map_small":"<b>{city} ist nicht mehr auf der Karte.</b><br>Kleine Städte so nah an einer größeren gibt es in neuen Spielen nicht mehr. Bau stattdessen in {near}.",
 "action_helpers.light_fiber_pair_n_price":"Faserpaar {n} beleuchten <small>{price}</small>",
 "action_helpers.light_fiber_pair_n_price_mo":"Faserpaar {n} beleuchten <small>{price} + {mo}/Monat</small>",
 "action_helpers.n_fiber_pairs_lit_the_trench":"{n} Faserpaare beleuchtet, der Graben ist voll",
@@ -14,6 +16,9 @@
 "action_helpers.too_far_even_at_its_slowest":"Zu weit, selbst in der langsamsten Einstellung: Ein optischer Abschnitt ist hier {span} km lang, die Reichweite beträgt {max} km. Füge einen Regenerator-Standort hinzu (Line System).",
 "action_helpers.unlocks_at_customer_level_n":"Wird ab Kundenlevel {n} freigeschaltet.",
 "action_helpers.upgrades_cannot_stretch_this_optic":"Dieser Kanal reicht auf diesem Kabel {max} km weit; die Strecke ist {span} km lang. Unterwasser-Terminals und optisches Engineering verlängern diese Optik nicht. Diese reichen so weit: {optics}.",
+"action_helpers.you_already_run_ix_in_city":"<b>Du betreibst schon {ix} in {city}.</b>",
+"action_helpers.you_have_no_pop_in_city":"<b>Du hast keinen POP in {city}.</b><br>Ein Link beginnt an einem deiner POPs und eröffnet am anderen Ende einen POP, wenn dort keiner ist.",
+"action_helpers.you_have_no_pop_in_city_build":"<b>Du hast keinen POP in {city}.</b><br>Bau dort zuerst einen und gründe dann den Exchange.",
 "actions.your_router_can_t_take_a":"<b>Dein Router kann keinen {port}-Port aufnehmen.</b><br>Rüste ihn im Tab Infra auf.",
 "architect.anchor":"🐒 Platsch!",
 "architect.architect_runs":"Architekt-Runs",

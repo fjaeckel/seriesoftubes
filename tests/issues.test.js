@@ -1285,7 +1285,7 @@ test('#51 a dark fiber shows what is rented out, and spare capacity can be liste
 
 test('#126 you can zoom in far enough, and pick a short link between two close cities', () => {
   const { ev, errors } = load();
-  ev("ACT.start({city:'sao'});S.cash=1e9;for(const g of GOALS)S.done[g.id]=0;for(const c of ['cpq'])ACT.buildPop({city:c});UI.pending=null;UI.via=null;UI.lmode='wave';UI.route='main';openLinkModal('sao','cpq');ACT.buildLink({tier:1});closeModal()");
+  ev("ACT.start({city:'sao'});S.cash=1e9;for(const g of GOALS)S.done[g.id]=0;for(const c of ['sao','cpq'])ACT.buildPop({city:c});UI.pending=null;UI.via=null;UI.lmode='wave';UI.route='main';openLinkModal('sao','cpq');ACT.buildLink({tier:1});closeModal()");
   assert.ok(ev('ZMAX') >= 16);
   const id = ev("S.links.find(l=>l.a==='sao'||l.b==='sao').id");
   // the middle of the drawn link, on screen, fully zoomed in on it

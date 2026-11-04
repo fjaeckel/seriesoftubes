@@ -1,6 +1,8 @@
 // Italian: the translation of every label in src/i18n/en.js. One entry per line, sorted by label; plurals are
 // {"one":…,"other":…}. Add or change entries with scripts/i18n-add.js, check with npm run i18n:check.
 (window.I18N=window.I18N||{}).it={
+"action_helpers.city_already_has_an_exchange_ix":"<b>{city} ha già un exchange, {ix}.</b><br>Prendi una porta lì invece di fondarne uno tuo.",
+"action_helpers.city_is_off_the_map_small":"<b>{city} non è più sulla mappa.</b><br>Le città piccole così vicine a una più grande non ci sono più nelle nuove partite. Costruisci invece a {near}.",
 "action_helpers.light_fiber_pair_n_price":"Accendi la coppia {n} <small>{price}</small>",
 "action_helpers.light_fiber_pair_n_price_mo":"Accendi la coppia {n} <small>{price} + {mo}/mese</small>",
 "action_helpers.n_fiber_pairs_lit_the_trench":"{n} coppie di fibre accese, il cavidotto è pieno",
@@ -12,6 +14,9 @@
 "action_helpers.too_far_even_at_its_slowest":"Troppo lontano anche alla velocità più bassa: qui una tratta ottica è di {span} km e l’ottica arriva a {max} km. Aggiungi un sito di rigenerazione (Sistema di linea).",
 "action_helpers.unlocks_at_customer_level_n":"Si sblocca al livello cliente {n}.",
 "action_helpers.upgrades_cannot_stretch_this_optic":"Questo canale raggiunge {max} km su questo cavo; il percorso è di {span} km. Terminali sottomarini e ingegneria ottica non allungano quest’ottica. Ci arrivano: {optics}.",
+"action_helpers.you_already_run_ix_in_city":"<b>Gestisci già {ix} a {city}.</b>",
+"action_helpers.you_have_no_pop_in_city":"<b>Non hai nessun POP a {city}.</b><br>Un link parte da uno dei tuoi POP e, se serve, apre un POP all’altro capo.",
+"action_helpers.you_have_no_pop_in_city_build":"<b>Non hai nessun POP a {city}.</b><br>Costruiscine prima uno lì, poi fonda l’exchange.",
 "actions.your_router_can_t_take_a":"<b>Il tuo router non regge una porta {port}.</b><br>Aggiornalo nella scheda Infra.",
 "architect.anchor":"🐒 Splash!",
 "architect.architect_runs":"Partite da architetto",

@@ -130,7 +130,7 @@
       for (const x of ixIdsIn(c)) if (S.ixp[x] === undefined) add('buyIx', { city: x, tier: S.day % 3 });
       for (const n of NETS) if (n.pops.includes(c)) { if (S.day % 2 === 0 || n.cache) add('pni', { city: c, net: n.id, tier: n.id.length % 3 }); if (n.cache) add('cache', { city: c, net: n.id }); }
       for (const n of NETS) if (sellsAt(n, c) && (n.id.length + S.day) % 4 === 0) add('buyTransit', { city: c, net: n.id, tier: (S.day >> 2) % 3 });
-      add('addRouter', { city: c }); add('upRouter', { city: c, g: 1 + (S.day % 4) }); add('foundIx', { city: c }); add('launchBB', { city: c }); add('addSite', { city: c });
+      add('addRouter', { city: c }); add('upRouter', { city: c, g: 1 + (S.day % 4) }); if (!ixName(c) && !CITY[c].cn) add('foundIx', { city: c }); add('launchBB', { city: c }); add('addSite', { city: c });
     }
     for (const c of S.caches) add('rmCache', { id: c.id });
     for (const l of S.links) { add('setStandby', { id: l.id, on: !l.standby }); add('setMetric', { id: l.id, v: ['backup', 'avoid', 'prefer', 'normal'][(l.id.length + S.day) % 4] }); add('upLink', { id: l.id, tier: (S.day % 4) }); add('rmLink', { id: l.id }); add('addParallel', { id: l.id }); }

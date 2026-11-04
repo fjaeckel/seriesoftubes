@@ -14,8 +14,8 @@ const API_CMD={
  downP:{args:[['id','entityId']],watch:['pni.#id'],doc:'Step a PNI down one size. Not while an augment is on order.'},
 /* ---------- footprint: buildings, routers, POPs ---------- */
  buildPop:{args:[['city','cityId']],
-  quote:a=>({setup:popCost(a.city),blocked:cnCity(a.city)&&!cnOk()?[tr('pops_transit_ix.you_need_a_license_first_foreign')]:[]}),
-  doc:'Open a POP in a city you do not have one in. Costs popCost(city).'},
+  quote:a=>({setup:popCost(a.city),blocked:[cityOn(a.city)?'':popOffWhy(a.city),cnCity(a.city)&&!cnOk()?tr('pops_transit_ix.you_need_a_license_first_foreign'):''].filter(Boolean)}),
+  doc:'Open a POP in a city you do not have one in. Costs popCost(city). Not in a retired small city (off the map in new games).'},
  launchBB:{args:[['city','cityId']],watch:['pops.#city'],
   quote:a=>({setup:bbCost(a.city)}),
   doc:'Launch broadband to the eyeballs of a city you have a POP in. The core revenue source; one per POP.'},
@@ -64,8 +64,8 @@ const API_CMD={
   doc:'Leave an exchange; drops every peering session there. De-Kicks may answer with a retention offer.'},
  rs:{args:[['city','ixId']],watch:['rs'],
   doc:'Toggle the route-server session, which peers you with everyone on the server at once.'},
- foundIx:{args:[['city','cityId']],watch:['myIx.#city'],quote:a=>({setup:MYIX_COST,monthly:MYIX_MO}),
-  doc:'Found your own exchange in a city with no IX. Networks join over the following days.'},
+ foundIx:{args:[['city','cityId']],watch:['myIx.#city'],quote:a=>({setup:MYIX_COST,monthly:MYIX_MO,blocked:[foundIxWhy(a.city)].filter(Boolean)}),
+  doc:'Found your own exchange in a city with no IX where you have a POP. Not in mainland China. Networks join over the following days.'},
  myIxUp:{args:[['city','cityId']],watch:['myIx.#city'],
   quote:a=>{const m=S.myIx[a.city];const f=m?(m.fab|0)+1:0,N=f<MYIX_FAB.length?MYIX_FAB[f]:null;return N?{setup:N.cost,monthly:N.mo}:{};},
   doc:'Upgrade your own exchange\'s switch fabric. Each step has a level gate.'},
@@ -107,6 +107,7 @@ const API_CMD={
   bind:a=>{UI.pending={a:a.a,b:a.b};UI.route=a.route||'';UI.via=a.cable||'';UI.cnPrem=!!a.premiumCrossing;},
   pass:a=>({tier:a.tier}),
   quote:a=>{const A=a.a,B=a.b,tier=a.tier;
+   if(!S.pops[A])return {blocked:[linkFromWhy(A)]};
    if(!waveOk(A,B,tier))return {blocked:[tr('links.a_wave_wave_needs_need_at',{wave:LT[tier].n,need:waveNeed(tier)})]};
    const sib=pairLinks(A,B).filter(l=>l.kind!=='vxc'),jn=sib.length?routeJoin(A,B):null,border=cnCity(A)!==cnCity(B);
    const mult=(sib.length&&!(jn&&jn.k===(landTrenches(A,B)[0]||{}).k)?DIVERSE:1)*(border?3*((a.premiumCrossing&&(A==='hkg'||B==='hkg'))?1.6:1):1);
@@ -115,7 +116,7 @@ const API_CMD={
    if(so)blocked.push(tr('links.no_wave_capacity_on_this_route',{wave:LT[tier].n,why:tr(so.why),n:Math.max(1,so.until-S.day)}));
    const w=subWaveWhy(tier,wr.km,wr.sub);if(w)blocked.push(tr('links.no_wave_waves_on_this_cable',{wave:LT[tier].n,why:w}));
    return {setup:Math.round(waveMo(wr.km,wr.sub,tier)*wr.wm)+(S.pops[B]?0:popCost(B)),monthly:Math.round(waveMo(wr.km,wr.sub,tier)*wr.wm),blocked};},
-  doc:'Lease a wave between two cities; opens a POP in b if there is none. A second wave on a pair costs 1.4x unless it joins an existing trench; cross-border into mainland China costs 3x. premiumCrossing applies only via Hong Kong.'},
+  doc:'Lease a wave from one of your POPs (a) to any city; opens a POP in b if there is none. A second wave on a pair costs 1.4x unless it joins an existing trench; cross-border into mainland China costs 3x. premiumCrossing applies only via Hong Kong.'},
  upLink:{args:[['id','entityId'],['tier','linkTier']],watch:['links.#id'],
   quote:a=>{const l=S.links.find(x=>x.id===a.id);if(!l)return {};
    const blocked=[waveOk(l.a,l.b,a.tier)?'':tr('links.a_wave_wave_needs_need_at',{wave:LT[a.tier].n,need:waveNeed(a.tier)})];
@@ -155,6 +156,7 @@ const API_CMD={
   quote:a=>{const A=a.a,B=a.b,sc=isSub(A,B)?subDfCable(A,B):null,km=sc?sc.km:kmBetween(A,B);
    const building=a.source==='build'&&lvl()>=3&&!sc,sys=DF_SYS[a.system]&&DF_SYS[a.system].lvl<=lvl()?a.system:'lite';
    const amps=ampCount(km),blocked=[];
+   if(!S.pops[A])blocked.push(linkFromWhy(A));
    if(isSub(A,B)&&!sc)blocked.push(tr('fiber_modals.nobody_sells_dark_fiber_on_a'));
    else if(uaePair(A,B))blocked.push(tr('fiber_modals.no_dark_fiber_inside_the_uae'));
    else if(landX(A,B)&&cnCity(A)===cnCity(B))blocked.push(tr('fiber_modals.nobody_sells_one_fiber_pair_across'));
@@ -162,11 +164,11 @@ const API_CMD={
    if(lvl()<2)blocked.push(tr('fiber_modals.dark_fiber_unlocks_at_customer_level'));
    return {setup:(building?dfBuildCost(km):0)+DF_SYS[sys].cost+amps*AMP_COST+(S.pops[B]?0:popCost(B)),
      monthly:(building?Math.round(km*0.15):dfLeaseMo(km))+amps*AMP_MO,days:building?dfBuildDays(km):30,blocked};},
-  doc:'Get dark fiber: lease an IRU, dig your own (level 3+), or take a pair on a subsea cable. Then light it with a line system.'},
+  doc:'Get dark fiber from one of your POPs (a): lease an IRU, dig your own (level 3+), or take a pair on a subsea cable; opens a POP in b if there is none. Then light it with a line system.'},
  orderCable:{args:[['a','cityId'],['b','cityId'],['design','designId',false],['terminal','boolean',false],['engineering','boolean',false]],
   bindsUI:['pending','seaDesign','seaterminal','seaengineering'],
   bind:a=>{UI.pending={a:a.a,b:a.b};UI.seaDesign=a.design||'standard';UI.seaterminal=!!a.terminal;UI.seaengineering=!!a.engineering;},
-  quote:a=>{const why=ownCabWhy(a.a,a.b);if(why)return {blocked:[why]};
+  quote:a=>{const why=linkFromWhy(a.a)||ownCabWhy(a.a,a.b);if(why)return {blocked:[why]};
    const design=own(SEA_DESIGNS,a.design)?a.design:'standard',up={terminal:!!a.terminal,engineering:!!a.engineering};
    const q=seaQuote(a.a,a.b,design,up),lack=seaLack(q.km,up);
    return {setup:q.cost+(S.pops[a.b]?0:popCost(a.b)),monthly:ownCabMo(q.km),days:q.days,

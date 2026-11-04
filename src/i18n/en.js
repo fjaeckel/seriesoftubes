@@ -2,6 +2,8 @@
 // Inlined into the page at build. One entry per line, sorted by label; plurals are {"one":…,"other":…}.
 // Add or change text with scripts/i18n-add.js, check with npm run i18n:check.
 (window.I18N=window.I18N||{}).en={
+"action_helpers.city_already_has_an_exchange_ix":"<b>{city} already has an exchange, {ix}.</b><br>Take a port on it instead of founding your own.",
+"action_helpers.city_is_off_the_map_small":"<b>{city} is off the map.</b><br>Small cities this close to a bigger one are retired from new games. Build in {near} instead.",
 "action_helpers.light_fiber_pair_n_price":"Light fiber pair {n} <small>{price}</small>",
 "action_helpers.light_fiber_pair_n_price_mo":"Light fiber pair {n} <small>{price} + {mo}/mo</small>",
 "action_helpers.n_fiber_pairs_lit_the_trench":"{n} fiber pairs lit, the trench is full",
@@ -13,6 +15,9 @@
 "action_helpers.too_far_even_at_its_slowest":"Too far even at its slowest setting: an optical span here is {span} km and it reaches {max} km. Add a regen site (Line system).",
 "action_helpers.unlocks_at_customer_level_n":"Unlocks at customer level {n}.",
 "action_helpers.upgrades_cannot_stretch_this_optic":"This channel reaches {max} km on this cable; the route is {span} km. Submarine terminals and optical engineering do not stretch this optic. These reach it: {optics}.",
+"action_helpers.you_already_run_ix_in_city":"<b>You already run {ix} in {city}.</b>",
+"action_helpers.you_have_no_pop_in_city":"<b>You have no POP in {city}.</b><br>A link starts at one of your POPs, and opens a POP at the far end if it needs one.",
+"action_helpers.you_have_no_pop_in_city_build":"<b>You have no POP in {city}.</b><br>Build one there first, then found the exchange.",
 "actions.your_router_can_t_take_a":"<b>Your router can't take a {port} port.</b><br>Upgrade it in the Infra tab.",
 "architect.anchor":"🐒 Splash!",
 "architect.architect_runs":"Architect runs",
