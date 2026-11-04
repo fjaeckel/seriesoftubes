@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Bilbao joins the map, where the transatlantic cables really come ashore: Marea Carey, Grace Hopscotch, Sol Survivor and Columbus III-and-a-half now land there instead of Madrid. It has no exchange of its own, so traffic heads inland to Madrid, and Drizzle Electric, Tangerine Telecom and the big carriers sell transit there. A link you already run on the old Madrid landings keeps working as a plain subsea link, and the Mid-Atlantic Accent scenario now goes Azores, Bilbao, Madrid, and Marea Carey now leaves the American coast at Virginia Beach instead of crossing the northeast to New Jersey.
 ## [2.9.1] — 2026-11-04
 
 - Jokes in the game now poke fun at networks, cables and routers, never at people, countries or beliefs. A few networks have new names (Atlas Hold-the-Line Telecom, Star-Blink, Telekom Malay-tency, Oh Yas Sénégal, Afghan Tele-Pass, Island-Hop Micronesia, Tel-One-derful, Tango Two-Step), so do three of the names for your own cables, and about forty descriptions of networks, cities, cables and events were rewritten.

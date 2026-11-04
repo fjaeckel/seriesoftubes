@@ -47,6 +47,7 @@ const CITY_PDB={
  bgi:[1,5,20], // est.
  bgw:[3,2,222],
  bhz:[13,40,9693],
+ bio:[1,8,1341], // pulled 2026-11-01: PeeringDB lists Telxius Derio DC alone (8 networks); ASNs are Spain's
  bis:[0,0,33300], // est.
  bjl:[1,1,12],
  bkk:[32,397,675],

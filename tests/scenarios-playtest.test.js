@@ -43,8 +43,8 @@ const PLAY = {
     // When the 150 Gbps arrive swings with the world's customers (day 66, then 33, as Africa's capitals joined), so the floor sits below it.
     win: [25, 120], cheese: [...home('hnl'), ...home('lax'), ...home('syd'), ['link', 'lax', 'tok', 1, 'jup'], ['link', 'lax', 'syd', 3, 'hwk'], ['loans']], by: null },
   // The win day swings with the seed (34 to 58 over five seeds in 2.5.0), so the floor sits below that spread.
-  atl: { ref: [['bb', 'pdl'], ['tr', 'pdl', 1], ...home('mia'), ...home('mad'), ...home('lis'), HIRE, ['link', 'mia', 'bda', 4, 'sol'], ['link', 'bda', 'pdl', 4, 'sol'], ['link', 'pdl', 'mad', 4, 'sol'], ['served', 90], ['link', 'lis', 'tci', 4, 'ace'], ['link', 'tci', 'lag', 4, 'twoaf'], ['bb', 'lag']],
-    win: [30, 120], cheese: [['bb', 'pdl'], ['tr', 'pdl', 1], ...home('mia'), ...home('mad'), ...home('lis'), ['link', 'mia', 'mad', 3, 'col3'], ['link', 'lis', 'lag', 3, 'equi'], ['loans']], by: null },
+  atl: { ref: [['bb', 'pdl'], ['tr', 'pdl', 1], ...home('mia'), ...home('mad'), ...home('lis'), HIRE, ['link', 'mia', 'bda', 4, 'sol'], ['link', 'bda', 'pdl', 4, 'sol'], ['pop', 'bio'], ['link', 'pdl', 'bio', 4, 'sol'], ['link', 'bio', 'mad', 4], ['served', 90], ['link', 'lis', 'tci', 4, 'ace'], ['link', 'tci', 'lag', 4, 'twoaf'], ['bb', 'lag']],
+    win: [30, 120], cheese: [['bb', 'pdl'], ['tr', 'pdl', 1], ...home('mia'), ...home('mad'), ...home('lis'), ['pop', 'bio'], ['link', 'mia', 'bio', 3, 'col3'], ['link', 'lis', 'lag', 3, 'equi'], ['loans']], by: null },
 };
 
 test('C1 played: every scenario has a reference strategy and a shortcut that fails', () => {

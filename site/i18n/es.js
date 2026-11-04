@@ -906,6 +906,7 @@
 "cities.the_seychelles_capital_on_mah":"La capital de las Seychelles, en Mahé: 115 islas, tortugas gigantes y dos cables al continente.",
 "cities.the_solomon_islands_capital_on":"La capital de las Islas Salomón, en Guadalcanal. El cable a Sídney llegó hace pocos años; antes todo era satélite. La electricidad es menos fiable que el cable.",
 "cities.the_southeast_s_carrier_hotel":"El carrier hotel del Sureste. El aeropuerto más concurrido, el peering más concurrido al sur de Ashburn.",
+"cities.the_transatlantic_cables_come_ashore_here":"Aquí llegan a tierra los cables transatlánticos, en la costa vasca. El punto de intercambio está en Madrid, así que casi todo el tráfico se va tierra adentro.",
 "cities.the_venice_of_brazil_all_bridges":"La Venecia de Brasil, toda puentes y ríos, con uno de los mayores parques tecnológicos del país en su viejo puerto.",
 "cities.the_whole_country_is_one_network":"Todo el país es una sola red que anuncia un puñado de rutas, y los hogares normales no están conectados.",
 "cities.the_whole_country_on_one_cable":"Todo el país en un cable: un ramal de ACE, que llegó en 2011 y que comparten todos los operadores.",

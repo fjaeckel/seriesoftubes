@@ -907,6 +907,7 @@
 "cities.the_seychelles_capital_on_mah":"The Seychelles’ capital on Mahé: 115 islands, giant tortoises and two cables to the mainland.",
 "cities.the_solomon_islands_capital_on":"The Solomon Islands’ capital, on Guadalcanal. The cable to Sydney only arrived a few years ago; before that it was all satellite. The power is less reliable than the cable.",
 "cities.the_southeast_s_carrier_hotel":"The Southeast’s carrier hotel. Busiest airport, busiest peering south of Ashburn.",
+"cities.the_transatlantic_cables_come_ashore_here":"The transatlantic cables come ashore here, on the Basque coast. The exchange is in Madrid, so most traffic hurries inland.",
 "cities.the_venice_of_brazil_all_bridges":"The Venice of Brazil, all bridges and rivers, with one of the country’s biggest tech parks in its old harbour.",
 "cities.the_whole_country_is_one_network":"The whole country is one network announcing a handful of routes, and ordinary homes are not on it.",
 "cities.the_whole_country_on_one_cable":"The whole country on one cable: a branch of ACE, landed in 2011 and shared by every operator.",

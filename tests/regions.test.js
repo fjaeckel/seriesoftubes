@@ -795,8 +795,8 @@ test('Atlantic islands and Halifax: real landings, real exchanges only, and isla
   assert.equal(ev(`NETS.filter(n=>n.type!=='t1'&&n.pops.some(c=>${JSON.stringify(isl)}.includes(c))&&!(n.up||[]).some(u=>NET[u].type==='t1')&&!n.pops.some(c=>!${JSON.stringify(isl)}.includes(c))).map(n=>n.id).join()`), '');
   const hop = (path) => ev(`Math.min(...${JSON.stringify(path)}.slice(1).map((c,i)=>Math.max(...cablesFor(${JSON.stringify(path)}[i],c).map(p=>subCarrier(p.km)))))`);
   const direct = (a, b) => ev(`Math.max(...cablesFor('${a}','${b}').map(p=>subCarrier(p.km)))`);
-  assert.equal(direct('mia', 'mad'), 1200);
-  assert.equal(hop(['mia', 'bda', 'pdl', 'mad']), 1600, 'Florida to Spain via Bermuda and the Azores');
+  assert.equal(direct('mia', 'bio'), 1200);
+  assert.equal(hop(['mia', 'bda', 'pdl', 'bio']), 1600, 'Florida to Spain via Bermuda and the Azores');
   assert.equal(hop(['mia', 'pdl', 'lis']), 1600, 'Florida to Lisbon via the Azores');
   assert.equal(direct('atn', 'lis'), 1200);
   assert.equal(hop(['atn', 'bda', 'lis']), 1600);
@@ -819,9 +819,9 @@ test('Atlantic islands and Halifax: real landings, real exchanges only, and isla
   assert.ok(ev('!!S.pops.pdl') && ev('S.lvl') >= 4);
   assert.equal(ev('scnProg().items.length'), 3);
   assert.equal(ev("fastPath('mia','mad',1600)"), false);
-  ev("S.cash=1e9;for(const c of ['mia','bda','mad','lis','tci','lag']){ACT.buildPop({city:c});S.pops[c].rgen=3;}S.pops.pdl.rgen=3;");
+  ev("S.cash=1e9;for(const c of ['mia','bda','mad','bio','lis','tci','lag']){ACT.buildPop({city:c});S.pops[c].rgen=3;}S.pops.pdl.rgen=3;");
   const wave = (a, b, via) => ev(`UI.via='${via}';UI.route='same';openLinkModal('${a}','${b}');ACT.buildLink({tier:4});closeModal();S.links.length`);
-  wave('mia', 'bda', 'sol'); wave('bda', 'pdl', 'sol'); wave('pdl', 'mad', 'sol'); wave('lis', 'tci', 'ace'); wave('tci', 'lag', 'twoaf');
+  wave('mia', 'bda', 'sol'); wave('bda', 'pdl', 'sol'); wave('pdl', 'bio', 'sol'); wave('bio', 'mad', null); wave('lis', 'tci', 'ace'); wave('tci', 'lag', 'twoaf');
   ev('compute()');
   assert.equal(ev("fastPath('mia','mad',1600)"), true);
   assert.equal(ev("fastPath('lis','lag',1600)"), true);

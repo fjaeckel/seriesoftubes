@@ -906,6 +906,7 @@
 "cities.the_seychelles_capital_on_mah":"La capitale delle Seychelles, su Mahé: 115 isole, tartarughe giganti e due cavi verso il continente.",
 "cities.the_solomon_islands_capital_on":"La capitale delle Isole Salomone, su Guadalcanal. Il cavo per Sydney è arrivato solo pochi anni fa; prima era tutto satellite. La corrente è meno affidabile del cavo.",
 "cities.the_southeast_s_carrier_hotel":"Il carrier hotel del Sud-Est. L’aeroporto più trafficato, il peering più trafficato a sud di Ashburn.",
+"cities.the_transatlantic_cables_come_ashore_here":"Qui, sulla costa basca, approdano i cavi transatlantici. L'exchange è a Madrid, quindi quasi tutto il traffico corre verso l'interno.",
 "cities.the_venice_of_brazil_all_bridges":"La Venezia del Brasile, tutta ponti e fiumi, con uno dei più grandi parchi tecnologici del paese nel suo vecchio porto.",
 "cities.the_whole_country_is_one_network":"L’intero paese è un’unica rete che annuncia una manciata di rotte, e le case normali non ci sono collegate.",
 "cities.the_whole_country_on_one_cable":"Tutto il paese su un cavo: una diramazione di ACE, approdata nel 2011 e condivisa da tutti gli operatori.",

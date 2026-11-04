@@ -906,6 +906,7 @@
 "cities.the_seychelles_capital_on_mah":"A capital das Seychelles, em Mahé: 115 ilhas, tartarugas gigantes e dois cabos para o continente.",
 "cities.the_solomon_islands_capital_on":"A capital das Ilhas Salomão, em Guadalcanal. O cabo para Sydney só chegou há poucos anos; antes era tudo satélite. A energia é menos confiável que o cabo.",
 "cities.the_southeast_s_carrier_hotel":"O carrier hotel do Sudeste. Aeroporto mais movimentado, peering mais movimentado ao sul de Ashburn.",
+"cities.the_transatlantic_cables_come_ashore_here":"É aqui, na costa basca, que chegam os cabos transatlânticos. O exchange fica em Madrid, então quase todo o tráfego segue para o interior.",
 "cities.the_venice_of_brazil_all_bridges":"A Veneza brasileira, toda pontes e rios, com um dos maiores parques tecnológicos do país no porto antigo.",
 "cities.the_whole_country_is_one_network":"O país inteiro é uma só rede anunciando um punhado de rotas, e as casas comuns não estão nela.",
 "cities.the_whole_country_on_one_cable":"O país inteiro em um cabo: um ramal do ACE, que chegou em 2011 e é compartilhado por todas as operadoras.",

@@ -908,6 +908,7 @@
 "cities.the_seychelles_capital_on_mah":"Die Hauptstadt der Seychellen auf Mahé: 115 Inseln, Riesenschildkröten und zwei Kabel zum Festland.",
 "cities.the_solomon_islands_capital_on":"Die Hauptstadt der Salomonen, auf Guadalcanal. Das Kabel nach Sydney kam erst vor ein paar Jahren; davor lief alles über Satellit. Der Strom ist unzuverlässiger als das Kabel.",
 "cities.the_southeast_s_carrier_hotel":"Das Carrier-Hotel des Südostens. Geschäftigster Flughafen, geschäftigstes Peering südlich von Ashburn.",
+"cities.the_transatlantic_cables_come_ashore_here":"Hier kommen die Transatlantikkabel an der baskischen Küste an Land. Der Exchange sitzt in Madrid, also eilt der meiste Traffic landeinwärts.",
 "cities.the_venice_of_brazil_all_bridges":"Das Venedig Brasiliens, lauter Brücken und Flüsse, mit einem der größten Technologieparks des Landes im alten Hafen.",
 "cities.the_whole_country_is_one_network":"Das ganze Land ist ein einziges Netz, das eine Handvoll Routen ankündigt, und normale Haushalte hängen nicht dran.",
 "cities.the_whole_country_on_one_cable":"Das ganze Land an einem Kabel: ein Abzweig von ACE, 2011 angelandet und von allen Betreibern geteilt.",
