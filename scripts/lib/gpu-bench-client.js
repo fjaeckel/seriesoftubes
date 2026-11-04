@@ -139,6 +139,8 @@
   addEventListener('load', async () => {
     document.body.appendChild(box);
     while (typeof migrate !== 'function' || typeof GLX === 'undefined') await sleep(50);
+    // A software renderer is measured too here (the game itself keeps the 2D map on one); the table names the renderer.
+    GLX.soft = true;
     // ?dpr=2 draws the map as a screen of that density would (a 4K screen's pixels, measured on a smaller one).
     const DPRQ = +QS.get('dpr'); if (DPRQ > 0) { Object.defineProperty(window, 'devicePixelRatio', { get: () => DPRQ }); resize(); WL.key = null; }
     await sleep(800);

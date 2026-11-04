@@ -305,3 +305,28 @@ test('selecting a tube sends its halo to the card, not the network again', () =>
   assert.equal(r.haloDraw, 0, 'and the halo is gone');
   assert.deepEqual(errors, []);
 });
+
+// A WebGL2 context that compiles everything and names its renderer: enough for glInit() to run to the end.
+const FAKE_GL = (name) => `(()=>{window.CanvasRenderingContext2D=window.CanvasRenderingContext2D||class{};const c=document.getElementById('mapgl');c.getContext=(t)=>t!=='webgl2'?null:new Proxy({},{get(t,k){
+  if(typeof k==='string'&&/^[A-Z_0-9]+$/.test(k))return k;
+  if(k==='getExtension')return ()=>({UNMASKED_RENDERER_WEBGL:'REN'});
+  if(k==='getParameter')return (p)=>p==='REN'?${JSON.stringify(name)}:p==='ACTIVE_UNIFORMS'?0:4096;
+  if(k==='getShaderParameter'||k==='getProgramParameter')return (x,p)=>p==='ACTIVE_UNIFORMS'?0:true;
+  return ()=>({});}});})()`;
+
+test('a graphics card drawn by the processor keeps the 2D map; a real one gets the card', () => {
+  for (const [name, gl] of [['ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)', false],
+    ['llvmpipe (LLVM 17.0.6, 256 bits)', false], ['Microsoft Basic Render Driver', false],
+    ['ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Direct3D11 vs_5_0 ps_5_0, D3D11)', true], ['Apple M2', true], ['Mali-G78', true]]) {
+    const { ev } = open();
+    ev(FAKE_GL(name));
+    ev('console.warn=()=>{}');
+    assert.equal(ev('glInit()'), gl, name);
+    assert.equal(ev('GLX.dead'), !gl, name);
+    assert.equal(ev('GLX.gpu'), name, 'the renderer is still named');
+  }
+  const { ev } = open();
+  ev(FAKE_GL('SwiftShader driver'));
+  ev('GLX.soft=true');
+  assert.equal(ev('glInit()'), true, 'the GPU benchmark can still measure it');
+});

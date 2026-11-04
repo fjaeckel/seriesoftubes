@@ -5,9 +5,13 @@
    Two canvases sit over #map, which stays empty: #mapgl, where the card draws the background (57), the tubes and
    packets (58) and the pictures of cities, labels and markers (59); and #mapfx, a transparent 2D canvas over it for
    the few things still painted shape by shape (the drag preview, the chaos monkey), cleared only after it was used.
-   Puzzles, and any browser without WebGL2 or whose context fails or is lost, keep the 2D map. */
+   Puzzles, and any browser without WebGL2 or whose context fails or is lost, keep the 2D map. So does WebGL drawn by
+   the processor (no usable graphics card: a blocked driver, a virtual machine): there every instance of a line costs
+   microseconds, and a big map took a second and a half a frame where the 2D canvas takes 50 ms. */
 const GLX={want:true,dead:false,gl:null,c:null,f:null,fx:null,key:[],nSeg:0,nPk:0,nHalo:0,shown:false,gpu:''};
 try{GLX.want=localStorage.getItem('sot-map')!=='2d';}catch(e){}
+// Renderers that are the processor pretending to be a graphics card (GLX.soft: use them anyway, for the GPU benchmark).
+const GL_SOFT=/swiftshader|llvmpipe|softpipe|lavapipe|software|basic render/i;
 const glOn=()=>GLX.want&&!GLX.dead&&!!S&&!pzOn()&&glInit();
 // Switches the WebGL map on or off: the setting keeps the choice in this browser (keep), the GPU benchmark does not.
 function mapGl(on,keep=true){GLX.want=!!on;if(keep)try{on?localStorage.removeItem('sot-map'):localStorage.setItem('sot-map','2d');}catch(e){}
@@ -33,11 +37,12 @@ function glInit(){if(GLX.gl)return true;if(GLX.dead)return false;
   try{const c=document.getElementById('mapgl'),f=document.getElementById('mapfx');if(!c||!f||!c.getContext)throw new Error('no map layers');
     const gl=c.getContext('webgl2',{alpha:true,premultipliedAlpha:true,antialias:false,depth:true,stencil:true,powerPreference:'high-performance'});
     if(!gl||typeof gl.createShader!=='function')throw new Error('no WebGL2');
+    try{const x=gl.getExtension('WEBGL_debug_renderer_info');GLX.gpu=String(x?gl.getParameter(x.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER));}catch(e){}
+    if(!GLX.soft&&GL_SOFT.test(GLX.gpu))throw new Error('no graphics card, only '+GLX.gpu);
     const P=(vs,fs)=>glProg(gl,vs,fs),progs={line:P(GL_LINE_VS,GL_LINE_FS),pk:P(GL_PK_VS,GL_PK_FS),fill:P(FILL_VS,FILL_FS),fan:P(FAN_VS,FAN_FS),ell:P(ELL_VS,ELL_FS),circ:P(CIRC_VS,CIRC_FS)};
     // The tubes' points for the packets: floats read with texelFetch, never filtered.
     const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);for(const k of [gl.TEXTURE_MIN_FILTER,gl.TEXTURE_MAG_FILTER])gl.texParameteri(gl.TEXTURE_2D,k,gl.NEAREST);
     c.addEventListener('webglcontextlost',e=>{e.preventDefault();glKill('the graphics context was lost');UI.drawnAt=0;});
-    try{const x=gl.getExtension('WEBGL_debug_renderer_info');GLX.gpu=String(x?gl.getParameter(x.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER));}catch(e){}
     glsInit(gl);
     // The overlay is cleared only after something was painted on it: clearing a whole screen of empty canvas every
     // frame makes the browser send the layer to the screen again, which on a 4K screen cost more than the map itself.
