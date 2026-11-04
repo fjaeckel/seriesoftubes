@@ -56,6 +56,6 @@ function traceModal(src,to,mode){const pops=Object.keys(S.pops).sort((a,b)=>CITY
   <div class="trsel"><label>${tr('common.from')} <select id="trFrom">${pops.map(c=>`<option value="${c}"${c===src?' selected':''}>${esc(CITY[c].name)}</option>`).join('')}</select></label>
   <label>${tr('common.to')} <select id="trTo"><optgroup label="${tr('common.networks')}">${nets.map(n=>`<option value="net:${n.id}"${t==='net:'+n.id?' selected':''}>${esc(n.name)} (AS${n.asn})</option>`).join('')}</optgroup><optgroup label="${tr('common.your_pops')}">${pops.filter(c=>c!==src).map(c=>`<option value="city:${c}"${t==='city:'+c?' selected':''}>${esc(CITY[c].name)}</option>`).join('')}</optgroup></select></label>${btn(tr('common.run'),'traceRun',{},'pink sm')}</div>
   <div class="btns"><span class="meta" style="align-self:center">${tr('common.route_4a2e')}</span>${TR_MODES.map(m=>btn(RT[m],'traceMode',{m},mode===m?'pink sm':'ghost sm')).join('')}</div>
-  <pre class="term">${esc(r.text)}</pre>${r.asPath?`<p class="meta">${tr('traceroute.as_path_path',{path:r.asPath.map(a=>'AS'+a).join(' → ')})}</p>`:''}<p class="note">${esc(r.why)}</p>
+  ${mode!=='normal'?`<p class="note">${tr('traceroute.your_traffic_follows_the_metrics_this',{mode:RT[mode]})}</p>`:''}<pre class="term">${esc(r.text)}</pre>${r.asPath?`<p class="meta">${tr('traceroute.as_path_path',{path:r.asPath.map(a=>'AS'+a).join(' → ')})}</p>`:''}<p class="note">${esc(r.why)}</p>
   <div class="btns">${btn(tr('common.copy'),'traceCopy',{},'ghost sm')}</div>`);UI.trText=r.text;}
 

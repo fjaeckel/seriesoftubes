@@ -4067,6 +4067,7 @@
 "traceroute.the_carrier_s_own_port_beats_other":"Ce port mène directement chez {net}, donc il passe avant les autres ports de transit.",
 "traceroute.this_one_is_set_to_mode":" ; celle-ci est réglée sur {mode}",
 "traceroute.transit_is_the_last_resort":"le transit est le dernier recours",
+"traceroute.your_traffic_follows_the_metrics_this":"Ton trafic internet suit les métriques. Voici le chemin que prendrait un circuit client en « {mode} ».",
 "tutorial.businesses_pop_up_as_bubbles_on":"Les entreprises apparaissent sous forme de bulles $ sur la carte. Ouvre Offres et signe ton premier client.",
 "tutorial.grow_drag_from_your_pink_router":"Grandis : fais glisser depuis ton routeur rose vers une ville proche pour poser de la fibre et ouvrir un deuxième POP.",
 "tutorial.start_the_clock_with_1_and":"Lance le temps en 1× et regarde le trafic et l’argent couler. Tu peux mettre en pause à tout moment.",

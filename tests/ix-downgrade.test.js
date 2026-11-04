@@ -52,8 +52,12 @@ test('a PNI steps down one size at a time, but not while an augment is on order'
   assert.equal(ev("S.pni.find(p=>p.id==='pt1').tier"), 1, 'down one size');
   ev("S.pni.find(p=>p.id==='pt1').up={tier:1,n:2,ready:S.day+30};ACT.downP({id:'pt1'})");
   assert.equal(ev("S.pni.find(p=>p.id==='pt1').tier"), 1, 'an augment on order blocks it');
-  ev("S.pni.find(p=>p.id==='pt1').up=null;S.pni.find(p=>p.id==='pt1').tier=0;ACT.downP({id:'pt1'})");
-  assert.equal(ev("S.pni.find(p=>p.id==='pt1').tier"), 0, 'the smallest port stays');
+  ev("S.pni.find(p=>p.id==='pt1').up=null;ACT.downP({id:'pt1'})");
+  assert.equal(ev("pniMin('cog')"), 1, 'Cogentle, a Tier 1, sells no 10G PNIs');
+  assert.equal(ev("S.pni.find(p=>p.id==='pt1').tier"), 1, 'so its PNI stops at 100G');
+  assert.doesNotMatch(ev("cityPanel('fra')"), /Downgrade 10G/, 'and offers no 10G step');
+  ev("S.pni.push({id:'pt2',net:'cmc',city:'fra',tier:0});ACT.downP({id:'pt2'})");
+  assert.equal(ev("S.pni.find(p=>p.id==='pt2').tier"), 0, 'the smallest port stays');
   ev("S.pni.find(p=>p.id==='pt1').tier=1;S.pni.find(p=>p.id==='pt1').ready=S.day+9;ACT.downP({id:'pt1'})");
   assert.equal(ev("S.pni.find(p=>p.id==='pt1').tier"), 1, 'a PNI that is not up yet stays');
   assert.deepEqual(errors, []);

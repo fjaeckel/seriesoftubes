@@ -29,3 +29,24 @@ test('a save that already ran away reads as the ceiling, and a capped price stop
   assert.equal(ev("(window.__t||[]).filter(t=>/harmonised/i.test(t)).length"), 0, 'no "prices up" toast at the ceiling');
   assert.deepEqual(errors, []);
 });
+
+test('loading a save clamps a runaway DE-Kicks price and the quote it remembers, so rejoining is not quoted at 40× list', () => {
+  const { ev, errors } = load();
+  ev(start);
+  ev("S.dk.m.fra=40;S.dk.lastQ={fra:{m:40,h:3,until:S.day+365}};S.dk.m.mad='x';S=sanitize(S)||S");
+  assert.equal(ev("S.dk.m.fra"), ev("DK_MAX"));
+  assert.equal(ev("S.dk.lastQ.fra.m"), ev("DK_MAX"));
+  assert.equal(ev("'mad' in S.dk.m"), false, 'junk is dropped');
+  assert.deepEqual(errors, []);
+});
+
+test('a rise clipped by the ceiling announces only what the bill shows', () => {
+  const { ev, errors } = load();
+  ev(start);
+  ev("S.dk.m.fra=3.9;S.dk.add.fra=[1,2,3]");
+  const day = ev("(()=>{for(let d=1;d<400;d++)if((d+hstr('fra')%90)%365===0)return d;})()");
+  ev(`Math.random=()=>0.9;toast=(...a)=>{(window.__t=window.__t||[]).push(a[0])};dkTick(${day})`);
+  const t = ev("(window.__t||[]).find(t=>/harmonised/i.test(t))||''");
+  assert.match(t, /\b3\s?%/, `a 3% rise, not 14%: ${t}`);
+  assert.deepEqual(errors, []);
+});

@@ -4068,6 +4068,7 @@
 "traceroute.the_carrier_s_own_port_beats_other":"This port goes straight to {net}, so it beats the other transit ports.",
 "traceroute.this_one_is_set_to_mode":"; this one is set to {mode}",
 "traceroute.transit_is_the_last_resort":"transit is the last resort",
+"traceroute.your_traffic_follows_the_metrics_this":"Your internet traffic follows the metrics. This is the path a customer circuit on “{mode}” would take.",
 "tutorial.businesses_pop_up_as_bubbles_on":"Businesses pop up as $ bubbles on the map. Open Deals and sign your first customer.",
 "tutorial.grow_drag_from_your_pink_router":"Grow: drag from your pink router onto a nearby city to lay fiber and open a second POP.",
 "tutorial.start_the_clock_with_1_and":"Start the clock with 1× and watch traffic and money flow. You can pause any time.",

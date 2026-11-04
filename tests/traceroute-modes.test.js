@@ -49,3 +49,14 @@ test('the looking glass has the three route buttons, like a customer circuit, an
   assert.equal(ev("UI.trMode"), 'fast', 'Run keeps the mode');
   assert.deepEqual(errors, []);
 });
+
+test('a trace that does not follow the metrics says it shows a circuit’s path, not the internet traffic’s', () => {
+  const { ev, dom, errors } = load();
+  const doc = dom.window.document;
+  setup(ev);
+  ev("ACT.trace({city:'fra'})");
+  assert.doesNotMatch(doc.getElementById('modal').textContent, /follows the metrics/);
+  [...doc.querySelectorAll('[data-act="traceMode"]')][2].click();
+  assert.match(doc.getElementById('modal').textContent, /follows the metrics\. This is the path a customer circuit on/);
+  assert.deepEqual(errors, []);
+});

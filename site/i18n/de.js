@@ -4069,6 +4069,7 @@
 "traceroute.the_carrier_s_own_port_beats_other":"Dieser Port führt direkt zu {net} und schlägt daher die anderen Transit-Ports.",
 "traceroute.this_one_is_set_to_mode":"; dieser steht auf {mode}",
 "traceroute.transit_is_the_last_resort":"Transit ist der letzte Ausweg",
+"traceroute.your_traffic_follows_the_metrics_this":"Dein Internetverkehr folgt den Metriken. Dies ist der Weg, den eine Kundenleitung auf „{mode}“ nehmen würde.",
 "tutorial.businesses_pop_up_as_bubbles_on":"Unternehmen tauchen als $-Blasen auf der Karte auf. Öffne Deals und gewinne deinen ersten Kunden.",
 "tutorial.grow_drag_from_your_pink_router":"Wachse: Zieh von deiner Stadt zu einer Stadt in der Nähe, um Glasfaser zu verlegen und einen zweiten POP zu eröffnen.",
 "tutorial.start_the_clock_with_1_and":"Starte die Uhr mit 1× und sieh zu, wie Traffic und Geld fließen. Du kannst jederzeit pausieren.",

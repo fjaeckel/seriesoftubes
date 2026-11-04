@@ -4067,6 +4067,7 @@
 "traceroute.the_carrier_s_own_port_beats_other":"Esta porta vai direto para {net}, então vence as outras portas de transit.",
 "traceroute.this_one_is_set_to_mode":"; esta está configurada como {mode}",
 "traceroute.transit_is_the_last_resort":"transit é o último recurso",
+"traceroute.your_traffic_follows_the_metrics_this":"O teu tráfego de internet segue as métricas. Este é o caminho que um circuito de cliente em «{mode}» tomaria.",
 "tutorial.businesses_pop_up_as_bubbles_on":"Empresas aparecem como bolhas de $ no mapa. Abra Negócios e feche seu primeiro cliente.",
 "tutorial.grow_drag_from_your_pink_router":"Cresça: arraste do seu router rosa até uma cidade próxima para lançar fibra e abrir um segundo POP.",
 "tutorial.start_the_clock_with_1_and":"Comece o relógio em 1× e veja o tráfego e o dinheiro fluírem. Dá pra pausar a qualquer momento.",

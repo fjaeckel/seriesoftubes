@@ -46,6 +46,9 @@ function sanitize(s){
   {const sp={};if(s.spares&&typeof s.spares==='object')for(const k in s.spares)if(own(OPT,k)){const v=Math.floor(+s.spares[k]);if(v>0)sp[k]=Math.min(999,v);}s.spares=sp;}
   s.caches=s.caches.filter(x=>x&&isCity(x.city)&&isNet(x.net)&&NET[x.net].cache).map(x=>(x.id=sid(x.id),x.site=x.site==='b'&&s.pops[x.city]&&s.pops[x.city].site2?'b':'a',x.g===CACHE_BIG?x.g=CACHE_BIG:delete x.g,x));
   for(const c of Object.keys(s.ixp)){if(!isIx(c))delete s.ixp[c];else s.ixp[c]=tier(s.ixp[c]);}
+  // DE-Kicks personal prices: only numbers, and none above the ceiling (older saves compounded them without one).
+  if(s.dk&&typeof s.dk==='object'){const dk=s.dk;for(const k of ['m','lastQ'])if(dk[k]&&typeof dk[k]==='object'){for(const c of Object.keys(dk[k])){const v=k==='m'?dk[k][c]:dk[k][c]&&dk[k][c].m;
+    if(!(typeof v==='number'&&v>0&&isFinite(v)))delete dk[k][c];else if(k==='m')dk.m[c]=Math.min(v,DK_MAX);else dk.lastQ[c].m=Math.min(v,DK_MAX);}}else if(k==='m')dk.m={};}
   for(const k of ['rs','ixn','ixPref','ixSite'])for(const c of Object.keys(s[k]))if(!isIx(c))delete s[k][c];if(s.ixCut&&typeof s.ixCut==='object'){for(const c of Object.keys(s.ixCut))if(!isIx(c))delete s.ixCut[c];else s.ixCut[c]=Math.min(1,Math.max(0.6,num(s.ixCut[c],1)));}else delete s.ixCut;
   for(const c of Object.keys(s.ixn))s.ixn[c]=lag(s.ixn[c]);for(const c of Object.keys(s.ixSite))if(!['a','b','ab'].includes(s.ixSite[c]))s.ixSite[c]='a';
   for(const k of Object.keys(s.peers)){const [n,c]=k.split('@');if(!isNet(n)||!isIx(c))delete s.peers[k];}
