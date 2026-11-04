@@ -1,6 +1,6 @@
 /* ================= HELPERS ================= */
-const fmt$=v=>{const a=Math.abs(v),s=v<0?'-':'';if(a>=1e6)return s+'$'+(a/1e6).toFixed(a>=1e7?1:2)+'M';if(a>=1e3)return s+'$'+(a/1e3).toFixed(a>=1e5?0:1)+'k';return s+'$'+Math.round(a);};
-const fmtG=g=>g>=1000?(g/1000).toFixed(g>=10000?1:2)+' Tbps':(g>=100?g.toFixed(0):g.toFixed(1))+' Gbps';
+const fmt$=v=>{const a=Math.abs(v),s=v<0?'-':'';if(a>=999.95e6)return s+'$'+(a/1e9).toFixed(a>=9.995e9?1:2)+'B';if(a>=1e6)return s+'$'+(a/1e6).toFixed(a>=1e7?1:2)+'M';if(a>=1e3)return s+'$'+(a/1e3).toFixed(a>=1e5?0:1)+'k';return s+'$'+Math.round(a);};
+const fmtG=g=>g>=999950?(g/1e6).toFixed(g>=9.995e6?1:2)+' Pbps':g>=1000?(g/1000).toFixed(g>=10000?1:2)+' Tbps':(g>=100?g.toFixed(0):g.toFixed(1))+' Gbps';
 const pct=x=>Math.round(x*100)+'%';
 // Reach never rounds up to 100%: Tier 1 needs more than 99.9%, and 99.6% must not look like a full house (#73).
 const reachPct=x=>x>0.999?'100%':x>=0.99?(Math.floor(x*1000)/10).toFixed(1)+'%':pct(x);

@@ -20,7 +20,7 @@ const dfLeaseMo=km=>Math.round(400+km*1.0);
 const dfBuildCost=km=>Math.round((25000+km*120)*hwMul('build'));
 const dfBuildDays=km=>leadDays(Math.round(120+km*0.25)),IRU_DAYS=30;
 const ampCount=km=>Math.max(0,Math.floor(km/AMP_EVERY));
-const fmtCap=g=>g>=1000?(+(g/1000).toFixed(1))+'T':g+'G';
+const fmtCap=g=>g>=999950?(+(g/1e6).toFixed(g>=9.995e6?0:1))+'P':g>=1000?(+(g/1000).toFixed(1))+'T':g+'G';
 const WAVECO=['Zay-No Fiber','Loomin’ Technologies','Clown Castle Fiber','Bolt Technology','youNetworks','G&T (Gin and Transit)'];
 const MONTHS=[tr('common.jan'),tr('common.feb'),tr('common.mar'),tr('common.apr'),tr('common.may'),tr('common.jun'),tr('common.jul'),tr('common.aug'),tr('common.sep'),tr('common.oct'),tr('common.nov'),tr('common.dec')];
 const REG={AM:tr('common.americas'),SA:tr('common.south_america'),EU:tr('common.europe'),AF:tr('common.africa'),AS:tr('common.asia'),OC:tr('common.oceania')};
