@@ -32,7 +32,7 @@ const EXCEPTIONS = {
   W3: {
     ivc: 'Invercargill waits for its AI campus; nobody sells transit there yet',
     jub: 'Nobody sells transit in Juba: MTN and Zain haul it in from abroad',
-    pcn: 'Pitcairn: no cable, no network, land your own (#124)',
+    pcn: 'Pitcairn: no cable, no network, land your own (#124), or reach it with a pie dish (backhaul through orbit)',
     prr: 'Prince Rupert is a remote town with no carrier in it',
     smr: 'San Marino buys its transit from Italian carriers in Bologna and Rimini; nobody sells it in the town',
     sre: "Sucre has no exchange or carrier facility: Bolivia's transit is bought in La Paz",
@@ -560,13 +560,20 @@ test('O2: a half-baked crust carries nothing; orbit never carries more than the 
   assert.deepEqual(g.errors, []);
 });
 
-test('O3: a dish off the backbone carries no transit', () => {
+test('O3: a cut-off pie dish carries only its own POP\'s traffic (backhaul) and local terminals, never transit between other cities', () => {
   const g = orbit();
-  g.ev("ACT.buildPop({city:'syd'});ACT.pieDish({city:'syd'});S.pie.lic.AU={state:'ok',until:1e6};compute()");
+  g.ev("ACT.buildPop({city:'syd'});ACT.pieDish({city:'syd'});S.pie.lic.AU={state:'ok',until:1e6};S.pops.syd.bb={d:5};S.pops.lon.bb={d:20};S.pops.nyc.bb={d:20};compute()");
   assert.ok(g.ev("R.pie.isl.includes('syd')"), 'O3: the island dish is flagged');
-  g.c('h', 'lon', 'syd');
-  assert.equal(g.ev('R.l2.h||0'), 0, 'O3: traffic crossed an island dish');
-  assert.equal(g.ev("Object.keys(R.ef).some(k=>k.includes('syd'))"), false);
+  g.c('h', 'lon', 'nyc'); g.c('s', 'lon', 'syd'); g.c('b', 'nyc', 'lon', 'l2vpn', 10); g.c('p', 'cbr', null, 'pizza', 5);
+  const syd = g.ev("JSON.stringify(Object.keys(R.ef).filter(k=>k.includes('syd')))");
+  assert.deepEqual(JSON.parse(syd), ['pie:bh:syd'], 'O3: the only edge at the island dish is its own backhaul');
+  const ef = JSON.parse(g.ev("JSON.stringify(R.ef['pie:bh:syd'])"));
+  assert.ok(ef.eg['l2:s'] > 0, "O3: Sydney's own circuit rides its backhaul");
+  assert.ok(!ef.eg['l2:h'] && !ef.eg['l2:b'], 'O3: a circuit between two other cities crossed the island dish');
+  // IP flows are counted by the POP they come from (and circuits by their far end): only Sydney's own
+  assert.deepEqual(Object.keys(ef.dst).filter((c) => c !== 'syd' && !(c === 'lon' && ef.eg['l2:s'] > 0)), [], 'O3: another POP\'s traffic crossed the backhaul');
+  assert.ok(ef.dst.syd > 0, "O3: Sydney's eyeballs and its terminal ride the backhaul");
+  assert.ok(g.ev("Object.keys(R.ef).filter(k=>k.startsWith('pie:')&&k!=='pie:bh:syd').every(k=>Object.keys(R.ef[k].eg).every(e=>e.startsWith('l2:')))"), 'O3: IP traffic of a POP on the backbone crossed orbit');
   assert.deepEqual(g.errors, []);
 });
 

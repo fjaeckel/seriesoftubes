@@ -38,9 +38,10 @@ function compute(){RW.gen++;
   // Shortest paths from every POP: SPD[pop] the distance to each city index (Infinity: no path), SPP[pop] the edge it arrives by;
   // ALONE and the islands (COMP). Kept between calls while the graph is the same (29-route-cache.js).
   const wW=e=>e.w,wLat=e=>e.lat+0.05,RCON=RC.on,GK=RCON?rcGraphKey(pops,remote,EA):null,
-    {SPD,SPP,SDi,SPi,ALONE,COMP,NCOMP}=rcGraph(GK,pops,adj,EA,NC,wW);
-  // Orbit (35-pie-paths.js): sky nodes and edges, after the IGP paths, which never use them.
-  const PX=S.pie?pieGraph(adj,edges,COMP,pops,NE):null;if(PX)NE=PX.ne;
+    G0=rcGraph(GK,pops,adj,EA,NC,wW),{SPD,SPP,SDi,SPi,ALONE,NCOMP}=G0;let COMP=G0.COMP;
+  // Orbit (35-pie-paths.js): sky nodes and edges, after the IGP paths, which never use them; a POP cut off from the backbone
+  // that backhauls through a dish gets its paths again with that edge (pieRelink, on copies: the cached graph stays as it was).
+  const PX=S.pie?pieGraph(adj,edges,COMP,pops,NE):null;if(PX){NE=PX.ne;if(PX.bh.length)COMP=pieRelink(PX,SPD,SPP,SDi,SPi,COMP);}
   const ev=S.ev;
   const depeer=ev.depeer>day||scnRule('spat'), leak=ev.leak&&ev.leak.until>day?ev.leak.net:null;
   // Sender pays (Gangnam Style Peering): no carrier hands traffic to the Korean incumbents for you, only a paid PNI does.
@@ -66,7 +67,7 @@ function compute(){RW.gen++;
   return E;})();
   const rp=ev.rpki&&ev.rpki.until>day?new Set(ev.rpki.nets):null;if(rp)for(const e of E){if(e.k==='c')continue;const o=e.ok;e.ok=n=>!rp.has(n)&&o(n);}
   // Who reaches whom and each network's exit lists, kept while the exits are the same (XC, 29-route-cache.js).
-  const XK=RCON?rcExitKey(GK,E,(depeer?1:0)+'|'+leak+'|'+(snd?1:0)+'|'+(rp?ev.rpki.nets.join(','):'')+'|'+(TRX?S.te.script:'')):null,XC=XK!==null&&RC.xk===XK?RC.x:null;
+  const XK=RCON?rcExitKey(GK,E,(depeer?1:0)+'|'+leak+'|'+(snd?1:0)+'|'+(rp?ev.rpki.nets.join(','):'')+'|'+(TRX?S.te.script:'')+'|'+(PX&&PX.bh.length?PX.bh.map(e=>e.bh.city+'>'+e.bh.land).join(','):'')):null,XC=XK!==null&&RC.xk===XK?RC.x:null;
   // coneOf: does exit e reach network n only through a peer's customer cone (#85)?
   const coneOf=(e,n)=>e.k==='p'?e.net!==n:!!e.dir&&!e.dir.has(n);
   // ok() cannot change during one compute, so ask each exit once per network, not once per flow and rank.
@@ -162,7 +163,9 @@ function compute(){RW.gen++;
   (()=>{for(const b of S.biz){if(!BIZ_T[b.type].l2)continue;
     // An SD-WAN is hub-and-spoke: one circuit from the first site to each of the others.
     const pairs=b.sites?b.sites.slice(1).map(x=>[b.sites[0],x]):[[b.city,b.city2]];let minF=1,maxLat=0,tot=0,noPath=false;
-    for(const [A,B] of pairs){let amt=0;
+    for(let [A,B] of pairs){let amt=0;
+    // A circuit to a POP that reaches the backbone only by its own backhaul starts there (only its paths cross that edge).
+    if(PX&&PX.bh.length&&SPD[B]&&!(SPD[A]&&SPD[A][CIDX[B]]<Infinity))[A,B]=[B,A];
     if(popUp(A)&&popUp(B)&&SPD[A]&&SPD[A][CIDX[B]]<Infinity){
       const ek='l2:'+b.id;R2.egDesc[ek]={lab:labOf(b.sites?N_('compute.sd_wan_for_name'):N_('compute.l2vpn_for_name'),'name',b.name),city:A,k:'l2'};
       const routes=l2Routes(A,B,b);if(routes.length>1)R2.l2split[b.id]=routes.length;

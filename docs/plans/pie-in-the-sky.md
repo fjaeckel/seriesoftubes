@@ -57,7 +57,10 @@ flaky 340 km / 2500 / dense cities, life 3y. Life 5y otherwise. Coverage < 60% =
 Crust >= 60% = virtual hub. Live, licensed, connected dish <-> hub edge: latency (alt up+down)/c + 2 ms.
 With lasers: hub-to-hub along great circle at c (vacuum). Capacity = min(crust cap x coverage,
 antennas x Gbps x rain). Orbit never beats fiber under ~3000 km. Graph grows by dishes + crusts only.
-Dishes with no path to the backbone carry no transit (O3). Must not slow `compute()` for saves without pies.
+Dishes with no path to the backbone carry no transit (O3), but backhaul their own POP: all its traffic (eyeballs, customers,
+circuits) goes up its dish and down at a landing dish on the backbone (bent pipe <= 1,000 km, lasers past that). Capacity =
+min(cut-off dish's room after terminals, landing dish's room, crust's room); latency = the orbit path. Spats, safe mode, a
+down crust, landing rights or a backhoe cut it. Must not slow `compute()` for saves without pies.
 
 ## Customers
 

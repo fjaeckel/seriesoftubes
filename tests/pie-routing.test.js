@@ -71,14 +71,16 @@ test('O2: a half-baked crust carries nothing, and orbit never carries more than 
   assert.deepEqual(errors, []);
 });
 
-test('O3: a dish whose POP is off the backbone is flagged and carries no transit, only its own terminals', () => {
+test('O3: a dish whose POP is off the backbone is flagged and carries only its own POP\'s traffic and its terminals', () => {
   const { ev, errors } = load();
   world(ev);
   ev("ACT.buildPop({city:'syd'});ACT.pieDish({city:'syd'});S.pie.lic.AU={state:'ok',until:1e6};for(const x of S.pie.dishes)x.ant=PIE_ANT_MAX;compute()");
   assert.deepEqual(ev('JSON.stringify(R.pie.isl)'), '["syd"]', 'Sydney has no fiber to the rest');
   circuit(ev, 'hs', 'lon', 'syd');
-  assert.equal(ev('R.l2.hs||0'), 0, 'no way through the island dish');
-  assert.equal(ev("Object.keys(R.ef).some(k=>k.includes('syd'))"), false);
+  assert.equal(ev('R.l2.hs'), 5, "a circuit to Sydney is Sydney's own traffic: it rides the backhaul");
+  assert.ok(ev("R.ef['pie:bh:syd'].eg['l2:hs']") > 0);
+  circuit(ev, 'ln', 'lon', 'nyc');
+  assert.equal(ev("Object.keys(R.ef).some(k=>k.includes('syd')&&R.ef[k].eg['l2:ln']>0)"), false, 'never transit between other cities');
   // a home next to it still lands there (bent pipe, local only)
   term(ev, 'pz', 'cbr');
   assert.equal(ev('R.pie.gs.pz'), 'syd');
