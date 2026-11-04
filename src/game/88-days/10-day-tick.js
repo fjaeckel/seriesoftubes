@@ -129,5 +129,7 @@ function spawnOffer(){
   if(Math.random()<(T.lv>=3?0.65:0.3))reqs.push(pick(pool));
   if(T.lv>=3&&Math.random()<0.35){const more=pool.filter(k=>!reqs.includes(k));if(more.length)reqs.push(pick(more));}
   const r2=Math.round(rate*(1+reqs.reduce((a,k)=>a+REQS[k].bonus,0)));
-  S.offers.push({id:uid(),city,city2,name,type:t,bw,rate:r2,reqs,latMax:T.lat?+(kmBetween(city,city2)/200*1.35).toFixed(1):null,exp:S.day+40});
+  // A latency ceiling must be one something you can build meets (#273), as diverse paths must be possible.
+  const latMax=T.lat?latMaxOf(city,city2):null;if(T.lat&&!(Math.min(latFloor(city,city2),bestLat(city,city2))<=latMax))return;
+  S.offers.push({id:uid(),city,city2,name,type:t,bw,rate:r2,reqs,latMax,exp:S.day+40});
 }

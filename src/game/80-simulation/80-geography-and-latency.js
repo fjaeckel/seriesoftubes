@@ -50,3 +50,15 @@ function viaSeg(a,b){const cabs=cablesOk(a,b),sub=isSub(a,b);if(!cabs.length)ret
   const opts=(sub?[]:[{v:'land',l:`${tr('common.overland')} <small>${landMult(a,b)>1?landMult(a,b)+'× · ':''}${(kmBetween(a,b)*1.3/200).toFixed(1)} ms</small>`}]).concat(cabs.map(c=>({v:c.cid,l:`${esc(CAB[c.cid].name)} <small>${CAB[c.cid].price}× · ${(c.km*(CAB[c.cid].lat||1)/200).toFixed(1)} ms${CAB[c.cid].age==='old'?' · '+tr('geography_and_latency.old_cuts_often'):''}</small>`})));
   return `<h4 class="sub4">${tr('common.route')}</h4><div class="seg">${opts.map(o=>btn(o.l,'via',{v:o.v},wr&&wr.via===o.v?'pink':'ghost')).join('')}</div>${wr&&wr.cab?`<p class="note">${esc(CAB[wr.cab].blurb)} ${tr('geography_and_latency.all_your_waves_on_one_cable')}</p>`:''}`;}
 function bestLat(a,b,f){const ls=S.links.filter(l=>!linkDown(l)&&(!f||f(l)));const dist={[a]:0},done=new Set();for(;;){let u=null,ud=Infinity;for(const k in dist)if(!done.has(k)&&dist[k]<ud){u=k;ud=dist[k];}if(u===null)break;if(u===b)return ud;done.add(u);for(const l of ls){if(l.a!==u&&l.b!==u)continue;const v=l.a===u?l.b:l.a,nd=ud+linkLat(l)+0.05;if(nd<(dist[v]??Infinity))dist[v]=nd;}}return Infinity;}
+// The lowest one-way latency anything you could build gets between two cities (#273), the way bestLat() adds it up:
+// your own fiber over land (×1.1), or the route of a cable that lands at both ends (your own cable in the low-latency
+// design follows it at 0.9 or better). A sea route that no cable takes needs a survey, so it does not count.
+// Built from the map alone, so it is worked out once per city.
+const LATF=new Map();let LATC=null;
+function latFloor(a,b){let D=LATF.get(a);if(!D){LATF.set(a,D=latFloor0(a));}return D[CIDX[b]];}
+function latFloor0(a){const n=CITIES.length,D=new Float64Array(n).fill(Infinity),done=new Uint8Array(n);
+  if(!LATC){LATC=new Map();for(const c of CABLE_PAIRS){const k=Math.min(CIDX[c.a],CIDX[c.b])*4096+Math.max(CIDX[c.a],CIDX[c.b]),w=c.km*Math.min(0.9,CAB[c.cid].lat||1);if(!(LATC.get(k)<=w))LATC.set(k,w);}}
+  D[CIDX[a]]=0;for(;;){let u=-1,ud=Infinity;for(let i=0;i<n;i++)if(!done[i]&&D[i]<ud){u=i;ud=D[i];}if(u<0)break;done[u]=1;const U=CITIES[u],LU=lands(U);
+    for(let i=0;i<n;i++){if(done[i])continue;const V=CITIES[i],cw=LATC.get(Math.min(u,i)*4096+Math.max(u,i));
+      let w=lands(V).some(x=>LU.includes(x))?kmBetween(U.id,V.id)*1.1:Infinity;if(cw<w)w=cw;if(w<Infinity){const d=ud+w/200+0.05;if(d<D[i])D[i]=d;}}}
+  return D;}
