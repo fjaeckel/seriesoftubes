@@ -20,18 +20,17 @@ test('Bilbao is on the map, on land and ready to take a POP; it has no exchange 
   assert.deepEqual(errors, []);
 });
 
-test('every transatlantic cable that came ashore on the Biscay coast lands at Bilbao', () => {
+test('the transatlantic cables that come ashore on the Biscay coast land at Bilbao', () => {
   const { ev, errors } = load();
   ev("ACT.start({})");
   const lands = id => JSON.parse(ev(`JSON.stringify(CABLES.find(c=>c.id==='${id}').pairs.map(p=>p.slice(0,2)))`));
   assert.deepEqual(lands('marea'), [['ash', 'bio']]);
   assert.deepEqual(lands('grace'), [['nyc', 'lon'], ['nyc', 'bio']]);
   assert.ok(lands('sol').some(p => p.join() === 'pdl,bio'));
-  assert.ok(lands('col3').some(p => p.join() === 'mia,bio'));
-  for (const [id, a, b] of [['marea', 'ash', 'bio'], ['grace', 'nyc', 'bio'], ['sol', 'pdl', 'bio'], ['col3', 'mia', 'bio']]) {
+  for (const [id, a, b] of [['marea', 'ash', 'bio'], ['grace', 'nyc', 'bio'], ['sol', 'pdl', 'bio']]) {
     assert.equal(ev(`cablesFor('${a}','${b}').map(c=>c.cid).includes('${id}')`), true, `${id} lands at Bilbao`);
   }
-  for (const id of ['marea', 'grace', 'sol', 'col3']) {
+  for (const id of ['marea', 'grace', 'sol']) {
     assert.equal(ev(`CABLE_PAIRS.some(p=>p.cid==='${id}'&&(p.a==='mad'||p.b==='mad'))`), false, `${id} no longer ends at Madrid`);
   }
   assert.deepEqual(errors, []);
@@ -62,5 +61,17 @@ test('Marea leaves the American coast at Virginia Beach, not New Jersey, so its 
   const pts = JSON.parse(ev("JSON.stringify(CABLES.find(c=>c.id==='marea').pairs[0][2])"));
   assert.deepEqual(pts[0], [-75.7, 36.85], 'the first waypoint is off Virginia Beach');
   assert.ok(pts.every(([lo, la]) => ev(`(()=>{const p=proj(${lo},${la});return !onLand(p[0],p[1])})()`)), 'every waypoint is at sea');
+  assert.deepEqual(errors, []);
+});
+
+test('Columbus III-and-a-half comes ashore in the south, near Cadiz, not on the Biscay coast', () => {
+  const { ev, errors } = load();
+  ev(start);
+  const pair = JSON.parse(ev("JSON.stringify(CABLES.find(c=>c.id==='col3').pairs.find(p=>p[0]==='mia'&&p[1]==='mad'))"));
+  assert.ok(pair, 'Miami to Madrid, as before, so old saves keep their Columbus links');
+  const last = pair[2][pair[2].length - 1];
+  assert.ok(last[1] < 37 && last[0] > -7 && last[0] < -5.5, `it lands on the Gulf of Cadiz (${last})`);
+  assert.equal(ev("cablesFor('mia','bio').some(c=>c.cid==='col3')"), false, 'not at Bilbao');
+  assert.ok(pair[2].every(([lo, la]) => ev(`(()=>{const p=proj(${lo},${la});return !onLand(p[0],p[1])})()`)), 'every waypoint is at sea');
   assert.deepEqual(errors, []);
 });

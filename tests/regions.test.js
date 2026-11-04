@@ -795,7 +795,7 @@ test('Atlantic islands and Halifax: real landings, real exchanges only, and isla
   assert.equal(ev(`NETS.filter(n=>n.type!=='t1'&&n.pops.some(c=>${JSON.stringify(isl)}.includes(c))&&!(n.up||[]).some(u=>NET[u].type==='t1')&&!n.pops.some(c=>!${JSON.stringify(isl)}.includes(c))).map(n=>n.id).join()`), '');
   const hop = (path) => ev(`Math.min(...${JSON.stringify(path)}.slice(1).map((c,i)=>Math.max(...cablesFor(${JSON.stringify(path)}[i],c).map(p=>subCarrier(p.km)))))`);
   const direct = (a, b) => ev(`Math.max(...cablesFor('${a}','${b}').map(p=>subCarrier(p.km)))`);
-  assert.equal(direct('mia', 'bio'), 1200);
+  assert.equal(direct('mia', 'mad'), 1200);
   assert.equal(hop(['mia', 'bda', 'pdl', 'bio']), 1600, 'Florida to Spain via Bermuda and the Azores');
   assert.equal(hop(['mia', 'pdl', 'lis']), 1600, 'Florida to Lisbon via the Azores');
   assert.equal(direct('atn', 'lis'), 1200);
