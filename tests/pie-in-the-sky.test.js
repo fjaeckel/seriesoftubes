@@ -144,12 +144,18 @@ test('O5: launches only fail with chaos on, and never in the first 90 days', () 
   assert.equal(ev("pieLive('short')"), 20, 'chaos none: nothing fails');
 });
 
-test('cohorts decay past their life, and a crust is half-baked under 60%', () => {
+test('cohorts wear out over the end of their life, and a crust carries a share from 40%, all of it from 60%', () => {
   const { ev, errors } = load();
   won(ev);
   company(ev);
-  ev("S.pie.crusts.short.cohorts.push({n:900,day:S.day,las:false})");
+  ev("S.pie.crusts.short.cohorts.push({n:600,day:S.day,las:false})");
+  assert.equal(ev("pieUp('short')"), false, `${ev("pct(pieCov('short'))")} carries nothing`);
+  ev("S.pie.crusts.short.cohorts[0].n=Math.round(CRUSTS.short.full*0.5)");
   assert.equal(ev("pieBaked('short')"), false, `${ev("pct(pieCov('short'))")} is half-baked`);
+  assert.equal(ev("pieUp('short')"), true, 'but over 40% it carries something');
+  assert.ok(Math.abs(ev("pieCarry('short')") - 0.5) < 0.01, 'half way from 40% to 60%: half of it');
+  assert.ok(Math.abs(ev("pieCap('short')") - ev('CRUSTS.short.g*0.25')) < ev('CRUSTS.short.g') * 0.01, 'half its capacity at half coverage');
+  ev("S.pie.crusts.short.cohorts[0].n=900");
   ev("S.pie.crusts.short.cohorts.push({n:60,day:S.day,las:true})");
   assert.equal(ev("pieBaked('short')&&pieUp('short')"), true, '60% bakes it');
   assert.deepEqual(JSON.parse(ev('JSON.stringify(pieHubs())')), ['short']);
@@ -161,7 +167,15 @@ test('cohorts decay past their life, and a crust is half-baked under 60%', () =>
   assert.equal(g.crusts.find((c) => c.id === 'short').n, 960);
   assert.equal(g.crusts.find((c) => c.id === 'short').las, 60);
   assert.equal(g.pads[0].city, 'sin');
-  ev("S.day+=CRUSTS.short.life;pieDay(S.day)");
+  // wear: in full until the last PIE_WEAR of their life, then a few fewer every day, gone at its end
+  const life = ev('CRUSTS.short.life'), w = Math.round(life * ev('PIE_WEAR'));
+  const at = (d) => ev(`S.day=S.pie.crusts.short.cohorts[0].day+${d};pieLive('short')`);
+  assert.equal(at(life - w), 960, 'in full until they start to wear');
+  const mid = at(life - w / 2), late = at(life - 10);
+  assert.ok(Math.abs(mid - 480) <= 1, `half worn out half way (${mid})`);
+  assert.ok(late > 0 && late < mid && late <= 960 * 10 / w + 1, `a few left near the end (${late})`);
+  for (let d = life - w; d < life; d += 7) assert.ok(at(d) - at(d + 7) <= Math.ceil(960 * 7 / w) + 1, `no cliff at day ${d}`);
+  ev("S.day=S.pie.crusts.short.cohorts[0].day+CRUSTS.short.life;pieDay(S.day)");
   assert.equal(ev("pieLive('short')"), 0, 'old pies deorbit');
   assert.equal(ev('S.pie.crusts.short.cohorts.length'), 0);
   assert.deepEqual(errors, []);

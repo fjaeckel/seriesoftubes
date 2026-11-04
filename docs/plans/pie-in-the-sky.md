@@ -50,11 +50,11 @@ Pies are cohorts, never one object per satellite. `sanitize()` clamps all of it.
 | Founder launch party | $2M per launch, automatic | - |
 
 Crusts: short 550 km / 1584 full / |lat|<=53; frozen 560 km / 520 / polar; upper 1100 km / 1200 / |lat|<=60;
-flaky 340 km / 2500 / dense cities, life 3y. Life 5y otherwise. Coverage < 60% = half-baked, carries 0.
+flaky 340 km / 2500 / dense cities, life 3y. Life 5y otherwise. Coverage < 60% = half-baked: carries 0 under 40%, then a share growing to all of it at 60% (pieCarry). Pies wear out over the last 30% of their life, a few a day (pieAlive), not a whole launch month at once.
 
 ## Routing (rules O2-O4)
 
-Crust >= 60% = virtual hub. Live, licensed, connected dish <-> hub edge: latency (alt up+down)/c + 2 ms.
+Crust > 40% = virtual hub (capacity pieCap = g x coverage x carry). Live, licensed, connected dish <-> hub edge: latency (alt up+down)/c + 2 ms.
 With lasers: hub-to-hub along great circle at c (vacuum). Capacity = min(crust cap x coverage,
 antennas x Gbps x rain). Orbit never beats fiber under ~3000 km. Graph grows by dishes + crusts only.
 Dishes with no path to the backbone carry no transit (O3), but backhaul their own POP: all its traffic (eyeballs, customers,

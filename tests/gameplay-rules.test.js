@@ -550,11 +550,17 @@ const orbit = (las = true, n = 'CRUSTS.short.full') => { const g = load();
   g.sky = (id) => g.ev(`Object.keys(R.ef).some(k=>k.startsWith('pie:')&&R.ef[k].eg['l2:${id}']>0)`);
   return g; };
 
-test('O2: a half-baked crust carries nothing; orbit never carries more than the dishes', () => {
-  const g = orbit(true, 'Math.floor(CRUSTS.short.full*0.59)');
+test('O2: a crust carries nothing under 40% and a growing share up to 60%; orbit never carries more than the dishes', () => {
+  const g = orbit(true, 'Math.floor(CRUSTS.short.full*0.39)');
   g.c('h', 'lon', 'nyc'); g.c('p', 'pcn', null, 'pizza', 50);
-  assert.equal(g.sky('h'), false, 'O2: a half-baked crust carried a circuit');
-  assert.equal(g.ev('R.pie.sf.p'), 0, 'O2: a half-baked crust served a terminal');
+  assert.equal(g.sky('h'), false, 'O2: a crust under 40% carried a circuit');
+  assert.equal(g.ev('R.pie.sf.p'), 0, 'O2: a crust under 40% served a terminal');
+  // from 40% to 60% the share it carries grows from nothing to all of its pies' capacity: a slope, not a cliff
+  const cap = (p) => g.ev(`S.pie.crusts.short.cohorts=[{n:Math.round(CRUSTS.short.full*${p}),day:S.day,las:true}];compute();(R.pie.crust.find(c=>c.id==='short')||{cap:0}).cap`);
+  const caps = [0.4, 0.45, 0.5, 0.55, 0.6, 0.8].map(cap), G = g.ev('CRUSTS.short.g');
+  assert.ok(caps[0] < G * 0.01, `O2: at 40% it carries ${caps[0]} G`);
+  for (let i = 1; i < caps.length; i++) assert.ok(caps[i] > caps[i - 1], `O2: more pies, more traffic (${caps.join(', ')})`);
+  assert.ok(Math.abs(caps[4] - G * 0.6) < G * 0.01 && Math.abs(caps[5] - G * 0.8) < G * 0.01, 'O2: baked from 60%, all of its coverage carries');
   g.ev("S.pie.crusts.short.cohorts=[{n:CRUSTS.short.full,day:S.day,las:true}];for(let i=0;i<20;i++)S.biz.push({id:'b'+i,type:'boat',city:'pcn',city2:null,bw:800,rate:1,reqs:[],route:'normal',name:'b'+i,mood:100,since:0,sites:null});compute()");
   for (const d of JSON.parse(g.ev('JSON.stringify(pieDishes())'))) assert.ok(g.ev(`R.pie.used.${d.city}`) <= d.g + 1e-6, `O2: the ${d.city} dish carries ${g.ev(`R.pie.used.${d.city}`)} G on ${d.g} G of antennas`);
   assert.deepEqual(g.errors, []);

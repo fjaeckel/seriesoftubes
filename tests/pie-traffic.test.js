@@ -103,15 +103,19 @@ const checks = (dom) => Object.fromEntries([...doc(dom).querySelectorAll('#modal
 test('an empty sky says why: a half-baked crust', () => {
   const { dom, ev, errors } = load();
   ev('window.innerWidth=360');
-  world(ev, { n: 'Math.floor(CRUSTS.short.full*0.41)' });
+  world(ev, { n: 'Math.floor(CRUSTS.short.full*0.39)' });
   term(ev, 'pz', 'dub');
   ev("ACT.pieTab({t:'traffic'})");
   const txt = doc(dom).querySelector('#modalCard').textContent;
   assert.match(txt, /Why is my sky empty\?/);
   assert.equal(checks(dom).baked, 'off');
-  assert.match(txt, /Shortcrust \(550 km\) is 41% baked; it carries traffic from 60%/);
+  assert.match(txt, /Shortcrust \(550 km\) is 39% baked; it carries traffic from 40%/);
   assert.equal(checks(dom).customers, 'on');
   ev('closeModal()');
+  try {
+    ev("S.pie.crusts.short.cohorts[0].n=CRUSTS.short.full/2;compute();ACT.pieTab({t:'traffic'})");
+    assert.match(doc(dom).querySelector('#modalCard').textContent, /is 50% baked: half-baked, it carries 50% of its traffic, all of it from 60%/);
+  } finally { ev('closeModal()'); }
   assert.deepEqual(errors, []);
 });
 

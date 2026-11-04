@@ -51,7 +51,7 @@ function dayPost(d){
   const ids=linkIds(),frr=(coreFrr()&&S.links.some(l=>l.cut)?.5:1)*(rule('moods')==='patient'?.5:1);const bhT=new Set(ddosAll().filter(a=>a.bh).map(a=>a.tgt));for(const b of S.biz.slice()){if(eventTick(b,d)||capPendTick(b,d))continue;b.pm=b.mood;if(bhT.has(b.id))continue;const sf=bizSf(b,ids),reachOk=BIZ_T[b.type].l2||BIZ_T[b.type].fiber||R.reach>0.99||scnRule('local'),scrubOk=b.type!=='scrub'||(hasScrub()&&!scrubFar(b.city)),divOk=reqOk(b);
     if(sf>=0.95&&reachOk&&scrubOk&&divOk)b.mood=Math.min(100,b.mood+2);
     else if(S.day-(b.since||0)<15){}
-    else{b.mood-=frr*(Math.max(0,0.95-sf)*45+(!reachOk?3:0)+(!scrubOk?4:0)+(!divOk?3:0));
+    else{const dm=frr*(Math.max(0,0.95-sf)*45+(!reachOk?3:0)+(!scrubOk?4:0)+(!divOk?3:0));b.mood-=BIZ_T[b.type].orbit?Math.min(dm,PIE_PATIENCE):dm;
       if(b.mood<=0){S.biz=S.biz.filter(x=>x!==b);toast(tr('day_tick.name_cancelled_too_many_outages_and',{name:esc(b.name),city:CITY[b.city].name}),'bad');sfx('err');}
       else if(b.mood<30&&!b.warned){b.warned=b.warn60=true;const why=bizWhy(b)[0],paused=pref('pauseFurious')&&autoPause();
         toast(tr('day_tick.name_is_furious_fix_service_in',{name:esc(b.name),city:CITY[b.city].name})+(why?`<br><i>${esc(why)}</i>`:'')+(paused?`<br><b>${tr('common.game_paused')}</b>`:''),'bad',[{l:tr('common.show_me'),act:'custGo',args:{id:b.id}}].concat(paused?[resumeAct()]:[]));sfx('err');}

@@ -5,9 +5,9 @@
 
    Hooks for the parts that come later (routing, incidents and spats, the globe):
    - pieDishes()            -> [{id,city,cc,ant,g}]: dishes that work today (POP there, not down, landing rights held)
-   - pieHubs()              -> ['short',…]: crusts that are baked (>= 60%) and up (not in safe mode, not down)
+   - pieHubs()              -> ['short',…]: crusts that carry traffic (over 40%, all of it from 60%: pieCarry) and up (not in safe mode, not down)
    - pieLicOk(cc)           -> true when landing rights in that country are held and in force
-   - pieCov(id), pieBaked(id), pieUp(id), pieLive(id), pieLiveLas(id)   (10-catalog/70-pie.js and below)
+   - pieCov(id), pieBaked(id), pieCarry(id), pieCap(id), pieUp(id), pieLive(id), pieLiveLas(id)   (10-catalog/70-pie.js and below)
    - PIE_ON.day / .launch / .fail: arrays of f(d) / f(L,ok) / f(L), called by pieDay() and pieFly()
    - S.pie.spat[id] with PIE_SPATS[id]={fix(o,s),day?(o,d),end?(o)}: a spat's state, repaired by pieSanitize(), ticked and
      dropped when o.until<=d by pieSpatDay(d)
@@ -31,7 +31,7 @@ const pieCoName=()=>{const n=S.pie&&S.pie.co&&S.pie.co.name;return !n?tr(PIE_NAM
 function pieSpend(v){const P=S.pie;if(pieSand()){P.book.wouldHave+=v;sfx('build');return true;}if(!spend(v))return false;P.book.spent+=v;return true;}
 function pieCharge(v){const P=S.pie;if(!P||!(v>0))return;if(pieSand())P.book.wouldHave+=v;else{S.cash-=v;P.book.spent+=v;}}
 function pieMo(){const P=S.pie;if(!P||!P.co)return 0;return PIE_CO_MO+(P.fac?PIE_FAC_MO:0)+P.pads.length*PIE_PAD_MO+P.dishes.length*PIE_DISH_MO;}
-const pieLiveLas=id=>{const c=S.pie&&S.pie.crusts[id];let n=0;if(pieLasCut(id))return 0;if(c)for(const k of c.cohorts)if(k.las&&S.day-k.day<CRUSTS[id].life)n+=k.n;return n;};
+const pieLiveLas=id=>{const c=S.pie&&S.pie.crusts[id];let n=0;if(pieLasCut(id))return 0;if(c)for(const k of c.cohorts)if(k.las)n+=pieAlive(k,CRUSTS[id].life);return Math.round(n);};
 const pieLicOk=cc=>{const l=S.pie&&S.pie.lic[cc];return !!l&&l.state==='ok'&&l.until>S.day;};
 function pieDishes(){const P=S&&S.pie;if(!P)return [];const o=[];for(const x of P.dishes){if(!S.pops[x.city]||x.down>S.day)continue;const cc=CITY[x.city].cc;if(pieLicOk(cc))o.push({id:x.id,city:x.city,cc,ant:x.ant,g:x.ant*PIE_ANT_G*pieDishMul(x)});}return o;}
 function pieHubs(){return S&&S.pie?Object.keys(CRUSTS).filter(pieUp):[];}
@@ -98,7 +98,7 @@ function pieDay(d){const P=S.pie;if(!P)return;
   if(P.fac)P.stock=Math.min(PIE_STOCK_MAX,P.stock+PIE_FAC_MONTH/30);
   if(P.q.length){const due=P.q.filter(L=>L.day<=d);if(due.length){P.q=P.q.filter(L=>L.day>d);for(const L of due)pieFly(L);}}
   for(const id in CRUSTS){const c=P.crusts[id],life=CRUSTS[id].life;if(c.cohorts.length&&d-c.cohorts[0].day>=life)c.cohorts=c.cohorts.filter(k=>d-k.day<life);
-    if(!c.bk&&pieBaked(id)){c.bk=1;pieFounder(N_('pie.fp_baked'),{c:id});toast(tr('pie.t_baked',{crust:tr(CRUSTS[id].n)}),'goal');piePromise();}}
+    if(!c.bk&&pieBaked(id)){c.bk=1;pieFounder(N_('pie.fp_baked'),{c:id});toast(tr('pie.t_baked_all',{crust:tr(CRUSTS[id].n)}),'goal');piePromise();}}
   {const F=P.founder;if(F.due.length&&F.due[0]<=d){F.due.shift();F.broken++;pieFounder(N_('pie.fp_slip'),{n:pieYear(d+360)});}}
   // Running costs are billed with the rest each day (compute()); the book keeps the tally, and the sandbox its shame.
   {const mo=pieMo()/30;if(mo){if(pieSand())P.book.wouldHave+=mo;else P.book.spent+=mo;}}

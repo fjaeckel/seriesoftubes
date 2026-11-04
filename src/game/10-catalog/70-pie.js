@@ -8,7 +8,7 @@ const PIE_CO=250e6,PIE_CO_MO=5e6,PIE_FAC=1e9,PIE_FAC_MO=8e6,PIE_FAC_MONTH=120,PI
   PIE_REUSE=500e6,PIE_HEAVY=3e9,PIE_HEAVY_TESTS=3,PIE_BOOST=40e6,PIE_BOOST_MAX=20,PIE_BOOSTERS=6,PIE_INS=0.08,
   PIE_DISH=25e6,PIE_ANT=2e6,PIE_ANT_MAX=16,PIE_ANT_G=20,PIE_DISH_MO=3e5,PIE_DISH_MAX=200,
   PIE_LIC_MIN=10e6,PIE_LIC_MAX=200e6,PIE_LIC_DAYS=360,PIE_LEOIX=50e6,PIE_LEOIX_MO=1e6,PIE_PARTY=2e6,
-  PIE_QUIET=90,PIE_PREP=7,PIE_Q_MAX=40,PIE_COHORTS=240,PIE_POSTS=20,PIE_BAKED=0.6,PIE_SPARE=1.1;
+  PIE_QUIET=90,PIE_PREP=7,PIE_Q_MAX=40,PIE_COHORTS=240,PIE_POSTS=20,PIE_RAW=0.4,PIE_BAKED=0.6,PIE_SPARE=1.1,PIE_WEAR=0.3;
 // In generation order. fail: chance a launch is lost (x chaos); land: chance a reused booster does not come back.
 const ROCKETS={
  falcon:{n:N_('pie.rk_falcon_punch'),cost:60e6,pies:20,fail:0.05,gap:14},
@@ -70,8 +70,15 @@ function pieOn(){return !!S&&!S.scn&&S.mode!=='puzzle'&&(!!S.pie||gatesOpen());}
 const pieT1=()=>!!S.won&&isTier1();
 // New things (company, factory, pads, R&D, launches, dishes) need you to be Tier 1 now, or a sandbox.
 function pieCanBuild(){return pieOn()&&(gatesOpen()||pieT1());}
-function pieLive(id){const c=S&&S.pie&&S.pie.crusts[id];if(!c)return 0;let n=0;for(const k of c.cohorts)if(S.day-k.day<CRUSTS[id].life)n+=k.n;return n;}
+// Pies wear out over the last PIE_WEAR of their life, a few every day, so a launch month never falls out of the sky at once:
+// a cohort counts in full until then, then less every day, and nothing at its life's end (no dice, nothing saved).
+function pieAlive(k,life){const left=life-(S.day-k.day),w=life*PIE_WEAR;return left>=w?k.n:left>0?k.n*left/w:0;}
+function pieLive(id){const c=S&&S.pie&&S.pie.crusts[id];if(!c)return 0;let n=0;const life=CRUSTS[id].life;for(const k of c.cohorts)n+=pieAlive(k,life);return Math.round(n);}
 function pieCov(id){return own(CRUSTS,id)?Math.min(1,pieLive(id)/CRUSTS[id].full):0;}
-// Under 60% a crust is half-baked: too many gaps to carry anything.
+// A crust is baked from 60%. Under that it is half-baked: from 40% (PIE_RAW) it carries a share of its traffic that grows
+// to all of it at 60% (pieCarry), under 40% nothing; too many gaps.
 function pieBaked(id){return pieCov(id)>=PIE_BAKED;}
-function pieUp(id){const P=S&&S.pie;return !!P&&!P.safe&&pieBaked(id)&&!(P.crusts[id].down>S.day);}
+function pieCarry(id){return clamp((pieCov(id)-PIE_RAW)/(PIE_BAKED-PIE_RAW),0,1);}
+function pieUp(id){const P=S&&S.pie;return !!P&&!P.safe&&pieCarry(id)>0&&!(P.crusts[id].down>S.day);}
+// Gbps a crust carries today: its capacity at its coverage, times the share a half-baked one manages.
+const pieCap=id=>CRUSTS[id].g*pieCov(id)*pieCarry(id);

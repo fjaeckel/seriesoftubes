@@ -11,14 +11,14 @@ const pieBar=(u,cls)=>`<div class="bar ${cls}"><i style="width:${Math.round(clam
 function pieDishWhy(d){const cc=CITY[d.city].cc,l=S.pie.lic[cc];return {nopop:tr('pie_traffic.d_nopop'),down:tr('pie_traffic.d_down'),lic:tr('pie_traffic.d_lic',{country:esc(pieLicCountry(cc))}),
   ref:tr('pie_traffic.d_ref'),backhaul:tr('pie_traffic.d_backhaul'),spat:tr('pie_traffic.d_spat',{d:l?dateStr(l.until):''}),nocrust:tr('pie_traffic.d_nocrust'),isl:tr('pie_traffic.d_isl'),rain:tr('pie_traffic.d_rain'),
   jam:tr('pie_traffic.d_jam'),nolas:tr('pie_traffic.d_nolas'),idle:tr('pie_traffic.d_idle')}[d.st]||'';}
-function pieCrustWhy(c){return c.st==='half'?tr('pie_traffic.crust_half',{crust:tr(CRUSTS[c.id].n),p:pct(c.cov),min:pct(PIE_BAKED)}):c.st==='safe'?tr('pie_traffic.crust_safe'):c.st==='down'?tr('pie_traffic.crust_down'):'';}
+function pieCrustWhy(c){return c.st==='half'?tr('pie_traffic.crust_half',{crust:tr(CRUSTS[c.id].n),p:pct(c.cov),min:pct(PIE_RAW)}):c.st==='part'?tr('pie_traffic.crust_part',{crust:tr(CRUSTS[c.id].n),p:pct(c.cov),c:pct(pieCarry(c.id)),min:pct(PIE_BAKED)}):c.st==='safe'?tr('pie_traffic.crust_safe'):c.st==='down'?tr('pie_traffic.crust_down'):'';}
 // Why a cut-off POP gets no backhaul (R.pie.bh[].why from pieBhLand).
 function pieBhWhy(w){return {nocrust:tr('pie_traffic.bh_nocrust'),noland:tr('pie_traffic.bh_noland'),nolas:tr('pie_traffic.bh_nolas',{km:PIE_BENT.toLocaleString()}),spat:tr('pie_traffic.bh_spat'),full:tr('pie_traffic.bh_full_none')}[w]||tr('pie_traffic.bh_noland');}
 // The empty sky: every condition traffic needs, ticked or not, with a hint for the first thing to fix.
 function pieChecks(Q){const P=S.pie,cr=Q.crust,best=cr.slice().sort((a,b)=>b.cov-a.cov)[0],ds=Q.dish,isl=ds.find(d=>d.st==='isl'),bh=Q.bh||[],no=bh.find(b=>!(b.cap>0));
   const sold=S.biz.some(b=>BIZ_T[b.type].orbit||(BIZ_T[b.type].lat&&b.route==='fast'&&b.city2&&pieKm(b.city,b.city2)>=PIE_MIN_KM));
   return [
-    {k:'baked',ok:Q.hubs.length>0,l:tr('pie_traffic.ck_baked',{min:pct(PIE_BAKED)}),h:!best?tr('pie_traffic.ck_baked_none'):pieCrustWhy(best)||tr('pie_traffic.ck_baked_none')},
+    {k:'baked',ok:Q.hubs.length>0,l:tr('pie_traffic.ck_baked',{min:pct(PIE_RAW)}),h:!best?tr('pie_traffic.ck_baked_none'):pieCrustWhy(best)||tr('pie_traffic.ck_baked_none')},
     {k:'dish',ok:ds.some(d=>d.cap>0),l:tr('pie_traffic.ck_dish'),h:P.dishes.length?tr('pie_traffic.ck_dish_lic'):tr('pie_traffic.ck_dish_none')},
     {k:'backbone',ok:ds.some(d=>d.cap>0&&!Q.isl.includes(d.city)),l:tr('pie_traffic.ck_backbone'),h:Q.isl.length?tr('pie_traffic.ck_backbone_bh',{city:pieCn(isl?isl.city:Q.isl[0])}):tr('pie_traffic.ck_backbone_none')},
     ...(Q.isl.length?[{k:'backhaul',ok:bh.some(b=>b.cap>0)&&!no,l:tr('pie_traffic.ck_backhaul'),h:no?tr('pie_traffic.ck_backhaul_h',{city:pieCn(no.city),why:pieBhWhy(no.why)}):''}]:[]),
@@ -43,8 +43,8 @@ function pieTrafficHtml(){const Q=R&&R.pie;if(!Q||!Q.flows)return `<p class="met
   let h=`<p class="pft-head">${trn('pie_traffic.headline',n,{g:fmtG(g),of:fmtG(pieMarket()),amt:fmt$(Q.rev)})}</p>`;
   if(!(g>0)&&!(bg>0))h+=`<div class="ops-o pft-why"><div class="nm">${tr('pie_traffic.empty_title')}</div><ul class="pft-ck">${pieChecks(Q).map(c=>`<li class="${c.ok?'on':'off'}" data-k="${c.k}"><span aria-hidden="true">${c.ok?'✅':'⬜'}</span><span><b>${c.l}</b>${c.ok?'':`<small>${c.h}</small>`}</span></li>`).join('')}</ul></div>`;
   h+=`<h3 class="pft-h">${tr('pie_traffic.crusts')}</h3>`+(Q.crust.length?Q.crust.map(c=>{const why=pieCrustWhy(c);
-    return `<div class="pft-cr"><div class="kv"><span>${tr(CRUSTS[c.id].n)} ${pieTag(c.st==='half'?tr('pie.half_baked'):tr('pie.baked'),c.st!=='half')}</span><b>${c.cap>0?tr('pie_traffic.used_of',{u:fmtG(c.used),cap:fmtG(c.cap)}):pct(c.cov)}</b></div>
-      ${c.cap>0?pieBar(c.used/c.cap,pieLoadCls(c.used/c.cap)):pieBar(c.cov/PIE_BAKED,'warn')}${why?`<p class="meta">${why}</p>`:''}</div>`;}).join(''):`<p class="meta">${tr('pie_traffic.ck_baked_none')}</p>`);
+    return `<div class="pft-cr"><div class="kv"><span>${tr(CRUSTS[c.id].n)} ${pieTag(c.st==='half'||c.st==='part'?tr('pie.half_baked'):tr('pie.baked'),c.st!=='half'&&c.st!=='part')}</span><b>${c.cap>0?tr('pie_traffic.used_of',{u:fmtG(c.used),cap:fmtG(c.cap)}):pct(c.cov)}</b></div>
+      ${c.cap>0?pieBar(c.used/c.cap,pieLoadCls(c.used/c.cap)):pieBar(c.cov/PIE_RAW,'warn')}${why?`<p class="meta">${why}</p>`:''}</div>`;}).join(''):`<p class="meta">${tr('pie_traffic.ck_baked_none')}</p>`);
   if(bh.length)h+=`<h3 class="pft-h">${tr('pie_traffic.backhaul')}</h3><p class="meta">${tr('pie_traffic.bh_hint')}</p>`+bh.slice().sort((a,b)=>b.g-a.g).map(pieBhRow).join('');
   if(fl.length){h+=`<h3 class="pft-h">${tr('pie_traffic.riding')}</h3><p class="meta">${tr('pie_traffic.tap_hint')}</p><div class="pft-list">${fl.slice(0,PIE_ROWS).map(f=>pieFlowRow(f,B)).join('')}</div>`;
     if(fl.length>PIE_ROWS)h+=`<p class="meta">${trn('pie_traffic.n_more',fl.length-PIE_ROWS)}</p>`;}

@@ -42,14 +42,14 @@ test('a seeded year in orbit is the same every time, and things do happen', () =
   assert.match(a, /pie/, 'a year of BGP at 3 a.m. brings something to orbit');
 });
 
-test('solar storm: a crust loses 5 to 40% in a week, safe mode saves most of it', () => {
+test('solar storm: a crust loses 2 to 10% in a week, safe mode saves most of it', () => {
   const storm = (safe) => {
     const { ev, errors } = load();
     sky(ev);
     ev(`window.__n0={};for(const id in CRUSTS)__n0[id]=pieLive(id);S.pie.safe=${safe};Math.random=()=>0.99;pieIncFire('storm')`);
     const i = ev("JSON.stringify(S.inc.find(i=>i.type==='piestorm'))");
     const o = JSON.parse(i), cr = o.ref, n0 = ev(`__n0['${cr}']`);
-    assert.ok(o.f >= 0.05 && o.f <= 0.4, `loss share ${o.f}`);
+    assert.ok(o.f >= 0.02 && o.f <= 0.1, `loss share ${o.f}`);
     assert.equal(o.until - ev('S.day'), 7, 'a week');
     assert.ok(ev("S.log.some(e=>/press office/i.test(e.t))"), 'the press office has a line');
     ev('for(let d=0;d<7;d++){S.day++;pieIncDay(S.day)}');
@@ -178,11 +178,25 @@ test('sanitize drops orbit incidents that make no sense, and old saves are untou
   ev("S.inc.push({id:'x1',type:'piestorm',ref:'nope',until:S.day+3,msg:'',cost:0},{id:'x2',type:'pierain',ref:'atlantis',until:S.day+3,msg:'',cost:0},{id:'x3',type:'piestorm',ref:'short',start:-5,until:1e9,f:9,msg:'',cost:0})");
   ev('S=migrate(JSON.parse(JSON.stringify(S)));compute()');
   assert.equal(ev("S.inc.filter(i=>i.type.startsWith('pie')).length"), 3);
-  assert.ok(ev("S.inc.filter(i=>i.type==='piestorm').every(i=>i.f<=0.4&&i.until<=S.day+400)"), 'clamped');
+  assert.ok(ev("S.inc.filter(i=>i.type==='piestorm').every(i=>i.f<=0.1&&i.until<=S.day+400)"), 'clamped');
   // an old save: no pie, no orbit incidents survive
   ev("const o=JSON.parse(JSON.stringify(S));delete o.pieV;delete o.pie;S=migrate(o)");
   assert.equal(ev("S.inc.some(i=>i.type.startsWith('pie'))"), false);
   assert.equal(ev('S.pie'), null);
   ev('for(let i=0;i<30;i++)dayTick()');
+  assert.deepEqual(errors, []);
+});
+
+test('no single incident takes more than a tenth of a crust', () => {
+  const { ev, errors } = load();
+  sky(ev);
+  ev("window.__n0={};for(const id in CRUSTS)__n0[id]=pieLive(id);Math.random=()=>0.9999;pieIncFire('food')");
+  const i = JSON.parse(ev("JSON.stringify(S.inc.find(i=>i.type==='piefood'))")), n0 = ev(`__n0['${i.ref}']`), after = ev(`pieLive('${i.ref}')`);
+  assert.ok(n0 - after > 0 && (n0 - after) / n0 <= ev('PIE_HIT') + 0.005, `a food fight took ${n0 - after} of ${n0}`);
+  ev("S.inc=[];Math.random=()=>0.9999;pieIncFire('storm')");
+  const s = JSON.parse(ev("JSON.stringify(S.inc.find(i=>i.type==='piestorm'))")), m0 = ev(`pieLive('${s.ref}')`);
+  ev('for(let d=0;d<7;d++){S.day++;pieIncDay(S.day)}');
+  const lost = 1 - ev(`pieLive('${s.ref}')`) / m0;
+  assert.ok(s.f <= 0.1 && lost <= 0.1 + 0.005, `the worst storm took ${lost}`);
   assert.deepEqual(errors, []);
 });

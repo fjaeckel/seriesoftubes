@@ -5,7 +5,9 @@
    What an incident does is read back from S.inc, so nothing else has to be undone. A booster that tips over on the drone
    ship is in pieFly(); the astronomers ask a question, so they live with the spats (65-pie-spats.js). */
 const PIE_INC=['piedig','piefood','pielaser','pierain','piestorm'],PIE_TROPIC=23.5,PIE_ROOMBA=120e6,PIE_FOOD_MUL=0.25,PIE_INC_RATE=1/40,
-  PIE_DIG_FIX=300000,PIE_RAIN=0.3,PIE_ASTRO_N=200;
+  PIE_DIG_FIX=300000,PIE_RAIN=0.3,PIE_ASTRO_N=200,PIE_HIT=0.1;
+// PIE_HIT: the most of a crust one incident may take (a storm 2 to 10% over its week, a food fight 5 to 10%), so a bad
+// week hurts but never empties the sky.
 FOUNDER_POSTS.push(N_('pie.fp_3am'),N_('pie.fp_astro'),N_('pie.fp_debris'),N_('pie.fp_spat'),N_('pie.fp_storm'));
 // Chaos on, a company to annoy, and the 90 quiet days are over.
 function pieChaos(){const P=S&&S.pie;return !!P&&!!P.co&&chaosMul()>0&&S.day-P.born>=PIE_QUIET;}
@@ -21,11 +23,11 @@ function pieIncClear(i){if(i.type!=='piedig'||!S.pie)return;const x=S.pie.dishes
 // sanitize(): orbit incidents point at a crust or a city, and go when the company does.
 function pieIncFix(s){const ok=!!s.pie;s.inc=s.inc.filter(i=>{if(!PIE_INC.includes(i.type))return true;if(!ok)return false;
   if(['piefood','pielaser','piestorm'].includes(i.type)?!own(CRUSTS,i.ref):!isCity(i.ref))return false;
-  i.start=int(i.start,0,s.day,s.day);i.until=int(i.until,0,s.day+400,s.day);if(i.type==='piestorm')i.f=clamp(num(i.f,0),0,0.4);return true;});}
+  i.start=int(i.start,0,s.day,s.day);i.until=int(i.until,0,s.day+400,s.day);if(i.type==='piestorm')i.f=clamp(num(i.f,0),0,PIE_HIT);return true;});}
 // One day of a storm (its first is the day it starts; the day tick resolves it on its last).
 function pieStormBite(i){if(!own(CRUSTS,i.ref))return;const n=Math.max(1,i.until-i.start),q=(1-Math.pow(1-i.f,1/n))*(S.pie.safe?0.25:1);i.lost=(i.lost|0)+pieLose(i.ref,q);}
-// Pies lost from every cohort of a crust alike.
-function pieLose(cr,q){const c=S.pie.crusts[cr];let lost=0;for(const k of c.cohorts){const x=Math.min(k.n,Math.round(k.n*q));k.n-=x;lost+=x;}c.cohorts=c.cohorts.filter(k=>k.n>=1);return lost;}
+// Pies lost from every cohort of a crust alike (counted as they fly: a worn cohort loses its worn share).
+function pieLose(cr,q){const c=S.pie.crusts[cr],life=CRUSTS[cr].life;let lost=0;for(const k of c.cohorts){const x=Math.min(k.n,Math.round(k.n*q));lost+=x?pieAlive(k,life)*x/k.n:0;k.n-=x;}c.cohorts=c.cohorts.filter(k=>k.n>=1);return Math.round(lost);}
 function pieIncToast(i,press,acts=[]){toast(`<b>🛰️ ${pieIncTitle(i.type)}</b><br>${esc(i.msg)}<br><i>${esc(press)}</i>`,'bad',(i.cost?[{l:`${i.fix||tr('common.rush_repair')} ${fmt$(i.cost)}`,act:'fixInc',args:{id:i.id}}]:[]).concat(acts),incOpen(i));sfx('alert');}
 const pieAdd=o=>{addInc(o);return S.inc[S.inc.length-1];};
 function pieIncDay(d){
@@ -48,10 +50,10 @@ function pieIncOpts(){const P=S.pie,o=[],live=id=>pieLive(id),dish=x=>!!S.pops[x
 function pieIncFire(k){const P=S.pie;if(!P||!P.co)return false;const d=S.day;
   if(!k){const o=pieIncOpts();let r=Math.random()*o.reduce((a,x)=>a+x[1],0);k=o[o.length-1][0];for(const x of o){r-=x[1];if(r<=0){k=x[0];break;}}}
   const crs=f=>Object.keys(CRUSTS).filter(f);
-  if(k==='storm'){const c=crs(id=>pieLive(id)>0&&!pieIncOf('piestorm',id));if(!c.length)return false;const cr=pick(c),f=+(0.05+Math.random()*0.35).toFixed(3);
+  if(k==='storm'){const c=crs(id=>pieLive(id)>0&&!pieIncOf('piestorm',id));if(!c.length)return false;const cr=pick(c),f=+(PIE_HIT/5+Math.random()*PIE_HIT*4/5).toFixed(3);
     const i=pieAdd({type:'piestorm',ref:cr,until:d+7,f,lost:0,cost:0,msg:tr('pie_inc.storm_msg',{crust:tr(CRUSTS[cr].n),p:pct(f)})});pieFounder(N_('pie.fp_storm'),{c:cr});pieStormBite(i);
     pieIncToast(i,tr('pie_inc.storm_press'),P.safe?[]:[{l:tr('pie_inc.safe_now'),act:'pieSafe',args:{}}]);return true;}
-  if(k==='food'){const c=crs(id=>pieLive(id)>=100&&!pieIncOf('piefood',id));if(!c.length)return false;const cr=pick(c),n=pieLose(cr,0.1+Math.random()*0.1);
+  if(k==='food'){const c=crs(id=>pieLive(id)>=100&&!pieIncOf('piefood',id));if(!c.length)return false;const cr=pick(c),n=pieLose(cr,PIE_HIT/2+Math.random()*PIE_HIT/2);
     const i=pieAdd({type:'piefood',ref:cr,until:d+360,cost:piePrice(PIE_ROOMBA),fix:tr('pie_inc.food_fix'),msg:tr('pie_inc.food_msg',{crust:tr(CRUSTS[cr].n),n,p:pct(PIE_FOOD_MUL)})});
     pieFounder(N_('pie.fp_debris'),{c:cr});pieIncToast(i,tr('pie_inc.food_press'));compute();return true;}
   if(k==='rain'){const c=P.dishes.filter(x=>S.pops[x.city]&&Math.abs(CITY[x.city].lat)<=PIE_TROPIC&&!pieIncOf('pierain',x.city));if(!c.length)return false;const x=pick(c);

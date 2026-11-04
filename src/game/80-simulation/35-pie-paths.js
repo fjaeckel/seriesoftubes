@@ -3,12 +3,13 @@
    routing graph, after the IGP shortest paths are known:
    - a sky node per connected pie dish (a virtual city index past NC), joined to its POP by an uplink edge: the dish's
      antennas (x rain, jamming… from pieDishes()) less what its terminals and backhaul use; latency one hop up, alt/c + 1 ms;
-   - with lasers (a crust >= 60% lasered), a space edge between every two sky nodes at least PIE_MIN_KM apart, priced
-     along the great circle at the shell's height at c in vacuum, capacity the crust's (g x coverage) left after terminals.
+   - with lasers (a crust over 40% lasered), a space edge between every two sky nodes at least PIE_MIN_KM apart, priced
+     along the great circle at the shell's height at c in vacuum, capacity the crust's (pieCap(): g x coverage, x the share a half-baked one carries) left after terminals.
    Orbit edges have IGP weight Infinity: bulk IP traffic and scenic circuits never see them, only latency-routed
    circuits (lat:true customers, route 'fast') do, and only where the sky is faster. Space edges under 3,000 km do not
    exist, so orbit never beats fiber there (O4). A dish whose POP is not on the backbone's island is flagged (R.pie.isl)
-   and gets no sky node: it carries no transit (O3). A half-baked crust (< 60%) is not a hub and carries nothing (O2).
+   and gets no sky node: it carries no transit (O3). A crust carries nothing under 40% and is not a hub; from
+   there it carries a share that grows to all of its capacity at 60% (pieCarry(), O2).
    Backhaul (O3): a cut-off dish lifts its own POP's traffic, all of it, to a landing dish on the backbone: one virtual
    edge, POP to landing POP ('pie:bh:'+city, e.bh), through a crust covering both (bent pipe within PIE_BENT km, lasers
    past that). Its capacity is booked after terminals and before sky circuits: min(the dish's room, the landing dish's room,
@@ -25,7 +26,7 @@ const PIE_C=300,PIE_RE=6371,PIE_MIN_KM=3000,PIE_BENT=1000,PIE_HOP=1,PIE_FOOT=3,P
 const pieKm=(a,b)=>{const A=CITY[a],B=CITY[b];return hav(A.lon,A.lat,B.lon,B.lat);};
 // Does crust id cover city c? A shell reaches a few degrees past its inclination; a polar one reaches everywhere.
 const pieCovers=(id,c)=>!!CRUSTS[id].polar||Math.abs(CITY[c].lat)<=CRUSTS[id].inc+PIE_FOOT;
-const pieLased=id=>pieLiveLas(id)>=CRUSTS[id].full*PIE_BAKED;
+const pieLased=id=>pieLiveLas(id)>CRUSTS[id].full*PIE_RAW;
 // One way through space between two dishes km apart, at shell height alt: up, along the great circle, down.
 const pieSkyMs=(km,alt)=>2*(alt/PIE_C+PIE_HOP)+km*(PIE_RE+alt)/PIE_RE/PIE_C;
 // May a customer in country ca land on a dish in country dc? (spats)
@@ -40,7 +41,7 @@ function pieLand(c,t,ds,hubs){const T=BIZ_T[t],cc=CITY[c].cc;let best=null,bk=In
   return best;}
 function pieGraph(adj,edges,COMP,pops,NE){const NC=CITIES.length,hubs=pieHubs(),ds=pieDishes();
   const X={hubs,ds,term:{},gs:{},gsBw:{},cr:{},isl:[],l2o:{},l2p:{},up:[],ne:NE,adj,nc:NC,sk:[],bh:[],bhNo:[],res:{},main:-1};
-  for(const id of hubs)X.cr[id]=CRUSTS[id].g*pieCov(id);
+  for(const id of hubs)X.cr[id]=pieCap(id);
   // The backbone: the island with the most POPs (ties: the home city's).
   const cnt=new Map();for(const p of pops){const k=COMP[CIDX[p]];if(k>=0)cnt.set(k,(cnt.get(k)||0)+1);}
   let main=-1,mn=0;const hk=S.home&&S.pops[S.home]?COMP[CIDX[S.home]]:-1;for(const [k,n] of cnt)if(n>mn||(n===mn&&k===hk)){main=k;mn=n;}X.main=main;
@@ -123,8 +124,8 @@ function pieLoads(X,flows,used,term,bhG){const P=S.pie,cu={},crust=[],dish=[],lo
   // Backhaul booked its capacity from X.cr; count what it carried instead.
   const bx={};for(const e of X.bh){const id=e.bh.cr;bx[id]=(bx[id]||0)+Math.min(e.cap,e.ld||0)-e.cap;}
   for(const f of flows)if(f.k==='c'&&f.g>0){let r=f.g;const e=X.l2p[f.id].w.path.find(x=>x.sky==='las');for(const id of e?e.cs:[]){const t=Math.min(r,Math.max(0,X.cr[id]-(cu[id]||0)));cu[id]=(cu[id]||0)+t;r-=t;}}
-  for(const id in CRUSTS){if(!(pieLive(id)>0))continue;const cv=pieCov(id),pot=CRUSTS[id].g*cv,hub=X.hubs.includes(id);
-    crust.push({id,cov:cv,pot,cap:hub?pot:0,used:hub?Math.min(pot,pot-X.cr[id]+(cu[id]||0)+(bx[id]||0)):0,las:hub&&pieLased(id),st:hub?'ok':!pieBaked(id)?'half':P.safe?'safe':'down'});}
+  for(const id in CRUSTS){if(!(pieLive(id)>0))continue;const cv=pieCov(id),hub=X.hubs.includes(id),pot=hub?pieCap(id):CRUSTS[id].g*cv;
+    crust.push({id,cov:cv,pot,cap:hub?pot:0,used:hub?Math.min(pot,pot-X.cr[id]+(cu[id]||0)+(bx[id]||0)):0,las:hub&&pieLased(id),st:hub?(pieBaked(id)?'ok':'part'):!(pieCarry(id)>0)?'half':P.safe?'safe':'down'});}
   const ok=new Map(X.ds.map(d=>[d.city,d])),isl=new Set(X.isl),las=X.hubs.filter(pieLased),bh=new Set(X.bh.map(e=>e.a));
   for(const x of P.dishes){const c=x.city,d=ok.get(c),tm=d?term[c]:0,u0=d?used[c]:0,cap=d?d.g:0,cc=CITY[c].cc,l=P.lic[cc];let st;
     if(!S.pops[c])st='nopop';else if(x.down>S.day)st='down';else if(!d)st=l&&l.until>S.day&&l.state==='sus'?'spat':l&&l.until>S.day&&l.state==='refused'?'ref':'lic';

@@ -52,15 +52,23 @@ test('O4: short routes never use orbit, and neither does bulk or plain IP traffi
   assert.deepEqual(errors, []);
 });
 
-test('O2: a half-baked crust carries nothing, and orbit never carries more than the dishes hold', () => {
+test('O2: a crust carries nothing under 40%, a share up to 60%, and orbit never carries more than the dishes hold', () => {
   const { ev, errors } = load();
-  world(ev, { n: 'Math.floor(CRUSTS.short.full*0.59)' });
+  world(ev, { n: 'Math.floor(CRUSTS.short.full*0.39)' });
   circuit(ev, 'hft1', 'lon', 'nyc');
   term(ev, 'pz', 'pcn');
   assert.deepEqual(ev('JSON.stringify(pieHubs())'), '[]');
   assert.equal(skyOf(ev, 'hft1'), false);
   assert.equal(ev("R.pie.sf.pz"), 0, 'a home on Pitcairn gets nothing from a half-baked crust');
   assert.equal(ev('R.pie.rev'), 0);
+  // half-baked at 50%: a quarter of the crust's Gbps (half its pies, half of those carrying) and a quarter of the market
+  ev("S.pie.crusts.short.cohorts=[{n:CRUSTS.short.full/2,day:S.day,las:true}];compute()");
+  assert.deepEqual(ev('JSON.stringify(pieHubs())'), '["short"]', 'over 40% it is a hub');
+  assert.ok(ev('R.pie.sf.pz') > 0.9, 'and serves the home on Pitcairn');
+  const c = JSON.parse(ev("JSON.stringify(R.pie.crust.find(c=>c.id==='short'))"));
+  assert.equal(c.st, 'part');
+  assert.ok(Math.abs(c.cap - ev('CRUSTS.short.g') / 4) < 1, `carries ${c.cap} of ${ev('CRUSTS.short.g')} G at 50%`);
+  assert.ok(Math.abs(ev('pieMarket()') - ev('CRUSTS.short.g*PIE_SELL/4')) < 1, 'the market shrinks with it');
   // baked: now load it far past the dishes
   ev("S.pie.crusts.short.cohorts=[{n:CRUSTS.short.full,day:S.day,las:true}];for(let i=0;i<20;i++)S.biz.push({id:'big'+i,type:'boat',city:'pcn',city2:null,bw:800,rate:1,reqs:[],route:'normal',name:'b'+i,mood:100,since:0,sites:null});compute()");
   const dishG = ev('pieDishes().reduce((a,d)=>a+d.g,0)');
@@ -169,5 +177,23 @@ test('orbit earnings go into the book, day by day', () => {
   const mo = ev('R.pie.rev');
   ev('for(let i=0;i<30;i++)dayTick()');
   assert.ok(Math.abs(ev('S.pie.book.earned') - mo) / mo < 0.05, `${ev('S.pie.book.earned')} ≈ ${mo}`);
+  assert.deepEqual(errors, []);
+});
+
+test('orbit customers sit out a bad month: at most PIE_PATIENCE happiness a day, then they cancel', () => {
+  const { ev, errors } = load();
+  world(ev);
+  term(ev, 'pz', 'pcn');
+  ev("S.biz.find(b=>b.id==='pz').since=-100");
+  assert.ok(ev('R.pie.sf.pz') > 0.9, 'served');
+  ev("S.pie.crusts.short.cohorts=[{n:CRUSTS.short.full*0.3,day:S.day,las:true}];compute()");
+  assert.equal(ev('R.pie.sf.pz'), 0, 'the sky has a gap');
+  ev('for(let i=0;i<10;i++)dayTick()');
+  const m = ev("(S.biz.find(b=>b.id==='pz')||{mood:-1}).mood");
+  assert.ok(m >= 100 - 10 * ev('PIE_PATIENCE') - 1e-9 && m < 100, `ten bad days: grumpy (${m}), not gone`);
+  ev("S.pie.crusts.short.cohorts=[{n:CRUSTS.short.full,day:S.day,las:true}];compute();for(let i=0;i<5;i++)dayTick()");
+  assert.ok(ev("S.biz.find(b=>b.id==='pz').mood") > m, 'the sky back: happier again');
+  ev("S.pie.crusts.short.cohorts=[{n:CRUSTS.short.full*0.3,day:S.day,las:true}];compute();for(let i=0;i<40;i++)dayTick()");
+  assert.equal(ev("S.biz.some(b=>b.id==='pz')"), false, 'a month and more of nothing: cancelled');
   assert.deepEqual(errors, []);
 });

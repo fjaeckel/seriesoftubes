@@ -6,8 +6,11 @@
    on offer, so orbit income cannot outgrow the sky (like F5). Remote towns (no POP of yours, few people) are the first
    to call: Pitcairn, the Arctic, the outer islands. */
 const PIE_SELL=0.25,PIE_REMOTE=0.6,PIE_OFFER_RATE=1/6,PIE_OFFERS=2;
-// Gbps the sky can sell: each baked crust's capacity at its coverage.
-function pieMarket(){if(!S.pie)return 0;let g=0;for(const id of pieHubs())g+=CRUSTS[id].g*pieCov(id)*PIE_SELL;return g;}
+// Orbit customers know the sky has bad weeks: without service they lose at most PIE_PATIENCE happiness a day (the day tick),
+// so they grumble, then fume, and cancel only after about a month of nothing, not in three days like a fiber customer.
+const PIE_PATIENCE=4;
+// Gbps the sky can sell: what each crust carries (pieCap(): a half-baked one, a share of it).
+function pieMarket(){if(!S.pie)return 0;let g=0;for(const id of pieHubs())g+=pieCap(id)*PIE_SELL;return g;}
 // Gbps signed and on offer, of one kind (t) or of all.
 const pieSold=t=>{let g=0;for(const b of S.biz)if(BIZ_T[b.type].orbit&&(!t||b.type===t))g+=b.bw;for(const o of S.offers)if(BIZ_T[o.type].orbit&&(!t||o.type===t))g+=o.bw;return g;};
 const pieRoom=t=>{const m=pieMarket(),sh=BIZ_T[t].share;return Math.min(m-pieSold(),sh?m*sh-pieSold(t):Infinity);};
