@@ -8,7 +8,7 @@
    Puzzles, and any browser without WebGL2 or whose context fails or is lost, keep the 2D map. So does WebGL drawn by
    the processor (no usable graphics card: a blocked driver, a virtual machine): there every instance of a line costs
    microseconds, and a big map took a second and a half a frame where the 2D canvas takes 50 ms. */
-const GLX={want:true,dead:false,gl:null,c:null,f:null,fx:null,key:[],nSeg:0,nPk:0,nHalo:0,shown:false,gpu:''};
+const GLX={want:true,dead:false,gl:null,ctx:null,c:null,f:null,fx:null,key:[],nSeg:0,nPk:0,nHalo:0,shown:false,gpu:''};
 try{GLX.want=localStorage.getItem('sot-map')!=='2d';}catch(e){}
 // Renderers that are the processor pretending to be a graphics card (GLX.soft: use them anyway, for the GPU benchmark).
 const GL_SOFT=/swiftshader|llvmpipe|softpipe|lavapipe|software|basic render/i;
@@ -19,7 +19,15 @@ function mapGl(on,keep=true){GLX.want=!!on;if(keep)try{on?localStorage.removeIte
 function glShow(on){on=!!on;if(GLX.shown===on)return;GLX.shown=on;const e=document.getElementById('mapgl'),fx=document.getElementById('mapfx');if(e)e.hidden=!on;if(fx)fx.hidden=!on;}
 // Marks an error as the card's own, so draw() falls back to 2D instead of trying WebGL again every frame.
 function glErr(e){const x=e instanceof Error?e:new Error(String(e));x.glErr=true;return x;}
-function glKill(why){console.warn('[tubes] the map stays 2D:',why&&why.message||why);GLX.why=String(why&&why.message||why);GLX.dead=true;GLX.gl=null;spritesDrop();glShow(false);}
+function glKill(why){console.warn('[tubes] the map stays 2D:',why&&why.message||why);GLX.why=String(why&&why.message||why);GLX.dead=true;
+  const gl=GLX.ctx;GLX.gl=GLX.ctx=null;spritesDrop();glFree(gl);glShow(false);}
+/* The card given up for good (not Always 2D, which keeps it for later) still held what was sent to it, the atlas alone
+   64 MB, while the 2D map starts painting its own pictures. So its biggest things are deleted and the context let go
+   (WEBGL_lose_context, where the browser has it), unless the browser already lost it, which freed them. glInit() keeps
+   the context in GLX.ctx from the start, so a setup that fails half-way is let go too. */
+function glFree(gl){try{if(gl&&gl.isContextLost()===false){for(const x of [GLS.tex,GLX.tex])if(x)gl.deleteTexture(x);if(GLS.buf)gl.deleteBuffer(GLS.buf);
+    const L=gl.getExtension('WEBGL_lose_context');if(L&&typeof L.loseContext==='function')L.loseContext();}}catch(e){}
+  GLS.tex=GLS.buf=GLS.vao=GLS.prog=null;GLX.tex=null;GLX.land={};GLS_PAD.cv=GLS_PAD.g=null;}
 /* A card short of memory may refuse a texture or a buffer without throwing: it only leaves OUT_OF_MEMORY for
    getError(), and the texture then draws black (every picture a black box) or the buffer draws nothing. So the big
    uploads (the atlas, the land, the tubes, the cables) read it, and give the card up like any of its errors. Never
@@ -42,13 +50,13 @@ function glVao(gl,sizes,div=1,data=null){const v=gl.createVertexArray(),b=gl.cre
 function glInit(){if(GLX.gl)return true;if(GLX.dead)return false;
   try{const c=document.getElementById('mapgl'),f=document.getElementById('mapfx');if(!c||!f||!c.getContext)throw new Error('no map layers');
     const gl=c.getContext('webgl2',{alpha:true,premultipliedAlpha:true,antialias:false,depth:true,stencil:true,powerPreference:'high-performance'});
-    if(!gl||typeof gl.createShader!=='function')throw new Error('no WebGL2');
+    if(!gl||typeof gl.createShader!=='function')throw new Error('no WebGL2');GLX.ctx=gl;
     try{const x=gl.getExtension('WEBGL_debug_renderer_info');GLX.gpu=String(x?gl.getParameter(x.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER));}catch(e){}
     if(!GLX.soft&&GL_SOFT.test(GLX.gpu))throw new Error('no graphics card, only '+GLX.gpu);
     const P=(vs,fs)=>glProg(gl,vs,fs),progs={line:P(GL_LINE_VS,GL_LINE_FS),pk:P(GL_PK_VS,GL_PK_FS),fill:P(FILL_VS,FILL_FS),fan:P(FAN_VS,FAN_FS),ell:P(ELL_VS,ELL_FS),circ:P(CIRC_VS,CIRC_FS)};
     // The tubes' points for the packets: floats read with texelFetch, never filtered.
     const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);for(const k of [gl.TEXTURE_MIN_FILTER,gl.TEXTURE_MAG_FILTER])gl.texParameteri(gl.TEXTURE_2D,k,gl.NEAREST);
-    c.addEventListener('webglcontextlost',e=>{e.preventDefault();glKill('the graphics context was lost');UI.drawnAt=0;});
+    c.addEventListener('webglcontextlost',e=>{e.preventDefault();if(GLX.dead)return;glKill('the graphics context was lost');UI.drawnAt=0;});
     glsInit(gl);
     // The overlay is cleared only after something was painted on it: clearing a whole screen of empty canvas every
     // frame makes the browser send the layer to the screen again, which on a 4K screen cost more than the map itself.

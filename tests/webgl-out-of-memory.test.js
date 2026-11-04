@@ -108,3 +108,41 @@ test('a picture the card refuses without throwing gives the map to 2D in the sam
   ev('__T+=16;draw(__T);');
   assert.deepEqual(errors, []);
 });
+
+/* Given up for good while the context still lives (memory refused), the card kept the atlas (64 MB at 4096 px) and the
+   rest while the 2D map began painting its own pictures. glKill() now deletes the biggest and lets the context go. */
+test('giving the card up for good frees what it holds and lets the context go, and the frame is drawn in 2D', () => {
+  const { ev, errors } = open({ tubes: true });
+  assert.equal(ev('glInit()'), true);
+  ev('window.__atlas=GLS.tex;window.__tubes=GLX.tex;window.__buf=GLS.buf;');
+  ev('UI.tickErr=false;__T+=16;draw(__T);');
+  assert.equal(ev('GLX.dead'), true);
+  assert.equal(ev('__DEL.includes(__atlas)&&__DEL.includes(__tubes)&&__DEL.includes(__buf)'), true, 'the atlas, the tubes’ points and the pictures’ buffer are deleted');
+  assert.equal(ev('__LOST'), 1, 'the context is let go');
+  assert.equal(ev('__LOSTEV'), 1, 'its loss event came once');
+  assert.equal(ev('GLS.tex===null&&GLS.buf===null&&GLX.tex===null&&GLX.gl===null&&GLX.ctx===null'), true, 'nothing on the card is referenced');
+  assert.equal(ev('GLX.why'), 'the graphics card is out of memory (the tubes)', 'the loss it caused does not replace the reason');
+  assert.equal(ev('!!UI.tickErr'), false, 'the frame was drawn again in 2D');
+  ev('__T+=16;draw(__T);');
+  assert.deepEqual(errors, []);
+});
+
+test('a setup that fails half-way lets its context go too', () => {
+  const { ev, errors } = open({ atlas: [4096, 2048] });
+  assert.equal(ev('glInit()'), false);
+  assert.equal(ev('__LOST'), 1);
+  assert.equal(ev('GLX.ctx'), null);
+  assert.deepEqual(errors, []);
+});
+
+test('a context the browser lost is not let go a second time', () => {
+  const { ev, errors } = open({});
+  assert.equal(ev('glInit()'), true);
+  ev('__T+=16;draw(__T);');
+  ev('window.__lostNow=true;document.getElementById("mapgl").dispatchEvent(new window.Event("webglcontextlost"));');
+  assert.equal(ev('GLX.dead'), true);
+  assert.equal(ev('GLX.why'), 'the graphics context was lost');
+  assert.equal(ev('__LOST'), 0, 'nothing to let go: the browser already did');
+  ev('__T+=16;draw(__T);');
+  assert.deepEqual(errors, []);
+});
