@@ -12,8 +12,8 @@ function frame(now){
   if(S&&!S.lost&&$('modal').hidden&&UI.speed&&!pzOn())runClock(dt);
   if((UI.speed||pzOn())&&!(S&&S.lost))animT+=dt; /* paused = frozen dots, waves and clouds */
   const t=animOn()?animT:0;
-  if(!(UI.mapHid=mapHidden())&&!mapStill(t,now)){const d0=FPSM.on?performance.now():0;try{draw(t);}catch(e){tickErr(e);}UI.drawnAt=now;if(FPSM.on)FPSM.dms=performance.now()-d0;}
-  if(FPSM.on)fpsNote(now);
+  if(!(UI.mapHid=mapHidden())&&!mapStill(t,now)){const d0=DIAG.on?performance.now():0;try{draw(t);}catch(e){tickErr(e);}UI.drawnAt=now;if(DIAG.on)DIAG.dms=performance.now()-d0;}
+  if(DIAG.on)diagFrame(now);
 }
 // dt of real time at UI.speed: the days it adds up to. The frame calls it; so may a clock that also runs where frames
 // do not (src/agent/, a hidden tab), under the frame's own conditions otherwise.

@@ -19,7 +19,7 @@ function mapGl(on,keep=true){GLX.want=!!on;if(keep)try{on?localStorage.removeIte
 function glShow(on){on=!!on;if(GLX.shown===on)return;GLX.shown=on;const e=document.getElementById('mapgl'),fx=document.getElementById('mapfx');if(e)e.hidden=!on;if(fx)fx.hidden=!on;}
 // Marks an error as the card's own, so draw() falls back to 2D instead of trying WebGL again every frame.
 function glErr(e){const x=e instanceof Error?e:new Error(String(e));x.glErr=true;return x;}
-function glKill(why){console.warn('[tubes] the map stays 2D:',why&&why.message||why);GLX.dead=true;GLX.gl=null;spritesDrop();glShow(false);}
+function glKill(why){console.warn('[tubes] the map stays 2D:',why&&why.message||why);GLX.why=String(why&&why.message||why);GLX.dead=true;GLX.gl=null;spritesDrop();glShow(false);}
 /* A card short of memory may refuse a texture or a buffer without throwing: it only leaves OUT_OF_MEMORY for
    getError(), and the texture then draws black (every picture a black box) or the buffer draws nothing. So the big
    uploads (the atlas, the land, the tubes, the cables) read it, and give the card up like any of its errors. Never

@@ -33,7 +33,7 @@ function settingsHtml(){const seg=(lab,act,cur,opts,note)=>`<div class="setline"
   ${seg(tr('settings.map_drawing'),'mapSet',GLX.want?'auto':'2d',[['auto',tr('common.auto')],['2d',tr('settings.always_2d')]],tr('settings.auto_draws_the_map_with_your')+(GLX.want&&!glInit()?' '+tr('settings.this_browser_cannot_so_the_map'):''))}
   ${seg(tr('common.sound'),'soundSet',UI.muted?'off':'on',[['on',tr('common.on')],['off',tr('common.off')]])}
   <div class="setline"><label for="langSel">${tr('common.language')}</label>${langPick('langSel')}</div>
-  ${seg(tr('common.viewport_info'),'vpSet',VP_T?'on':'off',[['on',tr('common.on')],['off',tr('common.off')]],tr('settings.for_reporting_layout_bugs_shows_what'))}
+  ${seg(tr('settings.diagnostic_info'),'vpSet',DIAG.on?'on':'off',[['on',tr('common.on')],['off',tr('common.off')]],tr('settings.for_bug_reports_shows_your_screen'))}
   ${installRow()}<div class="btns" style="margin-top:12px">${btn(tr('common.done_8dd3'),'settingsClose',{},'pink')}</div>`;}
 const refreshSettings=()=>{if(UI.setOpen)openModal(settingsHtml());};
 function animOn(){const m=UI.anim||'auto';if(m==='on')return true;if(m==='off')return false;try{return !matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){return true;}}
