@@ -78,6 +78,16 @@ function spawnLoanOffer(emergency){
   S.loanOffers.push(o);
   toast(tr('banks.bank_would_like_to_lend_you',{bank:esc(B.name),amount:fmt$(amount)})+'<br>'+(emergency?tr('banks.they_heard_you_might_be_in'):tr('banks.terms_apply_several_terms')),emergency?'bad':'goal',[{l:tr('common.open_bank'),act:'bank',args:{}}]);
 }
+/* Good credit can pick up the phone (#251). The terms follow from the rating alone, so calling again gets nothing better and
+   rolls no dice. What you owe already uses up the limit, and the limit replaces the revenue share of a BIG_LOAN. */
+const CALL_AMTS=[1e5,5e5,1e6,5e6,1e7],CALL_MONTHS=36;
+const CALL_TERMS={A:{bank:'jpm',apr:.09,x:4,covs:['uptime','logo']},AA:{bank:'gs',apr:.075,x:6,covs:['golf','continents2']},AAA:{bank:'gs',apr:.06,x:8,covs:['golf']}};
+const loanDebt=()=>S.loans.reduce((a,l)=>a+(BANKS[l.bank].equity?0:l.bal),0);
+const callLimit=T=>Math.max(0,(R.revMo||0)*T.x-loanDebt());
+// The new offer replaces an earlier called one; offers that came by themselves stay.
+function callOffer(amount){const T=CALL_TERMS[rating()];if(!T||!CALL_AMTS.includes(amount)||S.cash>=RICH_NO_LOANS||amount>callLimit(T))return null;
+  const o={id:uid(),bank:T.bank,amount,exp:S.day+25,covs:T.covs.slice(),apr:T.apr,term:CALL_MONTHS,pay:Math.round(annuity(amount,T.apr,CALL_MONTHS)),call:1};
+  S.loanOffers=S.loanOffers.filter(x=>!x.call);S.loanOffers.push(o);return o;}
 // Best Effort has no game over: deep in the red, the Ministry of Tubes lends what it takes to be back in the black,
 // cheap, over five years, no conditions. The repayments are still yours.
 const RESCUE_APR=0.02,RESCUE_TERM=60;

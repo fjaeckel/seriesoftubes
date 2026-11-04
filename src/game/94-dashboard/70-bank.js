@@ -15,8 +15,11 @@ function renderBank(){
   <div class="dgrid"><div class="tile"><div class="lbl">${tr('common.cash')}</div><div class="val" style="color:${S.cash<0?'var(--bad)':'inherit'}">${fmt$(S.cash)}</div><div class="sub">${S.cash<0?tr('bank.bankrupt_at_100k'):tr('bank.in_the_vault')}</div></div>
   <div class="tile"><div class="lbl">${tr('dashboard.monthly_p_l')}</div><div class="val" style="color:${net>=0?'var(--eye)':'var(--bad)'}">${net>=0?'+':''}${fmt$(net)}</div><div class="sub">${tr('bank.after_loan_payments')}</div></div>
   <div class="tile"><div class="lbl">${tr('common.credit_rating')}</div><div class="val">${rt}</div><div class="sub">${rIdx(rt)>=5?tr('bank.bankers_return_your_calls'):rIdx(rt)>=3?tr('bank.bankers_return_your_emails'):tr('bank.bankers_pretend_to_be_out')}</div></div>
-  <div class="tile"><div class="lbl">${tr('common.debt')}</div><div class="val">${fmt$(S.loans.reduce((a,l)=>a+(BANKS[l.bank].equity?0:l.bal),0))}</div><div class="sub">${trn('bank.n_loan',S.loans.length)}</div></div></div>`;
-  h+=`<h3 style="font-size:18px;margin-top:6px">${tr('common.offers')}</h3>`;
+  <div class="tile"><div class="lbl">${tr('common.debt')}</div><div class="val">${fmt$(loanDebt())}</div><div class="sub">${trn('bank.n_loan',S.loans.length)}</div></div></div>`;
+  const CT=CALL_TERMS[rt];
+  if(S.cash<RICH_NO_LOANS){const lim=CT?callLimit(CT):0;h+=`<h3 style="font-size:18px;margin-top:6px">${tr('bank.call_the_bank')}</h3>`;
+    h+=CT?`<div class="meta">${tr('bank.bank_picks_up_apr_apr_over',{bank:esc(BANKS[CT.bank].name),apr:(CT.apr*100).toFixed(1),n:CALL_MONTHS,limit:fmt$(lim)})}</div><div class="btns" style="margin-top:6px">${CALL_AMTS.map(a=>btn(fmt$(a),'callBank',{amount:a},'sm',a>lim)).join('')}</div>`:`<p class="empty">${tr('bank.get_to_an_a_rating_and')}</p>`;}
+  h+=`<h3 style="font-size:18px;margin-top:14px">${tr('common.offers')}</h3>`;
   if(!S.loanOffers.length)h+=`<p class="empty">${tr('bank.no_offers_right_now_banks_get')}</p>`;
   for(const o of S.loanOffers){const B=BANKS[o.bank];h+=`<div class="loan"><span class="logo" style="--c:${B.col}">${initials(B)}</span><div class="grow"><div class="nm">${tr('bank.bank_offers_amount',{bank:esc(B.name),amount:fmt$(o.amount)})}</div><div class="meta">${esc(B.blurb)} · ${tr('bank.offer_ends_in_n_d',{n:o.exp-S.day})}</div><div class="terms">${terms(o)}</div>${covList({covs:o.covs,start:S.day,base:{sub:S.links.filter(x=>x.sub).length}})}<div class="btns" style="margin-top:6px">${btn(tr('bank.take_the_money'),'takeLoan',{id:o.id},'pink')}${btn(tr('common.no_thanks'),'declineLoan',{id:o.id},'ghost sm')}</div></div></div>`;}
   h+=`<h3 style="font-size:18px;margin-top:14px">${tr('common.your_loans')}</h3>`;

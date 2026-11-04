@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The project follows
 
 - The map zooms in twice as far, for crowded regions like New England or around Washington.
 - Cable ships at anchor sit a little further out from their port, and a tap on a city picks the city even with a ship close by.
+- With a credit rating of A or better you can now call a bank from the Bank window and ask for the amount you need. The better your rating, the lower the rate, the fewer the conditions and the more they will lend, up to a limit based on your revenue and what you already owe. (#251)
 
 ## [2.8.0] — 2026-11-04
 

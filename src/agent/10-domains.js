@@ -39,6 +39,7 @@ const API_DOMAINS={
   opsTplKey:{kind:'enum',values:()=>OPS_TPL.slice()},
   // The specialist's offers: a seat on a consortium cable, the charter, a vendor demo.
   seatPairs:{kind:'enum',values:()=>SEAT_N.slice()},
+  callAmount:{kind:'enum',values:()=>CALL_AMTS.slice()},
   charterKey:{table:'CHARTERS',kind:'key'},
   // The link metric editor: a factor or an exact weight (metricMode, metricSet).
   metricKind:{kind:'enum',values:['f','w']},

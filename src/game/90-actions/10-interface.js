@@ -15,6 +15,7 @@ const ACT={
    S.cash+=got;S.loanOffers=S.loanOffers.filter(x=>x!==o);
    S.loans.push({id:o.id,bank:o.bank,start:S.day,amount:o.amount,got,bal:o.model==='transit'?o.owe:o.amount,apr:o.apr||0,apr0:o.apr||0,pay:o.pay||0,left:o.term||0,term:o.term||0,share:o.share||0,model:o.model,cut:o.cut,covs:o.covs,base:{sub:S.links.filter(x=>x.sub).length}});
    track('loan_taken');toast(`<b>${tr('interface.amt_from_bank_has_landed',{amt:fmt$(got),bank:esc(B.name)})}</b><br>${B.equity?tr('interface.they_now_own_p_of_your',{p:pct(o.share)}):loanSummary(o)}${note}`,'good');sfx('coin');after();renderBank();},
+ callBank:({amount})=>{if(!callOffer(amount))return;track('loan_called');sfx('click');renderBank();renderHUD();save();},
  declineLoan:({id})=>{S.loanOffers=S.loanOffers.filter(x=>x.id!==id);sfx('click');renderBank();renderHUD();save();},
  repayLoan:({id})=>{const l=S.loans.find(x=>x.id===id);if(!l)return;const B=BANKS[l.bank];const cost=repayCost(l,B);
    if(UI.confirm!==id){UI.confirm=id;renderBank();return;}UI.confirm=null;if(!spend(cost)){renderBank();return;}S.loans=S.loans.filter(x=>x!==l);track('loan_repaid');
