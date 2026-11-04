@@ -48,12 +48,16 @@ function spriteEntry(key,w,h,ax,ay,paint){const M=sprMap(),gpu=M===SPRS;let e=M.
   e={cv:null,pw,ph,w,h,ax,ay,up:false,u0:0,v0:0,u1:1,v1:1};
   if(gpu&&pw<=GLS.size&&ph<=GLS.size){const P=glsPad(pw,ph),g=P.g;
     g.save();g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,pw,ph);ctx=g;
-    try{g.setTransform(DPR,0,0,DPR,0,0);paint(g);}finally{ctx=saved;g.restore();}
+    try{g.setTransform(DPR,0,0,DPR,0,0);sprPen(g);paint(g);}finally{ctx=saved;g.restore();}
     // A full atlas starts again (glsPut), and the picture goes into the empty one at once: the pad is reused next.
     try{if(!glsPut(GLX.gl,e,P.cv))glsPut(GLX.gl,e,P.cv);}catch(x){throw glErr(x);}
   }else{const cv=document.createElement('canvas');cv.width=pw;cv.height=ph;const g=cv.getContext('2d');ctx=g;
-    try{g.setTransform(DPR,0,0,DPR,0,0);paint(g);}finally{ctx=saved;}e.cv=cv;}
+    try{g.setTransform(DPR,0,0,DPR,0,0);sprPen(g);paint(g);}finally{ctx=saved;}e.cv=cv;}
   M.set(key,e);return e;}
+/* A picture starts with the pen the map's own canvas has when it draws cities and markers: the tubes leave it with
+   round line ends and corners, the labels with text centred on its middle. Drawn straight on the map, the dashed rings,
+   the cones' tips and a sleeping POP's "zzz" took those, and a new canvas has others (square ends, text on its baseline). */
+function sprPen(g){g.lineCap='round';g.lineJoin='round';g.textAlign='center';g.textBaseline='middle';}
 // Puts a picture with its own canvas into the atlas (once), shelf by shelf. A full atlas starts again; this picture then waits a frame.
 function glsEnsure(e){if(e.up)return true;const gl=GLX.gl;if(!gl||!GLS.prog||!e.cv)return false;
   try{return glsPut(gl,e,e.cv);}catch(x){throw glErr(x);}}
