@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- A "Show on map" button on L2VPN and SD-WAN circuits shows the route the circuit really takes, following its route mode: its links stay as they are and the rest of the map, cities included, goes dark until you click off the route (#60).
 ## [2.9.1] — 2026-11-04
 
 - Jokes in the game now poke fun at networks, cables and routers, never at people, countries or beliefs. A few networks have new names (Atlas Hold-the-Line Telecom, Star-Blink, Telekom Malay-tency, Oh Yas Sénégal, Afghan Tele-Pass, Island-Hop Micronesia, Tel-One-derful, Tango Two-Step), so do three of the names for your own cables, and about forty descriptions of networks, cities, cables and events were rewritten.

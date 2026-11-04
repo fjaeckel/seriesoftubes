@@ -26,8 +26,9 @@ function drawFrame(now){
   drawCables(ks);
   // links
   AR_PILLS.length=0;
-  const far=lodFar(),PI=pairIdx(),LG=linkGroups(),GM=LG.map(g=>linkGeom(g[0],PI.get(edgeKey(g[0])))),busy=linesOnScreen(GM,ks)>MAP_BUSY;
-  for(let gi=0;gi<LG.length;gi++){const grp=LG[gi],l=grp[0],many=grp.length>1,up=many?grp.filter(x=>!linkDown(x)):null;
+  const far=lodFar(),HL=l2Hl(),PI=pairIdx(),LG=linkGroups(),GM=LG.map(g=>linkGeom(g[0],PI.get(edgeKey(g[0])))),busy=linesOnScreen(GM,ks)>MAP_BUSY;
+  if(HL){ctx.fillStyle='rgba(30,38,64,.45)';ctx.fillRect(0,0,CW,CH);}   // a circuit is lit: the map behind its links goes dark
+  const linkPass=want=>{for(let gi=0;gi<LG.length;gi++){if(want!==null&&HL.has(edgeKey(LG[gi][0]))!==want)continue;const grp=LG[gi],l=grp[0],many=grp.length>1,up=many?grp.filter(x=>!linkDown(x)):null;
     const gm=GM[gi],cap=many?up.reduce((a,x)=>a+capOf(x),0):capOf(l),load=many?grp.reduce((a,x)=>a+(R.load[x.id]||0),0):(R.load[l.id]||0),u=cap?load/cap:0,df=l.kind==='df',bld=df&&l.ready>day,cut=!bld&&(many?!up.length:linkDown(l))&&!(df&&!(l.ch||[]).length),dark=df&&!bld&&!(l.ch||[]).length,vx=l.kind==='vxc',idle=!cut&&!bld&&load<1e-3&&(many?up.length>0&&up.every(x=>x.standby):!!l.standby);
     const pz=pzOn(),arPz=pz&&!!S.ar,sel=(UI.sel&&UI.sel.type==='link'&&grp.some(x=>x.id===UI.sel.id))||(pz&&pzLinkHot(grp));let lab=null;
     const w=(vx?2.2:(2.5+Math.max(...grp.map(tierW))*1.8+(many?Math.min(1.5,(grp.length-1)*0.5):0)))*sc*(far?0.5:1),np=gm.pts.length;
@@ -41,6 +42,7 @@ function drawFrame(now){
       for(let i=0;i<np;i++){const p=gm.pts[i];SX[i]=(p[0]+k*W-cam.x)*cam.z+CW/2;SY[i]=(p[1]-cam.y)*cam.z+CH/2;}
       const path=()=>{ctx.beginPath();ctx.moveTo(SX[0],SY[0]);for(let i=1;i<np;i++)ctx.lineTo(SX[i],SY[i]);};
       ctx.lineCap='round';ctx.lineJoin='round';
+      if(HL&&!HL.has(edgeKey(l)))ctx.globalAlpha=0.3;
       if(sel){ctx.strokeStyle='rgba(255,79,154,.35)';ctx.lineWidth=w+14;path();ctx.stroke();}
       ctx.strokeStyle='#1E2640';ctx.lineWidth=w+4;ctx.setLineDash(cut?[8,8]:vx?[2,7]:bld?[10,8]:idle?[4,6]:[]);path();ctx.stroke();
       ctx.strokeStyle=bld?'#C9B27C':dark?'#5D6788':cut?'#FF4D5E':idle?'#9AA3BE':vx?FAB[l.prov].col:l.sub?(u>0.001?utilCol(u):'#7FD8EE'):utilCol(u);ctx.lineWidth=w;ctx.stroke();ctx.setLineDash([]);
@@ -58,8 +60,10 @@ function drawFrame(now){
       else if(sel||(pz?!S.ar:z>0.9&&!busy)){const t=lab||(lab=pz?pzLinkLab(grp,up||[l],load,cap):many?groupLabel(grp,up):capName(l));ctx.font='800 11px "Baloo 2", sans-serif';let tw=LINKW.get(t);if(tw===undefined)LINKW.set(t,tw=ctx.measureText(t).width+10);ctx.fillStyle='#fff';ctx.strokeStyle='#1E2640';ctx.lineWidth=2;rr(mxx-tw/2,my-9,tw,17,8);ctx.fill();ctx.stroke();ctx.fillStyle='#1E2640';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(t,mxx,my+1);}
       // Every puzzle: say whether the tubes between two cities share one trench or take separate paths.
       if(pz&&!cut&&!bld&&(many||arPaths(l)>1)&&(many||lineIdx(l,PI.get(edgeKey(l)))===0))AR_PILLS.push([mxx,my+(sel||!S.ar?19:0),many?tr('architect.n_in_one_trench',{n:grp.length}):'✓ '+tr('architect.n_paths',{n:arPaths(l)}),many]);
+      if(HL)ctx.globalAlpha=1;
     }
-  }
+  }};
+  linkPass(HL?false:null);   // with a circuit lit: the faded links first, the lit ones go on top of the faded cities below
   // drag preview
   if(UI.drag&&UI.drag.mode==='link'){
     const A=CITY[UI.drag.from];let tx=UI.drag.cx,ty=UI.drag.cy;
@@ -95,7 +99,10 @@ function drawFrame(now){
     if(ly===null&&prio(v)===1)for(const y of [below,above]){const r={x:v.sx-tw/2,y:y-10,w:tw,h:21};if(!labs.some(q=>r.x<q.x+q.w&&q.x<r.x+r.w&&r.y<q.y+q.h&&q.y<r.y+r.h)){ly=y;rects.push(r);labs.push(r);break;}}
     if(ly===null&&(prio(v)===0||(prio(v)===1&&(v.C.id===S.home||UI.hover===v.C.id)))){ly=below;const r={x:v.sx-tw/2,y:below-10,w:tw,h:21};rects.push(r);labs.push(r);}
     v.ly=ly;}
-  if(pzOn()){for(const v of vis.slice().reverse())pzDrawCity(v,csc,now);}else for(const v of vis.slice().reverse())drawCity(v.C,v.sx,v.sy,csc,now,v.ly,v.dem);
+  if(pzOn()){for(const v of vis.slice().reverse())pzDrawCity(v,csc,now);}else{const vr=vis.slice().reverse(),lit=v=>!HL||l2HlOn(v.C.id);
+    for(const v of vr)if(!lit(v)){ctx.globalAlpha=0.35;drawCity(v.C,v.sx,v.sy,csc,now,v.ly,v.dem);ctx.globalAlpha=1;}
+    if(HL)linkPass(true);
+    for(const v of vr)if(lit(v))drawCity(v.C,v.sx,v.sy,csc,now,v.ly,v.dem);}
   // cable ships at sea (88-cable-ships.js), over the city labels so a ship leaving port stays in sight
   drawShips(ks,now);
   // Architect runs: what the tubes between two cities are (one trench, or separate paths), above the cities.

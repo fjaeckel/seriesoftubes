@@ -30,7 +30,8 @@ function endPtr(e){
   if(d.mode==='link'){if(UI.snap&&UI.snap.id!==d.from){if(pzOn())pzLinkModal(d.from,UI.snap.id);else openLinkModal(d.from,UI.snap.id);sfx('click');}}
   else if(!d.moved&&S&&shipHit(e.clientX,e.clientY)&&!cityCore(e.clientX,e.clientY))shipTap(shipHit(e.clientX,e.clientY));
   else if(!d.moved&&S&&mkOn()&&mkHit(e.clientX,e.clientY)){sfx('click');toast(tr('chaos_monkey.tap'),'',[{l:tr('chaos_monkey.banana',{cost:fmt$(mkBananaCost())}),act:'mkBanana',args:{}}]);}
-  else if(!d.moved&&S){const h=pickCity(e.clientX,e.clientY);
+  else if(!d.moved&&S){if(UI.hlBiz&&l2HlMiss(e.clientX,e.clientY))UI.hlBiz=null;   // clicking off the lit route puts the map back
+    const h=pickCity(e.clientX,e.clientY);
     if(h){selectCity(h.id);renderLeft();sfx('click');}
     else{const l=hitLink(e.clientX,e.clientY);if(l){selectLink(l);sfx('click');}else{UI.sel=null;renderPanel();renderLeft();}}}
   UI.drag=null;UI.snap=null;cv.classList.remove('linking');cv.style.cursor='grab';renderHint();

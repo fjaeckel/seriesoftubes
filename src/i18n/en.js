@@ -3938,6 +3938,7 @@
 "sites_and_service.path_latency_lat":"Path latency: <b>{lat}</b>",
 "sites_and_service.pn_routers":"{pn} routers",
 "sites_and_service.scenic_quietest_links":"Scenic (quietest links)",
+"sites_and_service.show_on_map":"Show on map",
 "sites_and_service.split_over_two_equally_quiet_paths":"split over two equally quiet paths",
 "sites_and_service.swap_cost_mo_mo":"Swap <small>{cost} + {mo}/mo</small>",
 "sites_and_service.your_model_here_tops_out_at":"Your {model} here tops out at {pn} ports. Bigger ports need a router upgrade (Infra tab).",
