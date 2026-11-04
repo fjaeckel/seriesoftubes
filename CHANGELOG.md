@@ -6,6 +6,9 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- The map zooms in twice as far, for crowded regions like New England or around Washington.
+- Cable ships at anchor sit a little further out from their port, and a tap on a city picks the city even with a ship close by.
+
 ## [2.8.0] — 2026-11-04
 
 - Every capital of the world is now on the map, with Africa's 33 capitals completing the set. They run from Porto-Novo, Bamako and Niamey to Khartoum, Juba, Mogadishu, Brazzaville, Tripoli, Rabat and Pretoria. Each country brings its real telcos, Nigeria gets its wholesale backbone up to Abuja, and the island capitals of the Comoros, São Tomé and Equatorial Guinea sit on their real cables.

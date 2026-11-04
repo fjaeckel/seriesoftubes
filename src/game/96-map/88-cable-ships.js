@@ -1,7 +1,7 @@
 /* Cable ships on the map (85-incidents/50-cable-ships.js): club ships at anchor off their ports, sailing out to a cut,
    splicing on site and sailing home; lay ships along a cable you are building. Where they are comes from S.fleet and
    the clock, so nothing here is saved; their routes are worked out once per voyage and kept in SHIP_PATH. */
-const SHIP_PATH=new Map(),SHIP_HITS=[];
+const SHIP_PATH=new Map(),SHIP_HITS=[],SHIP_CLEAR=46;
 // Off the port: the first point of a cable leaving it, so a ship rides at anchor at sea and not in town.
 function shipHomePt(s){const k='h:'+s.id;let p=SHIP_PATH.get(k);if(p)return p;const C=CITY[s.home];p=[C.x,C.y];
   for(const cp of CABLE_PAIRS){if(cp.a===s.home){p=cp.pts[1].slice();break;}if(cp.b===s.home){p=cp.pts[cp.pts.length-2].slice();break;}}
@@ -37,7 +37,12 @@ function drawShips(ks,now){SHIP_HITS.length=0;if(!S||pzOn()||!S.fleet)return;
   for(const l of S.links)if(layOwn(l)&&l.ready>S.day&&T>=layStart(l)){const g=linkGeom(l),q=layDone(l,T),two=!!l.ship2;
     const put=(t,k,dir)=>{const [x,y]=polyAt(g.pts,g.cum,clamp(t,0,1)),[x2]=polyAt(g.pts,g.cum,clamp(t+dir*0.01,0,1));list.push({p:{x,y,m:'lay',dx:x2-x||dir},lay:l,k,col:'#16A866'});};
     if(two){put(q/2,0,1);put(1-q/2,1,-1);}else put(q,0,1);}
-  for(const it of list)for(const k of ks){const [sx,sy]=toS(it.p.x,it.p.y,k);if(sx<-30||sx>CW+30||sy<-30||sy>CH+30)continue;
+  // A ship near its port keeps SHIP_CLEAR px from the city's marker on screen (out along the line from the city), so a tap
+  // on the city does not land on the ship: at anchor the ship rides only a few km out, which is no distance zoomed out.
+  const clr=SHIP_CLEAR*iconScale();
+  for(const it of list)for(const k of ks){let [sx,sy]=toS(it.p.x,it.p.y,k);
+    if(it.s){const C=CITY[it.s.home],[cx,cy]=toS(C.x,C.y,k),dx=sx-cx,dy=sy-cy,d=Math.hypot(dx,dy);if(d<clr){const ux=d>0.5?dx/d:0.8,uy=d>0.5?dy/d:0.6;sx=cx+ux*clr;sy=cy+uy*clr;}}
+    if(sx<-30||sx>CW+30||sy<-30||sy>CH+30)continue;
     const oy=it.p.m==='work'?-18*sc:0;shipSprite(sx,sy+oy,it.p.dx<0?-1:1,sc,it.col,now,it.p.m);SHIP_HITS.push({x:sx,y:sy+oy,r:14*sc,it});}}
 function shipHit(cx,cy){const r=cv.getBoundingClientRect(),x=cx-r.left,y=cy-r.top;let best=null,bd=Infinity;
   for(const h of SHIP_HITS){const d=Math.hypot(h.x-x,h.y-y);if(d<=h.r+6&&d<bd){bd=d;best=h.it;}}return best;}
