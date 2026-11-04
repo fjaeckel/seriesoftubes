@@ -143,3 +143,21 @@ test('a game started with Always 2D never makes a context', () => {
   assert.equal(ev('__made'), 0);
   assert.deepEqual(errors, []);
 });
+
+// Settings said whether the card could draw the map by setting it up: opening them on the title screen or in a puzzle
+// made the context and its 64 MB atlas for a map drawn in 2D. It now says what is known without asking the card.
+test('opening Settings never makes a context, and still says when the card cannot', () => {
+  const { ev, errors } = open();
+  ev('window.WebGL2RenderingContext=function(){};window.__made=0;const c=document.getElementById("mapgl"),gc=c.getContext;c.getContext=t=>{__made++;return gc(t);};');
+  const note = () => ev("settingsHtml().includes(tr('settings.this_browser_cannot_so_the_map'))");
+  ev('const s=S;S=null;window.__S=s;');
+  assert.equal(note(), false, 'title screen: a card not tried yet counts as able');
+  ev('S=__S;');
+  assert.equal(note(), false);
+  assert.equal(ev('__made'), 0, 'no context made by Settings');
+  ev('glKill(new Error("no graphics card, only SwiftShader"))');
+  assert.equal(note(), true, 'a card given up: Settings says so');
+  ev('delete window.WebGL2RenderingContext;GLX.dead=false;');
+  assert.equal(note(), true, 'no WebGL2 in this browser: Settings says so');
+  assert.deepEqual(errors, []);
+});

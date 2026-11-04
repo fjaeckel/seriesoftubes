@@ -13,6 +13,9 @@ try{GLX.want=localStorage.getItem('sot-map')!=='2d';}catch(e){}
 // Renderers that are the processor pretending to be a graphics card (GLX.soft: use them anyway, for the GPU benchmark).
 const GL_SOFT=/swiftshader|llvmpipe|softpipe|lavapipe|software|basic render/i;
 const glOn=()=>GLX.want&&!GLX.dead&&!!S&&!pzOn()&&glInit();
+// Whether the card can draw the map, as far as is known without asking it: Settings says so without making a context
+// (on the title screen or in a puzzle that made the 64 MB atlas for a map drawn in 2D). A card not tried yet counts as able.
+const glCan=()=>!GLX.dead&&typeof WebGL2RenderingContext!=='undefined';
 // Switches the WebGL map on or off: the setting keeps the choice in this browser (keep), the GPU benchmark does not.
 // Chosen in Settings, Always 2D also lets the card's context go (glSleep()), and Auto takes it back.
 function mapGl(on,keep=true){GLX.want=!!on;if(keep)try{on?localStorage.removeItem('sot-map'):localStorage.setItem('sot-map','2d');}catch(e){}
