@@ -1,8 +1,8 @@
 // A graphics card short of memory may refuse a texture or a buffer without throwing: the call only leaves
 // OUT_OF_MEMORY for getError(), and the atlas then drew every picture as a black box while the map stayed on the card.
 // The big uploads now read it (glMem(), src/game/96-map/56-webgl.js): the atlas tries 2048 px before giving up, and
-// any other refusal gives the card up for 2D in the same frame. getError() is never read on an ordinary frame (each
-// read waits for the card).
+// any other refusal gives the card up for 2D in the same frame, or for a picture within a second. getError() is never
+// read on an ordinary frame, and at most once a second while pictures are sent (each read waits for the card).
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -80,13 +80,17 @@ test('an ordinary frame never asks the card for its errors', () => {
   ev('__T+=16;draw(__T);');
   assert.equal(ev('GLX.dead'), false);
   assert.ok(ev('__GE') > 0, 'the first frame checked its uploads');
-  // Panning brings new cities into view, whose pictures are sent: only those frames ask, once each.
-  const pan = JSON.parse(ev(`(()=>{let quiet=0,asked=0,sent=0,most=0;for(let i=0;i<30;i++){const s=__SUB,g=__GE;cam.x+=3;__T+=16;draw(__T);
-    if(__SUB===s){quiet++;if(__GE>g)asked++;}else{sent++;most=Math.max(most,__GE-g);}}return JSON.stringify({quiet,asked,sent,most});})()`));
-  assert.ok(pan.quiet > 0, 'some frames send no picture');
-  assert.equal(pan.asked, 0, 'a frame that sends nothing big reads nothing');
-  assert.ok(pan.most <= 4, 'a frame that sends pictures asks once (getError() read up to four flags), not once per picture');
-  ev('__GE=0;for(let i=0;i<10;i++){__T+=16;draw(__T);}');
+  // Panning brings new cities into view, whose pictures are sent: they are checked at most once a second (each read
+  // waits for the card), the first time a second after the first frame's check.
+  const pan = JSON.parse(ev(`(()=>{let sent=0,reads=0,most=0,at=[];for(let i=0;i<120;i++){const s=__SUB,g=__GE;cam.x+=3;__T+=16;draw(__T);
+    if(__SUB>s)sent++;if(__GE>g){reads++;at.push(i);}most=Math.max(most,__GE-g);}return JSON.stringify({sent,reads,most,at});})()`));
+  assert.ok(pan.sent > 5, 'frames send pictures');
+  assert.ok(pan.reads >= 1 && pan.reads <= 2, `about two seconds of panning read the errors once or twice, not once per frame that sends (${JSON.stringify(pan)})`);
+  assert.ok(pan.most <= 4, 'one check reads at most four flags');
+  // The pan's last pictures are still to be checked: once, on the next frame a second on. Then a still map reads nothing.
+  ev('__GE=0;__T+=1100;draw(__T);');
+  assert.ok(ev('__GE') <= 4, 'the pictures left over are checked once');
+  ev('__GE=0;for(let i=0;i<10;i++){__T+=1100;draw(__T);}');
   assert.equal(ev('__GE'), 0, 'a still map reads nothing');
   assert.deepEqual(errors, []);
 });
@@ -106,6 +110,21 @@ test('a picture the card refuses without throwing gives the map to 2D in the sam
   assert.ok(ev('SPRC.size') > 0, 'the same frame was drawn again in 2D, with its own pictures');
   assert.equal(ev('!!UI.tickErr'), false, 'no glitch for the player');
   ev('__T+=16;draw(__T);');
+  assert.deepEqual(errors, []);
+});
+
+// The card keeps an error until it is read: a picture refused between two checks is found by the next one.
+test('a picture refused after the first check gives the map to 2D within a second', () => {
+  const { ev, errors } = open({});
+  assert.equal(ev('glInit()'), true);
+  ev('UI.tickErr=false;const h=CITY[S.home];cam.x=h.x;cam.y=h.y;cam.z=1.4;__T+=16;draw(__T);');
+  assert.equal(ev('GLX.dead'), false);
+  ev('__FAIL.sprites=true;');
+  const n = ev('(()=>{let i=0;for(;i<120&&!GLX.dead;i++){cam.x+=5;__T+=16;draw(__T);}return i;})()');
+  assert.equal(ev('GLX.dead'), true, 'given up');
+  assert.ok(n * 16 <= 1000 + 32, `within a second (${n} frames)`);
+  assert.equal(ev('SPRS.size'), 0, 'no picture is kept as sent');
+  assert.equal(ev('!!UI.tickErr'), false, 'no glitch for the player');
   assert.deepEqual(errors, []);
 });
 

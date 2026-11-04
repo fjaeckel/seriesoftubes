@@ -17,7 +17,7 @@ const sprFree=e=>{if(e.cv){e.cv.width=e.cv.height=0;e.cv=null;}};
 function sprcTrim(){if(SPRC_B<=SPRC_BUDGET)return;const old=[];for(const [k,e] of SPRC)if(e.f<SPR_F)old.push([e.f,k,e]);
   old.sort((a,b)=>a[0]-b[0]);const goal=SPRC_BUDGET*0.75;
   for(const [,k,e] of old){if(SPRC_B<=goal)break;SPRC.delete(k);SPRC_B-=e.pw*e.ph*4;sprFree(e);}}
-const GLS={prog:null,vao:null,buf:null,tex:null,size:4096,shx:0,shy:0,shh:0,frame:false,data:new Float32Array(SPR_STRIDE*2048),n:0,up:0};
+const GLS={prog:null,vao:null,buf:null,tex:null,size:4096,shx:0,shy:0,shh:0,frame:false,data:new Float32Array(SPR_STRIDE*2048),n:0,up:0,upq:false,memT:-1e9};
 /* One record is 13 floats: x,y,w,h (CSS px) | u0,v0,u1,v1 (atlas) | r,g,b,a | kind. A picture (kind 0) takes its
    colours from the atlas and a from the record; a disc (kind 1) is centred on x,y with radius w, in colour r,g,b,a. */
 const SPR_VS=GL_HEAD+`layout(location=0) in vec4 aP;layout(location=1) in vec4 aUV;layout(location=2) in vec4 aC;layout(location=3) in float aK;
@@ -38,11 +38,11 @@ function glsInit(gl){GLS.prog=glProg(gl,SPR_VS,SPR_FS);const {v,b}=glVao(gl,[4,4
     try{glMem(gl,'the pictures');break;}catch(e){if(GLS.size<=2048)throw e;}}
   for(const k of [gl.TEXTURE_MIN_FILTER,gl.TEXTURE_MAG_FILTER])gl.texParameteri(gl.TEXTURE_2D,k,gl.LINEAR);
   for(const k of [gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T])gl.texParameteri(gl.TEXTURE_2D,k,gl.CLAMP_TO_EDGE);
-  GLS.shx=GLS.shy=GLS.shh=0;}
+  GLS.shx=GLS.shy=GLS.shh=0;GLS.memT=-1e9;GLS.upq=false;}
 // Forgets every picture and starts the atlas again, after the pictures already queued are drawn (they point into it).
 function spritesReset(){glsDrawNow();for(const e of SPRC.values())sprFree(e);SPRS.clear();SPRC.clear();SPRC_B=0;GLS.shx=GLS.shy=GLS.shh=0;}
 // The card given up: its pictures go (they have no canvas to be drawn from in 2D) and the atlas is forgotten.
-function spritesDrop(){GLS.n=GLS.up=0;SPRS.clear();GLS.shx=GLS.shy=GLS.shh=0;}
+function spritesDrop(){GLS.n=GLS.up=0;GLS.upq=false;SPRS.clear();GLS.shx=GLS.shy=GLS.shh=0;}
 /* The card's pictures are painted on one canvas, reused, and each goes into the atlas as soon as it is painted: a
    canvas kept per picture made the browser hold thousands of them while you zoomed, until it lost the graphics context
    and the map fell back to 2D. The 2D map, and a picture too big for the atlas, keep their own canvas. */
@@ -130,7 +130,13 @@ function glsDraw(gl,n){gl.useProgram(GLS.prog.p);gl.bindVertexArray(GLS.vao);gl.
   gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.disable(gl.DEPTH_TEST);
   gl.drawArraysInstanced(gl.TRIANGLE_STRIP,0,4,n);gl.bindVertexArray(null);}
 /* The end of a frame on the card: the pictures go up over the tubes. The frame is over even if that draw fails.
-   A frame that sent new pictures first asks the card if it took them (once, however many): a card short of memory
-   may refuse one without throwing, and the picture would be kept as sent. It then gives the map to 2D (glMem() throws,
-   draw() draws the frame again there and glKill() forgets the card's pictures). A frame that only reuses the atlas asks nothing. */
-function glsFrameEnd(){if(!GLS.frame)return;GLS.frame=false;const up=GLS.up;GLS.up=0;if(up&&GLX.gl)glMem(GLX.gl,'the pictures');glsDrawNow();}
+   Pictures sent are checked (did the card take them?): a card short of memory may refuse one without throwing, and the
+   picture would be kept as sent. It then gives the map to 2D (glMem() throws, draw() draws the frame again there and
+   glKill() forgets the card's pictures). Each read waits for the card to finish everything sent so far, so it is done
+   at most once every GL_MEM_EVERY ms: the card keeps an error until it is read, so a later read still finds it, and a
+   picture refused in between shows at worst as a dark box for that time. The first pictures sent into a new atlas are
+   checked at once (a card that allocates it lazily refuses there). A frame that only reuses the atlas asks nothing. */
+const GL_MEM_EVERY=1000;
+function glsFrameEnd(){if(!GLS.frame)return;GLS.frame=false;if(GLS.up)GLS.upq=true;GLS.up=0;
+  if(GLS.upq&&GLX.gl){const t=performance.now();if(t-GLS.memT>=GL_MEM_EVERY){GLS.memT=t;GLS.upq=false;glMem(GLX.gl,'the pictures');}}
+  glsDrawNow();}
