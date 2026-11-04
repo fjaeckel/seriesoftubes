@@ -41,7 +41,7 @@ function createRelay({ server } = {}) {
 
   const send = (ws, o) => { if (ws.readyState === 1) ws.send(JSON.stringify(o)); };
   // Presence goes both ways: tools learn whether a page is connected, the page learns how many
-  // tools are — agent mode holds the game's clock while none are (src/game/98-agent.js).
+  // tools are — agent mode holds the game's clock while none are (src/agent/80-relay.js).
   const presence = () => {
     const p = !!(page && page.readyState === 1);
     const n = [...tools].filter((t) => t.readyState === 1).length;
