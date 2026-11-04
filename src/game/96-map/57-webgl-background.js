@@ -41,11 +41,16 @@ function coastSimplify(P,tol){const n=P.length;if(n<4||!(tol>0))return P;const k
 // around a power of 2 does not switch back and forth.
 function coastLevel(z){const want=Math.floor(Math.log2(Math.max(z,1/64))),cur=GLX.coastLv;
   if(cur===undefined||want>cur||z<Math.pow(2,cur)/1.1)GLX.coastLv=want;return GLX.coastLv;}
+/* A coastline as a fan of triangles from its first point, all turned the same way (anticlockwise on the map): summed
+   with their signs, they count how many times the coast winds round each point. Every coast counts +1 inside, so where
+   two coasts overlap (Timor is drawn twice) the land is 2, still land, as each coast filled on its own in 2D. */
+function coastFan(P,out){let a=0;const n=P.length;for(let i=0;i<n;i++){const p=P[i],q=P[(i+1)%n];a+=p[0]*q[1]-q[0]*p[1];}
+  const s=a<0?1:0;for(let i=1;i+1<n;i++){const b=P[i+s],c=P[i+1-s];out.push(P[0][0],P[0][1],b[0],b[1],c[0],c[1]);}return out;}
 function glLandGeo(gl,far,lv){const key=(far?'far':'all')+(lv===undefined?'':'@'+lv);let G=GLX.land[key];if(G)return G;
   const keep=far?new Set(LANDP_FAR):null,tol=lv===undefined?0:COAST_TOL/Math.pow(2,lv),fan=[],sand=[],edge=[],SAND=glColor('#F8E6A8'),EDGE=glColor('#1E2640');
   COAST.forEach((ring,ri)=>{if(keep&&!keep.has(LANDP_ALL[ri]))return;if(ring.length<3)return;
     const P=coastSimplify(coastPts(ri),tol);if(P.length<4)return;
-    for(let i=1;i+1<P.length;i++)fan.push(P[0][0],P[0][1],P[i][0],P[i][1],P[i+1][0],P[i+1][1]);
+    coastFan(P,fan);
     // Round ends make the joins round, as lineJoin='round' does; both lines are opaque, so the overlaps do not show.
     for(let i=0;i+1<P.length;i++){glSeg(sand,P[i],P[i+1],0,10,0,LINE_ROUND,SAND);glSeg(edge,P[i],P[i+1],0,2.5,0,LINE_ROUND,EDGE);}});
   const hills=[],shine=[];for(const [x,y,r] of HILLS){hills.push(x,y,r*1.4,r*.8);shine.push(x-r*.3,y-r*.25,r*.6,r*.3);}
@@ -54,12 +59,15 @@ function glLandGeo(gl,far,lv){const key=(far?'far':'all')+(lv===undefined?'':'@'
     hills:glVao(gl,[4],1,F(hills)).v,shine:glVao(gl,[4],1,F(shine)).v,nHill:HILLS.length};
   glMem(gl,'the land');return GLX.land[key]=G;}
 // Fills the land's shape (shifted by ox, oy CSS px) with one colour, for every copy of the map.
+// The stencil counts the coasts' windings (+1 for a triangle facing one way, -1 the other: coastFan()), as the 2D
+// canvas's nonzero rule does; counting only odd or even made two overlapping coasts cancel out into sea.
 function glLandFill(gl,G,ks,ox,oy,col){const P=GLX.fan;gl.enable(gl.STENCIL_TEST);
   gl.useProgram(P.p);gl.uniform2f(P.u.uView,CW,CH);gl.uniform2f(P.u.uOff,ox,oy);gl.bindVertexArray(G.fan);
-  gl.colorMask(false,false,false,false);gl.stencilFunc(gl.ALWAYS,0,1);gl.stencilOp(gl.KEEP,gl.KEEP,gl.INVERT);gl.stencilMask(1);
+  gl.colorMask(false,false,false,false);gl.stencilFunc(gl.ALWAYS,0,255);gl.stencilMask(255);
+  gl.stencilOpSeparate(gl.FRONT,gl.KEEP,gl.KEEP,gl.INCR_WRAP);gl.stencilOpSeparate(gl.BACK,gl.KEEP,gl.KEEP,gl.DECR_WRAP);
   for(const k of ks){gl.uniform3f(P.u.uCam,cam.x-k*W,cam.y,cam.z);gl.drawArrays(gl.TRIANGLES,0,G.nFan);}
-  // The cover paints where the count is odd and sets the stencil back to zero for the next user.
-  gl.colorMask(true,true,true,true);gl.stencilFunc(gl.NOTEQUAL,0,1);gl.stencilOp(gl.ZERO,gl.ZERO,gl.ZERO);gl.stencilMask(255);
+  // The cover paints where the count is not zero and sets the stencil back to zero for the next user.
+  gl.colorMask(true,true,true,true);gl.stencilFunc(gl.NOTEQUAL,0,255);gl.stencilOp(gl.ZERO,gl.ZERO,gl.ZERO);
   glFill(gl,col);gl.disable(gl.STENCIL_TEST);}
 function glEllipses(gl,vao,n,ks,col){const P=GLX.ell;gl.useProgram(P.p);gl.bindVertexArray(vao);gl.uniform2f(P.u.uView,CW,CH);gl.uniform1f(P.u.uDpr,DPR);gl.uniform4fv(P.u.uCol,col);
   for(const k of ks){gl.uniform3f(P.u.uCam,cam.x-k*W,cam.y,cam.z);gl.drawArraysInstanced(gl.TRIANGLE_STRIP,0,4,n);}}

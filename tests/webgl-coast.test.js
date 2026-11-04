@@ -74,3 +74,47 @@ test('each frame on the card fills the land from its zoom level’s geometry; th
   assert.equal(built, 0, 'the 2D map does not use it');
   assert.deepEqual(errors, []);
 });
+
+/* Where two coastlines overlap, the land stays land, as the 2D map fills each coast on its own (nonzero). Timor is drawn
+   twice (COAST[58] and the finer COAST[154], with Dili): the card counted only odd or even coverings over all the coasts,
+   so the two cancelled out and most of the island was sea, its shadow too. The fan now winds every coast the same way
+   and the stencil counts windings. w(x,y) is the winding the card counts at a point: the fan's triangles that cover it,
+   +1 or -1 by the way they turn. */
+const WIND = `window.__wind=(fan,x,y)=>{let w=0;const s=(ax,ay,bx,by)=>(bx-ax)*(y-ay)-(by-ay)*(x-ax);
+  for(let i=0;i<fan.length;i+=6){const [ax,ay,bx,by,cx,cy]=fan.slice(i,i+6),d1=s(ax,ay,bx,by),d2=s(bx,by,cx,cy),d3=s(cx,cy,ax,ay);
+    if(d1>0&&d2>0&&d3>0)w++;else if(d1<0&&d2<0&&d3<0)w--;}return w;};`;
+
+test('two overlapping coastlines leave their overlap filled (Timor), at every zoom', () => {
+  const { ev, errors } = open();
+  ev(WIND);
+  const r = JSON.parse(ev(`(()=>{const pt=[1692,600],o={both:[58,154].map(i=>inPoly(...pt,coastPts(i)))};
+    for(const lv of [undefined,-1,0,1,2,3,4,5]){const tol=lv===undefined?0:COAST_TOL/Math.pow(2,lv),fan=[];
+      COAST.forEach((ring,ri)=>{if(ring.length<3)return;const P=coastSimplify(coastPts(ri),tol);if(P.length>=4)coastFan(P,fan);});
+      o['lv'+lv]=__wind(fan,...pt);}
+    return JSON.stringify(o);})()`));
+  assert.deepEqual(r.both, [true, true], 'the point is inside both of Timor’s coastlines');
+  for (const lv of [undefined, -1, 0, 1, 2, 3, 4, 5]) assert.equal(r['lv' + lv], 2, `level ${lv}: counted twice, so land (an odd/even count gave 0, sea)`);
+  assert.deepEqual(errors, []);
+});
+
+test('every coastline counts +1 inside, whichever way it was drawn', () => {
+  const { ev, errors } = open();
+  ev(WIND);
+  const r = JSON.parse(ev(`(()=>{const sq=(x,y,s,cw)=>{const p=[[x,y],[x+s,y],[x+s,y+s],[x,y+s]];return cw?p.reverse():p;};
+    const fan=[];coastFan(sq(0,0,10,false),fan);coastFan(sq(5,5,10,true),fan);
+    return JSON.stringify({a:__wind(fan,2,1),both:__wind(fan,8,6),b:__wind(fan,12,13),out:__wind(fan,20,20)});})()`));
+  assert.deepEqual(r, { a: 1, both: 2, b: 1, out: 0 }, 'one square turned each way: the overlap is 2, not 0');
+  assert.deepEqual(errors, []);
+});
+
+test('the card fills the land where the winding count is not zero, and leaves the stencil at zero', () => {
+  const { ev, errors } = open();
+  ev(STUB);
+  const c = JSON.parse(ev(`(()=>{const h=CITY[S.home];cam.x=h.x;cam.y=h.y;cam.z=1.4;GLX.gl.calls.length=0;draw(1000);
+    return JSON.stringify(GLX.gl.calls.filter(c=>/^stencil/.test(c[0])).map(c=>c.join(' ')));})()`));
+  assert.ok(c.includes('stencilOpSeparate FRONT KEEP KEEP INCR_WRAP') && c.includes('stencilOpSeparate BACK KEEP KEEP DECR_WRAP'), 'counts windings, +1 one way and -1 the other');
+  assert.ok(c.includes('stencilFunc NOTEQUAL 0 255'), 'fills where the count is not zero, on all 8 bits');
+  assert.ok(c.includes('stencilOp ZERO ZERO ZERO'), 'and sets it back to zero');
+  assert.ok(!c.some(s => /INVERT/.test(s)), 'no odd/even count left');
+  assert.deepEqual(errors, []);
+});
