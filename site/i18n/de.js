@@ -2602,6 +2602,7 @@
 "link_modal.local_telecom_licence_included":"lokale Telekom-Lizenz inklusive",
 "link_modal.needs_what_at_both_ends":"braucht {what} an beiden Enden",
 "link_modal.new_diverse_route_40_survives_cuts":"Neue redundante Route <small>+40 % · übersteht Schnitte allein</small>",
+"link_modal.no_circuit_crosses_between_north_and":"Zwischen Nord- und Südkorea gibt es keine Leitung, und kein Carrier verkauft dir eine. Pjöngjang erreicht die Welt über China und Russland.",
 "link_modal.no_subsea_cable_lands_in_both":"Kein Seekabel landet sowohl in {a} als auch in {b} an. Kabel aus {a} erreichen {list}. Nimm den Weg über eine dieser Städte.",
 "link_modal.no_subsea_cable_lands_in_city":"In {city} landet kein Seekabel an. Die nächste Landestation ist {near}: Verleg zuerst Glasfaser dorthin und nimm dann von dort ein Kabel.",
 "link_modal.nobody_sells_capacity_between_kyiv":"Niemand verkauft Kapazität zwischen Kyjiw und Moskau, und niemand wird es tun. Route stattdessen über Warschau, Bukarest oder Helsinki.",

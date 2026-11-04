@@ -43,10 +43,11 @@ function diversityPossible(a,b,state=S){
        links were added, as a graph built from a list of them would. */
     const cities=CITIES.filter(c=>!(rules.banCities||[]).includes(c.id)).map(c=>c.id),N=cities.length,ix=new Map(cities.map((c,i)=>[c,i]));
     const cab=new Map();for(const c of CABLE_PAIRS){const k=c.a<c.b?c.a+'|'+c.b:c.b+'|'+c.a;let L=cab.get(k);if(!L)cab.set(k,L=[]);L.push(c);}
-    const LS=cities.map(c=>lands(CITY[c])),land=cities.map(landing),cn=cities.map(cnCity),fab=cities.map(c=>FABS.filter(f=>f.cities.includes(c))),ban=rules.banPairs||[];
+    const land=cities.map(landing),cn=cities.map(cnCity),fab=cities.map(c=>FABS.filter(f=>f.cities.includes(c))),ban=rules.banPairs||[];
     const adj=cities.map(()=>[]),grp=new Map();let n=0,k=0;const add=(i,j,g)=>{let r;if(g===undefined)r=k++;else{r=grp.get(g);if(r===undefined)grp.set(g,r=k++);}adj[i].push(j,r);adj[j].push(i,r);n++;};
     for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){
-      const a=cities[i],b=cities[j],cs=cab.get(a<b?a+'|'+b:b+'|'+a),sub=!LS[i].some(x=>LS[j].includes(x));
+      const a=cities[i],b=cities[j],cs=cab.get(a<b?a+'|'+b:b+'|'+a),sub=!overland(CITY[a],CITY[b]);
+      if(noTalk(a,b))continue;
       if(!sub){add(i,j);add(i,j);}
       if(cs)for(const c of cs)if(!ban.some(p=>p===c.cid+':'+a+'-'+b||p===c.cid+':'+b+'-'+a))add(i,j,'cab:'+c.cid);
       if(state.won&&land[i]&&land[j]&&(sub||cs)&&!cn[i]&&!cn[j])add(i,j);

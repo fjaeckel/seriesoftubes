@@ -27,7 +27,11 @@ function kmBetween(a,b){const A=CITY[a],B=CITY[b];return Math.max(20,Math.round(
 // Cities on a land bridge belong to two landmasses: Cairo reaches Asia overland across the Sinai, the way
 // Istanbul does across the Bosporus (#47). Overland between continents still costs the intercontinental price.
 const lands=C=>C.land2?[C.land,C.land2]:[C.land];
-const isSub=(a,b)=>{const A=lands(CITY[a]),B=lands(CITY[b]);return !A.some(x=>B.includes(x));};
+// On one landmass, so fiber can go overland: the same landmass, or two cities of one country on the land a no-road
+// landmass is really part of (Pevek and Moscow, Juneau and Seattle, Nuuk and Sisimiut).
+const LAND_ON=Object.fromEntries(LANDS_LL.filter(l=>l.on).map(l=>[l.id,l.on])),landOf=x=>LAND_ON[x]||x;
+const overland=(A,B)=>{const P=lands(A),Q=lands(B);return P.some(x=>Q.includes(x))||A.cc===B.cc&&P.some(x=>Q.some(y=>landOf(x)===landOf(y)));};
+const isSub=(a,b)=>!overland(CITY[a],CITY[b]);
 const popUp=c=>S.pops[c]&&!(S.pops[c].down>S.day);
 const regionsCount=()=>new Set(Object.keys(S.pops).map(c=>CITY[c].reg)).size;
 const ixCity=x=>String(x).split('~')[0];

@@ -2600,6 +2600,7 @@
 "link_modal.local_telecom_licence_included":"licenza telecom locale inclusa",
 "link_modal.needs_what_at_both_ends":"serve {what} a entrambe le estremità",
 "link_modal.new_diverse_route_40_survives_cuts":"Nuovo percorso diverso <small>+40% · sopravvive da solo ai tagli</small>",
+"link_modal.no_circuit_crosses_between_north_and":"Nessun circuito attraversa il confine tra Corea del Nord e Corea del Sud, e nessun operatore te ne venderà uno. Pyongyang raggiunge il mondo attraverso Cina e Russia.",
 "link_modal.no_subsea_cable_lands_in_both":"Nessun cavo sottomarino approda sia a {a} che a {b}. I cavi da {a} raggiungono: {list}. Fai tappa in una di queste.",
 "link_modal.no_subsea_cable_lands_in_city":"Nessun cavo sottomarino approda a {city}. La stazione di approdo più vicina è {near}: porta prima la fibra fin lì, poi prendi un cavo da lì.",
 "link_modal.nobody_sells_capacity_between_kyiv":"Nessuno vende capacità tra Kyiv e Moscow, e nessuno lo farà mai. Passa invece da Warsaw, Bucharest o Helsinki.",

@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Cities of one country on one piece of land can be joined by fiber over land, even where there is no road: Pevek to Anadyr or Moscow, Juneau to Seattle, Nuuk to Sisimiut. Inside one country, crossing from Europe into Asia (Moscow–Vladivostok, Istanbul–Ankara) is no longer priced as a crossing between continents.
+- No circuit of any kind can be built between North and South Korea.
 - The map zooms in twice as far, for crowded regions like New England or around Washington.
 - Cable ships at anchor sit a little further out from their port, and a tap on a city picks the city even with a ship close by.
 

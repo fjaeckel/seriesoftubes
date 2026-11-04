@@ -92,7 +92,10 @@ test('Alaska and northern British Columbia: towns with no road in are islands, a
   }
   assert.equal(ev("isSub('anc','sea')"), false, 'Anchorage has a road south');
   assert.equal(ev("isSub('prr','van')"), false, 'so does Prince Rupert');
-  for (const c of ['jnu', 'ome', 'brw', 'dut']) assert.ok(ev(`isSub('${c}','anc')`), `${c}: no road in, only the sea`);
+  // No road in, but US soil joined to Anchorage: a US network may dig there. Unalaska is an island.
+  for (const c of ['jnu', 'ome', 'brw']) assert.equal(ev(`isSub('${c}','anc')`), false, `${c}: overland inside the US`);
+  assert.ok(ev("isSub('dut','anc')"), 'dut: an island, only the sea');
+  assert.ok(ev("isSub('jnu','van')"), 'Juneau to Canada: a border, so only the sea');
   assert.ok(lands(ev, 'qtl', 'ome', 'brw') && lands(ev, 'qtl', 'brw', 'anc') && lands(ev, 'aleu', 'anc', 'dut') && lands(ev, 'topaz', 'van', 'tok'));
   assert.equal(ev('CAB.qtl.fragile'), true, 'sea ice keeps the repair ships away');
   assert.equal(ev('CITY.anc.ix.length>0'), true, 'Anchorage has its exchange');
@@ -120,8 +123,9 @@ test("Russia's Arctic and Pacific: government boxes, real cables only, beaches w
   // nothing crosses the Bering Strait
   assert.equal(ev("CABLE_PAIRS.some(p=>CITY[p.a].ru!==CITY[p.b].ru&&(CITY[p.a].cc==='US'||CITY[p.b].cc==='US'))"), false);
   assert.equal(ev("isSub('dyr','anc')"), true);
-  // Kamchatka has no road to the rest of Russia; Magadan and Vladivostok do
-  assert.equal(ev("isSub('pkc','vvo')"), true);
+  // Kamchatka has no road to the rest of Russia, but it is Russian soil: a Russian route may dig there. Sakhalin is an island.
+  assert.equal(ev("isSub('pkc','vvo')"), false);
+  assert.equal(ev("isSub('uus','vvo')"), true);
   assert.equal(ev("isSub('gdx','vvo')||isSub('mmk','mos')"), false);
   assert.ok(ev("CITY.vvo.ix.length>0&&ixMembers('vvo').includes('mgf')&&ixMembers('vvo').includes('ert')"), 'the Vladivostok exchange');
   // a sovereign-internet drill cuts the cable to Japan like any other border link
