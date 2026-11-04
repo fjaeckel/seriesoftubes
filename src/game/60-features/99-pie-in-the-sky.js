@@ -35,6 +35,7 @@ const pieLiveLas=id=>{const c=S.pie&&S.pie.crusts[id];let n=0;if(pieLasCut(id))r
 const pieLicOk=cc=>{const l=S.pie&&S.pie.lic[cc];return !!l&&l.state==='ok'&&l.until>S.day;};
 function pieDishes(){const P=S&&S.pie;if(!P)return [];const o=[];for(const x of P.dishes){if(!S.pops[x.city]||x.down>S.day)continue;const cc=CITY[x.city].cc;if(pieLicOk(cc))o.push({id:x.id,city:x.city,cc,ant:x.ant,g:x.ant*PIE_ANT_G*pieDishMul(x)});}return o;}
 function pieHubs(){return S&&S.pie?Object.keys(CRUSTS).filter(pieUp):[];}
+const PIE_LOG=[];
 function pieGlobeData(){const P=S&&S.pie;if(!P)return {crusts:[],dishes:[],pads:[],launches:[]};const ll=c=>({city:c,lat:CITY[c].lat,lon:CITY[c].lon}),Q=R&&R.pie,ld=Q&&Q.load||{};
   // Traffic from the last compute: sky circuits dish to dish (k 'c'), terminals from their city to their dish (k 't'), and a
   // cut-off POP's backhaul up from its dish and down at the landing dish (k 'b').
@@ -42,7 +43,7 @@ function pieGlobeData(){const P=S&&S.pie;if(!P)return {crusts:[],dishes:[],pads:
     else if(f.k==='t'&&f.dish)flows.push({id:f.id,k:'t',g:f.g,pts:[f.city,f.dish]});
     else if(f.k==='b')flows.push({id:f.id,k:'b',g:f.g,pts:[f.city,f.dish],alt:CRUSTS[f.cr].alt});}
   return {crusts:Object.keys(CRUSTS).map(id=>({id,alt:CRUSTS[id].alt,inc:CRUSTS[id].inc,n:pieLive(id),las:pieLiveLas(id)})),
-    dishes:P.dishes.map(x=>({...ll(x.city),up:!(x.down>S.day),u:ld[x.city]})),pads:P.pads.map(p=>({...ll(p.city),next:p.next})),launches:P.q.map(L=>({id:L.id,rk:L.rk,cr:L.cr,n:L.n,day:L.day,pad:L.pad})),
+    dishes:P.dishes.map(x=>({...ll(x.city),up:!(x.down>S.day),u:ld[x.city]})),pads:P.pads.map(p=>({...ll(p.city),next:p.next})),launches:P.q.map(L=>({id:L.id,rk:L.rk,cr:L.cr,n:L.n,day:L.day,pad:L.pad})),flown:PIE_LOG.filter(x=>x.day<=S.day&&S.day-x.day<=60&&P.pads.some(p=>p.city===x.pad)).map(x=>({pad:x.pad,ok:x.ok,rk:x.rk})),
     flows:flows.sort((a,b)=>b.g-a.g),hi:UI.pieHi||null};}
 // Spats (geopolitics) register in PIE_SPATS and keep their state in S.pie.spat; this ticks and ends them.
 function pieSpatDay(d){const sp=S.pie.spat;for(const k of Object.keys(sp)){const o=sp[k],D=PIE_SPATS[k];if(!D||o.until<=d){delete sp[k];if(D&&D.end)D.end(o);continue;}if(D.day)D.day(o,d);}}
@@ -87,6 +88,8 @@ function pieFly(L){const P=S.pie,R0=ROCKETS[L.rk],C=P.crusts[L.cr],pad=P.pads.fi
     if(ok){pieCohort(L.cr,L.n,!!L.las);pieFounder(N_('pie.fp_launch'),{n:L.n,c:L.cr});toast(tr('pie.t_launch',{n:L.n,crust:tr(CRUSTS[L.cr].n),p:pct(pieCov(L.cr))}),'good');}
     else{S.stats.pieFail=(S.stats.pieFail||0)+1;if(L.ins)pieRefund(L.cost);pieFounder(N_('pie.fp_fail'));
       toast(tr('pie.t_fail',{n:L.n})+(L.ins?' '+tr('pie.t_insured',{amt:fmt$(L.cost)}):''),'bad');for(const f of PIE_ON.fail)f(L);}}
+  // The globe replays the last few flights (UI only, never saved): a climb and a payload, or a fireball.
+  PIE_LOG.push({pad:L.pad,ok,rk:L.rk,day:S.day});if(PIE_LOG.length>6)PIE_LOG.shift();
   if(b&&pad){if(ok&&!(cm>0&&Math.random()<(R0.land||0)*cm)){b.flights++;if(b.flights>=PIE_BOOST_MAX)pad.boosters=pad.boosters.filter(x=>x!==b);}
     else if(!L.test){pad.boosters=pad.boosters.filter(x=>x!==b);if(ok){pieFounder(N_('pie.fp_booster'));toast(tr('pie.t_booster'),'bad');}}}
   for(const f of PIE_ON.launch)f(L,ok);}

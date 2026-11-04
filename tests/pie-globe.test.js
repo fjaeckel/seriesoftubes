@@ -149,3 +149,25 @@ test('the map shows a pie dish badge only where there is one, and never satellit
   ev('S.pie=null;draw(0)');
   assert.deepEqual(errors, []);
 });
+
+test('the globe replays recent flights: a payload at the top, or a fireball partway up', () => {
+  const { ev, errors } = page();
+  ev("ACT.modeSet({m:'sandbox'});ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.nextFail=1e9;S.nextEvent=1e9;if(!S.pops.mia)ACT.buildPop({city:'mia'});ACT.pieFound();ACT.piePad({city:'mia'});closeModal()");
+  assert.equal(ev('S.pie.pads.length'), 1);
+  const fly = (rk, test, rnd) => ev(`{const m=Math.random;Math.random=()=>${rnd};try{pieFly({id:${Math.round(rnd * 100)},rk:'${rk}',cr:'short',n:20,day:S.day,pad:'mia',cost:1,test:${test}});}finally{Math.random=m;}}`);
+  fly('falcon', false, 0.99);
+  fly('heavy', true, 0.99);
+  const flown = JSON.parse(ev('JSON.stringify(pieGlobeData().flown)'));
+  assert.deepEqual(flown.map((f) => [f.pad, f.ok, f.rk]), [['mia', true, 'falcon'], ['mia', false, 'heavy']]);
+  for (let i = 0; i < 8; i++) fly('falcon', false, 0.99);
+  assert.equal(ev('pieGlobeData().flown.length'), 6, 'only the last six flights');
+  ev('S.day+=61');
+  assert.equal(ev('pieGlobeData().flown.length'), 0, 'old flights stop replaying');
+  // Drawing: an ok flight, a reusable one, a crash and junk, across a whole replay cycle.
+  ev(`pieGlobeOpen($('pgTest'),()=>({crusts:[],dishes:[],pads:[{city:'mia'}],launches:[],flown:[{pad:'mia',ok:true,rk:'falcon'},{pad:'mia',ok:true,rk:'again'},{pad:'mia',ok:false},{pad:'nowhere'},null]}));PG.anim=true`);
+  for (let i = 0; i < 40; i++) assert.equal(ev(`pgFrame(${1000 + i * 160},true)`), true);
+  assert.equal(ev('PG.fly.length'), 3, 'unknown pads dropped');
+  assert.deepEqual(JSON.parse(ev('JSON.stringify(PG.fly.map(f=>[f.ok,f.re]))')), [[true, false], [true, true], [false, false]]);
+  ev('pieGlobeClose()');
+  assert.deepEqual(errors, []);
+});

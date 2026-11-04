@@ -11,7 +11,7 @@ const PG_ST={
   night:{bg:'#0B1030',sea:'#14234F',sea2:'#0B1638',land:'#24396F',ink:'#3E5BB0',grid:'rgba(120,150,255,.10)',sat:['#7DF9FF','#FFD23F','#FF7AC0','#C9B8FF'],laser:'rgba(255,79,154,.75)',beam:['rgba(255,210,63,.65)','rgba(255,138,61,.5)'],dish:'#FFD23F',off:'#4A5378',flow:'rgba(255,230,140,.9)',fglow:'rgba(255,210,63,.22)',hi:'#FF7AC0',pkt:'#FFFFFF'}};
 // The whole state of the globe. cv is null whenever it is closed, and then nothing below runs.
 const PG={cv:null,ctx:null,get:null,raf:0,last:0,t:0,yaw:-20,tilt:18,vy:0,drag:null,night:null,anim:true,dirty:true,
-  data:null,dAt:-1e9,sig:'',sm:[],dish:[],fl:[],hi:null,pads:[],lch:[],on:null,g:null,frames:0,m:new Float64Array(9)};
+  data:null,dAt:-1e9,sig:'',sm:[],dish:[],fl:[],hi:null,pads:[],lch:[],fly:[],on:null,g:null,frames:0,m:new Float64Array(9)};
 let PG_LAND=null,PG_GRID=null,PG_LIGHT=null,PG_STAR=null;
 const pgNightPref=()=>{if(PG.night===null){try{PG.night=localStorage.getItem('sot-globe')==='night';}catch(e){PG.night=false;}}return PG.night;};
 // Unit vectors for the land rings (LANDS_LL), the graticule, city lights and stars: worked out once, on first open.
@@ -31,7 +31,7 @@ const pgBuf=n=>(PG.buf&&PG.buf.length>=n*3)?PG.buf:(PG.buf=new Float32Array(Math
 const pgNum=(x,d)=>typeof x==='number'&&isFinite(x)?x:d,pgArr=x=>Array.isArray(x)?x:[];
 // A place is {lat,lon} or a city id in .city (or .pad, as launches name their pad).
 function pgPlace(list,cap){const out=[];for(const o of pgArr(list)){if(out.length>=cap)break;if(!o)continue;const id=typeof o.city==='string'?o.city:typeof o.pad==='string'?o.pad:null,C=id&&Object.prototype.hasOwnProperty.call(CITY,id)?CITY[id]:null;
-  const lat=pgNum(o.lat,C?C.lat:NaN),lon=pgNum(o.lon,C?C.lon:NaN);if(!isFinite(lat)||!isFinite(lon))continue;const v=new Float32Array(3);pgUnit(lon,lat,v,0);out.push({v,up:o.up!==false,u:typeof o.u==='number'&&isFinite(o.u)?Math.max(0,Math.min(1,o.u)):null});}return out;}
+  const lat=pgNum(o.lat,C?C.lat:NaN),lon=pgNum(o.lon,C?C.lon:NaN);if(!isFinite(lat)||!isFinite(lon))continue;const v=new Float32Array(3);pgUnit(lon,lat,v,0);out.push({v,up:o.up!==false,ok:o.ok!==false,re:o.rk==='again'||o.rk==='heavy',u:typeof o.u==='number'&&isFinite(o.u)?Math.max(0,Math.min(1,o.u)):null});}return out;}
 function pgRefresh(now){PG.dAt=now;let d=null;try{d=PG.get?PG.get():null;}catch(e){d=null;}d=d&&typeof d==='object'?d:{};
   const cr=pgArr(d.crusts).filter(c=>c&&pgNum(c.n,0)>0).slice(0,8),ph=isPhone(),cap=ph?80:160;
   const sig=ph+'|'+cr.map(c=>[c.id,c.n,c.alt,c.inc,!!c.las].join(':')).join(',');
@@ -41,7 +41,7 @@ function pgRefresh(now){PG.dAt=now;let d=null;try{d=PG.get?PG.get():null;}catch(
       const P=Math.max(1,Math.round(polar?Math.sqrt(cnt/2):Math.sqrt(cnt*1.2))),K=Math.ceil(cnt/P),span=polar?Math.PI:2*Math.PI;
       const co=new Float32Array(P),so=new Float32Array(P);for(let p=0;p<P;p++){co[p]=Math.cos(p/P*span);so[p]=Math.sin(p/P*span);}
       return {cnt,P,K,co,so,ci:Math.cos(inc*PG_D),si:Math.sin(inc*PG_D),rr:1+alt/6371*PG_XF,w:0.18*Math.pow(550/alt,1.5),las:!!c.las,col:PG_CI[c.id]!=null?PG_CI[c.id]:j%4,pos:new Float32Array(cnt*3)};});}
-  PG.dish=pgPlace(d.dishes,ph?60:150);PG.pads=pgPlace(d.pads,24);PG.lch=pgPlace(d.launches,ph?4:8);PG.hi=typeof d.hi==='string'?d.hi:null;
+  PG.dish=pgPlace(d.dishes,ph?60:150);PG.pads=pgPlace(d.pads,24);PG.lch=pgPlace(d.launches,ph?4:8);PG.fly=pgPlace(d.flown,ph?3:6);PG.hi=typeof d.hi==='string'?d.hi:null;
   PG.fl=pgFlows(d.flows,PG_FLOWS[ph?0:1],PG.hi);PG.dirty=true;}
 /* Flows as arcs of PG_ARC+1 points in world coordinates, rebuilt once a second. A sky circuit climbs to its crust in the
    first and last 15% and crosses at that height; a terminal bounces off the sky halfway. The highlighted one is always kept. */
@@ -134,13 +134,31 @@ function pgDraw(ctx,W,H){
   // Launch pads, and a rocket climbing from each launch every five seconds, staggered.
   ctx.beginPath();let np=0;for(const d of PG.pads){const b=pgRot(d.v,d.s||(d.s=new Float32Array(3)),1);if(b[0]<0.05)continue;const [x,y]=P(b,0);ctx.moveTo(x-4,y+3);ctx.lineTo(x,y-5);ctx.lineTo(x+4,y+3);ctx.closePath();np++;}
   if(np){ctx.fillStyle='#FF8A3D';ctx.fill();ctx.lineWidth=1.3;ctx.strokeStyle=night?'#0B1030':st.ink;ctx.stroke();}
-  const tv=new Float32Array(33),tp=new Float32Array(33);
-  PG.lch.forEach((L,li)=>{const ph=((t+li*2.3)%5)/2.6;if(ph>1)return;const b=pgRot(L.v,tp,1);if(b[0]<0.05)return;
-    // Climb and lean east: the trail is the launch's path so far.
-    const la=Math.asin(L.v[2])/PG_D,lo=Math.atan2(L.v[1],L.v[0])/PG_D;for(let s=0;s<=10;s++){const f=ph*s/10,r=1+f*f*0.7;pgUnit(lo+f*f*28,la+f*6,tv,s*3);tv[s*3]*=r;tv[s*3+1]*=r;tv[s*3+2]*=r;}
-    pgRot(tv,tp,11);ctx.beginPath();for(let s=0;s<=10;s++){const x=cx+R*tp[s*3+1],y=cy-R*tp[s*3+2];if(s)ctx.lineTo(x,y);else ctx.moveTo(x,y);}
-    ctx.lineCap='round';ctx.lineWidth=4;ctx.strokeStyle='rgba(255,138,61,.85)';ctx.stroke();ctx.lineWidth=1.5;ctx.strokeStyle='#FFD23F';ctx.stroke();ctx.lineCap='butt';
-    ctx.beginPath();ctx.arc(cx+R*tp[31],cy-R*tp[32],3.5,0,7);ctx.fillStyle='#FFFFFF';ctx.fill();ctx.strokeStyle=night?'#0B1030':st.ink;ctx.lineWidth=1.2;ctx.stroke();});}
+  const tv=new Float32Array(33),tp=new Float32Array(33),ink=night?'#0B1030':st.ink;
+  // Climb and lean east from a pad, f of the way up: fills tp with the trail and returns false when the pad faces away.
+  const climb=(L,f)=>{const b=pgRot(L.v,tp,1);if(b[0]<0.05)return false;const la=Math.asin(L.v[2])/PG_D,lo=Math.atan2(L.v[1],L.v[0])/PG_D;
+    for(let s=0;s<=10;s++){const g=f*s/10,r=1+g*g*0.7;pgUnit(lo+g*g*28,la+g*6,tv,s*3);tv[s*3]*=r;tv[s*3+1]*=r;tv[s*3+2]*=r;}pgRot(tv,tp,11);return true;};
+  const trail=(a)=>{ctx.beginPath();for(let s=0;s<=10;s++){const x=cx+R*tp[s*3+1],y=cy-R*tp[s*3+2];if(s)ctx.lineTo(x,y);else ctx.moveTo(x,y);}
+    ctx.globalAlpha=a;ctx.lineCap='round';ctx.lineWidth=4;ctx.strokeStyle='rgba(255,138,61,.85)';ctx.stroke();ctx.lineWidth=1.5;ctx.strokeStyle='#FFD23F';ctx.stroke();ctx.lineCap='butt';ctx.globalAlpha=1;};
+  const dot=(x,y,r,fill)=>{ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=ink;ctx.lineWidth=1.2;ctx.stroke();};
+  const tip=()=>[cx+R*tp[31],cy-R*tp[32]];
+  PG.lch.forEach((L,li)=>{const ph=((t+li*2.3)%5)/2.6;if(ph>1||!climb(L,ph))return;trail(1);const [x,y]=tip();dot(x,y,3.5,'#FFFFFF');});
+  // The last few flights, replayed every six seconds: pies spill out at the top and a reusable booster flies home; or it
+  // goes up a third of the way and becomes a fireball with debris raining down.
+  PG.fly.forEach((L,li)=>{const ph=((t+li*1.9)%6)/6;
+    if(L.ok){const up=Math.min(1,ph/0.5);if(!climb(L,up))return;trail(ph<0.5?1:Math.max(0,1-(ph-0.5)*3));const [x,y]=tip();
+      if(ph<0.5)dot(x,y,3.5,'#FFFFFF');else{const k=(ph-0.5)/0.5;ctx.globalAlpha=1-k;
+        for(let i=0;i<6;i++){const a=i/6*2*Math.PI+li,d=4+k*16;dot(x+Math.cos(a)*d,y+Math.sin(a)*d*0.6,1.8,'#FFD23F');}ctx.globalAlpha=1;
+        if(L.re&&climb(L,1-k)){const [bx,by]=tip();dot(bx,by,2.4,'#E8EDF7');}}}
+    else{const bang=0.4,z=R/100;if(!climb(L,Math.min(ph,bang)))return;const [x,y]=tip();
+      if(ph<bang){trail(1);dot(x,y,3.5,'#FFFFFF');return;}
+      const k=(ph-bang)/(1-bang),e=1-Math.pow(1-Math.min(1,k*2.5),3);trail(Math.max(0,1-k*4));
+      // Flash, then a ball of fire that swells and fades, a grey puff left behind, and debris arcing back down.
+      ctx.globalAlpha=Math.max(0,1-k*1.2);ctx.beginPath();ctx.arc(x,y,z*(6+e*26),0,7);ctx.fillStyle='rgba(120,128,150,.45)';ctx.fill();
+      ctx.globalAlpha=Math.max(0,1-k*1.6);ctx.beginPath();ctx.arc(x,y,z*(5+e*20),0,7);ctx.fillStyle='#FF4D5E';ctx.fill();ctx.strokeStyle=ink;ctx.lineWidth=1.5;ctx.stroke();
+      ctx.beginPath();ctx.arc(x,y,z*(3+e*13),0,7);ctx.fillStyle='#FFAA1F';ctx.fill();ctx.beginPath();ctx.arc(x,y,z*(1.5+e*6),0,7);ctx.fillStyle='#FFF3B0';ctx.fill();
+      ctx.globalAlpha=Math.max(0,1-k);for(let i=0;i<9;i++){const a=i/9*2*Math.PI+0.4,v=z*(18+i%3*9);dot(x+Math.cos(a)*v*e,y+Math.sin(a)*v*e+z*40*k*k,2,i%2?'#55608A':'#FF8A3D');}
+      ctx.globalAlpha=1;}});}
 // The arcs: near-side pieces only, glow then core, dimmed when another flow is highlighted; that one goes last, in the accent.
 function pgDrawFlows(ctx,st,night,cx,cy,R,t){const hi=PG.hi&&PG.fl.some(f=>f.id===PG.hi)?PG.hi:null,n=PG_ARC+1;
   const line=(f)=>{const a=f.pos;let on=false;ctx.beginPath();for(let i=0;i<n*3;i+=3){if(pgHid(a,i)||(a[i]<0&&!f.sky)){on=false;continue;}const x=cx+R*a[i+1],y=cy-R*a[i+2];if(on)ctx.lineTo(x,y);else ctx.moveTo(x,y);on=true;}};
