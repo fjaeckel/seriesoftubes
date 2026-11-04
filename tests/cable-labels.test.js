@@ -6,7 +6,7 @@ const { load } = require('./harness');
 // land on another is left out, unless the cable touches the selected city.
 const labels = (ev, sel) => JSON.parse(ev(`(()=>{ACT.start({});S.nextFail=1e9;S.nextEvent=1e9;UI.sel=${sel ? `{type:'city',id:'${sel}'}` : 'null'};
   cam.x=(CITY.mnl.x+CITY.dvo.x)/2;cam.y=(CITY.mnl.y+CITY.dvo.y)/2;cam.z=4.5;const out=[];
-  ctx.fillText=(t,x,y)=>out.push({t,x,y,w:ctx.measureText(t).width});ctx.strokeText=()=>{};drawCables([0]);return JSON.stringify(out);})()`));
+  const ts=textStamp;textStamp=(t,f,px,w,c,sk,lw,x,y)=>out.push({t,x,y,w});try{drawCables([0]);}finally{textStamp=ts;}return JSON.stringify(out);})()`));
 
 test('cable names never sit on top of each other', () => {
   const { ev, errors } = load();

@@ -551,6 +551,6 @@ const API_DENY={
   start:'start',newgame:'start',cont:'start',toTitle:'start',resetAsk:'start',
   exportSave:'files',importGo:'files',importPick:'files',slotExport:'files',
   slotBack:'slots',slotDel:'slots',slotDelGo:'slots',slotMenu:'slots',slotRetry:'slots',slotSpace:'slots',slotSwitch:'slots',slotTake:'slots',
-  animSet:'prefs',langSet:'prefs',menu:'prefs',mute:'prefs',prefSet:'prefs',settings:'prefs',settingsClose:'prefs',soundSet:'prefs',vpSet:'prefs',
+  animSet:'prefs',langSet:'prefs',mapSet:'prefs',menu:'prefs',mute:'prefs',prefSet:'prefs',settings:'prefs',settingsClose:'prefs',soundSet:'prefs',vpSet:'prefs',
   install:'browser',share:'browser',shareDl:'browser',shareGo:'browser',traceCopy:'browser',updateLater:'browser',updateNow:'browser',wsShare:'browser',pzShare:'browser',
 };

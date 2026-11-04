@@ -1,5 +1,6 @@
 /* ================= CANVAS ================= */
-const cv=$('map'),ctx=cv.getContext('2d');
+// ctx is the 2D context draw() paints with: the map's own (CTX0), or with WebGL on the overlay above the card (56-webgl.js).
+const cv=$('map'),CTX0=cv.getContext('2d');let ctx=CTX0;
 const cam={x:1050,y:330,z:0.8};
 let CW=0,CH=0,DPR=1;
 /* Installed on an iPhone home screen with a translucent status bar, iOS can report a viewport one status bar

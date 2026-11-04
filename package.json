@@ -19,6 +19,7 @@
     "page": "node scripts/lib/page.js",
     "serve": "npm run build && npx --yes serve@14.2.4 _site",
     "perf": "node scripts/perf-bench.js",
+    "bench:gpu": "node scripts/gpu-bench.js",
     "mcp": "node scripts/mcp.js",
     "mcp:browser": "node scripts/mcp.js --browser"
   },

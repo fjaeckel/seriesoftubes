@@ -17,6 +17,8 @@ body{margin:0}
 body{background:var(--sea);color:var(--ink);font-family:var(--body);overflow:hidden;font-size:14px;-webkit-font-smoothing:antialiased}
 #map{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:block;cursor:grab}
 #map.linking{cursor:crosshair}
+/* The WebGL tubes and the 2D overlay above them (58-webgl-links.js): pictures only, the map underneath takes the pointer. */
+#mapgl,#mapfx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
 .num{font-variant-numeric:tabular-nums}
 h2,h3,h4{font-family:var(--display);margin:0;text-wrap:balance;line-height:1.1}
 button{font:inherit;color:inherit}

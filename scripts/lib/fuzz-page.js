@@ -3,7 +3,7 @@
 // stay in lockstep; this file only offers what a player could do now (buttons on screen, POPs, cities) and digests what
 // routing gave, as strings the driver compares.
 (() => {
-  const DENY = new Set(['animSet', 'cont', 'exportSave', 'importGo', 'importPick', 'install', 'langSet', 'menu', 'mute', 'newgame', 'phonePlay', 'phoneSpeed',
+  const DENY = new Set(['animSet', 'cont', 'exportSave', 'importGo', 'importPick', 'install', 'langSet', 'mapSet', 'menu', 'mute', 'newgame', 'phonePlay', 'phoneSpeed',
     'prefSet', 'pzShare', 'resetAsk', 'settings', 'settingsClose', 'share', 'shareDl', 'shareGo', 'slotBack', 'slotDel', 'slotDelGo', 'slotExport', 'slotMenu',
     'slotRetry', 'slotSpace', 'slotSwitch', 'slotTake', 'soundSet', 'speed', 'start', 'toTitle', 'traceCopy', 'updateLater', 'updateNow', 'vpSet', 'wsShare',
     // Leave the game or open what is not this game: the title screen, menus of other modes, AI helpers that fetch.
