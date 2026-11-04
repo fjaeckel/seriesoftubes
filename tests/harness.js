@@ -19,7 +19,7 @@ function load(opts = {}) {
     if (!/getContext|Not implemented/.test(e.message)) errors.push(e.message);
   });
   const dom = new JSDOM(html, {
-    url: 'https://tests.invalid/',
+    url: opts.url || 'https://tests.invalid/',
     runScripts: 'dangerously',
     pretendToBeVisual: true,
     virtualConsole: vc,

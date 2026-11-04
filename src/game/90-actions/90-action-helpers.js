@@ -33,7 +33,7 @@ function bbCost(c){return 15000+CITY[c].P*20;}
 const RK_SKIP=new Set(['name','log','offers','usedNames','stats','cash','seen','tut','ach','achP','won','loanOffers','loanStrikes','uiSpeed','cam','richTold','demo','nextEvent','nextFail','done','confReg','auNews','calV','solWon','seatOff','chartSet','t1Now','ltv','capDeal','auV','pdeskRep','sv']);
 function routeKey(){const o={};for(const k in S)if(!RK_SKIP.has(k))o[k]=S[k];return JSON.stringify(o);}
 function routeIfChanged(){const k=S&&!pzOn()?routeKey():null;if(k&&k===UI.rk&&R===UI.rkR)return false;compute();UI.rk=k;UI.rkR=R;return true;}
-function after(){if(pzOn()){pzAfter();return;}if(S)purgeInc();routeIfChanged();checkGoals();renderAll();if(S&&!$('dash').hidden)renderDash();save();}
+function after(){if(pzOn()){pzAfter();return;}NOC.dirty=true;if(S)purgeInc();routeIfChanged();checkGoals();renderAll();if(S&&!$('dash').hidden)renderDash();save();}
 const isTablet=()=>innerWidth>760&&innerWidth<=1200;
 function selectLink(id){UI.sel={type:'link',id};UI.confirm=null;if(isTablet()||isPhone())UI.leftOpen=false;$('panel').classList.remove('full');renderPanel();renderLeft();}
 // Frame the whole drawn line (cables bend far from the straight one) in the part of the map the panel leaves free:
