@@ -11,7 +11,7 @@ let BIGEYE=null;const bigEye=()=>BIGEYE||(BIGEYE=CITIES.slice().sort((x,y)=>y.P-
 // Worked out at most once a day (and again when the network changes shape): offers spawn far less often than that.
 let SPOTC=null;
 function spots(){const lv=lvl(),k=S.day+'|'+lv+'|'+S.links.length+'|'+Object.keys(S.pops).length+'|'+charter();if(SPOTC&&SPOTC.s===S&&SPOTC.k===k)return SPOTC.v;const v=spots0(lv);SPOTC={s:S,k,v};return v;}
-function spots0(lv){const out=[];if(gatesOpen()||S.scn)return out;const up=t=>BIZ_T[t].lv>lv,mine=Object.keys(S.pops);
+function spots0(lv){const out=[];if(gatesOpen()||S.scn)return out;const up=t=>BIZ_T[t].lv>lv,mine=Object.keys(S.pops).filter(bizCity);
   if(up('hft')){const f=FIN.filter(c=>S.pops[c]);for(let i=0;i<f.length;i++)for(let j=i+1;j<f.length;j++){const a=f[i],b=f[j],ms=bestLat(a,b);if(ms<=latMaxOf(a,b))out.push({t:'hft',a,b,k:'lat',n:+ms.toFixed(1)});}}
   const dci=['onramp','ai','hyper'].filter(up);
   if(dci.length)for(const l of S.links){if(l.kind!=='df'||l.sub||l.ready>S.day||linkDown(l))continue;const g=dfCap(l);

@@ -6,7 +6,9 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
-- Atlas Shrugged Telecom, the Moroccan incumbent, is now Atlas Hold-the-Line Telecom.
+- Jokes in the game now poke fun at networks, cables and routers, never at people, countries or beliefs. A few networks have new names (Atlas Hold-the-Line Telecom, Star-Blink, Telekom Malay-tency, Oh Yas Sénégal, Afghan Tele-Pass, Island-Hop Micronesia, Tel-One-derful, Tango Two-Step), so do three of the names for your own cables, and about forty descriptions of networks, cities, cables and events were rewritten.
+- A network operators' meeting that hires you for its event network now meets only where it really does: NANOG in the United States, APRICOT in Asia Pacific and Oceania (not mainland China or Hong Kong), DENOG in Germany, UKNOF in the UK, RIPE in Europe, the Middle East and Africa, and DKNOG in Copenhagen.
+- North Korea now moves well under 1 Gbps, and no customer of any kind calls from there.
 
 ## [2.9.0] — 2026-11-04
 

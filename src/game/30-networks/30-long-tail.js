@@ -90,7 +90,7 @@ NETS.push(
  {id:'fnt',name:'FINTEL-ligent',asn:9241,type:'t2',pol:'open',share:.002,price:8,up:['ntt','tly'],col:'#00A3AD',pops:['suv','tbu','apw','ppg','syd','hnl'],ix:['suv'],blurb:tr('long_tail.fiji_s_international_gateway_very')},
  {id:'pft',name:'Postes et Télé-Croissant',asn:56055,type:'t2',cc:['NC','PF'],pol:'selective',minIx:3,minPni:15,share:.003,price:10,up:['tly','cog'],col:'#F7B500',pops:['nou','ppt','syd','lax'],ix:['nou'],blurb:tr('long_tail.runs_the_post_the_phones_and')},
  {id:'tkp',name:'Telly-Kom PNG',asn:17828,type:'eye',cc:'PG',pol:'selective',minIx:2,minPni:10,share:.003,up:['tat'],col:'#C8102E',pops:['pom'],ix:[],blurb:tr('long_tail.papua_new_guinea_s_state_telco')},
- {id:'otk',name:'Ours-Truly Telekom',asn:45891,type:'eye',cc:'SB',pol:'selective',minIx:1,minPni:8,share:.001,up:['tly'],col:'#00843D',pops:['hir'],ix:['hir'],blurb:tr('long_tail.the_solomon_islands_incumbent_yours')},
+ {id:'otk',name:'Ours-Truly Telekom',asn:45891,type:'eye',cc:'SB',pol:'selective',minIx:1,minPni:8,share:.001,up:['tly'],col:'#00843D',pops:['hir'],ix:['hir'],blurb:tr('long_tail.the_solomon_islands_incumbent_on')},
  {id:'tcc',name:'Tongue-in-Cheek Comms',asn:38201,type:'eye',cc:'TO',pol:'selective',minIx:1,minPni:8,share:.001,up:['ntt'],col:'#C10230',pops:['tbu'],ix:[],blurb:tr('long_tail.tonga_s_own_telco_lived_through')},
  {id:'bsk',name:'Blue-Sky-Pie Samoa',asn:17993,type:'eye',cc:['WS','AS'],pol:'selective',minIx:1,minPni:8,share:.001,up:['tly'],col:'#0096D6',pops:['apw','ppg'],ix:[],blurb:tr('long_tail.samoa_s_broadband_promised_with_a')},
  {id:'pnc',name:'PNC-See',asn:17893,type:'eye',cc:'PW',pol:'selective',minIx:1,minPni:8,share:.0005,up:['ntt'],col:'#1B75BB',pops:['ror'],ix:[],blurb:tr('long_tail.palau_s_telco_snorkel_down_and')},

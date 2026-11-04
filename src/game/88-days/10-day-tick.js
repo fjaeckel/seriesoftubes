@@ -93,7 +93,7 @@ function dayPost(d){
   if(d%10===0)save();
 }
 function spawnOffer(){
-  const mine=spMine(Object.keys(S.pops)),lv=lvl();
+  const mine=spMine(Object.keys(S.pops).filter(bizCity)),lv=lvl();
   const types=['dia','dia','game','host'];if(mine.length>=2)types.push('l2vpn','l2vpn');if(S.day>60)types.push('scrub');
   if(lv>=2)types.push('isp','stream','edu','host','hft','bulk','event','event');if(mine.length>=3&&lv>=2)types.push('sdwan','sdwan');
   if(S.links.some(l=>l.kind==='df'&&l.ready<=S.day))types.push('wwave','wwave');if(S.links.some(l=>l.kind==='df'&&l.own&&l.ready<=S.day))types.push('dfpair');if(lv>=3)types.push('gpu','gpu','onramp','onramp');if(lv>=4)types.push('ai','ai','hyper','hyper');

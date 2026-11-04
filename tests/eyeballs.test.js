@@ -65,6 +65,6 @@ test('Australian eyeballs: Neptoon on every exchange family, Lawn-tel in Hobart,
   assert.ok(ev("ixMembers('hba').includes('lnt')&&NET.lnt.pol==='selective'"));
   assert.ok(ev("NET.mag.price>0&&NET.mag.pops.includes('akl')&&NET.mag.pops.includes('lon')"), 'the magpie flies far');
   assert.ok(ev("NET.inp.pol==='restrictive'&&NET.inp.ix.length===0&&NET.inp.up[0]==='tpr'"));
-  assert.ok(ev("NET.stb.pops.includes('lax')&&NET.stb.pops.includes('sea')"), 'Musklink is where most of its users are');
+  assert.ok(ev("NET.stb.pops.includes('lax')&&NET.stb.pops.includes('sea')"), 'Star-Blink is where most of its users are');
   assert.deepEqual(errors, []);
 });

@@ -3,7 +3,7 @@
    up to eight fiber pairs; the first comes lit with a ROADMaster, the repeaters are powered from shore. */
 const SEA_DELAYS=[N_('own_cable.a_whale_has_parked_on_the'),N_('own_cable.the_cable_ship_s_coffee_machine'),N_('own_cable.a_fishing_fleet_is_trawling_exactly'),N_('own_cable.the_seabed_survey_found_an_old'),N_('own_cable.storm_season_the_ship_is_sheltering'),N_('own_cable.the_crew_fished_out_somebody_else')];
 const OWNCAB_LAND=3000000,OWNCAB_KM=6000,OWNCAB_OM=25;
-const OWNCAB_NAMES=['Big Wet Tube','Davy Jones’ Backhaul','Kraken-1','Mariana Trench Coat','The Wet Ethernet','Sea-ya Later','Deep Pockets Express','Salty Sausage','Poseidon’s Patch Cable','Neptune Neutrality','Moby Disk','Fibre Nemo','The Long Wet Thing','Bermuda Triangle Routing','Seabed & Breakfast','Atlantis Backhaul'];
+const OWNCAB_NAMES=['Big Blue Tube','Davy Jones’ Backhaul','Kraken-1','Mariana Trench Coat','The Wet Ethernet','Sea-ya Later','Deep Pockets Express','Salty Sea Dog','Poseidon’s Patch Cable','Neptune Neutrality','Moby Disk','Fibre Nemo','The Long Splice Home','Bermuda Triangle Routing','Seabed & Breakfast','Atlantis Backhaul'];
 const landing=c=>!!CITY[c].beach||CABLE_PAIRS.some(p=>p.a===c||p.b===c);
 const nearLanding=c=>CITIES.filter(x=>x.id!==c&&landing(x.id)).sort((x,y)=>kmBetween(c,x.id)-kmBetween(c,y.id))[0].id;
 const ownCabKm=(a,b)=>seaRoutes(a,b)[0]?.km||Infinity;
