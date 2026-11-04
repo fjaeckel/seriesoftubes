@@ -31,7 +31,8 @@ Object.assign(ACT,{
    closeModal();sfx('build');haptic(12);floater((CITY[a].x+CITY[a].x+wrapDx(CITY[a].x,CITY[b].x))/2,(CITY[a].y+CITY[b].y)/2-20,S.ar?tr('architect.tube_laid'):tr('links.wave_lit',{wave:LT[tier].n}),'#FF4F9A');UI.sel=null;pzAfter();},
  // Another link next to this one: the picker opens on the same pair, on the same route, in the same trench or a diverse one.
  pzAddPar:({id,div})=>{const l=pzOn()&&S.links.find(x=>x.id===id);if(!l)return;UI.pzVia=l.cable||'land';UI.pzDiv=!!+div;UI.pzTrench=l.cable?null:pzUnit(l);
-   if(+div&&l.cable){const o=pzRoutes(l.a,l.b).find(x=>x.via!==l.cable&&!(S.pz.noSub&&x.sub));if(o)UI.pzVia=o.via;}
+   // A diverse tube takes the cheapest other route at this tube's size, as a new tube does, not the first one listed (#282).
+   if(+div&&l.cable){const o=pzRoutes(l.a,l.b).filter(x=>x.via!==l.cable&&!(S.pz.noSub&&x.sub)).sort((x,y)=>pzLinkCost(x,l.tier,true)-pzLinkCost(y,l.tier,true))[0];if(o)UI.pzVia=o.via;}
    pzLinkModal(l.a,l.b,true);},
  pzTier:({id,tier})=>{tier=+tier;const l=pzOn()&&S.links.find(x=>x.id===id);if(!l||!(S.ar?AR_TIERS:PZ_TIERS).includes(tier)||l.tier===tier)return;const why=pzWaveWhy(l.a,l.b,tier,{km:l.km,sub:l.sub});if(why){toast(esc(why),'bad');sfx('err');return;}
    pzSnap();if(S.ar){if(arAge(l)<S.ar.bi)S.ar.sunk+=arLinkCost(l);l.ub=S.ar.bi;}l.tier=tier;l.mo=pzMo({km:l.km,sub:l.sub,f:l.mult||1},tier,false);sfx('build');pzAfter();},

@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- In Architect runs, a diverse second tube now takes the cheapest other route, as a new tube does, so the Euro Run's plain plan fits its budget again. A failed review also says that every site still connected after a cut needs room for its traffic, not only the mission-critical ones (#282).
 - A new button next to the speed controls opens a NOC screen in a window of its own, to keep on a second display beside the map. It is a dark wallboard with a live world map of your links and POPs, traffic and money graphs, alarms, and your hottest ports with their upgrade buttons, which work on the running game; click a POP to see its ports. Details has the full dashboard, and Full screen fills the display. The new window only shows and sends clicks: your network is still played and saved in the game window. Phones do not show the button.
 - Cities of one country on one piece of land can be joined by fiber over land, even where there is no road: Pevek to Anadyr or Moscow, Juneau to Seattle, Nuuk to Sisimiut. Inside one country, crossing from Europe into Asia (Moscow–Vladivostok, Istanbul–Ankara) is no longer priced as a crossing between continents.
 - No circuit of any kind can be built between North and South Korea, and nothing leaves South Korea over land: every way out is a subsea cable.

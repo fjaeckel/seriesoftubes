@@ -35,7 +35,7 @@
 "architect.coast_to_coast_joke":"Del callejón de los data centers a Silicon Valley, encargo a encargo.",
 "architect.cut_n_of_m":"Corte {n} de {m}…",
 "architect.cut_on_x_cuts_off_y":"Un corte en {x} deja aislado a {y}.",
-"architect.cut_on_x_no_room":"Un corte en {x} no deja sitio en el desvío. Falta: {y}.",
+"architect.cut_on_x_no_room":"Un corte en {x} no deja sitio en el desvío. Falta: {y}. Cada sitio que sigue conectado tras un corte necesita espacio para todo su tráfico, sea crítico o no.",
 "architect.dark_list":"A oscuras por ahora: {list}. No es crítico, así que está permitido.",
 "architect.drag_from_your_hq":"Arrastra desde tu sede a otra ciudad para tender un tubo",
 "architect.euro_1":"Tus servidores viven en Ámsterdam. Primer cliente: Fráncfort. Conéctalo.",

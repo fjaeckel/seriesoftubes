@@ -36,7 +36,7 @@
 "architect.coast_to_coast_joke":"From data center alley to Silicon Valley, one brief at a time.",
 "architect.cut_n_of_m":"Cut {n} of {m}…",
 "architect.cut_on_x_cuts_off_y":"A cut on {x} cuts off {y}.",
-"architect.cut_on_x_no_room":"A cut on {x} leaves no room on the detour. Short: {y}.",
+"architect.cut_on_x_no_room":"A cut on {x} leaves no room on the detour. Short: {y}. Every site still connected after a cut needs room for all its traffic, mission-critical or not.",
 "architect.dark_list":"Dark for now: {list}. Not mission-critical, so that's allowed.",
 "architect.drag_from_your_hq":"Drag from your HQ to another city to lay a tube",
 "architect.euro_1":"Your servers live in Amsterdam. First customer: Frankfurt. Connect it.",

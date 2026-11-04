@@ -37,7 +37,7 @@
 "architect.coast_to_coast_joke":"Von der Data Center Alley bis ins Silicon Valley, ein Auftrag nach dem anderen.",
 "architect.cut_n_of_m":"Schnitt {n} von {m}…",
 "architect.cut_on_x_cuts_off_y":"Ein Schnitt auf {x} schneidet {y} ab.",
-"architect.cut_on_x_no_room":"Ein Schnitt auf {x} lässt auf dem Umweg keinen Platz. Es fehlt: {y}.",
+"architect.cut_on_x_no_room":"Ein Schnitt auf {x} lässt auf dem Umweg keinen Platz. Es fehlt: {y}. Jeder Standort, der nach einem Schnitt noch verbunden ist, braucht Platz für seinen ganzen Verkehr, ob geschäftskritisch oder nicht.",
 "architect.dark_list":"Vorerst offline: {list}. Nicht geschäftskritisch, also ist das erlaubt.",
 "architect.drag_from_your_hq":"Zieh von deinem HQ zu einer anderen Stadt, um eine Röhre zu legen",
 "architect.euro_1":"Deine Server stehen in Amsterdam. Erster Kunde: Frankfurt. Schließ ihn an.",

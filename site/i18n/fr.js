@@ -35,7 +35,7 @@
 "architect.coast_to_coast_joke":"De l’allée des data centers à la Silicon Valley, un brief à la fois.",
 "architect.cut_n_of_m":"Coupure {n} sur {m}…",
 "architect.cut_on_x_cuts_off_y":"Une coupure sur {x} isole {y}.",
-"architect.cut_on_x_no_room":"Une coupure sur {x} ne laisse pas de place sur le détour. Manque : {y}.",
+"architect.cut_on_x_no_room":"Une coupure sur {x} ne laisse pas de place sur le détour. Manque : {y}. Chaque site encore connecté après une coupure a besoin de place pour tout son trafic, critique ou non.",
 "architect.dark_list":"Éteint pour l’instant : {list}. Pas critique, donc c’est permis.",
 "architect.drag_from_your_hq":"Fais glisser depuis ton QG vers une autre ville pour poser un tube",
 "architect.euro_1":"Tes serveurs vivent à Amsterdam. Premier client : Francfort. Connecte-le.",

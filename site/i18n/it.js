@@ -35,7 +35,7 @@
 "architect.coast_to_coast_joke":"Dal vicolo dei data center alla Silicon Valley, un incarico alla volta.",
 "architect.cut_n_of_m":"Taglio {n} di {m}…",
 "architect.cut_on_x_cuts_off_y":"Un taglio su {x} isola {y}.",
-"architect.cut_on_x_no_room":"Un taglio su {x} non lascia spazio sulla deviazione. Manca: {y}.",
+"architect.cut_on_x_no_room":"Un taglio su {x} non lascia spazio sulla deviazione. Manca: {y}. Ogni sito ancora collegato dopo un taglio ha bisogno di spazio per tutto il suo traffico, critico o no.",
 "architect.dark_list":"Al buio per ora: {list}. Non è critico, quindi si può.",
 "architect.drag_from_your_hq":"Trascina dalla tua sede a un’altra città per posare un tubo",
 "architect.euro_1":"I tuoi server vivono ad Amsterdam. Primo cliente: Francoforte. Collegalo.",

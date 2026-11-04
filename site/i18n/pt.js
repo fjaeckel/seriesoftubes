@@ -35,7 +35,7 @@
 "architect.coast_to_coast_joke":"Do beco dos data centers ao Vale do Silício, um pedido de cada vez.",
 "architect.cut_n_of_m":"Corte {n} de {m}…",
 "architect.cut_on_x_cuts_off_y":"Um corte em {x} isola {y}.",
-"architect.cut_on_x_no_room":"Um corte em {x} não deixa espaço no desvio. Falta: {y}.",
+"architect.cut_on_x_no_room":"Um corte em {x} não deixa espaço no desvio. Falta: {y}. Cada local ainda ligado depois de um corte precisa de espaço para todo o seu tráfego, seja crítico ou não.",
 "architect.dark_list":"No escuro por enquanto: {list}. Não é crítico, então pode.",
 "architect.drag_from_your_hq":"Arraste da sua sede até outra cidade para lançar um tubo",
 "architect.euro_1":"Seus servidores moram em Amsterdã. Primeiro cliente: Frankfurt. Conecte.",

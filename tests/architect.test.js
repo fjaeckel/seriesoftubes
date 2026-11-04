@@ -180,3 +180,27 @@ test('#231 the puzzle list counts each section\'s own stars: runs above, packs n
   assert.match(box, new RegExp(`Stars from the packs⭐ 2 / ${3 * ev('PZ.length')}`), box);
   assert.deepEqual(errors, []);
 });
+
+test('#282 Euro Run on the game\'s own defaults: new tubes and diverse tubes take the cheapest route, so the plain plan earns three stars', () => {
+  const { ev, errors } = load();
+  // Each new tube takes the route the window offers; each second tube comes from the tube's own "diverse" button.
+  const neu = (a, b) => ev(`ACT.pzLinkTo({a:'${a}',b:'${b}'});ACT.pzLink({tier:AR_TIER});closeModal()`);
+  const div = (a, b) => ev(`(()=>{const l=S.links.find(x=>edgeKey(x)===edgeKey({a:'${a}',b:'${b}'}));ACT.pzAddPar({id:l.id,div:1});ACT.pzLink({tier:AR_TIER});closeModal()})()`);
+  ev("ACT.pzArStart({id:'euro'})");
+  const briefs = [() => neu('ams', 'fra'), () => { neu('ams', 'par'); neu('ams', 'lon'); }, () => neu('par', 'fra'), () => { neu('ams', 'zrh'); neu('par', 'zrh'); },
+    () => { neu('lon', 'par'); div('ams', 'lon'); }, () => { ev("ACT.pzRmPop({city:'fra'})"); neu('ams', 'dus'); div('ams', 'dus'); }];
+  briefs.forEach((f, i) => {
+    f();
+    assert.equal(review(ev), true, `brief ${i + 1}: ${ev('arEval().why')}`);
+    if (i === 4) {
+      const cost = (v) => ev(`pzLinkCost(pzRoutes('ams','lon').find(x=>x.via==='${v}'),AR_TIER,true)`);
+      const used = ev("S.links.filter(l=>edgeKey(l)===edgeKey({a:'ams',b:'lon'})).map(l=>l.cable).sort().join()");
+      const other = used.split(',').find((v) => v !== 'nshuttle');
+      for (const v of ['uly', 'circe', 'concerto']) assert.ok(cost(other) <= cost(v), `the diverse London tube is the cheapest other cable, not ${other}`);
+    }
+    if (i < briefs.length - 1) ev('ACT.pzArNext()');
+  });
+  assert.equal(ev('arOver()'), 0);
+  assert.equal(ev('arSpend()<=arRun().budget'), true, `within budget: ${ev('arSpend()')} of ${ev('arRun().budget')}`);
+  assert.deepEqual(errors, []);
+});
