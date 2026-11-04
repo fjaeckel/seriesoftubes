@@ -259,7 +259,7 @@
 "bank.call_the_bank":"Ligar para o banco",
 "bank.condition_broken_for_n_day":{"one":"Condição descumprida há {n} dia.","other":"Condição descumprida há {n} dias."},
 "bank.debt_free_your_accountant_is":"Sem dívidas. Seu contador está desconfiado.",
-"bank.get_to_an_a_rating_and":"Chegue à nota A e os banqueiros atenderão sua ligação. Agora eles estão em reunião.",
+"bank.get_to_an_aa_rating_and":"Chegue à nota AA e os banqueiros atenderão sua ligação. Agora eles estão em reunião.",
 "bank.in_the_vault":"no cofre",
 "bank.n_loan":{"one":"{n} empréstimo","other":"{n} empréstimos"},
 "bank.n_months":"{n} meses",

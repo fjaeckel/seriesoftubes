@@ -259,7 +259,7 @@
 "bank.call_the_bank":"Llamar al banco",
 "bank.condition_broken_for_n_day":{"one":"Condición incumplida durante {n} día.","other":"Condición incumplida durante {n} días."},
 "bank.debt_free_your_accountant_is":"Sin deudas. Tu contable desconfía.",
-"bank.get_to_an_a_rating_and":"Llega a una calificación A y los banqueros te cogerán el teléfono. Ahora mismo están en una reunión.",
+"bank.get_to_an_aa_rating_and":"Llega a una calificación AA y los banqueros te cogerán el teléfono. Ahora mismo están en una reunión.",
 "bank.in_the_vault":"en la cámara acorazada",
 "bank.n_loan":{"one":"{n} préstamo","other":"{n} préstamos"},
 "bank.n_months":"{n} meses",

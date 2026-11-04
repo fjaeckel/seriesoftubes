@@ -243,7 +243,7 @@ const API_CMD={
  takeLoan:{args:[['id','entityId']],
   doc:'Accept a loan offer. Terms vary wildly by bank; the crypto one pays out 55-135% of face value. Equity banks take a share of the company.'},
  callBank:{args:[['amount','callAmount']],watch:['loanOffers'],
-  doc:'Call a bank for a loan offer of this size, with a credit rating of A or better. The terms follow from the rating, and the amount must fit the limit of a few months of revenue less current debt. Nothing is borrowed until you take the offer.'},
+  doc:'Call a bank for a loan offer of this size, with a credit rating of AA or better (weird conditions apply). The terms follow from the rating, and the amount must fit the limit of a few months of revenue less current debt. Nothing is borrowed until you take the offer.'},
  declineLoan:{args:[['id','entityId']],
   doc:'Throw a loan offer away.'},
  repayLoan:{args:[['id','entityId']],confirm:'double',

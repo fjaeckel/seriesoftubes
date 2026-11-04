@@ -261,7 +261,7 @@
 "bank.call_the_bank":"Bank anrufen",
 "bank.condition_broken_for_n_day":{"one":"Bedingung seit {n} Tag verletzt.","other":"Bedingung seit {n} Tagen verletzt."},
 "bank.debt_free_your_accountant_is":"Schuldenfrei. Deine Buchhaltung wird misstrauisch.",
-"bank.get_to_an_a_rating_and":"Erreiche ein A-Rating, dann nehmen die Banker deinen Anruf an. Gerade sind sie in einem Meeting.",
+"bank.get_to_an_aa_rating_and":"Erreiche ein AA-Rating, dann nehmen die Banker deinen Anruf an. Gerade sind sie in einem Meeting.",
 "bank.in_the_vault":"im Tresor",
 "bank.n_loan":{"one":"{n} Kredit","other":"{n} Kredite"},
 "bank.n_months":"{n} Monate",

@@ -260,7 +260,7 @@
 "bank.call_the_bank":"Call the bank",
 "bank.condition_broken_for_n_day":{"one":"Condition broken for {n} day.","other":"Condition broken for {n} days."},
 "bank.debt_free_your_accountant_is":"Debt-free. Your accountant is suspicious.",
-"bank.get_to_an_a_rating_and":"Get to an A rating and bankers will take your call. Right now they are in a meeting.",
+"bank.get_to_an_aa_rating_and":"Get to an AA rating and bankers will take your call. Right now they are in a meeting.",
 "bank.in_the_vault":"in the vault",
 "bank.n_loan":{"one":"{n} loan","other":"{n} loans"},
 "bank.n_months":"{n} months",

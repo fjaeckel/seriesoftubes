@@ -16,10 +16,10 @@ const offers = (ev) => json(ev, 'S.loanOffers');
 const bank = (ev) => { ev('ACT.bank({})'); return ev("$('bankCard').textContent"); };
 const buttons = (ev) => { ev('ACT.bank({})'); return json(ev, "[...document.querySelectorAll('#bankCard [data-act=\"callBank\"]')].map(b=>[JSON.parse(b.dataset.args).amount,b.disabled])"); };
 
-test('below an A rating nobody picks up, even for a direct call', (t) => {
-  const { ev, errors } = game(t, 'BBB');
+test('below an AA rating nobody picks up, even for a direct call', (t) => {
+  const { ev, errors } = game(t, 'A');
   assert.deepEqual(buttons(ev), []);
-  assert.match(bank(ev), /Get to an A rating/);
+  assert.match(bank(ev), /Get to an AA rating/);
   ev('ACT.callBank({amount:1e5})');
   assert.equal(offers(ev).length, 0);
   assert.deepEqual(errors, []);
@@ -28,7 +28,7 @@ test('below an A rating nobody picks up, even for a direct call', (t) => {
 test('each rating gets its own bank, rate, conditions and payment, and better credit is never worse', (t) => {
   const { ev, errors } = game(t);
   const seen = {};
-  for (const rt of ['A', 'AA', 'AAA']) {
+  for (const rt of ['AA', 'AAA']) {
     ev(`window.__rt='${rt}';ACT.callBank({amount:1e6})`);
     const [o] = offers(ev);
     seen[rt] = o;
@@ -38,36 +38,36 @@ test('each rating gets its own bank, rate, conditions and payment, and better cr
     assert.equal(o.pay, ev(`Math.round(annuity(1e6,${o.apr},36))`));
     assert.ok(!o.share, 'no slice of revenue on a called loan');
     assert.equal(ev(`rIdx(window.__rt)>=rIdx(BANKS['${o.bank}'].min)`), true, 'the bank would lend at this rating');
-    assert.equal(ev(`${JSON.stringify(o.covs)}.every(c=>COVS[c]&&!COVS[c].fee&&!COVS[c].each)`), true, 'no conditions that cost money');
+    assert.equal(ev(`${JSON.stringify(o.covs)}.every(c=>!!COVS[c])`), true, 'conditions the game knows');
   }
-  assert.deepEqual([seen.A.bank, seen.AA.bank, seen.AAA.bank], ['jpm', 'gs', 'gs']);
-  assert.deepEqual([seen.A.apr, seen.AA.apr, seen.AAA.apr], [0.09, 0.075, 0.06]);
+  assert.deepEqual([seen.AA.bank, seen.AAA.bank], ['gs', 'gs']);
+  assert.deepEqual([seen.AA.apr, seen.AAA.apr], [0.075, 0.06]);
   assert.equal(ev('S.loanOffers[0].covs!==CALL_TERMS.AAA.covs'), true, 'an offer has its own list, not the table');
-  assert.deepEqual(seen.AAA.covs, ['golf']);
-  assert.deepEqual(seen.AA.covs, ['golf', 'continents2']);
-  assert.deepEqual(seen.A.covs, ['uptime', 'logo']);
+  // The usual conditions, and weird ones on top: one at AAA, two at AA.
+  assert.deepEqual(seen.AAA.covs, ['golf', ...json(ev, 'callOdd(CALL_TERMS.AAA)')]);
+  assert.deepEqual(seen.AA.covs, ['golf', 'continents2', ...json(ev, 'callOdd(CALL_TERMS.AA)')]);
+  assert.equal(seen.AAA.covs.length, 2);
+  assert.equal(new Set(seen.AA.covs).size, 4, 'two different weird ones');
   assert.deepEqual(errors, []);
 });
 
 test('the limit is months of revenue by rating, less debt; equity is not debt', (t) => {
-  const { ev, errors } = game(t, 'A', 3e5); // 4 x 300k = 1.2M
+  const { ev, errors } = game(t, 'AA', 3e5); // 6 x 300k = 1.8M
   assert.deepEqual(buttons(ev), [[1e5, false], [5e5, false], [1e6, false], [5e6, true], [1e7, true]]);
-  assert.match(bank(ev), /up to \$1\.20M more/);
+  assert.match(bank(ev), /up to \$1\.80M more/);
   ev('ACT.callBank({amount:5e6})');
   assert.equal(offers(ev).length, 0, 'over the limit is refused as well as greyed out');
-  ev('window.__rt="AA"');
-  assert.equal(ev('callLimit(CALL_TERMS.AA)'), 1.8e6);
   ev('window.__rt="AAA"');
   assert.equal(ev('callLimit(CALL_TERMS.AAA)'), 2.4e6);
 
-  ev("window.__rt='A';S.loans.push({id:'l1',bank:'db',bal:9e5,covs:[],amount:9e5,start:S.day,left:12,apr:.1,pay:1})");
-  assert.deepEqual(buttons(ev), [[1e5, false], [5e5, true], [1e6, true], [5e6, true], [1e7, true]]);
+  ev("window.__rt='AA';S.loans.push({id:'l1',bank:'db',bal:9e5,covs:[],amount:9e5,start:S.day,left:12,apr:.1,pay:1})");
+  assert.deepEqual(buttons(ev), [[1e5, false], [5e5, false], [1e6, true], [5e6, true], [1e7, true]]);
   ev("S.loans.push({id:'l2',bank:'vult',bal:0,amount:7e6,share:.1,covs:[],start:S.day})");
-  assert.equal(ev('callLimit(CALL_TERMS.A)'), 3e5, 'an investor is not a creditor, whatever their bal says');
+  assert.equal(ev('callLimit(CALL_TERMS.AA)'), 9e5, 'an investor is not a creditor, whatever their bal says');
   ev("S.loans.find(l=>l.id==='l2').bal=7e6");
-  assert.equal(ev('callLimit(CALL_TERMS.A)'), 3e5);
+  assert.equal(ev('callLimit(CALL_TERMS.AA)'), 9e5);
   ev("S.loans[0].bal=9e9");
-  assert.equal(ev('callLimit(CALL_TERMS.A)'), 0, 'never below zero');
+  assert.equal(ev('callLimit(CALL_TERMS.AA)'), 0, 'never below zero');
   assert.match(bank(ev), /up to \$0 more/);
   assert.deepEqual(errors, []);
 });
@@ -129,7 +129,7 @@ test('with half a billion in the vault the section is gone, like the banks', (t)
   ev('S.cash=RICH_NO_LOANS;ACT.callBank({amount:1e5})');
   assert.equal(offers(ev).length, 0);
   assert.deepEqual(buttons(ev), []);
-  assert.doesNotMatch(bank(ev), /Call the bank|Get to an A rating/);
+  assert.doesNotMatch(bank(ev), /Call the bank|Get to an AA rating/);
   ev('S.cash=RICH_NO_LOANS-1');
   assert.equal(buttons(ev).length, 5);
   assert.deepEqual(errors, []);
@@ -152,5 +152,19 @@ test('the amounts sit in the usual button row, which wraps on a phone', (t) => {
   const { ev, errors } = game(t);
   ev('ACT.bank({})');
   assert.equal(ev("document.querySelectorAll('#bankCard .btns [data-act=\"callBank\"]').length"), 5);
+  assert.deepEqual(errors, []);
+});
+
+test('weird conditions always apply, and turn over every week, not every call', (t) => {
+  const { ev, errors } = game(t);
+  const odd = () => { ev('ACT.callBank({amount:1e5})'); return offers(ev)[0].covs.slice(1); };
+  ev('S.day=0');
+  const w0 = odd();
+  assert.equal(w0.length, 1);
+  assert.equal(ev(`CALL_ODD.includes(${JSON.stringify(w0[0])})`), true, 'from the weird list');
+  ev('S.day=6');
+  assert.deepEqual(odd(), w0, 'calling again the same week gets the same quirk');
+  ev('S.day=7');
+  assert.notDeepEqual(odd(), w0, 'next week, another one');
   assert.deepEqual(errors, []);
 });

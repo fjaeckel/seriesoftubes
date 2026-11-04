@@ -11,7 +11,7 @@ All notable changes to this project are documented here. The project follows
 - No circuit of any kind can be built between North and South Korea, and nothing leaves South Korea over land: every way out is a subsea cable.
 - The map zooms in twice as far, for crowded regions like New England or around Washington.
 - Cable ships at anchor sit a little further out from their port, and a tap on a city picks the city even with a ship close by.
-- With a credit rating of A or better you can now call a bank from the Bank window and ask for the amount you need. The better your rating, the lower the rate, the fewer the conditions and the more they will lend, up to a limit based on your revenue and what you already owe. (#251)
+- With a credit rating of AA or better you can now call a bank from the Bank window and ask for the amount you need. The better your rating, the lower the rate and the more they will lend, up to a limit based on your revenue and what you already owe, but weird conditions always apply. (#251)
 - Agents playing through the Agent API can no longer start a link in a city where you have no POP, just as on the map. Before, an agent could sign a dark fiber IRU, lease a wave or lay a cable from such a city; now it is told why, and so is its dry run.
 - Build POP in a small city that is off the map now says why it can't, and names a city nearby to build in instead. Founding your own exchange where you can't (mainland China, a city that already has one, a city with no POP) says why too. Before, both did nothing without a word, and an agent's dry run quoted a price.
 

@@ -259,7 +259,7 @@
 "bank.call_the_bank":"Appeler la banque",
 "bank.condition_broken_for_n_day":{"one":"Condition non respectée depuis {n} jour.","other":"Condition non respectée depuis {n} jours."},
 "bank.debt_free_your_accountant_is":"Zéro dette. Ton comptable trouve ça louche.",
-"bank.get_to_an_a_rating_and":"Atteins une note A et les banquiers prendront ton appel. Pour l'instant, ils sont en réunion.",
+"bank.get_to_an_aa_rating_and":"Atteins une note AA et les banquiers prendront ton appel. Pour l'instant, ils sont en réunion.",
 "bank.in_the_vault":"dans le coffre",
 "bank.n_loan":{"one":"{n} prêt","other":"{n} prêts"},
 "bank.n_months":"{n} mois",

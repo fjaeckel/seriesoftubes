@@ -259,7 +259,7 @@
 "bank.call_the_bank":"Chiama la banca",
 "bank.condition_broken_for_n_day":{"one":"Condizione violata da {n} giorno.","other":"Condizione violata da {n} giorni."},
 "bank.debt_free_your_accountant_is":"Zero debiti. Il tuo commercialista è sospettoso.",
-"bank.get_to_an_a_rating_and":"Arriva a un rating A e i banchieri ti risponderanno. Adesso sono in riunione.",
+"bank.get_to_an_aa_rating_and":"Arriva a un rating AA e i banchieri ti risponderanno. Adesso sono in riunione.",
 "bank.in_the_vault":"nel caveau",
 "bank.n_loan":{"one":"{n} prestito","other":"{n} prestiti"},
 "bank.n_months":"{n} mesi",
