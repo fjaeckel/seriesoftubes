@@ -8,7 +8,7 @@ const RELEASE_NOTES=/*__RELEASE_NOTES__*/[];
 const RELEASE_STORY=/*__RELEASE_STORY__*/[];
 const IS_DEV=APP_VERSION.startsWith('__');
 // Only report from the real site; previews, localhost and the Claude viewer stay silent.
-const ANALYTICS={host:/(^|\.)seriesoftub\.es$/.test(location.hostname)?'https://stats.seriesoftub.es':'',site:'seriesoftub.es'};
+const ANALYTICS={host:/(^|\.)seriesoftub\.es$/.test(location.hostname)&&!/[?&]noc=/.test(location.search)?'https://stats.seriesoftub.es':'',site:'seriesoftub.es'};
 (function(){
   try{
     window.ridiculytics=window.ridiculytics||function(){const q=window.ridiculytics.q=window.ridiculytics.q||[];if(q.length<100)q.push(arguments);};

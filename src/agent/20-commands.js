@@ -416,6 +416,7 @@ const API_VIEW={
  help:{args:[],doc:'Open the how-to-play modal.'},
  dash:{args:[],doc:'Open the NOC dashboard.'},
  dashClose:{args:[],doc:'Close the NOC dashboard.'},
+ nocWindow:{args:[],doc:'Open the NOC dashboard in a window of its own, for a second display.'},
  dashTab:{args:[['k','dashTab']],doc:'Switch the NOC dashboard tab.'},
  dashSort:{args:[['k','dashSortKey']],doc:'Flip a dashboard column\'s sort.'},
  dashLink:{args:[['id','entityId']],doc:'Jump from the dashboard to a link\'s panel.'},

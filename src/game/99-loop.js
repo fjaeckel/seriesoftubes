@@ -7,7 +7,8 @@ function frame(now){
   if(ANALYTICS.host&&S&&!S.lost&&UI.speed&&document.visibilityState==='visible'){UI.playMs=(UI.playMs||0)+dt;const m=UI.playMs/60000;for(const k of PLAY_MARKS)if(m>=k)track('play_'+k+'m',true);}
   if(S&&UI.started&&!S.lost&&now-(UI.lastSave||0)>5000)save();
   // The panels catch up on the frame after a day, so one frame does not carry both the day's simulation and them.
-  if(UI.panelsDue){UI.panelsDue=false;if(!pressing){renderPanel();renderLeft();if(!$('dash').hidden)renderDash();renderBank();}renderHint();}
+  if(UI.panelsDue){NOC.dirty=true;UI.panelsDue=false;if(!pressing){renderPanel();renderLeft();if(!$('dash').hidden)renderDash();renderBank();}renderHint();}
+  if(NOC.peer)nocPump(now);
   if(S&&!S.lost&&$('modal').hidden&&UI.speed&&!pzOn())runClock(dt);
   if((UI.speed||pzOn())&&!(S&&S.lost))animT+=dt; /* paused = frozen dots, waves and clouds */
   const t=animOn()?animT:0;
@@ -53,4 +54,4 @@ function boot(data){
   window.claude?.hot?.snapshot?.(()=>({S:S&&JSON.parse(JSON.stringify(S)),cam:{...cam}}));
   if(!window.__TUBES_TEST__){requestAnimationFrame(frame);setTimeout(checkUpdate,4000);setInterval(checkUpdate,10*60*1000);}
 }
-if(!RW_IN)slotBoot(()=>window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {}));
+if(NOC.win)nocWinBoot();else if(!RW_IN)slotBoot(()=>window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {}));

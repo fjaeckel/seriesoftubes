@@ -1,0 +1,95 @@
+/* The NOC window (?noc=<slot>): a dark wallboard for a second display, and the dashboard's own tabs under Details. */
+body.noc-window{background:#0B1224;overflow:auto}
+#nocBoard{color:#E8EEFA}
+body.noc-window>*:not(#nocBoard):not(#dash):not(#toasts):not(script){display:none !important}
+body.noc-window #dash{position:static;background:none;overflow:visible;padding:0 12px 16px}
+body.noc-window #toasts{z-index:20}
+body.noc-window [data-act="dashClose"]{display:none}
+
+#nocBar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:10px 16px;background:#0F1830;border-bottom:1px solid #2A3658;position:sticky;top:0;z-index:5}
+.nb-id{min-width:0;margin-right:auto}
+.nb-as{display:block;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#9FB0D3;overflow-wrap:anywhere}
+.nb-title{font-family:var(--display);font-weight:800;font-size:22px;line-height:1.1}
+.nb-pill{font-family:var(--display);font-weight:800;font-size:14px;padding:4px 12px;border-radius:99px;color:#07101F;background:#2DD4A7;white-space:nowrap}
+.nb-pill.warn{background:#FFB547}
+.nb-pill.bad{background:#FF5C6C}
+.nb-now{font-family:var(--display);font-weight:800;font-size:17px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.nb-now span{color:#9FB0D3;font-weight:700;margin-left:10px}
+.nb-why{flex-basis:100%;order:9;color:#FFD08A;font-weight:700;font-size:13px}
+.nb-tabs{display:flex;gap:4px}
+.nb-tabs button{background:none;border:1px solid #2A3658;color:#C9D5EE;border-radius:9px;padding:5px 11px;font-weight:800;font-size:12.5px;cursor:pointer}
+.nb-tabs button.on{background:#E8EEFA;color:#0B1224;border-color:#E8EEFA}
+
+#nocWall{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:10px;padding:10px 12px 16px}
+.nw-tiles{grid-column:1/-1;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.nw-col{display:flex;flex-direction:column;gap:10px;min-width:0}
+.nw-low{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.nw-tile,.nw-panel{background:#121B33;border:1px solid #2A3658;border-radius:14px;min-width:0}
+.nw-tile{padding:8px 12px;position:relative;overflow:hidden}
+.nw-l{font-size:10.5px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;color:#9FB0D3}
+.nw-v{font-family:var(--display);font-weight:800;font-size:25px;line-height:1.15;white-space:nowrap}
+.nw-tile.bad .nw-v{color:#FF5C6C}
+.nw-tile.warn .nw-v{color:#FFB547}
+.nw-s{font-size:11.5px;font-weight:700;color:#9FB0D3}
+.nw-spark{display:block;width:100%;height:22px;margin-top:3px}
+.nw-panel{padding:10px 12px}
+.nw-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;margin-bottom:6px}
+.nw-h h3{font-size:15px;color:#E8EEFA}
+.nw-legend{display:flex;flex-wrap:wrap;gap:3px 10px;font-size:11.5px;font-weight:700;color:#C9D5EE}
+.nw-legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:4px}
+.nw-legend i.dash{width:12px;height:0;border-top:2px dashed #E8EEFA;border-radius:0;vertical-align:middle}
+.nw-empty{color:#9FB0D3;font-weight:700;margin:14px 0}
+.nw-quiet{color:#2DD4A7;font-weight:800;margin:10px 0}
+
+.nw-world{position:relative;width:100%;border-radius:10px;background:#0A1A33;overflow:hidden}
+.nw-world svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.nw-land path{fill:#233459;stroke:#34497A;stroke-width:1.5;stroke-linejoin:round}
+#nwOver{position:absolute;inset:0}
+.nw-link{fill:none;stroke-linecap:round;opacity:.85}
+.nw-link.down{stroke-dasharray:10 10}
+.nw-flow{fill:none;stroke:#fff;stroke-linecap:round;stroke-dasharray:3 34;opacity:.75;pointer-events:none}
+.nw-dot{stroke:#0A1A33;stroke-width:3}
+.nw-hit{fill:transparent}
+.nw-pop{cursor:pointer}
+.nw-sel{fill:none;stroke:#fff;stroke-width:3}
+.nw-ring{fill:none;stroke-width:4}
+.nw-lab{font-family:var(--body);font-weight:800;font-size:28px;fill:#fff;paint-order:stroke;stroke:#0A1A33;stroke-width:7px;stroke-linejoin:round;pointer-events:none}
+@media (prefers-reduced-motion:no-preference){
+  body.noc-window:not(.noc-still) .nw-flow{animation:nwFlow 1.6s linear infinite}
+  body.noc-window:not(.noc-still) .nw-ring{animation:nwPing 1.4s ease-out infinite;transform-box:fill-box;transform-origin:center}
+}
+@keyframes nwFlow{to{stroke-dashoffset:-37}}
+@keyframes nwPing{from{transform:scale(.7);opacity:1}to{transform:scale(2.2);opacity:0}}
+
+.nw-chart{display:block;width:100%;height:auto}
+.nw-grid{stroke:#2A3658;stroke-width:1}
+.nw-ax{font-size:13px;font-weight:700;fill:#9FB0D3}
+.nw-al{border-left:4px solid #FFB547;padding:4px 8px;margin-bottom:6px;background:#19233F;border-radius:0 8px 8px 0;font-size:13px}
+.nw-al.bad{border-left-color:#FF5C6C}
+.nw-alarms{max-height:min(44vh,430px);overflow:auto}
+.nw-pick select{background:#0F1830;color:#E8EEFA;border:1px solid #2A3658;border-radius:8px;padding:4px 6px;font-weight:700;font-size:12.5px;max-width:170px}
+.nw-port{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 8px;align-items:center;padding:7px 0;border-top:1px solid #222E4E}
+.nw-k{font-size:10px;font-weight:900;color:#07101F;padding:2px 6px;border-radius:6px;white-space:nowrap}
+.nw-pm{min-width:0}
+.nw-pt{font-size:13px;overflow-wrap:anywhere}
+.nw-bar{height:7px;border-radius:9px;background:#26324F;overflow:hidden;margin:3px 0}
+.nw-bar i{display:block;height:100%;border-radius:9px}
+.nw-pc{font-family:var(--display);font-size:16px;min-width:42px;text-align:right}
+.nw-btns{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px;--ink:#1E2640;--paper:#fff;color:#1E2640}
+.nw-btns .meta{color:#9FB0D3}
+.nw-row{display:flex;align-items:center;gap:8px;padding:4px 0}
+.nw-row .nw-pm{flex:1}
+
+@media (max-width:1000px){
+  #nocWall{grid-template-columns:minmax(0,1fr)}
+  .nw-low{grid-template-columns:minmax(0,1fr)}
+  .nw-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:520px){
+  .nw-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .nw-v{font-size:21px}
+  .nw-lab{display:none}
+  #nocBar{padding:8px 10px}
+  #nocWall{padding:8px}
+  .nb-now span{margin-left:6px}
+}
