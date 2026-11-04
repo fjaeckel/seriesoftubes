@@ -2602,6 +2602,7 @@
 "link_modal.local_telecom_licence_included":"licence télécom locale incluse",
 "link_modal.needs_what_at_both_ends":"requiert {what} aux deux bouts",
 "link_modal.new_diverse_route_40_survives_cuts":"Nouveau parcours diversifié <small>+40 % · survit seul aux coupures</small>",
+"link_modal.no_circuit_crosses_between_north_and":"Aucun circuit ne passe entre la Corée du Nord et la Corée du Sud, et aucun opérateur ne t'en vendra un. Pyongyang rejoint le monde par la Chine et la Russie.",
 "link_modal.no_subsea_cable_lands_in_both":"Aucun câble sous-marin n’atterrit à la fois à {a} et à {b}. Les câbles partant de {a} vont vers {list}. Fais escale dans l’une de ces villes.",
 "link_modal.no_subsea_cable_lands_in_city":"Aucun câble sous-marin n’atterrit à {city}. La station d’atterrissement la plus proche est {near} : amène d’abord la fibre jusque-là, puis prends un câble depuis là-bas.",
 "link_modal.nobody_sells_capacity_between_kyiv":"Personne ne vend de capacité entre Kyiv et Moscow, et personne ne le fera. Passe plutôt par Warsaw, Bucharest ou Helsinki.",

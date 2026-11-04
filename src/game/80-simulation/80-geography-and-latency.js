@@ -10,6 +10,9 @@ function regionMult(c){const C=CITY[c];if(!C||C.cn)return 1;if(C.kr)return KR_TR
 // What a home pays, against the usual bill.
 const arpuOf=c=>CITY[c].arpu||(CITY[c].kr&&scnRule('sender')?KR_ARPU:1);
 const netMult=(n,c)=>regionMult(c)*((n&&n.far&&CITY[c]&&n.far[CITY[c].reg])||1);
+// Pairs nobody sells a circuit between, whoever builds it: two cities, or two countries (codes in capitals).
+const NO_TALK=[['kyv','mos',N_('link_modal.nobody_sells_capacity_between_kyiv')],['KP','KR',N_('link_modal.no_circuit_crosses_between_north_and')]];
+const noTalk=(a,b)=>{const A=[a,CITY[a].cc],B=[b,CITY[b].cc],t=NO_TALK.find(([x,y])=>A.includes(x)&&B.includes(y)||A.includes(y)&&B.includes(x));return t?t[2]:'';};
 const uaePair=(a,b)=>!!CITY[a].uae&&!!CITY[b].uae;
 const rainPair=(a,b)=>!!(CITY[a].rain||CITY[b].rain);
 // Every city has a country (cc), but the border toll is Africa's: elsewhere a wave crosses borders at the plain price.
@@ -22,10 +25,11 @@ const andesPair=(a,b)=>!!CITY[a].andes&&!!CITY[b].andes&&CITY[a].andes!==CITY[b]
 let ANCHOR_P=null;const anchorPair=l=>(ANCHOR_P||(ANCHOR_P=new Set(CABLE_PAIRS.filter(p=>CAB[p.cid]&&CAB[p.cid].anchor).map(p=>edgeKey(p))))).has(edgeKey(l));
 /* Overland between continents (Europe to the Middle East and Asia) crosses a dozen borders and as many
    carriers, each taking a cut: in real life it costs ten times the subsea route or more (#40). */
-const LAND_X=45,landX=(a,b)=>!isSub(a,b)&&CITY[a].reg!==CITY[b].reg;
+// Overland between continents is dear and DIY is out, except inside one country (Moscow–Vladivostok, Istanbul–Ankara).
+const LAND_X=45,landX=(a,b)=>!isSub(a,b)&&CITY[a].reg!==CITY[b].reg&&CITY[a].cc!==CITY[b].cc;
 function landMult(a,b){if(isSub(a,b))return 1;if(uaePair(a,b))return 3;return (landX(a,b)?LAND_X:1)*(andesPair(a,b)?2:1)*(nullPair(a,b)?NULLARBOR:1)*(rainPair(a,b)?2:1)*(borderPair(a,b)?2:1);}
 function landWhy(a,b){if(isSub(a,b))return '';if(uaePair(a,b))return tr('geography_and_latency.inside_the_uae_only_the_two');
-  const r=[];if(CITY[a].reg!==CITY[b].reg)r.push(tr('geography_and_latency.overland_between_continents_crosses',{x:LAND_X}));if(andesPair(a,b))r.push(tr('geography_and_latency.this_route_crosses_the_andes_2'));if(nullPair(a,b))r.push(tr('geography_and_latency.this_route_crosses_the_nullarbor_x',{x:NULLARBOR}));if(borderPair(a,b))r.push(tr('geography_and_latency.this_route_crosses_a_border_in'));if(rainPair(a,b))r.push(tr('geography_and_latency.this_route_goes_into_the_amazon'));return r.join(' ');}
+  const r=[];if(landX(a,b))r.push(tr('geography_and_latency.overland_between_continents_crosses',{x:LAND_X}));if(andesPair(a,b))r.push(tr('geography_and_latency.this_route_crosses_the_andes_2'));if(nullPair(a,b))r.push(tr('geography_and_latency.this_route_crosses_the_nullarbor_x',{x:NULLARBOR}));if(borderPair(a,b))r.push(tr('geography_and_latency.this_route_crosses_a_border_in'));if(rainPair(a,b))r.push(tr('geography_and_latency.this_route_goes_into_the_amazon'));return r.join(' ');}
 function linkLat(l){const f=l.kind==='df'?(l.own?(l.sub?seaLatencyFactor(l):1.1):1.25):l.kind==='vxc'?1.4:l.cable?(CAB[l.cable].lat||1):1.3;return l.km*f/200;}
 /* Wave prices differ a lot by market (TeleGeography): Europe's dense, competitive metro and
    long-haul routes are cheap (Frankfurt–London 100G ≈ $1,150/mo), the US costs more, and
@@ -51,14 +55,14 @@ function viaSeg(a,b){const cabs=cablesOk(a,b),sub=isSub(a,b);if(!cabs.length)ret
   return `<h4 class="sub4">${tr('common.route')}</h4><div class="seg">${opts.map(o=>btn(o.l,'via',{v:o.v},wr&&wr.via===o.v?'pink':'ghost')).join('')}</div>${wr&&wr.cab?`<p class="note">${esc(CAB[wr.cab].blurb)} ${tr('geography_and_latency.all_your_waves_on_one_cable')}</p>`:''}`;}
 function bestLat(a,b,f){const ls=S.links.filter(l=>!linkDown(l)&&(!f||f(l)));const dist={[a]:0},done=new Set();for(;;){let u=null,ud=Infinity;for(const k in dist)if(!done.has(k)&&dist[k]<ud){u=k;ud=dist[k];}if(u===null)break;if(u===b)return ud;done.add(u);for(const l of ls){if(l.a!==u&&l.b!==u)continue;const v=l.a===u?l.b:l.a,nd=ud+linkLat(l)+0.05;if(nd<(dist[v]??Infinity))dist[v]=nd;}}return Infinity;}
 // The lowest one-way latency anything you could build gets between two cities (#273), the way bestLat() adds it up:
-// your own fiber over land (×1.1), or the route of a cable that lands at both ends (your own cable in the low-latency
+// your own fiber over land (×1.1, wherever isSub() allows it), or the route of a cable that lands at both ends (your own cable in the low-latency
 // design follows it at 0.9 or better). A sea route that no cable takes needs a survey, so it does not count.
 // Built from the map alone, so it is worked out once per city.
 const LATF=new Map();let LATC=null;
 function latFloor(a,b){let D=LATF.get(a);if(!D){LATF.set(a,D=latFloor0(a));}return D[CIDX[b]];}
 function latFloor0(a){const n=CITIES.length,D=new Float64Array(n).fill(Infinity),done=new Uint8Array(n);
   if(!LATC){LATC=new Map();for(const c of CABLE_PAIRS){const k=Math.min(CIDX[c.a],CIDX[c.b])*4096+Math.max(CIDX[c.a],CIDX[c.b]),w=c.km*Math.min(0.9,CAB[c.cid].lat||1);if(!(LATC.get(k)<=w))LATC.set(k,w);}}
-  D[CIDX[a]]=0;for(;;){let u=-1,ud=Infinity;for(let i=0;i<n;i++)if(!done[i]&&D[i]<ud){u=i;ud=D[i];}if(u<0)break;done[u]=1;const U=CITIES[u],LU=lands(U);
+  D[CIDX[a]]=0;for(;;){let u=-1,ud=Infinity;for(let i=0;i<n;i++)if(!done[i]&&D[i]<ud){u=i;ud=D[i];}if(u<0)break;done[u]=1;const U=CITIES[u];
     for(let i=0;i<n;i++){if(done[i])continue;const V=CITIES[i],cw=LATC.get(Math.min(u,i)*4096+Math.max(u,i));
-      let w=lands(V).some(x=>LU.includes(x))?kmBetween(U.id,V.id)*1.1:Infinity;if(cw<w)w=cw;if(w<Infinity){const d=ud+w/200+0.05;if(d<D[i])D[i]=d;}}}
+      let w=overland(U,V)&&!noTalk(U.id,V.id)?kmBetween(U.id,V.id)*1.1:Infinity;if(cw<w)w=cw;if(w<Infinity){const d=ud+w/200+0.05;if(d<D[i])D[i]=d;}}}
   return D;}

@@ -65,15 +65,16 @@ LANDS_LL.push(
  {id:'sak',ll:[[142.34,47.26],[143.14,47.26],[143.14,46.66],[142.34,46.66]]},
 );
 // Places on a continent with no road or fiber in, only the sea: Juneau, Alaska's Arctic coast and Russia's Arctic and Kamchatka (#145).
+// `on` is the land they are really part of: your own country may still dig to them over land (isSub()), nobody else's can.
 LANDS_LL.push(
- {id:'aks',hide:true,ll:[[-134.76,58.61],[-133.96,58.61],[-133.96,58.01],[-134.76,58.01]]},
- {id:'swd',hide:true,ll:[[-165.78,64.82],[-164.98,64.82],[-164.98,64.22],[-165.78,64.22]]},
- {id:'nsl',hide:true,ll:[[-157.15,71.58],[-156.35,71.58],[-156.35,70.98],[-157.15,70.98]]},
- {id:'tay',hide:true,ll:[[80.25,73.81],[81.05,73.81],[81.05,73.21],[80.25,73.21]]},
- {id:'lap',hide:true,ll:[[128.47,71.94],[129.27,71.94],[129.27,71.34],[128.47,71.34]]},
- {id:'pvk',hide:true,ll:[[169.91,70.00],[170.71,70.00],[170.71,69.40],[169.91,69.40]]},
- {id:'chu',hide:true,ll:[[177.05,65.05],[177.85,65.05],[177.85,64.45],[177.05,64.45]]},
- {id:'kam',hide:true,ll:[[158.25,53.32],[159.05,53.32],[159.05,52.72],[158.25,52.72]]},
+ {id:'aks',hide:true,on:'am',ll:[[-134.76,58.61],[-133.96,58.61],[-133.96,58.01],[-134.76,58.01]]},
+ {id:'swd',hide:true,on:'am',ll:[[-165.78,64.82],[-164.98,64.82],[-164.98,64.22],[-165.78,64.22]]},
+ {id:'nsl',hide:true,on:'am',ll:[[-157.15,71.58],[-156.35,71.58],[-156.35,70.98],[-157.15,70.98]]},
+ {id:'tay',hide:true,on:'eu',ll:[[80.25,73.81],[81.05,73.81],[81.05,73.21],[80.25,73.21]]},
+ {id:'lap',hide:true,on:'eu',ll:[[128.47,71.94],[129.27,71.94],[129.27,71.34],[128.47,71.34]]},
+ {id:'pvk',hide:true,on:'eu',ll:[[169.91,70.00],[170.71,70.00],[170.71,69.40],[169.91,69.40]]},
+ {id:'chu',hide:true,on:'eu',ll:[[177.05,65.05],[177.85,65.05],[177.85,64.45],[177.05,64.45]]},
+ {id:'kam',hide:true,on:'eu',ll:[[158.25,53.32],[159.05,53.32],[159.05,52.72],[158.25,52.72]]},
 );
 // The Maldives.
 LANDS_LL.push(
@@ -84,13 +85,14 @@ LANDS_LL.push(
  {id:'ceb',ll:[[123.3,11.3],[124.1,11.3],[124.1,9.4],[123.3,9.4]]},
  {id:'mdn',ll:[[121.9,7],[123,8.4],[125.4,9.8],[126.6,7.5],[126.2,5.6],[125,5.6],[122,6.6]]},
 );
-// Greenland's towns and Iqaluit: no road between them, and no fiber over the ice, only the sea.
+// Greenland's towns and Iqaluit: no road between them, and no fiber over the ice, only the sea. Greenland's towns share one
+// island ('grl'), so Greenland may dig between them; Iqaluit is on Baffin Island.
 LANDS_LL.push(
  {id:'baf',hide:true,ll:[[-68.92,64.05],[-68.12,64.05],[-68.12,63.45],[-68.92,63.45]]},
- {id:'gln',hide:true,ll:[[-52.12,64.48],[-51.32,64.48],[-51.32,63.88],[-52.12,63.88]]},
- {id:'glq',hide:true,ll:[[-46.44,61.02],[-45.64,61.02],[-45.64,60.42],[-46.44,60.42]]},
- {id:'gls',hide:true,ll:[[-54.07,67.24],[-53.27,67.24],[-53.27,66.64],[-54.07,66.64]]},
- {id:'gla',hide:true,ll:[[-53.27,69.01],[-52.47,69.01],[-52.47,68.41],[-53.27,68.41]]},
+ {id:'gln',hide:true,on:'grl',ll:[[-52.12,64.48],[-51.32,64.48],[-51.32,63.88],[-52.12,63.88]]},
+ {id:'glq',hide:true,on:'grl',ll:[[-46.44,61.02],[-45.64,61.02],[-45.64,60.42],[-46.44,60.42]]},
+ {id:'gls',hide:true,on:'grl',ll:[[-54.07,67.24],[-53.27,67.24],[-53.27,66.64],[-54.07,66.64]]},
+ {id:'gla',hide:true,on:'grl',ll:[[-53.27,69.01],[-52.47,69.01],[-52.47,68.41],[-53.27,68.41]]},
 );
 // The eastern Caribbean capitals, each its own island, on ECFS and Southern Caribbean Fiber
 LANDS_LL.push(

@@ -2603,6 +2603,7 @@
 "link_modal.local_telecom_licence_included":"local telecom licence included",
 "link_modal.needs_what_at_both_ends":"needs {what} at both ends",
 "link_modal.new_diverse_route_40_survives_cuts":"New diverse route <small>+40% · survives cuts alone</small>",
+"link_modal.no_circuit_crosses_between_north_and":"No circuit crosses between North and South Korea, and no carrier will sell you one. Pyongyang reaches the world through China and Russia.",
 "link_modal.no_subsea_cable_lands_in_both":"No subsea cable lands in both {a} and {b}. Cables from {a} reach {list}. Hop through one of those.",
 "link_modal.no_subsea_cable_lands_in_city":"No subsea cable lands in {city}. The nearest landing station is {near}: run fiber there first, then take a cable from it.",
 "link_modal.nobody_sells_capacity_between_kyiv":"Nobody sells capacity between Kyiv and Moscow, and nobody is going to. Route through Warsaw, Bucharest or Helsinki instead.",

@@ -10,7 +10,7 @@ test('diversity map: the indexed graph answers like disjointRoutes() over every 
   ev('ACT.start({})');
   // The plain map: one record per possible link, in the order the indexed one adds them.
   ev(`window.plainLinks=state=>{const rules=state.scn&&state.scn.rules||{},links=[],cities=CITIES.filter(c=>!(rules.banCities||[]).includes(c.id)).map(c=>c.id),add=(a,b,id)=>links.push({a,b,id});
-    for(let i=0;i<cities.length;i++)for(let j=i+1;j<cities.length;j++){const a=cities[i],b=cities[j];
+    for(let i=0;i<cities.length;i++)for(let j=i+1;j<cities.length;j++){const a=cities[i],b=cities[j];if(noTalk(a,b))continue;
       if(!isSub(a,b)){add(a,b,'land:'+a+':'+b+':1');add(a,b,'land:'+a+':'+b+':2');}
       for(const c of cablesFor(a,b))if(!(rules.banPairs||[]).some(p=>p===c.cid+':'+a+'-'+b||p===c.cid+':'+b+'-'+a))add(a,b,'cab:'+c.cid);
       if(state.won&&seaCab(a,b)&&landing(a)&&landing(b)&&!cnCity(a)&&!cnCity(b))add(a,b,'own:'+a+':'+b);
