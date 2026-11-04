@@ -197,3 +197,15 @@ test('orbit customers sit out a bad month: at most PIE_PATIENCE happiness a day,
   assert.equal(ev("S.biz.some(b=>b.id==='pz')"), false, 'a month and more of nothing: cancelled');
   assert.deepEqual(errors, []);
 });
+
+test('a terminal lands on the nearest dish with room for all of it, not a sliver of a full one', () => {
+  const { ev, errors } = load();
+  world(ev);
+  ev("S.pie.dishes.find(d=>d.city==='lon').ant=1;compute()");
+  term(ev, 'a', 'dub', 'pizza', 15);
+  assert.equal(ev("R.pie.gs.a"), 'lon', 'the nearest dish first');
+  term(ev, 'b', 'dub', 'pizza', 50);
+  assert.notEqual(ev("R.pie.gs.b"), 'lon', 'London has 5 G left: the next dish takes all 50');
+  assert.ok(ev('R.pie.sf.b') > 0.95, `served in full (${ev('R.pie.sf.b')})`);
+  assert.deepEqual(errors, []);
+});

@@ -32,12 +32,12 @@ const pieSkyMs=(km,alt)=>2*(alt/PIE_C+PIE_HOP)+km*(PIE_RE+alt)/PIE_RE/PIE_C;
 // May a customer in country ca land on a dish in country dc? (spats)
 const pieLandOk=(ca,dc)=>!(pieSpatHome(ca)&&dc!==ca)&&!pieAirBlock(ca,dc);
 /* Where a terminal customer in city c lands: {k (index in ds), cr} or null. ds: dishes with .ok (on the backbone).
-   The nearest dish with room left that a baked crust over c also covers: within PIE_BENT km (bent pipe, any dish), else with lasers on that
+   The nearest dish with room left (for all of bw if any has it) that a crust over c also covers: within PIE_BENT km (bent pipe, any dish), else with lasers on that
    crust any dish on the backbone. Some customers need lasers (flywifi, marsorb: T.las). */
-function pieLand(c,t,ds,hubs){const T=BIZ_T[t],cc=CITY[c].cc;let best=null,bk=Infinity;
+function pieLand(c,t,ds,hubs,bw=0){const T=BIZ_T[t],cc=CITY[c].cc;let best=null,bk=Infinity;
   for(const id of hubs){if(!pieCovers(id,c))continue;const las=pieLased(id);if(T.las&&!las)continue;
     for(let k=0;k<ds.length;k++){const d=ds[k];if(!pieCovers(id,d.city)||!pieLandOk(cc,d.cc))continue;const km=c===d.city?0:pieKm(c,d.city);
-      if(d.left>0&&(km<=PIE_BENT||(las&&d.ok))){const v=km+(d.ok?0:1);if(v<bk){bk=v;best={k,cr:id,left:d.left};}}}}
+      if(d.left>0&&(km<=PIE_BENT||(las&&d.ok))){const v=km+(d.ok?0:1)+(d.left<bw?1e6:0);if(v<bk){bk=v;best={k,cr:id,left:d.left};}}}}
   return best;}
 function pieGraph(adj,edges,COMP,pops,NE){const NC=CITIES.length,hubs=pieHubs(),ds=pieDishes();
   const X={hubs,ds,term:{},gs:{},gsBw:{},cr:{},isl:[],l2o:{},l2p:{},up:[],ne:NE,adj,nc:NC,sk:[],bh:[],bhNo:[],res:{},main:-1};
@@ -47,7 +47,7 @@ function pieGraph(adj,edges,COMP,pops,NE){const NC=CITIES.length,hubs=pieHubs(),
   let main=-1,mn=0;const hk=S.home&&S.pops[S.home]?COMP[CIDX[S.home]]:-1;for(const [k,n] of cnt)if(n>mn||(n===mn&&k===hk)){main=k;mn=n;}X.main=main;
   for(const d of ds){const ci=CIDX[d.city];d.ok=COMP[ci]>=0&&COMP[ci]===main;d.left=d.g;if(!d.ok)X.isl.push(d.city);}
   // Terminals first: each takes what its dish and its crust have left, in S.biz order.
-  if(hubs.length)for(const b of S.biz){const T=BIZ_T[b.type];if(!T.orbit)continue;const L=pieLand(b.city,b.type,ds,hubs);if(!L)continue;const d=ds[L.k];
+  if(hubs.length)for(const b of S.biz){const T=BIZ_T[b.type];if(!T.orbit)continue;const L=pieLand(b.city,b.type,ds,hubs,b.bw);if(!L)continue;const d=ds[L.k];
     const a=Math.max(0,Math.min(b.bw,d.left,X.cr[L.cr]));d.left-=a;X.cr[L.cr]-=a;X.term[b.id]=a;X.gs[b.id]=d.city;X.gsBw[d.city]=(X.gsBw[d.city]||0)+a;}
   // Backhaul for cut-off POPs, after terminals and before sky circuits (see the top).
   if(X.isl.length)for(const d of ds){if(d.ok)continue;const ci=CIDX[d.city];if(!adj[ci]||!pops.includes(d.city))continue;const L=pieBhLand(d,ds,hubs,X.cr);
