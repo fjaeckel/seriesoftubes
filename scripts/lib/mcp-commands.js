@@ -509,6 +509,7 @@ const API_CMD={
 };
 
 const API_VIEW={
+ traceMode:{args:[['m','string']],doc:'Redo the open traceroute in a routing mode: normal, fast or scenic.'},
  help:{args:[],doc:'Open the how-to-play modal.'},
  dash:{args:[],doc:'Open the NOC dashboard.'},
  dashClose:{args:[],doc:'Close the NOC dashboard.'},
