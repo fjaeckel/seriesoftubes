@@ -14,8 +14,8 @@ const API_CMD={
  downP:{args:[['id','entityId']],watch:['pni.#id'],doc:'Step a PNI down one size. Not while an augment is on order.'},
 /* ---------- footprint: buildings, routers, POPs ---------- */
  buildPop:{args:[['city','cityId']],
-  quote:a=>({setup:popCost(a.city),blocked:cnCity(a.city)&&!cnOk()?[tr('pops_transit_ix.you_need_a_license_first_foreign')]:[]}),
-  doc:'Open a POP in a city you do not have one in. Costs popCost(city).'},
+  quote:a=>({setup:popCost(a.city),blocked:[cityOn(a.city)?'':popOffWhy(a.city),cnCity(a.city)&&!cnOk()?tr('pops_transit_ix.you_need_a_license_first_foreign'):''].filter(Boolean)}),
+  doc:'Open a POP in a city you do not have one in. Costs popCost(city). Not in a retired small city (off the map in new games).'},
  launchBB:{args:[['city','cityId']],watch:['pops.#city'],
   quote:a=>({setup:bbCost(a.city)}),
   doc:'Launch broadband to the eyeballs of a city you have a POP in. The core revenue source; one per POP.'},

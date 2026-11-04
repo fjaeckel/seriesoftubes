@@ -2,6 +2,7 @@
 // Inlined into the page at build. One entry per line, sorted by label; plurals are {"one":…,"other":…}.
 // Add or change text with scripts/i18n-add.js, check with npm run i18n:check.
 (window.I18N=window.I18N||{}).en={
+"action_helpers.city_is_off_the_map_small":"<b>{city} is off the map.</b><br>Small cities this close to a bigger one are retired from new games. Build in {near} instead.",
 "action_helpers.light_fiber_pair_n_price":"Light fiber pair {n} <small>{price}</small>",
 "action_helpers.light_fiber_pair_n_price_mo":"Light fiber pair {n} <small>{price} + {mo}/mo</small>",
 "action_helpers.n_fiber_pairs_lit_the_trench":"{n} fiber pairs lit, the trench is full",

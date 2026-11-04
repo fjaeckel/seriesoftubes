@@ -1,6 +1,7 @@
 // French: the translation of every label in src/i18n/en.js. One entry per line, sorted by label; plurals are
 // {"one":…,"other":…}. Add or change entries with scripts/i18n-add.js, check with npm run i18n:check.
 (window.I18N=window.I18N||{}).fr={
+"action_helpers.city_is_off_the_map_small":"<b>{city} n’est plus sur la carte.</b><br>Les petites villes aussi proches d’une plus grande ne figurent plus dans les nouvelles parties. Construis plutôt à {near}.",
 "action_helpers.light_fiber_pair_n_price":"Allumer la paire {n} <small>{price}</small>",
 "action_helpers.light_fiber_pair_n_price_mo":"Allumer la paire {n} <small>{price} + {mo}/mois</small>",
 "action_helpers.n_fiber_pairs_lit_the_trench":"{n} paires de fibres allumées, la tranchée est pleine",
