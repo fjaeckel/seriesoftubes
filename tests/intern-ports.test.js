@@ -72,7 +72,7 @@ test('the same two rules for an IX port', t => {
 });
 
 test('it picks the smallest port that gives the headroom, and the biggest the router takes when none does', t => {
-  // 120G of traffic at 1.5× needs 180G: 100G is too small, 400G fits.
+  // 99G of traffic at 1.5× needs about 149G: 100G is too small, 400G fits.
   const A = twins(t, pni(1, 99) + ";R.usePni.p1=99", "ACT.pni({city:'fra',net:'drz',tier:2})", PNIS);
   assert.equal(A.ev('S.pni[0].tier'), 2);
   // A router that tops out at 100G cannot take a bigger port: another member of the LAG instead.
@@ -177,5 +177,32 @@ test('an old save has the order off, and a new save keeps its dials', t => {
   assert.equal(ev('S.ops.on.ports'), false, 'an intern hired before the order existed does not start doing it');
   assert.equal(ev('opsP("ports","x")'), 1.5);
   assert.equal(ev('S.ops.spent.ports'), 0);
+  assert.deepEqual(errors, []);
+});
+
+test('a LACP fault or a building down does not buy a bigger IX port: the order counts what the port is', t => {
+  const { ev, errors } = hired(t, ix(1, 70) + ";S.ixn={fra:2};S.pops.fra.routers=2;S.ev.ixlacp={fra:{until:S.day+2,f:0.5}};compute();R.useIx.fra=70");
+  assert.ok(ev("ixCap('fra')") < 1.5 * 70, 'the fault leaves less than the headroom for a day or two');
+  on(ev);
+  const c0 = cash(ev);
+  shift(ev);
+  assert.equal(ev(IXP), '[1,2]', 'the 2×100G LAG stays as it is');
+  assert.equal(cash(ev), c0);
+  assert.deepEqual(errors, []);
+});
+
+test('a remote IX port moves up to 100G at most, and the log names the exchange', t => {
+  const { ev, errors } = hired(t, "S.rules.pnis='instant';S.links.push({id:'remote',a:'fra',b:'ams',kind:'vxc',prov:FABS.find(f=>f.cities.includes('fra')&&f.cities.includes('ams')).id,vt:1,km:kmBetween('fra','ams'),sub:false,mo:0,cut:0,day:0});" +
+    "ACT.buyIx({city:'ams',tier:0,signed:true});compute();R.useIx.ams=9");
+  assert.equal(ev("isRemote('ams')"), true, 'no POP in Amsterdam: a remote port');
+  on(ev);
+  shift(ev);
+  assert.equal(ev('S.ixp.ams'), 1, '10G → 100G');
+  assert.match(ev('opsEntry(S.ops.log[0])'), new RegExp(ev("ixName('ams')") + '|Amsterdam'));
+  ev('compute();R.useIx.ams=70');
+  const c0 = cash(ev);
+  shift(ev);
+  assert.equal(ev('S.ixp.ams'), 1, 'a remote port stops at 100G, and there is no LAG without a POP');
+  assert.equal(cash(ev), c0);
   assert.deepEqual(errors, []);
 });

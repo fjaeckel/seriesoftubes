@@ -159,25 +159,26 @@ const OPS_RUN={
  // PNIs and IX ports keep Headroom times today's traffic, hottest first. One port at a POP with several routers gets a
  // second in a LAG, so it is not the only way out; anything else moves up to the smallest port size that fits. A PNI
  // augment lands weeks later, so that port waits for it. A flood fills ports for a day or two: not worth buying for.
- ports(X){if(ddosAll().length)return;const N=opsP('ports','x'),L=[],
+ ports(X){if(ddosAll().length||!X.can('ports',1,0,true))return;const N=opsP('ports','x'),L=[],
    // Router ports that pending PNI augments will take when they land are spoken for.
    resv=c=>S.pni.reduce((a,p)=>p.up&&p.city===c?a+Math.max(0,PORT_SLOT(p.up.tier)*(p.up.n||1)-PORT_SLOT(p.tier)*(p.n||1)):a,0),room=c=>portsMax(c)-portsUsed(c)+1e-9-resv(c);
    // Each port: cap() now, use today, lag() and ups() the jobs it could have as {cost, cap after, w for the log, go}, sig() to see a job took.
    for(const p of S.pni){const c=p.city,use=R.usePni[p.id]||0,cap=()=>lagCap(pniG(p),p.n),n=()=>p.n||1;if(!pniOn(p)||p.up||!(use>0)||cap()>=N*use||!opsHere('ports',c))continue;
-     L.push({city:c,use,u:use/cap(),cap,n,rt:(S.pops[c]||{}).routers||1,busy:()=>!!p.up,sig:()=>[p.tier,n(),!!p.g1,!!p.up].join(),
+     L.push({city:c,at:c,use,u:use/cap(),cap,n,rt:(S.pops[c]||{}).routers||1,busy:()=>!!p.up,sig:()=>[p.tier,n(),!!p.g1,!!p.up].join(),
        lag:()=>n()<LAG_MAX&&!msfNope(p.net,c)&&PORT_SLOT(p.tier)<=room(c)?{cost:1500+PORT[p.tier].setup/2,cap:lagCap(pniG(p),n()+1),w:'+1×'+pniPN(p),go:()=>ACT.lagP({id:p.id,d:1})}:null,
        ups:()=>{const out=[];for(let t=p.g1?0:p.tier+1;t<PORT.length&&portShown(t);t++){const q=pniQuote(c,p.net,t,resv(c));if(q&&!q.why)out.push({cost:q.cost,cap:lagCap(PORT[t].g,n()),w:pniPN(p)+'→'+PORT[t].n,go:()=>ACT.pni({city:c,net:p.net,tier:t})});}return out;}});}
-   for(const x in S.ixp){const c=ixCity(x),use=R.useIx[x]||0,cap=()=>ixCap(x),n=()=>(S.ixn||{})[x]||1,pop=S.pops[c];if(S.myIx[x]||!(use>0)||!(cap()>0)||cap()>=N*use||!opsHere('ports',c))continue;
+   // Nominal capacity, not ixCap(): a LACP fault or one building down halves a LAG for a day or two, not worth a bigger port.
+   for(const x in S.ixp){const c=ixCity(x),use=R.useIx[x]||0,n=()=>(S.ixn||{})[x]||1,cap=()=>lagCap(PORT[S.ixp[x]].g,n())*(isRemote(x)?REMOTE_CAP:1),pop=S.pops[c];if(S.myIx[x]||!(use>0)||!(cap()>0)||cap()>=N*use||!opsHere('ports',c))continue;
      const g=()=>PORT[S.ixp[x]].g;
-     L.push({city:c,use,u:use/cap(),cap,n,rt:pop?pop.routers||1:1,busy:()=>false,sig:()=>S.ixp[x]+','+n(),
+     L.push({city:c,at:x,use,u:use/cap(),cap,n,rt:pop?pop.routers||1:1,busy:()=>false,sig:()=>S.ixp[x]+','+n(),
        lag:()=>pop&&n()<LAG_MAX&&PORT_SLOT(S.ixp[x])<=room(c)?{cost:ixPortMo(x,S.ixp[x]),cap:cap()*lagCap(g(),n()+1)/lagCap(g(),n()),w:'+1×'+PORT[S.ixp[x]].n,go:()=>ACT.lagIx({city:x,d:1})}:null,
        // A remote port (no POP there) stops at 100G; at a POP the router has to take the bigger port.
        ups:()=>{const out=[],t0=S.ixp[x];for(let t=t0+1;t<PORT.length&&portShown(t);t++){if(pop?!portOk(c,t)||(PORT_SLOT(t)-PORT_SLOT(t0))*n()>room(c):t>1)continue;
          out.push({cost:ixPortMo(x,t)*n(),cap:cap()*lagCap(PORT[t].g,n())/lagCap(g(),n()),w:PORT[t0].n+'→'+PORT[t].n,go:()=>ACT.buyIx({city:x,tier:t})});}return out;}});}
    for(const o of L.sort((a,b)=>b.u-a.u))for(let step=0;step<3&&!o.busy()&&o.cap()<N*o.use;step++){
-     const lag=o.lag(),ups=o.ups(),fit=ups.find(u=>u.cap>=N*o.use)||ups.at(-1),job=o.n()<2&&o.rt>1?lag||fit:fit||lag,was=o.sig();
+     const lag=o.lag(),wantLag=o.n()<2&&o.rt>1,ups=wantLag&&lag?null:o.ups(),fit=ups&&(ups.find(u=>u.cap>=N*o.use)||ups.at(-1)),job=wantLag?lag||fit:fit||lag,was=o.sig();
      if(!job||!X.can('ports',job.cost)||!X.pay('ports',()=>{job.go();return o.sig()!==was;}))break;
-     X.did('ports',o.city+' '+job.w);}},
+     X.did('ports',o.at+' '+job.w);}},
  optics(X){const at=opsP('optics','at')/100,big=opsP('optics','pick')==='big',gpd=(o,l)=>optG(o,l)/optCost(o);
    for(const l of S.links){if(l.kind!=='df'||l.ready>S.day||l.eqDown>S.day||l.standby||l.cut>S.day)continue;
      let cap=dfCap(l);const load=(R.load&&R.load[l.id])||0;
