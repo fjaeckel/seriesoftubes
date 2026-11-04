@@ -47,6 +47,7 @@ const CITIES=[
  {id:'sto',name:'Stockholm',x:1110,y:160,land:'eu',reg:'EU',cc:'SE',P:300,ix:'NodNod',dc:'Nuclear Bunker DC'},
  {id:'bcn',name:'Barcelona',x:0,y:0,land:'eu',reg:'EU',cc:'ES',P:300,ix:'Catnip-IX',dc:'Poblenou DC',note:tr('cities.catalonia_s_own_exchange_small_and')},
  {id:'mad',name:'Madrid',x:935,y:392,land:'eu',reg:'EU',cc:'ES',P:600,ix:'Siesta-IX',dc:'Interaction MAD'},
+ {id:'bio',name:'Bilbao',x:0,y:0,land:'eu',reg:'EU',cc:'ES',P:150,ix:'',dc:'Guggen-Rack',note:tr('cities.the_transatlantic_cables_come_ashore_here')},
  {id:'lag',name:'Lagos',x:1010,y:565,land:'af',reg:'AF',cc:'NG',P:500,ix:'Jollof-IX',dc:'Rack-n-Roll Centre'},
  {id:'jnb',name:'Johannesburg',x:1130,y:730,land:'af',reg:'AF',cc:'ZA',P:400,za:true,ix:'Braai-IX',dc:'Tera-Cotta Campus'},
  {id:'bom',name:'Mumbai',x:1385,y:488,land:'eu',reg:'AS',cc:'IN',P:1100,india:true,ix:'Mumb-IX',dc:'Goregaon Tech Park'},
