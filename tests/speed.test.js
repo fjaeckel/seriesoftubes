@@ -302,7 +302,10 @@ function plainCompute(ev) {
     .replace('if(!GN){\n        // One scan', 'if(false){\n        // One scan')
     .replace('if(P.dead)return 0;', '').replaceAll('if(r<=1e-6){P.dead=1;return 0;}', '')
     .replace('if(!P.dead)room-=push(', 'room-=push(').replace(/const gone=x=>\{[^\n]*\};/, 'const gone=x=>false;')
+    // ...and every exit is called, even one whose path is full with no detour (dud()).
+    .replace(/const dud=x=>\{[^\n]*\};/, 'const dud=x=>false;')
     .replace('if(TEF[key]===1)return null;const c0=teCache.get(key);', 'const c0=teCache.get(key);if(c0===false)return null;')
+    .replace(/const reuse=[^;]*;/, 'const reuse=false;').replace('const d=reuse?(DJ.S[dst]===LSg?DJ.D[dst]:Infinity):dijkstraTo(', 'const d=dijkstraTo(')
     .replace('const d=dijkstraTo(adj,src,wW,', 'const {D:D0,P:P0}=dijkstra(adj,src,wW,').replace(',dst);\n    if(d===Infinity', ',dst),d=D0[dst];\n    if(d===Infinity')
     .replace('walkP(DJ.P,src,dst)', 'walkP(P0,src,dst)');
   // ...and the group split and sorting written the plain way, with array copies, as before they were made allocation-free
@@ -315,8 +318,9 @@ function plainCompute(ev) {
   assert.equal((core.match(/if\(false\)/g) || []).length, 2, 'both shortcuts were found and switched off');
   assert.ok(!plain.includes('e.nets||NET_IDS'), 'the exit index was switched off');
   assert.ok(!core.includes('P.dead'), 'the full-path mark was switched off');
+  assert.ok(core.includes('const dud=x=>false;'), 'every exit of a group is called');
   assert.ok(plain.includes('RCON=false') && !plain.includes('RC.on'), 'the kept routing tables were switched off');
-  assert.ok(!core.includes('TEF[key]===1') && !core.includes('dijkstraTo(') && core.includes('if(c0===false)return null;'), "Auto-TE's shortcuts were switched off");
+  assert.ok(!core.includes('TEF[key]===1') && !core.includes('dijkstraTo(') && core.includes('const reuse=false;') && core.includes('if(c0===false)return null;'), "Auto-TE's shortcuts were switched off");
   assert.ok(core.includes('const sortD=(a,n=a.length)=>{const t=a.slice(0,n).sort(byDist);') && core.includes('g.forEach('), 'the plain group split and sort are in');
   ev('window.__plainC=' + plain.replace(/^function compute/, 'function') + ';window.__plainR=(' + core.replace(/^function routeCore/, 'function') + ')();');
   ev('window.__plain=function(){const r=ROUTE;ROUTE=__plainR;try{__plainC();}finally{ROUTE=r;}};');
@@ -371,6 +375,46 @@ test('Auto-TE routes around a full link exactly like the plain path', () => {
     assert.ok(ev('R.teMoved') > 100, 'Auto-TE moved traffic through Brussels');
     assert.ok(ev("R.load[S.links.find(l=>l.a==='fra'&&l.b==='ams').id]") >= (script ? 6.9 : 9.99), 'the direct 10G link is full (up to the spill line)');
   }
+  assert.deepEqual(errors, []);
+});
+
+// Auto-TE's searches for a detour, on meshes of thin and thick links where POPs fill up and some sit outside the core
+// (TE never steers through them, but may end there): a search that finds nothing answers the next ones from the same
+// city until traffic is placed again, and an exit whose full path has no detour is not called. Several seeded
+// networks, from light to heavy load, must route exactly as the plain path that searches every time.
+test('Auto-TE detours route like the plain path on crowded meshes with POPs outside the core', () => {
+  const { ev, errors } = load();
+  plainCompute(ev);
+  const CS = ['fra', 'ams', 'bru', 'par', 'lon', 'zrh', 'mil', 'vie', 'prg', 'ber', 'muc', 'mad', 'cph', 'waw', 'mrs', 'ham', 'dus'];
+  let moved = 0, outs = 0;
+  for (let seed = 1; seed <= 6; seed++) {
+    let a = seed * 7919;
+    const rnd = () => { a = (a * 16807) % 2147483647; return a / 2147483647; }, int = (n) => Math.floor(rnd() * n);
+    const cs = CS.filter(() => rnd() < 0.75), links = [];
+    for (let i = 1; i < cs.length; i++) links.push([cs[int(i)], cs[i], int(4)]);
+    for (let k = 0; k < cs.length; k++) { const x = cs[int(cs.length)], y = cs[int(cs.length)]; if (x !== y) links.push([x, y, int(4)]); }
+    const out = cs.filter(() => rnd() < 0.3), up = cs.filter((c) => out.includes(c) || rnd() < 0.3).concat(cs[0]);
+    ev(`ACT.start({});S.cash=1e12;S.lvl=13;for(const g of GOALS)S.done[g.id]=0;S.pops={};S.links=[];S.transit=[];
+      const cs=${JSON.stringify(cs)},out=${JSON.stringify(out)},IN=RG.findIndex(g=>g.cr>=3&&!g.noMpls),OUT=RG.findIndex(g=>g.cr<2);
+      for(const c of cs){ACT.buildPop({city:c});const p=S.pops[c];p.rgen=RG_TOP;p.routers=RMAX;if(!p.bb)ACT.launchBB({city:c});}
+      const L=(a,b,t)=>{UI.via=null;UI.lmode='wave';UI.route='main';try{openLinkModal(a,b);ACT.buildLink({tier:t});}catch(e){}closeModal();};
+      for(const [a,b,t] of ${JSON.stringify(links)})L(a,b,t);
+      for(const c of ${JSON.stringify(up)}){const t=NETS.find(n=>n.price&&n.pops.includes(c)&&(n.type==='t1'||n.type==='t2'));if(t)ACT.buyTransit({city:c,net:t.id,tier:3});}
+      // Then the routers: some too old for the core, and few enough that POPs fill up too.
+      for(const c of cs){const p=S.pops[c];p.rgen=out.includes(c)?OUT:IN;p.routers=1+${int(3)};}
+      S.ixp={};S.pni=[];S.caches=[];S.biz=[];S.te={on:true,day:0};S.core={lv:3,run:2};S.nextFail=1e9;S.nextEvent=1e9;`);
+    assert.ok(ev('coreOn()&&coreTE()'), 'the core rules apply and Auto-TE runs');
+    outs += ev('Object.keys(S.pops).filter(c=>!inCore(c)).length');
+    const sig = () => ev('JSON.stringify({served:R.served,teMoved:R.teMoved,egT:R.egT,load:S.links.map(l=>R.load[l.id]||0),node:R.nodeLoad,t:R.useT,f:R.fl.map(f=>[f.got,f.via])})');
+    for (const load of [0.3, 0.8, 1.6, 3]) {
+      ev(`for(const c in S.pops)S.pops[c].bb.d=CITY[c].P*${load}`);
+      ev('compute()'); const fast = sig(); moved += ev('R.teMoved');
+      ev('__plain()'); const ref = sig();
+      assert.equal(fast, ref, `network ${seed} at load ${load}: the fast and the plain path route the same`);
+    }
+  }
+  assert.ok(moved > 100, 'Auto-TE found detours');
+  assert.ok(outs > 0, 'some POPs are outside the core');
   assert.deepEqual(errors, []);
 });
 
