@@ -32,10 +32,29 @@ function routeCore(){
       if(ok)for(let k=0;k<ni.length;k++){const i=ni[k];if(HAS[i]&&!(NRES[i]>1e-3)){ok=false;break;}}
       if(ok)return c0;}
     const reuse=LSs===src&&LSe===EP&&LSg===DJ.g&&!(CORE&&OUT[dst]);
-    const d=reuse?(DJ.S[dst]===LSg?DJ.D[dst]:Infinity):dijkstraTo(adj,src,wW,(v,e)=>e.res<=1e-3||(HAS[v]&&NRES[v]<=1e-3)||(CORE&&OUT[v]&&v!==dst),dst);
+    const d=reuse?(DJ.S[dst]===LSg?DJ.D[dst]:Infinity):teSearch(src,dst);
     if(d===Infinity){LSs=src;LSe=EP;LSg=DJ.g;}
     if(d===Infinity||d>REACH*base+60){teCache.set(key,false);TEF[key]=1;return null;}
     const Q=walkP(DJ.P,src,dst);teCache.set(key,Q);return Q;};
+  /* Auto-TE's detour search (the one 10-dijkstra.js does to a stop), step for step: neighbours in the same order, the same heap, written into the
+     same DJ (walkP() reads its paths, the reuse above its marks). Only on the graph as flat arrays (TEO offsets by city,
+     TEN neighbours, TEE edges, made once per routing in run()) and with the test of an edge written out: no pairs to
+     unpack and no call for each edge. On a big network with Auto-TE these searches were most of the routing. */
+  let TEO=null,TEN=null,TEE=null;
+  const teSearch=(src,dst)=>{const n=TEO.length-1;
+    if(DJ.n!==n||DJ.g>2e9){DJ.n=n;DJ.D=new Float64Array(n);DJ.P=new Array(n);DJ.S=new Int32Array(n);DJ.done=new Int32Array(n);DJ.g=0;}
+    const g=++DJ.g,D=DJ.D,P=DJ.P,ST=DJ.S,DN=DJ.done,core=CORE;let hd=DJ.hd,hu=DJ.hu,cap=hd.length,m=0;
+    D[src]=0;ST[src]=g;
+    {if(m===cap){cap*=2;const a=new Float64Array(cap),b=new Int32Array(cap);a.set(hd);b.set(hu);hd=DJ.hd=a;hu=DJ.hu=b;}
+      let i=m++;hd[i]=0;hu[i]=src;while(i>0){const p=(i-1)>>1;if(hd[p]<=hd[i])break;const td=hd[p],tu=hu[p];hd[p]=hd[i];hu[p]=hu[i];hd[i]=td;hu[i]=tu;i=p;}}
+    while(m){const d=hd[0],u=hu[0];m--;
+      if(m){hd[0]=hd[m];hu[0]=hu[m];let i=0;for(;;){const l=2*i+1,r=l+1;let k=i;if(l<m&&hd[l]<hd[k])k=l;if(r<m&&hd[r]<hd[k])k=r;if(k===i)break;const td=hd[k],tu=hu[k];hd[k]=hd[i];hu[k]=hu[i];hd[i]=td;hu[i]=tu;i=k;}}
+      if(DN[u]===g||d>(ST[u]===g?D[u]:Infinity))continue;DN[u]=g;if(u===dst)break;
+      for(let k=TEO[u],K=TEO[u+1];k<K;k++){const v=TEN[k],e=TEE[k];if(e.res<=1e-3||(HAS[v]&&NRES[v]<=1e-3)||(core&&OUT[v]&&v!==dst))continue;
+        const nd=d+e.w;if(nd<(ST[v]===g?D[v]:Infinity)){D[v]=nd;ST[v]=g;P[v]=e;
+          if(m===cap){cap*=2;const a=new Float64Array(cap),b=new Int32Array(cap);a.set(hd);b.set(hu);hd=DJ.hd=a;hu=DJ.hu=b;}
+          let i=m++;hd[i]=nd;hu[i]=v;while(i>0){const p=(i-1)>>1;if(hd[p]<=hd[i])break;const td=hd[p],tu=hu[p];hd[p]=hd[i];hu[p]=hu[i];hd[i]=td;hu[i]=tu;i=p;}}}}
+    return ST[dst]===g?D[dst]:Infinity;};
   /* The routing loops work on exits by number (xi, their index in E): what they read for every exit they look at sits in
      columns, USED, CAPX, CIX, HPX, DTX and VISX, and the lists they scan hold numbers (lst.x, lst.xat). Scanning objects of
      thirty fields each read one cache line per exit; the columns keep a list's exits side by side. The objects are only
@@ -181,7 +200,9 @@ function routeCore(){
         TE,SPILL,teCache,adj,CORE,OUT,REACH,DSEL,PREFC,BRJ,COMP,SDi,SPi,ALONE,TR,base,eff}=o);
       NX=E.length;USED=new Float64Array(NX);CAPX=new Float64Array(NX);CIX=new Int32Array(NX);HPX=new Uint8Array(NX);DTX=new Float64Array(NX);VISX=new Int32Array(NX);
       for(let x=0;x<NX;x++){const e=E[x];USED[x]=e.used;CAPX[x]=e.cap;CIX[x]=e.ci;HPX[x]=e.hp;DTX[x]=e.dt;}
-      F=0;fci=0;fnj=0;Dv=null;Pv=null;PP=null;vis=0;GN=0;walked=[];EP=0;LSs=LSe=LSg=-1;TEF=TE?new Uint8Array(NC*NC):null;
+      F=0;fci=0;fnj=0;Dv=null;Pv=null;PP=null;vis=0;GN=0;walked=[];EP=0;LSs=LSe=LSg=-1;
+      if(TE){const n=adj.length;TEO=new Int32Array(n+1);let k=0;for(let u=0;u<n;u++){TEO[u]=k;const a=adj[u];if(a)k+=a.length;}TEO[n]=k;
+        TEN=new Int32Array(k);TEE=new Array(k);k=0;for(let u=0;u<n;u++){const a=adj[u];if(a)for(let j=0;j<a.length;j++){TEN[k]=a[j][0];TEE[k]=a[j][1];k++;}}}TEF=TE?new Uint8Array(NC*NC):null;
       const W=new Map();BRX=new Array(BRJ.length);for(let j=0;j<BRJ.length;j++){const m=BRJ[j],b={};for(const r in m)b[r]=lx(m[r],W);BRX[j]=b;}
       for(const pass of PASSES)for(const rank of RANKS){
         if(!RSET.has(rank))continue;
@@ -190,7 +211,7 @@ function routeCore(){
       }
       for(let x=0;x<NX;x++)E[x].used=USED[x];
       // Nothing of this day is kept: the next run() sets its own.
-      E=R2=BRJ=BRX=SDi=SPi=teCache=TEF=null;walked=[];}};
+      E=R2=BRJ=BRX=SDi=SPi=teCache=TEF=TEE=null;walked=[];}};
 }
 // The core in use (a test can put the plain one in its place: tests/speed.test.js).
 let ROUTE=routeCore();

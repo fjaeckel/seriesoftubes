@@ -305,7 +305,7 @@ function plainCompute(ev) {
     // ...and every exit is called, even one whose path is full with no detour (dud()).
     .replace(/const dud=x=>\{[^\n]*\};/, 'const dud=x=>false;')
     .replace('if(TEF[key]===1)return null;const c0=teCache.get(key);', 'const c0=teCache.get(key);if(c0===false)return null;')
-    .replace(/const reuse=[^;]*;/, 'const reuse=false;').replace('const d=reuse?(DJ.S[dst]===LSg?DJ.D[dst]:Infinity):dijkstraTo(', 'const d=dijkstraTo(')
+    .replace(/const reuse=[^;]*;/, 'const reuse=false;').replace('const d=reuse?(DJ.S[dst]===LSg?DJ.D[dst]:Infinity):teSearch(src,dst);', 'const d=dijkstraTo(adj,src,wW,(v,e)=>e.res<=1e-3||(HAS[v]&&NRES[v]<=1e-3)||(CORE&&OUT[v]&&v!==dst),dst);')
     .replace('const d=dijkstraTo(adj,src,wW,', 'const {D:D0,P:P0}=dijkstra(adj,src,wW,').replace(',dst);\n    if(d===Infinity', ',dst),d=D0[dst];\n    if(d===Infinity')
     .replace('walkP(DJ.P,src,dst)', 'walkP(P0,src,dst)');
   // ...and the group split and sorting written the plain way, with array copies, as before they were made allocation-free
