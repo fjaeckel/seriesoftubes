@@ -81,7 +81,7 @@ NETS.push(
  {id:'btt',name:'Bee-Tee',asn:2856,type:'eye',cc:'GB',pol:'selective',minIx:10,minPni:30,share:.012,col:'#5514B4',pops:['lon','man','edi','bde'],ix:['lon','man'],blurb:tr('long_tail.the_uk_s_incumbent_buzzes_politely')},
  {id:'sky',name:'Sky-High Broadband',asn:5607,type:'eye',cc:['GB','IE'],pol:'selective',minIx:6,minPni:25,share:.008,up:['tly','lvl'],col:'#0072C9',pops:['lon','man','edi','dub'],ix:['lon','man','edi'],blurb:tr('long_tail.football_films_and_a_router_that')},
  {id:'vmo',name:'Virgin Mediocre',asn:5089,type:'eye',cc:'GB',pol:'selective',minIx:6,minPni:25,share:.007,up:['lvl','ntt'],col:'#E10A0A',pops:['lon','man','edi'],ix:['lon','man'],blurb:tr('long_tail.cable_broadband_for_half_of_britain')},
- {id:'tnr',name:'Tele-Nor-Way',asn:2119,type:'eye',cc:['NO','SE'],pol:'selective',minIx:5,minPni:20,share:.006,up:['tly','lvl'],col:'#00A9E0',pops:['osl','svg','sto','cph','krs'],ix:['osl','svg'],blurb:tr('long_tail.norway_s_incumbent_neither_yes_nor')});
+ {id:'tnr',name:'Tele-Nor-Way',asn:2119,type:'eye',cc:['NO','SE'],pol:'selective',minIx:5,minPni:20,share:.006,up:['tly','lvl'],col:'#00A9E0',pops:['osl','svg','sto','cph','krs','got','mmx'],ix:['osl','svg','got'],blurb:tr('long_tail.norway_s_incumbent_neither_yes_nor')});
 NETS.push(
  {id:'hwt',name:'Hawaiian Telecombo',asn:36149,type:'eye',cc:'US',pol:'selective',minIx:3,minPni:15,share:.004,up:['ntt','lvl'],col:'#5B2A86',pops:['hnl'],ix:['hnl'],blurb:tr('long_tail.hawaii_s_incumbent_every_plan_comes')},
  {id:'gtg',name:'Grand Theft Teleguam',asn:9246,type:'t2',cc:'GU',pol:'open',share:.002,price:8,up:['ntt','tat'],col:'#0072CE',pops:['gum','ror','maj','hnl','tok'],ix:['gum','hnl'],blurb:tr('long_tail.guam_s_incumbent_and_the_way')},

@@ -104,7 +104,7 @@ const EXCEPTIONS = {
 // The real names the puns are based on. No network, cable, exchange, data center, router or optic may be called one.
 const REAL_NAMES = [
   // Tier 1s and carriers
-  'AT&T', 'Bell Aliant', 'BICS', 'Cogent', 'GTT', 'Hurricane Electric', 'Level 3', 'Level3', 'Liquid', 'Liquid Intelligent Technologies', 'Lumen', 'Northwestel', 'NTT', 'Orange', 'PCCW', 'SaskTel', 'Seacom', 'Singtel', 'Sparkle', 'Tata', 'Tata Communications', 'Telia', 'Telxius', 'Tusass', 'Vodafone', 'Zayo',
+  'AT&T', 'Bell Aliant', 'BICS', 'Cogent', 'GlobalConnect', 'GTT', 'Hurricane Electric', 'Level 3', 'Level3', 'Liquid', 'Liquid Intelligent Technologies', 'Lumen', 'Northwestel', 'NTT', 'Orange', 'PCCW', 'SaskTel', 'Seacom', 'Singtel', 'Sparkle', 'Tata', 'Tata Communications', 'Telia', 'Telxius', 'Tusass', 'Vodafone', 'Zayo',
   // content and clouds
   'Akamai', 'Alibaba Cloud', 'Amazon', 'Amazon Web Services', 'AWS', 'Baidu', 'ByteDance', 'Cloudflare', 'Facebook', 'Fastly', 'Google', 'Mercado Libre', 'Meta', 'Microsoft', 'Netflix', 'Tencent', 'TikTok', 'VK', 'VKontakte', 'Yandex',
   // eyeballs and incumbents

@@ -416,6 +416,10 @@ const CITIES=[
  {id:'rba',name:'Rabat',x:0,y:0,land:'af',reg:'AF',cc:'MA',capital:true,P:85,ix:'',dc:'Hassan Tower DC'},
  // Brazzaville, across the river from Kinshasa
  {id:'bzv',name:'Brazzaville',x:0,y:0,land:'af',reg:'AF',cc:'CG',capital:true,P:40,ix:'Saka-Saka-IX',dc:'Corniche Colo'},
+ // Sweden beyond Stockholm (#206): Gothenburg between Oslo and Copenhagen, Malmö across the Øresund, Haparanda on the land border with Finland
+ {id:'got',name:'Gothenburg',x:0,y:0,land:'eu',reg:'EU',cc:'SE',P:120,ix:'Feske-IX',dc:'Fish Church Colo',note:tr('cities.swedens_west_coast_where_the_fibre')},
+ {id:'mmx',name:'Malmö',x:0,y:0,land:'eu',reg:'EU',cc:'SE',P:70,ix:'Haj-IX',dc:'Turning Torso Racks',note:tr('cities.across_the_oresund_from_copenhagen')},
+ {id:'hpa',name:'Haparanda',x:0,y:0,land:'eu',reg:'EU',cc:'SE',P:5,ix:'',dc:'Border Twin Racks',note:tr('cities.on_the_finnish_border_twinned_with')},
 ];
 // Display-only nudges for cities that sit on top of each other at map scale; distances still use real lon/lat.
 const CITY_NUDGE={
@@ -471,6 +475,7 @@ const CITY_NUDGE={
  mde:[-1.7,-1.9],
  mgf:[-5.8,-4.4],
  mia:[-.6,.4],
+ mmx:[6,2],
  mtl:[.8,0],
  mvd:[2.2,-4.3],
  nat:[-1.5,-3.3],
