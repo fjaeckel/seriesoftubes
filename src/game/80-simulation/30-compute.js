@@ -376,8 +376,8 @@ function computeMoney(R2,PX=null){
   for(const c in S.myIx)V.ix+=S.myIx[c].members.length*MYIX_FEE;
   if(PX)pieMoney(PX,R2,V);
   // The UK grant for Pitcairn, its satellite tier once orbit is known; the Rural Digital Pie Fund (99-pie-subsidies.js).
-  {const on=grantOn(R2),sky=!on&&!!PX&&grantSky(R2);V.grant=on?GRANT_MO:sky?GRANT_SKY_MO:0;V.gov=PX?pieGovMo():0;if(PX)R2.pie.gov={rdf:V.gov,sky:sky?GRANT_SKY_MO:0};}
+  {const on=grantOn(R2),sky=!on&&!!PX&&grantSky(R2);V.grant=on?GRANT_MO:sky?GRANT_SKY_MO:0;if(PX)V.gov=pieGovMo();if(PX)R2.pie.gov={rdf:V.gov||0,sky:sky?GRANT_SKY_MO:0};}
   C.revshare=(S.loans||[]).reduce((a,l)=>a+(BANKS[l.bank].equity||l.bal>0?l.share||0:0),0)*(V.eyeballs+V.business+V.ix+(V.orbit||0));
   R2.costMo=Object.values(C).reduce((a,b)=>a+b,0);
-  R2.revMo=V.eyeballs+V.business+V.ix+V.grant+V.gov+(V.orbit||0);
+  R2.revMo=V.eyeballs+V.business+V.ix+V.grant+(V.gov||0)+(V.orbit||0);
 }
