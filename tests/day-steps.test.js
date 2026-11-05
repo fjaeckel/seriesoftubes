@@ -295,5 +295,12 @@ test('ports counted for every POP at once, and flows summed from the columns, ar
   assert.ok(h.ev('Object.keys(S.pops).some(c=>portsUsed(c)>10)'));
   for (const c of cities) assert.equal(h.ev(`JSON.stringify(pniFlows('${c}'))`), h.ev(`JSON.stringify(oldFlows('${c}'))`), `flows from ${c}`);
   assert.ok(h.ev('Object.keys(S.pops).some(c=>Object.keys(pniFlows(c)).length>5)'));
+  // The intern's weekly PNI round reads only pniVal()'s want, from typed columns (pniWant()): the very same numbers, for
+  // every network at every POP (and 0 where no flow goes).
+  const odd = h.ev(`(()=>{const bad=[];let n=0;for(const c in S.pops)for(const id of NET_IDS){const v=pniVal(id,c).want,w=pniWant(c,id);if(v>0)n++;
+    if(!Object.is(v,w))bad.push(c+'/'+id+' '+v+' '+w);}return JSON.stringify({n,bad:bad.slice(0,5)});})()`);
+  const r = JSON.parse(odd);
+  assert.deepEqual(r.bad, [], 'pniWant() is pniVal().want');
+  assert.ok(r.n > 50, `pairs with traffic: ${r.n}`);
   assert.deepEqual(h.errors, []);
 });

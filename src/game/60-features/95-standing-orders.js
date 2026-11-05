@@ -258,7 +258,8 @@ const OPS_RUN={
    // The traffic a PNI there would take over: what your users at that POP send to the network today over transit, an
    // exchange or a PNI elsewhere, the same figure the PNI list shows. Not the city's whole demand: a network's own
    // cache boxes in that POP already serve most of it (#244).
-   const lv=new Map(),loc=q=>{let v=lv.get(q);if(v===undefined)lv.set(q,v=pniVal(q.net,q.city).want);return v;};
+   // pniVal()'s want, without the rest pniVal() prices (the transit it saves, the port): all the order asks (pniWant()).
+   const lv=new Map(),loc=q=>{let v=lv.get(q);if(v===undefined)lv.set(q,v=pniWant(q.city,q.net));return v;};
    // Each order quoted again just before it is placed: the player may have ordered the same PNI by hand while the shift
    // let a frame through or waited for a routing, and the batch's quote would order it a second time.
    for(const q0 of b.orders.filter(q=>opsHere('pni',q.city)&&loc(q)>=g&&(paid||NET[q.net].pol!=='paid'||paidFree(NET[q.net]))).sort((a,b)=>loc(b)-loc(a))){
