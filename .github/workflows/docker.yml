@@ -1,72 +1,164 @@
-name: Build and push Docker image
+name: Container image
 
-# Every push to main publishes :latest and :<sha>. A release publishes :<version>
-# built from its tag: auto-release.yml dispatches this workflow alongside the Pages
-# deploy, because releases created with the workflow token do not fire the
-# "released" event. Hand-published releases fire it directly.
+# Publishes ghcr.io/<owner>/<repo>:<version> for releases, and nothing else: auto-release.yml dispatches this workflow
+# with the new tag (pre-releases too). There is no :latest and no image per commit. Pushes and pull requests that change
+# what goes into the image only build it and try both modes; they never publish. The image packages the MCP server and
+# the development server; the game itself is hosted on GitHub Pages only (docs/adr/0001-github-pages-only.md).
 on:
-  push:
-    branches: [main]
-  release:
-    types: [released, prereleased]
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing release tag to build (e.g. v2.10.0); empty builds main
-        required: false
+        description: Release tag to build and publish (e.g. v2.10.1)
+        required: true
+  push:
+    branches: [main]
+    paths:
+      - docker/**
+      - .dockerignore
+      - package.json
+      - package-lock.json
+      - scripts/**
+      - tests/harness.js
+      - .github/workflows/docker.yml
+  pull_request:
+    paths:
+      - docker/**
+      - .dockerignore
+      - package.json
+      - package-lock.json
+      - scripts/**
+      - tests/harness.js
+      - .github/workflows/docker.yml
 
 permissions:
   contents: read
-  packages: write
+
+concurrency:
+  group: docker-${{ github.event_name }}-${{ inputs.tag || github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          ref: ${{ inputs.tag || '' }}
+          persist-credentials: false
 
-      - name: Work out the image tags
-        id: tags
-        env:
-          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build for this runner
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: sot:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Try both modes
         run: |
           set -euo pipefail
-          # The image is named after this repository (ghcr.io/<owner>/<repo>, lowercased).
-          image=ghcr.io/${GITHUB_REPOSITORY,,}
-          if [ -n "$TAG" ]; then
-            want="v$(jq -r .version package.json)"
-            if [ "$TAG" != "$want" ]; then
-              echo "::error::Release tag $TAG does not match package.json version ($want)"
-              exit 1
-            fi
-            echo "tags=$image:${TAG#v}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tags=$image:latest,$image:$GITHUB_SHA" >> "$GITHUB_OUTPUT"
-          fi
+          init='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"1"}}}'
+          mcp() { curl -sS -o /tmp/out -w '%{http_code}' -X POST http://127.0.0.1:7777/mcp \
+            -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' "$@" -d "$init"; }
+          until_up() { for i in $(seq 1 60); do curl -s -o /dev/null "$1" && return 0; sleep 1; done; docker logs "$2"; exit 1; }
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+          # Headless, with a token: refused without it, answered with it.
+          docker run -d --name h -p 127.0.0.1:7777:7777 -e MCP_MODE=headless -e SOT_MCP_TOKEN=ci-token sot:test
+          until_up http://127.0.0.1:7777/ h
+          test "$(mcp)" = 401
+          test "$(mcp -H 'authorization: Bearer ci-token')" = 200
+          grep -q serverInfo /tmp/out
+          docker rm -f h
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+          # No token given: the container makes one, says so, and wants it.
+          docker run -d --name t -p 127.0.0.1:7777:7777 -e MCP_MODE=headless sot:test
+          until_up http://127.0.0.1:7777/ t
+          test "$(mcp)" = 401
+          tok=$(docker logs t 2>&1 | sed -n "s/.*this run's token is //p" | head -1)
+          test -n "$tok"
+          test "$(mcp -H "authorization: Bearer $tok")" = 200
+          docker rm -f t
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+          # Browser mode: the development page and the MCP server.
+          docker run -d --name b -p 127.0.0.1:8080:8080 -p 127.0.0.1:7777:7777 -e SOT_MCP_TOKEN=ci-token sot:test
+          until_up http://127.0.0.1:8080/ b
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/)" = 200
+          until_up http://127.0.0.1:7777/ b
+          test "$(mcp -H 'authorization: Bearer ci-token')" = 200
+          docker rm -f b
+
+          # The server runs as node, not root.
+          test "$(docker run --rm --entrypoint id sot:test -u)" != 0
+
+  publish:
+    if: github.event_name == 'workflow_dispatch'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check the tag
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || { echo "::error::Not a release tag: $TAG"; exit 1; }
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag }}
+          persist-credentials: false
+
+      - name: Work out the image name and version
+        id: meta
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          want="v$(jq -r .version package.json)"
+          if [ "$TAG" != "$want" ]; then echo "::error::Release tag $TAG does not match package.json ($want)"; exit 1; fi
+          # Named after this repository (ghcr.io/<owner>/<repo>, lowercased), so forks publish their own.
+          echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "revision=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "created=$(git log -1 --format=%cI)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
-        uses: docker/build-push-action@v6
+      - name: Build and push the release's version
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: docker/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.tags.outputs.tags }}
+          tags: ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}
+          labels: |
+            org.opencontainers.image.title=Series of Tubes MCP server
+            org.opencontainers.image.description=The Series of Tubes MCP server and development server, so an AI client can play the game.
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.documentation=${{ github.server_url }}/${{ github.repository }}/blob/${{ inputs.tag }}/docs/MCP.md
+            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+            org.opencontainers.image.revision=${{ steps.meta.outputs.revision }}
+            org.opencontainers.image.created=${{ steps.meta.outputs.created }}
+            org.opencontainers.image.licenses=MIT
+          provenance: mode=max
+          sbom: true
           cache-from: type=gha
           cache-to: type=gha,mode=max

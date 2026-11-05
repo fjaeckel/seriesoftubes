@@ -35,6 +35,9 @@ one, redesign the feature.
   run on a developer's own machine against a checkout; nothing they serve is deployed, and the game
   never depends on them. Their code stays out of `_site/` (`src/agent/` is development-only, see
   `docs/adr/0004-dev-only-code.md`).
+- **The container image is a tool too.** `docker/` packages those tools; `docker.yml` publishes it to GHCR for releases
+  (version tags only, no `latest`) and never to Pages. Someone may run its development server where they like; that is
+  not a host of the game, and the game never depends on it.
 
 ## How it deploys
 

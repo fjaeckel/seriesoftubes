@@ -1,0 +1,39 @@
+# Keeps what the workflows and the container image pin up to date: every GitHub Action is pinned to a commit SHA
+# (Dependabot moves the SHA and its version comment together), the image's Node base to a digest, and the npm tools
+# to the lockfile. Updates come as pull requests, one group per ecosystem, once a week.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "CI"
+
+  - package-ecosystem: docker
+    directory: /docker
+    schedule:
+      interval: weekly
+      day: monday
+    # The image runs the Node major CI tests on (ci.yml); a new major comes with CI, by hand.
+    ignore:
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
+    commit-message:
+      prefix: "Container"
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      tools:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "Tools"

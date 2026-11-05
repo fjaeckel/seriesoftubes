@@ -1,4 +1,10 @@
-.git
-.github
-node_modules
-_site
+# The image takes only what docker/Dockerfile copies; everything else (git history, tests, docs, local saves,
+# node_modules, _site) stays out of the build context.
+*
+!package.json
+!package-lock.json
+!src/
+!site/
+!scripts/
+!tests/harness.js
+!docker/docker-entrypoint.sh

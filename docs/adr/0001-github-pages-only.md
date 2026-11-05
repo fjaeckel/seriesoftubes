@@ -41,6 +41,9 @@ Anything that needs data at runtime fetches it from the same origin as a static 
   what is cached for offline play, versioned by the release.
 - **Deploys only come from releases.** `release.yml` is the only workflow with `pages: write`. Pushes to
   `main` never deploy.
+- **Tools are not hosting.** `npm run dev`, the MCP server and the container image that packages them
+  (`docker/`, published to GHCR for releases) are tools. What someone serves with them is theirs; seriesoftub.es is
+  the game, and nothing is ever deployed anywhere but GitHub Pages.
 - **Tests guard it.** `tests/pages.test.js` checks that a build is plain static files that GitHub
   Pages can serve as they are: no server or host configuration files, every local reference resolving
   inside `_site/`, nothing over the size limits, `CNAME` and `404.html` in place, and the deploy going
