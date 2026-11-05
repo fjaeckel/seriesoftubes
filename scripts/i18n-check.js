@@ -103,7 +103,7 @@ function registration(lang, html) {
   const sw = fs.readFileSync(path.join(SITE, 'sw.js'), 'utf8');
   const out = [];
   const m = html.match(/SOT_LANGS=\{([^}]*)\}/);
-  if (!m || !new RegExp(String.raw`(^|[,{\s])${lang}\s*:`).test(m[1])) out.push('not in the language list (SOT_LANGS in src/index.html)');
+  if (!m || !new RegExp(String.raw`(^|[,{\s])${lang.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\s*:`).test(m[1])) out.push('not in the language list (SOT_LANGS in src/index.html)');
   if (!sw.includes(`/i18n/${lang}.js`)) out.push('not cached for offline play (CORE in site/sw.js)');
   if (!D.tidy(lang)) out.push('not sorted one entry per line: run npm run i18n:fix');
   return out;

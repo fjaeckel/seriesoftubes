@@ -53,8 +53,10 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'content-type': TYPES[path.extname(file)] || 'application/octet-stream', 'cache-control': 'no-store' });
     fs.createReadStream(file).pipe(res);
   } catch (e) {
+    // The stack goes to the terminal running the server, never into the response.
+    console.error(e);
     res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' });
-    res.end(String(e && e.stack || e));
+    res.end('Could not build the page: see the terminal running npm run dev.');
   }
 });
 const relay = createRelay({ server });

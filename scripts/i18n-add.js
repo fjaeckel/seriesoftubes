@@ -36,7 +36,7 @@ if (args[0] === '--rename') {
   for (const f of listFiles(src)) {
     if (f === 'i18n/en.js') continue;
     const p = path.join(src, f), t = fs.readFileSync(p, 'utf8');
-    const u = t.replace(new RegExp(String.raw`(['"\x60])${from.replace(/\./g, '\\.')}\1`, 'g'), (m, q) => { n++; return q + to + q; });
+    const u = t.replace(new RegExp(String.raw`(['"\x60])${from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\1`, 'g'), (m, q) => { n++; return q + to + q; });
     if (u !== t) fs.writeFileSync(p, u);
   }
   console.log(`renamed ${from} → ${to} in every dictionary and ${n} place(s) in src/`);

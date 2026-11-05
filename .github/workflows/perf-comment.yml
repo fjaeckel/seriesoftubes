@@ -20,6 +20,8 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: perf
+          # Outside the workspace: the files come from a PR's run and are only ever read as text.
+          path: ${{ runner.temp }}/perf
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Post or update the comment
@@ -28,6 +30,7 @@ jobs:
           REPO: ${{ github.repository }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
+          cd "$RUNNER_TEMP/perf"
           pr=$(tr -cd '0-9' < pr-number.txt)
           [ -n "$pr" ] || { echo "no PR number"; exit 0; }
           # Trust the number only if that PR's head is the commit that was benchmarked.
