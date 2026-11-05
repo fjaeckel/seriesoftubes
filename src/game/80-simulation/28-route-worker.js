@@ -80,7 +80,7 @@ function rwDone(m,t0){const j=RW.job;if(!j||m.seq!==j.seq)return;RW.job=null;con
   const t1=performance.now(),st=RW.stat;st.n++;st.apply+=t1-t;st.wait+=t-j.t;st.work+=m.ms||0;
   // Reading a big answer takes a few ms already: the day goes on after the next frame then, not in the same task.
   if(t0!==undefined&&t1-t0>RW.budget/2)rwRest(j.g,v);else rwGo(j.g,v);}
-function rwDayDone(){UI.ticking=true;renderHUD();UI.ticking=false;UI.panelsDue=true;if(UI.saveDue){UI.saveDue=false;save();}}
+function rwDayDone(){paceEnd(performance.now());UI.ticking=true;renderHUD();UI.ticking=false;UI.panelsDue=true;if(UI.saveDue){UI.saveDue=false;save();}}
 /* A save's compression (91-save.js) runs in the worker too: deflating a big network held the page about as long as
    writing it plain. The text goes over as it is (a string is copied flat, without walking a game), the compressed
    text comes back. In order with the routings, so a save may wait for one. */
