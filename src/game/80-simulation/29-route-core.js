@@ -10,7 +10,7 @@ function routeCore(){
   let NRES,NSEEN,NORD,NLOAD,EL,NKN,SEN,ACN,NC,SED,ACD,
     E,HAS,PASS,R2,FREM,FNJ,FCI,FCA,FBZ,NF,CNB,NCN,ev,day,SRV,TNS,NN,TNK,TORD,TNA,snd,LATP,FARL,EGT,EGO,NEG,NEO,NEA,FGT,FTI,FGI,FII,FGH,FGP,
     TE,SPILL,teCache,adj,CORE,OUT,REACH,DSEL,PREFC,BRJ,COMP,SDi,SPi,ALONE,TR,base,eff,
-    NX=0,USED=null,CAPX=null,CIX=null,HPX=null,DTX=null,VISX=null,TEF=null;
+    NX=0,USED=null,CAPX=null,CIX=null,HPX=null,DTX=null,VISX=null,TEF=null,EP=0,LSs=-1,LSe=-1,LSg=-1;
   // The flow being routed, and from its POP: distances, arriving edges and the paths walked so far, by city index.
   // F: its index; fci, fnj: its city and network index. BRX: BRJ with each list as a list object of one shape (lx()).
   let F=0,fci=0,fnj=0,Dv=null,Pv=null,PP=null,vis=0,GN=0,walked=[],BRX=[];const G=[],REST=[];
@@ -22,13 +22,18 @@ function routeCore(){
   // t.g gives each egress a slot in t.v, so adding to it allocates nothing (a Map of numbers boxes every new sum).
   const carry=(l,eg,nr,ci,a)=>{let t=l.tr;if(!t){t=l.tr={g:new Map(),v:[],n:[],d:[]};EL.push(l);}const s=t.g.get(eg);if(s===undefined){t.g.set(eg,t.v.length);t.v.push(0+a);}else t.v[s]+=a;
     let k=l.i*NKN+nr;if(!SEN[k]){SEN[k]=1;t.n.push(nr);}ACN[k]=(ACN[k]||0)+a;k=l.i*NC+ci;if(!SED[k]){SED[k]=1;t.d.push(ci);}ACD[k]=(ACD[k]||0)+a;};
+  /* A search that finds no detour has walked all the graph src reaches (DJ keeps it, LSg its mark). Until traffic is
+     placed again (EP counts placings) it gives every other exit that is not out of the core the very answer, distance
+     and path, a search of its own would: same graph, same order, it would only stop sooner. */
   // TEF[src*NC+dst]: 1 once no detour exists for that pair (capacity only shrinks, so there never will be one again).
   // Most calls are those: a byte read, not a Map lookup. The kept path is still valid while every edge and node on it has room.
   const altPath=(src,dst,base)=>{const key=src*NC+dst;if(TEF[key]===1)return null;const c0=teCache.get(key);
     if(c0){let ok=true;const p=c0.path,ni=c0.ni;for(let k=0;k<p.length;k++)if(!(p[k].res>1e-3)){ok=false;break;}
       if(ok)for(let k=0;k<ni.length;k++){const i=ni[k];if(HAS[i]&&!(NRES[i]>1e-3)){ok=false;break;}}
       if(ok)return c0;}
-    const d=dijkstraTo(adj,src,wW,(v,e)=>e.res<=1e-3||(HAS[v]&&NRES[v]<=1e-3)||(CORE&&OUT[v]&&v!==dst),dst);
+    const reuse=LSs===src&&LSe===EP&&LSg===DJ.g&&!(CORE&&OUT[dst]);
+    const d=reuse?(DJ.S[dst]===LSg?DJ.D[dst]:Infinity):dijkstraTo(adj,src,wW,(v,e)=>e.res<=1e-3||(HAS[v]&&NRES[v]<=1e-3)||(CORE&&OUT[v]&&v!==dst),dst);
+    if(d===Infinity){LSs=src;LSe=EP;LSg=DJ.g;}
     if(d===Infinity||d>REACH*base+60){teCache.set(key,false);TEF[key]=1;return null;}
     const Q=walkP(DJ.P,src,dst);teCache.set(key,Q);return Q;};
   /* The routing loops work on exits by number (xi, their index in E): what they read for every exit they look at sits in
@@ -45,6 +50,7 @@ function routeCore(){
     const last=ni.length-1;
     for(let k=0;k<=last;k++){const i=ni[k];if(!HAS[i])continue;const r=NRES[i];if(r<=1e-6){P.dead=1;return 0;}const w=k&&k<last?PASS[i]:1;amt=Math.min(amt,r/w);}
     if(amt<=1e-6)return 0;
+    EP++;
     for(let k=0;k<=last;k++){const i=ni[k];if(HAS[i])nodeTake(i,k&&k<last?amt*PASS[i]:amt);}
     const ek=e.ek,nr=fnj,ci=fci;if(!e.told||e.dup){R2.egDesc[ek]=e.desc||(e.desc={lab:e.lab,city:e.city,k:e.k});e.told=true;}
     for(let k=0;k<PN;k++){const l=path[k];l.res-=amt;l.ld+=amt;carry(l,ek,nr,ci,amt);}
@@ -76,9 +82,14 @@ function routeCore(){
   const gone=x=>{if(TE)return false;const P=PP[CIX[x]];return !!P&&P.dead===1;};
   // Every exit of a remembered group still has room (a loop, not every(): no closure per flow). NOG: no group.
   const allRoom=c=>{for(let k=0;k<c.length;k++){const x=c[k];if(!(USED[x]<CAPX[x])||gone(x))return false;}return true;},NOG=[];
-  const ROOM=[],sendGroup=(g,i0=0,i1=g.length)=>{for(let k=i0;k<i1;k++)VISX[g[k]]=vis;
-    if(i1-i0>1){let tot=0;for(let k=i0;k<i1;k++){const x=g[k],r=Math.max(0,CAPX[x]-USED[x]);ROOM[k-i0]=r;tot+=r;}const want=FREM[F];if(tot>1e-6)for(let k=i0;k<i1;k++)if(!gone(g[k]))send(g[k],want*ROOM[k-i0]/tot);}
-    for(let k=i0;k<i1;k++){if(FREM[F]<=1e-6)break;if(!gone(g[k]))send(g[k],FREM[F]);}};
+  /* dud(x): send() to x would do nothing, its path from here is full and, with Auto-TE, no detour exists (TEF) or the
+     exit is here. Both last for the rest of the routing. Most exits a flow tries once its first group is full are such
+     (seven in eight sends on a big network): they keep their share of a group's room, but are not called. */
+  const dud=x=>{const ci=CIX[x],P=PP[ci];return P!==undefined&&P.dead===1&&(!TE||ci===fci||TEF[fci*NC+ci]===1);};
+  const ROOM=[],sendGroup=(g,i0=0,i1=g.length)=>{let live=false;for(let k=i0;k<i1;k++){const x=g[k];VISX[x]=vis;if(!live&&!dud(x))live=true;}
+    if(!live)return;
+    if(i1-i0>1){let tot=0;for(let k=i0;k<i1;k++){const x=g[k],r=Math.max(0,CAPX[x]-USED[x]);ROOM[k-i0]=r;tot+=r;}const want=FREM[F];if(tot>1e-6)for(let k=i0;k<i1;k++)if(!dud(g[k]))send(g[k],want*ROOM[k-i0]/tot);}
+    for(let k=i0;k<i1;k++){if(FREM[F]<=1e-6)break;if(!dud(g[k]))send(g[k],FREM[F]);}};
   // Stable, in place: short lists by insertion (no garbage), long ones by the built-in sort. Both are stable with the
   // same comparison, so the order is the same either way.
   // n: sort only a[0..n) (the group G holds GN exits).
@@ -170,7 +181,7 @@ function routeCore(){
         TE,SPILL,teCache,adj,CORE,OUT,REACH,DSEL,PREFC,BRJ,COMP,SDi,SPi,ALONE,TR,base,eff}=o);
       NX=E.length;USED=new Float64Array(NX);CAPX=new Float64Array(NX);CIX=new Int32Array(NX);HPX=new Uint8Array(NX);DTX=new Float64Array(NX);VISX=new Int32Array(NX);
       for(let x=0;x<NX;x++){const e=E[x];USED[x]=e.used;CAPX[x]=e.cap;CIX[x]=e.ci;HPX[x]=e.hp;DTX[x]=e.dt;}
-      F=0;fci=0;fnj=0;Dv=null;Pv=null;PP=null;vis=0;GN=0;walked=[];TEF=TE?new Uint8Array(NC*NC):null;
+      F=0;fci=0;fnj=0;Dv=null;Pv=null;PP=null;vis=0;GN=0;walked=[];EP=0;LSs=LSe=LSg=-1;TEF=TE?new Uint8Array(NC*NC):null;
       const W=new Map();BRX=new Array(BRJ.length);for(let j=0;j<BRJ.length;j++){const m=BRJ[j],b={};for(const r in m)b[r]=lx(m[r],W);BRX[j]=b;}
       for(const pass of PASSES)for(const rank of RANKS){
         if(!RSET.has(rank))continue;
