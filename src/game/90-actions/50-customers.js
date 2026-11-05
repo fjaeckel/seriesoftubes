@@ -12,9 +12,11 @@ Object.assign(ACT,{
    const more=o.type==='wwave'&&S.biz.find(b=>b.type==='wwave'&&b.link===o.link&&b.name===o.name);
    if(more){const l=S.links.find(x=>x.id===o.link);S.offers=S.offers.filter(x=>x!==o);more.slots=(more.slots||0)+(o.slots||0);more.rate+=o.rate;if(l)more.what=wwWhat(l,more.slots);
      floater(CITY[o.city].x,CITY[o.city].y-30,tr('common.signed'),'#16A866');sfx('coin');after();return;}
-   S.offers=S.offers.filter(x=>x!==o);if(o.mk)customer.mk=o.mk;S.biz.push(clSign(customer));
+   S.offers=S.offers.filter(x=>x!==o);if(o.mk)customer.mk=o.mk;if(o.by)customer.by=o.by;S.biz.push(clSign(customer));
+   // The shark's commission: one month of what the deal pays, on signing.
+   if(o.by==='shark'){const c=Math.round(bizMo(customer));if(c>0){S.cash-=c;toast(tr('sales.commission',{name:esc(o.name),cost:fmt$(c)}),'');}}
    floater(CITY[o.city].x,CITY[o.city].y-30,tr('common.signed'),'#16A866');sfx('coin');after();},
- decline:({id})=>{S.offers=S.offers.filter(x=>x.id!==id);after();},
+ decline:({id})=>{if(salesOverride(S.offers.find(x=>x.id===id))){after();return;}S.offers=S.offers.filter(x=>x.id!==id);after();},
  dropBiz:({id})=>{const b0=S.biz.find(x=>x.id===id);if(!b0)return;if(BIZ_T[b0.type].event&&S.day>=b0.start){toast(tr('customers.the_event_is_already_running_the'),'bad');sfx('err');return;}if(UI.confirm!==id){UI.confirm=id;renderPanel();return;}S.biz=S.biz.filter(b=>b.id!==id);UI.confirm=null;after();},
 });
 /* The renewal haggle (#178, 75-customer-lifecycle.js): match their price, meet halfway (they take it about two times
@@ -23,7 +25,7 @@ function clHagOf(id){const b=S.biz.find(x=>x.id===id);return b&&b.hag?b:null;}
 Object.assign(ACT,{
   renewMatch:({id})=>{const b=clHagOf(id);if(!b)return;clRenew(b,b.hag.rate);clNote('ren');toast(tr('lifecycle.matched',{name:esc(b.name)}),'good');sfx('coin');after();},
   renewMeet:({id})=>{const b=clHagOf(id);if(!b)return;const mid=Math.round((b.hag.rate+clFair(b))/2);
-    if(clR(b,'meet')<0.65){clRenew(b,mid);clNote('ren');toast(tr('lifecycle.meet_yes',{name:esc(b.name),price:fmt$(BIZ_T[b.type].fiber?b.rate:b.bw*b.rate)}),'good');sfx('coin');}
+    if(clR(b,'meet')<salesMeet()){clRenew(b,mid);clNote('ren');toast(tr('lifecycle.meet_yes',{name:esc(b.name),price:fmt$(BIZ_T[b.type].fiber?b.rate:b.bw*b.rate)}),'good');sfx('coin');}
     else{clGone(b,'cheap');toast(tr('lifecycle.meet_no',{name:esc(b.name)}),'bad');sfx('err');}after();},
   renewLet:({id})=>{const b=clHagOf(id);if(!b)return;clGone(b,'cheap');toast(tr('lifecycle.let_go',{name:esc(b.name)}),'');after();},
 });

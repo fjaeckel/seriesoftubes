@@ -98,7 +98,10 @@ function playGame(pages, seed, opts = {}) {
   if (!div) compare('start');
 
   // A screen's buttons on both pages; the same list or a divergence.
-  const screen = (w) => { const [a, b] = both('screen', w); same('buttons of ' + JSON.stringify(w), a, b); return a || []; };
+  // Buttons for actions main's page does not have (a new feature's) are left out: the driver only presses what both have.
+  let baseActs = null;
+  const screen = (w) => { const [a, b0] = both('screen', w); baseActs = baseActs || new Set(base.call('acts'));
+    const b = Array.isArray(b0) ? b0.filter((x) => baseActs.has(x.act)) : b0; same('buttons of ' + JSON.stringify(w), a, b); return a || []; };
   const press = (b, where) => { acts[b.act] = (acts[b.act] || 0) + 1; const [e1, e2] = both('press', b); same('press ' + where, e1, e2); note(where + ' ' + b.act + JSON.stringify(b.args) + (e1 ? ' !' + e1 : '')); };
   // Answer whatever window opened, a few levels deep, then close it.
   const modal = (bias) => {

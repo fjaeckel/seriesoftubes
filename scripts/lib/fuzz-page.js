@@ -177,5 +177,6 @@
     if (keep) UI.rkR = R;
     return { a, b, c };
   };
-  window.__fz = { direct, lists, start, state, screen, press, close, poke, day, routing, parts, sKeys, sDigest, sParts, check, errs, modalOpen };
+  const acts = () => Object.keys(ACT);
+  window.__fz = { acts, direct, lists, start, state, screen, press, close, poke, day, routing, parts, sKeys, sDigest, sParts, check, errs, modalOpen };
 })();

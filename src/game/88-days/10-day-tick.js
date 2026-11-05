@@ -59,6 +59,8 @@ function dayPost(d){
     if(b.mood>60)b.warned=false;if(b.mood>75)b.warn60=false;}
   // contracts: renewals, growth, haggles and leaving (75-customer-lifecycle.js)
   clDay(d);
+  // the sales desk: meetings booked, golf played (38-sales-desk.js)
+  salesDay(d);
   // own IX members join
   for(const c in S.myIx){const m=S.myIx[c];if(d>=m.next&&m.members.length<myFab(c).max){
     const cands=NETS.filter(n=>n.type!=='t1'&&!m.members.includes(n.id)&&(n.pops.includes(c)||n.pops.some(p=>CITY[p].reg===CITY[c].reg)));
@@ -69,7 +71,7 @@ function dayPost(d){
   // offers
   S.offers=S.offers.filter(o=>o.exp>d);
   brTick();
-  if(S.offers.length<5&&Math.random()<(0.05+0.01*(S.lvl||1))*(ppol()==='closed'?0.6:1)*(confSpOn()?SP_OFFERS:1)){const n0=S.offers.length;spawnOffer();mktPrice(n0);}
+  if(S.offers.length<5&&Math.random()<(0.05+0.01*(S.lvl||1))*(ppol()==='closed'?0.6:1)*(confSpOn()?SP_OFFERS:1)*salesSpawn()){const n0=S.offers.length;spawnOffer();mktPrice(n0);salesShape(n0);}
   // failures & events
   // Chaos (the rules) scales how often: calm waits about three times as long, spicy comes almost twice as often, none never.
   let dirty=false;const cm=chaosMul();

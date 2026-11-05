@@ -27,6 +27,7 @@ const API_DOMAINS={
   metric:{kind:'enum',values:()=>[...Object.keys(MET),'custom']},
   egress:{table:'PREF',kind:'key'},
   routeMode:{table:'RT',kind:'key'},
+  salesPersona:{table:'SALES',kind:'key'},
   site:{kind:'enum',values:['a','b','ab']},
   step:{kind:'enum',values:[1,-1]},
   connKind:{kind:'enum',values:['t','p','ix','c','nni']},

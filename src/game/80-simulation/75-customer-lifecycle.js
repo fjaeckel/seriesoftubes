@@ -79,10 +79,10 @@ function clDay(d){if(!S.cl)S.cl={odd:-1e9,mo:[]};const out={ren:0,grew:0,ok:[],l
     if(b.hag){if(d>=b.hag.until){clRenew(b,b.hag.rate);clNote('ren');out.ren++;}continue;}
     if(d<b.te-30)continue;
     if(d<b.te){if(b.hr===b.te)continue;b.hr=b.te;const comp=clComp(b),cf=Math.min(1,comp/6);
-      if(open<CL_HAG_MAX&&comp>=2&&b.mood>=40&&clR(b,'hag')<(0.05+0.15*cf)*pat){const fair=clFair(b),ask=Math.round(fair*(0.8+0.12*clR(b,'ask')));
+      if(open<CL_HAG_MAX&&comp>=2&&b.mood>=40&&clR(b,'hag')<(0.05+0.15*cf)*pat){const fair=clFair(b),ask=Math.round(fair*(salesAsk()+0.12*clR(b,'ask')));
         if(ask>0&&ask<b.rate){b.hag={rate:ask,until:b.te};open++;clNote('hag');out.hag.push(b);}}
       continue;}
-    const cf=Math.min(1,clComp(b)/6),u=(100-b.mood)/100,leave=(0.04+0.08*cf+0.35*u*u)*pat;
+    const cf=Math.min(1,clComp(b)/6),u=(100-b.mood)/100,leave=(0.04+0.08*cf+0.35*u*u)*pat*salesLeaveMul(b);
     if(clR(b,'leave')<leave){clLeave(b,d,out);continue;}
     const g=clR(b,'grow');if((b.mood>=80&&g<0.3)||(b.mood>=60&&g<0.12)){if(clGrow(b)){clRenew(b,clFair(b));clNote('grew');out.grew++;out.ok.push(tr('lifecycle.renewed_and_grew',{name:esc(b.name),city:esc(clWhere(b)),bw:fmtG(b.bw)}));continue;}}
     clRenew(b,clFair(b));clNote('ren');out.ren++;}
