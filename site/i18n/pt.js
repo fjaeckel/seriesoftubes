@@ -1496,6 +1496,7 @@
 "common.scenario_specialist":"Especialista em cenários",
 "common.scenarios":"Cenários",
 "common.script_kiddie":"Script Kiddie",
+"common.scrubbed_traffic":"Tráfego limpo do scrubbing",
 "common.scrubbing_centers":"Centros de scrubbing",
 "common.see_who":"Ver quem",
 "common.selective":"Seletiva",
