@@ -1,4 +1,4 @@
-function dashTabs(){const u=custStats().unhappy,cur=UI.dtab||'overview',L={overview:tr('common.overview'),cust:tr('common.customers'),conn:tr('common.connections'),traffic:tr('common.traffic'),infra:tr('common.links_routers'),lease:tr('common.leased_lines')};
+function dashTabs(){const u=custStats().unhappy,cur=UI.dtab||'overview',L={overview:tr('common.overview'),cust:tr('common.customers'),conn:tr('common.connections'),traffic:tr('common.traffic'),infra:tr('common.links_routers'),pops:tr('unbuilt_pops.no_pop_yet'),lease:tr('common.leased_lines')};
   return `<nav class="dtabs">${DTABS.map(k=>`<button class="${cur===k?'on':''}" data-act="dashTab" data-args='{"k":"${k}"}'>${L[k]}${k==='cust'&&u?`<span class="cnt red">${u}</span>`:''}</button>`).join('')}</nav>`;}
 function renderDash(){checkLayer();
   const H=S.hist||[],rows=H.slice(-90),last30=H.slice(-30);
@@ -29,6 +29,7 @@ function renderDash(){checkLayer();
   if(DT==='infra')h+=`<div class="dcols" style="margin-top:12px"><div class="panel2"><h3>${tr('common.busiest_links')}</h3>${ls.length?ls.map(({l,u})=>`<div class="row"><div class="grow"><div class="nm">${CITY[l.a].name} ⇄ ${CITY[l.b].name} <span class="meta">${capName(l)} · ${linkLat(l).toFixed(1)} ms</span></div><div class="bar ${barCls(u)}"><i style="width:${Math.min(100,u*100)}%"></i></div></div><b class="num" style="min-width:42px;text-align:right">${pct(u)}</b>${btn(tr('common.open'),'dashLink',{id:l.id},'ghost sm')}</div>`).join(''):'<p class="empty">'+tr('common.no_links_yet')+'</p>'}</div>
   <div class="panel2"><h3>${tr('common.router_load')}</h3>${rs.map(({c,u})=>`<div class="row"><div class="grow"><div class="nm">${CITY[c].name} <span class="meta">${(S.pops[c].routers||1)} × ${esc(RG[S.pops[c].rgen||0].n)}</span></div><div class="bar ${barCls(u)}"><i style="width:${Math.min(100,u*100)}%"></i></div></div><b class="num" style="min-width:42px;text-align:right">${pct(u)}</b></div>`).join('')}
   <h3 style="margin-top:10px">${tr('common.your_as')}</h3><div class="kv"><span>${tr('common.as_number')}</span><b>AS${S.asn}</b></div><div class="kv"><span>${tr('common.prefixes')}</span><b>${Math.max(1,Math.ceil(Object.keys(S.pops).length/3))} × /22 IPv4, 1 × /32 IPv6</b></div><div class="kv"><span>${tr('common.bgp_sessions')}</span><b>${R.sessions}</b></div><div class="kv"><span>${tr('common.upstreams')}</span><b>${new Set(S.transit.map(t=>t.net)).size}</b></div><div class="kv"><span>${tr('common.reach')}</span><b>${pct(R.reach)}</b></div><div class="kv"><span>${tr('common.customers')}</span><b>${tr('dashboard.n_businesses',{n:S.biz.length})}</b></div></div></div>`;
+  if(DT==='pops')h+=popsSection();
   if(DT==='lease')h+=leaseTab();
   if(h!==UI._dh){UI._dh=h;morph($('dashCard'),h);}
 }

@@ -64,4 +64,4 @@ function netWhereIdx(){const B={t:{},p:{},ix:{},c:{}},add=(k,id,x)=>(B[k][id]||(
 function netWhere(n,where){const ch=(where||netWhereIdx())(n.id);
   if(!ch.length)return '';const MAX=6;
   return `<div class="btns">${ch.slice(0,MAX).map(([l,c,k])=>btn(`${esc(l)} <small>${esc(CITY[c].name)}</small>`,'goConn',{city:c,k},'ghost sm')).join('')}${ch.length>MAX?btn(tr('dashboard.n_more',{n:ch.length-MAX}),'connFor',{net:n.id},'ghost sm'):''}</div>`;}
-const DTABS=['overview','cust','conn','traffic','infra','lease'];
+const DTABS=['overview','cust','conn','traffic','infra','pops','lease'];
