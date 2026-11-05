@@ -131,7 +131,7 @@ function pieSanitize(s){s.pieV=int(s.pieV,0,1,0);pieEximFix(s);const p=s.pie,ob=
     .map(x=>({city:x.city,next:int(x.next,0,day+3650,day),boosters:(Array.isArray(x.boosters)?x.boosters:[]).filter(ob).slice(0,PIE_BOOSTERS).map(b=>({id:sid0(b.id),flights:n(b.flights,PIE_BOOST_MAX-1)}))}));
   if(ob(p.crusts))for(const id in CRUSTS){const c=p.crusts[id];if(!ob(c))continue;const C=CRUSTS[id];
     o.crusts[id].cohorts=(Array.isArray(c.cohorts)?c.cohorts:[]).filter(k=>ob(k)&&num(k.n,0)>=1).map(k=>({n:n(k.n,C.full*2),day:int(k.day,0,day,day),las:!!k.las})).filter(k=>day-k.day<C.life).slice(-PIE_COHORTS);
-    if(c.down!==undefined&&num(c.down,0)>day)o.crusts[id].down=int(c.down,day,day+365,day);if(c.bk)o.crusts[id].bk=1;}
+    if(c.down!==undefined&&num(c.down,0)>day)o.crusts[id].down=int(c.down,day,day+365,day);if(c.bk)o.crusts[id].bk=1;if(c.open!==undefined)o.crusts[id].open=int(c.open,0,day,day);}
   const ds=new Set();
   o.dishes=(Array.isArray(p.dishes)?p.dishes:[]).filter(x=>ob(x)&&isCity(x.city)&&s.pops[x.city]&&!ds.has(x.city)&&ds.add(x.city)).slice(0,PIE_DISH_MAX)
     .map(x=>({id:sid0(x.id),city:x.city,ant:int(x.ant,1,PIE_ANT_MAX,1),down:int(x.down,0,day+365,0)}));

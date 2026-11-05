@@ -23,7 +23,7 @@ All notable changes to this project are documented here. The project follows
 - Pie Control's Launch tab now says how long each crust you are filling takes to fill at your current pace. When that is more than two years, it suggests another launch pad at your coastal POP nearest the equator, with a button to build it.
 - Buoys, ships' mail and sensors that can live with gaps in the sky now pay a little before a crust carries anything: from 10% coverage, up to about $30M a month for the Shortcrust at 40%, as long as one pie dish works under it. Between 40% and 60% they make way for regular orbit customers, and the Traffic tab lists them.
 - While your crusts are under 30% covered, the Dishes tab reminds you that pie dishes earn nothing until the sky fills up, so it pays to wait.
-
+- The month a crust starts carrying traffic is its grand opening: for 30 days orbit customers call every day and up to four offers wait, so regular customers sign up while the gap-tolerant ones fade out.
 - Your own subsea cables now land right on the city's dot, also in Fujairah, Dubai, Karachi, Barcelona, Osaka and other cities the map shifts slightly so they do not overlap (#305).
 - Starting a new network no longer leaves the last one's "New POP!" and money pop-ups frozen all over the map until a reload.
 

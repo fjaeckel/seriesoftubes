@@ -167,3 +167,28 @@ test('a hasty player sees a small orbit income in the first year', { timeout: 12
   ev('closeModal()');
   assert.deepEqual(errors, []);
 });
+
+test('a crust that starts carrying traffic gets a grand opening: a call a day for 30 days, then the usual pace', () => {
+  const { ev, errors } = load({ seed: 5 });
+  company(ev);
+  dish(ev, 'sin');
+  ev('S.pie.dishes[0].ant=16'); // 320 Gbps: room for every size of orbit customer
+  cover(ev, 0.3);
+  ev('dayTick()');
+  assert.equal(ev("S.pie.crusts.short.open"), undefined, 'nothing opens while the crust carries nothing');
+  cover(ev, 0.7);
+  const open = (n) => ev(`(()=>{let k=0;for(let i=0;i<${n};i++){S.offers=S.offers.filter(o=>!BIZ_T[o.type].orbit);dayTick();k+=S.offers.filter(o=>BIZ_T[o.type].orbit).length;}return k;})()`);
+  const d0 = ev('S.day');
+  const first = open(10);
+  assert.ok([d0, d0 + 1].includes(ev("S.pie.crusts.short.open")), 'the opening day is kept (the day tick moves the date first)');
+  assert.ok(first >= 7, 'nearly every day of the opening brings a call (a type that fits nowhere spawns nothing): ' + first);
+  ev(`S.day=${d0}+40`);
+  const later = open(30);
+  assert.ok(later < 20, 'after the opening, about one call in three days: ' + later);
+  // The opening day survives a save, and garbage is dropped.
+  ev(`S.pie.crusts.short.open=${d0};S=migrate(JSON.parse(JSON.stringify(S)))`);
+  assert.equal(ev("S.pie.crusts.short.open"), d0);
+  ev("S.pie.crusts.short.open='soon';S=migrate(JSON.parse(JSON.stringify(S)))");
+  assert.equal(typeof ev("S.pie.crusts.short.open"), 'number');
+  assert.deepEqual(errors, []);
+});
