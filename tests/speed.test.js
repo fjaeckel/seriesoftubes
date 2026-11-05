@@ -109,9 +109,9 @@ test('the map keeps fiber capacities for one frame only, and skips links above o
   const cap = ev("dfCap(S.links.find(l=>l.id==='dfT'))");
   ev("S.links.find(l=>l.id==='dfT').ch.push('zr4');draw(0)");
   assert.equal(ev("dfCap(S.links.find(l=>l.id==='dfT'))"), 2 * cap, 'a new channel counts on the next frame');
-  ev("ctx.fillText=()=>{throw new Error('boom')}");
+  ev("window.__ds=drawShips;drawShips=()=>{throw new Error('boom')}");
   assert.throws(() => ev('draw(0)'));
-  ev('delete ctx.fillText');
+  ev('drawShips=window.__ds');
   assert.equal(ev('DFC'), null, 'not even after a frame that failed');
   // The whole network far above the screen: the links cost nothing, as if there were none.
   const calls = (body) => ev(`(()=>{cam.x=CITY.fra.x;cam.y=CITY.fra.y+${'2000'};cam.z=2;${body};const n=ctx.calls.n;draw(0);return ctx.calls.n-n;})()`);
@@ -125,7 +125,7 @@ test('a map with more than MAP_BUSY lines on screen leaves out link labels and f
   const { ev, errors } = load();
   bigNet(ev);
   // Spy on the two things that go: the dotted line on lit fiber and the link labels.
-  ev("window.__dots=0;window.__labels=[];ctx.setLineDash=d=>{if(d.length===2&&d[0]===1&&d[1]===6)__dots++;};ctx.fillText=t=>{if(/ DF$/.test(t))__labels.push(t);}");
+  ev("window.__dots=0;window.__labels=[];ctx.setLineDash=d=>{if(d.length===2&&d[0]===1&&d[1]===6)__dots++;};const __pill=pill;pill=(t,...a)=>{if(/ DF$/.test(t))__labels.push(t);return __pill(t,...a);}");
   const frame = () => ev("__dots=0;__labels=[];draw(0);JSON.stringify([__dots,__labels.length])");
   const view = "cam.x=(CITY.fra.x+CITY.lon.x)/2;cam.y=(CITY.fra.y+CITY.lon.y)/2;cam.z=1.6;";
   const lines = () => ev("(()=>{const PI=pairIdx();return linesOnScreen(linkGroups().map(g=>linkGeom(g[0],PI.get(edgeKey(g[0])))),visibleKs());})()");

@@ -98,7 +98,10 @@ md += `### Headless (jsdom)\n\nOur JavaScript only: jsdom has no layout and its 
 const slow = base ? slowIn(res, 2) : [];
 const { PROFILES } = browser ? require('./perf-browser') : { PROFILES: [] };
 for (const p of PROFILES) {
-  md += `\n### Chromium ${browser.version}: ${p.key === 'phone' ? 'phone' : 'desktop'}\n\n${p.key === 'phone' ? 'A 390×844 screen at 3× pixel density, with the CPU slowed down 4× like a mid-range Android.' : 'A 1280×800 window at full speed.'} Real DOM, layout and canvas.\n\n` + table(browser.profiles[p.key], 2 * p.rate);
+  // The map row is the whole frame, up to a pixel read back from the surface that drew it; say which one that was.
+  const mp = browser.profiles[p.key].maps, mapName = (m) => (!m || !m.length ? 'no map' : m.map((x) => (x === 'gl' ? 'WebGL' : '2D canvas')).join(' then '));
+  const drew = mp ? ` The map was drawn with ${base ? `${mapName(mp.base)} (base) and ${mapName(mp.head)} (this PR)` : mapName(mp.head)}; its row waits for that surface to finish.` : '';
+  md += `\n### Chromium ${browser.version}: ${p.key === 'phone' ? 'phone' : 'desktop'}\n\n${p.key === 'phone' ? 'A 390×844 screen at 3× pixel density, with the CPU slowed down 4× like a mid-range Android.' : 'A 1280×800 window at full speed.'} Real DOM, layout and canvas.${drew}\n\n` + table(browser.profiles[p.key], 2 * p.rate);
   if (base) slow.push(...slowIn(browser.profiles[p.key], 2 * p.rate).map((l) => `${l} (Chromium ${p.key})`));
 }
 if (base) {

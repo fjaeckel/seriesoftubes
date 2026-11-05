@@ -34,6 +34,7 @@ const API_STATE_DOC={
  nni:{type:'array',doc:'Fabric ports: city, provider, tier.'},
  biz:{type:'array',doc:'Signed customers: type, cities, bandwidth, rate, mood, contract dates (te: the day the term ends, mk: the bandwidth market it was priced in, hag: an open renewal haggle {rate, until}).'},
  offers:{type:'array',doc:'Pending customer offers, each expiring on a day (mk: the bandwidth market they were priced in; refN: the customer who referred them).'},
+ sales:{type:'map',doc:'The sales desk: p (eng, shark, ceo or null), hired (day), vp (the day a VP of Sales takes over from the CEO), golf and say (the CEO\'s next golf deal and opinion). Offers and customers carry by: who brought or signed them.'},
  cl:{type:'map',doc:'Customer lifecycle (#178): odd (the day of the last unusual departure) and mo, one entry a month of customers won, renewed, grown, haggling and lost by reason.'},
  done:{type:'map',doc:'Goals landed, by goal id → day.'},
  ach:{type:'map',doc:'Badges earned this game, by badge id → day.'},

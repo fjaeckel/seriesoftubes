@@ -16,7 +16,7 @@ function peerOk(id,via,city){
   if(via==='ix'&&city&&isRemote(city)&&noRemote(id))return {ok:false,remote:true,why:REMOTE_WHY[hstr(id)%REMOTE_WHY.length]};
   if(n.pol==='open')return {ok:true};
   // In the Cogentle Spat, Goggle's peering desk wants eight times the usual traffic first, so cheap Cogentle-only transit really costs you Goggle (playtest).
-  if(n.pol==='selective'){const need=Math.round((via==='pni'?n.minPni:n.minIx)*confBoost(id)*(id==='ggl'&&scnRule('spat')?8:1));return dem>=need?{ok:true}:{ok:false,why:tr('sold_out.wants_need_gbps_of_traffic_from',{need,dem:dem.toFixed(1)})};}
+  if(n.pol==='selective'){const need=Math.round((via==='pni'?n.minPni:n.minIx)*confBoost(id)*salesPeerMul()*(id==='ggl'&&scnRule('spat')?8:1));return dem>=need?{ok:true}:{ok:false,why:tr('sold_out.wants_need_gbps_of_traffic_from',{need,dem:dem.toFixed(1)})};}
   if(n.pol==='paid'&&paidFree(n))return via==='pni'?{ok:true,free:true}:{ok:false,why:tr('sold_out.peers_with_you_for_free_now')};
   if(n.pol==='paid')return via==='pni'?{ok:true,fee:n.paidFee}:{ok:false,why:n.perG?tr('sold_out.sender_pays_a_paid_pni_only',{fee:fmt$(n.paidFee),g:fmt$(n.perG)}):tr('sold_out.paid_peering_only_over_a_pni')};
   if(n.type!=='t1'){if(via!=='pni')return {ok:false,why:tr('sold_out.only_peers_over_pnis_and_only')};const need=Math.round(60*confBoost(id));return dem>=need||isTier2()?{ok:true}:{ok:false,why:tr('sold_out.wants_you_to_be_a_tier',{need,dem:dem.toFixed(1)})};}

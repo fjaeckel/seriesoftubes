@@ -16,7 +16,9 @@ const OPT={
  tp16:{n:'Sienna WaveMagic 1.6T',g:1600,cost:70000,reach:4000,modes:[[1600,4000],[1200,5500],[800,7000],[400,12000]],rg:2,lvl:4,sys:'roadm',blurb:tr('dark_fiber.big_shelf_big_reach_big_invoice')},
  tp32:{n:'Sienna WaveMagic 3.2T',g:3200,cost:130000,reach:1500,modes:[[3200,1500],[1600,4000],[1200,5500],[800,7000],[400,12000]],rg:4,lvl:8,sys:'roadm',blurb:tr('dark_fiber.twice_the_wavemagic_full_speed_only')},
 };
-const dfLeaseMo=km=>Math.round(400+km*1.0);
+// A leased fiber pair, per month. Dear enough that it pays off at a couple of 400G waves, as dark fiber does (#203);
+// a lease already signed keeps its price (l.mo).
+const dfLeaseMo=km=>Math.round(600+km*1.5);
 const dfBuildCost=km=>Math.round((25000+km*120)*hwMul('build'));
 const dfBuildDays=km=>leadDays(Math.round(120+km*0.25)),IRU_DAYS=30;
 const ampCount=km=>Math.max(0,Math.floor(km/AMP_EVERY));

@@ -31,7 +31,7 @@ hoisted across files, and top-level statements run in path order. Find code by n
 | `30-networks/` | Other ASes (`NETS`), rival exchanges (`XIX`), the long tail, traffic shares (`NSH`) |
 | `40-progress/` | Customer types (`BIZ_T`), `LEVELS` and their requirements, `GOALS`; the per-save ruleset (`S.rules`, `rule()`, `PRESETS`, `chaosMul()`, `leadDays()`) |
 | `50-state.js` | The globals `S`, `R`, `UI`; `emptyR()` |
-| `60-features/` | Banks and loans, scenarios and the weekly challenge, puzzles and the published weekly puzzle, conferences, the tutorial, traceroute, the share card, `newGame()`, the offer trial (`autoOffer()`), standing orders (`S.ops`, `opsDay()`, run from `dayTick()`) |
+| `60-features/` | Banks and loans, scenarios and the weekly challenge, puzzles and the published weekly puzzle, conferences, the tutorial, traceroute, the share card, `newGame()`, the offer trial (`autoOffer()`), standing orders (`S.ops`, `opsDay()`, run from `dayTick()`), the sales desk (`S.sales`, `salesDay()`, `salesShape()` on new offers) |
 | `70-rules/` | Formatting helpers and market rules: exchanges, PNIs, the peering desk (requests answered by policy), peering policy and snubs, DE-KICKS, sold-out routes, hot ports and the Tier 1/2/3 rank |
 | `80-simulation/` | Dijkstra, RouteScript, where a DDoS flood goes (`ddosLoad()`/`ddosAfter()`, called by `compute()`), `compute()`, monthly prices, `sanitize()`/`migrate()`, customer requirements, events, the customer lifecycle (contracts, renewals, the bandwidth market, why customers leave), geography pricing and latency, second sites and service |
 | `85-incidents/` | `addInc()`, DDoS attacks (targets, sizes, scoring, the NOC card) and scrubbing, `fireFailure()`, `clearInc()`, `fireEvent()`, the chaos monkey, cable ships (`50-cable-ships.js`: a subsea cut sends a club ship from its port along the cable routes; voyages in `S.fleet`, drawn by `96-map/88-cable-ships.js`) |
@@ -41,7 +41,7 @@ hoisted across files, and top-level statements run in path order. Find code by n
 | `93-ui/` | DOM helpers (`$`, `btn`, `morph`), the phone tab bar, install pitch, HUD, left panel, city and link panels, decommissioning |
 | `94-dashboard/` | Scenario and level progress, where to meet a network, customers and connections overviews, cities with no POP yet, lease swaps, the NOC dashboard and its own window for a second display (`90-noc-window.js`: this page at `?noc=<slot>`, a read-only copy of `S` and `R` over a BroadcastChannel, clicks sent back to the game; `91-noc-wall.js`: its wallboard), the bank, hints |
 | `95-modals/` | Toasts, notifications, modals, title screen, what's new, help, the link and own-cable modals |
-| `96-map/` | The canvas: resize, land and clouds, settings, level of detail, link geometry, `draw()`, the world layer, cities, input and click delegation |
+| `96-map/` | The canvas: resize, land and clouds, settings, level of detail, link geometry, how each tube looks, the WebGL map (the default, 2D as fallback: context, background, tubes, and the sprite atlas cities, labels and markers are drawn from, in 2D too), `draw()`, the world layer, cities, input and click delegation |
 | `99-loop.js` | `frame()` and `boot()` |
 
 `src/styles/` holds the CSS the same way: base, HUD, drawers, toasts, modal, tablet, then phone.
@@ -75,6 +75,7 @@ Development runs on `npm run dev` (assembles the development page on every reque
 | `scripts/test.js` | `npm test`: runs every `tests/*.test.js` |
 | `scripts/release-notes.js` | Extracts a version's CHANGELOG bullets |
 | `scripts/perf-bench.js`, `perf-browser.js`, `perf-stats.js`, `perf-fixture.js` | Big-network benchmark, base vs head, headless and in Chromium as a desktop and a throttled phone, with a significance test per row (posted on every PR by `perf.yml` + `perf-comment.yml`), and the generator of its save, `tests/fixtures/big-network.json` |
+| `scripts/gpu-bench.js`, `scripts/lib/gpu-bench-client.js` | `npm run bench:gpu -- --save FILE`: the map in your own browser on your own graphics card, 2D against WebGL, scenario by scenario; the table shows in the page and in the terminal |
 | `scripts/mcp.js`, `scripts/lib/mcp-game.js`, `scripts/lib/mcp-headless.js`, `src/agent/` | The game as a local MCP server, on the official SDK over stdio or HTTP: typed tools to play, inspect and debug it from an AI client, headless or in the player's own tab ([MCP.md](MCP.md)) |
 | `scripts/agent/relay.js`, `scripts/lib/mcp-browser.js`, `scripts/lib/relay-client.js` | The agent relay `npm run dev` hosts at `/agent`, and the MCP server's side of it: how a tool reaches the game in the player's tab |
 | `scripts/i18n-check.js`, `scripts/i18n-add.js`, `scripts/lib/dict.js` | Translation coverage and dictionary order; adding, renaming and removing entries |
