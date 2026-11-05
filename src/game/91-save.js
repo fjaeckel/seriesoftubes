@@ -15,6 +15,9 @@ function save(force,st){if(!st)st=pzOn()?UI.pzKeep:S;const id=UI.slot;
   // Set aside for a puzzle, it cannot change: once its save has landed (or is still compressing), there is nothing to do.
   if(st!==S&&!failed&&(SLOT.top[id]||0)>0)return;
   const txt=JSON.stringify(packSave(st));
+  // The very text the slot already holds (a paused game, nothing changed): writing a big network to storage costs more
+  // than turning it into text, every 5 seconds, for nothing. Unless a write is still on its way, or the page is closing.
+  if(!force&&!failed&&SLOT.txt[id]===txt&&(SLOT.top[id]||0)===(SLOT.sq[id]||0))return;
   let tier=null;if(st===S)try{tier=tierLabel();}catch(e){}
   const seq=SLOT.top[id]=Math.max(SLOT.top[id]||0,SLOT.sq[id]||0)+1,j={id,s:st,txt,seq,meta:slotMeta(st,tier)};
   if(txt.length>=GZ_MIN&&gzOk())gzSave(j);else slotPut(j,slotStamp(txt,seq));}

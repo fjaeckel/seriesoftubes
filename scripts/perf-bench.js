@@ -43,6 +43,11 @@ const METRICS = [
   ['panels', 'Side panel and left list', "for(const f of [true,false]){UI.sel={type:'city',id:f?'fra':'ams'};UI.tab=f?'peer':'up';UI.left=f?'nets':'noc';UI.leftOpen=true;renderPanel();renderLeft();}"],
   ['dash', 'NOC dashboard tabs', "$('dash').hidden=false;for(const k of ['overview','conn','traffic','infra','cust']){UI.dtab=k;renderDash();}$('dash').hidden=true"],
   ['map', 'Map at three zoom levels', "for(const z of [1,3.2,7]){cam.x=CITY.fra.x;cam.y=CITY.fra.y;cam.z=z;draw(0);}"],
+  // The NOC intern runs every order, every day: one shift, its recomputes included (hired here if the save has none).
+  ['ops', "The NOC intern's shift: opsDay()", "if(!S.ops.intern){S.ops.intern='tracy';S.ops.hired=S.day;for(const k in S.ops.on)S.ops.on[k]=true;S.ops.floor=0;for(const k in S.ops.cap)S.ops.cap[k]=0;}S.cash=1e9;opsDay(S.day)"],
+  // A day as it is played: its routing in the route worker, and only the time it holds the page counted (what a player
+  // feels as a hitch). Chromium only: jsdom has no Worker. See perf-browser.js.
+  ['play', 'One game day in play: page time only', null, { play: true }],
 ];
 
 function open(file) {
@@ -57,13 +62,14 @@ function open(file) {
 }
 
 const median = (a) => { const s = [...a].sort((x, y) => x - y); return s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2; };
-const ms = (x) => x >= 100 ? x.toFixed(0) : x >= 10 ? x.toFixed(1) : x.toFixed(2);
+const ms = (x) => x == null ? '–' : x >= 100 ? x.toFixed(0) : x >= 10 ? x.toFixed(1) : x.toFixed(2);
 
 (async () => {
 const head = open(HEAD), base = BASE ? open(BASE) : null;
 const sameOutcome = base ? base.outcome() === head.outcome() : null;
 const res = {};
-for (const [k, , body] of METRICS) {
+for (const [k, , body, o] of METRICS) {
+  if (o && o.play) { res[k] = { head: null, base: null, samples: null }; continue; }
   const h = [], b = [];
   for (const v of [head, base].filter(Boolean)) { v.time(body); v.time(body); }   // warm up
   for (let i = 0; i < RUNS; i++) {
@@ -78,7 +84,7 @@ const browser = args.includes('--browser') ? await require('./perf-browser').run
 const { mannWhitneyP } = require('./perf-stats');
 const pOf = (r) => (r.samples && r.samples.base ? mannWhitneyP(r.samples.head, r.samples.base) : 1);
 const verdict = (r, noise = 2) => {
-  if (r.base == null) return '';
+  if (r.base == null || r.head == null) return '';
   const ratio = r.head / (r.base || 1e-9);
   if (Math.abs(r.head - r.base) < noise || pOf(r) >= 0.01) return '≈';
   if (ratio >= 1.5) return '🔴 slower';
@@ -86,8 +92,8 @@ const verdict = (r, noise = 2) => {
   if (ratio <= 0.85) return '🟢 faster';
   return '≈';
 };
-const pct = (r) => r.base == null ? '' : `${r.head >= r.base ? '+' : ''}${(((r.head - r.base) / (r.base || 1e-9)) * 100).toFixed(0)}%`;
-const pTxt = (r) => { const p = pOf(r); return p < 0.001 ? '<0.001' : p.toFixed(p < 0.1 ? 3 : 2); };
+const pct = (r) => r.base == null || r.head == null ? '' : `${r.head >= r.base ? '+' : ''}${(((r.head - r.base) / (r.base || 1e-9)) * 100).toFixed(0)}%`;
+const pTxt = (r) => { if (r.base == null || r.head == null) return ''; const p = pOf(r); return p < 0.001 ? '<0.001' : p.toFixed(p < 0.1 ? 3 : 2); };
 // One table per environment, all the same shape. `noise` is the absolute floor below which nothing counts.
 const table = (res, noise) => (base ? '| What | Base | This PR | Change | p | |\n|---|--:|--:|--:|--:|---|\n' : '| What | Time |\n|---|--:|\n') +
   METRICS.map(([k, label]) => { const r = res[k]; return base ? `| ${label} | ${ms(r.base)} | ${ms(r.head)} | ${pct(r)} | ${pTxt(r)} | ${verdict(r, noise)} |` : `| ${label} | ${ms(r.head)} |`; }).join('\n') + '\n';
@@ -95,7 +101,7 @@ const slowIn = (res, noise) => METRICS.filter(([k]) => /slower/.test(verdict(res
 
 const s = head.size;
 let md = `## Performance on a big network\n\n${s.pops} POPs · ${s.links} links · ${s.pni} PNIs · ${s.caches} cache boxes · ${s.ix} IX ports · ${s.customers} customers. Median of ${RUNS} runs, in milliseconds.\n\n`;
-md += `### Headless (jsdom)\n\nOur JavaScript only: jsdom has no layout and its DOM is far slower than a browser's, so trust the routing rows most here.\n\n` + table(res, 2);
+md += `### Headless (jsdom)\n\nOur JavaScript only: jsdom has no layout and its DOM is far slower than a browser's, so trust the routing rows most here. It has no Worker either: a day in play is timed in Chromium only.\n\n` + table(res, 2);
 const slow = base ? slowIn(res, 2) : [];
 const { PROFILES } = browser ? require('./perf-browser') : { PROFILES: [] };
 for (const p of PROFILES) {
