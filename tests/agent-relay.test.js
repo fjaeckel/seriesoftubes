@@ -22,6 +22,8 @@ const PORT = 8799 + (process.pid % 500);                     // dodge a busy por
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'tubes-relay-'));
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+// Waits until ok() holds, up to ms: a busy CI runner can take seconds to load a page, so no fixed delay is enough.
+const until = async (ok, ms = 20000) => { const t0 = Date.now(); while (!ok() && Date.now() - t0 < ms) await wait(50); return ok(); };
 
 // The relay in-process, riding a real http.Server (the same createRelay the servers host): no child to leak, and
 // 'listening' means the first dial cannot race the bind.
@@ -373,7 +375,7 @@ test('the MCP server answers the handshake at once and waits for the game page',
     assert.match(m.stderr(), /waiting for the game page/);
     a = page({ seed: 4 });
     a.ev("ACT.start({});S.cash=444000;compute()");
-    await wait(2500);
+    await until(() => /ready/.test(m.stderr()));
     assert.match(m.stderr(), /ready/, 'the server proceeded once the page answered');
     assert.equal(await m.json('state', { path: 'cash' }), 444000, 'and drives the late page');
   } finally { stop(a); await m.kill(); }
