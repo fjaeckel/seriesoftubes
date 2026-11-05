@@ -39,11 +39,21 @@ function exIdx(L){L.hi=L.some(e=>e.hp===0);L.mx=L.some(e=>e.dt>0)&&L.some(e=>e.d
 function rcReachTake(R2){return {reachable:{...R2.reachable},nt:{...R2.nt},cone:{...R2.cone},reach:R2.reach,reachNT:R2.reachNT};}
 function rcReachPut(X,R2){const r=X.reach;Object.assign(R2.reachable,r.reachable);Object.assign(R2.nt,r.nt);Object.assign(R2.cone,r.cone);R2.reach=r.reach;R2.reachNT=r.reachNT;}
 // Keep what was built (on a miss): okBy, the exit lists (each shared list once), each network's lists by rank, DSEL, RSET.
+/* A list's orders (by source city) follow from its exits in list order, each exit's city and preference, and the graph's
+   distances. When the exits change (a PNI comes up, a network leaves an exchange), most lists do not: one with the same
+   exits, cities and preferences on the same graph keeps the orders it had, and uses them today already. Only the lists
+   that changed start again (scanned today, sorted from tomorrow). */
 function rcExitKeep(key,E,okBy,reach,LIST,BRJ,DSEL,RSET){const ok=[];for(let j=0;j<NET_IDS.length;j++)ok[j]=rcIx(okBy[NET_IDS[j]],E);
+  const sig=new Int32Array(E.length);for(let i=0;i<E.length;i++)sig[i]=E[i].ci*4+E[i].hp;
+  const P=RC.x&&RC.x.gk===RC.gk&&RC.x.sig?RC.x:null,old=new Map();
+  if(P)for(const d of P.lists){if(d.cs){for(let k=0;k<d.cs.length;k++)if(d.cs[k])old.set(k+'/'+d.cs[k].join(','),d.ord[k]);}else old.set(d.a.join(','),d.ord);}
+  const same=a=>{for(let i=0;i<a.length;i++){const x=a[i];if(x>=P.sig.length||P.sig[x]!==sig[x])return false;}return true;};
+  const kept=(k,a)=>{if(!P)return null;const o=old.get(k);return o&&same(a)?o:null;};
   const id=new Map(),lists=[];for(const V of LIST.values()){id.set(V,lists.length);
-    if(V.cs){const cs=[],ord=[];for(let k=0;k<V.cs.length;k++)if(V.cs[k]){cs[k]=rcIx(V.cs[k],E);ord[k]=[];}lists.push({cs,a:null,ord});}else lists.push({cs:null,a:rcIx(V,E),ord:[]});}
+    if(V.cs){const cs=[],ord=[];for(let k=0;k<V.cs.length;k++)if(V.cs[k]){cs[k]=rcIx(V.cs[k],E);const o=kept(k+'/'+cs[k].join(','),cs[k]);ord[k]=o||[];if(o)V.cs[k].ord=o;}lists.push({cs,a:null,ord});}
+    else{const a=rcIx(V,E),o=kept(a.join(','),a);lists.push({cs:null,a,ord:o||[]});if(o)V.ord=o;}}
   const brj=BRJ.map(m=>{const o=[];for(const r in m)o.push(r,id.get(m[r]));return o;});
-  RC.xk=key;RC.x={ok,reach,lists,brj,DSEL,RSET:[...RSET]};}
+  RC.xk=key;RC.x={ok,reach,lists,brj,DSEL,RSET:[...RSET],gk:RC.gk,sig};}
 // Fresh lists for today's exits from a kept build.
 // Each list also gets the orders kept with it (ord: by source city, the list in the order routing tries it, see xOrder()
 // in 30-compute.js), filled in as routing asks for them.
