@@ -31,6 +31,6 @@ function brTick(){for(const l of S.links){const L=l.list;if(!L||l.kind!=='df'||!
 function brSell(l,t,n){const T=BIZ_T[t],nm=()=>{const list=T.names.filter(x=>!S.usedNames.includes(x)),x=list.length?pick(list):pick(T.names);useName(x);return x;};
   const o=fiberOffer(t,l,nm,0.9);if(t==='wwave'){o.slots=n;o.rate=wwRate(l,n,0.9);o.what=wwWhat(l,n);}
   const more=t==='wwave'&&S.biz.find(b=>b.type==='wwave'&&b.link===l.id&&b.name===o.name);
-  if(more){more.slots=(more.slots||0)+n;more.rate+=o.rate;more.what=wwWhat(l,more.slots);}else S.biz.push(offerCustomer(o));
+  if(more){more.slots=(more.slots||0)+n;more.rate+=o.rate;more.what=wwWhat(l,more.slots);}else S.biz.push(clSign(offerCustomer(o)));
   toast(tr('broker.sold',{name:esc(o.name),what:esc(t==='wwave'?wwWhat(l,n):o.what),price:fmt$(o.rate)}),'good');
   floater((CITY[l.a].x+CITY[l.b].x)/2,(CITY[l.a].y+CITY[l.b].y)/2-20,tr('common.signed'),'#16A866');}

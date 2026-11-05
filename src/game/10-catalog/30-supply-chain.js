@@ -17,6 +17,7 @@ function hwShockStart(){const k=pick(Object.keys(HW_SHOCK)),n=45+Math.floor(Math
 function hwCard(){if(!S||!rule('market')||(S.day<=HW_FREE&&!hwShock()&&!hwLock()))return '';const t=hwTrend(S.day),s=hwShock(),l=hwLock();
   return `<div class="ibx"><div class="nm">📦 ${tr('common.supply_chain')}</div>
   <div class="kv"><span>${tr('common.hardware_prices')}</span><b>${t>1.005?tr('supply_chain.p_since_you_started',{p:pct(t-1)}):tr('supply_chain.as_when_you_started')}</b></div>
+  <div class="kv"><span>${tr('lifecycle.bandwidth_prices')}</span><b>${mktTxt()}</b></div>
   ${s?`<div class="kv"><span>${tr('common.shortage')}</span><b>${tr('supply_chain.what_p_n_days_left',{what:tr(HW_SHOCK[s.k].n),p:pct(s.mul-1),n:s.until-S.day})}</b></div>`:''}
   ${l?`<div class="kv"><span>${tr('common.price_lock')}</span><b>${tr('supply_chain.until_date_at_p',{date:dateStr(l.until),p:pct(l.mul-1)})}</b></div>`
    :`<p class="meta">${tr('supply_chain.routers_optics_and_new_builds_at')}</p><div class="btns">${btn(tr('supply_chain.lock_prices_for_a_year_cost',{cost:fmt$(hwLockCost())}),'hwLock',{},'sm',S.cash<hwLockCost())}</div>`}</div>`;}

@@ -78,8 +78,10 @@ function playGame(pages, seed, opts = {}) {
     const [x, y] = both('check');
     for (const k of ['a', 'b', 'c']) if (x[k] !== y[k]) { fail(where + ': routing (' + k + ') base vs head', { diff: firstDiff(base.call('parts'), head.call('parts')) }); return false; }
     if (y.b !== y.c) { fail(where + ': head cached vs uncached', { diff: 'R from the kept tables differs from a fresh route' }); return false; }
-    const [s1, s2] = both('sDigest');
-    if (s1 !== s2) { fail(where + ': game state S', { diff: firstDiff(base.call('sParts'), head.call('sParts')) }); return false; }
+    // Fields only this checkout's game has are left out on both sides (see sKeys in fuzz-page.js).
+    const [k1, k2] = both('sKeys'), drop = { top: k2.top.filter((k) => !k1.top.includes(k)), items: k2.items.filter((k) => !k1.items.includes(k)) };
+    const [s1, s2] = both('sDigest', drop);
+    if (s1 !== s2) { fail(where + ': game state S', { diff: firstDiff(base.call('sParts', drop), head.call('sParts', drop)) }); return false; }
     return true;
   };
 
