@@ -11,7 +11,7 @@ const refuse = name => `window.__err=${lit(name)};{const P=Object.getPrototypeOf
 test('#176 a save that does not fit tells the player once, with Export, and the menu says so', () => {
   const { ev, dom, errors } = load();
   ev("ACT.start({});UI.saveFail=null;" + refuse('QuotaExceededError'));
-  ev('save()');
+  ev('S.cash++;save()');
   const toasts = () => [...dom.window.document.querySelectorAll('.toast')].filter(t => /not being saved/.test(t.textContent));
   assert.equal(toasts().length, 1, 'one warning');
   assert.match(toasts()[0].textContent, /too big for this browser/);

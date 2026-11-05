@@ -195,7 +195,9 @@ test('the map is only redrawn when something on it can have changed', () => {
   assert.ok(frame('', 1100) > 0, 'and once a second anyway');
   assert.ok(frame('WL.key=null') > 0, 'the land picture catching up after a zoom or resize redraws');
   ev('UI.speed=1');
-  assert.ok(frame() > 0 && frame() > 0, 'with the clock running every frame moves');
+  // Only the animation clock moves: ambient, drawn at most 30 times a second (tests/frame-pacing.test.js).
+  const run = [frame(), frame(), frame(), frame()].filter((n) => n > 0).length;
+  assert.ok(run >= 2 && run < 4, `with the clock running the map moves, every other frame at 60 Hz (${run} of 4)`);
   ev("ACT.animSet({v:'off'})");
   frame(); frame();
   assert.equal(frame(), 0, 'with animations off the running map stands still between days');

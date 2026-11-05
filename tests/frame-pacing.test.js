@@ -1,8 +1,33 @@
-// How long a day may run on the page between two frames (src/game/99-loop.js, rwGo()): half a frame, from 3 to 8 ms.
+// The map's frame pacing (src/game/99-loop.js, mapStill()): while only the animation clock moves, the map is drawn at
+// most 30 times a second; anything else that moves gets every frame; paused, it is drawn about once a second.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
 
+// A second of frames at 60 Hz (each() runs before every frame), and how many of them drew the map.
+const second = (ev, each = '') => ev(`(()=>{let n=0;const d=draw;draw=t=>{n++;return d(t);};
+  try{for(let i=0;i<60;i++){window.__now=(window.__now||1000)+1000/60;${each};frame(__now);}}finally{draw=d;}return n;})()`);
+
+test('ambient frames are drawn at most 30 times a second, the camera moving gets them all, paused about one', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e8;ACT.launchBB({city:'fra'});closeModal();UI.anim='on';UI.speed=1;autoPause=()=>false;");
+  second(ev);  // the land picture and the first frames settle
+  const ambient = second(ev);
+  assert.ok(ambient >= 28 && ambient <= 31, `ambient: ${ambient} draws`);
+  assert.equal(second(ev, 'cam.x+=0.5'), 60, 'the camera moving');
+  assert.equal(second(ev, "UI.hover=UI.hover==='fra'?null:'fra'"), 60, 'the pointer over a city and off it');
+  ev('UI.speed=0');
+  second(ev);
+  const paused = second(ev);
+  assert.ok(paused <= 2, `paused: ${paused} draws`);
+  ev("UI.anim='off';UI.speed=1");
+  second(ev);
+  assert.ok(second(ev) <= 2, 'animations off: nothing moves, nothing to draw');
+  assert.deepEqual(errors, []);
+});
+
+// A day's steps on the page take half a frame at most before letting one through (RW.budget, rwGo()): 8 ms on a 60 Hz
+// screen, 3 ms on a 240 Hz one. One long frame (a big save, a tab switch) does not move it much.
 test("a day's steps follow the screen: half a frame between two, from 3 to 8 ms", () => {
   const { ev, errors } = load();
   ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();closeModal();UI.speed=0;");
@@ -27,5 +52,3 @@ test("a device that cannot hold 50 frames a second gives a day half its frame, 3
   assert.equal(run(240, 400), 3, 'and back to 3 ms on a fast screen');
   assert.deepEqual(errors, []);
 });
-
-// The diverse-paths map new offers ask about (60-requirements.js) is built a millisecond a frame, before the first one
