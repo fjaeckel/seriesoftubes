@@ -24,8 +24,8 @@ Object.assign(ACT,{
 function clHagOf(id){const b=S.biz.find(x=>x.id===id);return b&&b.hag?b:null;}
 Object.assign(ACT,{
   renewMatch:({id})=>{const b=clHagOf(id);if(!b)return;clRenew(b,b.hag.rate);clNote('ren');toast(tr('lifecycle.matched',{name:esc(b.name)}),'good');sfx('coin');after();},
-  renewMeet:({id})=>{const b=clHagOf(id);if(!b)return;const mid=Math.round((b.hag.rate+clFair(b))/2);
-    if(clR(b,'meet')<salesMeet()){clRenew(b,mid);clNote('ren');toast(tr('lifecycle.meet_yes',{name:esc(b.name),price:fmt$(BIZ_T[b.type].fiber?b.rate:b.bw*b.rate)}),'good');sfx('coin');}
+  renewMeet:({id})=>{const b=clHagOf(id);if(!b)return;const mid=clMid(b);
+    if(clR(b,'meet')<salesMeet()){clRenew(b,mid);clNote('ren');toast(tr('lifecycle.meet_yes',{name:esc(b.name),price:fmt$(clBill(b,b.rate))}),'good');sfx('coin');}
     else{clGone(b,'cheap');toast(tr('lifecycle.meet_no',{name:esc(b.name)}),'bad');sfx('err');}after();},
   renewLet:({id})=>{const b=clHagOf(id);if(!b)return;clGone(b,'cheap');toast(tr('lifecycle.let_go',{name:esc(b.name)}),'');after();},
 });

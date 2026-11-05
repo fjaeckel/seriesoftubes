@@ -2625,7 +2625,7 @@
 "lifecycle.market_below":"{p} por debajo de cuando empezaste",
 "lifecycle.match":"Igualar",
 "lifecycle.matched":"{name} renovó al precio que pidió.",
-"lifecycle.meet_halfway":"Partir la diferencia",
+"lifecycle.meet_halfway":"Partir la diferencia: {price}",
 "lifecycle.meet_no":"{name} aceptó la oferta de la competencia y se fue.",
 "lifecycle.meet_yes":"{name} aceptó tu oferta y renovó por {price}/mes.",
 "lifecycle.moved_stays":"{name} se mudó de {from} a {to}, donde tienes POP, así que se queda.",

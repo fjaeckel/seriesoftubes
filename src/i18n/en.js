@@ -2626,7 +2626,7 @@
 "lifecycle.market_below":"{p} below when you started",
 "lifecycle.match":"Match",
 "lifecycle.matched":"{name} renewed at the price they asked.",
-"lifecycle.meet_halfway":"Meet halfway",
+"lifecycle.meet_halfway":"Meet halfway: {price}",
 "lifecycle.meet_no":"{name} took the competitor's bid and left.",
 "lifecycle.meet_yes":"{name} took your offer and renewed at {price}/mo.",
 "lifecycle.moved_stays":"{name} moved from {from} to {to}, where you have a POP, so it stays.",

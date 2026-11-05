@@ -2627,7 +2627,7 @@
 "lifecycle.market_below":"{p} unter deinem Start",
 "lifecycle.match":"Mitgehen",
 "lifecycle.matched":"{name} hat zum gewünschten Preis verlängert.",
-"lifecycle.meet_halfway":"In der Mitte treffen",
+"lifecycle.meet_halfway":"In der Mitte treffen: {price}",
 "lifecycle.meet_no":"{name} hat das Angebot der Konkurrenz genommen und ist weg.",
 "lifecycle.meet_yes":"{name} hat dein Angebot angenommen und für {price}/Monat verlängert.",
 "lifecycle.moved_stays":"{name} ist von {from} nach {to} gezogen, wo du einen POP hast, und bleibt also.",

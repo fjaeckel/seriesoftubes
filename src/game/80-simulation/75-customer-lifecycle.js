@@ -109,13 +109,16 @@ function clReferral(d){if(d%45!==0||S.offers.length>=6)return;
 // New offers are priced at today's market (spawnOffer and friends price at 1; this moves them).
 function mktPrice(from){const m=mkt();for(let i=from;i<S.offers.length;i++){const o=S.offers[i];if(o.mk)continue;o.mk=m;if(m!==1){o.rate=Math.round(o.rate*m);if(o.fee)o.fee=Math.round(o.fee*m);}}}
 
+// Meeting halfway: between what the customer pays now and what they ask, the two prices the Deals row shows (#293).
+const clMid=b=>Math.round((b.rate+b.hag.rate)/2);
+const clBill=(b,rate)=>BIZ_T[b.type].fiber?rate:b.bw*rate;
 const clHags=()=>S?S.biz.reduce((a,b)=>a+(b.hag?1:0),0):0;
 // The renewals waiting for an answer, at the top of Deals.
 function clDealsHtml(){const hs=S.biz.filter(b=>b.hag).sort((a,b)=>a.hag.until-b.hag.until);if(!hs.length)return '';
   return `<h3 class="sub4">${tr('lifecycle.renewals')}</h3><p class="meta" style="margin:0 0 6px">${tr('lifecycle.unanswered_matches')}</p>`+hs.map(b=>{const now=BIZ_T[b.type].fiber?b.hag.rate:b.bw*b.hag.rate,was=bizMo(b);
     return `<div class="row"><div class="grow"><div class="nm">${esc(b.name)}</div><div class="meta">${esc(BIZ_T[b.type].l)} · ${esc(clWhere(b))} · ${tr('ui.n_d_left',{n:b.hag.until-S.day})}</div>
     <div class="meta">${tr('lifecycle.wants_price',{was:fmt$(was),price:fmt$(now),p:pct(1-now/Math.max(1,was))})}</div>
-    <div class="btns">${btn(tr('lifecycle.match'),'renewMatch',{id:b.id},'green sm')}${btn(tr('lifecycle.meet_halfway'),'renewMeet',{id:b.id},'sm')}${btn(tr('lifecycle.let_them_go'),'renewLet',{id:b.id},'ghost sm')}</div></div></div>`;}).join('');}
+    <div class="btns">${btn(tr('lifecycle.match'),'renewMatch',{id:b.id},'green sm')}${btn(tr('lifecycle.meet_halfway',{price:fmt$(clBill(b,clMid(b)))}),'renewMeet',{id:b.id},'sm')}${btn(tr('lifecycle.let_them_go'),'renewLet',{id:b.id},'ghost sm')}</div></div></div>`;}).join('');}
 // The contract line on a customer row.
 const clTermTxt=b=>clOn(b)&&b.te?(b.hag?tr('lifecycle.renewal_haggle',{date:dateStr(b.te)}):tr('lifecycle.contract_until',{date:dateStr(b.te)})):'';
 

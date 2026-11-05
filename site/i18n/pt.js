@@ -2625,7 +2625,7 @@
 "lifecycle.market_below":"{p} abaixo do começo",
 "lifecycle.match":"Igualar",
 "lifecycle.matched":"{name} renovou pelo preço que pediu.",
-"lifecycle.meet_halfway":"Meio-termo",
+"lifecycle.meet_halfway":"Meio-termo: {price}",
 "lifecycle.meet_no":"{name} aceitou a proposta do concorrente e foi embora.",
 "lifecycle.meet_yes":"{name} aceitou sua proposta e renovou por {price}/mês.",
 "lifecycle.moved_stays":"{name} mudou de {from} para {to}, onde você tem POP, então fica.",

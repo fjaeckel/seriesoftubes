@@ -6,6 +6,9 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- "Meet halfway" on a renewal now offers the price halfway between what the customer pays and what they ask, and the button shows it before you press (#293).
+- Fujairah sits on the UAE's east coast again, where its cables land, instead of on top of Muscat (#295).
+
 ## [2.10.0] — 2026-11-05
 
 **The map now runs on your graphics card.** Panning, zooming and fast play stay smooth even on huge networks. If something looks wrong or your phone gets warm, switch back to the old map in **Settings › Map drawing › Always 2D**. Older browsers stay in 2D on their own, and Settings › Diagnostic info shows which one you have.

@@ -2625,7 +2625,7 @@
 "lifecycle.market_below":"{p} sotto a quando hai iniziato",
 "lifecycle.match":"Accettare",
 "lifecycle.matched":"{name} ha rinnovato al prezzo richiesto.",
-"lifecycle.meet_halfway":"Venirsi incontro",
+"lifecycle.meet_halfway":"Venirsi incontro: {price}",
 "lifecycle.meet_no":"{name} ha preso l'offerta del concorrente e se n'è andata.",
 "lifecycle.meet_yes":"{name} ha accettato la tua offerta e rinnovato a {price}/mese.",
 "lifecycle.moved_stays":"{name} si è trasferita da {from} a {to}, dove hai un POP, quindi resta.",

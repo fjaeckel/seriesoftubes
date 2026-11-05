@@ -120,6 +120,22 @@ test('a haggle: 30 days ahead, in Deals; match, meet halfway, let go, or no answ
   assert.deepEqual(errors, []);
 });
 
+test('meeting halfway lands between what the customer pays and what they ask, as the button says (#293)', () => {
+  const { ev, errors } = load();
+  ev(start);
+  // The market has fallen a lot since they signed, so the old reference (today's fair price) sat right next to the ask.
+  // A name whose roll accepts the offer: the rolls are hashes of the deal, so the test picks one, never luck.
+  const id = ev(`(()=>{for(let i=0;i<200;i++){const b={id:'m'+i,city:'ams',city2:null,name:'m'+i,type:'dia',bw:5,rate:1000,reqs:[],mood:90,since:S.day-800,te:S.day+20,mk:2,hag:{rate:700,until:S.day+20}};if(clR(b,'meet')<salesMeet()){S.biz.push(b);return b.id;}}return null;})()`);
+  assert.ok(id, 'a customer that takes the offer');
+  ev("UI.left='deals';renderLeft()");
+  const deals = ev("document.getElementById('leftBody')?document.getElementById('leftBody').innerHTML:document.getElementById('left').innerHTML");
+  assert.ok(deals.includes(ev('fmt$(5*850)')), `the button shows the halfway bill, ${ev('fmt$(5*850)')}`);
+  ev(`ACT.renewMeet({id:'${id}'})`);
+  assert.equal(B(ev, id, 'rate'), 850, 'halfway between 1000 and 700');
+  assert.equal(B(ev, id, 'hag'), undefined);
+  assert.deepEqual(errors, []);
+});
+
 test('the bandwidth market: flat for six months, then cheaper each year, up in a shortage, 1 without the market rule', () => {
   const { ev, errors } = load();
   ev(start);

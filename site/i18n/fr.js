@@ -2625,7 +2625,7 @@
 "lifecycle.market_below":"{p} en dessous de vos débuts",
 "lifecycle.match":"S'aligner",
 "lifecycle.matched":"{name} a renouvelé au prix demandé.",
-"lifecycle.meet_halfway":"Couper la poire en deux",
+"lifecycle.meet_halfway":"Couper la poire en deux : {price}",
 "lifecycle.meet_no":"{name} a pris l'offre du concurrent et est partie.",
 "lifecycle.meet_yes":"{name} a accepté votre offre et renouvelé à {price}/mois.",
 "lifecycle.moved_stays":"{name} a déménagé de {from} à {to}, où vous avez un POP : elle reste.",
