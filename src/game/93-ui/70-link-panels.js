@@ -61,7 +61,7 @@ function trafficSection(l){
   if(!rec){return h+`<p class="empty">${tr('link_panels.no_traffic_right_now')}</p></section>`;}
   const tot=Object.values(rec.net).reduce((a,b)=>a+b,0)||1;
   const nets=Object.entries(rec.net).sort((a,b)=>b[1]-a[1]);
-  const col=id=>id==='junk'?'#FF4D5E':id==='l2vpn'?'#7B61FF':NET[id].col,nm=id=>id==='junk'?tr('common.ddos_junk'):id==='l2vpn'?tr('common.l2vpn_customers'):NET[id].name;
+  const col=id=>id==='junk'?'#FF4D5E':id==='l2vpn'?'#7B61FF':id==='scrub'?'#22C47A':NET[id].col,nm=id=>id==='junk'?tr('common.ddos_junk'):id==='l2vpn'?tr('common.l2vpn_customers'):id==='scrub'?tr('common.scrubbed_traffic'):NET[id].name;
   h+=`${n>1?`<p class="note" style="margin-top:0">${tr('link_panels.totals_for_all_n_links_between',{n})}</p>`:''}<div class="stack">${nets.map(([id,v])=>`<i style="width:${v/tot*100}%;background:${col(id)}" title="${esc(nm(id))}"></i>`).join('')}</div>`;
   h+=`<h4 class="sub4">${tr('common.content_from')}</h4>`+nets.slice(0,6).map(([id,v])=>`<div class="kv"><span><span class="dot" style="background:${col(id)}"></span>${esc(nm(id))}</span><b>${fmtG(v)} · ${pct(v/tot)}</b></div>`).join('');
   const egs=Object.entries(rec.eg).sort((a,b)=>b[1]-a[1]);

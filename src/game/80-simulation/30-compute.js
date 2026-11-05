@@ -13,7 +13,7 @@ class EgSums{constructor(t){this.t=t;}get(k){const s=this.t.g.get(k);return s===
    threads, so it sends these plain pieces (R.efp, R.flc) and the page rebuilds the same lazy R. */
 function efBuild(R2,L,ACN,ACD,NKN,NC,NN){const efg={};for(const [id,i,t] of L){let rec=null;efg[id]=new EgSums(t);
     Object.defineProperty(R2.ef,id,{enumerable:true,configurable:true,get(){if(!rec){rec={eg:{},net:{},dst:{}};for(const [k,s] of t.g)rec.eg[k]=t.v[s];
-      for(const j of t.n)rec.net[j<NN?NETS[j].id:j===NN?'junk':'l2vpn']=ACN[i*NKN+j];for(const ci of t.d)rec.dst[CITIES[ci].id]=ACD[i*NC+ci];}return rec;}});}
+      for(const j of t.n)rec.net[j<NN?NETS[j].id:j===NN?'junk':j===NN+1?'l2vpn':'scrub']=ACN[i*NKN+j];for(const ci of t.d)rec.dst[CITIES[ci].id]=ACD[i*NC+ci];}return rec;}});}
   Object.defineProperty(R2,'efg',{value:efg});Object.defineProperty(R2,'efp',{value:{L,ACN,ACD,NKN,NC,NN}});}
 // R.fl: the flows as objects, made only when something asks (38-pni-value.js). E: the exits FTI and FII point into.
 function flDefine(R2,c){const {NF,FREM,FCI,FNJ,FCA,FBZ,FGT,FGI,FGP,FGH,FTI,FII,E,CNB,NCN}=c;let fl=null;Object.defineProperty(R2,'flc',{value:c});
@@ -117,14 +117,14 @@ function compute(){RW.gen++;
     FGT=new Float64Array(NF),FGI=new Float64Array(NF),FGP=new Float64Array(NF),FGH=new Float64Array(NF),FTI=new Int32Array(NF).fill(-1),FII=new Int32Array(NF).fill(-1);
   /* While routing, each edge keeps its own room (res) and load (ld). Routers only exist in POPs (HAS): their room,
      load and served traffic are kept per city index. What crosses each edge (R.ef) is added up by egress, and in
-     arrays by network (then 'junk' and 'l2vpn') and by source city, each key in the order it first got traffic. */
+     arrays by network (then 'junk', 'l2vpn' and 'scrub') and by source city, each key in the order it first got traffic. */
   const LATP=new Float64Array(NC),FARL=[],NRES=new Float64Array(NC),HAS=new Uint8Array(NC),NLOAD=new Float64Array(NC),NSEEN=new Uint8Array(NC),NORD=[],SRV=new Float64Array(NC),PASS=new Float64Array(NC).fill(1),OUT=new Uint8Array(NC);
   for(const k in edges)edges[k].res=edges[k].cap;for(const c of pops){const i=CIDX[c];NRES[i]=nodeCap(c);HAS[i]=1;R2.nodeCap[c]=NRES[i];}
   // The core (backbone technology): what passing-through traffic costs each router, and which POPs TE must avoid.
   const CORE=coreOn()&&S.core.run>=1;if(CORE)for(const c of pops){const i=CIDX[c];PASS[i]=corePass(c);OUT[i]=inCore(c)?0:1;}
   const nodeTake=(i,a)=>{NRES[i]-=a;if(!NSEEN[i]){NSEEN[i]=1;NORD.push(i);}NLOAD[i]=(NLOAD[i]||0)+a;};
   const TNA=new Float64Array(TSL.size*NN),TNS=new Uint8Array(TSL.size*NN),TNK=[],TORD=[];
-  const NKN=NN+2,ACN=new Float64Array(NE*NKN),SEN=new Uint8Array(NE*NKN),ACD=new Float64Array(NE*NC),SED=new Uint8Array(NE*NC),EL=[];
+  const NKN=NN+3,ACN=new Float64Array(NE*NKN),SEN=new Uint8Array(NE*NKN),ACD=new Float64Array(NE*NC),SED=new Uint8Array(NE*NC),EL=[];
   // t.g gives each egress a slot in t.v, so adding to it allocates nothing (a Map of numbers boxes every new sum).
   const carry=(l,eg,nr,ci,a)=>{let t=l.tr;if(!t){t=l.tr={g:new Map(),v:[],n:[],d:[]};EL.push(l);}const s=t.g.get(eg);if(s===undefined){t.g.set(eg,t.v.length);t.v.push(0+a);}else t.v[s]+=a;
     let k=l.i*NKN+nr;if(!SEN[k]){SEN[k]=1;t.n.push(nr);}ACN[k]=(ACN[k]||0)+a;k=l.i*NC+ci;if(!SED[k]){SED[k]=1;t.d.push(ci);}ACD[k]=(ACD[k]||0)+a;};
@@ -172,12 +172,13 @@ function compute(){RW.gen++;
     // Same answer as diversePaths(), which would rebuild today's live links for every customer.
     if((b.reqs||[]).includes('diverse')){const k=b.city+'>'+b.city2;R2.div[b.id]=divMemo[k]??(divMemo[k]=disjointI(b.city,b.city2));}}})();
   /* Floods ride the backbone ahead of everyone's traffic (25-ddos-flood.js). haul: up to g from city A to POP B over the
-     shortest path, as far as links and routers have room. */
+     shortest path, as far as links and routers have room. What a scrubbing center sends back is the target's own clean
+     traffic, counted apart from the junk (#289). */
   const msOf=(A,B)=>{const Bi=CIDX[B],Ai=CIDX[A];return SPD[B]&&SPD[B][Ai]<Infinity?walkI(SPP[B],Bi,Ai).path.reduce((n,e)=>n+e.lat,0):0;};
   let JK=0;const haul=(A,B,g,ek,from,clean)=>{if(!(g>0))return 0;const Ai=CIDX[A],Bi=CIDX[B];if(!SPD[B]||!(SPD[B][Ai]<Infinity))return 0;
     const {path,ni}=walkI(SPP[B],Bi,Ai);let amt=g;for(const l of path)amt=Math.min(amt,l.res);for(const i of ni)if(HAS[i])amt=Math.min(amt,NRES[i]);amt=Math.max(0,amt);if(amt<=1e-9)return 0;
     if(!R2.egDesc[ek])R2.egDesc[ek]={lab:clean?labOf(N_('compute.scrubbed_traffic_from_city'),'city',CITY[A].name):labOf(N_('compute.attack_entering_in_city'),'city',CITY[from].name),city:B,k:'l2'};
-    for(const i of ni)if(HAS[i])nodeTake(i,amt);for(const l of path){l.res-=amt;l.ld+=amt;if(!clean){l.jk=(l.jk||0)+amt;JK=1;}carry(l,ek,NN,Bi,amt);}return amt;};
+    for(const i of ni)if(HAS[i])nodeTake(i,amt);for(const l of path){l.res-=amt;l.ld+=amt;if(!clean){l.jk=(l.jk||0)+amt;JK=1;}carry(l,ek,clean?NN+2:NN,Bi,amt);}return amt;};
   const DD=ddosLoad({E,okBy,R2,autoBh:!!(TRX&&TRX.blackhole),haul,ms:msOf});
   const TE=!!(S.te&&S.te.on)&&coreTE(),TR=TE?teRules():null,REACH=coreTeReach();R2.teMoved=0;const teCache=new Map(),SPILL=TR&&TR.spill?TR.spill:1;
   const altPath=(src,dst,base)=>{const key=src*NC+dst,c0=teCache.get(key);
