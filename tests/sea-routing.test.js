@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // Check the surveyed part independently against the original coastline segments.
 // City markers may sit inland: their two short shore approaches are excluded.
@@ -21,7 +22,7 @@ function assertMarine(path, start, end, coast, passes = []) {
     for (const [p, q] of edges) {
       const shift = 360 * Math.round((a[0] - p[0]) / 360), c = [p[0] + shift, p[1]], d = [q[0] + shift, q[1]];
       assert.ok(!(turn(a, b, c) * turn(a, b, d) < -1e-12 && turn(c, d, a) * turn(c, d, b) < -1e-12),
-        `sea segment ${JSON.stringify([a, b])} crosses a coastline`);
+        `sea segment ${lit([a, b])} crosses a coastline`);
     }
   }
 }
@@ -38,7 +39,7 @@ test('surveyed designs avoid land, use real path lengths and improve latency', (
         assert.ok(Number.isFinite(q.km) && q.pts.length > 2);
         // the fastest design may follow the corridor of an existing cable instead, which is drawn as that cable is
         if (!q.cor) assertMarine(q.pts, ...q.shore, coast, passes);
-        assert.equal(q.km, ev(`seaLength(${JSON.stringify(q.pts)})`));
+        assert.equal(q.km, ev(`seaLength(${lit(q.pts)})`));
         if (i) {
           assert.ok(q.km <= quotes[i - 1].km, 'premium surveys never lengthen the route');
           assert.ok(q.ms < quotes[i - 1].ms, 'premium latency is strictly lower');
@@ -140,7 +141,7 @@ test('the fastest design is as fast as the fastest cable, and the Red Sea Crisis
       const best = ev(`Math.min(...cablesFor('${a}','${b}').map(c=>linkLat({kind:'wave',km:c.km,cable:c.cid})))`);
       const q = JSON.parse(ev(`JSON.stringify(seaQuote('${a}','${b}','express'))`));
       assert.ok(q.ms <= best + 1e-9, `${a}–${b}: ${q.ms.toFixed(2)} ms against ${best.toFixed(2)} ms`);
-      assert.equal(q.km, ev(`seaLength(${JSON.stringify(q.pts)})`), 'map and price use the same path');
+      assert.equal(q.km, ev(`seaLength(${lit(q.pts)})`), 'map and price use the same path');
     }
     // and where the existing cable takes a detour, the survey beats it
     assert.ok(ev("seaQuote('lag','bde','express').ms") < ev("Math.min(...cablesFor('lag','bde').map(c=>linkLat({kind:'wave',km:c.km,cable:c.cid})))"));

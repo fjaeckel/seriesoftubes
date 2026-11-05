@@ -6,11 +6,12 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 const BIG = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
 const big = (t) => { const h = load({ seed: 777 }); t.after(() => h.dom.window.close());
   h.dom.window.structuredClone = globalThis.structuredClone;   // what postMessage does between the threads
-  h.ev(`S=migrate(JSON.parse(${JSON.stringify(BIG)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();autoPause=()=>false;compute();`); return h; };
+  h.ev(`S=migrate(JSON.parse(${lit(BIG)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();autoPause=()=>false;compute();`); return h; };
 // R with its lazy parts (R.ef, R.fl) read out, attacks by id.
 const SIG = "(()=>{const o={};for(const k in R)o[k]=R[k];o.ef={};for(const k in R.ef)o.ef[k]=R.ef[k];o.fl=(R.fl||[]).map(f=>[f.c,f.n,f.junk,f.rem,f.gt,f.gi,f.gp,f.gh,f.ti,f.ii]);return JSON.stringify(o,(k,v)=>k==='attack'?(v&&v.id):k==='ports'?undefined:v);})()";
 

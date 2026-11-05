@@ -5,6 +5,7 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
 const OUT = require('node:fs').mkdtempSync(require('node:path').join(require('node:os').tmpdir(), 'tubes-build-'));
+const { JSDOM } = require('jsdom');
 const root = path.join(__dirname, '..');
 
 test('build stamps version and date into the site', () => {
@@ -31,9 +32,9 @@ test('head carries the SEO and social metadata', () => {
   for (const needle of ['<link rel="canonical" href="https://seriesoftub.es/">', 'property="og:image"', 'name="twitter:card"', 'application/ld+json', 'rel="manifest"', 'name="description"']) {
     assert.ok(html.includes(needle), `missing ${needle}`);
   }
-  for (const block of html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
-    JSON.parse(block.replace(/<\/?script[^>]*>/g, ''));
-  }
+  const ld = new JSDOM(html).window.document.querySelectorAll('script[type="application/ld+json"]');
+  assert.ok(ld.length > 0, 'structured data is there');
+  for (const s of ld) JSON.parse(s.textContent);
 });
 
 test('a release build refuses to ship without release notes', () => {
@@ -51,7 +52,7 @@ test('src: partials follow the layout rules (docs/adr/0002-one-page-assembled-at
   for (const dev of [false, true]) {
     const { html, map } = assemble({ dev });
     assert.equal((html.match(/^const ACT=\{$/gm) || []).length, 1, 'ACT is declared once; other action files use Object.assign(ACT,{…})');
-    assert.equal((html.match(/<script>/g) || []).length, 2, 'the language loader and the game: one inline game script');
+    assert.equal([...new JSDOM(html).window.document.scripts].filter((s) => !s.attributes.length).length, 2, 'the language loader and the game: one inline game script');
     assert.ok(map.length > 50 && map.every((m) => m.to >= m.from), 'the line map covers every partial');
   }
 });

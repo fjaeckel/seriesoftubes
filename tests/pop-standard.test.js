@@ -1,8 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
-const g = n => `RG.findIndex(r=>r.n===${JSON.stringify(n)})`;
+const g = n => `RG.findIndex(r=>r.n===${lit(n)})`;
 const start = "ACT.start({});S.cash=1e8;S.lvl=13;S.nextFail=1e9;S.nextEvent=1e9";
 
 test('a standard POP: new POPs get its router model and count at once, without downtime (#240)', () => {

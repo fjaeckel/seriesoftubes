@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 test('sandbox: endless money, every unlock, nothing breaks, no badges', () => {
   const { ev, errors } = load();
@@ -215,7 +216,7 @@ test('#27 new networks get a random name, and "Another one" never repeats it', (
   const { ev, errors } = load();
   assert.ok(ev("NETWORK_NAMES.every(n=>n.length<=24)&&new Set(NETWORK_NAMES).size===NETWORK_NAMES.length"));
   const first = ev("document.getElementById('nmIn').value");
-  assert.ok(ev(`NETWORK_NAMES.includes(${JSON.stringify(first)})`));
+  assert.ok(ev(`NETWORK_NAMES.includes(${lit(first)})`));
   let prev = first;
   for (let i = 0; i < 40; i++) {
     ev("ACT.randomName()");
@@ -452,8 +453,8 @@ test('RouteScript: help, ready-made scripts and the AI button', () => {
   ev('Math.random=()=>0.5;ACT.teSlop()');
   const good = ev("document.getElementById('teSrc').value");
   assert.match(good, /Written by/);
-  assert.equal(ev(`teParse(${JSON.stringify(good)}).errors.length`), 0);
-  assert.ok(ev(`teTrial(${JSON.stringify(good)}).after.served`) >= served * 0.99);
+  assert.equal(ev(`teParse(${lit(good)}).errors.length`), 0);
+  assert.ok(ev(`teTrial(${lit(good)}).after.served`) >= served * 0.99);
   assert.equal(ev('R.served'), served, 'thinking about it changes nothing');
   ev('ACT.teDeploy()');
   assert.equal(ev('S.te.script'), good);
@@ -462,7 +463,7 @@ test('RouteScript: help, ready-made scripts and the AI button', () => {
   const bad = ev("document.getElementById('teSrc').value");
   assert.match(bad, /cap transit cogentle at 0 gbps/);
   assert.match(bad, /Confidence: 100%/);
-  assert.ok(ev(`teTrial(${JSON.stringify(bad)}).after.served`) < served * 0.5, 'it takes the network down');
+  assert.ok(ev(`teTrial(${lit(bad)}).after.served`) < served * 0.5, 'it takes the network down');
   ev('ACT.teDeploy()');
   assert.match(ev("document.getElementById('toasts').textContent"), /The AI apologises/);
   ev('ACT.teEdit();ACT.teSlop();ACT.teHelp();ACT.teBack()');

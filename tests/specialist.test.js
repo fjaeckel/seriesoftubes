@@ -1,11 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // Specialist play (#187, #173): capability offers, vendor demo units, pioneer fiber, consortium seats, charters.
 const start = "ACT.start({});S.cash=1e9;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'})";
 const pop = (c) => `S.pops['${c}']=S.pops['${c}']||{day:0,bb:null,boost:0,down:0,routers:1,gen:false,rgen:0};`;
-const df = (id, a, b, ch, own = true) => `S.links.push({id:'${id}',a:'${a}',b:'${b}',kind:'df',own:${own},sys:'roadm',ch:${JSON.stringify(ch)},km:kmBetween('${a}','${b}'),sub:false,cable:null,mo:0,trench:'${id}',cut:0,day:0,ready:0,spares:false});`;
+const df = (id, a, b, ch, own = true) => `S.links.push({id:'${id}',a:'${a}',b:'${b}',kind:'df',own:${own},sys:'roadm',ch:${lit(ch)},km:kmBetween('${a}','${b}'),sub:false,cable:null,mo:0,trench:'${id}',cut:0,day:0,ready:0,spares:false});`;
 // Spawn offers until one of a type shows up (or give up), with everything else cleared out of the way.
 const spawnUntil = (ev, type, n = 400) => ev(`(()=>{for(let i=0;i<${n};i++){S.offers=[];spawnOffer();const o=S.offers.find(o=>o.type==='${type}');if(o)return JSON.stringify(o);}return 'null';})()`);
 
@@ -91,7 +92,7 @@ test('#173 a consortium seat: offer, pay, build, light, cut, save', () => {
   ev(start);
   ev("S.lvl=3;S.capDeal={at:S.day,c:'lon'};capDealTick(S.day)");
   const off = JSON.parse(ev('JSON.stringify(S.seatOff)'));
-  assert.ok(off && ev(`SEAT_ROUTES.lon.some(r=>r[2]===${JSON.stringify(off.name)})`), 'a capacity conference offers a seat on one of its routes');
+  assert.ok(off && ev(`SEAT_ROUTES.lon.some(r=>r[2]===${lit(off.name)})`), 'a capacity conference offers a seat on one of its routes');
   ev("ACT.leftTab({t:'deals'});renderAll()");
   assert.match(dom.window.document.body.innerHTML, /Consortium seat: /);
   // A seat short enough to light with level 2 optics.

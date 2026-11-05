@@ -6,6 +6,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
 const { play } = require('../scripts/lib/scenario-ref');
+const { lit } = require('../scripts/lib/js-literal');
 
 const HIRE = ['hire', ['transit', 'routers', 'repair', 'sales', 'ix']];
 const home = (c) => [['bb', c], ['tr', c, 1], ['ix', c]];
@@ -57,7 +58,7 @@ for (const [id, P] of Object.entries(PLAY)) {
   test(`${id}: the reference wins in its days, the shortcut does not`, () => {
     const g = load();
     const r = play(g.ev, id, P.ref, { avoid: P.avoid });
-    assert.ok(r.won !== null, `${id}: the reference does not win (${JSON.stringify(r)})`);
+    assert.ok(r.won !== null, `${id}: the reference does not win (${lit(r)})`);
     assert.ok(r.won >= P.win[0] && r.won <= P.win[1] && (id === 'carnaval' || r.won <= r.limit * 0.75), `${id}: won on day ${r.won}, want ${P.win.join('-')} of ${r.limit}`);
     const c = play(g.ev, id, P.cheese, { days: P.by || undefined });
     assert.ok(c.won === null, `${id}: the shortcut wins on day ${c.won}${P.by ? ` (before day ${P.by})` : ''}`);

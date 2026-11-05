@@ -20,10 +20,21 @@ const SITE = path.join(__dirname, '..', 'site');
 const page = () => require('./lib/page').assemble({ dev: true }).html;
 const LABEL = /^[a-z0-9_]+(\.[a-z0-9_]+)+$/;
 
+// The bodies of the page's bare <script> tags. Our own assembled page, so a plain search is enough.
+function inlineScripts(html) {
+  const out = [];
+  for (let i = html.indexOf('<script>'); i >= 0; i = html.indexOf('<script>', i)) {
+    const end = html.indexOf('</script>', i += 8);
+    if (end < 0) break;
+    out.push(html.slice(i, end)); i = end;
+  }
+  return out;
+}
+
 // The labels the game uses, with problems in how they are used.
 function sourceLabels(html) {
   const labels = new Set(), problems = [];
-  const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]).join('\n');
+  const scripts = inlineScripts(html).join('\n');
   for (const m of scripts.matchAll(CALL)) {
     const l = m[2].slice(1, -1);
     if (!LABEL.test(l)) problems.push(`${m[1]}(${m[2].slice(0, 60)}…): not a label like 'area.some_words'`);

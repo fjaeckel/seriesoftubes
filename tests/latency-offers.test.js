@@ -3,11 +3,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // Spawn many mars offers from a network at two cities only: most are between the two.
 const marsOnly = "eval('('+spawnOffer.toString().replace('const t=pick(types)',\"const t='mars'\")+')')";
 const spawn = (ev, n) => ev(`(()=>{S.offers=[];const f=${marsOnly};for(let i=0;i<${n};i++)f();return JSON.stringify(S.offers.map(o=>[o.city,o.city2,o.latMax]));})()`);
-const start = (ev, cities) => ev(`ACT.start({});S.cash=1e9;S.nextFail=1e9;S.nextEvent=1e9;for(const g of GOALS)S.done[g.id]=0;S.lvl=13;S.pops={};for(const c of ${JSON.stringify(cities)})S.pops[c]={day:0,bb:null,boost:0,down:0,routers:1,gen:false,rgen:0};compute()`);
+const start = (ev, cities) => ev(`ACT.start({});S.cash=1e9;S.nextFail=1e9;S.nextEvent=1e9;for(const g of GOALS)S.done[g.id]=0;S.lvl=13;S.pops={};for(const c of ${lit(cities)})S.pops[c]={day:0,bb:null,boost:0,down:0,routers:1,gen:false,rgen:0};compute()`);
 
 test('#273 no latency offer between Iqaluit and Nuuk: no buildable path meets the straight-line ceiling', () => {
   const { ev, errors } = load();

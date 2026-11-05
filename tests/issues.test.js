@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 function base(ev) {
   ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'})");
@@ -39,8 +40,8 @@ test('#5 export writes a file and import restores it, with checks', () => {
   ev("S.cash=1;S.name='Other'");
   assert.match(ev(`parseSave('{"nope":1}').err`), /does not look/);
   assert.match(ev(`parseSave('not json').err`), /not valid JSON/);
-  assert.match(ev(`parseSave(JSON.stringify(Object.assign(JSON.parse(${JSON.stringify(txt)}).S,{lost:true}))).err`), /bankrupt/);
-  ev(`UI.importing=parseSave(${JSON.stringify(txt)}).s;ACT.importGo()`);
+  assert.match(ev(`parseSave(JSON.stringify(Object.assign(JSON.parse(${lit(txt)}).S,{lost:true}))).err`), /bankrupt/);
+  ev(`UI.importing=parseSave(${lit(txt)}).s;ACT.importGo()`);
   assert.equal(ev("S.name"), 'Export Me');
   assert.equal(ev("S.cash"), 1234567);
   assert.equal(ev("JSON.parse(slotRaw(UI.slot)).name"), 'Export Me', 'saved on this device');
@@ -725,7 +726,7 @@ test('connections in the NOC dashboard can be cancelled right there, after a con
   base(ev);
   ev("ACT.buildPop({city:'ams'});ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.buyIx({city:'ams',tier:1});S.pni.push({id:'pn1',city:'fra',net:'nfx',tier:1});S.caches.push({id:'cc1',city:'fra',net:'ggl'},{id:'cc2',city:'fra',net:'ggl'});S.nni.push({city:'fra',prov:'mgp',tier:0});compute();ACT.connOpen()");
   const card = () => ev("document.getElementById('dashCard').textContent");
-  const click = (k, id) => ev(`ACT.connCancel(${JSON.stringify({ k, id })})`);
+  const click = (k, id) => ev(`ACT.connCancel(${lit({ k, id })})`);
   assert.equal(ev("conns().length"), 5);
   const tid = ev("S.transit[0].id");
   click('t', tid);
@@ -912,7 +913,7 @@ test('opening a link on desktop keeps the NOC sidebar available', () => {
 test('#77 waves can join any route already dug between two cities', () => {
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});ACT.buildPop({city:'ams'})");
-  const add = r => ev(`UI.via=null;UI.lmode='wave';UI.route=${JSON.stringify(r)};openLinkModal('fra','ams');ACT.buildLink({tier:1});closeModal()`);
+  const add = r => ev(`UI.via=null;UI.lmode='wave';UI.route=${lit(r)};openLinkModal('fra','ams');ACT.buildLink({tier:1});closeModal()`);
   add('diverse');                                   // first wave: the main route
   add('diverse');                                   // second: a diverse route
   const ts = () => JSON.parse(ev("JSON.stringify(landTrenches('fra','ams').map(t=>[t.k,t.n]))"));
@@ -1218,7 +1219,7 @@ test('#113 Red Sea Crisis wants traffic into Asia for a month, not broadband and
     for(const p of CABLE_PAIRS){if(bp.has(p.cid+':'+p.a+'-'+p.b)||bp.has(p.cid+':'+p.b+'-'+p.a)||bc.has(p.a)||bc.has(p.b))continue;(adj[p.a]=adj[p.a]||[]).push([p.b,p.km]);(adj[p.b]=adj[p.b]||[]).push([p.a,p.km]);}
     const D={mrs:0},P={},Q=['mrs'],seen=new Set();while(Q.length){Q.sort((x,y)=>D[x]-D[y]);const u=Q.shift();if(seen.has(u))continue;seen.add(u);for(const [v,km] of adj[u]||[]){if(D[v]===undefined||D[u]+km<D[v]){D[v]=D[u]+km;P[v]=u;Q.push(v);}}}
     const r=['sin'];while(r[0]!=='mrs')r.unshift(P[r[0]]);return JSON.stringify(r);})()`));
-  const build = (tier) => ev(`for(const c of ${JSON.stringify(route)})if(!S.pops[c])ACT.buildPop({city:c});const r=${JSON.stringify(route)};
+  const build = (tier) => ev(`for(const c of ${lit(route)})if(!S.pops[c])ACT.buildPop({city:c});const r=${lit(route)};
     for(let i=1;i<r.length;i++){UI.pending=null;UI.via=null;UI.lmode='wave';UI.route='main';openLinkModal(r[i-1],r[i]);ACT.buildLink({tier:${tier}});closeModal();}`);
   // the old exploit: broadband with local transit everywhere for 300 Gbps served, and a 10G path
   build(0);

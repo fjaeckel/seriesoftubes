@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 const start = "ACT.start({});S.cash=1e9;S.lvl=4;S.nextFail=1e9;S.nextEvent=1e9;for(const g of GOALS)S.done[g.id]=0;for(const c of ['ams','lon','par','fra','nyc','ash'])ACT.buildPop({city:c});for(const c in S.pops)S.pops[c].rgen=3;compute()";
 // Offers as the day brings them, shaped by whoever is at the desk.
@@ -109,10 +110,10 @@ test('the desk in Deals and its sheet, and saves that remember who is at the des
   ev("ACT.salesHire({id:'shark'})");
   const s = JSON.parse(ev('JSON.stringify(packSave(S))'));
   s.offers = [{ id: 'o1', city: 'ams', name: 'X', type: 'dia', bw: 1, rate: 600, reqs: [], exp: 99, by: 'pirate' }];
-  const out = JSON.parse(ev(`JSON.stringify(sanitize(JSON.parse(${JSON.stringify(JSON.stringify(s))})))`));
+  const out = JSON.parse(ev(`JSON.stringify(sanitize(JSON.parse(${lit(JSON.stringify(s))})))`));
   assert.equal(out.sales.p, 'shark');
   assert.equal(out.offers[0].by, undefined, 'only real salespeople');
   s.sales = { p: 'intern', hired: 'yesterday' };
-  assert.equal(JSON.parse(ev(`JSON.stringify(sanitize(JSON.parse(${JSON.stringify(JSON.stringify(s))})).sales)`)).p, null);
+  assert.equal(JSON.parse(ev(`JSON.stringify(sanitize(JSON.parse(${lit(JSON.stringify(s))})).sales)`)).p, null);
   assert.deepEqual(errors, []);
 });

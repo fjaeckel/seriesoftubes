@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 function start(ev) { ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0"); }
 
@@ -177,7 +178,7 @@ test('routers: wave and port sizes match what the box can actually take', () => 
   assert.equal(ev("LT[RG[3].maxLT].n"), '6.4T');
   // an old save with a 1.6T wave (old tier 3) keeps its 1.6T wave after migration
   const old = ev("(()=>{const s=JSON.parse(JSON.stringify(S));delete s.ltv;s.links=[{id:'x',a:'fra',b:'ams',kind:'wave',tier:3,km:364,mo:1,cut:0}];s.pops.ams={day:0,routers:1};return JSON.stringify(s)})()");
-  assert.equal(ev(`LT[migrate(JSON.parse(${JSON.stringify(old)})).links[0].tier].n`), '1.6T');
+  assert.equal(ev(`LT[migrate(JSON.parse(${lit(old)})).links[0].tier].n`), '1.6T');
 });
 
 test('London–Amsterdam: many cheap cables and dark fiber you can lease under the sea', () => {
@@ -737,11 +738,11 @@ test('Pacific islands: real landings, real exchanges only, and island hops carry
   }
   // only islands with a working exchange today get one
   assert.deepEqual(isl.filter(c => ev(`!!CITY['${c}'].ix`)), ['hnl', 'gum', 'hir', 'nou', 'suv']);
-  assert.equal(ev(`NETS.filter(n=>Array.isArray(n.ix)&&n.ix.some(c=>CITY[c]&&!CITY[c].ix&&${JSON.stringify(isl)}.includes(c))).length`), 0);
+  assert.equal(ev(`NETS.filter(n=>Array.isArray(n.ix)&&n.ix.some(c=>CITY[c]&&!CITY[c].ix&&${lit(isl)}.includes(c))).length`), 0);
   // every new network is reachable through a Tier 1, so Tier 1 players keep their reach
-  assert.equal(ev(`NETS.filter(n=>n.type!=='t1'&&n.pops.every(c=>${JSON.stringify(isl)}.includes(c)||['tok','syd','lax'].includes(c))&&n.pops.some(c=>${JSON.stringify(isl)}.includes(c))&&!(n.up||[]).some(u=>NET[u].type==='t1')).map(n=>n.id).join()`), '');
+  assert.equal(ev(`NETS.filter(n=>n.type!=='t1'&&n.pops.every(c=>${lit(isl)}.includes(c)||['tok','syd','lax'].includes(c))&&n.pops.some(c=>${lit(isl)}.includes(c))&&!(n.up||[]).some(u=>NET[u].type==='t1')).map(n=>n.id).join()`), '');
   // a wave across the whole ocean carries far less than the same trip broken at the islands
-  const hop = (path) => ev(`Math.min(...${JSON.stringify(path)}.slice(1).map((c,i)=>Math.max(...cablesFor(${JSON.stringify(path)}[i],c).map(p=>subCarrier(p.km)))))`);
+  const hop = (path) => ev(`Math.min(...${lit(path)}.slice(1).map((c,i)=>Math.max(...cablesFor(${lit(path)}[i],c).map(p=>subCarrier(p.km)))))`);
   const direct = (a, b) => ev(`Math.max(...cablesFor('${a}','${b}').map(p=>subCarrier(p.km)))`);
   assert.equal(direct('sjc', 'syd'), 400);
   assert.equal(hop(['sjc', 'hnl', 'suv', 'syd']), 1600, 'California to Sydney via Hawaii and Fiji');
@@ -783,7 +784,7 @@ test('Atlantic islands and Halifax: real landings, real exchanges only, and isla
   assert.equal(ev("isSub('hfx','mtl')"), false, 'Halifax is on the mainland');
   // exchanges only where one runs today: CVIXP in Praia and HFXIX in Halifax
   assert.deepEqual(isl.concat('hfx').filter(c => ev(`!!CITY['${c}'].ix`)), ['rai', 'hfx']);
-  assert.equal(ev(`NETS.filter(n=>Array.isArray(n.ix)&&n.ix.some(c=>CITY[c]&&!CITY[c].ix&&${JSON.stringify(isl)}.includes(c))).length`), 0);
+  assert.equal(ev(`NETS.filter(n=>Array.isArray(n.ix)&&n.ix.some(c=>CITY[c]&&!CITY[c].ix&&${lit(isl)}.includes(c))).length`), 0);
   // the real landings named in the issue
   const lands = (cid, a, b) => ev(`CABLE_PAIRS.some(p=>p.cid==='${cid}'&&[p.a,p.b].sort().join()==='${[a, b].sort().join()}')`);
   assert.ok(lands('hibx', 'hfx', 'lon') && lands('nuvem', 'bda', 'lis') && lands('sol', 'bda', 'pdl') && lands('ella', 'for', 'rai') && lands('equi', 'lag', 'jam'));
@@ -792,8 +793,8 @@ test('Atlantic islands and Halifax: real landings, real exchanges only, and isla
   assert.equal(ev("CAB.hibx.pairs[0].slice(0,2).join()"), 'nyc,lon');
   assert.equal(ev("CAB.nuvem.pairs[0].slice(0,2).join()"), 'lis,atn');
   // every island network still reaches a Tier 1
-  assert.equal(ev(`NETS.filter(n=>n.type!=='t1'&&n.pops.some(c=>${JSON.stringify(isl)}.includes(c))&&!(n.up||[]).some(u=>NET[u].type==='t1')&&!n.pops.some(c=>!${JSON.stringify(isl)}.includes(c))).map(n=>n.id).join()`), '');
-  const hop = (path) => ev(`Math.min(...${JSON.stringify(path)}.slice(1).map((c,i)=>Math.max(...cablesFor(${JSON.stringify(path)}[i],c).map(p=>subCarrier(p.km)))))`);
+  assert.equal(ev(`NETS.filter(n=>n.type!=='t1'&&n.pops.some(c=>${lit(isl)}.includes(c))&&!(n.up||[]).some(u=>NET[u].type==='t1')&&!n.pops.some(c=>!${lit(isl)}.includes(c))).map(n=>n.id).join()`), '');
+  const hop = (path) => ev(`Math.min(...${lit(path)}.slice(1).map((c,i)=>Math.max(...cablesFor(${lit(path)}[i],c).map(p=>subCarrier(p.km)))))`);
   const direct = (a, b) => ev(`Math.max(...cablesFor('${a}','${b}').map(p=>subCarrier(p.km)))`);
   assert.equal(direct('mia', 'mad'), 1200);
   assert.equal(hop(['mia', 'bda', 'pdl', 'bio']), 1600, 'Florida to Spain via Bermuda and the Azores');

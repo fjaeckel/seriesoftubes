@@ -19,6 +19,7 @@ const { createRelay } = require('../scripts/agent/relay');
 const { createRelaySession } = require('../scripts/lib/relay-client');
 const SERVER = path.join(ROOT, 'scripts', 'mcp.js');
 const { wait, until, freePort, kill } = require('./net');
+const { lit } = require('../scripts/lib/js-literal');
 let PORT;                                                     // a free one from the OS, before the first test
 test.before(async () => { PORT = await freePort(); });
 
@@ -242,7 +243,7 @@ test('the agent\'s clock moves only with advance; a running clock only with time
       const { TOOLS } = require('../scripts/lib/mcp-game');
       const s = createBrowserSession({ port: PORT });
       const w = await TOOLS.find((x) => x.name === 'wait').run(s, { days: 1, maxSeconds: 10 });
-      assert.ok(w.daysRun >= 1, `wait returns once a day has passed (${JSON.stringify(w)})`);
+      assert.ok(w.daysRun >= 1, `wait returns once a day has passed (${lit(w)})`);
       assert.equal(w.stoppedBecause, null);
       await s.close();
     } finally { clearInterval(frames); }

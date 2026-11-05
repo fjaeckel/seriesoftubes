@@ -20,6 +20,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const BOT = require('./lib/scenario-bot');
+const { lit } = require('./lib/js-literal');
 
 const ROOT = path.join(__dirname, '..');
 const SCHEMA = 1, HISTORY = 4, THEME_GAP = 4, REG_GAP = 3, ATTEMPTS = 12, AT = 0.8, MARGIN = 0.9;
@@ -144,7 +145,7 @@ const fileOf = (key, d, seed, extra) => ({ v: SCHEMA, key, theme: d.f.theme, cit
 // Cable plans are made in the game, once the scenario's rules are in force: the shortest chain of POPs to each target.
 function cablePlan(ev, plan) {
   if (!plan.targets) return plan;
-  const steps = J(ev, `(()=>{const home=S.scn.home,T=${JSON.stringify(plan.targets)},fast=${!!plan.fast},out=[],have=new Set([home]);
+  const steps = J(ev, `(()=>{const home=S.scn.home,T=${lit(plan.targets)},fast=${!!plan.fast},out=[],have=new Set([home]);
     const ok=c=>pzCityOk(c)&&cityOn(c)&&!cnCity(c);
     const edges=u=>{const o=[];for(const p of CABLE_PAIRS){const v=p.a===u?p.b:p.b===u?p.a:null;if(!v||!ok(v))continue;const cs=cablesOk(u,v);if(!cs.length)continue;
       const c=cs.slice().sort((x,y)=>x.km*(CAB[x.cid].lat||1)-y.km*(CAB[y.cid].lat||1))[0];o.push([v,c.km*(CAB[c.cid].lat||1)/200,c.cid]);}
@@ -158,7 +159,7 @@ function cablePlan(ev, plan) {
 // Starts the draft in the game (so its rules apply), finishes the plan, and plays it with the reference player.
 function run(g, file, plan, days) {
   const { ev } = g;
-  ev(`localStorage.removeItem('sot-wkscn');wsBegin(${JSON.stringify(file)},'Ref');if(UI.pendGame)ACT.pitchSkip()`);
+  ev(`localStorage.removeItem('sot-wkscn');wsBegin(${lit(file)},'Ref');if(UI.pendGame)ACT.pitchSkip()`);
   const p = cablePlan(ev, plan); if (!p || (plan.targets && p.steps.length < 2)) return null;
   return { plan: p, res: BOT.play(ev, { ...file, ref: p }, p, { days, stop: false }) };
 }
@@ -195,7 +196,7 @@ function calibrate(g, d, key, seed) {
 // The game's validator decides what a scenario is; then it must need play, and the reference must win with time to spare.
 function verify(g, j) {
   const { ev } = g;
-  if (!ev(`!!wsValid(${JSON.stringify(j)},'${j.key}')`)) return { ok: false, why: 'the game rejects the file' };
+  if (!ev(`!!wsValid(${lit(j)},'${j.key}')`)) return { ok: false, why: 'the game rejects the file' };
   // Played with the longest clock the game allows, so a late win still shows its day (the days change nothing else).
   const res = BOT.play(ev, { ...j, days: 400 }, j.ref, { stop: true });
   if (res.won0) return { ok: false, why: 'won on day 0' };
@@ -242,7 +243,7 @@ function check(g, dir, now = Date.now()) {
   const { ev } = g, bad = [], keys = list(dir);
   for (const k of keys) {
     let j; try { j = JSON.parse(fs.readFileSync(path.join(dir, k + '.json'), 'utf8')); } catch (e) { bad.push(`${k}: not JSON`); continue; }
-    if (!ev(`!!wsValid(${JSON.stringify(j)},'${k}')`)) { bad.push(`${k}: the game rejects it`); continue; }
+    if (!ev(`!!wsValid(${lit(j)},'${k}')`)) { bad.push(`${k}: the game rejects it`); continue; }
     if (!j.ref || !Array.isArray(j.ref.steps)) { bad.push(`${k}: no reference plan`); continue; }
     if (ev(`pzWeekStart('${k}')`) + 7 * 864e5 > now) { const v = verify(g, j); if (!v.ok) bad.push(`${k}: ${v.why}`); else if (v.par !== j.par) bad.push(`${k}: par is ${j.par}, the reference wins on day ${v.par}`); }
   }
@@ -258,7 +259,7 @@ function refresh(g, dir, now = Date.now()) {
   const { ev } = g, fixed = [], bad = [];
   for (const k of list(dir)) {
     let j = null; try { j = JSON.parse(fs.readFileSync(path.join(dir, k + '.json'), 'utf8')); } catch (e) { /* regenerated */ }
-    const valid = !!j && ev(`!!wsValid(${JSON.stringify(j)},'${k}')`) && j.ref && Array.isArray(j.ref.steps), live = ev(`pzWeekStart('${k}')`) + 7 * 864e5 > now;
+    const valid = !!j && ev(`!!wsValid(${lit(j)},'${k}')`) && j.ref && Array.isArray(j.ref.steps), live = ev(`pzWeekStart('${k}')`) + 7 * 864e5 > now;
     if (valid && !live) continue;
     const v = valid ? verify(g, j) : null;
     if (v && v.ok) { if (v.par !== j.par) { j.par = v.par; writeWeek(dir, j); fixed.push(`${k}: new par ${v.par}`); } continue; }

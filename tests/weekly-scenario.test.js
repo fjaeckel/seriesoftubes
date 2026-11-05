@@ -8,12 +8,13 @@ const os = require('node:os');
 const path = require('node:path');
 const { load } = require('./harness');
 const G = require('../scripts/weekly-scenario');
+const { lit } = require('../scripts/lib/js-literal');
 
 const DIR = path.join(__dirname, '..', 'site', 'scenarios', 'weekly');
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'tubes-wkscn-'));
 const committed = () => G.list(DIR).map((k) => JSON.parse(fs.readFileSync(path.join(DIR, k + '.json'), 'utf8')));
 const tick = () => new Promise((r) => setTimeout(r, 30));
-const serveFile = (ev, j) => ev(`UI.wsWk=null;window.fetch=()=>Promise.resolve({ok:true,json:()=>Promise.resolve(${JSON.stringify(j)})})`);
+const serveFile = (ev, j) => ev(`UI.wsWk=null;window.fetch=()=>Promise.resolve({ok:true,json:()=>Promise.resolve(${lit(j)})})`);
 // One file per goal type, from the committed ones where a week has it: enough to check every card.
 const GOALS = {
   served: { theme: 'budget', goal: { t: 'served', p: { g: 200 } }, desc: { l: 'wkscn.desc_city_on_a_shoestring', p: { city: 'fra' } } },
@@ -55,7 +56,7 @@ test('every committed week verifies: not won on day 0, the reference wins on its
 });
 
 test('the file is checked field by field, and --check rejects a tampered one', () => {
-  const { ev, errors } = load(), j = committed()[0], ok = (x, key = j.key) => ev(`!!wsValid(${JSON.stringify(x)},'${key}')`);
+  const { ev, errors } = load(), j = committed()[0], ok = (x, key = j.key) => ev(`!!wsValid(${lit(x)},'${key}')`);
   assert.equal(ok(j), true);
   const bad = {
     'another week': [j, '2020-W01'], 'not a week': [{ ...j, key: '2026-W99' }, '2026-W99'],
@@ -123,8 +124,8 @@ test('the published scenario is played when it is good, the in-browser weekly wh
     ["Promise.resolve({ok:false,status:404,json:()=>Promise.reject()})", 'missing'],
     ["Promise.reject(new TypeError('offline'))", 'offline'],
     ["Promise.resolve({ok:true,json:()=>Promise.reject(new SyntaxError('x'))})", 'not JSON'],
-    [`Promise.resolve({ok:true,json:()=>Promise.resolve(${JSON.stringify({ ...good, city: 'nope' })})})`, 'an unknown city'],
-    [`Promise.resolve({ok:true,json:()=>Promise.resolve(${JSON.stringify({ ...good, key: '2020-W01' })})})`, 'another week'],
+    [`Promise.resolve({ok:true,json:()=>Promise.resolve(${lit({ ...good, city: 'nope' })})})`, 'an unknown city'],
+    [`Promise.resolve({ok:true,json:()=>Promise.resolve(${lit({ ...good, key: '2020-W01' })})})`, 'another week'],
   ]) {
     ev(`UI.wsWk=null;window.fetch=()=>${how}`); ev('ACT.scenarios({})'); await tick();
     assert.equal(ev('wsDef()'), null, why);
@@ -145,7 +146,7 @@ test('every goal type has a progress card, needs play, and wins, streaks and sha
   const { ev, dom, errors } = load(), key = ev('pzWeekKey(new Date())');
   for (const t of Object.keys(GOALS)) {
     const f = fileFor(t, key);
-    assert.equal(ev(`wsBegin(${JSON.stringify(f)},'T')`), true, t);
+    assert.equal(ev(`wsBegin(${lit(f)},'T')`), true, t);
     ev('if(UI.pendGame)ACT.pitchSkip();closeModal();compute();renderAll()');
     assert.equal(ev('wsOk()'), false, `${t}: not won on day 0`);
     assert.ok(ev('scnProg().items.length') > 0, `${t}: a progress card`);
@@ -156,7 +157,7 @@ test('every goal type has a progress card, needs play, and wins, streaks and sha
   }
   // A win: a POP goal met on day 1, recorded for the week, with a streak and the share line.
   ev("localStorage.removeItem('sot-wkscn')");
-  ev(`wsBegin(${JSON.stringify(fileFor('pops', key))},'T');if(UI.pendGame)ACT.pitchSkip();closeModal()`);
+  ev(`wsBegin(${lit(fileFor('pops', key))},'T');if(UI.pendGame)ACT.pitchSkip();closeModal()`);
   // Waves take a few days to light (real lead times), so the goal is met once they are up.
   const build = "for(const c of ['ams','par']){UI.via=null;openLinkModal('fra',c);ACT.buildLink({tier:1});closeModal();}for(let i=0;i<90&&!S.scn.done;i++)dayTick()";
   ev(build);
@@ -169,7 +170,7 @@ test('every goal type has a progress card, needs play, and wins, streaks and sha
   assert.equal(rec.streak.n, 1);
   // Last week won too: the streak grows; a gap starts it again.
   ev(`localStorage.setItem('sot-wkscn',JSON.stringify({go:{},w:{},streak:{last:pzPrevKey('${key}'),n:3,best:3}}))`);
-  ev(`wsBegin(${JSON.stringify(fileFor('pops', key))},'T');if(UI.pendGame)ACT.pitchSkip();closeModal()`);
+  ev(`wsBegin(${lit(fileFor('pops', key))},'T');if(UI.pendGame)ACT.pitchSkip();closeModal()`);
   ev(build);
   assert.equal(JSON.parse(ev("localStorage.getItem('sot-wkscn')")).streak.n, 4);
   assert.equal(ev(`wsStreak(wsLoad(),pzKeyAdd('${key}',2))`), 0);
@@ -178,7 +179,7 @@ test('every goal type has a progress card, needs play, and wins, streaks and sha
 
 test('saves keep the scenario, checked again on load; a tampered one plays on as the in-browser weekly', () => {
   const { ev, errors } = load(), key = ev('pzWeekKey(new Date())');
-  ev(`wsBegin(${JSON.stringify(fileFor('path', key))},'T');if(UI.pendGame)ACT.pitchSkip();closeModal();S.scn.run=7`);
+  ev(`wsBegin(${lit(fileFor('path', key))},'T');if(UI.pendGame)ACT.pitchSkip();closeModal();S.scn.run=7`);
   ev('S=migrate(JSON.parse(JSON.stringify(S)));compute()');
   assert.equal(ev("S.scn.wk.goal.t+':'+S.scn.run+':'+S.scn.home"), 'path:7:fra');
   ev("S.scn.wk.goal={t:'win',p:{}};S.scn.run='x';S=migrate(JSON.parse(JSON.stringify(S)));compute();renderAll()");

@@ -7,12 +7,13 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 const SAVE = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
 
 function open() {
   const h = load({ seed: 777 });
-  h.ev(`S=migrate(JSON.parse(${JSON.stringify(SAVE)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();S.nextFail=S.day+999;S.nextEvent=S.day+999;compute();`);
+  h.ev(`S=migrate(JSON.parse(${lit(SAVE)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();S.nextFail=S.day+999;S.nextEvent=S.day+999;compute();`);
   return h;
 }
 
@@ -78,7 +79,7 @@ test('with WebGL the lines go to the card, the rest to the overlay, and the map 
   const u0 = uploads(); ev('draw(1016)'); assert.equal(uploads(), u0, 'a frame alone uploads no tube data');
   const id = ev(`(()=>{const l=S.links.find(l=>l.kind!=='vxc'&&!linkDown(l));l.cut=S.day+5;compute();draw(1032);return l.id;})()`);
   assert.ok(uploads() > u0, 'a cut rebuilds the tubes');
-  assert.equal(ev(`linkLook(linkGroups().find(g=>g.some(x=>x.id===${JSON.stringify(id)})),S.day).dash`), 1, 'drawn dashed like a cut');
+  assert.equal(ev(`linkLook(linkGroups().find(g=>g.some(x=>x.id===${lit(id)})),S.day).dash`), 1, 'drawn dashed like a cut');
   ev('mapGl(false);draw(1048)');
   assert.equal(ev(`document.getElementById('mapgl').hidden`), true, 'switching back hides the layers');
   assert.deepEqual(errors, []);
@@ -243,7 +244,7 @@ test('leaving a game hides the card’s layers, and the next game shows them aga
   ev('ACT.toTitle();draw(1016)');
   assert.deepEqual(shown(), [false, false, false], 'back to the title: the old network is not left behind it');
   assert.ok(ev('ctx===CTX0'));
-  ev(`S=migrate(JSON.parse(${JSON.stringify(SAVE)}));UI.started=true;compute();draw(1032)`);
+  ev(`S=migrate(JSON.parse(${lit(SAVE)}));UI.started=true;compute();draw(1032)`);
   assert.deepEqual(shown(), [true, true, true], 'the next game is on the card again');
   ev(`slotBroke(UI.slot||'x');draw(1048)`);
   assert.deepEqual(shown(), [false, false, false], 'a damaged save leaves the title with an empty map too');
@@ -311,7 +312,7 @@ test('selecting a tube sends its halo to the card, not the network again', () =>
 const FAKE_GL = (name) => `(()=>{window.CanvasRenderingContext2D=window.CanvasRenderingContext2D||class{};const c=document.getElementById('mapgl');c.getContext=(t)=>t!=='webgl2'?null:new Proxy({},{get(t,k){
   if(typeof k==='string'&&/^[A-Z_0-9]+$/.test(k))return k;
   if(k==='getExtension')return ()=>({UNMASKED_RENDERER_WEBGL:'REN'});
-  if(k==='getParameter')return (p)=>p==='REN'?${JSON.stringify(name)}:p==='ACTIVE_UNIFORMS'?0:4096;
+  if(k==='getParameter')return (p)=>p==='REN'?${lit(name)}:p==='ACTIVE_UNIFORMS'?0:4096;
   if(k==='getShaderParameter'||k==='getProgramParameter')return (x,p)=>p==='ACTIVE_UNIFORMS'?0:true;
   return ()=>({});}});})()`;
 

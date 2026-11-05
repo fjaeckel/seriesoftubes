@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 const RN = path.join(__dirname, '..', 'scripts', 'release-notes.js');
 const run = (...a) => JSON.parse(execFileSync(process.execPath, [RN, ...a], { encoding: 'utf8' }));
@@ -22,7 +23,7 @@ test('the release notes script reads a story and the bullets apart', () => {
 test('"What\'s new" tells the story in full, with every change one tap away', () => {
   const { ev, errors } = load();
   const story = run('2.0.0', '--story');
-  ev(`RELEASE_STORY.splice(0,0,...${JSON.stringify(story)});RELEASE_NOTES.splice(0,0,...${JSON.stringify(run('2.0.0'))})`);
+  ev(`RELEASE_STORY.splice(0,0,...${lit(story)});RELEASE_NOTES.splice(0,0,...${lit(run('2.0.0'))})`);
   ev('openModal(notesHtml(RELEASE_NOTES,APP_VERSION))');
   const html = ev("document.getElementById('modalCard').innerHTML"), text = ev("document.getElementById('modalCard').textContent");
   assert.equal(ev("document.querySelectorAll('#modalCard .story p').length"), story.length, 'every paragraph, no "and N more"');

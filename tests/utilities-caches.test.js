@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 function setup(t) {
   const h = load();
@@ -148,7 +149,7 @@ test('boxes follow the traffic each city really sends: Russia and China have the
   // Goggle is throttled to half in Russia.
   assert.ok(Math.abs(ev("cacheDem('mmk','ggl')/cacheDem('mmk','akm')") - ev('NSH_RU.ggl*0.5/NSH_RU.akm')) < 1e-9);
   // In China only the networks on its own list get boxes.
-  for (const id of nets('sha')) assert.ok(ev(`NSH_CN[${JSON.stringify(id)}]>0`), `${id} reaches Shanghai`);
+  for (const id of nets('sha')) assert.ok(ev(`NSH_CN[${lit(id)}]>0`), `${id} reaches Shanghai`);
   // Elsewhere nothing changes: the world share.
   assert.ok(Math.abs(ev("cacheDem('fra','nfx')") - ev('(R.cityDem.fra||0)*NSH.nfx')) < 1e-6);
   assert.deepEqual(errors, []);

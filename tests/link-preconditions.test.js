@@ -5,6 +5,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createSession, TOOLS } = require('../scripts/lib/mcp-game');
+const { lit } = require('../scripts/lib/js-literal');
 
 function sandbox() {
   const s = createSession(), T = (name, args = {}) => TOOLS.find((t) => t.name === name).run(s, args), ev = (x) => s.game.ev(x);
@@ -24,7 +25,7 @@ test('a dark fiber IRU, a wave or a cable from a city with no POP is refused, an
     const why = new RegExp(`You have no POP in ${city}`);
     const q = act(action, args, true);
     assert.equal(q.outcome, 'quote', action);
-    assert.ok(q.quote.blocked.some((b) => why.test(b)), `${action} ${args.a}→${args.b}: ${JSON.stringify(q.quote.blocked)}`);
+    assert.ok(q.quote.blocked.some((b) => why.test(b)), `${action} ${args.a}→${args.b}: ${lit(q.quote.blocked)}`);
     const r = act(action, args);
     assert.equal(r.outcome, 'rejected', `${action} ${args.a}→${args.b}`);
     assert.ok(r.toasts.some((t) => why.test(t)), JSON.stringify(r.toasts));
@@ -95,11 +96,11 @@ test('founding your own exchange says why it cannot: mainland China, an exchange
   const name = (c) => ev(`CITY.${c}.name`);
   const refused = (city, why) => {
     const q = act('foundIx', { city }, true);
-    assert.equal(q.quote.blocked.length, 1, `${city}: ${JSON.stringify(q.quote.blocked)}`);
+    assert.equal(q.quote.blocked.length, 1, `${city}: ${lit(q.quote.blocked)}`);
     assert.match(q.quote.blocked[0], why, city);
     const r = act('foundIx', { city });
     assert.equal(r.outcome, 'rejected', city);
-    assert.ok(r.toasts.some((t) => why.test(t)), `${city}: ${JSON.stringify(r.toasts)}`);
+    assert.ok(r.toasts.some((t) => why.test(t)), `${city}: ${lit(r.toasts)}`);
     assert.equal(r.charged, 0);
   };
   // mainland China comes first: a POP there would not help (Charlie's Shanghai and Beijing had POPs)

@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load, browser } = require('./harness');
 const { until } = require('./net');
+const { lit } = require('../scripts/lib/js-literal');
 
 // A game window and its NOC window in one fake browser: shared localStorage, broadcast channels and locks.
 // Waits for the page's async work (storage, channels) to land: up to 20 s, as a busy runner may need.
@@ -21,7 +22,7 @@ async function pair(t) {
   return { b, G, W, id };
 }
 const pump = (G) => G.ev('NOC.sent=-1e9;nocPump(performance.now())');
-const click = (h, sel) => h.ev(`document.querySelector(${JSON.stringify(sel)}).click()`);
+const click = (h, sel) => h.ev(`document.querySelector(${lit(sel)}).click()`);
 
 test('with no NOC window nothing is sent and nothing is scheduled', (t) => {
   const b = browser();
@@ -78,7 +79,7 @@ test('every button the dashboard draws is in exactly one list', async (t) => {
   const { G, W } = await pair(t);
   const local = JSON.parse(G.ev('JSON.stringify(NOC_LOCAL)')), go = JSON.parse(G.ev('JSON.stringify(NOC_GO)'));
   assert.deepEqual(local.filter((x) => go.includes(x)), []);
-  for (const k of [...local, ...go]) assert.equal(G.ev(`typeof ACT[${JSON.stringify(k)}]`), 'function', k);
+  for (const k of [...local, ...go]) assert.equal(G.ev(`typeof ACT[${lit(k)}]`), 'function', k);
   const seen = JSON.parse(G.ev("(()=>{$('dash').hidden=false;S.biz.push({id:'b1',type:Object.keys(BIZ_T)[0],city:'fra',reqs:[],mood:50,name:'x',g:1,mo:1,day:0});const o=new Set();for(const k of DTABS){UI.dtab=k;UI._dh=null;renderDash();for(const e of document.querySelectorAll('#dashCard [data-act],#dashCard [data-chg]'))o.add(e.dataset.act||e.dataset.chg);}S.biz.pop();return JSON.stringify([...o])})()"));
   assert.ok(seen.includes('lagP') && seen.includes('buyIx'), 'the upgrade buttons are there');
   assert.deepEqual(seen.filter((x) => !local.includes(x) && !go.includes(x)), [], 'a new dashboard button must be sorted into a list');
@@ -105,7 +106,7 @@ test('view clicks stay in the window; the game ignores anything off its list', a
   W.ev("nocView('details')");
   click(W, '#dashCard [data-act="dashTab"][data-args*="infra"]');
   assert.equal(W.ev('UI.dtab'), 'infra'); assert.notEqual(G.ev('UI.dtab'), 'infra');
-  W.ev(`NOC.ctl.postMessage({t:'act',id:${JSON.stringify(id)},act:'newgame',args:{}});NOC.ctl.postMessage({t:'act',id:${JSON.stringify(id)},act:'takeLoan',args:{id:'x'}});ACT.newgame({});ACT.buildPop({city:'ams'})`);
+  W.ev(`NOC.ctl.postMessage({t:'act',id:${lit(id)},act:'newgame',args:{}});NOC.ctl.postMessage({t:'act',id:${lit(id)},act:'takeLoan',args:{id:'x'}});ACT.newgame({});ACT.buildPop({city:'ams'})`);
   await wait();
   assert.equal(G.ev('S.cash'), c0);
   assert.equal(G.ev('!!S.pops.ams'), false, 'buildPop is not on the list');

@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
 const SV = require('../scripts/lib/puzzle-solver');
+const { lit } = require('../scripts/lib/js-literal');
 
 /* Reference solutions, played through the player's own actions. A link is [a, b, route ('land' or a cable id), tier
    (0 = 10G, 1 = 100G, 2 = 400G), same]: a further overland link on a pair takes a diverse route, or with same = k
@@ -61,12 +62,12 @@ test('puzzle data: every puzzle is valid, carries traffic, and its references ea
     ev(`pzBegin(pzDef('${id}'))`);
     build(ev, REF[id].one);
     let e = evalP(ev);
-    assert.ok(e.goal, `${id}: the one-star reference delivers everything (${JSON.stringify(e.flows.map((x) => [x.g, x.ms]))})`);
+    assert.ok(e.goal, `${id}: the one-star reference delivers everything (${lit(e.flows.map((x) => [x.g, x.ms]))})`);
     ev('ACT.pzReset({})');
     assert.equal(evalP(ev).stars, 0, `${id}: reset clears it`);
     build(ev, REF[id].three);
     e = evalP(ev);
-    assert.equal(e.stars, 3, `${id}: three stars (spend ${e.spend} of ${ev('S.pz.budget')}, n1 ${e.n1}, worst cut ${JSON.stringify(e.worst)})`);
+    assert.equal(e.stars, 3, `${id}: three stars (spend ${e.spend} of ${ev('S.pz.budget')}, n1 ${e.n1}, worst cut ${lit(e.worst)})`);
   }
   assert.deepEqual(errors, []);
 });
@@ -88,7 +89,7 @@ test('budgets follow the teaching curve, and each 3-star reference is the cheape
     assert.ok(j.three && Math.abs(j.spend - e.spend) < 1, `${id}: solver ${j.spend} vs game ${e.spend}`);
     // No single change (drop a link, shrink one, move it to another route or trench) keeps three stars for less.
     const r = SV.improve(ev, L);
-    assert.ok(r.spend >= e.spend - 1, `${id}: ${JSON.stringify(r.links)} is cheaper (${r.spend})`);
+    assert.ok(r.spend >= e.spend - 1, `${id}: ${lit(r.links)} is cheaper (${r.spend})`);
     const slack = budget / e.spend - 1, [lo, hi] = SLACK[pack];
     assert.ok(slack >= lo && slack <= hi, `${id}: ${(slack * 100).toFixed(1)}% slack, want ${lo * 100}-${hi * 100}%`);
   }

@@ -24,6 +24,7 @@ const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..');
 const SV = require('./lib/puzzle-solver');
+const { lit } = require('./lib/js-literal');
 const SCHEMA = 2, HISTORY = 4, THEME_GAP = 3, REG_GAP = 2, ATTEMPTS = 40, KEEP = 6;
 const THEMES = ['tour', 'ring', 'detour', 'ocean', 'islands', 'sprint'];
 
@@ -255,7 +256,7 @@ const list = (dir) => (fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => /^
 // too, for the N-1 build), as the game routes it, with the cheapest routers that fit.
 const TIER_G = [10, 100, 400];
 function size(ev, def, links, n1) {
-  ev(`pzBegin(${JSON.stringify(def)})`);
+  ev(`pzBegin(${lit(def)})`);
   const tot = def.dem.reduce((a, f) => a + f.g, 0), t0 = Math.max(0, TIER_G.findIndex((g) => g >= tot));
   for (let t = t0; t < TIER_G.length; t++) {
     const L = [...links.map((l) => [l.a, l.b, l.via, t, 0]), ...def.dem.map((f, i) => f.ms ? ['@route', i, 'fast'] : null).filter(Boolean)], j = SV.judge(ev, L);
@@ -265,8 +266,8 @@ function size(ev, def, links, n1) {
 }
 // Plays a sized build (links and routers) in the game and returns the stars it earns.
 function play(ev, def, b) {
-  ev(`localStorage.removeItem('sot-puzzles');pzBegin(${JSON.stringify(def)})`);
-  SV.judge(ev, b.links); ev(`pzsApplyRt(${JSON.stringify(b.rt)})`);
+  ev(`localStorage.removeItem('sot-puzzles');pzBegin(${lit(def)})`);
+  SV.judge(ev, b.links); ev(`pzsApplyRt(${lit(b.rt)})`);
   return JSON.parse(ev('JSON.stringify((({stars,spend,goal,n1,cheap})=>({stars,spend,goal,n1,cheap}))(pzEval()))'));
 }
 const fileOf = (key, P, budget, w, sol) => ({ v: SCHEMA, key, theme: P.theme, cities: P.cities, src: P.src, dem: P.dem, via: P.via, avoid: P.avoid, budget,
@@ -285,7 +286,7 @@ function sized(g, W, P, def) {
 }
 // The game's own validator decides what a puzzle is; then both references must earn their stars.
 function verify(g, W, j, key, known) {
-  const { ev } = g, def = JSON.parse(ev(`JSON.stringify(pzWkValid(${JSON.stringify(j)},'${key}'))`));
+  const { ev } = g, def = JSON.parse(ev(`JSON.stringify(pzWkValid(${lit(j)},'${key}'))`));
   if (!def) return { ok: false, why: 'the game rejects the file' };
   const P = shape(def), sol = known || sized(g, W, P, def);
   if (!sol) return { ok: false, why: 'no build delivers the traffic and survives a cut' };
@@ -321,7 +322,7 @@ function generate(g, key, dir) {
     cands.sort((a, b) => b.score - a.score);
     for (const c of cands) {
       // Sized with the traffic: the budget sits just above the cheapest N-1 build found.
-      const def = JSON.parse(ev(`JSON.stringify(pzWkValid(${JSON.stringify(fileOf(key, c.P, 1e6, c.w, { one: { cost: 0 }, three: { cost: 0 } }))},'${key}'))`));
+      const def = JSON.parse(ev(`JSON.stringify(pzWkValid(${lit(fileOf(key, c.P, 1e6, c.w, { one: { cost: 0 }, three: { cost: 0 } }))},'${key}'))`));
       const sol = def && sized(g, W, c.P, def);
       if (!sol) { console.warn(`${key}: rejected a ${theme} puzzle: no build carries its traffic`); continue; }
       const j = fileOf(key, c.P, budgetOf(sol), c.w, sol), v = verify(g, W, j, key, sol);
@@ -337,7 +338,7 @@ function check(g, dir, now = Date.now()) {
   const { ev } = g, W = world(ev), bad = [], keys = list(dir);
   for (const k of keys) {
     let j; try { j = JSON.parse(fs.readFileSync(path.join(dir, k + '.json'), 'utf8')); } catch (e) { bad.push(`${k}: not JSON`); continue; }
-    if (!ev(`!!pzWkValid(${JSON.stringify(j)},'${k}')`)) { bad.push(`${k}: the game rejects it`); continue; }
+    if (!ev(`!!pzWkValid(${lit(j)},'${k}')`)) { bad.push(`${k}: the game rejects it`); continue; }
     if (!j.ref || !Number.isInteger(j.ref.one) || !Number.isInteger(j.ref.three) || j.ref.one > j.ref.three || j.ref.three > j.budget) { bad.push(`${k}: bad ref`); continue; }
     if (ev(`pzWeekStart('${k}')`) + 7 * 864e5 > now) { const v = verify(g, W, j, k); if (!v.ok) bad.push(`${k}: ${v.why}`); }
   }
@@ -359,7 +360,7 @@ function refresh(g, dir, now = Date.now()) {
   for (const k of list(dir)) {
     const f = path.join(dir, k + '.json');
     let j = null; try { j = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { /* regenerated below */ }
-    const valid = !!j && ev(`!!pzWkValid(${JSON.stringify(j)},'${k}')`), live = ev(`pzWeekStart('${k}')`) + 7 * 864e5 > now;
+    const valid = !!j && ev(`!!pzWkValid(${lit(j)},'${k}')`), live = ev(`pzWeekStart('${k}')`) + 7 * 864e5 > now;
     if (valid && !live) continue;
     const v = valid ? verify(g, W, j, k) : null;
     if (v && v.ok) {
@@ -369,7 +370,7 @@ function refresh(g, dir, now = Date.now()) {
     const rev = (j && Number.isInteger(j.rev) && j.rev >= 2 ? j.rev : 1) + 1;
     let n = null;
     if (valid) {
-      const def = JSON.parse(ev(`JSON.stringify(pzWkValid(${JSON.stringify(j)},'${k}'))`));
+      const def = JSON.parse(ev(`JSON.stringify(pzWkValid(${lit(j)},'${k}'))`));
       const sol = sized(g, W, shape(def), def);
       if (sol) {
         const c = Object.assign({}, j, { budget: budgetOf(sol), ref: { one: sol.one.cost, three: sol.three.cost }, rev });

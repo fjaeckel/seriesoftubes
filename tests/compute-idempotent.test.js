@@ -3,10 +3,11 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 const BIG = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
 const big = (t) => { const h = load({ seed: 777 }); t.after(() => h.dom.window.close());
-  h.ev(`S=migrate(JSON.parse(${JSON.stringify(BIG)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();compute();`); return h; };
+  h.ev(`S=migrate(JSON.parse(${lit(BIG)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();compute();`); return h; };
 // R as JSON; DDoS reports hold the live attack, whose `worst` dayTick updates, so it is named by id.
 const rj = (ev) => ev("JSON.stringify(R,(k,v)=>k==='attack'||k==='parent'?(v&&v.id):v)");
 

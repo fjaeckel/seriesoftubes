@@ -1,8 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
-const g = n => `RG.findIndex(r=>r.n===${JSON.stringify(n)})`;
+const g = n => `RG.findIndex(r=>r.n===${lit(n)})`;
 const setup = (ev, router) => ev(`ACT.start({});S.cash=1e8;S.nextFail=1e9;S.nextEvent=1e9;S.pops.fra.rgen=${g(router)};S.caches=[];compute()`);
 const boxes = (n, site = 'a') => `for(let i=0;i<${n};i++)S.caches.push({id:'c${site}'+i,city:'fra',net:'cfl',site:'${site}'});`;
 

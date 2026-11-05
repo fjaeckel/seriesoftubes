@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // The intern's "Keep peering headroom" order: PNI and IX ports above a multiple of today's traffic. One port at a POP with
 // several routers gets a second in a LAG; anything else moves up a port size. Same setup as the other standing-order tests:
@@ -17,7 +18,7 @@ function game(t, extra = '') {
 const hire = ev => ev("ACT.opsHire({id:'kevin'});S.ops.floor=0;closeModal()");
 // Hiring recomputes, which would wipe the traffic a case stages: hire first, then stage.
 function hired(t, extra) { const h = game(t); hire(h.ev); h.ev(extra); return h; }
-const on = (ev, p = { x: 1.5 }, cap) => ev(`S.ops.on.ports=true;S.ops.p.ports=${JSON.stringify(p)};${cap === undefined ? '' : `S.ops.cap.ports=${cap};`}`);
+const on = (ev, p = { x: 1.5 }, cap) => ev(`S.ops.on.ports=true;S.ops.p.ports=${lit(p)};${cap === undefined ? '' : `S.ops.cap.ports=${cap};`}`);
 const shift = ev => ev('opsDay(S.day)');
 const cash = ev => ev('S.cash');
 // A 10G PNI with a small network at Frankfurt, carrying `use` Gbps today. PNIs are up the moment they are ordered, so the

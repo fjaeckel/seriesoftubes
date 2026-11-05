@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
 const referenceAllocation = require('./helpers/reference-allocation');
+const { lit } = require('../scripts/lib/js-literal');
 
 function network(ev) {
   ev(`ACT.start({});S.cash=1e10;S.lvl=4;S.day=500;S.biz=[];S.links=[];S.pops={};S.pni=[];S.caches=[];S.transit=[];S.ixp={};
@@ -29,7 +30,7 @@ function network(ev) {
   // The reference also builds every table afresh, so the comparison covers what routing keeps between calls.
   assert.ok(source.includes('RCON=RC.on'), 'compute() can be told not to keep its tables');
   const ref = (source.slice(0,start)+referenceAllocation+source.slice(end)).replace('RCON=RC.on', 'RCON=false');
-  ev(`window.referenceCompute=eval('('+${JSON.stringify(ref)}+')')`);
+  ev(`window.referenceCompute=eval('('+${lit(ref)}+')')`);
 }
 
 test('indexed routing matches the simple allocation loop across network changes', () => {

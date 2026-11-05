@@ -6,15 +6,16 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 const SAVE = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
 const CLIENT = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'lib', 'gpu-bench-client.js'), 'utf8');
 
 function open(cfg = {}) {
   const h = load({ seed: 777 });
-  h.ev(`window.__BENCH__=${JSON.stringify({ expose: true, secs: 0.15, warm: 0, settleMs: 300, ...cfg })};`);
+  h.ev(`window.__BENCH__=${lit({ expose: true, secs: 0.15, warm: 0, settleMs: 300, ...cfg })};`);
   h.ev(CLIENT);
-  h.ev(`__bench.setSave(${JSON.stringify(SAVE)});save=()=>{};`);
+  h.ev(`__bench.setSave(${lit(SAVE)});save=()=>{};`);
   return h;
 }
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));

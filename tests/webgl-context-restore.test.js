@@ -9,6 +9,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 const SAVE = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
 
@@ -33,7 +34,7 @@ const GL = `(()=>{window.CanvasRenderingContext2D=window.CanvasRenderingContext2
 
 function open(storage) {
   const h = load({ seed: 777, storage });
-  h.ev(`S=migrate(JSON.parse(${JSON.stringify(SAVE)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();compute();
+  h.ev(`S=migrate(JSON.parse(${lit(SAVE)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();compute();
     window.__T=100000;Object.defineProperty(performance,'now',{value:()=>__T,configurable:true});console.warn=()=>{};
     const h=CITY[S.home];cam.x=h.x;cam.y=h.y;cam.z=1.4;`);
   h.ev(GL);

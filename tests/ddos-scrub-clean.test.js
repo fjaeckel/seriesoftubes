@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 test('#289 scrubbed traffic coming back to the target is not counted as DDoS junk on the backbone', () => {
   const { ev, errors } = load();
@@ -15,8 +16,8 @@ test('#289 scrubbed traffic coming back to the target is not counted as DDoS jun
   assert.equal(m.pulled, 12, 'the whole flood is pulled to the scrubbing center');
   assert.equal(m.over, 0, 'and cleaned in full');
   const net = JSON.parse(ev("JSON.stringify(R.ef[edgeKey(S.links.find(l=>l.a==='fra'&&l.b==='ams'||l.a==='ams'&&l.b==='fra'))].net)"));
-  assert.ok(!(net.junk > 1e-6), `no junk on the link: ${JSON.stringify(net)}`);
-  assert.ok(net.scrub > 50, `the clean traffic is shown as such: ${JSON.stringify(net)}`);
+  assert.ok(!(net.junk > 1e-6), `no junk on the link: ${lit(net)}`);
+  assert.ok(net.scrub > 50, `the clean traffic is shown as such: ${lit(net)}`);
   const h = ev("trafficSection(S.links.find(l=>l.a==='fra'&&l.b==='ams'||l.a==='ams'&&l.b==='fra'))");
   assert.doesNotMatch(h, /DDoS junk/);
   assert.match(h, new RegExp(ev("tr('common.scrubbed_traffic')")));
@@ -30,7 +31,7 @@ test('#289 a flood that does ride the backbone is still DDoS junk', () => {
   ev("S.biz.push({id:'g',type:'game',name:'Lag Lords',city:'fra',bw:10,rate:100,mood:80,since:0,reqs:[]})");
   ev("S.ev.ddos={id:'atk',city:'fra',tgt:'g',vec:'ack',gbps:20,start:S.day,until:S.day+2,bh:false};compute()");
   const net = JSON.parse(ev("JSON.stringify(R.ef[edgeKey(S.links.find(l=>l.a==='fra'&&l.b==='ams'||l.a==='ams'&&l.b==='fra'))].net)"));
-  assert.ok(net.junk > 1, `junk on the link: ${JSON.stringify(net)}`);
+  assert.ok(net.junk > 1, `junk on the link: ${lit(net)}`);
   assert.ok(!(net.scrub > 0));
   assert.deepEqual(errors, []);
 });

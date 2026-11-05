@@ -12,6 +12,7 @@ const http = require('node:http');
 const path = require('node:path');
 const { assemble, ROOT } = require('./lib/page');
 const { createRelay } = require('./agent/relay');
+const { lit } = require('./lib/js-literal');
 
 // --host/--port; a bare --host binds loopback (never undefined, which would listen on every interface).
 const argOf = (k) => { const i = process.argv.indexOf(k); return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : null; };
@@ -27,7 +28,7 @@ const clients = new Set();
 function page() {
   const { html, map } = assemble({ dev: true });
   // Errors report a line of the assembled page; the console also says which file under src/ that is.
-  const hint = `<script>addEventListener('error',e=>{const n=e.lineno,m=n&&(${JSON.stringify(map)}).find(m=>n>=m.from&&n<=m.to);if(m)console.warn('↑ src/'+m.file+':'+(n-m.from+1))});</script>`;
+  const hint = `<script>addEventListener('error',e=>{const n=e.lineno,m=n&&(${lit(map)}).find(m=>n>=m.from&&n<=m.to);if(m)console.warn('↑ src/'+m.file+':'+(n-m.from+1))});</script>`;
   return html.replace('</body>', `${hint}${RELOAD}</body>`);
 }
 

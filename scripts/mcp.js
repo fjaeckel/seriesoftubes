@@ -137,8 +137,9 @@ function createHttpServer(factory, { host, allow = [], token = null } = {}) {
     const o = validateOriginHeader(req.headers.origin, origins);
     if (!o.ok) return deny(res, 403, 'Origin not allowed: a web page may not drive this server.');
     if (token) {
-      const m = /^Bearer\s+(.+)$/i.exec(req.headers.authorization || '');
-      if (!m || !sameToken(m[1].trim(), token)) return deny(res, 401, 'A bearer token is required.', { 'www-authenticate': 'Bearer realm="seriesoftubes"' });
+      const auth = String(req.headers.authorization || '').trim(), sp = auth.search(/\s/);
+      const given = sp > 0 && auth.slice(0, sp).toLowerCase() === 'bearer' ? auth.slice(sp + 1).trim() : '';
+      if (!given || !sameToken(given, token)) return deny(res, 401, 'A bearer token is required.', { 'www-authenticate': 'Bearer realm="seriesoftubes"' });
     }
     handle(req, res);
   });

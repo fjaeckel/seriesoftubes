@@ -11,6 +11,7 @@
 //   ['scrub', c, tier]  a scrubbing center                    ['pnis']  a PNI with every unreached network that takes one
 //   ['pni', c, net, tier]  one PNI with that network there   ['last', c]  transit there only as a last resort
 //   ['loans']  take every loan the banks offer, from now on (the cheese plans)
+const { lit } = require('./js-literal');
 const REF = String.raw`(()=>{
 const Q=window.__ref={log:[]};
 const quiet=f=>{const t=window.toast;window.toast=()=>{};try{return f();}finally{window.toast=t;}};
@@ -66,7 +67,7 @@ Q.start=(steps,o={})=>quiet(()=>{Q.steps=steps;Q.i=0;Q.avoid=o.avoid||[];Q.step(
 function play(ev, id, plan, { seed, days, avoid } = {}) {
   ev(`localStorage.removeItem('sot-scn');beginGame('Ref',SCN.find(x=>x.id==='${id}').city,{scn:SCN.find(x=>x.id==='${id}')${seed ? ',seed:' + seed : ''}});if(UI.pendGame)ACT.pitchSkip();UI.speed=0;closeModal()`);
   if (ev('typeof __ref') === 'undefined') ev(REF);
-  ev(`__ref.start(${JSON.stringify(plan)},${JSON.stringify({ avoid })})`);
+  ev(`__ref.start(${lit(plan)},${lit({ avoid })})`);
   const n = days || ev('S.scn.days');
   return JSON.parse(ev(`(()=>{let won=null;for(let i=0;i<${n};i++){__ref.day();dayTick();closeModal();if(S.scn.done){won=S.scn.done;break;}if(S.lost||S.scn.failed)break;}
     return JSON.stringify({won,lost:!!S.lost,day:S.day,limit:S.scn.days,cash:Math.round(S.cash),served:Math.round(R.served)});})()`));

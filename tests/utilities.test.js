@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 function setup(t, opts) {
   const h = load(opts);
@@ -66,8 +67,8 @@ test('bulk peering covers rival IXs, respects policy and is idempotent', t => {
   assert.ok(blocked.length > 0);
   const cash = ev('S.cash'), ports = ev('JSON.stringify(S.ixp)'), pnis = ev('JSON.stringify(S.pni)');
   ev('ACT.utilityPeers()');
-  for (const k of expected) assert.equal(ev(`S.peers[${JSON.stringify(k)}]`), true, k);
-  for (const k of blocked) assert.equal(ev(`!!S.peers[${JSON.stringify(k)}]`), false, k);
+  for (const k of expected) assert.equal(ev(`S.peers[${lit(k)}]`), true, k);
+  for (const k of blocked) assert.equal(ev(`!!S.peers[${lit(k)}]`), false, k);
   assert.equal(ev('S.cash'), cash);
   assert.equal(ev('JSON.stringify(S.ixp)'), ports);
   assert.equal(ev('JSON.stringify(S.pni)'), pnis);

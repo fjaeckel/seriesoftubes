@@ -2,6 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // Frankfurt has the eyeballs and no transit; all transit is in Amsterdam, 100G of wave away.
 const remoteTransit = (ev, flip) => {
@@ -50,7 +51,7 @@ test('fourteen attacks on a big network keep the save small, and 2.0 saves with 
   const fs = require('node:fs'), path = require('node:path');
   const fx = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8'));
   const { ev, errors } = load({ seed: 3 });
-  ev(`S=migrate(JSON.parse(${JSON.stringify(JSON.stringify(fx.S || fx))}));UI.started=true;compute()`);
+  ev(`S=migrate(JSON.parse(${lit(JSON.stringify(fx.S || fx))}));UI.started=true;compute()`);
   const before = ev('JSON.stringify(S).length');
   ev("S.day=Math.max(S.day,50);for(let i=0;i<14;i++){S.ddosStarts=[];ddosAttack(false);}compute()");
   assert.equal(ev('ddosAll().length'), 14);

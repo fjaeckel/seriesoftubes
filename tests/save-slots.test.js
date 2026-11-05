@@ -2,12 +2,13 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load, browser, flush } = require('./harness');
 const { until } = require('./net');
+const { lit } = require('../scripts/lib/js-literal');
 
 // Two windows of one browser share localStorage, its storage events, a BroadcastChannel and Web Locks; a reload is a
 // new window with the same tab (sessionStorage).
 // Waits for the page's async work (storage, channels) to land: up to 20 s, as a busy runner may need.
 const settle = async (ev, cond, what) => assert.ok(await until(() => ev(cond)), what || cond);
-const play = (ev, name, city = 'fra', days = 5) => ev(`UI.pitched=true;UI.nm=${JSON.stringify(name)};if($('nmIn'))$('nmIn').value=UI.nm;ACT.pickStart({city:'${city}'});ACT.start({});ACT.launchBB({city:'${city}'});for(let i=0;i<${days};i++)dayTick();save(true)`);
+const play = (ev, name, city = 'fra', days = 5) => ev(`UI.pitched=true;UI.nm=${lit(name)};if($('nmIn'))$('nmIn').value=UI.nm;ACT.pickStart({city:'${city}'});ACT.start({});ACT.launchBB({city:'${city}'});for(let i=0;i<${days};i++)dayTick();save(true)`);
 const idx = (ev) => JSON.parse(ev("JSON.stringify(slotIdx())"));
 const card = (ev) => ev("document.getElementById('modalCard').textContent");
 
@@ -185,7 +186,7 @@ test('without Web Locks or BroadcastChannel the heartbeat still keeps one writer
   w1.ev('slotBeat()');
   const w2 = load({ browser: b });
   await flush();
-  assert.equal(w2.ev('slotBusy(' + JSON.stringify(id) + ')'), true);
+  assert.equal(w2.ev('slotBusy(' + lit(id) + ')'), true);
   w2.ev(`ACT.cont({id:'${id}'})`);
   await flush();
   assert.match(card(w2.ev), /open in another window/);
@@ -287,7 +288,7 @@ test('export the network on screen, or any network from the list; import adds a 
   a.ev('ACT.exportSave({})');
   const txt = await text(files[0]);
   // Import it back: a second network, the first untouched.
-  a.ev(`UI.importing=parseSave(${JSON.stringify(txt)}).s;ACT.importGo()`);
+  a.ev(`UI.importing=parseSave(${lit(txt)}).s;ACT.importGo()`);
   assert.notEqual(a.ev('UI.slot'), first, 'a new slot');
   assert.equal(a.ev('S.name'), 'Exported Net');
   assert.equal(a.ev('S.day'), 7);
@@ -300,7 +301,7 @@ test('export the network on screen, or any network from the list; import adds a 
   const j = JSON.parse(await text(files[1]));
   assert.equal(j.app, 'series-of-tubes');
   assert.equal(j.S.name, 'Exported Net');
-  assert.equal(a.ev(`parseSave(${JSON.stringify(JSON.stringify(j))}).err||null`), null, 'and it imports');
+  assert.equal(a.ev(`parseSave(${lit(JSON.stringify(j))}).err||null`), null, 'and it imports');
   assert.deepEqual(a.errors, []);
 });
 
@@ -349,7 +350,7 @@ test('a big save still compressing when a puzzle starts lands in its network, an
   a.ev("S.name='Big One v1';save(true);S.name='Big One v2';save(true)");// one compressing, one queued
   a.ev("ACT.pzStart({id:'hello'})");
   await settle(a.ev, '!UI.gzBusy&&!SLOT.gzQ.size');
-  const t = await a.dom.window.eval(`gunzip(slotRaw(${JSON.stringify(id)}))`);
+  const t = await a.dom.window.eval(`gunzip(slotRaw(${lit(id)}))`);
   assert.equal(JSON.parse(t).name, 'Big One v2', 'the queued save landed too');
   a.ev('ACT.pzLeave({})');
   assert.equal(a.ev('S.name'), 'Big One v2');
@@ -363,14 +364,14 @@ test('leaving a puzzle when the network cannot be loaded marks it damaged, and C
   const id = a.ev('UI.slot');
   a.ev("ACT.pzStart({id:'hello'})");
   // The network set aside is gone from memory and its save is unreadable (another version, a broken disk…).
-  a.ev(`UI.pzKeep=null;localStorage.setItem(SLOT_K+${JSON.stringify(id)},'{"v":1,"day":"x","pops":7}')`);
+  a.ev(`UI.pzKeep=null;localStorage.setItem(SLOT_K+${lit(id)},'{"v":1,"day":"x","pops":7}')`);
   a.ev(`window.__m=migrate;migrate=s=>{if(s&&s.pops===7)throw new Error('bad');return __m(s);}`);
   a.ev('ACT.pzLeave({})');
   a.ev('migrate=__m');
   assert.match(a.ev("document.getElementById('toasts').textContent"), /could not be loaded/);
   assert.equal(idx(a.ev)[0].broken, true);
   assert.ok(b.ls.has('sot-save-v1:' + id), 'kept, so it can be exported');
-  a.ev(`ACT.cont({id:${JSON.stringify(id)}})`);
+  a.ev(`ACT.cont({id:${lit(id)}})`);
   await flush();
   assert.equal(a.ev('!!UI.started'), false);
   a.ev('ACT.cont({})');

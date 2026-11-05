@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // The sales trial (#185, the intern's sales order) runs the pass with the offer first and skips the pass without
 // it when it cannot change the answer. It must sign exactly the offers the original two-pass trial signs.
@@ -23,7 +24,7 @@ test('the faster sales trial signs exactly the offers the two-pass trial signs',
   const { ev, dom, errors } = load();
   try {
     const save = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
-    ev(`S=migrate(JSON.parse(${JSON.stringify(save)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();compute();window.slowOffer=${ORIGINAL};`);
+    ev(`S=migrate(JSON.parse(${lit(save)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();compute();window.slowOffer=${ORIGINAL};`);
     assert.ok(ev('S.biz.some(x=>BIZ_T[x.type].event&&x.start>S.day)'), 'the fixture has events booked ahead, so the shortcut runs');
     const seen = { yes: 0, no: 0, skipped: 0, third: 0 };
     ev('window.__n=0;const _c=compute;window.compute=function(){__n++;return _c.apply(this,arguments)}');
@@ -36,7 +37,7 @@ test('the faster sales trial signs exactly the offers the two-pass trial signs',
       ev(`for(const l of S.links.filter(l=>!linkDown(l)&&S.pops[l.a]&&S.pops[l.b]&&R.load[l.id]>1).sort((x,y)=>R.load[y.id]/capOf(y)-R.load[x.id]/capOf(x)).slice(${day},${day}+2))
         S.offers.push({id:'sq'+l.id,city:l.a,city2:l.b,name:'Squeeze',type:'l2vpn',bw:${day % 2 ? 300 : 2},rate:100,reqs:[],exp:S.day+30})`);
       for (const id of JSON.parse(ev('JSON.stringify(S.offers.map(o=>o.id))'))) {
-        const o = `S.offers.find(x=>x.id===${JSON.stringify(id)})`;
+        const o = `S.offers.find(x=>x.id===${lit(id)})`;
         const before = ev('JSON.stringify(R.load)+R.served');
         ev('__n=0');const fast = ev(`JSON.stringify(autoOffer(${o}))`);const n = ev('__n');
         assert.equal(ev('JSON.stringify(R.load)+R.served'), before, 'a trial leaves the live result alone');
@@ -48,9 +49,9 @@ test('the faster sales trial signs exactly the offers the two-pass trial signs',
       }
       ev('S.nextFail=S.day+99;S.nextEvent=S.day+99;dayTick()');
     }
-    assert.ok(seen.yes >= 3 && seen.no >= 3, `both answers come up (${JSON.stringify(seen)})`);
-    assert.ok(seen.skipped >= 5, `the second pass is often skipped (${JSON.stringify(seen)})`);
-    assert.ok(seen.third >= 3, `and run when the offer hurts someone (${JSON.stringify(seen)})`);
+    assert.ok(seen.yes >= 3 && seen.no >= 3, `both answers come up (${lit(seen)})`);
+    assert.ok(seen.skipped >= 5, `the second pass is often skipped (${lit(seen)})`);
+    assert.ok(seen.third >= 3, `and run when the offer hurts someone (${lit(seen)})`);
     assert.deepEqual(errors, []);
   } finally { dom.window.close(); }
 });
@@ -59,11 +60,11 @@ test('with a scenic circuit the sales trial keeps both passes in their original 
   const { ev, dom, errors } = load();
   try {
     const save = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
-    ev(`S=migrate(JSON.parse(${JSON.stringify(save)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();S.biz.find(b=>BIZ_T[b.type].l2).route='scenic';compute();window.slowOffer=${ORIGINAL};`);
+    ev(`S=migrate(JSON.parse(${lit(save)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();S.biz.find(b=>BIZ_T[b.type].l2).route='scenic';compute();window.slowOffer=${ORIGINAL};`);
     ev('window.__n=0;const _c=compute;window.compute=function(){__n++;return _c.apply(this,arguments)}');
     ev('__reseed(77);S.offers=[];for(let i=0;i<6;i++)spawnOffer();');
     for (const id of JSON.parse(ev('JSON.stringify(S.offers.map(o=>o.id))'))) {
-      const o = `S.offers.find(x=>x.id===${JSON.stringify(id)})`;
+      const o = `S.offers.find(x=>x.id===${lit(id)})`;
       ev('__n=0');const fast = ev(`JSON.stringify(autoOffer(${o}))`);const n = ev('__n');
       assert.equal(fast, ev(`JSON.stringify(slowOffer(${o}))`), id);
       assert.ok(n === 0 || n === 2, 'both passes, as before');

@@ -2,6 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 const start = (ev) => ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;for(const g of GOALS)S.done[g.id]=0");
 
@@ -11,7 +12,7 @@ test('each network operators\' meeting only comes to a city where it really meet
   // the conference calendar
   assert.deepEqual(JSON.parse(ev("JSON.stringify(CONFS.filter(cf=>!nogOk(cf.n,cf.c)).map(cf=>cf.n+'@'+cf.c))")), []);
   // the rules themselves, on cities people know
-  const ok = (n, c) => ev(`nogOk(${JSON.stringify(n)},${JSON.stringify(c)})`);
+  const ok = (n, c) => ev(`nogOk(${lit(n)},${lit(c)})`);
   for (const c of ['chi', 'ash', 'sea', 'hnl']) assert.ok(ok('NANOG 99', c), `NANOG in ${c}`);
   for (const c of ['lon', 'tor', 'mex']) assert.ok(!ok('NANOG 99', c), `no NANOG in ${c}`);
   for (const c of ['sin', 'tok', 'syd', 'akl', 'bom', 'suv']) assert.ok(ok('APRICOT 2027', c), `APRICOT in ${c}`);

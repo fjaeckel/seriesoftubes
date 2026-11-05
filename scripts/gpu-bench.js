@@ -15,6 +15,7 @@ const os = require('node:os');
 const http = require('node:http');
 const path = require('node:path');
 const { assemble, ROOT } = require('./lib/page');
+const { lit } = require('./lib/js-literal');
 
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? args[i + 1] : d; };
@@ -27,7 +28,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 // An exported save is {app, version, S}; a plain one is S itself.
 const save = (() => { const d = JSON.parse(fs.readFileSync(SAVE, 'utf8')); return JSON.stringify({ S: d && d.S && d.S.pops ? d.S : d }); })();
 const client = fs.readFileSync(path.join(__dirname, 'lib', 'gpu-bench-client.js'), 'utf8');
-const page = () => assemble().html.replace('</body>', `<script>window.__BENCH__=${JSON.stringify({ secs: SECS })};</script><script>${client}</script></body>`);
+const page = () => assemble().html.replace('</body>', `<script>window.__BENCH__=${lit({ secs: SECS })};</script><script>${client}</script></body>`);
 
 /* Only the page this server hands out may talk to it. Any other site open in the same browser could otherwise
    POST results (printed to this terminal, written to --out) or, through DNS rebinding, read the save. So the Host

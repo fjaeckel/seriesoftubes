@@ -21,6 +21,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { game, world } = require('./weekly-puzzle');
+const { lit } = require('./lib/js-literal');
 
 const ROOT = path.join(__dirname, '..');
 const SCHEMA = 1, HISTORY = 4, ATTEMPTS = 40, DEM_MAX = 380;
@@ -38,7 +39,7 @@ const J = (ev, code) => JSON.parse(ev(`JSON.stringify(${code})`));
 // ---------- playing the game ----------
 // Load a run definition into the page as this week's, with the briefs known so far.
 function stage(ev, key, hq, briefs) {
-  ev(`UI.arWk={key:'${key}',def:{id:arWkId('${key}'),key:'${key}',wk:true,n:'',j:'',hq:'${hq}',via:[],budget:2e7,briefs:${JSON.stringify(briefs)},rev:1},at:Date.now()}`);
+  ev(`UI.arWk={key:'${key}',def:{id:arWkId('${key}'),key:'${key}',wk:true,n:'',j:'',hq:'${hq}',via:[],budget:2e7,briefs:${lit(briefs)},rev:1},at:Date.now()}`);
 }
 // Lay one tube the way a player does: a diverse trench when the pair already has one overland. The size is what all
 // the traffic needs (100G, or 400G once there is more than 100G), smaller where a long cable cannot take it.
@@ -62,7 +63,7 @@ function step(ev, s) {
 }
 // Room for the traffic: upsize the busiest tube that is not cut (or, when it cannot grow, lay a second one beside it).
 function makeRoom(ev, W, steps, cut) {
-  const ls = J(ev, `(()=>{${cut ? `for(const l of S.links)if(pzUnit(l)===${JSON.stringify(cut)})l.cut=1;` : ''}compute();const o=S.links.map((l,i)=>({i,a:l.a,b:l.b,cut:!!l.cut,tier:l.tier,u:(R.load[l.id]||0)/capOf(l)})).filter(x=>!x.cut).sort((x,y)=>y.u-x.u);for(const l of S.links)l.cut=0;compute();return o;})()`);
+  const ls = J(ev, `(()=>{${cut ? `for(const l of S.links)if(pzUnit(l)===${lit(cut)})l.cut=1;` : ''}compute();const o=S.links.map((l,i)=>({i,a:l.a,b:l.b,cut:!!l.cut,tier:l.tier,u:(R.load[l.id]||0)/capOf(l)})).filter(x=>!x.cut).sort((x,y)=>y.u-x.u);for(const l of S.links)l.cut=0;compute();return o;})()`);
   for (const l of ls.slice(0, 3)) {
     if (l.tier < 2) { const t = ev(`(()=>{const l=S.links[${l.i}];ACT.pzTier({id:l.id,tier:${l.tier + 1}});return S.links[${l.i}].tier;})()`); if (t === l.tier + 1) { steps.push(['@tier', l.i, t]); return; } }
     const o = W.opts(l.a, l.b).filter((x) => !x.second).sort((x, y) => x.cost - y.cost)[0];
@@ -90,7 +91,7 @@ function solveBrief(ev, W, steps) {
     const f = reviewFail(ev); if (!f) return;
     if (f.short.length && !f.gold.length) { makeRoom(ev, W, steps, f.u); continue; }
     // A cut strands a mission-critical site: join the stranded side to the rest another way.
-    const rest = J(ev, `Object.keys(S.pops).filter(c=>!${JSON.stringify(f.dark)}.includes(c))`), o = best(f.dark, rest, f.u);
+    const rest = J(ev, `Object.keys(S.pops).filter(c=>!${lit(f.dark)}.includes(c))`), o = best(f.dark, rest, f.u);
     if (!o) throw new Error('no second way'); steps.push(lay(ev, o.a, o.b, o.via));
   }
   throw new Error('the brief would not pass');
@@ -113,7 +114,7 @@ function design(kind, ev, W, r, s) {
   if (kind === 'grow') { const cs = pops.filter((c) => c !== hq).map((c) => [c, ev(`arDem('${c}')`)]).sort((x, y) => y[1] - x[1]); if (!cs.length || s.room < 60) return null;
     const [c, d] = cs[0], g = d + Math.min(s.room, pick(r, [60, 90, 120])); s.room -= g - d; return { dem: { [c]: g } }; }
   if (kind === 'ring') { const cs = pops.filter((c) => c !== hq).sort((a, b) => W.km(hq, a) - W.km(hq, b)).slice(0, 2); if (cs.length < 2) return null;
-    const ring = [hq, ...cs]; if (ev(`arRingOk(${JSON.stringify(ring)})`)) return null; return { ring }; }
+    const ring = [hq, ...cs]; if (ev(`arRingOk(${lit(ring)})`)) return null; return { ring }; }
   return null;
 }
 
@@ -142,11 +143,11 @@ function play(g, W, key, hq, plan, r, sites) {
 
 // Replay a file the way a player would, from its own reference: it must pass every brief and earn three stars.
 function verify(g, j, key) {
-  const { ev } = g, def = J(ev, `arWkValid(${JSON.stringify(j)},'${key}')`);
+  const { ev } = g, def = J(ev, `arWkValid(${lit(j)},'${key}')`);
   if (!def) return { ok: false, why: 'the game rejects it' };
   if (!j.ref || !Array.isArray(j.ref.steps) || j.ref.steps.length !== def.briefs.length) return { ok: false, why: 'no reference' };
   try {
-    ev(`UI.arWk={key:'${key}',def:arWkValid(${JSON.stringify(j)},'${key}'),at:Date.now()}`);
+    ev(`UI.arWk={key:'${key}',def:arWkValid(${lit(j)},'${key}'),at:Date.now()}`);
     ev(`ACT.pzArStart({id:arWkId('${key}')})`);
     for (let i = 0; i < def.briefs.length; i++) {
       for (const st of j.ref.steps[i]) step(ev, st);
@@ -189,7 +190,7 @@ function check(g, dir, now = Date.now()) {
   const { ev } = g, bad = [], keys = list(dir);
   for (const k of keys) {
     let j; try { j = JSON.parse(fs.readFileSync(path.join(dir, k + '.json'), 'utf8')); } catch (e) { bad.push(`${k}: not JSON`); continue; }
-    if (!ev(`!!arWkValid(${JSON.stringify(j)},'${k}')`)) { bad.push(`${k}: the game rejects it`); continue; }
+    if (!ev(`!!arWkValid(${lit(j)},'${k}')`)) { bad.push(`${k}: the game rejects it`); continue; }
     if (ev(`pzWeekStart('${k}')`) + 7 * 864e5 > now) { const v = verify(g, j, k); if (!v.ok) bad.push(`${k}: ${v.why}`); }
   }
   if (keys.length) {
@@ -204,7 +205,7 @@ function refresh(g, dir, now = Date.now()) {
   const { ev } = g, fixed = [], bad = [];
   for (const k of list(dir)) {
     let j = null; try { j = JSON.parse(fs.readFileSync(path.join(dir, k + '.json'), 'utf8')); } catch (e) { /* regenerated below */ }
-    const valid = !!j && ev(`!!arWkValid(${JSON.stringify(j)},'${k}')`), live = ev(`pzWeekStart('${k}')`) + 7 * 864e5 > now;
+    const valid = !!j && ev(`!!arWkValid(${lit(j)},'${k}')`), live = ev(`pzWeekStart('${k}')`) + 7 * 864e5 > now;
     if (valid && (!live || verify(g, j, k).ok)) continue;
     const rev = (j && Number.isInteger(j.rev) && j.rev >= 2 ? j.rev : 1) + 1;
     try { writeWeek(dir, Object.assign(generate(g, k, dir), { rev })); fixed.push(`${k}: regenerated as rev ${rev}`); } catch (e) { bad.push(`${k}: could not regenerate (${e.message})`); }

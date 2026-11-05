@@ -18,6 +18,7 @@ const path = require('node:path');
 const { load } = require('./harness');
 const page = require('../scripts/lib/page');
 const { openPage, playGame, rng } = require('../scripts/lib/route-fuzz');
+const { lit } = require('../scripts/lib/js-literal');
 
 const SAVE = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
 
@@ -97,7 +98,7 @@ function problems(r, where) {
   if (r.lost) out.push(`${where}: ${r.lost} pictures drawn without a canvas`);
   if (r.shared || r.badCanvas) out.push(`${where}: ${r.shared} pictures share a canvas, ${r.badCanvas} have none or one of the wrong size`);
   if (r.pad) out.push(`${where}: the card's shared canvas was made`);
-  if (r.sprs || r.glsFrame || !r.ctx0 || r.glShown) out.push(`${where}: card state leaked into 2D ${JSON.stringify({ sprs: r.sprs, glsFrame: r.glsFrame, ctx0: r.ctx0, glShown: r.glShown })}`);
+  if (r.sprs || r.glsFrame || !r.ctx0 || r.glShown) out.push(`${where}: card state leaked into 2D ${lit({ sprs: r.sprs, glsFrame: r.glsFrame, ctx0: r.ctx0, glShown: r.glShown })}`);
   return out;
 }
 
@@ -111,7 +112,7 @@ const GLSTUB = `window.__GLSTUB=(()=>{const calls=[];const gl=new Proxy({calls},
 
 function open() {
   const h = load({ seed: 777 });
-  h.ev(`S=migrate(JSON.parse(${JSON.stringify(SAVE)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();S.nextFail=S.day+999;S.nextEvent=S.day+999;compute();
+  h.ev(`S=migrate(JSON.parse(${lit(SAVE)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();S.nextFail=S.day+999;S.nextEvent=S.day+999;compute();
     window.__T=100000;Object.defineProperty(performance,'now',{value:()=>__T,configurable:true});mapGl(false);`);
   h.ev(KIT);
   return h;
@@ -157,7 +158,7 @@ test('the 2D map draws the same frame from kept pictures as from fresh ones, wha
     VIEWS.forEach(({ city, u }, v) => {
       if (on && city !== on) return;
       const at = city === 'pop' ? 'Object.keys(S.pops).indexOf(S.home)/Object.keys(S.pops).length' : 'CITIES.findIndex(c=>c.id===__OTHER)/CITIES.length';
-      ev(`window.__U=${JSON.stringify(u)};__U[1]=${at}+1e-9;0`);
+      ev(`window.__U=${lit(u)};__U[1]=${at}+1e-9;0`);
       found.push(...problems(JSON.parse(ev('JSON.stringify(__M2D.check(__U))')), `after "${step}", view ${v} (${city})`));
       checks++;
     });
@@ -174,7 +175,7 @@ test('the 2D map draws the same from kept pictures as from fresh ones, and tubes
     // Now and then a day passes (failures and events on), so cuts, builds, floods and offers come and go.
     if (i % 6 === 5) ev('S.nextFail=S.day;S.nextEvent=S.day;dayTick();compute();');
     const u = Array.from({ length: 9 }, () => r());
-    found.push(...problems(JSON.parse(ev(`JSON.stringify(__M2D.check(${JSON.stringify(u)}))`)), `view ${i} (day ${ev('S.day')})`));
+    found.push(...problems(JSON.parse(ev(`JSON.stringify(__M2D.check(${lit(u)}))`)), `view ${i} (day ${ev('S.day')})`));
   }
   assert.deepEqual(found.slice(0, 5), []);
   assert.deepEqual(errors, []);
@@ -196,12 +197,12 @@ test('in seeded random games, after every move and day, the 2D map draws the sam
       const g = playGame(P, seed, { moves: 40, maxDays: 4, onMove: () => {
         const u = Array.from({ length: 9 }, () => r());
         for (const p of [P.base, P.head]) {
-          const out = JSON.parse(p.ev(`JSON.stringify(__M2D.check(${JSON.stringify(u)}))`));
+          const out = JSON.parse(p.ev(`JSON.stringify(__M2D.check(${lit(u)}))`));
           if (out) checks++;
           found.push(...problems(out, `seed ${seed}, page ${p.label}`));
         }
       } });
-      assert.equal(g.div, null, `seed ${seed}: the two pages parted: ${JSON.stringify(g.div && { where: g.div.where, last: g.div.last })}`);
+      assert.equal(g.div, null, `seed ${seed}: the two pages parted: ${lit(g.div && { where: g.div.where, last: g.div.last })}`);
       assert.ok(checks >= 20, `seed ${seed}: the map was checked (${checks})`);
       assert.deepEqual(found.slice(0, 5), [], `seed ${seed}`);
       assert.deepEqual(g.errors, [], `seed ${seed}`);
@@ -212,7 +213,7 @@ test('in seeded random games, after every move and day, the 2D map draws the sam
 test('a 2D map without WebGL2 never asks for it again, and its pictures each keep their own canvas', () => {
   const h = load({ seed: 777 });
   // Auto mode, in a browser where WebGL2 is not there.
-  h.ev(`S=migrate(JSON.parse(${JSON.stringify(SAVE)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();compute();
+  h.ev(`S=migrate(JSON.parse(${lit(SAVE)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();compute();
     window.__T=100000;Object.defineProperty(performance,'now',{value:()=>__T,configurable:true});`);
   h.ev(KIT);
   h.ev('mapGl(true,false);draw(__T);');
@@ -235,7 +236,7 @@ test('the 2D map after the card is given up, or switched off, draws as a 2D map 
     const out = [];
     for (let v = 0; v < 8; v++) {
       const u = [0.2, v / 8, 0.5, 0.5, (v % 5) / 5 + 0.01, v / 8, 0.3, v % 2 ? 0.1 : 0.9, v / 8];
-      out.push(...problems(JSON.parse(ev(`JSON.stringify(__M2D.check(${JSON.stringify(u)}))`)), `${tag}, view ${v}`));
+      out.push(...problems(JSON.parse(ev(`JSON.stringify(__M2D.check(${lit(u)}))`)), `${tag}, view ${v}`));
     }
     return out;
   };

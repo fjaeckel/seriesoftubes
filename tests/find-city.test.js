@@ -1,13 +1,14 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 const start = "ACT.start({});S.nextFail=1e9;S.nextEvent=1e9";
 
 test('find a city by its name, without accents, by country or by its exchange (#218)', () => {
   const { ev, errors } = load();
   ev(start);
-  const find = q => ev(`findCities(${JSON.stringify(q)}).join()`).split(',');
+  const find = q => ev(`findCities(${lit(q)}).join()`).split(',');
   assert.equal(find('amster')[0], 'ams', 'the start of a name');
   assert.equal(find('AMSTERDAM')[0], 'ams', 'any case');
   assert.equal(find('sao paulo')[0], 'sao', 'accents are optional');

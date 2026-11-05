@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 const { load, seed } = require('./harness');
 const { loadDict, brokenEntries } = require('../scripts/i18n-check');
+const { lit } = require('../scripts/lib/js-literal');
 
 const SCREENS = ['hud', 'panelBody', 'leftBody', 'modalCard', 'dashCard', 'bankCard', 'toasts', 'coach', 'hint', 'mega'];
 
@@ -13,9 +14,9 @@ function tour(ev) {
   const thrown = [], leaks = new Set();
   const step = (label, src) => {
     try { ev(src); } catch (e) { thrown.push(`${label}: ${e.message}`); }
-    const txt = ev(`${JSON.stringify(SCREENS)}.map(i=>{const e=document.getElementById(i);return e?e.textContent:''}).join('\\n')`);
+    const txt = ev(`${lit(SCREENS)}.map(i=>{const e=document.getElementById(i);return e?e.textContent:''}).join('\\n')`);
     for (const m of txt.match(/[^\n]{0,40}(\{[a-z]\w*\}|undefined|NaN)[^\n]{0,40}/g) || []) leaks.add(m.trim());
-    for (const m of txt.match(/[a-z0-9_]+(\.[a-z0-9_]+)+/g) || []) if (ev(`!!EN[${JSON.stringify(m)}]`)) leaks.add(`raw label: ${m}`);
+    for (const m of txt.match(/[a-z0-9_]+(\.[a-z0-9_]+)+/g) || []) if (ev(`!!EN[${lit(m)}]`)) leaks.add(`raw label: ${m}`);
   };
   step('title', 'showTitle()');
   step('start', 'ACT.start({});S.cash=1e8;S.lvl=4;S.day=100');

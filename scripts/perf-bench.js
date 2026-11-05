@@ -21,6 +21,7 @@ const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
 const ROOT = path.join(__dirname, '..');
 const page = require('./lib/page');
+const { lit } = require('./lib/js-literal');
 // Pages as files: the browser run opens them from disk.
 const HEAD = opt('--head', null) || page.pageFile();
 const BASE = opt('--base', null) || (opt('--base-ref', null) && (() => {
@@ -46,7 +47,7 @@ const METRICS = [
 
 function open(file) {
   const { ev, errors } = load({ file, seed: 777 });
-  ev(`S=migrate(JSON.parse(${JSON.stringify(SAVE)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();compute();renderAll();`);
+  ev(`S=migrate(JSON.parse(${lit(SAVE)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();compute();renderAll();`);
   const time = (body) => ev(`(()=>{const t=performance.now();${body};return performance.now()-t;})()`);
   // What the network carries, to tell a pure speed-up from a change in how traffic is routed.
   const outcome = () => ev(`(()=>{compute();const r=[R.served,R.demand,R.reach,R.peered,JSON.stringify(R.egT),...Object.keys(R.citySrv).sort().map(c=>R.citySrv[c]),...S.links.map(l=>R.load[l.id]||0)];

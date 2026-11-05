@@ -8,6 +8,7 @@ const path = require('node:path');
 const { load } = require('./harness');
 const { game } = require('../scripts/weekly-puzzle');
 const AW = require('../scripts/weekly-architect');
+const { lit } = require('../scripts/lib/js-literal');
 
 const DIR = path.join(__dirname, '..', 'site', 'architect', 'weekly');
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'sot-arwk-'));
@@ -33,7 +34,7 @@ test('a grow brief makes the reference make room: a bigger tube or a second one'
   }
   const { ev } = load();
   const [j, b] = grows[0];
-  ev(`UI.arWk={key:'${j.key}',def:arWkValid(${JSON.stringify(j)},'${j.key}'),at:Date.now()}`);
+  ev(`UI.arWk={key:'${j.key}',def:arWkValid(${lit(j)},'${j.key}'),at:Date.now()}`);
   const c = Object.keys(b.dem)[0];
   assert.ok(ev(`UI.arWk.def.briefs.some(x=>x.t.includes(CITY['${c}'].name+' grows to'))`), 'the brief says so');
 });
@@ -47,10 +48,10 @@ test('every published week is accepted and its reference still earns three stars
 test('the game refuses a file that does not add up', () => {
   const { ev } = load();
   const j = JSON.parse(fs.readFileSync(path.join(DIR, AW.list(DIR)[0] + '.json'), 'utf8')), k = j.key;
-  const ok = (o) => ev(`!!arWkValid(${JSON.stringify(o)},'${k}')`);
+  const ok = (o) => ev(`!!arWkValid(${lit(o)},'${k}')`);
   assert.equal(ok(j), true);
   const bad = (f) => { const o = JSON.parse(JSON.stringify(j)); f(o); return ok(o); };
-  assert.equal(ev(`!!arWkValid(${JSON.stringify(j)},'2030-W01')`), false, 'under another week');
+  assert.equal(ev(`!!arWkValid(${lit(j)},'2030-W01')`), false, 'under another week');
   assert.equal(bad((o) => { o.extra = 1; }), false, 'an unknown field');
   assert.equal(bad((o) => { o.hq = 'atlantis'; }), false, 'an unknown HQ');
   assert.equal(bad((o) => { o.name.l = 'common.play'; }), false, 'a label it may not name');
@@ -64,7 +65,7 @@ test('the game refuses a file that does not add up', () => {
 test('this week\'s run shows in Puzzles, plays like a handmade one and keeps its own stars', () => {
   const { ev, errors, dom } = load();
   const key = ev('pzWeekKey(new Date())'), j = AW.generate(game(), key, tmp());
-  ev(`UI.arWk={key:'${key}',def:arWkValid(${JSON.stringify(j)},'${key}'),at:Date.now()}`);
+  ev(`UI.arWk={key:'${key}',def:arWkValid(${lit(j)},'${key}'),at:Date.now()}`);
   ev('ACT.puzzleMenu()');
   const row = dom.window.document.getElementById('arWk');
   assert.ok(row && row.querySelector('[data-act=pzArStart]'), 'a row with a Play button');

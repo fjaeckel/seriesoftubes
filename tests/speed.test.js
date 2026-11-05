@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // A network on four continents: POPs, waves, transit, IX ports, PNIs, caches and customers.
 function bigNet(ev) {
@@ -117,7 +118,7 @@ test('the map keeps fiber capacities for one frame only, and skips links above o
   const calls = (body) => ev(`(()=>{cam.x=CITY.fra.x;cam.y=CITY.fra.y+${'2000'};cam.z=2;${body};const n=ctx.calls.n;draw(0);return ctx.calls.n-n;})()`);
   const withLinks = calls(''), links = ev('JSON.stringify(S.links)');
   assert.equal(withLinks, calls('S.links=[]'));
-  ev(`S.links=JSON.parse(${JSON.stringify(links)})`);
+  ev(`S.links=JSON.parse(${lit(links)})`);
   assert.deepEqual(errors, []);
 });
 
@@ -336,7 +337,7 @@ test('Auto-TE routes around a full link exactly like the plain path', () => {
     S.ixp={};S.pni=[];S.caches=[];S.te={on:true,day:0};S.core={lv:2,run:2,legacy:true};S.nextFail=1e9;S.nextEvent=1e9;`);
   const sig = () => ev('JSON.stringify({served:R.served,teMoved:R.teMoved,egT:R.egT,load:S.links.map(l=>R.load[l.id]||0),node:R.nodeLoad,t:R.useT})');
   for (const script of ['', 'spill at 70%']) {
-    ev(`S.te.script=${JSON.stringify(script)}`);
+    ev(`S.te.script=${lit(script)}`);
     ev('compute()'); const fast = sig();
     ev('__plain()'); const ref = sig();
     assert.equal(fast, ref, `fast and plain route the same around the full link (${script || 'no script'})`);

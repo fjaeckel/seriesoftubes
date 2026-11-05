@@ -4,11 +4,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 const start = "ACT.start({});S.cash=1e9;S.nextFail=1e9;S.nextEvent=1e9;for(const g of GOALS)S.done[g.id]=0;for(const c of ['ams','lon','par'])ACT.buildPop({city:c});compute()";
 // A signed customer, as an accepted offer makes it.
-const sign = (ev, o) => ev(`(()=>{const b=clSign(offerCustomer(Object.assign({id:'c'+Math.random().toString(36).slice(2),city:'ams',city2:null,name:'Test Co',type:'dia',bw:5,rate:600,reqs:[],exp:S.day+40},${JSON.stringify(o || {})})));S.biz.push(b);return b.id;})()`);
-const B = (ev, id, k) => ev(`S.biz.find(b=>b.id===${JSON.stringify(id)})${k ? '.' + k : ''}`);
+const sign = (ev, o) => ev(`(()=>{const b=clSign(offerCustomer(Object.assign({id:'c'+Math.random().toString(36).slice(2),city:'ams',city2:null,name:'Test Co',type:'dia',bw:5,rate:600,reqs:[],exp:S.day+40},${lit(o || {})})));S.biz.push(b);return b.id;})()`);
+const B = (ev, id, k) => ev(`S.biz.find(b=>b.id===${lit(id)})${k ? '.' + k : ''}`);
 // An id whose roll for question q (at term end te) is below p, or at least p when above is true.
 // The rolls hash who the customer is, so the id found here is also its name (a Enterprise DIA in Amsterdam).
 const idFor = (ev, q, p, te, above = false) => ev(`(()=>{for(let i=0;i<20000;i++){const id='x'+i,r=clR({type:'dia',city:'ams',name:id,te:${te}},'${q}');if(${above ? 'r>=' : 'r<'}${p})return id;}})()`);
@@ -100,7 +101,7 @@ test('a haggle: 30 days ahead, in Deals; match, meet halfway, let go, or no answ
   ev(`S.biz.push({id:'${id}',city:'ams',city2:null,name:'${id}',type:'dia',bw:5,rate:600,reqs:[],mood:90,since:S.day-800,te:${te},mk:1})`);
   ev(`clDay(S.day)`);
   const hag = JSON.parse(ev(`JSON.stringify(S.biz.find(b=>b.id==='${id}').hag)`));
-  assert.ok(hag && hag.rate < 600 && hag.rate >= 480 && hag.until === te, `asks 8–20% off until the term ends (${JSON.stringify(hag)})`);
+  assert.ok(hag && hag.rate < 600 && hag.rate >= 480 && hag.until === te, `asks 8–20% off until the term ends (${lit(hag)})`);
   ev("UI.left='deals';renderLeft()");
   const deals = ev("document.getElementById('leftBody')?document.getElementById('leftBody').innerHTML:document.getElementById('left').innerHTML");
   assert.match(deals, /data-act="renewMatch"/);
@@ -180,7 +181,7 @@ test('old saves: renewals spread over the next year, the market from the signing
   for (let i = 0; i < 200; i++) s.biz.push({ id: 'old' + i, city: 'ams', name: 'Old ' + i, type: i % 2 ? 'dia' : 'host', bw: 5, rate: 600, mood: 90, since: 200 });
   s.biz.push({ id: 'bad', city: 'ams', name: 'Bad', type: 'dia', bw: 5, rate: 600, mood: 90, since: 200, te: 'soon', mk: -3, hag: { rate: 'x' } });
   s.cl = { odd: 'never', mo: [{ m: 30, won: 3, lost: { acq: 1, nonsense: 5 } }, 'junk'] };
-  const out = JSON.parse(ev(`JSON.stringify(sanitize(JSON.parse(${JSON.stringify(JSON.stringify(s))})))`));
+  const out = JSON.parse(ev(`JSON.stringify(sanitize(JSON.parse(${lit(JSON.stringify(s))})))`));
   const tes = out.biz.map(b => b.te - 1500);
   assert.ok(tes.every(t => t >= 30 && t <= 365), 'within the next year, never on day one');
   assert.ok(new Set(tes).size > 100, 'spread out, not one wave');

@@ -2,6 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 const start = (ev) => ev(`beginGame('T','icn',{scn:SCN.find(x=>x.id==='gangnam')});if(UI.pendGame)ACT.pitchSkip();closeModal();S.cash=1e8`);
 const seoul = "ACT.launchBB({city:'icn'});ACT.buyTransit({city:'icn',net:'cog',tier:1});compute();for(let i=0;i<20;i++)dayTick();compute()";
@@ -48,7 +49,7 @@ test('an older Gangnam save picks up the sender-pays rule', () => {
   const { ev, errors } = load();
   start(ev);
   const s = ev("(()=>{const o=JSON.parse(JSON.stringify(S));o.scn.rules={};return JSON.stringify(o);})()");
-  ev(`S=migrate(JSON.parse(${JSON.stringify(s)}))`);
+  ev(`S=migrate(JSON.parse(${lit(s)}))`);
   assert.ok(ev("S.scn.rules.sender===true"));
   assert.deepEqual(errors, []);
 });

@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // A small network with a hired intern, every order off, no cash floor and no fat fingers (Change Freeze).
 const BASE = "ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;S.lvl=3;S.nextFail=S.nextEvent=1e9;UI.speed=0;S.rules=makeRules('freeze');" +
@@ -13,7 +14,7 @@ function game(t, extra = '') {
   return h;
 }
 const hire = ev => ev("ACT.opsHire({id:'kevin'});S.ops.floor=0;closeModal()");
-const on = (ev, k, p = {}, cap) => ev(`S.ops.on.${k}=true;S.ops.p.${k}=${JSON.stringify(p)};${cap === undefined ? '' : `S.ops.cap.${k}=${cap};`}`);
+const on = (ev, k, p = {}, cap) => ev(`S.ops.on.${k}=true;S.ops.p.${k}=${lit(p)};${cap === undefined ? '' : `S.ops.cap.${k}=${cap};`}`);
 const shift = ev => ev('opsDay(S.day)');
 const cash = ev => ev('S.cash');
 // The same game twice: the intern's shift in one, the player's own clicks in the other. Both must cost the same and end the same.
@@ -572,7 +573,7 @@ test('#226 the shift report\'s Open button in the NOC opens the Ops sheet, and s
   assert.match(ev('S.log[0].t'), /^Kevin's week/);
   ev("S=migrate(JSON.parse(JSON.stringify(S)));closeModal();ACT.leftTab({t:'noc'})");
   const doc = dom.window.document;
-  const b = doc.querySelector(`#leftBody [data-act=logOpen][data-args='${JSON.stringify({ id: ev('S.log[0].id') })}']`);
+  const b = doc.querySelector(`#leftBody [data-act=logOpen][data-args='${lit({ id: ev('S.log[0].id') })}']`);
   assert.ok(b, 'the report has an Open button');
   b.click();
   assert.equal(doc.getElementById('modal').hidden, false, 'a sheet opened');

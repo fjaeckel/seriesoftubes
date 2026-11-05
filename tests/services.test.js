@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load, seed } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 function network(ev) {
   ev("ACT.start({});S.cash=1e8;S.lvl=4;for(const g of GOALS)S.done[g.id]=0");
@@ -129,7 +130,7 @@ test('customers on an interconnection fabric come in over your NNI port', () => 
   assert.ok(o, 'fabric customers show up');
   assert.ok(ev(`FAB['${o.prov}'].cities.includes('${o.city}')`));
   assert.deepEqual(o.reqs, ['nni']);
-  ev(`S.offers=[${JSON.stringify(o)}];ACT.accept({id:'${o.id}'});compute()`);
+  ev(`S.offers=[${lit(o)}];ACT.accept({id:'${o.id}'});compute()`);
   assert.equal(ev(`reqOk(S.biz.find(b=>b.id==='${o.id}'))`), false, 'no NNI port yet');
   ev(`ACT.buyNni({city:'${o.city}',prov:'${o.prov}',tier:1});compute()`);
   assert.equal(ev(`reqOk(S.biz.find(b=>b.id==='${o.id}'))`), true, 'an NNI port with room fixes it');

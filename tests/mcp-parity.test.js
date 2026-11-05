@@ -13,6 +13,7 @@ const { createSession, TOOLS } = require('../scripts/lib/mcp-game');
 const { createBrowserSession } = require('../scripts/lib/mcp-browser');
 
 const { freePort } = require('./net');
+const { lit } = require('../scripts/lib/js-literal');
 let PORT;
 test.before(async () => { PORT = await freePort(); });
 const HEADLESS_JS = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'lib', 'mcp-headless.js'), 'utf8');
@@ -70,7 +71,7 @@ test('the same scripted session gives the same outcomes headless and through the
     // ready() waits for the page itself, generously: jsdom on a busy runner can take seconds to dial.
     assert.deepEqual(await s.ready({ waitMs: 20000 }), { ok: true }, 'the tab serves this checkout\'s contract');
     const there = await play(s);
-    for (let i = 0; i < SCRIPT.length; i++) assert.deepEqual(there[i], here[i], `step ${i}: ${SCRIPT[i][0]} ${JSON.stringify(SCRIPT[i][1] || {})}`);
+    for (let i = 0; i < SCRIPT.length; i++) assert.deepEqual(there[i], here[i], `step ${i}: ${SCRIPT[i][0]} ${lit(SCRIPT[i][1] || {})}`);
     assert.ok(here.some(([n, v]) => n === 'act' && v.outcome === 'decision'), 'the script meets a question');
     assert.ok(here.some(([, v]) => v.error), 'and an error');
     assert.equal(a.ev('S.day'), 90);

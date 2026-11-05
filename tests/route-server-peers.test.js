@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // #265: with the route server on and an Open policy, the peering desk must not turn
 // networks you already reach through the route server into bilateral sessions.
@@ -15,7 +16,7 @@ test('#265 peering desk leaves route-server networks on the route server', () =>
     ev(`(()=>{const q=[0.01,0.01,0.01,${i / 60},0.9];Math.random=()=>q.length?q.shift():0.5;})()`);
     ev(`peeringDeskDay(S.day+${i})`);
   }
-  const made = JSON.parse(ev(`JSON.stringify(${JSON.stringify(viaRs)}.filter(id=>S.peers[id+'@ams']))`));
+  const made = JSON.parse(ev(`JSON.stringify(${lit(viaRs)}.filter(id=>S.peers[id+'@ams']))`));
   assert.deepEqual(made, [], 'route-server networks stay "via RS"');
   const bilateral = JSON.parse(ev("JSON.stringify(Object.keys(S.peers).filter(k=>k.endsWith('@ams')))"));
   assert.ok(bilateral.length > 0, 'networks the route server does not reach still get their own sessions');

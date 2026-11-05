@@ -1,11 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // A small network on a fixed seed: Frankfurt, Amsterdam, London and Paris in a ring, with a spur out to Zurich.
 function net(preset) {
   const { ev, errors, dom } = load();
-  ev(`beginGame('Monkey Testers','fra',${JSON.stringify({ mode: 'normal', preset })});if(UI.pendGame)ACT.pitchSkip()`);
+  ev(`beginGame('Monkey Testers','fra',${lit({ mode: 'normal', preset })});if(UI.pendGame)ACT.pitchSkip()`);
   ev("S.cash=1e9;S.lvl=4;for(const c of ['ams','lon','par','zrh'])ACT.buildPop({city:c})");
   ev("ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1})");
   ev("for(const [a,b] of [['fra','ams'],['ams','lon'],['lon','par'],['par','fra'],['fra','zrh']]){UI.pending={a,b};ACT.buildLink({tier:1});}closeModal()");

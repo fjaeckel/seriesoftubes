@@ -1,12 +1,13 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 function setup(ev) {
   ev("ACT.start({});S.cash=1e9;S.lvl=6;S.nextFail=S.nextEvent=1e9;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});ACT.buildPop({city:'ams'});S.pops.ams.rgen=3;ACT.buyIx({city:'ams',tier:1});compute()");
 }
 // Math.random returns these, then 0.5: [ask?, which IX, a real network?, (which one), fresh PeeringDB?]
-const seq = (ev, a) => ev(`(()=>{const q=${JSON.stringify(a)};Math.random=()=>q.length?q.shift():0.5;})()`);
+const seq = (ev, a) => ev(`(()=>{const q=${lit(a)};Math.random=()=>q.length?q.shift():0.5;})()`);
 const REAL = [0.01, 0.01, 0.01, 0.01, 0.01], STALE = [0.01, 0.01, 0.9, 0.1], FRESH = [0.01, 0.01, 0.9, 0.9];
 
 test('peering requests are answered by policy: Open accepts all, Selective the worthwhile ones, Closed none', () => {

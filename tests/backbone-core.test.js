@@ -1,9 +1,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 const start = "ACT.start({});S.cash=1e9;S.lvl=13;S.nextFail=1e9;S.nextEvent=1e9;for(const g of GOALS)S.done[g.id]=0";
-const g = n => `RG.findIndex(r=>r.n===${JSON.stringify(n)})`;
+const g = n => `RG.findIndex(r=>r.n===${lit(n)})`;
 
 test('every router is classed by the highest backbone it runs', () => {
   const { ev, errors } = load();

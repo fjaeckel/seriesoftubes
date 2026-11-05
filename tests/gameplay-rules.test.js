@@ -6,6 +6,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 const { execFileSync } = require('node:child_process');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // Every exception names what breaks the rule and why. One per line, sorted within each rule.
 const EXCEPTIONS = {
@@ -241,7 +242,7 @@ test('M2: presets are ordered: Best Effort never harsher than Change Freeze, Cha
   const n = {};
   for (const p of ['soft', 'freeze', 'oncall', 'bgp']) {
     const g = load();
-    g.ev(`beginGame('Order','fra',${JSON.stringify({ mode: 'normal', preset: p })});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1});__reseed(4242);for(let i=0;i<360;i++)dayTick()`);
+    g.ev(`beginGame('Order','fra',${lit({ mode: 'normal', preset: p })});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1});__reseed(4242);for(let i=0;i<360;i++)dayTick()`);
     n[p] = g.ev('S.inc.length+S.stats.survived+(S.stats.incidents||0)');
     assert.deepEqual(g.errors, []);
   }
@@ -254,7 +255,7 @@ test('M3: every subsystem that can annoy the player reads a rule', () => {
     ['soldOut', "rule('market')"], ['hwMul', "rule('market')"], ['leadDays', "rule('lead')"], ['pniLead', 'leadDays'],
     ['dfBuildDays', 'leadDays'], ['dayPre', "rule('clock')"], ['snub', "rule('market')"], ['fireFailure', 'shipsOn()'],
     ['upcomingConfs', 'confsOn()'], ['pniLead', 'pniNow()'], ['dayPost', "rule('broke')"], ['dayPost', "rule('moods')"], ['toast', 'quietOn()']];
-  fail('M3', reads.filter(([f, r]) => !ev(`typeof ${f}==='function'&&${f}.toString().includes(${JSON.stringify(r)})`)).map(([f, r]) => `${f}() does not read ${r}`), 'gate it on the ruleset (src/game/40-progress/30-rules.js)');
+  fail('M3', reads.filter(([f, r]) => !ev(`typeof ${f}==='function'&&${f}.toString().includes(${lit(r)})`)).map(([f, r]) => `${f}() does not read ${r}`), 'gate it on the ruleset (src/game/40-progress/30-rules.js)');
   // and in play: no chaos and no market means a quiet year
   const g = load();
   g.ev("beginGame('Quiet','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();S.rules=makeRules('oncall',{chaos:'none',market:false});S.cash=1e9;ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.buyIx({city:'fra',tier:1,signed:true});for(let i=0;i<360;i++)dayTick()");

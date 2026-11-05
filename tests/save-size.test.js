@@ -2,9 +2,10 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
 const { until } = require('./net');
+const { lit } = require('../scripts/lib/js-literal');
 
 // Make the browser's storage refuse the save: 'QuotaExceededError' (too big) or 'SecurityError' (not allowed).
-const refuse = name => `window.__err=${JSON.stringify(name)};{const P=Object.getPrototypeOf(localStorage),set=P.setItem;
+const refuse = name => `window.__err=${lit(name)};{const P=Object.getPrototypeOf(localStorage),set=P.setItem;
   P.setItem=function(k,v){if(k.startsWith('sot-save-v1')&&__err){const e=new Error('no');e.name=__err;throw e;}return set.call(this,k,v);};}`;
 
 test('#176 a save that does not fit tells the player once, with Export, and the menu says so', () => {

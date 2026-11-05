@@ -6,12 +6,13 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 const SAVE = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
 
 function open(opts = {}) {
   const h = load({ seed: 777, ...opts });
-  h.ev(`S=migrate(JSON.parse(${JSON.stringify(SAVE)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();compute();console.warn=()=>{};`);
+  h.ev(`S=migrate(JSON.parse(${lit(SAVE)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();compute();console.warn=()=>{};`);
   // The readout refreshes on an interval: closing the window stops it, so the test process can end.
   h.done = () => h.dom.window.close();
   return h;
@@ -77,7 +78,7 @@ test('?fps and ?vp open it, ?nofps closes it, and it stays open on this device',
   for (const [url, storage, want] of [['?fps', {}, true], ['?vp', {}, true], ['?nofps', { 'sot-vp': '1' }, false], ['', { 'sot-vp': '1' }, true], ['', {}, false]]) {
     const h = load({ seed: 777, url: 'https://tests.invalid/' + url, storage });
     try {
-      assert.equal(h.ev('!!document.getElementById("diag")'), want, `${url || 'no flag'} ${JSON.stringify(storage)}`);
+      assert.equal(h.ev('!!document.getElementById("diag")'), want, `${url || 'no flag'} ${lit(storage)}`);
       assert.equal(h.ev('localStorage.getItem("sot-vp")'), want ? '1' : null, 'remembered as one setting');
     } finally { h.dom.window.close(); }
   }

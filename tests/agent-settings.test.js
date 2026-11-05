@@ -4,6 +4,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 const prefs = (ms = 60000, on = true) => ({ 'sot-agent': JSON.stringify({ on, ms }) });
 const agent = (o = {}) => load({ agent: true, storage: prefs(o.ms), ...o });
@@ -51,7 +52,7 @@ test('agent mode only exists where a relay can be reached', () => {
   assert.match(a.ev('settingsHtml()'), /Agent API/, 'the Settings sheet has the section');
   // Plain http to an address: yes, wherever the operator bound the dev server. https (the public site cannot even
   // open ws:// from its pages), and DNS names (the relay refuses them): no.
-  const gate = (p, h) => a.ev(`apiAgentLocal(${JSON.stringify(p)},${JSON.stringify(h)})`);
+  const gate = (p, h) => a.ev(`apiAgentLocal(${lit(p)},${lit(h)})`);
   for (const h of ['127.0.0.1', 'localhost', 'tubes.localhost', '10.0.0.4', '192.168.1.5', '203.0.113.7', '[::1]']) assert.equal(gate('http:', h), true, h);
   assert.equal(gate('https:', 'seriesoftub.es'), false, 'the public site has no relay behind it');
   assert.equal(gate('http:', 'seriesoftub.es'), false);

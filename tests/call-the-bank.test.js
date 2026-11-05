@@ -1,13 +1,14 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // Calling a bank (#251). rating() comes from revenue and costs, so the tests pin it and the revenue to the case at hand:
 // what is under test is what a rating gets you, not how a rating is earned.
 function game(t, rt = 'AAA', rev = 5e6) {
   const h = load();
   t.after(() => h.dom.window.close());
-  h.ev(`ACT.start({});closeModal();UI.speed=0;S.nextFail=S.nextEvent=1e9;S.loanOffers=[];S.loans=[];window.__rt=${JSON.stringify(rt)};rating=()=>window.__rt;R.revMo=${rev};`);
+  h.ev(`ACT.start({});closeModal();UI.speed=0;S.nextFail=S.nextEvent=1e9;S.loanOffers=[];S.loans=[];window.__rt=${lit(rt)};rating=()=>window.__rt;R.revMo=${rev};`);
   return h;
 }
 // Arrays from the page belong to another realm: JSON brings them over, so deepEqual compares what is in them.
@@ -38,7 +39,7 @@ test('each rating gets its own bank, rate, conditions and payment, and better cr
     assert.equal(o.pay, ev(`Math.round(annuity(1e6,${o.apr},36))`));
     assert.ok(!o.share, 'no slice of revenue on a called loan');
     assert.equal(ev(`rIdx(window.__rt)>=rIdx(BANKS['${o.bank}'].min)`), true, 'the bank would lend at this rating');
-    assert.equal(ev(`${JSON.stringify(o.covs)}.every(c=>!!COVS[c])`), true, 'conditions the game knows');
+    assert.equal(ev(`${lit(o.covs)}.every(c=>!!COVS[c])`), true, 'conditions the game knows');
   }
   assert.deepEqual([seen.AA.bank, seen.AAA.bank], ['gs', 'gs']);
   assert.deepEqual([seen.AA.apr, seen.AAA.apr], [0.075, 0.06]);
@@ -161,7 +162,7 @@ test('weird conditions always apply, and turn over every week, not every call', 
   ev('S.day=0');
   const w0 = odd();
   assert.equal(w0.length, 1);
-  assert.equal(ev(`CALL_ODD.includes(${JSON.stringify(w0[0])})`), true, 'from the weird list');
+  assert.equal(ev(`CALL_ODD.includes(${lit(w0[0])})`), true, 'from the weird list');
   ev('S.day=6');
   assert.deepEqual(odd(), w0, 'calling again the same week gets the same quirk');
   ev('S.day=7');

@@ -7,13 +7,14 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 const SAVE = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
 
 // The big network on a 1280×800 screen at 2× in 2D. Canvases are counted as they are made; their contexts take any call.
 function open() {
   const h = load({ seed: 777 });
-  h.ev(`S=migrate(JSON.parse(${JSON.stringify(SAVE)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();S.nextFail=S.day+999;S.nextEvent=S.day+999;compute();
+  h.ev(`S=migrate(JSON.parse(${lit(SAVE)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();S.nextFail=S.day+999;S.nextEvent=S.day+999;compute();
     window.__T=100000;Object.defineProperty(performance,'now',{value:()=>__T,configurable:true});mapGl(false,false);
     DPR=2;CW=1280;CH=800;cam.x=CITY.fra.x;cam.y=CITY.fra.y;cam.z=0.6;window.__cv=0;
     const ce=document.createElement.bind(document);document.createElement=function(t){const e=ce(t);if(String(t).toLowerCase()==='canvas')__cv++;return e;};

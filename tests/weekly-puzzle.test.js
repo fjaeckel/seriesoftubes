@@ -7,6 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { load } = require('./harness');
 const G = require('../scripts/weekly-puzzle');
+const { lit } = require('../scripts/lib/js-literal');
 
 const DIR = path.join(__dirname, '..', 'site', 'puzzles', 'weekly');
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'tubes-weekly-'));
@@ -151,13 +152,13 @@ test('--check regenerates a published week when new prices break its budget, and
 
 test('stars belong to the revision of the week they were earned on', () => {
   const { ev, errors } = load();
-  const j = committed()[0], k = j.key, ok = (o) => ev(`!!pzWkValid(${JSON.stringify(o)},'${k}')`);
-  assert.equal(ev(`pzWkValid(${JSON.stringify(j)},'${k}').rev`), 1, 'a first edition is rev 1');
+  const j = committed()[0], k = j.key, ok = (o) => ev(`!!pzWkValid(${lit(o)},'${k}')`);
+  assert.equal(ev(`pzWkValid(${lit(j)},'${k}').rev`), 1, 'a first edition is rev 1');
   assert.ok(ok({ ...j, rev: 2 }));
   for (const rev of [1, 0, '2', 2.5, 1000]) assert.equal(ok({ ...j, rev }), false, `rev ${rev}`);
   ev(`localStorage.setItem('sot-puzzles',JSON.stringify({wk:{'${k}':{st:3,sp:1},'2026-W01':{st:2,sp:5}}}))`);
-  assert.equal(ev(`pzWkRec(pzLoad(),pzWkValid(${JSON.stringify(j)},'${k}')).st`), 3, 'same week, same revision: the stars stand');
-  const d2 = `pzWkValid(${JSON.stringify({ ...j, rev: 2 })},'${k}')`;
+  assert.equal(ev(`pzWkRec(pzLoad(),pzWkValid(${lit(j)},'${k}')).st`), 3, 'same week, same revision: the stars stand');
+  const d2 = `pzWkValid(${lit({ ...j, rev: 2 })},'${k}')`;
   assert.equal(ev(`pzWkRec(pzLoad(),${d2})`), null, 'regenerated: that week starts again');
   ev(`pzBegin(${d2});pzRecord({stars:1,spend:9})`);
   const p = JSON.parse(ev("localStorage.getItem('sot-puzzles')"));
@@ -193,8 +194,8 @@ test('the published puzzle is played when it is good, the seeded one when it is 
     ["Promise.resolve({ok:false,status:404,json:()=>Promise.reject()})", 'missing'],
     ["Promise.reject(new TypeError('offline'))", 'offline'],
     ["Promise.resolve({ok:true,json:()=>Promise.reject(new SyntaxError('x'))})", 'not JSON'],
-    [`Promise.resolve({ok:true,json:()=>Promise.resolve(${JSON.stringify({ ...good, cities: ['fra', 'nope', 'ams'] })})})`, 'an unknown city'],
-    [`Promise.resolve({ok:true,json:()=>Promise.resolve(${JSON.stringify({ ...good, key: '2020-W01' })})})`, 'another week'],
+    [`Promise.resolve({ok:true,json:()=>Promise.resolve(${lit({ ...good, cities: ['fra', 'nope', 'ams'] })})})`, 'an unknown city'],
+    [`Promise.resolve({ok:true,json:()=>Promise.resolve(${lit({ ...good, key: '2020-W01' })})})`, 'another week'],
   ]) {
     serve(how);
     await tick();
@@ -209,7 +210,7 @@ test('the published puzzle is played when it is good, the seeded one when it is 
   assert.match(ev("document.getElementById('pzWk').textContent"), /Loading this week/);
   assert.equal(ev("document.querySelector('#pzWk [data-act=pzWeekly]').disabled"), true);
   // The good one.
-  serve(`Promise.resolve({ok:true,json:()=>Promise.resolve(${JSON.stringify(good)})})`);
+  serve(`Promise.resolve({ok:true,json:()=>Promise.resolve(${lit(good)})})`);
   await tick();
   assert.equal(ev('UI.pzWk.st'), 'ok');
   const row = ev("document.getElementById('pzWk').textContent");
@@ -228,7 +229,7 @@ test('the published puzzle is played when it is good, the seeded one when it is 
   const def = JSON.parse(ev('JSON.stringify(pzWkDef())')), sol = G.sized({ ev }, G.world(ev), G.shape(def), def).three.b;
   ev('pzBegin(pzWkDef())');
   SV.judge(ev, sol.links);
-  ev(`pzsApplyRt(${JSON.stringify(sol.rt)});pzAfter()`);
+  ev(`pzsApplyRt(${lit(sol.rt)});pzAfter()`);
   assert.equal(ev('pzEval().stars'), 3);
   assert.match(ev('pzShareText(pzEval())'), new RegExp(`^Series of Tubes puzzle ${key} ⭐⭐⭐ \\$[\\d.]+[kM] · seriesoftub\\.es$`));
   const p = JSON.parse(ev("localStorage.getItem('sot-puzzles')"));
@@ -242,7 +243,7 @@ test('the published puzzle is played when it is good, the seeded one when it is 
 
 test('the file is checked field by field', () => {
   const { ev, errors } = load();
-  const j = committed()[0], k = j.key, ok = (o) => ev(`!!pzWkValid(${JSON.stringify(o)},'${k}')`);
+  const j = committed()[0], k = j.key, ok = (o) => ev(`!!pzWkValid(${lit(o)},'${k}')`);
   assert.ok(ok(j));
   const no = (edit, why) => { const o = JSON.parse(JSON.stringify(j)); edit(o); assert.equal(ok(o), false, why); };
   no((o) => { o.v = 3; }, 'a newer schema');
@@ -270,7 +271,7 @@ test('the file is checked field by field', () => {
   // Every label a theme may use exists in English, and every file names its text in the player's language.
   assert.ok(ev("Object.values(PZ_WK_THEMES).every(T=>[T.t,...T.names,...T.jokes].every(l=>typeof EN[l]==='string'))"));
   for (const f of committed()) {
-    const d = ev(`JSON.stringify(pzWkValid(${JSON.stringify(f)},'${f.key}'))`);
+    const d = ev(`JSON.stringify(pzWkValid(${lit(f)},'${f.key}'))`);
     assert.ok(d, f.key);
     assert.doesNotMatch(ev(`(d=>pzTxt(d.wn)+' '+pzTxt(d.wj))(${d})`), /\{|puzzles_weekly\./, `${f.key}: filled in`);
   }
@@ -282,7 +283,7 @@ test('weekly puzzle in every language and on a 360 px phone', async () => {
   for (const lang of ['de', 'es', 'fr', 'it', 'pt']) {
     const { ev, errors } = load({ lang });
     const key = ev('pzWeekKey(new Date())');
-    ev(`window.fetch=()=>Promise.resolve({ok:true,json:()=>Promise.resolve(${JSON.stringify({ ...f, key })})})`);
+    ev(`window.fetch=()=>Promise.resolve({ok:true,json:()=>Promise.resolve(${lit({ ...f, key })})})`);
     ev("innerWidth=360;innerHeight=740;dispatchEvent(new Event('resize'));showTitle()");
     ev('ACT.puzzleMenu({})');
     await tick();

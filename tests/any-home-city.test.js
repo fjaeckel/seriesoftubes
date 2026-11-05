@@ -1,8 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
-const choose = (ev, v) => ev(`(()=>{const s=document.getElementById('homeSel');s.value=${JSON.stringify(v)};s.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+const choose = (ev, v) => ev(`(()=>{const s=document.getElementById('homeSel');s.value=${lit(v)};s.dispatchEvent(new Event('change',{bubbles:true}));})()`);
 test('the title screen has one drawer for the home city: the five suggested first, then every city by continent', () => {
   const { ev, errors } = load();
   assert.equal(ev('S'), null, 'before any game exists');

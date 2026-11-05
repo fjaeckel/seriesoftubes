@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // The NOC dashboard's list of cities where the player has no POP yet.
 function game(t) {
@@ -23,7 +24,7 @@ test('it lists exactly the cities you could still open, biggest first', (t) => {
   assert.ok(!c.includes(ev('S.home')), 'not where you already are');
   const hidden = json(ev, 'CITIES.filter(C=>!cityOn(C.id)).map(C=>C.id)');
   assert.ok(hidden.every((x) => !c.includes(x)), 'a city not on the map is not listed');
-  const sizes = json(ev, `${JSON.stringify(c)}.map(eyeP)`);
+  const sizes = json(ev, `${lit(c)}.map(eyeP)`);
   assert.deepEqual(sizes, [...sizes].sort((a, b) => b - a));
   assert.match(ev("$('popsSec').textContent"), new RegExp(`Cities without a POP \\(${want.length}\\)`));
   assert.deepEqual(errors, []);
@@ -64,7 +65,7 @@ test('building a POP takes the city off the list; none left says so', (t) => {
 
 test('sorts flip, each starts the useful way round, and bad keys are ignored', (t) => {
   const { ev, errors } = game(t);
-  const vals = (code) => { more(ev); return json(ev, `${JSON.stringify(shown(ev))}.map(c=>${code})`); };
+  const vals = (code) => { more(ev); return json(ev, `${lit(shown(ev))}.map(c=>${code})`); };
   const asc = (a) => a.every((x, i) => !i || a[i - 1] <= x), desc = (a) => a.every((x, i) => !i || a[i - 1] >= x);
   ev("ACT.popsSort({k:'eye'})");
   assert.ok(asc(vals('eyeP(c)')), 'clicking the default sort flips it');
@@ -90,7 +91,7 @@ test('the region filter narrows the list, ignores nonsense, and an emptied regio
   more(ev);
   const oc = shown(ev);
   assert.ok(oc.length > 0);
-  assert.ok(ev(`${JSON.stringify(oc)}.every(c=>CITY[c].reg==='OC')`));
+  assert.ok(ev(`${lit(oc)}.every(c=>CITY[c].reg==='OC')`));
   assert.equal(oc.length, ev("CITIES.filter(C=>cityOn(C.id)&&!S.pops[C.id]&&C.reg==='OC').length"));
   ev("for(const C of CITIES)if(C.reg==='OC'&&cityOn(C.id))S.pops[C.id]={day:0,routers:1};UI._dh=null;renderDash()");
   assert.equal(shown(ev).length, 0);

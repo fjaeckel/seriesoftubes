@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // Work done once when a game loads (the possible-diversity map, link curves, the map's sea and hills) has shortcuts;
 // each must give exactly what the plain version gives.
@@ -17,7 +18,7 @@ test('diversity map: the indexed graph answers like disjointRoutes() over every 
       for(const f of FABS)if(f.cities.includes(a)&&f.cities.includes(b))add(a,b,'fab:'+f.id);}return links;}`);
   const cp = ev('CABLE_PAIRS[0].cid+":"+CABLE_PAIRS[0].a+"-"+CABLE_PAIRS[0].b');
   for (const st of [{ won: false }, { won: true }, { won: false, scn: { rules: { banCities: ['jam', 'lon'], banPairs: [cp] } } }]) {
-    const r = JSON.parse(ev(`(()=>{const st=${JSON.stringify(st)},L=plainLinks(st);diversityMap=null;diversityPossible('fra','nyc',st);
+    const r = JSON.parse(ev(`(()=>{const st=${lit(st)},L=plainLinks(st);diversityMap=null;diversityPossible('fra','nyc',st);
       const ids=CITIES.map(c=>c.id),bad=[];let n=0;for(let i=0;i<ids.length;i+=3)for(let j=i+1;j<ids.length;j+=3){n++;const a=ids[i],b=ids[j];
         const want=(st.scn&&st.scn.rules.banCities.some(x=>x===a||x===b))?diversityPossible(a,b,st):disjointRoutes(a,b,L);if(diversityPossible(a,b,st)!==want)bad.push(a+'-'+b);}
       return JSON.stringify({links:L.length,mine:diversityMap.links,n,bad})})()`));

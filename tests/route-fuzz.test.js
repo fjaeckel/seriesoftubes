@@ -9,6 +9,7 @@ const os = require('node:os');
 const path = require('node:path');
 const page = require('../scripts/lib/page');
 const { openPage, playGame } = require('../scripts/lib/route-fuzz');
+const { lit } = require('../scripts/lib/js-literal');
 
 function pages() {
   const head = path.join(os.tmpdir(), `tubes-fuzz-test-${process.pid}-head.html`);
@@ -29,7 +30,7 @@ test('random games route the same as main, with and without the routing cache, m
   // Seeds that start a normal game, a sandbox, a scenario and a puzzle, with transit, exchanges, PNIs and RouteScript.
   for (const seed of [20, 23, 27, 26]) {
     const g = playGame(P, seed, { moves: 35 });
-    assert.equal(g.div, null, `seed ${seed} diverged: ${JSON.stringify(g.div, null, 1)}`);
+    assert.equal(g.div, null, `seed ${seed} diverged: ${lit(g.div, null, 1)}`);
     assert.ok(g.moves >= 35, `seed ${seed} played its moves`);
     assert.deepEqual(g.errors, [], `seed ${seed}: no page errors`);
   }

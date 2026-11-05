@@ -8,6 +8,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 const SAVE = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
 
@@ -33,9 +34,9 @@ const GL = `(()=>{window.CanvasRenderingContext2D=window.CanvasRenderingContext2
 
 function open(fail) {
   const h = load({ seed: 777 });
-  h.ev(`S=migrate(JSON.parse(${JSON.stringify(SAVE)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();compute();
+  h.ev(`S=migrate(JSON.parse(${lit(SAVE)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();compute();
     window.__T=100000;Object.defineProperty(performance,'now',{value:()=>__T,configurable:true});console.warn=()=>{};
-    window.__FAIL=${JSON.stringify(fail)};`);
+    window.__FAIL=${lit(fail)};`);
   h.ev(GL);
   return h;
 }
@@ -85,7 +86,7 @@ test('an ordinary frame never asks the card for its errors', () => {
   const pan = JSON.parse(ev(`(()=>{let sent=0,reads=0,most=0,at=[];for(let i=0;i<120;i++){const s=__SUB,g=__GE;cam.x+=3;__T+=16;draw(__T);
     if(__SUB>s)sent++;if(__GE>g){reads++;at.push(i);}most=Math.max(most,__GE-g);}return JSON.stringify({sent,reads,most,at});})()`));
   assert.ok(pan.sent > 5, 'frames send pictures');
-  assert.ok(pan.reads >= 1 && pan.reads <= 2, `about two seconds of panning read the errors once or twice, not once per frame that sends (${JSON.stringify(pan)})`);
+  assert.ok(pan.reads >= 1 && pan.reads <= 2, `about two seconds of panning read the errors once or twice, not once per frame that sends (${lit(pan)})`);
   assert.ok(pan.most <= 4, 'one check reads at most four flags');
   // The pan's last pictures are still to be checked: once, on the next frame a second on. Then a still map reads nothing.
   ev('__GE=0;__T+=1100;draw(__T);');

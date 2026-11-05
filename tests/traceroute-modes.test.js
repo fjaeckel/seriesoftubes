@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // A triangle: Frankfurt-Amsterdam direct, or round through Paris.
 function setup(ev) {
@@ -9,7 +10,7 @@ function setup(ev) {
   [['fra', 'par'], ['par', 'ams'], ['fra', 'ams']].forEach(([a, b], i) => ev(`UI.via=null;openLinkModal('${a}','${b}');ACT.buildLink({tier:1});closeModal();S.links[S.links.length-1].tag=${i}`));
   ev("var D=S.links.find(l=>l.tag===2);compute()");
 }
-const hops = (ev, mode) => ev(`trPaths('fra',${JSON.stringify(mode)}).path('ams').length`);
+const hops = (ev, mode) => ev(`trPaths('fra',${lit(mode)}).path('ams').length`);
 
 test('a trace can follow the metrics, the lowest latency or the quietest links', () => {
   const { ev, errors } = load();

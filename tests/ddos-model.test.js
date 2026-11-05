@@ -6,21 +6,22 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // Frankfurt with 200 G of subscribers, one 100G Cogentle transit, a game server (the target) and a DIA customer.
 function fra(ev, rg = 'Arrrhipster 7280R') {
   ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;S.lvl=4;S.nextFail=1e9;S.nextEvent=1e9;ACT.launchBB({city:'fra'});S.pops.fra.bb.d=40;ACT.buyTransit({city:'fra',net:'cog',tier:1})");
-  ev(`S.pops.fra.rgen=RG.findIndex(r=>r.n===${JSON.stringify(rg)})`);
+  ev(`S.pops.fra.rgen=RG.findIndex(r=>r.n===${lit(rg)})`);
   ev("S.biz.push({id:'g',type:'game',name:'Lag Lords',city:'fra',bw:10,rate:100,mood:80,since:0,reqs:[]},{id:'d',type:'dia',name:'Bystander',city:'fra',bw:5,rate:100,mood:80,since:0,reqs:[]});compute()");
 }
-const flood = (ev, o) => ev(`(()=>{const a=Object.assign({id:'a'+Math.random().toString(36).slice(2,7),city:'fra',tgt:'g',vec:'dns',gbps:200,start:S.day,until:S.day+2,bh:false},${JSON.stringify(o || {})});if(!S.ev.ddos)S.ev.ddos=a;else S.ev.ddosMore.push(a);compute();return a.id})()`);
+const flood = (ev, o) => ev(`(()=>{const a=Object.assign({id:'a'+Math.random().toString(36).slice(2,7),city:'fra',tgt:'g',vec:'dns',gbps:200,start:S.day,until:S.day+2,bh:false},${lit(o || {})});if(!S.ev.ddos)S.ev.ddos=a;else S.ev.ddosMore.push(a);compute();return a.id})()`);
 const rep = (ev, id, expr) => ev(`(()=>{const m=ddosReport(ddosAll().find(a=>a.id==='${id}'));return ${expr};})()`);
 const sfB = (ev, id) => ev(`bizSf(S.biz.find(b=>b.id==='${id}'),linkIds())`);
 
 test('sizes come from the world: the same draws give the same floods however big you are', () => {
   const { ev, errors } = load({ seed: 3 });
   const SAVE = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
-  ev(`S=migrate(JSON.parse(${JSON.stringify(SAVE)}));S.day=400;compute()`);
+  ev(`S=migrate(JSON.parse(${lit(SAVE)}));S.day=400;compute()`);
   const draw = () => JSON.parse(ev("__reseed(42);JSON.stringify(Array.from({length:2000},()=>ddosSize({tgt:ddosPickTgt()[0]})))"));
   const xs = draw().sort((a, b) => a - b);
   assert.ok(xs[1000] < 60, `median ${xs[1000]} G on a network carrying ${Math.round(ev('R.demand'))} G`);
@@ -143,7 +144,7 @@ test('held, sacrificed and got through are scored at the end', () => {
 test('how often: never in Change Freeze, Sandbox or puzzles; BGP at 3 a.m. about twice On-call', () => {
   const count = (preset, mode = 'normal') => {
     const { ev } = load({ seed: 11 });
-    ev(`beginGame('T','fra',${JSON.stringify({ mode, preset })});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;ACT.launchBB({city:'fra'})`);
+    ev(`beginGame('T','fra',${lit({ mode, preset })});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;ACT.launchBB({city:'fra'})`);
     return ev("window.__n=0;const real=ddosAttack;ddosAttack=()=>{window.__n++;};for(let d=41;d<1136;d++){S.day=d;ddosTick();}ddosAttack=real;window.__n");
   };
   const oncall = count('oncall'), bgp = count('bgp');
@@ -232,7 +233,7 @@ test('a sacrificial PNI takes all of its peer\'s junk, and a clean pipe scrubs a
   const id = flood(ev, { gbps: 150 });
   const ports = JSON.parse(rep(ev, id, 'JSON.stringify(m.portList.map(p=>[p.lab,Math.round(p.off)]))'));
   assert.equal(ports.length, 2);
-  assert.ok(ports.find((p) => /Cogentle/.test(p[0]))[1] < ports.find((p) => !/Cogentle/.test(p[0]))[1] / 5, `the clean pipe took most of its share: ${JSON.stringify(ports)}`);
+  assert.ok(ports.find((p) => /Cogentle/.test(p[0]))[1] < ports.find((p) => !/Cogentle/.test(p[0]))[1] / 5, `the clean pipe took most of its share: ${lit(ports)}`);
   // A PNI with a network that also comes in over transit: once sacrificial, that network's junk goes only there.
   ev("S.pni.push({id:'px',city:'fra',net:'ggl',tier:1,ready:0,sacrif:true});S.ev.ddos=null;S.ev.ddosMore=[];compute()");
   const id2 = flood(ev, { gbps: 150 });

@@ -1,8 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
-const start = (ev, o) => ev(`beginGame('Rule Testers','fra',${JSON.stringify(o)});if(UI.pendGame)ACT.pitchSkip()`);
+const start = (ev, o) => ev(`beginGame('Rule Testers','fra',${lit(o)});if(UI.pendGame)ACT.pitchSkip()`);
 // Days of a quiet-ish network until n failures have fired, on a fixed seed.
 const fails = (ev, days) => { ev("S.cash=1e9;ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1});__reseed(4242)"); ev(`for(let i=0;i<${days};i++)dayTick()`); return ev('S.inc.length+S.stats.survived+(S.stats.incidents||0)'); };
 
@@ -10,13 +11,13 @@ test('an old save without rules loads as On-call, a sandbox save as Sandbox', ()
   const { ev, errors } = load();
   ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip()");
   const old = JSON.parse(ev('JSON.stringify(S)')); delete old.rules;
-  ev(`S=migrate(JSON.parse(${JSON.stringify(JSON.stringify(old))}))`);
+  ev(`S=migrate(JSON.parse(${lit(JSON.stringify(old))}))`);
   assert.equal(ev('rulePreset()'), 'oncall');
   assert.deepEqual(JSON.parse(ev('JSON.stringify(S.rules)')), JSON.parse(ev("JSON.stringify(makeRules('oncall'))")));
   assert.equal(ev("rule('chaos')"), 'normal');
   assert.equal(ev('chaosMul()'), 1);
   old.mode = 'sandbox';
-  ev(`S=migrate(JSON.parse(${JSON.stringify(JSON.stringify(old))}))`);
+  ev(`S=migrate(JSON.parse(${lit(JSON.stringify(old))}))`);
   assert.equal(ev('rulePreset()'), 'sandbox');
   assert.equal(ev("rule('money')"), 'infinite');
   assert.deepEqual(errors, []);

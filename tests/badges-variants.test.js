@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // The preset is read from S.rules.preset until the ruleset feature lands with rulePreset().
 const start = (ev, preset) => {
@@ -140,10 +141,10 @@ test('a variant named after an Object prototype key is not a variant', () => {
   const { ev, errors } = load();
   start(ev);
   for (const k of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) {
-    ev(`const o=JSON.parse(JSON.stringify(S));o.ach={hello:3};o.achP={hello:${JSON.stringify(k)}};S=migrate(o)`);
+    ev(`const o=JSON.parse(JSON.stringify(S));o.ach={hello:3};o.achP={hello:${lit(k)}};S=migrate(o)`);
     assert.equal(ev('S.achP.hello'), 'oncall', k);
-    assert.equal(ev(`bvar(${JSON.stringify(k)}).k`), 'oncall', `bvar(${k})`);
-    ev(`S.rules={preset:${JSON.stringify(k)}}`);
+    assert.equal(ev(`bvar(${lit(k)}).k`), 'oncall', `bvar(${k})`);
+    ev(`S.rules={preset:${lit(k)}}`);
     assert.equal(ev('badgeVar()'), 'oncall', `badgeVar() under preset ${k}`);
   }
   ev("S.rules={preset:'oncall'};S.achP.hello='constructor';shareCanvas()");

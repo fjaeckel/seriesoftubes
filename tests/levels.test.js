@@ -1,10 +1,11 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 const fresh = ev => ev("ACT.start({});S.cash=1e9;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'})");
 // Fake a network of n POPs spread over the given regions, without building anything.
-const fake = (ev, n, regs, peak) => ev(`(()=>{const rs=${JSON.stringify(regs)},pick=[];for(const r of rs){const c=CITIES.find(x=>x.reg===r&&!pick.includes(x.id));pick.push(c.id);}for(const c of CITIES){if(pick.length>=${n})break;if(!pick.includes(c.id)&&rs.includes(c.reg))pick.push(c.id);}S.pops={};for(const c of pick)S.pops[c]={day:0,bb:null,boost:0,down:0,routers:1,gen:false,rgen:0};S.stats.peak=${peak};return custLevel();})()`);
+const fake = (ev, n, regs, peak) => ev(`(()=>{const rs=${lit(regs)},pick=[];for(const r of rs){const c=CITIES.find(x=>x.reg===r&&!pick.includes(x.id));pick.push(c.id);}for(const c of CITIES){if(pick.length>=${n})break;if(!pick.includes(c.id)&&rs.includes(c.reg))pick.push(c.id);}S.pops={};for(const c of pick)S.pops[c]={day:0,bb:null,boost:0,down:0,routers:1,gen:false,rgen:0};S.stats.peak=${peak};return custLevel();})()`);
 
 test('thirteen customer levels, each harder than the last', () => {
   const { ev, errors } = load();

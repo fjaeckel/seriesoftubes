@@ -1,15 +1,16 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // #185's sales and repair engines now run as the NOC intern's standing orders, once per game day.
 function setup(ev) {
   ev("ACT.start({});S.cash=1e8;S.offers=[];S.biz=[];S.nextFail=S.nextEvent=1e6;for(const g of GOALS)S.done[g.id]=0;S.pops.fra.rgen=3;ACT.buyTransit({city:'fra',net:'lvl',tier:1});S.lvl=2;S.ops.intern='kevin';S.ops.floor=0;S.rules=makeRules('freeze');compute()");
 }
-const orders = (ev, on) => ev(`for(const k of ${JSON.stringify(on)})S.ops.on[k]=true`);
+const orders = (ev, on) => ev(`for(const k of ${lit(on)})S.ops.on[k]=true`);
 const shift = ev => ev('opsDay(S.day)');
 function offer(ev, id, extra = {}) {
-  ev(`S.offers.push(${JSON.stringify({ id, city: 'fra', name: id, type: 'dia', bw: 1, rate: 600, reqs: [], exp: 30, ...extra })})`);
+  ev(`S.offers.push(${lit({ id, city: 'fra', name: id, type: 'dia', bw: 1, rate: 600, reqs: [], exp: 30, ...extra })})`);
 }
 
 test('the sales order signs ready offers once per shift, and pausing it stops it', () => {

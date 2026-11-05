@@ -2,13 +2,14 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 test('a loaded save gets the rules of its mode, whatever its rules say', () => {
   const { ev, errors } = load();
   ev("beginGame('T','fra',{mode:'normal'});if(UI.pendGame)ACT.pitchSkip()");
   const base = JSON.parse(ev('JSON.stringify(packSave(S))'));
-  const loadAs = (mut) => { const s = JSON.parse(JSON.stringify(base)); mut(s); ev(`S=migrate(JSON.parse(${JSON.stringify(JSON.stringify(s))}))`); return JSON.parse(ev('JSON.stringify(S.rules)')); };
-  const preset = (p, o) => JSON.parse(ev(`JSON.stringify(makeRules('${p}'${o ? ',' + JSON.stringify(o) : ''}))`));
+  const loadAs = (mut) => { const s = JSON.parse(JSON.stringify(base)); mut(s); ev(`S=migrate(JSON.parse(${lit(JSON.stringify(s))}))`); return JSON.parse(ev('JSON.stringify(S.rules)')); };
+  const preset = (p, o) => JSON.parse(ev(`JSON.stringify(makeRules('${p}'${o ? ',' + lit(o) : ''}))`));
   // Normal games keep one of the three Normal presets, with nothing changed.
   for (const p of ['freeze', 'oncall', 'bgp']) assert.deepEqual(loadAs(s => { s.rules = { preset: p }; }), preset(p));
   assert.deepEqual(loadAs(s => { s.rules = { preset: 'oncall', money: 'infinite', gates: 'open', chaos: 'none', lead: 'quick' }; }), preset('oncall'), 'no free money or open gates in On-call');
@@ -32,13 +33,13 @@ test('a save that claims to be a puzzle loads as a Normal On-call game with the 
   ev("beginGame('T','fra',{mode:'normal'});if(UI.pendGame)ACT.pitchSkip()");
   const s = JSON.parse(ev('JSON.stringify(packSave(S))'));
   s.mode = 'puzzle'; s.rules = { preset: 'puzzle' };
-  ev(`S=migrate(JSON.parse(${JSON.stringify(JSON.stringify(s))}));UI.started=true;compute()`);
+  ev(`S=migrate(JSON.parse(${lit(JSON.stringify(s))}));UI.started=true;compute()`);
   assert.equal(ev('S.mode'), 'normal');
   assert.equal(ev('pzOn()'), false);
   assert.equal(ev("rule('clock')"), true);
   ev('for(let i=0;i<3;i++)dayTick()');
   assert.equal(ev('S.day'), 3, 'days pass');
-  ev(`UI.importing=JSON.parse(${JSON.stringify(JSON.stringify(s))});ACT.importGo()`);
+  ev(`UI.importing=JSON.parse(${lit(JSON.stringify(s))});ACT.importGo()`);
   assert.equal(ev('S.mode'), 'normal');
   assert.equal(ev('rulePreset()'), 'oncall');
   assert.deepEqual(errors, []);

@@ -3,6 +3,7 @@
 // an exchange port at home on day 0, a NOC intern on standing orders for transit and routers, then the generator's
 // plan one step at a time whenever the bank allows it, upgrading any wave that runs hot. It never reads the goal, so the
 // same seed and plan always play the same game, and the generator can calibrate a goal from what it reached.
+const { lit } = require('./js-literal');
 const BOT = String.raw`(()=>{
 const B=window.__wsBot={};
 const cheapNet=(c,avoid)=>NETS.filter(n=>n.price&&sellsAt(n,c)&&!avoid.includes(n.id)&&!S.transit.some(t=>t.city===c&&t.net===n.id)).sort((a,b)=>a.price*netMult(a,c)-b.price*netMult(b,c))[0];
@@ -41,9 +42,9 @@ const install = (ev) => { if (!ev('!!window.__wsBot')) ev(BOT); };
 // run out. Returns the day the goal was first met (or null), what the goal measure read each day, and the end state.
 function play(ev, file, plan, { days, stop = true, measure = 'wsMeasure()' } = {}) {
   install(ev);
-  ev(`localStorage.removeItem('sot-wkscn');wsBegin(${JSON.stringify(file)},'Ref');if(UI.pendGame)ACT.pitchSkip();UI.speed=0;closeModal()`);
+  ev(`localStorage.removeItem('sot-wkscn');wsBegin(${lit(file)},'Ref');if(UI.pendGame)ACT.pitchSkip();UI.speed=0;closeModal()`);
   if (ev('!!(S.scn&&S.scn.wk)') !== true) throw new Error('the game would not start this scenario');
-  ev(`__wsBot.start(${JSON.stringify(plan)})`);
+  ev(`__wsBot.start(${lit(plan)})`);
   const won0 = ev('wsOk()'), n = days || ev('S.scn.days');
   // Each day: the bot moves, the day ticks (scnTick records a win), and we note the measure.
   const out = JSON.parse(ev(`(()=>{const m=[];let won=null;for(let i=0;i<${n};i++){__wsBot.day();dayTick();closeModal();m.push(+(${measure}).toFixed(3));if(won===null&&S.scn.done)won=S.scn.done;if(won!==null&&${stop})break;if(S.lost)break;}return JSON.stringify({won,m,lost:!!S.lost,day:S.day,cash:Math.round(S.cash)});})()`));

@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // A transit-free network in Frankfurt with a PNI to every Tier 1 it needs.
 const t1Club = (ev) => {
@@ -187,7 +188,7 @@ test('a traceroute down a two-level cone shows every network on the way', () => 
 test('#114 Only Spätzle-IX still takes more than the exchange and two Tier 1 PNIs, now that cones count', () => {
   const { ev, errors } = load();
   ev("UI.pitched=true;beginGame('T','stg',{scn:SCN.find(x=>x.id==='stg')});S.cash=1e9;S.lvl=10;S.pops.stg.bb={d:400};S.ixp.stg=0;for(const id of ixMembers('stg'))S.peers[id+'@stg']=1;compute()");
-  const reach = (ts) => ev(`S.pni=[];for(const t of ${JSON.stringify(ts)})S.pni.push({id:'p'+t,net:t,city:'stg',tier:2});compute();R.reach`);
+  const reach = (ts) => ev(`S.pni=[];for(const t of ${lit(ts)})S.pni.push({id:'p'+t,net:t,city:'stg',tier:2});compute();R.reach`);
   const T = ['lvl', 'ntt', 'tly', 'cog', 'tat'];
   const goal = ev("SCN.find(x=>x.id==='stg').ok.toString()");
   assert.match(goal, /R\.reach>=0\.5/);

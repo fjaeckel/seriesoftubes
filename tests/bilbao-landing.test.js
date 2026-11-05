@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 const start = "ACT.start({});S.cash=1e9;S.nextFail=1e9;S.nextEvent=1e9;for(const g of GOALS)S.done[g.id]=0";
 
@@ -49,7 +50,7 @@ test('transit and peers in Bilbao: the big carriers, Drizzle Electric and Tanger
   // A save from before: a Marea link between Ashburn and Madrid.
   ev("ACT.buildPop({city:'ash'});ACT.buildPop({city:'mad'})");
   const save = JSON.parse(ev("JSON.stringify(Object.assign(JSON.parse(JSON.stringify(S)),{links:[{id:'old1',a:'ash',b:'mad',kind:'wave',tier:2,km:6500,mo:100,cut:0,sub:true,cable:'marea',ready:0}]}))"));
-  const out = JSON.parse(ev(`JSON.stringify(sanitize(JSON.parse(${JSON.stringify(JSON.stringify(save))})).links.map(l=>[l.a,l.b,l.cable]))`));
+  const out = JSON.parse(ev(`JSON.stringify(sanitize(JSON.parse(${lit(JSON.stringify(save))})).links.map(l=>[l.a,l.b,l.cable]))`));
   assert.deepEqual(out, [['ash', 'mad', null]], 'the link survives as a plain subsea link');
   for (const z of [0.35, 1.4, 6]) ev(`cam.z=${z};draw(performance.now())`);
   assert.deepEqual(errors, []);
