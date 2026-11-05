@@ -125,12 +125,10 @@ function compute(){RW.gen++;
   for(const k in edges)edges[k].res=edges[k].cap;for(const c of pops){const i=CIDX[c];NRES[i]=nodeCap(c);HAS[i]=1;R2.nodeCap[c]=NRES[i];}
   // The core (backbone technology): what passing-through traffic costs each router, and which POPs TE must avoid.
   const CORE=coreOn()&&S.core.run>=1;if(CORE)for(const c of pops){const i=CIDX[c];PASS[i]=corePass(c);OUT[i]=inCore(c)?0:1;}
-  const nodeTake=(i,a)=>{NRES[i]-=a;if(!NSEEN[i]){NSEEN[i]=1;NORD.push(i);}NLOAD[i]=(NLOAD[i]||0)+a;};
   const TNA=new Float64Array(TSL.size*NN),TNS=new Uint8Array(TSL.size*NN),TNK=[],TORD=[];
   const NKN=NN+3,ACN=new Float64Array(NE*NKN),SEN=new Uint8Array(NE*NKN),ACD=new Float64Array(NE*NC),SED=new Uint8Array(NE*NC),EL=[];
-  // t.g gives each egress a slot in t.v, so adding to it allocates nothing (a Map of numbers boxes every new sum).
-  const carry=(l,eg,nr,ci,a)=>{let t=l.tr;if(!t){t=l.tr={g:new Map(),v:[],n:[],d:[]};EL.push(l);}const s=t.g.get(eg);if(s===undefined){t.g.set(eg,t.v.length);t.v.push(0+a);}else t.v[s]+=a;
-    let k=l.i*NKN+nr;if(!SEN[k]){SEN[k]=1;t.n.push(nr);}ACN[k]=(ACN[k]||0)+a;k=l.i*NC+ci;if(!SED[k]){SED[k]=1;t.d.push(ci);}ACD[k]=(ACD[k]||0)+a;};
+  // The routing core (29-route-core.js) adds up what floods and circuits carry too.
+  ROUTE.nodes({NRES,NSEEN,NORD,NLOAD,EL,NKN,SEN,ACN,NC,SED,ACD});const nodeTake=ROUTE.nodeTake,carry=ROUTE.carry;
   R2.l2route={};R2.l2split={};
   /* compute() reads only S, except here: scenic circuits remember yesterday's path in R.l2route and R.efg (deliberate
      hysteresis, so they do not flap). A second call can still move one; the third gives the same answer as the second. */
@@ -187,11 +185,6 @@ function compute(){RW.gen++;
     for(const i of ni)if(HAS[i])nodeTake(i,amt);for(const l of path){l.res-=amt;l.ld+=amt;if(!clean){l.jk=(l.jk||0)+amt;JK=1;}carry(l,ek,clean?NN+2:NN,Bi,amt);}return amt;};
   const DD=ddosLoad({E,okBy,R2,autoBh:!!(TRX&&TRX.blackhole),haul,ms:msOf});
   const TE=!!(S.te&&S.te.on)&&coreTE(),TR=TE?teRules():null,REACH=coreTeReach();R2.teMoved=0;const teCache=new Map(),SPILL=TR&&TR.spill?TR.spill:1;
-  const altPath=(src,dst,base)=>{const key=src*NC+dst,c0=teCache.get(key);
-    if(c0===false)return null;if(c0&&c0.path.every(l=>l.res>1e-3)&&c0.ni.every(i=>!HAS[i]||NRES[i]>1e-3))return c0;
-    const {D,P}=dijkstra(adj,src,wW,(v,e)=>e.res<=1e-3||(HAS[v]&&NRES[v]<=1e-3)||(CORE&&OUT[v]&&v!==dst),dst);
-    if(D[dst]===Infinity||D[dst]>REACH*base+60){teCache.set(key,false);return null;}
-    const Q=walkP(P,src,dst);teCache.set(key,Q);return Q;};
   /* A network in a peer's customer cone, reached through that peer (#85): after every network you peer with directly
      (its AS path is one hop longer) and before transit. */
   const base=(e,n)=>e.pref==='low'?4:e.rank>0&&e.rank<3&&coneOf(e,n)?CONE_RANK:e.rank;
@@ -216,122 +209,12 @@ function compute(){RW.gen++;
     for(const r in m){const L=m[r],key=L.map(e=>e.xi).join(','),o=LIST.get(key);if(o){m[r]=o;continue;}
       let V=L;if(NCOMP>1){const cs=[];for(const e of L){const k=COMP[e.ci];if(k>=0)(cs[k]||(cs[k]=[])).push(e);}for(const s of cs)if(s)idx(s);V={cs};}else idx(L);LIST.set(key,V);m[r]=V;}}
     if(RCH)rcExitKeep(XK,E,okBy,RCH,LIST,BRJ,DSEL,RSET);})();
-  // The flow being routed, and from its POP: distances, arriving edges and the paths walked so far, by city index.
-  // F: its index; fci, fnj: its city and network index.
-  let F=0,fci=0,fnj=0,Dv=null,Pv=null,PP=null,vis=0;const walked=[],G=[],REST=[],NEG=[];let GN=0;
   /* What each kind of exit served, in all (EGT) and per network (NEA, by network index and kind): numbers in typed arrays,
      where a sum by key would box every new value. EGO and NEO keep the order each first got traffic, which is the order
-     R.egT and R.netEg list them in; both are written back after routing. */
-  const EGT=new Float64Array(4),EGO=[],NEA=new Float64Array(NN*4),NEO=[];
-  // An exit the flow can still try: not visited yet, not full when the flow started, reachable, and not on a saturated path.
-  // byDist: (Da-Db)+(dta-dtb), so exits of one kind at one distance compare as exactly equal and keep their order.
-  const usable=e=>e.vis!==vis&&e.used<e.cap&&Dv[e.ci]<Infinity&&!gone(e),byDist=(a,b)=>a.hp-b.hp||Dv[a.ci]-Dv[b.ci]+(a.dt-b.dt);
-  // Push up to `want` along one path to exit e; returns what fitted. Index loops: for…of allocates an iterator until optimised. Capacity only shrinks while routing, so a
-  // path with one full link or node fits nothing for the rest of this pass: mark it, and later tries cost nothing
-  // (most tries are into paths that filled up earlier).
-  const push=(e,P,want,keep=0)=>{if(P.dead)return 0;const path=P.path,ni=P.ni;let amt=want;
-    const PN=path.length;for(let k=0;k<PN;k++){const l=path[k],r=l.res;if(r<=1e-6){P.dead=1;return 0;}amt=Math.min(amt,r-l.cap*keep);}
-    const last=ni.length-1;
-    for(let k=0;k<=last;k++){const i=ni[k];if(!HAS[i])continue;const r=NRES[i];if(r<=1e-6){P.dead=1;return 0;}const w=k&&k<last?PASS[i]:1;amt=Math.min(amt,r/w);}
-    if(amt<=1e-6)return 0;
-    for(let k=0;k<=last;k++){const i=ni[k];if(HAS[i])nodeTake(i,k&&k<last?amt*PASS[i]:amt);}
-    const ek=e.ek,nr=fnj,ci=fci;if(!e.told||e.dup){R2.egDesc[ek]=e.desc||(e.desc={lab:e.lab,city:e.city,k:e.k});e.told=true;}
-    for(let k=0;k<PN;k++){const l=path[k];l.res-=amt;l.ld+=amt;carry(l,ek,nr,ci,amt);}
-    e.used+=amt;FREM[F]-=amt;
-    {let ok=amt;const cf=CNB[ci],ce=e.cn,cn=NCN[nr],bz=FBZ[F]===1;
-      if(cf!==ce||(cf&&!cn)||(!cf&&cn&&e.k==='t')){const prem=(e.k==='t'&&e.prem)||(e.k==='p'&&e.pnc)||path.some(x=>x.links&&x.links.some(y=>y.premium));const loss=prem?0.03:(ev.gfw>day?0.35:0.2);R2.gfwLost+=amt*loss;R2.gfwCross+=amt;ok=amt*(1-loss);}
-      SRV[ci]+=ok;R2.served+=ok;if(bz)R2.bizSrv[CITIES[ci].id]+=ok;if(e.rank<=2)R2.peered+=ok;if(e.k==='t'){const k=e.ts*NN+nr;if(!TNS[k]){TNS[k]=1;if(!TNK[e.ts]){TNK[e.ts]=[];TORD.push(e);}TNK[e.ts].push(nr);}TNA[k]+=ok;}
-        // Backhaul to transit: users notice the round trip to the exit. Up to 20 ms (about 1,500 km) is free, then
-        // it gets worse, and past 50 ms broadband and internet services count as bad service (#…). Under sender pays,
-        // Korean users notice any exit far away, transit or not, and much sooner.
-        if(path.length&&(e.k==='t'||snd&&CITIES[ci].kr)){let ms=P.ms;if(ms<0){ms=0;for(let k=0;k<PN;k++)ms+=path[k].lat;P.ms=ms;}const rtt=2*ms,kl=snd&&CITIES[ci].kr;
-          if(rtt>(kl?KR_LAT_OK:LAT_OK)){LATP[ci]+=ok*(kl?krLatLoss(rtt):latLoss(rtt));if(!P.fg){P.fg=0;FARL.push(P,ci,e.ci);}P.fg+=ok;}}const kx=e.kx;if(EGT[kx]===0&&!EGO.includes(kx))EGO.push(kx);EGT[kx]+=ok;if(!NEG[nr]){NEG[nr]=R2.netEg[NET_IDS[nr]]={c:0,p:0,ix:0,t:0};NEO.push(nr);}NEA[nr*4+kx]+=ok;
-      // Where each flow left (the PNI list asks what a PNI here would take over, #175).
-      if(e.J>0){const m=e.byC||(e.byC=new Map()),v=m.get(ci);if(v){v[0]+=ok;if(bz)v[1]+=ok;}else m.set(ci,[ok,bz?ok:0]);}
-      if(e.k==='t'){FGT[F]+=ok;FTI[F]=e.xi;}else if(e.k==='ix'){FGI[F]+=ok;FII[F]=e.xi;}else if(e.k==='p'){if(e.ci===ci&&e.net===NET_IDS[nr])FGH[F]+=ok;else FGP[F]+=ok;}}
-    return amt;
-  };
-  // Shortest path first. With Auto-TE, whatever does not fit spills onto up to two alternate paths
-  // with free capacity, as long as they are no more than twice as long.
-  const send=(e,want)=>{
-    let room=Math.min(want,FREM[F],e.cap-e.used);if(room<=1e-6)return;
-    const P=PP[e.ci]||(PP[e.ci]=walkP(Pv,fci,e.ci));if(!P.dead)room-=push(e,P,room,TE&&SPILL<1?1-SPILL:0);
-    if(TE&&room>1e-6&&FREM[F]>1e-6&&e.used<e.cap&&e.ci!==fci)for(let k=0;k<2&&room>1e-6;k++){const P=altPath(fci,e.ci,Dv[e.ci]);if(!P)break;const m=push(e,P,Math.min(room,e.cap-e.used));if(m<=1e-6)break;room-=m;R2.teMoved+=m;}
-  };
-  // Exits with the same preference and the same IGP distance form an ECMP group: spread the flow over
-  // them by free capacity (like several transits in one city), then top up in order if one fills.
-  // The group is g[i0..i1): plain loops and one scratch array, since this runs for most flows (same sums, same order).
-  // Without Auto-TE an exit whose path from here is full takes nothing: skip the call (and the numbers it boxes).
-  const gone=e=>{if(TE)return false;const P=PP[e.ci];return !!P&&P.dead===1;};
-  // Every exit of a remembered group still has room (a loop, not every(): no closure per flow). NOG: no group.
-  const allRoom=c=>{for(let k=0;k<c.length;k++){const e=c[k];if(!(e.used<e.cap)||gone(e))return false;}return true;},NOG=[];
-  const ROOM=[],sendGroup=(g,i0=0,i1=g.length)=>{for(let k=i0;k<i1;k++)g[k].vis=vis;
-    if(i1-i0>1){let tot=0;for(let k=i0;k<i1;k++){const e=g[k],r=Math.max(0,e.cap-e.used);ROOM[k-i0]=r;tot+=r;}const want=FREM[F];if(tot>1e-6)for(let k=i0;k<i1;k++)if(!gone(g[k]))send(g[k],want*ROOM[k-i0]/tot);}
-    for(let k=i0;k<i1;k++){if(FREM[F]<=1e-6)break;if(!gone(g[k]))send(g[k],FREM[F]);}};
-  // Stable, in place: short lists by insertion (no garbage), long ones by the built-in sort. Both are stable with the
-  // same comparison, so the order is the same either way.
-  // n: sort only a[0..n) (the group G holds GN exits).
-  const sortD=(a,n=a.length)=>{if(n>24){if(n===a.length)a.sort(byDist);else{const t=a.slice(0,n).sort(byDist);for(let i=0;i<n;i++)a[i]=t[i];}return;}for(let i=1;i<n;i++){const x=a[i];let j=i-1;while(j>=0&&byDist(a[j],x)>0){a[j+1]=a[j];j--;}a[j+1]=x;}};
-  // The direct ranks (25-direct-egress.js) have short lists, one carrier's ports, so they take the plain way: the usable exits
-  // nearest first, tried in groups of equal distance, as the reference loop in the tests does. A direct rank only concerns the
-  // networks that have an exit there, and nothing from a POP where Prefer has the say; a port that is not set to carry only takes
-  // its own POP's traffic. Kept in a function of its own so the loop below stays as it was: the JIT is sensitive to its shape.
-  const directPass=(rank,pass)=>{const DS=DSEL.get(rank),LOC=rank===DIRECT_RANK[1][1]||rank===DIRECT_RANK[2][1];
-    for(F=0;F<NF;F++){fnj=FNJ[F];fci=FCI[F];
-      if(FREM[F]<=1e-6||DS[fnj]===0||PREFC[fci]===1||(pass!==0&&FBZ[F]!==(pass===1?1:0)))continue;
-      let lst=BRJ[fnj][rank];if(!lst)continue;if(lst.cs){lst=lst.cs[COMP[fci]];if(!lst)continue;}
-      Dv=SDi[fci];Pv=SPi[fci];PP=walked[fci]||(walked[fci]=[]);vis++;
-      REST.length=0;
-      if(LOC){const here=lst.at.get(fci);if(!here)continue;for(let h=0;h<here.length;h++)if(usable(here[h]))REST.push(here[h]);}
-      else for(let li=0;li<lst.length;li++)if(usable(lst[li]))REST.push(lst[li]);
-      sortD(REST);
-      for(let i=0;i<REST.length&&FREM[F]>1e-6;){let j=i+1;while(j<REST.length&&REST[j].hp===REST[i].hp&&Math.abs(Dv[REST[j].ci]-Dv[REST[i].ci]+(REST[j].dt-REST[i].dt))<1e-6)j++;sendGroup(REST,i,j);i=j;}}};
-  /* One rank of one pass over every flow. Each hot loop of compute() sits in a function of its own: V8 optimises a small
-     function quickly and keeps it, while compute() as a whole is too big to optimise cheaply (it would run unoptimised,
-     boxing every number, and be compiled again and again in the background). The tables of a flow's city (distances,
-     paths) are set up only once it has an exit list at this rank. */
-  const rankPass=(rank,pass)=>{
-    for(F=0;F<NF;F++){
-      if(FREM[F]<=1e-6||(rank===0&&FCA[F]===0)||(pass!==0&&FBZ[F]!==(pass===1?1:0)))continue;
-      fnj=FNJ[F];let lst=BRJ[fnj][rank];if(!lst)continue;fci=FCI[F];if(lst.cs){lst=lst.cs[COMP[fci]];if(!lst)continue;}
-      Dv=SDi[fci];Pv=SPi[fci];PP=walked[fci]||(walked[fci]=[]);vis++;
-      /* Groups are tried nearest first, preferred exits before the rest, in the order a stable sort of the usable
-         exits gives. Exits only fill up once tried, so the usable ones stay the same until then. Nearly every flow
-         fits in its first group: find that one with a scan (nothing is visited yet), and sort only what is left
-         when it does not fit. Most often the group is the POP's own exits: with no preferred exit on the list
-         and no other city at distance 0, the usable ones here are exactly the first group, already in order.
-         The group is G[0..GN): emptying an array (length=0) gives back its storage, and the next push allocates it again. */
-      GN=0;
-      if(!lst.hi&&!lst.mx&&ALONE[fci]){const here=lst.at.get(fci);if(here)for(let h=0;h<here.length;h++){const e=here[h];if(e.used<e.cap&&!gone(e))G[GN++]=e;}}
-      if(!GN){
-        // One scan: the best (preference, distance) so far and, in list order, the exits within 1e-6 of it. The best
-        // distance only goes down, so dropping the ones it leaves behind gives exactly the exits a second scan would.
-        // Exits that are full stay full for this pass: when a quarter of a list is, it is rewritten without them.
-        /* gc[ci]: the first group this list gave a flow from city ci. Exits only fill up during routing, so while all of
-           them still have room no other exit can have become better, and the scan would find the same group (an
-           empty one, no usable exit, stays empty). */
-        const gc=lst.gc||(lst.gc=[]),c=gc[fci];
-        if(c!==undefined&&allRoom(c)){if(!c.length)continue;for(let k=0;k<c.length;k++)G[GN++]=c[k];}else{
-        let bh=2,bd=Infinity,full=0;
-        for(let li=0,LN=lst.length;li<LN;li++){const e=lst[li];if(e.used>=e.cap||gone(e)){full++;continue;}const d=Dv[e.ci]+e.dt;if(d===Infinity)continue;const h=e.hp;
-          if(h<bh){bh=h;bd=d;GN=0;G[GN++]=e;}
-          else if(h===bh){if(d<bd){bd=d;let k=0;for(let gi=0;gi<GN;gi++){const x=G[gi];if(Dv[x.ci]+x.dt-d<1e-6)G[k++]=x;}GN=k;G[GN++]=e;}else if(d-bd<1e-6)G[GN++]=e;}}
-        if(full*4>=lst.length&&full){let k=0;for(let li=0;li<lst.length;li++){const e=lst[li];if(e.used<e.cap)lst[k++]=e;}lst.length=k;}
-        if(bh>1){gc[fci]=NOG;continue;}
-        if(GN>1)sortD(G,GN);gc[fci]=G.slice(0,GN);}}
-      sendGroup(G,0,GN);
-      if(FREM[F]<=1e-6)continue;
-      REST.length=0;for(let li=0;li<lst.length;li++)if(usable(lst[li]))REST.push(lst[li]);sortD(REST);
-      for(let i=0;i<REST.length&&FREM[F]>1e-6;){
-        let j=i+1;while(j<REST.length&&REST[j].hp===REST[i].hp&&Math.abs(Dv[REST[j].ci]-Dv[REST[i].ci]+(REST[j].dt-REST[i].dt))<1e-6)j++;
-        sendGroup(REST,i,j);i=j;
-      }
-    }};
-  for(const pass of PASSES)for(const rank of RANKS){
-    if(!RSET.has(rank))continue;
-    if(DSEL.has(rank)){directPass(rank,pass);continue;}
-    rankPass(rank,pass);
-  }
+     R.egT and R.netEg list them in; both are written back after routing. NEG: each network's R.netEg record. */
+  const EGT=new Float64Array(4),EGO=[],NEA=new Float64Array(NN*4),NEO=[],NEG=[];
+  ROUTE.run({E,HAS,PASS,R2,FREM,FNJ,FCI,FCA,FBZ,NF,CNB,NCN,ev,day,SRV,TNS,NN,TNK,TORD,TNA,snd,LATP,FARL,EGT,EGO,NEG,NEO,NEA,FGT,FTI,FGI,FII,FGH,FGP,
+    TE,SPILL,teCache,adj,CORE,OUT,REACH,DSEL,PREFC,BRJ,COMP,SDi,SPi,ALONE,TR,base,eff},PASSES,RANKS,RSET);
   for(const i of NORD)R2.nodeLoad[CITIES[i].id]=NLOAD[i];
   for(const k of EGO)R2.egT[EXK[k]]=EGT[k];for(const j of NEO){const ne=NEG[j];for(let k=0;k<4;k++)ne[EXK[k]]=NEA[j*4+k];}
   (()=>{

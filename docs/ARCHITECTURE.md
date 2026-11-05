@@ -182,10 +182,20 @@ them. Only indices are kept: exits, lists and paths are made fresh every call, b
 `scripts/route-fuzz.js` plays hundreds of random seeded games on main's page and this checkout's at once, comparing all
 of R and S after every move and day, with the kept tables and without (`tests/route-fuzz.test.js` plays a few).
 
-Each loop of `compute()` runs in a function of its own (the stages are closures, the busiest is `rankPass`;
-the money is `computeMoney()`). V8 optimises a small function quickly and keeps it; `compute()` as one 33 KB function
-never stayed optimised: it ran in baseline code, boxing every number, and was compiled again and again in the background
-only to be thrown away, which cost more CPU than the routing itself. Keep it that way: a new loop goes in a function.
+Each loop of `compute()` runs in a function of its own (the money is `computeMoney()`). V8 optimises a small function
+quickly and keeps it; `compute()` as one 33 KB function never stayed optimised: it ran in baseline code, boxing every
+number, and was compiled again and again in the background only to be thrown away, which cost more CPU than the routing
+itself. Keep it that way: a new loop goes in a function.
+
+The routing core, the loops that place every flow on an exit (`rankPass`, `directPass`, `sendGroup`, `send`, `push`,
+`carry`, `altPath`), lives in `ROUTE` (`29-route-core.js`), made once at load: `compute()` hands it the day's state
+(`ROUTE.nodes()`, `ROUTE.run()`). Made inside `compute()`, as they were, they were new functions every call, and V8 threw
+away the code it had compiled for the old ones. The core reads exits by number from typed columns (`USED`, `CAPX`, `CIX`,
+`HPX`, `VISX`), and each list as an object of one shape (`lx()`). For each list and source city, the route cache also
+keeps the list in the order routing tries it (`xOrder()`: by preference, then distance, a stable sort): on a day the cache
+is used, a flow's first group is where that order starts, past the exits that filled up, instead of a scan of the whole
+list, and what is left needs no sort. Auto-TE marks the pairs that have no detour (`TEF`), the answer to most of its
+asks. `tests/day-steps.test.js` and the routing equivalence tests hold all this to the same results.
 
 Served share per city (`sfOf`) drives eyeball revenue and customer mood.
 
