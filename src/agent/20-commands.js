@@ -9,6 +9,20 @@
    (may end in a question); reads 'modal' (the window's text is the report); watch (extra fingerprint paths, #name
    filled from args); quote (the dry run, priced with the game's own helpers); doc. */
 const API_CMD={
+/* ---------- Pie in the Sky: the rocket company (Tier 1 in a new game, or a sandbox) ---------- */
+ pieFound:{args:[],watch:['pie'],quote:a=>({setup:piePrice(PIE_CO),monthly:PIE_CO_MO}),doc:'Found the rocket company. Needs Tier 1 (or a sandbox).'},
+ pieFactory:{args:[],watch:['pie'],quote:a=>({setup:piePrice(PIE_FAC)}),doc:'Build the pie factory: it bakes the satellites ("pies") that rockets carry.'},
+ piePad:{args:[['city','cityId']],watch:['pie'],doc:'Build a launch pad in a city. Pads near the equator lift more.'},
+ pieRd:{args:[['k','pieRdId']],watch:['pie'],quote:a=>({setup:piePrice(PIE_RD[a.k].cost)}),doc:'Fund rocket R&D: reuse (reusable boosters, cheaper launches) or heavy (a bigger rocket, after test flights).'},
+ pieLaunch:{args:[['rk','rocketId'],['cr','crustId']],watch:['pie'],doc:'Queue a launch of a rocket into a crust (an orbital shell). Insurance and lasers follow the Launch tab toggles (pieIns, pieLas).'},
+ pieDish:{args:[['city','cityId']],watch:['pie'],doc:'Build a pie dish (ground station) at one of your POPs. Needs landing rights in its country.'},
+ pieAnt:{args:[['id','entityId']],watch:['pie'],quote:a=>({setup:piePrice(PIE_ANT)}),doc:'Add an antenna to a pie dish (20 Gbps each, 16 at most).'},
+ pieLic:{args:[['cc','countryCode']],watch:['pie'],doc:'Buy or renew landing rights in a country, for its dishes and orbit customers.'},
+ pieSafe:{args:[],watch:['pie'],doc:'Toggle safe mode: pies ride out solar storms, carrying nothing meanwhile.'},
+ pieName:{args:[],watch:['pie'],doc:'Rename the rocket company to the next name on the list.'},
+ pieBid:{args:[['id','entityId'],['f','pieBidShare']],watch:['pie'],doc:'Bid in a Rural Digital Pie Fund auction, asking this share of the reserve. The lower ask wins.'},
+ pieExim:{args:[],watch:['pie','loans'],doc:'Take the Export-Import Pie Bank loan, with its space covenants.'},
+ pieSpatPick:{args:[['id','pieSpatId'],['c','pieSpatChoice']],watch:['pie'],doc:'Answer a geopolitical spat over orbit: choice 0 or 1, as its sheet offers.'},
  downIx:{args:[['city','ixId']],watch:['ixp'],doc:'Step an exchange port down one size.'},
  downT:{args:[['id','entityId']],watch:['transit.#id'],doc:'Step a transit port down one size (a LAG steps down together).'},
  downP:{args:[['id','entityId']],watch:['pni.#id'],doc:'Step a PNI down one size. Not while an augment is on order.'},
@@ -429,6 +443,15 @@ const API_CMD={
 };
 
 const API_VIEW={
+ pieOpen:{args:[],doc:'Open Pie Control, the rocket company\'s panel.'},
+ pieGovOpen:{args:[],doc:'Open Pie Control on its Gov tab.'},
+ pieTab:{args:[['t','pieTab']],doc:'Switch the Pie Control tab.'},
+ pieCity:{args:[['v','cityId']],doc:'Pick the POP the Dishes tab works on.'},
+ pieHi:{args:[['id','string']],doc:'Highlight one orbit flow on the Pie Control globe.'},
+ pieIns:{args:[],doc:'Toggle launch insurance for the next launches.'},
+ pieLas:{args:[],doc:'Toggle lasers (inter-satellite links) for the next launches.'},
+ pieGlobeNight:{args:[],doc:'Flip the Pie Control globe between day and night.'},
+ pieSpatOpen:{args:[['id','pieSpatId']],doc:'Open the sheet of a geopolitical spat over orbit.'},
  traceMode:{args:[['m','string']],doc:'Redo the open traceroute in a routing mode: normal, fast or scenic.'},
  chartToggle:{args:[['c','string'],['k','string']],doc:'Hide or show one series of a dashboard chart (a legend click); hiding every series shows them all again.'},
  help:{args:[],doc:'Open the how-to-play modal.'},
@@ -507,6 +530,7 @@ const API_VIEW={
 };
 
 const API_BOUND={
+ pieRename:{command:'pieName',note:'the typed company name'},
  leaseSwap:{command:'orderDf',note:'presets the dark-fiber modal on a leased pair'},
  teOpt:{command:'teDeploy',arg:'script',note:'the optimiser drafts a script'},
  teSlop:{command:'teDeploy',arg:'script',note:'the AI drafts a script'},

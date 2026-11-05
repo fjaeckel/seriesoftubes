@@ -52,6 +52,8 @@ const API_STATE_DOC={
  scrubs:{type:'array',doc:'Scrubbing centres: city and tier.'},
  scrubMode:{type:'string',doc:'always | ondemand.'},
  cnLic:{type:'map',doc:'Mainland China licence: none | pending (with ready day) | ok.'},
+ pieV:{type:'number',doc:'Pie in the Sky version stamp: 1 in games started since it shipped (only those unlock it, on a Tier 1 win).'},
+ pie:{type:'map',doc:'The rocket company (Pie in the Sky), or null: company, factory, stock, pads, crusts (cohorts of pies by launch day), dishes, landing rights (lic), launch queue (q), R&D, spats, founder posts, books, and government money (gov: auctions, awards, Ex-Im).'},
  ppol:{type:'string',doc:'Your published peering policy: open | selective | closed.'},
  pdesk:{type:'map',doc:'This week\'s peering desk summary: sessions accepted and declined at which exchanges.'},
  pdeskRep:{type:'map',doc:'Last week\'s peering desk summary, as the NOC log reported it.'},
@@ -93,6 +95,7 @@ const API_STATE_DOC={
 };
 
 const API_RESULTS_DOC={
+ pie:{type:'map',doc:'Orbit this compute (only with a rocket company): revenue, service per orbit customer, landing dishes, flows through the sky, backhaul for cut-off POPs (bh), crust and dish load, government money (gov).'},
  nt:{type:'map',doc:'Traffic per network through transit, by net id.'},
  tNet:{type:'map',doc:'Traffic per network you hand to each upstream, by "net@upstream".'},
  reachNT:{type:'number',doc:'Networks reachable without transit.'},
