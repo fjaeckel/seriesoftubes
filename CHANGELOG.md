@@ -22,6 +22,7 @@ All notable changes to this project are documented here. The project follows
 - Cities, labels, building cones, ships, offer bubbles and money pop-ups are painted once and then reused, so the map also draws far fewer shapes each frame. (#281)
 - In Firefox on a computer, the 2D map is up to three times as fast when zoomed in: its land picture now stays on the graphics card instead of being sent to it again on every frame. Firefox on Android keeps the old way, which avoids its drawing glitches. (#281)
 - Settings › Viewport info is now Diagnostic info: besides your screen's size, it shows how the map is drawn (by the graphics card or in 2D, and why) and how fast, ready to copy into a bug report. (#281)
+- A save file can no longer put formatting or links into the game: the name of your own subsea cable and the repair button on a POP that is down always show as plain text, and a cable name from a save is cut to 60 characters.
 
 ## [2.9.1] — 2026-11-04
 
