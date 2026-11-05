@@ -10,7 +10,7 @@ const RW_IN=!!self.__TUBES_WORKER__;
 const RW_EL=!RW_IN&&typeof document!=='undefined'?document.currentScript:null;
 // RW_SLOW: a frame time (ms) above which the device does not keep up anyway, and a day may take longer slices (99-loop.js).
 const RW_SLOW=20;
-const RW={w:null,dead:false,seq:0,gen:0,job:null,desc:null,wR:null,wseq:0,last:null,budget:8,later:f=>rwLater(f),stat:{n:0,post:0,de:0,apply:0,wait:0,work:0}};
+const RW={w:null,dead:false,seq:0,gz:0,gzq:new Map(),gen:0,job:null,desc:null,wR:null,wseq:0,last:null,budget:8,later:f=>rwLater(f),stat:{n:0,post:0,de:0,apply:0,wait:0,work:0}};
 function rwOn(){return !RW_IN&&!RW.dead&&!window.__TUBES_TEST__&&!window.__TUBES_SYNC__&&typeof Worker==='function'&&!!RW_EL;}
 function rwStart(){if(RW.w)return RW.w;
   try{const L=LANG,dict=L!=='en'&&window.I18N[L]?JSON.stringify(window.I18N[L]):'null';
@@ -28,7 +28,7 @@ if(${dict})self.I18N[${JSON.stringify(L)}]=${dict};
   return RW.w;}
 // Gone for good this session: the routing in flight is done here instead, and the day goes on without the worker.
 // (A day resting between steps goes on by itself, on the page from then on.)
-function rwKill(){RW.dead=true;if(RW.w)try{RW.w.terminate();}catch(e){}RW.w=null;const j=RW.job;if(!j||j.rest)return;RW.job=null;
+function rwKill(){RW.dead=true;if(RW.w)try{RW.w.terminate();}catch(e){}RW.w=null;rwGzBack();const j=RW.job;if(!j||j.rest)return;RW.job=null;
   if(j.state!==S){rwDayDone();return;}let v;try{if(j.tr)v=dayAgain(j.tr);else compute();}catch(e){tickErr(e);}rwGo(j.g,v);}
 // One day in play (dayRun(), 10-day-tick.js): its steps run here, every routing it asks for runs in the worker.
 function rwDay(){rwGo(dayRun());}
@@ -60,7 +60,7 @@ function rwLater(f){if(RW_CH&&performance.now()-(RW.lf||-1e9)<(RW.fms||16)*0.75)
 // The day rests: it goes on after the next frame, still in flight meanwhile (no next day, no save).
 function rwRest(g,v){const j=RW.job={rest:true,g,state:S};RW.later(()=>{if(RW.job!==j)return;RW.job=null;if(j.state!==S){rwDayDone();return;}rwGo(g,v);});}
 // Every answer from the worker, in order.
-function rwMsg(m,t0){if(m.R){if(m.R.egDesc===0)m.R.egDesc=RW.desc;else RW.desc=m.R.egDesc;}rwDone(m,t0);}
+function rwMsg(m,t0){if(m.gz!==undefined){rwGzDone(m);return;}if(m.R){if(m.R.egDesc===0)m.R.egDesc=RW.desc;else RW.desc=m.R.egDesc;}rwDone(m,t0);}
 function rwDone(m,t0){const j=RW.job;if(!j||m.seq!==j.seq)return;RW.job=null;const t=performance.now();
   // Another network was loaded meanwhile: the rest of that day belongs to nobody.
   if(j.state!==S){rwDayDone();return;}
@@ -74,6 +74,14 @@ function rwDone(m,t0){const j=RW.job;if(!j||m.seq!==j.seq)return;RW.job=null;con
   // Reading a big answer takes a few ms already: the day goes on after the next frame then, not in the same task.
   if(t0!==undefined&&t1-t0>RW.budget/2)rwRest(j.g,v);else rwGo(j.g,v);}
 function rwDayDone(){UI.ticking=true;renderHUD();UI.ticking=false;UI.panelsDue=true;if(UI.saveDue){UI.saveDue=false;save();}}
+/* A save's compression (91-save.js) runs in the worker too: deflating a big network held the page about as long as
+   writing it plain. The text goes over as it is (a string is copied flat, without walking a game), the compressed
+   text comes back. In order with the routings, so a save may wait for one. */
+function rwGzip(txt){const w=rwOn()&&rwStart();if(!w)return null;const k=++RW.gz;
+  return new Promise((res,rej)=>{RW.gzq.set(k,{res,rej,txt});try{w.postMessage({gz:k,txt});}catch(e){RW.gzq.delete(k);rej(e);}});}
+function rwGzDone(m){const q=RW.gzq.get(m.gz);if(!q)return;RW.gzq.delete(m.gz);if(m.err)q.rej(new Error(m.err));else q.res(m.data);}
+// The worker gone: what it was compressing is compressed here.
+function rwGzBack(){const q=[...RW.gzq.values()];RW.gzq.clear();for(const x of q)gzB64(x.txt).then(x.res,x.rej);}
 /* R as plain data. R.ef and R.fl are lazy getters, sent as the pieces they are built from (R.efp, R.flc, see efBuild()
    and flDefine() in 30-compute.js), their typed arrays moved, not copied. Exits become their ids (all R.fl reads), and an
    attack record names its attack in S by id. */
@@ -110,7 +118,8 @@ function rwSameDesc(a,b){if(!a||!b)return false;const ka=Object.keys(a),kb=Objec
   for(let i=0;i<ka.length;i++){const k=ka[i];if(k!==kb[i])return false;const x=a[k],y=b[k];if(x.lab!==y.lab||x.city!==y.city||x.k!==y.k)return false;}return true;}
 // R.efg (what crossed each link, by exit) is about a third of R and only routing reads it, here: the worker keeps the one
 // of its last answer, and the page sends it back only when it routed something of its own since (efg 0: keep yours).
-function rwServe(m){try{S=m.S;R=emptyR();R.load=m.load||{};R.l2route=m.l2route||{};
+function rwServe(m){if(m.gz!==undefined){gzB64(m.txt).then(data=>postMessage({gz:m.gz,data}),e=>postMessage({gz:m.gz,err:String(e)}));return;}
+  try{S=m.S;R=emptyR();R.load=m.load||{};R.l2route=m.l2route||{};
     if(m.efg===0){if(!RW.last||RW.last.seq!==m.wseq)throw new Error('route worker: no R.efg for answer '+m.wseq);Object.defineProperty(R,'efg',{value:RW.last.efg});}
     else if(m.efg)Object.defineProperty(R,'efg',{value:rwEfgIn(m.efg)});
     // A sales trial (offerTrial()) or the intern's fiber test (opsDarkTrial()): its answer only. What the worker keeps
