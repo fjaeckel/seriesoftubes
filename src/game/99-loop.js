@@ -29,9 +29,9 @@ function frame(now){
 function runClock(dt){acc+=dt*UI.speed;let n=0;
   // One day in flight at a time (its routing in the worker, or resting between steps): time does not pile up behind it.
   // The clock waits for the day, never the other way round: a machine that cannot keep up plays slower, it does not
-  // freeze to catch up.
+  // freeze to catch up. (Diagnostic info shows how fast days really come: 15-day-pace.js.)
   if(RW.job){acc=Math.min(acc,DAY_MS);return;}
-  if(rwOn()){if(!RW.w)rwStart();if(acc>=DAY_MS){acc=Math.min(acc-DAY_MS,DAY_MS);try{rwDay();}catch(e){tickErr(e);}}}
+  if(rwOn()){if(!RW.w)rwStart();if(acc>=DAY_MS){acc=Math.min(acc-DAY_MS,DAY_MS);paceStart(performance.now());try{rwDay();}catch(e){tickErr(e);}}}
   else{while(acc>=DAY_MS&&n<4&&UI.speed){acc-=DAY_MS;try{dayTick();}catch(e){tickErr(e);}n++;}
   if(n){UI.ticking=true;renderHUD();UI.ticking=false;UI.panelsDue=true;}}}
 /* On a phone the NOC dashboard (or the bank), scrolled past its top edge, covers the whole map. Drawing the map
