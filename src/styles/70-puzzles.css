@@ -47,27 +47,64 @@ body.pz #hud .chip:not(.brand):not(.speed),body.pz #hud .speed button:not(#muteB
 .pzconf i{position:absolute;top:-12px;left:var(--x);width:8px;height:12px;background:var(--c);border:1.5px solid var(--ink);border-radius:2px;animation:pzfall var(--t) ease-in var(--dl) both}
 @keyframes pzfall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(420px) rotate(var(--r));opacity:0}}
 @media (max-width:760px),(max-height:500px) and (pointer:coarse){
-  #pzBox{top:auto;left:0;right:0;width:auto;bottom:0;max-height:min(46%,330px);border-radius:20px 20px 0 0;border-bottom:0;box-shadow:0 -3px 0 var(--ink);padding:0 12px calc(10px + env(safe-area-inset-bottom,0px))}
-  #pzBox .grab{display:block}
-  #pzBox .btns .b,#pzBox .pzh .b{min-height:40px;min-width:40px;padding:4px 12px}
-  /* Long languages make the sheet scroll: Undo, Reset and Back stay pinned at its foot. */
-  #pzBox>.btns{position:sticky;bottom:0;background:var(--paper);margin:6px -12px 0;padding:6px 12px 0;box-shadow:0 -6px 6px -6px rgba(30,38,64,.25)}
-  #pzBox .pztop{top:0;margin:0 -12px;padding:0 12px 2px}
-  /* Peek: only the status bar, so the map keeps the screen while you build; tap or swipe it up for the rest. */
-  #pzBox.mini{max-height:none}#pzBox.mini>:not(.pztop){display:none}
-  #pzBox .pzh .eyebrow{display:none}#pzBox h3{font-size:17px}
-  #pzBox .pzgl{font-size:14.5px}#pzBox .pzgh{font-size:13.5px}#pzBox .pzgh .pzshow{min-height:32px}
-  body.pz:has(#pzBox.mini) #hint{bottom:calc(150px + env(safe-area-inset-bottom,0px)) !important}
-  body.pz.sheet-open #pzBox{display:none}
   body.pz #panel{bottom:0 !important}
-  body.pz #hint{bottom:calc(min(46%,330px) + 8px) !important}
   .pzbig{font-size:40px}
 }
+/* Phones (97-puzzles-phone.js): nothing scrolls. A bar pinned at the top holds the puzzle's state and the next thing to
+   do; a city or a link opens a card at the bottom, split into tabs that each fit. --pzdock is the bar's height. */
+@media (max-width:760px),(max-height:500px) and (pointer:coarse){
+  body.pz #hud{display:none}
+  #pzBox.dock{top:calc(env(safe-area-inset-top,0px) + 6px);bottom:auto;left:max(6px,env(safe-area-inset-left,0px));right:max(6px,env(safe-area-inset-right,0px));width:auto;max-height:none;overflow:visible;border-radius:16px;border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);padding:6px 8px 7px}
+  body.pz.sheet-open #pzBox.dock{display:block}
+  body.pz.sheet-open #pzBox.dock .pzd-goal,body.pz.sheet-open #pzBox.dock .pzd-chips{display:none}
+  .pzd-bar{display:flex;align-items:center;gap:6px;min-width:0}
+  .pzd-nm{flex:1 1 auto;min-width:0;font:800 15px/1.2 var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pzd-stars{display:flex;gap:2px;flex:none}
+  .pzd-st{display:inline-grid;place-items:center;width:22px;height:22px;border:2px solid var(--line);border-radius:50%;font:900 11px var(--body);color:var(--ink2);box-sizing:border-box}
+  .pzd-st.on{border:0;font-size:17px}.pzd-st.cur{border-color:var(--warn);background:#FFF4D6;color:var(--ink)}
+  .pzd-bud{flex:none;font-weight:900;font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}.pzd-bud.bad{color:var(--bad)}
+  #pzBox.dock .pzd-bar .b.sm{min-width:36px;min-height:36px;padding:2px 8px;font-size:16px}
+  .pzd-goal{display:flex;align-items:center;gap:8px;margin-top:6px;padding:5px 8px;background:#FFF4D6;border:2px solid var(--warn);border-radius:12px}
+  .pzd-goal.done{background:#DFFBEA;border-color:var(--ok)}.pzd-goal.bad{background:#FFE6E9;border-color:var(--bad)}
+  #pzBox.dock .arsteps{margin:6px 0 4px}#pzBox.dock .arsteps i{height:6px}#pzBox.dock .arbrief{font-size:13px;margin:0 0 2px}
+  #pzBox.dock .arsites{display:contents}#pzBox.dock .arsite{font-size:12px;padding:2px 8px}
+  body.pz.sheet-open #pzBox.dock .arbrief,body.pz.sheet-open #pzBox.dock .arsteps{display:none}
+  .pzd-goal{flex-wrap:wrap}.pzd-gi{flex:none;font-size:16px}.pzd-gt{flex:1 1 170px;min-width:0;font-size:13px;line-height:1.3}.pzd-gt b{font-weight:800}
+  .pzd-ga{flex:none;display:flex;flex-direction:column;gap:4px}#pzBox.dock .pzd-ga{margin-left:auto}#pzBox.dock .pzd-ga .b{min-height:32px;padding:2px 10px;font-size:13px;white-space:nowrap}
+  .pzd-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+  .pzd-chip{font:800 12px/1.2 var(--body);color:var(--ink);background:#fff;border:2px solid var(--line);border-radius:999px;padding:3px 8px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+  .pzd-chip b{font-weight:900;font-variant-numeric:tabular-nums}.pzd-chip .bad{color:var(--bad)}
+  .pzd-chip.ok{border-color:var(--ok);background:#DFFBEA}.pzd-chip.part{border-color:var(--warn);background:#FFF4D6}.pzd-chip.none{border-color:var(--bad);background:#FFE6E9}
+  .pzd-chip.rule{cursor:default;color:var(--ink2)}
+  /* The card: as tall as its tab, under the bar at most; tabs keep each part short enough to need no scrolling. */
+  body.pz #panel{max-height:calc(100% - var(--pzdock,60px) - 18px - env(safe-area-inset-top,0px)) !important}
+  body.pz #panel>.grab{display:none}
+  body.pz #panel .pzd-ph{padding:10px 12px 6px;align-items:center}body.pz #panel .pzd-ph .grow{min-width:0}
+  body.pz #panel .pzd-ph h2{font-size:20px;line-height:1.15}body.pz #panel .pzd-ph h2 small{font:700 12px var(--body);color:var(--ink2);white-space:normal}
+  body.pz #panel .pzd-ph .eyebrow .mine{color:var(--me)}
+  .pzd-body{padding:0 14px calc(10px + env(safe-area-inset-bottom,0px))}
+  .pzd-tabs{display:flex;gap:4px;margin:6px 0 8px;border-bottom:2px solid var(--line)}
+  .pzd-tabs button{flex:1;font:800 13px var(--body);color:var(--ink2);background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;padding:6px 2px;min-height:36px}
+  .pzd-tabs button.on{color:var(--ink);border-bottom-color:var(--me)}
+  .pzd-row{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1.5px dashed var(--line);font-size:13px}.pzd-row .grow{min-width:0}.pzd-row.on{background:#FFE3F0;border-radius:8px}
+  .pzd-to{flex-wrap:wrap}.pzd-foot{justify-content:flex-end}
+  .pzd-models{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:5px;margin-top:6px}
+  .pzd-model{display:flex;flex-direction:column;align-items:flex-start;gap:0;text-align:left;font:inherit;color:var(--ink);background:#fff;border:2px solid var(--ink);border-radius:10px;padding:3px 7px;min-width:0;cursor:pointer}
+  .pzd-mh{display:flex;gap:6px;width:100%;align-items:baseline}.pzd-mh b{flex:1 1 auto;min-width:0;font-size:12.5px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pzd-mh span{flex:none;font-weight:900;font-size:12.5px}
+  .pzd-model small{font-size:11px;color:var(--ink2);line-height:1.25;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pzd-model.on{background:#FFE3F0;border-color:var(--me)}.pzd-model:disabled:not(.on){opacity:.45;border-color:var(--line)}
+  .pzd-rt{margin:6px 0 0}.pzd-rt .b{min-height:34px}
+  .pzd-tiers{display:grid;grid-template-columns:1fr 1fr;gap:6px}.pzd-tiers .b{margin:0;display:flex;flex-direction:column;align-items:center;gap:0;white-space:normal;line-height:1.15;padding:4px 6px}.pzd-tiers .b small{font-size:11px}
+  /* What a routing metric does, and the redundancy check's question, are on the desktop card; here the buttons speak. */
+  .pzd-routing section{margin:0}.pzd-routing h3{font-size:15px;margin:4px 0}.pzd-routing .note,.pzd-routing .lead{display:none}.pzd-routing .btns{margin:4px 0 8px}
+  body.pz #hint{bottom:calc(env(safe-area-inset-bottom,0px) + 12px) !important}
+  body.pz #toasts{top:calc(env(safe-area-inset-top,0px) + var(--pzdock,60px) + 14px) !important;bottom:auto !important}
+}
 @media (orientation:landscape) and (max-height:500px) and (pointer:coarse),(orientation:landscape) and (max-width:760px) and (max-height:500px){
-  #pzBox{left:auto;right:0;width:min(360px,52%);top:calc(env(safe-area-inset-top,0px) + 50px);max-height:calc(100% - 50px - env(safe-area-inset-top,0px));overscroll-behavior:contain;border-radius:20px 0 0 0;border-right:0}
-  #pzBox .pzj{display:none}#pzBox .pzs span{font-size:16px;padding:1px 0}
-  body.pz #hint{bottom:12px !important;left:30% !important}
-  body.pz #toasts{left:8px !important;transform:none !important;width:calc(48% - 16px) !important}
+  #pzBox.dock{right:auto;width:min(380px,46%)}
+  body.pz #toasts{top:auto !important;bottom:12px !important;left:8px !important;transform:none !important;width:calc(46% - 16px) !important}
+  /* The bar sits on the left here, so the card on the right can have the whole height. */
+  body.pz #panel{top:calc(env(safe-area-inset-top,0px) + 6px) !important;max-height:calc(100% - 6px - env(safe-area-inset-top,0px)) !important}
 }
 /* The weekly puzzle: a badge on the Puzzles door and in the list while this week's puzzle is unplayed. */
 .pznew{display:inline-block;font:900 10.5px/1.2 var(--body);font-style:normal;text-transform:uppercase;letter-spacing:.04em;background:var(--me);color:#fff;border:2px solid var(--ink);border-radius:999px;padding:1px 7px;white-space:nowrap;vertical-align:1px}

@@ -54,17 +54,18 @@ test('delivered eyeballs are chips; Back to my network lives in the menu, not in
   assert.deepEqual(errors, []);
 });
 
-test('on a phone held upright the sheet starts as its status bar, and the bar opens it', () => {
+test('a phone gets the fixed bar (tests/puzzles-phone.test.js), a desktop the whole card', () => {
   const { ev, dom, errors } = load();
   ev("window.innerWidth=360;window.innerHeight=740;dispatchEvent(new Event('resize'))");
   begin(ev);
-  assert.equal(box(dom).classList.contains('mini'), true, 'peek');
+  assert.equal(box(dom).classList.contains('dock'), true, 'the bar');
   ev('ACT.pzRetry()');
-  assert.equal(box(dom).classList.contains('mini'), true, 'a fresh try of the same puzzle keeps the sheet as the player left it');
+  assert.equal(box(dom).classList.contains('dock'), true, 'a fresh try keeps it');
   const { ev: ev2, dom: dom2 } = load();
   ev2("window.innerWidth=1280;window.innerHeight=800;dispatchEvent(new Event('resize'))");
   begin(ev2);
-  assert.equal(box(dom2).classList.contains('mini'), false, 'a desktop shows the whole card');
+  assert.equal(box(dom2).classList.contains('dock'), false, 'a desktop shows the whole card');
+  assert.ok(box(dom2).querySelector('.pztop .pzgoals'), 'with its three goals');
   assert.deepEqual(errors, []);
 });
 

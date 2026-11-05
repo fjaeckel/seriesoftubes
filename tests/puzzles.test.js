@@ -392,24 +392,26 @@ test('puzzle HUD and panels fit a 360 px phone, portrait and landscape', () => {
   ev("pzBegin(pzDef('baltic'))");
   assert.equal(ev("document.getElementById('tabbar').hidden"), true);
   assert.equal(ev("document.getElementById('pzBox').hidden"), false);
+  // The bar: each flow as a chip, the content's home as a rule.
   const box = ev("document.getElementById('pzBox').textContent");
-  assert.match(box, /Eyeballs in Tallinn/);
+  assert.match(box, /👀 Tallinn/);
   assert.match(box, /Frankfurt ⇄ Tallinn circuit/);
-  assert.match(box, /Content lives in Frankfurt/);
+  assert.match(box, /🗄️ Frankfurt/);
   ev("selectCity('fra')");
   assert.match(ev("document.getElementById('panelBody').textContent"), /Open a POP/);
   ev("document.querySelector('#panelBody [data-act=pzPop]').click()");
-  assert.match(ev("document.getElementById('panelBody').textContent"), /Your POP[\s\S]*Router load[\s\S]*Ports[\s\S]*Router model/);
+  assert.match(ev("document.getElementById('panelBody').textContent"), /Your POP[\s\S]*Links[\s\S]*Router model/);
+  ev("ACT.pzTab({k:'city',t:'router'})");
+  assert.match(ev("document.getElementById('panelBody').textContent"), /1 of 8 used|of \d+ used/);
   ev("pzLinkModal('fra','tll')");
   assert.equal(ev("document.querySelectorAll('#modalCard .tierbtn').length"), 4, 'four sizes');
   ev("closeModal();innerWidth=740;innerHeight=360;dispatchEvent(new Event('resize'));renderAll()");
   assert.equal(ev("document.getElementById('pzBox').hidden"), false, 'landscape too');
-  // jsdom has no layout: the phone rules keep 40 px targets and pin the action row.
+  // jsdom has no layout: the phone rules keep the bar from scrolling and its buttons big enough to tap.
   const rules = JSON.parse(ev(`JSON.stringify([...document.styleSheets].flatMap(s=>[...s.cssRules]).filter(r=>r.media&&/max-width: ?760px/.test(r.media.mediaText))
-    .flatMap(m=>[...m.cssRules]).filter(r=>/#pzBox/.test(r.selectorText||'')).map(r=>({sel:r.selectorText,mh:r.style.getPropertyValue('min-height'),pos:r.style.getPropertyValue('position')})))`));
-  assert.ok(rules.some((r) => /#pzBox \.btns \.b/.test(r.sel) && parseFloat(r.mh) >= 40), 'touch targets');
-  assert.ok(rules.some((r) => /^#pzBox ?> ?\.btns$/.test(r.sel) && r.pos === 'sticky'), 'pinned actions');
-  assert.ok(ev("[...document.querySelectorAll('#pzBox button')].every(b=>b.classList.contains('b'))"), 'every sheet button is a .b the rule sizes');
+    .flatMap(m=>[...m.cssRules]).filter(r=>/#pzBox/.test(r.selectorText||'')).map(r=>({sel:r.selectorText,mh:r.style.getPropertyValue('min-height'),ov:r.style.getPropertyValue('overflow')})))`));
+  assert.ok(rules.some((r) => /^#pzBox\.dock$/.test(r.sel) && r.ov === 'visible'), 'the bar never scrolls');
+  assert.ok(rules.some((r) => /#pzBox\.dock \.pzd-bar \.b\.sm/.test(r.sel) && parseFloat(r.mh) >= 36), 'touch targets');
   assert.deepEqual(errors, []);
 });
 

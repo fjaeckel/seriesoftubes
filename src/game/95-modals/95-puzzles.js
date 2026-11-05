@@ -35,12 +35,12 @@ function pzGoalRow(g,i){const ic=g.done?'⭐':g.cur?'👉':`<i>${i+1}</i>`;
     +(g.cur&&g.hint?`<div class="pzgh">${g.hint}${g.look?' '+btn(tr('puzzles.show_me'),'pzLook',g.look,'sm pzshow'):''}</div>`:'')+`</div>`;}
 // A delivered eyeball flow is a chip; anything still short, a circuit or a latency cap keeps its full row.
 const pzChip=x=>`<span class="pzchip">👀 ${esc(CITY[x.f.a].name)} <b>${fmtG(x.f.g)}</b> ✓</span>`;
-function pzRender(){const el=$('pzBox');if(!pzOn()){el.hidden=true;return;}el.hidden=false;el.classList.toggle('ar',!!S.ar);if(S.ar){arRender(el);return;}
+function pzRender(){const el=$('pzBox');if(!pzOn()){el.hidden=true;return;}el.hidden=false;el.classList.toggle('ar',!!S.ar);UI._pzPhone=isPhone();if(S.ar){el.classList.toggle('dock',UI._pzPhone);(UI._pzPhone?arDock:arRender)(el);return;}
   const e=pzEval(),P=S.pz,d=pzDef(P.id),pk=d&&PZ_PACKS.find(x=>x.id===d.pack);
-  // A phone held upright starts each puzzle with the sheet down to its status bar, so the map has the room (swipe it up for the rest).
-  const pk2=P.id+'|'+(P.key||'');if(UI._pzPeek!==pk2){UI._pzPeek=pk2;el.classList.toggle('mini',isPhone()&&CW<=CH);}
+  // A phone gets fixed overlays that never scroll (97-puzzles-phone.js).
+  el.classList.toggle('dock',UI._pzPhone);if(UI._pzPhone){pzDock(el,e);return;}
   const sp=fmt$(e.spend);
-  // The status bar stays at the top of the sheet, whatever scrolls: the puzzle, its stars, the money, undo and the menu.
+  // The status bar stays at the top of the card, whatever scrolls: the puzzle, its stars, the money, undo and the menu.
   let h=`<div class="pztop" data-grab="pz"><div class="grab" aria-hidden="true"></div><div class="pzh"><div class="grow"><div class="eyebrow">${pk?esc(pk.n):P.theme&&own(PZ_WK_THEMES,P.theme)?`${PZ_WK_THEMES[P.theme].i} ${tr('puzzles.weekly_puzzle')} · ${tr(PZ_WK_THEMES[P.theme].t)}`:tr('puzzles.weekly_puzzle')}</div><h3>${esc(pzName(d||P))}</h3></div>`
     +`<button class="b ghost sm" data-act="pzUndo" data-args="{}" aria-label="${esc(tr('puzzles.undo'))}" title="${esc(tr('puzzles.undo'))}"${UI.pzHist&&UI.pzHist.length?'':' disabled'}>↶</button>${btn('☰','puzzleMenu',{},'ghost sm')}</div>`;
   const gs=pzGoals(e),cur=gs.find(g=>g.cur);UI.pzMark=!UI.pzMk&&cur&&cur.mark||null;
@@ -69,7 +69,7 @@ function pzPopSection(c){const p=S.pops[c],g=p.rgen||0,rt=p.routers||1,G=RG[g],c
   <h4 class="sub4">${tr('puzzles.router_model')}</h4>`;
   h+=PZ_RG.map(i=>{const M=RG[i],why=i===g?'':modelFits(c,i);return `<div class="row${i===g?' on':''}"><div class="grow"><div class="nm">${esc(M.n)}${i===g?` <span class="tag st on">${tr('puzzles.installed')}</span>`:''}</div><div class="meta">${tr('puzzles.model_facts',{cap:fmtG(M.cap),ports:M.ports,wave:LT[M.maxLT].n})}</div>${why?`<div class="why">${esc(why)}</div>`:''}</div>${i===g?'':btn(dl(pzRtCost(i,rt)-cur),'pzRtModel',{city:c,g:i},'ghost sm',!!why)}</div>`;}).join('');
   return h;}
-function pzPanel(sel){if(S.ar)return arPanel(sel);const head=(eb,name,facts)=>`<div class="ph"><div style="min-width:0"><div class="eyebrow">${eb}</div><h2>${name}</h2>${facts?`<div class="facts">${facts}</div>`:''}</div><button class="x" data-act="closePanel" aria-label="${tr('common.close')}">×</button></div>`;
+function pzPanel(sel){if(S.ar)return arPanel(sel);if(isPhone())return pzPanelPhone(sel);const head=(eb,name,facts)=>`<div class="ph"><div style="min-width:0"><div class="eyebrow">${eb}</div><h2>${name}</h2>${facts?`<div class="facts">${facts}</div>`:''}</div><button class="x" data-act="closePanel" aria-label="${tr('common.close')}">×</button></div>`;
   if(sel.type==='city'){const c=sel.id,k=pzKind(c),p=S.pops[c],C=CITY[c],P=S.pz;if(!k)return '';
     const eb=k==='goal'?tr('puzzles.goal_city'):k==='via'?tr('puzzles.stepping_stone_optional'):k==='off'?tr('puzzles.not_in_the_plan'):tr('puzzles.off_limits');
     let h=head(`${PZ_ICON[k]} ${eb}`,esc(C.name),p?`<span class="fact mine">${tr('common.your_pop')}</span>`:'')+'<div class="scroll">';
@@ -153,7 +153,7 @@ function pzMenu(){pzWkEnsure();const p=pzLoad(),tot=pzStarsTotal(p),max=PZ.lengt
   <p class="tagline">${tr('puzzles.no_clock_no_bills_real_traffic')}</p>`;
   // Once, after the puzzles got traffic: the old stars are kept on the wall, the new set starts at zero.
   if(p.old&&!p.noted){h+=`<div class="pznote">🖼️ ${tr('puzzles.puzzles_got_traffic_note',{n:p.old})}</div>`;p.noted=1;pzStore(p);}
-  if(pzOn())h+=`<div class="btns" style="margin:8px 0">${(UI.pzTop||0)>0&&(UI.pzTop||0)<3?btn(tr('puzzles.finish_here'),'pzFinish',{},'sm'):''}${btn(UI.pzFrom==='game'?tr('puzzles.back_to_my_network'):tr('puzzles.back_to_the_title'),'pzLeave',{},'')}${btn(tr('puzzles.keep_building'),'closeModal',{},'ghost')}</div>`;
+  if(pzOn())h+=`<div class="btns" style="margin:8px 0">${isPhone()&&!S.ar?btn(tr('puzzles.reset'),'pzReset',{},'ghost',!S.links.length&&!Object.keys(S.pops).length):''}${(UI.pzTop||0)>0&&(UI.pzTop||0)<3?btn(tr('puzzles.finish_here'),'pzFinish',{},'sm'):''}${btn(UI.pzFrom==='game'?tr('puzzles.back_to_my_network'):tr('puzzles.back_to_the_title'),'pzLeave',{},'')}${btn(tr('puzzles.keep_building'),'closeModal',{},'ghost')}</div>`;
   h+=arMenuRows();
   h+=pzWkRow();
   // The packs' own total, right above them: it is what unlocks the next pack (#231). Runs and weeklies count their own.

@@ -14,6 +14,10 @@ Object.assign(ACT,{
  pzRetry:()=>{if(!pzOn())return;if(S.ar){arBegin(arRun());return;}pzBegin(S.pz.id==='weekly'?pzWkDef():pzDef(S.pz.id));},
  pzLeave:()=>{if(pzOn())pzLeave();},
  // The sheet's next-fix line: bring the city, or the link a cut hurts most, into view (the zoom stays).
+ // Phones split a puzzle's city and link cards into tabs (97-puzzles-phone.js); the tab shown is kept per kind of card.
+ pzTab:({k,t})=>{if(!pzOn()||!['city','link'].includes(k)||typeof t!=='string')return;UI.pzTab={...(UI.pzTab||{}),[k]:t};renderPanel();},
+ // A flow chip on a phone: that city's card, with the city on screen.
+ pzCity:({c})=>{if(!pzOn()||!isCity(c)||!pzKind(c))return;ACT.pzLook({c});selectCity(c);renderTabbar();},
  pzLook:({c,u})=>{if(!pzOn())return;let x,y;if(c&&isCity(c)){x=CITY[c].x;y=CITY[c].y;}else{const l=u&&S.links.find(q=>pzUnit(q)===u);if(!l)return;const A=CITY[l.a],B=CITY[l.b];x=A.x+wrapDx(A.x,B.x)/2;y=(A.y+B.y)/2;}
    const sh=isPhone()&&CW<=CH?($('pzBox').offsetHeight||0):0;cam.x=x;cam.y=y+sh/2/cam.z;wrapCam();haptic(8);},
  pzPop:({city})=>{if(!pzOn()||S.pops[city]||!['goal','via','off'].includes(pzKind(city)))return;pzSnap();S.pops[city]=pzNewPop(city);sfx('build');haptic(10);floater(CITY[city].x,CITY[city].y-30,tr('common.new_pop'),'#FF4F9A');pzAfter();},
@@ -49,7 +53,7 @@ Object.assign(ACT,{
  // A circuit follows the metrics (the IGP's shortest path) or takes the lowest-latency path, as customers can in the main game.
  pzRoute:({i,m})=>{const b=pzOn()&&S.biz.find(x=>x.id===pzFlowId(+i));if(!b||!['normal','fast'].includes(m)||b.route===m)return;pzSnap();b.route=m;sfx('click');pzAfter();},
  pzUndo:()=>{const h=UI.pzHist;if(!pzOn()||!h||!h.length)return;if(S.ar)arStop(true);const o=JSON.parse(h.pop());S.pops=o.p;S.links=o.l;S.pairMet=o.m||{};if(S.ar){S.ar.sunk=o.k||0;arDemand();}(o.r||[]).forEach((m,i)=>{if(S.biz[i])S.biz[i].route=m;});sfx('click');pzAfter();},
- pzReset:()=>{if(!pzOn())return;pzSnap();if(S.ar){arReset();sfx('click');pzAfter();return;}S.pops={};S.links=[];S.pairMet={};for(const b of S.biz)b.route='normal';UI.sel=null;sfx('click');pzAfter();},
+ pzReset:()=>{if(!pzOn())return;if(!$('modal').hidden)closeModal();pzSnap();if(S.ar){arReset();sfx('click');pzAfter();return;}S.pops={};S.links=[];S.pairMet={};for(const b of S.biz)b.route='normal';UI.sel=null;sfx('click');pzAfter();},
  pzShare:()=>{if(!pzOn())return;const t=S.ar?arShareText(arStars(arSpend()),arSpend()):pzShareText(pzEval());
    const copied=()=>toast(tr('puzzles.copied_paste_it_anywhere',{t:esc(t)}),'good'),copy=()=>{try{navigator.clipboard.writeText(t).then(copied,()=>toast(esc(t),''));}catch(e){toast(esc(t),'');}};
    if(navigator.share&&isPhone()){navigator.share({text:t}).catch(()=>{});return;}copy();track('puzzle_share');},

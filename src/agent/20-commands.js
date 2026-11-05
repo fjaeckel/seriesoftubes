@@ -439,6 +439,8 @@ const API_VIEW={
  bankClose:{args:[],doc:'Close the bank.'},
  closePanel:{args:[],doc:'Close the selection panel.'},
  tab:{args:[['t','string']],doc:'Switch the city panel\'s tab.'},
+ pzCity:{args:[['c','cityId']],doc:'Puzzles on a phone: open a city\'s card from its flow chip.'},
+ pzTab:{args:[['k','string'],['t','string']],doc:'Puzzles on a phone: switch the city (k:"city") or link (k:"link") card\'s tab.'},
  leftTab:{args:[['t','leftTab']],doc:'Switch the left drawer and open it.'},
  toggleLeft:{args:[],doc:'Open or close the left drawer.'},
  netFocus:{args:[['id','netId']],doc:'Focus one network in the left drawer.'},

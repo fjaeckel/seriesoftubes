@@ -13,11 +13,10 @@ function renderTabbar(){const tb=$('tabbar');if(!tb||(pressing&&UI.ticking))retu
 function haptic(ms){if(UI.muted)return;try{navigator.vibrate&&navigator.vibrate(ms||12);}catch(e){}}
 // Bottom sheets: drag the handle up to expand, down to shrink or close; tap it to toggle.
 (function(){let g=null;
-  document.addEventListener('pointerdown',e=>{const h=e.target.closest('[data-grab]');if(!h||!isPhone()||e.target.closest('button,select,input'))return;const el=h.dataset.grab==='pz'?$('pzBox'):h.parentElement;g={el,y:e.clientY,dy:0,id:e.pointerId,full:el.classList.contains('full')};try{h.setPointerCapture(e.pointerId);}catch(_){}el.style.transition='none';});
+  document.addEventListener('pointerdown',e=>{const h=e.target.closest('[data-grab]');if(!h||!isPhone()||e.target.closest('button,select,input'))return;const el=h.parentElement;g={el,y:e.clientY,dy:0,id:e.pointerId,full:el.classList.contains('full')};try{h.setPointerCapture(e.pointerId);}catch(_){}el.style.transition='none';});
   document.addEventListener('pointermove',e=>{if(!g||e.pointerId!==g.id)return;g.dy=e.clientY-g.y;if(g.dy>0)g.el.style.transform=`translateY(${g.dy}px)`;});
   const end=e=>{if(!g||e.pointerId!==g.id)return;const {el,dy,full}=g;g=null;el.style.transition='';el.style.transform='';
-    if(Math.abs(dy)<6){el.classList.toggle(el.id==='pzBox'?'mini':'full');return;}
-    if(el.id==='pzBox'){el.classList.toggle('mini',dy>0);return;}
+    if(Math.abs(dy)<6){el.classList.toggle('full');return;}
     if(dy<-40){el.classList.add('full');return;}
     if(dy>40){if(full){el.classList.remove('full');return;}if(el.id==='panel')ACT.closePanel();else{UI.leftOpen=false;renderLeft();}}};
   document.addEventListener('pointerup',end);document.addEventListener('pointercancel',end);})();
