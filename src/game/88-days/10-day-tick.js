@@ -57,6 +57,8 @@ function dayPost(d){
         toast(tr('day_tick.name_is_furious_fix_service_in',{name:esc(b.name),city:CITY[b.city].name})+(why?`<br><i>${esc(why)}</i>`:'')+(paused?`<br><b>${tr('common.game_paused')}</b>`:''),'bad',[{l:tr('common.show_me'),act:'custGo',args:{id:b.id}}].concat(paused?[resumeAct()]:[]));sfx('err');}
       else if(b.mood<60&&!b.warn60&&pref('warnUnhappy')){b.warn60=true;const why=bizWhy(b)[0];toast(tr('day_tick.name_is_getting_unhappy_happiness_p',{name:esc(b.name),p:Math.round(b.mood),city:CITY[b.city].name})+(why?`<br><i>${esc(why)}</i>`:''),'',[{l:tr('common.show_me'),act:'custGo',args:{id:b.id}}]);}}
     if(b.mood>60)b.warned=false;if(b.mood>75)b.warn60=false;}
+  // contracts: renewals, growth, haggles and leaving (75-customer-lifecycle.js)
+  clDay(d);
   // own IX members join
   for(const c in S.myIx){const m=S.myIx[c];if(d>=m.next&&m.members.length<myFab(c).max){
     const cands=NETS.filter(n=>n.type!=='t1'&&!m.members.includes(n.id)&&(n.pops.includes(c)||n.pops.some(p=>CITY[p].reg===CITY[c].reg)));
@@ -67,7 +69,7 @@ function dayPost(d){
   // offers
   S.offers=S.offers.filter(o=>o.exp>d);
   brTick();
-  if(S.offers.length<5&&Math.random()<(0.05+0.01*(S.lvl||1))*(ppol()==='closed'?0.6:1)*(confSpOn()?SP_OFFERS:1))spawnOffer();
+  if(S.offers.length<5&&Math.random()<(0.05+0.01*(S.lvl||1))*(ppol()==='closed'?0.6:1)*(confSpOn()?SP_OFFERS:1)){const n0=S.offers.length;spawnOffer();mktPrice(n0);}
   // failures & events
   // Chaos (the rules) scales how often: calm waits about three times as long, spicy comes almost twice as often, none never.
   let dirty=false;const cm=chaosMul();

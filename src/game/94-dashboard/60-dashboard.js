@@ -18,7 +18,7 @@ function renderDash(){checkLayer();
   {const e={c:0,p:0,ix:0,t:0};let w=0;for(const n of NETS)if(n.tail){const x=R.netEg[n.id];if(x)for(const k in e)e[k]+=x[k]||0;w+=R.demTo[n.id]||0;}nets.push(row({id:'_tail',name:tr('dashboard.the_long_tail_n_small_networks',{n:NETS.filter(n=>n.tail).length}),asn:'many',type:'eye',col:'#8A93B8'},e,w));}
   for(let i=nets.length-1;i>=0;i--)if(!(nets[i].t>0.01||(!filt&&nets[i].want>0.01)))nets.splice(i,1);
   {const k=UI.dashSort||'traffic',dir=UI.dashDir||-1,val=x=>k==='name'?x.n.name.toLowerCase():k==='asn'?x.n.asn:k==='type'?x.n.type:k==='cost'?x.cost:k==='lost'?x.lost:x.t;nets.sort((a,b)=>{const A=val(a),B=val(b);return (A<B?-1:A>B?1:0)*dir||b.t-a.t;});}
-  if(DT==='cust')h+=custSection();
+  if(DT==='cust')h+=clPanel()+custSection();
   if(DT==='conn')h+=connSection();
   if(DT==='traffic')h+=`<div class="btns">${btn(tr('ops.standing_orders'),'opsOpen',{},'sm')}</div>`;
   if(DT==='traffic')h+=`<div class="panel2" style="margin-top:12px"><h3>${tr('dashboard.traffic_by_network_asn')}</h3><p class="note" style="margin-top:0">${tr('dashboard.where_your_users_traffic_comes_from')}</p>${chartLegend('mix')}<div class="tscroll"><table class="tbl"><thead><tr>${[['name',tr('common.network_6974'),''],['asn','AS',''],['type',tr('common.type'),''],['traffic',tr('common.traffic'),'r'],['mix',tr('dashboard.how_it_arrives'),''],['cost',tr('common.transit_cost'),'r'],['lost',tr('common.lost'),'r']].map(([k,l,c])=>`<th class="${c}">${k==='mix'?l:`<button class="thb" data-act="dashSort" data-args="${esc(JSON.stringify({k}))}">${l}${UI.dashSort===k?(UI.dashDir>0?' ▲':' ▼'):''}</button>`}</th>`).join('')}</tr></thead><tbody>
