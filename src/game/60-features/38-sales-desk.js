@@ -26,6 +26,8 @@ const slName=(long)=>{const p=slP();return p?tr(long?SALES[p].n:SALES[p].s):'';}
 // The short name at the start of a sentence: Dave, Chad, The CEO.
 const slCap=()=>{const t=slName();return t?t[0].toUpperCase()+t.slice(1):'';};
 const slR=q=>(hstr(((S&&S.asn)||0)+'|sales|'+q)%100000)/100000;
+// What a deal is, not its id: ids come from the clock, so a roll on them would differ every time the same game is played.
+const slKey=o=>[o.type,o.city,o.city2||'',o.name,o.bw,o.exp].join('|');
 const salesMo=()=>{const p=slP();return p?SALES[p].mo:0;};
 const salesCanHire=()=>lvl()>=SALES_LV;
 // How often offers come in: the engineer brings more, half as many again while a meeting's glow lasts.
@@ -37,10 +39,10 @@ function salesShape(n0){const p=slP();if(!p)return;for(let i=S.offers.length-1;i
   if(p==='shark'&&SALES_NERDS.includes(o.type)){S.offers.splice(i,1);continue;}
   o.by=p;
   if(p==='shark'&&!T.event&&!T.cap){const up=(T.opts||[]).find(x=>x>o.bw);if(up&&!T.fiber)o.bw=up;o.rate=Math.round(o.rate*1.25);
-    if(slR('over|'+o.id)<0.5){const k=salesPromise(o);if(k)o.reqs=(o.reqs||[]).concat(k);}}}}
+    if(slR('over|'+slKey(o))<0.5){const k=salesPromise(o);if(k)o.reqs=(o.reqs||[]).concat(k);}}}}
 // A promise nobody checked: a requirement this deal can have, that the network does not meet today.
 function salesPromise(o){const T=BIZ_T[o.type],pool=Object.keys(REQS).filter(k=>!(o.reqs||[]).includes(k)&&!REQS[k].only&&(!REQS[k].l2||T.l2)&&(!REQS[k].ip||!T.l2)&&reqCan(k,o)).sort();
-  const no=pool.filter(k=>{try{return !REQS[k].ok(o);}catch(e){return false;}});return no.length?no[Math.floor(slR('promise|'+o.id)*no.length)]:null;}
+  const no=pool.filter(k=>{try{return !REQS[k].ok(o);}catch(e){return false;}});return no.length?no[Math.floor(slR('promise|'+slKey(o))*no.length)]:null;}
 // Their mark at renewal: how much likelier the customers they signed are to leave.
 function salesLeaveMul(b){if(b.by==='eng')return SALES_NERDS.includes(b.type)?0.5:0.75;if(b.by==='shark')return 1.5;if(b.by==='ceo')return 1.25;return 1;}
 // Haggles with whoever is at the desk now: how deep the discount they ask, and how often meeting halfway works.
@@ -67,7 +69,7 @@ function salesGolf(d){const mine=Object.keys(S.pops).filter(c=>popUp(c)&&bizCity
   const k=salesPromise(o);if(k)o.reqs.push(k);const b=offerCustomer(o);b.by='ceo';b.mk=mkt();S.biz.push(clSign(b));
   toast(tr('sales.ceo_golf',{name:esc(name),city:esc(CITY[city].name),bw:fmtG(o.bw),price:fmt$(o.bw*o.rate)})+(k?' '+tr('sales.ceo_promised',{req:esc(typeof REQS[k].l==='function'?REQS[k].l(o):REQS[k].l)}):''),'goal',[{l:tr('common.show_me'),act:'custGo',args:{id:b.id}}]);sfx('coin');}
 // Declining an offer the CEO likes: about one in three, he already shook hands on it.
-function salesOverride(o){if(slP()!=='ceo'||!o||!bHas(o)||BIZ_T[o.type].event||slR('veto|'+o.id)>=0.33)return false;
+function salesOverride(o){if(slP()!=='ceo'||!o||!bHas(o)||BIZ_T[o.type].event||slR('veto|'+slKey(o))>=0.33)return false;
   const b=offerCustomer(o);if(o.mk)b.mk=o.mk;b.by='ceo';S.offers=S.offers.filter(x=>x!==o);S.biz.push(clSign(b));toast(tr('sales.ceo_override',{name:esc(o.name)}),'');return true;}
 // Saves: who is at the desk, the VP on the way, the CEO's calendar; who brought each offer and signed each customer.
 function salesFix(s){const L=s.sales&&typeof s.sales==='object'&&!Array.isArray(s.sales)?s.sales:{},n=v=>Number.isInteger(v)&&v>=0&&v<1e7?v:null;

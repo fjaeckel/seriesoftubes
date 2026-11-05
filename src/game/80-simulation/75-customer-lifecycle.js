@@ -18,9 +18,11 @@ const CL_TERMS={ip:[12,24,36],whole:[24,36,48,60],iru:[120,180,240]};
 const clKind=t=>{const T=BIZ_T[t];if(!T||T.event||T.cap)return null;if(t==='dfpair'||t==='pairs')return 'iru';return T.l2||T.fiber||t==='isp'||t==='gpu'?'whole':'ip';};
 const clOn=b=>!!b&&!b.scripted&&!!clKind(b.type);
 // A stable roll in [0,1) for this customer, this term and this question.
-const clR=(b,q)=>(hstr(((S&&S.asn)||0)+'|'+b.id+'|'+b.te+'|'+q)%100000)/100000;
+// Who the customer is (names are unique), not its id: ids come from the clock and would differ every time a game is replayed.
+const clKey=b=>[b.type,b.city,b.city2||'',b.name].join('|');
+const clR=(b,q)=>(hstr(((S&&S.asn)||0)+'|'+clKey(b)+'|'+b.te+'|'+q)%100000)/100000;
 const clPick=(a,b,q)=>a[Math.floor(clR(b,q)*a.length)];
-function clTerm(b,from){const m=clPick(CL_TERMS[clKind(b.type)],{id:b.id,te:from},'term');return from+Math.round(m*365/12);}
+function clTerm(b,from){const m=clPick(CL_TERMS[clKind(b.type)],{type:b.type,city:b.city,city2:b.city2,name:b.name,te:from},'term');return from+Math.round(m*365/12);}
 // What this customer's contract would be priced at today: its price moved by the market since it was signed.
 // A renewal moves at most 25% down or 10% up at once, so an old save is not repriced in one go.
 const clFair=b=>rule('market')&&b.mk>0?Math.round(b.rate*clamp(mkt()/b.mk,0.75,1.1)):b.rate;
@@ -102,7 +104,7 @@ const CL_REF=['dia','game','host','isp','stream','edu','scrub','provedor','gpu',
 function clReferral(d){if(d%45!==0||S.offers.length>=6)return;
   const b=S.biz.filter(x=>clOn(x)&&CL_REF.includes(x.type)&&x.mood>=90&&d-(x.since||0)>=365&&bizCity(x.city)&&lvl()>=(BIZ_T[x.type].lv||1)).sort((a,c)=>c.mood-a.mood||(a.since||0)-(c.since||0)||(a.id<c.id?-1:1))[0];
   if(!b||S.offers.some(o=>o.ref===b.id))return;const T=BIZ_T[b.type],list=(T.names||BIZ_N).filter(n=>!S.usedNames.includes(n));if(!list.length)return;
-  const name=clPick(list,{id:b.id,te:d},'refname');useName(name);
+  const name=clPick(list,{type:b.type,city:b.city,city2:b.city2,name:b.name,te:d},'refname');useName(name);
   S.offers.push({id:uid(),city:b.city,city2:null,name,type:b.type,bw:(T.opts||[1])[0],rate:Math.round((CITY[b.city].au?T.rate*AU_ARPU:T.rate)*mkt()),mk:mkt(),reqs:[],exp:d+40,ref:b.id,refN:b.name});}
 // New offers are priced at today's market (spawnOffer and friends price at 1; this moves them).
 function mktPrice(from){const m=mkt();for(let i=from;i<S.offers.length;i++){const o=S.offers[i];if(o.mk)continue;o.mk=m;if(m!==1){o.rate=Math.round(o.rate*m);if(o.fee)o.fee=Math.round(o.fee*m);}}}

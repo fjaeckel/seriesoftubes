@@ -10,7 +10,8 @@ const start = "ACT.start({});S.cash=1e9;S.nextFail=1e9;S.nextEvent=1e9;for(const
 const sign = (ev, o) => ev(`(()=>{const b=clSign(offerCustomer(Object.assign({id:'c'+Math.random().toString(36).slice(2),city:'ams',city2:null,name:'Test Co',type:'dia',bw:5,rate:600,reqs:[],exp:S.day+40},${JSON.stringify(o || {})})));S.biz.push(b);return b.id;})()`);
 const B = (ev, id, k) => ev(`S.biz.find(b=>b.id===${JSON.stringify(id)})${k ? '.' + k : ''}`);
 // An id whose roll for question q (at term end te) is below p, or at least p when above is true.
-const idFor = (ev, q, p, te, above = false) => ev(`(()=>{for(let i=0;i<20000;i++){const id='x'+i,r=clR({id,te:${te}},'${q}');if(${above ? 'r>=' : 'r<'}${p})return id;}})()`);
+// The rolls hash who the customer is, so the id found here is also its name (a Enterprise DIA in Amsterdam).
+const idFor = (ev, q, p, te, above = false) => ev(`(()=>{for(let i=0;i<20000;i++){const id='x'+i,r=clR({type:'dia',city:'ams',name:id,te:${te}},'${q}');if(${above ? 'r>=' : 'r<'}${p})return id;}})()`);
 
 test('every customer signs for a term that fits what it buys; events and scripted customers have none', () => {
   const { ev, errors } = load();
@@ -31,7 +32,7 @@ test('nothing happens during a first term, and a renewal reprices to the market 
   ev(start);
   const te = ev('S.day') + 365;
   const id = idFor(ev, 'leave', 0.9, te, true);
-  ev(`S.biz.push({id:'${id}',city:'ams',city2:null,name:'Steady Co',type:'dia',bw:5,rate:600,reqs:[],mood:100,since:S.day,te:${te},mk:2})`);
+  ev(`S.biz.push({id:'${id}',city:'ams',city2:null,name:'${id}',type:'dia',bw:5,rate:600,reqs:[],mood:100,since:S.day,te:${te},mk:2})`);
   ev(`for(let i=0;i<364;i++)clDay(S.day+i)`);
   assert.equal(B(ev, id, 'rate'), 600, 'first term: same price, still here');
   ev(`S.biz.find(b=>b.id==='${id}').mood=100;clDay(${te})`);
@@ -49,6 +50,9 @@ test('the lifecycle never draws from Math.random, so seeded games keep their str
   ev('for(const b of S.biz)b.te=S.day+31');
   ev('window.__r=0;const r0=Math.random;Math.random=()=>{__r++;return r0();};for(let i=0;i<40;i++)clDay(S.day+i);Math.random=r0');
   assert.equal(ev('__r'), 0);
+  // Nor from the clock: offer and customer ids come from Date.now(), so a roll must not depend on them.
+  assert.equal(ev("clR({id:'a1',type:'dia',city:'ams',name:'Same Co',te:400},'leave')"), ev("clR({id:'zz9',type:'dia',city:'ams',name:'Same Co',te:400},'leave')"));
+  assert.equal(ev("slR('over|'+slKey({id:'a1',type:'dia',city:'ams',name:'Same Co',bw:5,exp:40}))"), ev("slR('over|'+slKey({id:'zz9',type:'dia',city:'ams',name:'Same Co',bw:5,exp:40}))"));
   assert.ok(ev("S.cl.mo.reduce((a,e)=>a+e.ren+e.grew+Object.values(e.lost).reduce((x,y)=>x+y,0),0)") > 0, 'contracts did end');
   assert.deepEqual(errors, []);
 });
@@ -57,7 +61,7 @@ test('happy customers renew or grow; an unhappy one leaves, and says it was the 
   const { ev, errors } = load();
   ev(start);
   const te = ev('S.day') + 10;
-  const stay = idFor(ev, 'leave', 0.5, te, true), grow = ev(`(()=>{for(let i=0;i<20000;i++){const id='g'+i;if(clR({id,te:${te}},'leave')>=0.5&&clR({id,te:${te}},'grow')<0.3)return id;}})()`);
+  const stay = idFor(ev, 'leave', 0.5, te, true), grow = ev(`(()=>{for(let i=0;i<20000;i++){const id='g'+i,b={type:'dia',city:'ams',name:id,te:${te}};if(clR(b,'leave')>=0.5&&clR(b,'grow')<0.3)return id;}})()`);
   const sad = idFor(ev, 'leave', 0.3, te);
   for (const [id, mood] of [[stay, 100], [grow, 100], [sad, 20]]) ev(`S.biz.push({id:'${id}',city:'ams',city2:null,name:'${id}',type:'dia',bw:2,rate:600,reqs:[],mood:${mood},since:S.day-400,te:${te},mk:1})`);
   ev(`clDay(${te})`);
@@ -82,7 +86,7 @@ test('leaving that is not your fault: only reasons that fit the customer, and th
   assert.ok(!(r.moved || []).some(t => t === 'l2vpn' || t === 'dfpair'), 'circuits and fiber do not move away');
   assert.ok(!(r.bust || []).includes('dfpair'));
   // The odd reasons: never twice within 60 days.
-  const gaps = JSON.parse(ev(`(()=>{S.day=5000;S.cl={odd:-1e9,mo:[]};const days=[];for(let d=0;d<400;d++){for(let i=0;i<6;i++){const b={id:'o'+d+'_'+i,city:'ams',city2:null,name:'O',type:'dia',bw:1,rate:100,reqs:[],mood:90,since:0,te:S.day,mk:1};S.biz=[b];const o=S.cl.odd;clDay(S.day);if(S.cl.odd!==o)days.push(S.day);}S.day++;}return JSON.stringify(days);})()`));
+  const gaps = JSON.parse(ev(`(()=>{S.day=5000;S.cl={odd:-1e9,mo:[]};const days=[];for(let d=0;d<400;d++){for(let i=0;i<6;i++){const b={id:'o'+d+'_'+i,city:'ams',city2:null,name:'O'+d+'_'+i,type:'dia',bw:1,rate:100,reqs:[],mood:90,since:0,te:S.day,mk:1};S.biz=[b];const o=S.cl.odd;clDay(S.day);if(S.cl.odd!==o)days.push(S.day);}S.day++;}return JSON.stringify(days);})()`));
   assert.ok(gaps.length >= 3, `odd reasons do come (${gaps.length} in 400 days)`);
   assert.ok(gaps.every((d, i) => !i || d - gaps[i - 1] >= 60), 'at most one every 60 days');
   assert.deepEqual(errors, []);
@@ -93,7 +97,7 @@ test('a haggle: 30 days ahead, in Deals; match, meet halfway, let go, or no answ
   ev(start);
   const te = ev('S.day') + 30;
   const id = idFor(ev, 'hag', 0.05, te);
-  ev(`S.biz.push({id:'${id}',city:'ams',city2:null,name:'Haggle Co',type:'dia',bw:5,rate:600,reqs:[],mood:90,since:S.day-800,te:${te},mk:1})`);
+  ev(`S.biz.push({id:'${id}',city:'ams',city2:null,name:'${id}',type:'dia',bw:5,rate:600,reqs:[],mood:90,since:S.day-800,te:${te},mk:1})`);
   ev(`clDay(S.day)`);
   const hag = JSON.parse(ev(`JSON.stringify(S.biz.find(b=>b.id==='${id}').hag)`));
   assert.ok(hag && hag.rate < 600 && hag.rate >= 480 && hag.until === te, `asks 8–20% off until the term ends (${JSON.stringify(hag)})`);
