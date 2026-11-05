@@ -1010,7 +1010,8 @@ test('Down Under: routers upside down, BrisVegas, Next-Door-DC and everything tr
   assert.equal(ev("S.log.filter(e=>/Router installed/.test(e.t)).length"), 2, 'one note per Australian POP');
   ev("ACT.buildPop({city:'lon'})");
   assert.equal(ev("S.log.filter(e=>/Router installed/.test(e.t)).length"), 2, 'London routers stay the right way up');
-  const turns = c => ev(`(()=>{let n=0;const r=ctx.rotate;ctx.rotate=a=>{if(Math.abs(a-Math.PI)<1e-9)n++;return r.call(ctx,a);};try{const C=CITY['${c}'];drawCity(C,100,100,1,0);}finally{ctx.rotate=r;}return n;})()`);
+  // The picture of a city is painted once per state (citySprite), so the turn is checked on its static part.
+  const turns = c => ev(`(()=>{let n=0;const r=ctx.rotate;ctx.rotate=a=>{if(Math.abs(a-Math.PI)<1e-9)n++;return r.call(ctx,a);};try{const C=CITY['${c}'],t=cTier(C.id);cityStatic(C,S.pops[C.id],t,1,1,{sel:0,dd:0,gl:-1},{down:false,feed:false,sel:false,inc:false,ixDraw:false,ixHot:false});}finally{ctx.rotate=r;}return n;})()`);
   assert.equal(turns('syd'), 1, 'Sydney: upside down');
   assert.equal(turns('lon'), 0, 'London: the right way up');
   // BrisVegas, Megapork's home town, and the data centres

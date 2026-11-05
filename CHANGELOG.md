@@ -17,6 +17,11 @@ All notable changes to this project are documented here. The project follows
 - Leasing a dark fiber pair now costs about half as much again ($600 plus $1.50 per km a month, amplifiers as before), so it pays off once you light a couple of 400G waves on it. Leases you already hold keep their price (#203).
 - Extra crews can now cut a fiber build on land to half its planned time at most, since permits and rights of way do not speed up; the button shows the day it would be done (#203).
 - A link ordered by typing both ends (the AI tools) can no longer end in a city the map does not show (#203).
+- The map is now drawn by the graphics card wherever the browser can, so panning, zooming and fast play stay smooth on big networks and big screens. The map looks the same, and zoomed out the card draws the coastlines with fewer points where the extra detail was smaller than a pixel, which helps phones most. Settings › Map drawing › Always 2D keeps the old drawing and frees what the graphics card held, and browsers without WebGL2 or without a usable graphics card keep it on their own. If the graphics card stops for a moment (on a phone, switching apps can do that), the map is drawn in 2D until it is back, and stays in 2D for a game where it keeps failing. (#281)
+- Cities, labels, building cones, ships, offer bubbles and money pop-ups are painted once and then reused, so the map also draws far fewer shapes each frame. (#281)
+- In Firefox on a computer, the 2D map is up to three times as fast when zoomed in: its land picture now stays on the graphics card instead of being sent to it again on every frame. Firefox on Android keeps the old way, which avoids its drawing glitches. (#281)
+- Settings › Viewport info is now Diagnostic info: besides your screen's size, it shows how the map is drawn (by the graphics card or in 2D, and why) and how fast, ready to copy into a bug report. (#281)
+
 ## [2.9.1] — 2026-11-04
 
 - Jokes in the game now poke fun at networks, cables and routers, never at people, countries or beliefs. A few networks have new names (Atlas Hold-the-Line Telecom, Star-Blink, Telekom Malay-tency, Oh Yas Sénégal, Afghan Tele-Pass, Island-Hop Micronesia, Tel-One-derful, Tango Two-Step), so do three of the names for your own cables, and about forty descriptions of networks, cities, cables and events were rewritten.

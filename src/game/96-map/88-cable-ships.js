@@ -24,13 +24,13 @@ function shipAt(s,T){const f=S.fleet&&S.fleet[s.id],H=shipHomePt(s);if(!f||T>=f.
   else{p=1-(T-f.done)/Math.max(0.01,f.back-f.done);mode='back';}
   p=clamp(p,0,1);const [x,y]=polyAt(r.pts,r.cum,p),[x2]=polyAt(r.pts,r.cum,clamp(p+(mode==='back'?-0.01:0.01),0,1));return {x,y,m:mode,dx:x2-x||1};}
 // A cartoon cable ship: red hull, white bridge, the yellow bow sheave cable ships are known by; a wake when under way.
-function shipSprite(x,y,face,sc,col,now,mode){const c=ctx;c.save();c.translate(x,y+Math.sin(now/420+x*0.05)*1.2*sc);c.scale(face*sc,sc);
+function shipSprite(x,y,face,sc,col,now,mode){const bl=mode==='work'&&Math.floor(now/350)%2;
+  stamp(['ship',col,face,mode,bl?1:0].join('|'),52,32,26,18,sc,x,y+Math.sin(now/420+x*0.05)*1.2*sc,c=>{c.scale(face,1);
   if(mode!=='port'&&mode!=='work'){c.strokeStyle='rgba(255,255,255,.85)';c.lineWidth=1.6;c.beginPath();c.moveTo(-10,3);c.quadraticCurveTo(-16,1,-22,4);c.moveTo(-10,5);c.quadraticCurveTo(-15,8,-21,9);c.stroke();}
   c.fillStyle=col;c.strokeStyle='#1E2640';c.lineWidth=1.6;c.lineJoin='round';c.beginPath();c.moveTo(-11,0);c.lineTo(11,0);c.lineTo(8,6);c.lineTo(-9,6);c.closePath();c.fill();c.stroke();
   c.fillStyle='#fff';c.beginPath();c.rect(-7,-7,8,7);c.fill();c.stroke();c.fillStyle='#1E2640';c.fillRect(-5,-5,4,2);
   c.beginPath();c.arc(9,-2,2.6,0,7);c.fillStyle='#FFD23F';c.fill();c.stroke();
-  if(mode==='work'&&Math.floor(now/350)%2){c.fillStyle='#FFD23F';c.font='900 11px sans-serif';c.textAlign='center';c.fillText('✦',12,-8);}
-  c.restore();}
+  if(bl){c.fillStyle='#FFD23F';c.font='900 11px sans-serif';c.textAlign='center';c.fillText('✦',12,-8);}},true);}
 function drawShips(ks,now){SHIP_HITS.length=0;if(!S||pzOn()||!S.fleet)return;
   const T=S.day+(UI.speed?clamp(acc/DAY_MS,0,0.999):0),z=cam.z,sc=Math.max(0.85,Math.min(1.5,Math.sqrt(z)))*(lodFar()?0.9:1.05),list=[];
   for(const s of SHIPS){const p=shipAt(s,T);if(p.m==='port'&&z<1.1)continue;list.push({p,s,col:s.club==='prv'?'#7A5CFF':'#FF4D5E'});}

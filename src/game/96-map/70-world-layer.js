@@ -2,7 +2,10 @@
    GPU canvas implementations (Firefox on Android) garble big paths (#43). It is painted into an offscreen image
    instead: the whole world when that fits in MAXPX, otherwise the visible area plus a margin, repainted when you
    pan out of it. While a zoom gesture is still moving, the last image is scaled rather than repainted. */
-const SOFT_CANVAS=/Firefox\//.test(navigator.userAgent);
+/* Only Firefox on Android gets that image as a software canvas (willReadFrequently). Firefox on a computer drew it
+   fine on the graphics card, and a software canvas there is sent to the card again on every frame, a cost that grows
+   with the image: zoomed in, the 2D map ran at half its speed. */
+const softCanvas=ua=>/Android.*Firefox\//.test(ua),SOFT_CANVAS=softCanvas(navigator.userAgent);
 function wlCovers(z){if(WL.full)return true;const hw=CW/2/z,hh=CH/2/z,w=WL.cv.width/WL.sc,h=WL.cv.height/WL.sc;
   return cam.x-hw>=WL.ox&&cam.x+hw<=WL.ox+w&&cam.y-hh>=WL.oy&&cam.y+hh<=WL.oy+h;}
 function worldLayer(z){
@@ -21,14 +24,12 @@ function worldLayer(z){
 function drawWorldLayer(wl,k,z,k0){if(!wl.full&&k!==k0)return;const f=z*DPR/wl.sc,ox=(wl.full?k*W:wl.ox);
   ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(wl.cv,Math.round(DPR*((ox-cam.x)*z+CW/2)),Math.round(DPR*((wl.oy-cam.y)*z+CH/2)),wl.cv.width*f,wl.cv.height*f);}
 function cableCol(C){return C.price<=0.85?'#14A88C':C.price<=1.1?'#2F7BEA':'#A05AE0';}
-function drawBackhoe(x,y,now,sub){
-  const b=Math.sin(now/180)*2;ctx.save();ctx.translate(x,y-14+b);
+function drawBackhoe(x,y,now,sub){stamp('hoe|'+(sub?1:0),38,32,15,16,1,x,y-14+Math.sin(now/180)*2,()=>{
   ctx.strokeStyle='#1E2640';ctx.lineWidth=2.2;
   if(sub){ // shark fin
     ctx.fillStyle='#6B7C99';ctx.beginPath();ctx.moveTo(-12,8);ctx.quadraticCurveTo(-2,-14,10,-12);ctx.quadraticCurveTo(4,-2,12,8);ctx.closePath();ctx.fill();ctx.stroke();
   }else{
     ctx.fillStyle='#FFD23F';rr(-12,-4,18,12,3);ctx.fill();ctx.stroke();rr(-8,-12,10,9,2);ctx.fillStyle='#BDE8FF';ctx.fill();ctx.stroke();
     ctx.beginPath();ctx.moveTo(6,0);ctx.lineTo(14,-10);ctx.lineTo(19,2);ctx.stroke();ctx.fillStyle='#1E2640';ctx.beginPath();ctx.arc(-7,10,3,0,7);ctx.arc(2,10,3,0,7);ctx.fill();
-  }
-  ctx.restore();
+  }});
 }
