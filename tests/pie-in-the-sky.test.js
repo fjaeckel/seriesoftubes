@@ -282,5 +282,20 @@ test('Pie Control renders every tab on a phone', () => {
   assert.equal(ev('S.pie.co.name'), 'pie.co_hubris_heavy_industries');
   ev("$('pieNm').value='Rocket Pie Co';ACT.pieRename()");
   assert.equal(ev('pieCoName()'), 'Rocket Pie Co');
+  ev('closeModal()'); // an open globe keeps its animation loop, and this process, alive
+  assert.deepEqual(errors, []);
+});
+
+test('the globe spins only while Pie Control is open', () => {
+  const { dom, ev, errors } = load();
+  won(ev);
+  company(ev);
+  assert.equal(ev('PG.raf'), 0, 'nothing runs before the panel opens');
+  ev("ACT.pieTab({t:'fly'})");
+  assert.ok(dom.window.document.querySelector('#modal .pgcv'), 'the panel carries the globe');
+  assert.ok(ev('PG.raf') > 0, 'and it spins');
+  ev('closeModal()');
+  assert.equal(ev('PG.raf'), 0, 'closing the panel stops it');
+  assert.equal(ev('PG.cv'), null);
   assert.deepEqual(errors, []);
 });
