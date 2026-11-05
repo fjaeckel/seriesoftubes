@@ -120,6 +120,9 @@ the chaos monkey's snip (`mkSnipRun()`), an event's cut (`eventRun()`: its routi
 sales desk's trials (a `{trial}` yield the worker answers with yes or no, `offerTrial()`) are all steps. The intern's
 orders are generators too, with a rest after each job. `UI.tick` (what the day itself announces, which quiet
 notifications may keep to the NOC log) is set around every step (`dayStep()`), on both sides of the worker.
+A big autosave is packed, turned into text and compressed in the worker (`rwSave()`), the page only writes it. The
+diverse-paths map and the latency floors new offers need are worked out a millisecond a frame ahead (`diversityWarm()`,
+`latWarm()`). A rest waits for the next frame only when none was drawn just now (`rwLater()`).
 
 The daily mood check asks "a path without subsea" for each customer that wants one: during that loop the land-connected
 islands are worked out once (`TERR`, `terrIslands()`), and two cities have a land path when they share one.

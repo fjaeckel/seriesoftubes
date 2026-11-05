@@ -29,19 +29,20 @@ function played(t) {
   // Answers what is waiting, one message at a time; returns how many routings it served.
   // kept: answers that left R.egDesc out, the page keeping the one it has; lean: posts that left R.efg out, the worker
   // keeping its own.
-  let kept = 0, lean = 0, rests = 0, trials = 0;
+  let kept = 0, lean = 0, rests = 0, delta = 0, trials = 0;
   const pump = () => { let n = 0; for (;;) {
     if (page.ev('__later.length')) { rests++; page.ev('__later.shift()()'); continue; }
     if (!page.ev('__q.length')) break;
     if (page.ev('__q[0].efg===0')) lean++;
     if (page.ev('!!__q[0].trial')) trials++;
     wk.dom.window.__m = page.ev('__q.shift()'); wk.ev('rwServe(__m)'); page.dom.window.__a = wk.ev('__out');
-    if (wk.ev('!!__out.R&&__out.R.egDesc===0')) kept++; page.ev('rwMsg(__a)'); n++; } return n; };
+    if (wk.ev('!!__out.R&&__out.R.egDesc===0')) kept++;
+    if (wk.ev('!!(__out.R&&__out.R.egDesc&&__out.R.egDesc.dK!==undefined)')) delta++; page.ev('rwMsg(__a)'); n++; } return n; };
   // One message to the worker and its answer back (the trial test steps through a day with it).
   const pump1 = () => { if (!page.ev('__q.length')) return; wk.dom.window.__m = page.ev('__q.shift()'); wk.ev('rwServe(__m)'); page.dom.window.__a = wk.ev('__out'); page.ev('rwMsg(__a)'); };
-  return { ...page, pump, pump1, kept: () => kept, lean: () => lean, rests: () => rests, trials: () => trials };
+  return { ...page, pump, pump1, kept: () => kept, lean: () => lean, rests: () => rests, delta: () => delta, trials: () => trials };
 }
-// R.egDesc too, key for key and in order.
+// R.egDesc too, key for key and in order: the worker sends only what changed in it.
 const STATE = "JSON.stringify({S,R:{served:R.served,demand:R.demand,rev:R.revMo,cost:R.costMo,load:R.load,useT:R.useT,usePni:R.usePni,egDesc:R.egDesc}})";
 // Equal states, or which of their fields differ.
 const same = (a, b, msg) => { if (a === b) return; const A = JSON.parse(a), B = JSON.parse(b), d = [];
@@ -70,6 +71,7 @@ test('a day whose routings the worker answers is the day dayTick() plays', (t) =
   assert.ok(p.trials() > 0, `sales trials the worker ran: ${p.trials()}`);
   assert.ok(p.ev('S.ops.log.some(e=>e.r.some(([k])=>k==="caches"))'), 'the intern racked cache boxes');
   assert.ok(p.kept() > 0 && p.kept() < served, `answers without R.egDesc: ${p.kept()} of ${served}`);
+  assert.ok(p.delta() > 0, `answers with only what changed in R.egDesc: ${p.delta()}`);
   assert.ok(p.lean() > 0 && p.lean() < served, `posts without R.efg: ${p.lean()} of ${served}`);
   // A frame through before the intern's shift, after each of the orders on duty (decommissioning aside), and after
   // each job of an order (a generator's yields).

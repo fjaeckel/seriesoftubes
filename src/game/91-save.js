@@ -14,12 +14,17 @@ function save(force,st){if(!st)st=pzOn()?UI.pzKeep:S;const id=UI.slot;
   UI.lastSave=performance.now();
   // Set aside for a puzzle, it cannot change: once its save has landed (or is still compressing), there is nothing to do.
   if(st!==S&&!failed&&(SLOT.top[id]||0)>0)return;
+  /* A big network that moved on since its last save cannot be the same text: the route worker packs it, turns it into
+     text and compresses it (rwSave()); the page only copies the game over and writes what comes back. */
+  if(!force&&!failed&&st===S&&SLOT.day[id]!==undefined&&SLOT.day[id]!==st.day&&((SLOT.txt[id]||'').length>=GZ_BG||SLOT.big[id])&&gzOk()){
+    const seq=Math.max(SLOT.top[id]||0,SLOT.sq[id]||0)+1,p=rwSave(st,seq);
+    if(p){SLOT.top[id]=seq;let tier=null;try{tier=tierLabel();}catch(e){}gzSave({id,s:st,txt:null,seq,day:st.day,meta:slotMeta(st,tier),p});return;}}
   const txt=JSON.stringify(packSave(st));
   // The very text the slot already holds (a paused game, nothing changed): writing a big network to storage costs more
   // than turning it into text, every 5 seconds, for nothing. Unless a write is still on its way, or the page is closing.
   if(!force&&!failed&&SLOT.txt[id]===txt&&(SLOT.top[id]||0)===(SLOT.sq[id]||0))return;
   let tier=null;if(st===S)try{tier=tierLabel();}catch(e){}
-  const seq=SLOT.top[id]=Math.max(SLOT.top[id]||0,SLOT.sq[id]||0)+1,j={id,s:st,txt,seq,meta:slotMeta(st,tier)};
+  const seq=SLOT.top[id]=Math.max(SLOT.top[id]||0,SLOT.sq[id]||0)+1,j={id,s:st,txt,seq,day:st.day,meta:slotMeta(st,tier)};
   if(gzOk()&&(txt.length>=GZ_MIN||!force&&txt.length>=GZ_BG&&rwOn()))gzSave(j);else slotPut(j,slotStamp(txt,seq));}
 function saveErr(e,s){const f=UI.saveFail,again=f&&f.s===s;UI.saveFail={s,at:performance.now(),wait:again?Math.min(300000,f.wait*2):60000,full:saveFull(e)};
   // Say so once per game (#176): a save that silently fails loses everything since the last one that worked.
@@ -41,7 +46,7 @@ const gzip=async txt=>GZ+await (rwGzip(txt)||gzB64(txt));
 const gunzip=async raw=>new TextDecoder().decode(await gzPipe(unb64(raw.slice(GZ.length)),new DecompressionStream('gzip')));
 // Jobs carry their slot, not the game object: a save still compressing lands in its own network whatever S is by then.
 function gzSave(j){if(UI.gzBusy){SLOT.gzQ.set(j.id,j);return;}UI.gzBusy=true;
-  gzip(slotStamp(j.txt,j.seq)).then(v=>{if(j.seq===SLOT.top[j.id])slotPut(j,v);})
+  (j.p?j.p.then(r=>{j.txt=r.txt;return r.data;}):gzip(slotStamp(j.txt,j.seq))).then(v=>{if(j.seq===SLOT.top[j.id])slotPut(j,v);})
     .catch(e=>{console.error('[tubes] compressing the save failed',e);})
     .finally(()=>{UI.gzBusy=false;const n=SLOT.gzQ.values().next().value;if(n){SLOT.gzQ.delete(n.id);gzSave(n);}else slotIdle();});}
 /* Big networks are mostly customers, and most of a customer record was defaults (#176): no second city, no
