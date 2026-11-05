@@ -187,7 +187,7 @@ test('your own subsea cable: survey and factory first, then a lay ship; a second
   assert.match(panel(), /Survey, permits and the cable factory/);
   assert.match(panel(), /Laying starts in 560 days/);
   assert.match(panel(), /Book a second lay ship/);
-  assert.doesNotMatch(panel(), /Hire extra crews|Finish in 1 day/);
+  assert.doesNotMatch(panel(), /Hire extra crews|All the crews/);
   const cash = ev('S.cash');
   ev("ACT.crews({id:'own'})");
   assert.equal(ev('S.cash'), cash, 'no crews at sea');

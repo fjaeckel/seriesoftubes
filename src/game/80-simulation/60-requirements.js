@@ -77,5 +77,5 @@ const freeCh=(l,u)=>chMax(l)-(l.ch||[]).length-soldSlots(l,u),pairFree=(l,u)=>!!
 const wwWhat=(l,n)=>trn('requirements.n_400g_alien_wave_on_your',n,{a:CITY[l.a].name,b:CITY[l.b].name});
 function fiberOffer(t,l,nm,cut=1){
   if(t==='wwave'){const slots=1+Math.floor(Math.random()*Math.min(4,freeCh(l)));
-    return {id:uid(),city:l.a,city2:l.b,link:l.id,slots,what:wwWhat(l,slots),name:nm(),type:t,bw:1,rate:Math.round(waveMo(l.km,false,2)*0.55*slots*cut),reqs:[],exp:S.day+30};}
+    return {id:uid(),city:l.a,city2:l.b,link:l.id,slots,what:wwWhat(l,slots),name:nm(),type:t,bw:1,rate:wwRate(l,slots,cut),reqs:[],exp:S.day+30};}
   return {id:uid(),city:l.a,city2:l.b,link:l.id,what:tr('requirements.a_spare_fiber_pair_in_your',{a:CITY[l.a].name,b:CITY[l.b].name}),name:nm(),type:t,bw:1,rate:Math.round(dfLeaseMo(l.km)*0.9*cut),reqs:[],exp:S.day+30};}

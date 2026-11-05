@@ -412,6 +412,31 @@ test('F5: rented capacity never outgrows the route\'s market (#203)', () => {
   assert.deepEqual(g.errors, []);
 });
 
+test('F6: an alien wave is priced against its fiber, and a full route earns a few times its lease (#203)', () => {
+  const g = load();
+  g.ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;S.lvl=6;S.biz=[];S.offers=[]");
+  for (const [a, b] of [['lon', 'par'], ['lon', 'nyc'], ['fra', 'sin'], ['nyc', 'sjc'], ['jed', 'gdx']]) {
+    const r = JSON.parse(g.ev(`(()=>{const l={id:'f6${a}${b}',a:'${a}',b:'${b}',kind:'df',own:true,sys:'cl',ch:[],km:Math.round(kmBetween('${a}','${b}')),ready:0,day:0,cut:0,mo:1,pairs:2};S.links.push(l);
+      const F=dfLeaseMo(l.km)+ampCount(l.km)*AMP_MO,M=brMarket(l.a,l.b),rs=[];
+      for(let i=0;i<M;i++){const r=wwRate(l,1);rs.push(r);S.biz.push({id:uid(),type:'wwave',link:l.id,slots:1,rate:r,city:l.a,city2:l.b,name:'n'+i,bw:1,mood:80,since:0,reqs:[]});}
+      return JSON.stringify({F,rs});})()`));
+    assert.ok(r.rs[0] <= 0.3 * r.F + 1, `F6: ${a}-${b} first wave ${r.rs[0]} vs fiber ${r.F}`);
+    for (let i = 1; i < r.rs.length; i++) assert.ok(r.rs[i] <= r.rs[i - 1], `F6: ${a}-${b} never dearer than the one before`);
+    const full = r.rs.reduce((x, y) => x + y, 0);
+    assert.ok(full < 8 * r.F, `F6: ${a}-${b} full route ${(full / r.F).toFixed(1)}× its lease`);
+  }
+  assert.deepEqual(g.errors, []);
+});
+
+test('F7: extra crews cut a build on land to half its planned time at most (#203)', () => {
+  const g = load();
+  g.ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e11;S.lvl=4;for(const c of ['fra','mad'])if(!S.pops[c])ACT.buildPop({city:c})");
+  const km = Math.round(g.ev("kmBetween('fra','mad')")), days = g.ev(`dfBuildDays(${km})`), d0 = g.ev('S.day');
+  g.ev(`S.links.push({id:'f7',a:'fra',b:'mad',kind:'df',own:true,sys:'roadm',ch:[],km:${km},ready:S.day+${days},day:S.day,cut:0,mo:1,trench:'own:f7',pairs:1});ACT.crews({id:'f7',all:1});for(let i=0;i<50;i++)ACT.crews({id:'f7'})`);
+  assert.ok(g.ev("S.links.find(l=>l.id==='f7').ready") - d0 >= days / 2, 'F7: never under half the planned build');
+  assert.deepEqual(g.errors, []);
+});
+
 // D1–D4: DDoS as networks see it (#242). tests/ddos-model.test.js plays each one in detail.
 const ddFra = (ev) => ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;S.lvl=4;S.nextFail=1e9;S.nextEvent=1e9;ACT.launchBB({city:'fra'});S.pops.fra.bb.d=40;ACT.buyTransit({city:'fra',net:'cog',tier:1});S.pops.fra.rgen=RG.findIndex(r=>r.fsN===8);S.biz.push({id:'g',type:'game',name:'G',city:'fra',bw:10,rate:1,mood:80,since:0,reqs:[]},{id:'d',type:'dia',name:'D',city:'fra',bw:5,rate:1,mood:80,since:0,reqs:[]});compute()");
 const ddHit = (ev, g) => ev(`S.ev.ddos={id:'x',city:'fra',tgt:'g',vec:'dns',gbps:${g},start:S.day,until:S.day+2,bh:false};compute()`);

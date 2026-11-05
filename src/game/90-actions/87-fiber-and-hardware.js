@@ -7,14 +7,14 @@ Object.assign(ACT,{
  ownCab:()=>{UI.lmode='df';UI.dfSrc='cable';UI.seaDesign='standard';UI.seaterminal=UI.seaengineering=false;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
  dfSrc:({v})=>{UI.dfSrc=v;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
  dfSys:({v})=>{UI.dfSys=v;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
- orderCable:()=>{const p=UI.pending;if(!p||noTalk(p.a,p.b))return;const {a,b}=p;if(ownCabWhy(a,b)||!linkFromOk(a))return;const design=own(SEA_DESIGNS,UI.seaDesign)?UI.seaDesign:'standard',up=seaUps(seaQuote(a,b,design).km),q=seaQuote(a,b,design,up),km=q.km,cost=q.cost+(S.pops[b]?0:popCost(b));if(seaLack(km,up).length||!spend(cost))return;
+ orderCable:()=>{const p=UI.pending;if(!p||noTalk(p.a,p.b))return;const {a,b}=p;if(ownCabWhy(a,b)||!linkFromOk(a)||!linkToOk(b))return;const design=own(SEA_DESIGNS,UI.seaDesign)?UI.seaDesign:'standard',up=seaUps(seaQuote(a,b,design).km),q=seaQuote(a,b,design,up),km=q.km,cost=q.cost+(S.pops[b]?0:popCost(b));if(seaLack(km,up).length||!spend(cost))return;
    if(!S.pops[b]){S.pops[b]={day:S.day,bb:null,boost:0,down:0,routers:1,gen:false,rgen:0};popStdApply(b);}
    const used=new Set(S.links.map(l=>l.cname).filter(Boolean)),cname=OWNCAB_NAMES.find(n=>!used.has(n))||`${pick(OWNCAB_NAMES)} ${used.size+1}`,id=uid(),ship=layName({id}),days=q.days;
    S.links.push({id,a,b,kind:'df',own:true,sub:true,seaDesign:design,seaPath:q.pts.map(p=>p.slice()),sys:'roadm',ch:[],km,cable:null,cname,mo:Math.round(km*OWNCAB_OM),trench:'own:'+id,cut:0,day:S.day,ready:S.day+days,spares:false,pairs:1});
    const laid=S.links[S.links.length-1];laid.paid=q.cost;for(const k of Object.keys(SUB_UPGRADES))if(up[k])laid['sub'+k]=laid.ready;UI.seaDesign='standard';UI.seaterminal=UI.seaengineering=false;
    S.stats.ownCab=(S.stats.ownCab||0)+1;UI.dfSrc='lease';closeModal();UI.sel={type:'link',id};
    toast(tr('fiber_and_hardware.the_ship_sets_sail_name_your',{ship,name:cname,km:km.toLocaleString(),a:CITY[a].name,b:CITY[b].name,n:days}),'goal');sfx('build');after();},
- orderDf:()=>{const p=UI.pending;if(!p||noTalk(p.a,p.b))return;const {a,b}=p;if(!dfAllowed(a,b)||!linkFromOk(a))return;const sc=isSub(a,b)?subDfCable(a,b):null,km=sc?sc.km:kmBetween(a,b);
+ orderDf:()=>{const p=UI.pending;if(!p||noTalk(p.a,p.b))return;const {a,b}=p;if(!dfAllowed(a,b)||!linkFromOk(a)||!linkToOk(b))return;const sc=isSub(a,b)?subDfCable(a,b):null,km=sc?sc.km:kmBetween(a,b);
    const own=UI.dfSrc==='build'&&!sc,sys=DF_SYS[UI.dfSys]&&techOk('sys',UI.dfSys,DF_SYS[UI.dfSys].lvl)?UI.dfSys:'lite';if(lvl()<2)return;
    const up=(own?digCost(km):0)+sysCost(sys)+ampCount(km)*AMP_COST+(S.pops[b]?0:popCost(b));if(!spend(up))return;
    if(!S.pops[b]){S.pops[b]={day:S.day,bb:null,boost:0,down:0,routers:1,gen:false,rgen:0};popStdApply(b);}
@@ -37,6 +37,6 @@ Object.assign(ACT,{
  seaRush:({id,all})=>{const l=S.links.find(x=>x.id===id);if(!l)return;const k=prepSteps(l);if(!k)return;const n=all?k:1;if(!spend(n*prepCost(l)))return;const ready=Math.max(prepFloor(l),l.ready-PREP_STEP*n),saved=l.ready-ready;setCableReady(l,ready);toast(trn('cable_ships.the_factory_runs_a_night_shift',saved,{n:saved}),'good');sfx('build');after();},
  layShip:({id})=>{const l=S.links.find(x=>x.id===id);const q=l&&layQuote(l);if(!q||!spend(q.cost))return;l.ship2=1;setCableReady(l,l.ready-q.save);
    toast(trn('cable_ships.second_lay_ship_booked',q.save,{ship:esc(layName(l,1)),n:q.save}),'good');sfx('coin');after();},
- crews:({id,all})=>{const l=S.links.find(x=>x.id===id);if(!l||l.kind!=='df'||!l.own||l.sub||l.ready<=S.day+1)return;const n=all?crewSteps(l):1,c=n*crewCost(l);if(!spend(c))return;const ready=Math.max(S.day+1,l.ready-30*n),saved=l.ready-ready;setCableReady(l,ready);toast(trn('fiber_and_hardware.more_crews_on_site_construction_is',saved,{n:saved}),'good');after();},
+ crews:({id,all})=>{const l=S.links.find(x=>x.id===id);if(!l||l.kind!=='df'||!l.own||l.sub||!crewSteps(l))return;const n=all?crewSteps(l):1,c=n*crewCost(l);if(!spend(c))return;const ready=Math.max(crewFloor(l),l.ready-30*n),saved=l.ready-ready;setCableReady(l,ready);toast(trn('fiber_and_hardware.more_crews_on_site_construction_is',saved,{n:saved}),'good');after();},
  addGen:({city})=>{const p=S.pops[city];if(!p||p.gen)return;if(!spend(GEN_COST))return;p.gen=true;floater(CITY[city].x,CITY[city].y-30,tr('common.generator'),'#FF8A3D');after();},
 });

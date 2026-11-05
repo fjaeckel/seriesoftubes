@@ -12,6 +12,8 @@ function dfAllowed(a,b){if(noTalk(a,b))return false;if(isSub(a,b))return !!subDf
 // A link starts at one of your POPs. The map only drags one from a POP, but a typed order (the agent API) names both ends.
 function linkFromWhy(a){return S.pops[a]?'':tr('action_helpers.you_have_no_pop_in_city',{city:CITY[a].name});}
 function linkFromOk(a){const w=linkFromWhy(a);if(w){toast(w,'bad');sfx('err');}return !w;}
+// ...and ends at a city you could build a POP in (#203): a typed order can name one the map does not show.
+function linkToOk(b){if(S.pops[b]||cityOn(b))return true;toast(popOffWhy(b),'bad');sfx('err');return false;}
 // A retired small city (off: true) takes no new POP; the nearest open city in its country stands in for it.
 function popOffWhy(c){const C=CITY[c],near=CITIES.filter(o=>!o.off&&o.cc===C.cc).sort((x,y)=>kmBetween(c,x.id)-kmBetween(c,y.id))[0];
   return tr('action_helpers.city_is_off_the_map_small',{city:C.name,near:near?near.name:''});}

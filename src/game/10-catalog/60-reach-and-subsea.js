@@ -22,7 +22,9 @@ function setCableReady(l,ready,day=S.day){const shift=ready-l.ready;
 }
 // Crews hurry a build on land. At sea only a cable ship does (85-incidents/50-cable-ships.js).
 const crewCost=l=>Math.round(15000+l.km*6);
-const crewSteps=l=>Math.max(0,Math.ceil((l.ready-S.day-1)/30));
+// Permits and rights of way set the pace: crews cut at most half of the planned build (#203).
+const crewFloor=l=>Math.max(S.day+1,Number.isFinite(l.day)?l.day+Math.ceil(dfBuildDays(l.km)/2):0);
+const crewSteps=l=>Math.max(0,Math.ceil((l.ready-crewFloor(l))/30));
 // Old saves lack purchase dates. Only shorten dates beyond any valid remaining
 // commissioning window. Credit elapsed time since the actual cable finish;
 // recent purchases and installed upgrades stay untouched.

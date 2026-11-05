@@ -15,6 +15,12 @@ const brMarket=(a,b)=>clamp(Math.round(Math.sqrt(brWeight(a)*brWeight(b))/BR_DIV
 function brSold(a,b){const k=edgeKey({a,b});let n=0;const ls=new Set(S.links.filter(l=>l.kind==='df'&&edgeKey(l)===k).map(l=>l.id));
   for(const x of S.biz)if(ls.has(x.link))n+=x.type==='wwave'?(x.slots||0):x.type==='dfpair'?BR_PAIR:0;return n;}
 const brFree=l=>Math.max(0,brMarket(l.a,l.b)-brSold(l.a,l.b));
+/* What a carrier pays for one alien wave (#203): a share of what the fiber itself costs a month (lease plus amplifiers),
+   since a buyer would not pay more than leasing and lighting it. Each wave sold between the two cities makes the next
+   one cheaper, down to 40% of the first once the route's market is full: a full route earns a few times its lease. */
+const WW_SHARE=0.3,WW_FALL=0.6;
+function wwRate(l,n,cut=1){const F=dfLeaseMo(l.km)+ampCount(l.km)*AMP_MO,M=brMarket(l.a,l.b),s=brSold(l.a,l.b);let r=0;
+  for(let i=0;i<n;i++)r+=F*WW_SHARE*(1-WW_FALL*Math.min(1,(s+i)/M));return Math.round(r*cut);}
 // Once a day, each listing may find a buyer: the more room the route has left, the sooner.
 function brTick(){for(const l of S.links){const L=l.list;if(!L||l.kind!=='df'||!fiberOk({link:l.id,type:'wwave'}))continue;
     const free=brFree(l);if(!free)continue;
@@ -23,7 +29,7 @@ function brTick(){for(const l of S.links){const L=l.list;if(!L||l.kind!=='df'||!
     if(!(L.w>0)&&!(L.p>0))delete l.list;}}
 // A sale: a new carrier on this fiber, or more waves for one that already rents here.
 function brSell(l,t,n){const T=BIZ_T[t],nm=()=>{const list=T.names.filter(x=>!S.usedNames.includes(x)),x=list.length?pick(list):pick(T.names);useName(x);return x;};
-  const o=fiberOffer(t,l,nm,0.9);if(t==='wwave'){o.slots=n;o.rate=Math.round(waveMo(l.km,false,2)*0.55*n*0.9);o.what=wwWhat(l,n);}
+  const o=fiberOffer(t,l,nm,0.9);if(t==='wwave'){o.slots=n;o.rate=wwRate(l,n,0.9);o.what=wwWhat(l,n);}
   const more=t==='wwave'&&S.biz.find(b=>b.type==='wwave'&&b.link===l.id&&b.name===o.name);
   if(more){more.slots=(more.slots||0)+n;more.rate+=o.rate;more.what=wwWhat(l,more.slots);}else S.biz.push(offerCustomer(o));
   toast(tr('broker.sold',{name:esc(o.name),what:esc(t==='wwave'?wwWhat(l,n):o.what),price:fmt$(o.rate)}),'good');

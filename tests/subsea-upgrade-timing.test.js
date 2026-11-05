@@ -8,6 +8,12 @@ function setup(ev, sub = true) {
     S.links=[{id:'cable',a:'lag',b:'bde',kind:'df',own:true,sub:${sub},sys:'roadm',km:15000,ch:[],day:100,ready:1000,cut:0,mo:1}];`);
 }
 
+// Crews cut a land build to half its planned time at most (#203): plan these builds long enough that crews can still
+// bring them to tomorrow, so the tests below check the price and the one-click purchase.
+function plannedLong(ev) {
+  ev('S.links[0].day=101-Math.ceil(dfBuildDays(S.links[0].km)/2)');
+}
+
 function dates(ev) {
   return JSON.parse(ev('JSON.stringify([S.links[0].ready,S.links[0].subterminal,S.links[0].subengineering])'));
 }
@@ -126,6 +132,7 @@ test('one-click completion on land costs the same as repeated crew hires', () =>
   const { ev, dom, errors } = load();
   try {
     setup(ev, false);
+    plannedLong(ev);
     ev("UI.sel={type:'link',id:'cable'};renderPanel()");
     const button = [...dom.window.document.querySelectorAll('#panelBody [data-act=crews]')].find(b => JSON.parse(b.dataset.args).all);
     assert.ok(button && !button.disabled, 'one-click option is available');
@@ -140,6 +147,7 @@ test('one-click completion on land costs the same as repeated crew hires', () =>
     ev("ACT.crews({id:'cable',all:1})");
     assert.equal(ev('S.cash'), bulkCash, 'repeat submission cannot charge again');
     setup(ev, false);
+    plannedLong(ev);
     ev("for(let i=0;i<30;i++)ACT.crews({id:'cable'})");
     assert.equal(ev('S.links[0].ready'), bulkReady);
     assert.equal(ev('S.cash'), bulkCash);
@@ -156,6 +164,7 @@ test('one-click completion is atomic when unaffordable and handles short or comp
   const { ev, dom } = load();
   try {
     setup(ev, false);
+    plannedLong(ev);
     ev("S.cash=30*105000-1;UI.sel={type:'link',id:'cable'};renderPanel()");
     const bulk = [...dom.window.document.querySelectorAll('#panelBody [data-act=crews]')].find(b => JSON.parse(b.dataset.args).all);
     assert.equal(bulk.disabled, true);
@@ -177,7 +186,9 @@ test('owned ground fiber exposes the one-click button and uses the same crew pri
   const { ev, dom, errors } = load();
   try {
     setup(ev);
-    ev("ACT.buildPop({city:'ams'});Object.assign(S.links[0],{a:'fra',b:'ams',sub:false,km:800,ready:191});UI.sel={type:'link',id:'cable'};renderPanel()");
+    ev("ACT.buildPop({city:'ams'});Object.assign(S.links[0],{a:'fra',b:'ams',sub:false,km:800,ready:191})");
+    plannedLong(ev);
+    ev("UI.sel={type:'link',id:'cable'};renderPanel()");
     const bulk = [...dom.window.document.querySelectorAll('#panelBody [data-act=crews]')].find(b => JSON.parse(b.dataset.args).all);
     assert.ok(bulk && !bulk.disabled, 'ground construction has the same one-click control');
     assert.ok(bulk.textContent.includes(ev('fmt$(3*(15000+800*6))')), '91 days remaining requires three hires');
