@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+## [2.10.1] — 2026-11-05
+
 - "Meet halfway" on a renewal now offers the price halfway between what the customer pays and what they ask, and the button shows it before you press (#293).
 - Fujairah sits on the UAE's east coast again, where its cables land, instead of on top of Muscat (#295).
 - Puzzles on phones no longer scroll. A bar at the top shows the stars, the money and the one thing to do next, with a chip for every flow that turns green once it all arrives; tap a chip to jump to its city. A city or a link opens a short card at the bottom, split into tabs (links, router, traffic; size, traffic, routing), so every button is on screen at once. Architect runs get the same bar, and Reset is in the ☰ menu on phones.
