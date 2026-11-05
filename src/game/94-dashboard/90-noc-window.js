@@ -5,8 +5,8 @@
    per network, opened once a window says hello, so other games' tabs never unpack them. With no window nothing is sent. */
 const NOC_HB=3000,NOC_LOST=10000,NOC_GAP=1000;
 // What a click in the window does: changes only its own view, or runs in the game. Every button the dashboard draws is in one list.
-const NOC_LOCAL=['chartToggle','connCity','connF','connNet','connSort','custCity','custF','custSort','dashClose','dashSort','dashTab','listMore'];
-const NOC_GO=['buyIx','buyNni','buyTransit','cache','connCancel','custGo','dashLink','goConn','lagIx','lagP','lagT','leaseSwap','netFocus','opsOpen','pni','pniAllOpen'];
+const NOC_LOCAL=['chartToggle','connCity','connF','connNet','connSort','custCity','custF','custSort','dashClose','dashSort','dashTab','listMore','popsReg','popsSort'];
+const NOC_GO=['buyIx','buyNni','buyTransit','cache','connCancel','custGo','dashLink','goConn','lagIx','lagP','lagT','leaseSwap','netFocus','opsOpen','pni','pniAllOpen','popGo'];
 const NOC={win:false,id:null,ctl:null,st:null,stId:null,peer:false,until:0,dirty:false,sent:0,speed:1,hid:false,yoAt:0,gone:false};
 {const id=RW_IN?null:new URLSearchParams(location.search).get('noc');if(slotOkId(id)){NOC.win=true;NOC.id=id;}}
 if(!RW_IN)try{if(typeof BroadcastChannel==='function'){NOC.ctl=new BroadcastChannel('sot-noc');NOC.ctl.onmessage=e=>{const m=e.data;if(!m||typeof m!=='object'||!slotOkId(m.id))return;if(NOC.win)nocWinMsg(m);else nocGameMsg(m);};}}catch(e){}

@@ -39,7 +39,7 @@ hoisted across files, and top-level statements run in path order. Find code by n
 | `90-actions/` | The `ACT` map, one file per area (`const ACT` in `10-interface.js`, `Object.assign(ACT,…)` in the rest), and their helpers |
 | `91-save.js`, `92-audio.js` | Save, export and import; sound effects |
 | `93-ui/` | DOM helpers (`$`, `btn`, `morph`), the phone tab bar, install pitch, HUD, left panel, city and link panels, decommissioning |
-| `94-dashboard/` | Scenario and level progress, where to meet a network, customers and connections overviews, lease swaps, the NOC dashboard and its own window for a second display (`90-noc-window.js`: this page at `?noc=<slot>`, a read-only copy of `S` and `R` over a BroadcastChannel, clicks sent back to the game; `91-noc-wall.js`: its wallboard), the bank, hints |
+| `94-dashboard/` | Scenario and level progress, where to meet a network, customers and connections overviews, cities with no POP yet, lease swaps, the NOC dashboard and its own window for a second display (`90-noc-window.js`: this page at `?noc=<slot>`, a read-only copy of `S` and `R` over a BroadcastChannel, clicks sent back to the game; `91-noc-wall.js`: its wallboard), the bank, hints |
 | `95-modals/` | Toasts, notifications, modals, title screen, what's new, help, the link and own-cable modals |
 | `96-map/` | The canvas: resize, land and clouds, settings, level of detail, link geometry, how each tube looks, the WebGL map (the default, 2D as fallback: context, background, tubes, and the sprite atlas cities, labels and markers are drawn from, in 2D too), `draw()`, the world layer, cities, input and click delegation |
 | `99-loop.js` | `frame()` and `boot()` |
