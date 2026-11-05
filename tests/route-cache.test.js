@@ -105,3 +105,26 @@ test('with Auto-TE, kept orders and the no-detour marks route like a fresh start
   assert.ok(tried > 0, 'Auto-TE moved traffic onto detours');
   assert.deepEqual(errors, []);
 });
+
+// When the exits change but the graph does not (a network leaves an exchange because its PNI came up), the lists that
+// did not change keep the orders routing worked out for them (the same arrays, used the same day), the ones that did
+// start again, and routing is still exactly routing without the kept tables, day after day.
+test('lists an exit change leaves alone keep their orders; routing stays the same as without the kept tables', () => {
+  const { ev, errors } = open();
+  // Two days on the kept build: the lists get their orders.
+  ev('compute();compute();');
+  ev('window.__ords=new Set(RC.x.lists.flatMap(d=>d.cs?d.ord.filter(Boolean):[d.ord]).filter(o=>Object.keys(o).length));');
+  assert.ok(ev('__ords.size') > 5, `orders worked out: ${ev('__ords.size')}`);
+  // One network leaves one exchange: the exits key moves, the graph does not.
+  const r = step(ev, `(()=>{const ix=Object.keys(S.ixp).find(x=>ixSessions(x).size>3),n=[...ixSessions(ix)][0];window.__left=n+'@'+ix;
+    S.peers[n+'@'+ix]=false;delete S.peers[n+'@'+ix];S.rs[ix]=false;S.pni.push({id:'pk1',net:n,city:ixCity(ix),tier:1,n:1});})()`);
+  assert.equal(r.g, false, 'same graph');
+  assert.equal(r.x, true, 'the exits changed');
+  assert.equal(r.same, true, 'the same routing as without the kept tables');
+  const kept = ev('RC.x.lists.flatMap(d=>d.cs?d.ord.filter(Boolean):[d.ord]).filter(o=>__ords.has(o)).length');
+  const all = ev('RC.x.lists.length');
+  assert.ok(kept > 0 && kept < ev('__ords.size') + 1, `lists that kept their orders: ${kept} of ${all}`);
+  // And a few more days, with the next change between them.
+  for (let d = 0; d < 3; d++) assert.equal(step(ev, 'for(const c in S.pops)if(S.pops[c].bb)S.pops[c].bb.d*=1.03').same, true, `day ${d + 1} after`);
+  assert.deepEqual(errors, []);
+});
