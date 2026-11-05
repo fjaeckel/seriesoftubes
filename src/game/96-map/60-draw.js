@@ -86,12 +86,14 @@ function drawFrame(now){
     if(UI.snap){const sv=UI.snap;tx=sv.sx;ty=sv.sy;}
     let [ax,ay]=toS(A.x,A.y,0);if(UI.snap){const B=CITY[UI.snap.id];const bxw=A.x+wrapDx(A.x,B.x);[tx,ty]=toS(bxw,B.y,0);}else{/* nearest copy of origin to cursor */for(const k of [-1,1]){const [px,py]=toS(A.x,A.y,k);if(Math.abs(px-tx)<Math.abs(ax-tx)){ax=px;ay=py;}}}
     if(UI.snap){const B=CITY[UI.snap.id];const wx=A.x+wrapDx(A.x,B.x);for(const k of [-1,1]){const [px,py]=toS(A.x,A.y,k),[qx]=toS(wx,B.y,k);if(Math.abs(qx-CW/2)<Math.abs(tx-CW/2)){ax=px;ay=py;tx=qx;}}}
-    ctx.strokeStyle='#1E2640';ctx.lineWidth=7;ctx.lineCap='round';ctx.setLineDash([2,12]);ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(tx,ty);ctx.stroke();
-    ctx.strokeStyle='#FF4F9A';ctx.lineWidth=4;ctx.lineDashOffset=-now/30;ctx.stroke();ctx.setLineDash([]);ctx.lineDashOffset=0;
+    // On the card it goes under the cities and their labels, as in 2D (the overlay would put it over them).
+    if(G)try{glDrag(ax,ay,tx,ty,now);}catch(e){throw glErr(e);}
+    else{ctx.strokeStyle='#1E2640';ctx.lineWidth=7;ctx.lineCap='round';ctx.setLineDash(LDASH[7]);ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(tx,ty);ctx.stroke();
+      ctx.strokeStyle='#FF4F9A';ctx.lineWidth=4;ctx.lineDashOffset=-now/30;ctx.stroke();ctx.setLineDash([]);ctx.lineDashOffset=0;}
     if(UI.snap&&UI.snap.id!==UI.drag.from){const b=UI.snap.id,km=kmBetween(UI.drag.from,b),sub=isSub(UI.drag.from,b);
       const t=`${km.toLocaleString()} km${sub?' · '+tr('common.subsea'):''} · ${sub&&!cablesFor(UI.drag.from,b).length?tr('draw.no_cable_lands_here'):tr('draw.from_price_mo',{price:fmt$(waveMo(km,sub,0))})}`;
       ctx.font='800 13px "Baloo 2", sans-serif';const tw=ctx.measureText(t).width+18;const lx=(ax+tx)/2,ly=(ay+ty)/2-22;
-      ctx.fillStyle='#1E2640';rr(lx-tw/2,ly-12,tw,24,12);ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(t,lx,ly+1);}
+      pill(t,ctx.font,tw,24,12,'#1E2640','#fff','#1E2640',1,lx,ly,1);}
   }
   // cities
   UI.feed=null;if(UI.sel&&UI.sel.type==='link'){const sl=S.links.find(x=>x.id===UI.sel.id);const rec=sl&&R.ef[edgeKey(sl)];if(rec){UI.feed=new Set(Object.keys(rec.eg).map(k=>R.egDesc[k].city));UI.dest=new Set(Object.keys(rec.dst));}}

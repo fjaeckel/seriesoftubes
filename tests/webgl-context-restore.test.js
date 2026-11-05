@@ -161,3 +161,15 @@ test('opening Settings never makes a context, and still says when the card canno
   assert.equal(note(), true, 'no WebGL2 in this browser: Settings says so');
   assert.deepEqual(errors, []);
 });
+
+test('Auto after Always 2D, when the browser will not give the context back, gives the card up instead of waiting all session', () => {
+  const { ev, errors } = open();
+  assert.equal(JSON.parse(frame(ev)).gl, true);
+  ev(`ACT.mapSet({v:'2d'});`);
+  assert.equal(ev('GLX.sleep&&GLX.lost'), true, 'Always 2D let the context go');
+  ev(`GLX.lose.restoreContext=()=>{throw new Error('not now');};ACT.mapSet({v:'auto'});`);
+  const f = JSON.parse(frame(ev));
+  assert.deepEqual([f.gl, f.dead, f.lost], [false, true, true], 'given up for 2D, with a reason');
+  assert.match(ev('diagMap()'), /map: 2D \(not now\)/, 'Diagnostic info says why, not "waiting for it back"');
+  assert.deepEqual(errors, []);
+});

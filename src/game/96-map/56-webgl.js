@@ -19,7 +19,9 @@ const glCan=()=>!GLX.dead&&typeof WebGL2RenderingContext!=='undefined';
 // Switches the WebGL map on or off: the setting keeps the choice in this browser (keep), the GPU benchmark does not.
 // Chosen in Settings, Always 2D also lets the card's context go (glSleep()), and Auto takes it back.
 function mapGl(on,keep=true){GLX.want=!!on;if(keep)try{on?localStorage.removeItem('sot-map'):localStorage.setItem('sot-map','2d');}catch(e){}
-  if(!on){glShow(false);if(keep)glSleep();}else if(GLX.sleep){GLX.sleep=false;try{GLX.lose.restoreContext();}catch(e){}}
+  if(!on){glShow(false);if(keep)glSleep();}else if(GLX.sleep){GLX.sleep=false;
+    // A context the browser will not give back would leave the map waiting for it all session: give the card up instead.
+    try{GLX.lose.restoreContext();}catch(e){if(GLX.ctx&&GLX.ctx.isContextLost&&GLX.ctx.isContextLost()===false)GLX.lost=false;else glKill(e);}}
   GLX.key=[];UI.drawnAt=0;return on&&!GLX.dead;}
 function glShow(on){on=!!on;if(GLX.shown===on)return;GLX.shown=on;const e=document.getElementById('mapgl'),fx=document.getElementById('mapfx');if(e)e.hidden=!on;if(fx)fx.hidden=!on;}
 // Marks an error as the card's own, so draw() falls back to 2D instead of trying WebGL again every frame.
@@ -72,7 +74,8 @@ function glInit(){if(GLX.gl)return true;if(GLX.dead||GLX.lost)return false;
     const gl=c.getContext('webgl2',{alpha:true,premultipliedAlpha:true,antialias:false,depth:true,stencil:true,powerPreference:'high-performance'});
     if(!gl||typeof gl.createShader!=='function')throw new Error('no WebGL2');GLX.ctx=gl;
     if(!GLX.lose){c.addEventListener('webglcontextlost',glLost);c.addEventListener('webglcontextrestored',glRestored);try{GLX.lose=gl.getExtension('WEBGL_lose_context')||{};}catch(e){GLX.lose={};}}
-    try{const x=gl.getExtension('WEBGL_debug_renderer_info');GLX.gpu=String(x?gl.getParameter(x.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER));}catch(e){}
+    // Firefox names the card in RENDERER and warns that the extension is going away; other browsers need it.
+    try{const x=/Firefox\//.test(navigator.userAgent)?null:gl.getExtension('WEBGL_debug_renderer_info');GLX.gpu=String(x?gl.getParameter(x.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER));}catch(e){}
     if(!GLX.soft&&GL_SOFT.test(GLX.gpu))throw new Error('no graphics card, only '+GLX.gpu);
     const P=(vs,fs)=>glProg(gl,vs,fs),progs={line:P(GL_LINE_VS,GL_LINE_FS),pk:P(GL_PK_VS,GL_PK_FS),fill:P(FILL_VS,FILL_FS),fan:P(FAN_VS,FAN_FS),ell:P(ELL_VS,ELL_FS),circ:P(CIRC_VS,CIRC_FS)};
     // The tubes' points for the packets: floats read with texelFetch, never filtered.
@@ -83,7 +86,7 @@ function glInit(){if(GLX.gl)return true;if(GLX.dead||GLX.lost)return false;
     const fx=f.getContext('2d'),CP=CanvasRenderingContext2D.prototype;
     if(!fx.__fxw){fx.__fxw=true;for(const m of ['fill','stroke','fillRect','strokeRect','fillText','strokeText','drawImage','putImageData']){const fn=CP[m];fx[m]=function(){GLX.fxUsed=true;return fn.apply(this,arguments);};}}
     const V=s=>glVao(gl,s);
-    Object.assign(GLX,progs,{gl,c,f,fx,fxUsed:true,tex,land:{},lv:V([4,4,4]),hv:V([4,4,4]),pv:V([4,4]),cb:V([4,4,4]),wv:V([4,4,4]),cl:V([4]),empty:gl.createVertexArray()});return true;}
+    Object.assign(GLX,progs,{gl,c,f,fx,fxUsed:true,tex,land:{},lv:V([4,4,4,4]),hv:V([4,4,4,4]),pv:V([4,4]),cb:V([4,4,4,4]),wv:V([4,4,4,4]),dv:V([4,4,4,4]),cl:V([4]),empty:gl.createVertexArray()});return true;}
   catch(e){glKill(e);return false;}}
 // Colours as [r,g,b,a] from '#rrggbb', '#rgb' or 'rgba(r,g,b,a)', kept by string.
 const GLCOL=new Map();

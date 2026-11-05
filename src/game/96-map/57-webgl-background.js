@@ -53,11 +53,12 @@ function glLandGeo(gl,far,lv){const key=(far?'far':'all')+(lv===undefined?'':'@'
   COAST.forEach((ring,ri)=>{if(keep&&!keep.has(LANDP_ALL[ri]))return;if(ring.length<3)return;
     const P=coastSimplify(coastPts(ri),tol);if(P.length<4)return;
     coastFan(P,fan);
-    // Round ends make the joins round, as lineJoin='round' does; both lines are opaque, so the overlaps do not show.
-    for(let i=0;i+1<P.length;i++){glSeg(sand,P[i],P[i+1],0,10,0,LINE_ROUND,SAND);glSeg(edge,P[i],P[i+1],0,2.5,0,LINE_ROUND,EDGE);}});
+    // A closed ring (its first point repeated at the end), joined all round.
+    const s0=sand.length/LINE_STRIDE;for(let i=0;i+1<P.length;i++){glSeg(sand,P[i],P[i+1],0,10,0,LINE_ROUND,SAND);glSeg(edge,P[i],P[i+1],0,2.5,0,LINE_ROUND,EDGE);}
+    const s1=sand.length/LINE_STRIDE;glJoin(sand,s0,s1,true);glJoin(edge,s0,s1,true);});
   const hills=[],shine=[];for(const [x,y,r] of HILLS){hills.push(x,y,r*1.4,r*.8);shine.push(x-r*.3,y-r*.25,r*.6,r*.3);}
   const F=a=>new Float32Array(a);
-  G={fan:glVao(gl,[2],0,F(fan)).v,nFan:fan.length/2,sand:glVao(gl,[4,4,4],1,F(sand)).v,edge:glVao(gl,[4,4,4],1,F(edge)).v,nSeg:sand.length/LINE_STRIDE,
+  G={fan:glVao(gl,[2],0,F(fan)).v,nFan:fan.length/2,sand:glVao(gl,[4,4,4,4],1,F(sand)).v,edge:glVao(gl,[4,4,4,4],1,F(edge)).v,nSeg:sand.length/LINE_STRIDE,
     hills:glVao(gl,[4],1,F(hills)).v,shine:glVao(gl,[4],1,F(shine)).v,nHill:HILLS.length};
   glMem(gl,'the land');return GLX.land[key]=G;}
 // Fills the land's shape (shifted by ox, oy CSS px) with one colour, for every copy of the map.
@@ -84,10 +85,11 @@ function glLand(gl,ks){const G=glLandGeo(gl,lodFar(),coastLevel(cam.z));
 // written into the same array every frame (no garbage for the collector to pick up while you play).
 const WAVE_COL=glColor('rgba(255,255,255,.45)');
 function glWaves(gl,now,ks){const A=GLX.wa||(GLX.wa=new Float32Array(WAVES.length*8*LINE_STRIDE)),ph0=now/900;let m=0;
-  for(const [x,y,ph] of WAVES){const o=Math.sin(ph0+ph*6)*3;
+  for(const [x,y,ph] of WAVES){const o=Math.sin(ph0+ph*6)*3,m0=m;
     // Two curves: up from x-9 to x, then down to x+9 (no array literals per wave: they were garbage every frame).
     for(let c=0;c<2;c++){const x0=x+o+(c?0:-9),cx=x0+4.5,cy=y+(c?4:-4),x1=x0+9;let px=x0,py=y;
-      for(let j=1;j<=4;j++){const t=j/4,u=1-t,qx=u*u*x0+2*u*t*cx+t*t*x1,qy=u*u*y+2*u*t*cy+t*t*y;glSegAt(A,m++,px,py,qx,qy,0,2,0,0,WAVE_COL[3],WAVE_COL);px=qx;py=qy;}}}
+      for(let j=1;j<=4;j++){const t=j/4,u=1-t,qx=u*u*x0+2*u*t*cx+t*t*x1,qy=u*u*y+2*u*t*cy+t*t*y;glSegAt(A,m++,px,py,qx,qy,0,2,0,0,WAVE_COL[3],WAVE_COL);px=qx;py=qy;}}
+    glJoin(A,m0,m,false);}
   gl.bindBuffer(gl.ARRAY_BUFFER,GLX.wv.b);gl.bufferData(gl.ARRAY_BUFFER,A.subarray(0,m*LINE_STRIDE),gl.DYNAMIC_DRAW);glLines(gl,GLX.wv.v,m,ks);}
 // The clouds: their puffs are stencilled as one shape, then filled once, so overlapping puffs do not stack.
 function glClouds(gl,now,ks){const need=ks.length*CLOUDS.length*12;if(!need)return;
@@ -103,8 +105,9 @@ function glClouds(gl,now,ks){const need=ks.length*CLOUDS.length*12;if(!need)retu
 function glCables(gl,ks,selC,ar){const key=[selC,ar];
   if(!GLX.ckey||key.some((v,i)=>v!==GLX.ckey[i])){const A=[];
     for(const cp of CABLE_PAIRS){const hot=!!selC&&(cp.a===selC||cp.b===selC);if(ar&&!hot&&!(arKind(cp.a)&&arKind(cp.b)))continue;
-      const C=CAB[cp.cid],[r,g,b]=glColor(cableCol(C)),col=[r,g,b,hot?.95:.4];let cum=0;
-      for(let j=0;j+1<cp.pts.length;j++){const p=cp.pts[j],q=cp.pts[j+1];glSeg(A,p,q,cum,hot?3:1.6,C.age==='old'?6:0,0,col);cum+=Math.hypot(q[0]-p[0],q[1]-p[1]);}}
+      const C=CAB[cp.cid],[r,g,b]=glColor(cableCol(C)),col=[r,g,b,hot?.95:.4],s0=A.length/LINE_STRIDE;let cum=0;
+      for(let j=0;j+1<cp.pts.length;j++){const p=cp.pts[j],q=cp.pts[j+1];glSeg(A,p,q,cum,hot?3:1.6,C.age==='old'?6:0,0,col);cum+=Math.hypot(q[0]-p[0],q[1]-p[1]);}
+      glJoin(A,s0,A.length/LINE_STRIDE,false);}
     const F=new Float32Array(A);gl.bindBuffer(gl.ARRAY_BUFFER,GLX.cb.b);gl.bufferData(gl.ARRAY_BUFFER,F,gl.STATIC_DRAW);glMem(gl,'the cables');GLX.cn=F.length/LINE_STRIDE;GLX.ckey=key;}
   if(GLX.cn)glLines(gl,GLX.cb.v,GLX.cn,ks);}
 // Starts a frame on the card: clears it and paints the background. The tubes come next (glFrame()), then the pictures

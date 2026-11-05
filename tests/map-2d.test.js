@@ -106,7 +106,7 @@ const GLSTUB = `window.__GLSTUB=(()=>{const calls=[];const gl=new Proxy({calls},
       return (...a)=>{calls.push(k);return {};};}});
     const c=document.getElementById('mapgl'),f=document.getElementById('mapfx');const P=()=>({p:{},u:{}}),B=()=>({v:{},b:{}});
     const fx=document.createElement('canvas').getContext('2d');
-    Object.assign(GLX,{want:true,dead:false,gl,c,f,fx,line:P(),pk:P(),fill:P(),fan:P(),ell:P(),land:{},circ:P(),tex:{},lv:B(),hv:B(),pv:B(),cb:B(),wv:B(),cl:B(),empty:{},key:[],gpu:'stub'});
+    Object.assign(GLX,{want:true,dead:false,gl,c,f,fx,line:P(),pk:P(),fill:P(),fan:P(),ell:P(),land:{},circ:P(),tex:{},lv:B(),hv:B(),pv:B(),cb:B(),wv:B(),dv:B(),cl:B(),empty:{},key:[],gpu:'stub'});
     GLS.prog=P();GLS.vao={};GLS.buf={};GLS.tex={};GLS.size=4096;SPRS.clear();GLS.shx=GLS.shy=GLS.shh=0;return gl;})();0`;
 
 function open() {

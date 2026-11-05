@@ -7,17 +7,27 @@
 const LP={halo:0,casing:1,colour:2,dots:3,plain:4};
 // A segment's flags: on the selected tube, lit fiber (its dots show), round ends for a plain line.
 const LINE_SEL=1,LINE_FIBER=2,LINE_ROUND=4;
-/* One segment is 12 floats: x0,y0,x1,y1 (map units) | the length before it, width (CSS px), dash (LDASH), flags |
-   a, r,g,b, where a is the depth for a tube and the opacity for a plain line. */
-const LINE_STRIDE=12;
+/* One segment is 16 floats: x0,y0,x1,y1 (map units) | the length before it, width (CSS px), dash (LDASH), flags |
+   a, r,g,b, where a is the depth for a tube and the opacity for a plain line | the directions of the segments before
+   and after it on the same line (0,0: none, the line ends here; glJoin() fills them). */
+const LINE_STRIDE=16;
 function glSegAt(A,i,ax,ay,bx,by,cum,w,dash,fl,a,col){const o=i*LINE_STRIDE;
-  A[o]=ax;A[o+1]=ay;A[o+2]=bx;A[o+3]=by;A[o+4]=cum;A[o+5]=w;A[o+6]=dash;A[o+7]=fl;A[o+8]=a;A[o+9]=col[0];A[o+10]=col[1];A[o+11]=col[2];}
-function glSeg(A,p,q,cum,w,dash,fl,col){A.push(p[0],p[1],q[0],q[1],cum,w,dash,fl,col[3],col[0],col[1],col[2]);}
+  A[o]=ax;A[o+1]=ay;A[o+2]=bx;A[o+3]=by;A[o+4]=cum;A[o+5]=w;A[o+6]=dash;A[o+7]=fl;A[o+8]=a;A[o+9]=col[0];A[o+10]=col[1];A[o+11]=col[2];A[o+12]=A[o+13]=A[o+14]=A[o+15]=0;}
+function glSeg(A,p,q,cum,w,dash,fl,col){A.push(p[0],p[1],q[0],q[1],cum,w,dash,fl,col[3],col[0],col[1],col[2],0,0,0,0);}
+// Segments i0..i1-1 of A are one line: each learns its neighbours' directions (closed: the last meets the first).
+function glJoin(A,i0,i1,closed){closed=closed&&i1-i0>2;
+  for(let i=i0;i<i1;i++){const o=i*LINE_STRIDE,p=i>i0?i-1:closed?i1-1:-1,n=i+1<i1?i+1:closed?i0:-1;
+    if(p>=0){const q=p*LINE_STRIDE;A[o+12]=A[q+2]-A[q];A[o+13]=A[q+3]-A[q+1];}else A[o+12]=A[o+13]=0;
+    if(n>=0){const q=n*LINE_STRIDE;A[o+14]=A[q+2]-A[q];A[o+15]=A[q+3]-A[q+1];}else A[o+14]=A[o+15]=0;}}
 /* One instance per segment, a quad around it; the fragment keeps what lies within half the line width of the segment
-   (or of a dash of it, both with round ends), which also gives round joins and caps. */
-const GL_LINE_VS=GL_HEAD+GL_CLIP+`layout(location=0) in vec4 aSeg;layout(location=1) in vec4 aP;layout(location=2) in vec4 aC;
+   (or of a dash of it, both with round ends), which also gives round joins and caps. Where two segments of a line
+   meet, their round ends overlap: each keeps only its side of the corner's bisector, so a see-through line (the
+   halo, the cables, the waves, the fiber's dots) is blended once there, as the 2D canvas strokes a path once. */
+const GL_LINE_VS=GL_HEAD+GL_CLIP+`layout(location=0) in vec4 aSeg;layout(location=1) in vec4 aP;layout(location=2) in vec4 aC;layout(location=3) in vec4 aN;
 uniform vec2 uView;uniform vec3 uCam;uniform float uWMul,uDpr,uBusy;uniform int uPass;
-out vec2 vLoc;out float vLen,vS0,vHalf,vButt;flat out vec4 vCol;flat out vec2 vDash;
+out vec2 vLoc;out float vLen,vS0,vHalf,vButt;flat out vec4 vCol,vK;flat out vec2 vDash,vEnd;
+// The corner's bisector between directions u and v, in the segment's own frame (t along it, n across), and whether there is one.
+vec3 cut(vec2 u,vec2 v,vec2 t,vec2 n){vec2 m=u+v;float l=length(m);if(length(u)<.5||length(v)<.5||l<1e-3)return vec3(0.);m/=l;return vec3(dot(t,m),dot(n,m),1.);}
 vec2 dashOf(int k){${LDASH.map((d,i)=>d.length?`if(k==${i})return vec2(${d[0]}.,${d[1]}.);`:'').join('')}return vec2(0.);}
 void main(){vec2 h=uView*.5,a=(aSeg.xy-uCam.xy)*uCam.z+h,b=(aSeg.zw-uCam.xy)*uCam.z+h;
   float w=aP.y*uWMul,hw=w*.5;int fl=int(aP.w+.5);vec4 col=vec4(aC.yzw,1.);vec2 dash=dashOf(int(aP.z+.5));bool skip=false;
@@ -29,10 +39,16 @@ void main(){vec2 h=uView*.5,a=(aSeg.xy-uCam.xy)*uCam.z+h,b=(aSeg.zw-uCam.xy)*uCa
   vec2 d=b-a;float L=length(d);vec2 t=L>1e-4?d/L:vec2(1.,0.),n=vec2(-t.y,t.x);float m=hw+1./uDpr;
   float sx=(gl_VertexID&1)==0?-m:L+m,sy=(gl_VertexID&2)==0?-m:m;
   vLoc=vec2(sx,sy);vLen=L;vS0=aP.x*uCam.z;vHalf=hw;vCol=col;vDash=dash;vButt=uPass==${LP.plain}&&(fl&${LINE_ROUND})==0?1.:0.;
+  float lp=length(aN.xy),ln=length(aN.zw);vec3 c0=L>1e-4&&lp>1e-9?cut(aN.xy/lp,t,t,n):vec3(0.),c1=L>1e-4&&ln>1e-9?cut(t,aN.zw/ln,t,n):vec3(0.);
+  vK=vec4(c0.xy,c1.xy);vEnd=vec2(c0.z,c1.z);
   gl_Position=clip(a+t*sx+n*sy,uView,(uPass==${LP.plain}?.9998:aC.x)*2.-1.);}`;
-const GL_LINE_FS=GL_HEAD+`in vec2 vLoc;in float vLen,vS0,vHalf,vButt;flat in vec4 vCol;flat in vec2 vDash;uniform float uDpr;out vec4 o;
+const GL_LINE_FS=GL_HEAD+`in vec2 vLoc;in float vLen,vS0,vHalf,vButt;flat in vec4 vCol,vK;flat in vec2 vDash,vEnd;uniform float uDpr;out vec4 o;
 void main(){float x=vLoc.x,y=vLoc.y,d;
-  if(vButt>.5&&(x<0.||x>vLen))discard;
+  // A corner: the side of the bisector that belongs to the neighbour is the neighbour's to paint.
+  if(vEnd.x>.5&&x*vK.x+y*vK.y<0.)discard;
+  if(vEnd.y>.5&&(x-vLen)*vK.z+y*vK.w>0.)discard;
+  // Flat ends only where the line really ends; its corners are joined.
+  if(vButt>.5&&((vEnd.x<.5&&x<0.)||(vEnd.y<.5&&x>vLen)))discard;
   if(vDash.x<=0.){float c=clamp(x,0.,vLen);d=length(vec2(x-c,y));}
   else{float P=vDash.x+vDash.y,g=vS0+x,k=floor(g/P);d=1e9;
     for(int i=-1;i<=1;i++){float a0=(k+float(i))*P,lo=max(a0,vS0),hi=min(a0+vDash.x,vS0+vLen);if(lo<=hi){float c=clamp(g,lo,hi);d=min(d,length(vec2(g-c,y)));}}}
@@ -67,7 +83,8 @@ function glBuild(LG,GM,looks){const gl=GLX.gl,N=LG.length;let ns=0,np=0,nk=0;
   for(let gi=0;gi<N;gi++){const L=looks[gi],{pts,cum,len}=GM[gi],dep=glDepth(gi,N),col=glColor(L.col);
     const fl=L.df&&!L.bld&&!L.dark?LINE_FIBER:0,p0=pi;
     for(let j=0;j<pts.length;j++){PT[pi*4]=pts[j][0];PT[pi*4+1]=pts[j][1];PT[pi*4+2]=cum[j];pi++;}
-    for(let j=0;j+1<pts.length;j++)glSegAt(SEG,si++,pts[j][0],pts[j][1],pts[j+1][0],pts[j+1][1],cum[j]*len,L.w0,L.dash,fl,dep,col);
+    const s0=si;for(let j=0;j+1<pts.length;j++)glSegAt(SEG,si++,pts[j][0],pts[j][1],pts[j+1][0],pts[j+1][1],cum[j]*len,L.w0,L.dash,fl,dep,col);
+    glJoin(SEG,s0,si,false);
     for(let i=0;i<L.pk;i++){const o=ki*8;PK[o]=p0;PK[o+1]=pts.length;PK[o+2]=len;PK[o+3]=L.pk;PK[o+4]=i;PK[o+5]=L.w0;PK[o+6]=dep;ki++;}}
   gl.bindBuffer(gl.ARRAY_BUFFER,GLX.lv.b);gl.bufferData(gl.ARRAY_BUFFER,SEG,gl.DYNAMIC_DRAW);
   gl.bindBuffer(gl.ARRAY_BUFFER,GLX.pv.b);gl.bufferData(gl.ARRAY_BUFFER,PK,gl.DYNAMIC_DRAW);
@@ -76,7 +93,8 @@ function glBuild(LG,GM,looks){const gl=GLX.gl,N=LG.length;let ns=0,np=0,nk=0;
 // The selected tube's halo: its segments again, at its own depth (so later tubes still cover it), and nothing else.
 function glHalo(LG,GM,looks,selId){const gl=GLX.gl,N=LG.length,A=[];
   if(selId)for(let gi=0;gi<N;gi++){if(!LG[gi].some(x=>x.id===selId))continue;const L=looks[gi],{pts,cum,len}=GM[gi],dep=glDepth(gi,N),col=glColor(L.col);
-    for(let j=0;j+1<pts.length;j++)A.push(pts[j][0],pts[j][1],pts[j+1][0],pts[j+1][1],cum[j]*len,L.w0,L.dash,LINE_SEL,dep,col[0],col[1],col[2]);}
+    const s0=A.length/LINE_STRIDE;for(let j=0;j+1<pts.length;j++)A.push(pts[j][0],pts[j][1],pts[j+1][0],pts[j+1][1],cum[j]*len,L.w0,L.dash,LINE_SEL,dep,col[0],col[1],col[2],0,0,0,0);
+    glJoin(A,s0,A.length/LINE_STRIDE,false);}
   const F=new Float32Array(A);if(F.length){gl.bindBuffer(gl.ARRAY_BUFFER,GLX.hv.b);gl.bufferData(gl.ARRAY_BUFFER,F,gl.DYNAMIC_DRAW);}
   GLX.nHalo=F.length/LINE_STRIDE;return F;}
 // Draws the tubes and their packets over the background glBegin() painted (ML: mapLinks(), sc: the icon scale).
@@ -93,3 +111,11 @@ function glFrame(ML,ks,far,busy,now,sc){const gl=GLX.gl;
   // The selection's halo goes over earlier tubes but under its own line and later ones, as in 2D.
   if(GLX.nHalo){gl.depthFunc(gl.LESS);gl.depthMask(false);lines(LP.halo,GLX.hv.v,GLX.nHalo);gl.depthMask(true);}
   gl.bindVertexArray(null);}
+// The link being dragged out (x,y in CSS px): the dark dotted line, then the pink one running along it, over the tubes
+// and, since the pictures are drawn after it, under the cities, as in 2D.
+const DRAG_INK=glColor('#1E2640'),DRAG_PINK=glColor('#FF4F9A');
+function glDrag(ax,ay,tx,ty,now){const gl=GLX.gl,A=GLX.da||(GLX.da=new Float32Array(2*LINE_STRIDE)),z=cam.z,mx=x=>(x-CW/2)/z+cam.x,my=y=>(y-CH/2)/z+cam.y;
+  glSegAt(A,0,mx(ax),my(ay),mx(tx),my(ty),0,7,7,LINE_ROUND,1,DRAG_INK);
+  glSegAt(A,1,mx(ax),my(ay),mx(tx),my(ty),-now/30/z,4,7,LINE_ROUND,1,DRAG_PINK);
+  gl.bindBuffer(gl.ARRAY_BUFFER,GLX.dv.b);gl.bufferData(gl.ARRAY_BUFFER,A,gl.DYNAMIC_DRAW);
+  gl.disable(gl.DEPTH_TEST);glLines(gl,GLX.dv.v,2,[0]);gl.bindVertexArray(null);}

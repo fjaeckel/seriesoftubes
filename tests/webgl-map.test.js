@@ -21,7 +21,7 @@ const STUB = `(()=>{const calls=[];const gl=new Proxy({calls},{get(t,k){if(k in 
   return (...a)=>{calls.push([k,...a]);return {};};}});
   const c=document.getElementById('mapgl'),f=document.getElementById('mapfx');
   const P=()=>({p:{},u:{}}),B=()=>({v:{},b:{}});
-  Object.assign(GLX,{want:true,dead:false,gl,c,f,fx:f.getContext('2d'),line:P(),pk:P(),fill:P(),fan:P(),ell:P(),land:{},circ:P(),tex:{},lv:B(),hv:B(),pv:B(),cb:B(),wv:B(),cl:B(),empty:{},key:[],gpu:'stub'});return gl;})()`;
+  Object.assign(GLX,{want:true,dead:false,gl,c,f,fx:f.getContext('2d'),line:P(),pk:P(),fill:P(),fan:P(),ell:P(),land:{},circ:P(),tex:{},lv:B(),hv:B(),pv:B(),cb:B(),wv:B(),dv:B(),cl:B(),empty:{},key:[],gpu:'stub'});return gl;})()`;
 
 test('without WebGL2 the map stays 2D, and asking for WebGL changes nothing', () => {
   const { ev, errors } = open();
@@ -41,14 +41,14 @@ test('the instance data says what the 2D map draws: points, colours, dashes, pac
     const sel=LG[3][0].id,looks=LG.map(g=>linkLook(g,S.day)),{SEG,PK,PT}=glBuild(LG,GM,looks),H=glHalo(LG,GM,looks,sel);let si=0,ki=0,pi=0,hi=0,bad=[];const deps=[];
     for(let gi=0;gi<LG.length;gi++){const gm=GM[gi],L=looks[gi],[r,g,b]=glColor(L.col),hot=LG[gi].some(x=>x.id===sel);
       for(let j=0;j<gm.pts.length;j++){if(PT[pi*4]!==Math.fround(gm.pts[j][0])||PT[pi*4+2]!==Math.fround(gm.cum[j]))bad.push('pt '+gi);pi++;}
-      for(let j=0;j+1<gm.pts.length;j++){const o=si*12;
+      for(let j=0;j+1<gm.pts.length;j++){const o=si*LINE_STRIDE;
         if(SEG[o]!==Math.fround(gm.pts[j][0])||SEG[o+3]!==Math.fround(gm.pts[j+1][1]))bad.push('seg '+gi);
         if(SEG[o+6]!==L.dash||SEG[o+5]!==Math.fround(L.w0)||SEG[o+9]!==Math.fround(r)||SEG[o+11]!==Math.fround(b))bad.push('look '+gi);
         if((SEG[o+7]&1)===1||((SEG[o+7]&2)===2)!==(L.df&&!L.bld&&!L.dark))bad.push('flags '+gi);
-        if(hot){const h=hi*12;for(let x=0;x<12;x++)if(H[h+x]!==(x===7?1:SEG[o+x]))bad.push('halo '+gi);hi++;}
+        if(hot){const h=hi*LINE_STRIDE;for(let x=0;x<LINE_STRIDE;x++)if(x<12?H[h+x]!==(x===7?1:SEG[o+x]):Math.abs(H[h+x]-SEG[o+x])>1e-3*Math.max(1,Math.abs(SEG[o+x])))bad.push('halo '+gi);hi++;}
         if(j===0)deps.push(SEG[o+8]);si++;}
       const n=!L.cut&&L.load>0.01?clamp(Math.round(2+L.u*10),2,12):0;for(let i=0;i<n;i++){if(PK[ki*8+3]!==n||PK[ki*8+4]!==i)bad.push('pk '+gi);ki++;}}
-    return JSON.stringify({bad:bad.slice(0,5),si,segs:SEG.length/12,ki,pks:PK.length/8,groups:LG.length,
+    return JSON.stringify({bad:bad.slice(0,5),si,segs:SEG.length/LINE_STRIDE,ki,pks:PK.length/8,groups:LG.length,
       order:deps.every((d,i)=>!i||d<deps[i-1]),inRange:deps.every(d=>d>0&&d<1),sel:hi>0&&hi===GLX.nHalo,moving:looks.filter(L=>!L.cut&&L.load>0.01).length});})()`));
   assert.deepEqual(r.bad, []);
   assert.equal(r.si, r.segs, 'one instance per segment');
@@ -74,7 +74,7 @@ test('with WebGL the lines go to the card, the rest to the overlay, and the map 
   assert.ok(draws.includes(ev('GLX.nSeg')) && draws.includes(ev('GLX.nPk')), 'every segment and every packet in instanced draws');
   // Nothing changed: the next frame reuses the buffers. A cut link changes routing, and the tubes are rebuilt.
   // The tubes' own buffers (segments, packets, points) are what must not be sent again on an ordinary frame; the waves and clouds move every frame by design.
-  const uploads = () => ev(`GLX.gl.calls.filter(c=>c[0]==='bufferData'&&c[2]&&c[2].length===GLX.nSeg*12).length`);
+  const uploads = () => ev(`GLX.gl.calls.filter(c=>c[0]==='bufferData'&&c[2]&&c[2].length===GLX.nSeg*LINE_STRIDE).length`);
   const u0 = uploads(); ev('draw(1016)'); assert.equal(uploads(), u0, 'a frame alone uploads no tube data');
   const id = ev(`(()=>{const l=S.links.find(l=>l.kind!=='vxc'&&!linkDown(l));l.cut=S.day+5;compute();draw(1032);return l.id;})()`);
   assert.ok(uploads() > u0, 'a cut rebuilds the tubes');
@@ -298,10 +298,10 @@ test('selecting a tube sends its halo to the card, not the network again', () =>
     sent();const l=S.links.find(l=>l.kind!=='vxc'&&!linkDown(l));UI.sel={type:'link',id:l.id};draw(1016);const on=sent(),halo=GLX.nHalo;
     UI.sel=null;draw(1032);const off=sent();
     return JSON.stringify({nSeg,on,off,halo,haloDraw:GLX.nHalo});})()`));
-  const tubes = r.nSeg * 12;
+  const tubes = r.nSeg * ev('LINE_STRIDE');
   assert.ok(r.halo > 0, 'the halo has the selected tube’s segments');
   assert.ok(!r.on.b.includes(tubes) && r.on.t === 0, 'selecting sends no tube, packet or point again');
-  assert.ok(r.on.b.includes(r.halo * 12), 'only the halo goes up');
+  assert.ok(r.on.b.includes(r.halo * ev('LINE_STRIDE')), 'only the halo goes up');
   assert.ok(!r.off.b.includes(tubes) && r.off.t === 0, 'nor does unselecting');
   assert.equal(r.haloDraw, 0, 'and the halo is gone');
   assert.deepEqual(errors, []);

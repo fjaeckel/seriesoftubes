@@ -19,7 +19,7 @@ const STUB = `(()=>{const calls=[];const gl=new Proxy({calls},{get(t,k){if(k in 
   return (...a)=>{calls.push([k,...a]);return {};};}});
   const c=document.getElementById('mapgl'),f=document.getElementById('mapfx');
   const P=()=>({p:{},u:{}}),B=()=>({v:{},b:{}});
-  Object.assign(GLX,{want:true,dead:false,gl,c,f,fx:f.getContext('2d'),line:P(),pk:P(),fill:P(),fan:P(),ell:P(),land:{},circ:P(),tex:{},lv:B(),hv:B(),pv:B(),cb:B(),wv:B(),cl:B(),empty:{},key:[],gpu:'stub'});
+  Object.assign(GLX,{want:true,dead:false,gl,c,f,fx:f.getContext('2d'),line:P(),pk:P(),fill:P(),fan:P(),ell:P(),land:{},circ:P(),tex:{},lv:B(),hv:B(),pv:B(),cb:B(),wv:B(),dv:B(),cl:B(),empty:{},key:[],gpu:'stub'});
   GLS.prog=P();GLS.vao={};GLS.buf={};GLS.tex={};GLS.size=4096;SPRS.clear();GLS.shx=GLS.shy=GLS.shh=0;return gl;})()`;
 
 // Counts the keys joined during one frame (Array#join with '|', as the picture keys are), but the ships' (a handful).

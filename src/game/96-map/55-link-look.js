@@ -1,7 +1,8 @@
 /* How each tube on the map looks today, worked out once for both maps (the 2D canvas in drawFrame() and the card in
    58-webgl-links.js), so they cannot drift apart. */
-// Dash patterns, by number: none, cut, virtual circuit, being built, standby; 5 the fiber's dots, 6 an old cable.
-const LDASH=[[],[8,8],[2,7],[10,8],[4,6],[1,6],[6,5]];
+// Dash patterns, by number: none, cut, virtual circuit, being built, standby; 5 the fiber's dots, 6 an old cable,
+// 7 a link being dragged out.
+const LDASH=[[],[8,8],[2,7],[10,8],[4,6],[1,6],[6,5],[2,12]];
 // A tube is a group of links drawn as one line: its capacity, load and state, its base width, colour and dash.
 function linkLook(grp,day){const l=grp[0],many=grp.length>1,up=many?grp.filter(x=>!linkDown(x)):null;
   const cap=many?up.reduce((a,x)=>a+capOf(x),0):capOf(l),load=many?grp.reduce((a,x)=>a+(R.load[x.id]||0),0):(R.load[l.id]||0),u=cap?load/cap:0,df=l.kind==='df',bld=df&&l.ready>day,cut=!bld&&(many?!up.length:linkDown(l))&&!(df&&!(l.ch||[]).length),dark=df&&!bld&&!(l.ch||[]).length,vx=l.kind==='vxc',idle=!cut&&!bld&&load<1e-3&&(many?up.length>0&&up.every(x=>x.standby):!!l.standby);
