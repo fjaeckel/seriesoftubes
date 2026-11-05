@@ -29,14 +29,29 @@ const save = (() => { const d = JSON.parse(fs.readFileSync(SAVE, 'utf8')); retur
 const client = fs.readFileSync(path.join(__dirname, 'lib', 'gpu-bench-client.js'), 'utf8');
 const page = () => assemble().html.replace('</body>', `<script>window.__BENCH__=${JSON.stringify({ secs: SECS })};</script><script>${client}</script></body>`);
 
+/* Only the page this server hands out may talk to it. Any other site open in the same browser could otherwise
+   POST results (printed to this terminal, written to --out) or, through DNS rebinding, read the save. So the Host
+   header must name this server, and a POST must come from its own origin. */
+const HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', HOST.includes(':') ? `[${HOST}]` : HOST]);
+if (HOST === '0.0.0.0') for (const l of Object.values(os.networkInterfaces()).flat()) if (l && l.family === 'IPv4') HOSTS.add(l.address);
+const hostOk = (h) => { const m = /^(\[[^\]]+\]|[^:]+)(?::(\d+))?$/.exec(h || ''); return !!m && HOSTS.has(m[1].toLowerCase()) && (m[2] ? +m[2] : 80) === PORT; };
+const MAX_BODY = 2 * 1048576;
+// What the page sends is printed and written as text: no terminal escape sequences or other control characters.
+const plain = (s) => String(s ?? '').replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F\u2028\u2029]/g, '');
+
 http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
   try {
+    if (!hostOk(req.headers.host)) { res.writeHead(421); return res.end(); }
     if (url.pathname === '/' || url.pathname === '/index.html') { res.writeHead(200, { 'content-type': TYPES['.html'], 'cache-control': 'no-store' }); return res.end(page()); }
     if (url.pathname === '/__bench/save.json') { res.writeHead(200, { 'content-type': TYPES['.json'], 'cache-control': 'no-store' }); return res.end(save); }
     if (url.pathname === '/__bench/results' && req.method === 'POST') {
-      let body = ''; req.on('data', (c) => { body += c; }); req.on('end', () => {
-        try { const r = JSON.parse(body); console.log('\n' + r.md + '\n'); if (OUT) { fs.writeFileSync(OUT, r.md + '\n\n```json\n' + JSON.stringify(r, null, 1) + '\n```\n'); console.log(`(also written to ${OUT})`); } } catch (e) { console.error('bad results', e); }
+      if (req.headers.origin !== `http://${req.headers.host}`) { res.writeHead(403); return res.end(); }
+      let body = '', size = 0, over = false;
+      req.on('data', (c) => { size += c.length; if (size > MAX_BODY) { over = true; req.destroy(); return; } body += c; });
+      req.on('end', () => {
+        if (over) return;
+        try { const r = JSON.parse(body), md = plain(r && r.md); console.log('\n' + md + '\n'); if (OUT) { fs.writeFileSync(OUT, md + '\n\n```json\n' + plain(JSON.stringify(r, null, 1)) + '\n```\n'); console.log(`(also written to ${OUT})`); } } catch (e) { console.error('bad results:', e.message); }
         res.writeHead(204); res.end(); });
       return;
     }
@@ -46,7 +61,11 @@ http.createServer((req, res) => {
     if (!file.startsWith(SITE + path.sep) || !fs.statSync(file, { throwIfNoEntry: false })?.isFile()) { res.writeHead(404); return res.end(); }
     res.writeHead(200, { 'content-type': TYPES[path.extname(file)] || 'application/octet-stream', 'cache-control': 'no-store' });
     fs.createReadStream(file).pipe(res);
-  } catch (e) { res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' }); res.end(String(e && e.stack || e)); }
+  } catch (e) {
+    // A malformed address (decodeURIComponent) or a missing file: the details stay in this terminal.
+    console.error('bench server:', e && e.message || e);
+    res.writeHead(e instanceof URIError ? 400 : 500); res.end();
+  }
 }).listen(PORT, HOST, () => {
   const s = JSON.parse(save).S;
   console.log(`GPU benchmark: ${path.basename(SAVE)} (${Object.keys(s.pops || {}).length} POPs, ${(s.links || []).length} links), ${SECS}s per scenario`);

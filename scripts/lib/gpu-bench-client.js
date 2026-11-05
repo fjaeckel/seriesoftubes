@@ -130,7 +130,7 @@
     mapGl(want0, false); await reset();
     MD = table(res, env);
     st(glOk ? 'Done. The results are also in the terminal.' : 'Done (no WebGL2 here: 2D only).');
-    box.querySelector('#bout').innerHTML = '<pre style="white-space:pre-wrap;font:11px/1.35 ui-monospace,monospace;margin:8px 0 0">' + MD.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</pre>';
+    box.querySelector('#bout').innerHTML = '<pre style="white-space:pre-wrap;font:11px/1.35 ui-monospace,monospace;margin:8px 0 0">' + MD.replace(/<\/?sub>/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</pre>';
     box.querySelector('#bcp').hidden = false; go.disabled = false; go.textContent = 'Run again';
     try { await fetch('/__bench/results', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ env, res, md: MD }) }); } catch (e) { /* the panel has them */ }
   }
