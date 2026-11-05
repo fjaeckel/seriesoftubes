@@ -52,3 +52,43 @@ test("a device that cannot hold 50 frames a second gives a day half its frame, 3
   assert.equal(run(240, 400), 3, 'and back to 3 ms on a fast screen');
   assert.deepEqual(errors, []);
 });
+
+// The diverse-paths map new offers ask about (60-requirements.js) is built a millisecond a frame, before the first one
+// asks: the very map one go would build. One that asks halfway finishes it at once.
+test('idle frames build the diverse-paths map in slices, the same map as in one go', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();closeModal();UI.speed=0;");
+  const sig = "JSON.stringify([diversityMap.key,diversityMap.links,diversityMap.adj])";
+  ev('diversityMap=null;DIVW=null;diversityPossible("fra","ams");');
+  const once = ev(sig);
+  ev('diversityMap=null;DIVW=null;');
+  let frames = 0;
+  for (; frames < 2000 && ev('!diversityMap'); frames++) ev('window.__now=(window.__now||1000)+4;diversityWarm(0.05);');
+  assert.ok(frames > 3, `built over several frames: ${frames}`);
+  assert.equal(ev(sig), once, 'the same map');
+  // Halfway, an offer asks: the rest is built at once, and it is still the same map.
+  ev('diversityMap=null;DIVW=null;diversityWarm(0.05);');
+  assert.equal(ev('!diversityMap&&!!DIVW'), true, 'half built');
+  assert.equal(ev('typeof diversityPossible("fra","ams")'), 'boolean');
+  assert.equal(ev(sig), once, 'finished at once, the same map');
+  assert.deepEqual(errors, []);
+});
+
+// The latency floors latency customers are offered against (80-geography-and-latency.js) are worked out ahead too, a
+// few cities a frame, your POPs first: the same numbers as working one out when asked, even halfway through one.
+test('idle frames work the latency floors out ahead, the same numbers as when asked', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();closeModal();UI.speed=0;ACT.buildPop({city:'ams'});");
+  const ref = ev("JSON.stringify(['fra','ams','nyc'].map(c=>Array.from(latFloor0(c))))");
+  ev('LATF.clear();LATW=null;');
+  let n = 0;
+  for (; n < 5000 && !(ev("LATF.has('fra')&&LATF.has('ams')&&LATF.has('nyc')")); n++) ev('latWarm(0.05)');
+  assert.ok(n > 3, `over several frames: ${n}`);
+  assert.equal(ev("JSON.stringify(['fra','ams','nyc'].map(c=>Array.from(LATF.get(c))))"), ref, 'the same floors');
+  // Halfway through a city, an offer asks about it: finished at once, the same numbers.
+  ev("LATF.clear();LATW=null;latWarm(0.01);");
+  const a = ev('LATW&&LATW.a');
+  assert.ok(a, 'a city half done');
+  assert.equal(ev(`JSON.stringify(['nyc','lon'].map(b=>latFloor('${a}',b)))`), ev(`JSON.stringify(['nyc','lon'].map(b=>latFloor0('${a}')[CIDX[b]]))`));
+  assert.deepEqual(errors, []);
+});

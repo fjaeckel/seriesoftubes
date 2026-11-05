@@ -254,7 +254,10 @@ const OPS_RUN={
  ix(X){if(S.day%7&&!opsIs('annie'))return;for(const ix of utilityRouteServers()){S.rs[ix]=true;X.did('rs');}
    for(const row of utilityPeers())for(const id of row.requests){S.peers[id+'@'+row.ix]=true;X.did('peer',row.ix);}},
  // Weekly too: every willing network above the threshold, at its own minimum size and lead time (#181).
- *pni(X){if(S.day%7!==3&&!(opsIs('annie')&&S.day%7===6))return;const b=pniBatch(null,opsP('pni','tier'));if(!b)return;const g=opsP('pni','g'),paid=opsP('pni','paid');
+ *pni(X){if(S.day%7!==3&&!(opsIs('annie')&&S.day%7===6))return;
+   // The batch a few networks at a time; if the player acted in between (an action routes), it is made again in one go.
+   const g0=RW.gen,it=pniBatchRun(null,opsP('pni','tier'));let b;for(;;){const s=it.next();if(s.done){b=s.value;break;}yield;}
+   if(RW.gen!==g0)b=pniBatch(null,opsP('pni','tier'));if(!b)return;yield;const g=opsP('pni','g'),paid=opsP('pni','paid');
    // The traffic a PNI there would take over: what your users at that POP send to the network today over transit, an
    // exchange or a PNI elsewhere, the same figure the PNI list shows. Not the city's whole demand: a network's own
    // cache boxes in that POP already serve most of it (#244).

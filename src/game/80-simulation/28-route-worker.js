@@ -10,7 +10,7 @@ const RW_IN=!!self.__TUBES_WORKER__;
 const RW_EL=!RW_IN&&typeof document!=='undefined'?document.currentScript:null;
 // RW_SLOW: a frame time (ms) above which the device does not keep up anyway, and a day may take longer slices (99-loop.js).
 const RW_SLOW=20;
-const RW={w:null,dead:false,seq:0,gz:0,gzq:new Map(),gen:0,job:null,desc:null,wR:null,wseq:0,last:null,budget:8,later:f=>rwLater(f),stat:{n:0,post:0,de:0,apply:0,wait:0,work:0}};
+const RW={w:null,dead:false,seq:0,gz:0,gzq:new Map(),svq:new Map(),gen:0,job:null,desc:null,wR:null,wseq:0,last:null,budget:8,later:f=>rwLater(f),stat:{n:0,post:0,de:0,apply:0,wait:0,work:0}};
 function rwOn(){return !RW_IN&&!RW.dead&&!window.__TUBES_TEST__&&!window.__TUBES_SYNC__&&typeof Worker==='function'&&!!RW_EL;}
 function rwStart(){if(RW.w)return RW.w;
   try{const L=LANG,dict=L!=='en'&&window.I18N[L]?JSON.stringify(window.I18N[L]):'null';
@@ -28,7 +28,7 @@ if(${dict})self.I18N[${JSON.stringify(L)}]=${dict};
   return RW.w;}
 // Gone for good this session: the routing in flight is done here instead, and the day goes on without the worker.
 // (A day resting between steps goes on by itself, on the page from then on.)
-function rwKill(){RW.dead=true;if(RW.w)try{RW.w.terminate();}catch(e){}RW.w=null;rwGzBack();const j=RW.job;if(!j||j.rest)return;RW.job=null;
+function rwKill(){RW.dead=true;if(RW.w)try{RW.w.terminate();}catch(e){}RW.w=null;rwGzBack();rwSaveBack();const j=RW.job;if(!j||j.rest)return;RW.job=null;
   if(j.state!==S){rwDayDone();return;}let v;try{if(j.tr)v=dayAgain(j.tr);else compute();}catch(e){tickErr(e);}rwGo(j.g,v);}
 // One day in play (dayRun(), 10-day-tick.js): its steps run here, every routing it asks for runs in the worker.
 function rwDay(){rwGo(dayRun());}
@@ -60,7 +60,14 @@ function rwLater(f){if(RW_CH&&performance.now()-(RW.lf||-1e9)<(RW.fms||16)*0.75)
 // The day rests: it goes on after the next frame, still in flight meanwhile (no next day, no save).
 function rwRest(g,v){const j=RW.job={rest:true,g,state:S};RW.later(()=>{if(RW.job!==j)return;RW.job=null;if(j.state!==S){rwDayDone();return;}rwGo(g,v);});}
 // Every answer from the worker, in order.
-function rwMsg(m,t0){if(m.gz!==undefined){rwGzDone(m);return;}if(m.R){if(m.R.egDesc===0)m.R.egDesc=RW.desc;else RW.desc=m.R.egDesc;}rwDone(m,t0);}
+function rwMsg(m,t0){if(m.gz!==undefined){rwGzDone(m);return;}if(m.sv!==undefined){rwSaveDone(m);return;}if(m.R){const d=m.R.egDesc;if(d===0)m.R.egDesc=RW.desc;else RW.desc=m.R.egDesc=d&&d.dK!==undefined?rwDescIn(d,RW.desc):d;}rwDone(m,t0);}
+/* A changed R.egDesc comes as its keys, in order, and only the entries that changed (rwDescOut()): a few among thousands.
+   The rest are yesterday's entries, so the page holds the same object, key for key and in the same order. */
+// dK 0: the keys are yesterday's, in yesterday's order (most days), so they do not come along either.
+function rwDescOut(d,old){if(!old)return d;const K=Object.keys(d),O=Object.keys(old),ch={};
+  for(const k of K){const x=d[k],y=old[k];if(!y||x.lab!==y.lab||x.city!==y.city||x.k!==y.k)ch[k]=x;}
+  let same=K.length===O.length;for(let i=0;same&&i<K.length;i++)same=K[i]===O[i];return {dK:same?0:K,ch};}
+function rwDescIn(m,old){const o={},{ch}=m,K=m.dK||Object.keys(old);for(const k of K)o[k]=Object.prototype.hasOwnProperty.call(ch,k)?ch[k]:old[k];return o;}
 function rwDone(m,t0){const j=RW.job;if(!j||m.seq!==j.seq)return;RW.job=null;const t=performance.now();
   // Another network was loaded meanwhile: the rest of that day belongs to nobody.
   if(j.state!==S){rwDayDone();return;}
@@ -80,6 +87,15 @@ function rwDayDone(){UI.ticking=true;renderHUD();UI.ticking=false;UI.panelsDue=t
 function rwGzip(txt){const w=rwOn()&&rwStart();if(!w)return null;const k=++RW.gz;
   return new Promise((res,rej)=>{RW.gzq.set(k,{res,rej,txt});try{w.postMessage({gz:k,txt});}catch(e){RW.gzq.delete(k);rej(e);}});}
 function rwGzDone(m){const q=RW.gzq.get(m.gz);if(!q)return;RW.gzq.delete(m.gz);if(m.err)q.rej(new Error(m.err));else q.res(m.data);}
+/* A whole save in the worker (save(), 91-save.js): the game as it was when saved (the copy postMessage makes), packed,
+   turned into text, stamped and compressed there. Back come the text (the slot keeps it, to spot an unchanged game) and
+   what to write. The worker lost meanwhile: that save is gone, so the next frame saves again, here. */
+function rwSave(st,seq){const w=rwOn()&&rwStart();if(!w)return null;const k=++RW.gz;
+  return new Promise((res,rej)=>{RW.svq.set(k,{res,rej});try{w.postMessage({sv:k,S:st,seq});}catch(e){RW.svq.delete(k);rej(e);}});}
+function rwSaveDone(m){const q=RW.svq.get(m.sv);if(!q)return;RW.svq.delete(m.sv);if(m.err)q.rej(new Error(m.err));else q.res({txt:m.txt,data:m.data});}
+function rwSaveBack(){const q=[...RW.svq.values()];RW.svq.clear();if(q.length)UI.lastSave=0;for(const x of q)x.rej(new Error('route worker lost'));}
+function rwSaveServe(m){let txt;try{txt=JSON.stringify(packSave(m.S));}catch(e){postMessage({sv:m.sv,err:String(e)});return;}
+  const st=slotStamp(txt,m.seq);(txt.length>=GZ_BG?gzB64(st).then(b=>GZ+b):Promise.resolve(st)).then(data=>postMessage({sv:m.sv,txt,data}),e=>postMessage({sv:m.sv,err:String(e)}));}
 // The worker gone: what it was compressing is compressed here.
 function rwGzBack(){const q=[...RW.gzq.values()];RW.gzq.clear();for(const x of q)gzB64(x.txt).then(x.res,x.rej);}
 /* R as plain data. R.ef and R.fl are lazy getters, sent as the pieces they are built from (R.efp, R.flc, see efBuild()
@@ -87,9 +103,9 @@ function rwGzBack(){const q=[...RW.gzq.values()];RW.gzq.clear();for(const x of q
    attack record names its attack in S by id. */
 const FL_COLS=['FREM','FCI','FNJ','FCA','FBZ','FGT','FGI','FGP','FGH','FTI','FII'];
 function rwPack(R){const o={};for(const k in R)o[k]=k==='ef'?0:k==='ddos'?R.ddos.map(m=>({...m,attack:m.attack?m.attack.id:null,ports:null})):R[k];
-  const p=R.efp,c={...R.flc,E:R.flc.E.map(e=>({id:e.id}))},L=rwLOut(p.L),tr=[p.ACN.buffer,p.ACD.buffer,...L.tr];for(const k of FL_COLS)tr.push(c[k].buffer);
+  const p=R.efp,c={...R.flc,E:R.flc.E.map(e=>e.id)},L=rwLOut(p.L),tr=[p.ACN.buffer,p.ACD.buffer,...L.tr];for(const k of FL_COLS)tr.push(c[k].buffer);
   return {o,p:{...p,L:L.o,flc:c},tr};}
-function rwUnpack(o,p){o.ef={};efBuild(o,rwLIn(p.L),p.ACN,p.ACD,p.NKN,p.NC,p.NN);flDefine(o,p.flc);
+function rwUnpack(o,p){o.ef={};p.flc.E=p.flc.E.map(id=>({id}));efBuild(o,rwLIn(p.L),p.ACN,p.ACD,p.NKN,p.NC,p.NN);flDefine(o,p.flc);
   const as=ddosAll(S,false);for(const m of o.ddos){m.attack=as.find(a=>a.id===m.attack)||null;m.ports=new Map();}return o;}
 /* What crossed each link (efp.L: [link id, edge index, t], t = {g: exit key → slot, v: sums by slot, n, d}) is the
    biggest part of R, and as plain objects it took longer to read on the page than all the rest. It crosses as typed
@@ -119,6 +135,7 @@ function rwSameDesc(a,b){if(!a||!b)return false;const ka=Object.keys(a),kb=Objec
 // R.efg (what crossed each link, by exit) is about a third of R and only routing reads it, here: the worker keeps the one
 // of its last answer, and the page sends it back only when it routed something of its own since (efg 0: keep yours).
 function rwServe(m){if(m.gz!==undefined){gzB64(m.txt).then(data=>postMessage({gz:m.gz,data}),e=>postMessage({gz:m.gz,err:String(e)}));return;}
+  if(m.sv!==undefined){rwSaveServe(m);return;}
   try{S=m.S;R=emptyR();R.load=m.load||{};R.l2route=m.l2route||{};
     if(m.efg===0){if(!RW.last||RW.last.seq!==m.wseq)throw new Error('route worker: no R.efg for answer '+m.wseq);Object.defineProperty(R,'efg',{value:RW.last.efg});}
     else if(m.efg)Object.defineProperty(R,'efg',{value:rwEfgIn(m.efg)});
@@ -126,5 +143,5 @@ function rwServe(m){if(m.gz!==undefined){gzB64(m.txt).then(data=>postMessage({gz
     // for the next routing (RW.last, RW.desc) stays.
     if(m.trial){const t=performance.now(),ok=m.trial.dark?opsDarkTrial(m.trial):!!offerTrial(m.trial.b,m.trial.hx);postMessage({seq:m.seq,ok,ms:performance.now()-t});return;}
     const t=performance.now();compute();const ms=performance.now()-t,{o,p,tr}=rwPack(R);RW.last={seq:m.seq,efg:R.efg};
-    if(rwSameDesc(RW.desc,o.egDesc))o.egDesc=0;else RW.desc=o.egDesc;postMessage({seq:m.seq,R:o,ef:p,ms},tr);}
+    if(rwSameDesc(RW.desc,o.egDesc))o.egDesc=0;else{const d=o.egDesc;o.egDesc=rwDescOut(d,RW.desc);RW.desc=d;}postMessage({seq:m.seq,R:o,ef:p,ms},tr);}
   catch(e){postMessage({seq:m.seq,err:String(e&&e.stack||e)});}}

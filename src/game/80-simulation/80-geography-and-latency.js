@@ -59,10 +59,17 @@ function bestLat(a,b,f){const ls=S.links.filter(l=>!linkDown(l)&&(!f||f(l)));con
 // design follows it at 0.9 or better). A sea route that no cable takes needs a survey, so it does not count.
 // Built from the map alone, so it is worked out once per city.
 const LATF=new Map();let LATC=null;
-function latFloor(a,b){let D=LATF.get(a);if(!D){LATF.set(a,D=latFloor0(a));}return D[CIDX[b]];}
-function latFloor0(a){const n=CITIES.length,D=new Float64Array(n).fill(Infinity),done=new Uint8Array(n);
+function latFloor(a,b){let D=LATF.get(a);if(!D){if(LATW&&LATW.a===a){for(;;){const s=LATW.g.next();if(s.done){D=s.value;break;}}LATW=null;}else D=latFloor0(a);LATF.set(a,D);}return D[CIDX[b]];}
+function latFloor0(a){const g=latFloorRun(a);for(;;){const s=g.next();if(s.done)return s.value;}}
+/* Each city's floor follows from the catalog alone, and costs a few milliseconds: idle frames work them out ahead, a
+   few cities at a time (latWarm()), your POPs' first, then the financial centres latency customers ask about. */
+let LATW=null;const LAT_FIN=['nyc','chi','lon','fra','tok','sin','hkg','ams','ash'];
+function latWarm(ms){if(!S||!S.pops)return;const t=performance.now();
+  for(;;){if(!LATW){const a=Object.keys(S.pops).concat(LAT_FIN).find(c=>CITY[c]&&!LATF.has(c));if(!a)return;LATW={a,g:latFloorRun(a)};}
+    const s=LATW.g.next();if(s.done){if(!LATF.has(LATW.a))LATF.set(LATW.a,s.value);LATW=null;}if(performance.now()-t>ms)return;}}
+function* latFloorRun(a){const n=CITIES.length,D=new Float64Array(n).fill(Infinity),done=new Uint8Array(n);let k=0;
   if(!LATC){LATC=new Map();for(const c of CABLE_PAIRS){const k=Math.min(CIDX[c.a],CIDX[c.b])*4096+Math.max(CIDX[c.a],CIDX[c.b]),w=c.km*Math.min(0.9,CAB[c.cid].lat||1);if(!(LATC.get(k)<=w))LATC.set(k,w);}}
-  D[CIDX[a]]=0;for(;;){let u=-1,ud=Infinity;for(let i=0;i<n;i++)if(!done[i]&&D[i]<ud){u=i;ud=D[i];}if(u<0)break;done[u]=1;const U=CITIES[u];
+  D[CIDX[a]]=0;for(;;){if((++k&15)===0)yield;let u=-1,ud=Infinity;for(let i=0;i<n;i++)if(!done[i]&&D[i]<ud){u=i;ud=D[i];}if(u<0)break;done[u]=1;const U=CITIES[u];
     for(let i=0;i<n;i++){if(done[i])continue;const V=CITIES[i],cw=LATC.get(Math.min(u,i)*4096+Math.max(u,i));
       let w=overland(U,V)&&!noTalk(U.id,V.id)?kmBetween(U.id,V.id)*1.1:Infinity;if(cw<w)w=cw;if(w<Infinity){const d=ud+w/200+0.05;if(d<D[i])D[i]=d;}}}
   return D;}

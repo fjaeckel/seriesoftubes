@@ -20,6 +20,8 @@ function frame(now){
   if(!(UI.mapHid=mapHidden())){const st=mapStill(t,now);if(st!==MAP_STILL&&!(st===MAP_AMBIENT&&now-(UI.drawnAt||0)<AMB_MS)){
     const d0=DIAG.on?performance.now():0;try{draw(t);}catch(e){tickErr(e);}UI.drawnAt=now;if(DIAG.on)DIAG.dms=performance.now()-d0;}}
   if(DIAG.on)diagFrame(now);
+  // The diverse-paths map and the latency floors new offers ask about, worked out a millisecond a frame ahead.
+  if(S&&UI.started){diversityWarm(1);if(!DIVW)latWarm(1);}
   RW.lf=performance.now();
 }
 // dt of real time at UI.speed: the days it adds up to. The frame calls it; so may a clock that also runs where frames

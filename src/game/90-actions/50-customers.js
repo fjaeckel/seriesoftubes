@@ -4,7 +4,8 @@ Object.assign(ACT,{
    if(!w&&!p){toast(tr('customers.nothing_spare_to_sell_on_this'),'bad');sfx('err');return;}const L=l.list||(l.list={w:0,p:0});L.w+=w;L.p+=p;
    toast(tr('broker.listed',{a:CITY[l.a].name,b:CITY[l.b].name}),'good');sfx('click');after();},
  unlistFiber:({id})=>{const l=S.links.find(x=>x.id===id);if(!l||!l.list)return;delete l.list;sfx('click');after();},
- accept:({id,auto=false})=>{const o=S.offers.find(x=>x.id===id);if(!o)return;const customer=auto?autoOffer(o):offerCustomer(o);if(!customer)return;if(!bHas(o)){toast(tr('customers.you_need_a_pop_in_every'),'bad');return;}
+ // tried: the customer an intern's trial already signed off, or null (sales order, 95-standing-orders.js).
+ accept:({id,auto=false,tried})=>{const o=S.offers.find(x=>x.id===id);if(!o)return;const customer=tried!==undefined?tried:auto?autoOffer(o):offerCustomer(o);if(!customer)return;if(!bHas(o)){toast(tr('customers.you_need_a_pop_in_every'),'bad');return;}
    if(o.type==='wwave'){const l=S.links.find(x=>x.id===o.link);if(!l||chMax(l)-(l.ch||[]).length-soldSlots(l)<o.slots){toast(tr('customers.not_enough_free_channels_on_that'),'bad');return;}}
    if(BIZ_T[o.type].event&&S.day>=o.start){toast(tr('customers.too_late_the_event_has_already'),'bad');return;}
    // A carrier renting more alien waves on a fiber it already rents grows its contract, like a real order for extra waves,
