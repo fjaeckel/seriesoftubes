@@ -77,6 +77,39 @@ claude mcp add --transport http seriesoftubes http://127.0.0.1:7777/mcp
 - **Either session.** `--http` works headless and with `--browser` alike: then a client elsewhere drives the game
   in the player's tab, while the relay stays where `npm run dev` put it.
 
+### In a container
+
+Every push to `main` and every release publishes a multi-arch (amd64/arm64) image at
+`ghcr.io/fjaeckel/seriesoftubes`, built from the repo by the `docker.yml` workflow: `latest` and the commit SHA on
+pushes, the release's version (pre-releases included) on releases. It packages the dev server and the MCP server;
+`node scripts/mcp.js --help` options go after the image name, and `--http 0.0.0.0:7777` is the default (a container
+bound to loopback would be unreachable; pass your own `--http` to override).
+
+`MCP_MODE=headless` runs just the MCP server with a game of its own; the default (`browser`) also serves the
+development page so a browser tab can play it, as above.
+
+```sh
+docker run -d -p 7777:7777 -e MCP_MODE=headless ghcr.io/fjaeckel/seriesoftubes
+claude mcp add --transport http seriesoftubes http://127.0.0.1:7777/mcp
+
+# Options are passed to scripts/mcp.js; the token is its own env var.
+docker run -d -p 7777:7777 -e MCP_MODE=headless -e SOT_MCP_TOKEN=secret \
+  ghcr.io/fjaeckel/seriesoftubes --clock realtime --pace 60000
+
+# The browser session: open http://localhost:8080, then Settings → Agent API.
+docker run -d -p 8080:8080 -p 7777:7777 ghcr.io/fjaeckel/seriesoftubes
+```
+
+`load_save` and `export_save` take JSON only unless the server runs with `--save-dir`; mount a volume for it:
+
+```sh
+docker run -d -p 7777:7777 -e MCP_MODE=headless -v sot-saves:/saves \
+  ghcr.io/fjaeckel/seriesoftubes --save-dir /saves
+```
+
+What "Over HTTP" says applies to the container too: the mapped port is reachable by anything that can reach the host,
+so set a token before exposing one, and there is no TLS.
+
 ## The clock
 
 Every session has one of two clocks, and `schema` (section `mode`) says which:

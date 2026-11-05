@@ -73,3 +73,10 @@ jobs:
         # Pre-releases are for testing and never go live.
         if: steps.v.outputs.skip == 'false' && steps.v.outputs.pre == 'false'
         run: gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "${{ steps.v.outputs.tag }}" -f tag="${{ steps.v.outputs.tag }}"
+
+      - name: Publish the Docker image
+        # Same pattern as the deploy above: the image is built and pushed from the
+        # release tag by docker.yml. Pre-releases get one too: an image tag is
+        # pulled on purpose, so a test image costs nothing.
+        if: steps.v.outputs.skip == 'false'
+        run: gh workflow run docker.yml --repo "$GITHUB_REPOSITORY" --ref "${{ steps.v.outputs.tag }}" -f tag="${{ steps.v.outputs.tag }}"
