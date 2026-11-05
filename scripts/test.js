@@ -8,13 +8,15 @@
 //   npm test -- --shard 2/4                    one of four parts of about equal time (CI runs the four at once)
 //   npm test -- --shard 2/4 --list             which files that part holds, without running them
 //   TEST_JOBS=1 npm test                       one file at a time, as it used to be
+//   npm test -- --stress 8 tests/x.test.js     hunt a flaky test: 8 copies of these files at once, on a machine kept
+//                                              busier than CI ever is, and how many runs failed (and why)
 //
 // Parts are balanced by tests/durations.json, each file's typical seconds (refresh: npm run test:timings).
 // A file missing from it counts as a typical one, so a stale list only makes the parts a little uneven.
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { spawnSync } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
 
 const root = path.join(__dirname, '..');
 const dir = path.join(root, 'tests');
@@ -22,6 +24,13 @@ const args = process.argv.slice(2);
 
 const list = args.includes('--list');
 if (list) args.splice(args.indexOf('--list'), 1);
+let stress = 0;
+const ti = args.indexOf('--stress');
+if (ti >= 0) {
+  stress = parseInt(args[ti + 1], 10);
+  if (!(stress >= 1)) { console.error('--stress wants a count, like --stress 8'); process.exit(2); }
+  args.splice(ti, 2);
+}
 let shard = null;
 const si = args.indexOf('--shard');
 if (si >= 0) {
@@ -58,5 +67,22 @@ if (shard && files.length) {
 }
 
 const jobs = Math.max(1, parseInt(process.env.TEST_JOBS, 10) || os.availableParallelism());
+// Stress: N runs of the same files at once, each its own node --test, so they fight for the CPU the way the four
+// CI parts and their own parallel files do (and worse). A test that only passes on a quiet machine fails here.
+if (stress) {
+  if (!args.some((a) => a.endsWith('.test.js'))) { console.error('--stress wants the test files to run, like tests/agent-relay.test.js'); process.exit(2); }
+  const runs = Array.from({ length: stress }, (_, i) => new Promise((res) => {
+    const c = spawn(process.execPath, ['--test', '--test-reporter=dot', ...args], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] });
+    let out = ''; c.stdout.on('data', (d) => { out += d; }); c.stderr.on('data', (d) => { out += d; });
+    c.on('close', (code) => res({ i: i + 1, code, out }));
+  }));
+  Promise.all(runs).then((rs) => {
+    const bad = rs.filter((r) => r.code !== 0);
+    for (const r of bad) console.log(`\n--- run ${r.i} failed ---\n${r.out.slice(-4000)}`);
+    console.log(`\n# stress: ${rs.length - bad.length} of ${rs.length} runs passed, ${stress} at once on ${os.availableParallelism()} cores`);
+    process.exit(bad.length ? 1 : 0);
+  });
+  return;
+}
 const r = spawnSync(process.execPath, ['--test', `--test-concurrency=${jobs}`, ...args, ...files], { stdio: 'inherit', cwd: root });
 process.exit(r.status ?? 1);

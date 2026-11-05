@@ -106,6 +106,8 @@ function createRelay({ server } = {}) {
 
   return {
     wss, path: AGENT_PATH,
+    // What the relay holds right now, so tests wait for a state instead of sleeping.
+    status: () => ({ page: !!(page && page.readyState === 1), tools: [...tools].filter((t) => t.readyState === 1).length, calls: pending.size }),
     close() { for (const c of [page, ...tools]) { try { c.close(4002, 'relay shutdown'); } catch {} } try { wss.close(); } catch {} },
   };
 }

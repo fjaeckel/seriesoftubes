@@ -54,3 +54,17 @@ pull requests collide. Run one file with `npm test -- tests/route-servers.test.j
 - **UI:** render with `renderAll()` and query `dom.window.document`; check phone
   layouts by setting `window.innerWidth = 390` before rendering.
 - Run `npm test`; the whole suite must pass, not just the new test.
+
+## Servers, sockets and anything async
+
+CI runs four parts at once, each with its files in parallel, so a test can wait seconds for things that take
+milliseconds on your machine. Never sleep a fixed time and then assert: wait for the state with `tests/net.js`.
+
+- `until(() => condition)` resolves true as soon as it holds (false after 20 s); assert on its result.
+- `freePort()` asks the OS for a free port; never a fixed or random one.
+- `kill(child)` stops a spawned server and resolves once it is gone.
+- Listen and connect on `127.0.0.1`, not `localhost` (it can resolve to `::1` only on a CI runner).
+- For HTTP to a test server, pass `agent: false`: a kept-alive socket can be reset by the server's idle timer.
+- A fixed wait is fine only to prove that something does *not* happen.
+
+Hunt a suspected flake before pushing: `npm test -- --stress 8 tests/x.test.js` runs 8 copies at once, busier than CI.

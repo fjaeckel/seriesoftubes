@@ -18,19 +18,19 @@ const ROOT = path.join(__dirname, '..');
 const { createRelay } = require('../scripts/agent/relay');
 const { createRelaySession } = require('../scripts/lib/relay-client');
 const SERVER = path.join(ROOT, 'scripts', 'mcp.js');
-const PORT = 8799 + (process.pid % 500);                     // dodge a busy port across suites
+const { wait, until, freePort, kill } = require('./net');
+let PORT;                                                     // a free one from the OS, before the first test
+test.before(async () => { PORT = await freePort(); });
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'tubes-relay-'));
-const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-// Waits until ok() holds, up to ms: a busy CI runner can take seconds to load a page, so no fixed delay is enough.
-const until = async (ok, ms = 20000) => { const t0 = Date.now(); while (!ok() && Date.now() - t0 < ms) await wait(50); return ok(); };
 
 // The relay in-process, riding a real http.Server (the same createRelay the servers host): no child to leak, and
 // 'listening' means the first dial cannot race the bind.
+let CUR = null;                                               // the relay started last
 function startRelay(port = PORT) {
   const srv = http.createServer((req, res) => { res.writeHead(404); res.end(); });
   const relay = createRelay({ server: srv });
-  return {
+  return CUR = {
     relay, srv,
     listening: () => new Promise((res, rej) => { srv.once('error', rej); srv.listen(port, '127.0.0.1', res); }),
     close: () => new Promise((r) => { relay.close(); srv.close(() => r()); }),
@@ -46,6 +46,12 @@ function page(opts = {}) {
   return a;
 }
 const dial = (a, port = PORT) => a.ev(`window.__AGENT_RELAY_TEST__=true;API_RELAY_HOST='127.0.0.1:'+${port};apiAgentSync()`);
+// Waits until the relay holds this page and the page knows how many tools are there (the clock follows that count).
+async function joined(a) {
+  assert.ok(await until(() => { const s = CUR.relay.status(); return s.page && a.ev('API_RELAY.tools') === s.tools; }), 'the page joined the relay');
+}
+// Waits until the page has heard the relay's tool count: its clock runs or holds by it.
+const heard = async (a, n) => assert.ok(await until(() => a.ev('API_RELAY.tools') === n), `the page sees ${n} tool(s)`);
 // Kill the page's dial and retry timer before a test ends, or its backoff keeps the process alive.
 const stop = (...ps) => { for (const a of ps) if (a) a.ev("window.__AGENT_RELAY_TEST__=false;apiAgentSet('on',false)"); };
 
@@ -74,7 +80,8 @@ function toolClient(port = PORT, headers) {
     close: () => { try { ws.close(); } catch {} },
   };
 }
-async function tool() { const t = toolClient(); await t.open(); t.auth('tool'); await wait(150); return t; }
+// A tool that has been let in: the relay's first presence message comes right after the role is granted.
+async function tool(port = PORT) { const t = toolClient(port); await t.open(); t.auth('tool'); assert.ok(await until(() => t.events.length > 0), 'the relay let the tool in'); return t; }
 
 async function withRelay(fn) {
   const r = startRelay();
@@ -104,7 +111,7 @@ function mcp(argv, onErr) {
       child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n'); return r; },
     call: async (name, args) => (await send({ method: 'tools/call', params: { name, arguments: args || {} } })).result,
     json: async (name, args) => JSON.parse((await send({ method: 'tools/call', params: { name, arguments: args || {} } })).result.content[0].text),
-    kill: async () => { child.kill('SIGTERM'); await wait(200); child.kill('SIGKILL'); },
+    kill: () => kill(child),
   };
 }
 
@@ -128,8 +135,8 @@ test('a live page answers tool calls through the relay, from a fixed list of too
   const a = page();
   try {
     a.ev("ACT.start({});S.cash=500000;compute()");
-    await wait(600);
-    assert.ok(t.events.some((e) => e.page === true), 'the tools see the page join');
+    assert.ok(await until(() => t.events.some((e) => e.page === true)), 'the tools see the page join');
+    await joined(a);
     const q = await t.call('act', { action: 'buildPop', args: { city: 'ams' }, dryRun: true });
     assert.equal(q.value.outcome, 'quote');
     assert.equal(q.value.quote.setup, 20000);
@@ -156,7 +163,7 @@ test('in the player\'s tab the player owns the game, their windows, their settin
   const a = page({ ms: 0 });
   try {
     a.ev("ACT.start({});S.cash=1e7;S.nextFail=S.day+40;S.nextEvent=S.day+50;compute()");
-    await wait(500);
+    await joined(a);
     // The dice stay hidden, whole or by path, and the schema says so.
     const st = (await t.call('state')).value;
     for (const k of ['rng', 'nextFail', 'nextEvent']) assert.ok(!(k in st), `${k} is held back`);
@@ -211,7 +218,7 @@ test('the agent\'s clock moves only with advance; a running clock only with time
   const a = page({ ms: 0 });
   try {
     a.ev("ACT.start({});S.cash=1e7;compute()");
-    await wait(500);
+    await joined(a);
     assert.equal(a.ev('UI.speed'), 0, 'a tool is connected, but the agent\'s clock stands still');
     a.ev('last=performance.now();for(let i=1;i<=20;i++)frame(last+i*250)');
     assert.equal(a.ev('S.day'), 0, 'the loop runs no days');
@@ -247,20 +254,19 @@ test('the page client reconnects after the relay restarts, and stops when the pl
   const a = page();
   try {
     a.ev("ACT.start({});S.cash=500000;compute()");
-    await wait(500);
-    assert.ok(t.events.some((e) => e.page === true));
+    assert.ok(await until(() => t.events.some((e) => e.page === true)));
     await r.close();
-    await wait(300);
+    assert.ok(await until(() => a.ev('!API_RELAY.ws||API_RELAY.ws.readyState!==1')), 'the page saw the relay go');
     a.ev("apiAgentSet('on',false)");
     const r2 = startRelay();
     await r2.listening();
     try {
-      await wait(1200);                                        // past the first backoff retry
+      await wait(1200);                                        // past the first backoff retry: it must not dial
       assert.equal(a.ev('API_RELAY.on'), false, 'the client is off');
+      assert.equal(r2.relay.status().page, false, 'and never dialled');
       a.ev("apiAgentSet('on',true)");
-      await wait(1200);
+      await joined(a);
       const t2 = await tool();
-      await wait(300);
       assert.ok(t2.events.some((e) => e.page === true), 'the page reconnected after the relay came back');
       assert.equal((await t2.call('state', { path: 'cash' })).value, 500000, 'and answers calls again');
       t2.close();
@@ -272,21 +278,21 @@ test('a paced clock holds while no tool is connected, and runs when one arrives'
   const a = page({ seed: 5 });
   try {
     a.ev("ACT.start({});S.nextFail=S.day+99;S.nextEvent=S.day+99;compute()");
-    await wait(500);
+    await joined(a);
     assert.equal(a.ev('UI.speed'), 0, 'no tool connected: the clock holds');
     assert.equal(a.ev('UI.clockLocked'), true, 'agent mode stays on');
     a.ev('last=performance.now();frame(last);frame(last+250);frame(last+500)');
     assert.equal(a.ev('S.day'), 0, 'no day ran');
     const t = await tool();
-    await wait(300);
+    await heard(a, 1);
     assert.ok(a.ev('UI.speed') > 0, 'a tool connecting runs it');
     t.close();
-    await wait(400);
+    await heard(a, 0);
     assert.equal(a.ev('UI.speed'), 0, 'the tool leaving holds it again');
     a.ev('S.uiSpeed=4;gameResume()');
     assert.equal(a.ev('UI.speed'), 0, 'gameResume holds with no tool connected');
     const t2 = await tool();
-    await wait(300);
+    await heard(a, 1);
     assert.ok(a.ev('UI.speed') > 0, 'and a tool arriving runs it again');
     // An unrelated preference change does not drop the connection or hold the clock.
     a.ev('window.__w0=API_RELAY.ws');
@@ -301,9 +307,11 @@ test('a paced clock holds while no tool is connected, and runs when one arrives'
 test('a second page replaces the first: one game per relay, the newest tab wins', () => withRelay(async () => {
   const a = page({ seed: 5 });
   a.ev("ACT.start({});S.cash=111000;compute()");
+  await joined(a);                                             // in that order: two dials at once may land either way
   const b = page({ seed: 6 });
   b.ev("ACT.start({});S.cash=222000;compute()");
-  await wait(700);
+  assert.ok(await until(() => a.ev('API_RELAY.on') === false), 'the first page yields to the second');
+  await joined(b);
   const t = await tool();
   try {
     assert.equal((await t.call('state', { path: 'cash' })).value, 222000, 'the newest page answers');
@@ -313,7 +321,7 @@ test('a second page replaces the first: one game per relay, the newest tab wins'
 test('the MCP server drives the player\'s page in browser mode, over stdio', () => withRelay(async () => {
   const a = page({ seed: 9, ms: 0 });
   a.ev("ACT.start({});S.cash=1000000;compute()");
-  await wait(500);
+  await joined(a);
   const m = mcp(['--browser', '--relay-host', 'localhost', '--relay-port', String(PORT)]);
   try {
     const init = await m.init();
@@ -343,7 +351,7 @@ test('a game page older than the code stops the server rather than mislead', () 
   a.ev("ACT.start({});compute()");
   // A stale tab whose commands keep their names but change shape: only a deep compare of the sections catches it.
   a.ev('const __c=TUBES.call;TUBES.call=(t,x,c)=>{const v=__c(t,x,c);if(t==="schema"&&!x.section)v.commands.buildPop.args=[{name:"city",required:true}];return v;};');
-  await wait(400);
+  await joined(a);
   const m = mcp(['--browser', '--relay-port', String(PORT), '--page-wait-ms', '8000']);
   try {
     const init = await m.init();
@@ -368,10 +376,11 @@ test('the MCP server answers the handshake at once and waits for the game page',
   try {
     const t0 = Date.now();
     await m.init();
-    assert.ok(Date.now() - t0 < 3000, 'initialize does not wait for a browser tab');
+    // Far below the page wait (20 s), with room for a slow start of the process on a busy runner.
+    assert.ok(Date.now() - t0 < 10000, 'initialize does not wait for a browser tab');
     const early = await m.call('status');
     assert.equal(early.isError, true, 'a tool before the page arrives is an error, not a hang');
-    await wait(300);
+    await until(() => /waiting for the game page/.test(m.stderr()));
     assert.match(m.stderr(), /waiting for the game page/);
     a = page({ seed: 4 });
     a.ev("ACT.start({});S.cash=444000;compute()");
@@ -381,19 +390,18 @@ test('the MCP server answers the handshake at once and waits for the game page',
   } finally { stop(a); await m.kill(); }
 }));
 
-const free = () => new Promise((res, rej) => { const s = http.createServer(); s.on('error', rej); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 
 test('dev.js binds loopback and parses --port; the page dials its own host', async () => {
-  const port = await free();
+  const port = await freePort();
   const child = spawn(process.execPath, [path.join(ROOT, 'scripts', 'dev.js'), '--port', String(port)], { stdio: ['ignore', 'ignore', 'pipe'] });
   let serr = '';
   child.stderr.on('data', (d) => { serr += d; });
   let a = null;
   try {
-    await wait(700);
-    assert.match(serr, new RegExp(`agent relay on ws://127\\.0\\.0\\.1:${port}/agent`), 'dev.js binds loopback and honours --port');
-    const t = toolClient(port);
-    await t.open(); t.auth('tool'); await wait(150);
+    const banner = new RegExp(`agent relay on ws://127\\.0\\.0\\.1:${port}/agent`);
+    await until(() => banner.test(serr));                      // dev.js builds the page first: seconds on a busy runner
+    assert.match(serr, banner, 'dev.js binds loopback and honours --port');
+    const t = await tool(port);
     assert.ok(t.events.some((e) => e.page === false), 'the relay answers on 127.0.0.1');
     t.close();
     a = load({ url: `http://127.0.0.1:${port}/`, agent: true, storage: { 'sot-agent': JSON.stringify({ on: true }) } });
@@ -403,7 +411,7 @@ test('dev.js binds loopback and parses --port; the page dials its own host', asy
     assert.equal(a.ev('apiRelayUrl()'), `ws://127.0.0.1:${port}/agent`, 'its own host and port, the relay path');
   } finally {
     stop(a);
-    child.kill('SIGTERM'); await wait(150); child.kill('SIGKILL');
+    await kill(child);
   }
 });
 
@@ -416,11 +424,11 @@ test('calls neither page nor relay can answer resolve as errors, not hangs', asy
     const a = page();
     pages.push(a);
     a.ev('ACT.start({});S.cash=500000;compute()');
-    await wait(400);
+    await joined(a);
     // The page dies with a call in flight; it is silenced first, so the call is provably pending when it closes.
     a.ev('API_RELAY.ws.onmessage=()=>{}');
     const p = t.call('act', { action: 'buildPop', args: { city: 'ams' } });
-    await wait(100);
+    assert.ok(await until(() => r.relay.status().calls === 1), 'the call reached the relay');
     a.ev('API_RELAY.ws.close(1000)');
     assert.match((await p).error || '', /disconnected before answering/i);
     stop(a);
@@ -429,11 +437,11 @@ test('calls neither page nor relay can answer resolve as errors, not hangs', asy
     const b = page({ seed: 12 });
     pages.push(b);
     b.ev('ACT.start({});S.cash=222000;compute()');
-    await wait(400);
+    await joined(b);
     b.ev('API_RELAY.ws.onmessage=()=>{}');
     const s = createRelaySession({ host: '127.0.0.1', port: PORT });
     const p2 = s.call('state', { path: 'cash' });
-    await wait(150);
+    assert.ok(await until(() => r.relay.status().calls === 1), 'the call reached the relay');
     await r.close();
     assert.match((await p2).refused || '', /connection closed/i);
     await s.close();
@@ -447,13 +455,13 @@ test('a page that hangs on a call answers within --call-ms, not minutes later', 
   const a = page({ seed: 4 });
   try {
     a.ev('ACT.start({});compute()');
-    await wait(400);
+    await joined(a);
     a.ev('API_RELAY.ws.onmessage=()=>{}');            // connected, alive, and never answering
     const s = createRelaySession({ host: '127.0.0.1', port: PORT, callMs: 300 });
     const t0 = Date.now();
     const r = await s.call('state', { path: 'cash' });
     assert.match(r.refused || '', /no answer from the game page in 0\.3 s/);
-    assert.ok(Date.now() - t0 < 2000, 'the configured timeout, not the default');
+    assert.ok(Date.now() - t0 < 10000, 'the configured timeout, not the default (30 s)');
     assert.equal(createRelaySession({}).config.callMs, 30000, 'the default is 30 s');
     await s.close();
   } finally { stop(a); }
@@ -473,9 +481,8 @@ test('the relay refuses a cross-site Origin and takes a same-origin page or a to
   const same = toolClient(PORT, { Origin: `http://127.0.0.1:${PORT}` });
   await same.open();
   same.auth('page');
-  await wait(150);
   const t = await tool();
-  await wait(100);
+  await until(() => same.events.some((e) => e.tools === 1));
   assert.ok(same.events.some((e) => e.tools === 1), 'the same-origin page connects and sees the tool');
   t.close(); same.close();
 }));
@@ -486,16 +493,16 @@ function bannerOf(argv) {
   let serr = '';
   return new Promise((res) => {
     const done = (v) => { clearTimeout(t); child.kill('SIGKILL'); res(v); };
-    const t = setTimeout(() => done({ addr: null, serr }), 5000);
+    const t = setTimeout(() => done({ addr: null, serr }), 30000);   // dev.js builds the page first
     child.stderr.on('data', (d) => { serr += d; const m = /agent relay on ws:\/\/(\S+)\/agent/.exec(serr); if (m) done({ addr: m[1], serr }); });
   });
 }
 
 test('dev.js: a bare --host binds loopback, never every interface; binding wider is the operator\'s choice, and said', async () => {
-  const p1 = await free();
+  const p1 = await freePort();
   const dev = await bannerOf([path.join(ROOT, 'scripts', 'dev.js'), '--host', '--port', String(p1)]);
   assert.equal(dev.addr, `127.0.0.1:${p1}`, `the socket is bound to loopback (${dev.serr})`);
-  const p2 = await free();
+  const p2 = await freePort();
   const wide = await bannerOf([path.join(ROOT, 'scripts', 'dev.js'), '--host', '0.0.0.0', '--port', String(p2)]);
   assert.equal(wide.addr, `0.0.0.0:${p2}`, 'the banner is the real socket, not the flag echoed back');
   assert.match(wide.serr, /bound to 0\.0\.0\.0, so anything that can reach this address can drive/);
@@ -504,7 +511,7 @@ test('dev.js: a bare --host binds loopback, never every interface; binding wider
 test('browser mode over HTTP: a client connects to the server, the server to the player\'s page', () => withRelay(async () => {
   const a = page({ seed: 11, ms: 0 });
   a.ev("ACT.start({});S.cash=555000;compute()");
-  await wait(400);
+  await joined(a);
   const child = spawn(process.execPath, [SERVER, '--browser', '--relay-port', String(PORT), '--http', '127.0.0.1:0'], { stdio: ['ignore', 'ignore', 'pipe'] });
   let err = '';
   try {
@@ -514,11 +521,13 @@ test('browser mode over HTTP: a client connects to the server, the server to the
     });
     const post = (body) => new Promise((res, rej) => {
       const data = JSON.stringify({ jsonrpc: '2.0', id: 1, ...body });
-      const req = http.request({ host: '127.0.0.1', port, path: '/mcp', method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream', 'mcp-protocol-version': '2025-06-18', 'content-length': Buffer.byteLength(data) } }, (r) => {
+      // A fresh connection each time (agent: false): a kept-alive one can be closed by the server's idle timer just
+      // as the next request goes out on it, which a slow runner hits now and then (ECONNRESET).
+      const req = http.request({ agent: false, host: '127.0.0.1', port, path: '/mcp', method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream', 'mcp-protocol-version': '2025-06-18', 'content-length': Buffer.byteLength(data) } }, (r) => {
         let t = ''; r.setEncoding('utf8'); r.on('data', (d) => { t += d; });
         r.on('end', () => { const line = t.split('\n').find((l) => l.startsWith('data: ')); res(JSON.parse(line ? line.slice(6) : t)); });
       });
-      req.on('error', rej); req.end(data);
+      req.on('error', (e) => rej(new Error(`${e.message}; the server said: ${err}`))); req.end(data);
     });
     const init = await post({ method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test', version: '1' } } });
     assert.match(init.result.instructions, /player's own browser tab/);
@@ -526,5 +535,5 @@ test('browser mode over HTTP: a client connects to the server, the server to the
     assert.equal(JSON.parse(r.result.content[0].text), 555000, 'the player\'s game, through HTTP and the relay');
     const no = await post({ method: 'tools/call', params: { name: 'new_game', arguments: {} } });
     assert.ok(no.error || (no.result && no.result.isError), 'no new_game in the player\'s tab');
-  } finally { stop(a); child.kill('SIGTERM'); await wait(150); child.kill('SIGKILL'); }
+  } finally { stop(a); await kill(child); }
 }));

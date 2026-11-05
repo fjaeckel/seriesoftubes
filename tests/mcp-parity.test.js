@@ -12,8 +12,9 @@ const { createRelay } = require('../scripts/agent/relay');
 const { createSession, TOOLS } = require('../scripts/lib/mcp-game');
 const { createBrowserSession } = require('../scripts/lib/mcp-browser');
 
-const PORT = 9399 + (process.pid % 400);
-const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const { freePort } = require('./net');
+let PORT;
+test.before(async () => { PORT = await freePort(); });
 const HEADLESS_JS = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'lib', 'mcp-headless.js'), 'utf8');
 
 const SCRIPT = [
@@ -66,8 +67,8 @@ test('the same scripted session gives the same outcomes headless and through the
     a.ev(HEADLESS_JS);
     a.ev("__mcpHeadless.newGame({city:'fra',name:'Scratch Networks',preset:'oncall'})");
     a.ev(`window.__AGENT_RELAY_TEST__=true;API_RELAY_HOST='127.0.0.1:${PORT}';apiAgentSync()`);
-    await wait(400);
-    assert.deepEqual(await s.ready({ waitMs: 5000 }), { ok: true }, 'the tab serves this checkout\'s contract');
+    // ready() waits for the page itself, generously: jsdom on a busy runner can take seconds to dial.
+    assert.deepEqual(await s.ready({ waitMs: 20000 }), { ok: true }, 'the tab serves this checkout\'s contract');
     const there = await play(s);
     for (let i = 0; i < SCRIPT.length; i++) assert.deepEqual(there[i], here[i], `step ${i}: ${SCRIPT[i][0]} ${JSON.stringify(SCRIPT[i][1] || {})}`);
     assert.ok(here.some(([n, v]) => n === 'act' && v.outcome === 'decision'), 'the script meets a question');

@@ -1,10 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load, browser, flush } = require('./harness');
+const { until } = require('./net');
 
 // Two windows of one browser share localStorage, its storage events, a BroadcastChannel and Web Locks; a reload is a
 // new window with the same tab (sessionStorage).
-const settle = async (ev, cond, what) => { for (let i = 0; i < 400 && !ev(cond); i++) await new Promise((r) => setTimeout(r, 5)); assert.ok(ev(cond), what || cond); };
+// Waits for the page's async work (storage, channels) to land: up to 20 s, as a busy runner may need.
+const settle = async (ev, cond, what) => assert.ok(await until(() => ev(cond)), what || cond);
 const play = (ev, name, city = 'fra', days = 5) => ev(`UI.pitched=true;UI.nm=${JSON.stringify(name)};if($('nmIn'))$('nmIn').value=UI.nm;ACT.pickStart({city:'${city}'});ACT.start({});ACT.launchBB({city:'${city}'});for(let i=0;i<${days};i++)dayTick();save(true)`);
 const idx = (ev) => JSON.parse(ev("JSON.stringify(slotIdx())"));
 const card = (ev) => ev("document.getElementById('modalCard').textContent");

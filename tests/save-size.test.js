@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { until } = require('./net');
 
 // Make the browser's storage refuse the save: 'QuotaExceededError' (too big) or 'SecurityError' (not allowed).
 const refuse = name => `window.__err=${JSON.stringify(name)};{const P=Object.getPrototypeOf(localStorage),set=P.setItem;
@@ -73,7 +74,8 @@ test('#176 an older, unpacked save still loads the same', () => {
 });
 
 // Compressing runs in the background: wait for it, without depending on how long it takes.
-const settle = async (ev, cond) => { for (let i = 0; i < 400 && !ev(cond); i++) await new Promise(r => setTimeout(r, 5)); assert.ok(ev(cond), cond); };
+// Waits for the page's async work (storage, channels) to land: up to 20 s, as a busy runner may need.
+const settle = async (ev, cond, what) => assert.ok(await until(() => ev(cond)), what || cond);
 const huge = "for(let i=0;i<12000;i++){const slots=1+i%4;S.biz.push({id:'h'+i,city:'fra',city2:'ams',name:'Huge Carrier '+i,type:'wwave',bw:1,rate:4000+i,mood:100,since:i,link:'df1',slots,what:wwWhat(S.links.find(l=>l.id==='df1'),slots)});}compute()";
 
 test('#176 small saves stay plain JSON, written at once', () => {

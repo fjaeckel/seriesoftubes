@@ -1,9 +1,11 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load, browser } = require('./harness');
+const { until } = require('./net');
 
 // A game window and its NOC window in one fake browser: shared localStorage, broadcast channels and locks.
-const settle = async (ev, cond, what) => { for (let i = 0; i < 400 && !ev(cond); i++) await new Promise((r) => setTimeout(r, 5)); assert.ok(ev(cond), what || cond); };
+// Waits for the page's async work (storage, channels) to land: up to 20 s, as a busy runner may need.
+const settle = async (ev, cond, what) => assert.ok(await until(() => ev(cond)), what || cond);
 const wait = (ms = 30) => new Promise((r) => setTimeout(r, ms));
 const START = "UI.pitched=true;ACT.pickStart({city:'fra'});ACT.start({});closeModal();S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;S.lvl=3;S.nextFail=S.nextEvent=1e9;UI.speed=0;S.rules=makeRules('freeze');" +
   "ACT.launchBB({city:'fra'});S.pops.fra.bb.d=300;S.pops.fra.rgen=1;ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.buyIx({city:'fra',tier:0,signed:true});S.pni.push({id:'p1',city:'fra',net:'drz',tier:0,ready:0});compute();save(true)";
