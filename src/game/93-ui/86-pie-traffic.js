@@ -41,6 +41,9 @@ function pieBhRow(b){const id='bh:'+b.city,hi=UI.pieHi===id;
 function pieTrafficHtml(){const Q=R&&R.pie;if(!Q||!Q.flows)return `<p class="meta">${tr('pie_traffic.no_data')}</p>`;
   const bh=Q.bh||[],bg=bh.reduce((a,b)=>a+b.g,0),fl=Q.flows.filter(f=>f.k!=='b'&&(f.g>0||f.k==='t')).sort((a,b)=>b.g-a.g),g=fl.reduce((a,f)=>a+f.g,0),n=fl.filter(f=>f.g>0).length,B=new Map(S.biz.map(b=>[b.id,b]));
   let h=`<p class="pft-head">${trn('pie_traffic.headline',n,{g:fmtG(g),of:fmtG(pieMarket()),amt:fmt$(Q.rev)})}</p>`;
+  // Patchy-sky customers (99-pie-patchy.js): money, no traffic, so a line of its own.
+  if(Q.patchy&&Q.patchy.mo>0)h+=`<div class="ops-o pft-patchy"><div class="kv"><span>📶 ${tr('pie_traffic.patchy')}</span><b>${tr('common.price_mo',{price:fmt$(Q.patchy.mo)})}</b></div>
+    <p class="meta">${esc(PIE_PATCHY_NAMES.slice(0,piePatchyN(Q.patchy.mo)).join(' · '))}</p><p class="meta">${tr('pie_traffic.patchy_hint',{lo:pct(PIE_PATCHY_LO),min:pct(PIE_RAW),max:pct(PIE_BAKED)})}</p></div>`;
   if(!(g>0)&&!(bg>0))h+=`<div class="ops-o pft-why"><div class="nm">${tr('pie_traffic.empty_title')}</div><ul class="pft-ck">${pieChecks(Q).map(c=>`<li class="${c.ok?'on':'off'}" data-k="${c.k}"><span aria-hidden="true">${c.ok?'✅':'⬜'}</span><span><b>${c.l}</b>${c.ok?'':`<small>${c.h}</small>`}</span></li>`).join('')}</ul></div>`;
   h+=`<h3 class="pft-h">${tr('pie_traffic.crusts')}</h3>`+(Q.crust.length?Q.crust.map(c=>{const why=pieCrustWhy(c);
     return `<div class="pft-cr"><div class="kv"><span>${tr(CRUSTS[c.id].n)} ${pieTag(c.st==='half'||c.st==='part'?tr('pie.half_baked'):tr('pie.baked'),c.st!=='half'&&c.st!=='part')}</span><b>${c.cap>0?tr('pie_traffic.used_of',{u:fmtG(c.used),cap:fmtG(c.cap)}):pct(c.cov)}</b></div>

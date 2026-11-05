@@ -28,14 +28,25 @@ function pieModal(){if(!S||!pieOn())return;const P=S.pie||pieBlank(S.day),can=pi
       <div class="network-name" style="margin-top:6px"><input class="t" id="pieNm" maxlength="40" value="${esc(pieCoName())}" autocomplete="off" aria-label="${esc(tr('pie.name'))}"></div><div class="btns">${btn(tr('slots.rename'),'pieRename',{},'ghost sm')}</div></div>`;
     h+=`<div class="btns">${btn(P.safe?tr('pie.safe_on'):tr('pie.safe_off'),'pieSafe',{},P.safe?'red sm':'ghost sm')}</div><p class="meta">${tr('pie.safe_note')}</p>`;
   }else if(T==='fly'){
+    let nudge=false;
     h+=Object.keys(CRUSTS).map(id=>{const C=CRUSTS[id],cv=pieCov(id);return `<div class="ops-o${pieUp(id)?' on':''}"><div class="nm">${tr(C.n)} ${pieTag(pieBaked(id)?tr('pie.baked'):tr('pie.half_baked'),pieBaked(id))}</div>
       <div class="meta">${tr('pie.crust_line',{alt:C.alt,n:pieLive(id),full:C.full,q:P.crusts[id].queued,p:pct(cv)})}</div><div class="bar ${cv>=PIE_BAKED?'':'warn'}"><i style="width:${Math.round(cv*100)}%"></i></div>
+      ${(()=>{const f=pieLive(id)+P.crusts[id].queued>0&&pieLive(id)<C.full?piePace(id):null;if(!f)return '';
+        const m=Math.max(1,Math.round(f.days/30)),t=m<=24?trn('pie.pace_months',m,{mo:f.mo}):trn('pie.pace_years',Math.round(f.days/360),{mo:f.mo});
+        let x=`<p class="meta pie-pace">${t}</p>`;
+        if(!nudge&&f.pad&&f.days>PIE_PACE_SLOW&&P.pads.length<PIE_PAD_MAX){nudge=true;const c=piePadTip(id);
+          x+=c?`<p class="note pie-nudge">${tr('pie.pace_pad',{city:esc(CITY[c].name),p:pct(pieEq(c))})}</p><div class="btns">${btn(tr('pie.build_pad_price',{city:esc(CITY[c].name),price:fmt$(piePrice(PIE_PAD))}),'piePad',{city:c},'ghost sm',!can)}</div>`
+            :`<p class="note pie-nudge">${tr('pie.pace_pad_none')}</p>`;}
+        return x;})()}
       <div class="ops-p">${Object.keys(ROCKETS).filter(pieRkOk).map(rk=>{const q=pieQuote(rk,id,{ins:!!UI.pieIns,las:!!UI.pieLas});return btn(`${tr(ROCKETS[rk].n)} <small>${q.ok?(q.test?tr('pie.test_flight')+' · ':'')+fmt$(q.cost):esc(q.why)}</small>`,'pieLaunch',{rk,cr:id},'ghost sm',!q.ok);}).join('')}</div></div>`;}).join('');
     h+=`<div class="ops-p">${btn(UI.pieIns?tr('pie.ins_on'):tr('pie.ins_off'),'pieIns',{},UI.pieIns?'green sm':'ghost sm')}${btn(UI.pieLas?tr('pie.las_on'):tr('pie.las_off'),'pieLas',{},UI.pieLas?'green sm':'ghost sm')}</div>`;
     h+=`<p class="meta">${tr('pie.stock_line',{n:Math.floor(P.stock)})}</p>`;
     if(P.q.length)h+=`<h3 style="font-size:15px;margin:10px 0 4px">${tr('pie.queue')}</h3>`+P.q.slice().sort((a,b)=>a.day-b.day).map(L=>`<div class="kv"><span>${esc(tr(ROCKETS[L.rk].n))} → ${esc(tr(CRUSTS[L.cr].n))}</span><b>${L.test?tr('pie.test_flight'):L.n} · ${esc(CITY[L.pad].name)} · ${dateStr(L.day)}</b></div>`).join('');
   }else if(T==='dish'){
-    h+=`<p class="meta">${tr('pie.dish_note')}</p>`+P.dishes.map(x=>{const cc=CITY[x.city].cc,ok=pieLicOk(cc);return `<div class="kv"><span>📡 ${esc(CITY[x.city].name)} · ${trn('pie.n_antennas',x.ant)}${ok?'':' · '+tr('pie.no_rights')}</span>${btn(tr('pie.add_antenna',{price:fmt$(piePrice(PIE_ANT))}),'pieAnt',{id:x.id},'ghost sm',!can||x.ant>=PIE_ANT_MAX)}</div>`;}).join('');
+    h+=`<p class="meta">${tr('pie.dish_note')}</p>`;
+    // A gentle hint while the sky is nearly empty: dishes cost money every month and earn nothing yet. Building stays open.
+    {const top=Math.max(...Object.keys(CRUSTS).map(pieCov));if(top<PIE_DISH_WAIT)h+=`<p class="note pie-wait">${tr('pie.dish_wait',{min:pct(PIE_RAW),p:pct(top),mo:fmt$(PIE_DISH_MO),lo:pct(PIE_PATCHY_LO)})}</p>`;}
+    h+=P.dishes.map(x=>{const cc=CITY[x.city].cc,ok=pieLicOk(cc);return `<div class="kv"><span>📡 ${esc(CITY[x.city].name)} · ${trn('pie.n_antennas',x.ant)}${ok?'':' · '+tr('pie.no_rights')}</span>${btn(tr('pie.add_antenna',{price:fmt$(piePrice(PIE_ANT))}),'pieAnt',{id:x.id},'ghost sm',!can||x.ant>=PIE_ANT_MAX)}</div>`;}).join('');
     h+=sel+`<div class="btns">${btn(tr('pie.build_dish_price',{city:esc(CITY[c].name),price:fmt$(piePrice(PIE_DISH+PIE_ANT))}),'pieDish',{city:c},'ghost sm',!can||P.dishes.some(x=>x.city===c))}</div>`;
     const ccs=[...new Set([...P.dishes.map(x=>CITY[x.city].cc),CITY[c].cc,...Object.keys(P.lic)])];
     h+=`<h3 style="font-size:15px;margin:10px 0 4px">${tr('pie.landing_rights')}</h3>`+ccs.map(cc=>{const l=P.lic[cc],ok=pieLicOk(cc);

@@ -60,7 +60,9 @@ test('O2: a crust carries nothing under 40%, a share up to 60%, and orbit never 
   assert.deepEqual(ev('JSON.stringify(pieHubs())'), '[]');
   assert.equal(skyOf(ev, 'hft1'), false);
   assert.equal(ev("R.pie.sf.pz"), 0, 'a home on Pitcairn gets nothing from a half-baked crust');
-  assert.equal(ev('R.pie.rev'), 0);
+  // the only orbit money under 40% is patchy-sky customers (99-pie-patchy.js), who need no traffic carried
+  assert.equal(ev('R.pie.rev'), ev('R.pie.patchy.mo'));
+  assert.equal(ev("R.pie.flows.filter(f=>f.g>0).length"), 0);
   // half-baked at 50%: a quarter of the crust's Gbps (half its pies, half of those carrying) and a quarter of the market
   ev("S.pie.crusts.short.cohorts=[{n:CRUSTS.short.full/2,day:S.day,las:true}];compute()");
   assert.deepEqual(ev('JSON.stringify(pieHubs())'), '["short"]', 'over 40% it is a hub');

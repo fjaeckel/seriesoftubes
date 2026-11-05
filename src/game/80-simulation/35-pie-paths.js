@@ -96,7 +96,7 @@ function pieFast(X,fastSP,A,B,b,wLat){const Ai=CIDX[A],Bi=CIDX[B],nb=X.bh.length
   if(w.path.some(e=>e.sky&&bad(e)))w=walkI(dijkstra(X.adj,Ai,wLat,(v,e)=>!!e.sky&&bad(e)||!!nb&&nb(e),Bi).P,Ai,Bi);
   if(w.path.some(e=>e.sky)){X.l2o[b.id]=1;X.l2p[b.id]={w,A,B};}
   return [{...w,share:1}];}
-// After routing: what orbit earns (terminals, and a premium on circuits riding the sky) and what each dish carries.
+// After routing: what orbit earns (terminals, a premium on circuits riding the sky, patchy-sky customers) and what each dish carries.
 function pieMoney(X,R2,V){let rev=0;const sf={},flows=[];
   for(const b of S.biz){const T=BIZ_T[b.type];
     if(T.orbit){const a=X.term[b.id]||0,s=b.bw>0?a/b.bw*(X.gs[b.id]?sfOf(R2,X.gs[b.id]):0):0,v=b.bw*b.rate*Math.min(1,s/0.95);sf[b.id]=s;rev+=v;
@@ -107,7 +107,9 @@ function pieMoney(X,R2,V){let rev=0;const sf={},flows=[];
   const bh=[];for(const e of X.bh){const g=e.ld||0,b=e.bh;used[e.a]+=g;used[e.b]+=g;bhG[e.a]=(bhG[e.a]||0)+g;bhG[e.b]=(bhG[e.b]||0)+g;
     bh.push({city:e.a,land:e.b,g,cap:e.cap,ms:e.lat,cr:b.cr,las:b.las,km:e.km});flows.push({k:'b',id:'bh:'+e.a,city:e.a,dish:e.b,g,cap:e.cap,ms:e.lat,cr:b.cr,hops:pieBhHops(e,true)});}
   for(const o of X.bhNo)bh.push({city:o.city,land:null,g:0,cap:0,why:o.why});
-  V.orbit=rev;R2.pie={rev,sf,gs:X.gs,isl:X.isl,used,term:X.gsBw,hubs:X.hubs,sky:X.up.length,flows,bh,...pieLoads(X,flows,used,term,bhG)};
+  // Patchy-sky customers (99-pie-patchy.js): a revenue line before a crust carries anything, handed over as it does.
+  const patchy=piePatchy(X.ds);rev+=patchy.mo;
+  V.orbit=rev;R2.pie={rev,patchy,sf,gs:X.gs,isl:X.isl,used,term:X.gsBw,hubs:X.hubs,sky:X.up.length,flows,bh,...pieLoads(X,flows,used,term,bhG)};
   // For the lazy fiber comparison (pieFiberMs): the graph of this compute, kept out of JSON.
   Object.defineProperty(R2.pie,'_x',{value:{adj:X.adj,fm:{}}});}
 // A sky circuit for the Traffic tab and the traceroute: entry and exit, the dishes it lands at, and each hop through space.

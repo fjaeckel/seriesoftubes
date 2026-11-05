@@ -73,6 +73,19 @@ function pieQuote(rk,cr,o={}){const P=S.pie;if(!P||!own(ROCKETS,rk)||!own(CRUSTS
 // The cheapest a crust can be filled from nothing (one-off costs only): rule O7.
 function pieFullCost(cr){const C=CRUSTS[cr],base=PIE_CO+PIE_FAC+PIE_PAD,pies=C.full*PIE_PIE;
   return base+pies+Math.min(...Object.keys(ROCKETS).map(rk=>{const R0=ROCKETS[rk],n=Math.ceil(C.full/R0.pies);return (R0.rd?PIE_RD[R0.rd].cost:0)+(n+(rk==='heavy'?PIE_HEAVY_TESTS:0))*R0.cost;}));}
+/* The Launch tab's forecast: how long until crust cr is full at today's pace, or null (no factory, no pad that reaches it,
+   no rocket). The rocket is the one last queued for it, else the one that lifts most a day. Each pad flies one every
+   leadDays(gap) (pieLaunch sets pad.next), so the pads lift pies/gap a day each; the factory adds PIE_FAC_MONTH a month,
+   and pies on the shelf and in the queue let the pads outrun it until they are gone. Wear and failures are left out:
+   it says "about". pad: true when the pads, not the factory, set the pace (another pad would help). */
+function piePace(cr){const P=S.pie;if(!P||!P.fac||!own(CRUSTS,cr))return null;const need=Math.max(0,CRUSTS[cr].full-pieLive(cr)),pads=P.pads.filter(p=>piePadOk(p.city,cr)).length;if(!pads)return null;
+  const use=rk=>pieRkOk(rk)&&!(rk==='heavy'&&pieTests()<PIE_HEAVY_TESTS),rate=rk=>ROCKETS[rk].pies/leadDays(ROCKETS[rk].gap);
+  const L=P.q.filter(x=>x.cr===cr&&!x.test).sort((a,b)=>b.day-a.day)[0],rk=L&&use(L.rk)?L.rk:Object.keys(ROCKETS).filter(use).sort((a,b)=>rate(b)-rate(a))[0];if(!rk)return null;
+  const rp=pads*rate(rk),rf=PIE_FAC_MONTH/30,st=P.stock+P.crusts[cr].queued;let days;
+  if(rp<=rf)days=need/rp;else{const t=st/(rp-rf);days=need<=rp*t?need/rp:t+(need-rp*t)/rf;}
+  return {days:Math.ceil(days),rk,mo:Math.round(Math.min(rp,rf)*30),pad:rp<=rf};}
+// Where another pad would help crust cr most: the coastal POP nearest the equator that has none and reaches it.
+function piePadTip(cr){const P=S.pie;return Object.keys(S.pops).filter(c=>!P.pads.some(p=>p.city===c)&&piePadOk(c,cr)).sort((a,b)=>Math.abs(CITY[a].lat)-Math.abs(CITY[b].lat)).find(pieCoast)||null;}
 function pieCohort(cr,n,las){const c=S.pie.crusts[cr],m=Math.floor(S.day/30),k=c.cohorts.find(x=>x.las===las&&Math.floor(x.day/30)===m);if(k)k.n+=n;else c.cohorts.push({n,day:S.day,las});
   if(c.cohorts.length>PIE_COHORTS)c.cohorts.splice(0,c.cohorts.length-PIE_COHORTS);}
 // A launch: every one costs a party; a test always ends in a fireball; the rest fail by the rocket's odds and the chaos rule,

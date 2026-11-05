@@ -95,7 +95,7 @@ const API_STATE_DOC={
 };
 
 const API_RESULTS_DOC={
- pie:{type:'map',doc:'Orbit this compute (only with a rocket company): revenue, service per orbit customer, landing dishes, flows through the sky, backhaul for cut-off POPs (bh), crust and dish load, government money (gov).'},
+ pie:{type:'map',doc:'Orbit this compute (only with a rocket company): revenue (rev, including patchy: {mo, cr} from patchy-sky customers who pay from 10% coverage, before a crust carries anything, and fade out between 40% and 60%), service per orbit customer, landing dishes, flows through the sky, backhaul for cut-off POPs (bh), crust and dish load, government money (gov).'},
  nt:{type:'map',doc:'Traffic per network through transit, by net id.'},
  tNet:{type:'map',doc:'Traffic per network you hand to each upstream, by "net@upstream".'},
  reachNT:{type:'number',doc:'Networks reachable without transit.'},
