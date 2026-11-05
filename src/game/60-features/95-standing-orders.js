@@ -186,7 +186,11 @@ const OPS_RUN={
  // augment lands weeks later, so that port waits for it. A flood fills ports for a day or two: not worth buying for.
  *ports(X){if(ddosAll().length||!X.can('ports',1,0,true))return;const N=opsP('ports','x'),L=[],
    // Router ports that pending PNI augments will take when they land are spoken for.
-   resv=c=>S.pni.reduce((a,p)=>p.up&&p.city===c?a+Math.max(0,PORT_SLOT(p.up.tier)*(p.up.n||1)-PORT_SLOT(p.tier)*(p.n||1)):a,0),room=c=>portsMax(c)-portsUsed(c)+1e-9-resv(c);
+   // Both, by city, are worked out once between two jobs (a job may change them; KV is dropped after each), in the order
+   // the PNIs come, as the sum over them was: the same numbers.
+   KV={rv:null,pu:new Map()},
+   resv=c=>{if(!KV.rv){KV.rv=new Map();for(const p of S.pni)if(p.up)KV.rv.set(p.city,(KV.rv.get(p.city)||0)+Math.max(0,PORT_SLOT(p.up.tier)*(p.up.n||1)-PORT_SLOT(p.tier)*(p.n||1)));}return KV.rv.get(c)||0;},
+   used=c=>{let u=KV.pu.get(c);if(u===undefined)KV.pu.set(c,u=portsUsed(c));return u;},room=c=>portsMax(c)-used(c)+1e-9-resv(c);
    // Each port: cap() now, use today, lag() and ups() the jobs it could have as {cost, cap after, w for the log, go}, sig() to see a job took.
    for(const p of S.pni){const c=p.city,use=(R.usePni[p.id]||0)*opsAhead(),cap=()=>lagCap(pniG(p),p.n),n=()=>p.n||1;if(!pniOn(p)||p.up||!(use>0)||cap()>=N*use||!opsHere('ports',c))continue;
      L.push({city:c,at:c,use,u:use/cap(),cap,n,rt:(S.pops[c]||{}).routers||1,busy:()=>!!p.up,sig:()=>[p.tier,n(),!!p.g1,!!p.up].join(),
@@ -202,8 +206,8 @@ const OPS_RUN={
          out.push({cost:ixPortMo(x,t)*n(),cap:cap()*lagCap(PORT[t].g,n())/lagCap(g(),n()),w:PORT[t0].n+'→'+PORT[t].n,go:()=>ACT.buyIx({city:x,tier:t})});}return out;}});}
    for(const o of L.sort((a,b)=>b.u-a.u))for(let step=0;step<3&&!o.busy()&&o.cap()<N*o.use;step++){
      const lag=o.lag(),wantLag=o.n()<2&&o.rt>1,ups=wantLag&&lag?null:o.ups(),fit=ups&&(ups.find(u=>u.cap>=N*o.use)||ups.at(-1)),job=wantLag?lag||fit:fit||lag,was=o.sig();
-     if(!job||!X.can('ports',job.cost)||!X.pay('ports',()=>{job.go();return o.sig()!==was;}))break;
-     X.did('ports',o.at+' '+job.w);yield;}},
+     if(!job||!X.can('ports',job.cost)||!X.pay('ports',()=>{job.go();return o.sig()!==was;})){KV.rv=null;KV.pu.clear();break;}
+     KV.rv=null;KV.pu.clear();X.did('ports',o.at+' '+job.w);yield;}},
  *optics(X){const at=opsP('optics','at')/100,big=opsP('optics','pick')==='big',gpd=(o,l)=>optG(o,l)/optCost(o);
    for(const l of S.links){if(l.kind!=='df'||l.ready>S.day||l.eqDown>S.day||l.standby||l.cut>S.day)continue;
      let cap=dfCap(l);const load=((R.load&&R.load[l.id])||0)*opsAhead();
