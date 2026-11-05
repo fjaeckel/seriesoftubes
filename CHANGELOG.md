@@ -22,6 +22,7 @@ All notable changes to this project are documented here. The project follows
 - Big networks no longer freeze for a moment at every new game day, above all with a NOC intern on duty. The intern now plans cache boxes, router ports and PNIs for every POP in one pass. On a network of 180 POPs a day used to hold the page for about 0.2 seconds on a computer and up to 2 seconds on a phone; it now takes a few hundredths of a second, so ×8 really plays faster. The game plays exactly as before.
 - While nothing moves on the map but its animations (packets, waves, clouds), it is drawn 30 times a second instead of at the screen's full rate, half the work on most screens and a quarter on 120 Hz phones. Moving the map, pointing at something or anything changing on the network still gets every frame, and the animations keep their speed.
 - A paused game no longer rewrites its save every 5 seconds when nothing has changed. On a big network each of those writes held the page for 20 to 30 milliseconds.
+- Routing a big network's day takes about a quarter less work when Auto-TE is on, with exactly the same results.
 
 ## [3.0.0] — 2026-11-06
 

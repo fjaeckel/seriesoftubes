@@ -41,12 +41,14 @@ function rcReachPut(X,R2){const r=X.reach;Object.assign(R2.reachable,r.reachable
 // Keep what was built (on a miss): okBy, the exit lists (each shared list once), each network's lists by rank, DSEL, RSET.
 function rcExitKeep(key,E,okBy,reach,LIST,BRJ,DSEL,RSET){const ok=[];for(let j=0;j<NET_IDS.length;j++)ok[j]=rcIx(okBy[NET_IDS[j]],E);
   const id=new Map(),lists=[];for(const V of LIST.values()){id.set(V,lists.length);
-    if(V.cs){const cs=[];for(let k=0;k<V.cs.length;k++)if(V.cs[k])cs[k]=rcIx(V.cs[k],E);lists.push({cs,a:null});}else lists.push({cs:null,a:rcIx(V,E)});}
+    if(V.cs){const cs=[],ord=[];for(let k=0;k<V.cs.length;k++)if(V.cs[k]){cs[k]=rcIx(V.cs[k],E);ord[k]=[];}lists.push({cs,a:null,ord});}else lists.push({cs:null,a:rcIx(V,E),ord:[]});}
   const brj=BRJ.map(m=>{const o=[];for(const r in m)o.push(r,id.get(m[r]));return o;});
   RC.xk=key;RC.x={ok,reach,lists,brj,DSEL,RSET:[...RSET]};}
 // Fresh lists for today's exits from a kept build.
-function rcExitLists(X,E,BRJ,DSEL,RSET){const V=X.lists.map(d=>{if(d.cs){const cs={cs:[]};for(let k=0;k<d.cs.length;k++)if(d.cs[k]){const s=rcEx(d.cs[k],E);exIdx(s);cs.cs[k]=s;}return cs;}
-    const L=rcEx(d.a,E);exIdx(L);return L;});
+// Each list also gets the orders kept with it (ord: by source city, the list in the order routing tries it, see xOrder()
+// in 30-compute.js), filled in as routing asks for them.
+function rcExitLists(X,E,BRJ,DSEL,RSET){const V=X.lists.map(d=>{if(d.cs){const cs={cs:[]};for(let k=0;k<d.cs.length;k++)if(d.cs[k]){const s=rcEx(d.cs[k],E);exIdx(s);s.ord=d.ord[k];cs.cs[k]=s;}return cs;}
+    const L=rcEx(d.a,E);exIdx(L);L.ord=d.ord;return L;});
   for(let j=0;j<X.brj.length;j++){const o=X.brj[j],m={};for(let k=0;k<o.length;k+=2)m[o[k]]=V[o[k+1]];BRJ[j]=m;}
   for(const [r,a] of X.DSEL)DSEL.set(r,a);for(const r of X.RSET)RSET.add(r);}
 function rcOkBy(X,E){const okBy={};for(let j=0;j<NET_IDS.length;j++)okBy[NET_IDS[j]]=rcEx(X.ok[j],E);return okBy;}

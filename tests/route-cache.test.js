@@ -86,3 +86,22 @@ test('days in a row reuse the kept tables and route like a fresh start every day
   }
   assert.deepEqual(errors, []);
 });
+
+test('with Auto-TE, kept orders and the no-detour marks route like a fresh start every day', () => {
+  // The routing core (29-route-core.js) keeps each list's order for each city with the tables, and Auto-TE marks the
+  // pairs with no detour: both have to give exactly what scanning and searching afresh give. The network is made busy
+  // (half its link capacity) so that flows spill, detours are searched and many fail.
+  const { ev, errors } = open();
+  ev("S.core.run=2;S.te={on:true,day:S.day,script:'spill at 85%'};for(const b of S.biz)if(BIZ_T[b.type].l2&&b.city2)b.route='scenic';for(const l of S.links)if(l.kind==='wave')l.cap=(l.cap||0)/2;compute();compute();");
+  assert.equal(ev('!!(S.te.on&&coreTE())'), true);
+  let tried = 0;
+  for (let d = 0; d < 4; d++) {
+    ev('dayTick()');
+    const r = step(ev, '');
+    assert.ok(r.same, `day ${d}: the same routing with and without the kept tables`);
+    assert.ok(!r.g && !r.x, `day ${d}: a day of demand only keeps the tables`);
+    tried = Math.max(tried, ev('R.teMoved'));
+  }
+  assert.ok(tried > 0, 'Auto-TE moved traffic onto detours');
+  assert.deepEqual(errors, []);
+});
