@@ -70,29 +70,29 @@ jobs:
           until_up() { for i in $(seq 1 60); do curl -s -o /dev/null "$1" && return 0; sleep 1; done; docker logs "$2"; exit 1; }
 
           # Headless, with a token: refused without it, answered with it.
-          docker run -d --name h -p 127.0.0.1:7777:7777 -e MCP_MODE=headless -e SOT_MCP_TOKEN=ci-token sot:test
-          until_up http://127.0.0.1:7777/ h
+          docker run -d --name sot-h -p 127.0.0.1:7777:7777 -e MCP_MODE=headless -e SOT_MCP_TOKEN=ci-token sot:test
+          until_up http://127.0.0.1:7777/ sot-h
           test "$(mcp)" = 401
           test "$(mcp -H 'authorization: Bearer ci-token')" = 200
           grep -q serverInfo /tmp/out
-          docker rm -f h
+          docker rm -f sot-h
 
           # No token given: the container makes one, says so, and wants it.
-          docker run -d --name t -p 127.0.0.1:7777:7777 -e MCP_MODE=headless sot:test
-          until_up http://127.0.0.1:7777/ t
+          docker run -d --name sot-t -p 127.0.0.1:7777:7777 -e MCP_MODE=headless sot:test
+          until_up http://127.0.0.1:7777/ sot-t
           test "$(mcp)" = 401
-          tok=$(docker logs t 2>&1 | sed -n "s/.*this run's token is //p" | head -1)
+          tok=$(docker logs sot-t 2>&1 | sed -n "s/.*this run's token is //p" | head -1)
           test -n "$tok"
           test "$(mcp -H "authorization: Bearer $tok")" = 200
-          docker rm -f t
+          docker rm -f sot-t
 
           # Browser mode: the development page and the MCP server.
-          docker run -d --name b -p 127.0.0.1:8080:8080 -p 127.0.0.1:7777:7777 -e SOT_MCP_TOKEN=ci-token sot:test
-          until_up http://127.0.0.1:8080/ b
+          docker run -d --name sot-b -p 127.0.0.1:8080:8080 -p 127.0.0.1:7777:7777 -e SOT_MCP_TOKEN=ci-token sot:test
+          until_up http://127.0.0.1:8080/ sot-b
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/)" = 200
-          until_up http://127.0.0.1:7777/ b
+          until_up http://127.0.0.1:7777/ sot-b
           test "$(mcp -H 'authorization: Bearer ci-token')" = 200
-          docker rm -f b
+          docker rm -f sot-b
 
           # The server runs as node, not root.
           test "$(docker run --rm --entrypoint id sot:test -u)" != 0
