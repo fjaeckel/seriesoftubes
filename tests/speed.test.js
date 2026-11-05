@@ -238,6 +238,22 @@ test('payday money floaters fade after a long pause instead of piling up', () =>
   assert.deepEqual(errors, []);
 });
 
+test("a new network starts without the last one's money floating over its map", () => {
+  const { ev, errors } = load();
+  bigNet(ev);
+  ev("closeModal();ACT.animSet({v:'on'});setPref('pauseFurious',false);setPref('pauseIncident',false);window.__clk=5000;performance.now=()=>__clk;last=__clk;UI.speed=1");
+  const run = (ms) => { for (let t = 0; t < ms; t += 16) ev('__clk+=16;frame(__clk)'); };
+  run(2000);
+  ev('while(cal(S.day+1).d!==1)dayTick();acc=DAY_MS');
+  run(16);
+  assert.ok(ev('FLOATS.length') > 0, 'payday shows the money');
+  // A new game straight away: it waits, paused, for the player's first POP, and the clock of the floaters with it.
+  ev("ACT.newgame();ACT.start({});closeModal();UI.speed=0");
+  run(100);
+  assert.equal(ev('FLOATS.length'), 0, "the old network's floaters are gone");
+  assert.deepEqual(errors, []);
+});
+
 test('the map is not drawn while the dashboard covers the whole screen', () => {
   const { ev, errors } = load();
   bigNet(ev);

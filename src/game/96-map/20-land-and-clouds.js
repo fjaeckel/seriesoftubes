@@ -18,4 +18,6 @@ const CLOUDS=Array.from({length:7},(_,i)=>({x:R1()*W,y:60+R1()*(H-120),s:.7+R1()
 const FLOATS=[];
 // Stamped with the map's animation clock, which stops while paused: on the real clock, every floater born after a
 // pause lingered off-screen for as long as the pause had lasted, and paydays piled up hundreds of them.
-function floater(x,y,text,col){if(!animOn()||UI.mapHid)return;FLOATS.push({x,y,text,col,t:animT});}
+// Each belongs to the network that raised it (s): a new game starts paused, and the last one's, frozen with the clock,
+// stayed on its map until a reload.
+function floater(x,y,text,col){if(!animOn()||UI.mapHid)return;FLOATS.push({x,y,text,col,t:animT,s:S});}

@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Starting a new network no longer leaves the last one's "New POP!" and money pop-ups frozen all over the map until a reload.
+
 ## [2.10.1] — 2026-11-05
 
 - "Meet halfway" on a renewal now offers the price halfway between what the customer pays and what they ask, and the button shows it before you press (#293).
