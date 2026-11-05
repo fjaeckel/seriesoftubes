@@ -65,3 +65,17 @@ test('#203 a dark fiber, cable or wave cannot be ordered to a city the map does 
   assert.equal(ev(`S.links.some(l=>l.b==='${off}'||l.a==='${off}')`), false);
   assert.deepEqual(errors, []);
 });
+
+test('#203 a dark fiber lease costs more, and a lease already signed keeps its price', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;S.lvl=4;for(const c of ['fra','ams'])if(!S.pops[c])ACT.buildPop({city:c})");
+  assert.equal(ev('dfLeaseMo(1000)'), 2100);
+  ev("UI.pending={a:'fra',b:'ams'};UI.dfSrc='lease';UI.dfSys='lite';ACT.orderDf()");
+  const km = ev("S.links.find(l=>l.kind==='df').km");
+  assert.equal(ev("S.links.find(l=>l.kind==='df').mo"), Math.round(600 + km * 1.5));
+  // An old save's lease, signed at the old price, keeps it.
+  const old = Math.round(400 + km);
+  ev(`S.links.find(l=>l.kind==='df').mo=${old};S=migrate(JSON.parse(JSON.stringify(S)))`);
+  assert.equal(ev("S.links.find(l=>l.kind==='df').mo"), old);
+  assert.deepEqual(errors, []);
+});
