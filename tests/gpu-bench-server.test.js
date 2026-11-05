@@ -21,7 +21,7 @@ function req(port, { method = 'GET', p = '/', host, headers = {}, body } = {}) {
 
 test('the benchmark server answers only its own page', async (t) => {
   const port = 20000 + Math.floor(Math.random() * 20000), out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'bench-')), 'out.md');
-  const srv = spawn(process.execPath, [path.join(ROOT, 'scripts', 'gpu-bench.js'), '--port', String(port), '--out', out], { stdio: ['ignore', 'pipe', 'pipe'] });
+  const srv = spawn(process.execPath, [path.join(ROOT, 'scripts', 'gpu-bench.js'), '--port', String(port), '--host', '127.0.0.1', '--out', out], { stdio: ['ignore', 'pipe', 'pipe'] });
   let log = ''; srv.stdout.on('data', (c) => { log += c; }); srv.stderr.on('data', (c) => { log += c; });
   t.after(() => srv.kill());
   for (let i = 0; i < 100 && !/Ctrl\+C/.test(log); i++) await new Promise((r) => setTimeout(r, 100));
