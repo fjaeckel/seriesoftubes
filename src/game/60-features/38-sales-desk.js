@@ -43,8 +43,9 @@ function salesShape(n0){const p=slP();if(!p)return;for(let i=S.offers.length-1;i
 // A promise nobody checked: a requirement this deal can have, that the network does not meet today.
 function salesPromise(o){const T=BIZ_T[o.type],pool=Object.keys(REQS).filter(k=>!(o.reqs||[]).includes(k)&&!REQS[k].only&&(!REQS[k].l2||T.l2)&&(!REQS[k].ip||!T.l2)&&reqCan(k,o)).sort();
   const no=pool.filter(k=>{try{return !REQS[k].ok(o);}catch(e){return false;}});return no.length?no[Math.floor(slR('promise|'+slKey(o))*no.length)]:null;}
-// Their mark at renewal: how much likelier the customers they signed are to leave.
-function salesLeaveMul(b){if(b.by==='eng')return SALES_NERDS.includes(b.type)?0.5:0.75;if(b.by==='shark')return 1.5;if(b.by==='ceo')return 1.25;return 1;}
+// Their mark at renewal: how much likelier the customers they signed are to leave. The engineer's orbit customers, sold
+// only where a dish had room to spare, stay like the nerds do.
+function salesLeaveMul(b){if(b.by==='eng')return SALES_NERDS.includes(b.type)||BIZ_T[b.type].orbit?0.5:0.75;if(b.by==='shark')return 1.5;if(b.by==='ceo')return 1.25;return 1;}
 // Haggles with whoever is at the desk now: how deep the discount they ask, and how often meeting halfway works.
 const salesAsk=()=>slP()==='eng'?0.72:0.8;
 const salesMeet=()=>({shark:0.9,eng:0.5,ceo:0.55})[slP()]||0.65;
@@ -61,8 +62,9 @@ function salesDay(d){const L=S.sales;if(!L)return;
   if(p==='ceo'){if(!(L.golf>=d))L.golf=d+50+Math.floor(slR('golf|'+d)*30);else if(d===L.golf){salesGolf(d);L.golf=d+50+Math.floor(slR('golf|'+d)*30);}
     if(!(L.say>=d))L.say=d+20+Math.floor(slR('say|'+d)*15);else if(d===L.say){toast(tr('sales.ceo_says',{say:tr(SALES_SAY[Math.floor(slR('sayl|'+d)*SALES_SAY.length)])}),'');L.say=d+20+Math.floor(slR('say|'+d)*15);}}}
 // The golf course: the biggest internet customer this network can take, in its biggest city, at 30% off, signed on the spot.
+// With a rocket company, every other game is with the Founder, and in orbit (pieGolf, 99-pie-sales.js).
 const SALES_GOLF=['metav','cgame','gpu','stream','isp','edu','host','dia'];
-function salesGolf(d){const mine=Object.keys(S.pops).filter(c=>popUp(c)&&bizCity(c));if(!mine.length)return;
+function salesGolf(d){if(pieGolf(d))return;const mine=Object.keys(S.pops).filter(c=>popUp(c)&&bizCity(c));if(!mine.length)return;
   const t=SALES_GOLF.find(x=>(BIZ_T[x].lv||1)<=lvl());if(!t)return;const T=BIZ_T[t],city=mine.sort((a,b)=>CITY[b].P-CITY[a].P||(a<b?-1:1))[0];
   const list=(T.names||BIZ_N).filter(n=>!S.usedNames.includes(n));const name=list.length?list[Math.floor(slR('golfn|'+d)*list.length)]:(T.names||BIZ_N)[0];useName(name);
   const o={id:uid(),city,city2:null,name,type:t,bw:T.opts[T.opts.length-1],rate:Math.round((CITY[city].au?T.rate*AU_ARPU:T.rate)*mkt()*0.7),reqs:[],exp:d+40};
@@ -74,4 +76,4 @@ function salesOverride(o){if(slP()!=='ceo'||!o||!bHas(o)||BIZ_T[o.type].event||s
 // Saves: who is at the desk, the VP on the way, the CEO's calendar; who brought each offer and signed each customer.
 function salesFix(s){const L=s.sales&&typeof s.sales==='object'&&!Array.isArray(s.sales)?s.sales:{},n=v=>Number.isInteger(v)&&v>=0&&v<1e7?v:null;
   s.sales={p:own(SALES,L.p)?L.p:null,hired:n(L.hired)||0,vp:L.p==='ceo'?n(L.vp):null,golf:n(L.golf),say:n(L.say)};
-  for(const x of [...s.biz,...s.offers])if(x.by!==undefined&&!own(SALES,x.by))delete x.by;}
+  for(const x of [...s.biz,...s.offers])if(x.by!==undefined&&!own(SALES,x.by))delete x.by;slAutoFix(s);}

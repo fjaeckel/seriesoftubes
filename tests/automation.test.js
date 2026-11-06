@@ -3,29 +3,29 @@ const assert = require('node:assert/strict');
 const { load } = require('./harness');
 const { lit } = require('../scripts/lib/js-literal');
 
-// #185's sales and repair engines now run as the NOC intern's standing orders, once per game day.
+// #185's engines: the repair one is the NOC intern's standing order, the sales one belongs to the sales desk
+// (39-sales-auto.js). Here the engineer, who signs only what the trial says the network can serve, as #185 did.
 function setup(ev) {
-  ev("ACT.start({});S.cash=1e8;S.offers=[];S.biz=[];S.nextFail=S.nextEvent=1e6;for(const g of GOALS)S.done[g.id]=0;S.pops.fra.rgen=3;ACT.buyTransit({city:'fra',net:'lvl',tier:1});S.lvl=2;S.ops.intern='kevin';S.ops.floor=0;S.rules=makeRules('freeze');compute()");
+  ev("ACT.start({});S.cash=1e8;S.offers=[];S.biz=[];S.nextFail=S.nextEvent=1e6;for(const g of GOALS)S.done[g.id]=0;S.pops.fra.rgen=3;ACT.buyTransit({city:'fra',net:'lvl',tier:1});S.lvl=2;S.ops.intern='kevin';S.ops.floor=0;S.rules=makeRules('freeze');ACT.salesHire({id:'eng'});compute()");
 }
-const orders = (ev, on) => ev(`for(const k of ${lit(on)})S.ops.on[k]=true`);
-const shift = ev => ev('opsDay(S.day)');
+const shift = ev => ev('slAutoDay(S.day);opsDay(S.day)');
 function offer(ev, id, extra = {}) {
   ev(`S.offers.push(${lit({ id, city: 'fra', name: id, type: 'dia', bw: 1, rate: 600, reqs: [], exp: 30, ...extra })})`);
 }
 
-test('the sales order signs ready offers once per shift, and pausing it stops it', () => {
+test('the sales desk signs ready offers once a day, and switching it off stops it', () => {
   const { ev, dom, errors } = load();
   setup(ev);
   offer(ev, 'first');
   shift(ev);
   assert.equal(ev('S.biz.length'), 0, 'off by default');
-  orders(ev, ['sales']);
+  ev('ACT.salesAuto()');
   shift(ev);
   assert.equal(ev('S.biz[0].id'), 'first');
-  ev("ACT.opsToggle({k:'sales'})");
+  ev('ACT.salesAuto()');
   offer(ev, 'off');
   ev('dayTick()');
-  assert.equal(ev('S.biz.length'), 1, 'a paused order signs nothing');
+  assert.equal(ev('S.biz.length'), 1, 'switched off, it signs nothing');
   assert.ok(ev("S.offers.some(o=>o.id==='off')"));
   assert.deepEqual(errors, []);
   dom.window.close();
@@ -41,7 +41,7 @@ test('the trial includes new bandwidth and later offers cannot overbook earlier 
   assert.equal(ev('!!autoOffer(S.offers[0])'), true);
   assert.equal(ev('JSON.stringify(S)'), state);
   assert.equal(ev('S===beforeState&&R===beforeResult&&UI.hotMap===beforeHot'), true);
-  ev('S.ops.on.sales=true;opsDay(S.day)');
+  ev('S.slAuto.on=true;slAutoDay(S.day)');
   assert.equal(ev('S.biz.length'), 1);
   assert.equal(ev('S.offers[0].id'), 'two');
   assert.ok(ev('bizSf(S.biz[0])') >= 0.95);
@@ -49,7 +49,7 @@ test('the trial includes new bandwidth and later offers cannot overbook earlier 
   dom.window.close();
 });
 
-test('the sales order checks actual circuits, latency and NNI capacity', () => {
+test('the sales desk checks actual circuits, latency and NNI capacity', () => {
   const { ev, dom, errors } = load();
   setup(ev);
   ev("ACT.buildPop({city:'ams'});S.pops.ams.rgen=3;compute()");
@@ -65,7 +65,7 @@ test('the sales order checks actual circuits, latency and NNI capacity', () => {
   offer(ev, 'fabric-one', { type: 'fabip', prov, bw: bandwidth, reqs: ['nni'] });
   offer(ev, 'fabric-two', { type: 'fabip', prov, bw: bandwidth, reqs: ['nni'] });
   // Transit has enough headroom, so the second rejection is the shared NNI port.
-  ev("S.transit[0].tier=4;compute();S.ops.on.sales=true;opsDay(S.day)");
+  ev("S.transit[0].tier=4;compute();S.slAuto.on=true;slAutoDay(S.day)");
   assert.equal(ev('S.biz.length'), 1);
   assert.equal(ev('S.offers[0].id'), 'fabric-two');
   assert.ok(ev("nniUsed('fra',fabric)<=NNI[0].g"));
@@ -95,7 +95,7 @@ test('fiber sales check live equipment and free spectrum, and repeated carrier o
   assert.equal(ev('!!autoOffer(S.offers[0])'), false);
   ev("S.offers[0].slots=1;S.offers[0].name='Same Carrier';S.links[0].eqDown=10;compute()");
   assert.equal(ev('!!autoOffer(S.offers[0])'), false, 'a broken amplifier prevents a wave sale');
-  ev('S.links[0].eqDown=0;compute();S.ops.on.sales=true;opsDay(S.day)');
+  ev('S.links[0].eqDown=0;compute();S.slAuto.on=true;slAutoDay(S.day)');
   assert.equal(ev('S.biz.length'), 1);
   assert.equal(ev('S.biz[0].slots'), 2);
   assert.equal(ev('S.biz[0].rate'), 1600);
@@ -111,7 +111,7 @@ test('capacity pair sales need completed infrastructure and reserve it for the a
   assert.equal(ev('!!autoOffer(S.offers[0])'), false);
   ev("ACT.buildPop({city:'ams'});S.links=[{id:'own',a:'fra',b:'ams',kind:'df',own:true,sys:'roadm',ch:[],km:450,sub:false,ready:0,cut:0,mo:1}];compute()");
   assert.equal(ev('!!autoOffer(S.offers[0])'), true);
-  ev('S.ops.on.sales=true;opsDay(S.day)');
+  ev('S.slAuto.on=true;slAutoDay(S.day)');
   assert.equal(ev('S.biz[0].link'), 'own');
   assert.equal(ev('capPend(S.biz[0])'), true, 'normal delivery handover still happens on a game day');
   offer(ev, 'second-pairs', { type: 'capfib', city2: 'ams', slots: 2, win: 90 });
@@ -125,7 +125,7 @@ test('future event demand is tested before signing, with booked events reserving
   setup(ev);
   offer(ev, 'event', { type: 'event', bw: 80, rate: 0, start: 10, dur: 3, fee: 5000, exp: 9 });
   assert.equal(ev('!!autoOffer(S.offers[0])'), true);
-  ev('S.ops.on.sales=true;opsDay(S.day)');
+  ev('S.slAuto.on=true;slAutoDay(S.day)');
   assert.equal(ev('S.biz[0].start'), 10, 'the trial does not move the actual event date');
   assert.equal(ev('R.cityDem.fra'), 0);
   offer(ev, 'too-large', { bw: 30 });
@@ -184,7 +184,7 @@ test('the repair order rushes affordable repairs once, skips unaffordable and ex
   dom.window.close();
 });
 
-test('the sales order leaves unready and expired offers alone without failure notifications', () => {
+test('the sales desk leaves unready and expired offers alone without failure notifications', () => {
   const { ev, dom, errors } = load();
   setup(ev);
   offer(ev, 'generator', { reqs: ['gen'] });
@@ -193,11 +193,11 @@ test('the sales order leaves unready and expired offers alone without failure no
   offer(ev, 'expired', { exp: 0 });
   offer(ev, 'ipv6', { reqs: ['ipv6'] });
   const log = ev('S.log.length');
-  ev('S.ops.on.sales=true;opsDay(S.day)');
+  ev('S.slAuto.on=true;slAutoDay(S.day)');
   assert.equal(ev('S.biz.length'), 0);
   assert.equal(ev('S.offers.length'), 5);
-  assert.equal(ev('S.log.length'), log, 'no failed manual-action toasts and no shift line when nothing got done');
-  ev('S.pops.fra.gen=true;compute();opsDay(S.day)');
+  assert.equal(ev('S.log.length'), log, 'no failed manual-action toasts and no notice when nothing got done');
+  ev('S.pops.fra.gen=true;compute();slAutoDay(S.day)');
   assert.equal(ev('S.biz.length'), 1);
   assert.equal(ev('S.biz[0].id'), 'generator');
   // Manual acceptance keeps its existing sign-now, provision-later behavior.
@@ -207,15 +207,17 @@ test('the sales order leaves unready and expired offers alone without failure no
   dom.window.close();
 });
 
-test('the #185 toggles in old saves become the sales and repair orders, malformed ones stay off', () => {
+test('#185\'s auto-repair toggle in old saves becomes the repair order; its auto-accept, which never ran without an intern, goes', () => {
   const { ev, dom, errors } = load();
   setup(ev);
-  ev("delete S.ops;S.autoSales=true;S.autoRepair=true;S=migrate(JSON.parse(JSON.stringify(S)))");
-  assert.equal(ev('S.ops.on.sales&&S.ops.on.repair'), true);
+  ev("delete S.ops;delete S.slAuto;S.autoSales=true;S.autoRepair=true;S=migrate(JSON.parse(JSON.stringify(S)))");
+  assert.equal(ev('S.ops.on.repair'), true);
+  assert.equal(ev("'sales' in S.ops.on"), false, 'the intern has no sales order any more');
+  assert.equal(ev('S.slAuto.on'), false, 'nothing signs on its own that did not before');
   assert.equal(ev("'autoSales' in S||'autoRepair' in S"), false);
   assert.equal(ev('S.ops.intern'), null, 'no intern until you hire one, so nothing runs yet');
   ev("delete S.ops;S.autoSales='true';S.autoRepair=1;S=migrate(S)");
-  assert.equal(ev('S.ops.on.sales||S.ops.on.repair'), false);
+  assert.equal(ev('S.ops.on.repair'), false);
   assert.deepEqual(errors, []);
   dom.window.close();
 });

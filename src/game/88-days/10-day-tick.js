@@ -52,6 +52,8 @@ function dayPost(d){
     if(sf>=0.95&&reachOk&&scrubOk&&divOk)b.mood=Math.min(100,b.mood+2);
     else if(S.day-(b.since||0)<15){}
     else{const dm=frr*(Math.max(0,0.95-sf)*45+(!reachOk?3:0)+(!scrubOk?4:0)+(!divOk?3:0));b.mood-=BIZ_T[b.type].orbit?Math.min(dm,PIE_PATIENCE):dm;
+      // An orbit customer served in full but promised more (the shark's full sky) grumbles, and never cancels over it.
+      if(BIZ_T[b.type].orbit&&sf>=0.95&&reachOk)b.mood=Math.max(b.mood,Math.min(b.pm,PIE_GRUMBLE));
       if(b.mood<=0){S.biz=S.biz.filter(x=>x!==b);toast(tr('day_tick.name_cancelled_too_many_outages_and',{name:esc(b.name),city:CITY[b.city].name}),'bad');sfx('err');}
       else if(b.mood<30&&!b.warned){b.warned=b.warn60=true;const why=bizWhy(b)[0],paused=pref('pauseFurious')&&autoPause();
         toast(tr('day_tick.name_is_furious_fix_service_in',{name:esc(b.name),city:CITY[b.city].name})+(why?`<br><i>${esc(why)}</i>`:'')+(paused?`<br><b>${tr('common.game_paused')}</b>`:''),'bad',[{l:tr('common.show_me'),act:'custGo',args:{id:b.id}}].concat(paused?[resumeAct()]:[]));sfx('err');}
@@ -82,6 +84,8 @@ function dayPost(d){
   if(cm&&d>45&&scnRule('anchors')){const n=S.links.filter(l=>l.kind!=='vxc'&&!linkDown(l)&&anchorProne(l)).length;if(n&&Math.random()<Math.min(5,+S.scn.rules.anchors||1)*n/365){dirty=true;fireFailure('cut');}}
   if(cm&&d>=S.nextEvent){dirty=true;fireEvent();S.nextEvent=d+Math.round((45+Math.floor(Math.random()*45))/cm);}
   if(dirty)compute();
+  // the sales desk signs and declines deals, when the player lets it (39-sales-auto.js), then the intern's shift sees them
+  slAutoDay(d);
   opsDay(d);
   if(S.pie){pieDay(d);pieTier();}
   // payday floaters

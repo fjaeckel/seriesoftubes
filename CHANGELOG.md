@@ -29,6 +29,8 @@ All notable changes to this project are documented here. The project follows
 - Pie Control has four tabs in one row that fits a phone: Traffic, Company, Launch and Dishes. The Founder's posts and your orbit books moved into the Company tab.
 - Your own subsea cables now land right on the city's dot, also in Fujairah, Dubai, Karachi, Barcelona, Osaka and other cities the map shifts slightly so they do not overlap (#305).
 - Starting a new network no longer leaves the last one's "New POP!" and money pop-ups frozen all over the map until a reload.
+- Deals belong to Sales now: the NOC intern sticks to the network, and your salesperson can sign deals for you, orbit customers included. Open the sales desk in Deals, switch on Sign deals and pick a minimum below which offers are declined: the engineer signs only what your network can serve, the shark signs everything at once (promises and commission included), and the CEO signs what fits but now and then has already shaken hands on an offer you would have declined. If your intern used to handle sales, that setting moved to the sales desk; with nobody running sales you sign by hand, as before.
+- Your salesperson now sells for your rocket company too. The engineer only sells where a pie dish has room to spare, and those customers stay longer; the shark goes after airlines and cruise lines at the biggest size and a quarter more, and promises half of them a full sky before you have one, so they grumble until you do; the CEO plays every other round of golf with the Founder and comes back with the biggest orbit deal that fits (the Mars mission first) at 30% off, unless the markets are jumpy, which costs him.
 
 ## [2.10.1] — 2026-11-05
 

@@ -22,14 +22,15 @@ function pieOfferTypes(){if(!pieOn()||!R||!R.pie||!R.pie.hubs.length||!pieDishes
 // Cities a terminal could sit in: cruise ships call at the coast, airlines at big airports, homes anywhere.
 function pieCands(t){if(t==='boat')return CITIES.filter(c=>c.beach||pieCoast(c.id));if(t==='flywifi')return CITIES.filter(c=>c.P>=250);return CITIES;}
 // The size fits the market left and the room on the dish it would land on (offers on the table count as taken).
-function pieSpawn(t){const T=BIZ_T[t],min=T.opts[0],ok=pieCands(t).filter(c=>{if(c.cn)return false;const L=pieServe(c.id,t);return !!L&&L.left>=min;});if(!ok.length)return;
+// Whoever runs sales has a say (99-pie-sales.js): the room they will sell, the size they ask for, how they dress it up.
+function pieSpawn(t){const T=BIZ_T[t],min=T.opts[0],ok=pieCands(t).filter(c=>{if(c.cn)return false;const L=pieServe(c.id,t);return !!L&&pieSlRoom(L)>=min;});if(!ok.length)return;
   const far=ok.filter(c=>!S.pops[c.id]&&c.P<=60),city=(far.length&&Math.random()<PIE_REMOTE?pick(far):pick(ok)).id;
-  const left=Math.min(pieRoom(t),pieServe(city,t).left-S.offers.reduce((a,o)=>a+(BIZ_T[o.type].orbit?o.bw:0),0)),opts=T.opts.filter(g=>g<=left),bw=opts.length?pick(opts):0;if(!bw)return;
+  const left=Math.min(pieRoom(t),pieSlRoom(pieServe(city,t))-S.offers.reduce((a,o)=>a+(BIZ_T[o.type].orbit?o.bw:0),0)),opts=T.opts.filter(g=>g<=left),bw=opts.length?pieSlSize(opts):0;if(!bw)return;
   const list=T.names.filter(n=>!S.usedNames.includes(n)),name=list.length?pick(list):pick(T.names);useName(name);
-  S.offers.push({id:uid(),city,city2:null,name,type:t,bw,rate:T.rate,reqs:[],exp:S.day+40});}
+  const o={id:uid(),city,city2:null,name,type:t,bw,rate:T.rate,reqs:[],exp:S.day+40};pieSlShape(o);S.offers.push(o);}
 // Grand opening: the first PIE_OPEN_DAYS after a crust starts carrying traffic (crust.open, the day it first did), the phone
 // rings every day and up to PIE_OPEN_OFFERS wait, so regular customers sign while the patchy-sky income fades (99-pie-patchy.js).
 const PIE_OPEN_DAYS=30,PIE_OPEN_OFFERS=4;
 function pieOpening(){const P=S.pie;let on=false;for(const id of pieHubs()){const c=P.crusts[id];if(!c)continue;if(c.open===undefined&&pieCap(id)>0)c.open=S.day;if(c.open!==undefined&&S.day-c.open<PIE_OPEN_DAYS)on=true;}return on;}
-// Orbit has its own sales desk, so the ground's offers keep their odds: about one call every three days, two on the table at most.
-PIE_ON.day.push(()=>{const op=pieOpening();if(S.offers.filter(o=>BIZ_T[o.type].orbit).length>=(op?PIE_OPEN_OFFERS:PIE_OFFERS))return;const t=pieOfferTypes();if(t.length&&(op||Math.random()<PIE_OFFER_RATE*pieOfferMul()))pieSpawn(pick(t));});
+// Orbit offers come on top of the ground's, so the ground's offers keep their odds: about one call every three days, two on the table at most.
+PIE_ON.day.push(()=>{const op=pieOpening();if(S.offers.filter(o=>BIZ_T[o.type].orbit).length>=(op?PIE_OPEN_OFFERS:PIE_OFFERS))return;const t=pieOfferTypes();if(t.length&&(op||Math.random()<PIE_OFFER_RATE*pieOfferMul()))pieSpawn(pick(pieSlTypes(t)));});

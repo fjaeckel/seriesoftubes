@@ -31,7 +31,7 @@ hoisted across files, and top-level statements run in path order. Find code by n
 | `30-networks/` | Other ASes (`NETS`), rival exchanges (`XIX`), the long tail, traffic shares (`NSH`) |
 | `40-progress/` | Customer types (`BIZ_T`), `LEVELS` and their requirements, `GOALS`; the per-save ruleset (`S.rules`, `rule()`, `PRESETS`, `chaosMul()`, `leadDays()`) |
 | `50-state.js` | The globals `S`, `R`, `UI`; `emptyR()` |
-| `60-features/` | Banks and loans, scenarios and the weekly challenge, puzzles and the published weekly puzzle, conferences, the tutorial, traceroute, the share card, `newGame()`, the offer trial (`autoOffer()`), standing orders (`S.ops`, `opsDay()`, run from `dayTick()`), the sales desk (`S.sales`, `salesDay()`, `salesShape()` on new offers) |
+| `60-features/` | Banks and loans, scenarios and the weekly challenge, puzzles and the published weekly puzzle, conferences, the tutorial, traceroute, the share card, `newGame()`, the offer trial (`autoOffer()`), standing orders (`S.ops`, `opsDay()`, run from `dayTick()`), the sales desk (`S.sales`, `salesDay()`, `salesShape()` on new offers, orbit ones through `pieSlShape()`; signing for you: `S.slAuto`, `slAutoDay()`) |
 | `70-rules/` | Formatting helpers and market rules: exchanges, PNIs, the peering desk (requests answered by policy), peering policy and snubs, DE-KICKS, sold-out routes, hot ports and the Tier 1/2/3 rank |
 | `80-simulation/` | Dijkstra, RouteScript, where a DDoS flood goes (`ddosLoad()`/`ddosAfter()`, called by `compute()`), `compute()`, monthly prices, `sanitize()`/`migrate()`, customer requirements, events, the customer lifecycle (contracts, renewals, the bandwidth market, why customers leave), geography pricing and latency, second sites and service |
 | `85-incidents/` | `addInc()`, DDoS attacks (targets, sizes, scoring, the NOC card) and scrubbing, `fireFailure()`, `clearInc()`, `fireEvent()`, the chaos monkey, cable ships (`50-cable-ships.js`: a subsea cut sends a club ship from its port along the cable routes; voyages in `S.fleet`, drawn by `96-map/88-cable-ships.js`) |
@@ -117,6 +117,8 @@ never freezes the game.
    Then the NOC intern's standing orders (`opsDay()`), if one is hired: each order clicks the same `ACT`
    actions a player would, muted, within its monthly budget, and the shift recomputes once at the end, only if
    a job changed the network. An order that throws is paused; the day goes on. The NOC gets one notice a week.
+   Then the sales desk (`slAutoDay()`), if someone runs sales and the player lets them sign: deals are Sales', never
+   the intern's. Each salesperson signs in their own style (a routing trial a day, or the shark's sign-everything).
 5. Updates customer mood, churn and new offers; IX members join; loans tick.
 6. Every 30 days: bills the month (revenue minus costs) and checks for bankruptcy.
 7. Checks goals, level, badges and scenario end conditions.
