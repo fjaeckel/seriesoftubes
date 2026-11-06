@@ -18,25 +18,29 @@ const mkBonus=()=>Math.round(Math.min(2e6,Math.max(20000,(R.revMo||0)*0.5))/1000
 function mkWeak(l){const trc=l.trench||l.id,adj={};
   for(const x of S.links){if(x===l||(x.trench||x.id)===trc||linkDown(x))continue;(adj[x.a]||(adj[x.a]=[])).push(x.b);(adj[x.b]||(adj[x.b]=[])).push(x.a);}
   const seen=new Set([l.a]),q=[l.a];while(q.length){const c=q.pop();if(c===l.b)return false;for(const n of adj[c]||[])if(!seen.has(n)){seen.add(n);q.push(n);}}return true;}
-function mkTick(d){const M=S.monkey;if(!M)return;
+function mkTick(d){runNow(mkTickRun(d));}
+// The monkey's day as a step of the day: a snip's yield is the routing that tells what it cost.
+function* mkTickRun(d){const M=S.monkey;if(!M)return;
   if(!mkElig()){if(M.on)mkLeave('quiet');return;}
   // The first visit is spread by the ASN, not the dice, so a game's other luck stays exactly as it was.
   if(M.next==null)M.next=d+(mkSpicy()?180:270)+(S.asn||0)%120;
   if(!M.on){if(d<M.next)return;if(S.links.filter(l=>l.kind!=='vxc'&&!linkDown(l)).length<3){M.next=d+30;return;}mkArrive(d);return;}
   if(d>=M.until){mkLeave();return;}
-  if(d>=M.snip){mkSnip();M.snip=d+(mkSpicy()?rint(9,7):rint(14,11));}}
+  if(d>=M.snip){yield* mkSnipRun();M.snip=d+(mkSpicy()?rint(9,7):rint(14,11));}}
 function mkArrive(d){const M=S.monkey,cs=Object.keys(S.pops),len=mkSpicy()?rint(180,61):rint(120,121);
   S.stats.mkMet=(S.stats.mkMet||0)+1;
   Object.assign(M,{on:1,start:d,until:d+len,snip:d+3,n:0,hurt:0,c:cs.length?pick(cs):S.home});
   toast(tr('chaos_monkey.arrived',{n:len}),'bad',[{l:tr('chaos_monkey.banana',{cost:fmt$(mkBananaCost())}),act:'mkBanana',args:{}}],{a:'tab',v:'noc'});sfx('alert');track('monkey_arrive');
   if(typeof mkStart==='function'&&CITY[M.c])mkStart(M.c);}
-function mkSnip(){const M=S.monkey,live=S.links.filter(l=>l.kind!=='vxc'&&!linkDown(l));if(!live.length)return;
+function mkSnip(){runNow(mkSnipRun());}
+function* mkSnipRun(){const M=S.monkey,live=S.links.filter(l=>l.kind!=='vxc'&&!linkDown(l));if(!live.length)return;
   // Weak spots first: a sample keeps this cheap on big networks.
   const smp=live.length>40?Array.from({length:40},()=>pick(live)):live,l=pick(smp.flatMap(x=>mkWeak(x)?[x,x,x,x,x]:[x]));
   const dur=rint(3,4),trc=l.trench||l.id,hit=S.links.filter(x=>(x.trench||x.id)===trc),A=CITY[l.a].name,B=CITY[l.b].name,before=R.served;
   hit.forEach(x=>x.cut=Math.max(x.cut||0,S.day+dur));M.n++;M.c=l.a;
   addInc({type:'cut',ref:trc,until:S.day+dur,msg:tr(pick(MK_SNIPS),{a:A,b:B}),cost:Math.max(4000,Math.round(hit.reduce((a,x)=>a+x.mo,0)*0.5))},'');
-  compute();const i=S.inc[S.inc.length-1],imp=Math.max(0,before-R.served);if(i)i.impact=imp;
+  // The snip's incident, kept before the routing: the player may repair it (or another) while the worker routes.
+  const i=S.inc[S.inc.length-1];yield;const imp=Math.max(0,before-R.served);if(i)i.impact=imp;
   const felt=before>1&&imp>=before*0.03;if(felt)M.hurt++;else S.stats.survived++;
   toast(felt?`<b>🐒 ${incTitle('cut')}</b><br>${esc(i?i.msg:'')}`:tr('chaos_monkey.rerouted',{a:A,b:B}),felt?'bad':'good',[],i?incOpen(i):null);sfx(felt?'err':'alert');
   if(typeof mkRun==='function'){if(!UI.mk&&CITY[M.c])mkStart(M.c);mkRun(l,1400,felt);}}

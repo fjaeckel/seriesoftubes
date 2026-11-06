@@ -256,8 +256,8 @@ test('LACP trouble, partial packet loss and PMTUD black holes fire, hurt and cle
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'})");
   ev("ACT.buildPop({city:'ams'});UI.via=null;openLinkModal('fra','ams');ACT.buildLink({tier:1});closeModal();ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.lagT({id:S.transit[0].id,d:1});ACT.buyIx({city:'ams',tier:1});ACT.lagIx({city:'ams',d:1});S.day=100;compute()");
-  const src = ev('fireFailure.toString()').replace(/^function fireFailure/, 'function').replace('let tot=opts.reduce', "opts.splice(0,opts.length,['funny',1]);let tot=opts.reduce");
-  const fire = (t) => { ev('window.__ff=' + src.replace('type=pick(f);}', `type='${t}';}`)); ev('__ff();compute()'); };
+  const src = ev('failureRun.toString()').replace(/^function\* failureRun/, 'function*').replace('let tot=opts.reduce', "opts.splice(0,opts.length,['funny',1]);let tot=opts.reduce");
+  const fire = (t) => { ev('window.__ff=' + src.replace('type=pick(f);}', `type='${t}';}`)); ev('runNow(__ff());compute()'); };
   for (let i = 0; i < 12; i++) { fire('lacp'); }
   assert.ok(ev("S.inc.some(i=>i.type==='lacp')"), 'LACP incidents fire');
   assert.ok(ev("S.transit[0].lacp||S.ev.ixlacp"), 'a LAG is degraded');
@@ -1316,7 +1316,7 @@ test('#134 an exchange named after its city does not repeat the city in messages
   const labs = JSON.parse(ev("JSON.stringify(lagsN().filter(o=>o.k==='ix').map(o=>o.lab))"));
   assert.ok(labs.includes('IX.brrr Campinas LAG'), labs.join(' | '));
   assert.ok(labs.some(l => / LAG in Frankfurt$/.test(l)), labs.join(' | '));
-  ev("S.inc=[];eval('('+fireFailure.toString().replace(\"if(only)type=only;\",\"type='ixloop';\").replace(\"const c=pick(Object.keys(S.ixp));\",\"const c='cpq';\")+')')()");
+  ev("S.inc=[];runNow(eval('('+failureRun.toString().replace(\"if(only)type=only;\",\"type='ixloop';\").replace(\"const c=pick(Object.keys(S.ixp));\",\"const c='cpq';\")+')')())");
   const msg = ev("S.inc.map(i=>i.msg).join(' ')");
   assert.match(msg, /IX\.brrr Campinas/);
   assert.doesNotMatch(msg, /in Campinas/);

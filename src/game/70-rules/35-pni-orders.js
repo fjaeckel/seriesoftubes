@@ -13,10 +13,16 @@ function pniPlace(q){const {city,net,tier,g1,ex}=q,lead=pniLead(net);
   if(S.conf&&S.conf.until>S.day)S.stats.beerPni=1;
   if(ex){ex.up={tier,n:ex.n||1,ready:S.day+lead,g1:false};if(!lead)pniUpDone(ex);}else S.pni.push({id:uid(),city,net,tier,g1:g1||undefined,ready:S.day+lead});
   return lead;}
+// The ports a pending augment will add, and those of every pending augment at a city: what an order there must leave free.
+const pniUpSlots=p=>Math.max(0,PORT_SLOT(p.up.tier)*(p.up.n||1)-PORT_SLOT(p.tier)*(p.n||1));
+const pniResv=c=>{let r=0;for(const p of S.pni)if(p.up&&p.city===c)r+=pniUpSlots(p);return r;};
+// A batch's order quoted again on the game as it is now: null if it no longer stands (ordered by hand meanwhile, say).
+// Earlier orders of the batch, placed by now, are in the PNIs themselves: the same ports the batch reserved for them.
+const pniRequote=q=>{const n=pniQuote(q.city,q.net,q.g1?-1:q.tier,pniResv(q.city));return n&&!n.why&&n.ex===q.ex?n:null;};
 function pniBatch(net,tier){tier=+tier;const all=net===null;if(!S||(!all&&!isNet(net))||!Number.isInteger(tier)||(tier===-1?all||!pniG1(net):!PORT[tier]||!portShown(tier)))return null;
   const shared=[],orders=[],blocked=[],reserved={};let kept=0,cost=0,mo=0,raised=0;
   // Pending augments and earlier orders in this batch already own their future ports.
-  for(const p of S.pni)if(p.up)reserved[p.city]=(reserved[p.city]||0)+Math.max(0,PORT_SLOT(p.up.tier)*(p.up.n||1)-PORT_SLOT(p.tier)*(p.n||1));
+  for(const p of S.pni)if(p.up)reserved[p.city]=(reserved[p.city]||0)+pniUpSlots(p);
   for(const n of all?NETS:[NET[net]])for(const city of n.pops){if(!S.pops[city])continue;shared.push(city);
     // Each network at its own minimum: asking everyone for 10G orders 100G from those that start at 100G.
     const q=pniQuote(city,n.id,all&&tier>=0?Math.max(tier,pniMin(n.id)):tier,reserved[city]||0);if(!q){kept++;continue;}if(q.why){blocked.push(q);continue;}orders.push(q);if(q.tier>tier&&!q.g1)raised++;cost+=q.cost;reserved[city]=(reserved[city]||0)+q.slots;

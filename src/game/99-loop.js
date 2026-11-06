@@ -4,6 +4,9 @@ function frame(now){
   // Schedule the next frame first: one bad lookup in a day tick must not freeze the whole game.
   if(!window.__TUBES_TEST__)requestAnimationFrame(frame);
   const dt=Math.min(250,now-last);last=now;
+  // A day's steps take half a frame at most before letting one through (rwGo()): 8 ms at 60 Hz, 3 ms on a 240 Hz screen,
+  // where 8 ms would be two frames lost. The frame time is followed slowly, a long frame counting as two at most.
+  if(dt>0){RW.fms=RW.fms?RW.fms*0.95+Math.min(dt,RW.fms*2)*0.05:dt;RW.budget=Math.min(8,Math.max(3,RW.fms/2));}
   if(ANALYTICS.host&&S&&!S.lost&&UI.speed&&document.visibilityState==='visible'){UI.playMs=(UI.playMs||0)+dt;const m=UI.playMs/60000;for(const k of PLAY_MARKS)if(m>=k)track('play_'+k+'m',true);}
   if(S&&UI.started&&!S.lost&&now-(UI.lastSave||0)>5000)save();
   // The panels catch up on the frame after a day, so one frame does not carry both the day's simulation and them.
@@ -14,12 +17,16 @@ function frame(now){
   const t=animOn()?animT:0;
   if(!(UI.mapHid=mapHidden())&&!mapStill(t,now)){const d0=DIAG.on?performance.now():0;try{draw(t);}catch(e){tickErr(e);}UI.drawnAt=now;if(DIAG.on)DIAG.dms=performance.now()-d0;}
   if(DIAG.on)diagFrame(now);
+  RW.lf=performance.now();
 }
 // dt of real time at UI.speed: the days it adds up to. The frame calls it; so may a clock that also runs where frames
 // do not (src/agent/, a hidden tab), under the frame's own conditions otherwise.
 function runClock(dt){acc+=dt*UI.speed;let n=0;
-  // With the route worker one day is in flight at a time; time does not pile up behind it.
-  if(rwOn()){if(!RW.w)rwStart();if(RW.job)acc=Math.min(acc,DAY_MS);else if(acc>=DAY_MS){acc=Math.min(acc-DAY_MS,DAY_MS);try{rwDay();}catch(e){tickErr(e);}}}
+  // One day in flight at a time (its routing in the worker, or resting between steps): time does not pile up behind it.
+  // The clock waits for the day, never the other way round: a machine that cannot keep up plays slower, it does not
+  // freeze to catch up.
+  if(RW.job){acc=Math.min(acc,DAY_MS);return;}
+  if(rwOn()){if(!RW.w)rwStart();if(acc>=DAY_MS){acc=Math.min(acc-DAY_MS,DAY_MS);try{rwDay();}catch(e){tickErr(e);}}}
   else{while(acc>=DAY_MS&&n<4&&UI.speed){acc-=DAY_MS;try{dayTick();}catch(e){tickErr(e);}n++;}
   if(n){UI.ticking=true;renderHUD();UI.ticking=false;UI.panelsDue=true;}}}
 /* On a phone the NOC dashboard (or the bank), scrolled past its top edge, covers the whole map. Drawing the map

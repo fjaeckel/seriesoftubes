@@ -1,3 +1,8 @@
+/* An event that cuts cables or power routes at once, as its last move (evRoute()). As a step of the day (eventRun())
+   that routing is the day's next yield instead: nothing reads R in between, so it is the same routing. */
+let EV_DEFER=null;
+const evRoute=()=>{if(EV_DEFER)EV_DEFER.n++;else compute();};
+function* eventRun(){const k={n:0};EV_DEFER=k;try{fireEvent();}finally{EV_DEFER=null;}for(let i=0;i<k.n;i++)yield;}
 function fireEvent(){
   const opts=['viral','price','grant'];
   if(S.day>50)opts.push('sanction','tariff','hijack','landban','shutdown','redsea','baltic');
@@ -36,16 +41,16 @@ function fireEvent(){
   if(e==='shutdown'){const ps=Object.keys(S.pops).filter(c=>c!==S.home);if(!ps.length)return;const c=pick(ps);S.pops[c].down=Math.max(S.pops[c].down||0,S.day+1);addInc({type:'shutdown',ref:c,until:S.day+1,msg:tr('events.regulators_ordered_every_network_in',{city:CITY[c].name}),cost:0});toast(tr('events.ordered_offline_in_city_a_government',{city:CITY[c].name}),'bad');sfx('alert');return;}
   if(e==='typhoon'){const c=pick(['mnl','ceb','hkg','tok','icn','sha','jkt'].filter(x=>S.pops[x])),p=S.pops[c],nm=pick([tr('common.typhoon_bandwidth'),tr('common.typhoon_latency'),tr('common.typhoon_jitter'),tr('events.typhoon_packet_loss')]);
     if(p.gen){S.stats.survived++;toast(tr('events.name_hits_city_the_grid_is',{name:nm,city:CITY[c].name}),'good');sfx('alert');return;}
-    p.down=Math.max(p.down||0,S.day+2);addInc({type:'power',ref:c,until:p.down,msg:tr('events.name_knocked_out_power_in_city',{name:nm,city:CITY[c].name}),cost:7000,fix:tr('incidents.rent_a_generator')});toast(tr('events.name_hits_city_power_is_out',{name:nm,city:CITY[c].name}),'bad');sfx('alert');compute();return;}
-  if(e==='runet'){S.ev.runet=S.day+1;toast(tr('events.sovereign_internet_drill_moscow'),'bad');sfx('alert');compute();return;}
+    p.down=Math.max(p.down||0,S.day+2);addInc({type:'power',ref:c,until:p.down,msg:tr('events.name_knocked_out_power_in_city',{name:nm,city:CITY[c].name}),cost:7000,fix:tr('incidents.rent_a_generator')});toast(tr('events.name_hits_city_power_is_out',{name:nm,city:CITY[c].name}),'bad');sfx('alert');evRoute();return;}
+  if(e==='runet'){S.ev.runet=S.day+1;toast(tr('events.sovereign_internet_drill_moscow'),'bad');sfx('alert');evRoute();return;}
   if(e==='baltic'){const BAL=['clion','havf','danice'];const hit=S.links.filter(l=>l.cable&&BAL.includes(l.cable)&&!(l.cut>S.day));
     if(!hit.length){toast(tr('events.baltic_cable_damaged_a_cargo_ship'),'goal');return;}
     const dur=15+Math.floor(Math.random()*15),en=N_('events.a_cargo_ship_dragged_its_anchor');for(const tk of new Set(hit.map(l=>l.trench||l.id))){S.links.filter(l=>(l.trench||l.id)===tk).forEach(l=>l.cut=Math.max(l.cut||0,S.day+dur));addInc({type:'redsea',ref:tk,until:S.day+dur,msg:tr(en),cost:0},en);}
-    toast(tr('events.baltic_cable_damaged_n_of_your',{n:hit.length,d:dur}),'bad');sfx('alert');compute();return;}
+    toast(tr('events.baltic_cable_damaged_n_of_your',{n:hit.length,d:dur}),'bad');sfx('alert');evRoute();return;}
   if(e==='redsea'){const RED=['twoaf','smw6','peace','aae','eig','eassy'];const hit=S.links.filter(l=>l.cable&&RED.includes(l.cable)&&!(l.cut>S.day));
     if(!hit.length){toast(tr('events.cables_cut_in_the_red_sea'),'goal');return;}
     const dur=20+Math.floor(Math.random()*15),en=N_('events.a_ship_drifting_without_power');for(const tk of new Set(hit.map(l=>l.trench||l.id))){S.links.filter(l=>(l.trench||l.id)===tk).forEach(l=>l.cut=Math.max(l.cut||0,S.day+dur));addInc({type:'redsea',ref:tk,until:S.day+dur,msg:tr(en),cost:0},en);}
-    toast(tr('events.cables_cut_in_the_red_sea_03e8',{n:hit.length,d:dur}),'bad');sfx('alert');compute();return;}
+    toast(tr('events.cables_cut_in_the_red_sea_03e8',{n:hit.length,d:dur}),'bad');sfx('alert');evRoute();return;}
   if(e==='golden'){S.ev.golden=S.day+7;toast(tr('events.golden_week_demand_in_mainland_china'),'goal');return;}
   if(e==='gfw'){S.ev.gfw=S.day+10;toast(tr('events.the_border_got_stricter_cross_border'),'bad');sfx('alert');return;}
   if(e==='viral'){S.ev.viral=S.day+8;toast(tr('events.new_season_of_stranger_pings_just'),'goal');}

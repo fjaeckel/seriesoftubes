@@ -12,9 +12,11 @@ const SL_REN_WAIT=3;
 const slRenOn=()=>!!(S&&S.slAuto&&S.slAuto.ren&&slP());
 // The day the desk answers this haggle: a few days after it opened (30 days before the term ends), today at the earliest.
 const slRenAt=b=>b.hag.until-30+SL_REN_WAIT;
-function slRenDay(d){if(!slRenOn())return;const p=slP();let any=false;
+// A step of the day (dayPost()): its yield is the routing after a price changed. slRenDay() is the same all at once.
+function slRenDay(d){runNow(slRenRun(d));}
+function* slRenRun(d){if(!slRenOn())return;const p=slP();let any=false;
   for(const b of S.biz.slice())if(b.hag&&d>=slRenAt(b)&&d<b.hag.until){slRenOne(b,p);any=true;}
-  if(any)compute();}
+  if(any)yield;}
 // One haggle: returns what happened (for the tests): 'tech', 'mid', 'cave', 'hold', 'walk', 'golf', 'yes', 'fight'.
 function slRenOne(b,p){const ask=b.hag.rate,was=b.rate,mid=clMid(b),nerd=SALES_NERDS.includes(b.type),r=clR(b,'sl|'+p);
   const v=x=>({name:esc(slCap()),cust:esc(b.name),...x}),bill=rate=>fmt$(clBill(b,rate));

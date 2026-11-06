@@ -89,11 +89,13 @@ function ddosAttack(recompute=true){const fl=scnRule('ddos');ddosExpire();
   return a;}
 /* After the day's routing: announce new attacks with what they are doing, pull the plug when Auto-RTBH says so, and
    teach each lesson once. */
-function ddosNews(){let again=false;const auto=S.ddosAuto&&S.ddosAuto.rtbh;
+function ddosNews(){runNow(ddosNewsRun());}
+// The same as a step of the day: its yield is the routing after Auto-RTBH pulled a plug.
+function* ddosNewsRun(){let again=false;const auto=S.ddosAuto&&S.ddosAuto.rtbh;
   for(const a of ddosAll()){const m=ddosReport(a);if(!m)continue;
     if(auto&&!a.bh&&m.full>0&&ddosCol(a)>=0.01){a.bh=true;a.sac=1;S.stats.rtbh=(S.stats.rtbh||0)+1;ddosRtbhMood(a);again=true;
       toast(tr('ddos.auto_rtbh',{who:esc(ddosWho(a))}),'bad',[{l:tr('common.open_noc'),act:'leftTab',args:{t:'noc'}}],{a:'city',v:a.city});}}
-  if(again)compute();
+  if(again)yield;
   const T=S.stats.ddT||(S.stats.ddT={});
   for(const a of ddosAll()){const m=ddosReport(a);if(!m)continue;
     if(a.fresh){delete a.fresh;const fl=scnRule('ddos'),col=ddosCol(a),sf=ddosSf(a),bad=col>=0.01||sf<0.97;

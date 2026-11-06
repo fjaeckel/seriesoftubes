@@ -47,17 +47,17 @@ test('every incident and event type fires and clears cleanly', () => {
   ev("UI.pending={a:'fra',b:'ams'};ACT.buildLink({tier:1});UI.via='grace';openLinkModal('nyc','lon');ACT.buildLink({tier:1});closeModal()");
   ev("UI.pending={a:'fra',b:'ams'};UI.lmode='df';UI.dfSys='roadm';ACT.orderDf();UI.lmode='wave';S.pops.fra.rgen=2;S.pops.ams.rgen=2");
   ev("const df=S.links.find(l=>l.kind==='df');ACT.addCh({id:df.id,o:'zr4'});df.ready=S.day");
-  const failSrc = ev('fireFailure.toString()');
+  const failSrc = ev('failureRun.toString()');
   const types = ['harmless','fatwave','label','mtu','oops','cleaner','maxpfx','prepend','rpki','amp','roadmff','optic','ac','cut','crash','power','transit','ixloop','leak','ddos'];
   for (const t of types) {
     const funny = ['harmless','fatwave','label','mtu','oops','cleaner','maxpfx','prepend','rpki','roadmff','ac'].includes(t);
     const patched = failSrc
-      .replace(/^function fireFailure/, 'function')
+      .replace(/^function\* failureRun/, 'function*')
       .replace('let tot=opts.reduce', `if(!opts.some(o=>o[0]==='${funny ? 'funny' : t}'))return;opts.splice(0,opts.length,['${funny ? 'funny' : t}',1]);let tot=opts.reduce`)
       .replace('type=pick(f);}', `type=f.includes('${t}')?'${t}':pick(f);}`);
     ev('window.__ff=' + patched);
     ev('S.links.forEach(l=>{l.cut=0;l.eqDown=0;l.chFail=null});S.transit.forEach(t=>t.down=0);for(const c in S.pops)S.pops[c].down=0;compute()');
-    ev('__ff()');
+    ev('runNow(__ff())');
     ev('dayTick()');
   }
   const evSrc = ev('fireEvent.toString()');

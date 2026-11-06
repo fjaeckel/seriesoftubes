@@ -139,17 +139,18 @@ function opsTransitOk(n,c){if(n.id==='cog'&&(scnRule('spat')||S.ev.depeer>S.day)
 const cheapestTransit=c=>NETS.filter(n=>sellsAt(n,c)&&opsTransitOk(n,c)).sort((a,b)=>transitPerG(a,c,premOnlyAt(a,c))-transitPerG(b,c,premOnlyAt(b,c)))[0];
 // 'cheap' and 'have' (Already connected) name no network: quote the cheapest seller (#249).
 const opsProv=c=>{const pv=opsP('transit','prov'),n=isNet(pv)?NET[pv]:null;return n&&sellsAt(n,c)&&opsTransitOk(n,c)?n:cheapestTransit(c);};
-// The orders. Each takes the shift and does its jobs through the player's own actions.
+// The orders. Each takes the shift and does its jobs through the player's own actions. Most are generators: a yield
+// after a job is only a place where a long shift may let a frame through (opsRun()), nothing changes there.
 const OPS_RUN={
- repair(X){purgeInc();for(const i of S.inc.slice())if(i.type!=='ddos'&&i.until>S.day&&i.cost>0&&!(i.slow&&i.rushed)&&X.can('repair',i.cost)&&X.pay('repair',()=>ACT.fixInc({id:i.id})))X.did('repair');},
- routers(X){const at=opsP('routers','at')/100,how=opsP('routers','how'),m=opsP('routers','model'),fix=m!=='next',
+ *repair(X){purgeInc();for(const i of S.inc.slice())if(i.type!=='ddos'&&i.until>S.day&&i.cost>0&&!(i.slow&&i.rushed)&&X.can('repair',i.cost)&&X.pay('repair',()=>ACT.fixInc({id:i.id}))){X.did('repair');yield;}},
+ *routers(X){const at=opsP('routers','at')/100,how=opsP('routers','how'),m=opsP('routers','model'),fix=m!=='next',
      load=c=>Math.max((R.nodeLoad[c]||0)*opsAhead()/(R.nodeCap[c]||nodeCap(c)||1),portsUsed(c)/Math.max(1,portsMax(c)));
    // A chosen model: swap every POP still on a smaller one to it, the busiest first, while the budget lasts. Never a
    // step down, never a model that is not unlocked or does not fit, and only with a second router or no traffic there.
    if(fix&&rgOpen(m))for(const c of opsPops('routers').sort((a,b)=>load(b)-load(a))){const p=S.pops[c],g=p.rgen||0;
      if(p.rupDay===S.day||g===m||RG[m].cap<=RG[g].cap||modelFits(c,m)||!((p.routers||1)>1||popIdle(c)))continue;
      const cost=swapCost(c,m);if(!X.can('routers',cost))continue;
-     if(X.pay('routers',()=>ACT.upRouter({city:c,g:m})))X.did('routers',c+' ⇧'+RG[m].pn);}
+     if(X.pay('routers',()=>ACT.upRouter({city:c,g:m}))){X.did('routers',c+' ⇧'+RG[m].pn);yield;}}
    for(const c of opsPops('routers')){const p=S.pops[c];if(p.rupDay===S.day)continue;
      const ld=load(c);if(ld<at)continue;
      const rt=p.routers||1,g=p.rgen||0,nx=mainRG(RG[g].cls+1);
@@ -158,8 +159,8 @@ const OPS_RUN={
      const swap=!fix&&nx>=0&&rgOpen(nx)&&!modelFits(c,nx)&&(rt>1||popIdle(c)),add=rt<RMAX;
      const doSwap=how==='swap'?swap:how==='add'?false:swap&&(rt>=4||!add);if(!doSwap&&(how==='swap'||!add))continue;
      const cost=doSwap?swapCost(c,nx):routerCost(g,rt);if(!X.can('routers',cost))continue;
-     if(X.pay('routers',()=>doSwap?ACT.upRouter({city:c,g:nx}):ACT.addRouter({city:c})))X.did('routers',c+(doSwap?' ⇧'+RG[nx].pn:' +1'));}},
- transit(X){if(scnRule('noTransit'))return;const N=opsP('transit','x');
+     if(X.pay('routers',()=>doSwap?ACT.upRouter({city:c,g:nx}):ACT.addRouter({city:c})))X.did('routers',c+(doSwap?' ⇧'+RG[nx].pn:' +1'));yield;}},
+ *transit(X){if(scnRule('noTransit'))return;const N=opsP('transit','x');
    for(const c of opsPops('transit')){let ts=S.transit.filter(t=>t.city===c);if(!ts.length)continue;
      // Thirty days of 95th-percentile-ish history per port; their peaks summed is a safe (high) estimate of the POP's peak.
      const peak=ts.reduce((a,t)=>a+(t.hist||[]).reduce((m,v)=>Math.max(m,v),0),0)*opsAhead();if(!(peak>0))continue;
@@ -177,11 +178,11 @@ const OPS_RUN={
          else{const need=N*peak-cap,ok=PORT.map((P,i)=>i).filter(i=>portShown(i)&&portOk(c,i)),i=ok.find(i=>PORT[i].g>=need)??ok.at(-1);
            if(i!==undefined)job={cost:PORT[i].setup,go:()=>ACT.buyTransit({city:c,net:n.id,tier:i}),w:'+'+PORT[i].n};}}
        if(!job||!X.can('transit',job.cost)||!X.pay('transit',job.go))break;
-       X.did('transit',c+' '+job.w);ts=S.transit.filter(t=>t.city===c);}}},
+       X.did('transit',c+' '+job.w);ts=S.transit.filter(t=>t.city===c);yield;}}},
  // PNIs and IX ports keep Headroom times today's traffic, hottest first. One port at a POP with several routers gets a
  // second in a LAG, so it is not the only way out; anything else moves up to the smallest port size that fits. A PNI
  // augment lands weeks later, so that port waits for it. A flood fills ports for a day or two: not worth buying for.
- ports(X){if(ddosAll().length||!X.can('ports',1,0,true))return;const N=opsP('ports','x'),L=[],
+ *ports(X){if(ddosAll().length||!X.can('ports',1,0,true))return;const N=opsP('ports','x'),L=[],
    // Router ports that pending PNI augments will take when they land are spoken for.
    resv=c=>S.pni.reduce((a,p)=>p.up&&p.city===c?a+Math.max(0,PORT_SLOT(p.up.tier)*(p.up.n||1)-PORT_SLOT(p.tier)*(p.n||1)):a,0),room=c=>portsMax(c)-portsUsed(c)+1e-9-resv(c);
    // Each port: cap() now, use today, lag() and ups() the jobs it could have as {cost, cap after, w for the log, go}, sig() to see a job took.
@@ -200,8 +201,8 @@ const OPS_RUN={
    for(const o of L.sort((a,b)=>b.u-a.u))for(let step=0;step<3&&!o.busy()&&o.cap()<N*o.use;step++){
      const lag=o.lag(),wantLag=o.n()<2&&o.rt>1,ups=wantLag&&lag?null:o.ups(),fit=ups&&(ups.find(u=>u.cap>=N*o.use)||ups.at(-1)),job=wantLag?lag||fit:fit||lag,was=o.sig();
      if(!job||!X.can('ports',job.cost)||!X.pay('ports',()=>{job.go();return o.sig()!==was;}))break;
-     X.did('ports',o.at+' '+job.w);}},
- optics(X){const at=opsP('optics','at')/100,big=opsP('optics','pick')==='big',gpd=(o,l)=>optG(o,l)/optCost(o);
+     X.did('ports',o.at+' '+job.w);yield;}},
+ *optics(X){const at=opsP('optics','at')/100,big=opsP('optics','pick')==='big',gpd=(o,l)=>optG(o,l)/optCost(o);
    for(const l of S.links){if(l.kind!=='df'||l.ready>S.day||l.eqDown>S.day||l.standby||l.cut>S.day)continue;
      let cap=dfCap(l);const load=((R.load&&R.load[l.id])||0)*opsAhead();
      // New fiber gets its first channel; lit fiber gets more while it runs hot.
@@ -213,20 +214,20 @@ const OPS_RUN={
          o=fit.filter(o=>cnt[o]).sort((a,b)=>cnt[b]-cnt[a])[0]||(big&&fit.slice().sort((a,b)=>optG(b,l)-optG(a,l)||gpd(b,l)-gpd(a,l)).find(o=>X.can('optics',opticCountCost(l,o,1),0,true)))||cheap[0];if(!o)break;
        const n=(cnt[o]||0)+1,cost=opticCountCost(l,o,n),before=(l.ch||[]).length;if(!X.can('optics',cost))break;
        X.pay('optics',()=>{ACT.setChCount({id:l.id,o,n});return (l.ch||[]).length>before;});if((l.ch||[]).length<=before)break;
-       cap+=optG(o,l);X.did('optics',l.a+'|'+l.b);}}},
- optup(X){const at=opsP('optup','at')/100,goal=opsP('optup','sys'),swap=opsP('optup','swap');let ups=0,tries=0;
+       cap+=optG(o,l);X.did('optics',l.a+'|'+l.b);yield;}}},
+ *optup(X){const at=opsP('optup','at')/100,goal=opsP('optup','sys'),swap=opsP('optup','swap');let ups=0,tries=0;
    const hot=l=>{const c=dfCap(l);return c>0&&((R.load&&R.load[l.id])||0)*opsAhead()>=c*at;},full=l=>freeCh(l)<=0,u=l=>((R.load&&R.load[l.id])||0)/Math.max(1,dfCap(l));
    const ls=S.links.filter(l=>l.kind==='df'&&!l.seat&&l.ready<=S.day&&!(l.eqDown>S.day)&&!(l.cut>S.day)).sort((a,b)=>u(b)-u(a));
    for(const l of ls){
      // The line system: one step at a time up to the chosen one, or the next one where the fiber is full and hot.
      const want=goal==='next'?(full(l)&&hot(l)?sysNext(l):null):SYS_RANK[l.sys]<SYS_RANK[goal]?goal:null;
      if(want&&ups<OPTUP_MAX*(opsIs('kevin')?2:1)&&tries<OPTUP_TRY*(opsIs('kevin')?2:1)){const to=sysNext(l),cost=sysUpCost(l);
-       if(to&&techOk('sys',to,DF_SYS[to].lvl)&&!(OPTUP_NO.get(l.id)>S.day)&&X.can('optup',cost)){tries++;const ok=opsDarkOk(l,X);if(!ok)OPTUP_NO.set(l.id,S.day+OPTUP_WAIT);
+       if(to&&techOk('sys',to,DF_SYS[to].lvl)&&!(OPTUP_NO.get(l.id)>S.day)&&X.can('optup',cost)){tries++;const ok=yield* opsDark(l,X);if(!ok)OPTUP_NO.set(l.id,S.day+OPTUP_WAIT);
          if(ok){const s0=l.sys,top=goal==='next'?to:goal;
            for(let k=0;k<2&&sysNext(l)&&SYS_RANK[l.sys]<SYS_RANK[top];k++){const nx=sysNext(l);
              if(!techOk('sys',nx,DF_SYS[nx].lvl)||!X.can('optup',sysUpCost(l))||!X.pay('optup',()=>{const s=l.sys;ACT.upSys({id:l.id});return l.sys!==s;}))break;}
            // The fiber is dark until tomorrow: its optics wait.
-           if(l.sys!==s0){ups++;X.did('optup',l.a+'|'+l.b+' ⇧'+SYS_TAG[l.sys]);continue;}}}}
+           if(l.sys!==s0){ups++;X.did('optup',l.a+'|'+l.b+' ⇧'+SYS_TAG[l.sys]);yield;continue;}}}}
      // Optics: a full, hot fiber trades its smallest channels for the biggest optic that fits, one at a time. Hitless, and
      // the old optics go on the shelf as spares.
      if(!swap)continue;
@@ -240,32 +241,35 @@ const OPS_RUN={
        const was=dfCap(l);
        X.pay('optup',()=>{ACT.setChCount({id:l.id,o:o1,n:cnt[o1]-1});ACT.setChCount({id:l.id,o:o2,n:n2});
          if((l.ch||[]).filter(k=>k===o2).length===n2)return true;ACT.setChCount({id:l.id,o:o1,n:cnt[o1]});return false;});
-       if(!(dfCap(l)>was))break;X.did('optswap',l.a+'|'+l.b+' '+fmtCap(optG(o1,l))+'→'+fmtCap(optG(o2,l)));}}},
- caches(X){const g=opsP('caches','g');
+       if(!(dfCap(l)>was))break;X.did('optswap',l.a+'|'+l.b+' '+fmtCap(optG(o1,l))+'→'+fmtCap(optG(o2,l)));yield;}}},
+ *caches(X){const g=opsP('caches','g');
    for(const c of opsPops('caches')){const q=utilityCaches(c);if(!q||!q.add.length)continue;
      const want=q.add.filter(x=>cacheDem(c,x.net)>=g),free=()=>portsMax(c)-portsUsed(c)+1e-9;
-     for(const x of want){if(cachePortsAdd(c,[x])>free())continue;if(!X.can('caches',0,cacheMo(x)))return;S.caches.push({id:uid(),city:c,net:x.net,site:x.site,...(x.g?{g:x.g}:{})});X.book('caches',0,cacheMo(x));X.did('caches',c);}}},
+     for(const x of want){if(cachePortsAdd(c,[x])>free())continue;if(!X.can('caches',0,cacheMo(x)))return;S.caches.push({id:uid(),city:c,net:x.net,site:x.site,...(x.g?{g:x.g}:{})});X.book('caches',0,cacheMo(x));X.did('caches',c);}
+     yield;}},
  // Weekly, like a person going through PeeringDB on a Monday: route servers, then every willing member (#192).
  ix(X){if(S.day%7&&!opsIs('annie'))return;for(const ix of utilityRouteServers()){S.rs[ix]=true;X.did('rs');}
    for(const row of utilityPeers())for(const id of row.requests){S.peers[id+'@'+row.ix]=true;X.did('peer',row.ix);}},
  // Weekly too: every willing network above the threshold, at its own minimum size and lead time (#181).
- pni(X){if(S.day%7!==3&&!(opsIs('annie')&&S.day%7===6))return;const b=pniBatch(null,opsP('pni','tier'));if(!b)return;const g=opsP('pni','g'),paid=opsP('pni','paid');
+ *pni(X){if(S.day%7!==3&&!(opsIs('annie')&&S.day%7===6))return;const b=pniBatch(null,opsP('pni','tier'));if(!b)return;const g=opsP('pni','g'),paid=opsP('pni','paid');
    // The traffic a PNI there would take over: what your users at that POP send to the network today over transit, an
    // exchange or a PNI elsewhere, the same figure the PNI list shows. Not the city's whole demand: a network's own
    // cache boxes in that POP already serve most of it (#244).
    const loc=q=>pniVal(q.net,q.city).want;
-   for(const q of b.orders.filter(q=>opsHere('pni',q.city)&&loc(q)>=g&&(paid||NET[q.net].pol!=='paid'||paidFree(NET[q.net]))).sort((a,b)=>loc(b)-loc(a))){
-     if(!X.can('pni',q.cost))break;if(X.pay('pni',()=>{if(!spend(q.cost))return false;pniPlace(q);return true;}))X.did('pni',q.city+' '+q.net);}},
+   // Each order quoted again just before it is placed: the player may have ordered the same PNI by hand while the shift
+   // let a frame through or waited for a routing, and the batch's quote would order it a second time.
+   for(const q0 of b.orders.filter(q=>opsHere('pni',q.city)&&loc(q)>=g&&(paid||NET[q.net].pol!=='paid'||paidFree(NET[q.net]))).sort((a,b)=>loc(b)-loc(a))){
+     const q=pniRequote(q0);if(!q)continue;if(!X.can('pni',q.cost))break;if(X.pay('pni',()=>{if(!spend(q.cost))return false;pniPlace(q);return true;}))X.did('pni',q.city+' '+q.net);yield;}},
  // Hand back smaller waves once a bigger link between the same cities carries the pair with a quarter to spare (#102).
- decom(X){const keep=opsP('decom','keep'),by=new Map();for(const l of S.links)if(l.kind!=='vxc'){const k=edgeKey(l);(by.get(k)||by.set(k,[]).get(k)).push(l);}
-   // Loads must include what this shift already did (a customer just signed, a repair): recompute first, if anything could go.
-   if(X.dirty&&[...by.values()].some(ls=>ls.length>1&&ls.some(l=>l.kind==='wave'))){compute();X.dirty=false;}
-   for(const ls of by.values()){if(ls.length<2)continue;const live=ls.filter(l=>!linkDown(l)),big=live.reduce((a,l)=>!a||capOf(l)>capOf(a)?l:a,null);if(!big)continue;
+ // Loads must include what this shift already did (a customer just signed, a repair): opsRun() routes first if a
+ // job changed the network and anything could go (opsDecomWaits()).
+ *decom(X){const keep=opsP('decom','keep');
+   for(const ls of opsPairs().values()){if(ls.length<2)continue;const live=ls.filter(l=>!linkDown(l)),big=live.reduce((a,l)=>!a||capOf(l)>capOf(a)?l:a,null);if(!big)continue;
      let cap=live.reduce((a,l)=>a+capOf(l),0);const load=ls.reduce((a,l)=>a+((R.load&&R.load[l.id])||0),0);
      const small=live.filter(l=>l!==big&&l.kind==='wave'&&!l.standby&&!l.premium&&capOf(l)<capOf(big)&&!S.biz.some(b=>b.link===l.id)).sort((a,b)=>capOf(b)-capOf(a));
      // The spare is there for when the big link's trench is cut, so it has to live in another trench.
      if(keep&&small.length){const tr=l=>l.trench||l.id,i=small.findIndex(l=>tr(l)!==tr(big));small.splice(Math.max(0,i),1);}
-     for(const l of small.reverse()){if(cap-capOf(l)<load*1.25)break;if(!opsDecomSafe(l))continue;cap-=capOf(l);UI.confirm=l.id;X.pay('decom',()=>ACT.rmLink({id:l.id}));if(!S.links.includes(l))X.did('decom',l.a+'|'+l.b);}}},
+     for(const l of small.reverse()){if(cap-capOf(l)<load*1.25)break;if(!opsDecomSafe(l))continue;cap-=capOf(l);UI.confirm=l.id;X.pay('decom',()=>ACT.rmLink({id:l.id}));if(!S.links.includes(l))X.did('decom',l.a+'|'+l.b);yield;}}},
 };
 // Line system swaps per shift, and how many fibers a shift may test for one: each test routes the whole network once,
 // so a shift costs at most one routing more, and only on a night with a fiber to try. A fiber that failed the test is not tested again for a week
@@ -275,23 +279,51 @@ const OPTUP_MAX=1,OPTUP_TRY=1,OPTUP_WAIT=7,OPTUP_NO=new Map(),SYS_RANK={lite:0,r
 function opsAround(l){const adj={};for(const x of S.links){if(x===l||linkDown(x))continue;(adj[x.a]=adj[x.a]||[]).push(x.b);(adj[x.b]=adj[x.b]||[]).push(x.a);}
   const seen=new Set([l.a]),q=[l.a];while(q.length){const u=q.pop();if(u===l.b)return true;for(const v of adj[u]||[])if(!seen.has(v)){seen.add(v);q.push(v);}}return false;}
 // A day without this fiber: does every gigabit still get where it went today, and every circuit stay whole? Today's routing
-// is the yardstick (routed again first if this shift already changed the network); R is put back after.
-function opsDarkOk(l,X){if(S.biz.some(b=>b.link===l.id)||!opsAround(l))return false;if(X.dirty){compute();X.dirty=false;}
-  const R0=R,e0=l.eqDown,s0=R0.served,L0=R0.l2||{};
+// is the yardstick (routed again first if this shift already changed the network). Both routings are steps the day
+// answers (OPS_ROUTE, then {dark}: opsDarkTrial(), in play in the route worker).
+const OPS_ROUTE={route:true};
+function* opsDark(l,X){if(S.biz.some(b=>b.link===l.id)||!opsAround(l))return false;if(X.dirty){yield OPS_ROUTE;X.dirty=false;}
+  return !!(yield {dark:l.id,s0:R.served,L0:R.l2||{}});}
+// The test itself, on the game it is given: R is put back after.
+function opsDarkTrial(y){const l=S.links.find(x=>x.id===y.dark);if(!l)return false;const R0=R,e0=l.eqDown,s0=y.s0,L0=y.L0;
   try{l.eqDown=S.day+1;compute();return R.served>=s0-1e-6*Math.max(1,s0)&&Object.keys(L0).every(id=>(R.l2[id]||0)>=L0[id]-1e-6);}
   finally{if(e0===undefined)delete l.eqDown;else l.eqDown=e0;R=R0;}}
+// The same test overtaken by an action: its checks, and today's routing as the yardstick, as the game is now.
+function opsDarkAgain(y){const l=S.links.find(x=>x.id===y.dark);if(!l||S.biz.some(b=>b.link===l.id)||!opsAround(l))return false;
+  return opsDarkTrial({dark:l.id,s0:R.served,L0:R.l2||{}});}
 // A wave can carry a promise: diverse paths, no subsea, a latency budget. Try the network without it first.
 function opsDecomSafe(l){const bz=S.biz.filter(b=>(b.reqs||[]).some(k=>k==='diverse'||k==='sharks'||k==='lat')&&b.city2);if(!bz.length)return true;
   const chk=b=>(b.reqs||[]).every(k=>k==='diverse'?diversePaths(b.city,b.city2):k==='sharks'?terrestrialPath(b.city,b.city2):k==='lat'?bestLat(b.city,b.city2)<=b.latMax:true);
   const was=bz.filter(chk),all=S.links;S.links=all.filter(x=>x!==l);try{return was.every(chk);}finally{S.links=all;}}
+// The links between each pair of cities, VXCs left out.
+function opsPairs(){const by=new Map();for(const l of S.links)if(l.kind!=='vxc'){const k=edgeKey(l);(by.get(k)||by.set(k,[]).get(k)).push(l);}return by;}
+const opsDecomWaits=()=>[...opsPairs().values()].some(ls=>ls.length>1&&ls.some(l=>l.kind==='wave'));
 const OPS_ORDER=['repair','routers','transit','ports','optup','optics','caches','ix','pni','decom'];
 // The shift: once per game day from dayTick, after outages and events have had their turn.
-function opsDay(d){if(!opsHired())return;const O=S.ops,m=monthIdx(d);if(m!==O.mon){O.mon=m;for(const k in O.spent)O.spent[k]=0;O.addMo={};}
+// One shift. Like a day (dayRun()), it is a generator: each yield is a compute() it needs, answered by the route worker
+// in play, so the shift never routes on the page. opsDay() runs it in one go.
+function opsDay(d){dayGo(opsRun(d),(g,v)=>g.next(v));}
+function* opsRun(d){if(!opsHired())return;const O=S.ops,m=monthIdx(d);if(m!==O.mon){O.mon=m;for(const k in O.spent)O.spent[k]=0;O.addMo={};}
   // A new week: last week's tally becomes the shift report, and the one NOC notice of the week.
   const w=Math.floor(d/7);if(!O.wk||O.wk.w!==w){if(opsWkAny(O.wk)&&O.wk.w<w){O.rep=O.wk;logNote(`<b>${esc(tr('ops.shift_report',{name:opsName()}))}</b> ${esc(opsWeekLine(O.rep))}`,'',[],{a:'ops'});}O.wk=opsWkNew(w);}
   const X=opsShift();
   // One order that trips over something (an odd save, a bug) is paused and noted; payday, goals and the save still happen.
-  opsQuiet(()=>{for(const k of OPS_ORDER)if(O.on[k])try{OPS_RUN[k](X);}catch(err){O.on[k]=false;X.dirty=true;X.did('snag',k);console.error('[tubes] standing order failed',k,err);}});
+  // Each order is a step of the day: a long shift lets the map draw between two (DAY_REST). The interface the orders
+  // click through (selection, tab, confirmation) goes on from where the last order left it, as in one go; the player's
+  // own is back in between.
+  let ui=null;
+  // One step of an order, muted (opsQuiet()): a plain order all at once, a generator up to its next yield. A bare yield
+  // is a rest; OPS_ROUTE or a {dark} test is a routing the day answers (v, passed back in).
+  const step=(k,st,v)=>opsQuiet(()=>{if(ui){UI.sel=ui.sel;UI.confirm=ui.cf;UI.tab=ui.tab;}st.ask=undefined;
+    try{if(!st.it){const r=OPS_RUN[k](X);if(r&&typeof r.next==='function')st.it=r;else st.done=true;}if(!st.done){const s=st.it.next(v);if(s.done)st.done=true;else st.ask=s.value;}}
+    catch(err){O.on[k]=false;X.dirty=true;X.did('snag',k);console.error('[tubes] standing order failed',k,err);st.done=true;}
+    ui={sel:UI.sel,cf:UI.confirm,tab:UI.tab};});
+  const order=function*(k){const st={it:null,done:false};let v;for(;;){step(k,st,v);v=undefined;if(st.done)return;
+    if(st.ask===OPS_ROUTE)yield;else if(st.ask&&st.ask.dark)v=yield st.ask;else yield DAY_REST;}};
+  // Every order but the last, decommissioning, which reads today's loads: routed first when a job changed them.
+  for(const k of OPS_ORDER.slice(0,-1))if(O.on[k]){yield* order(k);yield DAY_REST;}
+  if(O.on.decom&&X.dirty&&opsDecomWaits()){yield;X.dirty=false;}
+  ui=null;if(O.on.decom)yield* order('decom');
   const e={d,i:O.intern,r:[]};for(const [k,x] of X.r)e.r.push([k,x.n,x.w]);if(X.broke.size)e.r.push(['broke',X.broke.size,[...X.broke]]);
   // Very rarely, and never under Change Freeze, the intern fat-fingers something harmless.
   // Kevin rolls the same dice (so a seeded game plays the same whoever is hired) and catches it before pressing Enter.
@@ -301,7 +333,7 @@ function opsDay(d){if(!opsHired())return;const O=S.ops,m=monthIdx(d);if(m!==O.mo
     e.f=f;e.c=c;toast(esc(opsFFLine(e)),'',[{l:tr('ops.ops'),act:'opsOpen',args:{}}]);}}
   if(X.up)e.up=Math.round(X.up);if(Math.round(X.mo))e.mo=Math.round(X.mo);
   // Stopping at a budget changes nothing a route depends on: no recompute for that.
-  if(X.dirty)compute();
+  if(X.dirty)yield;
   if(e.r.length||e.f!==undefined){O.log.unshift(e);O.log.length=Math.min(O.log.length,OPS_LOG);}
   // The day's detail stays in the Ops sheet; the NOC gets one notice a week (above).
   const W=O.wk;for(const [k,n,ws] of e.r){W.n[k]=(W.n[k]||0)+n;const a=W.wh[k]||(W.wh[k]=[]);for(const x of ws)if(a.length<3&&!a.includes(x))a.push(x);}
