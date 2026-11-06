@@ -95,7 +95,7 @@ function aiSlop(bad){const ai=pick(AI_NAMES),fits=TE_RECIPES.map(r=>({r,f:r.fit(
   L.push(tr('common.confidence_100'));return {src:L.join('\n'),ai,say:pick(AI_SAY)};}
 function teHelpModal(){const rule=(code,what)=>`<dt><code>${code}</code></dt><dd>${what}</dd>`;
   openModal(`<div style="display:flex;align-items:center"><div><div class="eyebrow">${tr('routescript.auto_te_controller')}</div><h2 style="font-size:26px">${tr('routescript.how_routescript_works')}</h2></div><button class="x" data-act="teBack" aria-label="${tr('common.close')}">×</button></div>
-  <div class="tehelp"><p class="tagline">${tr('routescript.every_gigabit_leaving_your_network')}</p>
+  <div class="tehelp"><p class="tagline">${tr('routescript.every_gigabit_leaving_your_network_picks')}</p>
   <h3>${tr('routescript.writing_a_script')}</h3><ul>
   <li>${tr('routescript.one_rule_per_line_a_starts')}</li>
   <li>${tr('routescript.networks_providers_and_cities_go_by')}</li>

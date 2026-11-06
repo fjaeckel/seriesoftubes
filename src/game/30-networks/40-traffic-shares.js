@@ -19,6 +19,9 @@ const CONE={},CONE_S={},DOWN={};
 const ANC={};for(const n of NETS){const o=[],q=(n.up||[]).slice();while(q.length){const u=q.shift();if(o.includes(u)||!NETS.some(x=>x.id===u))continue;o.push(u);q.push(...(NETS.find(x=>x.id===u).up||[]));}ANC[n.id]=o;}
 // The networks a PNI with each network reaches: its customer cone. CONE_RANK: where routing tries a peer's cone.
 const PNI_NETS=CONE,CONE_RANK=2.5;
+/* PNIs and IX ports are both peering (#298): traffic leaves at the nearest one, not over the ocean to a PNI. At the same
+   distance the PNI goes first: an IX port counts as this much further away, far below any link's weight. */
+const PNI_TIE=1e-3;
 for(const X of XIX){X.members=NETS.filter(n=>Array.isArray(n.ix)&&n.ix.includes(X.id)||!n.tail&&(X.core?X.core.includes(n.id):(n.ix==='ALL'||Array.isArray(n.ix)&&n.ix.includes(X.c))&&hstr(n.id+'|'+X.id)%100<(n.ix==='ALL'?72:X.take*100))).map(n=>n.id);}
 const NSH={}; {const t=NETS.reduce((a,n)=>a+n.share,0); NETS.forEach(n=>NSH[n.id]=n.share/t);}
 // After Glitch leaves Korea, Seoul viewers watch half as much of it and the rest moves to everyone else.

@@ -128,14 +128,15 @@ never freezes the game.
    (`S.pairMet`) and sets the edge's weight; Dijkstra gives shortest paths from each POP.
    Links on standby (`l.standby`) add their capacity to the edge, but when loads are
    handed back to links the active ones fill first and standby links take the rest.
-2. Builds the exit list `E`: embedded caches (rank 0), PNIs (1), IX ports (2),
+2. Builds the exit list `E`: embedded caches (rank 0), PNIs and IX ports (2, both peering),
    transit (3). Each exit has a capacity, the networks it can reach (`ok(net)`) and an
    egress preference (`high`, `normal`, `low` = backup only). A transit port can also be set to
    carry (`t.carry`): see step 4.
 3. Builds flows: for every POP, its demand (eyeballs and customers) split across
    destination networks by their traffic share (`NSH`, with regional variants for
    China, Russia and Korea). Incidents can add junk flows or scale demand.
-4. Routes flows rank by rank: the nearest usable exit first, ECMP across equal exits,
+4. Routes flows rank by rank: the nearest usable exit first, ECMP across equal exits (a PNI goes before an
+   IX port at the same distance: `PNI_TIE`, #298),
    consuming link, router (`nodeCap`) and exit capacity. A carrier's own transit port also
    goes first, before plain transit, for traffic bound for that carrier or for a network that buys
    transit from it (`25-direct-egress.js`: the shorter AS path): always at its own POP, and from every

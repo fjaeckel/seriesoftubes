@@ -289,7 +289,7 @@ test('the map is not drawn while the dashboard covers the whole screen', () => {
 function plainCompute(ev) {
   const src = ev('compute.toString()');
   let plain = src
-    .replace('if(!lst.hi&&ALONE[fci])', 'if(false)')
+    .replace('if(!lst.hi&&!lst.mx&&ALONE[fci])', 'if(false)')
     .replace('if(!GN){\n        // One scan', 'if(false){\n        // One scan')
     .replace('const ns=e.nets||NET_IDS;', 'const ns=NET_IDS;')
     .replace('if(P.dead)return 0;', '').replaceAll('if(r<=1e-6){P.dead=1;return 0;}', '')

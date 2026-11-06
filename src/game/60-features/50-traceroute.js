@@ -13,7 +13,7 @@ function trPaths(src,mode){const live=S.links.filter(l=>!linkDown(l)),rem=remote
 function trExits(net){const day=S.day,ev=S.ev,leak=ev.leak&&ev.leak.until>day?ev.leak.net:null,out=[];
   for(const x of S.caches)if(x.net===net&&popUp(x.city)&&!siteDown(x.city,'a'))out.push({k:'c',rank:0,city:x.city,pref:'normal',lab:tr('common.name_cache',{name:NET[net].cache.name}),used:R.useCache[x.id]||0,cap:cacheG(x)});
   // A peer's customer cone (#85): one AS hop more, so tried after direct peering and before transit, as in compute().
-  for(const p of S.pni)if(CONE_S[p.net].has(net)&&pniOn(p)&&popUp(p.city)&&liveN(p.city,p.site,p.n))out.push({k:'p',rank:p.net===net?1:CONE_RANK,via:p.net===net?null:p.net,city:p.city,pref:p.pref||'normal',lab:tr('common.pni_with_net',{net:NET[p.net].name}),used:R.usePni[p.id]||0,cap:liveCap(pniG(p),p.city,p.site,p.n)});
+  for(const p of S.pni)if(CONE_S[p.net].has(net)&&pniOn(p)&&popUp(p.city)&&liveN(p.city,p.site,p.n))out.push({k:'p',rank:p.net===net?2:CONE_RANK,via:p.net===net?null:p.net,city:p.city,pref:p.pref||'normal',lab:tr('common.pni_with_net',{net:NET[p.net].name}),used:R.usePni[p.id]||0,cap:liveCap(pniG(p),p.city,p.site,p.n)});
   for(const c in S.ixp){const ses=ixSessions(c),via=ses.has(net)?null:ANC[net].find(u=>ses.has(u))||null;if((ses.has(net)||via)&&(popUp(ixCity(c))||remoteCities().includes(ixCity(c)))&&!(ev.ixdown&&ev.ixdown[c]>day))out.push({k:'ix',rank:via?CONE_RANK:2,via,city:ixCity(c),id:c,pref:(S.ixPref&&S.ixPref[c])||'normal',lab:tr('common.ix_peering',{ix:ixName(c)}),used:R.useIx[c]||0,cap:ixCap(c)});}
   for(const t of S.transit)if(popUp(t.city)&&!(t.down>day)&&liveN(t.city,t.site,t.n)&&net!==leak&&!((ev.depeer>day||scnRule('spat'))&&t.net==='cog'&&net==='ggl'))out.push({k:'t',rank:3,city:t.city,pref:t.pref||'normal',carry:!!t.carry,lab:tr('traceroute.name_transit',{name:NET[t.net].name}),tnet:t.net,used:R.useT[t.id]||0,cap:liveCap(PORT[t.tier].g,t.city,t.site,t.n)});
   return out;}
@@ -32,7 +32,7 @@ function traceroute(src,to,mode){mode=TR_MODES.includes(mode)?mode:'normal';cons
   // carries, except from a POP with a Prefer-marked transit port, where Prefer keeps the say.
   const hiHere=S.transit.some(t=>t.city===src&&t.pref==='high'&&popUp(t.city)&&!(t.down>S.day)&&liveN(t.city,t.site,t.n)),dtier=e=>hiHere||e.k!=='t'||e.pref==='low'?0:directTier(e.tnet,N.id);
   const rk=e=>{const r=e.pref==='low'?4:e.rank,t=dtier(e);return t&&(e.carry||e.city===src)?Math.min(r,DIRECT_RANK[t][e.carry?0:1]):r;};
-  ex.sort((a,b)=>rk(a)-rk(b)||(a.pref==='high'?0:1)-(b.pref==='high'?0:1)||P.dist[a.city]-P.dist[b.city]);
+  ex.sort((a,b)=>rk(a)-rk(b)||(a.pref==='high'?0:1)-(b.pref==='high'?0:1)||P.dist[a.city]+(a.k==='ix'?PNI_TIE:0)-P.dist[b.city]-(b.k==='ix'?PNI_TIE:0));
   const e=ex.find(x=>x.used<x.cap*0.999)||ex[0];walk(P.path(e.city));
   const direct=e.k==='t'&&rk(e)<3?' '+(dtier(e)===1?tr('traceroute.the_carrier_s_own_port_beats_other',{net:N.name}):tr('traceroute.net_buys_transit_from_carrier_so_that',{net:N.name,carrier:NET[e.tnet].name})):'';
   let asPath=[S.asn];

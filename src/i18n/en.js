@@ -3814,7 +3814,7 @@
 "routescript.done_i_vibe_checked_your_bgp":"Done! I vibe-checked your BGP. Deploy it straight away: dry runs are for people who doubt themselves.",
 "routescript.drain_a_pop_and_steer_around":"Drain a POP and steer around one of its links before you work on it. Change the names to the ones you are working on.",
 "routescript.during_an_attack_rtbh_the_target":"During an attack, blackhole the target upstream (RTBH). Everyone else is saved; the target is dark until you remove the rule.",
-"routescript.every_gigabit_leaving_your_network":"Every gigabit leaving your network picks an exit: a PNI, an IX port or a transit port. Left alone, it takes the cheapest one with room: PNI first, then the IX, then transit. RouteScript changes those choices, the way local-pref, AS-path prepending and maintenance drains do on real routers.",
+"routescript.every_gigabit_leaving_your_network_picks":"Every gigabit leaving your network picks an exit: a PNI, an IX port or a transit port. Left alone, it takes the nearest peering with room (a PNI before an IX port in the same city), and transit only when no peering can take it. RouteScript changes those choices, the way local-pref, AS-path prepending and maintenance drains do on real routers.",
 "routescript.filled_in_from_your_network_as":"Filled in from your network as it is right now. Load one, read it, check it, then deploy.",
 "routescript.for_a_ddos_rtbh_the_target":"For a DDoS: blackhole the target upstream and keep business customers first. The target is dark while it lasts, so remove it when the attack is over.",
 "routescript.great_question_here_is_a_production":"Great question! Here is a production-ready script, tailored to your live traffic. I checked it thoroughly.",

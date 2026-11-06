@@ -34,7 +34,7 @@ function rcExitKey(gk,E,flags){let k=gk+'#'+flags;
 const rcIx=(L,E)=>{const a=new Int32Array(L.length);for(let i=0;i<L.length;i++)a[i]=L[i].xi;return a;};
 const rcEx=(a,E)=>{const L=new Array(a.length);for(let i=0;i<a.length;i++)L[i]=E[a[i]];return L;};
 // Each list knows whether it holds a preferred exit (hi) and its exits by city (at), in list order.
-function exIdx(L){L.hi=L.some(e=>e.hp===0);L.at=new Map();for(const e of L){const h=L.at.get(e.ci);if(h)h.push(e);else L.at.set(e.ci,[e]);}}
+function exIdx(L){L.hi=L.some(e=>e.hp===0);L.mx=L.some(e=>e.dt>0)&&L.some(e=>e.dt===0);L.at=new Map();for(const e of L){const h=L.at.get(e.ci);if(h)h.push(e);else L.at.set(e.ci,[e]);}}
 // What reaching networks gave R (taken right after compute() worked it out, before anything else adds to R).
 function rcReachTake(R2){return {reachable:{...R2.reachable},nt:{...R2.nt},cone:{...R2.cone},reach:R2.reach,reachNT:R2.reachNT};}
 function rcReachPut(X,R2){const r=X.reach;Object.assign(R2.reachable,r.reachable);Object.assign(R2.nt,r.nt);Object.assign(R2.cone,r.cone);R2.reach=r.reach;R2.reachNT=r.reachNT;}

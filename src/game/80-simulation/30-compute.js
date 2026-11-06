@@ -22,7 +22,7 @@ function flDefine(R2,c){const {NF,FREM,FCI,FNJ,FCA,FBZ,FGT,FGI,FGP,FGH,FTI,FII,E
 /* Every exit has the same fields in the same order, whatever its kind, so the routing loop reads them from one object shape
    (exits of six shapes made each property read there a slow lookup). */
 function mkEx(k,id,city,cap,rank,pref,lab,ok,nets,net){return {k,net,id,city,lab,cap,used:0,rank,pref,ok,nets,dir:null,clean:false,prem:false,carry:false,prep:false,sac:false,pnc:false,
-  ek:'',J:0,byC:null,desc:null,dup:false,told:false,hp:1,ci:0,cn:false,vis:0,ts:-1,xi:0,kx:EXK.indexOf(k),fac:undefined};}
+  ek:'',J:0,byC:null,desc:null,dup:false,told:false,hp:1,dt:0,ci:0,cn:false,vis:0,ts:-1,xi:0,kx:EXK.indexOf(k),fac:undefined};}
 // The exit kinds by number (mkEx's kx), for what routing adds up per kind in typed arrays.
 const EXK=['t','ix','p','c'];
 function compute(){RW.gen++;
@@ -56,7 +56,7 @@ function compute(){RW.gen++;
     let all=set;for(const id of set)if(DOWN[id].length){if(all===set)all=new Set(set);for(const x of DOWN[id])all.add(x);}
     const x=mkEx('ix',c,ct,ixCap(c),2,(S.ixPref&&S.ixPref[c])||'normal',labOf(N_('common.ix_peering'),'ix',ixName(c)),n=>all.has(n),all);x.dir=all===set?null:set;E.push(x);}
   for(const p of S.pni){if(!pniOn(p)||!popUp(p.city)||!liveN(p.city,p.site,p.n))continue;R2.sessions++;
-    const x=mkEx('p',p.id,p.city,liveCap(pniG(p),p.city,p.site,p.n)*lagF(p)*(p.sacrif?0.5:1),1,p.pref||'normal',labOf(N_('common.pni_with_net'),'net',NET[p.net].name),n=>CONE_S[p.net].has(n),CONE[p.net],p.net);x.sac=!!p.sacrif;x.pnc=!!NET[p.net].cn;E.push(x);}
+    const x=mkEx('p',p.id,p.city,liveCap(pniG(p),p.city,p.site,p.n)*lagF(p)*(p.sacrif?0.5:1),2,p.pref||'normal',labOf(N_('common.pni_with_net'),'net',NET[p.net].name),n=>CONE_S[p.net].has(n),CONE[p.net],p.net);x.sac=!!p.sacrif;x.pnc=!!NET[p.net].cn;E.push(x);}
   for(const c of S.caches){if(!popUp(c.city)||siteDown(c.city,c.site==='b'?'b':'a'))continue;E.push(mkEx('c',c.id,c.city,cacheG(c),0,'normal',labOf(N_('common.name_cache'),'name',NET[c.net].cache.name),n=>n===c.net,[c.net]));}
   // After an update adds networks, a free courtesy route reaches the new ones you have no other way to (#46).
   R2.graceNets=0;if(S.grace&&S.grace.until>day){const gs=new Set(S.grace.nets.filter(n=>NET[n]&&!E.some(e=>e.k!=='c'&&e.ok(n)))),hc=popUp(S.home)?S.home:pops.find(popUp);
@@ -74,7 +74,7 @@ function compute(){RW.gen++;
   // TSL: a slot per transit port id, for what it carries to each network (R.tNet, added up in TNA).
   const ekN={},TSL=new Map();(()=>{for(const e of E){e.ek=e.k+':'+e.id;ekN[e.ek]=(ekN[e.ek]||0)+1;}
   // dup: shares its key with another exit (a hand-edited save), so R.egDesc shows whichever pushed last.
-  for(let i=0;i<E.length;i++){const e=E[i];e.xi=i;e.J=0;e.byC=null;e.desc=null;e.dup=ekN[e.ek]>1;e.told=false;e.hp=e.pref==='high'?0:1;e.ci=CIDX[e.city];e.cn=cnCity(e.city);e.vis=0;e.ts=-1;if(e.k==='t'){let t=TSL.get(e.id);if(t===undefined)TSL.set(e.id,t=TSL.size);e.ts=t;}
+  for(let i=0;i<E.length;i++){const e=E[i];e.xi=i;e.J=0;e.byC=null;e.desc=null;e.dup=ekN[e.ek]>1;e.told=false;e.hp=e.pref==='high'?0:1;e.dt=e.k==='ix'?PNI_TIE:0;e.ci=CIDX[e.city];e.cn=cnCity(e.city);e.vis=0;e.ts=-1;if(e.k==='t'){let t=TSL.get(e.id);if(t===undefined)TSL.set(e.id,t=TSL.size);e.ts=t;}
     if(XC)continue;
     // Index loops or forEach (same order): for…of here made an iterator result per exit and network.
     const ns=e.nets||NET_IDS;if(Array.isArray(ns)){for(let q=0;q<ns.length;q++)okAdd(e,ns[q]);}else ns.forEach(n=>okAdd(e,n));}
@@ -218,7 +218,8 @@ function compute(){RW.gen++;
      R.egT and R.netEg list them in; both are written back after routing. */
   const EGT=new Float64Array(4),EGO=[],NEA=new Float64Array(NN*4),NEO=[];
   // An exit the flow can still try: not visited yet, not full when the flow started, reachable, and not on a saturated path.
-  const usable=e=>e.vis!==vis&&e.used<e.cap&&Dv[e.ci]<Infinity&&!gone(e),byDist=(a,b)=>a.hp-b.hp||Dv[a.ci]-Dv[b.ci];
+  // byDist: (Da-Db)+(dta-dtb), so exits of one kind at one distance compare as exactly equal and keep their order.
+  const usable=e=>e.vis!==vis&&e.used<e.cap&&Dv[e.ci]<Infinity&&!gone(e),byDist=(a,b)=>a.hp-b.hp||Dv[a.ci]-Dv[b.ci]+(a.dt-b.dt);
   // Push up to `want` along one path to exit e; returns what fitted. Index loops: for…of allocates an iterator until optimised. Capacity only shrinks while routing, so a
   // path with one full link or node fits nothing for the rest of this pass: mark it, and later tries cost nothing
   // (most tries are into paths that filled up earlier).
@@ -278,7 +279,7 @@ function compute(){RW.gen++;
       if(LOC){const here=lst.at.get(fci);if(!here)continue;for(let h=0;h<here.length;h++)if(usable(here[h]))REST.push(here[h]);}
       else for(let li=0;li<lst.length;li++)if(usable(lst[li]))REST.push(lst[li]);
       sortD(REST);
-      for(let i=0;i<REST.length&&FREM[F]>1e-6;){let j=i+1;while(j<REST.length&&REST[j].hp===REST[i].hp&&Math.abs(Dv[REST[j].ci]-Dv[REST[i].ci])<1e-6)j++;sendGroup(REST,i,j);i=j;}}};
+      for(let i=0;i<REST.length&&FREM[F]>1e-6;){let j=i+1;while(j<REST.length&&REST[j].hp===REST[i].hp&&Math.abs(Dv[REST[j].ci]-Dv[REST[i].ci]+(REST[j].dt-REST[i].dt))<1e-6)j++;sendGroup(REST,i,j);i=j;}}};
   /* One rank of one pass over every flow. Each hot loop of compute() sits in a function of its own: V8 optimises a small
      function quickly and keeps it, while compute() as a whole is too big to optimise cheaply (it would run unoptimised,
      boxing every number, and be compiled again and again in the background). The tables of a flow's city (distances,
@@ -295,7 +296,7 @@ function compute(){RW.gen++;
          and no other city at distance 0, the usable ones here are exactly the first group, already in order.
          The group is G[0..GN): emptying an array (length=0) gives back its storage, and the next push allocates it again. */
       GN=0;
-      if(!lst.hi&&ALONE[fci]){const here=lst.at.get(fci);if(here)for(let h=0;h<here.length;h++){const e=here[h];if(e.used<e.cap&&!gone(e))G[GN++]=e;}}
+      if(!lst.hi&&!lst.mx&&ALONE[fci]){const here=lst.at.get(fci);if(here)for(let h=0;h<here.length;h++){const e=here[h];if(e.used<e.cap&&!gone(e))G[GN++]=e;}}
       if(!GN){
         // One scan: the best (preference, distance) so far and, in list order, the exits within 1e-6 of it. The best
         // distance only goes down, so dropping the ones it leaves behind gives exactly the exits a second scan would.
@@ -306,9 +307,9 @@ function compute(){RW.gen++;
         const gc=lst.gc||(lst.gc=[]),c=gc[fci];
         if(c!==undefined&&allRoom(c)){if(!c.length)continue;for(let k=0;k<c.length;k++)G[GN++]=c[k];}else{
         let bh=2,bd=Infinity,full=0;
-        for(let li=0,LN=lst.length;li<LN;li++){const e=lst[li];if(e.used>=e.cap||gone(e)){full++;continue;}const d=Dv[e.ci];if(d===Infinity)continue;const h=e.hp;
+        for(let li=0,LN=lst.length;li<LN;li++){const e=lst[li];if(e.used>=e.cap||gone(e)){full++;continue;}const d=Dv[e.ci]+e.dt;if(d===Infinity)continue;const h=e.hp;
           if(h<bh){bh=h;bd=d;GN=0;G[GN++]=e;}
-          else if(h===bh){if(d<bd){bd=d;let k=0;for(let gi=0;gi<GN;gi++){const x=G[gi];if(Dv[x.ci]-d<1e-6)G[k++]=x;}GN=k;G[GN++]=e;}else if(d-bd<1e-6)G[GN++]=e;}}
+          else if(h===bh){if(d<bd){bd=d;let k=0;for(let gi=0;gi<GN;gi++){const x=G[gi];if(Dv[x.ci]+x.dt-d<1e-6)G[k++]=x;}GN=k;G[GN++]=e;}else if(d-bd<1e-6)G[GN++]=e;}}
         if(full*4>=lst.length&&full){let k=0;for(let li=0;li<lst.length;li++){const e=lst[li];if(e.used<e.cap)lst[k++]=e;}lst.length=k;}
         if(bh>1){gc[fci]=NOG;continue;}
         if(GN>1)sortD(G,GN);gc[fci]=G.slice(0,GN);}}
@@ -316,7 +317,7 @@ function compute(){RW.gen++;
       if(FREM[F]<=1e-6)continue;
       REST.length=0;for(let li=0;li<lst.length;li++)if(usable(lst[li]))REST.push(lst[li]);sortD(REST);
       for(let i=0;i<REST.length&&FREM[F]>1e-6;){
-        let j=i+1;while(j<REST.length&&REST[j].hp===REST[i].hp&&Math.abs(Dv[REST[j].ci]-Dv[REST[i].ci])<1e-6)j++;
+        let j=i+1;while(j<REST.length&&REST[j].hp===REST[i].hp&&Math.abs(Dv[REST[j].ci]-Dv[REST[i].ci]+(REST[j].dt-REST[i].dt))<1e-6)j++;
         sendGroup(REST,i,j);i=j;
       }
     }};

@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Traffic now leaves your network at the nearest peering, so a PNI in London no longer pulls New York's traffic across the Atlantic when the New York IX reaches the same network (#298). Where a PNI and an IX port reach a network in the same city, the PNI still goes first, and RouteScript's `prefer pni` still hauls everything to your PNIs.
 - Fabric (NNI) ports now grow like your other ports: buy them at 10G, 100G or 400G (as fast as your router takes), and bundle up to eight into a LAG when one is not enough (#140). A fabric customer is no longer accepted, by hand or automatically, when its bandwidth would not fit on the port as well (#307).
 - Pressing Space to play again after a pause now picks up at the speed you were playing, not always at 1× (#299).
 - Your own subsea cables now land right on the city's dot, also in Fujairah, Dubai, Karachi, Barcelona, Osaka and other cities the map shifts slightly so they do not overlap (#305).
