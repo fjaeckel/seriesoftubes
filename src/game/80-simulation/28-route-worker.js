@@ -10,7 +10,7 @@ const RW_IN=!!self.__TUBES_WORKER__;
 const RW_EL=!RW_IN&&typeof document!=='undefined'?document.currentScript:null;
 // RW_SLOW: a frame time (ms) above which the device does not keep up anyway, and a day may take longer slices (99-loop.js).
 const RW_SLOW=20;
-const RW={w:null,dead:false,seq:0,gen:0,job:null,budget:8,later:f=>rwLater(f),stat:{n:0,post:0,de:0,apply:0,wait:0,work:0}};
+const RW={w:null,dead:false,seq:0,gen:0,job:null,desc:null,wR:null,wseq:0,last:null,budget:8,later:f=>rwLater(f),stat:{n:0,post:0,de:0,apply:0,wait:0,work:0}};
 function rwOn(){return !RW_IN&&!RW.dead&&!window.__TUBES_TEST__&&!window.__TUBES_SYNC__&&typeof Worker==='function'&&!!RW_EL;}
 function rwStart(){if(RW.w)return RW.w;
   try{const L=LANG,dict=L!=='en'&&window.I18N[L]?JSON.stringify(window.I18N[L]):'null';
@@ -23,7 +23,7 @@ if(${dict})self.I18N[${JSON.stringify(L)}]=${dict};
 `;
     const url=URL.createObjectURL(new Blob([pre,RW_EL.textContent,'\n;self.onmessage=e=>rwServe(e.data);'],{type:'text/javascript'}));
     const w=RW.w=new Worker(url);URL.revokeObjectURL(url);
-    w.onmessage=e=>{const t=performance.now(),m=e.data;RW.stat.de+=performance.now()-t;rwDone(m,t);};w.onerror=w.onmessageerror=e=>{console.error('[tubes] route worker failed',e.message||e);rwKill();};
+    w.onmessage=e=>{const t=performance.now(),m=e.data;RW.stat.de+=performance.now()-t;rwMsg(m,t);};w.onerror=w.onmessageerror=e=>{console.error('[tubes] route worker failed',e.message||e);rwKill();};
   }catch(e){console.error('[tubes] no route worker',e);rwKill();}
   return RW.w;}
 // Gone for good this session: the routing in flight is done here instead, and the day goes on without the worker.
@@ -45,7 +45,9 @@ function rwGo(g,v){const t0=performance.now();for(;;){let s;try{s=dayStep(g,v);}
   const w=rwOn()&&rwStart();if(!w){try{here();}catch(e){tickErr(e);rwDayDone();return;}continue;}
   const t=performance.now(),seq=++RW.seq;
   // The worker also needs what compute() reads from yesterday's R: link loads, and the scenic circuits' paths.
-  try{w.postMessage({seq,S,load:R.load,l2route:R.l2route,efg:rwEfgOut(R.efg),...(tr?{trial:tr.dark?{dark:tr.dark,s0:tr.s0,L0:tr.L0}:{b:tr.trial,hx:tr.hx}}:{})});}
+  // While R is the worker's own last answer (RW.wR), it keeps its R.efg rather than getting it back (efg 0, rwServe()).
+  const mine=R===RW.wR;
+  try{w.postMessage({seq,S,load:R.load,l2route:R.l2route,efg:mine?0:rwEfgOut(R.efg),wseq:mine?RW.wseq:0,...(tr?{trial:tr.dark?{dark:tr.dark,s0:tr.s0,L0:tr.L0}:{b:tr.trial,hx:tr.hx}}:{})});}
   catch(e){console.error('[tubes] route worker post',e);rwKill();try{here();}catch(e){tickErr(e);rwDayDone();return;}continue;}
   const t1=performance.now();RW.stat.post+=t1-t;RW.job={seq,g,gen:RW.gen,t:t1,state:S,tr};return;}}
 /* Where a resting day goes on. A frame drawn moments ago leaves time before the next one: the day goes on in a task of
@@ -57,6 +59,8 @@ function rwLater(f){if(RW_CH&&performance.now()-(RW.lf||-1e9)<(RW.fms||16)*0.75)
   else requestAnimationFrame(()=>setTimeout(f,0));}
 // The day rests: it goes on after the next frame, still in flight meanwhile (no next day, no save).
 function rwRest(g,v){const j=RW.job={rest:true,g,state:S};RW.later(()=>{if(RW.job!==j)return;RW.job=null;if(j.state!==S){rwDayDone();return;}rwGo(g,v);});}
+// Every answer from the worker, in order.
+function rwMsg(m,t0){if(m.R){if(m.R.egDesc===0)m.R.egDesc=RW.desc;else RW.desc=m.R.egDesc;}rwDone(m,t0);}
 function rwDone(m,t0){const j=RW.job;if(!j||m.seq!==j.seq)return;RW.job=null;const t=performance.now();
   // Another network was loaded meanwhile: the rest of that day belongs to nobody.
   if(j.state!==S){rwDayDone();return;}
@@ -65,7 +69,7 @@ function rwDone(m,t0){const j=RW.job;if(!j||m.seq!==j.seq)return;RW.job=null;con
   // failed: the trial runs again here, checks included, on the game as it is now (dayAgain()).
   if(j.tr){if(m.err)console.error('[tubes] route worker',m.err);v=m.err||RW.gen!==j.gen?dayAgain(j.tr):j.tr.dark?!!m.ok:m.ok?j.tr.trial:null;}
   else if(m.err){console.error('[tubes] route worker',m.err);compute();}
-  else if(RW.gen===j.gen){R=rwUnpack(m.R,m.ef);UI.hotMap=hotByCity();}
+  else if(RW.gen===j.gen){R=RW.wR=rwUnpack(m.R,m.ef);RW.wseq=m.seq;UI.hotMap=hotByCity();}
   const t1=performance.now(),st=RW.stat;st.n++;st.apply+=t1-t;st.wait+=t-j.t;st.work+=m.ms||0;
   // Reading a big answer takes a few ms already: the day goes on after the next frame then, not in the same task.
   if(t0!==undefined&&t1-t0>RW.budget/2)rwRest(j.g,v);else rwGo(j.g,v);}
@@ -75,16 +79,43 @@ function rwDayDone(){UI.ticking=true;renderHUD();UI.ticking=false;UI.panelsDue=t
    attack record names its attack in S by id. */
 const FL_COLS=['FREM','FCI','FNJ','FCA','FBZ','FGT','FGI','FGP','FGH','FTI','FII'];
 function rwPack(R){const o={};for(const k in R)o[k]=k==='ef'?0:k==='ddos'?R.ddos.map(m=>({...m,attack:m.attack?m.attack.id:null,ports:null})):R[k];
-  const p=R.efp,c={...R.flc,E:R.flc.E.map(e=>({id:e.id}))},tr=[p.ACN.buffer,p.ACD.buffer];for(const k of FL_COLS)tr.push(c[k].buffer);
-  return {o,p:{...p,flc:c},tr};}
-function rwUnpack(o,p){o.ef={};efBuild(o,p.L,p.ACN,p.ACD,p.NKN,p.NC,p.NN);flDefine(o,p.flc);
+  const p=R.efp,c={...R.flc,E:R.flc.E.map(e=>({id:e.id}))},L=rwLOut(p.L),tr=[p.ACN.buffer,p.ACD.buffer,...L.tr];for(const k of FL_COLS)tr.push(c[k].buffer);
+  return {o,p:{...p,L:L.o,flc:c},tr};}
+function rwUnpack(o,p){o.ef={};efBuild(o,rwLIn(p.L),p.ACN,p.ACD,p.NKN,p.NC,p.NN);flDefine(o,p.flc);
   const as=ddosAll(S,false);for(const m of o.ddos){m.attack=as.find(a=>a.id===m.attack)||null;m.ports=new Map();}return o;}
+/* What crossed each link (efp.L: [link id, edge index, t], t = {g: exit key → slot, v: sums by slot, n, d}) is the
+   biggest part of R, and as plain objects it took longer to read on the page than all the rest. It crosses as typed
+   arrays instead, the exit keys once each, and the page decodes a link's t only when something reads it: the link panel
+   (R.ef) or a scenic circuit routed on the page (R.efg). Decoded, it is the same t, Map order included. */
+function rwLOut(L){const n=L.length,K=[],ki=new Map(),ID=new Array(n),EI=new Int32Array(n),OG=new Int32Array(n+1),ON=new Int32Array(n+1),OD=new Int32Array(n+1);
+  let ng=0,nn=0,nd=0;for(const x of L){const t=x[2];ng+=t.g.size;nn+=t.n.length;nd+=t.d.length;}
+  const G=new Int32Array(2*ng),V=new Float64Array(ng),N=new Int32Array(nn),D=new Int32Array(nd);ng=nn=nd=0;
+  for(let j=0;j<n;j++){const [id,i,t]=L[j];ID[j]=id;EI[j]=i;
+    for(const [k,sl] of t.g){let x=ki.get(k);if(x===undefined){ki.set(k,x=K.length);K.push(k);}G[2*ng]=x;G[2*ng+1]=sl;V[ng]=t.v[sl];ng++;}OG[j+1]=ng;
+    for(const v of t.n)N[nn++]=v;ON[j+1]=nn;for(const v of t.d)D[nd++]=v;OD[j+1]=nd;}
+  return {o:{K,ID,EI,OG,ON,OD,G,V,N,D},tr:[EI.buffer,OG.buffer,ON.buffer,OD.buffer,G.buffer,V.buffer,N.buffer,D.buffer]};}
+function rwLIn(X){const {K,ID,EI,OG,ON,OD,G,V,N,D}=X,L=new Array(ID.length);
+  for(let j=0;j<ID.length;j++){let t=null;const T=()=>{if(!t){const g=new Map(),v=[];for(let a=OG[j];a<OG[j+1];a++){g.set(K[G[2*a]],G[2*a+1]);v[G[2*a+1]]=V[a];}
+      t={g,v,n:Array.from(N.subarray(ON[j],ON[j+1])),d:Array.from(D.subarray(OD[j],OD[j+1]))};}return t;};
+    L[j]=[ID[j],EI[j],{get g(){return T().g;},get v(){return T().v;},get n(){return T().n;},get d(){return T().d;}}];}
+  return L;}
 // Yesterday's egress sums for scenic routing, as plain data (EgSums is a class; a clone would lose its get()).
 const rwEfgOut=efg=>{if(!efg)return null;const o={};for(const k in efg)o[k]=efg[k].t;return o;};
 const rwEfgIn=o=>{const efg={};for(const k in o)efg[k]=new EgSums(o[k]);return efg;};
 // In the worker: route the state it was sent, answer with R.
-function rwServe(m){try{S=m.S;R=emptyR();R.load=m.load||{};R.l2route=m.l2route||{};if(m.efg)Object.defineProperty(R,'efg',{value:rwEfgIn(m.efg)});
-    // A sales trial (offerTrial()): its answer only.
+/* R.egDesc names every exit that carried traffic (about two thirds of R on a big network) and only changes with the
+   network. When it is yesterday's again, key for key, the worker sends 0 and the page keeps the one it has (RW.desc):
+   every answer is read in order, the stale ones too, so both sides always hold the same last one. */
+function rwSameDesc(a,b){if(!a||!b)return false;const ka=Object.keys(a),kb=Object.keys(b);if(ka.length!==kb.length)return false;
+  for(let i=0;i<ka.length;i++){const k=ka[i];if(k!==kb[i])return false;const x=a[k],y=b[k];if(x.lab!==y.lab||x.city!==y.city||x.k!==y.k)return false;}return true;}
+// R.efg (what crossed each link, by exit) is about a third of R and only routing reads it, here: the worker keeps the one
+// of its last answer, and the page sends it back only when it routed something of its own since (efg 0: keep yours).
+function rwServe(m){try{S=m.S;R=emptyR();R.load=m.load||{};R.l2route=m.l2route||{};
+    if(m.efg===0){if(!RW.last||RW.last.seq!==m.wseq)throw new Error('route worker: no R.efg for answer '+m.wseq);Object.defineProperty(R,'efg',{value:RW.last.efg});}
+    else if(m.efg)Object.defineProperty(R,'efg',{value:rwEfgIn(m.efg)});
+    // A sales trial (offerTrial()) or the intern's fiber test (opsDarkTrial()): its answer only. What the worker keeps
+    // for the next routing (RW.last, RW.desc) stays.
     if(m.trial){const t=performance.now(),ok=m.trial.dark?opsDarkTrial(m.trial):!!offerTrial(m.trial.b,m.trial.hx);postMessage({seq:m.seq,ok,ms:performance.now()-t});return;}
-    const t=performance.now();compute();const ms=performance.now()-t,{o,p,tr}=rwPack(R);postMessage({seq:m.seq,R:o,ef:p,ms},tr);}
+    const t=performance.now();compute();const ms=performance.now()-t,{o,p,tr}=rwPack(R);RW.last={seq:m.seq,efg:R.efg};
+    if(rwSameDesc(RW.desc,o.egDesc))o.egDesc=0;else RW.desc=o.egDesc;postMessage({seq:m.seq,R:o,ef:p,ms},tr);}
   catch(e){postMessage({seq:m.seq,err:String(e&&e.stack||e)});}}

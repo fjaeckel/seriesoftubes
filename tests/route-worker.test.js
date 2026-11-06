@@ -15,11 +15,17 @@ const big = (t) => { const h = load({ seed: 777 }); t.after(() => h.dom.window.c
 // R with its lazy parts (R.ef, R.fl) read out, attacks by id.
 const SIG = "(()=>{const o={};for(const k in R)o[k]=R[k];o.ef={};for(const k in R.ef)o.ef[k]=R.ef[k];o.fl=(R.fl||[]).map(f=>[f.c,f.n,f.junk,f.rem,f.gt,f.gi,f.gp,f.gh,f.ti,f.ii]);return JSON.stringify(o,(k,v)=>k==='attack'?(v&&v.id):k==='ports'?undefined:v);})()";
 
+// R.efg, which the next day's routing reads: every link's sums, Map order included (they cross as typed arrays).
+const EFG = "JSON.stringify(Object.entries(R.efg).map(([k,e])=>[k,[...e.t.g],e.t.v,e.t.n,e.t.d]))";
+
 test('R packed, cloned and unpacked is the same R, lazy parts and key order included', (t) => {
   const { ev, errors } = big(t);
-  const want = ev(SIG);
+  const want = ev(SIG), efg = ev(EFG);
   ev("{const {o,p,tr}=rwPack(R);const c=structuredClone({o,p},{transfer:tr});R=rwUnpack(c.o,c.p);UI.hotMap=hotByCity();}");
+  assert.equal(ev(EFG), efg);
   assert.equal(ev(SIG), want);
+  // Sent back to the worker after an action, a link's sums still clone whole.
+  assert.equal(ev("JSON.stringify(Object.entries(structuredClone(rwEfgOut(R.efg))).map(([k,t])=>[k,[...t.g],t.v,t.n,t.d]))"), efg);
   assert.equal(ev('pniFlows(Object.keys(S.pops)[0])!==null'), true, 'the PNI list reads the unpacked flows');
   assert.deepEqual(errors, []);
 });

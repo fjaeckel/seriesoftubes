@@ -134,9 +134,11 @@ The day:
    Then the NOC intern's standing orders (`opsRun()`, or `opsDay()` in one go), if one is hired: each order clicks the
    same `ACT` actions a player would, muted, within its monthly budget, and the shift routes again (a yield) before
    decommissioning, which reads today's loads, and at the end, each only if a job changed the network. An order that
-   throws is paused; the day goes on. The NOC gets one notice a week.
+   throws is paused; the day goes on. The NOC gets one notice a week. The orders plan for every POP each day, so what
+   they count is counted for all POPs in one pass (`portsAt()`, `cachePlan()`, `pniFlows()`, `pniBatch()`), never one
+   pass over the network per POP.
    Then the sales desk (`slAutoDay()`), if someone runs sales and the player lets them sign: deals are Sales', never
-   the intern's. Each salesperson signs in their own style (a routing trial a day, or the shark's sign-everything).
+   the intern's. Each salesperson signs in their own style (a routing trial a day, or the shark's sign-everything).5. Updates customer mood, churn and new offers; IX members join; loans tick.
 5. Updates customer mood, churn and new offers; IX members join; loans tick.
 6. Every 30 days: bills the month (revenue minus costs) and checks for bankruptcy.
 7. Checks goals, level, badges and scenario end conditions.
@@ -206,7 +208,12 @@ network does not freeze the page once a day.
   saved; nothing else starts meanwhile. `tests/day-steps.test.js` plays a second page as the worker and compares every
   day with `dayTick()`.
 - **What crosses.** `R.ef` and `R.fl` are lazy getters; their pieces (`R.efp`, `R.flc`) travel instead, typed arrays
-  transferred, and `efBuild()`/`flDefine()` (in `30-compute.js`) rebuild the same lazy R on the page.
+  transferred, and `efBuild()`/`flDefine()` (in `30-compute.js`) rebuild the same lazy R on the page. What crossed each
+  link (`R.efp.L`) crosses as typed arrays with each exit key once (`rwLOut()`), and the page decodes a link only when
+  something reads it (`rwLIn()`). Two parts are not sent again when they would be the same: `R.egDesc` comes back as 0
+  when it is the last one key for key (the page keeps `RW.desc`), and `R.efg` is not posted back while R is the worker's
+  own last answer (`RW.wR`; the worker keeps it in `RW.last`). Both sides read every message in order, so they always
+  hold the same last one; `tests/day-steps.test.js` plays a second page as the worker and checks it all.
 - **Actions mid-day.** Every `compute()` bumps `RW.gen`. If an action routed while a day was in flight, the worker's
   answer is stale: it is dropped and the day ends with the action's R.
 - **Fallbacks.** Tests (`__TUBES_TEST__`, and jsdom has no Worker), `window.__TUBES_SYNC__`, a browser without workers, a

@@ -143,16 +143,18 @@ const opsProv=c=>{const pv=opsP('transit','prov'),n=isNet(pv)?NET[pv]:null;retur
 // after a job is only a place where a long shift may let a frame through (opsRun()), nothing changes there.
 const OPS_RUN={
  *repair(X){purgeInc();for(const i of S.inc.slice())if(i.type!=='ddos'&&i.until>S.day&&i.cost>0&&!(i.slow&&i.rushed)&&X.can('repair',i.cost)&&X.pay('repair',()=>ACT.fixInc({id:i.id}))){X.did('repair');yield;}},
- *routers(X){const at=opsP('routers','at')/100,how=opsP('routers','how'),m=opsP('routers','model'),fix=m!=='next',
-     load=c=>Math.max((R.nodeLoad[c]||0)*opsAhead()/(R.nodeCap[c]||nodeCap(c)||1),portsUsed(c)/Math.max(1,portsMax(c)));
+ // Ports in use are counted for every POP at once, after the model swaps: a router added or swapped here changes no other POP's count.
+ *routers(X){const at=opsP('routers','at')/100,how=opsP('routers','how'),m=opsP('routers','model'),fix=m!=='next',cs=opsPops('routers'),
+     load=(c,u)=>Math.max((R.nodeLoad[c]||0)*opsAhead()/(R.nodeCap[c]||nodeCap(c)||1),u/Math.max(1,portsMax(c)));
    // A chosen model: swap every POP still on a smaller one to it, the busiest first, while the budget lasts. Never a
    // step down, never a model that is not unlocked or does not fit, and only with a second router or no traffic there.
-   if(fix&&rgOpen(m))for(const c of opsPops('routers').sort((a,b)=>load(b)-load(a))){const p=S.pops[c],g=p.rgen||0;
+   if(fix&&rgOpen(m)){const pu=portsAt(cs);for(const c of cs.slice().sort((a,b)=>load(b,pu.get(b))-load(a,pu.get(a)))){const p=S.pops[c],g=p.rgen||0;
      if(p.rupDay===S.day||g===m||RG[m].cap<=RG[g].cap||modelFits(c,m)||!((p.routers||1)>1||popIdle(c)))continue;
      const cost=swapCost(c,m);if(!X.can('routers',cost))continue;
-     if(X.pay('routers',()=>ACT.upRouter({city:c,g:m}))){X.did('routers',c+' ⇧'+RG[m].pn);yield;}}
-   for(const c of opsPops('routers')){const p=S.pops[c];if(p.rupDay===S.day)continue;
-     const ld=load(c);if(ld<at)continue;
+     if(X.pay('routers',()=>ACT.upRouter({city:c,g:m}))){X.did('routers',c+' ⇧'+RG[m].pn);yield;}}}
+   const pu=portsAt(cs);
+   for(const c of cs){const p=S.pops[c];if(p.rupDay===S.day)continue;
+     const ld=load(c,pu.get(c));if(ld<at)continue;
      const rt=p.routers||1,g=p.rgen||0,nx=mainRG(RG[g].cls+1);
      // A swap with one router is a maintenance window: the intern only swaps where a second router carries the traffic.
      // With a chosen model the swaps are the ones above; a busy POP only gets more routers.
@@ -242,9 +244,10 @@ const OPS_RUN={
        X.pay('optup',()=>{ACT.setChCount({id:l.id,o:o1,n:cnt[o1]-1});ACT.setChCount({id:l.id,o:o2,n:n2});
          if((l.ch||[]).filter(k=>k===o2).length===n2)return true;ACT.setChCount({id:l.id,o:o1,n:cnt[o1]});return false;});
        if(!(dfCap(l)>was))break;X.did('optswap',l.a+'|'+l.b+' '+fmtCap(optG(o1,l))+'→'+fmtCap(optG(o2,l)));yield;}}},
- *caches(X){const g=opsP('caches','g');
-   for(const c of opsPops('caches')){const q=utilityCaches(c);if(!q||!q.add.length)continue;
-     const want=q.add.filter(x=>cacheDem(c,x.net)>=g),free=()=>portsMax(c)-portsUsed(c)+1e-9;
+ // The boxes sorted by POP once: the boxes racked at one POP change no other POP's plan.
+ *caches(X){const g=opsP('caches','g'),by=new Map();for(const x of S.caches){const a=by.get(x.city);if(a)a.push(x);else by.set(x.city,[x]);}
+   for(const c of opsPops('caches')){const add=cachePlan(c,by.get(c)||[]);if(!add||!add.length)continue;
+     const want=add.filter(x=>cacheDem(c,x.net)>=g),free=()=>portsMax(c)-portsUsed(c)+1e-9;
      for(const x of want){if(cachePortsAdd(c,[x])>free())continue;if(!X.can('caches',0,cacheMo(x)))return;S.caches.push({id:uid(),city:c,net:x.net,site:x.site,...(x.g?{g:x.g}:{})});X.book('caches',0,cacheMo(x));X.did('caches',c);}
      yield;}},
  // Weekly, like a person going through PeeringDB on a Monday: route servers, then every willing member (#192).
@@ -255,7 +258,7 @@ const OPS_RUN={
    // The traffic a PNI there would take over: what your users at that POP send to the network today over transit, an
    // exchange or a PNI elsewhere, the same figure the PNI list shows. Not the city's whole demand: a network's own
    // cache boxes in that POP already serve most of it (#244).
-   const loc=q=>pniVal(q.net,q.city).want;
+   const lv=new Map(),loc=q=>{let v=lv.get(q);if(v===undefined)lv.set(q,v=pniVal(q.net,q.city).want);return v;};
    // Each order quoted again just before it is placed: the player may have ordered the same PNI by hand while the shift
    // let a frame through or waited for a routing, and the batch's quote would order it a second time.
    for(const q0 of b.orders.filter(q=>opsHere('pni',q.city)&&loc(q)>=g&&(paid||NET[q.net].pol!=='paid'||paidFree(NET[q.net]))).sort((a,b)=>loc(b)-loc(a))){
