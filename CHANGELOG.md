@@ -17,6 +17,7 @@ All notable changes to this project are documented here. The project follows
 - A paused game no longer rewrites its save every 5 seconds when nothing has changed. On a big network each of those writes held the page for 20 to 30 milliseconds.
 - Routing a big network's day takes about a quarter less work when Auto-TE is on, with exactly the same results.
 - A low-latency boutique with a lot of its own fiber no longer stalls every day while it times its finance routes. On a big fiber network that check held the page for about a third of a second and now takes a few hundredths; checking customers who want a path without subsea or under a latency limit got quicker too. The game plays exactly as before.
+- The NOC intern no longer holds a big network for more than half a second each time it weighs taking out a spare wave. Before it decides, it checks every customer promised diverse paths, no subsea or a latency limit, and on a network of 390 POPs that check now takes a few hundredths of a second. Spotting new sovereign cloud and trading offers is about ten times quicker too, and the game plays exactly as before.
 
 ## [3.0.0] — 2026-11-06
 
