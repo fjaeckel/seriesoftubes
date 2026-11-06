@@ -207,7 +207,7 @@ const CITY_PDB={
  lbv:[4,11,12],
  ldb:[3,7,9693],
  lfw:[1,4,11],
- lil:[1,0,2249],
+ lil:[4,24,2249], // pulled 2026-11-06, Tourcoing and Roubaix included
  lim:[12,156,267],
  lis:[9,129,187],
  lit:[2,6,33300], // est.

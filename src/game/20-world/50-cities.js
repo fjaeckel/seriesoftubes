@@ -12,7 +12,7 @@ const CITIES=[
  {id:'fra',name:'Frankfurt',x:1075,y:295,land:'eu',reg:'EU',cc:'DE',P:600,ix:'DE-KICKS',dc:'Kleyerstraße Campus',note:tr('cities.europe_s_crossroads_lots_of_networks')},
  {id:'par',name:'Paris',x:990,y:320,land:'eu',reg:'EU',cc:'FR',P:900,ix:'Fromage-IX',dc:'Interaction PAR'},
  {id:'lys',name:'Lyon',x:0,y:0,land:'eu',reg:'EU',cc:'FR',P:220,ix:'Quenelle-IX',dc:'Croix-Rousse Silk Rack'},
- {id:'tls',name:'Toulouse',x:0,y:0,land:'eu',reg:'EU',cc:'FR',P:140,ix:'Cassoulet-IX',dc:'Airbus Hangar DC'},
+ {id:'tls',name:'Toulouse',x:0,y:0,land:'eu',reg:'EU',cc:'FR',P:140,ix:'Cassoulet-IX',dc:'Pink City Colo'},
  {id:'lil',name:'Lille',x:0,y:0,land:'eu',reg:'EU',cc:'FR',P:120,ix:'Maroilles-IX',dc:'Belfry Colo'},
  {id:'bod',name:'Bordeaux',x:0,y:0,land:'eu',reg:'EU',cc:'FR',P:120,ix:'Claret-IX',dc:'Wine Cellar DC'},
  {id:'sxb',name:'Strasbourg',x:0,y:0,land:'eu',reg:'EU',cc:'FR',P:80,ix:'Choucroute-IX',dc:'Cathedral Clock DC'},

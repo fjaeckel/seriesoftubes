@@ -26,7 +26,7 @@ test('SF-Error Telecom, Boy-Egg Telecom, Ov-Hatch Cloud and Scale-Away carry the
   assert.deepEqual(['sfe', 'byg', 'ovh', 'sca'].map((n) => ev(`NET.${n}.asn`)), [15557, 5410, 16276, 12876]);
   assert.deepEqual(['sfe', 'byg', 'ovh', 'sca'].map((n) => ev(`NET.${n}.name`)), ['SF-Error Telecom', 'Boy-Egg Telecom', 'Ov-Hatch Cloud', 'Scale-Away']);
   for (const c of Object.keys(NEW)) for (const n of ['tng', 'fre', 'sfe', 'byg']) assert.equal(ev(`NET.${n}.pops.includes('${c}')`), true, `${n} is in ${c}`);
-  assert.equal(ev("NET.ovh.pops.includes('sxb')&&NET.ovh.ix.includes('sxb')"), true, 'Ov-Hatch is on EuroRhine-IX in Strasbourg');
+  assert.equal(ev("NET.ovh.pops.includes('sxb')&&NET.ovh.ix.includes('sxb')"), true, 'Ov-Hatch is on Choucroute-IX in Strasbourg');
   for (const c of ['lys', 'tls', 'lil', 'bod', 'sxb']) assert.equal(ev(`NET.cog.pops.includes('${c}')`), true, `Cogentle is in ${c}, where PeeringDB lists Cogent`);
   assert.equal(ev("NET.adt.pops.includes('tls')"), true, 'Andorra’s telco comes up to Toulouse');
   assert.equal(ev("NETS.filter(n=>n.type!=='cdn'&&[].concat(n.cc||[]).includes('FR')&&n.pops.includes('lys')).length>=4"), true, 'four consumer networks in Lyon');
