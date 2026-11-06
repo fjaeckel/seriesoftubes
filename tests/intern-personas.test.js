@@ -37,7 +37,7 @@ test('Annie peers every day and orders PNIs twice a week; the others weekly', t 
     ev("S.ops.on.ix=true;S.day=15;opsDay(S.day)");
     assert.equal(ev('Object.keys(S.rs).length>0'), want, `${id} on a Tuesday`);
     // How often the PNI order looks for networks to order from, over one week.
-    ev("S.ops.on.ix=false;S.ops.on.pni=true;window.__pb=0;pniBatch=function(){__pb++;return null;};for(let d=21;d<28;d++){S.day=d;opsDay(d);}");
+    ev("S.ops.on.ix=false;S.ops.on.pni=true;window.__pb=0;pniBatch=function(){__pb++;return null;};if(typeof pniBatchRun==='function')pniBatchRun=function*(){__pb++;return null;};for(let d=21;d<28;d++){S.day=d;opsDay(d);}");
     assert.equal(ev('__pb'), want ? 2 : 1, `${id}: PNI rounds a week`);
     assert.deepEqual(errors, []);
   }

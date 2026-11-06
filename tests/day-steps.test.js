@@ -11,11 +11,12 @@ const path = require('node:path');
 const { load } = require('./harness');
 
 const BIG = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
-// The big network with an intern running every order, a failure and an event due soon, and its circuits on scenic
-// routes, which read yesterday's R.efg. Ids come from Date.now(),
+// The big network with an intern running every order, a failure and an event due soon, its circuits on scenic
+// routes, which read yesterday's R.efg, and renewal haggles the sales desk answers (slRenRun() routes after them). Ids come from Date.now(),
 // so the clock stands still in every page.
 const SETUP = `Date.now=()=>1.7e12;S=migrate(JSON.parse(${JSON.stringify(BIG)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();autoPause=()=>false;
-  S.cash=1e9;ACT.salesHire({id:'eng'});closeModal();S.slAuto.on=true;
+  S.cash=1e9;ACT.salesHire({id:'eng'});closeModal();S.slAuto.on=true;S.slAuto.ren=true;window.__ren=0;{const f=slRenOne;slRenOne=function(){__ren++;return f.apply(this,arguments);};}
+  for(const b of S.biz.filter(b=>clOn(b)&&!BIZ_T[b.type].fiber).slice(0,20)){b.te=S.day+28;b.hag={rate:Math.round(b.rate*0.7),until:S.day+28};}
   S.ops.intern='tracy';S.ops.hired=S.day;for(const k in S.ops.on)S.ops.on[k]=true;S.ops.floor=0;for(const k in S.ops.cap)S.ops.cap[k]=0;
   S.nextFail=S.day+3;S.nextEvent=S.day+5;for(const b of S.biz)if(BIZ_T[b.type].l2&&b.city2)b.route='scenic';compute();__reseed(4242);`;
 const open = (t, seed) => { const h = load({ seed }); t.after(() => h.dom.window.close()); h.dom.window.structuredClone = globalThis.structuredClone; return h; };
@@ -52,8 +53,8 @@ const same = (a, b, msg) => { if (a === b) return; const A = JSON.parse(a), B = 
 test('a day whose routings the worker answers is the day dayTick() plays', (t) => {
   const ref = open(t, 777), p = played(t);
   ref.ev(SETUP);
-  // The page itself never routes, the failure on day 3 (failureRun()) and the sales desk's trials (offerTrial())
-  // included: they are steps like the others, routed by the worker.
+  // The page itself never routes, the failure on day 3 (failureRun()), the sales desk's trials (offerTrial()) and its
+  // renewal answers included: they are steps like the others, routed by the worker.
   p.ev('window.__pc=0;window.__tr=0;const c0=compute;compute=function(){__pc++;return c0.apply(this,arguments);};');
   let served = 0, extra = 0;
   for (let i = 0; i < 12; i++) {
@@ -69,6 +70,7 @@ test('a day whose routings the worker answers is the day dayTick() plays', (t) =
   assert.ok(ref.ev('S.inc.length') > 0 || ref.ev('S.stats.incidents') > 0, 'a failure happened');
   assert.equal(p.ev('__pc'), 0, 'no routing on the page');
   assert.ok(p.trials() > 0, `sales trials the worker ran: ${p.trials()}`);
+  assert.ok(p.ev('__ren') > 0 && p.ev('__ren') === ref.ev('__ren'), `renewal haggles the desk answered: ${p.ev('__ren')}`);
   assert.ok(p.ev('S.ops.log.some(e=>e.r.some(([k])=>k==="caches"))'), 'the intern racked cache boxes');
   assert.ok(p.kept() > 0 && p.kept() < served, `answers without R.egDesc: ${p.kept()} of ${served}`);
   assert.ok(p.delta() > 0, `answers with only what changed in R.egDesc: ${p.delta()}`);
@@ -209,7 +211,7 @@ test('a customer dropped while a sales trial routes: the trial runs again on the
 test("the intern's PNI round never orders again what the player ordered while it waited", (t) => {
   // The round's batch, then its first rest: the player orders every PNI of the batch by hand meanwhile.
   const ROUND = (hand) => `while(S.day%7!==3)S.day++;S.ops.on.pni=true;
-    const pb=pniBatch;pniBatch=(...a)=>window.__b=pb(...a);
+    const pb=pniBatchRun;pniBatchRun=function*(...a){const b=yield* pb(...a);window.__b=b;return b;};
     window.__b=null;const X=opsShift(),it=OPS_RUN.pni(X),n0=S.pni.length;let hand=0;
     for(let s=it.next();!s.done;s=it.next())if(__b&&${hand}&&!hand){hand=1;const af=after;after=()=>{};try{for(const q of __b.orders)ACT.pni({city:q.city,net:q.net,tier:q.g1?-1:q.tier});}finally{after=af;}compute();window.__h=S.pni.length;}
     window.__n=S.pni.length-n0;`;
