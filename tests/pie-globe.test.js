@@ -171,3 +171,19 @@ test('the globe replays recent flights: a payload at the top, or a fireball part
   ev('pieGlobeClose()');
   assert.deepEqual(errors, []);
 });
+
+test('continents clip cleanly at the rim: the fill never laps the globe, from any angle', () => {
+  const { ev, errors } = load({ seed: 1 });
+  // A pretend canvas that adds up how far each fill runs along the rim.
+  const r = ev(`(()=>{pgVecs();const rec={arcs:[],moveTo(){},lineTo(){},closePath(){},arc(x,y,R,a,b,ccw){let s=ccw?a-b:b-a;this.arcs.push(s);}};
+    const coast=new Path2D();let worst=0,where='',shapes=0;
+    for(let tilt=-60;tilt<=60;tilt+=15)for(let yaw=0;yaw<360;yaw+=5){PG.yaw=yaw;PG.tilt=tilt;pgCam();
+      for(let li=0;li<PG_LAND.length;li++){const ring=PG_LAND[li],n=ring.length/3;rec.arcs=[];pgLandRing(rec,pgRot(ring,pgBuf(n),n),n,PG_LAND_DIR[li],0,0,1,coast);
+        const lap=rec.arcs.reduce((a,b)=>a+Math.abs(b),0);shapes++;if(lap>worst){worst=lap;where=LANDS_LL[li].id+' yaw '+yaw+' tilt '+tilt;}}}
+    return {worst,where,shapes,dirs:PG_LAND_DIR.length===PG_LAND.length&&PG_LAND_DIR.every(d=>d===1||d===-1)};})()`);
+  assert.ok(r.dirs, 'every land ring knows which way it turns');
+  // A fill that runs all the way round the rim paints the whole globe green (Eurasia from the south used to).
+  assert.ok(r.worst < 2 * Math.PI - 0.1, 'the longest run along the rim is ' + r.worst.toFixed(2) + ' rad, at ' + r.where);
+  assert.ok(r.shapes > 1000);
+  assert.deepEqual(errors, []);
+});

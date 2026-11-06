@@ -12,12 +12,43 @@ const PG_ST={
 // The whole state of the globe. cv is null whenever it is closed, and then nothing below runs.
 const PG={cv:null,ctx:null,get:null,raf:0,last:0,t:0,yaw:-20,tilt:18,vy:0,drag:null,night:null,anim:true,dirty:true,
   data:null,dAt:-1e9,sig:'',sm:[],dish:[],fl:[],hi:null,pads:[],lch:[],fly:[],on:null,g:null,frames:0,m:new Float64Array(9)};
-let PG_LAND=null,PG_GRID=null,PG_LIGHT=null,PG_STAR=null;
+let PG_LAND=null,PG_LAND_DIR=null,PG_TURN=1,PG_GRID=null,PG_LIGHT=null,PG_STAR=null;
 const pgNightPref=()=>{if(PG.night===null){try{PG.night=localStorage.getItem('sot-globe')==='night';}catch(e){PG.night=false;}}return PG.night;};
 // Unit vectors for the land rings (LANDS_LL), the graticule, city lights and stars: worked out once, on first open.
 function pgUnit(lo,la,a,i){const b=la*PG_D,c=Math.cos(b),o=lo*PG_D;a[i]=c*Math.cos(o);a[i+1]=c*Math.sin(o);a[i+2]=Math.sin(b);}
+// One land ring, clipped to the near side (as map libraries clip). The coast runs to where it meets the horizon; from there the
+// fill follows the rim, in the ring's own turning direction (PG_LAND_DIR, from its signed area), to the next point where any
+// coast comes back. Only real coast goes into the outline. Pushing hidden points onto the rim made coasts on the edge shiver,
+// and a ring bigger than half the rim (Eurasia) filled the whole globe from some angles.
+const PG_TAU=2*Math.PI,pgAng=a=>a<0?a+PG_TAU:a;
+function pgLandRing(ctx,b,n,dir,cx,cy,R,coast){let s=-1;for(let i=0;i<n;i++)if(b[i*3]>=0){s=i;break;}if(s<0)return;
+  const X=(h)=>cx+R*h,Y=(v)=>cy-R*v;let all=true;for(let i=0;i<n;i++)if(b[i*3]<0){all=false;break;}
+  if(all){for(let i=0;i<n;i++){const j=i*3;if(i){ctx.lineTo(X(b[j+1]),Y(b[j+2]));coast.lineTo(X(b[j+1]),Y(b[j+2]));}else{ctx.moveTo(X(b[j+1]),Y(b[j+2]));coast.moveTo(X(b[j+1]),Y(b[j+2]));}}ctx.closePath();coast.closePath();return;}
+  // Visible runs: each from where the coast comes up over the horizon (in) to where it goes under (out), as flat [h,v,...].
+  const runs=[];let cur=null,head=[],px=b[s*3],ph=b[s*3+1],pv=b[s*3+2];const pre=[ph,pv];
+  const cross=(x,h,v)=>{const u=px/(px-x);let eh=ph+(h-ph)*u,ev=pv+(v-pv)*u;const m=Math.hypot(eh,ev)||1;return [eh/m,ev/m];};
+  for(let k=1;k<=n;k++){const j=((s+k)%n)*3,x=b[j],h=b[j+1],v=b[j+2],up=x>=0,was=px>=0;
+    if(was&&!up){const e=cross(x,h,v);if(cur){cur.p.push(e[0],e[1]);cur.out=Math.atan2(e[1],e[0]);runs.push(cur);cur=null;}else{head.push(e[0],e[1]);head.outA=Math.atan2(e[1],e[0]);}}
+    else if(!was&&up){const e=cross(x,h,v);cur={p:[e[0],e[1],h,v],in:Math.atan2(e[1],e[0])};}
+    else if(up){if(cur)cur.p.push(h,v);else head.push(h,v);}
+    px=x;ph=h;pv=v;}
+  // The walk started at a visible point: the run still open at the end carries on into the first points.
+  if(cur){cur.p.push(...pre,...head);cur.out=head.outA;runs.push(cur);}
+  else if(head.outA!==undefined)runs.push({p:[...pre,...head],in:NaN,out:head.outA});
+  if(!runs.length)return;
+  for(const r of runs){coast.moveTo(X(r.p[0]),Y(r.p[1]));for(let i=2;i<r.p.length;i+=2)coast.lineTo(X(r.p[i]),Y(r.p[i+1]));}
+  // Link runs along the rim into closed shapes: from each run's way out, turn with the ring to the nearest way in.
+  const used=new Set();
+  for(let r0=0;r0<runs.length;r0++){if(used.has(r0))continue;let r=r0,first=true;
+    while(!used.has(r)){used.add(r);const p=runs[r].p;if(first){ctx.moveTo(X(p[0]),Y(p[1]));first=false;}else ctx.lineTo(X(p[0]),Y(p[1]));
+      for(let i=2;i<p.length;i+=2)ctx.lineTo(X(p[i]),Y(p[i+1]));
+      let best=-1,bd=1e9;for(let q=0;q<runs.length;q++){const d=pgAng(dir*(runs[q].in-runs[r].out));if(d<bd){bd=d;best=q;}}
+      if(best<0)break;const a0=runs[r].out;ctx.arc(cx,cy,R,-a0,-(a0+dir*bd),dir>0);r=best;}
+    ctx.closePath();}}
 function pgVecs(){if(PG_LAND)return;
   PG_LAND=LANDS_LL.map(l=>{const a=new Float32Array(l.ll.length*3);l.ll.forEach((q,i)=>pgUnit(q[0],q[1],a,i*3));return a;});
+  PG_LAND_DIR=PG_LAND.map(a=>{const n=a.length/3;let cx=0,cy=0,cz=0,s=0;for(let i=0;i<n*3;i+=3){cx+=a[i];cy+=a[i+1];cz+=a[i+2];}
+    for(let i=0;i<n;i++){const p=i*3,q=((i+1)%n)*3;s+=cx*(a[p+1]*a[q+2]-a[p+2]*a[q+1])+cy*(a[p+2]*a[q]-a[p]*a[q+2])+cz*(a[p]*a[q+1]-a[p+1]*a[q]);}return s>=0?PG_TURN:-PG_TURN;});
   PG_GRID=[];for(let lo=-180;lo<180;lo+=30){const a=new Float32Array(31*3);for(let j=0;j<=30;j++)pgUnit(lo,-90+j*6,a,j*3);PG_GRID.push(a);}
   for(let la=-60;la<=60;la+=30){const a=new Float32Array(61*3);for(let j=0;j<=60;j++)pgUnit(-180+j*6,la,a,j*3);PG_GRID.push(a);}
   const cs=CITIES.filter(c=>isFinite(c.lat)&&isFinite(c.lon));PG_LIGHT={v:new Float32Array(cs.length*3),r:cs.map(c=>1.1+Math.min(1.6,(c.P||0)/400))};cs.forEach((c,i)=>pgUnit(c.lon,c.lat,PG_LIGHT.v,i*3));
@@ -101,9 +132,8 @@ function pgDraw(ctx,W,H){
     for(let i=0;i<n*3;i+=3){if(buf[i]<0){on=false;continue;}const x=cx+R*buf[i+1],y=cy-R*buf[i+2];if(on)ctx.lineTo(x,y);else ctx.moveTo(x,y);on=true;}}
   ctx.strokeStyle=st.grid;ctx.lineWidth=1;ctx.stroke();
   // Land: every ring in one path, filled and inked once. Points beyond the horizon slide onto the rim.
-  ctx.beginPath();for(const ring of PG_LAND){const n=ring.length/3,b=pgRot(ring,pgBuf(n),n);let any=false;for(let i=0;i<n*3;i+=3)if(b[i]>=0){any=true;break;}if(!any)continue;
-    for(let i=0;i<n*3;i+=3){let h=b[i+1],v=b[i+2];if(b[i]<0){const m=Math.hypot(h,v)||1;h/=m;v/=m;}if(i)ctx.lineTo(cx+R*h,cy-R*v);else ctx.moveTo(cx+R*h,cy-R*v);}ctx.closePath();}
-  ctx.fillStyle=st.land;ctx.fill();ctx.lineJoin='round';ctx.lineWidth=night?1:2;ctx.strokeStyle=st.ink;ctx.stroke();
+  const coast=new Path2D();ctx.beginPath();for(let li=0;li<PG_LAND.length;li++){const ring=PG_LAND[li],n=ring.length/3;pgLandRing(ctx,pgRot(ring,pgBuf(n),n),n,PG_LAND_DIR[li],cx,cy,R,coast);}
+  ctx.fillStyle=st.land;ctx.fill();ctx.lineJoin='round';ctx.lineWidth=night?1:2;ctx.strokeStyle=st.ink;ctx.stroke(coast);
   ctx.fillStyle=PG.g.sh;ctx.fillRect(cx-R,cy-R,2*R,2*R);
   if(night){// City lights, brighter on the dark side.
     const L=PG_LIGHT,n=L.r.length,b=pgRot(L.v,pgBuf(n),n);ctx.beginPath();for(let i=0,j=0;j<n;i+=3,j++){if(b[i]<0.05)continue;const x=cx+R*b[i+1],y=cy-R*b[i+2],r=L.r[j]*(1+Math.max(0,b[i+1]));ctx.moveTo(x+r*3.5,y);ctx.arc(x,y,r*3.5,0,7);}ctx.fillStyle='rgba(255,210,63,.16)';ctx.fill();
