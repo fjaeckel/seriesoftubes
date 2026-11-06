@@ -17,7 +17,7 @@ function spots0(lv){const out=[];if(gatesOpen()||S.scn)return out;const up=t=>BI
   if(dci.length)for(const l of S.links){if(l.kind!=='df'||l.sub||l.ready>S.day||linkDown(l))continue;const g=dfCap(l);
     for(const t of dci){const T=BIZ_T[t];if(g>=T.opts[0]*SPOT_DF&&(!T.div||reqCan('diverse',{city:l.a,city2:l.b})))out.push({t,a:l.a,b:l.b,k:'df',n:g});}}
   if(up('sov')){const by={};for(const c of mine)(by[CITY[c].cc]=by[CITY[c].cc]||[]).push(c);
-    for(const cs of Object.values(by))for(let i=0;i<cs.length;i++)for(let j=i+1;j<cs.length;j++)if(diversePaths(cs[i],cs[j]))out.push({t:'sov',a:cs[i],b:cs[j],k:'div',n:0});}
+    const g=divGraph();for(const cs of Object.values(by))for(let i=0;i<cs.length;i++)for(let j=i+1;j<cs.length;j++)if(divOn(g,cs[i],cs[j]))out.push({t:'sov',a:cs[i],b:cs[j],k:'div',n:0});}
   if(up('cgame')&&R)for(const c of bigEye())if(S.pops[c]&&S.pops[c].bb&&sfOf(R,c)>=0.95)out.push({t:'cgame',a:c,b:null,k:'eye',n:0});
   return out;}
 // A spotted customer starts at the smallest size its type comes in; your level makes them bigger and more frequent.

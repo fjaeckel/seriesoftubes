@@ -304,8 +304,15 @@ function opsDarkAgain(y){const l=S.links.find(x=>x.id===y.dark);if(!l||S.biz.som
   return opsDarkTrial({dark:l.id,s0:R.served,L0:R.l2||{}});}
 // A wave can carry a promise: diverse paths, no subsea, a latency budget. Try the network without it first.
 function opsDecomSafe(l){const bz=S.biz.filter(b=>(b.reqs||[]).some(k=>k==='diverse'||k==='sharks'||k==='lat')&&b.city2);if(!bz.length)return true;
-  const chk=b=>(b.reqs||[]).every(k=>k==='diverse'?diversePaths(b.city,b.city2):k==='sharks'?terrestrialPath(b.city,b.city2):k==='lat'?bestLat(b.city,b.city2)<=b.latMax:true);
-  const was=bz.filter(chk),all=S.links;S.links=all.filter(x=>x!==l);try{return was.every(chk);}finally{S.links=all;}}
+  const was=bz.filter(promiseCheck()),all=S.links;S.links=all.filter(x=>x!==l);try{return was.every(promiseCheck());}finally{S.links=all;}}
+/* Those promises, asked for many customers on one network: each search is made once and shared (a diversity graph, the
+   land islands, one latency search per city a customer starts from). Same answers as diversePaths(), terrestrialPath()
+   and bestLat() asked one by one. */
+function promiseCheck(){let dg=null,ti=null,lg=null;const dv=new Map(),ld=new Map();
+  const div=(a,b)=>{const k=a+'>'+b;let r=dv.get(k);if(r===undefined)dv.set(k,r=divOn(dg||(dg=divGraph()),a,b));return r;};
+  const land=(a,b)=>{if(a===b)return true;ti=ti||terrIslands();const A=ti.get(a);return A!==undefined&&A===ti.get(b);};
+  const lat=(a,b)=>{lg=lg||latGraph();if(!ld.has(a))ld.set(a,latRun(lg,a));return latAt(lg,ld.get(a),a,b);};
+  return b=>(b.reqs||[]).every(k=>k==='diverse'?div(b.city,b.city2):k==='sharks'?land(b.city,b.city2):k==='lat'?lat(b.city,b.city2)<=b.latMax:true);}
 // The links between each pair of cities, VXCs left out.
 function opsPairs(){const by=new Map();for(const l of S.links)if(l.kind!=='vxc'){const k=edgeKey(l);(by.get(k)||by.set(k,[]).get(k)).push(l);}return by;}
 const opsDecomWaits=()=>[...opsPairs().values()].some(ls=>ls.length>1&&ls.some(l=>l.kind==='wave'));
