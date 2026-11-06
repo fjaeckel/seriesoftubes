@@ -191,8 +191,8 @@ function routeCore(){
      one is preferred, gc the first group each city found, ord the orders the route cache keeps (null on a fresh build),
      cur where each city's usable exits start in its order, cs the lists by island. */
   const lx=(A,W)=>{let w=W.get(A);if(w)return w;
-    if(A.cs)w={x:null,xat:null,hi:false,gc:null,ord:null,cur:null,cs:A.cs.map(s=>s&&lx(s,W))};
-    else{const xat=new Map();for(const [c,h] of A.at)xat.set(c,h.map(e=>e.xi));w={x:A.map(e=>e.xi),xat,hi:!!A.hi,gc:[],ord:A.ord||null,cur:[],cs:null};}
+    if(A.cs)w={x:null,xat:null,hi:false,mx:false,gc:null,ord:null,cur:null,cs:A.cs.map(s=>s&&lx(s,W))};
+    else{const xat=new Map();for(const [c,h] of A.at)xat.set(c,h.map(e=>e.xi));w={x:A.map(e=>e.xi),xat,hi:!!A.hi,mx:!!A.mx,gc:[],ord:A.ord||null,cur:[],cs:null};}
     W.set(A,w);return w;};
   return {nodeTake,carry,
     nodes(o){({NRES,NSEEN,NORD,NLOAD,EL,NKN,SEN,ACN,NC,SED,ACD}=o);},
