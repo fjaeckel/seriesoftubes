@@ -32,4 +32,4 @@ function pieSpawn(t){const T=BIZ_T[t],min=T.opts[0],ok=pieCands(t).filter(c=>{if
 const PIE_OPEN_DAYS=30,PIE_OPEN_OFFERS=4;
 function pieOpening(){const P=S.pie;let on=false;for(const id of pieHubs()){const c=P.crusts[id];if(!c)continue;if(c.open===undefined&&pieCap(id)>0)c.open=S.day;if(c.open!==undefined&&S.day-c.open<PIE_OPEN_DAYS)on=true;}return on;}
 // Orbit has its own sales desk, so the ground's offers keep their odds: about one call every three days, two on the table at most.
-PIE_ON.day.push(()=>{const op=pieOpening();if(S.offers.filter(o=>BIZ_T[o.type].orbit).length>=(op?PIE_OPEN_OFFERS:PIE_OFFERS))return;const t=pieOfferTypes();if(t.length&&(op||Math.random()<PIE_OFFER_RATE))pieSpawn(pick(t));});
+PIE_ON.day.push(()=>{const op=pieOpening();if(S.offers.filter(o=>BIZ_T[o.type].orbit).length>=(op?PIE_OPEN_OFFERS:PIE_OFFERS))return;const t=pieOfferTypes();if(t.length&&(op||Math.random()<PIE_OFFER_RATE*pieOfferMul()))pieSpawn(pick(t));});

@@ -18,7 +18,7 @@
    - book.earned: revenue from orbit, for the customers that come with routing. */
 function pieBlank(day){const crusts={};for(const id in CRUSTS)crusts[id]={cohorts:[],queued:0};
   return {born:day,co:null,fac:false,stock:0,rd:{reuse:false,heavy:false,heavyTests:0},pads:[],crusts,dishes:[],lic:{},q:[],
-    founder:{posts:[],promises:0,broken:0,due:[]},book:{spent:0,earned:0,wouldHave:0},spat:{},safe:false,gov:pieGovBlank()};}
+    founder:{posts:[],promises:0,broken:0,due:[],jit:0,next:0,kid:0,bill:0,nerv:0,hype:0,leak:0,mars:0},book:{spent:0,earned:0,wouldHave:0},spat:{},safe:false,gov:pieGovBlank()};}
 function pieInit(){if(!S.pie)S.pie=pieBlank(S.day);return S.pie;}
 // The unlock: only on the Tier 1 transition of a save of this version, and only in a normal game.
 function pieUnlock(){if(S.pie||!(S.pieV>=1)||S.mode!=='normal'||S.scn)return;pieInit();track('pie_unlock');
@@ -50,8 +50,8 @@ function pieSpatDay(d){const sp=S.pie.spat;for(const k of Object.keys(sp)){const
 const pieYear=d=>1+Math.floor(d/360);
 function pieFounder(k,v={}){const F=S.pie.founder,p={d:S.day,k};if(v.n!==undefined)p.n=v.n;if(v.c)p.c=v.c;F.posts.unshift(p);if(F.posts.length>PIE_POSTS)F.posts.length=PIE_POSTS;}
 // Every promise slips by a year: made today, due in a year, broken then.
-function piePromise(){const F=S.pie.founder;F.promises++;const due=S.day+360;F.due.push(due);if(F.due.length>8)F.due.shift();pieFounder(N_('pie.fp_promise'),{n:pieYear(due)});}
-function pieFpText(p){const C=own(CRUSTS,p.c||'')?tr(CRUSTS[p.c].n):'',n=p.n||0;return tr(p.k,{co:pieCoName(),n,crust:C});}
+function piePromise(k=N_('pie.fp_promise')){const F=S.pie.founder;F.promises++;const due=S.day+360;F.due.push(due);if(F.due.length>8)F.due.shift();pieFounder(k,{n:pieYear(due)});return due;}
+function pieFpText(p){const C=own(CRUSTS,p.c||'')?tr(CRUSTS[p.c].n):'',n=p.n||0,K=pieKid();return tr(p.k,{co:pieCoName(),n,crust:C,kid:K?K.n:'',nick:K?K.k:''});}
 // Pads that can reach a crust: an orbit's inclination is at least the pad's latitude.
 const piePadOk=(c,cr)=>CRUSTS[cr].polar||Math.abs(CITY[c].lat)<=CRUSTS[cr].inc;
 const pieRkOk=rk=>{const R0=ROCKETS[rk];return !R0.rd||!!S.pie.rd[R0.rd];};
@@ -68,7 +68,7 @@ function pieQuote(rk,cr,o={}){const P=S.pie;if(!P||!own(ROCKETS,rk)||!own(CRUSTS
   if(!test&&pieLive(cr)+P.crusts[cr].queued+n>C.full*PIE_SPARE)return {why:tr('pie.why_full')};
   const t0=S.day+leadDays(PIE_PREP),pad=pads.slice().sort((a,b)=>Math.max(t0,a.next)-Math.max(t0,b.next)||Math.abs(CITY[a.city].lat)-Math.abs(CITY[b.city].lat))[0];
   const rocket=piePrice(R0.cost)*(1-pieEq(pad.city))*pieCrMul(cr),boost=rk==='again'&&!pad.boosters.length?piePrice(PIE_BOOST):0,pies=n*piePrice(PIE_PIE+(o.las?PIE_LAS:0));
-  const ins=o.ins&&!test?Math.round((rocket+pies)*PIE_INS):0;
+  const ins=o.ins&&!test?Math.round((rocket+pies)*PIE_INS*pieInsMul()):0;
   return {ok:true,test,n,pad:pad.city,day:Math.max(t0,pad.next),cost:Math.round(rocket+boost+pies+ins),insured:Math.round(rocket+pies),ins:!!ins};}
 // The cheapest a crust can be filled from nothing (one-off costs only): rule O7.
 function pieFullCost(cr){const C=CRUSTS[cr],base=PIE_CO+PIE_FAC+PIE_PAD,pies=C.full*PIE_PIE;
@@ -112,7 +112,7 @@ function pieDay(d){const P=S.pie;if(!P)return;
   if(P.q.length){const due=P.q.filter(L=>L.day<=d);if(due.length){P.q=P.q.filter(L=>L.day>d);for(const L of due)pieFly(L);}}
   for(const id in CRUSTS){const c=P.crusts[id],life=CRUSTS[id].life;if(c.cohorts.length&&d-c.cohorts[0].day>=life)c.cohorts=c.cohorts.filter(k=>d-k.day<life);
     if(!c.bk&&pieBaked(id)){c.bk=1;pieFounder(N_('pie.fp_baked'),{c:id});toast(tr('pie.t_baked_all',{crust:tr(CRUSTS[id].n)}),'goal');piePromise();}}
-  {const F=P.founder;if(F.due.length&&F.due[0]<=d){F.due.shift();F.broken++;pieFounder(N_('pie.fp_slip'),{n:pieYear(d+360)});}}
+  {const F=P.founder;if(F.due.length&&F.due[0]<=d){const x=F.due.shift();F.broken++;if(F.mars&&x===F.mars)pieMarsSlip(d);else pieFounder(N_('pie.fp_slip'),{n:pieYear(d+360)});}}
   // Running costs are billed with the rest each day (compute()); the book keeps the tally, and the sandbox its shame.
   {const mo=pieMo()/30;if(mo){if(pieSand())P.book.wouldHave+=mo;else P.book.spent+=mo;}}
   pieSpatDay(d);for(const f of PIE_ON.day)f(d);}
@@ -142,7 +142,7 @@ function pieSanitize(s){s.pieV=int(s.pieV,0,1,0);pieEximFix(s);const p=s.pie,ob=
   for(const L of o.q)o.crusts[L.cr].queued+=L.n;
   if(ob(p.founder)){const F=p.founder;o.founder.promises=n(F.promises,1e6);o.founder.broken=n(F.broken,o.founder.promises);
     o.founder.posts=(Array.isArray(F.posts)?F.posts:[]).filter(x=>ob(x)&&FOUNDER_POSTS.includes(x.k)).slice(0,PIE_POSTS).map(x=>{const q={d:int(x.d,0,day,day),k:x.k};if(x.n!==undefined)q.n=n(x.n,1e7);if(own(CRUSTS,x.c||''))q.c=x.c;return q;});
-    o.founder.due=(Array.isArray(F.due)?F.due:[]).map(v=>int(v,0,day+720,day)).sort((a,b)=>a-b).slice(-8);}
+    o.founder.due=(Array.isArray(F.due)?F.due:[]).map(v=>int(v,0,day+720,day)).sort((a,b)=>a-b).slice(-8);pieAnticFix(o.founder,F,day);}
   if(ob(p.book))for(const k of ['spent','earned','wouldHave'])o.book[k]=m(p.book[k],1e15);
   if(ob(p.spat))for(const k of Object.keys(p.spat)){const D=PIE_SPATS[k];if(!D||!ob(p.spat[k]))continue;const v=D.fix?D.fix(p.spat[k],s):null;if(v)o.spat[k]=v;}
   o.gov=pieGovFix(p.gov,s);

@@ -109,7 +109,9 @@ function pieMoney(X,R2,V){let rev=0;const sf={},flows=[];
   for(const o of X.bhNo)bh.push({city:o.city,land:null,g:0,cap:0,why:o.why});
   // Patchy-sky customers (99-pie-patchy.js): a revenue line before a crust carries anything, handed over as it does.
   const patchy=piePatchy(X.ds);rev+=patchy.mo;
-  V.orbit=rev;R2.pie={rev,patchy,sf,gs:X.gs,isl:X.isl,used,term:X.gsBw,hubs:X.hubs,sky:X.up.length,flows,bh,...pieLoads(X,flows,used,term,bhG)};
+  // The billing database is down (the Founder's antics, 99-pie-jitters.js): the sky carries on, nobody is invoiced.
+  const billOff=pieBillOff()?rev:0;if(billOff)rev=0;
+  V.orbit=rev;R2.pie={rev,billOff,patchy,sf,gs:X.gs,isl:X.isl,used,term:X.gsBw,hubs:X.hubs,sky:X.up.length,flows,bh,...pieLoads(X,flows,used,term,bhG)};
   // For the lazy fiber comparison (pieFiberMs): the graph of this compute, kept out of JSON.
   Object.defineProperty(R2.pie,'_x',{value:{adj:X.adj,fm:{}}});}
 // A sky circuit for the Traffic tab and the traceroute: entry and exit, the dishes it lands at, and each hop through space.

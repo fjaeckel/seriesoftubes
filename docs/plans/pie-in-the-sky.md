@@ -27,7 +27,7 @@ S.pie = null | {born, co:{name}, fac:bool, rd:{reuse:bool,heavy:bool,heavyTests:
   pads:[{city,next,boosters:[{id,flights}]}],
   crusts:{short|frozen|upper|flaky:{cohorts:[{n,day,las}], queued}},
   dishes:[{id,city,ant,down}], lic:{[cc]:{state,until}}, q:[launches],
-  founder:{posts:[...last 20], promises, broken}, book:{spent,earned,wouldHave},
+  founder:{posts:[...last 20], promises, broken, due, jit, next, kid, bill, nerv, hype, leak, mars},  (antics: 60-features/99-pie-jitters.js) book:{spent,earned,wouldHave},
   spat:{...active geopolitical spats}, safe:bool}
 ```
 Pies are cohorts, never one object per satellite. `sanitize()` clamps all of it.

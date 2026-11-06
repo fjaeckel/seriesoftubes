@@ -18,6 +18,8 @@
 .pie-feed{border-top:2px solid var(--line);margin-top:12px;padding-top:4px}
 .pie-feed h3{font-size:15px;margin:8px 0 4px}
 .pie-feed summary{cursor:pointer;font-weight:800;font-size:13px;color:var(--ink2);padding:8px 0;min-height:24px}
+.pie-jit{margin:6px 0 2px;overflow-wrap:anywhere}
+.pie-jit-bar{margin-bottom:6px}
 /* Government money in the bank: the same boxes as the loans next to it. */
 .bank-gov>.meta{font-size:13px;color:var(--ink2);margin:2px 0 6px;line-height:1.35}
 .bank-gov .ops-o{border:2.5px solid var(--ink);border-radius:14px;padding:10px 12px;margin-top:10px}

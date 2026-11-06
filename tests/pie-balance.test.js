@@ -24,7 +24,7 @@ const YEARS = +(process.env.PIE_BALANCE_YEARS || 0);
 // With gov (the second test), the same player also takes government money: asks 50% in every Rural Digital Pie Fund
 // auction, takes the Ex-Im Pie Bank's loan and keeps a dish in its country (the covenant).
 // compute() runs every 30 days and whenever what the sky carries changes (coverage in 10% steps, hubs, lasers,
-// safe mode, an orbit incident or spat starting or ending); orbit income is booked from the last one, as in the game.
+// safe mode, an orbit incident or spat starting or ending, orbit billing going down or coming back); orbit income is booked from the last one, as in the game.
 function sim(days, stop = false, seed = 7, gov = false) {
   const g = load({ seed });
   const save = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
@@ -46,7 +46,7 @@ function sim(days, stop = false, seed = 7, gov = false) {
       if(window.__gov){const G=P.gov;for(const a of G.auc)if(a.bid!==0.5)ACT.pieBid({id:a.id,f:0.5});if(G.ex)ACT.pieExim();
         const l=pieEximLoan();if(l&&!pieEximDishOk(l)){const c=Object.keys(S.pops).filter(c=>CITY[c].cc===l.pie.cc&&pieCovers('short',c)&&!P.dishes.some(x=>x.city===c)).sort((a,b)=>sfOf(R,b)-sfOf(R,a))[0];
           if(c){if(!pieLicOk(l.pie.cc))ACT.pieLic({cc:l.pie.cc});ACT.pieDish({city:c});}}}
-      const key=[pieHubs().join(),Math.round(pieCarry('short')*10),Math.round(pieCov('short')*10),pieLased('short'),P.safe,S.inc.filter(i=>PIE_INC.includes(i.type)&&i.until>S.day).map(i=>i.id).join(),Object.keys(P.spat).join(),P.gov.aw.length].join('|');if(key!==window.__key)dirty=true;window.__key=key;
+      const key=[pieHubs().join(),Math.round(pieCarry('short')*10),Math.round(pieCov('short')*10),pieLased('short'),P.safe,S.inc.filter(i=>PIE_INC.includes(i.type)&&i.until>S.day).map(i=>i.id).join(),Object.keys(P.spat).join(),P.gov.aw.length,P.founder.bill>S.day].join('|');if(key!==window.__key)dirty=true;window.__key=key;
       const real=compute;compute=()=>{if(dirty||S.day%30===0){window.__nC=(window.__nC||0)+1;real();}};try{dayTick();}finally{compute=real;}};
     window.__year=()=>({y:Math.round(S.day/360),spent:S.pie.book.spent,earned:S.pie.book.earned,mo:(R.pie&&R.pie.rev)||0,cov:pieCov('short'),cust:S.biz.filter(b=>BIZ_T[b.type].orbit).length,dishes:S.pie.dishes.length,nC:window.__nC|0});
     window.__gov=${gov};closeModal()`);

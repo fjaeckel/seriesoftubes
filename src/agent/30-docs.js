@@ -53,7 +53,7 @@ const API_STATE_DOC={
  scrubMode:{type:'string',doc:'always | ondemand.'},
  cnLic:{type:'map',doc:'Mainland China licence: none | pending (with ready day) | ok.'},
  pieV:{type:'number',doc:'Pie in the Sky version stamp: 1 in games started since it shipped (only those unlock it, on a Tier 1 win).'},
- pie:{type:'map',doc:'The rocket company (Pie in the Sky), or null: company, factory, stock, pads, crusts (cohorts of pies by launch day), dishes, landing rights (lic), launch queue (q), R&D, spats, founder posts, books, and government money (gov: auctions, awards, Ex-Im).'},
+ pie:{type:'map',doc:'The rocket company (Pie in the Sky), or null: company, factory, stock, pads, crusts (cohorts of pies by launch day), dishes, landing rights (lic), launch queue (q), R&D, spats, the founder (posts, promises made and broken with their due days, and his antics: jit, the market jitters 0..1 that fade over 30 days and lower orbit offer odds and happiness; next, the day of the next antic; kid, 1 + the index of PIE_KIDS once he has named his son; bill, the day orbit billing comes back (no orbit income until then); nerv, hype, leak: days a posting spree, Mars hype and a leaked launch date (dearer launch insurance) last until; mars, the due day of the Mars promise, whose slip loses a few orbit customers; all only with chaos on), books, and government money (gov: auctions, awards, Ex-Im).'},
  ppol:{type:'string',doc:'Your published peering policy: open | selective | closed.'},
  pdesk:{type:'map',doc:'This week\'s peering desk summary: sessions accepted and declined at which exchanges.'},
  pdeskRep:{type:'map',doc:'Last week\'s peering desk summary, as the NOC log reported it.'},
@@ -95,7 +95,7 @@ const API_STATE_DOC={
 };
 
 const API_RESULTS_DOC={
- pie:{type:'map',doc:'Orbit this compute (only with a rocket company): revenue (rev, including patchy: {mo, cr} from patchy-sky customers who pay from 10% coverage, before a crust carries anything, and fade out between 40% and 60%), service per orbit customer, landing dishes, flows through the sky, backhaul for cut-off POPs (bh), crust and dish load, government money (gov).'},
+ pie:{type:'map',doc:'Orbit this compute (only with a rocket company): revenue (rev; 0 while the founder has orbit billing down, with billOff what it would have been; including patchy: {mo, cr} from patchy-sky customers who pay from 10% coverage, before a crust carries anything, and fade out between 40% and 60%), service per orbit customer, landing dishes, flows through the sky, backhaul for cut-off POPs (bh), crust and dish load, government money (gov).'},
  nt:{type:'map',doc:'Traffic per network through transit, by net id.'},
  tNet:{type:'map',doc:'Traffic per network you hand to each upstream, by "net@upstream".'},
  reachNT:{type:'number',doc:'Networks reachable without transit.'},

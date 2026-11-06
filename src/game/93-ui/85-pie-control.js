@@ -45,7 +45,7 @@ function pieModal(){if(!S||!pieOn())return;const P=S.pie||pieBlank(S.day),can=pi
             :`<p class="note pie-nudge">${tr('pie.pace_pad_none')}</p>`;}
         return x;})()}
       <div class="ops-p">${Object.keys(ROCKETS).filter(pieRkOk).map(rk=>{const q=pieQuote(rk,id,{ins:!!UI.pieIns,las:!!UI.pieLas});return btn(`${tr(ROCKETS[rk].n)} <small>${q.ok?(q.test?tr('pie.test_flight')+' · ':'')+fmt$(q.cost):esc(q.why)}</small>`,'pieLaunch',{rk,cr:id},'ghost sm',!q.ok);}).join('')}</div></div>`;}).join('');
-    h+=`<div class="ops-p">${btn(UI.pieIns?tr('pie.ins_on'):tr('pie.ins_off'),'pieIns',{},UI.pieIns?'green sm':'ghost sm')}${btn(UI.pieLas?tr('pie.las_on'):tr('pie.las_off'),'pieLas',{},UI.pieLas?'green sm':'ghost sm')}</div>`;
+    h+=`<div class="ops-p">${btn(UI.pieIns?tr('pie.ins_on_p',{p:pct(PIE_INS*pieInsMul())}):tr('pie.ins_off'),'pieIns',{},UI.pieIns?'green sm':'ghost sm')}${btn(UI.pieLas?tr('pie.las_on'):tr('pie.las_off'),'pieLas',{},UI.pieLas?'green sm':'ghost sm')}</div>`;
     h+=`<p class="meta">${tr('pie.stock_line',{n:Math.floor(P.stock)})}</p>`;
     if(P.q.length)h+=`<h3 style="font-size:15px;margin:10px 0 4px">${tr('pie.queue')}</h3>`+P.q.slice().sort((a,b)=>a.day-b.day).map(L=>`<div class="kv"><span>${esc(tr(ROCKETS[L.rk].n))} → ${esc(tr(CRUSTS[L.cr].n))}</span><b>${L.test?tr('pie.test_flight'):L.n} · ${esc(CITY[L.pad].name)} · ${dateStr(L.day)}</b></div>`).join('');
   }else if(T==='dish'){
@@ -61,6 +61,6 @@ function pieModal(){if(!S||!pieOn())return;const P=S.pie||pieBlank(S.day),can=pi
   openModal(h,'pie');{const cv=document.querySelector('#modal .pgcv');if(cv)pieGlobeOpen(cv,pieGlobeData);}}
 // The Founder's posts are flavour: the newest few at the bottom of the Company tab, the older ones folded away.
 function pieFeedHtml(F){const post=p=>`<div class="ops-rep"><div class="eyebrow">${esc(dateStr(p.d))}</div><div>${esc(pieFpText(p))}</div></div>`,top=F.posts.slice(0,PIE_FEED_TOP),more=F.posts.slice(PIE_FEED_TOP);
-  return `<div class="pie-feed"><h3>${tr('pie.founder_feed')}</h3><div class="kv"><span>${tr('pie.promises')}</span><b>${tr('pie.promises_line',{n:F.promises,b:F.broken})}</b></div>`
+  return `<div class="pie-feed"><h3>${tr('pie.founder_feed')}</h3><div class="kv"><span>${tr('pie.promises')}</span><b>${tr('pie.promises_line',{n:F.promises,b:F.broken})}</b></div>`+pieJitHtml(F)
     +(top.length?top.map(post).join(''):`<p class="meta">${tr('pie.feed_empty')}</p>`)
     +(more.length?`<details><summary>${trn('pie.feed_older',more.length)}</summary>${more.map(post).join('')}</details>`:'')+'</div>';}
