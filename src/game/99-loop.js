@@ -5,8 +5,10 @@ function frame(now){
   if(!window.__TUBES_TEST__)requestAnimationFrame(frame);
   const dt=Math.min(250,now-last);last=now;
   // A day's steps take half a frame at most before letting one through (rwGo()): 8 ms at 60 Hz, 3 ms on a 240 Hz screen,
-  // where 8 ms would be two frames lost. The frame time is followed slowly, a long frame counting as two at most.
-  if(dt>0){RW.fms=RW.fms?RW.fms*0.95+Math.min(dt,RW.fms*2)*0.05:dt;RW.budget=Math.min(8,Math.max(3,RW.fms/2));}
+  // where 8 ms would be two frames lost. A device that cannot hold 50 frames a second waits a whole slow frame at every
+  // rest, so a big day there would crawl: it gets half of its own frame, up to 32 ms. The frame time is followed slowly,
+  // a long frame counting as two at most.
+  if(dt>0){RW.fms=RW.fms?RW.fms*0.95+Math.min(dt,RW.fms*2)*0.05:dt;RW.budget=RW.fms>RW_SLOW?Math.min(32,RW.fms/2):Math.min(8,Math.max(3,RW.fms/2));}
   if(ANALYTICS.host&&S&&!S.lost&&UI.speed&&document.visibilityState==='visible'){UI.playMs=(UI.playMs||0)+dt;const m=UI.playMs/60000;for(const k of PLAY_MARKS)if(m>=k)track('play_'+k+'m',true);}
   if(S&&UI.started&&!S.lost&&now-(UI.lastSave||0)>5000)save();
   // The panels catch up on the frame after a day, so one frame does not carry both the day's simulation and them.

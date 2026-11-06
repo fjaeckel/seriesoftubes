@@ -8,6 +8,8 @@
    Tests (no Worker in jsdom, __TUBES_TEST__) and any worker failure take the synchronous path. */
 const RW_IN=!!self.__TUBES_WORKER__;
 const RW_EL=!RW_IN&&typeof document!=='undefined'?document.currentScript:null;
+// RW_SLOW: a frame time (ms) above which the device does not keep up anyway, and a day may take longer slices (99-loop.js).
+const RW_SLOW=20;
 const RW={w:null,dead:false,seq:0,gen:0,job:null,budget:8,later:f=>rwLater(f),stat:{n:0,post:0,de:0,apply:0,wait:0,work:0}};
 function rwOn(){return !RW_IN&&!RW.dead&&!window.__TUBES_TEST__&&!window.__TUBES_SYNC__&&typeof Worker==='function'&&!!RW_EL;}
 function rwStart(){if(RW.w)return RW.w;

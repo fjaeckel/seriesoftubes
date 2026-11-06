@@ -200,7 +200,7 @@ network does not freeze the page once a day.
   `rwGo()`: the steps run on the page up to a yield, then S and what routing reads of yesterday's R (`R.load`,
   `R.l2route`, `R.efg`) are posted, and the day goes on in `rwDone()` when R comes back. The next day waits until the
   last step has run. So a day sees exactly the routing it would have had in one go: same results, same random numbers.
-  At a `DAY_REST`, a day that has run `RW.budget` ms (half a frame, 3 to 8) already goes on after the next frame
+  At a `DAY_REST`, a day that has run `RW.budget` ms (half a frame: 3 to 8, or up to 32 on a device slower than 50 frames a second) already goes on after the next frame
   (`RW.later`, `rwLater()`), so a phone gets its frames between the steps of a big network's day. Half a day is never
   saved; nothing else starts meanwhile. `tests/day-steps.test.js` plays a second page as the worker and compares every
   day with `dayTick()`.
