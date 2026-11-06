@@ -243,6 +243,8 @@ const API_CMD={
   doc:'With the CEO running sales: pay for a board meeting that brings a VP of Sales, who frees the desk a month later.'},
  salesAuto:{args:[],watch:['slAuto'],
   doc:'With someone at the sales desk: switch automatic signing on or off. Once a game day they sign the offers that fit, in their own style: eng and ceo after a routing trial (one a day; an offer that did not fit waits a week), shark every offer whose POPs are up, promises and all, while the cash covers the commission. Orbit offers sign where the landing dish has room (the shark ignores that). Nobody at the desk: nothing is signed for you.'},
+ salesRen:{args:[],watch:['slAuto'],
+  doc:'Switch whether the sales desk answers renewal haggles for you, 3 days after each opens (only while someone runs sales). The engineer gives business customers their discount and keeps nerdy ones at the market price; the shark holds the old price (sometimes with a new promise, billing a month of the saving) but some walk; the CEO gives 10% more off for a double term, says yes, or picks a fight and loses them.'},
  salesMin:{args:[],watch:['slAuto'],
   doc:'Step the minimum monthly value under which the sales desk declines offers: never, 2k, 5k, 10k, 25k, 50k. With the CEO, about one decline in three is signed anyway.'},
  renewMatch:{args:[['id','entityId']],watch:['biz.#id'],

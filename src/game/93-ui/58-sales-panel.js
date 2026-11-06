@@ -19,12 +19,15 @@ function salesModal(){if(!S)return;const p=slP(),L=S.sales||{};
 // What each of them does in orbit, shown once there is a rocket company to sell for (99-pie-sales.js).
 const SL_SKY={eng:N_('sales.eng_sky'),shark:N_('sales.shark_sky'),ceo:N_('sales.ceo_sky')};
 const SL_AUTO={eng:N_('sales.auto_eng'),shark:N_('sales.auto_shark'),ceo:N_('sales.auto_ceo')};
+const SL_REN={eng:N_('sales.ren_eng'),shark:N_('sales.ren_shark'),ceo:N_('sales.ren_ceo')};
 // Signing for you (39-sales-auto.js): the switch, the minimum, and this week's and last week's tally.
 function slAutoHtml(p){const A=S.slAuto||slAutoNew(),w=Math.floor(S.day/7),cur=A.wk&&A.wk.w===w&&slWkAny(A.wk)?A.wk:null,rep=A.rep&&A.rep.w===w-1?A.rep:null;
   const row=(x,last)=>`<div class="ops-rep">${esc(slWeekLine(x,last))}</div>`;
   return `<section class="sl-auto"><h3>${tr('sales.auto')}</h3><p class="meta">${tr(SL_AUTO[p],{name:esc(slCap())})}</p>
     <div class="ops-p"><button class="b sm ${A.on?'green':'ghost'}" data-act="salesAuto" data-args='{}' aria-pressed="${A.on}">${tr('sales.p_sign')}: <b>${A.on?tr('common.on'):tr('common.off')}</b></button>
     ${btn(`${tr('sales.decline_below')}: <b>${A.min?tr('common.price_mo',{price:fmt$(A.min)}):tr('sales.never')}</b>`,'salesMin',{},'ghost sm')}</div>
-    ${rep?row(rep,true):''}${cur?row(cur,false):''}</section>`;}
+    ${rep?row(rep,true):''}${cur?row(cur,false):''}</section>
+    <section class="sl-auto"><h3>${tr('sales.ren')}</h3><p class="meta">${tr(SL_REN[p],{name:esc(slCap())})}</p>
+    <div class="ops-p"><button class="b sm ${A.ren?'green':'ghost'}" data-act="salesRen" data-args='{}' aria-pressed="${!!A.ren}">${tr('sales.p_ren')}: <b>${A.ren?tr('common.on'):tr('common.off')}</b></button></div></section>`;}
 // On the card in Deals: this week's tally, once there is one.
 function slCardLine(){if(!slAutoOn())return '';const A=S.slAuto,x=A.wk&&A.wk.w===Math.floor(S.day/7)&&slWkAny(A.wk)?A.wk:null;return x?esc(slWeekLine(x,false)):'';}

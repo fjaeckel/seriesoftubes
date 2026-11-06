@@ -16,7 +16,7 @@ const slAutoOn=()=>!!(S&&S.slAuto&&slP()&&(S.slAuto.on||S.slAuto.min));
 function slWkOk(x){if(!x||typeof x!=='object'||Array.isArray(x)||!own(SALES,x.p))return null;const n=v=>int(v,0,1e6,0);return {w:n(x.w),p:x.p,n:n(x.n),rev:int(x.rev,0,1e10,0),x:n(x.x),y:n(x.y)};}
 const slWkAny=x=>!!x&&(x.n>0||x.x>0);
 function slAutoFix(s){const a=s.slAuto&&typeof s.slAuto==='object'&&!Array.isArray(s.slAuto)?s.slAuto:{};
-  s.slAuto={on:a.on===true,min:SL_MINS.includes(a.min)?a.min:0,wk:slWkOk(a.wk),rep:slWkOk(a.rep)};}
+  s.slAuto={on:a.on===true,min:SL_MINS.includes(a.min)?a.min:0,wk:slWkOk(a.wk),rep:slWkOk(a.rep)};if(a.ren===true)s.slAuto.ren=true;}
 // An old save whose intern ran the sales order: the same switch and minimum, now at the sales desk (they run once someone is there).
 function slAutoFrom(s,on,p){if(!on||(s.slAuto&&typeof s.slAuto==='object'))return;s.slAuto={on:p.acc!==false,min:SL_MINS.includes(p.min)?p.min:0,wk:null,rep:null};}
 // "This week Dave signed 3 customers (+$41k/mo), declined 17 tiny offers."

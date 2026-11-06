@@ -10,6 +10,7 @@ Object.assign(ACT,{
  // The CEO cannot be fired. A board meeting (and its catering) can get you a VP of Sales, who takes over a month later.
  // Signing for you (39-sales-auto.js): on or off, and the minimum under which offers are declined.
  salesAuto:()=>{if(!slP())return;const A=S.slAuto||(S.slAuto=slAutoNew());A.on=!A.on;sfx('click');after();salesModal();},
+ salesRen:()=>{if(!slP())return;const A=S.slAuto||(S.slAuto=slAutoNew());if(A.ren)delete A.ren;else A.ren=true;sfx('click');after();salesModal();},
  salesMin:()=>{if(!slP())return;const A=S.slAuto||(S.slAuto=slAutoNew());A.min=opsCycle(SL_MINS,A.min);sfx('click');after();salesModal();},
  salesVp:()=>{if(slP()!=='ceo'||S.sales.vp)return;if(!spend(SALES_VP))return;S.sales.vp=S.day+SALES_VP_DAYS;toast(tr('sales.vp_asked',{n:SALES_VP_DAYS}),'');after();salesModal();},
 });

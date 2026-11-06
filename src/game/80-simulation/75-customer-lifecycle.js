@@ -117,7 +117,7 @@ const clHags=()=>S?S.biz.reduce((a,b)=>a+(b.hag?1:0),0):0;
 function clDealsHtml(){const hs=S.biz.filter(b=>b.hag).sort((a,b)=>a.hag.until-b.hag.until);if(!hs.length)return '';
   return `<h3 class="sub4">${tr('lifecycle.renewals')}</h3><p class="meta" style="margin:0 0 6px">${tr('lifecycle.unanswered_matches')}</p>`+hs.map(b=>{const now=BIZ_T[b.type].fiber?b.hag.rate:b.bw*b.hag.rate,was=bizMo(b);
     return `<div class="row"><div class="grow"><div class="nm">${esc(b.name)}</div><div class="meta">${esc(BIZ_T[b.type].l)} · ${esc(clWhere(b))} · ${tr('ui.n_d_left',{n:b.hag.until-S.day})}</div>
-    <div class="meta">${tr('lifecycle.wants_price',{was:fmt$(was),price:fmt$(now),p:pct(1-now/Math.max(1,was))})}</div>
+    <div class="meta">${tr('lifecycle.wants_price',{was:fmt$(was),price:fmt$(now),p:pct(1-now/Math.max(1,was))})}</div>${slRenRow(b)}
     <div class="btns">${btn(tr('lifecycle.match'),'renewMatch',{id:b.id},'green sm')}${btn(tr('lifecycle.meet_halfway',{price:fmt$(clBill(b,clMid(b)))}),'renewMeet',{id:b.id},'sm')}${btn(tr('lifecycle.let_them_go'),'renewLet',{id:b.id},'ghost sm')}</div></div></div>`;}).join('');}
 // The contract line on a customer row.
 const clTermTxt=b=>clOn(b)&&b.te?(b.hag?tr('lifecycle.renewal_haggle',{date:dateStr(b.te)}):tr('lifecycle.contract_until',{date:dateStr(b.te)})):'';

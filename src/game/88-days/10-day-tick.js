@@ -62,7 +62,7 @@ function dayPost(d){
   // contracts: renewals, growth, haggles and leaving (75-customer-lifecycle.js)
   clDay(d);
   // the sales desk: meetings booked, golf played (38-sales-desk.js)
-  salesDay(d);
+  salesDay(d);slRenDay(d);
   // own IX members join
   for(const c in S.myIx){const m=S.myIx[c];if(d>=m.next&&m.members.length<myFab(c).max){
     const cands=NETS.filter(n=>n.type!=='t1'&&!m.members.includes(n.id)&&(n.pops.includes(c)||n.pops.some(p=>CITY[p].reg===CITY[c].reg)));
