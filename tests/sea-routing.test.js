@@ -93,7 +93,7 @@ test('orders, previews, saved paths and map geometry agree; legacy cables retain
       ev('S=migrate(JSON.parse(JSON.stringify(S)));GEO.clear()');
       assert.deepEqual(JSON.parse(ev('JSON.stringify(S.links.at(-1).seaPath)')), q.pts);
       assert.deepEqual(JSON.parse(ev('JSON.stringify(linkGeom(S.links.at(-1)).pts)')),
-        JSON.parse(ev('JSON.stringify(seaMapPoints(S.links.at(-1).seaPath))')));
+        JSON.parse(ev('JSON.stringify(seaMapPoints(S.links.at(-1).seaPath,"lag","bde"))')));
       ev("UI.dfSrc='cable';openLinkModal('lag','bde')");
     }
     ev("S.links.push({id:'legacy',a:'lag',b:'bde',kind:'df',own:true,sub:true,seaDesign:'optimized',sys:'roadm',km:7515,ch:[],ready:0,mo:1,cut:0});S=migrate(JSON.parse(JSON.stringify(S)))");
