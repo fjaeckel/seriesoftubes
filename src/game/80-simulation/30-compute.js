@@ -146,7 +146,7 @@ function compute(){RW.gen++;
     if(!seen[b])return null;const path=[];let v=b;while(v!==a){const l=prev[v];path.push(l);v=CIDX[l.a]===v?CIDX[l.b]:CIDX[l.a];}return path;};
   const disjointI=(A,B)=>{const a=CIDX[A],b=CIDX[B],p1=bfsI(a,b,null);return !!p1&&!!bfsI(a,b,new Set(p1.map(srlg)));};
   for(const k in edges){const e=edges[k];let ld=0;for(const l of e.links)ld+=(R.load&&R.load[l.id])||0;e.pl=ld;}
-  const l2Routes=(A,B,b)=>{const m=b.route||'normal',Ai=CIDX[A],Bi=CIDX[B];
+  const l2Routes=(A,B,b)=>{if(b.pin){const r=pinRoute(b.pin,edges);if(r)return [r];}const m=b.route||'normal',Ai=CIDX[A],Bi=CIDX[B];
     if(PX&&m==='fast')return pieFast(PX,fastSP,A,B,b,wLat);
     if(m!=='scenic')return [{...walkI(m==='fast'?(fastSP[A]||(fastSP[A]=dijkstra(adj,Ai,wLat))).P:SPP[A],Ai,Bi),share:1}];
     const ek='l2:'+b.id,own=e=>(R.efg&&R.efg[e.id]&&R.efg[e.id].get(ek))||0;
