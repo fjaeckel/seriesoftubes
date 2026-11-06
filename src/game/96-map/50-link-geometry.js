@@ -8,7 +8,7 @@ function linkGroups(){const m=new Map();for(const l of S.links){const key=gKey(l
 // Mixed sizes are spelled out per size ("2×800G + 400G"): "2 × 1.2T" read like two 1.2T waves (#56).
 function groupLabel(grp,up){const n=[];for(const x of grp)n[x.tier]=(n[x.tier]||0)+1;let s='';for(let t=n.length-1;t>=0;t--)if(n[t])s+=(s?' + ':'')+(n[t]>1||n[t]===grp.length?n[t]+'×':'')+LT[t].n;return s+(up.length<grp.length?` · ${up.length}/${grp.length} ${tr('common.up')}`:'');}
 function linkGeom(l,pl){const i=lineIdx(l,pl);const key=l.id+'|'+i+'|'+(l.cable||'');const h=GEO.get(key);if(h)return h;
-  let pts=l.kind==='df'&&l.own&&l.sub&&Array.isArray(l.seaPath)?seaMapPoints(l.seaPath):null;if(!pts&&l.cable){const cp=cablePair(l.cable,l.a,l.b);if(cp){pts=cp.pts.map(p=>p.slice());const same=pairLinks(l.a,l.b).filter(x=>x.cable===l.cable).indexOf(l);if(same>0)for(let j=1;j<pts.length-1;j++){pts[j][1]+=same*5;}}}
+  let pts=l.kind==='df'&&l.own&&l.sub&&Array.isArray(l.seaPath)?seaMapPoints(l.seaPath,l.a,l.b):null;if(!pts&&l.cable){const cp=cablePair(l.cable,l.a,l.b);if(cp){pts=cp.pts.map(p=>p.slice());const same=pairLinks(l.a,l.b).filter(x=>x.cable===l.cable).indexOf(l);if(same>0)for(let j=1;j<pts.length-1;j++){pts[j][1]+=same*5;}}}
   // Your own subsea cable (#64) follows the shortest commercial cable on the same route, drawn alongside it; with
   // none, a gentle curve. Its shape must not depend on how many waves already run between the two cities.
   if(!pts&&l.kind==='df'&&l.own&&l.sub){const k=pairLinks(l.a,l.b).filter(x=>x.kind==='df'&&x.own&&x.sub).indexOf(l),c0=cablesFor(l.a,l.b).slice().sort((x,y)=>x.km-y.km)[0],cp=c0&&cablePair(c0.cid,l.a,l.b);

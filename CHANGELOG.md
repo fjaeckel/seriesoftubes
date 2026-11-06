@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Your own subsea cables now land right on the city's dot, also in Fujairah, Dubai, Karachi, Barcelona, Osaka and other cities the map shifts slightly so they do not overlap (#305).
+
 ## [2.10.1] — 2026-11-05
 
 - "Meet halfway" on a renewal now offers the price halfway between what the customer pays and what they ask, and the button shows it before you press (#293).

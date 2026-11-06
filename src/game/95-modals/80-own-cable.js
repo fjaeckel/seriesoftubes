@@ -155,7 +155,9 @@ function seaReady(a,b){seaSync();const key=seaKey(a,b);
   }catch(e){SEA_SURVEY.failed=true;if(SEA_SURVEY.worker)SEA_SURVEY.worker.terminate();SEA_SURVEY.worker=null;SEA_SURVEY.pending.clear();return true;}
 }
 const seaSurveyAttr=(a,b)=>{seaSync();const k=seaKey(a,b);return SEA_SURVEY.pending.has(k)?`data-sea-survey="${k}"`:'';};
-function seaMapPoints(pts){const out=[];for(const p of pts){const q=proj(...p);if(out.length)q[0]+=W*Math.round((out[out.length-1][0]-q[0])/W);out.push(q);}return out;}
+// The ends sit on the cities' dots, which the map may nudge off their exact lon/lat (#305).
+function seaMapPoints(pts,a,b){const out=[];for(const p of pts){const q=proj(...p);if(out.length)q[0]+=W*Math.round((out[out.length-1][0]-q[0])/W);out.push(q);}
+  const n=out.length,end=(i,c)=>{if(c)out[i]=[c.x+W*Math.round((out[i][0]-c.x)/W),c.y];};if(n>1){end(0,CITY[a]);end(n-1,CITY[b]);}return out;}
 
 // Designs pay for progressively tighter surveys; all use a feasible marine path.
 const SEA_DESIGNS={standard:{n:N_('common.standard'),cost:1,time:1},optimized:{n:N_('common.optimized'),cost:3,time:1.3},express:{n:N_('common.low_latency'),cost:7,time:1.7}};
