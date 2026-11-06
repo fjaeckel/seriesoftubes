@@ -295,8 +295,8 @@ function plainCompute(ev) {
     // ...and without what routing keeps between calls (29-route-cache.js): the plain path builds everything afresh,
     // which also leaves the lists without kept orders, so the first group and the rest are scanned and sorted.
     .replace('RCON=RC.on', 'RCON=false');
-  // The routing core (29-route-core.js) with its shortcuts off: Auto-TE's no-detour marks and kept search arrays back to
-  // the cache lookup and a fresh dijkstra().
+  // The routing core (29-route-core.js) with its shortcuts off: Auto-TE's no-detour marks and its searches picked up
+  // where the last one stopped back to the cache lookup and a fresh dijkstra() for every detour.
   let core = csrc
     .replace('if(!lst.hi&&!lst.mx&&ALONE[fci])', 'if(false)')
     .replace('if(!GN){\n        // One scan', 'if(false){\n        // One scan')
@@ -305,7 +305,7 @@ function plainCompute(ev) {
     // ...and every exit is called, even one whose path is full with no detour (dud()).
     .replace(/const dud=x=>\{[^\n]*\};/, 'const dud=x=>false;')
     .replace('if(TEF[key]===1)return null;const c0=teCache.get(key);', 'const c0=teCache.get(key);if(c0===false)return null;')
-    .replace(/const reuse=[^;]*;/, 'const reuse=false;').replace('const d=reuse?(DJ.S[dst]===LSg?DJ.D[dst]:Infinity):teSearch(src,dst);', 'const d=dijkstraTo(adj,src,wW,(v,e)=>e.res<=1e-3||(HAS[v]&&NRES[v]<=1e-3)||(CORE&&OUT[v]&&v!==dst),dst);')
+    .replace('const d=teSearch(src,dst);', 'const d=dijkstraTo(adj,src,wW,(v,e)=>e.res<=1e-3||(HAS[v]&&NRES[v]<=1e-3)||(CORE&&OUT[v]&&v!==dst),dst);')
     .replace('const d=dijkstraTo(adj,src,wW,', 'const {D:D0,P:P0}=dijkstra(adj,src,wW,').replace(',dst);\n    if(d===Infinity', ',dst),d=D0[dst];\n    if(d===Infinity')
     .replace('walkP(DJ.P,src,dst)', 'walkP(P0,src,dst)');
   // ...and the group split and sorting written the plain way, with array copies, as before they were made allocation-free
@@ -320,7 +320,7 @@ function plainCompute(ev) {
   assert.ok(!core.includes('P.dead'), 'the full-path mark was switched off');
   assert.ok(core.includes('const dud=x=>false;'), 'every exit of a group is called');
   assert.ok(plain.includes('RCON=false') && !plain.includes('RC.on'), 'the kept routing tables were switched off');
-  assert.ok(!core.includes('TEF[key]===1') && !core.includes('dijkstraTo(') && core.includes('const reuse=false;') && core.includes('if(c0===false)return null;'), "Auto-TE's shortcuts were switched off");
+  assert.ok(!core.includes('TEF[key]===1') && !core.includes('dijkstraTo(') && !core.includes('const d=teSearch(') && core.includes('if(c0===false)return null;'), "Auto-TE's shortcuts were switched off");
   assert.ok(core.includes('const sortD=(a,n=a.length)=>{const t=a.slice(0,n).sort(byDist);') && core.includes('g.forEach('), 'the plain group split and sort are in');
   ev('window.__plainC=' + plain.replace(/^function compute/, 'function') + ';window.__plainR=(' + core.replace(/^function routeCore/, 'function') + ')();');
   ev('window.__plain=function(){const r=ROUTE;ROUTE=__plainR;try{__plainC();}finally{ROUTE=r;}};');
@@ -379,12 +379,16 @@ test('Auto-TE routes around a full link exactly like the plain path', () => {
 });
 
 // Auto-TE's searches for a detour, on meshes of thin and thick links where POPs fill up and some sit outside the core
-// (TE never steers through them, but may end there): a search that finds nothing answers the next ones from the same
-// city until traffic is placed again, and an exit whose full path has no detour is not called. Several seeded
-// networks, from light to heavy load, must route exactly as the plain path that searches every time.
+// (TE never steers through them, but may end there): a search from a city picks up where the last one from there
+// stopped until a link or router runs out of room, and an exit whose full path has no detour is not called. Several
+// seeded networks, from light to heavy load, must route exactly as the plain path that searches every time.
 test('Auto-TE detours route like the plain path on crowded meshes with POPs outside the core', () => {
   const { ev, errors } = load();
   plainCompute(ev);
+  // The fast core, counting the searches that were picked up: answered at once, or gone on from where the last stopped.
+  const csrc = ev('routeCore.toString()'), counted = csrc.replace('if(go){g=LRg;if(DJ.done[dst]===g)return DJ.D[dst];', 'if(go){g=LRg;if(DJ.done[dst]===g){__TE.had++;return DJ.D[dst];}__TE.went++;');
+  assert.notEqual(counted, csrc, 'found the picked-up search');
+  ev('window.__TE={had:0,went:0};ROUTE=(' + counted.replace(/^function routeCore/, 'function') + ')();');
   const CS = ['fra', 'ams', 'bru', 'par', 'lon', 'zrh', 'mil', 'vie', 'prg', 'ber', 'muc', 'mad', 'cph', 'waw', 'mrs', 'ham', 'dus'];
   let moved = 0, outs = 0;
   for (let seed = 1; seed <= 6; seed++) {
@@ -415,6 +419,7 @@ test('Auto-TE detours route like the plain path on crowded meshes with POPs outs
   }
   assert.ok(moved > 100, 'Auto-TE found detours');
   assert.ok(outs > 0, 'some POPs are outside the core');
+  assert.ok(ev('__TE.had') > 0 && ev('__TE.went') > 0, 'searches were picked up: some answered at once, some gone on');
   assert.deepEqual(errors, []);
 });
 

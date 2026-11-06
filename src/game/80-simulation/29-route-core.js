@@ -10,7 +10,7 @@ function routeCore(){
   let NRES,NSEEN,NORD,NLOAD,EL,NKN,SEN,ACN,NC,SED,ACD,
     E,HAS,PASS,R2,FREM,FNJ,FCI,FCA,FBZ,NF,CNB,NCN,ev,day,SRV,TNS,NN,TNK,TORD,TNA,snd,LATP,FARL,EGT,EGO,NEG,NEO,NEA,FGT,FTI,FGI,FII,FGH,FGP,
     TE,SPILL,teCache,adj,CORE,OUT,REACH,DSEL,PREFC,BRJ,COMP,SDi,SPi,ALONE,TR,base,eff,
-    NX=0,USED=null,CAPX=null,CIX=null,HPX=null,DTX=null,VISX=null,TEF=null,EP=0,LSs=-1,LSe=-1,LSg=-1;
+    NX=0,USED=null,CAPX=null,CIX=null,HPX=null,DTX=null,VISX=null,TEF=null,EP=0;
   // The flow being routed, and from its POP: distances, arriving edges and the paths walked so far, by city index.
   // F: its index; fci, fnj: its city and network index. BRX: BRJ with each list as a list object of one shape (lx()).
   let F=0,fci=0,fnj=0,Dv=null,Pv=null,PP=null,vis=0,GN=0,walked=[],BRX=[];const G=[],REST=[];
@@ -18,42 +18,50 @@ function routeCore(){
   // Each network's list at one rank, in an array by network index: BRX[j] are objects of as many shapes as networks have
   // sets of ranks, and reading one per flow made the loop's code give up on them.
   const byRank=rank=>{const B=new Array(BRX.length);for(let j=0;j<BRX.length;j++){const l=BRX[j][rank];B[j]=l===undefined?null:l;}return B;};
-  const nodeTake=(i,a)=>{NRES[i]-=a;if(!NSEEN[i]){NSEEN[i]=1;NORD.push(i);}NLOAD[i]=(NLOAD[i]||0)+a;};
+  const nodeTake=(i,a)=>{const o=NRES[i];NRES[i]=o-a;if(o>1e-3&&NRES[i]<=1e-3)EP++;if(!NSEEN[i]){NSEEN[i]=1;NORD.push(i);}NLOAD[i]=(NLOAD[i]||0)+a;};
   // t.g gives each egress a slot in t.v, so adding to it allocates nothing (a Map of numbers boxes every new sum).
   const carry=(l,eg,nr,ci,a)=>{let t=l.tr;if(!t){t=l.tr={g:new Map(),v:[],n:[],d:[]};EL.push(l);}const s=t.g.get(eg);if(s===undefined){t.g.set(eg,t.v.length);t.v.push(0+a);}else t.v[s]+=a;
     let k=l.i*NKN+nr;if(!SEN[k]){SEN[k]=1;t.n.push(nr);}ACN[k]=(ACN[k]||0)+a;k=l.i*NC+ci;if(!SED[k]){SED[k]=1;t.d.push(ci);}ACD[k]=(ACD[k]||0)+a;};
-  /* A search that finds no detour has walked all the graph src reaches (DJ keeps it, LSg its mark). Until traffic is
-     placed again (EP counts placings) it gives every other exit that is not out of the core the very answer, distance
-     and path, a search of its own would: same graph, same order, it would only stop sooner. */
   // TEF[src*NC+dst]: 1 once no detour exists for that pair (capacity only shrinks, so there never will be one again).
   // Most calls are those: a byte read, not a Map lookup. The kept path is still valid while every edge and node on it has room.
   const altPath=(src,dst,base)=>{const key=src*NC+dst;if(TEF[key]===1)return null;const c0=teCache.get(key);
     if(c0){let ok=true;const p=c0.path,ni=c0.ni;for(let k=0;k<p.length;k++)if(!(p[k].res>1e-3)){ok=false;break;}
       if(ok)for(let k=0;k<ni.length;k++){const i=ni[k];if(HAS[i]&&!(NRES[i]>1e-3)){ok=false;break;}}
       if(ok)return c0;}
-    const reuse=LSs===src&&LSe===EP&&LSg===DJ.g&&!(CORE&&OUT[dst]);
-    const d=reuse?(DJ.S[dst]===LSg?DJ.D[dst]:Infinity):teSearch(src,dst);
-    if(d===Infinity){LSs=src;LSe=EP;LSg=DJ.g;}
+    const d=teSearch(src,dst);
     if(d===Infinity||d>REACH*base+60){teCache.set(key,false);TEF[key]=1;return null;}
     const Q=walkP(DJ.P,src,dst);teCache.set(key,Q);return Q;};
   /* Auto-TE's detour search (the one 10-dijkstra.js does to a stop), step for step: neighbours in the same order, the same heap, written into the
      same DJ (walkP() reads its paths, the reuse above its marks). Only on the graph as flat arrays (TEO offsets by city,
      TEN neighbours, TEE edges, made once per routing in run()) and with the test of an edge written out: no pairs to
      unpack and no call for each edge. On a big network with Auto-TE these searches were most of the routing. */
-  let TEO=null,TEN=null,TEE=null;
-  const teSearch=(src,dst)=>{const n=TEO.length-1;
-    if(DJ.n!==n||DJ.g>2e9){DJ.n=n;DJ.D=new Float64Array(n);DJ.P=new Array(n);DJ.S=new Int32Array(n);DJ.done=new Int32Array(n);DJ.g=0;}
-    const g=++DJ.g,D=DJ.D,P=DJ.P,ST=DJ.S,DN=DJ.done,core=CORE;let hd=DJ.hd,hu=DJ.hu,cap=hd.length,m=0;
-    D[src]=0;ST[src]=g;
-    {if(m===cap){cap*=2;const a=new Float64Array(cap),b=new Int32Array(cap);a.set(hd);b.set(hu);hd=DJ.hd=a;hu=DJ.hu=b;}
+  /* A search from one POP picks up where the last one from there stopped (LR*), as a search of its own would run: every
+     city closer than the last exit is settled and the heap holds the rest, so the next exit has its answer already or
+     the search goes on from there, the last exit's neighbours first (it stops before them). One that found nothing has
+     walked all src reaches and answers the next ones at once. Only on the same graph: EP counts the edges and routers
+     that run out of room (capacity only shrinks while routing, so none comes back), and another search in DJ moves its
+     mark. An exit out of the core is let into a graph of its own (OUT[dst]): that search neither resumes nor is resumed.
+     On a big network nearly all detours of a flow are found from one search (extreme: 3.6 M heap steps a routing → 0.17 M). */
+  let TEO=null,TEN=null,TEE=null,LRs=-1,LRe=-1,LRg=-1,LRD=null,LRu=-1,LRm=0;
+  const teSearch=(src,dst)=>{const n=TEO.length-1,core=CORE,cut=!!(core&&OUT[dst]),go=LRs===src&&LRe===EP&&LRg===DJ.g&&LRD===DJ.D&&!cut;
+    let g,m=0,u=-1;
+    if(go){g=LRg;if(DJ.done[dst]===g)return DJ.D[dst];m=LRm;u=LRu;}
+    else{if(DJ.n!==n||DJ.g>2e9){DJ.n=n;DJ.D=new Float64Array(n);DJ.P=new Array(n);DJ.S=new Int32Array(n);DJ.done=new Int32Array(n);DJ.g=0;}g=++DJ.g;}
+    const D=DJ.D,P=DJ.P,ST=DJ.S,DN=DJ.done;let hd=DJ.hd,hu=DJ.hu,cap=hd.length;
+    if(!go){D[src]=0;ST[src]=g;
+      if(m===cap){cap*=2;const a=new Float64Array(cap),b=new Int32Array(cap);a.set(hd);b.set(hu);hd=DJ.hd=a;hu=DJ.hu=b;}
       let i=m++;hd[i]=0;hu[i]=src;while(i>0){const p=(i-1)>>1;if(hd[p]<=hd[i])break;const td=hd[p],tu=hu[p];hd[p]=hd[i];hu[p]=hu[i];hd[i]=td;hu[i]=tu;i=p;}}
-    while(m){const d=hd[0],u=hu[0];m--;
-      if(m){hd[0]=hd[m];hu[0]=hu[m];let i=0;for(;;){const l=2*i+1,r=l+1;let k=i;if(l<m&&hd[l]<hd[k])k=l;if(r<m&&hd[r]<hd[k])k=r;if(k===i)break;const td=hd[k],tu=hu[k];hd[k]=hd[i];hu[k]=hu[i];hd[i]=td;hu[i]=tu;i=k;}}
-      if(DN[u]===g||d>(ST[u]===g?D[u]:Infinity))continue;DN[u]=g;if(u===dst)break;
-      for(let k=TEO[u],K=TEO[u+1];k<K;k++){const v=TEN[k],e=TEE[k];if(e.res<=1e-3||(HAS[v]&&NRES[v]<=1e-3)||(core&&OUT[v]&&v!==dst))continue;
+    for(;;){
+      if(u>=0){const d=D[u];for(let k=TEO[u],K=TEO[u+1];k<K;k++){const v=TEN[k],e=TEE[k];if(e.res<=1e-3||(HAS[v]&&NRES[v]<=1e-3)||(core&&OUT[v]&&v!==dst))continue;
         const nd=d+e.w;if(nd<(ST[v]===g?D[v]:Infinity)){D[v]=nd;ST[v]=g;P[v]=e;
           if(m===cap){cap*=2;const a=new Float64Array(cap),b=new Int32Array(cap);a.set(hd);b.set(hu);hd=DJ.hd=a;hu=DJ.hu=b;}
           let i=m++;hd[i]=nd;hu[i]=v;while(i>0){const p=(i-1)>>1;if(hd[p]<=hd[i])break;const td=hd[p],tu=hu[p];hd[p]=hd[i];hu[p]=hu[i];hd[i]=td;hu[i]=tu;i=p;}}}}
+      if(!m){u=-1;break;}
+      const d=hd[0];u=hu[0];m--;
+      if(m){hd[0]=hd[m];hu[0]=hu[m];let i=0;for(;;){const l=2*i+1,r=l+1;let k=i;if(l<m&&hd[l]<hd[k])k=l;if(r<m&&hd[r]<hd[k])k=r;if(k===i)break;const td=hd[k],tu=hu[k];hd[k]=hd[i];hu[k]=hu[i];hd[i]=td;hu[i]=tu;i=k;}}
+      if(DN[u]===g||d>(ST[u]===g?D[u]:Infinity)){u=-1;continue;}DN[u]=g;if(u===dst)break;}
+    // An exit out of the core that was found sits in the heap of its own graph; one never found was never let in.
+    if(cut&&u>=0)LRs=-1;else{LRs=src;LRe=EP;LRg=g;LRD=D;LRu=u;LRm=m;}
     return ST[dst]===g?D[dst]:Infinity;};
   /* The routing loops work on exits by number (xi, their index in E): what they read for every exit they look at sits in
      columns, USED, CAPX, CIX, HPX, DTX and VISX, and the lists they scan hold numbers (lst.x, lst.xat). Scanning objects of
@@ -69,10 +77,9 @@ function routeCore(){
     const last=ni.length-1;
     for(let k=0;k<=last;k++){const i=ni[k];if(!HAS[i])continue;const r=NRES[i];if(r<=1e-6){P.dead=1;return 0;}const w=k&&k<last?PASS[i]:1;amt=Math.min(amt,r/w);}
     if(amt<=1e-6)return 0;
-    EP++;
     for(let k=0;k<=last;k++){const i=ni[k];if(HAS[i])nodeTake(i,k&&k<last?amt*PASS[i]:amt);}
     const ek=e.ek,nr=fnj,ci=fci;if(!e.told||e.dup){R2.egDesc[ek]=e.desc||(e.desc={lab:e.lab,city:e.city,k:e.k});e.told=true;}
-    for(let k=0;k<PN;k++){const l=path[k];l.res-=amt;l.ld+=amt;carry(l,ek,nr,ci,amt);}
+    for(let k=0;k<PN;k++){const l=path[k],o=l.res;l.res=o-amt;if(o>1e-3&&l.res<=1e-3)EP++;l.ld+=amt;carry(l,ek,nr,ci,amt);}
     USED[x]+=amt;FREM[F]-=amt;
     {let ok=amt;const cf=CNB[ci],ce=e.cn,cn=NCN[nr],bz=FBZ[F]===1;
       if(cf!==ce||(cf&&!cn)||(!cf&&cn&&e.k==='t')){const prem=(e.k==='t'&&e.prem)||(e.k==='p'&&e.pnc)||path.some(x=>x.links&&x.links.some(y=>y.premium));const loss=prem?0.03:(ev.gfw>day?0.35:0.2);R2.gfwLost+=amt*loss;R2.gfwCross+=amt;ok=amt*(1-loss);}
@@ -200,7 +207,7 @@ function routeCore(){
         TE,SPILL,teCache,adj,CORE,OUT,REACH,DSEL,PREFC,BRJ,COMP,SDi,SPi,ALONE,TR,base,eff}=o);
       NX=E.length;USED=new Float64Array(NX);CAPX=new Float64Array(NX);CIX=new Int32Array(NX);HPX=new Uint8Array(NX);DTX=new Float64Array(NX);VISX=new Int32Array(NX);
       for(let x=0;x<NX;x++){const e=E[x];USED[x]=e.used;CAPX[x]=e.cap;CIX[x]=e.ci;HPX[x]=e.hp;DTX[x]=e.dt;}
-      F=0;fci=0;fnj=0;Dv=null;Pv=null;PP=null;vis=0;GN=0;walked=[];EP=0;LSs=LSe=LSg=-1;
+      F=0;fci=0;fnj=0;Dv=null;Pv=null;PP=null;vis=0;GN=0;walked=[];EP=0;LRs=-1;LRD=null;
       if(TE){const n=adj.length;TEO=new Int32Array(n+1);let k=0;for(let u=0;u<n;u++){TEO[u]=k;const a=adj[u];if(a)k+=a.length;}TEO[n]=k;
         TEN=new Int32Array(k);TEE=new Array(k);k=0;for(let u=0;u<n;u++){const a=adj[u];if(a)for(let j=0;j<a.length;j++){TEN[k]=a[j][0];TEE[k]=a[j][1];k++;}}}TEF=TE?new Uint8Array(NC*NC):null;
       const W=new Map();BRX=new Array(BRJ.length);for(let j=0;j<BRJ.length;j++){const m=BRJ[j],b={};for(const r in m)b[r]=lx(m[r],W);BRX[j]=b;}
