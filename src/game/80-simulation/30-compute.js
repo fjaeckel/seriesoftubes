@@ -67,7 +67,9 @@ function compute(){RW.gen++;
   return E;})();
   const rp=ev.rpki&&ev.rpki.until>day?new Set(ev.rpki.nets):null;if(rp)for(const e of E){if(e.k==='c')continue;const o=e.ok;e.ok=n=>!rp.has(n)&&o(n);}
   // Who reaches whom and each network's exit lists, kept while the exits are the same (XC, 29-route-cache.js).
-  const XK=RCON?rcExitKey(GK,E,(depeer?1:0)+'|'+leak+'|'+(snd?1:0)+'|'+(rp?ev.rpki.nets.join(','):'')+'|'+(TRX?S.te.script:'')+'|'+(PX&&PX.bh.length?PX.bh.map(e=>e.bh.city+'>'+e.bh.land).join(','):'')):null,XC=XK!==null&&RC.xk===XK?RC.x:null;
+  // A backhaul through a dish changes a cut-off POP's distances: lists kept in order (29-route-cache.js) only for the same one.
+  const BHK=PX&&PX.bh.length?PX.bh.map(e=>e.bh.city+'>'+e.bh.land).join(','):'';
+  const XK=RCON?rcExitKey(GK,E,(depeer?1:0)+'|'+leak+'|'+(snd?1:0)+'|'+(rp?ev.rpki.nets.join(','):'')+'|'+(TRX?S.te.script:'')+'|'+BHK):null,XC=XK!==null&&RC.xk===XK?RC.x:null;
   // coneOf: does exit e reach network n only through a peer's customer cone (#85)?
   const coneOf=(e,n)=>e.k==='p'?e.net!==n:!!e.dir&&!e.dir.has(n);
   // ok() cannot change during one compute, so ask each exit once per network, not once per flow and rank.
@@ -208,7 +210,7 @@ function compute(){RW.gen++;
       if(dm&&r===3&&e.k==='t'){const t=dm.get(e.net);if(t){const d=DIRECT_RANK[t][e.carry?0:1];let ds=DSEL.get(d);if(!ds)DSEL.set(d,ds=new Uint8Array(NET_IDS.length));ds[j]=1;RSET.add(d);(m[d]||(m[d]=[])).push(e);}}}
     for(const r in m){const L=m[r],key=L.map(e=>e.xi).join(','),o=LIST.get(key);if(o){m[r]=o;continue;}
       let V=L;if(NCOMP>1){const cs=[];for(const e of L){const k=COMP[e.ci];if(k>=0)(cs[k]||(cs[k]=[])).push(e);}for(const s of cs)if(s)idx(s);V={cs};}else idx(L);LIST.set(key,V);m[r]=V;}}
-    if(RCH)rcExitKeep(XK,E,okBy,RCH,LIST,BRJ,DSEL,RSET);})();
+    if(RCH)rcExitKeep(XK,E,okBy,RCH,LIST,BRJ,DSEL,RSET,BHK);})();
   /* What each kind of exit served, in all (EGT) and per network (NEA, by network index and kind): numbers in typed arrays,
      where a sum by key would box every new value. EGO and NEO keep the order each first got traffic, which is the order
      R.egT and R.netEg list them in; both are written back after routing. NEG: each network's R.netEg record. */

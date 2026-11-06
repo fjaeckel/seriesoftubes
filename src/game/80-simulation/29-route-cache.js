@@ -43,9 +43,9 @@ function rcReachPut(X,R2){const r=X.reach;Object.assign(R2.reachable,r.reachable
    distances. When the exits change (a PNI comes up, a network leaves an exchange), most lists do not: one with the same
    exits, cities and preferences on the same graph keeps the orders it had, and uses them today already. Only the lists
    that changed start again (scanned today, sorted from tomorrow). */
-function rcExitKeep(key,E,okBy,reach,LIST,BRJ,DSEL,RSET){const ok=[];for(let j=0;j<NET_IDS.length;j++)ok[j]=rcIx(okBy[NET_IDS[j]],E);
+function rcExitKeep(key,E,okBy,reach,LIST,BRJ,DSEL,RSET,bk=''){const ok=[];for(let j=0;j<NET_IDS.length;j++)ok[j]=rcIx(okBy[NET_IDS[j]],E);
   const sig=new Int32Array(E.length);for(let i=0;i<E.length;i++)sig[i]=E[i].ci*4+E[i].hp;
-  const P=RC.x&&RC.x.gk===RC.gk&&RC.x.sig?RC.x:null,old=new Map();
+  const P=RC.x&&RC.x.gk===RC.gk&&RC.x.bk===bk&&RC.x.sig?RC.x:null,old=new Map();
   if(P)for(const d of P.lists){if(d.cs){for(let k=0;k<d.cs.length;k++)if(d.cs[k])old.set(k+'/'+d.cs[k].join(','),d.ord[k]);}else old.set(d.a.join(','),d.ord);}
   const same=a=>{for(let i=0;i<a.length;i++){const x=a[i];if(x>=P.sig.length||P.sig[x]!==sig[x])return false;}return true;};
   const kept=(k,a)=>{if(!P)return null;const o=old.get(k);return o&&same(a)?o:null;};
@@ -53,7 +53,7 @@ function rcExitKeep(key,E,okBy,reach,LIST,BRJ,DSEL,RSET){const ok=[];for(let j=0
     if(V.cs){const cs=[],ord=[];for(let k=0;k<V.cs.length;k++)if(V.cs[k]){cs[k]=rcIx(V.cs[k],E);const o=kept(k+'/'+cs[k].join(','),cs[k]);ord[k]=o||[];if(o)V.cs[k].ord=o;}lists.push({cs,a:null,ord});}
     else{const a=rcIx(V,E),o=kept(a.join(','),a);lists.push({cs:null,a,ord:o||[]});if(o)V.ord=o;}}
   const brj=BRJ.map(m=>{const o=[];for(const r in m)o.push(r,id.get(m[r]));return o;});
-  RC.xk=key;RC.x={ok,reach,lists,brj,DSEL,RSET:[...RSET],gk:RC.gk,sig};}
+  RC.xk=key;RC.x={ok,reach,lists,brj,DSEL,RSET:[...RSET],gk:RC.gk,bk,sig};}
 // Fresh lists for today's exits from a kept build.
 // Each list also gets the orders kept with it (ord: by source city, the list in the order routing tries it, see xOrder()
 // in 30-compute.js), filled in as routing asks for them.
