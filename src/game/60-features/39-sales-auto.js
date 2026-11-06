@@ -43,6 +43,9 @@ function* slAutoRun(d){if(!slAutoOn())return;const A=S.slAuto,p=slP(),w=Math.flo
       // Each trial is a full routing pass: at most SL_TRIALS a day, and an offer that did not fit waits a week.
       if(!reqOk(o)||tries>=SL_TRIALS||tried.get(o.id)>d-SL_RETRY)return;tries++;b=offerTrialOf(o);return true;});
     if(!todo)continue;
-    const got=b?yield {trial:b,hx:offerHealthy(b)}:null;
+    // o: the offer itself, for a trial the page has to run again on the game as it is by then (dayAgain()).
+    const got=b?yield {trial:b,hx:offerHealthy(b),o}:null;
+    // Signed or declined by hand while the trial routed: it is not the desk's.
+    if(!S.offers.includes(o))continue;
     opsQuiet(()=>{OFFER_TRIED={o,b:got};try{ACT.accept({id:o.id,auto:true});}finally{OFFER_TRIED=null;}if(!won(o))tried.set(o.id,d);});}
   if(dirty)yield;}

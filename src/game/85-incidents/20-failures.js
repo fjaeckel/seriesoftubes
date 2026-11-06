@@ -118,11 +118,13 @@ function* failureRun(only){
     addInc({type,ref:f,until:S.ev.fab[f],msg:tr('failures.fabric_is_having_a_bad_day',{fabric:FAB[f].name}),cost:0});
   }else if(type==='ddos'){ddosAttack(false);yield;yield* ddosNewsRun();return;
   }
-  yield;
+  // This failure's incident, kept before the routing: the player may repair it (or another) while the worker routes.
   const last=S.inc[S.inc.length-1];
+  yield;
+  if(!last)return;
   last.impact=Math.max(0,before-R.served);
   if(before>1&&last.impact<before*0.03&&type!=='ddos'){S.stats.survived++;toast(`<b>${incTitle(type)}</b><br>${esc(last.msg)} ${tr('failures.traffic_rerouted_customers_barely')}`,'good',[],incOpen(last));}
-  else{const paused=pref('pauseIncident')&&autoPause();toast(`<b>${incTitle(type)}</b><br>${esc(last.msg)}${paused?`<br><b>${tr('common.game_paused')}</b>`:''}`,'bad',(last.cost?[{l:`${last.fix||tr('common.rush_repair')} ${fmt$(last.cost)}`,act:'fixInc',args:{id:last.id}}]:[]).concat(paused?[resumeAct()]:[]),incOpen(last));}
+  else{const paused=pref('pauseIncident')&&autoPause();toast(`<b>${incTitle(type)}</b><br>${esc(last.msg)}${paused?`<br><b>${tr('common.game_paused')}</b>`:''}`,'bad',(last.cost&&S.inc.includes(last)?[{l:`${last.fix||tr('common.rush_repair')} ${fmt$(last.cost)}`,act:'fixInc',args:{id:last.id}}]:[]).concat(paused?[resumeAct()]:[]),incOpen(last));}
   sfx('alert');
 }
 const gamingCount=()=>S.biz.reduce((n,b)=>n+(BIZ_T[b.type]?.gaming?1:0),0);

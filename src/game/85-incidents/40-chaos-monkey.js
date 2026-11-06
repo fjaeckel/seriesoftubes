@@ -39,7 +39,8 @@ function* mkSnipRun(){const M=S.monkey,live=S.links.filter(l=>l.kind!=='vxc'&&!l
   const dur=rint(3,4),trc=l.trench||l.id,hit=S.links.filter(x=>(x.trench||x.id)===trc),A=CITY[l.a].name,B=CITY[l.b].name,before=R.served;
   hit.forEach(x=>x.cut=Math.max(x.cut||0,S.day+dur));M.n++;M.c=l.a;
   addInc({type:'cut',ref:trc,until:S.day+dur,msg:tr(pick(MK_SNIPS),{a:A,b:B}),cost:Math.max(4000,Math.round(hit.reduce((a,x)=>a+x.mo,0)*0.5))},'');
-  yield;const i=S.inc[S.inc.length-1],imp=Math.max(0,before-R.served);if(i)i.impact=imp;
+  // The snip's incident, kept before the routing: the player may repair it (or another) while the worker routes.
+  const i=S.inc[S.inc.length-1];yield;const imp=Math.max(0,before-R.served);if(i)i.impact=imp;
   const felt=before>1&&imp>=before*0.03;if(felt)M.hurt++;else S.stats.survived++;
   toast(felt?`<b>🐒 ${incTitle('cut')}</b><br>${esc(i?i.msg:'')}`:tr('chaos_monkey.rerouted',{a:A,b:B}),felt?'bad':'good',[],i?incOpen(i):null);sfx(felt?'err':'alert');
   if(typeof mkRun==='function'){if(!UI.mk&&CITY[M.c])mkStart(M.c);mkRun(l,1400,felt);}}

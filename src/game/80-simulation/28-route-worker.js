@@ -27,7 +27,7 @@ if(${dict})self.I18N[${JSON.stringify(L)}]=${dict};
 // Gone for good this session: the routing in flight is done here instead, and the day goes on without the worker.
 // (A day resting between steps goes on by itself, on the page from then on.)
 function rwKill(){RW.dead=true;if(RW.w)try{RW.w.terminate();}catch(e){}RW.w=null;const j=RW.job;if(!j||j.rest)return;RW.job=null;
-  if(j.state!==S){rwDayDone();return;}let v;try{if(j.tr)v=dayAnswer(j.tr);else compute();}catch(e){tickErr(e);}rwGo(j.g,v);}
+  if(j.state!==S){rwDayDone();return;}let v;try{if(j.tr)v=dayAgain(j.tr);else compute();}catch(e){tickErr(e);}rwGo(j.g,v);}
 // One day in play (dayRun(), 10-day-tick.js): its steps run here, every routing it asks for runs in the worker.
 function rwDay(){rwGo(dayRun());}
 // Runs the day's steps up to the next routing, posts it, and returns: rwDone() picks the day up when R is back. At a
@@ -59,8 +59,8 @@ function rwDone(m,t0){const j=RW.job;if(!j||m.seq!==j.seq)return;RW.job=null;con
   if(j.state!==S){rwDayDone();return;}
   let v;
   // A sales trial: the customer it signed off, or null. Something routed here meanwhile (an action), or the worker
-  // failed: the trial runs here, on the game as it is now.
-  if(j.tr){if(m.err)console.error('[tubes] route worker',m.err);v=m.err||RW.gen!==j.gen?dayAnswer(j.tr):m.ok?j.tr.trial:null;}
+  // failed: the trial runs again here, checks included, on the game as it is now (dayAgain()).
+  if(j.tr){if(m.err)console.error('[tubes] route worker',m.err);v=m.err||RW.gen!==j.gen?dayAgain(j.tr):m.ok?j.tr.trial:null;}
   else if(m.err){console.error('[tubes] route worker',m.err);compute();}
   else if(RW.gen===j.gen){R=rwUnpack(m.R,m.ef);UI.hotMap=hotByCity();}
   const t1=performance.now(),st=RW.stat;st.n++;st.apply+=t1-t;st.wait+=t-j.t;st.work+=m.ms||0;

@@ -168,3 +168,74 @@ test('quiet notifications hold while the worker plays the day', (t) => {
   assert.equal(p.ev('UI.tick'), false, 'and it is off between days');
   assert.deepEqual(p.errors, []);
 });
+
+// What the player does while a step waits for the worker: the step goes on with the game as it is by then.
+const TICK_ERR = "window.__te=[];tickErr=e=>__te.push(String(e&&e.stack||e));";
+
+test('a customer dropped while a sales trial routes: the trial runs again on the customers left', (t) => {
+  const p = played(t);
+  p.ev(TICK_ERR);
+  p.ev("window.__ot=0;const ot=offerTrial;offerTrial=(...a)=>{__ot++;return ot(...a);};");
+  let found = false;
+  for (let d = 0; d < 20 && !found; d++) {
+    p.ev('rwDay()');
+    for (let k = 0; k < 400 && p.ev('!!RW.job'); k++) {
+      if (p.ev('__later.length')) { p.ev('__later.shift()()'); continue; }
+      // A trial the offer passes, the last customer among the happy ones: that customer goes, and the trial's list of
+      // who was happy (indices in S.biz) now points one past the end.
+      if (!found && p.ev('__q.length&&!!__q[0].trial&&!!__q[0].trial.hx&&__q[0].trial.hx.includes(S.biz.length-1)&&!!offerTrial(__q[0].trial.b,__q[0].trial.hx)')) {
+        found = true; p.ev('__ot=0;const b=S.biz[S.biz.length-1];UI.confirm=b.id;ACT.dropBiz({id:b.id});');
+      }
+      p.pump1();
+    }
+  }
+  assert.ok(found, 'the desk trialled an offer');
+  assert.equal(p.ev('__ot'), 1, 'the overtaken trial ran again on the page');
+  assert.equal(p.ev('JSON.stringify(__te)'), '[]');
+  assert.equal(p.ev('!!RW.job'), false);
+  assert.equal(p.ev('S.day'), p.ev('S.hist[S.hist.length-1].d'), 'the day was finished');
+  assert.deepEqual(p.errors, []);
+});
+
+test("the intern's PNI round never orders again what the player ordered while it waited", (t) => {
+  // The round's batch, then its first rest: the player orders every PNI of the batch by hand meanwhile.
+  const ROUND = (hand) => `while(S.day%7!==3)S.day++;S.ops.on.pni=true;
+    const pb=pniBatch;pniBatch=(...a)=>window.__b=pb(...a);
+    window.__b=null;const X=opsShift(),it=OPS_RUN.pni(X),n0=S.pni.length;let hand=0;
+    for(let s=it.next();!s.done;s=it.next())if(__b&&${hand}&&!hand){hand=1;const af=after;after=()=>{};try{for(const q of __b.orders)ACT.pni({city:q.city,net:q.net,tier:q.g1?-1:q.tier});}finally{after=af;}compute();window.__h=S.pni.length;}
+    window.__n=S.pni.length-n0;`;
+  const key = "S.pni.map(p=>p.city+'|'+p.net)";
+  const ref = open(t, 777), p = open(t, 777);
+  ref.ev(SETUP); p.ev(SETUP);
+  ref.ev(ROUND(false));
+  assert.ok(ref.ev('__b.orders.length') > 0 && ref.ev('__n') > 0, `the intern orders PNIs: ${ref.ev('__n')} of ${ref.ev('__b.orders.length')}`);
+  p.ev(ROUND(true));
+  assert.ok(p.ev('__h') > p.ev('S.pni.length') - p.ev('__n'), 'the player ordered some by hand');
+  assert.equal(p.ev('S.pni.length'), p.ev('__h'), 'the intern ordered nothing more');
+  const keys = p.ev(key);
+  assert.equal(new Set(keys).size, keys.length, 'one PNI per city and network');
+  assert.deepEqual([...ref.errors, ...p.errors], []);
+});
+
+test('an incident repaired while its routing runs: the failure and the monkey still tell its own story', (t) => {
+  const p = open(t, 777);
+  p.ev(SETUP);
+  // On land: a repair clears the incident (at sea it would charter a ship).
+  p.ev("S.rules.sea='timer';S.inc=[];");
+  // Repaired before the answer, the only incident there was: nothing left to read as "the last one".
+  p.ev(`const g=failureRun('cut');g.next();window.__i=S.inc[S.inc.length-1];ACT.fixInc({id:__i.id});g.next();`);
+  assert.equal(p.ev('S.inc.length'), 0);
+  assert.equal(p.ev('typeof __i.impact'), 'number', 'its impact is its own');
+  // An older incident stands: the new one's impact is not pinned on it.
+  p.ev(`runNow(failureRun('cut'));window.__a=S.inc[S.inc.length-1];__a.impact=-7;
+    const g2=failureRun('cut');g2.next();window.__b=S.inc[S.inc.length-1];ACT.fixInc({id:__b.id});g2.next();`);
+  assert.equal(p.ev('__a!==__b&&S.inc.includes(__a)&&!S.inc.includes(__b)'), true);
+  assert.equal(p.ev('__a.impact'), -7, 'the older incident keeps its impact');
+  assert.equal(p.ev('typeof __b.impact'), 'number');
+  // The monkey's snip, the same way.
+  p.ev(`S.monkey={on:1,start:S.day,until:S.day+60,snip:S.day,n:0,hurt:0,c:S.home,next:S.day};
+    const g3=mkSnipRun();g3.next();window.__c=S.inc[S.inc.length-1];ACT.fixInc({id:__c.id});g3.next();`);
+  assert.equal(p.ev('__a.impact'), -7, 'the older incident keeps its impact');
+  assert.equal(p.ev('typeof __c.impact'), 'number');
+  assert.deepEqual(p.errors, []);
+});

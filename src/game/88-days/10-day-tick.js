@@ -13,6 +13,9 @@ function* dayRun(){const d=yield* dayPreRun();if(d===false)return;yield;yield* d
 // customer it signs off or null (dayAnswer()): here at once, in play by the route worker.
 const dayStep=(g,v)=>{UI.tick=true;try{return g.next(v);}finally{UI.tick=false;}};
 const dayAnswer=y=>offerTrial(y.trial,y.hx);
+// The same trial overtaken by an action (a customer gone shifts S.biz, so hx no longer points at the right ones):
+// its checks, the customer and who is happy, made again on the game as it is now.
+const dayAgain=y=>{const o=y.o;if(!o||!S.offers.includes(o))return null;const b=offerTrialOf(o);return b?offerTrial(b,offerHealthy(b)):null;};
 function dayGo(g,step=dayStep){let v;for(let s=step(g);!s.done;s=step(g,v)){v=undefined;const y=s.value;if(y===DAY_REST)continue;if(y&&y.trial)v=dayAnswer(y);else compute();}}
 function dayTick(){dayGo(dayRun());}
 // dayPre(): the world's morning all at once; dayPreRun() the same with a place or two to let a frame through.

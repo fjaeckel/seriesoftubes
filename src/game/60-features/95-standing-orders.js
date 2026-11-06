@@ -206,8 +206,10 @@ const OPS_RUN={
    // exchange or a PNI elsewhere, the same figure the PNI list shows. Not the city's whole demand: a network's own
    // cache boxes in that POP already serve most of it (#244).
    const loc=q=>pniVal(q.net,q.city).want;
-   for(const q of b.orders.filter(q=>opsHere('pni',q.city)&&loc(q)>=g&&(paid||NET[q.net].pol!=='paid'||paidFree(NET[q.net]))).sort((a,b)=>loc(b)-loc(a))){
-     if(!X.can('pni',q.cost))break;if(X.pay('pni',()=>{if(!spend(q.cost))return false;pniPlace(q);return true;}))X.did('pni',q.city+' '+q.net);yield;}},
+   // Each order quoted again just before it is placed: the player may have ordered the same PNI by hand while the shift
+   // let a frame through or waited for a routing, and the batch's quote would order it a second time.
+   for(const q0 of b.orders.filter(q=>opsHere('pni',q.city)&&loc(q)>=g&&(paid||NET[q.net].pol!=='paid'||paidFree(NET[q.net]))).sort((a,b)=>loc(b)-loc(a))){
+     const q=pniRequote(q0);if(!q)continue;if(!X.can('pni',q.cost))break;if(X.pay('pni',()=>{if(!spend(q.cost))return false;pniPlace(q);return true;}))X.did('pni',q.city+' '+q.net);yield;}},
  // Hand back smaller waves once a bigger link between the same cities carries the pair with a quarter to spare (#102).
  // Loads must include what this shift already did (a customer just signed, a repair): opsRun() routes first if a
  // job changed the network and anything could go (opsDecomWaits()).
