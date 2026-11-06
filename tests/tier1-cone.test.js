@@ -80,7 +80,7 @@ test('the long tail no longer stands between you and Tier 1', () => {
   assert.equal(ev("isTier1()"), true);
   // the peers you need directly are all real networks of some size, and fewer than before
   const islands = ev("S.pni.filter(p=>p.id[0]==='i').length");
-  assert.ok(islands < 70, `${islands} networks to peer with directly`);
+  assert.ok(islands < 80, `${islands} networks to peer with directly`);
   assert.deepEqual(errors, []);
 });
 

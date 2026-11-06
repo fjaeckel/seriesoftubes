@@ -600,17 +600,18 @@ test('#66 #68 subsea optics: engineered glass reaches further, and the same limi
   // counted as land glass it would be 400G, which is what #66 saw
   ev("S.links.find(l=>l.id==='oc').sub=false;compute()");
   assert.equal(ev("dfCap(S.links.find(l=>l.id==='oc'))"), 400);
-  // leased waves: transatlantic London–New York still takes 6.4T (4×1.6T); Paris–Ashburn tops out at 800G
+  // leased waves: transatlantic London–New York still takes 6.4T (4×1.6T); Nantes–Ashburn tops out at 800G
   assert.equal(ev("subWaveWhy(5,cablesFor('lon','nyc')[0].km,true)"), '');
-  assert.match(ev("subWaveWhy(4,cablesFor('par','ash')[0].km,true)"), /at most 1.2T per carrier/);
-  assert.equal(ev("LT[subMaxTier(cablesFor('par','ash')[0].km)].n"), '800G');
+  assert.match(ev("subWaveWhy(4,cablesFor('nte','ash')[0].km,true)"), /at most 1.2T per carrier/);
+  assert.equal(ev("LT[subMaxTier(cablesFor('nte','ash')[0].km)].n"), '800G');
   assert.equal(ev("LT[subMaxTier(14000)].n"), '400G', 'the longest cables carry 400G waves');
   assert.equal(ev("subWaveWhy(5,4000,false)"), '', 'land waves are not capped this way');
   // buying a too-big wave is refused; an old one keeps running
-  ev("UI.pending={a:'par',b:'ash'};UI.via=cablesFor('par','ash')[0].cid;const n=S.links.length;ACT.buildLink({tier:4});window.__d=S.links.length-n");
-  assert.equal(ev('__d'), 0, 'no 1.6T wave across 6,670 km');
+  ev("ACT.buildPop({city:'nte'});S.pops.nte.rgen=3;compute()");
+  ev("UI.pending={a:'nte',b:'ash'};UI.via=cablesFor('nte','ash')[0].cid;const n=S.links.length;ACT.buildLink({tier:4});window.__d=S.links.length-n");
+  assert.equal(ev('__d'), 0, 'no 1.6T wave across 6,473 km');
   ev("ACT.buildLink({tier:3})");
-  const w = "S.links.find(l=>l.kind==='wave'&&l.a==='par')";
+  const w = "S.links.find(l=>l.kind==='wave'&&(l.a==='nte'||l.b==='nte'))";
   assert.equal(ev(`${w}.tier`), 3, '800G is fine');
   ev(`ACT.upLink({id:${w}.id,tier:4})`);
   assert.equal(ev(`${w}.tier`), 3, 'and it cannot be upgraded past the cable');

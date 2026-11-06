@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The project follows
 
 - Your intern can upgrade optical transport: a new standing order moves full, busy fiber to a bigger line system, or trades its smallest channels for bigger optics. Pick a line system, and every fiber on a smaller one is moved up to it. A line system swap takes the fiber down for a day, so the intern only does it where the traffic gets around it and no customer rides it, one a night.
 - Your intern can standardize your routers on a model you choose: pick it in Keep routers ahead, and every POP on a smaller model is swapped to it, the busiest first, within the monthly budget. Every setting in the Standing orders sheet is now a list to pick from instead of a button to tap through.
+- France beyond Paris and Marseille: Lyon, Toulouse, Lille, Bordeaux, Strasbourg and Rennes, with the exchanges that really run (Quenelle-IX, Cassoulet-IX, Maroilles-IX, Claret-IX, Choucroute-IX and Galette-IX), and Nantes. SF-Error Telecom (SFR), Boy-Egg Telecom (Bouygues), Ov-Hatch Cloud (OVH) and Scale-Away (Scaleway) join the map; Tangerine Telecom and Free as in Beer reach the new cities, Cogentle reaches Toulouse, Lille, Bordeaux and Strasbourg as PeeringDB lists it, and Andorable Telecom comes up to Toulouse. The Atlantic cables now come ashore where they really do: Ami-Tea at Bordeaux and Dunno-ant at Nantes, both without a line across the country to inland Paris, and Dunno-ant starts at Virginia Beach.
 
 ## [3.0.0] — 2026-11-06
 
