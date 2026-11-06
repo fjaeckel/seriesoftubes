@@ -95,6 +95,9 @@ function playGame(pages, seed, opts = {}) {
   const [s0, s1] = both('start', st);
   same('start', s0, s1);
   note('start ' + JSON.stringify(st));
+  // A normal game signs its charter first: a popup on newer pages (which seeded pages skip), a card on older ones. Both
+  // sign the classic one at once, so neither shows charter buttons the other has not, and the game plays as it did.
+  if (kind === 'normal') { const [c0, c1] = both('press', { act: 'charter', args: { k: 'global' } }); same('charter', c0, c1); }
   if (!div) compare('start');
 
   // A screen's buttons on both pages; the same list or a divergence.

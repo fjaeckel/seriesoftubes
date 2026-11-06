@@ -410,9 +410,9 @@ test('#22 Tier 1 networks can lay their own subsea cable', () => {
   const { ev, dom, errors } = load();
   ev("ACT.start({});S.cash=2e8;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});ACT.buildPop({city:'lon'});ACT.buildPop({city:'nyc'});compute()");
   const card = () => dom.window.document.getElementById('modalCard').textContent;
-  // not before Tier 1
+  // not before Tier 1 or customer level 9 (#300)
   ev("UI.lmode='df';UI.via=null;openLinkModal('lon','nyc')");
-  assert.match(card(), /Tier 1 only/);
+  assert.match(card(), /level 9 or Tier 1/);
   assert.match(ev("ownCabWhy('lon','nyc')"), /Tier 1/);
   ev('ACT.orderCable()');
   assert.equal(ev("S.links.filter(l=>l.own&&l.sub).length"), 0, 'refused before Tier 1');

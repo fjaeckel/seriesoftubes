@@ -55,4 +55,4 @@ function beginGame(nm,city,o={}){if(needPitch()&&!UI.pitched){UI.pendGame=[nm,ci
   track('game_new');UI.started=true;closeModal();compute();cam.x=CITY[city].x;cam.y=CITY[city].y;cam.z=innerWidth<760?1.1:1.4;selectCity(city);
   toast(S.scn?`<b>${esc(S.scn.name)}</b><br>${o.scn.goal?esc(o.scn.goal)+'.':tr('common.serve_as_much_traffic_as_you')} ${tr('scenarios.you_have_n_days',{n:S.scn.days})}`:S.mode==='sandbox'?(chaosMul()?tr('scenarios.sandbox_mode_a_billion_dollars_chaos',{chaos:CHAOS[rule('chaos')].n}):tr('scenarios.sandbox_mode_a_billion_dollars_every')):tr('scenarios.welcome_name_the_ripe_ncc_assigned',{name:esc(nm),asn:S.asn,city:CITY[city].name}),'goal');
   // A Normal game asks for its charter first; the tutorial starts once it is signed.
-  renderAll();save();if(!S.scn&&S.mode!=='sandbox'&&S.mode!=='puzzle'){if(charterDue()){UI.tutLater=true;charterAsk();}else tutorialStart();}}
+  renderAll();save();if(!S.scn&&S.mode!=='sandbox'&&S.mode!=='puzzle'){charterAsk();if(!$('modal').hidden&&$('modal').className==='charter')UI.tutLater=true;else tutorialStart();}}
