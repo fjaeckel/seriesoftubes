@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Your intern can upgrade optical transport: a new standing order moves full, busy fiber to a bigger line system, or trades its smallest channels for bigger optics. Pick a line system, and every fiber on a smaller one is moved up to it. A line system swap takes the fiber down for a day, so the intern only does it where the traffic gets around it and no customer rides it, one a night.
 - Your intern can standardize your routers on a model you choose: pick it in Keep routers ahead, and every POP on a smaller model is swapped to it, the busiest first, within the monthly budget. Every setting in the Standing orders sheet is now a list to pick from instead of a button to tap through.
 
 ## [3.0.0] — 2026-11-06
