@@ -17,7 +17,11 @@ const REQS={
  scrubnear:{l:tr('requirements.wants_a_scrubbing_center_on_its'),bonus:.15,ip:true,ok:b=>S.scrubs.some(x=>CITY[x.city].reg===CITY[b.city].reg)},
  puns:{l:tr('requirements.their_ceo_hates_puns_please_do'),bonus:.05,ok:()=>true},
 };
-function terrestrialPath(a,b){const ls=S.links.filter(l=>!linkDown(l)&&!l.sub);const adj={};for(const l of ls){(adj[l.a]=adj[l.a]||[]).push(l.b);(adj[l.b]=adj[l.b]||[]).push(l.a);}const seen=new Set([a]),q=[a];while(q.length){const u=q.shift();if(u===b)return true;for(const v of adj[u]||[])if(!seen.has(v)){seen.add(v);q.push(v);}}return false;}
+// Which cities land fiber connects, as a group per city. Set TERR to {} around a pass over every customer that changes no link: it is worked out once.
+let TERR=null;
+function terrGroups(){const adj={};for(const l of S.links)if(!l.sub&&!linkDown(l)){(adj[l.a]=adj[l.a]||[]).push(l.b);(adj[l.b]=adj[l.b]||[]).push(l.a);}
+  const g=new Map();for(const a in adj){if(g.has(a))continue;g.set(a,a);const q=[a];while(q.length)for(const v of adj[q.pop()])if(!g.has(v)){g.set(v,a);q.push(v);}}return g;}
+function terrestrialPath(a,b){if(a===b)return true;const g=TERR?TERR.g||(TERR.g=terrGroups()):terrGroups(),c=g.get(a);return c!==undefined&&c===g.get(b);}
 const reqOk=b=>(b.reqs||[]).every(k=>REQS[k]&&REQS[k].ok(b));
 // Some requirements only make sense for some customers: nobody can reach another continent without getting wet.
 const reqCan=(k,b)=>!REQS[k].can||REQS[k].can(b);

@@ -21,7 +21,7 @@ function open(cfg = {}) {
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // A day in flight in the worker when the trial ends: rwDone() would run its dayPost() whenever the answer comes.
-const IN_FLIGHT = `window.__old=S;RW.seq=41;RW.job={seq:41,d:201,gen:RW.gen-1,t:0};window.__posts=[];
+const IN_FLIGHT = `window.__old=S;RW.seq=41;RW.job={seq:41,next:()=>dayPost(201),gen:RW.gen-1,t:0};window.__posts=[];
   dayPost=function(d){__posts.push({d,old:S===__old});};`;
 
 test('a late answer from the route worker lands on the trial it belongs to, not the next one', async () => {

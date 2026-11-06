@@ -181,6 +181,8 @@ network does not freeze the page once a day.
   goals). In play, `frame()` calls `rwDay()` instead: `dayPre()`, then S and what routing reads of yesterday's R
   (`R.load`, `R.l2route`, `R.efg`) are posted, and the next day waits until R comes back and `dayPost()` has run. So a day
   sees exactly the routing it would have had in one go: same results, same random numbers. Half a day is never saved.
+  When an outage, an event or the intern's shift changes the network, `dayPost()` routes again before going on, and in
+  play that goes to the worker as well (`rwRoute()`), so the same day can make up to three trips.
 - **What crosses.** `R.ef` and `R.fl` are lazy getters; their pieces (`R.efp`, `R.flc`) travel instead, typed arrays
   transferred, and `efBuild()`/`flDefine()` (in `30-compute.js`) rebuild the same lazy R on the page.
 - **Actions mid-day.** Every `compute()` bumps `RW.gen`. If an action routed while a day was in flight, the worker's

@@ -24,19 +24,25 @@ if(${dict})self.I18N[${JSON.stringify(L)}]=${dict};
   }catch(e){console.error('[tubes] no route worker',e);rwKill();}
   return RW.w;}
 // Gone for good this session: the day it was routing is routed here instead.
-function rwKill(){RW.dead=true;if(RW.w)try{RW.w.terminate();}catch(e){}RW.w=null;const j=RW.job;RW.job=null;if(j){try{compute();dayPost(j.d);}catch(e){tickErr(e);}rwDayDone();}}
+function rwKill(){RW.dead=true;if(RW.w)try{RW.w.terminate();}catch(e){}RW.w=null;const j=RW.job;RW.job=null;if(j){try{compute();}catch(e){tickErr(e);}rwGo(j.next);rwEnd();}}
+// The rest of a day, once R is back. UI.tick as in dayTick(): quiet notifications apply here too.
+function rwGo(next){UI.tick=true;try{next();}catch(e){tickErr(e);}finally{UI.tick=false;}}
+// The day is over when nothing more of it is in the worker.
+function rwEnd(){if(!RW.job)rwDayDone();}
 // One day in play: the first half here, the routing in the worker, the second half when it answers.
-function rwDay(){const d=dayPre();if(d===false)return;const w=rwStart();
-  if(!w){compute();dayPost(d);rwDayDone();return;}
+function rwDay(){UI.tick=true;let d;try{d=dayPre();}finally{UI.tick=false;}if(d===false)return;rwRoute(()=>dayPost(d,rwRoute));rwEnd();}
+// Route the state as it stands in the worker, then carry on with next. A day may need this more than once: dayPost() does when an outage or the intern changed the network.
+function rwRoute(next){const w=RW.dead?null:rwStart();
+  if(!w){compute();rwGo(next);return;}
   const t=performance.now(),seq=++RW.seq;
   // The worker also needs what compute() reads from yesterday's R: link loads, and the scenic circuits' paths.
-  try{w.postMessage({seq,S,load:R.load,l2route:R.l2route,efg:rwEfgOut(R.efg)});}catch(e){console.error('[tubes] route worker post',e);rwKill();compute();dayPost(d);rwDayDone();return;}
-  const t1=performance.now();RW.stat.post+=t1-t;RW.job={seq,d,gen:RW.gen,t:t1};}
+  try{w.postMessage({seq,S,load:R.load,l2route:R.l2route,efg:rwEfgOut(R.efg)});}catch(e){console.error('[tubes] route worker post',e);rwKill();compute();rwGo(next);return;}
+  const t1=performance.now();RW.stat.post+=t1-t;RW.job={seq,next,gen:RW.gen,t:t1};}
 function rwDone(m){const j=RW.job;if(!j||m.seq!==j.seq)return;RW.job=null;const t=performance.now();
   if(m.err){console.error('[tubes] route worker',m.err);compute();}
   else if(RW.gen===j.gen){R=rwUnpack(m.R,m.ef);UI.hotMap=hotByCity();}
   const t1=performance.now(),st=RW.stat;st.n++;st.apply+=t1-t;st.wait+=t-j.t;st.work+=m.ms||0;
-  try{dayPost(j.d);}catch(e){tickErr(e);}rwDayDone();}
+  rwGo(j.next);rwEnd();}
 function rwDayDone(){UI.ticking=true;renderHUD();UI.ticking=false;UI.panelsDue=true;if(UI.saveDue){UI.saveDue=false;save();}}
 /* R as plain data. R.ef and R.fl are lazy getters, sent as the pieces they are built from (R.efp, R.flc, see efBuild()
    and flDefine() in 30-compute.js), their typed arrays moved, not copied. Exits become their ids (all R.fl reads), and an

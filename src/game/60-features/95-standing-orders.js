@@ -224,7 +224,8 @@ function opsDecomSafe(l){const bz=S.biz.filter(b=>(b.reqs||[]).some(k=>k==='dive
   const was=bz.filter(chk),all=S.links;S.links=all.filter(x=>x!==l);try{return was.every(chk);}finally{S.links=all;}}
 const OPS_ORDER=['repair','sales','routers','transit','ports','optics','caches','ix','pni','decom'];
 // The shift: once per game day from dayTick, after outages and events have had their turn.
-function opsDay(d){if(!opsHired())return;const O=S.ops,m=monthIdx(d);if(m!==O.mon){O.mon=m;for(const k in O.spent)O.spent[k]=0;O.addMo={};}
+// reroute: who routes the shift's changes, when the day has somewhere better than here to do it (dayPost()).
+function opsDay(d,reroute){if(!opsHired())return;const O=S.ops,m=monthIdx(d);if(m!==O.mon){O.mon=m;for(const k in O.spent)O.spent[k]=0;O.addMo={};}
   // A new week: last week's tally becomes the shift report, and the one NOC notice of the week.
   const w=Math.floor(d/7);if(!O.wk||O.wk.w!==w){if(opsWkAny(O.wk)&&O.wk.w<w){O.rep=O.wk;logNote(`<b>${esc(tr('ops.shift_report',{name:opsName()}))}</b> ${esc(opsWeekLine(O.rep))}`,O.rep.rev>0?'good':'',[],{a:'ops'});}O.wk=opsWkNew(w);}
   const X=opsShift();
@@ -237,7 +238,7 @@ function opsDay(d){if(!opsHired())return;const O=S.ops,m=monthIdx(d);if(m!==O.mo
     e.f=f;e.c=c;toast(esc(opsFFLine(e)),'',[{l:tr('ops.ops'),act:'opsOpen',args:{}}]);}
   if(X.up)e.up=Math.round(X.up);if(Math.round(X.mo))e.mo=Math.round(X.mo);
   // Declining an offer or stopping at a budget changes nothing a route depends on: no recompute for those.
-  if(X.dirty)compute();
+  if(X.dirty){if(reroute)reroute();else compute();}
   if(e.r.length||e.f!==undefined){O.log.unshift(e);O.log.length=Math.min(O.log.length,OPS_LOG);}
   // The day's detail stays in the Ops sheet; the NOC gets one notice a week (above).
   const W=O.wk;for(const [k,n,ws] of e.r){W.n[k]=(W.n[k]||0)+n;const a=W.wh[k]||(W.wh[k]=[]);for(const x of ws)if(a.length<3&&!a.includes(x))a.push(x);}
