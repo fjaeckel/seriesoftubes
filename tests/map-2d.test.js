@@ -270,7 +270,7 @@ test('the 2D map paints its pictures again for a new pixel density', () => {
 test('money pop-ups on the 2D map fade out as before', () => {
   const { ev, errors } = open();
   const C = 'CITY[S.home]';
-  ev(`cam.x=${C}.x;cam.y=${C}.y;cam.z=1;__T+=16;FLOATS.push({x:${C}.x,y:${C}.y,text:'+$1,234',col:'#16A866',t:__T});`);
+  ev(`cam.x=${C}.x;cam.y=${C}.y;cam.z=1;__T+=16;FLOATS.push({x:${C}.x,y:${C}.y,text:'+$1,234',col:'#16A866',s:S,t:__T});`);
   // At 0, 40% and 80% of its life: drawn at opacity 1-a².
   const alphas = [];
   for (const a of [0, 0.4, 0.8]) {
@@ -282,7 +282,7 @@ test('money pop-ups on the 2D map fade out as before', () => {
   ev(`__M2D.frame(FLOATS[FLOATS.length-1].t+1700)`);
   assert.equal(ev('FLOATS.length'), 0, 'gone after its life');
   // The same text in two colours at once: two pictures, each in its own colour.
-  ev(`FLOATS.push({x:${C}.x,y:${C}.y,text:'+$500',col:'#16A866',t:5000},{x:${C}.x+40,y:${C}.y,text:'+$500',col:'#FF4D5E',t:5000});`);
+  ev(`FLOATS.push({x:${C}.x,y:${C}.y,text:'+$500',col:'#16A866',s:S,t:5000},{x:${C}.x+40,y:${C}.y,text:'+$500',col:'#FF4D5E',s:S,t:5000});`);
   const r = JSON.parse(ev('JSON.stringify(__M2D.pair(5400))'));
   assert.deepEqual(problems(r, 'two pop-ups'), []);
   assert.deepEqual(errors, []);

@@ -126,7 +126,7 @@ function drawFrame(now){
   // the chaos monkey (woken here after a reload, wherever it last snipped)
   if(UI.mk)mkDraw(ks);else if(mkOn()&&!pzOn()&&CITY[S.monkey.c])mkStart(S.monkey.c);
   // floaters
-  for(let i=FLOATS.length-1;i>=0;i--){const f=FLOATS[i],a=(now-f.t)/1600;if(a>1){FLOATS.splice(i,1);continue;}
+  for(let i=FLOATS.length-1;i>=0;i--){const f=FLOATS[i],a=(now-f.t)/1600;if(a>1||f.s!==S){FLOATS.splice(i,1);continue;}
     const font='800 17px "Baloo 2", sans-serif';if(f.w===undefined){ctx.font=font;f.w=ctx.measureText(f.text).width;}
     for(const k of ks){const [sx,sy]=toS(f.x,f.y,k);ctx.globalAlpha=1-a*a;textStamp(f.text,font,17,f.w,f.col,'#fff',4,sx,sy-a*40);ctx.globalAlpha=1;}}
 }

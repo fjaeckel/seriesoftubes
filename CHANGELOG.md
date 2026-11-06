@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 - Your own subsea cables now land right on the city's dot, also in Fujairah, Dubai, Karachi, Barcelona, Osaka and other cities the map shifts slightly so they do not overlap (#305).
+- Starting a new network no longer leaves the last one's "New POP!" and money pop-ups frozen all over the map until a reload.
 
 ## [2.10.1] — 2026-11-05
 
