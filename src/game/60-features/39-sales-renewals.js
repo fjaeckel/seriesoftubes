@@ -20,17 +20,17 @@ function slRenOne(b,p){const ask=b.hag.rate,was=b.rate,mid=clMid(b),nerd=SALES_N
   const v=x=>({name:esc(slCap()),cust:esc(b.name),...x}),bill=rate=>fmt$(clBill(b,rate));
   const keep=(rate,how,key,x,s)=>{clRenew(b,rate);clNote('ren');toast(tr(key,v({price:bill(b.rate),...x})),s===undefined?'good':s,[{l:tr('common.show_me'),act:'custGo',args:{id:b.id}}]);return how;};
   const gone=(how,key)=>{clGone(b,'cheap');toast(tr(key,v({})),'bad');sfx('err');return how;};
-  if(p==='eng'){if(!nerd)return keep(ask,'cave','sales.ren_eng_cave');
-    return r<0.7?keep(Math.max(ask,Math.min(was,clFair(b))),'tech','sales.ren_eng_tech'):keep(mid,'mid','sales.ren_mid');}
-  if(p==='shark'){const walk=nerd?0.4:0.12;if(r<walk)return gone('walk','sales.ren_shark_walk');
+  if(p==='eng'){if(!nerd)return keep(ask,'cave',N_('sales.ren_eng_cave'));
+    return r<0.7?keep(Math.max(ask,Math.min(was,clFair(b))),'tech',N_('sales.ren_eng_tech')):keep(mid,'mid',N_('sales.ren_mid'));}
+  if(p==='shark'){const walk=nerd?0.4:0.12;if(r<walk)return gone('walk',N_('sales.ren_shark_walk'));
     if(r<walk+0.5){const fee=Math.round(clBill(b,was-ask)),k=clR(b,'slp')<0.5?salesPromise(b):null;
       if(k)b.reqs=(b.reqs||[]).concat(k);S.cash-=fee;
       const req=k?' '+tr('sales.ceo_promised',{req:esc(typeof REQS[k].l==='function'?REQS[k].l(b):REQS[k].l)}):'';
       clRenew(b,was);clNote('ren');toast(tr('sales.ren_shark_hold',v({price:bill(b.rate),fee:fmt$(fee)}))+req,'',[{l:tr('common.show_me'),act:'custGo',args:{id:b.id}}]);return 'hold';}
-    return keep(mid,'mid','sales.ren_mid');}
-  if(r<0.25)return gone('fight','sales.ren_ceo_fight');
+    return keep(mid,'mid',N_('sales.ren_mid'));}
+  if(r<0.25)return gone('fight',N_('sales.ren_ceo_fight'));
   if(r<0.6){clRenew(b,Math.round(ask*0.9));b.te=clTerm(b,b.te);clNote('ren');
     toast(tr('sales.ren_ceo_golf',v({price:bill(b.rate),date:dateStr(b.te)})),'',[{l:tr('common.show_me'),act:'custGo',args:{id:b.id}}]);return 'golf';}
-  return keep(ask,'yes','sales.ren_ceo_yes',{},'');}
+  return keep(ask,'yes',N_('sales.ren_ceo_yes'),{},'');}
 // Under a haggle in Deals: when the desk will answer it.
 const slRenRow=b=>slRenOn()&&b.hag.until>S.day?`<div class="meta">${tr('sales.ren_when',{name:esc(slCap()),date:dateStr(Math.max(S.day+1,slRenAt(b)))})}</div>`:'';
