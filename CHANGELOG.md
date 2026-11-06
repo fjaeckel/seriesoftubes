@@ -23,6 +23,7 @@ All notable changes to this project are documented here. The project follows
 - While nothing moves on the map but its animations (packets, waves, clouds), it is drawn 30 times a second instead of at the screen's full rate, half the work on most screens and a quarter on 120 Hz phones. Moving the map, pointing at something or anything changing on the network still gets every frame, and the animations keep their speed.
 - A paused game no longer rewrites its save every 5 seconds when nothing has changed. On a big network each of those writes held the page for 20 to 30 milliseconds.
 - Routing a big network's day takes about a quarter less work when Auto-TE is on, with exactly the same results.
+- A low-latency boutique with a lot of its own fiber no longer stalls every day while it times its finance routes. On a big fiber network that check held the page for about a third of a second and now takes a few hundredths; checking customers who want a path without subsea or under a latency limit got quicker too. The game plays exactly as before.
 
 ## [3.0.0] — 2026-11-06
 

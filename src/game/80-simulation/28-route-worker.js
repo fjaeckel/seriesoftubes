@@ -76,7 +76,8 @@ function rwDone(m,t0){const j=RW.job;if(!j||m.seq!==j.seq)return;RW.job=null;con
   // failed: the trial runs again here, checks included, on the game as it is now (dayAgain()).
   if(j.tr){if(m.err)console.error('[tubes] route worker',m.err);v=m.err||RW.gen!==j.gen?dayAgain(j.tr):j.tr.dark?!!m.ok:m.ok?j.tr.trial:null;}
   else if(m.err){console.error('[tubes] route worker',m.err);compute();}
-  else if(RW.gen===j.gen){R=RW.wR=rwUnpack(m.R,m.ef);RW.wseq=m.seq;UI.hotMap=hotByCity();}
+  // The worker's hotMap was worked out from this R and the game as it was sent, which nothing changed since (same gen).
+  else if(RW.gen===j.gen){R=RW.wR=rwUnpack(m.R,m.ef);RW.wseq=m.seq;UI.hotMap=m.hot||hotByCity();}
   const t1=performance.now(),st=RW.stat;st.n++;st.apply+=t1-t;st.wait+=t-j.t;st.work+=m.ms||0;
   // Reading a big answer takes a few ms already: the day goes on after the next frame then, not in the same task.
   if(t0!==undefined&&t1-t0>RW.budget/2)rwRest(j.g,v);else rwGo(j.g,v);}
@@ -143,5 +144,5 @@ function rwServe(m){if(m.gz!==undefined){gzB64(m.txt).then(data=>postMessage({gz
     // for the next routing (RW.last, RW.desc) stays.
     if(m.trial){const t=performance.now(),ok=m.trial.dark?opsDarkTrial(m.trial):!!offerTrial(m.trial.b,m.trial.hx);postMessage({seq:m.seq,ok,ms:performance.now()-t});return;}
     const t=performance.now();compute();const ms=performance.now()-t,{o,p,tr}=rwPack(R);RW.last={seq:m.seq,efg:R.efg};
-    if(rwSameDesc(RW.desc,o.egDesc))o.egDesc=0;else{const d=o.egDesc;o.egDesc=rwDescOut(d,RW.desc);RW.desc=d;}postMessage({seq:m.seq,R:o,ef:p,ms},tr);}
+    if(rwSameDesc(RW.desc,o.egDesc))o.egDesc=0;else{const d=o.egDesc;o.egDesc=rwDescOut(d,RW.desc);RW.desc=d;}postMessage({seq:m.seq,R:o,ef:p,hot:UI.hotMap,ms},tr);}
   catch(e){postMessage({seq:m.seq,err:String(e&&e.stack||e)});}}

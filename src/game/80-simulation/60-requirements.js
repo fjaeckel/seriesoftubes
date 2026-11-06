@@ -25,10 +25,10 @@ const REQS={
    TERR names the game and the routing count it was made for: an action between two steps of the day changes a link
    only through after(), which routes, so the islands are worked out again; another game, and each question walks. */
 let TERR=null;
-function terrIslands(){const adj={};for(const l of S.links)if(!linkDown(l)&&!l.sub){(adj[l.a]=adj[l.a]||[]).push(l.b);(adj[l.b]=adj[l.b]||[]).push(l.a);}
+function terrIslands(){const adj={};for(const l of S.links)if(!l.sub&&!linkDown(l)){(adj[l.a]=adj[l.a]||[]).push(l.b);(adj[l.b]=adj[l.b]||[]).push(l.a);}
   const m=new Map();let n=0;for(const c in adj){if(m.has(c))continue;const q=[c];m.set(c,n);for(let h=0;h<q.length;h++)for(const v of adj[q[h]])if(!m.has(v)){m.set(v,n);q.push(v);}n++;}return m;}
 function terrestrialPath(a,b){if(TERR&&TERR.S===S){if(TERR.gen!==RW.gen||!TERR.m){TERR.gen=RW.gen;TERR.m=terrIslands();}
-    if(a===b)return true;const A=TERR.m.get(a);return A!==undefined&&A===TERR.m.get(b);}const ls=S.links.filter(l=>!linkDown(l)&&!l.sub);const adj={};for(const l of ls){(adj[l.a]=adj[l.a]||[]).push(l.b);(adj[l.b]=adj[l.b]||[]).push(l.a);}const seen=new Set([a]),q=[a];while(q.length){const u=q.shift();if(u===b)return true;for(const v of adj[u]||[])if(!seen.has(v)){seen.add(v);q.push(v);}}return false;}
+    if(a===b)return true;const A=TERR.m.get(a);return A!==undefined&&A===TERR.m.get(b);}const ls=S.links.filter(l=>!l.sub&&!linkDown(l));const adj={};for(const l of ls){(adj[l.a]=adj[l.a]||[]).push(l.b);(adj[l.b]=adj[l.b]||[]).push(l.a);}const seen=new Set([a]),q=[a];while(q.length){const u=q.shift();if(u===b)return true;for(const v of adj[u]||[])if(!seen.has(v)){seen.add(v);q.push(v);}}return false;}
 const reqOk=b=>(b.reqs||[]).every(k=>REQS[k]&&REQS[k].ok(b));
 // Some requirements only make sense for some customers: nobody can reach another continent without getting wet.
 const reqCan=(k,b)=>!REQS[k].can||REQS[k].can(b);
