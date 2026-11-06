@@ -34,7 +34,7 @@ hoisted across files, and top-level statements run in path order. Find code by n
 | `60-features/` | Banks and loans, scenarios and the weekly challenge, puzzles and the published weekly puzzle, conferences, the tutorial, traceroute, the share card, `newGame()`, the offer trial (`autoOffer()`), standing orders (`S.ops`, `opsDay()`, run from `dayTick()`), the sales desk (`S.sales`, `salesDay()`, `salesShape()` on new offers, orbit ones through `pieSlShape()`; signing for you: `S.slAuto`, `slAutoDay()`) |
 | `70-rules/` | Formatting helpers and market rules: exchanges, PNIs, the peering desk (requests answered by policy), peering policy and snubs, DE-KICKS, sold-out routes, hot ports and the Tier 1/2/3 rank |
 | `80-simulation/` | Dijkstra, RouteScript, where a DDoS flood goes (`ddosLoad()`/`ddosAfter()`, called by `compute()`), `compute()`, monthly prices, `sanitize()`/`migrate()`, customer requirements, events, the customer lifecycle (contracts, renewals, the bandwidth market, why customers leave), geography pricing and latency, second sites and service |
-| `85-incidents/` | `addInc()`, DDoS attacks (targets, sizes, scoring, the NOC card) and scrubbing, `fireFailure()`, `clearInc()`, `fireEvent()`, the chaos monkey, cable ships (`50-cable-ships.js`: a subsea cut sends a club ship from its port along the cable routes; voyages in `S.fleet`, drawn by `96-map/88-cable-ships.js`) |
+| `85-incidents/` | `addInc()`, DDoS attacks (targets, sizes, scoring, the NOC card) and scrubbing, `failureRun()`/`fireFailure()`, `clearInc()`, `fireEvent()`, the chaos monkey, cable ships (`50-cable-ships.js`: a subsea cut sends a club ship from its port along the cable routes; voyages in `S.fleet`, drawn by `96-map/88-cable-ships.js`) |
 | `88-days/` | `dayTick()`, new offers, badges, `checkGoals()` |
 | `90-actions/` | The `ACT` map, one file per area (`const ACT` in `10-interface.js`, `Object.assign(ACT,…)` in the rest), and their helpers |
 | `91-save.js`, `92-audio.js` | Save, export and import; sound effects |
@@ -103,20 +103,37 @@ Lookup tables built at load: `CITY[id]`, `NET[id]`, `CABLE`, `FAB`, `BIZ_T`, `RE
 
 ## The life of a day
 
-`frame()` (requestAnimationFrame) accumulates time; every `DAY_MS × speed` it calls
-`dayTick()`, at most four times per frame, each inside a try/catch so one bad tick
-never freezes the game.
+`frame()` (requestAnimationFrame) accumulates time (`runClock()`); every `DAY_MS × speed` it starts a day, inside a
+try/catch so one bad tick never freezes the game. In play the day runs with the route worker (below), one day in flight
+at a time: the clock waits for the day, never the other way round, so a machine that cannot keep up at ×8 plays slower
+instead of freezing to catch up. Without a worker it calls `dayTick()`, at most four times per frame.
 
-`dayTick()`:
+A day is a generator, `dayRun()` (`src/game/88-days/10-day-tick.js`): `dayPreRun()` (the world moves on), then
+`dayPost()`, and the intern's shift (`opsRun()`) and the sales desk's (`slAutoRun()`) inside it are generators too. Each
+`yield` is a `compute()` the day needs before it goes on: the day's own routing, then a recompute after failures and
+events, and after the intern's jobs. `dayTick()` (tests, the fallback) answers each one with `compute()` on the spot
+(`dayGo()`); in play the route worker answers them. `yield DAY_REST` is not a routing, only a place where a long day may
+let a frame through. Same steps, same random numbers either way: routing draws none. Nothing of a day routes on the page:
+a failure (`failureRun()`; `fireFailure()` plays one at once through `runNow()`), a DDoS and Auto-RTBH (`ddosNewsRun()`),
+the chaos monkey's snip (`mkSnipRun()`), an event's cut (`eventRun()`: its routing is deferred to the next yield) and the
+sales desk's trials (a `{trial}` yield the worker answers with yes or no, `offerTrial()`) are all steps. The intern's
+orders are generators too, with a rest after each job. `UI.tick` (what the day itself announces, which quiet
+notifications may keep to the NOC log) is set around every step (`dayStep()`), on both sides of the worker.
+
+The daily mood check asks "a path without subsea" for each customer that wants one: during that loop the land-connected
+islands are worked out once (`TERR`, `terrIslands()`), and two cities have a land path when they share one.
+
+The day:
 
 1. Advances `S.day`, runs scheduled world events (conferences, IX price wars, licences).
 2. Runs `compute()` to route today's traffic.
 3. Records history for 95th-percentile billing, stats and streaks.
-4. Rolls failures (`fireFailure()`) and events (`fireEvent()`) when their timers run out,
+4. Rolls failures (`failureRun()`) and events (`fireEvent()`) when their timers run out,
    and expires incidents.
-   Then the NOC intern's standing orders (`opsDay()`), if one is hired: each order clicks the same `ACT`
-   actions a player would, muted, within its monthly budget, and the shift recomputes once at the end, only if
-   a job changed the network. An order that throws is paused; the day goes on. The NOC gets one notice a week.
+   Then the NOC intern's standing orders (`opsRun()`, or `opsDay()` in one go), if one is hired: each order clicks the
+   same `ACT` actions a player would, muted, within its monthly budget, and the shift routes again (a yield) before
+   decommissioning, which reads today's loads, and at the end, each only if a job changed the network. An order that
+   throws is paused; the day goes on. The NOC gets one notice a week.
    Then the sales desk (`slAutoDay()`), if someone runs sales and the player lets them sign: deals are Sales', never
    the intern's. Each salesperson signs in their own style (a routing trial a day, or the shark's sign-everything).
 5. Updates customer mood, churn and new offers; IX members join; loans tick.
@@ -179,10 +196,14 @@ network does not freeze the page once a day.
   run again from a Blob URL, after a short prelude of inert stand-ins for `document`, storage and the other DOM globals,
   and the player's dictionary. Nothing is fetched: GitHub Pages still serves one page, and a release cannot mismatch.
   In the worker `RW_IN` is true and `boot()` never runs; the catalogs are rebuilt by the same top-level code.
-- **The day split.** `dayTick()` is `dayPre()` (the world moves on), `compute()`, `dayPost()` (bills, moods, offers,
-  goals). In play, `frame()` calls `rwDay()` instead: `dayPre()`, then S and what routing reads of yesterday's R
-  (`R.load`, `R.l2route`, `R.efg`) are posted, and the next day waits until R comes back and `dayPost()` has run. So a day
-  sees exactly the routing it would have had in one go: same results, same random numbers. Half a day is never saved.
+- **The day in steps.** In play, `frame()` calls `rwDay()`, which runs `dayRun()` (see "The life of a day") with
+  `rwGo()`: the steps run on the page up to a yield, then S and what routing reads of yesterday's R (`R.load`,
+  `R.l2route`, `R.efg`) are posted, and the day goes on in `rwDone()` when R comes back. The next day waits until the
+  last step has run. So a day sees exactly the routing it would have had in one go: same results, same random numbers.
+  At a `DAY_REST`, a day that has run `RW.budget` ms (half a frame, 3 to 8) already goes on after the next frame
+  (`RW.later`, `rwLater()`), so a phone gets its frames between the steps of a big network's day. Half a day is never
+  saved; nothing else starts meanwhile. `tests/day-steps.test.js` plays a second page as the worker and compares every
+  day with `dayTick()`.
 - **What crosses.** `R.ef` and `R.fl` are lazy getters; their pieces (`R.efp`, `R.flc`) travel instead, typed arrays
   transferred, and `efBuild()`/`flDefine()` (in `30-compute.js`) rebuild the same lazy R on the page.
 - **Actions mid-day.** Every `compute()` bumps `RW.gen`. If an action routed while a day was in flight, the worker's
@@ -190,8 +211,8 @@ network does not freeze the page once a day.
 - **Fallbacks.** Tests (`__TUBES_TEST__`, and jsdom has no Worker), `window.__TUBES_SYNC__`, a browser without workers, a
   post that fails or a worker that errors take the synchronous path (`rwKill()` routes the day in flight on the page).
 - **Still on the main thread**, because the caller reads R right away: actions (`after()`), loading a game, failures and
-  events that fire during a day, standing orders, the chaos monkey, RouteScript what-ifs, the link panel's cut check and
-  automatic offers.
+  RouteScript what-ifs and the link panel's cut check. Everything a day routes (failures, events, DDoS, the chaos monkey,
+  the intern's shift, the sales desk's trials) is a yield of the day, so it goes to the worker.
 
 ## Actions and rendering
 
@@ -294,5 +315,5 @@ assert.deepEqual(errors, []);
 ```
 
 `ev()` runs code inside the page. To force a specific random failure, patch the
-picker, e.g. evaluate `fireFailure` with `.replace('const e=pick(opts);', "const e='x';")`.
+picker, e.g. evaluate `failureRun` with a `.replace(…)` and play it with `runNow(…)` (it is a generator).
 Use `window.__reseed(n)` to reset the random sequence mid-test.

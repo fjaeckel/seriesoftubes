@@ -204,10 +204,10 @@ test('a peer at a rival exchange can de-peer you without stopping the game', () 
 test('an IX meltdown at a rival exchange names it, and a failing day tick does not stop the game', () => {
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e8;ACT.buildPop({city:'ams'});ACT.buyIx({city:'ams~2',tier:1});S.day=100");
-  const src = ev('fireFailure.toString()').replace(/^function fireFailure/, 'function')
+  const src = ev('failureRun.toString()').replace(/^function\* failureRun/, 'function*')
     .replace('let tot=opts.reduce', "opts.splice(0,opts.length,['ixloop',1]);let tot=opts.reduce");
   ev('window.__ff=' + src);
-  ev('__ff()');
+  ev('runNow(__ff())');
   assert.ok(ev("S.inc.find(i=>i.type==='ixloop').msg.includes(ixName('ams~2'))"));
   // a tick that throws is caught, reported once, and the loop keeps going
   ev("const dt0=dayTick;window.dayTick=()=>{throw new Error('boom')};UI.speed=1;acc=DAY_MS;last=0;frame(16);window.dayTick=dt0");

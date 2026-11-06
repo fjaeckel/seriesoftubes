@@ -255,7 +255,7 @@ test('M3: every subsystem that can annoy the player reads a rule', () => {
   // [function, what it must read]
   const reads = [['dayPost', 'chaosMul()'], ['fireEvent', "rule('market')"], ['ddosTick', 'ddosOff()'],
     ['soldOut', "rule('market')"], ['hwMul', "rule('market')"], ['leadDays', "rule('lead')"], ['pniLead', 'leadDays'],
-    ['dfBuildDays', 'leadDays'], ['dayPre', "rule('clock')"], ['snub', "rule('market')"], ['fireFailure', 'shipsOn()'],
+    ['dfBuildDays', 'leadDays'], ['dayPreRun', "rule('clock')"], ['snub', "rule('market')"], ['failureRun', 'shipsOn()'],
     ['upcomingConfs', 'confsOn()'], ['pniLead', 'pniNow()'], ['dayPost', "rule('broke')"], ['dayPost', "rule('moods')"], ['toast', 'quietOn()']];
   fail('M3', reads.filter(([f, r]) => !ev(`typeof ${f}==='function'&&${f}.toString().includes(${lit(r)})`)).map(([f, r]) => `${f}() does not read ${r}`), 'gate it on the ruleset (src/game/40-progress/30-rules.js)');
   // and in play: no chaos and no market means a quiet year

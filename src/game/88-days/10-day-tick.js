@@ -1,13 +1,28 @@
 /* ---------- daily tick ---------- */
-/* A day is two halves around its routing: dayPre() (the world moves on), compute(), dayPost() (bills, moods, offers).
-   In play the routing can run in a worker in between (28-route-worker.js); tests and the fallback run it in one go. */
+/* A day is a few steps around its routing: dayPre() (the world moves on), then dayPost() (bills, moods, offers, the
+   intern's shift). dayRun() is the whole day as a generator: each yield is a compute() it needs before going on, the
+   day's own routing first, then a recompute after a failure or after the intern's jobs. dayTick() (tests, the fallback)
+   answers each with compute() on the spot; in play the route worker answers them (28-route-worker.js), and the page
+   only runs the steps in between. Same steps, same random numbers either way: routing draws none. (A failure
+   routes as a step too, failureRun(); an event still routes on the spot: it reads R right away, every few weeks.) */
 // UI.tick: what the day itself announces, which quiet notifications may keep to the NOC log.
-function dayTick(){UI.tick=true;try{const d=dayPre();if(d===false)return;compute();dayPost(d);}finally{UI.tick=false;}}
-function dayPre(){
+// yield DAY_REST: no routing, only a place where the day may let a frame through when it has run long (rwGo()).
+const DAY_REST=1;
+function* dayRun(){const d=yield* dayPreRun();if(d===false)return;yield;yield* dayPost(d);}
+// A step yields undefined (a routing), DAY_REST, or a sales trial ({trial}, 95-standing-orders.js) to answer with the
+// customer it signs off or null (dayAnswer()): here at once, in play by the route worker.
+const dayStep=(g,v)=>{UI.tick=true;try{return g.next(v);}finally{UI.tick=false;}};
+const dayAnswer=y=>offerTrial(y.trial,y.hx);
+function dayGo(g,step=dayStep){let v;for(let s=step(g);!s.done;s=step(g,v)){v=undefined;const y=s.value;if(y===DAY_REST)continue;if(y&&y.trial)v=dayAnswer(y);else compute();}}
+function dayTick(){dayGo(dayRun());}
+// dayPre(): the world's morning all at once; dayPreRun() the same with a place or two to let a frame through.
+function dayPre(){const g=dayPreRun();for(;;){const s=g.next();if(s.done)return s.value;}}
+function* dayPreRun(){
   if(!S||S.lost||!rule('clock'))return false; // no clock (puzzles): no days, no bills, nothing fires
   S.day++;
   const d=S.day;
   dkTick(d);ixPriceWar(d);peeringDeskDay(d);pniDay(d);mergerDay(d);
+  yield DAY_REST;
   if(!S.phpDone&&d>45&&Math.random()<1/400)elephant();
   if(R&&R.teMoved)S.stats.teMax=Math.max(S.stats.teMax||0,R.teMoved);
   {const t1=!!S.won&&isTier1();if(S.t1Now&&!t1)toast(tr('day_tick.you_are_no_longer_tier_1',{why:t1Why()}),'bad');S.t1Now=t1;}
@@ -27,13 +42,14 @@ function dayPre(){
   // resolve incidents
   for(const i of S.inc.slice())if(i.until<=d){const o=incOpen(i),l=o&&o.a==='link'&&S.links.find(x=>x.id===o.v),where=l?CITY[l.a].name+'–'+CITY[l.b].name:o&&o.a==='city'?CITY[o.v].name:'';clearInc(i);
     toast(where?tr('day_tick.resolved_what_where_is_back_to',{what:incTitle(i.type),where:esc(where)}):tr('day_tick.resolved_what',{what:incTitle(i.type)}),'good',[],o);}
+  yield DAY_REST;
   // eyeball growth / churn uses last computed service
   for(const c in S.pops){const p=S.pops[c];if(!p.bb)continue;const sf=sfOf(R,c)*((R.bbF&&R.bbF[c])??1),P=eyeP(c);
     if(sf>=0.9){const g=(CITY[c].be&&!(p.boost>d)?0.35:1)*0.025*(scnRule('boom')?1.5:1)*(p.boost>d?2:1)*sf*(0.7+0.6*(R.peerShare||0))*(CITY[c].reg==='AS'&&!CITY[c].cn?1.6:1);p.bb.d+=g*p.bb.d*(1-p.bb.d/P);}
     else p.bb.d=Math.max(Math.min(3,P),p.bb.d*(1-(0.9-sf)*0.04));}
   return d;}
-function dayPost(d){
-  ddosNews();ddosTrack();
+function* dayPost(d){
+  yield* ddosNewsRun();ddosTrack();
   for(const t of S.transit){(t.hist=t.hist||[]).push(R.useT[t.id]||0);if(t.hist.length>30)t.hist.shift();}
   S.cash+=(R.revMo-R.costMo)/monLen(d);
   S.stats.peak=Math.max(S.stats.peak,R.served);
@@ -48,7 +64,7 @@ function dayPost(d){
       (a.sla||(a.sla=[])).push(b.id);b.slaFor=a.start;S.cash-=SLA_PEN;b.mood=Math.max(0,b.mood-18);S.stats.sla=(S.stats.sla||0)+1;
       toast(tr('day_tick.sla_breach_name_the_attack_on',{name:esc(b.name),city:CITY[a.city].name,pen:fmt$(SLA_PEN)}),'bad');sfx('err');}}
   // businesses mood
-  const ids=linkIds(),frr=(coreFrr()&&S.links.some(l=>l.cut)?.5:1)*(rule('moods')==='patient'?.5:1);const bhT=new Set(ddosAll().filter(a=>a.bh).map(a=>a.tgt));for(const b of S.biz.slice()){if(eventTick(b,d)||capPendTick(b,d))continue;b.pm=b.mood;if(bhT.has(b.id))continue;const sf=bizSf(b,ids),reachOk=BIZ_T[b.type].l2||BIZ_T[b.type].fiber||R.reach>0.99||scnRule('local'),scrubOk=b.type!=='scrub'||(hasScrub()&&!scrubFar(b.city)),divOk=reqOk(b);
+  const ids=linkIds(),frr=(coreFrr()&&S.links.some(l=>l.cut)?.5:1)*(rule('moods')==='patient'?.5:1);const bhT=new Set(ddosAll().filter(a=>a.bh).map(a=>a.tgt));let nb=0;TERR={S,gen:RW.gen,m:null};try{for(const b of S.biz.slice()){if(++nb%256===0)yield DAY_REST;if(eventTick(b,d)||capPendTick(b,d))continue;b.pm=b.mood;if(bhT.has(b.id))continue;const sf=bizSf(b,ids),reachOk=BIZ_T[b.type].l2||BIZ_T[b.type].fiber||R.reach>0.99||scnRule('local'),scrubOk=b.type!=='scrub'||(hasScrub()&&!scrubFar(b.city)),divOk=reqOk(b);
     if(sf>=0.95&&reachOk&&scrubOk&&divOk)b.mood=Math.min(100,b.mood+2);
     else if(S.day-(b.since||0)<15){}
     else{const dm=frr*(Math.max(0,0.95-sf)*45+(!reachOk?3:0)+(!scrubOk?4:0)+(!divOk?3:0));b.mood-=BIZ_T[b.type].orbit?Math.min(dm,PIE_PATIENCE):dm;
@@ -58,11 +74,13 @@ function dayPost(d){
       else if(b.mood<30&&!b.warned){b.warned=b.warn60=true;const why=bizWhy(b)[0],paused=pref('pauseFurious')&&autoPause();
         toast(tr('day_tick.name_is_furious_fix_service_in',{name:esc(b.name),city:CITY[b.city].name})+(why?`<br><i>${esc(why)}</i>`:'')+(paused?`<br><b>${tr('common.game_paused')}</b>`:''),'bad',[{l:tr('common.show_me'),act:'custGo',args:{id:b.id}}].concat(paused?[resumeAct()]:[]));sfx('err');}
       else if(b.mood<60&&!b.warn60&&pref('warnUnhappy')){b.warn60=true;const why=bizWhy(b)[0];toast(tr('day_tick.name_is_getting_unhappy_happiness_p',{name:esc(b.name),p:Math.round(b.mood),city:CITY[b.city].name})+(why?`<br><i>${esc(why)}</i>`:''),'',[{l:tr('common.show_me'),act:'custGo',args:{id:b.id}}]);}}
-    if(b.mood>60)b.warned=false;if(b.mood>75)b.warn60=false;}
+    if(b.mood>60)b.warned=false;if(b.mood>75)b.warn60=false;}}finally{TERR=null;}
+  yield DAY_REST;
   // contracts: renewals, growth, haggles and leaving (75-customer-lifecycle.js)
   clDay(d);
   // the sales desk: meetings booked, golf played (38-sales-desk.js)
   salesDay(d);
+  yield DAY_REST;
   // own IX members join
   for(const c in S.myIx){const m=S.myIx[c];if(d>=m.next&&m.members.length<myFab(c).max){
     const cands=NETS.filter(n=>n.type!=='t1'&&!m.members.includes(n.id)&&(n.pops.includes(c)||n.pops.some(p=>CITY[p].reg===CITY[c].reg)));
@@ -74,19 +92,21 @@ function dayPost(d){
   S.offers=S.offers.filter(o=>o.exp>d);
   brTick();
   if(S.offers.length<5&&Math.random()<(0.05+0.01*(S.lvl||1))*(ppol()==='closed'?0.6:1)*(confSpOn()?SP_OFFERS:1)*salesSpawn()){const n0=S.offers.length;spawnOffer();mktPrice(n0);salesShape(n0);}
+  yield DAY_REST;
   // failures & events
   // Chaos (the rules) scales how often: calm waits about three times as long, spicy comes almost twice as often, none never.
   let dirty=false;const cm=chaosMul();
   // A visiting chaos monkey does the breaking instead (its snips replace these while it is here).
-  mkTick(d);
-  if(cm&&d>=S.nextFail&&!mkOn()){dirty=true;fireFailure();const size=S.links.length+Object.keys(S.pops).length;S.nextFail=d+Math.round((Math.max(22,50-size*1.5)+Math.floor(Math.random()*25))*(scnRule('chaos')?0.5:1)/cm);}
+  yield* mkTickRun(d);
+  if(cm&&d>=S.nextFail&&!mkOn()){dirty=true;yield* failureRun();const size=S.links.length+Object.keys(S.pops).length;S.nextFail=d+Math.round((Math.max(22,50-size*1.5)+Math.floor(Math.random()*25))*(scnRule('chaos')?0.5:1)/cm);}
   // Anchors Away: on top of the usual failures, ships drag anchors over each Baltic seabed link (about three cuts a link-year).
-  if(cm&&d>45&&scnRule('anchors')){const n=S.links.filter(l=>l.kind!=='vxc'&&!linkDown(l)&&anchorProne(l)).length;if(n&&Math.random()<Math.min(5,+S.scn.rules.anchors||1)*n/365){dirty=true;fireFailure('cut');}}
-  if(cm&&d>=S.nextEvent){dirty=true;fireEvent();S.nextEvent=d+Math.round((45+Math.floor(Math.random()*45))/cm);}
-  if(dirty)compute();
+  if(cm&&d>45&&scnRule('anchors')){const n=S.links.filter(l=>l.kind!=='vxc'&&!linkDown(l)&&anchorProne(l)).length;if(n&&Math.random()<Math.min(5,+S.scn.rules.anchors||1)*n/365){dirty=true;yield* failureRun('cut');}}
+  if(cm&&d>=S.nextEvent){dirty=true;yield* eventRun();S.nextEvent=d+Math.round((45+Math.floor(Math.random()*45))/cm);}
+  if(dirty)yield;
   // the sales desk signs and declines deals, when the player lets it (39-sales-auto.js), then the intern's shift sees them
-  slAutoDay(d);
-  opsDay(d);
+  yield* slAutoRun(d);
+  if(opsHired())yield DAY_REST;
+  yield* opsRun(d);
   if(S.pie){pieDay(d);pieTier();}
   // payday floaters
   if(cal(d).d===1){for(const c in S.pops){let v=(R.cityEye[c]*sfOf(R,c)*EYE_RATE)+S.biz.filter(b=>b.city===c).reduce((a,b)=>a+b.bw*b.rate,0);v=v-R.cityEye[c]*sfOf(R,c)*EYE_RATE*(1-arpuOf(c));if(v>500)floater(CITY[c].x,CITY[c].y-30,'+'+fmt$(v),'#16A866');}sfx('coin');}

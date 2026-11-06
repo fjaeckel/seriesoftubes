@@ -41,7 +41,8 @@ test('a day split around its routing is the same day; tests never use the worker
   const a = big(t), b = big(t);
   for (const h of [a, b]) h.ev('S.nextFail=S.nextEvent=S.day+99;__reseed(4242)');
   a.ev('for(let i=0;i<3;i++)dayTick()');
-  b.ev('for(let i=0;i<3;i++){const d=dayPre();compute();dayPost(d);}');
+  // Every routing it asks for done by hand (a DAY_REST is only a place to let a frame through, not a routing).
+  b.ev("for(let i=0;i<3;i++){const g=dayRun();for(let s=g.next();!s.done;s=g.next())if(s.value!==DAY_REST)compute();}");
   const st = "JSON.stringify({day:S.day,cash:S.cash,moods:S.biz.map(b=>b.mood),offers:S.offers.length,served:R.served})";
   assert.equal(b.ev(st), a.ev(st));
   assert.equal(a.ev('rwOn()'), false);

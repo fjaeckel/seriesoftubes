@@ -114,7 +114,7 @@ test('#173 a consortium seat: offer, pay, build, light, cut, save', () => {
   ev(`ACT.subUpgrade({id:'${l.id}',k:'terminal'})`);
   assert.equal(ev(`S.links.find(l=>l.id==='${l.id}').subterminal`), undefined, 'the consortium owns the terminals');
   // A cut on the cable cuts your share.
-  ev(`S.links=S.links.filter(l=>l.id==='${l.id}');eval('('+fireFailure.toString().replace('for(const o of opts){r-=o[1];if(r<=0){type=o[0];break;}}',\"type='cut';\")+')')()`);
+  ev(`S.links=S.links.filter(l=>l.id==='${l.id}');runNow(eval('('+failureRun.toString().replace('for(const o of opts){r-=o[1];if(r<=0){type=o[0];break;}}',\"type='cut';\")+')')())`);
   assert.ok(ev(`linkDown(S.links.find(l=>l.id==='${l.id}'))`), 'the cut takes your pairs down too');
   assert.deepEqual(errors, []);
 });

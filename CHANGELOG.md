@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Big networks at ×8 no longer stop for a moment when a day reroutes, after a failure, an event, the intern's shift or the sales desk's signing. Every routing a day needs now runs in the background like the day's own, a long day lets the map draw between its steps, and the check for customers afraid of sharks no longer walks every land fiber for each of them. Quiet notifications now also apply while the game is running.
+
 ## [3.0.0] — 2026-11-06
 
 **Series of Tubes 3.0: Pie in the Sky.** You have wired up the planet with fiber, cables and routers. Now take your network to orbit: start your own rocket company, fill the sky with satellites (we call them pies) and sell internet to everyone your cables will never reach.

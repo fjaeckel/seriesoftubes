@@ -458,9 +458,9 @@ test('#76 Kansas City, Calgary, Vancouver and Ottawa, with two more Canadian gia
   assert.equal(ev("NET.tlu.up.every(id=>NET[id].type==='t1')&&NET.rgc.up.every(id=>NET[id].type==='t1')"), true);
   // a cut on a Canadian link is often a beaver
   ev("ACT.buildPop({city:'van'});ACT.buildPop({city:'cal'});S.links=[];UI.via=null;openLinkModal('van','cal');ACT.buildLink({tier:1});closeModal()");
-  const src = ev('fireFailure.toString()').replace(/^function fireFailure/, 'function');
+  const src = ev('failureRun.toString()').replace(/^function\* failureRun/, 'function*');
   ev('window.__ff=' + src.replace('type=pick(f);}', "type='cut';}"));
-  ev("for(let i=0;i<40&&!(S.stats.f&&S.stats.f.beaver);i++){for(const l of S.links)l.cut=0;S.inc=[];__ff();}");
+  ev("for(let i=0;i<40&&!(S.stats.f&&S.stats.f.beaver);i++){for(const l of S.links)l.cut=0;S.inc=[];runNow(__ff());}");
   assert.ok(ev("!!(S.stats.f&&S.stats.f.beaver)"), 'a beaver chewed through it');
   ev('checkBadges()');
   assert.ok(ev("(S.badges||[]).includes('beaver')||!!(S.badge&&S.badge.beaver)||BADGES.find(b=>b.id==='beaver').ok()"), 'Dam It');
@@ -504,13 +504,13 @@ test('#79 Benelux: Brussels red tape, the Flanders duopoly, Oostkamp trawlers an
   assert.ok(ev("cablesFor('lon','oos').some(c=>c.cid==='clementine')"));
   ev("ACT.buildPop({city:'lon'});ACT.buildPop({city:'oos'});S.links=[];UI.lmode='wave';UI.via='clementine';openLinkModal('lon','oos');ACT.buildLink({tier:1});closeModal()");
   assert.equal(ev("S.links.length&&S.links[0].sub"), true);
-  const src = ev('fireFailure.toString()').replace(/^function fireFailure/, 'function');
+  const src = ev('failureRun.toString()').replace(/^function\* failureRun/, 'function*');
   ev('window.__ff=' + src.replace('type=pick(f);}', "type='cut';}"));
-  ev("for(let i=0;i<30&&!S.log.some(e=>/trawler|wind-farm/.test(e.t));i++){for(const l of S.links)l.cut=0;S.inc=[];__ff();}");
+  ev("for(let i=0;i<30&&!S.log.some(e=>/trawler|wind-farm/.test(e.t));i++){for(const l of S.links)l.cut=0;S.inc=[];runNow(__ff());}");
   assert.ok(ev("S.log.some(e=>/trawler|wind-farm/.test(e.t))"), 'a North Sea boat found the cable');
   // Bettembourg's chillers run on steam from burning waste wood
   ev("S.pops={bet:{day:0,bb:null,boost:0,down:0,routers:1,gen:false,rgen:0}};window.__ac=" + src.replace('type=pick(f);}', "type='ac';}"));
-  ev("for(let i=0;i<20&&!S.log.some(e=>/waste-wood/.test(e.t));i++){S.pops.bet.hot=0;S.inc=[];__ac();}");
+  ev("for(let i=0;i<20&&!S.log.some(e=>/waste-wood/.test(e.t));i++){S.pops.bet.hot=0;S.inc=[];runNow(__ac());}");
   assert.ok(ev("S.log.some(e=>/waste-wood/.test(e.t))"), 'the forestry strike');
   assert.deepEqual(errors, []);
 });
@@ -692,18 +692,18 @@ test('Australian failures: cockatoos, kangaroos and emus cut land fiber, and rou
   ev("ACT.pickStart({city:'syd'});ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0");
   ev("ACT.buildPop({city:'mel'});S.links=[];UI.via=null;UI.lmode='wave';openLinkModal('syd','mel');ACT.buildLink({tier:1});closeModal()");
   assert.equal(ev('S.links.length'), 1);
-  const src = ev('fireFailure.toString()').replace(/^function fireFailure/, 'function');
+  const src = ev('failureRun.toString()').replace(/^function\* failureRun/, 'function*');
   const AU = /cockatoo|kangaroo|backhoe|emus|Bushfire|copper/;
   ev('window.__cut=' + src.replace('type=pick(f);}', "type='cut';}"));
   let seen = false;
-  for (let i = 0; i < 30 && !seen; i++) { ev('for(const l of S.links)l.cut=0;S.inc=[];__cut()'); seen = AU.test(ev("S.inc.map(x=>x.msg).join(' ')")); }
+  for (let i = 0; i < 30 && !seen; i++) { ev('for(const l of S.links)l.cut=0;S.inc=[];runNow(__cut())'); seen = AU.test(ev("S.inc.map(x=>x.msg).join(' ')")); }
   assert.ok(seen, 'an Australian wildlife cut');
   seen = false;
-  for (let i = 0; i < 80 && !seen; i++) { ev('for(const l of S.links)l.cut=0;S.inc=[];__cut()'); seen = /copper/.test(ev("S.inc.map(x=>x.msg).join(' ')")); }
+  for (let i = 0; i < 80 && !seen; i++) { ev('for(const l of S.links)l.cut=0;S.inc=[];runNow(__cut())'); seen = /copper/.test(ev("S.inc.map(x=>x.msg).join(' ')")); }
   assert.ok(seen, 'copper thieves who find fiber');
   ev('window.__crash=' + src.replace('type=pick(f);}', "type='crash';}"));
   seen = false;
-  for (let i = 0; i < 40 && !seen; i++) { ev('for(const c in S.pops){S.pops[c].down=0;S.pops[c].routers=1;}S.inc=[];__crash()'); seen = /Floptus|huntsman/.test(ev("S.inc.map(x=>x.msg).join(' ')")); }
+  for (let i = 0; i < 40 && !seen; i++) { ev('for(const c in S.pops){S.pops[c].down=0;S.pops[c].routers=1;}S.inc=[];runNow(__crash())'); seen = /Floptus|huntsman/.test(ev("S.inc.map(x=>x.msg).join(' ')")); }
   assert.ok(seen, 'an Australian router crash');
   assert.deepEqual(errors, []);
 });

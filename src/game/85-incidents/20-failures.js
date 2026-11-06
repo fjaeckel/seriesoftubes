@@ -2,7 +2,12 @@
 const anchorProne=l=>!!(l.cable&&CAB[l.cable]&&CAB[l.cable].anchor)||anchorPair(l);
 // The wet season in the tropical north (November to April): floods close the tracks, so a cut on land takes twice as long to reach.
 const wetSeason=()=>{const m=cal(S.day).m;return m>=10||m<=3;},wetCut=l=>!l.sub&&!!(CITY[l.a].wet||CITY[l.b].wet)&&wetSeason();
-function fireFailure(only){
+/* failureRun() is a failure as a step of the day (10-day-tick.js): its yield is the routing that tells what it cost,
+   done by the route worker in play. fireFailure() is the same failure all at once, routed on the spot. */
+function fireFailure(only){runNow(failureRun(only));}
+// A step of the day played all at once: every routing it asks for, on the spot (tests, a failure outside a day).
+function runNow(g){dayGo(g,(g,v)=>g.next(v));}
+function* failureRun(only){
   const opts=[];
   const live=S.links.filter(l=>l.kind!=='vxc'&&!linkDown(l));const fabsUsed=[...new Set(S.links.filter(l=>l.kind==='vxc').map(l=>l.prov))];
   if(live.length){opts.push(['cut',2+Math.min(6,live.length/2)]);}
@@ -111,9 +116,9 @@ function fireFailure(only){
   }else if(type==='fabric'){
     const f=pick(fabsUsed);S.ev.fab=S.ev.fab||{};S.ev.fab[f]=S.day+2+Math.floor(Math.random()*3);
     addInc({type,ref:f,until:S.ev.fab[f],msg:tr('failures.fabric_is_having_a_bad_day',{fabric:FAB[f].name}),cost:0});
-  }else if(type==='ddos'){ddosAttack();return;
+  }else if(type==='ddos'){ddosAttack(false);yield;yield* ddosNewsRun();return;
   }
-  compute();
+  yield;
   const last=S.inc[S.inc.length-1];
   last.impact=Math.max(0,before-R.served);
   if(before>1&&last.impact<before*0.03&&type!=='ddos'){S.stats.survived++;toast(`<b>${incTitle(type)}</b><br>${esc(last.msg)} ${tr('failures.traffic_rerouted_customers_barely')}`,'good',[],incOpen(last));}

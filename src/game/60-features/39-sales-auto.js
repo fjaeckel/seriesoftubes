@@ -24,18 +24,25 @@ function slWeekLine(x,last){const parts=[];if(x.n)parts.push(trn('sales.w_signed
   const v={name:tr(SALES[x.p].s),list:parts.join(', ')};return last?tr('sales.w_last',v):tr('sales.w_now',v);}
 // An orbit offer fits where its dish has room for it; used: what this shift already signed on each dish.
 function slSkyOk(o,used){const L=pieServe(o.city,o.type);if(!L)return null;const k=L.cr+'|'+L.k;return slP()==='shark'||L.left-(used.get(k)||0)>=o.bw?k:null;}
-function slAutoDay(d){if(!slAutoOn())return;const A=S.slAuto,p=slP(),w=Math.floor(d/7);
+// Like a day, the desk is a generator: a routing trial is a step the day answers (in play, the route worker does).
+const slAutoDay=d=>dayGo(slAutoRun(d),(g,v)=>g.next(v));
+function* slAutoRun(d){if(!slAutoOn())return;const A=S.slAuto,p=slP(),w=Math.floor(d/7);
   // A new week: last week's tally becomes the report, and the one notice of the week.
   if(!A.wk||A.wk.w!==w){if(slWkAny(A.wk)&&A.wk.w<w){A.rep=A.wk;logNote(`<b>${esc(tr('sales.desk'))}</b> ${esc(slWeekLine(A.rep,true))}`,A.rep.rev>0?'good':'',[],{a:'tab',v:'deals'});}A.wk={w,p,n:0,rev:0,x:0,y:0};}
   const W=A.wk,used=new Map();W.p=p;let tries=0,dirty=false;
   const tried=UI.slTried&&UI.slTried.s===S?UI.slTried.m:(UI.slTried={s:S,m:new Map()}).m;
   const won=o=>{if(S.offers.includes(o))return false;W.n++;W.rev+=Math.round(bizMo(o));dirty=true;return true;};
-  opsQuiet(()=>{for(const o of S.offers.slice()){if(!S.offers.includes(o))continue;const T=BIZ_T[o.type];if(!T||!(o.exp>d))continue;const v=T.event?(o.fee||0):bizMo(o);
-    if(A.min&&v<A.min){const b0=S.biz.length;ACT.decline({id:o.id});W.x++;if(S.biz.length>b0){W.y++;W.rev+=Math.round(bizMo(o));dirty=true;}continue;}
-    if(!A.on)continue;
-    if(T.orbit){const k=slSkyOk(o,used);if(!k||(p==='shark'&&S.cash<bizMo(o)))continue;ACT.accept({id:o.id});if(won(o))used.set(k,(used.get(k)||0)+o.bw);continue;}
-    if(!bCities(o).every(popUp))continue;
-    if(p==='shark'){if(S.cash<bizMo(o)||(T.event&&!(o.start>d)))continue;ACT.accept({id:o.id});won(o);continue;}
-    // Each trial is a full routing pass: at most SL_TRIALS a day, and an offer that did not fit waits a week.
-    if(!reqOk(o)||tries>=SL_TRIALS||tried.get(o.id)>d-SL_RETRY)continue;tries++;ACT.accept({id:o.id,auto:true});if(!won(o))tried.set(o.id,d);}});
-  if(dirty)compute();}
+  for(const o of S.offers.slice()){
+    // What this offer needs, muted: nothing, or a routing trial (b), which the day answers between the two quiet steps.
+    let b;const todo=opsQuiet(()=>{if(!S.offers.includes(o))return;const T=BIZ_T[o.type];if(!T||!(o.exp>d))return;const v=T.event?(o.fee||0):bizMo(o);
+      if(A.min&&v<A.min){const b0=S.biz.length;ACT.decline({id:o.id});W.x++;if(S.biz.length>b0){W.y++;W.rev+=Math.round(bizMo(o));dirty=true;}return;}
+      if(!A.on)return;
+      if(T.orbit){const k=slSkyOk(o,used);if(!k||(p==='shark'&&S.cash<bizMo(o)))return;ACT.accept({id:o.id});if(won(o))used.set(k,(used.get(k)||0)+o.bw);return;}
+      if(!bCities(o).every(popUp))return;
+      if(p==='shark'){if(S.cash<bizMo(o)||(T.event&&!(o.start>d)))return;ACT.accept({id:o.id});won(o);return;}
+      // Each trial is a full routing pass: at most SL_TRIALS a day, and an offer that did not fit waits a week.
+      if(!reqOk(o)||tries>=SL_TRIALS||tried.get(o.id)>d-SL_RETRY)return;tries++;b=offerTrialOf(o);return true;});
+    if(!todo)continue;
+    const got=b?yield {trial:b,hx:offerHealthy(b)}:null;
+    opsQuiet(()=>{OFFER_TRIED={o,b:got};try{ACT.accept({id:o.id,auto:true});}finally{OFFER_TRIED=null;}if(!won(o))tried.set(o.id,d);});}
+  if(dirty)yield;}

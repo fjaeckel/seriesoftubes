@@ -20,9 +20,10 @@ function open(cfg = {}) {
 }
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// A day in flight in the worker when the trial ends: rwDone() would run its dayPost() whenever the answer comes.
-const IN_FLIGHT = `window.__old=S;RW.seq=41;RW.job={seq:41,d:201,gen:RW.gen-1,t:0};window.__posts=[];
-  dayPost=function(d){__posts.push({d,old:S===__old});};`;
+// A day in flight in the worker when the trial ends: rwDone() would go on with its steps (the rest of the day, a
+// generator, 10-day-tick.js) whenever the answer comes. This one only notes on which save it ends.
+const IN_FLIGHT = `window.__old=S;window.__posts=[];const g=(function*(){yield;__posts.push({d:201,old:S===__old});})();g.next();
+  RW.seq=41;RW.job={seq:41,g,gen:RW.gen-1,t:0,state:S};`;
 
 test('a late answer from the route worker lands on the trial it belongs to, not the next one', async () => {
   const { ev, errors } = open();
