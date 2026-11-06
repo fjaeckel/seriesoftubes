@@ -75,6 +75,15 @@ const API_DOMAINS={
   // Entity ids (uid()) cannot be validated against a table: shape only. A wrong id is the game's
   // to answer, honestly, with no_effect — never a refusal invented on this side of the wall.
   entityId:{kind:'string'},
+  // Pie in the Sky (the rocket company, unlocked by a Tier 1 win in a new game or from day 0 in a sandbox).
+  rocketId:{table:'ROCKETS',kind:'key'},
+  crustId:{table:'CRUSTS',kind:'key'},
+  pieRdId:{table:'PIE_RD',kind:'key'},
+  pieTab:{kind:'enum',values:()=>PIE_TABS.slice()},
+  pieBidShare:{kind:'enum',values:()=>PIE_RDF_BIDS.slice()},
+  pieSpatId:{table:'PIE_SPAT_DEF',kind:'key'},
+  pieSpatChoice:{kind:'enum',values:[0,1]},
+  countryCode:{kind:'enum',values:()=>[...new Set(CITIES.map(c=>c.cc))].sort()},
   scnId:{table:'SCN',kind:'id'},
   // A traceroute target in the modal's own terms.
 };

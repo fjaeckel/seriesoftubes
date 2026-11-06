@@ -1,0 +1,23 @@
+/* Pie Control globe (96-map/89-pie-globe.js): square, as wide as the panel, never wider than the screen allows. */
+.pglobe{position:relative;width:100%;max-width:420px;margin:6px auto;aspect-ratio:1/1}
+.pglobe .pgcv{display:block;width:100%;height:100%;touch-action:none;cursor:grab;border-radius:16px}
+.pglobe .pgnight{position:absolute;top:6px;right:6px;min-width:36px;min-height:36px}
+@media (max-width:420px){.pglobe{max-width:min(100%,62vh)}}
+/* Pie Control's Traffic tab (93-ui/86-pie-traffic.js): rows a thumb can hit, nothing wider than the sheet. */
+.pft-head{font-weight:900;font-size:15px;margin:4px 0 8px;overflow-wrap:anywhere}
+.pft-h{font-size:15px;margin:12px 0 4px}
+.pft-cr,.pft-d{margin:6px 0}
+.pft-cr .kv span,.pft-d .kv span{min-width:0;overflow-wrap:anywhere}
+.pft-list{display:flex;flex-direction:column;gap:6px}
+.pft-row{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:6px 10px;border:2px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);font:inherit;text-align:left;cursor:pointer;box-sizing:border-box}
+.pft-row.on{border-color:var(--me);box-shadow:0 0 0 2px var(--me) inset}
+.pft-ic{font-size:20px;flex:none}
+.pft-m{flex:1;min-width:0;display:flex;flex-direction:column}
+.pft-m b,.pft-m small,.pft-n small{overflow-wrap:anywhere}
+.pft-m small,.pft-n small{font-size:12px;color:var(--ink2)}
+.pft-n{flex:none;display:flex;flex-direction:column;align-items:flex-end;text-align:right;max-width:40%}
+.pft-ck{list-style:none;margin:4px 0 0;padding:0}
+.pft-ck li{display:flex;gap:8px;align-items:flex-start;min-height:32px;margin:4px 0}
+.pft-ck li span:last-child{display:flex;flex-direction:column;min-width:0}
+.pft-ck small{font-size:12px;color:var(--ink2);overflow-wrap:anywhere}
+.pft-st{color:var(--bad);font-weight:800}

@@ -6,7 +6,7 @@
 // A plan is a list of steps, each [op, ...args]:
 //   ['bb', c]  POP and broadband        ['tr', c, tier]  the cheapest transit there      ['ix', c, tier]  every exchange
 //   ['pop', c]  a POP only               ['link', a, b, tier, cable]  a wave (routers upgraded first, a swap a day)
-//   ['hire', orders, params]  the NOC intern on standing orders, as soon as the level allows
+//   ['hire', orders, params]  the NOC intern on standing orders, as soon as the level allows ('sales': the CEO signs deals)
 //   ['wait', day]  until that day        ['served', g]  until g Gbps are served           ['prep', c, g]  capacity for an event
 //   ['scrub', c, tier]  a scrubbing center                    ['pnis']  a PNI with every unreached network that takes one
 //   ['pni', c, net, tier]  one PNI with that network there   ['last', c]  transit there only as a last resort
@@ -29,7 +29,8 @@ Q.link=(a,b,tier=1,via)=>{for(const c of [a,b])Q.pop(c);if(!S.pops[a]||!S.pops[b
   if(!waveOk(a,b,tier))return null;const n0=S.links.length;UI.via=via||null;UI.route=null;openLinkModal(a,b);ACT.buildLink({tier});closeModal();return S.links.length>n0;};
 Q.hire=(orders,par)=>{Q.wantHire=[orders||['transit','routers','repair'],par||{}];return true;};
 Q.hire0=(orders,par)=>{if(!opsCanHire()||!Q.can(20000))return false;if(!opsHired()){ACT.opsHire({id:'kevin'});closeModal();}if(!opsHired())return false;
-  for(const k of orders)if(!S.ops.on[k])ACT.opsToggle({k});for(const k in par)for(const [p,v] of Object.entries(par[k]))for(let i=0;i<8&&opsP(k,p)!==v;i++)ACT.opsParam({k,p});closeModal();return true;};
+  // Deals are the sales desk's: 'sales' puts the CEO there (free, and he signs what the old sales order signed) and lets him sign.
+  for(const k of orders)if(k==='sales'){if(!slP()&&salesCanHire())ACT.salesHire({id:'ceo'});if(slP()&&!S.slAuto.on)ACT.salesAuto();}else if(!S.ops.on[k])ACT.opsToggle({k});for(const k in par)for(const [p,v] of Object.entries(par[k]))for(let i=0;i<8&&opsP(k,p)!==v;i++)ACT.opsParam({k,p});closeModal();return true;};
 Q.pnis=(tier=0)=>{for(const n of NETS.filter(n=>!R.reachable[n.id]).sort((a,b)=>NSH[b.id]-NSH[a.id])){const b=pniBatch(n.id,tier);if(!b||!b.orders.length||!Q.can(b.cost))continue;ACT.pniAll({net:n.id,tier});}return true;};
 Q.pni=(c,net,tier=0)=>{if(!S.pni.some(p=>p.city===c&&p.net===net))ACT.pni({city:c,net,tier});closeModal();return S.pni.some(p=>p.city===c&&p.net===net);};
 Q.scrub=(c,tier=0)=>{ACT.buildScrub({city:c,tier});return true;};

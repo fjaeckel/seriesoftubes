@@ -15,6 +15,8 @@ const REQS={
  china:{l:tr('requirements.needs_low_loss_reach_into_china'),bonus:.3,ip:true,ok:()=>S.transit.some(premOn)||S.links.some(l=>l.premium)||S.pni.some(p=>NET[p.net].cn&&pniOn(p))},
  scrubbed:{l:tr('requirements.will_only_sign_with_a_network'),bonus:.15,ok:()=>hasScrub()},
  scrubnear:{l:tr('requirements.wants_a_scrubbing_center_on_its'),bonus:.15,ip:true,ok:b=>S.scrubs.some(x=>CITY[x.city].reg===CITY[b.city].reg)},
+ // The shark's orbit promise (99-pie-sales.js): a full sky, a crust at least PIE_PROMISE in orbit. Never on an ordinary offer.
+ skyfull:{only:true,bonus:0,l:()=>tr('requirements.promised_a_full_sky',{p:pct(PIE_PROMISE)}),ok:()=>pieHubs().some(id=>pieCov(id)>=PIE_PROMISE)},
  puns:{l:tr('requirements.their_ceo_hates_puns_please_do'),bonus:.05,ok:()=>true},
 };
 // Which cities land fiber connects, as a group per city. Set TERR to {} around a pass over every customer that changes no link: it is worked out once.

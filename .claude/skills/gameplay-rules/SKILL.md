@@ -11,6 +11,8 @@ These are what the game promises, held up by `tests/gameplay-rules.test.js` (one
 ## Procedure
 
 1. Changing anything above? Run `npm test -- tests/gameplay-rules.test.js` (under a minute) before committing.
+   Changing orbit prices, crusts, incidents or orbit customers? Also run `npm test -- tests/pie-balance.test.js` (O7's
+   game-loop half, about a minute).
 2. A failure names what breaks the rule and how to fix it. Fix the data or the code.
 3. Only when real life really is different, add an entry to `EXCEPTIONS` in the test (keyed by rule id, sorted, with
    its reason in plain words). Never delete or loosen a check to make it pass. A stale exception fails too.
@@ -22,7 +24,7 @@ These are what the game promises, held up by `tests/gameplay-rules.test.js` (one
 | --- | --- | --- |
 | W1 | Every city has a country code (`cc`, ISO 3166-1 alpha-2; territories have their own: PR, GU, RE, MQ, CW…), a region, a landmass and coordinates. | Borders, prices and the eyeball rule all hang off the country. |
 | W2 | Every country on the map has at least two consumer networks of its own: an eyeball network, or a Tier 1 or Tier 2 incumbent that sells to homes, whose home markets (`cc` on the network) include that country and which has a PoP there. | Real countries have competing local ISPs, and peering locally is half the game. Add real operators in `src/game/30-networks/32-homegrown-eyeballs.js`. |
-| W3 | Every city can buy transit from someone, or is a documented exception (Pitcairn: land your own cable; Stuttgart: peering only). | A start or an expansion must never be a dead end by accident. |
+| W3 | Every city can buy transit from someone, or is a documented exception (Pitcairn: land your own cable, or reach it through a pie dish; Stuttgart: peering only). | A start or an expansion must never be a dead end by accident. |
 | W4 | Cable pairs join two distinct real cities, have a length, and cable ids are unique. | Broken landings break routing and the own-cable planner. |
 | W5 | A city alone on its landmass has a cable or a beach to land one. | Islands are reachable. |
 
@@ -78,3 +80,15 @@ These are what the game promises, held up by `tests/gameplay-rules.test.js` (one
 | D2 | A flood enters on every port the internet reaches you on, by each network's share, and a port carries only what fits: everyone on a full port loses the same share. | Real floods are spread by geography; one fat port at a single POP is the weak spot (#242). |
 | D3 | Only upstream tools (RTBH, clean pipe) and an engaged scrubbing center keep a flood off your ports. Flowspec acts on the ingress router, after the port, within that router's own rule budget. | Flowspec protects customers, not the external connections; TCAM is finite. |
 | D4 | RTBH costs only the target: it goes dark (and its mood drops once), everyone else is saved, and the attack counts as sacrificed, not held. | RTBH is the tool that saves the network and is bad for that one customer, so it must be a real choice. |
+
+## Orbit (Pie in the Sky, `docs/plans/pie-in-the-sky.md`)
+
+| Id | Rule | Why |
+| --- | --- | --- |
+| O1 | The rocket company unlocks only on the Tier 1 win of a save started on its version (`S.pieV>=1`, set by `newGame()`; a save without it loads as 0), or from day 0 with open gates (sandbox). Never in puzzles, the Architect or scenarios. Losing Tier 1 keeps everything flying but builds nothing new. | An endgame for people who earned it; old won saves must not change under their players. |
+| O2 | A crust under 40% coverage carries nothing; from 40% a half-baked crust carries a share that grows to all of its capacity at 60% (a slope, not a cliff), and orbit never carries more than the pie dishes' antennas (x rain, jamming): terminals and sky paths share each dish. | Satellites are not magic bandwidth; the ground segment is the bottleneck, as in real life. |
+| O3 | A cut-off pie dish (its POP on an island the backbone does not reach) carries only its own POP's traffic (backhaul, to a landing dish on the backbone) and local terminals, never transit between other cities: no POP on the backbone routes through it. Backhaul is small (the dish's antennas, the landing dish's and the crust's room) and pays the orbit's latency. | Orbit extends your network to a town no cable reaches; it does not replace building one, and laying fiber stays the real fix. |
+| O4 | Through space with lasers, light travels at c in vacuum (about 1.47 times glass), up and down at the shell's height; orbit never carries traffic between cities under 3,000 km apart and only latency-routed circuits fly: IP traffic, bulk and scenic circuits stay on fiber. | Real constellations win only on long routes, and their capacity is small. |
+| O5 | Launches fail only with chaos on (`rule('chaos')`), and never in the first 90 days after the unlock; heavy test flights explode by design, not by chance. Orbit incidents and geopolitical spats (`pieChaos()`) follow the same rule. | Like F1: learn the thing before it punishes you. |
+| O7 | A fresh Tier 1 cannot afford a full Shortcrust from its first year's money: even a big network's yearly profit plus the largest loan a bank would offer (and the Ex-Im Pie Bank's most) stays below the cheapest full build (`pieFullCost('short')`). And a full lasered Shortcrust, played through the game loop on the big-network save by a sensible policy (reusable rockets, two pads, no launches past the crust's size except replacements, safe mode in storms, dishes grown with demand at well-served POPs, every orbit offer signed), pays back on its own books (`S.pie.book`: every launch, replacement, dish, licence and running cost against orbit income) in 5 to 10 years, never sooner; government money (the Rural Digital Pie Fund, Pitcairn's satellite grant) brings that forward by at most two years, never under four (`tests/pie-balance.test.js`; `PIE_BALANCE_YEARS=10` prints the long run). | Obscenely expensive is the joke and the goal; a constellation in year one would be a cheat code. |
+

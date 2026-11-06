@@ -1,5 +1,11 @@
 // Label widths by text (city labels by id, link labels and far-view labels by text): measuring text every frame is slow.
-const LBLW={},LINKW=new Map(),LBLF=new Map(),FKEY=new Map(),QKEY=new Map(),CM={off:new Set(),big:new Set(),inc:new Set(),far:false};
+const LBLW={},LINKW=new Map(),LBLF=new Map(),FKEY=new Map(),QKEY=new Map(),CM={off:new Set(),big:new Set(),inc:new Set(),far:false,dish:null};
+// Pie dishes (Pie in the Sky): city -> up?, or null without any, so most maps pay one null check per city.
+function pieDishMap(){const d=S.pie&&S.pie.dishes;if(!Array.isArray(d)||!d.length)return null;const m=new Map();for(const x of d)if(x&&x.city)m.set(x.city,m.get(x.city)||!(x.down>S.day));return m;}
+// Painted once per look (the load in 5% steps) and drawn as a sprite, so it shows on the graphics-card map as well.
+function dishBadge(x,y,up,u,k=1){const q=u>0.005?Math.min(20,Math.round(u*20)):0;stamp('dish|'+(up?1:0)+'|'+q,20,20,10,10,k,x,y,()=>dishPaint(0,0,up,q/20));}
+function dishPaint(x,y,up,u){if(u>0.005){ctx.lineWidth=1.8;ctx.strokeStyle='rgba(30,38,64,.3)';ctx.beginPath();ctx.arc(x,y,8,0,7);ctx.stroke();ctx.strokeStyle=u>=0.9?'#FF4D5E':u>=0.6?'#FFAA1F':'#22C47A';ctx.beginPath();ctx.arc(x,y,8,-Math.PI/2,-Math.PI/2+Math.min(1,u)*2*Math.PI);ctx.stroke();}
+  ctx.fillStyle=up?'#FF4F9A':'#8A91A8';ctx.strokeStyle='#1E2640';ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(x,y,5.5,0,7);ctx.fill();ctx.stroke();ctx.strokeStyle='#fff';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(x,y-1,3,0.15*Math.PI,0.85*Math.PI);ctx.moveTo(x,y+2);ctx.lineTo(x+2.6,y-2.6);ctx.stroke();ctx.strokeStyle='#1E2640';}
 try{document.fonts&&document.fonts.ready.then(()=>{for(const k in LBLW)delete LBLW[k];LINKW.clear();LBLF.clear();FRAME.length=0;spritesReset();});}catch(e){}
 // A label on a pill: its text and look never change, so it is painted once (spriteEntry) and drawn as a picture. The
 // centre is x, y; the text sits at y+ty. The pill's box is w×h with corners r; the picture also takes the outline.
@@ -21,6 +27,7 @@ function drawCityFar(C,sx,sy,sc,now,lyOverride){
   // The key, kept per city and built again only when the picture changes.
   let m=FKEY.get(C.id);if(!m||m.f!==f||m.t!==t||m.ph!==ph)FKEY.set(C.id,m={f,t,ph,k:'far|'+t+'|'+f+'|'+ph});
   stamp(m.k,36,36,18,18,1,sx,sy,()=>cityFarStatic(C,p,down,sel,hov,ph));
+  if(CM.dish&&CM.dish.has(C.id))dishBadge(sx+(p?10:6),sy+(p?6:5),CM.dish.get(C.id),CM.dl&&CM.dl[C.id]);
   if(lyOverride!==null&&(p||sel||hov)){ctx.font=`800 ${p?12:11}px "Baloo 2", sans-serif`;const t=C.name,wk=C.id+(p?1:0);let tw=LBLF.get(wk);if(tw===undefined)LBLF.set(wk,tw=ctx.measureText(t).width+12);const ly=lyOverride==null?sy+15:lyOverride;
     pill(t,ctx.font,tw,16,8,p?'#FF4F9A':'#FFFFFF',p?'#FFFFFF':'#1E2640','#1E2640',1.6,sx,ly,1);}
 }
@@ -130,6 +137,7 @@ function drawCity(C,sx,sy,sc,now,lyOverride,dem){
   if(ph.gl>=0)dot(sx,sy-6*k,26*k,'rgba(255,77,94,1)',.35+.25*(2*ph.gl/7-1));
   blit(spr,sx-spr.ax*r,sy-spr.ay*r,spr.w*r,spr.h*r);
   cityMoving(C,p,t,cs,k,sx,sy,now,p?18:SKY_H[t],st,hot);
+  if(CM.dish&&p&&CM.dish.has(C.id))dishBadge(sx,sy-13*k,CM.dish.get(C.id),CM.dl&&CM.dl[C.id],k); // between the antennas: the corners are taken
   // label
   if((cam.z>=0.62||p||sel||hov)&&(lyOverride!==null||hov)){
     ctx.font=`800 ${p?13:12}px "Baloo 2", sans-serif`;const t=C.name,tw=LBLW[C.id+(p?1:0)]||(LBLW[C.id+(p?1:0)]=ctx.measureText(t).width+14),ly=lyOverride==null?sy+16*sc+8:lyOverride;

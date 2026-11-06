@@ -1,4 +1,4 @@
-/* The sales engine of #185: would this offer work if signed now? The intern's sales order runs it once a day.
+/* The sales engine of #185: would this offer work if signed now? The sales desk runs it once a day (39-sales-auto.js).
    It trials the new demand on a copy of the game, so a failed trial leaves the live game untouched. */
 function offerCustomer(o){return {id:o.id,city:o.city,city2:o.city2||null,reqs:o.reqs||[],latMax:o.latMax||null,route:BIZ_T[o.type].scenic?'scenic':BIZ_T[o.type].lat?'fast':'normal',name:o.name,type:o.type,bw:o.bw,rate:o.rate,mood:100,since:S.day,sites:o.sites||null,start:o.start,dur:o.dur,fee:o.fee,link:o.link,slots:o.slots||0,what:o.what,prov:o.prov,due:BIZ_T[o.type].cap?S.day+o.win:undefined};}
 function autoOffer(o){if(!o||!own(BIZ_T,o.type)||!(o.exp>S.day)||!(o.bw>0)||o.rate<0||!bCities(o).length||!bCities(o).every(popUp)||!reqOk(o))return null;

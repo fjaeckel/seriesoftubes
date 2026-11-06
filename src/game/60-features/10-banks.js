@@ -18,6 +18,8 @@ const BANKS={
  ppp:{name:'Peer Pressure Partners',col:'#00897B',min:'B',amt:[2,5],term:[24,36],covs:['nocache'],model:'transit',blurb:tr('banks.you_repay_with_30_of_your')},
  astro:{name:'Horoscope Holdings',col:'#5E35B1',min:'CCC',apr:[.02,.3],amt:[1,4],term:[12,24],covs:['friday','nobude'],model:'astro',blurb:tr('banks.your_rate_is_set_by_the')},
  pizza:{name:'Papa Pizza Capital',col:'#FF7043',min:'BB',apr:[.03,.05],amt:[1,3],term:[12,24],covs:['pizza'],blurb:tr('banks.the_cheapest_money_in_town_there')},
+ // The rocket company's state lender: never calls on its own, offered in Pie Control (99-pie-subsidies.js), sized there.
+ exim:{name:'Ex-Im Pie Bank',col:'#1565C0',min:'C',apr:[.015,.025],amt:[0,0],term:[60,60],covs:['pielaunch','piedish'],pie:true,blurb:tr('banks.exim_blurb')},
  shark:{name:'Loan Shark Telecom Finance',col:'#37474F',min:'C',apr:[.6,.9],amt:[1,2],term:[4,8],covs:[],shark:true,blurb:tr('banks.always_open_ask_no_questions_do')},
 };
 const RATINGS=['C','CCC','B','BB','BBB','A','AA','AAA'];
@@ -49,10 +51,13 @@ const COVS={
  nephew:{l:tr('banks.give_our_ceo_s_nephew_a'),fee:3000,ok:()=>true},
  yacht:{l:tr('banks.our_chairman_needs_a_yacht_for'),fee:8000,ok:()=>true},
  pizza:{l:tr('banks.pizza_for_the_whole_noc_after'),each:400,ok:()=>true},
+ // The Ex-Im Pie Bank's space covenants: their numbers live on the loan (l.pie).
+ pielaunch:{l:l=>l&&l.pie?tr('banks.exim_launch_n_pies_by',{n:l.pie.n,d:dateStr(l.pie.by),f:Math.min(l.pie.flown,l.pie.n)}):tr('banks.exim_launch_pies'),ok:l=>pieEximLaunchOk(l)},
+ piedish:{l:l=>tr('banks.exim_keep_a_dish_in',{a:l&&l.pie?pieLicCountry(l.pie.cc):'?'}),ok:l=>pieEximDishOk(l)},
  blitz:{l:tr('banks.open_a_new_pop_at_least'),ok:l=>S.day-Math.max(l.start,...Object.values(S.pops).map(p=>p.day||0))<=90},
 };
 // Conditions read with their price filled in; some cost money every month, one costs money per incident.
-const covLabel=c=>COVS[c]?COVS[c].l.replace('{price}',fmt$(COVS[c].fee||COVS[c].each||0)):c;
+const covLabel=(c,l)=>{const C=COVS[c];return !C?c:typeof C.l==='function'?C.l(l):C.l.replace('{price}',fmt$(C.fee||C.each||0));};
 const loanFees=l=>(l.covs||[]).reduce((a,c)=>a+((COVS[c]&&COVS[c].fee)||0),0);
 // Good terms are for good credit: every notch below AAA adds to the rate.
 const RATE_PREM={AAA:0,AA:.005,A:.01,BBB:.02,BB:.04,B:.07,CCC:.12,C:.2};
@@ -67,7 +72,7 @@ function rating(){if(!S)return 'BB';const rev=R.revMo||0,pay=(R.cost&&R.cost.loa
 const rIdx=r=>RATINGS.indexOf(r);
 function annuity(P,apr,n){const r=apr/12;return r?P*r/(1-Math.pow(1+r,-n)):P/n;}
 function spawnLoanOffer(emergency){
-  const rt=rating(),keys=Object.keys(BANKS).filter(k=>rIdx(rt)>=rIdx(BANKS[k].min)&&!S.loanOffers.some(o=>o.bank===k)&&!(BANKS[k].equity&&S.loans.some(l=>l.bank===k)));
+  const rt=rating(),keys=Object.keys(BANKS).filter(k=>rIdx(rt)>=rIdx(BANKS[k].min)&&!S.loanOffers.some(o=>o.bank===k)&&!(BANKS[k].equity&&S.loans.some(l=>l.bank===k))&&!BANKS[k].pie);
   let pool=emergency?keys.filter(k=>['shark','gov','crypto','vult','rev','spk','astro','balloon'].includes(k)):keys.filter(k=>k!=='shark');if(!pool.length)pool=keys;if(!pool.length)return;
   const k=pick(pool),B=BANKS[k],base=Math.max(60000,R.revMo||0),ra=(a)=>a[0]+Math.random()*(a[1]-a[0]);
   const amount=niceAmt(base*ra(B.amt)*(emergency?0.6:1)),o={id:uid(),bank:k,amount,exp:S.day+(emergency?10:25),covs:B.covs.slice()};
@@ -105,10 +110,10 @@ function loanTick(d){
     const broken=l.covs.filter(c=>COVS[c]&&!COVS[c].ok(l));
     if(d-l.start<15||!broken.length){l.breach=0;continue;}
     l.breach=(l.breach||0)+1;
-    if(l.breach===1)toast(tr('banks.bank_is_unhappy_you_broke_a',{bank:esc(B.name),cond:esc(covLabel(broken[0]))}),'bad',[{l:tr('common.open_bank'),act:'bank',args:{}}]);
+    if(l.breach===1)toast(tr('banks.bank_is_unhappy_you_broke_a',{bank:esc(B.name),cond:esc(covLabel(broken[0],l))}),'bad',[{l:tr('common.open_bank'),act:'bank',args:{}}]);
     if(l.breach===10||(l.breach>10&&(l.breach-10)%30===0)){
       if(B.equity){l.share=+(l.share+0.02).toFixed(3);toast(tr('banks.bank_are_circling_they_now_take',{bank:esc(B.name),pct:pct(l.share)}),'bad');}
-      else{const fee=Math.round(l.bal*0.05);l.bal+=fee;l.pay=Math.round(annuity(l.bal,l.apr,Math.max(1,l.left)));S.loanStrikes=(S.loanStrikes||0)+1;toast(tr('banks.penalty_from_bank_fee_added_to',{bank:esc(B.name),fee:fmt$(fee),pay:fmt$(l.pay)}),'bad');}
+      else{const fee=Math.round(l.bal*0.05);l.bal+=fee;l.pay=Math.round(annuity(l.bal,l.apr,Math.max(1,l.left)));S.loanStrikes=(S.loanStrikes||0)+1;toast(tr('banks.penalty_from_bank_fee_added_to',{bank:esc(B.name),fee:fmt$(fee),pay:fmt$(l.pay)}),'bad');if(B.pie)pieEximBreach(l,broken);}
       sfx('err');}}
   // monthly statement: payments already leave your cash daily as part of costs
   for(const l of S.loans.slice()){const B0=BANKS[l.bank];if(B0.equity||!monthiversary(l.start,d))continue;

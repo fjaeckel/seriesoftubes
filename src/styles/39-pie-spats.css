@@ -1,0 +1,5 @@
+/* Pie in the Sky spats (85-incidents/65-pie-spats.js): two answers, stacked full width so long labels wrap at 360 px. */
+.pspat-c{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.pspat-c .b{width:100%;min-height:44px;white-space:normal;text-align:left;line-height:1.3}
+.pspat-l{margin-top:6px}
+.pspat-l .kv{align-items:center;gap:6px}

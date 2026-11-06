@@ -79,6 +79,9 @@ const BADGES=[
  {id:'bleed',i:'🩸',t:tr('core.bleeding_edge'),d:tr('core.run_an_srv6_backbone'),r:'r',ok:()=>coreOn()&&S.core.run>=4},
  {id:'mono',i:'🏪',t:tr('core.single_vendor_shop'),d:tr('core.run_sr_mpls_or_srv6_on'),r:'e',ok:()=>coreOn()&&S.core.run>=3&&Object.keys(S.pops).length>=8&&!coreOut().length&&coreVendors().size===1},
  {id:'zoo',i:'🦓',t:tr('core.vendor_zoo'),d:tr('core.run_an_mpls_backbone_with_4'),r:'r',ok:()=>coreOn()&&S.core.run>=1&&coreVendors().size>=4},
+ {id:'billion',i:'🔥',t:tr('pie.b_billion'),d:tr('pie.b_billion_d'),r:'e',ok:()=>!!S.pie&&S.pie.book.spent>=1e9},
+ {id:'baked',i:'🥧',t:tr('pie.b_baked'),d:tr('pie.b_baked_d'),r:'l',ok:()=>!!S.pie&&Object.keys(CRUSTS).some(id=>pieCov(id)>=1)},
+ {id:'tour',i:'🎙️',t:tr('pie.b_tour'),d:tr('pie.b_tour_d'),r:'r',ok:()=>!!(st().pieTour)},
  {id:'zero',i:'🕳️',t:tr('badges.zero_peers_given'),d:tr('badges.reach_tier_2_with_every_single'),r:'l',secret:true,ok:()=>isTier2()&&!Object.keys(S.peers).length&&!S.pni.length},
 ];
 /* Badge variants by ruleset (2.0): On-call earns the standard badge, Change Freeze a frosted one and BGP at 3 a.m. a
@@ -115,6 +118,6 @@ function checkGoals(){checkBadges();
     if(ok){S.done[g.id]=S.day;if(g.r&&S.mode!=='sandbox'){S.cash+=g.r;}
       toast(`<b>${tr('badges.goal_complete_name',{name:esc(g.t)})}</b>${g.r?`<br>${tr('badges.reward_amt',{amt:fmt$(g.r)})}`:''}`,'goal',[],{a:'tab',v:'goals'});sfx('coin');
       // Glass Baron is the broker's win; S.won stays Tier 1, which a broker can still become.
-      track('goal_'+g.id);if(g.baron){if(!S.baronWon){S.baronWon=S.day||1;track('win_baron');checkBadges();showBaronWin();}}else if(g.win&&!S.won){S.won=true;track('win_tier1');checkBadges();showWin();}}}
+      track('goal_'+g.id);if(g.baron){if(!S.baronWon){S.baronWon=S.day||1;track('win_baron');checkBadges();showBaronWin();}}else if(g.win&&!S.won){S.won=true;track('win_tier1');pieUnlock();checkBadges();showWin();}}}
 }
 

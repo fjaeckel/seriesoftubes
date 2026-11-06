@@ -5,7 +5,7 @@ const path = require('node:path');
 const { load } = require('./harness');
 const { lit } = require('../scripts/lib/js-literal');
 
-// The sales trial (#185, the intern's sales order) runs the pass with the offer first and skips the pass without
+// The sales trial (#185, now the sales desk's signing for you) runs the pass with the offer first and skips the pass without
 // it when it cannot change the answer. It must sign exactly the offers the original two-pass trial signs.
 const ORIGINAL = `(function(o){if(!o||!own(BIZ_T,o.type)||!(o.exp>S.day)||!(o.bw>0)||o.rate<0||!bCities(o).length||!bCities(o).every(popUp)||!reqOk(o))return null;
   const T=BIZ_T[o.type],b=offerCustomer(o);if(T.event&&(!(o.start>S.day)||!(o.dur>0)))return null;

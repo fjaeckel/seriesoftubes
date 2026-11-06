@@ -30,6 +30,14 @@ const BIZ_T={
  metav:{l:tr('common.metaverse_platform'),opts:[1600,3200,6400],rate:35,lv:9,names:['Meh-taverse','Second Second Life','Horizon Worlds Apart','The Oasis (Ready Player Done)','Legs Finally Shipped Inc.','Decentra-landlocked']},
  agi:{l:tr('businesses.agi_lab_allegedly'),opts:[12800,25600],rate:0,l2:true,div:true,mega:true,km:0.4,lv:11,names:['Almost General Intelligence Inc.','Superintelligence Pending','The Lab That Said Two More Years','Paperclip Maximizer Labs','Deep Thought Two','Benevolent Overlord Research']},
  mars:{l:tr('businesses.mars_mission_ground_station'),opts:[100,200,400],rate:0,l2:true,lat:true,km:4,lv:13,names:['Red Planet Relay','Ares Ground Segment','Olympus Mons Uplink','Mars or Bust Mission Control','Interplanetary Ping Society','Light-Minute Logistics','RFC 1149 Avian Carriers (Mars Division)']},
+ // Orbit terminals (35-pie-paths.js): no POP of theirs, landed on a pie dish. Priced per Gbps of busy-hour capacity, which a
+ // satellite operator oversubscribes two hundredfold (two hundred homes at $100 a month share one Gbps). The prices set
+ // the payback of a full crust (rule O7: never under 5 years, 6 to 10 for a strong network).
+ // share: the most of the sky's market (pieMarket()) that kind may hold; there are only so many airlines.
+ pizza:{l:tr('businesses.pizza_homes_and_boats_on_orbit'),opts:[50,100,200,400],rate:25000,orbit:true,lv:1,names:['Deep Dish Rural Broadband','Crust Mile Connect','Topping Off Telecom','Extra Cheese Islands Net','Slice of Life Homesteads','Calzone Ranch Wi-Fi','Thin Crust Tundra Net','Margherita Marina Moorings','Anchovy Atoll Online','Stuffed Crust Station Hands']},
+ flywifi:{l:tr('businesses.flywifi_airline_wi_fi'),opts:[20,50,100,200],rate:36000,orbit:true,las:true,share:0.2,lv:1,names:['Jet Lag Wi-Fi','Wi-Fly Away','Seatback Streaming Co.','Tray Table Upright Telecom','Cabin Pressure Networks','Mile High Megabits','Overhead Bin Broadband','Turbulence Tolerant Transit']},
+ boat:{l:tr('businesses.cruise_ship_connectivity'),opts:[100,200,400,800],rate:27500,orbit:true,lv:1,names:['Buffet Overboard Cruises','The Love Bandwidth','Poop Deck Packets','Midnight Buffet Mbps','Shuffleboard Shipping Lines','All-You-Can-Stream Cruises','Iceberg Ahead Voyages']},
+ marsorb:{l:tr('businesses.mars_mission_over_your_pies'),opts:[50,100,200],rate:44000,orbit:true,las:true,share:0.05,lv:13,names:['Red Planet Relay (Orbital)','Olympus Mons Uplink (Orbital)','Light-Minute Logistics (Orbital)','Interplanetary Ping Society (Orbital)','Rover Over Pies']},
  provedor:{l:tr('businesses.provedor_small_regional_isp'),opts:[5,10,20,40],rate:20,br:true,names:['Provedor Capivara Net','Fibra do Sertão','Rapidinho Telecom','Net Jabuticaba','Caipirinha Online','Wi-Fi do Zé','Pão de Queijo Fibra','Açaí Net','Tucano Telecom','Forró Fibra','Saci Net','Brigadeiro Banda Larga','Mandioca Online','Churrasco Connect']},
 };
 const LEVELS=[

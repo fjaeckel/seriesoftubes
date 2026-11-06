@@ -35,7 +35,8 @@ const API_STATE_DOC={
  nni:{type:'array',doc:'Fabric ports: city, provider, tier.'},
  biz:{type:'array',doc:'Signed customers: type, cities, bandwidth, rate, mood, contract dates (te: the day the term ends, mk: the bandwidth market it was priced in, hag: an open renewal haggle {rate, until}).'},
  offers:{type:'array',doc:'Pending customer offers, each expiring on a day (mk: the bandwidth market they were priced in; refN: the customer who referred them).'},
- sales:{type:'map',doc:'The sales desk: p (eng, shark, ceo or null), hired (day), vp (the day a VP of Sales takes over from the CEO), golf and say (the CEO\'s next golf deal and opinion). Offers and customers carry by: who brought or signed them.'},
+ sales:{type:'map',doc:'The sales desk: p (eng, shark, ceo or null), hired (day), vp (the day a VP of Sales takes over from the CEO), golf and say (the CEO\'s next golf deal and opinion). Offers and customers carry by: who brought or signed them, orbit ones too (the shark\'s may carry the skyfull promise).'},
+ slAuto:{type:'map',doc:'Deals the sales desk signs for you (only while someone runs sales): on (sign offers that fit), min (decline offers paying less a month; 0 never), wk (this week: w, p who was at the desk, n signed, rev their monthly revenue, x declined, y declined but signed anyway by the CEO) and rep (last week, the same).'},
  cl:{type:'map',doc:'Customer lifecycle (#178): odd (the day of the last unusual departure) and mo, one entry a month of customers won, renewed, grown, haggling and lost by reason.'},
  done:{type:'map',doc:'Goals landed, by goal id → day.'},
  ach:{type:'map',doc:'Badges earned this game, by badge id → day.'},
@@ -52,10 +53,12 @@ const API_STATE_DOC={
  scrubs:{type:'array',doc:'Scrubbing centres: city and tier.'},
  scrubMode:{type:'string',doc:'always | ondemand.'},
  cnLic:{type:'map',doc:'Mainland China licence: none | pending (with ready day) | ok.'},
+ pieV:{type:'number',doc:'Pie in the Sky version stamp: 1 in games started since it shipped (only those unlock it, on a Tier 1 win).'},
+ pie:{type:'map',doc:'The rocket company (Pie in the Sky), or null: company, factory, stock, pads, crusts (cohorts of pies by launch day), dishes, landing rights (lic), launch queue (q), R&D, spats, the founder (posts, promises made and broken with their due days, and his antics: jit, the market jitters 0..1 that fade over 30 days and lower orbit offer odds and happiness; next, the day of the next antic; kid, 1 + the index of PIE_KIDS once he has named his son; bill, the day orbit billing comes back (no orbit income until then); nerv, hype, leak: days a posting spree, Mars hype and a leaked launch date (dearer launch insurance) last until; mars, the due day of the Mars promise, whose slip loses a few orbit customers; all only with chaos on), books, and government money (gov: auctions, awards, Ex-Im).'},
  ppol:{type:'string',doc:'Your published peering policy: open | selective | closed.'},
  pdesk:{type:'map',doc:'This week\'s peering desk summary: sessions accepted and declined at which exchanges.'},
  pdeskRep:{type:'map',doc:'Last week\'s peering desk summary, as the NOC log reported it.'},
- ops:{type:'map',doc:'The NOC intern: who is hired, each standing order\'s on/off switch and settings, the monthly budget and what it spent, per-POP exceptions, the new-POP template and the weekly log.'},
+ ops:{type:'map',doc:'The NOC intern: who is hired, each standing order\'s on/off switch and settings (network work only: deals belong to the sales desk, slAuto), the monthly budget and what it spent, per-POP exceptions, the new-POP template and the weekly log.'},
  core:{type:'map',doc:'Your backbone technology: lv bought, the level it runs at, the interop lab.'},
  ddosAuto:{type:'map',doc:'The NOC\'s auto-mitigation switches: rtbh and scrub.'},
  popStd:{type:'map',doc:'The standard POP: router model and count new POPs start with, or null for none.'},
@@ -93,6 +96,7 @@ const API_STATE_DOC={
 };
 
 const API_RESULTS_DOC={
+ pie:{type:'map',doc:'Orbit this compute (only with a rocket company): revenue (rev; 0 while the founder has orbit billing down, with billOff what it would have been; including patchy: {mo, cr} from patchy-sky customers who pay from 10% coverage, before a crust carries anything, and fade out between 40% and 60%), service per orbit customer, landing dishes, flows through the sky, backhaul for cut-off POPs (bh), crust and dish load, government money (gov).'},
  nt:{type:'map',doc:'Traffic per network through transit, by net id.'},
  tNet:{type:'map',doc:'Traffic per network you hand to each upstream, by "net@upstream".'},
  reachNT:{type:'number',doc:'Networks reachable without transit.'},

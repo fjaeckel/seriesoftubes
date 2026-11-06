@@ -64,6 +64,8 @@
       // The backbone, Auto-TE and DDoS settings moved from the NOC tab into the Routing & DDoS modal: offer them here on
       // both pages, in one order, so main's page (settings in the tab) and this one (behind the button) stay in lockstep.
       if (typeof routingBody === 'function' && b.some((x) => x.act === 'routingOpen')) { const d = document.createElement('div'); d.innerHTML = routingBody(); b = b.filter((x) => x.act !== 'routingOpen').concat(btns(d)); }
+      // The traceroute moved into that modal too, and Connections left the tab (it is in the dashboard): drop it on both pages.
+      b = b.filter((x) => x.act !== 'connOpen');
       return b.sort((x, y) => (sig(x) < sig(y) ? -1 : sig(x) > sig(y) ? 1 : 0));
     }
     if (w.where === 'openLink') { if (!S.pops[w.a]) return []; openLinkModal(w.a, w.b); return modalOpen() ? btns($('modal')) : []; }
@@ -156,9 +158,14 @@
   const parts = () => { const o = {}; if (!R) return o; for (const k of Object.keys(R)) o[k] = JSON.stringify(R[k]); o.fl = R.fl ? JSON.stringify(R.fl) : ''; return o; };
   // A field only this checkout's game has (a new feature's state, on S or on its customers and offers) cannot match main
   // yet: the driver passes those (drop) and they are left out; every field both games have must still match.
-  const sKeys = () => ({ top: Object.keys(S), items: [...new Set([...(S.biz || []), ...(S.offers || [])].flatMap((x) => Object.keys(x)))] });
-  const sDrop = (drop) => { if (!drop || (!drop.top.length && !drop.items.length)) return S; const o = {};
-    for (const k of Object.keys(S)) if (!drop.top.includes(k)) o[k] = S[k];
+  // The intern's state two levels deep (ops.on.sales, ops.wk.rev): a standing order one game has and the other retired.
+  const opsPaths = () => { const O = S.ops, out = []; if (!O || typeof O !== 'object') return out;
+    for (const k of Object.keys(O)) { out.push(k); const v = O[k]; if (v && typeof v === 'object' && !Array.isArray(v)) for (const j of Object.keys(v)) out.push(k + '.' + j); } return out; };
+  const sKeys = () => ({ top: Object.keys(S), items: [...new Set([...(S.biz || []), ...(S.offers || [])].flatMap((x) => Object.keys(x)))], ops: opsPaths(), orders: typeof OPSK === 'object' ? Object.keys(OPSK) : [] });
+  const opsDrop = (ops) => { const o = {}; for (const k of Object.keys(S.ops)) { if (ops.includes(k)) continue; const v = S.ops[k];
+    if (v && typeof v === 'object' && !Array.isArray(v)) { const w = {}; for (const j of Object.keys(v)) if (!ops.includes(k + '.' + j)) w[j] = v[j]; o[k] = w; } else o[k] = v; } return o; };
+  const sDrop = (drop) => { if (!drop || (!drop.top.length && !drop.items.length && !(drop.ops || []).length)) return S; const o = {};
+    for (const k of Object.keys(S)) if (!drop.top.includes(k)) o[k] = k === 'ops' && S.ops && (drop.ops || []).length ? opsDrop(drop.ops) : S[k];
     for (const k of ['biz', 'offers']) if (Array.isArray(o[k])) o[k] = o[k].map((x) => { const y = {}; for (const f of Object.keys(x)) if (!drop.items.includes(f)) y[f] = x[f]; return y; });
     return o; };
   const sDigest = (drop) => JSON.stringify(sDrop(drop));

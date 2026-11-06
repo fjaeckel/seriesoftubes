@@ -9,6 +9,20 @@
    (may end in a question); reads 'modal' (the window's text is the report); watch (extra fingerprint paths, #name
    filled from args); quote (the dry run, priced with the game's own helpers); doc. */
 const API_CMD={
+/* ---------- Pie in the Sky: the rocket company (Tier 1 in a new game, or a sandbox) ---------- */
+ pieFound:{args:[],watch:['pie'],quote:a=>({setup:piePrice(PIE_CO),monthly:PIE_CO_MO}),doc:'Found the rocket company. Needs Tier 1 (or a sandbox).'},
+ pieFactory:{args:[],watch:['pie'],quote:a=>({setup:piePrice(PIE_FAC)}),doc:'Build the pie factory: it bakes the satellites ("pies") that rockets carry.'},
+ piePad:{args:[['city','cityId']],watch:['pie'],doc:'Build a launch pad in a city. Pads near the equator lift more.'},
+ pieRd:{args:[['k','pieRdId']],watch:['pie'],quote:a=>({setup:piePrice(PIE_RD[a.k].cost)}),doc:'Fund rocket R&D: reuse (reusable boosters, cheaper launches) or heavy (a bigger rocket, after test flights).'},
+ pieLaunch:{args:[['rk','rocketId'],['cr','crustId']],watch:['pie'],doc:'Queue a launch of a rocket into a crust (an orbital shell). Insurance and lasers follow the Launch tab toggles (pieIns, pieLas).'},
+ pieDish:{args:[['city','cityId']],watch:['pie'],doc:'Build a pie dish (ground station) at one of your POPs. Needs landing rights in its country.'},
+ pieAnt:{args:[['id','entityId']],watch:['pie'],quote:a=>({setup:piePrice(PIE_ANT)}),doc:'Add an antenna to a pie dish (20 Gbps each, 16 at most).'},
+ pieLic:{args:[['cc','countryCode']],watch:['pie'],doc:'Buy or renew landing rights in a country, for its dishes and orbit customers.'},
+ pieSafe:{args:[],watch:['pie'],doc:'Toggle safe mode: pies ride out solar storms, carrying nothing meanwhile.'},
+ pieName:{args:[],watch:['pie'],doc:'Rename the rocket company to the next name on the list.'},
+ pieBid:{args:[['id','entityId'],['f','pieBidShare']],watch:['pie'],doc:'Bid in a Rural Digital Pie Fund auction, asking this share of the reserve. The lower ask wins.'},
+ pieExim:{args:[],watch:['pie','loans'],doc:'Take the Export-Import Pie Bank loan, with its space covenants.'},
+ pieSpatPick:{args:[['id','pieSpatId'],['c','pieSpatChoice']],watch:['pie'],doc:'Answer a geopolitical spat over orbit: choice 0 or 1, as its sheet offers.'},
  downIx:{args:[['city','ixId']],watch:['ixp'],doc:'Step an exchange port down one size.'},
  downT:{args:[['id','entityId']],watch:['transit.#id'],doc:'Step a transit port down one size (a LAG steps down together).'},
  downP:{args:[['id','entityId']],watch:['pni.#id'],doc:'Step a PNI down one size. Not while an augment is on order.'},
@@ -227,6 +241,10 @@ const API_CMD={
   doc:'Let the salesperson go (not the CEO: ask the board for a VP of Sales instead).'},
  salesVp:{args:[],
   doc:'With the CEO running sales: pay for a board meeting that brings a VP of Sales, who frees the desk a month later.'},
+ salesAuto:{args:[],watch:['slAuto'],
+  doc:'With someone at the sales desk: switch automatic signing on or off. Once a game day they sign the offers that fit, in their own style: eng and ceo after a routing trial (one a day; an offer that did not fit waits a week), shark every offer whose POPs are up, promises and all, while the cash covers the commission. Orbit offers sign where the landing dish has room (the shark ignores that). Nobody at the desk: nothing is signed for you.'},
+ salesMin:{args:[],watch:['slAuto'],
+  doc:'Step the minimum monthly value under which the sales desk declines offers: never, 2k, 5k, 10k, 25k, 50k. With the CEO, about one decline in three is signed anyway.'},
  renewMatch:{args:[['id','entityId']],watch:['biz.#id'],
   doc:'Answer a renewal haggle (a customer with hag): renew at the price they asked. Unanswered, this happens on its own when the term ends.'},
  renewMeet:{args:[['id','entityId']],watch:['biz.#id'],
@@ -311,7 +329,7 @@ const API_CMD={
  opsCap:{args:[['k','opsKey']],watch:['ops'],
    doc:'Step the monthly budget of an order that has one: 10k, 25k, 50k, 100k, 250k, no limit.'},
  opsFloor:{args:[],watch:['ops'],
-   doc:'Step the floor under your cash that the intern keeps clear when signing customers: 0, 50k, 250k, 1M, 5M.'},
+   doc:'Step the floor under your cash that the intern keeps clear when paying for jobs: 0, 50k, 250k, 1M, 5M.'},
  opsPop:{args:[['k','opsPopKind'],['city','cityId']],watch:['ops'],
    doc:'Add or remove one POP as an exception to an order: the intern never touches the POPs you except.'},
  opsTpl:{args:[['k','opsTplKey']],watch:['ops'],
@@ -429,6 +447,15 @@ const API_CMD={
 };
 
 const API_VIEW={
+ pieOpen:{args:[],doc:'Open Pie Control, the rocket company\'s panel.'},
+ pieGovOpen:{args:[],doc:'Open the bank at its Government money section: the rocket company\'s fund auctions, the Pitcairn grant and the Ex-Im Pie Bank (it used to be Pie Control\'s Gov tab).'},
+ pieTab:{args:[['t','pieTab']],doc:'Switch the Pie Control tab: traffic, co (the company, its books and the Founder\'s posts), fly (launches) or dish.'},
+ pieCity:{args:[['v','cityId']],doc:'Pick the POP the Dishes tab works on.'},
+ pieHi:{args:[['id','string']],doc:'Highlight one orbit flow on the Pie Control globe.'},
+ pieIns:{args:[],doc:'Toggle launch insurance for the next launches.'},
+ pieLas:{args:[],doc:'Toggle lasers (inter-satellite links) for the next launches.'},
+ pieGlobeNight:{args:[],doc:'Flip the Pie Control globe between day and night.'},
+ pieSpatOpen:{args:[['id','pieSpatId']],doc:'Open the sheet of a geopolitical spat over orbit.'},
  traceMode:{args:[['m','string']],doc:'Redo the open traceroute in a routing mode: normal, fast or scenic.'},
  chartToggle:{args:[['c','string'],['k','string']],doc:'Hide or show one series of a dashboard chart (a legend click); hiding every series shows them all again.'},
  help:{args:[],doc:'Open the how-to-play modal.'},
@@ -465,7 +492,7 @@ const API_VIEW={
  popsSort:{args:[['k','popsSortKey']],doc:'Flip the sort of the list of cities with no POP.'},
  goConn:{args:[['city','cityId'],['k','connKind']],doc:'Open a city\'s connections tab.'},
  goEgress:{args:[['city','cityId'],['k','egressKind']],doc:'Open a city\'s connections tab (l2 for the customer list).'},
- connOpen:{args:[],doc:'Open the connections dashboard tab.'},
+ connOpen:{args:[],doc:'Open the connections tab of the NOC dashboard (also the Peering tab\'s "All connections" button).'},
  connF:{args:[['f','connFilter'],['v','string',false]],doc:'Filter the connections list.'},
  connCity:{args:[['v','string']],doc:'Filter the connections list by city.'},
  connNet:{args:[['v','string']],doc:'Filter the connections list by network.'},
@@ -478,7 +505,7 @@ const API_VIEW={
  offerStep:{args:[],doc:'Select the next open offer (soonest to expire first), centre its city and mark it under Offers here: the $ key.'},
  zoomStep:{args:[['d','integer']],doc:'Zoom the map out (d<0) or in (d>0) around its middle: the - and = keys.'},
  keys:{args:[],doc:'Open the list of keyboard shortcuts (the ? key).'},
- routingOpen:{args:[],doc:'Open the Routing & DDoS window: backbone, Auto-TE and DDoS settings (the button at the top of the NOC tab).'},
+ routingOpen:{args:[],doc:'Open the Routing & DDoS window: the traceroute, backbone, Auto-TE and DDoS settings (the button at the top of the NOC tab).'},
  opsOpen:{args:[],doc:'Open the Ops sheet: the NOC intern\'s mood, weekly shift report and standing orders.'},
  salesOpen:{args:[],doc:'Open the sales desk sheet: the three kinds of salesperson, who is at the desk and what they cost.'},
  opsCity:{args:[['v','cityId',false]],doc:'Show one POP\'s standing-order exceptions in the Ops sheet.'},
@@ -507,6 +534,7 @@ const API_VIEW={
 };
 
 const API_BOUND={
+ pieRename:{command:'pieName',note:'the typed company name'},
  leaseSwap:{command:'orderDf',note:'presets the dark-fiber modal on a leased pair'},
  teOpt:{command:'teDeploy',arg:'script',note:'the optimiser drafts a script'},
  teSlop:{command:'teDeploy',arg:'script',note:'the AI drafts a script'},

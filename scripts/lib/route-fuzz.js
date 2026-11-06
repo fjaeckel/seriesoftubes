@@ -78,8 +78,10 @@ function playGame(pages, seed, opts = {}) {
     const [x, y] = both('check');
     for (const k of ['a', 'b', 'c']) if (x[k] !== y[k]) { fail(where + ': routing (' + k + ') base vs head', { diff: firstDiff(base.call('parts'), head.call('parts')) }); return false; }
     if (y.b !== y.c) { fail(where + ': head cached vs uncached', { diff: 'R from the kept tables differs from a fresh route' }); return false; }
-    // Fields only this checkout's game has are left out on both sides (see sKeys in fuzz-page.js).
-    const [k1, k2] = both('sKeys'), drop = { top: k2.top.filter((k) => !k1.top.includes(k)), items: k2.items.filter((k) => !k1.items.includes(k)) };
+    // Fields only this checkout's game has are left out on both sides (see sKeys in fuzz-page.js), and so is the state of a
+    // standing order only one of them has (one this checkout retired, or added).
+    const [k1, k2] = both('sKeys'), drop = { top: k2.top.filter((k) => !k1.top.includes(k)), items: k2.items.filter((k) => !k1.items.includes(k)),
+      ops: [...k1.ops.filter((k) => !k2.ops.includes(k)), ...k2.ops.filter((k) => !k1.ops.includes(k))] };
     const [s1, s2] = both('sDigest', drop);
     if (s1 !== s2) { fail(where + ': game state S', { diff: firstDiff(base.call('sParts', drop), head.call('sParts', drop)) }); return false; }
     return true;
@@ -102,8 +104,11 @@ function playGame(pages, seed, opts = {}) {
 
   // A screen's buttons on both pages; the same list or a divergence.
   // Buttons for actions main's page does not have (a new feature's) are left out: the driver only presses what both have.
-  let baseActs = null;
-  const screen = (w) => { const [a, b0] = both('screen', w); baseActs = baseActs || new Set(base.call('acts'));
+  // So are the switches and dials of a standing order this checkout retired (main's sheet still shows them).
+  let baseActs = null, retired = null;
+  const screen = (w) => { const [a0, b0] = both('screen', w); baseActs = baseActs || new Set(base.call('acts'));
+    if (!retired) { const [o1, o2] = both('sKeys'); retired = new Set(o1.orders.filter((k) => !o2.orders.includes(k))); }
+    const a = Array.isArray(a0) ? a0.filter((x) => !(/^ops/.test(x.act) && retired.has(x.args && x.args.k))) : a0;
     const b = Array.isArray(b0) ? b0.filter((x) => baseActs.has(x.act)) : b0; same('buttons of ' + JSON.stringify(w), a, b); return a || []; };
   const press = (b, where) => { acts[b.act] = (acts[b.act] || 0) + 1; const [e1, e2] = both('press', b); same('press ' + where, e1, e2); note(where + ' ' + b.act + JSON.stringify(b.args) + (e1 ? ' !' + e1 : '')); };
   // Answer whatever window opened, a few levels deep, then close it.

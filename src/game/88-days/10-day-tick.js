@@ -51,7 +51,9 @@ function dayPost(d,route){
   const ids=linkIds(),frr=(coreFrr()&&S.links.some(l=>l.cut)?.5:1)*(rule('moods')==='patient'?.5:1);const bhT=new Set(ddosAll().filter(a=>a.bh).map(a=>a.tgt));TERR={};try{for(const b of S.biz.slice()){if(eventTick(b,d)||capPendTick(b,d))continue;b.pm=b.mood;if(bhT.has(b.id))continue;const sf=bizSf(b,ids),reachOk=BIZ_T[b.type].l2||BIZ_T[b.type].fiber||R.reach>0.99||scnRule('local'),scrubOk=b.type!=='scrub'||(hasScrub()&&!scrubFar(b.city)),divOk=reqOk(b);
     if(sf>=0.95&&reachOk&&scrubOk&&divOk)b.mood=Math.min(100,b.mood+2);
     else if(S.day-(b.since||0)<15){}
-    else{b.mood-=frr*(Math.max(0,0.95-sf)*45+(!reachOk?3:0)+(!scrubOk?4:0)+(!divOk?3:0));
+    else{const dm=frr*(Math.max(0,0.95-sf)*45+(!reachOk?3:0)+(!scrubOk?4:0)+(!divOk?3:0));b.mood-=BIZ_T[b.type].orbit?Math.min(dm,PIE_PATIENCE):dm;
+      // An orbit customer served in full but promised more (the shark's full sky) grumbles, and never cancels over it.
+      if(BIZ_T[b.type].orbit&&sf>=0.95&&reachOk)b.mood=Math.max(b.mood,Math.min(b.pm,PIE_GRUMBLE));
       if(b.mood<=0){S.biz=S.biz.filter(x=>x!==b);toast(tr('day_tick.name_cancelled_too_many_outages_and',{name:esc(b.name),city:CITY[b.city].name}),'bad');sfx('err');}
       else if(b.mood<30&&!b.warned){b.warned=b.warn60=true;const why=bizWhy(b)[0],paused=pref('pauseFurious')&&autoPause();
         toast(tr('day_tick.name_is_furious_fix_service_in',{name:esc(b.name),city:CITY[b.city].name})+(why?`<br><i>${esc(why)}</i>`:'')+(paused?`<br><b>${tr('common.game_paused')}</b>`:''),'bad',[{l:tr('common.show_me'),act:'custGo',args:{id:b.id}}].concat(paused?[resumeAct()]:[]));sfx('err');}
@@ -82,8 +84,11 @@ function dayPost(d,route){
   if(cm&&d>45&&scnRule('anchors')){const n=S.links.filter(l=>l.kind!=='vxc'&&!linkDown(l)&&anchorProne(l)).length;if(n&&Math.random()<Math.min(5,+S.scn.rules.anchors||1)*n/365){dirty=true;fireFailure('cut');}}
   if(cm&&d>=S.nextEvent){dirty=true;fireEvent();S.nextEvent=d+Math.round((45+Math.floor(Math.random()*45))/cm);}
   // route: the worker, in play. Rerouting is the longest thing a day can do, so it does not hold up the page here either.
-  const shift=()=>{let due=false;opsDay(d,route&&(()=>{due=true;}));if(due)route(rest);else rest();};
+  // The sales desk signs and declines deals, when the player lets it (39-sales-auto.js), then the intern's shift sees them.
+  const then=(job,next)=>{let due=false;job(route&&(()=>{due=true;}));if(due)route(next);else next();};
+  const sales=()=>then(r=>slAutoDay(d,r),shift),shift=()=>then(r=>opsDay(d,r),rest);
   const rest=()=>{
+  if(S.pie){pieDay(d);pieTier();}
   // payday floaters
   if(cal(d).d===1){for(const c in S.pops){let v=(R.cityEye[c]*sfOf(R,c)*EYE_RATE)+S.biz.filter(b=>b.city===c).reduce((a,b)=>a+b.bw*b.rate,0);v=v-R.cityEye[c]*sfOf(R,c)*EYE_RATE*(1-arpuOf(c));if(v>500)floater(CITY[c].x,CITY[c].y-30,'+'+fmt$(v),'#16A866');}sfx('coin');}
   checkGoals();
@@ -97,7 +102,7 @@ function dayPost(d,route){
   {const c=cal(d);if(c.m===0&&c.d===1&&[2,3,5].includes(c.y))track('game_year_'+c.y,true);}
   if(d%10===0)save();
   };
-  if(dirty&&route)route(shift);else{if(dirty)compute();shift();}
+  if(dirty&&route)route(sales);else{if(dirty)compute();sales();}
 }
 function spawnOffer(){
   const mine=spMine(Object.keys(S.pops).filter(bizCity)),lv=lvl();
