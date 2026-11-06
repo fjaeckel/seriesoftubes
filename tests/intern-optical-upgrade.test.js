@@ -6,12 +6,13 @@ const { load } = require('./harness');
 
 // Frankfurt (transit) and Amsterdam (broadband) joined by a full Rainbow-in-a-Box fiber of 16×400G, and the long way
 // round through Paris on two waves. Level 6: every line system and optic unlocked. Change Freeze: no fat fingers.
+// Annie runs the shift: Kevin would swap two line systems a night (tests/intern-personas.test.js).
 const BASE = "ACT.start({});S.cash=1e9;for(const g of GOALS)S.done[g.id]=0;S.lvl=6;S.nextFail=S.nextEvent=1e9;UI.speed=0;S.rules=makeRules('freeze');" +
   "for(const c of ['ams','par'])ACT.buildPop({city:c});for(const c of ['fra','ams','par']){S.pops[c].rgen=mainRG(3);S.pops[c].routers=2;}ACT.launchBB({city:'ams'});" +
   "S.transit=[];ACT.buyTransit({city:'fra',net:'cog',tier:2});" +
   "S.links=[{id:'f',a:'fra',b:'ams',kind:'df',own:true,sys:'lite',ch:Array(16).fill('zr4'),km:450,trench:'t1',ready:0,cut:0,mo:1,pairs:1}," +
   "{id:'w1',a:'fra',b:'par',kind:'wave',tier:4,km:480,cut:0,mo:1},{id:'w2',a:'par',b:'ams',kind:'wave',tier:4,km:430,cut:0,mo:1}];compute();" +
-  "ACT.opsHire({id:'kevin'});S.ops.floor=0;S.ops.cap.optup=0;closeModal()";
+  "ACT.opsHire({id:'annie'});S.ops.floor=0;S.ops.cap.optup=0;closeModal()";
 function game(t, extra) {
   const h = load();
   t.after(() => h.dom.window.close());

@@ -19,11 +19,11 @@ function opsOrderHtml(d){const k=d.k,on=S.ops.on[k],cap=d.cap?opsCap(k):0,sp=S.o
 function opsModal(){if(!S)return;const hired=opsHired();let h=`<div style="display:flex;align-items:center"><div><div class="eyebrow">${tr('ops.ops')}</div><h2 style="font-size:26px">${tr('ops.standing_orders')}</h2></div><button class="x" data-act="closeModal" aria-label="${tr('common.close')}">×</button></div>`;
   if(!hired){h+=`<p class="tagline">${tr('ops.hire_pitch_weekly')}</p>`;
     if(!rule('clock'))h+=`<p class="why">${tr('ops.no_clock')}</p>`;else if(!opsCanHire())h+=`<p class="why">${tr('ops.locked',{lv:2})}</p>`;
-    else h+=Object.entries(INTERNS).map(([id,I])=>`<div class="ops-o"><div class="ops-h"><span class="ops-i" aria-hidden="true">${I.i}</span><div class="grow"><div class="nm">${tr(I.n)}</div><div class="meta">${tr(I.d)}</div></div>
+    else h+=Object.entries(INTERNS).map(([id,I])=>`<div class="ops-o"><div class="ops-h"><span class="ops-i" aria-hidden="true">${I.i}</span><div class="grow"><div class="nm">${tr(I.n)}</div><div class="meta">${tr(I.d)}</div><div class="ops-good">${tr(I.g)}</div></div>
       ${btn(tr('ops.hire_mo',{price:fmt$(INTERN_MO)}),'opsHire',{id},'pink sm',S.cash<INTERN_MO)}</div></div>`).join('');
     openModal(h+opsOnceHtml(),'ops');return;}
   const O=S.ops,I=INTERNS[O.intern];
-  h+=`<div class="ops-o on"><div class="ops-h"><span class="ops-i" aria-hidden="true">${I.i}</span><div class="grow"><div class="nm">${tr(I.n)}</div><div class="meta">${tr('ops.salary',{price:fmt$(INTERN_MO),d:dateStr(O.hired)})}</div></div>
+  h+=`<div class="ops-o on"><div class="ops-h"><span class="ops-i" aria-hidden="true">${I.i}</span><div class="grow"><div class="nm">${tr(I.n)}</div><div class="meta">${tr('ops.salary',{price:fmt$(INTERN_MO),d:dateStr(O.hired)})}</div><div class="ops-good">${tr(I.g)}</div></div>
     ${btn(UI.confirm==='opsFire'?tr('ops.really_fire'):tr('ops.fire'),'opsFire',{},'ghost sm')}</div>
     <p class="ops-mood">${esc(opsMood())}</p>${opsReportHtml()}
     ${O.log.length?`<pre class="term ops-log">${O.log.slice(0,6).map(e=>esc(tr('ops.day_d',{d:e.d})+': '+opsEntry(e))).join('\n')}</pre>`:''}

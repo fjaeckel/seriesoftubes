@@ -284,7 +284,8 @@ test('the mood follows the week, with no dice', t => {
 
 test('fat fingers: never under Change Freeze, rare and harmless in On-call and BGP at 3 a.m.', t => {
   const { ev, errors } = game(t);
-  hire(ev);
+  // Kevin never fat-fingers anything: Annie does, now and then.
+  ev("ACT.opsHire({id:'annie'});S.ops.floor=0;closeModal()");
   ev('window.__r=Math.random;Math.random=()=>0');
   for (let i = 0; i < 50; i++) shift(ev);
   assert.equal(ev('S.ops.log.some(e=>e.f!==undefined)'), false, 'Change Freeze: never, even on the unluckiest roll');
@@ -477,7 +478,8 @@ test('one order that throws is paused and noted; the rest of the shift and the d
 
 test('the fat-fingered LAG member respects a paused transit order and per-POP exceptions', t => {
   const { ev, errors } = game(t);
-  hire(ev);
+  // Kevin never fat-fingers anything: Annie does, now and then.
+  ev("ACT.opsHire({id:'annie'});S.ops.floor=0;closeModal()");
   // Each shift rolls: fat finger yes, the only POP, the LAG slip (index 3).
   ev("S.rules=makeRules('bgp');window.__r=Math.random;window.__k=0;Math.random=()=>[0,0,0.7][__k++%3]");
   const n0 = ev('S.transit[0].n||1'), c0 = cash(ev);
