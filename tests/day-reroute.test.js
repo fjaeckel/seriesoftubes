@@ -51,11 +51,12 @@ test('outages and events go through the worker too, and the day still comes out 
 
 test('deals the sales desk signs route in the worker too, before the shift sees them', (t) => {
   // Stands in for signing: what the desk's own loop does when it wins a deal is leave the routing out of date.
-  const sign = busy + "slAutoDay=(d,r)=>{for(const c in S.pops){const p=S.pops[c];if(p.bb){p.bb.d*=1.02;break;}}if(r)r();else compute();};OPS_RUN.optics=(f=>X=>{window.__sv=R.served;f(X);})(OPS_RUN.optics);";
+  const sign = busy + "window.__turn=[];slAutoDay=(d,r)=>{__turn.push('desk');for(const c in S.pops){const p=S.pops[c];if(p.bb){p.bb.d*=1.02;break;}}if(r)r();else compute();};OPS_RUN.optics=(f=>X=>{__turn.push('shift');window.__sv=R.served;f(X);})(OPS_RUN.optics);";
   const a = open(t, big + sign), b = open(t, big + sign + WORKER);
   a.ev('dayTick()');
   assert.equal(b.ev('__day()'), 3, 'the day, the desk, the shift');
   assert.equal(b.ev('__pg'), 0, 'nothing routed on the page');
+  assert.equal(b.ev('__turn.join()'), 'desk,shift', 'the shift comes after the desk');
   assert.equal(b.ev('__sv'), a.ev('__sv'), 'the shift reads the routing with the new deals in it');
   assert.equal(b.ev(SIG), a.ev(SIG));
   assert.deepEqual([...a.errors, ...b.errors], []);
