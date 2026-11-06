@@ -64,6 +64,8 @@
       // The backbone, Auto-TE and DDoS settings moved from the NOC tab into the Routing & DDoS modal: offer them here on
       // both pages, in one order, so main's page (settings in the tab) and this one (behind the button) stay in lockstep.
       if (typeof routingBody === 'function' && b.some((x) => x.act === 'routingOpen')) { const d = document.createElement('div'); d.innerHTML = routingBody(); b = b.filter((x) => x.act !== 'routingOpen').concat(btns(d)); }
+      // The traceroute moved into that modal too, and Connections left the tab (it is in the dashboard): drop it on both pages.
+      b = b.filter((x) => x.act !== 'connOpen');
       return b.sort((x, y) => (sig(x) < sig(y) ? -1 : sig(x) > sig(y) ? 1 : 0));
     }
     if (w.where === 'openLink') { if (!S.pops[w.a]) return []; openLinkModal(w.a, w.b); return modalOpen() ? btns($('modal')) : []; }

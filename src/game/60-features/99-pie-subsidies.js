@@ -97,7 +97,10 @@ function pieGovFix(g,s){const o=pieGovBlank(),day=s.day,ob=x=>x&&typeof x==='obj
 function pieEximFix(s){const ccs=new Set(CITIES.map(c=>c.cc)),home=isCity(s.home)?CITY[s.home].cc:CITIES[0].cc;
   for(const l of s.loans||[]){if(l.bank!=='exim')continue;const q=l.pie&&typeof l.pie==='object'?l.pie:{};
     l.pie={cc:ccs.has(q.cc)?q.cc:home,n:int(q.n,0,1e5,0),by:int(q.by,0,s.day+PIE_EXIM_BY,0),flown:int(q.flown,0,1e6,0),br:int(q.br,0,1e4,0)};l.covs=['pielaunch','piedish'];}}
-/* ---- Pie Control: the Gov tab ---- */
+/* ---- The bank's Government money section (it was Pie Control's Gov tab) ---- */
+// Shown once there is a rocket company, or anything of the fund's or the Ex-Im bank's to show.
+function pieGovShow(){const P=S&&S.pie;return !!(P&&pieOn()&&(P.co||P.gov.auc.length||P.gov.aw.length||P.gov.ex||pieEximLoan()));}
+function pieGovBank(){return pieGovShow()?`<section class="bank-gov"><h3 id="bankGov" style="font-size:18px;margin-top:14px">🏛️ ${tr('pie_gov.section')}</h3><p class="meta">${tr('pie_gov.section_note')}</p>${pieGovHtml()}</section>`:'';}
 function pieGovHtml(){const P=S.pie,G=P.gov,can=pieCanBuild();let h=`<div class="ops-o"><div class="nm">🏛️ ${tr('pie_gov.rdf')}</div><p class="meta">${tr('pie_gov.rdf_note',{y:PIE_RDF_TERM/360,p:pct(PIE_RDF_NEED),c:pct(PIE_RDF_CLAW)})}</p>`;
   for(const a of G.auc)h+=`<div class="kv"><span>${esc(CITY[a.city].name)} · ${tr('pie_gov.up_to',{mo:fmt$(a.ask)})}</span><b>${tr('pie_gov.closes',{d:dateStr(a.close)})}</b></div>
     <div class="ops-p">${PIE_RDF_BIDS.map(f=>btn(tr('pie_gov.ask',{mo:fmt$(Math.round(a.ask*f))}),'pieBid',{id:a.id,f},a.bid===f?'pink sm':'ghost sm',!can)).join('')}</div>`;

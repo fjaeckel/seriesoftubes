@@ -30,7 +30,7 @@ test('unlocks once, on the Tier 1 win, in a save of this version', () => {
   assert.equal(ev('S.pie.born'), born, 'only once');
   // reachable from the NOC tab
   ev("UI.started=true;UI.left='noc';UI.leftOpen=true;renderLeft()");
-  assert.ok(ev("!!document.querySelector('[data-act=pieOpen]')"), 'the NOC tab has the Pie Control card');
+  assert.ok(ev("!!document.querySelector('[data-act=pieOpen]')"), 'the NOC tab has the Pie Control button');
   assert.deepEqual(errors, []);
 });
 
@@ -264,7 +264,7 @@ test('saves without a rocket company pay nothing', () => {
   assert.equal(ev("pieDay(S.day)"), undefined);
   assert.equal(ev('pieDishes().length+pieHubs().length'), 0);
   assert.deepEqual(JSON.parse(ev('JSON.stringify(pieGlobeData())')), { crusts: [], dishes: [], pads: [], launches: [] });
-  assert.equal(ev("pieCard()"), '', 'no card while locked');
+  assert.equal(ev("pieNocBtn()"), '', 'no Pie Control button while locked');
   assert.deepEqual(errors, []);
 });
 
@@ -273,7 +273,7 @@ test('Pie Control renders every tab on a phone', () => {
   ev('window.innerWidth=360');
   won(ev);
   company(ev);
-  for (const t of ['co', 'fly', 'dish', 'gov', 'book']) {
+  for (const t of ['traffic', 'co', 'fly', 'dish']) {
     ev(`ACT.pieTab({t:'${t}'})`);
     assert.equal(ev("$('modal').hidden"), false);
     assert.ok(dom.window.document.querySelectorAll('#modalCard [data-act]').length > 2, t);

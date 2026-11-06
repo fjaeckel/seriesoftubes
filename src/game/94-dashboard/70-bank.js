@@ -29,5 +29,6 @@ function renderBank(){
     ${B.equity?`<div class="meta">${tr('bank.taking_pct_of_your_revenue_every',{pct:pct(l.share)})}</div>`:`<div class="kv"><span>${tr('common.still_owed')}</span><b>${fmt$(l.bal)}</b></div><div class="bar me"><i style="width:${Math.min(100,(1-l.bal/l.amount)*100)}%"></i></div><div class="meta">${loanLine(l)}</div>`}
     ${covList(l)}${l.breach>=1?`<div class="why">${trn('bank.condition_broken_for_n_day',l.breach)} ${l.breach<10?tr('bank.penalty_in_n_days',{n:10-l.breach}):tr('bank.penalties_are_running')}</div>`:''}
     <div class="btns" style="margin-top:6px">${btn(UI.confirm===l.id?tr('bank.really_pay_price',{price:fmt$(cost)}):B.equity?tr('bank.buy_them_out_price',{price:fmt$(cost)}):tr('bank.repay_early_price_incl_2_fee',{price:fmt$(cost)}),'repayLoan',{id:l.id},UI.confirm===l.id?'red sm':'sm',S.cash<cost)}</div></div></div>`;}
+  h+=pieGovBank();
   if(h!==UI._bh){UI._bh=h;$('bankCard').innerHTML=h;}
 }

@@ -177,8 +177,9 @@ test('Ex-Im Pie Bank: a cheap loan sized to the constellation, with space covena
   assert.match(bank, /Launch \d+ pies by .* \(20 so far\)/);
   assert.match(bank, /Keep a pie dish in/);
   ev("$('bankBox').hidden=true;ACT.pieGovOpen()");
-  assert.match(dom.window.document.querySelector('#modal').textContent, /Ex-Im Pie Bank/);
-  ev('closeModal()');
+  assert.equal(ev("$('bankBox').hidden"), false, 'the toast button opens the bank');
+  assert.match(dom.window.document.querySelector('#bankGov').parentNode.textContent, /Ex-Im Pie Bank/);
+  ev('ACT.bankClose()');
   assert.deepEqual(errors, []);
 });
 
@@ -209,20 +210,21 @@ test('a broken space covenant: the bank penalty, tighter terms and a spat in the
   assert.deepEqual(errors, []);
 });
 
-test('the Gov tab fits a phone and lists the auction, the awards, Pitcairn and the bank', () => {
+test('the bank\'s Government money section fits a phone and lists the auction, the awards, Pitcairn and the bank', () => {
   const { dom, ev, errors } = load();
   pitcairn(ev);
   ev("window.innerWidth=360;pieRdfOpen('pcn');S.pie.gov.aw.push({id:'w1',city:'akl',mo:5e6,start:S.day,due:S.day+90,end:S.day+1800,s:0,n:0,paid:0});UI.pieTab=null;ACT.pieGovOpen()");
-  const m = dom.window.document.querySelector('#modal');
-  assert.equal(ev("$('modal').hidden"), false);
+  const m = dom.window.document.querySelector('#bankCard');
+  assert.equal(ev("$('bankBox').hidden"), false);
+  assert.ok(m.querySelector('#bankGov'), 'opened at its section');
   assert.equal(m.querySelectorAll('[data-act=pieBid]').length, 3, 'three asks');
   assert.match(m.textContent, /Rural Digital Pie Fund/);
   assert.match(m.textContent, /Auckland/);
   assert.match(m.textContent, /Pitcairn/);
   assert.match(m.textContent, /satellite grant/);
-  assert.doesNotMatch(m.textContent, /pie_gov\.|banks\.|undefined|NaN/);
+  assert.doesNotMatch(m.querySelector('.bank-gov').textContent, /pie_gov\.|banks\.|undefined|NaN/);
   ev("ACT.pieBid({id:S.pie.gov.auc[0].id,f:0.7})");
-  assert.ok(dom.window.document.querySelector('#modal [data-act=pieBid].pink'), 'your bid is marked');
+  assert.ok(dom.window.document.querySelector('#bankCard [data-act=pieBid].pink'), 'your bid is marked, in the open bank');
   ev('closeModal()');
   assert.deepEqual(errors, []);
 });

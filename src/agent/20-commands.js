@@ -444,8 +444,8 @@ const API_CMD={
 
 const API_VIEW={
  pieOpen:{args:[],doc:'Open Pie Control, the rocket company\'s panel.'},
- pieGovOpen:{args:[],doc:'Open Pie Control on its Gov tab.'},
- pieTab:{args:[['t','pieTab']],doc:'Switch the Pie Control tab.'},
+ pieGovOpen:{args:[],doc:'Open the bank at its Government money section: the rocket company\'s fund auctions, the Pitcairn grant and the Ex-Im Pie Bank (it used to be Pie Control\'s Gov tab).'},
+ pieTab:{args:[['t','pieTab']],doc:'Switch the Pie Control tab: traffic, co (the company, its books and the Founder\'s posts), fly (launches) or dish.'},
  pieCity:{args:[['v','cityId']],doc:'Pick the POP the Dishes tab works on.'},
  pieHi:{args:[['id','string']],doc:'Highlight one orbit flow on the Pie Control globe.'},
  pieIns:{args:[],doc:'Toggle launch insurance for the next launches.'},
@@ -488,7 +488,7 @@ const API_VIEW={
  popsSort:{args:[['k','popsSortKey']],doc:'Flip the sort of the list of cities with no POP.'},
  goConn:{args:[['city','cityId'],['k','connKind']],doc:'Open a city\'s connections tab.'},
  goEgress:{args:[['city','cityId'],['k','egressKind']],doc:'Open a city\'s connections tab (l2 for the customer list).'},
- connOpen:{args:[],doc:'Open the connections dashboard tab.'},
+ connOpen:{args:[],doc:'Open the connections tab of the NOC dashboard (also the Peering tab\'s "All connections" button).'},
  connF:{args:[['f','connFilter'],['v','string',false]],doc:'Filter the connections list.'},
  connCity:{args:[['v','string']],doc:'Filter the connections list by city.'},
  connNet:{args:[['v','string']],doc:'Filter the connections list by network.'},
@@ -501,7 +501,7 @@ const API_VIEW={
  offerStep:{args:[],doc:'Select the next open offer (soonest to expire first), centre its city and mark it under Offers here: the $ key.'},
  zoomStep:{args:[['d','integer']],doc:'Zoom the map out (d<0) or in (d>0) around its middle: the - and = keys.'},
  keys:{args:[],doc:'Open the list of keyboard shortcuts (the ? key).'},
- routingOpen:{args:[],doc:'Open the Routing & DDoS window: backbone, Auto-TE and DDoS settings (the button at the top of the NOC tab).'},
+ routingOpen:{args:[],doc:'Open the Routing & DDoS window: the traceroute, backbone, Auto-TE and DDoS settings (the button at the top of the NOC tab).'},
  opsOpen:{args:[],doc:'Open the Ops sheet: the NOC intern\'s mood, weekly shift report and standing orders.'},
  salesOpen:{args:[],doc:'Open the sales desk sheet: the three kinds of salesperson, who is at the desk and what they cost.'},
  opsCity:{args:[['v','cityId',false]],doc:'Show one POP\'s standing-order exceptions in the Ops sheet.'},

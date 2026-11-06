@@ -87,7 +87,7 @@ Reuse the existing sanctions / sovereign-drill / China licence machinery where i
 - Not over my airspace: two countries each demand their traffic avoid the other's dishes.
 Each spat is a notification with 2 choices; outcomes deterministic per seed.
 
-## Government money (`60-features/99-pie-subsidies.js`, Pie Control's Gov tab)
+## Government money (`60-features/99-pie-subsidies.js`, a section of the bank)
 
 - Rural Digital Pie Fund: reverse auctions for towns only orbit reaches (a cut-off POP on backhaul, or a small town of
   your terminal customers). You ask 90%, 70% or 50% of the reserve; a rival asks 40-100%; the lower ask wins and is paid

@@ -5,6 +5,12 @@
 .toast .b{pointer-events:auto}
 .seg{display:flex;flex-wrap:wrap;gap:6px}
 .seg .b{white-space:normal;text-align:left}
+/* A segmented control: one framed row of equal tabs, the active one filled like the HUD's speed buttons (Pie Control). */
+.segc{display:flex;gap:3px;padding:3px;margin:6px 0 10px;border:3px solid var(--ink);border-radius:14px;background:var(--soft);box-shadow:3px 3px 0 var(--ink)}
+.segc button{flex:1 1 0;min-width:0;min-height:40px;padding:3px 2px;border:2.5px solid transparent;border-radius:10px;background:none;color:var(--ink);font-family:var(--display);font-weight:800;font-size:min(13.5px,3.6vw);line-height:1.1;cursor:pointer;overflow-wrap:anywhere;hyphens:auto}
+.segc button:hover{background:var(--paper)}
+.segc button.on{background:var(--sun);border-color:var(--ink)}
+.segc button:focus-visible{outline:3px solid var(--me);outline-offset:1px}
 .toast .tx{flex:1;font-size:13px;line-height:1.35}
 .toast .tx b{font-family:var(--display);font-size:14.5px}
 @keyframes pop{from{transform:scale(.8) translateY(10px);opacity:0}}

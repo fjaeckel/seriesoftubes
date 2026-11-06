@@ -14,3 +14,14 @@
 .ops-mood{margin:6px 0 0;font-style:italic;font-size:13px;color:var(--ink2)}
 .ops-rep{border-left:3px solid #8E5CF7;background:#F7F2FF;border-radius:0 8px 8px 0;padding:6px 8px;margin:6px 0;font-size:13px;line-height:1.35;overflow-wrap:anywhere}
 .ops-rep .eyebrow{margin-bottom:2px}
+/* Pie Control's Company tab ends with the Founder's feed: a quiet section, older posts folded away. */
+.pie-feed{border-top:2px solid var(--line);margin-top:12px;padding-top:4px}
+.pie-feed h3{font-size:15px;margin:8px 0 4px}
+.pie-feed summary{cursor:pointer;font-weight:800;font-size:13px;color:var(--ink2);padding:8px 0;min-height:24px}
+/* Government money in the bank: the same boxes as the loans next to it. */
+.bank-gov>.meta{font-size:13px;color:var(--ink2);margin:2px 0 6px;line-height:1.35}
+.bank-gov .ops-o{border:2.5px solid var(--ink);border-radius:14px;padding:10px 12px;margin-top:10px}
+.bank-gov .ops-o .nm{font-weight:800;font-family:var(--display);font-size:16px}
+.bank-gov .ops-o .meta{font-size:12.5px;color:var(--ink2);line-height:1.35}
+.bank-gov .fact{display:inline-block;margin-top:2px}
+.bank-gov .ops-o p.meta{margin:4px 0}

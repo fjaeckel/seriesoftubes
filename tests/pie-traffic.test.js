@@ -72,7 +72,7 @@ test('the Traffic tab is first, fits 360 px and lists a terminal and a sky circu
   term(ev, 'pz', 'pcn');
   ev('UI.pieTab=null;ACT.pieOpen()');
   const d = doc(dom);
-  assert.equal(d.querySelector('#modalCard .seg [aria-pressed="true"]').textContent, ev("tr('pie_traffic.tab')"), 'Traffic is the default tab');
+  assert.equal(d.querySelector('#modalCard .pie-tabs [aria-pressed="true"]').textContent, ev("tr('pie_traffic.tab')"), 'Traffic is the default tab');
   const txt = d.querySelector('#modalCard').textContent;
   assert.match(txt, /In orbit now: .* of .* sellable · .*\/mo · 2 customers/);
   assert.match(txt, /Who's riding/);
