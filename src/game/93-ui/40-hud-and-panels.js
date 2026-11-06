@@ -31,14 +31,14 @@ function renderLeft(){checkLayer();
   const tab=isTablet(),L=$('left');L.classList.toggle('closed',tab?(!!UI.sel&&!UI.leftOpen):!UI.leftOpen);const tg=$('leftToggle');if(tg&&innerWidth>760)tg.hidden=!(tab&&L.classList.contains('closed'));
   renderTabbar();
   if(!S||pzOn()){L.hidden=true;return;}L.hidden=false;
-  const ndone=GOALS.filter(g=>S.done[g.id]!==undefined).length;
-  const tabs=[['goals',`<span class="tl">${tr('common.goals')}</span><span class="cnt">${ndone}/${GOALS.length}</span>`],['deals',`<span class="tl">${tr('common.deals')}</span>${S.offers.length+clHags()?`<span class="cnt">${S.offers.length+clHags()}</span>`:''}`],['noc',`<span class="tl">NOC</span>${S.inc.length?`<span class="cnt red dot" aria-hidden="true"></span>`:''}`],['nets',`<span class="tl">${tr('common.networks')}</span>`]];
+  const G=goals(),ndone=G.filter(g=>S.done[g.id]!==undefined).length;
+  const tabs=[['goals',`<span class="tl">${tr('common.goals')}</span><span class="cnt">${ndone}/${G.length}</span>`],['deals',`<span class="tl">${tr('common.deals')}</span>${S.offers.length+clHags()?`<span class="cnt">${S.offers.length+clHags()}</span>`:''}`],['noc',`<span class="tl">NOC</span>${S.inc.length?`<span class="cnt red dot" aria-hidden="true"></span>`:''}`],['nets',`<span class="tl">${tr('common.networks')}</span>`]];
   $('leftTabs').innerHTML=tabs.map(([k,l])=>`<button class="${UI.left===k?'on':''}" data-act="leftTab" data-args='{"t":"${k}"}'>${l}</button>`).join('')+(innerWidth<760?`<button data-act="toggleLeft" style="margin-left:auto" aria-label="${tr('common.close')}">×</button>`:'');
   let h='';
   if(UI.left==='goals'){
     h+=charterCard()+scnCard()+lvlCard()+t1Card();
-    const cur=GOALS.find(g=>S.done[g.id]===undefined);
-    h+=GOALS.map(g=>{const d=S.done[g.id]!==undefined,c=g===cur;return `<div class="goal ${d?'done':''} ${c?'cur':''}"><div class="ck">${d?'✓':''}</div><div><div class="gt">${esc(g.t)}</div>${c||!d?`<div class="gd">${esc(g.d)}</div>`:''}${!d&&g.r?`<div class="gr">${tr('hud_and_panels.reward_cash',{cash:fmt$(g.r)})}</div>`:''}</div></div>`;}).join('');
+    const cur=G.find(g=>S.done[g.id]===undefined);
+    h+=G.map(g=>{const d=S.done[g.id]!==undefined,c=g===cur;return `<div class="goal ${d?'done':''} ${c?'cur':''}"><div class="ck">${d?'✓':''}</div><div><div class="gt">${esc(g.t)}</div>${c||!d?`<div class="gd">${esc(g.d)}</div>`:''}${!d&&g.r?`<div class="gr">${tr('hud_and_panels.reward_cash',{cash:fmt$(g.r)})}</div>`:''}</div></div>`;}).join('');
     h+=badgeGrid();
   }else if(UI.left==='deals'){
     {const st=custStats();if(st.n)h+=`<div class="row" style="margin-bottom:8px"><div class="grow"><div class="nm">${tr('common.your_customers')} <span class="meta">${st.n} · ${tr('hud_and_panels.happiness_p',{p:Math.round(st.avg)})}</span></div><div class="bar ${moodCls(st.avg)}"><i style="width:${st.avg}%"></i></div>${st.unhappy?`<div class="why">${trn('hud_and_panels.n_unhappy_customer_price_mo_at',st.unhappy,{price:fmt$(st.risk)})}</div>`:''}</div>${btn(st.unhappy?tr('common.see_who'):tr('common.all_customers'),'custOpen',{sad:st.unhappy?1:0},st.unhappy?'pink sm':'ghost sm')}</div>`;}

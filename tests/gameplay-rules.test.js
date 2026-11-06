@@ -289,6 +289,28 @@ test('M5: Sandbox has no locked feature', () => {
   assert.deepEqual(g.errors, []);
 });
 
+test('M6: a charter changes what you set out to do, never what things cost', () => {
+  const bad = [];
+  const g = load();
+  g.ev("beginGame('Charter','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip()");
+  if (!g.ev('charterDue()')) bad.push('a new Normal game does not ask for its charter');
+  g.ev("ACT.charter({k:'broker'});S.lvl=1");
+  const glass = (x) => g.ev(`JSON.stringify({opt:Object.keys(OPT).map(o=>optCost(o)),sys:Object.keys(DF_SYS).map(sysCost),dig:digCost(500),cab:ownCabCost(5000),rt:RG.map((r,i)=>routerCost(i,1))})`);
+  const b = JSON.parse(glass());
+  g.ev("S.charter='global';S.lvl=LEVELS.length");
+  const c = JSON.parse(glass());
+  for (const k of Object.keys(b)) if (JSON.stringify(b[k]) !== JSON.stringify(c[k])) bad.push(`a broker at level 1 pays other prices for ${k} than a backbone at the top level`);
+  g.ev("S.charter='broker';S.lvl=1");
+  if (g.ev('S.te') || (g.ev('ACT.buyTE()'), g.ev('S.te'))) bad.push('a broker skips the levels for something that is not glass (Auto-TE)');
+  for (const o of ["{mode:'sandbox'}", "{mode:'puzzle'}", '{scn:SCN[0]}']) {
+    const h = load();
+    h.ev(`beginGame('X','fra',${o});if(UI.pendGame)ACT.pitchSkip()`);
+    if (h.ev('charterDue()')) bad.push(`${o} asks for a charter`);
+  }
+  fail('M6', bad, 'the broker gets glass early, not cheaper; charters belong to Normal games only');
+  assert.deepEqual(g.errors, []);
+});
+
 // ---------- Content ----------
 
 test('C1: every scenario has a goal its card checks, and none is won on day 0', () => {

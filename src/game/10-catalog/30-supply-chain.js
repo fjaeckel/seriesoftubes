@@ -31,4 +31,4 @@ const RMAX=16;
 // The plain, badge-less model of each class is the default upgrade path; the others are side-grades.
 const mainRG=k=>RG.findIndex(r=>r.cls===k&&!r.badge);
 // Ports and waves beyond 1.6T / 6.4T only show once a router that takes them is unlocked.
-const portShown=i=>i<=4||RG.some(r=>r.lvl<=lvl()&&r.maxP>=i),waveShown=i=>i<=5||RG.some(r=>r.lvl<=lvl()&&r.maxLT>=i);
+const portShown=i=>i<=4||RG.some((r,g)=>rgOpen(g)&&r.maxP>=i),waveShown=i=>i<=5||RG.some((r,g)=>rgOpen(g)&&r.maxLT>=i);

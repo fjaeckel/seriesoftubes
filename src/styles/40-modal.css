@@ -206,3 +206,13 @@ h2 .rn{font-size:18px;vertical-align:middle;padding:2px 4px}
 .findrow .nm,.findrow .meta{display:block}
 .findrow.on{background:var(--soft);border-radius:10px}
 .findrow:hover{background:var(--soft)}
+/* The charter picker (36-specialist.js): three big choices, one tap each, nothing else to close it with. */
+.chpick h2{margin:2px 0 4px}.chpick .tagline{margin:0 0 6px}
+.chopt{display:flex;align-items:flex-start;gap:12px;width:100%;margin-top:8px;border:3px solid var(--ink);border-radius:14px;padding:10px 12px;background:var(--paper);box-shadow:0 3px 0 var(--ink);font:inherit;color:var(--ink);text-align:left;cursor:pointer}
+.chopt:hover,.chopt:focus-visible{background:var(--soft)}.chopt:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.chi{font-size:28px;line-height:1.1;flex:none}.cht{display:flex;flex-direction:column;gap:2px;min-width:0}
+.cht b{font:800 17px/1.2 var(--display)}.cht span{font-size:13px;line-height:1.35;color:var(--ink2)}
+@media (max-width:760px){.chopt{padding:9px 10px;gap:10px}.chi{font-size:24px}.cht span{font-size:12.5px}}
+/* A phone on its side: the three side by side, so nothing scrolls. */
+@media (orientation:landscape) and (max-height:500px){.chpick h2{font-size:21px !important}.chpick .tagline{display:none}
+  .chopts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.chopt{flex-direction:column;gap:2px;margin-top:6px;padding:8px 10px}.chi{font-size:22px}.cht span{font-size:12px;line-height:1.3}}

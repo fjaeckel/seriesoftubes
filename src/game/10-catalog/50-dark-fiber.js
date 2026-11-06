@@ -8,7 +8,7 @@ const AMP_EVERY=100, AMP_COST=8000, AMP_MO=300;
 /* Your own trench holds more than one fiber pair (#35). Once a ROADMaster is full you can light the next pair:
    another ROADMaster and another chain of amplifiers, 64 more channels. Regen huts are shared. */
 const isRdm=y=>y==='roadm'||y==='cl';
-const PAIRS_MAX=4,PAIRS_BIG=8,PAIRS_LV=12,SUB_PAIRS_MAX=8,SUB_PAIR_UP=1500000,pairsMax=l=>l.seat?Math.max(1,l.pairs|0):l.sub?SUB_PAIRS_MAX:lvl()>=PAIRS_LV?PAIRS_BIG:PAIRS_MAX,chMax=l=>DF_SYS[l.sys].max*(isRdm(l.sys)&&l.own?Math.max(1,l.pairs|0):1),
+const PAIRS_MAX=4,PAIRS_BIG=8,PAIRS_LV=12,SUB_PAIRS_MAX=8,SUB_PAIR_UP=1500000,pairsMax=l=>l.seat?Math.max(1,l.pairs|0):l.sub?SUB_PAIRS_MAX:glassLvl()>=PAIRS_LV?PAIRS_BIG:PAIRS_MAX,chMax=l=>DF_SYS[l.sys].max*(isRdm(l.sys)&&l.own?Math.max(1,l.pairs|0):1),
   pairCost=l=>DF_SYS[isRdm(l.sys)?l.sys:'roadm'].cost+(l.sub?SUB_PAIR_UP:ampCount(l.km)*AMP_COST);
 const OPT={
  zr4:{n:'Ackackia 400ZR+',g:400,cost:12000,reach:1500,modes:[[400,1500],[200,3000]],rg:1,lvl:2,sys:'lite',blurb:tr('dark_fiber.coherent_pluggable_in_the_router_no')},

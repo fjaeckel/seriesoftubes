@@ -30,6 +30,7 @@ const BADGES=[
  {id:'landlord',i:'🧵',t:tr('common.trench_landlord'),d:tr('badges.lease_hundreds_of_fiber_pairs_to'),r:'e',ok:()=>S.biz.some(b=>b.type==='pairs')},
  {id:'t1',i:'👑',t:tr('common.tier_1'),d:tr('badges.go_transit_free'),r:'e',ok:()=>!!S.won},
  {id:'sol',i:'⚡',t:tr('specialist.speed_of_light'),d:tr('specialist.win_as_a_low_latency_boutique'),r:'e',ok:()=>!!S.solWon},
+ {id:'baron',i:'🌊',t:tr('broker.glass_baron'),d:tr('broker.win_as_a_cable_broker'),r:'e',ok:()=>!!S.baronWon},
  {id:'seat',i:'🚢',t:tr('specialist.part_owner_of_the_sea'),d:tr('specialist.take_a_seat_on_a_consortium'),r:'r',ok:()=>S.links.some(l=>l.seat)},
  {id:'bait',i:'🎣',t:tr('common.shark_bait'),d:tr('badges.get_bitten_by_sharks_3_times'),r:'l',ok:()=>(st().sharks||0)>=3},
  {id:'nines',i:'💎',t:tr('common.five_nines'),d:tr('badges.serve_99_5_of_demand_every'),r:'l',ok:()=>(st().clean||0)>=365},
@@ -110,9 +111,10 @@ function badgeGrid(){const h=hof(),got=BADGES.filter(b=>S.ach&&S.ach[b.id]!==und
   <div class="badges">${BADGES.map(b=>{const on=S.ach&&S.ach[b.id]!==undefined,ever=!!h[b.id],R0=RARITY[b.r],hide=b.secret&&!on&&!ever,vk=on?bvar(S.achP&&S.achP[b.id]).k:ever?h[b.id].v:'',vn=vk&&vk!=='oncall'?' · '+BVAR[vk].i+' '+tr(BVAR[vk].n):'';
     return `<div class="bdg ${on?'on':ever?'ever':''}${vk?' v-'+vk:''}" style="--rc:${R0.col}" title="${esc(hide?tr('badges.a_secret_badge'):b.t+': '+b.d+vn)}"><span class="bi">${hide?'❔':b.i}</span><span class="bt">${esc(hide?'???':b.t)}</span><span class="br">${R0.n}${ever&&!on?' · '+tr('common.earned_before'):''}</span>${vk&&vk!=='oncall'?`<span class="bv">${BVAR[vk].i} ${esc(tr(BVAR[vk].n))}</span>`:''}${hide?'':`<span class="bd">${esc(b.d)}</span>`}</div>`;}).join('')}</div>`;}
 function checkGoals(){checkBadges();
-  for(const g of GOALS){if(S.done[g.id]!==undefined)continue;let ok=false;try{ok=g.ok();}catch(e){}
+  for(const g of goals()){if(S.done[g.id]!==undefined)continue;let ok=false;try{ok=g.ok();}catch(e){}
     if(ok){S.done[g.id]=S.day;if(g.r&&S.mode!=='sandbox'){S.cash+=g.r;}
       toast(`<b>${tr('badges.goal_complete_name',{name:esc(g.t)})}</b>${g.r?`<br>${tr('badges.reward_amt',{amt:fmt$(g.r)})}`:''}`,'goal',[],{a:'tab',v:'goals'});sfx('coin');
-      track('goal_'+g.id);if(g.win&&!S.won){S.won=true;track('win_tier1');checkBadges();showWin();}}}
+      // Glass Baron is the broker's win; S.won stays Tier 1, which a broker can still become.
+      track('goal_'+g.id);if(g.baron){if(!S.baronWon){S.baronWon=S.day||1;track('win_baron');checkBadges();showBaronWin();}}else if(g.win&&!S.won){S.won=true;track('win_tier1');checkBadges();showWin();}}}
 }
 

@@ -686,7 +686,7 @@ test('NOC leased lines tab prices leased dark fiber, own fiber and cables agains
   assert.match(t, /Amsterdam ⇄ Frankfurt/);
   assert.match(t, /Lease dark fiber: .* up front/);
   assert.match(t, /Your own fiber: .* up front/);
-  assert.match(t, /Go transit-free first/, 'own subsea cables stay Tier 1 only');
+  assert.match(t, /level 9, or Tier 1/, 'own subsea cables need customer level 9 or Tier 1 (#300)');
   const land = JSON.parse(ev("JSON.stringify(leaseSwaps().find(x=>x.a==='ams'))"));
   assert.equal(land.ls.length, 2, 'parallel waves on one route are grouped');
   assert.equal(land.cap, 800);

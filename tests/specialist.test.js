@@ -122,11 +122,9 @@ test('#173 a consortium seat: offer, pay, build, light, cut, save', () => {
 test('#187 the Low-latency boutique: pick it on day 0, traders weigh more and pay more, Speed of Light wins', () => {
   const { ev, dom, errors } = load();
   ev(start);
-  ev("ACT.leftTab({t:'goals'});renderAll()");
-  assert.match(dom.window.document.body.innerHTML, /Pick a charter/);
-  ev("window.innerWidth=360;renderAll()");
-  assert.match(dom.window.document.body.innerHTML, /Low-latency boutique/, 'on a phone too');
-  ev("window.innerWidth=1280");
+  // The charter is asked in a popup when the game starts (tests/charters.test.js has the picker itself).
+  ev("window.__TUBES_CHARTER__=true;renderAll()");
+  assert.match(dom.window.document.getElementById('modalCard').innerHTML, /Low-latency boutique/);
   assert.equal(ev('charter()'), 'global', 'Global backbone until you pick');
   ev("ACT.charter({k:'boutique'})");
   assert.equal(ev('charter()'), 'boutique');

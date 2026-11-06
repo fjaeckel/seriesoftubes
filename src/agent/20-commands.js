@@ -157,14 +157,14 @@ const API_CMD={
  orderDf:{args:[['a','cityId'],['b','cityId'],['source','dfSource'],['system','systemId']],
   bindsUI:['pending','dfSrc','dfSys'],bind:a=>{UI.pending={a:a.a,b:a.b};UI.dfSrc=a.source;UI.dfSys=a.system;},
   quote:a=>{const A=a.a,B=a.b,sc=isSub(A,B)?subDfCable(A,B):null,km=sc?sc.km:kmBetween(A,B);
-   const building=a.source==='build'&&lvl()>=3&&!sc,sys=DF_SYS[a.system]&&DF_SYS[a.system].lvl<=lvl()?a.system:'lite';
+   const building=a.source==='build'&&glassLvl()>=3&&!sc,sys=DF_SYS[a.system]&&DF_SYS[a.system].lvl<=glassLvl()?a.system:'lite';
    const amps=ampCount(km),blocked=[];
    if(!S.pops[A])blocked.push(linkFromWhy(A));
    if(isSub(A,B)&&!sc)blocked.push(tr('fiber_modals.nobody_sells_dark_fiber_on_a'));
    else if(uaePair(A,B))blocked.push(tr('fiber_modals.no_dark_fiber_inside_the_uae'));
    else if(landX(A,B)&&cnCity(A)===cnCity(B))blocked.push(tr('fiber_modals.nobody_sells_one_fiber_pair_across'));
    else if(!dfAllowed(A,B))blocked.push(tr('fiber_modals.dark_fiber_across_the_chinese_border'));
-   if(lvl()<2)blocked.push(tr('fiber_modals.dark_fiber_unlocks_at_customer_level'));
+   if(glassLvl()<2)blocked.push(tr('fiber_modals.dark_fiber_unlocks_at_customer_level'));
    return {setup:(building?dfBuildCost(km):0)+DF_SYS[sys].cost+amps*AMP_COST+(S.pops[B]?0:popCost(B)),
      monthly:(building?Math.round(km*0.15):dfLeaseMo(km))+amps*AMP_MO,days:building?dfBuildDays(km):30,blocked};},
   doc:'Get dark fiber from one of your POPs (a): lease an IRU, dig your own (level 3+), or take a pair on a subsea cable; opens a POP in b if there is none. Then light it with a line system.'},
@@ -204,7 +204,7 @@ const API_CMD={
  hwLock:{args:[],quote:a=>({setup:hwLockCost()}),
   doc:'Lock router, optic and build prices for a year, shortages included. Costs twice as much while a shortage runs.'},
  buySpare:{args:[['o','opticId']],
-  quote:a=>({setup:optCost(a.o),blocked:[OPT[a.o]&&OPT[a.o].lvl>lvl()?tr('action_helpers.unlocks_at_customer_level_n',{n:OPT[a.o].lvl}):''].filter(Boolean)}),
+  quote:a=>({setup:optCost(a.o),blocked:[OPT[a.o]&&OPT[a.o].lvl>glassLvl()?tr('action_helpers.unlocks_at_customer_level_n',{n:OPT[a.o].lvl}):''].filter(Boolean)}),
   doc:'Buy a spare optic for the shelf, up to 64 of a kind. The next channel of that type is then free of optic cost.'},
  sellSpare:{args:[['o','opticId']],quote:a=>({setup:-spareValue(a.o)}),
   doc:'Sell a spare on eBuy for 40% of list.'},
@@ -342,7 +342,7 @@ const API_CMD={
  seatNo:{args:[],watch:['seatOff'],
    doc:'Decline the consortium cable offer.'},
  charter:{args:[['k','charterKey']],watch:['charter'],
-   doc:'Sign your first-month charter: global backbone (the classic game) or low-latency boutique (trading firms pay 40% more, and it has its own win). One choice per network, normal games only.'},
+   doc:'Sign the charter a new normal game asks for before anything else (the player sees a popup until it is signed): global backbone (the classic game), low-latency boutique (trading firms pay 40% more, and it has its own win) or broker (dark fiber, line systems, optics and own subsea cables from day one at the usual prices, its own goals and its own win, Glass Baron). One choice per network, normal games only.'},
  mkBanana:{args:[],watch:['monkey'],
    quote:a=>({setup:mkBananaCost()}),
    doc:'Throw the chaos monkey a banana and it leaves early. Only while it is in your network; the price scales with your revenue.'},

@@ -20,4 +20,19 @@ const GOALS=[
  {id:'t10',t:tr('goals.serve_10_tbps'),d:tr('goals.ten_terabits_per_second_of_happy'),r:250000,ok:()=>R.served>=10000},
  {id:'t1',t:tr('common.go_transit_free_tier_1'),d:tr('goals.peer_with_every_tier_1_their_customers'),r:0,win:true,ok:()=>isTier1()},
 ];
-
+// The Cable broker's goals (#300): light glass, sell it, lay cables across the oceans, and end as a Glass Baron
+// (37-cable-broker.js). Ids of their own, so a save keeps the ladder it ran. Rewards are larger: glass costs more.
+const BROKER_GOALS=[
+ {id:'bk_df',t:tr('goals.light_your_own_dark_fiber'),d:tr('broker.goal_df_d'),r:25000,ok:()=>S.links.some(l=>l.kind==='df'&&dfCap(l)>0)},
+ {id:'bk_wave',t:tr('broker.goal_wave'),d:tr('broker.goal_wave_d'),r:40000,ok:()=>S.biz.some(b=>b.type==='wwave'||b.type==='capw'&&!capPend(b))},
+ {id:'bk_pair',t:tr('broker.goal_pair'),d:tr('broker.goal_pair_d'),r:50000,ok:()=>S.biz.some(b=>(b.type==='dfpair'||b.type==='pairs'||b.type==='capfib')&&!capPend(b))},
+ {id:'bk_sea',t:tr('broker.goal_sea'),d:tr('broker.goal_sea_d'),r:150000,ok:()=>S.links.some(l=>ownGlassL(l)&&l.sub)},
+ {id:'bk_deal',t:tr('broker.goal_deal'),d:tr('broker.goal_deal_d'),r:100000,ok:()=>(S.stats.capDone||0)>0},
+ {id:'bk_10k',t:tr('broker.goal_10k'),d:tr('broker.goal_10k_d'),r:200000,ok:()=>glassKm()>=10000},
+ {id:'bk_16t',t:tr('broker.goal_16t'),d:tr('broker.goal_16t_d'),r:250000,ok:()=>glassChain(1600)},
+ {id:'bk_c4',t:tr('broker.goal_c4'),d:tr('broker.goal_c4_d'),r:400000,ok:()=>cableConts()>=4},
+ {id:'bk_10t',t:tr('broker.goal_10t'),d:tr('broker.goal_10t_d'),r:600000,ok:()=>capSoldG()>=10000},
+ {id:'bk_win',t:tr('broker.glass_baron'),d:tr('broker.goal_win_d'),r:0,win:true,baron:true,ok:()=>baronOk()},
+];
+// The ladder this network runs: the broker's, or the classic one every other charter and mode plays.
+const goals=()=>broker()?BROKER_GOALS:GOALS;

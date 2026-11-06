@@ -34,15 +34,15 @@ const DEMO_MUL=1.6,DEMO_DAYS=14;
 function demoItem(k,id){return k==='rg'?RG[+id]||null:k==='sys'?(own(DF_SYS,id)?DF_SYS[id]:null):k==='opt'?(own(OPT,id)?OPT[id]:null):null;}
 const demoAt=(k,id)=>{const d=S&&S.demo&&S.demo[k+':'+id];return d===undefined?null:d;};
 const demoCan=L=>!gatesOpen()&&L===lvl()+1;
-function techOk(k,id,L){if(L<=lvl())return true;const d=demoAt(k,id);return demoCan(L)&&d!==null&&d<=S.day;}
-const techMul=L=>L>lvl()?DEMO_MUL:1;
+function techOk(k,id,L){if(L<=(k==='rg'?(rgGlass(+id)?LEVELS.length:lvl()):k==='sys'||k==='opt'?glassLvl():lvl()))return true;const d=demoAt(k,id);return demoCan(L)&&d!==null&&d<=S.day;}
+const techMul=L=>L>glassLvl()?DEMO_MUL:1;
 function demoBtn(k,id,L,lock,cls){const d=demoAt(k,id);if(!demoCan(L))return btn(lock,'demoAsk',{k,id},cls,true);
   if(d!==null&&d>S.day)return btn(tr('specialist.demo_unit_ships_in_n_days',{n:d-S.day}),'demoAsk',{k,id},cls,true);
   return btn(tr('specialist.ask_for_a_demo_unit_p_n',{p:Math.round((DEMO_MUL-1)*100),n:leadDays(DEMO_DAYS)}),'demoAsk',{k,id},cls);}
 const sysCost=k=>Math.round(DF_SYS[k].cost*techMul(DF_SYS[k].lvl));
 // Digging your own fiber before level 3: the pioneer pays for the permits nobody has asked for yet.
 const PIONEER=1.6;
-const digMul=()=>lvl()>=3?1:PIONEER,digCost=km=>Math.round(dfBuildCost(km)*digMul());
+const digMul=()=>glassLvl()>=3?1:PIONEER,digCost=km=>Math.round(dfBuildCost(km)*digMul());
 
 /* A seat on a consortium cable (#173): pay your share of the build, wait for the ship, and own fiber pairs on it,
    lit with your own optics like your own cable. Capacity conferences offer them, and now and then a consortium calls. */
@@ -64,11 +64,18 @@ function seatSection(){const o=S.seatOff;if(!o||o.exp<=S.day)return '';const pop
   <div class="btns">${SEAT_N.map(n=>{const c=seatCost(o.km,n)+pop;return btn(`${trn('specialist.n_fiber_pairs',n)} <small>${fmt$(c)} · ${tr('common.price_mo',{price:fmt$(seatMo(o.km,n))})}</small>`,'seatBuy',{n},'sm',S.cash<c);}).join('')}${btn(tr('common.decline'),'seatNo',{},'ghost sm')}</div></div>`;}
 function seatPanel(l){if(!l.seat)return '';return `<div class="kv"><span>${tr('specialist.consortium_seat')}</span><b>${esc(l.cname||'')} · ${trn('specialist.n_fiber_pairs',Math.max(1,l.pairs|0))}</b></div><p class="note">${tr('specialist.the_consortium_runs_the_cable_your')}</p>`;}
 
-/* Charters: what the network sets out to be, picked once at the start of a Normal game. Global backbone is the game as
-   it always was; the Low-latency boutique sells speed to traders and has its own win, Speed of Light. */
-const CHARTERS={global:{i:'🌐',n:N_('specialist.global_backbone'),d:N_('specialist.the_classic_game_grow_everywhere_and')},boutique:{i:'⚡',n:N_('specialist.low_latency_boutique'),d:N_('specialist.trading_firms_and_other_latency_customers')}};
+/* Charters: what the network sets out to be, picked once when a Normal game starts, in a popup that waits for an
+   answer. Global backbone is the game as it always was; the Low-latency boutique sells speed to traders and has its own
+   win, Speed of Light; the Cable broker (#300) lays and lights glass on land and under the sea from day one, at the
+   usual prices, sells it, and has its own goals and win, Glass Baron (37-cable-broker.js). */
+const CHARTERS={global:{i:'🌐',n:N_('specialist.global_backbone'),d:N_('specialist.the_classic_game_grow_everywhere_and')},boutique:{i:'⚡',n:N_('specialist.low_latency_boutique'),d:N_('specialist.trading_firms_and_other_latency_customers')},broker:{i:'🚢',n:N_('specialist.cable_broker'),d:N_('specialist.cable_broker_desc')}};
 const CHARTER_DAYS=30,LAT_PAY=1.4,SOL_ROUTES=3,SOL_CUST=2;
-const charter=()=>S&&!S.scn&&S.mode==='normal'&&S.charter==='boutique'?'boutique':'global';
+const charter=()=>S&&!S.scn&&S.mode==='normal'&&(S.charter==='boutique'||S.charter==='broker')?S.charter:'global';
+const broker=()=>charter()==='broker';
+// The level glass is judged at: fiber, line systems, optics, pairs and subsea gear. A broker has all of it from day one.
+const glassLvl=()=>broker()?LEVELS.length:lvl();
+// The router class the fastest optics need: a broker may buy every router up to it, so all its optics can be lit.
+const RG_GLASS=Math.max(...Object.values(OPT).map(o=>o.rg)),rgGlass=g=>broker()&&!!RG[g]&&RG[g].cls<=RG_GLASS,rgOpen=g=>!!RG[g]&&(RG[g].lvl<=lvl()||rgGlass(g));
 const latPay=()=>charter()==='boutique'?LAT_PAY:1;
 // The fastest a leased wave or fiber gets between two cities: overland, or the quickest cable on the route.
 function leasedLat(a,b){let best=isSub(a,b)?Infinity:kmBetween(a,b)*1.25/200;for(const c of cablesFor(a,b))best=Math.min(best,c.km*Math.min(CAB[c.cid].lat||1,1.25)/200);return best;}
@@ -78,19 +85,29 @@ function solRoutes(){const k=S.day+'|'+S.links.length+'|'+S.links.reduce((n,l)=>
   const f=FIN.filter(c=>S.pops[c]),v=[];if(S.links.some(ownGlass))for(let i=0;i<f.length;i++)for(let j=i+1;j<f.length;j++){const a=f[i],b=f[j],o=bestLat(a,b,ownGlass),l=leasedLat(a,b);if(isFinite(o)&&isFinite(l)&&o<l)v.push({a,b,o,l});}
   SOLC={s:S,k,v};return v;}
 const solCust=()=>S.biz.filter(b=>BIZ_T[b.type]&&BIZ_T[b.type].lat&&b.mood>=50&&reqOk(b)).length;
+// What each charter promises, as the picker and the agent's docs say it.
+const charterDesc=C=>tr(C.d,{p:Math.round((LAT_PAY-1)*100),r:SOL_ROUTES,c:SOL_CUST,n:BARON_CONT,m:fmt$(BARON_MO)});
+/* The picker: when a Normal game starts (and when a save that never picked loads), before anything else. It pauses the
+   clock like any open window and cannot be closed without a choice; the tutorial waits for it. Seeded tests skip it unless
+   they ask (window.__TUBES_CHARTER__), as they skip the tutorial: they sign a charter with ACT.charter when they need one. */
+const charterDue=()=>!!(S&&UI.started&&!S.lost&&!S.scn&&S.mode==='normal'&&!S.chartSet&&!pzOn());
+function charterPickHtml(){return `<div class="chpick"><div class="eyebrow">${esc(S.name)} · AS${S.asn}</div><h2 style="font-size:26px">${tr('specialist.what_are_you_building')}</h2><p class="tagline">${tr('specialist.your_charter_sets_your_goals')}</p><div class="chopts">`
+  +Object.entries(CHARTERS).map(([k,C])=>`<button class="chopt" data-act="charter" data-args='${JSON.stringify({k})}'><span class="chi" aria-hidden="true">${C.i}</span><span class="cht"><b>${tr(C.n)}</b><span>${charterDesc(C)}</span></span></button>`).join('')+`</div></div>`;}
+function charterAsk(){if(!charterDue()||!$('modal').hidden||window.__TUBES_TEST__&&!window.__TUBES_CHARTER__)return;openModal(charterPickHtml(),'charter');}
 function charterCard(){if(S.scn||S.mode!=='normal')return '';
-  if(!S.chartSet&&S.day<=CHARTER_DAYS)return `<div class="inc" style="background:#EEF0FF"><div class="nm">${tr('specialist.pick_a_charter')}</div><div class="meta">${tr('specialist.what_kind_of_network_are_you',{n:CHARTER_DAYS-S.day})}</div>${Object.entries(CHARTERS).map(([k,C])=>`<div class="row"><div class="grow"><div class="nm">${C.i} ${tr(C.n)}</div><div class="meta">${tr(C.d,{p:Math.round((LAT_PAY-1)*100),r:SOL_ROUTES,c:SOL_CUST})}</div></div>${btn(charter()===k?tr('specialist.keep_it'):tr('specialist.pick'),'charter',{k},k==='global'?'ghost sm':'pink sm')}</div>`).join('')}</div>`;
+  if(broker())return baronCard();
   if(charter()!=='boutique')return '';
   if(S.solWon)return `<div class="inc" style="background:#EAF7EE"><div class="nm">⚡ ${tr('specialist.speed_of_light')}</div><div class="meta">${tr('specialist.won_on_date_your_own_glass',{date:dateStr(S.solWon)})}</div></div>`;
   const r=solRoutes();return `<div class="inc" style="background:#EEF0FF"><div class="nm">⚡ ${tr('specialist.speed_of_light')}</div><div class="meta">${tr('specialist.routes_r_of_n_beat_the',{r:Math.min(r.length,SOL_ROUTES),n:SOL_ROUTES,c:Math.min(solCust(),SOL_CUST),m:SOL_CUST})}</div>${r.slice(0,SOL_ROUTES).map(x=>`<div class="meta">✓ ${CITY[x.a].name} ⇄ ${CITY[x.b].name}: ${tr('common.ms_ms_one_way',{ms:x.o.toFixed(1)})} &lt; ${x.l.toFixed(1)}</div>`).join('')}</div>`;}
-// Once a day: seats expire or call, and the boutique checks its win.
-function specDay(d){if(S.seatOff&&S.seatOff.exp<=d)S.seatOff=null;
+// Once a day: seats expire or call, the boutique checks its win and carriers call the broker.
+function specDay(d){if(broker())brokerDay(d);if(S.seatOff&&S.seatOff.exp<=d)S.seatOff=null;
   if(!S.seatOff&&!S.scn&&S.mode!=='puzzle'&&lvl()>=SEAT_LV&&hstr(S.asn+'|seatcall|'+d)%SEAT_ODDS===0)seatConf(null);
   if(charter()==='boutique'&&!S.solWon&&solRoutes().length>=SOL_ROUTES&&solCust()>=SOL_CUST){S.solWon=Math.max(1,d);track('win_sol');toast(`<b>⚡ ${tr('specialist.speed_of_light')}</b><br>${tr('specialist.your_own_glass_beats_every_leased')}`,'goal');sfx('coin');checkBadges();}}
-// Saves: the charter, demo orders, a seat on offer and the boutique's win. Old saves are Global backbone, picked.
-function specSanitize(s){s.charter=s.charter==='boutique'&&s.mode==='normal'&&!s.scn?'boutique':'global';s.chartSet=s.chartSet===false&&s.day<=CHARTER_DAYS?false:true;
+// Saves: the charter, demo orders, a seat on offer and the boutique's and the broker's wins. Old saves are Global
+// backbone, picked; one still in its first month that never picked is asked again.
+function specSanitize(s){s.charter=(s.charter==='boutique'||s.charter==='broker')&&s.mode==='normal'&&!s.scn?s.charter:'global';s.chartSet=s.chartSet===false&&s.day<=CHARTER_DAYS?false:true;
   const dm={};if(s.demo&&typeof s.demo==='object'&&!Array.isArray(s.demo))for(const key of Object.keys(s.demo).slice(0,64)){const [k,id]=key.split(':');if(demoItem(k,id)&&Number.isFinite(+s.demo[key]))dm[key]=Math.round(+s.demo[key]);}s.demo=dm;
   const o=s.seatOff;s.seatOff=o&&typeof o==='object'&&typeof o.name==='string'&&seatRoute(o.name)&&seatRoute(o.name)[0]===o.a&&seatRoute(o.name)[1]===o.b?{a:o.a,b:o.b,name:o.name,km:seatKm(o.a,o.b),exp:num(o.exp,0)}:null;
-  s.solWon=Number.isFinite(+s.solWon)&&+s.solWon>0?Math.round(+s.solWon):0;
+  s.solWon=Number.isFinite(+s.solWon)&&+s.solWon>0?Math.round(+s.solWon):0;s.baronWon=Number.isFinite(+s.baronWon)&&+s.baronWon>0?Math.round(+s.baronWon):0;
   for(const l of s.links)if(l.seat!==undefined){if(l.seat===true&&l.kind==='df'&&l.own&&l.sub)l.pairs=Math.max(1,Math.min(Math.max(...SEAT_N),l.pairs|0));else delete l.seat;}
   for(const b of [...s.biz,...s.offers])if(b.spot!==undefined){const x=b.spot;if(x&&typeof x==='object'&&own(SPOT_W,x.k))b.spot={k:x.k,n:num(x.n,0)};else delete b.spot;}}

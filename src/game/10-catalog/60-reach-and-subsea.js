@@ -49,7 +49,7 @@ const SUBR=[],subReach=(t,e)=>SUBR[(t?1:0)+(e?2:0)]??(SUBR[(t?1:0)+(e?2:0)]=Math
   subNeed=km=>km<=subReach(0,0)?[]:km<=subReach(1,0)?['terminal']:km<=subReach(0,1)?['engineering']:km<=subReach(1,1)?['terminal','engineering']:null;
 // Upgrades a cable of this length still needs on top of the chosen ones; ['design'] when nothing can light it.
 const seaLack=(km,up)=>{const n=subNeed(km);return n?n.filter(k=>!up[k]):['design'];};
-const submarineRate=l=>Math.max(0,...Object.keys(OPT).filter(o=>OPT[o].lvl<=lvl()&&(OPT[o].sys!=='roadm'||isRdm(l.sys||'roadm'))).map(o=>optG(o,l)));
+const submarineRate=l=>Math.max(0,...Object.keys(OPT).filter(o=>OPT[o].lvl<=glassLvl()&&(OPT[o].sys!=='roadm'||isRdm(l.sys||'roadm'))).map(o=>optG(o,l)));
 // The fastest single carrier any optic can run over this much subsea cable.
 const subCarrier=km=>Math.max(0,...Object.values(OPT).map(O=>{const m=(O.modes||[[O.g,O.reach]]).find(([,r])=>km<=reachOn(r,true));return m?m[0]:0;}));
 // A big leased wave is several carriers (6.4T = 4×1.6T), so each carrier has to make it across on its own.

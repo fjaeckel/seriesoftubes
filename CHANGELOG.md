@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- A new game now asks what you are building before it starts, and there is a third answer: Cable broker. The broker lays fiber on land and cables under the sea from day one, at the usual prices, lights them and sells the capacity to other carriers; it has ten goals of its own, carriers call it with capacity deals, and its win is Glass Baron: your own cables land on five continents while carriers pay you $1M a month. The Global backbone and the Low-latency boutique play as before, and the choice is now a popup at the start instead of a card you could miss (#300).
+- From customer level 9 you can lay your own subsea cable without being Tier 1 first (#300).
 - Traffic now leaves your network at the nearest peering, so a PNI in London no longer pulls New York's traffic across the Atlantic when the New York IX reaches the same network (#298). Where a PNI and an IX port reach a network in the same city, the PNI still goes first, and RouteScript's `prefer pni` still hauls everything to your PNIs.
 - Fabric (NNI) ports now grow like your other ports: buy them at 10G, 100G or 400G (as fast as your router takes), and bundle up to eight into a LAG when one is not enough (#140). A fabric customer is no longer accepted, by hand or automatically, when its bandwidth would not fit on the port as well (#307).
 - Pressing Space to play again after a pause now picks up at the speed you were playing, not always at 1× (#299).

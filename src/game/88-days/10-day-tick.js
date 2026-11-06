@@ -100,8 +100,10 @@ function spawnOffer(){
   const mine=spMine(Object.keys(S.pops).filter(bizCity)),lv=lvl();
   const types=['dia','dia','game','host'];if(mine.length>=2)types.push('l2vpn','l2vpn');if(S.day>60)types.push('scrub');
   if(lv>=2)types.push('isp','stream','edu','host','hft','bulk','event','event');if(mine.length>=3&&lv>=2)types.push('sdwan','sdwan');
-  if(S.links.some(l=>l.kind==='df'&&l.ready<=S.day))types.push('wwave','wwave');if(S.links.some(l=>l.kind==='df'&&l.own&&l.ready<=S.day))types.push('dfpair');if(lv>=3)types.push('gpu','gpu','onramp','onramp');if(lv>=4)types.push('ai','ai','hyper','hyper');
-  if(lv>=3&&MEGA.some(m=>mine.includes(m.c)))types.push('ingest');if(lv>=4&&MEGA.some(m=>mine.includes(m.c)))types.push('aiwan','aiwan','mtrain');if(lv>=4&&S.links.some(l=>l.kind==='df'&&l.own&&l.ready<=S.day))types.push('pairs');
+  // A broker's callers are mostly carriers who want capacity on its glass (#300).
+  const bk=broker(),dfR=S.links.some(l=>l.kind==='df'&&l.ready<=S.day),dfO=S.links.some(l=>l.kind==='df'&&l.own&&l.ready<=S.day);
+  if(dfR)types.push('wwave','wwave');if(dfO)types.push('dfpair');if(bk){if(dfR)types.push('wwave','wwave','wwave','wwave');if(dfO)types.push('dfpair','dfpair','dfpair');}if(lv>=3)types.push('gpu','gpu','onramp','onramp');if(lv>=4)types.push('ai','ai','hyper','hyper');
+  if(lv>=3&&MEGA.some(m=>mine.includes(m.c)))types.push('ingest');if(lv>=4&&MEGA.some(m=>mine.includes(m.c)))types.push('aiwan','aiwan','mtrain');if((lv>=4||bk)&&dfO)types.push('pairs');
   if(lv>=5)types.push('esport');if(lv>=6&&mine.length>=2)types.push('sov','sov');if(lv>=8)types.push('cgame','cgame');if(lv>=9)types.push('metav','metav');if(lv>=11&&MEGA.some(m=>mine.includes(m.c)))types.push('agi');if(lv>=13&&mine.length>=2)types.push('mars');
   const br=mine.filter(c=>CITY[c].br);if(br.length)types.push('provedor','provedor','provedor');
   // Countries with thousands of ASNs (Brazil's provedores, US regionals) are full of small ISPs shopping for transit.

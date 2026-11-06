@@ -1,13 +1,13 @@
 /* Leased lines you could swap for your own glass: waves, fabric circuits and IRUs between two of your POPs,
    priced against digging (land) or laying a cable (subsea), with enough optics to match what you lease today. */
 function swapOptics(km,cap,sub,sys){for(let r=0;r<=(sub?0:REGEN_MAX);r++){const l={km,regen:r,sub};let b=null;
-  for(const o in OPT){if(OPT[o].lvl>lvl()||sys==='lite'&&OPT[o].sys==='roadm')continue;const g=optG(o,l),c=optCost(o);if(g&&(!b||c/g<b.c/b.g))b={g,c};}
+  for(const o in OPT){if(OPT[o].lvl>glassLvl()||sys==='lite'&&OPT[o].sys==='roadm')continue;const g=optG(o,l),c=optCost(o);if(g&&(!b||c/g<b.c/b.g))b={g,c};}
   if(b){const n=Math.ceil(cap/b.g);return {n,r,up:Math.round(n*b.c*(1+REGEN_CH*r))+r*REGEN_COST,mo:r*REGEN_MO};}}return null;}
 const leaseCap=ls=>ls.reduce((s,l)=>s+(l.kind==='vxc'?VXC[l.vt].g:l.kind==='df'?(l.ch||[]).reduce((t,o)=>t+optG(o,l),0):LT[l.tier].g),0);
 const swapOpt=(k,up,omo,days,mo)=>{const save=mo-omo;return {k,up,omo,days,save,pay:save>0?Math.ceil(up/save):0};};
 // Lighting leased capacity on a fiber you already have (#72 review): needs free channels, and optics cost money.
 function litOn(L,cap){const free=chMax(L)-(L.ch||[]).length-soldSlots(L);let b=null;
-  for(const o in OPT){const O=OPT[o];if(O.lvl>lvl()||(O.sys==='roadm'&&!isRdm(L.sys))||[L.a,L.b].some(c=>S.pops[c]&&RG[S.pops[c].rgen||0].cls<O.rg))continue;const g=optG(o,L),c=chCost(L,o);if(g&&(!b||c/g<b.c/b.g))b={o,g,c};}
+  for(const o in OPT){const O=OPT[o];if(O.lvl>glassLvl()||(O.sys==='roadm'&&!isRdm(L.sys))||[L.a,L.b].some(c=>S.pops[c]&&RG[S.pops[c].rgen||0].cls<O.rg))continue;const g=optG(o,L),c=chCost(L,o);if(g&&(!b||c/g<b.c/b.g))b={o,g,c};}
   if(!b)return {free,n:0,fits:false};const n=Math.ceil(cap/b.g);return {free,n,up:n*b.c,fits:n<=free};}
 function leaseSwaps(){const by={};
   for(const l of S.links){if(l.kind==='df'&&l.own||!S.pops[l.a]||!S.pops[l.b])continue;const k=[l.a,l.b].sort().join('|');(by[k]=by[k]||[]).push(l);}
@@ -16,11 +16,11 @@ function leaseSwaps(){const by={};
     // Waves and fabric circuits can also move onto a leased fiber pair: cheaper glass, but you buy the gear.
     const ws=ls.filter(l=>l.kind!=='df'),wmo=ws.reduce((s,l)=>s+(l.mo||0),0),sc=sub?subDfCable(a,b):null;x.iru=ls.find(l=>l.kind==='df');
     if(ws.length&&x.iru){x.fit=litOn(x.iru,leaseCap(ws));if(x.fit.fits)x.lit=wmo;}
-    else if(ws.length&&lvl()>=2&&(sub?sc:dfAllowed(a,b))){const km=sc?sc.km:kmBetween(a,b),sys=lvl()>=3?'roadm':'lite',wc=leaseCap(ws),op=swapOptics(km,wc,sub,sys);
+    else if(ws.length&&glassLvl()>=2&&(sub?sc:dfAllowed(a,b))){const km=sc?sc.km:kmBetween(a,b),sys=glassLvl()>=3?'roadm':'lite',wc=leaseCap(ws),op=swapOptics(km,wc,sub,sys);
       if(op&&op.n<=DF_SYS[sys].max)x.opts.push(swapOpt('iru',DF_SYS[sys].cost+ampCount(km)*AMP_COST+op.up,dfLeaseMo(km)+ampCount(km)*AMP_MO+op.mo,leadDays(IRU_DAYS),wmo));}
     // Dig on land, lay a cable between landing stations (even ones that share a landmass), or both.
     const whys=[];for(const cab of [false,true]){if(cab?!seaCab(a,b):sub)continue;
-      const why=cab?ownCabWhy(a,b):!dfAllowed(a,b)?tr('lease_swaps.nobody_lets_you_dig_on_this'):lvl()<2?tr('lease_swaps.digging_your_own_fiber_unlocks_at'):'';
+      const why=cab?ownCabWhy(a,b):!dfAllowed(a,b)?tr('lease_swaps.nobody_lets_you_dig_on_this'):glassLvl()<2?tr('lease_swaps.digging_your_own_fiber_unlocks_at'):'';
       if(why){whys.push(why);continue;}const km=cab?ownCabKm(a,b):kmBetween(a,b),op=swapOptics(km,cap,cab,'roadm');
       if(!op){whys.push(tr('lease_swaps.no_optic_you_can_buy_reaches',{km:km.toLocaleString()}));continue;}
       x.opts.push(swapOpt(cab?'cab':'own',(cab?ownCabCost(km):digCost(km)+DF_SYS.roadm.cost+ampCount(km)*AMP_COST)+op.up,(cab?ownCabMo(km):Math.round(km*0.15)+ampCount(km)*AMP_MO)+op.mo,cab?ownCabDays(km):dfBuildDays(km),mo));}

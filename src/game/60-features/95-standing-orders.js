@@ -133,7 +133,7 @@ const OPS_RUN={
      const ld=Math.max((R.nodeLoad[c]||0)/(R.nodeCap[c]||nodeCap(c)||1),portsUsed(c)/Math.max(1,portsMax(c)));if(ld<at)continue;
      const rt=p.routers||1,g=p.rgen||0,nx=mainRG(RG[g].cls+1);
      // A swap with one router is a maintenance window: the intern only swaps where a second router carries the traffic.
-     const swap=nx>=0&&RG[nx].lvl<=lvl()&&!modelFits(c,nx)&&(rt>1||popIdle(c)),add=rt<RMAX;
+     const swap=nx>=0&&rgOpen(nx)&&!modelFits(c,nx)&&(rt>1||popIdle(c)),add=rt<RMAX;
      const doSwap=how==='swap'?swap:how==='add'?false:swap&&(rt>=4||!add);if(!doSwap&&(how==='swap'||!add))continue;
      const cost=doSwap?swapCost(c,nx):routerCost(g,rt);if(!X.can('routers',cost))continue;
      if(X.pay('routers',()=>doSwap?ACT.upRouter({city:c,g:nx}):ACT.addRouter({city:c})))X.did('routers',c+(doSwap?' ⇧'+RG[nx].pn:' +1'));}},

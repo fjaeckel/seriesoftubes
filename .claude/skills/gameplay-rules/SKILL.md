@@ -47,6 +47,7 @@ These are what the game promises, held up by `tests/gameplay-rules.test.js` (one
 | M3 | Every subsystem that can annoy the player reads a rule: outages and events (`chaos`), DDoS, sold-out routes, de-peering and hardware prices (`market`), lead times (`lead`), the clock, cable ships (`sea`), conferences (`confs`), going broke (`broke`), customer patience (`moods`), PNI delivery (`pnis`), and the day's toasts (quiet notifications). A quiet ruleset gives a quiet year. | Rules are presets of flags, not separate code. |
 | M4 | Scenarios and the weekly challenge always run On-call plus their own `S.scn.rules`. | Fair scores. |
 | M5 | Sandbox has no locked feature: open gates, every level, own cables, endless money. | It is a sandbox. |
+| M6 | A Normal game picks its charter once, when it starts (sandbox, puzzles and scenarios never do). A charter changes what you set out to do, never what things cost: the Cable broker gets glass (fiber, line systems, optics, own subsea cables and the routers to light them) from day one at the prices everyone pays at the top level, and everything else by level. | Same prices and rules for every charter (#300). |
 
 ## Content
 
