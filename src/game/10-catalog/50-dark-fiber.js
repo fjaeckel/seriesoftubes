@@ -33,7 +33,11 @@ const FABS=[
  {id:'ccn',name:'Consolation Connect',col:'#8E44AD',cities:['icn','lon','fra','ams','mrs','bom','sin','hkg','tok','syd','lag','jnb'],blurb:tr('dark_fiber.strong_in_asia_and_africa_every')},
 ];
 const FAB=Object.fromEntries(FABS.map(f=>[f.id,f]));
-const NNI=[{n:'10G',g:10,mo:500},{n:'100G',g:100,mo:1200}];
+/* A fabric port (NNI) comes in 10G, 100G or 400G, as fast as the router takes (portOk), and bundles into a LAG like
+   any other port (#140): more than 400G is more members. Fabrics sell nothing faster. Monthly, the first month up
+   front; cheaper per Gbps the faster it is. 10G and 100G keep the prices they always had. */
+const NNI_MO=[500,1200,3000];
+const NNI=NNI_MO.map((mo,i)=>({n:PORT[i].n,g:PORT[i].g,mo}));
 const VXC=[{n:'10G',g:10,m:1},{n:'50G',g:50,m:2.4},{n:'100G',g:100,m:3.6}];
 const vxcMo=(km,sub,t)=>Math.round((150+km*0.12)*VXC[t].m*(sub?2:1));
 const MET={prefer:{l:tr('common.prefer'),f:0.5},normal:{l:tr('common.normal'),f:1},avoid:{l:tr('common.avoid'),f:4},backup:{l:tr('common.backup_only'),f:60}};

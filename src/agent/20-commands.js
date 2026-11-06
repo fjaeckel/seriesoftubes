@@ -134,8 +134,11 @@ const API_CMD={
   doc:'Hold a link in reserve: its capacity fills last.'},
 /* ---------- fabrics and VXCs ---------- */
  buyNni:{args:[['city','cityId'],['prov','fabId'],['tier','nniTier']],
-  quote:a=>({setup:NNI[a.tier]?NNI[a.tier].mo:undefined,monthly:NNI[a.tier]?NNI[a.tier].mo:undefined}),
-  doc:'Take a port on an interconnection fabric. Monthly. A higher tier upgrades unless the circuits on it already exceed the smaller port.'},
+  quote:a=>{const ex=nniPort(a.city,a.prov),n=ex?(ex.n||1):1,m=NNI[a.tier]?NNI[a.tier].mo*n:undefined;return {setup:m,monthly:m};},
+  doc:'Take a port on an interconnection fabric, at any port speed the router takes. Monthly, the first month up front. A higher tier upgrades every member of the port.'},
+ lagNni:{args:[['city','cityId'],['prov','fabId'],['d','step']],watch:['nni'],
+  quote:a=>{const pt=nniPort(a.city,a.prov),m=pt&&a.d>0&&NNI[pt.tier]?NNI[pt.tier].mo:0;return {setup:m,monthly:m};},
+  doc:'Add (d:1) or remove (d:-1) a member of the fabric port\'s LAG: same speed, one more router port, up to 8. Removing is rejected while the circuits would not fit.'},
  rmNni:{args:[['city','cityId'],['prov','fabId']],
   doc:'Give the fabric port back. Rejected while circuits still use it.'},
  buyVxc:{args:[['a','cityId'],['b','cityId'],['prov','fabId'],['t','vxcTier']],

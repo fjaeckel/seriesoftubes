@@ -1017,7 +1017,6 @@
 "city_panel.pay_a_bigger_network_per_gbps":"Pay a bigger network per Gbps and it carries your traffic to the whole internet. Billed on the 95th percentile of the last 30 days, with a 20% commit and a port fee. Spikes like DDoS raise your bill.",
 "city_panel.peer_at_ix_without_building_a":"Peer at {ix} without building a POP. Order a virtual circuit here from one of your POPs over {fabs}.",
 "city_panel.port_cost_mo_mo":"{port} <small>{cost} + {mo}/mo</small>",
-"city_panel.port_port_price_mo":"{port} port · {price}/mo",
 "city_panel.port_port_price_mo_197d":"{port} port <small>{price}/mo</small>",
 "city_panel.power_cuts_are_covered":"Power cuts are covered.",
 "city_panel.price_per_gbps_month_billed_on":"${price} per Gbps / month · billed on 95th percentile",

@@ -22,7 +22,7 @@ function dfModalBody(a,b,km,pop){
 function openVxcModal({from,to,prov}){
   let rows='';const row=(f,a,b)=>{const km=kmBetween(a,b),sub=isSub(a,b),pb=S.pops[b]?nniPort(b,f.id):null,remote=!S.pops[b];
     const label=remote?tr('fiber_modals.remote_peering_at_ix_discouraged',{ix:esc(CITY[b].ix)}):pb?tr('common.your_pop'):tr('fiber_modals.your_pop_needs_a_fabric_port');
-    const freeA=nniPort(a,f.id)?NNI[nniPort(a,f.id).tier].g-nniUsed(a,f.id):0,freeB=remote?1e9:pb?NNI[pb.tier].g-nniUsed(b,f.id):0;
+    const freeA=nniCap(nniPort(a,f.id))-nniUsed(a,f.id),freeB=remote?1e9:pb?nniCap(pb)-nniUsed(b,f.id):0;
     return `<div class="row"><span class="logo" style="--c:${f.col}">${initials(f)}</span><div class="grow"><div class="nm">${CITY[a].name} → ${CITY[b].name}</div><div class="meta">${label} · ${km.toLocaleString()} km${sub?' '+tr('common.subsea'):''}</div>
     <div class="btns">${VXC.map((V,t)=>btn(`${V.n} <small>${tr('common.price_mo',{price:fmt$(vxcMo(km,sub,t))})}</small>`,'buyVxc',{a,b,prov:f.id,t},'sm',(!remote&&!pb)||V.g>freeA||V.g>freeB||S.cash<vxcMo(km,sub,t))).join('')}</div></div></div>`;};
   for(const f of FABS){if(prov&&f.id!==prov)continue;

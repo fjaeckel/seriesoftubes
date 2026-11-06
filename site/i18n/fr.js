@@ -1016,7 +1016,6 @@
 "city_panel.pay_a_bigger_network_per_gbps":"Paie un plus gros réseau au Gbps et il transporte ton trafic vers tout Internet. Facturé au 95e percentile des 30 derniers jours, avec un engagement de 20 % et des frais de port. Les pics comme les DDoS font grimper ta facture.",
 "city_panel.peer_at_ix_without_building_a":"Fais du peering sur {ix} sans construire de POP. Commande ici un circuit virtuel depuis un de tes POP via {fabs}.",
 "city_panel.port_cost_mo_mo":"{port} <small>{cost} + {mo}/mois</small>",
-"city_panel.port_port_price_mo":"Port {port} · {price}/mois",
 "city_panel.port_port_price_mo_197d":"Port {port} <small>{price}/mois</small>",
 "city_panel.power_cuts_are_covered":"Les coupures de courant sont couvertes.",
 "city_panel.price_per_gbps_month_billed_on":"${price} par Gbps / mois · facturé au 95e percentile",

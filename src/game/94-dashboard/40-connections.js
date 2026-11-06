@@ -11,7 +11,7 @@ function conns(){const out=[],pn=(tier,n)=>(n||1)>1?`${n}×${PORT[tier].n} LAG`:
   for(const c in S.ixp){const ses=ixSessions(c),mine=!!S.myIx[c];out.push({k:'ix',id:c,city:ixCity(c),net:null,nets:[...ses],name:ixName(c),port:mine?tr('common.your_exchange'):pn(S.ixp[c],(S.ixn||{})[c]),cap:ixCap(c),use:R.useIx[c]||0,mo:ixMo(c),mine,down:!!(S.ev.ixdown&&S.ev.ixdown[c]>S.day),low:(S.ixPref&&S.ixPref[c])==='low',note:trn('connections.n_peering_session',ses.size)+(isRemote(c)?' · '+tr('common.remote'):'')});}
   const cg={};for(const x of S.caches){const key=x.city+'|'+x.net;(cg[key]=cg[key]||[]).push(x);}
   for(const key in cg){const g=cg[key],x=g[0];out.push({k:'c',id:x.id,n:g.length,city:x.city,net:x.net,name:NET[x.net].cache.name,port:trn('common.n_box',g.length),cap:g.reduce((a,y)=>a+cacheG(y),0),use:g.reduce((a,y)=>a+(R.useCache[y.id]||0),0),mo:g.reduce((a,y)=>a+cacheMo(y),0),down:!popUp(x.city),low:false,note:tr('common.from_net',{net:NET[x.net].name})});}
-  for(const x of S.nni||[])if(FAB[x.prov]&&NNI[x.tier])out.push({k:'nni',id:x.city+'|'+x.prov,city:x.city,net:null,name:FAB[x.prov].name,port:NNI[x.tier].n,cap:NNI[x.tier].g,use:nniUsed(x.city,x.prov),mo:NNI[x.tier].mo,down:!popUp(x.city),low:false,note:tr('connections.virtual_circuits_and_fabric')});
+  for(const x of S.nni||[])if(FAB[x.prov]&&NNI[x.tier])out.push({k:'nni',id:x.city+'|'+x.prov,city:x.city,net:null,name:FAB[x.prov].name,port:pn(x.tier,x.n),cap:nniCap(x),use:nniUsed(x.city,x.prov),mo:nniMo(x),down:!popUp(x.city),low:false,note:tr('connections.virtual_circuits_and_fabric')});
   return out;}
 // Cancel straight from the list, with the same "Really?" step as the POP panel.
 // Grow a connection from the list: the next port size and one more LAG member, same actions and prices as the POP panel.
@@ -26,7 +26,9 @@ function connUp(r){if(r.mine)return '';const nx=t=>PORT[t+1]&&portShown(t+1)?t+1
     if(i>=0)h+=btn(tr('common.upgrade_port_price',{port:PORT[i].n,price:portMo(ixPortMo(c,i)*n)}),'buyIx',{city:c,tier:i},'sm',(!!S.pops[city]&&!portOk(city,i))||(!S.pops[city]&&i>1));
     if(S.pops[city]&&!S.myIx[c]&&n<LAG_MAX)h+=btn(tr('common.lag_member_price',{price:portMo(ixPortMo(c,S.ixp[c]))}),'lagIx',{city:c,d:1},'sm',S.cash<ixPortMo(c,S.ixp[c]));}
   else if(r.k==='c')h+=btn(tr('common.box'),'cache',{city:r.city,net:r.net},'sm');
-  else if(r.k==='nni'){const [city,prov]=r.id.split('|'),pt=nniPort(city,prov);if(pt&&pt.tier<NNI.length-1)h+=btn(tr('common.upgrade_port_price_mo',{port:NNI[pt.tier+1].n,price:fmt$(NNI[pt.tier+1].mo)}),'buyNni',{city,prov,tier:pt.tier+1},'sm');}
+  else if(r.k==='nni'){const [city,prov]=r.id.split('|'),pt=nniPort(city,prov);if(!pt)return '';const n=pt.n||1,i=nx(pt.tier);
+    if(i>=0){const c=NNI[i].mo*n;h+=btn(n>1?tr('common.upgrade_all_to_port_cost_mo',{port:NNI[i].n,cost:fmt$(c),mo:fmt$(c)}):tr('common.upgrade_port_price_mo',{port:NNI[i].n,price:fmt$(c)}),'buyNni',{city,prov,tier:i},'sm',S.cash<c||!portOk(city,i));}
+    if(n<LAG_MAX)h+=btn(tr('common.lag_member_price',{price:portMo(NNI[pt.tier].mo)}),'lagNni',{city,prov,d:1},'sm',S.cash<NNI[pt.tier].mo||!portOk(city,pt.tier));}
   return h;}
 function connX(r){if(r.mine)return '';const on=UI.confirm==='cc:'+r.k+':'+r.id;
   return btn(on?(r.k==='ix'?tr('common.really_leave'):r.k==='t'?tr('common.really_cancel'):tr('common.really_remove')):r.k==='ix'?tr('common.leave_ix'):r.k==='t'?tr('common.cancel'):r.k==='c'&&r.n>1?tr('common.box_6ee3'):r.k==='nni'?tr('common.remove_port'):tr('common.remove'),'connCancel',{k:r.k,id:r.id},on?'red sm':'ghost sm');}

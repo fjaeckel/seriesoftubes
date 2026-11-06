@@ -770,7 +770,8 @@ test('connections in the NOC dashboard can be upgraded and grown into LAGs right
   assert.equal(ev("S.ixp.ams"), 2);
   assert.ok(tap('buyNni'));
   assert.equal(ev("S.nni[0].tier"), 1);
-  assert.equal(ev("document.querySelector('#dashCard [data-act=\"buyNni\"]')"), null, 'no upgrade past the biggest fabric port');
+  assert.ok(tap('lagNni'), 'a fabric port bundles into a LAG too (#140)');
+  assert.equal(ev("S.nni[0].n"), 2);
   assert.equal(ev("document.getElementById('dash').hidden"), false);
   assert.deepEqual(errors, []);
 });

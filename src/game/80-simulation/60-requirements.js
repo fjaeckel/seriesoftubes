@@ -1,7 +1,7 @@
 const GRACE_DAYS=60;
 const REQS={
  lat:{only:true,l2:true,bonus:0,l:o=>tr('requirements.one_way_latency_within_max_ms',{max:o.latMax,best:(()=>{const v=R.l2lat[o.id]!==undefined?R.l2lat[o.id]:bestLat(o.city,o.city2);return isFinite(v)?v.toFixed(1)+' ms':tr('common.no_path')})()}),ok:b=>(R.l2lat[b.id]!==undefined?R.l2lat[b.id]:bestLat(b.city,b.city2))<=b.latMax},
- nni:{only:true,bonus:0,l:o=>tr('requirements.comes_in_over_fab_needs_your',{fab:FAB[o.prov]?FAB[o.prov].name:'?',city:CITY[o.city].name,bw:fmtG(o.bw)}),ok:b=>{const pt=nniPort(b.city,b.prov);return !!pt&&nniUsed(b.city,b.prov)<=NNI[pt.tier].g+1e-9;}},
+ nni:{only:true,bonus:0,l:o=>tr('requirements.comes_in_over_fab_needs_your',{fab:FAB[o.prov]?FAB[o.prov].name:'?',city:CITY[o.city].name,bw:fmtG(o.bw)}),ok:b=>{const pt=nniPort(b.city,b.prov);return !!pt&&nniUsed(b.city,b.prov)+(S.biz.includes(b)?0:b.bw)<=nniCap(pt)+1e-9;}},
  diverse:{l:tr('requirements.two_paths_that_share_no_trench'),bonus:.25,l2:true,can:(b,s=S)=>diversityPossible(b.city,b.city2,s),ok:b=>R.div[b.id]!==undefined?!!R.div[b.id]:diversePaths(b.city,b.city2)},
  sharks:{l:tr('requirements.afraid_of_sharks_needs_a_path'),bonus:.2,l2:true,ok:b=>terrestrialPath(b.city,b.city2),can:b=>!!b.city2&&!isSub(b.city,b.city2)},
  nocog:{l:tr('requirements.refuses_cogentle_transit_anywhere_on'),bonus:.15,ok:()=>!S.transit.some(t=>t.net==='cog')},

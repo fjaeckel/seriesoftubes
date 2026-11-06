@@ -12,4 +12,7 @@ const krFee=(t,q)=>CITY[t.city].kr&&scnRule('sender')?Math.round(q*KR_FEE):0;
 function pniMo(p,use){if(!pniOn(p))return 0;return (p.g1?Math.round(PORT[0].pni/2):PORT[p.tier].pni)*(p.n||1)+(NET[p.net].pol==='paid'&&!paidFree(NET[p.net])?NET[p.net].paidFee:0)+(NET[p.net].perG?Math.round(NET[p.net].perG*use):0);}
 function ixMo(c){return S.myIx[c]?Math.round(myFab(c).mo*((S.ixSite||{})[c]==='ab'?1.5:1)):ixPortMo(c,S.ixp[c])*((S.ixn||{})[c]||1)+dkAddonMo(c);}
 function nniPort(c,prov){return (S.nni||[]).find(x=>x.city===c&&x.prov===prov);}
+// What a fabric port can book: its speed times its members, a LAG at 95% like every bundle (lagCap).
+function nniCap(pt){return pt&&NNI[pt.tier]?lagCap(NNI[pt.tier].g,pt.n):0;}
+const nniMo=x=>NNI[x.tier]?NNI[x.tier].mo*(x.n||1):0;
 function repayCost(l,B){return B.equity?Math.round(l.amount*3):Math.round(Math.max(l.bal,B.crypto&&l.got?l.got:0)*1.02);}

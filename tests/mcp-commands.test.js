@@ -220,7 +220,7 @@ test('a dry run prices every command that has a price, and changes nothing', () 
     addGen: { city: 'fra' }, addSite: { city: 'fra' }, buyTransit: { city: 'fra', net: 'cog', tier: 2 }, lagT: { id: ev('S.transit[0].id'), d: 1 },
     cleanPipe: { id: ev('S.transit[0].id') }, buyIx: { city: 'ams', tier: 1 }, foundIx: { city: 'nyc' }, myIxUp: { city: 'nyc' },
     pni: { city: 'fra', net: 'lvl', tier: 1 }, cache: { city: 'fra', net: 'nfx' }, buildLink: { a: 'fra', b: 'nyc', tier: 1 }, upLink: { id: wave, tier: 2 },
-    rmLink: { id: wave }, buyNni: { city: 'fra', prov: fab, tier: 0 }, buyVxc: { a: 'fra', b: 'ams', prov: fab, t: 0 }, upVxc: { id: wave, t: 1 },
+    rmLink: { id: wave }, buyNni: { city: 'fra', prov: fab, tier: 0 }, lagNni: { city: 'fra', prov: fab, d: 1 }, buyVxc: { a: 'fra', b: 'ams', prov: fab, t: 0 }, upVxc: { id: wave, t: 1 },
     orderDf: { a: 'fra', b: 'ams', source: 'lease', system: 'lite' }, orderCable: { a: 'lis', b: 'nyc' }, subUpgrade: { id: df, k: 'terminal' },
     crews: { id: df }, addCh: { id: df, o: 'zr4' }, addPair: { id: df }, upSys: { id: df }, regen: { id: df, d: 1 }, buySpare: { o: 'zr4' }, sellSpare: { o: 'zr4' },
     setChCount: { id: df, o: 'zr4', n: 2 }, repayLoan: { id: 'none' }, buildScrub: { city: 'ams', tier: 1 }, scrubUp: { city: 'fra', tier: 1 },
