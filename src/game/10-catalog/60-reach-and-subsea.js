@@ -68,7 +68,11 @@ const regenNeed=(o,l)=>Math.max(0,Math.ceil(l.km/reachOn(OPT[o].reach,l.sub))-1)
 // all its channels. Nothing changes while a frame is drawn, so draw() keeps the answers in DFC for that frame.
 let DFC=null;
 const dfCap=l=>{if(!DFC)return dfCap0(l);let g=DFC.get(l);if(g===undefined)DFC.set(l,g=dfCap0(l));return g;};
-const dfCap0=l=>{if(l.ready>S.day||l.eqDown>S.day)return 0;const ch=l.ch||[];let g=0;for(const c of ch)g+=optG(c,l);const f=l.chFail&&l.chFail.until>S.day?l.chFail:null;if(f){const fo=f.o&&ch.includes(f.o)?f.o:ch.slice().sort((a,b)=>optG(a,l)-optG(b,l))[0];if(fo)g-=optG(fo,l);}return Math.max(0,g);};
+// A fiber's channels come in runs of one optic (a big one: a thousand of them): optG() once per run, added up in order.
+const dfCap0=l=>{if(l.ready>S.day||l.eqDown>S.day)return 0;const ch=l.ch||[];let g=0,o=null,x=0;for(const c of ch){if(c!==o){o=c;x=optG(c,l);}g+=x;}const f=l.chFail&&l.chFail.until>S.day?l.chFail:null;if(f){const fo=f.o&&ch.includes(f.o)?f.o:ch.slice().sort((a,b)=>optG(a,l)-optG(b,l))[0];if(fo)g-=optG(fo,l);}return Math.max(0,g);};
+// Whether a fiber carries anything (linkDown() asks of every fiber, often): dfCap(l)>0 without adding up every channel.
+// An optic out of service takes the sum.
+const dfLit=l=>{if(l.ready>S.day||l.eqDown>S.day)return false;if(l.chFail&&l.chFail.until>S.day)return dfCap(l)>0;let o=null;for(const c of l.ch||[])if(c!==o){o=c;if(optG(c,l)>0)return true;}return false;};
 const capOf=l=>(l.kind==='vxc'?VXC[l.vt].g:l.kind==='df'?dfCap(l):LT[l.tier].g)*(l.deg>S.day?0.5:1)*(l.loss&&l.loss.until>S.day?l.loss.f:1);
 // A sick LAG (LACP trouble) keeps only part of its capacity until the incident clears.
 const lagF=o=>o&&o.lacp&&o.lacp.until>S.day?o.lacp.f:1,ixLagF=x=>lagF(S.ev&&S.ev.ixlacp&&{lacp:S.ev.ixlacp[x]});

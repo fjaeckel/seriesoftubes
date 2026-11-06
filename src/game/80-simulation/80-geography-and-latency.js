@@ -53,7 +53,17 @@ function waveRoute(a,b,mult,border){const cabs=cablesOk(a,b),sub=isSub(a,b);let 
 function viaSeg(a,b){const cabs=cablesOk(a,b),sub=isSub(a,b);if(!cabs.length)return landMult(a,b)>1?`<p class="note">${landWhy(a,b)}</p>`:'';const wr=waveRoute(a,b,1,false);
   const opts=(sub?[]:[{v:'land',l:`${tr('common.overland')} <small>${landMult(a,b)>1?landMult(a,b)+'× · ':''}${(kmBetween(a,b)*1.3/200).toFixed(1)} ms</small>`}]).concat(cabs.map(c=>({v:c.cid,l:`${esc(CAB[c.cid].name)} <small>${CAB[c.cid].price}× · ${(c.km*(CAB[c.cid].lat||1)/200).toFixed(1)} ms${CAB[c.cid].age==='old'?' · '+tr('geography_and_latency.old_cuts_often'):''}</small>`})));
   return `<h4 class="sub4">${tr('common.route')}</h4><div class="seg">${opts.map(o=>btn(o.l,'via',{v:o.v},wr&&wr.via===o.v?'pink':'ghost')).join('')}</div>${wr&&wr.cab?`<p class="note">${esc(CAB[wr.cab].blurb)} ${tr('geography_and_latency.all_your_waves_on_one_cable')}</p>`:''}`;}
-function bestLat(a,b,f){const ls=S.links.filter(l=>!linkDown(l)&&(!f||f(l)));const dist={[a]:0},done=new Set();for(;;){let u=null,ud=Infinity;for(const k in dist)if(!done.has(k)&&dist[k]<ud){u=k;ud=dist[k];}if(u===null)break;if(u===b)return ud;done.add(u);for(const l of ls){if(l.a!==u&&l.b!==u)continue;const v=l.a===u?l.b:l.a,nd=ud+linkLat(l)+0.05;if(nd<(dist[v]??Infinity))dist[v]=nd;}}return Infinity;}
+/* bestLat(a,b,f): the lowest one-way latency over the live links (f: only those), +0.05 ms a hop. latGraph() lists each
+   city's links once, in S.links order, with their latency: a search no longer walks every link for every city it
+   reaches. latRun() is the search itself (same order, same sums): stopped at b, or run whole (no b) for every city at
+   once, which is what asking from a for several cities takes (solRoutes(), spots0()). */
+function latGraph(f){const adj=new Map(),add=(u,v,w)=>{let e=adj.get(u);if(!e)adj.set(u,e=[]);e.push(v,w);};
+  for(const l of S.links){if(linkDown(l)||f&&!f(l))continue;const w=linkLat(l);add(l.a,l.b,w);if(l.b!==l.a)add(l.b,l.a,w);}return adj;}
+function latRun(adj,a,b){const dist={[a]:0},done=new Set();for(;;){let u=null,ud=Infinity;for(const k in dist)if(!done.has(k)&&dist[k]<ud){u=k;ud=dist[k];}if(u===null)break;if(u===b)return ud;done.add(u);
+    const e=adj.get(u);if(e)for(let i=0;i<e.length;i+=2){const v=e[i],nd=ud+e[i+1]+0.05;if(nd<(dist[v]??Infinity))dist[v]=nd;}}return b===undefined?dist:Infinity;}
+function bestLat(a,b,f){return latRun(latGraph(f),a,b);}
+// From each of these cities to the ones after it in the list: [[a,b,ms]…], one search per city.
+function latPairs(f,g){const adj=latGraph(g),o=[];for(let i=0;i<f.length-1;i++){const d=latRun(adj,f[i]);for(let j=i+1;j<f.length;j++)o.push([f[i],f[j],d[f[j]]??Infinity]);}return o;}
 // The lowest one-way latency anything you could build gets between two cities (#273), the way bestLat() adds it up:
 // your own fiber over land (×1.1, wherever isSub() allows it), or the route of a cable that lands at both ends (your own cable in the low-latency
 // design follows it at 0.9 or better). A sea route that no cable takes needs a survey, so it does not count.
