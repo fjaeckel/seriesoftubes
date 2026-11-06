@@ -36,7 +36,7 @@ const ACT={
  meetGo:({city})=>{if(!isCity(city))return;$('dash').hidden=true;ACT.focusCity({city});if(S.pops[city]){UI.tab='peer';renderPanel();}},
  toggleLeft:()=>{UI.leftOpen=!UI.leftOpen;renderLeft();},
  phoneTab:({t})=>{if(!['goals','deals','noc','nets'].includes(t))return;if($('modal').classList.contains('link-check'))closeModal();haptic(8);if(UI.leftOpen&&UI.left===t&&!UI.sel){UI.leftOpen=false;}else{UI.left=t;UI.leftOpen=true;UI.sel=null;renderPanel();}$('left').classList.remove('full');renderLeft();},
- phonePlay:()=>{if(pzOn()||UI.clockLocked)return;if(S&&!rule('clock'))return;haptic(10);if(UI.speed){UI.lastSpeed=UI.speed;UI.speed=0;}else UI.speed=UI.lastSpeed||1;renderHUD();},
+ phonePlay:()=>{if(playPause())haptic(10);},
  phoneSpeed:()=>{if(pzOn()||UI.clockLocked)return;if(S&&!rule('clock'))return;haptic(8);const cur=UI.speed||UI.lastSpeed||1,i=SPEEDS.indexOf(cur),n=SPEEDS[(i+1)%SPEEDS.length];UI.speed=n;UI.lastSpeed=n;renderHUD();},
  install:()=>{if(installEvt){installEvt.prompt();installEvt.userChoice.finally(()=>{installEvt=null;});return;}
    openModal(pitchHtml(false));},

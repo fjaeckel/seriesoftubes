@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 - Fabric (NNI) ports now grow like your other ports: buy them at 10G, 100G or 400G (as fast as your router takes), and bundle up to eight into a LAG when one is not enough (#140). A fabric customer is no longer accepted, by hand or automatically, when its bandwidth would not fit on the port as well (#307).
+- Pressing Space to play again after a pause now picks up at the speed you were playing, not always at 1× (#299).
 - Your own subsea cables now land right on the city's dot, also in Fujairah, Dubai, Karachi, Barcelona, Osaka and other cities the map shifts slightly so they do not overlap (#305).
 - Starting a new network no longer leaves the last one's "New POP!" and money pop-ups frozen all over the map until a reload.
 

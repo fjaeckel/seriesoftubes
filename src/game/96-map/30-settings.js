@@ -16,7 +16,9 @@ const pref=k=>typeof PREFS[k]==='boolean'?PREFS[k]:PREF_DEF[k];
 const quietOn=()=>typeof PREFS.quiet==='boolean'?PREFS.quiet:rulePreset()==='soft';
 function setPref(k,v){if(!own(PREF_DEF,k))return;PREFS[k]=!!v;try{localStorage.setItem('sot-prefs',JSON.stringify(PREFS));}catch(e){}}
 // Stop the clock for something the player must see. Nothing happens if the game is already paused, or not the player's.
-function autoPause(){if(!S||!UI.speed||UI.clockLocked)return false;UI.resumeSpeed=UI.speed;UI.speed=0;renderHUD();return true;}
+function autoPause(){if(!S||!UI.speed||UI.clockLocked)return false;UI.resumeSpeed=UI.lastSpeed=UI.speed;UI.speed=0;renderHUD();return true;}
+// Space and the phone's play button: pause, or play again at the speed it ran before (#299).
+function playPause(){if(pzOn()||UI.clockLocked||(S&&!rule('clock')))return false;if(UI.speed){UI.lastSpeed=UI.speed;UI.speed=0;}else UI.speed=UI.lastSpeed||1;renderHUD();return true;}
 // Put the clock back at a speed (a new game, a loaded or resumed one): unless it is locked, then it runs as the lock says.
 function setSpeed(v){UI.speed=UI.clockLocked&&HOOKS.speed?HOOKS.speed():v;}
 const resumeAct=()=>({l:tr('common.resume'),act:'speed',args:{v:UI.resumeSpeed||1}});
