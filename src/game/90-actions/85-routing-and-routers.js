@@ -9,7 +9,7 @@ Object.assign(ACT,{
  routingOpen:()=>{if(S&&!pzOn())routingModal();},
  coreSet:({v})=>{if(!S.core)return;v=+v;if(!(v>=0&&v<=S.core.lv)||(v===S.core.run&&!S.core.legacy))return;S.core.run=v;delete S.core.legacy;sfx('click');after();},
  via:({v})=>{UI.via=v;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
- setRoute:({id,m})=>{if(!own(RT,m))return;const b=S.biz.find(x=>x.id===id);if(b){b.route=m;sfx('click');after();}},
+ setRoute:({id,m})=>{if(!own(RT,m))return;const b=S.biz.find(x=>x.id===id);if(b){b.route=m;delete b.pin;sfx('click');after();}},
  route:({r})=>{UI.route=r;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
  addParallel:({id})=>{const l=S.links.find(x=>x.id===id);if(l)openLinkModal(l.a,l.b);},
  popStdSet:({city})=>{const p=S.pops[city];if(!p||pzOn())return;S.popStd={g:p.rgen||0,rt:p.routers||1};toast(tr('pop_std.new_pops_now_start_with',{n:S.popStd.rt,model:esc(RG[S.popStd.g].n)}),'good');sfx('click');after();},

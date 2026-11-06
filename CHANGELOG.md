@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- You can now move a customer to another path between the same two POPs, with the most diverse options listed first. Alien waves and leased fiber pairs move to another fiber, and circuits can be pinned to a path of your choice, falling back to normal routing while a link on it is down.
 ## [3.0.0] — 2026-11-06
 
 **Series of Tubes 3.0: Pie in the Sky.** You have wired up the planet with fiber, cables and routers. Now take your network to orbit: start your own rocket company, fill the sky with satellites (we call them pies) and sell internet to everyone your cables will never reach.
