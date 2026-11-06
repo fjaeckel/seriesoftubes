@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Your intern can standardize your routers on a model you choose: pick it in Keep routers ahead, and every POP on a smaller model is swapped to it, the busiest first, within the monthly budget. Every setting in the Standing orders sheet is now a list to pick from instead of a button to tap through.
+
 ## [3.0.0] — 2026-11-06
 
 **Series of Tubes 3.0: Pie in the Sky.** You have wired up the planet with fiber, cables and routers. Now take your network to orbit: start your own rocket company, fill the sky with satellites (we call them pies) and sell internet to everyone your cables will never reach.

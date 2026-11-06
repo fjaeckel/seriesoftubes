@@ -356,7 +356,9 @@ test('the Ops sheet works at 360 px in every language, from the NOC tab and the 
     assert.ok(ev('opsHired()'), lang);
     doc.querySelector('#modalCard [data-act="opsToggle"]').click();
     assert.equal(doc.querySelector('#modalCard [data-act="opsToggle"]').getAttribute('aria-pressed'), 'true', lang);
-    doc.querySelector('#modalCard [data-act="opsParam"]').click();
+    const sel = doc.querySelector('#modalCard select[data-chg="opsParam"]');
+    sel.value = String((sel.selectedIndex + 1) % sel.options.length);
+    sel.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
     const txt = doc.getElementById('modalCard').textContent;
     assert.doesNotMatch(txt, /\bops\.[a-z_]+/, lang);
     assert.ok(doc.querySelector('#modalCard select[data-chg="opsCity"]'), lang);
@@ -495,7 +497,7 @@ test('the fat-fingered LAG member respects a paused transit order and per-POP ex
 });
 
 test('caches: the cash floor and a running-cost budget hold; the panel and the log show what a month costs', t => {
-  const { ev, errors } = game(t);
+  const { ev, dom, errors } = game(t);
   hire(ev); on(ev, 'caches', { g: 1 });
   ev('S.pops.fra.rgen=0;compute()'); // 100G ports: 100G boxes at $400/mo
   const add = () => ev("utilityCaches('fra').add.filter(x=>(R.cityDem.fra||0)*NSH[x.net]>=1).length");
@@ -515,7 +517,8 @@ test('caches: the cash floor and a running-cost budget hold; the panel and the l
   ev('opsModal()');
   const txt = ev("document.getElementById('modalCard').textContent");
   assert.match(txt, /each box costs \$400\/mo/);
-  assert.match(txt, /Adds at most: \+\$1\.0k\/mo/);
+  const capSel = [...dom.window.document.querySelectorAll('#modalCard select[data-chg="opsCap"]')].find(x => x.dataset.args === '{"k":"caches"}');
+  assert.equal(capSel.closest('label').firstChild.textContent + ': ' + capSel.options[capSel.selectedIndex].textContent, 'Adds at most: +$1.0k/mo');
   assert.match(txt, /This month: \$0 up front, \+\$800\/mo on the bill/);
   ev('S.day+=monLen(S.day);S.ops.cap.caches=0'); shift(ev);
   assert.equal(ev('S.ops.addMo.caches'), (ev('S.caches.length') - 2) * 400, 'a new month counts from zero');

@@ -1,5 +1,9 @@
 // Standing orders: hiring the intern, the switches and dials, and a new POP from the template.
 const opsCycle=(a,v)=>a[(a.indexOf(v)+1)%a.length];
+// A pick from a list (v: its position, as the sheet's dropdown sends it), or without v the next value (the MCP tools step).
+const opsPick=(a,cur,v)=>{if(v===undefined)return opsCycle(a,cur);const i=Number(v);return Number.isInteger(i)&&i>=0&&i<a.length?a[i]:undefined;};
+// The sheet is drawn again after a pick: keep the keyboard on the list that was used.
+const opsRedraw=(act,args)=>{opsModal();const j=JSON.stringify(args);for(const el of $('modalCard').querySelectorAll(`[data-chg="${act}"]`))if(el.dataset.args===j){el.focus();break;}};
 Object.assign(ACT,{
  opsOpen:()=>{if(S)opsModal();},
  opsHire:({id})=>{if(!S||opsHired()||!own(INTERNS,id)||!opsCanHire()||!rule('clock'))return;if(!spend(INTERN_MO))return;const O=opsO(),m=monthIdx(S.day);O.intern=id;O.hired=S.day;O.wk=null;
@@ -9,11 +13,10 @@ Object.assign(ACT,{
  opsFire:()=>{if(!opsHired())return;if(UI.confirm!=='opsFire'){UI.confirm='opsFire';opsModal();return;}UI.confirm=null;const nm=opsName();S.ops.intern=null;
    toast(esc(tr('ops.fired',{name:nm})),'');after();opsModal();},
  opsToggle:({k})=>{if(!opsHired()||!own(OPSK,k))return;S.ops.on[k]=!S.ops.on[k];sfx('click');after();opsModal();},
- opsParam:({k,p})=>{if(!opsHired()||!own(OPSK,k)||!own(OPSK[k].p,p))return;const P=OPSK[k].p[p];let v;
-   if(p==='prov'){const ids=['cheap','have',...NETS.filter(n=>n.price&&Object.keys(S.pops).some(c=>sellsAt(n,c))).map(n=>n.id)];v=opsCycle(ids,opsP(k,p));}else v=opsCycle(P.v,opsP(k,p));
-   (S.ops.p[k]||(S.ops.p[k]={}))[p]=v;sfx('click');after();opsModal();},
- opsCap:({k})=>{if(!opsHired()||!own(OPSK,k)||!OPSK[k].cap)return;S.ops.cap[k]=opsCycle(opsCaps(k),opsCap(k));sfx('click');after();opsModal();},
- opsFloor:()=>{if(!opsHired())return;S.ops.floor=opsCycle(OPS_FLOORS,S.ops.floor);sfx('click');after();opsModal();},
+ opsParam:({k,p,v})=>{if(!opsHired()||!own(OPSK,k)||!own(OPSK[k].p,p))return;const P=OPSK[k].p[p],x=opsPick(opsOpts(k,p),opsP(k,p),v);if(x===undefined||!(P.ok?P.ok(x):P.v.includes(x)))return;
+   (S.ops.p[k]||(S.ops.p[k]={}))[p]=x;sfx('click');after();opsRedraw('opsParam',{k,p});},
+ opsCap:({k,v})=>{if(!opsHired()||!own(OPSK,k)||!OPSK[k].cap)return;const x=opsPick(opsCaps(k),opsCap(k),v);if(x===undefined)return;S.ops.cap[k]=x;sfx('click');after();opsRedraw('opsCap',{k});},
+ opsFloor:({v})=>{if(!opsHired())return;const x=opsPick(OPS_FLOORS,S.ops.floor,v);if(x===undefined)return;S.ops.floor=x;sfx('click');after();opsRedraw('opsFloor',{});},
  opsCity:({v})=>{if(!S||!S.pops[v])return;UI.opsCity=v;opsModal();},
  opsPop:({k,city})=>{if(!opsHired()||!OPS_POP.includes(k)||!S.pops[city])return;const sk=S.ops.skip,a=sk[city]||[];sk[city]=a.includes(k)?a.filter(x=>x!==k):[...a,k];if(!sk[city].length)delete sk[city];
    UI.opsCity=city;sfx('click');after();opsModal();},

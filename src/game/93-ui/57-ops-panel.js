@@ -5,12 +5,15 @@ function opsCard(){if(!S)return '';const last=opsHired()&&S.ops.log[0];
     <div class="meta">${opsHired()?esc(last?opsEntry(last):tr('ops.l_quiet',{name:opsName()})):opsCanHire()?tr('ops.hire_pitch_short'):tr('ops.locked',{lv:2})}</div>
     <div class="btns">${btn(opsHired()?tr('ops.standing_orders'):tr('ops.hire_an_intern'),'opsOpen',{},opsHired()?'sm':'pink sm',!opsHired()&&!opsCanHire())}</div></div>`;}
 const opsEntry=e=>(e.f!==undefined?opsFFLine(e)+' ':'')+(e.r.length||e.f===undefined?opsLine(e):'');
-function opsVal(k,p){const P=OPSK[k].p[p],v=opsP(k,p);return p==='prov'?(v==='cheap'?tr('ops.cheapest'):v==='have'?tr('ops.already_connected'):NET[v].name):P.f(v);}
+function opsVal(k,p,v=opsP(k,p)){const P=OPSK[k].p[p];return p==='prov'?(v==='cheap'?tr('ops.cheapest'):v==='have'?tr('ops.already_connected'):NET[v].name):P.f(v);}
+// A setting as a list to pick from: the option values are positions in the list the action reads again.
+const opsSel=(lab,act,args,vals,cur,name)=>`<label class="ops-sel"><span>${lab}</span><select data-chg="${act}" data-args="${esc(JSON.stringify(args))}">${vals.map((v,i)=>`<option value="${i}"${v===cur?' selected':''}>${esc(name(v))}</option>`).join('')}</select></label>`;
+const opsCapName=(k,v)=>v?tr('common.price_mo',{price:(OPSK[k].mo?'+':'')+fmt$(v)}):tr('ops.no_cap');
 function opsOrderHtml(d){const k=d.k,on=S.ops.on[k],cap=d.cap?opsCap(k):0,sp=S.ops.spent[k]||0,am=Math.round(S.ops.addMo[k]||0);
   return `<div class="ops-o${on?' on':''}"><div class="ops-h"><span class="ops-i" aria-hidden="true">${d.i}</span><div class="grow"><div class="nm">${tr(d.t)}</div><div class="meta">${tr(d.d)}${k==='caches'?' '+tr('ops.caches_rent',{price:fmt$(CACHE_MO),big:fmt$(CACHE_BIG_MO)}):''}</div></div>
     <button class="b sm ${on?'green':'ghost'}" data-act="opsToggle" data-args='{"k":"${k}"}' aria-pressed="${on}" aria-label="${esc(tr(d.t))}">${on?tr('common.on'):tr('ops.paused')}</button></div>
-    ${on?`<div class="ops-p">${Object.keys(d.p).map(p=>btn(`${tr(d.p[p].l)}: <b>${esc(opsVal(k,p))}</b>`,'opsParam',{k,p},'ghost sm')).join('')}
-    ${d.cap?btn(`${d.mo?tr('ops.budget_running'):tr('ops.budget')}: <b>${cap?tr('common.price_mo',{price:(d.mo?'+':'')+fmt$(cap)}):tr('ops.no_cap')}</b>`,'opsCap',{k},'ghost sm'):''}</div>
+    ${on?`<div class="ops-p">${Object.keys(d.p).map(p=>opsSel(tr(d.p[p].l),'opsParam',{k,p},opsOpts(k,p),opsP(k,p),v=>opsVal(k,p,v))).join('')}
+    ${d.cap?opsSel(d.mo?tr('ops.budget_running'):tr('ops.budget'),'opsCap',{k},opsCaps(k),cap,v=>opsCapName(k,v)):''}</div>
     ${sp||am?`<div class="meta">${tr('ops.spent_and_mo',{price:fmt$(sp),mo:opsMo$(am)})}</div>`:''}
     ${k==='ix'&&ppol()!=='open'?`<p class="why">${tr('link_panels.off_while_your_peering_policy_is',{pol:tr(PPOL_N[ppol()])})}</p>`:''}`:''}</div>`;}
 function opsModal(){if(!S)return;const hired=opsHired();let h=`<div style="display:flex;align-items:center"><div><div class="eyebrow">${tr('ops.ops')}</div><h2 style="font-size:26px">${tr('ops.standing_orders')}</h2></div><button class="x" data-act="closeModal" aria-label="${tr('common.close')}">×</button></div>`;
@@ -24,7 +27,7 @@ function opsModal(){if(!S)return;const hired=opsHired();let h=`<div style="displ
     ${btn(UI.confirm==='opsFire'?tr('ops.really_fire'):tr('ops.fire'),'opsFire',{},'ghost sm')}</div>
     <p class="ops-mood">${esc(opsMood())}</p>${opsReportHtml()}
     ${O.log.length?`<pre class="term ops-log">${O.log.slice(0,6).map(e=>esc(tr('ops.day_d',{d:e.d})+': '+opsEntry(e))).join('\n')}</pre>`:''}
-    <div class="ops-p">${btn(`${tr('ops.floor')}: <b>${O.floor?fmt$(O.floor):tr('ops.no_cap')}</b>`,'opsFloor',{},'ghost sm')}</div></div>`;
+    <div class="ops-p">${opsSel(tr('ops.floor'),'opsFloor',{},OPS_FLOORS,O.floor,v=>v?fmt$(v):tr('ops.no_cap'))}</div></div>`;
   h+=`<p class="note">${tr('ops.how_it_works',{name:opsName()})}</p>`+OPS.map(opsOrderHtml).join('');
   // Per POP: switch single orders off where the player wants to decide by hand.
   const cities=Object.keys(S.pops).sort((a,b)=>CITY[a].name.localeCompare(CITY[b].name)),c=S.pops[UI.opsCity]?UI.opsCity:cities[0];

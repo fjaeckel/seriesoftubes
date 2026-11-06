@@ -14,7 +14,9 @@ const INTERNS={
 const OPS=[
  {k:'transit',i:'📈',pop:1,cap:50000,t:N_('ops.o_transit'),d:N_('ops.o_transit_d'),p:{x:{d:1.5,v:[1.25,1.5,2,3],l:N_('ops.p_x'),f:v=>v+'×'},prov:{d:'cheap',ok:v=>v==='cheap'||v==='have'||(isNet(v)&&!!NET[v].price),l:N_('ops.p_prov')}}},
  {k:'ports',i:'🔌',pop:1,cap:50000,t:N_('ops.o_ports'),d:N_('ops.o_ports_d'),p:{x:{d:1.5,v:[1.25,1.5,2,3],l:N_('ops.p_x'),f:v=>v+'×'}}},
- {k:'routers',i:'🧠',pop:1,cap:250000,t:N_('ops.o_routers'),d:N_('ops.o_routers_d'),p:{at:{d:80,v:[60,70,80,90],l:N_('ops.p_at'),f:v=>v+'%'},how:{d:'auto',v:['auto','add','swap'],l:N_('ops.p_how'),f:v=>tr({auto:N_('ops.how_auto'),add:N_('ops.how_add'),swap:N_('ops.how_swap')}[v])}}},
+ {k:'routers',i:'🧠',pop:1,cap:250000,t:N_('ops.o_routers'),d:N_('ops.o_routers_desc'),p:{at:{d:80,v:[60,70,80,90],l:N_('ops.p_at'),f:v=>v+'%'},how:{d:'auto',v:['auto','add','swap'],l:N_('ops.p_how'),f:v=>tr({auto:N_('ops.how_auto'),add:N_('ops.how_add'),swap:N_('ops.how_swap')}[v])},
+   // A model to standardize on: every POP on a smaller one is swapped to it, busiest first, within the budget.
+   model:{d:'next',ok:v=>v==='next'||(Number.isInteger(v)&&!!RG[v]),l:N_('ops.p_model'),f:v=>v==='next'?tr('ops.model_next'):RG[v].n}}},
  {k:'caches',i:'📦',pop:1,cap:5000,mo:1,t:N_('ops.o_caches'),d:N_('ops.o_caches_d'),p:{g:{d:5,v:[1,5,10,25,50],l:N_('ops.p_g'),f:v=>fmtG(v)}}},
  {k:'ix',i:'🔀',t:N_('ops.o_ix'),d:N_('ops.o_ix_d'),p:{}},
  {k:'pni',i:'🤝',pop:1,cap:50000,t:N_('ops.o_pni'),d:N_('ops.o_pni_d'),p:{g:{d:25,v:[5,10,25,50,100],l:N_('ops.p_g'),f:v=>fmtG(v)},tier:{d:0,v:[0,1,2],l:N_('ops.p_tier'),f:v=>tr('ops.at_least_port',{port:PORT[v].n})},paid:{d:false,v:[false,true],l:N_('ops.p_paid'),f:v=>v?tr('common.on'):tr('common.off')}}},
@@ -35,6 +37,11 @@ const opsHired=()=>!!(S&&S.ops&&S.ops.intern&&own(INTERNS,S.ops.intern));
 const opsCanHire=()=>lvl()>=2;
 const opsName=(long)=>{const I=INTERNS[S.ops.intern];return I?tr(long?I.n:I.s):'';};
 function opsP(k,p){const P=OPSK[k].p[p],v=S.ops.p[k]&&S.ops.p[k][p];return v!==undefined&&(P.ok?P.ok(v):P.v.includes(v))?v:P.d;}
+// Every value a setting can take, in the order its list shows them: providers that sell where you have POPs, and router
+// models you can buy, smallest first. The current value is always on the list, so the list can show it.
+function opsOpts(k,p){const cur=opsP(k,p),L=p==='prov'?['cheap','have',...NETS.filter(n=>n.price&&Object.keys(S.pops).some(c=>sellsAt(n,c))).map(n=>n.id)]
+  :p==='model'?['next',...RG.map((r,i)=>i).filter(i=>rgOpen(i)).sort((a,b)=>RG[a].cls-RG[b].cls||RG[a].cap-RG[b].cap||a-b)]:OPSK[k].p[p].v.slice();
+  if(!L.includes(cur))L.push(cur);return L;}
 const opsCaps=k=>OPSK[k].mo?OPS_CAPS_MO:OPS_CAPS;
 function opsCap(k){const c=S.ops.cap[k];return opsCaps(k).includes(c)?c:OPSK[k].cap||0;}
 const opsHere=(k,c)=>!(S.ops.skip[c]||[]).includes(k);
@@ -127,12 +134,20 @@ const opsProv=c=>{const pv=opsP('transit','prov'),n=isNet(pv)?NET[pv]:null;retur
 // The orders. Each takes the shift and does its jobs through the player's own actions.
 const OPS_RUN={
  repair(X){purgeInc();for(const i of S.inc.slice())if(i.type!=='ddos'&&i.until>S.day&&i.cost>0&&!(i.slow&&i.rushed)&&X.can('repair',i.cost)&&X.pay('repair',()=>ACT.fixInc({id:i.id})))X.did('repair');},
- routers(X){const at=opsP('routers','at')/100,how=opsP('routers','how');
+ routers(X){const at=opsP('routers','at')/100,how=opsP('routers','how'),m=opsP('routers','model'),fix=m!=='next',
+     load=c=>Math.max((R.nodeLoad[c]||0)/(R.nodeCap[c]||nodeCap(c)||1),portsUsed(c)/Math.max(1,portsMax(c)));
+   // A chosen model: swap every POP still on a smaller one to it, the busiest first, while the budget lasts. Never a
+   // step down, never a model that is not unlocked or does not fit, and only with a second router or no traffic there.
+   if(fix&&rgOpen(m))for(const c of opsPops('routers').sort((a,b)=>load(b)-load(a))){const p=S.pops[c],g=p.rgen||0;
+     if(p.rupDay===S.day||g===m||RG[m].cap<=RG[g].cap||modelFits(c,m)||!((p.routers||1)>1||popIdle(c)))continue;
+     const cost=swapCost(c,m);if(!X.can('routers',cost))continue;
+     if(X.pay('routers',()=>ACT.upRouter({city:c,g:m})))X.did('routers',c+' ⇧'+RG[m].pn);}
    for(const c of opsPops('routers')){const p=S.pops[c];if(p.rupDay===S.day)continue;
-     const ld=Math.max((R.nodeLoad[c]||0)/(R.nodeCap[c]||nodeCap(c)||1),portsUsed(c)/Math.max(1,portsMax(c)));if(ld<at)continue;
+     const ld=load(c);if(ld<at)continue;
      const rt=p.routers||1,g=p.rgen||0,nx=mainRG(RG[g].cls+1);
      // A swap with one router is a maintenance window: the intern only swaps where a second router carries the traffic.
-     const swap=nx>=0&&rgOpen(nx)&&!modelFits(c,nx)&&(rt>1||popIdle(c)),add=rt<RMAX;
+     // With a chosen model the swaps are the ones above; a busy POP only gets more routers.
+     const swap=!fix&&nx>=0&&rgOpen(nx)&&!modelFits(c,nx)&&(rt>1||popIdle(c)),add=rt<RMAX;
      const doSwap=how==='swap'?swap:how==='add'?false:swap&&(rt>=4||!add);if(!doSwap&&(how==='swap'||!add))continue;
      const cost=doSwap?swapCost(c,nx):routerCost(g,rt);if(!X.can('routers',cost))continue;
      if(X.pay('routers',()=>doSwap?ACT.upRouter({city:c,g:nx}):ACT.addRouter({city:c})))X.did('routers',c+(doSwap?' ⇧'+RG[nx].pn:' +1'));}},

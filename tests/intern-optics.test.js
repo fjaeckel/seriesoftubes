@@ -51,10 +51,12 @@ test('#262 the setting is saved, an unknown value falls back, and it shows on th
   dom.window.innerWidth = 360;
   ev("ACT.phoneTab({t:'noc'})");
   dom.window.document.querySelector('#leftBody [data-act="opsOpen"]').click();
-  const btn = [...dom.window.document.querySelectorAll('#modalCard [data-act="opsParam"]')].find((b) => b.dataset.args.includes('pick'));
-  assert.ok(btn, 'the Optics button is in the sheet');
-  assert.match(btn.textContent, /Optics: biggest on new fiber/);
-  btn.click();
+  const sel = [...dom.window.document.querySelectorAll('#modalCard select[data-chg="opsParam"]')].find((s) => s.dataset.args.includes('pick'));
+  assert.ok(sel, 'the Optics list is in the sheet');
+  assert.match(sel.closest('label').textContent, /Optics/);
+  assert.equal(sel.options[sel.selectedIndex].textContent, 'biggest on new fiber');
+  sel.value = [...sel.options].find((o) => o.textContent !== 'biggest on new fiber').value;
+  sel.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
   assert.equal(ev("opsP('optics','pick')"), 'cheap');
   assert.deepEqual(errors, []);
 });
