@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+## [3.2.0] — 2026-11-07
+
 - New badges for traffic: serve 1 Tbps and 10 Tbps on the way to the 100 Tbps and petabit ones, and carry a petabyte, 100 petabytes, an exabyte and a zettabyte in one game. The dashboard shows how much traffic your network has carried so far, and only the top step of each ladder is legendary: Hundred Terabits is now epic.
 - Lambda Bazaar, a capacity market for your dark fiber, is a new tab in the NOC dashboard. Sell spectrum, managed 100G, 400G, 800G and 1.6T waves, and dark pair IRUs on every route you hold fiber on, and choose how much to keep back for your own traffic, from what demand the broker lists, and the price it never sells below. What each route wants moves all the time and grows every year: hot routes pay more, a fiber cut next door or a hyperscaler breaking ground sends demand up, buyers move from 100G to bigger waves over the years, and carriers already on your glass ask to move up a size. Short, straight routes earn more for fast waves. A Cable broker pays the broker 3% instead of 10%, and sees where each route is heading and which routes between its POPs are worth building.
 
