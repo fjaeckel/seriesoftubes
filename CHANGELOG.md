@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- New badges for traffic: serve 1 Tbps and 10 Tbps on the way to the 100 Tbps and petabit ones, and carry a petabyte, 100 petabytes, an exabyte and a zettabyte in one game. The dashboard shows how much traffic your network has carried so far.
 ## [3.1.0] — 2026-11-07
 
 - Whoever runs sales can now answer renewal haggles for you, each in their own way: switch it on at the sales desk. The engineer keeps nerdy customers at the market price and gives everyone else their discount, the shark refuses discounts and some customers walk, and the CEO settles it on the golf course, for better or worse.

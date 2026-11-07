@@ -83,6 +83,7 @@ const API_STATE_DOC={
  lost:{type:'boolean',doc:'The bank repossessed the routers.'},
  neg:{type:'integer',doc:'Days in the red in a row.'},
  hist:{type:'array',doc:'Daily history for the graphs: demand, served, exit split, revenue, cost, cash.'},
+ vol:{type:'number',doc:'Traffic carried in this game, in petabytes (each day adds a day of what was served); badges at 1 PB, 100 PB, 1 EB and 1 ZB.'},
  scn:{type:'map',doc:'The running scenario: id, rules, day limit, done/failed, and the day of the next scripted attack (nextDdos).'},
  dk:{type:'map',doc:'De-Kicks state: per-exchange multipliers, add-ons, retention, the live quote (q) and the remembered one (lastQ).'},
  grace:{type:'map',doc:'Courtesy transit after a merger wave, until a day.'},

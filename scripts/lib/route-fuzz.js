@@ -64,6 +64,13 @@ const weight = (b) => (BUILD.test(b.act) ? 8 : UIACT.test(b.act) ? 0.3 : 1);
    opts: moves (count, default 50 to 200 by seed), maxDays per day-move, onMove(i, move) */
 function playGame(pages, seed, opts = {}) {
   const { base, head } = pages;
+  // A badge only this checkout has would unlock in its game alone, and an unlock writes a log line, which shifts every
+  // id made after it: the comparison is about routing, so the new badges are taken off this checkout's page.
+  if (!pages.badges && base !== head) {
+    const ids = base.ev('JSON.stringify(BADGES.map((b)=>b.id))');
+    head.ev(`{const keep=new Set(${ids});for(let i=BADGES.length-1;i>=0;i--)if(!keep.has(BADGES[i].id))BADGES.splice(i,1);}`);
+    pages.badges = true;
+  }
   const r = rng(seed * 2654435761);
   const both = (fn, ...a) => [base.call(fn, ...a), head.call(fn, ...a)];
   const L = base.call('lists');
