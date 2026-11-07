@@ -19,7 +19,7 @@ const SALES={
 const SALES_LV=2,SALES_VP=50000,SALES_VP_DAYS=30;
 // The ones the engineer never lands, and the nerds the shark never calls back.
 const salesBig=t=>{const T=BIZ_T[t];return !!T&&(!!T.mega||(T.lv||1)>=4);};
-const SALES_NERDS=['hft','edu','isp','l2vpn','bulk','provedor','fabl2','wwave','dfpair'];
+const SALES_NERDS=['hft','edu','isp','l2vpn','bulk','provedor','fabl2','wwave','mwave','dfpair'];
 const SALES_SAY=[N_('sales.ceo_say_synergy'),N_('sales.ceo_say_golf'),N_('sales.ceo_say_blockchain'),N_('sales.ceo_say_napkin'),N_('sales.ceo_say_mbps'),N_('sales.ceo_say_airport')];
 const slP=()=>S&&S.sales&&own(SALES,S.sales.p)?S.sales.p:null;
 const slName=(long)=>{const p=slP();return p?tr(long?SALES[p].n:SALES[p].s):'';};

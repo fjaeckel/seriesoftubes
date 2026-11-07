@@ -432,8 +432,11 @@ test('F5: rented capacity never outgrows the route\'s market (#203)', () => {
   const g = load();
   g.ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;S.lvl=4;S.biz=[];S.offers=[];for(const c of ['jed','gdx'])ACT.buildPop({city:c})");
   g.ev("S.links.push({id:'f',a:'jed',b:'gdx',kind:'df',own:true,sys:'roadm',ch:[],km:9089,ready:0,day:0,cut:0,mo:1,trench:'own:f',pairs:1});compute();__reseed(5);ACT.listFiber({id:'f',w:120,p:1})");
-  g.ev('for(let d=0;d<1500;d++){brTick();if(d%7===0)spawnOffer();}for(const o of S.offers.filter(o=>o.link===\'f\'))ACT.accept({id:o.id})');
-  assert.ok(g.ev("brSold('jed','gdx')") <= g.ev("brMarket('jed','gdx')"), 'F5: no more than the route wants');
+  g.ev('for(let d=0;d<1500;d++){S.day++;brTick();if(d%7===0)spawnOffer();}for(const o of S.offers.filter(o=>o.link===\'f\'))ACT.accept({id:o.id})');
+  // The market moves and grows (37-fiber-market.js): never more than the route wants at its hottest, today.
+  const most = g.ev("Math.max(brMarket('jed','gdx'),Math.round(brMarket('jed','gdx')*0.5*CM_HMAX*Math.pow(cmGrowth(S.day),0.7)))");
+  assert.ok(g.ev("brSold('jed','gdx')") <= most, `F5: no more than the route wants (${g.ev("brSold('jed','gdx')")} of ${most})`);
+  assert.ok(g.ev("brSold('jed','gdx')") <= 3, 'a road to nowhere still sells only a little');
   assert.deepEqual(g.errors, []);
 });
 
@@ -459,6 +462,26 @@ test('F7: extra crews cut a build on land to half its planned time at most (#203
   const km = Math.round(g.ev("kmBetween('fra','mad')")), days = g.ev(`dfBuildDays(${km})`), d0 = g.ev('S.day');
   g.ev(`S.links.push({id:'f7',a:'fra',b:'mad',kind:'df',own:true,sys:'roadm',ch:[],km:${km},ready:S.day+${days},day:S.day,cut:0,mo:1,trench:'own:f7',pairs:1});ACT.crews({id:'f7',all:1});for(let i=0;i<50;i++)ACT.crews({id:'f7'})`);
   assert.ok(g.ev("S.links.find(l=>l.id==='f7').ready") - d0 >= days / 2, 'F7: never under half the planned build');
+  assert.deepEqual(g.errors, []);
+});
+
+test('F8: a managed wave costs your own capacity, rides one optic, and is priced against its fiber', () => {
+  const g = load();
+  g.ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;S.lvl=6;S.biz=[];S.offers=[];for(const c of ['fra','ams'])if(!S.pops[c])ACT.buildPop({city:c})");
+  g.ev("S.links.push({id:'f',a:'fra',b:'ams',kind:'df',own:true,sys:'cl',ch:['zr4','zr4'],km:400,ready:0,day:0,cut:0,mo:1,trench:'own:f',pairs:1});compute()");
+  const r = "cmRoutes().get('ams|fra')";
+  for (const [p, land, sea] of [['w400', 2.7, 3.8], ['w800', 4.6, 6.6], ['w1600', 7.8, 11]]) {
+    assert.ok(Math.abs(g.ev(`cmList(${r},'${p}')/cmList(${r},'w100')`) - land) < 1e-9, `F8: ${p} on land`);
+    assert.ok(Math.abs(g.ev(`(()=>{const x={...${r},sub:true};return cmList(x,'${p}')/cmList(x,'w100')})()`) - sea) < 1e-9, `F8: ${p} on subsea`);
+  }
+  for (let i = 1; i < 4; i++) assert.ok(g.ev(`cmList(${r},CM_W[${i}])/CM_G[CM_W[${i}]]<cmList(${r},CM_W[${i - 1}])/CM_G[CM_W[${i - 1}]]`), 'F8: cheaper per bit');
+  assert.ok(Math.abs(g.ev(`cmList(${r},'spec')/(dfLeaseMo(400)+ampCount(400)*AMP_MO)`) - 0.3) < 1e-9, 'F8: spectrum lists at 30%');
+  for (let d = 0; d < 720; d += 9) { const x = g.ev(`cmIdx(${r},'spec',0,0,${d})`); assert.ok(x >= 0.7 - 1e-9 && x <= 1.35 + 1e-9, `F8: heat moves a price by ${x}`); }
+  assert.equal(g.ev("cmSpare(S.links[S.links.length-1],'w800',0)"), 0, 'F8: no 800G wave on 400G optics');
+  g.ev("cmSell(S.links[S.links.length-1],'w400',1,100,0);compute()");
+  assert.equal(g.ev("dfLit(S.links[S.links.length-1])-dfCap(S.links[S.links.length-1])"), 400, 'F8: it comes out of your own capacity');
+  g.ev("S.links[S.links.length-1].ch=[]");
+  assert.equal(g.ev("fiberOk(S.biz.find(b=>b.type==='mwave'))"), false, 'F8: unlit, its customer is down');
   assert.deepEqual(g.errors, []);
 });
 

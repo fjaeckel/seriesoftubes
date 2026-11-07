@@ -16,6 +16,8 @@ test('a route\'s market follows the eyeballs at both ends, and a landing town co
   assert.ok(ev("brMarket('nyc','bde')") > ev("brMarket('nyc','gdx')"));
 });
 
+// The market moves (37-fiber-market.js): demand has its own cycle and grows, so days pass here; at its hottest a route
+// wants CM_HMAX times its usual spectrum.
 test('a listing sells over time, never past the market, and rent from a road to nowhere stays small', () => {
   const { ev, errors } = load();
   start(ev);
@@ -23,11 +25,11 @@ test('a listing sells over time, never past the market, and rent from a road to 
   fiber(ev, 'far', 'jed', 'gdx', 9089);
   ev("__reseed(7);ACT.listFiber({id:'big',w:60});ACT.listFiber({id:'far',w:60})");
   assert.equal(ev("S.biz.length"), 0, 'nothing sells the moment it is listed');
-  ev('for(let d=0;d<720;d++)brTick()');
+  ev('for(let d=0;d<720;d++){S.day++;brTick();}');
   const sold = (id) => ev(`S.biz.filter(b=>b.link==='${id}').reduce((a,b)=>a+(b.slots||0),0)`);
   assert.ok(sold('big') >= 3, `Frankfurt–Amsterdam sold ${sold('big')}`);
-  assert.ok(sold('big') <= ev("brMarket('fra','ams')"), 'never more than the route wants');
-  assert.equal(sold('far'), 1, 'Jeddah–Magadan: one wave, then the market is full');
+  assert.ok(sold('big') <= ev("brMarket('fra','ams')*0.5*CM_HMAX*Math.pow(cmGrowth(S.day),0.7)"), 'never more than the route wants at its hottest');
+  assert.ok(sold('far') >= 1 && sold('far') <= 2, `Jeddah–Magadan: a wave or two, then the market is full (${sold('far')})`);
   assert.equal(ev("brFree(S.links.find(l=>l.id==='far'))"), 0);
   // random alien-wave offers respect the market too
   ev("S.offers=[];for(let i=0;i<400;i++)spawnOffer()");

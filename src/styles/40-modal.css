@@ -216,3 +216,16 @@ h2 .rn{font-size:18px;vertical-align:middle;padding:2px 4px}
 /* A phone on its side: the three side by side, so nothing scrolls. */
 @media (orientation:landscape) and (max-height:500px){.chpick h2{font-size:21px !important}.chpick .tagline{display:none}
   .chopts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.chopt{flex-direction:column;gap:2px;margin-top:6px;padding:8px 10px}.chi{font-size:22px}.cht span{font-size:12px;line-height:1.3}}
+/* The capacity market (Lambda Bazaar): a product's bar is what is sold (green) of what the route wants (the line), with
+   your minimum as a pink tick. */
+.cmset{border-top:1.5px dashed var(--line);padding:8px 0 4px}
+.cmset .nm{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cmset .seg{margin:4px 0 6px}
+.cmp{margin:6px 0 4px}
+.cmbar{position:relative;height:9px;border-radius:5px;background:var(--soft);border:1.5px solid var(--line);margin-top:3px;overflow:visible}
+.cmbar i{position:absolute;left:0;top:0;bottom:0;background:var(--eye);border-radius:4px}
+.cmbar b{position:absolute;top:-4px;bottom:-4px;width:3px;margin-left:-1.5px;background:var(--ink);border-radius:2px}
+.cmbar u{position:absolute;top:-5px;bottom:-5px;width:0;margin-left:-1px;border-left:3px dotted var(--me)}
+.cmroute{align-items:flex-start}
+.tag.cmhot{background:#FFE1D6;color:#B43A12}
+.tag.cmcool{background:#DDF1FB;color:#1E6A8C}

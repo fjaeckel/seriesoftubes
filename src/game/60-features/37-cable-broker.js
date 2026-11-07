@@ -10,11 +10,11 @@ const glassKm=()=>S.links.reduce((a,l)=>a+(ownGlassL(l)?l.km:0),0);
 // The continents your own subsea cables land on.
 function cableConts(){const r=new Set();for(const l of S.links)if(ownGlassL(l)&&l.sub)for(const c of [l.a,l.b])r.add(CITY[c].reg);return r.size;}
 // Capacity other carriers buy from you: alien waves, fiber pairs and capacity deals (once delivered).
-const CAP_TYPES=['wwave','dfpair','pairs','capw','capsub','capfib'];
+const CAP_TYPES=['wwave','mwave','dfpair','pairs','capw','capsub','capfib'];
 const capSold=b=>CAP_TYPES.includes(b.type)&&!capPend(b);
 const capSalesMo=()=>S.biz.reduce((a,b)=>a+(capSold(b)?bizMo(b):0),0);
 // Lit capacity sold, in Gbps: waves (400G each) and subsea capacity. A dark pair is the buyer's to light.
-const capSoldG=()=>S.biz.reduce((a,b)=>a+(!capSold(b)?0:b.type==='wwave'?(b.slots||1)*400:b.type==='capw'||b.type==='capsub'?b.bw:0),0);
+const capSoldG=()=>S.biz.reduce((a,b)=>a+(!capSold(b)?0:b.type==='wwave'?(b.slots||1)*400:b.type==='mwave'?(b.slots||1)*(b.g||100):b.type==='capw'||b.type==='capsub'?b.bw:0),0);
 // Two hops of your own glass through one city, each lit to at least g.
 function glassChain(g){const by={};for(const l of S.links)if(ownGlassL(l)&&dfCap(l)>=g)for(const [c,o] of [[l.a,l.b],[l.b,l.a]])(by[c]=by[c]||new Set()).add(o);
   return Object.values(by).some(s=>s.size>=2);}

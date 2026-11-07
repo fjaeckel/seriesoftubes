@@ -80,7 +80,7 @@ const linkIds=()=>{const m=new Map();for(const l of S.links)if(!m.has(l.id))m.se
 function fiberUse(){const sold=new Map(),dfp=new Map(),pairs=new Set();
   for(const b of S.biz){if(b.type==='wwave')sold.set(b.link,(sold.get(b.link)||0)+(b.slots||0));else if(b.type==='dfpair')dfp.set(b.link,(dfp.get(b.link)||0)+1);else if(b.type==='pairs'||b.type==='capfib')pairs.add(b.link);}
   return {sold,dfp,pairs};}
-function fiberOk(b,ids){const l=ids?ids.get(b.link):S.links.find(x=>x.id===b.link);if(!l)return false;if(b.type==='dfpair'||b.type==='pairs'||b.type==='capfib')return l.ready<=S.day&&!(l.cut>S.day);return l.ready<=S.day&&!(l.cut>S.day)&&!(l.eqDown>S.day);}
+function fiberOk(b,ids){const l=ids?ids.get(b.link):S.links.find(x=>x.id===b.link);if(!l)return false;if(b.type==='dfpair'||b.type==='pairs'||b.type==='capfib')return l.ready<=S.day&&!(l.cut>S.day);return l.ready<=S.day&&!(l.cut>S.day)&&!(l.eqDown>S.day)&&(b.type!=='mwave'||dfLit(l)>=mwG(l));}
 function soldSlots(l,u){return u?u.sold.get(l.id)||0:S.biz.filter(b=>b.type==='wwave'&&b.link===l.id).reduce((a,b)=>a+(b.slots||0),0);}
 // Spare capacity other carriers can rent on a dark fiber (#51): free channels for alien waves, and on your own build
 // a spare pair in the trench. Random offers and broker listings follow the same rules and the same prices.

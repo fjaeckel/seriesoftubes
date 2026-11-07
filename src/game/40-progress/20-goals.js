@@ -24,7 +24,7 @@ const GOALS=[
 // (37-cable-broker.js). Ids of their own, so a save keeps the ladder it ran. Rewards are larger: glass costs more.
 const BROKER_GOALS=[
  {id:'bk_df',t:tr('goals.light_your_own_dark_fiber'),d:tr('broker.goal_df_d'),r:25000,ok:()=>S.links.some(l=>l.kind==='df'&&dfCap(l)>0)},
- {id:'bk_wave',t:tr('broker.goal_wave'),d:tr('broker.goal_wave_d'),r:40000,ok:()=>S.biz.some(b=>b.type==='wwave'||b.type==='capw'&&!capPend(b))},
+ {id:'bk_wave',t:tr('broker.goal_wave'),d:tr('broker.goal_wave_d'),r:40000,ok:()=>S.biz.some(b=>b.type==='wwave'||b.type==='mwave'||b.type==='capw'&&!capPend(b))},
  {id:'bk_pair',t:tr('broker.goal_pair'),d:tr('broker.goal_pair_d'),r:50000,ok:()=>S.biz.some(b=>(b.type==='dfpair'||b.type==='pairs'||b.type==='capfib')&&!capPend(b))},
  {id:'bk_sea',t:tr('broker.goal_sea'),d:tr('broker.goal_sea_d'),r:150000,ok:()=>S.links.some(l=>ownGlassL(l)&&l.sub)},
  {id:'bk_deal',t:tr('broker.goal_deal'),d:tr('broker.goal_deal_d'),r:100000,ok:()=>(S.stats.capDone||0)>0},

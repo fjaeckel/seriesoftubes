@@ -21,16 +21,5 @@ const brFree=l=>Math.max(0,brMarket(l.a,l.b)-brSold(l.a,l.b));
 const WW_SHARE=0.3,WW_FALL=0.6;
 function wwRate(l,n,cut=1){const F=dfLeaseMo(l.km)+ampCount(l.km)*AMP_MO,M=brMarket(l.a,l.b),s=brSold(l.a,l.b);let r=0;
   for(let i=0;i<n;i++)r+=F*WW_SHARE*(1-WW_FALL*Math.min(1,(s+i)/M));return Math.round(r*cut);}
-// Once a day, each listing may find a buyer: the more room the route has left, the sooner.
-function brTick(){for(const l of S.links){const L=l.list;if(!L||l.kind!=='df'||!fiberOk({link:l.id,type:'wwave'}))continue;
-    const free=brFree(l);if(!free)continue;
-    if(L.w>0&&freeCh(l)>=1&&Math.random()<Math.min(0.3,free/45)){const n=Math.max(1,Math.min(L.w,freeCh(l),free,1+Math.floor(Math.random()*4)));brSell(l,'wwave',n);L.w-=n;}
-    else if(L.p>0&&pairFree(l)&&free>=BR_PAIR&&Math.random()<1/90){brSell(l,'dfpair',1);L.p--;}
-    if(!(L.w>0)&&!(L.p>0))delete l.list;}}
-// A sale: a new carrier on this fiber, or more waves for one that already rents here.
-function brSell(l,t,n){const T=BIZ_T[t],nm=()=>{const list=T.names.filter(x=>!S.usedNames.includes(x)),x=list.length?pick(list):pick(T.names);useName(x);return x;};
-  const o=fiberOffer(t,l,nm,0.9);if(t==='wwave'){o.slots=n;o.rate=wwRate(l,n,0.9);o.what=wwWhat(l,n);}
-  const more=t==='wwave'&&S.biz.find(b=>b.type==='wwave'&&b.link===l.id&&b.name===o.name);
-  if(more){more.slots=(more.slots||0)+n;more.rate+=o.rate;more.what=wwWhat(l,more.slots);}else S.biz.push(clSign(offerCustomer(o)));
-  toast(tr('broker.sold',{name:esc(o.name),what:esc(t==='wwave'?wwWhat(l,n):o.what),price:fmt$(o.rate)}),'good');
-  floater((CITY[l.a].x+CITY[l.b].x)/2,(CITY[l.a].y+CITY[l.b].y)/2-20,tr('common.signed'),'#16A866');}
+// The listings sell in the capacity market now (cmDay(), 37-fiber-market.js), with prices and demand that move.
+const brTick=()=>cmDay(S.day);

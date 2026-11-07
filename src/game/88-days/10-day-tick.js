@@ -95,7 +95,7 @@ function* dayPost(d){
   if(rule('money')==='infinite'&&S.cash<1e8)S.cash=1e9;
   // offers
   S.offers=S.offers.filter(o=>o.exp>d);
-  brTick();
+  cmDay(d);
   if(S.offers.length<5&&Math.random()<(0.05+0.01*(S.lvl||1))*(ppol()==='closed'?0.6:1)*(confSpOn()?SP_OFFERS:1)*salesSpawn()){const n0=S.offers.length;spawnOffer();mktPrice(n0);salesShape(n0);}
   yield DAY_REST;
   // failures & events

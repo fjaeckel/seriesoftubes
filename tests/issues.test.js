@@ -1270,7 +1270,10 @@ test('#51 a dark fiber shows what is rented out, and spare capacity can be liste
   ev("for(let i=0;i<120&&!S.biz.some(b=>b.link==='df1');i++)brTick();renderPanel()");
   const b = JSON.parse(ev("JSON.stringify(S.biz.find(x=>x.link==='df1'))"));
   assert.equal(b.type, 'wwave');
-  assert.equal(b.rate, ev(`(()=>{const F=dfLeaseMo(450)+ampCount(450)*AMP_MO,M=brMarket('fra','ams');let r=0;for(let i=0;i<${b.slots};i++)r+=F*WW_SHARE*(1-WW_FALL*Math.min(1,i/M));return Math.round(r*0.9)})()`), 'the alien-wave price, priced against the fiber, minus the broker');
+  // The capacity market prices it (37-fiber-market.js): 30% of the fiber's cost a month, moved by how hot the route is
+  // and how full, minus the broker.
+  assert.equal(b.rate, ev(`(()=>{const r=cmRoutes().get('ams|fra');let x=0;for(let i=0;i<${b.slots};i++)x+=cmList(r,'spec')*cmIdx(r,'spec',0,i,S.day);return Math.round(x*0.9*mkt())})()`), 'the alien-wave price, priced against the fiber, minus the broker');
+  assert.ok(Math.abs(ev("cmList(cmRoutes().get('ams|fra'),'spec')/(dfLeaseMo(450)+ampCount(450)*AMP_MO)") - 0.3) < 1e-9);
   assert.ok(txt().includes(b.name), 'the customer is listed on the fiber');
   assert.match(txt(), new RegExp(`Free channels\\s*${62 - b.slots} / 64`));
   assert.equal(ev("S.links[0].list?S.links[0].list.w:0"), 4 - b.slots, 'the listing shrinks by what sold');

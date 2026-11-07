@@ -68,7 +68,10 @@ const regenNeed=(o,l)=>Math.max(0,Math.ceil(l.km/reachOn(OPT[o].reach,l.sub))-1)
 // all its channels. Nothing changes while a frame is drawn, so draw() keeps the answers in DFC for that frame.
 let DFC=null;
 const dfCap=l=>{if(!DFC)return dfCap0(l);let g=DFC.get(l);if(g===undefined)DFC.set(l,g=dfCap0(l));return g;};
-const dfCap0=l=>{if(l.ready>S.day||l.eqDown>S.day)return 0;const ch=l.ch||[];let g=0;for(const c of ch)g+=optG(c,l);const f=l.chFail&&l.chFail.until>S.day?l.chFail:null;if(f){const fo=f.o&&ch.includes(f.o)?f.o:ch.slice().sort((a,b)=>optG(a,l)-optG(b,l))[0];if(fo)g-=optG(fo,l);}return Math.max(0,g);};
+// dfLit: everything the optics carry; dfCap0: what is left for your own traffic once managed waves sold on it (mwG(),
+// the capacity market) are carved out.
+const dfLit=l=>{if(l.ready>S.day||l.eqDown>S.day)return 0;const ch=l.ch||[];let g=0;for(const c of ch)g+=optG(c,l);const f=l.chFail&&l.chFail.until>S.day?l.chFail:null;if(f){const fo=f.o&&ch.includes(f.o)?f.o:ch.slice().sort((a,b)=>optG(a,l)-optG(b,l))[0];if(fo)g-=optG(fo,l);}return Math.max(0,g);};
+const dfCap0=l=>Math.max(0,dfLit(l)-mwG(l));
 const capOf=l=>(l.kind==='vxc'?VXC[l.vt].g:l.kind==='df'?dfCap(l):LT[l.tier].g)*(l.deg>S.day?0.5:1)*(l.loss&&l.loss.until>S.day?l.loss.f:1);
 // A sick LAG (LACP trouble) keeps only part of its capacity until the incident clears.
 const lagF=o=>o&&o.lacp&&o.lacp.until>S.day?o.lacp.f:1,ixLagF=x=>lagF(S.ev&&S.ev.ixlacp&&{lacp:S.ev.ixlacp[x]});
