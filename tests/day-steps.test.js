@@ -1,7 +1,8 @@
 // The day as steps (dayRun() in src/game/88-days/10-day-tick.js): every routing a day needs, its own and the
 // recomputes after a failure or the intern's jobs, is a yield the route worker answers in play. jsdom has no Worker, so
 // a second page plays it: rwServe() there, messages cloned both ways the way postMessage clones them. A day played that
-// way must be the day dayTick() plays, move for move, with a frame let through in the middle of each day.
+// way must be the day dayTick() plays, move for move, R.egDesc left out of the answers that repeat it and R.efg out of
+// the posts that would only send the worker its own, and a frame let through in the middle of each day.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -9,11 +10,12 @@ const path = require('node:path');
 const { load } = require('./harness');
 
 const BIG = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
-// The big network with an intern running every order, a failure and an event due soon, and its circuits on scenic
-// routes, which read yesterday's R.efg. Ids come from Date.now(),
+// The big network with an intern running every order, a failure and an event due soon, its circuits on scenic
+// routes, which read yesterday's R.efg, and renewal haggles the sales desk answers (slRenRun() routes after them). Ids come from Date.now(),
 // so the clock stands still in every page.
 const SETUP = `Date.now=()=>1.7e12;S=migrate(JSON.parse(${JSON.stringify(BIG)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();autoPause=()=>false;
-  S.cash=1e9;ACT.salesHire({id:'eng'});closeModal();S.slAuto.on=true;
+  S.cash=1e9;ACT.salesHire({id:'eng'});closeModal();S.slAuto.on=true;S.slAuto.ren=true;window.__ren=0;{const f=slRenOne;slRenOne=function(){__ren++;return f.apply(this,arguments);};}
+  for(const b of S.biz.filter(b=>clOn(b)&&!BIZ_T[b.type].fiber).slice(0,20)){b.te=S.day+28;b.hag={rate:Math.round(b.rate*0.7),until:S.day+28};}
   S.ops.intern='tracy';S.ops.hired=S.day;for(const k in S.ops.on)S.ops.on[k]=true;S.ops.floor=0;for(const k in S.ops.cap)S.ops.cap[k]=0;
   S.nextFail=S.day+3;S.nextEvent=S.day+5;for(const b of S.biz)if(BIZ_T[b.type].l2&&b.city2)b.route='scenic';compute();__reseed(4242);`;
 const open = (t, seed) => { const h = load({ seed }); t.after(() => h.dom.window.close()); h.dom.window.structuredClone = globalThis.structuredClone; return h; };
@@ -25,18 +27,22 @@ function played(t) {
   page.ev('window.__q=[];window.__later=[];RW.budget=0;RW.later=f=>__later.push(f);rwOn=()=>!RW.dead;rwStart=()=>RW.w||(RW.w={postMessage:m=>__q.push(structuredClone(m)),terminate(){__q.length=0;}});');
   wk.ev('window.__out=null;window.postMessage=(m,tr)=>{__out=structuredClone(m,{transfer:tr});};');
   // Answers what is waiting, one message at a time; returns how many routings it served.
-  let rests = 0, trials = 0;
+  // kept: answers that left R.egDesc out, the page keeping the one it has; lean: posts that left R.efg out, the worker
+  // keeping its own.
+  let kept = 0, lean = 0, rests = 0, delta = 0, trials = 0;
   const pump = () => { let n = 0; for (;;) {
     if (page.ev('__later.length')) { rests++; page.ev('__later.shift()()'); continue; }
     if (!page.ev('__q.length')) break;
+    if (page.ev('__q[0].efg===0')) lean++;
     if (page.ev('!!__q[0].trial')) trials++;
     wk.dom.window.__m = page.ev('__q.shift()'); wk.ev('rwServe(__m)'); page.dom.window.__a = wk.ev('__out');
-    page.ev('rwDone(__a)'); n++; } return n; };
+    if (wk.ev('!!__out.R&&__out.R.egDesc===0')) kept++;
+    if (wk.ev('!!(__out.R&&__out.R.egDesc&&__out.R.egDesc.dK!==undefined)')) delta++; page.ev('rwMsg(__a)'); n++; } return n; };
   // One message to the worker and its answer back (the trial test steps through a day with it).
-  const pump1 = () => { if (!page.ev('__q.length')) return; wk.dom.window.__m = page.ev('__q.shift()'); wk.ev('rwServe(__m)'); page.dom.window.__a = wk.ev('__out'); page.ev('rwDone(__a)'); };
-  return { ...page, pump, pump1, rests: () => rests, trials: () => trials };
+  const pump1 = () => { if (!page.ev('__q.length')) return; wk.dom.window.__m = page.ev('__q.shift()'); wk.ev('rwServe(__m)'); page.dom.window.__a = wk.ev('__out'); page.ev('rwMsg(__a)'); };
+  return { ...page, pump, pump1, kept: () => kept, lean: () => lean, rests: () => rests, delta: () => delta, trials: () => trials };
 }
-// R.egDesc too, key for key and in order.
+// R.egDesc too, key for key and in order: the worker sends only what changed in it.
 const STATE = "JSON.stringify({S,R:{served:R.served,demand:R.demand,rev:R.revMo,cost:R.costMo,load:R.load,useT:R.useT,usePni:R.usePni,egDesc:R.egDesc}})";
 // Equal states, or which of their fields differ.
 const same = (a, b, msg) => { if (a === b) return; const A = JSON.parse(a), B = JSON.parse(b), d = [];
@@ -46,8 +52,8 @@ const same = (a, b, msg) => { if (a === b) return; const A = JSON.parse(a), B = 
 test('a day whose routings the worker answers is the day dayTick() plays', (t) => {
   const ref = open(t, 777), p = played(t);
   ref.ev(SETUP);
-  // The page itself never routes, the failure on day 3 (failureRun()) and the sales desk's trials (offerTrial())
-  // included: they are steps like the others, routed by the worker.
+  // The page itself never routes, the failure on day 3 (failureRun()), the sales desk's trials (offerTrial()) and its
+  // renewal answers included: they are steps like the others, routed by the worker.
   p.ev('window.__pc=0;window.__tr=0;const c0=compute;compute=function(){__pc++;return c0.apply(this,arguments);};');
   let served = 0, extra = 0;
   for (let i = 0; i < 12; i++) {
@@ -63,7 +69,11 @@ test('a day whose routings the worker answers is the day dayTick() plays', (t) =
   assert.ok(ref.ev('S.inc.length') > 0 || ref.ev('S.stats.incidents') > 0, 'a failure happened');
   assert.equal(p.ev('__pc'), 0, 'no routing on the page');
   assert.ok(p.trials() > 0, `sales trials the worker ran: ${p.trials()}`);
+  assert.ok(p.ev('__ren') > 0 && p.ev('__ren') === ref.ev('__ren'), `renewal haggles the desk answered: ${p.ev('__ren')}`);
   assert.ok(p.ev('S.ops.log.some(e=>e.r.some(([k])=>k==="caches"))'), 'the intern racked cache boxes');
+  assert.ok(p.kept() > 0 && p.kept() < served, `answers without R.egDesc: ${p.kept()} of ${served}`);
+  assert.ok(p.delta() > 0, `answers with only what changed in R.egDesc: ${p.delta()}`);
+  assert.ok(p.lean() > 0 && p.lean() < served, `posts without R.efg: ${p.lean()} of ${served}`);
   // A frame through before the intern's shift, after each of the orders on duty (decommissioning aside), and after
   // each job of an order (a generator's yields).
   const orders = p.ev('OPS_ORDER.slice(0,-1).filter(k=>S.ops.on[k]).length');

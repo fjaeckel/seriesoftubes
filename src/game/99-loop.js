@@ -17,8 +17,11 @@ function frame(now){
   if(S&&!S.lost&&$('modal').hidden&&UI.speed&&!pzOn())runClock(dt);
   if((UI.speed||pzOn())&&!(S&&S.lost))animT+=dt; /* paused = frozen dots, waves and clouds */
   const t=animOn()?animT:0;
-  if(!(UI.mapHid=mapHidden())&&!mapStill(t,now)){const d0=DIAG.on?performance.now():0;try{draw(t);}catch(e){tickErr(e);}UI.drawnAt=now;if(DIAG.on)DIAG.dms=performance.now()-d0;}
+  if(!(UI.mapHid=mapHidden())){const st=mapStill(t,now);if(st!==MAP_STILL&&!(st===MAP_AMBIENT&&now-(UI.drawnAt||0)<AMB_MS)){
+    const d0=DIAG.on?performance.now():0;try{draw(t);}catch(e){tickErr(e);}UI.drawnAt=now;if(DIAG.on)DIAG.dms=performance.now()-d0;}}
   if(DIAG.on)diagFrame(now);
+  // The diverse-paths map and the latency floors new offers ask about, worked out a millisecond a frame ahead.
+  if(S&&UI.started){diversityWarm(1);if(!DIVW)latWarm(1);}
   RW.lf=performance.now();
 }
 // dt of real time at UI.speed: the days it adds up to. The frame calls it; so may a clock that also runs where frames
@@ -26,9 +29,9 @@ function frame(now){
 function runClock(dt){acc+=dt*UI.speed;let n=0;
   // One day in flight at a time (its routing in the worker, or resting between steps): time does not pile up behind it.
   // The clock waits for the day, never the other way round: a machine that cannot keep up plays slower, it does not
-  // freeze to catch up.
+  // freeze to catch up. (Diagnostic info shows how fast days really come: 15-day-pace.js.)
   if(RW.job){acc=Math.min(acc,DAY_MS);return;}
-  if(rwOn()){if(!RW.w)rwStart();if(acc>=DAY_MS){acc=Math.min(acc-DAY_MS,DAY_MS);try{rwDay();}catch(e){tickErr(e);}}}
+  if(rwOn()){if(!RW.w)rwStart();if(acc>=DAY_MS){acc=Math.min(acc-DAY_MS,DAY_MS);paceStart(performance.now());try{rwDay();}catch(e){tickErr(e);}}}
   else{while(acc>=DAY_MS&&n<4&&UI.speed){acc-=DAY_MS;try{dayTick();}catch(e){tickErr(e);}n++;}
   if(n){UI.ticking=true;renderHUD();UI.ticking=false;UI.panelsDue=true;}}}
 /* On a phone the NOC dashboard (or the bank), scrolled past its top edge, covers the whole map. Drawing the map
@@ -37,12 +40,17 @@ function mapHidden(){for(const id of ['dashCard','bankCard']){const c=$(id);if(c
   const r=c.getBoundingClientRect();if(r.top<=1&&r.left<=1&&r.right>=innerWidth-1&&r.bottom>=innerHeight-1)return true;}return false;}
 /* Paused, or with animations off, the map only changes when you move it, point at something or the network changes.
    Until then the last frame is still right, so it is not drawn again (phones keep cool). It is redrawn at least once
-   a second anyway, and every frame while the land picture is still catching up with a zoom (the WebGL map has none). */
-const FRAME=[];
+   a second anyway, and every frame while the land picture is still catching up with a zoom (the WebGL map has none).
+   Playing, when only the animation clock moved (packets, waves, clouds, money floating up), the map is ambient: drawn
+   at most 30 times a second, not at the screen's 60 or 120. The animations follow the clock, so they keep their speed
+   and only lose frames nobody follows that closely; anything else that moves (the camera, a pointer, the network, a
+   selection) gets every frame again at once. */
+const FRAME=[],MAP_MOVING=0,MAP_AMBIENT=1,MAP_STILL=2,AMB_MS=29;
 function mapStill(t,now){const sl=UI.sel,dr=UI.drag;
   const v=[t,cam.x,cam.y,cam.z,CW,CH,DPR,S,R,S&&S.day,S&&S.links.length,S&&S.offers.length,S&&S.inc.length,sl&&sl.type,sl&&sl.id,UI.hover,UI.snap&&UI.snap.id,dr&&dr.mode,dr&&dr.cx,dr&&dr.cy,FLOATS.length,UI.mk?UI.mk.tx:0,UI.mk?UI.mk.mood:0,zoomMoving()];
-  let same=v.length===FRAME.length;for(let i=0;i<v.length;i++)if(FRAME[i]!==v[i]){same=false;FRAME[i]=v[i];}
-  return same&&now-(UI.drawnAt||0)<1000&&(glOn()||!!(WL.cv&&WL.key===(cam.z*DPR).toFixed(4)&&wlCovers(cam.z)));}
+  let same=v.length===FRAME.length,clock=same&&FRAME[0]!==v[0];for(let i=0;i<v.length;i++)if(FRAME[i]!==v[i]){if(i)clock=false;same=false;FRAME[i]=v[i];}
+  if(!(glOn()||WL.cv&&WL.key===(cam.z*DPR).toFixed(4)&&wlCovers(cam.z)))return MAP_MOVING;
+  return same?(now-(UI.drawnAt||0)<1000?MAP_STILL:MAP_MOVING):clock?MAP_AMBIENT:MAP_MOVING;}
 function tickErr(e){console.error('[tubes] tick failed',e);if(UI.tickErr)return;UI.tickErr=true;track('tick_error',true);
   toast(tr('loop.something_in_the_noc_glitched_the'),'bad');}
 function boot(data){
