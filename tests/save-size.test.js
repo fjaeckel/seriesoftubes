@@ -31,7 +31,8 @@ test('#176 a save that does not fit tells the player once, with Export, and the 
 
 test('#176 storage that is blocked altogether gets its own advice', () => {
   const { ev, dom, errors } = load();
-  ev("ACT.start({});UI.saveFail=null;" + refuse('SecurityError') + ';save()');
+  // The game moves on first: a save of the very text the slot already holds writes nothing.
+  ev("ACT.start({});UI.saveFail=null;" + refuse('SecurityError') + ';S.cash+=1;save()');
   assert.match(dom.window.document.body.textContent, /private window/);
   assert.deepEqual(errors, []);
 });
