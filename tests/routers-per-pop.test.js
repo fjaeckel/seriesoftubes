@@ -22,8 +22,10 @@ test('#157 a POP can grow past six routers, with a cage extension', () => {
   assert.equal(withCage - without, ev('ROUTER_MO+RG[S.pops.fra.rgen||0].mo+CAGE_MO'), 'the cage extension is billed monthly');
   ev("S.pops.fra.routers=7;compute()");
   assert.ok(ev('nodeCap("fra")') === ev('RG[S.pops.fra.rgen||0].cap*7'), 'every router adds forwarding');
-  ev("UI.sel={k:'city',id:'fra'};renderAll()");
-  assert.match(dom.window.document.body.innerHTML, /Cage extension/);
+  // The routers live on the city's Infra tab. (Not the whole body: that once held the game's source, dictionary
+  // and all, so a phrase was always found there.)
+  ev("UI.sel={type:'city',id:'fra'};UI.tab='links';renderAll()");
+  assert.match(dom.window.document.getElementById('panel').innerHTML, /Cage extension/);
   assert.deepEqual(errors, []);
 });
 

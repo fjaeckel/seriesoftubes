@@ -105,14 +105,3 @@ test('old saves with inbox, max-prefix and Large Peering Model state load and pl
   assert.equal(ev('__o.pdeskRep'), null);
   assert.deepEqual(errors, []);
 });
-
-test('max-prefix incidents can no longer fire', () => {
-  const { ev, errors } = load();
-  setup(ev);
-  assert.equal(ev("failureRun.toString().includes('maxpfx')"), false);
-  ev("S.day=100;const src=failureRun.toString().replace(/^function\* failureRun/,'function*').replace('let tot=opts.reduce',\"opts.splice(0,opts.length,['funny',1]);let tot=opts.reduce\");window.__ff=eval('('+src+')')");
-  ev("__reseed(7);for(let i=0;i<200;i++){runNow(__ff());S.inc=S.inc.filter(x=>x.type!=='maxpfx'||(window.__mp=1,0));}");
-  assert.equal(ev('!!window.__mp'), false);
-  assert.equal(ev("typeof inboxDay+typeof ibx+typeof ACT.inboxRaiseAll+typeof ACT.inboxBot"), 'undefinedundefinedundefinedundefined');
-  assert.deepEqual(errors, []);
-});

@@ -5,6 +5,7 @@
 // machine has cores, so absolute numbers vary, but their sizes relative to each other are what count.
 //
 //   npm run test:timings
+//   node scripts/test-timings.js --merge DIR   (CI) fold the parts' --timings files into it
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -12,6 +13,24 @@ const { spawn } = require('node:child_process');
 
 const root = path.join(__dirname, '..');
 const dir = path.join(root, 'tests');
+
+// --merge DIR: fold the timings CI's parts wrote (scripts/test.js --timings) into tests/durations.json. Files that are
+// gone drop out; files no part ran keep their old time.
+const mi = process.argv.indexOf('--merge');
+if (mi >= 0) {
+  const from = process.argv[mi + 1], dur = path.join(dir, 'durations.json');
+  let out = {};
+  try { out = JSON.parse(fs.readFileSync(dur, 'utf8')); } catch (e) { /* none yet */ }
+  let n = 0;
+  for (const f of fs.readdirSync(from, { recursive: true }).filter((f) => String(f).endsWith('.json'))) {
+    for (const [k, v] of Object.entries(JSON.parse(fs.readFileSync(path.join(from, String(f)), 'utf8')))) if (v > 0) { out[k] = v; n++; }
+  }
+  const have = new Set(fs.readdirSync(dir).filter((f) => f.endsWith('.test.js')).map((f) => 'tests/' + f));
+  const sorted = Object.fromEntries(Object.keys(out).filter((k) => have.has(k)).sort().map((k) => [k, out[k]]));
+  fs.writeFileSync(dur, JSON.stringify(sorted, null, 1) + '\n');
+  console.log(`merged ${n} timings; tests/durations.json has ${Object.keys(sorted).length} of ${have.size} files`);
+  process.exit(0);
+}
 const files = fs.readdirSync(dir).filter((f) => f.endsWith('.test.js')).sort().map((f) => 'tests/' + f);
 const jobs = Math.max(1, parseInt(process.env.TEST_JOBS, 10) || os.availableParallelism());
 const out = {};

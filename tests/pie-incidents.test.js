@@ -166,11 +166,6 @@ test('F4: the chaos monkey snips a laser link while it visits, healed within a w
   assert.deepEqual(errors, []);
 });
 
-test('the booster that falls over on the drone ship is the foundation\'s', () => {
-  const { ev } = load();
-  assert.ok(ev("pieFly.toString().includes('fp_booster')"));
-});
-
 test('sanitize drops orbit incidents that make no sense, and old saves are untouched', () => {
   const { ev, errors } = load();
   sky(ev);

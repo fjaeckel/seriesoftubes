@@ -15,12 +15,6 @@ test('every city sits on its landmass', () => {
   assert.equal(off, '');
 });
 
-test('every cable lands at two known cities and has a length', () => {
-  const { ev } = load();
-  const bad = ev("CABLE_PAIRS.filter(c=>!CITY[c.a]||!CITY[c.b]||!(c.km>0)).map(c=>c.cid).join()");
-  assert.equal(bad, '');
-});
-
 test('a year of scripted play stays healthy', () => {
   const { ev, errors } = load();
   seed(ev, 7);

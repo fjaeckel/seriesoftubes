@@ -23,6 +23,10 @@ on:
         description: Only the weekly puzzles changed (weekly-puzzle.yml); the release itself was tested when it shipped
         type: boolean
         default: false
+      tested:
+        description: The tag's tests already passed (auto-release.yml tests it before tagging)
+        type: boolean
+        default: false
 
 # Least privilege: only the deploy job can write to Pages.
 permissions:
@@ -33,9 +37,18 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # The release's tests, split over several runners like every push (ci.yml). Skipped when auto-release.yml has just
+  # run them on this tag, and for a weekly redeploy (the build step below tests the weekly files against the tag).
+  tests:
+    if: ${{ (github.event_name == 'workflow_dispatch' || !github.event.release.prerelease) && !inputs.weekly && !inputs.tested }}
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ github.event.release.tag_name || inputs.tag }}
+
   build:
+    needs: tests
     # Pre-releases are for testing and never go live.
-    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.release.prerelease }}
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || !github.event.release.prerelease) && (needs.tests.result == 'success' || needs.tests.result == 'skipped') }}
     runs-on: ubuntu-latest
     env:
       TAG: ${{ github.event.release.tag_name || inputs.tag }}
@@ -93,10 +106,9 @@ jobs:
           node scripts/weekly-puzzle.js --check
           if [ -f scripts/weekly-scenario.js ]; then node scripts/weekly-scenario.js --check; fi
           if [ -f scripts/weekly-architect.js ]; then node scripts/weekly-architect.js --check; fi
-      - run: npm test
-        if: ${{ !inputs.weekly }}
+      # The weekly files come from main, not the tag: whatever tested the tag, they are tested against it here.
       - name: Test the weekly puzzles against this release
-        if: ${{ inputs.weekly && hashFiles('scripts/weekly-puzzle.js') != '' }}
+        if: ${{ hashFiles('scripts/weekly-puzzle.js') != '' }}
         run: npm test -- tests/weekly-puzzle.test.js tests/puzzles.test.js $(ls tests/weekly-scenario.test.js tests/weekly-architect.test.js 2>/dev/null)
       - name: Build site
         run: VERSION="${TAG#v}" REQUIRE_NOTES=1 npm run build

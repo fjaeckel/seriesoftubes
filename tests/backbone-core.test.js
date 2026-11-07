@@ -38,9 +38,10 @@ test('a new network runs plain IGP: no Auto-TE until the backbone is upgraded, o
   assert.deepEqual(JSON.parse(ev('JSON.stringify(S.core)')), { lv: 0, run: 0 });
   ev('ACT.buyTE()');
   assert.equal(ev('!!S.te'), false, 'no Auto-TE on plain IGP');
-  ev("ACT.leftTab({t:'noc'})");
-  assert.match(dom.window.document.body.textContent, /Backbone/);
-  assert.match(dom.window.document.body.textContent, /Auto-TE needs an RSVP-TE/);
+  // The backbone lives in the NOC's routing window; the refusal is a toast.
+  ev('ACT.routingOpen()');
+  assert.match(dom.window.document.getElementById('modal').textContent, /Backbone/);
+  assert.match(dom.window.document.getElementById('toasts').textContent, /Auto-TE needs an RSVP-TE/);
   const cash = ev('S.cash');
   ev('ACT.coreUp()');
   assert.equal(ev('S.core.lv'), 1);

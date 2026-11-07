@@ -20,18 +20,19 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  check:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
+    outputs:
+      skip: ${{ steps.v.outputs.skip }}
+      ver: ${{ steps.v.outputs.ver }}
+      tag: ${{ steps.v.outputs.tag }}
+      pre: ${{ steps.v.outputs.pre }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-          cache: npm
 
       - name: Work out the version and whether it is new
         id: v
@@ -57,34 +58,40 @@ jobs:
           case "$ver" in *-*) echo "pre=true" >> "$GITHUB_OUTPUT";; *) echo "pre=false" >> "$GITHUB_OUTPUT";; esac
           echo "skip=false" >> "$GITHUB_OUTPUT"
 
-      - name: Test before releasing
-        if: steps.v.outputs.skip == 'false'
-        run: npm ci && npm test
+  # The same tests as every push, split over several runners (ci.yml), before anything is tagged.
+  tests:
+    needs: check
+    if: needs.check.outputs.skip == 'false'
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: [check, tests]
+    if: needs.check.outputs.skip == 'false'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ needs.check.outputs.tag }}
+      VER: ${{ needs.check.outputs.ver }}
+      PRE: ${{ needs.check.outputs.pre }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Publish the release
-        if: steps.v.outputs.skip == 'false'
-        env:
-          TAG: ${{ steps.v.outputs.tag }}
-          VER: ${{ steps.v.outputs.ver }}
-          PRE: ${{ steps.v.outputs.pre }}
         run: |
           set -euo pipefail
+          awk -v v="$VER" 'index($0,"## ["v"]")==1{f=1;next} /^## \[/{f=0} f' CHANGELOG.md | sed -e '/./,$!d' > notes.md
           pre=(); [ "$PRE" = "true" ] && pre=(--prerelease)
           gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" --title "$VER" --notes-file notes.md "${pre[@]}"
 
       - name: Deploy it
-        # Pre-releases are for testing and never go live.
-        if: steps.v.outputs.skip == 'false' && steps.v.outputs.pre == 'false'
-        env:
-          TAG: ${{ steps.v.outputs.tag }}
-        run: gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG" -f tag="$TAG"
+        # Pre-releases are for testing and never go live. The tag was just tested above, so the deploy does not
+        # test it again (tested=true).
+        if: env.PRE == 'false'
+        run: gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG" -f tag="$TAG" -f tested=true
 
       - name: Publish the Docker image
         # Same pattern as the deploy above: the image is built and pushed from the
         # release tag by docker.yml. Pre-releases get one too: an image tag is
         # pulled on purpose, so a test image costs nothing.
-        if: steps.v.outputs.skip == 'false'
-        env:
-          TAG: ${{ steps.v.outputs.tag }}
         run: gh workflow run docker.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG" -f tag="$TAG"

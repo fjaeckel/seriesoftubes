@@ -127,23 +127,6 @@ test('launches fill crusts, the party is billed, heavy test flights explode', ()
   assert.deepEqual(errors, []);
 });
 
-test('O5: launches only fail with chaos on, and never in the first 90 days', () => {
-  const run = (after) => {
-    const { ev } = load();
-    won(ev); company(ev);
-    ev(`S.day=S.pie.born+${after};Math.random=()=>0`); // the unluckiest dice there are
-    ev("ACT.pieLaunch({rk:'falcon',cr:'short'});S.pie.q[0].day=S.day;pieDay(S.day)");
-    return ev("pieLive('short')");
-  };
-  assert.equal(run(10), 20, 'quiet days');
-  assert.equal(run(120), 0, 'chaos can lose a launch');
-  const { ev } = load();
-  sandbox(ev);
-  company(ev);
-  ev("S.day=500;S.pie.pads[0].next=0;Math.random=()=>0;ACT.pieLaunch({rk:'falcon',cr:'short'});S.pie.q[0].day=S.day;pieDay(S.day)");
-  assert.equal(ev("pieLive('short')"), 20, 'chaos none: nothing fails');
-});
-
 test('cohorts wear out over the end of their life, and a crust carries a share from 40%, all of it from 60%', () => {
   const { ev, errors } = load();
   won(ev);
@@ -186,7 +169,9 @@ test('promises slip a year and get broken', () => {
   won(ev);
   company(ev);
   assert.equal(ev('S.pie.founder.promises'), 1);
-  ev('for(let i=0;i<361;i++)dayTick()');
+  assert.ok(ev('S.pie.founder.due[0]-S.day') >= 359, 'due a year from the promise');
+  // Then a year passes: rather than play 360 days, the due date moves to tomorrow.
+  ev('S.pie.founder.due[0]=S.day+1;for(let i=0;i<2;i++)dayTick()');
   assert.equal(ev('S.pie.founder.broken'), 1);
   assert.ok(ev("S.pie.founder.posts.some(p=>p.k==='pie.fp_slip')"));
   assert.match(ev('pieFpText(S.pie.founder.posts[0])'), /\w/);

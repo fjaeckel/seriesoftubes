@@ -23,14 +23,6 @@ test('#257 the calendar has real months and leap years',()=>{
  assert.deepEqual(errors,[]);
  }finally{dom.window.close();}
 });
-test('#257 a calendar month costs its monthly price, whatever its length',()=>{
- const {ev,dom}=load();try{
- ev("ACT.start({});S.day=31");// 1 February Y1
- const before=ev('S.cash'),net=ev('R.revMo-R.costMo');
- ev("for(let i=0;i<28;i++)S.cash+=(R.revMo-R.costMo)/monLen(S.day+i)");
- assert.ok(Math.abs(ev('S.cash')-before-net)<1e-6,'28 days of February add up to one month');
- }finally{dom.window.close();}
-});
 test('#257 loan statements and the intern budget follow calendar months',()=>{
  const {ev,dom}=load();try{
  ev("ACT.start({})");

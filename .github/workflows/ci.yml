@@ -1,44 +1,89 @@
 name: CI
 
+# Every push and PR, and the releases too (auto-release.yml and release.yml call this workflow), so the tests run
+# one way, split over several runners, everywhere.
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_call:
+    inputs:
+      ref:
+        description: The commit or tag to test (a release tag); the caller's commit when empty
+        type: string
+        default: ''
 
 permissions:
   contents: read
 
 # A newer push to the same pull request makes the older run pointless: cancel it instead of queueing behind it.
-# Runs on main always finish.
+# Runs on main always finish. A release's call gets a group of its own, so it never waits behind main's push run.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}${{ inputs.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+env:
+  # Runners for the tests. Standard GitHub-hosted runners (4 cores each) are the only free ones for a public repo,
+  # and a run may use up to 20 at once, so more parts is how the tests get faster. Each part costs ~30 s of setup.
+  PARTS: 6
+
 jobs:
-  # The tests in four parts of about equal time, each on its own runner, each running as many files at once as
-  # it has cores (scripts/test.js; the split comes from tests/durations.json).
+  # Splits the test files into parts of about equal time, once, so every part works from the same plan. The times
+  # come from the last run on main (the cache, see "timings" below), else from the committed tests/durations.json.
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      parts: ${{ steps.plan.outputs.parts }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: tests/durations.json
+          key: test-durations-${{ github.run_id }}
+          restore-keys: test-durations-
+      - id: plan
+        run: echo "parts=$(node scripts/test.js --plan "$PARTS")" >> "$GITHUB_OUTPUT"
+
   part:
-    name: test ${{ matrix.part }}/4
+    name: part ${{ strategy.job-index }}
+    needs: plan
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        part: [1, 2, 3, 4]
+        files: ${{ fromJSON(needs.plan.outputs.parts) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm test -- --shard ${{ matrix.part }}/4
+      - name: Tests
+        env:
+          FILES: ${{ matrix.files }}
+        # Word splitting on purpose: FILES is a space-separated list of tests/*.test.js paths.
+        run: npm test -- --timings "$RUNNER_TEMP/timings.json" $FILES
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: timings-${{ strategy.job-index }}
+          path: ${{ runner.temp }}/timings.json
+          retention-days: 1
+          if-no-files-found: ignore
 
   build:
     name: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
@@ -47,21 +92,12 @@ jobs:
       - name: Build (not deployed — only releases deploy)
         run: npm run build
 
-  # The one check to look at, named as before: green only when every part and the build are.
-  test:
-    needs: [part, build]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Every part and the build passed
-        run: |
-          echo "parts: ${{ needs.part.result }}, build: ${{ needs.build.result }}"
-          test "${{ needs.part.result }}" = success && test "${{ needs.build.result }}" = success
-
   translations:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
@@ -69,3 +105,38 @@ jobs:
       - run: npm ci
       - name: Translation coverage
         run: node scripts/i18n-check.js --summary "$GITHUB_STEP_SUMMARY"
+
+  # The one check to look at: green only when the plan, every part, the build and the translations are.
+  test:
+    needs: [plan, part, build, translations]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Everything passed
+        run: |
+          echo "plan: ${{ needs.plan.result }}, parts: ${{ needs.part.result }}, build: ${{ needs.build.result }}, translations: ${{ needs.translations.result }}"
+          test "${{ needs.plan.result }}" = success && test "${{ needs.part.result }}" = success
+          test "${{ needs.build.result }}" = success && test "${{ needs.translations.result }}" = success
+
+  # After a run on main: each file's time from this run goes into the cache, so the next run (main or a PR) splits
+  # its parts by today's tests. Nobody has to remember to refresh tests/durations.json.
+  timings:
+    needs: part
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.part.result != 'skipped'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: tests/durations.json
+          key: test-durations-${{ github.run_id }}
+          restore-keys: test-durations-
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: timings-*
+          path: ${{ runner.temp }}/timings
+      - run: node scripts/test-timings.js --merge "$RUNNER_TEMP/timings"
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: tests/durations.json
+          key: test-durations-${{ github.run_id }}

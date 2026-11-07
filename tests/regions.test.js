@@ -1021,7 +1021,8 @@ test('Down Under: routers upside down, BrisVegas, Next-Door-DC and everything tr
   assert.match(ev("siteName('bne','b')"), /^Next-Door-DC B[12]$/);
   assert.equal(ev("siteName('cbr','b')"), 'Next-Door-DC C1');
   // everything is trying to kill you: the new outages can come up on Australian links and POPs
-  const src = ev("document.documentElement.innerHTML");
+  // (The game's English text, where the outages are written; the page once carried it in its <script>.)
+  const src = ev("JSON.stringify(I18N.en)");
   for (const s of ['drop bear', 'eastern brown snake', 'Magpie swooping', 'Box jellyfish', 'Vegemite as thermal paste', 'brought Marmite', 'four o’clock storm']) assert.ok(src.includes(s), s);
   assert.match(ev("ixName('syd~2')"), /At-The-Edge/); assert.match(ev("XIX.find(x=>x.id==='syd~2').blurb"), /Vegemite/);
   ev('cam.z=2;draw(0);cam.z=0.4;draw(0)');

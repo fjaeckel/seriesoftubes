@@ -5,14 +5,18 @@
 //
 //   npm test                                   everything
 //   npm test -- tests/peering.test.js          just these files (other arguments go to node --test)
-//   npm test -- --shard 2/4                    one of four parts of about equal time (CI runs the four at once)
+//   npm test -- --shard 2/4                    one of four parts of about equal time
 //   npm test -- --shard 2/4 --list             which files that part holds, without running them
+//   node scripts/test.js --plan 6              the split into 6 parts as JSON (CI's plan job: one list per runner)
+//   npm test -- --timings out.json             also write each file's seconds to out.json (CI merges these into
+//                                              the durations the next run splits by)
 //   TEST_JOBS=1 npm test                       one file at a time, as it used to be
 //   npm test -- --stress 8 tests/x.test.js     hunt a flaky test: 8 copies of these files at once, on a machine kept
 //                                              busier than CI ever is, and how many runs failed (and why)
 //
-// Parts are balanced by tests/durations.json, each file's typical seconds (refresh: npm run test:timings).
-// A file missing from it counts as a typical one, so a stale list only makes the parts a little uneven.
+// Parts are balanced by tests/durations.json, each file's typical seconds. CI keeps it fresh in its cache from every
+// run on main (.github/workflows/ci.yml); npm run test:timings rewrites the committed copy. A file missing from it
+// counts as a typical one, so a stale list only makes the parts a little uneven.
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -31,6 +35,12 @@ if (ti >= 0) {
   if (!(stress >= 1)) { console.error('--stress wants a count, like --stress 8'); process.exit(2); }
   args.splice(ti, 2);
 }
+let timings = null;
+const tmi = args.indexOf('--timings');
+if (tmi >= 0) { timings = args[tmi + 1]; args.splice(tmi, 2); if (!timings) { console.error('--timings wants a file'); process.exit(2); } }
+let plan = 0;
+const pi = args.indexOf('--plan');
+if (pi >= 0) { plan = parseInt(args[pi + 1], 10); args.splice(pi, 2); if (!(plan >= 1)) { console.error('--plan wants a count, like --plan 6'); process.exit(2); } }
 let shard = null;
 const si = args.indexOf('--shard');
 if (si >= 0) {
@@ -58,6 +68,10 @@ function part(list, i, n) {
   }
   return out[i - 1].sort();
 }
+if (plan) {
+  console.log(JSON.stringify(Array.from({ length: plan }, (_, i) => part(files, i + 1, plan).join(' '))));
+  process.exit(0);
+}
 if (shard && files.length) {
   files = part(files, shard[0], shard[1]);
   console.log(`# part ${shard[0]}/${shard[1]}: ${files.length} files`);
@@ -84,5 +98,7 @@ if (stress) {
   });
   return;
 }
-const r = spawnSync(process.execPath, ['--test', `--test-concurrency=${jobs}`, ...args, ...files], { stdio: 'inherit', cwd: root });
+const rep = timings ? ['--test-reporter=spec', '--test-reporter-destination=stdout',
+  `--test-reporter=${path.join(__dirname, 'lib', 'timings-reporter.js')}`, `--test-reporter-destination=${timings}`] : [];
+const r = spawnSync(process.execPath, ['--test', `--test-concurrency=${jobs}`, ...rep, ...args, ...files], { stdio: 'inherit', cwd: root });
 process.exit(r.status ?? 1);

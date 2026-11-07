@@ -6,11 +6,32 @@
 // it fails here rather than in production.
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 const { JSDOM, VirtualConsole } = require('jsdom');
 const { assemble } = require('../scripts/lib/page');
 
 const PAGE = {};
 const page = (dev) => PAGE[dev] || (PAGE[dev] = assemble({ dev }).html);
+
+// The page's inline scripts, taken out of the HTML once per process and compiled once. jsdom's HTML parser is slow
+// on 2 MB of script text (it was more than half of every load()), so the DOM is built from the rest of the page and
+// the scripts then run in its window, in order, the same way jsdom runs them (vm.Script.runInContext). Only plain
+// <script> tags run, as in the browser here; data blocks (ld+json) stay in the page untouched.
+const SPLIT = new Map();
+function split(html) {
+  let s = SPLIT.get(html);
+  if (s) return s;
+  const code = [];
+  const shell = html.replace(/<script>([\s\S]*?)<\/script>/g, (m, src) => {
+    code.push(new vm.Script(src, { filename: `page-script-${code.length}.js` }));
+    return '<script></script>';
+  });
+  // With scripting on, the parser keeps a <noscript>'s content as text; with scripts run from outside it builds those
+  // elements (an extra <h1>, <p>, <div>). Escaped, the content stays one text node, as players' browsers have it.
+  const page = shell.replace(/(<noscript>)([\s\S]*?)(<\/noscript>)/g, (m, a, body, b) => a + body.replace(/&/g, '&amp;').replace(/</g, '&lt;') + b);
+  SPLIT.set(html, s = { shell: page, code });
+  return s;
+}
 
 // opts.file: a built or older page to load instead (the perf bench, the release build test).
 // opts.agent: the development page, with src/agent/.
@@ -22,12 +43,13 @@ function load(opts = {}) {
     // jsdom has no canvas; drawing calls are expected to be unimplemented.
     if (!/getContext|Not implemented/.test(e.message)) errors.push(e.message);
   });
-  const dom = new JSDOM(html, {
+  const { shell, code } = split(html);
+  const dom = new JSDOM(shell, {
     // opts.url: the origin the page is "served" from. Tests that dial the agent relay pass the relay's own host, so
     // the page's WebSocket Origin matches (the relay refuses a cross-site one); everything else stays on a made-up
     // https origin nothing can reach.
     url: opts.url || 'https://tests.invalid/',
-    runScripts: 'dangerously',
+    runScripts: 'outside-only',
     pretendToBeVisual: true,
     virtualConsole: vc,
     beforeParse(window) {
@@ -61,6 +83,14 @@ function load(opts = {}) {
       window.HTMLCanvasElement.prototype.toBlob = (cb) => cb(null);
     },
   });
+  // The language picker document.write()s a dictionary <script src> for a non-English player. jsdom fetched nothing
+  // for it anyway (opts.lang registers the dictionary), and after parsing a real write would wipe the page.
+  const doc = dom.window.document, ctx = dom.getInternalVMContext();
+  doc.write = () => {};
+  for (const sc of code) {
+    try { sc.runInContext(ctx); } catch (e) { vc.emit('jsdomError', Object.assign(new Error(`Uncaught [${e}]`), { detail: e })); }
+  }
+  delete doc.write;
   const ev = (src) => dom.window.eval(src);
   // Deterministic by default so a test never passes or fails by luck; pass {seed:false} to opt out.
   // (Seeded in beforeParse, so the game's own seeded-games wrapper around Math.random stays in place.)

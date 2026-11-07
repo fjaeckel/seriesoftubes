@@ -80,9 +80,10 @@ Development runs on `npm run dev` (assembles the development page on every reque
 | `scripts/agent/relay.js`, `scripts/lib/mcp-browser.js`, `scripts/lib/relay-client.js` | The agent relay `npm run dev` hosts at `/agent`, and the MCP server's side of it: how a tool reaches the game in the player's tab |
 | `scripts/i18n-check.js`, `scripts/i18n-add.js`, `scripts/lib/dict.js` | Translation coverage and dictionary order; adding, renaming and removing entries |
 | `scripts/legacy/` | The splitter that made `src/` from the old `site/index.html` (and gave its text labels), and `port-branch.js`, which carries older branches over |
-| `tests/harness.js` | Loads the assembled page in jsdom with a seeded `Math.random` and a fake canvas: the players' page, or the development page with `{agent: true}` |
-| `.github/workflows/ci.yml` | Tests and build on every push and PR |
-| `.github/workflows/auto-release.yml` | On a `package.json` version bump on `main`: test, tag, GitHub release from the CHANGELOG, start the deploy |
+| `tests/harness.js` | Loads the assembled page in jsdom with a seeded `Math.random` and a fake canvas: the players' page, or the development page with `{agent: true}`. The page's scripts run straight in the window (jsdom's parser is slow on 2 MB of script) |
+| `scripts/test.js`, `tests/durations.json` | Runs the tests, every file in its own process; splits them into parts of equal time for CI (`--plan`, `--shard`) by each file's seconds, which CI refreshes after every run on `main` |
+| `.github/workflows/ci.yml` | Tests (split over 6 runners), build and translations on every push and PR; the releases call it too, so the tests run one way everywhere |
+| `.github/workflows/auto-release.yml` | On a `package.json` version bump on `main`: test (ci.yml), tag, GitHub release from the CHANGELOG, start the deploy (already tested, so it does not test again) |
 | `.github/workflows/release.yml` | Builds and deploys to GitHub Pages, the only workflow that can |
 | `.github/workflows/weekly-puzzle.yml` | Sunday 03:37 UTC: makes the week's puzzle, commits it to `main` (data only, no release) and starts `release.yml` for the live release tag with `weekly=true` |
 | `scripts/weekly-puzzle.js`, `site/puzzles/weekly/` | The weekly puzzle generator and its output, one `<key>.json` per week plus `index.json` (see below) |
