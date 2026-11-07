@@ -54,9 +54,9 @@ const BADGES=[
  {id:'lv13',i:'🌐',t:tr('badges.is_this_the_internet'),d:tr('badges.reach_customer_level_13'),r:'l',ok:()=>(S.lvl||1)>=13},
  {id:'gigawatt',i:'⚛️',t:tr('common.gigawatt_landlord'),d:tr('badges.hold_an_ai_wan_a_training'),r:'l',ok:()=>['aiwan','mtrain','ingest','pairs'].every(t=>S.biz.some(b=>b.type===t))},
  {id:'blitz',i:'🚀',t:tr('common.blitz'),d:tr('badges.reach_tier_1_within_two_years'),r:'l',ok:()=>!!S.won&&S.day<=730},
- {id:'tera',i:'📶',t:tr('badges.terabit_club'),d:tr('badges.serve_1_tbps'),r:'r',ok:()=>R.served>=1000},
- {id:'tera10',i:'🚄',t:tr('badges.ten_terabits'),d:tr('badges.serve_10_tbps'),r:'e',ok:()=>R.served>=10000},
- {id:'peta',i:'🌌',t:tr('common.hundred_terabits'),d:tr('badges.serve_100_tbps'),r:'l',ok:()=>R.served>=100000},
+ {id:'tera',i:'📶',t:tr('badges.terabit_club'),d:tr('badges.serve_1_tbps'),r:'c',ok:()=>R.served>=1000},
+ {id:'tera10',i:'🚄',t:tr('badges.ten_terabits'),d:tr('badges.serve_10_tbps'),r:'r',ok:()=>R.served>=10000},
+ {id:'peta',i:'🌌',t:tr('common.hundred_terabits'),d:tr('badges.serve_100_tbps'),r:'e',ok:()=>R.served>=100000},
  {id:'petabit',i:'🪐',t:tr('badges.a_petabit_a_second'),d:tr('badges.serve_1_pbps_a_thousand_terabits'),r:'l',ok:()=>R.served>=1e6},
  // Traffic carried in total (15-traffic-volume.js): the odometer, in petabytes.
  {id:'vol_pb',i:'💾',t:tr('badges.vol_pb'),d:tr('badges.vol_pb_d'),r:'c',ok:()=>(S.vol||0)>=1},
