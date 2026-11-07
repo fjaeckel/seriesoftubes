@@ -119,6 +119,9 @@ the chaos monkey's snip (`mkSnipRun()`), an event's cut (`eventRun()`: its routi
 sales desk's trials (a `{trial}` yield the worker answers with yes or no, `offerTrial()`) are all steps. The intern's
 orders are generators too, with a rest after each job. `UI.tick` (what the day itself announces, which quiet
 notifications may keep to the NOC log) is set around every step (`dayStep()`), on both sides of the worker.
+A big autosave is packed, turned into text and compressed in the worker (`rwSave()`), the page only writes it. The
+diverse-paths map and the latency floors new offers need are worked out a millisecond a frame ahead (`diversityWarm()`,
+`latWarm()`). A rest waits for the next frame only when none was drawn just now (`rwLater()`).
 
 The daily mood check asks "a path without subsea" for each customer that wants one: during that loop the land-connected
 islands are worked out once (`TERR`, `terrIslands()`), and two cities have a land path when they share one.
@@ -133,9 +136,11 @@ The day:
    Then the NOC intern's standing orders (`opsRun()`, or `opsDay()` in one go), if one is hired: each order clicks the
    same `ACT` actions a player would, muted, within its monthly budget, and the shift routes again (a yield) before
    decommissioning, which reads today's loads, and at the end, each only if a job changed the network. An order that
-   throws is paused; the day goes on. The NOC gets one notice a week.
+   throws is paused; the day goes on. The NOC gets one notice a week. The orders plan for every POP each day, so what
+   they count is counted for all POPs in one pass (`portsAt()`, `cachePlan()`, `pniFlows()`, `pniBatch()`), never one
+   pass over the network per POP.
    Then the sales desk (`slAutoDay()`), if someone runs sales and the player lets them sign: deals are Sales', never
-   the intern's. Each salesperson signs in their own style (a routing trial a day, or the shark's sign-everything).
+   the intern's. Each salesperson signs in their own style (a routing trial a day, or the shark's sign-everything).5. Updates customer mood, churn and new offers; IX members join; loans tick.
 5. Updates customer mood, churn and new offers; IX members join; loans tick.
 6. Every 30 days: bills the month (revenue minus costs) and checks for bankruptcy.
 7. Checks goals, level, badges and scenario end conditions.
@@ -180,10 +185,20 @@ them. Only indices are kept: exits, lists and paths are made fresh every call, b
 `scripts/route-fuzz.js` plays hundreds of random seeded games on main's page and this checkout's at once, comparing all
 of R and S after every move and day, with the kept tables and without (`tests/route-fuzz.test.js` plays a few).
 
-Each loop of `compute()` runs in a function of its own (the stages are closures, the busiest is `rankPass`;
-the money is `computeMoney()`). V8 optimises a small function quickly and keeps it; `compute()` as one 33 KB function
-never stayed optimised: it ran in baseline code, boxing every number, and was compiled again and again in the background
-only to be thrown away, which cost more CPU than the routing itself. Keep it that way: a new loop goes in a function.
+Each loop of `compute()` runs in a function of its own (the money is `computeMoney()`). V8 optimises a small function
+quickly and keeps it; `compute()` as one 33 KB function never stayed optimised: it ran in baseline code, boxing every
+number, and was compiled again and again in the background only to be thrown away, which cost more CPU than the routing
+itself. Keep it that way: a new loop goes in a function.
+
+The routing core, the loops that place every flow on an exit (`rankPass`, `directPass`, `sendGroup`, `send`, `push`,
+`carry`, `altPath`), lives in `ROUTE` (`29-route-core.js`), made once at load: `compute()` hands it the day's state
+(`ROUTE.nodes()`, `ROUTE.run()`). Made inside `compute()`, as they were, they were new functions every call, and V8 threw
+away the code it had compiled for the old ones. The core reads exits by number from typed columns (`USED`, `CAPX`, `CIX`,
+`HPX`, `VISX`), and each list as an object of one shape (`lx()`). For each list and source city, the route cache also
+keeps the list in the order routing tries it (`xOrder()`: by preference, then distance, a stable sort): on a day the cache
+is used, a flow's first group is where that order starts, past the exits that filled up, instead of a scan of the whole
+list, and what is left needs no sort. Auto-TE marks the pairs that have no detour (`TEF`), the answer to most of its
+asks. `tests/day-steps.test.js` and the routing equivalence tests hold all this to the same results.
 
 Served share per city (`sfOf`) drives eyeball revenue and customer mood.
 
@@ -205,7 +220,12 @@ network does not freeze the page once a day.
   saved; nothing else starts meanwhile. `tests/day-steps.test.js` plays a second page as the worker and compares every
   day with `dayTick()`.
 - **What crosses.** `R.ef` and `R.fl` are lazy getters; their pieces (`R.efp`, `R.flc`) travel instead, typed arrays
-  transferred, and `efBuild()`/`flDefine()` (in `30-compute.js`) rebuild the same lazy R on the page.
+  transferred, and `efBuild()`/`flDefine()` (in `30-compute.js`) rebuild the same lazy R on the page. What crossed each
+  link (`R.efp.L`) crosses as typed arrays with each exit key once (`rwLOut()`), and the page decodes a link only when
+  something reads it (`rwLIn()`). Two parts are not sent again when they would be the same: `R.egDesc` comes back as 0
+  when it is the last one key for key (the page keeps `RW.desc`), and `R.efg` is not posted back while R is the worker's
+  own last answer (`RW.wR`; the worker keeps it in `RW.last`). Both sides read every message in order, so they always
+  hold the same last one; `tests/day-steps.test.js` plays a second page as the worker and checks it all.
 - **Actions mid-day.** Every `compute()` bumps `RW.gen`. If an action routed while a day was in flight, the worker's
   answer is stale: it is dropped and the day ends with the action's R.
 - **Fallbacks.** Tests (`__TUBES_TEST__`, and jsdom has no Worker), `window.__TUBES_SYNC__`, a browser without workers, a
@@ -226,8 +246,11 @@ network does not freeze the page once a day.
   controlled by `renderTabbar()`.
 - These panels and the dashboard are rebuilt as HTML every tick and written with `morph()`, which
   patches only what changed. Buttons whose action changed are replaced, so taps stay safe (#44).
-- The map is a canvas drawn every frame by `draw()`. Zoomed out (`lodFar()`) it uses
-  a simplified style; parallel waves are grouped by `linkGroups()`.
+- The map is a canvas drawn by `draw()` from `frame()`. Zoomed out (`lodFar()`) it uses
+  a simplified style; parallel waves are grouped by `linkGroups()`. `mapStill()` decides whether a frame is drawn:
+  when nothing changed (paused, animations off) it is not, except once a second; when only the animation clock moved
+  (packets, waves, clouds, floaters) the map is ambient and drawn at most 30 times a second; anything else that moves
+  (camera, pointer, selection, the network) gets every frame (`tests/frame-pacing.test.js`).
 
 ## The weekly puzzle
 
@@ -272,7 +295,9 @@ back to the in-browser `weekly()`.
 - `save()` writes `S` to localStorage every few seconds and after actions, into this window's slot
   (`UI.slot`, `src/game/91-slots.js`): `sot-save-v1:<id>`, plain JSON or `gz:`-compressed above a million
   characters, with a stamp `sv:{seq,at}` appended. Then the index `sot-slots` (name, ASN, preset, day, tier,
-  cash, last played, size, seq) is updated; the title screen lists networks from the index alone.
+  cash, last played, size, seq) is updated; the title screen lists networks from the index alone. A save whose text is
+  the one the slot already holds (`SLOT.txt`: a paused game, nothing changed) is not written again, unless the page is
+  closing: on a big network the storage write costs more than making the text.
 - Each tab keeps its slot in `sessionStorage['sot-slot']`. One window per slot: a Web Lock
   (`sot-slot:<id>`) where supported, plus a heartbeat `sot-open:<id>`; BroadcastChannel `sot-slots` asks
   another window to hand over, and the `storage` event stops a window whose slot was saved newer elsewhere

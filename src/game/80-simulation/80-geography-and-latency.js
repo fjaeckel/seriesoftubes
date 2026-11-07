@@ -53,16 +53,40 @@ function waveRoute(a,b,mult,border){const cabs=cablesOk(a,b),sub=isSub(a,b);let 
 function viaSeg(a,b){const cabs=cablesOk(a,b),sub=isSub(a,b);if(!cabs.length)return landMult(a,b)>1?`<p class="note">${landWhy(a,b)}</p>`:'';const wr=waveRoute(a,b,1,false);
   const opts=(sub?[]:[{v:'land',l:`${tr('common.overland')} <small>${landMult(a,b)>1?landMult(a,b)+'× · ':''}${(kmBetween(a,b)*1.3/200).toFixed(1)} ms</small>`}]).concat(cabs.map(c=>({v:c.cid,l:`${esc(CAB[c.cid].name)} <small>${CAB[c.cid].price}× · ${(c.km*(CAB[c.cid].lat||1)/200).toFixed(1)} ms${CAB[c.cid].age==='old'?' · '+tr('geography_and_latency.old_cuts_often'):''}</small>`})));
   return `<h4 class="sub4">${tr('common.route')}</h4><div class="seg">${opts.map(o=>btn(o.l,'via',{v:o.v},wr&&wr.via===o.v?'pink':'ghost')).join('')}</div>${wr&&wr.cab?`<p class="note">${esc(CAB[wr.cab].blurb)} ${tr('geography_and_latency.all_your_waves_on_one_cable')}</p>`:''}`;}
-function bestLat(a,b,f){const ls=S.links.filter(l=>!linkDown(l)&&(!f||f(l)));const dist={[a]:0},done=new Set();for(;;){let u=null,ud=Infinity;for(const k in dist)if(!done.has(k)&&dist[k]<ud){u=k;ud=dist[k];}if(u===null)break;if(u===b)return ud;done.add(u);for(const l of ls){if(l.a!==u&&l.b!==u)continue;const v=l.a===u?l.b:l.a,nd=ud+linkLat(l)+0.05;if(nd<(dist[v]??Infinity))dist[v]=nd;}}return Infinity;}
+/* bestLat(a,b,f): the lowest one-way latency over the live links (f: only those), +0.05 ms a hop. latGraph() numbers the
+   cities with a live link (ix) and lists each one's links once, in S.links order, with their latency (off/nb/w). latRun() is
+   the search itself: the next city is the closest found so far, the first found among equals, and the sums are the same
+   (d + latency + 0.05), so the same answers. Stopped at b, or run whole (no b): distances by city number, which is what
+   asking from a for several cities takes (latAt(): solRoutes(), spots0(), opsDecomSafe()). */
+function latGraph(f){const ix=new Map(),deg=[],E=[],id=c=>{let i=ix.get(c);if(i===undefined){ix.set(c,i=deg.length);deg.push(0);}return i;};
+  for(const l of S.links){if(linkDown(l)||f&&!f(l))continue;const u=id(l.a),v=id(l.b);E.push(u,v,linkLat(l));deg[u]++;if(v!==u)deg[v]++;}
+  const n=deg.length,off=new Int32Array(n+1);for(let i=0;i<n;i++)off[i+1]=off[i]+deg[i];const at=off.slice(0,n),nb=new Int32Array(off[n]),w=new Float64Array(off[n]);
+  for(let k=0;k<E.length;k+=3){const u=E[k],v=E[k+1];nb[at[u]]=v;w[at[u]++]=E[k+2];if(v!==u){nb[at[v]]=u;w[at[v]++]=E[k+2];}}return {ix,n,off,nb,w};}
+function latRun(g,a,b){const s=g.ix.get(a),all=b===undefined;if(s===undefined)return all?null:a===b?0:Infinity;const t=all?-1:g.ix.get(b);if(t===undefined)return Infinity;
+  const {n,off,nb,w}=g,d=new Float64Array(n).fill(Infinity),seen=new Int32Array(n),done=new Uint8Array(n);let m=1;seen[0]=s;d[s]=0;
+  for(;;){let u=-1,ud=Infinity;for(let i=0;i<m;i++){const k=seen[i];if(!done[k]&&d[k]<ud){u=k;ud=d[k];}}if(u<0)break;if(u===t)return ud;done[u]=1;
+    for(let e=off[u];e<off[u+1];e++){const v=nb[e],nd=ud+w[e]+0.05;if(nd<d[v]){if(d[v]===Infinity)seen[m++]=v;d[v]=nd;}}}return all?d:Infinity;}
+// From a whole run d out of a: the latency to b.
+const latAt=(g,d,a,b)=>{if(a===b)return 0;const k=g.ix.get(b);return d&&k!==undefined?d[k]:Infinity;};
+function bestLat(a,b,f){return latRun(latGraph(f),a,b);}
+// From each of these cities to the ones after it in the list: [[a,b,ms]…], one search per city.
+function latPairs(f,g){const G=latGraph(g),o=[];for(let i=0;i<f.length-1;i++){const d=latRun(G,f[i]);for(let j=i+1;j<f.length;j++)o.push([f[i],f[j],latAt(G,d,f[i],f[j])]);}return o;}
 // The lowest one-way latency anything you could build gets between two cities (#273), the way bestLat() adds it up:
 // your own fiber over land (×1.1, wherever isSub() allows it), or the route of a cable that lands at both ends (your own cable in the low-latency
 // design follows it at 0.9 or better). A sea route that no cable takes needs a survey, so it does not count.
 // Built from the map alone, so it is worked out once per city.
 const LATF=new Map();let LATC=null;
-function latFloor(a,b){let D=LATF.get(a);if(!D){LATF.set(a,D=latFloor0(a));}return D[CIDX[b]];}
-function latFloor0(a){const n=CITIES.length,D=new Float64Array(n).fill(Infinity),done=new Uint8Array(n);
+function latFloor(a,b){let D=LATF.get(a);if(!D){if(LATW&&LATW.a===a){for(;;){const s=LATW.g.next();if(s.done){D=s.value;break;}}LATW=null;}else D=latFloor0(a);LATF.set(a,D);}return D[CIDX[b]];}
+function latFloor0(a){const g=latFloorRun(a);for(;;){const s=g.next();if(s.done)return s.value;}}
+/* Each city's floor follows from the catalog alone, and costs a few milliseconds: idle frames work them out ahead, a
+   few cities at a time (latWarm()), your POPs' first, then the financial centres latency customers ask about. */
+let LATW=null;const LAT_FIN=['nyc','chi','lon','fra','tok','sin','hkg','ams','ash'];
+function latWarm(ms){if(!S||!S.pops)return;const t=performance.now();
+  for(;;){if(!LATW){const a=Object.keys(S.pops).concat(LAT_FIN).find(c=>CITY[c]&&!LATF.has(c));if(!a)return;LATW={a,g:latFloorRun(a)};}
+    const s=LATW.g.next();if(s.done){if(!LATF.has(LATW.a))LATF.set(LATW.a,s.value);LATW=null;}if(performance.now()-t>ms)return;}}
+function* latFloorRun(a){const n=CITIES.length,D=new Float64Array(n).fill(Infinity),done=new Uint8Array(n);let k=0;
   if(!LATC){LATC=new Map();for(const c of CABLE_PAIRS){const k=Math.min(CIDX[c.a],CIDX[c.b])*4096+Math.max(CIDX[c.a],CIDX[c.b]),w=c.km*Math.min(0.9,CAB[c.cid].lat||1);if(!(LATC.get(k)<=w))LATC.set(k,w);}}
-  D[CIDX[a]]=0;for(;;){let u=-1,ud=Infinity;for(let i=0;i<n;i++)if(!done[i]&&D[i]<ud){u=i;ud=D[i];}if(u<0)break;done[u]=1;const U=CITIES[u];
+  D[CIDX[a]]=0;for(;;){if((++k&15)===0)yield;let u=-1,ud=Infinity;for(let i=0;i<n;i++)if(!done[i]&&D[i]<ud){u=i;ud=D[i];}if(u<0)break;done[u]=1;const U=CITIES[u];
     for(let i=0;i<n;i++){if(done[i])continue;const V=CITIES[i],cw=LATC.get(Math.min(u,i)*4096+Math.max(u,i));
       let w=overland(U,V)&&!noTalk(U.id,V.id)?kmBetween(U.id,V.id)*1.1:Infinity;if(cw<w)w=cw;if(w<Infinity){const d=ud+w/200+0.05;if(d<D[i])D[i]=d;}}}
   return D;}

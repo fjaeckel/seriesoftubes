@@ -45,9 +45,10 @@ pull requests collide. Run one file with `npm test -- tests/route-servers.test.j
   or set state directly (`S.day=…`, `S.ev.x=…`).
 - **Force a specific random failure or event** by patching the picker:
   ```js
-  ev("eval('('+fireFailure.toString().replace('const e=pick(opts);',\"const e='crash';\")+')')()");
+  ev("runNow(eval('('+failureRun.toString().replace('if(only)type=only;',\"type='crash';\")+')')())");
   ```
-  Check the current source for the exact `pick` line first (`grep -rn "function fireFailure" src/game`); it may differ.
+  `failureRun()` is a generator (its yield is the routing): play it with `runNow()`. Check the current source for the
+  exact line first (`grep -rn "function\* failureRun" src/game`); it may differ. Or simply `fireFailure('crash')`.
 - **Drive the game through `ACT`** like a player would, then `compute()` or `dayTick()`.
 - **Saves:** for persistence changes, round-trip `JSON.stringify(S)` through
   `parseSave()`/`migrate()`, and test that an *old* save without the new field still loads.

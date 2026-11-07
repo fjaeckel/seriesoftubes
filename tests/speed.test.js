@@ -195,7 +195,9 @@ test('the map is only redrawn when something on it can have changed', () => {
   assert.ok(frame('', 1100) > 0, 'and once a second anyway');
   assert.ok(frame('WL.key=null') > 0, 'the land picture catching up after a zoom or resize redraws');
   ev('UI.speed=1');
-  assert.ok(frame() > 0 && frame() > 0, 'with the clock running every frame moves');
+  // Only the animation clock moves: ambient, drawn at most 30 times a second (tests/frame-pacing.test.js).
+  const run = [frame(), frame(), frame(), frame()].filter((n) => n > 0).length;
+  assert.ok(run >= 2 && run < 4, `with the clock running the map moves, every other frame at 60 Hz (${run} of 4)`);
   ev("ACT.animSet({v:'off'})");
   frame(); frame();
   assert.equal(frame(), 0, 'with animations off the running map stands still between days');
@@ -287,28 +289,41 @@ test('the map is not drawn while the dashboard covers the whole screen', () => {
 // compare the two on a busy network (Auto-TE, then a RouteScript that keeps headroom on every link) and on a small one
 // where Auto-TE has to route around a full link, so it keeps holding when the game's numbers change.
 function plainCompute(ev) {
-  const src = ev('compute.toString()');
-  let plain = src
+  const src = ev('compute.toString()'), csrc = ev('routeCore.toString()');
+  const plain = src
+    .replace('const ns=e.nets||NET_IDS;', 'const ns=NET_IDS;')
+    // ...and without what routing keeps between calls (29-route-cache.js): the plain path builds everything afresh,
+    // which also leaves the lists without kept orders, so the first group and the rest are scanned and sorted.
+    .replace('RCON=RC.on', 'RCON=false');
+  // The routing core (29-route-core.js) with its shortcuts off: Auto-TE's no-detour marks and its searches picked up
+  // where the last one stopped back to the cache lookup and a fresh dijkstra() for every detour.
+  let core = csrc
     .replace('if(!lst.hi&&!lst.mx&&ALONE[fci])', 'if(false)')
     .replace('if(!GN){\n        // One scan', 'if(false){\n        // One scan')
-    .replace('const ns=e.nets||NET_IDS;', 'const ns=NET_IDS;')
     .replace('if(P.dead)return 0;', '').replaceAll('if(r<=1e-6){P.dead=1;return 0;}', '')
-    .replace('if(!P.dead)room-=push(', 'room-=push(').replace(/const gone=e=>\{[^\n]*\};/, 'const gone=e=>false;')
-    // ...and without what routing keeps between calls (29-route-cache.js): the plain path builds everything afresh.
-    .replace('RCON=RC.on', 'RCON=false');
+    .replace('if(!P.dead)room-=push(', 'room-=push(').replace(/const gone=x=>\{[^\n]*\};/, 'const gone=x=>false;')
+    // ...and every exit is called, even one whose path is full with no detour (dud()).
+    .replace(/const dud=x=>\{[^\n]*\};/, 'const dud=x=>false;')
+    .replace('if(TEF[key]===1)return null;const c0=teCache.get(key);', 'const c0=teCache.get(key);if(c0===false)return null;')
+    .replace('const d=teSearch(src,dst);', 'const d=dijkstraTo(adj,src,wW,(v,e)=>e.res<=1e-3||(HAS[v]&&NRES[v]<=1e-3)||(CORE&&OUT[v]&&v!==dst),dst);')
+    .replace('const d=dijkstraTo(adj,src,wW,', 'const {D:D0,P:P0}=dijkstra(adj,src,wW,').replace(',dst);\n    if(d===Infinity', ',dst),d=D0[dst];\n    if(d===Infinity')
+    .replace('walkP(DJ.P,src,dst)', 'walkP(P0,src,dst)');
   // ...and the group split and sorting written the plain way, with array copies, as before they were made allocation-free
-  const sg = plain.indexOf('const ROOM=[],sendGroup='), sd = plain.indexOf('const sortD=');
+  const sg = core.indexOf('const ROOM=[],sendGroup='), sd = core.indexOf('const sortD=');
   assert.ok(sg > 0 && sd > sg, 'found the group sender and the sort');
-  plain = plain.slice(0, sg) + `const ROOM=[],sendGroup=(g0,i0=0,i1=g0.length)=>{const g=g0.slice(i0,i1);for(const e of g)e.vis=vis;
-    if(g.length>1){const room=g.map(e=>Math.max(0,e.cap-e.used)),tot=room.reduce((a,b)=>a+b,0),want=FREM[F];if(tot>1e-6)g.forEach((e,k)=>send(e,want*room[k]/tot));}
-    for(const e of g){if(FREM[F]<=1e-6)break;send(e,FREM[F]);}};\n  ` + plain.slice(sd).replace(/^const sortD=\(a,n=a\.length\)=>\{[^\n]*\};/, 'const sortD=(a,n=a.length)=>{const t=a.slice(0,n).sort(byDist);for(let i=0;i<n;i++)a[i]=t[i];};');
-  for (const [a, b] of [[src, plain]]) assert.notEqual(a, b);
-  assert.equal((plain.match(/if\(false\)/g) || []).length, 2, 'both shortcuts were found and switched off');
+  core = core.slice(0, sg) + `const ROOM=[],sendGroup=(g0,i0=0,i1=g0.length)=>{const g=g0.slice(i0,i1);for(const x of g)VISX[x]=vis;
+    if(g.length>1){const room=g.map(x=>Math.max(0,CAPX[x]-USED[x])),tot=room.reduce((a,b)=>a+b,0),want=FREM[F];if(tot>1e-6)g.forEach((x,k)=>send(x,want*room[k]/tot));}
+    for(const x of g){if(FREM[F]<=1e-6)break;send(x,FREM[F]);}};\n  ` + core.slice(sd).replace(/^const sortD=\(a,n=a\.length\)=>\{[^\n]*\};/, 'const sortD=(a,n=a.length)=>{const t=a.slice(0,n).sort(byDist);for(let i=0;i<n;i++)a[i]=t[i];};');
+  assert.notEqual(src, plain); assert.notEqual(csrc, core);
+  assert.equal((core.match(/if\(false\)/g) || []).length, 2, 'both shortcuts were found and switched off');
   assert.ok(!plain.includes('e.nets||NET_IDS'), 'the exit index was switched off');
-  assert.ok(!plain.includes('P.dead'), 'the full-path mark was switched off');
+  assert.ok(!core.includes('P.dead'), 'the full-path mark was switched off');
+  assert.ok(core.includes('const dud=x=>false;'), 'every exit of a group is called');
   assert.ok(plain.includes('RCON=false') && !plain.includes('RC.on'), 'the kept routing tables were switched off');
-  assert.ok(plain.includes('const sortD=(a,n=a.length)=>{const t=a.slice(0,n).sort(byDist);') && plain.includes('g.forEach('), 'the plain group split and sort are in');
-  ev('window.__plain=' + plain.replace(/^function compute/, 'function'));
+  assert.ok(!core.includes('TEF[key]===1') && !core.includes('dijkstraTo(') && !core.includes('const d=teSearch(') && core.includes('if(c0===false)return null;'), "Auto-TE's shortcuts were switched off");
+  assert.ok(core.includes('const sortD=(a,n=a.length)=>{const t=a.slice(0,n).sort(byDist);') && core.includes('g.forEach('), 'the plain group split and sort are in');
+  ev('window.__plainC=' + plain.replace(/^function compute/, 'function') + ';window.__plainR=(' + core.replace(/^function routeCore/, 'function') + ')();');
+  ev('window.__plain=function(){const r=ROUTE;ROUTE=__plainR;try{__plainC();}finally{ROUTE=r;}};');
 }
 
 test('fast routing gives exactly the same result as the plain path it replaces', () => {
@@ -360,6 +375,51 @@ test('Auto-TE routes around a full link exactly like the plain path', () => {
     assert.ok(ev('R.teMoved') > 100, 'Auto-TE moved traffic through Brussels');
     assert.ok(ev("R.load[S.links.find(l=>l.a==='fra'&&l.b==='ams').id]") >= (script ? 6.9 : 9.99), 'the direct 10G link is full (up to the spill line)');
   }
+  assert.deepEqual(errors, []);
+});
+
+// Auto-TE's searches for a detour, on meshes of thin and thick links where POPs fill up and some sit outside the core
+// (TE never steers through them, but may end there): a search from a city picks up where the last one from there
+// stopped until a link or router runs out of room, and an exit whose full path has no detour is not called. Several
+// seeded networks, from light to heavy load, must route exactly as the plain path that searches every time.
+test('Auto-TE detours route like the plain path on crowded meshes with POPs outside the core', () => {
+  const { ev, errors } = load();
+  plainCompute(ev);
+  // The fast core, counting the searches that were picked up: answered at once, or gone on from where the last stopped.
+  const csrc = ev('routeCore.toString()'), counted = csrc.replace('if(go){g=LRg;if(DJ.done[dst]===g)return DJ.D[dst];', 'if(go){g=LRg;if(DJ.done[dst]===g){__TE.had++;return DJ.D[dst];}__TE.went++;');
+  assert.notEqual(counted, csrc, 'found the picked-up search');
+  ev('window.__TE={had:0,went:0};ROUTE=(' + counted.replace(/^function routeCore/, 'function') + ')();');
+  const CS = ['fra', 'ams', 'bru', 'par', 'lon', 'zrh', 'mil', 'vie', 'prg', 'ber', 'muc', 'mad', 'cph', 'waw', 'mrs', 'ham', 'dus'];
+  let moved = 0, outs = 0;
+  for (let seed = 1; seed <= 6; seed++) {
+    let a = seed * 7919;
+    const rnd = () => { a = (a * 16807) % 2147483647; return a / 2147483647; }, int = (n) => Math.floor(rnd() * n);
+    const cs = CS.filter(() => rnd() < 0.75), links = [];
+    for (let i = 1; i < cs.length; i++) links.push([cs[int(i)], cs[i], int(4)]);
+    for (let k = 0; k < cs.length; k++) { const x = cs[int(cs.length)], y = cs[int(cs.length)]; if (x !== y) links.push([x, y, int(4)]); }
+    const out = cs.filter(() => rnd() < 0.3), up = cs.filter((c) => out.includes(c) || rnd() < 0.3).concat(cs[0]);
+    ev(`ACT.start({});S.cash=1e12;S.lvl=13;for(const g of GOALS)S.done[g.id]=0;S.pops={};S.links=[];S.transit=[];
+      const cs=${JSON.stringify(cs)},out=${JSON.stringify(out)},IN=RG.findIndex(g=>g.cr>=3&&!g.noMpls),OUT=RG.findIndex(g=>g.cr<2);
+      for(const c of cs){ACT.buildPop({city:c});const p=S.pops[c];p.rgen=RG_TOP;p.routers=RMAX;if(!p.bb)ACT.launchBB({city:c});}
+      const L=(a,b,t)=>{UI.via=null;UI.lmode='wave';UI.route='main';try{openLinkModal(a,b);ACT.buildLink({tier:t});}catch(e){}closeModal();};
+      for(const [a,b,t] of ${JSON.stringify(links)})L(a,b,t);
+      for(const c of ${JSON.stringify(up)}){const t=NETS.find(n=>n.price&&n.pops.includes(c)&&(n.type==='t1'||n.type==='t2'));if(t)ACT.buyTransit({city:c,net:t.id,tier:3});}
+      // Then the routers: some too old for the core, and few enough that POPs fill up too.
+      for(const c of cs){const p=S.pops[c];p.rgen=out.includes(c)?OUT:IN;p.routers=1+${int(3)};}
+      S.ixp={};S.pni=[];S.caches=[];S.biz=[];S.te={on:true,day:0};S.core={lv:3,run:2};S.nextFail=1e9;S.nextEvent=1e9;`);
+    assert.ok(ev('coreOn()&&coreTE()'), 'the core rules apply and Auto-TE runs');
+    outs += ev('Object.keys(S.pops).filter(c=>!inCore(c)).length');
+    const sig = () => ev('JSON.stringify({served:R.served,teMoved:R.teMoved,egT:R.egT,load:S.links.map(l=>R.load[l.id]||0),node:R.nodeLoad,t:R.useT,f:R.fl.map(f=>[f.got,f.via])})');
+    for (const load of [0.3, 0.8, 1.6, 3]) {
+      ev(`for(const c in S.pops)S.pops[c].bb.d=CITY[c].P*${load}`);
+      ev('compute()'); const fast = sig(); moved += ev('R.teMoved');
+      ev('__plain()'); const ref = sig();
+      assert.equal(fast, ref, `network ${seed} at load ${load}: the fast and the plain path route the same`);
+    }
+  }
+  assert.ok(moved > 100, 'Auto-TE found detours');
+  assert.ok(outs > 0, 'some POPs are outside the core');
+  assert.ok(ev('__TE.had') > 0 && ev('__TE.went') > 0, 'searches were picked up: some answered at once, some gone on');
   assert.deepEqual(errors, []);
 });
 

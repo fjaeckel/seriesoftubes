@@ -22,15 +22,16 @@ function network(ev) {
     }
     compute();`);
   // Share the model and path sender, but replace indexed exit selection with
-  // the original full scan and stable sort for every flow.
-  const source = ev('compute.toString()');
-  const start = source.indexOf('  for(const pass of PASSES)for(const rank of RANKS){');
-  const end = source.indexOf('  for(const i of NORD)', start);
+  // the original full scan and stable sort for every flow: in the routing core (29-route-core.js), the passes of run().
+  const core = ev('routeCore.toString()'), source = ev('compute.toString()');
+  const start = core.indexOf('      for(const pass of PASSES)for(const rank of RANKS){');
+  const end = core.indexOf('      for(let x=0;x<NX;x++)E[x].used=USED[x];', start);
   assert.ok(start >= 0 && end > start, 'allocation loop boundaries must exist');
   // The reference also builds every table afresh, so the comparison covers what routing keeps between calls.
   assert.ok(source.includes('RCON=RC.on'), 'compute() can be told not to keep its tables');
-  const ref = (source.slice(0,start)+referenceAllocation+source.slice(end)).replace('RCON=RC.on', 'RCON=false');
-  ev(`window.referenceCompute=eval('('+${lit(ref)}+')')`);
+  const refCore = (core.slice(0, start) + referenceAllocation + core.slice(end)).replace(/^function routeCore/, 'function');
+  ev(`window.referenceCore=(${refCore})();window.referenceRaw=(0,eval)('('+${lit(source.replace('RCON=RC.on', 'RCON=false').replace(/^function compute/, 'function'))}+')');
+    window.referenceCompute=function(){const r=ROUTE;ROUTE=referenceCore;try{referenceRaw();}finally{ROUTE=r;}};`);
 }
 
 test('indexed routing matches the simple allocation loop across network changes', () => {

@@ -8,12 +8,18 @@ function pniIdx(){if(PNIX&&PNIX.R===R)return PNIX;
   const ix={},pn={};
   for(const c in S.ixp){const nm=ixName(c);for(const id of ixSessions(c)){const a=ix[id]||(ix[id]=[]);if(!a.includes(nm))a.push(nm);}}
   for(const p of S.pni)(pn[p.net]||(pn[p.net]=[])).push(p);
-  return PNIX={R,fl:{},ix,pn};}
+  return PNIX={R,fl:{},all:false,ix,pn};}
 // One POP's flows by network, added up the first time that POP is asked about.
-function pniFlows(c){const X=pniIdx();let m=X.fl[c];if(m)return m;m=X.fl[c]={};
-  for(const f of R.fl||[]){if(f.junk||f.c!==c)continue;let o=m[f.n];if(!o)o=m[f.n]={t:0,ix:0,p:0,h:0,u:0,T:{},I:{}};
-    o.u+=f.rem;o.t+=f.gt;o.ix+=f.gi;o.p+=f.gp;o.h+=f.gh;if(f.gt)o.T[f.ti]=(o.T[f.ti]||0)+f.gt;if(f.gi)o.I[f.ii]=(o.I[f.ii]||0)+f.gi;}
-  return m;}
+// Every POP at once, in one pass over the flows: the intern's weekly PNI round asks about all of them, and one POP at a
+// time was a pass per POP. The flows are read straight from routing's columns (R.flc), not made into the objects of R.fl
+// (tens of thousands on a big network); each POP's sums still add up its flows in their order.
+function pniFlows(c){const X=pniIdx();if(!X.all){X.all=true;const F=X.fl,C=R.flc;
+  const add=(c,n,rem,gt,gi,gp,gh,ti,ii)=>{const m=F[c]||(F[c]={});let o=m[n];if(!o)o=m[n]={t:0,ix:0,p:0,h:0,u:0,T:{},I:{}};
+    o.u+=rem;o.t+=gt;o.ix+=gi;o.p+=gp;o.h+=gh;if(gt)o.T[ti]=(o.T[ti]||0)+gt;if(gi)o.I[ii]=(o.I[ii]||0)+gi;};
+  if(C){const {NF,FREM,FCI,FNJ,FGT,FGI,FGP,FGH,FTI,FII,E}=C;
+    for(let i=0;i<NF;i++)add(CITIES[FCI[i]].id,NET_IDS[FNJ[i]],FREM[i],FGT[i],FGI[i],FGP[i],FGH[i],FTI[i]<0?null:E[FTI[i]].id,FII[i]<0?null:E[FII[i]].id);}
+  else for(const f of R.fl||[])if(!f.junk)add(f.c,f.n,f.rem,f.gt,f.gi,f.gp,f.gh,f.ti,f.ii);}
+  return X.fl[c]||(X.fl[c]={});}
 // One status, most direct first. c: the POP you are looking at (null: anywhere).
 function pniStat(id,c){const X=pniIdx(),ps=X.pn[id]||[],h=c?ps.find(p=>p.city===c):null;
   if(h)return {k:'here',p:h};
@@ -33,6 +39,16 @@ function pniChip(id,c){const s=pniStat(id,c);let t;
 /* What a new PNI with `id` at `c` would carry and save per month. It takes your users' traffic there that now
    leaves over transit, an exchange or a PNI elsewhere, or does not leave at all for want of room, up to its port; transit is billed on the 95th percentile,
    so the saving is the bill now minus the bill with that much less (commits included). */
+/* pniVal()'s want for network n at POP c (what the intern's weekly round sorts by), without the rest pniFlows() keeps
+   for the PNI list: the same four sums of the same flows in the same order, in columns by (city, network). One pass,
+   no objects; null when routing left no columns (an old R), then pniFlows() it is. */
+function pniWant(c,n){const X=pniIdx();if(X.w===undefined){const C=R.flc;X.w=null;
+    if(C){const {NF,FREM,FCI,FNJ,FGT,FGI,FGP}=C;let K=1;for(let i=0;i<NF;i++)if(FNJ[i]>=K)K=FNJ[i]+1;
+      const n4=CITIES.length*K,U=new Float64Array(n4),T=new Float64Array(n4),I=new Float64Array(n4),P=new Float64Array(n4);
+      for(let i=0;i<NF;i++){const k=FCI[i]*K+FNJ[i];U[k]+=FREM[i];T[k]+=FGT[i];I[k]+=FGI[i];P[k]+=FGP[i];}
+      X.w={K,U,T,I,P,ni:new Map(NET_IDS.map((id,j)=>[id,j]))};}}
+  const W=X.w;if(!W){const o=pniFlows(c)[n];return o?o.t+o.ix+o.p+o.u:0;}
+  const ci=CIDX[c],j=W.ni.get(n);if(ci===undefined||j===undefined||j>=W.K)return 0;const k=ci*W.K+j;return W.T[k]+W.I[k]+W.P[k]+W.U[k];}
 function pniVal(id,c){const o=pniFlows(c)[id]||{t:0,ix:0,p:0,h:0,u:0,T:{},I:{}},want=o.t+o.ix+o.p+o.u;
   const lo=pniMin(id);let tier=-1;for(let i=lo;i<PORT.length;i++)if(portShown(i)){tier=i;if(PORT[i].g*0.8>=want)break;}
   if(tier<0)tier=lo;const g=Math.min(want,PORT[tier].g),gt=Math.min(o.t,g);let saved=0;

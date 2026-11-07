@@ -45,7 +45,23 @@ async function openPage(browser, profile, file, save, errors) {
     const t = performance.now(); f(); void document.documentElement.offsetHeight;
     const gl = G && G.shown && G.gl; if (gl) gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); else map.getImageData(0, 0, 1, 1);
     return { ms: performance.now() - t, map: G && G.shown ? 'gl' : '2d' }; }, [k, body]); };
-  return { ctx, time };
+  // One game day as it is played: its steps on the page, its routing in the route worker (built from the page itself,
+  // see 28-route-worker.js). Only the time it holds the page counts: starting the day, each answer from the worker and
+  // each step that waited for a frame. Waiting for the worker does not count; the page is free meanwhile.
+  // null when this page has no worker to play with.
+  const play = async () => { await cdp.send('HeapProfiler.collectGarbage'); return page.evaluate(async () => {
+    window.__TUBES_TEST__ = false;
+    try {
+      const w = typeof rwOn === 'function' && rwOn() && rwStart(); if (!w) return null;
+      let busy = 0; const wrap = (f) => function (...a) { const t = performance.now(); try { return f.apply(this, a); } finally { busy += performance.now() - t; } };
+      const om = w.onmessage, later = RW.later; w.onmessage = wrap(om); if (later) RW.later = (f) => later(wrap(f));
+      S.nextFail = S.nextEvent = S.day + 99;
+      try { const t = performance.now(); rwDay(); busy += performance.now() - t; while (RW.job) await new Promise((r) => setTimeout(r, 1)); }
+      finally { w.onmessage = om; if (later) RW.later = later; }
+      return RW.dead ? null : busy;
+    } finally { window.__TUBES_TEST__ = true; }
+  }); };
+  return { ctx, time, play };
 }
 
 // Returns {version, profiles: {desktop: {compute: {head, base}, ...}, phone: {...}}, errors}.
@@ -61,14 +77,17 @@ async function runBrowser({ head, base, save, metrics, runs, exe }) {
       const res = out.profiles[p.key] = {};
       // Which map each version drew with, over all the runs that drew one (a version falling back mid-run shows both).
       const maps = res.maps = { head: new Set(), base: new Set() };
-      for (const [k, , body] of metrics) {
-        const H = [], B = [], go = async (v, into, m) => { const r = await v.time(k, body); into.push(r.ms); if (k === 'map') m.add(r.map); };
-        for (const v of [h, b].filter(Boolean)) { await v.time(k, body); await v.time(k, body); }   // warm up
+      for (const [k, , body, o] of metrics) {
+        const H = [], B = [], run = (v) => (o && o.play ? v.play() : v.time(k, body));
+        const go = async (v, into, m) => { const r = await run(v); if (o && o.play) into.push(r); else { into.push(r.ms); if (k === 'map') m.add(r.map); } };
+        for (const v of [h, b].filter(Boolean)) { await run(v); await run(v); }   // warm up (and the worker starts)
         for (let i = 0; i < runs; i++) {
           // Alternate who goes first, like the jsdom runs.
           if (b && i % 2) { await go(b, B, maps.base); await go(h, H, maps.head); } else { await go(h, H, maps.head); if (b) await go(b, B, maps.base); }
         }
-        res[k] = { head: median(H), base: b ? median(B) : null, samples: { head: H.map((x) => +x.toFixed(1)), base: b ? B.map((x) => +x.toFixed(1)) : null } };
+        // A version without a worker gives nothing to compare.
+        const ok = (a) => a.every((x) => x != null);
+        res[k] = { head: ok(H) ? median(H) : null, base: b && ok(B) ? median(B) : null, samples: { head: ok(H) ? H.map((x) => +x.toFixed(1)) : null, base: b && ok(B) ? B.map((x) => +x.toFixed(1)) : null } };
       }
       res.maps = { head: [...maps.head], base: b ? [...maps.base] : null };
       await h.ctx.close(); if (b) await b.ctx.close();
