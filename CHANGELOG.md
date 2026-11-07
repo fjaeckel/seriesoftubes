@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Big networks no longer freeze for a moment at every new game day, above all with a NOC intern on duty. The intern now plans cache boxes, router ports and PNIs for every POP in one pass. On a network of 190 POPs the intern's shift held the page for about a tenth of a second on a computer and half a second on a phone; it now takes a few thousandths, and a whole day holds the page a quarter as long. The game plays exactly as before.
+- A low-latency boutique with a lot of its own fiber no longer stalls every day while it times its finance routes. On a big fiber network that check held the page for about a third of a second and now takes a few hundredths; checking customers who want a path without subsea or under a latency limit got quicker too. The game plays exactly as before.
+- The NOC intern no longer holds a big network for more than half a second each time it weighs taking out a spare wave. Before it decides, it checks every customer promised diverse paths, no subsea or a latency limit, and on a network of 390 POPs that check now takes a few hundredths of a second. Spotting new sovereign cloud and trading offers is about ten times quicker too, and the game plays exactly as before.
+
 ## [3.2.0] — 2026-11-07
 
 - New badges for traffic: serve 1 Tbps and 10 Tbps on the way to the 100 Tbps and petabit ones, and carry a petabyte, 100 petabytes, an exabyte and a zettabyte in one game. The dashboard shows how much traffic your network has carried so far, and only the top step of each ladder is legendary: Hundred Terabits is now epic.

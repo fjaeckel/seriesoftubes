@@ -1,7 +1,8 @@
 // The day as steps (dayRun() in src/game/88-days/10-day-tick.js): every routing a day needs, its own and the
 // recomputes after a failure or the intern's jobs, is a yield the route worker answers in play. jsdom has no Worker, so
 // a second page plays it: rwServe() there, messages cloned both ways the way postMessage clones them. A day played that
-// way must be the day dayTick() plays, move for move, with a frame let through in the middle of each day.
+// way must be the day dayTick() plays, move for move, with a frame let through in the middle of each day. Also: the standing
+// orders' cache planner, now linear, plans the same boxes as the old formula.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -200,7 +201,7 @@ test('a customer dropped while a sales trial routes: the trial runs again on the
 test("the intern's PNI round never orders again what the player ordered while it waited", (t) => {
   // The round's batch, then its first rest: the player orders every PNI of the batch by hand meanwhile.
   const ROUND = (hand) => `while(S.day%7!==3)S.day++;S.ops.on.pni=true;
-    const pb=pniBatch;pniBatch=(...a)=>window.__b=pb(...a);
+    const pb=pniBatchRun;pniBatchRun=function*(...a){const b=yield* pb(...a);window.__b=b;return b;};
     window.__b=null;const X=opsShift(),it=OPS_RUN.pni(X),n0=S.pni.length;let hand=0;
     for(let s=it.next();!s.done;s=it.next())if(__b&&${hand}&&!hand){hand=1;const af=after;after=()=>{};try{for(const q of __b.orders)ACT.pni({city:q.city,net:q.net,tier:q.g1?-1:q.tier});}finally{after=af;}compute();window.__h=S.pni.length;}
     window.__n=S.pni.length-n0;`;
@@ -238,4 +239,62 @@ test('an incident repaired while its routing runs: the failure and the monkey st
   assert.equal(p.ev('__a.impact'), -7, 'the older incident keeps its impact');
   assert.equal(p.ev('typeof __c.impact'), 'number');
   assert.deepEqual(p.errors, []);
+});
+
+test('the cache planner plans what the old formula planned, city by city', (t) => {
+  const h = open(t, 777);
+  h.ev(SETUP);
+  // The formula as it was: the total share summed again for every network, the boxes filtered again for each.
+  h.ev(`window.oldDem=(c,id)=>{const T=cityShTab(c);let t=0;for(const k in T)t+=cityNetSh(c,k);return t>0?((R.cityDem&&R.cityDem[c])||0)*cityNetSh(c,id)/t:0;};
+    window.oldPlan=city=>{const p=S.pops[city],sites=p.site2?['a','b']:['a'],add=[],have={};
+      for(const c of S.caches)if(c.city===city){const k=c.net+'@'+(c.site==='b'?'b':'a');have[k]=(have[k]||0)+1;}
+      for(const n of NETS)if(n.cache&&(R.demTo[n.id]||0)>=n.cache.min&&oldDem(city,n.id)>1e-6){const box=sites.map(st=>have[n.id+'@'+st]||0);
+        sites.forEach((site,i)=>{if(!box[i]){add.push({net:n.id,site,...cacheBox(city)});box[i]=1;}});
+        const dem=oldDem(city,n.id),nb=cacheBox(city);
+        let cap=S.caches.filter(c=>c.city===city&&c.net===n.id).reduce((a,c)=>a+cacheG(c),0)+add.filter(x=>x.net===n.id).length*cacheG(nb);
+        while(cap+1e-9<dem){const i=box.indexOf(Math.min(...box));add.push({net:n.id,site:sites[i],...nb});box[i]++;cap+=cacheG(nb);}}
+      return add;};`);
+  // Some boxes gone, so there is something to plan; Russia, China and Korea's exit rule have tables of their own.
+  h.ev("S.caches=S.caches.filter((c,i)=>i%3);S.krExit=true;for(const c of ['mos','pek','icn'])if(!S.pops[c])S.pops[c]={day:0,bb:{d:1},boost:0,down:0,routers:2,gen:true,rgen:0,site2:true};compute();");
+  const cities = JSON.parse(h.ev('JSON.stringify(Object.keys(S.pops))'));
+  let boxes = 0;
+  for (const c of cities) {
+    const got = h.ev(`JSON.stringify(utilityCaches('${c}').add)`);
+    assert.equal(got, h.ev(`JSON.stringify(oldPlan('${c}'))`), c);
+    boxes += JSON.parse(got).length;
+    for (const id of JSON.parse(h.ev('JSON.stringify(NETS.map(n=>n.id))'))) if (h.ev(`cacheDem('${c}','${id}')!==oldDem('${c}','${id}')`)) assert.fail(`cacheDem ${c} ${id}`);
+  }
+  assert.ok(boxes > 50, `boxes planned: ${boxes}`);
+  assert.deepEqual(h.errors, []);
+});
+
+test('ports counted for every POP at once, and flows summed from the columns, are what each POP counted alone', (t) => {
+  const h = open(t, 777);
+  h.ev(SETUP);
+  // The old ways: one pass over the whole network per POP, and the flows as objects (R.fl).
+  h.ev(`window.oldPorts=(c,g)=>{let u=0;
+      for(const l of S.links){if(l.a!==c&&l.b!==c||l.kind==='vxc')continue;if(l.kind!=='df'){u++;continue;}for(const o of l.ch||[])u+=chPorts(o,c,g);}
+      for(const t of S.transit)if(t.city===c&&!t.pz)u+=PORT_SLOT(t.tier)*(t.n||1);
+      for(const x of S.pni)if(x.city===c)u+=PORT_SLOT(x.tier)*(x.n||1);
+      for(const x of ixIdsIn(c))if(S.ixp[x]!==undefined&&!S.myIx[x])u+=PORT_SLOT(S.ixp[x])*((S.ixn||{})[x]||1);
+      if(S.myIx[c])u+=1;
+      u+=cachePorts(c,[],g)+(S.nni||[]).filter(x=>x.city===c).length;return u;};
+    window.oldFlows=c=>{const m={};for(const f of R.fl||[]){if(f.junk||f.c!==c)continue;let o=m[f.n];if(!o)o=m[f.n]={t:0,ix:0,p:0,h:0,u:0,T:{},I:{}};
+      o.u+=f.rem;o.t+=f.gt;o.ix+=f.gi;o.p+=f.gp;o.h+=f.gh;if(f.gt)o.T[f.ti]=(o.T[f.ti]||0)+f.gt;if(f.gi)o.I[f.ii]=(o.I[f.ii]||0)+f.gi;}return m;};`);
+  const cities = JSON.parse(h.ev('JSON.stringify(Object.keys(S.pops))'));
+  for (const g of ['undefined', '0', 'RG.length-1']) {
+    const all = JSON.parse(h.ev(`JSON.stringify([...portsAt(Object.keys(S.pops),${g})])`));
+    assert.deepEqual(all, cities.map((c) => [c, h.ev(`oldPorts('${c}',${g})`)]), `ports, router model ${g}`);
+  }
+  assert.ok(h.ev('Object.keys(S.pops).some(c=>portsUsed(c)>10)'));
+  for (const c of cities) assert.equal(h.ev(`JSON.stringify(pniFlows('${c}'))`), h.ev(`JSON.stringify(oldFlows('${c}'))`), `flows from ${c}`);
+  assert.ok(h.ev('Object.keys(S.pops).some(c=>Object.keys(pniFlows(c)).length>5)'));
+  // The intern's weekly PNI round reads only pniVal()'s want, from typed columns (pniWant()): the very same numbers, for
+  // every network at every POP (and 0 where no flow goes).
+  const odd = h.ev(`(()=>{const bad=[];let n=0;for(const c in S.pops)for(const id of NET_IDS){const v=pniVal(id,c).want,w=pniWant(c,id);if(v>0)n++;
+    if(!Object.is(v,w))bad.push(c+'/'+id+' '+v+' '+w);}return JSON.stringify({n,bad:bad.slice(0,5)});})()`);
+  const r = JSON.parse(odd);
+  assert.deepEqual(r.bad, [], 'pniWant() is pniVal().want');
+  assert.ok(r.n > 50, `pairs with traffic: ${r.n}`);
+  assert.deepEqual(h.errors, []);
 });

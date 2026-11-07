@@ -25,22 +25,26 @@ const REQS={
    TERR names the game and the routing count it was made for: an action between two steps of the day changes a link
    only through after(), which routes, so the islands are worked out again; another game, and each question walks. */
 let TERR=null;
-function terrIslands(){const adj={};for(const l of S.links)if(!linkDown(l)&&!l.sub){(adj[l.a]=adj[l.a]||[]).push(l.b);(adj[l.b]=adj[l.b]||[]).push(l.a);}
+function terrIslands(){const adj={};for(const l of S.links)if(!l.sub&&!linkDown(l)){(adj[l.a]=adj[l.a]||[]).push(l.b);(adj[l.b]=adj[l.b]||[]).push(l.a);}
   const m=new Map();let n=0;for(const c in adj){if(m.has(c))continue;const q=[c];m.set(c,n);for(let h=0;h<q.length;h++)for(const v of adj[q[h]])if(!m.has(v)){m.set(v,n);q.push(v);}n++;}return m;}
 function terrestrialPath(a,b){if(TERR&&TERR.S===S){if(TERR.gen!==RW.gen||!TERR.m){TERR.gen=RW.gen;TERR.m=terrIslands();}
-    if(a===b)return true;const A=TERR.m.get(a);return A!==undefined&&A===TERR.m.get(b);}const ls=S.links.filter(l=>!linkDown(l)&&!l.sub);const adj={};for(const l of ls){(adj[l.a]=adj[l.a]||[]).push(l.b);(adj[l.b]=adj[l.b]||[]).push(l.a);}const seen=new Set([a]),q=[a];while(q.length){const u=q.shift();if(u===b)return true;for(const v of adj[u]||[])if(!seen.has(v)){seen.add(v);q.push(v);}}return false;}
+    if(a===b)return true;const A=TERR.m.get(a);return A!==undefined&&A===TERR.m.get(b);}const ls=S.links.filter(l=>!l.sub&&!linkDown(l));const adj={};for(const l of ls){(adj[l.a]=adj[l.a]||[]).push(l.b);(adj[l.b]=adj[l.b]||[]).push(l.a);}const seen=new Set([a]),q=[a];while(q.length){const u=q.shift();if(u===b)return true;for(const v of adj[u]||[])if(!seen.has(v)){seen.add(v);q.push(v);}}return false;}
 const reqOk=b=>(b.reqs||[]).every(k=>REQS[k]&&REQS[k].ok(b));
 // Some requirements only make sense for some customers: nobody can reach another continent without getting wet.
 const reqCan=(k,b)=>!REQS[k].can||REQS[k].can(b);
 function reqList(o){return (o.reqs||[]).map(k=>{const ok=REQS[k].ok(o),lab=typeof REQS[k].l==='function'?REQS[k].l(o):REQS[k].l;return `<div class="meta"><b style="color:${ok?'var(--eye)':'var(--bad)'}">${ok?'✓':'✗'}</b> ${esc(lab)}</div>`;}).join('');}
-function diversePaths(a,b){
-  const rem=remoteCities(),ok=c=>popUp(c)||rem.includes(c);
-  return disjointRoutes(a,b,S.links.filter(l=>!linkDown(l)&&ok(l.a)&&ok(l.b)));}
-function disjointRoutes(a,b,live){const srlg=l=>l.kind==='vxc'?'fab:'+l.prov:(l.trench||l.id);
-  const bfs=ls=>{const adj={};for(const l of ls){(adj[l.a]=adj[l.a]||[]).push([l.b,l]);(adj[l.b]=adj[l.b]||[]).push([l.a,l]);}
-    const prev={[a]:null},q=[a];while(q.length){const u=q.shift();if(u===b)break;for(const [v,l] of adj[u]||[])if(!(v in prev)){prev[v]=l;q.push(v);}}
-    if(!(b in prev))return null;const path=[];let v=b;while(v!==a){const l=prev[v];path.push(l);v=l.a===v?l.b:l.a;}return path;};
-  const p1=bfs(live);if(!p1)return false;const used=new Set(p1.map(srlg));return !!bfs(live.filter(l=>!used.has(srlg(l))));}
+/* diversePaths(): a shortest path by hops over the live links (and VXCs to remote cities), then another one that shares
+   none of its risks. divGraph() numbers the cities and the risks and lists each city's links once, in list order, as
+   disjointOn() reads them; divOn() asks it, so many pairs on one network (spots0(), opsDecomSafe()) share one graph. The
+   second search skips the first path's risks rather than rebuilding the graph without them: the same lists in the same
+   order, so the same answer. */
+const srlgOf=l=>l.kind==='vxc'?'fab:'+l.prov:(l.trench||l.id);
+function divGraph(live){if(!live){const rem=remoteCities(),ok=c=>popUp(c)||rem.includes(c);live=S.links.filter(l=>!linkDown(l)&&ok(l.a)&&ok(l.b));}
+  const ix=new Map(),rk=new Map(),adj=[],id=c=>{let i=ix.get(c);if(i===undefined){ix.set(c,i=adj.length);adj.push([]);}return i;};
+  for(const l of live){const s=srlgOf(l);let r=rk.get(s);if(r===undefined)rk.set(s,r=rk.size);const u=id(l.a),v=id(l.b);adj[u].push(v,r);adj[v].push(u,r);}return {ix,adj};}
+function divOn(g,a,b){if(a===b)return true;const i=g.ix.get(a),j=g.ix.get(b);return i!==undefined&&j!==undefined&&disjointOn(g.adj,i,j);}
+function diversePaths(a,b){return divOn(divGraph(),a,b);}
+function disjointRoutes(a,b,live){return divOn(divGraph(live),a,b);}
 // Check buildable geography, not today's POPs, capacity or outages. Parallel land
 // routes can use separate trenches; all segments of one cable share its risk.
 let diversityMap=null;

@@ -12,12 +12,12 @@ let BIGEYE=null;const bigEye=()=>BIGEYE||(BIGEYE=CITIES.slice().sort((x,y)=>y.P-
 let SPOTC=null;
 function spots(){const lv=lvl(),k=S.day+'|'+lv+'|'+S.links.length+'|'+Object.keys(S.pops).length+'|'+charter();if(SPOTC&&SPOTC.s===S&&SPOTC.k===k)return SPOTC.v;const v=spots0(lv);SPOTC={s:S,k,v};return v;}
 function spots0(lv){const out=[];if(gatesOpen()||S.scn)return out;const up=t=>BIZ_T[t].lv>lv,mine=Object.keys(S.pops).filter(bizCity);
-  if(up('hft')){const f=FIN.filter(c=>S.pops[c]);for(let i=0;i<f.length;i++)for(let j=i+1;j<f.length;j++){const a=f[i],b=f[j],ms=bestLat(a,b);if(ms<=latMaxOf(a,b))out.push({t:'hft',a,b,k:'lat',n:+ms.toFixed(1)});}}
+  if(up('hft'))for(const [a,b,ms] of latPairs(FIN.filter(c=>S.pops[c])))if(ms<=latMaxOf(a,b))out.push({t:'hft',a,b,k:'lat',n:+ms.toFixed(1)});
   const dci=['onramp','ai','hyper'].filter(up);
   if(dci.length)for(const l of S.links){if(l.kind!=='df'||l.sub||l.ready>S.day||linkDown(l))continue;const g=dfCap(l);
     for(const t of dci){const T=BIZ_T[t];if(g>=T.opts[0]*SPOT_DF&&(!T.div||reqCan('diverse',{city:l.a,city2:l.b})))out.push({t,a:l.a,b:l.b,k:'df',n:g});}}
   if(up('sov')){const by={};for(const c of mine)(by[CITY[c].cc]=by[CITY[c].cc]||[]).push(c);
-    for(const cs of Object.values(by))for(let i=0;i<cs.length;i++)for(let j=i+1;j<cs.length;j++)if(diversePaths(cs[i],cs[j]))out.push({t:'sov',a:cs[i],b:cs[j],k:'div',n:0});}
+    const g=divGraph();for(const cs of Object.values(by))for(let i=0;i<cs.length;i++)for(let j=i+1;j<cs.length;j++)if(divOn(g,cs[i],cs[j]))out.push({t:'sov',a:cs[i],b:cs[j],k:'div',n:0});}
   if(up('cgame')&&R)for(const c of bigEye())if(S.pops[c]&&S.pops[c].bb&&sfOf(R,c)>=0.95)out.push({t:'cgame',a:c,b:null,k:'eye',n:0});
   return out;}
 // A spotted customer starts at the smallest size its type comes in; your level makes them bigger and more frequent.
@@ -79,10 +79,10 @@ const RG_GLASS=Math.max(...Object.values(OPT).map(o=>o.rg)),rgGlass=g=>broker()&
 const latPay=()=>charter()==='boutique'?LAT_PAY:1;
 // The fastest a leased wave or fiber gets between two cities: overland, or the quickest cable on the route.
 function leasedLat(a,b){let best=isSub(a,b)?Infinity:kmBetween(a,b)*1.25/200;for(const c of cablesFor(a,b))best=Math.min(best,c.km*Math.min(CAB[c.cid].lat||1,1.25)/200);return best;}
-const ownGlass=l=>l.kind==='df'&&l.own&&l.ready<=S.day&&dfCap(l)>0;
+const ownGlass=l=>l.kind==='df'&&l.own&&dfOn(l);
 let SOLC=null;
 function solRoutes(){const k=S.day+'|'+S.links.length+'|'+S.links.reduce((n,l)=>n+(l.ch||[]).length,0);if(SOLC&&SOLC.s===S&&SOLC.k===k)return SOLC.v;
-  const f=FIN.filter(c=>S.pops[c]),v=[];if(S.links.some(ownGlass))for(let i=0;i<f.length;i++)for(let j=i+1;j<f.length;j++){const a=f[i],b=f[j],o=bestLat(a,b,ownGlass),l=leasedLat(a,b);if(isFinite(o)&&isFinite(l)&&o<l)v.push({a,b,o,l});}
+  const f=FIN.filter(c=>S.pops[c]),v=[];if(S.links.some(ownGlass))for(const [a,b,o] of latPairs(f,ownGlass)){const l=leasedLat(a,b);if(isFinite(o)&&isFinite(l)&&o<l)v.push({a,b,o,l});}
   SOLC={s:S,k,v};return v;}
 const solCust=()=>S.biz.filter(b=>BIZ_T[b.type]&&BIZ_T[b.type].lat&&b.mood>=50&&reqOk(b)).length;
 // What each charter promises, as the picker and the agent's docs say it.
