@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Routing a big network's day takes about half the work, with exactly the same results: on a network of 390 POPs with Auto-TE, a day's routing went from about 0.7 to 0.3 seconds on a computer.
+
 ## [3.2.0] — 2026-11-07
 
 - New badges for traffic: serve 1 Tbps and 10 Tbps on the way to the 100 Tbps and petabit ones, and carry a petabyte, 100 petabytes, an exabyte and a zettabyte in one game. The dashboard shows how much traffic your network has carried so far, and only the top step of each ladder is legendary: Hundred Terabits is now epic.
