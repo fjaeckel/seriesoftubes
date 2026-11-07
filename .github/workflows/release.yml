@@ -106,9 +106,18 @@ jobs:
           node scripts/weekly-puzzle.js --check
           if [ -f scripts/weekly-scenario.js ]; then node scripts/weekly-scenario.js --check; fi
           if [ -f scripts/weekly-architect.js ]; then node scripts/weekly-architect.js --check; fi
-      # The weekly files come from main, not the tag: whatever tested the tag, they are tested against it here.
+      # The weekly files come from main, not the tag. When they (after fitting) are the tag's own, CI already tested
+      # them with it; otherwise (a newer week, a refitted one) they are tested against this release here.
+      - name: Are the weekly files the tag's own?
+        id: weekly
+        run: |
+          if [ -z "$(git status --porcelain -- site/puzzles/weekly site/scenarios/weekly site/architect/weekly)" ]; then
+            echo "Same weekly files as the tag: tested with it already."; echo "same=true" >> "$GITHUB_OUTPUT"
+          else
+            git status --short -- site/puzzles/weekly site/scenarios/weekly site/architect/weekly; echo "same=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Test the weekly puzzles against this release
-        if: ${{ hashFiles('scripts/weekly-puzzle.js') != '' }}
+        if: ${{ hashFiles('scripts/weekly-puzzle.js') != '' && (steps.weekly.outputs.same != 'true' || !(inputs.tested || needs.tests.result == 'success')) }}
         run: npm test -- tests/weekly-puzzle.test.js tests/puzzles.test.js $(ls tests/weekly-scenario.test.js tests/weekly-architect.test.js 2>/dev/null)
       - name: Build site
         run: VERSION="${TAG#v}" REQUIRE_NOTES=1 npm run build

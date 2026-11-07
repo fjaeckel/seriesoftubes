@@ -38,7 +38,30 @@ concurrency:
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 jobs:
+  # A push that bumps the version is a release on its way: once CI passes, auto-release.yml starts this workflow for
+  # the tag, which tests the same code before it publishes. Testing the push too would be the same run twice.
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.g.outputs.run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag || '' }}
+          persist-credentials: false
+      - id: g
+        run: |
+          tag="v$(jq -r .version package.json)"
+          if [ "$GITHUB_EVENT_NAME" = push ] && ! git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+            echo "$tag is not tagged yet: the release will test this commit when it publishes."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
   test:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
