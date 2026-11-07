@@ -125,8 +125,11 @@ jobs:
         with:
           path: ./_site
 
+  # A skipped job skips everything that needs it, even through build (which runs anyway): without always() here, a
+  # release whose tests auto-release.yml already ran built and never deployed (v3.2.0).
   deploy:
     needs: build
+    if: ${{ always() && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -140,7 +143,7 @@ jobs:
   # the site is live.
   indexnow:
     needs: deploy
-    if: ${{ !inputs.weekly }}
+    if: ${{ always() && needs.deploy.result == 'success' && !inputs.weekly }}
     runs-on: ubuntu-latest
     env:
       # IndexNow keys are public by design (also served at /<key>.txt).
