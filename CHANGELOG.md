@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+## [3.1.0] — 2026-11-07
+
 - Whoever runs sales can now answer renewal haggles for you, each in their own way: switch it on at the sales desk. The engineer keeps nerdy customers at the market price and gives everyone else their discount, the shark refuses discounts and some customers walk, and the CEO settles it on the golf course, for better or worse.
 - The three interns now each have something they are best at: Anycast Annie peers every day and orders PNIs twice a week, Kevin from the night shift swaps two line systems a night and never fat-fingers anything, and Tracy Route buys capacity as if traffic were already 10% higher. They run the same orders at the same salary.
 - Your intern can upgrade optical transport: a new standing order moves full, busy fiber to a bigger line system, or trades its smallest channels for bigger optics. Pick a line system, and every fiber on a smaller one is moved up to it. A line system swap takes the fiber down for a day, so the intern only does it where the traffic gets around it and no customer rides it, one a night.
