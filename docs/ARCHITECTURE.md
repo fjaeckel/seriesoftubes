@@ -83,7 +83,7 @@ Development runs on `npm run dev` (assembles the development page on every reque
 | `tests/harness.js` | Loads the assembled page in jsdom with a seeded `Math.random` and a fake canvas: the players' page, or the development page with `{agent: true}`. The page's scripts run straight in the window (jsdom's parser is slow on 2 MB of script) |
 | `scripts/test.js`, `tests/durations.json` | Runs the tests, every file in its own process; splits them into parts of equal time for CI (`--plan`, `--shard`) by each file's seconds, which CI refreshes after every run on `main` |
 | `.github/workflows/ci.yml` | Tests (split over 6 runners), build and translations on every push and PR; the releases call it too, so the tests run one way everywhere |
-| `.github/workflows/auto-release.yml` | On a `package.json` version bump on `main`: test (ci.yml), tag, GitHub release from the CHANGELOG, start the deploy (already tested, so it does not test again) |
+| `.github/workflows/auto-release.yml` | After every green CI on `main`: if `package.json` has a new version, tag the commit CI tested, publish the GitHub release from the CHANGELOG, start the deploy (`tested=true`, so it does not test again) |
 | `.github/workflows/release.yml` | Builds and deploys to GitHub Pages, the only workflow that can |
 | `.github/workflows/weekly-puzzle.yml` | Sunday 03:37 UTC: makes the week's puzzle, commits it to `main` (data only, no release) and starts `release.yml` for the live release tag with `weekly=true` |
 | `scripts/weekly-puzzle.js`, `site/puzzles/weekly/` | The weekly puzzle generator and its output, one `<key>.json` per week plus `index.json` (see below) |

@@ -5,8 +5,9 @@ description: Cut and ship a Series of Tubes release (patch or minor) from main v
 
 # Releasing Series of Tubes
 
-Bumping `version` in `package.json` on `main` is the release button. The
-`auto-release.yml` workflow tests, tags `v<version>`, publishes a GitHub release with
+Bumping `version` in `package.json` on `main` is the release button. CI tests the push
+as usual; when it passes, `auto-release.yml` (which runs after every CI on `main`) sees
+the new version, tags `v<version>` on the commit CI tested, publishes a GitHub release with
 that version's CHANGELOG section as notes, and dispatches `release.yml`, which builds
 `_site/` (`npm run build`: the page assembled from `src/` plus `site/`) and deploys it
 to GitHub Pages (https://seriesoftub.es). GitHub Pages is the only host, ever: see the
@@ -65,8 +66,8 @@ gh api repos/fjaeckel/seriesoftubes/releases/latest --jq '.tag_name+" "+.publish
 
 ## Steps
 
-1. Don't run the test suite, the game or benchmarks before a release: CI and the
-   auto-release workflow test it, and the Performance workflow benchmarks it. Just
+1. Don't run the test suite, the game or benchmarks before a release: CI tests the
+   version bump (a red CI releases nothing), and the Performance workflow benchmarks it. Just
    check that the latest CI run on `main` is green (`gh run list --repo fjaeckel/seriesoftubes --limit 4`).
 2. In `CHANGELOG.md`, move the bullets from `## [Unreleased]` into a new section
    right below it: `## [x.y.z] — YYYY-MM-DD` (em dash, today's date). Keep an empty
@@ -81,7 +82,7 @@ gh api repos/fjaeckel/seriesoftubes/releases/latest --jq '.tag_name+" "+.publish
      --author="Frederic Jung <frederic@jc-ix.net>" -m "Short summary (x.y.z)"
    git push origin main
    ```
-6. Watch the workflows until both finish:
+6. Watch the workflows until all three finish (CI, then Auto-release, then Release to GitHub Pages):
    ```bash
    gh run list --repo fjaeckel/seriesoftubes --limit 4
    gh run watch <id> --repo fjaeckel/seriesoftubes
