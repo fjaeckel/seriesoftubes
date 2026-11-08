@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Linking to a coast where no subsea cable lands yet, like Iqaluit, now says how you can get there (overland, or with a cable of your own) instead of listing no cities to hop through (#321).
 - While nothing moves on the map but its animations (packets, waves, clouds), it is drawn 30 times a second instead of at the screen's full rate, half the work on most screens and a quarter on 120 Hz phones. Moving the map, pointing at something or anything changing on the network still gets every frame, and the animations keep their speed.
 - A paused game no longer rewrites its save every 5 seconds when nothing has changed. On a big network each of those writes held the page for 20 to 30 milliseconds.
 - At ×8 a big network's autosave no longer holds the page: the game is packed, turned into text and compressed in the background, and less of each day's routing has to travel back to the page. The game plays exactly as before.
