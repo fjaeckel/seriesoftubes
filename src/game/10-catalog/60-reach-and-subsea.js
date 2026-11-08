@@ -15,7 +15,7 @@ const subUpgradeReady=(l,k)=>l.kind==='df'&&l.sub&&l.own&&Number.isFinite(l['sub
 const subUpgradeCost=(l,k)=>SUB_UPGRADES[k].cost+(k==='engineering'?Math.round(l.km*1000):0);
 // Pending transmission work follows the construction schedule. Keep the actual
 // shift (the last crew purchase can save fewer than 30 days) and completed work.
-function setCableReady(l,ready,day=S.day){const shift=ready-l.ready;
+function setCableReady(l,ready,day=S.day){const shift=ready-l.ready;layHold(l,shift,day);
   if(l.kind==='df'&&l.own&&l.sub)for(const k of Object.keys(SUB_UPGRADES)){
     const f='sub'+k;if(Number.isFinite(l[f])&&l[f]>day)l[f]=Math.max(day+1,l[f]+shift);
   }l.ready=ready;
