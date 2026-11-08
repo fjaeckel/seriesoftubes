@@ -73,7 +73,11 @@ function shipStatus(i){if(!shipSea(i))return '';const l=shipLink(i);if(!l)return
 /* Laying your own subsea cable: the last part of the build is a lay ship at sea, about 150 km a day. A second ship,
    booked before laying starts, works from the other end and halves that part; nothing at sea speeds up the survey,
    the permits or the cable factory. */
-const layDays=l=>Math.max(1,Math.ceil((l.km||0)/LAY_KMD)),layLen=l=>l.ship2?Math.ceil(layDays(l)/2):layDays(l),layStart=l=>l.ready-layLen(l);
+const layDays=l=>Math.max(1,Math.ceil((l.km||0)/LAY_KMD)),layLen=l=>l.ship2?Math.ceil(layDays(l)/2):layDays(l),layStart=l=>l.lay?l.lay.s:l.ready-layLen(l);
+/* A delay once the ship is at sea (#322) holds it where it is: l.lay = {s: the day laying began, q: the share laid,
+   t: the day it lays on}. Without it, laying is simply the last layLen() days before ready. */
+function layHold(l,shift,day){if(!layOwn(l)||!(shift>0)||l.ready<=day||day<layStart(l))return;
+  l.lay={s:layStart(l),q:+layDone(l,day).toFixed(4),t:Math.max(day,l.lay?l.lay.t:day)+shift};}
 const layOwn=l=>l.kind==='df'&&l.own&&l.sub;
 const layName=(l,k=0)=>{let h=0;for(const ch of String(l.id))h=(h*31+ch.charCodeAt(0))>>>0;return LAY_SHIPS[(h+k)%LAY_SHIPS.length];};
 function layQuote(l){if(!layOwn(l)||l.ship2||S.day>=layStart(l)||l.ready<=S.day+1)return null;const save=Math.floor(layDays(l)/2);if(save<1)return null;return {save,cost:SHIP_MOB+save*LAY_DAY};}
@@ -83,4 +87,4 @@ function layQuote(l){if(!layOwn(l)||l.ship2||S.day>=layStart(l)||l.ready<=S.day+
 const PREP_STEP=30,prepMin=l=>leadDays(Math.round(60+(l.km||0)*0.012)),prepCost=l=>Math.round((500000+(l.km||0)*60)*hwMul('build')),
   prepFloor=l=>Math.max(S.day+1,(l.day||0)+prepMin(l))+layLen(l),
   prepSteps=l=>layOwn(l)&&l.ready>S.day&&S.day<layStart(l)?Math.max(0,Math.ceil((l.ready-prepFloor(l))/PREP_STEP)):0;
-const layDone=(l,T)=>clamp((T-layStart(l))/layLen(l),0,1);
+const layDone=(l,T)=>l.lay?l.lay.q+(1-l.lay.q)*clamp((T-l.lay.t)/Math.max(1,l.ready-l.lay.t),0,1):clamp((T-layStart(l))/layLen(l),0,1);

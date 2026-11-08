@@ -76,7 +76,10 @@ function sanitize(s){
    for(const i of s.inc){if(i.type!=='cut'||i.st==null){for(const k of ['ship','seaq','st','sw','sp','sl'])delete i[k];continue;}
      i.st=clamp(num(i.st,0.5),0.03,0.97);i.sw=int(i.sw,1,30,4);i.sp=int(i.sp,0,60,0);i.sl=typeof i.sl==='string'?i.sl.slice(0,40):'';i.rushed=!!i.rushed||undefined;
      if(i.ship!=null&&!(own(SHIP,i.ship)&&o[i.ship]&&o[i.ship].inc===i.id))i.ship=null;if(i.ship==null){i.ship=null;i.seaq=1;}else delete i.seaq;}
-   for(const l of s.links)if(l.ship2&&l.kind==='df'&&l.own&&l.sub)l.ship2=1;else delete l.ship2;}
+   for(const l of s.links)if(l.ship2&&l.kind==='df'&&l.own&&l.sub)l.ship2=1;else delete l.ship2;
+   // A lay ship held by a delay (#322): only on your own subsea cable still being laid.
+   for(const l of s.links){const v=l.lay;if(v===undefined)continue;if(!(v&&typeof v==='object'&&!Array.isArray(v)&&l.kind==='df'&&l.own&&l.sub&&l.ready>s.day)){delete l.lay;continue;}
+     const t=Math.round(clamp(num(v.t,s.day),0,l.ready));l.lay={s:Math.round(clamp(num(v.s,s.day),0,Math.min(s.day,t))),q:clamp(num(v.q,0),0,1),t};}}
   s.loans=s.loans.filter(l=>l&&own(BANKS,l.bank));for(const l of s.loans){if(l.model!==undefined&&!['balloon','storm','transit','astro'].includes(l.model))delete l.model;for(const k of ['apr0','cut','share'])if(l[k]!==undefined&&!isFinite(+l[k]))delete l[k];if(!Array.isArray(l.covs))l.covs=[];l.covs=l.covs.filter(c=>own(COVS,c));}s.loanOffers=s.loanOffers.filter(l=>l&&own(BANKS,l.bank));
   s.usedNames=[...new Set(s.usedNames.filter(x=>typeof x==='string'))];s.log=s.log.filter(e=>e&&typeof e.t==='string').slice(0,LOG_KEEP).map(e=>{const o=e.o&&typeof e.o==='object'&&e.o.a==='inbox'?{a:'tab',v:'nets'}:e&&e.o&&typeof e.o==='object'&&LOG_OPEN.includes(e.o.a)?(e.o.a==='bank'||e.o.a==='ops'?{a:e.o.a}:typeof e.o.v==='string'&&e.o.v.length<=64&&(e.o.a!=='city'||isCity(e.o.v))&&(e.o.a!=='tab'||LOG_TABS.includes(e.o.v))?{a:e.o.a,v:e.o.v}:null):null;
     return {id:typeof e.id==='string'&&e.id.length<=40?e.id:uid(),d:num(e.d,0),t:e.t.slice(0,600),h:typeof e.h==='string'?e.h.slice(0,200):'',k:LOG_KINDS.includes(e.k)?e.k:'',at:Number.isFinite(+e.at)?+e.at:0,o,n:int(e.n,1,9999,1)};});
