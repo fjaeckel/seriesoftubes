@@ -6,7 +6,8 @@
    writes over a newer one that another window saved. Each tab keeps its slot in sessionStorage: a reload continues it.
    Only one window plays a slot at a time: a Web Lock where the browser has them, else a heartbeat key, sot-open:<id>. */
 const SLOT_K='sot-save-v1:',SLOT_IX='sot-slots',SLOT_OLD='sot-save-v1',SLOT_HB='sot-open:',SLOT_SS='sot-slot',SLOT_MAIN='main';
-const SLOT={sq:{},top:{},rel:new Set(),no:new Set(),locks:new Map(),gzQ:new Map(),idle:[],wait:null,html:''};
+// txt: the text of each slot's last save that landed, before its stamp.
+const SLOT={sq:{},top:{},txt:{},day:{},big:{},rel:new Set(),no:new Set(),locks:new Map(),gzQ:new Map(),idle:[],wait:null,html:''};
 function slotRid(){try{const a=new Uint32Array(2);crypto.getRandomValues(a);return (a[0].toString(36)+a[1].toString(36)).slice(0,10);}catch(e){return (Date.now().toString(36)+(uidN++).toString(36)).slice(-10);}}
 const WIN=slotRid();// this page load; a reload is a new window that takes its tab's slot back
 const lsGet=k=>{try{return localStorage.getItem(k);}catch(e){return null;}};
@@ -87,12 +88,14 @@ function slotWrite(j,data){const id=j.id;if(SLOT.no.has(id))return false;
   catch(e){// A migrated save the browser has no room to copy keeps living in the old key, as it always did.
     if(id!==SLOT_MAIN||lsGet(SLOT_OLD)==null)throw e;localStorage.setItem(SLOT_OLD,data);lsDel(k);k=SLOT_OLD;}
   if(id===SLOT_MAIN&&k!==SLOT_OLD)lsDel(SLOT_OLD);// the new key has a newer save now: the old one is no longer needed
-  SLOT.sq[id]=Math.max(SLOT.sq[id]||0,j.seq);
+  SLOT.sq[id]=Math.max(SLOT.sq[id]||0,j.seq);SLOT.txt[id]=j.txt;SLOT.day[id]=j.day;
   const e=ent||{id};if(!ent)list.push(e);Object.assign(e,slotClean({...e,...j.meta,tier:j.meta.tier||e.tier,seq:j.seq,at:Date.now(),size:data.length,gz:data.startsWith(GZ),broken:false}));
   slotIdxPut(list);return true;}
 function slotPut(j,data){try{if(slotWrite(j,data))UI.saveFail=null;}catch(e){saveErr(e,j.s);}}
 // ---------- opening, leaving, losing ----------
-function slotIn(id,sv){const e=slotIdx().find(x=>x.id===id);UI.slot=id;ssSet(SLOT_SS,id);SLOT.no.delete(id);SLOT.top[id]=0;
+function slotIn(id,sv){const e=slotIdx().find(x=>x.id===id);UI.slot=id;ssSet(SLOT_SS,id);SLOT.no.delete(id);SLOT.top[id]=0;delete SLOT.txt[id];
+  // The day the slot holds, and whether it is big (compressed, or long): the first save that moves on goes to the worker.
+  {const raw=slotRaw(id);SLOT.day[id]=S?S.day:undefined;SLOT.big[id]=!!raw&&(raw.startsWith(GZ)||raw.length>=GZ_BG);}
   SLOT.sq[id]=Math.max(sv&&isFinite(sv.seq)?+sv.seq:0,e?e.seq:0);}
 function slotNew(){const id=slotRid();UI.slot=id;ssSet(SLOT_SS,id);SLOT.sq[id]=0;SLOT.no.delete(id);slotClaim(id,true,()=>{});return id;}
 // Leave this window's network (saved first); the slot is free for other windows once its last save has landed.

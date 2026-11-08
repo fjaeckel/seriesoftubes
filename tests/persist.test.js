@@ -47,9 +47,11 @@ test('a save too big for the browser is not retried every few seconds, but leavi
   assert.equal(a.ev('__tries'), 3, 'tried again once the wait is over');
   assert.equal(JSON.parse(a.ev("slotRaw(UI.slot)")).day, a.ev('S.day'));
   assert.equal(a.ev('UI.saveFail'), null);
-  a.ev('save()');
-  assert.equal(a.ev('__tries'), 4, 'a save that works keeps saving every time');
-  a.ev('__full=true;save();S=migrate(JSON.parse(JSON.stringify(S)));save()');
+  a.ev('S.cash++;save()');
+  assert.equal(a.ev('__tries'), 4, 'a save that works keeps saving every time the network changes');
+  a.ev('save();save()');
+  assert.equal(a.ev('__tries'), 4, 'and writes nothing while nothing changes');
+  a.ev('__full=true;S.cash++;save();S=migrate(JSON.parse(JSON.stringify(S)));S.cash++;save()');
   assert.equal(a.ev('__tries'), 6, 'another game (a new state) tries at once');
 });
 

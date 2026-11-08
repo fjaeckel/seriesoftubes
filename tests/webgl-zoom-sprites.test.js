@@ -68,14 +68,15 @@ test('a still map is drawn again when the zoom comes to rest, so the stretched p
   const { ev, errors } = open();
   ev(STUB);
   // Animations off: the loop skips frames while nothing changes.
+  // mapStill() says how the map stands (MAP_MOVING, MAP_AMBIENT, MAP_STILL; 99-loop.js), not just whether it is still.
   ev(`cam.z=1;draw(__T);mapStill(0,__T);UI.drawnAt=__T;cam.z=1.3;__T+=16;mapStill(0,__T);draw(__T);UI.drawnAt=__T;`);
   ev(`__T+=16`);
-  assert.equal(ev('mapStill(0,__T)'), true, 'nothing moved since the last frame');
+  assert.equal(ev('mapStill(0,__T)'), ev('MAP_STILL'), 'nothing moved since the last frame');
   ev(`__T+=300`);
-  assert.equal(ev('mapStill(0,__T)'), false, 'the zoom has rested: one more frame');
+  assert.equal(ev('mapStill(0,__T)'), ev('MAP_MOVING'), 'the zoom has rested: one more frame');
   ev(`draw(__T);UI.drawnAt=__T;__T+=16`);
   assert.equal(ev('ZH.f'), 1);
-  assert.equal(ev('mapStill(0,__T)'), true, 'and then the map stays still again');
+  assert.equal(ev('mapStill(0,__T)'), ev('MAP_STILL'), 'and then the map stays still again');
   assert.deepEqual(errors, []);
 });
 

@@ -15,11 +15,17 @@ const big = (t) => { const h = load({ seed: 777 }); t.after(() => h.dom.window.c
 // R with its lazy parts (R.ef, R.fl) read out, attacks by id.
 const SIG = "(()=>{const o={};for(const k in R)o[k]=R[k];o.ef={};for(const k in R.ef)o.ef[k]=R.ef[k];o.fl=(R.fl||[]).map(f=>[f.c,f.n,f.junk,f.rem,f.gt,f.gi,f.gp,f.gh,f.ti,f.ii]);return JSON.stringify(o,(k,v)=>k==='attack'?(v&&v.id):k==='ports'?undefined:v);})()";
 
+// R.efg, which the next day's routing reads: every link's sums, Map order included (they cross as typed arrays).
+const EFG = "JSON.stringify(Object.entries(R.efg).map(([k,e])=>[k,[...e.t.g],e.t.v,e.t.n,e.t.d]))";
+
 test('R packed, cloned and unpacked is the same R, lazy parts and key order included', (t) => {
   const { ev, errors } = big(t);
-  const want = ev(SIG);
+  const want = ev(SIG), efg = ev(EFG);
   ev("{const {o,p,tr}=rwPack(R);const c=structuredClone({o,p},{transfer:tr});R=rwUnpack(c.o,c.p);UI.hotMap=hotByCity();}");
+  assert.equal(ev(EFG), efg);
   assert.equal(ev(SIG), want);
+  // Sent back to the worker after an action, a link's sums still clone whole.
+  assert.equal(ev("JSON.stringify(Object.entries(structuredClone(rwEfgOut(R.efg))).map(([k,t])=>[k,[...t.g],t.v,t.n,t.d]))"), efg);
   assert.equal(ev('pniFlows(Object.keys(S.pops)[0])!==null'), true, 'the PNI list reads the unpacked flows');
   assert.deepEqual(errors, []);
 });
@@ -30,10 +36,13 @@ test('the worker side routes what it is sent: same R as routing on the page', (t
   ev("window.__got=null;window.postMessage=(m)=>{window.__got=m;};");
   ev("{window.__R0=R;const prev={load:R.load,l2route:R.l2route,efg:rwEfgOut(R.efg)};const keep=S;window.__S0=JSON.stringify(S);rwServe(structuredClone({seq:1,S,...prev}));S=keep;}");
   ev("R=rwUnpack(structuredClone(__got.R),__got.ef)");
-  const fromWorker = ev(SIG);
+  const fromWorker = ev(SIG), hot = ev('JSON.stringify(structuredClone(__got.hot))');
   ev('R=__R0;S=JSON.parse(__S0);compute()');
   assert.equal(ev('JSON.stringify(S)'), ev('__S0'), 'routing does not change S');
   assert.equal(ev(SIG), fromWorker);
+  // The full ports it found come along (the page no longer works them out again), key order included.
+  assert.equal(hot, ev('JSON.stringify(UI.hotMap)'));
+  assert.ok(Object.keys(JSON.parse(hot)).length > 5, 'some ports are full on the big network');
   assert.deepEqual(errors, []);
 });
 

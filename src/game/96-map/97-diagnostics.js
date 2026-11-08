@@ -1,6 +1,6 @@
 /* Settings › Diagnostic info: one readout in a corner, for bug reports. What the screen tells the game (for phone
    layouts), how the map is drawn (the graphics card or 2D, and why), and how fast: frames per second, the slowest
-   frames, the time draw() takes. It is also opened with ?vp or ?fps in the address (?novp, ?nofps close it), and,
+   frames, the time draw() takes, and the pace of days (asked and held). It is also opened with ?vp or ?fps in the address (?novp, ?nofps close it), and,
    inside an installed app where there is no address bar, with five quick taps on the date. Its words are technical on
    purpose and stay in English: they are pasted into bug reports. */
 const DIAG={on:false,el:null,t:null,fr:[],dr:[],last:0,dms:-1};
@@ -27,7 +27,7 @@ function diagShow(){const D=DIAG;let el=D.el;
     `inner ${innerWidth}×${innerHeight} · screen ${screen.width}×${screen.height} · dpr ${window.devicePixelRatio||1}\n`+
     `vv ${vv?Math.round(vv.width)+'×'+Math.round(vv.height)+' top '+Math.round(vv.offsetTop):'-'} · client ${de.clientHeight}\nsafe top ${cs.paddingTop} bottom ${cs.paddingBottom}\n`+
     `standalone ${sa} · iosfix ${de.classList.contains('iosfix')} · CH ${CH}\nbody ${Math.round(document.body.getBoundingClientRect().height)} · tabbar ${Math.round(tb.top)}–${Math.round(tb.bottom)}\n`+
-    diagMap()+'\n'+diagPerf();}
+    diagMap()+'\n'+diagPerf()+'\n'+diagPace();}
 // Shows or hides the readout, and remembers it on this device.
 function diagOn(on){const D=DIAG;clearInterval(D.t);D.t=null;if(D.el){D.el.remove();D.el=null;}D.on=!!on;D.fr.length=D.dr.length=0;D.last=0;D.dms=-1;
   if(on){D.t=setInterval(diagShow,500);diagShow();}

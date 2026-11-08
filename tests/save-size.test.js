@@ -11,7 +11,7 @@ const refuse = name => `window.__err=${lit(name)};{const P=Object.getPrototypeOf
 test('#176 a save that does not fit tells the player once, with Export, and the menu says so', () => {
   const { ev, dom, errors } = load();
   ev("ACT.start({});UI.saveFail=null;" + refuse('QuotaExceededError'));
-  ev('save()');
+  ev('S.cash++;save()');
   const toasts = () => [...dom.window.document.querySelectorAll('.toast')].filter(t => /not being saved/.test(t.textContent));
   assert.equal(toasts().length, 1, 'one warning');
   assert.match(toasts()[0].textContent, /too big for this browser/);
@@ -31,7 +31,8 @@ test('#176 a save that does not fit tells the player once, with Export, and the 
 
 test('#176 storage that is blocked altogether gets its own advice', () => {
   const { ev, dom, errors } = load();
-  ev("ACT.start({});UI.saveFail=null;" + refuse('SecurityError') + ';save()');
+  // The game moves on first: a save of the very text the slot already holds writes nothing.
+  ev("ACT.start({});UI.saveFail=null;" + refuse('SecurityError') + ';S.cash+=1;save()');
   assert.match(dom.window.document.body.textContent, /private window/);
   assert.deepEqual(errors, []);
 });
@@ -125,4 +126,96 @@ test('#176 a damaged compressed save is kept, marked damaged, and the player is 
   assert.equal(ev("slotRaw('main')"), 'gz:bm90IGd6aXA=', 'the damaged save is kept as it was');
   assert.equal(ev('!!UI.started'), false);
   assert.deepEqual(errors, []);
+});
+
+// A big network's autosave is compressed in the route worker (rwGzip()), not on the page: deflating it there held the
+// page about as long as writing it plain. jsdom has no Worker: a second page answers as the worker, messages cloned
+// both ways. A save as the page closes stays plain, and a worker lost mid-job leaves its job to the page.
+test('a big autosave is compressed in the route worker and loads back; a closing save stays plain', async () => {
+  const a = load({ gzip: true }), w = load({ gzip: true });
+  for (const h of [a, w]) h.dom.window.structuredClone = globalThis.structuredClone;
+  a.ev(bigBiz + ";for(let i=0;i<2500;i++){const slots=1+i%4;S.biz.push({id:'m'+i,city:'fra',city2:'ams',name:'Mid Carrier '+i,type:'wwave',bw:1,rate:4000+i,mood:100,since:i,link:'df1',slots,what:wwWhat(S.links.find(l=>l.id==='df1'),slots)});}compute()");
+  const len = a.ev('JSON.stringify(packSave(S)).length');
+  assert.ok(len >= a.ev('GZ_BG') && len < a.ev('GZ_MIN'), `between the two thresholds: ${len}`);
+  a.ev("window.__q=[];window.__pz=0;const gp=gzPipe;gzPipe=(...x)=>{__pz++;return gp(...x);};rwOn=()=>!RW.dead;rwStart=()=>RW.w||(RW.w={postMessage:m=>__q.push(structuredClone(m)),terminate(){__q.length=0;}});");
+  w.ev('window.__out=[];window.postMessage=(m)=>{__out.push(structuredClone(m));};');
+  const pump = async () => { for (let k = 0; k < 200; k++) {
+    while (a.ev('__q.length')) { w.dom.window.__m = a.ev('__q.shift()'); w.ev('rwServe(__m)'); }
+    while (w.ev('__out.length')) { a.dom.window.__a = w.ev('__out.shift()'); a.ev('rwMsg(__a)'); }
+    if (a.ev("(slotRaw(UI.slot)||'').startsWith(GZ)&&!UI.gzBusy")) return; await new Promise((r) => setTimeout(r, 5)); } };
+  // Closing: plain text, at once.
+  a.ev('save(true)');
+  assert.equal(a.ev('slotRaw(UI.slot)[0]'), '{', 'a save as the page closes is written plain');
+  // The autosave: compressed by the worker.
+  a.ev("S.name='Worker Zip';save()");
+  assert.equal(a.ev('__q.length'), 1, 'the text went to the worker');
+  await pump();
+  assert.ok(a.ev("slotRaw(UI.slot).startsWith(GZ)"), 'stored compressed');
+  assert.equal(a.ev('__pz'), 0, 'nothing was deflated on the page');
+  a.ev("gunzip(slotRaw(UI.slot)).then(t=>{const j=JSON.parse(t);window.__t=[j.name,j.day,j.biz.length].join('|');})");
+  await settle(a.ev, '!!window.__t');
+  assert.equal(a.ev('__t'), a.ev("[S.name,S.day,S.biz.length].join('|')"));
+  // The worker lost while it compresses: the page compresses that save itself.
+  a.ev("__pz=0;S.name='Page Zip';save();rwKill()");
+  await settle(a.ev, "!UI.gzBusy&&__pz>0", 'compressed on the page');
+  a.ev("window.__t=null;gunzip(slotRaw(UI.slot)).then(t=>window.__t=JSON.parse(t).name)");
+  await settle(a.ev, '!!window.__t');
+  assert.equal(a.ev('__t'), 'Page Zip');
+  assert.deepEqual(a.errors, []);
+  assert.deepEqual(w.errors, []);
+});
+
+// A big network that moved on since its last save is packed, turned into text and compressed by the route worker
+// (rwSave()): the page copies the game over and writes what comes back. A paused game (same day) is still compared on
+// the page, so an unchanged one is not written again. The worker lost mid-save: the next frame saves again, here.
+test('a big game that moved on is saved by the route worker, a paused one is still compared on the page', async () => {
+  const a = load({ gzip: true }), w = load({ gzip: true });
+  for (const h of [a, w]) h.dom.window.structuredClone = globalThis.structuredClone;
+  a.ev(bigBiz + ";for(let i=0;i<2500;i++){const slots=1+i%4;S.biz.push({id:'m'+i,city:'fra',city2:'ams',name:'Mid Carrier '+i,type:'wwave',bw:1,rate:4000+i,mood:100,since:i,link:'df1',slots,what:wwWhat(S.links.find(l=>l.id==='df1'),slots)});}compute()");
+  a.ev("window.__q=[];window.__pk=0;const pk=packBiz;packBiz=b=>{__pk++;return pk(b);};rwOn=()=>!RW.dead;rwStart=()=>RW.w||(RW.w={postMessage:m=>__q.push(structuredClone(m)),terminate(){__q.length=0;}});");
+  w.ev('window.__out=[];window.postMessage=(m)=>{__out.push(structuredClone(m));};');
+  const pump = async (cond) => { for (let k = 0; k < 300; k++) {
+    while (a.ev('__q.length')) { w.dom.window.__m = a.ev('__q.shift()'); w.ev('rwServe(__m)'); }
+    while (w.ev('__out.length')) { a.dom.window.__a = w.ev('__out.shift()'); a.ev('rwMsg(__a)'); }
+    if (a.ev(cond)) return; await new Promise((r) => setTimeout(r, 5)); } assert.fail('never: ' + cond); };
+  // The first save of the session is made here, and tells the slot which day it holds.
+  a.ev('save()'); await pump("!UI.gzBusy&&(slotRaw(UI.slot)||'').startsWith(GZ)");
+  // A day later: the whole save goes to the worker.
+  a.ev("__pk=0;S.day++;S.name='Moved On';save()");
+  assert.equal(a.ev('__q.length&&!!__q[0].sv&&!!__q[0].S'), true, 'the game went to the worker');
+  await pump("!UI.gzBusy&&SLOT.day[UI.slot]===S.day");
+  assert.equal(a.ev('__pk'), 0, 'nothing was packed on the page');
+  a.ev("window.__t=null;gunzip(slotRaw(UI.slot)).then(t=>{const j=JSON.parse(t);window.__t=[j.name,j.day,j.biz.length,!!j.sv].join('|');})");
+  await settle(a.ev, '!!window.__t');
+  assert.equal(a.ev('__t'), a.ev("[S.name,S.day,S.biz.length,true].join('|')"), 'the slot holds the game, stamped');
+  assert.equal(a.ev('SLOT.txt[UI.slot]===JSON.stringify(packSave(S))'), true, 'the slot knows its text');
+  a.ev('__pk=0');
+  // Paused, nothing changed: compared on the page and not written again.
+  a.ev("__pk=0;window.__w=0;const sp=slotPut;slotPut=(...x)=>{__w++;return sp(...x);};save()");
+  assert.equal(a.ev('__q.length'), 0, 'nothing went to the worker');
+  assert.ok(a.ev('__pk') > 0, 'packed here, to compare');
+  assert.equal(a.ev('__w'), 0, 'the same game is not written again');
+  // The worker lost while it saves: the next frame saves again.
+  a.ev("S.day++;save();rwKill()");
+  await settle(a.ev, '!UI.gzBusy');
+  assert.equal(a.ev('UI.lastSave'), 0, 'the next frame saves again');
+  assert.deepEqual(a.errors, []);
+  assert.deepEqual(w.errors, []);
+});
+
+// Loaded from a big slot, the game's first save once it moves on already goes to the worker: the slot knows its day.
+test('the first save after loading a big slot goes to the route worker once the game moves on', async () => {
+  const a = load({ gzip: true });
+  a.ev(bigBiz + ';' + huge);
+  a.ev('save(true)');
+  await settle(a.ev, "(slotRaw(UI.slot)||'').startsWith(GZ)");
+  const b = load({ gzip: true, storage: { 'sot-save-v1': a.ev('slotRaw(UI.slot)') } });
+  await settle(b.ev, 'UI.started===true');
+  b.dom.window.structuredClone = globalThis.structuredClone;
+  b.ev("window.__q=[];rwOn=()=>!RW.dead;rwStart=()=>RW.w||(RW.w={postMessage:m=>__q.push(structuredClone(m)),terminate(){}});");
+  assert.equal(b.ev('SLOT.big[UI.slot]===true&&SLOT.day[UI.slot]===S.day'), true, 'the slot knows its day and size');
+  b.ev('S.day++;save()');
+  assert.equal(b.ev('__q.length===1&&!!__q[0].sv'), true, 'the whole save went to the worker');
+  assert.deepEqual(a.errors, []);
+  assert.deepEqual(b.errors, []);
 });
