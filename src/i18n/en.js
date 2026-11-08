@@ -2744,6 +2744,8 @@
 "link_modal.no_circuit_crosses_between_north_and":"No circuit crosses between North and South Korea, and no carrier will sell you one. Pyongyang reaches the world through China and Russia.",
 "link_modal.no_subsea_cable_lands_in_both":"No subsea cable lands in both {a} and {b}. Cables from {a} reach {list}. Hop through one of those.",
 "link_modal.no_subsea_cable_lands_in_city":"No subsea cable lands in {city}. The nearest landing station is {near}: run fiber there first, then take a cable from it.",
+"link_modal.no_subsea_cable_lands_in_city_land":"No subsea cable lands in {city} yet. Reach it overland, or lay a subsea cable of your own.",
+"link_modal.no_subsea_cable_lands_in_city_own":"No subsea cable lands in {city} yet, and no road or fiber reaches it overland. Only a subsea cable of your own can get there.",
 "link_modal.nobody_sells_capacity_between_kyiv":"Nobody sells capacity between Kyiv and Moscow, and nobody is going to. Route through Warsaw, Bucharest or Helsinki instead.",
 "link_modal.not_without_a_license":"Not without a license",
 "link_modal.premium_crossing_60_3_loss":"Premium crossing <small>+60% · ~3% loss</small>",

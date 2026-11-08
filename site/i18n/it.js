@@ -2743,6 +2743,8 @@
 "link_modal.no_circuit_crosses_between_north_and":"Nessun circuito attraversa il confine tra Corea del Nord e Corea del Sud, e nessun operatore te ne venderà uno. Pyongyang raggiunge il mondo attraverso Cina e Russia.",
 "link_modal.no_subsea_cable_lands_in_both":"Nessun cavo sottomarino approda sia a {a} che a {b}. I cavi da {a} raggiungono: {list}. Fai tappa in una di queste.",
 "link_modal.no_subsea_cable_lands_in_city":"Nessun cavo sottomarino approda a {city}. La stazione di approdo più vicina è {near}: porta prima la fibra fin lì, poi prendi un cavo da lì.",
+"link_modal.no_subsea_cable_lands_in_city_land":"Nessun cavo sottomarino approda ancora a {city}. Arrivaci via terra, oppure posa un cavo sottomarino tutto tuo.",
+"link_modal.no_subsea_cable_lands_in_city_own":"Nessun cavo sottomarino approda ancora a {city}, e nessuna strada o fibra ci arriva via terra. Solo un cavo sottomarino tutto tuo può arrivarci.",
 "link_modal.nobody_sells_capacity_between_kyiv":"Nessuno vende capacità tra Kyiv e Moscow, e nessuno lo farà mai. Passa invece da Warsaw, Bucharest o Helsinki.",
 "link_modal.not_without_a_license":"Non senza una licenza",
 "link_modal.premium_crossing_60_3_loss":"Attraversamento premium <small>+60% · ~3% di perdita</small>",

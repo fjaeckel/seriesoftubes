@@ -2745,6 +2745,8 @@
 "link_modal.no_circuit_crosses_between_north_and":"Zwischen Nord- und Südkorea gibt es keine Leitung, und kein Carrier verkauft dir eine. Pjöngjang erreicht die Welt über China und Russland.",
 "link_modal.no_subsea_cable_lands_in_both":"Kein Seekabel landet sowohl in {a} als auch in {b} an. Kabel aus {a} erreichen {list}. Nimm den Weg über eine dieser Städte.",
 "link_modal.no_subsea_cable_lands_in_city":"In {city} landet kein Seekabel an. Die nächste Landestation ist {near}: Verleg zuerst Glasfaser dorthin und nimm dann von dort ein Kabel.",
+"link_modal.no_subsea_cable_lands_in_city_land":"In {city} landet noch kein Seekabel an. Komm über Land hin oder verleg dein eigenes Seekabel.",
+"link_modal.no_subsea_cable_lands_in_city_own":"In {city} landet noch kein Seekabel an, und keine Straße und keine Glasfaser führen über Land dorthin. Nur ein eigenes Seekabel kommt da hin.",
 "link_modal.nobody_sells_capacity_between_kyiv":"Niemand verkauft Kapazität zwischen Kyjiw und Moskau, und niemand wird es tun. Route stattdessen über Warschau, Bukarest oder Helsinki.",
 "link_modal.not_without_a_license":"Nicht ohne Lizenz",
 "link_modal.premium_crossing_60_3_loss":"Premium-Übergang <small>+60 % · ~3 % Verlust</small>",

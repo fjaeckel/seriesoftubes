@@ -2743,6 +2743,8 @@
 "link_modal.no_circuit_crosses_between_north_and":"Ningún circuito cruza entre Corea del Norte y Corea del Sur, y ningún operador te venderá uno. Pyongyang llega al mundo a través de China y Rusia.",
 "link_modal.no_subsea_cable_lands_in_both":"Ningún cable submarino aterriza en {a} y {b} a la vez. Los cables de {a} llegan a {list}. Salta por uno de esos.",
 "link_modal.no_subsea_cable_lands_in_city":"Ningún cable submarino aterriza en {city}. La estación de aterrizaje más cercana es {near}: tiende fibra hasta allí primero y luego toma un cable desde ella.",
+"link_modal.no_subsea_cable_lands_in_city_land":"Ningún cable submarino aterriza todavía en {city}. Llega por tierra o tiende tu propio cable submarino.",
+"link_modal.no_subsea_cable_lands_in_city_own":"Ningún cable submarino aterriza todavía en {city}, y ninguna carretera ni fibra llega por tierra. Solo un cable submarino propio puede llegar allí.",
 "link_modal.nobody_sells_capacity_between_kyiv":"Nadie vende capacidad entre Kiev y Moscú, y nadie va a hacerlo. Rodea por Varsovia, Bucarest o Helsinki.",
 "link_modal.not_without_a_license":"No sin licencia",
 "link_modal.premium_crossing_60_3_loss":"Cruce premium <small>+60 % · ~3 % de pérdida</small>",
