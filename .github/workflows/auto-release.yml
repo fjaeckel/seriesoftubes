@@ -70,13 +70,14 @@ jobs:
           case "$ver" in *-*) echo "pre=true" >> "$GITHUB_OUTPUT";; *) echo "pre=false" >> "$GITHUB_OUTPUT";; esac
           echo "skip=false" >> "$GITHUB_OUTPUT"
 
-  # Only when started by hand: after a push, CI has already tested this commit.
+  # Only when started by hand: after a push, CI has already tested this commit. By hand the commit is main as it is
+  # (github.sha, what check.outputs.sha is then), named directly so CI never checks out a ref a workflow_run handed over.
   tests:
     needs: check
     if: needs.check.outputs.skip == 'false' && github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/ci.yml
     with:
-      ref: ${{ needs.check.outputs.sha }}
+      ref: ${{ github.sha }}
 
   release:
     needs: [check, tests]

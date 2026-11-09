@@ -22,7 +22,7 @@ function split(html) {
   let s = SPLIT.get(html);
   if (s) return s;
   const code = [];
-  const shell = html.replace(/<script>([\s\S]*?)<\/script>/g, (m, src) => {
+  const shell = html.replace(/<script>([\s\S]*?)<\/script\b[^>]*>/gi, (m, src) => {
     code.push(new vm.Script(src, { filename: `page-script-${code.length}.js` }));
     return '<script></script>';
   });

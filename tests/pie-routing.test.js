@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // A sandbox with London and New York joined by a transatlantic wave, Frankfurt 640 km from London, a company, and a
 // 16-antenna dish with landing rights at each POP.
@@ -159,7 +160,7 @@ test('spats: data stays home, and not over my airspace', () => {
 test('saves without pies route identically, and pay nothing for orbit', () => {
   const { ev, errors } = load();
   const save = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
-  ev(`S=migrate(JSON.parse(${JSON.stringify(save)}));compute()`);
+  ev(`S=migrate(JSON.parse(${lit(save)}));compute()`);
   assert.equal(ev('S.pie'), null);
   const out = () => ev("JSON.stringify([R.served,R.demand,R.revMo,R.egT,R.load,R.l2,R.l2lat,R.rev])");
   const a = out();

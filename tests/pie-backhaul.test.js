@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // A backbone London – New York – Auckland with transit in London and New York, full dishes with landing rights there, a
 // full lasered Shortcrust, and Pitcairn (Adamstown): a POP of its own with broadband, no cable, and a dish.
@@ -230,7 +231,7 @@ test('the traceroute to and from a cut-off POP shows the orbit hops', () => {
 test('saves without pies, and pie saves whose POPs are all connected, route as before', () => {
   const { ev, errors } = load();
   const save = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
-  ev(`S=migrate(JSON.parse(${JSON.stringify(save)}));compute()`);
+  ev(`S=migrate(JSON.parse(${lit(save)}));compute()`);
   assert.equal(ev('S.pie'), null);
   const out = () => ev("JSON.stringify([R.served,R.demand,R.egT,R.load,R.l2,R.l2lat,R.citySrv])");
   const a = out();

@@ -9,12 +9,13 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 const BIG = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
 // The big network with an intern running every order, a failure and an event due soon, its circuits on scenic
 // routes, which read yesterday's R.efg, and renewal haggles the sales desk answers (slRenRun() routes after them). Ids come from Date.now(),
 // so the clock stands still in every page.
-const SETUP = `Date.now=()=>1.7e12;S=migrate(JSON.parse(${JSON.stringify(BIG)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();autoPause=()=>false;
+const SETUP = `Date.now=()=>1.7e12;S=migrate(JSON.parse(${lit(BIG)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();autoPause=()=>false;
   S.cash=1e9;ACT.salesHire({id:'eng'});closeModal();S.slAuto.on=true;S.slAuto.ren=true;window.__ren=0;{const f=slRenOne;slRenOne=function(){__ren++;return f.apply(this,arguments);};}
   for(const b of S.biz.filter(b=>clOn(b)&&!BIZ_T[b.type].fiber).slice(0,20)){b.te=S.day+28;b.hag={rate:Math.round(b.rate*0.7),until:S.day+28};}
   S.ops.intern='tracy';S.ops.hired=S.day;for(const k in S.ops.on)S.ops.on[k]=true;S.ops.floor=0;for(const k in S.ops.cap)S.ops.cap[k]=0;
@@ -110,7 +111,7 @@ test('an action while the worker routes stands; another network loaded mid-day g
   // A new game while a day is in flight: the old day's steps never touch it.
   p.ev('rwDay()');
   const day = p.ev('S.day');
-  p.ev(`window.__old=S;S=migrate(JSON.parse(${JSON.stringify(BIG)}));compute();`);
+  p.ev(`window.__old=S;S=migrate(JSON.parse(${lit(BIG)}));compute();`);
   const fresh = p.ev('JSON.stringify(S.hist)');
   p.pump();
   assert.equal(p.ev('JSON.stringify(S.hist)'), fresh);

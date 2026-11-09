@@ -654,7 +654,7 @@ test('O7: a fresh Tier 1 cannot afford a full Shortcrust in its first year', () 
   // most the Ex-Im Pie Bank lends a rocket company on top.
   const g = load();
   const save = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
-  g.ev(`S=migrate(JSON.parse(${JSON.stringify(save)}));compute()`);
+  g.ev(`S=migrate(JSON.parse(${lit(save)}));compute()`);
   const rev = g.ev('R.revMo'), loan = g.ev('Math.max(...Object.values(BANKS).map(b=>b.amt[1]))') * rev + g.ev('pieEximCap()'), cash = Math.max(0, g.ev('S.cash'));
   const year = 12 * rev + loan + Math.min(cash, 12 * rev);
   const full = g.ev("pieFullCost('short')");

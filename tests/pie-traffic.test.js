@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 // London, New York and Frankfurt on one backbone, a company, 16-antenna dishes with landing rights at each.
 const world = (ev, opt = {}) => {
@@ -195,7 +196,7 @@ test('the traceroute shows a circuit through orbit hop by hop', () => {
 test('saves without pies: no traffic data, the same routing, and an untouched map', () => {
   const { ev, errors } = load();
   const save = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
-  ev(`S=migrate(JSON.parse(${JSON.stringify(save)}));compute()`);
+  ev(`S=migrate(JSON.parse(${lit(save)}));compute()`);
   assert.equal(ev('R.pie===undefined'), true);
   assert.equal(ev("trSkyList().length"), 0);
   assert.equal(ev("pieFiberMs({k:'c',id:'x'})"), Infinity);

@@ -6,12 +6,13 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 const BIG = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
 
 test('land islands answer "a path without subsea" as walking the links does', () => {
   const { ev, errors } = load({ seed: 3 });
-  ev(`S=migrate(JSON.parse(${JSON.stringify(BIG)}));UI.started=true;closeModal();compute();`);
+  ev(`S=migrate(JSON.parse(${lit(BIG)}));UI.started=true;closeModal();compute();`);
   const cmp = () => JSON.parse(ev(`(()=>{const cs=Object.keys(S.pops).concat(['sin','nyc','lon',null,undefined]);let n=0,yes=0;const bad=[];
     for(const a of cs.slice(0,60))for(const b of cs){if(!a)continue;TERR=null;const w=terrestrialPath(a,b);TERR={S,gen:RW.gen,m:null};const i=terrestrialPath(a,b);TERR=null;
       n++;if(w)yes++;if(w!==i)bad.push(a+'-'+b);}return JSON.stringify({n,yes,bad:bad.slice(0,5)});})()`));
