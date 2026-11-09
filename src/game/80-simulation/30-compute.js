@@ -22,7 +22,7 @@ function flDefine(R2,c){const {NF,FREM,FCI,FNJ,FCA,FBZ,FGT,FGI,FGP,FGH,FTI,FII,E
 /* Every exit has the same fields in the same order, whatever its kind, so the routing loop reads them from one object shape
    (exits of six shapes made each property read there a slow lookup). */
 function mkEx(k,id,city,cap,rank,pref,lab,ok,nets,net){return {k,net,id,city,lab,cap,used:0,rank,pref,ok,nets,dir:null,clean:false,prem:false,carry:false,prep:false,sac:false,pnc:false,
-  ek:'',J:0,byC:null,desc:null,dup:false,told:false,hp:1,dt:0,ci:0,cn:false,vis:0,ts:-1,xi:0,kx:EXK.indexOf(k),fac:undefined};}
+  ek:'',J:0,byC:null,desc:null,dup:false,told:false,hp:1,dt:0,ci:0,cn:false,ts:-1,xi:0,kx:EXK.indexOf(k),fac:undefined};}
 // The exit kinds by number (mkEx's kx), for what routing adds up per kind in typed arrays.
 const EXK=['t','ix','p','c'];
 function compute(){RW.gen++;
@@ -79,7 +79,7 @@ function compute(){RW.gen++;
   // TSL: a slot per transit port id, for what it carries to each network (R.tNet, added up in TNA).
   const ekN={},TSL=new Map();(()=>{for(const e of E){e.ek=e.k+':'+e.id;ekN[e.ek]=(ekN[e.ek]||0)+1;}
   // dup: shares its key with another exit (a hand-edited save), so R.egDesc shows whichever pushed last.
-  for(let i=0;i<E.length;i++){const e=E[i];e.xi=i;e.J=0;e.byC=null;e.desc=null;e.dup=ekN[e.ek]>1;e.told=false;e.hp=e.pref==='high'?0:1;e.dt=e.k==='ix'?PNI_TIE:0;e.ci=CIDX[e.city];e.cn=cnCity(e.city);e.vis=0;e.ts=-1;if(e.k==='t'){let t=TSL.get(e.id);if(t===undefined)TSL.set(e.id,t=TSL.size);e.ts=t;}
+  for(let i=0;i<E.length;i++){const e=E[i];e.xi=i;e.J=0;e.byC=null;e.desc=null;e.dup=ekN[e.ek]>1;e.told=false;e.hp=e.pref==='high'?0:1;e.dt=e.k==='ix'?PNI_TIE:0;e.ci=CIDX[e.city];e.cn=cnCity(e.city);e.ts=-1;if(e.k==='t'){let t=TSL.get(e.id);if(t===undefined)TSL.set(e.id,t=TSL.size);e.ts=t;}
     if(XC)continue;
     // Index loops or forEach (same order): for…of here made an iterator result per exit and network.
     const ns=e.nets||NET_IDS;if(Array.isArray(ns)){for(let q=0;q<ns.length;q++)okAdd(e,ns[q]);}else ns.forEach(n=>okAdd(e,n));}

@@ -44,7 +44,8 @@ function rcReachPut(X,R2){const r=X.reach;Object.assign(R2.reachable,r.reachable
    exits, cities and preferences on the same graph keeps the orders it had, and uses them today already. Only the lists
    that changed start again (scanned today, sorted from tomorrow). */
 function rcExitKeep(key,E,okBy,reach,LIST,BRJ,DSEL,RSET,bk=''){const ok=[];for(let j=0;j<NET_IDS.length;j++)ok[j]=rcIx(okBy[NET_IDS[j]],E);
-  const sig=new Int32Array(E.length);for(let i=0;i<E.length;i++)sig[i]=E[i].ci*4+E[i].hp;
+  // An exit's kind counts too: an exchange exit sorts behind a PNI at the same distance (dt).
+  const sig=new Int32Array(E.length);for(let i=0;i<E.length;i++)sig[i]=E[i].ci*8+E[i].hp*2+(E[i].dt>0?1:0);
   const P=RC.x&&RC.x.gk===RC.gk&&RC.x.bk===bk&&RC.x.sig?RC.x:null,old=new Map();
   if(P)for(const d of P.lists){if(d.cs){for(let k=0;k<d.cs.length;k++)if(d.cs[k])old.set(k+'/'+d.cs[k].join(','),d.ord[k]);}else old.set(d.a.join(','),d.ord);}
   const same=a=>{for(let i=0;i<a.length;i++){const x=a[i];if(x>=P.sig.length||P.sig[x]!==sig[x])return false;}return true;};

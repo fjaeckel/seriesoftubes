@@ -128,3 +128,19 @@ test('lists an exit change leaves alone keep their orders; routing stays the sam
   for (let d = 0; d < 3; d++) assert.equal(step(ev, 'for(const c in S.pops)if(S.pops[c].bb)S.pops[c].bb.d*=1.03').same, true, `day ${d + 1} after`);
   assert.deepEqual(errors, []);
 });
+
+test('an exit that turns from an exchange into a PNI at the same place in the list does not keep its old order', () => {
+  const { ev, errors } = open();
+  // The last exchange with a few networks on it, its city A, and a network m there that also gets a PNI at A.
+  ev(`(()=>{const ixs=Object.keys(S.ixp).filter(c=>S.pops[ixCity(c)]);let p=null;
+    for(let k=ixs.length-1;k>=0&&!p;k--){const c=ixs[k],ss=[...ixSessions(c)];if(ss.length>2)p={c,A:ixCity(c),m:ss[0]};}
+    window.__P=p;for(const c of Object.keys(S.ixp).slice(Object.keys(S.ixp).indexOf(p.c)+1))delete S.ixp[c];
+    S.pni.push({id:'pz0',net:p.m,city:p.A,tier:1,n:1,pref:'normal'});})();compute();compute();compute();`);
+  assert.ok(ev('!!__P'), 'an exchange to drop');
+  // The exchange goes and a PNI with m at A comes first: an exit of the same city and preference, but now a PNI.
+  const r = step(ev, `delete S.ixp[__P.c];S.pni.unshift({id:'pz1',net:__P.m,city:__P.A,tier:1,n:1,pref:'normal'})`);
+  assert.equal(r.g, false, 'same graph');
+  assert.equal(r.x, true, 'the exits changed');
+  assert.equal(r.same, true, 'the same routing as without the kept tables');
+  assert.deepEqual(errors, []);
+});
