@@ -15,6 +15,7 @@ All notable changes to this project are documented here. The project follows
 - A low-latency boutique with a lot of its own fiber no longer stalls every day while it times its finance routes. On a big fiber network that check held the page for about a third of a second and now takes a few hundredths; checking customers who want a path without subsea or under a latency limit got quicker too. The game plays exactly as before.
 - The NOC intern no longer holds a big network for more than half a second each time it weighs taking out a spare wave. Before it decides, it checks every customer promised diverse paths, no subsea or a latency limit, and on a network of 390 POPs that check now takes a few hundredths of a second. Spotting new sovereign cloud and trading offers is about ten times quicker too, and the game plays exactly as before.
 - Routing a big network's day takes about half the work, with exactly the same results: on a network of 390 POPs with Auto-TE, a day's routing went from about 0.7 to 0.3 seconds on a computer.
+- You can now move a customer to another path between the same two POPs, with the most diverse options listed first. Waves and leased fiber pairs move to another fiber with room for them, leaving alone what you keep back for your own traffic, and circuits can be pinned to a path of your choice, falling back to normal routing while a link on it is down.
 
 ## [3.2.0] — 2026-11-07
 
