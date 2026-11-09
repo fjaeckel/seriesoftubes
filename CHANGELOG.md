@@ -6,16 +6,18 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+## [3.3.0] — 2026-11-09
+
+- You can now move a customer to another path between the same two POPs, with the most diverse options listed first. Waves and leased fiber pairs move to another fiber with room for them, leaving alone what you keep back for your own traffic, and circuits can be pinned to a path of your choice, falling back to normal routing while a link on it is down.
+- Routing a big network's day takes about half the work, with exactly the same results: on a network of 390 POPs with Auto-TE, a day's routing went from about 0.7 to 0.3 seconds on a computer.
+- Big networks no longer freeze for a moment at every new game day, above all with a NOC intern on duty. The intern now plans cache boxes, router ports and PNIs for every POP in one pass. On a network of 190 POPs the intern's shift held the page for about a tenth of a second on a computer and half a second on a phone; it now takes a few thousandths, and a whole day holds the page a quarter as long. The game plays exactly as before.
+- At ×8 a big network's autosave no longer holds the page: the game is packed, turned into text and compressed in the background, and less of each day's routing has to travel back to the page. The game plays exactly as before.
+- While nothing moves on the map but its animations (packets, waves, clouds), it is drawn 30 times a second instead of at the screen's full rate, half the work on most screens and a quarter on 120 Hz phones. Moving the map, pointing at something or anything changing on the network still gets every frame, and the animations keep their speed.
 - Linking to a coast where no subsea cable lands yet, like Iqaluit, now says how you can get there (overland, or with a cable of your own) instead of listing no cities to hop through (#321).
 - A delay while your own subsea cable is being laid now holds the lay ship where it is, instead of sending it back to port and starting the laying over. The cable already on the seabed stays there, the build simply finishes later, and there is nothing to pay twice (#322).
-- While nothing moves on the map but its animations (packets, waves, clouds), it is drawn 30 times a second instead of at the screen's full rate, half the work on most screens and a quarter on 120 Hz phones. Moving the map, pointing at something or anything changing on the network still gets every frame, and the animations keep their speed.
 - A paused game no longer rewrites its save every 5 seconds when nothing has changed. On a big network each of those writes held the page for 20 to 30 milliseconds.
-- At ×8 a big network's autosave no longer holds the page: the game is packed, turned into text and compressed in the background, and less of each day's routing has to travel back to the page. The game plays exactly as before.
-- Big networks no longer freeze for a moment at every new game day, above all with a NOC intern on duty. The intern now plans cache boxes, router ports and PNIs for every POP in one pass. On a network of 190 POPs the intern's shift held the page for about a tenth of a second on a computer and half a second on a phone; it now takes a few thousandths, and a whole day holds the page a quarter as long. The game plays exactly as before.
 - A low-latency boutique with a lot of its own fiber no longer stalls every day while it times its finance routes. On a big fiber network that check held the page for about a third of a second and now takes a few hundredths; checking customers who want a path without subsea or under a latency limit got quicker too. The game plays exactly as before.
 - The NOC intern no longer holds a big network for more than half a second each time it weighs taking out a spare wave. Before it decides, it checks every customer promised diverse paths, no subsea or a latency limit, and on a network of 390 POPs that check now takes a few hundredths of a second. Spotting new sovereign cloud and trading offers is about ten times quicker too, and the game plays exactly as before.
-- Routing a big network's day takes about half the work, with exactly the same results: on a network of 390 POPs with Auto-TE, a day's routing went from about 0.7 to 0.3 seconds on a computer.
-- You can now move a customer to another path between the same two POPs, with the most diverse options listed first. Waves and leased fiber pairs move to another fiber with room for them, leaving alone what you keep back for your own traffic, and circuits can be pinned to a path of your choice, falling back to normal routing while a link on it is down.
 
 ## [3.2.0] — 2026-11-07
 
