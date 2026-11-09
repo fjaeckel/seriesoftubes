@@ -66,7 +66,8 @@ test('a link’s card: sizes first, then what it carries, then its routing', () 
 test('nothing on a phone scrolls by design: the bar and the card’s body have no scroll of their own', () => {
   const { ev, errors } = load();
   const rules = JSON.parse(ev(`JSON.stringify([...document.styleSheets].flatMap(s=>[...s.cssRules]).filter(r=>r.media&&/max-width: ?760px/.test(r.media.mediaText))
-    .flatMap(m=>[...m.cssRules]).map(r=>({sel:r.selectorText||'',ov:r.style.getPropertyValue('overflow')+r.style.getPropertyValue('overflow-y'),mh:r.style.getPropertyValue('max-height')})))`));
+    .flatMap(m=>[...m.cssRules]).map(r=>({sel:r.selectorText||'',ov:r.style.getPropertyValue('overflow-y')||r.style.getPropertyValue('overflow'),mh:r.style.getPropertyValue('max-height')})))`));
+  // (jsdom 31 expands the overflow shorthand into overflow-y too; jsdom 30 kept only the shorthand.)
   const dock = rules.find((r) => r.sel === '#pzBox.dock');
   assert.ok(dock && dock.ov === 'visible' && dock.mh === 'none', 'the bar is as tall as it needs, never a scroll box');
   assert.ok(!rules.some((r) => /pzd-/.test(r.sel) && /auto|scroll/.test(r.ov)), 'no part of the bar or the cards scrolls');

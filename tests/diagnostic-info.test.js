@@ -103,7 +103,8 @@ test('on a 360 px phone the readout wraps inside the screen instead of running o
   try {
     ev('diagOn(true)');
     const st = ev('document.getElementById("diag").style.cssText');
-    assert.match(st, /max-width: calc\(100vw - 32px\)/);
+    // jsdom 31 serializes calc() with its terms sorted (calc(-32px + 100vw)); a browser keeps them as written.
+    assert.match(st, /max-width: calc\((100vw - 32px|-32px \+ 100vw)\)/);
     assert.match(st, /white-space: pre-wrap/);
     assert.match(st, /pointer-events: none/, 'it never takes a tap meant for the map');
   } finally { h.done(); }
