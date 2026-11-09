@@ -8,8 +8,13 @@ const trenchOf=l=>l.kind==='vxc'?'fab:'+l.prov:(l.trench||l.id);
 const pathCity=c=>CITY[c].name,pathStr=p=>p.map(pathCity).join(' → ');
 const samePair=(l,a,b)=>(l.a===a&&l.b===b)||(l.a===b&&l.b===a);
 const fibLab=l=>tr('customer_paths.fiber_label',{name:l.cname?esc(l.cname):capName(l),km:Math.round(l.km).toLocaleString()});
-// Why this fiber cannot take this customer, in the same terms as the offers for it.
-function fiberNo(b,l){if(b.type==='wwave'){const n=b.slots||1,free=freeCh(l);return free>=n?'':tr('customer_paths.not_enough_free_channels',{free:Math.max(0,free),n});}
+// Why this fiber cannot take this customer, in the same terms as the market that sold it: waves only where the broker
+// could sell them, after the share kept back for your own traffic.
+function fiberNo(b,l){const n=b.slots||1,hold=S.cm.hold;
+  if(b.type==='wwave'){const free=freeCh(l),spare=cmSpare(l,'spec');return spare>=n?'':free<n?tr('customer_paths.not_enough_free_channels',{free:Math.max(0,free),n}):tr('customer_paths.not_enough_spare_channels',{free:spare,n,hold});}
+  // A managed wave rides one channel of your lit capacity, so it needs an optic that big and that many Gbps spare.
+  if(b.type==='mwave'){const g=b.g||100,free=Math.max(0,cmFreeG(l));if(cmOptG(l)<g)return tr('customer_paths.needs_a_g_channel',{g:fmtCap(g)});
+    return free>=n*g?'':tr('customer_paths.not_enough_spare_capacity',{free:fmtCap(free),g:fmtCap(n*g),hold});}
   if(!l.own)return tr('customer_paths.only_your_own_fiber_rents_pairs');
   if(b.type==='dfpair')return pairFree(l)?'':tr('customer_paths.its_spare_pairs_are_taken');
   return S.biz.some(x=>x!==b&&x.link===l.id&&['pairs','capfib','dfpair'].includes(x.type))?tr('customer_paths.its_spare_pairs_are_taken'):'';}
@@ -28,7 +33,10 @@ function pathWalk(G,a,b,cost){const dist={[a]:0},prev={},done=new Set();for(;;){
     for(const e of G.N[u]||[]){const v=e.a===u?e.b:e.a,nd=ud+cost(e);if(nd<(dist[v]??Infinity)){dist[v]=nd;prev[v]=u;}}}
   if(dist[b]===undefined)return null;const p=[b];while(p[0]!==a)p.unshift(prev[p[0]]);return p;}
 const pathHops=(G,p)=>{const o=[];for(let i=1;i<p.length;i++){const e=G.E[hopKey(p[i-1],p[i])];if(!e)return null;o.push(e);}return o;};
-const pinUp=b=>!!pathHops(pathEdges(),b.pin);
+// The panels ask for every pinned customer: one graph per routing (a new R), not one per customer.
+let PIN_G=null;
+const pinG=()=>{const c=PIN_G;if(!c||c.R!==R||c.S!==S||c.d!==S.day||c.n!==S.links.length)PIN_G={R,S,d:S.day,n:S.links.length,G:pathEdges()};return PIN_G.G;};
+const pinUp=b=>!!pathHops(pinG(),b.pin);
 // Where the circuit runs today. Scenic circuits remember it; the others take the shortest path of their kind.
 function pathNow(b,G){if(b.pin&&pathHops(G,b.pin))return b.pin;
   const r=R.l2route&&R.l2route[b.id+'>'+b.city+'>'+b.city2];if(r&&r[0]){const p=r[0].ns.slice();if(p[0]!==b.city)p.reverse();if(pathHops(G,p))return p;}

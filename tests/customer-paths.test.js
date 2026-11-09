@@ -55,6 +55,66 @@ test('a carrier already renting waves on the new fiber ends up with one contract
   assert.deepEqual(errors, []);
 });
 
+test('a wave leaves alone the channels kept back for your own traffic', (t) => {
+  // 47 channels lit of 64: 17 free, but a quarter of the fiber is kept back, so 1 spare.
+  const { ev, errors } = game(t, wave + "S.cm.hold=25;S.links.find(l=>l.id==='c').ch=Array(47).fill('zr4');");
+  assert.match(ev("fiberTargets(S.biz[0]).find(x=>x.l.id==='c').no"), /1 left after the 25% you keep back.*needs 2/);
+  ev("ACT.pathMove({id:'w',link:'c'})");
+  assert.equal(biz(ev, 'w', 'link'), 'a', 'refused');
+  ev("S.cm.hold=0;ACT.pathMove({id:'w',link:'c'})");
+  assert.equal(biz(ev, 'w', 'link'), 'c', 'nothing kept back: it fits');
+  assert.deepEqual(errors, []);
+});
+
+// Four managed 400G waves, 1.6T in all, carved out of fiber a's lit capacity.
+const mwave = (id = 'm', link = 'a', g = 400, slots = 4) => `S.biz.push({id:'${id}',type:'mwave',g:${g},name:'Photon Express',city:'nyc',city2:'ash',link:'${link}',slots:${slots},bw:1,rate:5000,reqs:[],mood:80,since:0,day:0,route:'normal',what:'x'});`;
+
+test('managed waves need that much spare lit capacity on the new fiber, on leased fiber too, and their capacity moves with them', (t) => {
+  // c has 1.6T lit, but a quarter is kept back: 1.2T spare, room for three of the four. b has 3.2T: 2.4T spare.
+  const { ev, errors } = game(t, mwave() + "S.cm.hold=25;S.links.find(l=>l.id==='c').ch=Array(4).fill('zr4');");
+  const no = () => JSON.parse(ev("JSON.stringify(Object.fromEntries(fiberTargets(S.biz[0]).map(x=>[x.l.id,x.no])))"));
+  assert.match(no().c, /Not enough spare capacity/);
+  assert.equal(no().b, '');
+  ev("ACT.pathMove({id:'m',link:'c'})");
+  assert.equal(biz(ev, 'm', 'link'), 'a', '1.6T does not fit in 1.2T');
+  // A leased fiber is lit capacity like any other: the reason is the room, not whose glass it is.
+  ev("S.links.find(l=>l.id==='b').own=false;S.links.find(l=>l.id==='c').own=false;");
+  assert.equal(no().b, '');
+  assert.doesNotMatch(no().c, /own fiber/);
+  assert.match(no().c, /spare capacity/);
+  // What the fiber gives your own traffic follows the waves, at once.
+  assert.equal(ev("mwG(S.links.find(l=>l.id==='a'))"), 1600);
+  ev("ACT.pathMove({id:'m',link:'b'})");
+  assert.equal(biz(ev, 'm', 'link'), 'b');
+  assert.equal(ev("mwG(S.links.find(l=>l.id==='a'))"), 0);
+  assert.equal(ev("mwG(S.links.find(l=>l.id==='b'))"), 1600);
+  assert.equal(ev("dfCap0(S.links.find(l=>l.id==='a'))"), 3200);
+  assert.equal(ev("dfCap0(S.links.find(l=>l.id==='b'))"), 1600);
+  assert.match(biz(ev, 'm', 'what'), /4/);
+  assert.deepEqual(errors, []);
+});
+
+test('a managed wave needs a channel as big as it is; a carrier renting the same size there gets one contract, another size does not', (t) => {
+  { const { ev, errors } = game(t, mwave('m', 'a', 800, 1) + "S.cm.hold=0;");
+    assert.match(ev("fiberTargets(S.biz[0]).find(x=>x.l.id==='c').no"), /Needs a channel lit at/, '400G optics only');
+    ev("S.links.find(l=>l.id==='c').ch=Array(8).fill('zr8');");
+    assert.equal(ev("fiberTargets(S.biz[0]).find(x=>x.l.id==='c').no"), '');
+    assert.deepEqual(errors, []); }
+  { const { ev, errors } = game(t, mwave() + mwave('m2', 'b', 100, 2) + "S.cm.hold=0;");
+    ev("ACT.pathMove({id:'m',link:'b'})");
+    assert.equal(ev("S.biz.filter(b=>b.type==='mwave'&&b.link==='b').length"), 2, '400G and 100G waves stay apart');
+    assert.equal(biz(ev, 'm2', 'slots'), 2);
+    assert.equal(ev("mwG(S.links.find(l=>l.id==='b'))"), 1800);
+    assert.deepEqual(errors, []); }
+  { const { ev, errors } = game(t, mwave() + mwave('m2', 'b', 400, 2) + "S.cm.hold=0;");
+    ev("ACT.pathMove({id:'m',link:'b'})");
+    assert.equal(ev("S.biz.filter(b=>b.type==='mwave').length"), 1);
+    assert.equal(biz(ev, 'm2', 'slots'), 6); assert.equal(biz(ev, 'm2', 'rate'), 10000); assert.equal(biz(ev, 'm2', 'g'), 400);
+    assert.match(biz(ev, 'm2', 'what'), /6/);
+    assert.equal(ev("mwG(S.links.find(l=>l.id==='b'))"), 2400);
+    assert.deepEqual(errors, []); }
+});
+
 test('fiber pairs follow the same rules as signing them: your own fiber, and pairs still free', (t) => {
   for (const type of ['dfpair', 'pairs', 'capfib']) {
     const { ev, errors } = game(t, pair(type) + pair('pairs', 'q', 'b') + "S.links.find(l=>l.id==='e').x=1;");
