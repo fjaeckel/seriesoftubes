@@ -40,10 +40,10 @@ function cityPanel(c){
     for(const b of bz)h+=`<div class="row"><div class="grow"><div class="nm">${esc(b.name)}</div><div class="meta">${esc(BIZ_T[b.type].l)}${b.city2?` ${CITY[b.city].name} ⇄ ${CITY[b.city2].name}`:''} · ${bTerms(b)}${clTermTxt(b)?' · '+clTermTxt(b):''}${BIZ_T[b.type].l2?` · ${b.sites?tr('city_panel.carrying_g_per_site',{g:fmtG(R.l2[b.id]||0)}):tr('city_panel.carrying_g',{g:fmtG(R.l2[b.id]||0)})}`:''}${BIZ_T[b.type].fiber&&!fiberOk(b)?' · <b style="color:var(--bad)">'+tr('city_panel.fiber_is_down')+'</b>':''}${BIZ_T[b.type].event&&eventLive(b)?` · <b>${tr('city_panel.serving_v',{v:pct(sfOf(R,b.city))})}</b>`:''}${b.type==='scrub'&&!hasScrub()?' · <b style="color:var(--bad)">'+tr('common.needs_a_scrubbing_center')+'</b>':''}${S.day-(b.since||0)<15?` · <b>${tr('common.provisioning_n_d_grace',{n:15-(S.day-(b.since||0))})}</b>`:''}</div>${bRisk(b)}${reqList(b)}${BIZ_T[b.type].l2?routeCtl(b):''}${pathCtl(b)}<div class="bar ${b.mood<30?'bad':b.mood<65?'warn':''}"><i style="width:${b.mood}%"></i></div><div class="meta">${tr('common.happiness_p',{p:Math.round(b.mood)})}</div></div>${btn(UI.confirm===b.id?tr('common.really_drop'):tr('common.drop'),'dropBiz',{id:b.id},'ghost sm')}</div>`;
     h+=`</section>`+offersHere(c);
   }else if(UI.tab==='up'){
-    h+=portNote(c)+latNote(c);
+    h+=netFilterHtml()+portNote(c)+latNote(c);
     h+=`<section><h3>${tr('common.ip_transit')}</h3><p class="lead">${tr('city_panel.pay_a_bigger_network_per_gbps')}</p>`;
-    const prov=NETS.filter(n=>sellsAt(n,c)).sort((a,b)=>a.price-b.price);
-    if(!prov.length)h+=`<p class="empty">${tr('city_panel.nobody_sells_transit_here_haul_your')}</p>`;
+    const prov0=NETS.filter(n=>sellsAt(n,c)).sort((a,b)=>a.price-b.price),prov=prov0.filter(n=>netKeep(n,S.transit.some(x=>x.city===c&&x.net===n.id)));
+    if(!prov0.length)h+=`<p class="empty">${tr('city_panel.nobody_sells_transit_here_haul_your')}</p>`;else if(!prov.length)h+=netNone();
     for(const n of prov){const t=S.transit.find(x=>x.city===c&&x.net===n.id);const pr=transitPerG(n,c,premOnlyAt(n,c)||!!(t&&premOn(t)))*S.priceMul;
       h+=`<div class="row">${logo(n)}<div class="grow"><div class="nm">${esc(n.name)} <span class="tag ${n.type}">${TYPE_L[n.type]}</span></div><div class="meta">${tr('city_panel.price_per_gbps_month_billed_on',{price:pr.toFixed(2)})}</div>${premOnlyAt(n,c)&&!t?`<div class="meta">${tr('city_panel.only_the_cn_too_premium_crossing')}</div>`:''}`;
       if(t){const u=R.useT[t.id]||0,cap=lagCap(PORT[t.tier].g,t.n),tdown=t.down>S.day;
@@ -53,12 +53,12 @@ function cityPanel(c){
       h+=`</div></div>`;}
     h+=`</section>`;
   }else if(UI.tab==='peer'){
-    h+=portNote(c);
+    h+=netFilterHtml()+portNote(c);
     h+=ixSection(c);
     h+=`<section><h3>${tr('city_panel.private_interconnects_pni')}</h3><p class="lead">${tr('city_panel.a_dedicated_cross_connect_to_one',{dc:esc(siteName(c,'a'))})}</p>`;
     h+=pniListHtml(c);
     h+=`</section><section><h3>${tr('common.embedded_caches')}</h3><p class="lead">${tr('city_panel.cdns_put_free_cache_servers_inside')}</p>`;
-    for(const n of NETS.filter(n=>n.cache)){const have=S.caches.filter(x=>x.city===c&&x.net===n.id),dem=R.demTo[n.id]||0,ok=dem>=n.cache.min;
+    for(const n of NETS.filter(n=>n.cache&&netKeep(n,S.caches.some(x=>x.city===c&&x.net===n.id)))){const have=S.caches.filter(x=>x.city===c&&x.net===n.id),dem=R.demTo[n.id]||0,ok=dem>=n.cache.min;
       h+=`<div class="row">${logo(n)}<div class="grow"><div class="nm">${esc(n.cache.name)}</div><div class="meta">${tr('common.from_net',{net:esc(n.name)})} · ${have.length?`${trn('common.n_box',have.length)} · ${tr('city_panel.serving_v',{v:fmtG(have.reduce((a,x)=>a+(R.useCache[x.id]||0),0))})}`:tr('city_panel.100g_per_box')}</div>${!ok?`<div class="why">${tr('city_panel.needs_min_gbps_of_traffic_to',{min:n.cache.min,net:esc(n.name),now:dem.toFixed(1)})}</div>`:''}</div>
       ${have.length?btn(tr('common.remove'),'rmCache',{id:(have.find(x=>x.site==='b')||have[0]).id},'ghost sm'):''}${btn(have.length?tr('common.box'):tr('common.request'),'cache',{city:c,net:n.id},'sm',!ok)}</div>${S.pops[c].site2&&have.length?(()=>{const nb=have.filter(x=>x.site==='b').length,na=have.length-nb;return `<div class="seg site"><span class="meta">${tr('city_panel.boxes_a_in_a_b_in',{a:na,b:nb})}</span>${na?btn(tr('city_panel.move_one_to_b'),'cacheSite',{city:c,net:n.id,s:'b'},'ghost sm'):''}${nb?btn(tr('city_panel.move_one_to_a'),'cacheSite',{city:c,net:n.id,s:'a'},'ghost sm'):''}</div>`;})():''}`;}
     h+=`</section>`;
@@ -75,7 +75,7 @@ function cityPanel(c){
     ${nl>=nc*0.95?`<p class="why">${tr('city_panel.maxed_out_traffic_here_is_being')}</p>`:''}
     <div class="btns">${N?(!techOk('rg',Ni,N.lvl)?demoBtn('rg',Ni,N.lvl,tr('city_panel.model_level_lv',{model:esc(N.n),lv:N.lvl}),'pink'):btn(tr('city_panel.upgrade_to_model_cost_mo_mo',{model:esc(N.n),cost:fmt$(swapCost(c,Ni)),mo:fmt$(N.mo*rt)}),'upRouter',{city:c,g:Ni},'pink',S.cash<swapCost(c,Ni)||p.rupDay===S.day)):''}${btn(UI.models?tr('city_panel.hide_other_models'):tr('common.other_models'),'models',{},'ghost sm')}${rt<RMAX?btn(tr('city_panel.add_router_cost_mo_mo',{cost:fmt$(routerCost(g,rt)),mo:fmt$(routerMo(g)+(rt>=RCAGE?CAGE_MO:0))}),'addRouter',{city:c},'',S.cash<routerCost(g,rt)):''}${rt>1?btn(tr('common.remove_one'),'rmRouter',{city:c},'ghost sm'):''}</div>
     ${rt>=RCAGE&&rt<RMAX?`<p class="note">${tr('city_panel.the_standard_cage_holds_n_routers',{n:RCAGE,mo:fmt$(CAGE_MO)})}</p>`:''}${rt>=RMAX?`<p class="note">${tr('city_panel.this_pop_has_the_most_routers',{n:RMAX})}</p>`:''}${rt>RCAGE?`<div class="kv"><span>${tr('city_panel.cage_extension')}</span><b>${fmt$(cageMo(rt))}/mo</b></div>`:''}
-    ${popStdHtml(c)}
+    ${popStdHtml(c)}${popTierHtml(c)}
     ${UI.models?routerModels(c):''}
     ${N||UI.models?`<p class="note">${(p.rgen||0)>0?tr('city_panel.prices_include_p_back_for_the',{p:fmt$(tradeIn(p.rgen||0,rt))})+' ':''}${p.rupDay===S.day?tr('city_panel.new_routers_went_in_today_the')+' ':''}${rt>1?tr('city_panel.rolling_upgrade_one_router_at_a'):tr('city_panel.with_one_router_the_upgrade_needs')}</p>`:''}
     <p class="note">${rt>=2?tr('city_panel.a_crash_here_only_costs_one'):tr('city_panel.one_router_is_a_single_point')}</p></section>

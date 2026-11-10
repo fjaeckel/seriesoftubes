@@ -38,6 +38,8 @@ const API_DOMAINS={
   opsKey:{table:'OPSK',kind:'key'},
   opsPopKind:{kind:'enum',values:()=>OPS_POP.slice()},
   opsTplKey:{kind:'enum',values:()=>OPS_TPL.slice()},
+  // The three POP standards (#315).
+  popTier:{kind:'enum',values:()=>POP_TIERS.slice()},
   // The specialist's offers: a seat on a consortium cable, the charter, a vendor demo.
   seatPairs:{kind:'enum',values:()=>SEAT_N.slice()},
   callAmount:{kind:'enum',values:()=>CALL_AMTS.slice()},

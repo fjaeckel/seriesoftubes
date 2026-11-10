@@ -19,7 +19,7 @@ function apiValidate(spec,args){
 // maps, and the paths a command declares in watch. R is left out: it is rebuilt after every action.
 const API_FP_LEN=['links','transit','pni','caches','biz','offers','nni','loans','loanOffers','inc','scrubs'];
 const API_FP_KEYS=['pops','ixp','peers','myIx','done','ach','merged','confReg'];
-const API_FP_JSON=['name','pairMet','rs','ixn','ixSite','ixPref','spares','te','cnLic','hw','scrubMode','ppol','ops','core','ddosAuto','popStd','demo','charter','monkey','seatOff','pz','ar','dk','ev'];
+const API_FP_JSON=['name','pairMet','rs','ixn','ixSite','ixPref','spares','te','cnLic','hw','scrubMode','ppol','ops','core','ddosAuto','popStd','popTiers','demo','charter','monkey','seatOff','pz','ar','dk','ev'];
 function apiFp(watch,args){
   if(!S)return null;
   const f={cash:S.cash,day:S.day,lvl:S.lvl||1,won:!!S.won,lost:!!S.lost};
