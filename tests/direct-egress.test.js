@@ -27,7 +27,8 @@ function twoPops() {
 }
 
 test('at its own POP a carrier\'s port takes the traffic bound for that carrier, not an even split', () => {
-  const { ev, lvl, tly, errors } = newYork();
+  // Both ports with room: New York's traffic to the US eyeballs in Level Tree's cone alone would fill its port (#48).
+  const { ev, lvl, tly, errors } = newYork(1, 150);
   assert.ok(via(ev, lvl, 'lvl') > 1, 'Level Tree traffic goes out of the Level Tree port');
   assert.equal(via(ev, tly, 'lvl'), 0, 'and none of it out of Tell-Ya');
   assert.ok(via(ev, tly, 'tly') > 1 && via(ev, lvl, 'tly') === 0, 'the same for Tell-Ya');

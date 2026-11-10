@@ -24,3 +24,7 @@ function locSh(T,c){let m=LOC_SH.get(T);if(!m)LOC_SH.set(T,m=new Map());let a=m.
   for(let j=0;j<NN;j++){const s=T[NETS[j].id]||0;if(!s)continue;const h=L[j];if(!h){a[j]=s;continue;}const v=s*locW(h,C);g+=s;gw+=v;a[j]=v;}
   if(gw>0){const f=g/gw;for(let j=0;j<NN;j++)if(L[j]&&a[j])a[j]*=f;}
   m.set(c,a);return a;}
+/* Puzzles, Architect runs and scenarios (the weekly one too) are built and scored on the plain world shares: their
+   reference builds and committed pars were made with them. There a city's split stays the table's. */
+const LOC_PLAIN=new Map(),locOn=()=>!(S&&(S.mode==='puzzle'||S.pz||S.ar||S.scn));
+function cityShares(T,c){if(locOn())return locSh(T,c);let a=LOC_PLAIN.get(T);if(!a)LOC_PLAIN.set(T,a=Float64Array.from(NETS,n=>T[n.id]||0));return a;}

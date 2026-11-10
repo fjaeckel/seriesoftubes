@@ -189,7 +189,9 @@ test('a customer dropped while a sales trial routes: the trial runs again on the
   p.ev(TICK_ERR);
   p.ev("window.__ot=0;const ot=offerTrial;offerTrial=(...a)=>{__ot++;return ot(...a);};");
   let found = false;
-  for (let d = 0; d < 20 && !found; d++) {
+  // Played until such a trial comes: on the big save that is day 51 (where each city's traffic goes decides which
+  // offers pass, #48).
+  for (let d = 0; d < 60 && !found; d++) {
     p.ev('rwDay()');
     for (let k = 0; k < 400 && p.ev('!!RW.job'); k++) {
       if (p.ev('__later.length')) { p.ev('__later.shift()()'); continue; }
