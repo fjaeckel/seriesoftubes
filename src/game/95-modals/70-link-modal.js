@@ -15,6 +15,7 @@ function openLinkModal(a,b){
     openModal(head+`<p class="lead" style="margin-top:10px">${dry?tr('link_modal.no_subsea_cable_lands_in_city',{city:CITY[dry].name,near:CITY[nearLanding(dry)].name}):bare?(road?tr('link_modal.no_subsea_cable_lands_in_city_land',{city:CITY[bare].name}):tr('link_modal.no_subsea_cable_lands_in_city_own',{city:CITY[bare].name})):tr('link_modal.no_subsea_cable_lands_in_both',{a:CITY[a].name,b:CITY[b].name,list:fr.join(', ')})}</p>${(cabOpen()?!ownCabWhy(a,b):bare)?ownCabTeaser(a,b):''}`);return;}
   if(isSub(a,b)&&S.ev.landban&&S.ev.landban.until>S.day&&[a,b].includes(S.ev.landban.city)){openModal(head+`<p class="lead" style="margin-top:10px">${tr('link_modal.the_landing_permit_dispute_in_city',{city:CITY[S.ev.landban.city].name,n:S.ev.landban.until-S.day})}</p>`);return;}
   if(uaePair(a,b)||andesPair(a,b)||rainPair(a,b)||borderPair(a,b))route+=`<p class="note" style="margin-top:8px">${landWhy(a,b)}</p>`;
+  if(S.ev.gulf>S.day&&gulfPair(a,b))route+=`<p class="why" style="margin-top:8px">${tr('link_modal.the_borders_around_qatar_are_closed')} ${tr('link_panels.back_in_n_days',{n:S.ev.gulf-S.day})}</p>`;
   route+=`<p class="note" style="margin-top:6px">📈 ${esc(marketNote(a,b,sub))}</p>`;
   const wr=waveRoute(a,b,mult,border);
   openModal(`${head}

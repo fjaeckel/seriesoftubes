@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- A link that a closed border has taken down, like Doha to Dubai or Abu Dhabi while the neighbours have fallen out, now says so in its panel, with the days until it comes back, instead of showing nothing wrong. Leasing a new wave or fiber pair across that border during the spat warns you first that it will stay dark (#329).
+
 ## [3.3.0] — 2026-11-09
 
 - You can now move a customer to another path between the same two POPs, with the most diverse options listed first. Waves and leased fiber pairs move to another fiber with room for them, leaving alone what you keep back for your own traffic, and circuits can be pinned to a path of your choice, falling back to normal routing while a link on it is down.
