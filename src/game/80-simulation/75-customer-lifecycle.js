@@ -59,7 +59,8 @@ function clGone(b,why){S.biz=S.biz.filter(x=>x!==b);clNote('lost',why);}
 const clWhere=b=>bCities(b).map(c=>CITY[c].name).join(' ⇄ ');
 
 // Growing: the next size up their type sells, or twice the bandwidth past the top one. Fiber grows by renewing.
-function clGrow(b){const T=BIZ_T[b.type];if(T.fiber)return false;const up=(T.opts||[]).find(x=>x>b.bw);b.bw=up||b.bw*2;return true;}
+// A type with a most (max) never grows past it (#137).
+function clGrow(b){const T=BIZ_T[b.type];if(T.fiber||(T.max&&b.bw>=T.max))return false;const up=(T.opts||[]).find(x=>x>b.bw);b.bw=T.max?Math.min(T.max,up||b.bw*2):up||b.bw*2;return true;}
 // Leaving, or one of the not-your-fault turns that keeps them. Returns what the log says.
 function clLeave(b,d,out){const T=BIZ_T[b.type],v={name:esc(b.name),city:esc(clWhere(b))};
   if(b.mood<50){clGone(b,'sad');out.lost.push(tr('lifecycle.left_unhappy',v));return;}

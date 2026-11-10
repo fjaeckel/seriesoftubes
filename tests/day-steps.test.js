@@ -189,7 +189,8 @@ test('a customer dropped while a sales trial routes: the trial runs again on the
   p.ev(TICK_ERR);
   p.ev("window.__ot=0;const ot=offerTrial;offerTrial=(...a)=>{__ot++;return ot(...a);};");
   let found = false;
-  for (let d = 0; d < 20 && !found; d++) {
+  // Which day such a trial comes depends on the offers the seeded game draws (day 46 since latency contracts joined them).
+  for (let d = 0; d < 60 && !found; d++) {
     p.ev('rwDay()');
     for (let k = 0; k < 400 && p.ev('!!RW.job'); k++) {
       if (p.ev('__later.length')) { p.ev('__later.shift()()'); continue; }

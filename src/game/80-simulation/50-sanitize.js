@@ -115,7 +115,7 @@ function sanitize(s){
      three Normal presets, unchanged (its validated mods kept). So an edited or imported save cannot stop the clock or print money. */
   {const r=s.rules&&typeof s.rules==='object'&&!Array.isArray(s.rules)?s.rules:{};
    const m={mods:r.mods};s.rules=s.scn&&typeof s.scn==='object'?makeRules('oncall',m):s.mode==='sandbox'?makeRules('sandbox',{...m,chaos:r.chaos}):makeRules(NORMAL_PRESETS.includes(r.preset)?r.preset:'oncall',m);}
-  specSanitize(s);
+  specSanitize(s);lcSanitize(s);
   cmFix(s);
   pieSanitize(s);pieIncFix(s);volFix(s);
   if(s.te){if(typeof s.te!=='object')s.te=null;else{s.te.on=!!s.te.on;s.te.script=typeof s.te.script==='string'?s.te.script.slice(0,4000):'';}}

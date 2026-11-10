@@ -69,10 +69,10 @@ function* dayPost(d){
       (a.sla||(a.sla=[])).push(b.id);b.slaFor=a.start;S.cash-=SLA_PEN;b.mood=Math.max(0,b.mood-18);S.stats.sla=(S.stats.sla||0)+1;
       toast(tr('day_tick.sla_breach_name_the_attack_on',{name:esc(b.name),city:CITY[a.city].name,pen:fmt$(SLA_PEN)}),'bad');sfx('err');}}
   // businesses mood
-  const ids=linkIds(),frr=(coreFrr()&&S.links.some(l=>l.cut)?.5:1)*(rule('moods')==='patient'?.5:1);const bhT=new Set(ddosAll().filter(a=>a.bh).map(a=>a.tgt));let nb=0;TERR={S,gen:RW.gen,m:null};try{for(const b of S.biz.slice()){if(++nb%256===0)yield DAY_REST;if(eventTick(b,d)||capPendTick(b,d))continue;b.pm=b.mood;if(bhT.has(b.id))continue;const sf=bizSf(b,ids),reachOk=BIZ_T[b.type].l2||BIZ_T[b.type].fiber||R.reach>0.99||scnRule('local'),scrubOk=b.type!=='scrub'||(hasScrub()&&!scrubFar(b.city)),divOk=reqOk(b);
+  const ids=linkIds(),frr=(coreFrr()&&S.links.some(l=>l.cut)?.5:1)*(rule('moods')==='patient'?.5:1);const bhT=new Set(ddosAll().filter(a=>a.bh).map(a=>a.tgt));let nb=0;TERR={S,gen:RW.gen,m:null};try{for(const b of S.biz.slice()){if(++nb%256===0)yield DAY_REST;if(eventTick(b,d)||capPendTick(b,d))continue;b.pm=b.mood;if(bhT.has(b.id))continue;const sf=bizSf(b,ids),reachOk=BIZ_T[b.type].l2||BIZ_T[b.type].fiber||R.reach>0.99||scnRule('local'),scrubOk=b.type!=='scrub'||(hasScrub()&&!scrubFar(b.city)),divOk=reqOk(b),lcX=lcBreach(b,d);
     if(sf>=0.95&&reachOk&&scrubOk&&divOk)b.mood=Math.min(100,b.mood+2);
     else if(S.day-(b.since||0)<15){}
-    else{const dm=frr*(Math.max(0,0.95-sf)*45+(!reachOk?3:0)+(!scrubOk?4:0)+(!divOk?3:0));b.mood-=BIZ_T[b.type].orbit?Math.min(dm,PIE_PATIENCE):dm;
+    else{const dm=frr*(Math.max(0,0.95-sf)*45+(!reachOk?3:0)+(!scrubOk?4:0)+(!divOk?3:0)+lcX);b.mood-=BIZ_T[b.type].orbit?Math.min(dm,PIE_PATIENCE):dm;
       // An orbit customer served in full but promised more (the shark's full sky) grumbles, and never cancels over it.
       if(BIZ_T[b.type].orbit&&sf>=0.95&&reachOk)b.mood=Math.max(b.mood,Math.min(b.pm,PIE_GRUMBLE));
       if(b.mood<=0){S.biz=S.biz.filter(x=>x!==b);toast(tr('day_tick.name_cancelled_too_many_outages_and',{name:esc(b.name),city:CITY[b.city].name}),'bad');sfx('err');}
@@ -134,7 +134,7 @@ function spawnOffer(){
   const bk=broker(),dfR=S.links.some(l=>l.kind==='df'&&l.ready<=S.day),dfO=S.links.some(l=>l.kind==='df'&&l.own&&l.ready<=S.day);
   if(dfR)types.push('wwave','wwave');if(dfO)types.push('dfpair');if(bk){if(dfR)types.push('wwave','wwave','wwave','wwave');if(dfO)types.push('dfpair','dfpair','dfpair');}if(lv>=3)types.push('gpu','gpu','onramp','onramp');if(lv>=4)types.push('ai','ai','hyper','hyper');
   if(lv>=3&&MEGA.some(m=>mine.includes(m.c)))types.push('ingest');if(lv>=4&&MEGA.some(m=>mine.includes(m.c)))types.push('aiwan','aiwan','mtrain');if((lv>=4||bk)&&dfO)types.push('pairs');
-  if(lv>=5)types.push('esport');if(lv>=6&&mine.length>=2)types.push('sov','sov');if(lv>=8)types.push('cgame','cgame');if(lv>=9)types.push('metav','metav');if(lv>=11&&MEGA.some(m=>mine.includes(m.c)))types.push('agi');if(lv>=13&&mine.length>=2)types.push('mars');
+  if(lv>=5)types.push('esport');if(lv>=6&&mine.length>=2)types.push('sov','sov');if(lv>=LC_LV&&mine.length>=2)types.push('lowlat','lowlat');if(lv>=8)types.push('cgame','cgame');if(lv>=9)types.push('metav','metav');if(lv>=11&&MEGA.some(m=>mine.includes(m.c)))types.push('agi');if(lv>=13&&mine.length>=2)types.push('mars');
   const br=mine.filter(c=>CITY[c].br);if(br.length)types.push('provedor','provedor','provedor');
   // Countries with thousands of ASNs (Brazil's provedores, US regionals) are full of small ISPs shopping for transit.
   const dense=mine.filter(c=>(CITY_PDB[c]||[])[2]>=2000);if(lv>=2&&dense.length)types.push('isp');
