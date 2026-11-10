@@ -23,6 +23,11 @@ function ixMembers(c){if(XIXM[c])return XIXM[c].members.slice();if(S.myIx[c])ret
 const IX_MEM={};
 // LAG: several identical ports bundled into one logical link. Flow hashing is never perfectly even, so a bundle carries ~95% of the sum.
 const LAG_MAX=8;
+/* A PNI bundle grows with the routers it lands on (#323): eight members per router at the POP, so a PNI fatter than eight
+   ports costs another router (its price and its port slots), up to 32 members, the most the big LAG implementations
+   bundle. Only PNIs: transit, exchange and fabric ports stay at LAG_MAX. */
+const PNI_LAG_RT=8,PNI_LAG_MAX=32;
+function pniLagMax(c){const p=S.pops[c];return Math.min(PNI_LAG_MAX,PNI_LAG_RT*((p&&p.routers)||1));}
 function lagCap(g,n){n=n||1;return g*n*(n>1?0.95:1);}
 function lagName(tier,n){return (n||1)>1?`${n}×${PORT[tier].n} LAG`:tr('common.port_port',{port:PORT[tier].n});}
 function ixCap(c){return ixLagF(c)*(S.myIx[c]?myFab(c).g*(myIxLive(c)?1:0):liveCap(PORT[S.ixp[c]].g,ixCity(c),(S.ixSite||{})[c],(S.ixn||{})[c])*(isRemote(c)?REMOTE_CAP:1));}

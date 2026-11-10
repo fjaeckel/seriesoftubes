@@ -197,7 +197,7 @@ const OPS_RUN={
    // Each port: cap() now, use today, lag() and ups() the jobs it could have as {cost, cap after, w for the log, go}, sig() to see a job took.
    for(const p of S.pni){const c=p.city,use=(R.usePni[p.id]||0)*opsAhead(),cap=()=>lagCap(pniG(p),p.n),n=()=>p.n||1;if(!pniOn(p)||p.up||!(use>0)||cap()>=N*use||!opsHere('ports',c))continue;
      L.push({city:c,at:c,use,u:use/cap(),cap,n,rt:(S.pops[c]||{}).routers||1,busy:()=>!!p.up,sig:()=>[p.tier,n(),!!p.g1,!!p.up].join(),
-       lag:()=>n()<LAG_MAX&&!msfNope(p.net,c)&&PORT_SLOT(p.tier)<=room(c)?{cost:1500+PORT[p.tier].setup/2,cap:lagCap(pniG(p),n()+1),w:'+1×'+pniPN(p),go:()=>ACT.lagP({id:p.id,d:1})}:null,
+       lag:()=>n()<pniLagMax(c)&&!msfNope(p.net,c)&&PORT_SLOT(p.tier)<=room(c)?{cost:1500+PORT[p.tier].setup/2,cap:lagCap(pniG(p),n()+1),w:'+1×'+pniPN(p),go:()=>ACT.lagP({id:p.id,d:1})}:null,
        ups:()=>{const out=[];for(let t=p.g1?0:p.tier+1;t<PORT.length&&portShown(t);t++){const q=pniQuote(c,p.net,t,resv(c));if(q&&!q.why)out.push({cost:q.cost,cap:lagCap(PORT[t].g,n()),w:pniPN(p)+'→'+PORT[t].n,go:()=>ACT.pni({city:c,net:p.net,tier:t})});}return out;}});}
    // Nominal capacity, not ixCap(): a LACP fault or one building down halves a LAG for a day or two, not worth a bigger port.
    for(const x in S.ixp){const c=ixCity(x),use=(R.useIx[x]||0)*opsAhead(),n=()=>(S.ixn||{})[x]||1,cap=()=>lagCap(PORT[S.ixp[x]].g,n())*(isRemote(x)?REMOTE_CAP:1),pop=S.pops[c];if(S.myIx[x]||!(use>0)||!(cap()>0)||cap()>=N*use||!opsHere('ports',c))continue;

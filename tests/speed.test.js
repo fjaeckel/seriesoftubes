@@ -367,7 +367,7 @@ test('Auto-TE routes around a full link exactly like the plain path', () => {
     S.transit=[];const t=NETS.find(n=>n.price&&n.pops.includes('ams')&&n.type==='t1');ACT.buyTransit({city:'ams',net:t.id,tier:3});
     S.ixp={};S.pni=[];S.caches=[];S.te={on:true,day:0};S.core={lv:2,run:2,legacy:true};S.nextFail=1e9;S.nextEvent=1e9;`);
   const sig = () => ev('JSON.stringify({served:R.served,teMoved:R.teMoved,egT:R.egT,load:S.links.map(l=>R.load[l.id]||0),node:R.nodeLoad,t:R.useT})');
-  for (const script of ['', 'spill at 70%']) {
+  for (const script of ['', 'spill at 70%', 'spill at 80% within 5 ms\nspill at 90% within 20 ms']) {
     ev(`S.te.script=${lit(script)}`);
     ev('compute()'); const fast = sig();
     ev('__plain()'); const ref = sig();

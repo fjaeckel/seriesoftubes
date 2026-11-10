@@ -21,7 +21,7 @@ function connUp(r){if(r.mine)return '';const nx=t=>PORT[t+1]&&portShown(t+1)?t+1
     if(n<LAG_MAX)h+=btn(tr('common.lag_member_cost_mo_mo',{cost:fmt$(PORT[t.tier].setup),mo:fmt$(PORT[t.tier].tmo)}),'lagT',{id:t.id,d:1},'sm',S.cash<PORT[t.tier].setup||!portOk(t.city,t.tier));}
   else if(r.k==='p'){const p=S.pni.find(x=>x.id===r.id);if(!p)return '';if(!pniOn(p)||p.up||msfNope(p.net,p.city))return `<span class="meta">${!pniOn(p)||p.up?tr('common.on_order'):''}</span>`;const n=p.n||1,i=p.g1?0:nx(p.tier),c=i>=0?(1500+PORT[i].setup/2)*n:0;
     if(i>=0){const a={port:PORT[i].n,cost:fmt$(c),mo:fmt$(PORT[i].pni*n)};h+=btn(n>1?tr('common.upgrade_all_to_port_cost_mo',a):tr('common.upgrade_port_cost_mo_mo',a),'pni',{city:p.city,net:p.net,tier:i},'sm',!portOk(p.city,i)||S.cash<c);}
-    if(n<LAG_MAX)h+=btn(tr('common.lag_member_cost_mo_mo',{cost:fmt$(1500+PORT[p.tier].setup/2),mo:fmt$(PORT[p.tier].pni)}),'lagP',{id:p.id,d:1},'sm',S.cash<1500+PORT[p.tier].setup/2);}
+    if(n<pniLagMax(p.city))h+=btn(tr('common.lag_member_cost_mo_mo',{cost:fmt$(1500+PORT[p.tier].setup/2),mo:fmt$(PORT[p.tier].pni)}),'lagP',{id:p.id,d:1},'sm',S.cash<1500+PORT[p.tier].setup/2);}
   else if(r.k==='ix'){const c=r.id,city=ixCity(c),n=(S.ixn||{})[c]||1,i=nx(S.ixp[c]);
     if(i>=0)h+=btn(tr('common.upgrade_port_price',{port:PORT[i].n,price:portMo(ixPortMo(c,i)*n)}),'buyIx',{city:c,tier:i},'sm',(!!S.pops[city]&&!portOk(city,i))||(!S.pops[city]&&i>1));
     if(S.pops[city]&&!S.myIx[c]&&n<LAG_MAX)h+=btn(tr('common.lag_member_price',{price:portMo(ixPortMo(c,S.ixp[c]))}),'lagIx',{city:c,d:1},'sm',S.cash<ixPortMo(c,S.ixp[c]));}

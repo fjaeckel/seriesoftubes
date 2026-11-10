@@ -222,6 +222,16 @@ test('N7: presence is real: PoPs are cities, exchange ports only where the netwo
   fail('N7', bad, 'an exchange port needs an exchange in that city and a PoP there');
 });
 
+test('N8: a POP\'s traffic to the networks that sell to homes goes mostly to those whose users live near it (#48)', () => {
+  // Every city keeps its total and content keeps its share: only the split between home networks follows geography.
+  const bad = J(`CITIES.filter(c=>{const a=locSh(NSH,c.id);let t=0;for(let j=0;j<NETS.length;j++){t+=a[j];if(!NETS[j].cc&&Math.abs(a[j]-(NSH[NETS[j].id]||0))>1e-12)return true;}return Math.abs(t-1)>1e-9;}).map(c=>c.id)`);
+  fail('N8', bad, 'locSh() must keep a city\'s total and every share of a network without home markets');
+  // At home a network's share is above its world share, far away below it.
+  const far = J(`NETS.filter(n=>n.cc&&NSH[n.id]>0).flatMap(n=>{const cc=[].concat(n.cc),home=CITIES.find(c=>cc.includes(c.cc)),away=CITIES.find(c=>!locNets()[LOC_NIX.get(n.id)].reg.has(c.reg));
+    const j=LOC_NIX.get(n.id),out=[];if(home&&!(locSh(NSH,home.id)[j]>NSH[n.id]))out.push(n.id+'@home');if(away&&!(locSh(NSH,away.id)[j]<NSH[n.id]))out.push(n.id+'@away');return out;})`);
+  fail('N8', far, 'LOC_HOME > LOC_REG > LOC_FAR, and home markets (cc) are where the users are');
+});
+
 // ---------- Modes and rules ----------
 
 test('M1: On-call is the classic game: the default rules, and what old saves load as', () => {
@@ -512,6 +522,18 @@ test('F9: a latency contract is late, capped, achievable, paid for its latency a
 // D1–D4: DDoS as networks see it (#242). tests/ddos-model.test.js plays each one in detail.
 const ddFra = (ev) => ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;S.lvl=4;S.nextFail=1e9;S.nextEvent=1e9;ACT.launchBB({city:'fra'});S.pops.fra.bb.d=40;ACT.buyTransit({city:'fra',net:'cog',tier:1});S.pops.fra.rgen=RG.findIndex(r=>r.fsN===8);S.biz.push({id:'g',type:'game',name:'G',city:'fra',bw:10,rate:1,mood:80,since:0,reqs:[]},{id:'d',type:'dia',name:'D',city:'fra',bw:5,rate:1,mood:80,since:0,reqs:[]});compute()");
 const ddHit = (ev, g) => ev(`S.ev.ddos={id:'x',city:'fra',tgt:'g',vec:'dns',gbps:${g},start:S.day,until:S.day+2,bh:false};compute()`);
+test('F10: growth goes sideways, plus one paid way up (#61, #323)', () => {
+  // A PNI bundles eight members per router at its POP, up to 32; every other LAG stays at eight.
+  assert.equal(ev('LAG_MAX'), 8, 'F10: transit, exchange and fabric LAGs hold eight members');
+  const lim = J("[1,2,3,4,5,16].map(r=>{const o=S.pops.fra;S.pops.fra={routers:r};const m=pniLagMax('fra');if(o)S.pops.fra=o;else delete S.pops.fra;return m;})");
+  assert.deepEqual(lim, [8, 16, 24, 32, 32, 32], 'F10: a PNI grows by eight members per router, up to 32');
+  // Giant AI circuits land at campuses spread over many metros, no city more than two.
+  const per = J("MEGA.reduce((m,x)=>(m[x.c]=(m[x.c]||0)+1,m),{})");
+  assert.ok(Object.keys(per).length >= 30, `F10: campuses in at least 30 metros (${Object.keys(per).length})`);
+  fail('F10', Object.entries(per).filter(([, n]) => n > 2).map(([c]) => c), 'no metro holds more than two campuses');
+  fail('F10', J("MEGA.filter(m=>!CITY[m.c]).map(m=>m.c)"), 'campuses sit in real cities');
+});
+
 test('D1: attack sizes come from the world, never from your network', () => {
   const g = load();
   ddFra(g.ev);

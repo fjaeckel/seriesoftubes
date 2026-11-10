@@ -96,7 +96,7 @@ test('saves: PNIs on order survive, and garbage is repaired', () => {
   setup(ev);
   ev("S.pni.push({id:'x',city:'fra',net:'dtk',tier:0,g1:true,ready:S.day+30,up:{tier:'9',n:99,ready:'x'}},{id:'y',city:'fra',net:'nfx',tier:1,g1:true})");
   ev('const o=JSON.parse(JSON.stringify(S));sanitize(o);window.__o=o');
-  assert.equal(ev("__o.pni.find(p=>p.id==='x').up.n"), ev('LAG_MAX'));
+  assert.equal(ev("__o.pni.find(p=>p.id==='x').up.n"), ev('PNI_LAG_MAX'));
   assert.equal(ev("__o.pni.find(p=>p.id==='x').g1"), true);
   assert.equal(ev("__o.pni.find(p=>p.id==='y').g1"), undefined, 'only Doitsche Telekomm does 1G');
   assert.deepEqual(errors, []);

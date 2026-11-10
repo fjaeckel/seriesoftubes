@@ -14,12 +14,13 @@ function utilityCacheMoves(city){if(!S||!S.pops[city])return [];const groups=new
 // list of networks, and Goggle is throttled to half in Russia. The world shares (NSH) would size boxes for networks the
 // city cannot even reach, and too few for the ones it uses most.
 const cityShTab=c=>cnCity(c)?NSH_CN:ruCity(c)?NSH_RU:CITY[c].kr&&S.krExit?NSH_KRX:NSH;
-const cityNetSh=(c,id)=>(cityShTab(c)[id]||0)*(id==='ggl'&&ruCity(c)?0.5:1);
-// A city's total share only depends on its table and on the Russian throttle, and the tables never change after load:
-// summed once per kind of city, not once per network asked about (that was cities × networks² every shift).
-const CSH_SUM=new Map();
-function cityShSum(c){const T=cityShTab(c),k=ruCity(c)?1:0;let m=CSH_SUM.get(T);if(!m)CSH_SUM.set(T,m=[null,null]);
-  if(m[k]===null){let t=0;for(const id in T)t+=cityNetSh(c,id);m[k]=t;}return m[k];}
+const cityNetSh=(c,id)=>{const j=LOC_NIX.get(id);return (j===undefined?0:cityShares(cityShTab(c),c)[j])*(id==='ggl'&&ruCity(c)?0.5:1);};
+// A city's total share only depends on its split (its table, localised for the city, #48) and on the Russian throttle,
+// and those never change after load: summed once per split, not once per network asked about (that was cities ×
+// networks² every shift).
+const CSH_SUM=new WeakMap();
+function cityShSum(c){const a=cityShares(cityShTab(c),c),k=ruCity(c)?1:0;let m=CSH_SUM.get(a);if(!m)CSH_SUM.set(a,m=[null,null]);
+  if(m[k]===null){const T=cityShTab(c);let t=0;for(const id in T)t+=cityNetSh(c,id);m[k]=t;}return m[k];}
 function cacheDem(c,id){const t=cityShSum(c);return t>0?((R.cityDem&&R.cityDem[c])||0)*cityNetSh(c,id)/t:0;}
 // One box per site first, if the city sends the network anything at all; then more boxes while that demand outgrows them
 // (100G each, #248).

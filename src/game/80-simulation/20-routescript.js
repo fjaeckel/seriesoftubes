@@ -9,6 +9,9 @@ cap transit cogentle at 20 gbps
 avoid transit for goggle
 # Move traffic before links are completely full
 spill at 85%
+# Hot links spill early onto detours that cost little latency
+# spill at 80% within 10 ms
+# spill at 90% within 20 ms
 # Local-pref: use the cheap upstream first, the pricey one last
 # prefer transit cogentle
 # avoid transit level tree
@@ -27,9 +30,11 @@ function teFind(word,list,label){const w=slug(word);if(!w)return {err:tr('routes
   const pre=list.filter(x=>w.length>=3&&slug(x.name).startsWith(w));if(pre.length===1)return {v:pre[0].id};
   const best=list.map(x=>({x,d:Math.min(lev(w,slug(x.name)),lev(w,x.id))})).sort((a,b)=>a.d-b.d)[0];
   return {err:tr('routescript.unknown_what_word',{what:label,word})+(best&&best.d<=3?tr('routescript.did_you_mean_name',{name:best.x.name}):'')};}
-function teParse(src){const out={spill:null,cap:{},net:{},up:{},prep:{},protect:false,drain:new Set(),avoid:new Set(),blackhole:false,errors:[],n:0};
+function teParse(src){const out={spill:null,tiers:[],cap:{},net:{},up:{},prep:{},protect:false,drain:new Set(),avoid:new Set(),blackhole:false,errors:[],n:0};
   const lines=String(src||'').split('\n').slice(0,60);
   lines.forEach((raw,i)=>{const line=raw.replace(/#.*/,'').trim().toLowerCase();if(!line)return;const L=i+1;let m;
+    // A spill tier (#136): from this load on, detours that add at most this many milliseconds.
+    if(m=line.match(/^spill\s+at\s+(\d{1,3})\s*%\s+within\s+(\d{1,3})\s*ms$/)){const v=+m[1],ms=+m[2];if(v<20||v>100)out.errors.push(tr('routescript.line_n_spill_must_be_between',{n:L}));else if(ms<1||ms>100)out.errors.push(tr('routescript.line_n_within_1_to_100_ms',{n:L}));else{out.tiers.push({at:v/100,ms});out.tiers.sort((a,b)=>a.at-b.at||a.ms-b.ms);out.n++;}return;}
     if(m=line.match(/^spill\s+at\s+(\d{1,3})\s*%$/)){const v=+m[1];if(v<20||v>100)out.errors.push(tr('routescript.line_n_spill_must_be_between',{n:L}));else{out.spill=v/100;out.n++;}return;}
     if(m=line.match(/^(prefer|avoid)\s+(pni|ix|transit)\s+for\s+(.+)$/)){const r=teFind(m[3],NETS,tr('common.network'));if(r.err){out.errors.push(tr('routescript.line_n_err',{n:L,err:r.err}));return;}const o=out.net[r.v]=out.net[r.v]||{};o[m[1]]=TE_KINDS[m[2]];out.n++;return;}
     if(m=line.match(/^cap\s+transit\s+(.+?)\s+at\s+(\d+(?:\.\d+)?)\s*(gbps|tbps|g|t)$/)){const r=teFind(m[1],NETS.filter(n=>n.price),tr('common.transit_provider'));if(r.err){out.errors.push(tr('routescript.line_n_err',{n:L,err:r.err}));return;}out.cap[r.v]=+m[2]*(m[3][0]==='t'?1000:1);out.n++;return;}
@@ -103,6 +108,7 @@ function teHelpModal(){const rule=(code,what)=>`<dt><code>${code}</code></dt><dd
   <li>${tr('routescript.deploy_makes_it_live_for_the')}</li></ul>
   <h3>${tr('common.rules')}</h3><dl>
   ${rule('spill at 85%',tr('routescript.move_traffic_to_the_next_exit'))}
+  ${rule('spill at 80% within 10 ms',tr('routescript.from_this_load_on_spill_onto'))}
   ${rule('prefer pni for goggle',tr('routescript.send_one_network_s_traffic_over'))}
   ${rule('avoid transit for netchill',tr('routescript.use_that_kind_of_exit_for'))}
   ${rule('cap transit cogentle at 20 gbps',tr('routescript.a_ceiling_on_one_provider_so'))}
@@ -122,7 +128,7 @@ function teModal(msg){const src=UI.teDraft!==undefined?UI.teDraft:(S.te.script||
   <p class="tagline">${tr('routescript.write_rules_check_them_against_live')}</p>
   <textarea id="teSrc" class="tecode" spellcheck="false" autocapitalize="off" autocomplete="off" rows="12">${esc(src)}</textarea>
   ${msg||''}<div class="btns" style="margin-top:8px">${btn(tr('routescript.check_dry_run'),'teCheck',{},'')}${btn(tr('common.deploy'),'teDeploy',{},'pink')}${S.te.script?btn(tr('common.remove_script'),'teClear',{},'ghost sm'):''}${btn(tr('common.optimize'),'teOpt',{},'ghost sm')}${btn(tr('routescript.reset_to_example'),'teExample',{},'ghost sm')}</div><div class="btns" style="margin-top:6px">${btn('✨ '+tr('routescript.slop_it_with_ai'),'teSlop',{},'aibtn')}${btn(tr('routescript.help_and_ready_made_scripts'),'teHelp',{},'ghost sm')}</div>
-  <p class="meta" style="margin-top:8px"><b>${tr('common.rules_7b18')}</b> <code>spill at 80%</code> · <code>prefer pni|ix|transit for NETWORK</code> · <code>avoid pni|ix|transit for NETWORK</code> · <code>cap transit PROVIDER at 20 gbps</code> · <code>prefer|avoid transit PROVIDER</code> · <code>prepend transit PROVIDER 1-3</code> · <code>protect customers</code> · <code>drain CITY</code> · <code>avoid link CITY-CITY</code> · <code>blackhole ddos</code></p>
+  <p class="meta" style="margin-top:8px"><b>${tr('common.rules_7b18')}</b> <code>spill at 80%</code> · <code>spill at 80% within 10 ms</code> · <code>prefer pni|ix|transit for NETWORK</code> · <code>avoid pni|ix|transit for NETWORK</code> · <code>cap transit PROVIDER at 20 gbps</code> · <code>prefer|avoid transit PROVIDER</code> · <code>prepend transit PROVIDER 1-3</code> · <code>protect customers</code> · <code>drain CITY</code> · <code>avoid link CITY-CITY</code> · <code>blackhole ddos</code></p>
   ${S.te.script?`<p class="meta">${tr('routescript.live_state_rules',{state:S.te.on?tr('common.deployed'):tr('routescript.controller_is_off'),rules:teRules()?tr('routescript.n_rules_active',{n:teRules().n}):tr('common.not_active')})}</p>`:''}`);}
 function teTrial(src){const keep=S.te.script,on=S.te.on,before={served:R.served,tc:R.cost.transit||0,moved:R.teMoved||0};
   S.te.script=src;S.te.on=true;compute();const after={served:R.served,tc:R.cost.transit||0,moved:R.teMoved||0,bh:R.teBlack||0};

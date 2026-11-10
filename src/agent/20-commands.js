@@ -101,7 +101,7 @@ const API_CMD={
  cancelPni:{args:[['id','entityId']],confirm:'arg',pass:a=>({id:a.id,ok:1}),
   doc:'Cancel a PNI or its pending augment.'},
  lagP:{args:[['id','entityId'],['d','step']],watch:['pni.#id'],
-  doc:'Add or remove a LAG member on a PNI. Adding is an augment with a lead time.'},
+  doc:'Add or remove a LAG member on a PNI, up to 8 per router at the POP (pniLagMax, at most PNI_LAG_MAX). Adding is an augment with a lead time.'},
  sacrif:{args:[['id','entityId']],watch:['pni.#id'],
   doc:'Mark a PNI sacrificial, so attack traffic is steered into it.'},
  peerPol:{args:[['p','peerPolicy']],watch:['ppol'],

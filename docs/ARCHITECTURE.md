@@ -159,7 +159,8 @@ The day:
    carry (`t.carry`): see step 4.
 3. Builds flows: for every POP, its demand (eyeballs and customers) split across
    destination networks by their traffic share (`NSH`, with regional variants for
-   China, Russia and Korea). Incidents can add junk flows or scale demand.
+   China, Russia and Korea), localised per city: the networks that sell to homes split their part by where their users
+   live (`locSh()`, `30-networks/45-home-markets.js`, #48). Incidents can add junk flows or scale demand.
 4. Routes flows rank by rank: the nearest usable exit first, ECMP across equal exits (a PNI goes before an
    IX port at the same distance: `PNI_TIE`, #298),
    consuming link, router (`nodeCap`) and exit capacity. A carrier's own transit port also
@@ -168,7 +169,8 @@ The day:
    POP when the port is set to carry. Such a port is still an ordinary transit exit for the other
    POPs. Backup, RouteScript and Auto-TE rules keep their say, and so does a Prefer-marked port at its own POP (the other
    POPs keep the rule). With Auto-TE, overflow spills
-   onto alternate paths; RouteScript rules (`teRules()`) can prefer, avoid, cap, drain
+   onto alternate paths (spill tiers, `spill at 80% within 10 ms`, first try the fastest detour under the line within
+   that budget: `tiers()` in `29-route-core.js`); RouteScript rules (`teRules()`) can prefer, avoid, cap, drain
    or blackhole.
 5. Layer-2 customers (L2VPN, SD-WAN, waves) are carved out of link capacity first.
 6. Totals costs (`R.cost`) and revenue (`R.rev`) per month.
