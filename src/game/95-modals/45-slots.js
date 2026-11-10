@@ -19,7 +19,7 @@ function slotRefresh(){const el=$('slotList');if(!el||UI.started)return;const h=
 function slotMenuHtml(id){const e=slotIdx().find(x=>x.id===id);if(!e)return '';const nm=esc(e.name||tr('common.unnamed_network'));
   return `<div style="display:flex;align-items:center"><div class="grow"><div class="eyebrow">${slotIcon(e)} ${slotLine(e)}</div><h2 style="font-size:26px">${nm}</h2></div><button class="x" data-act="slotBack" aria-label="${tr('common.close')}">×</button></div>
   <p class="tagline">${e.at?tr('slots.last_played_ago',{ago:slotAgo(e.at)}):''}${e.size?' · '+tr('slots.size_on_this_device',{size:slotSize(e.size)}):''}</p>
-  <div class="menu-list">${e.broken?btn(tr('slots.try_again'),'slotRetry',{id},'pink big'):btn(tr('slots.continue_this_network'),'cont',{id},'pink big')}${btn(tr('game_and_settings.export_save_download_a_file'),'slotExport',{id},'')}${btn(tr('slots.delete_this_network'),'slotDel',{id},'red')}${btn(tr('common.back'),'slotBack',{},'ghost')}</div>`;}
+  <div class="menu-list">${e.broken?btn(tr('slots.try_again'),'slotRetry',{id},'pink big'):btn(tr('slots.continue_this_network'),'cont',{id},'pink big')}${btn(tr('game_and_settings.export_save_download_a_file'),'slotExport',{id},'')}${e.broken?'':btn(tr('transfer.send_to_another_device'),'xfer',{id},'')}${btn(tr('slots.delete_this_network'),'slotDel',{id},'red')}${btn(tr('common.back'),'slotBack',{},'ghost')}</div>`;}
 const slotSize=n=>n>=1e6?(n/1e6).toFixed(1)+' MB':Math.max(1,Math.round(n/1e3))+' kB';
 function slotBusyModal(id){const e=slotIdx().find(x=>x.id===id),nm=esc(e&&e.name||tr('common.unnamed_network'));
   openModal(`<div class="eyebrow">🪟 ${tr('slots.two_windows_one_network')}</div><h2 style="font-size:26px">${tr('slots.name_is_open_in_another_window',{name:nm})}</h2>

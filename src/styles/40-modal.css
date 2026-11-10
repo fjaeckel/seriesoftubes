@@ -229,3 +229,8 @@ h2 .rn{font-size:18px;vertical-align:middle;padding:2px 4px}
 .cmroute{align-items:flex-start}
 .tag.cmhot{background:#FFE1D6;color:#B43A12}
 .tag.cmcool{background:#DDF1FB;color:#1E6A8C}
+/* Moving a network to another device (#263). A code stays dark on white in dark mode too: cameras need the contrast. */
+svg.qr{display:block;width:100%;max-width:300px;height:auto;margin:10px auto 6px;border:3px solid var(--ink);border-radius:12px;background:#fff;box-sizing:border-box}
+.xfer-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;max-width:300px;margin:0 auto}.xfer-nav b{font:800 14px var(--display)}
+textarea.xfer-in{width:100%;box-sizing:border-box;border:3px solid var(--ink);border-radius:12px;padding:8px 10px;font:13px/1.35 ui-monospace,monospace;background:var(--soft);color:var(--ink);resize:vertical;word-break:break-all}
+.xfer-dots{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0}.xfer-dots i{width:12px;height:12px;border-radius:50%;border:2px solid var(--ink);background:var(--soft)}.xfer-dots i.on{background:var(--ok)}

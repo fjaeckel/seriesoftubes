@@ -68,7 +68,7 @@ function boot(data){
     // A save that cannot be loaded stays where it is, marked damaged: it can still be exported, or deleted.
     else if(UI.slot&&(sv||UI.loadBad))slotBroke(UI.slot);
     else{showTitle();if(UI.bootBusy)slotBusyModal(UI.bootBusy);else whatsNew(false);if(UI.bootBroken)toast(tr('loop.your_saved_game_could_not_be'),'bad');}}
-  renderHUD();renderLeft();
+  renderHUD();renderLeft();xferBoot();
   window.claude?.hot?.snapshot?.(()=>({S:S&&JSON.parse(JSON.stringify(S)),cam:{...cam}}));
   if(!window.__TUBES_TEST__){requestAnimationFrame(frame);setTimeout(checkUpdate,4000);setInterval(checkUpdate,10*60*1000);}
 }
