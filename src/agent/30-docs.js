@@ -62,6 +62,7 @@ const API_STATE_DOC={
  core:{type:'map',doc:'Your backbone technology: lv bought, the level it runs at, the interop lab.'},
  ddosAuto:{type:'map',doc:'The NOC\'s auto-mitigation switches: rtbh and scrub.'},
  popStd:{type:'map',doc:'The standard POP: router model and count new POPs start with, or null for none.'},
+ popTiers:{type:'map',doc:'POP standards by kind: def.micro|medium|hub is {g: router model, rt: routers} or null; at maps a POP city to its kind.'},
  demo:{type:'map',doc:'Vendor demo units on order, by "kind:id" → ready day.'},
  seatOff:{type:'map',doc:'The pending consortium-cable seat offer: landings, km, name, expiry day.'},
  monkey:{type:'map',doc:'The chaos monkey: next visit day, whether it is in your network now, days left, whether anyone noticed.'},

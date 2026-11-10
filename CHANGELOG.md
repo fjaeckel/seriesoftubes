@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- From customer level 2, you can save up to three POP standards (micro POP, medium POP, regional hub), each a router model and a number of routers, and mark which POP is which. One button in a POP's Infra tab brings it up to its standard, and Utilities brings every POP of a kind up at once with the price shown first. A POP is never stepped down to a smaller model, and a busy POP with one router gets its second router before the swap, so the upgrade rolls instead of taking the POP down (#315).
+- Utilities can now install the redundancy kit at every POP still missing part of it in one go, at one price shown on the button, from customer level 2. With a NOC intern you can also put the kit in the intern's new-POP template from there (#317).
+- A customer asking for a backup generator, a second router or a second site at POPs you already have now shows what is missing and what it costs, with a button that buys exactly that and signs the deal. Nothing is bought unless you press it (#241).
+- The NOC intern's "Light more fiber" order can now leave new fiber dark, so a fiber handed over in the night no longer pulls in traffic before you are ready for it. Fiber you light yourself still gets more optics when it runs hot (#316).
+- The Transit and Peering tabs of a POP have a search box for a network's name or AS number and a "Connected only" switch, so you can find the one network you need in a long list, on phones too (#199).
+- Decommissioning one of several links between the same two cities keeps the link panel open on the next one, so you can hand back a row of waves without reopening it each time (#119).
 - A link that a closed border has taken down, like Doha to Dubai or Abu Dhabi while the neighbours have fallen out, now says so in its panel, with the days until it comes back, instead of showing nothing wrong. Leasing a new wave or fiber pair across that border during the spat warns you first that it will stay dark (#329).
 
 ## [3.3.0] — 2026-11-09
