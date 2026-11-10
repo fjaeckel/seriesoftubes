@@ -17,10 +17,10 @@ function pages() {
   let base = head;
   try { const b = path.join(os.tmpdir(), `tubes-fuzz-test-${process.pid}-base.html`); fs.writeFileSync(b, page.assembleRef('origin/main')); base = b; } catch (e) {}
   let P = { base: openPage(base, 'base'), head: openPage(head, 'head') };
-  // A change to the world itself (cities, networks, cables) or to what links cost cannot route like main: there is no
-  // same game to compare. Then the base is this checkout too, and the cache on/off check still runs; equivalence with
-  // main resumes once it lands.
-  const world = (p) => p.ev("JSON.stringify([CITIES.map(c=>[c.id,c.land,c.P]),NETS.map(n=>[n.id,n.pops,n.ix,n.share,n.price,n.up]),CABLES.map(c=>[c.id,c.pairs.map(q=>[q[0],q[1]])]),[1,300,3000].map(k=>[dfLeaseMo(k),waveMo(k,false,2),dfBuildCost(k)])])");
+  // A change to the world itself (cities, networks, cables, AI campuses), to what links cost or to where each city's
+  // traffic goes (locSh(), #48) cannot route like main: there is no same game to compare. Then the base is this checkout
+  // too, and the cache on/off check still runs; equivalence with main resumes once it lands.
+  const world = (p) => p.ev("JSON.stringify([CITIES.map(c=>[c.id,c.land,c.P]),NETS.map(n=>[n.id,n.pops,n.ix,n.share,n.price,n.up]),CABLES.map(c=>[c.id,c.pairs.map(q=>[q[0],q[1]])]),[1,300,3000].map(k=>[dfLeaseMo(k),waveMo(k,false,2),dfBuildCost(k)]),MEGA.map(m=>m.c),['nyc','fra','sin'].map(c=>typeof locSh==='function'?Array.from(locSh(NSH,c)):null)])");
   if (base !== head && world(P.base) !== world(P.head)) { console.log('# route fuzz: the world or its prices differ from main, so both pages are this checkout'); P = { base: openPage(head, 'base'), head: P.head }; }
   return P;
 }

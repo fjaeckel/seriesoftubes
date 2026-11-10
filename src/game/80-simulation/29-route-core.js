@@ -9,7 +9,7 @@ function routeCore(){
   // The day's state, set by nodes() and run(). (TR, base and eff, the ranks, are for the reference loop of the tests.)
   let NRES,NSEEN,NORD,NLOAD,EL,NKN,SEN,ACN,NC,SED,ACD,
     E,HAS,PASS,R2,FREM,FNJ,FCI,FCA,FBZ,NF,CNB,NCN,ev,day,SRV,TNS,NN,TNK,TORD,TNA,snd,LATP,FARL,EGT,EGO,NEG,NEO,NEA,FGT,FTI,FGI,FII,FGH,FGP,
-    TE,SPILL,teCache,adj,CORE,OUT,REACH,DSEL,PREFC,BRJ,COMP,SDi,SPi,ALONE,TR,base,eff,
+    TE,SPILL,TT,teCache,adj,CORE,OUT,REACH,DSEL,PREFC,BRJ,COMP,SDi,SPi,ALONE,TR,base,eff,
     NX=0,USED=null,CAPX=null,CIX=null,HPX=null,DTX=null,VISX=null,TEF=null,EP=0;
   // The flow being routed, and from its POP: distances, arriving edges and the paths walked so far, by city index.
   // F: its index; fci, fnj: its city and network index. BRX: BRJ with each list as a list object of one shape (lx()).
@@ -98,9 +98,35 @@ function routeCore(){
   // with free capacity, as long as they are no more than twice as long.
   const send=(x,want)=>{
     let room=Math.min(want,FREM[F],CAPX[x]-USED[x]);if(room<=1e-6)return;const ci=CIX[x];
-    const P=PP[ci]||(PP[ci]=walkP(Pv,fci,ci));if(!P.dead)room-=push(x,P,room,TE&&SPILL<1?1-SPILL:0);
+    const P=PP[ci]||(PP[ci]=walkP(Pv,fci,ci));if(TT&&ci!==fci){room=tiers(x,P,room,ci);if(room<=1e-6)return;}
+    if(!P.dead)room-=push(x,P,room,TE&&SPILL<1?1-SPILL:0);
     if(TE&&room>1e-6&&FREM[F]>1e-6&&USED[x]<CAPX[x]&&ci!==fci)for(let k=0;k<2&&room>1e-6;k++){const P=altPath(fci,ci,Dv[ci]);if(!P)break;const m=push(x,P,Math.min(room,CAPX[x]-USED[x]));if(m<=1e-6)break;room-=m;R2.teMoved+=m;}
   };
+  /* Spill tiers (#136, `spill at 80% within 10 ms`): the shortest path fills up to a tier's line, then what does not fit
+     takes the fastest detour whose links are all still under that line, if it adds no more than the tier's milliseconds;
+     the next tier lets links run hotter and detours longer. After the last tier the usual rules above take over. A detour
+     is searched by latency over the links under the line (tierSearch), and kept per pair and tier while it still is:
+     links only fill up while routing, so a pair with no detour under a line never gets one. */
+  const pathMs=P=>{let ms=P.ms;if(ms<0){ms=0;const p=P.path;for(let k=0;k<p.length;k++)ms+=p[k].lat;P.ms=ms;}return ms;};
+  let TC=null,TSD=null,TSP=null,TSS=null,TSG=0,TH=[],THU=[];
+  const tierSearch=(src,dst,keep,lim)=>{const n=TEO.length-1,core=CORE;if(!TSD||TSD.length!==n){TSD=new Float64Array(n);TSP=new Array(n);TSS=new Int32Array(n);TSG=0;}
+    const g=++TSG,D=TSD,P=TSP,ST=TSS;let m=0;D[src]=0;ST[src]=g;TH[0]=0;THU[0]=src;m=1;
+    while(m){let best=0;for(let i=1;i<m;i++)if(TH[i]<TH[best])best=i;const d=TH[best],u=THU[best];m--;TH[best]=TH[m];THU[best]=THU[m];
+      if(d>D[u])continue;if(u===dst)break;
+      for(let k=TEO[u],K=TEO[u+1];k<K;k++){const v=TEN[k],e=TEE[k];if(!(e.res>e.cap*keep+1e-3)||(HAS[v]&&NRES[v]<=1e-3)||(core&&OUT[v]&&v!==dst))continue;
+        const nd=d+e.lat;if(nd>lim||!(nd<(ST[v]===g?D[v]:Infinity)))continue;D[v]=nd;ST[v]=g;P[v]=e;TH[m]=nd;THU[m]=v;m++;}}
+    return ST[dst]===g?walkP(P,src,dst):null;};
+  const tierPath=(t,keep,src,dst,lim)=>{const key=(src*NC+dst)*TT.length+t,c=TC.get(key);if(c===false)return null;
+    if(c){let ok=true;const p=c.path,ni=c.ni;for(let k=0;k<p.length;k++)if(!(p[k].res>p[k].cap*keep+1e-3)){ok=false;break;}
+      if(ok)for(let k=0;k<ni.length;k++){const i=ni[k];if(HAS[i]&&!(NRES[i]>1e-3)){ok=false;break;}}
+      if(ok)return pathMs(c)<=lim?c:null;}
+    const Q=tierSearch(src,dst,keep,Infinity);TC.set(key,Q||false);return Q&&pathMs(Q)<=lim?Q:null;};
+  const tiers=(x,P,room,ci)=>{for(let t=0;t<TT.length&&room>1e-6;t++){const T=TT[t],keep=1-T.at;
+      room-=push(x,P,room,keep);
+      if(room<=1e-6||FREM[F]<=1e-6||!(USED[x]<CAPX[x]))break;
+      const Q=tierPath(t,keep,fci,ci,pathMs(P)+T.ms);if(!Q||Q.path===P.path)continue;
+      const m=push(x,Q,Math.min(room,CAPX[x]-USED[x]),keep);if(m>1e-6){room-=m;R2.teMoved+=m;}}
+    return room;};
   // Exits with the same preference and the same IGP distance form an ECMP group: spread the flow over
   // them by free capacity (like several transits in one city), then top up in order if one fills.
   // The group is g[i0..i1): plain loops and one scratch array, since this runs for most flows (same sums, same order).
@@ -204,10 +230,11 @@ function routeCore(){
   return {nodeTake,carry,
     nodes(o){({NRES,NSEEN,NORD,NLOAD,EL,NKN,SEN,ACN,NC,SED,ACD}=o);},
     run(o,PASSES,RANKS,RSET){({E,HAS,PASS,R2,FREM,FNJ,FCI,FCA,FBZ,NF,CNB,NCN,ev,day,SRV,TNS,NN,TNK,TORD,TNA,snd,LATP,FARL,EGT,EGO,NEG,NEO,NEA,FGT,FTI,FGI,FII,FGH,FGP,
-        TE,SPILL,teCache,adj,CORE,OUT,REACH,DSEL,PREFC,BRJ,COMP,SDi,SPi,ALONE,TR,base,eff}=o);
+        TE,SPILL,TT,teCache,adj,CORE,OUT,REACH,DSEL,PREFC,BRJ,COMP,SDi,SPi,ALONE,TR,base,eff}=o);
       NX=E.length;USED=new Float64Array(NX);CAPX=new Float64Array(NX);CIX=new Int32Array(NX);HPX=new Uint8Array(NX);DTX=new Float64Array(NX);VISX=new Int32Array(NX);
       for(let x=0;x<NX;x++){const e=E[x];USED[x]=e.used;CAPX[x]=e.cap;CIX[x]=e.ci;HPX[x]=e.hp;DTX[x]=e.dt;}
       F=0;fci=0;fnj=0;Dv=null;Pv=null;PP=null;vis=0;GN=0;walked=[];EP=0;LRs=-1;LRD=null;
+      TC=TT?new Map():null;
       if(TE){const n=adj.length;TEO=new Int32Array(n+1);let k=0;for(let u=0;u<n;u++){TEO[u]=k;const a=adj[u];if(a)k+=a.length;}TEO[n]=k;
         TEN=new Int32Array(k);TEE=new Array(k);k=0;for(let u=0;u<n;u++){const a=adj[u];if(a)for(let j=0;j<a.length;j++){TEN[k]=a[j][0];TEE[k]=a[j][1];k++;}}}TEF=TE?new Uint8Array(NC*NC):null;
       const W=new Map();BRX=new Array(BRJ.length);for(let j=0;j<BRJ.length;j++){const m=BRJ[j],b={};for(const r in m)b[r]=lx(m[r],W);BRX[j]=b;}
@@ -218,7 +245,7 @@ function routeCore(){
       }
       for(let x=0;x<NX;x++)E[x].used=USED[x];
       // Nothing of this day is kept: the next run() sets its own.
-      E=R2=BRJ=BRX=SDi=SPi=teCache=TEF=TEE=null;walked=[];}};
+      E=R2=BRJ=BRX=SDi=SPi=teCache=TEF=TEE=TC=null;TSD=TSP=null;walked=[];}};
 }
 // The core in use (a test can put the plain one in its place: tests/speed.test.js).
 let ROUTE=routeCore();

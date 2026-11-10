@@ -14,7 +14,7 @@ function utilityCacheMoves(city){if(!S||!S.pops[city])return [];const groups=new
 // list of networks, and Goggle is throttled to half in Russia. The world shares (NSH) would size boxes for networks the
 // city cannot even reach, and too few for the ones it uses most.
 const cityShTab=c=>cnCity(c)?NSH_CN:ruCity(c)?NSH_RU:CITY[c].kr&&S.krExit?NSH_KRX:NSH;
-const cityNetSh=(c,id)=>(cityShTab(c)[id]||0)*(id==='ggl'&&ruCity(c)?0.5:1);
+const cityNetSh=(c,id)=>{const j=LOC_NIX.get(id);return (j===undefined?0:locSh(cityShTab(c),c)[j])*(id==='ggl'&&ruCity(c)?0.5:1);};
 // A city's total share only depends on its table and on the Russian throttle, and the tables never change after load:
 // summed once per kind of city, not once per network asked about (that was cities × networks² every shift).
 const CSH_SUM=new Map();

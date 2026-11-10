@@ -16,16 +16,60 @@ function eventTick(b,d){if(!BIZ_T[b.type].event)return false;if(d<b.start)return
   if(d<b.start+b.dur){b.srv=(b.srv||0)+sfOf(R,b.city);b.srvDays=(b.srvDays||0)+1;if(d===b.start)toast(tr('customers_and_events.name_starts_today_bw_of_extra',{name:esc(b.name),bw:fmtG(b.bw),city:CITY[b.city].name,d:b.dur}),'goal',[{l:tr('common.show_me'),act:'focusCity',args:{city:b.city}}]);return true;}
   const avg=b.srvDays?b.srv/b.srvDays:0;if(avg>=0.95)S.stats.evFull=(S.stats.evFull||0)+1;const pay=avg>=0.95?b.fee:avg>=0.7?Math.round(b.fee*avg):-Math.round(b.fee*0.2);S.cash+=pay;S.biz=S.biz.filter(x=>x!==b);
   toast(pay>=0?tr('customers_and_events.name_is_over_pay_you_delivered',{name:esc(b.name),pay:fmt$(pay),pct:pct(avg)})+(avg>=0.95?' '+tr('common.flawless'):''):tr('customers_and_events.name_was_a_disaster_only_pct',{name:esc(b.name),pct:pct(avg),pay:fmt$(-pay)}),pay>=0?'good':'bad');sfx(pay>=0?'coin':'err');return true;}
-/* Where the giants actually build: gigawatt AI campuses and cloud regions, mapped to the nearest city on the map. */
-const MEGA=[{c:'ash',n:'Data Center Alley'},{c:'ash',n:'Prome-the-mess Ohio'},{c:'dal',n:'Star-Gait Abilene'},{c:'dal',n:'Hyperbole Louisiana'},{c:'dal',n:'Colossus of Blues Memphis'},{c:'chi',n:'Fairweather Wisconsin'},{c:'chi',n:'Project Rainy-er Indiana'},{c:'chi',n:'Cornfield Cluster Iowa'},{c:'nyc',n:'Neocloud New Jersey'},{c:'sto',n:'Star-Gait Fjord-way'},{c:'mad',n:'Aragón Mega-shed'},{c:'dub',n:'Bring-Your-Own-Power Dublin'},{c:'auh',n:'Star-Gait UAE'},{c:'ruh',n:'Desert Kingdom AI Campus'},{c:'doh',n:'Lusail Data Oasis'},{c:'kul',n:'Johor Overflow'},{c:'hyd',n:'Vizag AI Hub'},{c:'icn',n:'Ulsan AI Campus'},{c:'tok',n:'Hokkaido Snow DC'},{c:'syd',n:'Star-Gait Down Under'},{c:'syd',n:'AirDrunk Western Sydney'},{c:'mel',n:'AirDrunk Melbourne West'},{c:'mex',n:'Querétaro Cluster'},{c:'for',n:'Short-Video Ceará Campus'},{c:'scl',n:'Quilicura Region'}];
+/* Where the giants actually build: gigawatt AI campuses and cloud regions, mapped to the nearest city on the map (#61:
+   not just five metros; real campuses sit all over, from Oregon to Wyoming to Querétaro). w: a hub that draws more. */
+const MEGA=[
+ {c:'ash',n:'Data Center Alley',w:2},
+ {c:'atn',n:'Peach-flops Georgia'},
+ {c:'auh',n:'Star-Gait UAE'},
+ {c:'aus',n:'Taylor-Made Texas Campus'},
+ {c:'chi',n:'Fairweather Wisconsin'},
+ {c:'chi',n:'Project Rainy-er Indiana'},
+ {c:'cmh',n:'Prome-the-mess Ohio'},
+ {c:'csn',n:'Biggest Little Cluster Reno'},
+ {c:'cys',n:'Wind Chill Wyoming Campus'},
+ {c:'dal',n:'Star-Gait Abilene'},
+ {c:'doh',n:'Lusail Data Oasis'},
+ {c:'dsm',n:'Cornfield Cluster Iowa'},
+ {c:'dub',n:'Bring-Your-Own-Power Dublin'},
+ {c:'for',n:'Short-Video Ceará Campus'},
+ {c:'hyd',n:'Vizag AI Hub'},
+ {c:'icn',n:'Ulsan AI Campus'},
+ {c:'jan',n:'Hyperbole Louisiana'},
+ {c:'kcy',n:'Burnt Ends Bit Barn'},
+ {c:'kul',n:'Johor Overflow'},
+ {c:'lit',n:'Colossus of Blues Memphis'},
+ {c:'mad',n:'Aragón Mega-shed'},
+ {c:'mel',n:'AirDrunk Melbourne West'},
+ {c:'mty',n:'Norteño Nodes Nuevo León'},
+ {c:'nyc',n:'Neocloud New Jersey'},
+ {c:'phx',n:'Mesa-ive Compute Arizona'},
+ {c:'qro',n:'Querétaro Cluster'},
+ {c:'ric',n:'Henrico Hyperscale Hustle'},
+ {c:'ruh',n:'Desert Kingdom AI Campus'},
+ {c:'scl',n:'Quilicura Region'},
+ {c:'sea',n:'Quincy-dence Washington'},
+ {c:'sle',n:'Dilly-Dalles Oregon'},
+ {c:'sto',n:'Star-Gait Fjord-way'},
+ {c:'syd',n:'AirDrunk Western Sydney'},
+ {c:'syd',n:'Star-Gait Down Under'},
+ {c:'tok',n:'Hokkaido Snow DC'},
+ {c:'yqb',n:'Hydro-Chill Québec'},
+];
+/* A campus is picked by its weight, less where giant circuits already crowd the city (#61): a metro that carries as much
+   as the average busy one draws half as often, three times as much a quarter. Hubs stay a bit busier, never the only ones. */
+function megaLoad(){const m=new Map(),add=(c,v)=>{if(c)m.set(c,(m.get(c)||0)+v);};
+  for(const o of S.biz.concat(S.offers||[])){const T=BIZ_T[o.type];if(!T||!T.mega||!T.l2)continue;for(const c of bCities(o))add(c,o.bw||0);}return m;}
+function megaPick(list,ld){let tot=0,k=0;for(const v of ld.values()){tot+=v;k++;}const avg=k?tot/k:0,w=list.map(m=>(m.w||1)/(1+(avg>0?(ld.get(m.c)||0)/avg:0)));
+  let r=Math.random()*w.reduce((a,b)=>a+b,0);for(let i=0;i<list.length;i++){r-=w[i];if(r<0)return list[i];}return list[list.length-1];}
 function spawnMega(t,T,nm,mine){
-  const megaMine=MEGA.filter(m=>mine.includes(m.c));if(!megaMine.length)return;
-  if(t==='ingest'){const m=pick(megaMine),bw=pick(T.opts),dur=3+Math.floor(Math.random()*4),start=S.day+10+Math.floor(Math.random()*12);
+  const megaMine=MEGA.filter(m=>mine.includes(m.c));if(!megaMine.length)return;const ld=megaLoad();
+  if(t==='ingest'){const m=megaPick(megaMine,ld),bw=pick(T.opts),dur=3+Math.floor(Math.random()*4),start=S.day+10+Math.floor(Math.random()*12);
     S.offers.push({id:uid(),city:m.c,city2:null,name:tr('customers_and_events.name_at_site',{name:nm(),site:m.n}),type:t,bw,rate:0,reqs:[],start,dur,fee:Math.round(bw*dur*55),exp:start-2,mega:true});return;}
-  if(t==='aiwan'||t==='agi'){const a=pick(megaMine),others=MEGA.filter(m=>m.c!==a.c&&(Math.random()<0.7?mine.includes(m.c):true));if(!others.length)return;const b=pick(others);if(!reqCan('diverse',{city:a.c,city2:b.c}))return;const km=kmBetween(a.c,b.c),bw=pick(T.opts);
+  if(t==='aiwan'||t==='agi'){const a=megaPick(megaMine,ld),others=MEGA.filter(m=>m.c!==a.c&&(Math.random()<0.7?mine.includes(m.c):true));if(!others.length)return;const b=megaPick(others,ld);if(!reqCan('diverse',{city:a.c,city2:b.c}))return;const km=kmBetween(a.c,b.c),bw=pick(T.opts);
     const reqs=['diverse'];if(Math.random()<0.4)reqs.push('metro');
     S.offers.push({id:uid(),city:a.c,city2:b.c,name:`${nm()}: ${a.n} ⇄ ${b.n}`,type:t,bw,rate:Math.round((150+km*0.08)*T.km),reqs,exp:S.day+45,mega:true});return;}
-  if(t==='mtrain'){const hub=pick(megaMine),reg=CITY[hub.c].reg,pool=[...new Set(MEGA.filter(m=>m.c!==hub.c&&CITY[m.c].reg===reg).map(m=>m.c))];if(pool.length<2)return;
+  if(t==='mtrain'){const hub=megaPick(megaMine,ld),reg=CITY[hub.c].reg,pool=[...new Set(MEGA.filter(m=>m.c!==hub.c&&CITY[m.c].reg===reg).map(m=>m.c))];if(pool.length<2)return;
     const sites=[hub.c];while(sites.length<Math.min(4,pool.length+1)&&pool.length)sites.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
     const avg=sites.slice(1).reduce((x,c)=>x+kmBetween(hub.c,c),0)/(sites.length-1),bw=pick(T.opts);
     S.offers.push({id:uid(),city:hub.c,city2:null,sites,name:tr('customers_and_events.name_hub_site',{name:nm(),site:hub.n}),type:t,bw,rate:Math.round((150+avg*0.08)*0.6),reqs:[],exp:S.day+45,mega:true});return;}

@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- A PNI can now grow past eight ports: each router at the POP takes eight members of a PNI, up to 32, so a busier interconnect costs another router and its ports. Saves keep every LAG they have, and a router a PNI still needs stays until the PNI shrinks (#323).
+- Your traffic to home internet providers now starts where their customers live: a New York POP talks a lot to Comecast and little to Doitsche Telekomm, Frankfurt the other way round. Peering with a big eyeball network in the cities its users are in now takes that traffic off your backbone, while peering in only two cities means hauling it there from everywhere else (#48).
+- Giant AI circuits now come from campuses in more than 30 metros, from Oregon and Wyoming to Atlanta, Querétaro and Québec, and less often from cities already crowded with them. Ashburn stays a little busier than the rest, but no longer has to carry the whole late game with four other cities (#61).
+- RouteScript can spill early onto detours within a latency budget: `spill at 80% within 10 ms` keeps a hot link at 80% and moves the rest onto the fastest detour that adds at most 10 ms and is itself under 80%. Stack them (`spill at 90% within 20 ms`) to spill further as links get hotter (#136).
 - A link that a closed border has taken down, like Doha to Dubai or Abu Dhabi while the neighbours have fallen out, now says so in its panel, with the days until it comes back, instead of showing nothing wrong. Leasing a new wave or fiber pair across that border during the spat warns you first that it will stay dark (#329).
 
 ## [3.3.0] — 2026-11-09
