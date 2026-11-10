@@ -637,8 +637,8 @@ const API_WHY={
 const API_DENY={
   speed:'time',phonePlay:'time',phoneSpeed:'time',
   start:'start',newgame:'start',cont:'start',toTitle:'start',resetAsk:'start',
-  exportSave:'files',importGo:'files',importPick:'files',slotExport:'files',xfer:'files',xferFile:'files',xferPage:'files',xferPaste:'files',xferRecv:'files',xferReset:'files',
+  exportSave:'files',importGo:'files',importPick:'files',slotExport:'files',xfer:'files',xferFile:'files',xferPaste:'files',xferRecv:'files',
   slotBack:'slots',slotDel:'slots',slotDelGo:'slots',slotMenu:'slots',slotRetry:'slots',slotSpace:'slots',slotSwitch:'slots',slotTake:'slots',
   animSet:'prefs',langSet:'prefs',mapSet:'prefs',menu:'prefs',mute:'prefs',prefSet:'prefs',settings:'prefs',settingsClose:'prefs',soundSet:'prefs',vpSet:'prefs',
-  install:'browser',share:'browser',shareDl:'browser',shareGo:'browser',traceCopy:'browser',updateLater:'browser',updateNow:'browser',wsShare:'browser',pzShare:'browser',xferLink:'browser',
+  install:'browser',share:'browser',shareDl:'browser',shareGo:'browser',traceCopy:'browser',updateLater:'browser',updateNow:'browser',wsShare:'browser',pzShare:'browser',xferLink:'browser',xferShare:'browser',
 };
