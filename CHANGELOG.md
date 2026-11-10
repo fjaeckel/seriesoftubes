@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+## [3.4.0] — 2026-11-10
+
 - A PNI can now grow past eight ports: each router at the POP takes eight members of a PNI, up to 32, so a busier interconnect costs another router and its ports. Saves keep every LAG they have, and a router a PNI still needs stays until the PNI shrinks (#323).
 - Your traffic to home internet providers now starts where their customers live: a New York POP talks a lot to Comecast and little to Doitsche Telekomm, Frankfurt the other way round. Peering with a big eyeball network in the cities its users are in now takes that traffic off your backbone, while peering in only two cities means hauling it there from everywhere else (#48).
 - Giant AI circuits now come from campuses in more than 30 metros, from Oregon and Wyoming to Atlanta, Querétaro and Québec, and less often from cities already crowded with them. Ashburn stays a little busier than the rest, but no longer has to carry the whole late game with four other cities (#61).
