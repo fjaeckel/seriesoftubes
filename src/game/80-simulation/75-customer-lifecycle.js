@@ -114,11 +114,21 @@ function mktPrice(from){const m=mkt();for(let i=from;i<S.offers.length;i++){cons
 const clMid=b=>Math.round((b.rate+b.hag.rate)/2);
 const clBill=(b,rate)=>BIZ_T[b.type].fiber?rate:b.bw*rate;
 const clHags=()=>S?S.biz.reduce((a,b)=>a+(b.hag?1:0),0):0;
+/* What is at stake in a renewal (#292): how much traffic they book and get, the price per Gbps now and asked, and the
+   path terms they signed for (latency, diverse, no subsea), each ticked as it stands today. Two short lines for a phone. */
+function clRenInfo(b){const T=BIZ_T[b.type],tick=v=>`<b style="color:${v?'var(--eye)':'var(--bad)'}">${v?'✓':'✗'}</b> `,top=[],rq=[];
+  if(!T.fiber){const sf=bizSf(b),srv=`<b${sf<0.95?' style="color:var(--bad)"':''}>${fmtG(b.bw*sf)}</b>`;
+    top.push(b.sites?trn('lifecycle.ren_sites_traffic',b.sites.length,{bw:fmtG(b.bw),srv}):tr('lifecycle.ren_traffic',{bw:fmtG(b.bw),srv}));
+    top.push(tr('lifecycle.ren_per_g',{was:fmt$(b.rate),price:fmt$(b.hag.rate)}));}
+  for(const k of b.reqs||[]){const Q=REQS[k];if(!Q)continue;const ok=Q.ok(b);
+    if(k==='lat'){const v=R.l2lat[b.id]!==undefined?R.l2lat[b.id]:bestLat(b.city,b.city2);rq.push(tick(ok)+tr('lifecycle.ren_lat',{max:b.latMax,now:isFinite(v)?tr('common.ms_ms_one_way',{ms:v.toFixed(1)}):tr('common.no_path')}));}
+    else rq.push(tick(ok)+(k==='diverse'?tr('lifecycle.ren_diverse'):k==='sharks'?tr('lifecycle.ren_no_subsea'):esc(typeof Q.l==='function'?Q.l(b):Q.l)));}
+  return (top.length?`<div class="meta">${top.join(' · ')}</div>`:'')+(rq.length?`<div class="meta">${rq.join(' · ')}</div>`:'');}
 // The renewals waiting for an answer, at the top of Deals.
 function clDealsHtml(){const hs=S.biz.filter(b=>b.hag).sort((a,b)=>a.hag.until-b.hag.until);if(!hs.length)return '';
   return `<h3 class="sub4">${tr('lifecycle.renewals')}</h3><p class="meta" style="margin:0 0 6px">${tr('lifecycle.unanswered_matches')}</p>`+hs.map(b=>{const now=BIZ_T[b.type].fiber?b.hag.rate:b.bw*b.hag.rate,was=bizMo(b);
     return `<div class="row"><div class="grow"><div class="nm">${esc(b.name)}</div><div class="meta">${esc(BIZ_T[b.type].l)} · ${esc(clWhere(b))} · ${tr('ui.n_d_left',{n:b.hag.until-S.day})}</div>
-    <div class="meta">${tr('lifecycle.wants_price',{was:fmt$(was),price:fmt$(now),p:pct(1-now/Math.max(1,was))})}</div>${slRenRow(b)}
+    <div class="meta">${tr('lifecycle.wants_price',{was:fmt$(was),price:fmt$(now),p:pct(1-now/Math.max(1,was))})}</div>${clRenInfo(b)}${slRenRow(b)}
     <div class="btns">${btn(tr('lifecycle.match'),'renewMatch',{id:b.id},'green sm')}${btn(tr('lifecycle.meet_halfway',{price:fmt$(clBill(b,clMid(b)))}),'renewMeet',{id:b.id},'sm')}${btn(tr('lifecycle.let_them_go'),'renewLet',{id:b.id},'ghost sm')}</div></div></div>`;}).join('');}
 // The contract line on a customer row.
 const clTermTxt=b=>clOn(b)&&b.te?(b.hag?tr('lifecycle.renewal_haggle',{date:dateStr(b.te)}):tr('lifecycle.contract_until',{date:dateStr(b.te)})):'';
