@@ -495,19 +495,43 @@ test('F8: a managed wave costs your own capacity, rides one optic, and is priced
   assert.deepEqual(g.errors, []);
 });
 
+test('F9: a latency contract is late, capped, achievable, paid for its latency and credited when over it (#137)', () => {
+  const T = J('BIZ_T.lowlat');
+  assert.ok(T.lv >= 7, `F9: from customer level 7, not ${T.lv}`);
+  assert.ok(T.l2 && T.lat && T.sla, 'F9: a circuit with a latency limit and an SLA');
+  assert.ok(Math.min(...T.opts) >= 1600 && Math.max(...T.opts) <= T.max && T.max <= 3200, 'F9: 1.6T and up, never past 3.2T');
+  assert.equal(ev("(()=>{const x={type:'lowlat',bw:BIZ_T.lowlat.max};return clGrow(x)||x.bw!==BIZ_T.lowlat.max;})()"), false, 'F9: never grows past its most');
+  // Per Gbps on the same route, the bare contract beats any other big circuit with every extra it can ask for.
+  const best = ev("Math.max(...['hyper','ai','aiwan'].map(t=>BIZ_T[t].km))*(1+REQS.diverse.bonus+REQS.metro.bonus+REQS.sharks.bonus+REQS.gen.bonus)");
+  assert.ok(T.km > best, `F9: ${T.km} per km-unit against the best other big circuit's ${best}`);
+  const g = load();
+  g.ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;S.lvl=BIZ_T.lowlat.lv-1;S.biz=[];S.offers=[];for(const c of ['nyc','chi','lon','fra','tok','sin'])if(!S.pops[c])ACT.buildPop({city:c});compute()");
+  const spawn = (n) => g.ev(`(()=>{const out=[];for(let i=0;i<${n};i++){S.offers=[];spawnOffer();out.push(...S.offers.filter(o=>o.type==='lowlat'));}S.offers=[];return JSON.stringify(out);})()`);
+  assert.deepEqual(JSON.parse(spawn(400)), [], 'F9: none below its level');
+  g.ev('S.lvl=BIZ_T.lowlat.lv');
+  const os = JSON.parse(spawn(400));
+  assert.ok(os.length > 0, 'F9: offered at its level');
+  for (const o of os) assert.ok(g.ev(`Math.min(latFloor('${o.city}','${o.city2}'),bestLat('${o.city}','${o.city2}'))<=${o.latMax}`), `F9: ${o.city}–${o.city2} in ${o.latMax} ms can be built`);
+  g.ev("S.biz.push({id:'x',type:'lowlat',name:'X',city:'nyc',city2:'chi',bw:1600,rate:100,reqs:['lat'],latMax:0.1,mood:100,since:S.day-30});compute()");
+  const cash = g.ev('S.cash');
+  assert.equal(g.ev("lcBreach(S.biz.find(b=>b.id==='x'),S.day)"), g.ev('LC_MOOD'), 'F9: over its limit, it loses patience');
+  assert.equal(Math.round(cash - g.ev('S.cash')), g.ev('Math.round(1600*100/monLen(S.day))'), "F9: and a day's fee comes back as a credit");
+  assert.deepEqual(g.errors, []);
+});
+
 // D1–D4: DDoS as networks see it (#242). tests/ddos-model.test.js plays each one in detail.
 const ddFra = (ev) => ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;S.lvl=4;S.nextFail=1e9;S.nextEvent=1e9;ACT.launchBB({city:'fra'});S.pops.fra.bb.d=40;ACT.buyTransit({city:'fra',net:'cog',tier:1});S.pops.fra.rgen=RG.findIndex(r=>r.fsN===8);S.biz.push({id:'g',type:'game',name:'G',city:'fra',bw:10,rate:1,mood:80,since:0,reqs:[]},{id:'d',type:'dia',name:'D',city:'fra',bw:5,rate:1,mood:80,since:0,reqs:[]});compute()");
 const ddHit = (ev, g) => ev(`S.ev.ddos={id:'x',city:'fra',tgt:'g',vec:'dns',gbps:${g},start:S.day,until:S.day+2,bh:false};compute()`);
-test('F9: growth goes sideways, plus one paid way up (#61, #323)', () => {
+test('F10: growth goes sideways, plus one paid way up (#61, #323)', () => {
   // A PNI bundles eight members per router at its POP, up to 32; every other LAG stays at eight.
-  assert.equal(ev('LAG_MAX'), 8, 'F9: transit, exchange and fabric LAGs hold eight members');
+  assert.equal(ev('LAG_MAX'), 8, 'F10: transit, exchange and fabric LAGs hold eight members');
   const lim = J("[1,2,3,4,5,16].map(r=>{const o=S.pops.fra;S.pops.fra={routers:r};const m=pniLagMax('fra');if(o)S.pops.fra=o;else delete S.pops.fra;return m;})");
-  assert.deepEqual(lim, [8, 16, 24, 32, 32, 32], 'F9: a PNI grows by eight members per router, up to 32');
+  assert.deepEqual(lim, [8, 16, 24, 32, 32, 32], 'F10: a PNI grows by eight members per router, up to 32');
   // Giant AI circuits land at campuses spread over many metros, no city more than two.
   const per = J("MEGA.reduce((m,x)=>(m[x.c]=(m[x.c]||0)+1,m),{})");
-  assert.ok(Object.keys(per).length >= 30, `F9: campuses in at least 30 metros (${Object.keys(per).length})`);
-  fail('F9', Object.entries(per).filter(([, n]) => n > 2).map(([c]) => c), 'no metro holds more than two campuses');
-  fail('F9', J("MEGA.filter(m=>!CITY[m.c]).map(m=>m.c)"), 'campuses sit in real cities');
+  assert.ok(Object.keys(per).length >= 30, `F10: campuses in at least 30 metros (${Object.keys(per).length})`);
+  fail('F10', Object.entries(per).filter(([, n]) => n > 2).map(([c]) => c), 'no metro holds more than two campuses');
+  fail('F10', J("MEGA.filter(m=>!CITY[m.c]).map(m=>m.c)"), 'campuses sit in real cities');
 });
 
 test('D1: attack sizes come from the world, never from your network', () => {

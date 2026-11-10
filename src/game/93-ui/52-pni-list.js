@@ -15,7 +15,8 @@ function pniRow(c,n,pn,v,chk){let h=`<div class="row prow">${logo(n)}<div class=
   else{h+=chk.ok?`<div class="btns">${pniG1(n.id)?btn(tr('city_panel.port_cost_mo_mo',{port:'1G',cost:fmt$(PNI_G1_COST),mo:fmt$(Math.round(PORT[0].pni/2))}),'pni',{city:c,net:n.id,tier:-1},'sm',S.cash<PNI_G1_COST||!portOk(c,0)):''}${PORT.map((P2,i)=>portShown(i)&&i>=pniMin(n.id)?btn(tr('city_panel.port_cost_mo_mo',{port:P2.n,cost:fmt$(1500+P2.setup/2),mo:fmt$(P2.pni)}),'pni',{city:c,net:n.id,tier:i},'sm',S.cash<1500+P2.setup/2||!portOk(c,i)):'').join('')}</div><div class="meta">${pniEta(n.id)}${pniMin(n.id)?' · '+tr('city_panel.no_10g_net_starts_at_100g',{net:esc(n.name)}):pniG1(n.id)?' · '+tr('city_panel.sells_pnis_down_to_1g'):''}</div>${chk.fee?`<div class="meta">${tr('city_panel.paid_peering_price_mo_on_top',{price:fmt$(chk.fee)})}</div>`:''}`:`<div class="why">${esc(chk.why)}</div>`;}
   return h+`</div></div>`;}
 function pniListHtml(c){const f=UI.pniF||'all',az=UI.pniSort==='az',open=UI.pniOpen||{};
-  const rows=NETS.filter(n=>n.pops.includes(c)).map(n=>{const pn=S.pni.find(x=>x.city===c&&x.net===n.id)||null;const chk=pn?null:peerOk(n.id,'pni',c),v=pn?null:pniVal(n.id,c);return {n,pn,v,chk,s:pniStat(n.id,c).k,go:!!pn||(chk.ok&&v.g>=1)};});
+  // The search (#199) first: a network it hides needs no value worked out.
+  const rows=NETS.filter(n=>n.pops.includes(c)).map(n=>[n,S.pni.find(x=>x.city===c&&x.net===n.id)||null]).filter(([n,pn])=>netKeep(n,pn)).map(([n,pn])=>{const chk=pn?null:peerOk(n.id,'pni',c),v=pn?null:pniVal(n.id,c);return {n,pn,v,chk,s:pniStat(n.id,c).k,go:!!pn||(chk.ok&&v.g>=1)};});
   const keep=r=>f==='all'||(f==='t'&&(r.s==='t'||r.s==='none'))||(f==='worth'&&r.v&&r.v.worth)||(f==='pni'&&(r.s==='here'||r.s==='else'));
   const val=r=>r.v?r.v.val:-Infinity;
   rows.sort((a,b)=>az?a.n.name.localeCompare(b.n.name):(b.v&&b.v.worth)-(a.v&&a.v.worth)||val(b)-val(a)||a.n.name.localeCompare(b.n.name));
@@ -23,7 +24,7 @@ function pniListHtml(c){const f=UI.pniF||'all',az=UI.pniSort==='az',open=UI.pniO
   const shown=rows.filter(keep);if(!shown.length)return h+`<p class="empty">${tr('pni_list.nothing_matches')}</p>`;
   let left=listN('pni'),tot=0;
   for(const g of PNI_GRP){const gr=shown.filter(r=>pniGrpOf(r.n)===g);if(!gr.length)continue;
-    const w=gr.filter(r=>r.v&&r.v.worth).length,act=w||gr.some(r=>r.go),isOpen=f!=='all'||(open[g]??act);
+    const w=gr.filter(r=>r.v&&r.v.worth).length,act=w||gr.some(r=>r.go),isOpen=f!=='all'||netFiltered()||(open[g]??act);
     h+=`<div class="pgrp">${btn(`${isOpen?'▾':'▸'} ${esc(pniGrpL(g))} <small>${trn('pni_list.n_networks_w_worth_it',gr.length,{w})}</small>`,'pniGrp',{g,o:isOpen?0:1},'ghost sm')}</div>`;
     if(!isOpen)continue;tot+=gr.length;
     for(const r of gr){if(left--<=0)break;h+=pniRow(c,r.n,r.pn,r.v,r.chk);}}

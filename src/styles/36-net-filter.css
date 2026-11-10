@@ -1,0 +1,5 @@
+/* Find a network at a POP (#199) and the POP standards rows (#315). */
+.netf{display:flex;flex-direction:column;gap:6px;margin:0 0 10px}
+.netf input.t{font-size:16px;padding:6px 10px;min-height:44px}
+.netf .btns{margin:0}
+.ptier .row .btns{margin-top:4px}

@@ -10,6 +10,14 @@ Object.assign(ACT,{
    if(q.gen)p.gen=true;if(q.site){p.site2=true;p.site2Day=S.day;}if(q.router)p.routers=2;
    const moves=new Map(q.moves.map(m=>[m.id,m.site]));for(const c of S.caches)if(moves.has(c.id))c.site=moves.get(c.id);
    after();const msg=tr('utilities.kit_applied',{city:CITY[city].name});if(modal)utilitiesModal(city,msg);else toast(esc(msg),'good');},
+ // Every POP's kit in one go (#317), all or nothing on the quoted price, one redraw at the end.
+ utilityKitAll:({cost,city})=>{const q=utilityKitAll();if(!q||!q.cities.length)return;
+   if(q.cost!==+cost){utilitiesModal(city,tr('utilities.quote_changed'));return;}
+   if(S.cash<q.cost){toast(tr('interface.not_enough_cash_wait_for_revenue'),'bad');sfx('err');return;}
+   let n=0;opsQuiet(()=>{for(const c of q.cities){const k=utilityKit(c);if(!k||S.cash<k.cost)continue;const c0=S.cash;ACT.utilityKit({city:c,cost:k.cost});if(S.cash<c0||!k.cost)n++;}});
+   sfx('build');after();utilitiesModal(city,trn('utilities.kit_all_applied',n));},
+ // The intern's new-POP template with or without the kit, from the Utilities sheet: the same switch as in Ops.
+ utilityKitNew:({city})=>{if(!opsHired())return;S.ops.tpl.kit=!S.ops.tpl.kit;sfx('click');after();utilitiesModal(city);},
  utilityCaches:({city,quote,modal})=>{const q=utilityCaches(city);if(!q||!q.add.length)return;
    if(q.key!==quote){if(modal)utilitiesModal(city,tr('utilities.quote_changed'));else{renderPanel();toast(tr('utilities.quote_changed'));}return;}
    if(!portGate(city,q.ports))return;

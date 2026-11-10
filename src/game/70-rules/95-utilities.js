@@ -41,6 +41,12 @@ function utilityKit(city){const p=S&&S.pops[city];if(!p)return null;
   const gen=!p.gen,site=!p.site2,router=(p.routers||1)<2,g=p.rgen||0;
   return {gen,site,router,moves:utilityCacheMoves(city),cost:(gen?GEN_COST:0)+(site?SITE2_COST:0)+(router?routerCost(g,1):0),
     mo:(gen?GEN_MO:0)+(site?SITE2_MO:0)+(router?routerMo(g):0)};}
+// The kit at every POP that lacks part of it (#317): one quote, one button. From customer level 2, like the intern: early
+// on, every generator is a choice about money.
+const utilityKitAllOn=()=>!!S&&opsCanHire()&&!pzOn();
+function utilityKitAll(){if(!utilityKitAllOn())return null;const cities=[];let cost=0,mo=0,moves=0;
+  for(const c of Object.keys(S.pops)){const q=utilityKit(c);if(!q||(!q.cost&&!q.moves.length))continue;cities.push(c);cost+=q.cost;mo+=q.mo;moves+=q.moves.length;}
+  return {cities,cost,mo,moves};}
 function utilityPeers(){if(!S)return [];return Object.keys(S.ixp).filter(isIx).map(ix=>{
   const sessions=ixSessions(ix),requests=[],blocked=[];let existing=0;
   for(const id of ixMembers(ix)){

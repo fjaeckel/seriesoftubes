@@ -25,7 +25,10 @@ const OPS=[
  {k:'ix',i:'🔀',t:N_('ops.o_ix'),d:N_('ops.o_ix_d'),p:{}},
  {k:'pni',i:'🤝',pop:1,cap:50000,t:N_('ops.o_pni'),d:N_('ops.o_pni_d'),p:{g:{d:25,v:[5,10,25,50,100],l:N_('ops.p_g'),f:v=>fmtG(v)},tier:{d:0,v:[0,1,2],l:N_('ops.p_tier'),f:v=>tr('ops.at_least_port',{port:PORT[v].n})},paid:{d:false,v:[false,true],l:N_('ops.p_paid'),f:v=>v?tr('common.on'):tr('common.off')}}},
  {k:'repair',i:'🔧',cap:50000,t:N_('ops.o_repair'),d:N_('ops.o_repair_d'),p:{}},
- {k:'optics',i:'🌈',cap:250000,t:N_('ops.o_optics'),d:N_('ops.o_optics_d'),p:{at:{d:70,v:[50,60,70,80,90],l:N_('ops.p_at'),f:v=>v+'%'},pick:{d:'cheap',v:['cheap','big'],l:N_('ops.p_pick'),f:v=>tr({cheap:N_('ops.pick_cheap'),big:N_('ops.pick_big')}[v])}}},
+ {k:'optics',i:'🌈',cap:250000,t:N_('ops.o_optics'),d:N_('ops.o_optics_d'),p:{at:{d:70,v:[50,60,70,80,90],l:N_('ops.p_at'),f:v=>v+'%'},pick:{d:'cheap',v:['cheap','big'],l:N_('ops.p_pick'),f:v=>tr({cheap:N_('ops.pick_cheap'),big:N_('ops.pick_big')}[v])},
+   // New fiber pulls traffic onto itself the day it is lit (#316): the player may want to light it by hand, when the
+   // ports behind it are ready. Off: fiber without a channel stays dark; lit fiber still gets more optics when hot.
+   fresh:{d:true,v:[true,false],l:N_('ops.p_fresh'),f:v=>v?tr('common.on'):tr('common.off')}}},
  // Line systems up to a bigger one, and optics swapped for bigger ones, on fiber that is full and runs hot, or every fiber up to
  // a chosen line system. A line system swap is a day without that fiber: only where the traffic gets around it.
  {k:'optup',i:'🔭',cap:250000,t:N_('ops.o_optup'),d:N_('ops.o_optup_d'),p:{at:{d:80,v:[60,70,80,90],l:N_('ops.p_at'),f:v=>v+'%'},
@@ -208,8 +211,8 @@ const OPS_RUN={
      const lag=o.lag(),wantLag=o.n()<2&&o.rt>1,ups=wantLag&&lag?null:o.ups(),fit=ups&&(ups.find(u=>u.cap>=N*o.use)||ups.at(-1)),job=wantLag?lag||fit:fit||lag,was=o.sig();
      if(!job||!X.can('ports',job.cost)||!X.pay('ports',()=>{job.go();return o.sig()!==was;})){KV.rv=null;KV.pu.clear();break;}
      KV.rv=null;KV.pu.clear();X.did('ports',o.at+' '+job.w);yield;}},
- *optics(X){const at=opsP('optics','at')/100,big=opsP('optics','pick')==='big',gpd=(o,l)=>optG(o,l)/optCost(o);
-   for(const l of S.links){if(l.kind!=='df'||l.ready>S.day||l.eqDown>S.day||l.standby||l.cut>S.day)continue;
+ *optics(X){const at=opsP('optics','at')/100,big=opsP('optics','pick')==='big',fresh=opsP('optics','fresh'),gpd=(o,l)=>optG(o,l)/optCost(o);
+   for(const l of S.links){if(l.kind!=='df'||l.ready>S.day||l.eqDown>S.day||l.standby||l.cut>S.day||(!fresh&&!(l.ch||[]).length))continue;
      let cap=dfCap(l);const load=((R.load&&R.load[l.id])||0)*opsAhead();
      // New fiber gets its first channel; lit fiber gets more while it runs hot.
      for(let step=0;step<8&&(cap<=0?!(l.ch||[]).length:load>=cap*at);step++){if(chMax(l)-(l.ch||[]).length-soldSlots(l)<=0)break;

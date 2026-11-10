@@ -56,7 +56,9 @@
   const screen = (w) => {
     if (w.where === 'modal') return btns($('modal'));
     if (w.where === 'city') { UI.sel = { type: 'city', id: w.city }; UI.tab = w.tab; renderAll(); return btns($('panel')); }
-    if (w.where === 'link') { if (!S.links.some((l) => l.id === w.id)) return []; UI.sel = { type: 'link', id: w.id }; renderAll(); return btns($('panel')); }
+    // The city names in a link panel's header open the city (#196); older pages have plain text there. They only change
+    // the view, so neither page offers them, and both stay in lockstep.
+    if (w.where === 'link') { if (!S.links.some((l) => l.id === w.id)) return []; UI.sel = { type: 'link', id: w.id }; renderAll(); const P = $('panel'); for (const h of P.querySelectorAll('.ph h2 [data-act]')) h.removeAttribute('data-act'); return btns(P); }
     if (w.where === 'dash') { $('dash').hidden = false; UI.dtab = w.tab; renderDash(); const b = btns($('dash')); return b; }
     if (w.where === 'left') {
       UI.left = w.tab; UI.leftOpen = true; renderLeft(); let b = btns($('leftBody'));
