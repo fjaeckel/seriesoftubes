@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- From customer level 7, low-latency wholesale routes call: 1.6 or 3.2 Tbps between two of your cities with a strict latency limit, paying about three times what a hyperscaler pays per Gbps on the same route. Every day over the limit (after the first 15) you pay back a day's fee as an SLA credit and they lose patience twice as fast as a trading link over its limit, so keep a fast path and a fast backup. They never grow past 3.2 Tbps, so one contract cannot carry a whole level (#137).
 - A link that a closed border has taken down, like Doha to Dubai or Abu Dhabi while the neighbours have fallen out, now says so in its panel, with the days until it comes back, instead of showing nothing wrong. Leasing a new wave or fiber pair across that border during the spat warns you first that it will stay dark (#329).
 
 ## [3.3.0] — 2026-11-09
