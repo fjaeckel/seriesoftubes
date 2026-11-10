@@ -7,6 +7,8 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 - A link that a closed border has taken down, like Doha to Dubai or Abu Dhabi while the neighbours have fallen out, now says so in its panel, with the days until it comes back, instead of showing nothing wrong. Leasing a new wave or fiber pair across that border during the spat warns you first that it will stay dark (#329).
+- A customer asking for a discount at renewal now shows how much traffic they book and get, the price per Gbps now and asked, and any latency limit or path terms they signed for, each ticked or crossed as your network stands today (#292).
+- The two city names at the top of a wave, dark fiber or virtual circuit panel now open that city, for example to upgrade the router there before a bigger link (#196).
 
 ## [3.3.0] — 2026-11-09
 
