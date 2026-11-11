@@ -58,7 +58,7 @@ function salesDay(d){const L=S.sales;if(!L)return;
   if(L.vp&&d>=L.vp){L.p=null;L.vp=null;toast(tr('sales.vp_arrived'),'good',[{l:tr('sales.desk'),act:'salesOpen',args:{}}]);return;}
   const p=slP();if(!p)return;
   if(p==='eng')for(const cf of upcomingConfs(30)){if(cf.cap||cf.day-d!==30||(S.confReg||{})[cf.key])continue;
-    if(S.cash>=CONF_COST){S.cash-=CONF_COST;(S.confReg=S.confReg||{})[cf.key]=true;toast(tr('sales.eng_booked',{name:esc(slCap()),conf:esc(cf.n),city:esc(CITY[cf.c].name),cost:fmt$(CONF_COST)}),'');}}
+    if(S.cash>=CONF_COST){S.cash-=CONF_COST;(S.confReg=S.confReg||{})[cf.key]=true;if(!confQuiet())toast(tr('sales.eng_booked',{name:esc(slCap()),conf:esc(cf.n),city:esc(CITY[cf.c].name),cost:fmt$(CONF_COST)}),'');}}
   if(p==='ceo'){if(!(L.golf>=d))L.golf=d+50+Math.floor(slR('golf|'+d)*30);else if(d===L.golf){salesGolf(d);L.golf=d+50+Math.floor(slR('golf|'+d)*30);}
     if(!(L.say>=d))L.say=d+20+Math.floor(slR('say|'+d)*15);else if(d===L.say){toast(tr('sales.ceo_says',{say:tr(SALES_SAY[Math.floor(slR('sayl|'+d)*SALES_SAY.length)])}),'');L.say=d+20+Math.floor(slR('say|'+d)*15);}}}
 // The golf course: the biggest internet customer this network can take, in its biggest city, at 30% off, signed on the spot.

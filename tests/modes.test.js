@@ -377,7 +377,8 @@ test('Flood Season: attacks keep coming, grow, and only count when service held'
 
 test('DKNOG in Copenhagen is on the conference calendar', () => {
   const { ev, errors } = load();
-  ev("ACT.start({});S.cash=1e9;for(const g of GOALS)S.done[g.id]=0");
+  // Not Tier 1 yet: after that, conferences no longer report back (#101).
+  ev("ACT.start({});S.cash=1e9;for(const g of GOALS)S.done[g.id]=0;delete S.done.t1");
   const cf = JSON.parse(ev("JSON.stringify(CONFS.find(c=>c.n==='DKNOG'))"));
   assert.equal(cf.c, 'cph');
   assert.equal(ev(`MONTHS[${cf.m}]`), 'Mar', 'held in March, like the real one');

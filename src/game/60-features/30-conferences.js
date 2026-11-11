@@ -11,12 +11,14 @@ function confKey(cf,y){return cf.n+'@'+cf.c+'@'+y;}
 // No conference season in Best Effort: nothing to register for, nothing in the panel, no invitations.
 function upcomingConfs(within){if(!confsOn())return [];const y0=cal(S.day).y-1,out=[];for(const y of [y0,y0+1])for(const cf of CONFS){const d=confDay(cf,y);if(d>=S.day&&d-S.day<=within)out.push({...cf,day:d,key:confKey(cf,y)});}return out.sort((a,b)=>a.day-b.day);}
 function confBoost(id){const cb=S.conf;if(!cb||!(cb.until>S.day))return 1;const n=NET[id];return n&&n.pops.some(c=>CITY[c]&&CITY[c].reg===cb.reg)?0.5:1;}
-function confTick(d){S.confReg=S.confReg||{};
-  for(const cf of upcomingConfs(30)){if(cf.day-d===30&&!S.confReg[cf.key])toast(tr('conferences.conf_comes_to_city_in_30',{conf:esc(cf.n),city:esc(CITY[cf.c].name)}),'goal',[{l:tr('common.show_me'),act:'leftTab',args:{t:'deals'}}]);}
+// Once you have made Tier 1, conferences go quiet (#101): no reminders and no reports, only the Deals panel.
+const confQuiet=()=>!!(S.done&&S.done.t1!==undefined);
+function confTick(d){S.confReg=S.confReg||{};const q=confQuiet();
+  for(const cf of upcomingConfs(30)){if(!q&&cf.day-d===30&&!S.confReg[cf.key])toast(tr('conferences.conf_comes_to_city_in_30',{conf:esc(cf.n),city:esc(CITY[cf.c].name)}),'goal',[{l:tr('common.show_me'),act:'leftTab',args:{t:'deals'}}]);}
   for(const cf of upcomingConfs(0)){if(cf.day!==d||!S.confReg[cf.key])continue;const reg=CITY[cf.c].reg,sp=S.confReg[cf.key]==='sp';S.conf={until:d+CONF_DAYS,reg,name:cf.n,sp};S.stats.confs=(S.stats.confs||0)+1;if(sp)S.stats.confSp=(S.stats.confSp||0)+1;
     if(cf.cap)S.capDeal={at:d+4+Math.floor(Math.random()*5),c:cf.c};
     const r=Math.random();let extra='';if(r<0.3){const cash=5000+Math.floor(Math.random()*4)*5000;S.cash+=cash;extra=' '+tr('conferences.you_also_won_the_raffle_cash',{cash:fmt$(cash)});}else if(r<0.5)extra=' '+tr('conferences.someone_from_goggle_bought_you_a');if(cf.j)extra=' '+tr(cf.j)+(r<0.3?extra:'');
-    toast(tr('conferences.conf_in_city_you_shook_a',{conf:esc(cf.n),city:esc(CITY[cf.c].name),n:CONF_DAYS,region:esc(REG[reg])})+(sp?' '+tr('conferences.your_logo_was_on_every_lanyard',{region:esc(REG[reg])}):'')+(cf.cap?' '+tr('conferences.carriers_took_your_card_expect_big'):'')+extra,'goal');sfx('coin');}
+    if(!q){toast(tr('conferences.conf_in_city_you_shook_a',{conf:esc(cf.n),city:esc(CITY[cf.c].name),n:CONF_DAYS,region:esc(REG[reg])})+(sp?' '+tr('conferences.your_logo_was_on_every_lanyard',{region:esc(REG[reg])}):'')+(cf.cap?' '+tr('conferences.carriers_took_your_card_expect_big'):'')+extra,'goal');sfx('coin');}}
   capDealTick(d);}
 function confSection(){const up=upcomingConfs(75).slice(0,3),cb=S.conf&&S.conf.until>S.day?S.conf:null;if(!up.length&&!cb)return '';
   return `<h3 style="font-size:15px;margin:10px 0 4px">${tr('common.conferences')}</h3>${cb?`<div class="inc" style="background:#EAF7EE"><div class="nm">${tr('conferences.name_glow_n_days_left',{name:esc(cb.name),n:cb.until-S.day})}</div><div class="meta">${tr('conferences.selective_networks_in_region_need',{region:esc(REG[cb.reg])})}${cb.sp?' '+tr('conferences.as_a_sponsor_you_also_get',{region:esc(REG[cb.reg])}):''}</div></div>`:''}${up.map(confRow).join('')}`;}

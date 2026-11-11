@@ -12,6 +12,7 @@ All notable changes to this project are documented here. The project follows
 - The Connections list in the NOC dashboard no longer stays blank when you sort it by load or show only NNI ports while a fabric port runs at 400G. A 400G fabric port is the fastest there is, so the list now offers it one more LAG member instead of a faster port that does not exist. (#342)
 - You can now start a link by typing where it goes: open one of your POPs, go to Infra and tap Link to a city, then type a city, country or exchange and pick it. You get the same link window as dragging between the two on the map, which is much easier on a crowded phone screen (#343).
 - The Connections tab of the NOC dashboard can now shrink connections as well as grow them. Next to the upgrades, transit ports, PNIs and exchange ports get a downgrade to the next smaller port and a button to drop one LAG member, and a PNI that is still on order can be chased from the list, just like from the POP panel (#336).
+- Once you have made Tier 1, conferences stop sending notifications. No more 30-day reminders, reports from the hallway track or notes from your sales engineer about bookings; you can still register and sponsor from the Deals tab, and everything a conference does works as before (#101).
 
 ## [3.4.0] — 2026-11-10
 
