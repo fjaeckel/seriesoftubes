@@ -15,7 +15,8 @@ function conns(){const out=[],pn=(tier,n)=>(n||1)>1?`${n}×${PORT[tier].n} LAG`:
   return out;}
 // Cancel straight from the list, with the same "Really?" step as the POP panel.
 // Grow a connection from the list: the next port size and one more LAG member, same actions and prices as the POP panel.
-function connUp(r){if(r.mine)return '';const nx=t=>PORT[t+1]&&portShown(t+1)?t+1:-1;let h='';
+// nx looks up the next size in that kind of port's own table: fabric ports (NNI) stop at 400G.
+function connUp(r){if(r.mine)return '';const nx=(t,T=PORT)=>T[t+1]&&portShown(t+1)?t+1:-1;let h='';
   if(r.k==='t'){const t=S.transit.find(x=>x.id===r.id);if(!t)return '';const n=t.n||1,i=nx(t.tier);
     if(i>=0){const a={port:PORT[i].n,cost:fmt$(PORT[i].setup*n),mo:fmt$(PORT[i].tmo*n)};h+=btn(n>1?tr('common.upgrade_all_to_port_cost_mo',a):tr('common.upgrade_port_cost_mo_mo',a),'buyTransit',{city:t.city,net:t.net,tier:i},'sm',S.cash<PORT[i].setup*n||!portOk(t.city,i));}
     if(n<LAG_MAX)h+=btn(tr('common.lag_member_cost_mo_mo',{cost:fmt$(PORT[t.tier].setup),mo:fmt$(PORT[t.tier].tmo)}),'lagT',{id:t.id,d:1},'sm',S.cash<PORT[t.tier].setup||!portOk(t.city,t.tier));}
@@ -26,7 +27,7 @@ function connUp(r){if(r.mine)return '';const nx=t=>PORT[t+1]&&portShown(t+1)?t+1
     if(i>=0)h+=btn(tr('common.upgrade_port_price',{port:PORT[i].n,price:portMo(ixPortMo(c,i)*n)}),'buyIx',{city:c,tier:i},'sm',(!!S.pops[city]&&!portOk(city,i))||(!S.pops[city]&&i>1));
     if(S.pops[city]&&!S.myIx[c]&&n<LAG_MAX)h+=btn(tr('common.lag_member_price',{price:portMo(ixPortMo(c,S.ixp[c]))}),'lagIx',{city:c,d:1},'sm',S.cash<ixPortMo(c,S.ixp[c]));}
   else if(r.k==='c')h+=btn(tr('common.box'),'cache',{city:r.city,net:r.net},'sm');
-  else if(r.k==='nni'){const [city,prov]=r.id.split('|'),pt=nniPort(city,prov);if(!pt)return '';const n=pt.n||1,i=NNI[pt.tier+1]?nx(pt.tier):-1;// fabric ports stop at 400G
+  else if(r.k==='nni'){const [city,prov]=r.id.split('|'),pt=nniPort(city,prov);if(!pt)return '';const n=pt.n||1,i=nx(pt.tier,NNI);
     if(i>=0){const c=NNI[i].mo*n;h+=btn(n>1?tr('common.upgrade_all_to_port_cost_mo',{port:NNI[i].n,cost:fmt$(c),mo:fmt$(c)}):tr('common.upgrade_port_price_mo',{port:NNI[i].n,price:fmt$(c)}),'buyNni',{city,prov,tier:i},'sm',S.cash<c||!portOk(city,i));}
     if(n<LAG_MAX)h+=btn(tr('common.lag_member_price',{price:portMo(NNI[pt.tier].mo)}),'lagNni',{city,prov,d:1},'sm',S.cash<NNI[pt.tier].mo||!portOk(city,pt.tier));}
   return h;}
