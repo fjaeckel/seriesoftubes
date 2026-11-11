@@ -136,3 +136,15 @@ test('saves: fabric ports that make no sense are dropped, LAGs are kept in bound
   assert.equal(ev('R.cost.nni'), 500, 'a 10G port from before costs what it did');
   assert.deepEqual(errors, []);
 });
+
+test('a 400G fabric port in the Connections list offers a LAG member and no faster port, whatever the sort', () => {
+  const { ev, errors } = open();
+  ev(`S.pops.fra.rgen=${fast(5)};ACT.buyNni({city:"fra",prov:FB,tier:2});compute()`);
+  assert.ok(ev('portShown(3)'), 'an 800G port is on sale, so nothing stops the list from offering one');
+  for (const [k, cf] of [['use', '{}'], ['k', "{k:'nni'}"]]) {
+    const h = ev(`UI.connSort='${k}';UI.connDir=-1;UI.cf=${cf};connSection()`);
+    assert.match(h, /data-act="lagNni"/, `sorted by ${k}`);
+    assert.doesNotMatch(h, /data-act="buyNni"/, `sorted by ${k}: no 800G fabric port`);
+  }
+  assert.deepEqual(errors, []);
+});

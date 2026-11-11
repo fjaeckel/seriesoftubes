@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 - Alien waves you list on a fiber yourself now stay listed. With the capacity market selling for you, the broker used to cut your listing down to what its settings allowed the next day, or take it off altogether when the route's demand was below your minimum. Your own listing now stays put, and the broker adds what its settings allow on top (#340).
+- The Connections list in the NOC dashboard no longer stays blank when you sort it by load or show only NNI ports while a fabric port runs at 400G. A 400G fabric port is the fastest there is, so the list now offers it one more LAG member instead of a faster port that does not exist.
 
 ## [3.4.0] — 2026-11-10
 
