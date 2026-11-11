@@ -49,6 +49,9 @@ const ACT={
  logAll:()=>{UI.logAll=!UI.logAll;renderLeft();},
  findOpen:()=>findOpen(),
  findGo:({city})=>{if(!isCity(city))return;closeModal();$('dash').hidden=true;ACT.focusCity({city});},
+ // A link from one of your POPs to a city you type instead of dragging to (#343): the same window the drag opens.
+ findLink:({city})=>{if(!isCity(city)||!S.pops[city]||pzOn())return;findOpen(city);},
+ linkTo:({a,b})=>{if(!isCity(a)||!isCity(b)||a===b||pzOn()||!linkFromOk(a)||!linkToOk(b))return;$('dash').hidden=true;sfx('click');openLinkModal(a,b);},
  focusCity:({city})=>{selectCity(city);const C=CITY[city];cam.x=C.x;cam.y=C.y;cam.z=Math.max(cam.z,1.2);if(innerWidth<760)UI.leftOpen=false;renderLeft();},
  popStep:({d})=>{const L=popOrder(),n=L.length;if(!n)return;const i=UI.sel&&UI.sel.type==='city'?L.indexOf(UI.sel.id):-1;$('dash').hidden=true;ACT.focusCity({city:L[i<0?(d>0?0:n-1):(i+(d>0?1:n-1))%n]});},
  // The offer stays marked in its city's Offers here until something else is selected, so two offers in one city each get a press.

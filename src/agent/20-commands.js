@@ -537,6 +537,8 @@ const API_VIEW={
  linkCheck:{args:[['id','entityId']],doc:'Open the redundancy check for a link: what a single cut would drop, without changing anything.'},
  findOpen:{args:[],doc:'Open the city finder (the 🔍 in the top bar).'},
  findGo:{args:[['city','cityId']],doc:'Close the finder and jump to a city.'},
+ findLink:{args:[['city','cityId']],doc:'Open the city finder to pick where a new link from this POP goes (the "Link to a city" button in its panel).'},
+ linkTo:{args:[['a','cityId'],['b','cityId']],doc:'From the link finder: open the new-link window from POP a to city b, as dragging between them would.'},
  popStep:{args:[['d','integer']],doc:'Select and centre the previous (d<0) or next (d>0) of your POPs, by name: the [ and ] keys.'},
  offerStep:{args:[],doc:'Select the next open offer (soonest to expire first), centre its city and mark it under Offers here: the $ key.'},
  zoomStep:{args:[['d','integer']],doc:'Zoom the map out (d<0) or in (d>0) around its middle: the - and = keys.'},

@@ -103,7 +103,7 @@ function cityPanel(c){
         else h+=`<div class="btns">${NNI.map((N,i)=>portShown(i)?btn(tr('city_panel.port_port_price_mo_197d',{port:N.n,price:fmt$(N.mo)}),'buyNni',{city:c,prov:f.id,tier:i},'sm',S.cash<N.mo||!portOk(c,i)):'').join('')}</div>`;
         h+=`</div></div>`;}
       h+=`</section>`;}
-    h+=`<section><h3>${tr('city_panel.fiber_from_city',{city:C.name})}</h3><p class="lead">${tr('city_panel.drag_from_this_router_to_any')}</p>`;
+    h+=`<section><h3>${tr('city_panel.fiber_from_city',{city:C.name})}</h3><p class="lead">${tr('city_panel.drag_from_this_router_to_any')}</p><div class="btns">${btn(tr('city_panel.link_to_a_city'),'findLink',{city:c},'sm')}</div>`;
     if(!ls.length)h+=`<p class="empty">${tr('common.no_links_yet')}</p>`;
     for(const l of ls){const o=l.a===c?l.b:l.a,u=capOf(l)?(R.load[l.id]||0)/capOf(l):0,cut=linkDown(l);
       h+=`<div class="row"><div class="grow"><div class="nm">→ ${CITY[o].name}${l.mult>1?' · '+tr('common.diverse'):''} ${cut?'<span class="tag restrictive">'+tr('common.cut')+'</span>':''}</div><div class="meta">${capName(l)} · ${l.km.toLocaleString()} km ${l.kind==='vxc'?tr('city_panel.virtual_circuit_via_fab',{fab:esc(FAB[l.prov].name)}):l.kind==='df'?(l.own?(l.sub&&l.cname?tr('city_panel.your_own_subsea_cable_name',{name:esc(l.cname)}):tr('common.own_dark_fiber')):tr('city_panel.dark_fiber_iru'))+(l.ready>S.day?` · ${tr('city_panel.ready_in_n_d',{n:l.ready-S.day})}`:''):l.sub?tr('common.subsea'):tr('common.terrestrial')} · ${tr('common.price_mo',{price:fmt$(l.mo)})}</div><div class="bar ${barCls(u)}"><i style="width:${u*100}%"></i></div></div>${btn(tr('common.open'),'selLink',{id:l.id},'ghost sm')}</div>`;}
