@@ -26,7 +26,7 @@ function connUp(r){if(r.mine)return '';const nx=t=>PORT[t+1]&&portShown(t+1)?t+1
     if(i>=0)h+=btn(tr('common.upgrade_port_price',{port:PORT[i].n,price:portMo(ixPortMo(c,i)*n)}),'buyIx',{city:c,tier:i},'sm',(!!S.pops[city]&&!portOk(city,i))||(!S.pops[city]&&i>1));
     if(S.pops[city]&&!S.myIx[c]&&n<LAG_MAX)h+=btn(tr('common.lag_member_price',{price:portMo(ixPortMo(c,S.ixp[c]))}),'lagIx',{city:c,d:1},'sm',S.cash<ixPortMo(c,S.ixp[c]));}
   else if(r.k==='c')h+=btn(tr('common.box'),'cache',{city:r.city,net:r.net},'sm');
-  else if(r.k==='nni'){const [city,prov]=r.id.split('|'),pt=nniPort(city,prov);if(!pt)return '';const n=pt.n||1,i=nx(pt.tier);
+  else if(r.k==='nni'){const [city,prov]=r.id.split('|'),pt=nniPort(city,prov);if(!pt)return '';const n=pt.n||1,i=NNI[pt.tier+1]?nx(pt.tier):-1;// fabric ports stop at 400G
     if(i>=0){const c=NNI[i].mo*n;h+=btn(n>1?tr('common.upgrade_all_to_port_cost_mo',{port:NNI[i].n,cost:fmt$(c),mo:fmt$(c)}):tr('common.upgrade_port_price_mo',{port:NNI[i].n,price:fmt$(c)}),'buyNni',{city,prov,tier:i},'sm',S.cash<c||!portOk(city,i));}
     if(n<LAG_MAX)h+=btn(tr('common.lag_member_price',{price:portMo(NNI[pt.tier].mo)}),'lagNni',{city,prov,d:1},'sm',S.cash<NNI[pt.tier].mo||!portOk(city,pt.tier));}
   return h;}
