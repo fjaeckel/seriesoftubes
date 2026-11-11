@@ -21,10 +21,15 @@ const CM_HMAX=2.5;
 const cmNew=()=>({hold:25,p:JSON.parse(JSON.stringify(CM_DEF)),off:{},sh:[],news:[],seen:[]});
 const cmCut=()=>broker()?0.97:0.9;
 /* A fiber's listing, l.list: {w: spectrum slots, p: pairs} as it always was, plus m1/m4/m8/m16 (managed 100G to 1.6T
-   waves) when any are listed. cmClean() checks one (a save, or after a day of sales) and returns null when nothing is left. */
+   waves) when any are listed, and hw/hp: how many of w/p you listed by hand, which the broker's thresholds never take
+   back (#340). cmClean() checks one (a save, or after a day of sales) and returns null when nothing is left. */
 const cmLs=l=>l.list||(l.list={w:0,p:0});
+const CM_HAND={w:'hw',p:'hp'};
 function cmClean(L){if(!L||typeof L!=='object'||Array.isArray(L))return null;const x={w:int(L.w,0,256,0),p:int(L.p,0,2,0)};let any=x.w||x.p;
+  for(const k in CM_HAND){const v=Math.min(x[k],int(L[CM_HAND[k]],0,256,0));if(v)x[CM_HAND[k]]=v;}
   for(const p of CM_W){const v=int(L[CM_L[p]],0,256,0);if(v){x[CM_L[p]]=v;any=1;}}return any?x:null;}
+// What you listed by hand of a product on a fiber (only alien waves and pairs can be).
+const cmHand=(l,lk)=>(CM_HAND[lk]&&l.list&&l.list[CM_HAND[lk]])||0;
 // A stable number in [0,1) for a route and a question, different in every game.
 const cmU=(k,q)=>hstr(k+'|'+q+'|'+((S&&S.asn)||0))%100000/100000;
 /* How hot a route is (1 = its usual self). Its own slow cycle (two waves of 4 to 10 and 1.5 to 3 months) is what a
@@ -130,7 +135,8 @@ function cmShocks(d){const C=S.cm;C.sh=C.sh.filter(x=>x.until>d);
    while demand is at least your minimum and the price at least your floor) or takes it off, then each listing may
    find a buyer: the more room the route has left and the hotter it is, the sooner; the fastest fiber sells first. */
 function cmList1(r,p,s,d){const c=S.cm.p[p],lk=CM_L[p];if(!c.on||S.cm.off[r.k])return;const ok=cmDem(r,p,d)>=c.min&&cmIdx(r,p,s,0,d)*100>=c.floor;
-  for(const l of r.ls){const n=ok?cmSpare(l,p):0;if(n>0)cmLs(l)[lk]=n;else if(l.list)l.list[lk]=0;}}
+  // What you listed by hand stays listed on top of what the thresholds allow, up to what the fiber has free.
+  for(const l of r.ls){const h=cmHand(l,lk),n=Math.min(ok?cmSpare(l,p)+h:h,h?(p==='spec'?freeCh(l):1):Infinity);if(n>0)cmLs(l)[lk]=n;else if(l.list)l.list[lk]=0;}}
 // The listings as the thresholds want them right now (after you change a setting), without selling anything.
 function cmRelist(){const rs=cmRoutes(),sold=cmSold(rs);for(const r of rs.values())for(const p of CM_P)cmList1(r,p,sold.get(r.k)[p],S.day);cmTidy();}
 const cmTidy=()=>{for(const l of S.links)if(l.list){const L=cmClean(l.list);if(L)l.list=L;else delete l.list;}};
@@ -146,7 +152,9 @@ function cmDay(d=S.day){const C=S.cm;cmShocks(d);const rs=cmRoutes(),sold=cmSold
       while(n>0&&cmIdx(r,p,s[p],n-1,d)*100<C.p[p].floor)n--;if(!n)continue;
       const cut=cmCut()*mkt(),L=cmList(r,p);let rate=0;for(let i=0;i<n;i++)rate+=L*cmIdx(r,p,s[p],i,d);
       const up=p==='iru'?Math.round(cmUpList(r)*cmIdx(r,p,s[p],0,d)*cut):0;
-      cmSell(l,p,n,Math.round(rate*cut),up);s[p]+=n;l.list[lk]-=n;}}
+      cmSell(l,p,n,Math.round(rate*cut),up);s[p]+=n;l.list[lk]-=n;
+      // Sales take from the broker's share first: what you listed by hand goes only once that is sold.
+      if(cmHand(l,lk)>l.list[lk])l.list[CM_HAND[lk]]=l.list[lk];}}
   cmGrow(d);cmTidy();}
 /* What the next 30 and 90 days look like on a route, for a Cable broker: the route's own cycle and the news already
    out, but not the noise or news still to come. */

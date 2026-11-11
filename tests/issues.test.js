@@ -1279,7 +1279,7 @@ test('#51 a dark fiber shows what is rented out, and spare capacity can be liste
   assert.equal(ev("S.links[0].list?S.links[0].list.w:0"), 4 - b.slots, 'the listing shrinks by what sold');
   // when every channel is lit or sold, only the spare pair in your own trench can be listed; then nothing is left
   ev("const l=S.links[0];delete l.list;l.ch=Array(chMax(l)-soldSlots(l)).fill('tp16');after();ACT.listFiber({id:'df1',w:4,p:1})");
-  assert.deepEqual(JSON.parse(ev("JSON.stringify(S.links[0].list)")), { w: 0, p: 1 });
+  assert.deepEqual(JSON.parse(ev("JSON.stringify(S.links[0].list)")), { w: 0, p: 1, hp: 1 });
   ev("S.biz.push({id:'p1',type:'dfpair',link:'df1',city:'fra',city2:'ams',name:'X',bw:1,rate:1,reqs:[]},{id:'p2',type:'dfpair',link:'df1',city:'fra',city2:'ams',name:'Y',bw:1,rate:1,reqs:[]});delete S.links[0].list;S.offers=[];renderPanel()");
   assert.match(txt(), /Nothing spare to sell on this fiber right now/);
   ev("ACT.listFiber({id:'df1',w:1,p:1})"); assert.equal(ev("S.links[0].list===undefined"), true);

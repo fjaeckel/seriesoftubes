@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Alien waves you list on a fiber yourself now stay listed. With the capacity market selling for you, the broker used to cut your listing down to what its settings allowed the next day, or take it off altogether when the route's demand was below your minimum. Your own listing now stays put, and the broker adds what its settings allow on top (#340).
+
 ## [3.4.0] — 2026-11-10
 
 - A PNI can now grow past eight ports: each router at the POP takes eight members of a PNI, up to 32, so a busier interconnect costs another router and its ports. Saves keep every LAG they have, and a router a PNI still needs stays until the PNI shrinks (#323).

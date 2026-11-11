@@ -43,7 +43,7 @@ test('a listing is kept in the save, checked, and can be taken off the market', 
   fiber(ev, 'big', 'fra', 'ams', 450);
   ev("ACT.listFiber({id:'big',w:4})");
   ev("const t=JSON.stringify(packSave(S));S=migrate(JSON.parse(t))");
-  assert.deepEqual(JSON.parse(ev("JSON.stringify(S.links.find(l=>l.id==='big').list)")), { w: 4, p: 0 });
+  assert.deepEqual(JSON.parse(ev("JSON.stringify(S.links.find(l=>l.id==='big').list)")), { w: 4, p: 0, hw: 4 });
   ev("const o=JSON.parse(JSON.stringify(packSave(S)));o.links.find(l=>l.id==='big').list={w:'lots',p:-3};S=migrate(o)");
   assert.equal(ev("S.links.find(l=>l.id==='big').list===undefined"), true, 'junk is dropped');
   ev("ACT.listFiber({id:'big',w:2});ACT.unlistFiber({id:'big'})");
