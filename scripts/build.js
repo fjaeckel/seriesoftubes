@@ -37,6 +37,21 @@ for (const f of ['index.html', 'sitemap.xml', 'llms.txt', 'sw.js']) {
 // The federation server registry, as one static same-origin file (docs/FEDERATION-PROTOCOL.md 11.3). Built in Node
 // so the build needs no Go; CI checks it matches `relay build-servers-json` byte for byte.
 require('./registry').build(path.join(ROOT, 'federation', 'servers'), path.join(OUT, 'federation', 'servers.json'));
+fs.writeFileSync(path.join(OUT, 'federation', 'relay.json'), JSON.stringify(relayFeed()) + '\n');
+
+/* The relay's update feed (docs/RELAY.md "Update notices"): relays read it beside servers.json; the game page never
+   asks for it. The relay ships with every release, so its newest version is the game's. A release that fixes a relay
+   security issue sets package.json "relaySecurity" to its own version (the release skill): it is marked security, and
+   relays older than relaySecurity hear "security" until they update, whatever came after it. */
+function relayFeed() {
+  const sec = require(path.join(ROOT, 'package.json')).relaySecurity;
+  if (sec !== undefined && (typeof sec !== 'string' || !/^[0-9]+\.[0-9]+\.[0-9]+$/.test(sec))) die(`package.json relaySecurity '${sec}' is not a version x.y.z`);
+  const m = fs.readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8').match(new RegExp(`^## \\[${VERSION.replace(/[.+]/g, '\\$&')}\\] — (\\d{4}-\\d{2}-\\d{2})`, 'm'));
+  const f = { v: 1, version: VERSION, released: m ? m[1] : BUILD_DATE, security: sec === VERSION,
+    notes: `https://github.com/fjaeckel/seriesoftubes/releases/tag/v${VERSION}` };
+  if (sec) f.minSafe = sec;
+  return f;
+}
 
 // Release notes for this version, baked into the page ("What's new") and published as version.json so
 // open games can spot a newer release.

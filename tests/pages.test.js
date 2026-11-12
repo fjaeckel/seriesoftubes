@@ -32,8 +32,21 @@ test('pages: the build is plain static files within GitHub Pages limits', () => 
     total += size;
   }
   assert.ok(total < 1e9, 'the site is under the 1 GB limit');
-  for (const f of ['index.html', '404.html', 'CNAME', 'version.json', 'sw.js', 'federation/servers.json']) assert.ok(fs.existsSync(path.join(OUT, f)), `${f} is shipped`);
+  for (const f of ['index.html', '404.html', 'CNAME', 'version.json', 'sw.js', 'federation/servers.json', 'federation/relay.json']) assert.ok(fs.existsSync(path.join(OUT, f)), `${f} is shipped`);
   assert.equal(read('CNAME').trim(), 'seriesoftub.es');
+});
+
+test('pages: relay.json, the relays\' update feed, is a static file the game page never asks for', () => {
+  const f = JSON.parse(read('federation/relay.json'));
+  const sec = require('../package.json').relaySecurity;
+  assert.deepEqual(Object.keys(f).sort(), ['notes', 'released', 'security', 'v', 'version', ...(sec ? ['minSafe'] : [])].sort());
+  assert.equal(f.v, 1);
+  assert.equal(f.version, '1.2.3');
+  assert.match(f.released, /^\d{4}-\d{2}-\d{2}$/);
+  assert.equal(f.security, sec === '1.2.3');
+  assert.equal(f.notes, 'https://github.com/fjaeckel/seriesoftubes/releases/tag/v1.2.3');
+  // Relays read it on their own schedule; a player's page load costs nothing more (no new request, not cached).
+  for (const p of ['index.html', 'sw.js']) assert.doesNotMatch(read(p), /relay\.json/, `${p} refers to relay.json`);
 });
 
 test('pages: the repository has no hosting configuration for anywhere else', () => {

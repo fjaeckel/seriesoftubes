@@ -75,6 +75,9 @@ gh api repos/fjaeckel/seriesoftubes/releases/latest --jq '.tag_name+" "+.publish
 3. Bump the version in **both** files:
    - `package.json` → `"version"`
    - `package-lock.json` → top-level `"version"` and `packages[""].version`
+   - Only if the release fixes a security issue in the relay: set `"relaySecurity"` in `package.json` to the new
+     version too (leave it alone otherwise); the build then marks `federation/relay.json` security and relays older
+     than it warn their operators louder.
 4. (Nothing to run here: the workflow tests the release before it tags it.)
 5. Commit on `main` as Frederic, with no attribution trailers:
    ```bash

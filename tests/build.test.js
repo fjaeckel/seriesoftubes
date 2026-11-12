@@ -14,7 +14,7 @@ test('build stamps version and date into the site', () => {
   assert.match(html, /const APP_VERSION='9\.9\.9'/);
   assert.match(html, /"softwareVersion": "9\.9\.9"/);
   assert.match(fs.readFileSync(path.join(OUT, 'sitemap.xml'), 'utf8'), /<lastmod>2030-01-01<\/lastmod>/);
-  for (const f of ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'site.webmanifest', 'robots.txt', 'images/og-image.png', '404.html', 'CNAME', 'version.json', 'federation/servers.json']) {
+  for (const f of ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'site.webmanifest', 'robots.txt', 'images/og-image.png', '404.html', 'CNAME', 'version.json', 'federation/servers.json', 'federation/relay.json']) {
     assert.ok(fs.existsSync(path.join(OUT, f)), `${f} is shipped`);
   }
 });
@@ -25,6 +25,12 @@ test('version.json carries the release notes from the changelog', () => {
   assert.equal(v.version, '1.0.0');
   assert.ok(v.notes.length >= 5);
   assert.ok(v.notes.every((n) => !n.startsWith('-')));
+  // The relays' update feed: the release date comes from the CHANGELOG heading, not the build date.
+  const r = JSON.parse(fs.readFileSync(path.join(OUT, 'federation', 'relay.json'), 'utf8'));
+  const day = fs.readFileSync(path.join(root, 'CHANGELOG.md'), 'utf8').match(/^## \[1\.0\.0\] — (\d{4}-\d{2}-\d{2})/m)[1];
+  assert.equal(r.version, '1.0.0');
+  assert.equal(r.released, day);
+  assert.equal(r.notes, 'https://github.com/fjaeckel/seriesoftubes/releases/tag/v1.0.0');
 });
 
 test('head carries the SEO and social metadata', () => {
