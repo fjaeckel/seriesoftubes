@@ -561,6 +561,10 @@ anyone fill every relay's store and tally.
 
 - WebSocket over TLS only (`wss://`), subprotocol **`tubes-fed.1`**. A node refuses a connection without it. The
   subprotocol names this framing; the protocol version inside is negotiated by `hello`.
+- Development only: a game page that was itself loaded from a loopback host (`localhost`, `127.0.0.1`, `[::1]` or a
+  name ending in `.localhost`) dials a node whose URL host ends in `.localhost` with plain `ws://` instead, so a relay
+  run on the same machine needs no certificate. URLs in records stay `wss://`; nothing else changes. The page players
+  load is never on a loopback host, so this never applies to them.
 - Every message is one **text frame** holding one JSON object with a string member `m` (the message type). Binary
   frames close the connection.
 - Frame limits: **65536 bytes** between clients and nodes, **1048576 bytes** between nodes. Larger: `too_big`, and the

@@ -58,10 +58,14 @@ const fedLive=c=>{if(fedMine(c.M)&&c.M.conns.get(c.url)===c)return true;if(FED.l
 function fedHang(c){FED.clear(c.t);FED.clear(c.tick);c.t=c.tick=null;const ws=c.ws;c.ws=null;c.phase='';
   if(ws){ws.onopen=ws.onmessage=ws.onerror=ws.onclose=null;try{ws.close();}catch(e){}}
   for(const r of c.rq.values()){FED.clear(r.t);r.res(null);}c.rq.clear();c.sub=0;FED.clear(c.subT);c.subT=null;c.subQ=null;}
+/* Development only (§9.1): a page loaded from a loopback host dials a *.localhost node over plain ws://, so a relay on
+   the same machine needs no certificate. The page players load is never on a loopback host. */
+const FED_LOOP=/^(localhost|127\.0\.0\.1|\[::1\]|[a-z0-9.-]+\.localhost)$/;
+const fedSock=(u,h=typeof location!=='undefined'?location.hostname:'')=>FED_LOOP.test(h)&&/^wss:\/\/[a-z0-9.-]+\.localhost(?=[:/]|$)/.test(u)?'ws'+u.slice(3):u;
 function fedDial(c){if(!fedLive(c))return;fedHang(c);
   if(!FED.visible()){fedSt(c,'waiting');return;}
   const url=c.nodes[c.ni%c.nodes.length];let ws;c.node=url;
-  try{ws=FED.WS(url);}catch(e){fedDrop(c,'open');return;}
+  try{ws=FED.WS(fedSock(url));}catch(e){fedDrop(c,'open');return;}
   c.ws=ws;c.phase='open';fedSt(c,c.state==='offline'||c.state==='waiting'?'offline':'connecting');
   c.t=FED.set(()=>fedDrop(c,'timeout'),FED.T.open);
   ws.onopen=()=>{if(c.ws!==ws)return;c.phase='hello';fedSend(c,{m:'hello',vers:FED_VERS,role:'client'});};

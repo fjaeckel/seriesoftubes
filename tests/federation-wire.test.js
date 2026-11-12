@@ -114,3 +114,16 @@ test('five shun votes arriving together, each in its own frame, are all counted'
   assert.equal((await p.ev('fedShunned()')).length, 1, 'five votes: shunned');
   assert.deepEqual(p.errors, []);
 });
+
+test('only a page on a loopback host dials a *.localhost node over plain ws:// (development, §9.1)', async () => {
+  const p = fedPage();
+  const sock = (u, h) => p.ev(`fedSock(${JSON.stringify(u)},${JSON.stringify(h)})`);
+  assert.equal(await sock('wss://relay.localhost:8443/fed', 'localhost'), 'ws://relay.localhost:8443/fed');
+  assert.equal(await sock('wss://relay.localhost/fed', '127.0.0.1'), 'ws://relay.localhost/fed');
+  assert.equal(await sock('wss://a.relay.localhost', 'game.localhost'), 'ws://a.relay.localhost');
+  // The page players load, or a node that is not on this machine: TLS as always.
+  assert.equal(await sock('wss://relay.localhost:8443/fed', 'seriesoftub.es'), 'wss://relay.localhost:8443/fed');
+  assert.equal(await sock('wss://relay.example.net/fed', 'localhost'), 'wss://relay.example.net/fed');
+  assert.equal(await sock('wss://relay.localhost.example.net/fed', 'localhost'), 'wss://relay.localhost.example.net/fed');
+  assert.equal(await sock('wss://relay.localhost:8443/fed', 'localhost.example.net'), 'wss://relay.localhost:8443/fed');
+});

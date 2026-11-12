@@ -4,8 +4,9 @@
 //
 //   node scripts/fed-e2e.js            [--keep] (leave the temp folder) [--headed] [--fakes N] (default 260)
 //                                      [--quick] (skip the wait for the slot to end, and the board checks after it)
-//   node scripts/fed-e2e.js --play     [--fakes N] (default 12) sets up the same relay, then opens two Chromium windows
-//                                      for you to play against yourself; it runs until you close them or press Ctrl-C
+//   node scripts/fed-e2e.js --play     [--fakes N] (default 12) [--port P] sets up the same relay without TLS (the
+//                                      game dials *.localhost nodes over ws:// from a localhost page, §9.1) and prints
+//                                      two addresses to open in any browser, one player each; runs until Ctrl-C
 //
 // Everything runs on loopback: the relay serves TLS itself with a certificate made for the run (Chromium is told to
 // ignore that it is self-signed), the page is served by a small static server, and a registry (servers.json) lists the
@@ -25,7 +26,7 @@ const registry = require('./registry');
 
 const arg = (k) => process.argv.includes(k);
 const argv = (k, d) => { const i = process.argv.indexOf(k); return i >= 0 ? process.argv[i + 1] : d; };
-const PLAY = arg('--play'), KEEP = arg('--keep'), HEADED = arg('--headed') || PLAY, QUICK = arg('--quick');
+const PLAY = arg('--play'), KEEP = arg('--keep'), HEADED = arg('--headed'), QUICK = arg('--quick');
 const FAKES = Math.max(0, +argv('--fakes', PLAY ? 12 : 260) || 0);
 const HOST = 'relay.localhost', SLOT = 300, DAY = 86400;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -134,7 +135,7 @@ async function main() {
   let relayLog = '';
   const P = {};
   try {
-    const [port, mport, wport] = [await freePort(), await freePort(), await freePort()];
+    const wport = PLAY && +argv('--port', 0) || await freePort(), [port, mport] = [await freePort(), await freePort()];
     const URL1 = `wss://${HOST}:${port}/fed`;
 
     await step('build the relay (go build)', async () => {
@@ -169,12 +170,12 @@ async function main() {
       return `server ${srv[0].id.slice(0, 8)}…`;
     });
 
-    await step('relay serves TLS on loopback', async () => {
-      execFileSync('openssl', ['req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:prime256v1', '-nodes', '-days', '2', '-subj', `/CN=${HOST}`,
+    await step(PLAY ? 'relay serves plain ws on loopback' : 'relay serves TLS on loopback', async () => {
+      if (!PLAY) execFileSync('openssl', ['req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:prime256v1', '-nodes', '-days', '2', '-subj', `/CN=${HOST}`,
         '-addext', `subjectAltName=DNS:${HOST}`, '-keyout', path.join(tmp, 'tls.key'), '-out', path.join(tmp, 'tls.crt')], { stdio: 'ignore' });
       const cf = path.join(srv[0].d, 'config.json'), c = JSON.parse(fs.readFileSync(cf, 'utf8'));
-      Object.assign(c, { listen: `127.0.0.1:${port}`, tlsCert: path.join(tmp, 'tls.crt'), tlsKey: path.join(tmp, 'tls.key'), metrics: `127.0.0.1:${mport}`,
-        registry: path.join(tmp, 'site', 'federation', 'servers.json') });
+      Object.assign(c, { listen: `127.0.0.1:${port}`, metrics: `127.0.0.1:${mport}`, registry: path.join(tmp, 'site', 'federation', 'servers.json') },
+        PLAY ? {} : { tlsCert: path.join(tmp, 'tls.crt'), tlsKey: path.join(tmp, 'tls.key') });
       fs.writeFileSync(cf, JSON.stringify(c, null, 2));
       const p = spawn(bin, ['serve', '--data', srv[0].d], { stdio: ['ignore', 'pipe', 'pipe'] });
       procs.push(p);
@@ -213,8 +214,8 @@ async function main() {
     const fakes = [];
     let raw = null;
     await step(`put ${FAKES} made-up networks (announce + stats) through a raw client`, async () => {
-      process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'; // the run's own self-signed certificate, loopback only
-      raw = new Raw(`wss://127.0.0.1:${port}/fed`);
+      if (!PLAY) process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'; // the run's own self-signed certificate, loopback only
+      raw = new Raw(`${PLAY ? 'ws' : 'wss'}://127.0.0.1:${port}/fed`);
       const w = await raw.open();
       must(w.server === srv[0].id, 'welcome names another server');
       const t = now();
@@ -244,30 +245,29 @@ async function main() {
       return `${items.length} records in ${pages.length} pages, cursor ${pages.at(-1).cursor}`;
     });
 
+    // --play: no browser of ours; two addresses with different origins (so separate saves), each on an invite.
+    if (PLAY) {
+      const inv = `/#join=${URL1}`;
+      console.log(`\nReady. Relay ${URL1.replace('wss:', 'ws:')} (server "E2E Tubes"), no TLS. Open one address per player:
+  Player 1: http://localhost:${wport}${inv}
+  Player 2: http://127.0.0.1:${wport}${inv}
+Name your network, start a Normal game, and the join sheet opens: press Join. Then menu > Multiplayer: the looking
+glass finds the other player, its Deals button asks for peering. Ctrl-C stops (the relay is thrown away; the games
+stay in the browser).`);
+      await new Promise(() => {}); // until Ctrl-C (SIGINT cleans up)
+    }
+
     // The browsers.
     const { chromium } = require('playwright-core');
     // The full Chromium of the Playwright cache (its new headless mode), so no separate headless shell is needed.
     const exe = process.env.FED_E2E_CHROME || chromeIn(chromium.executablePath());
-    browser = await chromium.launch({ executablePath: fs.existsSync(exe) ? exe : undefined, headless: !HEADED, args: ['--ignore-certificate-errors', `--host-resolver-rules=MAP ${HOST} 127.0.0.1`] });
+    /* The page is opened as http://game.test, not a loopback name: from a loopback page the game would dial *.localhost
+       nodes over plain ws:// (§9.1, development), and this run tests TLS. Chromium is told to treat it as secure, as
+       WebCrypto needs. */
+    const PAGE = `http://game.test:${wport}/`;
+    browser = await chromium.launch({ executablePath: fs.existsSync(exe) ? exe : undefined, headless: !HEADED,
+      args: ['--ignore-certificate-errors', `--host-resolver-rules=MAP ${HOST} 127.0.0.1, MAP game.test 127.0.0.1`, `--unsafely-treat-insecure-origin-as-secure=${PAGE.slice(0, -1)}`] });
 
-    // --play: two windows (two separate players, each with its own storage) opened on an invite link to the relay.
-    if (PLAY) {
-      const gone = new Promise((res) => browser.on('disconnected', res));
-      let open = 2;
-      for (let i = 0; i < 2; i++) {
-        const ctx = await browser.newContext({ ignoreHTTPSErrors: true, viewport: null });
-        const page = await ctx.newPage();
-        page.on('close', () => { if (--open === 0) browser.close().catch(() => {}); });
-        await page.goto(`http://127.0.0.1:${wport}/#join=${URL1}`, { waitUntil: 'load' });
-      }
-      console.log(`\nReady: two player windows are open on an invite to ${URL1} (server "E2E Tubes").
-In each window: name your network, start a Normal game, and the join sheet opens: press Join.
-Then menu > Multiplayer: the looking glass finds the other player, the deals sheet asks for peering.
-Close both windows or press Ctrl-C to stop (the relay and every game in these windows are thrown away).`);
-      await gone;
-      if (raw) raw.close();
-      return;
-    }
     const players = {};
     async function player(name) {
       const ctx = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -280,7 +280,7 @@ Close both windows or press Ctrl-C to stop (the relay and every game in these wi
         ws.on('framereceived', (f) => { try { p.frames.push(JSON.parse(f.payload)); } catch (e) { /* not JSON */ } });
         ws.on('framesent', (f) => { try { p.sent.push(JSON.parse(f.payload)); } catch (e) { /* not JSON */ } });
       });
-      await page.goto(`http://127.0.0.1:${wport}/`, { waitUntil: 'load' });
+      await page.goto(PAGE, { waitUntil: 'load' });
       await page.evaluate((nm) => { const i = document.getElementById('nmIn'); if (i) i.value = nm; UI.pitched = true; ACT.start({}); }, name);
       await page.waitForFunction(() => typeof S !== 'undefined' && S && UI.started);
       await page.evaluate(() => { try { closeModal(); } catch (e) { /* none */ } });
