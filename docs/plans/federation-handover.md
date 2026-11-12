@@ -153,7 +153,25 @@ at that sandbox method.
   `tests/federation-mentor.test.js`, Go `TestConeShapes`, `BenchmarkConeBoard`; vectors boards 022–030, deals 030–037,
   records 135–143; end to end four new steps.
 
+- **Full project review** (2026-11-12): six parallel reviews (relay network/security, relay data, client core,
+  multiplayer gameplay/UI, single-player core, single-player UI/site/build/CI). Fixed with a regression test each:
+  18 relay findings (bloated catalog entries, signature-weighted pacing, unverified-peer limits, votes only from the
+  registry, durable leave removals, torn lines, retention for carry-forward and shun lift, ranking order/slot/key
+  races, one relay per data folder, /64 limiter, …), 15 client findings (per-network cursors and caches, no sub
+  without auth, back-off that holds, pending deals kept, renewals once and on time, deal cap keeping running deals,
+  honest consortium price, …), the service worker caching 404s as the game page, focus after modals, `$HOST` in
+  dev.js, finishing an in-flight day before a forced save, hostile loan/grace/transit numbers in saves. Full checks:
+  focused tests 292/292, Go race clean, vectors 254, i18n 0/0/0, end to end 30/30, perf (jsdom, Chromium desktop and
+  phone) no slowdowns, routing identical.
+
 ## Open work, roughly in order
+
+0. Follow-ups from the review: (a) two announces of one network signed in the same second tie on `t` and games keep
+   the lower id (§10.11); the e2e waits a second between term changes. Proper fix: a per-network sequence number in
+   the announce (spec, Go, vectors). (b) The fiber market's cut shock picks its city by hashing a clock-based incident
+   id (`37-fiber-market.js`): deterministic per run, but not across replays; changing it alters game outcomes vs main,
+   so do it with a release. (c) Leaderboard board fetches no longer exist, so the old global record queue concern is
+   gone; the remaining main-thread cost during a big backlog is IndexedDB writes (`scripts/fed-perf.js`).
 
 1. Decisions for Frederic:
    - FEDERATION-PROTOCOL §9.3: an `ack` answering `unsub` carries only `id` (spec matched to what the relay sends).
