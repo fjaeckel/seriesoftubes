@@ -1,123 +1,125 @@
-// Package metrics keeps counts for an optional localhost-only /metrics endpoint in the
-// Prometheus text format. Counts only: no label ever holds an address, key or name.
+// Package metrics keeps counts for an optional localhost-only /metrics endpoint, using the
+// Prometheus client library on a private registry. Counts only: no label ever holds an
+// address, key or name, just a kind, an error code or a role.
 package metrics
 
 import (
-	"fmt"
 	"io"
 	"net/http"
-	"sort"
-	"strings"
 	"sync"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	dto "github.com/prometheus/client_model/go"
+	"github.com/prometheus/common/expfmt"
 )
 
-// M holds counters and gauges, each with at most one label (a kind, a code or a role).
+// M holds the relay's counters (each with at most one label) and its scrape-time gauges.
+// A nil *M is valid and records nothing.
 type M struct {
+	reg    *prometheus.Registry
 	mu     sync.Mutex
-	help   map[string]string
-	typ    map[string]string
-	vals   map[string]map[string]float64 // name -> label value -> value
-	labels map[string]string             // name -> label name
-	gauges map[string]func() float64
+	plain  map[string]prometheus.Counter
+	vecs   map[string]*prometheus.CounterVec
+	gauges map[string]prometheus.Collector
 }
 
-// New makes an empty set with the relay's metrics declared.
+// New makes a private registry with the relay's metrics and the Go runtime and process
+// collectors declared. Nothing is registered globally.
 func New() *M {
-	m := &M{help: map[string]string{}, typ: map[string]string{}, vals: map[string]map[string]float64{},
-		labels: map[string]string{}, gauges: map[string]func() float64{}}
-	m.declare("relay_connections_total", "counter", "role", "Connections accepted, by role.")
-	m.declare("relay_records_in_total", "counter", "kind", "Records stored, by kind.")
-	m.declare("relay_records_out_total", "counter", "", "Records sent to clients and nodes.")
-	m.declare("relay_refused_total", "counter", "code", "Records and frames refused, by error code.")
-	m.declare("relay_syncs_total", "counter", "", "Node sync sessions started.")
+	m := &M{reg: prometheus.NewRegistry(), plain: map[string]prometheus.Counter{},
+		vecs: map[string]*prometheus.CounterVec{}, gauges: map[string]prometheus.Collector{}}
+	m.reg.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	m.counter("relay_connections_total", "role", "Connections accepted, by role.", "client", "node")
+	m.counter("relay_records_in_total", "kind", "Records stored, by kind.")
+	m.counter("relay_records_out_total", "", "Records sent to clients and nodes.")
+	m.counter("relay_refused_total", "code", "Records and frames refused, by error code.")
+	m.counter("relay_syncs_total", "", "Node sync sessions started.")
 	return m
 }
 
-func (m *M) declare(name, typ, label, help string) {
-	m.help[name], m.typ[name], m.labels[name] = help, typ, label
-	m.vals[name] = map[string]float64{}
-}
-
-// Add adds to a counter.
-func (m *M) Add(name, label string, v float64) {
-	if m == nil {
+// counter declares a counter; with a label, the listed values start at zero so they show
+// before the first event.
+func (m *M) counter(name, label, help string, zero ...string) {
+	opts := prometheus.CounterOpts{Name: name, Help: help}
+	if label == "" {
+		c := prometheus.NewCounter(opts)
+		m.reg.MustRegister(c)
+		m.plain[name] = c
 		return
 	}
-	m.mu.Lock()
-	if vals, ok := m.vals[name]; ok {
-		vals[label] += v
+	v := prometheus.NewCounterVec(opts, []string{label})
+	m.reg.MustRegister(v)
+	for _, z := range zero {
+		v.WithLabelValues(z)
 	}
-	m.mu.Unlock()
+	m.vecs[name] = v
+}
+
+// Add adds to a counter. Undeclared names are ignored; the label is ignored on an
+// unlabelled counter.
+func (m *M) Add(name, label string, v float64) {
+	if m == nil || v < 0 {
+		return
+	}
+	if c, ok := m.plain[name]; ok {
+		c.Add(v)
+	} else if c, ok := m.vecs[name]; ok {
+		c.WithLabelValues(label).Add(v)
+	}
 }
 
 // Inc adds one.
 func (m *M) Inc(name, label string) { m.Add(name, label, 1) }
 
-// Gauge registers a gauge read at scrape time.
+// Gauge registers a gauge read at scrape time, replacing one of the same name.
 func (m *M) Gauge(name, help string, f func() float64) {
 	if m == nil {
 		return
 	}
+	g := prometheus.NewGaugeFunc(prometheus.GaugeOpts{Name: name, Help: help}, f)
 	m.mu.Lock()
-	m.help[name], m.typ[name] = help, "gauge"
-	m.gauges[name] = f
-	m.mu.Unlock()
+	defer m.mu.Unlock()
+	if old, ok := m.gauges[name]; ok {
+		m.reg.Unregister(old)
+	}
+	if m.reg.Register(g) == nil {
+		m.gauges[name] = g
+	}
 }
 
 // Get reads a counter (tests).
 func (m *M) Get(name, label string) float64 {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return m.vals[name][label]
+	var c prometheus.Counter
+	if p, ok := m.plain[name]; ok {
+		c = p
+	} else if v, ok := m.vecs[name]; ok {
+		c = v.WithLabelValues(label)
+	} else {
+		return 0
+	}
+	var d dto.Metric
+	if c.Write(&d) != nil {
+		return 0
+	}
+	return d.GetCounter().GetValue()
 }
 
-// Write writes the text exposition format.
-func (m *M) Write(w io.Writer) {
-	m.mu.Lock()
-	names := make([]string, 0, len(m.help))
-	for n := range m.help {
-		names = append(names, n)
-	}
-	sort.Strings(names)
-	var b strings.Builder
-	gauges := map[string]func() float64{}
-	for n, f := range m.gauges {
-		gauges[n] = f
-	}
-	for _, n := range names {
-		fmt.Fprintf(&b, "# HELP %s %s\n# TYPE %s %s\n", n, m.help[n], n, m.typ[n])
-		if f, ok := gauges[n]; ok {
-			m.mu.Unlock()
-			v := f()
-			m.mu.Lock()
-			fmt.Fprintf(&b, "%s %g\n", n, v)
-			continue
-		}
-		vals := m.vals[n]
-		keys := make([]string, 0, len(vals))
-		for k := range vals {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-		if len(keys) == 0 {
-			fmt.Fprintf(&b, "%s 0\n", n)
-		}
-		for _, k := range keys {
-			if m.labels[n] == "" || k == "" {
-				fmt.Fprintf(&b, "%s %g\n", n, vals[k])
-			} else {
-				fmt.Fprintf(&b, "%s{%s=%q} %g\n", n, m.labels[n], k, vals[k])
-			}
+// Write writes everything in the Prometheus text exposition format.
+func (m *M) Write(w io.Writer) error {
+	mfs, err := m.reg.Gather()
+	enc := expfmt.NewEncoder(w, expfmt.NewFormat(expfmt.TypeTextPlain))
+	for _, mf := range mfs {
+		if e := enc.Encode(mf); e != nil {
+			return e
 		}
 	}
-	m.mu.Unlock()
-	io.WriteString(w, b.String())
+	return err
 }
 
-// Handler serves /metrics.
+// Handler serves /metrics from the private registry, with no error log (nothing a scrape
+// fails on should reach the relay's own log).
 func (m *M) Handler() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
-		m.Write(w)
-	})
+	return promhttp.HandlerFor(m.reg, promhttp.HandlerOpts{ErrorHandling: promhttp.ContinueOnError})
 }

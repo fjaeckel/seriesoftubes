@@ -310,8 +310,9 @@ signed record.
 
 Set `"metrics": "127.0.0.1:9464"` to serve `/metrics` in the Prometheus text format on localhost: connections by
 role, records stored by kind, records sent, refusals by error code, sync sessions, open clients and sessions, records
-held, disk use. Counts only: no label ever holds an address, a key or a name. The relay refuses a metrics address that
-is not on localhost.
+held, disk use (`relay_*`), plus the standard Go runtime (`go_*`) and process (`process_*`) metrics. It uses the
+Prometheus client library on its own registry, so nothing else is exposed. Counts only: no label ever holds an
+address, a key or a name. The relay refuses a metrics address that is not on localhost.
 
 ## Privacy, in short
 
