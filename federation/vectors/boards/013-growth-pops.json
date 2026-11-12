@@ -1,0 +1,236 @@
+{
+  "description": "now = 1767398410, so c = 1767398400; slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. Growth in basis points: div((cur - prev) * 10000, max(prev, 10)). kA 20 -> 25: 2500. kB 1 -> 3: div(20000, 10) = 2000 (the floor). kG 30 -> 31: div(10000, 30) = 333. kE 30 -> 29: div(-10000, 30) = -334 (floor division; truncating would give -333). kC 40 -> 30: -2500. kD 7 -> 2: div(-50000, 10) = -5000. kF first reported at i = 300: no value at i = 0, so not on growth boards.",
+  "input": {
+    "now": 1767398410,
+    "board": "pops",
+    "measure": "growth",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "records": [
+      {
+        "id": "a0",
+        "key": "kA",
+        "slot": 1767225600,
+        "t": 1767225620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 20
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "a1",
+        "key": "kA",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 25
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "b0",
+        "key": "kB",
+        "slot": 1767225600,
+        "t": 1767225620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "b1",
+        "key": "kB",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 3
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "c0",
+        "key": "kC",
+        "slot": 1767225600,
+        "t": 1767225620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 40
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "c1",
+        "key": "kC",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 30
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "d0",
+        "key": "kD",
+        "slot": 1767225600,
+        "t": 1767225620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 7
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "d1",
+        "key": "kD",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 2
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "e0",
+        "key": "kE",
+        "slot": 1767225600,
+        "t": 1767225620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 30
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "e1",
+        "key": "kE",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 29
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "f1",
+        "key": "kF",
+        "slot": 1767315600,
+        "t": 1767315620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 50
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "g0",
+        "key": "kG",
+        "slot": 1767225600,
+        "t": 1767225620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 30
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "g1",
+        "key": "kG",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 31
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 2500
+      },
+      {
+        "key": "kB",
+        "value": 2000
+      },
+      {
+        "key": "kG",
+        "value": 333
+      },
+      {
+        "key": "kE",
+        "value": -334
+      },
+      {
+        "key": "kC",
+        "value": -2500
+      },
+      {
+        "key": "kD",
+        "value": -5000
+      }
+    ]
+  }
+}

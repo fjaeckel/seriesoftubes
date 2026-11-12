@@ -1,0 +1,25 @@
+{
+  "description": "stats exactly 777600 s (9 days) old is still accepted.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1766534500,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false
+      },
+      "sig": "g1WCy3v9EqsuR7WHiAA9b-2n4dr-2VuZcLZcZ7QrepqSrmkT-JqBRd3gxSWYUFKM2x6hQZcQVBF4DOOYH9cIAQ"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "stats",
+    "id": "jgNojJdV9TxFttuSh2c_9W2fvD3cJ_T5Ts3vGfqC3Os"
+  }
+}

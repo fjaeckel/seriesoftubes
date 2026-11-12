@@ -1,0 +1,26 @@
+{
+  "description": "A POP count of 0 (cities without POPs are left out).",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {
+          "fra": 0
+        },
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false
+      },
+      "sig": "iPQdLldNjt6UOKoRWC8XOFSooELVvkYn_TewjQx4kewnCqJ1wushXc5UJJqr1DId16Ur5imukcaEoi8SPQbkDQ"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

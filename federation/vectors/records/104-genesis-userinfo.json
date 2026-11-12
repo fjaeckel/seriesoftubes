@@ -1,0 +1,24 @@
+{
+  "description": "No user info in node URLs.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "genesis",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "name": "Packet Lunch",
+        "node": {
+          "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+          "url": "wss://me:pw@relay.example.net/fed"
+        }
+      },
+      "sig": "ROua76i3GRdnAfC5-OEFhesatxSgN2bkFTrVTF-J-8GDNvSi23fvHPubo4touZR3X6VhGsj_GB1ZVyeKlIZ8Ag"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

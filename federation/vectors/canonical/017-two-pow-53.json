@@ -1,0 +1,9 @@
+{
+  "description": "9007199254740992 (2^53) is outside the safe range.",
+  "input": {
+    "text": "{\"a\":9007199254740992}"
+  },
+  "expect": {
+    "error": "bad_number"
+  }
+}

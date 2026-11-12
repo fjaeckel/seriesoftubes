@@ -1,0 +1,19 @@
+{
+  "description": "A server's own entry coming back to it is a loop too.",
+  "input": {
+    "now": 1767312000,
+    "self": "sA",
+    "entry": {
+      "id": "sA",
+      "path": [
+        "sA",
+        "sB"
+      ],
+      "seen": 1767311900
+    }
+  },
+  "expect": {
+    "action": "drop",
+    "why": "loop"
+  }
+}

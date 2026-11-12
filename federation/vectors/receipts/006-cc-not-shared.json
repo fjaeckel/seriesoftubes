@@ -1,0 +1,41 @@
+{
+  "description": "cc on a record whose author did not share their country.",
+  "input": {
+    "now": 1767312100,
+    "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+    "nodes": [
+      "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+      "i7ibH5fd16Yxj6GRgQEpbUBEj1AI3_5nPrGRxGnWgXc"
+    ],
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false
+      },
+      "sig": "R5bokA0ryspUui1MzRFLmrlWqHn0TjkzY9sfhUjB8cKe9Onp2oM9pnkG-GdvuFCwp5N03GSBsAtEvbFFVSLdDw"
+    },
+    "receipt": {
+      "v": 1,
+      "kind": "receipt",
+      "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+      "t": 1767312000,
+      "body": {
+        "rec": "MZ49Ppf0rY9dHtCE5aNCqEgu20onxEcP0mGCTujBQAQ",
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "cc": "DE"
+      },
+      "sig": "OiGmlo-qGLVogESZmjNfoov9cXcCnmsTPTXN5_qysqMTxOhTEm-iMspa-ryDOT9ic6DSGcvEy2F0XQP85-dKBA"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

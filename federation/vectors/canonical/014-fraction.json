@@ -1,0 +1,9 @@
+{
+  "description": "1.5 is not an integer.",
+  "input": {
+    "text": "{\"a\":1.5}"
+  },
+  "expect": {
+    "error": "bad_number"
+  }
+}

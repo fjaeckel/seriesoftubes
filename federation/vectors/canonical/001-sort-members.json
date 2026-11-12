@@ -1,0 +1,9 @@
+{
+  "description": "Members sorted by name in byte order: digits (0x30), upper case (0x41), underscore (0x5F), lower case (0x61).",
+  "input": {
+    "text": "{\"b\":1,\"a\":2,\"B\":3,\"_\":4,\"0\":5}"
+  },
+  "expect": {
+    "canonical": "{\"0\":5,\"B\":3,\"_\":4,\"a\":2,\"b\":1}"
+  }
+}

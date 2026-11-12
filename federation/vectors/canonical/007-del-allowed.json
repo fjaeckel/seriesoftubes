@@ -1,0 +1,9 @@
+{
+  "description": "U+007F is not a control character below U+0020: allowed, written literally.",
+  "input": {
+    "text": "{\"s\":\"\\u007f\"}"
+  },
+  "expect": {
+    "canonical": "{\"s\":\"\"}"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "description": "now = 1767398410, so c = 1767398400; slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. kA sends stats that do not list kB; kB lists kA (in 500, out 600). Both have values, so kA's report about kB is 0 and the lower figure is 0 both ways, for both. Both listed with 0, tie broken by key.",
+  "input": {
+    "now": 1767398410,
+    "board": "traffic",
+    "measure": "total",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "records": [
+      {
+        "id": "r1",
+        "key": "kA",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r2",
+        "key": "kB",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [
+            {
+              "key": "kA",
+              "in": 500,
+              "out": 600
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 0
+      },
+      {
+        "key": "kB",
+        "value": 0
+      }
+    ]
+  }
+}

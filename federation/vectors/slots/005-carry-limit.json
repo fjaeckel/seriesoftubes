@@ -1,0 +1,32 @@
+{
+  "description": "A record carries forward while s - slot < 604800: at slot + 604500 it still counts, at slot + 604800 it is gone.",
+  "input": {
+    "records": [
+      {
+        "id": "r1",
+        "key": "kA",
+        "slot": 1767225600,
+        "t": 1767225600,
+        "mode": "normal"
+      }
+    ],
+    "queries": [
+      1767830100,
+      1767830400
+    ]
+  },
+  "expect": {
+    "results": [
+      {
+        "s": 1767830100,
+        "eff": "r1",
+        "value": true
+      },
+      {
+        "s": 1767830400,
+        "eff": null,
+        "value": false
+      }
+    ]
+  }
+}

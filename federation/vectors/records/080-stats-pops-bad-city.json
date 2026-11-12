@@ -1,0 +1,26 @@
+{
+  "description": "A city id outside ^[a-z0-9]{2,8}$ (upper case).",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {
+          "FRA": 1
+        },
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false
+      },
+      "sig": "sR1LqEUGOj-hIW3Ybp6yq12U7rI-jBFLJnxNmFqyJ2_adZpp1X4MyS1dVyUsZCNRIosMgiRY8ghNNgm5ehD2CQ"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

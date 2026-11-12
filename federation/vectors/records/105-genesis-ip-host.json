@@ -1,0 +1,24 @@
+{
+  "description": "Node URLs name a host, not an IP address.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "genesis",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "name": "Packet Lunch",
+        "node": {
+          "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+          "url": "wss://192.0.2.7/fed"
+        }
+      },
+      "sig": "dOKb4mHxtYcPyrgqMrLMxwJQbsW-7oWzYOkU2G4rYyc0iUuheEl7PXHZ6RFv6RP4hvMxvD7lsQN9RQ875MTrAg"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

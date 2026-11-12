@@ -1,0 +1,103 @@
+{
+  "description": "eff(X, s): the record with the greatest board slot <= s; in one slot the greatest author t, then the lowest id. Carried forward while s - slot < 604800. A record not in normal mode gives no value. Each query names the effective record (or null) and whether X has a value.",
+  "input": {
+    "records": [
+      {
+        "id": "r1",
+        "key": "kA",
+        "slot": 1767225600,
+        "t": 1767225610,
+        "mode": "normal"
+      },
+      {
+        "id": "r2",
+        "key": "kA",
+        "slot": 1767226200,
+        "t": 1767226250,
+        "mode": "normal"
+      },
+      {
+        "id": "r3",
+        "key": "kA",
+        "slot": 1767226200,
+        "t": 1767226300,
+        "mode": "normal"
+      },
+      {
+        "id": "r4",
+        "key": "kA",
+        "slot": 1767226800,
+        "t": 1767226900,
+        "mode": "normal"
+      },
+      {
+        "id": "r0",
+        "key": "kA",
+        "slot": 1767226800,
+        "t": 1767226900,
+        "mode": "normal"
+      },
+      {
+        "id": "r6",
+        "key": "kA",
+        "slot": 1767227400,
+        "t": 1767227410,
+        "mode": "sandbox"
+      }
+    ],
+    "queries": [
+      1767225300,
+      1767225600,
+      1767225900,
+      1767226200,
+      1767226800,
+      1767227100,
+      1767227400,
+      1767227700
+    ]
+  },
+  "expect": {
+    "results": [
+      {
+        "s": 1767225300,
+        "eff": null,
+        "value": false
+      },
+      {
+        "s": 1767225600,
+        "eff": "r1",
+        "value": true
+      },
+      {
+        "s": 1767225900,
+        "eff": "r1",
+        "value": true
+      },
+      {
+        "s": 1767226200,
+        "eff": "r3",
+        "value": true
+      },
+      {
+        "s": 1767226800,
+        "eff": "r0",
+        "value": true
+      },
+      {
+        "s": 1767227100,
+        "eff": "r0",
+        "value": true
+      },
+      {
+        "s": 1767227400,
+        "eff": "r6",
+        "value": false
+      },
+      {
+        "s": 1767227700,
+        "eff": "r6",
+        "value": false
+      }
+    ]
+  }
+}

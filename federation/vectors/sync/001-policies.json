@@ -1,0 +1,163 @@
+{
+  "description": "Two different servers sync only when both allow it: standalone allows nobody; selective allows the servers on its list; open allows any server that is not standalone. Nodes of the same server always sync.",
+  "cases": [
+    {
+      "input": {
+        "same": true,
+        "a": {
+          "id": "sA",
+          "sync": "standalone",
+          "list": []
+        },
+        "b": {
+          "id": "sA",
+          "sync": "standalone",
+          "list": []
+        }
+      },
+      "expect": {
+        "sync": true
+      }
+    },
+    {
+      "input": {
+        "same": false,
+        "a": {
+          "id": "sA",
+          "sync": "open",
+          "list": []
+        },
+        "b": {
+          "id": "sB",
+          "sync": "open",
+          "list": []
+        }
+      },
+      "expect": {
+        "sync": true
+      }
+    },
+    {
+      "input": {
+        "same": false,
+        "a": {
+          "id": "sA",
+          "sync": "standalone",
+          "list": []
+        },
+        "b": {
+          "id": "sB",
+          "sync": "open",
+          "list": []
+        }
+      },
+      "expect": {
+        "sync": false
+      }
+    },
+    {
+      "input": {
+        "same": false,
+        "a": {
+          "id": "sA",
+          "sync": "standalone",
+          "list": [
+            "sB"
+          ]
+        },
+        "b": {
+          "id": "sB",
+          "sync": "selective",
+          "list": [
+            "sA"
+          ]
+        }
+      },
+      "expect": {
+        "sync": false
+      }
+    },
+    {
+      "input": {
+        "same": false,
+        "a": {
+          "id": "sA",
+          "sync": "open",
+          "list": []
+        },
+        "b": {
+          "id": "sB",
+          "sync": "selective",
+          "list": [
+            "sA"
+          ]
+        }
+      },
+      "expect": {
+        "sync": true
+      }
+    },
+    {
+      "input": {
+        "same": false,
+        "a": {
+          "id": "sA",
+          "sync": "open",
+          "list": []
+        },
+        "b": {
+          "id": "sB",
+          "sync": "selective",
+          "list": [
+            "sC"
+          ]
+        }
+      },
+      "expect": {
+        "sync": false
+      }
+    },
+    {
+      "input": {
+        "same": false,
+        "a": {
+          "id": "sA",
+          "sync": "selective",
+          "list": [
+            "sB"
+          ]
+        },
+        "b": {
+          "id": "sB",
+          "sync": "selective",
+          "list": [
+            "sA"
+          ]
+        }
+      },
+      "expect": {
+        "sync": true
+      }
+    },
+    {
+      "input": {
+        "same": false,
+        "a": {
+          "id": "sA",
+          "sync": "selective",
+          "list": [
+            "sB"
+          ]
+        },
+        "b": {
+          "id": "sB",
+          "sync": "selective",
+          "list": []
+        }
+      },
+      "expect": {
+        "sync": false
+      }
+    }
+  ]
+}

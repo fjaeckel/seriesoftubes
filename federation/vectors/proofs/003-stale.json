@@ -1,0 +1,24 @@
+{
+  "description": "t more than 300 s from now: a recorded proof cannot be replayed later.",
+  "input": {
+    "now": 1767312100,
+    "nonce": "rBS_HE6aQALHh8up6dera9n4ThINlJjegE5GeZzMeuw",
+    "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+    "node": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+    "proof": {
+      "v": 1,
+      "kind": "proof",
+      "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+      "t": 1767311799,
+      "body": {
+        "nonce": "rBS_HE6aQALHh8up6dera9n4ThINlJjegE5GeZzMeuw",
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4"
+      },
+      "sig": "PtDdtVKRdL2Jr4qSFJpl9EJWWT3HL8Ne9zwKaDwh3Ya7HCmIEs2UqDMCgVfioBO15hmRRFkxfBhJY0kx1QrZAA"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_challenge"
+  }
+}

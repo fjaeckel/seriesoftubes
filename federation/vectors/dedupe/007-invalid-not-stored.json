@@ -1,0 +1,62 @@
+{
+  "description": "A record that fails validation is not stored and does not block the valid one with other content.",
+  "input": {
+    "now": 1767312100,
+    "arrivals": [
+      {
+        "record": {
+          "v": 1,
+          "kind": "operators",
+          "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+          "t": 1767312000,
+          "body": {
+            "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+            "prev": "C_l-NQAFAXY0BfaC5whiKmrJFkC8BvIihyxvSwh4gHs",
+            "action": "add_operator",
+            "target": "CJl2N0bs9a5BIL6TTHPuX3WrVgX1NCRD7P5TlhiUTw4"
+          },
+          "sigs": [
+            {
+              "key": "3TBqwov-v_tIyl8ZW7Xw4ZYl-XCzwvtuYRmNvkjoGbQ",
+              "sig": "XI-7zNNlLkDMuj9L3SdMWiolR0hFKOLkjwsEVm2gWvvdUlrn2y6fKbwuI6cCA2YM7yOpwrI81NhBp0ZsLVWXDA"
+            }
+          ]
+        }
+      },
+      {
+        "record": {
+          "v": 1,
+          "kind": "operators",
+          "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+          "t": 1767312000,
+          "body": {
+            "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+            "prev": "C_l-NQAFAXY0BfaC5whiKmrJFkC8BvIihyxvSwh4gHs",
+            "action": "add_operator",
+            "target": "CJl2N0bs9a5BIL6TTHPuX3WrVgX1NCRD7P5TlhiUTw4"
+          },
+          "sigs": [
+            {
+              "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+              "sig": "WGJBtcp0l9WJiya2S-_1OCT6M3wTPTYceCjkdVONrberms_UB41kxK-nPnCUHdaj77OHPd3_yD8vmobl155rDA"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "stored": [
+      {
+        "id": "By44tBXCz1bLi9FtoM-N0QX_sod7uIWNsckutcWPg1g",
+        "sigs": [
+          "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY"
+        ]
+      }
+    ],
+    "results": [
+      "bad_field",
+      "stored"
+    ]
+  }
+}

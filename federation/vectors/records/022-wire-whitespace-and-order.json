@@ -1,0 +1,12 @@
+{
+  "description": "The same stats record pretty-printed with keys in another order: records are compared, signed and hashed in canonical form, so this is valid and has the same id.",
+  "input": {
+    "now": 1767312100,
+    "text": "{\n  \"sig\": \"L8ME20yzfXavqOXybOoeuFrXkbiUwqP4uCkFmYt15tHdWEB2FEAhK1GSpOTb3abwNKQgQwCik9bZau1x-rRHBQ\",\n  \"body\": {\n    \"mode\": \"normal\",\n    \"pops\": {\n      \"ams\": 1,\n      \"fra\": 2,\n      \"lon\": 1\n    },\n    \"pies\": 12,\n    \"traffic\": [\n      {\n        \"key\": \"BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0\",\n        \"in\": 1800,\n        \"out\": 2400\n      },\n      {\n        \"key\": \"Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns\",\n        \"in\": 300,\n        \"out\": 0\n      }\n    ],\n    \"tier1\": false,\n    \"ai\": {\n      \"model\": \"example-model-1\",\n      \"harness\": \"tubes-mcp\"\n    },\n    \"shareCountry\": true\n  },\n  \"t\": 1767312000,\n  \"key\": \"q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw\",\n  \"kind\": \"stats\",\n  \"v\": 1\n}"
+  },
+  "expect": {
+    "ok": true,
+    "kind": "stats",
+    "id": "aYAmX_icnWjjXmf3OF4PQxHTYvNLvdH2NeaPkl1BHRY"
+  }
+}

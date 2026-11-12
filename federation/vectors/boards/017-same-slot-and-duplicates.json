@@ -1,0 +1,100 @@
+{
+  "description": "now = 1767398410, so c = 1767398400; slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. Two records of kA in slot 288: the later author t wins (9). Two of kB with the same t: the lower id wins (\"r0\" before \"r3\", 6). r2 arrives twice (merged from two servers): counted once.",
+  "input": {
+    "now": 1767398410,
+    "board": "pops",
+    "measure": "total",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "records": [
+      {
+        "id": "r1",
+        "key": "kA",
+        "slot": 1767312000,
+        "t": 1767312010,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 5
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r2",
+        "key": "kA",
+        "slot": 1767312000,
+        "t": 1767312060,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 9
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r2",
+        "key": "kA",
+        "slot": 1767312000,
+        "t": 1767312060,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 9
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r3",
+        "key": "kB",
+        "slot": 1767312000,
+        "t": 1767312030,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 4
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r0",
+        "key": "kB",
+        "slot": 1767312000,
+        "t": 1767312030,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 6
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 9
+      },
+      {
+        "key": "kB",
+        "value": 6
+      }
+    ]
+  }
+}

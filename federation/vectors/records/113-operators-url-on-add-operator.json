@@ -1,0 +1,29 @@
+{
+  "description": "url only goes with set_node.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "operators",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "prev": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "action": "add_operator",
+        "target": "3TBqwov-v_tIyl8ZW7Xw4ZYl-XCzwvtuYRmNvkjoGbQ",
+        "url": "wss://second.example.org:8443/fed"
+      },
+      "sigs": [
+        {
+          "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+          "sig": "9szFF285cBLM2AMwd6ONotcn9EPe7rzPy-6VE7YRRgvjaTPrb4wvcq0KVQRlb5ewPmtR6bJEhO2FpEBgKYtlAA"
+        }
+      ]
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

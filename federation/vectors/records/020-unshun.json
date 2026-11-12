@@ -1,0 +1,22 @@
+{
+  "description": "unshun withdraws this server's vote.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "unshun",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "target": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI"
+      },
+      "sig": "JVI6YznoTKtjmkXGPGhI5-alE1r8FSWTnFtk1LQU5-whZPBaB0DTaCZR7wJ7vPgY0s1wppbtociFgvjwMB66Cw"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "unshun",
+    "id": "XQRbkNOhR_0JlGghLvbW8zTSUvrHRIJbaxYWIyQBqZU"
+  }
+}

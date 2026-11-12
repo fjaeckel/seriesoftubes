@@ -1,0 +1,57 @@
+{
+  "description": "A record with several signers (kinds operators and server) carries \"sigs\" instead of \"sig\": a list of {key, sig}, sorted by key (byte order), every one over the same text: canonical JSON of the record without \"sigs\". Its id is base64url(SHA-256(that same text)), so adding signatures never changes the id.",
+  "input": {
+    "seeds": {
+      "anna": "72d8bebe4f2aa2cb4a929b082bb6bc6e8cbd00c0a6199762b2f0fdaed388c0b2",
+      "ben": "7db6be5711df8602c34c26550069c33ebb40b6123d5355290a4ca76ac1042874"
+    },
+    "unsigned": {
+      "v": 1,
+      "kind": "operators",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "prev": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "action": "add_operator",
+        "target": "3TBqwov-v_tIyl8ZW7Xw4ZYl-XCzwvtuYRmNvkjoGbQ"
+      }
+    }
+  },
+  "expect": {
+    "signed_text": "{\"body\":{\"action\":\"add_operator\",\"prev\":\"Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4\",\"server\":\"Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4\",\"target\":\"3TBqwov-v_tIyl8ZW7Xw4ZYl-XCzwvtuYRmNvkjoGbQ\"},\"key\":\"_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY\",\"kind\":\"operators\",\"t\":1767312000,\"v\":1}",
+    "sigs": [
+      {
+        "key": "3TBqwov-v_tIyl8ZW7Xw4ZYl-XCzwvtuYRmNvkjoGbQ",
+        "sig": "MjEzlCBCXCVF3XJrQrt6tbRnSV8Od1gwoRRP-9zqi9ZvLllT87W2t5Ap3bLLVEZMrE6K_oni_Nnv4q-YdRseCg"
+      },
+      {
+        "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+        "sig": "4WMwPacXFntEoNsiFDi89uuSyUjFF5nzlHyYyrvtIz6GCEGwa4qakDHwi8YrjBRVZi7ExHDVHaRWNKg792U2AA"
+      }
+    ],
+    "id": "4nii7ppFJxIpsMZzl7F-gBOMkIkFG7nNeq6IJ2FN9Ks",
+    "record": {
+      "v": 1,
+      "kind": "operators",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "prev": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "action": "add_operator",
+        "target": "3TBqwov-v_tIyl8ZW7Xw4ZYl-XCzwvtuYRmNvkjoGbQ"
+      },
+      "sigs": [
+        {
+          "key": "3TBqwov-v_tIyl8ZW7Xw4ZYl-XCzwvtuYRmNvkjoGbQ",
+          "sig": "MjEzlCBCXCVF3XJrQrt6tbRnSV8Od1gwoRRP-9zqi9ZvLllT87W2t5Ap3bLLVEZMrE6K_oni_Nnv4q-YdRseCg"
+        },
+        {
+          "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+          "sig": "4WMwPacXFntEoNsiFDi89uuSyUjFF5nzlHyYyrvtIz6GCEGwa4qakDHwi8YrjBRVZi7ExHDVHaRWNKg792U2AA"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "description": "now = 1767398410, so c = 1767398400; slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. The same with the spike from i = 562: 14 high slots, 274 at 100. sorted[273] is the last 100: a spike of 70 minutes does not count.",
+  "input": {
+    "now": 1767398410,
+    "board": "traffic",
+    "measure": "total",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "records": [
+      {
+        "id": "r1",
+        "key": "kA",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [
+            {
+              "key": "kX",
+              "in": 100,
+              "out": 50
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r2",
+        "key": "kA",
+        "slot": 1767394200,
+        "t": 1767394220,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [
+            {
+              "key": "kX",
+              "in": 1000,
+              "out": 50
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 100
+      }
+    ]
+  }
+}

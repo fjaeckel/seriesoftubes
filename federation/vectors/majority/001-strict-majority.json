@@ -1,0 +1,104 @@
+{
+  "description": "A strict majority: signers * 2 > operators.",
+  "cases": [
+    {
+      "input": {
+        "operators": 1,
+        "signers": 1
+      },
+      "expect": {
+        "majority": true
+      }
+    },
+    {
+      "input": {
+        "operators": 1,
+        "signers": 0
+      },
+      "expect": {
+        "majority": false
+      }
+    },
+    {
+      "input": {
+        "operators": 2,
+        "signers": 1
+      },
+      "expect": {
+        "majority": false
+      }
+    },
+    {
+      "input": {
+        "operators": 2,
+        "signers": 2
+      },
+      "expect": {
+        "majority": true
+      }
+    },
+    {
+      "input": {
+        "operators": 3,
+        "signers": 1
+      },
+      "expect": {
+        "majority": false
+      }
+    },
+    {
+      "input": {
+        "operators": 3,
+        "signers": 2
+      },
+      "expect": {
+        "majority": true
+      }
+    },
+    {
+      "input": {
+        "operators": 4,
+        "signers": 2
+      },
+      "expect": {
+        "majority": false
+      }
+    },
+    {
+      "input": {
+        "operators": 4,
+        "signers": 3
+      },
+      "expect": {
+        "majority": true
+      }
+    },
+    {
+      "input": {
+        "operators": 5,
+        "signers": 3
+      },
+      "expect": {
+        "majority": true
+      }
+    },
+    {
+      "input": {
+        "operators": 16,
+        "signers": 8
+      },
+      "expect": {
+        "majority": false
+      }
+    },
+    {
+      "input": {
+        "operators": 16,
+        "signers": 9
+      },
+      "expect": {
+        "majority": true
+      }
+    }
+  ]
+}

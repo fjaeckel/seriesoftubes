@@ -1,0 +1,25 @@
+{
+  "description": "genesis: founding operator anna, first node node1. Its id is the server identity.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "genesis",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1763856000,
+      "body": {
+        "name": "Packet Lunch",
+        "node": {
+          "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+          "url": "wss://relay.example.net/fed"
+        }
+      },
+      "sig": "5_YXhNeVD4FTE0p0XTgpZIslVXcBVLEauUb2ki7EGXxYonjKOe3f1oP21yqnWf3xPPq-zeSwZQsDnKHUDE3tDw"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "genesis",
+    "id": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4"
+  }
+}

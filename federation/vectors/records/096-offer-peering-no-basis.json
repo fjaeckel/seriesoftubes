@@ -1,0 +1,27 @@
+{
+  "description": "Peering, transit, PNI and port offers need a basis.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "offer",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "to": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+        "deal": "peering",
+        "terms": {
+          "at": [
+            "fra"
+          ],
+          "via": "ix"
+        }
+      },
+      "sig": "4pAg_qyKGdXkkQvFrbdg_OESd87DSIzkda0k5ch4vTrvWgH0HFcHZjrBtsMpj8-403UJS8LXIDlqZcdE06R2Ag"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "missing_field"
+  }
+}

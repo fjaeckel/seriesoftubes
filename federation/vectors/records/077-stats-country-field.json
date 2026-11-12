@@ -1,0 +1,25 @@
+{
+  "description": "The client never sends its country; a cc field in stats is unknown.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false,
+        "cc": "DE"
+      },
+      "sig": "D6_l41ji5hej7ttmq7g6WykHVckh3HI_G3IirEA19CCxBMBleQe5d67JJ0V3qQyfEXo16kaaAJ2B5IO9Ypw5BQ"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "unknown_field"
+  }
+}

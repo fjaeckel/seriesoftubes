@@ -1,0 +1,9 @@
+{
+  "description": "Not JSON.",
+  "input": {
+    "text": "{'a':1}"
+  },
+  "expect": {
+    "error": "bad_json"
+  }
+}

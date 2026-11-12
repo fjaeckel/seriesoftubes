@@ -1,0 +1,9 @@
+{
+  "description": "A member name with é.",
+  "input": {
+    "text": "{\"é\":1}"
+  },
+  "expect": {
+    "error": "bad_name"
+  }
+}

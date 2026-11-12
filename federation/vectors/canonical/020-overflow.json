@@ -1,0 +1,9 @@
+{
+  "description": "1e400 is not a finite double.",
+  "input": {
+    "text": "{\"a\":1e400}"
+  },
+  "expect": {
+    "error": "bad_number"
+  }
+}

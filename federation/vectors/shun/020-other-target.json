@@ -1,0 +1,228 @@
+{
+  "description": "Registry asOf = 1767225600; a server is a voter when listed <= asOf - 2592000 and answered >= asOf - 1209600. need = max(5, div(V + 3, 4)). Votes against another network do not count for this one.",
+  "input": {
+    "now": 1767312000,
+    "target": "kM",
+    "registry": {
+      "asOf": 1767225600,
+      "servers": [
+        {
+          "id": "s01",
+          "operators": [
+            "o01"
+          ],
+          "listed": 1764633600,
+          "answered": 1767225600
+        },
+        {
+          "id": "s02",
+          "operators": [
+            "o02"
+          ],
+          "listed": 1764633600,
+          "answered": 1767225600
+        },
+        {
+          "id": "s03",
+          "operators": [
+            "o03"
+          ],
+          "listed": 1764633600,
+          "answered": 1767225600
+        },
+        {
+          "id": "s04",
+          "operators": [
+            "o04"
+          ],
+          "listed": 1764633600,
+          "answered": 1767225600
+        },
+        {
+          "id": "s05",
+          "operators": [
+            "o05"
+          ],
+          "listed": 1764633600,
+          "answered": 1767225600
+        },
+        {
+          "id": "s06",
+          "operators": [
+            "o06"
+          ],
+          "listed": 1764633600,
+          "answered": 1767225600
+        },
+        {
+          "id": "s07",
+          "operators": [
+            "o07"
+          ],
+          "listed": 1764633600,
+          "answered": 1767225600
+        },
+        {
+          "id": "s08",
+          "operators": [
+            "o08"
+          ],
+          "listed": 1764633600,
+          "answered": 1767225600
+        },
+        {
+          "id": "s09",
+          "operators": [
+            "o09"
+          ],
+          "listed": 1764633600,
+          "answered": 1767225600
+        },
+        {
+          "id": "s10",
+          "operators": [
+            "o10"
+          ],
+          "listed": 1764633600,
+          "answered": 1767225600
+        },
+        {
+          "id": "s11",
+          "operators": [
+            "o11"
+          ],
+          "listed": 1764633600,
+          "answered": 1767225600
+        },
+        {
+          "id": "s12",
+          "operators": [
+            "o12"
+          ],
+          "listed": 1764633600,
+          "answered": 1767225600
+        },
+        {
+          "id": "s13",
+          "operators": [
+            "o13"
+          ],
+          "listed": 1764633600,
+          "answered": 1767225600
+        },
+        {
+          "id": "s14",
+          "operators": [
+            "o14"
+          ],
+          "listed": 1764633600,
+          "answered": 1767225600
+        },
+        {
+          "id": "s15",
+          "operators": [
+            "o15"
+          ],
+          "listed": 1764633600,
+          "answered": 1767225600
+        },
+        {
+          "id": "s16",
+          "operators": [
+            "o16"
+          ],
+          "listed": 1764633600,
+          "answered": 1767225600
+        },
+        {
+          "id": "s17",
+          "operators": [
+            "o17"
+          ],
+          "listed": 1764633600,
+          "answered": 1767225600
+        },
+        {
+          "id": "s18",
+          "operators": [
+            "o18"
+          ],
+          "listed": 1764633600,
+          "answered": 1767225600
+        },
+        {
+          "id": "s19",
+          "operators": [
+            "o19"
+          ],
+          "listed": 1764633600,
+          "answered": 1767225600
+        },
+        {
+          "id": "s20",
+          "operators": [
+            "o20"
+          ],
+          "listed": 1764633600,
+          "answered": 1767225600
+        }
+      ]
+    },
+    "records": [
+      {
+        "id": "v01",
+        "kind": "shun",
+        "key": "o01",
+        "t": 1767225600,
+        "server": "s01",
+        "target": "kM",
+        "reason": "spam"
+      },
+      {
+        "id": "v02",
+        "kind": "shun",
+        "key": "o02",
+        "t": 1767225600,
+        "server": "s02",
+        "target": "kM",
+        "reason": "spam"
+      },
+      {
+        "id": "v03",
+        "kind": "shun",
+        "key": "o03",
+        "t": 1767225600,
+        "server": "s03",
+        "target": "kM",
+        "reason": "spam"
+      },
+      {
+        "id": "v04",
+        "kind": "shun",
+        "key": "o04",
+        "t": 1767225600,
+        "server": "s04",
+        "target": "kM",
+        "reason": "spam"
+      },
+      {
+        "id": "v05",
+        "kind": "shun",
+        "key": "o05",
+        "t": 1767225600,
+        "server": "s05",
+        "target": "kOther",
+        "reason": "spam"
+      }
+    ]
+  },
+  "expect": {
+    "voters": 20,
+    "need": 5,
+    "votes": 4,
+    "shunned": false,
+    "reasons": {
+      "spam": 4
+    }
+  }
+}

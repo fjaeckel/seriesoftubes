@@ -1,0 +1,16 @@
+{
+  "description": "An empty path.",
+  "input": {
+    "now": 1767312000,
+    "self": "sX",
+    "entry": {
+      "id": "sA",
+      "path": [],
+      "seen": 1767311900
+    }
+  },
+  "expect": {
+    "action": "refuse",
+    "error": "bad_field"
+  }
+}

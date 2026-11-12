@@ -1,0 +1,20 @@
+{
+  "description": "A server twice in the path.",
+  "input": {
+    "now": 1767312000,
+    "self": "sX",
+    "entry": {
+      "id": "sA",
+      "path": [
+        "sA",
+        "sB",
+        "sB"
+      ],
+      "seen": 1767311900
+    }
+  },
+  "expect": {
+    "action": "refuse",
+    "error": "duplicate"
+  }
+}

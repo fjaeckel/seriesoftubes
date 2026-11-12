@@ -1,0 +1,22 @@
+{
+  "description": "shun older than 90 days: an expired vote is refused.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "shun",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1759536099,
+      "body": {
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "target": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+        "reason": "spam"
+      },
+      "sig": "jzF2mv4CPefjqjnS1do657NG6RwlGHU1HWKUOLTRswkw6FzRhvUIpdu4RUfnjAsgEGwiM2eypFDnRiIv38GsBw"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "too_old"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "description": "seen exactly 600 s ahead is accepted.",
+  "input": {
+    "now": 1767312000,
+    "self": "sX",
+    "entry": {
+      "id": "sA",
+      "path": [
+        "sA"
+      ],
+      "seen": 1767312600
+    }
+  },
+  "expect": {
+    "action": "store",
+    "forward": [
+      "sA",
+      "sX"
+    ]
+  }
+}

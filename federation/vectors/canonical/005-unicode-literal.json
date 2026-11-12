@@ -1,0 +1,9 @@
+{
+  "description": "\\u escapes, including a surrogate pair, are written as literal UTF-8: é (2 bytes), € (3), 📡 (4).",
+  "input": {
+    "text": "{\"s\":\"\\u00e9\\u20ac\\ud83d\\udce1\"}"
+  },
+  "expect": {
+    "canonical": "{\"s\":\"é€📡\"}"
+  }
+}

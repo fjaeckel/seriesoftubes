@@ -1,0 +1,9 @@
+{
+  "description": "Only \" and \\ are escaped in the output. The input's \\/ is a plain slash.",
+  "input": {
+    "text": "{\"s\":\"a\\\"b\\\\c\\/d\"}"
+  },
+  "expect": {
+    "canonical": "{\"s\":\"a\\\"b\\\\c/d\"}"
+  }
+}

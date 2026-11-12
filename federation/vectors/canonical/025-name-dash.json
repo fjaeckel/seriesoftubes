@@ -1,0 +1,9 @@
+{
+  "description": "A member name with a dash.",
+  "input": {
+    "text": "{\"a-b\":1}"
+  },
+  "expect": {
+    "error": "bad_name"
+  }
+}

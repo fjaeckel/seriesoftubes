@@ -1,0 +1,9 @@
+{
+  "description": "A repeated member name: the last one wins.",
+  "input": {
+    "text": "{\"a\":1,\"a\":2}"
+  },
+  "expect": {
+    "canonical": "{\"a\":2}"
+  }
+}

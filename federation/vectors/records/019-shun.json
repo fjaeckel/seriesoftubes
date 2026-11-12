@@ -1,0 +1,23 @@
+{
+  "description": "shun vote with a reason from the fixed list.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "shun",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "target": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+        "reason": "spam"
+      },
+      "sig": "lvp8xJJRfBWBH-HWU-cN7iXVg9e9FKrYtLEIs1Wj2sR89K8AkFuV-fa8spwRLTf0d0cet_dlTaEDkqs9_HOhAQ"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "shun",
+    "id": "QwzQvGUlA0GfipDKpWQtjvOj8v5qCnPjo3bgTnPLnck"
+  }
+}

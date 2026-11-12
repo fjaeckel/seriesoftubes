@@ -1,0 +1,59 @@
+{
+  "description": "now = 1767398410, so c = 1767398400; slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. kA reports 100 Mbps in from kX for i = 288..560 (273 slots) and 1000 for i = 561..575 (15 slots); out is 50 throughout. kX sent no stats, so kA's figures count alone. n = 288, k = div(288 * 5, 100) = 14, value = sorted[288 - 1 - 14] = sorted[273], the first of the 15 high values: 1000. OUT gives 50. max(1000, 50) = 1000.",
+  "input": {
+    "now": 1767398410,
+    "board": "traffic",
+    "measure": "total",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "records": [
+      {
+        "id": "r1",
+        "key": "kA",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [
+            {
+              "key": "kX",
+              "in": 100,
+              "out": 50
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r2",
+        "key": "kA",
+        "slot": 1767393900,
+        "t": 1767393920,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [
+            {
+              "key": "kX",
+              "in": 1000,
+              "out": 50
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 1000
+      }
+    ]
+  }
+}

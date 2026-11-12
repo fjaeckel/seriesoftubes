@@ -1,0 +1,24 @@
+{
+  "description": "Signed objects are told apart by kind: a receipt is not a proof.",
+  "input": {
+    "now": 1767312100,
+    "nonce": "rBS_HE6aQALHh8up6dera9n4ThINlJjegE5GeZzMeuw",
+    "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+    "node": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+    "proof": {
+      "v": 1,
+      "kind": "receipt",
+      "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+      "t": 1767312095,
+      "body": {
+        "nonce": "rBS_HE6aQALHh8up6dera9n4ThINlJjegE5GeZzMeuw",
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4"
+      },
+      "sig": "bUfIQ4yllZow04dpPkeIt6kZk8ULLiUYrNeLcgOix6RUHtO62CuoBBAQSdYUE-Ksue30srRphY97PMbOeQF1DA"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_challenge"
+  }
+}

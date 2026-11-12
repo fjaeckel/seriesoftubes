@@ -1,0 +1,188 @@
+{
+  "description": "Alice published A1 at 1767225600 (transit 900 per Gbps, tiers 10000 Mbps -> 100 per mille off, 100000 -> 250, term 90 days; PNI setup 5000, 10G 1500/month, 100G 9000, term 180; exchange ports at fra 1G 200, 10G 800; transit and ports automatic, PNI by review) and A2 ten days later with transit at 1200. An offer at 1768262400 (A2 + 2 days) relying on A1: A2 (1768089600) is not newer than offer.t - 86400 = 1768176000.",
+  "input": {
+    "announces": [
+      {
+        "id": "A1",
+        "kind": "announce",
+        "key": "kAlice",
+        "t": 1767225600,
+        "body": {
+          "rates": {
+            "transit": {
+              "perGbps": 900,
+              "commit": [
+                {
+                  "mbps": 10000,
+                  "off": 100
+                },
+                {
+                  "mbps": 100000,
+                  "off": 250
+                }
+              ],
+              "term": 90
+            },
+            "pni": {
+              "setup": 5000,
+              "ports": [
+                {
+                  "mbps": 10000,
+                  "monthly": 1500
+                },
+                {
+                  "mbps": 100000,
+                  "monthly": 9000
+                }
+              ],
+              "term": 180
+            },
+            "ix": {
+              "ports": [
+                {
+                  "mbps": 1000,
+                  "monthly": 200
+                },
+                {
+                  "mbps": 10000,
+                  "monthly": 800
+                }
+              ],
+              "join": "anyone",
+              "at": [
+                "fra"
+              ]
+            }
+          },
+          "auto": {
+            "peering": "auto",
+            "transit": "auto",
+            "pni": "review",
+            "swap": "review",
+            "consortium": "review",
+            "port": "auto"
+          }
+        }
+      },
+      {
+        "id": "A2",
+        "kind": "announce",
+        "key": "kAlice",
+        "t": 1768089600,
+        "body": {
+          "rates": {
+            "transit": {
+              "perGbps": 1200,
+              "commit": [
+                {
+                  "mbps": 10000,
+                  "off": 100
+                },
+                {
+                  "mbps": 100000,
+                  "off": 250
+                }
+              ],
+              "term": 90
+            },
+            "pni": {
+              "setup": 5000,
+              "ports": [
+                {
+                  "mbps": 10000,
+                  "monthly": 1500
+                },
+                {
+                  "mbps": 100000,
+                  "monthly": 9000
+                }
+              ],
+              "term": 180
+            },
+            "ix": {
+              "ports": [
+                {
+                  "mbps": 1000,
+                  "monthly": 200
+                },
+                {
+                  "mbps": 10000,
+                  "monthly": 800
+                }
+              ],
+              "join": "anyone",
+              "at": [
+                "fra"
+              ]
+            }
+          },
+          "auto": {
+            "peering": "auto",
+            "transit": "auto",
+            "pni": "review",
+            "swap": "review",
+            "consortium": "review",
+            "port": "auto"
+          }
+        }
+      },
+      {
+        "id": "B1",
+        "kind": "announce",
+        "key": "kBob",
+        "t": 1767225600,
+        "body": {
+          "rates": {},
+          "auto": {
+            "peering": "auto",
+            "transit": "decline",
+            "pni": "decline",
+            "swap": "decline",
+            "consortium": "decline",
+            "port": "decline"
+          }
+        }
+      },
+      {
+        "id": "C1",
+        "kind": "announce",
+        "key": "kCarol",
+        "t": 1767225600,
+        "body": {
+          "rates": {},
+          "auto": {
+            "peering": "auto",
+            "transit": "auto",
+            "pni": "auto",
+            "swap": "auto",
+            "consortium": "auto",
+            "port": "auto"
+          }
+        }
+      }
+    ],
+    "offer": {
+      "id": "O1",
+      "kind": "offer",
+      "key": "kBob",
+      "t": 1768262400,
+      "body": {
+        "to": "kAlice",
+        "deal": "transit",
+        "basis": "A1",
+        "terms": {
+          "mbps": 10000,
+          "perGbps": 810,
+          "term": 90,
+          "at": [
+            "fra"
+          ]
+        }
+      }
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "stale_terms"
+  }
+}

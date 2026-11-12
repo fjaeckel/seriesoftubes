@@ -1,0 +1,30 @@
+{
+  "description": "operators proposal set_node carries the node's URL.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "operators",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "prev": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "action": "set_node",
+        "target": "i7ibH5fd16Yxj6GRgQEpbUBEj1AI3_5nPrGRxGnWgXc",
+        "url": "wss://second.example.org:8443/fed"
+      },
+      "sigs": [
+        {
+          "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+          "sig": "yvno1atggUMFnIy0kJIaivoMHYw_WLg51AEGvWABrt56RkH-27AOtQE1rPHxYIsEKUAl16S8Co9PBWQjA8QvAw"
+        }
+      ]
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "operators",
+    "id": "7vDnJ56dLmyeXLjTfI3vqa76Momw5Gz9whaFgVr5cIQ"
+  }
+}

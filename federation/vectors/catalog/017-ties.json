@@ -1,0 +1,68 @@
+{
+  "description": "Server records with the same t: the lower id wins (rC3). Paths of the same length with the same seen: the lower one element by element ([\"sC\",\"sA\"]).",
+  "input": {
+    "now": 1767312000,
+    "registry": [],
+    "gossip": [
+      {
+        "id": "sC",
+        "server": {
+          "rid": "rC4",
+          "t": 300,
+          "name": "Tie Fighter",
+          "nodes": [
+            "n4"
+          ],
+          "operators": [
+            "o1"
+          ]
+        },
+        "path": [
+          "sC",
+          "sB"
+        ],
+        "seen": 1767311940
+      },
+      {
+        "id": "sC",
+        "server": {
+          "rid": "rC3",
+          "t": 300,
+          "name": "Tie Breaker",
+          "nodes": [
+            "n3"
+          ],
+          "operators": [
+            "o1"
+          ]
+        },
+        "path": [
+          "sC",
+          "sA"
+        ],
+        "seen": 1767311940
+      }
+    ]
+  },
+  "expect": {
+    "servers": [
+      {
+        "id": "sC",
+        "source": "gossip",
+        "rid": "rC3",
+        "name": "Tie Breaker",
+        "nodes": [
+          "n3"
+        ],
+        "operators": [
+          "o1"
+        ],
+        "seen": 1767311940,
+        "path": [
+          "sC",
+          "sA"
+        ]
+      }
+    ]
+  }
+}

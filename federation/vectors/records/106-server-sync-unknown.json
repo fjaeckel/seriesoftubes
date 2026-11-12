@@ -1,0 +1,40 @@
+{
+  "description": "sync outside standalone|selective|open.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "server",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "head": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "name": "Packet Lunch",
+        "nodes": [
+          {
+            "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+            "url": "wss://relay.example.net/fed"
+          }
+        ],
+        "operators": [
+          "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY"
+        ],
+        "sync": "closed",
+        "noLogs": true,
+        "langs": [],
+        "desc": ""
+      },
+      "sigs": [
+        {
+          "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+          "sig": "PGe8Vfolt1wRDiyOcf4Nb5Up2LyeSVPo3brUsRl4ismoDaL_1r2lKg2Wt0XxXT4yhSyq5n3ihNy3jaOiDdSIAQ"
+        }
+      ]
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

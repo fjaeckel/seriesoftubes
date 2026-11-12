@@ -1,0 +1,23 @@
+{
+  "description": "No free text anywhere in a vote.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "shun",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "target": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+        "reason": "spam",
+        "note": "see thread"
+      },
+      "sig": "Aup2L2mE-puMWQ93OdYSW3qCOuZGmg4sEL6xshms6oJF0zXNsO89qlQi64wE8rjCUsW3rdAmUKXTLrpnspG0BA"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "unknown_field"
+  }
+}

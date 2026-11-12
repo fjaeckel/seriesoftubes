@@ -1,0 +1,21 @@
+{
+  "description": "A server's own entry: path [id], seen = now.",
+  "input": {
+    "now": 1767312000,
+    "self": "sB",
+    "entry": {
+      "id": "sA",
+      "path": [
+        "sA"
+      ],
+      "seen": 1767312000
+    }
+  },
+  "expect": {
+    "action": "store",
+    "forward": [
+      "sA",
+      "sB"
+    ]
+  }
+}

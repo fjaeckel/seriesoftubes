@@ -1,0 +1,25 @@
+{
+  "description": "An unknown body field (an address) is refused: nothing outside the schema is ever stored or passed on.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false,
+        "ip": "192.0.2.7"
+      },
+      "sig": "kwF6wp0fw3gSAyV9JKTgrO0yiwQ0lFX7WRPi_h8ct1N5CDo9o1Uekf8qVlZ2LMi_MK84Sdh0RAfqSBxlz4DPBA"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "unknown_field"
+  }
+}

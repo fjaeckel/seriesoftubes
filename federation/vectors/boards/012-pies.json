@@ -1,0 +1,107 @@
+{
+  "description": "now = 1767398410, so c = 1767398400; slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. Pies: kA 50, then 30 from i = 350, then 60 from i = 400: lowest 30. kB has no pies field (no Pie in the Sky company): not listed. kC has no pies field until i = 500, then 70: those earlier slots count 0, lowest 0.",
+  "input": {
+    "now": 1767398410,
+    "board": "pies",
+    "measure": "total",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "records": [
+      {
+        "id": "r1",
+        "key": "kA",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "pies": 50
+        }
+      },
+      {
+        "id": "r2",
+        "key": "kA",
+        "slot": 1767330600,
+        "t": 1767330620,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "pies": 30
+        }
+      },
+      {
+        "id": "r3",
+        "key": "kA",
+        "slot": 1767345600,
+        "t": 1767345620,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "pies": 60
+        }
+      },
+      {
+        "id": "r4",
+        "key": "kB",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r5",
+        "key": "kC",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r6",
+        "key": "kC",
+        "slot": 1767375600,
+        "t": 1767375620,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "pies": 70
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 30
+      },
+      {
+        "key": "kC",
+        "value": 0
+      }
+    ]
+  }
+}

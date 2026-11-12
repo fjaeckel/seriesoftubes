@@ -1,0 +1,30 @@
+{
+  "description": "A traffic entry whose key is not a key.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [
+          {
+            "key": "bob",
+            "in": 1,
+            "out": 1
+          }
+        ],
+        "tier1": false,
+        "shareCountry": false
+      },
+      "sig": "IM_xW2ecQIvI2f4HwH_771EHXNWc3DnKK-ZjBly8hwgEpyCceFGwrc6GsftDIBqKeAUQ8yfIeAB-jPA9dI2FDg"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_key"
+  }
+}

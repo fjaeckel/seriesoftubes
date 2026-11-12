@@ -1,0 +1,29 @@
+{
+  "description": "Exchange port offer at alice's exchange.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "offer",
+      "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+      "t": 1767312000,
+      "body": {
+        "to": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+        "deal": "port",
+        "basis": "efjnZX4vN0rD96zUWATh3r-w33LqmXLBGwkPlFLH3oQ",
+        "terms": {
+          "at": "fra",
+          "mbps": 1000,
+          "monthly": 200,
+          "term": 30
+        }
+      },
+      "sig": "_jq30ocKcaD3YM_r9T8hAMDxriLCn6HLghIJ3t1kRjgrNHgA7FMsMzNQpO3AzcDer5Q7Itmb2F-9t4wXVZ9pBA"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "offer",
+    "id": "QG9xGk7-A1pQ-m7AB9VL8-ZkrO7xy3sR1GgtEwNj_uA"
+  }
+}

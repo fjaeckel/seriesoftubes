@@ -1,0 +1,97 @@
+{
+  "description": "now = 1767398410, so c = 1767398400; slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. The same records, both together.",
+  "input": {
+    "now": 1767398410,
+    "board": "pops",
+    "measure": "total",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "records": [
+      {
+        "id": "r1",
+        "key": "kA",
+        "slot": 1767225600,
+        "t": 1767225620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "ai": {
+            "model": "m1",
+            "harness": "h1"
+          }
+        }
+      },
+      {
+        "id": "r2",
+        "key": "kB",
+        "slot": 1767225600,
+        "t": 1767225620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 2
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r3",
+        "key": "kC",
+        "slot": 1767225600,
+        "t": 1767225620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 3
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "ai": {
+            "model": "m1",
+            "harness": "h1"
+          }
+        }
+      },
+      {
+        "id": "r4",
+        "key": "kC",
+        "slot": 1767315600,
+        "t": 1767315620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 3
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kC",
+        "value": 3
+      },
+      {
+        "key": "kB",
+        "value": 2
+      },
+      {
+        "key": "kA",
+        "value": 1
+      }
+    ]
+  }
+}

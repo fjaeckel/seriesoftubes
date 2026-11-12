@@ -1,0 +1,76 @@
+{
+  "description": "Adding someone who is already an operator cannot apply: void.",
+  "input": {
+    "now": 1767312100,
+    "genesis": {
+      "v": 1,
+      "kind": "genesis",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1763856000,
+      "body": {
+        "name": "Packet Lunch",
+        "node": {
+          "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+          "url": "wss://relay.example.net/fed"
+        }
+      },
+      "sig": "5_YXhNeVD4FTE0p0XTgpZIslVXcBVLEauUb2ki7EGXxYonjKOe3f1oP21yqnWf3xPPq-zeSwZQsDnKHUDE3tDw"
+    },
+    "records": [
+      {
+        "v": 1,
+        "kind": "operators",
+        "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+        "t": 1764720000,
+        "body": {
+          "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+          "prev": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+          "action": "add_operator",
+          "target": "3TBqwov-v_tIyl8ZW7Xw4ZYl-XCzwvtuYRmNvkjoGbQ"
+        },
+        "sigs": [
+          {
+            "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+            "sig": "D-5at-Mnx2Y6Hr2fbqoTS0UXeoQDVKs8Gstwwm-d0w16jSmRRcq9dOEb-11t3FpigiaaKtVDAJBpfP4hegaRDA"
+          }
+        ]
+      },
+      {
+        "v": 1,
+        "kind": "operators",
+        "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+        "t": 1767312000,
+        "body": {
+          "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+          "prev": "C_l-NQAFAXY0BfaC5whiKmrJFkC8BvIihyxvSwh4gHs",
+          "action": "add_operator",
+          "target": "3TBqwov-v_tIyl8ZW7Xw4ZYl-XCzwvtuYRmNvkjoGbQ"
+        },
+        "sigs": [
+          {
+            "key": "3TBqwov-v_tIyl8ZW7Xw4ZYl-XCzwvtuYRmNvkjoGbQ",
+            "sig": "DI4nk76khpVxVJS9bbqeAPhRyKGcvp3e3uKwMGLn2ufMrMPLfwaK_7AjqvR8VMCTWi6CNLh01ntlgzr7h0sQCw"
+          },
+          {
+            "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+            "sig": "uwXUODAW7XfPRGFiWr5KbkC7zsD6Kpn_YPZwaL6Pcw1R7LjnA_LanfkxMviK7GVcA-0rhnciFdrljNp0ab-FDQ"
+          }
+        ]
+      }
+    ]
+  },
+  "expect": {
+    "head": "C_l-NQAFAXY0BfaC5whiKmrJFkC8BvIihyxvSwh4gHs",
+    "operators": [
+      "3TBqwov-v_tIyl8ZW7Xw4ZYl-XCzwvtuYRmNvkjoGbQ",
+      "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY"
+    ],
+    "nodes": [
+      {
+        "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+        "url": "wss://relay.example.net/fed"
+      }
+    ],
+    "pending": []
+  }
+}

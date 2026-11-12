@@ -1,0 +1,25 @@
+{
+  "description": "stats with nothing optional: no pies (no Pie in the Sky company), no ai (a human), empty lists.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false
+      },
+      "sig": "dJqxD00-P606yvYpKr-9lx3aeMSFbjTltBBvz--2uzYzebvDnaJJP_2awaQOZub0IfAIg2IhiNC6x7OcKZISCg"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "stats",
+    "id": "2vZ4qxAsYizvohbNKp-K6o67YcEMN-muaaM7IJ9_xOE"
+  }
+}

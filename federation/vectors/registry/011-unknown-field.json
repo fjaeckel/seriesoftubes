@@ -1,0 +1,63 @@
+{
+  "description": "Only v, genesis, chain, server, listed and answered.",
+  "input": {
+    "files": {
+      "eYVIb2jN0KGxd3VFgLT9c0btb0oe03YBEKvj9CTp53U.json": {
+        "v": 1,
+        "genesis": {
+          "v": 1,
+          "kind": "genesis",
+          "key": "TwBHJ3QJzHW6GFkXDkFFLpyDi9wNU9WaZ_eAjo53hTk",
+          "t": 1766880000,
+          "body": {
+            "name": "Hop Shop",
+            "node": {
+              "key": "KZRK5XTNKGHhctlRk_ynNF4_ZNUpCYmNCabMhCNDkGk",
+              "url": "wss://third.example.com"
+            }
+          },
+          "sig": "oRwJ446CmnS-T4CIrbd3wHcJCkBU-lI68-AugpOCIXO4y3l0Jjz63Z1bM81BtfYs7ln8zn5dRzNmhFuz-DVkCg"
+        },
+        "chain": [],
+        "server": {
+          "v": 1,
+          "kind": "server",
+          "key": "TwBHJ3QJzHW6GFkXDkFFLpyDi9wNU9WaZ_eAjo53hTk",
+          "t": 1766880000,
+          "body": {
+            "server": "eYVIb2jN0KGxd3VFgLT9c0btb0oe03YBEKvj9CTp53U",
+            "head": "eYVIb2jN0KGxd3VFgLT9c0btb0oe03YBEKvj9CTp53U",
+            "name": "Hop Shop",
+            "nodes": [
+              {
+                "key": "KZRK5XTNKGHhctlRk_ynNF4_ZNUpCYmNCabMhCNDkGk",
+                "url": "wss://third.example.com"
+              }
+            ],
+            "operators": [
+              "TwBHJ3QJzHW6GFkXDkFFLpyDi9wNU9WaZ_eAjo53hTk"
+            ],
+            "sync": "selective",
+            "noLogs": true,
+            "langs": [
+              "fr"
+            ],
+            "desc": ""
+          },
+          "sigs": [
+            {
+              "key": "TwBHJ3QJzHW6GFkXDkFFLpyDi9wNU9WaZ_eAjo53hTk",
+              "sig": "T27i3GY0ZLX0nLE464xIscHNhBGDZp02HKIsmYF06CJMffTpRh_Tr52jFodt-hPoD3uFhJEgxeqHJJ4zv89gDw"
+            }
+          ]
+        },
+        "contact": "dan@example.org"
+      }
+    },
+    "check": "eYVIb2jN0KGxd3VFgLT9c0btb0oe03YBEKvj9CTp53U.json"
+  },
+  "expect": {
+    "ok": false,
+    "error": "unknown_field"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "description": "Sign a record: canonical JSON of the record without \"sig\", as UTF-8, signed with Ed25519 (deterministic, so the signature must match byte for byte). The record id is base64url(SHA-256(canonical JSON of the full record, sig included)).",
+  "input": {
+    "seed": "6d21019001a79c301ce03ae44a51a0cc13e695ba1e77cd12b268430da3f93a10",
+    "unsigned": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false
+      }
+    }
+  },
+  "expect": {
+    "signed_text": "{\"body\":{\"mode\":\"normal\",\"pops\":{},\"shareCountry\":false,\"tier1\":false,\"traffic\":[]},\"key\":\"q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw\",\"kind\":\"stats\",\"t\":1767312000,\"v\":1}",
+    "sig": "dJqxD00-P606yvYpKr-9lx3aeMSFbjTltBBvz--2uzYzebvDnaJJP_2awaQOZub0IfAIg2IhiNC6x7OcKZISCg",
+    "id": "2vZ4qxAsYizvohbNKp-K6o67YcEMN-muaaM7IJ9_xOE",
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false
+      },
+      "sig": "dJqxD00-P606yvYpKr-9lx3aeMSFbjTltBBvz--2uzYzebvDnaJJP_2awaQOZub0IfAIg2IhiNC6x7OcKZISCg"
+    }
+  }
+}

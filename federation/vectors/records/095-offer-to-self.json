@@ -1,0 +1,28 @@
+{
+  "description": "An offer to oneself.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "offer",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "to": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+        "deal": "peering",
+        "basis": "Y4_rLgHMEug3Xg5HJjv4CsG_Y2rYqjp3o31vFEWKv6A",
+        "terms": {
+          "at": [
+            "fra"
+          ],
+          "via": "ix"
+        }
+      },
+      "sig": "WOYw3qqGgW077QgJkMO-itN-DW2zbWrHfyg7DEwElukfg0sqCPw50g6Ug9y_7_nRu5Vc4GM8Cb7TrSHiGfR4DQ"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

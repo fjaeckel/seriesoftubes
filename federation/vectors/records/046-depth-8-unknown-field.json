@@ -1,0 +1,11 @@
+{
+  "description": "Depth exactly 8 passes the value rules; this record is then refused only for its unknown field \"x\".",
+  "input": {
+    "now": 1767312100,
+    "text": "{\"body\":{\"ai\":{\"harness\":\"tubes-mcp\",\"model\":\"example-model-1\"},\"mode\":\"normal\",\"pies\":12,\"x\":[[[[[[1]]]]]],\"pops\":{\"ams\":1,\"fra\":2,\"lon\":1},\"shareCountry\":true,\"tier1\":false,\"traffic\":[{\"in\":1800,\"key\":\"BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0\",\"out\":2400},{\"in\":300,\"key\":\"Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns\",\"out\":0}]},\"key\":\"q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw\",\"kind\":\"stats\",\"sig\":\"L8ME20yzfXavqOXybOoeuFrXkbiUwqP4uCkFmYt15tHdWEB2FEAhK1GSpOTb3abwNKQgQwCik9bZau1x-rRHBQ\",\"t\":1767312000,\"v\":1}"
+  },
+  "expect": {
+    "ok": false,
+    "error": "unknown_field"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "description": "-0 is refused.",
+  "input": {
+    "text": "{\"a\":-0}"
+  },
+  "expect": {
+    "error": "bad_number"
+  }
+}

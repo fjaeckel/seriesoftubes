@@ -1,0 +1,25 @@
+{
+  "description": "A sandbox save may send stats (they are valid records); boards just never rank them.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "sandbox",
+        "pops": {},
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false
+      },
+      "sig": "i_uOqDLdp_lXdbjXEIF706SMNqePl6orjVYpr9Ul-GZNfjXOPe_Axb5NG12-SFekrpWYT5fud0JNnjrneE3PAw"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "stats",
+    "id": "3Zlvv0gHimIkcUtRhuXsY41ZtKLi7Pz2LL8P_Vu1Ch4"
+  }
+}

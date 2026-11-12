@@ -1,0 +1,15 @@
+{
+  "description": "The file is not JSON.",
+  "input": {
+    "files": {
+      "eYVIb2jN0KGxd3VFgLT9c0btb0oe03YBEKvj9CTp53U.json": {
+        "text": "{\"v\":1,"
+      }
+    },
+    "check": "eYVIb2jN0KGxd3VFgLT9c0btb0oe03YBEKvj9CTp53U.json"
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_json"
+  }
+}

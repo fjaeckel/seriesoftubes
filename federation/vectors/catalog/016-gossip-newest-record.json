@@ -1,0 +1,89 @@
+{
+  "description": "sB is known by gossip only. The newest server record (t 200, rB2) gives the lists. seen is the greatest (N - 500, two entries); between those, the shorter path.",
+  "input": {
+    "now": 1767312000,
+    "registry": [],
+    "gossip": [
+      {
+        "id": "sB",
+        "server": {
+          "rid": "rB1",
+          "t": 100,
+          "name": "Hop Shop",
+          "nodes": [
+            "n1"
+          ],
+          "operators": [
+            "o1"
+          ]
+        },
+        "path": [
+          "sB"
+        ],
+        "seen": 1767311500
+      },
+      {
+        "id": "sB",
+        "server": {
+          "rid": "rB2",
+          "t": 200,
+          "name": "Hop Shop",
+          "nodes": [
+            "n1",
+            "n2"
+          ],
+          "operators": [
+            "o1"
+          ]
+        },
+        "path": [
+          "sB",
+          "sC"
+        ],
+        "seen": 1767311100
+      },
+      {
+        "id": "sB",
+        "server": {
+          "rid": "rB2",
+          "t": 200,
+          "name": "Hop Shop",
+          "nodes": [
+            "n1",
+            "n2"
+          ],
+          "operators": [
+            "o1"
+          ]
+        },
+        "path": [
+          "sB",
+          "sD",
+          "sE"
+        ],
+        "seen": 1767311500
+      }
+    ]
+  },
+  "expect": {
+    "servers": [
+      {
+        "id": "sB",
+        "source": "gossip",
+        "rid": "rB2",
+        "name": "Hop Shop",
+        "nodes": [
+          "n1",
+          "n2"
+        ],
+        "operators": [
+          "o1"
+        ],
+        "seen": 1767311500,
+        "path": [
+          "sB"
+        ]
+      }
+    ]
+  }
+}

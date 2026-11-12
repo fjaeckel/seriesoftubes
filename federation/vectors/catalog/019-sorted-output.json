@@ -1,0 +1,76 @@
+{
+  "description": "Servers are listed by id in byte order, registry and gossip ones together.",
+  "input": {
+    "now": 1767312000,
+    "registry": [
+      {
+        "id": "sZ",
+        "server": {
+          "rid": "rZ",
+          "t": 100,
+          "name": "Zed",
+          "nodes": [
+            "n1"
+          ],
+          "operators": [
+            "o1"
+          ]
+        }
+      }
+    ],
+    "gossip": [
+      {
+        "id": "sM",
+        "server": {
+          "rid": "rM",
+          "t": 100,
+          "name": "Em",
+          "nodes": [
+            "n1"
+          ],
+          "operators": [
+            "o1"
+          ]
+        },
+        "path": [
+          "sM"
+        ],
+        "seen": 1767311995
+      }
+    ]
+  },
+  "expect": {
+    "servers": [
+      {
+        "id": "sM",
+        "source": "gossip",
+        "rid": "rM",
+        "name": "Em",
+        "nodes": [
+          "n1"
+        ],
+        "operators": [
+          "o1"
+        ],
+        "seen": 1767311995,
+        "path": [
+          "sM"
+        ]
+      },
+      {
+        "id": "sZ",
+        "source": "registry",
+        "rid": "rZ",
+        "name": "Zed",
+        "nodes": [
+          "n1"
+        ],
+        "operators": [
+          "o1"
+        ],
+        "seen": null,
+        "path": null
+      }
+    ]
+  }
+}

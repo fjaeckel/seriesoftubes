@@ -2,6 +2,8 @@
 
 Status: draft for review. Decision record: [ADR 0005](../adr/0005-federation-by-player-run-servers.md).
 No code yet. Every later step follows CLAUDE.md (phones first, saves sacred, translated by label, perf measured).
+The exact messages, limits and rules are in [docs/FEDERATION-PROTOCOL.md](../FEDERATION-PROTOCOL.md), with shared test
+vectors in `federation/vectors/`; where this design and the protocol differ, the protocol wins.
 
 ## In one paragraph
 
@@ -231,8 +233,9 @@ network, it is excluded on every server and in every game that syncs.
 
 ### Identity
 
-- A key pair per joined save, made with WebCrypto (Ed25519; ECDSA P-256 where Ed25519 is missing; check current
-  browser support before building). Created when the player joins, not before.
+- A key pair per joined save, made with WebCrypto, Ed25519 only. A browser without WebCrypto Ed25519 simply does not
+  offer multiplayer (the rest of the game is unchanged); there is no second algorithm. Created when the player joins,
+  not before.
 - The public key is the identity. The game shows a short "ASN" derived from its hash (a 32-bit number in the private
   range, collisions resolved by the full key), plus the save's network name.
 - The private key lives in the save. `exportSave()` and bug-report exports strip it. A separate "Move to another
@@ -250,9 +253,10 @@ JSON, signed, versioned, each under a size limit. Kinds:
 | --- | --- | --- |
 | `announce` | client | Network name, ASN, home market, founded (game and real day), POPs, exchanges, customers and traffic mix (enough to appear in others' games), peering policy and conditions, rate card, how requests are handled |
 | `stats` | client, at most every 5 minutes while online | POPs in service (per game city), pies in service, traffic per player network, Tier 1, AI declaration, whether the player shares their country |
-| `offer` / `accept` / `decline` | client | Peering, transit, capacity swaps, consortium membership |
+| `offer` / `accept` / `decline` | client | Peering, transit, PNI, exchange ports, capacity swaps, consortium membership; each record has one signer, and a deal's two signatures are the offer and the accept (or the counterparty's own `announce` when it accepts automatically) |
+| `leave` | client | The network leaves the federation; its older records are dropped everywhere |
 | `genesis` | the founding operator | A new server: name, first operator, first node; its hash is the server's identity |
-| `server` | a node | Server identity, name, nodes (URLs and node keys), operators (keys), sync policy, time seen, path of servers it came through, expiry |
+| `server` | server operators (a majority) | Server identity, name, nodes (URLs and node keys), operators (keys), sync policy, `noLogs`, languages, description. Gossip wraps it with the path of servers it came through and when it was last seen; it expires 7 days after that |
 | `operators` | server operators | A proposal to change the operator or node list; takes effect once signed by a majority of the current operators |
 | `hide` | a server operator | Keys or names this server hides (applied on all its nodes, advice to other servers) |
 | `shun` / `unshun` | a server operator | A vote to exclude a network everywhere: its key and one pre-made reason; lasts 90 days unless renewed |
@@ -300,8 +304,10 @@ records in a shared database that anyone can submit to and everyone can read. He
 
 **1. The registry is a folder in the repo, changed by pull request.**
 
-- One file per server, `federation/servers/<server-identity>.json`, holding its signed `server` announcement: name,
-  nodes, operators, sync policy, languages, a short description. One file each, so pull requests never conflict.
+- One file per server, `federation/servers/<server-identity>.json`, holding its `genesis`, the operator changes since
+  (the chain) and its signed `server` announcement: name, nodes, operators, sync policy, languages, a short description.
+  One file each, so pull requests never conflict. The weekly job adds `listed` and `answered` dates, which the shun
+  tally uses to know who may vote.
 - To list a server, an operator opens a pull request adding or changing its file. To change one, any of its operators
   does the same; changes to the operator list carry the majority signatures as everywhere else. To leave, delete it.
 - **CI checks every such pull request** (a job in `ci.yml` running `relay check-registry`): the file parses and fits
@@ -312,8 +318,9 @@ records in a shared database that anyone can submit to and everyone can read. He
 - **It reaches players through the site.** The build turns the folder into `site/federation/servers.json`, a static,
   same-origin file on GitHub Pages, so the list needs no service and no cross-origin request at all (ADR 0001 holds
   unchanged for it). It updates with each release.
-- **A weekly CI job** connects to every listed server and opens one pull request removing servers that have not
-  answered for two weeks, for a maintainer to merge.
+- **A weekly CI job** connects to every listed server, stamps when each first got listed and last answered, and opens
+  one pull request with those stamps and removing servers that have not answered for two weeks, for a maintainer to
+  merge.
 
 **2. Gossip between syncing servers fills the gap between releases.** Each server passes on the `server`
 announcements it knows: it adds itself to the path and drops announcements whose path already contains it (loop
@@ -348,7 +355,8 @@ centrally: no hosted directory, no service run by the project.
 - **One static binary.** Self-hosters download one file for their platform (Linux, macOS, Windows; amd64 and arm64,
   so a Raspberry Pi works) and run it: no runtime to install. Its container image is built `FROM scratch` and is a
   few MB, separate from the MCP server's Node image.
-- **Few dependencies.** The standard library covers signatures (`crypto/ed25519`, `crypto/ecdsa`), JSON and HTTP.
+- **Few dependencies.** The standard library covers signatures (`crypto/ed25519`), JSON and HTTP (canonical JSON is
+  written by hand, never with `encoding/json`).
   Beyond it: one small WebSocket library (`github.com/coder/websocket`) and a reader for the country-only database.
   Nothing from the relay reaches the page players load, which keeps using the browser's own `WebSocket`.
 - Storage is plain files in one directory, so running one is cheap.
@@ -490,7 +498,9 @@ any server the viewer can see:
 
 - A server outage does not cost anyone their rank: the window carries the last value forward for up to 7 days (see
   Leaderboards), and other servers that sync with yours keep showing you.
-- Records sent late after an outage keep their own signed time and land where they belong when they arrive.
+- Records count at the time the first server received them (their receipt), never the phone's clock. A player's
+  game sends only its newest `stats` after an outage, so nothing lands out of place; the window carries the last value
+  forward meanwhile.
 
 ### On the relay side
 

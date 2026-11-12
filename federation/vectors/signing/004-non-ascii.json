@@ -1,0 +1,46 @@
+{
+  "description": "Canonical text is UTF-8 with every character other than \" and \\ written literally, so a name with é, a quote, a backslash and an emoji signs as those bytes.",
+  "input": {
+    "seed": "6d21019001a79c301ce03ae44a51a0cc13e695ba1e77cd12b268430da3f93a10",
+    "unsigned": {
+      "v": 1,
+      "kind": "announce",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "name": "Café \"Ping\" \\ 📡",
+        "asn": 4215690104,
+        "home": "US",
+        "day": 0,
+        "founded": 20455,
+        "pops": [],
+        "ix": [],
+        "cust": 0,
+        "mix": {
+          "content": 0,
+          "eyeball": 1000,
+          "enterprise": 0
+        },
+        "traffic": {
+          "in": 0,
+          "out": 0
+        },
+        "policy": "open",
+        "rates": {},
+        "auto": {
+          "peering": "auto",
+          "transit": "decline",
+          "pni": "decline",
+          "swap": "decline",
+          "consortium": "decline",
+          "port": "decline"
+        }
+      }
+    }
+  },
+  "expect": {
+    "signed_text": "{\"body\":{\"asn\":4215690104,\"auto\":{\"consortium\":\"decline\",\"peering\":\"auto\",\"pni\":\"decline\",\"port\":\"decline\",\"swap\":\"decline\",\"transit\":\"decline\"},\"cust\":0,\"day\":0,\"founded\":20455,\"home\":\"US\",\"ix\":[],\"mix\":{\"content\":0,\"enterprise\":0,\"eyeball\":1000},\"name\":\"Café \\\"Ping\\\" \\\\ 📡\",\"policy\":\"open\",\"pops\":[],\"rates\":{},\"traffic\":{\"in\":0,\"out\":0}},\"key\":\"q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw\",\"kind\":\"announce\",\"t\":1767312000,\"v\":1}",
+    "sig": "YIWdxCeRrv8jh2UZkDSMUsVP-BNVNFGFRy384VZy27wA4J2uS4TK62e9zTU6oAwexJ80fTF_CRhRv4r-mkthCg",
+    "id": "2CJctfE-0WXV7hih_Ek__M2v0-4Eu22BW1W1lx9U7qY"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "description": "stats older than 777600 s (9 days).",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1766534499,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false
+      },
+      "sig": "dI47Guh_Izvs2WYP_3Ys7ULeb72bsbrDfzKYZVrfkqwrI-Ob1IHulyQs_jd9zdWqUD0bdGIFQKk1j_CCUOssCQ"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "too_old"
+  }
+}

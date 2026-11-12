@@ -1,0 +1,239 @@
+{
+  "description": "How a node answers a client's frame. state \"new\": before hello; \"ready\": after welcome. Members a frame does not define are ignored.",
+  "cases": [
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "new",
+        "frame": "{\"m\":\"hello\",\"vers\":[1],\"role\":\"client\"}"
+      },
+      "expect": {
+        "ok": true
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "new",
+        "frame": "{\"m\":\"hello\",\"vers\":[1],\"role\":\"client\",\"ua\":\"x\"}"
+      },
+      "expect": {
+        "ok": true
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "new",
+        "frame": "{\"m\":\"hello\",\"vers\":[2,3],\"role\":\"client\"}"
+      },
+      "expect": {
+        "error": "unsupported"
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "new",
+        "frame": "{\"m\":\"hello\",\"vers\":[],\"role\":\"client\"}"
+      },
+      "expect": {
+        "error": "bad_frame"
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "new",
+        "frame": "{\"m\":\"hello\",\"vers\":[1],\"role\":\"admin\"}"
+      },
+      "expect": {
+        "error": "bad_frame"
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "new",
+        "frame": "{\"m\":\"put\",\"id\":1,\"rec\":{}}"
+      },
+      "expect": {
+        "error": "not_ready"
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "{\"m\":\"hello\",\"vers\":[1],\"role\":\"client\"}"
+      },
+      "expect": {
+        "error": "bad_frame"
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "[1]"
+      },
+      "expect": {
+        "error": "bad_frame"
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "{\"id\":1}"
+      },
+      "expect": {
+        "error": "bad_frame"
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "{\"m\":\"chat\",\"id\":1}"
+      },
+      "expect": {
+        "error": "bad_frame"
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "{\"m\":\"put\",\"rec\":{}}"
+      },
+      "expect": {
+        "error": "bad_frame"
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "{\"m\":\"put\",\"id\":0,\"rec\":{}}"
+      },
+      "expect": {
+        "error": "bad_frame"
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "{\"m\":\"put\",\"id\":2147483648,\"rec\":{}}"
+      },
+      "expect": {
+        "error": "bad_frame"
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "{\"m\":\"put\",\"id\":\"1\",\"rec\":{}}"
+      },
+      "expect": {
+        "error": "bad_frame"
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "{\"m\":\"put\",\"id\":2147483647,\"rec\":{}}"
+      },
+      "expect": {
+        "ok": true
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "{\"m\":\"ping\",\"id\":7}"
+      },
+      "expect": {
+        "ok": true
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "{\"m\":\"fetch\",\"id\":3,\"ids\":[]}"
+      },
+      "expect": {
+        "ok": true
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "{\"m\":\"put\",\"id\":1"
+      },
+      "expect": {
+        "error": "bad_json"
+      }
+    }
+  ]
+}

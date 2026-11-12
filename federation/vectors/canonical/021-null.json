@@ -1,0 +1,9 @@
+{
+  "description": "null is not allowed.",
+  "input": {
+    "text": "{\"a\":null}"
+  },
+  "expect": {
+    "error": "bad_value"
+  }
+}

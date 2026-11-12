@@ -1,0 +1,28 @@
+{
+  "description": "ai.model empty.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false,
+        "ai": {
+          "model": "",
+          "harness": "tubes-mcp"
+        }
+      },
+      "sig": "WCnUJmVYFC8PcPcny-Mvvfvvmc3OJtliWta684_wCdC160AbUMXluLb4tVFhY3p4LTtlk5Rhg2DFhrbWGnATAA"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

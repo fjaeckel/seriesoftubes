@@ -1,0 +1,44 @@
+{
+  "description": "Signed by mallory, claiming alice's key.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {
+          "ams": 1,
+          "fra": 2,
+          "lon": 1
+        },
+        "pies": 12,
+        "traffic": [
+          {
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "in": 1800,
+            "out": 2400
+          },
+          {
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "in": 300,
+            "out": 0
+          }
+        ],
+        "tier1": false,
+        "ai": {
+          "model": "example-model-1",
+          "harness": "tubes-mcp"
+        },
+        "shareCountry": true
+      },
+      "sig": "lqIOEgH-c3n2jeXJcITNDiHH-g2FpW_5FhHbZx8yf9Iz3isxkui97pEAC941E2RIgH0XrAcDpBFKAMU8RKi6BQ"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_sig"
+  }
+}

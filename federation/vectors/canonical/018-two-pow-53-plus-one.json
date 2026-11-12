@@ -1,0 +1,9 @@
+{
+  "description": "9007199254740993 reads as the double 9007199254740992: outside the safe range.",
+  "input": {
+    "text": "{\"a\":9007199254740993}"
+  },
+  "expect": {
+    "error": "bad_number"
+  }
+}

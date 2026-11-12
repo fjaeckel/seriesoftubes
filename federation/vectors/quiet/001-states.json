@@ -1,0 +1,125 @@
+{
+  "description": "age = now - lastHeard. active below 604800 (factor 1000); fading below 3196800 with factor 1000 - div((age - 604800) * 1000, 2592000); dark below 15552000 (0); forgotten from 15552000 (0).",
+  "cases": [
+    {
+      "input": {
+        "now": 1767398400,
+        "lastHeard": 1767398400
+      },
+      "expect": {
+        "state": "active",
+        "factor": 1000
+      }
+    },
+    {
+      "input": {
+        "now": 1767398400,
+        "lastHeard": 1767398700
+      },
+      "expect": {
+        "state": "active",
+        "factor": 1000
+      }
+    },
+    {
+      "input": {
+        "now": 1767398400,
+        "lastHeard": 1766793601
+      },
+      "expect": {
+        "state": "active",
+        "factor": 1000
+      }
+    },
+    {
+      "input": {
+        "now": 1767398400,
+        "lastHeard": 1766793600
+      },
+      "expect": {
+        "state": "fading",
+        "factor": 1000
+      }
+    },
+    {
+      "input": {
+        "now": 1767398400,
+        "lastHeard": 1766793599
+      },
+      "expect": {
+        "state": "fading",
+        "factor": 1000
+      }
+    },
+    {
+      "input": {
+        "now": 1767398400,
+        "lastHeard": 1766791008
+      },
+      "expect": {
+        "state": "fading",
+        "factor": 999
+      }
+    },
+    {
+      "input": {
+        "now": 1767398400,
+        "lastHeard": 1765793600
+      },
+      "expect": {
+        "state": "fading",
+        "factor": 615
+      }
+    },
+    {
+      "input": {
+        "now": 1767398400,
+        "lastHeard": 1765497600
+      },
+      "expect": {
+        "state": "fading",
+        "factor": 500
+      }
+    },
+    {
+      "input": {
+        "now": 1767398400,
+        "lastHeard": 1764201601
+      },
+      "expect": {
+        "state": "fading",
+        "factor": 1
+      }
+    },
+    {
+      "input": {
+        "now": 1767398400,
+        "lastHeard": 1764201600
+      },
+      "expect": {
+        "state": "dark",
+        "factor": 0
+      }
+    },
+    {
+      "input": {
+        "now": 1767398400,
+        "lastHeard": 1751846401
+      },
+      "expect": {
+        "state": "dark",
+        "factor": 0
+      }
+    },
+    {
+      "input": {
+        "now": 1767398400,
+        "lastHeard": 1751846400
+      },
+      "expect": {
+        "state": "forgotten",
+        "factor": 0
+      }
+    }
+  ]
+}

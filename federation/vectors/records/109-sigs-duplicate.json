@@ -1,0 +1,32 @@
+{
+  "description": "The same signer twice.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "operators",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "prev": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "action": "add_operator",
+        "target": "3TBqwov-v_tIyl8ZW7Xw4ZYl-XCzwvtuYRmNvkjoGbQ"
+      },
+      "sigs": [
+        {
+          "key": "3TBqwov-v_tIyl8ZW7Xw4ZYl-XCzwvtuYRmNvkjoGbQ",
+          "sig": "MjEzlCBCXCVF3XJrQrt6tbRnSV8Od1gwoRRP-9zqi9ZvLllT87W2t5Ap3bLLVEZMrE6K_oni_Nnv4q-YdRseCg"
+        },
+        {
+          "key": "3TBqwov-v_tIyl8ZW7Xw4ZYl-XCzwvtuYRmNvkjoGbQ",
+          "sig": "MjEzlCBCXCVF3XJrQrt6tbRnSV8Od1gwoRRP-9zqi9ZvLllT87W2t5Ap3bLLVEZMrE6K_oni_Nnv4q-YdRseCg"
+        }
+      ]
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "duplicate"
+  }
+}

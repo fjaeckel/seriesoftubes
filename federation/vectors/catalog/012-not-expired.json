@@ -1,0 +1,21 @@
+{
+  "description": "seen one second later: stored.",
+  "input": {
+    "now": 1767312000,
+    "self": "sX",
+    "entry": {
+      "id": "sA",
+      "path": [
+        "sA"
+      ],
+      "seen": 1766707201
+    }
+  },
+  "expect": {
+    "action": "store",
+    "forward": [
+      "sA",
+      "sX"
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "description": "No whitespace in the output; nested objects sorted too.",
+  "input": {
+    "text": "{ \"a\" : [ 1 , 2 ] ,\n  \"c\" : { \"z\" : true , \"y\" : false } }"
+  },
+  "expect": {
+    "canonical": "{\"a\":[1,2],\"c\":{\"y\":false,\"z\":true}}"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "description": "A proof for another nonce.",
+  "input": {
+    "now": 1767312100,
+    "nonce": "rBS_HE6aQALHh8up6dera9n4ThINlJjegE5GeZzMeuw",
+    "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+    "node": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+    "proof": {
+      "v": 1,
+      "kind": "proof",
+      "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+      "t": 1767312095,
+      "body": {
+        "nonce": "LeJk_p-Ufr6vhitNa_4Gdn1TkBbzR6Vm43dwxVXTlCs",
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4"
+      },
+      "sig": "N0S71pgaCP1KG1A1MB7v4-OIL3e-fjWwkhggGslimdQlDtJnLHnRhtmUHYKlHYFJvgfflGrd_CTXUzW41QH7CA"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_challenge"
+  }
+}

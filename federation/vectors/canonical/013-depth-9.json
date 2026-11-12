@@ -1,0 +1,9 @@
+{
+  "description": "Depth 9 (the object, then eight arrays).",
+  "input": {
+    "text": "{\"a\":[[[[[[[[1]]]]]]]]}"
+  },
+  "expect": {
+    "error": "too_deep"
+  }
+}

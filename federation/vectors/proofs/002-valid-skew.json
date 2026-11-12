@@ -1,0 +1,23 @@
+{
+  "description": "t 300 s behind now is still fresh.",
+  "input": {
+    "now": 1767312100,
+    "nonce": "rBS_HE6aQALHh8up6dera9n4ThINlJjegE5GeZzMeuw",
+    "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+    "node": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+    "proof": {
+      "v": 1,
+      "kind": "proof",
+      "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+      "t": 1767311800,
+      "body": {
+        "nonce": "rBS_HE6aQALHh8up6dera9n4ThINlJjegE5GeZzMeuw",
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4"
+      },
+      "sig": "ogNSe7g7o2MgvOkM4GJMvNUpjZdI9vdrusgHykXk7qnt2w747MQMcP9AKJWmRJsDOydMc2TBwBZvgmluw_bFCQ"
+    }
+  },
+  "expect": {
+    "ok": true
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "description": "Traffic with one's own key.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [
+          {
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "in": 1,
+            "out": 1
+          }
+        ],
+        "tier1": false,
+        "shareCountry": false
+      },
+      "sig": "5A8-6ww6ARAYtrVmWL95Vw6WByrYgtBC99p-C_YJ2jelGQldhQWIfP4eEbCZBGwUPTpM_Cy8o_MHRHaK5rYyBg"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "description": "A high surrogate at the end of the string.",
+  "input": {
+    "text": "{\"a\":\"x\\ud83d\"}"
+  },
+  "expect": {
+    "error": "bad_string"
+  }
+}

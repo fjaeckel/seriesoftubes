@@ -1,0 +1,35 @@
+{
+  "description": "The same network twice in traffic.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [
+          {
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "in": 1,
+            "out": 1
+          },
+          {
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "in": 2,
+            "out": 2
+          }
+        ],
+        "tier1": false,
+        "shareCountry": false
+      },
+      "sig": "vKDJsKVEq2wno8uqqxGMEspdD8_hBSFpYD0biNYtISqsNQIK2mSXOZ_qa365uBpT6ViwBSVnfO5mXzPsWUBOCA"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "duplicate"
+  }
+}

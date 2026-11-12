@@ -1,0 +1,24 @@
+{
+  "description": "A valid proof by node2 when node1 was asked.",
+  "input": {
+    "now": 1767312100,
+    "nonce": "rBS_HE6aQALHh8up6dera9n4ThINlJjegE5GeZzMeuw",
+    "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+    "node": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+    "proof": {
+      "v": 1,
+      "kind": "proof",
+      "key": "i7ibH5fd16Yxj6GRgQEpbUBEj1AI3_5nPrGRxGnWgXc",
+      "t": 1767312095,
+      "body": {
+        "nonce": "rBS_HE6aQALHh8up6dera9n4ThINlJjegE5GeZzMeuw",
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4"
+      },
+      "sig": "ofqcK7wEla-Uef3-gJxJKyMc4y9Lxwz-fvRizbXKfx-K6mQ2puMNjrBNGixgWlCWHgaVh5VVCUr9CFVS0O3HCg"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_challenge"
+  }
+}

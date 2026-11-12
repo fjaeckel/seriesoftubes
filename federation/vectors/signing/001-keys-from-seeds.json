@@ -1,0 +1,19 @@
+{
+  "description": "Ed25519 public keys from 32-byte seeds. Each seed is SHA-256 of the UTF-8 text \"tubes-fed.1 vector key <name>\". WebCrypto imports a seed as PKCS#8: the 16 bytes 302e020100300506032b657004220420 followed by the seed; Go uses ed25519.NewKeyFromSeed. The key is the raw 32-byte public key, base64url without padding (43 characters).",
+  "input": {
+    "seeds": {
+      "alice": "6d21019001a79c301ce03ae44a51a0cc13e695ba1e77cd12b268430da3f93a10",
+      "bob": "6efe7f97b6b2c6aa12c79f26c7caa4b63d9f42629af20b25a58535db3ac64542",
+      "anna": "72d8bebe4f2aa2cb4a929b082bb6bc6e8cbd00c0a6199762b2f0fdaed388c0b2",
+      "node1": "04b106fd195763086ced58909c2d605f767c268225ddc1737b990e00bebd0e37"
+    }
+  },
+  "expect": {
+    "keys": {
+      "alice": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "bob": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+      "anna": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "node1": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ"
+    }
+  }
+}

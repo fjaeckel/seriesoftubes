@@ -1,0 +1,9 @@
+{
+  "description": "Member names are checked at every depth.",
+  "input": {
+    "text": "{\"a\":[{\"b c\":1}]}"
+  },
+  "expect": {
+    "error": "bad_name"
+  }
+}

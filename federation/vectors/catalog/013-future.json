@@ -1,0 +1,18 @@
+{
+  "description": "seen more than 600 s ahead.",
+  "input": {
+    "now": 1767312000,
+    "self": "sX",
+    "entry": {
+      "id": "sA",
+      "path": [
+        "sA"
+      ],
+      "seen": 1767312601
+    }
+  },
+  "expect": {
+    "action": "refuse",
+    "error": "too_new"
+  }
+}

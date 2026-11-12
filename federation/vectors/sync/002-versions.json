@@ -1,0 +1,114 @@
+{
+  "description": "The session speaks the highest version both list; none in common is unsupported. vers must be ascending, unique and not empty, otherwise bad_frame.",
+  "cases": [
+    {
+      "input": {
+        "a": [
+          1
+        ],
+        "b": [
+          1
+        ]
+      },
+      "expect": {
+        "ver": 1
+      }
+    },
+    {
+      "input": {
+        "a": [
+          1,
+          2
+        ],
+        "b": [
+          1
+        ]
+      },
+      "expect": {
+        "ver": 1
+      }
+    },
+    {
+      "input": {
+        "a": [
+          1,
+          2
+        ],
+        "b": [
+          1,
+          2
+        ]
+      },
+      "expect": {
+        "ver": 2
+      }
+    },
+    {
+      "input": {
+        "a": [
+          1,
+          2
+        ],
+        "b": [
+          2,
+          3
+        ]
+      },
+      "expect": {
+        "ver": 2
+      }
+    },
+    {
+      "input": {
+        "a": [
+          2
+        ],
+        "b": [
+          1
+        ]
+      },
+      "expect": {
+        "error": "unsupported"
+      }
+    },
+    {
+      "input": {
+        "a": [],
+        "b": [
+          1
+        ]
+      },
+      "expect": {
+        "error": "bad_frame"
+      }
+    },
+    {
+      "input": {
+        "a": [
+          2,
+          1
+        ],
+        "b": [
+          1
+        ]
+      },
+      "expect": {
+        "error": "bad_frame"
+      }
+    },
+    {
+      "input": {
+        "a": [
+          1,
+          1
+        ],
+        "b": [
+          1
+        ]
+      },
+      "expect": {
+        "error": "bad_frame"
+      }
+    }
+  ]
+}

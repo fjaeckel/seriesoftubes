@@ -1,0 +1,23 @@
+{
+  "description": "A required body field is missing.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [],
+        "shareCountry": false
+      },
+      "sig": "SduP_sfhpg1bXa8lzgABda1GGmPdinyPy0DUb4T5WNHXUBLras1SVtmS--5hfGk_qZrVjBviNUsbQ6_TCME5DQ"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "missing_field"
+  }
+}

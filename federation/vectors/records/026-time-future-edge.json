@@ -1,0 +1,25 @@
+{
+  "description": "t exactly now + 600 is accepted (clock skew allowance).",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312700,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false
+      },
+      "sig": "Bie4RKHlQW7dHBNWfPTLuszW_WeMweqqwfati6RD-TTbUjTW91C9k3ubHFahkCCjtnihMKFrMmyLD1qBNqT9Cw"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "stats",
+    "id": "dtCk2M-mELtzBNho1FAkaFkSzRXUysW2shYRE1gRnQ8"
+  }
+}

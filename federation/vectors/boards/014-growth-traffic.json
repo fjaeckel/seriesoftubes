@@ -1,0 +1,101 @@
+{
+  "description": "now = 1767398410, so c = 1767398400; slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. Traffic growth with the 1000 Mbps floor: kA 500 -> 1500: div(1000 * 10000, 1000) = 10000. kB 4000 -> 5000: div(1000 * 10000, 4000) = 2500.",
+  "input": {
+    "now": 1767398410,
+    "board": "traffic",
+    "measure": "growth",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "records": [
+      {
+        "id": "a0",
+        "key": "kA",
+        "slot": 1767225600,
+        "t": 1767225620,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [
+            {
+              "key": "kX",
+              "in": 500,
+              "out": 10
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "a1",
+        "key": "kA",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [
+            {
+              "key": "kX",
+              "in": 1500,
+              "out": 10
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "b0",
+        "key": "kB",
+        "slot": 1767225600,
+        "t": 1767225620,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [
+            {
+              "key": "kY",
+              "in": 4000,
+              "out": 10
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "b1",
+        "key": "kB",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [
+            {
+              "key": "kY",
+              "in": 5000,
+              "out": 10
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 10000
+      },
+      {
+        "key": "kB",
+        "value": 2500
+      }
+    ]
+  }
+}

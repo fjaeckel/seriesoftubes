@@ -1,0 +1,127 @@
+{
+  "description": "The node list does not match the chain at its head.",
+  "input": {
+    "now": 1767312100,
+    "genesis": {
+      "v": 1,
+      "kind": "genesis",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1763856000,
+      "body": {
+        "name": "Packet Lunch",
+        "node": {
+          "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+          "url": "wss://relay.example.net/fed"
+        }
+      },
+      "sig": "5_YXhNeVD4FTE0p0XTgpZIslVXcBVLEauUb2ki7EGXxYonjKOe3f1oP21yqnWf3xPPq-zeSwZQsDnKHUDE3tDw"
+    },
+    "records": [
+      {
+        "v": 1,
+        "kind": "operators",
+        "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+        "t": 1764720000,
+        "body": {
+          "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+          "prev": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+          "action": "add_operator",
+          "target": "3TBqwov-v_tIyl8ZW7Xw4ZYl-XCzwvtuYRmNvkjoGbQ"
+        },
+        "sigs": [
+          {
+            "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+            "sig": "D-5at-Mnx2Y6Hr2fbqoTS0UXeoQDVKs8Gstwwm-d0w16jSmRRcq9dOEb-11t3FpigiaaKtVDAJBpfP4hegaRDA"
+          }
+        ]
+      },
+      {
+        "v": 1,
+        "kind": "operators",
+        "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+        "t": 1765584000,
+        "body": {
+          "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+          "prev": "C_l-NQAFAXY0BfaC5whiKmrJFkC8BvIihyxvSwh4gHs",
+          "action": "add_operator",
+          "target": "CJl2N0bs9a5BIL6TTHPuX3WrVgX1NCRD7P5TlhiUTw4"
+        },
+        "sigs": [
+          {
+            "key": "3TBqwov-v_tIyl8ZW7Xw4ZYl-XCzwvtuYRmNvkjoGbQ",
+            "sig": "y9eUtqVq_Dc6g1bS9gmjJebIMgHhoNSb9sH4yrncoUbFRVACyq75RaTOsq6ATSrkHwmnskv5_NWBi8PTxIQjBA"
+          },
+          {
+            "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+            "sig": "Ss957nlSjmGMOhGHHUmXKLbAwSAq2WrmwcD5JMohjydAsCR9MLlDrf37w4Xpb4IMl1bw7M1wOT2vStwl6xtWCQ"
+          }
+        ]
+      },
+      {
+        "v": 1,
+        "kind": "operators",
+        "key": "3TBqwov-v_tIyl8ZW7Xw4ZYl-XCzwvtuYRmNvkjoGbQ",
+        "t": 1766448000,
+        "body": {
+          "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+          "prev": "k5RDfGPgnZd52e2kQA2OSpRr-xcOqA7l92HcutiFEM0",
+          "action": "set_node",
+          "target": "i7ibH5fd16Yxj6GRgQEpbUBEj1AI3_5nPrGRxGnWgXc",
+          "url": "wss://second.example.org:8443/fed"
+        },
+        "sigs": [
+          {
+            "key": "3TBqwov-v_tIyl8ZW7Xw4ZYl-XCzwvtuYRmNvkjoGbQ",
+            "sig": "OfKyZrJ4ZDymT_xXLYzVcunq9Wvbl0FkWSGYdb8MZPCfEf-5tUeQerri3TnUTOGlw08a16QK-np4LmpcK4_HAA"
+          },
+          {
+            "key": "CJl2N0bs9a5BIL6TTHPuX3WrVgX1NCRD7P5TlhiUTw4",
+            "sig": "07DQUgFsI8CifuK90MYkju8craF6YM4JkxH3Z5d--_jLlVYBA4A0NjJn70zX2aFheqPggKiXhD4aNVf_9A6FBA"
+          }
+        ]
+      }
+    ],
+    "server": {
+      "v": 1,
+      "kind": "server",
+      "key": "CJl2N0bs9a5BIL6TTHPuX3WrVgX1NCRD7P5TlhiUTw4",
+      "t": 1767312000,
+      "body": {
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "head": "Q4cHDgFZ0ffNhlyeGx50C1rKABush3mooVAn5RhwqNs",
+        "name": "Packet Lunch",
+        "nodes": [
+          {
+            "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+            "url": "wss://relay.example.net/fed"
+          }
+        ],
+        "operators": [
+          "3TBqwov-v_tIyl8ZW7Xw4ZYl-XCzwvtuYRmNvkjoGbQ",
+          "CJl2N0bs9a5BIL6TTHPuX3WrVgX1NCRD7P5TlhiUTw4",
+          "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY"
+        ],
+        "sync": "selective",
+        "noLogs": true,
+        "langs": [
+          "en"
+        ],
+        "desc": ""
+      },
+      "sigs": [
+        {
+          "key": "3TBqwov-v_tIyl8ZW7Xw4ZYl-XCzwvtuYRmNvkjoGbQ",
+          "sig": "KvguBB8IloTIYcjySHi81lrgiA1otkWik-sea_-bgzeIQXGj9CCDmWoob397vGqo6h6mVNi-yweTfAId_TgMCQ"
+        },
+        {
+          "key": "CJl2N0bs9a5BIL6TTHPuX3WrVgX1NCRD7P5TlhiUTw4",
+          "sig": "OuJdOflFzgXfemhqiB6H3J3Md7OHtzOdyqVDMWOXv_RUZAdLB7GDdTTmfR5erbaojYcskDUnJb3PVG78wWp2Cg"
+        }
+      ]
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_chain"
+  }
+}

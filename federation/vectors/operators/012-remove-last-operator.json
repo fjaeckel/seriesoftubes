@@ -1,0 +1,53 @@
+{
+  "description": "Removing the only operator cannot apply: void.",
+  "input": {
+    "now": 1767312100,
+    "genesis": {
+      "v": 1,
+      "kind": "genesis",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1763856000,
+      "body": {
+        "name": "Packet Lunch",
+        "node": {
+          "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+          "url": "wss://relay.example.net/fed"
+        }
+      },
+      "sig": "5_YXhNeVD4FTE0p0XTgpZIslVXcBVLEauUb2ki7EGXxYonjKOe3f1oP21yqnWf3xPPq-zeSwZQsDnKHUDE3tDw"
+    },
+    "records": [
+      {
+        "v": 1,
+        "kind": "operators",
+        "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+        "t": 1767312000,
+        "body": {
+          "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+          "prev": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+          "action": "remove_operator",
+          "target": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY"
+        },
+        "sigs": [
+          {
+            "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+            "sig": "wSOcDdZfrdvpi-0aKOFemREM6vB7PJspzPSp2wlIny2ddgfjfefuzBgQHD0qF2vMFRGa0LxT8LD5COm4qCmKCQ"
+          }
+        ]
+      }
+    ]
+  },
+  "expect": {
+    "head": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+    "operators": [
+      "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY"
+    ],
+    "nodes": [
+      {
+        "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+        "url": "wss://relay.example.net/fed"
+      }
+    ],
+    "pending": []
+  }
+}

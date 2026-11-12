@@ -1,0 +1,28 @@
+{
+  "description": "hide: three lists of network keys.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "hide",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "hide": [
+          "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI"
+        ],
+        "names": [
+          "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns"
+        ],
+        "refuse": []
+      },
+      "sig": "VjqdcRvpm_GNj93BfC9gAZ9WlayMIP7KOgaa-ezcSKRgbMQz57B_hUyX9Sw2VN62TSmT0X0hh9ZwZNTLP5YfCg"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "hide",
+    "id": "tbHMacF7lkR04liAbcyO-6EITwYHrBojyLg1vG0unSk"
+  }
+}

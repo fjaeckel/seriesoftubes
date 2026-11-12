@@ -1,0 +1,22 @@
+{
+  "description": "decline reasons come from a fixed list; free text is refused.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "decline",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "offer": "B4ioZwwFwS_ZMOkieDjCzXKkyWsLqQ7XTrdZPO7vJ0c",
+        "to": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+        "reason": "you smell"
+      },
+      "sig": "nUA7288k_BX4U3O0r9t09p4398ztk1A4WlUB9cIOcdq0DEWRbKYna6BEHvQNYQQ574JGJvdH9Y-Q9FI2_qREAg"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

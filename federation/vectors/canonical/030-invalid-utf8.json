@@ -1,0 +1,9 @@
+{
+  "description": "The bytes 7b 22 61 22 3a 22 ff 22 7d ({\"a\":\"<0xff>\"}) are not UTF-8. Given as hex because a vector file cannot hold them.",
+  "input": {
+    "hex": "7b2261223a22ff227d"
+  },
+  "expect": {
+    "error": "bad_json"
+  }
+}

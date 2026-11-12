@@ -1,0 +1,9 @@
+{
+  "description": "Booleans as true and false.",
+  "input": {
+    "text": "{\"t\":true,\"f\":false}"
+  },
+  "expect": {
+    "canonical": "{\"f\":false,\"t\":true}"
+  }
+}

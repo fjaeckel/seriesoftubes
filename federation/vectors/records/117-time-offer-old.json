@@ -1,0 +1,28 @@
+{
+  "description": "offer older than 30 days.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "offer",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1764720099,
+      "body": {
+        "to": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+        "deal": "peering",
+        "basis": "Y4_rLgHMEug3Xg5HJjv4CsG_Y2rYqjp3o31vFEWKv6A",
+        "terms": {
+          "at": [
+            "fra"
+          ],
+          "via": "ix"
+        }
+      },
+      "sig": "6pB4V2RGHbMS9CTB4SXUOzeM5bvdTeRHjQ7-EFEdadb3lqiIFfUzsCHRyD7eSY5wODKlXNlFwo6g37EQzj8rAQ"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "too_old"
+  }
+}

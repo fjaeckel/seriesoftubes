@@ -1,0 +1,68 @@
+{
+  "description": "now = 1767398410, so c = 1767398400; slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. kA reports kB in 800 out 300 and kC in 100 out 100; kB reports kA in 250 out 900; kC sent no stats. kA: IN = min(800, kB out 900) + 100 = 900, OUT = min(300, kB in 250) + 100 = 350, value 900. kB: IN = min(250, kA out 300) = 250, OUT = min(900, kA in 800) = 800, value 800. kC is not listed (no stats of its own).",
+  "input": {
+    "now": 1767398410,
+    "board": "traffic",
+    "measure": "total",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "records": [
+      {
+        "id": "r1",
+        "key": "kA",
+        "slot": 1767225600,
+        "t": 1767225620,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [
+            {
+              "key": "kB",
+              "in": 800,
+              "out": 300
+            },
+            {
+              "key": "kC",
+              "in": 100,
+              "out": 100
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r2",
+        "key": "kB",
+        "slot": 1767225600,
+        "t": 1767225620,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [
+            {
+              "key": "kA",
+              "in": 250,
+              "out": 900
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 900
+      },
+      {
+        "key": "kB",
+        "value": 800
+      }
+    ]
+  }
+}

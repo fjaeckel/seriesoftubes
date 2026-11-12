@@ -1,0 +1,9 @@
+{
+  "description": "<, >, &, U+2028 and U+2029 are written literally. Go's encoding/json would escape all five: never use it for canonical output.",
+  "input": {
+    "text": "{\"s\":\"<a href=\\\"x\\\">&amp;</a> \\u2028\\u2029\"}"
+  },
+  "expect": {
+    "canonical": "{\"s\":\"<a href=\\\"x\\\">&amp;</a>   \"}"
+  }
+}

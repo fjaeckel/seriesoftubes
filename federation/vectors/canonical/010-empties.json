@@ -1,0 +1,9 @@
+{
+  "description": "Empty object, array and string.",
+  "input": {
+    "text": "{\"a\":{},\"b\":[],\"c\":\"\"}"
+  },
+  "expect": {
+    "canonical": "{\"a\":{},\"b\":[],\"c\":\"\"}"
+  }
+}

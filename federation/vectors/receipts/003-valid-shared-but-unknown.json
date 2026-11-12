@@ -1,0 +1,59 @@
+{
+  "description": "shareCountry true but the node has no country for the connection: cc is simply absent.",
+  "input": {
+    "now": 1767312100,
+    "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+    "nodes": [
+      "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+      "i7ibH5fd16Yxj6GRgQEpbUBEj1AI3_5nPrGRxGnWgXc"
+    ],
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {
+          "ams": 1,
+          "fra": 2,
+          "lon": 1
+        },
+        "pies": 12,
+        "traffic": [
+          {
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "in": 1800,
+            "out": 2400
+          },
+          {
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "in": 300,
+            "out": 0
+          }
+        ],
+        "tier1": false,
+        "ai": {
+          "model": "example-model-1",
+          "harness": "tubes-mcp"
+        },
+        "shareCountry": true
+      },
+      "sig": "L8ME20yzfXavqOXybOoeuFrXkbiUwqP4uCkFmYt15tHdWEB2FEAhK1GSpOTb3abwNKQgQwCik9bZau1x-rRHBQ"
+    },
+    "receipt": {
+      "v": 1,
+      "kind": "receipt",
+      "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+      "t": 1767312000,
+      "body": {
+        "rec": "aYAmX_icnWjjXmf3OF4PQxHTYvNLvdH2NeaPkl1BHRY",
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4"
+      },
+      "sig": "iaQk3U5EES9C7p2JpdyKD4KRwXL42ZRutLumMsLi3NOKuQhgehR233IRtfDbd2US9fgEVa5aGHi2nEtTEoydDw"
+    }
+  },
+  "expect": {
+    "ok": true
+  }
+}

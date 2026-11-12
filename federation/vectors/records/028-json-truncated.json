@@ -1,0 +1,11 @@
+{
+  "description": "Not JSON: cut short.",
+  "input": {
+    "now": 1767312100,
+    "text": "{\"body\":{\"ai\":{\"harness\":\"tubes-mcp\",\"model\":\"example-model-"
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_json"
+  }
+}

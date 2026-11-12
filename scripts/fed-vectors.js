@@ -1,0 +1,588 @@
+#!/usr/bin/env node
+// Regenerates the signed federation test vectors (docs/FEDERATION-PROTOCOL.md, federation/vectors/README.md):
+// every vector that needs keys, signatures, hashes or record ids, made from fixed seeds so the files never change
+// unless this script does. Ed25519 signatures are deterministic, so two runs write identical bytes.
+//
+//   node scripts/fed-vectors.js            rewrite the generated areas
+//   node scripts/fed-vectors.js --check    exit 1 if any generated file on disk differs (for CI)
+//
+// Only the areas listed in GEN are written here (each is emptied first, so renamed vectors leave nothing behind).
+// The rule and maths areas (canonical, slots, boards, quiet, shun, catalog, deals, majority, sync, wire) are written
+// by hand, with the working in each description, so that neither the relay nor the game is the reference by accident.
+// The expectations below (ok or which error, which proposal wins, what is pending) are literals chosen by hand; the
+// script only fills in the keys, signatures and ids, and asserts where a literal depends on the order of two hashes.
+'use strict';
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const DIR = path.join(__dirname, '..', 'federation', 'vectors');
+const GEN = ['signing', 'asn', 'records', 'receipts', 'proofs', 'operators', 'registry', 'dedupe'];
+const NOW = 1767312100;          // 2026-01-02 00:01:40 UTC, the "now" of every generated vector
+const T = NOW - 100;             // 1767312000, 2026-01-02 00:00:00 UTC: when most records were signed
+const DAY = 86400;
+
+// ---------- encoding, canonical JSON, keys, signatures ----------
+const b64 = b => Buffer.from(b).toString('base64url');
+const sha = x => crypto.createHash('sha256').update(x).digest();
+function canon(v) {
+  if (typeof v === 'string') return '"' + v.replace(/[\\"]/g, c => '\\' + c) + '"';
+  if (typeof v === 'number') {
+    if (!Number.isSafeInteger(v) || Object.is(v, -0)) throw new Error('not a canonical integer: ' + v);
+    return String(v);
+  }
+  if (typeof v === 'boolean') return v ? 'true' : 'false';
+  if (Array.isArray(v)) return '[' + v.map(canon).join(',') + ']';
+  if (v && typeof v === 'object') return '{' + Object.keys(v).sort().map(k => canon(k) + ':' + canon(v[k])).join(',') + '}';
+  throw new Error('not a canonical value: ' + v);
+}
+const PKCS8 = Buffer.from('302e020100300506032b657004220420', 'hex'); // Ed25519 private key prefix, then the 32-byte seed
+const KEYS = {};
+function K(name) {
+  if (!KEYS[name]) {
+    const seed = sha('tubes-fed.1 vector key ' + name);
+    const priv = crypto.createPrivateKey({ key: Buffer.concat([PKCS8, seed]), format: 'der', type: 'pkcs8' });
+    const pub = b64(crypto.createPublicKey(priv).export({ format: 'der', type: 'spki' }).subarray(12));
+    KEYS[name] = { seed, priv, pub };
+  }
+  return KEYS[name];
+}
+const pub = n => K(n).pub;
+const signText = (n, text) => b64(crypto.sign(null, Buffer.from(text, 'utf8'), K(n).priv));
+const MULTI = new Set(['operators', 'server']);
+const byStr = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+function rec(kind, author, t, body) {
+  const r = { v: 1, kind, key: pub(author), t, body };
+  r.sig = signText(author, canon(r));
+  return r;
+}
+function multi(kind, author, t, body, signers) {
+  const r = { v: 1, kind, key: pub(author), t, body };
+  const text = canon(r);
+  r.sigs = signers.map(n => ({ key: pub(n), sig: signText(n, text) })).sort((a, b) => byStr(a.key, b.key));
+  return r;
+}
+// Re-sign an envelope whose fields were changed by hand (keeps whichever of sig/sigs it has).
+function resign(r, author, signers) {
+  const { sig, sigs, ...rest } = r;
+  if (sigs) {
+    const text = canon(rest);
+    return { ...rest, sigs: signers.map(n => ({ key: pub(n), sig: signText(n, text) })).sort((a, b) => byStr(a.key, b.key)) };
+  }
+  return { ...rest, sig: signText(author, canon(rest)) };
+}
+function rid(r) {
+  if (MULTI.has(r.kind)) { const { sigs, ...rest } = r; return b64(sha(canon(rest))); }
+  return b64(sha(canon(r)));
+}
+const asn = p => 4200000000 + (sha(Buffer.from(p, 'base64url')).readUInt32BE(0) % 94967295);
+const clone = x => JSON.parse(JSON.stringify(x));
+function swapText(text, from, to) {
+  if (text.split(from).length !== 2) throw new Error('expected exactly one ' + from);
+  return text.replace(from, to);
+}
+
+// ---------- output ----------
+const OUT = new Map();
+const pad = n => String(n).padStart(3, '0');
+const COUNT = {};
+function put(area, name, description, input, expect) {
+  COUNT[area] = (COUNT[area] || 0) + 1;
+  OUT.set(`${area}/${pad(COUNT[area])}-${name}.json`, JSON.stringify({ description, input, expect }, null, 2) + '\n');
+}
+function putCases(area, name, description, cases) {
+  COUNT[area] = (COUNT[area] || 0) + 1;
+  OUT.set(`${area}/${pad(COUNT[area])}-${name}.json`, JSON.stringify({ description, cases }, null, 2) + '\n');
+}
+
+// ---------- the cast ----------
+// Networks: alice, bob, carol, mallory. Operators: anna, ben, cleo, dan. Nodes: node1, node2, node3.
+const URL1 = 'wss://relay.example.net/fed', URL2 = 'wss://second.example.org:8443/fed', URL3 = 'wss://third.example.com';
+
+const announceBody = () => ({
+  name: 'Ping Floyd', asn: asn(pub('alice')), home: 'DE', day: 412, founded: 20454,
+  pops: ['fra', 'ams', 'lon'], ix: ['fra', 'ams'], cust: 37,
+  mix: { content: 200, eyeball: 700, enterprise: 100 }, traffic: { in: 42000, out: 9000 },
+  policy: 'selective', cond: { minMbps: 1000, maxRatio: 300, minShared: 2, rpki: true, tier1: false, ai: true },
+  rates: {
+    transit: { perGbps: 900, commit: [{ mbps: 10000, off: 100 }, { mbps: 100000, off: 250 }], term: 90 },
+    pni: { setup: 5000, ports: [{ mbps: 10000, monthly: 1500 }, { mbps: 100000, monthly: 9000 }], term: 180 },
+    ix: { ports: [{ mbps: 1000, monthly: 200 }, { mbps: 10000, monthly: 800 }], join: 'anyone', at: ['fra'] },
+  },
+  auto: { peering: 'auto', transit: 'auto', pni: 'review', swap: 'review', consortium: 'review', port: 'auto' },
+});
+const announceOpen = () => ({
+  name: 'Lag Zeppelin', asn: asn(pub('bob')), home: 'US', day: 0, founded: 20455,
+  pops: [], ix: [], cust: 0, mix: { content: 0, eyeball: 1000, enterprise: 0 }, traffic: { in: 0, out: 0 },
+  policy: 'open', rates: {},
+  auto: { peering: 'auto', transit: 'decline', pni: 'decline', swap: 'decline', consortium: 'decline', port: 'decline' },
+});
+const statsBody = () => ({
+  mode: 'normal', pops: { ams: 1, fra: 2, lon: 1 }, pies: 12,
+  traffic: [{ key: pub('bob'), in: 1800, out: 2400 }, { key: pub('carol'), in: 300, out: 0 }],
+  tier1: false, ai: { model: 'example-model-1', harness: 'tubes-mcp' }, shareCountry: true,
+});
+const statsMin = () => ({ mode: 'normal', pops: {}, traffic: [], tier1: false, shareCountry: false });
+const GEN_BODY = () => ({ name: 'Packet Lunch', node: { key: pub('node1'), url: URL1 } });
+const genesis = rec('genesis', 'anna', T - 40 * DAY, GEN_BODY());
+const SID = rid(genesis);
+
+// ======================================================================================
+// signing: keys from seeds, signatures, record ids
+// ======================================================================================
+{
+  const A = 'signing';
+  put(A, 'keys-from-seeds',
+    'Ed25519 public keys from 32-byte seeds. Each seed is SHA-256 of the UTF-8 text "tubes-fed.1 vector key <name>". ' +
+    'WebCrypto imports a seed as PKCS#8: the 16 bytes 302e020100300506032b657004220420 followed by the seed; Go uses ' +
+    'ed25519.NewKeyFromSeed. The key is the raw 32-byte public key, base64url without padding (43 characters).',
+    { seeds: Object.fromEntries(['alice', 'bob', 'anna', 'node1'].map(n => [n, K(n).seed.toString('hex')])) },
+    { keys: Object.fromEntries(['alice', 'bob', 'anna', 'node1'].map(n => [n, pub(n)])) });
+
+  const r = rec('stats', 'alice', T, statsMin());
+  const { sig, ...unsigned } = r;
+  put(A, 'single-signer',
+    'Sign a record: canonical JSON of the record without "sig", as UTF-8, signed with Ed25519 (deterministic, so the ' +
+    'signature must match byte for byte). The record id is base64url(SHA-256(canonical JSON of the full record, sig included)).',
+    { seed: K('alice').seed.toString('hex'), unsigned },
+    { signed_text: canon(unsigned), sig, id: rid(r), record: r });
+
+  const o = multi('operators', 'anna', T, { server: SID, prev: SID, action: 'add_operator', target: pub('ben') }, ['anna', 'ben']);
+  const { sigs, ...ounsigned } = o;
+  put(A, 'multi-signer',
+    'A record with several signers (kinds operators and server) carries "sigs" instead of "sig": a list of {key, sig}, ' +
+    'sorted by key (byte order), every one over the same text: canonical JSON of the record without "sigs". Its id is ' +
+    'base64url(SHA-256(that same text)), so adding signatures never changes the id.',
+    { seeds: { anna: K('anna').seed.toString('hex'), ben: K('ben').seed.toString('hex') }, unsigned: ounsigned },
+    { signed_text: canon(ounsigned), sigs, id: rid(o), record: o });
+
+  const n = rec('announce', 'alice', T, { ...announceOpen(), name: 'Café "Ping" \\ 📡', asn: asn(pub('alice')) });
+  const { sig: nsig, ...nun } = n;
+  put(A, 'non-ascii',
+    'Canonical text is UTF-8 with every character other than " and \\ written literally, so a name with é, a quote, a ' +
+    'backslash and an emoji signs as those bytes.',
+    { seed: K('alice').seed.toString('hex'), unsigned: nun },
+    { signed_text: canon(nun), sig: nsig, id: rid(n) });
+}
+
+// ======================================================================================
+// asn
+// ======================================================================================
+{
+  const names = ['alice', 'bob', 'carol', 'mallory', 'anna', 'node1'];
+  putCases('asn', 'from-key',
+    'ASN shown for a key: h = SHA-256 of the 32 raw key bytes; n = the first 4 bytes of h as an unsigned big-endian ' +
+    'integer; ASN = 4200000000 + (n mod 94967295). The result is always in 4200000000..4294967294.',
+    names.map(n => ({ input: { key: pub(n) }, expect: { asn: asn(pub(n)) } })));
+}
+
+// ======================================================================================
+// records: validation of every kind, and hostile input
+// ======================================================================================
+{
+  const A = 'records';
+  const ok = (name, d, r) => put(A, name, d, { now: NOW, record: r }, { ok: true, kind: r.kind, id: rid(r) });
+  const okText = (name, d, text, r) => put(A, name, d, { now: NOW, text }, { ok: true, kind: r.kind, id: rid(r) });
+  const bad = (name, d, r, error) => put(A, name, d, { now: NOW, record: r }, { ok: false, error });
+  const badText = (name, d, text, error) => put(A, name, d, { now: NOW, text }, { ok: false, error });
+
+  const ann = rec('announce', 'alice', T, announceBody());
+  const st = rec('stats', 'alice', T, statsBody());
+  ok('announce-selective', 'A full announce: selective policy with conditions, transit, PNI and exchange rate cards.', ann);
+  ok('announce-open-minimal', 'The smallest announce: open policy (so no cond), no POPs, empty rate card.', rec('announce', 'bob', T, announceOpen()));
+  ok('stats-full', 'stats with POPs, pies, traffic with two networks, an AI declaration and shareCountry.', st);
+  ok('stats-minimal', 'stats with nothing optional: no pies (no Pie in the Sky company), no ai (a human), empty lists.', rec('stats', 'alice', T, statsMin()));
+  ok('stats-excluded-mode', 'A sandbox save may send stats (they are valid records); boards just never rank them.', rec('stats', 'alice', T, { ...statsMin(), mode: 'sandbox' }));
+  const annId = rid(rec('announce', 'bob', T - 3600, announceOpen()));
+  ok('offer-peering', 'Peering offer to bob at two exchanges, relying on bob\'s announce (basis).',
+    rec('offer', 'alice', T, { to: pub('bob'), deal: 'peering', basis: annId, terms: { at: ['fra', 'ams'], via: 'ix' } }));
+  ok('offer-transit', 'Transit offer with a commit, price per Gbps and term in days.',
+    rec('offer', 'bob', T, { to: pub('alice'), deal: 'transit', basis: rid(ann), terms: { mbps: 10000, perGbps: 810, term: 90, at: ['fra'] } }));
+  ok('offer-pni', 'PNI offer.', rec('offer', 'bob', T, { to: pub('alice'), deal: 'pni', basis: rid(ann), terms: { at: 'fra', mbps: 10000, setup: 5000, monthly: 1500, term: 180 } }));
+  ok('offer-port', 'Exchange port offer at alice\'s exchange.', rec('offer', 'bob', T, { to: pub('alice'), deal: 'port', basis: rid(ann), terms: { at: 'fra', mbps: 1000, monthly: 200, term: 30 } }));
+  ok('offer-swap', 'Capacity swap: no rate card, so basis is optional and absent here.',
+    rec('offer', 'alice', T, { to: pub('carol'), deal: 'swap', terms: { give: { a: 'lon', b: 'nyc', mbps: 10000 }, take: { a: 'ams', b: 'nyc', mbps: 10000 }, term: 365 } }));
+  ok('offer-consortium-open', 'A consortium project open to anyone: no "to", no basis.',
+    rec('offer', 'carol', T, { deal: 'consortium', terms: { name: 'North Sea Noodle', a: 'ams', b: 'osl', members: 4, share: 2500000, pairs: 2 } }));
+  const offerId = rid(rec('offer', 'bob', T - 600, { to: pub('alice'), deal: 'pni', basis: rid(ann), terms: { at: 'fra', mbps: 10000, setup: 5000, monthly: 1500, term: 180 } }));
+  ok('accept', 'accept names the offer and its author.', rec('accept', 'alice', T, { offer: offerId, to: pub('bob') }));
+  ok('decline', 'decline with a reason from the fixed list.', rec('decline', 'alice', T, { offer: offerId, to: pub('bob'), reason: 'conditions' }));
+  ok('genesis', 'genesis: founding operator anna, first node node1. Its id is the server identity.', genesis);
+  ok('operators', 'operators proposal (multi-signer): add ben, signed by anna and ben.',
+    multi('operators', 'anna', T, { server: SID, prev: SID, action: 'add_operator', target: pub('ben') }, ['anna', 'ben']));
+  ok('operators-set-node', 'operators proposal set_node carries the node\'s URL.',
+    multi('operators', 'anna', T, { server: SID, prev: SID, action: 'set_node', target: pub('node2'), url: URL2 }, ['anna']));
+  ok('server', 'server record (multi-signer), lists sorted by key.',
+    multi('server', 'anna', T, { server: SID, head: SID, name: 'Packet Lunch', nodes: [{ key: pub('node1'), url: URL1 }], operators: [pub('anna')], sync: 'open', noLogs: true, langs: ['en', 'de'], desc: 'Small, friendly, always on.' }, ['anna']));
+  ok('hide', 'hide: three lists of network keys.', rec('hide', 'anna', T, { server: SID, hide: [pub('mallory')], names: [pub('carol')], refuse: [] }));
+  ok('shun', 'shun vote with a reason from the fixed list.', rec('shun', 'anna', T, { server: SID, target: pub('mallory'), reason: 'spam' }));
+  ok('unshun', 'unshun withdraws this server\'s vote.', rec('unshun', 'anna', T, { server: SID, target: pub('mallory') }));
+  ok('leave', 'leave has an empty body.', rec('leave', 'alice', T, {}));
+
+  // equivalent wire forms: same record, same id
+  const stText = canon(st);
+  okText('wire-whitespace-and-order', 'The same stats record pretty-printed with keys in another order: records are compared, signed and hashed in canonical form, so this is valid and has the same id.',
+    JSON.stringify(Object.fromEntries(Object.entries(st).reverse()), null, 2), st);
+  okText('wire-number-forms', '1.2e1 is the integer 12 (numbers are read as IEEE-754 doubles and must be integral): valid, same id as "pies":12.',
+    swapText(stText, '"pies":12', '"pies":1.2e1'), st);
+  { const r = rec('announce', 'alice', T, { ...announceOpen(), name: 'Café/📡', asn: asn(pub('alice')) });
+    okText('wire-escapes', 'A name written with \\u escapes (é as \\u00e9, 📡 as the pair \\ud83d\\udce1, "/" as \\/) is the same string as written literally: valid, same id.',
+      swapText(canon(r), '"Café/📡"', '"Caf\\u00e9\\/\\ud83d\\udce1"'), r); }
+  ok('name-40-emoji', 'A name of 40 emoji is 40 code points (80 UTF-16 units, 160 bytes): lengths count code points, so this is valid.',
+    rec('announce', 'alice', T, { ...announceOpen(), name: '🛰'.repeat(40), asn: asn(pub('alice')) }));
+  ok('time-future-edge', 't exactly now + 600 is accepted (clock skew allowance).', rec('stats', 'alice', NOW + 600, statsMin()));
+  ok('time-stats-oldest', 'stats exactly 777600 s (9 days) old is still accepted.', rec('stats', 'alice', NOW - 777600, statsMin()));
+
+  // --- JSON and value domain ---
+  badText('json-truncated', 'Not JSON: cut short.', stText.slice(0, 60), 'bad_json');
+  badText('json-trailing', 'Not JSON: text after the value.', stText + ' {}', 'bad_json');
+  badText('json-raw-control', 'Not JSON: a raw tab inside a string (JSON requires it escaped).', swapText(stText, '"tubes-mcp"', '"tubes\tmcp"'), 'bad_json');
+  bad('not-object', 'A record must be an object.', [st], 'bad_field');
+  badText('number-fraction', 'A number that is not an integer.', swapText(stText, '"pies":12', '"pies":12.5'), 'bad_number');
+  badText('number-negative-zero', '-0 is refused.', swapText(stText, '"pies":12', '"pies":-0'), 'bad_number');
+  badText('number-unsafe', '2^53 is outside the safe range.', swapText(stText, '"pies":12', '"pies":9007199254740992'), 'bad_number');
+  badText('number-overflow', '1e400 is not finite as a double.', swapText(stText, '"pies":12', '"pies":1e400'), 'bad_number');
+  badText('null-value', 'null is not a value records may hold.', swapText(stText, '"pies":12', '"pies":null'), 'bad_value');
+  badText('string-control-escape', 'A control character (U+0007) written as an escape.', swapText(stText, '"tubes-mcp"', '"tubes\\u0007mcp"'), 'bad_string');
+  badText('string-lone-high-surrogate', 'A lone high surrogate escape. Go\'s encoding/json silently turns it into U+FFFD: scan the raw text first.', swapText(stText, '"tubes-mcp"', '"tubes\\ud800mcp"'), 'bad_string');
+  badText('string-lone-low-surrogate', 'A lone low surrogate escape.', swapText(stText, '"tubes-mcp"', '"tubes\\udc00mcp"'), 'bad_string');
+  badText('string-reversed-pair', 'A low surrogate followed by a high one is two lone surrogates.', swapText(stText, '"tubes-mcp"', '"tubes\\ude00\\ud83dmcp"'), 'bad_string');
+  badText('name-dash', 'Object keys are [A-Za-z0-9_]{1,32}; a dash is refused even inside body.pops.', swapText(stText, '"ams":1', '"am-s":1'), 'bad_name');
+  badText('name-non-ascii', 'Object keys are ASCII only.', swapText(stText, '"ams":1', '"äms":1'), 'bad_name');
+  badText('name-empty', 'An empty object key.', swapText(stText, '"ams":1', '"":1'), 'bad_name');
+  badText('name-too-long', 'An object key of 33 characters.', swapText(stText, '"ams":1', '"' + 'a'.repeat(33) + '":1'), 'bad_name');
+  badText('too-deep', 'Depth 9 (record 1, body 2, then seven nested arrays): over the limit of 8, refused before any field is looked at.',
+    swapText(stText, '"pies":12', '"pies":12,"x":[[[[[[[1]]]]]]]'), 'too_deep');
+  badText('depth-8-unknown-field', 'Depth exactly 8 passes the value rules; this record is then refused only for its unknown field "x".',
+    swapText(stText, '"pies":12', '"pies":12,"x":[[[[[[1]]]]]]'), 'unknown_field');
+
+  // --- envelope ---
+  { const { sig, ...r } = st; bad('missing-sig', 'No sig.', r, 'missing_field'); }
+  { const { t, ...r } = st; bad('missing-t', 'No t.', r, 'missing_field'); }
+  bad('envelope-unknown-field', 'An extra envelope field (here a would-be address) is refused, never stored.', { ...st, ip: '192.0.2.7' }, 'unknown_field');
+  bad('version-2', 'v must be the integer 1.', resign({ ...st, v: 2 }, 'alice'), 'bad_version');
+  bad('version-string', 'v as a string is not 1.', { ...st, v: '1' }, 'bad_version');
+  bad('kind-unknown', 'Unknown kind.', resign({ ...st, kind: 'chat' }, 'alice'), 'bad_kind');
+  bad('kind-receipt', 'Receipts are not records: a client cannot put one.', resign({ ...st, kind: 'receipt' }, 'alice'), 'bad_kind');
+  bad('kind-single-with-sigs', 'A single-signer kind carrying sigs instead of sig: sig is missing.',
+    (() => { const { sig, ...r } = st; return { ...r, sigs: [{ key: pub('alice'), sig }] }; })(), 'missing_field');
+  bad('kind-multi-with-sig', 'A multi-signer kind carrying sig instead of sigs: sigs is missing.',
+    (() => { const r = multi('operators', 'anna', T, { server: SID, prev: SID, action: 'add_operator', target: pub('ben') }, ['anna']); const { sigs, ...x } = r; return { ...x, sig: sigs[0].sig }; })(), 'missing_field');
+  bad('t-not-integer', 't must be an integer: a string is refused.', { ...st, t: String(T) }, 'bad_field');
+  bad('body-not-object', 'body must be an object.', resign({ ...st, body: [] }, 'alice'), 'bad_field');
+
+  // --- keys and signatures ---
+  bad('key-padded', 'base64url with "=" padding.', { ...st, key: st.key + '=' }, 'bad_key');
+  bad('key-short', '42 characters.', { ...st, key: st.key.slice(0, 42) }, 'bad_key');
+  bad('key-std-alphabet', 'A "+" from the standard alphabet.', { ...st, key: '+' + st.key.slice(1) }, 'bad_key');
+  { // the last of 43 characters carries 2 unused bits, which must be zero
+    const A64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+    const last = A64.indexOf(st.key[42]); const k2 = st.key.slice(0, 42) + A64[(last & ~3) | 1];
+    bad('key-noncanonical-bits', 'Non-zero unused bits in the last character: decodes to the same bytes in lenient decoders but is not the canonical encoding. Decode, re-encode and compare.', { ...st, key: k2 }, 'bad_key');
+  }
+  { const s = Buffer.from(st.sig, 'base64url'); s[10] ^= 1; bad('sig-bit-flip', 'One bit of the signature flipped.', { ...st, sig: b64(s) }, 'bad_sig'); }
+  bad('sig-other-key', 'Signed by mallory, claiming alice\'s key.', { ...st, sig: signText('mallory', canon((({ sig, ...r }) => r)(st))) }, 'bad_sig');
+  bad('sig-tampered-body', 'Body changed after signing (POPs inflated).', { ...st, body: { ...st.body, pops: { ...st.body.pops, fra: 20 } } }, 'bad_sig');
+  { // S + L: the same signature with a non-reduced scalar; RFC 8032 verifiers refuse it
+    const s = Buffer.from(st.sig, 'base64url');
+    const L = (1n << 252n) + 27742317777372353535851937790883648493n;
+    let S = 0n; for (let i = 63; i >= 32; i--) S = (S << 8n) | BigInt(s[i]);
+    S += L; for (let i = 32; i < 64; i++) { s[i] = Number(S & 0xffn); S >>= 8n; }
+    bad('sig-malleated', 'The signature with S + L in place of S (not reduced mod L): refused by RFC 8032 verifiers, so the same message cannot gain a second valid signature.', { ...st, sig: b64(s) }, 'bad_sig');
+  }
+  bad('sig-short', 'Signature of 85 characters.', { ...st, sig: st.sig.slice(0, 85) }, 'bad_sig');
+
+  // --- size and lists ---
+  { const pops = {}; for (let i = 0; i < 5000; i++) pops['c' + String(i).padStart(4, '0')] = 1;
+    badText('too-big', 'A stats record over 40960 bytes (5000 POP cities, given as text to keep the file small): refused for size before its list limits are looked at.', canon(rec('stats', 'alice', T, { ...statsMin(), pops })), 'too_big'); }
+  { const pops = {}; for (let i = 0; i < 513; i++) pops['c' + String(i).padStart(3, '0')] = 1;
+    bad('stats-pops-513', '513 POP cities (limit 512), within the size limit.', rec('stats', 'alice', T, { ...statsMin(), pops }), 'too_many'); }
+  { const traffic = []; for (let i = 0; i < 257; i++) traffic.push({ key: pub('peer' + i), in: 1, out: 1 });
+    traffic.sort((a, b) => byStr(a.key, b.key));
+    bad('stats-traffic-257', '257 traffic entries (limit 256).', rec('stats', 'alice', T, { ...statsMin(), traffic }), 'too_many'); }
+  bad('stats-traffic-duplicate', 'The same network twice in traffic.', rec('stats', 'alice', T, { ...statsMin(), traffic: [{ key: pub('bob'), in: 1, out: 1 }, { key: pub('bob'), in: 2, out: 2 }] }), 'duplicate');
+  bad('stats-traffic-self', 'Traffic with one\'s own key.', rec('stats', 'alice', T, { ...statsMin(), traffic: [{ key: pub('alice'), in: 1, out: 1 }] }), 'bad_field');
+  bad('stats-traffic-bad-key', 'A traffic entry whose key is not a key.', rec('stats', 'alice', T, { ...statsMin(), traffic: [{ key: 'bob', in: 1, out: 1 }] }), 'bad_key');
+  bad('stats-mbps-over', 'Traffic over 1000000000 Mbps.', rec('stats', 'alice', T, { ...statsMin(), traffic: [{ key: pub('bob'), in: 1000000001, out: 1 }] }), 'bad_field');
+  bad('announce-pops-duplicate', 'A city twice in pops.', rec('announce', 'alice', T, { ...announceBody(), pops: ['fra', 'ams', 'fra'] }), 'duplicate');
+
+  // --- body schema ---
+  { const b = statsMin(); delete b.tier1; bad('stats-missing-tier1', 'A required body field is missing.', rec('stats', 'alice', T, b), 'missing_field'); }
+  bad('stats-ip-field', 'An unknown body field (an address) is refused: nothing outside the schema is ever stored or passed on.', rec('stats', 'alice', T, { ...statsMin(), ip: '192.0.2.7' }), 'unknown_field');
+  bad('stats-country-field', 'The client never sends its country; a cc field in stats is unknown.', rec('stats', 'alice', T, { ...statsMin(), cc: 'DE' }), 'unknown_field');
+  bad('stats-mode-unknown', 'mode outside the list.', rec('stats', 'alice', T, { ...statsMin(), mode: 'hardcore' }), 'bad_field');
+  bad('stats-pops-zero', 'A POP count of 0 (cities without POPs are left out).', rec('stats', 'alice', T, { ...statsMin(), pops: { fra: 0 } }), 'bad_field');
+  bad('stats-pops-bad-city', 'A city id outside ^[a-z0-9]{2,8}$ (upper case).', rec('stats', 'alice', T, { ...statsMin(), pops: { FRA: 1 } }), 'bad_field');
+  bad('stats-ai-empty-model', 'ai.model empty.', rec('stats', 'alice', T, { ...statsMin(), ai: { model: '', harness: 'tubes-mcp' } }), 'bad_field');
+  bad('stats-pies-negative', 'pies below 0.', rec('stats', 'alice', T, { ...statsMin(), pies: -1 }), 'bad_field');
+  bad('announce-asn-mismatch', 'asn must equal the ASN derived from key.', rec('announce', 'alice', T, { ...announceBody(), asn: asn(pub('alice')) + 1 }), 'bad_field');
+  bad('announce-ix-not-pop', 'An exchange city that is not one of the POPs.', rec('announce', 'alice', T, { ...announceBody(), ix: ['fra', 'nyc'] }), 'bad_field');
+  { const b = announceBody(); delete b.cond; bad('announce-selective-no-cond', 'selective policy without cond.', rec('announce', 'alice', T, b), 'missing_field'); }
+  bad('announce-open-with-cond', 'cond with a policy other than selective.', rec('announce', 'alice', T, { ...announceBody(), policy: 'open' }), 'bad_field');
+  bad('announce-mix-sum', 'mix must add up to 1000.', rec('announce', 'alice', T, { ...announceBody(), mix: { content: 200, eyeball: 700, enterprise: 99 } }), 'bad_field');
+  bad('announce-name-empty', 'An empty name.', rec('announce', 'alice', T, { ...announceBody(), name: '' }), 'bad_field');
+  bad('announce-name-spaces', 'A name of spaces only.', rec('announce', 'alice', T, { ...announceBody(), name: '   ' }), 'bad_field');
+  bad('announce-name-41', 'A name of 41 code points.', rec('announce', 'alice', T, { ...announceBody(), name: 'x'.repeat(41) }), 'bad_field');
+  bad('announce-name-bidi', 'A name with a right-to-left override (U+202E), which could make one name look like another.', rec('announce', 'alice', T, { ...announceBody(), name: 'Ping ‮Floyd' }), 'bad_field');
+  bad('announce-founded-future', 'founded after the day of t.', rec('announce', 'alice', T, { ...announceBody(), founded: 20456 }), 'bad_field');
+  bad('announce-commit-order', 'Commit tiers must have strictly ascending mbps.',
+    rec('announce', 'alice', T, (() => { const b = announceBody(); b.rates.transit.commit.reverse(); return b; })()), 'bad_field');
+  bad('announce-auto-missing', 'auto must list all six deal kinds.', rec('announce', 'alice', T, (() => { const b = announceBody(); delete b.auto.port; return b; })()), 'missing_field');
+  bad('offer-to-self', 'An offer to oneself.', rec('offer', 'alice', T, { to: pub('alice'), deal: 'peering', basis: annId, terms: { at: ['fra'], via: 'ix' } }), 'bad_field');
+  bad('offer-peering-no-basis', 'Peering, transit, PNI and port offers need a basis.', rec('offer', 'alice', T, { to: pub('bob'), deal: 'peering', terms: { at: ['fra'], via: 'ix' } }), 'missing_field');
+  bad('offer-consortium-basis', 'A consortium offer must not have a basis.', rec('offer', 'carol', T, { deal: 'consortium', basis: annId, terms: { name: 'North Sea Noodle', a: 'ams', b: 'osl', members: 4, share: 2500000, pairs: 2 } }), 'bad_field');
+  bad('offer-deal-unknown', 'deal outside the list.', rec('offer', 'alice', T, { to: pub('bob'), deal: 'merger', basis: annId, terms: {} }), 'bad_field');
+  bad('decline-free-text', 'decline reasons come from a fixed list; free text is refused.', rec('decline', 'alice', T, { offer: offerId, to: pub('bob'), reason: 'you smell' }), 'bad_field');
+  bad('shun-free-text-reason', 'shun reasons come from a fixed list.', rec('shun', 'anna', T, { server: SID, target: pub('mallory'), reason: 'he was rude' }), 'bad_field');
+  bad('shun-note', 'No free text anywhere in a vote.', rec('shun', 'anna', T, { server: SID, target: pub('mallory'), reason: 'spam', note: 'see thread' }), 'unknown_field');
+  bad('leave-body', 'leave has an empty body.', rec('leave', 'alice', T, { why: 'bye' }), 'unknown_field');
+  bad('genesis-http', 'Node URLs must be wss://.', rec('genesis', 'anna', T, { name: 'Packet Lunch', node: { key: pub('node1'), url: 'ws://relay.example.net/fed' } }), 'bad_field');
+  bad('genesis-userinfo', 'No user info in node URLs.', rec('genesis', 'anna', T, { name: 'Packet Lunch', node: { key: pub('node1'), url: 'wss://me:pw@relay.example.net/fed' } }), 'bad_field');
+  bad('genesis-ip-host', 'Node URLs name a host, not an IP address.', rec('genesis', 'anna', T, { name: 'Packet Lunch', node: { key: pub('node1'), url: 'wss://192.0.2.7/fed' } }), 'bad_field');
+  bad('server-sync-unknown', 'sync outside standalone|selective|open.',
+    multi('server', 'anna', T, { server: SID, head: SID, name: 'Packet Lunch', nodes: [{ key: pub('node1'), url: URL1 }], operators: [pub('anna')], sync: 'closed', noLogs: true, langs: [], desc: '' }, ['anna']), 'bad_field');
+  {
+    const ops = [pub('anna'), pub('ben')].sort(byStr).reverse();
+    bad('server-operators-unsorted', 'Lists of keys in server records are sorted by key.',
+      multi('server', 'anna', T, { server: SID, head: SID, name: 'Packet Lunch', nodes: [{ key: pub('node1'), url: URL1 }], operators: ops, sync: 'open', noLogs: true, langs: [], desc: '' }, ['anna']), 'bad_field');
+  }
+  {
+    const r = multi('operators', 'anna', T, { server: SID, prev: SID, action: 'add_operator', target: pub('ben') }, ['anna', 'ben']);
+    bad('sigs-unsorted', 'sigs must be sorted by key.', { ...r, sigs: r.sigs.slice().reverse() }, 'bad_field');
+    bad('sigs-duplicate', 'The same signer twice.', { ...r, sigs: [r.sigs[0], r.sigs[0]] }, 'duplicate');
+    const s = Buffer.from(r.sigs[1].sig, 'base64url'); s[3] ^= 4;
+    bad('sigs-one-bad', 'One of two signatures does not verify: the whole record is refused.', { ...r, sigs: [r.sigs[0], { key: r.sigs[1].key, sig: b64(s) }] }, 'bad_sig');
+    bad('sigs-without-author', 'The author (key) must be one of the signers.', multi('operators', 'anna', T, { server: SID, prev: SID, action: 'add_operator', target: pub('ben') }, ['ben']), 'bad_field');
+    bad('operators-set-node-no-url', 'set_node needs url.', multi('operators', 'anna', T, { server: SID, prev: SID, action: 'set_node', target: pub('node2') }, ['anna']), 'missing_field');
+    bad('operators-url-on-add-operator', 'url only goes with set_node.', multi('operators', 'anna', T, { server: SID, prev: SID, action: 'add_operator', target: pub('ben'), url: URL2 }, ['anna']), 'bad_field');
+  }
+
+  // --- time ---
+  bad('time-too-new', 't more than 600 s ahead of now.', rec('stats', 'alice', NOW + 601, statsMin()), 'too_new');
+  bad('time-before-epoch', 't before 2025-01-01 (1735689600).', rec('announce', 'alice', 1735689599, { ...announceBody(), founded: 20088 }), 'too_old');
+  bad('time-stats-old', 'stats older than 777600 s (9 days).', rec('stats', 'alice', NOW - 777601, statsMin()), 'too_old');
+  bad('time-offer-old', 'offer older than 30 days.', rec('offer', 'alice', NOW - 30 * DAY - 1, { to: pub('bob'), deal: 'peering', basis: annId, terms: { at: ['fra'], via: 'ix' } }), 'too_old');
+  bad('time-shun-old', 'shun older than 90 days: an expired vote is refused.', rec('shun', 'anna', NOW - 90 * DAY - 1, { server: SID, target: pub('mallory'), reason: 'spam' }), 'too_old');
+  ok('time-announce-old', 'announce has no maximum age.', rec('announce', 'alice', NOW - 365 * DAY, { ...announceBody(), founded: 20000 }));
+}
+
+// ======================================================================================
+// receipts
+// ======================================================================================
+{
+  const A = 'receipts';
+  const st = rec('stats', 'alice', T, statsBody());                       // shareCountry true
+  const st0 = rec('stats', 'bob', T, statsMin());                         // shareCountry false
+  const ann = rec('announce', 'alice', T, announceBody());
+  const SLOT = T;                                                          // T is a multiple of 300
+  const R = (record, body, node = 'node1', t = SLOT, signer = node) => {
+    const r = { v: 1, kind: 'receipt', key: pub(node), t, body };
+    r.sig = signText(signer, canon(r));
+    return r;
+  };
+  const nodes = [pub('node1'), pub('node2')].sort(byStr);
+  const go = (name, d, record, receipt, expect) => put(A, name, d, { now: NOW, server: SID, nodes, record, receipt }, expect);
+  go('valid-with-country', 'A stats record with shareCountry true gets the country the node looked up (cc).', st, R(st, { rec: rid(st), server: SID, cc: 'DE' }), { ok: true });
+  go('valid-no-country', 'shareCountry false: no cc.', st0, R(st0, { rec: rid(st0), server: SID }), { ok: true });
+  go('valid-shared-but-unknown', 'shareCountry true but the node has no country for the connection: cc is simply absent.', st, R(st, { rec: rid(st), server: SID }), { ok: true });
+  go('valid-announce', 'Every record received from a client gets a receipt; only stats may carry cc.', ann, R(ann, { rec: rid(ann), server: SID }), { ok: true });
+  go('valid-second-node', 'Any node of the server may sign.', st0, R(st0, { rec: rid(st0), server: SID }, 'node2'), { ok: true });
+  go('cc-not-shared', 'cc on a record whose author did not share their country.', st0, R(st0, { rec: rid(st0), server: SID, cc: 'DE' }), { ok: false, error: 'bad_field' });
+  go('cc-on-announce', 'cc only goes with stats.', ann, R(ann, { rec: rid(ann), server: SID, cc: 'DE' }), { ok: false, error: 'bad_field' });
+  go('cc-lower-case', 'cc is two upper-case letters.', st, R(st, { rec: rid(st), server: SID, cc: 'de' }), { ok: false, error: 'bad_field' });
+  go('not-a-slot', 'Receipt times are rounded down to the 5-minute slot: t must be a multiple of 300.', st, R(st, { rec: rid(st), server: SID }, 'node1', SLOT + 7), { ok: false, error: 'bad_field' });
+  go('city-field', 'Nothing finer than a country, ever: an unknown field is refused.', st, R(st, { rec: rid(st), server: SID, cc: 'DE', city: 'Berlin' }), { ok: false, error: 'unknown_field' });
+  go('wrong-record', 'The receipt names another record.', st, R(st0, { rec: rid(st0), server: SID }), { ok: false, error: 'bad_field' });
+  go('wrong-server', 'The receipt names another server.', st, R(st, { rec: rid(st), server: rid(ann) }), { ok: false, error: 'bad_field' });
+  go('not-a-node', 'Signed by a key that is not one of the server\'s nodes.', st, R(st, { rec: rid(st), server: SID }, 'node3'), { ok: false, error: 'not_node' });
+  go('bad-sig', 'Claims node1, signed by node2.', st, R(st, { rec: rid(st), server: SID }, 'node1', SLOT, 'node2'), { ok: false, error: 'bad_sig' });
+  go('future', 'A receipt more than 600 s in the future.', st, R(st, { rec: rid(st), server: SID }, 'node1', T + 900), { ok: false, error: 'too_new' });
+}
+
+// ======================================================================================
+// proofs: the challenge a node answers (clients, other nodes, relay check-registry)
+// ======================================================================================
+{
+  const A = 'proofs';
+  const nonce = b64(sha('tubes-fed.1 vector nonce'));
+  const P = (over = {}, signer = 'node1') => {
+    const r = { v: 1, kind: 'proof', key: pub('node1'), t: NOW - 5, body: { nonce, server: SID }, ...over };
+    const { sig, ...un } = r;
+    return { ...un, sig: signText(signer, canon(un)) };
+  };
+  const go = (name, d, proof, expect) => put(A, name, d, { now: NOW, nonce, server: SID, node: pub('node1'), proof }, expect);
+  go('valid', 'The node signs {nonce, server} with its node key, t its own clock.', P(), { ok: true });
+  go('valid-skew', 't 300 s behind now is still fresh.', P({ t: NOW - 300 }), { ok: true });
+  go('stale', 't more than 300 s from now: a recorded proof cannot be replayed later.', P({ t: NOW - 301 }), { ok: false, error: 'bad_challenge' });
+  go('future', 't more than 300 s ahead.', P({ t: NOW + 301 }), { ok: false, error: 'bad_challenge' });
+  go('other-nonce', 'A proof for another nonce.', P({ body: { nonce: b64(sha('another nonce')), server: SID } }), { ok: false, error: 'bad_challenge' });
+  go('other-server', 'A proof naming another server.', P({ body: { nonce, server: b64(sha('another server')) } }), { ok: false, error: 'bad_challenge' });
+  go('other-node', 'A valid proof by node2 when node1 was asked.', (() => { const r = { v: 1, kind: 'proof', key: pub('node2'), t: NOW - 5, body: { nonce, server: SID } }; return { ...r, sig: signText('node2', canon(r)) }; })(), { ok: false, error: 'bad_challenge' });
+  go('kind-receipt', 'Signed objects are told apart by kind: a receipt is not a proof.', P({ kind: 'receipt' }), { ok: false, error: 'bad_challenge' });
+  go('bad-sig', 'Claims node1, signed by node2.', P({}, 'node2'), { ok: false, error: 'bad_sig' });
+}
+
+// ======================================================================================
+// operators: the operator and node lists from genesis and majority-signed proposals
+// ======================================================================================
+const P1 = multi('operators', 'anna', T - 30 * DAY, { server: SID, prev: SID, action: 'add_operator', target: pub('ben') }, ['anna']);
+const P2 = multi('operators', 'anna', T - 20 * DAY, { server: SID, prev: rid(P1), action: 'add_operator', target: pub('cleo') }, ['anna', 'ben']);
+const P3 = multi('operators', 'ben', T - 10 * DAY, { server: SID, prev: rid(P2), action: 'set_node', target: pub('node2'), url: URL2 }, ['ben', 'cleo']);
+const sorted = a => a.slice().sort(byStr);
+const nodesOf = list => list.map(([n, url]) => ({ key: pub(n), url })).sort((a, b) => byStr(a.key, b.key));
+{
+  const A = 'operators';
+  const go = (name, d, records, expect, now = NOW) => put(A, name, d, { now, genesis, records }, expect);
+  const ids = rs => rs.map(rid);
+  go('genesis-only', 'A new server: the founder is the only operator, the first node the only node, the head is the genesis id (the server identity).',
+    [], { head: SID, operators: [pub('anna')], nodes: nodesOf([['node1', URL1]]), pending: [] });
+  go('one-of-one', 'With one operator, its own signature is a majority (1 * 2 > 1): adding ben takes effect.',
+    [P1], { head: rid(P1), operators: sorted([pub('anna'), pub('ben')]), nodes: nodesOf([['node1', URL1]]), pending: [] });
+  const P2a = multi('operators', 'anna', T - 20 * DAY, P2.body, ['anna']);
+  go('one-of-two-pending', 'With two operators one signature is not a majority (1 * 2 > 2 is false): the proposal is pending.',
+    [P1, P2a], { head: rid(P1), operators: sorted([pub('anna'), pub('ben')]), nodes: nodesOf([['node1', URL1]]), pending: ids([P2a]) }, T - 20 * DAY + 3600);
+  go('two-of-two', 'Both sign: effective. Then set_node by ben, signed by ben and cleo: 2 of 3, effective.',
+    [P1, P2, P3], { head: rid(P3), operators: sorted([pub('anna'), pub('ben'), pub('cleo')]), nodes: nodesOf([['node1', URL1], ['node2', URL2]]), pending: [] });
+  go('order-independent', 'The same records in any order give the same lists.',
+    [P3, P2, P1], { head: rid(P3), operators: sorted([pub('anna'), pub('ben'), pub('cleo')]), nodes: nodesOf([['node1', URL1], ['node2', URL2]]), pending: [] });
+  const Px = multi('operators', 'anna', T - 1 * DAY, { server: SID, prev: rid(P1), action: 'add_operator', target: pub('dan') }, ['anna', 'dan']);
+  go('non-operator-signature', 'dan signs his own addition: signatures from keys that are not current operators do not count, so 1 of 2: pending.',
+    [P1, Px], { head: rid(P1), operators: sorted([pub('anna'), pub('ben')]), nodes: nodesOf([['node1', URL1]]), pending: ids([Px]) });
+  // two proposals on the same head, both with a majority: the lower id wins (asserted below)
+  const Qa = multi('operators', 'anna', T - 5 * DAY, { server: SID, prev: rid(P1), action: 'add_operator', target: pub('cleo') }, ['anna', 'ben']);
+  const Qb = multi('operators', 'ben', T - 5 * DAY, { server: SID, prev: rid(P1), action: 'add_operator', target: pub('dan') }, ['anna', 'ben']);
+  const [win, lose, winner] = rid(Qa) < rid(Qb) ? [Qa, Qb, 'cleo'] : [Qb, Qa, 'dan'];
+  if (winner !== 'cleo') throw new Error('seed change: update the description of competing-proposals');
+  go('competing-proposals', 'Two proposals on the same head both reach a majority (anna and ben sign both). The one with the lower record id (byte order) wins; here that is the one adding cleo. The other no longer follows the head: void, not pending.',
+    [P1, lose, win], { head: rid(win), operators: sorted([pub('anna'), pub('ben'), pub(winner)]), nodes: nodesOf([['node1', URL1]]), pending: [] });
+  const stale = multi('operators', 'anna', T - 2 * DAY, { server: SID, prev: SID, action: 'add_operator', target: pub('dan') }, ['anna']);
+  go('stale-prev', 'A proposal whose prev is no longer the head is void, even though anna alone was a majority at genesis.',
+    [P1, stale], { head: rid(P1), operators: sorted([pub('anna'), pub('ben')]), nodes: nodesOf([['node1', URL1]]), pending: [] });
+  const Pe = multi('operators', 'anna', NOW - 14 * DAY, { server: SID, prev: rid(P1), action: 'add_operator', target: pub('cleo') }, ['anna']);
+  go('pending-expired', 'Pending proposals expire 14 days (1209600 s) after their t: at exactly t + 1209600 it is no longer pending.',
+    [P1, Pe], { head: rid(P1), operators: sorted([pub('anna'), pub('ben')]), nodes: nodesOf([['node1', URL1]]), pending: [] });
+  go('pending-last-second', 'At t + 1209599 it is still pending.',
+    [P1, Pe], { head: rid(P1), operators: sorted([pub('anna'), pub('ben')]), nodes: nodesOf([['node1', URL1]]), pending: ids([Pe]) }, NOW - 1);
+  const late = multi('operators', 'anna', T - 25 * DAY, P2.body, ['anna', 'ben']);
+  go('expiry-does-not-undo', 'A proposal that reached its majority stays applied however old it is: expiry only drops pending ones.',
+    [P1, late], { head: rid(late), operators: sorted([pub('anna'), pub('ben'), pub('cleo')]), nodes: nodesOf([['node1', URL1]]), pending: [] });
+  const last = multi('operators', 'anna', T, { server: SID, prev: SID, action: 'remove_operator', target: pub('anna') }, ['anna']);
+  go('remove-last-operator', 'Removing the only operator cannot apply: void.', [last], { head: SID, operators: [pub('anna')], nodes: nodesOf([['node1', URL1]]), pending: [] });
+  const lastNode = multi('operators', 'anna', T, { server: SID, prev: SID, action: 'remove_node', target: pub('node1') }, ['anna']);
+  go('remove-last-node', 'Removing the only node cannot apply: void.', [lastNode], { head: SID, operators: [pub('anna')], nodes: nodesOf([['node1', URL1]]), pending: [] });
+  const outsider = multi('operators', 'dan', T, { server: SID, prev: SID, action: 'add_operator', target: pub('dan') }, ['anna', 'dan']);
+  go('proposer-not-operator', 'The author of a proposal must be a current operator, even if a majority signed: void.',
+    [outsider], { head: SID, operators: [pub('anna')], nodes: nodesOf([['node1', URL1]]), pending: [] });
+  const N1 = multi('operators', 'anna', T - 3 * DAY, { server: SID, prev: SID, action: 'set_node', target: pub('node1'), url: URL3 }, ['anna']);
+  const N2 = multi('operators', 'anna', T - 2 * DAY, { server: SID, prev: rid(N1), action: 'set_node', target: pub('node2'), url: URL2 }, ['anna']);
+  const N3 = multi('operators', 'anna', T - 1 * DAY, { server: SID, prev: rid(N2), action: 'remove_node', target: pub('node1') }, ['anna']);
+  go('nodes-move', 'set_node on an existing node changes its URL; on a new key it adds the node; remove_node drops one.',
+    [N1, N2, N3], { head: rid(N3), operators: [pub('anna')], nodes: nodesOf([['node2', URL2]]), pending: [] });
+  const dupAdd = multi('operators', 'anna', T, { server: SID, prev: rid(P1), action: 'add_operator', target: pub('ben') }, ['anna', 'ben']);
+  go('add-existing-operator', 'Adding someone who is already an operator cannot apply: void.', [P1, dupAdd], { head: rid(P1), operators: sorted([pub('anna'), pub('ben')]), nodes: nodesOf([['node1', URL1]]), pending: [] });
+  const g2 = rec('genesis', 'anna', T - 39 * DAY, GEN_BODY());
+  const foreign = multi('operators', 'anna', T, { server: rid(g2), prev: rid(g2), action: 'add_operator', target: pub('dan') }, ['anna']);
+  go('other-server', 'A proposal for another server identity is ignored.', [foreign], { head: SID, operators: [pub('anna')], nodes: nodesOf([['node1', URL1]]), pending: [] });
+
+  // server records against the chain
+  const chain = [P1, P2, P3];
+  const SB = (head, ops, nodes) => ({ server: SID, head, name: 'Packet Lunch', nodes, operators: ops, sync: 'selective', noLogs: true, langs: ['en'], desc: '' });
+  const ops3 = sorted([pub('anna'), pub('ben'), pub('cleo')]);
+  const nodes2 = nodesOf([['node1', URL1], ['node2', URL2]]);
+  const srv = (name, d, server, expect) => put(A, name, d, { now: NOW, genesis, records: chain, server }, expect);
+  srv('server-valid', 'A server record at the head, lists equal to the chain, signed by 2 of 3 operators.', multi('server', 'cleo', T, SB(rid(P3), ops3, nodes2), ['ben', 'cleo']), { ok: true });
+  srv('server-older-head', 'A server record made at an earlier head is still valid against the lists at that head.',
+    multi('server', 'anna', T - 25 * DAY, SB(rid(P1), sorted([pub('anna'), pub('ben')]), nodesOf([['node1', URL1]])), ['anna', 'ben']), { ok: true });
+  srv('server-minority', 'Signed by 1 of 3 operators.', multi('server', 'cleo', T, SB(rid(P3), ops3, nodes2), ['cleo']), { ok: false, error: 'no_majority' });
+  srv('server-lists-differ', 'The node list does not match the chain at its head.', multi('server', 'cleo', T, SB(rid(P3), ops3, nodesOf([['node1', URL1]])), ['ben', 'cleo']), { ok: false, error: 'bad_chain' });
+  srv('server-unknown-head', 'head is not on the chain.', multi('server', 'cleo', T, SB(rid(stale), ops3, nodes2), ['ben', 'cleo']), { ok: false, error: 'bad_chain' });
+}
+
+// ======================================================================================
+// registry: relay check-registry, and the servers.json the build makes
+// ======================================================================================
+{
+  const A = 'registry';
+  const server1 = multi('server', 'anna', T - 9 * DAY, { server: SID, head: rid(P3), name: 'Packet Lunch', nodes: nodesOf([['node1', URL1], ['node2', URL2]]), operators: sorted([pub('anna'), pub('ben'), pub('cleo')]), sync: 'open', noLogs: true, langs: ['en', 'de'], desc: 'Small, friendly, always on.' }, ['anna', 'ben']);
+  const file1 = { v: 1, genesis, chain: [P1, P2, P3], server: server1, listed: 1764633600, answered: 1767225600 };
+  const g2 = rec('genesis', 'dan', T - 5 * DAY, { name: 'Hop Shop', node: { key: pub('node3'), url: URL3 } });
+  const S2 = rid(g2);
+  const srv2 = (over = {}, signers = ['dan']) => multi('server', 'dan', T - 5 * DAY, { server: S2, head: S2, name: 'Hop Shop', nodes: nodesOf([['node3', URL3]]), operators: [pub('dan')], sync: 'selective', noLogs: true, langs: ['fr'], desc: '', ...over }, signers);
+  const file2 = { v: 1, genesis: g2, chain: [], server: srv2() };
+  const F1 = SID + '.json', F2 = S2 + '.json';
+  const go = (name, d, files, check, expect, base) => put(A, name, d, base ? { files, check, base } : { files, check }, expect);
+  go('valid-chain', 'A server with three operators: genesis, two additions and a node, server record signed by 2 of 3, noLogs true. (The live check that a node answers the challenge is not part of these vectors; see proofs.)',
+    { [F1]: file1, [F2]: file2 }, F1, { ok: true });
+  go('valid-new', 'A new server with one operator, no listed/answered stamps yet.', { [F1]: file1, [F2]: file2 }, F2, { ok: true });
+  const FX = (F2[0] === 'A' ? 'B' : 'A') + F2.slice(1);
+  go('filename-mismatch', 'The file name must be <genesis id>.json.', { [FX]: file2 }, FX, { ok: false, error: 'id_mismatch' });
+  go('no-logs-false', 'Registered servers must declare noLogs true.', { [F2]: { ...file2, server: srv2({ noLogs: false }) } }, F2, { ok: false, error: 'no_logs' });
+  go('name-taken', 'Names are unique across the folder, compared with A-Z lowered to a-z only.', { [F1]: file1, [F2]: { ...file2, server: srv2({ name: 'PACKET LUNCH' }) } }, F2, { ok: false, error: 'name_taken' });
+  go('server-minority', 'The server record needs a strict majority of the operators at its head: 1 of 3 is not.',
+    { [F1]: { ...file1, server: multi('server', 'anna', server1.t, server1.body, ['anna']) } }, F1, { ok: false, error: 'no_majority' });
+  go('chain-gap', 'A chain must link each proposal to the one before (prev); a missing link is refused.', { [F1]: { ...file1, chain: [P1, P3] } }, F1, { ok: false, error: 'bad_chain' });
+  go('chain-not-majority', 'Every proposal in the chain must have had its majority: P2 signed by anna alone (1 of 2) is refused.',
+    { [F1]: { ...file1, chain: [P1, multi('operators', 'anna', P2.t, P2.body, ['anna']), P3] } }, F1, { ok: false, error: 'no_majority' });
+  go('server-head-behind', 'In the registry the server record must be at the last head of the chain.',
+    { [F1]: { ...file1, server: multi('server', 'anna', T - 25 * DAY, { ...server1.body, head: rid(P1), operators: sorted([pub('anna'), pub('ben')]), nodes: nodesOf([['node1', URL1]]) }, ['anna', 'ben']) } }, F1, { ok: false, error: 'bad_chain' });
+  go('genesis-tampered', 'The genesis name changed after signing.', { [F1]: { ...file1, genesis: { ...genesis, body: { ...genesis.body, name: 'Packet Brunch' } } } }, F1, { ok: false, error: 'bad_sig' });
+  go('unknown-field', 'Only v, genesis, chain, server, listed and answered.', { [F2]: { ...file2, contact: 'dan@example.org' } }, F2, { ok: false, error: 'unknown_field' });
+  go('bad-json', 'The file is not JSON.', { [F2]: { text: '{"v":1,' } }, F2, { ok: false, error: 'bad_json' });
+  go('too-big', 'Over 65536 bytes (a description padded with spaces outside the records).', { [F2]: { text: JSON.stringify(file2).replace('{', '{' + ' '.repeat(65536)) } }, F2, { ok: false, error: 'too_big' });
+  go('stamp-changed', 'listed and answered are written only by the weekly job: an operator\'s pull request may not change them (compared with the file on the base branch).',
+    { [F1]: { ...file1, answered: 1767312000 } }, F1, { ok: false, error: 'bad_field' }, file1);
+  go('stamp-kept', 'The same change with the stamps untouched passes.',
+    { [F1]: { ...file1, server: multi('server', 'anna', T - 8 * DAY, { ...server1.body, desc: 'Small, friendly, mostly on.' }, ['anna', 'cleo']) } }, F1, { ok: true }, file1);
+
+  put(A, 'build-servers-json',
+    'The build turns the folder into site/federation/servers.json: v 1, asOf = the greatest "answered" of all files (0 if none), servers = one entry per file sorted by id, each {id, genesis, chain, server} plus listed and answered when present. Files are assumed checked already.',
+    { files: { [F2]: file2, [F1]: file1 } },
+    { servers_json: { v: 1, asOf: 1767225600, servers: [{ id: SID, ...(({ v, ...x }) => x)(file1) }, { id: S2, ...(({ v, ...x }) => x)(file2) }].sort((a, b) => byStr(a.id, b.id)) } });
+}
+
+// ======================================================================================
+// dedupe: storing what arrives, once per record id; multi-signer copies merge their signatures
+// ======================================================================================
+{
+  const A = 'dedupe';
+  const s1 = rec('stats', 'alice', T, statsMin());
+  const s2 = rec('stats', 'alice', T + 60, statsMin());
+  const pa = multi('operators', 'anna', T, { server: SID, prev: rid(P1), action: 'add_operator', target: pub('cleo') }, ['anna']);
+  const pb = multi('operators', 'anna', T, pa.body, ['ben']); // ben's signature alone: author not among signers
+  const pab = multi('operators', 'anna', T, pa.body, ['anna', 'ben']);
+  const bent = (() => { const s = Buffer.from(pab.sigs[1].sig, 'base64url'); s[0] ^= 1; return { ...pab, sigs: [pab.sigs[0], { key: pab.sigs[1].key, sig: b64(s) }] }; })();
+  const go = (name, d, arrivals, expect) => put(A, name, d, { now: NOW, arrivals }, expect);
+  go('same-record-twice', 'The same record arriving twice (two nodes, two paths) is stored once.', [{ record: s1 }, { record: s1 }], { stored: [{ id: rid(s1) }], results: ['stored', 'duplicate'] });
+  go('same-record-other-text', 'The same record as different text (pretty-printed) has the same id: stored once.',
+    [{ record: s1 }, { text: JSON.stringify(s1, null, 1) }], { stored: [{ id: rid(s1) }], results: ['stored', 'duplicate'] });
+  go('two-records-same-slot', 'Two stats from one key in the same slot are two records: both stored (boards pick one, see slots).',
+    [{ record: s1 }, { record: s2 }], { stored: [rid(s1), rid(s2)].sort(byStr).map(id => ({ id })), results: ['stored', 'stored'] });
+  go('merge-signatures', 'A proposal signed by anna, then the same proposal signed by anna and ben: one id, the signatures are merged (union, sorted by key).',
+    [{ record: pa }, { record: pab }], { stored: [{ id: rid(pa), sigs: pab.sigs.map(s => s.key) }], results: ['stored', 'merged'] });
+  go('merge-adds-nothing', 'A copy with no new signature changes nothing.', [{ record: pab }, { record: pa }], { stored: [{ id: rid(pa), sigs: pab.sigs.map(s => s.key) }], results: ['stored', 'duplicate'] });
+  go('merge-bad-copy', 'A copy with one signature that does not verify is refused as a whole; what was stored stays.',
+    [{ record: pa }, { record: bent }], { stored: [{ id: rid(pa), sigs: [pub('anna')] }], results: ['stored', 'bad_sig'] });
+  go('invalid-not-stored', 'A record that fails validation is not stored and does not block the valid one with other content.',
+    [{ record: pb }, { record: pa }], { stored: [{ id: rid(pa), sigs: [pub('anna')] }], results: ['bad_field', 'stored'] });
+}
+
+// ---------- write or check ----------
+const check = process.argv.includes('--check');
+let diff = 0;
+for (const area of GEN) {
+  const dir = path.join(DIR, area);
+  const want = [...OUT.keys()].filter(k => k.startsWith(area + '/')).map(k => k.slice(area.length + 1));
+  const have = fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => f.endsWith('.json')) : [];
+  if (check) {
+    for (const f of new Set([...want, ...have])) {
+      const a = fs.existsSync(path.join(dir, f)) ? fs.readFileSync(path.join(dir, f), 'utf8') : null;
+      if (a !== OUT.get(area + '/' + f)) { diff++; console.error('differs: federation/vectors/' + area + '/' + f); }
+    }
+  } else {
+    fs.mkdirSync(dir, { recursive: true });
+    for (const f of have) if (!want.includes(f)) fs.unlinkSync(path.join(dir, f));
+    for (const f of want) fs.writeFileSync(path.join(dir, f), OUT.get(area + '/' + f));
+  }
+}
+if (check && diff) { console.error(diff + ' generated vector file(s) out of date: run node scripts/fed-vectors.js'); process.exit(1); }
+console.log((check ? 'checked ' : 'wrote ') + OUT.size + ' files: ' + GEN.map(a => `${a} ${COUNT[a] || 0}`).join(', '));

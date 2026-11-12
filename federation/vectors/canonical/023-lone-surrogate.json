@@ -1,0 +1,9 @@
+{
+  "description": "A lone high surrogate.",
+  "input": {
+    "text": "{\"a\":\"\\ud800\"}"
+  },
+  "expect": {
+    "error": "bad_string"
+  }
+}

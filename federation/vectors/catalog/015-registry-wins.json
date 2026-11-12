@@ -1,0 +1,85 @@
+{
+  "description": "sA is in the registry: its records come from there even though gossip carries a newer server record with other nodes. Gossip adds seen and path, from the entry with the greatest seen.",
+  "input": {
+    "now": 1767312000,
+    "registry": [
+      {
+        "id": "sA",
+        "server": {
+          "rid": "rA1",
+          "t": 100,
+          "name": "Packet Lunch",
+          "nodes": [
+            "n1"
+          ],
+          "operators": [
+            "o1"
+          ]
+        }
+      }
+    ],
+    "gossip": [
+      {
+        "id": "sA",
+        "server": {
+          "rid": "rA2",
+          "t": 200,
+          "name": "Packet Lunch",
+          "nodes": [
+            "n2"
+          ],
+          "operators": [
+            "o1"
+          ]
+        },
+        "path": [
+          "sA",
+          "sB"
+        ],
+        "seen": 1767311950
+      },
+      {
+        "id": "sA",
+        "server": {
+          "rid": "rA2",
+          "t": 200,
+          "name": "Packet Lunch",
+          "nodes": [
+            "n2"
+          ],
+          "operators": [
+            "o1"
+          ]
+        },
+        "path": [
+          "sA",
+          "sC",
+          "sD"
+        ],
+        "seen": 1767311990
+      }
+    ]
+  },
+  "expect": {
+    "servers": [
+      {
+        "id": "sA",
+        "source": "registry",
+        "rid": "rA1",
+        "name": "Packet Lunch",
+        "nodes": [
+          "n1"
+        ],
+        "operators": [
+          "o1"
+        ],
+        "seen": 1767311990,
+        "path": [
+          "sA",
+          "sC",
+          "sD"
+        ]
+      }
+    ]
+  }
+}

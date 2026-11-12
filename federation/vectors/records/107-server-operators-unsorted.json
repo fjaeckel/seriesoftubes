@@ -1,0 +1,41 @@
+{
+  "description": "Lists of keys in server records are sorted by key.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "server",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "head": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "name": "Packet Lunch",
+        "nodes": [
+          {
+            "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+            "url": "wss://relay.example.net/fed"
+          }
+        ],
+        "operators": [
+          "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+          "3TBqwov-v_tIyl8ZW7Xw4ZYl-XCzwvtuYRmNvkjoGbQ"
+        ],
+        "sync": "open",
+        "noLogs": true,
+        "langs": [],
+        "desc": ""
+      },
+      "sigs": [
+        {
+          "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+          "sig": "qhxQvrW98rTKtj8rwT9EMTfWJ5IBSYrsMFBrB3kUL1PW5Aa6k0cENa4RXhWvxVfDWU_HIVIVGHY8Cql_5cgACQ"
+        }
+      ]
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "description": "body must be an object.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": [],
+      "sig": "n99v_uyE3FscEas1DRY68QF9hElWB-mAJd9ubLo4Lw2GVagRYve_tmiXmC4oHRGupizPLG-381LkzquV1cfRAw"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "description": "set_node needs url.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "operators",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "prev": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "action": "set_node",
+        "target": "i7ibH5fd16Yxj6GRgQEpbUBEj1AI3_5nPrGRxGnWgXc"
+      },
+      "sigs": [
+        {
+          "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+          "sig": "ACcSGF2DQck-bEhWWc7QJx4LphcwQMdvI1gNmF5nchObJY1SLTVqKfVD_jahituLehSiXLe-DN5wNOn3XgdEAA"
+        }
+      ]
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "missing_field"
+  }
+}

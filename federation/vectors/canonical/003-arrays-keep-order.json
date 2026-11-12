@@ -1,0 +1,9 @@
+{
+  "description": "Arrays keep their order; objects inside them are sorted.",
+  "input": {
+    "text": "{\"a\":[3,1,[2,{\"d\":1,\"c\":2}]]}"
+  },
+  "expect": {
+    "canonical": "{\"a\":[3,1,[2,{\"c\":2,\"d\":1}]]}"
+  }
+}

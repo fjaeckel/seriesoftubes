@@ -1,0 +1,50 @@
+{
+  "description": "c = slot(now). Current window: c - 86400 .. c - 300 (288 slots); previous: c - 172800 .. c - 86700. The running slot c is in neither. now = 1767398410 gives c = 1767398400 (172810 s after 2026-01-01, 172810 mod 300 = 10).",
+  "cases": [
+    {
+      "input": {
+        "now": 1767398410
+      },
+      "expect": {
+        "current": {
+          "from": 1767312000,
+          "to": 1767398100
+        },
+        "previous": {
+          "from": 1767225600,
+          "to": 1767311700
+        }
+      }
+    },
+    {
+      "input": {
+        "now": 1767398400
+      },
+      "expect": {
+        "current": {
+          "from": 1767312000,
+          "to": 1767398100
+        },
+        "previous": {
+          "from": 1767225600,
+          "to": 1767311700
+        }
+      }
+    },
+    {
+      "input": {
+        "now": 1767398399
+      },
+      "expect": {
+        "current": {
+          "from": 1767311700,
+          "to": 1767397800
+        },
+        "previous": {
+          "from": 1767225300,
+          "to": 1767311400
+        }
+      }
+    }
+  ]
+}

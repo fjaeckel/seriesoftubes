@@ -1,0 +1,9 @@
+{
+  "description": "U+001F written as an escape.",
+  "input": {
+    "text": "{\"a\":\"\\u001f\"}"
+  },
+  "expect": {
+    "error": "bad_string"
+  }
+}

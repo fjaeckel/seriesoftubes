@@ -1,0 +1,78 @@
+{
+  "description": "sD is known only by gossip seen 7 days ago: forgotten. sE is in the registry and never heard by gossip: kept, without seen or path. An expired gossip entry for sE adds nothing.",
+  "input": {
+    "now": 1767312000,
+    "registry": [
+      {
+        "id": "sE",
+        "server": {
+          "rid": "rE1",
+          "t": 100,
+          "name": "Quiet Corner",
+          "nodes": [
+            "n1"
+          ],
+          "operators": [
+            "o1"
+          ]
+        }
+      }
+    ],
+    "gossip": [
+      {
+        "id": "sD",
+        "server": {
+          "rid": "rD1",
+          "t": 100,
+          "name": "Gone Fishing",
+          "nodes": [
+            "n1"
+          ],
+          "operators": [
+            "o1"
+          ]
+        },
+        "path": [
+          "sD"
+        ],
+        "seen": 1766707200
+      },
+      {
+        "id": "sE",
+        "server": {
+          "rid": "rE1",
+          "t": 100,
+          "name": "Quiet Corner",
+          "nodes": [
+            "n1"
+          ],
+          "operators": [
+            "o1"
+          ]
+        },
+        "path": [
+          "sE"
+        ],
+        "seen": 1766612000
+      }
+    ]
+  },
+  "expect": {
+    "servers": [
+      {
+        "id": "sE",
+        "source": "registry",
+        "rid": "rE1",
+        "name": "Quiet Corner",
+        "nodes": [
+          "n1"
+        ],
+        "operators": [
+          "o1"
+        ],
+        "seen": null,
+        "path": null
+      }
+    ]
+  }
+}

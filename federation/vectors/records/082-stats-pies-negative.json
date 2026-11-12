@@ -1,0 +1,25 @@
+{
+  "description": "pies below 0.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false,
+        "pies": -1
+      },
+      "sig": "fl0JJ1XfMZSHfrcHH0bz_5YNam8lM5k7xBPDiGgXQnIlEJwdmMJfp4NlTQCr7th7VhDbtaIO9QLF9KKpB1bvBw"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

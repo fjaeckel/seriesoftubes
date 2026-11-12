@@ -1,0 +1,22 @@
+{
+  "description": "shun reasons come from a fixed list.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "shun",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "target": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+        "reason": "he was rude"
+      },
+      "sig": "_PpE3BlcA6ykEsk75SZbTl8PJ0klT7ynPVWDsFFK3HUjJX5vOmfBJeOY9Ei4B9yGpKidff2UdHtK2clIkkT1BQ"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

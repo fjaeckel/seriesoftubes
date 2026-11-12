@@ -1,0 +1,91 @@
+{
+  "description": "set_node on an existing node changes its URL; on a new key it adds the node; remove_node drops one.",
+  "input": {
+    "now": 1767312100,
+    "genesis": {
+      "v": 1,
+      "kind": "genesis",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1763856000,
+      "body": {
+        "name": "Packet Lunch",
+        "node": {
+          "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+          "url": "wss://relay.example.net/fed"
+        }
+      },
+      "sig": "5_YXhNeVD4FTE0p0XTgpZIslVXcBVLEauUb2ki7EGXxYonjKOe3f1oP21yqnWf3xPPq-zeSwZQsDnKHUDE3tDw"
+    },
+    "records": [
+      {
+        "v": 1,
+        "kind": "operators",
+        "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+        "t": 1767052800,
+        "body": {
+          "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+          "prev": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+          "action": "set_node",
+          "target": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+          "url": "wss://third.example.com"
+        },
+        "sigs": [
+          {
+            "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+            "sig": "LhG1DshcXU3vHC4MYBhVQ-tAjnovPDEoyiXpLJd50Brkv7CtBivS3kvYeVm8ThkJakxOhFkQNBZNRJxVShjXDA"
+          }
+        ]
+      },
+      {
+        "v": 1,
+        "kind": "operators",
+        "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+        "t": 1767139200,
+        "body": {
+          "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+          "prev": "VhbFvShyHAErlJAltH1QbVgR7ZYb5zhtsKWO3pp9UaE",
+          "action": "set_node",
+          "target": "i7ibH5fd16Yxj6GRgQEpbUBEj1AI3_5nPrGRxGnWgXc",
+          "url": "wss://second.example.org:8443/fed"
+        },
+        "sigs": [
+          {
+            "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+            "sig": "AOWQYaWTjNmLaFSCCDjdenTqo9K7ANCTUd10_LJMRzi3Doi299bsjFuj8Uf5yK971IgHIH5lN0SWNOfW1xfAAQ"
+          }
+        ]
+      },
+      {
+        "v": 1,
+        "kind": "operators",
+        "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+        "t": 1767225600,
+        "body": {
+          "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+          "prev": "1fJ8LDjdlo0nipdlE1-msJAa3YtJqhOhxS5JJFFfn5I",
+          "action": "remove_node",
+          "target": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ"
+        },
+        "sigs": [
+          {
+            "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+            "sig": "XgsEYnjR6T2O-1IKyRp6d-KPo8nwZ7UT2XIpQ7en-4ppnFwNHwtaCABoKZ1h5Bc5wd-sa2XTvkRjvVh42Lv4BA"
+          }
+        ]
+      }
+    ]
+  },
+  "expect": {
+    "head": "Mc51iyPmH-quPKnEn_jmV8FHW-RX-aZHwb3HL4rdCxg",
+    "operators": [
+      "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY"
+    ],
+    "nodes": [
+      {
+        "key": "i7ibH5fd16Yxj6GRgQEpbUBEj1AI3_5nPrGRxGnWgXc",
+        "url": "wss://second.example.org:8443/fed"
+      }
+    ],
+    "pending": []
+  }
+}

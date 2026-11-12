@@ -1,0 +1,53 @@
+{
+  "description": "ASN shown for a key: h = SHA-256 of the 32 raw key bytes; n = the first 4 bytes of h as an unsigned big-endian integer; ASN = 4200000000 + (n mod 94967295). The result is always in 4200000000..4294967294.",
+  "cases": [
+    {
+      "input": {
+        "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw"
+      },
+      "expect": {
+        "asn": 4215690104
+      }
+    },
+    {
+      "input": {
+        "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0"
+      },
+      "expect": {
+        "asn": 4281146038
+      }
+    },
+    {
+      "input": {
+        "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns"
+      },
+      "expect": {
+        "asn": 4234768206
+      }
+    },
+    {
+      "input": {
+        "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI"
+      },
+      "expect": {
+        "asn": 4205347724
+      }
+    },
+    {
+      "input": {
+        "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY"
+      },
+      "expect": {
+        "asn": 4288227685
+      }
+    },
+    {
+      "input": {
+        "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ"
+      },
+      "expect": {
+        "asn": 4238949520
+      }
+    }
+  ]
+}

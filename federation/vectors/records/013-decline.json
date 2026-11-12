@@ -1,0 +1,23 @@
+{
+  "description": "decline with a reason from the fixed list.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "decline",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "offer": "B4ioZwwFwS_ZMOkieDjCzXKkyWsLqQ7XTrdZPO7vJ0c",
+        "to": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+        "reason": "conditions"
+      },
+      "sig": "NGz-D_-W4XeSaR7ruwDON2XCz9qjpRVk84GjY5mX3JBVvvEjiQypcau8X2GA5f2v_O9lhiPTcdMzpQV_MvM8Dg"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "decline",
+    "id": "DAxfJYxWyQHfVZqAh_t6jDsY1shzJe_WM2FnXqqdFTE"
+  }
+}

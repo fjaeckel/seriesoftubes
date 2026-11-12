@@ -1,0 +1,23 @@
+{
+  "description": "Store, and pass on with self appended.",
+  "input": {
+    "now": 1767312000,
+    "self": "sX",
+    "entry": {
+      "id": "sA",
+      "path": [
+        "sA",
+        "sB"
+      ],
+      "seen": 1767311900
+    }
+  },
+  "expect": {
+    "action": "store",
+    "forward": [
+      "sA",
+      "sB",
+      "sX"
+    ]
+  }
+}

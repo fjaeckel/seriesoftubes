@@ -1,0 +1,9 @@
+{
+  "description": "Depth 8 (the object, then seven arrays) is the deepest allowed.",
+  "input": {
+    "text": "{\"a\":[[[[[[[1]]]]]]]}"
+  },
+  "expect": {
+    "canonical": "{\"a\":[[[[[[[1]]]]]]]}"
+  }
+}

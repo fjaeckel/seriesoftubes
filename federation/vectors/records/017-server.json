@@ -1,0 +1,44 @@
+{
+  "description": "server record (multi-signer), lists sorted by key.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "server",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "head": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "name": "Packet Lunch",
+        "nodes": [
+          {
+            "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+            "url": "wss://relay.example.net/fed"
+          }
+        ],
+        "operators": [
+          "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY"
+        ],
+        "sync": "open",
+        "noLogs": true,
+        "langs": [
+          "en",
+          "de"
+        ],
+        "desc": "Small, friendly, always on."
+      },
+      "sigs": [
+        {
+          "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+          "sig": "ovmHjQ9wZjq92_mUXb4NSXe7to9ZS84xCVQU08OZKqlUTUqV5MkneWT999JcOK3plX4tobUELqjkkhZtbCRyAw"
+        }
+      ]
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "server",
+    "id": "Z7c6b4cdxVkH4Cb8PdOLwQOmKFR7Ka8JTji-M0hOLq8"
+  }
+}

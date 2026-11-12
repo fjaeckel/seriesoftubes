@@ -1,0 +1,20 @@
+{
+  "description": "leave has an empty body.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "leave",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "why": "bye"
+      },
+      "sig": "D1RjcUbX1qrPIjccgrAoP8uLijMgOpTTXXPEivnnTe0ksvMouTTWW69u1KbgV6z_4ifadT_yNVqwklEW5M5xBg"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "unknown_field"
+  }
+}

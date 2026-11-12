@@ -1,0 +1,81 @@
+{
+  "description": "now = 1767398410, so c = 1767398400; slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. Pies growth with the floor of 100: kA 40 -> 90: div(50 * 10000, 100) = 5000. kB 200 -> 150: div(-50 * 10000, 200) = -2500.",
+  "input": {
+    "now": 1767398410,
+    "board": "pies",
+    "measure": "growth",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "records": [
+      {
+        "id": "a0",
+        "key": "kA",
+        "slot": 1767225600,
+        "t": 1767225620,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "pies": 40
+        }
+      },
+      {
+        "id": "a1",
+        "key": "kA",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "pies": 90
+        }
+      },
+      {
+        "id": "b0",
+        "key": "kB",
+        "slot": 1767225600,
+        "t": 1767225620,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "pies": 200
+        }
+      },
+      {
+        "id": "b1",
+        "key": "kB",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "pies": 150
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 5000
+      },
+      {
+        "key": "kB",
+        "value": -2500
+      }
+    ]
+  }
+}

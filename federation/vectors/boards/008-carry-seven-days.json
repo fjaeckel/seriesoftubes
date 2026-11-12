@@ -1,0 +1,51 @@
+{
+  "description": "now = 1767398410, so c = 1767398400; slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. kD last reported at 1766737200 (= slot 388 - 604800): it has values for i = 288..387 only, none at i = 575, so it is not listed (silent 7 days). kE last reported at 1766793600 (= slot 576 - 604800): at i = 575 the gap is 604500 < 604800, listed with 4.",
+  "input": {
+    "now": 1767398410,
+    "board": "pops",
+    "measure": "total",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "records": [
+      {
+        "id": "r1",
+        "key": "kD",
+        "slot": 1766737200,
+        "t": 1766737220,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 9
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r2",
+        "key": "kE",
+        "slot": 1766793600,
+        "t": 1766793620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 4
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kE",
+        "value": 4
+      }
+    ]
+  }
+}

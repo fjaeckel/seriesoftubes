@@ -1,0 +1,39 @@
+{
+  "description": "A record's board slot is the earliest t among its valid receipts, never the author's t.",
+  "cases": [
+    {
+      "input": {
+        "t": 1767226600,
+        "receipts": [
+          1767226500
+        ]
+      },
+      "expect": {
+        "slot": 1767226500
+      }
+    },
+    {
+      "input": {
+        "t": 1767226600,
+        "receipts": [
+          1767226500,
+          1767226200
+        ]
+      },
+      "expect": {
+        "slot": 1767226200
+      }
+    },
+    {
+      "input": {
+        "t": 1767220600,
+        "receipts": [
+          1767225900
+        ]
+      },
+      "expect": {
+        "slot": 1767225900
+      }
+    }
+  ]
+}

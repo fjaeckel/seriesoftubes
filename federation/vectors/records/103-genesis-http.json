@@ -1,0 +1,24 @@
+{
+  "description": "Node URLs must be wss://.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "genesis",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "name": "Packet Lunch",
+        "node": {
+          "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+          "url": "ws://relay.example.net/fed"
+        }
+      },
+      "sig": "oeBAi8MhIzJdlG-zuUi0e4tnjMG2usJsJUB5_jqbhGrn73T4yZofMDreO1CjFcGKjj2mykL3j3ezvva_ZT1lCA"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}
