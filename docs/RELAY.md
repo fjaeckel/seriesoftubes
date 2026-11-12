@@ -292,8 +292,10 @@ Operator actions are signed with the operator key on that machine.
 | `relay backup FILE.tar.gz` | A consistent copy of the data folder |
 
 A network is shunned everywhere when at least a quarter of the voting servers, and at least five, vote for it. Votes
-last 90 days unless renewed, and a shun lifts 7 days after the votes fall below the threshold. Every vote is a public,
-signed record.
+last 90 days unless renewed, and a shun lifts 7 days after the votes fall below the threshold. Every vote is a signed
+record that travels to every server, but your node sends votes only to games that proved an operator key of your
+server (an operator panel in the game); other players' games get only the list of excluded networks, and an excluded
+player only the reasons given, never counts, servers or operators.
 
 ## Upgrades, backups and data
 

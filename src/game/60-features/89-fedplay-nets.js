@@ -105,6 +105,6 @@ async function fedPlayTick(){FEDN.t=null;if(!FEDN.on)return;FEDN.t=FED.set(fedPl
   try{await fedAnnounceMaybe(false);await fedDepeerDrift(s);if(fedLeakCheck(s,fedNow()))after();}catch(e){console.error('[tubes] federation gameplay',e);}}
 fedOn('status',st=>{if(st.state==='off'){FEDN.on=false;FED.clear(FEDN.t);FEDN.t=null;return;}
   if(!FEDN.on){FEDN.on=true;FED.clear(FEDN.t);FEDN.t=FED.set(fedPlayTick,2000);}});
-fedOn('records',()=>fedPlaySoon());
+fedOn('records',()=>fedPlaySoon());fedOn('excluded',()=>fedPlaySoon());
 fedOn('mute',()=>fedPlaySoon(0));
 fedOn('deal',e=>{FEDN.q=FEDN.q.then(()=>fedPlayDeal(e)).catch(err=>console.error('[tubes] federation deal',err));});

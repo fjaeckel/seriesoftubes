@@ -12,10 +12,10 @@ const FED={
   fetch:(u,o)=>fetch(u,o),idb:()=>indexedDB,registry:'federation/servers.json',
   // ms: opening a socket, a request's answer, ping when idle, give up when silent, the idle check, stats, back-off.
   T:{open:15000,req:20000,idle:60000,dead:120000,tick:30000,stats:300000,statsMax:3600,first:5000,base:2000,cap:1800000,fetch:10000},
-  hooks:{stats:null,deal:null},bgen:0,bd:null,vgen:0,shun:null,live:null,st:{},ev:{},soon:false,listening:false,sent:new Map(),ids:new WeakMap()};
+  hooks:{stats:null,deal:null},bgen:0,bd:null,vgen:0,shun:null,xgen:0,ex:null,live:null,st:{},ev:{},soon:false,listening:false,sent:new Map(),ids:new WeakMap()};
 
 /* ---------- events for the interface and the gameplay ---------- */
-// fedOn(name, fn) gives a function that stops listening. Names: status, records, deal, board, catalog, mute.
+// fedOn(name, fn) gives a function that stops listening. Names: status, records, excluded, deal, board, catalog, mute.
 function fedOn(name,fn){(FED.ev[name]||(FED.ev[name]=new Set())).add(fn);return ()=>FED.ev[name].delete(fn);}
 function fedEmit(name,data){const s=FED.ev[name];if(s)for(const fn of [...s])try{fn(data);}catch(e){console.error('[tubes] federation listener',e);}}
 
@@ -28,7 +28,7 @@ const fedMine=M=>!!M&&FED.live===M&&fedCur()===M.fed;
 function fedWake(){if(fedWorker())return;const f=fedCur();if(FED.live&&FED.live.fed!==f)fedStop();if(!f)return;
   let M=FED.live;
   if(!M){M=FED.live={fed:f,conns:new Map(),statsT:null,body:'',bodyAt:0};fedListen();M.cat=fedCatalogLoad().catch(()=>false);M.cat.then(()=>fedLearnAll(M));
-    M.statsT=FED.set(()=>fedStatsTick(M),FED.T.first);}
+    M.statsT=FED.set(()=>fedStatsTick(M),FED.T.first);fedVotesTidy();}
   for(const u of f.servers)if(!M.conns.has(u))fedConnect(M,u);
   for(const [u,c] of M.conns)if(!f.servers.includes(u)){M.conns.delete(u);fedHang(c);delete FED.st[u];}
   fedEmit('status',fedStatus());}
@@ -57,7 +57,7 @@ const fedLive=c=>{if(fedMine(c.M)&&c.M.conns.get(c.url)===c)return true;if(FED.l
 // Closes a socket without its handlers firing back, and answers every pending request with null.
 function fedHang(c){FED.clear(c.t);FED.clear(c.tick);c.t=c.tick=null;const ws=c.ws;c.ws=null;c.phase='';
   if(ws){ws.onopen=ws.onmessage=ws.onerror=ws.onclose=null;try{ws.close();}catch(e){}}
-  for(const r of c.rq.values()){FED.clear(r.t);r.res(null);}c.rq.clear();c.sub=0;FED.clear(c.subT);c.subT=null;c.subQ=null;}
+  for(const r of c.rq.values()){FED.clear(r.t);r.res(null);}c.rq.clear();c.sub=c.vsub=0;c.op=c.me=c.exBuf=null;FED.clear(c.subT);c.subT=null;c.subQ=null;}
 /* Development only (§9.1): a page loaded from a loopback host dials a *.localhost node over plain ws://, so a relay on
    the same machine needs no certificate. The page players load is never on a loopback host. */
 const FED_LOOP=/^(localhost|127\.0\.0\.1|\[::1\]|[a-z0-9.-]+\.localhost)$/;
@@ -110,7 +110,12 @@ function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.erro
   /* A page of the subscription: pages are handled one after another, and its cursor is kept only once every record of
      it was handled, so a connection lost in the middle resumes from the last whole page and skips nothing (§9.3). */
   if(f.m==='recs'&&c.sub&&f.id===c.sub){const q=c.subQ||Promise.resolve(),node=c.node;
-    c.subQ=q.then(()=>fedRecs(c,f.items,null,null)).then(done=>{if(done&&typeof f.cursor==='string'&&/^[A-Za-z0-9_-]{1,64}$/.test(f.cursor))return fedPut('kv','cursor:'+node,f.cursor);}).catch(()=>{});return;}
+    c.subQ=q.then(()=>fedRecs(c,f.items,null,null)).then(done=>{if(done&&fedCursorOk(f.cursor))return fedPut('kv','cursor:'+node,f.cursor);}).catch(()=>{});return;}
+  // The operators' own subscription to the votes (§9.3: only a session that proved an operator key gets them).
+  if(f.m==='recs'&&c.vsub&&f.id===c.vsub){const q=c.subQ||Promise.resolve(),node=c.node;
+    c.subQ=q.then(()=>fedRecs(c,f.items,null,null)).then(done=>{if(done&&fedCursorOk(f.cursor))return fedVoteCursor(node,f.cursor);}).catch(()=>{});return;}
+  if(f.m==='err'&&c.vsub&&f.id===c.vsub){c.vsub=0;return;}
+  if(f.m==='excluded'&&f.id===undefined){fedExclIn(c,f);return;}
   // The node refused the subscription for now (rate_limited, internal): subscribe again after its retry.
   if(f.m==='err'&&c.sub&&f.id===c.sub){c.sub=0;if(f.code==='rate_limited'||f.code==='internal')c.subT=FED.set(()=>{c.subT=null;if(fedLive(c)&&c.phase==='ready'&&!c.sub)fedSub(c);},Math.min(60,Math.max(1,Number.isSafeInteger(f.retry)?f.retry:5))*1000);return;}
   if(f.m==='catalog'&&f.id===undefined){fedGossip(f.entries).catch(()=>{});return;}
@@ -126,12 +131,41 @@ async function fedReady(c){await c.M.cat;if(!fedLive(c)||c.phase!=='check')retur
   if(e){const keys=e.nodes.map(n=>n.key);if(!keys.includes(c.nodeKey)){fedDrop(c,'not_node');return;}
     const nonce=fedB64(fedNonce()),p=await fedAsk(c,{m:'challenge',nonce});if(!fedLive(c)||c.phase!=='check')return;if(!p||p.m!=='proof'){fedDrop(c,'bad_challenge');return;}
     if(await fedProofErr(p.proof,nonce,c.srv,c.nodeKey,fedNow())){fedDrop(c,'bad_challenge');return;}}
+  if(!fedLive(c)||c.phase!=='check')return;await fedAuth(c);
   if(!fedLive(c)||c.phase!=='check')return;c.phase='ready';c.tries=0;fedSt(c,'connected');fedFlush(c);
-  await fedSub(c);if(!fedLive(c)||c.phase!=='ready')return;
+  await fedSub(c);if(!fedLive(c)||c.phase!=='ready')return;if(c.op)await fedVoteSub(c);if(!fedLive(c)||c.phase!=='ready')return;
   const cat=await fedAskRetry(c,{m:'servers'},true);if(cat&&cat.m==='catalog')await fedGossip(cat.entries);}
 // Follows the news from the last cursor kept for this node.
 async function fedSub(c){const since=(await fedGet('kv','cursor:'+c.node))||'';if(!fedLive(c)||c.phase!=='ready'||c.sub)return;
-  c.sub=c.nid=c.nid%2147483646+1;fedSend(c,{m:'sub',id:c.sub,kinds:['announce','offer','accept','decline','leave','hide','shun','unshun'],since:typeof since==='string'?since:''});}
+  c.sub=c.nid=c.nid%2147483646+1;fedSend(c,{m:'sub',id:c.sub,kinds:['announce','offer','accept','decline','leave','hide'],since:typeof since==='string'?since:''});}
+const fedCursorOk=x=>typeof x==='string'&&/^[A-Za-z0-9_-]{1,64}$/.test(x);
+/* Proves this network's key to the node (§9.3 auth), so it is told the reasons if the federation excluded it, then the
+   operator key when this device has one of this server's: only then does the node send the shun votes. */
+async function fedAuth(c){const f=c.M.fed;if(!c.srv||!c.nodeKey)return;
+  const a=await fedAsk(c,{...await fedAuthMake(f.key.priv,c.nodeKey,c.srv,fedNow())});if(!fedLive(c))return;
+  c.me=a&&a.m==='ack'?f.key.pub:null;await fedAuthOp(c);}
+async function fedAuthOp(c){const k=await fedOpKey();if(!k||!fedLive(c)||c.op===k.pub||!fedOpOf(await fedServers(),c.srv,k.pub))return;
+  const a=await fedAsk(c,{...await fedAuthMake(k.seed,c.nodeKey,c.srv,fedNow())});if(!fedLive(c))return;
+  if(a&&a.m==='ack'&&a.op===true){c.op=k.pub;if(c.phase==='ready')await fedVoteSub(c);}}
+// The votes, for an operator: their own subscription, from their own cursor, so votes from before it are not skipped.
+async function fedVoteSub(c){const cur=(await fedGet('kv','vcursors'))||{},since=cur[c.node];if(!fedLive(c)||c.phase!=='ready'||c.vsub||!c.op)return;
+  c.vsub=c.nid=c.nid%2147483646+1;fedSend(c,{m:'sub',id:c.vsub,kinds:['shun','unshun'],since:fedCursorOk(since)?since:''});}
+async function fedVoteCursor(node,x){const cur=(await fedGet('kv','vcursors'))||{};cur[node]=x;await fedPut('kv','vcursors',cur);}
+/* The operator key changed on this device: prove the new one to every connected server it operates, or stop following
+   the votes and forget them when it was removed (votes are kept only on an operator's device). */
+async function fedOpChanged(){const M=FED.live,k=await fedOpKey();
+  if(M)for(const c of M.conns.values()){if(!fedLive(c)||c.phase!=='ready')continue;
+    if(k)await fedAuthOp(c);else if(c.op){if(c.vsub)fedSend(c,{m:'unsub',id:c.vsub});c.vsub=0;c.op=null;}}
+  await fedVotesTidy();}
+/* The networks a server excludes (§9.3 excluded): pages joined until more is not true, then kept per joined server with
+   when it came (and the reasons, which are for this network only). Kept while offline; a new list replaces it. */
+const FED_EXCL_MAX=50000,FED_REASONS=['cheating','offensive_name','spam','abuse'];
+function fedExclIn(c,f){const b=c.exBuf||(c.exBuf={keys:new Set(),reasons:new Set()});
+  for(const k of f.keys.slice(0,8192))if(typeof k==='string'&&!FdK(k)&&b.keys.size<FED_EXCL_MAX)b.keys.add(k);
+  if(Array.isArray(f.reasons))for(const r of f.reasons.slice(0,8))if(FED_REASONS.includes(r))b.reasons.add(r);
+  if(f.more===true)return;c.exBuf=null;
+  const o={at:fedNow(),srv:c.srv,keys:[...b.keys].sort(fedByStr),me:c.me,reasons:c.me?[...b.reasons].sort():[]},url=c.url;
+  FED.exQ=(FED.exQ||Promise.resolve()).then(()=>fedPut('kv','excl:'+url,o)).then(()=>{FED.xgen++;fedEmit('excluded',{server:o.srv,n:o.keys.length});}).catch(()=>{});}
 function fedNonce(){const a=new Uint8Array(32);try{crypto.getRandomValues(a);}catch(e){for(let i=0;i<32;i++)a[i]=FED.rand()*256|0;}return a;}
 
 /* ---------- sending what waits in the save ---------- */
@@ -181,7 +215,7 @@ async function fedRecsRun(c,items,board,known){const now=fedNow(),me=c.M.fed.key
     if(r.kind==='announce')await fedAnnPut(chk,heard,c.srv);
     else if(r.kind==='leave')await fedLeft(r.key,r.t);
     // Votes only from an operator of a voting registry server, hide lists only from an operator of their server.
-    else if(r.kind==='shun'||r.kind==='unshun'){if(!voters)voters=await fedVoters();if(fedVoteOk(voters,r))votes.push(chk);}
+    else if(r.kind==='shun'||r.kind==='unshun'){if(c.op&&!voters)voters=await fedVoters();if(c.op&&fedVoteOk(voters,r))votes.push(chk);}
     else if(r.kind==='hide'){if(fedOpOf(srvs,r.body.server,r.key)){const o=await fedGet('kv','hide:'+r.body.server);if(!o||!o.rec||fedNewer(chk,o))await fedPut('kv','hide:'+r.body.server,{rec:r,id:chk.id});}}
     else if(r.kind==='stats'&&board&&pl.slot!==null)board.set(chk.id,{id:chk.id,key:r.key,slot:pl.slot,t:r.t,body:r.body,cc:pl.cc,srv:[c.srv]});
     else if((r.kind==='offer'||r.kind==='accept'||r.kind==='decline')&&(r.body.to===me||r.key===me||!!FED.hooks.deal&&FED.hooks.deal(r)))fedEmit('deal',{rec:r,id:chk.id,slot:heard,server:c.srv});}
@@ -250,15 +284,25 @@ const fedVoteOk=(voters,r)=>{const o=r&&r.body&&voters.get(r.body.server);return
 const fedOpOf=(srvs,id,key)=>{const e=srvs.find(x=>x.id===id);return !!e&&Array.isArray(e.operators)&&e.operators.includes(key);};
 // A server's hide record ({rec, id}) when an operator of that server signed it, else null.
 async function fedHides(id,srvs){const h=await fedGet('kv','hide:'+id);if(!h||!h.rec)return null;return fedOpOf(srvs||await fedServers(),id,h.rec.key)?h:null;}
-/* The shun tally of every target, from the registry snapshot and the votes this browser has: {targets: Map target ->
-   its votes}, the tally per target counted on demand and kept until the votes, the registry or the slot change. */
+/* What every game knows of shunning (§10.7): the excluded lists of the servers this save joined, as each last sent
+   them, joined: {keys (Set), why (Map key -> Set of reasons, for this network only)}. Read again only when a list
+   came in or the joined servers changed. */
+async function fedExcl(){const f=S&&S.fed,urls=f?f.servers.slice():[],k=FED.xgen+'|'+urls.join(' ');if(FED.ex&&FED.ex.k===k)return FED.ex;
+  const keys=new Set(),why=new Map();
+  for(const u of urls){const o=await fedGet('kv','excl:'+u);if(!o||!Array.isArray(o.keys))continue;for(const x of o.keys)keys.add(x);
+    if(typeof o.me==='string'&&Array.isArray(o.reasons)){const w=why.get(o.me)||new Set();for(const r of o.reasons)if(FED_REASONS.includes(r))w.add(r);why.set(o.me,w);}}
+  return FED.ex={k,keys,why};}
+// Keys the federation excludes now, as the joined servers say.
+async function fedShunned(){return [...(await fedExcl()).keys];}
+// Whether a network is excluded, and for this network itself which reasons were given (never counts or voters).
+async function fedExclInfo(key){const X=await fedExcl();return {shunned:X.keys.has(key),reasons:X.keys.has(key)?[...(X.why.get(key)||[])].sort():[]};}
+/* Operators only: the shun tally of every target, from the registry snapshot and the votes their nodes sent them
+   ({targets: Map target -> its votes}), counted on demand and kept until the votes, the registry or the slot change. */
 async function fedShunTally(now){const reg=await fedGet('kv','registry'),k=FED.vgen+'|'+(reg?reg.at+'/'+reg.asOf:'')+'|'+fedSlot(now);
   if(FED.shun&&FED.shun.k===k)return FED.shun;const v=(await fedGet('kv','votes'))||[],targets=new Map();
   const R={asOf:reg?reg.asOf:0,servers:reg?reg.servers.map(s=>({id:s.id,operators:s.operators,listed:s.listed,answered:s.answered})):[]};
   for(const x of v){const b=x.rec.body,l=targets.get(b.target);const r={id:x.id,kind:x.rec.kind,key:x.rec.key,t:x.rec.t,server:b.server,target:b.target,reason:b.reason};if(l)l.push(r);else targets.set(b.target,[r]);}
   return FED.shun={k,R,reg:!!reg,targets,res:new Map(),now};}
 const fedShunOf=(T,key,now)=>{if(T.now!==now){T.now=now;T.res=new Map();}let x=T.res.get(key);if(!x)T.res.set(key,x=fedShun(T.R,T.targets.get(key)||[],key,now));return x;};
-// Keys the federation shuns now (§10.7).
-async function fedShunned(now=fedNow()){const T=await fedShunTally(now);if(!T.reg)return [];return [...T.targets.keys()].filter(k=>fedShunOf(T,k,now).shunned);}
-// The tally about one network (its own game tells the player why it can no longer reach others, with the reasons).
+// The tally about one network, for an operator's looking glass: votes, threshold, reasons with counts.
 async function fedShunInfo(key,now=fedNow()){return fedShunOf(await fedShunTally(now),key,now);}

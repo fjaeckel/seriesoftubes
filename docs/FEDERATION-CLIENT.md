@@ -119,14 +119,20 @@ the slice. `me` is the player's own row, pinned: `rank` is `null` when the slice
 | `fedServers()` | Known servers, registry merged with gossip (§10.8): `[{id, source, name, nodes, operators, sync, noLogs, langs, desc, seen, path, listed, answered}]` |
 | `fedCatalogLoad()` | Fetches `federation/servers.json` (same origin), keeps the checked entries; the cache stays on failure |
 | `fedNetworks(now?)` | Other players' networks from cached announces: `[{key, rec, id, heard, quiet, srv}]` (`srv`: the servers it was heard on); forgets those silent 180 days |
-| `fedShunned(now?)`, `fedShunInfo(key)` | Keys shunned now; the tally about one (for telling a shunned player why) |
+| `fedShunned()`, `fedExclInfo(key)` | Keys excluded now: the union of the `excluded` lists of the joined servers, as each last sent it (kept offline); about one key `{shunned, reasons}`, the reasons (a set, no counts) only for this network's own key |
+| `fedShunInfo(key)` | Operators only: the tally (§10.7) from the votes their nodes sent, `{voters, need, votes, shunned, reasons}` with counts |
 
 Behaviour (§9): one connection per joined server; `hello` → `welcome`; when the registry knows the server, the node
-must be one of its nodes and answer a `challenge` (otherwise the next node is tried); nothing is sent before. Then the
-queue is put (a record leaves it once every joined server took it, or refused it for good; `rate_limited` waits
-`retry`), a `sub` follows `announce`, `offer`, `accept`, `decline`, `leave`, `hide`, `shun`, `unshun` from the stored
-cursor, and `servers` brings gossip. Of what arrives, `shun` and `unshun` are kept only when signed by an operator of
-a voting registry server (§10.7) and `hide` only when signed by an operator of its own server (at the head of the chain the
+must be one of its nodes and answer a `challenge` (otherwise the next node is tried); nothing is sent before. Then
+`auth` proves the network's key, and the imported operator key when the catalog lists it as an operator of that server.
+Then the queue is put (a record leaves it once every joined server took it, or refused it for good; `rate_limited` waits
+`retry`), a `sub` follows `announce`, `offer`, `accept`, `decline`, `leave`, `hide` from the stored cursor, and
+`servers` brings gossip. Shun votes are for operators only (§9.3, §12): only when the node answered the operator key's
+`auth` with `op: true` does a second `sub` follow `shun` and `unshun` from its own cursor, and votes are kept only then,
+only on a device with an operator key, and only when signed by an operator of a voting registry server (§10.7);
+importing or removing the operator key proves it to the connected servers or stops following and deletes the votes
+(`fedOpChanged`). Every game keeps each joined server's `excluded` list (pages joined first) and uses their union
+wherever it excludes networks (boards, snapshot, deals ending, the excluded notice). `hide` only when signed by an operator of its own server (at the head of the chain the
 catalog has); player names become plain text (`fedSafeName`: `<>&"'` swapped for look-alikes) before they reach `NET`. Pings after 60 s idle, gives up after 120 s of silence, requests time out after
 20 s. A lost connection tries the server's next node at once; after a full round it waits 2 s doubling up to 30 min,
 times 0.5–1 jitter, and only while the tab is visible (it dials at once when the tab comes back). Stats are signed every
@@ -140,6 +146,7 @@ times 0.5–1 jitter, and only while the tab is visible (it dials at once when t
 | --- | --- |
 | `status` | `fedStatus()` |
 | `records` | `{server, n}` after a batch was checked and kept |
+| `excluded` | `{server, n}` after a server's excluded list was kept |
 | `deal` | `{rec, id, slot, server}`: an `offer`, `accept` or `decline` to or from this network (gameplay decides) |
 | `board` | `{server, n}` after `fedBoardFetch` |
 | `catalog` | `{source: 'registry' or 'gossip'}` |
@@ -153,8 +160,9 @@ times 0.5–1 jitter, and only while the tab is visible (it dials at once when t
 ## Browser storage (IndexedDB `sot-fed`, shared by every slot)
 
 Stores `ann` (other networks' newest announce and `heard`, at most 5000, the longest silent dropped first once a tenth
-over, counted without reading the store each time, forgotten after 180 days), `kv` (`registry`, `gossip`, `board:<server>` up to 20000 records, `votes` until expired, `hide:<server>`,
-`cursor:<node>`) and `op` (the operator key). Every access is wrapped; without IndexedDB (or when it fails) the same calls
+over, counted without reading the store each time, forgotten after 180 days), `kv` (`registry`, `gossip`, `board:<server>` up to 20000 records, `excl:<joined URL>` (`{at, srv, keys, me, reasons}`), `hide:<server>`,
+`cursor:<node>`, and on an operator's device only `votes` until expired and `vcursors`; without an operator key they are
+deleted when a session starts or the sheet opens) and `op` (the operator key). Every access is wrapped; without IndexedDB (or when it fails) the same calls
 use memory for the tab. `fedGet/fedPut/fedDel/fedAll(store, …)`.
 
 Operator key (never in a save or an export): `fedOpKey()`, `fedOpKeySet(seed)`, `fedOpKeyDel()`, and

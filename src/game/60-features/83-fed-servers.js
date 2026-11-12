@@ -117,9 +117,10 @@ const FED_MSG={
   ack:{id:FED_FID,rid:v=>v===undefined||typeof v==='string'},cosign:{id:FED_FID,rid:v=>typeof v==='string',key:v=>typeof v==='string',sig:v=>typeof v==='string'},
   sub:{id:FED_FID,kinds:Array.isArray,since:v=>typeof v==='string'},unsub:{id:FED_FID},fetch:{id:FED_FID,ids:v=>Array.isArray(v)&&v.length<=256},
   board:{id:FED_FID},servers:{id:FED_FID},recs:{items:v=>Array.isArray(v)&&v.length<=256},catalog:{entries:Array.isArray},
-  err:{code:v=>typeof v==='string'},ping:{id:FED_FID},pong:{id:FED_FID}};
-const FED_FROM={client:['hello','challenge','put','cosign','sub','unsub','fetch','board','servers','err','ping','pong'],
-  node:['welcome','proof','ack','recs','catalog','err','ping','pong']};
+  err:{code:v=>typeof v==='string'},ping:{id:FED_FID},pong:{id:FED_FID},
+  auth:{id:FED_FID,key:v=>typeof v==='string',t:Number.isSafeInteger,sig:v=>typeof v==='string'},excluded:{keys:Array.isArray}};
+const FED_FROM={client:['hello','auth','challenge','put','cosign','sub','unsub','fetch','board','servers','err','ping','pong'],
+  node:['welcome','proof','ack','recs','catalog','excluded','err','ping','pong']};
 /* Reads one text frame: who: the side that sent it ('client' or 'node'). Gives {f} (the frame) or {error}.
    For a node reading a client's frame, state ('new' or 'ready') and speaks (its versions) apply the handshake rules. */
 function fedFrame(text,who,state,speaks){if(typeof text!=='string')return {error:'bad_frame'};if(fedSize(text)>FED_FRAME)return {error:'too_big'};

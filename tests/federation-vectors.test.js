@@ -29,6 +29,8 @@ const AREA = {
   receipts: (run, i) => run(`(async()=>{const c=await fedCheck(i.record,i.now);if(!c.ok)return {ok:false,error:'record '+c.error};
     const e=await fedRcptErr(i.receipt,c.rec,c.id,i.server,i.nodes,i.now);return e?{ok:false,error:e}:{ok:true};})()`, i),
   proofs: (run, i) => run(`fedProofErr(i.proof,i.nonce,i.server,i.node,i.now).then(e=>e?{ok:false,error:e}:{ok:true})`, i),
+  auth: (run, i) => run(`(()=>{const r=fedFrame(JSON.stringify(i.auth),'client','ready',[1]);if(r.error)return {ok:false,error:'frame '+r.error};
+    return fedAuthErr(r.f,i.node,i.server,i.now).then(e=>e?{ok:false,error:e}:{ok:true});})()`, i),
   operators: (run, i) => run(`(async()=>{const g=await fedCheck(i.genesis,i.now);const ps=[];
     for(const r of i.records){const c=await fedCheck(r,i.now);if(c.ok)ps.push(c);}
     const ch=fedChain(g.rec,g.id,ps,i.now);

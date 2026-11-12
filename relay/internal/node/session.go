@@ -41,7 +41,7 @@ const (
 )
 
 // Request costs in a client's token bucket: the ones that answer from the whole store cost more.
-var clientCost = map[string]float64{"board": 20, "servers": 10, "sub": 5, "unsub": 2, "fetch": 2}
+var clientCost = map[string]float64{"auth": 2, "board": 20, "servers": 10, "sub": 5, "unsub": 2, "fetch": 2}
 
 // session is one WebSocket connection, client or node.
 type session struct {
@@ -70,6 +70,9 @@ type session struct {
 	// client
 	cc      string         // the connection's country, never its address
 	subs    map[int64]*sub // (guarded by r.mu)
+	proved  []string       // keys this session proved with auth, at most 4 (guarded by r.mu)
+	exSent  bool           // the excluded list follows this session (guarded by r.mu)
+	excl    *exclPager     // an excluded answer not yet started, brought up to date rather than queued again (guarded by r.mu)
 	tokens  float64
 	tokenAt time.Time
 
@@ -187,7 +190,7 @@ func (p *listPager) next(r *Relay, s *session) (map[string]any, bool) {
 		var v map[string]any
 		if p.pos < len(p.vals) {
 			v = p.vals[p.pos]
-		} else if e := p.entries[p.pos-len(p.vals)]; r.st.Get(e.Rec.ID) == e && !r.shunned[e.Rec.Key] {
+		} else if e := p.entries[p.pos-len(p.vals)]; r.st.Get(e.Rec.ID) == e && !r.shunned[e.Rec.Key] && r.shows(s, e.Rec) {
 			v = item(e)
 		}
 		if v == nil {
@@ -237,7 +240,7 @@ func (p *subPager) next(r *Relay, s *session) (map[string]any, bool) {
 	size := 0
 	last, full := p.after, false
 	r.st.Scan(p.after, sb.list, func(e *store.Entry) bool {
-		if r.shunned[e.Rec.Key] {
+		if r.shunned[e.Rec.Key] || !r.shows(s, e.Rec) {
 			last = e.Seq
 			return true
 		}
@@ -259,6 +262,44 @@ func (p *subPager) next(r *Relay, s *session) (map[string]any, bool) {
 	p.after = last
 	r.o.Metrics.Add("relay_records_out_total", "", float64(len(page)))
 	return map[string]any{"m": "recs", "id": p.rid, "items": page, "cursor": r.cursor(last), "more": full}, !full
+}
+
+// exclPager sends the server's excluded networks (9.3 excluded), a page at a time; reasons go in the
+// first frame, to a session that proved an excluded key only.
+type exclPager struct {
+	keys    []string
+	reasons []string
+	pos     int
+	started bool
+}
+
+func (p *exclPager) next(r *Relay, s *session) (map[string]any, bool) {
+	if s.excl == p {
+		s.excl = nil // started: a change from now on queues a new answer
+	}
+	limit := fed.ClientFrame - 1024
+	page := []any{}
+	size := 0
+	for p.pos < len(p.keys) {
+		b := len(p.keys[p.pos]) + 3
+		if len(page) > 0 && size+b > limit {
+			break
+		}
+		page = append(page, p.keys[p.pos])
+		size += b
+		p.pos++
+	}
+	done := p.pos >= len(p.keys)
+	m := map[string]any{"m": "excluded", "keys": page, "more": !done}
+	if !p.started && len(p.reasons) > 0 {
+		rs := make([]any, len(p.reasons))
+		for i, x := range p.reasons {
+			rs[i] = x
+		}
+		m["reasons"] = rs
+	}
+	p.started = true
+	return m, done
 }
 
 // queuePush adds records to push to a node for its want (lock held).
@@ -593,6 +634,27 @@ func (r *Relay) clientFrame(s *session, f *wire.Frame) {
 	case "ping":
 		s.enqueue(map[string]any{"m": "pong", "id": f.ID, "now": now})
 	case "pong", "err":
+	case "auth":
+		key, _ := f.Str("key")
+		sig, _ := f.Str("sig")
+		t, _ := wire.Int(f.Raw["t"])
+		if code := fed.CheckAuth(key, t, sig, r.Key(), r.ServerID(), now); code != "" {
+			s.fail(f.ID, code, 0)
+			return
+		}
+		r.mu.Lock()
+		defer r.mu.Unlock()
+		if !slices.Contains(s.proved, key) {
+			if len(s.proved) >= fed.MaxAuthKeys {
+				s.fail(f.ID, fed.TooMany, 0)
+				return
+			}
+			s.proved = append(s.proved, key)
+		}
+		s.enqueue(map[string]any{"m": "ack", "id": f.ID, "op": r.own != nil && r.own.IsOperator(key)})
+		if s.exSent && r.isShunned(key) {
+			r.sendExcluded(s, now) // the reasons are for this session now
+		}
 	case "challenge":
 		nonce, _ := f.Str("nonce")
 		if !fed.IsID(nonce) {
@@ -727,6 +789,11 @@ func (r *Relay) subscribe(s *session, id int64, kinds []string, since string) {
 	}
 	s.subs[id] = sb
 	r.later(s, &subPager{rid: id, after: r.parseCursor(since)})
+	// The excluded list follows the first sub, after its backlog, and again on every change.
+	if !s.exSent {
+		s.exSent = true
+		r.sendExcluded(s, r.now())
+	}
 }
 
 // boardCache is the board answer of one slot; records that change it clear it (Relay.board).

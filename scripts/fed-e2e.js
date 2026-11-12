@@ -301,6 +301,9 @@ stay in the browser).`);
         const ch = p.sent.find((f) => f.m === 'challenge'), pr = p.frames.find((f) => f.m === 'proof');
         must(ch && pr, 'the client did not check the node with a challenge (is the server in its registry?)');
         must(p.sent.some((f) => f.m === 'sub'), 'no sub');
+        const au = p.sent.find((f) => f.m === 'auth');
+        must(au && p.frames.some((f) => f.m === 'ack' && f.id === au.id) && p.sent.indexOf(au) < p.sent.findIndex((f) => f.m === 'sub'), 'the game did not prove its key before its sub');
+        await until(() => p.frames.some((f) => f.m === 'excluded'), 30000, 'the excluded list after the sub\'s backlog');
         return `node checked with a challenge, ${p.frames.filter((f) => f.m === 'catalog').length} catalog frame(s)`;
       });
     }
@@ -406,10 +409,36 @@ stay in the browser).`);
       must(bad.m === 'err' && bad.code === 'unknown_server', `a stranger's vote: ${JSON.stringify(bad)}`);
       await until(() => ctl('players').find((x) => x.key === target.k.pub).shunned, 10000, 'the relay to count the shun');
       for (const p of [A, B]) {
-        try { await until(() => ev(p, async (k) => (await fedShunned()).includes(k), target.k.pub), 30000, `${p.name} to count the shun`); }
-        catch (e) { const d = await ev(p, async (k) => ({ info: await fedShunInfo(k), votes: ((await fedGet('kv', 'votes')) || []).length, voters: [...(await fedVoters()).keys()].length, reg: !!(await fedGet('kv', 'registry')) }), target.k.pub); throw new Error(e.message + ' ' + JSON.stringify(d)); }
+        try { await until(() => ev(p, async (k) => (await fedShunned()).includes(k), target.k.pub), 30000, `${p.name} to exclude the target`); }
+        catch (e) { const d = await ev(p, async (k) => ({ excl: await fedExclInfo(k), votes: ((await fedGet('kv', 'votes')) || []).length }), target.k.pub); throw new Error(e.message + ' ' + JSON.stringify(d)); }
       }
-      return `target ${target.k.pub.slice(0, 8)}… shunned at the relay and in both games`;
+      // Bob is no operator: no vote reached his game, only the outcome.
+      const isVote = (it) => it && it.rec && (it.rec.kind === 'shun' || it.rec.kind === 'unshun');
+      must(!B.frames.some((f) => (f.m === 'recs' || f.m === 'push') && (f.items || []).some(isVote)), 'a shun vote reached Bob\'s game');
+      must(!B.sent.some((f) => f.m === 'sub' && f.kinds.some((k) => k === 'shun' || k === 'unshun')), 'Bob\'s game asked for votes');
+      must(B.sent.some((f) => f.m === 'auth' && f.key === P.B) && !B.sent.some((f) => f.m === 'auth' && f.key !== P.B), 'Bob proved his own key only');
+      must(B.frames.some((f) => f.m === 'excluded' && f.keys.includes(target.k.pub) && !f.reasons), 'Bob got no excluded list naming the target (or got reasons)');
+      must(await ev(B, async () => (await fedGet('kv', 'votes')) === null), 'votes stored in Bob\'s browser');
+      // Alice proved the operator key and follows the votes.
+      const opAuth = A.sent.find((f) => f.m === 'auth' && f.key === srv[0].op.pub);
+      must(opAuth && A.frames.some((f) => f.m === 'ack' && f.id === opAuth.id && f.op === true), 'the relay did not take Alice\'s operator key');
+      const aVotes = A.frames.filter((f) => f.m === 'recs').flatMap((f) => f.items || []).filter(isVote).length;
+      must(aVotes >= 5, `Alice's game got ${aVotes} votes`);
+      const info = await ev(A, (k) => fedShunInfo(k), target.k.pub);
+      must(info.shunned && info.votes === 5 && info.reasons.spam === 5, `Alice's tally ${JSON.stringify(info)}`);
+      // The target's own session proves its key and learns the reasons given, without counts.
+      const own = new Raw(raw.url);
+      const w = await own.open(), t = now();
+      const sig = b64(crypto.sign(null, Buffer.from(canon({ m: 'auth', key: target.k.pub, node: w.node, server: w.server, t }), 'utf8'), target.k.priv));
+      const ack = (await own.ask({ m: 'auth', key: target.k.pub, t, sig }))[0];
+      must(ack.m === 'ack' && ack.op === false, `the target's auth: ${JSON.stringify(ack)}`);
+      const badAuth = (await own.ask({ m: 'auth', key: target.k.pub, t: t - 700, sig }))[0];
+      must(badAuth.m === 'err' && badAuth.code === 'bad_sig', `an auth with the wrong t: ${JSON.stringify(badAuth)}`);
+      await own.ask({ m: 'sub', kinds: ['announce', 'shun', 'unshun'], since: '' }).then((pages) => must(!pages.flatMap((p) => p.items).some(isVote), 'the target got votes'));
+      const ex = await until(() => own.frames.find((f) => f.m === 'excluded'), 10000, 'the target\'s excluded frame');
+      must(ex.keys.includes(target.k.pub) && JSON.stringify(ex.reasons) === '["spam"]', `the target's excluded frame: ${JSON.stringify({ ...ex, keys: ex.keys.length })}`);
+      own.close();
+      return `target ${target.k.pub.slice(0, 8)}… shunned at the relay and in both games; Bob saw 0 votes, Alice ${aVotes}, the target the reasons ${JSON.stringify(ex.reasons)}`;
     });
 
     await step('operator panel: the chain is read with a sub, ended by its unsub, the connection stays', async () => {

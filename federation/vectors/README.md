@@ -34,7 +34,7 @@ Files are numbered (`001-…`) only to keep a stable order; the number means not
 ## Who writes what
 
 - **Generated** by [`scripts/fed-vectors.js`](../../scripts/fed-vectors.js) from fixed seeds: `signing`, `asn`,
-  `records`, `receipts`, `proofs`, `operators`, `registry`, `dedupe`. Never edit these by hand: change the script and
+  `records`, `receipts`, `proofs`, `auth`, `operators`, `registry`, `dedupe`. Never edit these by hand: change the script and
   run `node scripts/fed-vectors.js` (CI can run `node scripts/fed-vectors.js --check`). Keys are Ed25519 from the seed
   SHA-256("tubes-fed.1 vector key <name>") for the names alice, bob, carol, mallory (networks), anna, ben, cleo, dan
   (operators) and node1, node2, node3 (nodes). Ed25519 is deterministic, so the files never change unless the script
@@ -54,6 +54,7 @@ Files are numbered (`001-…`) only to keep a stable order; the number means not
 | `records` | 2, 4, 5, 7.1 steps 2–8 | `now` and either `record` (a parsed value) or `text` (JSON text to parse first) | `{ok: true, kind, id}` or `{ok: false, error}` |
 | `receipts` | 6.1 | `now`, `server`, `nodes` (the server's node keys), `record`, `receipt` | `{ok: true}` or `{ok: false, error}` |
 | `proofs` | 6.2 | `now`, `nonce`, `server`, `node` (the node asked), `proof` | `{ok: true}` or `{ok: false, error}` |
+| `auth` | 9.3 | `now`, `node` (the node's key), `server`, `auth` (the client's `auth` frame) | `{ok: true}` or `{ok: false, error}` |
 | `operators` | 8 | `now`, `genesis`, `records` (`operators` proposals); optionally `server` | `{head, operators, nodes, pending}` (lists sorted by key, `pending` as ids); with `server`: `{ok}` or `{ok: false, error}` |
 | `registry` | 11 | `files` (file name → file object, or `{text}` for raw text), `check` (the file to check), optional `base` (that file on the base branch) | `{ok: true}` or `{ok: false, error}`; for the build: `servers_json` |
 | `dedupe` | 10.11 | `now`, `arrivals` (in order, each `{record}` or `{text}`) | `stored` (sorted by id; multi-signer records with their signer keys) and `results` per arrival: `stored`, `duplicate`, `merged` or an error code |

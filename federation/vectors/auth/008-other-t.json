@@ -1,0 +1,19 @@
+{
+  "description": "The frame's t is not the signed t.",
+  "input": {
+    "now": 1767312100,
+    "node": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+    "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+    "auth": {
+      "m": "auth",
+      "id": 7,
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312099,
+      "sig": "OaGqCeixvNWSObn1Vvx09KmKJIWmZT33whvgfbPAT8z8W4eLhd81rjpX5urv2565i0KWk1tAagyrYsnQpBzcAQ"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_sig"
+  }
+}

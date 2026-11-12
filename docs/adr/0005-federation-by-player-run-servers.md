@@ -53,7 +53,7 @@ itself.
 - Cheating is possible and accepted. The design does not spend effort on replay checks, cross-browser determinism or
   anti-Sybil schemes. Each server may hide entries and names; each player may mute networks;
   when more than a set share of registered servers vote to shun a network, it is excluded everywhere (votes are
-  public, one per server, and expire).
+  signed, one per server, seen by server operators only, and expire).
 - Each server sees a slightly different leaderboard, made of what reached it. That is presented as a feature
   ("as seen from …"), like a looking glass.
 - The private key that identifies a save must never leave the player's device by accident: exports for bug reports

@@ -4,7 +4,7 @@
 // place in the game even when more networks are known than the game models. Fake nodes on a virtual clock.
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { fedPage, joinGame, settle, until, URL1, NOW, rec, key, asn, b64, sha } = require('./helpers/fed');
+const { fedPage, joinGame, settle, until, URL1, NOW, PL_ENTRY, rec, key, asn, b64, sha } = require('./helpers/fed');
 
 // A node that records every frame it is sent, and can be told how to answer some of them.
 function spy(p, o = {}) {
@@ -49,7 +49,7 @@ test('an unsub names the id of its sub, and an ack without a record id is a vali
   const p = fedPage();
   const n = spy(p);
   await joinGame(p);
-  await run(p);
+  await run(p, 2000);
   assert.equal(await p.ev(`fedFrame('{"m":"ack","id":3}','node').error||null`), null, 'the ack of an unsub carries only its id');
   await p.ev('fedOpChain(FED.live.conns.get(' + JSON.stringify(URL1) + ').srv)');
   await run(p);
@@ -100,18 +100,20 @@ test('a network picked in the looking glass becomes a place in the game even pas
   assert.deepEqual(p.errors, []);
 });
 
-test('five shun votes arriving together, each in its own frame, are all counted', async () => {
+test('five shun votes arriving together, each in its own frame, are all counted (an operator\'s game)', async () => {
   const DAY = 86400, sid = (n) => b64(sha('server ' + n));
-  const REG = { asOf: NOW - (NOW % DAY), at: NOW, servers: [1, 2, 3, 4, 5].map((n) => ({ id: sid(n), name: 'S' + n, operators: [key('op' + n).pub], nodes: [], listed: NOW - 60 * DAY - (NOW % DAY), answered: NOW - (NOW % DAY) })) };
+  const REG = { asOf: NOW - (NOW % DAY), at: NOW, servers: [PL_ENTRY, ...[1, 2, 3, 4, 5].map((n) => ({ id: sid(n), name: 'S' + n, operators: [key('op' + n).pub], nodes: [], listed: NOW - 60 * DAY - (NOW % DAY), answered: NOW - (NOW % DAY) }))] };
   const p = fedPage();
   // The relay sends live records one frame each, right after the backlog.
   spy(p, { sub: (ws, f, node) => { node.send(ws, { m: 'recs', id: f.id, items: [], cursor: 'e-1', more: false });
     for (let i = 1; i <= 5; i++) node.send(ws, { m: 'recs', id: f.id, items: [{ rec: rec('op' + i, 'shun', NOW - DAY, { server: sid(i), target: key('mallory').pub, reason: 'spam' }), rcpt: [] }], cursor: 'e-' + (i + 1), more: false }); } });
   await p.ev(`fedPut('kv','registry',${JSON.stringify(REG)})`);
+  // Votes reach only an operator's game: this device holds Anna's operator key of the joined server.
+  await p.ev(`fedOpKeySet(${JSON.stringify(key('anna').seed)})`);
   await joinGame(p);
-  await run(p, 1000);
+  await run(p, 2000);
   assert.ok(await until(async () => (await settle(5), ((await p.ev("fedGet('kv','votes')")) || []).length === 5)), 'every vote kept');
-  assert.equal((await p.ev('fedShunned()')).length, 1, 'five votes: shunned');
+  assert.equal((await p.ev(`fedShunInfo(${JSON.stringify(key('mallory').pub)})`)).shunned, true, 'five votes: shunned');
   assert.deepEqual(p.errors, []);
 });
 

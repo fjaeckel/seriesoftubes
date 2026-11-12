@@ -17,7 +17,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const DIR = path.join(__dirname, '..', 'federation', 'vectors');
-const GEN = ['signing', 'asn', 'records', 'receipts', 'proofs', 'operators', 'registry', 'dedupe'];
+const GEN = ['signing', 'asn', 'records', 'receipts', 'proofs', 'auth', 'operators', 'registry', 'dedupe'];
 const NOW = 1767312100;          // 2026-01-02 00:01:40 UTC, the "now" of every generated vector
 const T = NOW - 100;             // 1767312000, 2026-01-02 00:00:00 UTC: when most records were signed
 const DAY = 86400;
@@ -424,6 +424,28 @@ const SID = rid(genesis);
   go('other-node', 'A valid proof by node2 when node1 was asked.', (() => { const r = { v: 1, kind: 'proof', key: pub('node2'), t: NOW - 5, body: { nonce, server: SID } }; return { ...r, sig: signText('node2', canon(r)) }; })(), { ok: false, error: 'bad_challenge' });
   go('kind-receipt', 'Signed objects are told apart by kind: a receipt is not a proof.', P({ kind: 'receipt' }), { ok: false, error: 'bad_challenge' });
   go('bad-sig', 'Claims node1, signed by node2.', P({}, 'node2'), { ok: false, error: 'bad_sig' });
+}
+
+// ======================================================================================
+// auth: a client proves a key to one node of one server (9.3); operators get the shun votes
+// ======================================================================================
+{
+  const A = 'auth';
+  // The signed text is the canonical JSON of {m: "auth", key, node, server, t}: no kind, so never a record.
+  const F = (who, t, over = {}, signer = who, node = pub('node1'), server = SID) =>
+    ({ m: 'auth', id: 7, key: pub(who), t, sig: signText(signer, canon({ m: 'auth', key: pub(who), node, server, t })), ...over });
+  const go = (name, d, auth, expect) => put(A, name, d, { now: NOW, node: pub('node1'), server: SID, auth }, expect);
+  go('valid', 'alice signs {m: "auth", key, node, server, t} (canonical JSON) with her key; the node checks it against its own key and server.', F('alice', NOW - 5), { ok: true });
+  go('valid-operator', 'An operator proves the operator key the same way (whether it operates the server is the node\'s state, not this check).', F('anna', NOW), { ok: true });
+  go('valid-skew', 't 600 s behind now is still accepted.', F('alice', NOW - 600), { ok: true });
+  go('stale', 't more than 600 s behind now.', F('alice', NOW - 601), { ok: false, error: 'too_old' });
+  go('future', 't more than 600 s ahead.', F('alice', NOW + 601), { ok: false, error: 'too_new' });
+  go('other-node', 'Signed for node2: shown to node1, it does not verify.', F('alice', NOW, {}, 'alice', pub('node2')), { ok: false, error: 'bad_sig' });
+  go('other-server', 'Signed for another server.', F('alice', NOW, {}, 'alice', pub('node1'), b64(sha('another server'))), { ok: false, error: 'bad_sig' });
+  go('other-t', 'The frame\'s t is not the signed t.', F('alice', NOW, { t: NOW - 1 }), { ok: false, error: 'bad_sig' });
+  go('other-signer', 'Claims alice, signed by mallory.', F('alice', NOW, {}, 'mallory'), { ok: false, error: 'bad_sig' });
+  go('bad-key', 'key is not a Key.', F('alice', NOW, { key: 'alice' }), { ok: false, error: 'bad_key' });
+  go('bad-sig-format', 'sig is not a Sig.', F('alice', NOW, { sig: 'AAAA' }), { ok: false, error: 'bad_sig' });
 }
 
 // ======================================================================================
