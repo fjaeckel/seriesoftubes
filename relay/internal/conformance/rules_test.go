@@ -1,7 +1,9 @@
 package conformance
 
 import (
+	"context"
 	"encoding/json"
+	"slices"
 	"sort"
 	"testing"
 
@@ -10,6 +12,7 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/catalog"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/deals"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/rank"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/shun"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/store"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/wire"
@@ -80,6 +83,25 @@ func init() {
 		rows := boards.Compute(q, recs)
 		if rows == nil {
 			rows = []boards.Row{}
+		}
+		// The node's in-memory ranking must give the same rows as the reference.
+		a := rank.New(1)
+		defer a.Close()
+		raws := make([]rank.Raw, len(recs))
+		for i, r := range recs {
+			raws[i] = rank.Raw{ID: r.ID, Key: r.Key, Slot: r.Slot, T: r.T, Body: r.Body}
+		}
+		a.Load(raws, nil, q.Exclude, nil)
+		ans, err := a.Rank(context.Background(), &rank.Slice{Board: x.Board, Measure: x.Measure, Division: x.Division, Cities: x.Cities}, x.Now, "", -1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := []boards.Row{}
+		for _, r := range ans.Rows {
+			got = append(got, boards.Row{Key: r.Key, Value: r.Value})
+		}
+		if !slices.Equal(got, rows) {
+			t.Errorf("rank: %v, reference %v", got, rows)
 		}
 		return map[string]any{"rows": rows}
 	}

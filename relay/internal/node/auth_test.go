@@ -187,15 +187,6 @@ func TestVotesOnlyToOperators(t *testing.T) {
 		if len(items) != want || len(backlog) != want {
 			t.Fatalf("fetch gave %d, sub %d votes, want %d", len(items), len(backlog), want)
 		}
-		board, err := w.c.Collect(ctx(t), map[string]any{"m": "board"})
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, it := range board {
-			if k := it["rec"].(map[string]any)["kind"]; k == "shun" || k == "unshun" {
-				t.Fatal("a vote on the board")
-			}
-		}
 	}
 	// A withdrawal does not lift the shun at once, but the reasons follow the votes at now.
 	n.Clock.Add(time.Minute)

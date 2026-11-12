@@ -584,7 +584,7 @@ func (r *Relay) fetchChain(ctx context.Context, url, server string) {
 	slices.SortStableFunc(items, func(a, b map[string]any) int {
 		ka := kindOfItem(a)
 		kb := kindOfItem(b)
-		return rank(ka) - rank(kb)
+		return kindOrder(ka) - kindOrder(kb)
 	})
 	for _, it := range items {
 		rec, code := fed.CheckLoose(it["rec"], r.now(), fed.Opts{})
@@ -608,7 +608,7 @@ func kindOfItem(it map[string]any) string {
 	return k
 }
 
-func rank(k string) int {
+func kindOrder(k string) int {
 	switch k {
 	case "genesis":
 		return 0

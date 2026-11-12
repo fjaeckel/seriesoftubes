@@ -38,12 +38,12 @@ func Closes(code string) bool { return closes(code) }
 // Role-specific message sets.
 var (
 	clientMsgs = map[string]bool{"hello": true, "auth": true, "challenge": true, "put": true, "cosign": true, "sub": true,
-		"unsub": true, "fetch": true, "board": true, "servers": true, "ping": true, "pong": true, "err": true}
+		"unsub": true, "fetch": true, "rank": true, "facets": true, "nets": true, "servers": true, "ping": true, "pong": true, "err": true}
 	nodeMsgs = map[string]bool{"hello": true, "welcome": true, "proof": true, "carry": true, "inv": true,
 		"want": true, "push": true, "catalog": true, "err": true, "ping": true, "pong": true}
 	// Requests carry an id.
 	requests = map[string]bool{"auth": true, "challenge": true, "put": true, "cosign": true, "sub": true, "unsub": true,
-		"fetch": true, "board": true, "servers": true, "ping": true, "pong": true}
+		"fetch": true, "rank": true, "facets": true, "nets": true, "servers": true, "ping": true, "pong": true}
 )
 
 // Parse reads frame text, checking the size limit, JSON and the frame's shape.
@@ -211,6 +211,14 @@ func CheckClient(f *Frame, ready bool, speaks []int64) (*Hello, *Error) {
 		}
 	case "fetch":
 		if !okStrs("ids") {
+			return nil, bad(fed.BadFrame)
+		}
+	case "rank":
+		if !okStr("board") || !okStr("measure") || !okStr("division") {
+			return nil, bad(fed.BadFrame)
+		}
+	case "nets":
+		if !okStrs("keys") {
 			return nil, bad(fed.BadFrame)
 		}
 	}

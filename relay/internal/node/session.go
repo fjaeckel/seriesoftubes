@@ -29,7 +29,7 @@ const (
 	nodeQueueBytes   = 32 << 20
 	queueFrames      = 1024
 	maxSubs          = 16
-	// Answers that take many frames (backlogs, boards, catalogs, pushes for want) are sent a page
+	// Answers that take many frames (backlogs, catalogs, pushes for want) are sent a page
 	// at a time, the next one only when the queue is below this, so they never fill the queue.
 	clientLowWater = 256 << 10
 	nodeLowWater   = 2 << 20
@@ -41,7 +41,7 @@ const (
 )
 
 // Request costs in a client's token bucket: the ones that answer from the whole store cost more.
-var clientCost = map[string]float64{"auth": 2, "board": 20, "servers": 10, "sub": 5, "unsub": 2, "fetch": 2}
+var clientCost = map[string]float64{"auth": 2, "rank": 10, "facets": 5, "nets": 5, "servers": 10, "sub": 5, "unsub": 2, "fetch": 2}
 
 // session is one WebSocket connection, client or node.
 type session struct {
@@ -169,7 +169,7 @@ func (r *Relay) later(s *session, p pager) {
 	r.pump(s)
 }
 
-// listPager pages a list fixed when asked: board, fetch and catalog answers, pushes for want.
+// listPager pages a list fixed when asked: fetch and catalog answers, pushes for want.
 type listPager struct {
 	rid     int64
 	m       string // recs, catalog or push
@@ -721,12 +721,8 @@ func (r *Relay) clientFrame(s *session, f *wire.Frame) {
 			}
 		}
 		r.later(s, &listPager{rid: f.ID, m: "recs", entries: list})
-	case "board":
-		r.mu.Lock()
-		defer r.mu.Unlock()
-		if r.room(s, f.ID) {
-			r.later(s, &listPager{rid: f.ID, m: "recs", entries: r.boardItems(now)})
-		}
+	case "rank", "facets", "nets":
+		r.rankFrame(s, f)
 	case "servers":
 		r.mu.Lock()
 		defer r.mu.Unlock()
@@ -794,63 +790,6 @@ func (r *Relay) subscribe(s *session, id int64, kinds []string, since string) {
 		s.exSent = true
 		r.sendExcluded(s, r.now())
 	}
-}
-
-// boardCache is the board answer of one slot; records that change it clear it (Relay.board).
-type boardCache struct {
-	slot int64
-	list []*store.Entry
-}
-
-// boardItems is 9.5 (lock held): the stats of the two windows, the newest earlier stats per
-// key for carrying forward, the newest announce of those keys and the current hide record.
-// It is worked out once per slot and kept until a record that changes it arrives.
-func (r *Relay) boardItems(now int64) []*store.Entry {
-	c := fed.Slot(now)
-	if b := r.board; b != nil && b.slot == c {
-		return b.list
-	}
-	lo := c - 2*fed.WindowSlots*fed.SlotLen
-	var items []*store.Entry
-	carry := map[string]*store.Entry{}
-	keys := map[string]bool{}
-	for _, e := range r.st.KindSorted("stats") {
-		k := e.Rec.Key
-		if r.shunned[k] || r.refusesKey(k) {
-			continue
-		}
-		switch {
-		case e.Slot >= lo && e.Slot < c:
-			items = append(items, e)
-			keys[k] = true
-		case e.Slot > lo-fed.CarryForward && e.Slot < lo:
-			p := carry[k]
-			if p == nil || e.Slot > p.Slot || e.Slot == p.Slot && (e.Rec.T > p.Rec.T || e.Rec.T == p.Rec.T && e.Rec.ID < p.Rec.ID) {
-				carry[k] = e
-			}
-			keys[k] = true
-		}
-	}
-	for _, k := range sortedKeys(carry) {
-		items = append(items, carry[k])
-	}
-	newest := map[string]*store.Entry{}
-	for _, e := range r.st.Kind("announce") {
-		k := e.Rec.Key
-		if best := newest[k]; keys[k] && (best == nil || e.Rec.T > best.Rec.T || e.Rec.T == best.Rec.T && e.Rec.ID < best.Rec.ID) {
-			newest[k] = e
-		}
-	}
-	for _, k := range sortedKeys(newest) {
-		items = append(items, newest[k])
-	}
-	if r.hide != nil {
-		if e := r.st.Get(r.hide.ID); e != nil {
-			items = append(items, e)
-		}
-	}
-	r.board = &boardCache{slot: c, list: items}
-	return items
 }
 
 func sortedKeys[V any](m map[string]V) []string {

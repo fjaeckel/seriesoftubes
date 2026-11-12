@@ -24,6 +24,7 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/metrics"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/privacy"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/rank"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/registry"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/shun"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/store"
@@ -59,7 +60,7 @@ type Relay struct {
 	regs    map[string]*registry.Entry
 	cat     map[string]*catEntry
 	catVia  map[string]int // neighbour server -> catalog entries first learned from it
-	board   *boardCache    // the last board answer, while still current
+	rank    *rank.Agg      // the leaderboards in memory (9.5)
 	shunned map[string]bool
 	shunAt  int64
 	counter *shun.Counter                   // voters of the registry snapshot
@@ -128,7 +129,18 @@ func New(o Options) (*Relay, error) {
 	r.indexVotes()
 	r.loadCatalog()
 	r.loadRegistryCache()
+	// The leaderboards are built from the store in parallel chunks while the node already serves
+	// (rank answers rate_limited until then); records stored meanwhile are applied after.
+	r.rank = rank.New(0)
+	raws, anns := r.rankSnapshot()
+	ex, names := r.excludedSets()
 	r.mu.Unlock()
+	r.wg.Add(1)
+	go func() {
+		defer r.wg.Done()
+		r.rank.Load(raws, anns, ex, names)
+		r.rank.Warm(r.now())
+	}()
 	if m := o.Metrics; m != nil {
 		m.Gauge("relay_clients", "Open client connections.", func() float64 { return float64(r.count(false)) })
 		m.Gauge("relay_node_sessions", "Open node sessions.", func() float64 { return float64(r.count(true)) })
@@ -345,7 +357,7 @@ func (r *Relay) tally(now int64) {
 		}
 	}
 	if !maps.Equal(old, r.shunned) {
-		r.board = nil
+		r.rankExcluded()
 		r.exclChanged(now, "")
 	}
 }
@@ -353,13 +365,13 @@ func (r *Relay) tally(now int64) {
 func (r *Relay) tallyOne(target string, now int64) {
 	on := r.counter != nil && r.counter.Tally(r.votesFor(target), target, now).Shunned
 	changed := on != r.shunned[target]
-	if changed {
-		r.board = nil
-	}
 	if on {
 		r.shunned[target] = true
 	} else {
 		delete(r.shunned, target)
+	}
+	if changed {
+		r.rankExcluded()
 	}
 	switch {
 	case changed:
@@ -589,14 +601,17 @@ func (r *Relay) ingest(rec *fed.Record, rcpts []any, o origin) (string, map[stri
 // after updates what depends on a newly stored or merged record.
 func (r *Relay) after(e *store.Entry, now int64) {
 	rec := e.Rec
-	// The board leaves out the current slot, so most new stats do not change it.
-	if rec.Kind == "announce" || rec.Kind == "hide" || rec.Kind == "stats" && e.Slot < fed.Slot(now) {
-		r.board = nil
+	switch rec.Kind {
+	case "stats":
+		r.rank.Stats(rec.ID, rec.Key, e.Slot, rec.T, rec.Body, rcptCC(e))
+	case "announce":
+		r.rank.Announce(rec.Key, r.newestAnn(rec.Key))
 	}
 	switch rec.Kind {
 	case "genesis", "operators", "server", "hide":
 		before := r.ownEntryID()
 		r.recompute()
+		r.rankExcluded()
 		if r.ownEntryID() != before {
 			r.sendOwnEntry(now)
 			r.reconcileLocked()
@@ -691,6 +706,84 @@ func (r *Relay) parseCursor(c string) uint64 {
 	return v
 }
 
+// rcptCC is the country of a record's earliest receipt (the one that gives its board slot), or "".
+func rcptCC(e *store.Entry) string {
+	for _, rc := range e.Rcpts {
+		if t, _ := rc["t"].(int64); t == e.Slot {
+			b, _ := rc["body"].(map[string]any)
+			cc, _ := b["cc"].(string)
+			return cc
+		}
+	}
+	return ""
+}
+
+// newestAnn is what the boards use of a key's newest announce (lock held), or nil.
+func (r *Relay) newestAnn(key string) *rank.Ann {
+	var best *fed.Record
+	for _, e := range r.st.Key(key) {
+		if x := e.Rec; x.Kind == "announce" && (best == nil || x.T > best.T || x.T == best.T && x.ID < best.ID) {
+			best = x
+		}
+	}
+	if best == nil {
+		return nil
+	}
+	return annOf(best)
+}
+
+func annOf(x *fed.Record) *rank.Ann {
+	return &rank.Ann{ID: x.ID, T: x.T, Name: x.Str("name"), Home: x.Str("home"), Policy: x.Str("policy"),
+		Founded: x.Int("founded"), Day: x.Int("day")}
+}
+
+// rankSnapshot is what the leaderboards are built from at start (lock held): every stats record
+// and each key's newest announce.
+func (r *Relay) rankSnapshot() ([]rank.Raw, map[string]*rank.Ann) {
+	stats := r.st.Kind("stats")
+	raws := make([]rank.Raw, 0, len(stats))
+	for _, e := range stats {
+		raws = append(raws, rank.Raw{ID: e.Rec.ID, Key: e.Rec.Key, Slot: e.Slot, T: e.Rec.T, Body: e.Rec.Body, CC: rcptCC(e)})
+	}
+	newest := map[string]*fed.Record{}
+	for _, e := range r.st.Kind("announce") {
+		x := e.Rec
+		if b := newest[x.Key]; b == nil || x.T > b.T || x.T == b.T && x.ID < b.ID {
+			newest[x.Key] = x
+		}
+	}
+	anns := make(map[string]*rank.Ann, len(newest))
+	for k, x := range newest {
+		anns[k] = annOf(x)
+	}
+	return raws, anns
+}
+
+// excludedSets are the networks this server leaves off its boards (shunned, hidden, refused) and
+// those it names by ASN only (lock held).
+func (r *Relay) excludedSets() (map[string]bool, map[string]bool) {
+	ex, names := maps.Clone(r.shunned), map[string]bool{}
+	if r.hide != nil {
+		for _, k := range r.hide.StrList("hide") {
+			ex[k] = true
+		}
+		for _, k := range r.hide.StrList("refuse") {
+			ex[k] = true
+		}
+		for _, k := range r.hide.StrList("names") {
+			names[k] = true
+		}
+	}
+	return ex, names
+}
+
+// rankExcluded tells the leaderboards who is excluded now (lock held).
+func (r *Relay) rankExcluded() {
+	if r.rank != nil {
+		r.rank.Exclude(r.excludedSets())
+	}
+}
+
 // lastHeard is the newest board slot of any record by a key.
 func (r *Relay) lastHeard(key string) int64 {
 	var m int64
@@ -731,14 +824,24 @@ func (r *Relay) gc() {
 // remove drops records from the store and from what is indexed beside it (lock held).
 func (r *Relay) remove(ids []string) {
 	votes := false
+	anns := map[string]bool{}
 	for _, id := range ids {
-		if e := r.st.Get(id); e != nil && (e.Rec.Kind == "shun" || e.Rec.Kind == "unshun") {
+		e := r.st.Get(id)
+		if e == nil {
+			continue
+		}
+		switch e.Rec.Kind {
+		case "shun", "unshun":
 			votes = true
+		case "stats":
+			r.rank.Drop(id)
+		case "announce":
+			anns[e.Rec.Key] = true
 		}
 	}
 	r.st.Remove(ids)
-	if len(ids) > 0 {
-		r.board = nil
+	for k := range anns {
+		r.rank.Announce(k, r.newestAnn(k))
 	}
 	if votes {
 		r.indexVotes()
@@ -853,6 +956,12 @@ func (r *Relay) Run() {
 	})
 	r.loop("registry", 6*time.Hour, r.refreshRegistry)
 	r.loop("reconcile", r.o.BootstrapEvery, r.reconcile)
+	// The leaderboards of a new slot are worked out as it starts, on the ranking workers.
+	r.loop("boards", 10*time.Second, func() {
+		if now := r.now(); now-fed.Slot(now) < 30 {
+			r.rank.Warm(now)
+		}
+	})
 	// Votes expire and shuns lift with time alone: clients following the excluded list hear of it.
 	r.loop("shun", time.Minute, func() {
 		r.mu.Lock()
@@ -891,6 +1000,7 @@ func (r *Relay) Close() error {
 	}
 	r.mu.Unlock()
 	r.wg.Wait()
+	r.rank.Close()
 	r.flushCatalog()
 	r.mu.Lock()
 	defer r.mu.Unlock()

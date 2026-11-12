@@ -1,0 +1,22 @@
+{
+  "description": "now = 1767398410, so c = 1767398400; slot i means 1767225600 + 300 * i. One record each at i = 0, carried forward. With the region fra, traffic counts only with partners that have a value with a POP in the region (10.4): kB (nyc only) is not listed and its traffic with kA counts 0. kA: with kC in min(2000, 1500) = 1500, out min(400, 900) = 400: 1500 (without the region it would be 4500, adding kB's 3000). kC: in min(900, 400) = 400, out min(1500, 2000) = 1500: 1500. Equal values: by key.",
+  "input": {
+    "now": 1767398410,
+    "board": "traffic",
+    "measure": "total",
+    "division": "all",
+    "exclude": [],
+    "cities": ["fra"],
+    "records": [
+      {"id": "r1", "key": "kA", "slot": 1767225600, "t": 1767225620, "body": {"mode": "normal", "pops": {"fra": 1}, "traffic": [{"key": "kB", "in": 3000, "out": 3000}, {"key": "kC", "in": 2000, "out": 400}], "tier1": false, "shareCountry": false}},
+      {"id": "r2", "key": "kB", "slot": 1767225600, "t": 1767225620, "body": {"mode": "normal", "pops": {"nyc": 1}, "traffic": [{"key": "kA", "in": 3000, "out": 3000}], "tier1": false, "shareCountry": false}},
+      {"id": "r3", "key": "kC", "slot": 1767225600, "t": 1767225620, "body": {"mode": "normal", "pops": {"fra": 1}, "traffic": [{"key": "kA", "in": 900, "out": 1500}], "tier1": false, "shareCountry": false}}
+    ]
+  },
+  "expect": {
+    "rows": [
+      {"key": "kA", "value": 1500},
+      {"key": "kC", "value": 1500}
+    ]
+  }
+}
