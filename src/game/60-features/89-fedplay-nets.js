@@ -13,7 +13,7 @@ const FEDP_MAX=48,FEDP_SH=0.012,FEDP_SH_ALL=0.12,FEDP_TICK=3600000,FEDP_UP=['lvl
   FEDP_COL=['#8E7DBE','#2E86AB','#E07A5F','#3D9970','#B565A7','#F2A541','#5B8E7D','#C44536','#4F6D7A','#9C6644'],
   FEDP_ST=['active','fading','dark'];
 // Runtime only: what is applied to NETS (h, ids, base shares), the newest announces by key, the timer.
-const FEDN={h:'',ids:[],base:null,ann:new Map(),busy:false,again:false,t:null,on:false,q:Promise.resolve(),rt:null};
+const FEDN={h:'',ids:[],base:null,ann:new Map(),cur:Promise.resolve(),pend:null,t:null,on:false,q:Promise.resolve(),rt:null};
 // A player network's id in NET: stable for a key, letters and digits only.
 const fedNetId=k=>'fp'+String(k).slice(0,12).replace(/[-_]/g,'x');
 const fedNetOf=k=>{const n=NET[fedNetId(k)];return n&&n.fed===k?n:null;};
@@ -75,19 +75,22 @@ async function fedPlayStats(){const m=new Map();let d;try{d=await fedBoardData()
 
 /* ---------- when to rebuild: listeners and an hourly look, outside the game loop ---------- */
 // Rebuilds the snapshot and walks the deals (ends, starts, quiet, shunned); re-routes only when something changed.
-async function fedPlayRefresh(){if(FEDN.busy){FEDN.again=true;return;}const s=S;if(!s||!s.fed||!s.fed.key||!fedEligible(s))return;FEDN.busy=true;
-  try{const now=fedNow(),all=await fedNetworks(now),shun=new Set(await fedShunned(now)),stats=await fedPlayStats();if(S!==s||!s.fed)return;
-    const me=s.fed.key.pub,muted=new Set(s.fed.muted);FEDN.ann=new Map(all.map(n=>[n.key,n]));
-    const list=all.filter(n=>n.key!==me&&!muted.has(n.key)).map(n=>fedNetSnap(n,shun.has(n.key),stats.get(n.key)))
-      .sort((a,b)=>(a.st==='dark')-(b.st==='dark')||b.tr-a.tr||fedByStr(a.k,b.k)).slice(0,FEDP_MAX);
-    const h=fedNetsHash(list);let ch=false;
-    if(!s.fedn||s.fedn.h!==h){s.fedn={h,nets:list};ch=true;}
-    if(fedDealsTick(s,now,shun,muted,stats))ch=true;
-    if(fedStrangers(s,stats))ch=true;
-    if(ch&&S===s)after();}
-  catch(e){console.error('[tubes] federation gameplay',e);}
-  finally{FEDN.busy=false;}
-  if(FEDN.again){FEDN.again=false;fedPlayRefresh();}}
+/* Runs one after another: a call while one runs queues a single next run (which reads the clock and IndexedDB afresh),
+   and every caller gets the promise of the run that will see what it asked for. */
+function fedPlayRefresh(){if(FEDN.pend)return FEDN.pend;
+  const p=FEDN.pend=FEDN.cur.then(()=>{FEDN.pend=null;return fedPlayRun();}).catch(e=>console.error('[tubes] federation gameplay',e));FEDN.cur=p;return p;}
+async function fedPlayRun(){const s=S;if(!s||!s.fed||!s.fed.key||!fedEligible(s))return;
+  const now=fedNow(),all=await fedNetworks(now),shun=new Set(await fedShunned(now)),stats=await fedPlayStats();if(S!==s||!s.fed)return;
+  const me=s.fed.key.pub,muted=new Set(s.fed.muted);FEDN.ann=new Map(all.map(n=>[n.key,n]));
+  const list=all.filter(n=>n.key!==me&&!muted.has(n.key)).map(n=>fedNetSnap(n,shun.has(n.key),stats.get(n.key)))
+    .sort((a,b)=>(a.st==='dark')-(b.st==='dark')||b.tr-a.tr||fedByStr(a.k,b.k)).slice(0,FEDP_MAX);
+  const h=fedNetsHash(list);let ch=false;
+  // A joined save has its terms (the defaults) from its first look on, not only once it announced.
+  if(!s.fedp){fedP(s);ch=true;}
+  if(!s.fedn||s.fedn.h!==h){s.fedn={h,nets:list};ch=true;}
+  if(fedDealsTick(s,now,shun,muted,stats))ch=true;
+  if(fedStrangers(s,stats))ch=true;
+  if(ch&&S===s)after();}
 function fedPlaySoon(ms=1000){if(FEDN.rt)return;FEDN.rt=FED.set(()=>{FEDN.rt=null;fedPlayRefresh();},ms);}
 // The hourly look: fetch the boards, rebuild, announce when this network changed, depeer drifted ratios, shared leaks.
 async function fedPlayTick(){FEDN.t=null;if(!FEDN.on)return;FEDN.t=FED.set(fedPlayTick,FEDP_TICK);const s=S;if(!s||!s.fed||!s.fed.on)return;

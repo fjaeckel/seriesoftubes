@@ -21,7 +21,15 @@ async function game(feed) {
   assert.equal(await joinGame(p), null);
   p.ev("S.cash=1e8;ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.buyIx({city:'fra',tier:1,signed:1});ACT.buildPop({city:'ams'});ACT.buyIx({city:'ams',tier:1})");
   assert.ok(await until(async () => (await settle(5), p.ev('fedStatus().state') === 'connected')), 'connected');
-  for (let i = 0; i < 20 && !p.ev('S.fedn&&S.fedn.nets.length'); i++) { p.net.advance(1500); await settle(10); }
+  // The first look (2 s after connecting, on the virtual clock) builds the snapshot, announces and checks the shared
+  // leak last; records arriving later refresh 1 s after them. Move the clock a second at a time until all of it is done,
+  // then wait out any refresh still queued, so every test starts from the same state.
+  const nets = feed.filter((r) => r.kind === 'announce').length;
+  const ready = `!!(S.fedn&&S.fedn.nets.length===${nets}&&S.fedp&&S.fedp.mine.length&&S.fedp.leakD)`;
+  for (let i = 0; i < 60 && !p.ev(ready); i++) { p.net.advance(1000); await until(async () => (await settle(5), p.ev(ready)), 300); }
+  assert.ok(p.ev(ready), 'players built, terms announced');
+  await p.ev('fedPlayRefresh()');
+  await settle(10);
   return { p, n };
 }
 // The node sends more records: the client drops, reconnects and subscribes again.
