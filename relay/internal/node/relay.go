@@ -612,11 +612,12 @@ func (r *Relay) cursor(seq uint64) string { return r.epoch + "-" + strconv.Forma
 
 // parseCursor returns the storage number a cursor stands for; 0 when not understood.
 func (r *Relay) parseCursor(c string) uint64 {
-	ep, n, ok := strings.Cut(c, "-")
-	if !ok || ep != r.epoch {
+	// The epoch is base64url and may hold '-' itself; the number after the last one never does.
+	i := strings.LastIndexByte(c, '-')
+	if i < 0 || c[:i] != r.epoch {
 		return 0
 	}
-	v, err := strconv.ParseUint(n, 36, 64)
+	v, err := strconv.ParseUint(c[i+1:], 36, 64)
 	if err != nil || v > r.st.Seq() {
 		return 0
 	}

@@ -254,6 +254,8 @@ func TestBacklogsArePagedWithTheirOwnCursors(t *testing.T) {
 	n := rt.New(t)
 	s := n.Found("busy", "open")
 	x := s.Nodes[0]
+	// An epoch with '-' in it, as a random one has about one start in eight: cursors must still read back.
+	x.R.SetEpoch("ab-cd_ef")
 	// About 5.6 MB of stats in the board's window: more than a client's queue may hold at once.
 	const players = 200
 	t0 := n.Clock.Unix()

@@ -1,5 +1,8 @@
 package node
 
+// SetEpoch fixes a relay's cursor epoch for a test.
+func (r *Relay) SetEpoch(e string) { r.mu.Lock(); r.epoch = e; r.mu.Unlock() }
+
 // SetCatalogLimits lowers the catalog bounds for a test; the returned func restores them.
 func SetCatalogLimits(total, via int) func() {
 	t, v := maxCatalog, maxCatalogVia
