@@ -1,3 +1,6 @@
 node_modules/
 _site/
 .DS_Store
+# relay build output and local data folders
+/relay/relay
+/relay/relay-data/

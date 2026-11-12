@@ -18,7 +18,9 @@ func TestCheck(t *testing.T) {
 		func(c *Config) { c.Metrics = "[::]:9464" },
 		func(c *Config) { c.URL = "ws://relay.example.net/fed" },
 		func(c *Config) { c.URL = "wss://192.0.2.1/fed" },
-		func(c *Config) { c.Neighbours = []Neighbour{{URL: "wss://x.example.org", Send: []string{"everything"}}} },
+		func(c *Config) {
+			c.Neighbours = []Neighbour{{URL: "wss://x.example.org", Send: []string{"everything"}}}
+		},
 		func(c *Config) { c.Selective = []string{"not-an-id"} },
 		func(c *Config) { c.TrustedProxies = []string{"nonsense"} },
 	}
