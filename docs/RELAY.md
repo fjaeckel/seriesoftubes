@@ -79,10 +79,16 @@ from the registry by pull request and shunned by its peers.
 - **Binary:** download `relay` for your platform from the GitHub release (Linux, macOS, Windows; amd64 and arm64, so a
   Raspberry Pi works). It is one static file with nothing to install.
 - **Container:** the image is built `FROM scratch` (a few MB), runs as an unprivileged user and keeps everything in
-  the `/data` volume. Set `"listen": "0.0.0.0:8080"` in its config so the proxy can reach it.
+  the `/data` volume. Set `"listen": "0.0.0.0:8080"` in its config so the proxy can reach it, and add the address your
+  proxy connects from to `trustedProxies` (the proxy container's address, or your container network, for example
+  `"trustedProxies": ["127.0.0.0/8", "::1/128", "172.18.0.0/16"]`). Without it every player seems to come from the
+  proxy, shares its one connection limit (30 per 5 minutes by default) and gets no country. Trust only a network on
+  which nothing but your proxy can reach the relay: anything trusted can claim any address. The relay warns at start
+  when it listens beyond loopback, serves no TLS itself and trusts loopback proxies only.
 - **From source:** `cd relay && go build ./cmd/relay`.
 
 Every command takes `--data DIR` (default: `$RELAY_DATA`, else `./relay-data`). Everything lives in that one folder.
+One relay at a time: a running relay locks its folder (`LOCK`), and a second `relay serve` on it refuses to start.
 
 ### 2. Initialise
 
@@ -160,7 +166,7 @@ and the TLS files change on restart only. Unknown settings are refused, so a typ
 | `countryDb` | | A country-only MaxMind-format database (GeoLite2-Country, DB-IP Country Lite). Optional |
 | `registry` | `https://seriesoftub.es/federation/servers.json` | The registry snapshot (a URL or a file); used for the shun tally |
 | `metrics` | | A **localhost** address for `/metrics`, for example `127.0.0.1:9464`. Anything else is refused |
-| `trustedProxies` | loopback | Proxies whose `X-Forwarded-For` is believed |
+| `trustedProxies` | loopback | Proxies whose `X-Forwarded-For` is believed (in a container: add the proxy's network, see Container above) |
 | `listed` | `false` | A note for yourself: whether you mean to be in the registry |
 | `limits` | | `maxClients` 5000, `maxNodes` 64, `connsPerAddr` 30 per `addrWindowSec` 300, `msgsPerSec` 20 |
 
@@ -234,10 +240,13 @@ Your node connects to the servers in `neighbours`; others may connect to you. Fo
 | `catalog` | The servers you know (gossip), passed on with the path they came by |
 | `advice` | Your hide lists, as advice to others |
 
-Shun votes always travel, whatever you choose, as long as your node knows the voting server (from the registry or the
-catalog): votes of servers it knows nothing of could never count, so it refuses them. A server may take records without
-passing them on. Your node keeps at most 4096 catalog entries, 512 of them first heard from any one neighbour, and reads
-nothing a new neighbour says about other servers until its own entry has checked.
+Shun votes always travel, whatever you choose, as long as the voting server is in your node's registry snapshot (or is
+your own server): only registry servers' votes can count, and a server known from gossip alone costs nothing to make up,
+so your node refuses the votes of any other (and keeps at most 8192 votes of any one server). A server may take records
+without passing them on. Your node keeps at most 4096 catalog entries, 512 of them first heard from any one neighbour,
+each at most 60 KB (so any one fits a game's frame), and reads nothing a new neighbour says about other servers until
+its own entry has checked. A neighbour that does not send its own entry within 30 seconds is dropped, and sessions with
+servers your node does not know yet take at most 8 of its `maxNodes` slots; your own server's nodes always get one.
 
 ```json
 "neighbours": [
@@ -338,9 +347,12 @@ How it works (`relay/internal/rank`):
   key is left out on purpose: keep your own copy of `operator.key` somewhere safe. If a node loses its disk, the
   server's other nodes and the servers it syncs with fill it back in; what nobody else had is only recent stats and
   offers, which players send again.
-- **What is kept:** records go into one file per day under `log/`. Stats are kept 72 hours (plus each network's newest,
-  for carrying forward), offers and answers 30 days, votes 90 days, announcements until a network has been silent 180
-  days. Daily files are rewritten or deleted once nothing in them is kept.
+- **What is kept:** records go into one file per day under `log/`. Stats are kept 72 hours (plus, for carrying forward,
+  each network's newest and the one in force when the previous window starts), offers and answers 30 days, votes 97
+  days (90 they count, and the 7 a shun takes to lift), announcements until a network has been silent 180 days (one per
+network and 5-minute slot, the newest; at most 4096 offers per network, 128 to any one other). What a
+  `leave` removes is removed for good. Daily files are rewritten or deleted once nothing in them is kept, today's
+  included, at the hourly retention run.
 
 ## Testing against the game
 

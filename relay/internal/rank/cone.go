@@ -73,15 +73,16 @@ func mix64(z uint64) uint64 {
 	return z ^ z>>31
 }
 
-// cones gives the per-slot cone sizes for the current state (read lock held), worked out once.
-func (a *Agg) cones() map[*net][]int32 {
+// cones gives the per-slot cone sizes of the windows of running slot c for the current state
+// (read lock held), worked out once.
+func (a *Agg) cones(c int64) map[*net][]int32 {
 	a.cmu.Lock()
 	defer a.cmu.Unlock()
 	g, m := a.gen.Load(), a.meta.Load()
-	if a.cone != nil && a.cone.c == a.c && a.cone.gen == g && a.cone.meta == m {
+	if a.cone != nil && a.cone.c == c && a.cone.gen == g && a.cone.meta == m {
 		return a.cone.size
 	}
-	a.cone = &coneSet{c: a.c, gen: g, meta: m, size: a.computeCones()}
+	a.cone = &coneSet{c: c, gen: g, meta: m, size: a.computeCones(c)}
 	return a.cone.size
 }
 
@@ -91,8 +92,8 @@ type coneEv struct {
 	d int32
 }
 
-func (a *Agg) computeCones() map[*net][]int32 {
-	from := a.c - N*fed.SlotLen
+func (a *Agg) computeCones(c int64) map[*net][]int32 {
+	from := c - N*fed.SlotLen
 	var cand []*net
 	for _, x := range a.nets {
 		if x.withCn > 0 && !a.ex[x.key] {

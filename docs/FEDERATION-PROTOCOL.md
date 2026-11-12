@@ -248,7 +248,8 @@ ever hold one fault.
 ### 5.1 `announce` (client)
 
 A network's public description: enough for other games to build it as a network, plus its published terms. The newest
-`announce` of a key (greatest `t`, then lowest id) replaces older ones.
+`announce` of a key (greatest `t`, then lowest id) replaces older ones. A relay keeps at most one `announce` of a key per
+board slot (6.1, 10.1), the newest: a newer one in that slot replaces it, and an older one is refused (`refused`).
 
 | Field | Type | Rule |
 | --- | --- | --- |
@@ -338,7 +339,8 @@ immutable, and nobody has to be online at the same time as anyone else.
 the fields a relay needs to deliver them are in clear, everything that describes the deal is in the box `enc`, which
 only the two parties open. Relays check the envelope, the signature and the box's shape, never the terms, and send
 these records only to the two parties' sessions (9.3). Consortium projects open to anyone are public by design and
-travel in clear.
+travel in clear. A relay MAY bound the `offer`s it keeps by one author, in all and to any one `to` (the reference relay:
+4096 and 128, a project without `to` counting as one more `to`); an offer over the bound is refused (`too_many`).
 
 On the wire:
 
@@ -634,10 +636,12 @@ not yet signed one after the last change) emits no catalog entry and cannot make
 ### 8.3 Operator records against the chain
 
 `hide`, `shun` and `unshun` are accepted from a key that is a current operator of `body.server` (`not_operator`
-otherwise), as far as the receiver knows the server's chain (`unknown_server` if it knows nothing of it). Relays refuse
-`shun` and `unshun` of servers they know nothing of (from the registry, the catalog or their own chain) and neither
-store nor pass them on: such a vote could never count (10.7 counts registry servers only), and keeping them would let
-anyone fill every relay's store and tally.
+otherwise), as far as the receiver knows the server's chain (`unknown_server` if it knows nothing of it). Relays keep
+and pass on `shun` and `unshun` only of servers in their registry snapshot (11.3), with its operator lists, and of their
+own server; any other is refused (`unknown_server`) and neither stored nor passed on: such a vote could never count
+(10.7 counts registry servers only), and a server known from gossip alone costs nothing to make up, so keeping its votes
+would let anyone fill every relay's store and tally. A relay MAY also bound the votes it keeps of one server (the
+reference relay: 8192; over it, `too_many`).
 
 ## 9. The wire protocol
 
@@ -706,7 +710,11 @@ upgraded. This document is version 1; records carry `v: 1` in it.
   (a slow reader is not disconnected for asking). The frames keep their order and `more`; live records of a `sub`
   follow its last backlog frame (`more: false`). Requests that answer from the whole store (`rank`, `rankwhy`, `servers`, `sub`)
   cost a node more than others, and a node MAY answer them `rate_limited` (with `retry`) when one connection sends them
-  too often, or while several of its answers are still being sent.
+  too often, or while several of its answers are still being sent. A node MAY stop a backlog frame after skipping
+  records the session may not see (shun votes, others' deals), so a frame can hold no items with `more: true`; its
+  cursor still covers what was skipped.
+- **`sub` kinds** this version does not define are ignored. A `sub` left with no kind (`kinds: []`, or only unknown
+  ones) gets one `recs` frame with no items and `more: false`, and no live records: never every kind.
 - **A `catalog` answer** that does not fit in one frame is split across several `catalog` frames with the same `id`,
   each with whole entries; every frame but the last carries `more: true` (the last `more: false` or no `more`). The
   receiver joins the entries of all of them.
@@ -851,8 +859,10 @@ rankings out (and prefers its other servers) for 24 hours and tells the player. 
 which networks a server left out or which rows it chose to send.
 
 **What relays keep of `stats`:** every `stats` record whose receipt slot is in the last 72 hours (the two windows and
-some slack), and besides that the newest `stats` of each network for the full carry-forward reach (604800 s before the
-start of the previous window).
+some slack), and besides that, for each network, its newest `stats` and its effective record at the start of the
+previous window (`eff(X, c - 576 * 300)`, 10.2), each while its board slot is within the full carry-forward reach
+(604800 s before the start of the previous window). The second is what carries a network's value into the windows when
+it was silent for more than 72 hours and has posted again since.
 
 ## 10. Rules both sides compute
 
@@ -1012,9 +1022,12 @@ seconds when the server itself last emitted the entry). A server emits its own e
 
 Receiving an entry from a neighbour, a server with identity `self`:
 
-1. Refuses it (`err`, no store) if the records do not check (sections 4, 5, 8; the server record must be at the chain's
-   final head), if `path` is empty, its first element is not the entry's server identity (`bad_field`), it has more
-   than 16 elements (`too_many`) or repeats one (`duplicate`), or `seen > now + 600` (`too_new`).
+1. Refuses it (`err`, no store, the session goes on) if its canonical JSON (2.3) is over 61440 bytes (`too_big`: every
+   entry kept then fits a client's `catalog` frame), if the records do not check (sections 4, 5, 8; the server record
+   must be at the chain's final head), if `path` is empty, its first element is not the entry's server identity
+   (`bad_field`), it has more than 16 elements (`too_many`) or repeats one (`duplicate`), or `seen > now + 600`
+   (`too_new`). A relay checks the size before any signature, and need not check again the records of an entry it
+   holds unchanged.
 2. Drops it silently if `self` is in `path` (a loop) or if `now >= seen + 604800` (expired).
 3. Otherwise stores it, and passes it on to neighbours that take `catalog` as `path + [self]`, unless that would make
    the path longer than 16.
@@ -1284,6 +1297,7 @@ step 8 of 11.2 does not apply to it.
 | `facets`: models and harnesses, countries | 64, 256 each |
 | Hide lists together | 512 |
 | Chain in a registry file or catalog entry | 64 |
+| Catalog entry (canonical JSON) | 61440 bytes |
 | Gossip path | 16 |
 | `fetch` ids, `recs` and `push` items | 256 |
 | `inv` and `want` ids | 4096 |

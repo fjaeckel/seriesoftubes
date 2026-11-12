@@ -17,7 +17,15 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/wire"
 )
 
-const verifyTimeout = 30 * time.Second
+// verifyTimeout is how long a peer of an unknown server has to send its own entry (a var for
+// tests); maxHeld bounds the bytes of its frames held meanwhile; maxUnverified bounds the sessions
+// with servers this node does not know yet, so they never take the slots of servers it knows.
+var verifyTimeout = 30 * time.Second
+
+const (
+	maxHeld       = 1 << 20
+	maxUnverified = 8
+)
 
 func nonce() string {
 	var b [32]byte
@@ -28,7 +36,7 @@ func nonce() string {
 // answerNode is the answering side of a node handshake (9.4).
 func (r *Relay) answerNode(s *session, h *wire.Hello) {
 	r.mu.Lock()
-	ok := r.serving() && len(r.nodes) < r.cfg.Limits.MaxNodes
+	ok := r.serving() && r.nodeRoom(h.Server)
 	own := r.cfg.Server
 	r.mu.Unlock()
 	if !ok {
@@ -115,6 +123,28 @@ func (r *Relay) dialNode(ctx context.Context, url string) error {
 	return nil
 }
 
+// nodeRoom reports whether a session with a node of server may start (lock held). This server's
+// own nodes always may: they are few, and must never be locked out by others. Other servers share
+// MaxNodes, and servers this node knows nothing of yet (which may be made up) at most maxUnverified.
+func (r *Relay) nodeRoom(server string) bool {
+	if r.own != nil && server == r.own.ID {
+		return true
+	}
+	others, unverified := 0, 0
+	for s := range r.nodes {
+		if !s.same {
+			others++
+			if !s.verified {
+				unverified++
+			}
+		}
+	}
+	if others >= r.cfg.Limits.MaxNodes {
+		return false
+	}
+	return r.lookup(server) != nil || unverified < min(maxUnverified, r.cfg.Limits.MaxNodes)
+}
+
 // runPeer applies policy and membership checks, then syncs until the session ends.
 func (r *Relay) runPeer(s *session, server, node string) {
 	s.peerServer, s.peerNode = server, node
@@ -167,8 +197,20 @@ func (r *Relay) runPeer(s *session, server, node string) {
 		r.mu.Unlock()
 		r.o.Log.Info("sync: session down", "server", server, "node", node)
 	}()
-	deadline := time.Now().Add(verifyTimeout)
+	if !s.verified {
+		// The peer's entry must come in time, whether or not it sends anything else meanwhile.
+		t := time.AfterFunc(verifyTimeout, func() {
+			r.mu.Lock()
+			v := s.verified
+			r.mu.Unlock()
+			if !v {
+				s.fail(0, fed.NotNode, 0)
+			}
+		})
+		defer t.Stop()
+	}
 	var held []*wire.Frame
+	heldBytes := 0
 	for {
 		f, ok := s.readFrame(s.ctx)
 		if !ok {
@@ -189,7 +231,8 @@ func (r *Relay) runPeer(s *session, server, node string) {
 		r.mu.Unlock()
 		if !verified && f.M != "catalog" && f.M != "ping" && f.M != "pong" && f.M != "err" {
 			// The peer may have verified us first: keep its frames until its entry arrives.
-			if time.Now().After(deadline) || len(held) >= 64 {
+			heldBytes += s.size
+			if len(held) >= 64 || heldBytes > maxHeld {
 				s.fail(0, fed.NotNode, 0)
 				return
 			}
@@ -209,7 +252,7 @@ func (r *Relay) runPeer(s *session, server, node string) {
 						return
 					}
 				}
-				held = nil
+				held, heldBytes = nil, 0
 			}
 		}
 	}
@@ -339,7 +382,9 @@ func (r *Relay) nodeFrame(s *session, f *wire.Frame) bool {
 				continue
 			}
 			if code := r.receiveEntry(s, x, now); code != "" {
-				s.fail(0, code, 0)
+				// A refused entry is not a refused frame: the session goes on (too_big included).
+				s.r.o.Metrics.Inc("relay_refused_total", code)
+				s.enqueue(map[string]any{"m": "err", "code": code})
 			}
 		}
 	}
@@ -387,6 +432,18 @@ func (r *Relay) inventory(s *session, since int64) []string {
 // maxWanted bounds the ids a session remembers having asked for.
 const maxWanted = 1 << 16
 
+// maxRefused bounds the ids remembered as refused, whatever peers push between retention runs.
+var maxRefused = 1 << 16
+
+// refuse remembers an id not to ask peers for again (lock held). Only a guard against asking
+// twice: when the set is full it starts over, which costs at most a record checked again.
+func (r *Relay) refuse(id string) {
+	if len(r.refused) >= maxRefused {
+		clear(r.refused)
+	}
+	r.refused[id] = true
+}
+
 // classOrChain: chain records travel only between nodes of this server, and only this server's.
 func classOrChain(e *store.Entry, r *Relay) bool {
 	switch e.Rec.Kind {
@@ -433,7 +490,7 @@ func (r *Relay) takePushed(s *session, x any, now int64) {
 	delete(s.wanted, rec.ID)
 	// unknown_server is not for good: the server may be learned later.
 	if code != "" && code != fed.UnknownSrv {
-		r.refused[rec.ID] = true
+		r.refuse(rec.ID)
 	}
 	r.mu.Unlock()
 	if code != "" {

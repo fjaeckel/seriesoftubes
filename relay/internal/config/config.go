@@ -85,6 +85,31 @@ func (c *Config) fill() {
 	}
 }
 
+// ProxyWarning is a warning for a setup where every player may seem to come from one address,
+// or "": the relay listens beyond loopback without TLS of its own, so a proxy is in front, yet it
+// believes X-Forwarded-For from loopback only. In a container the proxy connects from the
+// container network, and the per-address connection limit would then count all players as one.
+func (c *Config) ProxyWarning() string {
+	if c.TLSCert != "" {
+		return ""
+	}
+	host, _, err := net.SplitHostPort(c.Listen)
+	if err != nil {
+		return ""
+	}
+	if a, err := netip.ParseAddr(host); err == nil && a.IsLoopback() || host == "localhost" {
+		return ""
+	}
+	for _, p := range c.Proxies() {
+		if !p.Addr().IsLoopback() {
+			return ""
+		}
+	}
+	return "listen is not on loopback but trustedProxies trusts loopback only: if a proxy in front connects " +
+		"from another address (a container network), every player seems to come from it and shares one " +
+		"connection limit; add the proxy's address to trustedProxies"
+}
+
 // Load reads and checks a config file.
 func Load(path string) (*Config, error) {
 	b, err := os.ReadFile(path)

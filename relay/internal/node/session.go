@@ -62,10 +62,12 @@ type session struct {
 	wdone  chan struct{} // closed when the writer stops
 	ver    int64
 	lowQ   int64
+	size   int // bytes of the last frame read (the reader's own)
 
 	// answers being paged (guarded by r.mu); hasPend mirrors len(pend) > 0 for the writer
 	pend    []pager
 	hasPend atomic.Bool
+	yield   bool // the last page stopped at maxScan (guarded by r.mu)
 
 	// client
 	cc      string         // the connection's country, never its address
@@ -136,11 +138,38 @@ func (s *session) pace(cost float64) bool {
 	}
 }
 
-// nodeCost weighs a node frame by the work it asks for: records to check, entries (each up to
-// 66 signatures), ids to look up.
+// nodeCost weighs a node frame by the work it asks for: a token per signature to verify (records
+// and their receipts in items; genesis, chain and server record of each entry, which may carry
+// over a thousand), and ids to look up.
 func nodeCost(f *wire.Frame) float64 {
 	n := func(k string) float64 { l, _ := f.Raw[k].([]any); return float64(len(l)) }
-	return 1 + n("items") + 64*n("entries") + n("ids")/64
+	cost := 1 + n("ids")/64
+	items, _ := f.Raw["items"].([]any)
+	for _, x := range items {
+		m, _ := x.(map[string]any)
+		rc, _ := m["rcpt"].([]any)
+		cost += float64(sigCount(m["rec"]) + len(rc))
+	}
+	entries, _ := f.Raw["entries"].([]any)
+	for _, x := range entries {
+		m, _ := x.(map[string]any)
+		sigs := sigCount(m["genesis"]) + sigCount(m["server"])
+		ch, _ := m["chain"].([]any)
+		for _, y := range ch {
+			sigs += sigCount(y)
+		}
+		cost += float64(sigs)
+	}
+	return cost
+}
+
+// sigCount is how many signatures a record (a loose value) asks to verify: at least one.
+func sigCount(v any) int {
+	m, _ := v.(map[string]any)
+	if l, ok := m["sigs"].([]any); ok && len(l) > 0 {
+		return len(l)
+	}
+	return 1
 }
 
 // pager produces a long answer one frame at a time (lock held); done when nothing follows.
@@ -158,6 +187,14 @@ func (r *Relay) pump(s *session) {
 		}
 		if f != nil && !s.enqueue(f) {
 			s.pend = nil
+		}
+		if s.yield {
+			// A page that stopped at maxScan: let the lock go; the writer pumps again once the
+			// frame is out.
+			s.yield = false
+			if f != nil {
+				break
+			}
 		}
 	}
 	s.hasPend.Store(len(s.pend) > 0)
@@ -199,6 +236,10 @@ func (p *listPager) next(r *Relay, s *session) (map[string]any, bool) {
 			continue
 		}
 		b := len(canon.Encode(v))
+		if b > limit {
+			p.pos++ // could never be sent: no page is ever over the frame limit
+			continue
+		}
 		if len(page) > 0 && (len(page) >= fed.MaxItems || size+b > limit) {
 			break
 		}
@@ -236,6 +277,9 @@ type subPager struct {
 	after uint64
 }
 
+// maxScan bounds the records one backlog page visits (a var for tests).
+var maxScan = 4096
+
 func (p *subPager) next(r *Relay, s *session) (map[string]any, bool) {
 	sb := s.subs[p.rid]
 	if sb == nil {
@@ -244,7 +288,19 @@ func (p *subPager) next(r *Relay, s *session) (map[string]any, bool) {
 	page := []any{}
 	size := 0
 	last, full := p.after, false
+	if len(sb.list) == 0 {
+		// No kind this node knows: nothing to send, ever (a nil list would scan every kind).
+		sb.live = true
+		return map[string]any{"m": "recs", "id": p.rid, "items": page, "cursor": r.cursor(r.st.Seq()), "more": false}, true
+	}
+	visited := 0
 	r.st.Scan(p.after, sb.list, func(e *store.Entry) bool {
+		// Records this session may not see are skipped, but only so many per page: the lock is
+		// held while scanning, and the rest waits for the next page (more: true, cursor moved on).
+		if visited++; visited > maxScan {
+			full, s.yield = true, true
+			return false
+		}
 		if r.shunned[e.Rec.Key] || !r.shows(s, e.Rec) {
 			last = e.Seq
 			return true
@@ -464,6 +520,7 @@ func (s *session) readFrame(ctx context.Context) (*wire.Frame, bool) {
 		s.close("")
 		return nil, false
 	}
+	s.size = len(b)
 	if code != "" {
 		s.fail(0, code, 0)
 		return nil, false

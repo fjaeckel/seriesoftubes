@@ -7,6 +7,7 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/config"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/ops"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/registry"
 	rt "github.com/fjaeckel/seriesoftubes/relay/internal/relaytest"
 )
 
@@ -93,10 +94,25 @@ func TestShunning(t *testing.T) {
 
 func TestShunVotesAlwaysTravel(t *testing.T) {
 	n := rt.New(t)
+	now := n.Clock.Unix()
 	a := n.Found("voting", "open")
 	b := n.Found("listening", "open")
+	// b keeps votes of registry servers only (8.3): a is registered.
+	asOf := now - now%fed.Day
+	listed := asOf - 31*fed.Day
+	id, file := rt.FileFor("voting", a.Op, a.Nodes[0].Key, a.Nodes[0].URL, now, &listed, &asOf, true)
+	if id != a.ID {
+		t.Fatal("registry file of another server")
+	}
+	snap, skipped := registry.Build(map[string][]byte{id + ".json": file}, now)
+	if len(skipped) > 0 {
+		t.Fatal(skipped)
+	}
 	// b takes nothing but the catalog from a: shun votes still arrive, player records do not.
 	bx := b.Nodes[0]
+	if err := bx.R.SetRegistry(snap); err != nil {
+		t.Fatal(err)
+	}
 	bc := *bx.Cfg
 	bc.Neighbours = []config.Neighbour{{URL: a.Nodes[0].URL, Take: []string{"catalog"}}}
 	bx.Cfg = &bc

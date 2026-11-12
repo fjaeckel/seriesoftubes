@@ -88,17 +88,39 @@ func NewLimiter(max int, window int64) *Limiter {
 	return &Limiter{max: max, window: window, seen: map[netip.Addr][]int64{}}
 }
 
+// MaxSeen bounds the addresses a Limiter holds (a var for tests).
+var MaxSeen = 1 << 16
+
+// limitKey is what connections are counted by: an IPv4 address, or an IPv6 address's /64 (one
+// subscriber's usual share, which hands out addresses without end).
+func limitKey(a netip.Addr) netip.Addr {
+	a = a.Unmap()
+	if a.Is6() {
+		if p, err := a.Prefix(64); err == nil {
+			return p.Addr()
+		}
+	}
+	return a
+}
+
 // Allow records a connection at now and reports whether it is within the limit.
 func (l *Limiter) Allow(a netip.Addr, now int64) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if now-l.sweep >= l.window {
+	a = limitKey(a)
+	// Swept once a window, and at most once a second while full.
+	if now-l.sweep >= l.window || len(l.seen) >= MaxSeen && l.seen[a] == nil && now != l.sweep {
 		for k, ts := range l.seen {
 			if len(ts) == 0 || now-ts[len(ts)-1] >= l.window {
 				delete(l.seen, k)
 			}
 		}
 		l.sweep = now
+	}
+	if len(l.seen) >= MaxSeen && l.seen[a] == nil {
+		// Full of addresses seen within the window: this one is let through uncounted rather
+		// than held, so memory stays bounded and nobody is locked out by others' addresses.
+		return true
 	}
 	ts := l.seen[a]
 	i := 0
