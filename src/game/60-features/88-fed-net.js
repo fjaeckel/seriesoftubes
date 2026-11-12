@@ -28,11 +28,11 @@ const fedMine=M=>!!M&&FED.live===M&&fedCur()===M.fed;
 function fedWake(){if(fedWorker())return;const f=fedCur();if(FED.live&&FED.live.fed!==f)fedStop();if(!f)return;
   let M=FED.live;
   if(!M){M=FED.live={fed:f,conns:new Map(),statsT:null,body:'',bodyAt:0};fedListen();M.cat=fedCatalogLoad().catch(()=>false);M.cat.then(()=>fedLearnAll(M));
-    M.statsT=FED.set(()=>fedStatsTick(M),FED.T.first);fedVotesTidy();if(fwOn())fwStart();}
+    M.statsT=FED.set(()=>fedStatsTick(M),FED.T.first);fedVotesTidy();fedDpendLoad(M);if(fwOn())fwStart();}
   for(const u of f.servers)if(!M.conns.has(u))fedConnect(M,u);
   for(const [u,c] of M.conns)if(!f.servers.includes(u)){M.conns.delete(u);fedHang(c);delete FED.st[u];}
   fedEmit('status',fedStatus());}
-function fedStop(){const M=FED.live;if(!M)return;FED.live=null;FED.clear(M.statsT);for(const c of M.conns.values())fedHang(c);FED.st={};fedEmit('status',fedStatus());}
+function fedStop(){const M=FED.live;if(!M)return;FED.live=null;FED.dpend=[];FED.clear(M.statsT);for(const c of M.conns.values())fedHang(c);FED.st={};fedEmit('status',fedStatus());}
 function fedListen(){if(FED.listening)return;FED.listening=true;
   const go=()=>{const M=FED.live;if(!M||!FED.visible())return;if(!fedMine(M)){fedWake();return;}
     for(const c of M.conns.values())if(c.state==='waiting'||c.state==='offline'&&c.tries)fedDial(c);};
@@ -73,11 +73,14 @@ function fedDial(c){if(!fedLive(c))return;fedHang(c);
   ws.onerror=()=>{};// a close follows
   ws.onclose=()=>{if(c.ws===ws)fedDrop(c,'closed');};}
 /* The connection is gone: try the server's next node at once, and after a full round of them wait, longer each time
-   (2 s doubling, at most 30 min, with jitter), and only while the tab is visible. */
-function fedDrop(c,why){fedErrLog(c.node,c.srv,why);fedHang(c);if(!fedLive(c))return;c.ni++;
+   (2 s doubling, at most 30 min, with jitter), and only while the tab is visible. The back-off starts again only after
+   a connection stayed ready for FED_STEADY seconds: a node that hangs up right after the sub is not redialled every
+   2 s. min: seconds to wait at least (a node's rate_limited retry). */
+const FED_STEADY=60;
+function fedDrop(c,why,min=0){fedErrLog(c.node,c.srv,why);fedHang(c);if(c.readyAt&&fedNow()-c.readyAt>=FED_STEADY)c.tries=0;c.readyAt=0;if(!fedLive(c))return;c.ni++;
   if(c.ni%c.nodes.length===0)c.tries++;
   fedSt(c,'offline');
-  const wait=c.wait=c.ni%c.nodes.length?250:Math.min(FED.T.cap,FED.T.base*2**Math.min(20,c.tries-1))*(0.5+FED.rand()/2);
+  const wait=c.wait=Math.max(min*1000,c.ni%c.nodes.length?250:Math.min(FED.T.cap,FED.T.base*2**Math.min(20,Math.max(0,c.tries-1)))*(0.5+FED.rand()/2));
   c.t=FED.set(()=>fedDial(c),wait);}
 // The nodes of a connection's server, from the catalog: the joined URL first, then the others, for failing over.
 async function fedLearn(c,srvs){const e=c.srv&&(srvs||await fedServers()).find(x=>x.id===c.srv);if(!e||!fedLive(c))return null;
@@ -105,22 +108,24 @@ function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.erro
       if(n-c.lastIn>=FED.T.dead/1000){fedDrop(c,'silent');return;}
       if(n-c.lastOut>=FED.T.idle/1000)fedSend(c,{m:'ping',id:c.nid=c.nid%2147483646+1});c.tick=FED.set(tk,FED.T.tick);},FED.T.tick);
     fedReady(c).catch(e=>{console.error('[tubes] federation sync',e);});return;}
+  // A connection-level error (no id): the node is done with this connection; rate_limited says how long to stay away.
+  if(f.m==='err'&&f.id===undefined){fedDrop(c,f.code,f.code==='rate_limited'?Math.min(3600,Math.max(1,Number.isSafeInteger(f.retry)?f.retry:1)):0);return;}
   if(c.phase!=='ready'&&c.phase!=='check'){fedDrop(c,'not_ready');return;}
   if(f.m==='ping'){fedSend(c,{m:'pong',id:f.id,now:fedNow()});return;}
   /* A page of the subscription: pages are handled one after another, and its cursor is kept only once every record of
      it was handled, so a connection lost in the middle resumes from the last whole page and skips nothing (§9.3). */
-  if(f.m==='recs'&&c.sub&&f.id===c.sub){const q=c.subQ||Promise.resolve(),node=c.node;
-    c.subQ=q.then(()=>fedRecs(c,f.items)).then(done=>{if(done&&fedCursorOk(f.cursor))return fedPut('kv','cursor:'+node,f.cursor);}).catch(()=>{});return;}
+  if(f.m==='recs'&&c.sub&&f.id===c.sub){const q=c.subQ||Promise.resolve(),k=fedCursorKey(c);
+    c.subQ=q.then(()=>fedRecs(c,f.items)).then(done=>{if(done&&fedCursorOk(f.cursor))return fedPut('kv',k,f.cursor);}).catch(()=>{});return;}
   // The operators' own subscription to the votes (§9.3: only a session that proved an operator key gets them).
-  if(f.m==='recs'&&c.vsub&&f.id===c.vsub){const q=c.subQ||Promise.resolve(),node=c.node;
-    c.subQ=q.then(()=>fedRecs(c,f.items)).then(done=>{if(done&&fedCursorOk(f.cursor))return fedVoteCursor(node,f.cursor);}).catch(()=>{});return;}
+  if(f.m==='recs'&&c.vsub&&f.id===c.vsub){const q=c.subQ||Promise.resolve(),k=fedVcKey(c);
+    c.subQ=q.then(()=>fedRecs(c,f.items)).then(done=>{if(done&&fedCursorOk(f.cursor))return fedVoteCursor(k,f.cursor);}).catch(()=>{});return;}
   if(f.m==='err'&&c.vsub&&f.id===c.vsub){c.vsub=0;return;}
   if(f.m==='excluded'&&f.id===undefined){fedExclIn(c,f);return;}
   // The node refused the subscription for now (rate_limited, internal): subscribe again after its retry.
   if(f.m==='err'&&c.sub&&f.id===c.sub){c.sub=0;if(f.code==='rate_limited'||f.code==='internal')c.subT=FED.set(()=>{c.subT=null;if(fedLive(c)&&c.phase==='ready'&&!c.sub)fedSub(c);},Math.min(60,Math.max(1,Number.isSafeInteger(f.retry)?f.retry:5))*1000);return;}
   if(f.m==='catalog'&&f.id===undefined){fedGossip(f.entries).catch(()=>{});return;}
   const q=f.id!==undefined&&c.rq.get(f.id);
-  if(!q){if(f.m==='err'&&f.id===undefined)fedDrop(c,f.code);return;}
+  if(!q)return;
   // A long answer (§9.3): recs items or catalog entries gathered over the frames until more is not true.
   const L=q.many&&{recs:'items',catalog:'entries'}[f.m];
   if(L){q.items.push(...f[L]);if(f.more===true&&++q.n<512&&q.items.length<200000){FED.clear(q.t);q.t=FED.set(()=>{c.rq.delete(f.id);q.res(null);},FED.T.req);return;}}
@@ -132,25 +137,30 @@ async function fedReady(c){await c.M.cat;if(!fedLive(c)||c.phase!=='check')retur
     const nonce=fedB64(fedNonce()),p=await fedAsk(c,{m:'challenge',nonce});if(!fedLive(c)||c.phase!=='check')return;if(!p||p.m!=='proof'){fedDrop(c,'bad_challenge');return;}
     if(await fedProofErr(p.proof,nonce,c.srv,c.nodeKey,fedNow())){fedDrop(c,'bad_challenge');return;}}
   if(!fedLive(c)||c.phase!=='check')return;await fedAuth(c);
-  if(!fedLive(c)||c.phase!=='check')return;c.phase='ready';c.tries=0;fedSt(c,'connected');fedFlush(c);
+  if(!fedLive(c)||c.phase!=='check')return;
+  // What a sub gives depends on the key proved (deals only to their parties): without it, no sub and no cursor.
+  if(!c.me){fedDrop(c,'auth');return;}
+  c.phase='ready';c.readyAt=fedNow();fedSt(c,'connected');fedFlush(c);
   await fedSub(c);if(!fedLive(c)||c.phase!=='ready')return;if(c.op)await fedVoteSub(c);if(!fedLive(c)||c.phase!=='ready')return;
   const cat=await fedAskRetry(c,{m:'servers'},true);if(cat&&cat.m==='catalog')await fedGossip(cat.entries);}
-// Follows the news from the last cursor kept for this node.
-async function fedSub(c){const since=(await fedGet('kv','cursor:'+c.node))||'';if(!fedLive(c)||c.phase!=='ready'||c.sub)return;
+/* Follows the news from the last cursor kept for this node and this network: IndexedDB is shared by every save slot,
+   and what a sub gives depends on the key proved, so another network's cursor would skip this one's deals. */
+const fedCursorKey=c=>'cursor:'+c.node+'#'+c.M.fed.key.pub,fedVcKey=c=>c.node+'#'+c.M.fed.key.pub;
+async function fedSub(c){const since=(await fedGet('kv',fedCursorKey(c)))||'';if(!fedLive(c)||c.phase!=='ready'||c.sub)return;
   c.sub=c.nid=c.nid%2147483646+1;fedSend(c,{m:'sub',id:c.sub,kinds:['announce','offer','accept','decline','leave','hide'],since:typeof since==='string'?since:''});}
 const fedCursorOk=x=>typeof x==='string'&&/^[A-Za-z0-9_-]{1,64}$/.test(x);
 /* Proves this network's key to the node (§9.3 auth), so it is told the reasons if the federation excluded it, then the
    operator key when this device has one of this server's: only then does the node send the shun votes. */
-async function fedAuth(c){const f=c.M.fed;if(!c.srv||!c.nodeKey)return;
+async function fedAuth(c){const f=c.M.fed;c.me=null;if(!c.srv||!c.nodeKey)return;
   const a=await fedAsk(c,{...await fedAuthMake(f.key.priv,c.nodeKey,c.srv,fedNow())});if(!fedLive(c))return;
   c.me=a&&a.m==='ack'?f.key.pub:null;await fedAuthOp(c);}
 async function fedAuthOp(c){const k=await fedOpKey();if(!k||!fedLive(c)||c.op===k.pub||!fedOpOf(await fedServers(),c.srv,k.pub))return;
   const a=await fedAsk(c,{...await fedAuthMake(k.seed,c.nodeKey,c.srv,fedNow())});if(!fedLive(c))return;
   if(a&&a.m==='ack'&&a.op===true){c.op=k.pub;if(c.phase==='ready')await fedVoteSub(c);}}
 // The votes, for an operator: their own subscription, from their own cursor, so votes from before it are not skipped.
-async function fedVoteSub(c){const cur=(await fedGet('kv','vcursors'))||{},since=cur[c.node];if(!fedLive(c)||c.phase!=='ready'||c.vsub||!c.op)return;
+async function fedVoteSub(c){const cur=(await fedGet('kv','vcursors'))||{},since=fedOwn(cur,fedVcKey(c))?cur[fedVcKey(c)]:'';if(!fedLive(c)||c.phase!=='ready'||c.vsub||!c.op)return;
   c.vsub=c.nid=c.nid%2147483646+1;fedSend(c,{m:'sub',id:c.vsub,kinds:['shun','unshun'],since:fedCursorOk(since)?since:''});}
-async function fedVoteCursor(node,x){const cur=(await fedGet('kv','vcursors'))||{};cur[node]=x;await fedPut('kv','vcursors',cur);}
+async function fedVoteCursor(k,x){const cur=(await fedGet('kv','vcursors'))||{};cur[k]=x;await fedPut('kv','vcursors',cur);}
 /* The operator key changed on this device: prove the new one to every connected server it operates, or stop following
    the votes and forget them when it was removed (votes are kept only on an operator's device). */
 async function fedOpChanged(){const M=FED.live,k=await fedOpKey();
@@ -178,7 +188,9 @@ function fedFlushSoon(){const M=FED.live;if(M&&fedMine(M))for(const c of M.conns
 // A record queued while a flush runs goes out with one more pass right after it.
 function fedFlush(c){if(c.flushP){c.more=true;return c.flushP;}return c.flushP=fedFlushRun(c).finally(()=>{c.flushP=null;if(c.more){c.more=false;if(fedLive(c)&&c.phase==='ready')fedFlush(c);}});}
 async function fedFlushRun(c){const f=c.M.fed;let ch=false;
-  {for(const r of f.out.slice()){if(!fedLive(c)||c.phase!=='ready')break;const id=await fedRid(r),done=FED.sent.get(id)||new Set();if(done.has(c.url))continue;
+  {for(const r of f.out.slice()){if(!fedLive(c)||c.phase!=='ready')break;const id=await fedRid(r),done=FED.sent.get(id)||new Set();
+      // Taken here before: it may be waiting only for a server this save has left since.
+      if(done.has(c.url)){if(f.servers.every(u=>done.has(u))){f.out=f.out.filter(x=>x!==r);FED.sent.delete(id);ch=true;}continue;}
       const a=await fedAsk(c,{m:'put',rec:r});if(!a)break;
       if(a.m==='err'&&(a.code==='rate_limited'||a.code==='internal')){if(a.code==='rate_limited'&&Number.isSafeInteger(a.retry))FED.set(()=>{if(fedLive(c))fedFlush(c);},Math.min(3600,Math.max(1,a.retry))*1000);break;}
       done.add(c.url);FED.sent.set(id,done);
@@ -224,13 +236,20 @@ async function fedRecsRun(c,items){const now=fedNow(),me=c.M.fed.key.pub,votes=[
   if(votes.length)await fedVotesAdd(votes,voters);
   if(n)fedEmit('records',{server:c.srv,n});return true;}
 /* A deal record for this network goes to the gameplay opened (§5.3): sealed ones only once opened, so it reads them
-   in clear. One whose sender's box is not known yet (its announce has not come) waits in memory for the next
-   announces, at most FED_DPEND; one that does not open is dropped. */
-const FED_DPEND=64;
-async function fedDealIn(f,e){const v=await fedOpenRec(f,e.rec);
-  if(v===undefined){if(!FED.dpend.some(x=>x.id===e.id)){FED.dpend.push(e);if(FED.dpend.length>FED_DPEND)FED.dpend.shift();}return;}
-  if(v)fedEmit('deal',{...e,rec:v});}
-async function fedDealRetry(f){const l=FED.dpend;FED.dpend=[];for(const e of l)await fedDealIn(f,e);}
+   in clear. One whose sender's box is not known yet (its announce has not come) waits for the next announces, kept
+   per network in IndexedDB (kv 'dpend#<key>'), since the sync cursor moves past it: at most FED_DPEND (the oldest go)
+   and FED_DPEND_AGE seconds. One that does not open is dropped. */
+const FED_DPEND=256,FED_DPEND_AGE=2592000,fedDpKey=f=>'dpend#'+f.key.pub;
+async function fedDealIn(f,e,keep=true){const v=await fedOpenRec(f,e.rec),x={rec:e.rec,id:e.id,slot:e.slot,server:e.server};
+  if(v===undefined){if(!FED.dpend.some(y=>y.id===e.id)){FED.dpend.push({...x,at:Number.isSafeInteger(e.at)?e.at:fedNow()});if(FED.dpend.length>FED_DPEND)FED.dpend.shift();}if(keep)await fedDpendSave(f);return;}
+  if(v)fedEmit('deal',{...x,rec:v});}
+async function fedDealRetry(f){const now=fedNow(),l=FED.dpend.filter(e=>now-e.at<FED_DPEND_AGE);FED.dpend=[];for(const e of l)await fedDealIn(f,e,false);await fedDpendSave(f);}
+const fedDpendSave=f=>fedPut('kv',fedDpKey(f),FED.dpend.slice());
+// A session starts: the deals this network had waiting come back, and are tried at once (an announce may have come).
+function fedDpendLoad(M){const p=(FED.recQ||Promise.resolve()).then(async()=>{const o=await fedGet('kv',fedDpKey(M.fed));if(!fedMine(M))return;
+    for(const e of Array.isArray(o)?o:[])if(e&&e.rec&&typeof e.rec==='object'&&!FdId(e.id)&&Number.isSafeInteger(e.at)&&!FED.dpend.some(x=>x.id===e.id))FED.dpend.push(e);
+    FED.dpend.sort((a,b)=>a.at-b.at);FED.dpend=FED.dpend.slice(-FED_DPEND);if(FED.dpend.length||o)await fedDealRetry(M.fed);});
+  FED.recQ=p.catch(()=>false);return p;}
 /* ---------- the leaderboards: the server ranks (§9.5) ---------- */
 // The joined URLs whose connection is ready now.
 const fedReadyConn=url=>{const M=FED.live,c=M&&M.conns.get(url);return c&&c.phase==='ready'&&c.srv?c:null;};
@@ -244,8 +263,8 @@ async function fedRankView(v,urls){const f=S&&S.fed;if(!f||!f.key)return {rows:[
   // A server caught sending a ranking its records do not give is left out (others are preferred) for a day.
   const bad=await fedUntrusted(),untrusted=urls.filter(u=>bad[u]).map(u=>bad[u].srv||u);urls=urls.filter(u=>!bad[u]);
   const got=await Promise.all(urls.map(async u=>{const c=fedReadyConn(u);
-    if(c){const a=fedRanksOk(await fedAskRetry(c,req));if(a){fedRanksPut(u,k,a).catch(()=>{});fedRankCheckSoon(c,req,a);return {a,srv:c.srv};}}
-    const o=await fedRanksGet(u,k);if(!o)return null;at=at===null?o.at:Math.min(at,o.at);return {a:o.a,srv:FED.st[u]&&FED.st[u].server};}));
+    if(c){const a=fedRanksOk(await fedAskRetry(c,req));if(a){fedRanksPut(u,me,k,a).catch(()=>{});fedRankCheckSoon(c,req,a);return {a,srv:c.srv};}}
+    const o=await fedRanksGet(u,me,k);if(!o)return null;at=at===null?o.at:Math.min(at,o.at);return {a:o.a,srv:FED.st[u]&&FED.st[u].server};}));
   const drop=new Set([...muted,...await fedShunned()]),srvs=await fedServers();
   for(const g of got)if(g&&g.srv){slot=Math.max(slot||0,g.a.slot);const h=await fedHides(g.srv,srvs);if(h)for(const x of h.rec.body.hide)drop.add(x);}
   return {...fedRankMerge(got.map(g=>g&&g.a),me,drop,50),at,slot,untrusted};}

@@ -77,7 +77,7 @@ test('sub pages are handled in order, so the cursor kept is the last page\'s', a
   await joinGame(p);
   assert.ok(await until(async () => (await run(p, 250), (await p.ev('fedNetworks()')).length === 40)));
   await run(p, 1000);
-  assert.equal(await p.ev(`fedGet('kv','cursor:'+${JSON.stringify(URL1)})`), 'e-2');
+  assert.equal(await p.ev(`fedGet('kv','cursor:'+${JSON.stringify(URL1)}+'#'+S.fed.key.pub)`), 'e-2');
   assert.deepEqual(p.errors, []);
 });
 

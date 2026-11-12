@@ -33,12 +33,14 @@ function fedSanitize(s){const f=s.fed;if(!f||typeof f!=='object'||Array.isArray(
   // A joined save starts its session once loaded; any other save loaded in this tab ends the one running.
   if(o.on||FED.live)fedSoon();}
 // A queued record, checked as far as can be without its signature (that is checked by every node that takes it).
-function fedOutClean(list,pub){let bytes=0,stats=null;const out=[];
+// The newest stats and the newest announce are kept apart from the cap (each replaces the one before, fedQueue).
+const FED_OUT_ONE=['stats','announce'];
+function fedOutClean(list,pub){let bytes=0;const out=[],one={};
   for(const r of list){if(!r||typeof r!=='object'||Array.isArray(r)||fedValues(r)||fedEnv(r,FED_REC)||!FED_CLIENT_KINDS.includes(r.kind)||r.key!==pub)continue;
     const n=fedSize(fedCanon(r));if(n>FED_KIND[r.kind][0]||FED_BODY[r.kind](r.body,{rec:r,asn:r.body.asn}))continue;
-    if(r.kind==='stats'){if(!stats||r.t>=stats.t)stats=r;continue;}
+    if(FED_OUT_ONE.includes(r.kind)){if(!one[r.kind]||r.t>=one[r.kind].t)one[r.kind]=r;continue;}
     if(out.length>=FED_OUT_MAX||bytes+n>FED_OUT_BYTES)continue;bytes+=n;out.push(r);}
-  if(stats)out.push(stats);return out;}
+  for(const k of FED_OUT_ONE)if(one[k])out.push(one[k]);return out;}
 /* A deal with another player, as the save keeps it: self-contained, so it works with no other data. The gameplay
    builds them: {id (the offer's id), deal, key, name, asn, start, end (null: no end), terms (as offered, checked like
    an offer's), role (who pays: peer for peering and swaps, else buy or sell), st (wait, run, over), on, rep, why, ai}.
@@ -74,11 +76,12 @@ const fedNow=()=>FED.now();
    decline go out sealed for the other network (§5.3, fedSealMine), which throws when its box is not known here. */
 async function fedSignMine(kind,body,f=S&&S.fed){if(!fedHasPriv(f))throw new Error('no key');return fedSealMine(kind,body,f);}
 /* Queues a signed record of this network to be sent to every joined server. Gives false when the queue is full (only
-   offers and answers are refused then; an older stats or announce is simply replaced by the newer one). */
+   offers and answers are refused then; an older stats or announce is simply replaced by the newer one, outside the cap,
+   so a full queue never loses this network's terms). */
 function fedQueue(r,f=S&&S.fed){if(!f||!r)return false;
-  if(r.kind==='stats'||r.kind==='announce')f.out=f.out.filter(x=>x.kind!==r.kind);
-  const n=fedSize(fedCanon(r)),others=f.out.filter(x=>x.kind!=='stats');
-  if(r.kind!=='stats'&&(others.length>=FED_OUT_MAX||others.reduce((a,x)=>a+fedSize(fedCanon(x)),0)+n>FED_OUT_BYTES))return false;
+  if(FED_OUT_ONE.includes(r.kind)){for(const x of f.out)if(x.kind===r.kind){const id=FED.ids.get(x);if(id)FED.sent.delete(id);}f.out=f.out.filter(x=>x.kind!==r.kind);}
+  else{const n=fedSize(fedCanon(r)),others=f.out.filter(x=>!FED_OUT_ONE.includes(x.kind));
+    if(others.length>=FED_OUT_MAX||others.reduce((a,x)=>a+fedSize(fedCanon(x)),0)+n>FED_OUT_BYTES)return false;}
   f.out.push(r);fedFlushSoon();return true;}
 // What the boards rank about this game now (§5.2). The gameplay may replace parts through FED.hooks.stats(body).
 function fedStatsBody(s=S){const pops={};for(const c of Object.keys(s.pops)){const p=s.pops[c];if(p&&!(p.down>s.day))pops[c]=1;}
