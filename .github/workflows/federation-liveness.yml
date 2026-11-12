@@ -1,0 +1,130 @@
+name: Federation liveness
+
+# Once a week: challenge every server listed in the registry (federation/servers/, docs/FEDERATION-PROTOCOL.md 11.3)
+# with `relay check-registry`, which connects to each node and checks it answers with its node key. Then, in ONE pull
+# request for a maintainer to merge (never merged automatically):
+#   - `listed` is set on files that have none (the day this job first saw them),
+#   - `answered` is set to today on files where a node answered,
+#   - files that have not answered for 14 days (two weekly runs in a row) are removed.
+#
+# State: the `listed` and `answered` stamps in the files themselves, which the spec defines and the shun tally uses
+# anyway, so there is no separate state file and nothing is read from git history. Merge the pull request each week:
+# a run starts from main, so stamps in an unmerged pull request do not count (and are replaced by this run's).
+#
+# The pull request always comes from the branch federation-liveness, force-pushed each run, so there is never more than
+# one. Opening it with the workflow token needs "Allow GitHub Actions to create and approve pull requests" in the
+# repository's Actions settings. Pull requests made with that token start no workflows, so CI does not run on it: this
+# job has just run the relay's full check on every file.
+on:
+  schedule:
+    - cron: '19 4 * * 3'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: federation-liveness
+  cancel-in-progress: false
+
+jobs:
+  liveness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write        # push the federation-liveness branch
+      pull-requests: write   # open or update its pull request
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BRANCH: federation-liveness
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+
+      - id: has
+        run: |
+          n=$(ls federation/servers/*.json 2>/dev/null | wc -l)
+          if [ ! -f relay/go.mod ] || [ "$n" = 0 ]; then echo "::notice::No relay or no listed servers: nothing to check."; echo "run=false" >> "$GITHUB_OUTPUT"
+          else echo "$n listed server(s)."; echo "run=true" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: steps.has.outputs.run == 'true'
+        with:
+          go-version-file: relay/go.mod
+          cache-dependency-path: relay/go.sum
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.has.outputs.run == 'true'
+        with:
+          node-version: 24
+
+      - name: Challenge every listed server
+        id: check
+        if: steps.has.outputs.run == 'true'
+        run: |
+          set -uo pipefail
+          (cd relay && go build -o "$RUNNER_TEMP/relay" ./cmd/relay) || exit 1
+          stop="stop-$RANDOM$RANDOM$RANDOM"
+          answered=""; total=0
+          { echo "## Federation liveness"; echo; } >> "$GITHUB_STEP_SUMMARY"
+          for f in federation/servers/*.json; do
+            total=$((total + 1)); id=$(basename "$f" .json)
+            out=$("$RUNNER_TEMP/relay" check-registry "$f" 2>&1); code=$?
+            echo "::stop-commands::$stop"; echo "----- $f"; echo "$out"; echo "::$stop::"
+            if [ "$code" = 0 ]; then answered="$answered $id"; echo "- \`$id\`: answered" >> "$GITHUB_STEP_SUMMARY"
+            else echo "- \`$id\`: **no answer** ($(echo "$out" | grep -m1 . | cut -c1-200))" >> "$GITHUB_STEP_SUMMARY"; fi
+          done
+          # Every server silent at once is far more likely this runner's network than the whole federation: stop, and
+          # remove nothing.
+          if [ -z "$answered" ]; then echo "::error::None of the $total listed servers answered: not stamping or removing anything."; exit 1; fi
+          echo "answered=$answered" >> "$GITHUB_OUTPUT"
+
+      - name: Stamp and remove
+        id: stamp
+        if: steps.has.outputs.run == 'true'
+        env:
+          ANSWERED: ${{ steps.check.outputs.answered }}
+        run: |
+          set -euo pipefail
+          day=$(( $(date -u +%s) / 86400 * 86400 ))
+          # Word splitting on purpose: ANSWERED is a space-separated list of server identities.
+          node scripts/registry.js stamp federation/servers --day "$day" --answered $ANSWERED | tee "$RUNNER_TEMP/report.json"
+          echo "day=$(date -u -d "@$day" +%F)" >> "$GITHUB_OUTPUT"
+          # Only the registry may change.
+          if git status --porcelain | grep -v ' federation/servers/' | grep -q .; then git status --porcelain; echo "::error::unexpected changes"; exit 1; fi
+
+      - name: Open or update the pull request
+        if: steps.has.outputs.run == 'true'
+        env:
+          DAY: ${{ steps.stamp.outputs.day }}
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain -- federation/servers)" ]; then echo "Nothing changed."; exit 0; fi
+          r="$RUNNER_TEMP/report.json"
+          list() { jq -r ".$1[]" "$r" | sed 's/^/- `/; s/$/`/'; }
+          {
+            echo "The weekly registry check of $DAY (federation-liveness.yml)."
+            echo
+            echo "**Removed** (no node answered for 14 days):"; list removed; [ "$(jq '.removed|length' "$r")" = 0 ] && echo "- none"
+            echo
+            echo "**Answered** (\`answered\` set to $DAY):"; list stamped; [ "$(jq '.stamped|length' "$r")" = 0 ] && echo "- none"
+            echo
+            echo "**First listed today** (\`listed\` set):"; list listed; [ "$(jq '.listed|length' "$r")" = 0 ] && echo "- none"
+            echo
+            echo "**Silent, kept for now:**"; list silent; [ "$(jq '.silent|length' "$r")" = 0 ] && echo "- none"
+            echo
+            echo "This job ran \`relay check-registry\` with the live challenge on every file; CI does not run on pull requests made with the workflow token. Review and merge by hand: it is never merged automatically. Next week's run replaces this pull request."
+          } > "$RUNNER_TEMP/body.md"
+          git switch -C "$BRANCH"
+          git add -A federation/servers
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Registry: weekly liveness stamps $DAY"
+          git push --force origin "HEAD:refs/heads/$BRANCH"
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --base main --state open --json number -q '.[0].number')
+          if [ -n "$pr" ]; then
+            gh pr edit "$pr" --repo "$GITHUB_REPOSITORY" --title "Registry: weekly liveness $DAY" --body-file "$RUNNER_TEMP/body.md"
+            echo "Updated pull request #$pr."
+          else
+            gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" --title "Registry: weekly liveness $DAY" --body-file "$RUNNER_TEMP/body.md"
+          fi
