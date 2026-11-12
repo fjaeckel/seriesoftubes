@@ -1,0 +1,94 @@
+{
+  "description": "Alice published A1 (as in 001: transit 900 per Gbps with tiers 10000 Mbps -> 100 off and 100000 -> 250, term 90, automatic; PNI setup 5000, 10G 1500/month, 100G 9000, term 180, by review; exchange ports at fra 1G 200, 10G 800, automatic), founded on day 20000. Offers are at t = 1767229200, UTC day 20454. Newcomer price: terms.founded is the buyer's join day; allowed when 20454 - founded is 0 to 29 and the seller joined at least 30 days before (20454 - 20000 = 454); every price is then div(p * 750, 1000). A 10G port at fra for newcomer Bob (founded 20451): div(800 * 750, 1000) = 600 a month, 30 days, automatic.",
+  "input": {
+    "announces": [
+      {
+        "id": "A1",
+        "kind": "announce",
+        "key": "kAlice",
+        "t": 1767225600,
+        "body": {
+          "rates": {
+            "transit": {
+              "perGbps": 900,
+              "commit": [
+                {
+                  "mbps": 10000,
+                  "off": 100
+                },
+                {
+                  "mbps": 100000,
+                  "off": 250
+                }
+              ],
+              "term": 90
+            },
+            "pni": {
+              "setup": 5000,
+              "ports": [
+                {
+                  "mbps": 10000,
+                  "monthly": 1500
+                },
+                {
+                  "mbps": 100000,
+                  "monthly": 9000
+                }
+              ],
+              "term": 180
+            },
+            "ix": {
+              "ports": [
+                {
+                  "mbps": 1000,
+                  "monthly": 200
+                },
+                {
+                  "mbps": 10000,
+                  "monthly": 800
+                }
+              ],
+              "join": "anyone",
+              "at": [
+                "fra"
+              ]
+            }
+          },
+          "auto": {
+            "peering": "auto",
+            "transit": "auto",
+            "pni": "review",
+            "swap": "review",
+            "consortium": "review",
+            "port": "auto"
+          },
+          "founded": 20000
+        }
+      }
+    ],
+    "offer": {
+      "id": "O1",
+      "kind": "offer",
+      "key": "kBob",
+      "t": 1767229200,
+      "body": {
+        "to": "kAlice",
+        "deal": "port",
+        "basis": "A1",
+        "terms": {
+          "at": "fra",
+          "mbps": 10000,
+          "monthly": 600,
+          "term": 30,
+          "founded": 20451
+        }
+      }
+    }
+  },
+  "expect": {
+    "ok": true,
+    "auto": true,
+    "start": 1767229200,
+    "end": 1769821200
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "description": "Its own key as a transit customer.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false,
+        "cust": [
+          "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw"
+        ]
+      },
+      "sig": "_ZAY3OMmMuYVAVoCtYCMGBx-BML2bYd82W9UtrnN2txrPDOGYBxg_lj_zlN4Yk7VSVdNYqvwCBlBs1wBNHrFBg"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

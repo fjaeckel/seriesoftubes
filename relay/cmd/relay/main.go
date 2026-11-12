@@ -48,7 +48,7 @@ Setting up:
 
 Day to day (talks to the running relay over its local socket):
   relay status | servers | players | nodes
-  relay board [--board pops|pies|traffic|total] [--measure total|growth] [--division all|human|ai]
+  relay board [--board pops|pies|traffic|total|cone] [--measure total|growth] [--division all|human|ai]
   relay hide KEY [--names | --refuse]      relay unhide KEY
   relay shun KEY --reason cheating|offensive_name|spam|abuse      relay unshun KEY
   relay ops propose add-operator|remove-operator|add-node|remove-node KEY [--url wss://...]
@@ -318,7 +318,7 @@ func cmdShow(cmd string, args []string) error {
 
 func cmdBoard(args []string) error {
 	fs, dir := flags("board")
-	b := fs.String("board", "pops", "pops, pies, traffic or total")
+	b := fs.String("board", "pops", "pops, pies, traffic, total or cone")
 	m := fs.String("measure", "total", "total or growth")
 	d := fs.String("division", "all", "all, human or ai")
 	parse(fs, args)

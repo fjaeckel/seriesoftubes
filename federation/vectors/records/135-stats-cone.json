@@ -1,0 +1,33 @@
+{
+  "description": "stats listing its transit customers (cust) and upstreams (up), and tier2.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false,
+        "cust": [
+          "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+          "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns"
+        ],
+        "up": [
+          "8WhJ_ZF9GnSU3KMRUROfUj6zlyV2Ft7YJHPeie8Uvsc"
+        ],
+        "tier2": true
+      },
+      "sig": "WaKZ2-9Ej5G7U5w-d0a3HLTobVbrIClFqNWJLQ3SoSHq0zvCrGhdOb9P89YHzQES3XNODZgPNP_hupZKLbbHCQ"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "stats",
+    "id": "4SCiWFImrtKj-Exvqy9u1fOE6W0RkuRFDNkMGbmbbmc"
+  }
+}

@@ -57,12 +57,13 @@ func init() {
 
 	areas["boards"] = func(t *testing.T, in, _ json.RawMessage) any {
 		x := decode[struct {
-			Now      int64    `json:"now"`
-			Board    string   `json:"board"`
-			Measure  string   `json:"measure"`
-			Division string   `json:"division"`
-			Exclude  []string `json:"exclude"`
-			Cities   []string `json:"cities"`
+			Now      int64            `json:"now"`
+			Board    string           `json:"board"`
+			Measure  string           `json:"measure"`
+			Division string           `json:"division"`
+			Exclude  []string         `json:"exclude"`
+			Cities   []string         `json:"cities"`
+			Founded  map[string]int64 `json:"founded"` // the cone board: founded of each key's newest announce
 			Records  []struct {
 				ID   string          `json:"id"`
 				Key  string          `json:"key"`
@@ -72,7 +73,7 @@ func init() {
 			} `json:"records"`
 		}](t, in)
 		q := boards.Query{Now: x.Now, Board: x.Board, Measure: x.Measure, Division: x.Division,
-			Exclude: map[string]bool{}, Cities: x.Cities}
+			Exclude: map[string]bool{}, Cities: x.Cities, Founded: x.Founded}
 		for _, k := range x.Exclude {
 			q.Exclude[k] = true
 		}
@@ -91,7 +92,11 @@ func init() {
 		for i, r := range recs {
 			raws[i] = rank.Raw{ID: r.ID, Key: r.Key, Slot: r.Slot, T: r.T, Body: r.Body}
 		}
-		a.Load(raws, nil, q.Exclude, nil)
+		anns := map[string]*rank.Ann{}
+		for k, f := range x.Founded {
+			anns[k] = &rank.Ann{Name: k, Founded: f}
+		}
+		a.Load(raws, anns, q.Exclude, nil)
 		ans, err := a.Rank(context.Background(), &rank.Slice{Board: x.Board, Measure: x.Measure, Division: x.Division, Cities: x.Cities}, x.Now, "", -1)
 		if err != nil {
 			t.Fatal(err)

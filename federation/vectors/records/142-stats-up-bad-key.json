@@ -1,0 +1,27 @@
+{
+  "description": "An upstream that is not a key.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false,
+        "up": [
+          "nope"
+        ]
+      },
+      "sig": "GcgyiWlBIxbHxqXOe1caa5eP-6lP90xIJtIWuy83zf2tiUlPfd9fFyUca_wz5gA4rd70zksQt74edteVJkMLCw"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_key"
+  }
+}

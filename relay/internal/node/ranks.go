@@ -94,7 +94,7 @@ func (r *Relay) rankFrame(s *session, f *wire.Frame) {
 			s.fail(f.ID, code, 0)
 			return
 		}
-		ids, slot, err := r.rank.Why(q, key, now)
+		ids, anns, slot, err := r.rank.Why(q, key, now)
 		if errors.Is(err, rank.ErrTooMany) {
 			s.fail(f.ID, fed.TooMany, 0)
 			return
@@ -108,14 +108,16 @@ func (r *Relay) rankFrame(s *session, f *wire.Frame) {
 		if !r.room(s, f.ID) {
 			return
 		}
-		list := make([]*store.Entry, 0, len(ids)+1)
+		list := make([]*store.Entry, 0, len(ids)+len(anns))
 		for _, id := range ids {
 			if e := r.st.Get(id); e != nil {
 				list = append(list, e)
 			}
 		}
-		if a := r.newestAnnEntry(key); a != nil {
-			list = append(list, a)
+		for _, k := range anns {
+			if a := r.newestAnnEntry(k); a != nil {
+				list = append(list, a)
+			}
 		}
 		r.later(s, &listPager{rid: f.ID, m: "recs", entries: list, slot: slot})
 	case "facets":
@@ -146,7 +148,7 @@ func (r *Relay) rankFrame(s *session, f *wire.Frame) {
 		nets, reps := r.rank.Nets(keys, r.ownRow(s))
 		ns, rs := make([]any, len(nets)), make([]any, len(reps))
 		for i, x := range nets {
-			ns[i] = map[string]any{"key": x.Key, "ai": x.AI, "tier1": x.Tier1}
+			ns[i] = map[string]any{"key": x.Key, "ai": x.AI, "tier1": x.Tier1, "tier2": x.Tier2, "pops": x.Pops, "cust": int64(x.Cust), "slot": x.Slot}
 		}
 		for i, x := range reps {
 			rs[i] = map[string]any{"key": x.Key, "in": x.In, "out": x.Out}

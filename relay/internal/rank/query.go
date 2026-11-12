@@ -137,6 +137,9 @@ func (a *Agg) stamp(c int64) string {
 // Called on a worker; it waits only for a base another worker is working out.
 func (a *Agg) base(ctx context.Context, q *Slice, c int64) (*flight, error) {
 	k := a.stamp(c) + q.baseKey()
+	if q.Board == "cone" { // who is established comes from the announces
+		k += "|" + itoa(int64(a.meta.Load()))
+	}
 	f, owner := a.flightFor(a.bases, k)
 	if owner {
 		f.rows = a.computeBase(q.Board, q.Measure, q.Cities)
@@ -160,6 +163,10 @@ func (a *Agg) computeBase(board, measure string, cities []string) []brow {
 	from, last := a.c-N*fed.SlotLen, a.c-fed.SlotLen
 	rows := make([]brow, 0, len(a.nets))
 	var buf [2][][2]int64
+	var cs map[*net][]int32
+	if board == "cone" {
+		cs = a.cones()
+	}
 	for _, x := range a.nets {
 		if len(x.win) == 0 || a.ex[x.key] {
 			continue
@@ -172,9 +179,9 @@ func (a *Agg) computeBase(board, measure string, cities []string) []brow {
 		if growth && x.value(from) == nil {
 			continue
 		}
-		v := a.total(x, board, rg, fed.WindowSlots, N, from, &buf)
+		v := a.total(x, board, rg, fed.WindowSlots, N, from, &buf, cs[x])
 		if growth {
-			prev := a.total(x, board, rg, 0, fed.WindowSlots, from, &buf)
+			prev := a.total(x, board, rg, 0, fed.WindowSlots, from, &buf, cs[x])
 			v = fed.Div((v-prev)*10000, max(prev, floor[board]))
 		}
 		rows = append(rows, brow{x, l, v})
@@ -210,9 +217,30 @@ func (g *region) has(s *stat) bool {
 	return v
 }
 
-// total is 10.4 over window slots lo..hi-1 (read lock held).
-func (a *Agg) total(x *net, board string, rg *region, lo, hi int, from int64, buf *[2][][2]int64) int64 {
+// total is 10.4 over window slots lo..hi-1 (read lock held). cone: x's cone size per window slot
+// (nil: none at any slot).
+func (a *Agg) total(x *net, board string, rg *region, lo, hi int, from int64, buf *[2][][2]int64, cone []int32) int64 {
 	switch board {
+	case "cone":
+		v := buf[0][:0]
+		x.runs(from, lo, hi, func(i, j int, r *stat) {
+			if r == nil || !r.normal {
+				return
+			}
+			if cone == nil {
+				v = append(v, [2]int64{0, int64(j - i)})
+				return
+			}
+			for k := i; k < j; k++ {
+				if n := len(v) - 1; n >= 0 && v[n][0] == int64(cone[k]) {
+					v[n][1]++
+				} else {
+					v = append(v, [2]int64{int64(cone[k]), 1})
+				}
+			}
+		})
+		buf[0] = v
+		return p95(v)
 	case "pops", "pies":
 		var best int64
 		any := false
@@ -407,7 +435,7 @@ func (a *Agg) Warm(now int64) {
 		return
 	}
 	c := a.prepare(now)
-	for _, b := range []string{"traffic", "total", "pops", "pies"} {
+	for _, b := range Boards {
 		for _, m := range []string{"total", "growth"} {
 			q := &Slice{Board: b, Measure: m, Division: "all"}
 			select {
@@ -495,11 +523,16 @@ func (a *Agg) computeFacets(c int64) *Facets {
 	return &Facets{Slot: c, Models: out[0], Harnesses: out[1], From: out[2], Homes: out[3]}
 }
 
-// Net is what the game uses of another network's newest stats record (9.5 nets).
+// Net is what the game uses of another network's newest stats record (9.5 nets): who is an AI
+// and Tier 1, and what a mentor's game reads for its dividend (Tier 2, POPs, transit customers).
 type Net struct {
 	Key   string `json:"key"`
 	AI    bool   `json:"ai"`
 	Tier1 bool   `json:"tier1"`
+	Tier2 bool   `json:"tier2"`
+	Pops  int64  `json:"pops"`
+	Cust  int    `json:"cust"`
+	Slot  int64  `json:"slot"` // board slot of that record: when it was heard
 }
 
 // Report is what one network's newest stats record says about traffic with the asker.
@@ -525,7 +558,7 @@ func (a *Agg) Nets(keys []string, me string) ([]Net, []Report) {
 	for _, k := range keys {
 		if x := a.nets[k]; x != nil && !a.ex[k] {
 			if r := x.newest(); r != nil {
-				nets = append(nets, Net{Key: k, AI: r.ai, Tier1: r.tier1})
+				nets = append(nets, Net{Key: k, AI: r.ai, Tier1: r.tier1, Tier2: r.tier2, Pops: r.popsN, Cust: len(r.cust), Slot: r.slot})
 			}
 		}
 	}

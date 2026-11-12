@@ -24,14 +24,32 @@ func bigFed(nets int) ([]Raw, map[string]*Ann) {
 	key := func(i int) string { return fmt.Sprintf("net%06d", i) }
 	for i := range nets {
 		k := key(i)
-		anns[k] = &Ann{Name: k, Home: []string{"DE", "FR", "US", "JP"}[i%4], Policy: "open", Founded: fed.Div(t0, fed.Day) - int64(i%200), Day: int64(i % 2000)}
+		anns[k] = &Ann{Name: k, Home: []string{"DE", "FR", "US", "JP"}[i%4], Policy: "open", Founded: fed.Div(t0, fed.Day) - 40 - int64(i%200), Day: int64(i % 2000)}
 		for s := from + int64(rng.IntN(7200)); s < c; s += 7200 {
-			tr := make([]any, 0, 5)
+			tr := make([]any, 0, 10)
 			for j := range 5 {
 				tr = append(tr, map[string]any{"key": key((i + 1 + j*97) % nets), "in": int64(rng.IntN(10000)), "out": int64(rng.IntN(10000))})
 			}
+			// Traffic both ways with its transit parent and children (the cone counts only those edges).
+			for _, j := range []int{(i - 1) / 4, 4*i + 1, 4*i + 2, 4*i + 3, 4*i + 4} {
+				if j != i && j < nets && (j != (i-1)/4 || i > 0) {
+					tr = append(tr, map[string]any{"key": key(j), "in": int64(1 + rng.IntN(1000)), "out": int64(1 + rng.IntN(1000))})
+				}
+			}
 			b := map[string]any{"mode": "normal", "pops": map[string]any{cities[i%4]: int64(1), cities[(i+1)%4]: int64(1)}, "traffic": tr,
 				"tier1": i%50 == 0, "shareCountry": true, "total": int64(rng.IntN(100000)), "pies": int64(rng.IntN(500))}
+			// Transit: a tree of sellers, each network buying from its parent (i-1)/4 and selling to
+			// its children 4i+1..4i+4, both sides confirming: cones up to all 10000 at the root.
+			var cust []any
+			for j := 4*i + 1; j <= 4*i+4 && j < nets; j++ {
+				cust = append(cust, key(j))
+			}
+			if cust != nil {
+				b["cust"] = cust
+			}
+			if i > 0 {
+				b["up"] = []any{key((i - 1) / 4)}
+			}
 			if i%5 == 0 {
 				b["ai"] = map[string]any{"model": fmt.Sprint("model-", i%7), "harness": "h"}
 			}
@@ -45,7 +63,7 @@ func bigFed(nets int) ([]Raw, map[string]*Ann) {
 func slicesMix() []*Slice {
 	str := func(s string) *string { return &s }
 	var out []*Slice
-	for _, b := range []string{"traffic", "total", "pops", "pies"} {
+	for _, b := range Boards {
 		for _, m := range []string{"total", "growth"} {
 			out = append(out, &Slice{Board: b, Measure: m, Division: "all"}, &Slice{Board: b, Measure: m, Division: "ai"})
 		}
@@ -131,6 +149,37 @@ func benchRank(b *testing.B, cold bool) {
 }
 
 func BenchmarkRank100Cold(b *testing.B) { benchRank(b, true) }
+
+// The cone board alone on 10000 networks (a tree of transit: cones up to 9999), worked out afresh
+// each time (a record lands in a past slot first), then answered from the cache.
+func BenchmarkConeBoard(b *testing.B) {
+	a := loaded(b, 10000)
+	defer a.Close()
+	q := &Slice{Board: "cone", Measure: "total", Division: "all"}
+	for _, cold := range []bool{true, false} {
+		name := "warm"
+		if cold {
+			name = "cold"
+		}
+		b.Run(name, func(b *testing.B) {
+			b.ReportAllocs()
+			for i := range b.N {
+				if cold {
+					s := fed.Slot(t0) - 100*fed.SlotLen
+					a.Stats(fmt.Sprint("cone", i), "net000001", s, s+int64(i), map[string]any{"mode": "normal", "pops": map[string]any{}, "traffic": []any{}}, "")
+					a.flush()
+				}
+				ans, err := a.Rank(context.Background(), q, t0, "net000000", 50)
+				if err != nil {
+					b.Fatal(err)
+				}
+				if i == 0 && cold && ans.Rows[0].Value < 9000 {
+					b.Fatalf("root cone %d", ans.Rows[0].Value)
+				}
+			}
+		})
+	}
+}
 func BenchmarkRank100Warm(b *testing.B) { benchRank(b, false) }
 
 // One stats record arriving: in the running slot (most of them), and late, in a past slot.

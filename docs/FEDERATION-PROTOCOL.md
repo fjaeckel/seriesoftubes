@@ -304,6 +304,9 @@ What the boards rank. The country is never in here: the receiving node adds it t
 **When a client sends it:** whenever the values change, and at least once an hour while the game is open, but never
 more than one per slot. Carrying forward (10.2) covers the slots in between, so there is no need to send every slot.
 
+The largest body a game can send (512 cities, 256 traffic entries, 128 customers, 16 upstreams, an AI setup, every
+number at its maximum) is under the 40960-byte limit (13.2); the `records` vector `stats-biggest` holds it.
+
 | Field | Type | Rule |
 | --- | --- | --- |
 | `mode` | string | `normal`, `sandbox`, `open_gates`, `puzzle`, `scenario`, `weekly` or `architect`. Only `normal` is ranked |
@@ -311,7 +314,10 @@ more than one per slot. Carrying forward (10.2) covers the slots in between, so 
 | `pies` | Count(10000000), optional | Pies in service (`pieLiveAll()`). Absent: the save has no Pie in the Sky company |
 | `traffic` | [{key: Key, in: Mbps, out: Mbps}] max 256 | Traffic with each other player network right now: `in` received from it, `out` sent to it. Keys unique (`duplicate`), never the author's own (`bad_field`) |
 | `total` | Mbps, optional | The network's whole traffic right now, the busier direction: what the game shows as traffic served. Absent (older games): 0. Self-reported, nobody can confirm it; accepted, the boards are not competitive (ADR 0005) |
+| `cust` | [Key] max 128, optional | Its transit customers among the player networks: those it sells transit to in a deal running now (5.3). Unique (`duplicate`), never the author's own key (`bad_field`). Absent: none. The cone board (10.4) counts an edge only when the customer confirms it in `up` |
+| `up` | [Key] max 16, optional | The player networks it buys transit from in a deal running now. Same rules as `cust` |
 | `tier1` | Bool | Tier 1 in the game's rank |
+| `tier2` | Bool, optional | Tier 2 or better in the game's rank. Absent: false. Read by a mentor's game (9.5 `nets`, 10.10), never ranked |
 | `ai` | object, optional | `{model: Label(64), harness: Label(64)}`, declared by whoever runs the agent. Absent: a human |
 | `shareCountry` | Bool | The player lets the server attach their country |
 
@@ -361,12 +367,15 @@ The offer in clear (an open consortium project on the wire, or a sealed offer on
 | `deal` | `terms` |
 | --- | --- |
 | `peering` | `{at: [City] 1 to 16 unique, via: ix\|pni}` |
-| `transit` | `{mbps: Mbps (committed), perGbps: Money, term: Days, at: [City] 1 to 16 unique}` |
-| `pni` | `{at: City, mbps: Mbps, setup: Money, monthly: Money, term: Days}` |
-| `port` | `{at: City, mbps: Mbps, monthly: Money, term: Days}` |
+| `transit` | `{mbps: Mbps (committed), perGbps: Money, term: Days, at: [City] 1 to 16 unique, founded?}` |
+| `pni` | `{at: City, mbps: Mbps, setup: Money, monthly: Money, term: Days, founded?}` |
+| `port` | `{at: City, mbps: Mbps, monthly: Money, term: Days, founded?}` |
 | `swap` | `{give: {a: City, b: City, mbps: Mbps}, take: {a: City, b: City, mbps: Mbps}, term: Days}` |
 | `consortium` | `{name: Name, a: City, b: City, members: integer 2 to 16, share: Money, pairs: integer 1 to 16}` |
-| `wave` | `{a: City, b: City (a < b, as on the card), gbps: 100\|400\|800\|1600, monthly: Money, term: Days}`: one wave the author buys from `to` |
+| `wave` | `{a: City, b: City (a < b, as on the card), gbps: 100\|400\|800\|1600, monthly: Money, term: Days, founded?}`: one wave the author buys from `to` |
+
+`founded` (optional, Count(10000000), on the four priced deals): the buyer (the offer's author) claims the newcomer
+price, giving the real day it joined, as its `announce` says (5.1). 10.10 checks it.
 
 `accept`: `{offer: Id, to: Key}` where `to` is the offer's author. `decline` (once opened): `{offer: Id, to: Key,
 reason}` with `reason` one of `declined`, `conditions`, `depeer`, `excluded`, `quiet`. A `decline` of a running deal
@@ -788,7 +797,7 @@ checks it by spot checks (below).
 
 With `c = slot(now)` at the node:
 
-- **`rank`** `{m, id, board, measure, division, filters?, n?}`. `board` is `traffic`, `total`, `pops` or `pies`;
+- **`rank`** `{m, id, board, measure, division, filters?, n?}`. `board` is `traffic`, `total`, `pops`, `pies` or `cone`;
   `measure` `total` or `growth`; `division` `all`, `human` or `ai`; `n` the rows wanted, 1 to 100 (default 50);
   `filters` an object with any of the members of 10.12. A value not allowed is answered `err` `bad_field` (the frame
   is fine, so the connection stays); members of `filters` not defined here are ignored. The answer is
@@ -812,14 +821,19 @@ With `c = slot(now)` at the node:
   carrying `slot` (`c`). They hold every `stats` record the node holds of `key`, its newest `announce`, and on the
   traffic board every `stats` record of each network that any of those records lists (whose reports the min() rule
   reads and whose POPs a region asks about), except networks the server leaves out (their traffic counts 0 anyway).
+  On the cone board, instead, every `stats` record and the newest `announce` of each network the key's cone can
+  reach: those any held record of the key lists in `cust`, those any held record of theirs lists, and so on (whose
+  `up`, traffic and `founded` decide each edge, 10.4), except networks the server leaves out.
   At most 512 such networks and 20000 records: beyond that `err` `too_many`. `key` not a Key: `bad_key`.
 - **`facets`** `{m, id}`: the values a filter sheet offers. The answer `facets` `{m, id, slot, models, harnesses, from,
   homes}` lists, over the networks with a value at `last` that the server does not leave out, the AI `model`s and
   `harness`es of `eff(X, last)` (at most 64 each), the countries of their records' receipts (`from`) and the `home` of
   their newest announces (at most 256 each), each sorted and unique.
 - **`nets`** `{m, id, keys}`, `keys` at most 64 Keys: what the gameplay needs of other networks without their records.
-  The answer `netstats` `{m, id, nets, reports}`: `nets` `[{key, ai, tier1}]` for each of `keys` the node holds a
-  `stats` record of, from its newest one (greatest board slot, then 10.2); `reports` `[{key, in, out}]`, sorted by
+  The answer `netstats` `{m, id, nets, reports}`: `nets` `[{key, ai, tier1, tier2, pops, cust, slot}]` for each of
+  `keys` the node holds a `stats` record of, from its newest one (greatest board slot, then 10.2): `tier2` (false when
+  absent), `pops` the sum of its `pops` counts, `cust` how many networks its `cust` lists, `slot` its board slot (when
+  it was heard). A mentor's game reads them (10.10); older games ignore the members they do not know; `reports` `[{key, in, out}]`, sorted by
   key, at most 256: every network whose newest `stats` record lists the session's own key (as for `me`), with what
   that entry says. Networks the server leaves out are left out of both.
 - **Cost.** `rank` and `rankwhy` cost a client's token bucket like other requests that work from the whole store
@@ -869,9 +883,11 @@ server that ranks: shunned, hidden or refused by it, 9.5; the caller passes this
 - Pies board: `eff(X, last)` has `pies`.
 - Traffic board: always.
 - Total traffic board: always.
+- Customer cone board: always.
 
 With a **region filter** (a set of cities), on every board `X` is listed only with at least one POP in the region at
-`last`. The totals then change as 10.4 says (the total traffic board keeps the whole value: `total` is not per city).
+`last`. The totals then change as 10.4 says (the total traffic and cone boards keep the whole value: `total` is not per
+city, and a cone is the network's, wherever its members are).
 
 **Division** comes from `eff(X, last)`: AI when it has `ai`, human otherwise. `all` lists both.
 
@@ -898,7 +914,30 @@ Over the slots `s` of the window where `X` has a value:
 - **Total traffic**: `p95` (as above) of `eff(X, s).total` over those slots, counting 0 where `total` is absent, in
   Mbps. A region filter does not change it (10.3).
 
+- **Customer cone** (CAIDA's AS rank, among players): `p95` (as above) of `cone(X, s)` over those slots. `cone(X, s)`
+  is the number of networks reachable from `X` over **counted edges** at `s`, `X` itself not counted (a network
+  reachable several ways counts once; `X` reachable back through a cycle does not count). `Z -> Y` is a counted edge at
+  `s` when all of these hold:
+  1. `Z` and `Y` both have a value at `s` (10.2: an effective `normal` record, so each was heard within the 604800 s
+     before `s`), and neither is excluded (10.3);
+  2. `eff(Z, s).cust` lists `Y` and `eff(Y, s).up` lists `Z` (both sides confirm: one alone counts nothing);
+  3. `eff(Z, s).traffic` lists `Y` with `in > 0` and `out > 0`, and `eff(Y, s).traffic` lists `Z` with `in > 0` and
+     `out > 0` (traffic confirmed both ways, as the traffic board's min() rule reads it: `min(Z.in, Y.out) > 0` and
+     `min(Z.out, Y.in) > 0`);
+  4. `Y` is **established**: the newest `announce` of `Y` (greatest `t`, then lowest id) has
+     `div(s, 86400) - founded >= 30`. Without an announce, `Y` is never established.
+  Every edge along a path must be counted: a network that fails 1, 3 or 4 cuts the paths through it. `X` itself need
+  not be established. A region filter does not change the value (10.3).
+
 Rows are sorted by value, highest first, then by key in byte order; the rank is the position, starting at 1.
+
+**Cost of the cone board** (reference relay, `relay/internal/rank/cone.go`): per state (running slot, records,
+exclusions, announces), when a cone ranking is asked for: each network listing customers or upstreams is cut into
+spans of slots with one record and one list; listed customers are matched against the customers' spans, giving each
+edge's slots; between the slot indexes where edges start or stop the graph is constant (at most 577 graphs, and graphs
+with the same edges are worked out once). One graph: strongly connected components, then each component's reach as a
+bitset in reverse topological order: `O(V + E + E·V/64)` for `V` networks and `E` edges. 10000 networks in a tree of
+transit (cones up to 9999): about 30 ms on one laptop core, 16 MB allocated, then cached.
 
 ### 10.5 Growth
 
@@ -910,7 +949,7 @@ the total over the previous window (10.4, each over its own slots):
 growth = div((cur - prev) * 10000, max(prev, FLOOR))      in basis points (10000 = +100%)
 ```
 
-with FLOOR = 10 for POPs, 100 for pies and 1000 (Mbps) for traffic and total traffic. Note floor division: -333.3 is -334.
+with FLOOR = 10 for POPs and the customer cone, 100 for pies and 1000 (Mbps) for traffic and total traffic. Note floor division: -333.3 is -334.
 
 ### 10.6 Quiet networks
 
@@ -1031,6 +1070,14 @@ not an `announce` by `to`). It is checked, in this order:
      nothing in the buyer's.
    - `peering`, `swap`, `consortium`: no prices. The policy's conditions (`cond`) need game data and are checked by the
      game, not by these rules.
+   - **Newcomer price.** When `terms` has `founded` (transit, pni, port, wave), let `d = div(offer.t, 86400)`. It is
+     allowed when `d - terms.founded` is 0 to 29 (the buyer joined less than 30 days before the offer) and the basis's
+     `founded` gives `d - basis.founded >= 30` (the seller is established); otherwise `bad_terms`. Every price above is
+     then `div(p * 750, 1000)` of the card's `p` (the transit price after its commit tier, the PNI's `setup` and
+     `monthly`, the port's and the wave's `monthly`): 25% off, rounded down. Both games compute it from the offer and
+     the basis alone, so they agree on the price. That `terms.founded` is the buyer's real join day is the seller's
+     game's business: it declines (`conditions`) when the buyer's newest announce it has says otherwise. Two newcomers
+     get no discount from each other; a renewal gets it only while the buyer is still new.
 5. Then: with `auto`, the deal is binding at once (`start = offer.t`); with `review`, it binds when the counterparty
    signs `accept` (`start = accept.t`). `end = start + term * 86400`; deals whose terms have no `term` (peering,
    consortium) have no end and run until a `decline` with reason `depeer` (or the counterparty goes dark, 10.6).
@@ -1076,7 +1123,7 @@ key stays in the slice only when it passes every filter, read from `l = eff(X, l
 | Filter | Type | A key passes when |
 | --- | --- | --- |
 | division | `all`, `human`, `ai` | `ai`: `l` has `ai`; `human`: it has not |
-| `cities` | [City] max 512, unique | The region of 10.3 and 10.4 (listing, POPs, traffic partners) |
+| `cities` | [City] max 512, unique | The region of 10.3 and 10.4 (listing, POPs, traffic partners; on the total traffic and cone boards, listing only) |
 | `model` | Label(64) | `l.ai.model` equals it |
 | `harness` | Label(64) | `l.ai.harness` equals it |
 | `tier1` | Bool | `l.tier1` equals it |
@@ -1167,7 +1214,9 @@ step 8 of 11.2 does not apply to it.
 8. Deals are private (5.3): offers to someone and declines are sealed for the other party (3.5), and relays send deal
    records only to the sessions of their two parties (9.3). An operator sees that two networks exchanged deal records
    and when, never which deal, its terms or the reason for a no. Open consortium projects are public by design.
-9. No operator can end other players' deals alone: a game ends running deals with an excluded network only when most
+9. The customer cone board makes transit relationships between players public: a network's `stats` lists whom it
+   sells transit to and buys it from (`cust`, `up`), never the price or terms, as BGP paths show real ones.
+10. No operator can end other players' deals alone: a game ends running deals with an excluded network only when most
    of its joined servers, and at least two, list it (10.7).
 
 ## 13. Constants
@@ -1192,6 +1241,8 @@ step 8 of 11.2 does not apply to it.
 | Quiet: fading, dark, forgotten | 604800, 3196800, 15552000 s |
 | Deal terms grace | 86400 s |
 | Shortest exchange port term | 30 days |
+| Newcomer: joined less than, newcomer price | 30 days, 750 per mille of the card |
+| Cone member: joined at least | 30 days before the slot |
 
 ### 13.2 Records
 
@@ -1222,6 +1273,7 @@ step 8 of 11.2 does not apply to it.
 | Member name | 32 characters |
 | POP cities in `announce` and `stats` | 512 |
 | Traffic entries | 256 |
+| `stats` `cust`, `up` | 128, 16 |
 | Signers, operators, nodes | 16 |
 | Box ciphertext (3.5), tag included | 17 to 2048 bytes |
 | Keys proved by one client session (`auth`) | 4 |

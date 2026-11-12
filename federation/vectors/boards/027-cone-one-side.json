@@ -1,0 +1,75 @@
+{
+  "description": "now = 1767398410, so c = 1767398400; slot i means 1767225600 + 300 * i; the current window is i = 288..575, all on UTC day 20455. Records at i = 500 carry to the end of the window (76 slots). An edge X -> Y counts when X lists Y in cust, Y lists X in up, each reports traffic with the other in > 0 and out > 0, both have a value, neither is excluded, and Y joined at least 30 days before the slot (founded <= 20425). kA lists kB as a customer, but kB does not list kA in up: one side alone counts nothing. kA 0, kB 0.",
+  "input": {
+    "now": 1767398410,
+    "board": "cone",
+    "measure": "total",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "founded": {
+      "kA": 20400,
+      "kB": 20400,
+      "kC": 20400
+    },
+    "records": [
+      {
+        "id": "r1",
+        "key": "kA",
+        "slot": 1767375600,
+        "t": 1767375620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kB",
+              "in": 100,
+              "out": 100
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false,
+          "cust": [
+            "kB"
+          ]
+        }
+      },
+      {
+        "id": "r2",
+        "key": "kB",
+        "slot": 1767375600,
+        "t": 1767375620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kA",
+              "in": 100,
+              "out": 100
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 0
+      },
+      {
+        "key": "kB",
+        "value": 0
+      }
+    ]
+  }
+}

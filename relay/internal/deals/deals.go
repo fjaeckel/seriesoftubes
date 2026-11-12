@@ -85,7 +85,17 @@ func Check(anns []Announce, o Offer, accept *int64, renews *Running) Result {
 		}
 		isAuto = mode == "auto"
 		rates, _ := basis.Body["rates"].(map[string]any)
-		if code := checkTerms(deal, terms, rates); code != "" {
+		price := func(p int64) int64 { return p }
+		if f, ok := terms["founded"].(int64); ok {
+			// The newcomer price: the buyer joined less than 30 days before the offer, the seller did not.
+			d := fed.Div(o.T, fed.Day)
+			bf, ok := basis.Body["founded"].(int64)
+			if d-f < 0 || d-f >= fed.NewcomerDays || !ok || d-bf < fed.NewcomerDays {
+				return fail(fed.BadTerms)
+			}
+			price = func(p int64) int64 { return fed.Div(p*fed.NewcomerPrice, 1000) }
+		}
+		if code := checkTerms(deal, terms, rates, price); code != "" {
 			return fail(code)
 		}
 	}
@@ -122,7 +132,8 @@ func ports(v any) []map[string]any {
 	return out
 }
 
-func checkTerms(deal string, terms, rates map[string]any) string {
+// checkTerms compares the terms with the card; price maps a card price to what this buyer pays.
+func checkTerms(deal string, terms, rates map[string]any, price func(int64) int64) string {
 	switch deal {
 	case "transit":
 		r := obj(rates["transit"])
@@ -136,7 +147,7 @@ func checkTerms(deal string, terms, rates map[string]any) string {
 				tier, off = m, num(c["off"])
 			}
 		}
-		if num(terms["perGbps"]) != fed.Div(num(r["perGbps"])*(1000-off), 1000) || num(terms["term"]) < num(r["term"]) {
+		if num(terms["perGbps"]) != price(fed.Div(num(r["perGbps"])*(1000-off), 1000)) || num(terms["term"]) < num(r["term"]) {
 			return fed.BadTerms
 		}
 	case "pni":
@@ -146,7 +157,7 @@ func checkTerms(deal string, terms, rates map[string]any) string {
 		}
 		for _, p := range ports(r["ports"]) {
 			if num(p["mbps"]) == num(terms["mbps"]) {
-				if num(terms["setup"]) == num(r["setup"]) && num(terms["monthly"]) == num(p["monthly"]) &&
+				if num(terms["setup"]) == price(num(r["setup"])) && num(terms["monthly"]) == price(num(p["monthly"])) &&
 					num(terms["term"]) >= num(r["term"]) {
 					return ""
 				}
@@ -172,7 +183,7 @@ func checkTerms(deal string, terms, rates map[string]any) string {
 		}
 		for _, p := range ports(r["ports"]) {
 			if num(p["mbps"]) == num(terms["mbps"]) {
-				if num(terms["monthly"]) == num(p["monthly"]) && num(terms["term"]) >= fed.ShortestIXTerm {
+				if num(terms["monthly"]) == price(num(p["monthly"])) && num(terms["term"]) >= fed.ShortestIXTerm {
 					return ""
 				}
 				return fed.BadTerms
@@ -197,7 +208,7 @@ func checkTerms(deal string, terms, rates map[string]any) string {
 		}
 		for _, p := range ports(r["sizes"]) {
 			if num(p["gbps"]) == num(terms["gbps"]) {
-				if num(terms["monthly"]) == num(p["monthly"]) && num(terms["term"]) >= num(r["term"]) {
+				if num(terms["monthly"]) == price(num(p["monthly"])) && num(terms["term"]) >= num(r["term"]) {
 					return ""
 				}
 				return fed.BadTerms

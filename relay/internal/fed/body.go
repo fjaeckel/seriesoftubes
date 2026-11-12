@@ -467,7 +467,25 @@ func checkAnnounce(r *Record) string {
 	return ""
 }
 
+// Most transit customers and upstreams a stats record lists (5.2).
+const (
+	MaxCust = 128
+	MaxUp   = 16
+)
+
 func checkStats(r *Record) string {
+	// others is a set of other networks' keys: never the author's own.
+	others := func(n int) check {
+		return list(func(v any) string {
+			if code := keyCheck(v); code != "" {
+				return code
+			}
+			if v == r.Key {
+				return BadField
+			}
+			return ""
+		}, 0, n, true)
+	}
 	return object(r.Body, []field{
 		req("mode", oneOf("normal", "sandbox", "open_gates", "puzzle", "scenario", "weekly", "architect")),
 		req("pops", func(v any) string {
@@ -499,22 +517,26 @@ func checkStats(r *Record) string {
 			return ""
 		}, 0, 256, true)),
 		opt("total", mbps),
+		opt("cust", others(MaxCust)),
+		opt("up", others(MaxUp)),
 		req("tier1", boolean),
+		opt("tier2", boolean),
 		opt("ai", obj(req("model", textCheck(1, 64)), req("harness", textCheck(1, 64)))),
 		req("shareCountry", boolean),
 	})
 }
 
+// founded (optional on priced deals): the buyer claims the newcomer price (10.10).
 var dealTerms = map[string]check{
 	"peering": obj(req("at", cities16), req("via", oneOf("ix", "pni"))),
-	"transit": obj(req("mbps", mbps), req("perGbps", money), req("term", days), req("at", cities16)),
-	"pni":     obj(req("at", city), req("mbps", mbps), req("setup", money), req("monthly", money), req("term", days)),
-	"port":    obj(req("at", city), req("mbps", mbps), req("monthly", money), req("term", days)),
+	"transit": obj(req("mbps", mbps), req("perGbps", money), req("term", days), req("at", cities16), opt("founded", count(10000000))),
+	"pni":     obj(req("at", city), req("mbps", mbps), req("setup", money), req("monthly", money), req("term", days), opt("founded", count(10000000))),
+	"port":    obj(req("at", city), req("mbps", mbps), req("monthly", money), req("term", days), opt("founded", count(10000000))),
 	"swap": func() check {
 		leg := obj(req("a", city), req("b", city), req("mbps", mbps))
 		return obj(req("give", leg), req("take", leg), req("term", days))
 	}(),
-	"wave": ordered(obj(req("a", city), req("b", city), req("gbps", waveGbps), req("monthly", money), req("term", days))),
+	"wave": ordered(obj(req("a", city), req("b", city), req("gbps", waveGbps), req("monthly", money), req("term", days), opt("founded", count(10000000)))),
 	"consortium": obj(req("name", nameCheck), req("a", city), req("b", city), req("members", intIn(2, 16)),
 		req("share", money), req("pairs", intIn(1, 16))),
 }

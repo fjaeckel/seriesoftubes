@@ -3,6 +3,7 @@ package rank
 import (
 	"context"
 	"fmt"
+	"maps"
 	"math/rand/v2"
 	"slices"
 	"sync"
@@ -13,6 +14,9 @@ import (
 )
 
 const t0 = int64(1767398410)
+
+// coneSeen counts cone rows above 0 the random streams compared: they must not all be empty.
+var coneSeen int
 
 var cities = []string{"fra", "ams", "lon", "nyc"}
 
@@ -27,7 +31,7 @@ func randBody(rng *rand.Rand, self string, keys []string) map[string]any {
 	}
 	var tr []any
 	for _, k := range keys {
-		if k != self && rng.IntN(3) == 0 {
+		if k != self && rng.IntN(2) == 0 {
 			tr = append(tr, map[string]any{"key": k, "in": int64(rng.IntN(5) * 1000), "out": int64(rng.IntN(5) * 1000)})
 		}
 	}
@@ -42,6 +46,22 @@ func randBody(rng *rand.Rand, self string, keys []string) map[string]any {
 	if rng.IntN(3) == 0 {
 		b["ai"] = map[string]any{"model": "m" + fmt.Sprint(rng.IntN(2)), "harness": "h"}
 	}
+	// Transit customers and upstreams (the cone board): often, so that edges confirm each other.
+	for _, f := range []string{"cust", "up"} {
+		if rng.IntN(3) == 0 {
+			continue
+		}
+		l := []any{}
+		for _, k := range keys {
+			if k != self && rng.IntN(2) == 0 {
+				l = append(l, k)
+			}
+		}
+		if len(l) > 0 || rng.IntN(2) == 0 {
+			b[f] = l
+		}
+	}
+	b["tier2"] = rng.IntN(2) == 0
 	return b
 }
 
@@ -77,14 +97,14 @@ func rowOf(rows []boards.Row, k string) (int64, bool) {
 	return 0, false
 }
 
-func compare(t *testing.T, a *Agg, h held, now int64, ex map[string]bool, label string) {
+func compare(t *testing.T, a *Agg, h held, now int64, ex map[string]bool, founded map[string]int64, label string) {
 	t.Helper()
 	recs := h.list()
-	for _, b := range []string{"traffic", "total", "pops", "pies"} {
+	for _, b := range Boards {
 		for _, m := range []string{"total", "growth"} {
 			for _, d := range []string{"all", "human", "ai"} {
 				for _, cs := range [][]string{nil, {"fra"}, {"ams", "fra"}} {
-					want := boards.Compute(boards.Query{Now: now, Board: b, Measure: m, Division: d, Exclude: ex, Cities: cs}, recs)
+					want := boards.Compute(boards.Query{Now: now, Board: b, Measure: m, Division: d, Exclude: ex, Founded: founded, Cities: cs}, recs)
 					ans, err := a.Rank(context.Background(), &Slice{Board: b, Measure: m, Division: d, Cities: cs}, now, "", -1)
 					if err != nil {
 						t.Fatal(err)
@@ -99,20 +119,34 @@ func compare(t *testing.T, a *Agg, h held, now int64, ex map[string]bool, label 
 					if !slices.Equal(got, want) {
 						t.Fatalf("%s: %s %s %s %v:\n got %v\nwant %v", label, b, m, d, cs, got, want)
 					}
+					if b == "cone" {
+						for _, r := range want {
+							if r.Value > 0 {
+								coneSeen++
+							}
+						}
+					}
 					if d != "all" {
 						continue
 					}
 					// rankwhy: the records it names are enough to work out each network's value alone.
 					for _, k := range keysOf(h) {
-						ids, _, err := a.Why(&Slice{Board: b, Measure: m, Division: d, Cities: cs}, k, now)
+						ids, anns, _, err := a.Why(&Slice{Board: b, Measure: m, Division: d, Cities: cs}, k, now)
 						if err != nil {
 							t.Fatal(err)
+						}
+						// Only the announces it names: their founded must be enough.
+						fd := map[string]int64{}
+						for _, x := range anns {
+							if f, ok := founded[x]; ok {
+								fd[x] = f
+							}
 						}
 						var sub []*boards.Stats
 						for _, id := range ids {
 							sub = append(sub, h[id])
 						}
-						alone := boards.Compute(boards.Query{Now: now, Board: b, Measure: m, Division: d, Exclude: ex, Cities: cs}, sub)
+						alone := boards.Compute(boards.Query{Now: now, Board: b, Measure: m, Division: d, Exclude: ex, Founded: fd, Cities: cs}, sub)
 						wv, wok := rowOf(want, k)
 						gv, gok := rowOf(alone, k)
 						if wv != gv || wok != gok {
@@ -146,6 +180,21 @@ func TestRandomStreamsMatchReference(t *testing.T) {
 		partners := append(slices.Clone(keys), "ghost1", "ghost2")
 		now := t0 + int64(rng.IntN(300))
 		ex := map[string]bool{}
+		// Announces: when each network joined, some long ago, some days before the windows' slots
+		// (established part way through them), some not at all.
+		founded := map[string]int64{}
+		announce := func(k string) {
+			if rng.IntN(5) == 0 {
+				delete(founded, k)
+				a.Announce(k, nil)
+				return
+			}
+			founded[k] = fed.Div(now, fed.Day) - int64(25+rng.IntN(15))
+			a.Announce(k, &Ann{Name: k, Founded: founded[k]})
+		}
+		for _, k := range keys {
+			announce(k)
+		}
 		nid := 0
 		for step := range 6 {
 			c := fed.Slot(now)
@@ -173,6 +222,8 @@ func TestRandomStreamsMatchReference(t *testing.T) {
 					s := &boards.Stats{ID: id, Key: k, Slot: slot, T: slot + int64(rng.IntN(3)), Body: randBody(rng, k, partners)}
 					h[id] = s
 					a.Stats(s.ID, s.Key, s.Slot, s.T, s.Body, "")
+				case op < 8 && rng.IntN(3) == 0:
+					announce(keys[rng.IntN(K)])
 				case op < 9:
 					for id := range h {
 						delete(h, id)
@@ -195,12 +246,16 @@ func TestRandomStreamsMatchReference(t *testing.T) {
 					}
 				}
 			}
-			compare(t, a, h, now, ex, fmt.Sprintf("seed %d step %d", seed, step))
+			compare(t, a, h, now, ex, founded, fmt.Sprintf("seed %d step %d", seed, step))
 			// The windows move on: a slot, a few, or a long gap.
 			now += []int64{fed.SlotLen, 3 * fed.SlotLen, 7, 400 * fed.SlotLen, 2000 * fed.SlotLen}[rng.IntN(5)]
 		}
 		a.Close()
 	}
+	if coneSeen < 20 {
+		t.Fatalf("only %d cone rows above 0: the streams hardly test the cone board", coneSeen)
+	}
+	t.Logf("%d cone rows above 0 compared", coneSeen)
 }
 
 // Filters, n, own row and names behave as the spec says.
@@ -302,6 +357,75 @@ func TestNotReadyAndNets(t *testing.T) {
 	nets, reps := a.Nets([]string{"kA", "kZ"}, "me")
 	if len(nets) != 1 || !nets[0].Tier1 || len(reps) != 1 || reps[0] != (Report{"kA", 5, 7}) {
 		t.Fatalf("nets %+v reports %+v", nets, reps)
+	}
+	// What a mentor's game reads of a newcomer: Tier 2, POPs, transit customers, from the newest record.
+	a.Stats("r2", "kA", s+fed.SlotLen, s+fed.SlotLen, map[string]any{"mode": "normal", "pops": map[string]any{"fra": int64(1), "ams": int64(1)},
+		"traffic": []any{}, "tier1": false, "tier2": true, "cust": []any{"kB", "kC"}}, "")
+	nets, _ = a.Nets([]string{"kA"}, "")
+	if len(nets) != 1 || nets[0] != (Net{Key: "kA", Tier2: true, Pops: 2, Cust: 2, Slot: s + fed.SlotLen}) {
+		t.Fatalf("nets %+v", nets)
+	}
+}
+
+// The cone board on a small federation: a chain, a cycle, an edge only one side confirms, a
+// young member, an edge with traffic one way only, and an excluded network cutting the chain.
+func TestConeShapes(t *testing.T) {
+	c := fed.Slot(t0)
+	s := c - 10*fed.SlotLen
+	l := func(k ...string) []any {
+		out := []any{}
+		for _, x := range k {
+			out = append(out, x)
+		}
+		return out
+	}
+	// tr: traffic both ways with each of these; oneway: only received from them.
+	body := func(cust, up []any, tr []string, oneway ...string) map[string]any {
+		t := []any{}
+		for _, k := range tr {
+			t = append(t, map[string]any{"key": k, "in": int64(100), "out": int64(100)})
+		}
+		for _, k := range oneway {
+			t = append(t, map[string]any{"key": k, "in": int64(100), "out": int64(0)})
+		}
+		return map[string]any{"mode": "normal", "pops": map[string]any{"fra": int64(1)}, "traffic": t, "tier1": false, "shareCountry": false,
+			"cust": cust, "up": up}
+	}
+	raws := []Raw{
+		{ID: "a", Key: "kA", Slot: s, T: s, Body: body(l("kB", "kE", "kF"), l(), []string{"kB", "kE", "kF"})}, // A sells to B; E never confirms; F is young
+		{ID: "b", Key: "kB", Slot: s, T: s, Body: body(l("kC", "kG"), l("kA"), []string{"kA", "kC"}, "kG")},   // B sells to C; G's traffic goes one way
+		{ID: "c", Key: "kC", Slot: s, T: s, Body: body(l("kD"), l("kB", "kD"), []string{"kB", "kD"})},         // C and D sell to each other
+		{ID: "d", Key: "kD", Slot: s, T: s, Body: body(l("kC"), l("kC"), []string{"kC"})},
+		{ID: "e", Key: "kE", Slot: s, T: s, Body: body(l(), l(), []string{"kA"})},
+		{ID: "f", Key: "kF", Slot: s, T: s, Body: body(l(), l("kA"), []string{"kA"})},
+		{ID: "g", Key: "kG", Slot: s, T: s, Body: body(l(), l("kB"), []string{"kB"})},
+	}
+	day := fed.Div(t0, fed.Day)
+	anns := map[string]*Ann{}
+	for _, k := range []string{"kA", "kB", "kC", "kD", "kE", "kG"} {
+		anns[k] = &Ann{Name: k, Founded: day - 40}
+	}
+	anns["kF"] = &Ann{Name: "kF", Founded: day - 29}
+	want := map[string]int64{"kA": 3, "kB": 2, "kC": 1, "kD": 1, "kE": 0, "kF": 0, "kG": 0}
+	for _, ex := range []map[string]bool{nil, {"kC": true}} {
+		a := New(1)
+		a.Load(raws, anns, ex, nil)
+		ans, err := a.Rank(context.Background(), &Slice{Board: "cone", Measure: "total", Division: "all"}, t0, "", -1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := map[string]int64{}
+		for _, r := range ans.Rows {
+			got[r.Key] = r.Value
+		}
+		w := want
+		if ex != nil {
+			w = map[string]int64{"kA": 1, "kB": 0, "kD": 0, "kE": 0, "kF": 0, "kG": 0}
+		}
+		if !maps.Equal(got, w) {
+			t.Errorf("excluded %v: %v, want %v", ex, got, w)
+		}
+		a.Close()
 	}
 }
 

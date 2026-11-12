@@ -1,0 +1,112 @@
+{
+  "description": "now = 1767398410, so c = 1767398400; slot i means 1767225600 + 300 * i; the current window is i = 288..575, all on UTC day 20455. Records at i = 500 carry to the end of the window (76 slots). An edge X -> Y counts when X lists Y in cust, Y lists X in up, each reports traffic with the other in > 0 and out > 0, both have a value, neither is excluded, and Y joined at least 30 days before the slot (founded <= 20425). The chain of 022 with kB excluded by the server: kB is not listed and no edge leads to it, so kA reaches nobody (0); kC 0.",
+  "input": {
+    "now": 1767398410,
+    "board": "cone",
+    "measure": "total",
+    "division": "all",
+    "exclude": [
+      "kB"
+    ],
+    "cities": null,
+    "founded": {
+      "kA": 20400,
+      "kB": 20400,
+      "kC": 20400
+    },
+    "records": [
+      {
+        "id": "r1",
+        "key": "kA",
+        "slot": 1767375600,
+        "t": 1767375620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kB",
+              "in": 100,
+              "out": 100
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false,
+          "cust": [
+            "kB"
+          ]
+        }
+      },
+      {
+        "id": "r2",
+        "key": "kB",
+        "slot": 1767375600,
+        "t": 1767375620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kA",
+              "in": 100,
+              "out": 100
+            },
+            {
+              "key": "kC",
+              "in": 50,
+              "out": 50
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false,
+          "cust": [
+            "kC"
+          ],
+          "up": [
+            "kA"
+          ]
+        }
+      },
+      {
+        "id": "r3",
+        "key": "kC",
+        "slot": 1767375600,
+        "t": 1767375620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kB",
+              "in": 50,
+              "out": 50
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false,
+          "up": [
+            "kB"
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 0
+      },
+      {
+        "key": "kC",
+        "value": 0
+      }
+    ]
+  }
+}

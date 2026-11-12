@@ -1,8 +1,10 @@
 // Package boards computes the leaderboards (spec 10.1 to 10.5) and the quiet states (10.6).
+// It is the plain reference: the in-memory aggregate (package rank) is held to it by tests.
 // The same rules run in the game; the relay uses them for its status commands.
 package boards
 
 import (
+	"slices"
 	"sort"
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
@@ -86,11 +88,12 @@ func (x *Series) Value(s int64) *Stats {
 // Query describes one board.
 type Query struct {
 	Now      int64
-	Board    string // pops, pies, traffic, total
+	Board    string // pops, pies, traffic, total, cone
 	Measure  string // total, growth
 	Division string // all, human, ai
 	Exclude  map[string]bool
-	Cities   []string // region filter, nil for none
+	Founded  map[string]int64 // cone board: key -> founded of its newest announce
+	Cities   []string         // region filter, nil for none
 }
 
 // Row is one line of a board.
@@ -168,11 +171,15 @@ func Compute(q Query, recs []*Stats) []Row {
 				return 0, false
 			}
 			return max(p95(ins), p95(outs)), true
-		case "total":
+		case "total", "cone":
 			var v []int64
 			for s := from; s <= to; s += fed.SlotLen {
 				if r := x.Value(s); r != nil {
-					v = append(v, toInt(r.Body["total"]))
+					if q.Board == "cone" {
+						v = append(v, Cone(q.Exclude, q.Founded, series, k, s))
+					} else {
+						v = append(v, toInt(r.Body["total"]))
+					}
 				}
 			}
 			if len(v) == 0 {
@@ -182,7 +189,7 @@ func Compute(q Query, recs []*Stats) []Row {
 		}
 		return 0, false
 	}
-	floor := map[string]int64{"pops": 10, "pies": 100, "traffic": 1000, "total": 1000}[q.Board]
+	floor := map[string]int64{"pops": 10, "pies": 100, "traffic": 1000, "total": 1000, "cone": 10}[q.Board]
 	var rows []Row
 	for k, x := range series {
 		if q.Exclude[k] {
@@ -255,6 +262,56 @@ func traffic(q Query, region map[string]bool, series map[string]*Series, k strin
 		}
 	}
 	return in, out
+}
+
+// Cone is the size of k's customer cone at slot s (10.4): the networks reachable from k over
+// counted transit edges, k itself not counted. X -> Y counts at s when both have a value at s
+// (so both were heard within the 7 days before s), neither is excluded, eff(X, s).cust lists Y,
+// eff(Y, s).up lists X, each reports traffic with the other both ways (in > 0 and out > 0), and Y
+// is established: its newest announce has founded at least 30 days before s (founded: key ->
+// founded of its newest announce; without one, never).
+func Cone(ex map[string]bool, founded map[string]int64, series map[string]*Series, k string, s int64) int64 {
+	seen := map[string]bool{k: true}
+	todo := []string{k}
+	for len(todo) > 0 {
+		z := todo[len(todo)-1]
+		todo = todo[:len(todo)-1]
+		r := series[z].Value(s)
+		for _, y := range Keys(r.Body["cust"]) {
+			if seen[y] || ex[y] || series[y] == nil {
+				continue
+			}
+			f, ok := founded[y]
+			if !ok || fed.Div(s, fed.Day)-f < fed.NewcomerDays {
+				continue
+			}
+			ye := series[y].Value(s)
+			if ye == nil || !slices.Contains(Keys(ye.Body["up"]), z) || !BothWays(r, y) || !BothWays(ye, z) {
+				continue
+			}
+			seen[y] = true
+			todo = append(todo, y)
+		}
+	}
+	return int64(len(seen) - 1)
+}
+
+// BothWays reports whether r lists traffic with k in both directions.
+func BothWays(r *Stats, k string) bool {
+	in, out := report(r, k)
+	return in > 0 && out > 0
+}
+
+// Keys reads a list of keys (cust, up); absent is none.
+func Keys(v any) []string {
+	a, _ := v.([]any)
+	out := make([]string, 0, len(a))
+	for _, e := range a {
+		if s, ok := e.(string); ok {
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 // popsIn is the number of POPs a record has in a region.

@@ -29,6 +29,9 @@ type Agg struct {
 	q     []event
 	wake  chan struct{}
 
+	cmu  sync.Mutex // guards cone
+	cone *coneSet   // per-slot cone sizes of one state, worked out when a cone board is asked for
+
 	workers int
 	jobs    chan func()
 	fmu     sync.Mutex
@@ -182,6 +185,9 @@ func (a *Agg) Load(stats []Raw, anns map[string]*Ann, ex, names map[string]bool)
 		x.all = append(x.all, s)
 		if len(s.tr) > 0 {
 			x.withTr++
+		}
+		if s.lists() {
+			x.withCn++
 		}
 		for _, e := range s.tr {
 			a.lister(e.key, s.key, 1)

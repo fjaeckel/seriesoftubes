@@ -283,7 +283,7 @@ Operator actions are signed with the operator key on that machine.
 | `relay servers` | Every server you know, from the registry and from gossip |
 | `relay players` | Networks with an announcement: name, ASN, last heard, quiet state, hidden or shunned |
 | `relay nodes` | This server's nodes and which are up |
-| `relay board --board pops --measure growth` | A whole leaderboard as this server ranks it for players (`--board` pops, pies, traffic or total) |
+| `relay board --board pops --measure growth` | A whole leaderboard as this server ranks it for players (`--board` pops, pies, traffic, total or cone) |
 | `relay hide KEY` / `--names` / `--refuse` | Leave a network off your boards, show it by ASN only, or refuse its new records |
 | `relay unhide KEY` | Take it off all three lists |
 | `relay shun KEY --reason spam` | Vote to exclude a network everywhere (`cheating`, `offensive_name`, `spam`, `abuse`) |

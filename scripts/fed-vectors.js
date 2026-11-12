@@ -423,6 +423,21 @@ const SID = rid(genesis);
   // --- the box key in announce (5.1) ---
   { const b = announceBody(); delete b.box; bad('announce-no-box', 'An announce without box: nobody could seal a deal for it.', rec('announce', 'alice', T, b), 'missing_field'); }
   bad('announce-box-short', 'box is a Key: 32 bytes, 43 characters.', rec('announce', 'alice', T, { ...announceBody(), box: boxPub('alice').slice(0, 42) }), 'bad_key');
+
+  // --- stats: transit customers and upstreams (the cone board), Tier 2 (all optional) ---
+  const keysN = (p, n) => Array.from({ length: n }, (_, i) => pub(p + i)).sort(byStr);
+  ok('stats-cone', 'stats listing its transit customers (cust) and upstreams (up), and tier2.', rec('stats', 'alice', T, { ...statsMin(), cust: [pub('bob'), pub('carol')].sort(byStr), up: [pub('dave')], tier1: false, tier2: true }));
+  ok('stats-biggest', 'The largest stats a game can send fits the 40960-byte limit: 512 POP cities, 256 traffic entries at the maximum, 128 customers, 16 upstreams, an AI setup.',
+    rec('stats', 'alice', T, { ...statsMin(), pops: Object.fromEntries(Array.from({ length: 512 }, (_, i) => ['c' + String(i).padStart(7, '0'), 1000])),
+      traffic: keysN('t', 256).map(key => ({ key, in: 1000000000, out: 1000000000 })), total: 1000000000, pies: 10000000, cust: keysN('c', 128), up: keysN('u', 16),
+      tier2: true, ai: { model: 'm'.repeat(64), harness: 'h'.repeat(64) } }));
+  bad('stats-cust-129', '129 transit customers (limit 128).', rec('stats', 'alice', T, { ...statsMin(), cust: keysN('c', 129) }), 'too_many');
+  bad('stats-up-17', '17 upstreams (limit 16).', rec('stats', 'alice', T, { ...statsMin(), up: keysN('u', 17) }), 'too_many');
+  bad('stats-cust-self', 'Its own key as a transit customer.', rec('stats', 'alice', T, { ...statsMin(), cust: [pub('alice')] }), 'bad_field');
+  bad('stats-up-self', 'Its own key as an upstream.', rec('stats', 'alice', T, { ...statsMin(), up: [pub('alice')] }), 'bad_field');
+  bad('stats-cust-duplicate', 'The same customer twice.', rec('stats', 'alice', T, { ...statsMin(), cust: [pub('bob'), pub('bob')] }), 'duplicate');
+  bad('stats-up-bad-key', 'An upstream that is not a key.', rec('stats', 'alice', T, { ...statsMin(), up: ['nope'] }), 'bad_key');
+  bad('stats-tier2-string', 'tier2 is a Bool.', rec('stats', 'alice', T, { ...statsMin(), tier2: 'yes' }), 'bad_field');
 }
 
 // ======================================================================================
@@ -747,6 +762,8 @@ const nodesOf = list => list.map(([n, url]) => ({ key: pub(n), url })).sort((a, 
   add(req({ keys: [pub('mallory'), pub('carol')].sort(byStr) }), { n: 2, rows: rows('carol', 'mallory'), me: null });
   add(req({ from: 'germany' }), { error: 'bad_field' });
   add(req(null, { board: 'money' }), { error: 'bad_field' });
+  // The cone board: nobody lists transit here, so every network is listed with 0 (key order breaks the tie).
+  add(req(null, { board: 'cone' }), { n: 4, rows: rows(...['alice', 'bob', 'carol', 'mallory'].sort((x, y) => byStr(pub(x), pub(y))).map(x => ({ ...R[x], value: 0 }))), me: null });
   for (const x of cs) if (x.expect.error) { delete x.expect.slot; }
   for (const x of cs) for (const r of x.expect.rows || []) for (const k of Object.keys(r)) if (r[k] === undefined) delete r[k];
   putCases(A, 'slices', 'now = 1767398410, so c = 1767398400; one stats record each at slot i = 500 of the windows. POPs: alice 5 (fra, from DE), bob 4 (nyc, an AI on model m1, from US), carol 3 (fra, Tier 1), mallory 2 (fra, no announce: no name or home). Announces: alice home DE, open, founded 3 days ago, game day 40; bob home US, selective, 100 days, day 2000; carol home FR, open, 400 days, day 500. me is the key the session proved: its rank in the slice (null when the filters leave it out), none when it is not on the board. excluded: networks the server leaves off; names: networks shown without their name. A filter with a value that is not allowed: bad_field.', cs);

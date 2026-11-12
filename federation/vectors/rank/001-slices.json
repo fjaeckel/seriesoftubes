@@ -2113,6 +2113,158 @@
       "expect": {
         "error": "bad_field"
       }
+    },
+    {
+      "input": {
+        "now": 1767398410,
+        "request": {
+          "m": "rank",
+          "id": 1,
+          "board": "cone",
+          "measure": "total",
+          "division": "all"
+        },
+        "me": null,
+        "excluded": [],
+        "names": [],
+        "records": [
+          {
+            "id": "r1",
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "DE",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "fra": 5
+              }
+            }
+          },
+          {
+            "id": "r2",
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "US",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "nyc": 4
+              },
+              "ai": {
+                "model": "m1",
+                "harness": "h1"
+              }
+            }
+          },
+          {
+            "id": "r3",
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": true,
+              "shareCountry": false,
+              "pops": {
+                "fra": 3
+              }
+            }
+          },
+          {
+            "id": "r4",
+            "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": false,
+              "pops": {
+                "fra": 2
+              }
+            }
+          }
+        ],
+        "announces": [
+          {
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "name": "Ping Floyd",
+            "home": "DE",
+            "policy": "open",
+            "founded": 20453,
+            "day": 40
+          },
+          {
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "name": "Packet Ninjas",
+            "home": "US",
+            "policy": "selective",
+            "founded": 20356,
+            "day": 2000
+          },
+          {
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "name": "Hop Scotch",
+            "home": "FR",
+            "policy": "open",
+            "founded": 20056,
+            "day": 500
+          }
+        ]
+      },
+      "expect": {
+        "slot": 1767398400,
+        "n": 4,
+        "rows": [
+          {
+            "rank": 1,
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "value": 0,
+            "name": "Packet Ninjas",
+            "asn": 4281146038,
+            "ai": true,
+            "home": "US",
+            "cc": "US"
+          },
+          {
+            "rank": 2,
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "value": 0,
+            "name": "Hop Scotch",
+            "asn": 4234768206,
+            "ai": false,
+            "home": "FR"
+          },
+          {
+            "rank": 3,
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "value": 0,
+            "name": "Ping Floyd",
+            "asn": 4215690104,
+            "ai": false,
+            "home": "DE",
+            "cc": "DE"
+          },
+          {
+            "rank": 4,
+            "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+            "value": 0,
+            "asn": 4205347724,
+            "ai": false
+          }
+        ],
+        "me": null
+      }
     }
   ]
 }

@@ -32,7 +32,16 @@ type stat struct {
 	cc             string
 	tr             []tentry
 	trIdx          map[string]int32 // partner -> index in tr, for long lists
+	cust, up       []string         // transit customers and upstreams it lists (5.2), sorted
+	custOK, upOK   []string         // those of them it reports traffic with both ways (the cone counts only these)
+	tier2          bool
 }
+
+// lists reports whether the record takes part in the customer cones (lists customers or upstreams).
+func (s *stat) lists() bool { return len(s.cust) > 0 || len(s.up) > 0 }
+
+// upOK reports whether s lists k as an upstream it has traffic with both ways.
+func (s *stat) hasUp(k string) bool { _, ok := slices.BinarySearch(s.upOK, k); return ok }
 
 type popc struct {
 	city string
@@ -82,6 +91,8 @@ func parse(id, key string, slot, t int64, body map[string]any, cc string) *stat 
 		s.ai = true
 	}
 	s.tier1, _ = body["tier1"].(bool)
+	s.tier2, _ = body["tier2"].(bool)
+	s.cust, s.up = keyList(body["cust"]), keyList(body["up"])
 	if list, ok := body["traffic"].([]any); ok && len(list) > 0 {
 		s.tr = make([]tentry, 0, len(list))
 		for _, e := range list {
@@ -98,7 +109,35 @@ func parse(id, key string, slot, t int64, body map[string]any, cc string) *stat 
 			}
 		}
 	}
+	s.custOK, s.upOK = s.bothWays(s.cust), s.bothWays(s.up)
 	return s
+}
+
+// bothWays keeps the keys of l that s reports traffic with in both directions.
+func (s *stat) bothWays(l []string) []string {
+	var out []string
+	for _, k := range l {
+		if in, o := s.report(k); in > 0 && o > 0 {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
+// keyList reads a list of keys, sorted and without repeats (nil when empty).
+func keyList(v any) []string {
+	a, _ := v.([]any)
+	if len(a) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(a))
+	for _, e := range a {
+		if k, ok := e.(string); ok {
+			out = append(out, k)
+		}
+	}
+	slices.Sort(out)
+	return slices.Compact(out)
 }
 
 // report is what s says about key k: in and out, or 0 and 0.
@@ -149,6 +188,7 @@ type net struct {
 	asn     int64
 	in, out []int64 // IN(s) and OUT(s) per window slot (10.4), nil while no record has traffic
 	withTr  int     // held records with a traffic list
+	withCn  int     // held records that list customers or upstreams
 }
 
 func newNet(key string) *net {
@@ -195,6 +235,9 @@ func (x *net) insert(s *stat) {
 	if len(s.tr) > 0 {
 		x.withTr++
 	}
+	if s.lists() {
+		x.withCn++
+	}
 }
 
 func (x *net) remove(s *stat) {
@@ -203,6 +246,9 @@ func (x *net) remove(s *stat) {
 		x.rewin()
 		if len(s.tr) > 0 {
 			x.withTr--
+		}
+		if s.lists() {
+			x.withCn--
 		}
 	}
 }
@@ -262,7 +308,7 @@ func (x *net) runs(from int64, lo, hi int, f func(i, j int, r *stat)) {
 // Slice is one leaderboard view: a board, a measure, and filters (spec 10.12). Nil or empty
 // filters do not filter.
 type Slice struct {
-	Board    string   // traffic, total, pops, pies
+	Board    string   // traffic, total, pops, pies, cone
 	Measure  string   // total, growth
 	Division string   // all, human, ai
 	Cities   []string // region: sorted, unique; nil for the world
@@ -385,4 +431,4 @@ func p95(v [][2]int64) int64 {
 	return 0
 }
 
-var floor = map[string]int64{"pops": 10, "pies": 100, "traffic": 1000, "total": 1000}
+var floor = map[string]int64{"pops": 10, "pies": 100, "traffic": 1000, "total": 1000, "cone": 10}

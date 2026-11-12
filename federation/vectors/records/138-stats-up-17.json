@@ -1,0 +1,43 @@
+{
+  "description": "17 upstreams (limit 16).",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false,
+        "up": [
+          "90mzFS2PXA41R8052pPLJsqXBKK9JuPxisTstxRtdLw",
+          "AY3juuZuvZo9VDpLYeq9oerhVUZJf8pmxxe85U1fANE",
+          "CmokVneMasc2a6_oiFePjre9a0qWQxs-nJ3EBcl9fnw",
+          "D4piaz8Y0t7CNbjvVMP1BAKMWto3EqpheuoiIydSK14",
+          "QGKlosQaN4igRVtETbkJW-kUgnm3y_25MjS0EMhBtcs",
+          "VAZbAGJsIWg-c5Pl1TK6cK91FGW5j0YmjlVa33Re9n4",
+          "fLRMYqy-ID72qvUxjjfPfZnZLIjFGV3EHveYKBIUBds",
+          "fPnedJuWc8TG28E0uu9E_dWvNGbZAUueYbJvCMw8ENA",
+          "gmghvFGVa5vlrwEz4ZW4iGRBz4KjP8YdAwNeuJ5djg0",
+          "jXuxQjyc32FkP_8A10mtQMijuVpaKzyWeperOtl5xYQ",
+          "lE0IvQm1zrq20BxGsW_U3_yj4ijt7N5QO8CH29gsJhk",
+          "mSFcXSRsjKIJc8Kzi2ltMb4jMFEIlTRmA2Bt1WpCAi0",
+          "npdnJgpeQUa8rCQJKH9yDgrUCI2xswfDKwbTC3zh5tA",
+          "trgjvtcqW7e7B6j7wHgFLzbPHW3di16hA9VXy6tJiNQ",
+          "vr0IlBJwVbEddxzmXSDlHKCVsAbAV9zuxmz7IgjX1uU",
+          "xpquob78VsZZs5JylgtevvHJWlIbWISe7B7KVTFhPmo",
+          "y1oz2vg00II0vIV5_T5I2KFvWNOfcFc7dtJyajrIsaY"
+        ]
+      },
+      "sig": "9wdElkhgaNoFFILu_BwDgHaFiGwO6sruM8FpWQStIoHdheYb7yLuJpylkS8NtioxwjAwm3egakM4mvo6S02iAg"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "too_many"
+  }
+}
