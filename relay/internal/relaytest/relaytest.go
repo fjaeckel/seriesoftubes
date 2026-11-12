@@ -181,7 +181,7 @@ func (n *Net) Listen(name string) *Node {
 	srv := httptest.NewUnstartedServer(h)
 	srv.Config.ErrorLog = nil
 	srv.StartTLS()
-	host := strings.ToLower(name) + ".example.com"
+	host := hostLabel(name) + ".example.com"
 	port := srv.Listener.Addr().(*net.TCPAddr).Port
 	hp := fmt.Sprintf("%s:%d", host, port)
 	n.mu.Lock()
@@ -344,4 +344,17 @@ func ID(rec map[string]any) string {
 		panic(code)
 	}
 	return r.ID
+}
+
+// hostLabel turns a name into a DNS label.
+func hostLabel(name string) string {
+	var b strings.Builder
+	for _, c := range strings.ToLower(name) {
+		if c >= 'a' && c <= 'z' || c >= '0' && c <= '9' {
+			b.WriteRune(c)
+		} else {
+			b.WriteByte('-')
+		}
+	}
+	return strings.Trim(b.String(), "-")
 }

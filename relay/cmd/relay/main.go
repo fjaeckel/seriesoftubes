@@ -646,7 +646,7 @@ func cmdCheckRegistry(args []string, out io.Writer) int {
 	}
 	var challenge registry.Challenger
 	if !*offline {
-		challenge = liveChallenge(nil)
+		challenge = liveChallenge(nil, func() int64 { return time.Now().Unix() })
 	}
 	return checkFiles(paths, *base, challenge, out)
 }
@@ -688,14 +688,14 @@ func checkFiles(paths []string, base string, challenge registry.Challenger, out 
 }
 
 // liveChallenge connects to a node and checks its proof (11.2 step 9).
-func liveChallenge(hc *http.Client) registry.Challenger {
+func liveChallenge(hc *http.Client, now func() int64) registry.Challenger {
 	return func(ctx context.Context, url, server, nodeKey string) error {
 		cl, err := client.Dial(ctx, url, client.Options{HTTPClient: hc})
 		if err != nil {
 			return err
 		}
 		defer cl.Close()
-		return cl.Challenge(ctx, server, nodeKey, time.Now().Unix())
+		return cl.Challenge(ctx, server, nodeKey, now())
 	}
 }
 
