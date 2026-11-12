@@ -242,6 +242,16 @@ network, it is excluded on every server and in every game that syncs.
   device" export includes it, behind a warning that anyone with the file can post as this network. Importing it on the
   new device carries the identity over; the old copy should then be left, since two devices with one key would send
   conflicting records (the server keeps the newest). Losing the key means starting a new identity, nothing more.
+- **Shared saves and bug reports.** Players attach saves to issues, so a shared save must never carry a way to act as
+  its network:
+  - Every ordinary export (`exportSave()`, `exportSlot()`, the bug-report path) drops the private key, the queued
+    outgoing records (they are signed and could be replayed) and any operator key. The public key, ASN and deals stay,
+    so a bug can still be reproduced with the network as others saw it.
+  - Importing such a save gives a detached save: it plays like any save, shows multiplayer as "not joined", and joining
+    makes a new key pair (a new identity). It never sends records for the original network.
+  - Only "Move to another device" keeps the key. That file has its own name (ending `-move-PRIVATE.json`), its own
+    button behind a warning, and the bug-report form says not to attach it.
+  - A test exports every way and checks that only the move file contains the private key.
 - Network names are whatever the player types, real company names included: rule N2 (puns only) covers the names the
   game ships, not what players choose. Names are shown as plain text, never translated, and each server can hide one.
 
