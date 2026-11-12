@@ -348,6 +348,7 @@ stay in the browser).`);
 
     // Bob reviews peering requests and sells PNIs on review.
     await step('Bob publishes terms (peering on review, a PNI rate card)', async () => {
+      await sleep(1100); // two announces of one network in the same second tie on t (§10.11): publish in a new second
       await ev(B, () => ACT.fpTermsSet({ terms: JSON.stringify({ pol: 'open', auto: { peering: 'review', pni: 'review' }, rates: { pni: { setup: 1000, ports: [{ mbps: 10000, monthly: 500 }], term: 30 } } }) }));
       await until(() => ev(A, async (k) => { await fedPlayRefresh(); const a = FEDN.ann.get(k); return !!a && a.rec.body.auto.peering === 'review' && !!a.rec.body.rates.pni; }, P.B), 30000, 'Alice to see Bob\'s new terms');
     });
@@ -431,6 +432,7 @@ stay in the browser).`);
       });
       must(route, 'Bob has no lit route');
       const [a, b] = route;
+      await sleep(1100); // two announces of one network in the same second tie on t (§10.11): publish in a new second
       await ev(B, (r) => ACT.fpTermsSet({ terms: JSON.stringify({ pol: 'open', auto: { peering: 'review', pni: 'review', wave: 'review' },
         rates: { pni: { setup: 1000, ports: [{ mbps: 10000, monthly: 500 }], term: 30 }, wave: { routes: [{ a: r[0], b: r[1] }], sizes: [{ gbps: 100, monthly: 1e9 }, { gbps: 400, monthly: 1e9 }], term: 30 } } }) }), route);
       const price = await ev(B, () => S.fedp.rates.wave.sizes[1].monthly);
@@ -465,6 +467,7 @@ stay in the browser).`);
     const sentStats = (p, k) => p.sent.filter((f) => f.m === 'put' && f.rec && f.rec.kind === 'stats' && f.rec.key === k && p.frames.some((a) => a.m === 'ack' && a.id === f.id)).map((f) => f.rec.body);
     await step('newcomer Alice buys transit from established Bob at the newcomer price; both games agree on it', async () => {
       await ev(B, () => { S.fed.joined -= 100; });
+      await sleep(1100); // two announces of one network in the same second tie on t (§10.11): publish in a new second
       await ev(B, () => ACT.fpTermsSet({ terms: JSON.stringify({ pol: 'open', auto: { peering: 'review', pni: 'review', wave: 'review', transit: 'auto' },
         rates: { pni: { setup: 1000, ports: [{ mbps: 10000, monthly: 500 }], term: 30 }, transit: { perGbps: 400, commit: [{ mbps: 10000, off: 100 }], term: 30 } } }) }));
       const today = Math.floor(now() / DAY);
