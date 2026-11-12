@@ -114,7 +114,7 @@ const FED_FID=v=>Number.isSafeInteger(v)&&v>=1&&v<=2147483647;
 const FED_MSG={
   hello:{vers:Array.isArray,role:v=>typeof v==='string'},welcome:{ver:Number.isSafeInteger,server:v=>!FdId(v),node:v=>!FdK(v),now:Number.isSafeInteger},
   challenge:{id:FED_FID,nonce:v=>!FdId(v)},proof:{id:FED_FID,proof:v=>!!v&&typeof v==='object'},put:{id:FED_FID,rec:v=>v!==undefined},
-  ack:{id:FED_FID,rid:v=>typeof v==='string'},cosign:{id:FED_FID,rid:v=>typeof v==='string',key:v=>typeof v==='string',sig:v=>typeof v==='string'},
+  ack:{id:FED_FID,rid:v=>v===undefined||typeof v==='string'},cosign:{id:FED_FID,rid:v=>typeof v==='string',key:v=>typeof v==='string',sig:v=>typeof v==='string'},
   sub:{id:FED_FID,kinds:Array.isArray,since:v=>typeof v==='string'},unsub:{id:FED_FID},fetch:{id:FED_FID,ids:v=>Array.isArray(v)&&v.length<=256},
   board:{id:FED_FID},servers:{id:FED_FID},recs:{items:v=>Array.isArray(v)&&v.length<=256},catalog:{entries:Array.isArray},
   err:{code:v=>typeof v==='string'},ping:{id:FED_FID},pong:{id:FED_FID}};

@@ -591,7 +591,7 @@ upgraded. This document is version 1; records carry `v: 1` in it.
 | `welcome` | node → client | `ver` (chosen), `server` (Id), `node` (Key), `now` | |
 | `challenge` | client → node | `id`, `nonce` | `proof` `{m, id, proof}`, a proof envelope (6.2) |
 | `put` | client → node | `id`, `rec` (a record) | `ack` or `err` |
-| `ack` | node → client | `id`, `rid` (record id), `dup` (Bool: already had it), `rcpt` (the receipt, when the record came from this client) | |
+| `ack` | node → client | `id`; answering `put` and `cosign` also `rid` (record id), `dup` (Bool: already had it) and `rcpt` (the receipt, when the record came from this client); answering `unsub` only `id` | |
 | `cosign` | client → node | `id`, `rid` (a pending proposal or server record), `key`, `sig` | `ack` or `err`: adds one operator signature to a multi-signer record (same check as 4 and 8) |
 | `sub` | client → node | `id`, `kinds` ([kind]), `since` (cursor, `""` for everything kept) | `recs` frames carrying the `id`, first the backlog, then live records, until `unsub` |
 | `unsub` | client → node | `id` (of the `sub`) | `ack` |

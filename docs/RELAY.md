@@ -309,6 +309,11 @@ signed record.
   for carrying forward), offers and answers 30 days, votes 90 days, announcements until a network has been silent 180
   days. Daily files are rewritten or deleted once nothing in them is kept.
 
+## Testing against the game
+
+`node scripts/fed-e2e.js` (from the repository root, after `npm ci`) builds this relay, runs it with TLS on loopback and
+plays two games against it in Chromium: join, announce, deals, a shun reaching its threshold, the boards. Not part of CI.
+
 ## Metrics
 
 Set `"metrics": "127.0.0.1:9464"` to serve `/metrics` in the Prometheus text format on localhost: connections by

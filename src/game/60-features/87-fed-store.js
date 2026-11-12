@@ -57,7 +57,9 @@ async function fedNetworks(now=fedNow()){const out=[],all=await fedAll('ann');FE
 /* ---------- small documents ---------- */
 /* Shun and unshun votes ({rec, id}), kept until they expire; the tally reads them with the registry. voters (fedVoters):
    only votes signed by an operator of a voting server are kept, the stored ones checked again with them. */
-async function fedVotesAdd(cs,voters){voters=voters||await fedVoters();const l=(await fedGet('kv','votes'))||[],ids=new Set(l.map(x=>x.id));let ch=false;
+// One at a time (the operator's own vote and votes from nodes can arrive together).
+function fedVotesAdd(cs,voters){const p=(FEDDB.vq||Promise.resolve()).then(()=>fedVotesRun(cs,voters));FEDDB.vq=p.catch(()=>{});return p;}
+async function fedVotesRun(cs,voters){voters=voters||await fedVoters();const l=(await fedGet('kv','votes'))||[],ids=new Set(l.map(x=>x.id));let ch=false;
   for(const c of cs)if(!ids.has(c.id)&&fedVoteOk(voters,c.rec)){ids.add(c.id);l.push({id:c.id,rec:c.rec});ch=true;}
   if(!ch)return;const now=fedNow();l.sort((a,b)=>b.rec.t-a.rec.t);FED.vgen++;
   await fedPut('kv','votes',l.filter(x=>now-x.rec.t<=7776000+FED_CARRY&&fedVoteOk(voters,x.rec)).slice(0,FED_VOTES_MAX));}

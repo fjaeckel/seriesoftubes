@@ -13,7 +13,7 @@ const FEDP_MAX=48,FEDP_SH=0.012,FEDP_SH_ALL=0.12,FEDP_TICK=3600000,FEDP_UP=['lvl
   FEDP_COL=['#8E7DBE','#2E86AB','#E07A5F','#3D9970','#B565A7','#F2A541','#5B8E7D','#C44536','#4F6D7A','#9C6644'],
   FEDP_ST=['active','fading','dark'];
 // Runtime only: what is applied to NETS (h, ids, base shares), the newest announces by key, the timer.
-const FEDN={h:'',ids:[],base:null,ann:new Map(),cur:Promise.resolve(),pend:null,t:null,on:false,q:Promise.resolve(),rt:null};
+const FEDN={h:'',ids:[],base:null,ann:new Map(),cur:Promise.resolve(),pend:null,t:null,on:false,q:Promise.resolve(),rt:null,pin:new Set()};
 // A player network's id in NET: stable for a key, letters and digits only.
 const fedNetId=k=>'fp'+String(k).slice(0,12).replace(/[-_]/g,'x');
 const fedNetOf=k=>{const n=NET[fedNetId(k)];return n&&n.fed===k?n:null;};
@@ -82,8 +82,12 @@ function fedPlayRefresh(){if(FEDN.pend)return FEDN.pend;
 async function fedPlayRun(){const s=S;if(!s||!s.fed||!s.fed.key||!fedEligible(s))return;
   const now=fedNow(),all=await fedNetworks(now),shun=new Set(await fedShunned(now)),stats=await fedPlayStats();if(S!==s||!s.fed)return;
   const me=s.fed.key.pub,muted=new Set(s.fed.muted);FEDN.ann=new Map(all.map(n=>[n.key,n]));
+  /* At most FEDP_MAX networks become places in this game: first those it deals with, has requests from or the player
+     picked in the looking glass (FEDN.pin), then the busiest. Without that, on a server with more networks than that,
+     two new players could never find each other. */
+  const keep=new Set([...s.fed.deals.filter(d=>d.st!=='over').map(d=>d.key),...(s.fedp?s.fedp.rq.map(q=>q.rec.key):[]),...FEDN.pin]);
   const list=all.filter(n=>n.key!==me&&!muted.has(n.key)).map(n=>fedNetSnap(n,shun.has(n.key),stats.get(n.key)))
-    .sort((a,b)=>(a.st==='dark')-(b.st==='dark')||b.tr-a.tr||fedByStr(a.k,b.k)).slice(0,FEDP_MAX);
+    .sort((a,b)=>keep.has(b.k)-keep.has(a.k)||(a.st==='dark')-(b.st==='dark')||b.tr-a.tr||fedByStr(a.k,b.k)).slice(0,FEDP_MAX);
   const h=fedNetsHash(list);let ch=false;
   // A joined save has its terms (the defaults) from its first look on, not only once it announced.
   if(!s.fedp){fedP(s);ch=true;}

@@ -10,7 +10,10 @@ Object.assign(ACT,{
  fpTermsSave:()=>{if(!S||!S.fed||!UI.fpDraft)return;const r=fedTermsApply(UI.fpDraft);UI.fpDraft=null;closeModal();toast(tr('fedplay.terms_saved'),'good');after();return fpDo(r);},
  fpTermsSet:({terms}={})=>{if(!S||!S.fed)return;let t;try{t=JSON.parse(String(terms));}catch(e){toast(tr('fedplay.err_off'),'bad');return;}after();return fpDo(fedTermsApply(t));},
  fpRpki:({on}={})=>{if(!S||!S.fed)return;fedP().rpki=on!==false;after();return fpDo(fedAnnounceMaybe(true).then(()=>null));},
- fpNet:({key}={})=>{if(!S||!S.fed||!fedNetOf(key))return;UI.fpSel={};fedNetModal(key);},
+ // A network picked in the looking glass that is not a place in this game yet becomes one first (FEDN.pin, at most 8).
+ fpNet:async({key}={})=>{if(!S||!S.fed||FdK(key))return;
+   if(!fedNetOf(key)){FEDN.pin.delete(key);FEDN.pin.add(key);if(FEDN.pin.size>8)FEDN.pin.delete(FEDN.pin.values().next().value);await fedPlayRefresh();if(!fedNetOf(key))return;}
+   UI.fpSel={};fedNetModal(key);},
  fpPick:({f,v}={})=>{if(!S||!UI.fpOpen||!/^(peering|transit|pni|port|swap|cons)\.(via|at|mbps|term|a|b|pairs|members)$/.test(String(f)))return;UI.fpSel=UI.fpSel||{};UI.fpSel[f]=String(v);fpRe();},
  fpReq:({key,deal,via,at,mbps,term}={})=>{if(!S||!S.fed||typeof key!=='string')return;return fpDo(fedRequest(key,String(deal),{via,at,mbps:mbps==null?0:+mbps,term:term==null?0:+term}));},
  fpRenew:({id}={})=>{const d=S&&S.fed&&S.fed.deals.find(x=>x.id===id);if(!d||d.role==='sell')return;const T=d.terms;

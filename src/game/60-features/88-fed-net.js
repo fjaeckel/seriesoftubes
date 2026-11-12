@@ -57,7 +57,7 @@ const fedLive=c=>{if(fedMine(c.M)&&c.M.conns.get(c.url)===c)return true;if(FED.l
 // Closes a socket without its handlers firing back, and answers every pending request with null.
 function fedHang(c){FED.clear(c.t);FED.clear(c.tick);c.t=c.tick=null;const ws=c.ws;c.ws=null;c.phase='';
   if(ws){ws.onopen=ws.onmessage=ws.onerror=ws.onclose=null;try{ws.close();}catch(e){}}
-  for(const r of c.rq.values()){FED.clear(r.t);r.res(null);}c.rq.clear();c.sub=0;}
+  for(const r of c.rq.values()){FED.clear(r.t);r.res(null);}c.rq.clear();c.sub=0;FED.clear(c.subT);c.subT=null;c.subQ=null;}
 function fedDial(c){if(!fedLive(c))return;fedHang(c);
   if(!FED.visible()){fedSt(c,'waiting');return;}
   const url=c.nodes[c.ni%c.nodes.length];let ws;c.node=url;
@@ -81,10 +81,17 @@ async function fedLearn(c,srvs){const e=c.srv&&(srvs||await fedServers()).find(x
 async function fedLearnAll(M){if(!fedMine(M))return;const s=await fedServers();for(const c of M.conns.values())await fedLearn(c,s);}
 function fedSend(c,m){const t=JSON.stringify(m);if(!c.ws||fedSize(t)>FED_FRAME)return false;try{c.ws.send(t);c.lastOut=fedNow();return true;}catch(e){return false;}}
 // A request: resolves with the answer frame, or null on timeout or a lost connection. many: answers come as several
-// recs frames ending with more:false, gathered into one.
-function fedAsk(c,m,many){return new Promise(res=>{if(c.phase!=='ready'&&c.phase!=='check'){res(null);return;}const id=c.nid=c.nid%2147483646+1;
+// recs (or catalog) frames ending with more:false, gathered into one. The promise carries the request's id (.id), which
+// an unsub names.
+function fedAsk(c,m,many){let id=0;const p=new Promise(res=>{if(c.phase!=='ready'&&c.phase!=='check'){res(null);return;}id=c.nid=c.nid%2147483646+1;
   const r={res,many,items:[],n:0,t:FED.set(()=>{c.rq.delete(id);res(null);},FED.T.req)};c.rq.set(id,r);
-  if(!fedSend(c,{...m,id})){FED.clear(r.t);c.rq.delete(id);res(null);}});}
+  if(!fedSend(c,{...m,id})){FED.clear(r.t);c.rq.delete(id);res(null);}});p.id=id;return p;}
+/* Waits a rate_limited answer's retry (seconds, 1 to 60, plus up to a second at random so requests refused together do
+   not come back together) when the connection is still there; false when not worth it. */
+const fedRetryIn=(c,a)=>new Promise(res=>{if(!a||a.m!=='err'||a.code!=='rate_limited'||!fedLive(c)){res(false);return;}
+  FED.set(()=>res(fedLive(c)&&c.phase==='ready'),(Math.min(60,Math.max(1,Number.isSafeInteger(a.retry)?a.retry:1))+FED.rand())*1000);});
+// A request answered rate_limited is asked again after the retry the node gave (five times at most).
+async function fedAskRetry(c,m,many){for(let i=0;;i++){const a=await fedAsk(c,m,many);if(i>=5||!(await fedRetryIn(c,a)))return a;}}
 
 /* ---------- frames from a node ---------- */
 function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.error){fedDrop(c,r.error);return;}const f=r.f;
@@ -96,12 +103,19 @@ function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.erro
     fedReady(c).catch(e=>{console.error('[tubes] federation sync',e);});return;}
   if(c.phase!=='ready'&&c.phase!=='check'){fedDrop(c,'not_ready');return;}
   if(f.m==='ping'){fedSend(c,{m:'pong',id:f.id,now:fedNow()});return;}
-  if(f.m==='recs'&&c.sub&&f.id===c.sub){fedRecs(c,f.items,null,null).then(()=>{if(typeof f.cursor==='string'&&/^[A-Za-z0-9_-]{0,64}$/.test(f.cursor))return fedPut('kv','cursor:'+c.node,f.cursor);}).catch(()=>{});return;}
+  /* A page of the subscription: pages are handled one after another, and its cursor is kept only once every record of
+     it was handled, so a connection lost in the middle resumes from the last whole page and skips nothing (§9.3). */
+  if(f.m==='recs'&&c.sub&&f.id===c.sub){const q=c.subQ||Promise.resolve(),node=c.node;
+    c.subQ=q.then(()=>fedRecs(c,f.items,null,null)).then(done=>{if(done&&typeof f.cursor==='string'&&/^[A-Za-z0-9_-]{1,64}$/.test(f.cursor))return fedPut('kv','cursor:'+node,f.cursor);}).catch(()=>{});return;}
+  // The node refused the subscription for now (rate_limited, internal): subscribe again after its retry.
+  if(f.m==='err'&&c.sub&&f.id===c.sub){c.sub=0;if(f.code==='rate_limited'||f.code==='internal')c.subT=FED.set(()=>{c.subT=null;if(fedLive(c)&&c.phase==='ready'&&!c.sub)fedSub(c);},Math.min(60,Math.max(1,Number.isSafeInteger(f.retry)?f.retry:5))*1000);return;}
   if(f.m==='catalog'&&f.id===undefined){fedGossip(f.entries).catch(()=>{});return;}
   const q=f.id!==undefined&&c.rq.get(f.id);
   if(!q){if(f.m==='err'&&f.id===undefined)fedDrop(c,f.code);return;}
-  if(q.many&&f.m==='recs'){q.items.push(...f.items);if(f.more===true&&++q.n<512&&q.items.length<200000)return;}
-  FED.clear(q.t);c.rq.delete(f.id);q.res(q.many&&f.m==='recs'?{...f,items:q.items}:f);}
+  // A long answer (§9.3): recs items or catalog entries gathered over the frames until more is not true.
+  const L=q.many&&{recs:'items',catalog:'entries'}[f.m];
+  if(L){q.items.push(...f[L]);if(f.more===true&&++q.n<512&&q.items.length<200000){FED.clear(q.t);q.t=FED.set(()=>{c.rq.delete(f.id);q.res(null);},FED.T.req);return;}}
+  FED.clear(q.t);c.rq.delete(f.id);q.res(L?{...f,[L]:q.items}:f);}
 /* Just connected: make sure the node is one of its server's (when the catalog knows the server: the registry is asked
    first, for at most FED.T.fetch), then send what waits and follow the news. */
 async function fedReady(c){await c.M.cat;if(!fedLive(c)||c.phase!=='check')return;const e=await fedLearn(c);
@@ -109,9 +123,11 @@ async function fedReady(c){await c.M.cat;if(!fedLive(c)||c.phase!=='check')retur
     const nonce=fedB64(fedNonce()),p=await fedAsk(c,{m:'challenge',nonce});if(!fedLive(c)||c.phase!=='check')return;if(!p||p.m!=='proof'){fedDrop(c,'bad_challenge');return;}
     if(await fedProofErr(p.proof,nonce,c.srv,c.nodeKey,fedNow())){fedDrop(c,'bad_challenge');return;}}
   if(!fedLive(c)||c.phase!=='check')return;c.phase='ready';c.tries=0;fedSt(c,'connected');fedFlush(c);
-  const since=(await fedGet('kv','cursor:'+c.node))||'';if(!fedLive(c)||c.phase!=='ready')return;
-  c.sub=c.nid=c.nid%2147483646+1;fedSend(c,{m:'sub',id:c.sub,kinds:['announce','offer','accept','decline','leave','hide','shun','unshun'],since:typeof since==='string'?since:''});
-  const cat=await fedAsk(c,{m:'servers'});if(cat&&cat.m==='catalog')await fedGossip(cat.entries);}
+  await fedSub(c);if(!fedLive(c)||c.phase!=='ready')return;
+  const cat=await fedAskRetry(c,{m:'servers'},true);if(cat&&cat.m==='catalog')await fedGossip(cat.entries);}
+// Follows the news from the last cursor kept for this node.
+async function fedSub(c){const since=(await fedGet('kv','cursor:'+c.node))||'';if(!fedLive(c)||c.phase!=='ready'||c.sub)return;
+  c.sub=c.nid=c.nid%2147483646+1;fedSend(c,{m:'sub',id:c.sub,kinds:['announce','offer','accept','decline','leave','hide','shun','unshun'],since:typeof since==='string'?since:''});}
 function fedNonce(){const a=new Uint8Array(32);try{crypto.getRandomValues(a);}catch(e){for(let i=0;i<32;i++)a[i]=FED.rand()*256|0;}return a;}
 
 /* ---------- sending what waits in the save ---------- */
@@ -149,9 +165,12 @@ async function fedPlace(c,chk,rcpts,now,srvs){let slot=null,cc=null;
     if(await fedRcptErr(rc,chk.rec,chk.id,sid,nodes,now))continue;if(slot===null||rc.t<slot){slot=rc.t;cc=rc.body.cc||null;}}
   return {slot,cc};}
 /* Items [{rec, rcpt}] from a sub or a board answer. board: a Map id -> board item to fill, or null; known: board
-   items already checked (by id), which are not checked again. */
-async function fedRecs(c,items,board,known){const now=fedNow(),me=c.M.fed.key.pub,votes=[],srvs=await fedServers();let n=0,voters=null;
-  for(const it of Array.isArray(items)?items:[]){if(!fedLive(c))return;if(!it||typeof it!=='object')continue;
+   items already checked (by id), which are not checked again. Gives true when every item was looked at. Calls run one
+   after another, across connections: what they keep is read, changed and written back (votes, a network's servers),
+   and two at once would lose one's change (five votes arriving together counted as fewer). */
+function fedRecs(c,items,board,known){const p=(FED.recQ||Promise.resolve()).then(()=>fedRecsRun(c,items,board,known));FED.recQ=p.catch(()=>false);return p;}
+async function fedRecsRun(c,items,board,known){const now=fedNow(),me=c.M.fed.key.pub,votes=[],srvs=await fedServers();let n=0,voters=null;
+  for(const it of Array.isArray(items)?items:[]){if(!fedLive(c))return false;if(!it||typeof it!=='object')continue;
     if(known&&it.rec&&it.rec.kind==='stats'&&!fedValues(it.rec)&&!fedEnv(it.rec,FED_REC)){const o=known.get(await fedId(it.rec));if(o){board.set(o.id,o);continue;}}
     const chk=await fedCheck(it.rec,now);if(!chk.ok)continue;n++;const r=chk.rec,pl=await fedPlace(c,chk,it.rcpt,now,srvs),heard=pl.slot??fedSlot(now);
     if(['announce','stats','offer','accept','decline'].includes(r.kind))await fedHeard(r.key,heard);
@@ -163,12 +182,12 @@ async function fedRecs(c,items,board,known){const now=fedNow(),me=c.M.fed.key.pu
     else if(r.kind==='stats'&&board&&pl.slot!==null)board.set(chk.id,{id:chk.id,key:r.key,slot:pl.slot,t:r.t,body:r.body,cc:pl.cc,srv:[c.srv]});
     else if((r.kind==='offer'||r.kind==='accept'||r.kind==='decline')&&(r.body.to===me||r.key===me||!!FED.hooks.deal&&FED.hooks.deal(r)))fedEmit('deal',{rec:r,id:chk.id,slot:heard,server:c.srv});}
   if(votes.length)await fedVotesAdd(votes,voters);
-  if(n)fedEmit('records',{server:c.srv,n});}
+  if(n)fedEmit('records',{server:c.srv,n});return true;}
 /* Fetches a joined server's board records (§9.5) and keeps them for offline viewing. Gives the number of records, or
    null when that server is not connected now (the cached ones stay). */
 async function fedBoardFetch(url){const M=FED.live,c=M&&M.conns.get(url);if(!c||c.phase!=='ready'||!c.srv)return null;
   const old=await fedBoardGet(c.srv),known=new Map((old&&old.items||[]).map(x=>[x.id,x]));
-  const a=await fedAsk(c,{m:'board'},true);if(!a||a.m!=='recs')return null;
+  const a=await fedAskRetry(c,{m:'board'},true);if(!a||a.m!=='recs')return null;
   const board=new Map();await fedRecs(c,a.items,board,known);
   if(!fedLive(c))return null;await fedBoardPut(c.srv,[...board.values()]);fedEmit('board',{server:c.srv,n:board.size});return board.size;}
 /* Everything the boards are computed from, from the cache (works offline): {records (merged over the joined servers,

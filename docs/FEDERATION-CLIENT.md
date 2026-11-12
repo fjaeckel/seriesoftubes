@@ -7,6 +7,8 @@ and no player-facing text (functions answer with codes; the interface translates
 Code: `src/game/60-features/81-fed-core.js` to `88-fed-net.js`, actions in `src/game/90-actions/93-fed.js`, the AI
 declaration in `src/agent/77-fed.js`. Everything is plain functions in the page's one scope, named `fed…` (`FED` is the
 runtime object). Tests: `tests/federation-*.test.js`; `tests/helpers/fed.js` has fake relay nodes on a virtual clock.
+End to end against the real relay: `node scripts/fed-e2e.js` builds the Go relay, serves it over TLS on loopback and
+drives two players in Chromium through joining, announcing, deals, a shun and the boards (about 6 minutes; not in CI).
 
 ## Rules that hold everywhere
 
