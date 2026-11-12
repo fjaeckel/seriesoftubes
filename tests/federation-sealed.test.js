@@ -135,3 +135,11 @@ test('running deals end when two of three joined servers list the network, not w
   assert.deepEqual([[1, 1], [2, 2], [2, 3], [2, 4], [3, 4], [3, 5]].map(([m, k]) => p.ev(`fedExclConfirmed(${m},${k})`)), [false, true, true, false, true, true]);
   assert.deepEqual(p.errors, []);
 });
+
+test('a deal is never sealed with a nonce that is not from the secure random source', async () => {
+  const p = fedPage();
+  assert.ok(p.ev('/crypto\\.getRandomValues\\(a\\);return a;/.test(fedNonce12.toString())'));
+  assert.ok(!p.ev('/FED\\.rand/.test(fedNonce12.toString())'), 'no fallback to the game\'s own random numbers');
+  const n = p.ev('Array.from(fedNonce12()).join()'), m = p.ev('Array.from(fedNonce12()).join()');
+  assert.notEqual(n, m);
+});

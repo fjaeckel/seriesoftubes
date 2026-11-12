@@ -28,7 +28,9 @@ async function fedDealKey(seed,me,peer,peerBox,kind){const s=fedSubtle(),pb=fedB
   if(FED_DKEYS.size>64)FED_DKEYS.clear();FED_DKEYS.set(id,k);return k;}
 // The additional data: the record without sig and without body.enc, as canonical JSON.
 const fedBoxAad=r=>{const e={};for(const k of Object.keys(r))if(k!=='sig')e[k]=r[k];const b={};for(const k of Object.keys(r.body))if(k!=='enc')b[k]=r.body[k];e.body=b;return fedUtf8(fedCanon(e));};
-function fedNonce12(){const a=new Uint8Array(12);try{crypto.getRandomValues(a);}catch(e){for(let i=0;i<12;i++)a[i]=FED.rand()*256|0;}return a;}
+// AES-GCM nonce: from the browser's secure random source only. A repeated nonce under one key would leak the plaintext,
+// so without it nothing is sealed (the deal fails instead of going out weak).
+function fedNonce12(){const a=new Uint8Array(12);crypto.getRandomValues(a);return a;}
 /* Seals plain (a value) inside env (the record without sig and enc) for peer: {n, c}. n: a fixed nonce (vectors). */
 async function fedSeal(seed,me,peer,peerBox,env,plain,n){const k=await fedDealKey(seed,me,peer,peerBox,env.kind);if(!k)throw new Error('box');
   const iv=n?fedBin(n,12):fedNonce12();
