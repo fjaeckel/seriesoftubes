@@ -66,6 +66,10 @@ function load(opts = {}) {
       if (opts.lang) { window.localStorage.setItem('sot-lang', opts.lang); window.eval(fs.readFileSync(path.join(opts.dir || path.join(__dirname, '..', 'site', 'i18n'), opts.lang + '.js'), 'utf8')); }
       // jsdom has no CompressionStream; {gzip:true} lends the page Node's, the same API browsers have (#176).
       if (opts.gzip) for (const k of ['CompressionStream', 'DecompressionStream', 'TextEncoder', 'TextDecoder']) window[k] = globalThis[k];
+      // jsdom has no crypto.subtle; {crypto:true} lends Node's WebCrypto (Ed25519, SHA-256) for multiplayer tests.
+      if (opts.crypto) Object.defineProperty(window, 'crypto', { configurable: true, value: globalThis.crypto });
+      // {idb:true}: a fresh in-memory IndexedDB (fake-indexeddb, a dev dependency) per page; {idb: factory} shares one.
+      if (opts.idb) { const F = require('fake-indexeddb'); window.indexedDB = opts.idb === true ? new F.IDBFactory() : opts.idb; window.IDBKeyRange = F.IDBKeyRange; }
       window.Path2D = class { moveTo() {} lineTo() {} quadraticCurveTo() {} bezierCurveTo() {} arc() {} rect() {} closePath() {} };
       // A recording 2D context, so draw code really runs under test (jsdom has no canvas).
       const fake = () => { const calls = { n: 0 };

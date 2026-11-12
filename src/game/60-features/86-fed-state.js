@@ -1,0 +1,101 @@
+/* ================= FEDERATION: what the save holds =================
+   S.fed (plan, "State and saves") is null in every save that never joined. Once made:
+   {on (joined), key {pub, priv} (priv: the Ed25519 seed; stripped from every ordinary export), servers [node URL],
+    ai null|{model, harness} (written only by src/agent/), out [signed records waiting to be sent], muted [keys],
+    deals [self-contained deals with other players], share (let servers attach my country), joined (real day of joining),
+    last (slot of the last stats sent)}.
+   Joining is per save and only in normal games: never a sandbox or open gates, a puzzle, a scenario or the weekly. */
+const FED_MAX_SERVERS=4,FED_OUT_MAX=64,FED_OUT_BYTES=131072,FED_MUTED_MAX=512,FED_DEALS_MAX=256,FED_CLIENT_KINDS=['announce','stats','offer','accept','decline','leave'];
+// The mode a stats record declares (§5.2); only 'normal' is ranked, and only a normal game may join.
+function fedMode(s){if(!s)return 'normal';if(s.mode==='puzzle'||s.pz)return s.ar?'architect':'puzzle';
+  if(s.scn)return s.scn.id==='weekly'?'weekly':'scenario';if(s.mode==='sandbox')return 'sandbox';
+  return s.rules&&s.rules.gates==='open'?'open_gates':'normal';}
+const fedEligible=(s=S)=>!!s&&!s.lost&&fedMode(s)==='normal';
+const fedKeyOk=k=>!!k&&typeof k==='object'&&!FdK(k.pub);
+const fedHasPriv=f=>!!f&&fedKeyOk(f.key)&&!!fedBin(f.key.priv,32);
+// Plain-text labels (§5 Label(64)): what an agent declared, or nothing.
+const fedLabel=v=>typeof v==='string'&&!FdText(1,64)(v)?v:null;
+function fedNewState(){return {on:false,key:null,servers:[],ai:null,out:[],muted:[],deals:[],share:true,joined:0,last:0};}
+/* Checks and repairs S.fed of a save from storage or a file (called by sanitize()). Anything malformed is dropped,
+   every list is capped, and a broken key turns multiplayer off without deleting the rest (deals, muted networks). */
+function fedSanitize(s){const f=s.fed;if(!f||typeof f!=='object'||Array.isArray(f)){s.fed=null;return;}
+  const o=fedNewState(),int=(v,hi)=>Number.isSafeInteger(v)&&v>=0&&v<=hi?v:0;
+  if(fedKeyOk(f.key)){o.key={pub:f.key.pub};if(fedBin(f.key.priv,32))o.key.priv=f.key.priv;}
+  if(Array.isArray(f.servers))for(const u of f.servers)if(!FdUrl(u)&&!o.servers.includes(u)&&o.servers.length<FED_MAX_SERVERS)o.servers.push(u);
+  if(f.ai&&typeof f.ai==='object'){const m=fedLabel(f.ai.model),h=fedLabel(f.ai.harness);if(m&&h)o.ai={model:m,harness:h};}
+  if(Array.isArray(f.muted))for(const k of f.muted)if(!FdK(k)&&!o.muted.includes(k)&&o.muted.length<FED_MUTED_MAX)o.muted.push(k);
+  if(Array.isArray(f.deals))for(const d of f.deals){const x=fedDealClean(d);if(x&&o.deals.length<FED_DEALS_MAX&&!o.deals.some(y=>y.id===x.id))o.deals.push(x);}
+  o.share=f.share!==false;o.joined=int(f.joined,1e6);o.last=int(f.last,1e10);
+  // Queued records are this network's own, signed: only kept with the key that signed them.
+  if(o.key&&o.key.priv&&Array.isArray(f.out))o.out=fedOutClean(f.out,o.key.pub);
+  o.on=f.on===true&&!!(o.key&&o.key.priv)&&o.servers.length>0&&fedEligible(s);
+  s.fed=o;
+  if(o.on)fedSoon();}
+// A queued record, checked as far as can be without its signature (that is checked by every node that takes it).
+function fedOutClean(list,pub){let bytes=0,stats=null;const out=[];
+  for(const r of list){if(!r||typeof r!=='object'||Array.isArray(r)||fedValues(r)||fedEnv(r,FED_REC)||!FED_CLIENT_KINDS.includes(r.kind)||r.key!==pub)continue;
+    const n=fedSize(fedCanon(r));if(n>FED_KIND[r.kind][0]||FED_BODY[r.kind](r.body,{rec:r,asn:r.body.asn}))continue;
+    if(r.kind==='stats'){if(!stats||r.t>=stats.t)stats=r;continue;}
+    if(out.length>=FED_OUT_MAX||bytes+n>FED_OUT_BYTES)continue;bytes+=n;out.push(r);}
+  if(stats)out.push(stats);return out;}
+/* A deal with another player, as the save keeps it: self-contained, so it works with no other data. The gameplay
+   builds them; here only the common part is checked: {id (the offer's id), deal, key, name, asn, start, end (null:
+   no end), terms (as offered), and anything else the gameplay adds, as plain checked values}. */
+function fedDealClean(d){if(!d||typeof d!=='object'||Array.isArray(d)||FdId(d.id)||!FED_DEALS.includes(d.deal)||FdK(d.key))return null;
+  if(fedValues(d)||fedSize(fedCanon(d))>8192)return null;
+  const o={...d,name:typeof d.name==='string'?d.name.slice(0,40):'',asn:Number.isSafeInteger(d.asn)?d.asn:0,
+    start:Number.isSafeInteger(d.start)?d.start:null,end:Number.isSafeInteger(d.end)?d.end:null};
+  if(!o.terms||typeof o.terms!=='object'||Array.isArray(o.terms))o.terms={};return o;}
+
+/* ---------- shared saves and bug reports never carry a way to act as the network ---------- */
+// The save with its private key, its queued records and any operator key taken out (a copy; s is untouched).
+function fedPublic(s){if(!s||!s.fed||typeof s.fed!=='object')return s;const f={...s.fed,out:[]};
+  if(f.key&&typeof f.key==='object')f.key={pub:f.key.pub};delete f.op;return {...s,fed:f};}
+// Save text stripped the same way; only parsed when it has a fed object at all, so other saves cost nothing.
+function fedPublicText(t){if(typeof t!=='string'||t.indexOf('"fed":{')<0)return t;try{return JSON.stringify(fedPublic(JSON.parse(t)));}catch(e){return t;}}
+// An imported save that is not a move file: detached from its network (joining makes a new identity).
+function fedDetach(s){if(s&&s.fed&&typeof s.fed==='object'){const p=fedPublic(s).fed;p.on=false;s.fed=p;}return s;}
+const fedMoveName=nm=>saveFileName(nm).replace(/\.json$/,'-move-PRIVATE.json');
+// "Move to another device": the one export that keeps the key (and the queue), behind the UI's warning.
+function fedExportMove(){if(!S||pzOn()||!S.fed)return false;save(true);
+  saveDl(JSON.stringify({app:'series-of-tubes',version:APP_VERSION,exported:new Date().toISOString(),move:true,S:packSave(S)},null,1),S.name,fedMoveName(S.name));
+  return true;}
+
+/* ---------- this network's records ---------- */
+const fedNow=()=>FED.now();
+// Signs a record of this save's network: needs the key (S.fed.key.priv).
+async function fedSignMine(kind,body,f=S&&S.fed){if(!fedHasPriv(f))throw new Error('no key');return fedSignRec(f.key.priv,kind,body,fedNow());}
+/* Queues a signed record of this network to be sent to every joined server. Gives false when the queue is full (only
+   offers and answers are refused then; an older stats or announce is simply replaced by the newer one). */
+function fedQueue(r,f=S&&S.fed){if(!f||!r)return false;
+  if(r.kind==='stats'||r.kind==='announce')f.out=f.out.filter(x=>x.kind!==r.kind);
+  const n=fedSize(fedCanon(r)),others=f.out.filter(x=>x.kind!=='stats');
+  if(r.kind!=='stats'&&(others.length>=FED_OUT_MAX||others.reduce((a,x)=>a+fedSize(fedCanon(x)),0)+n>FED_OUT_BYTES))return false;
+  f.out.push(r);fedFlushSoon();return true;}
+// What the boards rank about this game now (§5.2). The gameplay may replace parts through FED.hooks.stats(body).
+function fedStatsBody(s=S){const pops={};for(const c of Object.keys(s.pops)){const p=s.pops[c];if(p&&!(p.down>s.day))pops[c]=1;}
+  const b={mode:fedMode(s),pops,traffic:[],tier1:(()=>{try{return tierLabel()==='Tier 1';}catch(e){return false;}})(),shareCountry:s.fed.share!==false};
+  if(s.pie)try{b.pies=Math.max(0,Math.min(1e7,Math.round(pieLiveAll())));}catch(e){}
+  if(s.fed.ai)b.ai={model:s.fed.ai.model,harness:s.fed.ai.harness};
+  return FED.hooks.stats?FED.hooks.stats(b)||b:b;}
+
+/* ---------- joining and leaving ---------- */
+// Why this save cannot join now, or null: 'mode' (not a normal game), 'crypto' (no WebCrypto Ed25519), 'url', 'full'.
+async function fedJoinWhy(url){if(!fedEligible())return 'mode';if(FdUrl(url))return 'url';
+  if(S.fed&&!S.fed.servers.includes(url)&&S.fed.servers.length>=FED_MAX_SERVERS)return 'full';
+  return await fedCan()?null:'crypto';}
+/* Joins this save to a server (a node URL). The first join makes the key pair; a save without its private key (an
+   imported one) gets a new identity. Gives null or why not (fedJoinWhy). */
+async function fedJoin(url){const why=await fedJoinWhy(url);if(why)return why;const s=S;
+  if(!s.fed)s.fed=fedNewState();const f=s.fed;
+  if(!fedHasPriv(f)){const k=await fedNewKey();if(S!==s)return 'mode';f.key=k;f.out=[];f.deals=[];f.joined=0;}
+  if(!f.servers.includes(url))f.servers.push(url);f.on=true;if(!f.joined)f.joined=fedDiv(fedNow(),FED_DAY);
+  fedSaved();fedWake();return null;}
+// Leaves one server (or all with no url). Multiplayer is off once no server is left; the identity stays in the save.
+function fedLeave(url){const f=S&&S.fed;if(!f)return;f.servers=url?f.servers.filter(u=>u!==url):[];if(!f.servers.length)f.on=false;fedSaved();fedWake();}
+// Leaves the federation for good (§5.9): a signed leave goes out, then multiplayer turns off and the identity is dropped.
+async function fedQuit(){const f=S&&S.fed;if(!fedHasPriv(f))return false;
+  const r=await fedSignMine('leave',{},f);await fedSendNow([r],f);f.on=false;f.out=[];f.key=null;f.servers=[];fedSaved();fedWake();return true;}
+function fedMute(key,on){const f=S&&S.fed;if(!f||FdK(key))return;f.muted=f.muted.filter(k=>k!==key);if(on&&f.muted.length<FED_MUTED_MAX)f.muted.push(key);fedSaved();fedEmit('mute',{key,on:!!on});}
+function fedShare(on){const f=S&&S.fed;if(!f)return;f.share=!!on;fedSaved();}
+function fedSaved(){try{if(S)save(true);}catch(e){}}

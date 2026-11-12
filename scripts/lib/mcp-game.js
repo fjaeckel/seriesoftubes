@@ -11,7 +11,7 @@ const path = require('node:path');
 const { load } = require('../../tests/harness');
 
 const HEADLESS_JS = fs.readFileSync(path.join(__dirname, 'mcp-headless.js'), 'utf8');
-const ACT_DIRS = ['90-actions', '94-dashboard', '96-map'].map((d) => path.join(__dirname, '..', '..', 'src', 'game', d));
+const ACT_DIRS = ['90-actions', '94-dashboard', '96-map'].map((d) => path.join(__dirname, '..', '..', 'src', 'game', d)).concat([path.join(__dirname, '..', '..', 'src', 'agent')]);  // agent-only actions (apiFedDeclare)
 
 // The arguments of the actions the command tables do not type (the drafts), read from their source
 // (`dfSrc:({v})=>`): in the page the actions are wrapped for puzzle mode, so their own parameter lists are not visible.

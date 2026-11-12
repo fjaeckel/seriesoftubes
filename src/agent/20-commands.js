@@ -624,6 +624,7 @@ const API_SESSION={
  keepPlaying:{args:[],doc:'Dismiss the win screen and keep playing.'},
  pitchSkip:{args:[],doc:'Skip the opening pitch; a game waiting behind it starts.'},
  tutSkip:{args:[],doc:'Skip the tutorial coaching.'},
+ apiFedDeclare:{args:[['model','string'],['harness','string',false]],doc:'Multiplayer: declare the AI model (and harness, default tubes-mcp) playing this save. Joined saves send it, so the network ranks in the AI division with a robot badge.'},
 };
 // Session actions that would replace or leave the game in the player's tab: refused over the relay.
 const API_OWN_WHY='the game in this tab is the player\'s: only the player starts, loads or leaves one';
@@ -635,6 +636,7 @@ const API_WHY={
   time:'use advance to move time, or wait when the clock runs on its own',start:'use new_game',files:'use load_save or export_save',
   slots:'saved networks in browser storage are not part of this game',prefs:'device and player settings are not part of the game',
   browser:'it needs the browser itself (a share sheet, the clipboard, an install prompt or a reload)',
+  fed:'joining relay servers and multiplayer settings are the player\'s choice (an agent only declares itself, with apiFedDeclare)',
 };
 const API_DENY={
   speed:'time',phonePlay:'time',phoneSpeed:'time',
@@ -642,5 +644,6 @@ const API_DENY={
   exportSave:'files',importGo:'files',importPick:'files',slotExport:'files',xfer:'files',xferFile:'files',xferPaste:'files',xferRecv:'files',
   slotBack:'slots',slotDel:'slots',slotDelGo:'slots',slotMenu:'slots',slotRetry:'slots',slotSpace:'slots',slotSwitch:'slots',slotTake:'slots',
   animSet:'prefs',langSet:'prefs',mapSet:'prefs',menu:'prefs',mute:'prefs',prefSet:'prefs',settings:'prefs',settingsClose:'prefs',soundSet:'prefs',vpSet:'prefs',
+  fedJoin:'fed',fedLeave:'fed',fedQuit:'fed',fedMute:'fed',fedShare:'fed',fedMoveExport:'files',
   install:'browser',share:'browser',shareDl:'browser',shareGo:'browser',traceCopy:'browser',updateLater:'browser',updateNow:'browser',wsShare:'browser',pzShare:'browser',xferLink:'browser',xferShare:'browser',
 };
