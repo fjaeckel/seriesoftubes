@@ -241,11 +241,70 @@ func (r *Relay) syncOf(id string) string {
 // isShunned uses the cached tally: each target is counted again when a vote for it arrives,
 // and every target once a minute (votes expire and shuns lift with time) or on a new registry.
 func (r *Relay) isShunned(key string) bool {
-	now := r.now()
+	r.fresh(r.now())
+	return r.shunned[key]
+}
+
+func (r *Relay) fresh(now int64) {
 	if r.shunAt == 0 || now-r.shunAt >= 60 {
 		r.tally(now)
 	}
-	return r.shunned[key]
+}
+
+// operator reports whether a client session proved a key that is a current operator of this
+// server (lock held).
+func (r *Relay) operator(s *session) bool {
+	if r.own == nil {
+		return false
+	}
+	for _, k := range s.proved {
+		if r.own.IsOperator(k) {
+			return true
+		}
+	}
+	return false
+}
+
+// shows reports whether a session may be sent this record: shun votes go to other nodes and to
+// this server's operators only (9.3); every other client learns the outcome from excluded (lock held).
+func (r *Relay) shows(s *session, rec *fed.Record) bool {
+	return s.node || rec.Kind != "shun" && rec.Kind != "unshun" || r.operator(s)
+}
+
+// sendExcluded queues the excluded list for a client (lock held), with the reasons when the
+// session proved an excluded key. An answer queued and not yet started is brought up to date
+// instead of queueing another.
+func (r *Relay) sendExcluded(s *session, now int64) {
+	r.fresh(now)
+	keys := sortedKeys(r.shunned)
+	var reasons []string
+	for _, k := range s.proved {
+		if !r.shunned[k] || r.counter == nil {
+			continue
+		}
+		for why, n := range r.counter.Tally(r.votesFor(k), k, now).Reasons {
+			if n > 0 && !slices.Contains(reasons, why) {
+				reasons = append(reasons, why)
+			}
+		}
+	}
+	slices.Sort(reasons)
+	if p := s.excl; p != nil {
+		p.keys, p.reasons = keys, reasons
+		return
+	}
+	s.excl = &exclPager{keys: keys, reasons: reasons}
+	r.later(s, s.excl)
+}
+
+// exclChanged sends the excluded list again to every client that follows it, or only to those
+// that proved target when just its reasons may have changed (lock held).
+func (r *Relay) exclChanged(now int64, target string) {
+	for s := range r.clients {
+		if s.exSent && (target == "" || slices.Contains(s.proved, target)) {
+			r.sendExcluded(s, now)
+		}
+	}
 }
 
 // indexVotes rebuilds the votes by target from the store (start, and after votes were removed).
@@ -287,18 +346,26 @@ func (r *Relay) tally(now int64) {
 	}
 	if !maps.Equal(old, r.shunned) {
 		r.board = nil
+		r.exclChanged(now, "")
 	}
 }
 
 func (r *Relay) tallyOne(target string, now int64) {
 	on := r.counter != nil && r.counter.Tally(r.votesFor(target), target, now).Shunned
-	if on != r.shunned[target] {
+	changed := on != r.shunned[target]
+	if changed {
 		r.board = nil
 	}
 	if on {
 		r.shunned[target] = true
 	} else {
 		delete(r.shunned, target)
+	}
+	switch {
+	case changed:
+		r.exclChanged(now, "")
+	case on:
+		r.exclChanged(now, target) // a vote may have changed the reasons the excluded player sees
 	}
 }
 
@@ -600,7 +667,7 @@ func (r *Relay) fanout(e *store.Entry, from *session) {
 	for s := range r.clients {
 		for id, sub := range s.subs {
 			// A sub still sending its backlog reaches this record by scanning.
-			if sub.live && sub.kinds[e.Rec.Kind] {
+			if sub.live && sub.kinds[e.Rec.Kind] && r.shows(s, e.Rec) {
 				s.enqueue(map[string]any{"m": "recs", "id": id, "items": []any{it}, "cursor": r.cursor(e.Seq), "more": false})
 				r.o.Metrics.Inc("relay_records_out_total", "")
 			}
@@ -786,6 +853,12 @@ func (r *Relay) Run() {
 	})
 	r.loop("registry", 6*time.Hour, r.refreshRegistry)
 	r.loop("reconcile", r.o.BootstrapEvery, r.reconcile)
+	// Votes expire and shuns lift with time alone: clients following the excluded list hear of it.
+	r.loop("shun", time.Minute, func() {
+		r.mu.Lock()
+		r.fresh(r.now())
+		r.mu.Unlock()
+	})
 	go r.refreshRegistry()
 }
 

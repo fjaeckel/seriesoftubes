@@ -280,6 +280,17 @@ func (cl *Client) Challenge(ctx context.Context, server, node string, now int64)
 	return nil
 }
 
+// Auth proves a key to the node (9.3 auth), signed for the node and server of the welcome at t;
+// it reports whether the node took it as an operator's of its server.
+func (cl *Client) Auth(ctx context.Context, k *fed.Signer, t int64) (bool, error) {
+	f, err := cl.Request(ctx, map[string]any{"m": "auth", "key": k.Key, "t": t, "sig": k.Auth(cl.Welcome.Node, cl.Welcome.Server, t)})
+	if err != nil {
+		return false, err
+	}
+	op, _ := f.Raw["op"].(bool)
+	return op, nil
+}
+
 // Others returns frames that answer no request (pings answered already).
 func (cl *Client) Others() <-chan *wire.Frame { return cl.other }
 

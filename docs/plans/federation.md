@@ -213,19 +213,22 @@ network, it is excluded on every server and in every game that syncs.
   `SHUN_MIN` servers voted (so a young federation of eight servers cannot exclude someone with two votes):
   `SHUN_SHARE` is 25% of all voting servers, and `SHUN_MIN` is 5. It is lifted when votes stay below the threshold for 7 days, so it does not
   flap at the edge.
-- **Everyone counts for themselves.** Shun records travel with every sync, whatever else a sync carries, and every
-  relay and every client tallies them against the registry. There is no central decision: the same records and the
+- **Every server counts for itself.** Shun records travel with every sync between servers, whatever else a sync
+  carries, and every relay tallies them against the registry. There is no central decision: the same records and the
   same registry give the same result. Standalone servers sync nothing, so they are outside the federation and its
   shuns, by their own choice.
+- **Votes are for operators.** A relay sends shun records to a game only when it proved an operator key of that
+  relay's server; operators see the votes and the tally for their server in the operator panel. Every other game
+  learns only the outcome, which networks are excluded, from each server it joined.
 - **What excluded means.**
   - Relays refuse its new records and stop passing on its old ones; it is not listed on any leaderboard.
   - In other players' games it goes dark at once (see Networks that go quiet): greyed out, traffic moves to other
     routes, deals end with a notice that says the federation excluded it. Nothing breaks.
   - In its own game, nothing changes but the multiplayer: it plays on solo and offline as always, and is told why it
-    can no longer reach others, with the reasons the votes gave (how many servers chose each).
-- **Open in public.** Every vote is a signed record anyone can read. The looking glass shows which servers voted,
-  when and why, so a group of servers ganging up on someone is visible to everyone, and players can choose servers
-  accordingly.
+    can no longer reach others, with the reasons the votes gave (which reasons, never how many or whose).
+- **Open among operators.** Every vote is a signed record that travels between servers, so the operators of every
+  server can see which servers voted, when and why, and a group of servers ganging up on someone is visible to them.
+  Players do not see the votes.
 - **New keys.** A shunned player can start a new identity. They start from nothing: no deals, no peers, no rank. We
   accept that, as with any cheating.
 
@@ -701,7 +704,10 @@ percentile and lowest value, carry-forward, expiry, merging server lists), passe
 - If a server is down, nothing breaks: a player's save holds everything they need, and quiet networks fade over weeks,
   never vanish.
 - When more than a set share of registered servers vote to shun a network, it is excluded everywhere: one vote per
-  server, votes public and expiring, counted by everyone for themselves.
+  server, votes expiring, counted by every server for itself.
+- Shun votes are seen by server operators only (2026-11-12): they travel between servers unchanged, but a relay sends
+  them to a game only when it proved an operator key of that relay's server. Games learn only which networks are
+  excluded; the excluded player sees which reasons were given, never how many votes, which servers or which operators.
 - No central service: the registry is the repo, gossip carries liveness.
 - Leaderboards show totals or growth over the last 24 hours (with floors so tiny networks cannot top growth).
 - A network is shunned everywhere when 25% of all voting servers vote for it, and at least 5 do.

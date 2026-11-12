@@ -15,6 +15,7 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/canon"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/chain"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/wire"
 )
 
 const dir = "../../../federation/vectors"
@@ -271,6 +272,26 @@ func init() {
 		}](t, in)
 		code := fed.CheckProof(strict(t, x.Proof), x.Nonce, x.Server, x.Node, x.Now)
 		return errOr(code, map[string]any{"ok": true})
+	}
+
+	areas["auth"] = func(t *testing.T, in, _ json.RawMessage) any {
+		x := decode[struct {
+			Now    int64           `json:"now"`
+			Node   string          `json:"node"`
+			Server string          `json:"server"`
+			Auth   json.RawMessage `json:"auth"`
+		}](t, in)
+		f, werr := wire.Parse(x.Auth, fed.ClientFrame)
+		if werr != nil {
+			t.Fatalf("auth frame: %s", werr.Code)
+		}
+		if _, werr := wire.CheckClient(f, true, []int64{1}); werr != nil {
+			t.Fatalf("auth frame: %s", werr.Code)
+		}
+		key, _ := f.Str("key")
+		sig, _ := f.Str("sig")
+		ts, _ := wire.Int(f.Raw["t"])
+		return errOr(fed.CheckAuth(key, ts, sig, x.Node, x.Server, x.Now), map[string]any{"ok": true})
 	}
 }
 

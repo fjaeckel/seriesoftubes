@@ -123,7 +123,9 @@ padding, other alphabets, wrong lengths and non-zero unused bits in the last cha
   followed by the seed. Go: `ed25519.NewKeyFromSeed`.
 - The signed bytes are always the UTF-8 canonical JSON of an object (section 4), so every signature in the protocol is
   over an object with a `kind`. Kinds are disjoint, so a signature made for one purpose can never be presented as
-  another (a proof is never a receipt, a receipt never a record).
+  another (a proof is never a receipt, a receipt never a record). The one exception is a client's `auth` (9.3), signed
+  over an object with `m: "auth"` and no `kind`: no record, receipt or proof lacks `kind`, so it can never pass for
+  one either, and it names the node and server it is for.
 - Verification uses the platform verifier as it is. It MUST refuse a non-reduced scalar (S >= L), as both platforms
   do. A key whose bytes are not a valid curve point simply fails to verify (WebCrypto may throw on import: treat that
   as `bad_sig`). The vectors avoid the few small-order-point cases where Ed25519 libraries are known to differ.
@@ -476,8 +478,8 @@ Steps 1 to 8 depend only on the record and `now`, and are what the `records` vec
 | `bad_sig` | Not a valid Sig, or a signature that does not verify | no |
 | `too_many` | A list over its limit | no |
 | `duplicate` | An entry repeated in a list that is a set | no |
-| `too_old` | Before 2025-01-01 or past the kind's maximum age | no |
-| `too_new` | More than 600 s ahead | no |
+| `too_old` | Before 2025-01-01 or past the kind's maximum age; an `auth` more than 600 s behind | no |
+| `too_new` | More than 600 s ahead (records and `auth`) | no |
 | `not_operator` | Signed by a key that is not a current operator of that server | no |
 | `not_node` | A node key that is not one of the server's nodes | yes for node sessions |
 | `no_majority` | Not signed by a strict majority of the operators | no |
@@ -593,9 +595,11 @@ upgraded. This document is version 1; records carry `v: 1` in it.
 | --- | --- | --- | --- |
 | `hello` | client → node | `vers`, `role: "client"` | `welcome` |
 | `welcome` | node → client | `ver` (chosen), `server` (Id), `node` (Key), `now` | |
+| `auth` | client → node | `id`, `key` (Key), `t` (unix seconds), `sig` (Sig) | `ack` with `op`, or `err` (`bad_key`, `bad_sig`, `too_old`, `too_new`, `too_many`): proves the session holds `key` (below) |
 | `challenge` | client → node | `id`, `nonce` | `proof` `{m, id, proof}`, a proof envelope (6.2) |
 | `put` | client → node | `id`, `rec` (a record) | `ack` or `err` |
-| `ack` | node → client | `id`; answering `put` and `cosign` also `rid` (record id), `dup` (Bool: already had it) and `rcpt` (the receipt, when the record came from this client); answering `unsub` only `id` | |
+| `ack` | node → client | `id`; answering `put` and `cosign` also `rid` (record id), `dup` (Bool: already had it) and `rcpt` (the receipt, when the record came from this client); answering `auth` also `op` (Bool: `key` is a current operator of this node's server); answering `unsub` only `id` | |
+| `excluded` | node → client | `keys` ([Key], sorted), `more` (Bool), `reasons` ([reason], only to a session that proved an excluded key); no `id` | The networks this server excludes now (10.7), below |
 | `cosign` | client → node | `id`, `rid` (a pending proposal or server record), `key`, `sig` | `ack` or `err`: adds one operator signature to a multi-signer record (same check as 4 and 8) |
 | `sub` | client → node | `id`, `kinds` ([kind]), `since` (cursor, `""` for everything kept) | `recs` frames carrying the `id`, first the backlog, then live records, until `unsub` |
 | `unsub` | client → node | `id` (of the `sub`) | `ack` |
@@ -620,6 +624,22 @@ upgraded. This document is version 1; records carry `v: 1` in it.
 - **A `catalog` answer** that does not fit in one frame is split across several `catalog` frames with the same `id`,
   each with whole entries; every frame but the last carries `more: true` (the last `more: false` or no `more`). The
   receiver joins the entries of all of them.
+- **`auth`** proves a key to this node. `sig` is an Ed25519 signature (3.2) by `key` over the canonical JSON (2) of
+  `{"m": "auth", "key": key, "node": <the welcome's node>, "server": <the welcome's server>, "t": t}`. The node checks,
+  in this order: `key` (`bad_key`), `sig` and the signature (`bad_sig`), `t` within 600 s of its clock (`too_new`,
+  `too_old`). A session proves at most 4 keys (`too_many`; proving one again changes nothing). The `ack` says whether
+  `key` is a current operator of the node's server (`op`). Proved keys last as long as the connection and are never
+  stored. A game sends `auth` with its network's key, and with an imported operator key of that server, after it checked
+  the node and before its `sub`.
+- **Shun votes go to operators only.** A node sends `shun` and `unshun` records to a client session only when it proved
+  a key that is a current operator of the node's server: other sessions never get them, from `sub` (backlog and live),
+  `fetch` or `board`, and are not told they were left out. Between nodes they travel unchanged (9.4).
+- **`excluded`** tells every client the outcome instead. A node sends it after the backlog of a session's first `sub`,
+  and again whenever the networks it excludes change (10.7: a vote arrives, votes expire, a shun lifts, a new registry
+  snapshot). `keys` is the whole list, sorted; a list that does not fit one frame is split over several `excluded`
+  frames, every one but the last with `more: true`, and the receiver joins them. `reasons` appears, in the first frame
+  only, for a session that proved a key the server excludes: the sorted set of reasons of the votes counting at `now`
+  (10.7 step 6), never how many or whose. It is sent again to such a session when a vote for its key changes them.
 - **Operator actions** in the game are `put` of operator-signed records (`hide`, `shun`, `unshun`, `operators`,
   `server`) and `cosign`. The node checks them against its chain (`not_operator`, `no_majority`). The relay's command
   line does the same over its local socket.
@@ -784,7 +804,9 @@ Inputs: the registry snapshot (`servers.json`, 11.3), every `shun` and `unshun` 
 5. **Shunned** at `now` when `C(x)` holds for some integer `x` with `now - 604800 <= x <= now`. Because `C` changes
    only at a record's `t` or at `t + 7776000`, it is enough to test `x = now - 604800` and each such moment in
    `(now - 604800, now]`. So a shun lifts exactly 7 days after the votes fell below the threshold.
-6. **Reasons** shown to the shunned player: the votes at `now`, counted per reason.
+6. **Reasons** of the votes at `now`, counted per reason. Only operators see the counts (and the votes themselves).
+   The shunned player is shown the reasons only: the set, no counts, never which servers or operators voted
+   (`excluded`, 9.3). Everyone else learns only that the network is excluded.
 
 ### 10.8 Catalog gossip
 
@@ -951,6 +973,10 @@ step 8 of 11.2 does not apply to it.
    rate-limit connections before a client has put anything, counting for a few minutes. It never writes it.
 5. Relay logs hold counts, error codes, record kinds and network keys; never addresses or headers.
 6. Registered servers declare `noLogs: true` for everything in front of the relay too.
+7. Shun votes are for operators: a `shun` or `unshun` record goes from node to node, and from a node only to a client
+   session that proved an operator key of that node's server (9.3). Games of other players never receive, store or
+   show votes; they learn which networks are excluded (`excluded`), and an excluded network which reasons were given,
+   without counts, servers or operators.
 
 ## 13. Constants
 
@@ -1005,6 +1031,8 @@ step 8 of 11.2 does not apply to it.
 | POP cities in `announce` and `stats` | 512 |
 | Traffic entries | 256 |
 | Signers, operators, nodes | 16 |
+| Keys proved by one client session (`auth`) | 4 |
+| Keys proved by one client session (`auth`) | 4 |
 | Hide lists together | 512 |
 | Chain in a registry file or catalog entry | 64 |
 | Gossip path | 16 |

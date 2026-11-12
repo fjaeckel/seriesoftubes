@@ -1,0 +1,19 @@
+{
+  "description": "t more than 600 s behind now.",
+  "input": {
+    "now": 1767312100,
+    "node": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+    "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+    "auth": {
+      "m": "auth",
+      "id": 7,
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767311499,
+      "sig": "nn-DP6KOBYvRbt5PwOJ-GxI1ByscZlIcCyLogZ2m41SwaOHEn_1aYKOaG4h6musz3TI-vHj3uUbM8MeDbpy8Aw"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "too_old"
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "description": "How a node answers a client's frame. state \"new\": before hello; \"ready\": after welcome. Members a frame does not define are ignored.",
+  "description": "How a node answers a client's frame. state \"new\": before hello; \"ready\": after welcome. Members a frame does not define are ignored. An auth frame needs id, key and sig (strings) and t (an integer); whether it checks is the auth area.",
   "cases": [
     {
       "input": {
@@ -233,6 +233,58 @@
       },
       "expect": {
         "error": "bad_json"
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "{\"m\":\"auth\",\"id\":3,\"key\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"t\":1767312000,\"sig\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"}"
+      },
+      "expect": {
+        "ok": true
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "{\"m\":\"auth\",\"id\":3,\"key\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"t\":1767312000}"
+      },
+      "expect": {
+        "error": "bad_frame"
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "{\"m\":\"auth\",\"id\":3,\"key\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"t\":\"1767312000\",\"sig\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"}"
+      },
+      "expect": {
+        "error": "bad_frame"
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "{\"m\":\"auth\",\"key\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"t\":1767312000,\"sig\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"}"
+      },
+      "expect": {
+        "error": "bad_frame"
       }
     }
   ]

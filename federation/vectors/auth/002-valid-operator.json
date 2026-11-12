@@ -1,0 +1,18 @@
+{
+  "description": "An operator proves the operator key the same way (whether it operates the server is the node's state, not this check).",
+  "input": {
+    "now": 1767312100,
+    "node": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+    "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+    "auth": {
+      "m": "auth",
+      "id": 7,
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312100,
+      "sig": "c9lCK2JB8Mdb2pkBFhKjvgG9q6CQ3STNzH7iYcob6WiHsP_2aE8uQmg4PiU9Pd2MCHKQGcjOg2ZqMukxqi86Cw"
+    }
+  },
+  "expect": {
+    "ok": true
+  }
+}
