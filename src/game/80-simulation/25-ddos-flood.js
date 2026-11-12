@@ -28,7 +28,7 @@ function ddosTb(a,R2){if(a.tgt&&a.tgt.startsWith('bb:'))return Math.max(1,(R2.ci
 /* Before routing: spread each live attack, clip it at the ports, filter it on the routers and load what is left onto
    the backbone ahead of everyone's traffic. X.haul(A,B,g,ek) moves up to g from city A to city B and returns what fit. */
 function ddosLoad(X){const {E,okBy,R2}=X;R2.ddos=[];R2.haul=[];R2.tgtF={};R2.bbF={};R2.fsUse={};R2.ddosHot={};
-  const live=ddosAll().slice().sort((a,b)=>(a.start||0)-(b.start||0)||(a.id<b.id?-1:a.id>b.id?1:0));if(!live.length)return null;
+  const live=ddosAll().slice().sort((a,b)=>(a.start||0)-(b.start||0));// ties keep array order (sort is stable): ids come from the clockif(!live.length)return null;
   const recs=[],room={};
   for(const a of live){const c=a.city,m={attack:a,tgt:a.tgt,g:a.gbps,bh:!!(a.bh||X.autoBh),ports:new Map(),up:0,fs:0,fsAt:[],fsFull:[],fsNone:[],deliv:0,pulled:0,cleaned:0,over:0,parts:[],tf:1,col:0,slowed:0,eng:0};
     recs.push(m);R2.ddos.push(m);if(!popUp(c)||!S.pops[c]){m.offline=true;continue;}

@@ -6,7 +6,9 @@
    aside (UI.pzKeep) is the one saved, to its own slot, so closing the tab mid-puzzle loses nothing. */
 function save(force,st){if(!st)st=pzOn()?UI.pzKeep:S;const id=UI.slot;
   // Half a day (its routing still in the worker) is never saved: the day's end saves instead.
-  if(RW.job&&st===S){UI.saveDue=true;UI.lastSave=performance.now();return;}
+  // Forced (the page is being hidden or closed): the day in flight is finished first, then saved, so leaving mid-day
+  // loses nothing.
+  if(RW.job&&st===S){if(force)rwFinish();if(RW.job){UI.saveDue=true;UI.lastSave=performance.now();return;}}
   if(!st||st.lost||st.mode==='puzzle'||!id||SLOT.no.has(id))return;
   // A locked clock's speed is not the player's: the one they left the game at stays saved.
   if(st===S){if(!UI.clockLocked)S.uiSpeed=UI.speed;S.cam={x:cam.x,y:cam.y,z:cam.z};}const f=UI.saveFail,failed=f&&f.s===st;
