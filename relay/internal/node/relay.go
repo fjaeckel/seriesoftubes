@@ -65,6 +65,9 @@ type Relay struct {
 	shunAt  int64
 	counter *shun.Counter                   // voters of the registry snapshot
 	votes   map[string]map[string]shun.Vote // target -> vote id -> vote
+	voteN   map[string]int                  // voting server -> votes stored
+	ann     map[string]*store.Entry         // key -> its newest announce
+	offerN  map[string]int                  // author, and author|to -> offers stored
 	left    map[string]int64                // key -> t of its newest leave
 	statsAt map[string]int64                // key -> slot of its last stats from a client
 	refused map[string]bool                 // ids refused from nodes (not wanted again)
@@ -131,6 +134,13 @@ func New(o Options) (*Relay, error) {
 		st.Remove(gone)
 	}
 	r.indexVotes()
+	r.ann, r.offerN = map[string]*store.Entry{}, map[string]int{}
+	for _, e := range st.Kind("announce") {
+		r.noteAnn(e)
+	}
+	for _, e := range st.Kind("offer") {
+		r.countOffer(e.Rec, 1)
+	}
 	r.loadCatalog()
 	r.loadRegistryCache()
 	// The leaderboards are built from the store in parallel chunks while the node already serves
@@ -359,7 +369,7 @@ func (r *Relay) exclChanged(now int64, target string) {
 
 // indexVotes rebuilds the votes by target from the store (start, and after votes were removed).
 func (r *Relay) indexVotes() {
-	r.votes = map[string]map[string]shun.Vote{}
+	r.votes, r.voteN = map[string]map[string]shun.Vote{}, map[string]int{}
 	for _, k := range []string{"shun", "unshun"} {
 		for _, e := range r.st.Kind(k) {
 			r.addVote(e.Rec)
@@ -373,7 +383,48 @@ func (r *Relay) addVote(rec *fed.Record) {
 	if r.votes[v.Target] == nil {
 		r.votes[v.Target] = map[string]shun.Vote{}
 	}
+	if _, ok := r.votes[v.Target][v.ID]; !ok {
+		r.voteN[v.Server]++
+	}
 	r.votes[v.Target][v.ID] = v
+}
+
+// Bounds of what one author can have a node keep (vars so tests can lower them): votes of one
+// voting server, offers by one key, offers by one key to one other.
+var (
+	maxVotesPerServer = 8192
+	maxOffersPerKey   = 4096
+	maxOffersPerPair  = 128
+)
+
+// countOffer adds d to the offers counted for a stored offer's author and pair (lock held).
+func (r *Relay) countOffer(rec *fed.Record, d int) {
+	to, _ := rec.Body["to"].(string)
+	for _, k := range []string{rec.Key, rec.Key + "|" + to} {
+		if r.offerN[k] += d; r.offerN[k] <= 0 {
+			delete(r.offerN, k)
+		}
+	}
+}
+
+// betterAnn reports whether announce a is newer than b (greatest t, then lowest id).
+func betterAnn(a, b *fed.Record) bool { return a.T > b.T || a.T == b.T && a.ID < b.ID }
+
+// noteAnn indexes a stored announce as its key's newest when it is (lock held).
+func (r *Relay) noteAnn(e *store.Entry) {
+	if cur := r.ann[e.Rec.Key]; cur == nil || betterAnn(e.Rec, cur.Rec) {
+		r.ann[e.Rec.Key] = e
+	}
+}
+
+// reindexAnn works out a key's newest announce again after one was removed (lock held).
+func (r *Relay) reindexAnn(key string) {
+	delete(r.ann, key)
+	for _, e := range r.st.Key(key) {
+		if e.Rec.Kind == "announce" {
+			r.noteAnn(e)
+		}
+	}
 }
 
 func (r *Relay) votesFor(target string) []shun.Vote {
@@ -546,14 +597,29 @@ func (r *Relay) stateCheck(rec *fed.Record, now int64, o origin) string {
 			return fed.NotOperator
 		}
 	case "shun", "unshun":
-		// Only votes this node can check are kept and passed on (8.3): a vote of an unknown server
-		// could never count, and storing every one would let anyone fill the store and the tally.
-		st := r.lookup(rec.Str("server"))
+		// Only votes that can count are kept and passed on (8.3): those of registry servers (10.7
+		// counts no others) and this server's own. A server known from gossip alone costs nothing
+		// to make up, so its votes would let anyone fill the store and the tally.
+		srv := rec.Str("server")
+		var st *chain.State
+		if e, ok := r.regs[srv]; ok {
+			st = e.State
+		} else if r.own != nil && srv == r.own.ID {
+			st = r.own
+		}
 		if st == nil {
 			return fed.UnknownSrv
 		}
 		if !st.IsOperator(rec.Key) {
 			return fed.NotOperator
+		}
+		if r.voteN[srv] >= maxVotesPerServer && r.st.Get(rec.ID) == nil {
+			return fed.TooMany
+		}
+	case "offer":
+		to, _ := rec.Body["to"].(string)
+		if r.st.Get(rec.ID) == nil && (r.offerN[rec.Key] >= maxOffersPerKey || r.offerN[rec.Key+"|"+to] >= maxOffersPerPair) {
+			return fed.TooMany
 		}
 	}
 	return ""
@@ -615,6 +681,11 @@ func (r *Relay) ingest(rec *fed.Record, rcpts []any, o origin) (string, map[stri
 			mine = r.o.Node.MakeReceipt(rec, r.cfg.Server, now, cc)
 			list, slot = []map[string]any{mine}, fed.Slot(now)
 		}
+		// One announce per key and slot is kept, the newest (5.1): an older one is not stored.
+		if cur := r.ann[rec.Key]; rec.Kind == "announce" && cur != nil && cur.Slot == slot && betterAnn(cur.Rec, rec) {
+			r.o.Metrics.Inc("relay_refused_total", fed.Refused)
+			return "", nil, fed.Refused
+		}
 	}
 	res, e, err := r.st.Put(rec, list, slot, fed.Div(now, fed.Day))
 	if err != nil {
@@ -643,7 +714,16 @@ func (r *Relay) after(e *store.Entry, now int64) {
 	case "stats":
 		r.rank.Stats(rec.ID, rec.Key, e.Slot, rec.T, rec.Body, rcptCC(e))
 	case "announce":
+		// One per key and slot: a newer announce in the slot of the key's newest replaces it.
+		cur := r.ann[rec.Key]
+		r.noteAnn(e)
+		if cur != nil && cur != e && cur.Slot == e.Slot && betterAnn(rec, cur.Rec) {
+			r.refuse(cur.Rec.ID) // not wanted again from peers
+			r.remove([]string{cur.Rec.ID})
+		}
 		r.rank.Announce(rec.Key, r.newestAnn(rec.Key))
+	case "offer":
+		r.countOffer(rec, 1)
 	}
 	switch rec.Kind {
 	case "genesis", "operators", "server", "hide":
@@ -773,15 +853,7 @@ func rcptCC(e *store.Entry) string {
 }
 
 // newestAnnEntry is a key's newest announce (lock held), or nil.
-func (r *Relay) newestAnnEntry(key string) *store.Entry {
-	var best *store.Entry
-	for _, e := range r.st.Key(key) {
-		if x := e.Rec; x.Kind == "announce" && (best == nil || x.T > best.Rec.T || x.T == best.Rec.T && x.ID < best.Rec.ID) {
-			best = e
-		}
-	}
-	return best
-}
+func (r *Relay) newestAnnEntry(key string) *store.Entry { return r.ann[key] }
 
 // newestAnn is what the boards use of a key's newest announce (lock held), or nil.
 func (r *Relay) newestAnn(key string) *rank.Ann {
@@ -872,9 +944,6 @@ func (r *Relay) gc() {
 			delete(r.statsAt, k)
 		}
 	}
-	if len(r.refused) > 100000 {
-		r.refused = map[string]bool{}
-	}
 	if len(drop) > 0 {
 		r.o.Log.Info("retention: dropped records", "count", len(drop))
 	}
@@ -895,11 +964,16 @@ func (r *Relay) remove(ids []string) {
 		case "stats":
 			r.rank.Drop(id)
 		case "announce":
-			anns[e.Rec.Key] = true
+			if r.ann[e.Rec.Key] == e {
+				anns[e.Rec.Key] = true // its newest goes: look for the next
+			}
+		case "offer":
+			r.countOffer(e.Rec, -1)
 		}
 	}
 	r.st.Remove(ids)
 	for k := range anns {
+		r.reindexAnn(k)
 		r.rank.Announce(k, r.newestAnn(k))
 	}
 	if votes {

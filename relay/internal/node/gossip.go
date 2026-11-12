@@ -31,6 +31,7 @@ type catEntry struct {
 	Seen    int64
 	sent    int64  // when it was last passed on
 	via     string // the neighbour server it first came from ("" from disk)
+	hash    string // of the records as checked: the same records again are not checked again
 }
 
 // Bounds of the catalog: in all, and learned through any one neighbour (10.8 allows them).
@@ -41,6 +42,11 @@ var (
 )
 
 const catalogSaveDelay = 10 * time.Second
+
+// maxEntry bounds a catalog entry's canonical JSON. Every entry kept then fits one client catalog
+// frame (65536 bytes) with room for the frame and a path grown by passing it on, so a `servers`
+// answer always pages; a registry file, which holds the same records, is at most 65536 bytes too.
+const maxEntry = fed.ClientFrame - 4096
 
 // forget drops a catalog entry (lock held).
 func (r *Relay) forget(id string) {
@@ -106,7 +112,8 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 	if !ok {
 		return fed.BadField
 	}
-	g, code := fed.CheckLoose(m["genesis"], now, fed.Opts{Allow: func(k string) bool { return k == "genesis" }})
+	// Shape and size first, signatures last: nothing costly is done for an entry not kept.
+	gv, code := canon.Check(m["genesis"])
 	if code != "" {
 		return code
 	}
@@ -117,27 +124,15 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 	if len(list) > fed.MaxChain {
 		return fed.TooMany
 	}
-	var ch []*fed.Record
-	for _, y := range list {
-		rec, code := fed.CheckLoose(y, now, fed.Opts{Allow: func(k string) bool { return k == "operators" }})
-		if code != "" {
+	chv := make([]any, len(list))
+	for i, y := range list {
+		if chv[i], code = canon.Check(y); code != "" {
 			return code
 		}
-		ch = append(ch, rec)
 	}
-	srv, code := fed.CheckLoose(m["server"], now, fed.Opts{Allow: func(k string) bool { return k == "server" }})
+	sv, code := canon.Check(m["server"])
 	if code != "" {
 		return code
-	}
-	st, code := chain.CheckSequence(g, ch)
-	if code != "" {
-		return code
-	}
-	if code := st.CheckServer(srv); code != "" {
-		return code
-	}
-	if srv.Str("head") != st.Head {
-		return fed.BadChain
 	}
 	var path []string
 	pl, ok := m["path"].([]any)
@@ -154,6 +149,48 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 	seen, ok := wire.Int(m["seen"])
 	if !ok {
 		return fed.BadField
+	}
+	if len(canon.Encode(map[string]any{"genesis": gv, "chain": chv, "server": sv, "path": path, "seen": seen})) > maxEntry {
+		return fed.TooBig
+	}
+	isGenesis := func(k string) bool { return k == "genesis" }
+	// The genesis id without its signature, to find what this node already checked.
+	g, code := fed.CheckValue(gv, now, fed.Opts{Allow: isGenesis, Trusted: true})
+	if code != "" {
+		return code
+	}
+	hash := fed.Hash(canon.Encode([]any{gv, chv, sv}))
+	r.mu.Lock()
+	old := r.cat[g.ID]
+	r.mu.Unlock()
+	var ch []*fed.Record
+	var srv *fed.Record
+	var st *chain.State
+	if old != nil && old.hash == hash {
+		g, ch, srv, st = old.Genesis, old.Chain, old.Server, old.State
+	} else {
+		if g, code = fed.CheckValue(gv, now, fed.Opts{Allow: isGenesis}); code != "" {
+			return code
+		}
+		for _, y := range chv {
+			rec, code := fed.CheckValue(y, now, fed.Opts{Allow: func(k string) bool { return k == "operators" }})
+			if code != "" {
+				return code
+			}
+			ch = append(ch, rec)
+		}
+		if srv, code = fed.CheckValue(sv, now, fed.Opts{Allow: func(k string) bool { return k == "server" }}); code != "" {
+			return code
+		}
+		if st, code = chain.CheckSequence(g, ch); code != "" {
+			return code
+		}
+		if code := st.CheckServer(srv); code != "" {
+			return code
+		}
+		if srv.Str("head") != st.Head {
+			return fed.BadChain
+		}
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -181,7 +218,7 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 		from.verified = true
 		r.startSync(from)
 	}
-	old := r.cat[g.ID]
+	old = r.cat[g.ID]
 	via := ""
 	if from != nil {
 		via = from.peerServer
@@ -189,12 +226,12 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 	if old == nil && (len(r.cat) >= maxCatalog || r.catVia[via] >= maxCatalogVia) {
 		return "" // full: entries already kept still update, new ones wait for room
 	}
-	c := &catEntry{ID: g.ID, Genesis: g, Chain: ch, Server: srv, State: st, Path: path, Seen: seen, via: via}
+	c := &catEntry{ID: g.ID, Genesis: g, Chain: ch, Server: srv, State: st, Path: path, Seen: seen, via: via, hash: hash}
 	changed := old == nil || old.Server.ID != srv.ID
 	if old != nil {
 		// Records from the newest server record; seen and path from the freshest entry.
 		if srv.T < old.Server.T || srv.T == old.Server.T && srv.ID > old.Server.ID {
-			c.Genesis, c.Chain, c.Server, c.State = old.Genesis, old.Chain, old.Server, old.State
+			c.Genesis, c.Chain, c.Server, c.State, c.hash = old.Genesis, old.Chain, old.Server, old.State, old.hash
 		}
 		if seen < old.Seen || seen == old.Seen && !shorter(path, old.Path) {
 			c.Path, c.Seen = old.Path, old.Seen

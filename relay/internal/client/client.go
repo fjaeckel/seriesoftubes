@@ -222,6 +222,7 @@ func (cl *Client) Collect(ctx context.Context, m map[string]any) ([]map[string]a
 	}
 	defer cl.Stop(id)
 	var items []map[string]any
+	var entries []any // a catalog answer's entries, joined over its frames (9.3)
 	for {
 		select {
 		case f, ok := <-ch:
@@ -233,7 +234,20 @@ func (cl *Client) Collect(ctx context.Context, m map[string]any) ([]map[string]a
 				return items, &ErrFrame{Code: code}
 			}
 			if f.M == "catalog" {
-				return []map[string]any{f.Raw}, nil
+				list, _ := f.Raw["entries"].([]any)
+				entries = append(entries, list...)
+				if more, _ := f.Raw["more"].(bool); more {
+					continue
+				}
+				if entries == nil {
+					entries = []any{}
+				}
+				joined := map[string]any{}
+				for k, v := range f.Raw {
+					joined[k] = v
+				}
+				joined["entries"] = entries
+				return []map[string]any{joined}, nil
 			}
 			list, _ := f.Raw["items"].([]any)
 			for _, it := range list {
