@@ -97,7 +97,7 @@ func (r *Relay) Status() map[string]any {
 	}
 	peers := []map[string]any{}
 	for s := range r.nodes {
-		peers = append(peers, map[string]any{"server": s.peerServer, "node": s.peerNode, "same": s.same, "synced": s.synced})
+		peers = append(peers, map[string]any{"server": s.peerServer, "node": s.peerNode, "same": s.same, "synced": s.synced, "ver": s.ver})
 	}
 	sort.Slice(peers, func(i, j int) bool { return peers[i]["node"].(string) < peers[j]["node"].(string) })
 	r.tally(now)

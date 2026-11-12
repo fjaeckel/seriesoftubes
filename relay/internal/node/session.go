@@ -46,6 +46,8 @@ type session struct {
 	heard  atomic.Int64 // unix nanos of the last frame received
 	pinged atomic.Bool
 	pingID atomic.Int64
+	ending atomic.Bool   // a closing err frame is queued
+	wdone  chan struct{} // closed when the writer stops
 	ver    int64
 
 	// client
@@ -69,7 +71,7 @@ func newSession(r *Relay, c *websocket.Conn, node bool) *session {
 	ctx, cancel := context.WithCancel(r.ctx)
 	s := &session{r: r, c: c, node: node, limit: fed.ClientFrame, out: make(chan []byte, queueFrames),
 		maxQ: clientQueueBytes, ctx: ctx, cancel: cancel, subs: map[int64]map[string]bool{},
-		wanted: map[string]bool{}, tokenAt: time.Now()}
+		wanted: map[string]bool{}, tokenAt: time.Now(), wdone: make(chan struct{})}
 	s.tokens = float64(4 * r.cfg.Limits.MsgsPerSec)
 	if node {
 		s.becomeNode()
@@ -117,6 +119,7 @@ func (s *session) fail(id int64, code string, retry int64) {
 		s.enqueue(m)
 		return
 	}
+	s.ending.Store(true)
 	b := canon.Encode(m)
 	select {
 	case s.out <- b:
@@ -129,14 +132,26 @@ func (s *session) fail(id int64, code string, retry int64) {
 	}
 }
 
+// end closes the session when its handler returns, after a queued closing err is sent.
+func (s *session) end() {
+	if s.ending.Load() {
+		select {
+		case <-s.wdone:
+		case <-time.After(writeTimeout):
+		}
+	}
+	s.close("")
+}
+
 func (s *session) writer() {
+	defer close(s.wdone)
 	for {
 		select {
 		case <-s.ctx.Done():
 			return
 		case b := <-s.out:
 			if b == nil {
-				s.c.Close(websocket.StatusPolicyViolation, "")
+				// Frames are written in order, so the err frame is already out.
 				s.close("")
 				return
 			}
@@ -305,7 +320,7 @@ func (r *Relay) accept(w http.ResponseWriter, req *http.Request) {
 
 // serve runs an accepted connection until it ends.
 func (r *Relay) serve(s *session) {
-	defer s.close("")
+	defer s.end()
 	hctx, cancel := context.WithTimeout(s.ctx, handshakeTimeout)
 	f, ok := s.readFrame(hctx)
 	cancel()

@@ -1,6 +1,8 @@
 package relaytest
 
 import (
+	"time"
+
 	"github.com/fjaeckel/seriesoftubes/relay/internal/config"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/ops"
@@ -31,6 +33,7 @@ func (x *Node) MustPut(rec map[string]any) {
 
 // Describe signs a fresh server record at the current head (one operator signs).
 func (s *Server) Describe(x *Node, op *fed.Signer) map[string]any {
+	x.Net.Clock.Add(time.Second) // a later record, as when an operator runs the command
 	st := x.State()
 	f := ops.CurrentFields(st)
 	return ops.ServerRecord(st, op, f, x.Net.Clock.Unix())

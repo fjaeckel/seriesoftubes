@@ -17,6 +17,9 @@ func (r *Relay) ImportOwn(v map[string]any) (string, string) {
 	return res, code
 }
 
+// AddressesHeld is how many connection addresses the rate limiter holds in memory now.
+func (r *Relay) AddressesHeld() int { return r.limiter.Len() }
+
 // RegistryFile is the file for the registry pull request (11.1), without listed and answered.
 func (r *Relay) RegistryFile() ([]byte, error) {
 	r.mu.Lock()
@@ -24,11 +27,11 @@ func (r *Relay) RegistryFile() ([]byte, error) {
 	if r.own == nil {
 		return nil, errors.New("this node does not know its server yet")
 	}
-	if r.ownSrv == nil || r.ownSrv.Str("head") != r.own.Head {
+	if r.headSrv == nil {
 		return nil, errors.New("no server record at the chain's head yet: run relay ops server and get it signed")
 	}
 	if len(r.own.Applied) > fed.MaxChain {
 		return nil, errors.New("the chain is longer than a registry file holds")
 	}
-	return registry.File(r.own.Genesis, r.own.Applied, r.ownSrv), nil
+	return registry.File(r.own.Genesis, r.own.Applied, r.headSrv), nil
 }

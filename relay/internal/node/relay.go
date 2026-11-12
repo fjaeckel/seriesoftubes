@@ -51,7 +51,8 @@ type Relay struct {
 	cfg     *config.Config
 	st      *store.Store
 	own     *chain.State // nil until the server's genesis is known
-	ownSrv  *fed.Record  // current server record
+	ownSrv  *fed.Record  // current server record (8.2)
+	headSrv *fed.Record  // newest valid server record at the chain's final head (for gossip)
 	hide    *fed.Record  // current hide record
 	reg     *registry.Snapshot
 	regs    map[string]*registry.Entry
@@ -157,7 +158,7 @@ func (r *Relay) serving() bool { return r.own != nil && r.own.IsNode(r.o.Node.Ke
 // recompute rebuilds the chain, the current server and hide records from the store.
 func (r *Relay) recompute() {
 	id := r.cfg.Server
-	r.own, r.ownSrv, r.hide = nil, nil, nil
+	r.own, r.ownSrv, r.headSrv, r.hide = nil, nil, nil, nil
 	if id == "" {
 		return
 	}
@@ -176,6 +177,13 @@ func (r *Relay) recompute() {
 	}
 	r.own = chain.Compute(g.Rec, ops)
 	r.ownSrv = r.own.Current(srvs)
+	var atHead []*fed.Record
+	for _, x := range srvs {
+		if x.Str("head") == r.own.Head {
+			atHead = append(atHead, x)
+		}
+	}
+	r.headSrv = r.own.Current(atHead)
 	for _, e := range r.st.Kind("hide") {
 		h := e.Rec
 		if h.Str("server") != id || !r.own.IsOperator(h.Key) {
@@ -632,7 +640,7 @@ func (r *Relay) expired(now int64) []string {
 			}
 		}
 		for id, e := range r.st.Kind("server") {
-			if e.Rec == r.ownSrv {
+			if e.Rec == r.ownSrv || e.Rec == r.headSrv {
 				continue
 			}
 			pending := e.Rec.Str("server") == r.own.ID && e.Rec.Str("head") == r.own.Head && now < e.Rec.T+fed.PendingLife

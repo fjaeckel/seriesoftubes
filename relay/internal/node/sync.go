@@ -73,7 +73,7 @@ func (r *Relay) dialNode(ctx context.Context, url string) error {
 	}
 	s := newSession(r, c, true)
 	s.dialURL = url
-	defer s.close("")
+	defer s.end()
 	r.mu.Lock()
 	own := r.cfg.Server
 	r.mu.Unlock()
@@ -168,6 +168,7 @@ func (r *Relay) runPeer(s *session, server, node string) {
 		r.o.Log.Info("sync: session down", "server", server, "node", node)
 	}()
 	deadline := time.Now().Add(verifyTimeout)
+	var held []*wire.Frame
 	for {
 		f, ok := s.readFrame(s.ctx)
 		if !ok {
@@ -184,14 +185,29 @@ func (r *Relay) runPeer(s *session, server, node string) {
 		verified := s.verified
 		r.mu.Unlock()
 		if !verified && f.M != "catalog" && f.M != "ping" && f.M != "pong" && f.M != "err" {
-			if time.Now().After(deadline) {
+			// The peer may have verified us first: keep its frames until its entry arrives.
+			if time.Now().After(deadline) || len(held) >= 64 {
 				s.fail(0, fed.NotNode, 0)
 				return
 			}
+			held = append(held, f)
 			continue
 		}
 		if !r.nodeFrame(s, f) {
 			return
+		}
+		if !verified && len(held) > 0 {
+			r.mu.Lock()
+			verified = s.verified
+			r.mu.Unlock()
+			if verified {
+				for _, h := range held {
+					if !r.nodeFrame(s, h) {
+						return
+					}
+				}
+				held = nil
+			}
 		}
 	}
 }
@@ -214,6 +230,22 @@ func (r *Relay) startSync(s *session) {
 		since = max(0, fed.Slot(t)-3600)
 	}
 	r.lastSyn[s.peerNode] = r.now()
+	if !s.same && hasClass(s.send, "catalog") {
+		// A new neighbour hears every entry this node keeps, passed on as from here.
+		var list []map[string]any
+		for _, k := range sortedKeys(r.cat) {
+			c := r.cat[k]
+			if k == s.peerServer || len(c.Path) >= fed.MaxPath || slices.Contains(c.Path, s.peerServer) {
+				continue
+			}
+			list = append(list, c.value(append(slices.Clone(c.Path), r.own.ID)))
+		}
+		for _, p := range pageItems(list, fed.MaxItems, fed.NodeFrame-64<<10) {
+			if len(p) > 0 {
+				s.enqueue(map[string]any{"m": "catalog", "entries": p})
+			}
+		}
+	}
 	cl := make([]any, len(s.send))
 	for i, c := range s.send {
 		cl[i] = c

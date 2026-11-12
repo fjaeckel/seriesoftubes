@@ -89,6 +89,9 @@ func (c *Countries) Country(a netip.Addr) string {
 	return c.m[a.String()]
 }
 
+// Asked is how many lookups were made.
+func (c *Countries) Asked() int { c.mu.Lock(); defer c.mu.Unlock(); return c.Calls }
+
 // Net is a set of relays that can reach each other.
 type Net struct {
 	T       testing.TB
@@ -145,10 +148,12 @@ type Node struct {
 	R       *node.Relay
 	Log     *SyncBuffer
 	Metrics *metrics.M
-	srv     *httptest.Server
-	handler *handler
-	sock    net.Listener
-	stopped bool
+	// Versions spoken (nil: the relay's default).
+	Versions []int64
+	srv      *httptest.Server
+	handler  *handler
+	sock     net.Listener
+	stopped  bool
 }
 
 type handler struct {
@@ -215,7 +220,7 @@ func (x *Node) options() node.Options {
 	return node.Options{Dir: x.Dir, Config: x.Cfg, Node: x.Key, Clock: x.Net.Clock.Now,
 		Log:        slog.New(slog.NewTextHandler(x.Log, &slog.HandlerOptions{Level: slog.LevelDebug})),
 		HTTPClient: x.Net.HTTP, Countries: x.Net.Country, Metrics: x.Metrics,
-		BootstrapEvery: 200 * time.Millisecond, DialBase: 50 * time.Millisecond}
+		BootstrapEvery: 200 * time.Millisecond, DialBase: 50 * time.Millisecond, Versions: x.Versions}
 }
 
 // Stop stops the relay (its URL stays reserved but answers 503).

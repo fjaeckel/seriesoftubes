@@ -41,18 +41,18 @@ func (c *catEntry) value(path []string) map[string]any {
 
 // ownEntry is this server's own entry, or nil while its server record is not at the head.
 func (r *Relay) ownEntry(now int64) map[string]any {
-	if r.own == nil || r.ownSrv == nil || r.ownSrv.Str("head") != r.own.Head || len(r.own.Applied) > fed.MaxChain {
+	if r.own == nil || r.headSrv == nil || len(r.own.Applied) > fed.MaxChain {
 		return nil
 	}
-	c := &catEntry{Genesis: r.own.Genesis, Chain: r.own.Applied, Server: r.ownSrv, Seen: now}
+	c := &catEntry{Genesis: r.own.Genesis, Chain: r.own.Applied, Server: r.headSrv, Seen: now}
 	return c.value([]string{r.own.ID})
 }
 
 func (r *Relay) ownEntryID() string {
-	if r.own == nil || r.ownSrv == nil {
+	if r.own == nil || r.headSrv == nil {
 		return ""
 	}
-	return r.own.Head + r.ownSrv.ID
+	return r.own.Head + r.headSrv.ID
 }
 
 // sendOwnEntry gossips this server's entry to sessions with other servers (lock held).
