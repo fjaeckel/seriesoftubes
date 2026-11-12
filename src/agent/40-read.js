@@ -212,7 +212,8 @@ function apiCatalog(name){
 // In the player's tab the dice are held back: a withheld field, or one inside the subtree asked for, is left out.
 function apiState(path){
   if(!S)return null;
-  const p=path===undefined||path===null?'':String(path),v=apiJson(apiPath(S,p));
+  // Never the multiplayer private key or the signed records waiting to go out (fedPublic): a transcript is not a save.
+  const p=path===undefined||path===null?'':String(path),v=apiJson(apiPath(S.fed?fedPublic(S):S,p));
   if(v===undefined)return null;
   if(!API_CTX.relay)return v;
   for(const w of Object.keys(API_WITHHELD)){

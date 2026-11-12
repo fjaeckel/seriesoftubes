@@ -67,17 +67,21 @@ const saveFailMsg=()=>UI.saveFail&&UI.saveFail.full?tr('save.your_network_is_too
 addEventListener('pagehide',()=>save(true));
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')save(true);else checkUpdate();});
 /* Export / import: move a network to another device or keep a backup. The file is the same
-   object the autosave writes, wrapped with a little metadata. */
+   object the autosave writes, wrapped with a little metadata. Players attach these files to bug reports, so every
+   export here leaves out what could act as the network in multiplayer (fedPublic: the private key and the queued
+   signed records); only "Move to another device" (fedExportMove) keeps them, and only its import carries them over. */
 function saveFileName(nm){const d=new Date().toISOString().slice(0,10),n=String(nm||'network').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'network';return `series-of-tubes-${n}-${d}.json`;}
-function saveDl(txt,nm){const blob=new Blob([txt],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=saveFileName(nm);document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
-  toast(tr('save.save_exported_file_is_in_your',{file:esc(saveFileName(nm))}),'good');}
-function exportSave(){if(!S||S.mode==='puzzle')return;save(true);saveDl(JSON.stringify({app:'series-of-tubes',version:APP_VERSION,exported:new Date().toISOString(),S:packSave(S)},null,1),S.name);}
+function saveDl(txt,nm,fn){fn=fn||saveFileName(nm);const blob=new Blob([txt],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fn;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
+  toast(tr('save.save_exported_file_is_in_your',{file:esc(fn)}),'good');}
+function exportSave(){if(!S||S.mode==='puzzle')return;save(true);saveDl(JSON.stringify({app:'series-of-tubes',version:APP_VERSION,exported:new Date().toISOString(),S:fedPublic(packSave(S))},null,1),S.name);}
 // Any network on this device, straight from storage: the file wraps the saved text as it is, without loading it.
 function exportSlot(id){const e=slotIdx().find(x=>x.id===id),raw=slotRaw(id);if(!e||raw==null)return;
   if(id===UI.slot&&S&&!pzOn()){exportSave();return;}
-  (raw.startsWith(GZ)?gunzip(raw):Promise.resolve(raw)).then(t=>saveDl(`{"app":"series-of-tubes","version":${JSON.stringify(APP_VERSION)},"exported":"${new Date().toISOString()}","S":${t}}`,e.name),()=>toast(tr('loop.your_saved_game_could_not_be'),'bad'));}
+  (raw.startsWith(GZ)?gunzip(raw):Promise.resolve(raw)).then(t=>saveDl(`{"app":"series-of-tubes","version":${JSON.stringify(APP_VERSION)},"exported":"${new Date().toISOString()}","S":${fedPublicText(t)}}`,e.name),()=>toast(tr('loop.your_saved_game_could_not_be'),'bad'));}
 function parseSave(txt){if(typeof txt!=='string')return {err:tr('save.that_file_is_not_valid_json')};let j;try{j=JSON.parse(txt);}catch(e){return {err:tr('save.that_file_is_not_valid_json')};}
   const s=j&&j.app==='series-of-tubes'&&j.S?j.S:j;
+  // Only a move file carries the network's multiplayer identity over; any other save arrives detached.
+  if(!(j&&j.app==='series-of-tubes'&&j.move===true))fedDetach(s);
   if(!s||typeof s!=='object'||s.v!==1||typeof s.day!=='number'||typeof s.cash!=='number'||!s.pops||typeof s.pops!=='object'||!Array.isArray(s.links))return {err:tr('save.that_does_not_look_like_a')};
   if(s.lost)return {err:tr('save.that_network_went_bankrupt_it_cannot')};
   for(const c of Object.keys(s.pops))if(!isCity(c))return {err:tr('save.that_save_has_a_pop_in',{city:esc(String(c).slice(0,12))})};

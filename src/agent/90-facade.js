@@ -42,6 +42,7 @@ const API_TOOLS={
 function apiCall(tool,args,ctx){
   if(typeof tool!=='string'||!own(API_TOOLS,tool))apiFail(`No tool "${tool}".`);
   if(!S&&!['schema','catalog','classes','actions','clock'].includes(tool))apiFail('No game is running.');
+  apiFedMark();// a joined save played through tools is AI-played (77-fed.js)
   const was=API_CTX;API_CTX={relay:!!(ctx&&ctx.relay)};
   apiListen(true);
   let out;

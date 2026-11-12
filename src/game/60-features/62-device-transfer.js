@@ -11,8 +11,9 @@ const b64u=u=>b64(u).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const unb64u=t=>unb64(t.replace(/-/g,'+').replace(/_/g,'/')+'==='.slice((t.length+3)%4));
 const xferBase=()=>/^https?:$/.test(location.protocol)?location.origin+location.pathname:'https://seriesoftub.es/';
 // A network's save text: the one playing now (saved first), or any other straight from storage.
-function xferText(id){if(id===UI.slot&&S&&!pzOn()){save(true);return Promise.resolve(JSON.stringify(packSave(S)));}
-  const raw=slotRaw(id);if(raw==null)return Promise.reject(new Error('no save'));return raw.startsWith(GZ)?gunzip(raw):Promise.resolve(raw);}
+// Like every ordinary export, never with the multiplayer private key (fedPublic).
+function xferText(id){if(id===UI.slot&&S&&!pzOn()){save(true);return Promise.resolve(JSON.stringify(fedPublic(packSave(S))));}
+  const raw=slotRaw(id);if(raw==null)return Promise.reject(new Error('no save'));return (raw.startsWith(GZ)?gunzip(raw):Promise.resolve(raw)).then(fedPublicText);}
 /* Everything is ready before the sheet opens: browsers only open a share sheet straight from a tap, not after waiting
    for compression. Chromium shares only some file types, and not .json (Safari does): there the same file is a .txt,
    which "Import a save" takes too. */
