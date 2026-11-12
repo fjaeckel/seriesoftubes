@@ -17,7 +17,9 @@ async function fedOpChain(srv){const c=fedConnTo(srv);if(!c)return null;const q=
   // The backlog is all this needs: the unsub names the sub's own id (§9.3), or the node would keep it live.
   if(fedConnTo(srv)===c&&q.id)fedSend(c,{m:'unsub',id:q.id});
   if(!a||a.m!=='recs')return null;const now=fedNow(),props=[];let gen=null;
-  for(const it of a.items.slice(0,2000)){if(!it||typeof it!=='object')continue;const chk=await fedCheck(it.rec,now);if(!chk.ok)continue;
+  // Checked in the federation worker (fedCheckItems), in one batch.
+  const L=a.items.slice(0,2000),ck=await fedCheckItems(L,now,c,[]);
+  for(const chk of ck){if(!chk||!chk.ok)continue;
     if(chk.rec.kind==='genesis'&&chk.id===srv)gen=chk;else if(chk.rec.kind==='operators')props.push({rec:chk.rec,id:chk.id});}
   if(!gen)return null;const ch=fedChain(gen.rec,gen.id,props,now),by=new Map(props.map(p=>[p.id,p]));
   return {chain:ch,pending:ch.pending.map(id=>by.get(id)).filter(Boolean)};}

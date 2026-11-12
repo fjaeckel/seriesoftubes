@@ -4,7 +4,7 @@ The game's side of multiplayer ([design](plans/federation.md), [protocol](FEDERA
 This is the API the interface and the gameplay build on. It has no interface of its own: no window, toast or button,
 and no player-facing text (functions answer with codes; the interface translates them).
 
-Code: `src/game/60-features/81-fed-core.js` to `88-fed-net.js`, actions in `src/game/90-actions/93-fed.js`, the AI
+Code: `src/game/60-features/81-fed-core.js` to `88-fed-worker.js`, actions in `src/game/90-actions/93-fed.js`, the AI
 declaration in `src/agent/77-fed.js`. Everything is plain functions in the page's one scope, named `fed…` (`FED` is the
 runtime object). Tests: `tests/federation-*.test.js`; `tests/helpers/fed.js` has fake relay nodes on a virtual clock.
 End to end against the real relay: `node scripts/fed-e2e.js` builds the Go relay, serves it over TLS on loopback and
@@ -184,6 +184,40 @@ times 0.5–1 jitter, and only while the tab is visible (it dials at once when t
 
 `FED.now` (unix s), `FED.WS(url)`, `FED.set(fn, ms)`/`FED.clear(t)`, `FED.rand()`, `FED.visible()`, `FED.fetch`,
 `FED.idb()`, `FED.registry` (URL), `FED.T` (every timeout), `FED.hooks.stats`.
+
+## Workers: what runs where
+
+The demanding part of the client is checking what nodes send: each record is made canonical JSON three times, walked
+by every schema rule and verified with Ed25519, which Chromium does on the thread that asks. Measured on a phone
+profile (`node scripts/fed-perf.js`: Chromium, CPU 4× slower, the big-network fixture joined), a backlog of 2850
+records kept the page busy for 3.7 s, and a ranking spot check over 877 records was one task of 0.8 s. So that work
+runs in a **federation worker** (`88-fed-worker.js`), built like the route worker: `rwWorker()` runs this page's own
+script again from a Blob URL (nothing fetched, no file served), and in it `fedWorker()` is true, so nothing wakes.
+
+| In the federation worker (pure: data in, verdicts out) | On the page |
+| --- | --- |
+| `fedItemsRun`: every record of a sub page, a `fetch` or the operator panel's chain read is checked (`fedCheck`) and placed by its receipts (`fedPlace`); back come `{ok, kind, id, slot, cc}` per item, not the records | Frames and their JSON, the connection, requests and cursors |
+| `fedWhyRun`: a `rankwhy` answer checked, placed and worked out into one row (`fedRankOne`) | What is kept (IndexedDB), events, votes, `S`, the save |
+| `fedRegRun`: registry and gossip entries, each a whole chain (`fedRegEntry`) | Opening sealed deals (`fedOpenRec`), signing and sealing: the seeds never leave the page |
+| | The snapshot rebuild (`fedPlayRun`, about 20 ms of page time on the phone profile, mostly IndexedDB) and the shun tally (`fedShunInfo`, operators only, no task over 50 ms with 4096 votes) |
+
+- **One batch per page or answer.** `fwDo(op, args)` posts it and resolves with the result; `fedRecsRun` awaits its
+  page's batch in its place in `FED.recQ` and then keeps the records one by one as before, so pages, cursors, votes and
+  announces keep their order. The catalog goes over as server ids and node keys only (`fwSrvs`); the worker never sees
+  a key, a seed, IndexedDB or `S`.
+- **Lazy.** The worker starts with a joined save's session (`fedWake`), so a save that never joins never makes it.
+- **Fallback.** Without `Worker` (jsdom, `__TUBES_TEST__`, `__TUBES_SYNC__`), when it cannot be made, when posting
+  fails, when it reports an error or stays silent for a minute (`FW_WAIT`), it is given up for the session (`fwKill`)
+  and the same functions run on the page: the batch in flight is done again here, with the same answers in the same
+  order.
+- **Not the route worker.** A big network's day of routing and a long spot check would wait for each other there.
+- `FW.stat` counts batches and items done in the worker and batches done on the page (`local`); the end-to-end run
+  checks that a real browser checked everything in the worker. Tests: `tests/federation-worker.test.js` (a fake
+  `Worker` through `FW.force` and `FW.make`).
+
+After the change, the same phone profile: the backlog keeps the page busy 1.7 s instead of 3.7 s (what is left is
+IndexedDB, frame parsing, and the game routing once when the snapshot changes), and the spot check has no task over
+50 ms (page time 0.1 s instead of 1.0 s).
 
 ## Browser storage (IndexedDB `sot-fed`, shared by every slot)
 

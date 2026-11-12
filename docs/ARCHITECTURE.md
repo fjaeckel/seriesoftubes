@@ -236,6 +236,9 @@ network does not freeze the page once a day.
 - **Still on the main thread**, because the caller reads R right away: actions (`after()`), loading a game, failures and
   RouteScript what-ifs and the link panel's cut check. Everything a day routes (failures, events, DDoS, the chaos monkey,
   the intern's shift, the sales desk's trials) is a yield of the day, so it goes to the worker.
+- **A second worker for multiplayer.** A joined save also starts a federation worker made the same way (`rwWorker()`),
+  which checks records, receipts and registry entries from relay nodes (`88-fed-worker.js`, see
+  [FEDERATION-CLIENT.md](FEDERATION-CLIENT.md#workers-what-runs-where)).
 
 ## Actions and rendering
 

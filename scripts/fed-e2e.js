@@ -598,6 +598,17 @@ stay in the browser).`);
       must(ctl('status').kinds.leave >= 1, 'no leave at the relay');
     });
 
+    // A real browser has Worker: every record, receipt and registry entry was checked there, none on the page.
+    await step('records were checked in the federation worker, never on the page', async () => {
+      const out = [];
+      for (const p of [A, B]) {
+        const st = await ev(p, () => ({ ...FW.stat, dead: FW.dead, w: !!FW.w }));
+        must(st.w && !st.dead && st.n > 0 && st.items > 0 && st.local === 0, `${p.name}: ${JSON.stringify(st)}`);
+        out.push(`${p.name} ${st.n} batches, ${st.items} items`);
+      }
+      return out.join(', ');
+    });
+
     await step('no page errors in either game', async () => {
       const errs = [...A.errors, ...B.errors].filter((e) => !/favicon|ERR_|404/.test(e));
       must(!errs.length, errs.slice(0, 5).join(' | '));

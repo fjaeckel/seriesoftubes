@@ -28,7 +28,7 @@ const fedMine=M=>!!M&&FED.live===M&&fedCur()===M.fed;
 function fedWake(){if(fedWorker())return;const f=fedCur();if(FED.live&&FED.live.fed!==f)fedStop();if(!f)return;
   let M=FED.live;
   if(!M){M=FED.live={fed:f,conns:new Map(),statsT:null,body:'',bodyAt:0};fedListen();M.cat=fedCatalogLoad().catch(()=>false);M.cat.then(()=>fedLearnAll(M));
-    M.statsT=FED.set(()=>fedStatsTick(M),FED.T.first);fedVotesTidy();}
+    M.statsT=FED.set(()=>fedStatsTick(M),FED.T.first);fedVotesTidy();if(fwOn())fwStart();}
   for(const u of f.servers)if(!M.conns.has(u))fedConnect(M,u);
   for(const [u,c] of M.conns)if(!f.servers.includes(u)){M.conns.delete(u);fedHang(c);delete FED.st[u];}
   fedEmit('status',fedStatus());}
@@ -209,9 +209,10 @@ async function fedPlace(c,chk,rcpts,now,srvs){let slot=null,cc=null;
    would lose one's change (five votes arriving together counted as fewer). Leaderboards never pass through here: the
    server ranks them (§9.5). */
 function fedRecs(c,items){const p=(FED.recQ||Promise.resolve()).then(()=>fedRecsRun(c,items));FED.recQ=p.catch(()=>false);return p;}
-async function fedRecsRun(c,items){const now=fedNow(),me=c.M.fed.key.pub,votes=[],srvs=await fedServers();let n=0,voters=null;
-  for(const it of Array.isArray(items)?items:[]){if(!fedLive(c))return false;if(!it||typeof it!=='object')continue;
-    const chk=await fedCheck(it.rec,now);if(!chk.ok)continue;n++;const r=chk.rec,pl=await fedPlace(c,chk,it.rcpt,now,srvs),heard=pl.slot??fedSlot(now);
+// The page's records are checked in one batch (the federation worker, 88-fed-worker.js), then kept here one by one.
+async function fedRecsRun(c,items){const now=fedNow(),me=c.M.fed.key.pub,votes=[],srvs=await fedServers(),L=Array.isArray(items)?items:[];let n=0,voters=null;
+  const ck=L.length&&fedLive(c)?await fedCheckItems(L,now,c,srvs):[];
+  for(let i=0;i<L.length;i++){if(!fedLive(c))return false;const chk=ck[i];if(!chk||!chk.ok)continue;n++;const r=chk.rec,heard=chk.slot??fedSlot(now);
     if(['announce','stats','offer','accept','decline'].includes(r.kind))await fedHeard(r.key,heard);
     if(r.kind==='announce')await fedAnnPut(chk,heard,c.srv);
     else if(r.kind==='leave')await fedLeft(r.key,r.t);
@@ -270,14 +271,11 @@ async function fedRankCheck(c,req,a){const f=c.M.fed,me=f.key.pub,rows=a.rows.fi
   return true;}
 // One row (p: {key, own}) of an answer against the records rankwhy shows for it.
 async function fedRankRow(c,req,a,p){const w=await fedAskRetry(c,{m:'rankwhy',board:req.board,measure:req.measure,division:req.division,filters:req.filters,key:p.key},true);
-  if(!w||w.m!=='recs'||w.slot!==a.slot||!fedLive(c))return null;const now=fedNow(),srvs=await fedServers(),recs=[];let ann=null,annT=null;
-  for(const it of w.items){if(!it||typeof it!=='object')continue;const chk=await fedCheck(it.rec,now);if(!chk.ok)continue;const r=chk.rec;
-    if(r.kind==='announce'&&r.key===p.key){if(annT===null||r.t>annT){ann=r.body;annT=r.t;}continue;}if(r.kind!=='stats')continue;
-    // A receipt from a server this browser does not know cannot be checked: then neither can the row.
-    for(const rc of Array.isArray(it.rcpt)?it.rcpt.slice(0,16):[]){const sid=rc&&rc.body&&rc.body.server;if(typeof sid==='string'&&sid!==c.srv&&!srvs.some(x=>x.id===sid))return null;}
-    const pl=await fedPlace(c,chk,it.rcpt,now,srvs);if(pl.slot!==null)recs.push({id:chk.id,key:r.key,slot:pl.slot,t:r.t,body:r.body,cc:pl.cc});}
+  if(!w||w.m!=='recs'||w.slot!==a.slot||!fedLive(c))return null;const now=fedNow(),srvs=await fedServers();
   const ex=new Set(await fedServerExcl(c)),q={now:a.slot,board:req.board,measure:req.measure,division:req.division,exclude:[...ex],cities:req.filters.cities||null,filters:req.filters};
-  const x=fedRankOne(q,p.key,recs,ann);
+  // The records checked and worked out in the federation worker (fedWhyRun): null when a receipt comes from a server
+  // this browser does not know, which cannot be checked, and then neither can the row.
+  const x=await fwDo('why',{items:w.items,now,at:{srv:c.srv,nodeKey:c.nodeKey},srvs:fwSrvs(srvs),key:p.key,q});if(!x)return null;
   if(p.own){const m=a.me;return m?x.listed&&x.value===m.value&&(m.rank===null?!x.kept:x.kept):!x.listed;}
   const row=a.rows.find(r=>r.key===p.key);return !!row&&x.kept&&x.value===row.value;}
 // What one server leaves off its boards, as it told this game: its excluded list, and its hide list's hidden and refused.
@@ -315,16 +313,16 @@ async function fedCatalogLoad(){let txt=null;
   try{const ac=typeof AbortController==='function'?new AbortController():null,t=FED.set(()=>ac&&ac.abort(),FED.T.fetch);
     const r=await FED.fetch(FED.registry,ac?{signal:ac.signal,cache:'no-cache'}:{});FED.clear(t);if(r&&r.ok)txt=await r.text();}catch(e){}
   if(txt==null||fedSize(txt)>8e6)return false;/* the cache stays */let j;try{j=JSON.parse(txt);}catch(e){return false;}
-  if(!j||j.v!==1||!Array.isArray(j.servers)||!Number.isSafeInteger(j.asOf))return false;const now=fedNow(),out=[];
-  for(const e of j.servers.slice(0,2000)){if(!e||typeof e!=='object')continue;const r=await fedRegEntry(e,now);if(!r.ok||r.id!==e.id)continue;
-    out.push({...fedSum(r),listed:Number.isSafeInteger(e.listed)?e.listed:null,answered:Number.isSafeInteger(e.answered)?e.answered:null});}
+  if(!j||j.v!==1||!Array.isArray(j.servers)||!Number.isSafeInteger(j.asOf))return false;const now=fedNow(),out=[],L=j.servers.slice(0,2000),rs=await fwDo('reg',{entries:L,now});
+  for(let i=0;i<L.length;i++){const e=L[i],r=rs[i];if(!r||r.id!==e.id)continue;
+    out.push({...r.sum,listed:Number.isSafeInteger(e.listed)?e.listed:null,answered:Number.isSafeInteger(e.answered)?e.answered:null});}
   await fedPut('kv','registry',{asOf:j.asOf,at:now,servers:out});fedEmit('catalog',{source:'registry'});return true;}
 const fedSum=r=>({id:r.id,rid:r.srvId,t:r.srv.t,name:r.name,nodes:r.nodes,operators:r.ops,sync:r.sync,noLogs:r.noLogs,langs:r.srv.body.langs,desc:r.srv.body.desc});
 // Gossip entries from a node ({genesis, chain, server, path, seen}): checked, then kept (a few per server).
-async function fedGossip(entries){if(!Array.isArray(entries))return;const now=fedNow(),g=(await fedGet('kv','gossip'))||[];let ch=false;
-  for(const e of entries.slice(0,256)){if(!e||typeof e!=='object')continue;const r=await fedRegEntry(e,now);if(!r.ok)continue;
+async function fedGossip(entries){if(!Array.isArray(entries))return;const now=fedNow(),g=(await fedGet('kv','gossip'))||[],L=entries.slice(0,256),rs=L.length?await fwDo('reg',{entries:L,now}):[];let ch=false;
+  for(let i=0;i<L.length;i++){const e=L[i],r=rs[i];if(!r)continue;
     const x=fedGossipIn({id:r.id,path:e.path,seen:e.seen},null,now);if(x.action!=='store')continue;
-    g.push({id:r.id,server:fedSum(r),path:e.path,seen:e.seen});ch=true;}
+    g.push({id:r.id,server:r.sum,path:e.path,seen:e.seen});ch=true;}
   if(!ch)return;const keep=[],per=new Map();
   for(const e of g.sort((a,b)=>b.seen-a.seen)){const n=per.get(e.id)||0;if(now<e.seen+FED_CARRY&&n<4&&keep.length<4000){keep.push(e);per.set(e.id,n+1);}}
   await fedPut('kv','gossip',keep);fedEmit('catalog',{source:'gossip'});}

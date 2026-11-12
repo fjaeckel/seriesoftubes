@@ -12,17 +12,20 @@ const RW_EL=!RW_IN&&typeof document!=='undefined'?document.currentScript:null;
 const RW_SLOW=20;
 const RW={w:null,dead:false,seq:0,gz:0,gzq:new Map(),svq:new Map(),gen:0,job:null,desc:null,wR:null,wseq:0,last:null,budget:8,later:f=>rwLater(f),stat:{n:0,post:0,de:0,apply:0,wait:0,work:0}};
 function rwOn(){return !RW_IN&&!RW.dead&&!window.__TUBES_TEST__&&!window.__TUBES_SYNC__&&typeof Worker==='function'&&!!RW_EL;}
-function rwStart(){if(RW.w)return RW.w;
-  try{const L=LANG,dict=L!=='en'&&window.I18N[L]?JSON.stringify(window.I18N[L]):'null';
-    const pre=`'use strict';self.__TUBES_WORKER__=1;self.window=self;
+/* A worker running this page's own script (no request, no file served): DOM globals are inert stand-ins, and tail
+   wires its messages. The federation worker (88-fed-worker.js) is made the same way. */
+function rwWorker(tail){const L=LANG,dict=L!=='en'&&window.I18N[L]?JSON.stringify(window.I18N[L]):'null';
+  const pre=`'use strict';self.__TUBES_WORKER__=1;self.window=self;
 const _n=new Proxy(function(){},{get:(t,k)=>k===Symbol.toPrimitive?()=>0:k==='then'?undefined:_n,apply:()=>_n,construct:()=>_n,set:()=>true});
 const _st={getItem:()=>null,setItem(){},removeItem(){},key:()=>null,length:0};
 Object.assign(self,{document:_n,localStorage:_st,sessionStorage:_st,requestAnimationFrame:()=>0,cancelAnimationFrame(){},innerWidth:1280,innerHeight:800,devicePixelRatio:1,
   matchMedia:()=>({matches:false,addEventListener(){},addListener(){}}),Image:_n,Audio:_n,screen:_n,visualViewport:_n,history:_n,getComputedStyle:_n,ResizeObserver:_n,MutationObserver:_n,IntersectionObserver:_n,Path2D:_n,scrollTo(){},SOT_LANG:${JSON.stringify(L)},SOT_LANGS:{},I18N:{}});
 if(${dict})self.I18N[${JSON.stringify(L)}]=${dict};
 `;
-    const url=URL.createObjectURL(new Blob([pre,RW_EL.textContent,'\n;self.onmessage=e=>rwServe(e.data);'],{type:'text/javascript'}));
-    const w=RW.w=new Worker(url);URL.revokeObjectURL(url);
+  const url=URL.createObjectURL(new Blob([pre,RW_EL.textContent,tail],{type:'text/javascript'}));
+  const w=new Worker(url);URL.revokeObjectURL(url);return w;}
+function rwStart(){if(RW.w)return RW.w;
+  try{const w=RW.w=rwWorker('\n;self.onmessage=e=>rwServe(e.data);');
     w.onmessage=e=>{const t=performance.now(),m=e.data;RW.stat.de+=performance.now()-t;rwMsg(m,t);};w.onerror=w.onmessageerror=e=>{console.error('[tubes] route worker failed',e.message||e);rwKill();};
   }catch(e){console.error('[tubes] no route worker',e);rwKill();}
   return RW.w;}

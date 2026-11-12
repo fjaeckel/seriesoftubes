@@ -139,6 +139,9 @@ at that sandbox method.
   list it (§10.7). Vectors: `box` area (both implementations), records updated. Tests: `tests/federation-sealed.test.js`,
   `relay/internal/node/deals_test.go`; end to end, a third raw client sees none of Alice's and Bob's deal records.
 - Perf against 9c26d03, headless and Chromium desktop/phone: no slowdowns beyond noise, routing identical.
+- **Federation worker** (Frederic, 2026-11-12: "workers on the clients for all the demanding stuff"): record, receipt,
+  spot-check and registry checking run in a dedicated worker built from the page (`88-fed-worker.js`, falls back to the
+  page); measured with `node scripts/fed-perf.js` (phone profile), see FEDERATION-CLIENT.md "Workers".
 
 ## Open work, roughly in order
 
