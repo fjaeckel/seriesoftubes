@@ -10,6 +10,7 @@
       "body": {
         "name": "Lag Zeppelin",
         "asn": 4281146038,
+        "box": "JFbpiu58Us9obbSxaQZ38W9CrU4GlY8QE23T5T1Y-wM",
         "home": "US",
         "day": 0,
         "founded": 20455,
@@ -36,12 +37,12 @@
           "port": "decline"
         }
       },
-      "sig": "F7TF4cXgK20LGf0w5_DaM3vSBkJ6gHK2-tL8IBb4zkAV4A2LG8W8YR-9om4yFaXkKk1oh1wZ86XLVTKKzx2oCQ"
+      "sig": "VDYfTZikaPVIdCmMl54SDbpZwH6UwSFlVsyBBzAhCrjxt-4H2rROh2np3YfC8JvNizHzABvRFUc6Gsfil4xWDw"
     }
   },
   "expect": {
     "ok": true,
     "kind": "announce",
-    "id": "BFw38MQoLYYphkVbKpwgt6rVdzhm8b3Mc5KaQ0LTcY8"
+    "id": "ydZhxTAQ9n_dFw5CaGTVxZVCOMMqDw2yTPaPDX0a7AU"
   }
 }

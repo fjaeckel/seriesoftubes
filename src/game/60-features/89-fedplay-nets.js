@@ -13,7 +13,7 @@ const FEDP_MAX=48,FEDP_SH=0.012,FEDP_SH_ALL=0.12,FEDP_TICK=3600000,FEDP_UP=['lvl
   FEDP_COL=['#8E7DBE','#2E86AB','#E07A5F','#3D9970','#B565A7','#F2A541','#5B8E7D','#C44536','#4F6D7A','#9C6644'],
   FEDP_ST=['active','fading','dark'];
 // Runtime only: what is applied to NETS (h, ids, base shares), the newest announces by key, the timer.
-const FEDN={h:'',ids:[],base:null,ann:new Map(),cur:Promise.resolve(),pend:null,t:null,on:false,q:Promise.resolve(),rt:null,pin:new Set()};
+const FEDN={h:'',ids:[],base:null,ann:new Map(),cur:Promise.resolve(),pend:null,t:null,on:false,q:Promise.resolve(),rt:null,pin:new Set(),ex:null};
 // A player network's id in NET: stable for a key, letters and digits only.
 const fedNetId=k=>'fp'+String(k).slice(0,12).replace(/[-_]/g,'x');
 const fedNetOf=k=>{const n=NET[fedNetId(k)];return n&&n.fed===k?n:null;};
@@ -81,8 +81,11 @@ const fedPlayKeys=s=>[...new Set([...s.fed.deals.filter(d=>d.st!=='over').map(d=
 function fedPlayRefresh(){if(FEDN.pend)return FEDN.pend;
   const p=FEDN.pend=FEDN.cur.then(()=>{FEDN.pend=null;return fedPlayRun();}).catch(e=>console.error('[tubes] federation gameplay',e));FEDN.cur=p;return p;}
 async function fedPlayRun(){const s=S;if(!s||!s.fed||!s.fed.key||!fedEligible(s))return;
-  const now=fedNow(),all=await fedNetworks(now),shun=new Set(await fedShunned(now)),stats=await fedPlayStats();if(S!==s||!s.fed)return;
-  const me=s.fed.key.pub,muted=new Set(s.fed.muted);FEDN.ann=new Map(all.map(n=>[n.key,n]));
+  const now=fedNow(),all=await fedNetworks(now),X=await fedExcl(),stats=await fedPlayStats(),srvs=X.by.size?await fedServers():[];if(S!==s||!s.fed)return;
+  const me=s.fed.key.pub,muted=new Set(s.fed.muted);FEDN.ann=new Map(all.map(n=>[n.key,n]));fedExclKeep(X,srvs);
+  /* Listed by any joined server: dark (no demand, hidden) unless a deal with it still runs; that goes on, and ends
+     only once the exclusion is confirmed (fedDealsTick). */
+  const live=new Set(s.fed.deals.filter(d=>d.st!=='over').map(d=>d.key)),shun=new Set([...X.keys].filter(k=>X.ok.has(k)||!live.has(k)));
   /* At most FEDP_MAX networks become places in this game: first those it deals with, has requests from or the player
      picked in the looking glass (FEDN.pin), then those sharing an exchange with it, then the busiest. Without that, on a server with more networks than that,
      two new players could never find each other. */
@@ -95,11 +98,18 @@ async function fedPlayRun(){const s=S;if(!s||!s.fed||!s.fed.key||!fedEligible(s)
   // A joined save has its terms (the defaults) from its first look on, not only once it announced.
   if(!s.fedp){fedP(s);ch=true;}
   if(!s.fedn||s.fedn.h!==h){s.fedn={h,nets:list};ch=true;}
-  if(fedDealsTick(s,now,shun,muted,stats))ch=true;
+  if(fedDealsTick(s,now,X.ok,muted,stats))ch=true;
   if(fedStrangers(s,stats))ch=true;
   if(ch&&S===s)after();
   // Networks new in the snapshot: ask the servers about them, at most every five minutes.
   if(list.some(n=>!stats.has(n.k))&&!(fedNow()-(FED.netsAt||0)<300)){FED.netsAt=fedNow();fedNetsFetch(fedPlayKeys(s)).then(()=>fedPlaySoon()).catch(()=>{});}}
+/* The exclusions as the last look saw them, for what is drawn and decided without waiting (requests, the deals sheet):
+   FEDN.ex = {any (listed by a joined server), ok (confirmed), by (key -> names of the servers that list it)}. */
+function fedExclKeep(X,srvs){const by=new Map();
+  for(const [k,l] of X.by)by.set(k,[...new Set(l.map(x=>{const e=srvs.find(s=>s.id===x.srv);return e&&e.name?fedSafeName(e.name):fedUrlHost(x.url);}))]);
+  FEDN.ex={any:new Set(X.keys),ok:new Set(X.ok),by};}
+const fedUrlHost=u=>{const m=/^wss:\/\/([^/:]+)/.exec(u||'');return m?m[1]:'?';};
+const fedExcl1=k=>!!FEDN.ex&&FEDN.ex.any.has(k);
 function fedPlaySoon(ms=1000){if(FEDN.rt)return;FEDN.rt=FED.set(()=>{FEDN.rt=null;fedPlayRefresh();},ms);}
 // The hourly look: ask about the networks in play, rebuild, announce when this network changed, depeer drifted ratios, shared leaks.
 async function fedPlayTick(){FEDN.t=null;if(!FEDN.on)return;FEDN.t=FED.set(fedPlayTick,FEDP_TICK);const s=S;if(!s||!s.fed||!s.fed.on)return;

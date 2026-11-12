@@ -1,0 +1,29 @@
+{
+  "description": "bob's decline, sealed for alice with info \"tubes-fed v1 decline\": the offer and to stay in clear, the reason is sealed.",
+  "input": {
+    "seed": "6d21019001a79c301ce03ae44a51a0cc13e695ba1e77cd12b268430da3f93a10",
+    "peer": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+    "peerBox": "JFbpiu58Us9obbSxaQZ38W9CrU4GlY8QE23T5T1Y-wM",
+    "record": {
+      "v": 1,
+      "kind": "decline",
+      "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+      "t": 1767312060,
+      "body": {
+        "offer": "DLVjgb2GDuR2cF3bAwbPnj7SYthOmnjqUgI5LFZt9ak",
+        "to": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+        "enc": {
+          "n": "q4ya9qD3scoyRox1",
+          "c": "3laRIRpMYoJQCjnwcmoeSH4ysyChEB3J1EVX2-MfI5PtnSBoYg"
+        }
+      },
+      "sig": "ItCli2fwRsNPldwoicE5FxNGXTy75FIrDBVm_HflkFT2V9N8BhEesHVqndXQVEuX3GQmtdcMup4uZeGmxN6lCQ"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "plain": {
+      "reason": "declined"
+    }
+  }
+}

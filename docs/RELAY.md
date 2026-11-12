@@ -295,7 +295,9 @@ A network is shunned everywhere when at least a quarter of the voting servers, a
 last 90 days unless renewed, and a shun lifts 7 days after the votes fall below the threshold. Every vote is a signed
 record that travels to every server, but your node sends votes only to games that proved an operator key of your
 server (an operator panel in the game); other players' games get only the list of excluded networks, and an excluded
-player only the reasons given, never counts, servers or operators.
+player only the reasons given, never counts or who voted. A game joined to several servers ends its running deals
+with an excluded network only when most of them (and at least two) list it; one server's list alone hides the network
+and stops new deals with it, nothing more.
 
 ## Leaderboards
 
@@ -362,3 +364,7 @@ address, a key or a name. The relay refuses a metrics address that is not on loc
   logged, or passed on.
 - Logs and metrics hold counts, error codes, record kinds and network keys (the public, pseudonymous game identity).
 - Unknown fields in records are refused, so nothing finer than a country can ever be smuggled into one.
+- Deals between players are sealed for the two players (offers and declines): your node checks their shape and
+  signature, stores and forwards them, and sends them only to the games of those two players. Neither you nor anyone
+  else running a node can read what was offered, at what price, or why someone said no. Open consortium projects are
+  public by design.

@@ -1,0 +1,26 @@
+{
+  "description": "decline names the offer and its author in clear; the reason is sealed.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "decline",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "offer": "nK-tIRkgmSiJt4Y10tSegCDGUqox1ARYvxzuzdLJIIk",
+        "to": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+        "enc": {
+          "n": "2J59bz27t6KYR5Hs",
+          "c": "SsoASZdKLsojMrEdtn8RRW5Sscf8RgvlxuHgwKzMiTWbApTg9OUt"
+        }
+      },
+      "sig": "agAwfSRYGPS2kYX2ERd5tal6wWniMJRuAa1b8HUMFTJBRUG2sAWryG63BY2Vz7Qg_KiNVFcTCgXE3V5HW1O-Cg"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "decline",
+    "id": "UnkRPVlUasn_KDLByhp0zEg_SrL12Q-882FKbLlApkg"
+  }
+}

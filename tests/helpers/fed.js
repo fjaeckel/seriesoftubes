@@ -28,6 +28,44 @@ function key(name) {
 const signText = (k, text) => b64(crypto.sign(null, Buffer.from(text, 'utf8'), k.priv));
 function rec(name, kind, t, body) { const k = key(name), r = { v: 1, kind, key: k.pub, t, body }; r.sig = signText(k, canon(r)); return r; }
 const rid = (r) => b64(sha(canon(r)));
+// Sealed deals (§5.3), the vectors' way: a network's box key from its seed, and records sealed for another network.
+const X_PKCS8 = Buffer.from('302e020100300506032b656e04220420', 'hex');
+const hkdf = (ikm, salt, info) => Buffer.from(crypto.hkdfSync('sha256', ikm, salt, Buffer.from(info, 'utf8'), 32));
+function boxKey(name) {
+  const k = key(name);
+  if (!k.box) {
+    const d = hkdf(Buffer.from(k.seed, 'base64url'), Buffer.alloc(0), 'tubes-fed v1 box'); d[0] &= 248; d[31] &= 127; d[31] |= 64;
+    const priv = crypto.createPrivateKey({ key: Buffer.concat([X_PKCS8, d]), format: 'der', type: 'pkcs8' });
+    k.box = { priv, pub: crypto.createPublicKey(priv).export({ format: 'jwk' }).x };
+  }
+  return k.box;
+}
+const box = (name) => boxKey(name).pub;
+// A record from name, sealed for the network whose Ed25519 key is peer and whose box is peerBox: clear stays in clear,
+// plain is sealed. Defaults: an offer keeps to in clear, a decline offer and to.
+function sealRec(name, kind, t, body, peer, peerBox) {
+  const keep = kind === 'decline' ? ['offer', 'to'] : ['to'], clear = {}, plain = {};
+  for (const [k, v] of Object.entries(body)) (keep.includes(k) ? clear : plain)[k] = v;
+  const me = key(name).pub, env = { v: 1, kind, key: me, t, body: clear };
+  const shared = crypto.diffieHellman({ privateKey: boxKey(name).priv, publicKey: crypto.createPublicKey({ key: { kty: 'OKP', crv: 'X25519', x: peerBox }, format: 'jwk' }) });
+  const salt = Buffer.concat([me, peer].sort().map((x) => Buffer.from(x, 'base64url')));
+  const n = crypto.randomBytes(12), c = crypto.createCipheriv('aes-256-gcm', hkdf(shared, salt, 'tubes-fed v1 ' + kind), n);
+  c.setAAD(Buffer.from(canon(env), 'utf8'));
+  const ct = Buffer.concat([c.update(Buffer.from(canon(plain), 'utf8')), c.final(), c.getAuthTag()]);
+  return rec(name, kind, t, { ...clear, enc: { n: b64(n), c: b64(ct) } });
+}
+// Opens a sealed record as the network name, the other party being peer (Ed25519 key) with box peerBox: the plain
+// value, or null.
+function openRec(name, r, peer, peerBox) {
+  try {
+    const me = key(name).pub, { sig, ...env } = r, { enc, ...body } = r.body;
+    const shared = crypto.diffieHellman({ privateKey: boxKey(name).priv, publicKey: crypto.createPublicKey({ key: { kty: 'OKP', crv: 'X25519', x: peerBox }, format: 'jwk' }) });
+    const salt = Buffer.concat([me, peer].sort().map((x) => Buffer.from(x, 'base64url')));
+    const c = Buffer.from(enc.c, 'base64url'), d = crypto.createDecipheriv('aes-256-gcm', hkdf(shared, salt, 'tubes-fed v1 ' + r.kind), Buffer.from(enc.n, 'base64url'));
+    d.setAAD(Buffer.from(canon({ ...env, body }), 'utf8')); d.setAuthTag(c.subarray(c.length - 16));
+    return JSON.parse(Buffer.concat([d.update(c.subarray(0, c.length - 16)), d.final()]).toString('utf8'));
+  } catch (e) { return null; }
+}
 const asn = (pub) => 4200000000 + (sha(Buffer.from(pub, 'base64url')).readUInt32BE(0) % 94967295);
 const NOW = 1767312100;
 // The registry the build would publish from the vectors' folder: Packet Lunch (two nodes: node1, node2) and Hop Shop.
@@ -127,4 +165,4 @@ async function joinGame(p, url = URL1, start = 'ACT.start({})') {
   return r;
 }
 
-module.exports = { b64, sha, canon, key, rec, rid, asn, NOW, SERVERS_JSON, PL, PL_ENTRY, URL1, URL2, Net, fedPage, joinGame, settle, until, signText };
+module.exports = { b64, sha, canon, key, rec, rid, asn, box, sealRec, openRec, NOW, SERVERS_JSON, PL, PL_ENTRY, URL1, URL2, Net, fedPage, joinGame, settle, until, signText };

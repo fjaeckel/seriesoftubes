@@ -114,6 +114,8 @@ padding, other alphabets, wrong lengths and non-zero unused bits in the last cha
 | Sig (Ed25519 signature) | 64 | 86 | `bad_sig` |
 | Id (SHA-256) | 32 | 43 | `bad_field` |
 | Nonce | 32 | 43 | `bad_field` |
+| Box key (X25519 public key, 3.5) | 32 | 43 | `bad_key` |
+| Box nonce (3.5) | 12 | 16 | `bad_field` |
 
 ### 3.2 Signatures
 
@@ -147,6 +149,43 @@ ASN = 4200000000 + (n mod 94967295)
 
 which is always within the 32-bit private range 4200000000–4294967294. ASNs can collide; the key is the identity and
 the game tells two networks with one ASN apart by key.
+
+### 3.5 Box keys and sealing
+
+Deals between two players are sealed so that only those two read them (5.3); relays forward them unread. Each network
+has a **box key**, an X25519 key pair (RFC 7748) derived from its Ed25519 seed, so nothing new is stored or moved with a
+save:
+
+```
+box_priv = HKDF-SHA256(ikm = seed (32 bytes), salt = empty, info = "tubes-fed v1 box", 32 bytes),
+           then clamped: byte 0 &= 248, byte 31 &= 127, byte 31 |= 64
+box      = X25519(box_priv, 9)            (published in announce, 5.1, as a Key: 32 bytes, base64url)
+```
+
+A **box** is an object `{n, c}`, both base64url (3.1): `n` the 12-byte AES-GCM nonce (16 characters), `c` the
+ciphertext with its 16-byte tag appended, 17 to 2048 bytes. Anything else is `bad_field`; other members are
+`unknown_field`.
+
+**Sealing** a record of kind `K` by network A (Ed25519 key `a`, box private key `A`) for network B (Ed25519 key `b`, box
+`B`):
+
+1. `shared = X25519(A, B)`. An all-zero result fails (a low-order box): nothing is sealed.
+2. `key = HKDF-SHA256(ikm = shared, salt = raw(lo) || raw(hi), info = "tubes-fed v1 " + K, 32 bytes)`, where `lo` and
+   `hi` are `a` and `b` ordered by their Key text in byte order and `raw` is the 32 key bytes. `K` is the record's
+   `kind` (`offer` or `decline`), so a box can never be moved into a record of another kind.
+3. `aad = canon(the record without sig, its body without enc)`: the box is bound to `v`, `kind`, the author, `t` and
+   every field left in clear (`to`, and `offer` for a decline).
+4. `c = AES-256-GCM(key, nonce n, plaintext = canon(the sealed fields as one object), aad)`. `n` is 12 random bytes,
+   never reused with the same key (pick them at random every time).
+
+**Opening** is the same derivation from the other side (X25519 is symmetric: `X25519(B_priv, A) = shared`), then
+AES-GCM decryption with the same `aad`. A box that does not open (wrong keys, a changed field, a tampered ciphertext) is
+dropped silently. The plaintext is then read as JSON (2.2, 2.1) and checked as 5.3 says.
+
+**Why**: X25519, HKDF-SHA256 and AES-GCM are in WebCrypto and in Go's standard library, so neither side needs a library.
+Static keys on both sides mean an offer can be sealed for someone who is offline; the signature over the whole record
+(with the box) still says who wrote it. A browser without WebCrypto X25519 does not offer multiplayer, like one without
+Ed25519 (3.2).
 
 ## 4. The envelope
 
@@ -215,6 +254,7 @@ A network's public description: enough for other games to build it as a network,
 | --- | --- | --- |
 | `name` | Name | The network's name, as typed |
 | `asn` | integer | MUST equal the ASN of `key` (3.4) |
+| `box` | Key | Its box key (3.5), derived from the network's seed: deals offered to it are sealed for this key. Relays cannot check that it belongs to `key`; a wrong one only means that network cannot open what is sealed for it |
 | `home` | CC | Home market: the game country the network started in |
 | `day` | Count(10000000) | The save's current game day |
 | `founded` | integer | Real day number the save joined; 0 to `floor(t / 86400)` |
@@ -247,7 +287,7 @@ Example (keys and signatures shortened):
 
 ```json
 {"v":1,"kind":"announce","key":"q6-YSQ…PWMw","t":1767312000,"sig":"…","body":{
- "name":"Ping Floyd","asn":4215690104,"home":"DE","day":412,"founded":20454,
+ "name":"Ping Floyd","asn":4215690104,"box":"JFbp…-wM","home":"DE","day":412,"founded":20454,
  "pops":["fra","ams","lon"],"ix":["fra","ams"],"cust":37,
  "mix":{"content":200,"eyeball":700,"enterprise":100},"traffic":{"in":42000,"out":9000},
  "policy":"selective","cond":{"minMbps":1000,"maxRatio":300,"minShared":2,"rpki":true,"tier1":false,"ai":true},
@@ -288,11 +328,31 @@ Deals between players. Each record has one signer; a deal's two signatures are t
 (an offer and an accept, or an offer and the counterparty's own `announce` it relies on, see 10.10). Records stay
 immutable, and nobody has to be online at the same time as anyone else.
 
-`offer`:
+**Deals are private between their two parties.** An offer to someone and every decline travel **sealed** (3.5): only
+the fields a relay needs to deliver them are in clear, everything that describes the deal is in the box `enc`, which
+only the two parties open. Relays check the envelope, the signature and the box's shape, never the terms, and send
+these records only to the two parties' sessions (9.3). Consortium projects open to anyone are public by design and
+travel in clear.
+
+On the wire:
+
+| Record | Body in clear | Sealed in `enc` (the plaintext object) |
+| --- | --- | --- |
+| `offer` with `to` | `{to: Key, enc: Box}`, exactly these two (`to` never the author: `bad_field`; anything else: `unknown_field`) | `{deal, basis?, renews?, terms}` as in the table below |
+| `offer` without `to` | The offer in clear, as below; `deal` MUST be `consortium` (otherwise `to` is `missing_field`) | nothing |
+| `accept` | `{offer: Id, to: Key}` | nothing: it says only which offer, never its terms |
+| `decline` | `{offer: Id, to: Key, enc: Box}` | `{reason}` |
+
+A party that opens a box joins the clear fields and the plaintext into the offer or decline **in clear** (the tables
+below) and checks it as written there: any failure (a plaintext that is not an object, repeats a clear field, misses a
+field or breaks a rule) drops the record, as a box that does not open does. Then 10.10 applies, exactly as before. The
+size limits (13.2) are of the record as it travels.
+
+The offer in clear (an open consortium project on the wire, or a sealed offer once opened):
 
 | Field | Type | Rule |
 | --- | --- | --- |
-| `to` | Key | The counterparty, never the author (`bad_field`). Optional for `consortium` only (absent: open to anyone) |
+| `to` | Key | The counterparty, never the author (`bad_field`). Optional for `consortium` only (absent: open to anyone; present: an invitation, sealed like any offer to someone) |
 | `deal` | string | `peering`, `transit`, `pni`, `swap`, `consortium`, `port` or `wave` |
 | `basis` | Id | The counterparty's `announce` whose terms the offer takes. Required for `peering`, `transit`, `pni`, `port`, `wave`; optional for `swap`; refused for `consortium` (`bad_field`) |
 | `renews` | Id, optional | The offer that started the running deal this one renews |
@@ -308,15 +368,22 @@ immutable, and nobody has to be online at the same time as anyone else.
 | `consortium` | `{name: Name, a: City, b: City, members: integer 2 to 16, share: Money, pairs: integer 1 to 16}` |
 | `wave` | `{a: City, b: City (a < b, as on the card), gbps: 100\|400\|800\|1600, monthly: Money, term: Days}`: one wave the author buys from `to` |
 
-`accept`: `{offer: Id, to: Key}` where `to` is the offer's author. `decline`: `{offer: Id, to: Key, reason}` with
-`reason` one of `declined`, `conditions`, `depeer`, `excluded`, `quiet`. A `decline` of a running deal ends it.
+`accept`: `{offer: Id, to: Key}` where `to` is the offer's author. `decline` (once opened): `{offer: Id, to: Key,
+reason}` with `reason` one of `declined`, `conditions`, `depeer`, `excluded`, `quiet`. A `decline` of a running deal
+ends it.
+
+A transit offer as it travels, what Alice reads once she opened it, and her accept:
 
 ```json
 {"v":1,"kind":"offer","key":"Fz3…","t":1767312000,"sig":"…","body":{
- "to":"q6-YSQ…PWMw","deal":"transit","basis":"<id of alice's announce>",
- "terms":{"mbps":10000,"perGbps":810,"term":90,"at":["fra"]}}}
+ "to":"q6-YSQ…PWMw","enc":{"n":"o4dM_rFff72Ms2lZ","c":"Y_yGXG15…"}}}
+{"to":"q6-YSQ…PWMw","deal":"transit","basis":"<id of alice's announce>","terms":{"mbps":10000,"perGbps":810,"term":90,"at":["fra"]}}
 {"v":1,"kind":"accept","key":"q6-YSQ…PWMw","t":1767312600,"sig":"…","body":{"offer":"<offer id>","to":"Fz3…"}}
 ```
+
+**Why** the offer's `to` and the accept stay in clear: the relay delivers by them, and that two networks deal at all
+is visible to a relay anyway (it carries both sides' records). What they agreed on, at what price, where, and why one
+of them said no, is not.
 
 ### 5.4 `genesis` (founding operator)
 
@@ -644,6 +711,13 @@ upgraded. This document is version 1; records carry `v: 1` in it.
 - **Shun votes go to operators only.** A node sends `shun` and `unshun` records to a client session only when it proved
   a key that is a current operator of the node's server: other sessions never get them, from `sub` (backlog and live),
   `fetch` or `rankwhy`, and are not told they were left out. Between nodes they travel unchanged (9.4).
+- **Deals go to their two parties only** (5.3). A node sends an `offer`, `accept` or `decline` to a client session only
+  when that session proved (`auth`) the record's author or its `to`. The exceptions are public by design: an `offer`
+  without `to` (an open consortium project) goes to everyone, and so does an `accept` or `decline` of such an offer
+  (the node has the offer stored, it has no `to`, and the record's `to` is its author), so every game can count a
+  project's signers. Like the votes, this holds for `sub` (backlog and live), `fetch` and `rankwhy`, other sessions are
+  not told what they did not get, and records travel unchanged between nodes (9.4). A game proves its network's key
+  before its `sub` (above), so it gets its own deals from the backlog.
 - **`excluded`** tells every client the outcome instead. A node sends it after the backlog of a session's first `sub`,
   and again whenever the networks it excludes change (10.7: a vote arrives, votes expire, a shun lifts, a new registry
   snapshot). `keys` is the whole list, sorted; a list that does not fit one frame is split over several `excluded`
@@ -872,6 +946,24 @@ Inputs: the registry snapshot (`servers.json`, 11.3), every `shun` and `unshun` 
    The shunned player is shown the reasons only: the set, no counts, never which servers or operators voted
    (`excluded`, 9.3). Everyone else learns only that the network is excluded.
 
+**How a game applies the excluded lists.** Each server computes this tally itself and tells its clients the outcome
+(`excluded`, 9.3). A game joined to several servers keeps each one's last list, and one dishonest operator could list
+anyone: so a single list is enough to be cautious, never enough to break what is running. With `n` the number of joined
+servers whose `excluded` list the game has (at least once, kept offline) and `m` the number of them listing a network:
+
+1. `m >= 1`: **listed**. The network is hidden: left out of boards, the looking glass and the networks a game routes
+   to (it counts as dark, 10.6), unless a deal with it is still running, which keeps it on the map for that deal. No
+   new deal with it starts: requests to it are not sent (the game says why), offers from it are declined with reason
+   `excluded`, offers waiting for review cannot be accepted.
+2. `m >= 2` and `2 * m > n`: **confirmed**, a strict majority of the servers that sent a list and at least two of them.
+   Only then do running deals with it end (a `decline` with reason `excluded`, as before).
+3. A listed network that is not confirmed keeps its running deals; the game shows, on that network's deals, which
+   servers list it and that running deals continue until other servers confirm it. With one joined server nothing is
+   ever confirmed, so running deals continue until they end by their term, a decline or quiet (10.6).
+
+The excluded network's own game shows the reasons (as above) and the names of the joined servers whose list has it,
+never counts of votes.
+
 ### 10.8 Catalog gossip
 
 An **entry** is `{genesis, chain, server, path, seen}`: the server's `genesis`, its applied `operators` records in order
@@ -948,8 +1040,9 @@ terms to check, so it is never automatic and binds when the counterparty signs `
 a renewal as below).
 
 **Who checks.** Relays store and forward offers, accepts and declines after the record checks (7.1), without running
-these rules: they need not hold the basis. Games check each offer against these rules when they receive it and before
-acting on it or accepting it.
+these rules: they cannot, since the terms are sealed (5.3), and they need not hold the basis. Both games apply them in
+full to the offer in clear, after opening it: the requester before sending, the counterparty when it receives it and
+before acting on it or accepting it.
 
 **Prices change only at renewal.** A running deal keeps its terms until `end`, whatever newer announces say. A renewal
 is an offer with `renews` set, checked as above against the basis it names; its deal starts at
@@ -1070,7 +1163,12 @@ step 8 of 11.2 does not apply to it.
 7. Shun votes are for operators: a `shun` or `unshun` record goes from node to node, and from a node only to a client
    session that proved an operator key of that node's server (9.3). Games of other players never receive, store or
    show votes; they learn which networks are excluded (`excluded`), and an excluded network which reasons were given,
-   without counts, servers or operators.
+   without counts or which servers and operators voted (it sees which of its own joined servers list it, 10.7).
+8. Deals are private (5.3): offers to someone and declines are sealed for the other party (3.5), and relays send deal
+   records only to the sessions of their two parties (9.3). An operator sees that two networks exchanged deal records
+   and when, never which deal, its terms or the reason for a no. Open consortium projects are public by design.
+9. No operator can end other players' deals alone: a game ends running deals with an excluded network only when most
+   of its joined servers, and at least two, list it (10.7).
 
 ## 13. Constants
 
@@ -1125,6 +1223,7 @@ step 8 of 11.2 does not apply to it.
 | POP cities in `announce` and `stats` | 512 |
 | Traffic entries | 256 |
 | Signers, operators, nodes | 16 |
+| Box ciphertext (3.5), tag included | 17 to 2048 bytes |
 | Keys proved by one client session (`auth`) | 4 |
 | `ranks` rows | 50 unless `n` asks, at most 100 |
 | `rank` filter `keys`, `cities` | 256, 512 |

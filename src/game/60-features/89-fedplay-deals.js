@@ -37,7 +37,10 @@ function fedSwapPairs(n){const P=n.fpops||[];return [...new Set(S.links.filter(l
 /* An offer to player network `key` on its published terms. o: {via, at, mbps, term} picks among them. Gives {miss: [{l,
    n}], terms} where something is missing, or {miss: [], terms, body, a} ready to sign. */
 function fedOffer(key,deal,o={}){const n=fedNetOf(key),a=FEDN.ann.get(key);if(!n||!a||!a.rec)return {miss:[{l:'quiet'}]};
-  if(n.fst==='dark')return {miss:[{l:'quiet'}]};
+  // Listed by a joined server: no new deals with it (running ones go on until the exclusion is confirmed).
+  if(fedExcl1(key))return {miss:[{l:'excluded'}]};
+  // Without a box key (an announce from before sealed deals) nothing can be sealed for it: wait for a newer announce.
+  if(n.fst==='dark'||FdK(a.rec.body.box))return {miss:[{l:'quiet'}]};
   const B=a.rec.body,R0=B.rates||{},p=fedPair(n),miss=[];let terms=null;
   if(!FEDP_DEALS.includes(deal)||deal==='consortium')return {miss:[{l:'terms'}]};
   if(!B.auto[deal]||B.auto[deal]==='decline')return {miss:[{l:'declines'}]};
@@ -69,11 +72,12 @@ async function fedRequest(key,deal,o={},renews=null){const s=S,f=s&&s.fed;if(!f|
   const x=fedOffer(key,deal,o);if(x.miss.length)return {miss:x.miss};
   if(!renews&&f.deals.some(d=>d.key===key&&d.deal===deal&&d.st!=='over'&&JSON.stringify(d.terms)===JSON.stringify(x.terms)))return 'dup';
   const body=x.body;if(renews)body.renews=renews.id;
-  const r=await fedSignMine('offer',body,f),id=await fedId(r);if(S!==s)return 'mode';
+  let r;try{r=await fedSignMine('offer',body,f);}catch(e){return {miss:[{l:'quiet'}]};}const id=await fedId(r);if(S!==s)return 'mode';
   const res=fedDeal([{id:x.a.id,kind:'announce',key,t:x.a.rec.t,body:x.a.rec.body}],{id,key:f.key.pub,t:r.t,body},null,renews?{id:renews.id,start:renews.start,end:renews.end??r.t}:null);
   if(!res.ok)return res.error;
   if(!fedQueue(r,f))return 'full';
-  const d=fedDealMk(r,id,res,true);f.deals.push(d);if(d.st==='run')fedDealGo(d);fedDealsOn(s,fedNow());
+  // The record went out sealed; the deal is kept from the offer in clear.
+  const d=fedDealMk({...r,body},id,res,true);f.deals.push(d);if(d.st==='run')fedDealGo(d);fedDealsOn(s,fedNow());
   toast(d.st==='run'?tr('fedplay.deal_started',{net:esc(d.name),deal:fedDealName(deal)}):tr('fedplay.request_sent',{net:esc(d.name),deal:fedDealName(deal)}),d.st==='run'?'good':'');
   after();return null;}
 
@@ -113,6 +117,7 @@ async function fedPlayDeal(e){const s=S,f=s&&s.fed;if(!f||!f.key||!fedEligible(s
     toast(was==='wait'?tr('fedplay.declined',{net:esc(d.name),deal:fedDealName(d.deal)}):b.reason==='depeer'?tr('fedplay.depeered',{net:esc(d.name)}):tr('fedplay.ended_by',{net:esc(d.name),deal:fedDealName(d.deal)}),'bad');after();}}
 // Accepts an offer waiting for review: the deal starts at the accept's time.
 async function fedAcceptRq(id){const s=S,f=s&&s.fed,P=s&&s.fedp;if(!f||!P||!fedHasPriv(f))return 'off';const q=P.rq.find(x=>x.id===id);if(!q)return 'gone';
+  if((await fedShunned()).includes(q.rec.key))return {miss:[{l:'excluded'}]};
   // A wave needs room on the route when it starts, not only when it was asked for.
   if(q.rec.body.deal==='wave'){const T=q.rec.body.terms;if(!fedWaveRoom(T.a,T.b,T.gbps))return {miss:[{l:'room'}]};}
   const r=await fedSignMine('accept',{offer:id,to:q.rec.key},f);if(S!==s)return 'mode';if(!fedQueue(r,f))return 'full';

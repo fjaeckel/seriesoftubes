@@ -5,12 +5,12 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { fedPage, joinGame, settle, until, URL1, NOW, PL, PL_ENTRY, rec, key, asn, b64, sha } = require('./helpers/fed');
+const { fedPage, joinGame, settle, until, URL1, NOW, PL, PL_ENTRY, rec, key, asn, box, b64, sha } = require('./helpers/fed');
 const { load } = require('./harness');
 
 const DAY = 86400, HOSTILE = '<img src=x onerror=alert(1)>';
 const json = (p, x) => JSON.parse(p.ev(`JSON.stringify(${x})`));
-const ann = (name, over = {}, t = NOW - 60) => rec(name, 'announce', t, { name: 'Ping Floyd', asn: asn(key(name).pub), home: 'DE', day: 400, founded: 20000, pops: ['fra', 'ams'], ix: ['fra'], cust: 30,
+const ann = (name, over = {}, t = NOW - 60) => rec(name, 'announce', t, { name: 'Ping Floyd', asn: asn(key(name).pub), box: box(name), home: 'DE', day: 400, founded: 20000, pops: ['fra', 'ams'], ix: ['fra'], cust: 30,
   mix: { content: 600, eyeball: 300, enterprise: 100 }, traffic: { in: 40000, out: 90000 }, policy: 'open', rates: {},
   auto: { peering: 'auto', transit: 'auto', pni: 'review', swap: 'review', consortium: 'review', port: 'auto' }, ...over });
 // Markup that made it into the page: any element a name could have made, or any inline handler.

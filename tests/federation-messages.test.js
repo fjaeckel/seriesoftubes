@@ -2,9 +2,9 @@
 // signature, time) before it is kept. Hostile frames and records change nothing and never throw.
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { fedPage, joinGame, settle, until, URL1, NOW, rec, key, asn } = require('./helpers/fed');
+const { fedPage, joinGame, settle, until, URL1, NOW, rec, key, asn, box, sealRec } = require('./helpers/fed');
 
-const announce = (name, t, extra = {}) => rec(name, 'announce', t, { name: name + ' Net', asn: asn(key(name).pub), home: 'DE', day: 10, founded: 20454, pops: ['fra'], ix: ['fra'], cust: 1,
+const announce = (name, t, extra = {}) => rec(name, 'announce', t, { name: name + ' Net', asn: asn(key(name).pub), box: box(name), home: 'DE', day: 10, founded: 20454, pops: ['fra'], ix: ['fra'], cust: 1,
   mix: { content: 0, eyeball: 1000, enterprise: 0 }, traffic: { in: 1, out: 1 }, policy: 'open', rates: {}, auto: { peering: 'auto', transit: 'decline', pni: 'decline', swap: 'decline', consortium: 'decline', port: 'decline' }, ...extra });
 
 test('what this game signs passes the same checks every node runs, and any change breaks the signature', async () => {
@@ -79,13 +79,15 @@ test('deals addressed to this network reach the gameplay through the deal event;
   await joinGame(p);
   await settle();
   const me = p.ev('S.fed.key.pub');
-  p.ev('window.__deals=[];fedOn("deal",d=>__deals.push(d.rec.body.to))');
-  const offer = (to) => rec('bob', 'offer', NOW - 10, { to, deal: 'swap', terms: { give: { a: 'fra', b: 'ams', mbps: 10 }, take: { a: 'lon', b: 'par', mbps: 10 }, term: 30 } });
-  n.feed = [{ rec: offer(me), rcpt: [] }, { rec: offer(key('carol').pub), rcpt: [] }];
+  p.ev('window.__deals=[];fedOn("deal",d=>__deals.push([d.rec.body.to,d.rec.body.deal]))');
+  // Sealed (§5.3): Bob's offer to this network opens with his box (from his announce); his offer to Carol is not ours.
+  const myBox = await p.ev('fedBoxPub(S.fed.key.priv)');
+  const offer = (to, tb) => sealRec('bob', 'offer', NOW - 10, { to, deal: 'swap', terms: { give: { a: 'fra', b: 'ams', mbps: 10 }, take: { a: 'lon', b: 'par', mbps: 10 }, term: 30 } }, to, tb);
+  n.feed = [{ rec: announce('bob', NOW - 20), rcpt: [] }, { rec: offer(me, myBox), rcpt: [] }, { rec: offer(key('carol').pub, box('carol')), rcpt: [] }];
   for (const ws of n.socks) ws.drop();
   await settle();
   p.net.advance(5000);
   assert.ok(await until(async () => (await settle(5), p.ev('__deals.length') >= 1)));
-  assert.deepEqual(JSON.parse(p.ev('JSON.stringify(__deals)')), [me]);
+  assert.deepEqual(JSON.parse(p.ev('JSON.stringify(__deals)')), [[me, 'swap']], 'opened, in clear for the gameplay');
   assert.deepEqual(p.errors, []);
 });

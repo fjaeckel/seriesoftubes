@@ -4,7 +4,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
-const { fedPage, joinGame, settle, URL1, URL2, SERVERS_JSON, PL, key, rec, rid, canon, signText } = require('./helpers/fed');
+const { fedPage, joinGame, settle, URL1, URL2, SERVERS_JSON, PL, key, rec, rid, canon, signText, box } = require('./helpers/fed');
 
 const txt = (p) => p.ev("$('modalCard').textContent");
 const click = (p, sel) => p.ev(`(()=>{const b=document.querySelector(${JSON.stringify(sel)});if(!b)throw new Error('no '+${JSON.stringify(sel)});b.click();})()`);
@@ -31,7 +31,7 @@ async function joined(o = {}) {
   await run(p);
   return { p, n };
 }
-const ann = (name, t, body) => rec(name, 'announce', t, { name: 'Net ' + name, asn: 4200000001, home: 'DE', day: 120, founded: 20000, pops: ['fra', 'ams'], ix: ['fra'], cust: 7,
+const ann = (name, t, body) => rec(name, 'announce', t, { name: 'Net ' + name, asn: 4200000001, box: box(name), home: 'DE', day: 120, founded: 20000, pops: ['fra', 'ams'], ix: ['fra'], cust: 7,
   mix: { content: 200, eyeball: 700, enterprise: 100 }, traffic: { in: 1000, out: 900 }, policy: 'open', rates: {}, auto: { peering: 'auto', transit: 'auto', pni: 'review', swap: 'review', consortium: 'review', port: 'auto' }, ...body });
 
 test('without WebCrypto Ed25519 multiplayer is not offered anywhere', async () => {

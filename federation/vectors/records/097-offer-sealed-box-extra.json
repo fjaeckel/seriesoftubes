@@ -1,0 +1,25 @@
+{
+  "description": "enc has exactly n and c.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "offer",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "to": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+        "enc": {
+          "n": "fDDExRbFZBWfauT9",
+          "c": "HYj8CKhAFZ30Sy43fApg6KlngHnS66pjz5IOvvPn-heE9h1ptVI4lrvsgZ_NwAetEYITSB6RIwUTHjC5RX2vXEw1dsU_rUX7BVFuvXyHUYFdOUuDwFKwZyG_q8lMlWZx8qJZizAIOpbGGUTKw84658QxJWhzoYxc9sLLNtPv8gY",
+          "v": 1
+        }
+      },
+      "sig": "dVHqMkndUkff-ItVL-VcHyCWIowmluJbXK4sFfFKXk5V2Rx5DUhA1gUkXSrwe_fmTlrMAyv24ypPqvzqXascBg"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "unknown_field"
+  }
+}

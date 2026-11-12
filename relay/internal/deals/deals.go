@@ -1,7 +1,7 @@
 // Package deals checks an offer against the published terms it relies on (spec 10.10).
-// The relay stores and forwards offers without enforcing this (the counterparty's game
-// does, and the basis may not have reached this server yet); it is here so both
-// implementations share one tested rule.
+// The relay cannot enforce it: offers to someone travel sealed (5.3), so only the two games
+// read the terms and apply this rule after opening them. It is here as the reference both
+// implementations are held to by the deals vectors.
 package deals
 
 import (

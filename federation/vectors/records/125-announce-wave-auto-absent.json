@@ -1,0 +1,48 @@
+{
+  "description": "auto.wave is optional (announces from before wave deals): absent, wave requests are declined (10.10).",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "announce",
+      "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+      "t": 1767312000,
+      "body": {
+        "name": "Lag Zeppelin",
+        "asn": 4281146038,
+        "box": "JFbpiu58Us9obbSxaQZ38W9CrU4GlY8QE23T5T1Y-wM",
+        "home": "US",
+        "day": 0,
+        "founded": 20455,
+        "pops": [],
+        "ix": [],
+        "cust": 0,
+        "mix": {
+          "content": 0,
+          "eyeball": 1000,
+          "enterprise": 0
+        },
+        "traffic": {
+          "in": 0,
+          "out": 0
+        },
+        "policy": "open",
+        "rates": {},
+        "auto": {
+          "peering": "auto",
+          "transit": "decline",
+          "pni": "decline",
+          "swap": "decline",
+          "consortium": "decline",
+          "port": "decline"
+        }
+      },
+      "sig": "VDYfTZikaPVIdCmMl54SDbpZwH6UwSFlVsyBBzAhCrjxt-4H2rROh2np3YfC8JvNizHzABvRFUc6Gsfil4xWDw"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "announce",
+    "id": "ydZhxTAQ9n_dFw5CaGTVxZVCOMMqDw2yTPaPDX0a7AU"
+  }
+}

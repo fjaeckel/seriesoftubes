@@ -1,0 +1,48 @@
+{
+  "description": "A name of 40 emoji is 40 code points (80 UTF-16 units, 160 bytes): lengths count code points, so this is valid.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "announce",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "name": "🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰🛰",
+        "asn": 4215690104,
+        "box": "JFbpiu58Us9obbSxaQZ38W9CrU4GlY8QE23T5T1Y-wM",
+        "home": "US",
+        "day": 0,
+        "founded": 20455,
+        "pops": [],
+        "ix": [],
+        "cust": 0,
+        "mix": {
+          "content": 0,
+          "eyeball": 1000,
+          "enterprise": 0
+        },
+        "traffic": {
+          "in": 0,
+          "out": 0
+        },
+        "policy": "open",
+        "rates": {},
+        "auto": {
+          "peering": "auto",
+          "transit": "decline",
+          "pni": "decline",
+          "swap": "decline",
+          "consortium": "decline",
+          "port": "decline"
+        }
+      },
+      "sig": "aMxu8_IZ2NZu-PbDhxxNthoguDXjBkmMS7tFZauKjU1IVKUnWlwUtsmFLQ6nJ1GG0sSLyfxQaqd8j_kaUSmMDA"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "announce",
+    "id": "AinblptOGEgCwb1AjmCyHTAj9n7gxD4_rorVSTYpDaA"
+  }
+}

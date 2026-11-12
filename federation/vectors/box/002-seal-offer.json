@@ -1,0 +1,37 @@
+{
+  "description": "Sealing an offer from alice to bob. shared = X25519(alice's box private key, bob's box). key = HKDF-SHA256(shared, salt = the 32 raw bytes of each of the two Ed25519 keys, the one whose Key text sorts first (byte order) first, info = \"tubes-fed v1 offer\" (the record kind), 32 bytes). aad = canonical JSON of the record without sig and without body.enc. c = AES-256-GCM(key, nonce n, plaintext = canonical JSON of what is sealed, aad), the 16-byte tag appended. Gives enc.",
+  "input": {
+    "seed": "6d21019001a79c301ce03ae44a51a0cc13e695ba1e77cd12b268430da3f93a10",
+    "peer": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+    "peerBox": "JFbpiu58Us9obbSxaQZ38W9CrU4GlY8QE23T5T1Y-wM",
+    "envelope": {
+      "v": 1,
+      "kind": "offer",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "to": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0"
+      }
+    },
+    "plain": {
+      "deal": "peering",
+      "basis": "PHceQTGFyrFM3znRzpZ_tbdfzizWGPIwIz325cdcyjM",
+      "terms": {
+        "at": [
+          "fra",
+          "ams"
+        ],
+        "via": "ix"
+      }
+    },
+    "nonce": "o4dM_rFff72Ms2lZ"
+  },
+  "expect": {
+    "aad": "{\"body\":{\"to\":\"BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0\"},\"key\":\"q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw\",\"kind\":\"offer\",\"t\":1767312000,\"v\":1}",
+    "key": "a2715ea4a310f723bcc90752a8a5d0cde9a7a213d89f56d9a0d2ce589ce44640",
+    "enc": {
+      "n": "o4dM_rFff72Ms2lZ",
+      "c": "Y_yGXG15Xni5N6f88YUoj93DNFQbUqI7pCTzvCrNau-FtrWAGIidKqbHj23tlwByKKha2qzqe4SslZQ6_0oZJd0BhRJ1QUGmuYI5D9gXBw3xJNj3qnOiyq0cynizoI2qOiTovO1XnfRnnQ8baxDYJGjxE6ke6o4j1EKW6P_aaNs"
+    }
+  }
+}

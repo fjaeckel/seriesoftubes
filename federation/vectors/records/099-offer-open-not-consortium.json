@@ -1,0 +1,27 @@
+{
+  "description": "An offer without to is an open consortium project; any other deal needs to.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "offer",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "deal": "peering",
+        "basis": "PHceQTGFyrFM3znRzpZ_tbdfzizWGPIwIz325cdcyjM",
+        "terms": {
+          "at": [
+            "fra"
+          ],
+          "via": "ix"
+        }
+      },
+      "sig": "FFEoJCj7Nf6Y43wKDdZunheJxtlHW8Q60smgvQpvfxQuPCz6oj6E4M7jfF0Ow9cvDQpd8N6KryxL9Qgap1_ZAA"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "missing_field"
+  }
+}

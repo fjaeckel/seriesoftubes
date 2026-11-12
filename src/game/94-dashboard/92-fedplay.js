@@ -47,7 +47,10 @@ function fedConsRow(c){return `<div class="row"><div class="grow"><div class="nm
 function fedNetModal(key){const n=fedNetOf(key);if(!n){closeModal();return;}UI.fpOpen={k:'net',key};const a=FEDN.ann.get(key),B=a&&a.rec?a.rec.body:null,p=fedPair(n),sel=UI.fpSel||{},me=fedMeFor(n);
   let h=`<div style="display:flex;align-items:center"><div><div class="eyebrow">${tr('fedplay.player_network')} · AS${n.asn}${n.home?' · '+esc(n.home):''}</div><h2 style="font-size:24px">${fedBot(n)}${esc(n.name)}</h2></div><button class="x" data-act="closeModal" aria-label="${tr('common.close')}">×</button></div>`;
   h+=`<div class="facts"><span class="fact">${tr(FEDP_POL[n.fpol]||FEDP_POL.open)}</span><span class="fact">${trn('fedplay.n_pops',n.fpops.length)}</span><span class="fact">${trn('fedplay.n_exchanges',n.fix.length)}</span><span class="fact">${fmtG((n.ftr||0)/1000)}</span>${n.ai?`<span class="fact">🤖 ${tr('fedplay.ai_player')}</span>`:''}</div>`;
-  if(n.fst==='fading')h+=`<p class="note">${tr('fedplay.fading_note')}</p>`;else if(n.fst==='dark')h+=`<p class="note">${tr('fedplay.dark_note')}</p>`;
+  // Excluded by a joined server, not confirmed by others: no new deals, running ones continue (§10.7).
+  const X=FEDN.ex,xs=X&&X.any.has(key)&&!X.ok.has(key)?(X.by.get(key)||[]).map(esc).join(', '):'';
+  if(xs)h+=`<p class="note">${tr(S.fed.deals.some(d=>d.key===key&&d.st==='run')?N_('fedplay.excluded_running'):N_('fedplay.excluded_new'),{servers:xs})}</p>`;
+  else if(n.fst==='fading')h+=`<p class="note">${tr('fedplay.fading_note')}</p>`;else if(n.fst==='dark')h+=`<p class="note">${tr('fedplay.dark_note')}</p>`;
   h+=`<p class="meta">${tr('fedplay.you_and_them',{in:fmtG(p.in/1000),out:fmtG(p.out/1000),ix:p.ix.length,pops:p.pops.length})}</p>`;
   const ds=S.fed.deals.filter(d=>d.key===key&&(d.st!=='over'||fedNow()-(d.end||d.start||0)<30*FED_DAY));
   if(ds.length)h+=`<h3 class="fp-sub">${tr('fedplay.your_deals')}</h3>`+ds.map(fedDealRow).join('');

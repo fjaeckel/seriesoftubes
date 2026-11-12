@@ -1,0 +1,21 @@
+{
+  "description": "An opened exchange port offer.",
+  "input": {
+    "kind": "offer",
+    "author": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+    "body": {
+      "to": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "deal": "port",
+      "basis": "T1_rSdWo4Mcfsl6YCE3dxT1Q7WMEgJV960BLNsFe8_I",
+      "terms": {
+        "at": "fra",
+        "mbps": 1000,
+        "monthly": 200,
+        "term": 30
+      }
+    }
+  },
+  "expect": {
+    "ok": true
+  }
+}

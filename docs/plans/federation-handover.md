@@ -131,6 +131,13 @@ at that sandbox method.
 - **Server-ranked leaderboards** (Frederic, 2026-11-12): `rank`/`ranks`, `facets`, `nets`/`netstats` and `rankwhy`
   replace `board` (§9.5, §10.12); the relay ranks in memory (`relay/internal/rank`, held to `boards` by a randomized
   test), games get the top 50 and their own row, merge their servers, keep answers offline, and spot-check rows.
+- **Operators cannot read or steer other players' deals** (Frederic, 2026-11-12). Offers to someone and declines are
+  sealed for the other party (§3.5, §5.3: X25519 box key derived from the identity seed and published as `box` in the
+  announce, HKDF-SHA256, AES-256-GCM bound to the record), relays check only their shape and send deal records only to
+  the two parties' sessions (§9.3; open consortium projects stay public). One server's `excluded` list now only hides a
+  network and stops new deals; running deals end only when a strict majority of the joined servers, and at least two,
+  list it (§10.7). Vectors: `box` area (both implementations), records updated. Tests: `tests/federation-sealed.test.js`,
+  `relay/internal/node/deals_test.go`; end to end, a third raw client sees none of Alice's and Bob's deal records.
 - Perf against 9c26d03, headless and Chromium desktop/phone: no slowdowns beyond noise, routing identical.
 
 ## Open work, roughly in order

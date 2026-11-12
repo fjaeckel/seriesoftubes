@@ -50,7 +50,8 @@ const sign = (k, kind, t, body) => { const r = { v: 1, kind, key: k.pub, t, body
 const rid = (r) => b64(sha(canon(r)));
 const asnOf = (pub) => 4200000000 + (sha(Buffer.from(pub, 'base64url')).readUInt32BE(0) % 94967295);
 const AUTO = { peering: 'auto', transit: 'review', pni: 'review', swap: 'review', consortium: 'review', port: 'review' };
-const fakeAnn = (k, i, t) => sign(k, 'announce', t, { name: `Fake Net ${String(i).padStart(3, '0')}`, asn: asnOf(k.pub), home: 'DE', day: 10 + i, founded: Math.floor(t / DAY),
+// box: any Key will do for made-up networks, which never deal (games derive theirs from the seed, §3.5).
+const fakeAnn = (k, i, t) => sign(k, 'announce', t, { name: `Fake Net ${String(i).padStart(3, '0')}`, asn: asnOf(k.pub), box: k.pub, home: 'DE', day: 10 + i, founded: Math.floor(t / DAY),
   pops: ['fra', 'ams', 'lon'].slice(0, 1 + (i % 3)), ix: [], cust: i, mix: { content: 200, eyeball: 700, enterprise: 100 }, traffic: { in: 1000 + i, out: 500 },
   policy: 'open', rates: {}, auto: AUTO });
 const fakeStats = (k, i, t) => sign(k, 'stats', t, { mode: 'normal', pops: Object.fromEntries(['fra', 'ams', 'lon', 'par', 'mad'].slice(0, 1 + (i % 5)).map((c) => [c, 1])),
@@ -386,6 +387,36 @@ stay in the browser).`);
       const kinds = ctl('status').kinds;
       must(kinds.offer >= 2 && kinds.accept >= 1 && kinds.decline >= 1, `relay holds ${JSON.stringify(kinds)}`);
       return `relay: ${kinds.offer} offers, ${kinds.accept} accept, ${kinds.decline} decline`;
+    });
+
+    // Deals are private (§5.3, §9.3): only Alice's and Bob's sessions get their offers, accepts and declines, sealed.
+    await step('a third party gets none of Alice and Bob\'s deal records; what the relay keeps of them is sealed', async () => {
+      const kinds = ['offer', 'accept', 'decline'], isDeal = (it) => !!it && !!it.rec && kinds.includes(it.rec.kind);
+      const authed = async (k) => { const c = new Raw(raw.url), w = await c.open(), t = now();
+        const sig = b64(crypto.sign(null, Buffer.from(canon({ m: 'auth', key: k.pub, node: w.node, server: w.server, t }), 'utf8'), k.priv));
+        const a = (await c.ask({ m: 'auth', key: k.pub, t, sig }))[0]; must(a.m === 'ack', `auth: ${JSON.stringify(a)}`); return c; };
+      const ids = await ev(A, (k) => S.fed.deals.filter((d) => d.key === k).map((d) => d.id), P.B);
+      must(ids.length >= 2, `Alice has ${ids.length} deals with Bob`);
+      // A session that proved nothing (the raw client) and one that proved another network's key: nothing, live,
+      // from the backlog or by id.
+      const third = await authed(fakes[1].k);
+      for (const [who, c] of [['an anonymous session', raw], ['another network', third]]) {
+        const items = (await c.ask({ m: 'sub', kinds, since: '' })).flatMap((p) => p.items || []);
+        must(!items.some(isDeal), `${who} got ${items.filter(isDeal).length} deal records`);
+        const got = (await c.ask({ m: 'fetch', ids })).flatMap((p) => p.items || []);
+        must(!got.length, `${who} fetched ${got.length} of Alice's offers`);
+        must(!c.frames.some((f) => f.m === 'recs' && (f.items || []).some(isDeal)), `${who} saw a deal record live`);
+      }
+      third.close();
+      // Alice's own key gets them all, as the relay keeps them: to (and offer) in clear, the rest a box.
+      const seed = await ev(A, () => S.fed.key.priv), ak = keyOf(Buffer.from(seed, 'base64url'));
+      const mine = await authed(ak), items = (await mine.ask({ m: 'sub', kinds, since: '' })).flatMap((p) => p.items || []).filter(isDeal);
+      mine.close();
+      const offers = items.filter((it) => it.rec.kind === 'offer' && it.rec.key === ak.pub), decl = items.filter((it) => it.rec.kind === 'decline');
+      must(offers.length >= 2 && decl.length >= 1, `Alice's session got ${offers.length} offers, ${decl.length} declines`);
+      for (const it of offers) must(JSON.stringify(Object.keys(it.rec.body).sort()) === '["enc","to"]', `an offer in clear: ${JSON.stringify(it.rec.body).slice(0, 120)}`);
+      for (const it of decl) must(JSON.stringify(Object.keys(it.rec.body).sort()) === '["enc","offer","to"]', `a decline in clear: ${JSON.stringify(it.rec.body).slice(0, 120)}`);
+      return `third parties saw 0 of ${items.length}; Alice's ${offers.length} offers and ${decl.length} declines are sealed`;
     });
 
     // Waves between players: Bob lights a route between two of his POPs and sells waves on it; Alice buys a 400G one.

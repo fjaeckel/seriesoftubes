@@ -1,0 +1,29 @@
+{
+  "description": "The box key (5.1) from an identity seed: HKDF-SHA256 with the 32-byte Ed25519 seed as key material, an empty salt and info \"tubes-fed v1 box\", 32 bytes, clamped as RFC 7748 says (byte 0 &= 248, byte 31 &= 127, byte 31 |= 64), is the X25519 private key; box is its public key, base64url (43 characters).",
+  "cases": [
+    {
+      "input": {
+        "seed": "6d21019001a79c301ce03ae44a51a0cc13e695ba1e77cd12b268430da3f93a10"
+      },
+      "expect": {
+        "box": "tO4Fv_k6I0AaD4GNgg7WfxxSrjMCD6t-aY-ulE4Fi2Y"
+      }
+    },
+    {
+      "input": {
+        "seed": "6efe7f97b6b2c6aa12c79f26c7caa4b63d9f42629af20b25a58535db3ac64542"
+      },
+      "expect": {
+        "box": "JFbpiu58Us9obbSxaQZ38W9CrU4GlY8QE23T5T1Y-wM"
+      }
+    },
+    {
+      "input": {
+        "seed": "13464aad565d3d80665a45d31362bbff19bc1b46f2e91434f0d8d7c188a099d8"
+      },
+      "expect": {
+        "box": "hjesXPTzTuR8kbxbTXMqbzbKI3vZFJEvahtYjcg5tBM"
+      }
+    }
+  ]
+}

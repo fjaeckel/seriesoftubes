@@ -17,7 +17,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const DIR = path.join(__dirname, '..', 'federation', 'vectors');
-const GEN = ['signing', 'asn', 'records', 'receipts', 'proofs', 'auth', 'operators', 'registry', 'dedupe', 'rank'];
+const GEN = ['signing', 'asn', 'records', 'receipts', 'proofs', 'auth', 'operators', 'registry', 'dedupe', 'rank', 'box'];
 const NOW = 1767312100;          // 2026-01-02 00:01:40 UTC, the "now" of every generated vector
 const T = NOW - 100;             // 1767312000, 2026-01-02 00:00:00 UTC: when most records were signed
 const DAY = 86400;
@@ -82,6 +82,40 @@ function swapText(text, from, to) {
   return text.replace(from, to);
 }
 
+// ---------- sealed deals (5.3): X25519 from the identity seed, HKDF-SHA256, AES-256-GCM ----------
+const X_PKCS8 = Buffer.from('302e020100300506032b656e04220420', 'hex'); // X25519 private key prefix, then 32 bytes
+const hkdf = (ikm, salt, info) => Buffer.from(crypto.hkdfSync('sha256', ikm, salt, Buffer.from(info, 'utf8'), 32));
+// The box private key: HKDF over the Ed25519 seed, clamped (RFC 7748).
+function boxPrivBytes(seed) { const d = hkdf(seed, Buffer.alloc(0), 'tubes-fed v1 box'); d[0] &= 248; d[31] &= 127; d[31] |= 64; return d; }
+function BOX(name) {
+  const k = K(name);
+  if (!k.box) {
+    const priv = crypto.createPrivateKey({ key: Buffer.concat([X_PKCS8, boxPrivBytes(k.seed)]), format: 'der', type: 'pkcs8' });
+    k.box = { priv, pub: crypto.createPublicKey(priv).export({ format: 'jwk' }).x };
+  }
+  return k.box;
+}
+const boxPub = n => BOX(n).pub;
+// The AES-256-GCM key between me and peer (an Ed25519 Key) whose box is peerBox, for one record kind.
+function dealKey(me, peer, peerBox, kind) {
+  const shared = crypto.diffieHellman({ privateKey: BOX(me).priv, publicKey: crypto.createPublicKey({ key: { kty: 'OKP', crv: 'X25519', x: peerBox }, format: 'jwk' }) });
+  const salt = Buffer.concat([pub(me), peer].sort(byStr).map(k => Buffer.from(k, 'base64url')));
+  return hkdf(shared, salt, 'tubes-fed v1 ' + kind);
+}
+const boxAad = env => { const { sig, ...r } = env; const { enc, ...body } = r.body; return canon({ ...r, body }); };
+const vnonce = label => b64(sha('tubes-fed.1 vector nonce ' + label).subarray(0, 12));
+function sealEnc(me, peer, peerBox, env, plain, n) {
+  const c = crypto.createCipheriv('aes-256-gcm', dealKey(me, peer, peerBox, env.kind), Buffer.from(n, 'base64url'));
+  c.setAAD(Buffer.from(boxAad(env), 'utf8'));
+  return { n, c: b64(Buffer.concat([c.update(Buffer.from(canon(plain), 'utf8')), c.final(), c.getAuthTag()])) };
+}
+// A sealed offer or decline from author to the network named to: clear holds what stays in clear (to, and offer for a
+// decline), plain what is sealed. The nonce comes from a label, so the files never change.
+function sealed(kind, author, t, clear, plain, to, label) {
+  const env = { v: 1, kind, key: pub(author), t, body: clear };
+  return rec(kind, author, t, { ...clear, enc: sealEnc(author, pub(to), boxPub(to), env, plain, vnonce(label)) });
+}
+
 // ---------- output ----------
 const OUT = new Map();
 const pad = n => String(n).padStart(3, '0');
@@ -100,7 +134,7 @@ function putCases(area, name, description, cases) {
 const URL1 = 'wss://relay.example.net/fed', URL2 = 'wss://second.example.org:8443/fed', URL3 = 'wss://third.example.com';
 
 const announceBody = () => ({
-  name: 'Ping Floyd', asn: asn(pub('alice')), home: 'DE', day: 412, founded: 20454,
+  name: 'Ping Floyd', asn: asn(pub('alice')), box: boxPub('alice'), home: 'DE', day: 412, founded: 20454,
   pops: ['fra', 'ams', 'lon'], ix: ['fra', 'ams'], cust: 37,
   mix: { content: 200, eyeball: 700, enterprise: 100 }, traffic: { in: 42000, out: 9000 },
   policy: 'selective', cond: { minMbps: 1000, maxRatio: 300, minShared: 2, rpki: true, tier1: false, ai: true },
@@ -112,7 +146,7 @@ const announceBody = () => ({
   auto: { peering: 'auto', transit: 'auto', pni: 'review', swap: 'review', consortium: 'review', port: 'auto' },
 });
 const announceOpen = () => ({
-  name: 'Lag Zeppelin', asn: asn(pub('bob')), home: 'US', day: 0, founded: 20455,
+  name: 'Lag Zeppelin', asn: asn(pub('bob')), box: boxPub('bob'), home: 'US', day: 0, founded: 20455,
   pops: [], ix: [], cust: 0, mix: { content: 0, eyeball: 1000, enterprise: 0 }, traffic: { in: 0, out: 0 },
   policy: 'open', rates: {},
   auto: { peering: 'auto', transit: 'decline', pni: 'decline', swap: 'decline', consortium: 'decline', port: 'decline' },
@@ -194,19 +228,15 @@ const SID = rid(genesis);
   ok('stats-minimal', 'stats with nothing optional: no pies (no Pie in the Sky company), no ai (a human), empty lists.', rec('stats', 'alice', T, statsMin()));
   ok('stats-excluded-mode', 'A sandbox save may send stats (they are valid records); boards just never rank them.', rec('stats', 'alice', T, { ...statsMin(), mode: 'sandbox' }));
   const annId = rid(rec('announce', 'bob', T - 3600, announceOpen()));
-  ok('offer-peering', 'Peering offer to bob at two exchanges, relying on bob\'s announce (basis).',
-    rec('offer', 'alice', T, { to: pub('bob'), deal: 'peering', basis: annId, terms: { at: ['fra', 'ams'], via: 'ix' } }));
-  ok('offer-transit', 'Transit offer with a commit, price per Gbps and term in days.',
-    rec('offer', 'bob', T, { to: pub('alice'), deal: 'transit', basis: rid(ann), terms: { mbps: 10000, perGbps: 810, term: 90, at: ['fra'] } }));
-  ok('offer-pni', 'PNI offer.', rec('offer', 'bob', T, { to: pub('alice'), deal: 'pni', basis: rid(ann), terms: { at: 'fra', mbps: 10000, setup: 5000, monthly: 1500, term: 180 } }));
-  ok('offer-port', 'Exchange port offer at alice\'s exchange.', rec('offer', 'bob', T, { to: pub('alice'), deal: 'port', basis: rid(ann), terms: { at: 'fra', mbps: 1000, monthly: 200, term: 30 } }));
-  ok('offer-swap', 'Capacity swap: no rate card, so basis is optional and absent here.',
-    rec('offer', 'alice', T, { to: pub('carol'), deal: 'swap', terms: { give: { a: 'lon', b: 'nyc', mbps: 10000 }, take: { a: 'ams', b: 'nyc', mbps: 10000 }, term: 365 } }));
-  ok('offer-consortium-open', 'A consortium project open to anyone: no "to", no basis.',
+  // Offers to someone are sealed (5.3): the relay sees to and the box. What they hold is checked in the box area.
+  const peerOffer = sealed('offer', 'alice', T, { to: pub('bob') }, { deal: 'peering', basis: annId, terms: { at: ['fra', 'ams'], via: 'ix' } }, 'bob', 'records offer');
+  ok('offer-sealed', 'A sealed offer to bob: only to and enc (a 12-byte nonce, a ciphertext with its 16-byte tag) are in clear.', peerOffer);
+  ok('offer-consortium-open', 'A consortium project open to anyone: no "to", no basis, in clear.',
     rec('offer', 'carol', T, { deal: 'consortium', terms: { name: 'North Sea Noodle', a: 'ams', b: 'osl', members: 4, share: 2500000, pairs: 2 } }));
-  const offerId = rid(rec('offer', 'bob', T - 600, { to: pub('alice'), deal: 'pni', basis: rid(ann), terms: { at: 'fra', mbps: 10000, setup: 5000, monthly: 1500, term: 180 } }));
-  ok('accept', 'accept names the offer and its author.', rec('accept', 'alice', T, { offer: offerId, to: pub('bob') }));
-  ok('decline', 'decline with a reason from the fixed list.', rec('decline', 'alice', T, { offer: offerId, to: pub('bob'), reason: 'conditions' }));
+  const offerId = rid(sealed('offer', 'bob', T - 600, { to: pub('alice') }, { deal: 'pni', basis: rid(ann), terms: { at: 'fra', mbps: 10000, setup: 5000, monthly: 1500, term: 180 } }, 'alice', 'records pni'));
+  ok('accept', 'accept names the offer and its author; nothing in it is sealed.', rec('accept', 'alice', T, { offer: offerId, to: pub('bob') }));
+  ok('decline-sealed', 'decline names the offer and its author in clear; the reason is sealed.',
+    sealed('decline', 'alice', T, { offer: offerId, to: pub('bob') }, { reason: 'conditions' }, 'bob', 'records decline'));
   ok('genesis', 'genesis: founding operator anna, first node node1. Its id is the server identity.', genesis);
   ok('operators', 'operators proposal (multi-signer): add ben, signed by anna and ben.',
     multi('operators', 'anna', T, { server: SID, prev: SID, action: 'add_operator', target: pub('ben') }, ['anna', 'ben']));
@@ -328,11 +358,19 @@ const SID = rid(genesis);
   bad('announce-commit-order', 'Commit tiers must have strictly ascending mbps.',
     rec('announce', 'alice', T, (() => { const b = announceBody(); b.rates.transit.commit.reverse(); return b; })()), 'bad_field');
   bad('announce-auto-missing', 'auto must list all six deal kinds.', rec('announce', 'alice', T, (() => { const b = announceBody(); delete b.auto.port; return b; })()), 'missing_field');
-  bad('offer-to-self', 'An offer to oneself.', rec('offer', 'alice', T, { to: pub('alice'), deal: 'peering', basis: annId, terms: { at: ['fra'], via: 'ix' } }), 'bad_field');
-  bad('offer-peering-no-basis', 'Peering, transit, PNI and port offers need a basis.', rec('offer', 'alice', T, { to: pub('bob'), deal: 'peering', terms: { at: ['fra'], via: 'ix' } }), 'missing_field');
-  bad('offer-consortium-basis', 'A consortium offer must not have a basis.', rec('offer', 'carol', T, { deal: 'consortium', basis: annId, terms: { name: 'North Sea Noodle', a: 'ams', b: 'osl', members: 4, share: 2500000, pairs: 2 } }), 'bad_field');
-  bad('offer-deal-unknown', 'deal outside the list.', rec('offer', 'alice', T, { to: pub('bob'), deal: 'merger', basis: annId, terms: {} }), 'bad_field');
-  bad('decline-free-text', 'decline reasons come from a fixed list; free text is refused.', rec('decline', 'alice', T, { offer: offerId, to: pub('bob'), reason: 'you smell' }), 'bad_field');
+  { const E = peerOffer.body.enc, re = (body, author = 'alice') => rec('offer', author, T, body);
+    bad('offer-to-self', 'A sealed offer to oneself.', re({ to: pub('alice'), enc: E }), 'bad_field');
+    bad('offer-sealed-no-enc', 'An offer with to and nothing sealed: enc is missing.', re({ to: pub('bob') }), 'missing_field');
+    bad('offer-sealed-terms-in-clear', 'An offer to someone with its terms in clear: nothing but to and enc may travel.', re({ to: pub('bob'), enc: E, deal: 'peering' }), 'unknown_field');
+    bad('offer-sealed-short-nonce', 'The nonce is exactly 12 bytes; 11 is refused.', re({ to: pub('bob'), enc: { n: b64(Buffer.alloc(11)), c: E.c } }), 'bad_field');
+    bad('offer-sealed-no-tag', 'A ciphertext of 16 bytes holds only a tag and nothing sealed: at least 17.', re({ to: pub('bob'), enc: { n: E.n, c: b64(Buffer.alloc(16)) } }), 'bad_field');
+    bad('offer-sealed-box-too-long', 'A ciphertext over 2048 bytes.', re({ to: pub('bob'), enc: { n: E.n, c: b64(Buffer.alloc(2049)) } }), 'bad_field');
+    bad('offer-sealed-box-extra', 'enc has exactly n and c.', re({ to: pub('bob'), enc: { ...E, v: 1 } }), 'unknown_field');
+    bad('offer-sealed-nonce-padded', 'The nonce in base64url with padding.', re({ to: pub('bob'), enc: { n: E.n + '==', c: E.c } }), 'bad_field');
+    bad('offer-open-not-consortium', 'An offer without to is an open consortium project; any other deal needs to.', re({ deal: 'peering', basis: annId, terms: { at: ['fra'], via: 'ix' } }), 'missing_field');
+    bad('offer-consortium-basis', 'A consortium offer must not have a basis.', re({ deal: 'consortium', basis: annId, terms: { name: 'North Sea Noodle', a: 'ams', b: 'osl', members: 4, share: 2500000, pairs: 2 } }, 'carol'), 'bad_field');
+  }
+  bad('decline-reason-in-clear', 'A sealed decline that also carries its reason in clear: the reason travels sealed only.', rec('decline', 'alice', T, { offer: offerId, to: pub('bob'), enc: peerOffer.body.enc, reason: 'conditions' }), 'unknown_field');
   bad('shun-free-text-reason', 'shun reasons come from a fixed list.', rec('shun', 'anna', T, { server: SID, target: pub('mallory'), reason: 'he was rude' }), 'bad_field');
   bad('shun-note', 'No free text anywhere in a vote.', rec('shun', 'anna', T, { server: SID, target: pub('mallory'), reason: 'spam', note: 'see thread' }), 'unknown_field');
   bad('leave-body', 'leave has an empty body.', rec('leave', 'alice', T, { why: 'bye' }), 'unknown_field');
@@ -361,7 +399,7 @@ const SID = rid(genesis);
   bad('time-too-new', 't more than 600 s ahead of now.', rec('stats', 'alice', NOW + 601, statsMin()), 'too_new');
   bad('time-before-epoch', 't before 2025-01-01 (1735689600).', rec('announce', 'alice', 1735689599, { ...announceBody(), founded: 20088 }), 'too_old');
   bad('time-stats-old', 'stats older than 777600 s (9 days).', rec('stats', 'alice', NOW - 777601, statsMin()), 'too_old');
-  bad('time-offer-old', 'offer older than 30 days.', rec('offer', 'alice', NOW - 30 * DAY - 1, { to: pub('bob'), deal: 'peering', basis: annId, terms: { at: ['fra'], via: 'ix' } }), 'too_old');
+  bad('time-offer-old', 'offer older than 30 days.', sealed('offer', 'alice', NOW - 30 * DAY - 1, { to: pub('bob') }, { deal: 'peering', basis: annId, terms: { at: ['fra'], via: 'ix' } }, 'bob', 'records old'), 'too_old');
   bad('time-shun-old', 'shun older than 90 days: an expired vote is refused.', rec('shun', 'anna', NOW - 90 * DAY - 1, { server: SID, target: pub('mallory'), reason: 'spam' }), 'too_old');
   ok('time-announce-old', 'announce has no maximum age.', rec('announce', 'alice', NOW - 365 * DAY, { ...announceBody(), founded: 20000 }));
 
@@ -381,10 +419,67 @@ const SID = rid(genesis);
   bad('announce-wave-routes-empty', 'A wave card names at least one route.', rec('announce', 'alice', T, annWave({ ...WAVE, routes: [] })), 'bad_field');
   bad('announce-wave-size', 'Wave sizes are 100, 400, 800 or 1600 Gbps.', rec('announce', 'alice', T, annWave({ ...WAVE, sizes: [{ gbps: 200, monthly: 900 }] })), 'bad_field');
   bad('announce-wave-size-order', 'Sizes strictly ascending by gbps.', rec('announce', 'alice', T, annWave({ ...WAVE, sizes: [{ gbps: 400, monthly: 2400 }, { gbps: 100, monthly: 900 }] })), 'bad_field');
-  ok('offer-wave', 'A 400G wave offer on alice\'s card.', rec('offer', 'bob', T, { to: pub('alice'), deal: 'wave', basis: rid(ann), terms: { a: 'ams', b: 'fra', gbps: 400, monthly: 2400, term: 90 } }));
-  bad('offer-wave-no-basis', 'A wave offer needs a basis (the card it takes).', rec('offer', 'bob', T, { to: pub('alice'), deal: 'wave', terms: { a: 'ams', b: 'fra', gbps: 400, monthly: 2400, term: 90 } }), 'missing_field');
-  bad('offer-wave-route-order', 'The route in a wave offer is written as on the card: a < b.', rec('offer', 'bob', T, { to: pub('alice'), deal: 'wave', basis: rid(ann), terms: { a: 'fra', b: 'ams', gbps: 400, monthly: 2400, term: 90 } }), 'bad_field');
-  bad('offer-wave-size', 'A wave offer for a size that does not exist.', rec('offer', 'bob', T, { to: pub('alice'), deal: 'wave', basis: rid(ann), terms: { a: 'ams', b: 'fra', gbps: 10, monthly: 2400, term: 90 } }), 'bad_field');
+
+  // --- the box key in announce (5.1) ---
+  { const b = announceBody(); delete b.box; bad('announce-no-box', 'An announce without box: nobody could seal a deal for it.', rec('announce', 'alice', T, b), 'missing_field'); }
+  bad('announce-box-short', 'box is a Key: 32 bytes, 43 characters.', rec('announce', 'alice', T, { ...announceBody(), box: boxPub('alice').slice(0, 42) }), 'bad_key');
+}
+
+// ======================================================================================
+// box: sealed deals (5.3): the box key from the seed, sealing, opening, what an opened offer holds
+// ======================================================================================
+{
+  const A = 'box';
+  const hex = n => K(n).seed.toString('hex');
+  putCases(A, 'derive',
+    'The box key (5.1) from an identity seed: HKDF-SHA256 with the 32-byte Ed25519 seed as key material, an empty salt and ' +
+    'info "tubes-fed v1 box", 32 bytes, clamped as RFC 7748 says (byte 0 &= 248, byte 31 &= 127, byte 31 |= 64), is the ' +
+    'X25519 private key; box is its public key, base64url (43 characters).',
+    ['alice', 'bob', 'carol'].map(n => ({ input: { seed: hex(n) }, expect: { box: boxPub(n) } })));
+
+  const annB = rid(rec('announce', 'bob', T - 3600, announceOpen()));
+  const clear = { to: pub('bob') }, plain = { deal: 'peering', basis: annB, terms: { at: ['fra', 'ams'], via: 'ix' } };
+  const env = { v: 1, kind: 'offer', key: pub('alice'), t: T, body: clear };
+  const n = vnonce('box offer'), offer = sealed('offer', 'alice', T, clear, plain, 'bob', 'box offer');
+  put(A, 'seal-offer',
+    'Sealing an offer from alice to bob. shared = X25519(alice\'s box private key, bob\'s box). key = HKDF-SHA256(shared, ' +
+    'salt = the 32 raw bytes of each of the two Ed25519 keys, the one whose Key text sorts first (byte order) first, info = ' +
+    '"tubes-fed v1 offer" (the record kind), 32 bytes). aad = canonical JSON of the record without sig and without body.enc. ' +
+    'c = AES-256-GCM(key, nonce n, plaintext = canonical JSON of what is sealed, aad), the 16-byte tag appended. Gives enc.',
+    { seed: hex('alice'), peer: pub('bob'), peerBox: boxPub('bob'), envelope: env, plain, nonce: n },
+    { aad: boxAad(env), key: dealKey('alice', pub('bob'), boxPub('bob'), 'offer').toString('hex'), enc: offer.body.enc });
+  const open = (name, d, who, peer, record, expect) => put(A, name, d, { seed: hex(who), peer: pub(peer), peerBox: boxPub(peer), record }, expect);
+  open('open-offer-recipient', 'bob opens the offer: X25519 is symmetric, so his box private key with alice\'s box gives the same key.', 'bob', 'alice', offer, { ok: true, plain });
+  open('open-offer-author', 'alice opens her own offer (another device with her save), with bob\'s box.', 'alice', 'bob', offer, { ok: true, plain });
+  open('open-third-party', 'carol cannot open it: her key with alice\'s box is not the key it was sealed with.', 'carol', 'alice', offer, { ok: false });
+  open('open-changed-t', 'The same box in a record whose t changed (signed again by alice): the aad differs, so opening fails.', 'bob', 'alice', resign({ ...offer, t: T + 1 }, 'alice'), { ok: false });
+  open('open-changed-to', 'The same box in a record now addressed to carol (signed again): bob, with the right key, still fails on the aad.', 'bob', 'alice', resign({ ...offer, body: { ...offer.body, to: pub('carol') } }, 'alice'), { ok: false });
+  { const c = Buffer.from(offer.body.enc.c, 'base64url'); c[0] ^= 1;
+    open('open-tampered', 'One bit of the ciphertext flipped (the record signed again): the tag does not match.', 'bob', 'alice', resign({ ...offer, body: { ...offer.body, enc: { ...offer.body.enc, c: b64(c) } } }, 'alice'), { ok: false }); }
+  const offId = rid(offer), dec = sealed('decline', 'bob', T + 60, { offer: offId, to: pub('alice') }, { reason: 'declined' }, 'alice', 'box decline');
+  open('open-decline', 'bob\'s decline, sealed for alice with info "tubes-fed v1 decline": the offer and to stay in clear, the reason is sealed.', 'alice', 'bob', dec, { ok: true, plain: { reason: 'declined' } });
+  { const d2 = { ...dec, kind: 'offer', body: { to: pub('alice'), enc: dec.body.enc } };
+    open('open-other-kind', 'A decline\'s box moved into an offer (signed again): the kind is in the key\'s info, so it does not open.', 'alice', 'bob', resign(d2, 'bob'), { ok: false }); }
+
+  // What an opened offer holds is checked like an offer in clear (5.3): the plaintext with the record's to.
+  const ann = rec('announce', 'alice', T, announceBody());
+  const terms = (name, d, author, body, expect, kind = 'offer') => put(A, name, d, { kind, author: pub(author), body }, expect);
+  const ok = { ok: true };
+  terms('terms-transit', 'An opened transit offer: commit, price per Gbps, term in days, where.', 'bob', { to: pub('alice'), deal: 'transit', basis: rid(ann), terms: { mbps: 10000, perGbps: 810, term: 90, at: ['fra'] } }, ok);
+  terms('terms-pni', 'An opened PNI offer.', 'bob', { to: pub('alice'), deal: 'pni', basis: rid(ann), terms: { at: 'fra', mbps: 10000, setup: 5000, monthly: 1500, term: 180 } }, ok);
+  terms('terms-port', 'An opened exchange port offer.', 'bob', { to: pub('alice'), deal: 'port', basis: rid(ann), terms: { at: 'fra', mbps: 1000, monthly: 200, term: 30 } }, ok);
+  terms('terms-swap', 'A capacity swap: no rate card, so basis is optional and absent here.', 'alice', { to: pub('carol'), deal: 'swap', terms: { give: { a: 'lon', b: 'nyc', mbps: 10000 }, take: { a: 'ams', b: 'nyc', mbps: 10000 }, term: 365 } }, ok);
+  terms('terms-wave', 'A 400G wave on alice\'s card.', 'bob', { to: pub('alice'), deal: 'wave', basis: rid(ann), terms: { a: 'ams', b: 'fra', gbps: 400, monthly: 2400, term: 90 } }, ok);
+  terms('terms-consortium-invite', 'A consortium project offered to one network (with to): sealed like any offer to someone.', 'carol', { to: pub('alice'), deal: 'consortium', terms: { name: 'North Sea Noodle', a: 'ams', b: 'osl', members: 4, share: 2500000, pairs: 2 } }, ok);
+  terms('terms-to-self', 'An offer to oneself.', 'alice', { to: pub('alice'), deal: 'peering', basis: annB, terms: { at: ['fra'], via: 'ix' } }, { ok: false, error: 'bad_field' });
+  terms('terms-peering-no-basis', 'Peering, transit, PNI, port and wave offers need a basis.', 'alice', { to: pub('bob'), deal: 'peering', terms: { at: ['fra'], via: 'ix' } }, { ok: false, error: 'missing_field' });
+  terms('terms-deal-unknown', 'deal outside the list.', 'alice', { to: pub('bob'), deal: 'merger', basis: annB, terms: {} }, { ok: false, error: 'bad_field' });
+  terms('terms-wave-no-basis', 'A wave offer needs a basis (the card it takes).', 'bob', { to: pub('alice'), deal: 'wave', terms: { a: 'ams', b: 'fra', gbps: 400, monthly: 2400, term: 90 } }, { ok: false, error: 'missing_field' });
+  terms('terms-wave-route-order', 'The route in a wave offer is written as on the card: a < b.', 'bob', { to: pub('alice'), deal: 'wave', basis: rid(ann), terms: { a: 'fra', b: 'ams', gbps: 400, monthly: 2400, term: 90 } }, { ok: false, error: 'bad_field' });
+  terms('terms-wave-size', 'A wave offer for a size that does not exist.', 'bob', { to: pub('alice'), deal: 'wave', basis: rid(ann), terms: { a: 'ams', b: 'fra', gbps: 10, monthly: 2400, term: 90 } }, { ok: false, error: 'bad_field' });
+  terms('terms-extra', 'Nothing but the fields of 5.3 in an opened offer.', 'bob', { to: pub('alice'), deal: 'pni', basis: rid(ann), terms: { at: 'fra', mbps: 10000, setup: 5000, monthly: 1500, term: 180 }, note: 'hi' }, { ok: false, error: 'unknown_field' });
+  terms('decline-reason', 'An opened decline holds {reason} from the fixed list.', 'alice', { reason: 'depeer' }, ok, 'decline');
+  terms('decline-free-text', 'decline reasons come from a fixed list; free text is refused even sealed.', 'alice', { reason: 'you smell' }, { ok: false, error: 'bad_field' }, 'decline');
 }
 
 // ======================================================================================

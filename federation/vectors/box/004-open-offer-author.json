@@ -1,0 +1,36 @@
+{
+  "description": "alice opens her own offer (another device with her save), with bob's box.",
+  "input": {
+    "seed": "6d21019001a79c301ce03ae44a51a0cc13e695ba1e77cd12b268430da3f93a10",
+    "peer": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+    "peerBox": "JFbpiu58Us9obbSxaQZ38W9CrU4GlY8QE23T5T1Y-wM",
+    "record": {
+      "v": 1,
+      "kind": "offer",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "to": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+        "enc": {
+          "n": "o4dM_rFff72Ms2lZ",
+          "c": "Y_yGXG15Xni5N6f88YUoj93DNFQbUqI7pCTzvCrNau-FtrWAGIidKqbHj23tlwByKKha2qzqe4SslZQ6_0oZJd0BhRJ1QUGmuYI5D9gXBw3xJNj3qnOiyq0cynizoI2qOiTovO1XnfRnnQ8baxDYJGjxE6ke6o4j1EKW6P_aaNs"
+        }
+      },
+      "sig": "MzlF1PFJ0fZguz8nTnpcWB-K5R59UA-2Baa6jsI4OUgdbVgvsPyJ4aIEfkRcifCx6fRdJAvo5u1hsIkDMHZdBA"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "plain": {
+      "deal": "peering",
+      "basis": "PHceQTGFyrFM3znRzpZ_tbdfzizWGPIwIz325cdcyjM",
+      "terms": {
+        "at": [
+          "fra",
+          "ams"
+        ],
+        "via": "ix"
+      }
+    }
+  }
+}

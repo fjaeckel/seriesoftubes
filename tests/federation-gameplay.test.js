@@ -3,13 +3,13 @@
 // networks go dark with their deals ended; deals book money only in their own game. Fake nodes, a virtual clock.
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { fedPage, joinGame, settle, until, URL1, NOW, rec, rid, key, asn } = require('./helpers/fed');
+const { fedPage, joinGame, settle, until, URL1, NOW, rec, rid, key, asn, box, sealRec, openRec } = require('./helpers/fed');
 
 const DAY = 86400;
 // An announce of a fake player (name in the vectors' key list), with its POPs and exchanges and published terms.
 function ann(name, over = {}, t = NOW - 60) {
   const k = key(name);
-  return rec(name, 'announce', t, { name: over.name || 'Ping Floyd', asn: asn(k.pub), home: 'DE', day: 400, founded: 20000, pops: ['fra', 'ams', 'lon'], ix: ['fra', 'ams'], cust: 30,
+  return rec(name, 'announce', t, { name: over.name || 'Ping Floyd', asn: asn(k.pub), box: box(name), home: 'DE', day: 400, founded: 20000, pops: ['fra', 'ams', 'lon'], ix: ['fra', 'ams'], cust: 30,
     mix: { content: 600, eyeball: 300, enterprise: 100 }, traffic: { in: 40000, out: 90000 }, policy: 'open', rates: {},
     auto: { peering: 'auto', transit: 'auto', pni: 'review', swap: 'review', consortium: 'review', port: 'auto' }, ...over });
 }
@@ -81,13 +81,18 @@ test('peering on published terms: automatic acceptance binds at once, traffic le
   assert.equal(p.ev(`!!R.nt['${id}']`), true);
   assert.ok(json(p, 'fedStatsBody().traffic').some((x) => x.key === k && x.in > 0));
   await settle(10);
-  assert.ok(await until(async () => (await settle(5), n.puts.some((x) => x.kind === 'offer' && x.body.deal === 'peering'))), 'the signed offer went out');
+  // It went out sealed (§5.3): the relay sees to and a box; Alice opens it with this network's box.
+  const me = p.ev('S.fed.key.pub'), myBox = await p.ev('fedBoxPub(S.fed.key.priv)');
+  assert.ok(await until(async () => (await settle(5), n.puts.some((x) => x.kind === 'offer' && (openRec('alice', x, me, myBox) || {}).deal === 'peering'))), 'the signed offer went out');
+  const sent = n.puts.find((x) => x.kind === 'offer');
+  assert.deepEqual(Object.keys(sent.body).sort(), ['enc', 'to'], 'nothing of the deal in clear');
+  assert.equal(openRec('carol', sent, me, myBox), null, 'a third network cannot open it');
   // Depeering only costs a detour: back over transit, and a signed decline tells them.
   p.ev(`ACT.fpEnd({id:'${d.id}'})`);
   p.ev('compute()');
   assert.equal(p.ev(`!!R.nt['${id}']`), false);
   assert.ok(p.ev(`(R.netEg['${id}']||{}).t`) > 0);
-  assert.ok(await until(async () => (await settle(5), n.puts.some((x) => x.kind === 'decline' && x.body.reason === 'depeer'))));
+  assert.ok(await until(async () => (await settle(5), n.puts.some((x) => x.kind === 'decline' && (openRec('alice', x, me, myBox) || {}).reason === 'depeer'))));
   assert.deepEqual(p.errors, []);
 });
 
@@ -121,7 +126,7 @@ test('an offer waiting for review queues in the NOC dashboard; accepting starts 
   p.ev("fedTermsApply({pol:'open',rates:{pni:{setup:5000,ports:[{mbps:10000,monthly:1500}],term:180}},auto:{pni:'review'}})");
   assert.ok(await until(async () => (await settle(5), p.ev('!!(S.fedp.mine[0]&&S.fedp.mine[0].body.rates.pni)'))), 'terms announced');
   const mine = json(p, 'S.fedp.mine[0]');
-  const offer = rec('alice', 'offer', p.net.now(), { to: p.ev('S.fed.key.pub'), deal: 'pni', basis: mine.id, terms: { at: 'fra', mbps: 10000, setup: 5000, monthly: 1500, term: 180 } });
+  const offer = sealRec('alice', 'offer', p.net.now(), { to: p.ev('S.fed.key.pub'), deal: 'pni', basis: mine.id, terms: { at: 'fra', mbps: 10000, setup: 5000, monthly: 1500, term: 180 } }, p.ev('S.fed.key.pub'), mine.body.box);
   await resync(p, n, [offer]);
   assert.ok(await until(async () => (await settle(5), p.ev('S.fedp.rq.length') === 1)), 'waiting for review');
   p.ev("ACT.dash()");
@@ -232,7 +237,7 @@ test('a shunned network goes dark at once with a notice; a shared leak hits part
   assert.equal(p.ev('S.ev.leak.until>S.day'), true, 'without filtering it spreads here');
   assert.ok(p.ev("S.inc.some(i=>i.type==='leak')"));
   // Shunned by the federation: dark at once, deals ended with a notice that says why.
-  p.ev(`fedShunned=async()=>['${k}']`);
+  p.ev(`fedExcl=async()=>({keys:new Set(['${k}']),ok:new Set(['${k}']),by:new Map([['${k}',[{srv:'a',url:'wss://a.example'},{srv:'b',url:'wss://b.example'}]]]),n:2,why:new Map()})`);
   await p.ev('fedPlayRefresh()');
   assert.equal(p.ev(`S.fedn.nets[0].st`), 'dark');
   assert.equal(p.ev('S.fed.deals[0].why'), 'excluded');

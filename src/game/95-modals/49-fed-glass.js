@@ -12,7 +12,7 @@ async function fuGlassLoad(){const players=new Map(),syncs=new Map(),add=(a,b)=>
 // The server an operator key operates, or null.
 const fuOpOf=id=>{const s=FU.srvs.find(x=>x.id===id);return s&&FU.opKey&&(s.operators||[]).includes(FU.opKey.pub)?s:null;};
 const fuVoteLine=v=>{const r=v.rec,b=r.body,x={server:`<b>${fuSrvName(b.server)}</b>`,network:`<b>${fuName(b.target)}</b>`};return `<li class="fu-vote"><span>${r.kind==='shun'?tr('fedui.server_voted_to_shun_network',x):tr('fedui.server_withdrew_its_vote_on_network',x)}${r.kind==='shun'?' · '+fuReason(b.reason):''}</span><span class="meta">${fuWhen(r.t)}</span></li>`;};
-function fuGlassHtml(){const srvs=FU.srvs.slice().sort((a,b)=>(a.source==='registry'?0:1)-(b.source==='registry'?0:1)||a.name.localeCompare(b.name)),nets=[...FU.nets.values()].sort((a,b)=>a.rec.body.name.localeCompare(b.rec.body.name));
+function fuGlassHtml(){const srvs=FU.srvs.slice().sort((a,b)=>(a.source==='registry'?0:1)-(b.source==='registry'?0:1)||a.name.localeCompare(b.name)),nets=[...FU.nets.values()].filter(n=>FU.opKey||!(FU.excl&&FU.excl.has(n.key))).sort((a,b)=>a.rec.body.name.localeCompare(b.rec.body.name));
   let h=fuHead('🔭 '+tr('fedui.looking_glass'),FU.opKey?tr('fedui.the_federation_as_this_browser_sees'):tr('fedui.servers_and_networks'),{v:'home'});
   h+=`<p class="tagline">${tr('fedui.public_and_read_only')}</p>`;
   h+=`<h3 class="sub4">${trn('fedui.n_servers_known',srvs.length)}</h3>`+(srvs.length?`<ul class="fu-list">${srvs.map(s=>{const sy=FU.syncs&&FU.syncs.get(s.id);

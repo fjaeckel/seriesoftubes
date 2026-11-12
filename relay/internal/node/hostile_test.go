@@ -200,8 +200,7 @@ func TestRetention(t *testing.T) {
 	x.MustPut(newest)
 	bobStats := rt.Stats(bob, n.Clock.Unix(), 1, false)
 	x.MustPut(bobStats)
-	offer := alice.Seal("offer", n.Clock.Unix(), map[string]any{"to": bob.Key, "deal": "peering",
-		"basis": rt.ID(rt.Announce(bob, start, "b")), "terms": map[string]any{"at": []any{"fra"}, "via": "ix"}})
+	offer := rt.Offer(alice, n.Clock.Unix(), bob.Key)
 	x.MustPut(offer)
 	// Four days later: stats older than 72 hours go, except each key's newest (carried forward).
 	n.Clock.Add(4 * 24 * time.Hour)

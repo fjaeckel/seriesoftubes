@@ -1,0 +1,17 @@
+{
+  "description": "deal outside the list.",
+  "input": {
+    "kind": "offer",
+    "author": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+    "body": {
+      "to": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+      "deal": "merger",
+      "basis": "PHceQTGFyrFM3znRzpZ_tbdfzizWGPIwIz325cdcyjM",
+      "terms": {}
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

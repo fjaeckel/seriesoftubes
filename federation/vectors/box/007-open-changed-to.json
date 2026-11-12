@@ -1,0 +1,25 @@
+{
+  "description": "The same box in a record now addressed to carol (signed again): bob, with the right key, still fails on the aad.",
+  "input": {
+    "seed": "6efe7f97b6b2c6aa12c79f26c7caa4b63d9f42629af20b25a58535db3ac64542",
+    "peer": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+    "peerBox": "tO4Fv_k6I0AaD4GNgg7WfxxSrjMCD6t-aY-ulE4Fi2Y",
+    "record": {
+      "v": 1,
+      "kind": "offer",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "to": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+        "enc": {
+          "n": "o4dM_rFff72Ms2lZ",
+          "c": "Y_yGXG15Xni5N6f88YUoj93DNFQbUqI7pCTzvCrNau-FtrWAGIidKqbHj23tlwByKKha2qzqe4SslZQ6_0oZJd0BhRJ1QUGmuYI5D9gXBw3xJNj3qnOiyq0cynizoI2qOiTovO1XnfRnnQ8baxDYJGjxE6ke6o4j1EKW6P_aaNs"
+        }
+      },
+      "sig": "I2VS0FrJy3YYBK_uUowrwVoy1gBlrS48Zi8AVpz6PhnKinLtrD-5urhdfzFfqepf_wM2k36oe7yVX1RTtr2iDQ"
+    }
+  },
+  "expect": {
+    "ok": false
+  }
+}

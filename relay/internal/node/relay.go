@@ -277,10 +277,44 @@ func (r *Relay) operator(s *session) bool {
 	return false
 }
 
-// shows reports whether a session may be sent this record: shun votes go to other nodes and to
-// this server's operators only (9.3); every other client learns the outcome from excluded (lock held).
+// shows reports whether a session may be sent this record (lock held). Other nodes get everything.
+// Shun votes go to this server's operators only; every other client learns the outcome from
+// excluded. Deals go to their two parties only, open consortium projects to everyone (9.3).
 func (r *Relay) shows(s *session, rec *fed.Record) bool {
-	return s.node || rec.Kind != "shun" && rec.Kind != "unshun" || r.operator(s)
+	if s.node {
+		return true
+	}
+	switch rec.Kind {
+	case "shun", "unshun":
+		return r.operator(s)
+	case "offer", "accept", "decline":
+		return r.party(s, rec)
+	}
+	return true
+}
+
+// party reports whether a client session may see a deal record: it proved the author or to, or
+// the record is an open consortium project (an offer without to) or an answer to one (lock held).
+func (r *Relay) party(s *session, rec *fed.Record) bool {
+	to, has := rec.Body["to"].(string)
+	if rec.Kind == "offer" && !has {
+		return true
+	}
+	for _, k := range s.proved {
+		if k == rec.Key || k == to {
+			return true
+		}
+	}
+	if rec.Kind == "offer" {
+		return false
+	}
+	id, _ := rec.Body["offer"].(string)
+	e := r.st.Get(id)
+	if e == nil || e.Rec.Kind != "offer" || e.Rec.Key != to {
+		return false
+	}
+	_, private := e.Rec.Body["to"]
+	return !private
 }
 
 // sendExcluded queues the excluded list for a client (lock held), with the reasons when the
