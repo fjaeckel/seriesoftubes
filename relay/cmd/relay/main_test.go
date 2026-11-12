@@ -46,7 +46,7 @@ func TestCheckRegistry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir := t.TempDir()
+	dir := rt.Dir(t)
 	name := s.ID + ".json"
 	write := func(n string, b []byte) {
 		if err := os.WriteFile(filepath.Join(dir, n), b, 0o644); err != nil {
@@ -97,7 +97,7 @@ func TestCheckRegistry(t *testing.T) {
 	// listed and answered are only the weekly job's to change (step 8 against the base).
 	write(name, cases[4].b)
 	var out bytes.Buffer
-	baseDir := t.TempDir()
+	baseDir := rt.Dir(t)
 	os.WriteFile(filepath.Join(baseDir, name), b, 0o644)
 	files, _ := registry.ReadFolder(dir)
 	baseFiles, _ := registry.ReadFolder(baseDir)
@@ -163,7 +163,7 @@ func TestCheckRegistryChainNeedsMajority(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dir := t.TempDir()
+	dir := rt.Dir(t)
 	os.WriteFile(filepath.Join(dir, s.ID+".json"), b, 0o644)
 	if got := check(t, dir, s.ID+".json", n); !strings.HasSuffix(got, ": ok") {
 		t.Fatalf("two operators: %s", got)
@@ -193,7 +193,7 @@ func TestSecondOperatorAndNode(t *testing.T) {
 	second := n.Listen("duo2")
 	cfg := *first.Cfg
 	cfg.URL, cfg.Seeds, cfg.Neighbours = second.URL, []string{first.URL}, nil
-	second.Start(t.TempDir(), &cfg)
+	second.Start(rt.Dir(t), &cfg)
 	add, _ := ops.Propose(first.State(), s.Op, "add-node", second.Key.Key, second.URL, n.Clock.Unix())
 	first.MustPut(add)
 	if len(first.R.Pending()) != 1 {
@@ -224,7 +224,7 @@ func TestSecondOperatorAndNode(t *testing.T) {
 		return e1 == nil && e2 == nil
 	})
 	b, _ := second.R.RegistryFile()
-	dir := t.TempDir()
+	dir := rt.Dir(t)
 	os.WriteFile(filepath.Join(dir, s.ID+".json"), b, 0o644)
 	// The registry check passes while either node answers.
 	first.Stop()
@@ -234,8 +234,8 @@ func TestSecondOperatorAndNode(t *testing.T) {
 }
 
 func TestBuildServersJSON(t *testing.T) {
-	dir := t.TempDir()
-	out := filepath.Join(t.TempDir(), "site", "federation", "servers.json")
+	dir := rt.Dir(t)
+	out := filepath.Join(rt.Dir(t), "site", "federation", "servers.json")
 	// An empty or missing folder gives an empty list.
 	if err := cmdBuild([]string{filepath.Join(dir, "missing"), out}); err != nil {
 		t.Fatal(err)
@@ -274,7 +274,7 @@ func TestBuildServersJSON(t *testing.T) {
 }
 
 func TestInitGenesisRegistryFile(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), "data")
+	dir := filepath.Join(rt.Dir(t), "data")
 	if err := cmdInit([]string{"--data", dir, "--url", "wss://relay.example.net/fed"}); err != nil {
 		t.Fatal(err)
 	}
@@ -315,7 +315,7 @@ func TestInitGenesisRegistryFile(t *testing.T) {
 	fresh := buf.Bytes()
 	listed, answered := int64(20400*86400), int64(20450*86400)
 	existing := edit(t, fresh, func(m map[string]any) { m["listed"] = listed; m["answered"] = answered })
-	exPath := filepath.Join(t.TempDir(), "existing.json")
+	exPath := filepath.Join(rt.Dir(t), "existing.json")
 	os.WriteFile(exPath, existing, 0o644)
 	rd, wr, _ = os.Pipe()
 	os.Stdout = wr

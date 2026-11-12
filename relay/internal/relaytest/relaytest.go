@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -232,7 +233,9 @@ func (x *Node) Stop() {
 	x.handler.mu.Lock()
 	x.handler.h = nil
 	x.handler.mu.Unlock()
-	x.sock.Close()
+	if x.sock != nil {
+		x.sock.Close()
+	}
 	x.R.Close()
 	x.srv.CloseClientConnections()
 }
@@ -269,7 +272,7 @@ func (n *Net) Found(name, sync string) *Server {
 	srv := ops.ServerRecord(st, op, ops.ServerFields{Name: name, Sync: sync, NoLogs: true, Langs: []string{"en"}}, now)
 	cfg := config.Default()
 	cfg.Server, cfg.URL, cfg.Registry = gr.ID, x.URL, ""
-	dir := t.TempDir()
+	dir := Dir(t)
 	x.Start(dir, cfg)
 	for _, rec := range []map[string]any{g, srv} {
 		if _, code := x.R.ImportOwn(rec); code != "" {
@@ -357,4 +360,16 @@ func hostLabel(name string) string {
 		}
 	}
 	return strings.Trim(b.String(), "-")
+}
+
+// Dir makes a data folder short enough for the operator socket: t.TempDir() nests the test name
+// under macOS's long temporary folder and passes the Unix socket path limit.
+func Dir(t testing.TB) string {
+	t.Helper()
+	d, err := os.MkdirTemp("", "relay")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.RemoveAll(d) })
+	return d
 }

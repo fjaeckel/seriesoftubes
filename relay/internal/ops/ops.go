@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -18,6 +19,9 @@ import (
 
 // SocketName is the socket's file name in the data folder.
 const SocketName = "relay.sock"
+
+// maxSocketPath is the longest socket path every Unix accepts (macOS allows 103 bytes, Linux 107).
+const maxSocketPath = 103
 
 // Request is one command.
 type Request struct {
@@ -42,6 +46,9 @@ type Response struct {
 // Serve listens on the socket until the listener is closed.
 func Serve(dir string, r *node.Relay) (net.Listener, error) {
 	path := filepath.Join(dir, SocketName)
+	if len(path) > maxSocketPath {
+		return nil, fmt.Errorf("operator socket path %q is longer than %d bytes (a Unix socket limit): use a shorter data folder", path, maxSocketPath)
+	}
 	_ = os.Remove(path)
 	old := umask(0o177)
 	l, err := net.Listen("unix", path)

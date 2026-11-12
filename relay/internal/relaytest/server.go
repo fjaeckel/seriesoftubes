@@ -48,7 +48,7 @@ func (n *Net) AddNode(s *Server, name string) *Node {
 	x := n.Listen(name)
 	cfg := config.Default()
 	cfg.Server, cfg.URL, cfg.Seeds, cfg.Registry = s.ID, x.URL, []string{first.URL}, ""
-	x.Start(t.TempDir(), cfg)
+	x.Start(Dir(t), cfg)
 	rec, err := ops.Propose(first.State(), s.Op, "add-node", x.Key.Key, x.URL, n.Clock.Unix())
 	if err != nil {
 		t.Fatal(err)

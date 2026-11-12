@@ -204,7 +204,7 @@ func TestNodeNotOnTheListRefused(t *testing.T) {
 
 func TestDataMigratedOnStart(t *testing.T) {
 	// A folder from before versioning: stamped and loaded.
-	dir := t.TempDir()
+	dir := rt.Dir(t)
 	alice := rt.Key("alice")
 	st, err := store.Open(dir)
 	if err != nil {
@@ -262,7 +262,7 @@ func TestTwoProtocolVersionsTalk(t *testing.T) {
 	cfg := config.Default()
 	cfg.Server, cfg.URL, cfg.Seeds, cfg.Registry = s.ID, y.URL, []string{x.URL}, ""
 	y.Versions = []int64{1, 2}
-	y.Start(t.TempDir(), cfg)
+	y.Start(rt.Dir(t), cfg)
 	p, _ := ops.Propose(x.State(), s.Op, "add-node", y.Key.Key, y.URL, n.Clock.Unix())
 	x.MustPut(p)
 	x.MustPut(s.Describe(x, s.Op))
@@ -290,7 +290,7 @@ func TestStatusOverTheSocket(t *testing.T) {
 			t.Fatalf("players: %s", b)
 		}
 	}
-	out := filepath.Join(t.TempDir(), "backup.tar.gz")
+	out := filepath.Join(rt.Dir(t), "backup.tar.gz")
 	resp, err := ops.Call(x.Dir, ops.Request{Cmd: "backup", Path: out})
 	if err != nil || !resp.OK {
 		t.Fatalf("backup: %v %+v", err, resp)
