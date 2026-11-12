@@ -33,11 +33,20 @@ const NOW = 1767312100;
 // The registry the build would publish from the vectors' folder: Packet Lunch (two nodes: node1, node2) and Hop Shop.
 const SERVERS_JSON = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'federation', 'vectors', 'registry', '016-build-servers-json.json'), 'utf8')).expect.servers_json;
 const PL = SERVERS_JSON.servers[0], URL1 = 'wss://relay.example.net/fed', URL2 = 'wss://second.example.org:8443/fed';
+// Packet Lunch as a registry entry in the cache (kv registry), for tests that write their own registry: its nodes and
+// its operators (anna, ben, cleo), so the game checks its node and proves an operator key to it.
+const PL_ENTRY = { id: PL.id, name: 'Packet Lunch', nodes: PL.server.body.nodes, operators: PL.server.body.operators, sync: 'open', noLogs: true };
 
 /* A fake relay node. up: answers at all (false: connections fail); mute: takes frames and never answers.
-   feed: items its sub sends; board: items its board sends; refuse: an error code for every put. */
+   feed: items its sub sends; board: items its board sends; refuse: an error code for every put. Like the relay
+   (§9.3), it sends shun votes only to a session that proved one of its server's operator keys (ops: by default
+   Packet Lunch's, anna, ben and cleo) and only on a sub that asks for them; excl (null: never sent) is the excluded
+   list it sends after a session's first sub and on exclude(), with reasons to a session that proved an excluded key. */
 class Node {
-  constructor(net, url, o = {}) { Object.assign(this, { net, url, server: o.server || PL.id, key: key(o.key || 'node1'), up: true, mute: false, feed: [], board: [], gossip: [], puts: [], refuse: null, socks: new Set(), hellos: 0 }); }
+  constructor(net, url, o = {}) { Object.assign(this, { net, url, server: o.server || PL.id, key: key(o.key || 'node1'), up: true, mute: false, feed: [], board: [], gossip: [], puts: [], refuse: null, socks: new Set(), hellos: 0,
+    ops: o.ops || ['anna', 'ben', 'cleo'].map((n) => key(n).pub), auths: [], excl: null, reasons: null }); }
+  sendExcl(ws) { const m = { m: 'excluded', keys: this.excl, more: false }; if (this.reasons && [...(ws.proved || [])].some((k) => this.excl.includes(k))) m.reasons = this.reasons; this.send(ws, m); }
+  exclude(keys, reasons = null) { this.excl = keys; this.reasons = reasons; for (const ws of this.socks) if (ws.exSent) this.sendExcl(ws); }
   send(ws, m) { if (!this.mute) this.net.later(() => ws.onmessage && ws.onmessage({ data: JSON.stringify(m) })); }
   take(ws, text) {
     const f = JSON.parse(text);
@@ -45,7 +54,12 @@ class Node {
     if (f.m === 'hello') { this.hellos++; this.send(ws, { m: 'welcome', ver: 1, server: this.server, node: this.key.pub, now: this.net.now() }); }
     else if (f.m === 'challenge') { const p = { v: 1, kind: 'proof', key: this.key.pub, t: this.net.now(), body: { nonce: f.nonce, server: this.server } }; p.sig = signText(this.key, canon(p)); this.send(ws, { m: 'proof', id: f.id, proof: p }); }
     else if (f.m === 'put') { this.puts.push(f.rec); this.send(ws, this.refuse ? { m: 'err', id: f.id, code: this.refuse } : { m: 'ack', id: f.id, rid: rid(f.rec), dup: false }); }
-    else if (f.m === 'sub') this.send(ws, { m: 'recs', id: f.id, items: this.feed, cursor: 'c1', more: false });
+    else if (f.m === 'auth') { this.auths.push(f); (ws.proved || (ws.proved = new Set())).add(f.key); const op = this.ops.includes(f.key); if (op) ws.op = true; this.send(ws, { m: 'ack', id: f.id, op }); }
+    else if (f.m === 'sub') {
+      const vote = (it) => !!it && !!it.rec && (it.rec.kind === 'shun' || it.rec.kind === 'unshun');
+      this.send(ws, { m: 'recs', id: f.id, items: this.feed.filter((it) => !vote(it) || ws.op && f.kinds.includes(it.rec.kind)), cursor: 'c1', more: false });
+      if (this.excl && !ws.exSent) { ws.exSent = true; this.sendExcl(ws); }
+    }
     else if (f.m === 'board') this.send(ws, { m: 'recs', id: f.id, items: this.board, cursor: '', more: false });
     else if (f.m === 'servers') this.send(ws, { m: 'catalog', id: f.id, entries: this.gossip });
     else if (f.m === 'ping') this.send(ws, { m: 'pong', id: f.id, now: this.net.now() });
@@ -100,4 +114,4 @@ async function joinGame(p, url = URL1, start = 'ACT.start({})') {
   return r;
 }
 
-module.exports = { b64, sha, canon, key, rec, rid, asn, NOW, SERVERS_JSON, PL, URL1, URL2, Net, fedPage, joinGame, settle, until, signText };
+module.exports = { b64, sha, canon, key, rec, rid, asn, NOW, SERVERS_JSON, PL, PL_ENTRY, URL1, URL2, Net, fedPage, joinGame, settle, until, signText };

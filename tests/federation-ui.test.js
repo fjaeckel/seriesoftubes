@@ -180,11 +180,12 @@ test('settings: share my country, mutes, the move file behind its warning, the o
 
 test('a shunned player is told why and that solo play goes on; 14 days unreachable gives one gentle suggestion', async () => {
   const { p, n } = await joined();
-  p.ev("fedShunInfo=async()=>({shunned:true,voters:12,need:5,votes:5,reasons:{spam:3,cheating:2}});ACT.fuOpen({v:'home'})");
+  p.ev("fedExclInfo=async()=>({shunned:true,reasons:['cheating','spam']});ACT.fuOpen({v:'home'})");
   await run(p, 500);
   assert.match(txt(p), /The federation excluded your network/);
-  assert.match(txt(p), /Spam: 3 servers/);
-  assert.match(txt(p), /Cheating: 2 servers/);
+  assert.match(txt(p), /Spam/);
+  assert.match(txt(p), /Cheating/);
+  assert.doesNotMatch(txt(p), /Spam: |\d servers?\b/, 'the reasons, never how many servers chose each');
   assert.match(txt(p), /plays on as always, solo and offline/);
   p.ev('ACT.fuClose()');
   // Last reached 15 days ago (this device remembers), and the server is gone now.
@@ -265,27 +266,42 @@ test('leaderboards: three boards, divisions with robot badges, own row pinned, f
   assert.deepEqual(p.errors, []);
 });
 
-test('looking glass: servers, policies, players, votes in public; operator panel and hide/shun for an operator', async () => {
+test('looking glass: servers, policies, players; votes and the tally only for an operator, with the operator panel', async () => {
   const { p, n } = await joined();
   await seedBoard(p);
   const now = p.ev('FED.now()'), target = key('bob').pub;
   const vote = rec('anna', 'shun', now - 3600, { server: PL.id, target, reason: 'spam' });
-  await p.ev(`fedVotesAdd([{id:${JSON.stringify(rid(vote))},rec:${JSON.stringify(vote)}}])`);
   p.ev("ACT.fuOpen({v:'glass'})");
   await run(p, 500);
   assert.match(txt(p), /2 servers known/);
   assert.match(txt(p), /Packet Lunch In the registry/);
   assert.match(txt(p), /syncs openly · 3 players · 3 operators/);
-  assert.match(txt(p), /Packet Lunch voted to shun Bob <b>Net<\/b> · Spam/);
-  // A network's read-only status.
+  assert.doesNotMatch(txt(p), /Shun votes/, 'players see no votes');
+  // A network's read-only status: no tally for a player.
   click(p, `#modalCard [data-act="fuOpen"][data-args*=${JSON.stringify(JSON.stringify(target).slice(1, -1))}]`);
   await run(p, 500);
   assert.match(txt(p), /AS4200000001/);
+  assert.doesNotMatch(txt(p), /votes needed|Shun votes|Excluded by the federation/);
+  assert.equal(p.ev(`document.querySelectorAll('#modalCard .fu-op').length`), 0, 'no operator tools without an operator key');
+  // Excluded by the joined server: shown as the outcome only.
+  n.exclude([target]);
+  for (const ws of n.socks) ws.drop();
+  await run(p, 6000);
+  p.ev(`ACT.fuOpen({v:'net',key:${JSON.stringify(target)}})`);
+  await run(p, 500);
+  assert.match(txt(p), /Excluded by the federation/);
+  assert.doesNotMatch(txt(p), /votes needed/);
+  // With Anna's operator key: the votes and the tally, the panel on her server, and hide and shun on the network.
+  assert.equal(await p.ev(`fedOpKeySet(${JSON.stringify(key('anna').seed)})`), true);
+  await p.ev(`fedVotesAdd([{id:${JSON.stringify(rid(vote))},rec:${JSON.stringify(vote)}}])`);
+  p.ev("ACT.fuOpen({v:'glass'})");
+  await run(p, 500);
+  assert.match(txt(p), /Packet Lunch voted to shun Bob <b>Net<\/b> · Spam/);
+  assert.match(txt(p), /Only server operators see votes/);
+  p.ev(`ACT.fuOpen({v:'net',key:${JSON.stringify(target)}})`);
+  await run(p, 500);
   assert.match(txt(p), /1 of 5 votes needed/);
   assert.match(txt(p), /Spam: 1 server/);
-  assert.equal(p.ev(`document.querySelectorAll('#modalCard .fu-op').length`), 0, 'no operator tools without an operator key');
-  // With Anna's operator key: the panel on her server, and hide and shun on the network.
-  assert.equal(await p.ev(`fedOpKeySet(${JSON.stringify(key('anna').seed)})`), true);
   p.ev(`ACT.fuOpen({v:'server',id:${JSON.stringify(PL.id)}})`);
   await run(p, 500);
   for (const t of [/Operator panel/, /Proposals to sign/, /Node status/, /Recent errors/]) assert.match(txt(p), t);

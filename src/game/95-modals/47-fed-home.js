@@ -64,7 +64,7 @@ function fuOnStatus(st){fuDot();const f=S&&S.fed;if(f&&f.key&&st.state==='connec
   if(fuShown()&&['home','join','boards','server'].includes(UI.fu&&UI.fu.v))fuRender();}
 // After boot: listen (memory only: no socket, no timer), and an invite link opens the join sheet.
 function fuBoot(){fuCan();// the capability check is async: start it now, so the menu has its tile from the first look
-  fedOn('status',fuOnStatus);fedOn('catalog',()=>{if(fuShown())fuLoad();});fedOn('mute',()=>{if(fuShown())fuRender();});
+  fedOn('status',fuOnStatus);fedOn('catalog',()=>{if(fuShown())fuLoad();});fedOn('excluded',()=>{if(fuShown())fuLoad();});fedOn('mute',()=>{if(fuShown())fuRender();});
   fedOn('board',()=>{if(fuShown()&&UI.fu.v==='boards')fuLoad();});fuDot();
   if(FU_INVITE){UI.fedInvite=FU_INVITE;if(S&&UI.started&&fedEligible())ACT.fuOpen({v:'join'});}}
 /* The title screen mentions a waiting invite in one line (it is drawn before fuBoot, so the link itself counts until
@@ -85,10 +85,10 @@ function fuLoad(){if(FU.loadNext)return FU.loadNext;
   const p=FU.loadNext=(FU.loading||Promise.resolve()).then(()=>{FU.loadNext=null;return fuLoadRun();}).finally(()=>{if(FU.loading===p)FU.loading=null;});FU.loading=p;return p;}
 async function fuLoadRun(){const v=UI.fu&&UI.fu.v;if(!v)return;
   try{FU.srvs=await fedServers();FU.opKey=await fedOpKey();
-    if(v==='glass'||v==='server'||v==='net'||v==='home'||v==='boards'||v==='filters'){FU.gossip=(await fedGet('kv','gossip'))||[];FU.votes=(await fedGet('kv','votes'))||[];
+    if(v==='glass'||v==='server'||v==='net'||v==='home'||v==='boards'||v==='filters'){FU.gossip=(await fedGet('kv','gossip'))||[];FU.votes=FU.opKey?(await fedGet('kv','votes'))||[]:(await fedVotesTidy(),[]);
       FU.nets=new Map((await fedNetworks()).map(n=>[n.key,n]));FU.hideNames=new Set();
       for(const s of FU.srvs){const h=await fedHides(s.id,FU.srvs);if(h)for(const k of h.rec.body.names)FU.hideNames.add(k);}}
-    if(v==='home'){const f=S&&S.fed;FU.shun=f&&f.key?await fedShunInfo(f.key.pub):null;FU.asn=f&&f.key?await fedAsn(f.key.pub):null;}
+    if(v==='home'){const f=S&&S.fed;FU.shun=f&&f.key?await fedExclInfo(f.key.pub):null;FU.asn=f&&f.key?await fedAsn(f.key.pub):null;}
     if(v==='glass'||v==='server')await fuGlassLoad();
     if(v==='server'&&UI.fu.id&&FU.opKey&&fuOpOf(UI.fu.id))FU.chain=await fedOpChain(UI.fu.id);
     if(v==='net'&&UI.fu.key)await fuNetLoad(UI.fu.key);
@@ -109,7 +109,7 @@ function fuHomeHtml(){const f=S&&S.fed,ok=S&&UI.started&&fedEligible(),on=!!(f&&
   h+=`<p class="tagline">${tr('fedui.other_players_networks_become_places_to')}</p>${fuMsg()}`;
   if(!ok)h+=`<p class="note fu-why">${fuWhyMode()}</p>`;
   // Excluded by the federation: why, and that solo play goes on.
-  if(on&&FU.shun&&FU.shun.shunned)h+=`<div class="fu-box bad"><b>${tr('fedui.the_federation_excluded_your_network')}</b><p class="meta">${tr('fedui.enough_servers_voted_to_shun_it')}</p><ul class="fu-reasons">${Object.entries(FU.shun.reasons).map(([r,n])=>`<li>${fuReason(r)}: ${trn('fedui.n_servers',n)}</li>`).join('')}</ul><p class="meta">${tr('fedui.your_game_plays_on_as_always')}</p></div>`;
+  if(on&&FU.shun&&FU.shun.shunned)h+=`<div class="fu-box bad"><b>${tr('fedui.the_federation_excluded_your_network')}</b><p class="meta">${FU.shun.reasons.length?tr('fedui.enough_servers_voted_to_shun_it'):tr('fedui.enough_servers_voted_to_exclude_it')}</p>${FU.shun.reasons.length?`<ul class="fu-reasons">${FU.shun.reasons.map(r=>`<li>${fuReason(r)}</li>`).join('')}</ul>`:''}<p class="meta">${tr('fedui.your_game_plays_on_as_always')}</p></div>`;
   if(on){h+=`<div class="fu-status ${st.state}"><span class="fed-dot ${st.state}" aria-hidden="true"></span><span>${fuStatusText(st)}</span></div>`;
     const q=fuQueued();if(q&&st.state!=='connected')h+=`<p class="note">${trn('fedui.n_actions_queued_they_go_out',q)}</p>`;
     if(fuLongGone())h+=`<div class="fu-box"><p>${tr('fedui.your_server_has_not_answered_for')}</p>${btn(tr('fedui.see_other_servers'),'fuOpen',{v:'join'},'ghost sm')}</div>`;}

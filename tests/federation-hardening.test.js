@@ -5,7 +5,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { fedPage, joinGame, settle, until, URL1, NOW, PL, rec, key, asn, b64, sha } = require('./helpers/fed');
+const { fedPage, joinGame, settle, until, URL1, NOW, PL, PL_ENTRY, rec, key, asn, b64, sha } = require('./helpers/fed');
 const { load } = require('./harness');
 
 const DAY = 86400, HOSTILE = '<img src=x onerror=alert(1)>';
@@ -170,11 +170,12 @@ test('a leaderboard of 20,000 records is quick, chips only slice again, and a hu
 });
 
 const sid = (n) => b64(sha('server ' + n));
-const REG = { asOf: NOW - (NOW % DAY), at: NOW, servers: [1, 2, 3, 4, 5, 6].map((n) => ({ id: sid(n), name: 'S' + n, operators: [key('op' + n).pub], nodes: [], listed: NOW - 60 * DAY - (NOW % DAY), answered: NOW - (NOW % DAY) })) };
+const REG = { asOf: NOW - (NOW % DAY), at: NOW, servers: [PL_ENTRY, ...[1, 2, 3, 4, 5, 6].map((n) => ({ id: sid(n), name: 'S' + n, operators: [key('op' + n).pub], nodes: [], listed: NOW - 60 * DAY - (NOW % DAY), answered: NOW - (NOW % DAY) }))] };
 const vote = (who, n, t = NOW - DAY, target = key('mallory').pub) => rec(who, 'shun', t, { server: sid(n), target, reason: 'spam' });
 
-test('shun votes are kept only from operators of voting servers: junk cannot push real votes out', async () => {
+test('shun votes are kept only from operators of voting servers: junk cannot push real votes out (an operator\'s game)', async () => {
   const p = fedPage(), n = p.net.node(URL1);
+  await p.ev(`fedOpKeySet(${JSON.stringify(key('anna').seed)})`);
   const junk = Array.from({ length: 40 }, (_, i) => vote('junk' + i, 1 + (i % 6), NOW - 10, key('alice').pub));
   n.feed = [...junk, vote('op1', 1), vote('op2', 2), vote('op3', 2), vote('op4', 4)].map((r) => ({ rec: r, rcpt: [] }));
   await p.ev(`fedPut('kv','registry',${JSON.stringify(REG)})`);
@@ -186,8 +187,9 @@ test('shun votes are kept only from operators of voting servers: junk cannot pus
   assert.deepEqual(p.errors, []);
 });
 
-test('the shun tally over 4,096 votes is counted once per change of votes or registry', async () => {
+test('an operator\'s shun tally over 4,096 votes is counted once per change of votes or registry', async () => {
   const p = fedPage();
+  await p.ev(`fedOpKeySet(${JSON.stringify(key('anna').seed)})`);
   await joinGame(p);
   const servers = Array.from({ length: 20 }, (_, i) => ({ id: 's' + i, operators: ['op' + i], listed: NOW - 40 * DAY, answered: NOW - DAY }));
   await p.ev(`fedPut('kv','registry',${JSON.stringify({ asOf: NOW, at: NOW, servers })})`);
@@ -196,17 +198,18 @@ test('the shun tally over 4,096 votes is counted once per change of votes or reg
   await p.ev(`fedPut('kv','votes',${JSON.stringify(votes)})`);
   p.ev('window.__tally=0;const f=fedShun;fedShun=(...a)=>{__tally++;return f(...a);}');
   const t0 = Date.now();
-  const shunned = await p.ev('fedShunned()');
+  const all = '(async()=>{const now=FED.now(),T=await fedShunTally(now);let n=0;for(let i=0;i<600;i++)if(fedShunOf(T,"t"+i,now).shunned)n++;return n;})()';
+  const shunned = await p.ev(all);
   const ms = Date.now() - t0;
   console.log(`# shun tally of 4,096 votes: ${ms} ms`);
   assert.ok(ms < 600, `${ms} ms`);
-  assert.equal(shunned.length, 600, 'six or seven servers (of 20 voting, 5 needed) voted against each');
+  assert.equal(shunned, 600, 'six or seven servers (of 20 voting, 5 needed) voted against each');
   const once = p.ev('__tally');
-  await p.ev('fedShunned()');
+  await p.ev(all);
   await p.ev("fedShunInfo('t1')");
   assert.equal(p.ev('__tally'), once, 'the same votes at the same moment: nothing counted again');
   p.ev('FED.vgen++');
-  await p.ev('fedShunned()');
+  await p.ev(all);
   assert.ok(p.ev('__tally') > once, 'new votes are counted');
   assert.deepEqual(p.errors, []);
 });
