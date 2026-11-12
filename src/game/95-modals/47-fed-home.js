@@ -6,7 +6,7 @@
    Without WebCrypto Ed25519 nothing about multiplayer is shown at all. Names other people typed (networks, servers)
    are always escaped as text. */
 // Data the open sheet shows (memory only); UI.fu is which sheet and its choices.
-const FU={can:null,canP:null,srvs:[],gossip:[],nets:new Map(),votes:[],opKey:null,shun:null,asn:null,chain:null,bd:null,slice:null,hideNames:new Set(),boardAt:null,fetched:0,busy:false,msg:null,netInfo:null};
+const FU={can:null,canP:null,srvs:[],gossip:[],nets:new Map(),votes:[],opKey:null,shun:null,asn:null,chain:null,bd:null,slice:null,hideNames:new Set(),boardAt:null,fetched:0,busy:false,loading:null,loadNext:null,msg:null,netInfo:null};
 // Sheets that work with no game open (from the title screen's Settings).
 const FU_NOS=['fuOpen','fuClose','fuQ','fuFilt','fuOpKeyGo','fuOpKeyDel','fuOpSign','fuOpHide','fuOpShun','fuJoinTyped','fuJoin'];
 const FU_14D=14*86400;
@@ -74,7 +74,12 @@ function fuSettingsRow(){if(!fuCan())return '';const f=S&&S.fed,st=f&&f.on?fuSta
 const fuMenuTile=()=>fuCan()?[['🌐',tr('fedui.multiplayer'),'fuOpen']]:[];
 
 /* ---------- loading what a sheet shows, then drawing it ---------- */
-async function fuLoad(){const v=UI.fu&&UI.fu.v;if(!v)return;
+/* Loads run one after another: events (status, catalog, board) and buttons ask for loads that overlap, and an older
+   one finishing last would draw what it read before the newer one (an empty catalog, no operator key). A request while
+   one runs queues a single next load, which reads everything afresh. */
+function fuLoad(){if(FU.loadNext)return FU.loadNext;
+  const p=FU.loadNext=(FU.loading||Promise.resolve()).then(()=>{FU.loadNext=null;return fuLoadRun();}).finally(()=>{if(FU.loading===p)FU.loading=null;});FU.loading=p;return p;}
+async function fuLoadRun(){const v=UI.fu&&UI.fu.v;if(!v)return;
   try{FU.srvs=await fedServers();FU.opKey=await fedOpKey();
     if(v==='glass'||v==='server'||v==='net'||v==='home'||v==='boards'||v==='filters'){FU.gossip=(await fedGet('kv','gossip'))||[];FU.votes=(await fedGet('kv','votes'))||[];
       FU.nets=new Map((await fedNetworks()).map(n=>[n.key,n]));FU.hideNames=new Set();
