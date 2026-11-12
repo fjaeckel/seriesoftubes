@@ -52,6 +52,8 @@ function beginGame(nm,city,o={}){if(needPitch()&&!UI.pitched){UI.pendGame=[nm,ci
     for(const m of S.scn.mods){if(m==='pricey')S.priceMul=1.3;if(m==='poor')S.cash=100000;if(m==='chaos')S.scn.rules.chaos=true;if(m==='boom')S.scn.rules.boom=true;if(m==='dk')S.scn.rules.dkAll=true;if(m==='sharks')S.scn.rules.sharks=true;}}
   // Every new network starts at ½ speed (#186), whatever the last one ran at: slow enough to look around, but things happen.
   UI.lastSpeed=rule('clock')?0.5:0;setSpeed(UI.lastSpeed);UI.resumeSpeed=null;
+  // The title's "Play with others" choice belongs to this game only; it joins once the charter is signed (fuInviteGo).
+  UI.fedGo=o.fed!==undefined&&S.mode==='normal'?{url:o.fed||null,s:S}:null;
   track('game_new');UI.started=true;closeModal();compute();cam.x=CITY[city].x;cam.y=CITY[city].y;cam.z=innerWidth<760?1.1:1.4;selectCity(city);
   toast(S.scn?`<b>${esc(S.scn.name)}</b><br>${o.scn.goal?esc(o.scn.goal)+'.':tr('common.serve_as_much_traffic_as_you')} ${tr('scenarios.you_have_n_days',{n:S.scn.days})}`:S.mode==='sandbox'?(chaosMul()?tr('scenarios.sandbox_mode_a_billion_dollars_chaos',{chaos:CHAOS[rule('chaos')].n}):tr('scenarios.sandbox_mode_a_billion_dollars_every')):tr('scenarios.welcome_name_the_ripe_ncc_assigned',{name:esc(nm),asn:S.asn,city:CITY[city].name}),'goal');
   // A Normal game asks for its charter first; the tutorial starts once it is signed.

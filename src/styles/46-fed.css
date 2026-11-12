@@ -49,3 +49,18 @@
 .fu-op{border-top:2px dashed var(--line);margin-top:10px;padding-top:4px}
 .fu-h4{font-size:13px;margin:8px 0 2px}
 .fu-invite{margin:6px 0}
+/* The title screen's "Play with others" switch and its compact server picker (47-fed-start.js). */
+.fstart{margin:10px 0 0;border:2px solid var(--line);border-radius:14px;padding:6px 12px 8px;min-width:0}
+.fstart.on{border-color:var(--me)}
+.fstart .meta{margin:4px 0}
+.fstart .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;overflow-wrap:anywhere}
+.fs-head{display:flex;align-items:center;gap:10px;min-width:0}
+.fs-head label.f{flex:1;min-width:0;margin:4px 0;cursor:pointer}
+.fs-tog{flex:none;position:relative;width:52px;height:30px;padding:0;border:3px solid var(--ink);border-radius:999px;background:var(--soft);cursor:pointer}
+.fs-tog span{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--ink);transition:left .12s ease}
+.fs-tog[aria-checked=true]{background:var(--me)}.fs-tog[aria-checked=true] span{left:24px;background:#fff}
+.fs-list{display:flex;flex-direction:column;gap:6px;max-height:min(190px,30vh);overflow-y:auto;overscroll-behavior:contain;margin:6px 0}
+.fs-srv{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;flex:none;text-align:left;border:2px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);font:inherit;padding:6px 10px;cursor:pointer;overflow-wrap:anywhere}
+.fs-srv.on{border-color:var(--me);background:#FFE3F0}
+.fs-srv .meta{font-size:12px;line-height:1.3;margin:0}
+.fstart input.t{font-size:16px;padding:6px 10px}

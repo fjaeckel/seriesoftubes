@@ -259,7 +259,8 @@ async function main() {
       console.log(`\nReady. Relay ${URL1.replace('wss:', 'ws:')} (server "E2E Tubes"), no TLS. Open one address per player:
   Player 1: http://localhost:${wport}${inv}
   Player 2: http://127.0.0.1:${wport}${inv}
-Name your network, start a Normal game, and the join sheet opens: press Join. Then menu > Multiplayer: the looking
+Name your network: "Play with others" is on with the invited server picked. Start building and sign the charter:
+the game joins (or switch it off, start, and join from menu > Multiplayer). Then menu > Multiplayer: the looking
 glass finds the other player, its Deals button asks for peering. Ctrl-C stops (the relay is thrown away; the games
 stay in the browser).`);
       await new Promise(() => {}); // until Ctrl-C (SIGINT cleans up)
@@ -277,7 +278,8 @@ stay in the browser).`);
       args: ['--ignore-certificate-errors', `--host-resolver-rules=MAP ${HOST} 127.0.0.1, MAP game.test 127.0.0.1`, `--unsafely-treat-insecure-origin-as-secure=${PAGE.slice(0, -1)}`] });
 
     const players = {};
-    async function player(name) {
+    // title: start from the title screen's "Play with others" switch instead of joining from the menu afterwards.
+    async function player(name, title) {
       const ctx = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
       const page = await ctx.newPage();
       const p = { name, ctx, page, errors: [], frames: [], sent: [] };
@@ -289,8 +291,17 @@ stay in the browser).`);
         ws.on('framesent', (f) => { try { p.sent.push(JSON.parse(f.payload)); } catch (e) { /* not JSON */ } });
       });
       await page.goto(PAGE, { waitUntil: 'load' });
-      await page.evaluate((nm) => { const i = document.getElementById('nmIn'); if (i) i.value = nm; UI.pitched = true; ACT.start({}); }, name);
-      await page.waitForFunction(() => typeof S !== 'undefined' && S && UI.started);
+      if (title) {
+        await page.locator('#fsTog').click();
+        await page.locator('#fsList .fs-srv', { hasText: 'E2E Tubes' }).first().click();
+        await page.evaluate((nm) => { const i = document.getElementById('nmIn'); if (i) i.value = nm; UI.pitched = true; }, name);
+        await page.locator('#modalCard .tcta [data-act="start"]').click();
+        await page.waitForFunction(() => typeof S !== 'undefined' && S && UI.started);
+        await page.locator('#modalCard [data-act="charter"]').first().click();
+      } else {
+        await page.evaluate((nm) => { const i = document.getElementById('nmIn'); if (i) i.value = nm; UI.pitched = true; ACT.start({}); }, name);
+        await page.waitForFunction(() => typeof S !== 'undefined' && S && UI.started);
+      }
       await page.evaluate(() => { try { closeModal(); } catch (e) { /* none */ } });
       players[name] = p;
       return p;
@@ -298,14 +309,22 @@ stay in the browser).`);
     const ev = (p, f, a) => p.page.evaluate(f, a);
     const click = async (p, sel) => { await p.page.locator(sel).first().click(); };
 
+    // Alice joins from the join sheet, Bob from the title screen's switch: both ways stay covered.
     for (const nm of ['Alice Net', 'Bob Net']) {
-      await step(`${nm}: joins the server through the join sheet`, async () => {
-        const p = await player(nm);
-        await ev(p, () => ACT.fuOpen({ v: 'join' }));
-        await p.page.waitForSelector('.fedui [data-act="fuJoin"]', { timeout: 15000 });
-        const card = await p.page.locator('.fu-srv', { hasText: 'E2E Tubes' }).first();
-        await card.locator('[data-act="fuJoin"]').click();
-        await until(() => ev(p, () => fedStatus().state === 'connected'), 20000, 'connected');
+      const title = nm === 'Bob Net';
+      await step(`${nm}: joins the server ${title ? 'by starting with "Play with others" on' : 'through the join sheet'}`, async () => {
+        const p = await player(nm, title);
+        if (title) {
+          await until(() => ev(p, () => fedStatus().state === 'connected'), 20000, 'connected after the charter');
+          must(await ev(p, () => !UI.fu && !document.querySelector('#modalCard .fedui')), 'the join sheet opened');
+          must(await ev(p, () => /Joined E2E Tubes/.test(document.getElementById('toasts').textContent + JSON.stringify(S.log || []))), 'no "Joined" notice');
+        } else {
+          await ev(p, () => ACT.fuOpen({ v: 'join' }));
+          await p.page.waitForSelector('.fedui [data-act="fuJoin"]', { timeout: 15000 });
+          const card = await p.page.locator('.fu-srv', { hasText: 'E2E Tubes' }).first();
+          await card.locator('[data-act="fuJoin"]').click();
+          await until(() => ev(p, () => fedStatus().state === 'connected'), 20000, 'connected');
+        }
         const ch = p.sent.find((f) => f.m === 'challenge'), pr = p.frames.find((f) => f.m === 'proof');
         must(ch && pr, 'the client did not check the node with a challenge (is the server in its registry?)');
         must(p.sent.some((f) => f.m === 'sub'), 'no sub');

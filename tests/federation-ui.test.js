@@ -410,7 +410,8 @@ test('from the first screen: the invite shows at once, the menu has its tile, a 
   // The title drawn at load already names the invite (it is drawn before the multiplayer code boots).
   assert.match(p.ev("document.body.textContent"), /You were invited to wss:\/\/second\.example\.org:8443\/fed/);
   await settle(40);
-  p.ev('ACT.start({})');
+  // Started without the title's switch (federation-start.test.js covers it), the invite opens the join sheet as before.
+  p.ev('closeModal();ACT.start({})');
   // The capability check started at boot, so the very first menu has the tile.
   p.ev('ACT.menu({})');
   assert.equal(p.ev(`!!document.querySelector('#modalCard [data-act="fuOpen"]')`), true, 'Multiplayer tile on the first menu');
