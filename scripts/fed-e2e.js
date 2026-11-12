@@ -30,6 +30,8 @@ const argv = (k, d) => { const i = process.argv.indexOf(k); return i >= 0 ? proc
 const PLAY = arg('--play'), KEEP = arg('--keep'), HEADED = arg('--headed'), QUICK = arg('--quick');
 const FAKES = Math.max(0, +argv('--fakes', PLAY ? 12 : 260) || 0);
 const HOST = 'relay.localhost', SLOT = 300, DAY = 86400;
+// The relay runs as this release; the update feed of the run announces the next minor one.
+const RELAY_VER = require('../package.json').version, NEXT_VER = RELAY_VER.replace(/^(\d+)\.(\d+)\..*$/, (_, a, b) => `${a}.${+b + 1}.0`);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const now = () => Math.floor(Date.now() / 1000);
 
@@ -141,7 +143,8 @@ async function main() {
     const URL1 = `wss://${HOST}:${port}/fed`;
 
     await step('build the relay (go build)', async () => {
-      execFileSync('go', ['build', '-o', bin, './cmd/relay'], { cwd: path.join(ROOT, 'relay'), stdio: ['ignore', 'pipe', 'pipe'] });
+      // Stamped like a release, so it compares itself with the update feed (a "dev" build never does).
+      execFileSync('go', ['build', '-ldflags', `-X main.version=${RELAY_VER}`, '-o', bin, './cmd/relay'], { cwd: path.join(ROOT, 'relay'), stdio: ['ignore', 'pipe', 'pipe'] });
       return path.relative(ROOT, bin) === bin ? bin : 'ok';
     });
 
@@ -169,6 +172,9 @@ async function main() {
       execFileSync(bin, ['build-servers-json', dir, path.join(tmp, 'servers-go.json')], { stdio: 'ignore' });
       const go = fs.readFileSync(path.join(tmp, 'servers-go.json'), 'utf8'), js = fs.readFileSync(out, 'utf8');
       must(go === js, 'relay build-servers-json and scripts/registry.js disagree');
+      // The update feed beside it, as the site build writes it, announcing a newer relay that fixes a security issue.
+      fs.writeFileSync(path.join(tmp, 'site', 'federation', 'relay.json'), JSON.stringify({ v: 1, version: NEXT_VER, released: new Date().toISOString().slice(0, 10),
+        security: true, notes: `https://github.com/fjaeckel/seriesoftubes/releases/tag/v${NEXT_VER}` }) + '\n');
       return `server ${srv[0].id.slice(0, 8)}…`;
     });
 
@@ -583,6 +589,31 @@ stay in the browser).`);
       return `target ${target.k.pub.slice(0, 8)}… shunned at the relay and in both games; Bob saw 0 votes, Alice ${aVotes}, the target the reasons ${JSON.stringify(ex.reasons)}`;
     });
 
+    await step('update notice: Alice (operator) sees the banner, Bob gets no update frame; the looking glass shows the relay version', async () => {
+      const st = ctl('status');
+      must(st.version === RELAY_VER, `relay status version ${st.version}`);
+      must(st.update && st.update.version === NEXT_VER && st.update.security === true && st.update.source === 'feed', `relay status update ${JSON.stringify(st.update)}`);
+      must(/relay update available/.test(relayLog), 'the relay did not log the update');
+      // The welcome says what the node runs, to every game.
+      for (const p of [A, B]) must(p.frames.some((f) => f.m === 'welcome' && f.impl && f.impl.version === RELAY_VER), `${p.name}'s welcome has no impl`);
+      const upd = await until(() => A.frames.find((f) => f.m === 'update'), 15000, 'Alice\'s update frame');
+      must(upd.version === NEXT_VER && upd.security === true && upd.notes === `https://github.com/fjaeckel/seriesoftubes/releases/tag/v${NEXT_VER}`, `update frame ${JSON.stringify(upd)}`);
+      must(!B.frames.some((f) => f.m === 'update'), 'Bob, no operator, got an update frame');
+      await ev(A, (id) => ACT.fuOpen({ v: 'server', id }), srv[0].id);
+      await A.page.waitForSelector('.fedui .fu-upd.bad', { timeout: 15000 });
+      const banner = await A.page.locator('.fedui .fu-upd').first().textContent();
+      must(banner.includes('Security update available') && banner.includes(NEXT_VER), `Alice's banner: ${banner}`);
+      const href = await A.page.locator('.fedui .fu-upd a').first().getAttribute('href');
+      must(href === upd.notes, `banner link ${href}`);
+      await ev(B, (id) => ACT.fuOpen({ v: 'server', id }), srv[0].id);
+      await B.page.waitForSelector('.fedui .fu-relays', { timeout: 15000 });
+      const relays = await B.page.locator('.fedui .fu-relays').first().textContent();
+      must(relays.includes(`relay ${RELAY_VER}`), `Bob's looking glass: ${relays}`);
+      must(await B.page.locator('.fedui .fu-upd').count() === 0, 'Bob sees an update banner');
+      for (const p of [A, B]) await ev(p, () => ACT.fuClose());
+      return `relay ${RELAY_VER}, feed ${NEXT_VER} (security): Alice's banner, Bob none; looking glass "${relays.trim()}"`;
+    });
+
     await step('operator panel: the chain is read with a sub, ended by its unsub, the connection stays', async () => {
       const hellos = A.sent.filter((f) => f.m === 'hello').length;
       const ch = await ev(A, async (id) => { const c = await fedOpChain(id); return c && { ops: c.chain.ops.length, pending: c.pending.length }; }, srv[0].id);
@@ -667,7 +698,8 @@ stay in the browser).`);
 
     await step('metrics and logs: counts only, no addresses', async () => {
       const m = await (await fetch(`http://127.0.0.1:${mport}/metrics`)).text();
-      for (const k of ['relay_connections_total', 'relay_records_out_total', 'relay_refused_total']) must(m.includes(k), `no ${k} in /metrics`);
+      for (const k of ['relay_connections_total', 'relay_records_out_total', 'relay_refused_total', `relay_build_info{version="${RELAY_VER}"} 1`,
+        'relay_update_available{security="true"} 1', `relay_latest_version_info{version="${NEXT_VER}"} 1`]) must(m.includes(k), `no ${k} in /metrics`);
       // Its own listening address is the only one it may print.
       const addr = relayLog.split('\n').filter((l) => !/msg="relay serving"/.test(l)).find((l) => /127\.0\.0\.1|::1|\[::/.test(l));
       must(!addr, `the relay log holds an address: ${addr}`);

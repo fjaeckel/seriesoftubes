@@ -734,6 +734,13 @@ percentile and lowest value, carry-forward, expiry, merging server lists), passe
   the game with an operator key kept apart from saves. Each node has its own key; the server is its operator list,
   changed only by a majority. No shared server key.
 - Shun votes carry one pre-made reason (cheating, offensive name, spam, abuse); no free text for now.
+- Servers publish their version; operators are told about updates (2026-11-12). Each node says what it runs in its
+  `welcome` (and node `hello`), and a server's catalog entry lists its nodes' versions (unsigned, display only). The
+  only update feed is a static file on the site, `federation/relay.json`, written by the build; a relay reads it beside
+  the registry every 6 hours and tells its operators (log once a day, `relay status`, metrics, an `update` frame to
+  operator sessions only, an opt-in `notifyURL` webhook). Without the file, a newer version that two other servers
+  report in gossip gives a hint (never a security one). A release is marked security by `relaySecurity` in
+  package.json.
 - Nothing logs or stores what identifies a person: no IP addresses, no city or finer location, no device details.
   The player's country is allowed, derived by the relay from a country-only database, and players can switch it off.
 

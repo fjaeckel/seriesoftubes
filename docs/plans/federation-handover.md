@@ -110,6 +110,12 @@ at that sandbox method.
 
 ## Done since the first handover (2026-11-12)
 
+- **Relay versions and update notices:** `welcome`/node `hello` carry `impl`, catalog entries an `impl` list; the site
+  build writes `federation/relay.json` (security via package.json `relaySecurity`); relays read it beside the
+  registry and tell operators (log, `relay status`, metrics, `update` frame, opt-in `notifyURL`); the looking glass
+  shows "relay x.y.z" per node and the operator panel an update banner (`relay/internal/update`, `node/update.go`,
+  spec §9.3, §10.8, §11.4, RELAY.md "Versions and update notices", vectors `impl`, `tests/federation-update.test.js`).
+
 - `relay/go.sum` regenerated from scratch with a fresh module cache against proxy.golang.org and sum.golang.org:
   byte-identical, `go mod verify` clean.
 - Relay tests failed on macOS (operator socket path over the 104-byte Unix limit under `t.TempDir()`): tests use
