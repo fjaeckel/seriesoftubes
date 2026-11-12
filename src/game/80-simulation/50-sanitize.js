@@ -119,6 +119,7 @@ function sanitize(s){
   cmFix(s);
   pieSanitize(s);pieIncFix(s);volFix(s);
   fedSanitize(s);// multiplayer: null unless this save joined (60-features/86-fed-state.js)
+  fedpSanitize(s);// other players' networks and this one's published terms (60-features/89-fedplay-*.js)
   if(s.te){if(typeof s.te!=='object')s.te=null;else{s.te.on=!!s.te.on;s.te.script=typeof s.te.script==='string'?s.te.script.slice(0,4000):'';}}
   return s;}
 function migrate(s){sanitize(s);
@@ -132,7 +133,7 @@ function migrate(s){sanitize(s);
   for(const c in s.pops){const p=s.pops[c];if(p.rgen===undefined){let g=0;const need=(i,key)=>{const k=RG.findIndex(r=>r[key]>=i);if(k>g)g=k;};
     for(const l of s.links||[])if((l.a===c||l.b===c)&&l.kind==='wave')need(l.tier,'maxLT');
     for(const t of s.transit||[])if(t.city===c)need(t.tier,'maxP');for(const x of s.pni||[])if(x.city===c)need(x.tier,'maxP');if(s.ixp&&s.ixp[c]!==undefined)need(s.ixp[c],'maxP');p.rgen=g;}}for(const b of s.biz||[])if(!b.reqs)b.reqs=BIZ_T[b.type]&&BIZ_T[b.type].div?['diverse']:[];for(const o of s.offers||[])if(!o.reqs)o.reqs=[];if(!s.lvl)s.lvl=1;s.nni=(Array.isArray(s.nni)?s.nni:[]).filter(x=>x&&own(FAB,x.prov)&&isCity(x.city)&&Number.isInteger(x.tier)&&!!NNI[x.tier]);for(const x of s.nni){const n=Math.floor(+x.n||1);if(n>1)x.n=Math.min(LAG_MAX,n);else delete x.n;}s.cnLic=s.cnLic||{state:'none'};s.ev=s.ev||{};for(const l of s.links){if(!l.kind)l.kind='wave';if(l.mo===undefined)l.mo=Math.round(waveMo(l.km,l.sub,l.tier)*(l.mult||1));}for(const c in s.pops){if(!s.pops[c].routers)s.pops[c].routers=1;}
-  {const all=NETS.map(n=>n.id),seen=Array.isArray(s.seen)?s.seen.filter(x=>typeof x==='string'):null,fresh=seen?all.filter(id=>!seen.includes(id)):all;
+  {const all=NETS.filter(n=>!n.fed).map(n=>n.id),seen=Array.isArray(s.seen)?s.seen.filter(x=>typeof x==='string'):null,fresh=seen?all.filter(id=>!seen.includes(id)):all;
     if(fresh.length&&(s.day||0)>0){const g=s.grace&&s.grace.until>s.day?s.grace:{nets:[]};s.grace={until:s.day+GRACE_DAYS,nets:[...new Set(g.nets.concat(fresh))],fresh:seen?fresh.length:0};}
     s.seen=all;}
   // Australian pricing and peering changed in place (#148): a save that was already there gets told once.

@@ -113,6 +113,7 @@ function* dayPost(d){
   if(opsHired())yield DAY_REST;
   yield* opsRun(d);
   if(S.pie){pieDay(d);pieTier();}
+  if(S.fed&&fedPlayDay())yield;// a swap partner's wave comes or goes (89-fedplay-deals.js)
   // payday floaters
   if(cal(d).d===1){for(const c in S.pops){let v=(R.cityEye[c]*sfOf(R,c)*EYE_RATE)+S.biz.filter(b=>b.city===c).reduce((a,b)=>a+b.bw*b.rate,0);v=v-R.cityEye[c]*sfOf(R,c)*EYE_RATE*(1-arpuOf(c));if(v>500)floater(CITY[c].x,CITY[c].y-30,'+'+fmt$(v),'#16A866');}sfx('coin');}
   checkGoals();

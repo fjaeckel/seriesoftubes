@@ -12,4 +12,11 @@ function apiFedDeclare({model,harness}={}){const m=fedLabel(model),h=fedLabel(ha
   if(!m||!h)apiFail('apiFedDeclare: model and harness are 1 to 64 characters of plain text.');
   if(!S)apiFail('No game is running.');if(!S.fed)S.fed=fedNewState();S.fed.ai={model:m,harness:h};fedSaved();
   return {model:m,harness:h};}
-Object.assign(ACT,{apiFedDeclare:({model,harness}={})=>apiFedDeclare({model,harness})});
+/* AI players as neighbours: once the agent has declared itself (a real model, not the undeclared mark), it may join a
+   server from its own game, so AI networks show with a robot badge in every game that meets them. Never in the player's
+   tab (API_PLAYER_OWNS): there joining stays the player's choice. */
+function apiFedJoin({url}={}){if(!S)apiFail('No game is running.');const ai=S.fed&&S.fed.ai;
+  if(!ai||ai.model===API_FED_UNDECLARED)apiFail('apiFedJoin: declare the model first with apiFedDeclare.');
+  if(typeof url!=='string')apiFail('apiFedJoin: url is a wss:// node URL.');
+  return fedJoin(url).then(r=>{if(r)apiFail(`apiFedJoin: cannot join (${r}).`);return {joined:url};});}
+Object.assign(ACT,{apiFedDeclare:({model,harness}={})=>apiFedDeclare({model,harness}),apiFedJoin:({url}={})=>apiFedJoin({url})});

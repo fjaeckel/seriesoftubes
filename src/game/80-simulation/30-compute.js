@@ -25,7 +25,7 @@ function mkEx(k,id,city,cap,rank,pref,lab,ok,nets,net){return {k,net,id,city,lab
   ek:'',J:0,byC:null,desc:null,dup:false,told:false,hp:1,dt:0,ci:0,cn:false,ts:-1,xi:0,kx:EXK.indexOf(k),fac:undefined};}
 // The exit kinds by number (mkEx's kx), for what routing adds up per kind in typed arrays.
 const EXK=['t','ix','p','c'];
-function compute(){RW.gen++;
+function compute(){RW.gen++;fedNetsSync();
   const day=S.day, R2=emptyR(), pops=Object.keys(S.pops).filter(popUp), NC=CITIES.length;
   // The graph works on city indices: adj[i] lists [neighbour, edge] in S.links order.
   const remote=remoteCities(),adj=new Array(NC); pops.concat(remote).forEach(p=>adj[CIDX[p]]=[]);
@@ -61,6 +61,7 @@ function compute(){RW.gen++;
   for(const p of S.pni){if(!pniOn(p)||!popUp(p.city)||!liveN(p.city,p.site,p.n))continue;R2.sessions++;
     const x=mkEx('p',p.id,p.city,liveCap(pniG(p),p.city,p.site,p.n)*lagF(p)*(p.sacrif?0.5:1),2,p.pref||'normal',labOf(N_('common.pni_with_net'),'net',NET[p.net].name),n=>CONE_S[p.net].has(n),CONE[p.net],p.net);x.sac=!!p.sacrif;x.pnc=!!NET[p.net].cn;E.push(x);}
   for(const c of S.caches){if(!popUp(c.city)||siteDown(c.city,c.site==='b'?'b':'a'))continue;E.push(mkEx('c',c.id,c.city,cacheG(c),0,'normal',labOf(N_('common.name_cache'),'name',NET[c.net].cache.name),n=>n===c.net,[c.net]));}
+  if(S.fed)fedExits(E);// deals with other players (89-fedplay-deals.js)
   // After an update adds networks, a free courtesy route reaches the new ones you have no other way to (#46).
   R2.graceNets=0;if(S.grace&&S.grace.until>day){const gs=new Set(S.grace.nets.filter(n=>NET[n]&&!E.some(e=>e.k!=='c'&&e.ok(n)))),hc=popUp(S.home)?S.home:pops.find(popUp);
     R2.graceNets=gs.size;if(gs.size&&hc)E.push(mkEx('ix','~grace',hc,1e9,2,'normal',tr('compute.courtesy_route_to_new_networks'),n=>gs.has(n),gs));}
@@ -265,6 +266,7 @@ function computeMoney(R2,PX=null){
   // The UK grant for Pitcairn, its satellite tier once orbit is known; the Rural Digital Pie Fund (99-pie-subsidies.js).
   {const on=grantOn(R2),sky=!on&&!!PX&&grantSky(R2);V.grant=on?GRANT_MO:sky?GRANT_SKY_MO:0;if(PX)V.gov=pieGovMo();if(PX)R2.pie.gov={rdf:V.gov||0,sky:sky?GRANT_SKY_MO:0};}
   C.revshare=(S.loans||[]).reduce((a,l)=>a+(BANKS[l.bank].equity||l.bal>0?l.share||0:0),0)*(V.eyeballs+V.business+V.ix+(V.orbit||0));
+  if(S.fed||S.fedp)fedMoney(C,V,R2);
   R2.costMo=Object.values(C).reduce((a,b)=>a+b,0);
-  R2.revMo=V.eyeballs+V.business+V.ix+V.grant+(V.gov||0)+(V.orbit||0);
+  R2.revMo=V.eyeballs+V.business+V.ix+V.grant+(V.gov||0)+(V.orbit||0)+(V.fed||0);
 }

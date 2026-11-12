@@ -67,6 +67,7 @@ function renderLeft(){checkLayer();
     h+=`<div class="kv" style="margin-top:8px"><span>${tr('hud_and_panels.incidents_so_far')}</span><b>${S.stats.incidents}</b></div><div class="kv"><span>${tr('hud_and_panels.survived_with_no_impact')}</span><b>${S.stats.survived}</b></div>`;
   }else{
     if(Object.keys(S.ixp).length||ppol()!=='open')h+=pdeskCard();
+    if(S.fed)h+=fedPlayCard();
     h+=`<p class="lead">${tr('hud_and_panels.every_network_on_the_map_traffic')}</p>`;
     {const nc=connsN();if(nc)h+=`<div class="btns" style="margin-bottom:8px">${btn(tr('hud_and_panels.all_connections_n',{n:nc}),'connOpen',{},'pink sm')}</div>`;}
     const where=netWhereIdx(),tl=NETS.filter(n=>n.tail),tlOn=tl.filter(n=>where(n.id).some(x=>x[2]==='ix')).length;
@@ -74,7 +75,7 @@ function renderLeft(){checkLayer();
     h+=`<div class="btns" style="margin-bottom:8px">${btn(tr('common.all_networks'),'netFilter',{f:'all'},!foc&&!out?'sm':'ghost sm')}${btn(tr('hud_and_panels.out_of_reach_without_transit_n',{n:lostN}),'netFilter',{f:'out'},out?'sm':'ghost sm')}</div>`;
     if(out&&!lostN)h+=`<p class="empty">${tr('hud_and_panels.nothing_every_network_is_reachable')}</p>`;
     // Shown 100 at a time like the dashboard lists: every country's own eyeballs made this list long (2.0).
-    const nl=(foc?[foc]:out?ntLost():NETS).filter(n=>!n.tail||UI.tailOpen||foc||out);
+    const nl=(foc?[foc]:out?ntLost():NETS).filter(n=>!n.fed&&(!n.tail||UI.tailOpen||foc||out));
     for(const n of nl.slice(0,listN('nets'))){
       h+=`<div class="row">${logo(n)}<div class="grow"><div class="nm">${esc(n.name)} <span class="meta">AS${n.asn}</span></div><div class="meta"><span class="tag ${n.type}">${TYPE_L[n.type]}</span> <span class="tag ${n.pol}">${n.pol}</span> · ${tr('hud_and_panels.p_of_traffic',{p:(NSH[n.id]*100).toFixed(1)})}${n.price?` · ${tr('hud_and_panels.transit_price_gbps',{price:(n.price*S.priceMul).toFixed(2)})}`:''}</div><div class="pchips">${pniChip(n.id,null)}</div><div class="meta">${esc(n.blurb)}</div>${netWhere(n,where)}${(foc||out)&&!R.nt[n.id]?`<p class="why">${esc(offTransitHint(n.id))}</p>`:''}${(foc||out)&&coneVia(n.id)&&(R.cone[n.id]||!R.nt[n.id])?`<p class="meta">${R.cone[n.id]?tr('hud_and_panels.reached_through_the_customer_cone_of',{net:esc((NET[R.cone[n.id]]||coneVia(n.id)).name)}):tr('hud_and_panels.buys_transit_from_net_peer_with',{net:esc(coneVia(n.id).name)})}</p>`:''}${foc||out&&!R.nt[n.id]?meetLine(n,foc?24:4):''}</div></div>`;}
     h+=listMore('nets',nl.length,n=>trn('hud_and_panels.n_more_networks',n));

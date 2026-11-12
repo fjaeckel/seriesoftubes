@@ -19,7 +19,7 @@ function meetLine(n,max){const sp=meetSpots(n.id);if(!sp.length)return '';
 // The nearest place to meet a network you have no POP for, for one-line hints.
 function nearestSpot(id){const x=meetSpots(id)[0];return x&&!S.pops[x.c]?x:null;}
 // Networks you reach only through transit, biggest first: what stands between you and Tier 1.
-const ntLost=()=>NETS.filter(n=>!R.nt[n.id]).sort((a,b)=>NSH[b.id]-NSH[a.id]);
+const ntLost=()=>NETS.filter(n=>!R.nt[n.id]&&!n.fed).sort((a,b)=>NSH[b.id]-NSH[a.id]);
 function t1Card(){const cur=GOALS.find(g=>S.done[g.id]===undefined);if(!((cur&&cur.id==='t1')||S.won)||isTier1())return '';
   const need=t1Need(),miss=need.filter(n=>!S.pni.some(p=>p.net===n.id&&pniOn(p))),club=t1Club(),lost=ntLost(),nb=n=>btn(esc(n.name),'netFocus',{id:n.id},'ghost sm');
   let h=`<div class="pcard"><div class="eyebrow">${tr('common.goal')} · ${tr('common.go_transit_free_tier_1')}</div><div class="pt">${tr('meet_a_network.road_to_tier_1')}</div>`;
