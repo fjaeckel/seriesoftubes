@@ -142,15 +142,17 @@ func (a *Agg) base(ctx context.Context, q *Slice, c int64) (*flight, error) {
 	}
 	f, owner := a.flightFor(a.bases, k)
 	if owner {
-		f.rows = a.computeBase(q.Board, q.Measure, q.Cities)
+		f.rows = a.computeBase(q.Board, q.Measure, q.Cities, c)
 		f.slot = c
 		a.land(a.bases, k, f)
 	}
 	return f, wait(ctx, f)
 }
 
-// computeBase is 10.3 to 10.5 for one board, measure and region (read lock).
-func (a *Agg) computeBase(board, measure string, cities []string) []brow {
+// computeBase is 10.3 to 10.5 for one board, measure and region at running slot c (read lock).
+// c is the slot the job was queued for: the windows may have moved on meanwhile, and the answer
+// must be what that slot gives, since it is labelled with it (9.5) and spot-checked against it.
+func (a *Agg) computeBase(board, measure string, cities []string, c int64) []brow {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	var rg *region
@@ -160,13 +162,14 @@ func (a *Agg) computeBase(board, measure string, cities []string) []brow {
 			rg.cities[c] = true
 		}
 	}
-	from, last := a.c-N*fed.SlotLen, a.c-fed.SlotLen
+	from, last := c-N*fed.SlotLen, c-fed.SlotLen
 	rows := make([]brow, 0, len(a.nets))
 	var buf [2][][2]int64
 	var cs map[*net][]int32
 	if board == "cone" {
-		cs = a.cones()
+		cs = a.cones(c)
 	}
+	sums := a.c == c // the per-slot traffic sums are for this slot
 	for _, x := range a.nets {
 		if len(x.win) == 0 || a.ex[x.key] {
 			continue
@@ -179,9 +182,9 @@ func (a *Agg) computeBase(board, measure string, cities []string) []brow {
 		if growth && x.value(from) == nil {
 			continue
 		}
-		v := a.total(x, board, rg, fed.WindowSlots, N, from, &buf, cs[x])
+		v := a.total(x, board, rg, fed.WindowSlots, N, from, &buf, cs[x], sums)
 		if growth {
-			prev := a.total(x, board, rg, 0, fed.WindowSlots, from, &buf, cs[x])
+			prev := a.total(x, board, rg, 0, fed.WindowSlots, from, &buf, cs[x], sums)
 			v = fed.Div((v-prev)*10000, max(prev, floor[board]))
 		}
 		rows = append(rows, brow{x, l, v})
@@ -218,8 +221,8 @@ func (g *region) has(s *stat) bool {
 }
 
 // total is 10.4 over window slots lo..hi-1 (read lock held). cone: x's cone size per window slot
-// (nil: none at any slot).
-func (a *Agg) total(x *net, board string, rg *region, lo, hi int, from int64, buf *[2][][2]int64, cone []int32) int64 {
+// (nil: none at any slot). sums: x.in and x.out are for the windows starting at from.
+func (a *Agg) total(x *net, board string, rg *region, lo, hi int, from int64, buf *[2][][2]int64, cone []int32, sums bool) int64 {
 	switch board {
 	case "cone":
 		v := buf[0][:0]
@@ -282,10 +285,12 @@ func (a *Agg) total(x *net, board string, rg *region, lo, hi int, from int64, bu
 			for k := i; k < j; k++ {
 				var ti, to int64
 				switch {
-				case rg != nil:
+				case rg == nil && sums:
+					if x.in != nil {
+						ti, to = x.in[k], x.out[k]
+					}
+				case len(r.tr) > 0:
 					ti, to = a.traffic(x, r, from+int64(k)*fed.SlotLen, rg)
-				case x.in != nil:
-					ti, to = x.in[k], x.out[k]
 				}
 				in, out = add(in, ti), add(out, to)
 			}

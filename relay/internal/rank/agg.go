@@ -135,11 +135,15 @@ func (a *Agg) Exclude(ex, names map[string]bool) {
 	a.feed(event{op: 'x', ex: maps.Clone(ex), names: maps.Clone(names)})
 }
 
-// flush applies what is queued (nothing before Load).
+// flush applies what is queued (nothing before Load). The queue is taken under the write lock,
+// in one step with applying it: two flushes (the applier's and a request's) then apply events in
+// the order they were fed, never a later drop before an earlier stats record.
 func (a *Agg) flush() {
 	if !a.ready.Load() {
 		return
 	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	a.qmu.Lock()
 	q := a.q
 	a.q = nil
@@ -147,12 +151,16 @@ func (a *Agg) flush() {
 	if len(q) == 0 {
 		return
 	}
-	a.mu.Lock()
-	defer a.mu.Unlock()
+	if flushHook != nil {
+		flushHook(q)
+	}
 	for _, e := range q {
 		a.apply(e)
 	}
 }
+
+// flushHook, when set (tests), runs after a flush took the queue and before it applies it.
+var flushHook func([]event)
 
 func (a *Agg) pending() bool {
 	a.qmu.Lock()
@@ -462,7 +470,7 @@ func (a *Agg) traffic(x *net, r *stat, s int64, rg *region) (int64, int64) {
 // window brings the per-slot sums to the windows of running slot c.
 func (a *Agg) window(c int64) {
 	a.mu.RLock()
-	ok := a.c == c
+	ok := a.c == c || a.c != 0 && c < a.c
 	a.mu.RUnlock()
 	if ok {
 		return
@@ -473,9 +481,11 @@ func (a *Agg) window(c int64) {
 }
 
 // shift moves the windows to running slot c (write lock held): the sums of slots still in the
-// windows stay, only the new slots are worked out (all of them after a long gap).
+// windows stay, only the new slots are worked out (all of them after a long gap). The windows never
+// move back: a request for an older slot (one that waited while another moved them on) is worked
+// out for its own slot without the sums (computeBase).
 func (a *Agg) shift(c int64) {
-	if a.c == c {
+	if a.c == c || a.c != 0 && c < a.c {
 		return
 	}
 	var list []*net

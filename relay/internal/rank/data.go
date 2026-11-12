@@ -330,11 +330,17 @@ func (q *Slice) baseKey() string {
 	return q.Board + "|" + q.Measure + "|" + regionKey(q.Cities)
 }
 
+// regionKey and the string fields of key are length-prefixed: model, harness and the rest are
+// whatever a client sent, so no separator inside them can make two slices share a cache entry.
 func regionKey(c []string) string {
 	if c == nil {
 		return "*"
 	}
-	return strings.Join(c, ",")
+	var b strings.Builder
+	for _, x := range c {
+		b.WriteString(itoa(int64(len(x))) + ":" + x)
+	}
+	return b.String()
 }
 
 // key names a whole slice (for the caches).
@@ -345,7 +351,7 @@ func (q *Slice) key() string {
 	ps := func(p *string) {
 		b.WriteByte('|')
 		if p != nil {
-			b.WriteString("=" + *p)
+			b.WriteString("=" + itoa(int64(len(*p))) + ":" + *p)
 		}
 	}
 	pi := func(p *int64) {
@@ -375,7 +381,7 @@ func (q *Slice) key() string {
 	if q.Keys != nil {
 		k := slices.Clone(q.Keys)
 		slices.Sort(k)
-		b.WriteString("=" + strings.Join(slices.Compact(k), ","))
+		b.WriteString("=" + regionKey(slices.Compact(k)))
 	}
 	return b.String()
 }
