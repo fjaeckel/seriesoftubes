@@ -70,7 +70,7 @@ function fedDial(c){if(!fedLive(c))return;fedHang(c);
   ws.onclose=()=>{if(c.ws===ws)fedDrop(c,'closed');};}
 /* The connection is gone: try the server's next node at once, and after a full round of them wait, longer each time
    (2 s doubling, at most 30 min, with jitter), and only while the tab is visible. */
-function fedDrop(c,why){fedHang(c);if(!fedLive(c))return;c.ni++;
+function fedDrop(c,why){fedErrLog(c.node,c.srv,why);fedHang(c);if(!fedLive(c))return;c.ni++;
   if(c.ni%c.nodes.length===0)c.tries++;
   fedSt(c,'offline');
   const wait=c.wait=c.ni%c.nodes.length?250:Math.min(FED.T.cap,FED.T.base*2**Math.min(20,c.tries-1))*(0.5+FED.rand()/2);
@@ -172,7 +172,7 @@ async function fedBoardFetch(url){const M=FED.live,c=M&&M.conns.get(url);if(!c||
 /* Everything the boards are computed from, from the cache (works offline): {records (merged over the joined servers,
    or one server's), announces (Map key -> announce), exclude (muted, hidden by those servers, shunned), at (oldest
    fetch time, for "as of …")}. */
-async function fedBoardData(server=null){const f=S&&S.fed,ids=server?[server]:Object.values(FED.st).map(x=>x.server).filter(Boolean),by=new Map(),now=fedNow();let at=null;
+async function fedBoardData(server=null){const f=S&&S.fed,ids=Array.isArray(server)?server:server?[server]:Object.values(FED.st).map(x=>x.server).filter(Boolean),by=new Map(),now=fedNow();let at=null;
   for(const id of new Set(ids)){const b=await fedBoardGet(id);if(!b)continue;at=at===null?b.at:Math.min(at,b.at);
     for(const x of b.items){const o=by.get(x.id);if(o)o.srv=[...new Set([...o.srv,id])];else by.set(x.id,{...x,srv:[id]});}}
   const anns=new Map((await fedNetworks(now)).map(n=>[n.key,n.rec])),ex=new Set(f?f.muted:[]);

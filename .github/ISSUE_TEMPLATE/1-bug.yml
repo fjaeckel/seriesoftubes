@@ -75,7 +75,10 @@ body:
     id: save
     attributes:
       label: Saved game (optional, very helpful)
-      description: Menu → "Export save", then attach the file here. It lets us load your exact network.
+      description: >-
+        Menu → "Export save", then attach the file here. It lets us load your exact network.
+        Never attach a file whose name ends in `-move-PRIVATE.json` (from "Move to another device" in Multiplayer):
+        it holds your network's private key, and anyone with it can post as your network.
   - type: checkboxes
     id: checks
     attributes:

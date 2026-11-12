@@ -45,7 +45,7 @@ async function fedAnnCap(){const all=await fedAll('ann');if(all.length<=FED_ANN_
    Forgets those silent for 180 days (§10.6), and leaves out keys that left. */
 async function fedNetworks(now=fedNow()){const out=[];
   for(const [k,o] of await fedAll('ann')){if(!o||now-o.heard>=FED_FORGET){await fedDel('ann',k);continue;}
-    if(o.rec)out.push({key:k,rec:o.rec,id:o.id,heard:o.heard,quiet:fedQuiet(now,o.heard)});}
+    if(o.rec)out.push({key:k,rec:o.rec,id:o.id,heard:o.heard,quiet:fedQuiet(now,o.heard),srv:o.srv||[]});}
   return out;}
 
 /* ---------- small documents ---------- */
