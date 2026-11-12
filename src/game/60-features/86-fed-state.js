@@ -42,7 +42,8 @@ function fedOutClean(list,pub){let bytes=0,stats=null;const out=[];
    builds them; here only the common part is checked: {id (the offer's id), deal, key, name, asn, start, end (null:
    no end), terms (as offered), and anything else the gameplay adds, as plain checked values}. */
 function fedDealClean(d){if(!d||typeof d!=='object'||Array.isArray(d)||FdId(d.id)||!FED_DEALS.includes(d.deal)||FdK(d.key))return null;
-  if(fedValues(d)||fedSize(fedCanon(d))>8192)return null;
+  const rest={...d};delete rest.start;delete rest.end;// may be null (no end yet); everything else plain record values
+  if(fedValues(rest)||fedSize(fedCanon(rest))>8192)return null;
   const o={...d,name:typeof d.name==='string'?d.name.slice(0,40):'',asn:Number.isSafeInteger(d.asn)?d.asn:0,
     start:Number.isSafeInteger(d.start)?d.start:null,end:Number.isSafeInteger(d.end)?d.end:null};
   if(!o.terms||typeof o.terms!=='object'||Array.isArray(o.terms))o.terms={};return o;}

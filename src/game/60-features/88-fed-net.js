@@ -27,7 +27,7 @@ const fedMine=M=>!!M&&FED.live===M&&fedCur()===M.fed;
 // Starts, adjusts or stops the session to match the save now open. Safe to call any time; cheap when nothing joined.
 function fedWake(){if(fedWorker())return;const f=fedCur();if(FED.live&&FED.live.fed!==f)fedStop();if(!f)return;
   let M=FED.live;
-  if(!M){M=FED.live={fed:f,conns:new Map(),statsT:null,body:'',bodyAt:0};fedListen();fedCatalogLoad().catch(()=>{});
+  if(!M){M=FED.live={fed:f,conns:new Map(),statsT:null,body:'',bodyAt:0};fedListen();M.cat=fedCatalogLoad().catch(()=>false);M.cat.then(()=>fedLearnAll(M));
     M.statsT=FED.set(()=>fedStatsTick(M),FED.T.first);}
   for(const u of f.servers)if(!M.conns.has(u))fedConnect(M,u);
   for(const [u,c] of M.conns)if(!f.servers.includes(u)){M.conns.delete(u);fedHang(c);delete FED.st[u];}
@@ -73,24 +73,28 @@ function fedDial(c){if(!fedLive(c))return;fedHang(c);
 function fedDrop(c,why){fedHang(c);if(!fedLive(c))return;c.ni++;
   if(c.ni%c.nodes.length===0)c.tries++;
   fedSt(c,'offline');
-  const wait=c.ni%c.nodes.length?250:Math.min(FED.T.cap,FED.T.base*2**Math.min(20,c.tries-1))*(0.5+FED.rand()/2);
+  const wait=c.wait=c.ni%c.nodes.length?250:Math.min(FED.T.cap,FED.T.base*2**Math.min(20,c.tries-1))*(0.5+FED.rand()/2);
   c.t=FED.set(()=>fedDial(c),wait);}
+// The nodes of a connection's server, from the catalog: the joined URL first, then the others, for failing over.
+async function fedLearn(c,srvs){const e=c.srv&&(srvs||await fedServers()).find(x=>x.id===c.srv);if(!e||!fedLive(c))return null;
+  const cur=c.nodes[c.ni%c.nodes.length];c.nodes=[c.url,...e.nodes.map(n=>n.url).filter(u=>u!==c.url)];c.ni=Math.max(0,c.nodes.indexOf(cur));return e;}
+async function fedLearnAll(M){if(!fedMine(M))return;const s=await fedServers();for(const c of M.conns.values())await fedLearn(c,s);}
 function fedSend(c,m){const t=JSON.stringify(m);if(!c.ws||fedSize(t)>FED_FRAME)return false;try{c.ws.send(t);c.lastOut=fedNow();return true;}catch(e){return false;}}
 // A request: resolves with the answer frame, or null on timeout or a lost connection. many: answers come as several
 // recs frames ending with more:false, gathered into one.
-function fedAsk(c,m,many){return new Promise(res=>{if(c.phase!=='ready'){res(null);return;}const id=c.nid=c.nid%2147483646+1;
+function fedAsk(c,m,many){return new Promise(res=>{if(c.phase!=='ready'&&c.phase!=='check'){res(null);return;}const id=c.nid=c.nid%2147483646+1;
   const r={res,many,items:[],n:0,t:FED.set(()=>{c.rq.delete(id);res(null);},FED.T.req)};c.rq.set(id,r);
   if(!fedSend(c,{...m,id})){FED.clear(r.t);c.rq.delete(id);res(null);}});}
 
 /* ---------- frames from a node ---------- */
 function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.error){fedDrop(c,r.error);return;}const f=r.f;
   if(f.m==='welcome'){if(c.phase!=='hello'||f.ver!==1||c.srv&&f.server!==c.srv){fedDrop(c,'welcome');return;}
-    FED.clear(c.t);c.t=null;c.srv=f.server;c.nodeKey=f.node;c.phase='ready';c.tries=0;fedSt(c,'connected');
-    c.tick=FED.set(function tk(){if(!fedLive(c)||c.phase!=='ready')return;const n=fedNow();
+    FED.clear(c.t);c.t=null;c.srv=f.server;c.nodeKey=f.node;c.phase='check';
+    c.tick=FED.set(function tk(){if(!fedLive(c)||!c.ws)return;const n=fedNow();
       if(n-c.lastIn>=FED.T.dead/1000){fedDrop(c,'silent');return;}
       if(n-c.lastOut>=FED.T.idle/1000)fedSend(c,{m:'ping',id:c.nid=c.nid%2147483646+1});c.tick=FED.set(tk,FED.T.tick);},FED.T.tick);
     fedReady(c).catch(e=>{console.error('[tubes] federation sync',e);});return;}
-  if(c.phase!=='ready'){fedDrop(c,'not_ready');return;}
+  if(c.phase!=='ready'&&c.phase!=='check'){fedDrop(c,'not_ready');return;}
   if(f.m==='ping'){fedSend(c,{m:'pong',id:f.id,now:fedNow()});return;}
   if(f.m==='recs'&&c.sub&&f.id===c.sub){fedRecs(c,f.items,null,null).then(()=>{if(typeof f.cursor==='string'&&/^[A-Za-z0-9_-]{0,64}$/.test(f.cursor))return fedPut('kv','cursor:'+c.node,f.cursor);}).catch(()=>{});return;}
   if(f.m==='catalog'&&f.id===undefined){fedGossip(f.entries).catch(()=>{});return;}
@@ -98,13 +102,13 @@ function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.erro
   if(!q){if(f.m==='err'&&f.id===undefined)fedDrop(c,f.code);return;}
   if(q.many&&f.m==='recs'){q.items.push(...f.items);if(f.more===true&&++q.n<512&&q.items.length<200000)return;}
   FED.clear(q.t);c.rq.delete(f.id);q.res(q.many&&f.m==='recs'?{...f,items:q.items}:f);}
-// Just connected: make sure the node is one of its server's (when the catalog knows it), send what waits, follow news.
-async function fedReady(c){const e=(await fedServers()).find(x=>x.id===c.srv);
+/* Just connected: make sure the node is one of its server's (when the catalog knows the server: the registry is asked
+   first, for at most FED.T.fetch), then send what waits and follow the news. */
+async function fedReady(c){await c.M.cat;if(!fedLive(c)||c.phase!=='check')return;const e=await fedLearn(c);
   if(e){const keys=e.nodes.map(n=>n.key);if(!keys.includes(c.nodeKey)){fedDrop(c,'not_node');return;}
-    c.nodes=[c.url,...e.nodes.map(n=>n.url).filter(u=>u!==c.url)];c.ni=Math.max(0,c.nodes.indexOf(c.node));
-    const nonce=fedB64(fedNonce()),p=await fedAsk(c,{m:'challenge',nonce});if(!fedLive(c)||!p)return;
+    const nonce=fedB64(fedNonce()),p=await fedAsk(c,{m:'challenge',nonce});if(!fedLive(c)||c.phase!=='check')return;if(!p||p.m!=='proof'){fedDrop(c,'bad_challenge');return;}
     if(await fedProofErr(p.proof,nonce,c.srv,c.nodeKey,fedNow())){fedDrop(c,'bad_challenge');return;}}
-  if(!fedLive(c))return;fedFlush(c);
+  if(!fedLive(c)||c.phase!=='check')return;c.phase='ready';c.tries=0;fedSt(c,'connected');fedFlush(c);
   const since=(await fedGet('kv','cursor:'+c.node))||'';if(!fedLive(c)||c.phase!=='ready')return;
   c.sub=c.nid=c.nid%2147483646+1;fedSend(c,{m:'sub',id:c.sub,kinds:['announce','offer','accept','decline','leave','hide','shun','unshun'],since:typeof since==='string'?since:''});
   const cat=await fedAsk(c,{m:'servers'});if(cat&&cat.m==='catalog')await fedGossip(cat.entries);}
@@ -183,7 +187,7 @@ async function fedBoardView(v){const d=await fedBoardData(v.server||null);return
 async function fedCatalogLoad(){let txt=null;
   try{const ac=typeof AbortController==='function'?new AbortController():null,t=FED.set(()=>ac&&ac.abort(),FED.T.fetch);
     const r=await FED.fetch(FED.registry,ac?{signal:ac.signal,cache:'no-cache'}:{});FED.clear(t);if(r&&r.ok)txt=await r.text();}catch(e){}
-  if(txt==null||fedSize(txt)>8e6)return false;let j;try{j=JSON.parse(txt);}catch(e){return false;}
+  if(txt==null||fedSize(txt)>8e6)return false;/* the cache stays */let j;try{j=JSON.parse(txt);}catch(e){return false;}
   if(!j||j.v!==1||!Array.isArray(j.servers)||!Number.isSafeInteger(j.asOf))return false;const now=fedNow(),out=[];
   for(const e of j.servers.slice(0,2000)){if(!e||typeof e!=='object')continue;const r=await fedRegEntry(e,now);if(!r.ok||r.id!==e.id)continue;
     out.push({...fedSum(r),listed:Number.isSafeInteger(e.listed)?e.listed:null,answered:Number.isSafeInteger(e.answered)?e.answered:null});}

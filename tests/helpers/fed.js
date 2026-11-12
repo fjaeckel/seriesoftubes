@@ -1,0 +1,103 @@
+// Multiplayer test kit: keys and records signed in Node (the vectors' way), and a page whose federation runtime runs on
+// a virtual clock with fake relay nodes instead of the network. Nothing here touches a real socket.
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
+const { load } = require('../harness');
+const { until } = require('../net');
+
+const b64 = (b) => Buffer.from(b).toString('base64url');
+const sha = (x) => crypto.createHash('sha256').update(x).digest();
+function canon(v) {
+  if (typeof v === 'string') return '"' + v.replace(/[\\"]/g, (c) => '\\' + c) + '"';
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  if (Array.isArray(v)) return '[' + v.map(canon).join(',') + ']';
+  return '{' + Object.keys(v).sort().map((k) => canon(k) + ':' + canon(v[k])).join(',') + '}';
+}
+const PKCS8 = Buffer.from('302e020100300506032b657004220420', 'hex');
+const KEYS = {};
+// The vectors' keys: seed = SHA-256("tubes-fed.1 vector key <name>").
+function key(name) {
+  if (!KEYS[name]) {
+    const seed = sha('tubes-fed.1 vector key ' + name);
+    const priv = crypto.createPrivateKey({ key: Buffer.concat([PKCS8, seed]), format: 'der', type: 'pkcs8' });
+    KEYS[name] = { seed: b64(seed), priv, pub: b64(crypto.createPublicKey(priv).export({ format: 'der', type: 'spki' }).subarray(12)) };
+  }
+  return KEYS[name];
+}
+const signText = (k, text) => b64(crypto.sign(null, Buffer.from(text, 'utf8'), k.priv));
+function rec(name, kind, t, body) { const k = key(name), r = { v: 1, kind, key: k.pub, t, body }; r.sig = signText(k, canon(r)); return r; }
+const rid = (r) => b64(sha(canon(r)));
+const asn = (pub) => 4200000000 + (sha(Buffer.from(pub, 'base64url')).readUInt32BE(0) % 94967295);
+const NOW = 1767312100;
+// The registry the build would publish from the vectors' folder: Packet Lunch (two nodes: node1, node2) and Hop Shop.
+const SERVERS_JSON = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'federation', 'vectors', 'registry', '016-build-servers-json.json'), 'utf8')).expect.servers_json;
+const PL = SERVERS_JSON.servers[0], URL1 = 'wss://relay.example.net/fed', URL2 = 'wss://second.example.org:8443/fed';
+
+/* A fake relay node. up: answers at all (false: connections fail); mute: takes frames and never answers.
+   feed: items its sub sends; board: items its board sends; refuse: an error code for every put. */
+class Node {
+  constructor(net, url, o = {}) { Object.assign(this, { net, url, server: o.server || PL.id, key: key(o.key || 'node1'), up: true, mute: false, feed: [], board: [], gossip: [], puts: [], refuse: null, socks: new Set(), hellos: 0 }); }
+  send(ws, m) { if (!this.mute) this.net.later(() => ws.onmessage && ws.onmessage({ data: JSON.stringify(m) })); }
+  take(ws, text) {
+    const f = JSON.parse(text);
+    if (this.mute) return;
+    if (f.m === 'hello') { this.hellos++; this.send(ws, { m: 'welcome', ver: 1, server: this.server, node: this.key.pub, now: this.net.now() }); }
+    else if (f.m === 'challenge') { const p = { v: 1, kind: 'proof', key: this.key.pub, t: this.net.now(), body: { nonce: f.nonce, server: this.server } }; p.sig = signText(this.key, canon(p)); this.send(ws, { m: 'proof', id: f.id, proof: p }); }
+    else if (f.m === 'put') { this.puts.push(f.rec); this.send(ws, this.refuse ? { m: 'err', id: f.id, code: this.refuse } : { m: 'ack', id: f.id, rid: rid(f.rec), dup: false }); }
+    else if (f.m === 'sub') this.send(ws, { m: 'recs', id: f.id, items: this.feed, cursor: 'c1', more: false });
+    else if (f.m === 'board') this.send(ws, { m: 'recs', id: f.id, items: this.board, cursor: '', more: false });
+    else if (f.m === 'servers') this.send(ws, { m: 'catalog', id: f.id, entries: this.gossip });
+    else if (f.m === 'ping') this.send(ws, { m: 'pong', id: f.id, now: this.net.now() });
+  }
+  // Every connection drops at once (the server was killed).
+  kill() { this.up = false; for (const ws of this.socks) ws.drop(); }
+}
+class Net {
+  constructor() { this.nodes = new Map(); this.opened = []; this.t = 0; this.timers = []; this.seq = 0; this.vis = true; this.t0 = NOW; }
+  node(url, o) { const n = new Node(this, url, o); this.nodes.set(url, n); return n; }
+  now() { return this.t0 + Math.floor(this.t / 1000); }
+  later(f) { setImmediate(f); }
+  open(url) {
+    const net = this, n = this.nodes.get(url);
+    const ws = { url, readyState: 0, closed: false,
+      send(t) { if (!ws.closed && n && n.up) n.take(ws, t); },
+      close() { ws.closed = true; if (n) n.socks.delete(ws); },
+      drop() { if (ws.closed) return; ws.closed = true; if (n) n.socks.delete(ws); net.later(() => ws.onclose && ws.onclose({})); } };
+    this.opened.push(url);
+    if (n && n.up) { n.socks.add(ws); this.later(() => ws.onopen && ws.onopen({})); } else ws.drop();
+    return ws;
+  }
+  // Virtual timers: FED.set/FED.clear in the page.
+  set(f, ms) { const id = ++this.seq; this.timers.push({ id, at: this.t + Math.max(0, ms), f }); return id; }
+  clear(id) { this.timers = this.timers.filter((x) => x.id !== id); }
+  // Moves the clock on, running every timer due on the way, in order.
+  advance(ms) { const end = this.t + ms;
+    for (;;) { this.timers.sort((a, b) => a.at - b.at || a.id - b.id); const x = this.timers[0]; if (!x || x.at > end) break; this.timers.shift(); this.t = Math.max(this.t, x.at); x.f(); }
+    this.t = end; }
+  pending() { return this.timers.map((x) => x.at - this.t).sort((a, b) => a - b); }
+}
+// Lets promises, WebCrypto and the fake sockets run.
+const settle = async (n = 30) => { for (let i = 0; i < n; i++) await new Promise((r) => setImmediate(r)); };
+
+/* A page with the federation runtime wired to a Net. opts.registry: what the site's servers.json answers (an object,
+   or null for a 404); the rest goes to load(). */
+function fedPage(opts = {}) {
+  const net = opts.net || new Net();
+  const page = load({ crypto: true, idb: true, ...opts });
+  const w = page.dom.window;
+  w.__net = net;
+  w.__fetch = async () => (opts.registry ? { ok: true, text: async () => JSON.stringify(opts.registry) } : { ok: false, text: async () => '' });
+  page.ev(`FED.WS=u=>__net.open(u);FED.now=()=>__net.now();FED.set=(f,ms)=>__net.set(f,ms);FED.clear=t=>__net.clear(t);
+    FED.rand=()=>0.5;FED.visible=()=>__net.vis;FED.fetch=u=>__fetch(u);`);
+  return { ...page, net, w };
+}
+// Starts a normal game and joins it to url; resolves with the join result (null when joined).
+async function joinGame(p, url = URL1, start = 'ACT.start({})') {
+  p.ev(start);
+  const r = await p.ev(`fedJoin(${JSON.stringify(url)})`);
+  await settle();
+  return r;
+}
+
+module.exports = { b64, sha, canon, key, rec, rid, asn, NOW, SERVERS_JSON, PL, URL1, URL2, Net, fedPage, joinGame, settle, until, signText };
