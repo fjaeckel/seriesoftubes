@@ -1,0 +1,148 @@
+# Federation: handover for the next agent
+
+Read this first, then `CLAUDE.md`. This file is everything a new session needs to continue the multiplayer
+("federation") work on Series of Tubes without the conversation that produced it.
+
+## Where things stand
+
+- **Branch:** `federation-design`, 34 commits on top of main `9c26d03` ("Conferences stop notifying once you are
+  Tier 1 (#101)"). Local only. **Never push it, and never open a pull request, until Frederic explicitly says so.**
+  Commits are authored and committed as `Frederic Jung <frederic@jc-ix.net>`, with **no** `Co-Authored-By`,
+  `Claude-Session` or other trailers (CLAUDE.md overrides any tool's default attribution).
+- **No release.** Never bump the version. The CHANGELOG has five player-facing bullets under `## [Unreleased]`
+  for the whole feature; fixes to this unreleased feature do not need more bullets.
+- **Scope built:** everything in `docs/plans/federation.md`: protocol, Go relay, registry, CI and release
+  wiring, game client core, user interface and gameplay, plus fixes for all 12 findings of an independent review.
+
+## Read in this order
+
+1. `docs/adr/0005-federation-by-player-run-servers.md`: the decision (status: proposed) and the one exception to
+   ADR 0001 (secure WebSockets to servers the player joined).
+2. `docs/plans/federation.md`: the agreed design. Its "Decided" section lists Frederic's decisions.
+3. `docs/FEDERATION-PROTOCOL.md`: the normative wire protocol (canonical JSON, Ed25519, record kinds, wire messages,
+   every shared rule, registry checks, constants). `federation/vectors/` + `federation/vectors/README.md`: the shared
+   test vectors both implementations must pass; `scripts/fed-vectors.js` regenerates the signed ones (`--check` in CI).
+4. `docs/FEDERATION-CLIENT.md`: the client core API (state, actions, records, rules, connection, events, storage,
+   operating from the game, interface).
+5. `docs/RELAY.md`: operator documentation for the relay. `federation/servers/README.md`: how servers get listed.
+
+## Frederic's decisions (do not reopen without him)
+
+- GitHub Pages stays the only host of the game; multiplayer goes through relay servers players run themselves.
+  No central service of any kind: the server registry is the folder `federation/servers/` in this repo, changed by
+  pull request, checked by CI, merged on review; the build publishes it as the static `federation/servers.json`.
+  Gossip between servers carries liveness between releases. No DHT for now.
+- Non-competitive mode. Cheaters are accepted (trust model); no replay checks or anti-Sybil machinery.
+- A server hosts many players and may be run by several operators, each with a node; the server is its operator list
+  (founded by a `genesis` record, changed only by a strict majority). Servers sync only by choice: standalone,
+  selective or open, always mutual.
+- Shunning: a network is excluded everywhere when votes reach 25% of voting registry servers and at least 5;
+  one vote per server; votes expire after 90 days; pre-made reasons only (cheating, offensive name, spam, abuse).
+- Leaderboards: traffic with players, POPs in service, pies in the sky; rolling 24 hours; totals or growth; never
+  money; humans and AI together and apart in one view; sliceable by every dimension the records carry.
+- Players publish peering policies, conditions and rate cards; matching requests are accepted automatically if the
+  player chose that; computer-run transit is the price ceiling; prices change only at renewal.
+- Privacy: nothing identifies a person; no IPs, cities or device details are logged, stored or sent. The player's
+  country is allowed (relay looks it up from a country-only database) and players can switch it off.
+- If a server is down, nothing breaks. Quiet networks fade (0–7 days unchanged, 7–37 fading, 37–180 dark, then
+  forgotten).
+- Shared saves and bug reports never carry the private key; only the "Move to another device" file
+  (`…-move-PRIVATE.json`) does. Player-typed names are allowed as typed (real company names included).
+- Relay in **Go**, newest toolchain (`go 1.27.4` in `relay/go.mod`), newest maintained libraries, never step down.
+  Metrics through `github.com/prometheus/client_golang` (Frederic asked for it explicitly).
+- The extra page size is accepted (about +73 KB gzipped for every player, joined or not).
+
+## What is where
+
+| Part | Files |
+| --- | --- |
+| Protocol and vectors | `docs/FEDERATION-PROTOCOL.md`, `federation/vectors/`, `scripts/fed-vectors.js` |
+| Relay (Go) | `relay/` (module `github.com/fjaeckel/seriesoftubes/relay`, binary `relay/cmd/relay`, packages in `relay/internal/`: canon, fed, chain, boards, shun, catalog, deals, wire, store, node, ops, registry, client, privacy, metrics, config, relaytest, conformance), `relay/Dockerfile` |
+| Registry and build | `federation/servers/` (no servers yet), `scripts/registry.js` (Node copy of the checks and the `servers.json` build), `scripts/build.js` |
+| CI and releases | `.github/workflows/ci.yml` (relay job, registry job that builds `check-registry` from the base commit), `docker.yml` (relay image, amd64+arm64), `relay-release.yml` (static binaries on releases), `auto-release.yml` (dispatches it), `federation-liveness.yml` (weekly pull request removing dead servers) |
+| Client core | `src/game/60-features/81-88-fed-*.js`, `src/game/90-actions/93-fed.js` |
+| Interface | `src/game/95-modals/47-fed-home.js`, `48-fed-boards.js`, `49-fed-glass.js`, `src/game/90-actions/94-fed-ui.js`, `src/styles/46-fed.css`, phone rules in `src/styles/60-phone.css`, `#hFed` in `src/index.html` |
+| Gameplay | `src/game/60-features/89-fedplay-{nets,terms,deals}.js`, `src/game/90-actions/94-fedplay.js`, `src/game/94-dashboard/92-fedplay.js`, `src/styles/36-fedplay.css`, one-line hooks in routing, money, peering, traceroute, sanitize, newGame |
+| AI players | `src/agent/77-fed.js` (`apiFedDeclare`, `apiFedJoin`), MCP deal commands |
+| Strings | `fedui.*` and `fedplay.*` labels in `src/i18n/en.js` and all five `site/i18n/*.js` |
+| Tests | `tests/federation-*.test.js` (vectors, state, exports, messages, outage, catalog, boards, slices, shun, ui, gameplay, hardening), `tests/helpers/fed.js` (fake nodes on a virtual clock), `tests/registry-build.test.js`; Go tests in `relay/` |
+
+State added to saves: `S.fed` (identity, servers, deals, queue, mutes, share, …), `S.fedn` (the compact snapshot of
+other players' networks routing needs, at most 48), `S.fedp` (own published terms). All have defaults in
+`newGame()` and repairs in `sanitize()`.
+
+## Running things
+
+```bash
+npm ci
+node --test tests/federation-*.test.js tests/gameplay-rules.test.js tests/build.test.js tests/pages.test.js \
+  tests/registry-build.test.js tests/docker.test.js tests/mcp-commands.test.js   # focused game tests (169)
+node scripts/i18n-check.js          # must be 0 missing, 0 unused, 0 broken
+node scripts/fed-vectors.js --check
+npm run perf -- --base-ref 9c26d03  # performance against the main commit the branch started from
+cd relay && go vet ./... && go test -race ./...
+```
+
+Frederic's working preferences: write all the code first, then run **focused** tests; do not run the whole
+`npm test` unless absolutely necessary; don't over-invest in tests; keep him updated on status as you go.
+
+On a normal machine Go 1.27.4 and the official module proxy work as usual. The previous session ran in a sandbox
+where the module proxy, checksum database and go.dev were blocked: it built Go 1.27.4 from source and served
+`golang.org/x/*`, `google.golang.org/protobuf`, `go.yaml.in/*` and `go.uber.org/goleak` from a local file proxy made
+from their GitHub mirrors with `golang.org/x/mod/zip` (real module paths, so hashes match the official ones).
+**So `relay/go.sum` has never been checked against sum.golang.org.** First thing on a normal machine:
+`cd relay && go mod download && go mod verify` (with the default `GOPROXY` and `GOSUMDB`); a mismatch would point
+at that sandbox method.
+
+## Verified so far
+
+- Go: `go vet`, `gofmt -l` clean, `go test -race ./...` green on Go 1.27.4; every vector file passes.
+- Game: the 169 focused tests above pass; every vector relevant to the client passes; i18n 0/0/0.
+- Performance against main on the big-network fixture (unjoined save): no slowdowns beyond noise, routing
+  identical (compute() 68.4 → 60.5 ms, dayTick() 67.7 → 66.8 ms, after() 4.27 → 4.67 ms).
+- Independent review of the whole branch: 12 findings (3 high, 6 medium, 3 low), all fixed with regression tests
+  (`relay/internal/node/limits_test.go`, `relay/internal/shun/shun_test.go`, `relay/internal/store/store_test.go`,
+  `tests/federation-hardening.test.js`, `tests/docker.test.js`). The reviewer found workflows, saves and exports,
+  escaping in the multiplayer sheets, privacy and the hard rules clean.
+- The full `npm test`, the Chromium (`--browser`) perf rows, Docker image builds and the GitHub workflows have
+  **not** been run.
+
+## Open work, roughly in order
+
+1. **End-to-end test**: nothing has tested the real Go relay with the real game client yet; each was tested against
+   the vectors and its own fakes. Start a relay with `relaytest`-style TLS on loopback (or a real local relay behind
+   a self-signed cert trusted by Chromium) and drive the game page with Playwright through join, announce, stats,
+   board, a peering request and a shun vote. Expect protocol mismatches in paging, `rate_limited` handling and
+   cursors (the relay now paces long answers page by page, each `recs` page with its own cursor).
+2. `go mod verify` against the real checksum database (above), then let CI run the relay job once.
+3. Repo setting for the weekly liveness workflow: "Allow GitHub Actions to create and approve pull requests".
+   Registry merges only reach the site with a release (`release.yml` is untouched); copying `federation/servers`
+   the way weekly puzzle files are copied would make them go live weekly, if Frederic wants that.
+4. Known leftovers:
+   - The relay's node `carry` inventory still walks the whole store under the lock once per session start.
+   - No test with a real MaxMind country database (only a fake); no nginx error-log IP scrubbing beyond the docs.
+   - The operator panel shows only this game's own connection state and errors (the protocol has no node-status
+     query), and operator actions need the save joined and connected to that server.
+   - Dark networks are greyed in lists but not on the map canvas.
+   - Exchanges run by players reuse the player's own exchange; capacity swaps back up one shared route.
+   - No "Tier 1 among players" rule beyond reach: a Tier 1 player must peer with the Tier 1 players it can see.
+5. Spec gaps the gameplay agent found and resolved locally, to settle in the spec with Frederic:
+   - `S.fedn` (snapshot of other networks) lives in the save because the route worker only receives `S`; the plan
+     said these live only in IndexedDB.
+   - The announce has no "I filter routes (RPKI)" field, so `cond.rpki` is only checked by the asking side.
+   - Shared route leaks have no record: each game picks the leaker by hashing the real day.
+   - Consortium "funded" has no record: each game counts the accepts it sees.
+   - `decline` used to end a running deal goes to the counterparty.
+   - A restrictive policy forces peering requests to review (the shared `fedDeal` rule ignores policy).
+6. Offered to Frederic but not decided: a "Joined saves" definition section and a "Why people stay" section
+   (federation history timeline, long-standing status) in the design doc.
+7. When Frederic says so: push the branch and open a pull request (mirror any PR template; the perf table goes in
+   the PR body), then follow CI.
+
+## Hard rules worth repeating
+
+GitHub Pages only; no runtime cost for structure; every player-facing string by label in all six dictionaries
+(`scripts/i18n-add.js`, Italian included); phones first (360 px, portrait and landscape, bottom sheets); saves are
+sacred (defaults in `newGame()`, repairs in `sanitize()`); performance demonstrated against main for every change
+to `src/` or `site/`; tests come with every fix; names the game ships are puns; game code never names agent code
+(ADR 0004); easter eggs stay secret.
