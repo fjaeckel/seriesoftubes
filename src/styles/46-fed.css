@@ -1,0 +1,51 @@
+/* Multiplayer sheets (95-modals/47-49-fed-*.js): the status dot, joining, the boards and the looking glass. */
+.fed-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--ink2);border:2px solid var(--paper);box-shadow:0 0 0 1px var(--line);flex:none;vertical-align:middle}
+.fed-dot.connected{background:var(--ok)}.fed-dot.connecting{background:var(--warn)}.fed-dot.offline,.fed-dot.waiting,.fed-dot.idle{background:#9AA3BF}
+#hFed{margin-left:4px;align-self:center}
+.fedui{min-width:0}
+.fedui .grow{flex:1}
+.fedui .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;overflow-wrap:anywhere}
+.fedui .lnk{background:none;border:0;padding:0;font:inherit;color:var(--ink);text-align:left;cursor:pointer;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+.fu-back{margin-right:2px}
+.fu-status{display:flex;align-items:center;gap:8px;font-weight:800;margin:6px 0}
+.fu-box{border:2px solid var(--line);border-radius:14px;padding:10px 12px;margin:8px 0;background:var(--soft)}
+.fu-box.bad{border-color:var(--bad);background:#FFF1F2}
+.fu-box p{margin:4px 0}
+.fu-reasons{margin:4px 0 4px 18px;padding:0}
+.fu-list{list-style:none;margin:4px 0 8px;padding:0;display:flex;flex-direction:column;gap:6px}
+.fu-item{display:flex;align-items:center;gap:8px;min-width:0;border-bottom:1px solid var(--line);padding:4px 0}
+.fu-txt{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}
+.fu-txt .meta{display:block}
+.fu-tag{display:inline-block;font-size:11px;font-weight:800;border-radius:999px;padding:1px 8px;background:var(--soft);border:1px solid var(--line);color:var(--ink2);white-space:nowrap}
+.fu-tag.reg{background:#EAF7EF;border-color:var(--ok);color:#137A4B}
+.fu-tag.on{background:#FFF3C4;border-color:var(--sun);color:var(--ink)}
+.fu-srvs{display:flex;flex-direction:column;gap:8px}
+.fu-srv{border:2px solid var(--line);border-radius:14px;padding:8px 12px;min-width:0}
+.fu-srv.reg{border-color:#BFE8D1}
+.fu-srvh{display:flex;flex-wrap:wrap;align-items:center;gap:6px;overflow-wrap:anywhere}
+.fu-pol{font-weight:800;margin:2px 0 4px;color:var(--ink)}
+.fu-srv .meta{margin:2px 0}
+.fu-typed{display:flex;gap:8px;align-items:center}
+.fu-typed input{flex:1;min-width:0}
+.fu-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.fu-chip{border:2px solid var(--ink);border-radius:999px;background:var(--paper);color:var(--ink);font:inherit;font-weight:800;font-size:13px;padding:5px 12px;cursor:pointer;white-space:nowrap;min-height:34px}
+.fu-chip.on{background:var(--ink);color:#fff}
+.fu-chip.act{background:#FFF3C4;color:var(--ink);border-color:var(--sun)}
+.fu-chip.more{border-style:dashed}
+.fu-sep{width:1px;background:var(--line);margin:0 2px;align-self:stretch}
+.fu-seen{margin:4px 0}
+.fu-board{list-style:none;margin:6px 0;padding:0}
+.fu-row{display:grid;grid-template-columns:3.2em minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--line)}
+.fu-row .fu-rank{font-weight:800;color:var(--ink2)}
+.fu-row .fu-nm{min-width:0;overflow:hidden;text-overflow:ellipsis;overflow-wrap:anywhere}
+.fu-row .fu-v{font-weight:800;white-space:nowrap}
+.fu-board.pinned .fu-row{background:#FFF3C4;border:2px solid var(--sun);border-radius:12px}
+.fu-bot{font-size:14px}
+.fu-sel select{max-width:60%}
+.fu-dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;margin:8px 0}
+.fu-dl dt{font-weight:800}
+.fu-dl dd{margin:0;overflow-wrap:anywhere}
+.fu-vote{display:flex;flex-direction:column;border-bottom:1px solid var(--line);padding:4px 0}
+.fu-op{border-top:2px dashed var(--line);margin-top:10px;padding-top:4px}
+.fu-h4{font-size:13px;margin:8px 0 2px}
+.fu-invite{margin:6px 0}

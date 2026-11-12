@@ -113,10 +113,10 @@ the slice. `me` is the player's own row, pinned: `rank` is `null` when the slice
 | `fedWake()` | Starts, adjusts or stops the session to match the open save. Safe any time |
 | `fedStatus()` | `{state: 'off'|'connecting'|'connected'|'offline', since, servers: [{url, state, since, server, node}]}`; `since` is when it went offline (or connected). Per server `state` may also be `waiting` (hidden tab) |
 | `fedBoardFetch(url)` | Asks a connected server for its board records (§9.5), checks them (receipts give slot and country), caches them; `null` when not connected |
-| `fedBoardData(server?)` | From the cache (works offline): `{now, records, announces, exclude, deals, me, at}`; `at` is the oldest fetch ("as of …") |
+| `fedBoardData(server?)` | `server`: one server id, a list of ids, or none (the connected ones). From the cache (works offline): `{now, records, announces, exclude, deals, me, at}`; `at` is the oldest fetch ("as of …") |
 | `fedServers()` | Known servers, registry merged with gossip (§10.8): `[{id, source, name, nodes, operators, sync, noLogs, langs, desc, seen, path, listed, answered}]` |
 | `fedCatalogLoad()` | Fetches `federation/servers.json` (same origin), keeps the checked entries; the cache stays on failure |
-| `fedNetworks(now?)` | Other players' networks from cached announces: `[{key, rec, id, heard, quiet}]`; forgets those silent 180 days |
+| `fedNetworks(now?)` | Other players' networks from cached announces: `[{key, rec, id, heard, quiet, srv}]` (`srv`: the servers it was heard on); forgets those silent 180 days |
 | `fedShunned(now?)`, `fedShunInfo(key)` | Keys shunned now; the tally about one (for telling a shunned player why) |
 
 Behaviour (§9): one connection per joined server; `hello` → `welcome`; when the registry knows the server, the node
@@ -162,6 +162,20 @@ operator panel.
 `apiFedDeclare({model, harness})` (session action `apiFedDeclare`) writes `S.fed.ai`, creating `S.fed` if needed. Any
 tool call on a save with `S.fed` and no declaration marks it `{model: 'undeclared', harness: 'tubes-mcp'}`. The game
 reads `S.fed.ai` only to put it in `stats`; it never names agent code (ADR 0004).
+
+### Operating from the game (`88-fed-ops.js`)
+
+Over the game's own connection to a joined server (nothing opens a socket of its own): `fedConnTo(server)` (a ready
+connection or null), `fedOpPut(server, rec)`, `fedOpChain(server)` (its chain from a node, with `pending` proposals),
+`fedOpCosign(server, {id, rec})`, `fedHideOf(server)`, `fedOpHide(server, key, list, on)`, `fedOpShun(server, key,
+reason)` (a pre-made reason, or `null` to withdraw). Each gives `{ok:true}` or `{error}` (`offline`, `timeout`, `no_key`
+or the node's code). `fedErrLog`/`fedErrs(server?)`: the last 24 connection and operator errors, memory only.
+
+## The interface (`95-modals/47-49-fed-*.js`, actions `90-actions/94-fed-ui.js`)
+
+Sheets (modals, so bottom sheets on phones) opened with `ACT.fuOpen({v})`: `home` (multiplayer settings), `join`,
+`move`, `quit`, `opkey`, `boards`, `filters`, `glass`, `server` (`id`), `net` (`key`). The HUD's status dot is `#hFed`.
+An invite link is `#join=<node URL>` in the page address. Labels are `fedui.*`.
 
 ## Left to the interface and gameplay
 

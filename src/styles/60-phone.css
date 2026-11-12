@@ -121,3 +121,14 @@ button,.chip,.b,a{touch-action:manipulation;-webkit-tap-highlight-color:transpar
 :root.no-anim *{animation:none !important;transition:none !important}
 /* The narrowest phones: a slimmer find chip so the date still fits. */
 @media (max-width:340px){#hud .chip.find{width:34px;min-width:34px;font-size:15px}#hud .menubtn .caret{display:none}}
+/* Multiplayer on phones: the board fills the sheet, board/measure/division/filters each one scrollable chip row
+   (no wrapping), and "More filters" is a second sheet. Long names and addresses wrap instead of widening the sheet. */
+@media (max-width:760px),(max-height:500px) and (pointer:coarse){
+  .fedui .fu-chips:not(.wrap){flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-left:-4px;margin-right:-4px;padding:2px 4px}
+  .fedui .fu-chips:not(.wrap)::-webkit-scrollbar{display:none}
+  .fedui .fu-chip{min-height:40px}
+  .fedui .fu-row{grid-template-columns:2.6em minmax(0,1fr) auto;gap:6px}
+  .fedui .fu-sel{flex-wrap:wrap}.fedui .fu-sel select{max-width:100%;flex:1 1 100%}
+  .fedui .fu-dl{grid-template-columns:minmax(0,40%) minmax(0,1fr)}
+  .fedui .btns .b{flex:1 1 auto}
+}
