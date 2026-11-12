@@ -263,6 +263,21 @@ networks in routing (`fedNetworks()` with `quiet.factor`), deals (`deal` events,
 (build the body, `fedSignMine('announce', body)`, `fedQueue`), traffic per player network in stats (`FED.hooks.stats`),
 the 14-day "join another server" suggestion (from `fedStatus().since`).
 
+## Deals kept and renewed (`60-features/89-fedplay-deals.js`)
+
+- `S.fed.deals` holds at most 256 deals (`fedDealsCap`, on load and in `fedDealAdd`): waiting and running deals always
+  stay, ended ones only as room is left, the newest first.
+- A deal is renewed once: each deal keeps `renews` (the id of the deal it renews, or null); `fedRenewal(f, id)` finds a
+  waiting or running renewal. The buyer cannot book a second (`dup`, and Renew is hidden, offered to buyers only); the
+  seller declines a second renewal offer (`conditions`).
+- A renewal starts when the renewed deal ends, or when it binds if later (§10.10), on both paths: automatic (`fedDeal`)
+  and reviewed (`fedRenStart`, for the accept received and the accept given), so the two never bill together. A wave
+  renewal on the same route, no bigger, takes over the room of the wave it renews (`fedWaveRen`).
+- The review queue (`S.fedp.rq`) holds 32 offers. When full, the oldest leaves with a `decline` (`declined`), so its
+  requester is not left waiting, and the new one waits: a flood of offers cannot keep new ones out.
+- A consortium project shows and costs at least `fedConsShare(a, b, pairs)` in this game, whatever share its author
+  wrote (a share of 0 is not a free cable).
+
 ## Newcomers and mentors (`60-features/89-fedplay-mentor.js`)
 
 - **Stats**: the gameplay hook adds `cust` and `up` (`fedTransitLists`: the other side of every running transit deal,

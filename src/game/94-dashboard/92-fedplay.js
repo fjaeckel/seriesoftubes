@@ -19,10 +19,10 @@ function fedTermsText(deal,T){if(!T)return '';
   return '';}
 function fedDealState(d){const now=fedNow();
   if(d.st==='wait')return tr('fedplay.s_wait');
-  if(d.st==='over')return tr(FEDP_WHY[d.why]||FEDP_WHY.depeer);
+  if(d.st==='over')return tr(fedOwn(FEDP_WHY,d.why)?FEDP_WHY[d.why]:FEDP_WHY.depeer);
   if(d.start>now)return trn('fedplay.s_from',Math.ceil((d.start-now)/FED_DAY));
   return d.end===null?tr('fedplay.s_open'):trn('fedplay.s_left',Math.max(0,Math.ceil((d.end-now)/FED_DAY)));}
-function fedDealRow(d){const now=fedNow(),soon=d.st==='run'&&d.end!==null&&d.end-now<7*FED_DAY,renew=d.role!=='sell'&&(soon||d.st==='over'&&d.why!=='excluded'&&d.why!=='muted');
+function fedDealRow(d){const now=fedNow(),soon=d.st==='run'&&d.end!==null&&d.end-now<7*FED_DAY,renew=d.role!=='sell'&&!fedRenewal(S.fed,d.id)&&(soon||d.st==='over'&&d.why!=='excluded'&&d.why!=='muted');
   return `<div class="row"><div class="grow"><div class="nm">${fedDealName(d.deal)}${d.role==='sell'?` <span class="meta">${tr('fedplay.you_sell')}</span>`:''}${d.terms&&fedOwn(d.terms,'founded')?` <span class="tag fp-new">${tr('fedplay.newcomer_price')}</span>`:''}</div><div class="meta">${esc(fedTermsText(d.deal,d.terms))}</div><div class="meta">${esc(fedDealState(d))}</div></div>
     ${renew?btn(tr('fedplay.renew'),'fpRenew',{id:d.id},'sm'):''}${d.st!=='over'?btn(d.deal==='peering'?tr('fedplay.depeer'):tr('fedplay.end'),'fpEnd',{id:d.id},'ghost sm'):''}</div>`;}
 
@@ -50,7 +50,7 @@ function fedConsRow(c){return `<div class="row"><div class="grow"><div class="nm
 /* ---------- one player's sheet: their terms, your deals with them, what you can ask for ---------- */
 function fedNetModal(key){const n=fedNetOf(key);if(!n){closeModal();return;}UI.fpOpen={k:'net',key};const a=FEDN.ann.get(key),B=a&&a.rec?a.rec.body:null,p=fedPair(n),sel=UI.fpSel||{},me=fedMeFor(n);
   let h=`<div style="display:flex;align-items:center"><div><div class="eyebrow">${tr('fedplay.player_network')} · AS${n.asn}${n.home?' · '+esc(n.home):''}</div><h2 style="font-size:24px">${fedBot(n)}${esc(n.name)}</h2></div><button class="x" data-act="closeModal" aria-label="${tr('common.close')}">×</button></div>`;
-  h+=`<div class="facts"><span class="fact">${tr(FEDP_POL[n.fpol]||FEDP_POL.open)}</span><span class="fact">${trn('fedplay.n_pops',n.fpops.length)}</span><span class="fact">${trn('fedplay.n_exchanges',n.fix.length)}</span><span class="fact">${fmtG((n.ftr||0)/1000)}</span>${n.ai?`<span class="fact">🤖 ${tr('fedplay.ai_player')}</span>`:''}</div>`;
+  h+=`<div class="facts"><span class="fact">${tr(fedOwn(FEDP_POL,n.fpol)?FEDP_POL[n.fpol]:FEDP_POL.open)}</span><span class="fact">${trn('fedplay.n_pops',n.fpops.length)}</span><span class="fact">${trn('fedplay.n_exchanges',n.fix.length)}</span><span class="fact">${fmtG((n.ftr||0)/1000)}</span>${n.ai?`<span class="fact">🤖 ${tr('fedplay.ai_player')}</span>`:''}</div>`;
   // Excluded by a joined server, not confirmed by others: no new deals, running ones continue (§10.7).
   const X=FEDN.ex,xs=X&&X.any.has(key)&&!X.ok.has(key)?(X.by.get(key)||[]).map(esc).join(', '):'';
   if(xs)h+=`<p class="note">${tr(S.fed.deals.some(d=>d.key===key&&d.st==='run')?N_('fedplay.excluded_running'):N_('fedplay.excluded_new'),{servers:xs})}</p>`;
@@ -71,7 +71,7 @@ function fedNetModal(key){const n=fedNetOf(key);if(!n){closeModal();return;}UI.f
   // What you can ask for.
   h+=`<h3 class="fp-sub">${tr('fedplay.ask_for')}</h3>`;
   const ask=(deal,o,fields,extra='')=>{const x=fedOffer(key,deal,o),mode=B.auto[deal];
-    return `<div class="fp-ask"><div class="nm">${fedDealName(deal)} <span class="meta">${tr(FEDP_AUTO[mode]||FEDP_AUTO.review)}</span></div>${fields?`<div class="trsel">${fields}</div>`:''}${x.terms&&!x.miss.length?`<p class="meta">${esc(fedTermsText(deal,x.terms))}</p>`:''}${extra}
+    return `<div class="fp-ask"><div class="nm">${fedDealName(deal)} <span class="meta">${tr(fedOwn(FEDP_AUTO,mode)?FEDP_AUTO[mode]:FEDP_AUTO.review)}</span></div>${fields?`<div class="trsel">${fields}</div>`:''}${x.terms&&!x.miss.length?`<p class="meta">${esc(fedTermsText(deal,x.terms))}</p>`:''}${extra}
       ${x.miss.length?`<p class="why">${esc(fedMissText(x.miss))}</p>`:''}<div class="btns">${btn(tr('common.request'),'fpReq',{key,deal,...o},'sm',!!x.miss.length||!S.fed.on)}</div></div>`;};
   {const o=sel['peering.via']==='pni'?{via:'pni',at:sel['peering.at']}:{via:'ix',at:sel['peering.at']},cs=o.via==='pni'?p.pops:p.ix;
     h+=ask('peering',o,fpSel(tr('fedplay.via'),'peering.via',[['ix','IX'],['pni','PNI']],o.via)+(cs.length?fpSel(tr('fedplay.where'),'peering.at',(o.via==='ix'?[['',tr('fedplay.everywhere')]]:[]).concat(cs.map(c=>[c,fpCity(c)])),o.at||''):''));}
@@ -97,10 +97,10 @@ const FEDP_DEF={transit:()=>({perGbps:Math.max(1,Math.round(fedCeilMine()*0.8)),
   pni:()=>({setup:5000,ports:[{mbps:10000,monthly:1500},{mbps:100000,monthly:9000}],term:180}),wave:()=>fedWaveDef(),ix:()=>({ports:[{mbps:10000,monthly:800},{mbps:100000,monthly:4000}],join:'anyone'})};
 // One field of the draft, from the editor's inputs (a value as typed: checked here and again when saved).
 function fedTermsEdit(f,v){const D=fpDraft(),n=x=>{const k=Math.round(+x);return Number.isFinite(k)?Math.max(0,k):0;},on=v==='1'||v===true||v==='true';f=String(f);
-  if(f==='pol'&&FEDP_POL[v]){D.pol=v;if(v==='restrictive'&&D.auto.peering==='auto')D.auto.peering='review';}
+  if(f==='pol'&&fedOwn(FEDP_POL,v)){D.pol=v;if(v==='restrictive'&&D.auto.peering==='auto')D.auto.peering='review';}
   else if(f==='c.minMbps')D.cond.minMbps=Math.min(1e9,n(v)*1000);else if(f==='c.maxRatio'&&FEDP_RATIO.includes(+v))D.cond.maxRatio=+v;else if(f==='c.minShared')D.cond.minShared=Math.min(64,n(v));
   else if(['c.rpki','c.tier1','c.ai'].includes(f))D.cond[f.slice(2)]=on;
-  else if(f.startsWith('a.')&&FEDP_DEALS.includes(f.slice(2))&&FEDP_AUTO[v])D.auto[f.slice(2)]=D.pol==='restrictive'&&f==='a.peering'&&v==='auto'?'review':v;
+  else if(f.startsWith('a.')&&FEDP_DEALS.includes(f.slice(2))&&fedOwn(FEDP_AUTO,v))D.auto[f.slice(2)]=D.pol==='restrictive'&&f==='a.peering'&&v==='auto'?'review':v;
   else if(f==='tr.on'){if(on)D.rates.transit=D.rates.transit||FEDP_DEF.transit();else delete D.rates.transit;}
   else if(f==='tr.price'&&D.rates.transit)D.rates.transit.perGbps=Math.min(fedCeilMine(),Math.max(1,n(v)));else if(f==='tr.term'&&D.rates.transit&&FEDP_TERMS.includes(+v))D.rates.transit.term=+v;
   else if(f==='pni.on'){if(on)D.rates.pni=D.rates.pni||FEDP_DEF.pni();else delete D.rates.pni;}
@@ -122,7 +122,7 @@ function fedWaveEdit(W,f,v,on,n){const g=+f.slice(4);
   else if(f==='wv.term'&&FEDP_TERMS.includes(+v))W.term=+v;
   fedWaveCap(W);}
 // Saves terms and announces them at once. Running deals keep the terms they were made on (prices change at renewal).
-function fedTermsApply(t){const P=fedP();t=t&&typeof t==='object'?t:{};P.pol=FEDP_POL[t.pol]?t.pol:P.pol;P.cond=fedCondClean(t.cond);P.rates=fedRatesClean(t.rates);
+function fedTermsApply(t){const P=fedP();t=t&&typeof t==='object'?t:{};P.pol=fedOwn(FEDP_POL,t.pol)?t.pol:P.pol;P.cond=fedCondClean(t.cond);P.rates=fedRatesClean(t.rates);
   if(P.rates.transit)P.rates.transit.perGbps=Math.min(fedCeilMine(),P.rates.transit.perGbps);fedWaveCap(P.rates.wave);
   P.auto=fedAutoClean(t.auto,P.pol);if(P.rates.ix)P.auto.port=P.rates.ix.join==='approval'?'review':P.auto.port==='decline'?'decline':'auto';
   return fedAnnounceMaybe(true).then(()=>null);}
@@ -198,6 +198,6 @@ function fedIxPlayers(c,city){if(XIXM[c]||!S.fed||!S.fed.on||!FEDN.ids.length)re
     const st=d?(d.st==='run'?`<span class="tag st on">${tr('fedplay.ix_peering')}</span>`:`<span class="tag st">${tr('fedplay.s_wait')}</span>`)
       :ask?btn(tr('fedplay.review'),'fpQueue',{},'pink sm')
       :on&&auto!=='decline'?btn(tr('fedplay.ix_peer'),'fpReq',{key:n.fed,deal:'peering',via:'ix',at:city},'pink sm'):'';
-    h+=`<div class="row"><div class="grow"><div class="nm">${fedBot(n)}${esc(n.name)}</div><div class="meta"><span class="tag ${n.fpol}">${tr(FEDP_POL[n.fpol]||FEDP_POL.open)}</span>${FEDP_STL[n.fst]?` <span class="tag fp-q">${tr(FEDP_STL[n.fst])}</span>`:''}${FEDP_AUTO[auto]?' · '+tr('fedplay.ix_peering_is',{how:tr(FEDP_AUTO[auto])}):''}</div></div>
+    h+=`<div class="row"><div class="grow"><div class="nm">${fedBot(n)}${esc(n.name)}</div><div class="meta"><span class="tag ${n.fpol}">${tr(fedOwn(FEDP_POL,n.fpol)?FEDP_POL[n.fpol]:FEDP_POL.open)}</span>${FEDP_STL[n.fst]?` <span class="tag fp-q">${tr(FEDP_STL[n.fst])}</span>`:''}${fedOwn(FEDP_AUTO,auto)?' · '+tr('fedplay.ix_peering_is',{how:tr(FEDP_AUTO[auto])}):''}</div></div>
       <div class="btns">${st}${btn(tr('fedplay.deals'),'fpNet',{key:n.fed},'ghost sm')}</div></div>`;}
   return h;}

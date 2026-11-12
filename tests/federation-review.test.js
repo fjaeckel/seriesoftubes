@@ -303,11 +303,13 @@ test('G5: a consortium project with a share under the honest price costs the hon
   assert.ok(honest > 0);
   assert.equal(p.ev('S.fedp.cons[0].sh'), honest, 'shown at the honest price');
   const c0 = p.ev('S.cash');
+  // Funded at once (two members): the first fibre's goal pays its reward in the same step.
   assert.equal(await p.ev(`fedConsJoin('${rid(o)}')`), null);
-  assert.equal(c0 - p.ev('S.cash'), honest, 'and charged it');
+  assert.equal(c0 - p.ev('S.cash'), honest - 10000, 'and charged it (less the goal reward)');
   assert.equal(p.ev('S.links.find(l=>l.seat).paid'), honest);
   // A project kept by an older game at a lower share is charged the honest price when funded.
   p.ev(`S.fedp.cons.push({id:'x'.repeat(43),k:'${key('alice').pub}',name:'Old',a:'ams',b:'nyc',m:2,sh:0,pr:16,sg:['${key('alice').pub}'],t:${NOW},st:'open',me:false})`);
+  p.ev('S.cash=1e9');
   const c1 = p.ev('S.cash');
   assert.equal(await p.ev(`fedConsJoin('${'x'.repeat(43)}')`), null);
   assert.equal(c1 - p.ev('S.cash'), honest);
