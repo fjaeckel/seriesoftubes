@@ -1,0 +1,292 @@
+// Package boards computes the leaderboards (spec 10.1 to 10.5) and the quiet states (10.6).
+// The same rules run in the game; the relay uses them for its status commands.
+package boards
+
+import (
+	"sort"
+
+	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
+)
+
+// Stats is one stats record as the boards see it.
+type Stats struct {
+	ID   string
+	Key  string
+	Slot int64 // board slot: the earliest receipt slot
+	T    int64 // author's t
+	Body map[string]any
+}
+
+func (s *Stats) mode() string { m, _ := s.Body["mode"].(string); return m }
+
+// Mode returns the record's mode.
+func (s *Stats) Mode() string { return s.mode() }
+
+// Windows of 10.1 for now: current and previous, as first and last slot.
+func Windows(now int64) (curFrom, curTo, prevFrom, prevTo int64) {
+	c := fed.Slot(now)
+	return c - fed.WindowSlots*fed.SlotLen, c - fed.SlotLen, c - 2*fed.WindowSlots*fed.SlotLen, c - (fed.WindowSlots+1)*fed.SlotLen
+}
+
+// BoardSlot is the earliest receipt time.
+func BoardSlot(receipts []int64) int64 {
+	m := receipts[0]
+	for _, r := range receipts[1:] {
+		if r < m {
+			m = r
+		}
+	}
+	return m
+}
+
+// Series holds one key's records, one per slot (the winner of that slot), by slot.
+type Series struct {
+	recs []*Stats
+}
+
+// NewSeries builds a key's series; duplicates by id count once.
+func NewSeries(recs []*Stats) *Series {
+	best := map[int64]*Stats{}
+	for _, r := range recs {
+		b := best[r.Slot]
+		if b == nil || r.T > b.T || r.T == b.T && r.ID < b.ID {
+			best[r.Slot] = r
+		}
+	}
+	s := &Series{}
+	for _, r := range best {
+		s.recs = append(s.recs, r)
+	}
+	sort.Slice(s.recs, func(i, j int) bool { return s.recs[i].Slot < s.recs[j].Slot })
+	return s
+}
+
+// Eff is eff(X, s) of 10.2 (nil when none or carried too long).
+func (x *Series) Eff(s int64) *Stats {
+	i := sort.Search(len(x.recs), func(i int) bool { return x.recs[i].Slot > s }) - 1
+	if i < 0 {
+		return nil
+	}
+	r := x.recs[i]
+	if s-r.Slot >= fed.CarryForward {
+		return nil
+	}
+	return r
+}
+
+// Value is eff(X, s) when X has a value at s (normal mode), else nil.
+func (x *Series) Value(s int64) *Stats {
+	r := x.Eff(s)
+	if r == nil || r.mode() != "normal" {
+		return nil
+	}
+	return r
+}
+
+// Query describes one board.
+type Query struct {
+	Now      int64
+	Board    string // pops, pies, traffic
+	Measure  string // total, growth
+	Division string // all, human, ai
+	Exclude  map[string]bool
+	Cities   []string // region filter, nil for none
+}
+
+// Row is one line of a board.
+type Row struct {
+	Key   string `json:"key"`
+	Value int64  `json:"value"`
+}
+
+// Compute ranks the records (deduplicated by id) for a query.
+func Compute(q Query, recs []*Stats) []Row {
+	byKey := map[string][]*Stats{}
+	seen := map[string]bool{}
+	for _, r := range recs {
+		if seen[r.ID] {
+			continue
+		}
+		seen[r.ID] = true
+		byKey[r.Key] = append(byKey[r.Key], r)
+	}
+	series := map[string]*Series{}
+	for k, rs := range byKey {
+		series[k] = NewSeries(rs)
+	}
+	curFrom, curTo, prevFrom, prevTo := Windows(q.Now)
+	var region map[string]bool
+	if q.Cities != nil {
+		region = map[string]bool{}
+		for _, c := range q.Cities {
+			region[c] = true
+		}
+	}
+	popsAt := func(r *Stats) int64 {
+		m, _ := r.Body["pops"].(map[string]any)
+		var n int64
+		for c, v := range m {
+			if region == nil || region[c] {
+				n += toInt(v)
+			}
+		}
+		return n
+	}
+	total := func(k string, from, to int64) (int64, bool) {
+		x := series[k]
+		switch q.Board {
+		case "pops", "pies":
+			best, any := int64(0), false
+			for s := from; s <= to; s += fed.SlotLen {
+				r := x.Value(s)
+				if r == nil {
+					continue
+				}
+				var v int64
+				if q.Board == "pops" {
+					v = popsAt(r)
+				} else {
+					v = toInt(r.Body["pies"])
+				}
+				if !any || v < best {
+					best, any = v, true
+				}
+			}
+			return best, any
+		case "traffic":
+			var ins, outs []int64
+			for s := from; s <= to; s += fed.SlotLen {
+				r := x.Value(s)
+				if r == nil {
+					continue
+				}
+				in, out := traffic(q, series, k, r, s)
+				ins = append(ins, in)
+				outs = append(outs, out)
+			}
+			if len(ins) == 0 {
+				return 0, false
+			}
+			return max(p95(ins), p95(outs)), true
+		}
+		return 0, false
+	}
+	floor := map[string]int64{"pops": 10, "pies": 100, "traffic": 1000}[q.Board]
+	var rows []Row
+	for k, x := range series {
+		if q.Exclude[k] {
+			continue
+		}
+		last := x.Value(curTo)
+		if last == nil {
+			continue
+		}
+		switch q.Board {
+		case "pops":
+			if region != nil && popsAt(last) == 0 {
+				continue
+			}
+		case "pies":
+			if _, ok := last.Body["pies"]; !ok {
+				continue
+			}
+		}
+		_, ai := last.Body["ai"]
+		if q.Division == "ai" && !ai || q.Division == "human" && ai {
+			continue
+		}
+		cur, _ := total(k, curFrom, curTo)
+		if q.Measure != "growth" {
+			rows = append(rows, Row{k, cur})
+			continue
+		}
+		if x.Value(prevFrom) == nil {
+			continue
+		}
+		prev, _ := total(k, prevFrom, prevTo)
+		rows = append(rows, Row{k, fed.Div((cur-prev)*10000, max(prev, floor))})
+	}
+	sort.Slice(rows, func(i, j int) bool {
+		if rows[i].Value != rows[j].Value {
+			return rows[i].Value > rows[j].Value
+		}
+		return rows[i].Key < rows[j].Key
+	})
+	return rows
+}
+
+// traffic returns IN(s) and OUT(s) for key k whose effective record is r (10.4).
+func traffic(q Query, series map[string]*Series, k string, r *Stats, s int64) (int64, int64) {
+	var in, out int64
+	list, _ := r.Body["traffic"].([]any)
+	for _, e := range list {
+		m, _ := e.(map[string]any)
+		y, _ := m["key"].(string)
+		xin, xout := toInt(m["in"]), toInt(m["out"])
+		if q.Exclude[y] {
+			continue
+		}
+		ys := series[y]
+		var yeff *Stats
+		if ys != nil {
+			yeff = ys.Eff(s)
+		}
+		switch {
+		case yeff == nil:
+			in += xin
+			out += xout
+		case yeff.mode() != "normal":
+		default:
+			yin, yout := report(yeff, k)
+			in += min(xin, yout)
+			out += min(xout, yin)
+		}
+	}
+	return in, out
+}
+
+// report is what r says about key k: in and out, or 0 and 0.
+func report(r *Stats, k string) (int64, int64) {
+	list, _ := r.Body["traffic"].([]any)
+	for _, e := range list {
+		m, _ := e.(map[string]any)
+		if m["key"] == k {
+			return toInt(m["in"]), toInt(m["out"])
+		}
+	}
+	return 0, 0
+}
+
+func p95(v []int64) int64 {
+	a := append([]int64(nil), v...)
+	sort.Slice(a, func(i, j int) bool { return a[i] < a[j] })
+	n := int64(len(a))
+	k := fed.Div(n*5, 100)
+	return a[n-1-k]
+}
+
+func toInt(v any) int64 {
+	switch x := v.(type) {
+	case int64:
+		return x
+	case int:
+		return int64(x)
+	case float64:
+		return int64(x)
+	}
+	return 0
+}
+
+// Quiet is 10.6: the state and demand factor of a network last heard at lastHeard.
+func Quiet(now, lastHeard int64) (string, int64) {
+	age := now - lastHeard
+	switch {
+	case age < fed.QuietFading:
+		return "active", 1000
+	case age < fed.QuietDark:
+		return "fading", 1000 - fed.Div((age-fed.QuietFading)*1000, 2592000)
+	case age < fed.QuietForgotten:
+		return "dark", 0
+	}
+	return "forgotten", 0
+}
