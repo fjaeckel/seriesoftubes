@@ -104,40 +104,49 @@ at that sandbox method.
   (`relay/internal/node/limits_test.go`, `relay/internal/shun/shun_test.go`, `relay/internal/store/store_test.go`,
   `tests/federation-hardening.test.js`, `tests/docker.test.js`). The reviewer found workflows, saves and exports,
   escaping in the multiplayer sheets, privacy and the hard rules clean.
-- The full `npm test`, the Chromium (`--browser`) perf rows, Docker image builds and the GitHub workflows have
-  **not** been run.
+- The full `npm test` and the GitHub workflows have **not** been run.
+
+## Done since the first handover (2026-11-12)
+
+- `relay/go.sum` regenerated from scratch with a fresh module cache against proxy.golang.org and sum.golang.org:
+  byte-identical, `go mod verify` clean.
+- Relay tests failed on macOS (operator socket path over the 104-byte Unix limit under `t.TempDir()`): tests use
+  `relaytest.Dir(t)`, `ops.Serve` names the problem. A node `carry` now walks the store in chunks, releasing the lock.
+- **End-to-end:** `node scripts/fed-e2e.js` (about 6 minutes; `--headed`, `--keep`, `--quick`) builds the real relay,
+  founds five servers, serves TLS on loopback and drives two real game pages through join, announce, paged sub and
+  cursor resume, terms, a peering request accepted and a PNI declined, a shun vote, the operator panel, stats, the
+  board, rate limits, metrics without addresses and leaving: 22/22. It found eight client bugs, all fixed with
+  tests in `tests/federation-wire.test.js` (refused sub never retried, unsub by the wrong id, unsub ack without
+  `rid` dropped the connection, multi-frame catalogs cut, sub pages racing their cursors, concurrent record batches
+  losing votes, the 48-network snapshot hiding new players from each other, board retries giving up too early).
+- Relay Docker image built (10.9 MB, amd64 cross-build too, `init` on a volume as the unprivileged user).
+- Perf against 9c26d03, headless and Chromium desktop/phone: no slowdowns beyond noise, routing identical.
 
 ## Open work, roughly in order
 
-1. **End-to-end test**: nothing has tested the real Go relay with the real game client yet; each was tested against
-   the vectors and its own fakes. Start a relay with `relaytest`-style TLS on loopback (or a real local relay behind
-   a self-signed cert trusted by Chromium) and drive the game page with Playwright through join, announce, stats,
-   board, a peering request and a shun vote. Expect protocol mismatches in paging, `rate_limited` handling and
-   cursors (the relay now paces long answers page by page, each `recs` page with its own cursor).
-2. `go mod verify` against the real checksum database (above), then let CI run the relay job once.
-3. Repo setting for the weekly liveness workflow: "Allow GitHub Actions to create and approve pull requests".
-   Registry merges only reach the site with a release (`release.yml` is untouched); copying `federation/servers`
-   the way weekly puzzle files are copied would make them go live weekly, if Frederic wants that.
+1. Decisions for Frederic:
+   - FEDERATION-PROTOCOL §9.3: an `ack` answering `unsub` carries only `id` (spec matched to what the relay sends).
+   - Networks with deals, requests or picked in the looking glass (in memory, at most 8) take priority in the
+     48-network snapshot.
+   - The map canvas never draws other players' networks, so "dark: greyed on the map" (`docs/plans/federation.md`)
+     has nothing to grey: build a players-on-the-map layer, or change that line to "greyed in lists".
+2. Let CI run the relay job once (workflows are still unlinted and unrun). Repo setting for the weekly liveness
+   workflow: "Allow GitHub Actions to create and approve pull requests". Registry merges reach the site only with a
+   release unless `federation/servers` is copied the way weekly puzzle files are.
+3. Not yet covered end to end: node-to-node sync, failover to a second node, two servers syncing, `cosign`, the
+   "Move to another device" file, a real MaxMind country database, nginx/Caddy in front.
 4. Known leftovers:
-   - The relay's node `carry` inventory still walks the whole store under the lock once per session start.
-   - No test with a real MaxMind country database (only a fake); no nginx error-log IP scrubbing beyond the docs.
-   - The operator panel shows only this game's own connection state and errors (the protocol has no node-status
-     query), and operator actions need the save joined and connected to that server.
-   - Dark networks are greyed in lists but not on the map canvas.
+   - The relay answers `retry: 1` for every rate limit; the client copes, but the hint is optimistic.
+   - The NOC queue's "Review" opens the dashboard underneath an open multiplayer sheet.
+   - The operator panel shows only this game's own connection state and errors (no node-status query), and
+     operator actions need the save joined and connected to that server.
    - Exchanges run by players reuse the player's own exchange; capacity swaps back up one shared route.
-   - No "Tier 1 among players" rule beyond reach: a Tier 1 player must peer with the Tier 1 players it can see.
-5. Spec gaps the gameplay agent found and resolved locally, to settle in the spec with Frederic:
-   - `S.fedn` (snapshot of other networks) lives in the save because the route worker only receives `S`; the plan
-     said these live only in IndexedDB.
-   - The announce has no "I filter routes (RPKI)" field, so `cond.rpki` is only checked by the asking side.
-   - Shared route leaks have no record: each game picks the leaker by hashing the real day.
-   - Consortium "funded" has no record: each game counts the accepts it sees.
-   - `decline` used to end a running deal goes to the counterparty.
-   - A restrictive policy forces peering requests to review (the shared `fedDeal` rule ignores policy).
-6. Offered to Frederic but not decided: a "Joined saves" definition section and a "Why people stay" section
-   (federation history timeline, long-standing status) in the design doc.
-7. When Frederic says so: push the branch and open a pull request (mirror any PR template; the perf table goes in
-   the PR body), then follow CI.
+   - No "Tier 1 among players" rule beyond reach.
+5. Spec gaps resolved locally, to settle with Frederic: `S.fedn` in the save (the route worker only receives `S`);
+   no RPKI field in the announce; shared route leaks and consortium "funded" have no record; `decline` ending a
+   running deal goes to the counterparty; a restrictive policy forces peering requests to review.
+6. Offered but not decided: "Joined saves" and "Why people stay" sections in the design doc.
+7. When Frederic says so: push the branch and open a pull request (perf table in the body), then follow CI.
 
 ## Hard rules worth repeating
 
