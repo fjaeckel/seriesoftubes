@@ -610,7 +610,11 @@ upgraded. This document is version 1; records carry `v: 1` in it.
 | `sub` | client → node | `id`, `kinds` ([kind]), `since` (cursor, `""` for everything kept) | `recs` frames carrying the `id`, first the backlog, then live records, until `unsub` |
 | `unsub` | client → node | `id` (of the `sub`) | `ack` |
 | `fetch` | client → node | `id`, `ids` ([Id] max 256) | `recs` (missing ids are left out) |
-| `board` | client → node | `id` | `recs` with what the boards need (9.5) |
+| `rank` | client → node | `id`, `board`, `measure`, `division`, `filters` (optional), `n` (optional) | `ranks`: the top rows of a slice and the asker's own row (9.5) |
+| `ranks` | node → client | `id`, `slot`, `n`, `rows`, `me` | |
+| `rankwhy` | client → node | `id`, `board`, `measure`, `division`, `filters` (optional), `key` | `recs` with the records behind one row, and `slot` (9.5) |
+| `facets` | either | `id`; answering, also `slot`, `models`, `harnesses`, `from`, `homes` | `facets`: the values a filter sheet offers (9.5) |
+| `nets` | client → node | `id`, `keys` ([Key] max 64) | `netstats` `{id, nets, reports}` (9.5) |
 | `servers` | client → node | `id` | `catalog` |
 | `recs` | node → client | `id`, `items` ([{rec, rcpt: [receipts]}] max 256), `cursor`, `more` (Bool) | |
 | `catalog` | node → client or node | `id` (when answering), `entries` (10.8), `more` (Bool, see below) | |
@@ -621,10 +625,10 @@ upgraded. This document is version 1; records carry `v: 1` in it.
   "everything kept". **Every `recs` frame of a `sub` carries the cursor of what it covers**: the records of that frame
   and of the frames before it, never of frames still to come. So a client that loses the connection in the middle of a
   backlog resumes from the last frame it received, and nothing is skipped.
-- **Long answers are paced.** A node sends a `sub` backlog, a `board`, a `fetch` and a `catalog` answer one frame at a
+- **Long answers are paced.** A node sends a `sub` backlog, a `rankwhy`, a `fetch` and a `catalog` answer one frame at a
   time, the next one when the connection has taken the previous ones, so a long answer never fills the connection
   (a slow reader is not disconnected for asking). The frames keep their order and `more`; live records of a `sub`
-  follow its last backlog frame (`more: false`). Requests that answer from the whole store (`board`, `servers`, `sub`)
+  follow its last backlog frame (`more: false`). Requests that answer from the whole store (`rank`, `rankwhy`, `servers`, `sub`)
   cost a node more than others, and a node MAY answer them `rate_limited` (with `retry`) when one connection sends them
   too often, or while several of its answers are still being sent.
 - **A `catalog` answer** that does not fit in one frame is split across several `catalog` frames with the same `id`,
@@ -639,7 +643,7 @@ upgraded. This document is version 1; records carry `v: 1` in it.
   the node and before its `sub`.
 - **Shun votes go to operators only.** A node sends `shun` and `unshun` records to a client session only when it proved
   a key that is a current operator of the node's server: other sessions never get them, from `sub` (backlog and live),
-  `fetch` or `board`, and are not told they were left out. Between nodes they travel unchanged (9.4).
+  `fetch` or `rankwhy`, and are not told they were left out. Between nodes they travel unchanged (9.4).
 - **`excluded`** tells every client the outcome instead. A node sends it after the backlog of a session's first `sub`,
   and again whenever the networks it excludes change (10.7: a vote arrives, votes expire, a shun lifts, a new registry
   snapshot). `keys` is the whole list, sorted; a list that does not fit one frame is split over several `excluded`
@@ -700,16 +704,67 @@ Nodes of one server, and nodes of different servers that sync, use the same tran
    a peer's frames (by the records, entries and ids they carry) rather than refuse them. Nothing is dropped for being
    paced.
 
-### 9.5 What `board` returns
+### 9.5 Leaderboards: what `rank`, `rankwhy`, `facets` and `nets` return
 
-With `c = slot(now)`, the node returns every `stats` record whose receipt slot `s` satisfies
-`c - 576 * 300 <= s < c`, plus for each key the newest `stats` with `c - 576 * 300 - 604800 < s < c - 576 * 300`
-(for carrying forward), plus the newest `announce` of each of those keys and the server's current `hide` record. The
-client computes everything from these (10.3 to 10.5).
+**The server ranks.** A game never downloads the records of a leaderboard: it asks for the slice it shows and gets
+the top rows and its own row. The relay keeps the boards in memory (`docs/RELAY.md`, "Leaderboards") and must give
+exactly what 10.1 to 10.5 and 10.12 say over the `stats` records it holds; the shared vectors (`boards`, `rank`) hold
+it to that. The game trusts its server's ranking as it trusts its `excluded` list (non-competitive, ADR 0005), and
+checks it by spot checks (below).
+
+With `c = slot(now)` at the node:
+
+- **`rank`** `{m, id, board, measure, division, filters?, n?}`. `board` is `traffic`, `total`, `pops` or `pies`;
+  `measure` `total` or `growth`; `division` `all`, `human` or `ai`; `n` the rows wanted, 1 to 100 (default 50);
+  `filters` an object with any of the members of 10.12. A value not allowed is answered `err` `bad_field` (the frame
+  is fine, so the connection stays); members of `filters` not defined here are ignored. The answer is
+  **`ranks`** `{m, id, slot, n, rows, me}`:
+  - `slot`: `c`, the running slot the ranking is for (its windows end at `c - 300`).
+  - `n`: how many networks the whole slice holds.
+  - `rows`: its first `n` (asked) rows in board order, each `{rank, key, value, asn, ai, name?, home?, cc?}`: `rank`
+    the position in the slice (1 first), `value` the board's value (10.4, 10.5), `asn` the key's ASN (3.4), `ai`
+    whether `eff(X, last)` has `ai`, `name` and `home` from the key's newest `announce` (`name` left out when the
+    server's `hide` lists the key under `names`, or without an announce), `cc` the country of the record's earliest
+    receipt (6.1), when it has one.
+  - `me`: the row of the key this session proved with `auth` (9.3; the first proved key that is not an operator of
+    this server, else the first): `{rank, value}`, `rank` `null` when the key is on the board but the filters leave it
+    out; `null` when the session proved no key or the key is not on the board.
+- **Who the server leaves out.** Networks this server excludes (10.7, its `excluded` list), hides or refuses (its
+  current `hide` record's `hide` and `refuse` lists) are not listed, and traffic with them counts 0 (10.4): the
+  "excluded" set of 10.3 is their union. Networks a player **mutes** are that player's own choice and never sent: the
+  game asks for up to 50 more rows than it shows (at most 100) and leaves them out itself.
+- **`rankwhy`** `{m, id, board, measure, division, filters?, key}`: the signed records behind one row. The answer is
+  `recs` frames like a `fetch` (paced, each item `{rec, rcpt}` with every receipt, `more` on all but the last), each
+  carrying `slot` (`c`). They hold every `stats` record the node holds of `key`, its newest `announce`, and on the
+  traffic board every `stats` record of each network that any of those records lists (whose reports the min() rule
+  reads and whose POPs a region asks about), except networks the server leaves out (their traffic counts 0 anyway).
+  At most 512 such networks and 20000 records: beyond that `err` `too_many`. `key` not a Key: `bad_key`.
+- **`facets`** `{m, id}`: the values a filter sheet offers. The answer `facets` `{m, id, slot, models, harnesses, from,
+  homes}` lists, over the networks with a value at `last` that the server does not leave out, the AI `model`s and
+  `harness`es of `eff(X, last)` (at most 64 each), the countries of their records' receipts (`from`) and the `home` of
+  their newest announces (at most 256 each), each sorted and unique.
+- **`nets`** `{m, id, keys}`, `keys` at most 64 Keys: what the gameplay needs of other networks without their records.
+  The answer `netstats` `{m, id, nets, reports}`: `nets` `[{key, ai, tier1}]` for each of `keys` the node holds a
+  `stats` record of, from its newest one (greatest board slot, then 10.2); `reports` `[{key, in, out}]`, sorted by
+  key, at most 256: every network whose newest `stats` record lists the session's own key (as for `me`), with what
+  that entry says. Networks the server leaves out are left out of both.
+- **Cost.** `rank` and `rankwhy` cost a client's token bucket like other requests that work from the whole store
+  (9.3); a node MAY answer `rate_limited` while it is still building its boards after a start.
+
+**Checking a ranking.** After a fresh `ranks` answer, a game checks its own row and one row picked at random from
+`rows`: it asks `rankwhy` for that key and slice, checks every record and receipt as it would any other (4, 6.1),
+works the key's value out with 10.1 to 10.5 and 10.12 from those records alone (the excluded set: the server's
+`excluded` list and its `hide` record's `hide` and `refuse`), and compares: a row must be listed, pass the filters
+and have the same `value`; `me` must match whether the key is on the board, whether it passes the filters (`rank`
+null or not) and its `value`. When the `rankwhy` answer is for another slot, or a record carries a receipt of a server
+the game does not know, the row cannot be checked and nothing follows. A row that does not match, asked again and
+still not matching, means the server sent a ranking its own records do not give: the game leaves that server's
+rankings out (and prefers its other servers) for 24 hours and tells the player. Spot checks deter; they cannot prove
+which networks a server left out or which rows it chose to send.
 
 **What relays keep of `stats`:** every `stats` record whose receipt slot is in the last 72 hours (the two windows and
 some slack), and besides that the newest `stats` of each network for the full carry-forward reach (604800 s before the
-start of the previous window), so that the carry records above can always be returned. Older ones are deleted.
+start of the previous window).
 
 ## 10. Rules both sides compute
 
@@ -733,8 +788,8 @@ This is "missing slots carry the last value forward, for up to 7 days".
 
 ### 10.3 Who is listed
 
-At `last = c - 300`, a key `X` is **listed** on a board when it has a value at `last` (10.2), is not excluded (shunned,
-hidden by this server, muted by this player; the caller passes this set), and:
+At `last = c - 300`, a key `X` is **listed** on a board when it has a value at `last` (10.2), is not excluded (by the
+server that ranks: shunned, hidden or refused by it, 9.5; the caller passes this set), and:
 
 - POPs board: always.
 - Pies board: `eff(X, last)` has `pies`.
@@ -913,7 +968,31 @@ decline's `t`.
   other key is refused (`not_operator`). While a relay does not know the record's head yet, it keeps the author and
   the first others by key, at most 16.
 - A record that fails validation is never stored, and never blocks another record.
-- Merging leaderboards of several servers is the union of their records by id, then the same rules.
+- A game that shows the leaderboards of several servers merged takes their `ranks` rows by key (the higher `value`
+  when two servers rank a key), leaves out what any of them hides or excludes and what the player muted, sorts them
+  again (value, then key) and numbers them; its own row is its place among those rows, else as the first server that
+  answered gives it.
+
+### 10.12 Slices
+
+A slice is a board, a measure, a division and any of these filters (`rank` `filters`, 9.5). Every filter left out
+does not filter. The board is ranked over every listed key (10.3, with the region when `cities` is given); then a
+key stays in the slice only when it passes every filter, read from `l = eff(X, last)` and `A`, the key's newest
+`announce` (the greatest `t`, then the lowest id), with `day = div(c, 86400)`; ranks are positions in what stays.
+
+| Filter | Type | A key passes when |
+| --- | --- | --- |
+| division | `all`, `human`, `ai` | `ai`: `l` has `ai`; `human`: it has not |
+| `cities` | [City] max 512, unique | The region of 10.3 and 10.4 (listing, POPs, traffic partners) |
+| `model` | Label(64) | `l.ai.model` equals it |
+| `harness` | Label(64) | `l.ai.harness` equals it |
+| `tier1` | Bool | `l.tier1` equals it |
+| `from` | CC | The country of `l`'s earliest receipt (6.1) equals it |
+| `home` | CC | `A` exists and `A.home` equals it |
+| `policy` | `open`, `selective`, `restrictive` | `A` exists and `A.policy` equals it |
+| `ageMin`, `ageMax` | Count(10000000) | `A` exists and `day - A.founded` is at least `ageMin` (0 when left out) and at most `ageMax` |
+| `dayMin`, `dayMax` | Count(10000000) | `A` exists and `A.day` is at least `dayMin` (0 when left out) and at most `dayMax` |
+| `keys` | [Key] max 256, unique | The key is one of them (a game sends the networks it has a deal with) |
 
 ## 11. The registry
 
@@ -1047,7 +1126,11 @@ step 8 of 11.2 does not apply to it.
 | Traffic entries | 256 |
 | Signers, operators, nodes | 16 |
 | Keys proved by one client session (`auth`) | 4 |
-| Keys proved by one client session (`auth`) | 4 |
+| `ranks` rows | 50 unless `n` asks, at most 100 |
+| `rank` filter `keys`, `cities` | 256, 512 |
+| `nets` keys, `netstats` reports | 64, 256 |
+| `rankwhy`: networks listed, records | 512, 20000 |
+| `facets`: models and harnesses, countries | 64, 256 each |
 | Hide lists together | 512 |
 | Chain in a registry file or catalog entry | 64 |
 | Gossip path | 16 |

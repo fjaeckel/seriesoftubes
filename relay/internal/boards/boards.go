@@ -160,7 +160,7 @@ func Compute(q Query, recs []*Stats) []Row {
 				if r == nil {
 					continue
 				}
-				in, out := traffic(q, series, k, r, s)
+				in, out := traffic(q, region, series, k, r, s)
 				ins = append(ins, in)
 				outs = append(outs, out)
 			}
@@ -223,8 +223,9 @@ func Compute(q Query, recs []*Stats) []Row {
 	return rows
 }
 
-// traffic returns IN(s) and OUT(s) for key k whose effective record is r (10.4).
-func traffic(q Query, series map[string]*Series, k string, r *Stats, s int64) (int64, int64) {
+// traffic returns IN(s) and OUT(s) for key k whose effective record is r (10.4). With a region, only partners
+// that have a value at s with a POP in the region count.
+func traffic(q Query, region map[string]bool, series map[string]*Series, k string, r *Stats, s int64) (int64, int64) {
 	var in, out int64
 	list, _ := r.Body["traffic"].([]any)
 	for _, e := range list {
@@ -239,6 +240,9 @@ func traffic(q Query, series map[string]*Series, k string, r *Stats, s int64) (i
 		if ys != nil {
 			yeff = ys.Eff(s)
 		}
+		if region != nil && (yeff == nil || yeff.mode() != "normal" || popsIn(yeff, region) == 0) {
+			continue
+		}
 		switch {
 		case yeff == nil:
 			in += xin
@@ -251,6 +255,18 @@ func traffic(q Query, series map[string]*Series, k string, r *Stats, s int64) (i
 		}
 	}
 	return in, out
+}
+
+// popsIn is the number of POPs a record has in a region.
+func popsIn(r *Stats, region map[string]bool) int64 {
+	m, _ := r.Body["pops"].(map[string]any)
+	var n int64
+	for c, v := range m {
+		if region[c] {
+			n += toInt(v)
+		}
+	}
+	return n
 }
 
 // report is what r says about key k: in and out, or 0 and 0.

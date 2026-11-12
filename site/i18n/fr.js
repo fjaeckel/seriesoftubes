@@ -2514,6 +2514,7 @@
 "fedui.quiet_dark":"éteint",
 "fedui.quiet_fading":"en sommeil",
 "fedui.quit_multiplayer":"Quitter le multijoueur",
+"fedui.ranking_does_not_match":"{server} a envoyé un classement qui ne correspond pas à ses enregistrements. Ses classements sont écartés pendant un jour.",
 "fedui.reason_abuse":"Abus",
 "fedui.reason_cheating":"Triche",
 "fedui.reason_offensive_name":"Nom offensant",

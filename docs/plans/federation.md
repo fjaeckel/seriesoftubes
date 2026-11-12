@@ -136,7 +136,9 @@ Rules:
   reported, the server uses the lower figure; when only one did, it uses that one.
 - **Which saves take part.** Normal games only: not sandbox (or any save with open gates), puzzles, scenarios or the
   weekly challenge.
-- **Each server ranks what reached it.** Shown as "as seen from <server>".
+- **Each server ranks what reached it.** Shown as "as seen from <server>". The server ranks in memory and sends the
+  top 50 rows of the slice asked for and the player's own row with its rank, never the records; games trust it (like
+  its excluded list) and spot-check a row or two against the signed records (see Decided).
 - **Total or growth.** Each board can show totals (above) or growth, so new networks can rank too:
   - POPs and pies: the lowest value over the last 24 hours against the lowest value over the 24 hours before, as a
     share of the earlier one. A floor on the earlier value (10 POPs, 100 pies) stops a network going from 1 POP to 3
@@ -534,7 +536,7 @@ clears it.
 | Where | What | How long |
 | --- | --- | --- |
 | **The save** (`localStorage`, one slot, with the game) | `S.fed`: key pair, joined servers, own deals (each with the counterparty's key, name, ASN and the cities and capacity the deal uses, so it works with no other data), muted keys, the outgoing queue (capped), the AI declaration | As long as the save |
-| **IndexedDB** (the game's origin, shared by all slots) | Other players' last announcements and when each was last heard; the cached server list; the last leaderboard records fetched per server | Announcements until 180 days silent, or the oldest silent first when over the cap; the rest replaced on each fetch |
+| **IndexedDB** (the game's origin, shared by all slots) | Other players' last announcements and when each was last heard; the cached server list; the last leaderboard answers per server and slice (at most 48) | Announcements until 180 days silent, or the oldest silent first when over the cap; the rest replaced on each fetch |
 | **IndexedDB, operator key** (only on an operator's device) | The operator key, if imported; never in a save or an export | Until removed with its own button |
 | **Memory only** (the open tab) | Sockets, connection status, back-off timers, received records before they are checked, the leaderboard slices being shown | Until the tab closes |
 | **Other players' browsers** | Your last announcement, in their IndexedDB | 180 days after you were last heard |
@@ -696,6 +698,11 @@ percentile and lowest value, carry-forward, expiry, merging server lists), passe
 ## Decided
 
 - Leaderboards slice by every dimension the records carry; humans and AI rank together and apart in the same view.
+- Leaderboards are ranked by the server, in memory, updated as stats arrive (2026-11-12): a game gets only the top 50
+  rows of the slice it asked for plus its own row with its rank, never the board's records. The game trusts its
+  server's ranking (non-competitive, ADR 0005), as it trusts its excluded list, and checks its own row and one random
+  row against the signed records behind them (`rankwhy`); a server caught sending a ranking its records do not give is
+  left out for a day and named. Spot checks deter, they do not prove what a server left out.
 - The relay is a small Go program (one static binary, its own tiny container image), using one WebSocket library.
   The protocol is a written spec with shared test vectors that the Go relay and the JavaScript game both pass.
 - "Move to another device" export with the private key: yes, behind a warning.

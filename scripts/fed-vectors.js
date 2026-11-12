@@ -17,7 +17,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const DIR = path.join(__dirname, '..', 'federation', 'vectors');
-const GEN = ['signing', 'asn', 'records', 'receipts', 'proofs', 'auth', 'operators', 'registry', 'dedupe'];
+const GEN = ['signing', 'asn', 'records', 'receipts', 'proofs', 'auth', 'operators', 'registry', 'dedupe', 'rank'];
 const NOW = 1767312100;          // 2026-01-02 00:01:40 UTC, the "now" of every generated vector
 const T = NOW - 100;             // 1767312000, 2026-01-02 00:00:00 UTC: when most records were signed
 const DAY = 86400;
@@ -607,6 +607,54 @@ const nodesOf = list => list.map(([n, url]) => ({ key: pub(n), url })).sort((a, 
     [{ record: pa }, { record: bent }], { stored: [{ id: rid(pa), sigs: [pub('anna')] }], results: ['stored', 'bad_sig'] });
   go('invalid-not-stored', 'A record that fails validation is not stored and does not block the valid one with other content.',
     [{ record: pb }, { record: pa }], { stored: [{ id: rid(pa), sigs: [pub('anna')] }], results: ['bad_field', 'stored'] });
+}
+
+// ---------- rank (9.5, 10.12): what a node answers a rank request ----------
+// Records are taken as checked (like the boards vectors); real keys, because rows carry each key's ASN (3.4).
+{
+  const A = 'rank', now = 1767398410, c = 1767398400, s = 1767225600 + 300 * 500, DAYN = Math.floor(now / DAY);
+  const st = (id, name, body, cc) => ({ id, key: pub(name), slot: s, t: s + 20, ...(cc ? { cc } : {}),
+    body: { mode: 'normal', traffic: [], tier1: false, shareCountry: !!cc, ...body } });
+  const records = [
+    st('r1', 'alice', { pops: { fra: 5 } }, 'DE'),
+    st('r2', 'bob', { pops: { nyc: 4 }, ai: { model: 'm1', harness: 'h1' } }, 'US'),
+    st('r3', 'carol', { pops: { fra: 3 }, tier1: true }),
+    st('r4', 'mallory', { pops: { fra: 2 } }),
+  ];
+  const announces = [
+    { key: pub('alice'), name: 'Ping Floyd', home: 'DE', policy: 'open', founded: DAYN - 3, day: 40 },
+    { key: pub('bob'), name: 'Packet Ninjas', home: 'US', policy: 'selective', founded: DAYN - 100, day: 2000 },
+    { key: pub('carol'), name: 'Hop Scotch', home: 'FR', policy: 'open', founded: DAYN - 400, day: 500 },
+  ];
+  const R = {
+    alice: { key: pub('alice'), value: 5, name: 'Ping Floyd', asn: asn(pub('alice')), ai: false, home: 'DE', cc: 'DE' },
+    bob: { key: pub('bob'), value: 4, name: 'Packet Ninjas', asn: asn(pub('bob')), ai: true, home: 'US', cc: 'US' },
+    carol: { key: pub('carol'), value: 3, name: 'Hop Scotch', asn: asn(pub('carol')), ai: false, home: 'FR' },
+    mallory: { key: pub('mallory'), value: 2, asn: asn(pub('mallory')), ai: false },
+  };
+  const rows = (...l) => l.map((x, i) => (typeof x === 'string' ? { rank: i + 1, ...R[x] } : { rank: i + 1, ...x }));
+  const req = (filters, o = {}) => ({ m: 'rank', id: 1, board: 'pops', measure: 'total', division: 'all', ...(filters ? { filters } : {}), ...o });
+  const cs = [];
+  const add = (request, expect, o = {}) => cs.push({ input: { now, request, me: o.me || null, excluded: o.excluded || [], names: o.names || [], records, announces }, expect: { slot: c, ...expect } });
+  add(req(), { n: 4, rows: rows('alice', 'bob', 'carol', 'mallory'), me: { rank: 3, value: 3 } }, { me: pub('carol') });
+  add(req(null, { n: 2 }), { n: 4, rows: rows('alice', 'bob'), me: { rank: 3, value: 3 } }, { me: pub('carol') });
+  add(req({ home: 'DE' }), { n: 1, rows: rows('alice'), me: { rank: null, value: 3 } }, { me: pub('carol') });
+  add(req(), { n: 3, rows: rows('alice', { ...R.bob, name: undefined }, 'carol'), me: null }, { me: pub('mallory'), excluded: [pub('mallory')], names: [pub('bob')] });
+  add(req(null, { division: 'ai' }), { n: 1, rows: rows('bob'), me: null });
+  add(req({ model: 'm2' }), { n: 0, rows: [], me: null });
+  add(req({ cities: ['fra'] }), { n: 3, rows: rows('alice', 'carol', 'mallory'), me: null });
+  add(req({ tier1: true }), { n: 1, rows: rows('carol'), me: null });
+  add(req({ from: 'US' }), { n: 1, rows: rows('bob'), me: null });
+  add(req({ ageMax: 6 }), { n: 1, rows: rows('alice'), me: null });
+  add(req({ ageMin: 91 }), { n: 2, rows: rows('bob', 'carol'), me: null });
+  add(req({ dayMin: 1000 }), { n: 1, rows: rows('bob'), me: null });
+  add(req({ policy: 'selective' }), { n: 1, rows: rows('bob'), me: null });
+  add(req({ keys: [pub('mallory'), pub('carol')].sort(byStr) }), { n: 2, rows: rows('carol', 'mallory'), me: null });
+  add(req({ from: 'germany' }), { error: 'bad_field' });
+  add(req(null, { board: 'money' }), { error: 'bad_field' });
+  for (const x of cs) if (x.expect.error) { delete x.expect.slot; }
+  for (const x of cs) for (const r of x.expect.rows || []) for (const k of Object.keys(r)) if (r[k] === undefined) delete r[k];
+  putCases(A, 'slices', 'now = 1767398410, so c = 1767398400; one stats record each at slot i = 500 of the windows. POPs: alice 5 (fra, from DE), bob 4 (nyc, an AI on model m1, from US), carol 3 (fra, Tier 1), mallory 2 (fra, no announce: no name or home). Announces: alice home DE, open, founded 3 days ago, game day 40; bob home US, selective, 100 days, day 2000; carol home FR, open, 400 days, day 500. me is the key the session proved: its rank in the slice (null when the filters leave it out), none when it is not on the board. excluded: networks the server leaves off; names: networks shown without their name. A filter with a value that is not allowed: bad_field.', cs);
 }
 
 // ---------- write or check ----------

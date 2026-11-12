@@ -2514,6 +2514,7 @@
 "fedui.quiet_dark":"spenta",
 "fedui.quiet_fading":"in calo",
 "fedui.quit_multiplayer":"Lascia il multiplayer",
+"fedui.ranking_does_not_match":"{server} ha inviato una classifica che non corrisponde ai suoi dati. Le sue classifiche restano escluse per un giorno.",
 "fedui.reason_abuse":"Abuso",
 "fedui.reason_cheating":"Imbroglio",
 "fedui.reason_offensive_name":"Nome offensivo",

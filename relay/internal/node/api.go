@@ -3,6 +3,7 @@ package node
 import (
 	"archive/tar"
 	"compress/gzip"
+	"context"
 	"io"
 	"os"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/boards"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/catalog"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/rank"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/store"
 )
 
@@ -169,26 +171,13 @@ func (r *Relay) Players() []map[string]any {
 	return out
 }
 
-// Board ranks what this node holds for one board, as the game would (10.3 to 10.5).
-func (r *Relay) Board(board, measure, division string) []boards.Row {
-	now := r.now()
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.tally(now)
-	ex := map[string]bool{}
-	for k := range r.shunned {
-		ex[k] = true
+// Board is one whole board as this node ranks it for players (9.5), every row: the status command.
+func (r *Relay) Board(board, measure, division string) ([]rank.Row, error) {
+	ans, err := r.rank.Rank(context.Background(), &rank.Slice{Board: board, Measure: measure, Division: division}, r.now(), "", -1)
+	if err != nil {
+		return nil, err
 	}
-	if r.hide != nil {
-		for _, k := range r.hide.StrList("hide") {
-			ex[k] = true
-		}
-	}
-	var recs []*boards.Stats
-	for _, e := range r.st.Kind("stats") {
-		recs = append(recs, &boards.Stats{ID: e.Rec.ID, Key: e.Rec.Key, Slot: e.Slot, T: e.Rec.T, Body: e.Rec.Body})
-	}
-	return boards.Compute(boards.Query{Now: now, Board: board, Measure: measure, Division: division, Exclude: ex}, recs)
+	return ans.Rows, nil
 }
 
 // Nodes lists this server's nodes and whether a session with each is up.

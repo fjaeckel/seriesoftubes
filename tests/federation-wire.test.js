@@ -31,17 +31,16 @@ test('a sub answered rate_limited is sent again after the retry the node gave', 
   assert.deepEqual(p.errors, []);
 });
 
-test('a board refused rate_limited several times in a row is asked again until the node answers', async () => {
+test('a ranking refused rate_limited several times in a row is asked again until the node answers', async () => {
   const p = fedPage();
   let refused = 0;
-  spy(p, { board: (ws, f, node) => { if (refused >= 4) return false; refused++; node.send(ws, { m: 'err', id: f.id, code: 'rate_limited', retry: 1 }); } });
+  spy(p, { rank: (ws, f, node) => { if (refused >= 4) return false; refused++; node.send(ws, { m: 'err', id: f.id, code: 'rate_limited', retry: 1 }); } });
   await joinGame(p);
   await run(p);
-  p.ev('FED.clear(FEDN.t);FEDN.t=null'); // the hourly look fetches boards too; only this fetch counts here
   refused = 0;
-  const got = p.ev(`fedBoardFetch(${JSON.stringify(URL1)})`);
+  const got = p.ev(`fedAskRetry(FED.live.conns.get(${JSON.stringify(URL1)}),{m:'rank',board:'pops',measure:'total',division:'all'}).then(a=>a&&a.m)`);
   await run(p, 12000);
-  assert.equal(await got, 0, 'answered (an empty board) after four refusals, not given up');
+  assert.equal(await got, 'ranks', 'answered after four refusals, not given up');
   assert.equal(refused, 4);
 });
 

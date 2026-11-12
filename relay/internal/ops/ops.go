@@ -107,7 +107,11 @@ func do(r *node.Relay, q Request) Response {
 	case "pending":
 		return ok(r.Pending())
 	case "board":
-		return ok(r.Board(q.Board, q.Measure, q.Div))
+		rows, err := r.Board(q.Board, q.Measure, q.Div)
+		if err != nil {
+			return Response{Error: "rate_limited"}
+		}
+		return ok(rows)
 	case "get":
 		if v := r.Get(q.ID); v != nil {
 			return ok(v)

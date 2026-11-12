@@ -53,7 +53,7 @@ function fedNetsApply(list,h){
   LOC_SH.clear();LOC_PLAIN.clear();LOC_NET=null;PLACES=null;RC.xk=null;RC.x=null;
   FEDN.ids=add;FEDN.h=h;}
 
-/* ---------- the snapshot: from announces, quiet states, shuns, mutes and the boards' newest stats ---------- */
+/* ---------- the snapshot: from announces, quiet states, shuns, mutes and what servers say of newest stats ---------- */
 // One network as routing keeps it (plain values only: it is saved).
 function fedNetSnap(o,shun,st){const b=o.rec.body,q=shun?0:Math.round(o.quiet.factor/50)*50,state=shun?'dark':o.quiet.state==='forgotten'?'dark':o.quiet.state;
   const cs=v=>[...new Set(v.filter(c=>own(CITY,c)&&!CITY[c].off))].slice(0,512);
@@ -68,10 +68,11 @@ function fednClean(v){if(!v||typeof v!=='object'||!Array.isArray(v.nets))return 
       cust:int(n.cust,0,1e7)?n.cust:0,pol:['open','selective','restrictive'].includes(n.pol)?n.pol:'open',q:int(n.q,0,1000)?n.q:0,st:FEDP_ST.includes(n.st)?n.st:'dark',
       ai:n.ai===true,t1:n.t1===true,bid:FdId(n.bid)?'':n.bid,at:int(n.at,0,1e11)?n.at:0});}
   return {h:fedNetsHash(out),nets:out};}
-// The newest stats of each key in the boards' cache: {ai, tier1, traffic} (who is AI, who is Tier 1, who reports what).
-async function fedPlayStats(){const m=new Map();let d;try{d=await fedBoardData();}catch(e){return m;}
-  const best=new Map();for(const r of d.records){const o=best.get(r.key);if(!o||r.slot>o.slot||r.slot===o.slot&&r.t>o.t)best.set(r.key,r);}
-  for(const [k,r] of best)m.set(k,r.body);return m;}
+/* What the servers say of other networks' newest stats (§9.5 nets): Map key -> {ai, tier1, traffic} (who is AI, who
+   is Tier 1, what they report about traffic with this network). Asked for the networks in the snapshot and the deals
+   once an hour (fedPlayTick), and sooner when the snapshot holds networks not asked about yet. */
+async function fedPlayStats(){try{return await fedNetsStats();}catch(e){return new Map();}}
+const fedPlayKeys=s=>[...new Set([...s.fed.deals.filter(d=>d.st!=='over').map(d=>d.key),...(s.fedn?s.fedn.nets.map(n=>n.k):[])])].slice(0,64);
 
 /* ---------- when to rebuild: listeners and an hourly look, outside the game loop ---------- */
 // Rebuilds the snapshot and walks the deals (ends, starts, quiet, shunned); re-routes only when something changed.
@@ -96,11 +97,13 @@ async function fedPlayRun(){const s=S;if(!s||!s.fed||!s.fed.key||!fedEligible(s)
   if(!s.fedn||s.fedn.h!==h){s.fedn={h,nets:list};ch=true;}
   if(fedDealsTick(s,now,shun,muted,stats))ch=true;
   if(fedStrangers(s,stats))ch=true;
-  if(ch&&S===s)after();}
+  if(ch&&S===s)after();
+  // Networks new in the snapshot: ask the servers about them, at most every five minutes.
+  if(list.some(n=>!stats.has(n.k))&&!(fedNow()-(FED.netsAt||0)<300)){FED.netsAt=fedNow();fedNetsFetch(fedPlayKeys(s)).then(()=>fedPlaySoon()).catch(()=>{});}}
 function fedPlaySoon(ms=1000){if(FEDN.rt)return;FEDN.rt=FED.set(()=>{FEDN.rt=null;fedPlayRefresh();},ms);}
-// The hourly look: fetch the boards, rebuild, announce when this network changed, depeer drifted ratios, shared leaks.
+// The hourly look: ask about the networks in play, rebuild, announce when this network changed, depeer drifted ratios, shared leaks.
 async function fedPlayTick(){FEDN.t=null;if(!FEDN.on)return;FEDN.t=FED.set(fedPlayTick,FEDP_TICK);const s=S;if(!s||!s.fed||!s.fed.on)return;
-  try{for(const u of s.fed.servers)await fedBoardFetch(u);}catch(e){}
+  try{await fedNetsFetch(fedPlayKeys(s));}catch(e){}
   await fedPlayRefresh();if(S!==s)return;
   try{await fedAnnounceMaybe(false);await fedDepeerDrift(s);if(fedLeakCheck(s,fedNow()))after();}catch(e){console.error('[tubes] federation gameplay',e);}}
 fedOn('status',st=>{if(st.state==='off'){FEDN.on=false;FED.clear(FEDN.t);FEDN.t=null;return;}

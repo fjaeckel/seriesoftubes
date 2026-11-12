@@ -98,10 +98,10 @@ test('a silent node is given up after two minutes, and a request without an answ
   await joinGame(p);
   assert.ok(await until(async () => (await settle(5), status(p).state === 'connected')));
   n1.mute = true;
-  const r = p.ev(`fedBoardFetch(${JSON.stringify(URL1)})`);
+  const r = p.ev(`fedAsk(FED.live.conns.get(${JSON.stringify(URL1)}),{m:'rank',board:'pops',measure:'total',division:'all'})`);
   await settle();
   p.net.advance(21000);
-  assert.equal(await r, null, 'the board request timed out');
+  assert.equal(await r, null, 'the rank request timed out');
   p.net.advance(130000);
   await settle();
   assert.notEqual(status(p).state, 'connected');

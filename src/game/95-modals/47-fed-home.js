@@ -6,7 +6,7 @@
    Without WebCrypto Ed25519 nothing about multiplayer is shown at all. Names other people typed (networks, servers)
    are always escaped as text. */
 // Data the open sheet shows (memory only); UI.fu is which sheet and its choices.
-const FU={can:null,canP:null,srvs:[],gossip:[],nets:new Map(),votes:[],opKey:null,shun:null,asn:null,chain:null,bd:null,slice:null,hideNames:new Set(),boardAt:null,fetched:0,busy:false,loading:null,loadNext:null,msg:null,netInfo:null};
+const FU={can:null,canP:null,srvs:[],gossip:[],nets:new Map(),votes:[],opKey:null,shun:null,asn:null,chain:null,slice:null,facets:null,hideNames:new Set(),busy:false,loading:null,loadNext:null,msg:null,netInfo:null};
 // Sheets that work with no game open (from the title screen's Settings).
 const FU_NOS=['fuOpen','fuClose','fuQ','fuFilt','fuOpKeyGo','fuOpKeyDel','fuOpSign','fuOpHide','fuOpShun','fuJoinTyped','fuJoin'];
 const FU_14D=14*86400;

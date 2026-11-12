@@ -1,11 +1,12 @@
 /* ================= FEDERATION: what the browser keeps for every save =================
    Copies of other people's data live in IndexedDB (database sot-fed, shared by every slot), never in a save: other
    players' announcements with when each was last heard (ann), and small documents (kv): the server registry and gossip
-   (catalog), leaderboard records per server, the networks each joined server excludes, hide lists, sync cursors, and
+   (catalog), the last leaderboard answers per server and slice, the networks each joined server excludes, hide lists,
+   sync cursors, and
    on an operator's device only, shun votes. The operator key has its own store
    (op): never in a save or an export. Every access is wrapped: with IndexedDB missing, blocked or failing (some private
    windows), the same calls work from memory for this tab, and the game plays on. */
-const FED_DB_NAME='sot-fed',FED_STORES=['ann','kv','op'],FED_ANN_MAX=5000,FED_FORGET=15552000,FED_BOARD_MAX=20000,FED_BOARD_KEYS=5000,FED_VOTES_MAX=4096;
+const FED_DB_NAME='sot-fed',FED_STORES=['ann','kv','op'],FED_ANN_MAX=5000,FED_FORGET=15552000,FED_VOTES_MAX=4096,FED_RANKS_MAX=48;
 const FEDDB={p:null,mem:null,annN:null};
 function fedMem(){if(!FEDDB.mem)FEDDB.mem=Object.fromEntries(FED_STORES.map(s=>[s,new Map()]));return FEDDB.mem;}
 function fedDb(){if(FEDDB.p)return FEDDB.p;
@@ -67,9 +68,12 @@ async function fedVotesRun(cs,voters){if(!await fedOpKey())return;voters=voters|
   await fedPut('kv','votes',l.filter(x=>now-x.rec.t<=7776000+FED_CARRY&&fedVoteOk(voters,x.rec)).slice(0,FED_VOTES_MAX));}
 // Without an operator key no vote is kept: any left from one removed (or from before votes were for operators) go.
 async function fedVotesTidy(){if(await fedOpKey())return;if(await fedGet('kv','votes')){await fedDel('kv','votes');FED.vgen++;}await fedDel('kv','vcursors');}
-// The leaderboard records last fetched from a server: {at, items [{id, key, slot, t, body, cc}]}.
-async function fedBoardPut(server,items){items=items.slice().sort((a,b)=>b.slot-a.slot).slice(0,FED_BOARD_MAX);await fedPut('kv','board:'+server,{at:fedNow(),items});FED.bgen++;}
-const fedBoardGet=server=>fedGet('kv','board:'+server);
+/* The last ranks answer of each joined URL and slice, for offline viewing "as of" (§9.5): kv 'ranks', {entries:
+   {"<url> <slice>": {at, a}}}, at most FED_RANKS_MAX (the oldest go). One write at a time. */
+function fedRanksPut(url,k,a){const p=(FEDDB.rq||Promise.resolve()).then(async()=>{const o=(await fedGet('kv','ranks'))||{entries:{}},e=o.entries||{};
+    e[url+' '+k]={at:fedNow(),a};const ks=Object.keys(e).sort((x,y)=>e[y].at-e[x].at);for(const x of ks.slice(FED_RANKS_MAX))delete e[x];
+    await fedPut('kv','ranks',{entries:e});});FEDDB.rq=p.catch(()=>{});return p;}
+async function fedRanksGet(url,k){const o=await fedGet('kv','ranks'),x=o&&o.entries&&o.entries[url+' '+k];return x&&fedRanksOk({m:'ranks',...x.a})?{at:x.at,a:fedRanksOk({m:'ranks',...x.a})}:null;}
 // The operator key (an operator's own device only): {seed, pub}. Never in a save, never exported with one.
 async function fedOpKey(){const o=await fedGet('op','key');return o&&fedBin(o.seed,32)&&!FdK(o.pub)?o:null;}
 async function fedOpKeySet(seed){if(!fedBin(seed,32)||!await fedCan())return false;const k=await fedSigner(seed);await fedPut('op','key',{seed,pub:k.pub});

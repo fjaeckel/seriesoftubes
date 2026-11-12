@@ -256,7 +256,7 @@ func TestBacklogsArePagedWithTheirOwnCursors(t *testing.T) {
 	x := s.Nodes[0]
 	// An epoch with '-' in it, as a random one has about one start in eight: cursors must still read back.
 	x.R.SetEpoch("ab-cd_ef")
-	// About 5.6 MB of stats in the board's window: more than a client's queue may hold at once.
+	// About 5.6 MB of stats in the window: more than a client's queue may hold at once.
 	const players = 200
 	t0 := n.Clock.Unix()
 	pops := map[string]any{}
@@ -275,10 +275,10 @@ func TestBacklogsArePagedWithTheirOwnCursors(t *testing.T) {
 	long, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	c := x.Client(nil)
-	// The board comes in pages, all of them, without the session closing as slow.
-	items, err := c.Collect(long, map[string]any{"m": "board"})
-	if err != nil || len(items) != players {
-		t.Fatalf("board: %d items, %v", len(items), err)
+	// The node ranks them all and sends the top rows only.
+	f := ask(t, c, map[string]any{"m": "rank", "board": "traffic", "measure": "total", "division": "all"})
+	if n, _ := wire.Int(f.Raw["n"]); n != players || len(rowKeys(f)) != 50 {
+		t.Fatalf("rank: %d of %d rows", len(rowKeys(f)), n)
 	}
 	// A sub's backlog: every page carries the cursor of what it covers.
 	id, ch, err := c.Start(long, map[string]any{"m": "sub", "kinds": []any{"stats"}, "since": ""})
@@ -319,8 +319,8 @@ func TestBacklogsArePagedWithTheirOwnCursors(t *testing.T) {
 	}
 	// Whole-store requests are throttled per connection.
 	var chans []<-chan *wire.Frame
-	for i := 0; i < 8; i++ {
-		_, ch, err := c.Start(long, map[string]any{"m": "board"})
+	for i := 0; i < 12; i++ {
+		_, ch, err := c.Start(long, map[string]any{"m": "servers"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -335,6 +335,6 @@ func TestBacklogsArePagedWithTheirOwnCursors(t *testing.T) {
 		}
 	}
 	if limited == 0 {
-		t.Fatal("eight boards at once were not rate limited")
+		t.Fatal("twelve catalogs at once were not rate limited")
 	}
 }

@@ -78,10 +78,11 @@ test('an imported save cannot smuggle markup or broken numbers in its player net
   assert.deepEqual(errors, []);
 });
 
-// The leaderboard as it was computed before (every slot, every partner): the reference the fast one must match.
+// The leaderboard counted every slot, every partner: the reference a game's own check of a server's row (fedRankOne) must match.
 function fedBoardRef(q) {
-  const { fedWindows, fedByKeyRun, fedEffs, fedHas, fedP95, fedPops, fedOwn, fedDiv, fedByStr, FED_WIN, FED_FLOOR } = q.ctx;
-  const W = fedWindows(q.now), from = W.previous.from, last = W.current.to, N = 2 * FED_WIN, by = fedByKeyRun(q.records),
+  const { fedWindows, fedByKey, fedEffs, fedHas, fedP95, fedOwn, fedDiv, fedByStr, FED_WIN, FED_FLOOR } = q.ctx;
+  const fedPops = (r, cities) => { let n = 0; for (const c of Object.keys(r.body.pops)) if (!cities || cities.has(c)) n += r.body.pops[c]; return n; };
+  const W = fedWindows(q.now), from = W.previous.from, last = W.current.to, N = 2 * FED_WIN, by = fedByKey(q.records),
     ex = new Set(q.exclude || []), cities = q.cities ? new Set(q.cities) : null, E = new Map(), eff = (k) => { let e = E.get(k); if (!e) E.set(k, e = by.has(k) ? fedEffs(by.get(k), from, last) : []); return e; };
   const rep = (r, k) => r.body.traffic.find((x) => x.key === k);
   const total = (X, a, b) => { const e = eff(X); let lo = null; const IN = [], OUT = [];
@@ -101,10 +102,10 @@ function fedBoardRef(q) {
   return rows.sort((a, b) => b.value - a.value || fedByStr(a.key, b.key));
 }
 
-test('the boards give exactly what every-slot counting gives, on random federations (seeded)', () => {
+test('a game works out any one network\'s value exactly as every-slot counting does, on random federations (seeded)', () => {
   const { ev, dom } = load();
   const w = dom.window;
-  const ctx = Object.fromEntries(['fedWindows', 'fedByKeyRun', 'fedEffs', 'fedHas', 'fedP95', 'fedPops', 'fedOwn', 'fedDiv', 'fedByStr', 'FED_WIN', 'FED_FLOOR', 'FED_SLOT'].map((k) => [k, ev(k)]));
+  const ctx = Object.fromEntries(['fedWindows', 'fedByKey', 'fedEffs', 'fedHas', 'fedP95', 'fedOwn', 'fedDiv', 'fedByStr', 'FED_WIN', 'FED_FLOOR', 'FED_SLOT'].map((k) => [k, ev(k)]));
   let s = 7;
   const rnd = () => { s = (s * 1103515245 + 12345) % 2147483648; return s / 2147483648; }, ri = (n) => Math.floor(rnd() * n);
   let rows = 0;
@@ -120,7 +121,7 @@ test('the boards give exactly what every-slot counting gives, on random federati
     w.__recs = recs;
     for (const board of ['traffic', 'total', 'pops', 'pies']) for (const measure of ['total', 'growth']) for (const division of ['all', 'ai']) for (const exclude of [[], [keys[0]]]) for (const cities of [null, ['fra']]) {
       const q = { now, board, measure, division, exclude, cities };
-      const got = ev(`JSON.stringify(fedBoard({...${JSON.stringify(q)},records:__recs}))`);
+      const got = ev(`JSON.stringify((q=>{const rows=[];for(const k of new Set(__recs.map(r=>r.key))){const x=fedRankOne(q,k,__recs,null);if(x.listed&&x.kept)rows.push({key:k,value:x.value});}return rows.sort((a,b)=>b.value-a.value||fedByStr(a.key,b.key));})({...${JSON.stringify(q)},filters:{}}))`);
       const want = JSON.stringify(fedBoardRef({ ...q, records: JSON.parse(JSON.stringify(recs)), ctx }));
       assert.equal(got, want, JSON.stringify({ round, ...q }));
       rows += JSON.parse(got).length;
@@ -129,50 +130,9 @@ test('the boards give exactly what every-slot counting gives, on random federati
   assert.ok(rows > 1000, 'the rounds rank real networks');
 });
 
-// 20,000 stats records (the cache cap of one server) from 400 networks, each reporting traffic with 16 others.
-const BIG = `(()=>{const now=${NOW},W=fedWindows(now),keys=[],recs=[];for(let i=0;i<400;i++)keys.push(${JSON.stringify(key('alice').pub.slice(0, 38))}+String(i).padStart(5,'0'));
-  for(let i=0;i<400;i++)for(let s=0;s<50;s++){const slot=W.previous.from+((i*7+s*11)%576)*FED_SLOT,tr=[];for(let j=1;j<=16;j++)tr.push({key:keys[(i+j*13)%400],in:(i*j+s)%5000,out:(i+j*s)%7000});
-    recs.push({id:'r'+recs.length,key:keys[i],slot,t:slot,body:{mode:'normal',pops:{fra:1,ams:1+i%3},traffic:tr,tier1:i%5===0,shareCountry:false,...(i%4?{}:{ai:{model:'m',harness:'h'}})}});}
-  return recs;})()`;
-
-test('a leaderboard of 20,000 records is quick, chips only slice again, and a huge one is worked out in short steps', async () => {
-  const p = fedPage();
-  await joinGame(p);
-  p.ev(`window.__runs=0;const g=fedBoardGen;fedBoardGen=function(q){__runs++;return g(q);}`);
-  await p.ev(`fedBoardPut(${JSON.stringify(PL.id)},${BIG})`);
-  const t0 = Date.now();
-  const d = await p.ev(`fedBoardData([${JSON.stringify(PL.id)}])`);
-  p.w.__d = d;
-  const first = p.ev(`(()=>{const t=Date.now();const s=fedSlice({board:'traffic',measure:'total',division:'all'},__d);return {ms:Date.now()-t,rows:s.rows.length};})()`);
-  console.log(`# board of 20,000 records: ${first.ms} ms (with the data ${Date.now() - t0} ms), ${first.rows} rows`);
-  assert.ok(first.rows > 300);
-  assert.ok(first.ms < 1500, `${first.ms} ms`);
-  assert.equal(p.ev('__runs'), 1);
-  // Every chip of the division, AI setup, tier, policy and peers kinds reuses it; the same data comes back as the same array.
-  const d2 = await p.ev(`fedBoardData([${JSON.stringify(PL.id)}])`);
-  assert.ok(p.ev('(d2)=>d2.records===__d.records')(d2), 'unchanged records: the same array');
-  const t1 = Date.now();
-  for (const v of [{ division: 'ai' }, { division: 'human' }, { model: 'm' }, { tier1: true }, { peers: true }, { division: 'all' }]) p.w.__v = v, p.ev(`fedSlice({board:'traffic',measure:'total',...__v},__d)`);
-  assert.equal(p.ev('__runs'), 1, 'no board computed again');
-  assert.ok(Date.now() - t1 < 500, `six chips took ${Date.now() - t1} ms`);
-  // New records make a new array (and a new board).
-  await p.ev(`fedBoardPut(${JSON.stringify(PL.id)},__d.records.slice(0,100))`);
-  assert.equal(p.ev(`(d3=>d3.records!==__d.records)`)(await p.ev(`fedBoardData([${JSON.stringify(PL.id)}])`)), true);
-  // The reviewer's worst case (2,000 networks, each with 256 partners in one slot): in slices, the same rows.
-  const steps = await p.ev(`(async()=>{const now=${NOW},slot=fedWindows(now).current.from,keys=[],recs=[];for(let i=0;i<2000;i++)keys.push('k'+i);
-    for(let i=0;i<2000;i++){const tr=[];for(let j=1;j<=256;j++)tr.push({key:keys[(i+j)%2000],in:5,out:5});recs.push({id:'id'+i,key:keys[i],slot,t:slot,body:{mode:'normal',pops:{fra:1},traffic:tr}});}
-    window.__big=recs;const q={now,board:'traffic',measure:'total',division:'all',records:recs};const n=await fedBoardWarm(q,4);const a=fedBoard(q);
-    const g=fedBoardGen({...q,records:recs.slice()});let x;do x=g.next();while(!x.done);return {n,same:JSON.stringify(a)===JSON.stringify(x.value),rows:a.length};})()`);
-  assert.ok(steps.n > 1, `worked out in ${steps.n} pauses`);
-  assert.ok(steps.same);
-  assert.equal(steps.rows, 2000);
-  assert.deepEqual(p.errors, []);
-});
-
 const sid = (n) => b64(sha('server ' + n));
 const REG = { asOf: NOW - (NOW % DAY), at: NOW, servers: [PL_ENTRY, ...[1, 2, 3, 4, 5, 6].map((n) => ({ id: sid(n), name: 'S' + n, operators: [key('op' + n).pub], nodes: [], listed: NOW - 60 * DAY - (NOW % DAY), answered: NOW - (NOW % DAY) }))] };
 const vote = (who, n, t = NOW - DAY, target = key('mallory').pub) => rec(who, 'shun', t, { server: sid(n), target, reason: 'spam' });
-
 test('shun votes are kept only from operators of voting servers: junk cannot push real votes out (an operator\'s game)', async () => {
   const p = fedPage(), n = p.net.node(URL1);
   await p.ev(`fedOpKeySet(${JSON.stringify(key('anna').seed)})`);
@@ -229,11 +189,11 @@ test('a hide list counts only when an operator of its own server signed it', asy
   await settle();
   p.net.advance(5000);
   assert.ok(await until(async () => (await settle(5), !!(await p.ev(`fedGet('kv','hide:'+${JSON.stringify(PL.id)})`)))), 'the operator can');
-  const ex = JSON.parse(await p.ev(`fedBoardData([${JSON.stringify(PL.id)}]).then(d=>JSON.stringify(d.exclude))`));
+  const ex = JSON.parse(await p.ev(`fedHides(${JSON.stringify(PL.id)}).then(h=>JSON.stringify(h?h.rec.body.hide:[]))`));
   assert.ok(ex.includes(key('bob').pub));
   // A list kept before this check (a stranger's) is not used.
   await p.ev(`(async()=>{const r=${JSON.stringify(hide('mallory', 'carol'))};await fedPut('kv','hide:'+${JSON.stringify(PL.id)},{rec:r,id:await fedId(r)});})()`);
-  const ex2 = JSON.parse(await p.ev(`fedBoardData([${JSON.stringify(PL.id)}]).then(d=>JSON.stringify(d.exclude))`));
+  const ex2 = JSON.parse(await p.ev(`fedHides(${JSON.stringify(PL.id)}).then(h=>JSON.stringify(h?h.rec.body.hide:[]))`));
   assert.ok(!ex2.includes(key('carol').pub));
   assert.deepEqual(p.errors, []);
 });

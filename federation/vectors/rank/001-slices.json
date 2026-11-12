@@ -1,0 +1,2118 @@
+{
+  "description": "now = 1767398410, so c = 1767398400; one stats record each at slot i = 500 of the windows. POPs: alice 5 (fra, from DE), bob 4 (nyc, an AI on model m1, from US), carol 3 (fra, Tier 1), mallory 2 (fra, no announce: no name or home). Announces: alice home DE, open, founded 3 days ago, game day 40; bob home US, selective, 100 days, day 2000; carol home FR, open, 400 days, day 500. me is the key the session proved: its rank in the slice (null when the filters leave it out), none when it is not on the board. excluded: networks the server leaves off; names: networks shown without their name. A filter with a value that is not allowed: bad_field.",
+  "cases": [
+    {
+      "input": {
+        "now": 1767398410,
+        "request": {
+          "m": "rank",
+          "id": 1,
+          "board": "pops",
+          "measure": "total",
+          "division": "all"
+        },
+        "me": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+        "excluded": [],
+        "names": [],
+        "records": [
+          {
+            "id": "r1",
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "DE",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "fra": 5
+              }
+            }
+          },
+          {
+            "id": "r2",
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "US",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "nyc": 4
+              },
+              "ai": {
+                "model": "m1",
+                "harness": "h1"
+              }
+            }
+          },
+          {
+            "id": "r3",
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": true,
+              "shareCountry": false,
+              "pops": {
+                "fra": 3
+              }
+            }
+          },
+          {
+            "id": "r4",
+            "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": false,
+              "pops": {
+                "fra": 2
+              }
+            }
+          }
+        ],
+        "announces": [
+          {
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "name": "Ping Floyd",
+            "home": "DE",
+            "policy": "open",
+            "founded": 20453,
+            "day": 40
+          },
+          {
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "name": "Packet Ninjas",
+            "home": "US",
+            "policy": "selective",
+            "founded": 20356,
+            "day": 2000
+          },
+          {
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "name": "Hop Scotch",
+            "home": "FR",
+            "policy": "open",
+            "founded": 20056,
+            "day": 500
+          }
+        ]
+      },
+      "expect": {
+        "slot": 1767398400,
+        "n": 4,
+        "rows": [
+          {
+            "rank": 1,
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "value": 5,
+            "name": "Ping Floyd",
+            "asn": 4215690104,
+            "ai": false,
+            "home": "DE",
+            "cc": "DE"
+          },
+          {
+            "rank": 2,
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "value": 4,
+            "name": "Packet Ninjas",
+            "asn": 4281146038,
+            "ai": true,
+            "home": "US",
+            "cc": "US"
+          },
+          {
+            "rank": 3,
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "value": 3,
+            "name": "Hop Scotch",
+            "asn": 4234768206,
+            "ai": false,
+            "home": "FR"
+          },
+          {
+            "rank": 4,
+            "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+            "value": 2,
+            "asn": 4205347724,
+            "ai": false
+          }
+        ],
+        "me": {
+          "rank": 3,
+          "value": 3
+        }
+      }
+    },
+    {
+      "input": {
+        "now": 1767398410,
+        "request": {
+          "m": "rank",
+          "id": 1,
+          "board": "pops",
+          "measure": "total",
+          "division": "all",
+          "n": 2
+        },
+        "me": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+        "excluded": [],
+        "names": [],
+        "records": [
+          {
+            "id": "r1",
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "DE",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "fra": 5
+              }
+            }
+          },
+          {
+            "id": "r2",
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "US",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "nyc": 4
+              },
+              "ai": {
+                "model": "m1",
+                "harness": "h1"
+              }
+            }
+          },
+          {
+            "id": "r3",
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": true,
+              "shareCountry": false,
+              "pops": {
+                "fra": 3
+              }
+            }
+          },
+          {
+            "id": "r4",
+            "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": false,
+              "pops": {
+                "fra": 2
+              }
+            }
+          }
+        ],
+        "announces": [
+          {
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "name": "Ping Floyd",
+            "home": "DE",
+            "policy": "open",
+            "founded": 20453,
+            "day": 40
+          },
+          {
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "name": "Packet Ninjas",
+            "home": "US",
+            "policy": "selective",
+            "founded": 20356,
+            "day": 2000
+          },
+          {
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "name": "Hop Scotch",
+            "home": "FR",
+            "policy": "open",
+            "founded": 20056,
+            "day": 500
+          }
+        ]
+      },
+      "expect": {
+        "slot": 1767398400,
+        "n": 4,
+        "rows": [
+          {
+            "rank": 1,
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "value": 5,
+            "name": "Ping Floyd",
+            "asn": 4215690104,
+            "ai": false,
+            "home": "DE",
+            "cc": "DE"
+          },
+          {
+            "rank": 2,
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "value": 4,
+            "name": "Packet Ninjas",
+            "asn": 4281146038,
+            "ai": true,
+            "home": "US",
+            "cc": "US"
+          }
+        ],
+        "me": {
+          "rank": 3,
+          "value": 3
+        }
+      }
+    },
+    {
+      "input": {
+        "now": 1767398410,
+        "request": {
+          "m": "rank",
+          "id": 1,
+          "board": "pops",
+          "measure": "total",
+          "division": "all",
+          "filters": {
+            "home": "DE"
+          }
+        },
+        "me": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+        "excluded": [],
+        "names": [],
+        "records": [
+          {
+            "id": "r1",
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "DE",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "fra": 5
+              }
+            }
+          },
+          {
+            "id": "r2",
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "US",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "nyc": 4
+              },
+              "ai": {
+                "model": "m1",
+                "harness": "h1"
+              }
+            }
+          },
+          {
+            "id": "r3",
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": true,
+              "shareCountry": false,
+              "pops": {
+                "fra": 3
+              }
+            }
+          },
+          {
+            "id": "r4",
+            "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": false,
+              "pops": {
+                "fra": 2
+              }
+            }
+          }
+        ],
+        "announces": [
+          {
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "name": "Ping Floyd",
+            "home": "DE",
+            "policy": "open",
+            "founded": 20453,
+            "day": 40
+          },
+          {
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "name": "Packet Ninjas",
+            "home": "US",
+            "policy": "selective",
+            "founded": 20356,
+            "day": 2000
+          },
+          {
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "name": "Hop Scotch",
+            "home": "FR",
+            "policy": "open",
+            "founded": 20056,
+            "day": 500
+          }
+        ]
+      },
+      "expect": {
+        "slot": 1767398400,
+        "n": 1,
+        "rows": [
+          {
+            "rank": 1,
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "value": 5,
+            "name": "Ping Floyd",
+            "asn": 4215690104,
+            "ai": false,
+            "home": "DE",
+            "cc": "DE"
+          }
+        ],
+        "me": {
+          "rank": null,
+          "value": 3
+        }
+      }
+    },
+    {
+      "input": {
+        "now": 1767398410,
+        "request": {
+          "m": "rank",
+          "id": 1,
+          "board": "pops",
+          "measure": "total",
+          "division": "all"
+        },
+        "me": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+        "excluded": [
+          "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI"
+        ],
+        "names": [
+          "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0"
+        ],
+        "records": [
+          {
+            "id": "r1",
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "DE",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "fra": 5
+              }
+            }
+          },
+          {
+            "id": "r2",
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "US",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "nyc": 4
+              },
+              "ai": {
+                "model": "m1",
+                "harness": "h1"
+              }
+            }
+          },
+          {
+            "id": "r3",
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": true,
+              "shareCountry": false,
+              "pops": {
+                "fra": 3
+              }
+            }
+          },
+          {
+            "id": "r4",
+            "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": false,
+              "pops": {
+                "fra": 2
+              }
+            }
+          }
+        ],
+        "announces": [
+          {
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "name": "Ping Floyd",
+            "home": "DE",
+            "policy": "open",
+            "founded": 20453,
+            "day": 40
+          },
+          {
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "name": "Packet Ninjas",
+            "home": "US",
+            "policy": "selective",
+            "founded": 20356,
+            "day": 2000
+          },
+          {
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "name": "Hop Scotch",
+            "home": "FR",
+            "policy": "open",
+            "founded": 20056,
+            "day": 500
+          }
+        ]
+      },
+      "expect": {
+        "slot": 1767398400,
+        "n": 3,
+        "rows": [
+          {
+            "rank": 1,
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "value": 5,
+            "name": "Ping Floyd",
+            "asn": 4215690104,
+            "ai": false,
+            "home": "DE",
+            "cc": "DE"
+          },
+          {
+            "rank": 2,
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "value": 4,
+            "asn": 4281146038,
+            "ai": true,
+            "home": "US",
+            "cc": "US"
+          },
+          {
+            "rank": 3,
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "value": 3,
+            "name": "Hop Scotch",
+            "asn": 4234768206,
+            "ai": false,
+            "home": "FR"
+          }
+        ],
+        "me": null
+      }
+    },
+    {
+      "input": {
+        "now": 1767398410,
+        "request": {
+          "m": "rank",
+          "id": 1,
+          "board": "pops",
+          "measure": "total",
+          "division": "ai"
+        },
+        "me": null,
+        "excluded": [],
+        "names": [],
+        "records": [
+          {
+            "id": "r1",
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "DE",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "fra": 5
+              }
+            }
+          },
+          {
+            "id": "r2",
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "US",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "nyc": 4
+              },
+              "ai": {
+                "model": "m1",
+                "harness": "h1"
+              }
+            }
+          },
+          {
+            "id": "r3",
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": true,
+              "shareCountry": false,
+              "pops": {
+                "fra": 3
+              }
+            }
+          },
+          {
+            "id": "r4",
+            "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": false,
+              "pops": {
+                "fra": 2
+              }
+            }
+          }
+        ],
+        "announces": [
+          {
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "name": "Ping Floyd",
+            "home": "DE",
+            "policy": "open",
+            "founded": 20453,
+            "day": 40
+          },
+          {
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "name": "Packet Ninjas",
+            "home": "US",
+            "policy": "selective",
+            "founded": 20356,
+            "day": 2000
+          },
+          {
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "name": "Hop Scotch",
+            "home": "FR",
+            "policy": "open",
+            "founded": 20056,
+            "day": 500
+          }
+        ]
+      },
+      "expect": {
+        "slot": 1767398400,
+        "n": 1,
+        "rows": [
+          {
+            "rank": 1,
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "value": 4,
+            "name": "Packet Ninjas",
+            "asn": 4281146038,
+            "ai": true,
+            "home": "US",
+            "cc": "US"
+          }
+        ],
+        "me": null
+      }
+    },
+    {
+      "input": {
+        "now": 1767398410,
+        "request": {
+          "m": "rank",
+          "id": 1,
+          "board": "pops",
+          "measure": "total",
+          "division": "all",
+          "filters": {
+            "model": "m2"
+          }
+        },
+        "me": null,
+        "excluded": [],
+        "names": [],
+        "records": [
+          {
+            "id": "r1",
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "DE",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "fra": 5
+              }
+            }
+          },
+          {
+            "id": "r2",
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "US",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "nyc": 4
+              },
+              "ai": {
+                "model": "m1",
+                "harness": "h1"
+              }
+            }
+          },
+          {
+            "id": "r3",
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": true,
+              "shareCountry": false,
+              "pops": {
+                "fra": 3
+              }
+            }
+          },
+          {
+            "id": "r4",
+            "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": false,
+              "pops": {
+                "fra": 2
+              }
+            }
+          }
+        ],
+        "announces": [
+          {
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "name": "Ping Floyd",
+            "home": "DE",
+            "policy": "open",
+            "founded": 20453,
+            "day": 40
+          },
+          {
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "name": "Packet Ninjas",
+            "home": "US",
+            "policy": "selective",
+            "founded": 20356,
+            "day": 2000
+          },
+          {
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "name": "Hop Scotch",
+            "home": "FR",
+            "policy": "open",
+            "founded": 20056,
+            "day": 500
+          }
+        ]
+      },
+      "expect": {
+        "slot": 1767398400,
+        "n": 0,
+        "rows": [],
+        "me": null
+      }
+    },
+    {
+      "input": {
+        "now": 1767398410,
+        "request": {
+          "m": "rank",
+          "id": 1,
+          "board": "pops",
+          "measure": "total",
+          "division": "all",
+          "filters": {
+            "cities": [
+              "fra"
+            ]
+          }
+        },
+        "me": null,
+        "excluded": [],
+        "names": [],
+        "records": [
+          {
+            "id": "r1",
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "DE",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "fra": 5
+              }
+            }
+          },
+          {
+            "id": "r2",
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "US",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "nyc": 4
+              },
+              "ai": {
+                "model": "m1",
+                "harness": "h1"
+              }
+            }
+          },
+          {
+            "id": "r3",
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": true,
+              "shareCountry": false,
+              "pops": {
+                "fra": 3
+              }
+            }
+          },
+          {
+            "id": "r4",
+            "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": false,
+              "pops": {
+                "fra": 2
+              }
+            }
+          }
+        ],
+        "announces": [
+          {
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "name": "Ping Floyd",
+            "home": "DE",
+            "policy": "open",
+            "founded": 20453,
+            "day": 40
+          },
+          {
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "name": "Packet Ninjas",
+            "home": "US",
+            "policy": "selective",
+            "founded": 20356,
+            "day": 2000
+          },
+          {
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "name": "Hop Scotch",
+            "home": "FR",
+            "policy": "open",
+            "founded": 20056,
+            "day": 500
+          }
+        ]
+      },
+      "expect": {
+        "slot": 1767398400,
+        "n": 3,
+        "rows": [
+          {
+            "rank": 1,
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "value": 5,
+            "name": "Ping Floyd",
+            "asn": 4215690104,
+            "ai": false,
+            "home": "DE",
+            "cc": "DE"
+          },
+          {
+            "rank": 2,
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "value": 3,
+            "name": "Hop Scotch",
+            "asn": 4234768206,
+            "ai": false,
+            "home": "FR"
+          },
+          {
+            "rank": 3,
+            "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+            "value": 2,
+            "asn": 4205347724,
+            "ai": false
+          }
+        ],
+        "me": null
+      }
+    },
+    {
+      "input": {
+        "now": 1767398410,
+        "request": {
+          "m": "rank",
+          "id": 1,
+          "board": "pops",
+          "measure": "total",
+          "division": "all",
+          "filters": {
+            "tier1": true
+          }
+        },
+        "me": null,
+        "excluded": [],
+        "names": [],
+        "records": [
+          {
+            "id": "r1",
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "DE",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "fra": 5
+              }
+            }
+          },
+          {
+            "id": "r2",
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "US",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "nyc": 4
+              },
+              "ai": {
+                "model": "m1",
+                "harness": "h1"
+              }
+            }
+          },
+          {
+            "id": "r3",
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": true,
+              "shareCountry": false,
+              "pops": {
+                "fra": 3
+              }
+            }
+          },
+          {
+            "id": "r4",
+            "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": false,
+              "pops": {
+                "fra": 2
+              }
+            }
+          }
+        ],
+        "announces": [
+          {
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "name": "Ping Floyd",
+            "home": "DE",
+            "policy": "open",
+            "founded": 20453,
+            "day": 40
+          },
+          {
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "name": "Packet Ninjas",
+            "home": "US",
+            "policy": "selective",
+            "founded": 20356,
+            "day": 2000
+          },
+          {
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "name": "Hop Scotch",
+            "home": "FR",
+            "policy": "open",
+            "founded": 20056,
+            "day": 500
+          }
+        ]
+      },
+      "expect": {
+        "slot": 1767398400,
+        "n": 1,
+        "rows": [
+          {
+            "rank": 1,
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "value": 3,
+            "name": "Hop Scotch",
+            "asn": 4234768206,
+            "ai": false,
+            "home": "FR"
+          }
+        ],
+        "me": null
+      }
+    },
+    {
+      "input": {
+        "now": 1767398410,
+        "request": {
+          "m": "rank",
+          "id": 1,
+          "board": "pops",
+          "measure": "total",
+          "division": "all",
+          "filters": {
+            "from": "US"
+          }
+        },
+        "me": null,
+        "excluded": [],
+        "names": [],
+        "records": [
+          {
+            "id": "r1",
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "DE",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "fra": 5
+              }
+            }
+          },
+          {
+            "id": "r2",
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "US",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "nyc": 4
+              },
+              "ai": {
+                "model": "m1",
+                "harness": "h1"
+              }
+            }
+          },
+          {
+            "id": "r3",
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": true,
+              "shareCountry": false,
+              "pops": {
+                "fra": 3
+              }
+            }
+          },
+          {
+            "id": "r4",
+            "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": false,
+              "pops": {
+                "fra": 2
+              }
+            }
+          }
+        ],
+        "announces": [
+          {
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "name": "Ping Floyd",
+            "home": "DE",
+            "policy": "open",
+            "founded": 20453,
+            "day": 40
+          },
+          {
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "name": "Packet Ninjas",
+            "home": "US",
+            "policy": "selective",
+            "founded": 20356,
+            "day": 2000
+          },
+          {
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "name": "Hop Scotch",
+            "home": "FR",
+            "policy": "open",
+            "founded": 20056,
+            "day": 500
+          }
+        ]
+      },
+      "expect": {
+        "slot": 1767398400,
+        "n": 1,
+        "rows": [
+          {
+            "rank": 1,
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "value": 4,
+            "name": "Packet Ninjas",
+            "asn": 4281146038,
+            "ai": true,
+            "home": "US",
+            "cc": "US"
+          }
+        ],
+        "me": null
+      }
+    },
+    {
+      "input": {
+        "now": 1767398410,
+        "request": {
+          "m": "rank",
+          "id": 1,
+          "board": "pops",
+          "measure": "total",
+          "division": "all",
+          "filters": {
+            "ageMax": 6
+          }
+        },
+        "me": null,
+        "excluded": [],
+        "names": [],
+        "records": [
+          {
+            "id": "r1",
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "DE",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "fra": 5
+              }
+            }
+          },
+          {
+            "id": "r2",
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "US",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "nyc": 4
+              },
+              "ai": {
+                "model": "m1",
+                "harness": "h1"
+              }
+            }
+          },
+          {
+            "id": "r3",
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": true,
+              "shareCountry": false,
+              "pops": {
+                "fra": 3
+              }
+            }
+          },
+          {
+            "id": "r4",
+            "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": false,
+              "pops": {
+                "fra": 2
+              }
+            }
+          }
+        ],
+        "announces": [
+          {
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "name": "Ping Floyd",
+            "home": "DE",
+            "policy": "open",
+            "founded": 20453,
+            "day": 40
+          },
+          {
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "name": "Packet Ninjas",
+            "home": "US",
+            "policy": "selective",
+            "founded": 20356,
+            "day": 2000
+          },
+          {
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "name": "Hop Scotch",
+            "home": "FR",
+            "policy": "open",
+            "founded": 20056,
+            "day": 500
+          }
+        ]
+      },
+      "expect": {
+        "slot": 1767398400,
+        "n": 1,
+        "rows": [
+          {
+            "rank": 1,
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "value": 5,
+            "name": "Ping Floyd",
+            "asn": 4215690104,
+            "ai": false,
+            "home": "DE",
+            "cc": "DE"
+          }
+        ],
+        "me": null
+      }
+    },
+    {
+      "input": {
+        "now": 1767398410,
+        "request": {
+          "m": "rank",
+          "id": 1,
+          "board": "pops",
+          "measure": "total",
+          "division": "all",
+          "filters": {
+            "ageMin": 91
+          }
+        },
+        "me": null,
+        "excluded": [],
+        "names": [],
+        "records": [
+          {
+            "id": "r1",
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "DE",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "fra": 5
+              }
+            }
+          },
+          {
+            "id": "r2",
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "US",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "nyc": 4
+              },
+              "ai": {
+                "model": "m1",
+                "harness": "h1"
+              }
+            }
+          },
+          {
+            "id": "r3",
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": true,
+              "shareCountry": false,
+              "pops": {
+                "fra": 3
+              }
+            }
+          },
+          {
+            "id": "r4",
+            "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": false,
+              "pops": {
+                "fra": 2
+              }
+            }
+          }
+        ],
+        "announces": [
+          {
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "name": "Ping Floyd",
+            "home": "DE",
+            "policy": "open",
+            "founded": 20453,
+            "day": 40
+          },
+          {
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "name": "Packet Ninjas",
+            "home": "US",
+            "policy": "selective",
+            "founded": 20356,
+            "day": 2000
+          },
+          {
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "name": "Hop Scotch",
+            "home": "FR",
+            "policy": "open",
+            "founded": 20056,
+            "day": 500
+          }
+        ]
+      },
+      "expect": {
+        "slot": 1767398400,
+        "n": 2,
+        "rows": [
+          {
+            "rank": 1,
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "value": 4,
+            "name": "Packet Ninjas",
+            "asn": 4281146038,
+            "ai": true,
+            "home": "US",
+            "cc": "US"
+          },
+          {
+            "rank": 2,
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "value": 3,
+            "name": "Hop Scotch",
+            "asn": 4234768206,
+            "ai": false,
+            "home": "FR"
+          }
+        ],
+        "me": null
+      }
+    },
+    {
+      "input": {
+        "now": 1767398410,
+        "request": {
+          "m": "rank",
+          "id": 1,
+          "board": "pops",
+          "measure": "total",
+          "division": "all",
+          "filters": {
+            "dayMin": 1000
+          }
+        },
+        "me": null,
+        "excluded": [],
+        "names": [],
+        "records": [
+          {
+            "id": "r1",
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "DE",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "fra": 5
+              }
+            }
+          },
+          {
+            "id": "r2",
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "US",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "nyc": 4
+              },
+              "ai": {
+                "model": "m1",
+                "harness": "h1"
+              }
+            }
+          },
+          {
+            "id": "r3",
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": true,
+              "shareCountry": false,
+              "pops": {
+                "fra": 3
+              }
+            }
+          },
+          {
+            "id": "r4",
+            "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": false,
+              "pops": {
+                "fra": 2
+              }
+            }
+          }
+        ],
+        "announces": [
+          {
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "name": "Ping Floyd",
+            "home": "DE",
+            "policy": "open",
+            "founded": 20453,
+            "day": 40
+          },
+          {
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "name": "Packet Ninjas",
+            "home": "US",
+            "policy": "selective",
+            "founded": 20356,
+            "day": 2000
+          },
+          {
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "name": "Hop Scotch",
+            "home": "FR",
+            "policy": "open",
+            "founded": 20056,
+            "day": 500
+          }
+        ]
+      },
+      "expect": {
+        "slot": 1767398400,
+        "n": 1,
+        "rows": [
+          {
+            "rank": 1,
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "value": 4,
+            "name": "Packet Ninjas",
+            "asn": 4281146038,
+            "ai": true,
+            "home": "US",
+            "cc": "US"
+          }
+        ],
+        "me": null
+      }
+    },
+    {
+      "input": {
+        "now": 1767398410,
+        "request": {
+          "m": "rank",
+          "id": 1,
+          "board": "pops",
+          "measure": "total",
+          "division": "all",
+          "filters": {
+            "policy": "selective"
+          }
+        },
+        "me": null,
+        "excluded": [],
+        "names": [],
+        "records": [
+          {
+            "id": "r1",
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "DE",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "fra": 5
+              }
+            }
+          },
+          {
+            "id": "r2",
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "US",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "nyc": 4
+              },
+              "ai": {
+                "model": "m1",
+                "harness": "h1"
+              }
+            }
+          },
+          {
+            "id": "r3",
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": true,
+              "shareCountry": false,
+              "pops": {
+                "fra": 3
+              }
+            }
+          },
+          {
+            "id": "r4",
+            "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": false,
+              "pops": {
+                "fra": 2
+              }
+            }
+          }
+        ],
+        "announces": [
+          {
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "name": "Ping Floyd",
+            "home": "DE",
+            "policy": "open",
+            "founded": 20453,
+            "day": 40
+          },
+          {
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "name": "Packet Ninjas",
+            "home": "US",
+            "policy": "selective",
+            "founded": 20356,
+            "day": 2000
+          },
+          {
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "name": "Hop Scotch",
+            "home": "FR",
+            "policy": "open",
+            "founded": 20056,
+            "day": 500
+          }
+        ]
+      },
+      "expect": {
+        "slot": 1767398400,
+        "n": 1,
+        "rows": [
+          {
+            "rank": 1,
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "value": 4,
+            "name": "Packet Ninjas",
+            "asn": 4281146038,
+            "ai": true,
+            "home": "US",
+            "cc": "US"
+          }
+        ],
+        "me": null
+      }
+    },
+    {
+      "input": {
+        "now": 1767398410,
+        "request": {
+          "m": "rank",
+          "id": 1,
+          "board": "pops",
+          "measure": "total",
+          "division": "all",
+          "filters": {
+            "keys": [
+              "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+              "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI"
+            ]
+          }
+        },
+        "me": null,
+        "excluded": [],
+        "names": [],
+        "records": [
+          {
+            "id": "r1",
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "DE",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "fra": 5
+              }
+            }
+          },
+          {
+            "id": "r2",
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "US",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "nyc": 4
+              },
+              "ai": {
+                "model": "m1",
+                "harness": "h1"
+              }
+            }
+          },
+          {
+            "id": "r3",
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": true,
+              "shareCountry": false,
+              "pops": {
+                "fra": 3
+              }
+            }
+          },
+          {
+            "id": "r4",
+            "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": false,
+              "pops": {
+                "fra": 2
+              }
+            }
+          }
+        ],
+        "announces": [
+          {
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "name": "Ping Floyd",
+            "home": "DE",
+            "policy": "open",
+            "founded": 20453,
+            "day": 40
+          },
+          {
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "name": "Packet Ninjas",
+            "home": "US",
+            "policy": "selective",
+            "founded": 20356,
+            "day": 2000
+          },
+          {
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "name": "Hop Scotch",
+            "home": "FR",
+            "policy": "open",
+            "founded": 20056,
+            "day": 500
+          }
+        ]
+      },
+      "expect": {
+        "slot": 1767398400,
+        "n": 2,
+        "rows": [
+          {
+            "rank": 1,
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "value": 3,
+            "name": "Hop Scotch",
+            "asn": 4234768206,
+            "ai": false,
+            "home": "FR"
+          },
+          {
+            "rank": 2,
+            "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+            "value": 2,
+            "asn": 4205347724,
+            "ai": false
+          }
+        ],
+        "me": null
+      }
+    },
+    {
+      "input": {
+        "now": 1767398410,
+        "request": {
+          "m": "rank",
+          "id": 1,
+          "board": "pops",
+          "measure": "total",
+          "division": "all",
+          "filters": {
+            "from": "germany"
+          }
+        },
+        "me": null,
+        "excluded": [],
+        "names": [],
+        "records": [
+          {
+            "id": "r1",
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "DE",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "fra": 5
+              }
+            }
+          },
+          {
+            "id": "r2",
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "US",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "nyc": 4
+              },
+              "ai": {
+                "model": "m1",
+                "harness": "h1"
+              }
+            }
+          },
+          {
+            "id": "r3",
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": true,
+              "shareCountry": false,
+              "pops": {
+                "fra": 3
+              }
+            }
+          },
+          {
+            "id": "r4",
+            "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": false,
+              "pops": {
+                "fra": 2
+              }
+            }
+          }
+        ],
+        "announces": [
+          {
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "name": "Ping Floyd",
+            "home": "DE",
+            "policy": "open",
+            "founded": 20453,
+            "day": 40
+          },
+          {
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "name": "Packet Ninjas",
+            "home": "US",
+            "policy": "selective",
+            "founded": 20356,
+            "day": 2000
+          },
+          {
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "name": "Hop Scotch",
+            "home": "FR",
+            "policy": "open",
+            "founded": 20056,
+            "day": 500
+          }
+        ]
+      },
+      "expect": {
+        "error": "bad_field"
+      }
+    },
+    {
+      "input": {
+        "now": 1767398410,
+        "request": {
+          "m": "rank",
+          "id": 1,
+          "board": "money",
+          "measure": "total",
+          "division": "all"
+        },
+        "me": null,
+        "excluded": [],
+        "names": [],
+        "records": [
+          {
+            "id": "r1",
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "DE",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "fra": 5
+              }
+            }
+          },
+          {
+            "id": "r2",
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "cc": "US",
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": true,
+              "pops": {
+                "nyc": 4
+              },
+              "ai": {
+                "model": "m1",
+                "harness": "h1"
+              }
+            }
+          },
+          {
+            "id": "r3",
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": true,
+              "shareCountry": false,
+              "pops": {
+                "fra": 3
+              }
+            }
+          },
+          {
+            "id": "r4",
+            "key": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+            "slot": 1767375600,
+            "t": 1767375620,
+            "body": {
+              "mode": "normal",
+              "traffic": [],
+              "tier1": false,
+              "shareCountry": false,
+              "pops": {
+                "fra": 2
+              }
+            }
+          }
+        ],
+        "announces": [
+          {
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "name": "Ping Floyd",
+            "home": "DE",
+            "policy": "open",
+            "founded": 20453,
+            "day": 40
+          },
+          {
+            "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+            "name": "Packet Ninjas",
+            "home": "US",
+            "policy": "selective",
+            "founded": 20356,
+            "day": 2000
+          },
+          {
+            "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+            "name": "Hop Scotch",
+            "home": "FR",
+            "policy": "open",
+            "founded": 20056,
+            "day": 500
+          }
+        ]
+      },
+      "expect": {
+        "error": "bad_field"
+      }
+    }
+  ]
+}

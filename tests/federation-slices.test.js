@@ -1,77 +1,55 @@
-// Slicing the boards by every dimension the records carry (docs/plans/federation.md): each filter alone and combined,
-// regions counting only what is in them, humans and AI together and apart, merged servers counting a record once, and
-// the player's own row pinned whatever is selected.
+// Slicing the boards (docs/plans/federation.md): the server ranks (FEDERATION-PROTOCOL 9.5, 10.12), so the game turns a
+// view into a rank request, checks the answer, and merges the answers of all its servers: rows joined by key, the
+// networks it mutes or its servers hide left out, the player's own row pinned whatever is selected.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
 
-const now = 1767398410, s = (i) => 1767225600 + 300 * i, DAY = Math.floor(now / 86400);
-const K = (c) => c.repeat(43);
+const K = (c) => c.repeat(42) + 'A';
 const A = K('A'), B = K('B'), C = K('C'), D = K('D'), ME = K('M');
-const st = (id, key, body, srv = ['s1'], cc = null) => ({ id, key, slot: s(300), t: s(300) + 5, cc, srv,
-  body: { mode: 'normal', traffic: [], tier1: false, shareCountry: !!cc, ...body } });
-const ann = (home, policy, founded, day) => ({ body: { home, policy, founded, day } });
-const DATA = {
-  now, exclude: [], me: ME, deals: [{ key: B }],
-  records: [
-    st('a', A, { pops: { fra: 3, ams: 1 }, tier1: true }, ['s1'], 'DE'),
-    st('b', B, { pops: { nyc: 4 }, ai: { model: 'm1', harness: 'h1' } }, ['s1', 's2'], 'US'),
-    st('c', C, { pops: { fra: 1, sin: 1 }, ai: { model: 'm2', harness: 'h1' } }, ['s2']),
-    st('d', D, { pops: { lon: 6 } }, ['s2'], 'GB'),
-    st('m', ME, { pops: { tyo: 1 } }, ['s1']),
-  ],
-  announces: [[A, ann('DE', 'open', DAY - 400, 900)], [B, ann('US', 'selective', DAY - 10, 30)], [C, ann('SG', 'open', DAY - 100, 200)], [D, ann('GB', 'restrictive', DAY - 2, 5)]],
-};
+const row = (key, value, o = {}) => ({ rank: 1, key, value, asn: 4200000001, ai: false, ...o });
 
-test('every filter alone, combined, ranks in the slice and the own row pinned', () => {
+test('a view becomes a rank request: every filter, regions as city lists, peers as keys', () => {
   const { ev, errors } = load();
-  ev(`window.__d=${JSON.stringify(DATA)};__d.announces=new Map(__d.announces);`);
-  const slice = (v) => JSON.parse(ev(`JSON.stringify(fedSlice(${JSON.stringify(v)},__d))`));
-  const keys = (v) => slice(v).rows.map((r) => r.key);
-  // The whole board: D 6, B 4, A 4, C 2, ME 1 (ties by key).
-  assert.deepEqual(keys({ board: 'pops' }), [D, A, B, C, ME]);
-  assert.deepEqual(slice({ board: 'pops' }).rows.map((r) => r.rank), [1, 2, 3, 4, 5]);
-  // Division: shared and separate in the same view; AI setup only among AI entries.
-  assert.deepEqual(keys({ board: 'pops', division: 'ai' }), [B, C]);
-  assert.deepEqual(keys({ board: 'pops', division: 'human' }), [D, A, ME]);
-  assert.deepEqual(slice({ board: 'pops', division: 'all' }).rows.filter((r) => r.ai).map((r) => r.key), [B, C], 'robot badges in the shared view');
-  assert.deepEqual(keys({ board: 'pops', model: 'm2' }), [C]);
-  assert.deepEqual(keys({ board: 'pops', harness: 'h1' }), [B, C]);
-  // Regions count only what is in them; networks without a POP there are not listed.
-  assert.deepEqual(slice({ board: 'pops', region: { continent: 'EU' } }).rows.map((r) => [r.key, r.value]), [[D, 6], [A, 4], [C, 1]]);
-  assert.deepEqual(slice({ board: 'pops', region: { country: 'DE' } }).rows.map((r) => [r.key, r.value]), [[A, 3], [C, 1]]);
-  assert.deepEqual(slice({ board: 'pops', region: { city: 'sin' } }).rows.map((r) => [r.key, r.value]), [[C, 1]]);
-  // From the announce: home market, policy, age in real days and in game days.
-  assert.deepEqual(keys({ board: 'pops', home: 'US' }), [B]);
-  assert.deepEqual(keys({ board: 'pops', policy: 'open' }), [A, C]);
-  assert.deepEqual(keys({ board: 'pops', ageMin: 30 }), [A, C]);
-  assert.deepEqual(keys({ board: 'pops', ageMax: 30 }), [D, B]);
-  assert.deepEqual(keys({ board: 'pops', dayMin: 100, dayMax: 500 }), [C]);
-  // From the stats and the receipts: Tier 1 and the player's real country.
-  assert.deepEqual(keys({ board: 'pops', tier1: true }), [A]);
-  assert.deepEqual(keys({ board: 'pops', tier1: false }), [D, B, C, ME]);
-  assert.deepEqual(keys({ board: 'pops', from: 'GB' }), [D]);
-  // Peers with me: only networks I have a deal with.
-  assert.deepEqual(keys({ board: 'pops', peers: true }), [B]);
-  // One server's view, or all merged (B, seen by both, counted once).
-  assert.deepEqual(keys({ board: 'pops', server: 's1' }), [A, B, ME]);
-  assert.deepEqual(keys({ board: 'pops', server: 's2' }), [D, B, C]);
-  // Combined.
-  assert.deepEqual(keys({ board: 'pops', division: 'ai', region: { continent: 'EU' } }), [C]);
-  assert.deepEqual(keys({ board: 'pops', policy: 'open', tier1: false, region: { continent: 'EU' } }), [C]);
-  const v = slice({ board: 'pops', division: 'ai', region: { continent: 'EU' } });
-  assert.equal(v.rows[0].rank, 1, 'rank in the current slice');
-  // My own row stays pinned, with its rank when the slice lists it and without when it does not.
-  assert.deepEqual(slice({ board: 'pops' }).me, { key: ME, value: 1, rank: 5, ai: false });
-  assert.deepEqual(slice({ board: 'pops', policy: 'open' }).me, { key: ME, value: 1, rank: null, ai: false });
+  const req = (v, deals = []) => JSON.parse(ev(`JSON.stringify(fedRankReq(${JSON.stringify(v)},${JSON.stringify(deals)}))`));
+  assert.deepEqual(req({ board: 'traffic', measure: 'growth', division: 'ai' }), { m: 'rank', board: 'traffic', measure: 'growth', division: 'ai', filters: {}, n: 50 });
+  const r = req({ board: 'pops', model: 'm1', harness: 'h1', home: 'DE', from: 'US', policy: 'open', tier1: false, ageMin: 7, ageMax: 30, dayMin: 365, dayMax: 999, region: { country: 'DE' }, peers: true }, [{ key: B }, { key: A }, { key: B }]);
+  assert.deepEqual(Object.keys(r.filters).sort(), ['ageMax', 'ageMin', 'cities', 'dayMax', 'dayMin', 'from', 'harness', 'home', 'keys', 'model', 'policy', 'tier1']);
+  assert.equal(r.filters.tier1, false, 'false filters too');
+  assert.deepEqual(r.filters.keys, [A, B], 'deal partners, once each, sorted');
+  assert.ok(r.filters.cities.length > 1 && r.filters.cities.includes('fra') && !r.filters.cities.includes('nyc'), 'a country: its cities');
+  assert.deepEqual(req({ region: { city: 'fra' } }).filters.cities, ['fra']);
+  assert.equal(ev(`fedRankKey(fedRankReq({board:'pops'},[],50))===fedRankKey(fedRankReq({board:'pops'},[],90))`), true, 'the rows asked for are not part of the slice');
   assert.deepEqual(errors, []);
 });
 
-test('the same record merged from two servers counts once, and a record seen twice changes nothing', () => {
-  const { ev } = load();
-  const twice = { ...DATA, records: [...DATA.records, { ...DATA.records[1] }] };
-  ev(`window.__d=${JSON.stringify(twice)};__d.announces=new Map(__d.announces);`);
-  const rows = JSON.parse(ev(`JSON.stringify(fedSlice({board:'pops'},__d).rows)`));
-  assert.equal(rows.filter((r) => r.key === B).length, 1);
-  assert.equal(rows.find((r) => r.key === B).value, 4);
+test('answers are checked before they are shown', () => {
+  const { ev, errors } = load();
+  const ok = (a) => JSON.parse(ev(`JSON.stringify(fedRanksOk(${JSON.stringify(a)}))`));
+  const good = { m: 'ranks', id: 1, slot: 1767398400, n: 2, rows: [row(A, 9, { name: 'Ping Floyd', home: 'DE', cc: 'FR' }), row(B, 4, { rank: 2, ai: true })], me: { rank: null, value: 3 } };
+  assert.deepEqual(ok(good).rows[0], { rank: 1, key: A, value: 9, asn: 4200000001, ai: false, name: 'Ping Floyd', home: 'DE', cc: 'FR' });
+  for (const bad of [{ ...good, rows: [row('x', 1)] }, { ...good, rows: [row(A, 1.5)] }, { ...good, rows: [row(A, 1, { name: '' })] }, { ...good, rows: [row(A, 1, { home: 'de' })] },
+    { ...good, me: { rank: 0, value: 1 } }, { ...good, rows: Array(101).fill(row(A, 1)) }, { ...good, m: 'recs' }])
+    assert.equal(ok(bad), null, JSON.stringify(bad).slice(0, 120));
+  assert.deepEqual(errors, []);
+});
+
+test('all servers merged: rows by key with the higher value, muted and hidden left out, own row ranked in the merge', () => {
+  const { ev, errors } = load();
+  const merge = (as, drop = []) => JSON.parse(ev(`JSON.stringify(fedRankMerge(${JSON.stringify(as)},${JSON.stringify(ME)},new Set(${JSON.stringify(drop)})))`));
+  const s1 = { slot: 1, n: 40, rows: [row(A, 9), row(B, 7, { rank: 2 }), row(ME, 5, { rank: 3 })], me: { rank: 3, value: 5 } };
+  const s2 = { slot: 1, n: 3, rows: [row(B, 8), row(C, 6, { rank: 2 }), row(D, 1, { rank: 3 })], me: null };
+  let m = merge([s1, s2]);
+  assert.deepEqual(m.rows.map((r) => [r.key, r.value, r.rank]), [[A, 9, 1], [B, 8, 2], [C, 6, 3], [ME, 5, 4], [D, 1, 5]], 'B: the higher of 7 and 8');
+  assert.deepEqual(m.me, { rank: 4, value: 5 }, 'its place in the merged rows');
+  assert.equal(m.n, 40);
+  m = merge([s1, s2], [C, A]);
+  assert.deepEqual(m.rows.map((r) => r.key), [B, ME, D], 'muted or hidden: gone, the rest ranked again');
+  assert.deepEqual(m.me, { rank: 2, value: 5 });
+  // Not among the rows: the own row as the first server that has one gives it; not on the board: none.
+  m = merge([{ ...s2, me: null }, { slot: 1, n: 90, rows: [row(A, 9)], me: { rank: 77, value: 2 } }]);
+  assert.deepEqual(m.me, { rank: 77, value: 2 });
+  assert.equal(merge([s2]).me, null);
+  assert.equal(merge([null, s2]).rows.length, 3, 'a server with no answer is skipped');
+  assert.deepEqual(errors, []);
 });
