@@ -256,3 +256,36 @@ test('an AI player joins once it has declared itself, and AI networks carry the 
   assert.match(p.ev("$('leftBody').textContent"), /🤖 Ping Floyd/);
   assert.deepEqual(p.errors, []);
 });
+
+test('an exchange lists the players on it with a Peer button; peering from there runs, other exchanges say to get a port', async () => {
+  const { p } = await game([ann('alice', { name: 'Ping Floyd' }), ann('bob', { name: 'Packet Lunch', ix: ['lon'], auto: { peering: 'review', transit: 'auto', pni: 'review', swap: 'review', consortium: 'review', port: 'auto' } })]);
+  const ka = key('alice').pub;
+  const panel = (c) => p.ev(`(()=>{const d=document.createElement('div');d.innerHTML=ixBlock('${c}',false);return d.innerHTML;})()`);
+  // Frankfurt: this game has a port, Alice is there and accepts peering at once; Bob is not there.
+  let h = panel('fra');
+  assert.match(h, /Players at this exchange/);
+  assert.match(h, /Ping Floyd/);
+  assert.doesNotMatch(h, /Packet Lunch/);
+  assert.match(h, /peering requests accepted at once/);
+  assert.match(h, new RegExp(`data-act="fpReq"[^>]*${ka.slice(0, 10)}`), 'a Peer button for Alice');
+  // London: no port of ours, Bob is there: listed, no Peer button, told to get a port.
+  h = panel('lon');
+  assert.match(h, /Packet Lunch/);
+  assert.match(h, /Get a port here to peer with them/);
+  assert.doesNotMatch(h, /data-act="fpReq"/);
+  // Peering from the button: running at once (Alice's policy), and the row says so.
+  await p.ev(`ACT.fpReq({key:'${ka}',deal:'peering',via:'ix',at:'fra'})`);
+  await settle(10);
+  const d = json(p, 'S.fed.deals[0]');
+  assert.equal(d.st, 'run');
+  assert.deepEqual(d.terms.at, ['fra']);
+  h = panel('fra');
+  assert.match(h, /tag st on">peering</);
+  assert.doesNotMatch(h, /data-act="fpReq"/);
+  // A save that never joined shows no such section.
+  const q = fedPage();
+  q.ev("ACT.start({});S.cash=1e8;ACT.launchBB({city:'fra'});ACT.buyIx({city:'fra',tier:1,signed:1})");
+  assert.doesNotMatch(q.ev(`ixBlock('fra',false)`), /Players at this exchange/);
+  assert.deepEqual(p.errors, []);
+  assert.deepEqual(q.errors, []);
+});

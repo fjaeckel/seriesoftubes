@@ -147,3 +147,22 @@ function fedPlayDash(){const P=S.fedp,f=S.fed;if(!P&&!f.deals.length)return '';c
   for(const q of rq){const n=fedNetOf(q.rec.key),b=q.rec.body;
     h+=`<div class="row"><div class="grow"><div class="nm">${n?fedBot(n)+esc(n.name):'AS?'} · ${fedDealName(b.deal)}</div><div class="meta">${esc(fedTermsText(b.deal,b.terms))}</div></div>${btn(tr('common.accept'),'fpAccept',{id:q.id},'sm')}${btn(tr('common.decline'),'fpDecline',{id:q.id},'ghost sm')}</div>`;}
   return h+'</div>';}
+
+/* ---------- players at an exchange (the city panel's exchange block) ----------
+   Other players' networks whose announce lists this exchange's city, with where peering with them stands and a Peer
+   button. Peering with a player is a request (fedRequest): it runs once they accept, at once when their policy says
+   so. Nothing for a save that never joined (no player networks in NETS). Challengers share the city's list, so only
+   the incumbent's block (or the only one) shows it. */
+function fedIxPlayers(c,city){if(XIXM[c]||!S.fed||!S.fed.on||!FEDN.ids.length)return '';
+  const ns=FEDN.ids.map(id=>NET[id]).filter(n=>n&&n.fst!=='dark'&&(n.fix||[]).includes(city));if(!ns.length)return '';
+  const on=fedMyIx().includes(city),deals=S.fed.deals,rq=S.fedp?S.fedp.rq:[];
+  let h=`<h3 class="sub4">${tr('fedplay.ix_players')}</h3><p class="note">${on?tr('fedplay.ix_players_note'):tr('fedplay.ix_join_first')}</p>`;
+  for(const n of ns.sort((a,b)=>b.ftr-a.ftr||fedByStr(a.fed,b.fed))){
+    const d=deals.find(x=>x.key===n.fed&&x.deal==='peering'&&x.st!=='over'),ask=rq.some(q=>q.rec.key===n.fed&&q.rec.body.deal==='peering'),
+      a=FEDN.ann.get(n.fed),auto=a&&a.rec&&a.rec.body.auto?a.rec.body.auto.peering:'';
+    const st=d?(d.st==='run'?`<span class="tag st on">${tr('fedplay.ix_peering')}</span>`:`<span class="tag st">${tr('fedplay.s_wait')}</span>`)
+      :ask?btn(tr('fedplay.review'),'fpNet',{key:n.fed},'pink sm')
+      :on&&auto!=='decline'?btn(tr('fedplay.ix_peer'),'fpReq',{key:n.fed,deal:'peering',via:'ix',at:city},'pink sm'):'';
+    h+=`<div class="row"><div class="grow"><div class="nm">${fedBot(n)}${esc(n.name)}</div><div class="meta"><span class="tag ${n.fpol}">${tr(FEDP_POL[n.fpol]||FEDP_POL.open)}</span>${FEDP_STL[n.fst]?` <span class="tag fp-q">${tr(FEDP_STL[n.fst])}</span>`:''}${FEDP_AUTO[auto]?' · '+tr('fedplay.ix_peering_is',{how:tr(FEDP_AUTO[auto])}):''}</div></div>
+      <div class="btns">${st}${btn(tr('fedplay.deals'),'fpNet',{key:n.fed},'ghost sm')}</div></div>`;}
+  return h;}

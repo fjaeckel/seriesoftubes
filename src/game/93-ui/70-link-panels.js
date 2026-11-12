@@ -21,6 +21,7 @@ function ixBlock(c,multi){const city=ixCity(c),C=CITY[city],ix=ixName(c),X=XIXM[
         h+=`<div class="row">${logo(n)}<div class="grow"><div class="nm">${esc(n.name)}</div><div class="meta"><span class="tag ${n.type}">${TYPE_L[n.type]}</span> <span class="tag ${n.pol}">${n.pol}</span> · ${(NSH[id]*100).toFixed(NSH[id]<0.01?1:0)}%${n.tail?' <span class="tag st">'+tr('common.tiny')+'</span>':''}</div>${!on&&!chk.ok?`<div class="why">${esc(chk.why)}</div>`:''}</div>
         ${on?(viaRs||mine?`<span class="tag st on">${mine?tr('common.member_fef5'):tr('common.via_rs')}</span>`:btn(tr('common.peered_ce2f'),'unpeer',{city:c,net:id},'green sm',false,tr('link_panels.click_to_tear_down'))):btn(tr('common.request'),'peer',{city:c,net:id},'sm',!chk.ok)}</div>`;}
       h+=`</div>`;}
+  if(ix)h+=fedIxPlayers(c,city);
   h+=`</section>`;return h;
 }
 function borderSection(l){const w=borderShut(l);return w?`<section><h3 style="color:var(--bad)">${tr('link_panels.border_closed')}</h3><p class="lead">${w==='gulf'?tr('link_panels.a_diplomatic_spat_has_closed_the')+' '+tr('link_panels.back_in_n_days',{n:S.ev.gulf-S.day}):tr('link_panels.russia_has_unplugged_itself_from_the')}</p></section>`:'';}

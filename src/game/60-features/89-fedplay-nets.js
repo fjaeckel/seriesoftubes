@@ -83,11 +83,13 @@ async function fedPlayRun(){const s=S;if(!s||!s.fed||!s.fed.key||!fedEligible(s)
   const now=fedNow(),all=await fedNetworks(now),shun=new Set(await fedShunned(now)),stats=await fedPlayStats();if(S!==s||!s.fed)return;
   const me=s.fed.key.pub,muted=new Set(s.fed.muted);FEDN.ann=new Map(all.map(n=>[n.key,n]));
   /* At most FEDP_MAX networks become places in this game: first those it deals with, has requests from or the player
-     picked in the looking glass (FEDN.pin), then the busiest. Without that, on a server with more networks than that,
+     picked in the looking glass (FEDN.pin), then those sharing an exchange with it, then the busiest. Without that, on a server with more networks than that,
      two new players could never find each other. */
   const keep=new Set([...s.fed.deals.filter(d=>d.st!=='over').map(d=>d.key),...(s.fedp?s.fedp.rq.map(q=>q.rec.key):[]),...FEDN.pin]);
+  // Then those on an exchange this network is on, so the exchange's panel can offer peering with them.
+  const myIx=new Set(fedMyIx()),near=n=>n.st!=='dark'&&n.ix.some(c=>myIx.has(c));
   const list=all.filter(n=>n.key!==me&&!muted.has(n.key)).map(n=>fedNetSnap(n,shun.has(n.key),stats.get(n.key)))
-    .sort((a,b)=>keep.has(b.k)-keep.has(a.k)||(a.st==='dark')-(b.st==='dark')||b.tr-a.tr||fedByStr(a.k,b.k)).slice(0,FEDP_MAX);
+    .sort((a,b)=>keep.has(b.k)-keep.has(a.k)||near(b)-near(a)||(a.st==='dark')-(b.st==='dark')||b.tr-a.tr||fedByStr(a.k,b.k)).slice(0,FEDP_MAX);
   const h=fedNetsHash(list);let ch=false;
   // A joined save has its terms (the defaults) from its first look on, not only once it announced.
   if(!s.fedp){fedP(s);ch=true;}
