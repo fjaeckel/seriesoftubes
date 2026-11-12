@@ -1,0 +1,23 @@
+{
+  "description": "An opened transit offer: commit, price per Gbps, term in days, where.",
+  "input": {
+    "kind": "offer",
+    "author": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+    "body": {
+      "to": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "deal": "transit",
+      "basis": "T1_rSdWo4Mcfsl6YCE3dxT1Q7WMEgJV960BLNsFe8_I",
+      "terms": {
+        "mbps": 10000,
+        "perGbps": 810,
+        "term": 90,
+        "at": [
+          "fra"
+        ]
+      }
+    }
+  },
+  "expect": {
+    "ok": true
+  }
+}

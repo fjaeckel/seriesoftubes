@@ -1,0 +1,24 @@
+{
+  "description": "offer older than 30 days.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "offer",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1764720099,
+      "body": {
+        "to": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+        "enc": {
+          "n": "5CtEZEcMkAA222D5",
+          "c": "cLT5uK2bj3wjaNQYYMtnwGw8ziiQ8LDDsIZV-8LkLTuLMYuWz6XB8SfnEbvJ06dI5XzVqZ1Bh03dyz5iPWHPtvq-bLV73tsUrcu0OeefytxvJW317EJdCP0SqdwgbgO6Zfg_BDdEWKhhmXPEKHZZnwv9orgzHeeLa3w"
+        }
+      },
+      "sig": "tXPwvk7-Sv8kJshr9bacNbbEpmVF3RnRtPEkdO5I1ycJ1GtF0HMmrIpLro91yuwMkIBQmOEeyFPQfb20d6QuDA"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "too_old"
+  }
+}

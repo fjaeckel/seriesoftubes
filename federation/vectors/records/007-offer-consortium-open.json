@@ -1,0 +1,29 @@
+{
+  "description": "A consortium project open to anyone: no \"to\", no basis, in clear.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "offer",
+      "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+      "t": 1767312000,
+      "body": {
+        "deal": "consortium",
+        "terms": {
+          "name": "North Sea Noodle",
+          "a": "ams",
+          "b": "osl",
+          "members": 4,
+          "share": 2500000,
+          "pairs": 2
+        }
+      },
+      "sig": "2h5YIf0gNjTZBta6jlzyBA3VftcfiNg3D9NqawV_zzHRkJwlHA7MEcRmCc7oFNpRK_qZwFWueqFd1xw8VAf3AQ"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "offer",
+    "id": "e1bHYU-II5ZZhfEiiFMcn57J-qdT-WaAByUQhJGXGsE"
+  }
+}

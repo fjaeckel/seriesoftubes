@@ -1,0 +1,24 @@
+{
+  "description": "A ciphertext of 16 bytes holds only a tag and nothing sealed: at least 17.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "offer",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "to": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+        "enc": {
+          "n": "fDDExRbFZBWfauT9",
+          "c": "AAAAAAAAAAAAAAAAAAAAAA"
+        }
+      },
+      "sig": "YFRs55WdfsrFvpEz42z8qTQFklzpwPzYYyqSqxu34uw-eYhlkjevNWGYUS1u4bPv43xf6EZvt_ncbM8gEX5KBw"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

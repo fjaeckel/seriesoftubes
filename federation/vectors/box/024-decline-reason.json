@@ -1,0 +1,13 @@
+{
+  "description": "An opened decline holds {reason} from the fixed list.",
+  "input": {
+    "kind": "decline",
+    "author": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+    "body": {
+      "reason": "depeer"
+    }
+  },
+  "expect": {
+    "ok": true
+  }
+}

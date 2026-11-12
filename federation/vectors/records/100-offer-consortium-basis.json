@@ -1,0 +1,29 @@
+{
+  "description": "A consortium offer must not have a basis.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "offer",
+      "key": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+      "t": 1767312000,
+      "body": {
+        "deal": "consortium",
+        "basis": "PHceQTGFyrFM3znRzpZ_tbdfzizWGPIwIz325cdcyjM",
+        "terms": {
+          "name": "North Sea Noodle",
+          "a": "ams",
+          "b": "osl",
+          "members": 4,
+          "share": 2500000,
+          "pairs": 2
+        }
+      },
+      "sig": "VgMkhx6dVcStPUfcARV7gIrbApt02n8DfmYTCrUrvrSdW973c-yzvzUbGXilKpLFKy731wEKSHhsInicDb_ICA"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

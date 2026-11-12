@@ -1,0 +1,14 @@
+{
+  "description": "decline reasons come from a fixed list; free text is refused even sealed.",
+  "input": {
+    "kind": "decline",
+    "author": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+    "body": {
+      "reason": "you smell"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

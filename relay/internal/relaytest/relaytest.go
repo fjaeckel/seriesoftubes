@@ -333,11 +333,26 @@ func Stats(k *fed.Signer, t int64, pops int64, share bool) map[string]any {
 // Announce makes a signed announce for a network key.
 func Announce(k *fed.Signer, t int64, name string) map[string]any {
 	asn, _ := fed.ASN(k.Key)
-	return k.Seal("announce", t, map[string]any{"name": name, "asn": asn, "home": "DE", "day": int64(1),
+	// box: any Key does for a relay, which never opens a deal (the games derive theirs, 5.1).
+	return k.Seal("announce", t, map[string]any{"name": name, "asn": asn, "box": k.Key, "home": "DE", "day": int64(1),
 		"founded": t / 86400, "pops": []any{"fra"}, "ix": []any{}, "cust": int64(1),
 		"mix":     map[string]any{"content": int64(0), "eyeball": int64(1000), "enterprise": int64(0)},
 		"traffic": map[string]any{"in": int64(0), "out": int64(0)}, "policy": "open", "rates": map[string]any{},
 		"auto": map[string]any{"peering": "auto", "transit": "decline", "pni": "decline", "swap": "decline", "consortium": "decline", "port": "decline"}})
+}
+
+// Enc is a box (5.3) of n ciphertext bytes, as a relay sees one: it checks only the shape.
+func Enc(t int64, n int) map[string]any {
+	c := make([]byte, n)
+	for i := range c {
+		c[i] = byte(int(t) + i)
+	}
+	return map[string]any{"n": fed.Encode(c[:12]), "c": fed.Encode(c)}
+}
+
+// Offer makes a sealed offer from k to the key to (5.3).
+func Offer(k *fed.Signer, t int64, to string) map[string]any {
+	return k.Seal("offer", t, map[string]any{"to": to, "enc": Enc(t, 64)})
 }
 
 // ID is a record's id.

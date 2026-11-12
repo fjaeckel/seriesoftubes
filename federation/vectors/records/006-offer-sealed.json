@@ -1,0 +1,25 @@
+{
+  "description": "A sealed offer to bob: only to and enc (a 12-byte nonce, a ciphertext with its 16-byte tag) are in clear.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "offer",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "to": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+        "enc": {
+          "n": "fDDExRbFZBWfauT9",
+          "c": "HYj8CKhAFZ30Sy43fApg6KlngHnS66pjz5IOvvPn-heE9h1ptVI4lrvsgZ_NwAetEYITSB6RIwUTHjC5RX2vXEw1dsU_rUX7BVFuvXyHUYFdOUuDwFKwZyG_q8lMlWZx8qJZizAIOpbGGUTKw84658QxJWhzoYxc9sLLNtPv8gY"
+        }
+      },
+      "sig": "s2Op-EErIte60mdUXuF0pmHVtX6vDgY2ClnWhNUJCmw9zoOj04CPJX33q8ZBaaKth3PG55OG8EZ32bZShcJAAQ"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "offer",
+    "id": "aFHpnk-lB6tir2rjPmwvl3vGhtp2NuN6ai-BemVtNUc"
+  }
+}

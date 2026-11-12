@@ -34,7 +34,7 @@ Files are numbered (`001-…`) only to keep a stable order; the number means not
 ## Who writes what
 
 - **Generated** by [`scripts/fed-vectors.js`](../../scripts/fed-vectors.js) from fixed seeds: `signing`, `asn`,
-  `records`, `receipts`, `proofs`, `auth`, `operators`, `registry`, `dedupe`. Never edit these by hand: change the script and
+  `records`, `receipts`, `proofs`, `auth`, `operators`, `registry`, `dedupe`, `box`. Never edit these by hand: change the script and
   run `node scripts/fed-vectors.js` (CI can run `node scripts/fed-vectors.js --check`). Keys are Ed25519 from the seed
   SHA-256("tubes-fed.1 vector key <name>") for the names alice, bob, carol, mallory (networks), anna, ben, cleo, dan
   (operators) and node1, node2, node3 (nodes). Ed25519 is deterministic, so the files never change unless the script
@@ -63,6 +63,7 @@ Files are numbered (`001-…`) only to keep a stable order; the number means not
 | `quiet` | 10.6 | cases: `now`, `lastHeard` | `{state, factor}` |
 | `shun` | 10.7 | `now`, `target`, `registry` (`{asOf, servers: [{id, operators, listed?, answered?}]}`), `records` (`{id, kind, key, t, server, target, reason?}`) | `{voters, need, votes, shunned, reasons}` (`votes` and `reasons` at `now`) |
 | `catalog` | 10.8 | receiving: `now`, `self`, `entry` (`{id, path, seen}`, records assumed valid). Merging: `now`, `registry` and `gossip` with server records summarised as `{rid, t, name, nodes, operators}` | receiving: `{action: store, forward}`, `{action: drop, why}` or `{action: refuse, error}`. Merging: `servers` sorted by id |
+| `box` | 3.5, 5.1, 5.3 | `seed` (hex) alone; or `seed`, `peer`, `peerBox`, `envelope` (the record without sig and enc), `plain`, `nonce`; or `seed`, `peer`, `peerBox`, `record` (opened by the seed's network, the other party being `peer`); or `kind` (`offer`/`decline`), `author`, `body` (what an opened record holds, in clear) | `box`; or `{aad, key (hex), enc}`; or `{ok: true, plain}` / `{ok: false}`; or `{ok: true}` / `{ok: false, error}` |
 | `deals` | 10.10 | `announces` (summaries `{id, kind, key, t, body: {rates, auto}}`), `offer`, optional `accept` (`{t}`), optional `renews` (the running deal) | `{ok: true, auto, start, end}` or `{ok: false, error}` |
 | `majority` | 8.1 | cases: `operators`, `signers` (counts) | `majority` |
 | `sync` | 9.2, 10.9 | cases: policies (`same`, `a`, `b`), or versions (`a`, `b` as `vers` lists) | `sync`, or `ver` or `error` |

@@ -15,6 +15,7 @@
       "body": {
         "name": "Ping Floyd",
         "asn": 4215690104,
+        "box": "tO4Fv_k6I0AaD4GNgg7WfxxSrjMCD6t-aY-ulE4Fi2Y",
         "home": "DE",
         "day": 412,
         "founded": 20454,
@@ -101,7 +102,7 @@
           "port": "auto"
         }
       },
-      "sig": "7omrD0F_wywz1Qw9WBHxOJKbsLpJaTHr047FWW4U2jYKwp8oWXUrYGm-33ilnDQsOl-r4yIBqcGWpyw4yMgCAA"
+      "sig": "_4T8XlLFFl2CP-OCvg9B8XvwG9EtXm92T9X9g0I52sCSg95p97TzIOnsTL9EZjJrcx7GX-6SEZ1T2Y58cK79Cg"
     },
     "receipt": {
       "v": 1,
@@ -109,10 +110,10 @@
       "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
       "t": 1767312000,
       "body": {
-        "rec": "efjnZX4vN0rD96zUWATh3r-w33LqmXLBGwkPlFLH3oQ",
+        "rec": "T1_rSdWo4Mcfsl6YCE3dxT1Q7WMEgJV960BLNsFe8_I",
         "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4"
       },
-      "sig": "j1Cl8uR1FmojCwgh02POwkS8HQZ9lxX5th1SnSIRSsN96PpkWP7xJVg9EsBMv-FAuuDXDCPGOlS5Vm_qYj-gAA"
+      "sig": "lcLNq_HxEDyXtY0pMPCQvvCU6Uzrod3WFSETzspwGxBnq5cMnT0mZ4yseD6-SFU-EruFA2Yp-MVTfyUWYiJiDw"
     }
   },
   "expect": {

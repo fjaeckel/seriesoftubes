@@ -1,0 +1,12 @@
+{
+  "description": "A name written with \\u escapes (é as \\u00e9, 📡 as the pair \\ud83d\\udce1, \"/\" as \\/) is the same string as written literally: valid, same id.",
+  "input": {
+    "now": 1767312100,
+    "text": "{\"body\":{\"asn\":4215690104,\"auto\":{\"consortium\":\"decline\",\"peering\":\"auto\",\"pni\":\"decline\",\"port\":\"decline\",\"swap\":\"decline\",\"transit\":\"decline\"},\"box\":\"JFbpiu58Us9obbSxaQZ38W9CrU4GlY8QE23T5T1Y-wM\",\"cust\":0,\"day\":0,\"founded\":20455,\"home\":\"US\",\"ix\":[],\"mix\":{\"content\":0,\"enterprise\":0,\"eyeball\":1000},\"name\":\"Caf\\u00e9\\/\\ud83d\\udce1\",\"policy\":\"open\",\"pops\":[],\"rates\":{},\"traffic\":{\"in\":0,\"out\":0}},\"key\":\"q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw\",\"kind\":\"announce\",\"sig\":\"oyewxwycyAL5r2Kn8MM4ehNwPe752NcQRgVhPDr9q-919i51oACPfnosvUNdozD8zFgal9vM7NlyJheskPw0Dg\",\"t\":1767312000,\"v\":1}"
+  },
+  "expect": {
+    "ok": true,
+    "kind": "announce",
+    "id": "4_s3XuIOQQZL1UDSuDm-4c9WO7oZpI_zreafLFTzDmo"
+  }
+}

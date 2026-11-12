@@ -1,0 +1,255 @@
+{
+  "description": "More than 32 routes.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "announce",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "name": "Ping Floyd",
+        "asn": 4215690104,
+        "box": "tO4Fv_k6I0AaD4GNgg7WfxxSrjMCD6t-aY-ulE4Fi2Y",
+        "home": "DE",
+        "day": 412,
+        "founded": 20454,
+        "pops": [
+          "fra",
+          "ams",
+          "lon"
+        ],
+        "ix": [
+          "fra",
+          "ams"
+        ],
+        "cust": 37,
+        "mix": {
+          "content": 200,
+          "eyeball": 700,
+          "enterprise": 100
+        },
+        "traffic": {
+          "in": 42000,
+          "out": 9000
+        },
+        "policy": "selective",
+        "cond": {
+          "minMbps": 1000,
+          "maxRatio": 300,
+          "minShared": 2,
+          "rpki": true,
+          "tier1": false,
+          "ai": true
+        },
+        "rates": {
+          "transit": {
+            "perGbps": 900,
+            "commit": [
+              {
+                "mbps": 10000,
+                "off": 100
+              },
+              {
+                "mbps": 100000,
+                "off": 250
+              }
+            ],
+            "term": 90
+          },
+          "pni": {
+            "setup": 5000,
+            "ports": [
+              {
+                "mbps": 10000,
+                "monthly": 1500
+              },
+              {
+                "mbps": 100000,
+                "monthly": 9000
+              }
+            ],
+            "term": 180
+          },
+          "ix": {
+            "ports": [
+              {
+                "mbps": 1000,
+                "monthly": 200
+              },
+              {
+                "mbps": 10000,
+                "monthly": 800
+              }
+            ],
+            "join": "anyone",
+            "at": [
+              "fra"
+            ]
+          },
+          "wave": {
+            "routes": [
+              {
+                "a": "aa00",
+                "b": "zz"
+              },
+              {
+                "a": "aa01",
+                "b": "zz"
+              },
+              {
+                "a": "aa02",
+                "b": "zz"
+              },
+              {
+                "a": "aa03",
+                "b": "zz"
+              },
+              {
+                "a": "aa04",
+                "b": "zz"
+              },
+              {
+                "a": "aa05",
+                "b": "zz"
+              },
+              {
+                "a": "aa06",
+                "b": "zz"
+              },
+              {
+                "a": "aa07",
+                "b": "zz"
+              },
+              {
+                "a": "aa08",
+                "b": "zz"
+              },
+              {
+                "a": "aa09",
+                "b": "zz"
+              },
+              {
+                "a": "aa10",
+                "b": "zz"
+              },
+              {
+                "a": "aa11",
+                "b": "zz"
+              },
+              {
+                "a": "aa12",
+                "b": "zz"
+              },
+              {
+                "a": "aa13",
+                "b": "zz"
+              },
+              {
+                "a": "aa14",
+                "b": "zz"
+              },
+              {
+                "a": "aa15",
+                "b": "zz"
+              },
+              {
+                "a": "aa16",
+                "b": "zz"
+              },
+              {
+                "a": "aa17",
+                "b": "zz"
+              },
+              {
+                "a": "aa18",
+                "b": "zz"
+              },
+              {
+                "a": "aa19",
+                "b": "zz"
+              },
+              {
+                "a": "aa20",
+                "b": "zz"
+              },
+              {
+                "a": "aa21",
+                "b": "zz"
+              },
+              {
+                "a": "aa22",
+                "b": "zz"
+              },
+              {
+                "a": "aa23",
+                "b": "zz"
+              },
+              {
+                "a": "aa24",
+                "b": "zz"
+              },
+              {
+                "a": "aa25",
+                "b": "zz"
+              },
+              {
+                "a": "aa26",
+                "b": "zz"
+              },
+              {
+                "a": "aa27",
+                "b": "zz"
+              },
+              {
+                "a": "aa28",
+                "b": "zz"
+              },
+              {
+                "a": "aa29",
+                "b": "zz"
+              },
+              {
+                "a": "aa30",
+                "b": "zz"
+              },
+              {
+                "a": "aa31",
+                "b": "zz"
+              },
+              {
+                "a": "aa32",
+                "b": "zz"
+              }
+            ],
+            "sizes": [
+              {
+                "gbps": 100,
+                "monthly": 900
+              },
+              {
+                "gbps": 400,
+                "monthly": 2400
+              }
+            ],
+            "term": 90
+          }
+        },
+        "auto": {
+          "peering": "auto",
+          "transit": "auto",
+          "pni": "review",
+          "swap": "review",
+          "consortium": "review",
+          "port": "auto",
+          "wave": "review"
+        }
+      },
+      "sig": "SGayp0OjRb_CalUSvhLZS_fTmVdt0bKCZXYDQyhQnWNFryFUODK44HaY4wSCOGN9qnOXkfrFG3lYAXSTGztPBw"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "too_many"
+  }
+}

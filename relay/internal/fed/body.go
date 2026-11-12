@@ -420,6 +420,7 @@ func checkAnnounce(r *Record) string {
 			}
 			return ""
 		}),
+		req("box", keyCheck),
 		req("home", cc),
 		req("day", count(10000000)),
 		req("founded", intIn(0, Div(r.T, Day))),
@@ -518,18 +519,58 @@ var dealTerms = map[string]check{
 		req("share", money), req("pairs", intIn(1, 16))),
 }
 
-func checkOffer(r *Record) string {
-	deal, _ := r.Body["deal"].(string)
-	notSelf := func(v any) string {
-		if code := keyCheck(v); code != "" {
-			return code
+// Box limits (5.3): a 12-byte AES-GCM nonce, and a ciphertext of at least one byte plus the 16-byte tag.
+const (
+	BoxNonce = 12
+	BoxMin   = 17
+	BoxMax   = 2048
+)
+
+// bytesCheck: base64url (3.1) of lo to hi bytes.
+func bytesCheck(lo, hi int) check {
+	return func(v any) string {
+		s, ok := v.(string)
+		if !ok || len(s) > b64.EncodedLen(hi) {
+			return BadField
 		}
-		if v == r.Key {
+		if b, err := b64.DecodeString(s); err != nil || len(b) < lo || b64.EncodeToString(b) != s {
 			return BadField
 		}
 		return ""
 	}
-	toField := req("to", notSelf)
+}
+
+// encCheck is the Box type of 5.3: {n, c}, which only the two parties of a deal can open. A relay
+// checks its shape, never what is inside.
+var encCheck = obj(req("n", bytesCheck(BoxNonce, BoxNonce)), req("c", bytesCheck(BoxMin, BoxMax)))
+
+// notSelfKey: a Key that is not the author's own.
+func notSelfKey(author string) check {
+	return func(v any) string {
+		if code := keyCheck(v); code != "" {
+			return code
+		}
+		if v == author {
+			return BadField
+		}
+		return ""
+	}
+}
+
+// checkOffer: an offer to someone is sealed, with only to and the box in clear; an offer without
+// to is a consortium project open to anyone, in clear (5.3).
+func checkOffer(r *Record) string {
+	if _, ok := r.Body["to"]; ok {
+		return object(r.Body, []field{req("to", notSelfKey(r.Key)), req("enc", encCheck)})
+	}
+	return CheckOfferTerms(r.Key, r.Body)
+}
+
+// CheckOfferTerms checks an offer in clear (5.3): an open consortium project as it travels, or
+// what a sealed offer holds once opened, together with its to. author is the offer's key.
+func CheckOfferTerms(author string, body map[string]any) string {
+	deal, _ := body["deal"].(string)
+	toField := req("to", notSelfKey(author))
 	if deal == "consortium" {
 		toField.opt = true
 	}
@@ -547,13 +588,18 @@ func checkOffer(r *Record) string {
 		}
 		return fn(v)
 	}
-	return object(r.Body, []field{
+	return object(body, []field{
 		toField,
 		req("deal", oneOf("peering", "transit", "pni", "swap", "consortium", "port", "wave")),
 		basis,
 		opt("renews", idCheck),
 		req("terms", terms),
 	})
+}
+
+// CheckDeclineReason checks what a sealed decline holds once opened (5.3): {reason}.
+func CheckDeclineReason(v any) string {
+	return obj(req("reason", oneOf("declined", "conditions", "depeer", "excluded", "quiet")))(v)
 }
 
 func hideCheck(r *Record) string {
@@ -581,8 +627,8 @@ func checkBody(r *Record) string {
 	case "accept":
 		return object(r.Body, []field{req("offer", idCheck), req("to", keyCheck)})
 	case "decline":
-		return object(r.Body, []field{req("offer", idCheck), req("to", keyCheck),
-			req("reason", oneOf("declined", "conditions", "depeer", "excluded", "quiet"))})
+		// The reason is sealed for the offer's author (5.3).
+		return object(r.Body, []field{req("offer", idCheck), req("to", keyCheck), req("enc", encCheck)})
 	case "genesis":
 		return object(r.Body, []field{req("name", nameCheck), req("node", node)})
 	case "operators":

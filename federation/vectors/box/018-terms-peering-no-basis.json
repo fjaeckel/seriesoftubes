@@ -1,0 +1,21 @@
+{
+  "description": "Peering, transit, PNI, port and wave offers need a basis.",
+  "input": {
+    "kind": "offer",
+    "author": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+    "body": {
+      "to": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+      "deal": "peering",
+      "terms": {
+        "at": [
+          "fra"
+        ],
+        "via": "ix"
+      }
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "missing_field"
+  }
+}

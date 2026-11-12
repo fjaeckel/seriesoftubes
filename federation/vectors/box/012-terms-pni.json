@@ -1,0 +1,22 @@
+{
+  "description": "An opened PNI offer.",
+  "input": {
+    "kind": "offer",
+    "author": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+    "body": {
+      "to": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "deal": "pni",
+      "basis": "T1_rSdWo4Mcfsl6YCE3dxT1Q7WMEgJV960BLNsFe8_I",
+      "terms": {
+        "at": "fra",
+        "mbps": 10000,
+        "setup": 5000,
+        "monthly": 1500,
+        "term": 180
+      }
+    }
+  },
+  "expect": {
+    "ok": true
+  }
+}

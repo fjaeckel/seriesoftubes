@@ -1,0 +1,22 @@
+{
+  "description": "A consortium project offered to one network (with to): sealed like any offer to someone.",
+  "input": {
+    "kind": "offer",
+    "author": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+    "body": {
+      "to": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "deal": "consortium",
+      "terms": {
+        "name": "North Sea Noodle",
+        "a": "ams",
+        "b": "osl",
+        "members": 4,
+        "share": 2500000,
+        "pairs": 2
+      }
+    }
+  },
+  "expect": {
+    "ok": true
+  }
+}

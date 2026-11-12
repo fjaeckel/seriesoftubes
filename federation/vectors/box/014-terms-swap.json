@@ -1,0 +1,27 @@
+{
+  "description": "A capacity swap: no rate card, so basis is optional and absent here.",
+  "input": {
+    "kind": "offer",
+    "author": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+    "body": {
+      "to": "Of174JHiTtLXqoqEwuiD46W2SCszo4eePWy5o7dUKns",
+      "deal": "swap",
+      "terms": {
+        "give": {
+          "a": "lon",
+          "b": "nyc",
+          "mbps": 10000
+        },
+        "take": {
+          "a": "ams",
+          "b": "nyc",
+          "mbps": 10000
+        },
+        "term": 365
+      }
+    }
+  },
+  "expect": {
+    "ok": true
+  }
+}

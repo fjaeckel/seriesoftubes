@@ -1,0 +1,25 @@
+{
+  "description": "One bit of the ciphertext flipped (the record signed again): the tag does not match.",
+  "input": {
+    "seed": "6efe7f97b6b2c6aa12c79f26c7caa4b63d9f42629af20b25a58535db3ac64542",
+    "peer": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+    "peerBox": "tO4Fv_k6I0AaD4GNgg7WfxxSrjMCD6t-aY-ulE4Fi2Y",
+    "record": {
+      "v": 1,
+      "kind": "offer",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "to": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+        "enc": {
+          "n": "o4dM_rFff72Ms2lZ",
+          "c": "YvyGXG15Xni5N6f88YUoj93DNFQbUqI7pCTzvCrNau-FtrWAGIidKqbHj23tlwByKKha2qzqe4SslZQ6_0oZJd0BhRJ1QUGmuYI5D9gXBw3xJNj3qnOiyq0cynizoI2qOiTovO1XnfRnnQ8baxDYJGjxE6ke6o4j1EKW6P_aaNs"
+        }
+      },
+      "sig": "z5qkpdZVqUAPxCuSHln5sGtceZppNgQcofSPnpTnEi5uM7DWrzNg72gxTvs1ca7Igc90X6qZA0mqi_1SO0zTCw"
+    }
+  },
+  "expect": {
+    "ok": false
+  }
+}

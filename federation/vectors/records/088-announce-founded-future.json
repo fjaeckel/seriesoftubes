@@ -1,0 +1,107 @@
+{
+  "description": "founded after the day of t.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "announce",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "name": "Ping Floyd",
+        "asn": 4215690104,
+        "box": "tO4Fv_k6I0AaD4GNgg7WfxxSrjMCD6t-aY-ulE4Fi2Y",
+        "home": "DE",
+        "day": 412,
+        "founded": 20456,
+        "pops": [
+          "fra",
+          "ams",
+          "lon"
+        ],
+        "ix": [
+          "fra",
+          "ams"
+        ],
+        "cust": 37,
+        "mix": {
+          "content": 200,
+          "eyeball": 700,
+          "enterprise": 100
+        },
+        "traffic": {
+          "in": 42000,
+          "out": 9000
+        },
+        "policy": "selective",
+        "cond": {
+          "minMbps": 1000,
+          "maxRatio": 300,
+          "minShared": 2,
+          "rpki": true,
+          "tier1": false,
+          "ai": true
+        },
+        "rates": {
+          "transit": {
+            "perGbps": 900,
+            "commit": [
+              {
+                "mbps": 10000,
+                "off": 100
+              },
+              {
+                "mbps": 100000,
+                "off": 250
+              }
+            ],
+            "term": 90
+          },
+          "pni": {
+            "setup": 5000,
+            "ports": [
+              {
+                "mbps": 10000,
+                "monthly": 1500
+              },
+              {
+                "mbps": 100000,
+                "monthly": 9000
+              }
+            ],
+            "term": 180
+          },
+          "ix": {
+            "ports": [
+              {
+                "mbps": 1000,
+                "monthly": 200
+              },
+              {
+                "mbps": 10000,
+                "monthly": 800
+              }
+            ],
+            "join": "anyone",
+            "at": [
+              "fra"
+            ]
+          }
+        },
+        "auto": {
+          "peering": "auto",
+          "transit": "auto",
+          "pni": "review",
+          "swap": "review",
+          "consortium": "review",
+          "port": "auto"
+        }
+      },
+      "sig": "nQo7oTyLvWd1o3ja92Jwl_j7U1BWLQOGX-QL66kWkCaWPYPmIZ6Abw5u5VZG9vfgD0Z3uqQicmDd6xwbQJlLCw"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}
