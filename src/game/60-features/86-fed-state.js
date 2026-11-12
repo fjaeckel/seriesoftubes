@@ -18,7 +18,7 @@ const fedLabel=v=>typeof v==='string'&&!FdText(1,64)(v)?v:null;
 function fedNewState(){return {on:false,key:null,servers:[],ai:null,out:[],muted:[],deals:[],share:true,joined:0,last:0};}
 /* Checks and repairs S.fed of a save from storage or a file (called by sanitize()). Anything malformed is dropped,
    every list is capped, and a broken key turns multiplayer off without deleting the rest (deals, muted networks). */
-function fedSanitize(s){const f=s.fed;if(!f||typeof f!=='object'||Array.isArray(f)){s.fed=null;return;}
+function fedSanitize(s){const f=s.fed;if(!f||typeof f!=='object'||Array.isArray(f)){s.fed=null;if(FED.live)fedSoon();return;}
   const o=fedNewState(),int=(v,hi)=>Number.isSafeInteger(v)&&v>=0&&v<=hi?v:0;
   if(fedKeyOk(f.key)){o.key={pub:f.key.pub};if(fedBin(f.key.priv,32))o.key.priv=f.key.priv;}
   if(Array.isArray(f.servers))for(const u of f.servers)if(!FdUrl(u)&&!o.servers.includes(u)&&o.servers.length<FED_MAX_SERVERS)o.servers.push(u);
@@ -30,7 +30,8 @@ function fedSanitize(s){const f=s.fed;if(!f||typeof f!=='object'||Array.isArray(
   if(o.key&&o.key.priv&&Array.isArray(f.out))o.out=fedOutClean(f.out,o.key.pub);
   o.on=f.on===true&&!!(o.key&&o.key.priv)&&o.servers.length>0&&fedEligible(s);
   s.fed=o;
-  if(o.on)fedSoon();}
+  // A joined save starts its session once loaded; any other save loaded in this tab ends the one running.
+  if(o.on||FED.live)fedSoon();}
 // A queued record, checked as far as can be without its signature (that is checked by every node that takes it).
 function fedOutClean(list,pub){let bytes=0,stats=null;const out=[];
   for(const r of list){if(!r||typeof r!=='object'||Array.isArray(r)||fedValues(r)||fedEnv(r,FED_REC)||!FED_CLIENT_KINDS.includes(r.kind)||r.key!==pub)continue;
