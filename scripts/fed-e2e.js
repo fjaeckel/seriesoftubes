@@ -3,7 +3,8 @@
 // Not part of npm test or CI; run it by hand after changing either side:
 //
 //   node scripts/fed-e2e.js            [--keep] (leave the temp folder) [--headed] [--fakes N] (default 260)
-//                                      [--quick] (skip the wait for the slot to end, and the leaderboard checks after it)
+//                                      [--quick] (skip the wait for the slot to end, and the leaderboard checks after it;
+//                                      the newcomer steps still wait once for a new slot: one stats per slot)
 //   node scripts/fed-e2e.js --play     [--fakes N] (default 12) [--port P] sets up the same relay without TLS (the
 //                                      game dials *.localhost nodes over ws:// from a localhost page, §9.1) and prints
 //                                      two addresses to open in any browser, one player each; runs until Ctrl-C
@@ -455,6 +456,77 @@ stay in the browser).`);
       return `${a}–${b} 400G at ${price}/mo, ${Math.round(got.load * 1000)} Mbps over it, Bob earns ${bob.rev}`;
     });
 
+    // Newcomers (§10.10) and the customer cone (§10.4). Bob has played long enough (driven: his join day moved 100 days
+    // back); Alice joined today, so she buys from him at the newcomer price, and both games must agree on it.
+    // The relay takes one stats record per network and slot from a game (§5.2), so everything the stats must show is
+    // set up first, then the run waits once for the next slot and has both games send one (statsNow).
+    const statsNow = (p) => ev(p, async () => { const M = FED.live; S.fed.last = 0; M.body = ''; FED.clear(M.statsT); await fedStatsTick(M); fedFlushSoon(); });
+    // The stats bodies of k the relay took (an ack for the put; a refused one is put again later).
+    const sentStats = (p, k) => p.sent.filter((f) => f.m === 'put' && f.rec && f.rec.kind === 'stats' && f.rec.key === k && p.frames.some((a) => a.m === 'ack' && a.id === f.id)).map((f) => f.rec.body);
+    await step('newcomer Alice buys transit from established Bob at the newcomer price; both games agree on it', async () => {
+      await ev(B, () => { S.fed.joined -= 100; });
+      await ev(B, () => ACT.fpTermsSet({ terms: JSON.stringify({ pol: 'open', auto: { peering: 'review', pni: 'review', wave: 'review', transit: 'auto' },
+        rates: { pni: { setup: 1000, ports: [{ mbps: 10000, monthly: 500 }], term: 30 }, transit: { perGbps: 400, commit: [{ mbps: 10000, off: 100 }], term: 30 } } }) }));
+      const today = Math.floor(now() / DAY);
+      await until(() => ev(A, async (k) => { await fedPlayRefresh(); const a = FEDN.ann.get(k); return !!a && !!a.rec.body.rates.transit && a.rec.body.founded <= Math.floor(fedNow() / 86400) - 30; }, P.B), 30000, 'Alice to see Bob\'s transit card and his join day');
+      must(await ev(A, () => fedIsNew(S.fed.joined, fedNow())), 'Alice is not a newcomer');
+      const card = await ev(B, () => S.fedp.rates.transit.perGbps), want = Math.floor(Math.floor(card * 900 / 1000) * 750 / 1000);
+      const r = await ev(A, (k) => ACT.fpReq({ key: k, deal: 'transit', mbps: 10000 }), P.B);
+      must(r === null || r === undefined, `request refused: ${JSON.stringify(r)}`);
+      const a = await until(() => ev(A, (k) => S.fed.deals.find((d) => d.key === k && d.deal === 'transit' && d.st === 'run'), P.B), 15000, 'Alice\'s transit to run');
+      must(a.terms.perGbps === want && a.terms.founded === today, `Alice's terms ${JSON.stringify(a.terms)}, want ${want} and founded ${today}`);
+      const b = await until(() => ev(B, (k) => S.fed.deals.find((d) => d.key === k && d.deal === 'transit' && d.st === 'run'), P.A), 30000, 'Bob\'s side of the deal');
+      must(b.role === 'sell' && b.id === a.id && canon(b.terms) === canon(a.terms), `Bob's deal ${JSON.stringify(b)}`);
+      return `card ${card} per Gbps (the computer-run ceiling of a young game), ${want} for a newcomer (commit tier, then 25% off), the same in both games`;
+    });
+
+    // A made-up network that joined 40 days ago and buys transit from Bob: the one his cone may count (Alice is new).
+    const carol = keyOf(sha('fed-e2e carol'));
+    await step('an established made-up network buys transit from Bob, with traffic both ways', async () => {
+      const t = now(), ca = sign(carol, 'announce', t, { ...fakeAnn(carol, 999, t).body, name: 'Old Timer Net', founded: Math.floor(t / DAY) - 40 });
+      const cs = sign(carol, 'stats', t, { mode: 'normal', pops: { fra: 1 }, traffic: [{ key: P.B, in: 5000, out: 5000 }], up: [P.B], tier1: false, shareCountry: false });
+      for (const r of [ca, cs]) { const x = await raw.put(r); must(x.m === 'ack', `put ${r.kind}: ${JSON.stringify(x).slice(0, 160)}`); }
+      // Bob's side of that deal is driven: its offer would come from a game, which the made-up network has not.
+      await until(() => ev(B, async (k) => { await fedPlayRefresh(); return FEDN.ann.has(k); }, carol.pub), 30000, 'Bob to know the made-up network');
+      await ev(B, (k) => { const id = 'E2E' + 'c'.repeat(40), t = fedNow();
+        S.fed.deals.push({ id, deal: 'transit', key: k, name: 'Old Timer Net', asn: 1, start: t - 60, end: t + 30 * 86400, terms: { mbps: 1000, perGbps: 400, term: 30, at: ['fra'] }, role: 'sell', st: 'run', on: false, rep: 0, why: '', ai: false }); }, carol.pub);
+      const tr = await until(async () => { await sleep(1000); return ev(B, async (k) => { await fedNetsFetch(fedPlayKeys(S)); await fedPlayRefresh(); compute(); const d = S.fed.deals.find((x) => x.key === k);
+        const e = d && d.on && d.rep > 0 && fedStatsBody().traffic.find((x) => x.key === k); return e && e.in > 0 && e.out > 0 && e; }, carol.pub); }, 30000, 'Bob\'s deal to run, with traffic both ways in his next stats');
+      return `Bob reports ${tr.in}/${tr.out} Mbps with it`;
+    });
+
+    await step('mentor dividend, set up: Bob\'s first look at newcomer Alice; she grows to 10 POPs', async () => {
+      // Bob's first look at his newcomer: what she has now never pays.
+      await until(async () => { await sleep(1000); return ev(B, async (k) => { await fedNetsFetch(fedPlayKeys(S)); await fedPlayRefresh(); return S.fedp.ment.some((x) => x.k === k && x.m === 'seen'); }, P.A); }, 30000, 'Bob\'s first look at Alice');
+      must(!(await ev(B, (k) => S.fedp.ment.some((x) => x.k === k && x.v > 0), P.A)), 'paid at the first look');
+      // Heard on 3 UTC days needs 3 days; driven: Bob's game saw her on the two days before.
+      await ev(B, (k) => { const d = Math.floor(fedNow() / 86400), h = S.fedp.heard.find((x) => x.k === k); if (h) h.d = [...new Set([d - 2, d - 1, ...h.d])].sort((a, b) => a - b).slice(0, 3); else S.fedp.heard.push({ k, d: [d - 2, d - 1] }); }, P.A);
+      // Alice grows to 10 POPs in service (driven: cash and builds).
+      const pops = await ev(A, () => { S.cash = 1e9; for (const c of ['fra', 'ams', 'lon', 'par', 'mad', 'mil', 'vie', 'waw', 'sto', 'cph', 'bru', 'zrh']) if (!S.pops[c] && CITY[c] && Object.keys(S.pops).length < 12) ACT.buildPop({ city: c }); after(); return Object.keys(fedStatsBody().pops).length; });
+      must(pops >= 10, `Alice has ${pops} POPs in service`);
+      return `Alice's next stats: ${pops} POPs`;
+    });
+
+    await step('their stats confirm each other (Bob: cust Alice and the made-up network; Alice: up Bob); Bob\'s mentor bonus', async () => {
+      const slotEnd = (Math.floor(now() / SLOT) + 1) * SLOT;
+      console.log(`      waiting ${slotEnd - now() + 2} s for the next slot (one stats record per network and slot)…`);
+      await sleep((slotEnd - now() + 2) * 1000);
+      await statsNow(A); await statsNow(B);
+      const sa = await until(() => sentStats(A, P.A).find((b) => (b.up || []).includes(P.B) && Object.keys(b.pops).length >= 10), 60000, 'Alice\'s stats with up and 10 POPs');
+      const sb = await until(() => sentStats(B, P.B).find((b) => (b.cust || []).includes(P.A) && (b.cust || []).includes(carol.pub) && b.traffic.some((x) => x.key === carol.pub && x.in > 0 && x.out > 0)), 60000, 'Bob\'s stats with both customers');
+      must(!(sa.cust || []).includes(P.B) && !(sb.up || []).includes(P.A) && typeof sb.tier2 === 'boolean', 'a side listed the wrong way round, or no tier2');
+      let paid;
+      try { paid = await until(async () => { await sleep(1000); return ev(B, async (k) => { await fedNetsFetch(fedPlayKeys(S)); await fedPlayRefresh(); return S.fedp.ment.find((x) => x.k === k && x.m === 'pops' && x.v > 0); }, P.A); }, 30000, 'Bob\'s bonus'); }
+      catch (e) { throw new Error(e.message + ' ' + JSON.stringify(await ev(B, async (k) => { const st = await fedNetsStats(), f = (x) => { const a = FEDN.ann.get(x); return a && a.rec ? a.rec.body.founded : null; };
+        return { st: st.get(k), heard: S.fedp.heard, ment: S.fedp.ment.filter((x) => x.k === k), mentees: [...fedMentees(S, fedNow(), f).keys()].length }; }, P.A))); }
+      await ev(B, async () => { await fedNetsFetch(fedPlayKeys(S)); await fedPlayRefresh(); });
+      const n = await ev(B, (k) => S.fedp.ment.filter((x) => x.k === k && x.m === 'pops').length, P.A);
+      must(n === 1, `${n} entries for one milestone`);
+      await ev(B, () => { closeModal(); ACT.dash(); });
+      must(/Mentor bonus/.test(await ev(B, () => fedPlayCard())), 'no mentor line in the players card');
+      return `Alice up ${sa.up.length}, Bob cust ${sb.cust.length}; bonus ${paid.v}`;
+    });
+
     await step('a shun: Alice votes from the game with the operator key, four other servers vote, everyone excludes the target', async () => {
       const target = fakes[0];
       // Alice imports server 1's operator key through the sheet.
@@ -546,6 +618,17 @@ stay in the browser).`);
         must(two && two.includes(P.A) && two.includes(P.B), `${p.name}: the two players' slice ${JSON.stringify(two)}`);
         must(!p.sent.some((f) => f.m === 'board') && !p.frames.some((f) => f.m === 'recs' && f.items && f.items.some((it) => it.rec && it.rec.kind === 'stats' && it.rec.key !== P.A && it.rec.key !== P.B && !p.sent.some((s) => s.m === 'rankwhy' && s.id === f.id))), `${p.name} downloaded board records`);
       }
+      // The customer cone (§10.4): Bob sells transit to Alice and to the made-up network that joined 40 days ago.
+      // Alice is a newcomer, so she does not count: his cone is 1, and 0 without the made-up network's records.
+      const cone = (await raw.ask({ m: 'rank', board: 'cone', measure: 'total', division: 'all', filters: { keys: [P.A, P.B, carol.pub].sort() } }))[0];
+      const bob = cone.rows && cone.rows.find((r) => r.key === P.B);
+      must(bob && bob.value === 1, `Bob's cone on the relay: ${JSON.stringify(cone).slice(0, 300)}`);
+      const alone = await ev(A, async ([b, c]) => { const conn = FED.live.conns.get(S.fed.servers[0]), srvs = await fedServers();
+        const w = await fedAskRetry(conn, { m: 'rankwhy', board: 'cone', measure: 'total', division: 'all', filters: {}, key: b }, true);
+        const q = { now: w.slot, board: 'cone', measure: 'total', division: 'all', exclude: await fedServerExcl(conn), cities: null, filters: {} }, at = { srv: conn.srv, nodeKey: conn.nodeKey };
+        const all = await fedWhyRun(w.items, fedNow(), at, fwSrvs(srvs), b, q), only = await fedWhyRun(w.items.filter((it) => it.rec.key !== c), fedNow(), at, fwSrvs(srvs), b, q);
+        return [all && all.value, only && only.value]; }, [P.B, carol.pub]);
+      must(alone[0] === 1 && alone[1] === 0, `Bob's cone from the records: ${JSON.stringify(alone)} (with, without the made-up network)`);
       // And through the sheet.
       await ev(A, () => ACT.fuOpen({ v: 'boards' }));
       await until(async () => (await A.page.locator('#modalCard .fu-me').count()) > 0 && (await A.page.locator('#modalCard').innerText()).includes('Fake Net'), 20000, 'Alice\'s own row and the others on her board sheet');
@@ -557,7 +640,7 @@ stay in the browser).`);
       const out = [];
       for (const p of [A, B]) {
         const r = await ev(p, async () => { const c = FED.live.conns.get(S.fed.servers[0]), res = [];
-          for (const board of ['pops', 'traffic', 'total']) { const req = fedRankReq({ board }, []), a = fedRanksOk(await fedAskRetry(c, req)); res.push(a ? await fedRankCheck(c, req, a) : 'no answer'); }
+          for (const board of ['pops', 'traffic', 'total', 'cone']) { const req = fedRankReq({ board }, []), a = fedRanksOk(await fedAskRetry(c, req)); res.push(a ? await fedRankCheck(c, req, a) : 'no answer'); }
           return { res, bad: Object.keys(await fedUntrusted()).length }; });
         must(r.res.every((x) => x === true) && r.bad === 0, `${p.name}: checks ${JSON.stringify(r)}`);
         must(p.sent.some((f) => f.m === 'rankwhy'), `${p.name} never asked rankwhy`);
