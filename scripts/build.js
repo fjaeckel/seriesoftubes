@@ -34,6 +34,10 @@ for (const f of ['index.html', 'sitemap.xml', 'llms.txt', 'sw.js']) {
   fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replaceAll('__VERSION__', VERSION).replaceAll('__BUILD_DATE__', BUILD_DATE));
 }
 
+// The federation server registry, as one static same-origin file (docs/FEDERATION-PROTOCOL.md 11.3). Built in Node
+// so the build needs no Go; CI checks it matches `relay build-servers-json` byte for byte.
+require('./registry').build(path.join(ROOT, 'federation', 'servers'), path.join(OUT, 'federation', 'servers.json'));
+
 // Release notes for this version, baked into the page ("What's new") and published as version.json so
 // open games can spot a newer release.
 const notes = execFileSync(process.execPath, [path.join(__dirname, 'release-notes.js'), VERSION], { encoding: 'utf8' });

@@ -1,0 +1,78 @@
+name: Relay binaries
+
+# Attaches the multiplayer relay (relay/, docs/adr/0005-federation-by-player-run-servers.md) to a GitHub release as
+# static binaries: linux, darwin and windows, each for amd64 and arm64, plus SHA256SUMS. auto-release.yml dispatches
+# this workflow with the new tag, like the container images (docker.yml); it never deploys anything. The game itself
+# only deploys from release.yml to GitHub Pages.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to attach the relay binaries to (e.g. v3.6.0)
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: relay-release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  binaries:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write   # upload the release assets
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.tag }}
+    steps:
+      - name: Check the tag
+        run: |
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || { echo "::error::Not a release tag: $TAG"; exit 1; }
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag }}
+          persist-credentials: false
+
+      - id: has
+        run: |
+          if [ -f relay/go.mod ]; then echo "relay=true" >> "$GITHUB_OUTPUT"
+          else echo "::notice::$TAG has no relay/: no binaries to attach."; echo "relay=false" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: steps.has.outputs.relay == 'true'
+        with:
+          go-version-file: relay/go.mod
+          cache-dependency-path: relay/go.sum
+
+      - name: Test before building
+        if: steps.has.outputs.relay == 'true'
+        working-directory: relay
+        run: go vet ./... && go test ./...
+
+      # CGO off: one static file per platform, nothing to install (a Raspberry Pi takes linux-arm64). -trimpath and
+      # no build id keep the builds reproducible; main.version is set when the relay declares it.
+      - name: Build
+        if: steps.has.outputs.relay == 'true'
+        working-directory: relay
+        run: |
+          set -euo pipefail
+          ver="${TAG#v}"
+          out="$RUNNER_TEMP/dist"; mkdir -p "$out"
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
+            os="${target%/*}"; arch="${target#*/}"; ext=""; [ "$os" = windows ] && ext=".exe"
+            name="tubes-relay-$ver-$os-$arch$ext"
+            CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath -buildvcs=false \
+              -ldflags "-s -w -buildid= -X main.version=$ver" -o "$out/$name" ./cmd/relay
+            echo "$name: $(wc -c < "$out/$name") bytes"
+          done
+          (cd "$out" && sha256sum tubes-relay-* > SHA256SUMS && cat SHA256SUMS)
+          # The linux/amd64 one runs here: make sure it really is static.
+          file "$out/tubes-relay-$ver-linux-amd64" | tee /dev/stderr | grep -q 'statically linked'
+
+      - name: Attach them to the release
+        if: steps.has.outputs.relay == 'true'
+        run: gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber "$RUNNER_TEMP"/dist/*

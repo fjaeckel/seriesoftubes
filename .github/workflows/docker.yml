@@ -4,6 +4,10 @@ name: Container image
 # with the new tag (pre-releases too). There is no :latest and no image per commit. Pushes and pull requests that change
 # what goes into the image only build it and try both modes; they never publish. The image packages the MCP server and
 # the development server; the game itself is hosted on GitHub Pages only (docs/adr/0001-github-pages-only.md).
+#
+# The multiplayer relay (relay/, docs/adr/0005-federation-by-player-run-servers.md) is a second, separate image built
+# the same way: ghcr.io/<owner>/<repo>-relay:<version>, from relay/Dockerfile, for linux/amd64 and linux/arm64. It is
+# a tool players run on their own servers; the project runs none.
 on:
   workflow_dispatch:
     inputs:
@@ -14,6 +18,7 @@ on:
     branches: [main]
     paths:
       - docker/**
+      - relay/**
       - .dockerignore
       - package.json
       - package-lock.json
@@ -23,6 +28,7 @@ on:
   pull_request:
     paths:
       - docker/**
+      - relay/**
       - .dockerignore
       - package.json
       - package-lock.json
@@ -44,6 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       run: ${{ steps.g.outputs.run }}
+      relay: ${{ steps.g.outputs.relay }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -51,6 +58,8 @@ jobs:
           persist-credentials: false
       - id: g
         run: |
+          # A release from before the relay has no relay image to build.
+          if [ -f relay/Dockerfile ]; then echo "relay=true" >> "$GITHUB_OUTPUT"; else echo "relay=false" >> "$GITHUB_OUTPUT"; fi
           tag="v$(jq -r .version package.json)"
           if [ "$GITHUB_EVENT_NAME" = push ] && ! git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
             echo "$tag is not tagged yet: the release will test this commit when it publishes."
@@ -185,3 +194,98 @@ jobs:
           sbom: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # The relay image: built for both platforms on every change to relay/ (never pushed), so an arm64 break shows before
+  # a release does.
+  relay-test:
+    needs: gate
+    if: needs.gate.outputs.run == 'true' && needs.gate.outputs.relay == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag || '' }}
+          persist-credentials: false
+
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build the relay for amd64 and arm64
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: relay
+          file: relay/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: false
+          cache-from: type=gha,scope=relay
+          cache-to: type=gha,scope=relay,mode=max
+
+  relay-publish:
+    if: github.event_name == 'workflow_dispatch' && needs.gate.outputs.relay == 'true'
+    needs: [gate, relay-test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check the tag
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || { echo "::error::Not a release tag: $TAG"; exit 1; }
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag }}
+          persist-credentials: false
+
+      - name: Work out the image name and version
+        id: meta
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          want="v$(jq -r .version package.json)"
+          if [ "$TAG" != "$want" ]; then echo "::error::Release tag $TAG does not match package.json ($want)"; exit 1; fi
+          # ghcr.io/<owner>/<repo>-relay, lowercased: a package of its own, next to the MCP server's image.
+          echo "image=ghcr.io/${GITHUB_REPOSITORY,,}-relay" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "revision=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "created=$(git log -1 --format=%cI)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the relay for the release's version
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: relay
+          file: relay/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+          tags: ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}
+          labels: |
+            org.opencontainers.image.title=Series of Tubes relay
+            org.opencontainers.image.description=A multiplayer relay server for Series of Tubes, for players to run on their own servers.
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.documentation=${{ github.server_url }}/${{ github.repository }}/tree/${{ inputs.tag }}/relay
+            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+            org.opencontainers.image.revision=${{ steps.meta.outputs.revision }}
+            org.opencontainers.image.created=${{ steps.meta.outputs.created }}
+            org.opencontainers.image.licenses=MIT
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=relay
+          cache-to: type=gha,scope=relay,mode=max

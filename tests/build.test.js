@@ -14,7 +14,7 @@ test('build stamps version and date into the site', () => {
   assert.match(html, /const APP_VERSION='9\.9\.9'/);
   assert.match(html, /"softwareVersion": "9\.9\.9"/);
   assert.match(fs.readFileSync(path.join(OUT, 'sitemap.xml'), 'utf8'), /<lastmod>2030-01-01<\/lastmod>/);
-  for (const f of ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'site.webmanifest', 'robots.txt', 'images/og-image.png', '404.html', 'CNAME', 'version.json']) {
+  for (const f of ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'site.webmanifest', 'robots.txt', 'images/og-image.png', '404.html', 'CNAME', 'version.json', 'federation/servers.json']) {
     assert.ok(fs.existsSync(path.join(OUT, f)), `${f} is shipped`);
   }
 });

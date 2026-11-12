@@ -115,3 +115,7 @@ jobs:
         # release tag by docker.yml. Pre-releases get one too: an image tag is
         # pulled on purpose, so a test image costs nothing.
         run: gh workflow run docker.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG" -f tag="$TAG"
+
+      - name: Attach the relay binaries
+        # The multiplayer relay's static binaries, built from the tag by relay-release.yml (pre-releases too).
+        run: gh workflow run relay-release.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG" -f tag="$TAG"

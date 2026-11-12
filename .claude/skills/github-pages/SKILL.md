@@ -35,6 +35,12 @@ one, redesign the feature.
   run on a developer's own machine against a checkout; nothing they serve is deployed, and the game
   never depends on them. Their code stays out of `_site/` (`src/agent/` is development-only, see
   `docs/adr/0004-dev-only-code.md`).
+- **The multiplayer server list is a static file too.** `scripts/build.js` turns the registry folder
+  `federation/servers/` into `_site/federation/servers.json` (`scripts/registry.js`, in Node so the build never
+  needs Go; CI checks it matches `relay build-servers-json` byte for byte). It changes with releases only. The game
+  fetches it same-origin, only when multiplayer is used; the service worker's default path caches it for offline
+  play, so it is not in `CORE` (a player who never joins must not download it). The relay itself, its image and
+  binaries are tools players host, never part of the site (`docs/adr/0005-federation-by-player-run-servers.md`).
 - **The container image is a tool too.** `docker/` packages those tools; `docker.yml` publishes it to GHCR for releases
   (version tags only, no `latest`) and never to Pages. Someone may run its development server where they like; that is
   not a host of the game, and the game never depends on it.

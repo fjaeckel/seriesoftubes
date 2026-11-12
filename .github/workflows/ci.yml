@@ -106,17 +106,137 @@ jobs:
       - name: Translation coverage
         run: node scripts/i18n-check.js --summary "$GITHUB_STEP_SUMMARY"
 
-  # The one check to look at: green only when the plan, every part, the build and the translations are.
+  # The multiplayer relay (relay/, Go, its own go.mod) and the federation vectors both implementations share
+  # (docs/FEDERATION-PROTOCOL.md). A release from before the relay has no relay/: then there is nothing to do.
+  relay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - id: has
+        run: |
+          if [ -f relay/go.mod ]; then echo "relay=true" >> "$GITHUB_OUTPUT"
+          else echo "::notice::No relay/ in this commit: nothing to test."; echo "relay=false" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: steps.has.outputs.relay == 'true'
+        with:
+          go-version-file: relay/go.mod
+          cache-dependency-path: relay/go.sum
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.has.outputs.relay == 'true'
+        with:
+          node-version: 24
+      - name: go vet
+        if: steps.has.outputs.relay == 'true'
+        working-directory: relay
+        run: go vet ./...
+      - name: go test -race
+        if: steps.has.outputs.relay == 'true'
+        working-directory: relay
+        run: go test -race ./...
+      - name: The generated vectors are up to date
+        if: steps.has.outputs.relay == 'true'
+        run: node scripts/fed-vectors.js --check
+      # The site build makes servers.json in Node (scripts/registry.js) so it never needs Go; the relay makes it too.
+      # Both must write the same bytes, for the real folder and for the spec's build vector (the folder is often empty).
+      - name: servers.json, the build's and the relay's, byte for byte
+        if: steps.has.outputs.relay == 'true'
+        run: |
+          set -euo pipefail
+          (cd relay && go build -o "$RUNNER_TEMP/relay" ./cmd/relay)
+          w="$RUNNER_TEMP/registry"
+          node scripts/registry.js unpack federation/vectors/registry/016-build-servers-json.json "$w/vector"
+          for dir in federation/servers "$w/vector"; do
+            node scripts/registry.js build "$dir" "$w/node.json"
+            "$RUNNER_TEMP/relay" build-servers-json "$dir" "$w/go.json"
+            if ! cmp "$w/node.json" "$w/go.json"; then
+              echo "::error::servers.json from $dir differs between scripts/registry.js and relay build-servers-json"
+              diff <(jq -S . "$w/node.json") <(jq -S . "$w/go.json") || true
+              exit 1
+            fi
+            echo "$dir: identical ($(wc -c < "$w/node.json") bytes)"
+          done
+
+  # A pull request that adds or changes a server file in the registry (federation/servers/, docs/FEDERATION-PROTOCOL.md
+  # 11.2): the relay checks each one, including that a node answers the live challenge. Deleting a file needs no check.
+  registry:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # The merge commit and its first parent, the base branch as it is now.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - id: files
+        name: Server files in this pull request
+        run: |
+          set -euo pipefail
+          files=$(git diff --name-only --diff-filter=d HEAD^1 HEAD -- federation/servers/)
+          bad=0
+          for f in $files; do
+            if [ "$f" = federation/servers/README.md ]; then continue; fi
+            if ! [[ "$f" =~ ^federation/servers/[A-Za-z0-9_-]{43}\.json$ ]]; then
+              echo "::error file=$f::Only <server identity>.json files (and README.md) belong in federation/servers/"; bad=1
+            fi
+          done
+          [ "$bad" = 0 ] || exit 1
+          json=$(printf '%s\n' $files | grep '\.json$' | paste -sd ' ' || true)
+          echo "files=$json" >> "$GITHUB_OUTPUT"
+          if [ -z "$json" ]; then echo "No server files added or changed: nothing to check."; else echo "To check: $json"; fi
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: steps.files.outputs.files != ''
+        with:
+          go-version-file: relay/go.mod
+          cache-dependency-path: relay/go.sum
+      - name: relay check-registry (with the live challenge)
+        if: steps.files.outputs.files != ''
+        env:
+          FILES: ${{ steps.files.outputs.files }}
+        run: |
+          set -uo pipefail
+          (cd relay && go build -o "$RUNNER_TEMP/relay" ./cmd/relay) || exit 1
+          # The relay's output quotes the files, which come from the pull request: never read it as workflow commands.
+          stop="stop-$RANDOM$RANDOM$RANDOM"
+          failed=0
+          { echo "## Registry check"; echo; } >> "$GITHUB_STEP_SUMMARY"
+          for f in $FILES; do
+            out=$("$RUNNER_TEMP/relay" check-registry --base HEAD^1 "$f" 2>&1); code=$?
+            echo "::stop-commands::$stop"
+            echo "----- $f"; echo "$out"
+            echo "::$stop::"
+            if [ "$code" = 0 ]; then
+              echo "- \`$f\`: passed" >> "$GITHUB_STEP_SUMMARY"
+            else
+              failed=1
+              first=$(echo "$out" | grep -m1 . | tr -d '\r' | sed 's/%/%25/g' | cut -c1-300)
+              echo "::error file=$f,title=Registry check failed::${first:-relay check-registry exited with $code}"
+              { echo "- \`$f\`: **failed**"; echo; echo '```'; echo "$out" | head -40; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+          if [ "$failed" = 1 ]; then
+            echo "A registry file failed: the lines above name the file, the step and the error code (docs/FEDERATION-PROTOCOL.md 11.2; federation/servers/README.md explains each step)."
+            exit 1
+          fi
+
+  # The one check to look at: green only when the plan, every part, the build, the translations, the relay and (on a
+  # pull request) the registry check are.
   test:
-    needs: [plan, part, build, translations]
+    needs: [plan, part, build, translations, relay, registry]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Everything passed
         run: |
-          echo "plan: ${{ needs.plan.result }}, parts: ${{ needs.part.result }}, build: ${{ needs.build.result }}, translations: ${{ needs.translations.result }}"
+          echo "plan: ${{ needs.plan.result }}, parts: ${{ needs.part.result }}, build: ${{ needs.build.result }}, translations: ${{ needs.translations.result }}, relay: ${{ needs.relay.result }}, registry: ${{ needs.registry.result }}"
           test "${{ needs.plan.result }}" = success && test "${{ needs.part.result }}" = success
           test "${{ needs.build.result }}" = success && test "${{ needs.translations.result }}" = success
+          test "${{ needs.relay.result }}" = success
+          test "${{ needs.registry.result }}" = success || test "${{ needs.registry.result }}" = skipped
 
   # After a run on main: each file's time from this run goes into the cache, so the next run (main or a PR) splits
   # its parts by today's tests. Nobody has to remember to refresh tests/durations.json.
