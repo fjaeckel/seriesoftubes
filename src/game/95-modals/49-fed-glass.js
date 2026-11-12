@@ -73,7 +73,7 @@ function fuNetHtml(){const key=UI.fu.key,n=FU.nets.get(key),I=FU.netInfo&&FU.net
   if(I){const sh=I.shun;h+=`<h3 class="sub4">${tr('fedui.shun_votes')}</h3><p class="meta">${sh.shunned?tr('fedui.excluded_by_the_federation'):tr('fedui.n_of_m_votes_needed',{n:sh.votes,m:sh.need})}</p>`+
       (Object.keys(sh.reasons).length?`<ul class="fu-reasons">${Object.entries(sh.reasons).map(([r,c])=>`<li>${fuReason(r)}: ${trn('fedui.n_servers',c)}</li>`).join('')}</ul>`:'');
     const hid=I.hides.filter(x=>x.hide||x.names||x.refuse);if(hid.length)h+=`<p class="meta">${tr('fedui.hidden_by_list',{list:hid.map(x=>fuSrvName(x.id)).join(', ')})}</p>`;}
-  if(f&&!me)h+=`<div class="btns">${btn(muted?tr('fedui.unmute'):tr('fedui.mute'),'fuMute',{key,on:!muted},'ghost sm')}</div><p class="meta">${tr('fedui.muting_hides_a_network_from_your')}</p>`;
+  if(f&&!me)h+=`<div class="btns">${f.on&&!muted&&!['dark','forgotten'].includes(n.quiet.state)?btn(tr('fedplay.deals'),'fpNet',{key},'sm'):''}${btn(muted?tr('fedui.unmute'):tr('fedui.mute'),'fuMute',{key,on:!muted},'ghost sm')}</div><p class="meta">${tr('fedui.muting_hides_a_network_from_your')}</p>`;
   // Operators: per server they operate, hide and shun with pre-made reasons only.
   const ops=FU.srvs.filter(s=>fuOpOf(s.id));
   if(ops.length&&I)for(const s of ops){const hd=I.hides.find(x=>x.id===s.id)||{},mine=FU.votes.filter(v=>v.rec.body.server===s.id&&v.rec.body.target===key).sort((a,b)=>b.rec.t-a.rec.t)[0],voted=mine&&mine.rec.kind==='shun',dis=!fedConnTo(s.id)||FU.busy;
