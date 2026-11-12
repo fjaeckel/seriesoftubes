@@ -163,6 +163,9 @@ at that sandbox method.
   dev.js, finishing an in-flight day before a forced save, hostile loan/grace/transit numbers in saves. Full checks:
   focused tests 292/292, Go race clean, vectors 254, i18n 0/0/0, end to end 30/30, perf (jsdom, Chromium desktop and
   phone) no slowdowns, routing identical.
+- **Start in multiplayer** (Frederic, 2026-11-12): the title's Normal door has a "Play with others" switch with a
+  lazy server picker; the game joins once the charter is signed, solo with a toast when that fails (FEDERATION-CLIENT.md
+  "Starting in multiplayer", `tests/federation-start.test.js`; end to end, Bob now starts that way, Alice via the sheet).
 
 ## Open work, roughly in order
 

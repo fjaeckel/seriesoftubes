@@ -16,7 +16,7 @@ const FU_INVITE=(()=>{try{const h=location.hash||'';if(!h.startsWith('#join='))r
 
 /* ---------- small helpers ---------- */
 // Multiplayer is offered only where the browser has Ed25519; asked once, the first time a sheet or menu wants to know.
-function fuCan(){if(S&&S.fed&&S.fed.on)return true;if(FU.can===null&&!FU.canP)FU.canP=fedCan().then(v=>{FU.can=!!v;refreshSettings();},()=>{FU.can=false;});return FU.can===true;}
+function fuCan(){if(S&&S.fed&&S.fed.on)return true;if(FU.can===null&&!FU.canP)FU.canP=fedCan().then(v=>{FU.can=!!v;refreshSettings();fsPaint();},()=>{FU.can=false;});return FU.can===true;}
 const fuShown=()=>!$('modal').hidden&&!!$('modalCard').querySelector('.fedui');
 const fuShort=k=>typeof k==='string'?k.slice(0,6)+'…'+k.slice(-4):'';
 const fuNow=()=>FED.now();
@@ -71,7 +71,9 @@ function fuBoot(){fuCan();// the capability check is async: start it now, so the
    then); a new game started from it opens the join sheet once its charter is signed (fuInviteGo). */
 const fuInv=()=>UI.fedInvite!==undefined?UI.fedInvite:FU_INVITE;
 const fuInviteNote=()=>fuInv()&&!(S&&UI.started)?`<p class="note fu-invite">🌐 ${tr('fedui.you_were_invited_to_server',{url:`<b>${esc(fuInv())}</b>`})}</p>`:'';
-function fuInviteGo(){if(UI.fedInvite&&S&&UI.started&&fedEligible()&&!(S.fed&&S.fed.on))ACT.fuOpen({v:'join'});}
+// A game started with the title's switch shown joins its pick (47-fed-start.js), or, switched off, opens nothing.
+function fuInviteGo(){const g=UI.fedGo;if(g&&g.s===S){UI.fedGo=null;if(g.url&&fedEligible()&&!(S.fed&&S.fed.on))fsJoin(g.url);return;}
+  if(UI.fedInvite&&S&&UI.started&&fedEligible()&&!(S.fed&&S.fed.on))ACT.fuOpen({v:'join'});}
 // A line in Settings, and a tile in the network menu, only where multiplayer can work.
 function fuSettingsRow(){if(!fuCan())return '';const f=S&&S.fed,st=f&&f.on?fuStatusText():tr('fedui.not_joined');
   return `<h3 class="sub4">🌐 ${tr('fedui.multiplayer')}</h3><div class="setline"><span class="fu-st">${st}</span>${btn(tr('fedui.open_multiplayer'),'fuOpen',{v:'home'},'ghost sm')}</div><p class="meta" style="margin:0 0 6px">${tr('fedui.join_a_server_to_meet_other')}</p>`;}
