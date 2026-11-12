@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Development server: http://127.0.0.1:8080 (--host/--port, or HOST=/PORT=, to change). The page is assembled from
+// Development server: http://127.0.0.1:8080 (--host/--port, or SOT_DEV_HOST=/PORT=, to change). The page is assembled from
 // src/ on every request, static files come straight from site/, and the browser reloads itself when you save a file.
 // The page is not version-stamped, so the game runs in dev mode (IS_DEV) like a local copy always has, and it is
 // the development page: with the agent facade (src/agent/, window.TUBES) that the page players get has not.
@@ -16,7 +16,8 @@ const { lit } = require('./lib/js-literal');
 
 // --host/--port; a bare --host binds loopback (never undefined, which would listen on every interface).
 const argOf = (k) => { const i = process.argv.indexOf(k); return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : null; };
-const HOST = argOf('--host') || process.env.HOST || '127.0.0.1';
+// Not $HOST: some shells (tcsh) export it as the machine's name, which would quietly bind to the LAN.
+const HOST = argOf('--host') || process.env.SOT_DEV_HOST || '127.0.0.1';
 const PORT = (() => { const p = +argOf('--port'); return Number.isInteger(p) && p > 0 && p < 65536 ? p : (+process.env.PORT || 8080); })();
 const SITE = path.join(ROOT, 'site');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json',

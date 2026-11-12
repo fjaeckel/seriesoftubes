@@ -19,20 +19,27 @@ self.addEventListener('fetch', (e) => {
   // The update check must always ask the network.
   if (url.origin === location.origin && url.pathname === '/version.json') return;
   if (req.mode === 'navigate') {
-    e.respondWith(fetch(req).then((r) => { const copy = r.clone(); caches.open(CACHE).then((c) => c.put('/', copy)); return r; })
-      .catch(() => caches.match('/').then((r) => r || caches.match('/index.html'))));
+    // Only the game page itself, when it came back fine, becomes the offline copy: a 404 page, a text file or an
+    // outage page opened by mistake must never replace it.
+    const page = url.origin === location.origin && (url.pathname === '/' || url.pathname === '/index.html');
+    e.respondWith(fetch(req).then((r) => {
+      if (page && r.ok && r.type === 'basic') { const copy = r.clone(); e.waitUntil(caches.open(CACHE).then((c) => c.put('/', copy))); }
+      return r;
+    }).catch(() => caches.match('/').then((r) => r || caches.match('/index.html'))));
     return;
   }
   const local = url.origin === location.origin, fonts = /fonts\.(googleapis|gstatic)\.com$/.test(url.hostname);
   if (!local && !fonts) return;
   // Weekly puzzles, scenarios and Architect runs are published between releases: ask the network first, and keep a copy for offline.
   if (local && (url.pathname.startsWith('/puzzles/weekly/') || url.pathname.startsWith('/scenarios/weekly/') || url.pathname.startsWith('/architect/weekly/'))) {
-    e.respondWith(fetch(req).then((r) => { if (r.ok) { const copy = r.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); } return r; })
+    e.respondWith(fetch(req).then((r) => { if (r.ok) { const copy = r.clone(); e.waitUntil(caches.open(CACHE).then((c) => c.put(req, copy))); } return r; })
       .catch(() => caches.match(req).then((r) => r || Response.error())));
     return;
   }
+  // The refresh in the background is kept alive until it is stored (waitUntil), or a phone may end the worker first.
   e.respondWith(caches.open(CACHE).then((c) => c.match(req).then((hit) => {
-    const net = fetch(req).then((r) => { if (r && (r.ok || r.type === 'opaque')) c.put(req, r.clone()); return r; }).catch(() => hit);
+    const net = fetch(req).then((r) => { if (r && (r.ok || r.type === 'opaque')) return c.put(req, r.clone()).then(() => r, () => r); return r; }).catch(() => hit);
+    e.waitUntil(net.catch(() => {}));
     return hit || net;
   })));
 });
