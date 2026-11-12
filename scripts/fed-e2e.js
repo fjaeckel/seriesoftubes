@@ -4,6 +4,8 @@
 //
 //   node scripts/fed-e2e.js            [--keep] (leave the temp folder) [--headed] [--fakes N] (default 260)
 //                                      [--quick] (skip the wait for the slot to end, and the board checks after it)
+//   node scripts/fed-e2e.js --play     [--fakes N] (default 12) sets up the same relay, then opens two Chromium windows
+//                                      for you to play against yourself; it runs until you close them or press Ctrl-C
 //
 // Everything runs on loopback: the relay serves TLS itself with a certificate made for the run (Chromium is told to
 // ignore that it is self-signed), the page is served by a small static server, and a registry (servers.json) lists the
@@ -23,7 +25,8 @@ const registry = require('./registry');
 
 const arg = (k) => process.argv.includes(k);
 const argv = (k, d) => { const i = process.argv.indexOf(k); return i >= 0 ? process.argv[i + 1] : d; };
-const KEEP = arg('--keep'), HEADED = arg('--headed'), QUICK = arg('--quick'), FAKES = Math.max(0, +argv('--fakes', 260) || 0);
+const PLAY = arg('--play'), KEEP = arg('--keep'), HEADED = arg('--headed') || PLAY, QUICK = arg('--quick');
+const FAKES = Math.max(0, +argv('--fakes', PLAY ? 12 : 260) || 0);
 const HOST = 'relay.localhost', SLOT = 300, DAY = 86400;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const now = () => Math.floor(Date.now() / 1000);
@@ -246,6 +249,25 @@ async function main() {
     // The full Chromium of the Playwright cache (its new headless mode), so no separate headless shell is needed.
     const exe = process.env.FED_E2E_CHROME || chromeIn(chromium.executablePath());
     browser = await chromium.launch({ executablePath: fs.existsSync(exe) ? exe : undefined, headless: !HEADED, args: ['--ignore-certificate-errors', `--host-resolver-rules=MAP ${HOST} 127.0.0.1`] });
+
+    // --play: two windows (two separate players, each with its own storage) opened on an invite link to the relay.
+    if (PLAY) {
+      const gone = new Promise((res) => browser.on('disconnected', res));
+      let open = 2;
+      for (let i = 0; i < 2; i++) {
+        const ctx = await browser.newContext({ ignoreHTTPSErrors: true, viewport: null });
+        const page = await ctx.newPage();
+        page.on('close', () => { if (--open === 0) browser.close().catch(() => {}); });
+        await page.goto(`http://127.0.0.1:${wport}/#join=${URL1}`, { waitUntil: 'load' });
+      }
+      console.log(`\nReady: two player windows are open on an invite to ${URL1} (server "E2E Tubes").
+In each window: name your network, start a Normal game, and the join sheet opens: press Join.
+Then menu > Multiplayer: the looking glass finds the other player, the deals sheet asks for peering.
+Close both windows or press Ctrl-C to stop (the relay and every game in these windows are thrown away).`);
+      await gone;
+      if (raw) raw.close();
+      return;
+    }
     const players = {};
     async function player(name) {
       const ctx = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });

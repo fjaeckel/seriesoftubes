@@ -312,7 +312,8 @@ signed record.
 ## Testing against the game
 
 `node scripts/fed-e2e.js` (from the repository root, after `npm ci`) builds this relay, runs it with TLS on loopback and
-plays two games against it in Chromium: join, announce, deals, a shun reaching its threshold, the boards. Not part of CI.
+plays two games against it in Chromium: join, announce, deals, a shun reaching its threshold, the boards. Not part of CI. `node scripts/fed-e2e.js --play` sets up the same relay and
+opens two Chromium windows on an invite to it, so you can play two networks against each other by hand.
 
 ## Metrics
 
