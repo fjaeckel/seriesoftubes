@@ -138,7 +138,7 @@ test('the day loop does the same work whatever the connection does', async () =>
     for (let d = 0; d < 20; d++) p.ev('dayTick()');
     assert.deepEqual(p.errors, []);
     // Ids and log times come from the wall clock; everything else must be the same.
-    return p.ev('JSON.stringify({...S,fed:null,cam:null,sv:null})').replace(/"id":"[^"]*"/g, '"id":0').replace(/"at":\d+/g, '"at":0');
+    return p.ev('JSON.stringify({...S,fed:null,fedn:null,fedp:null,cam:null,sv:null})').replace(/"id":"[^"]*"/g, '"id":0').replace(/"at":\d+/g, '"at":0');
   };
   const solo = await days('solo');
   assert.equal(await days('dead'), solo);

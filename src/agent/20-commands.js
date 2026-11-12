@@ -9,6 +9,17 @@
    (may end in a question); reads 'modal' (the window's text is the report); watch (extra fingerprint paths, #name
    filled from args); quote (the dry run, priced with the game's own helpers); doc. */
 const API_CMD={
+/* ---------- multiplayer gameplay: deals with other players (a joined save; requests are signed and sent) ---------- */
+ fpReq:{args:[['key','string'],['deal','string'],['via','string',false],['at','string',false],['mbps','integer',false],['term','integer',false]],watch:['fed.deals'],doc:'Ask a player network (its key, from state fedn.nets[].k) for a deal on its published terms: deal peering (via ix or pni, at a city), transit (at a city where you both have POPs, mbps the commit), pni (at, mbps a port size it sells), port (on the exchange it runs, at its city), swap (at "cityA|cityB", a route of your links where it has POPs at both ends). What its conditions still miss comes back as a notice; with automatic acceptance the deal runs at once.'},
+ fpAccept:{args:[['id','string']],watch:['fed.deals','fedp.rq'],doc:'Accept a request waiting for review (fedp.rq[].id): the deal starts now.'},
+ fpDecline:{args:[['id','string']],watch:['fedp.rq'],doc:'Decline a request waiting for review.'},
+ fpEnd:{args:[['id','string']],watch:['fed.deals'],doc:'End a deal with a player (depeer): traffic takes a detour through transit.'},
+ fpRenew:{args:[['id','string']],watch:['fed.deals'],doc:'Renew a deal you buy or peer on, on the other side\'s current terms (prices change only at renewal).'},
+ fpTermsSave:{args:[],watch:['fedp'],doc:'Save and announce the terms drafted in Your terms (fpEdit).'},
+ fpTermsSet:{args:[['terms','string']],watch:['fedp'],doc:'Publish your terms as JSON {pol: open|selective|restrictive, cond {minMbps, maxRatio (×100), minShared, rpki, tier1, ai}, rates {transit {perGbps, commit [{mbps, off}], term}, pni {setup, ports [{mbps, monthly}], term}, ix {ports, join}}, auto {peering, transit, pni, swap, consortium, port: auto|review|decline}}. Transit is capped at the computer-run price.'},
+ fpRpki:{args:[['on','boolean',false]],watch:['fedp.rpki'],doc:'Filter routes with RPKI (a monthly fee): a route leak in the federation stops at your border.'},
+ fpConsNew:{args:[['a','cityId'],['b','cityId'],['pairs','integer',false],['members','integer',false]],watch:['fedp.cons'],doc:'Start a consortium cable between two of your POPs: funded once enough players sign, then every member gets fibre pairs and pays its share.'},
+ fpConsJoin:{args:[['id','string']],watch:['fedp.cons'],doc:'Sign an open consortium project (fedp.cons[].id).'},
 /* ---------- Pie in the Sky: the rocket company (Tier 1 in a new game, or a sandbox) ---------- */
  pieFound:{args:[],watch:['pie'],quote:a=>({setup:piePrice(PIE_CO),monthly:PIE_CO_MO}),doc:'Found the rocket company. Needs Tier 1 (or a sandbox).'},
  pieFactory:{args:[],watch:['pie'],quote:a=>({setup:piePrice(PIE_FAC)}),doc:'Build the pie factory: it bakes the satellites ("pies") that rockets carry.'},
@@ -481,6 +492,10 @@ const API_CMD={
 };
 
 const API_VIEW={
+ fpNet:{args:[['key','string']],doc:'Open a player network\'s sheet: its published terms, your deals with it and what you can ask for, with what is missing.'},
+ fpTerms:{args:[],doc:'Open Your terms: peering policy, conditions, rate card and request handling.'},
+ fpQueue:{args:[],doc:'Open the NOC dashboard where requests from players wait for review.'},
+ fpCons:{args:[],doc:'Open the consortium cables sheet.'},
  pieOpen:{args:[],doc:'Open Pie Control, the rocket company\'s panel.'},
  pieGovOpen:{args:[],doc:'Open the bank at its Government money section: the rocket company\'s fund auctions, the Pitcairn grant and the Ex-Im Pie Bank (it used to be Pie Control\'s Gov tab).'},
  pieTab:{args:[['t','pieTab']],doc:'Switch the Pie Control tab: traffic, co (the company, its books and the Founder\'s posts), fly (launches) or dish.'},
@@ -575,6 +590,8 @@ const API_VIEW={
 };
 
 const API_BOUND={
+ fpEdit:{command:'fpTermsSave',note:'drafts one field of Your terms; fpTermsSet publishes terms in one go'},
+ fpPick:{command:'fpReq',note:'picks an option in a player\'s sheet; pass them to fpReq itself'},
  pieRename:{command:'pieName',note:'the typed company name'},
  leaseSwap:{command:'orderDf',note:'presets the dark-fiber modal on a leased pair'},
  teOpt:{command:'teDeploy',arg:'script',note:'the optimiser drafts a script'},
@@ -624,11 +641,12 @@ const API_SESSION={
  keepPlaying:{args:[],doc:'Dismiss the win screen and keep playing.'},
  pitchSkip:{args:[],doc:'Skip the opening pitch; a game waiting behind it starts.'},
  tutSkip:{args:[],doc:'Skip the tutorial coaching.'},
+ apiFedJoin:{args:[['url','string']],doc:'Multiplayer: join a relay server (a wss:// node URL) from this game, once apiFedDeclare has declared the model. Other players then meet this network with a robot badge. Not in the player\'s tab.'},
  apiFedDeclare:{args:[['model','string'],['harness','string',false]],doc:'Multiplayer: declare the AI model (and harness, default tubes-mcp) playing this save. Joined saves send it, so the network ranks in the AI division with a robot badge.'},
 };
 // Session actions that would replace or leave the game in the player's tab: refused over the relay.
 const API_OWN_WHY='the game in this tab is the player\'s: only the player starts, loads or leaves one';
-const API_PLAYER_OWNS={startScn:1,startWeekly:1,pzStart:1,pzWeekly:1,pzArStart:1,pzRetry:1,pzLeave:1};
+const API_PLAYER_OWNS={apiFedJoin:1,startScn:1,startWeekly:1,pzStart:1,pzWeekly:1,pzArStart:1,pzRetry:1,pzLeave:1};
 
 /* Actions no tool runs, by reason: files, storage slots, settings and the title screen are not the game's, and time
    moves only through advance (or the page's own clock). */

@@ -37,6 +37,7 @@ function ixSessions(c){
     if(S.peers[id+'@'+c]&&!snub(id,c)&&!(isRemote(c)&&noRemote(id)))s.add(id);
     else if(S.rs[c]&&n.pol==='open'&&ppol()==='open')s.add(id);
     else if(S.myIx[c]&&(n.pol==='open'||n.pol==='selective'))s.add(id);}
+  if(S.fed)fedIxSes(c,s);
   return s;
 }
 function t1Club(){

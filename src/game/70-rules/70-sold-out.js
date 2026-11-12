@@ -10,6 +10,7 @@ function snubWhy(sn){const d=Math.max(1,sn.until-S.day);return sn.why+' '+trn('s
 const paidFree=n=>!!(n&&n.freeLv&&lvl()>=n.freeLv);
 function peerOk(id,via,city){
   const n=NET[id],dem=R.demTo[id]||0;
+  if(n.fed)return {ok:false,why:tr('fedplay.by_request')};
   if(merged(id)){const m=MERGERS.find(x=>x.id===id);return {ok:false,why:tr('mergers.now_part_of_net',{net:esc(NET[m.into].name)})};}
   const sn=snub(id,city);if(sn&&(via==='ix'||sn.all))return {ok:false,snub:true,why:snubWhy(sn)};
   if(msfNope(id,city))return {ok:false,why:tr(MSF_NOPE[hstr(ixCity(city)+S.day)%MSF_NOPE.length])};

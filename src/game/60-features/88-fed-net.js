@@ -12,7 +12,7 @@ const FED={
   fetch:(u,o)=>fetch(u,o),idb:()=>indexedDB,registry:'federation/servers.json',
   // ms: opening a socket, a request's answer, ping when idle, give up when silent, the idle check, stats, back-off.
   T:{open:15000,req:20000,idle:60000,dead:120000,tick:30000,stats:300000,statsMax:3600,first:5000,base:2000,cap:1800000,fetch:10000},
-  hooks:{stats:null},live:null,st:{},ev:{},soon:false,listening:false,sent:new Map(),ids:new WeakMap()};
+  hooks:{stats:null,deal:null},live:null,st:{},ev:{},soon:false,listening:false,sent:new Map(),ids:new WeakMap()};
 
 /* ---------- events for the interface and the gameplay ---------- */
 // fedOn(name, fn) gives a function that stops listening. Names: status, records, deal, board, catalog, mute.
@@ -119,7 +119,8 @@ async function fedRid(r){let id=FED.ids.get(r);if(!id){id=await fedId(r);FED.ids
 function fedFlushSoon(){const M=FED.live;if(M&&fedMine(M))for(const c of M.conns.values())if(c.phase==='ready')fedFlush(c);}
 // Puts every queued record this server has not taken yet; a record leaves the queue once every joined server took it
 // (or refused it for good). Rate limits and failures leave it for later.
-function fedFlush(c){return c.flushP||(c.flushP=fedFlushRun(c).finally(()=>{c.flushP=null;}));}
+// A record queued while a flush runs goes out with one more pass right after it.
+function fedFlush(c){if(c.flushP){c.more=true;return c.flushP;}return c.flushP=fedFlushRun(c).finally(()=>{c.flushP=null;if(c.more){c.more=false;if(fedLive(c)&&c.phase==='ready')fedFlush(c);}});}
 async function fedFlushRun(c){const f=c.M.fed;let ch=false;
   {for(const r of f.out.slice()){if(!fedLive(c)||c.phase!=='ready')break;const id=await fedRid(r),done=FED.sent.get(id)||new Set();if(done.has(c.url))continue;
       const a=await fedAsk(c,{m:'put',rec:r});if(!a)break;
@@ -159,7 +160,7 @@ async function fedRecs(c,items,board,known){const now=fedNow(),me=c.M.fed.key.pu
     else if(r.kind==='shun'||r.kind==='unshun')votes.push(chk);
     else if(r.kind==='hide'){const o=await fedGet('kv','hide:'+r.body.server);if(!o||fedNewer(chk,o))await fedPut('kv','hide:'+r.body.server,{rec:r,id:chk.id});}
     else if(r.kind==='stats'&&board&&pl.slot!==null)board.set(chk.id,{id:chk.id,key:r.key,slot:pl.slot,t:r.t,body:r.body,cc:pl.cc,srv:[c.srv]});
-    else if((r.kind==='offer'||r.kind==='accept'||r.kind==='decline')&&(r.body.to===me||r.key===me))fedEmit('deal',{rec:r,id:chk.id,slot:heard,server:c.srv});}
+    else if((r.kind==='offer'||r.kind==='accept'||r.kind==='decline')&&(r.body.to===me||r.key===me||!!FED.hooks.deal&&FED.hooks.deal(r)))fedEmit('deal',{rec:r,id:chk.id,slot:heard,server:c.srv});}
   if(votes.length)await fedVotesAdd(votes);
   if(n)fedEmit('records',{server:c.srv,n});}
 /* Fetches a joined server's board records (§9.5) and keeps them for offline viewing. Gives the number of records, or
