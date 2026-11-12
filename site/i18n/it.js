@@ -2550,6 +2550,7 @@
 "fedui.to_hide_or_shun_a_network":"Per nascondere o escludere una rete, aprila dal looking glass o da una classifica.",
 "fedui.top_n_of_m":"I primi {n} di {m}.",
 "fedui.total":"Totale",
+"fedui.traffic_board_note":"Il traffico che scambi direttamente con altri giocatori (peering, PNI, transito tra giocatori), contato come lo dichiarano entrambe le parti. Il traffico sul transito gestito dal computer non conta.",
 "fedui.traffic_with_players":"Traffico con i giocatori",
 "fedui.unhide":"Mostra di nuovo",
 "fedui.unmute":"Riattiva",

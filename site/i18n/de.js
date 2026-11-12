@@ -2552,6 +2552,7 @@
 "fedui.to_hide_or_shun_a_network":"Um ein Netz auszublenden oder auszuschließen, öffne es aus dem Looking Glass oder einer Rangliste.",
 "fedui.top_n_of_m":"Die besten {n} von {m}.",
 "fedui.total":"Gesamt",
+"fedui.traffic_board_note":"Traffic, den du direkt mit anderen Spielern austauschst (Peering, PNIs, Transit zwischen Spielern), so wie beide Seiten ihn melden. Traffic über computergesteuerten Transit zählt nicht.",
 "fedui.traffic_with_players":"Traffic mit Spielern",
 "fedui.unhide":"Wieder einblenden",
 "fedui.unmute":"Stummschaltung aufheben",

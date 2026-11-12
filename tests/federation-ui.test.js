@@ -397,3 +397,20 @@ test('from the first screen: the invite shows at once, the menu has its tile, a 
   assert.match(txt(p), /You were invited/);
   assert.deepEqual(p.errors, []);
 });
+
+test('the traffic board says what it counts, and a small value reads in Mbps, not as "0.0 Gbps"', async () => {
+  const p = load();
+  assert.equal(p.ev(`fuVal({board:'traffic',measure:'total'},32)`), '32 Mbps');
+  assert.equal(p.ev(`fuVal({board:'traffic',measure:'total'},0)`), '0 Mbps');
+  assert.equal(p.ev(`fuVal({board:'traffic',measure:'total'},2500)`), '2.5 Gbps');
+  assert.equal(p.ev(`fuVal({board:'pops',measure:'total'},7)`), '7');
+  const { p: q } = await joined();
+  q.ev("ACT.fuOpen({v:'boards'})");
+  await run(q, 1000);
+  assert.match(txt(q), /counted as both sides report it/);
+  q.ev("ACT.fuQ({k:'board',v:'pops'})");
+  await run(q, 500);
+  assert.doesNotMatch(txt(q), /counted as both sides report it/);
+  assert.deepEqual(p.errors, []);
+  assert.deepEqual(q.errors, []);
+});

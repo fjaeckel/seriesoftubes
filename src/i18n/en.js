@@ -2551,6 +2551,7 @@
 "fedui.to_hide_or_shun_a_network":"To hide or shun a network, open it from the looking glass or a board.",
 "fedui.top_n_of_m":"Top {n} of {m}.",
 "fedui.total":"Total",
+"fedui.traffic_board_note":"Traffic you exchange directly with other players (peering, PNIs, transit between players), counted as both sides report it. Traffic through computer-run transit does not count.",
 "fedui.traffic_with_players":"Traffic with players",
 "fedui.unhide":"Unhide",
 "fedui.unmute":"Unmute",

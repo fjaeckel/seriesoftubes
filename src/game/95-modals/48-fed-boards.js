@@ -6,8 +6,9 @@
 const FU_BOARDS=['traffic','pops','pies'],FU_ROWS=100;
 const fuQ=()=>UI.fu.q||(UI.fu.q={board:'traffic',measure:'total',division:'all'});
 const fuBoardName=b=>b==='traffic'?tr('fedui.traffic_with_players'):b==='pops'?tr('fedui.pops_in_service'):tr('fedui.pies_in_the_sky');
-// A board value as players read it: traffic in Gbps (records count Mbps), counts as they are, growth in per cent.
-function fuVal(q,v){if(q.measure==='growth')return (v>=0?'+':'')+(v/100).toFixed(1)+'%';return q.board==='traffic'?fmtG(v/1000):String(v);}
+/* A board value as players read it: traffic in Mbps below 1 Gbps (records count Mbps; 32 Mbps must not read as
+   "0.0 Gbps"), Gbps and up from there, counts as they are, growth in per cent. */
+function fuVal(q,v){if(q.measure==='growth')return (v>=0?'+':'')+(v/100).toFixed(1)+'%';return q.board==='traffic'?(v<1000?Math.round(v)+' Mbps':fmtG(v/1000)):String(v);}
 // The region the slice counts: one of continent, country or city.
 const fuRegion=q=>q.city?{city:q.city}:q.country?{country:q.country}:q.continent?{continent:q.continent}:null;
 async function fuBoardsLoad(){const q=fuQ(),ids=q.server?[q.server]:fuSrvIds();
@@ -46,6 +47,8 @@ function fuBoardsHtml(){const q=fuQ(),sl=FU.slice,st=fedStatus(),act=fuActive(q)
   h+=`<div class="fu-chips">${fuChip(tr('fedui.total'),'fuQ',{k:'measure',v:'total'},q.measure==='total')}${fuChip(tr('fedui.growth'),'fuQ',{k:'measure',v:'growth'},q.measure==='growth')}<span class="fu-sep" aria-hidden="true"></span>${[['all',tr('fedui.all')],['human',tr('fedui.humans')],['ai','🤖 '+tr('fedui.ai')]].map(([k,l])=>fuChip(l,'fuQ',{k:'division',v:k},q.division===k)).join('')}</div>`;
   h+=`<div class="fu-chips">${act.map(([k,l])=>fuChip(l+' ×','fuQ',{k,v:null},true,'act')).join('')}${fuChip('⚙️ '+tr('fedui.more_filters'),'fuOpen',{v:'filters'},false,'more')}</div>`;
   h+=`<p class="meta fu-seen">${q.server?tr('fedui.as_seen_from_server',{server:fuSrvName(q.server)}):tr('fedui.all_your_servers_merged')}${st.state!=='connected'&&FU.boardAt?' · '+tr('fedui.as_of_time',{time:fuWhen(FU.boardAt)}):''}</p>`;
+  // What the traffic board counts is not obvious (it is not a network's whole traffic): say it under the chips.
+  if(q.board==='traffic')h+=`<p class="meta">${tr('fedui.traffic_board_note')}</p>`;
   if(q.measure==='growth')h+=`<p class="meta">${tr('fedui.growth_needs_two_days_of_records')}</p>`;
   if(!sl)return h+`<p class="meta">${tr('fedui.loading')}</p>`;
   if(sl.me)h+=`<ol class="fu-board pinned">${fuRow(sl.me,q,true)}</ol>${sl.me.rank?'':`<p class="meta">${tr('fedui.you_are_not_in_this_slice')}</p>`}`;
