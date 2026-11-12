@@ -63,11 +63,15 @@ function fuOnStatus(st){fuDot();const f=S&&S.fed;if(f&&f.key&&st.state==='connec
     toast(tr('fedui.your_server_has_not_answered_for'),'',[{l:tr('fedui.see_other_servers'),act:'fuOpen',args:{v:'join'}}]);}
   if(fuShown()&&['home','join','boards','server'].includes(UI.fu&&UI.fu.v))fuRender();}
 // After boot: listen (memory only: no socket, no timer), and an invite link opens the join sheet.
-function fuBoot(){fedOn('status',fuOnStatus);fedOn('catalog',()=>{if(fuShown())fuLoad();});fedOn('mute',()=>{if(fuShown())fuRender();});
+function fuBoot(){fuCan();// the capability check is async: start it now, so the menu has its tile from the first look
+  fedOn('status',fuOnStatus);fedOn('catalog',()=>{if(fuShown())fuLoad();});fedOn('mute',()=>{if(fuShown())fuRender();});
   fedOn('board',()=>{if(fuShown()&&UI.fu.v==='boards')fuLoad();});fuDot();
   if(FU_INVITE){UI.fedInvite=FU_INVITE;if(S&&UI.started&&fedEligible())ACT.fuOpen({v:'join'});}}
-// The title screen mentions a waiting invite in one line.
-const fuInviteNote=()=>UI.fedInvite&&!(S&&UI.started)?`<p class="note fu-invite">🌐 ${tr('fedui.you_were_invited_to_server',{url:`<b>${esc(UI.fedInvite)}</b>`})}</p>`:'';
+/* The title screen mentions a waiting invite in one line (it is drawn before fuBoot, so the link itself counts until
+   then); a new game started from it opens the join sheet once its charter is signed (fuInviteGo). */
+const fuInv=()=>UI.fedInvite!==undefined?UI.fedInvite:FU_INVITE;
+const fuInviteNote=()=>fuInv()&&!(S&&UI.started)?`<p class="note fu-invite">🌐 ${tr('fedui.you_were_invited_to_server',{url:`<b>${esc(fuInv())}</b>`})}</p>`:'';
+function fuInviteGo(){if(UI.fedInvite&&S&&UI.started&&fedEligible()&&!(S.fed&&S.fed.on))ACT.fuOpen({v:'join'});}
 // A line in Settings, and a tile in the network menu, only where multiplayer can work.
 function fuSettingsRow(){if(!fuCan())return '';const f=S&&S.fed,st=f&&f.on?fuStatusText():tr('fedui.not_joined');
   return `<h3 class="sub4">🌐 ${tr('fedui.multiplayer')}</h3><div class="setline"><span class="fu-st">${st}</span>${btn(tr('fedui.open_multiplayer'),'fuOpen',{v:'home'},'ghost sm')}</div><p class="meta" style="margin:0 0 6px">${tr('fedui.join_a_server_to_meet_other')}</p>`;}

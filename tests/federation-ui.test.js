@@ -379,3 +379,21 @@ test('the operator panel lists a pending proposal and signs it with the operator
   assert.equal(n.cosigns[0].rid, rid(unsigned));
   assert.deepEqual(p.errors, []);
 });
+
+test('from the first screen: the invite shows at once, the menu has its tile, a new game opens the join sheet', async () => {
+  const p = fedPage({ registry: SERVERS_JSON, url: 'https://tests.invalid/#join=' + encodeURIComponent(URL2) });
+  // The title drawn at load already names the invite (it is drawn before the multiplayer code boots).
+  assert.match(p.ev("document.body.textContent"), /You were invited to wss:\/\/second\.example\.org:8443\/fed/);
+  await settle(40);
+  p.ev('ACT.start({})');
+  // The capability check started at boot, so the very first menu has the tile.
+  p.ev('ACT.menu({})');
+  assert.equal(p.ev(`!!document.querySelector('#modalCard [data-act="fuOpen"]')`), true, 'Multiplayer tile on the first menu');
+  p.ev('closeModal()');
+  // Signing the charter of the new game opens the join sheet with the invite on top.
+  p.ev('ACT.charter({k:Object.keys(CHARTERS)[0]})');
+  await run(p, 1000);
+  assert.equal(p.ev('UI.fu&&UI.fu.v'), 'join');
+  assert.match(txt(p), /You were invited/);
+  assert.deepEqual(p.errors, []);
+});
