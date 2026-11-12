@@ -65,7 +65,7 @@ function fuOnStatus(st){fuDot();const f=S&&S.fed;if(f&&f.key&&st.state==='connec
 // After boot: listen (memory only: no socket, no timer), and an invite link opens the join sheet.
 function fuBoot(){fuCan();// the capability check is async: start it now, so the menu has its tile from the first look
   fedOn('status',fuOnStatus);fedOn('catalog',()=>{if(fuShown())fuLoad();});fedOn('excluded',()=>{if(fuShown())fuLoad();});fedOn('mute',()=>{if(fuShown())fuRender();});
-  fedOn('board',()=>{if(fuShown()&&UI.fu.v==='boards')fuLoad();});fuDot();
+  fedOn('board',()=>{if(fuShown()&&UI.fu.v==='boards')fuLoad();});fedOn('update',()=>{if(fuShown()&&UI.fu.v==='server')fuRender();});fuDot();
   if(FU_INVITE){UI.fedInvite=FU_INVITE;if(S&&UI.started&&fedEligible())ACT.fuOpen({v:'join'});}}
 /* The title screen mentions a waiting invite in one line (it is drawn before fuBoot, so the link itself counts until
    then); a new game started from it opens the join sheet once its charter is signed (fuInviteGo). */

@@ -33,7 +33,7 @@ function fuServerHtml(){const id=UI.fu.id,s=FU.srvs.find(x=>x.id===id),back={v:U
   h+=`<p class="fu-pol">${fuPolicy(s)}</p>${s.desc?`<p class="tagline">${esc(s.desc)}</p>`:''}`;
   h+=`<dl class="fu-dl"><dt>${tr('fedui.listed')}</dt><dd>${s.source==='registry'?tr('fedui.in_the_registry')+(s.listed?' · '+tr('fedui.since_date',{date:fuDate(s.listed/86400)}):''):tr('fedui.only_heard_of')}</dd>
   ${s.answered?`<dt>${tr('fedui.last_answered')}</dt><dd>${fuDate(s.answered/86400)}</dd>`:''}${s.seen?`<dt>${tr('fedui.last_seen')}</dt><dd>${fuWhen(s.seen)}</dd>`:''}
-  <dt>${tr('fedui.players')}</dt><dd>${FU.players?FU.players.get(id)||0:0}</dd><dt>${tr('fedui.operators')}</dt><dd>${(s.operators||[]).length}</dd><dt>${tr('fedui.nodes')}</dt><dd>${(s.nodes||[]).length}</dd>
+  <dt>${tr('fedui.players')}</dt><dd>${FU.players?FU.players.get(id)||0:0}</dd><dt>${tr('fedui.operators')}</dt><dd>${(s.operators||[]).length}</dd><dt>${tr('fedui.nodes')}</dt><dd>${(s.nodes||[]).length}</dd>${fuRelaysDl(s)}
   <dt>${tr('fedui.syncs_with')}</dt><dd>${sy&&sy.size?[...sy].map(fuSrvName).join(', '):'—'}</dd>${s.langs&&s.langs.length?`<dt>${tr('common.language')}</dt><dd>${esc(s.langs.join(', '))}</dd>`:''}
   <dt>${tr('fedui.address_logs')}</dt><dd>${s.noLogs?tr('fedui.operators_declare_no_address_logs'):'—'}</dd></dl>`;
   if(ok&&!joined&&s.nodes&&s.nodes[0])h+=`<div class="btns">${btn(tr('fedui.join'),'fuJoin',{url:s.nodes[0].url},'pink sm',FU.busy)}</div>`;
@@ -41,9 +41,22 @@ function fuServerHtml(){const id=UI.fu.id,s=FU.srvs.find(x=>x.id===id),back={v:U
   if(FU.opKey)h+=`<h3 class="sub4">${tr('fedui.votes_cast_by_this_server')}</h3>`+(votes.length?`<ul class="fu-list">${votes.map(fuVoteLine).join('')}</ul>`:`<p class="meta">${tr('fedui.no_votes')}</p>`);
   if(fuOpOf(id))h+=fuOpPanel(s);
   return h;}
+/* What each node of a server runs: what the node said when this game connected to it, else what its server's own
+   catalog entry says (both are the server's word, shown as such). Empty when nothing is known. */
+const fuImpl=i=>i.name==='tubes-relay'?tr('fedui.relay_version',{version:esc(i.version)}):esc(i.name+' '+i.version);
+const fuHost=u=>String(u).replace(/^wss:\/\//,'').split('/')[0];
+function fuRelaysDl(s){const live=Object.values(FED.st),rel=s.relays||{};
+  const rows=(s.nodes||[]).map(n=>{const on=live.find(x=>x.server===s.id&&x.node===n.url&&x.impl),i=on?on.impl:rel[n.key];return i?{url:n.url,i}:null;}).filter(Boolean);
+  return rows.length?`<dt>${tr('fedui.relay_software')}</dt><dd class="fu-relays">${rows.map(r=>`<span class="mono">${esc(fuHost(r.url))}</span> ${fuImpl(r.i)}`).join('<br>')}</dd>`:'';}
+/* A newer relay is out (§9.3 update, only ever sent to an operator's session): louder when it fixes a security issue.
+   The notes link is https only (fedUpdOf) and escaped here. */
+function fuUpdBanner(id){const u=FED.upd[id];if(!u)return '';
+  return `<div class="fu-box fu-upd${u.security?' bad':''}" role="status"><b>${u.security?'⚠️ '+tr('fedui.security_update_available'):'⬆️ '+tr('fedui.update_available')}</b>
+    <p>${u.security?tr('fedui.relay_version_fixes_a_security_issue',{version:esc(u.version)}):tr('fedui.relay_version_is_out',{version:esc(u.version)})}${u.gossip?' '+tr('fedui.seen_on_other_servers'):''}</p>
+    ${u.notes?`<p><a href="${esc(u.notes)}" target="_blank" rel="noopener noreferrer">${tr('common.release_notes')}</a></p>`:''}</div>`;}
 // The operator panel of a server the imported key operates.
 function fuOpPanel(s){const c=fedConnTo(s.id),st=fedStatus(),ch=FU.chain;
-  let h=`<section class="fu-op"><h3 class="sub4">🛠️ ${tr('fedui.operator_panel')}</h3>`;
+  let h=`<section class="fu-op"><h3 class="sub4">🛠️ ${tr('fedui.operator_panel')}</h3>`+fuUpdBanner(s.id);
   if(!c)h+=`<p class="note">${tr('fedui.operator_actions_travel_over_the_game')}</p>`;
   h+=`<h4 class="fu-h4">${tr('fedui.proposals_to_sign')}</h4>`;
   if(!ch)h+=`<p class="meta">${c?tr('fedui.loading'):'—'}</p>`;

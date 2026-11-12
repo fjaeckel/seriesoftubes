@@ -12,10 +12,12 @@ const FED={
   fetch:(u,o)=>fetch(u,o),idb:()=>indexedDB,registry:'federation/servers.json',
   // ms: opening a socket, a request's answer, ping when idle, give up when silent, the idle check, stats, back-off.
   T:{open:15000,req:20000,idle:60000,dead:120000,tick:30000,stats:300000,statsMax:3600,first:5000,base:2000,cap:1800000,fetch:10000},
-  hooks:{stats:null,deal:null},vgen:0,shun:null,xgen:0,ex:null,live:null,st:{},ev:{},soon:false,listening:false,sent:new Map(),ids:new WeakMap(),dpend:[]};
+  hooks:{stats:null,deal:null},vgen:0,shun:null,xgen:0,ex:null,live:null,st:{},ev:{},soon:false,listening:false,sent:new Map(),ids:new WeakMap(),dpend:[],
+  // Server id -> the newest relay its node told this device's operator about (§9.3 update), memory only.
+  upd:{}};
 
 /* ---------- events for the interface and the gameplay ---------- */
-// fedOn(name, fn) gives a function that stops listening. Names: status, records, excluded, deal, catalog, mute, untrusted.
+// fedOn(name, fn) gives a function that stops listening. Names: status, records, excluded, deal, catalog, mute, untrusted, update.
 function fedOn(name,fn){(FED.ev[name]||(FED.ev[name]=new Set())).add(fn);return ()=>FED.ev[name].delete(fn);}
 function fedEmit(name,data){const s=FED.ev[name];if(s)for(const fn of [...s])try{fn(data);}catch(e){console.error('[tubes] federation listener',e);}}
 
@@ -47,7 +49,7 @@ function fedStatus(){const l=Object.entries(FED.st).map(([url,x])=>({url,...x}))
   const st=l.some(x=>x.state==='offline'||x.state==='waiting')?'offline':'connecting';
   return {state:st,since:l.length?Math.min(...l.map(x=>x.since)):null,servers:l};}
 function fedSt(c,state){const o=FED.st[c.url],up=state==='connected',was=!!o&&o.state==='connected';c.state=state;
-  FED.st[c.url]={state,since:o&&up===was?o.since:fedNow(),server:c.srv,node:c.node};
+  FED.st[c.url]={state,since:o&&up===was?o.since:fedNow(),server:c.srv,node:c.node,impl:c.impl||null};
   if(!o||o.state!==state)fedEmit('status',fedStatus());}
 
 /* ---------- one connection per joined server, failing over between its nodes ---------- */
@@ -57,7 +59,7 @@ const fedLive=c=>{if(fedMine(c.M)&&c.M.conns.get(c.url)===c)return true;if(FED.l
 // Closes a socket without its handlers firing back, and answers every pending request with null.
 function fedHang(c){FED.clear(c.t);FED.clear(c.tick);c.t=c.tick=null;const ws=c.ws;c.ws=null;c.phase='';
   if(ws){ws.onopen=ws.onmessage=ws.onerror=ws.onclose=null;try{ws.close();}catch(e){}}
-  for(const r of c.rq.values()){FED.clear(r.t);r.res(null);}c.rq.clear();c.sub=c.vsub=0;c.op=c.me=c.exBuf=null;FED.clear(c.subT);c.subT=null;c.subQ=null;}
+  for(const r of c.rq.values()){FED.clear(r.t);r.res(null);}c.rq.clear();c.sub=c.vsub=0;c.op=c.me=c.exBuf=c.impl=null;FED.clear(c.subT);c.subT=null;c.subQ=null;}
 /* Development only (§9.1): a page loaded from a loopback host dials a *.localhost node over plain ws://, so a relay on
    the same machine needs no certificate. The page players load is never on a loopback host. */
 const FED_LOOP=/^(localhost|127\.0\.0\.1|\[::1\]|[a-z0-9.-]+\.localhost)$/;
@@ -104,7 +106,7 @@ async function fedAskRetry(c,m,many){for(let i=0;;i++){const a=await fedAsk(c,m,
 /* ---------- frames from a node ---------- */
 function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.error){fedDrop(c,r.error);return;}const f=r.f;
   if(f.m==='welcome'){if(c.phase!=='hello'||f.ver!==1||c.srv&&f.server!==c.srv){fedDrop(c,'welcome');return;}
-    FED.clear(c.t);c.t=null;c.srv=f.server;c.nodeKey=f.node;c.phase='check';
+    FED.clear(c.t);c.t=null;c.srv=f.server;c.nodeKey=f.node;c.impl=fedImpl(f.impl);c.phase='check';
     c.tick=FED.set(function tk(){if(!fedLive(c)||!c.ws)return;const n=fedNow();
       if(n-c.lastIn>=FED.T.dead/1000){fedDrop(c,'silent');return;}
       if(n-c.lastOut>=FED.T.idle/1000)fedSend(c,{m:'ping',id:c.nid=c.nid%2147483646+1});c.tick=FED.set(tk,FED.T.tick);},FED.T.tick);
@@ -122,6 +124,8 @@ function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.erro
     c.subQ=q.then(()=>fedRecs(c,f.items)).then(done=>{if(done&&fedCursorOk(f.cursor))return fedVoteCursor(k,f.cursor);}).catch(()=>{});return;}
   if(f.m==='err'&&c.vsub&&f.id===c.vsub){c.vsub=0;return;}
   if(f.m==='excluded'&&f.id===undefined){fedExclIn(c,f);return;}
+  // A newer relay is out: a node tells sessions that proved an operator key of its server, no one else.
+  if(f.m==='update'&&f.id===undefined){const u=fedUpdOf(f);if(u&&c.srv){FED.upd[c.srv]=u;fedEmit('update',{srv:c.srv,...u});}return;}
   // The node refused the subscription for now (rate_limited, internal): subscribe again after its retry.
   if(f.m==='err'&&c.sub&&f.id===c.sub){c.sub=0;if(f.code==='rate_limited'||f.code==='internal')c.subT=FED.set(()=>{c.subT=null;if(fedLive(c)&&c.phase==='ready'&&!c.sub)fedSub(c);},Math.min(60,Math.max(1,Number.isSafeInteger(f.retry)?f.retry:5))*1000);return;}
   if(f.m==='catalog'&&f.id===undefined){fedGossip(f.entries).catch(()=>{});return;}
@@ -346,7 +350,7 @@ const fedSum=r=>({id:r.id,rid:r.srvId,t:r.srv.t,name:r.name,nodes:r.nodes,operat
 async function fedGossip(entries){if(!Array.isArray(entries))return;const now=fedNow(),g=(await fedGet('kv','gossip'))||[],L=entries.slice(0,256),rs=L.length?await fwDo('reg',{entries:L,now}):[];let ch=false;
   for(let i=0;i<L.length;i++){const e=L[i],r=rs[i];if(!r)continue;
     const x=fedGossipIn({id:r.id,path:e.path,seen:e.seen},null,now);if(x.action!=='store')continue;
-    g.push({id:r.id,server:r.sum,path:e.path,seen:e.seen});ch=true;}
+    g.push({id:r.id,server:r.sum,path:e.path,seen:e.seen,impl:fedImpls(e.impl,r.sum.nodes)});ch=true;}
   if(!ch)return;const keep=[],per=new Map();
   for(const e of g.sort((a,b)=>b.seen-a.seen)){const n=per.get(e.id)||0;if(now<e.seen+FED_CARRY&&n<4&&keep.length<4000){keep.push(e);per.set(e.id,n+1);}}
   await fedPut('kv','gossip',keep);fedEmit('catalog',{source:'gossip'});}
@@ -354,8 +358,10 @@ async function fedGossip(entries){if(!Array.isArray(entries))return;const now=fe
    [{key, url}], operators, sync, noLogs, langs, desc, seen, path, listed, answered}], sorted by id. */
 async function fedServers(){const reg=(await fedGet('kv','registry'))||{servers:[]},gos=(await fedGet('kv','gossip'))||[],now=fedNow();
   const info=new Map();for(const g of gos)if(!info.has(g.id)||g.server.t>info.get(g.id).t)info.set(g.id,g.server);for(const r of reg.servers)info.set(r.id,r);
+  // What its nodes run, from the freshest entry that said (informational, set by the server itself).
+  const rel=new Map();for(const g of gos)if(g.impl&&typeof g.impl==='object'&&Object.keys(g.impl).length&&now<g.seen+FED_CARRY&&(!rel.has(g.id)||g.seen>rel.get(g.id).seen))rel.set(g.id,g);
   return fedCatalogMerge(reg.servers.map(s=>({id:s.id,server:s})),gos,now).map(row=>{const i=info.get(row.id)||{};
-    return {...row,sync:i.sync,noLogs:i.noLogs,langs:i.langs||[],desc:i.desc||'',listed:i.listed??null,answered:i.answered??null};});}
+    return {...row,sync:i.sync,noLogs:i.noLogs,langs:i.langs||[],desc:i.desc||'',listed:i.listed??null,answered:i.answered??null,relays:rel.has(row.id)?rel.get(row.id).impl:{}};});}
 /* Who may vote and hide, at the head of each server's chain as the catalog has it. fedVoters: the voting registry
    servers (§10.7) as Map id -> operator keys; fedOpOf: whether key operates server id. */
 async function fedVoters(){const reg=await fedGet('kv','registry'),m=new Map();if(!reg||!Array.isArray(reg.servers))return m;

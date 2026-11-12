@@ -182,6 +182,7 @@ times 0.5–1 jitter, and only while the tab is visible (it dials at once when t
 | `untrusted` | `{server, url}`: a server's ranking did not match its records (§9.5) |
 | `catalog` | `{source: 'registry' or 'gossip'}` |
 | `mute` | `{key, on}` |
+| `update` | `{srv, version, security, notes, gossip}`: a node told this device's operator that a newer relay is out (§9.3 `update`, kept in `FED.upd[srv]`, memory only) |
 
 ### Injecting for tests
 
@@ -255,6 +256,17 @@ or the node's code). `fedErrLog`/`fedErrs(server?)`: the last 24 connection and 
 Sheets (modals, so bottom sheets on phones) opened with `ACT.fuOpen({v})`: `home` (multiplayer settings), `join`,
 `move`, `quit`, `opkey`, `boards`, `filters`, `glass`, `server` (`id`), `net` (`key`). The HUD's status dot is `#hFed`.
 An invite link is `#join=<node URL>` in the page address. Labels are `fedui.*`.
+
+**Relay versions and the update banner.** A node's `welcome` may say what it runs (§9.3 `impl`, read by `fedImpl`, kept
+as `FED.st[url].impl`), and a server's catalog entry what its nodes run (§10.8 `impl`, read by `fedImpls` for the
+server's own nodes only, kept with the gossip entry; `fedServers()` gives it as `relays`, node key → `{name, version}`
+from the freshest entry). The `server` sheet shows "relay x.y.z" per node under "Relay software": the connected node's
+own word first, else the entry's. A session that proved an operator key gets `update` frames (§9.3): `fedUpdOf` keeps
+the version, `security`, the `notes` link only when it is `https://`, and whether it came from gossip; the operator
+panel opens with an "Update available" banner (`.fu-upd`; for a security fix "Security update available" in the red
+`.fu-box.bad`) with the release notes link (escaped, `rel="noopener noreferrer"`). Players who are not operators never
+get the frame and never see a banner. Nothing is stored, and nothing is fetched for it: the page never asks for
+`relay.json`.
 
 ## Left to the interface and gameplay
 

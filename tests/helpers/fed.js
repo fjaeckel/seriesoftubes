@@ -82,7 +82,8 @@ const PL_ENTRY = { id: PL.id, name: 'Packet Lunch', nodes: PL.server.body.nodes,
    rank, rankwhy, facets and nets requests it got; refuse: an error code for every put. Like the relay
    (§9.3), it sends shun votes only to a session that proved one of its server's operator keys (ops: by default
    Packet Lunch's, anna, ben and cleo) and only on a sub that asks for them; excl (null: never sent) is the excluded
-   list it sends after a session's first sub and on exclude(), with reasons to a session that proved an excluded key. */
+   list it sends after a session's first sub and on exclude(), with reasons to a session that proved an excluded key; impl:
+   what its welcome says it runs; update: an update notice it sends right after an operator key's ack. */
 class Node {
   constructor(net, url, o = {}) { Object.assign(this, { net, url, server: o.server || PL.id, key: key(o.key || 'node1'), up: true, mute: false, feed: [], ranks: null, facets: null, netstats: null, why: null, asks: [], gossip: [], puts: [], refuse: null, socks: new Set(), hellos: 0,
     ops: o.ops || ['anna', 'ben', 'cleo'].map((n) => key(n).pub), auths: [], excl: null, reasons: null }); }
@@ -92,10 +93,10 @@ class Node {
   take(ws, text) {
     const f = JSON.parse(text);
     if (this.mute) return;
-    if (f.m === 'hello') { this.hellos++; this.send(ws, { m: 'welcome', ver: 1, server: this.server, node: this.key.pub, now: this.net.now() }); }
+    if (f.m === 'hello') { this.hellos++; this.send(ws, { m: 'welcome', ver: 1, server: this.server, node: this.key.pub, now: this.net.now(), ...(this.impl ? { impl: this.impl } : {}) }); }
     else if (f.m === 'challenge') { const p = { v: 1, kind: 'proof', key: this.key.pub, t: this.net.now(), body: { nonce: f.nonce, server: this.server } }; p.sig = signText(this.key, canon(p)); this.send(ws, { m: 'proof', id: f.id, proof: p }); }
     else if (f.m === 'put') { this.puts.push(f.rec); this.send(ws, this.refuse ? { m: 'err', id: f.id, code: this.refuse } : { m: 'ack', id: f.id, rid: rid(f.rec), dup: false }); }
-    else if (f.m === 'auth') { this.auths.push(f); (ws.proved || (ws.proved = new Set())).add(f.key); const op = this.ops.includes(f.key); if (op) ws.op = true; this.send(ws, { m: 'ack', id: f.id, op }); }
+    else if (f.m === 'auth') { this.auths.push(f); (ws.proved || (ws.proved = new Set())).add(f.key); const op = this.ops.includes(f.key); if (op) ws.op = true; this.send(ws, { m: 'ack', id: f.id, op }); if (op && this.update) this.send(ws, { m: 'update', ...this.update }); }
     else if (f.m === 'sub') {
       const vote = (it) => !!it && !!it.rec && (it.rec.kind === 'shun' || it.rec.kind === 'unshun');
       this.send(ws, { m: 'recs', id: f.id, items: this.feed.filter((it) => !vote(it) || ws.op && f.kinds.includes(it.rec.kind)), cursor: 'c1', more: false });

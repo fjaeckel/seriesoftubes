@@ -121,9 +121,9 @@ const FED_MSG={
   ranks:{id:FED_FID,rows:Array.isArray},facets:{id:FED_FID},nets:{id:FED_FID,keys:v=>Array.isArray(v)&&v.length<=64},netstats:{id:FED_FID,nets:Array.isArray,reports:Array.isArray},
   servers:{id:FED_FID},recs:{items:v=>Array.isArray(v)&&v.length<=256},catalog:{entries:Array.isArray},
   err:{code:v=>typeof v==='string'},ping:{id:FED_FID},pong:{id:FED_FID},
-  auth:{id:FED_FID,key:v=>typeof v==='string',t:Number.isSafeInteger,sig:v=>typeof v==='string'},excluded:{keys:Array.isArray}};
+  auth:{id:FED_FID,key:v=>typeof v==='string',t:Number.isSafeInteger,sig:v=>typeof v==='string'},excluded:{keys:Array.isArray},update:{version:v=>typeof v==='string'}};
 const FED_FROM={client:['hello','auth','challenge','put','cosign','sub','unsub','fetch','rank','rankwhy','facets','nets','servers','err','ping','pong'],
-  node:['welcome','proof','ack','recs','catalog','excluded','ranks','facets','netstats','err','ping','pong']};
+  node:['welcome','proof','ack','recs','catalog','excluded','update','ranks','facets','netstats','err','ping','pong']};
 /* Reads one text frame: who: the side that sent it ('client' or 'node'). Gives {f} (the frame) or {error}.
    For a node reading a client's frame, state ('new' or 'ready') and speaks (its versions) apply the handshake rules. */
 function fedFrame(text,who,state,speaks){if(typeof text!=='string')return {error:'bad_frame'};if(fedSize(text)>FED_FRAME)return {error:'too_big'};
@@ -133,3 +133,15 @@ function fedFrame(text,who,state,speaks){if(typeof text!=='string')return {error
   for(const [k,ok] of Object.entries(FED_MSG[f.m]))if(!ok(f[k]))return {error:'bad_frame'};
   if(f.m==='hello'){if(f.role!=='client'&&f.role!=='node')return {error:'bad_frame'};if(speaks){const v=fedVersion(f.vers,speaks);if(v.error)return v;}}
   return {f};}
+/* What a relay says it runs (§9.3 welcome impl, §10.8 an entry's impl): shown in the looking glass and never trusted
+   for anything else, so a malformed one is just left out. */
+const FED_IMPL=/^[0-9A-Za-z][0-9A-Za-z.+_-]{0,39}$/;
+const fedImpl=x=>!!x&&typeof x==='object'&&!Array.isArray(x)&&typeof x.name==='string'&&FED_IMPL.test(x.name)&&typeof x.version==='string'&&FED_IMPL.test(x.version)?{name:x.name,version:x.version}:null;
+// An entry's impl list ([{node, name, version}], at most 16) as {node key: {name, version}}, for the server's own nodes only.
+function fedImpls(list,nodes){const out={};if(!Array.isArray(list)||list.length>16)return out;const keys=new Set((nodes||[]).map(n=>n&&n.key));
+  for(const x of list){const i=fedImpl(x);if(i&&typeof x.node==='string'&&keys.has(x.node))out[x.node]=i;}return out;}
+/* An operator's update notice (§9.3 update): {version, security, notes, gossip} or null. The notes link is kept only
+   when it is an https:// URL; the interface escapes it anyway. */
+function fedUpdOf(f){if(!f||typeof f.version!=='string'||!FED_IMPL.test(f.version))return null;let notes=null;
+  if(typeof f.notes==='string'&&f.notes.length<=512)try{const u=new URL(f.notes);if(u.protocol==='https:'&&u.hostname&&!u.username&&!u.password)notes=u.href;}catch(e){}
+  return {version:f.version,security:f.security===true,notes,gossip:f.source==='gossip'};}
