@@ -29,7 +29,19 @@ const (
 	nodeQueueBytes   = 32 << 20
 	queueFrames      = 1024
 	maxSubs          = 16
+	// Answers that take many frames (backlogs, boards, catalogs, pushes for want) are sent a page
+	// at a time, the next one only when the queue is below this, so they never fill the queue.
+	clientLowWater = 256 << 10
+	nodeLowWater   = 2 << 20
+	maxPending     = 8       // answers a client may have waiting to be paged
+	maxPushQueue   = 1 << 17 // records waiting to be pushed to a node
+	// Node frames are paced, never refused: the reader waits for tokens (cost per frame below).
+	nodeRate  = 5000.0
+	nodeBurst = 50000.0
 )
+
+// Request costs in a client's token bucket: the ones that answer from the whole store cost more.
+var clientCost = map[string]float64{"board": 20, "servers": 10, "sub": 5, "unsub": 2, "fetch": 2}
 
 // session is one WebSocket connection, client or node.
 type session struct {
@@ -49,10 +61,15 @@ type session struct {
 	ending atomic.Bool   // a closing err frame is queued
 	wdone  chan struct{} // closed when the writer stops
 	ver    int64
+	lowQ   int64
+
+	// answers being paged (guarded by r.mu); hasPend mirrors len(pend) > 0 for the writer
+	pend    []pager
+	hasPend atomic.Bool
 
 	// client
-	cc      string                    // the connection's country, never its address
-	subs    map[int64]map[string]bool // sub id -> kinds (guarded by r.mu)
+	cc      string         // the connection's country, never its address
+	subs    map[int64]*sub // (guarded by r.mu)
 	tokens  float64
 	tokenAt time.Time
 
@@ -60,17 +77,25 @@ type session struct {
 	peerServer string
 	peerNode   string
 	same       bool
-	verified   bool     // the peer node is known to be a node of its server
-	synced     bool     // carry exchanged: live pushes flow
-	send, take []string // classes
-	wanted     map[string]bool
+	verified   bool            // the peer node is known to be a node of its server
+	synced     bool            // carry exchanged: live pushes flow
+	send, take []string        // classes
+	wanted     map[string]bool // ids asked for and not yet pushed (guarded by r.mu, bounded)
+	push       *listPager      // records waiting to be pushed for want (guarded by r.mu)
 	dialURL    string
+}
+
+// sub is one client subscription.
+type sub struct {
+	kinds map[string]bool
+	list  []string
+	live  bool // the backlog is sent: live records follow
 }
 
 func newSession(r *Relay, c *websocket.Conn, node bool) *session {
 	ctx, cancel := context.WithCancel(r.ctx)
 	s := &session{r: r, c: c, node: node, limit: fed.ClientFrame, out: make(chan []byte, queueFrames),
-		maxQ: clientQueueBytes, ctx: ctx, cancel: cancel, subs: map[int64]map[string]bool{},
+		maxQ: clientQueueBytes, lowQ: clientLowWater, ctx: ctx, cancel: cancel, subs: map[int64]*sub{},
 		wanted: map[string]bool{}, tokenAt: time.Now(), wdone: make(chan struct{})}
 	s.tokens = float64(4 * r.cfg.Limits.MsgsPerSec)
 	if node {
@@ -87,6 +112,170 @@ func (s *session) becomeNode() {
 	s.node = true
 	s.limit = fed.NodeFrame
 	s.maxQ = nodeQueueBytes
+	s.lowQ = nodeLowWater
+	s.tokens = nodeBurst
+}
+
+// pace waits until a node frame of this cost may be handled; false when the session ended.
+func (s *session) pace(cost float64) bool {
+	now := time.Now()
+	s.tokens = min(nodeBurst, s.tokens+now.Sub(s.tokenAt).Seconds()*nodeRate)
+	s.tokenAt = now
+	s.tokens -= cost
+	if s.tokens >= 0 {
+		return true
+	}
+	select {
+	case <-s.ctx.Done():
+		return false
+	case <-time.After(time.Duration(-s.tokens / nodeRate * float64(time.Second))):
+		return true
+	}
+}
+
+// nodeCost weighs a node frame by the work it asks for: records to check, entries (each up to
+// 66 signatures), ids to look up.
+func nodeCost(f *wire.Frame) float64 {
+	n := func(k string) float64 { l, _ := f.Raw[k].([]any); return float64(len(l)) }
+	return 1 + n("items") + 64*n("entries") + n("ids")/64
+}
+
+// pager produces a long answer one frame at a time (lock held); done when nothing follows.
+type pager interface {
+	next(r *Relay, s *session) (frame map[string]any, done bool)
+}
+
+// pump queues pages while the connection keeps up (lock held). The writer calls it again as the
+// queue drains, so a long answer costs the queue one page at a time.
+func (r *Relay) pump(s *session) {
+	for len(s.pend) > 0 && s.queued.Load() < s.lowQ && s.ctx.Err() == nil {
+		f, done := s.pend[0].next(r, s)
+		if done {
+			s.pend = s.pend[1:]
+		}
+		if f != nil && !s.enqueue(f) {
+			s.pend = nil
+		}
+	}
+	s.hasPend.Store(len(s.pend) > 0)
+}
+
+// later queues an answer to be paged (lock held).
+func (r *Relay) later(s *session, p pager) {
+	s.pend = append(s.pend, p)
+	r.pump(s)
+}
+
+// listPager pages a list fixed when asked: board, fetch and catalog answers, pushes for want.
+type listPager struct {
+	rid     int64
+	m       string // recs, catalog or push
+	entries []*store.Entry
+	vals    []map[string]any
+	pos     int
+}
+
+func (p *listPager) next(r *Relay, s *session) (map[string]any, bool) {
+	limit := fed.ClientFrame - 1024
+	if p.m == "push" {
+		limit = fed.NodeFrame - 64<<10
+	}
+	n := len(p.entries) + len(p.vals)
+	page := []any{}
+	size := 0
+	for p.pos < n {
+		var v map[string]any
+		if p.pos < len(p.vals) {
+			v = p.vals[p.pos]
+		} else if e := p.entries[p.pos-len(p.vals)]; r.st.Get(e.Rec.ID) == e && !r.shunned[e.Rec.Key] {
+			v = item(e)
+		}
+		if v == nil {
+			p.pos++
+			continue
+		}
+		b := len(canon.Encode(v))
+		if len(page) > 0 && (len(page) >= fed.MaxItems || size+b > limit) {
+			break
+		}
+		page = append(page, v)
+		size += b + 1
+		p.pos++
+	}
+	done := p.pos >= n
+	switch p.m {
+	case "push":
+		if done && s.push == p {
+			s.push = nil
+		}
+		if len(page) == 0 {
+			return nil, done
+		}
+		r.o.Metrics.Add("relay_records_out_total", "", float64(len(page)))
+		return map[string]any{"m": "push", "items": page}, done
+	case "catalog":
+		return map[string]any{"m": "catalog", "id": p.rid, "entries": page, "more": !done}, done
+	}
+	r.o.Metrics.Add("relay_records_out_total", "", float64(len(page)))
+	return map[string]any{"m": "recs", "id": p.rid, "items": page, "cursor": "", "more": !done}, done
+}
+
+// subPager sends a subscription's backlog by scanning the store from a cursor, a page at a time.
+// Each page carries the cursor of what it covers, so a client that drops mid-backlog resumes there;
+// the last page makes the subscription live under the same lock, so nothing falls between.
+type subPager struct {
+	rid   int64
+	after uint64
+}
+
+func (p *subPager) next(r *Relay, s *session) (map[string]any, bool) {
+	sb := s.subs[p.rid]
+	if sb == nil {
+		return nil, true // unsubscribed meanwhile
+	}
+	page := []any{}
+	size := 0
+	last, full := p.after, false
+	r.st.Scan(p.after, sb.list, func(e *store.Entry) bool {
+		if r.shunned[e.Rec.Key] {
+			last = e.Seq
+			return true
+		}
+		it := item(e)
+		b := len(canon.Encode(it))
+		if len(page) > 0 && (len(page) >= fed.MaxItems || size+b > fed.ClientFrame-1024) {
+			full = true
+			return false
+		}
+		page = append(page, it)
+		size += b + 1
+		last = e.Seq
+		return true
+	})
+	if !full {
+		last = r.st.Seq()
+		sb.live = true
+	}
+	p.after = last
+	r.o.Metrics.Add("relay_records_out_total", "", float64(len(page)))
+	return map[string]any{"m": "recs", "id": p.rid, "items": page, "cursor": r.cursor(last), "more": full}, !full
+}
+
+// queuePush adds records to push to a node for its want (lock held).
+func (r *Relay) queuePush(s *session, list []*store.Entry) {
+	if len(list) == 0 {
+		return
+	}
+	if s.push == nil {
+		s.push = &listPager{m: "push"}
+		s.pend = append(s.pend, s.push)
+	}
+	s.push.entries = append(s.push.entries, list...)
+	if len(s.push.entries)-s.push.pos > maxPushQueue {
+		s.close("slow")
+		return
+	}
+	r.pump(s)
 }
 
 // enqueue queues a frame; a peer that does not keep up is disconnected, never waited for.
@@ -162,6 +351,11 @@ func (s *session) writer() {
 			if err != nil {
 				s.close("")
 				return
+			}
+			if s.hasPend.Load() && s.queued.Load() < s.lowQ {
+				s.r.mu.Lock()
+				s.r.pump(s)
+				s.r.mu.Unlock()
 			}
 		}
 	}
@@ -367,7 +561,11 @@ func (r *Relay) serve(s *session) {
 			}
 			continue
 		}
-		if !s.allow() {
+		cost, ok := clientCost[f.M]
+		if !ok {
+			cost = 1
+		}
+		if !s.allow(cost) {
 			s.fail(f.ID, fed.RateLimited, 1)
 			continue
 		}
@@ -375,16 +573,16 @@ func (r *Relay) serve(s *session) {
 	}
 }
 
-// allow is a per-connection token bucket.
-func (s *session) allow() bool {
+// allow is a per-connection token bucket; requests cost by the work they ask for (clientCost).
+func (s *session) allow(cost float64) bool {
 	rate := float64(s.r.cfg.Limits.MsgsPerSec)
 	now := time.Now()
 	s.tokens = min(4*rate, s.tokens+now.Sub(s.tokenAt).Seconds()*rate)
 	s.tokenAt = now
-	if s.tokens < 1 {
+	if s.tokens < cost {
 		return false
 	}
-	s.tokens--
+	s.tokens -= cost
 	return true
 }
 
@@ -450,32 +648,39 @@ func (r *Relay) clientFrame(s *session, f *wire.Frame) {
 			return
 		}
 		r.mu.Lock()
-		var items []map[string]any
+		defer r.mu.Unlock()
+		if !r.room(s, f.ID) {
+			return
+		}
+		var list []*store.Entry
 		for _, id := range ids {
-			if e := r.st.Get(id); e != nil && !r.shunned[e.Rec.Key] {
-				items = append(items, item(e))
+			if e := r.st.Get(id); e != nil {
+				list = append(list, e)
 			}
 		}
-		r.sendRecs(s, f.ID, items, "")
-		r.mu.Unlock()
+		r.later(s, &listPager{rid: f.ID, m: "recs", entries: list})
 	case "board":
 		r.mu.Lock()
-		r.sendRecs(s, f.ID, r.boardItems(now), "")
-		r.mu.Unlock()
+		defer r.mu.Unlock()
+		if r.room(s, f.ID) {
+			r.later(s, &listPager{rid: f.ID, m: "recs", entries: r.boardItems(now)})
+		}
 	case "servers":
 		r.mu.Lock()
-		r.sendCatalog(s, f.ID, now)
-		r.mu.Unlock()
+		defer r.mu.Unlock()
+		if r.room(s, f.ID) {
+			r.later(s, &listPager{rid: f.ID, m: "catalog", vals: r.catalogEntries(now)})
+		}
 	}
 }
 
-// sendRecs sends items in recs frames within the client frame limit (lock held).
-func (r *Relay) sendRecs(s *session, id int64, items []map[string]any, cursor string) {
-	pages := pageItems(items, fed.MaxItems, fed.ClientFrame-1024)
-	for i, p := range pages {
-		s.enqueue(map[string]any{"m": "recs", "id": id, "items": p, "cursor": cursor, "more": i < len(pages)-1})
+// room reports whether a client may have one more answer waiting to be paged (lock held).
+func (r *Relay) room(s *session, id int64) bool {
+	if len(s.pend) >= maxPending {
+		s.fail(id, fed.RateLimited, 1)
+		return false
 	}
-	r.o.Metrics.Add("relay_records_out_total", "", float64(len(items)))
+	return true
 }
 
 // pageItems splits items into pages of at most n items and about limit bytes.
@@ -501,13 +706,14 @@ func pageItems(items []map[string]any, n, limit int) [][]any {
 	return pages
 }
 
-// subscribe sends the backlog after a cursor, then live records (lock held while queueing,
-// so live records cannot overtake the backlog).
+// subscribe sends the backlog after a cursor page by page as the client reads, then live
+// records (subPager).
 func (r *Relay) subscribe(s *session, id int64, kinds []string, since string) {
-	want := map[string]bool{}
+	sb := &sub{kinds: map[string]bool{}}
 	for _, k := range kinds {
-		if fed.IsRecordKind(k) {
-			want[k] = true
+		if fed.IsRecordKind(k) && !sb.kinds[k] {
+			sb.kinds[k] = true
+			sb.list = append(sb.list, k)
 		}
 	}
 	r.mu.Lock()
@@ -516,37 +722,39 @@ func (r *Relay) subscribe(s *session, id int64, kinds []string, since string) {
 		s.fail(id, fed.TooMany, 0)
 		return
 	}
-	var items []map[string]any
-	var last uint64
-	for _, e := range r.st.After(r.parseCursor(since)) {
-		last = e.Seq
-		if want[e.Rec.Kind] && !r.shunned[e.Rec.Key] {
-			items = append(items, item(e))
-		}
+	if !r.room(s, id) {
+		return
 	}
-	if last == 0 {
-		last = r.st.Seq()
-	}
-	r.sendRecs(s, id, items, r.cursor(last))
-	s.subs[id] = want
+	s.subs[id] = sb
+	r.later(s, &subPager{rid: id, after: r.parseCursor(since)})
+}
+
+// boardCache is the board answer of one slot; records that change it clear it (Relay.board).
+type boardCache struct {
+	slot int64
+	list []*store.Entry
 }
 
 // boardItems is 9.5 (lock held): the stats of the two windows, the newest earlier stats per
 // key for carrying forward, the newest announce of those keys and the current hide record.
-func (r *Relay) boardItems(now int64) []map[string]any {
+// It is worked out once per slot and kept until a record that changes it arrives.
+func (r *Relay) boardItems(now int64) []*store.Entry {
 	c := fed.Slot(now)
+	if b := r.board; b != nil && b.slot == c {
+		return b.list
+	}
 	lo := c - 2*fed.WindowSlots*fed.SlotLen
-	var items []map[string]any
+	var items []*store.Entry
 	carry := map[string]*store.Entry{}
 	keys := map[string]bool{}
-	for _, e := range store.Sorted(r.st.Kind("stats")) {
+	for _, e := range r.st.KindSorted("stats") {
 		k := e.Rec.Key
 		if r.shunned[k] || r.refusesKey(k) {
 			continue
 		}
 		switch {
 		case e.Slot >= lo && e.Slot < c:
-			items = append(items, item(e))
+			items = append(items, e)
 			keys[k] = true
 		case e.Slot > lo-fed.CarryForward && e.Slot < lo:
 			p := carry[k]
@@ -557,24 +765,24 @@ func (r *Relay) boardItems(now int64) []map[string]any {
 		}
 	}
 	for _, k := range sortedKeys(carry) {
-		items = append(items, item(carry[k]))
+		items = append(items, carry[k])
 	}
-	for _, k := range sortedKeys(keys) {
-		var best *store.Entry
-		for _, e := range r.st.Key(k) {
-			if e.Rec.Kind == "announce" && (best == nil || e.Rec.T > best.Rec.T || e.Rec.T == best.Rec.T && e.Rec.ID < best.Rec.ID) {
-				best = e
-			}
+	newest := map[string]*store.Entry{}
+	for _, e := range r.st.Kind("announce") {
+		k := e.Rec.Key
+		if best := newest[k]; keys[k] && (best == nil || e.Rec.T > best.Rec.T || e.Rec.T == best.Rec.T && e.Rec.ID < best.Rec.ID) {
+			newest[k] = e
 		}
-		if best != nil {
-			items = append(items, item(best))
-		}
+	}
+	for _, k := range sortedKeys(newest) {
+		items = append(items, newest[k])
 	}
 	if r.hide != nil {
 		if e := r.st.Get(r.hide.ID); e != nil {
-			items = append(items, item(e))
+			items = append(items, e)
 		}
 	}
+	r.board = &boardCache{slot: c, list: items}
 	return items
 }
 
@@ -633,7 +841,7 @@ func (r *Relay) Cosign(rid, key, sig string) (string, string) {
 		return "", fed.TooOld
 	}
 	sigs, _ := fed.MergeSigs(rec.Sigs, []fed.SigEntry{{Key: key, Sig: sig}})
-	value := rec.WithSigs(sigs).Value
+	value := rec.WithSigs(r.keepSigs(rec, sigs)).Value
 	r.mu.Unlock()
 	merged, code := fed.CheckValue(value, now, fed.Opts{})
 	if code != "" {

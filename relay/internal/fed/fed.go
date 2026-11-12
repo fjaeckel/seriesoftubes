@@ -82,6 +82,7 @@ const (
 	ClientFrame     = 65536
 	NodeFrame       = 1048576
 	MaxItems        = 256
+	MaxSigners      = 16
 	MaxInv          = 4096
 	MaxPath         = 16
 	MaxChain        = 64

@@ -181,6 +181,9 @@ func (r *Relay) runPeer(s *session, server, node string) {
 			}
 			continue
 		}
+		if !s.pace(nodeCost(f)) {
+			return
+		}
 		r.mu.Lock()
 		verified := s.verified
 		r.mu.Unlock()
@@ -305,6 +308,10 @@ func (r *Relay) nodeFrame(s *session, f *wire.Frame) bool {
 				s.wanted[id] = true
 			}
 		}
+		if len(s.wanted) > maxWanted {
+			// Only a guard against asking twice: forgetting it costs at most a duplicate push.
+			s.wanted = map[string]bool{}
+		}
 		r.mu.Unlock()
 		if len(want) > 0 {
 			s.enqueue(map[string]any{"m": "want", "ids": strList(want)})
@@ -312,18 +319,14 @@ func (r *Relay) nodeFrame(s *session, f *wire.Frame) bool {
 	case "want":
 		ids, _ := f.Strs("ids")
 		r.mu.Lock()
-		var items []map[string]any
+		var list []*store.Entry
 		for _, id := range ids {
 			if e := r.st.Get(id); e != nil && s.sends(e.Rec) && !r.shunned[e.Rec.Key] {
-				items = append(items, item(e))
+				list = append(list, e)
 			}
 		}
-		for _, p := range pageItems(items, fed.MaxItems, fed.NodeFrame-64<<10) {
-			if len(p) > 0 {
-				s.enqueue(map[string]any{"m": "push", "items": p})
-			}
-		}
-		r.o.Metrics.Add("relay_records_out_total", "", float64(len(items)))
+		// Pushed a page at a time as the peer reads (pump), never the whole answer at once.
+		r.queuePush(s, list)
 		r.mu.Unlock()
 	case "push":
 		list, _ := f.Raw["items"].([]any)
@@ -333,6 +336,14 @@ func (r *Relay) nodeFrame(s *session, f *wire.Frame) bool {
 	case "catalog":
 		entries, _ := f.Raw["entries"].([]any)
 		for _, x := range entries {
+			r.mu.Lock()
+			verified := s.verified
+			r.mu.Unlock()
+			if !verified && !entryOf(x, s.peerServer) {
+				// Until the peer is known, only its own entry is read (9.4): nothing else it
+				// says is checked, stored or passed on.
+				continue
+			}
 			if code := r.receiveEntry(s, x, now); code != "" {
 				s.fail(0, code, 0)
 			}
@@ -340,6 +351,9 @@ func (r *Relay) nodeFrame(s *session, f *wire.Frame) bool {
 	}
 	return true
 }
+
+// maxWanted bounds the ids a session remembers having asked for.
+const maxWanted = 1 << 16
 
 // classOrChain: chain records travel only between nodes of this server, and only this server's.
 func classOrChain(e *store.Entry, r *Relay) bool {
@@ -382,11 +396,16 @@ func (r *Relay) takePushed(s *session, x any, now int64) {
 			}
 		}
 	}
-	if _, _, code := r.ingest(rec, rcpts, origin{peer: s, same: s.same}); code != "" {
-		r.o.Log.Info("sync: dropped record", "kind", rec.Kind, "key", rec.Key, "code", code)
-		r.mu.Lock()
+	_, _, code = r.ingest(rec, rcpts, origin{peer: s, same: s.same})
+	r.mu.Lock()
+	delete(s.wanted, rec.ID)
+	// unknown_server is not for good: the server may be learned later.
+	if code != "" && code != fed.UnknownSrv {
 		r.refused[rec.ID] = true
-		r.mu.Unlock()
+	}
+	r.mu.Unlock()
+	if code != "" {
+		r.o.Log.Info("sync: dropped record", "kind", rec.Kind, "key", rec.Key, "code", code)
 	}
 }
 

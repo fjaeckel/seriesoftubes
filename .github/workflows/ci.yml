@@ -188,18 +188,26 @@ jobs:
           json=$(printf '%s\n' $files | grep '\.json$' | paste -sd ' ' || true)
           echo "files=$json" >> "$GITHUB_OUTPUT"
           if [ -z "$json" ]; then echo "No server files added or changed: nothing to check."; else echo "To check: $json"; fi
+      # The checker is built from the base branch, never from the pull request: a pull request that changed both
+      # relay/ and federation/servers/ could otherwise pass its own check. The base is checked out outside the
+      # workspace, so nothing from the pull request (a go.work, a go.mod toolchain line) reaches that build.
+      - name: Base branch for the checker
+        if: steps.files.outputs.files != ''
+        run: git worktree add --detach "$RUNNER_TEMP/base" HEAD^1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         if: steps.files.outputs.files != ''
         with:
-          go-version-file: relay/go.mod
-          cache-dependency-path: relay/go.sum
+          go-version-file: ${{ runner.temp }}/base/relay/go.mod
+          cache: false
       - name: relay check-registry (with the live challenge)
         if: steps.files.outputs.files != ''
         env:
           FILES: ${{ steps.files.outputs.files }}
+          GOWORK: 'off'
+          GOFLAGS: -mod=readonly
         run: |
           set -uo pipefail
-          (cd relay && go build -o "$RUNNER_TEMP/relay" ./cmd/relay) || exit 1
+          (cd "$RUNNER_TEMP/base/relay" && go build -o "$RUNNER_TEMP/relay" ./cmd/relay) || exit 1
           # The relay's output quotes the files, which come from the pull request: never read it as workflow commands.
           stop="stop-$RANDOM$RANDOM$RANDOM"
           failed=0

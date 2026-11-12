@@ -1,6 +1,7 @@
 package fed
 
 import (
+	"slices"
 	"sort"
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/canon"
@@ -248,7 +249,7 @@ func envelope(v any, o Opts) (*Record, string) {
 	if !ok || len(list) == 0 {
 		return nil, BadField
 	}
-	if len(list) > 16 {
+	if len(list) > MaxSigners {
 		return nil, TooMany
 	}
 	for i, e := range list {
@@ -355,4 +356,34 @@ func MergeSigs(a, b []SigEntry) ([]SigEntry, bool) {
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Key < out[j].Key })
 	return out, added
+}
+
+// KeepSigs is what a merged multi-signer record keeps (10.11): the author's signature, then the
+// signatures of keys keep accepts (nil: any), in key order, at most MaxSigners in all. The result is
+// sorted by key.
+func KeepSigs(author string, sigs []SigEntry, keep func(string) bool) []SigEntry {
+	var out []SigEntry
+	for _, s := range sigs {
+		if s.Key == author {
+			out = append(out, s)
+			break
+		}
+	}
+	sorted := slices.Clone(sigs)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Key < sorted[j].Key })
+	for _, s := range sorted {
+		if len(out) >= MaxSigners {
+			break
+		}
+		if s.Key != author && (keep == nil || keep(s.Key)) {
+			out = append(out, s)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Key < out[j].Key })
+	return out
+}
+
+// SameSigs reports whether two sorted signature lists hold the same keys.
+func SameSigs(a, b []SigEntry) bool {
+	return slices.EqualFunc(a, b, func(x, y SigEntry) bool { return x.Key == y.Key })
 }

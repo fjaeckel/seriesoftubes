@@ -65,6 +65,20 @@ test('the image: pinned base, locked dependencies, only what the servers need, n
   for (const m of d.matchAll(/^COPY (?:--\S+ )*(\S+)/gm)) if (m[1] !== 'package.json') assert.ok(ig.includes('!' + m[1]) || ig.includes('!' + m[1] + '/'), `${m[1]} is let into the context`);
 });
 
+test('the registry check runs a relay built from the base branch, never from the pull request', () => {
+  const w = code('.github/workflows/ci.yml');
+  const job = w.slice(w.indexOf('\n  registry:'), w.indexOf('\n  test:'));
+  assert.match(job, /git worktree add --detach "\$RUNNER_TEMP\/base" HEAD\^1/, 'the base is checked out apart');
+  assert.match(job, /go-version-file: \$\{\{ runner\.temp \}\}\/base\/relay\/go\.mod/, 'its Go version comes from the base');
+  assert.match(job, /cd "\$RUNNER_TEMP\/base\/relay" && go build/, 'built there');
+  assert.doesNotMatch(job, /cd relay && go build|go-version-file: relay\//, 'not from the pull request');
+  assert.match(job, /GOWORK: 'off'/);
+  // The protections that were there stay: PR data only through env, output fenced from workflow commands.
+  assert.match(job, /::stop-commands::\$stop/);
+  assert.match(job, /FILES: \$\{\{ steps\.files\.outputs\.files \}\}/);
+  assert.doesNotMatch(job, /run:[^\n]*\$\{\{/, 'no expressions inside run scripts');
+});
+
 test('the entrypoint: both modes, a token unless told otherwise, and the servers run directly', () => {
   const e = code('docker/docker-entrypoint.sh');
   assert.match(e, /browser\|headless/);

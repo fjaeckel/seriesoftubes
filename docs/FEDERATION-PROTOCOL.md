@@ -550,8 +550,10 @@ not yet signed one after the last change) emits no catalog entry and cannot make
 ### 8.3 Operator records against the chain
 
 `hide`, `shun` and `unshun` are accepted from a key that is a current operator of `body.server` (`not_operator`
-otherwise), as far as the receiver knows the server's chain (`unknown_server` if it knows nothing of it; relays still
-pass on `shun` and `unshun` of servers they do not know, since the tally checks them against the registry).
+otherwise), as far as the receiver knows the server's chain (`unknown_server` if it knows nothing of it). Relays refuse
+`shun` and `unshun` of servers they know nothing of (from the registry, the catalog or their own chain) and neither
+store nor pass them on: such a vote could never count (10.7 counts registry servers only), and keeping them would let
+anyone fill every relay's store and tally.
 
 ## 9. The wire protocol
 
@@ -602,7 +604,15 @@ upgraded. This document is version 1; records carry `v: 1` in it.
 
 - **Cursors** are opaque ASCII strings of at most 64 characters `[A-Za-z0-9_-]` made by the node; a client keeps the
   last cursor per node and passes it to `sub` after a reconnect. A cursor the node no longer understands means
-  "everything kept".
+  "everything kept". **Every `recs` frame of a `sub` carries the cursor of what it covers**: the records of that frame
+  and of the frames before it, never of frames still to come. So a client that loses the connection in the middle of a
+  backlog resumes from the last frame it received, and nothing is skipped.
+- **Long answers are paced.** A node sends a `sub` backlog, a `board`, a `fetch` and a `catalog` answer one frame at a
+  time, the next one when the connection has taken the previous ones, so a long answer never fills the connection
+  (a slow reader is not disconnected for asking). The frames keep their order and `more`; live records of a `sub`
+  follow its last backlog frame (`more: false`). Requests that answer from the whole store (`board`, `servers`, `sub`)
+  cost a node more than others, and a node MAY answer them `rate_limited` (with `retry`) when one connection sends them
+  too often, or while several of its answers are still being sent.
 - **A `catalog` answer** that does not fit in one frame is split across several `catalog` frames with the same `id`,
   each with whole entries; every frame but the last carries `more: true` (the last `more: false` or no `more`). The
   receiver joins the entries of all of them.
@@ -638,7 +648,8 @@ Nodes of one server, and nodes of different servers that sync, use the same tran
      does not know the other server holds the other frames from it (`carry`, `inv`, `push`…; `ping`, `pong` and `err`
      are handled at once) until that entry has arrived and checked, then applies the policy and the node check above
      and handles the held frames in order. If the entry does not come within a short time (or too many frames pile up),
-     the session ends with `not_node`.
+     the session ends with `not_node`. Until then it reads only the peer's own entry from `catalog` frames: entries
+     for other servers sent before it are ignored (neither checked, stored nor passed on).
    - **Same server.** A node checks `not_node` against the chain it has. At the start of each same-server session,
      with its `inv`, each node also `push`es every `operators` record (applied and pending, with every signature) and
      every `server` record of its server: an added signature keeps the record id, so an inventory cannot show it, and
@@ -655,6 +666,9 @@ Nodes of one server, and nodes of different servers that sync, use the same tran
    code, never forwarded.
 4. Records keep their original signatures and receipts on every hop. Each record is stored once per server, however
    many paths brought it (10.11).
+5. **Pacing.** A node answers `want` with `push` frames one at a time as the peer takes them, and MAY slow down reading
+   a peer's frames (by the records, entries and ids they carry) rather than refuse them. Nothing is dropped for being
+   paced.
 
 ### 9.5 What `board` returns
 
@@ -783,6 +797,8 @@ Receiving an entry from a neighbour, a server with identity `self`:
 2. Drops it silently if `self` is in `path` (a loop) or if `now >= seen + 604800` (expired).
 3. Otherwise stores it, and passes it on to neighbours that take `catalog` as `path + [self]`, unless that would make
    the path longer than 16.
+4. A relay MAY bound the entries it keeps, in all and per neighbour they first came from (the reference relay: 4096
+   and 512). An entry for a server it does not keep yet is then dropped silently; entries it keeps still update.
 
 **Merging** what a viewer knows (clients and relays alike), per server identity:
 
@@ -849,6 +865,12 @@ decline's `t`.
 - Records are stored by id. A record with an id already stored is a duplicate and changes nothing.
 - A multi-signer record whose id is stored merges: the stored `sigs` become the union of both (sorted by key). A copy
   that fails validation (any signature not verifying) is refused as a whole and the stored copy stays.
+- **Only signatures that count are kept.** Of an `operators` or `server` record of its own server, a relay keeps the
+  author's signature and those of keys that are operators at the record's head (`prev` for `operators`, `head` for
+  `server`), at most 16 in all; others are left out when storing or merging, so no copy, however padded, makes the
+  record exceed 16 signers or crowd out an operator. A `put` (or `cosign`) of such a record carrying a signature of any
+  other key is refused (`not_operator`). While a relay does not know the record's head yet, it keeps the author and
+  the first others by key, at most 16.
 - A record that fails validation is never stored, and never blocks another record.
 - Merging leaderboards of several servers is the union of their records by id, then the same rules.
 

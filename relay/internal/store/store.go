@@ -12,6 +12,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -31,6 +32,7 @@ type Entry struct {
 	Slot  int64            // board slot: earliest valid receipt t
 	Seq   uint64           // storage order, for cursors
 	Day   int64            // real day of the file holding it
+	gone  bool             // removed; still in the ordered lists until they are compacted
 }
 
 // Results of Put.
@@ -48,16 +50,24 @@ type Store struct {
 	byID   map[string]*Entry
 	byKind map[string]map[string]*Entry
 	byKey  map[string]map[string]*Entry
+	order  []*Entry            // every entry in storage order (removed ones until compacted)
+	kinds  map[string][]*Entry // the same per kind
+	gone   int                 // removed entries still in the ordered lists
 	seq    uint64
 	day    int64
 	file   *os.File
 	Loaded int // lines read on open
 	Bad    int // lines that did not check on open
+	// Keep chooses the signatures a merged multi-signer record keeps (10.11); nil keeps the
+	// author and the first others by key, at most fed.MaxSigners. Set by the relay, which knows
+	// the chain; called with its lock held.
+	Keep func(rec *fed.Record, sigs []fed.SigEntry) []fed.SigEntry
 }
 
 // Memory returns a store without files.
 func Memory() *Store {
-	return &Store{byID: map[string]*Entry{}, byKind: map[string]map[string]*Entry{}, byKey: map[string]map[string]*Entry{}}
+	return &Store{byID: map[string]*Entry{}, byKind: map[string]map[string]*Entry{}, byKey: map[string]map[string]*Entry{},
+		kinds: map[string][]*Entry{}}
 }
 
 // Open opens (and migrates) a data folder and loads every record.
@@ -148,24 +158,40 @@ func (s *Store) load(day int64) error {
 	return sc.Err()
 }
 
-// insert adds or merges in memory; it reports the result.
+func (s *Store) keep(rec *fed.Record, sigs []fed.SigEntry) []fed.SigEntry {
+	if s.Keep != nil {
+		return s.Keep(rec, sigs)
+	}
+	return fed.KeepSigs(rec.Key, sigs, nil)
+}
+
+// insert adds or merges in memory; it reports the result. Signatures of multi-signer records
+// pass through Keep, so no copy, however padded, makes a stored record exceed 16 signers.
 func (s *Store) insert(rec *fed.Record, rcpts []map[string]any, slot, day int64) (string, *Entry) {
 	if e, ok := s.byID[rec.ID]; ok {
 		if rec.Sigs == nil {
 			return Dup, e
 		}
-		sigs, added := fed.MergeSigs(e.Rec.Sigs, rec.Sigs)
-		if !added {
+		sigs, _ := fed.MergeSigs(e.Rec.Sigs, rec.Sigs)
+		sigs = s.keep(e.Rec, sigs)
+		if fed.SameSigs(sigs, e.Rec.Sigs) {
 			return Dup, e
 		}
 		e.Rec = e.Rec.WithSigs(sigs)
 		return Merged, e
+	}
+	if rec.Sigs != nil {
+		if sigs := s.keep(rec, rec.Sigs); !fed.SameSigs(sigs, rec.Sigs) {
+			rec = rec.WithSigs(sigs)
+		}
 	}
 	s.seq++
 	e := &Entry{Rec: rec, Rcpts: rcpts, Slot: slot, Seq: s.seq, Day: day}
 	s.byID[rec.ID] = e
 	add(s.byKind, rec.Kind, e)
 	add(s.byKey, rec.Key, e)
+	s.order = append(s.order, e)
+	s.kinds[rec.Kind] = append(s.kinds[rec.Kind], e)
 	return Stored, e
 }
 
@@ -246,13 +272,61 @@ func Sorted(m map[string]*Entry) []*Entry {
 }
 
 // All returns every entry in storage order.
-func (s *Store) All() []*Entry { return Sorted(s.byID) }
+func (s *Store) All() []*Entry {
+	out := make([]*Entry, 0, len(s.byID))
+	s.Scan(0, nil, func(e *Entry) bool { out = append(out, e); return true })
+	return out
+}
 
 // After returns entries with Seq > seq in storage order.
 func (s *Store) After(seq uint64) []*Entry {
-	all := s.All()
-	i := sort.Search(len(all), func(i int) bool { return all[i].Seq > seq })
-	return all[i:]
+	var out []*Entry
+	s.Scan(seq, nil, func(e *Entry) bool { out = append(out, e); return true })
+	return out
+}
+
+// Scan calls fn for each entry with Seq > after, in storage order, of the given kinds (nil: all),
+// until fn returns false. It costs the entries visited, not the size of the store.
+func (s *Store) Scan(after uint64, kinds []string, fn func(*Entry) bool) {
+	from := func(l []*Entry) int { return sort.Search(len(l), func(i int) bool { return l[i].Seq > after }) }
+	if kinds == nil {
+		for _, e := range s.order[from(s.order):] {
+			if !e.gone && !fn(e) {
+				return
+			}
+		}
+		return
+	}
+	// Merge the per-kind lists, each already in storage order.
+	lists := make([][]*Entry, 0, len(kinds))
+	for i, k := range kinds {
+		if l := s.kinds[k]; len(l) > 0 && !slices.Contains(kinds[:i], k) {
+			lists = append(lists, l[from(l):])
+		}
+	}
+	for {
+		best := -1
+		for i, l := range lists {
+			if len(l) > 0 && (best < 0 || l[0].Seq < lists[best][0].Seq) {
+				best = i
+			}
+		}
+		if best < 0 {
+			return
+		}
+		e := lists[best][0]
+		lists[best] = lists[best][1:]
+		if !e.gone && !fn(e) {
+			return
+		}
+	}
+}
+
+// KindSorted returns the entries of one kind in storage order.
+func (s *Store) KindSorted(k string) []*Entry {
+	var out []*Entry
+	s.Scan(0, []string{k}, func(e *Entry) bool { out = append(out, e); return true })
+	return out
 }
 
 // Seq is the last storage number given.
@@ -268,6 +342,20 @@ func (s *Store) Remove(ids []string) {
 		delete(s.byID, id)
 		delete(s.byKind[e.Rec.Kind], id)
 		delete(s.byKey[e.Rec.Key], id)
+		e.gone = true
+		s.gone++
+	}
+	if s.gone > 1024 && s.gone*2 > len(s.order) {
+		isGone := func(e *Entry) bool { return e.gone }
+		s.order = slices.DeleteFunc(s.order, isGone)
+		for k, l := range s.kinds {
+			if l = slices.DeleteFunc(l, isGone); len(l) == 0 {
+				delete(s.kinds, k)
+			} else {
+				s.kinds[k] = l
+			}
+		}
+		s.gone = 0
 	}
 }
 

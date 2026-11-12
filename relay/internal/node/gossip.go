@@ -15,6 +15,7 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/chain"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/registry"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/shun"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/store"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/wire"
 )
@@ -28,7 +29,37 @@ type catEntry struct {
 	State   *chain.State
 	Path    []string
 	Seen    int64
-	sent    int64 // when it was last passed on
+	sent    int64  // when it was last passed on
+	via     string // the neighbour server it first came from ("" from disk)
+}
+
+// Bounds of the catalog: in all, and learned through any one neighbour (10.8 allows them).
+// Vars so tests can lower them.
+var (
+	maxCatalog    = 4096
+	maxCatalogVia = 512
+)
+
+const catalogSaveDelay = 10 * time.Second
+
+// forget drops a catalog entry (lock held).
+func (r *Relay) forget(id string) {
+	if c := r.cat[id]; c != nil {
+		if r.catVia[c.via]--; r.catVia[c.via] <= 0 {
+			delete(r.catVia, c.via)
+		}
+		delete(r.cat, id)
+		r.markCatalog()
+	}
+}
+
+// entryOf reports whether a catalog entry is the given server's own (by its server record), without checking it.
+func entryOf(x any, server string) bool {
+	m, _ := x.(map[string]any)
+	srv, _ := m["server"].(map[string]any)
+	body, _ := srv["body"].(map[string]any)
+	id, _ := body["server"].(string)
+	return id == server
 }
 
 func (c *catEntry) value(path []string) map[string]any {
@@ -137,8 +168,28 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 	case "drop":
 		return ""
 	}
+	if from != nil && from.peerServer == g.ID && !from.verified {
+		// The peer's own entry: it tells who its nodes are and its policy (9.4, 10.9).
+		if !st.IsNode(from.peerNode) {
+			from.fail(0, fed.NotNode, 0)
+			return ""
+		}
+		if !allowsOne(r.ownSync(), r.cfg.Selective, g.ID, srv.Str("sync")) {
+			from.fail(0, fed.Policy, 0)
+			return ""
+		}
+		from.verified = true
+		r.startSync(from)
+	}
 	old := r.cat[g.ID]
-	c := &catEntry{ID: g.ID, Genesis: g, Chain: ch, Server: srv, State: st, Path: path, Seen: seen}
+	via := ""
+	if from != nil {
+		via = from.peerServer
+	}
+	if old == nil && (len(r.cat) >= maxCatalog || r.catVia[via] >= maxCatalogVia) {
+		return "" // full: entries already kept still update, new ones wait for room
+	}
+	c := &catEntry{ID: g.ID, Genesis: g, Chain: ch, Server: srv, State: st, Path: path, Seen: seen, via: via}
 	changed := old == nil || old.Server.ID != srv.ID
 	if old != nil {
 		// Records from the newest server record; seen and path from the freshest entry.
@@ -148,18 +199,12 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 		if seen < old.Seen || seen == old.Seen && !shorter(path, old.Path) {
 			c.Path, c.Seen = old.Path, old.Seen
 		}
-		c.sent = old.sent
+		c.sent, c.via = old.sent, old.via
+	} else {
+		r.catVia[via]++
 	}
 	r.cat[g.ID] = c
-	if from != nil && from.peerServer == g.ID && !from.verified {
-		if !st.IsNode(from.peerNode) {
-			from.fail(0, fed.NotNode, 0)
-			return ""
-		}
-		from.verified = true
-		r.startSync(from)
-	}
-	r.saveCatalog()
+	r.markCatalog()
 	if d.Forward != nil && (changed || now-c.sent >= 600) {
 		c.sent = now
 		fw := c.value(d.Forward)
@@ -194,9 +239,9 @@ func shorter(a, b []string) bool {
 	return false
 }
 
-// sendCatalog answers servers: this server's entry and the live gossip entries (lock held).
-// Entries are split over several catalog frames when one would pass the client frame limit.
-func (r *Relay) sendCatalog(s *session, id int64, now int64) {
+// catalogEntries is the answer to servers: this server's entry and the live gossip entries
+// (lock held). They are paged over several catalog frames when one would pass the frame limit.
+func (r *Relay) catalogEntries(now int64) []map[string]any {
 	var entries []map[string]any
 	if e := r.ownEntry(now); e != nil {
 		entries = append(entries, e)
@@ -207,24 +252,44 @@ func (r *Relay) sendCatalog(s *session, id int64, now int64) {
 			entries = append(entries, c.value(c.Path))
 		}
 	}
-	pages := pageItems(entries, fed.MaxItems, fed.ClientFrame-1024)
-	for i, p := range pages {
-		s.enqueue(map[string]any{"m": "catalog", "id": id, "entries": p, "more": i < len(pages)-1})
-	}
+	return entries
 }
 
-// Catalog file: the gossip entries this node keeps, rewritten on change.
+// Catalog file: the gossip entries this node keeps, rewritten at most every catalogSaveDelay
+// after a change (and on close), never once per entry.
 func (r *Relay) catalogPath() string { return filepath.Join(r.o.Dir, "catalog.json") }
 
-func (r *Relay) saveCatalog() {
-	var list []any
+// markCatalog schedules a write of the catalog file (lock held).
+func (r *Relay) markCatalog() {
+	if r.catDirty || r.loading {
+		r.catDirty = true
+		return
+	}
+	r.catDirty = true
+	time.AfterFunc(catalogSaveDelay, func() {
+		if r.ctx.Err() == nil {
+			r.flushCatalog()
+		}
+	})
+}
+
+// flushCatalog writes the catalog file if it changed; the file is written outside the lock.
+func (r *Relay) flushCatalog() {
+	r.catWrite.Lock()
+	defer r.catWrite.Unlock()
+	r.mu.Lock()
+	if !r.catDirty {
+		r.mu.Unlock()
+		return
+	}
+	r.catDirty = false
+	list := []any{}
 	for _, k := range sortedKeys(r.cat) {
 		list = append(list, r.cat[k].value(r.cat[k].Path))
 	}
-	if list == nil {
-		list = []any{}
-	}
-	if err := store.WriteAtomic(r.catalogPath(), append(canon.Encode(map[string]any{"entries": list}), '\n'), 0o600); err != nil {
+	b := append(canon.Encode(map[string]any{"entries": list}), '\n')
+	r.mu.Unlock()
+	if err := store.WriteAtomic(r.catalogPath(), b, 0o600); err != nil {
 		r.o.Log.Error("catalog: write failed", "err", err)
 	}
 }
@@ -241,11 +306,13 @@ func (r *Relay) loadCatalog() {
 	m, _ := v.(map[string]any)
 	list, _ := m["entries"].([]any)
 	now := r.now()
+	r.loading = true
 	r.mu.Unlock()
 	for _, x := range list {
 		r.receiveStored(x, now)
 	}
 	r.mu.Lock()
+	r.loading, r.catDirty = false, false
 }
 
 // receiveStored loads an entry from disk without passing it on.
@@ -285,6 +352,11 @@ func (r *Relay) setRegistryLocked(b []byte) error {
 	for _, e := range snap.Entries {
 		r.regs[e.ID] = e
 	}
+	reg := shun.Registry{AsOf: snap.AsOf}
+	for _, e := range snap.Entries {
+		reg.Servers = append(reg.Servers, shun.Server{ID: e.ID, Operators: e.State.Operators, Listed: e.Listed, Answered: e.Answered})
+	}
+	r.counter = shun.Prepare(reg)
 	r.shunAt = 0
 	return nil
 }

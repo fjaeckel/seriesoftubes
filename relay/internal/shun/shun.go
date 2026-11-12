@@ -2,7 +2,6 @@
 package shun
 
 import (
-	"slices"
 	"sort"
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
@@ -59,26 +58,47 @@ func (reg Registry) Voters() []Server {
 // Need is the threshold for V voters.
 func Need(v int) int { return max(5, int(fed.Div(int64(v)+3, 4))) }
 
-// Tally works out whether target is shunned at now.
-func Tally(reg Registry, votes []Vote, target string, now int64) Result {
+// Counter tallies against one registry snapshot; build it once with Prepare and reuse it.
+type Counter struct {
+	n    int                        // V, the number of voters
+	need int                        // the threshold
+	ops  map[string]map[string]bool // voter id -> its registry operators
+	idx  map[string]int             // voter id -> its place
+}
+
+// Prepare indexes a snapshot's voters.
+func Prepare(reg Registry) *Counter {
 	voters := reg.Voters()
-	need := Need(len(voters))
-	// Each voter's records for target, signed by one of its registry operators.
-	per := make([][]Vote, len(voters))
-	moments := []int64{now - fed.ShunLift}
+	c := &Counter{n: len(voters), need: Need(len(voters)), ops: map[string]map[string]bool{}, idx: map[string]int{}}
 	for i, s := range voters {
-		for _, v := range votes {
-			if v.Target != target || v.Server != s.ID || !slices.Contains(s.Operators, v.Key) {
-				continue
-			}
-			if v.Kind != "shun" && v.Kind != "unshun" {
-				continue
-			}
-			per[i] = append(per[i], v)
-			for _, x := range []int64{v.T, v.T + fed.VoteLife} {
-				if x > now-fed.ShunLift && x <= now {
-					moments = append(moments, x)
-				}
+		set := map[string]bool{}
+		for _, k := range s.Operators {
+			set[k] = true
+		}
+		c.ops[s.ID], c.idx[s.ID] = set, i
+	}
+	return c
+}
+
+// Counts reports whether a vote is one the tally counts: by a voter, signed by one of its operators.
+func (c *Counter) Counts(v Vote) bool {
+	return (v.Kind == "shun" || v.Kind == "unshun") && c.ops[v.Server][v.Key]
+}
+
+// Tally works out whether target is shunned at now, from the votes for that target (others are
+// ignored). It costs the votes given, times the moments they make, never the number of voters.
+func (c *Counter) Tally(votes []Vote, target string, now int64) Result {
+	per := map[int][]Vote{}
+	moments := []int64{now - fed.ShunLift}
+	for _, v := range votes {
+		if v.Target != target || !c.Counts(v) {
+			continue
+		}
+		i := c.idx[v.Server]
+		per[i] = append(per[i], v)
+		for _, x := range []int64{v.T, v.T + fed.VoteLife} {
+			if x > now-fed.ShunLift && x <= now {
+				moments = append(moments, x)
 			}
 		}
 	}
@@ -103,16 +123,23 @@ func Tally(reg Registry, votes []Vote, target string, now int64) Result {
 		}
 		return n, reasons
 	}
-	sort.Slice(moments, func(i, j int) bool { return moments[i] < moments[j] })
 	shunned := false
-	for _, x := range moments {
-		if n, _ := at(x); n >= need {
-			shunned = true
-			break
+	if len(per) >= c.need {
+		sort.Slice(moments, func(i, j int) bool { return moments[i] < moments[j] })
+		for _, x := range moments {
+			if n, _ := at(x); n >= c.need {
+				shunned = true
+				break
+			}
 		}
 	}
 	n, reasons := at(now)
-	return Result{Voters: len(voters), Need: need, Votes: n, Shunned: shunned, Reasons: reasons}
+	return Result{Voters: c.n, Need: c.need, Votes: n, Shunned: shunned, Reasons: reasons}
+}
+
+// Tally works out whether target is shunned at now.
+func Tally(reg Registry, votes []Vote, target string, now int64) Result {
+	return Prepare(reg).Tally(votes, target, now)
 }
 
 // FromRecord turns a checked shun or unshun record into a vote.

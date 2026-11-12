@@ -31,12 +31,15 @@ func TestShunning(t *testing.T) {
 	x.MustPut(old)
 	c := x.Client(nil)
 
-	// Four registered votes and one from a server nobody listed: below the minimum of five.
+	// Four registered votes: below the minimum of five. A vote of a server nobody knows could
+	// never count, so it is refused rather than stored and passed on (8.3).
 	for _, v := range voters[:4] {
 		x.MustPut(vote(n, v, mallory.Key, "spam"))
 	}
 	stranger := rt.Listed{ID: rt.ID(rt.Announce(rt.Key("x"), now, "x")), Op: rt.Key("stranger op")}
-	x.MustPut(vote(n, stranger, mallory.Key, "spam"))
+	if code := x.Put(vote(n, stranger, mallory.Key, "spam")); code != fed.UnknownSrv {
+		t.Fatalf("vote of an unknown server: %q", code)
+	}
 	// A vote for a known server signed by someone who is not its operator is refused (8.3).
 	if code := x.Put(vote(n, rt.Listed{ID: voters[5].ID, Op: rt.Key("not their op")}, mallory.Key, "spam")); code != fed.NotOperator {
 		t.Fatalf("vote by a non-operator: %q", code)

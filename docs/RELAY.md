@@ -234,7 +234,10 @@ Your node connects to the servers in `neighbours`; others may connect to you. Fo
 | `catalog` | The servers you know (gossip), passed on with the path they came by |
 | `advice` | Your hide lists, as advice to others |
 
-Shun votes always travel, whatever you choose. A server may take records without passing them on.
+Shun votes always travel, whatever you choose, as long as your node knows the voting server (from the registry or the
+catalog): votes of servers it knows nothing of could never count, so it refuses them. A server may take records without
+passing them on. Your node keeps at most 4096 catalog entries, 512 of them first heard from any one neighbour, and reads
+nothing a new neighbour says about other servers until its own entry has checked.
 
 ```json
 "neighbours": [

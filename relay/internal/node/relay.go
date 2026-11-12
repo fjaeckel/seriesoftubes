@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"net/http"
 	"slices"
 	"sort"
@@ -57,12 +58,16 @@ type Relay struct {
 	reg     *registry.Snapshot
 	regs    map[string]*registry.Entry
 	cat     map[string]*catEntry
+	catVia  map[string]int // neighbour server -> catalog entries first learned from it
+	board   *boardCache    // the last board answer, while still current
 	shunned map[string]bool
 	shunAt  int64
-	left    map[string]int64 // key -> t of its newest leave
-	statsAt map[string]int64 // key -> slot of its last stats from a client
-	refused map[string]bool  // ids refused from nodes (not wanted again)
-	lastSyn map[string]int64 // peer node key -> start of the last session
+	counter *shun.Counter                   // voters of the registry snapshot
+	votes   map[string]map[string]shun.Vote // target -> vote id -> vote
+	left    map[string]int64                // key -> t of its newest leave
+	statsAt map[string]int64                // key -> slot of its last stats from a client
+	refused map[string]bool                 // ids refused from nodes (not wanted again)
+	lastSyn map[string]int64                // peer node key -> start of the last session
 	clients map[*session]bool
 	nodes   map[*session]bool
 	epoch   string
@@ -73,6 +78,10 @@ type Relay struct {
 	wg      sync.WaitGroup
 	speaks  []int64
 	gossip  int64 // last time the own entry was sent
+
+	catDirty bool       // the catalog file is behind
+	loading  bool       // reading the catalog file
+	catWrite sync.Mutex // one catalog file write at a time
 }
 
 // New opens the data folder and rebuilds every index.
@@ -101,11 +110,12 @@ func New(o Options) (*Relay, error) {
 	}
 	var eb [6]byte
 	_, _ = rand.Read(eb[:])
-	r := &Relay{o: o, cfg: o.Config, st: st, regs: map[string]*registry.Entry{}, cat: map[string]*catEntry{},
+	r := &Relay{o: o, cfg: o.Config, st: st, regs: map[string]*registry.Entry{}, cat: map[string]*catEntry{}, catVia: map[string]int{},
 		shunned: map[string]bool{}, left: map[string]int64{}, statsAt: map[string]int64{}, refused: map[string]bool{},
 		lastSyn: map[string]int64{}, clients: map[*session]bool{}, nodes: map[*session]bool{},
 		epoch: fed.Encode(eb[:]), dialers: map[string]context.CancelFunc{}, speaks: o.Versions}
 	r.limiter = privacy.NewLimiter(r.cfg.Limits.ConnsPerAddr, int64(r.cfg.Limits.AddrWindowSec))
+	st.Keep = r.keepSigs
 	r.ctx, r.cancel = context.WithCancel(context.Background())
 	if st.Bad > 0 {
 		o.Log.Warn("data folder: skipped lines that did not check", "lines", st.Bad)
@@ -115,6 +125,7 @@ func New(o Options) (*Relay, error) {
 	for _, e := range st.Kind("leave") {
 		r.left[e.Rec.Key] = max(r.left[e.Rec.Key], e.Rec.T)
 	}
+	r.indexVotes()
 	r.loadCatalog()
 	r.loadRegistryCache()
 	r.mu.Unlock()
@@ -227,7 +238,8 @@ func (r *Relay) syncOf(id string) string {
 	return ""
 }
 
-// isShunned uses the cached tally, refreshed every minute and on new votes.
+// isShunned uses the cached tally: each target is counted again when a vote for it arrives,
+// and every target once a minute (votes expire and shuns lift with time) or on a new registry.
 func (r *Relay) isShunned(key string) bool {
 	now := r.now()
 	if r.shunAt == 0 || now-r.shunAt >= 60 {
@@ -236,29 +248,57 @@ func (r *Relay) isShunned(key string) bool {
 	return r.shunned[key]
 }
 
-func (r *Relay) tally(now int64) {
-	r.shunAt = now
-	r.shunned = map[string]bool{}
-	if r.reg == nil {
-		return
-	}
-	reg := shun.Registry{AsOf: r.reg.AsOf}
-	for _, e := range r.reg.Entries {
-		reg.Servers = append(reg.Servers, shun.Server{ID: e.ID, Operators: e.State.Operators, Listed: e.Listed, Answered: e.Answered})
-	}
-	var votes []shun.Vote
-	targets := map[string]bool{}
+// indexVotes rebuilds the votes by target from the store (start, and after votes were removed).
+func (r *Relay) indexVotes() {
+	r.votes = map[string]map[string]shun.Vote{}
 	for _, k := range []string{"shun", "unshun"} {
 		for _, e := range r.st.Kind(k) {
-			v := shun.FromRecord(e.Rec)
-			votes = append(votes, v)
-			targets[v.Target] = true
+			r.addVote(e.Rec)
 		}
 	}
-	for t := range targets {
-		if shun.Tally(reg, votes, t, now).Shunned {
+	r.shunAt = 0
+}
+
+func (r *Relay) addVote(rec *fed.Record) {
+	v := shun.FromRecord(rec)
+	if r.votes[v.Target] == nil {
+		r.votes[v.Target] = map[string]shun.Vote{}
+	}
+	r.votes[v.Target][v.ID] = v
+}
+
+func (r *Relay) votesFor(target string) []shun.Vote {
+	out := make([]shun.Vote, 0, len(r.votes[target]))
+	for _, v := range r.votes[target] {
+		out = append(out, v)
+	}
+	return out
+}
+
+// tally counts every target with votes; the work is the number of votes, not targets times voters.
+func (r *Relay) tally(now int64) {
+	r.shunAt = now
+	old := r.shunned
+	r.shunned = map[string]bool{}
+	for t := range r.votes {
+		if r.counter != nil && r.counter.Tally(r.votesFor(t), t, now).Shunned {
 			r.shunned[t] = true
 		}
+	}
+	if !maps.Equal(old, r.shunned) {
+		r.board = nil
+	}
+}
+
+func (r *Relay) tallyOne(target string, now int64) {
+	on := r.counter != nil && r.counter.Tally(r.votesFor(target), target, now).Shunned
+	if on != r.shunned[target] {
+		r.board = nil
+	}
+	if on {
+		r.shunned[target] = true
+	} else {
+		delete(r.shunned, target)
 	}
 }
 
@@ -266,20 +306,50 @@ func (r *Relay) tally(now int64) {
 func (r *Relay) Tally(target string) shun.Result {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	reg := shun.Registry{}
-	if r.reg != nil {
-		reg.AsOf = r.reg.AsOf
-		for _, e := range r.reg.Entries {
-			reg.Servers = append(reg.Servers, shun.Server{ID: e.ID, Operators: e.State.Operators, Listed: e.Listed, Answered: e.Answered})
+	c := r.counter
+	if c == nil {
+		c = shun.Prepare(shun.Registry{})
+	}
+	return c.Tally(r.votesFor(target), target, r.now())
+}
+
+// keepSigs is the store's Keep (10.11): a multi-signer record of this server keeps its author and
+// the operators at its head (prev for a proposal), at most 16; one whose head this node does not
+// know yet keeps at most 16 by key.
+func (r *Relay) keepSigs(rec *fed.Record, sigs []fed.SigEntry) []fed.SigEntry {
+	l, ok := r.signersAt(rec)
+	if !ok {
+		return fed.KeepSigs(rec.Key, sigs, nil)
+	}
+	return fed.KeepSigs(rec.Key, sigs, l.IsOperator)
+}
+
+// signersAt returns the lists whose operators may sign an operators or server record of this server.
+func (r *Relay) signersAt(rec *fed.Record) (chain.Lists, bool) {
+	if r.own == nil || rec.Str("server") != r.own.ID {
+		return chain.Lists{}, false
+	}
+	head := rec.Str("prev")
+	if rec.Kind == "server" {
+		head = rec.Str("head")
+	}
+	l, ok := r.own.At[head]
+	return l, ok
+}
+
+// strangers reports whether a multi-signer record carries a signature from a key that is neither
+// its author nor an operator at its head.
+func (r *Relay) strangers(rec *fed.Record) bool {
+	l, ok := r.signersAt(rec)
+	if !ok {
+		return true
+	}
+	for _, k := range rec.Signers() {
+		if k != rec.Key && !l.IsOperator(k) {
+			return true
 		}
 	}
-	var votes []shun.Vote
-	for _, k := range []string{"shun", "unshun"} {
-		for _, e := range r.st.Kind(k) {
-			votes = append(votes, shun.FromRecord(e.Rec))
-		}
-	}
-	return shun.Tally(reg, votes, target, r.now())
+	return false
 }
 
 func (r *Relay) refusesKey(key string) bool {
@@ -333,12 +403,18 @@ func (r *Relay) stateCheck(rec *fed.Record, now int64, o origin) string {
 			return ""
 		}
 		if rec.Kind == "operators" {
-			return r.own.Proposal(rec, now)
+			if code := r.own.Proposal(rec, now); code != "" {
+				return code
+			}
+			if r.strangers(rec) {
+				return fed.NotOperator // padding with other keys' signatures would crowd out operators
+			}
+			return ""
 		}
 		if code := r.own.ServerShape(rec); code != "" {
 			return code
 		}
-		if l := r.own.At[rec.Str("head")]; !l.IsOperator(rec.Key) {
+		if l := r.own.At[rec.Str("head")]; !l.IsOperator(rec.Key) || r.strangers(rec) {
 			return fed.NotOperator
 		}
 		if r.own.CheckServer(rec) != "" && now >= rec.T+fed.PendingLife {
@@ -353,8 +429,13 @@ func (r *Relay) stateCheck(rec *fed.Record, now int64, o origin) string {
 			return fed.NotOperator
 		}
 	case "shun", "unshun":
-		// Votes of servers this node does not know still pass on: the tally checks them.
-		if st := r.lookup(rec.Str("server")); st != nil && !st.IsOperator(rec.Key) {
+		// Only votes this node can check are kept and passed on (8.3): a vote of an unknown server
+		// could never count, and storing every one would let anyone fill the store and the tally.
+		st := r.lookup(rec.Str("server"))
+		if st == nil {
+			return fed.UnknownSrv
+		}
+		if !st.IsOperator(rec.Key) {
 			return fed.NotOperator
 		}
 	}
@@ -441,6 +522,10 @@ func (r *Relay) ingest(rec *fed.Record, rcpts []any, o origin) (string, map[stri
 // after updates what depends on a newly stored or merged record.
 func (r *Relay) after(e *store.Entry, now int64) {
 	rec := e.Rec
+	// The board leaves out the current slot, so most new stats do not change it.
+	if rec.Kind == "announce" || rec.Kind == "hide" || rec.Kind == "stats" && e.Slot < fed.Slot(now) {
+		r.board = nil
+	}
 	switch rec.Kind {
 	case "genesis", "operators", "server", "hide":
 		before := r.ownEntryID()
@@ -450,7 +535,10 @@ func (r *Relay) after(e *store.Entry, now int64) {
 			r.reconcileLocked()
 		}
 	case "shun", "unshun":
-		r.shunAt = 0
+		r.addVote(rec)
+		if r.shunAt != 0 {
+			r.tallyOne(rec.Str("target"), now)
+		}
 	case "leave":
 		if rec.T > r.left[rec.Key] {
 			r.left[rec.Key] = rec.T
@@ -461,7 +549,7 @@ func (r *Relay) after(e *store.Entry, now int64) {
 				drop = append(drop, id)
 			}
 		}
-		r.st.Remove(drop)
+		r.remove(drop)
 	}
 }
 
@@ -510,8 +598,9 @@ func (r *Relay) fanout(e *store.Entry, from *session) {
 		r.o.Metrics.Inc("relay_records_out_total", "")
 	}
 	for s := range r.clients {
-		for id, kinds := range s.subs {
-			if kinds[e.Rec.Kind] {
+		for id, sub := range s.subs {
+			// A sub still sending its backlog reaches this record by scanning.
+			if sub.live && sub.kinds[e.Rec.Kind] {
 				s.enqueue(map[string]any{"m": "recs", "id": id, "items": []any{it}, "cursor": r.cursor(e.Seq), "more": false})
 				r.o.Metrics.Inc("relay_records_out_total", "")
 			}
@@ -549,13 +638,13 @@ func (r *Relay) gc() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	drop := r.expired(now)
-	r.st.Remove(drop)
+	r.remove(drop)
 	if err := r.st.Compact(fed.Div(now, fed.Day)); err != nil {
 		r.o.Log.Error("store: compaction failed", "err", err)
 	}
 	for id, c := range r.cat {
 		if now >= c.Seen+fed.GossipExpiry {
-			delete(r.cat, id)
+			r.forget(id)
 		}
 	}
 	for k, s := range r.statsAt {
@@ -568,6 +657,23 @@ func (r *Relay) gc() {
 	}
 	if len(drop) > 0 {
 		r.o.Log.Info("retention: dropped records", "count", len(drop))
+	}
+}
+
+// remove drops records from the store and from what is indexed beside it (lock held).
+func (r *Relay) remove(ids []string) {
+	votes := false
+	for _, id := range ids {
+		if e := r.st.Get(id); e != nil && (e.Rec.Kind == "shun" || e.Rec.Kind == "unshun") {
+			votes = true
+		}
+	}
+	r.st.Remove(ids)
+	if len(ids) > 0 {
+		r.board = nil
+	}
+	if votes {
+		r.indexVotes()
 	}
 }
 
@@ -711,6 +817,7 @@ func (r *Relay) Close() error {
 	}
 	r.mu.Unlock()
 	r.wg.Wait()
+	r.flushCatalog()
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return r.st.Close()
