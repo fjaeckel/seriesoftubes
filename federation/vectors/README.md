@@ -34,7 +34,7 @@ Files are numbered (`001-…`) only to keep a stable order; the number means not
 ## Who writes what
 
 - **Generated** by [`scripts/fed-vectors.js`](../../scripts/fed-vectors.js) from fixed seeds: `signing`, `asn`,
-  `records`, `receipts`, `proofs`, `auth`, `operators`, `registry`, `dedupe`. Never edit these by hand: change the script and
+  `records`, `receipts`, `proofs`, `auth`, `operators`, `registry`, `dedupe`, `rank`. Never edit these by hand: change the script and
   run `node scripts/fed-vectors.js` (CI can run `node scripts/fed-vectors.js --check`). Keys are Ed25519 from the seed
   SHA-256("tubes-fed.1 vector key <name>") for the names alice, bob, carol, mallory (networks), anna, ben, cleo, dan
   (operators) and node1, node2, node3 (nodes). Ed25519 is deterministic, so the files never change unless the script
@@ -60,6 +60,7 @@ Files are numbered (`001-…`) only to keep a stable order; the number means not
 | `dedupe` | 10.11 | `now`, `arrivals` (in order, each `{record}` or `{text}`) | `stored` (sorted by id; multi-signer records with their signer keys) and `results` per arrival: `stored`, `duplicate`, `merged` or an error code |
 | `slots` | 10.1, 10.2 | cases: `t` → `slot`; `now` → windows; `receipts` → board slot. Files: `records` (`{id, key, slot, t, mode}`) and `queries` (slots) | as named; `results` per query: `{s, eff (id or null), value}` |
 | `boards` | 10.3–10.5 | `now`, `board` (`pops`, `pies`, `traffic`, `total`), `measure` (`total`, `growth`), `division` (`all`, `human`, `ai`), `exclude` (keys), `cities` (region filter or null), `records` (`{id, key, slot, t, body}`, `slot` being the board slot) | `rows`: `[{key, value}]` in board order |
+| `rank` | 9.5, 10.12 | `now`, `request` (a `rank` frame), `me` (the proved key, or null), `excluded` (keys the server leaves off), `names` (keys shown without a name), `records` (as in `boards`, plus `cc`), `announces` (`{key, name, home, policy, founded, day}`) | the `ranks` answer `{slot, n, rows, me}`, or `{error}`. Run by servers; a game merges answers instead |
 | `quiet` | 10.6 | cases: `now`, `lastHeard` | `{state, factor}` |
 | `shun` | 10.7 | `now`, `target`, `registry` (`{asOf, servers: [{id, operators, listed?, answered?}]}`), `records` (`{id, kind, key, t, server, target, reason?}`) | `{voters, need, votes, shunned, reasons}` (`votes` and `reasons` at `now`) |
 | `catalog` | 10.8 | receiving: `now`, `self`, `entry` (`{id, path, seen}`, records assumed valid). Merging: `now`, `registry` and `gossip` with server records summarised as `{rid, t, name, nodes, operators}` | receiving: `{action: store, forward}`, `{action: drop, why}` or `{action: refuse, error}`. Merging: `servers` sorted by id |

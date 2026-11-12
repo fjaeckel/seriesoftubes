@@ -127,6 +127,9 @@ at that sandbox method.
   unchanged. Vectors: `auth` area, wire cases. End to end: the shun step checks Bob sees no vote, Alice (operator) does,
   the target's own session gets `["spam"]`.
 - Relay Docker image built (10.9 MB, amd64 cross-build too, `init` on a volume as the unprivileged user).
+- **Server-ranked leaderboards** (Frederic, 2026-11-12): `rank`/`ranks`, `facets`, `nets`/`netstats` and `rankwhy`
+  replace `board` (§9.5, §10.12); the relay ranks in memory (`relay/internal/rank`, held to `boards` by a randomized
+  test), games get the top 50 and their own row, merge their servers, keep answers offline, and spot-check rows.
 - Perf against 9c26d03, headless and Chromium desktop/phone: no slowdowns beyond noise, routing identical.
 
 ## Open work, roughly in order

@@ -3,7 +3,7 @@
 // Not part of npm test or CI; run it by hand after changing either side:
 //
 //   node scripts/fed-e2e.js            [--keep] (leave the temp folder) [--headed] [--fakes N] (default 260)
-//                                      [--quick] (skip the wait for the slot to end, and the board checks after it)
+//                                      [--quick] (skip the wait for the slot to end, and the leaderboard checks after it)
 //   node scripts/fed-e2e.js --play     [--fakes N] (default 12) [--port P] sets up the same relay without TLS (the
 //                                      game dials *.localhost nodes over ws:// from a localhost page, §9.1) and prints
 //                                      two addresses to open in any browser, one player each; runs until Ctrl-C
@@ -12,7 +12,7 @@
 // ignore that it is self-signed), the page is served by a small static server, and a registry (servers.json) lists the
 // relay plus four servers that exist only to vote, so a shun can really reach its threshold. Two browser contexts are
 // two players. A Node client puts a few hundred signed records of made-up networks, so the relay's paging (backlogs,
-// boards, cursors) and its rate limit are exercised. The board only ranks finished 5-minute slots, so the run waits
+// cursors) and its rate limit are exercised. The board only ranks finished 5-minute slots, so the run waits
 // for the next slot boundary once (up to five minutes). Prints one line per step and exits non-zero on any failure.
 const fs = require('node:fs');
 const os = require('node:os');
@@ -79,7 +79,7 @@ class Raw {
     });
   }
   send(m) { const id = ++this.nid; return new Promise((res) => { this.wait.set(id, { res, got: [] }); this.ws.send(JSON.stringify({ ...m, id })); }); }
-  // A request, waiting out rate_limited as the relay asks (the relay's token bucket: puts cost 1, sub 5, board 20).
+  // A request, waiting out rate_limited as the relay asks (the relay's token bucket: puts cost 1, sub 5, rank 10).
   async ask(m) {
     for (let i = 0; i < 50; i++) {
       const got = await this.send(m);
@@ -459,7 +459,7 @@ stay in the browser).`);
       return `${st.kinds.stats} stats held`;
     });
 
-    if (!QUICK) await step('leaderboard: after the slot ends, both games rank both players and the made-up networks', async () => {
+    if (!QUICK) await step('leaderboard: after the slot ends, the relay ranks; both games get the top rows and their own row, no records', async () => {
       const slotEnd = (Math.floor(now() / SLOT) + 1) * SLOT;
       console.log(`      waiting ${slotEnd - now() + 3} s for the 5-minute slot to end…`);
       await sleep((slotEnd - now() + 3) * 1000);
@@ -468,13 +468,16 @@ stay in the browser).`);
       must(rows.some((r) => r.key === P.A) && rows.some((r) => r.key === P.B), 'relay board lacks a player');
       must(!rows.some((r) => r.key === fakes[0].k.pub), 'relay board still ranks the shunned network');
       for (const p of [A, B]) {
-        const n = await ev(p, async () => { const u = S.fed.servers[0]; return fedBoardFetch(u); });
-        must(n >= FAKES, `${p.name}: board fetch gave ${n} records`);
-        const v = await ev(p, async () => { const v = await fedBoardView({ board: 'pops', measure: 'total', division: 'all' }); return v.rows.map((r) => r.key); });
-        must(v.includes(P.A) && v.includes(P.B), `${p.name}'s board lacks a player`);
-        must(!v.includes(fakes[0].k.pub), `${p.name}'s board ranks the shunned network`);
-        const frames = p.frames.filter((f) => f.m === 'recs' && f.id === p.sent.filter((s) => s.m === 'board').at(-1).id);
-        must(FAKES < 130 || frames.length > 1, `${p.name}: board came in ${frames.length} frame(s)`);
+        const v = await ev(p, async () => { const v = await fedRankView({ board: 'pops', measure: 'total', division: 'all' }); return { keys: v.rows.map((r) => r.key), me: v.me, n: v.n, at: v.at }; });
+        must(v.keys.length === Math.min(50, v.n) && v.n >= FAKES, `${p.name}: ${v.keys.length} rows of ${v.n}`);
+        must(v.me && Number.isInteger(v.me.rank) && v.me.rank >= 1, `${p.name}: own row ${JSON.stringify(v.me)}`);
+        must(!v.keys.includes(fakes[0].k.pub), `${p.name}'s board ranks the shunned network`);
+        must(v.at === null, `${p.name}: not a fresh answer`);
+        // Both players, side by side: a slice of just the two of them.
+        const two = await ev(p, async (k) => { const c = FED.live.conns.get(S.fed.servers[0]);
+          const a = await fedAskRetry(c, { m: 'rank', board: 'pops', measure: 'total', division: 'all', filters: { keys: k } }); return a && a.rows.map((r) => r.key); }, [P.A, P.B].sort());
+        must(two && two.includes(P.A) && two.includes(P.B), `${p.name}: the two players' slice ${JSON.stringify(two)}`);
+        must(!p.sent.some((f) => f.m === 'board') && !p.frames.some((f) => f.m === 'recs' && f.items && f.items.some((it) => it.rec && it.rec.kind === 'stats' && it.rec.key !== P.A && it.rec.key !== P.B && !p.sent.some((s) => s.m === 'rankwhy' && s.id === f.id))), `${p.name} downloaded board records`);
       }
       // And through the sheet.
       await ev(A, () => ACT.fuOpen({ v: 'boards' }));
@@ -483,16 +486,30 @@ stay in the browser).`);
       return `relay board ${rows.length} rows (${names.size} names)`;
     });
 
-    await step('a burst of board requests from one game: rate_limited answers are waited out', async () => {
+    if (!QUICK) await step('an honest relay passes the games\' checks of its rankings (rankwhy)', async () => {
+      const out = [];
+      for (const p of [A, B]) {
+        const r = await ev(p, async () => { const c = FED.live.conns.get(S.fed.servers[0]), res = [];
+          for (const board of ['pops', 'traffic', 'total']) { const req = fedRankReq({ board }, []), a = fedRanksOk(await fedAskRetry(c, req)); res.push(a ? await fedRankCheck(c, req, a) : 'no answer'); }
+          return { res, bad: Object.keys(await fedUntrusted()).length }; });
+        must(r.res.every((x) => x === true) && r.bad === 0, `${p.name}: checks ${JSON.stringify(r)}`);
+        must(p.sent.some((f) => f.m === 'rankwhy'), `${p.name} never asked rankwhy`);
+        out.push(`${p.name} ${r.res.length} boards checked`);
+      }
+      return out.join(', ');
+    });
+
+    await step('a burst of rank requests from one game: rate_limited answers are waited out', async () => {
       const t0 = Date.now(), from = A.frames.length, sent = A.sent.length;
-      const r = await ev(A, async () => { const u = S.fed.servers[0]; return Promise.all([1, 2, 3, 4, 5, 6].map(() => fedBoardFetch(u))); });
-      const lim = A.frames.filter((f) => f.m === 'err' && f.code === 'rate_limited').length;
-      const log = () => JSON.stringify({ s: (Date.now() - t0) / 1000, sent: A.sent.slice(sent).filter((f) => f.m === 'board').map((f) => f.id),
-        got: A.frames.slice(from).filter((f) => f.m === 'err' || f.m === 'recs' && !f.more).map((f) => f.m === 'err' ? `${f.id}:${f.code}:${f.retry}` : `${f.id}:end`) });
-      must(r.every((n) => Number.isInteger(n) && (QUICK || n > 0)), `board fetches gave ${JSON.stringify(r)} ${log()}`);
+      const r = await ev(A, async () => { const c = FED.live.conns.get(S.fed.servers[0]);
+        return Promise.all(Array.from({ length: 12 }, (_, i) => fedAskRetry(c, { m: 'rank', board: ['pops', 'traffic', 'total', 'pies'][i % 4], measure: 'total', division: 'all' }).then((a) => a && a.m))); });
+      const lim = A.frames.slice(from).filter((f) => f.m === 'err' && f.code === 'rate_limited').length;
+      const log = () => JSON.stringify({ s: (Date.now() - t0) / 1000, sent: A.sent.slice(sent).filter((f) => f.m === 'rank').map((f) => f.id),
+        got: A.frames.slice(from).filter((f) => f.m === 'err' || f.m === 'ranks').map((f) => f.m === 'err' ? `${f.id}:${f.code}:${f.retry}` : `${f.id}:ranks`) });
+      must(r.every((m) => m === 'ranks'), `rank requests gave ${JSON.stringify(r)} ${log()}`);
       must(lim > 0, 'the relay never rate-limited the burst (nothing was tested)');
       must(await ev(A, () => fedStatus().state === 'connected'), 'the burst dropped the connection');
-      return `6 boards, ${lim} rate_limited answers waited out`;
+      return `12 rankings, ${lim} rate_limited answers waited out`;
     });
 
     await step('metrics and logs: counts only, no addresses', async () => {

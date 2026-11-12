@@ -283,7 +283,7 @@ Operator actions are signed with the operator key on that machine.
 | `relay servers` | Every server you know, from the registry and from gossip |
 | `relay players` | Networks with an announcement: name, ASN, last heard, quiet state, hidden or shunned |
 | `relay nodes` | This server's nodes and which are up |
-| `relay board --board pops --measure growth` | A leaderboard as this server sees it (`--board` pops, pies, traffic or total) |
+| `relay board --board pops --measure growth` | A whole leaderboard as this server ranks it for players (`--board` pops, pies, traffic or total) |
 | `relay hide KEY` / `--names` / `--refuse` | Leave a network off your boards, show it by ASN only, or refuse its new records |
 | `relay unhide KEY` | Take it off all three lists |
 | `relay shun KEY --reason spam` | Vote to exclude a network everywhere (`cheating`, `offensive_name`, `spam`, `abuse`) |
@@ -296,6 +296,35 @@ last 90 days unless renewed, and a shun lifts 7 days after the votes fall below 
 record that travels to every server, but your node sends votes only to games that proved an operator key of your
 server (an operator panel in the game); other players' games get only the list of excluded networks, and an excluded
 player only the reasons given, never counts, servers or operators.
+
+## Leaderboards
+
+Your node ranks the leaderboards itself and sends players only what they look at: the top 50 rows of the slice they
+asked for and their own row (`rank`, protocol 9.5), the values for the filter sheet (`facets`), and what the game needs
+of a few networks (`nets`). It never sends the records of a whole board. Rankings follow the protocol's rules exactly
+(10.1 to 10.5, 10.12); games check a row or two now and then against the signed records (`rankwhy`), so a node that
+ranks wrongly is noticed and left out for a day.
+
+How it works (`relay/internal/rank`):
+
+- **In memory, updated as records arrive.** Per network: its stats records of the two 24-hour windows and the seven
+  days before them (parsed once), its newest announce, and, when it reports traffic with other players, its traffic
+  totals for each of the 576 five-minute slots of the windows (in and out, after the min() rule). A new record only
+  recomputes the slots it changes, for that network and the networks that list it; a record in the slot still running
+  changes nothing until the slot ends. Hides and shuns recompute only the networks that report traffic with them.
+- **Rankings on demand, cached.** A ranking is worked out the first time someone asks for that slice in that slot
+  and kept (up to 64 boards and 256 filtered slices; the least recently used go first). Everyone asking for the same
+  slice meanwhile waits for that one result. At the start of each slot the unfiltered boards are worked out at once.
+- **Bounded work.** Rankings run on a fixed pool of workers, one per CPU (`GOMAXPROCS`); a request never starts a
+  goroutine of its own, and when the pool's queue is full the node answers `rate_limited`. Records are handed to the
+  rankings through a queue, so storing them never waits for a ranking.
+- **Start-up.** The rankings are built from the data folder in parallel while the node already serves; until they
+  are ready (a fraction of a second for ten thousand networks) `rank` is answered `rate_limited`.
+- **Memory.** About 9 KB per network that reports player traffic (its per-slot totals) plus about half a kilobyte per
+  stats record held. Measured: 10,000 networks with a record every two hours (270,000 records) take about 23 KB each,
+  some 230 MB; networks that report every five minutes take more, in proportion to their records (which the data
+  folder holds anyway).
+- `relay board` shows a whole board as players' games see it.
 
 ## Upgrades, backups and data
 

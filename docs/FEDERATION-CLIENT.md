@@ -89,8 +89,8 @@ Pure functions, held to `federation/vectors/` by `tests/federation-vectors.test.
 | Function | Rule |
 | --- | --- |
 | `fedSlot`, `fedWindows(now)`, `fedBoardSlot(ts)`, `fedByKey`, `fedEffs` | Slots, windows, effective records (§10.1–10.2) |
-| `fedBoard({now, board, measure, division, exclude, cities, records})` | Board rows `[{key, value}]` (§10.3–10.5). Walks only the slots where an effective record changes; kept per `records` array (identity) and slot, so slicing the same data again is a lookup. `await fedBoardWarm(q)` works it out in short steps first (the boards sheet does) |
-| `fedSlice(view, data)` | A sliced board: `{rows: [{key, value, rank, ai}], me}` (see below) |
+| `fedRankOne(q, key, records, announce)` | One network's place on a board from records alone (§10.3–10.5, §10.12): `{listed, kept, value}`. `q`: `{now, board, measure, division, exclude, cities, filters}`. How a game checks a server's row (§9.5); a pure function, runs every `boards` vector |
+| `fedRankReq(view, deals, n)`, `fedRankKey(req)`, `fedRanksOk(answer)`, `fedRankMerge(answers, me, drop, n)` | A view as a `rank` request, the slice's cache key, a checked `ranks` answer, several servers' answers merged (see below) |
 | `fedQuiet(now, lastHeard)` | `{state: active/fading/dark/forgotten, factor}` per mille (§10.6) |
 | `fedShun(registry, votes, target, now)` | `{voters, need, votes, shunned, reasons}` (§10.7) |
 | `fedDeal(announces, offer, accept, renews)` | `{ok, auto, start, end}` or `{ok:false, error}` (§10.10) |
@@ -98,15 +98,32 @@ Pure functions, held to `federation/vectors/` by `tests/federation-vectors.test.
 | `fedGossipIn`, `fedCatalogMerge` | Catalog gossip (§10.8) |
 | `fedVersion`, `fedSyncOk`, `fedFrame`, `fedMaj` | Versions, sync policy, frames, majority (§9, §10.9, §8.1) |
 
-### Slicing
+### Slicing: the servers rank
 
-`fedSlice(v, d)`, or `await fedBoardView(v)` which reads the cache for `d`. `v` takes any of: `board` (`pops`, `pies`,
-`traffic`, `total`), `measure` (`total`, `growth`), `division` (`all`, `human`, `ai`), `model`, `harness`, `region`
-(`{continent: 'EU'}` as in `CITIES[].reg`, `{country: 'DE'}`, `{city: 'fra'}`), `home`, `from` (players' country,
-from receipts), `ageMin`/`ageMax` (real days since founded), `dayMin`/`dayMax` (game days), `tier1`, `policy`, `peers`
-(only networks in `S.fed.deals`), `server` (one server's view; omitted: all merged, each record once). Regions change
-values (only POPs, and traffic with networks, in the region); the other filters only hide rows. Ranks are positions in
-the slice. `me` is the player's own row, pinned: `rank` is `null` when the slice hides it.
+The game never downloads leaderboard records. `await fedRankView(v, urls?)` asks each joined server (or those `urls`)
+for the slice (`rank`, §9.5) and gives `{rows: [{rank, key, value, asn, ai, name, home, cc}], me: {rank, value} or null,
+n, at, slot, untrusted}`. `v` takes any of: `board` (`pops`, `pies`, `traffic`, `total`), `measure` (`total`,
+`growth`), `division` (`all`, `human`, `ai`), `model`, `harness`, `region` (`{continent: 'EU'}` as in `CITIES[].reg`,
+`{country: 'DE'}`, `{city: 'fra'}`, sent as its city list), `home`, `from`, `ageMin`/`ageMax`, `dayMin`/`dayMax`,
+`tier1`, `policy`, `peers` (sent as the keys in `S.fed.deals`); their meaning is §10.12. The boards sheet's "as seen
+from" a server passes that server's URLs.
+
+- **All your servers, merged** (`fedRankMerge`): rows joined by key, a key on two servers taking the **higher** value;
+  networks the player muted, any joined server hides (its `hide` list) and the federation excludes are left out; then
+  sorted again (value, then key), numbered, top 50. Muted networks are never sent to a server: the game asks for 50 more
+  rows than it shows (at most 100). `n` is the most networks any server counted.
+- **The own row** is its position among the merged rows when it is there, else as the first server that answered
+  gives it (`rank` `null`: on the board, but not in this slice).
+- **Offline:** the last answer of each joined URL and slice is kept (`kv` `ranks`, at most 48, the oldest first out)
+  and shown "as of" `at` (the oldest kept answer used; `null` when every answer is fresh).
+- **Checks** (`fedRankCheck`, in the background after each fresh answer, one at a time per server and once per slice and
+  slot): the own row and one row picked with `FED.rand()` are worked out again from the server's `rankwhy` records
+  (`fedRankOne`, with that server's excluded list and hide record). A row not matching twice (the slice asked again in
+  between) marks the server untrusted for 24 hours (`kv` `untrusted`, `fedUntrusted()`): its rankings are left out,
+  `fedRankView` lists it in `untrusted`, the sheet says so (`fedui.ranking_does_not_match`), and an `untrusted` event
+  fires. A row that cannot be checked (another slot, a receipt from a server unknown here, no answer) counts for nothing.
+- `await fedFacets(urls?)`: the values the filter sheet offers, `{models, harnesses, from, homes}`, from each server's
+  `facets` (kept per URL for offline).
 
 ## The connection
 
@@ -114,8 +131,8 @@ the slice. `me` is the player's own row, pinned: `rank` is `null` when the slice
 | --- | --- |
 | `fedWake()` | Starts, adjusts or stops the session to match the open save. Safe any time |
 | `fedStatus()` | `{state: 'off'|'connecting'|'connected'|'offline', since, servers: [{url, state, since, server, node}]}`; `since` is when it went offline (or connected). Per server `state` may also be `waiting` (hidden tab) |
-| `fedBoardFetch(url)` | Asks a connected server for its board records (§9.5), checks them (receipts give slot and country), caches them; `null` when not connected |
-| `fedBoardData(server?)` | `server`: one server id, a list of ids, or none (the connected ones). From the cache (works offline): `{now, records, announces, exclude, deals, me, at}`; `at` is the oldest fetch ("as of …"). `records`: at most 20000 (the newest) from at most 5000 networks, the same array until a server's cached records change or a slot passes |
+| `fedRankView(view, urls?)`, `fedFacets(urls?)` | Leaderboards ranked by the servers (§9.5), see "Slicing" |
+| `fedNetsFetch(keys)`, `fedNetsStats()` | For the gameplay: asks each connected server `nets` about up to 64 networks (hourly, and when the snapshot has networks not asked about yet), kept per URL; `fedNetsStats()` gives `Map key -> {ai, tier1, traffic}` (`traffic`: what that network reports about traffic with this one) |
 | `fedServers()` | Known servers, registry merged with gossip (§10.8): `[{id, source, name, nodes, operators, sync, noLogs, langs, desc, seen, path, listed, answered}]` |
 | `fedCatalogLoad()` | Fetches `federation/servers.json` (same origin), keeps the checked entries; the cache stays on failure |
 | `fedNetworks(now?)` | Other players' networks from cached announces: `[{key, rec, id, heard, quiet, srv}]` (`srv`: the servers it was heard on); forgets those silent 180 days |
@@ -148,7 +165,7 @@ times 0.5–1 jitter, and only while the tab is visible (it dials at once when t
 | `records` | `{server, n}` after a batch was checked and kept |
 | `excluded` | `{server, n}` after a server's excluded list was kept |
 | `deal` | `{rec, id, slot, server}`: an `offer`, `accept` or `decline` to or from this network (gameplay decides) |
-| `board` | `{server, n}` after `fedBoardFetch` |
+| `untrusted` | `{server, url}`: a server's ranking did not match its records (§9.5) |
 | `catalog` | `{source: 'registry' or 'gossip'}` |
 | `mute` | `{key, on}` |
 
@@ -160,7 +177,7 @@ times 0.5–1 jitter, and only while the tab is visible (it dials at once when t
 ## Browser storage (IndexedDB `sot-fed`, shared by every slot)
 
 Stores `ann` (other networks' newest announce and `heard`, at most 5000, the longest silent dropped first once a tenth
-over, counted without reading the store each time, forgotten after 180 days), `kv` (`registry`, `gossip`, `board:<server>` up to 20000 records, `excl:<joined URL>` (`{at, srv, keys, me, reasons}`), `hide:<server>`,
+over, counted without reading the store each time, forgotten after 180 days), `kv` (`registry`, `gossip`, `ranks` (the last answer per joined URL and slice, at most 48), `facets:<URL>`, `nets:<URL>`, `untrusted` (servers caught, for 24 hours), `excl:<joined URL>` (`{at, srv, keys, me, reasons}`), `hide:<server>`,
 `cursor:<node>`, and on an operator's device only `votes` until expired and `vcursors`; without an operator key they are
 deleted when a session starts or the sheet opens) and `op` (the operator key). Every access is wrapped; without IndexedDB (or when it fails) the same calls
 use memory for the tab. `fedGet/fedPut/fedDel/fedAll(store, …)`.
