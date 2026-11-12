@@ -51,7 +51,7 @@ Day to day (talks to the running relay over its local socket):
   relay hide KEY [--names | --refuse]      relay unhide KEY
   relay shun KEY --reason cheating|offensive_name|spam|abuse      relay unshun KEY
   relay ops propose add-operator|remove-operator|add-node|remove-node KEY [--url wss://...]
-  relay ops pending      relay ops sign ID
+  relay ops pending      relay ops sign ID [--via wss://a-running-node/path]
   relay ops server [--name N] [--sync standalone|selective|open] [--langs en,de] [--desc T] [--no-logs=true]
   relay backup FILE.tar.gz
 
@@ -416,6 +416,7 @@ func cmdOps(args []string) error {
 	langs := fs.String("langs", "", "languages, comma separated")
 	desc := fs.String("desc", "\x00", "description")
 	noLogs := fs.String("no-logs", "", "true or false")
+	via := fs.String("via", "", "sign: send the signature to this node over wss:// instead of the local relay")
 	pos := parse(fs, args)
 	switch sub {
 	case "pending":
@@ -440,7 +441,10 @@ func cmdOps(args []string) error {
 		return put(*dir, rec)
 	case "sign":
 		if len(pos) != 1 {
-			return errors.New("usage: relay ops sign ID")
+			return errors.New("usage: relay ops sign ID [--via wss://node]")
+		}
+		if *via != "" {
+			return signVia(*dir, *via, pos[0])
 		}
 		_, op, err := state(*dir)
 		if err != nil {
@@ -489,6 +493,46 @@ func cmdOps(args []string) error {
 		return put(*dir, ops.ServerRecord(st, op, f, time.Now().Unix()))
 	}
 	return fmt.Errorf("unknown ops command %q", sub)
+}
+
+// signVia fetches a pending record from a running node, signs it with the local operator key
+// and sends the signature back over wss://, as the game's operator panel does.
+func signVia(dir, url, id string) error {
+	op, err := ops.LoadKey(filepath.Join(dir, "operator.key"))
+	if err != nil {
+		return fmt.Errorf("operator key: %w", err)
+	}
+	return cosignOver(url, id, op, nil)
+}
+
+func cosignOver(url, id string, op *fed.Signer, hc *http.Client) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	cl, err := client.Dial(ctx, url, client.Options{HTTPClient: hc})
+	if err != nil {
+		return err
+	}
+	defer cl.Close()
+	items, err := cl.Collect(ctx, map[string]any{"m": "fetch", "ids": []any{id}})
+	if err != nil {
+		return err
+	}
+	if len(items) != 1 {
+		return fmt.Errorf("%s does not hold %s", url, id)
+	}
+	rec, code := canon.Check(items[0]["rec"])
+	if code != "" {
+		return errors.New(code)
+	}
+	sig, err := ops.Cosign(rec, op)
+	if err != nil {
+		return err
+	}
+	if _, err := cl.Request(ctx, map[string]any{"m": "cosign", "rid": id, "key": op.Key, "sig": sig}); err != nil {
+		return err
+	}
+	fmt.Printf("Signed %s on %s.\n", id, url)
+	return nil
 }
 
 func cmdBackup(args []string) error {

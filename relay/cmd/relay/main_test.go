@@ -180,6 +180,58 @@ func TestCheckRegistryChainNeedsMajority(t *testing.T) {
 	}
 }
 
+// The flow docs/RELAY.md describes: a second operator joins, then their node.
+func TestSecondOperatorAndNode(t *testing.T) {
+	n := rt.New(t)
+	s := n.Found("Duo", "open")
+	first := s.Nodes[0]
+	ben := rt.Key("ben")
+	p, _ := ops.Propose(first.State(), s.Op, "add-operator", ben.Key, "", n.Clock.Unix())
+	first.MustPut(p) // one of one: applied
+	// Ben's node joins and waits; it is not on the list yet.
+	second := n.Listen("duo2")
+	cfg := *first.Cfg
+	cfg.URL, cfg.Seeds, cfg.Neighbours = second.URL, []string{first.URL}, nil
+	second.Start(t.TempDir(), &cfg)
+	add, _ := ops.Propose(first.State(), s.Op, "add-node", second.Key.Key, second.URL, n.Clock.Unix())
+	first.MustPut(add)
+	if len(first.R.Pending()) != 1 {
+		t.Fatal("adding the node should wait for ben")
+	}
+	// Ben signs from his own machine, over wss.
+	if err := cosignOver(first.URL, rt.ID(add), ben, n.HTTP); err != nil {
+		t.Fatal(err)
+	}
+	rt.Eventually(t, "ben's node serving", func() bool { return second.R.State()["serving"] == true })
+	// The server is described again and both sign.
+	srv := s.Describe(first, s.Op)
+	first.MustPut(srv)
+	rt.Eventually(t, "the new server record on ben's node", func() bool { return second.Has(rt.ID(srv)) })
+	if err := cosignOver(second.URL, rt.ID(srv), ben, n.HTTP); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if t.Failed() {
+			_, e1 := first.R.RegistryFile()
+			_, e2 := second.R.RegistryFile()
+			t.Logf("first: %v %v\nsecond: %v %v\nfirst status %v\nsecond status %v", e1, first.R.Pending(), e2, second.R.Pending(), first.R.Status(), second.R.Status())
+		}
+	}()
+	rt.Eventually(t, "both nodes hold the signed server record", func() bool {
+		_, e1 := first.R.RegistryFile()
+		_, e2 := second.R.RegistryFile()
+		return e1 == nil && e2 == nil
+	})
+	b, _ := second.R.RegistryFile()
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, s.ID+".json"), b, 0o644)
+	// The registry check passes while either node answers.
+	first.Stop()
+	if got := check(t, dir, s.ID+".json", n); !strings.HasSuffix(got, ": ok") {
+		t.Fatalf("check with one node down: %s", got)
+	}
+}
+
 func TestBuildServersJSON(t *testing.T) {
 	dir := t.TempDir()
 	out := filepath.Join(t.TempDir(), "site", "federation", "servers.json")

@@ -277,6 +277,23 @@ func (r *Relay) nodeFrame(s *session, f *wire.Frame) bool {
 			s.enqueue(map[string]any{"m": "inv", "ids": strList(ids[i:end]), "more": end < len(ids)})
 		}
 		s.synced = true
+		if s.same {
+			// Signatures added to a proposal or server record keep its id, so an inventory
+			// cannot show them: push this server's multi-signer records anyway; copies merge.
+			var items []map[string]any
+			for _, k := range []string{"operators", "server"} {
+				for _, e := range store.Sorted(r.st.Kind(k)) {
+					if r.own != nil && e.Rec.Str("server") == r.own.ID {
+						items = append(items, item(e))
+					}
+				}
+			}
+			for _, p := range pageItems(items, fed.MaxItems, fed.NodeFrame-64<<10) {
+				if len(p) > 0 {
+					s.enqueue(map[string]any{"m": "push", "items": p})
+				}
+			}
+		}
 		r.mu.Unlock()
 	case "inv":
 		ids, _ := f.Strs("ids")
