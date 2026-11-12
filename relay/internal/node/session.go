@@ -49,7 +49,7 @@ type session struct {
 	ver    int64
 
 	// client
-	cc      string                     // the connection's country, never its address
+	cc      string                    // the connection's country, never its address
 	subs    map[int64]map[string]bool // sub id -> kinds (guarded by r.mu)
 	tokens  float64
 	tokenAt time.Time

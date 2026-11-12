@@ -13,12 +13,12 @@ import (
 
 // M holds counters and gauges, each with at most one label (a kind, a code or a role).
 type M struct {
-	mu      sync.Mutex
-	help    map[string]string
-	typ     map[string]string
-	vals    map[string]map[string]float64 // name -> label value -> value
-	labels  map[string]string             // name -> label name
-	gauges  map[string]func() float64
+	mu     sync.Mutex
+	help   map[string]string
+	typ    map[string]string
+	vals   map[string]map[string]float64 // name -> label value -> value
+	labels map[string]string             // name -> label name
+	gauges map[string]func() float64
 }
 
 // New makes an empty set with the relay's metrics declared.

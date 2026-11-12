@@ -34,7 +34,7 @@ type Request struct {
 
 // Response is the answer: a result or an error code.
 type Response struct {
-	OK     bool `json:"ok"`
+	OK     bool   `json:"ok"`
 	Error  string `json:"error,omitempty"`
 	Result any    `json:"result,omitempty"`
 }

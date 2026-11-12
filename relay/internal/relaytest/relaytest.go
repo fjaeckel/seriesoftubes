@@ -62,7 +62,11 @@ type SyncBuffer struct {
 	b  bytes.Buffer
 }
 
-func (s *SyncBuffer) Write(p []byte) (int, error) { s.mu.Lock(); defer s.mu.Unlock(); return s.b.Write(p) }
+func (s *SyncBuffer) Write(p []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.Write(p)
+}
 
 // String returns everything logged.
 func (s *SyncBuffer) String() string { s.mu.Lock(); defer s.mu.Unlock(); return s.b.String() }
@@ -209,7 +213,7 @@ func (x *Node) Start(dir string, cfg *config.Config) {
 
 func (x *Node) options() node.Options {
 	return node.Options{Dir: x.Dir, Config: x.Cfg, Node: x.Key, Clock: x.Net.Clock.Now,
-		Log: slog.New(slog.NewTextHandler(x.Log, &slog.HandlerOptions{Level: slog.LevelDebug})),
+		Log:        slog.New(slog.NewTextHandler(x.Log, &slog.HandlerOptions{Level: slog.LevelDebug})),
 		HTTPClient: x.Net.HTTP, Countries: x.Net.Country, Metrics: x.Metrics,
 		BootstrapEvery: 200 * time.Millisecond, DialBase: 50 * time.Millisecond}
 }
@@ -323,7 +327,7 @@ func Announce(k *fed.Signer, t int64, name string) map[string]any {
 	asn, _ := fed.ASN(k.Key)
 	return k.Seal("announce", t, map[string]any{"name": name, "asn": asn, "home": "DE", "day": int64(1),
 		"founded": t / 86400, "pops": []any{"fra"}, "ix": []any{}, "cust": int64(1),
-		"mix": map[string]any{"content": int64(0), "eyeball": int64(1000), "enterprise": int64(0)},
+		"mix":     map[string]any{"content": int64(0), "eyeball": int64(1000), "enterprise": int64(0)},
 		"traffic": map[string]any{"in": int64(0), "out": int64(0)}, "policy": "open", "rates": map[string]any{},
 		"auto": map[string]any{"peering": "auto", "transit": "decline", "pni": "decline", "swap": "decline", "consortium": "decline", "port": "decline"}})
 }

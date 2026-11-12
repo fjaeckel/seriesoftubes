@@ -45,14 +45,14 @@ func LoadKey(path string) (*fed.Signer, error) {
 
 // State is the server as the running relay reports it.
 type State struct {
-	Server    string                   `json:"server"`
-	Head      string                   `json:"head"`
-	Operators []string                 `json:"operators"`
+	Server    string                      `json:"server"`
+	Head      string                      `json:"head"`
+	Operators []string                    `json:"operators"`
 	Nodes     []struct{ Key, URL string } `json:"nodes"`
-	Sync      string                   `json:"sync"`
-	Hide      json.RawMessage          `json:"hide"`
-	Record    json.RawMessage          `json:"serverRecord"`
-	Genesis   json.RawMessage          `json:"genesis"`
+	Sync      string                      `json:"sync"`
+	Hide      json.RawMessage             `json:"hide"`
+	Record    json.RawMessage             `json:"serverRecord"`
+	Genesis   json.RawMessage             `json:"genesis"`
 }
 
 // ReadState decodes a state result.
