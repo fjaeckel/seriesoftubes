@@ -1,0 +1,47 @@
+{
+  "description": "Alice published no wave card (W3), though auto.wave is auto: a wave offer finds no terms.",
+  "input": {
+    "announces": [
+      {
+        "id": "W3",
+        "kind": "announce",
+        "key": "kAlice",
+        "t": 1767225600,
+        "body": {
+          "rates": {},
+          "auto": {
+            "peering": "auto",
+            "transit": "auto",
+            "pni": "review",
+            "swap": "review",
+            "consortium": "review",
+            "port": "auto",
+            "wave": "auto"
+          }
+        }
+      }
+    ],
+    "offer": {
+      "id": "O1",
+      "kind": "offer",
+      "key": "kBob",
+      "t": 1767229200,
+      "body": {
+        "to": "kAlice",
+        "deal": "wave",
+        "basis": "W3",
+        "terms": {
+          "a": "ams",
+          "b": "fra",
+          "gbps": 400,
+          "monthly": 2400,
+          "term": 90
+        }
+      }
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "no_terms"
+  }
+}

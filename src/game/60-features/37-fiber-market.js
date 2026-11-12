@@ -84,10 +84,11 @@ const cmUpList=r=>dfLeaseMo(r.km)*0.9*24;
 /* The price of the i-th unit from now, as a share of list: heat pushes it up or down (hot routes pay off), and each
    unit sold on the route makes the next one cheaper, down to 40% once its market is full. */
 function cmIdx(r,p,s,i,d,fc){const D=cmDem(r,p,d,fc),H=cmHeat(r,p,d,fc);return clamp(Math.pow(H,0.6),0.7,1.35)*(1-WW_FALL*Math.min(1,D>0?(s+i)/D:1));}
-// Managed waves sold on a fiber, in Gbps: they come off what your own traffic gets (dfCap0()).
+// Managed waves sold on a fiber (to computer-run carriers and to players), in Gbps: they come off what your own
+// traffic gets (dfCap0()).
 let CM_MW=null,CM_V=0;
 function mwG(l){if(!S||!S.biz)return 0;if(!CM_MW||CM_MW.b!==S.biz||CM_MW.n!==S.biz.length||CM_MW.v!==CM_V){const m=new Map();
-    for(const b of S.biz)if(b.type==='mwave'&&b.link)m.set(b.link,(m.get(b.link)||0)+(b.slots||0)*(b.g||100));CM_MW={b:S.biz,n:S.biz.length,v:CM_V,m};}
+    for(const b of S.biz)if(b.type==='mwave'&&b.link)m.set(b.link,(m.get(b.link)||0)+(b.slots||0)*(b.g||100));if(S.fed)fedWaveSold(m);CM_MW={b:S.biz,n:S.biz.length,v:CM_V,m};}
   return CM_MW.m.get(l.id)||0;}
 // How much of a product a fiber has spare, after the share kept back for your own traffic (spectrum slots, or lit
 // capacity your traffic is not using). A wave rides one channel, so an 800G or 1.6T one needs an optic that big. A pair

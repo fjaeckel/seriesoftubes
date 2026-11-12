@@ -368,6 +368,23 @@ const SID = rid(genesis);
   // --- stats: total (the network's whole traffic, optional) ---
   ok('stats-total', 'stats with total, the network\'s whole traffic in Mbps (optional; absent counts as 0).', rec('stats', 'alice', T, { ...statsMin(), total: 48000 }));
   bad('stats-total-over', 'total over 1000000000 Mbps.', rec('stats', 'alice', T, { ...statsMin(), total: 1000000001 }), 'bad_field');
+
+  // --- waves: a rate card (rates.wave), auto.wave (optional) and wave offers ---
+  const WAVE = { routes: [{ a: 'ams', b: 'fra' }, { a: 'fra', b: 'lon' }], sizes: [{ gbps: 100, monthly: 900 }, { gbps: 400, monthly: 2400 }], term: 90 };
+  const annWave = w => { const b = announceBody(); b.rates.wave = w; b.auto.wave = 'review'; return b; };
+  ok('announce-wave', 'An announce selling waves on two routes (cities in byte order), 100G and 400G, 90 days minimum; auto.wave set.', rec('announce', 'alice', T, annWave(WAVE)));
+  ok('announce-wave-auto-absent', 'auto.wave is optional (announces from before wave deals): absent, wave requests are declined (10.10).', rec('announce', 'bob', T, announceOpen()));
+  bad('announce-wave-route-order', 'A wave route\'s cities must be in byte order (a < b).', rec('announce', 'alice', T, annWave({ ...WAVE, routes: [{ a: 'fra', b: 'ams' }] })), 'bad_field');
+  bad('announce-wave-route-same', 'A wave route from a city to itself (a < b fails).', rec('announce', 'alice', T, annWave({ ...WAVE, routes: [{ a: 'fra', b: 'fra' }] })), 'bad_field');
+  bad('announce-wave-route-duplicate', 'The same route twice.', rec('announce', 'alice', T, annWave({ ...WAVE, routes: [{ a: 'ams', b: 'fra' }, { a: 'ams', b: 'fra' }] })), 'duplicate');
+  bad('announce-wave-routes-many', 'More than 32 routes.', rec('announce', 'alice', T, annWave({ ...WAVE, routes: Array.from({ length: 33 }, (_, i) => ({ a: 'aa' + String(i).padStart(2, '0'), b: 'zz' })) })), 'too_many');
+  bad('announce-wave-routes-empty', 'A wave card names at least one route.', rec('announce', 'alice', T, annWave({ ...WAVE, routes: [] })), 'bad_field');
+  bad('announce-wave-size', 'Wave sizes are 100, 400, 800 or 1600 Gbps.', rec('announce', 'alice', T, annWave({ ...WAVE, sizes: [{ gbps: 200, monthly: 900 }] })), 'bad_field');
+  bad('announce-wave-size-order', 'Sizes strictly ascending by gbps.', rec('announce', 'alice', T, annWave({ ...WAVE, sizes: [{ gbps: 400, monthly: 2400 }, { gbps: 100, monthly: 900 }] })), 'bad_field');
+  ok('offer-wave', 'A 400G wave offer on alice\'s card.', rec('offer', 'bob', T, { to: pub('alice'), deal: 'wave', basis: rid(ann), terms: { a: 'ams', b: 'fra', gbps: 400, monthly: 2400, term: 90 } }));
+  bad('offer-wave-no-basis', 'A wave offer needs a basis (the card it takes).', rec('offer', 'bob', T, { to: pub('alice'), deal: 'wave', terms: { a: 'ams', b: 'fra', gbps: 400, monthly: 2400, term: 90 } }), 'missing_field');
+  bad('offer-wave-route-order', 'The route in a wave offer is written as on the card: a < b.', rec('offer', 'bob', T, { to: pub('alice'), deal: 'wave', basis: rid(ann), terms: { a: 'fra', b: 'ams', gbps: 400, monthly: 2400, term: 90 } }), 'bad_field');
+  bad('offer-wave-size', 'A wave offer for a size that does not exist.', rec('offer', 'bob', T, { to: pub('alice'), deal: 'wave', basis: rid(ann), terms: { a: 'ams', b: 'fra', gbps: 10, monthly: 2400, term: 90 } }), 'bad_field');
 }
 
 // ======================================================================================

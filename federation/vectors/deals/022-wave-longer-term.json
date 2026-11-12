@@ -1,0 +1,73 @@
+{
+  "description": "Alice published a wave card at 1767225600: routes ams–fra and fra–lon, 100G at 900 a month and 400G at 2400, 90 days minimum (W1). A 100G wave fra–lon for 365 days: a longer term than the minimum is fine; end = 1767229200 + 365 * 86400 = 1798765200.",
+  "input": {
+    "announces": [
+      {
+        "id": "W1",
+        "kind": "announce",
+        "key": "kAlice",
+        "t": 1767225600,
+        "body": {
+          "rates": {
+            "wave": {
+              "routes": [
+                {
+                  "a": "ams",
+                  "b": "fra"
+                },
+                {
+                  "a": "fra",
+                  "b": "lon"
+                }
+              ],
+              "sizes": [
+                {
+                  "gbps": 100,
+                  "monthly": 900
+                },
+                {
+                  "gbps": 400,
+                  "monthly": 2400
+                }
+              ],
+              "term": 90
+            }
+          },
+          "auto": {
+            "peering": "auto",
+            "transit": "auto",
+            "pni": "review",
+            "swap": "review",
+            "consortium": "review",
+            "port": "auto",
+            "wave": "auto"
+          }
+        }
+      }
+    ],
+    "offer": {
+      "id": "O1",
+      "kind": "offer",
+      "key": "kBob",
+      "t": 1767229200,
+      "body": {
+        "to": "kAlice",
+        "deal": "wave",
+        "basis": "W1",
+        "terms": {
+          "a": "fra",
+          "b": "lon",
+          "gbps": 100,
+          "monthly": 900,
+          "term": 365
+        }
+      }
+    }
+  },
+  "expect": {
+    "ok": true,
+    "auto": true,
+    "start": 1767229200,
+    "end": 1798765200
+  }
+}

@@ -43,6 +43,7 @@ Read this first, then `CLAUDE.md`. This file is everything a new session needs t
   sliceable by every dimension the records carry.
 - Players publish peering policies, conditions and rate cards; matching requests are accepted automatically if the
   player chose that; computer-run transit is the price ceiling; prices change only at renewal.
+- Players sell waves to each other (deal kind `wave`, `rates.wave`, `89-fedplay-waves.js`); dark fiber IRUs come later.
 - Privacy: nothing identifies a person; no IPs, cities or device details are logged, stored or sent. The player's
   country is allowed (relay looks it up from a country-only database) and players can switch it off.
 - If a server is down, nothing breaks. Quiet networks fade (0–7 days unchanged, 7–37 fading, 37–180 dark, then

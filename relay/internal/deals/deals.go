@@ -79,8 +79,8 @@ func Check(anns []Announce, o Offer, accept *int64, renews *Running) Result {
 	isAuto := false
 	if basis != nil {
 		autoMap, _ := basis.Body["auto"].(map[string]any)
-		mode, _ := autoMap[deal].(string)
-		if mode == "decline" {
+		mode, ok := autoMap[deal].(string)
+		if mode == "decline" || !ok {
 			return fail(fed.Declined)
 		}
 		isAuto = mode == "auto"
@@ -173,6 +173,31 @@ func checkTerms(deal string, terms, rates map[string]any) string {
 		for _, p := range ports(r["ports"]) {
 			if num(p["mbps"]) == num(terms["mbps"]) {
 				if num(terms["monthly"]) == num(p["monthly"]) && num(terms["term"]) >= fed.ShortestIXTerm {
+					return ""
+				}
+				return fed.BadTerms
+			}
+		}
+		return fed.BadTerms
+	case "wave":
+		r := obj(rates["wave"])
+		if r == nil {
+			return fed.NoTerms
+		}
+		a, _ := terms["a"].(string)
+		b, _ := terms["b"].(string)
+		found := false
+		for _, x := range ports(r["routes"]) {
+			if x["a"] == a && x["b"] == b {
+				found = true
+			}
+		}
+		if !found {
+			return fed.BadTerms
+		}
+		for _, p := range ports(r["sizes"]) {
+			if num(p["gbps"]) == num(terms["gbps"]) {
+				if num(terms["monthly"]) == num(p["monthly"]) && num(terms["term"]) >= num(r["term"]) {
 					return ""
 				}
 				return fed.BadTerms

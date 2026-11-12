@@ -226,7 +226,7 @@ A network's public description: enough for other games to build it as a network,
 | `policy` | string | `open`, `selective` or `restrictive` |
 | `cond` | object | Required when `policy` is `selective`, refused (`bad_field`) otherwise. See below |
 | `rates` | object | Rate card, see below; `{}` when it sells nothing |
-| `auto` | object | How requests are handled: `{peering, transit, pni, swap, consortium, port}`, all six required, each `auto`, `review` or `decline` |
+| `auto` | object | How requests are handled: `{peering, transit, pni, swap, consortium, port, wave}`, each `auto`, `review` or `decline`. The first six are required; `wave` is optional (announces from before wave deals) and absent means `decline` (10.10) |
 
 `cond`, the conditions of a selective policy: `{minMbps: Mbps, maxRatio: integer 100 to 100000 (the highest in/out ratio
 accepted, times 100: 300 means 3:1), minShared: Count(64) (shared locations), rpki: Bool, tier1: Bool (Tier 1 only),
@@ -238,6 +238,10 @@ ai: Bool (AI players accepted)}`, all required.
   with strictly ascending `mbps` (discount per mille for committing at least `mbps`), term: Days (minimum term)}`.
 - `pni`: `{setup: Money, ports: [{mbps: Mbps, monthly: Money}] 1 to 8 with strictly ascending mbps, term: Days}`.
 - `ix` (an exchange it runs): `{ports: [{mbps, monthly}] 1 to 8 with strictly ascending mbps, join: anyone|selective|approval, at: [City] 1 to 16 unique}`.
+- `wave` (managed waves on routes it has lit): `{routes: [{a: City, b: City}] 1 to 32, sizes: [{gbps: 100|400|800|1600,
+  monthly: Money}] 1 to 4 with strictly ascending gbps, term: Days (minimum term)}`. A route's cities are in byte order
+  (`a < b`, `bad_field` otherwise; so a route has one spelling and a city is never paired with itself); routes are unique
+  (`duplicate`). Whether the routes are really lit is the seller's game's business, not a rule here.
 
 Example (keys and signatures shortened):
 
@@ -289,8 +293,8 @@ immutable, and nobody has to be online at the same time as anyone else.
 | Field | Type | Rule |
 | --- | --- | --- |
 | `to` | Key | The counterparty, never the author (`bad_field`). Optional for `consortium` only (absent: open to anyone) |
-| `deal` | string | `peering`, `transit`, `pni`, `swap`, `consortium` or `port` |
-| `basis` | Id | The counterparty's `announce` whose terms the offer takes. Required for `peering`, `transit`, `pni`, `port`; optional for `swap`; refused for `consortium` (`bad_field`) |
+| `deal` | string | `peering`, `transit`, `pni`, `swap`, `consortium`, `port` or `wave` |
+| `basis` | Id | The counterparty's `announce` whose terms the offer takes. Required for `peering`, `transit`, `pni`, `port`, `wave`; optional for `swap`; refused for `consortium` (`bad_field`) |
 | `renews` | Id, optional | The offer that started the running deal this one renews |
 | `terms` | object | By `deal`, below |
 
@@ -302,6 +306,7 @@ immutable, and nobody has to be online at the same time as anyone else.
 | `port` | `{at: City, mbps: Mbps, monthly: Money, term: Days}` |
 | `swap` | `{give: {a: City, b: City, mbps: Mbps}, take: {a: City, b: City, mbps: Mbps}, term: Days}` |
 | `consortium` | `{name: Name, a: City, b: City, members: integer 2 to 16, share: Money, pairs: integer 1 to 16}` |
+| `wave` | `{a: City, b: City (a < b, as on the card), gbps: 100\|400\|800\|1600, monthly: Money, term: Days}`: one wave the author buys from `to` |
 
 `accept`: `{offer: Id, to: Key}` where `to` is the offer's author. `decline`: `{offer: Id, to: Key, reason}` with
 `reason` one of `declined`, `conditions`, `depeer`, `excluded`, `quiet`. A `decline` of a running deal ends it.
@@ -863,7 +868,7 @@ not an `announce` by `to`). It is checked, in this order:
 1. `basis.t <= offer.t`, otherwise `bad_field`.
 2. **Still current**: the next `announce` by `to` after `basis` (smallest `t` greater than `basis.t`), if any, has
    `t > offer.t - 86400`. Otherwise `stale_terms`. (A day of grace for terms that changed while the offer was on its way.)
-3. `basis.auto[deal]` is `decline`: `declined`.
+3. `basis.auto[deal]` is `decline`, or absent (an announce from before `wave` deals has no `auto.wave`): `declined`.
 4. **Terms are the published ones** (`no_terms` when the basis publishes none for this deal, `bad_terms` when they
    differ):
    - `transit`: let `off` be the `off` of the commit tier with the greatest `mbps <= terms.mbps` (0 when none). Then
@@ -871,6 +876,12 @@ not an `announce` by `to`). It is checked, in this order:
    - `pni`: a port with `mbps == terms.mbps` exists; `terms.setup == rates.pni.setup`, `terms.monthly` equals that port's
      `monthly`, `terms.term >= rates.pni.term`.
    - `port`: `terms.at` is in `rates.ix.at`, a port with that `mbps` exists, `monthly` equal, `term >= 30`.
+   - `wave`: `{a, b}` is one of `rates.wave.routes` (same `a`, same `b`); a size with `gbps == terms.gbps` exists;
+     `terms.monthly` equals its `monthly`; `terms.term >= rates.wave.term`. The computer-run price of a wave (what the
+     game's own vendors charge) is a ceiling the seller's game applies when it publishes, as it does for transit; it is
+     not part of this rule, which needs no city table. Each game simulates its own world: the wave is a link in the
+     buyer's game and capacity sold off a lit route in the seller's; the seller's route failing in its game changes
+     nothing in the buyer's.
    - `peering`, `swap`, `consortium`: no prices. The policy's conditions (`cond`) need game data and are checked by the
      game, not by these rules.
 5. Then: with `auto`, the deal is binding at once (`start = offer.t`); with `review`, it binds when the counterparty

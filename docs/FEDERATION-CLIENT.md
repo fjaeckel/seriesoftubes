@@ -195,3 +195,18 @@ Joining, status dot, server list and looking glass, boards, the move-file warnin
 networks in routing (`fedNetworks()` with `quiet.factor`), deals (`deal` events, `fedDeal`, `S.fed.deals`), announces
 (build the body, `fedSignMine('announce', body)`, `fedQueue`), traffic per player network in stats (`FED.hooks.stats`),
 the 14-day "join another server" suggestion (from `fedStatus().since`).
+
+## Waves between players (`60-features/89-fedplay-waves.js`)
+
+A deal of kind `wave` (§5.3, §10.10) sells one managed wave from the seller's published card (`rates.wave`).
+
+| Name | What it does |
+| --- | --- |
+| `fedWaveLit()` | This network's lit routes (its own ready fiber with optics), `"a\|b"` with `a < b`: what its card may list. `fedRatesOut` publishes only those |
+| `fedWaveCeil(a, b, gbps)` | What a computer-run vendor charges a month for that wave (`waveMo`): the seller's ceiling, applied by `fedWaveCap` when terms are edited or saved, not by `fedDeal` |
+| `fedWaveRoom(a, b, gbps)` | The seller has a fiber on the route whose optics carry a channel that big and whose spare lit capacity takes it (checked before an automatic or a reviewed accept) |
+| `fedWaveSold(map)` | Running waves sold, added to `mwG()` (managed waves on a fiber): they come off the seller's own capacity like waves sold to computer-run carriers |
+| `fedWaveLinks(s)` | The buyer's wave links (`kind: 'wave'`, `fwv`: the deal id, `mo: 0`): one per running wave bought with POPs at both ends, removed with the deal (term, end, decline, quiet, excluded). Called from `fedDealsOn` and the day loop; `sanitize()` drops one whose deal is not running |
+
+Both sides book the monthly price in `fedMoney` (`R.cost.fed` / `R.rev.fed`). The buyer's sheet names what is missing:
+`ends` (POPs at both ends), `gear` (routers that take that wave size); the seller's accept fails with `room`.

@@ -1,5 +1,6 @@
 /* ================= MULTIPLAYER GAMEPLAY: deals with other players =================
-   Peering, transit, PNIs, ports on an exchange a player runs, capacity swaps and consortium cables (§5.3, §10.10).
+   Peering, transit, PNIs, ports on an exchange a player runs, capacity swaps, consortium cables and waves (§5.3, §10.10;
+   waves in 89-fedplay-waves.js).
    A request is an offer signed on the other side's published terms (its announce is the basis): with `auto` it binds at
    once in the requester's game, with `review` it waits for the other player's accept, shown in their NOC dashboard.
    Running deals are kept in S.fed.deals, self-contained: {id (the offer's id), deal, key, name, asn, start, end, terms,
@@ -20,11 +21,12 @@ function fedDealsOn(s,now){let ch=false;if(!s.fed)return false;
   for(const d of s.fed.deals){if(d.st!=='run'){if(d.on){d.on=false;ch=true;}continue;}
     if(d.end!==null&&now>=d.end){d.st='over';d.on=false;d.why='term';ch=true;toast(tr('fedplay.deal_ran_out',{net:esc(d.name),deal:fedDealName(d.deal)}),'',[{l:tr('fedplay.renew'),act:'fpRenew',args:{id:d.id}}]);continue;}
     const on=d.start!==null&&d.start<=now&&!!fedNetOf(d.key);if(on!==d.on){d.on=on;ch=true;}}
-  return ch;}
-const FEDP_DN={peering:N_('fedplay.d_peering'),transit:N_('fedplay.d_transit'),pni:N_('fedplay.d_pni'),swap:N_('fedplay.d_swap'),consortium:N_('fedplay.d_consortium'),port:N_('fedplay.d_port')};
+  // Waves sold come off the seller's fiber (mwG() caches by CM_V); waves bought are links.
+  if(ch)CM_V++;return fedWaveLinks(s)||ch;}
+const FEDP_DN={peering:N_('fedplay.d_peering'),transit:N_('fedplay.d_transit'),pni:N_('fedplay.d_pni'),swap:N_('fedplay.d_swap'),consortium:N_('fedplay.d_consortium'),port:N_('fedplay.d_port'),wave:N_('fedplay.d_wave')};
 const fedDealName=k=>tr(FEDP_DN[k]||FEDP_DN.peering);
 // Ends a running or waiting deal here and tells the other side (a signed decline; queued, sent when online).
-function fedEnd(s,d,why,reason){d.st='over';d.on=false;d.why=why;const f=s.fed;
+function fedEnd(s,d,why,reason){d.st='over';d.on=false;d.why=why;const f=s.fed;CM_V++;fedWaveLinks(s);
   (async()=>{try{const r=await fedSignMine('decline',{offer:d.id,to:d.key,reason},f);if(S===s)fedQueue(r,f);}catch(e){}})();}
 // The other side's answer to an offer of theirs, signed and queued.
 async function fedAnswer(s,rec,id,reason){try{const r=await fedSignMine('decline',{offer:id,to:rec.key,reason},s.fed);if(S===s)fedQueue(r,s.fed);}catch(e){}}
@@ -38,7 +40,7 @@ function fedOffer(key,deal,o={}){const n=fedNetOf(key),a=FEDN.ann.get(key);if(!n
   if(n.fst==='dark')return {miss:[{l:'quiet'}]};
   const B=a.rec.body,R0=B.rates||{},p=fedPair(n),miss=[];let terms=null;
   if(!FEDP_DEALS.includes(deal)||deal==='consortium')return {miss:[{l:'terms'}]};
-  if(B.auto[deal]==='decline')return {miss:[{l:'declines'}]};
+  if(!B.auto[deal]||B.auto[deal]==='decline')return {miss:[{l:'declines'}]};
   const term=r=>Math.max(r,fedInt(o.term,1,3650,0)),mb=fedInt(o.mbps,1,1e9,0);
   if(deal==='peering'){const via=o.via==='pni'?'pni':'ix';
     const at=via==='ix'?(o.at?[o.at].filter(c=>p.ix.includes(c)):p.ix.slice(0,16)):(o.at&&p.pops.includes(o.at)?[o.at]:p.pops.slice(0,1));
@@ -52,6 +54,11 @@ function fedOffer(key,deal,o={}){const n=fedNetOf(key),a=FEDN.ann.get(key);if(!n
     const port=r.ports.find(x=>x.mbps===mb)||r.ports[0];terms={at,mbps:port.mbps,monthly:port.monthly,term:term(30)};}
   else if(deal==='swap'){const prs=fedSwapPairs(n),pk=o.at&&prs.includes(o.at)?o.at:prs[0];if(!pk)miss.push({l:'link'});const [x,y]=(pk||'|').split('|'),mbps=mb||10000;
     terms={give:{a:x,b:y,mbps},take:{a:x,b:y,mbps},term:term(90)};}
+  else if(deal==='wave'){const r=R0.wave;if(!r)return {miss:[{l:'terms'}]};
+    // o.at: the route as "a|b"; o.mbps: the size (Mbps, as the other deals count).
+    const rt=r.routes.find(x=>x.a+'|'+x.b===o.at)||r.routes.find(x=>S.pops[x.a]&&S.pops[x.b])||r.routes[0],sz=r.sizes.find(x=>x.gbps*1000===mb)||r.sizes[0],tier=fedWaveT(sz.gbps);
+    if(!S.pops[rt.a]||!S.pops[rt.b])miss.push({l:'ends'});else if(tier<0||!waveOk(rt.a,rt.b,tier))miss.push({l:'gear',n:fmtCap(sz.gbps)});
+    terms={a:rt.a,b:rt.b,gbps:sz.gbps,monthly:sz.monthly,term:term(r.term)};}
   if(B.policy!=='selective'&&B.cond&&!B.cond.ai&&S.fed.ai)miss.push({l:'ai'});
   if(miss.length)return {miss,terms};
   return {miss:[],terms,a,body:{to:key,deal,basis:a.id,terms}};}
@@ -79,6 +86,7 @@ function fedTheirMiss(s,b,from){const P=fedP(s),n=fedNetOf(from),T=b.terms,miss=
   else if(b.deal==='pni'){if(!s.pops[T.at])miss.push({l:'pop'});}
   else if(b.deal==='port'){if(!s.myIx[T.at])miss.push({l:'myix'});}
   else if(b.deal==='swap'){if(!s.pops[T.take.a]||!s.pops[T.take.b])miss.push({l:'pop'});}
+  else if(b.deal==='wave'){if(!fedWaveRoom(T.a,T.b,T.gbps))miss.push({l:'room'});}
   if(n&&n.ai&&P.pol==='selective'&&!P.cond.ai)miss.push({l:'ai'});
   return miss;}
 async function fedPlayDeal(e){const s=S,f=s&&s.fed;if(!f||!f.key||!fedEligible(s))return;const me=f.key.pub,r=e.rec,b=r.body,P=fedP(s);
@@ -101,10 +109,12 @@ async function fedPlayDeal(e){const s=S,f=s&&s.fed;if(!f||!f.key||!fedEligible(s
     const term=d.terms.term;d.start=r.t;d.end=term?r.t+term*FED_DAY:null;d.st='run';fedDealGo(d);fedDealsOn(s,fedNow());
     toast(tr('fedplay.accepted',{net:esc(d.name),deal:fedDealName(d.deal)}),'good');after();return;}
   if(r.kind==='decline'){const i=P.rq.findIndex(q=>q.id===b.offer&&q.rec.key===r.key);if(i>=0){P.rq.splice(i,1);after();return;}
-    const d=f.deals.find(x=>x.id===b.offer&&x.key===r.key&&x.st!=='over');if(!d)return;const was=d.st;d.st='over';d.on=false;d.why=b.reason;
+    const d=f.deals.find(x=>x.id===b.offer&&x.key===r.key&&x.st!=='over');if(!d)return;const was=d.st;d.st='over';d.on=false;d.why=b.reason;CM_V++;fedWaveLinks(s);
     toast(was==='wait'?tr('fedplay.declined',{net:esc(d.name),deal:fedDealName(d.deal)}):b.reason==='depeer'?tr('fedplay.depeered',{net:esc(d.name)}):tr('fedplay.ended_by',{net:esc(d.name),deal:fedDealName(d.deal)}),'bad');after();}}
 // Accepts an offer waiting for review: the deal starts at the accept's time.
 async function fedAcceptRq(id){const s=S,f=s&&s.fed,P=s&&s.fedp;if(!f||!P||!fedHasPriv(f))return 'off';const q=P.rq.find(x=>x.id===id);if(!q)return 'gone';
+  // A wave needs room on the route when it starts, not only when it was asked for.
+  if(q.rec.body.deal==='wave'){const T=q.rec.body.terms;if(!fedWaveRoom(T.a,T.b,T.gbps))return {miss:[{l:'room'}]};}
   const r=await fedSignMine('accept',{offer:id,to:q.rec.key},f);if(S!==s)return 'mode';if(!fedQueue(r,f))return 'full';
   const term=q.rec.body.terms.term,d=fedDealMk(q.rec,id,{start:r.t,end:term?r.t+term*FED_DAY:null},false);
   P.rq=P.rq.filter(x=>x!==q);f.deals.push(d);fedDealGo(d);fedDealsOn(s,fedNow());toast(tr('fedplay.deal_started',{net:esc(d.name),deal:fedDealName(d.deal)}),'good');after();return null;}
@@ -195,7 +205,7 @@ async function fedConsJoin(id){const s=S,f=s&&s.fed,P=s&&s.fedp;if(!f||!f.on||!P
 
 /* ---------- capacity swaps: a partner carries your traffic while your cable is cut (from the day, dayPost) ---------- */
 // Gives true when a restoration wave came or went (the day routes again).
-function fedPlayDay(){const f=S.fed;if(!f)return false;let ch=false;
+function fedPlayDay(){const f=S.fed;if(!f)return false;let ch=fedWaveLinks(S);
   for(const d of f.deals){if(d.deal!=='swap')continue;const T=d.terms.take,has=S.links.find(l=>l.fsw===d.id);
     const mine=S.links.filter(l=>!l.fsw&&(l.a===T.a&&l.b===T.b||l.a===T.b&&l.b===T.a)),cut=d.on&&mine.length>0&&mine.every(linkDown);
     if(cut&&!has&&popUp(T.a)&&popUp(T.b)){let tier=LT.findIndex(x=>x.g*1000>=T.mbps);if(tier<0)tier=LT.length-1;

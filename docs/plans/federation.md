@@ -68,6 +68,7 @@ card. Because the rules decide, deals happen while the other player is asleep: n
 | Transit | Price per Gbps at the 95th percentile; discounts for committed volume; minimum term |
 | PNI | Setup fee and monthly price per port size; minimum term |
 | Exchange, if they run one | Port prices per speed; who may join (anyone, selective, members' approval) |
+| Waves | Routes they have lit, monthly price per wave size (100G to 1.6T), minimum term; never above what a computer-run vendor charges on the route |
 | Requests | Per kind of deal: accept automatically when the conditions pass, review by hand, or decline |
 
 **How a deal happens:**
@@ -268,7 +269,7 @@ JSON, signed, versioned, each under a size limit. Kinds:
 | --- | --- | --- |
 | `announce` | client | Network name, ASN, home market, founded (game and real day), POPs, exchanges, customers and traffic mix (enough to appear in others' games), peering policy and conditions, rate card, how requests are handled |
 | `stats` | client, at most every 5 minutes while online | POPs in service (per game city), pies in service, traffic per player network, Tier 1, AI declaration, whether the player shares their country |
-| `offer` / `accept` / `decline` | client | Peering, transit, PNI, exchange ports, capacity swaps, consortium membership; each record has one signer, and a deal's two signatures are the offer and the accept (or the counterparty's own `announce` when it accepts automatically) |
+| `offer` / `accept` / `decline` | client | Peering, transit, PNI, exchange ports, capacity swaps, consortium membership, waves; each record has one signer, and a deal's two signatures are the offer and the accept (or the counterparty's own `announce` when it accepts automatically) |
 | `leave` | client | The network leaves the federation; its older records are dropped everywhere |
 | `genesis` | the founding operator | A new server: name, first operator, first node; its hash is the server's identity |
 | `server` | server operators (a majority) | Server identity, name, nodes (URLs and node keys), operators (keys), sync policy, `noLogs`, languages, description. Gossip wraps it with the path of servers it came through and when it was last seen; it expires 7 days after that |
@@ -717,6 +718,10 @@ percentile and lowest value, carry-forward, expiry, merging server lists), passe
 - Players publish peering policies, conditions and rate cards (transit, PNI, exchange ports); requests that pass
   are accepted automatically if the player chose that. Computer-run transit is the price ceiling; prices change only
   at renewal; money moves between no saves.
+- Players sell waves to each other (2026-11-12): a `wave` deal on a published card of lit routes and wave sizes. The
+  buyer gets a wave link like a leased one, billed monthly; the seller earns it and the wave takes room on its lit
+  route, like waves sold to computer-run carriers. The computer-run wave price is the seller's ceiling (its own game
+  applies it, the shared rule checks only the card). Dark fiber IRUs between players come later.
 - Operators act through signed records: a command line on the machine over a local socket, and an operator panel in
   the game with an operator key kept apart from saves. Each node has its own key; the server is its operator list,
   changed only by a majority. No shared server key.

@@ -1,0 +1,76 @@
+{
+  "description": "Alice published a wave card at 1767225600: routes ams–fra and fra–lon, 100G at 900 a month and 400G at 2400, 90 days minimum, waves reviewed by hand (W2). Accepted at 1767240000: start = accept.t, end = 1767240000 + 90 * 86400 = 1775016000.",
+  "input": {
+    "announces": [
+      {
+        "id": "W2",
+        "kind": "announce",
+        "key": "kAlice",
+        "t": 1767225600,
+        "body": {
+          "rates": {
+            "wave": {
+              "routes": [
+                {
+                  "a": "ams",
+                  "b": "fra"
+                },
+                {
+                  "a": "fra",
+                  "b": "lon"
+                }
+              ],
+              "sizes": [
+                {
+                  "gbps": 100,
+                  "monthly": 900
+                },
+                {
+                  "gbps": 400,
+                  "monthly": 2400
+                }
+              ],
+              "term": 90
+            }
+          },
+          "auto": {
+            "peering": "auto",
+            "transit": "auto",
+            "pni": "review",
+            "swap": "review",
+            "consortium": "review",
+            "port": "auto",
+            "wave": "review"
+          }
+        }
+      }
+    ],
+    "offer": {
+      "id": "O1",
+      "kind": "offer",
+      "key": "kBob",
+      "t": 1767229200,
+      "body": {
+        "to": "kAlice",
+        "deal": "wave",
+        "basis": "W2",
+        "terms": {
+          "a": "ams",
+          "b": "fra",
+          "gbps": 400,
+          "monthly": 2400,
+          "term": 90
+        }
+      }
+    },
+    "accept": {
+      "t": 1767240000
+    }
+  },
+  "expect": {
+    "ok": true,
+    "auto": false,
+    "start": 1767240000,
+    "end": 1775016000
+  }
+}

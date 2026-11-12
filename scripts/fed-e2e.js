@@ -388,6 +388,42 @@ stay in the browser).`);
       return `relay: ${kinds.offer} offers, ${kinds.accept} accept, ${kinds.decline} decline`;
     });
 
+    // Waves between players: Bob lights a route between two of his POPs and sells waves on it; Alice buys a 400G one.
+    await step('Bob sells waves on a route he lit; Alice asks for 400G, Bob accepts; Alice routes over it, Bob books it', async () => {
+      const route = await ev(B, () => {
+        const h = S.home, x = h === 'ams' ? 'fra' : 'ams', [a, b] = [h, x].sort();
+        S.cash = 1e8; if (!S.pops[x]) ACT.buildPop({ city: x });
+        S.links.push({ id: 'E2EWV', a, b, kind: 'df', own: true, sys: 'roadm', ch: ['tp16'], km: Math.round(kmBetween(a, b) * 1.05), ready: 0, day: 0, cut: 0, mo: 100, trench: 'own:E2EWV', pairs: 1 });
+        after();
+        return fedWaveLit().includes(a + '|' + b) ? [a, b] : null;
+      });
+      must(route, 'Bob has no lit route');
+      const [a, b] = route;
+      await ev(B, (r) => ACT.fpTermsSet({ terms: JSON.stringify({ pol: 'open', auto: { peering: 'review', pni: 'review', wave: 'review' },
+        rates: { pni: { setup: 1000, ports: [{ mbps: 10000, monthly: 500 }], term: 30 }, wave: { routes: [{ a: r[0], b: r[1] }], sizes: [{ gbps: 100, monthly: 1e9 }, { gbps: 400, monthly: 1e9 }], term: 30 } } }) }), route);
+      const price = await ev(B, () => S.fedp.rates.wave.sizes[1].monthly);
+      must(price === await ev(B, (r) => fedWaveCeil(r[0], r[1], 400), route), `Bob's 400G price ${price} is not capped at the computer-run price`);
+      await until(() => ev(A, async (k) => { await fedPlayRefresh(); const x = FEDN.ann.get(k); return !!x && !!x.rec.body.rates.wave && !!fedNetOf(k); }, P.B), 30000, 'Alice to see Bob\'s wave card');
+      // Alice: POPs at both ends with routers that take 400G, and customers at the far end.
+      await ev(A, (r) => { S.cash = 1e8; for (const c of r) { if (!S.pops[c]) ACT.buildPop({ city: c }); S.pops[c].rgen = Math.max(1, S.pops[c].rgen || 0); } ACT.launchBB({ city: r[0] === S.home ? r[1] : r[0] }); after(); }, route);
+      const miss = await ev(A, ([k, r]) => fedOffer(k, 'wave', { at: r.join('|'), mbps: 400000 }).miss, [P.B, route]);
+      must(!miss.length, `Alice still misses ${JSON.stringify(miss)}`);
+      const r = await ev(A, ([k, rt]) => ACT.fpReq({ key: k, deal: 'wave', at: rt.join('|'), mbps: 400000 }), [P.B, route]);
+      must(r === null || r === undefined, `request refused: ${JSON.stringify(r)}`);
+      await until(() => ev(B, () => S.fedp.rq.some((q) => q.rec.body.deal === 'wave')), 30000, 'the wave request at Bob');
+      await ev(B, () => { closeModal(); ACT.fpQueue(); });
+      const id = await ev(B, () => S.fedp.rq.find((q) => q.rec.body.deal === 'wave').id);
+      await B.page.locator(`[data-act="fpAccept"][data-args*="${id}"]`).first().click();
+      await until(() => ev(A, (k) => { const x = S.fed.deals.find((y) => y.key === k && y.deal === 'wave'); return x && x.st === 'run'; }, P.B), 30000, 'Alice\'s wave to run');
+      const got = await ev(A, () => { compute(); const l = S.links.find((x) => x.fwv); return l && { g: LT[l.tier].g, load: R.load[l.id] || 0, cost: R.cost.fed || 0 }; });
+      must(got && got.g === 400, `Alice has no 400G wave link: ${JSON.stringify(got)}`);
+      must(got.load > 0, 'no traffic over Alice\'s wave');
+      must(got.cost >= price, `Alice is billed ${got.cost}, not ${price}`);
+      const bob = await ev(B, () => { compute(); const l = S.links.find((x) => x.id === 'E2EWV'); return { rev: R.rev.fed || 0, sold: mwG(l), deal: S.fed.deals.some((d) => d.deal === 'wave' && d.role === 'sell' && d.on) }; });
+      must(bob.deal && bob.rev >= price && bob.sold === 400, `Bob's books: ${JSON.stringify(bob)}`);
+      return `${a}–${b} 400G at ${price}/mo, ${Math.round(got.load * 1000)} Mbps over it, Bob earns ${bob.rev}`;
+    });
+
     await step('a shun: Alice votes from the game with the operator key, four other servers vote, everyone excludes the target', async () => {
       const target = fakes[0];
       // Alice imports server 1's operator key through the sheet.

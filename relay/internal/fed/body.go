@@ -267,6 +267,11 @@ func setKey(e any) string {
 		if k, ok := x["key"].(string); ok {
 			return k
 		}
+		if a, ok := x["a"].(string); ok {
+			if b, ok := x["b"].(string); ok {
+				return a + "|" + b
+			}
+		}
 	}
 	return "\x00"
 }
@@ -323,6 +328,47 @@ var cities16 = list(city, 1, 16, true)
 
 var port = obj(req("mbps", mbps), req("monthly", money))
 
+// waveGbps: the wave sizes a rate card or an offer may name.
+func waveGbps(v any) string {
+	if n, ok := v.(int64); ok && (n == 100 || n == 400 || n == 800 || n == 1600) {
+		return ""
+	}
+	return BadField
+}
+
+// ordered: an object whose cities a and b are in byte order (a wave route has one spelling).
+func ordered(inner check) check {
+	return func(v any) string {
+		if code := inner(v); code != "" {
+			return code
+		}
+		m := v.(map[string]any)
+		if !(m["a"].(string) < m["b"].(string)) {
+			return BadField
+		}
+		return ""
+	}
+}
+
+// ascendingBy: a list of objects with strictly ascending integer field f.
+func ascendingBy(of check, lo, hi int, f string) check {
+	inner := list(of, lo, hi, false)
+	return func(v any) string {
+		if code := inner(v); code != "" {
+			return code
+		}
+		a := v.([]any)
+		for i := 1; i < len(a); i++ {
+			if a[i].(map[string]any)[f].(int64) <= a[i-1].(map[string]any)[f].(int64) {
+				return BadField
+			}
+		}
+		return ""
+	}
+}
+
+var waveRoute = ordered(obj(req("a", city), req("b", city)))
+
 var rates = obj(
 	opt("transit", obj(
 		req("perGbps", money),
@@ -339,11 +385,17 @@ var rates = obj(
 		req("join", oneOf("anyone", "selective", "approval")),
 		req("at", cities16),
 	)),
+	opt("wave", obj(
+		req("routes", list(waveRoute, 1, 32, true)),
+		req("sizes", ascendingBy(obj(req("gbps", waveGbps), req("monthly", money)), 1, 4, "gbps")),
+		req("term", days),
+	)),
 )
 
 var auto = func() check {
 	a := oneOf("auto", "review", "decline")
-	return obj(req("peering", a), req("transit", a), req("pni", a), req("swap", a), req("consortium", a), req("port", a))
+	// wave is optional: announces from before wave deals (absent: wave requests are declined).
+	return obj(req("peering", a), req("transit", a), req("pni", a), req("swap", a), req("consortium", a), req("port", a), opt("wave", a))
 }()
 
 var cond = obj(
@@ -461,6 +513,7 @@ var dealTerms = map[string]check{
 		leg := obj(req("a", city), req("b", city), req("mbps", mbps))
 		return obj(req("give", leg), req("take", leg), req("term", days))
 	}(),
+	"wave": ordered(obj(req("a", city), req("b", city), req("gbps", waveGbps), req("monthly", money), req("term", days))),
 	"consortium": obj(req("name", nameCheck), req("a", city), req("b", city), req("members", intIn(2, 16)),
 		req("share", money), req("pairs", intIn(1, 16))),
 }
@@ -496,7 +549,7 @@ func checkOffer(r *Record) string {
 	}
 	return object(r.Body, []field{
 		toField,
-		req("deal", oneOf("peering", "transit", "pni", "swap", "consortium", "port")),
+		req("deal", oneOf("peering", "transit", "pni", "swap", "consortium", "port", "wave")),
 		basis,
 		opt("renews", idCheck),
 		req("terms", terms),

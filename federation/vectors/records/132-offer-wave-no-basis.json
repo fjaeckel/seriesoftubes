@@ -1,0 +1,28 @@
+{
+  "description": "A wave offer needs a basis (the card it takes).",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "offer",
+      "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+      "t": 1767312000,
+      "body": {
+        "to": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+        "deal": "wave",
+        "terms": {
+          "a": "ams",
+          "b": "fra",
+          "gbps": 400,
+          "monthly": 2400,
+          "term": 90
+        }
+      },
+      "sig": "4XMvA24PhWIS_6iWOFoKDJYfJOsUDR4ysVuz2Gccpp4AtfKQwunq3-fCYZY3grgOZlkt_EM-DVvCKiOWBlhxDg"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "missing_field"
+  }
+}

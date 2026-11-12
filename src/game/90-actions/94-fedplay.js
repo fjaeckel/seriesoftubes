@@ -14,10 +14,10 @@ Object.assign(ACT,{
  fpNet:async({key}={})=>{if(!S||!S.fed||FdK(key))return;
    if(!fedNetOf(key)){FEDN.pin.delete(key);FEDN.pin.add(key);if(FEDN.pin.size>8)FEDN.pin.delete(FEDN.pin.values().next().value);await fedPlayRefresh();if(!fedNetOf(key))return;}
    UI.fpSel={};fedNetModal(key);},
- fpPick:({f,v}={})=>{if(!S||!UI.fpOpen||!/^(peering|transit|pni|port|swap|cons)\.(via|at|mbps|term|a|b|pairs|members)$/.test(String(f)))return;UI.fpSel=UI.fpSel||{};UI.fpSel[f]=String(v);fpRe();},
+ fpPick:({f,v}={})=>{if(!S||!UI.fpOpen||!/^(peering|transit|pni|port|swap|wave|cons)\.(via|at|mbps|term|a|b|pairs|members)$/.test(String(f)))return;UI.fpSel=UI.fpSel||{};UI.fpSel[f]=String(v);fpRe();},
  fpReq:({key,deal,via,at,mbps,term}={})=>{if(!S||!S.fed||typeof key!=='string')return;return fpDo(fedRequest(key,String(deal),{via,at,mbps:mbps==null?0:+mbps,term:term==null?0:+term}));},
  fpRenew:({id}={})=>{const d=S&&S.fed&&S.fed.deals.find(x=>x.id===id);if(!d||d.role==='sell')return;const T=d.terms;
-   return fpDo(fedRequest(d.key,d.deal,{via:T.via,at:Array.isArray(T.at)?T.at[0]:T.at||(T.take&&T.take.a+'|'+T.take.b),mbps:T.mbps||(T.take&&T.take.mbps),term:T.term},d.st==='run'&&d.end!==null?d:null));},
+   return fpDo(fedRequest(d.key,d.deal,{via:T.via,at:Array.isArray(T.at)?T.at[0]:T.at||(T.take&&T.take.a+'|'+T.take.b)||(T.gbps&&T.a+'|'+T.b),mbps:T.mbps||(T.take&&T.take.mbps)||(T.gbps&&T.gbps*1000),term:T.term},d.st==='run'&&d.end!==null?d:null));},
  fpEnd:({id}={})=>{const d=S&&S.fed&&S.fed.deals.find(x=>x.id===id&&x.st!=='over');if(!d)return;fedEnd(S,d,'mine','depeer');toast(tr('fedplay.you_ended',{net:esc(d.name),deal:fedDealName(d.deal)}),'');after();fpRe();},
  fpAccept:({id}={})=>fpDo(fedAcceptRq(id)),
  fpDecline:({id}={})=>fpDo(fedDeclineRq(id)),

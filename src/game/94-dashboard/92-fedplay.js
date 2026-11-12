@@ -15,6 +15,7 @@ function fedTermsText(deal,T){if(!T)return '';
   if(deal==='pni')return tr('fedplay.t_pni',{port:fpSpeed(T.mbps),at:fpCity(T.at),setup:fmt$(T.setup),price:fmt$(T.monthly),n:T.term});
   if(deal==='port')return tr('fedplay.t_port',{port:fpSpeed(T.mbps),at:fpCity(T.at),price:fmt$(T.monthly),n:T.term});
   if(deal==='swap')return tr('fedplay.t_swap',{a:fpCity(T.take.a),b:fpCity(T.take.b),g:fpSpeed(T.take.mbps),n:T.term});
+  if(deal==='wave')return tr('fedplay.t_wave',{g:fmtCap(T.gbps),a:fpCity(T.a),b:fpCity(T.b),price:fmt$(T.monthly),n:T.term});
   return '';}
 function fedDealState(d){const now=fedNow();
   if(d.st==='wait')return tr('fedplay.s_wait');
@@ -58,7 +59,8 @@ function fedNetModal(key){const n=fedNetOf(key);if(!n){closeModal();return;}UI.f
   if(R0.transit)h+=`<p class="meta">${tr('fedplay.rate_transit',{price:fmt$(R0.transit.perGbps),n:R0.transit.term})}${R0.transit.commit.map(x=>` · ${fpSpeed(x.mbps)} −${x.off/10}%`).join('')}</p>`;
   if(R0.pni)h+=`<p class="meta">${tr('fedplay.rate_pni',{setup:fmt$(R0.pni.setup),n:R0.pni.term})} ${R0.pni.ports.map(x=>`${fpSpeed(x.mbps)} ${tr('common.price_mo',{price:fmt$(x.monthly)})}`).join(' · ')}</p>`;
   if(R0.ix)h+=`<p class="meta">${tr('fedplay.rate_ix',{at:R0.ix.at.map(fpCity).join(', ')})} ${R0.ix.ports.map(x=>`${fpSpeed(x.mbps)} ${tr('common.price_mo',{price:fmt$(x.monthly)})}`).join(' · ')}</p>`;
-  if(!R0.transit&&!R0.pni&&!R0.ix)h+=`<p class="meta">${tr('fedplay.sells_nothing')}</p>`;
+  if(R0.wave){const rs=R0.wave.routes;h+=`<p class="meta">${tr('fedplay.rate_wave',{routes:rs.slice(0,4).map(x=>fpCity(x.a)+'–'+fpCity(x.b)).join(', ')+(rs.length>4?' …':''),n:R0.wave.term})} ${R0.wave.sizes.map(x=>`${fmtCap(x.gbps)} ${tr('common.price_mo',{price:fmt$(x.monthly)})}`).join(' · ')}</p>`;}
+  if(!R0.transit&&!R0.pni&&!R0.ix&&!R0.wave)h+=`<p class="meta">${tr('fedplay.sells_nothing')}</p>`;
   // What you can ask for.
   h+=`<h3 class="fp-sub">${tr('fedplay.ask_for')}</h3>`;
   const ask=(deal,o,fields,extra='')=>{const x=fedOffer(key,deal,o),mode=B.auto[deal];
@@ -74,6 +76,9 @@ function fedNetModal(key){const n=fedNetOf(key);if(!n){closeModal();return;}UI.f
     h+=ask('pni',o,(p.pops.length?fpSel(tr('fedplay.where'),'pni.at',p.pops.map(c=>[c,fpCity(c)]),o.at):'')+fpSel(tr('fedplay.port'),'pni.mbps',R0.pni.ports.map(x=>[x.mbps,fpSpeed(x.mbps)]),o.mbps));}
   if(R0.ix){const cs=R0.ix.at.filter(c=>S.pops[c]),o={at:sel['port.at']||cs[0],mbps:+sel['port.mbps']||R0.ix.ports[0].mbps};
     h+=ask('port',o,(cs.length?fpSel(tr('fedplay.where'),'port.at',cs.map(c=>[c,fpCity(c)]),o.at):'')+fpSel(tr('fedplay.port'),'port.mbps',R0.ix.ports.map(x=>[x.mbps,fpSpeed(x.mbps)]),o.mbps));}
+  if(R0.wave){const W=R0.wave,rk=x=>x.a+'|'+x.b,o={at:sel['wave.at']||rk(W.routes.find(x=>S.pops[x.a]&&S.pops[x.b])||W.routes[0]),mbps:+sel['wave.mbps']||W.sizes[0].gbps*1000},x=fedOffer(key,'wave',o);
+    h+=ask('wave',o,fpSel(tr('fedplay.route'),'wave.at',W.routes.map(r=>[rk(r),fpCity(r.a)+'–'+fpCity(r.b)]),o.at)+fpSel(tr('fedplay.capacity'),'wave.mbps',W.sizes.map(z=>[z.gbps*1000,fmtCap(z.gbps)]),o.mbps),
+      x.terms?`<p class="meta">${tr('fedplay.wave_computer',{price:fmt$(fedWaveCeil(x.terms.a,x.terms.b,x.terms.gbps))})}</p>`:'');}
   {const prs=fedSwapPairs(n),o={at:sel['swap.at']||prs[0],mbps:+sel['swap.mbps']||10000};
     h+=ask('swap',o,(prs.length?fpSel(tr('fedplay.route'),'swap.at',prs.map(k=>[k,k.split('|').map(fpCity).join('–')]),o.at):'')+fpSel(tr('fedplay.capacity'),'swap.mbps',[[10000,'10G'],[100000,'100G'],[400000,'400G']],o.mbps),`<p class="meta">${tr('fedplay.swap_note')}</p>`);}
   h+=`<div class="btns" style="margin-top:10px">${btn(tr('fedplay.mute'),'fedMute',{key,on:true},'ghost sm')}</div>`;
@@ -82,7 +87,7 @@ function fedNetModal(key){const n=fedNetOf(key);if(!n){closeModal();return;}UI.f
 /* ---------- your published terms ---------- */
 const fpDraft=()=>UI.fpDraft||(UI.fpDraft=JSON.parse(JSON.stringify({pol:fedP().pol,cond:fedP().cond,rates:fedP().rates,auto:fedP().auto})));
 const FEDP_DEF={transit:()=>({perGbps:Math.max(1,Math.round(fedCeilMine()*0.8)),commit:[{mbps:10000,off:100},{mbps:100000,off:250}],term:90}),
-  pni:()=>({setup:5000,ports:[{mbps:10000,monthly:1500},{mbps:100000,monthly:9000}],term:180}),ix:()=>({ports:[{mbps:10000,monthly:800},{mbps:100000,monthly:4000}],join:'anyone'})};
+  pni:()=>({setup:5000,ports:[{mbps:10000,monthly:1500},{mbps:100000,monthly:9000}],term:180}),wave:()=>fedWaveDef(),ix:()=>({ports:[{mbps:10000,monthly:800},{mbps:100000,monthly:4000}],join:'anyone'})};
 // One field of the draft, from the editor's inputs (a value as typed: checked here and again when saved).
 function fedTermsEdit(f,v){const D=fpDraft(),n=x=>{const k=Math.round(+x);return Number.isFinite(k)?Math.max(0,k):0;},on=v==='1'||v===true||v==='true';f=String(f);
   if(f==='pol'&&FEDP_POL[v]){D.pol=v;if(v==='restrictive'&&D.auto.peering==='auto')D.auto.peering='review';}
@@ -96,10 +101,22 @@ function fedTermsEdit(f,v){const D=fpDraft(),n=x=>{const k=Math.round(+x);return
   else if(/^pni\.m[01]$/.test(f)&&D.rates.pni){const p=D.rates.pni.ports[+f.slice(-1)];if(p)p.monthly=Math.min(1e9,n(v));}
   else if(f==='ix.on'){if(on)D.rates.ix=D.rates.ix||FEDP_DEF.ix();else delete D.rates.ix;}
   else if(f==='ix.join'&&D.rates.ix&&['anyone','selective','approval'].includes(v))D.rates.ix.join=v;
-  else if(/^ix\.m[01]$/.test(f)&&D.rates.ix){const p=D.rates.ix.ports[+f.slice(-1)];if(p)p.monthly=Math.min(1e9,n(v));}}
+  else if(/^ix\.m[01]$/.test(f)&&D.rates.ix){const p=D.rates.ix.ports[+f.slice(-1)];if(p)p.monthly=Math.min(1e9,n(v));}
+  else if(f==='wv.on'){if(on)D.rates.wave=D.rates.wave||FEDP_DEF.wave();else delete D.rates.wave;}
+  else if(D.rates.wave)fedWaveEdit(D.rates.wave,f,v,on,n);}
+// One field of the wave card: a route on or off (wv.r, "a|b" of a lit route), a size on or off (wv.s100), its price
+// (wv.m100), the term. Prices stay under the computer-run ceiling of the routes.
+function fedWaveEdit(W,f,v,on,n){const g=+f.slice(4);
+  if(f==='wv.r'&&fedWaveLit().includes(String(v))){const [a,b]=String(v).split('|'),i=W.routes.findIndex(x=>x.a===a&&x.b===b);
+    if(i>=0)W.routes.splice(i,1);else if(W.routes.length<32)W.routes.push({a,b});W.routes.sort((x,y)=>x.a+'|'+x.b<y.a+'|'+y.b?-1:1);}
+  else if(/^wv\.s\d+$/.test(f)&&FEDP_WG.includes(g)){const i=W.sizes.findIndex(x=>x.gbps===g),c=fedWaveCeilCard(W.routes,g);
+    if(on&&i<0){W.sizes.push({gbps:g,monthly:Math.max(1,Math.round(c<Infinity?c*0.9:1000))});W.sizes.sort((x,y)=>x.gbps-y.gbps);}else if(!on&&i>=0&&W.sizes.length>1)W.sizes.splice(i,1);}
+  else if(/^wv\.m\d+$/.test(f)){const x=W.sizes.find(y=>y.gbps===g);if(x)x.monthly=Math.min(1e9,Math.max(1,n(v)));}
+  else if(f==='wv.term'&&FEDP_TERMS.includes(+v))W.term=+v;
+  fedWaveCap(W);}
 // Saves terms and announces them at once. Running deals keep the terms they were made on (prices change at renewal).
 function fedTermsApply(t){const P=fedP();t=t&&typeof t==='object'?t:{};P.pol=FEDP_POL[t.pol]?t.pol:P.pol;P.cond=fedCondClean(t.cond);P.rates=fedRatesClean(t.rates);
-  if(P.rates.transit)P.rates.transit.perGbps=Math.min(fedCeilMine(),P.rates.transit.perGbps);
+  if(P.rates.transit)P.rates.transit.perGbps=Math.min(fedCeilMine(),P.rates.transit.perGbps);fedWaveCap(P.rates.wave);
   P.auto=fedAutoClean(t.auto,P.pol);if(P.rates.ix)P.auto.port=P.rates.ix.join==='approval'?'review':P.auto.port==='decline'?'decline':'auto';
   return fedAnnounceMaybe(true).then(()=>null);}
 function fedTermsModal(){UI.fpOpen={k:'terms'};const D=fpDraft(),c=D.cond,r=D.rates,inp=(f,v,w=7)=>`<input type="number" min="0" inputmode="numeric" size="${w}" value="${esc(v)}" data-chg="fpEdit" data-args="${esc(JSON.stringify({f}))}">`;
@@ -115,7 +132,7 @@ function fedTermsModal(){UI.fpOpen={k:'terms'};const D=fpDraft(),c=D.cond,r=D.ra
   if(r.transit)h+=`<label>${tr('fedplay.per_gbps')} ${inp('tr.price',r.transit.perGbps,5)}</label><label>${tr('fedplay.term')} ${sel('tr.term',terms,r.transit.term)}</label>`;
   h+=`</div>${r.transit?`<p class="meta">${tr('fedplay.ceiling_note',{price:fmt$(fedCeilMine())})}</p>`:''}<h3 class="fp-sub">${tr('fedplay.d_pni')}</h3><div class="trsel fp-grid"><label>${tr('fedplay.sell')} ${yn('pni.on',!!r.pni)}</label>`;
   if(r.pni)h+=`<label>${tr('fedplay.setup')} ${inp('pni.setup',r.pni.setup)}</label>${r.pni.ports.slice(0,2).map((x,i)=>`<label>${fpSpeed(x.mbps)}/${tr('fedplay.month')} ${inp('pni.m'+i,x.monthly)}</label>`).join('')}<label>${tr('fedplay.term')} ${sel('pni.term',terms,r.pni.term)}</label>`;
-  h+=`</div>`;
+  h+=`</div>`+fedWaveTerms(r.wave,inp,sel,yn,terms);
   if(Object.keys(S.myIx).length){h+=`<h3 class="fp-sub">${tr('fedplay.your_exchange')}</h3><div class="trsel fp-grid"><label>${tr('fedplay.sell')} ${yn('ix.on',!!r.ix)}</label>`;
     if(r.ix)h+=`${r.ix.ports.slice(0,2).map((x,i)=>`<label>${fpSpeed(x.mbps)}/${tr('fedplay.month')} ${inp('ix.m'+i,x.monthly)}</label>`).join('')}<label>${tr('fedplay.who_joins')} ${sel('ix.join',[['anyone',tr('fedplay.join_anyone')],['selective',tr('fedplay.join_selective')],['approval',tr('fedplay.join_approval')]],r.ix.join)}</label>`;
     h+=`</div>`;}
@@ -123,6 +140,17 @@ function fedTermsModal(){UI.fpOpen={k:'terms'};const D=fpDraft(),c=D.cond,r=D.ra
   <h3 class="fp-sub">RPKI</h3><div class="row"><div class="grow"><div class="meta">${tr('fedplay.rpki_note',{price:fmt$(FEDP_RPKI_MO)})}</div></div>${btn(fedP().rpki?tr('common.on'):tr('common.off'),'fpRpki',{on:!fedP().rpki},fedP().rpki?'green sm':'ghost sm')}</div>
   <div class="btns cta">${btn(tr('fedplay.save'),'fpTermsSave',{},'pink')}${btn(tr('common.cancel'),'closeModal',{},'ghost')}</div>`;
   openModal(h);}
+
+// Your terms, "Sell waves": the sizes and prices, the term, and which of your lit routes are on the card.
+function fedWaveTerms(W,inp,sel,yn,terms){let h=`<h3 class="fp-sub">${tr('fedplay.sell_waves')}</h3><div class="trsel fp-grid"><label>${tr('fedplay.sell')} ${yn('wv.on',!!W)}</label>`;
+  if(!W)return h+'</div>';
+  for(const g of FEDP_WG){const x=W.sizes.find(y=>y.gbps===g);h+=`<label>${fmtCap(g)} ${yn('wv.s'+g,!!x)}${x?` ${inp('wv.m'+g,x.monthly)}/${tr('fedplay.month')}`:''}</label>`;}
+  h+=`<label>${tr('fedplay.term')} ${sel('wv.term',terms,W.term)}</label></div>`;
+  const lit=fedWaveLit();if(!lit.length)return h+`<p class="empty">${tr('fedplay.wave_no_routes')}</p>`;
+  h+=`<p class="meta">${tr('fedplay.wave_terms_note')}</p>`;
+  for(const k of lit){const [a,b]=k.split('|'),on=W.routes.some(x=>x.a===a&&x.b===b);
+    h+=`<div class="row"><div class="grow"><div class="nm">${esc(fpCity(a))}–${esc(fpCity(b))}</div><div class="meta">${W.sizes.map(x=>`${fmtCap(x.gbps)} ≤ ${fmt$(fedWaveCeil(a,b,x.gbps))}`).join(' · ')}</div></div>${btn(on?tr('common.on'):tr('common.off'),'fpEdit',{f:'wv.r',v:k},on?'green sm':'ghost sm')}</div>`;}
+  return h;}
 
 /* ---------- consortium cables ---------- */
 function fedConsModal(){UI.fpOpen={k:'cons'};const sel=UI.fpSel||{},pops=Object.keys(S.pops).sort((x,y)=>fpCity(x).localeCompare(fpCity(y))),a=sel['cons.a']&&S.pops[sel['cons.a']]?sel['cons.a']:pops[0],

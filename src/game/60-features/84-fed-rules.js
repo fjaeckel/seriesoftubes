@@ -138,14 +138,16 @@ function fedDeal(anns,offer,accept,renews){const b=offer.body,no=fedNo;let mode=
     if(basis.kind!=='announce'||basis.key!==b.to||basis.t>offer.t)return no(FdBF);
     const next=anns.filter(a=>a.kind==='announce'&&a.key===b.to&&a.t>basis.t).sort((x,y)=>x.t-y.t)[0];
     if(next&&!(next.t>offer.t-FED_DAY))return no('stale_terms');
-    mode=basis.body.auto[b.deal];if(mode==='decline')return no('declined');
+    mode=basis.body.auto[b.deal];if(mode==='decline'||mode===undefined)return no('declined');
     const R=basis.body.rates||{},T=b.terms;
     if(b.deal==='transit'){const r=R.transit;if(!r)return no('no_terms');let off=0;for(const c of r.commit)if(c.mbps<=T.mbps)off=c.off;
       if(T.perGbps!==fedDiv(r.perGbps*(1000-off),1000)||T.term<r.term)return no('bad_terms');}
     else if(b.deal==='pni'){const r=R.pni;if(!r)return no('no_terms');const p=r.ports.find(x=>x.mbps===T.mbps);
       if(!p||T.setup!==r.setup||T.monthly!==p.monthly||T.term<r.term)return no('bad_terms');}
     else if(b.deal==='port'){const r=R.ix;if(!r)return no('no_terms');const p=r.ports.find(x=>x.mbps===T.mbps);
-      if(!r.at.includes(T.at)||!p||T.monthly!==p.monthly||T.term<30)return no('bad_terms');}}
+      if(!r.at.includes(T.at)||!p||T.monthly!==p.monthly||T.term<30)return no('bad_terms');}
+    else if(b.deal==='wave'){const r=R.wave;if(!r)return no('no_terms');const p=r.sizes.find(x=>x.gbps===T.gbps);
+      if(!r.routes.some(x=>x.a===T.a&&x.b===T.b)||!p||T.monthly!==p.monthly||T.term<r.term)return no('bad_terms');}}
   const auto=mode==='auto';let start=auto?offer.t:accept?accept.t:null;
   if(start!==null&&renews)start=Math.max(renews.end,start);
   const term=b.terms.term;return {ok:true,auto,start,end:start!==null&&term?start+term*FED_DAY:null};}

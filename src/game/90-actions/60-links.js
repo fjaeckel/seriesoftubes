@@ -3,7 +3,8 @@ Object.assign(ACT,{
  decomOpen:({city})=>{UI.decom=new Set(city&&S.pops[city]?[city]:[]);decomModal();},
  decomToggle:({city})=>{if(!S.pops[city])return;UI.decom=UI.decom||new Set();if(UI.decom.has(city))UI.decom.delete(city);else UI.decom.add(city);decomModal();},
  decomGo:()=>{const sel=[...(UI.decom||[])].filter(c=>S.pops[c]);if(!sel.length||sel.length>=Object.keys(S.pops).length)return;closeModal();UI.decom=null;UI.sel=null;decommission(sel);sfx('alert');after();},
- rmLink:({id})=>{if(UI.confirm!==id){UI.confirm=id;renderPanel();return;}{const l=S.links.find(x=>x.id===id),back=cabBack(l);if(back>0){S.cash+=back;toast(tr('links.name_is_called_off_the_cable',{name:esc(l.cname||tr('common.your_cable')),price:fmt$(back)}),'good');}
+ rmLink:({id})=>{if(S.links.some(x=>x.id===id&&x.fwv))return;// a player's wave ends with its deal (fpEnd)
+   if(UI.confirm!==id){UI.confirm=id;renderPanel();return;}{const l=S.links.find(x=>x.id===id),back=cabBack(l);if(back>0){S.cash+=back;toast(tr('links.name_is_called_off_the_cable',{name:esc(l.cname||tr('common.your_cable')),price:fmt$(back)}),'good');}
    const n=chBack(l?[l]:[]);if(n)toast(trn('links.n_optic_back_on_the_spares_shelf',n),'good');}const l0=S.links.find(x=>x.id===id),sib=l0?pairLinks(l0.a,l0.b).filter(x=>x!==l0&&x.kind!=='vxc'):[];S.links=S.links.filter(l=>l.id!==id);prunePairMet();
    // One of several parallel links (#119): the panel moves on to the next one between the same cities, so a row of them
    // can be handed back without opening the panel again each time.
