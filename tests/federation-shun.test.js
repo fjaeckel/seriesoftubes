@@ -13,10 +13,10 @@ test('five registered servers vote: the network is shunned in this game, off eve
   const p = fedPage();
   const n = p.net.node(URL1);
   n.feed = [vote(1, 'spam'), vote(2, 'spam'), vote(3, 'cheating'), vote(4, 'spam'), rec('op9', 'shun', NOW - DAY, { server: sid(9), target: key('mallory').pub, reason: 'spam' })].map((r) => ({ rec: r, rcpt: [] }));
-  await joinGame(p);
   await p.ev(`fedPut('kv','registry',${JSON.stringify(REG)})`);
-  assert.ok(await until(async () => (await settle(5), ((await p.ev("fedGet('kv','votes')")) || []).length === 5)));
-  assert.deepEqual(JSON.parse(JSON.stringify(await p.ev('fedShunned()'))), [], 'four registered votes (and one from an unknown server) are not enough');
+  await joinGame(p);
+  assert.ok(await until(async () => (await settle(5), ((await p.ev("fedGet('kv','votes')")) || []).length === 4)), 'the vote from an unknown server is not even kept');
+  assert.deepEqual(JSON.parse(JSON.stringify(await p.ev('fedShunned()'))), [], 'four registered votes are not enough');
   // The fifth vote arrives with the next sync.
   n.feed = [{ rec: vote(5, 'abuse'), rcpt: [] }];
   for (const ws of n.socks) ws.drop();

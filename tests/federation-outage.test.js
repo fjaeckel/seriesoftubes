@@ -3,7 +3,7 @@
 // and the day loop does the same work whatever the connection does. Fake nodes and a virtual clock: no network.
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { fedPage, joinGame, settle, until, URL1, URL2, NOW, SERVERS_JSON, rec, key } = require('./helpers/fed');
+const { fedPage, joinGame, settle, until, URL1, URL2, NOW, SERVERS_JSON, rec, key, b64, sha } = require('./helpers/fed');
 const { load } = require('./harness');
 
 const status = (p) => JSON.parse(p.ev('JSON.stringify(fedStatus())'));
@@ -197,11 +197,14 @@ test('a peer silent for 7, 20 and 40 days: unchanged, fading, dark; heard again,
   assert.deepEqual(p.errors, []);
 });
 
+const VOTER = b64(sha('a voting server'));
 test('without IndexedDB (a private window) the cache works from memory and the game plays on', async () => {
   const p = fedPage({ idb: false });
   p.ev('FED.idb=()=>{throw new Error("blocked")}');
   const n1 = p.net.node(URL1);
-  n1.feed = [{ rec: rec('bob', 'shun', NOW - 100, { server: 'Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4', target: key('mallory').pub, reason: 'spam' }), rcpt: [] }];
+  n1.feed = [{ rec: rec('bob', 'shun', NOW - 100, { server: VOTER, target: key('mallory').pub, reason: 'spam' }), rcpt: [] }];
+  // Bob operates a registry server old enough to vote (not the one joined): only such votes are kept.
+  await p.ev(`fedPut('kv','registry',${JSON.stringify({ asOf: NOW, at: NOW, servers: [{ id: VOTER, name: 'B', operators: [key('bob').pub], nodes: [], listed: NOW - 60 * 86400, answered: NOW }] })})`);
   await joinGame(p);
   assert.ok(await until(async () => (await settle(5), ((await p.ev("fedGet('kv','votes')")) || []).length === 1)));
   p.ev('dayTick()');

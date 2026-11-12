@@ -168,7 +168,7 @@ FED.hooks.deal=r=>r.kind==='offer'&&r.body.deal==='consortium'&&!fedOwn(r.body,'
 /* ---------- consortium cables: a project lists its signers; once funded every member gets fibre pairs ---------- */
 function fedConsSeen(s,r,id){const P=fedP(s),T=r.body.terms;if(P.cons.some(c=>c.id===id)||!own(CITY,T.a)||!own(CITY,T.b)||T.a===T.b)return false;
   if(P.cons.length>=FEDP_CONS_MAX){const i=P.cons.findIndex(c=>c.st!=='open');if(i<0)return false;P.cons.splice(i,1);}
-  P.cons.push({id,k:r.key,name:T.name,a:T.a,b:T.b,m:T.members,sh:T.share,pr:T.pairs,sg:[r.key],t:r.t,st:'open',me:r.key===fedMe(s)});return true;}
+  P.cons.push({id,k:r.key,name:fedSafeName(T.name),a:T.a,b:T.b,m:T.members,sh:T.share,pr:T.pairs,sg:[r.key],t:r.t,st:'open',me:r.key===fedMe(s)});return true;}
 function fedConsSign(s,c,key){if(c.st!=='open'||c.sg.includes(key)||c.sg.length>=16)return false;c.sg.push(key);fedConsCheck(s,c);return true;}
 // Funded once enough have signed: each member's game lays its own fibre pairs and pays its own share.
 function fedConsCheck(s,c){if(c.st!=='open'||c.sg.length<c.m)return;c.st='funded';if(!c.me)return;
@@ -211,4 +211,4 @@ function fedLeakCheck(s,now){const P=fedP(s),f=s.fed,D=fedDiv(now,FED_DAY);if(P.
   if(!hop)return true;
   if(P.rpki){toast(tr('fedplay.leak_held',{net:esc(ln.name)}),'good');return true;}
   const dst=['nfx','ggl','fbk','amz','msf'][hstr(lk+D)%5];s.ev.leak={net:dst,until:s.day+3};
-  addInc({type:'leak',ref:dst,until:s.day+3,msg:tr('fedplay.leak_hit',{net:esc(ln.name),dst:NET[dst].name}),cost:0});toast(tr('fedplay.leak_hit',{net:esc(ln.name),dst:NET[dst].name}),'bad');return true;}
+  addInc({type:'leak',ref:dst,until:s.day+3,msg:tr('fedplay.leak_hit',{net:ln.name,dst:NET[dst].name}),cost:0});toast(tr('fedplay.leak_hit',{net:esc(ln.name),dst:esc(NET[dst].name)}),'bad');return true;}

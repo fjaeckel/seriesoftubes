@@ -26,7 +26,7 @@ async function fedOpCosign(srv,p){const k=await fedOpKey(),c=fedConnTo(srv);if(!
   const a=await fedAsk(c,{m:'cosign',rid:p.id,key:k.pub,sig:mine.sig});
   if(!a)return {error:'timeout'};if(a.m==='err'){fedErrLog(c.node,srv,a.code);return {error:a.code};}return {ok:true};}
 // A server's current hide record body (lists of keys), or empty lists.
-async function fedHideOf(srv){const h=await fedGet('kv','hide:'+srv),b=h&&h.rec&&h.rec.body;
+async function fedHideOf(srv){const h=await fedHides(srv),b=h&&h.rec.body;
   return {server:srv,hide:b?b.hide.slice():[],names:b?b.names.slice():[],refuse:b?b.refuse.slice():[]};}
 /* Operator actions: hide/unhide (list 'hide' or 'names'), shun with a pre-made reason, unshun. Signed with the operator
    key and put to the server; kept here too once the server took it. Gives {ok:true} or {error}. */

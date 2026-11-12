@@ -10,9 +10,14 @@ function fedRegion(g){if(!g)return null;if(g.city)return [g.city];
    joined servers merged)}; any left out does not filter. d: {now, records [{id, key, slot, t, body, cc, srv: [server
    ids]}], announces (Map key -> announce record), exclude (keys), deals (S.fed.deals), me (own key)}.
    Gives {rows: [{key, value, rank, ai}], me: own row (pinned whatever is selected; rank null when the slice hides it)}. */
-function fedSlice(v,d){const recs=v.server?d.records.filter(r=>(r.srv||[]).includes(v.server)):d.records;
-  const rows=fedBoard({now:d.now,board:v.board||'pops',measure:v.measure||'total',division:'all',exclude:d.exclude||[],cities:fedRegion(v.region),records:recs});
-  const W=fedWindows(d.now),by=fedByKey(recs),lastRec=k=>{const w=by.get(k)||[];const e=fedEffs(w,W.current.to,W.current.to)[0];return e;};
+// The board query under a slice (one server's records kept per data, so slicing again reuses its board).
+function fedSliceBoardQ(v,d){const recs=v.server?fedMemo(d.records,'srv|'+v.server,()=>d.records.filter(r=>(r.srv||[]).includes(v.server))):d.records;
+  return {now:d.now,board:v.board||'pops',measure:v.measure||'total',division:'all',exclude:d.exclude||[],cities:fedRegion(v.region),records:recs};}
+// Works out a slice's board in short steps (fedBoardWarm), so fedSlice(v, d) is then a lookup.
+const fedSliceWarm=(v,d)=>fedBoardWarm(fedSliceBoardQ(v,d));
+function fedSlice(v,d){const q=fedSliceBoardQ(v,d),recs=q.records,rows=fedBoard(q);
+  const W=fedWindows(d.now),by=fedByKey(recs),LR=fedMemo(recs,'last|'+W.current.to,()=>new Map()),
+    lastRec=k=>{let e=LR.get(k);if(e===undefined)LR.set(k,e=fedEffs(by.get(k)||[],W.current.to,W.current.to)[0]);return e;};
   const ann=k=>d.announces&&d.announces.get(k),day=fedDiv(d.now,FED_DAY),peers=new Set((d.deals||[]).map(x=>x.key));
   const keep=row=>{const r=lastRec(row.key),b=r.body,a=ann(row.key),ab=a&&a.body,ai=b.ai;
     if(v.division==='ai'&&!ai||v.division==='human'&&ai)return false;

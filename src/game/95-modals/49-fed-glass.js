@@ -58,7 +58,7 @@ function fuOpPanel(s){const c=fedConnTo(s.id),st=fedStatus(),ch=FU.chain;
 const fuProp=a=>({add_operator:tr('fedui.add_an_operator'),remove_operator:tr('fedui.remove_an_operator'),set_node:tr('fedui.add_or_move_a_node'),remove_node:tr('fedui.remove_a_node')}[a]||esc(a));
 
 /* ---------- one network: read-only status (and an operator's hide and shun) ---------- */
-async function fuNetLoad(key){const hides=[];for(const s of FU.srvs){const h=await fedGet('kv','hide:'+s.id);if(h&&h.rec){const b=h.rec.body;hides.push({id:s.id,hide:b.hide.includes(key),names:b.names.includes(key),refuse:b.refuse.includes(key)});}}
+async function fuNetLoad(key){const hides=[];for(const s of FU.srvs){const h=await fedHides(s.id,FU.srvs);if(h){const b=h.rec.body;hides.push({id:s.id,hide:b.hide.includes(key),names:b.names.includes(key),refuse:b.refuse.includes(key)});}}
   let ai=null;try{const d=await fedBoardData(fuSrvIds().length?fuSrvIds():null),mine=d.records.filter(r=>r.key===key).sort((a,b)=>b.slot-a.slot)[0];ai=mine?mine.body.ai||null:null;}catch(e){}
   FU.netInfo={key,shun:await fedShunInfo(key),hides,ai};}
 function fuNetHtml(){const key=UI.fu.key,n=FU.nets.get(key),I=FU.netInfo&&FU.netInfo.key===key?FU.netInfo:null,back={v:UI.fu.back||'glass'},f=S&&S.fed;

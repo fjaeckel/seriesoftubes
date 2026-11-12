@@ -40,14 +40,19 @@ function fedOutClean(list,pub){let bytes=0,stats=null;const out=[];
     if(out.length>=FED_OUT_MAX||bytes+n>FED_OUT_BYTES)continue;bytes+=n;out.push(r);}
   if(stats)out.push(stats);return out;}
 /* A deal with another player, as the save keeps it: self-contained, so it works with no other data. The gameplay
-   builds them; here only the common part is checked: {id (the offer's id), deal, key, name, asn, start, end (null:
-   no end), terms (as offered), and anything else the gameplay adds, as plain checked values}. */
+   builds them: {id (the offer's id), deal, key, name, asn, start, end (null: no end), terms (as offered, checked like
+   an offer's), role (who pays: peer for peering and swaps, else buy or sell), st (wait, run, over), on, rep, why, ai}.
+   Only those fields are kept; a deal whose terms, role or state do not check is dropped (compute() reads its terms). */
+const FED_DEAL_ST=['wait','run','over'];
 function fedDealClean(d){if(!d||typeof d!=='object'||Array.isArray(d)||FdId(d.id)||!FED_DEALS.includes(d.deal)||FdK(d.key))return null;
-  const rest={...d};delete rest.start;delete rest.end;// may be null (no end yet); everything else plain record values
-  if(fedValues(rest)||fedSize(fedCanon(rest))>8192)return null;
-  const o={...d,name:typeof d.name==='string'?d.name.slice(0,40):'',asn:Number.isSafeInteger(d.asn)?d.asn:0,
-    start:Number.isSafeInteger(d.start)?d.start:null,end:Number.isSafeInteger(d.end)?d.end:null};
-  if(!o.terms||typeof o.terms!=='object'||Array.isArray(o.terms))o.terms={};return o;}
+  const T=d.terms;if(!T||typeof T!=='object'||Array.isArray(T)||fedValues(T)||fedSize(fedCanon(T))>8192||FED_TERMS[d.deal](T))return null;
+  const t=v=>Number.isSafeInteger(v)&&v>=0&&v<=1e11?v:null,start=t(d.start),end=t(d.end),peer=d.deal==='peering'||d.deal==='swap';
+  // A deal without role or state (the first saves) gets them as the gameplay makes them; a wrong one drops the deal.
+  const role=d.role===undefined&&peer?'peer':d.role,st=d.st===undefined?start===null?'wait':'run':d.st;
+  if(peer?role!=='peer':role!=='buy'&&role!=='sell')return null;if(!FED_DEAL_ST.includes(st)||st==='run'&&start===null)return null;
+  return {id:d.id,deal:d.deal,key:d.key,name:typeof d.name==='string'&&!FdName(d.name.slice(0,40))?fedSafeName(d.name.slice(0,40)):'AS?',
+    asn:Number.isSafeInteger(d.asn)&&d.asn>=0&&d.asn<=4294967295?d.asn:0,start,end,terms:JSON.parse(fedCanon(T)),role,st,
+    on:d.on===true&&st==='run',rep:Number.isSafeInteger(d.rep)&&d.rep>=0&&d.rep<=2e9?d.rep:0,why:typeof d.why==='string'?d.why.slice(0,16):'',ai:d.ai===true};}
 
 /* ---------- shared saves and bug reports never carry a way to act as the network ---------- */
 // The save with its private key, its queued records and any operator key taken out (a copy; s is untouched).
