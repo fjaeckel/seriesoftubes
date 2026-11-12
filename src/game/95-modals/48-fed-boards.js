@@ -1,11 +1,11 @@
 /* ---------- MULTIPLAYER: the leaderboards ----------
-   One view, four boards, total or growth, the divisions All / Humans / AI as chips in the same view, and every
+   One view, five boards, total or growth, the divisions All / Humans / AI as chips in the same view, and every
    slicing dimension of the plan's table as combinable chips; on phones the rest sits behind "More filters", a second
    sheet. The player's own row is pinned whatever is selected, with its rank in the current slice. The servers rank
    (fedRankView: the top 50 and this network's row); the last answers are kept, so the boards work offline, "as of". */
-const FU_BOARDS=['traffic','total','pops','pies'];
+const FU_BOARDS=['traffic','total','pops','pies','cone'];
 const fuQ=()=>UI.fu.q||(UI.fu.q={board:'traffic',measure:'total',division:'all'});
-const fuBoardName=b=>b==='traffic'?tr('fedui.traffic_with_players'):b==='total'?tr('fedui.total_traffic'):b==='pops'?tr('fedui.pops_in_service'):tr('fedui.pies_in_the_sky');
+const fuBoardName=b=>b==='traffic'?tr('fedui.traffic_with_players'):b==='total'?tr('fedui.total_traffic'):b==='pops'?tr('fedui.pops_in_service'):b==='cone'?tr('fedui.customer_cone'):tr('fedui.pies_in_the_sky');
 /* A board value as players read it: traffic in Mbps below 1 Gbps (records count Mbps; 32 Mbps must not read as
    "0.0 Gbps"), Gbps and up from there, counts as they are, growth in per cent. */
 function fuVal(q,v){if(q.measure==='growth')return (v>=0?'+':'')+(v/100).toFixed(1)+'%';return q.board==='traffic'||q.board==='total'?(v<1000?Math.round(v)+' Mbps':fmtG(v/1000)):String(v);}
@@ -51,6 +51,7 @@ function fuBoardsHtml(){const q=fuQ(),sl=FU.slice,act=fuActive(q);
   // What the traffic board counts is not obvious (it is not a network's whole traffic): say it under the chips.
   if(q.board==='traffic')h+=`<p class="meta">${tr('fedui.traffic_board_note')}</p>`;
   if(q.board==='total')h+=`<p class="meta">${tr('fedui.total_board_note')}</p>`;
+  if(q.board==='cone')h+=`<p class="meta">${tr('fedui.cone_board_note')}</p>`;
   if(q.measure==='growth')h+=`<p class="meta">${tr('fedui.growth_needs_two_days_of_records')}</p>`;
   if(!sl)return h+`<p class="meta">${tr('fedui.loading')}</p>`;
   for(const id of sl.untrusted||[])h+=`<p class="note bad">${tr('fedui.ranking_does_not_match',{server:fuSrvName(id)})}</p>`;

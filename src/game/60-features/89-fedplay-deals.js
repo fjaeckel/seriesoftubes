@@ -63,6 +63,8 @@ function fedOffer(key,deal,o={}){const n=fedNetOf(key),a=FEDN.ann.get(key);if(!n
     if(!S.pops[rt.a]||!S.pops[rt.b])miss.push({l:'ends'});else if(tier<0||!waveOk(rt.a,rt.b,tier))miss.push({l:'gear',n:fmtCap(sz.gbps)});
     terms={a:rt.a,b:rt.b,gbps:sz.gbps,monthly:sz.monthly,term:term(r.term)};}
   if(B.policy!=='selective'&&B.cond&&!B.cond.ai&&S.fed.ai)miss.push({l:'ai'});
+  // A newcomer buying from an established network pays the newcomer price (§10.10, 89-fedplay-mentor.js).
+  terms=fedNewTerms(deal,terms,B,fedNow());
   if(miss.length)return {miss,terms};
   return {miss:[],terms,a,body:{to:key,deal,basis:a.id,terms}};}
 /* Sends a request (§10.10): null when sent, or {miss} with what is missing, or a code ('off', 'quiet', 'dup', 'full',
@@ -92,6 +94,8 @@ function fedTheirMiss(s,b,from){const P=fedP(s),n=fedNetOf(from),T=b.terms,miss=
   else if(b.deal==='swap'){if(!s.pops[T.take.a]||!s.pops[T.take.b])miss.push({l:'pop'});}
   else if(b.deal==='wave'){if(!fedWaveRoom(T.a,T.b,T.gbps))miss.push({l:'room'});}
   if(n&&n.ai&&P.pol==='selective'&&!P.cond.ai)miss.push({l:'ai'});
+  // The newcomer price claims the day the buyer joined: it must be the one its announce says, when this game has it.
+  if(fedOwn(T,'founded')){const a=FEDN.ann.get(from);if(a&&a.rec&&a.rec.body.founded!==T.founded)miss.push({l:'newcomer'});}
   return miss;}
 async function fedPlayDeal(e){const s=S,f=s&&s.fed;if(!f||!f.key||!fedEligible(s))return;const me=f.key.pub,r=e.rec,b=r.body,P=fedP(s);
   if(r.key===me)return;// this network's own records, echoed back
@@ -182,7 +186,9 @@ function fedTrafficList(){const out=[],me=fedMe();if(!R||!S.fedn||!me)return out
     if(inM<=0)continue;const outM=Math.round(inM*(m.content+100)/(n.mix[0]+100));out.push({key:n.k,in:fedStep(inM),out:fedStep(outM)});}
   return out.sort((a,b)=>Math.max(b.in,b.out)-Math.max(a.in,a.out)||fedByStr(a.key,b.key)).slice(0,256);}
 // total: the network's whole traffic, what the HUD shows as traffic served (Gbps), in Mbps (§5.2).
-FED.hooks.stats=b=>{try{if(S&&S.fed){b.traffic=fedTrafficList();b.total=fedStep(((R&&R.served)||0)*1000);}}catch(e){}return b;};
+// cust, up: the transit deals running (the cone board counts an edge both sides list); tier2: Tier 2 or better.
+FED.hooks.stats=b=>{try{if(S&&S.fed){b.traffic=fedTrafficList();b.total=fedStep(((R&&R.served)||0)*1000);
+  const l=fedTransitLists(S);if(l.cust.length)b.cust=l.cust;if(l.up.length)b.up=l.up;b.tier2=b.tier1||isTier2();}}catch(e){}return b;};
 // Offers and accepts the core passes on besides those to or from this network: open consortium projects and their signers.
 FED.hooks.deal=r=>r.kind==='offer'&&r.body.deal==='consortium'&&!fedOwn(r.body,'to')||r.kind==='accept'&&!!(S&&S.fedp&&S.fedp.cons.some(c=>c.id===r.body.offer));
 

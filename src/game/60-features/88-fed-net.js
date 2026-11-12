@@ -294,16 +294,20 @@ async function fedFacets(urls){const f=S&&S.fed,sets={models:new Set(),harnesses
    networks report about traffic with this one, from each connected joined server; kept per server for offline. */
 async function fedNetsFetch(keys){const f=S&&S.fed;if(!f)return;keys=[...new Set(keys)].filter(k=>!FdK(k)).slice(0,64);
   for(const u of f.servers){const c=fedReadyConn(u);if(!c)continue;const a=await fedAskRetry(c,{m:'nets',keys});if(!a||a.m!=='netstats')continue;
-    const nets=a.nets.filter(x=>x&&!FdK(x.key)&&typeof x.ai==='boolean'&&typeof x.tier1==='boolean').slice(0,64).map(x=>({key:x.key,ai:x.ai,tier1:x.tier1}));
+    // tier2, pops, cust and slot (when it was heard): what a mentor's game reads of a newcomer (absent: older relays).
+    const ni=(v,hi)=>Number.isSafeInteger(v)&&v>=0&&v<=hi?v:0;
+    const nets=a.nets.filter(x=>x&&!FdK(x.key)&&typeof x.ai==='boolean'&&typeof x.tier1==='boolean').slice(0,64)
+      .map(x=>({key:x.key,ai:x.ai,tier1:x.tier1,tier2:x.tier2===true,pops:ni(x.pops,512000),cust:ni(x.cust,FED_CUST_MAX),slot:ni(x.slot,1e11)}));
     const reports=a.reports.filter(x=>x&&!FdK(x.key)&&Number.isSafeInteger(x.in)&&x.in>=0&&Number.isSafeInteger(x.out)&&x.out>=0).slice(0,256).map(x=>({key:x.key,in:x.in,out:x.out}));
     await fedPut('kv','nets:'+u,{at:fedNow(),me:f.key.pub,nets,reports});}
   FED.netsAt=fedNow();}
 /* What the gameplay knows of other networks' stats, from the kept nets answers of the joined servers: Map key -> {ai,
-   tier1, traffic: [{key: this network, in, out}] (what that network reports about traffic with this one)}. */
+   tier1, tier2, pops, cust, slot, traffic: [{key: this network, in, out}] (what that network reports about traffic with
+   this one)}. */
 async function fedNetsStats(){const f=S&&S.fed,m=new Map();if(!f||!f.key)return m;const me=f.key.pub;
-  const get=k=>{let o=m.get(k);if(!o)m.set(k,o={ai:false,tier1:false,traffic:[]});return o;};
+  const get=k=>{let o=m.get(k);if(!o)m.set(k,o={ai:false,tier1:false,tier2:false,pops:0,cust:0,slot:0,traffic:[]});return o;};
   for(const u of f.servers){const o=await fedGet('kv','nets:'+u);if(!o||o.me!==me)continue;
-    for(const x of o.nets||[])if(!m.has(x.key)||!m.get(x.key).seen){const e=get(x.key);e.ai=x.ai;e.tier1=x.tier1;e.seen=true;}
+    for(const x of o.nets||[])if(!m.has(x.key)||!m.get(x.key).seen){const e=get(x.key);e.ai=x.ai;e.tier1=x.tier1;e.tier2=!!x.tier2;e.pops=x.pops||0;e.cust=x.cust||0;e.slot=x.slot||0;e.seen=true;}
     for(const x of o.reports||[]){const e=get(x.key);if(!e.traffic.length)e.traffic.push({key:me,in:x.in,out:x.out});}}
   return m;}
 

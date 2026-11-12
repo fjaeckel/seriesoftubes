@@ -6,13 +6,14 @@
    S.fedp = null | {pol, cond, rates, auto, rpki (this network filters routes with RPKI), mine (its last announces:
    [{id, t, body}], to judge offers made on them), annH/annAt/annTr (what was last announced), rq (offers waiting for
    review: [{id, rec}]), cons (consortium projects seen), str (players whose traffic reaches you without a deal),
-   leakD (real day of the last shared-leak look), help (times a swap partner carried your traffic)}. */
+   leakD (real day of the last shared-leak look), help (times a swap partner carried your traffic), ment and heard (the
+   mentor dividend, 89-fedplay-mentor.js)}. */
 const FEDP_DEALS=['peering','transit','pni','swap','consortium','port','wave'],FEDP_WG=[100,400,800,1600],FEDP_TERMS=[30,90,180,365],FEDP_RATIO=[100,200,300,500,1000,100000],
   FEDP_RPKI_MO=1500,FEDP_RQ_MAX=32,FEDP_CONS_MAX=24,FEDP_STR_MAX=8,FEDP_LEAK=12,FEDP_SPEEDS=[1000,10000,100000],
   // Business traffic that is content going out (hosting, streaming, games, clouds); the rest is enterprise.
   FEDP_CONTENT=['host','stream','game','cgame','esport','metav','ingest','onramp','gpu','ai','hyper','mtrain','agi'];
 function fedPNew(){return {pol:'open',cond:{minMbps:0,maxRatio:300,minShared:1,rpki:false,tier1:false,ai:true},rates:{},
-  auto:{peering:'auto',transit:'review',pni:'review',swap:'review',consortium:'review',port:'review',wave:'review'},rpki:false,mine:[],annH:0,annAt:0,annTr:0,rq:[],cons:[],str:[],leakD:0,help:0};}
+  auto:{peering:'auto',transit:'review',pni:'review',swap:'review',consortium:'review',port:'review',wave:'review'},rpki:false,mine:[],annH:0,annAt:0,annTr:0,rq:[],cons:[],str:[],leakD:0,help:0,ment:[],heard:[]};}
 const fedP=(s=S)=>s.fedp||(s.fedp=fedPNew());
 const fedInt=(v,lo,hi,d)=>Number.isSafeInteger(v)&&v>=lo&&v<=hi?v:d;
 // A rate card checked part by part (the same limits as §5.1): what does not check is left out.
@@ -45,6 +46,7 @@ function fedpSanitize(s){
   if(Array.isArray(v.cons))o.cons=v.cons.filter(x=>x&&!FdId(x.id)&&!FdK(x.k)&&!FdName(x.name)&&own(CITY,x.a)&&own(CITY,x.b)&&x.a!==x.b&&fedInt(x.m,2,16,0)&&fedInt(x.sh,0,1e12,null)!==null&&fedInt(x.pr,1,16,0)&&Array.isArray(x.sg)&&fedInt(x.t,0,1e11,null)!==null)
     .slice(0,FEDP_CONS_MAX).map(x=>({id:x.id,k:x.k,name:fedSafeName(x.name),a:x.a,b:x.b,m:x.m,sh:x.sh,pr:x.pr,sg:[...new Set(x.sg.filter(k=>!FdK(k)))].slice(0,16),t:x.t,st:['open','funded','gone'].includes(x.st)?x.st:'open',me:x.me===true}));
   if(Array.isArray(v.str))o.str=v.str.filter(x=>x&&!FdK(x.k)&&fedInt(x.mbps,0,2e9,null)!==null).slice(0,FEDP_STR_MAX).map(x=>({k:x.k,mbps:x.mbps}));
+  fedMentorClean(o,v);
   s.fedp=o;fedpLinks(s);}
 // Deals keep only what this file reads, as plain values (the common part is checked by fedSanitize); links that come
 // from deals stay only while their deal runs: a swap partner's restoration wave, a wave bought from a player.
@@ -101,7 +103,7 @@ function fedCondMiss(cond,o){const m=[];if(!cond)return m;
   if(o.shared<cond.minShared)m.push({l:'shared',n:cond.minShared-o.shared});
   if(cond.rpki&&!o.rpki)m.push({l:'rpki'});if(cond.tier1&&!o.tier1)m.push({l:'tier1'});if(!cond.ai&&o.ai)m.push({l:'ai'});
   return m;}
-const FEDP_MISS={mbps:N_('fedplay.miss_mbps'),ratio:N_('fedplay.miss_ratio'),shared:N_('fedplay.miss_shared'),rpki:N_('fedplay.miss_rpki'),tier1:N_('fedplay.miss_tier1'),ai:N_('fedplay.miss_ai'),
+const FEDP_MISS={newcomer:N_('fedplay.miss_newcomer'),mbps:N_('fedplay.miss_mbps'),ratio:N_('fedplay.miss_ratio'),shared:N_('fedplay.miss_shared'),rpki:N_('fedplay.miss_rpki'),tier1:N_('fedplay.miss_tier1'),ai:N_('fedplay.miss_ai'),
   ix:N_('fedplay.miss_ix'),pop:N_('fedplay.miss_pop'),ends:N_('fedplay.miss_ends'),gear:N_('fedplay.miss_gear'),room:N_('fedplay.miss_room'),terms:N_('fedplay.miss_terms'),declines:N_('fedplay.miss_declines'),quiet:N_('fedplay.miss_quiet'),link:N_('fedplay.miss_link'),myix:N_('fedplay.miss_myix'),excluded:N_('fedplay.miss_excluded')};
 const fedMissText=m=>m.map(x=>tr(FEDP_MISS[x.l],{n:x.n})).join(' · ');
 // What this game knows of itself for someone else's conditions.

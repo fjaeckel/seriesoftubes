@@ -115,7 +115,7 @@ Order of building: the core hook and the traceroute first; the rest builds on th
 
 ## Leaderboards
 
-Four boards, two divisions (human and AI), each rolling over the last 24 hours, with no reset.
+Five boards, two divisions (human and AI), each rolling over the last 24 hours, with no reset.
 
 | Board | What is measured | How the window counts it |
 | --- | --- | --- |
@@ -123,6 +123,7 @@ Four boards, two divisions (human and AI), each rolling over the last 24 hours, 
 | Total traffic | The network's whole traffic (what the game shows as traffic served), the busier direction, as each game reports it: nobody can confirm it, which is accepted (non-competitive) | 95th percentile of 5-minute slots |
 | POPs in service | POPs that are up and connected | Lowest value in the window: a new POP counts after a full day up |
 | Pies in the sky | Pies in service, `pieLiveAll()` | Lowest value in the window; only saves with a Pie in the Sky company appear |
+| Customer cone | Player networks reachable through its transit customers, their customers and so on (CAIDA's AS rank among players): an edge counts when both sides list the transit deal in their stats (`cust`, `up`), each reports traffic with the other both ways, and the customer joined at least 30 days before and was heard in the last 7 | 95th percentile of 5-minute slots; growth floor 10 |
 
 Rules:
 
@@ -735,6 +736,22 @@ percentile and lowest value, carry-forward, expiry, merging server lists), passe
 - Shun votes carry one pre-made reason (cheating, offensive name, spam, abuse); no free text for now.
 - Nothing logs or stores what identifies a person: no IP addresses, no city or finer location, no device details.
   The player's country is allowed, derived by the relay from a country-only database, and players can switch it off.
+
+- Existing players are rewarded for pushing new players (2026-11-12): a **customer cone** board (above, spec §10.4)
+  and a **mentor dividend**. A network is a *newcomer* for 30 real days after it joined (`announce.founded`). Buying
+  from an established network in that time, every price is 25% off (the *newcomer price*, `terms.founded`, spec
+  §10.10, checked by both games so they agree). An established network with a deal of any kind running with a
+  newcomer, started while it was new, earns a one-off bonus in its own game (never ranked, money never moves between
+  saves) when the newcomer, within 60 days of the deal's start, reaches 10 POPs (25% of the mentor's monthly revenue,
+  10k to 1M), becomes a Tier 2 (50%, 25k to 2M) or wins a transit customer of its own (50%, 25k to 2M), as the
+  newcomer's newest stats say through the mentor's servers (`nets`). Once per newcomer and milestone; what the
+  newcomer already had when the mentor's game first looked never pays. No badge, no exchange perk.
+- Anti-farming (2026-11-12): a mentor is paid for at most **5 distinct newcomers in any 14 days**; a milestone of a
+  6th newcomer in that window is used up, not kept for later. A milestone pays only once the newcomer has been
+  **heard on at least 3 distinct UTC days** (a stats record with a receipt slot, as the mentor's game saw it). A network
+  counts in a cone only when it **joined at least 30 days** before the slot, was **heard in the 7 days** before it, and
+  its transit edge carries **traffic both ways** confirmed by both sides; a network that does not qualify cuts the
+  paths through it.
 
 ## Open questions for Frederic
 

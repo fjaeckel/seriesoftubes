@@ -7,6 +7,7 @@
 .fp-dark{opacity:.45;filter:grayscale(1)}
 .tag.fp-q{background:var(--line);color:var(--ink)}
 .tag.fp-d{background:var(--eye)}
+.tag.fp-new{background:var(--sun);color:var(--ink)}
 .fp-ask{border-top:1px dashed var(--line);padding:6px 0}
 .fp-ask .btns{margin-top:4px}
 .fp-grid input{font:700 14px Nunito,sans-serif;padding:4px 6px;border:2px solid var(--ink);border-radius:8px;width:7em;min-height:36px}

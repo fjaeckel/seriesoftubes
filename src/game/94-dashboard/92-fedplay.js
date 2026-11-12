@@ -23,7 +23,7 @@ function fedDealState(d){const now=fedNow();
   if(d.start>now)return trn('fedplay.s_from',Math.ceil((d.start-now)/FED_DAY));
   return d.end===null?tr('fedplay.s_open'):trn('fedplay.s_left',Math.max(0,Math.ceil((d.end-now)/FED_DAY)));}
 function fedDealRow(d){const now=fedNow(),soon=d.st==='run'&&d.end!==null&&d.end-now<7*FED_DAY,renew=d.role!=='sell'&&(soon||d.st==='over'&&d.why!=='excluded'&&d.why!=='muted');
-  return `<div class="row"><div class="grow"><div class="nm">${fedDealName(d.deal)}${d.role==='sell'?` <span class="meta">${tr('fedplay.you_sell')}</span>`:''}</div><div class="meta">${esc(fedTermsText(d.deal,d.terms))}</div><div class="meta">${esc(fedDealState(d))}</div></div>
+  return `<div class="row"><div class="grow"><div class="nm">${fedDealName(d.deal)}${d.role==='sell'?` <span class="meta">${tr('fedplay.you_sell')}</span>`:''}${d.terms&&fedOwn(d.terms,'founded')?` <span class="tag fp-new">${tr('fedplay.newcomer_price')}</span>`:''}</div><div class="meta">${esc(fedTermsText(d.deal,d.terms))}</div><div class="meta">${esc(fedDealState(d))}</div></div>
     ${renew?btn(tr('fedplay.renew'),'fpRenew',{id:d.id},'sm'):''}${d.st!=='over'?btn(d.deal==='peering'?tr('fedplay.depeer'):tr('fedplay.end'),'fpEnd',{id:d.id},'ghost sm'):''}</div>`;}
 
 /* ---------- the players card, at the top of the networks tab ---------- */
@@ -31,12 +31,16 @@ function fedPlayCard(){const f=S.fed,P=S.fedp,nets=S.fedn?S.fedn.nets:[];
   let h=`<section class="fp-card"><div class="fp-h"><h3>${tr('fedplay.players')}</h3><span class="grow"></span>${btn(tr('fedplay.your_terms'),'fpTerms',{},'ghost sm')}${btn(tr('fedplay.d_consortium'),'fpCons',{},'ghost sm')}</div>`;
   if(P&&P.rq.length)h+=`<div class="btns">${btn(trn('fedplay.n_to_review',P.rq.length),'fpQueue',{},'pink sm')}</div>`;
   if(!nets.length)h+=`<p class="empty">${f.on?tr('fedplay.no_players_yet'):tr('fedplay.join_to_meet')}</p>`;
-  for(const s of nets){const n=fedNetOf(s.k);if(!n)continue;const ds=f.deals.filter(d=>d.key===s.k&&d.st!=='over'),p=fedPair(n);
-    h+=`<div class="row fp-${s.st}">${logo(n)}<div class="grow"><div class="nm">${fedBot(n)}${esc(n.name)} <span class="meta">AS${n.asn}</span></div>
+  for(const s of nets){const n=fedNetOf(s.k);if(!n)continue;const ds=f.deals.filter(d=>d.key===s.k&&d.st!=='over'),p=fedPair(n),a=FEDN.ann.get(s.k),nw=!!a&&a.rec&&fedIsNew(a.rec.body.founded,fedNow());
+    h+=`<div class="row fp-${s.st}">${logo(n)}<div class="grow"><div class="nm">${fedBot(n)}${esc(n.name)} <span class="meta">AS${n.asn}</span>${nw?` <span class="tag fp-new">${tr('fedplay.newcomer')}</span>`:''}</div>
       <div class="meta"><span class="tag ${s.pol}">${tr(FEDP_POL[s.pol])}</span>${FEDP_STL[s.st]?` <span class="tag fp-q">${tr(FEDP_STL[s.st])}</span>`:''} · ${trn('fedplay.n_pops',s.pops.length)} · ${fmtG(s.tr/1000)}${p.ix.length?' · '+tr('fedplay.meet_at',{at:p.ix.slice(0,3).map(fpCity).join(', ')}):''}</div>
       ${ds.length?`<div class="meta">${ds.map(d=>`<span class="tag fp-d">${fedDealName(d.deal)}</span>`).join(' ')}</div>`:''}</div>${btn(tr('fedplay.deals'),'fpNet',{key:s.k},'ghost sm')}</div>`;}
   if(P&&P.str.length){h+=`<h3 class="fp-sub">${tr('fedplay.strangers')}</h3><p class="meta">${tr('fedplay.strangers_note')}</p>`;
     for(const x of P.str){const n=fedNetOf(x.k);if(!n)continue;h+=`<div class="row"><div class="grow"><div class="nm">${fedBot(n)}${esc(n.name)}</div><div class="meta">${fmtG(x.mbps/1000)}</div></div>${btn(tr('fedplay.d_peering'),'fpNet',{key:x.k},'sm')}</div>`;}}
+  // Mentor bonuses: newcomers this network dealt with that grew (89-fedplay-mentor.js), the last five.
+  const paid=fedMentorPaid(S);
+  if(paid.length){h+=`<h3 class="fp-sub">${tr('fedplay.mentor_bonuses')}</h3><p class="meta">${tr('fedplay.mentor_note')}</p>`;
+    for(const x of paid.slice(0,5))h+=`<div class="row"><div class="grow"><div class="meta">${tr('fedplay.mentor_bonus',{net:esc(x.n),what:tr(FEDM_NAME[x.m]),cash:fmt$(x.v)})}</div></div></div>`;}
   const open=P?P.cons.filter(c=>c.st==='open'):[];
   if(open.length){h+=`<h3 class="fp-sub">${tr('fedplay.cons_projects')}</h3>`;for(const c of open)h+=fedConsRow(c);}
   return h+'</section>';}

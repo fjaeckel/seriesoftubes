@@ -19,6 +19,8 @@ async function game(feed) {
   const p = fedPage(), n = p.net.node(URL1);
   n.feed = feed.map((r) => ({ rec: r, rcpt: [] }));
   assert.equal(await joinGame(p), null);
+  // An established player (joined 100 days ago): it pays card prices, not the newcomer price (§10.10).
+  p.ev("S.fed.joined-=100");
   p.ev("S.cash=1e8;ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.buyIx({city:'fra',tier:1,signed:1});ACT.buildPop({city:'ams'});ACT.buyIx({city:'ams',tier:1})");
   assert.ok(await until(async () => (await settle(5), p.ev('fedStatus().state') === 'connected')), 'connected');
   // The first look (2 s after connecting, on the virtual clock) builds the snapshot, announces and checks the shared

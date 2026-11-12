@@ -94,11 +94,11 @@ Pure functions, held to `federation/vectors/` by `tests/federation-vectors.test.
 | Function | Rule |
 | --- | --- |
 | `fedSlot`, `fedWindows(now)`, `fedBoardSlot(ts)`, `fedByKey`, `fedEffs` | Slots, windows, effective records (§10.1–10.2) |
-| `fedRankOne(q, key, records, announce)` | One network's place on a board from records alone (§10.3–10.5, §10.12): `{listed, kept, value}`. `q`: `{now, board, measure, division, exclude, cities, filters}`. How a game checks a server's row (§9.5); a pure function, runs every `boards` vector |
+| `fedRankOne(q, key, records, announce)` | One network's place on a board from records alone (§10.3–10.5, §10.12): `{listed, kept, value}`. `q`: `{now, board, measure, division, exclude, cities, filters, founded}` (`founded`: the cone board's key -> founded of its newest announce; the worker fills it from the announces `rankwhy` sends). How a game checks a server's row (§9.5); a pure function, runs every `boards` vector |
 | `fedRankReq(view, deals, n)`, `fedRankKey(req)`, `fedRanksOk(answer)`, `fedRankMerge(answers, me, drop, n)` | A view as a `rank` request, the slice's cache key, a checked `ranks` answer, several servers' answers merged (see below) |
 | `fedQuiet(now, lastHeard)` | `{state: active/fading/dark/forgotten, factor}` per mille (§10.6) |
 | `fedShun(registry, votes, target, now)` | `{voters, need, votes, shunned, reasons}` (§10.7) |
-| `fedDeal(announces, offer, accept, renews)` | `{ok, auto, start, end}` or `{ok:false, error}` (§10.10) |
+| `fedDeal(announces, offer, accept, renews)` | `{ok, auto, start, end}` or `{ok:false, error}` (§10.10), the newcomer price included (`fedNewPrice`, `fedIsNew(founded, t)`) |
 | `fedChain`, `fedServerErr`, `fedRegEntry`, `fedRegCheck`, `fedServersJson` | Operator chain, server records, registry (§8, §11) |
 | `fedGossipIn`, `fedCatalogMerge` | Catalog gossip (§10.8) |
 | `fedVersion`, `fedSyncOk`, `fedFrame`, `fedMaj` | Versions, sync policy, frames, majority (§9, §10.9, §8.1) |
@@ -107,7 +107,7 @@ Pure functions, held to `federation/vectors/` by `tests/federation-vectors.test.
 
 The game never downloads leaderboard records. `await fedRankView(v, urls?)` asks each joined server (or those `urls`)
 for the slice (`rank`, §9.5) and gives `{rows: [{rank, key, value, asn, ai, name, home, cc}], me: {rank, value} or null,
-n, at, slot, untrusted}`. `v` takes any of: `board` (`pops`, `pies`, `traffic`, `total`), `measure` (`total`,
+n, at, slot, untrusted}`. `v` takes any of: `board` (`pops`, `pies`, `traffic`, `total`, `cone`), `measure` (`total`,
 `growth`), `division` (`all`, `human`, `ai`), `model`, `harness`, `region` (`{continent: 'EU'}` as in `CITIES[].reg`,
 `{country: 'DE'}`, `{city: 'fra'}`, sent as its city list), `home`, `from`, `ageMin`/`ageMax`, `dayMin`/`dayMax`,
 `tier1`, `policy`, `peers` (sent as the keys in `S.fed.deals`); their meaning is §10.12. The boards sheet's "as seen
@@ -257,6 +257,21 @@ Joining, status dot, server list and looking glass, boards, the move-file warnin
 networks in routing (`fedNetworks()` with `quiet.factor`), deals (`deal` events, `fedDeal`, `S.fed.deals`), announces
 (build the body, `fedSignMine('announce', body)`, `fedQueue`), traffic per player network in stats (`FED.hooks.stats`),
 the 14-day "join another server" suggestion (from `fedStatus().since`).
+
+## Newcomers and mentors (`60-features/89-fedplay-mentor.js`)
+
+- **Stats**: the gameplay hook adds `cust` and `up` (`fedTransitLists`: the other side of every running transit deal,
+  sold or bought) and `tier2` to every stats body; the cone board counts an edge both sides list.
+- **Newcomer price**: `fedOffer` passes its terms through `fedNewTerms`: while this save joined less than 30 days ago
+  (`S.fed.joined`, as the announce's `founded`) and the seller did not, the terms carry `founded` and 25% off every
+  price. The seller's game checks the same rule (`fedDeal`) and that `founded` is what the buyer's announce says
+  (`fedTheirMiss`, `miss_newcomer`). Deal rows say "newcomer price".
+- **Mentor dividend** (`fedMentorTick`, from the hourly look, with the `nets` answers' `tier2`, `pops`, `cust`, `slot`):
+  newcomers with a running deal that started while they were new and this network was not, less than 60 days ago.
+  Kept in `S.fedp.ment` (`[{k, n, m: seen|pops|t2|cust, v, t, cap?}]`, at most 512) and `S.fedp.heard` (`[{k, d: [UTC
+  days, at most 3]}]`), defaults in `fedPNew()`, repaired by `fedMentorClean` in `fedpSanitize`. Heard days come from
+  the board slot of the newcomer's newest stats each time this game looks (hourly while it runs): a mentor offline for
+  days misses those days. Paid bonuses show in the players card ("Mentor bonus: …") and as a toast.
 
 ## Waves between players (`60-features/89-fedplay-waves.js`)
 

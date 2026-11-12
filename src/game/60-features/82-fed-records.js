@@ -37,13 +37,15 @@ const FdLeg=FdObj([['a',FdCity],['b',FdCity],['mbps',FdMbps]]);
 // A wave route is written once, its cities in byte order (a < b), so a route has one spelling.
 const FdAB=v=>v.a<v.b?null:FdBF,FdRoute=FdObj([['a',FdCity],['b',FdCity]],FdAB),FdWaveG=FdOne(100,400,800,1600);
 const FdWave=FdObj([['routes',FdList(FdRoute,{max:32,min:1,set:1,by:x=>x.a+'|'+x.b})],['sizes',FdList(FdObj([['gbps',FdWaveG],['monthly',FdMoney]]),{max:4,min:1,asc:1,by:x=>x.gbps})],['term',FdDays]]);
+// founded (optional on priced deals): the buyer claims the newcomer price (§10.10).
+const FdFounded=['founded',FdInt(0,1e7),1],FED_CUST_MAX=128,FED_UP_MAX=16;
 const FED_TERMS={
   peering:FdObj([['at',FdAt],['via',FdOne('ix','pni')]]),
-  transit:FdObj([['mbps',FdMbps],['perGbps',FdMoney],['term',FdDays],['at',FdAt]]),
-  pni:FdObj([['at',FdCity],['mbps',FdMbps],['setup',FdMoney],['monthly',FdMoney],['term',FdDays]]),
-  port:FdObj([['at',FdCity],['mbps',FdMbps],['monthly',FdMoney],['term',FdDays]]),
+  transit:FdObj([['mbps',FdMbps],['perGbps',FdMoney],['term',FdDays],['at',FdAt],FdFounded]),
+  pni:FdObj([['at',FdCity],['mbps',FdMbps],['setup',FdMoney],['monthly',FdMoney],['term',FdDays],FdFounded]),
+  port:FdObj([['at',FdCity],['mbps',FdMbps],['monthly',FdMoney],['term',FdDays],FdFounded]),
   swap:FdObj([['give',FdLeg],['take',FdLeg],['term',FdDays]]),
-  wave:FdObj([['a',FdCity],['b',FdCity],['gbps',FdWaveG],['monthly',FdMoney],['term',FdDays]],FdAB),
+  wave:FdObj([['a',FdCity],['b',FdCity],['gbps',FdWaveG],['monthly',FdMoney],['term',FdDays],FdFounded],FdAB),
   consortium:FdObj([['name',FdName],['a',FdCity],['b',FdCity],['members',FdInt(2,16)],['share',FdMoney],['pairs',FdInt(1,16)]])};
 const FdNode=FdObj([['key',FdK],['url',FdUrl]]);
 // A box (§5.3): a 12-byte nonce and a ciphertext with its 16-byte tag, base64url. Only the deal's two parties open it.
@@ -72,7 +74,9 @@ const FED_BODY={
       for(const k of ks){if(FdCity(k)||FdInt(1,1000)(v[k]))return FdBF;}return null;}],
     ['pies',FdInt(0,1e7),1],
     ['traffic',(v,c)=>FdList(FdObj([['key',FdK],['in',FdMbps],['out',FdMbps]]),{max:256,set:1,by:x=>x.key})(v)||(v.some(x=>x.key===c.rec.key)?FdBF:null)],['total',FdMbps,1],
-    ['tier1',FdBool],['ai',FdObj([['model',FdText(1,64)],['harness',FdText(1,64)]]),1],['shareCountry',FdBool]]),
+    // Transit customers and upstreams (other player networks, never the author): the cone board (§5.2).
+    ['cust',(v,c)=>FdKeys(FED_CUST_MAX)(v)||(v.includes(c.rec.key)?FdBF:null),1],['up',(v,c)=>FdKeys(FED_UP_MAX)(v)||(v.includes(c.rec.key)?FdBF:null),1],
+    ['tier1',FdBool],['tier2',FdBool,1],['ai',FdObj([['model',FdText(1,64)],['harness',FdText(1,64)]]),1],['shareCountry',FdBool]]),
   // An offer to someone is sealed: to and the box in clear, nothing else (§5.3). Without to: an open consortium project.
   offer:(v,c)=>v&&typeof v==='object'&&fedOwn(v,'to')?FdObj([['to',(x,cc)=>FdK(x)||(x===cc.rec.key?FdBF:null)],['enc',FdEnc]])(v,c):FED_OFFER(v,c),
   accept:FdObj([['offer',FdId],['to',FdK]]),

@@ -50,14 +50,16 @@ async function fedItemsRun(items,now,at,srvs){const out=[];
 async function fedCheckItems(items,now,c,srvs){const r=await fwDo('items',{items,now,at:{srv:c.srv,nodeKey:c.nodeKey},srvs:fwSrvs(srvs)});
   return r.map((x,i)=>x&&x.ok&&!x.rec?{...x,rec:items[i].rec}:x);}
 /* A rankwhy answer's items worked out into one row (fedRankRow): the key's newest announce and the stats records with
-   a valid receipt go to fedRankOne (q: its query, exclusions included). null when a receipt names a server this
-   browser does not know: then the row cannot be checked. */
-async function fedWhyRun(items,now,at,srvs,key,q){const recs=[];let ann=null,annT=null;
+   a valid receipt go to fedRankOne (q: its query, exclusions included; on the cone board every network's newest
+   announce gives its founded). null when a receipt names a server this browser does not know: then the row cannot be
+   checked. */
+async function fedWhyRun(items,now,at,srvs,key,q){const recs=[],anns=new Map();
   for(const it of items){if(!it||typeof it!=='object')continue;const chk=await fedCheck(it.rec,now);if(!chk.ok)continue;const r=chk.rec;
-    if(r.kind==='announce'&&r.key===key){if(annT===null||r.t>annT){ann=r.body;annT=r.t;}continue;}if(r.kind!=='stats')continue;
+    if(r.kind==='announce'){const o=anns.get(r.key);if(!o||r.t>o.t||r.t===o.t&&fedByStr(chk.id,o.id)<0)anns.set(r.key,{t:r.t,id:chk.id,body:r.body});continue;}if(r.kind!=='stats')continue;
     for(const rc of Array.isArray(it.rcpt)?it.rcpt.slice(0,16):[]){const sid=rc&&rc.body&&rc.body.server;if(typeof sid==='string'&&sid!==at.srv&&!srvs.some(x=>x.id===sid))return null;}
     const pl=await fedPlace(at,chk,it.rcpt,now,srvs);if(pl.slot!==null)recs.push({id:chk.id,key:r.key,slot:pl.slot,t:r.t,body:r.body,cc:pl.cc});}
-  return fedRankOne(q,key,recs,ann);}
+  const a=anns.get(key),founded={};for(const [k,o] of anns)founded[k]=o.body.founded;
+  return fedRankOne({...q,founded},key,recs,a?a.body:null);}
 // Registry or gossip entries (fedRegEntry, a whole chain each): null or {id, sum (fedSum)}.
 async function fedRegRun(entries,now){const out=[];
   for(const e of entries){if(!e||typeof e!=='object'){out.push(null);continue;}const r=await fedRegEntry(e,now);out.push(r.ok?{id:r.id,sum:fedSum(r)}:null);}

@@ -99,6 +99,7 @@ async function fedPlayRun(){const s=S;if(!s||!s.fed||!s.fed.key||!fedEligible(s)
   if(!s.fedp){fedP(s);ch=true;}
   if(!s.fedn||s.fedn.h!==h){s.fedn={h,nets:list};ch=true;}
   if(fedDealsTick(s,now,X.ok,muted,stats))ch=true;
+  if(fedMentorTick(s,now,stats,k=>{const a=FEDN.ann.get(k);return a&&a.rec?a.rec.body.founded:null;}))ch=true;
   if(fedStrangers(s,stats))ch=true;
   if(ch&&S===s)after();
   // Networks new in the snapshot: ask the servers about them, at most every five minutes.

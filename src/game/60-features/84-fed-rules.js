@@ -22,12 +22,13 @@ function fedEffAt(w,s){if(!w)return null;let lo=0,hi=w.length-1,i=-1;while(lo<=h
   const r=i>=0?w[i]:null;return r&&s-r.slot<FED_CARRY?r:null;}
 // p95 of the busier direction (§10.4): with n values sorted, k = div(n * 5, 100) highest do not count.
 const fedP95=a=>{if(!a.length)return 0;a.sort((x,y)=>x-y);return a[a.length-1-fedDiv(a.length*5,100)];};
-const FED_FLOOR={pops:10,pies:100,traffic:1000,total:1000};
+const FED_FLOOR={pops:10,pies:100,traffic:1000,total:1000,cone:10},FED_NEWCOMER=30;
 /* One network's place on a board (§10.3 to §10.5, §10.12), worked out from records alone: how a game checks a row a
    server ranked (§9.5 rankwhy). q: {now, board, measure, division, exclude (keys the server leaves off), cities (a region,
-   or null), filters (as in a rank request)}; recs: stats records [{id, key, slot, t, body, cc}] (the key's and, on the
-   traffic board, its partners'); ann: the key's newest announce body, or null. Gives {listed (on the board), kept (also
-   in the slice), value}. A pure function of its arguments (it may move to a worker). */
+   or null), filters (as in a rank request), founded (the cone board: key -> founded of its newest announce)}; recs: stats
+   records [{id, key, slot, t, body, cc}] (the key's and, on the traffic board, its partners', on the cone board those of
+   every network its cone can reach); ann: the key's newest announce body, or null. Gives {listed (on the board), kept
+   (also in the slice), value}. A pure function of its arguments (it may move to a worker). */
 function fedRankOne(q,key,recs,ann){const W=fedWindows(q.now),from=W.previous.from,last=W.current.to,by=fedByKey(recs),ex=new Set(q.exclude||[]),
     cs=q.cities?new Set(q.cities):null,F=q.filters||{},w=by.get(key),pops=r=>{let n=0;for(const c of Object.keys(r.body.pops))if(!cs||cs.has(c))n+=r.body.pops[c];return n;};
   const no={listed:false,kept:false,value:0},l=fedEffAt(w,last);
@@ -35,11 +36,20 @@ function fedRankOne(q,key,recs,ann){const W=fedWindows(q.now),from=W.previous.fr
   const traffic=(r,s)=>{let i=0,o=0;for(const e of r.body.traffic){if(ex.has(e.key))continue;const y=fedEffAt(by.get(e.key),s);
       if(cs&&!(fedHas(y)&&pops(y)>0))continue;if(!y){i+=e.in;o+=e.out;}else if(fedHas(y)){const z=y.body.traffic.find(x=>x.key===key);if(z){i+=Math.min(e.in,z.out);o+=Math.min(e.out,z.in);}}}
     return [i,o];};
+  /* The customer cone at slot s (§10.4): networks reachable over counted transit edges. X -> Y counts when both have a
+     value (heard in the 7 days before), neither is excluded, X lists Y in cust and Y lists X in up, each reports traffic
+     with the other both ways, and Y joined at least 30 days before s. */
+  const fd=q.founded||{},both=(r,k)=>{const z=r.body.traffic.find(x=>x.key===k);return !!z&&z.in>0&&z.out>0;};
+  const cone=s=>{const seen=new Set([key]),todo=[key];
+    while(todo.length){const z=todo.pop(),r=fedEffAt(by.get(z),s);
+      for(const y of r.body.cust||[]){if(seen.has(y)||ex.has(y)||!fedOwn(fd,y)||fedDiv(s,FED_DAY)-fd[y]<FED_NEWCOMER)continue;const ye=fedEffAt(by.get(y),s);
+        if(!fedHas(ye)||!(ye.body.up||[]).includes(z)||!both(r,y)||!both(ye,z))continue;seen.add(y);todo.push(y);}}
+    return seen.size-1;};
   const total=(a,b)=>{const IN=[],OUT=[];let lo=null;
     for(let k=a;k<b;k++){const s=from+k*FED_SLOT,r=fedEffAt(w,s);if(!fedHas(r))continue;
-      if(q.board==='traffic'){const [i,o]=traffic(r,s);IN.push(i);OUT.push(o);}else if(q.board==='total')IN.push(r.body.total||0);
+      if(q.board==='traffic'){const [i,o]=traffic(r,s);IN.push(i);OUT.push(o);}else if(q.board==='total')IN.push(r.body.total||0);else if(q.board==='cone')IN.push(cone(s));
       else{const v=q.board==='pies'?r.body.pies||0:pops(r);if(lo===null||v<lo)lo=v;}}
-    return q.board==='traffic'?Math.max(fedP95(IN),fedP95(OUT)):q.board==='total'?fedP95(IN):lo||0;};
+    return q.board==='traffic'?Math.max(fedP95(IN),fedP95(OUT)):q.board==='total'||q.board==='cone'?fedP95(IN):lo||0;};
   let value=total(FED_WIN,2*FED_WIN);
   if(q.measure==='growth'){const prev=total(0,FED_WIN);value=fedDiv((value-prev)*10000,Math.max(prev,FED_FLOOR[q.board]));}
   const ai=l.body.ai,day=fedDiv(q.now,FED_DAY),a=ann,keys=F.keys?new Set(F.keys):null;
@@ -65,6 +75,10 @@ function fedShun(reg,records,target,now){const asOf=reg.asOf,V=reg.servers.filte
   for(const l of mine)for(const r of l)for(const x of [r.t,r.t+7776000])if(x>x0&&x<=now)xs.add(x);
   const reasons={};for(const l of mine){const d=at(l,now);if(d)reasons[d.reason]=(reasons[d.reason]||0)+1;}
   return {voters:V.length,need,votes:votes(now),shunned:[...xs].some(x=>votes(x)>=need),reasons};}
+// What a newcomer pays of a card price (§10.10): 750 per mille, rounded down.
+const fedNewPrice=v=>fedDiv(v*750,1000);
+// Whether a network that joined on real day `founded` is a newcomer at unix time t (§10.10).
+const fedIsNew=(founded,t)=>Number.isSafeInteger(founded)&&fedDiv(t,FED_DAY)-founded>=0&&fedDiv(t,FED_DAY)-founded<FED_NEWCOMER;
 /* Deal terms (§10.10). anns: the counterparty's announces known ({id, kind, key, t, body}); offer {id, key, t, body};
    accept {t} or null; renews (the running deal it renews, {id, start, end}) or null.
    Gives {ok:true, auto, start, end} (start null while a review waits for its accept) or {ok:false, error}. */
@@ -74,15 +88,18 @@ function fedDeal(anns,offer,accept,renews){const b=offer.body,no=fedNo;let mode=
     const next=anns.filter(a=>a.kind==='announce'&&a.key===b.to&&a.t>basis.t).sort((x,y)=>x.t-y.t)[0];
     if(next&&!(next.t>offer.t-FED_DAY))return no('stale_terms');
     mode=basis.body.auto[b.deal];if(mode==='decline'||mode===undefined)return no('declined');
-    const R=basis.body.rates||{},T=b.terms;
+    const R=basis.body.rates||{},T=b.terms;let P=v=>v;
+    // The newcomer price: the buyer joined less than 30 days before the offer, the seller did not; every price 25% off.
+    if(fedOwn(T,'founded')){const d=fedDiv(offer.t,FED_DAY),bf=basis.body.founded;
+      if(d-T.founded<0||d-T.founded>=FED_NEWCOMER||!Number.isSafeInteger(bf)||d-bf<FED_NEWCOMER)return no('bad_terms');P=fedNewPrice;}
     if(b.deal==='transit'){const r=R.transit;if(!r)return no('no_terms');let off=0;for(const c of r.commit)if(c.mbps<=T.mbps)off=c.off;
-      if(T.perGbps!==fedDiv(r.perGbps*(1000-off),1000)||T.term<r.term)return no('bad_terms');}
+      if(T.perGbps!==P(fedDiv(r.perGbps*(1000-off),1000))||T.term<r.term)return no('bad_terms');}
     else if(b.deal==='pni'){const r=R.pni;if(!r)return no('no_terms');const p=r.ports.find(x=>x.mbps===T.mbps);
-      if(!p||T.setup!==r.setup||T.monthly!==p.monthly||T.term<r.term)return no('bad_terms');}
+      if(!p||T.setup!==P(r.setup)||T.monthly!==P(p.monthly)||T.term<r.term)return no('bad_terms');}
     else if(b.deal==='port'){const r=R.ix;if(!r)return no('no_terms');const p=r.ports.find(x=>x.mbps===T.mbps);
-      if(!r.at.includes(T.at)||!p||T.monthly!==p.monthly||T.term<30)return no('bad_terms');}
+      if(!r.at.includes(T.at)||!p||T.monthly!==P(p.monthly)||T.term<30)return no('bad_terms');}
     else if(b.deal==='wave'){const r=R.wave;if(!r)return no('no_terms');const p=r.sizes.find(x=>x.gbps===T.gbps);
-      if(!r.routes.some(x=>x.a===T.a&&x.b===T.b)||!p||T.monthly!==p.monthly||T.term<r.term)return no('bad_terms');}}
+      if(!r.routes.some(x=>x.a===T.a&&x.b===T.b)||!p||T.monthly!==P(p.monthly)||T.term<r.term)return no('bad_terms');}}
   const auto=mode==='auto';let start=auto?offer.t:accept?accept.t:null;
   if(start!==null&&renews)start=Math.max(renews.end,start);
   const term=b.terms.term;return {ok:true,auto,start,end:start!==null&&term?start+term*FED_DAY:null};}

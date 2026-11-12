@@ -143,6 +143,16 @@ at that sandbox method.
   spot-check and registry checking run in a dedicated worker built from the page (`88-fed-worker.js`, falls back to the
   page); measured with `node scripts/fed-perf.js` (phone profile), see FEDERATION-CLIENT.md "Workers".
 
+- **Newcomers and mentors** (Frederic, 2026-11-12): a **customer cone** board (§10.4: networks reachable over transit
+  edges both sides list in `stats.cust`/`stats.up`, with traffic both ways, to members that joined 30 days before and
+  were heard in the last 7; relay `relay/internal/rank/cone.go`, held to `boards.Cone` by the randomized test), the
+  **newcomer price** (§10.10: `terms.founded`, 25% off for a buyer in its first 30 days from an established seller,
+  checked by both games) and the **mentor dividend** (`89-fedplay-mentor.js`: one-off bonuses when a newcomer reaches 10
+  POPs, Tier 2 or a transit customer within 60 days of a deal; at most 5 newcomers in 14 days, heard on 3 UTC days).
+  `nets` answers carry `tier2`, `pops`, `cust`, `slot`. Tests: `tests/federation-cone.test.js`,
+  `tests/federation-mentor.test.js`, Go `TestConeShapes`, `BenchmarkConeBoard`; vectors boards 022–030, deals 030–037,
+  records 135–143; end to end four new steps.
+
 ## Open work, roughly in order
 
 1. Decisions for Frederic:
