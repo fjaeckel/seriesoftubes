@@ -8,7 +8,13 @@ test('stats carry total: traffic served in Mbps, a valid record', async () => {
   const p = fedPage();
   p.ev("ACT.start({});S.fed=fedNewState();R.served=12.3456");
   const b = JSON.parse(p.ev('JSON.stringify(fedStatsBody())'));
-  assert.equal(b.total, 12346);
+  assert.equal(b.total, 12000, 'in steps of about 20%');
+  // Traffic that moves a little keeps the same body, so no new stats record goes out every slot.
+  p.ev('R.served=12.9');
+  assert.equal(JSON.parse(p.ev('JSON.stringify(fedStatsBody())')).total, 12000);
+  p.ev('R.served=14.1');
+  assert.equal(JSON.parse(p.ev('JSON.stringify(fedStatsBody())')).total, 15000);
+  assert.deepEqual([0, 0.4, 1, 32, 111, 999, 1000].map((v) => p.ev(`fedStep(${v})`)), [0, 0, 1, 30, 120, 1000, 1000]);
   p.ev('R.served=5e6');
   assert.equal(JSON.parse(p.ev('JSON.stringify(fedStatsBody())')).total, 1e9, 'capped at the Mbps limit');
   assert.equal(await p.ev("fedCheck({v:1,kind:'stats',key:'" + key('alice').pub + "',t:" + NOW + ",body:fedStatsBody(),sig:'" + 'A'.repeat(86) + "'}," + NOW + ").then(c=>c.error)"), 'bad_sig');

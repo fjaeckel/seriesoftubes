@@ -160,12 +160,14 @@ async function fedOpChanged(){const M=FED.live,k=await fedOpKey();
 /* The networks a server excludes (§9.3 excluded): pages joined until more is not true, then kept per joined server with
    when it came (and the reasons, which are for this network only). Kept while offline; a new list replaces it. */
 const FED_EXCL_MAX=50000,FED_REASONS=['cheating','offensive_name','spam','abuse'];
+// Per joined URL and per network: IndexedDB is shared by every save slot, and the reasons are for one network only.
+const fedExclKey=(url,pub)=>'excl:'+url+'#'+pub;
 function fedExclIn(c,f){const b=c.exBuf||(c.exBuf={keys:new Set(),reasons:new Set()});
   for(const k of f.keys.slice(0,8192))if(typeof k==='string'&&!FdK(k)&&b.keys.size<FED_EXCL_MAX)b.keys.add(k);
   if(Array.isArray(f.reasons))for(const r of f.reasons.slice(0,8))if(FED_REASONS.includes(r))b.reasons.add(r);
   if(f.more===true)return;c.exBuf=null;
-  const o={at:fedNow(),srv:c.srv,keys:[...b.keys].sort(fedByStr),me:c.me,reasons:c.me?[...b.reasons].sort():[]},url=c.url;
-  FED.exQ=(FED.exQ||Promise.resolve()).then(()=>fedPut('kv','excl:'+url,o)).then(()=>{FED.xgen++;fedEmit('excluded',{server:o.srv,n:o.keys.length});}).catch(()=>{});}
+  const o={at:fedNow(),srv:c.srv,keys:[...b.keys].sort(fedByStr),me:c.me,reasons:c.me?[...b.reasons].sort():[]},kk=fedExclKey(c.url,c.M.fed.key.pub);
+  FED.exQ=(FED.exQ||Promise.resolve()).then(()=>fedPut('kv',kk,o)).then(()=>{FED.xgen++;fedEmit('excluded',{server:o.srv,n:o.keys.length});}).catch(()=>{});}
 function fedNonce(){const a=new Uint8Array(32);try{crypto.getRandomValues(a);}catch(e){for(let i=0;i<32;i++)a[i]=FED.rand()*256|0;}return a;}
 
 /* ---------- sending what waits in the save ---------- */
@@ -287,9 +289,9 @@ async function fedHides(id,srvs){const h=await fedGet('kv','hide:'+id);if(!h||!h
 /* What every game knows of shunning (§10.7): the excluded lists of the servers this save joined, as each last sent
    them, joined: {keys (Set), why (Map key -> Set of reasons, for this network only)}. Read again only when a list
    came in or the joined servers changed. */
-async function fedExcl(){const f=S&&S.fed,urls=f?f.servers.slice():[],k=FED.xgen+'|'+urls.join(' ');if(FED.ex&&FED.ex.k===k)return FED.ex;
+async function fedExcl(){const f=S&&S.fed,pub=f&&f.key?f.key.pub:'',urls=f?f.servers.slice():[],k=FED.xgen+'|'+pub+'|'+urls.join(' ');if(FED.ex&&FED.ex.k===k)return FED.ex;
   const keys=new Set(),why=new Map();
-  for(const u of urls){const o=await fedGet('kv','excl:'+u);if(!o||!Array.isArray(o.keys))continue;for(const x of o.keys)keys.add(x);
+  for(const u of urls){const o=await fedGet('kv',fedExclKey(u,pub));if(!o||!Array.isArray(o.keys))continue;for(const x of o.keys)keys.add(x);
     if(typeof o.me==='string'&&Array.isArray(o.reasons)){const w=why.get(o.me)||new Set();for(const r of o.reasons)if(FED_REASONS.includes(r))w.add(r);why.set(o.me,w);}}
   return FED.ex={k,keys,why};}
 // Keys the federation excludes now, as the joined servers say.

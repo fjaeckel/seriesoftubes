@@ -156,13 +156,18 @@ function fedTrExits(net,out){if(!S.fed)return;const lk=S.ev.leak&&S.ev.leak.unti
 const trPops=N=>N.fpops&&N.fpops.length?N.fpops:N.pops;
 
 /* ---------- stats: traffic with each player network (§5.2), for the traffic board ---------- */
+/* Reported traffic (Mbps) in steps of about 20% (1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8 per decade): a stats record goes
+   out whenever its body changes (fedStatsTick), and exact figures change every slot, which would send a record every
+   5 minutes per player instead of about hourly, swelling relays and every board download for no ranking gain. */
+const FED_STEPS=[1,1.2,1.5,2,2.5,3,4,5,6,8,10];
+const fedStep=v=>{if(!(v>0))return 0;const e=10**Math.floor(Math.log10(v)),m=v/e;let b=1;for(const x of FED_STEPS)if(Math.abs(x-m)<Math.abs(b-m))b=x;return Math.min(1e9,Math.round(b*e));};
 function fedTrafficList(){const out=[],me=fedMe();if(!R||!S.fedn||!me)return out;const m=fedMyMix();
   for(const n of S.fedn.nets){if(n.k===me)continue;const N=fedNetOf(n.k);if(!N)continue;const e=R.netEg[N.id];let inM=e?Math.round(((e.p||0)+(e.ix||0))*1000):0;
     for(const d of S.fed.deals)if(d.on&&d.key===n.k&&d.deal==='transit')inM+=d.role==='buy'?Math.round(fedExUse(d)*1000):(d.rep||0);
-    if(inM<=0)continue;const outM=Math.round(inM*(m.content+100)/(n.mix[0]+100));out.push({key:n.k,in:Math.min(1e9,inM),out:Math.min(1e9,outM)});}
+    if(inM<=0)continue;const outM=Math.round(inM*(m.content+100)/(n.mix[0]+100));out.push({key:n.k,in:fedStep(inM),out:fedStep(outM)});}
   return out.sort((a,b)=>Math.max(b.in,b.out)-Math.max(a.in,a.out)||fedByStr(a.key,b.key)).slice(0,256);}
 // total: the network's whole traffic, what the HUD shows as traffic served (Gbps), in Mbps (§5.2).
-FED.hooks.stats=b=>{try{if(S&&S.fed){b.traffic=fedTrafficList();b.total=Math.max(0,Math.min(1e9,Math.round(((R&&R.served)||0)*1000)));}}catch(e){}return b;};
+FED.hooks.stats=b=>{try{if(S&&S.fed){b.traffic=fedTrafficList();b.total=fedStep(((R&&R.served)||0)*1000);}}catch(e){}return b;};
 // Offers and accepts the core passes on besides those to or from this network: open consortium projects and their signers.
 FED.hooks.deal=r=>r.kind==='offer'&&r.body.deal==='consortium'&&!fedOwn(r.body,'to')||r.kind==='accept'&&!!(S&&S.fedp&&S.fedp.cons.some(c=>c.id===r.body.offer));
 

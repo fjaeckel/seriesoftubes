@@ -289,3 +289,12 @@ test('an exchange lists the players on it with a Peer button; peering from there
   assert.deepEqual(p.errors, []);
   assert.deepEqual(q.errors, []);
 });
+
+test('a player asking to peer under review is reviewed from the exchange in the review queue', async () => {
+  const { p } = await game([ann('alice', { name: 'Ping Floyd' })]);
+  const ka = key('alice').pub;
+  p.ev(`S.fedp.rq.push({id:'${'Q'.repeat(43)}',rec:{key:'${ka}',kind:'offer',t:${NOW},body:{deal:'peering',to:S.fed.key.pub,terms:{via:'ix',at:['fra']}}}})`);
+  const h = p.ev(`ixBlock('fra',false)`);
+  assert.match(h, /data-act="fpQueue"/, 'Review opens the review queue, where requests are accepted');
+  assert.deepEqual(p.errors, []);
+});

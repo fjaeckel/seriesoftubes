@@ -54,7 +54,7 @@ test('excluded lists of every joined server count, and a paged list is joined be
   p.ev(`fedExclIn(${c},{m:'excluded',keys:[${JSON.stringify(M)},'not a key'],more:false})`);
   assert.ok(await until(async () => (await settle(5), (await p.ev('fedShunned()')).length === 2)));
   // Another joined server's list (kept from before) adds to it.
-  await p.ev(`fedPut('kv','excl:wss://other.example.net/fed',{at:1,keys:[${JSON.stringify(key('bob').pub)}],reasons:[]});S.fed.servers.push('wss://other.example.net/fed')`);
+  await p.ev(`fedPut('kv',fedExclKey('wss://other.example.net/fed',S.fed.key.pub),{at:1,keys:[${JSON.stringify(key('bob').pub)}],reasons:[]});S.fed.servers.push('wss://other.example.net/fed')`);
   assert.equal((await p.ev('fedShunned()')).length, 3, 'the union over joined servers');
   void n;
   assert.deepEqual(p.errors, []);

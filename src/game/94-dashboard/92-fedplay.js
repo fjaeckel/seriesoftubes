@@ -161,7 +161,7 @@ function fedIxPlayers(c,city){if(XIXM[c]||!S.fed||!S.fed.on||!FEDN.ids.length)re
     const d=deals.find(x=>x.key===n.fed&&x.deal==='peering'&&x.st!=='over'),ask=rq.some(q=>q.rec.key===n.fed&&q.rec.body.deal==='peering'),
       a=FEDN.ann.get(n.fed),auto=a&&a.rec&&a.rec.body.auto?a.rec.body.auto.peering:'';
     const st=d?(d.st==='run'?`<span class="tag st on">${tr('fedplay.ix_peering')}</span>`:`<span class="tag st">${tr('fedplay.s_wait')}</span>`)
-      :ask?btn(tr('fedplay.review'),'fpNet',{key:n.fed},'pink sm')
+      :ask?btn(tr('fedplay.review'),'fpQueue',{},'pink sm')
       :on&&auto!=='decline'?btn(tr('fedplay.ix_peer'),'fpReq',{key:n.fed,deal:'peering',via:'ix',at:city},'pink sm'):'';
     h+=`<div class="row"><div class="grow"><div class="nm">${fedBot(n)}${esc(n.name)}</div><div class="meta"><span class="tag ${n.fpol}">${tr(FEDP_POL[n.fpol]||FEDP_POL.open)}</span>${FEDP_STL[n.fst]?` <span class="tag fp-q">${tr(FEDP_STL[n.fst])}</span>`:''}${FEDP_AUTO[auto]?' · '+tr('fedplay.ix_peering_is',{how:tr(FEDP_AUTO[auto])}):''}</div></div>
       <div class="btns">${st}${btn(tr('fedplay.deals'),'fpNet',{key:n.fed},'ghost sm')}</div></div>`;}
