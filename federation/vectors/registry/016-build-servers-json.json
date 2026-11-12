@@ -1,5 +1,5 @@
 {
-  "description": "The build turns the folder into site/federation/servers.json: v 1, asOf = the greatest \"answered\" of all files (0 if none), servers = one entry per file sorted by id, each {id, genesis, chain, server} plus listed and answered when present. Files are assumed checked already.",
+  "description": "The build turns the folder into _site/federation/servers.json (the site path federation/servers.json): v 1, asOf = the greatest \"answered\" of all files (0 if none), servers = one entry per file sorted by id, each {id, genesis, chain, server} plus listed and answered when present. Files are assumed checked already.",
   "input": {
     "files": {
       "eYVIb2jN0KGxd3VFgLT9c0btb0oe03YBEKvj9CTp53U.json": {

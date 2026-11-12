@@ -11,7 +11,8 @@ They are also how a third implementation knows it is right.
 2. Compare results exactly: error codes as strings, numbers as integers, lists in the order given (they are already
    in the order the spec defines). Objects compare by members, not by text.
 3. A vector holds **one** fault. Where the expected result is an error, return that code and no other.
-4. Inject the clock: use `now` from the vector, never the machine's clock. Nothing here needs the network.
+4. Inject the clock: use `now` from the vector, never the machine's clock. The one exception is `registry`, whose
+   vectors have no `now`: the check runs with the wall clock, as CI does (spec 11.2). Nothing here needs the network.
 5. A change to a rule changes the vectors first (and the spec in the same change); then both implementations follow.
 
 ## File format

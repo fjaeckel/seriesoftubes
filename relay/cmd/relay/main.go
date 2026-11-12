@@ -42,7 +42,8 @@ Setting up:
   relay init [--operator-key FILE] [--url wss://host/path]   make the data folder, node key, operator key, config
   relay genesis --name NAME [--sync open] [--langs en,de] [--desc TEXT]   found a new server
   relay join SERVER --from wss://existing-node/path          prepare this node for an existing server
-  relay registry-file                                        print the file for the registry pull request
+  relay registry-file [--from FILE]                          print the file for the registry pull request, keeping
+                                                             listed/answered from FILE (default: federation/servers/<id>.json)
   relay serve                                                run the relay
 
 Day to day (talks to the running relay over its local socket):
@@ -555,31 +556,56 @@ func cmdBackup(args []string) error {
 
 func cmdRegistryFile(args []string) error {
 	fs, dir := flags("registry-file")
+	from := fs.String("from", "", "existing registry file whose listed/answered to keep (default federation/servers/<id>.json if present)")
 	parse(fs, args)
-	if ops.Running(*dir) {
-		v, err := call(*dir, ops.Request{Cmd: "registry-file"})
+	b, err := registryFile(*dir)
+	if err != nil {
+		return err
+	}
+	// Keep the weekly job's stamps, or CI refuses the replacement (11.2 step 8).
+	path := *from
+	if path == "" {
+		if c, err := config.Load(cfgPath(*dir)); err == nil && c.Server != "" {
+			p := filepath.Join("federation", "servers", c.Server+".json")
+			// Empty: the shell just made it for `> federation/servers/<id>.json`, a first listing.
+			if fi, err := os.Stat(p); err == nil && fi.Size() > 0 {
+				path = p
+			}
+		}
+	}
+	if path != "" {
+		old, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}
-		s, _ := v.(string)
-		_, err = os.Stdout.WriteString(s)
-		return err
-	}
-	c, nk, err := loadAll(*dir)
-	if err != nil {
-		return err
-	}
-	r, err := node.New(node.Options{Dir: *dir, Config: c, Node: nk})
-	if err != nil {
-		return err
-	}
-	defer r.Close()
-	b, err := r.RegistryFile()
-	if err != nil {
-		return err
+		if b, err = registry.KeepStamps(b, old); err != nil {
+			return err
+		}
+		fmt.Fprintln(os.Stderr, "relay: kept listed/answered from", path)
 	}
 	_, err = os.Stdout.Write(b)
 	return err
+}
+
+func registryFile(dir string) ([]byte, error) {
+	if ops.Running(dir) {
+		v, err := call(dir, ops.Request{Cmd: "registry-file"})
+		if err != nil {
+			return nil, err
+		}
+		s, _ := v.(string)
+		return []byte(s), nil
+	}
+	c, nk, err := loadAll(dir)
+	if err != nil {
+		return nil, err
+	}
+	r, err := node.New(node.Options{Dir: dir, Config: c, Node: nk})
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	return r.RegistryFile()
 }
 
 func cmdServe(args []string) error {

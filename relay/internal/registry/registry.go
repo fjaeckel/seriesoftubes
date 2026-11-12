@@ -315,6 +315,36 @@ func File(g *fed.Record, applied []*fed.Record, server *fed.Record) []byte {
 	return append(canon.Encode(map[string]any{"v": int64(1), "genesis": g.Value, "chain": ch, "server": server.Value}), '\n')
 }
 
+// KeepStamps copies `listed` and `answered` from the server's existing registry file into a
+// freshly made one, so a replacement keeps the weekly job's stamps (11.2 step 8).
+func KeepStamps(file, existing []byte) ([]byte, error) {
+	nv, code := canon.ParseStrict(file)
+	nm, _ := nv.(map[string]any)
+	if code != "" || nm == nil {
+		return nil, fmt.Errorf("new registry file: not a JSON object (%s)", code)
+	}
+	ov, code := canon.ParseStrict(existing)
+	om, _ := ov.(map[string]any)
+	if code != "" || om == nil {
+		return nil, fmt.Errorf("existing registry file: not a JSON object (%s)", code)
+	}
+	if nm["genesis"] == nil || !bytes.Equal(canon.Encode(nm["genesis"]), canon.Encode(om["genesis"])) {
+		return nil, fmt.Errorf("the existing registry file is for another server")
+	}
+	for _, f := range []string{"listed", "answered"} {
+		x, ok := om[f]
+		if !ok {
+			continue
+		}
+		n, ok := x.(int64)
+		if !ok || n < 0 || n%fed.Day != 0 {
+			return nil, fmt.Errorf("existing registry file: bad %s", f)
+		}
+		nm[f] = n
+	}
+	return append(canon.Encode(nm), '\n'), nil
+}
+
 // Snapshot is a parsed servers.json.
 type Snapshot struct {
 	AsOf    int64

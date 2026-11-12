@@ -535,7 +535,7 @@ const nodesOf = list => list.map(([n, url]) => ({ key: pub(n), url })).sort((a, 
     { [F1]: { ...file1, server: multi('server', 'anna', T - 8 * DAY, { ...server1.body, desc: 'Small, friendly, mostly on.' }, ['anna', 'cleo']) } }, F1, { ok: true }, file1);
 
   put(A, 'build-servers-json',
-    'The build turns the folder into site/federation/servers.json: v 1, asOf = the greatest "answered" of all files (0 if none), servers = one entry per file sorted by id, each {id, genesis, chain, server} plus listed and answered when present. Files are assumed checked already.',
+    'The build turns the folder into _site/federation/servers.json (the site path federation/servers.json): v 1, asOf = the greatest "answered" of all files (0 if none), servers = one entry per file sorted by id, each {id, genesis, chain, server} plus listed and answered when present. Files are assumed checked already.',
     { files: { [F2]: file2, [F1]: file1 } },
     { servers_json: { v: 1, asOf: 1767225600, servers: [{ id: SID, ...(({ v, ...x }) => x)(file1) }, { id: S2, ...(({ v, ...x }) => x)(file2) }].sort((a, b) => byStr(a.id, b.id)) } });
 }

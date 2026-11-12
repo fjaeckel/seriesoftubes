@@ -264,7 +264,9 @@ relay check-registry --offline federation/servers/SERVER_IDENTITY.json   # witho
 ```
 
 Change your file by pull request whenever the operators, nodes or description change (`relay registry-file` again).
-`listed` and `answered` are written only by the weekly job: do not edit them. Servers that have not answered for two
+`listed` and `answered` are written only by the weekly job and must not change: `relay registry-file` copies them from
+`federation/servers/SERVER_IDENTITY.json` when run in a checkout, or from `--from FILE`. Write to a new file and move
+it over the old one (`>` straight onto the old file empties it before the relay reads it). Servers that have not answered for two
 weeks are removed. Only registered servers that have been listed for 30 days and answered within 14 vote in shuns.
 
 ## Day to day

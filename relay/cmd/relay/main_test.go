@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/canon"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/config"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/ops"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/registry"
@@ -309,4 +310,41 @@ func TestInitGenesisRegistryFile(t *testing.T) {
 		t.Fatalf("expected only the name to be wrong: %v", f)
 	}
 	_ = e
+
+	// --from keeps the stamps of the existing file, so step 8 passes on the replacement.
+	fresh := buf.Bytes()
+	listed, answered := int64(20400*86400), int64(20450*86400)
+	existing := edit(t, fresh, func(m map[string]any) { m["listed"] = listed; m["answered"] = answered })
+	exPath := filepath.Join(t.TempDir(), "existing.json")
+	os.WriteFile(exPath, existing, 0o644)
+	rd, wr, _ = os.Pipe()
+	os.Stdout = wr
+	err = cmdRegistryFile([]string{"--data", dir, "--from", exPath})
+	wr.Close()
+	os.Stdout = old
+	if err != nil {
+		t.Fatal(err)
+	}
+	var kept bytes.Buffer
+	kept.ReadFrom(rd)
+	c, err := config.Load(cfgPath(dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	name := c.Server + ".json"
+	now := int64(rt.Start + 400*86400)
+	if f := registry.Check(name, map[string][]byte{name: kept.Bytes()}, existing, now, nil); f != nil {
+		t.Fatalf("replacement refused: %v", f)
+	}
+	if f := registry.Check(name, map[string][]byte{name: fresh}, existing, now, nil); f == nil || f.Step != 8 {
+		t.Fatalf("without --from step 8 should refuse: %v", f)
+	}
+	if !bytes.Contains(kept.Bytes(), []byte(`"answered":1766880000,`)) || !bytes.Contains(kept.Bytes(), []byte(`"listed":1762560000,`)) {
+		t.Fatalf("stamps missing: %s", kept.Bytes())
+	}
+	// A file of another server is refused rather than mixed in.
+	other := edit(t, fresh, func(m map[string]any) { m["genesis"] = map[string]any{"v": 1} })
+	if _, err := registry.KeepStamps(fresh, other); err == nil {
+		t.Fatal("stamps taken from another server's file")
+	}
 }

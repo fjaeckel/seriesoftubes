@@ -255,10 +255,13 @@ Example (keys and signatures shortened):
 What the boards rank. The country is never in here: the receiving node adds it to the receipt (6.1) when
 `shareCountry` is true.
 
+**When a client sends it:** whenever the values change, and at least once an hour while the game is open, but never
+more than one per slot. Carrying forward (10.2) covers the slots in between, so there is no need to send every slot.
+
 | Field | Type | Rule |
 | --- | --- | --- |
 | `mode` | string | `normal`, `sandbox`, `open_gates`, `puzzle`, `scenario`, `weekly` or `architect`. Only `normal` is ranked |
-| `pops` | object | City → POPs in service in that city, 1 to 1000. At most 512 members (`too_many`); member names that are not City: `bad_field`; cities with none are left out |
+| `pops` | object | City → POPs in service in that city, 1 to 1000. At most 512 members (`too_many`); member names that are not City: `bad_field`; cities with none are left out. In this game version a network has at most one POP per city, so every count is 1; the count stays for later versions |
 | `pies` | Count(10000000), optional | Pies in service (`pieLiveAll()`). Absent: the save has no Pie in the Sky company |
 | `traffic` | [{key: Key, in: Mbps, out: Mbps}] max 256 | Traffic with each other player network right now: `in` received from it, `out` sent to it. Keys unique (`duplicate`), never the author's own (`bad_field`) |
 | `tier1` | Bool | Tier 1 in the game's rank |
@@ -415,12 +418,19 @@ Size at most 1024 bytes. Time: `t > now + 600` is `too_new`; there is no maximum
 A node receiving a record from another node keeps the receipts that came with it and adds none, except when a record
 arrives with no valid receipt at all, when it adds its own.
 
+A **valid receipt** is one that checks as above and whose `key` is a node of a server the checker knows: for a client,
+a server in its registry snapshot or catalog (10.8), or the server it is connected to (from its `welcome`); for a
+node, its own server or one it knows from the registry or gossip. Receipts from any other key are ignored. A `stats`
+record without a valid receipt has no board slot and is not ranked (10.1).
+
 ### 6.2 Proofs (a node)
 
 A node proves it holds its node key by signing a challenge: `kind` `proof`, `key` the node key, `t` the node's clock,
-`body` `{nonce: Nonce, server: Id}`. The checker verifies, in this order: `kind` is `proof`, `key` is the node it asked,
-`body.server` is the server it expected (each otherwise `bad_challenge`); the signature (`bad_sig`); `body.nonce` is
-the nonce it sent and `|t - now| <= 300` (otherwise `bad_challenge`). Nonces are 32 random bytes, used once.
+`body` `{nonce: Nonce, server: Id}`. The checker verifies, in this order: the envelope (any fault of section 4 or of
+the body's shape, such as a missing or extra field, a wrong `v`, a malformed key, nonce or signature: `bad_challenge`,
+never the record error codes); `kind` is `proof`, `key` is the node it asked, `body.server` is the server it expected
+(each otherwise `bad_challenge`); the signature (`bad_sig`); `body.nonce` is the nonce it sent and `|t - now| <= 300`
+(otherwise `bad_challenge`). Nonces are 32 random bytes, used once.
 
 ## 7. Validation order and error codes
 
@@ -442,7 +452,8 @@ A received record is checked in this order; the first failing step gives the err
 9. State (relays and games, with what they know): `shunned`, `refused`, `not_operator`, `no_majority`, `bad_chain`,
    `unknown_server`.
 
-Steps 1 to 8 depend only on the record and `now`, and are what the `records` vectors test.
+Steps 1 to 8 depend only on the record and `now`, and are what the `records` vectors test. (The registry check,
+11.2, runs them with the wall clock as `now`.)
 
 ### 7.2 Error codes
 
@@ -517,7 +528,8 @@ The result depends only on the set of records, never on their order of arrival o
 change the lists alone.
 
 **Pending** at time `now`: proposals with `prev` equal to the final head, author an operator, applicable, without a
-majority yet, and `now < t + 1209600` (14 days). Expiry only removes pending proposals: a proposal that reached its
+majority yet, and `now < t + 1209600` (14 days). Pending proposals are listed in order of record id (byte order), by
+relays, operator tools and vectors alike. Expiry only removes pending proposals: a proposal that reached its
 majority stays applied however old it is. Relays drop expired pending proposals and refuse `cosign` for them
 (`too_old`); operator tools refuse to sign them.
 
@@ -529,6 +541,11 @@ that head, times 2, is greater than the number of those operators (`no_majority`
 valid one with the greatest `t` (then lowest id). The lists shown for a server always come from the chain; the
 descriptive fields (`name`, `sync`, `noLogs`, `langs`, `desc`) from the current server record, or the genesis `name`
 while there is none.
+
+The **head server record** is the valid server record whose `head` is the chain's final head with the greatest `t`
+(then the lowest id). It is the one a server sends in its own catalog entry (10.8) and the one `relay registry-file`
+writes (11.1), since both require a server record at the final head; a server with none there (its operators have
+not yet signed one after the last change) emits no catalog entry and cannot make a registry file.
 
 ### 8.3 Operator records against the chain
 
@@ -580,12 +597,15 @@ upgraded. This document is version 1; records carry `v: 1` in it.
 | `board` | client → node | `id` | `recs` with what the boards need (9.5) |
 | `servers` | client → node | `id` | `catalog` |
 | `recs` | node → client | `id`, `items` ([{rec, rcpt: [receipts]}] max 256), `cursor`, `more` (Bool) | |
-| `catalog` | node → client or node | `id` (when answering), `entries` (10.8) | |
+| `catalog` | node → client or node | `id` (when answering), `entries` (10.8), `more` (Bool, see below) | |
 | `err` | either | `id` (when answering a request), `code` (7.2), `retry` (seconds, with `rate_limited`) | |
 
 - **Cursors** are opaque ASCII strings of at most 64 characters `[A-Za-z0-9_-]` made by the node; a client keeps the
   last cursor per node and passes it to `sub` after a reconnect. A cursor the node no longer understands means
   "everything kept".
+- **A `catalog` answer** that does not fit in one frame is split across several `catalog` frames with the same `id`,
+  each with whole entries; every frame but the last carries `more: true` (the last `more: false` or no `more`). The
+  receiver joins the entries of all of them.
 - **Operator actions** in the game are `put` of operator-signed records (`hide`, `shun`, `unshun`, `operators`,
   `server`) and `cosign`. The node checks them against its chain (`not_operator`, `no_majority`). The relay's command
   line does the same over its local socket.
@@ -606,13 +626,25 @@ Nodes of one server, and nodes of different servers that sync, use the same tran
 | `inv` | `ids` ([Id] max 4096), `more` (Bool) | Ids of records this side holds and will send, with a first receipt slot at or after the other side's `since` |
 | `want` | `ids` ([Id] max 4096) | Ids it lacks and wants |
 | `push` | `items` ([{rec, rcpt}] max 256) | Records, answering `want` or as they arrive |
-| `catalog` | `entries` | Gossip (10.8), on connect and whenever an entry changes, at most every 10 minutes |
+| `catalog` | `entries` | Gossip (10.8): its own entry always on connect (below), other entries on connect and whenever an entry changes, at most every 10 minutes |
 | `err`, `ping`, `pong` | | As above |
 
 1. **Who may sync.** Each side checks the other's proof (`bad_challenge`) and that the other node key is a node of the
    server it claims (`not_node`, as far as it knows the server; a server it does not know may be learned from its
    catalog entry). Nodes of the **same server** always sync everything. Between **different servers** each side applies
    its own `sync` policy (10.9); refusing is `err` `policy` and the connection closes.
+   - **Own entry first.** When a session between two different servers starts (after the proofs), each side sends a
+     `catalog` frame holding its own entry (10.8, `path: [its id]`), whatever its policy and the classes. A side that
+     does not know the other server holds the other frames from it (`carry`, `inv`, `push`…; `ping`, `pong` and `err`
+     are handled at once) until that entry has arrived and checked, then applies the policy and the node check above
+     and handles the held frames in order. If the entry does not come within a short time (or too many frames pile up),
+     the session ends with `not_node`.
+   - **Same server.** A node checks `not_node` against the chain it has. At the start of each same-server session,
+     with its `inv`, each node also `push`es every `operators` record (applied and pending, with every signature) and
+     every `server` record of its server: an added signature keeps the record id, so an inventory cannot show it, and
+     the copies merge (10.11). A node that is not yet in the other node's chain is refused (`not_node`) and cannot sync
+     until that node has the change; so operator tools can send a signature `--via` the `wss://` address of a node
+     already listed instead of through the new node.
 2. **Classes.** `players` (`announce`, `stats`, `offer`, `accept`, `decline`, `leave`), `catalog` (gossip), `advice`
    (`hide`). `shun` and `unshun` records **always travel**, whatever the classes. Between nodes of the same server all
    classes plus `genesis`, `operators` (with every signature) and `server` records travel. A server MAY take records
@@ -631,6 +663,10 @@ With `c = slot(now)`, the node returns every `stats` record whose receipt slot `
 (for carrying forward), plus the newest `announce` of each of those keys and the server's current `hide` record. The
 client computes everything from these (10.3 to 10.5).
 
+**What relays keep of `stats`:** every `stats` record whose receipt slot is in the last 72 hours (the two windows and
+some slack), and besides that the newest `stats` of each network for the full carry-forward reach (604800 s before the
+start of the previous window), so that the carry records above can always be returned. Older ones are deleted.
+
 ## 10. Rules both sides compute
 
 ### 10.1 Slots and windows
@@ -640,7 +676,8 @@ client computes everything from these (10.3 to 10.5).
   `c - 288 * 300` to `c - 300`. The **previous window** is the 288 slots before that: `c - 576 * 300` to
   `c - 289 * 300`. The slot `c` itself is still running and belongs to neither.
 - The **board slot** of a record is the slot of its receipt (6.1). When a record carries several valid receipts, the
-  earliest `t` among them. Never the author's `t`.
+  earliest `t` among them. Never the author's `t`. A record with no valid receipt (6.1) has no board slot and takes no
+  part in any board.
 
 ### 10.2 Effective record
 
@@ -655,9 +692,12 @@ This is "missing slots carry the last value forward, for up to 7 days".
 At `last = c - 300`, a key `X` is **listed** on a board when it has a value at `last` (10.2), is not excluded (shunned,
 hidden by this server, muted by this player; the caller passes this set), and:
 
-- POPs board: always (with the region filter: at least one POP in the region at `last`).
+- POPs board: always.
 - Pies board: `eff(X, last)` has `pies`.
 - Traffic board: always.
+
+With a **region filter** (a set of cities), on every board `X` is listed only with at least one POP in the region at
+`last`. The totals then change as 10.4 says.
 
 **Division** comes from `eff(X, last)`: AI when it has `ai`, human otherwise. `all` lists both.
 
@@ -673,6 +713,10 @@ Over the slots `s` of the window where `X` has a value:
      - If `Y` has a value at `s` (it has an effective record in `normal` mode), `Y`'s report about `X` likewise.
      - `inXY = min(X.in, Y.out)` and `outXY = min(X.out, Y.in)` when `Y` has a value; `X.in` and `X.out` when `Y` has
        no effective record at all; and 0 when `Y` has an effective record but not in `normal` mode, or `Y` is excluded.
+       `Y` has **no effective record** when it has no `stats` at all or when its newest one before `s` is at or past the
+       carry limit (`s - r >= 604800`, 10.2): an expired record counts as no record, not as a non-`normal` one.
+     - With a region filter, only `Y` that has a value at `s` with at least one POP in the region (in `eff(Y, s).pops`)
+       counts; every other `Y`, including one with no effective record, gives 0 for that slot.
   2. `IN(s) = sum over Y of inXY`, `OUT(s) = sum over Y of outXY`.
   3. `p95(list)`: with `n` values sorted ascending into `a[0..n-1]`, `k = div(n * 5, 100)`, `p95 = a[n - 1 - k]`.
      With 288 values `k = 14`: the 14 highest slots (70 minutes) do not count, the 15th does.
@@ -760,6 +804,11 @@ Between two different servers A and B, a session is allowed when both allow it:
 
 Nodes of one server always sync, whatever the policy.
 
+A server's policy is the `sync` of its published server record (8.2): its own for its own half, the other server's
+(from the registry or the catalog) for "not `standalone`". A relay's config does not set the policy; it only holds the
+`selective` list and the neighbours it connects to (with the classes each way). Changing the policy is a new server
+record, signed like any other.
+
 ### 10.10 Deal terms
 
 An offer relies on the `announce` named by `basis` (`not_found` if the receiver does not have it, `bad_field` if it is
@@ -781,6 +830,14 @@ not an `announce` by `to`). It is checked, in this order:
 5. Then: with `auto`, the deal is binding at once (`start = offer.t`); with `review`, it binds when the counterparty
    signs `accept` (`start = accept.t`). `end = start + term * 86400`; deals whose terms have no `term` (peering,
    consortium) have no end and run until a `decline` with reason `depeer` (or the counterparty goes dark, 10.6).
+
+An offer **without a basis** (`swap` without one, `consortium` always) skips steps 1 to 4: there are no published
+terms to check, so it is never automatic and binds when the counterparty signs `accept` (`start = accept.t`, moved for
+a renewal as below).
+
+**Who checks.** Relays store and forward offers, accepts and declines after the record checks (7.1), without running
+these rules: they need not hold the basis. Games check each offer against these rules when they receive it and before
+acting on it or accepting it.
 
 **Prices change only at renewal.** A running deal keeps its terms until `end`, whatever newer announces say. A renewal
 is an offer with `renews` set, checked as above against the basis it names; its deal starts at
@@ -806,7 +863,7 @@ One file per server: `federation/servers/<server identity>.json`, at most 65536 
 | `v` | 1 | |
 | `genesis` | the `genesis` record | the operators |
 | `chain` | [`operators` records], applied, in order, at most 64 | the operators |
-| `server` | the current `server` record, at the chain's last head | the operators |
+| `server` | the head server record (8.2), at the chain's last head | the operators |
 | `listed` | integer, optional: real day start (multiple of 86400) when first merged | only the weekly CI job |
 | `answered` | integer, optional: real day start when a node last answered the job's challenge | only the weekly CI job |
 
@@ -818,7 +875,8 @@ Run by CI on every pull request that touches `federation/servers/`, for each add
 
 1. Size at most 65536 bytes (`too_big`), JSON (`bad_json`), fields as in 11.1 (`missing_field`, `unknown_field`,
    `bad_field`).
-2. Every record valid (7.1 steps 2 to 8, with `now` the time of the check).
+2. Every record valid (7.1 steps 2 to 8, with `now` the wall clock at the time of the check). The `registry`
+   vectors therefore carry no `now`: implementations run them with the wall clock, as CI does.
 3. The file name is `<genesis id>.json` (`id_mismatch`).
 4. The chain: `chain[0].prev` is the genesis id and each next `prev` is the id of the one before (`bad_chain`); each
    proposal is by an operator, applicable, and has a majority at its `prev` (`no_majority` for the majority,
@@ -826,7 +884,12 @@ Run by CI on every pull request that touches `federation/servers/`, for each add
 5. The server record: valid against the chain (8.2) and its `head` is the chain's last head (`bad_chain`).
 6. `server.body.noLogs` is true (`no_logs`).
 7. No other file's server name equals this one when both are compared with `A`–`Z` turned into `a`–`z` (`name_taken`).
-8. If the file exists on the base branch, `listed` and `answered` are unchanged (`bad_field`).
+   Only other files whose server name can be read (the file parses as JSON with a `server` record holding a string
+   `name`) are compared; files that do not parse are skipped here (they fail their own check).
+8. If the file exists on the base branch, `listed` and `answered` are unchanged (`bad_field`). This step does not
+   apply to the weekly liveness pull request from `federation-liveness.yml` (11.3), the one place stamps change.
+   `relay registry-file` copies both stamps from the existing file (`--from FILE`, by default
+   `federation/servers/<id>.json` when present and not empty), so a replacement made with it passes.
 9. At least one listed node answers: the check connects to each node's URL in turn (10 s timeout each), sends `hello`
    and `challenge`, and checks the `proof` (6.2) (`no_answer` when none does).
 
@@ -834,7 +897,10 @@ A failing check prints the file, the step and the code.
 
 ### 11.3 `servers.json`
 
-The build writes `site/federation/servers.json` from the folder (files that pass steps 1 to 8):
+The site build writes `_site/federation/servers.json` (served at the site's own path `federation/servers.json`) from
+the folder. It includes the files that pass steps 1 to 7 of 11.2 (step 8 needs a base branch and runs only in CI on
+pull requests; step 9 needs the network and is left to CI and the weekly job). The bytes are the canonical JSON (2.3)
+of the object below followed by one `\n`:
 
 ```json
 {"v":1,"asOf":1767225600,"servers":[{"id":"<identity>","genesis":{…},"chain":[…],"server":{…},"listed":1764633600,"answered":1767225600}]}
@@ -844,8 +910,9 @@ The build writes `site/federation/servers.json` from the folder (files that pass
 `answered` of all files (0 when none). The shun tally (10.7) counts against `asOf`, not against the clock, so every
 relay and every game with the same file gets the same voters.
 
-The weekly CI job challenges every node, sets `listed` on files that have none, updates `answered`, and removes files
-not answered for 14 days, in one pull request.
+The weekly CI job (`federation-liveness.yml`) challenges every node, sets `listed` on files that have none, updates
+`answered`, and removes files not answered for 14 days, in one pull request. It is the only change to the stamps, so
+step 8 of 11.2 does not apply to it.
 
 ## 12. Privacy
 

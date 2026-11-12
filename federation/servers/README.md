@@ -53,8 +53,16 @@ belongs on the list.
 
 Any operator runs `relay registry-file` again after the change (new node, new operator, new description, new sync
 policy) and opens a pull request replacing the file. Operator and node changes carry the majority signatures they
-needed anyway; the file just carries them along. Keep `listed` and `answered` exactly as they are in the current
-file (copy them over if the new file lacks them): CI refuses a pull request that changes them.
+needed anyway; the file just carries them along. `listed` and `answered` must stay exactly as they are in the current
+file, or CI refuses the pull request. `relay registry-file` takes care of that: run from a checkout of this repository
+it copies them from `federation/servers/<id>.json`, and `--from FILE` names the current file anywhere else:
+
+```bash
+relay registry-file --from ~/seriesoftubes/federation/servers/<id>.json > new.json
+mv new.json ~/seriesoftubes/federation/servers/<id>.json
+```
+
+Write to a new file first: `> federation/servers/<id>.json` empties the old file before the relay can read its stamps.
 
 ## Leaving
 

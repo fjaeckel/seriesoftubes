@@ -325,7 +325,7 @@ records in a shared database that anyone can submit to and everyone can read. He
   signed by its operators; at least one listed node answers a `wss://` challenge signed with its node key; the name is not taken by another file; the operators declare `noLogs: true` (see Privacy). A failing check says exactly why.
 - **Consensus is review.** CI proves a submission is genuine and reachable; a maintainer merging it says it belongs.
   Merging can be automatic for changes to an existing server signed by its own operators, and manual for new servers.
-- **It reaches players through the site.** The build turns the folder into `site/federation/servers.json`, a static,
+- **It reaches players through the site.** The build turns the folder into `_site/federation/servers.json`, a static,
   same-origin file on GitHub Pages, so the list needs no service and no cross-origin request at all (ADR 0001 holds
   unchanged for it). It updates with each release.
 - **A weekly CI job** connects to every listed server, stamps when each first got listed and last answered, and opens
@@ -554,7 +554,10 @@ S.fed = null | {
   ai: null | {model, harness},   // set only by src/agent/
   out: [record],          // queued while offline, capped
   muted: [pub],
-  deals: [...]            // peering, transit, swaps, consortiums with other players, self-contained
+  deals: [...],           // peering, transit, swaps, consortiums with other players, self-contained
+  share: bool,            // let servers attach my country to my stats (shareCountry), default true
+  joined: int,            // real day number the save first joined, 0 before
+  last: int               // slot of the last stats queued, so at most one per slot
 }
 ```
 
