@@ -32,7 +32,7 @@ test('pages: the build is plain static files within GitHub Pages limits', () => 
     total += size;
   }
   assert.ok(total < 1e9, 'the site is under the 1 GB limit');
-  for (const f of ['index.html', '404.html', 'CNAME', 'version.json', 'sw.js']) assert.ok(fs.existsSync(path.join(OUT, f)), `${f} is shipped`);
+  for (const f of ['index.html', '404.html', 'CNAME', 'version.json', 'sw.js', 'federation/servers.json']) assert.ok(fs.existsSync(path.join(OUT, f)), `${f} is shipped`);
   assert.equal(read('CNAME').trim(), 'seriesoftub.es');
 });
 

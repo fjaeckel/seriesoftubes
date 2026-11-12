@@ -1,0 +1,75 @@
+# The server registry
+
+This folder is the list of multiplayer servers that Series of Tubes shows its players. One file per server, added and
+changed by pull request, checked by CI and merged by a maintainer. Each release turns the folder into
+`https://seriesoftub.es/federation/servers.json`, a plain static file the game reads; nothing else is involved.
+
+The rules are in [the protocol, section 11](../../docs/FEDERATION-PROTOCOL.md#11-the-registry) and the reasons in
+[the design](../../docs/plans/federation.md). This page is the how-to for operators.
+
+## Before you start
+
+- A running relay that answers on a public `wss://` address with a real TLS certificate (browsers refuse anything
+  else from an HTTPS page). The relay's own documentation covers that.
+- **No address logs, anywhere.** Listing a server means its operators declare `noLogs: true`: neither the relay nor
+  anything in front of it (reverse proxy, load balancer, CDN, hosting provider's access logs you control) logs
+  players' IP addresses. A file with `noLogs: false` is refused. If you cannot promise that, run your server unlisted:
+  players can still join it by address or invite link.
+- A name no other listed server uses (compared ignoring the case of `A`–`Z`).
+
+## Listing a server
+
+1. On a node of your server, run `relay registry-file`. It prints the signed registry file: your `genesis` record,
+   the operator changes since (the chain) and your current `server` record, signed by a majority of your operators.
+2. Save it as `federation/servers/<server identity>.json`, where the identity is your genesis record's id (the relay
+   prints it, and the file name has to match it exactly).
+3. Open a pull request that adds only that file. Do not edit the file by hand: every record in it is signed, and any
+   change breaks a signature.
+
+One file per server, so pull requests from different servers never conflict.
+
+## What CI checks
+
+The `registry` job in `ci.yml` runs `relay check-registry` on every file a pull request adds or changes, the same
+binary you run, so there is one definition of "valid":
+
+1. The file is at most 65536 bytes of JSON with only `v`, `genesis`, `chain`, `server` (and the two stamps below).
+2. Every record is well formed and correctly signed.
+3. The file name is `<genesis id>.json`.
+4. The chain starts at the genesis record and each operator change follows the one before, signed by a strict
+   majority of the operators at that point.
+5. The `server` record is at the last head of the chain, its operator and node lists match it, and a majority signed it.
+6. `noLogs` is `true`.
+7. No other file uses the same name.
+8. `listed` and `answered` are unchanged (only the weekly job writes them).
+9. At least one of your nodes answers: CI connects to each node's URL in turn (10 s each), sends a challenge, and
+   checks the answer is signed by that node's key. Keep a node up while the pull request is open.
+
+A failing check prints the file, the step and the error code (for example `no_majority` or `no_answer`). Fix it, push
+again, and CI reruns. Passing CI proves the file is genuine and the server reachable; a maintainer merging it says it
+belongs on the list.
+
+## Changing a listing
+
+Any operator runs `relay registry-file` again after the change (new node, new operator, new description, new sync
+policy) and opens a pull request replacing the file. Operator and node changes carry the majority signatures they
+needed anyway; the file just carries them along. Keep `listed` and `answered` exactly as they are in the current
+file (copy them over if the new file lacks them): CI refuses a pull request that changes them.
+
+## Leaving
+
+Open a pull request deleting the file. Players who already know your server keep it in their own list until it stops
+answering.
+
+## Staying listed: the weekly check
+
+Every week `federation-liveness.yml` challenges every listed server's nodes. In one pull request for a maintainer to
+merge, it:
+
+- sets `listed` (the day it first saw the file) on files that have none,
+- sets `answered` to the day a node last answered,
+- removes files that have not answered for 14 days.
+
+Those two fields are the job's only memory, kept in the files themselves, so nothing else needs storing. Days are
+written as unix seconds at 00:00 UTC. A server removed this way can come back with a new pull request once it answers
+again.
