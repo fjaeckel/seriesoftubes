@@ -268,13 +268,7 @@ func (r *Relay) nodeFrame(s *session, f *wire.Frame) bool {
 		r.o.Log.Info("sync: peer reported", "code", code)
 	case "carry":
 		since, _ := wire.Int(f.Raw["since"])
-		r.mu.Lock()
-		var ids []string
-		for _, e := range r.st.All() {
-			if e.Slot >= since && s.sends(e.Rec) && !r.shunned[e.Rec.Key] && classOrChain(e, r) {
-				ids = append(ids, e.Rec.ID)
-			}
-		}
+		ids := r.inventory(s, since) // returns with the lock held
 		for i := 0; i < len(ids) || i == 0; i += fed.MaxInv {
 			end := min(i+fed.MaxInv, len(ids))
 			s.enqueue(map[string]any{"m": "inv", "ids": strList(ids[i:end]), "more": end < len(ids)})
@@ -350,6 +344,44 @@ func (r *Relay) nodeFrame(s *session, f *wire.Frame) bool {
 		}
 	}
 	return true
+}
+
+// invChunk is how many entries the inventory visits per hold of the lock; a var for tests.
+var invChunk = 4096
+
+// invPause, when set (tests), runs between inventory chunks with the lock released.
+var invPause func()
+
+// inventory lists the ids a carry answers with, in storage order. It walks the store a chunk at
+// a time and lets the lock go in between, so a big store does not stall writers while a session
+// starts. It returns with the lock held after the last chunk: the caller marks the session synced
+// in the same hold, so a record stored after the walk reaches the peer by fanout instead.
+func (r *Relay) inventory(s *session, since int64) []string {
+	var ids []string
+	var after uint64
+	for {
+		r.mu.Lock()
+		n, done := 0, true
+		r.st.Scan(after, nil, func(e *store.Entry) bool {
+			if n == invChunk {
+				done = false
+				return false
+			}
+			n++
+			after = e.Seq
+			if e.Slot >= since && s.sends(e.Rec) && !r.shunned[e.Rec.Key] && classOrChain(e, r) {
+				ids = append(ids, e.Rec.ID)
+			}
+			return true
+		})
+		if done {
+			return ids
+		}
+		r.mu.Unlock()
+		if invPause != nil {
+			invPause()
+		}
+	}
 }
 
 // maxWanted bounds the ids a session remembers having asked for.
