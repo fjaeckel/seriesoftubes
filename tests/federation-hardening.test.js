@@ -66,7 +66,7 @@ test('an imported save cannot smuggle markup or broken numbers in its player net
   assert.doesNotMatch(name, /[<>]/);
   assert.equal(asnV, 0);
   assert.equal(rep, 0);
-  assert.equal(keys, 'ai,asn,deal,end,id,key,name,on,rep,role,st,start,terms,why', 'only the fields a deal has');
+  assert.equal(keys, 'ai,asn,deal,end,id,key,name,on,renews,rep,role,st,start,terms,why', 'only the fields a deal has');
   assert.ok(out.proto);
   assert.doesNotMatch(out.net, /[<>]/);
   assert.equal(out.tr, 0);

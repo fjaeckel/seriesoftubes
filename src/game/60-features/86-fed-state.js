@@ -24,7 +24,7 @@ function fedSanitize(s){const f=s.fed;if(!f||typeof f!=='object'||Array.isArray(
   if(Array.isArray(f.servers))for(const u of f.servers)if(!FdUrl(u)&&!o.servers.includes(u)&&o.servers.length<FED_MAX_SERVERS)o.servers.push(u);
   if(f.ai&&typeof f.ai==='object'){const m=fedLabel(f.ai.model),h=fedLabel(f.ai.harness);if(m&&h)o.ai={model:m,harness:h};}
   if(Array.isArray(f.muted))for(const k of f.muted)if(!FdK(k)&&!o.muted.includes(k)&&o.muted.length<FED_MUTED_MAX)o.muted.push(k);
-  if(Array.isArray(f.deals))for(const d of f.deals){const x=fedDealClean(d);if(x&&o.deals.length<FED_DEALS_MAX&&!o.deals.some(y=>y.id===x.id))o.deals.push(x);}
+  if(Array.isArray(f.deals)){const ids=new Set();for(const d of f.deals){const x=fedDealClean(d);if(x&&!ids.has(x.id)){ids.add(x.id);o.deals.push(x);}}o.deals=fedDealsCap(o.deals);}
   o.share=f.share!==false;o.joined=int(f.joined,1e6);o.last=int(f.last,1e10);
   // Queued records are this network's own, signed: only kept with the key that signed them.
   if(o.key&&o.key.priv&&Array.isArray(f.out))o.out=fedOutClean(f.out,o.key.pub);
@@ -33,17 +33,28 @@ function fedSanitize(s){const f=s.fed;if(!f||typeof f!=='object'||Array.isArray(
   // A joined save starts its session once loaded; any other save loaded in this tab ends the one running.
   if(o.on||FED.live)fedSoon();}
 // A queued record, checked as far as can be without its signature (that is checked by every node that takes it).
-function fedOutClean(list,pub){let bytes=0,stats=null;const out=[];
+// The newest stats and the newest announce are kept apart from the cap (each replaces the one before, fedQueue).
+const FED_OUT_ONE=['stats','announce'];
+function fedOutClean(list,pub){let bytes=0;const out=[],one={};
   for(const r of list){if(!r||typeof r!=='object'||Array.isArray(r)||fedValues(r)||fedEnv(r,FED_REC)||!FED_CLIENT_KINDS.includes(r.kind)||r.key!==pub)continue;
     const n=fedSize(fedCanon(r));if(n>FED_KIND[r.kind][0]||FED_BODY[r.kind](r.body,{rec:r,asn:r.body.asn}))continue;
-    if(r.kind==='stats'){if(!stats||r.t>=stats.t)stats=r;continue;}
+    if(FED_OUT_ONE.includes(r.kind)){if(!one[r.kind]||r.t>=one[r.kind].t)one[r.kind]=r;continue;}
     if(out.length>=FED_OUT_MAX||bytes+n>FED_OUT_BYTES)continue;bytes+=n;out.push(r);}
-  if(stats)out.push(stats);return out;}
+  for(const k of FED_OUT_ONE)if(one[k])out.push(one[k]);return out;}
 /* A deal with another player, as the save keeps it: self-contained, so it works with no other data. The gameplay
    builds them: {id (the offer's id), deal, key, name, asn, start, end (null: no end), terms (as offered, checked like
-   an offer's), role (who pays: peer for peering and swaps, else buy or sell), st (wait, run, over), on, rep, why, ai}.
+   an offer's), role (who pays: peer for peering and swaps, else buy or sell), st (wait, run, over), on, rep, why, ai,
+   renews (the id of the deal it renews, or null)}.
    Only those fields are kept; a deal whose terms, role or state do not check is dropped (compute() reads its terms). */
 const FED_DEAL_ST=['wait','run','over'];
+/* At most FED_DEALS_MAX deals: waiting and running ones always stay (they bill and route), ended ones only as room is
+   left, the newest (last added) first. The order stays as it was. */
+function fedDealsCap(L){if(L.length<=FED_DEALS_MAX)return L;const keep=new Set();let room=FED_DEALS_MAX;
+  for(const d of L)if(d.st!=='over'&&room>0){keep.add(d);room--;}
+  for(let i=L.length-1;i>=0&&room>0;i--)if(L[i].st==='over'){keep.add(L[i]);room--;}
+  return L.filter(d=>keep.has(d));}
+// Adds a deal to the save, letting the oldest ended ones go past the cap.
+function fedDealAdd(f,d){f.deals.push(d);f.deals=fedDealsCap(f.deals);return d;}
 function fedDealClean(d){if(!d||typeof d!=='object'||Array.isArray(d)||FdId(d.id)||!FED_DEALS.includes(d.deal)||FdK(d.key))return null;
   const T=d.terms;if(!T||typeof T!=='object'||Array.isArray(T)||fedValues(T)||fedSize(fedCanon(T))>8192||FED_TERMS[d.deal](T))return null;
   const t=v=>Number.isSafeInteger(v)&&v>=0&&v<=1e11?v:null,start=t(d.start),end=t(d.end),peer=d.deal==='peering'||d.deal==='swap';
@@ -52,7 +63,7 @@ function fedDealClean(d){if(!d||typeof d!=='object'||Array.isArray(d)||FdId(d.id
   if(peer?role!=='peer':role!=='buy'&&role!=='sell')return null;if(!FED_DEAL_ST.includes(st)||st==='run'&&start===null)return null;
   return {id:d.id,deal:d.deal,key:d.key,name:typeof d.name==='string'&&!FdName(d.name.slice(0,40))?fedSafeName(d.name.slice(0,40)):'AS?',
     asn:Number.isSafeInteger(d.asn)&&d.asn>=0&&d.asn<=4294967295?d.asn:0,start,end,terms:JSON.parse(fedCanon(T)),role,st,
-    on:d.on===true&&st==='run',rep:Number.isSafeInteger(d.rep)&&d.rep>=0&&d.rep<=2e9?d.rep:0,why:typeof d.why==='string'?d.why.slice(0,16):'',ai:d.ai===true};}
+    on:d.on===true&&st==='run',rep:Number.isSafeInteger(d.rep)&&d.rep>=0&&d.rep<=2e9?d.rep:0,why:typeof d.why==='string'?d.why.slice(0,16):'',ai:d.ai===true,renews:FdId(d.renews)?null:d.renews};}
 
 /* ---------- shared saves and bug reports never carry a way to act as the network ---------- */
 // The save with its private key, its queued records and any operator key taken out (a copy; s is untouched).
@@ -74,11 +85,12 @@ const fedNow=()=>FED.now();
    decline go out sealed for the other network (§5.3, fedSealMine), which throws when its box is not known here. */
 async function fedSignMine(kind,body,f=S&&S.fed){if(!fedHasPriv(f))throw new Error('no key');return fedSealMine(kind,body,f);}
 /* Queues a signed record of this network to be sent to every joined server. Gives false when the queue is full (only
-   offers and answers are refused then; an older stats or announce is simply replaced by the newer one). */
+   offers and answers are refused then; an older stats or announce is simply replaced by the newer one, outside the cap,
+   so a full queue never loses this network's terms). */
 function fedQueue(r,f=S&&S.fed){if(!f||!r)return false;
-  if(r.kind==='stats'||r.kind==='announce')f.out=f.out.filter(x=>x.kind!==r.kind);
-  const n=fedSize(fedCanon(r)),others=f.out.filter(x=>x.kind!=='stats');
-  if(r.kind!=='stats'&&(others.length>=FED_OUT_MAX||others.reduce((a,x)=>a+fedSize(fedCanon(x)),0)+n>FED_OUT_BYTES))return false;
+  if(FED_OUT_ONE.includes(r.kind)){for(const x of f.out)if(x.kind===r.kind){const id=FED.ids.get(x);if(id)FED.sent.delete(id);}f.out=f.out.filter(x=>x.kind!==r.kind);}
+  else{const n=fedSize(fedCanon(r)),others=f.out.filter(x=>!FED_OUT_ONE.includes(x.kind));
+    if(others.length>=FED_OUT_MAX||others.reduce((a,x)=>a+fedSize(fedCanon(x)),0)+n>FED_OUT_BYTES)return false;}
   f.out.push(r);fedFlushSoon();return true;}
 // What the boards rank about this game now (§5.2). The gameplay may replace parts through FED.hooks.stats(body).
 function fedStatsBody(s=S){const pops={};for(const c of Object.keys(s.pops)){const p=s.pops[c];if(p&&!(p.down>s.day))pops[c]=1;}

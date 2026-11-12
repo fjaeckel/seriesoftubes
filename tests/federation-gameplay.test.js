@@ -194,7 +194,9 @@ test('a capacity swap carries your traffic while your cable is cut; a consortium
   p.ev("S.links.find(l=>l.id==='L1').cut=0;dayTick()");
   assert.equal(p.ev("S.links.some(l=>l.fsw)"), false, 'gone once the cable is back');
   // A consortium cable opened by Alice: two more signers fund it, and this game lays its own fibre pairs.
-  const off = rec('alice', 'offer', NOW, { deal: 'consortium', terms: { name: 'Brine Line FRA–NYC', a: 'fra', b: 'nyc', members: 3, share: 1000000, pairs: 2 } });
+  // Its share is the honest one (fedConsShare): a lower share would cost this member the honest price anyway.
+  const share = p.ev("fedConsShare('fra','nyc',2)");
+  const off = rec('alice', 'offer', NOW, { deal: 'consortium', terms: { name: 'Brine Line FRA–NYC', a: 'fra', b: 'nyc', members: 3, share, pairs: 2 } });
   await resync(p, n, [off]);
   assert.ok(await until(async () => (await settle(5), p.ev('S.fedp.cons.length') === 1)), 'the project is listed');
   const cash = p.ev('S.cash');
@@ -202,7 +204,7 @@ test('a capacity swap carries your traffic while your cable is cut; a consortium
   assert.equal(p.ev('S.fedp.cons[0].st'), 'open');
   await resync(p, n, [rec('carol', 'accept', NOW + 10, { offer: rid(off), to: k })]);
   assert.ok(await until(async () => (await settle(5), p.ev('S.fedp.cons[0].st') === 'funded')), 'funded');
-  assert.equal(cash - p.ev('S.cash'), 1000000, 'this member paid its own share');
+  assert.equal(cash - p.ev('S.cash'), share, 'this member paid its own share');
   assert.ok(p.ev("S.links.some(l=>l.seat&&l.cname==='Brine Line FRA–NYC'&&l.pairs===2)"));
   assert.deepEqual(p.errors, []);
 });

@@ -147,8 +147,11 @@ from" a server passes that server's URLs.
 Behaviour (§9): one connection per joined server; `hello` → `welcome`; when the registry knows the server, the node
 must be one of its nodes and answer a `challenge` (otherwise the next node is tried); nothing is sent before. Then
 `auth` proves the network's key, and the imported operator key when the catalog lists it as an operator of that server.
+A node that does not `ack` the network's own key gets no `sub` (what a sub gives depends on the key proved): the
+connection is dropped and tried again with back-off. The back-off (2 s doubling, at most 30 min) starts again only after
+a connection stayed ready 60 s, and a connection-level `err` `rate_limited` is waited out (`retry`) before redialling.
 Then the queue is put (a record leaves it once every joined server took it, or refused it for good; `rate_limited` waits
-`retry`), a `sub` follows `announce`, `offer`, `accept`, `decline`, `leave`, `hide` from the stored cursor, and
+`retry`; the newest `announce` and `stats` replace their older copy outside the queue's cap), a `sub` follows `announce`, `offer`, `accept`, `decline`, `leave`, `hide` from the stored cursor, and
 `servers` brings gossip. Shun votes are for operators only (§9.3, §12): only when the node answered the operator key's
 `auth` with `op: true` does a second `sub` follow `shun` and `unshun` from its own cursor, and votes are kept only then,
 only on a device with an operator key, and only when signed by an operator of a voting registry server (§10.7);
@@ -222,8 +225,10 @@ IndexedDB, frame parsing, and the game routing once when the snapshot changes), 
 ## Browser storage (IndexedDB `sot-fed`, shared by every slot)
 
 Stores `ann` (other networks' newest announce and `heard`, at most 5000, the longest silent dropped first once a tenth
-over, counted without reading the store each time, forgotten after 180 days), `kv` (`registry`, `gossip`, `ranks` (the last answer per joined URL and slice, at most 48), `facets:<URL>`, `nets:<URL>`, `untrusted` (servers caught, for 24 hours), `excl:<joined URL>` (`{at, srv, keys, me, reasons}`), `hide:<server>`,
-`cursor:<node>`, and on an operator's device only `votes` until expired and `vcursors`; without an operator key they are
+over, counted without reading the store each time, forgotten after 180 days), `kv` (`registry`, `gossip`, `ranks` (the last answer per joined URL, network and slice, at most 48), `facets:<URL>`, `nets:<URL>`, `untrusted` (servers caught, for 24 hours), `excl:<joined URL>` (`{at, srv, keys, me, reasons}`), `hide:<server>`,
+`cursor:<node>#<network key>` (cursors are per network: what a sub gives depends on the key proved), `dpend#<network
+key>` (sealed deal records waiting for their sender's announce, at most 256, 30 days), and on an operator's device only
+`votes` until expired and `vcursors` (per `<node>#<network key>`); without an operator key they are
 deleted when a session starts or the sheet opens) and `op` (the operator key). Every access is wrapped; without IndexedDB (or when it fails) the same calls
 use memory for the tab. `fedGet/fedPut/fedDel/fedAll(store, …)`.
 
@@ -257,6 +262,21 @@ Joining, status dot, server list and looking glass, boards, the move-file warnin
 networks in routing (`fedNetworks()` with `quiet.factor`), deals (`deal` events, `fedDeal`, `S.fed.deals`), announces
 (build the body, `fedSignMine('announce', body)`, `fedQueue`), traffic per player network in stats (`FED.hooks.stats`),
 the 14-day "join another server" suggestion (from `fedStatus().since`).
+
+## Deals kept and renewed (`60-features/89-fedplay-deals.js`)
+
+- `S.fed.deals` holds at most 256 deals (`fedDealsCap`, on load and in `fedDealAdd`): waiting and running deals always
+  stay, ended ones only as room is left, the newest first.
+- A deal is renewed once: each deal keeps `renews` (the id of the deal it renews, or null); `fedRenewal(f, id)` finds a
+  waiting or running renewal. The buyer cannot book a second (`dup`, and Renew is hidden, offered to buyers only); the
+  seller declines a second renewal offer (`conditions`).
+- A renewal starts when the renewed deal ends, or when it binds if later (§10.10), on both paths: automatic (`fedDeal`)
+  and reviewed (`fedRenStart`, for the accept received and the accept given), so the two never bill together. A wave
+  renewal on the same route, no bigger, takes over the room of the wave it renews (`fedWaveRen`).
+- The review queue (`S.fedp.rq`) holds 32 offers. When full, the oldest leaves with a `decline` (`declined`), so its
+  requester is not left waiting, and the new one waits: a flood of offers cannot keep new ones out.
+- A consortium project shows and costs at least `fedConsShare(a, b, pairs)` in this game, whatever share its author
+  wrote (a share of 0 is not a free cable).
 
 ## Newcomers and mentors (`60-features/89-fedplay-mentor.js`)
 

@@ -327,7 +327,7 @@ stay in the browser).`);
         must(n >= FAKES + 1, `${me.name} knows ${n} networks`);
         const recs = me.frames.filter((f) => f.m === 'recs' && f.id === me.sent.find((s) => s.m === 'sub').id);
         must(FAKES < 130 || recs.length > 1, `${me.name}: backlog came in ${recs.length} frame(s)`);
-        const cur = await ev(me, async () => fedGet('kv', 'cursor:' + S.fed.servers[0]));
+        const cur = await ev(me, async () => fedGet('kv', 'cursor:' + S.fed.servers[0] + '#' + S.fed.key.pub));
         must(typeof cur === 'string' && cur === recs.at(-1).cursor, `${me.name}: saved cursor ${cur} is not the last page's ${recs.at(-1) && recs.at(-1).cursor}`);
       }
       return 'both';

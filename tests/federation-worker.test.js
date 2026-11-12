@@ -52,7 +52,7 @@ test('records from a sub are checked in the worker, one batch per page, and kept
   const heard = await p.ev(`fedGet('ann',${JSON.stringify(key('alice').pub)}).then(o=>o.heard)`);
   assert.equal(heard, slotOf(NOW - 60));
   assert.equal(p.ev('FED.live.fed.servers.length'), 1);
-  assert.ok(await p.ev(`fedGet('kv','cursor:'+${JSON.stringify(URL1)})`), 'the page cursor is kept once its records are');
+  assert.ok(await p.ev(`fedGet('kv','cursor:'+${JSON.stringify(URL1)}+'#'+S.fed.key.pub)`), 'the page cursor is kept once its records are');
 });
 
 test('sealed deals for this player are opened on the page, never in the worker', async () => {

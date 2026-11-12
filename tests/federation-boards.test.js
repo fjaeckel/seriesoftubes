@@ -57,10 +57,10 @@ test('a slice ranked by the servers: the request carries the filters, two server
 test('the offline cache keeps at most 48 answers, the oldest going first', async () => {
   const p = fedPage();
   p.ev('ACT.start({})');
-  for (let i = 0; i < 52; i++) { p.net.t += 1000; await p.ev(`fedRanksPut('u','k${i}',{slot:0,n:0,rows:[],me:null})`); }
+  for (let i = 0; i < 52; i++) { p.net.t += 1000; await p.ev(`fedRanksPut('u','p','k${i}',{slot:0,n:0,rows:[],me:null})`); }
   const e = JSON.parse(await p.ev("fedGet('kv','ranks').then(o=>JSON.stringify(Object.keys(o.entries)))"));
   assert.equal(e.length, 48);
-  assert.equal(e.includes('u k0'), false);
-  assert.equal(e.includes('u k51'), true);
+  assert.equal(e.includes('u p k0'), false);
+  assert.equal(e.includes('u p k51'), true);
   assert.deepEqual(p.errors, []);
 });
