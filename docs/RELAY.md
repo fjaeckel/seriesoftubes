@@ -338,9 +338,11 @@ How it works (`relay/internal/rank`):
   key is left out on purpose: keep your own copy of `operator.key` somewhere safe. If a node loses its disk, the
   server's other nodes and the servers it syncs with fill it back in; what nobody else had is only recent stats and
   offers, which players send again.
-- **What is kept:** records go into one file per day under `log/`. Stats are kept 72 hours (plus each network's newest,
-  for carrying forward), offers and answers 30 days, votes 90 days, announcements until a network has been silent 180
-  days. Daily files are rewritten or deleted once nothing in them is kept.
+- **What is kept:** records go into one file per day under `log/`. Stats are kept 72 hours (plus, for carrying forward,
+  each network's newest and the one in force when the previous window starts), offers and answers 30 days, votes 97
+  days (90 they count, and the 7 a shun takes to lift), announcements until a network has been silent 180 days. What a
+  `leave` removes is removed for good. Daily files are rewritten or deleted once nothing in them is kept, today's
+  included, at the hourly retention run.
 
 ## Testing against the game
 

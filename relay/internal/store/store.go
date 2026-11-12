@@ -53,6 +53,7 @@ type Store struct {
 	order  []*Entry            // every entry in storage order (removed ones until compacted)
 	kinds  map[string][]*Entry // the same per kind
 	gone   int                 // removed entries still in the ordered lists
+	shrunk map[int64]bool      // days whose file holds records removed since (Compact rewrites them)
 	seq    uint64
 	day    int64
 	file   *os.File
@@ -67,7 +68,7 @@ type Store struct {
 // Memory returns a store without files.
 func Memory() *Store {
 	return &Store{byID: map[string]*Entry{}, byKind: map[string]map[string]*Entry{}, byKey: map[string]map[string]*Entry{},
-		kinds: map[string][]*Entry{}}
+		kinds: map[string][]*Entry{}, shrunk: map[int64]bool{}}
 }
 
 // Open opens (and migrates) a data folder and loads every record.
@@ -222,6 +223,11 @@ func (s *Store) write(e *Entry, day int64) error {
 	if s.file == nil || s.day != day {
 		if s.file != nil {
 			s.file.Close()
+			s.file = nil
+		}
+		// A line cut short by a crash would glue the next record onto it: cut it off first.
+		if err := repairTail(s.path(day)); err != nil {
+			return err
 		}
 		f, err := os.OpenFile(s.path(day), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 		if err != nil {
@@ -229,8 +235,48 @@ func (s *Store) write(e *Entry, day int64) error {
 		}
 		s.file, s.day = f, day
 	}
-	_, err := s.file.Write(encodeLine(e))
-	return err
+	if _, err := s.file.Write(encodeLine(e)); err != nil {
+		// Part of the line may be written: reopen (and repair) before the next one.
+		s.file.Close()
+		s.file = nil
+		return err
+	}
+	return nil
+}
+
+// repairTail cuts a file back to its last newline, dropping a line a crash left unfinished.
+func repairTail(path string) error {
+	f, err := os.OpenFile(path, os.O_RDWR, 0)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	fi, err := f.Stat()
+	if err != nil {
+		return err
+	}
+	end := fi.Size()
+	buf := make([]byte, 64<<10)
+	for pos := end; pos > 0; {
+		n := min(int64(len(buf)), pos)
+		pos -= n
+		if _, err := f.ReadAt(buf[:n], pos); err != nil {
+			return err
+		}
+		if i := bytes.LastIndexByte(buf[:n], '\n'); i >= 0 {
+			if cut := pos + int64(i) + 1; cut != end {
+				return f.Truncate(cut)
+			}
+			return nil
+		}
+	}
+	if end > 0 {
+		return f.Truncate(0)
+	}
+	return nil
 }
 
 func encodeLine(e *Entry) []byte {
@@ -344,6 +390,7 @@ func (s *Store) Remove(ids []string) {
 		delete(s.byKey[e.Rec.Key], id)
 		e.gone = true
 		s.gone++
+		s.shrunk[e.Day] = true
 	}
 	if s.gone > 1024 && s.gone*2 > len(s.order) {
 		isGone := func(e *Entry) bool { return e.gone }
@@ -359,8 +406,9 @@ func (s *Store) Remove(ids []string) {
 	}
 }
 
-// Compact rewrites or deletes day files so they hold only the entries still kept.
-// Today's file stays append-only; older files are rewritten through a temporary file.
+// Compact rewrites or deletes day files so they hold only the entries still kept, through a
+// temporary file. Today's file (and a later one) is rewritten only when records in it were
+// removed, so a removal is durable the same day and nothing comes back after a restart.
 func (s *Store) Compact(today int64) error {
 	if s.dir == "" {
 		return nil
@@ -374,8 +422,12 @@ func (s *Store) Compact(today int64) error {
 		byDay[e.Day] = append(byDay[e.Day], e)
 	}
 	for _, d := range days {
-		if d >= today {
+		if d >= today && !s.shrunk[d] {
 			continue
+		}
+		if s.file != nil && s.day == d {
+			s.file.Close() // reopened by the next write
+			s.file = nil
 		}
 		kept := byDay[d]
 		if len(kept) == 0 {
@@ -396,6 +448,7 @@ func (s *Store) Compact(today int64) error {
 			return err
 		}
 	}
+	clear(s.shrunk)
 	// Entries whose latest copy lives in a later file are now written there; nothing else to do.
 	return nil
 }

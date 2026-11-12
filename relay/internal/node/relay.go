@@ -126,6 +126,10 @@ func New(o Options) (*Relay, error) {
 	for _, e := range st.Kind("leave") {
 		r.left[e.Rec.Key] = max(r.left[e.Rec.Key], e.Rec.T)
 	}
+	// What a leave removed stays removed, even if a restart came before the file was rewritten.
+	if gone := r.leftBehind(); len(gone) > 0 {
+		st.Remove(gone)
+	}
 	r.indexVotes()
 	r.loadCatalog()
 	r.loadRegistryCache()
@@ -665,8 +669,24 @@ func (r *Relay) after(e *store.Entry, now int64) {
 				drop = append(drop, id)
 			}
 		}
+		// The files catch up at the next retention run (today's included); until then a restart
+		// removes these again from the leave record (New).
 		r.remove(drop)
 	}
+}
+
+// leftBehind lists records a leave removes (non-leave records of its key with t <= its t) that
+// are still in the store (lock held).
+func (r *Relay) leftBehind() []string {
+	var drop []string
+	for key, t := range r.left {
+		for id, x := range r.st.Key(key) {
+			if x.Rec.Kind != "leave" && x.Rec.T <= t {
+				drop = append(drop, id)
+			}
+		}
+	}
+	return drop
 }
 
 // item is a record with its receipts, as recs and push carry it.
@@ -889,18 +909,38 @@ func (r *Relay) remove(ids []string) {
 
 // expired lists ids past their keeping time.
 func (r *Relay) expired(now int64) []string {
-	var drop []string
+	drop := r.leftBehind()
 	keepStats := now - 3*fed.Day // two windows and slack
-	carryFrom := fed.Slot(now) - 2*fed.WindowSlots*fed.SlotLen - fed.CarryForward
-	for key, recs := range r.byKeyKind("stats") {
-		sort.Slice(recs, func(i, j int) bool { return recs[i].Slot > recs[j].Slot })
+	prevFrom := fed.Slot(now) - 2*fed.WindowSlots*fed.SlotLen
+	carryFrom := prevFrom - fed.CarryForward
+	for _, recs := range r.byKeyKind("stats") {
+		// Newest first: board slot, then 10.2's order within a slot.
+		sort.Slice(recs, func(i, j int) bool {
+			a, b := recs[i], recs[j]
+			if a.Slot != b.Slot {
+				return a.Slot > b.Slot
+			}
+			if a.Rec.T != b.Rec.T {
+				return a.Rec.T > b.Rec.T
+			}
+			return a.Rec.ID < b.Rec.ID
+		})
+		// Besides the newest, the record effective at the previous window's start (10.2) is kept
+		// while it can carry forward into the windows: a network silent for days that posts again
+		// still has its value there.
+		atPrev := -1
 		for i, e := range recs {
-			newest := i == 0 && e.Slot > carryFrom
-			if e.Slot < keepStats && !newest {
+			if e.Slot <= prevFrom {
+				atPrev = i
+				break
+			}
+		}
+		for i, e := range recs {
+			carried := (i == 0 || i == atPrev) && e.Slot > carryFrom
+			if e.Slot < keepStats && !carried {
 				drop = append(drop, e.Rec.ID)
 			}
 		}
-		_ = key
 	}
 	for key, recs := range r.byKeyKind("announce") {
 		sort.Slice(recs, func(i, j int) bool { return recs[i].Rec.T > recs[j].Rec.T })
@@ -917,8 +957,10 @@ func (r *Relay) expired(now int64) []string {
 			}
 		}
 	}
+	// Votes are kept until they can no longer count: a vote counts for 90 days, and a shun holds
+	// 7 days after the votes fell below the threshold (10.7 step 5), so 97 days.
 	ages := map[string]int64{"offer": fed.OfferKept, "accept": fed.OfferKept, "decline": fed.OfferKept,
-		"shun": fed.VoteLife, "unshun": fed.VoteLife, "leave": fed.LeaveKept}
+		"shun": fed.VoteLife + fed.ShunLift, "unshun": fed.VoteLife + fed.ShunLift, "leave": fed.LeaveKept}
 	for k, age := range ages {
 		for id, e := range r.st.Kind(k) {
 			if now-e.Rec.T > age {

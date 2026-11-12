@@ -851,8 +851,10 @@ rankings out (and prefers its other servers) for 24 hours and tells the player. 
 which networks a server left out or which rows it chose to send.
 
 **What relays keep of `stats`:** every `stats` record whose receipt slot is in the last 72 hours (the two windows and
-some slack), and besides that the newest `stats` of each network for the full carry-forward reach (604800 s before the
-start of the previous window).
+some slack), and besides that, for each network, its newest `stats` and its effective record at the start of the
+previous window (`eff(X, c - 576 * 300)`, 10.2), each while its board slot is within the full carry-forward reach
+(604800 s before the start of the previous window). The second is what carries a network's value into the windows when
+it was silent for more than 72 hours and has posted again since.
 
 ## 10. Rules both sides compute
 
