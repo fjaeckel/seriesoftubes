@@ -57,8 +57,9 @@ type Store struct {
 	seq    uint64
 	day    int64
 	file   *os.File
-	Loaded int // lines read on open
-	Bad    int // lines that did not check on open
+	lock   *os.File // the data folder's lock, held while open
+	Loaded int      // lines read on open
+	Bad    int      // lines that did not check on open
 	// Keep chooses the signatures a merged multi-signer record keeps (10.11); nil keeps the
 	// author and the first others by key, at most fed.MaxSigners. Set by the relay, which knows
 	// the chain; called with its lock held.
@@ -71,8 +72,32 @@ func Memory() *Store {
 		kinds: map[string][]*Entry{}, shrunk: map[int64]bool{}}
 }
 
-// Open opens (and migrates) a data folder and loads every record.
+// ErrLocked: another relay has the data folder open.
+var ErrLocked = errors.New("the data folder is in use by another relay (relay serve already running?)")
+
+// LockName is the data folder's lock file.
+const LockName = "LOCK"
+
+// Open opens (and migrates) a data folder and loads every record. The folder stays locked until
+// Close: a second Open of it, in this process or another, fails with ErrLocked.
 func Open(dir string) (*Store, error) {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return nil, err
+	}
+	lock, err := lockDir(filepath.Join(dir, LockName))
+	if err != nil {
+		return nil, err
+	}
+	s, err := open(dir)
+	if err != nil {
+		lock.Close()
+		return nil, err
+	}
+	s.lock = lock
+	return s, nil
+}
+
+func open(dir string) (*Store, error) {
 	if err := Migrate(dir); err != nil {
 		return nil, err
 	}
@@ -453,12 +478,18 @@ func (s *Store) Compact(today int64) error {
 	return nil
 }
 
-// Close closes the open file.
+// Close closes the open file and lets the folder go.
 func (s *Store) Close() error {
+	var err error
 	if s.file != nil {
-		return s.file.Close()
+		err = s.file.Close()
+		s.file = nil
 	}
-	return nil
+	if s.lock != nil {
+		s.lock.Close()
+		s.lock = nil
+	}
+	return err
 }
 
 // Size returns the bytes used by the log files.

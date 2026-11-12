@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -202,9 +203,50 @@ func (r *Relay) Nodes() []map[string]any {
 
 // Backup writes a gzipped tar of the data folder (records, catalog, config, node key).
 // The operator key is left out: it is backed up separately, and on purpose by hand.
+// Under the lock it only opens every file and notes its size: files are appended to or replaced
+// by a rename, so what was there then stays readable, and the copy is written without the lock.
 func (r *Relay) Backup(path string) error {
+	type snap struct {
+		f   *os.File
+		hdr *tar.Header
+	}
+	var files []snap
+	defer func() {
+		for _, s := range files {
+			s.f.Close()
+		}
+	}()
 	r.mu.Lock()
-	defer r.mu.Unlock()
+	err := filepath.Walk(r.o.Dir, func(p string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(r.o.Dir, p)
+		base := filepath.Base(p)
+		if fi.IsDir() || !fi.Mode().IsRegular() || base == "operator.key" || base == store.LockName || strings.HasPrefix(base, ".tmp-") {
+			return nil
+		}
+		src, err := os.Open(p)
+		if err != nil {
+			return err
+		}
+		if fi, err = src.Stat(); err != nil {
+			src.Close()
+			return err
+		}
+		hdr, err := tar.FileInfoHeader(fi, "")
+		if err != nil {
+			src.Close()
+			return err
+		}
+		hdr.Name = filepath.ToSlash(rel)
+		files = append(files, snap{src, hdr})
+		return nil
+	})
+	r.mu.Unlock()
+	if err != nil {
+		return err
+	}
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
@@ -212,33 +254,13 @@ func (r *Relay) Backup(path string) error {
 	defer f.Close()
 	gz := gzip.NewWriter(f)
 	tw := tar.NewWriter(gz)
-	err = filepath.Walk(r.o.Dir, func(p string, fi os.FileInfo, err error) error {
-		if err != nil {
+	for _, s := range files {
+		if err := tw.WriteHeader(s.hdr); err != nil {
 			return err
 		}
-		rel, _ := filepath.Rel(r.o.Dir, p)
-		base := filepath.Base(p)
-		if fi.IsDir() || !fi.Mode().IsRegular() || base == "operator.key" || strings.HasPrefix(base, ".tmp-") {
-			return nil
+		if _, err := io.CopyN(tw, s.f, s.hdr.Size); err != nil {
+			return fmt.Errorf("backup: %s changed while copied: %w", s.hdr.Name, err)
 		}
-		hdr, err := tar.FileInfoHeader(fi, "")
-		if err != nil {
-			return err
-		}
-		hdr.Name = filepath.ToSlash(rel)
-		if err := tw.WriteHeader(hdr); err != nil {
-			return err
-		}
-		src, err := os.Open(p)
-		if err != nil {
-			return err
-		}
-		defer src.Close()
-		_, err = io.Copy(tw, src)
-		return err
-	})
-	if err != nil {
-		return err
 	}
 	if err := tw.Close(); err != nil {
 		return err

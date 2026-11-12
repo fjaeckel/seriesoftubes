@@ -1,13 +1,16 @@
 package node_test
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/node"
 	rt "github.com/fjaeckel/seriesoftubes/relay/internal/relaytest"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/store"
 )
 
 // Records a leave removed stay removed after a restart the same day, with or without a
@@ -35,6 +38,22 @@ func TestLeaveSurvivesRestart(t *testing.T) {
 	if x.Has(rt.ID(annC)) || x.Has(rt.ID(annD)) {
 		t.Fatal("a record removed by leave came back after compaction")
 	}
+}
+
+// A second relay on a data folder in use is refused before it touches anything (its socket,
+// retention, compaction); once the first stops, the folder opens again.
+func TestDataFolderIsLocked(t *testing.T) {
+	n := rt.New(t)
+	x := n.Found("keeper", "open").Nodes[0]
+	if _, err := node.New(node.Options{Dir: x.Dir, Config: x.Cfg, Node: x.Key}); !errors.Is(err, store.ErrLocked) {
+		t.Fatalf("a second relay on the folder: %v", err)
+	}
+	x.Stop()
+	r, err := node.New(node.Options{Dir: x.Dir, Config: x.Cfg, Node: x.Key})
+	if err != nil {
+		t.Fatalf("the folder after the first relay stopped: %v", err)
+	}
+	r.Close()
 }
 
 // A line cut short by a crash does not take the next record with it.

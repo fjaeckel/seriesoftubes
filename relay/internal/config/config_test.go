@@ -33,6 +33,28 @@ func TestCheck(t *testing.T) {
 	}
 }
 
+// Listening beyond loopback behind a proxy trusted on loopback only (a container) warns: every
+// player would share the proxy's address and one connection limit.
+func TestProxyWarning(t *testing.T) {
+	c := Default()
+	if w := c.ProxyWarning(); w != "" {
+		t.Fatalf("loopback listen warned: %s", w)
+	}
+	c.Listen = "0.0.0.0:8080"
+	if c.ProxyWarning() == "" {
+		t.Fatal("a container's listen with loopback-only proxies did not warn")
+	}
+	c.TrustedProxies = append(c.TrustedProxies, "172.16.0.0/12")
+	if w := c.ProxyWarning(); w != "" {
+		t.Fatalf("a trusted container network warned: %s", w)
+	}
+	c = Default()
+	c.Listen, c.TLSCert, c.TLSKey = ":443", "cert.pem", "key.pem"
+	if w := c.ProxyWarning(); w != "" {
+		t.Fatalf("serving TLS itself (no proxy) warned: %s", w)
+	}
+}
+
 func TestLoadRefusesUnknownFields(t *testing.T) {
 	p := filepath.Join(t.TempDir(), "config.json")
 	os.WriteFile(p, []byte(`{"listen":"127.0.0.1:8080","logAddresses":true}`), 0o600)

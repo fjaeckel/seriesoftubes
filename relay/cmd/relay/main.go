@@ -619,11 +619,19 @@ func cmdServe(args []string) error {
 	if c.Server == "" {
 		return errors.New("this node has no server yet: run relay genesis or relay join first")
 	}
+	// Another relay on this folder would lose its operator socket and share the store: refuse
+	// (the store's lock refuses it too, where the system has one).
+	if ops.Running(*dir) {
+		return errors.New("a relay is already serving this data folder")
+	}
 	var h slog.Handler = slog.NewTextHandler(os.Stderr, nil)
 	if *logJSON {
 		h = slog.NewJSONHandler(os.Stderr, nil)
 	}
 	logger := slog.New(h)
+	if w := c.ProxyWarning(); w != "" {
+		logger.Warn(w)
+	}
 	var countries *privacy.MMDB
 	if c.CountryDB != "" {
 		if countries, err = privacy.OpenMMDB(c.CountryDB); err != nil {
