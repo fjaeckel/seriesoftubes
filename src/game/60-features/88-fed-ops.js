@@ -13,8 +13,9 @@ async function fedOpPut(srv,rec){const c=fedConnTo(srv);if(!c||!rec)return {erro
   if(!a)return {error:'timeout'};if(a.m==='err'){fedErrLog(c.node,srv,a.code);return {error:a.code};}return {ok:true};}
 /* The server's chain records (genesis, operators, server) from a connected node, checked: {chain (fedChain), pending
    [{id, rec}]} or null. The node keeps pending proposals 14 days. */
-async function fedOpChain(srv){const c=fedConnTo(srv);if(!c)return null;const a=await fedAsk(c,{m:'sub',kinds:['genesis','operators','server'],since:''},true);
-  if(fedConnTo(srv)===c)fedSend(c,{m:'unsub',id:c.nid=c.nid%2147483646+1});
+async function fedOpChain(srv){const c=fedConnTo(srv);if(!c)return null;const q=fedAsk(c,{m:'sub',kinds:['genesis','operators','server'],since:''},true),a=await q;
+  // The backlog is all this needs: the unsub names the sub's own id (§9.3), or the node would keep it live.
+  if(fedConnTo(srv)===c&&q.id)fedSend(c,{m:'unsub',id:q.id});
   if(!a||a.m!=='recs')return null;const now=fedNow(),props=[];let gen=null;
   for(const it of a.items.slice(0,2000)){if(!it||typeof it!=='object')continue;const chk=await fedCheck(it.rec,now);if(!chk.ok)continue;
     if(chk.rec.kind==='genesis'&&chk.id===srv)gen=chk;else if(chk.rec.kind==='operators')props.push({rec:chk.rec,id:chk.id});}
