@@ -19,8 +19,11 @@ drives two players in Chromium through joining, announcing, deals, a shun and th
 - **Everything received is untrusted.** Frames, records, receipts, catalog entries and the registry are checked before
   anything is kept; a record that fails is dropped and never blocks another.
 - **No `Math.random`.** Seeded games replace it; federation uses `crypto.getRandomValues` through `FED.rand`.
-- **WebCrypto Ed25519 or nothing.** `fedCan()` resolves false where the browser lacks it; joining then answers
-  `'crypto'` and nothing else changes.
+- **WebCrypto Ed25519, X25519, HKDF and AES-GCM, or nothing.** `fedCan()` signs and verifies, then seals a decline to
+  itself and opens it again; it resolves false where any of these is missing, and joining then answers `'crypto'`
+  and nothing else changes. Current Chrome, Edge, Firefox and Safari (desktop and phone) ship WebCrypto X25519 next to
+  Ed25519 (they arrived within a few releases of each other); a browser with Ed25519 but not yet X25519 does not offer
+  multiplayer.
 - **The worker never connects.** The route worker runs the same script; `fedWake()` does nothing there.
 
 ## State in the save
@@ -75,7 +78,9 @@ All return a value (or a promise) and change only `S.fed`; they save, but do not
 | Function | Purpose |
 | --- | --- |
 | `fedCheck(textOrValue, now, {kinds})` | §7.1 steps 1–8: `{ok:true, kind, id, rec}` or `{ok:false, error}` with the spec's codes |
-| `fedSignMine(kind, body)` | Signs a record of this save's network (needs `key.priv`) |
+| `fedSignMine(kind, body)` | Signs a record of this save's network (needs `key.priv`). `body` is in clear: an offer with `to` and a decline go out sealed for the other network (§5.3, through `fedSealMine`); throws `nobox` when that network's box is not known here (no announce of it) |
+| `fedBoxPub(seed)`, `fedBoxKey(seed)` | The box key (§3.5) derived from an identity seed; the announce carries `box` (nothing new in the save or the move file) |
+| `fedSeal`, `fedOpen`, `fedBoxOf(key)`, `fedOpenRec(f, rec)` | Sealing and opening (§3.5); a network's box from its stored announce; a received deal record as the game reads it (opened and checked in clear, `null` when it does not open, `undefined` while the sender's box is unknown) |
 | `fedQueue(rec)` | Queues it for every joined server; `false` when the queue is full (offers and answers only; a newer stats or announce replaces the older one) |
 | `fedStatsBody()` | This game's `stats` body now (§5.2). Gameplay can adjust it with `FED.hooks.stats = body => body` (e.g. traffic per player network) |
 | `fedSignRec(seed, kind, body, t)`, `fedCosign(seed, rec)` | Signing with any seed (operator tools) |
@@ -119,7 +124,7 @@ the slice. `me` is the player's own row, pinned: `rank` is `null` when the slice
 | `fedServers()` | Known servers, registry merged with gossip (§10.8): `[{id, source, name, nodes, operators, sync, noLogs, langs, desc, seen, path, listed, answered}]` |
 | `fedCatalogLoad()` | Fetches `federation/servers.json` (same origin), keeps the checked entries; the cache stays on failure |
 | `fedNetworks(now?)` | Other players' networks from cached announces: `[{key, rec, id, heard, quiet, srv}]` (`srv`: the servers it was heard on); forgets those silent 180 days |
-| `fedShunned()`, `fedExclInfo(key)` | Keys excluded now: the union of the `excluded` lists of the joined servers, as each last sent it (kept offline); about one key `{shunned, reasons}`, the reasons (a set, no counts) only for this network's own key |
+| `fedShunned()`, `fedConfirmed()`, `fedExcl()`, `fedExclInfo(key)` | Keys listed as excluded by any joined server, as each last sent its list (kept offline); keys whose exclusion is confirmed (§10.7: listed by a strict majority of the joined servers that sent a list, and by at least two; `fedExclConfirmed(m, n)`); both with who lists what; about one key `{shunned, confirmed, servers: [{srv, url}], reasons}`, the reasons (a set, no counts) only for this network's own key |
 | `fedShunInfo(key)` | Operators only: the tally (§10.7) from the votes their nodes sent, `{voters, need, votes, shunned, reasons}` with counts |
 
 Behaviour (§9): one connection per joined server; `hello` → `welcome`; when the registry knows the server, the node
@@ -131,8 +136,14 @@ Then the queue is put (a record leaves it once every joined server took it, or r
 `auth` with `op: true` does a second `sub` follow `shun` and `unshun` from its own cursor, and votes are kept only then,
 only on a device with an operator key, and only when signed by an operator of a voting registry server (§10.7);
 importing or removing the operator key proves it to the connected servers or stops following and deletes the votes
-(`fedOpChanged`). Every game keeps each joined server's `excluded` list (pages joined first) and uses their union
-wherever it excludes networks (boards, snapshot, deals ending, the excluded notice). `hide` only when signed by an operator of its own server (at the head of the chain the
+(`fedOpChanged`). Every game keeps each joined server's `excluded` list (pages joined first). A network on any of
+them is hidden (boards, looking glass, the routing snapshot, unless a deal with it still runs) and gets no new deals
+(requests answer the miss `excluded`, its offers are declined `excluded`, waiting ones cannot be accepted); running
+deals end only once the exclusion is confirmed (§10.7), so one server cannot end anyone's deals: until then that
+network's sheet says which servers list it and that running deals continue. The excluded network's own notice names
+the joined servers that list it (never vote counts). Deal records reach the gameplay opened (§5.3): `deal` events carry
+the record in clear; a sealed one whose sender's announce has not come yet waits in memory (at most 64) until it does,
+one that does not open is dropped. `hide` only when signed by an operator of its own server (at the head of the chain the
 catalog has); player names become plain text (`fedSafeName`: `<>&"'` swapped for look-alikes) before they reach `NET`. Pings after 60 s idle, gives up after 120 s of silence, requests time out after
 20 s. A lost connection tries the server's next node at once; after a full round it waits 2 s doubling up to 30 min,
 times 0.5–1 jitter, and only while the tab is visible (it dials at once when the tab comes back). Stats are signed every
@@ -147,7 +158,7 @@ times 0.5–1 jitter, and only while the tab is visible (it dials at once when t
 | `status` | `fedStatus()` |
 | `records` | `{server, n}` after a batch was checked and kept |
 | `excluded` | `{server, n}` after a server's excluded list was kept |
-| `deal` | `{rec, id, slot, server}`: an `offer`, `accept` or `decline` to or from this network (gameplay decides) |
+| `deal` | `{rec, id, slot, server}`: an `offer`, `accept` or `decline` to or from this network, opened (`rec.body` in clear; `id` the id of the record as it travelled), and open consortium projects (gameplay decides) |
 | `board` | `{server, n}` after `fedBoardFetch` |
 | `catalog` | `{source: 'registry' or 'gossip'}` |
 | `mute` | `{key, on}` |

@@ -46,9 +46,18 @@ const FED_TERMS={
   wave:FdObj([['a',FdCity],['b',FdCity],['gbps',FdWaveG],['monthly',FdMoney],['term',FdDays]],FdAB),
   consortium:FdObj([['name',FdName],['a',FdCity],['b',FdCity],['members',FdInt(2,16)],['share',FdMoney],['pairs',FdInt(1,16)]])};
 const FdNode=FdObj([['key',FdK],['url',FdUrl]]);
+// A box (§5.3): a 12-byte nonce and a ciphertext with its 16-byte tag, base64url. Only the deal's two parties open it.
+const FdBytes=(lo,hi)=>v=>{if(typeof v!=='string'||v.length>Math.ceil(hi*4/3))return FdBF;const u=fedUnb64(v);return u&&u.length>=lo&&u.length<=hi?null:FdBF;};
+const FdEnc=FdObj([['n',FdBytes(12,12)],['c',FdBytes(17,2048)]]);
+// An offer in clear (§5.3): an open consortium project as it travels, or a sealed offer once opened (with its to).
+const FED_OFFER=FdObj([['to',(v,c)=>FdK(v)||(v===c.rec.key?FdBF:null),1],['deal',FdOne(...FED_DEALS)],
+  ['basis',(v,c)=>c.o.deal==='consortium'?FdBF:FdId(v),1],['renews',FdId,1],['terms',(v,c)=>FED_TERMS[c.o.deal](v)]],
+  b=>!fedOwn(b,'to')&&b.deal!=='consortium'||!fedOwn(b,'basis')&&['peering','transit','pni','port','wave'].includes(b.deal)?FdMF:null);
+// What a sealed decline holds once opened.
+const FED_REASON=FdObj([['reason',FdOne('declined','conditions','depeer','excluded','quiet')]]);
 // Bodies by kind (§5). c: {rec (the envelope), asn (the key's ASN, for announce)}.
 const FED_BODY={
-  announce:FdObj([['name',FdName],['asn',(v,c)=>v===c.asn?null:FdBF],['home',FdCC],['day',FdInt(0,1e7)],
+  announce:FdObj([['name',FdName],['asn',(v,c)=>v===c.asn?null:FdBF],['box',FdK],['home',FdCC],['day',FdInt(0,1e7)],
     ['founded',(v,c)=>FdInt(0,fedDiv(c.rec.t,FED_DAY))(v)],['pops',FdList(FdCity,{max:512,set:1})],
     ['ix',(v,c)=>FdList(FdCity,{max:512,set:1})(v)||(Array.isArray(c.o.pops)&&v.every(x=>c.o.pops.includes(x))?null:FdBF)],
     ['cust',FdInt(0,1e7)],['mix',FdObj([['content',FdInt(0,1000)],['eyeball',FdInt(0,1000)],['enterprise',FdInt(0,1000)]],m=>m.content+m.eyeball+m.enterprise===1000?null:FdBF)],
@@ -64,11 +73,10 @@ const FED_BODY={
     ['pies',FdInt(0,1e7),1],
     ['traffic',(v,c)=>FdList(FdObj([['key',FdK],['in',FdMbps],['out',FdMbps]]),{max:256,set:1,by:x=>x.key})(v)||(v.some(x=>x.key===c.rec.key)?FdBF:null)],['total',FdMbps,1],
     ['tier1',FdBool],['ai',FdObj([['model',FdText(1,64)],['harness',FdText(1,64)]]),1],['shareCountry',FdBool]]),
-  offer:FdObj([['to',(v,c)=>FdK(v)||(v===c.rec.key?FdBF:null),1],['deal',FdOne(...FED_DEALS)],
-    ['basis',(v,c)=>c.o.deal==='consortium'?FdBF:FdId(v),1],['renews',FdId,1],['terms',(v,c)=>FED_TERMS[c.o.deal](v)]],
-    b=>!fedOwn(b,'to')&&b.deal!=='consortium'||!fedOwn(b,'basis')&&['peering','transit','pni','port','wave'].includes(b.deal)?FdMF:null),
+  // An offer to someone is sealed: to and the box in clear, nothing else (§5.3). Without to: an open consortium project.
+  offer:(v,c)=>v&&typeof v==='object'&&fedOwn(v,'to')?FdObj([['to',(x,cc)=>FdK(x)||(x===cc.rec.key?FdBF:null)],['enc',FdEnc]])(v,c):FED_OFFER(v,c),
   accept:FdObj([['offer',FdId],['to',FdK]]),
-  decline:FdObj([['offer',FdId],['to',FdK],['reason',FdOne('declined','conditions','depeer','excluded','quiet')]]),
+  decline:FdObj([['offer',FdId],['to',FdK],['enc',FdEnc]]),
   genesis:FdObj([['name',FdName],['node',FdNode]]),
   operators:FdObj([['server',FdId],['prev',FdId],['action',FdOne('add_operator','remove_operator','set_node','remove_node')],['target',FdK],
     ['url',(v,c)=>c.o.action==='set_node'?FdUrl(v):FdBF,1]],b=>b.action==='set_node'&&!fedOwn(b,'url')?FdMF:null),

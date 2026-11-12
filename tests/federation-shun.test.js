@@ -30,7 +30,7 @@ test('a player\'s game never gets or keeps a vote: its servers say who is exclud
   assert.equal(await p.ev("fedGet('kv','votes')"), null, 'no vote kept');
   const d = JSON.parse(await p.ev('fedBoardData().then(d=>JSON.stringify(d.exclude))'));
   assert.ok(d.includes(M), 'excluded from every board');
-  assert.deepEqual(JSON.parse(JSON.stringify(await p.ev(`fedExclInfo(${JSON.stringify(M)})`))), { shunned: true, reasons: [] }, 'no reasons for other networks');
+  assert.deepEqual(JSON.parse(JSON.stringify(await p.ev(`fedExclInfo(${JSON.stringify(M)})`))), { shunned: true, confirmed: false, servers: [{ srv: PL_ENTRY.id, url: URL1 }], reasons: [] }, 'no reasons for other networks; one server alone does not confirm it');
   // The server goes away: the last list stays.
   n.kill();
   await run(p);
@@ -68,7 +68,7 @@ test('the excluded network\'s own game is told which reasons were given, no coun
   assert.equal(await p.ev(`fedJoin(${JSON.stringify(URL1)})`), null);
   await run(p);
   const info = JSON.parse(JSON.stringify(await p.ev('fedExclInfo(S.fed.key.pub)')));
-  assert.deepEqual(info, { shunned: true, reasons: ['abuse', 'spam'] }, 'only the pre-made reasons, as a set');
+  assert.deepEqual(info, { shunned: true, confirmed: false, servers: [{ srv: PL_ENTRY.id, url: URL1 }], reasons: ['abuse', 'spam'] }, 'only the pre-made reasons, as a set, and which server lists it');
   const cash = p.ev('S.cash');
   for (let i = 0; i < 10; i++) p.ev('dayTick()');
   assert.equal(p.ev('S.day'), 10);

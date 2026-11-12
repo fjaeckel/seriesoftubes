@@ -3,13 +3,13 @@
 // Fake nodes, a virtual clock.
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { fedPage, joinGame, settle, until, URL1, NOW, rec, rid, key, asn } = require('./helpers/fed');
+const { fedPage, joinGame, settle, until, URL1, NOW, rec, rid, key, asn, box, sealRec } = require('./helpers/fed');
 
 const DAY = 86400;
 const AUTO = { peering: 'auto', transit: 'auto', pni: 'review', swap: 'review', consortium: 'review', port: 'auto', wave: 'auto' };
 function ann(name, over = {}, t = NOW - 60) {
   const k = key(name);
-  return rec(name, 'announce', t, { name: over.name || 'Ping Floyd', asn: asn(k.pub), home: 'DE', day: 400, founded: 20000, pops: ['fra', 'ams', 'lon'], ix: ['fra', 'ams'], cust: 30,
+  return rec(name, 'announce', t, { name: over.name || 'Ping Floyd', asn: asn(k.pub), box: box(name), home: 'DE', day: 400, founded: 20000, pops: ['fra', 'ams', 'lon'], ix: ['fra', 'ams'], cust: 30,
     mix: { content: 600, eyeball: 300, enterprise: 100 }, traffic: { in: 40000, out: 90000 }, policy: 'open', rates: {}, auto: AUTO, ...over });
 }
 const json = (p, x) => JSON.parse(p.ev(`JSON.stringify(${x})`));
@@ -107,8 +107,8 @@ test('selling waves: the card lists lit routes under the ceiling; an accepted wa
   p.ev("UI.fpDraft=null;closeModal()");
   // Two offers for a 400G wave: the first accepted earns the price and takes the optic's 400G; no room for the second.
   const to = p.ev('S.fed.key.pub'), terms = { a: 'ams', b: 'fra', gbps: 400, monthly: ceil, term: 90 };
-  const o1 = rec('alice', 'offer', p.net.now(), { to, deal: 'wave', basis: mine.id, terms });
-  const o2 = rec('alice', 'offer', p.net.now() + 1, { to, deal: 'wave', basis: mine.id, terms: { ...terms, term: 180 } });
+  const o1 = sealRec('alice', 'offer', p.net.now(), { to, deal: 'wave', basis: mine.id, terms }, to, mine.body.box);
+  const o2 = sealRec('alice', 'offer', p.net.now() + 1, { to, deal: 'wave', basis: mine.id, terms: { ...terms, term: 180 } }, to, mine.body.box);
   await resync(p, n, [o1, o2]);
   assert.ok(await until(async () => (await settle(5), p.ev('S.fedp.rq.length') === 2)), 'both wait for review');
   p.ev('ACT.dash()');

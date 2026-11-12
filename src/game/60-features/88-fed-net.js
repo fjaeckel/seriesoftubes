@@ -12,7 +12,7 @@ const FED={
   fetch:(u,o)=>fetch(u,o),idb:()=>indexedDB,registry:'federation/servers.json',
   // ms: opening a socket, a request's answer, ping when idle, give up when silent, the idle check, stats, back-off.
   T:{open:15000,req:20000,idle:60000,dead:120000,tick:30000,stats:300000,statsMax:3600,first:5000,base:2000,cap:1800000,fetch:10000},
-  hooks:{stats:null,deal:null},bgen:0,bd:null,vgen:0,shun:null,xgen:0,ex:null,live:null,st:{},ev:{},soon:false,listening:false,sent:new Map(),ids:new WeakMap()};
+  hooks:{stats:null,deal:null},bgen:0,bd:null,vgen:0,shun:null,xgen:0,ex:null,live:null,st:{},ev:{},soon:false,listening:false,sent:new Map(),ids:new WeakMap(),dpend:[]};
 
 /* ---------- events for the interface and the gameplay ---------- */
 // fedOn(name, fn) gives a function that stops listening. Names: status, records, excluded, deal, board, catalog, mute.
@@ -220,9 +220,18 @@ async function fedRecsRun(c,items,board,known){const now=fedNow(),me=c.M.fed.key
     else if(r.kind==='shun'||r.kind==='unshun'){if(c.op&&!voters)voters=await fedVoters();if(c.op&&fedVoteOk(voters,r))votes.push(chk);}
     else if(r.kind==='hide'){if(fedOpOf(srvs,r.body.server,r.key)){const o=await fedGet('kv','hide:'+r.body.server);if(!o||!o.rec||fedNewer(chk,o))await fedPut('kv','hide:'+r.body.server,{rec:r,id:chk.id});}}
     else if(r.kind==='stats'&&board&&pl.slot!==null)board.set(chk.id,{id:chk.id,key:r.key,slot:pl.slot,t:r.t,body:r.body,cc:pl.cc,srv:[c.srv]});
-    else if((r.kind==='offer'||r.kind==='accept'||r.kind==='decline')&&(r.body.to===me||r.key===me||!!FED.hooks.deal&&FED.hooks.deal(r)))fedEmit('deal',{rec:r,id:chk.id,slot:heard,server:c.srv});}
+    else if((r.kind==='offer'||r.kind==='accept'||r.kind==='decline')&&(r.body.to===me||r.key===me||!!FED.hooks.deal&&FED.hooks.deal(r)))await fedDealIn(c.M.fed,{rec:r,id:chk.id,slot:heard,server:c.srv});}
+  if(FED.dpend.length&&Array.isArray(items)&&items.some(it=>it&&it.rec&&it.rec.kind==='announce'))await fedDealRetry(c.M.fed);
   if(votes.length)await fedVotesAdd(votes,voters);
   if(n)fedEmit('records',{server:c.srv,n});return true;}
+/* A deal record for this network goes to the gameplay opened (§5.3): sealed ones only once opened, so it reads them
+   in clear. One whose sender's box is not known yet (its announce has not come) waits in memory for the next
+   announces, at most FED_DPEND; one that does not open is dropped. */
+const FED_DPEND=64;
+async function fedDealIn(f,e){const v=await fedOpenRec(f,e.rec);
+  if(v===undefined){if(!FED.dpend.some(x=>x.id===e.id)){FED.dpend.push(e);if(FED.dpend.length>FED_DPEND)FED.dpend.shift();}return;}
+  if(v)fedEmit('deal',{...e,rec:v});}
+async function fedDealRetry(f){const l=FED.dpend;FED.dpend=[];for(const e of l)await fedDealIn(f,e);}
 /* Fetches a joined server's board records (§9.5) and keeps them for offline viewing. Gives the number of records, or
    null when that server is not connected now (the cached ones stay). */
 async function fedBoardFetch(url){const M=FED.live,c=M&&M.conns.get(url);if(!c||c.phase!=='ready'||!c.srv)return null;
@@ -286,18 +295,29 @@ const fedVoteOk=(voters,r)=>{const o=r&&r.body&&voters.get(r.body.server);return
 const fedOpOf=(srvs,id,key)=>{const e=srvs.find(x=>x.id===id);return !!e&&Array.isArray(e.operators)&&e.operators.includes(key);};
 // A server's hide record ({rec, id}) when an operator of that server signed it, else null.
 async function fedHides(id,srvs){const h=await fedGet('kv','hide:'+id);if(!h||!h.rec)return null;return fedOpOf(srvs||await fedServers(),id,h.rec.key)?h:null;}
-/* What every game knows of shunning (§10.7): the excluded lists of the servers this save joined, as each last sent
-   them, joined: {keys (Set), why (Map key -> Set of reasons, for this network only)}. Read again only when a list
-   came in or the joined servers changed. */
+/* What every game knows of shunning (§10.7, §10.7): the excluded lists of the servers this save joined, as each last
+   sent them: {keys (Set: listed by any of them), ok (Set: confirmed), by (Map key -> [{srv, url}] that list it), n
+   (joined servers that sent a list), why (Map key -> Set of reasons, for this network only)}. One server alone cannot
+   end anyone's deals: a listed network is hidden and gets no new deals, but its running deals end only once the
+   exclusion is confirmed, listed by a strict majority of the servers that sent a list and by at least two. Read again
+   only when a list came in or the joined servers changed. */
 async function fedExcl(){const f=S&&S.fed,pub=f&&f.key?f.key.pub:'',urls=f?f.servers.slice():[],k=FED.xgen+'|'+pub+'|'+urls.join(' ');if(FED.ex&&FED.ex.k===k)return FED.ex;
-  const keys=new Set(),why=new Map();
-  for(const u of urls){const o=await fedGet('kv',fedExclKey(u,pub));if(!o||!Array.isArray(o.keys))continue;for(const x of o.keys)keys.add(x);
+  const keys=new Set(),why=new Map(),by=new Map(),ok=new Set();let n=0;
+  for(const u of urls){const o=await fedGet('kv',fedExclKey(u,pub));if(!o||!Array.isArray(o.keys))continue;n++;
+    for(const x of o.keys){keys.add(x);const l=by.get(x);if(l)l.push({srv:o.srv,url:u});else by.set(x,[{srv:o.srv,url:u}]);}
     if(typeof o.me==='string'&&Array.isArray(o.reasons)){const w=why.get(o.me)||new Set();for(const r of o.reasons)if(FED_REASONS.includes(r))w.add(r);why.set(o.me,w);}}
-  return FED.ex={k,keys,why};}
-// Keys the federation excludes now, as the joined servers say.
+  for(const [x,l] of by)if(fedExclConfirmed(l.length,n))ok.add(x);
+  return FED.ex={k,keys,ok,by,n,why};}
+// Confirmed: listed by m of the n joined servers that sent a list, a strict majority and at least two (§10.7).
+const fedExclConfirmed=(m,n)=>m>=2&&2*m>n;
+// Keys listed as excluded by any joined server: hidden, and no new deals with them.
 async function fedShunned(){return [...(await fedExcl()).keys];}
-// Whether a network is excluded, and for this network itself which reasons were given (never counts or voters).
-async function fedExclInfo(key){const X=await fedExcl();return {shunned:X.keys.has(key),reasons:X.keys.has(key)?[...(X.why.get(key)||[])].sort():[]};}
+// Keys whose exclusion is confirmed: running deals with them end.
+async function fedConfirmed(){return [...(await fedExcl()).ok];}
+/* Whether a network is excluded (by any joined server), whether that is confirmed, the servers that list it ({srv,
+   url}), and for this network itself which reasons were given (never counts or voters). */
+async function fedExclInfo(key){const X=await fedExcl(),on=X.keys.has(key);
+  return {shunned:on,confirmed:X.ok.has(key),servers:on?X.by.get(key).slice():[],reasons:on?[...(X.why.get(key)||[])].sort():[]};}
 /* Operators only: the shun tally of every target, from the registry snapshot and the votes their nodes sent them
    ({targets: Map target -> its votes}), counted on demand and kept until the votes, the registry or the slot change. */
 async function fedShunTally(now){const reg=await fedGet('kv','registry'),k=FED.vgen+'|'+(reg?reg.at+'/'+reg.asOf:'')+'|'+fedSlot(now);

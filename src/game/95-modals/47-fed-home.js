@@ -86,7 +86,7 @@ function fuLoad(){if(FU.loadNext)return FU.loadNext;
 async function fuLoadRun(){const v=UI.fu&&UI.fu.v;if(!v)return;
   try{FU.srvs=await fedServers();FU.opKey=await fedOpKey();
     if(v==='glass'||v==='server'||v==='net'||v==='home'||v==='boards'||v==='filters'){FU.gossip=(await fedGet('kv','gossip'))||[];FU.votes=FU.opKey?(await fedGet('kv','votes'))||[]:(await fedVotesTidy(),[]);
-      FU.nets=new Map((await fedNetworks()).map(n=>[n.key,n]));FU.hideNames=new Set();
+      FU.nets=new Map((await fedNetworks()).map(n=>[n.key,n]));FU.hideNames=new Set();FU.excl=new Set(await fedShunned());
       for(const s of FU.srvs){const h=await fedHides(s.id,FU.srvs);if(h)for(const k of h.rec.body.names)FU.hideNames.add(k);}}
     if(v==='home'){const f=S&&S.fed;FU.shun=f&&f.key?await fedExclInfo(f.key.pub):null;FU.asn=f&&f.key?await fedAsn(f.key.pub):null;}
     if(v==='glass'||v==='server')await fuGlassLoad();
@@ -109,7 +109,7 @@ function fuHomeHtml(){const f=S&&S.fed,ok=S&&UI.started&&fedEligible(),on=!!(f&&
   h+=`<p class="tagline">${tr('fedui.other_players_networks_become_places_to')}</p>${fuMsg()}`;
   if(!ok)h+=`<p class="note fu-why">${fuWhyMode()}</p>`;
   // Excluded by the federation: why, and that solo play goes on.
-  if(on&&FU.shun&&FU.shun.shunned)h+=`<div class="fu-box bad"><b>${tr('fedui.the_federation_excluded_your_network')}</b><p class="meta">${FU.shun.reasons.length?tr('fedui.enough_servers_voted_to_shun_it'):tr('fedui.enough_servers_voted_to_exclude_it')}</p>${FU.shun.reasons.length?`<ul class="fu-reasons">${FU.shun.reasons.map(r=>`<li>${fuReason(r)}</li>`).join('')}</ul>`:''}<p class="meta">${tr('fedui.your_game_plays_on_as_always')}</p></div>`;
+  if(on&&FU.shun&&FU.shun.shunned)h+=`<div class="fu-box bad"><b>${tr('fedui.the_federation_excluded_your_network')}</b><p class="meta">${FU.shun.reasons.length?tr('fedui.enough_servers_voted_to_shun_it'):tr('fedui.enough_servers_voted_to_exclude_it')}</p>${FU.shun.reasons.length?`<ul class="fu-reasons">${FU.shun.reasons.map(r=>`<li>${fuReason(r)}</li>`).join('')}</ul>`:''}${FU.shun.servers&&FU.shun.servers.length?`<p class="meta">${tr('fedui.listed_by_servers',{servers:[...new Set(FU.shun.servers.map(x=>FU.srvs.some(s=>s.id===x.srv)?fuSrvName(x.srv):esc(fedUrlHost(x.url))))].join(', ')})}</p>`:''}<p class="meta">${tr('fedui.your_game_plays_on_as_always')}</p></div>`;
   if(on){h+=`<div class="fu-status ${st.state}"><span class="fed-dot ${st.state}" aria-hidden="true"></span><span>${fuStatusText(st)}</span></div>`;
     const q=fuQueued();if(q&&st.state!=='connected')h+=`<p class="note">${trn('fedui.n_actions_queued_they_go_out',q)}</p>`;
     if(fuLongGone())h+=`<div class="fu-box"><p>${tr('fedui.your_server_has_not_answered_for')}</p>${btn(tr('fedui.see_other_servers'),'fuOpen',{v:'join'},'ghost sm')}</div>`;}

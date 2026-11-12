@@ -4,7 +4,7 @@
 // place in the game even when more networks are known than the game models. Fake nodes on a virtual clock.
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { fedPage, joinGame, settle, until, URL1, NOW, PL_ENTRY, rec, key, asn, b64, sha } = require('./helpers/fed');
+const { fedPage, joinGame, settle, until, URL1, NOW, PL_ENTRY, rec, key, asn, box, b64, sha } = require('./helpers/fed');
 
 // A node that records every frame it is sent, and can be told how to answer some of them.
 function spy(p, o = {}) {
@@ -15,7 +15,7 @@ function spy(p, o = {}) {
   return n;
 }
 const run = async (p, ms = 1000) => { for (let t = 0; t < ms; t += 250) { p.net.advance(250); await settle(); } };
-const ann = (name, t, tr = 2) => rec(name, 'announce', t, { name: name + ' Net', asn: asn(key(name).pub), home: 'DE', day: 10, founded: 20454, pops: ['fra'], ix: [], cust: 1,
+const ann = (name, t, tr = 2) => rec(name, 'announce', t, { name: name + ' Net', asn: asn(key(name).pub), box: box(name), home: 'DE', day: 10, founded: 20454, pops: ['fra'], ix: [], cust: 1,
   mix: { content: 0, eyeball: 1000, enterprise: 0 }, traffic: { in: tr, out: tr }, policy: 'open', rates: {}, auto: { peering: 'review', transit: 'decline', pni: 'decline', swap: 'decline', consortium: 'decline', port: 'decline' } });
 
 test('a sub answered rate_limited is sent again after the retry the node gave', async () => {

@@ -68,12 +68,16 @@ function fedCanon(v){const t=typeof v;
 /* ---------- WebCrypto: SHA-256 and Ed25519 (§3.2) ---------- */
 const fedSubtle=()=>{try{return typeof crypto==='object'&&crypto&&crypto.subtle||null;}catch(e){return null;}};
 async function fedSha(bytes){return new Uint8Array(await fedSubtle().digest('SHA-256',bytes));}
-// Federation is offered only where the browser signs and verifies Ed25519 itself; there is no second algorithm.
-// Checked once, the first time something asks (never at load).
+/* Federation is offered only where the browser signs and verifies Ed25519 and seals deals with X25519 and AES-GCM
+   itself (§3.2, §5.3); there is no second algorithm. Checked once, the first time something asks (never at load). */
 function fedCan(){if(FED_CAN.p)return FED_CAN.p;
   return FED_CAN.p=(async()=>{const s=fedSubtle();if(!s)return false;
-    try{const seed=new Uint8Array(32).fill(7),k=await fedSigner(fedB64(seed)),m=fedUtf8('tubes');
-      return await fedVerify(k.pub,fedB64(new Uint8Array(await s.sign({name:'Ed25519'},k.key,m))),m);}catch(e){return false;}})();}
+    try{const seed=fedB64(new Uint8Array(32).fill(7)),k=await fedSigner(seed),m=fedUtf8('tubes');
+      if(!await fedVerify(k.pub,fedB64(new Uint8Array(await s.sign({name:'Ed25519'},k.key,m))),m))return false;
+      // Sealing to itself and opening again proves X25519, HKDF and AES-GCM in one go.
+      const box=await fedBoxPub(seed),env={v:1,kind:'decline',key:k.pub,t:FED_EPOCH,body:{to:k.pub}};
+      const r={...env,body:{to:k.pub,enc:await fedSeal(seed,k.pub,k.pub,box,env,{reason:'quiet'})}};
+      const p=await fedOpen(seed,k.pub,k.pub,box,r);return !!p&&p.reason==='quiet';}catch(e){return false;}})();}
 const FED_CAN={p:null},FED_KEYS=new Map(),FED_SIGNERS=new Map();
 // A private key is its 32-byte seed (base64url); WebCrypto takes it as PKCS#8. Gives {key (CryptoKey), pub}.
 async function fedSigner(seed){let k=FED_SIGNERS.get(seed);if(k)return k;const s=fedSubtle(),b=fedBin(seed,32);if(!s||!b)throw new Error('no key');

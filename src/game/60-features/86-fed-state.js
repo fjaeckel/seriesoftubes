@@ -70,8 +70,9 @@ function fedExportMove(){if(!S||pzOn()||!S.fed)return false;save(true);
 
 /* ---------- this network's records ---------- */
 const fedNow=()=>FED.now();
-// Signs a record of this save's network: needs the key (S.fed.key.priv).
-async function fedSignMine(kind,body,f=S&&S.fed){if(!fedHasPriv(f))throw new Error('no key');return fedSignRec(f.key.priv,kind,body,fedNow());}
+/* Signs a record of this save's network: needs the key (S.fed.key.priv). body is in clear; an offer to someone and a
+   decline go out sealed for the other network (§5.3, fedSealMine), which throws when its box is not known here. */
+async function fedSignMine(kind,body,f=S&&S.fed){if(!fedHasPriv(f))throw new Error('no key');return fedSealMine(kind,body,f);}
 /* Queues a signed record of this network to be sent to every joined server. Gives false when the queue is full (only
    offers and answers are refused then; an older stats or announce is simply replaced by the newer one). */
 function fedQueue(r,f=S&&S.fed){if(!f||!r)return false;

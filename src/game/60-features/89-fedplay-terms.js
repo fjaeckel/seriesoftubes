@@ -40,8 +40,8 @@ function fedpSanitize(s){
   const v=s.fedp;if(v==null||typeof v!=='object'||Array.isArray(v)){s.fedp=null;fedpLinks(s);return;}
   const o=fedPNew();o.pol=['open','selective','restrictive'].includes(v.pol)?v.pol:'open';o.cond=fedCondClean(v.cond);o.rates=fedRatesClean(v.rates);o.auto=fedAutoClean(v.auto,o.pol);
   o.rpki=v.rpki===true;o.annH=fedInt(v.annH,0,4294967295,0);o.annAt=fedInt(v.annAt,0,1e11,0);o.annTr=fedInt(v.annTr,0,4e9,0);o.leakD=fedInt(v.leakD,0,1e7,0);o.help=fedInt(v.help,0,1e6,0);
-  if(Array.isArray(v.mine))o.mine=v.mine.filter(x=>x&&!FdId(x.id)&&fedInt(x.t,0,1e11,null)!==null&&x.body&&typeof x.body==='object'&&!fedValues(x.body)&&fedSize(fedCanon(x.body))<=16384&&!FED_BODY.announce(x.body,{rec:{t:x.t},asn:x.body.asn})).slice(0,3);
-  if(Array.isArray(v.rq))o.rq=v.rq.filter(x=>x&&!FdId(x.id)&&x.rec&&typeof x.rec==='object'&&!fedValues(x.rec)&&!fedEnv(x.rec,{offer:1})&&!FED_BODY.offer(x.rec.body,{rec:x.rec})).slice(0,FEDP_RQ_MAX).map(x=>({id:x.id,rec:x.rec}));
+  if(Array.isArray(v.mine))o.mine=v.mine.filter(x=>x&&!FdId(x.id)&&fedInt(x.t,0,1e11,null)!==null&&x.body&&typeof x.body==='object'&&!fedValues(x.body)&&fedSize(fedCanon(x.body))<=16384&&!FED_BODY.announce(fedOwn(x.body,'box')?x.body:{...x.body,box:FED_NOBOX},{rec:{t:x.t},asn:x.body.asn})).slice(0,3);
+  if(Array.isArray(v.rq))o.rq=v.rq.filter(x=>x&&!FdId(x.id)&&x.rec&&typeof x.rec==='object'&&!fedValues(x.rec)&&!fedEnv(x.rec,{offer:1})&&!FED_OFFER(x.rec.body,{rec:x.rec})).slice(0,FEDP_RQ_MAX).map(x=>({id:x.id,rec:x.rec}));
   if(Array.isArray(v.cons))o.cons=v.cons.filter(x=>x&&!FdId(x.id)&&!FdK(x.k)&&!FdName(x.name)&&own(CITY,x.a)&&own(CITY,x.b)&&x.a!==x.b&&fedInt(x.m,2,16,0)&&fedInt(x.sh,0,1e12,null)!==null&&fedInt(x.pr,1,16,0)&&Array.isArray(x.sg)&&fedInt(x.t,0,1e11,null)!==null)
     .slice(0,FEDP_CONS_MAX).map(x=>({id:x.id,k:x.k,name:fedSafeName(x.name),a:x.a,b:x.b,m:x.m,sh:x.sh,pr:x.pr,sg:[...new Set(x.sg.filter(k=>!FdK(k)))].slice(0,16),t:x.t,st:['open','funded','gone'].includes(x.st)?x.st:'open',me:x.me===true}));
   if(Array.isArray(v.str))o.str=v.str.filter(x=>x&&!FdK(x.k)&&fedInt(x.mbps,0,2e9,null)!==null).slice(0,FEDP_STR_MAX).map(x=>({k:x.k,mbps:x.mbps}));
@@ -72,7 +72,7 @@ function fedRatesOut(P){const r=JSON.parse(JSON.stringify(P.rates||{}));const my
 // This network's announce body (§5.1) now.
 async function fedAnnBody(s=S){const f=s.fed,P=fedP(s),pops=Object.keys(s.pops).filter(fedCityOk).slice(0,512),m=fedMyMix(),inM=Math.min(1e9,Math.round(((R&&R.served)||0)*1000));
   const nm=String(s.name||'').replace(/[‪-‮⁦-⁩\u0000-\u001f]/g,'').slice(0,40);
-  const b={name:/[^ ]/.test(nm)?nm:'AS'+(await fedAsn(f.key.pub)),asn:await fedAsn(f.key.pub),home:CITY[s.home]?CITY[s.home].cc:'ZZ',day:Math.min(1e7,s.day),founded:Math.min(f.joined,fedDiv(fedNow(),FED_DAY)),
+  const b={name:/[^ ]/.test(nm)?nm:'AS'+(await fedAsn(f.key.pub)),asn:await fedAsn(f.key.pub),box:await fedBoxPub(f.key.priv),home:CITY[s.home]?CITY[s.home].cc:'ZZ',day:Math.min(1e7,s.day),founded:Math.min(f.joined,fedDiv(fedNow(),FED_DAY)),
     pops,ix:fedMyIx().filter(c=>pops.includes(c)),cust:Math.min(1e7,s.biz.length),mix:m,
     traffic:{in:inM,out:Math.min(1e9,Math.round(inM*(m.content+m.enterprise*0.5+m.eyeball*0.15)/1000))},policy:P.pol,rates:fedRatesOut(P),auto:fedAutoClean(P.auto,P.pol)};
   if(P.pol==='selective')b.cond=fedCondClean(P.cond);
@@ -102,7 +102,7 @@ function fedCondMiss(cond,o){const m=[];if(!cond)return m;
   if(cond.rpki&&!o.rpki)m.push({l:'rpki'});if(cond.tier1&&!o.tier1)m.push({l:'tier1'});if(!cond.ai&&o.ai)m.push({l:'ai'});
   return m;}
 const FEDP_MISS={mbps:N_('fedplay.miss_mbps'),ratio:N_('fedplay.miss_ratio'),shared:N_('fedplay.miss_shared'),rpki:N_('fedplay.miss_rpki'),tier1:N_('fedplay.miss_tier1'),ai:N_('fedplay.miss_ai'),
-  ix:N_('fedplay.miss_ix'),pop:N_('fedplay.miss_pop'),ends:N_('fedplay.miss_ends'),gear:N_('fedplay.miss_gear'),room:N_('fedplay.miss_room'),terms:N_('fedplay.miss_terms'),declines:N_('fedplay.miss_declines'),quiet:N_('fedplay.miss_quiet'),link:N_('fedplay.miss_link'),myix:N_('fedplay.miss_myix')};
+  ix:N_('fedplay.miss_ix'),pop:N_('fedplay.miss_pop'),ends:N_('fedplay.miss_ends'),gear:N_('fedplay.miss_gear'),room:N_('fedplay.miss_room'),terms:N_('fedplay.miss_terms'),declines:N_('fedplay.miss_declines'),quiet:N_('fedplay.miss_quiet'),link:N_('fedplay.miss_link'),myix:N_('fedplay.miss_myix'),excluded:N_('fedplay.miss_excluded')};
 const fedMissText=m=>m.map(x=>tr(FEDP_MISS[x.l],{n:x.n})).join(' · ');
 // What this game knows of itself for someone else's conditions.
 const fedMeFor=n=>{const p=fedPair(n);return {mbps:p.mbps,ratio:p.ratio,shared:p.shared,rpki:!!(S.fedp&&S.fedp.rpki),tier1:(()=>{try{return tierLabel()==='Tier 1';}catch(e){return false;}})(),ai:!!S.fed.ai};};

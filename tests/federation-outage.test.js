@@ -3,7 +3,7 @@
 // and the day loop does the same work whatever the connection does. Fake nodes and a virtual clock: no network.
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { fedPage, joinGame, settle, until, URL1, URL2, NOW, SERVERS_JSON, rec, key } = require('./helpers/fed');
+const { fedPage, joinGame, settle, until, URL1, URL2, NOW, SERVERS_JSON, rec, key, box } = require('./helpers/fed');
 const { load } = require('./harness');
 
 const status = (p) => JSON.parse(p.ev('JSON.stringify(fedStatus())'));
@@ -112,6 +112,8 @@ test('the queue is capped: an older stats is replaced by the newest, offers beyo
   const p = fedPage();
   p.net.node(URL1).up = false;
   await joinGame(p);
+  // Offers to Bob are sealed for his box: this game knows it from his announce.
+  await p.ev(`fedPut('ann','${key('bob').pub}',{rec:{key:'${key('bob').pub}',body:{box:'${box('bob')}'}},id:null,heard:${NOW},srv:[]})`);
   const out = JSON.parse(await p.ev(`(async()=>{const f=S.fed,r=[];
     for(let i=0;i<3;i++){FED.now=()=>${NOW}+i*300;fedQueue(await fedSignMine('stats',fedStatsBody()));}
     const offer=async n=>fedSignMine('offer',{to:'${key('bob').pub}',deal:'swap',terms:{give:{a:'fra',b:'ams',mbps:n},take:{a:'lon',b:'par',mbps:n},term:30}});
@@ -180,7 +182,7 @@ test('a server gone for good: leave it, join another, and the identity and deals
 test('a peer silent for 7, 20 and 40 days: unchanged, fading, dark; heard again, back; forgotten after 180', async () => {
   const p = fedPage();
   const n1 = p.net.node(URL1);
-  const ann = rec('bob', 'announce', NOW - 100, { name: 'Bob Net', asn: 4281146038, home: 'DE', day: 10, founded: 20454, pops: ['fra'], ix: ['fra'], cust: 1,
+  const ann = rec('bob', 'announce', NOW - 100, { name: 'Bob Net', asn: 4281146038, box: box('bob'), home: 'DE', day: 10, founded: 20454, pops: ['fra'], ix: ['fra'], cust: 1,
     mix: { content: 0, eyeball: 1000, enterprise: 0 }, traffic: { in: 1, out: 1 }, policy: 'open', rates: {}, auto: { peering: 'auto', transit: 'decline', pni: 'decline', swap: 'decline', consortium: 'decline', port: 'decline' } });
   n1.feed = [{ rec: ann, rcpt: [] }];
   await joinGame(p);

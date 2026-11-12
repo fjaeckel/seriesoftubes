@@ -58,6 +58,16 @@ const AREA = {
   deals: (run, i) => run(`(()=>{const r=fedDeal(i.announces,i.offer,i.accept||null,i.renews||null);return r;})()`, i),
   majority: (run, i) => run(`({majority:fedMaj(Array.from({length:i.operators},(_,n)=>'o'+n),Array.from({length:i.signers},(_,n)=>'o'+n))})`, i),
   sync: (run, i) => run(`i.same!==undefined?{sync:fedSyncOk(i.a,i.b,i.same)}:fedVersion(i.a,i.b)`, i),
+  // Sealed deals (§5.3): the box key from a seed, sealing (with the vector's nonce), opening, what an opened one holds.
+  box: (run, i) => run(`(async()=>{
+    if(i.kind)return (i.kind==='decline'?FED_REASON(i.body):FED_OFFER(i.body,{rec:{key:i.author}}))?{ok:false,error:i.kind==='decline'?FED_REASON(i.body):FED_OFFER(i.body,{rec:{key:i.author}})}:{ok:true};
+    const seed=i.seed,me=(await fedSigner(seed)).pub;
+    if(i.envelope){const s=fedSubtle(),pk=await s.importKey('raw',fedBin(i.peerBox,32),{name:'X25519'},false,[]);
+      const sh=new Uint8Array(await s.deriveBits({name:'X25519',public:pk},(await fedBoxKey(seed)).key,256)),[a,b]=[me,i.peer].sort(fedByStr),salt=new Uint8Array(64);
+      salt.set(fedBin(a,32));salt.set(fedBin(b,32),32);const key=[...await fedHkdf(sh,salt,'tubes-fed v1 '+i.envelope.kind)].map(x=>x.toString(16).padStart(2,'0')).join('');
+      return {aad:new TextDecoder().decode(fedBoxAad(i.envelope)),key,enc:await fedSeal(seed,me,i.peer,i.peerBox,i.envelope,i.plain,i.nonce)};}
+    if(i.record){const p=await fedOpen(seed,me,i.peer,i.peerBox,i.record);return p?{ok:true,plain:p}:{ok:false};}
+    return {box:await fedBoxPub(seed)};})()`, { ...i, seed: i.seed ? hexB64(i.seed) : undefined }),
   wire: (run, i) => run(`(()=>{const r=fedFrame(i.frame,i.role,i.state,i.speaks);return r.error?{error:r.error}:{ok:true};})()`, i),
 };
 
