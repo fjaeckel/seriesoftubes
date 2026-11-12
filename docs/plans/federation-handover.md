@@ -119,6 +119,12 @@ at that sandbox method.
   tests in `tests/federation-wire.test.js` (refused sub never retried, unsub by the wrong id, unsub ack without
   `rid` dropped the connection, multi-frame catalogs cut, sub pages racing their cursors, concurrent record batches
   losing votes, the 48-network snapshot hiding new players from each other, board retries giving up too early).
+- **Shun votes for operators only** (Frederic, 2026-11-12): clients prove keys with `auth` (§9.3); relays send `shun`
+  and `unshun` only to a session that proved an operator key of their server, and every client gets the outcome in
+  `excluded` frames (reasons, without counts, only to the excluded key itself). Games keep each joined server's list
+  (`kv` `excl:<url>`) and use the union; votes are kept only on a device with an operator key. Node-to-node sync is
+  unchanged. Vectors: `auth` area, wire cases. End to end: the shun step checks Bob sees no vote, Alice (operator) does,
+  the target's own session gets `["spam"]`.
 - Relay Docker image built (10.9 MB, amd64 cross-build too, `init` on a volume as the unprivileged user).
 - Perf against 9c26d03, headless and Chromium desktop/phone: no slowdowns beyond noise, routing identical.
 
