@@ -128,6 +128,13 @@ at that sandbox method.
   unchanged. Vectors: `auth` area, wire cases. End to end: the shun step checks Bob sees no vote, Alice (operator) does,
   the target's own session gets `["spam"]`.
 - Relay Docker image built (10.9 MB, amd64 cross-build too, `init` on a volume as the unprivileged user).
+- **Operators cannot read or steer other players' deals** (Frederic, 2026-11-12). Offers to someone and declines are
+  sealed for the other party (§3.5, §5.3: X25519 box key derived from the identity seed and published as `box` in the
+  announce, HKDF-SHA256, AES-256-GCM bound to the record), relays check only their shape and send deal records only to
+  the two parties' sessions (§9.3; open consortium projects stay public). One server's `excluded` list now only hides a
+  network and stops new deals; running deals end only when a strict majority of the joined servers, and at least two,
+  list it (§10.7). Vectors: `box` area (both implementations), records updated. Tests: `tests/federation-sealed.test.js`,
+  `relay/internal/node/deals_test.go`; end to end, a third raw client sees none of Alice's and Bob's deal records.
 - Perf against 9c26d03, headless and Chromium desktop/phone: no slowdowns beyond noise, routing identical.
 
 ## Open work, roughly in order
