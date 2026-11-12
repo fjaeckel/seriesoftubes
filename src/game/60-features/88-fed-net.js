@@ -86,11 +86,12 @@ function fedSend(c,m){const t=JSON.stringify(m);if(!c.ws||fedSize(t)>FED_FRAME)r
 function fedAsk(c,m,many){let id=0;const p=new Promise(res=>{if(c.phase!=='ready'&&c.phase!=='check'){res(null);return;}id=c.nid=c.nid%2147483646+1;
   const r={res,many,items:[],n:0,t:FED.set(()=>{c.rq.delete(id);res(null);},FED.T.req)};c.rq.set(id,r);
   if(!fedSend(c,{...m,id})){FED.clear(r.t);c.rq.delete(id);res(null);}});p.id=id;return p;}
-// Waits a rate_limited answer's retry (seconds, 1 to 60) when the connection is still there; false when not worth it.
+/* Waits a rate_limited answer's retry (seconds, 1 to 60, plus up to a second at random so requests refused together do
+   not come back together) when the connection is still there; false when not worth it. */
 const fedRetryIn=(c,a)=>new Promise(res=>{if(!a||a.m!=='err'||a.code!=='rate_limited'||!fedLive(c)){res(false);return;}
-  FED.set(()=>res(fedLive(c)&&c.phase==='ready'),Math.min(60,Math.max(1,Number.isSafeInteger(a.retry)?a.retry:1))*1000);});
-// A request answered rate_limited is asked again after the retry the node gave (twice at most).
-async function fedAskRetry(c,m,many){for(let i=0;;i++){const a=await fedAsk(c,m,many);if(i>=2||!(await fedRetryIn(c,a)))return a;}}
+  FED.set(()=>res(fedLive(c)&&c.phase==='ready'),(Math.min(60,Math.max(1,Number.isSafeInteger(a.retry)?a.retry:1))+FED.rand())*1000);});
+// A request answered rate_limited is asked again after the retry the node gave (five times at most).
+async function fedAskRetry(c,m,many){for(let i=0;;i++){const a=await fedAsk(c,m,many);if(i>=5||!(await fedRetryIn(c,a)))return a;}}
 
 /* ---------- frames from a node ---------- */
 function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.error){fedDrop(c,r.error);return;}const f=r.f;
