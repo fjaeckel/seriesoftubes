@@ -7,6 +7,21 @@ import (
 	"testing"
 )
 
+func TestLabelledGaugeReplacesItsSeries(t *testing.T) {
+	m := New()
+	m.Set("relay_latest_version_info", "Newest.", "version", map[string]float64{"3.6.0": 1})
+	m.Set("relay_latest_version_info", "Newest.", "version", map[string]float64{"3.7.0": 1})
+	var b strings.Builder
+	if err := m.Write(&b); err != nil {
+		t.Fatal(err)
+	}
+	if out := b.String(); !strings.Contains(out, `relay_latest_version_info{version="3.7.0"} 1`) || strings.Contains(out, "3.6.0") {
+		t.Fatalf("old series kept or new one missing:\n%s", out)
+	}
+	var nilM *M
+	nilM.Set("x", "y", "z", nil) // a nil *M records nothing
+}
+
 func TestExposition(t *testing.T) {
 	m := New()
 	m.Inc("relay_records_in_total", "stats")

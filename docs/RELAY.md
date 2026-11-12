@@ -168,6 +168,7 @@ and the TLS files change on restart only. Unknown settings are refused, so a typ
 | `metrics` | | A **localhost** address for `/metrics`, for example `127.0.0.1:9464`. Anything else is refused |
 | `trustedProxies` | loopback | Proxies whose `X-Forwarded-For` is believed (in a container: add the proxy's network, see Container above) |
 | `listed` | `false` | A note for yourself: whether you mean to be in the registry |
+| `notifyURL` | off | An `https://` URL the relay POSTs to once per new relay release (see Versions and update notices). Anything else is refused |
 | `limits` | | `maxClients` 5000, `maxNodes` 64, `connsPerAddr` 30 per `addrWindowSec` 300, `msgsPerSec` 20 |
 
 ## Adding a second operator, and their node
@@ -288,7 +289,7 @@ Operator actions are signed with the operator key on that machine.
 
 | Command | What |
 | --- | --- |
-| `relay status` | Server, head, operators and nodes, sessions, record counts, disk use |
+| `relay status` | Server, head, operators and nodes, sessions (with what each peer node runs), record counts, disk use, the relay version, and "update available: x.y.z (security)" with the notes link when one is out |
 | `relay servers` | Every server you know, from the registry and from gossip |
 | `relay players` | Networks with an announcement: name, ASN, last heard, quiet state, hidden or shunned |
 | `relay nodes` | This server's nodes and which are up |
@@ -339,7 +340,8 @@ How it works (`relay/internal/rank`):
 
 ## Upgrades, backups and data
 
-- **Upgrading:** replace the binary (or the image) and restart. The data folder carries a version (`VERSION`) and is
+- **Upgrading:** your relay tells you when a newer one is out (Versions and update notices, below). Replace the
+  binary (or the image) and restart. The data folder carries a version (`VERSION`) and is
   migrated on start; a relay refuses a folder written by a newer one instead of misreading it. Servers agree on a
   protocol version when they connect and keep speaking the older one until both sides have upgraded, so a federation
   upgrades one server at a time.
@@ -354,6 +356,42 @@ network and 5-minute slot, the newest; at most 4096 offers per network, 128 to a
   `leave` removes is removed for good. Daily files are rewritten or deleted once nothing in them is kept, today's
   included, at the hourly retention run.
 
+## Versions and update notices
+
+**Every node says what it runs.** Its `welcome` (to games and to other nodes) and its `hello` to other nodes carry
+`impl: {name: "tubes-relay", version: "x.y.z"}`, and your server's catalog entry lists the versions of its nodes as far as
+the emitting node knows them (itself, and the nodes of your server it has a session with). Players see "relay x.y.z" per
+node on your server's page in the looking glass; `relay status` shows yours and each peer's. It is informational: no
+one signs it and nothing but displays and the hint below uses it. A build without a version (`go build` by hand) says
+`dev` and is never told to update.
+
+**Where the news comes from.** The site publishes one static file beside the registry,
+`https://seriesoftub.es/federation/relay.json` (`{v, version, released, security, notes, minSafe?}`), written by the
+site build at each release. Your relay reads it from the folder its `registry` setting points at (a file `relay.json`
+next to a local `servers.json` works too), at start and with each registry refresh (every 6 hours). It sends nothing
+when it reads it: no version, no identity, just a GET like the registry's. If it cannot read the file, a newer version
+that at least two other servers report in gossip gives a hint instead, marked "seen on other servers" (never a
+security one: one server alone could claim anything).
+
+**Security releases.** `security: true` marks a release that fixes a relay security issue; `minSafe` names the newest
+such release, so a relay older than it is told "security" even after later, ordinary releases.
+
+**How you hear of it** when your relay is behind:
+
+- the log, once at start and then at most once a day: `relay update available running=… version=… security=… notes=…`;
+- `relay status`: `update` with the version, whether it is a security fix, the notes link and where it came from, and
+  the line "update available: x.y.z (security) <notes>" on stderr;
+- metrics: `relay_update_available{security="true"|"false"}` (1 on the matching series while behind, else 0),
+  `relay_latest_version_info{version}` 1, and `relay_build_info{version}` 1 for what you run;
+- your game: a session that proved an operator key of your server (the operator panel) gets an `update` frame after
+  its `auth`, and again when the news changes; the panel shows "Update available", louder for a security fix, with
+  the release notes link. Other players' games never get it;
+- optionally, `notifyURL`: the relay POSTs `{"server", "running", "version", "security", "notes"}` as JSON once per new
+  version (10 s timeout, retried after 30 s, 2 min and 10 min; if all fail, again at the next check), and remembers in
+  `update.json` in the data folder which version it told, so a restart does not repeat it. Point it at your own chat
+  webhook or alerting. It carries your server identity and versions only: no addresses, players or keys. Off unless
+  you set it, and only `https://` URLs (without a user or password in them) are accepted.
+
 ## Testing against the game
 
 `node scripts/fed-e2e.js` (from the repository root, after `npm ci`) builds this relay, runs it with TLS on loopback and
@@ -364,9 +402,10 @@ opens two Chromium windows on an invite to it, so you can play two networks agai
 
 Set `"metrics": "127.0.0.1:9464"` to serve `/metrics` in the Prometheus text format on localhost: connections by
 role, records stored by kind, records sent, refusals by error code, sync sessions, open clients and sessions, records
-held, disk use (`relay_*`), plus the standard Go runtime (`go_*`) and process (`process_*`) metrics. It uses the
-Prometheus client library on its own registry, so nothing else is exposed. Counts only: no label ever holds an
-address, a key or a name. The relay refuses a metrics address that is not on localhost.
+held, disk use, and the version it runs and whether an update is out (`relay_build_info`, `relay_update_available`,
+`relay_latest_version_info`, see Versions and update notices), all `relay_*`, plus the standard Go runtime (`go_*`) and process
+(`process_*`) metrics. It uses the Prometheus client library on its own registry, so nothing else is exposed. Counts
+and versions only: no label ever holds an address, a key or a name. The relay refuses a metrics address that is not on localhost.
 
 ## Privacy, in short
 

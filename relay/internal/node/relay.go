@@ -28,6 +28,7 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/registry"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/shun"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/store"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/update"
 )
 
 // Options configure a relay. Everything that touches the outside world can be injected.
@@ -41,6 +42,7 @@ type Options struct {
 	HTTPClient *http.Client      // outgoing wss:// and registry fetches; nil: default
 	Versions   []int64           // protocol versions spoken; nil: [1]
 	Metrics    *metrics.M
+	Version    string // the relay software version (main.version); "" or "dev": a development build
 	// Retry pacing; tests shorten them. Defaults: one minute and one second.
 	BootstrapEvery time.Duration
 	DialBase       time.Duration
@@ -82,6 +84,8 @@ type Relay struct {
 	wg      sync.WaitGroup
 	speaks  []int64
 	gossip  int64 // last time the own entry was sent
+	impl    *update.Impl
+	upd     updState
 
 	catDirty bool       // the catalog file is behind
 	loading  bool       // reading the catalog file
@@ -118,6 +122,10 @@ func New(o Options) (*Relay, error) {
 		shunned: map[string]bool{}, left: map[string]int64{}, statsAt: map[string]int64{}, refused: map[string]bool{},
 		lastSyn: map[string]int64{}, clients: map[*session]bool{}, nodes: map[*session]bool{},
 		epoch: fed.Encode(eb[:]), dialers: map[string]context.CancelFunc{}, speaks: o.Versions}
+	r.impl = &update.Impl{Name: update.Name, Version: r.version()}
+	if update.ReadImpl(r.impl.Value()) == nil {
+		r.impl.Version = "dev" // a build stamped with something no peer would read
+	}
 	r.limiter = privacy.NewLimiter(r.cfg.Limits.ConnsPerAddr, int64(r.cfg.Limits.AddrWindowSec))
 	st.Keep = r.keepSigs
 	r.ctx, r.cancel = context.WithCancel(context.Background())
@@ -143,6 +151,7 @@ func New(o Options) (*Relay, error) {
 	}
 	r.loadCatalog()
 	r.loadRegistryCache()
+	r.loadUpdateState()
 	// The leaderboards are built from the store in parallel chunks while the node already serves
 	// (rank answers rate_limited until then); records stored meanwhile are applied after.
 	r.rank = rank.New(0)
@@ -156,6 +165,8 @@ func New(o Options) (*Relay, error) {
 		r.rank.Warm(r.now())
 	}()
 	if m := o.Metrics; m != nil {
+		m.Set("relay_build_info", "The relay software version this node runs (always 1).", "version", map[string]float64{r.impl.Version: 1})
+		r.updMetrics()
 		m.Gauge("relay_clients", "Open client connections.", func() float64 { return float64(r.count(false)) })
 		m.Gauge("relay_node_sessions", "Open node sessions.", func() float64 { return float64(r.count(true)) })
 		m.Gauge("relay_records", "Records stored.", func() float64 { r.mu.Lock(); defer r.mu.Unlock(); return float64(r.st.Len()) })

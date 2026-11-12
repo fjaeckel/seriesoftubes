@@ -23,13 +23,15 @@ type M struct {
 	plain  map[string]prometheus.Counter
 	vecs   map[string]*prometheus.CounterVec
 	gauges map[string]prometheus.Collector
+	labels map[string]*prometheus.GaugeVec
 }
 
 // New makes a private registry with the relay's metrics and the Go runtime and process
 // collectors declared. Nothing is registered globally.
 func New() *M {
 	m := &M{reg: prometheus.NewRegistry(), plain: map[string]prometheus.Counter{},
-		vecs: map[string]*prometheus.CounterVec{}, gauges: map[string]prometheus.Collector{}}
+		vecs: map[string]*prometheus.CounterVec{}, gauges: map[string]prometheus.Collector{},
+		labels: map[string]*prometheus.GaugeVec{}}
 	m.reg.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	m.counter("relay_connections_total", "role", "Connections accepted, by role.", "client", "node")
 	m.counter("relay_records_in_total", "kind", "Records stored, by kind.")
@@ -86,6 +88,29 @@ func (m *M) Gauge(name, help string, f func() float64) {
 	}
 	if m.reg.Register(g) == nil {
 		m.gauges[name] = g
+	}
+}
+
+// Set replaces every series of a gauge with one label (an info metric such as a version, or a
+// flag such as security): the label values given, nothing else. The label never holds an
+// address, key or name.
+func (m *M) Set(name, help, label string, values map[string]float64) {
+	if m == nil {
+		return
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	v, ok := m.labels[name]
+	if !ok {
+		v = prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: name, Help: help}, []string{label})
+		if m.reg.Register(v) != nil {
+			return
+		}
+		m.labels[name] = v
+	}
+	v.Reset()
+	for l, x := range values {
+		v.WithLabelValues(l).Set(x)
 	}
 }
 

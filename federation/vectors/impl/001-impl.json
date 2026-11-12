@@ -1,0 +1,57 @@
+{
+  "description": "What a node says it runs (9.3 and 9.4 welcome impl, 9.4 node hello impl, 10.8 a catalog entry's impl). Informational and lenient: a malformed value is ignored, never an error. welcome: one impl {name, version}, each 1 to 40 characters [0-9A-Za-z.+_-] starting with a letter or digit; expect impl null when it is not one. entry: the entry's impl list ([{node, name, version}], at most 16 items) read for a server whose nodes are nodes; items for other keys or with a malformed impl are left out, a value that is not a list or has more than 16 items gives none; expect impl as node key -> {name, version}.",
+  "cases": [
+    { "input": { "welcome": { "name": "tubes-relay", "version": "3.6.0" } }, "expect": { "impl": { "name": "tubes-relay", "version": "3.6.0" } } },
+    { "input": { "welcome": { "name": "tubes-relay", "version": "3.7.0-rc.1+build.5", "extra": true } }, "expect": { "impl": { "name": "tubes-relay", "version": "3.7.0-rc.1+build.5" } } },
+    { "input": { "welcome": { "name": "tubes-relay", "version": "dev" } }, "expect": { "impl": { "name": "tubes-relay", "version": "dev" } } },
+    { "input": { "welcome": { "name": "tubes-relay" } }, "expect": { "impl": null } },
+    { "input": { "welcome": { "name": "tubes relay", "version": "3.6.0" } }, "expect": { "impl": null } },
+    { "input": { "welcome": { "name": "tubes-relay", "version": "-3.6.0" } }, "expect": { "impl": null } },
+    { "input": { "welcome": { "name": "tubes-relay", "version": "3.6.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0" } }, "expect": { "impl": null } },
+    { "input": { "welcome": { "name": "tubes-relay", "version": "<b>3</b>" } }, "expect": { "impl": null } },
+    { "input": { "welcome": { "name": "tubes-relay", "version": 3 } }, "expect": { "impl": null } },
+    { "input": { "welcome": "tubes-relay 3.6.0" }, "expect": { "impl": null } },
+    { "input": { "welcome": [] }, "expect": { "impl": null } },
+    { "input": { "welcome": null }, "expect": { "impl": null } },
+    {
+      "input": {
+        "nodes": ["cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ", "i7ibH5fd16Yxj6GRgQEpbUBEj1AI3_5nPrGRxGnWgXc"],
+        "entry": [
+          { "node": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ", "name": "tubes-relay", "version": "3.6.0" },
+          { "node": "i7ibH5fd16Yxj6GRgQEpbUBEj1AI3_5nPrGRxGnWgXc", "name": "tubes-relay", "version": "3.5.0" }
+        ]
+      },
+      "expect": { "impl": {
+        "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ": { "name": "tubes-relay", "version": "3.6.0" },
+        "i7ibH5fd16Yxj6GRgQEpbUBEj1AI3_5nPrGRxGnWgXc": { "name": "tubes-relay", "version": "3.5.0" } } }
+    },
+    {
+      "input": {
+        "nodes": ["cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ"],
+        "entry": [
+          { "node": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ", "name": "tubes-relay", "version": "3.6.0" },
+          { "node": "i7ibH5fd16Yxj6GRgQEpbUBEj1AI3_5nPrGRxGnWgXc", "name": "tubes-relay", "version": "9.9.9" },
+          { "node": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ", "name": "tubes-relay", "version": "<i>" },
+          { "name": "tubes-relay", "version": "1.0.0" },
+          "tubes-relay 1.0.0"
+        ]
+      },
+      "expect": { "impl": { "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ": { "name": "tubes-relay", "version": "3.6.0" } } }
+    },
+    { "input": { "nodes": ["cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ"], "entry": { "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ": { "name": "tubes-relay", "version": "3.6.0" } } }, "expect": { "impl": {} } },
+    {
+      "input": {
+        "nodes": ["cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ"],
+        "entry": [
+          { "node": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ", "name": "tubes-relay", "version": "1" }, { "node": "x", "name": "a", "version": "1" }, { "node": "x", "name": "a", "version": "1" },
+          { "node": "x", "name": "a", "version": "1" }, { "node": "x", "name": "a", "version": "1" }, { "node": "x", "name": "a", "version": "1" },
+          { "node": "x", "name": "a", "version": "1" }, { "node": "x", "name": "a", "version": "1" }, { "node": "x", "name": "a", "version": "1" },
+          { "node": "x", "name": "a", "version": "1" }, { "node": "x", "name": "a", "version": "1" }, { "node": "x", "name": "a", "version": "1" },
+          { "node": "x", "name": "a", "version": "1" }, { "node": "x", "name": "a", "version": "1" }, { "node": "x", "name": "a", "version": "1" },
+          { "node": "x", "name": "a", "version": "1" }, { "node": "x", "name": "a", "version": "1" }
+        ]
+      },
+      "expect": { "impl": {} }
+    }
+  ]
+}

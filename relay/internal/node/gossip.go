@@ -17,6 +17,7 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/registry"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/shun"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/store"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/update"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/wire"
 )
 
@@ -29,9 +30,10 @@ type catEntry struct {
 	State   *chain.State
 	Path    []string
 	Seen    int64
-	sent    int64  // when it was last passed on
-	via     string // the neighbour server it first came from ("" from disk)
-	hash    string // of the records as checked: the same records again are not checked again
+	Impl    map[string]*update.Impl // what its nodes run, as the entry with Seen said (informational)
+	sent    int64                   // when it was last passed on
+	via     string                  // the neighbour server it first came from ("" from disk)
+	hash    string                  // of the records as checked: the same records again are not checked again
 }
 
 // Bounds of the catalog: in all, and learned through any one neighbour (10.8 allows them).
@@ -73,15 +75,37 @@ func (c *catEntry) value(path []string) map[string]any {
 	for i, r := range c.Chain {
 		ch[i] = r.Value
 	}
-	return map[string]any{"genesis": c.Genesis.Value, "chain": ch, "server": c.Server.Value, "path": strList(path), "seen": c.Seen}
+	m := map[string]any{"genesis": c.Genesis.Value, "chain": ch, "server": c.Server.Value, "path": strList(path), "seen": c.Seen}
+	if v := implsValue(c.Impl); v != nil {
+		m["impl"] = v
+	}
+	return m
 }
+
+// implsValue is an entry's impl member: [{node, name, version}] sorted by node; nil when there
+// is none. (A list: member names of canonical JSON are at most 32 characters, node keys longer.)
+func implsValue(im map[string]*update.Impl) []any {
+	if len(im) == 0 {
+		return nil
+	}
+	out := make([]any, 0, len(im))
+	for _, k := range sortedKeys(im) {
+		v := im[k].Value()
+		v["node"] = k
+		out = append(out, v)
+	}
+	return out
+}
+
+// readImpls reads an entry's impl member (10.8) for the entry's server's nodes.
+func readImpls(v any, st *chain.State) map[string]*update.Impl { return update.ReadImpls(v, st.IsNode) }
 
 // ownEntry is this server's own entry, or nil while its server record is not at the head.
 func (r *Relay) ownEntry(now int64) map[string]any {
 	if r.own == nil || r.headSrv == nil || len(r.own.Applied) > fed.MaxChain {
 		return nil
 	}
-	c := &catEntry{Genesis: r.own.Genesis, Chain: r.own.Applied, Server: r.headSrv, Seen: now}
+	c := &catEntry{Genesis: r.own.Genesis, Chain: r.own.Applied, Server: r.headSrv, Seen: now, Impl: r.ownImpls()}
 	return c.value([]string{r.own.ID})
 }
 
@@ -226,7 +250,8 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 	if old == nil && (len(r.cat) >= maxCatalog || r.catVia[via] >= maxCatalogVia) {
 		return "" // full: entries already kept still update, new ones wait for room
 	}
-	c := &catEntry{ID: g.ID, Genesis: g, Chain: ch, Server: srv, State: st, Path: path, Seen: seen, via: via, hash: hash}
+	impl := readImpls(m["impl"], st)
+	c := &catEntry{ID: g.ID, Genesis: g, Chain: ch, Server: srv, State: st, Path: path, Seen: seen, Impl: impl, via: via, hash: hash}
 	changed := old == nil || old.Server.ID != srv.ID
 	if old != nil {
 		// Records from the newest server record; seen and path from the freshest entry.
@@ -234,7 +259,7 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 			c.Genesis, c.Chain, c.Server, c.State, c.hash = old.Genesis, old.Chain, old.Server, old.State, old.hash
 		}
 		if seen < old.Seen || seen == old.Seen && !shorter(path, old.Path) {
-			c.Path, c.Seen = old.Path, old.Seen
+			c.Path, c.Seen, c.Impl = old.Path, old.Seen, old.Impl
 		}
 		c.sent, c.via = old.sent, old.via
 	} else {
@@ -246,6 +271,11 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 		c.sent = now
 		fw := c.value(d.Forward)
 		fw["seen"] = seen
+		if v := implsValue(impl); v != nil {
+			fw["impl"] = v
+		} else {
+			delete(fw, "impl")
+		}
 		for s := range r.nodes {
 			if s != from && !s.same && s.verified && hasClass(s.send, "catalog") {
 				s.enqueue(map[string]any{"m": "catalog", "entries": []any{fw}})
@@ -399,6 +429,8 @@ func (r *Relay) setRegistryLocked(b []byte) error {
 }
 
 func (r *Relay) refreshRegistry() {
+	// relay.json lives beside servers.json and is read on the same schedule (docs/RELAY.md).
+	defer r.checkUpdate()
 	r.mu.Lock()
 	src := r.cfg.Registry
 	r.mu.Unlock()

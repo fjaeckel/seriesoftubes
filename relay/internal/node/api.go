@@ -100,13 +100,23 @@ func (r *Relay) Status() map[string]any {
 	}
 	peers := []map[string]any{}
 	for s := range r.nodes {
-		peers = append(peers, map[string]any{"server": s.peerServer, "node": s.peerNode, "same": s.same, "synced": s.synced, "ver": s.ver})
+		p := map[string]any{"server": s.peerServer, "node": s.peerNode, "same": s.same, "synced": s.synced, "ver": s.ver}
+		if s.impl != nil {
+			p["relay"] = s.impl.Version
+		}
+		peers = append(peers, p)
 	}
 	sort.Slice(peers, func(i, j int) bool { return peers[i]["node"].(string) < peers[j]["node"].(string) })
 	r.tally(now)
 	out := map[string]any{"server": r.cfg.Server, "node": r.Key(), "serving": r.serving(), "sync": r.ownSync(),
 		"clients": len(r.clients), "peers": peers, "records": r.st.Len(), "kinds": kinds,
-		"diskBytes": r.st.Size(), "shunned": len(r.shunned), "catalog": len(r.cat), "registry": len(r.regs)}
+		"diskBytes": r.st.Size(), "shunned": len(r.shunned), "catalog": len(r.cat), "registry": len(r.regs),
+		"version": r.impl.Version}
+	if h := r.upd.hint; h != nil {
+		out["update"] = map[string]any{"says": h.Text(), "version": h.Version, "security": h.Security, "notes": h.Notes, "source": h.Source}
+	} else if f := r.upd.feed; f != nil {
+		out["latest"] = f.Version
+	}
 	if r.own != nil {
 		out["head"] = r.own.Head
 		out["operators"] = len(r.own.Operators)

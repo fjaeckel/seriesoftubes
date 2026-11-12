@@ -12,6 +12,7 @@ import (
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/store"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/update"
 )
 
 // Classes a sync session can carry (9.4). shun and unshun always travel.
@@ -51,6 +52,7 @@ type Config struct {
 	Metrics        string      `json:"metrics,omitempty"`        // loopback address for /metrics, empty: off
 	TrustedProxies []string    `json:"trustedProxies,omitempty"` // prefixes whose X-Forwarded-For is believed
 	Listed         bool        `json:"listed"`                   // the operators mean to be in the registry
+	NotifyURL      string      `json:"notifyURL,omitempty"`      // https:// URL POSTed once per new relay release; empty: off
 	Limits         Limits      `json:"limits"`
 }
 
@@ -178,6 +180,9 @@ func (c *Config) Check() error {
 		if _, err := netip.ParsePrefix(p); err != nil {
 			return fmt.Errorf("trustedProxies: %w", err)
 		}
+	}
+	if c.NotifyURL != "" && !update.HTTPSURL(c.NotifyURL) {
+		return fmt.Errorf("notifyURL %q is not an https:// URL with a host (and no user or password in it)", c.NotifyURL)
 	}
 	return nil
 }

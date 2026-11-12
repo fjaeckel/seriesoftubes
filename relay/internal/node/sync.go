@@ -14,6 +14,7 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/config"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/store"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/update"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/wire"
 )
 
@@ -45,9 +46,9 @@ func (r *Relay) answerNode(s *session, h *wire.Hello) {
 	}
 	mine := nonce()
 	now := r.now()
-	s.ver = h.Ver
+	s.ver, s.impl = h.Ver, h.Impl
 	s.enqueue(map[string]any{"m": "welcome", "ver": h.Ver, "server": own, "node": r.Key(), "nonce": mine,
-		"proof": r.o.Node.MakeProof(h.Nonce, own, now)})
+		"proof": r.o.Node.MakeProof(h.Nonce, own, now), "impl": r.implValue()})
 	ctx, cancel := context.WithTimeout(s.ctx, handshakeTimeout)
 	f, ok := s.readFrame(ctx)
 	cancel()
@@ -90,7 +91,7 @@ func (r *Relay) dialNode(ctx context.Context, url string) error {
 	for i, v := range r.speaks {
 		vers[i] = v
 	}
-	s.enqueue(map[string]any{"m": "hello", "vers": vers, "role": "node", "server": own, "node": r.Key(), "nonce": mine})
+	s.enqueue(map[string]any{"m": "hello", "vers": vers, "role": "node", "server": own, "node": r.Key(), "nonce": mine, "impl": r.implValue()})
 	hctx, cancel := context.WithTimeout(s.ctx, handshakeTimeout)
 	f, ok := s.readFrame(hctx)
 	cancel()
@@ -117,7 +118,7 @@ func (r *Relay) dialNode(ctx context.Context, url string) error {
 	if node == r.Key() {
 		return errClosed // dialled ourselves
 	}
-	s.ver = ver
+	s.ver, s.impl = ver, update.ReadImpl(f.Raw["impl"])
 	s.enqueue(map[string]any{"m": "proof", "proof": r.o.Node.MakeProof(theirs, own, r.now())})
 	r.runPeer(s, server, node)
 	return nil

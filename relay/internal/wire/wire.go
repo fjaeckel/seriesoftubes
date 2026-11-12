@@ -7,6 +7,7 @@ import (
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/canon"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/update"
 )
 
 // Frame is a parsed frame: its type and its members (a loose tree).
@@ -137,6 +138,7 @@ type Hello struct {
 	Server string // node role
 	Node   string
 	Nonce  string
+	Impl   *update.Impl // node role: what the caller runs (informational, nil when absent or malformed)
 }
 
 // CheckHello checks a hello frame against the versions this side speaks.
@@ -157,6 +159,7 @@ func CheckHello(f *Frame, speaks []int64) (*Hello, *Error) {
 		if !ok1 || !ok2 || !ok3 || !fed.IsID(h.Server) || !fed.IsKey(h.Node) || !fed.IsID(h.Nonce) {
 			return nil, bad(fed.BadFrame)
 		}
+		h.Impl = update.ReadImpl(f.Raw["impl"])
 	default:
 		return nil, bad(fed.BadFrame)
 	}

@@ -16,6 +16,7 @@ import (
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/canon"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/update"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/wire"
 )
 
@@ -32,6 +33,7 @@ type Welcome struct {
 	Server string
 	Node   string
 	Now    int64
+	Impl   *update.Impl // what the node runs, when it says (informational)
 }
 
 // ErrFrame is an err frame from the node.
@@ -98,6 +100,7 @@ func Dial(ctx context.Context, url string, o Options) (*Client, error) {
 	cl.Welcome.Server, _ = f.Str("server")
 	cl.Welcome.Node, _ = f.Str("node")
 	cl.Welcome.Now, _ = wire.Int(f.Raw["now"])
+	cl.Welcome.Impl = update.ReadImpl(f.Raw["impl"])
 	go cl.loop()
 	return cl, nil
 }

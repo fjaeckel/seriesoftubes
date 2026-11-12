@@ -103,6 +103,21 @@ type Net struct {
 	ports   map[string]string // host -> 127.0.0.1:port
 	n       int
 	Country privacy.Countries
+	// Release is the relay version nodes made from now on run ("": a development build).
+	Release string
+}
+
+// Serve runs an https:// endpoint the relays can reach (a webhook, a site); it returns its URL.
+func (n *Net) Serve(name string, h http.Handler) string {
+	srv := httptest.NewUnstartedServer(h)
+	srv.Config.ErrorLog = nil
+	srv.StartTLS()
+	n.T.Cleanup(srv.Close)
+	hp := fmt.Sprintf("%s.example.com:%d", hostLabel(name), srv.Listener.Addr().(*net.TCPAddr).Port)
+	n.mu.Lock()
+	n.ports[hp] = srv.Listener.Addr().String()
+	n.mu.Unlock()
+	return "https://" + hp
 }
 
 // New makes an empty net.
@@ -151,10 +166,12 @@ type Node struct {
 	Metrics *metrics.M
 	// Versions spoken (nil: the relay's default).
 	Versions []int64
-	srv      *httptest.Server
-	handler  *handler
-	sock     net.Listener
-	stopped  bool
+	// Release is the relay software version it runs ("": a development build).
+	Release string
+	srv     *httptest.Server
+	handler *handler
+	sock    net.Listener
+	stopped bool
 }
 
 type handler struct {
@@ -189,7 +206,7 @@ func (n *Net) Listen(name string) *Node {
 	n.ports[hp] = srv.Listener.Addr().String()
 	n.mu.Unlock()
 	x := &Node{Net: n, Name: name, URL: "wss://" + hp + "/fed", Key: Key("node " + name), srv: srv, handler: h,
-		Log: &SyncBuffer{}, Metrics: metrics.New()}
+		Log: &SyncBuffer{}, Metrics: metrics.New(), Release: n.Release}
 	n.mu.Lock()
 	n.nodes = append(n.nodes, x)
 	n.mu.Unlock()
@@ -221,7 +238,7 @@ func (x *Node) options() node.Options {
 	return node.Options{Dir: x.Dir, Config: x.Cfg, Node: x.Key, Clock: x.Net.Clock.Now,
 		Log:        slog.New(slog.NewTextHandler(x.Log, &slog.HandlerOptions{Level: slog.LevelDebug})),
 		HTTPClient: x.Net.HTTP, Countries: x.Net.Country, Metrics: x.Metrics,
-		BootstrapEvery: 200 * time.Millisecond, DialBase: 50 * time.Millisecond, Versions: x.Versions}
+		BootstrapEvery: 200 * time.Millisecond, DialBase: 50 * time.Millisecond, Versions: x.Versions, Version: x.Release}
 }
 
 // Stop stops the relay (its URL stays reserved but answers 503).

@@ -313,6 +313,14 @@ func cmdShow(cmd string, args []string) error {
 		return err
 	}
 	printJSON(v)
+	// The update line stands out below the JSON (stderr: scripts reading stdout get JSON only).
+	if m, ok := v.(map[string]any); ok && cmd == "status" {
+		if u, ok := m["update"].(map[string]any); ok {
+			if says, ok := u["says"].(string); ok {
+				fmt.Fprintln(os.Stderr, says)
+			}
+		}
+	}
 	return nil
 }
 
@@ -639,7 +647,7 @@ func cmdServe(args []string) error {
 		}
 	}
 	m := metrics.New()
-	o := node.Options{Dir: *dir, Config: c, Node: nk, Log: logger, Metrics: m}
+	o := node.Options{Dir: *dir, Config: c, Node: nk, Log: logger, Metrics: m, Version: version}
 	if countries != nil {
 		o.Countries = countries
 	}

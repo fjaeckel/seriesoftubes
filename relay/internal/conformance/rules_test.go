@@ -15,6 +15,7 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/rank"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/shun"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/store"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/update"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/wire"
 )
 
@@ -332,6 +333,27 @@ func init() {
 			return map[string]any{"error": werr.Code}
 		}
 		return map[string]any{"ok": true}
+	}
+
+	areas["impl"] = func(t *testing.T, in, _ json.RawMessage) any {
+		x := decode[struct {
+			Welcome json.RawMessage `json:"welcome"`
+			Entry   json.RawMessage `json:"entry"`
+			Nodes   []string        `json:"nodes"`
+		}](t, in)
+		if x.Welcome != nil { // "welcome": null is kept as the text null
+			v, _ := canon.Parse(x.Welcome)
+			if im := update.ReadImpl(v); im != nil {
+				return map[string]any{"impl": map[string]any{"name": im.Name, "version": im.Version}}
+			}
+			return map[string]any{"impl": nil}
+		}
+		v, _ := canon.Parse(x.Entry)
+		out := map[string]any{}
+		for k, im := range update.ReadImpls(v, func(k string) bool { return slices.Contains(x.Nodes, k) }) {
+			out[k] = map[string]any{"name": im.Name, "version": im.Version}
+		}
+		return map[string]any{"impl": out}
 	}
 
 	areas["dedupe"] = func(t *testing.T, in, _ json.RawMessage) any {

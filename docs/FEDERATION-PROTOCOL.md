@@ -680,7 +680,8 @@ upgraded. This document is version 1; records carry `v: 1` in it.
 | Message | Direction | Fields | Answer |
 | --- | --- | --- | --- |
 | `hello` | client → node | `vers`, `role: "client"` | `welcome` |
-| `welcome` | node → client | `ver` (chosen), `server` (Id), `node` (Key), `now` | |
+| `welcome` | node → client | `ver` (chosen), `server` (Id), `node` (Key), `now`, `impl` (optional, below) | |
+| `update` | node → client | `version`, `security` (Bool), `source` (`feed` or `gossip`), `notes` (optional, an `https://` URL); no `id` | Only to a session that proved an operator key of the node's server: a newer relay is out (below) |
 | `auth` | client → node | `id`, `key` (Key), `t` (unix seconds), `sig` (Sig) | `ack` with `op`, or `err` (`bad_key`, `bad_sig`, `too_old`, `too_new`, `too_many`): proves the session holds `key` (below) |
 | `challenge` | client → node | `id`, `nonce` | `proof` `{m, id, proof}`, a proof envelope (6.2) |
 | `put` | client → node | `id`, `rec` (a record) | `ack` or `err` |
@@ -741,6 +742,17 @@ upgraded. This document is version 1; records carry `v: 1` in it.
   frames, every one but the last with `more: true`, and the receiver joins them. `reasons` appears, in the first frame
   only, for a session that proved a key the server excludes: the sorted set of reasons of the votes counting at `now`
   (10.7 step 6), never how many or whose. It is sent again to such a session when a vote for its key changes them.
+- **`impl`** says what software the node runs: `{name, version}`, each 1 to 40 characters of `[0-9A-Za-z.+_-]`
+  starting with a letter or digit (the reference relay: `{"name": "tubes-relay", "version": "3.6.0"}`, `"dev"` for a
+  build without a version). It is optional and informational: a receiver ignores a missing or malformed one (never an
+  error), shows it, and uses it for nothing else. The same member is in a node's `hello` and `welcome` (9.4).
+- **`update`** tells an operator that a newer relay is out. A node sends it only to a client session that proved
+  (`auth`) a current operator key of its server, right after the `ack` of that `auth` and again whenever what it knows
+  changes; other sessions never get it and are not told. `version` is the newer version; `security` is true when the
+  newer release, or one between, fixes a security issue in the relay; `source` is `feed` (the site's `relay.json`,
+  section 11.4) or `gossip` (versions that other servers' catalog entries report, 10.8; never `security`); `notes`,
+  when present, is the release notes' `https://` URL. A game shows it in the operator panel, keeping `notes` only when
+  it is an `https://` URL; a malformed `update` is ignored.
 - **Operator actions** in the game are `put` of operator-signed records (`hide`, `shun`, `unshun`, `operators`,
   `server`) and `cosign`. The node checks them against its chain (`not_operator`, `no_majority`). The relay's command
   line does the same over its local socket.
@@ -754,8 +766,8 @@ Nodes of one server, and nodes of different servers that sync, use the same tran
 
 | Message | Fields | Meaning |
 | --- | --- | --- |
-| `hello` | `vers`, `role: "node"`, `server`, `node`, `nonce` | Sent by the side that connected |
-| `welcome` | `ver`, `server`, `node`, `nonce`, `proof` | The answer: its own nonce, and a proof (6.2) over the caller's nonce, `body.server` its own server |
+| `hello` | `vers`, `role: "node"`, `server`, `node`, `nonce`, `impl` (optional, 9.3) | Sent by the side that connected |
+| `welcome` | `ver`, `server`, `node`, `nonce`, `proof`, `impl` (optional, 9.3) | The answer: its own nonce, and a proof (6.2) over the caller's nonce, `body.server` its own server |
 | `proof` | `proof` | The caller's proof over the answerer's nonce |
 | `carry` | `classes` ([string]), `since` (slot, 0 for everything) | What this side will send (below), and from which receipt slot it wants the other side's inventory |
 | `inv` | `ids` ([Id] max 4096), `more` (Bool) | Ids of records this side holds and will send, with a first receipt slot at or after the other side's `since` |
@@ -1020,6 +1032,15 @@ An **entry** is `{genesis, chain, server, path, seen}`: the server's `genesis`, 
 seconds when the server itself last emitted the entry). A server emits its own entry with `path: [its id]` and
 `seen = now`.
 
+An entry MAY also carry `impl`: what the server's nodes run, a list of at most 16 items `{node, name, version}` (`node`
+a node key of the server, `name` and `version` as in 9.3), sorted by `node`. The emitting server sets it (the reference
+relay: itself and the nodes of its own server it has a session with), no one signs it, and it travels with the `seen`
+and `path` it came with: a server passing the entry on forwards the `impl` of the entry it received, and when it keeps
+an entry for its `seen` (below) it keeps that entry's `impl`. A receiver reads it leniently: a value that is not a list
+or has more than 16 items is ignored, and so is an item for a key that is not one of the server's nodes or with a
+malformed `name` or `version`; none of that refuses the entry. It is for display (a looking glass shows the version per
+node) and for the update hint of 11.4; it never counts for anything else. It is not part of the size check of step 1.
+
 Receiving an entry from a neighbour, a server with identity `self`:
 
 1. Refuses it (`err`, no store, the session goes on) if its canonical JSON (2.3) is over 61440 bytes (`too_big`: every
@@ -1041,7 +1062,7 @@ Receiving an entry from a neighbour, a server with identity `self`:
   `seen` and `path` (chosen as below). Registry servers never expire; without gossip their `seen` is unknown.
 - Gossip only: the entry with the newest server record (greatest `t`, then lowest id) gives the records; `seen` is the
   greatest `seen` of all entries for it, and `path` comes from the entry with that `seen` (then the shortest path, then
-  the lowest path compared element by element). The server is forgotten when `now >= seen + 604800`.
+  the lowest path compared element by element). `impl`, registry or not, comes from the freshest entry that has one. The server is forgotten when `now >= seen + 604800`.
 - Standalone servers neither send nor take gossip (`policy`).
 
 ### 10.9 Sync policies
@@ -1209,6 +1230,40 @@ The weekly CI job (`federation-liveness.yml`) challenges every node, sets `liste
 `answered`, and removes files not answered for 14 days, in one pull request. It is the only change to the stamps, so
 step 8 of 11.2 does not apply to it.
 
+### 11.4 `relay.json`: the update feed
+
+The site build also writes `_site/federation/relay.json`, beside `servers.json`, about the newest release of the
+reference relay (the relay ships with every release of the game, so its version is the game's):
+
+```json
+{"v":1,"version":"3.6.0","released":"2026-11-12","security":false,"notes":"https://github.com/fjaeckel/seriesoftubes/releases/tag/v3.6.0","minSafe":"3.5.2"}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `v` | 1 |
+| `version` | The newest release, a semantic version (semver.org 2.0) |
+| `released` | Its date, `YYYY-MM-DD` |
+| `security` | True when this release fixes a security issue in the relay |
+| `notes` | Its release notes, an `https://` URL |
+| `minSafe` | Optional: the newest release that fixed a relay security issue |
+
+The game page never requests it. A relay reads it from the folder its registry comes from (the registry URL with its
+last path segment replaced by `relay.json`, or the file `relay.json` beside a registry file), at start and on each
+registry refresh, with a plain GET that sends nothing about the relay. It ignores members it does not know, a `notes`
+that is not an `https://` URL, and a file over 4096 bytes or not `v: 1` (then it keeps the last one it read). A relay
+running version `own`:
+
+1. does nothing when `own` is not a semantic version (a development build);
+2. is behind when `version > own` (semver precedence, build metadata ignored); the update is a security one when
+   `security` is true or `own < minSafe`;
+3. without any `relay.json` read, is behind when at least two other servers' catalog entries (10.8, not expired)
+   report a `tubes-relay` version newer than `own`; the newest such version is the hint, `source: "gossip"`, never a
+   security one.
+
+How a relay tells its operators is up to it (the reference relay: its log, `relay status`, metrics, the `update` frame
+of 9.3 and an optional webhook; see docs/RELAY.md). It never tells anyone else.
+
 ## 12. Privacy
 
 1. No record, receipt, proof, frame, file or log line carries an IP address, a city or anything finer than a country,
@@ -1299,6 +1354,8 @@ step 8 of 11.2 does not apply to it.
 | Chain in a registry file or catalog entry | 64 |
 | Catalog entry (canonical JSON) | 61440 bytes |
 | Gossip path | 16 |
+| `impl` items in a catalog entry; `impl` name and version | 16; 40 characters each |
+| `relay.json` | 4096 bytes |
 | `fetch` ids, `recs` and `push` items | 256 |
 | `inv` and `want` ids | 4096 |
 | Names, descriptions, AI model and harness | 40, 280, 64, 64 code points |

@@ -73,6 +73,7 @@ const AREA = {
     if(i.record){const p=await fedOpen(seed,me,i.peer,i.peerBox,i.record);return p?{ok:true,plain:p}:{ok:false};}
     return {box:await fedBoxPub(seed)};})()`, { ...i, seed: i.seed ? hexB64(i.seed) : undefined }),
   wire: (run, i) => run(`(()=>{const r=fedFrame(i.frame,i.role,i.state,i.speaks);return r.error?{error:r.error}:{ok:true};})()`, i),
+  impl: (run, i) => run(`'welcome' in i?{impl:fedImpl(i.welcome)}:{impl:fedImpls(i.entry,i.nodes.map(key=>({key})))}`, i),
 };
 
 const areas = fs.readdirSync(DIR, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();

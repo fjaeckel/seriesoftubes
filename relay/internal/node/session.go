@@ -16,6 +16,7 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/privacy"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/store"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/update"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/wire"
 )
 
@@ -88,6 +89,9 @@ type session struct {
 	wanted     map[string]bool // ids asked for and not yet pushed (guarded by r.mu, bounded)
 	push       *listPager      // records waiting to be pushed for want (guarded by r.mu)
 	dialURL    string
+	impl       *update.Impl // what the peer node runs, when it said (informational)
+
+	updSent string // the update hint this operator session was last sent (guarded by r.mu)
 }
 
 // sub is one client subscription.
@@ -651,7 +655,7 @@ func (r *Relay) serve(s *session) {
 		r.mu.Unlock()
 	}()
 	s.ver = h.Ver
-	s.enqueue(map[string]any{"m": "welcome", "ver": h.Ver, "server": r.ServerID(), "node": r.Key(), "now": r.now()})
+	s.enqueue(map[string]any{"m": "welcome", "ver": h.Ver, "server": r.ServerID(), "node": r.Key(), "now": r.now(), "impl": r.implValue()})
 	for {
 		f, ok := s.readFrame(s.ctx)
 		if !ok {
@@ -714,6 +718,7 @@ func (r *Relay) clientFrame(s *session, f *wire.Frame) {
 			s.proved = append(s.proved, key)
 		}
 		s.enqueue(map[string]any{"m": "ack", "id": f.ID, "op": r.own != nil && r.own.IsOperator(key)})
+		r.sendUpdate(s) // operators hear of a newer relay right after proving their key
 		if s.exSent && r.isShunned(key) {
 			r.sendExcluded(s, now) // the reasons are for this session now
 		}
