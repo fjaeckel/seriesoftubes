@@ -164,8 +164,11 @@ async function fedPlace(c,chk,rcpts,now,srvs){let slot=null,cc=null;
     if(await fedRcptErr(rc,chk.rec,chk.id,sid,nodes,now))continue;if(slot===null||rc.t<slot){slot=rc.t;cc=rc.body.cc||null;}}
   return {slot,cc};}
 /* Items [{rec, rcpt}] from a sub or a board answer. board: a Map id -> board item to fill, or null; known: board
-   items already checked (by id), which are not checked again. */
-async function fedRecs(c,items,board,known){const now=fedNow(),me=c.M.fed.key.pub,votes=[],srvs=await fedServers();let n=0,voters=null;
+   items already checked (by id), which are not checked again. Gives true when every item was looked at. Calls run one
+   after another, across connections: what they keep is read, changed and written back (votes, a network's servers),
+   and two at once would lose one's change (five votes arriving together counted as fewer). */
+function fedRecs(c,items,board,known){const p=(FED.recQ||Promise.resolve()).then(()=>fedRecsRun(c,items,board,known));FED.recQ=p.catch(()=>false);return p;}
+async function fedRecsRun(c,items,board,known){const now=fedNow(),me=c.M.fed.key.pub,votes=[],srvs=await fedServers();let n=0,voters=null;
   for(const it of Array.isArray(items)?items:[]){if(!fedLive(c))return false;if(!it||typeof it!=='object')continue;
     if(known&&it.rec&&it.rec.kind==='stats'&&!fedValues(it.rec)&&!fedEnv(it.rec,FED_REC)){const o=known.get(await fedId(it.rec));if(o){board.set(o.id,o);continue;}}
     const chk=await fedCheck(it.rec,now);if(!chk.ok)continue;n++;const r=chk.rec,pl=await fedPlace(c,chk,it.rcpt,now,srvs),heard=pl.slot??fedSlot(now);

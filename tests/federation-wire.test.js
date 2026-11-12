@@ -4,7 +4,7 @@
 // place in the game even when more networks are known than the game models. Fake nodes on a virtual clock.
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { fedPage, joinGame, settle, until, URL1, NOW, rec, key, asn } = require('./helpers/fed');
+const { fedPage, joinGame, settle, until, URL1, NOW, rec, key, asn, b64, sha } = require('./helpers/fed');
 
 // A node that records every frame it is sent, and can be told how to answer some of them.
 function spy(p, o = {}) {
@@ -83,5 +83,20 @@ test('a network picked in the looking glass becomes a place in the game even pas
   assert.equal(await p.ev(`!!fedNetOf(${JSON.stringify(bob)})`), true, 'picked, it is a place now');
   assert.equal(await p.ev('S.fedn.nets.length'), 48, 'still at most 48');
   assert.ok(await p.ev(`UI.fpOpen&&UI.fpOpen.key===${JSON.stringify(bob)}`), 'its deals sheet opened');
+  assert.deepEqual(p.errors, []);
+});
+
+test('five shun votes arriving together, each in its own frame, are all counted', async () => {
+  const DAY = 86400, sid = (n) => b64(sha('server ' + n));
+  const REG = { asOf: NOW - (NOW % DAY), at: NOW, servers: [1, 2, 3, 4, 5].map((n) => ({ id: sid(n), name: 'S' + n, operators: [key('op' + n).pub], nodes: [], listed: NOW - 60 * DAY - (NOW % DAY), answered: NOW - (NOW % DAY) })) };
+  const p = fedPage();
+  // The relay sends live records one frame each, right after the backlog.
+  spy(p, { sub: (ws, f, node) => { node.send(ws, { m: 'recs', id: f.id, items: [], cursor: 'e-1', more: false });
+    for (let i = 1; i <= 5; i++) node.send(ws, { m: 'recs', id: f.id, items: [{ rec: rec('op' + i, 'shun', NOW - DAY, { server: sid(i), target: key('mallory').pub, reason: 'spam' }), rcpt: [] }], cursor: 'e-' + (i + 1), more: false }); } });
+  await p.ev(`fedPut('kv','registry',${JSON.stringify(REG)})`);
+  await joinGame(p);
+  await run(p, 1000);
+  assert.ok(await until(async () => (await settle(5), ((await p.ev("fedGet('kv','votes')")) || []).length === 5)), 'every vote kept');
+  assert.equal((await p.ev('fedShunned()')).length, 1, 'five votes: shunned');
   assert.deepEqual(p.errors, []);
 });
