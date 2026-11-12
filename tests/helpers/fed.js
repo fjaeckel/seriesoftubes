@@ -38,12 +38,15 @@ const PL = SERVERS_JSON.servers[0], URL1 = 'wss://relay.example.net/fed', URL2 =
 const PL_ENTRY = { id: PL.id, name: 'Packet Lunch', nodes: PL.server.body.nodes, operators: PL.server.body.operators, sync: 'open', noLogs: true };
 
 /* A fake relay node. up: answers at all (false: connections fail); mute: takes frames and never answers.
-   feed: items its sub sends; board: items its board sends; refuse: an error code for every put. Like the relay
+   feed: items its sub sends; ranks: what it answers a rank request (an object merged into the ranks frame, or a
+   function (frame, socket) giving one; {m: 'err', code} answers an error); facets and netstats likewise for facets and
+   nets; why: what it answers rankwhy ({items, slot} for one recs frame, or a function; none: not_found); asks: the
+   rank, rankwhy, facets and nets requests it got; refuse: an error code for every put. Like the relay
    (§9.3), it sends shun votes only to a session that proved one of its server's operator keys (ops: by default
    Packet Lunch's, anna, ben and cleo) and only on a sub that asks for them; excl (null: never sent) is the excluded
    list it sends after a session's first sub and on exclude(), with reasons to a session that proved an excluded key. */
 class Node {
-  constructor(net, url, o = {}) { Object.assign(this, { net, url, server: o.server || PL.id, key: key(o.key || 'node1'), up: true, mute: false, feed: [], board: [], gossip: [], puts: [], refuse: null, socks: new Set(), hellos: 0,
+  constructor(net, url, o = {}) { Object.assign(this, { net, url, server: o.server || PL.id, key: key(o.key || 'node1'), up: true, mute: false, feed: [], ranks: null, facets: null, netstats: null, why: null, asks: [], gossip: [], puts: [], refuse: null, socks: new Set(), hellos: 0,
     ops: o.ops || ['anna', 'ben', 'cleo'].map((n) => key(n).pub), auths: [], excl: null, reasons: null }); }
   sendExcl(ws) { const m = { m: 'excluded', keys: this.excl, more: false }; if (this.reasons && [...(ws.proved || [])].some((k) => this.excl.includes(k))) m.reasons = this.reasons; this.send(ws, m); }
   exclude(keys, reasons = null) { this.excl = keys; this.reasons = reasons; for (const ws of this.socks) if (ws.exSent) this.sendExcl(ws); }
@@ -60,7 +63,17 @@ class Node {
       this.send(ws, { m: 'recs', id: f.id, items: this.feed.filter((it) => !vote(it) || ws.op && f.kinds.includes(it.rec.kind)), cursor: 'c1', more: false });
       if (this.excl && !ws.exSent) { ws.exSent = true; this.sendExcl(ws); }
     }
-    else if (f.m === 'board') this.send(ws, { m: 'recs', id: f.id, items: this.board, cursor: '', more: false });
+    else if (f.m === 'rank' || f.m === 'nets' || f.m === 'facets') {
+      this.asks.push(f);
+      const o = { rank: this.ranks, nets: this.netstats, facets: this.facets }[f.m], a = typeof o === 'function' ? o(f, ws) : o;
+      const base = { rank: { m: 'ranks', slot: 0, n: 0, rows: [], me: null }, nets: { m: 'netstats', nets: [], reports: [] }, facets: { m: 'facets', models: [], harnesses: [], from: [], homes: [] } }[f.m];
+      this.send(ws, a && a.m === 'err' ? { ...a, id: f.id } : { ...base, ...a, id: f.id });
+    }
+    else if (f.m === 'rankwhy') {
+      this.asks.push(f);
+      const w = typeof this.why === 'function' ? this.why(f, ws) : this.why;
+      this.send(ws, w ? { m: 'recs', id: f.id, items: [], cursor: '', more: false, ...w } : { m: 'err', id: f.id, code: 'not_found' });
+    }
     else if (f.m === 'servers') this.send(ws, { m: 'catalog', id: f.id, entries: this.gossip });
     else if (f.m === 'ping') this.send(ws, { m: 'pong', id: f.id, now: this.net.now() });
   }

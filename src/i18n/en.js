@@ -2504,6 +2504,7 @@
 "fedui.quiet_dark":"gone dark",
 "fedui.quiet_fading":"fading",
 "fedui.quit_multiplayer":"Quit multiplayer",
+"fedui.ranking_does_not_match":"{server} sent a ranking that does not match its records. Its boards are left out for a day.",
 "fedui.reason_abuse":"Abuse",
 "fedui.reason_cheating":"Cheating",
 "fedui.reason_offensive_name":"Offensive name",

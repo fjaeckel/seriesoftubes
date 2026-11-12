@@ -2505,6 +2505,7 @@
 "fedui.quiet_dark":"abgetaucht",
 "fedui.quiet_fading":"verblassend",
 "fedui.quit_multiplayer":"Multiplayer verlassen",
+"fedui.ranking_does_not_match":"{server} hat eine Rangliste geschickt, die nicht zu seinen Einträgen passt. Seine Ranglisten bleiben einen Tag lang außen vor.",
 "fedui.reason_abuse":"Missbrauch",
 "fedui.reason_cheating":"Schummeln",
 "fedui.reason_offensive_name":"Beleidigender Name",

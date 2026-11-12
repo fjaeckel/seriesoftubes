@@ -28,8 +28,6 @@ test('a player\'s game never gets or keeps a vote: its servers say who is exclud
   assert.ok(n.got.findIndex((f) => f.m === 'auth') < n.got.indexOf(sub), 'auth comes before the sub');
   assert.deepEqual(JSON.parse(JSON.stringify(await p.ev('fedShunned()'))), [M]);
   assert.equal(await p.ev("fedGet('kv','votes')"), null, 'no vote kept');
-  const d = JSON.parse(await p.ev('fedBoardData().then(d=>JSON.stringify(d.exclude))'));
-  assert.ok(d.includes(M), 'excluded from every board');
   assert.deepEqual(JSON.parse(JSON.stringify(await p.ev(`fedExclInfo(${JSON.stringify(M)})`))), { shunned: true, reasons: [] }, 'no reasons for other networks');
   // The server goes away: the last list stays.
   n.kill();

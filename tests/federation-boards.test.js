@@ -1,16 +1,9 @@
-// The boards (docs/plans/federation.md, Leaderboards): what this game reports, which saves take part, the AI
-// division, the lower of two traffic figures, the 7-day carry, and a board fetched from a node and kept for offline.
+// The boards (docs/plans/federation.md, Leaderboards): what this game reports, and slices ranked by the servers
+// (FEDERATION-PROTOCOL 9.5): asked with their filters, merged over the joined servers, kept for offline. The ranking
+// rules themselves run in the relay, held to the shared vectors.
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { fedPage, joinGame, settle, until, URL1, NOW, SERVERS_JSON, PL, rec, rid, key, canon, signText } = require('./helpers/fed');
-
-const slotOf = (t) => t - (t % 300);
-function rcpt(r, t, cc) {
-  const x = { v: 1, kind: 'receipt', key: key('node1').pub, t: slotOf(t), body: { rec: rid(r), server: PL.id, ...(cc ? { cc } : {}) } };
-  x.sig = signText(key('node1'), canon(x));
-  return x;
-}
-const stats = (name, t, body) => rec(name, 'stats', t, { mode: 'normal', pops: {}, traffic: [], tier1: false, shareCountry: false, ...body });
+const { fedPage, joinGame, settle, until, URL1, NOW, SERVERS_JSON, key } = require('./helpers/fed');
 
 test('what a game reports: its mode, POPs in service, pies only with a rocket company, Tier 1, the AI declaration', async () => {
   const p = fedPage();
@@ -32,51 +25,42 @@ test('what a game reports: its mode, POPs in service, pies only with a rocket co
   assert.deepEqual(p.errors, []);
 });
 
-test('excluded modes, the AI division, the lower of two traffic figures and the 7-day limit', () => {
-  const p = fedPage();
-  const now = 1767398410, s = (i) => 1767225600 + 300 * i, A = key('alice').pub, B = key('bob').pub, C = key('carol').pub, M = key('mallory').pub;
-  const r = (id, k, i, body) => ({ id, key: k, slot: s(i), t: s(i) + 20, body: { mode: 'normal', pops: { fra: 1 }, traffic: [], tier1: false, shareCountry: false, ...body } });
-  const recs = [
-    r('a', A, 300, { pops: { fra: 3 }, traffic: [{ key: B, in: 800, out: 300 }] }),
-    r('b', B, 300, { pops: { fra: 2 }, traffic: [{ key: A, in: 250, out: 900 }], ai: { model: 'm1', harness: 'h' } }),
-    r('c', C, 300, { mode: 'sandbox', pops: { fra: 50 } }),
-    r('m', M, 0, { pops: { fra: 9 } }),// carried forward through the window
-  ];
-  const board = (q) => JSON.parse(p.ev(`JSON.stringify(fedBoard(${JSON.stringify({ now, measure: 'total', division: 'all', exclude: [], cities: null, records: recs, ...q })}))`));
-  assert.deepEqual(board({ board: 'pops' }).map((x) => x.key), [M, A, B], 'the sandbox save is not ranked');
-  assert.deepEqual(board({ board: 'pops', division: 'ai' }).map((x) => x.key), [B]);
-  assert.deepEqual(board({ board: 'pops', division: 'human' }).map((x) => x.key), [M, A]);
-  // A: in min(800, B's out 900), out min(300, B's in 250); B: in min(250, 300), out min(900, 800): both 800, then by key.
-  assert.deepEqual(board({ board: 'traffic' }).filter((x) => x.key !== M), [{ key: B, value: 800 }, { key: A, value: 800 }]);
-  assert.deepEqual(board({ board: 'pops', now: s(0) + 604800 + 86400 + 10 }).map((x) => x.key).includes(M), false, 'silent 7 days: off the boards');
-  assert.deepEqual(board({ board: 'pops', exclude: [M] }).map((x) => x.key), [A, B]);
+test('a slice ranked by the servers: the request carries the filters, two servers merged, the answer kept for offline', async () => {
+  const p = fedPage({ registry: SERVERS_JSON });
+  const U3 = 'wss://third.example.com', n = p.net.node(URL1), n2 = p.net.node(U3, { server: SERVERS_JSON.servers[1].id, key: 'node3' });
+  const A = key('alice').pub, B = key('bob').pub, C = key('carol').pub;
+  const row = (k, value, o = {}) => ({ rank: 1, key: k, value, asn: 4200000001, ai: false, ...o });
+  n.ranks = (f) => ({ slot: NOW - (NOW % 300), n: 3, rows: [row(B, 5, { ai: true, name: 'Bob Net' }), row(A, 2, { rank: 2 })], me: null });
+  n2.ranks = { slot: NOW - (NOW % 300), n: 2, rows: [row(C, 4), row(A, 3, { rank: 2 })], me: null };
+  await joinGame(p);
+  await p.ev(`fedJoin(${JSON.stringify(U3)})`);
+  assert.ok(await until(async () => (await settle(5), p.ev('fedStatus().servers.filter(x=>x.state===\'connected\').length') === 2)));
+  const v = JSON.parse(await p.ev("fedRankView({board:'pops',division:'ai',tier1:true,region:{city:'fra'}}).then(v=>JSON.stringify(v))"));
+  const ask = n.asks.filter((f) => f.m === 'rank').at(-1);
+  assert.deepEqual([ask.board, ask.measure, ask.division, ask.filters, ask.n], ['pops', 'total', 'ai', { cities: ['fra'], tier1: true }, 50]);
+  assert.deepEqual(v.rows.map((r) => [r.key, r.value, r.rank]), [[B, 5, 1], [C, 4, 2], [A, 3, 3]], 'merged: alice takes the higher value');
+  assert.equal(v.at, null, 'fresh');
+  assert.equal(n.asks.filter((f) => f.m === 'board').length, 0);
+  // Offline: the last answers, "as of" when they came.
+  const at = p.ev('FED.now()');
+  n.kill(); n2.kill();
+  await settle();
+  p.net.advance(60000);
+  const v2 = JSON.parse(await p.ev("fedRankView({board:'pops',division:'ai',tier1:true,region:{city:'fra'}}).then(v=>JSON.stringify(v))"));
+  assert.deepEqual(v2.rows, v.rows);
+  assert.equal(v2.at, at);
+  // Another slice was never asked: nothing to show offline.
+  assert.deepEqual(JSON.parse(await p.ev("fedRankView({board:'pies'}).then(v=>JSON.stringify(v.rows))")), []);
   assert.deepEqual(p.errors, []);
 });
 
-test('a board fetched from a node: receipts give the slots and countries; kept for offline viewing; merged servers count once', async () => {
-  const p = fedPage({ registry: SERVERS_JSON });
-  const n = p.net.node(URL1);
-  const t0 = NOW - 3600;
-  const b1 = stats('bob', t0, { pops: { fra: 2 }, shareCountry: true }), c1 = stats('carol', t0, { pops: { ams: 5 }, ai: { model: 'm', harness: 'h' } });
-  const forged = stats('mallory', t0, { pops: { fra: 99 } });
-  n.board = [{ rec: b1, rcpt: [rcpt(b1, t0 + 100, 'DE'), rcpt(b1, t0 + 400)] }, { rec: c1, rcpt: [rcpt(c1, t0)] },
-    { rec: forged, rcpt: [{ ...rcpt(forged, t0), key: key('mallory').pub }] }, { rec: { ...b1, sig: 'x' }, rcpt: [] }];
-  await joinGame(p);
-  assert.ok(await until(async () => (await settle(5), p.ev('fedStatus().state') === 'connected')));
-  assert.equal(await p.ev(`fedBoardFetch(${JSON.stringify(URL1)})`), 2, 'mallory has no valid receipt, the copy no valid signature');
-  const d = JSON.parse(await p.ev('fedBoardData().then(d=>JSON.stringify({...d,announces:[...d.announces]}))'));
-  const bob = d.records.find((x) => x.key === key('bob').pub);
-  assert.equal(bob.slot, slotOf(t0 + 100), 'the earliest receipt');
-  assert.equal(bob.cc, 'DE');
-  assert.deepEqual(bob.srv, [PL.id]);
-  assert.equal(d.at, NOW);
-  const v = JSON.parse(await p.ev("fedBoardView({board:'pops'}).then(v=>JSON.stringify(v))"));
-  assert.deepEqual(v.rows.map((r) => [r.value, r.rank, r.ai]), [[5, 1, true], [2, 2, false]]);
-  // Offline: the cache answers; the node gone changes nothing.
-  n.kill();
-  await settle();
-  assert.equal(await p.ev(`fedBoardFetch(${JSON.stringify(URL1)})`), null);
-  const v2 = JSON.parse(await p.ev("fedBoardView({board:'pops'}).then(v=>JSON.stringify(v))"));
-  assert.deepEqual(v2.rows, v.rows);
+test('the offline cache keeps at most 48 answers, the oldest going first', async () => {
+  const p = fedPage();
+  p.ev('ACT.start({})');
+  for (let i = 0; i < 52; i++) { p.net.t += 1000; await p.ev(`fedRanksPut('u','k${i}',{slot:0,n:0,rows:[],me:null})`); }
+  const e = JSON.parse(await p.ev("fedGet('kv','ranks').then(o=>JSON.stringify(Object.keys(o.entries)))"));
+  assert.equal(e.length, 48);
+  assert.equal(e.includes('u k0'), false);
+  assert.equal(e.includes('u k51'), true);
   assert.deepEqual(p.errors, []);
 });

@@ -6,7 +6,7 @@
    and a server it operates gets the operator panel: proposals to sign, hide and shun with pre-made reasons only, node
    status and recent errors. */
 async function fuGlassLoad(){const players=new Map(),syncs=new Map(),add=(a,b)=>{if(a===b)return;(syncs.get(a)||syncs.set(a,new Set()).get(a)).add(b);(syncs.get(b)||syncs.set(b,new Set()).get(b)).add(a);};
-  for(const s of FU.srvs){const b=await fedBoardGet(s.id),ks=new Set(b&&b.items?b.items.map(x=>x.key):[]);for(const [k,n] of FU.nets)if((n.srv||[]).includes(s.id))ks.add(k);players.set(s.id,ks.size);}
+  for(const s of FU.srvs){let n=0;for(const x of FU.nets.values())if((x.srv||[]).includes(s.id))n++;players.set(s.id,n);}
   for(const g of FU.gossip)if(Array.isArray(g.path))for(let i=0;i+1<g.path.length;i++)add(g.path[i],g.path[i+1]);
   FU.players=players;FU.syncs=syncs;}
 // The server an operator key operates, or null.
@@ -60,7 +60,7 @@ const fuProp=a=>({add_operator:tr('fedui.add_an_operator'),remove_operator:tr('f
 
 /* ---------- one network: read-only status (and an operator's hide and shun) ---------- */
 async function fuNetLoad(key){const hides=[];for(const s of FU.srvs){const h=await fedHides(s.id,FU.srvs);if(h){const b=h.rec.body;hides.push({id:s.id,hide:b.hide.includes(key),names:b.names.includes(key),refuse:b.refuse.includes(key)});}}
-  let ai=null;try{const d=await fedBoardData(fuSrvIds().length?fuSrvIds():null),mine=d.records.filter(r=>r.key===key).sort((a,b)=>b.slot-a.slot)[0];ai=mine?mine.body.ai||null:null;}catch(e){}
+  let ai=false;try{const st=(await fedNetsStats()).get(key);ai=!!(st&&st.ai)||!!(FU.slice&&FU.slice.rows.some(r=>r.key===key&&r.ai));}catch(e){}
   // The tally only for an operator (from the votes its nodes sent); everyone else knows only excluded or not.
   const op=!!FU.opKey;FU.netInfo={key,op,shun:op?await fedShunInfo(key):await fedExclInfo(key),hides,ai};}
 function fuNetHtml(){const key=UI.fu.key,n=FU.nets.get(key),I=FU.netInfo&&FU.netInfo.key===key?FU.netInfo:null,back={v:UI.fu.back||'glass'},f=S&&S.fed;

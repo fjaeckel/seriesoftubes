@@ -9,7 +9,9 @@ const { load } = require('./harness');
 
 const DIR = path.join(__dirname, '..', 'federation', 'vectors');
 // Areas the client does not compute, and why. Everything else runs, every case.
-const SKIP = {};
+const SKIP = {
+  rank: 'the server answers rank requests (9.5); the game merges answers (tests/federation-slices.test.js)',
+};
 const hexB64 = (h) => Buffer.from(h, 'hex').toString('base64url');
 
 // Each area: (ev, input) -> the result to compare with expect.
@@ -51,7 +53,9 @@ const AREA = {
     const by=fedByKey(i.records.map(r=>({...r,body:{mode:r.mode}}))),out=[];
     for(const s of i.queries){const w=by.get(i.records[0].key)||[],e=fedEffs(w,s,s)[0];out.push({s,eff:e?e.id:null,value:fedHas(e)});}
     return {results:out};})()`, i),
-  boards: (run, i) => run(`({rows:fedBoard(i)})`, i),
+  // The relay ranks; a game works out one network's value to check a row (fedRankOne): every key of a vector, ranked.
+  boards: (run, i) => run(`({rows:(()=>{const rows=[];for(const k of new Set(i.records.map(r=>r.key))){const x=fedRankOne({...i,filters:{}},k,i.records,null);
+    if(x.listed&&x.kept)rows.push({key:k,value:x.value});}return rows.sort((a,b)=>b.value-a.value||fedByStr(a.key,b.key));})()})`, i),
   quiet: (run, i) => run(`fedQuiet(i.now,i.lastHeard)`, i),
   shun: (run, i) => run(`(()=>{const r=fedShun(i.registry,i.records,i.target,i.now);return r;})()`, i),
   catalog: (run, i) => run(`i.entry?fedGossipIn(i.entry,i.self,i.now):{servers:fedCatalogMerge(i.registry,i.gossip,i.now)}`, i),

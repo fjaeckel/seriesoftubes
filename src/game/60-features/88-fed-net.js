@@ -12,10 +12,10 @@ const FED={
   fetch:(u,o)=>fetch(u,o),idb:()=>indexedDB,registry:'federation/servers.json',
   // ms: opening a socket, a request's answer, ping when idle, give up when silent, the idle check, stats, back-off.
   T:{open:15000,req:20000,idle:60000,dead:120000,tick:30000,stats:300000,statsMax:3600,first:5000,base:2000,cap:1800000,fetch:10000},
-  hooks:{stats:null,deal:null},bgen:0,bd:null,vgen:0,shun:null,xgen:0,ex:null,live:null,st:{},ev:{},soon:false,listening:false,sent:new Map(),ids:new WeakMap()};
+  hooks:{stats:null,deal:null},vgen:0,shun:null,xgen:0,ex:null,live:null,st:{},ev:{},soon:false,listening:false,sent:new Map(),ids:new WeakMap()};
 
 /* ---------- events for the interface and the gameplay ---------- */
-// fedOn(name, fn) gives a function that stops listening. Names: status, records, excluded, deal, board, catalog, mute.
+// fedOn(name, fn) gives a function that stops listening. Names: status, records, excluded, deal, catalog, mute, untrusted.
 function fedOn(name,fn){(FED.ev[name]||(FED.ev[name]=new Set())).add(fn);return ()=>FED.ev[name].delete(fn);}
 function fedEmit(name,data){const s=FED.ev[name];if(s)for(const fn of [...s])try{fn(data);}catch(e){console.error('[tubes] federation listener',e);}}
 
@@ -110,10 +110,10 @@ function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.erro
   /* A page of the subscription: pages are handled one after another, and its cursor is kept only once every record of
      it was handled, so a connection lost in the middle resumes from the last whole page and skips nothing (§9.3). */
   if(f.m==='recs'&&c.sub&&f.id===c.sub){const q=c.subQ||Promise.resolve(),node=c.node;
-    c.subQ=q.then(()=>fedRecs(c,f.items,null,null)).then(done=>{if(done&&fedCursorOk(f.cursor))return fedPut('kv','cursor:'+node,f.cursor);}).catch(()=>{});return;}
+    c.subQ=q.then(()=>fedRecs(c,f.items)).then(done=>{if(done&&fedCursorOk(f.cursor))return fedPut('kv','cursor:'+node,f.cursor);}).catch(()=>{});return;}
   // The operators' own subscription to the votes (§9.3: only a session that proved an operator key gets them).
   if(f.m==='recs'&&c.vsub&&f.id===c.vsub){const q=c.subQ||Promise.resolve(),node=c.node;
-    c.subQ=q.then(()=>fedRecs(c,f.items,null,null)).then(done=>{if(done&&fedCursorOk(f.cursor))return fedVoteCursor(node,f.cursor);}).catch(()=>{});return;}
+    c.subQ=q.then(()=>fedRecs(c,f.items)).then(done=>{if(done&&fedCursorOk(f.cursor))return fedVoteCursor(node,f.cursor);}).catch(()=>{});return;}
   if(f.m==='err'&&c.vsub&&f.id===c.vsub){c.vsub=0;return;}
   if(f.m==='excluded'&&f.id===undefined){fedExclIn(c,f);return;}
   // The node refused the subscription for now (rate_limited, internal): subscribe again after its retry.
@@ -204,14 +204,13 @@ async function fedPlace(c,chk,rcpts,now,srvs){let slot=null,cc=null;
     const e=srvs.find(x=>x.id===sid),nodes=e?e.nodes.map(n=>n.key):sid===c.srv&&c.nodeKey?[c.nodeKey]:null;if(!nodes)continue;
     if(await fedRcptErr(rc,chk.rec,chk.id,sid,nodes,now))continue;if(slot===null||rc.t<slot){slot=rc.t;cc=rc.body.cc||null;}}
   return {slot,cc};}
-/* Items [{rec, rcpt}] from a sub or a board answer. board: a Map id -> board item to fill, or null; known: board
-   items already checked (by id), which are not checked again. Gives true when every item was looked at. Calls run one
-   after another, across connections: what they keep is read, changed and written back (votes, a network's servers),
-   and two at once would lose one's change (five votes arriving together counted as fewer). */
-function fedRecs(c,items,board,known){const p=(FED.recQ||Promise.resolve()).then(()=>fedRecsRun(c,items,board,known));FED.recQ=p.catch(()=>false);return p;}
-async function fedRecsRun(c,items,board,known){const now=fedNow(),me=c.M.fed.key.pub,votes=[],srvs=await fedServers();let n=0,voters=null;
+/* Items [{rec, rcpt}] from a sub or a fetch. Gives true when every item was looked at. Calls run one after another,
+   across connections: what they keep is read, changed and written back (votes, a network's servers), and two at once
+   would lose one's change (five votes arriving together counted as fewer). Leaderboards never pass through here: the
+   server ranks them (§9.5). */
+function fedRecs(c,items){const p=(FED.recQ||Promise.resolve()).then(()=>fedRecsRun(c,items));FED.recQ=p.catch(()=>false);return p;}
+async function fedRecsRun(c,items){const now=fedNow(),me=c.M.fed.key.pub,votes=[],srvs=await fedServers();let n=0,voters=null;
   for(const it of Array.isArray(items)?items:[]){if(!fedLive(c))return false;if(!it||typeof it!=='object')continue;
-    if(known&&it.rec&&it.rec.kind==='stats'&&!fedValues(it.rec)&&!fedEnv(it.rec,FED_REC)){const o=known.get(await fedId(it.rec));if(o){board.set(o.id,o);continue;}}
     const chk=await fedCheck(it.rec,now);if(!chk.ok)continue;n++;const r=chk.rec,pl=await fedPlace(c,chk,it.rcpt,now,srvs),heard=pl.slot??fedSlot(now);
     if(['announce','stats','offer','accept','decline'].includes(r.kind))await fedHeard(r.key,heard);
     if(r.kind==='announce')await fedAnnPut(chk,heard,c.srv);
@@ -219,39 +218,87 @@ async function fedRecsRun(c,items,board,known){const now=fedNow(),me=c.M.fed.key
     // Votes only from an operator of a voting registry server, hide lists only from an operator of their server.
     else if(r.kind==='shun'||r.kind==='unshun'){if(c.op&&!voters)voters=await fedVoters();if(c.op&&fedVoteOk(voters,r))votes.push(chk);}
     else if(r.kind==='hide'){if(fedOpOf(srvs,r.body.server,r.key)){const o=await fedGet('kv','hide:'+r.body.server);if(!o||!o.rec||fedNewer(chk,o))await fedPut('kv','hide:'+r.body.server,{rec:r,id:chk.id});}}
-    else if(r.kind==='stats'&&board&&pl.slot!==null)board.set(chk.id,{id:chk.id,key:r.key,slot:pl.slot,t:r.t,body:r.body,cc:pl.cc,srv:[c.srv]});
     else if((r.kind==='offer'||r.kind==='accept'||r.kind==='decline')&&(r.body.to===me||r.key===me||!!FED.hooks.deal&&FED.hooks.deal(r)))fedEmit('deal',{rec:r,id:chk.id,slot:heard,server:c.srv});}
   if(votes.length)await fedVotesAdd(votes,voters);
   if(n)fedEmit('records',{server:c.srv,n});return true;}
-/* Fetches a joined server's board records (§9.5) and keeps them for offline viewing. Gives the number of records, or
-   null when that server is not connected now (the cached ones stay). */
-async function fedBoardFetch(url){const M=FED.live,c=M&&M.conns.get(url);if(!c||c.phase!=='ready'||!c.srv)return null;
-  const old=await fedBoardGet(c.srv),known=new Map((old&&old.items||[]).map(x=>[x.id,x]));
-  const a=await fedAskRetry(c,{m:'board'},true);if(!a||a.m!=='recs')return null;
-  const board=new Map();await fedRecs(c,a.items,board,known);
-  if(!fedLive(c))return null;await fedBoardPut(c.srv,[...board.values()]);fedEmit('board',{server:c.srv,n:board.size});return board.size;}
-/* Everything the boards are computed from, from the cache (works offline): {records (merged over the joined servers,
-   or one server's), announces (Map key -> announce), exclude (muted, hidden by those servers, shunned), at (oldest
-   fetch time, for "as of …")}. */
-async function fedBoardData(server=null){const f=S&&S.fed,ids=[...new Set(Array.isArray(server)?server:server?[server]:Object.values(FED.st).map(x=>x.server).filter(Boolean))],now=fedNow(),me=f&&f.key?f.key.pub:null;
-  const {records,at}=await fedBoardRecs(ids,now,me),anns=new Map((await fedNetworks(now)).map(n=>[n.key,n.rec])),ex=new Set(f?f.muted:[]);
-  const srvs=ids.length?await fedServers():[];for(const id of ids){const h=await fedHides(id,srvs);if(h)for(const k of h.rec.body.hide)ex.add(k);}
-  for(const k of await fedShunned(now))ex.add(k);
-  return {now,records,announces:anns,exclude:[...ex],deals:f?f.deals:[],me,at};}
-/* The board records of these servers merged, at most FED_BOARD_MAX (the newest) from at most FED_BOARD_KEYS networks
-   (the most recently heard, and this one). The same array again until a server's records change here (FED.bgen) or a
-   slot went by, so the boards over it are computed once (fedBoard keeps them per array). */
-async function fedBoardRecs(ids,now,me){const k=ids.join(' ')+'|'+me,o=FED.bd;if(o&&o.k===k&&o.g===FED.bgen&&now-o.made<FED_SLOT)return o;
-  const g=FED.bgen,by=new Map();let at=null;
-  for(const id of ids){const b=await fedBoardGet(id);if(!b||!Array.isArray(b.items))continue;at=at===null?b.at:Math.min(at,b.at);
-    for(const x of b.items){const o=by.get(x.id);if(o)o.srv=[...new Set([...o.srv,id])];else by.set(x.id,{...x,srv:[id]});}}
-  let records=[...by.values()];if(records.length>FED_BOARD_MAX){records.sort((a,b)=>b.slot-a.slot);records.length=FED_BOARD_MAX;}
-  const newest=new Map();for(const r of records)if(!(newest.get(r.key)>=r.slot))newest.set(r.key,r.slot);
-  if(newest.size>FED_BOARD_KEYS){const keep=new Set([...newest].sort((a,b)=>b[1]-a[1]||fedByStr(a[0],b[0])).slice(0,FED_BOARD_KEYS).map(x=>x[0]));
-    if(me)keep.add(me);records=records.filter(r=>keep.has(r.key));}
-  return FED.bd={k,g,made:now,records,at};}
-// A board slice, ready to show (fedSlice over fedBoardData).
-async function fedBoardView(v){const d=await fedBoardData(v.server||null);return {...fedSlice(v,d),at:d.at};}
+/* ---------- the leaderboards: the server ranks (§9.5) ---------- */
+// The joined URLs whose connection is ready now.
+const fedReadyConn=url=>{const M=FED.live,c=M&&M.conns.get(url);return c&&c.phase==='ready'&&c.srv?c:null;};
+/* A slice view (fedRankReq) from joined servers (urls; all joined ones when left out): each connected one is asked, the
+   others give their last answer kept here (offline: all of them, "as of"). The answers are merged (fedRankMerge),
+   leaving out networks this player muted, a joined server hides and the federation excludes. Muted rows are asked for
+   on top of the 50, so the list stays full. Gives {rows, me, n, at (the oldest kept answer used; null when every
+   answer is fresh), slot}. */
+async function fedRankView(v,urls){const f=S&&S.fed;if(!f||!f.key)return {rows:[],me:null,n:0,at:null,slot:null,untrusted:[]};urls=urls||f.servers.slice();
+  const muted=f.muted||[],req=fedRankReq(v,f.deals,50+Math.min(50,muted.length)),k=fedRankKey(req),me=f.key.pub;let at=null,slot=null;
+  // A server caught sending a ranking its records do not give is left out (others are preferred) for a day.
+  const bad=await fedUntrusted(),untrusted=urls.filter(u=>bad[u]).map(u=>bad[u].srv||u);urls=urls.filter(u=>!bad[u]);
+  const got=await Promise.all(urls.map(async u=>{const c=fedReadyConn(u);
+    if(c){const a=fedRanksOk(await fedAskRetry(c,req));if(a){fedRanksPut(u,k,a).catch(()=>{});fedRankCheckSoon(c,req,a);return {a,srv:c.srv};}}
+    const o=await fedRanksGet(u,k);if(!o)return null;at=at===null?o.at:Math.min(at,o.at);return {a:o.a,srv:FED.st[u]&&FED.st[u].server};}));
+  const drop=new Set([...muted,...await fedShunned()]),srvs=await fedServers();
+  for(const g of got)if(g&&g.srv){slot=Math.max(slot||0,g.a.slot);const h=await fedHides(g.srv,srvs);if(h)for(const x of h.rec.body.hide)drop.add(x);}
+  return {...fedRankMerge(got.map(g=>g&&g.a),me,drop,50),at,slot,untrusted};}
+/* ---------- checking a server's ranking (§9.5 rankwhy) ----------
+   After each fresh ranks answer, in the background: this network's own row and one row picked at random are worked out
+   again from the signed records the server shows for them (fedRankOne). A row that does not match, twice (a record may
+   have arrived in between), marks the server untrusted for this session and a day. Spot checks deter; they do not prove. */
+const FED_UNTRUST=86400;
+async function fedUntrusted(){const now=fedNow();if(!FED.bad){const o=(await fedGet('kv','untrusted'))||{};FED.bad={};for(const [u,x] of Object.entries(o))if(x&&Number.isSafeInteger(x.until))FED.bad[u]=x;}
+  for(const u of Object.keys(FED.bad))if(FED.bad[u].until<=now)delete FED.bad[u];return FED.bad;}
+async function fedDistrust(c){const bad=await fedUntrusted();bad[c.url]={until:fedNow()+FED_UNTRUST,srv:c.srv};await fedPut('kv','untrusted',bad);fedErrLog(c.node,c.srv,'ranking');fedEmit('untrusted',{server:c.srv,url:c.url});}
+// At most one check at a time per server, and each slice once per slot.
+function fedRankCheckSoon(c,req,a){const k=c.url+' '+fedRankKey(req)+' '+a.slot;FED.vd=FED.vd||new Set();FED.vb=FED.vb||new Set();
+  if(FED.vd.has(k)||FED.vb.has(c.url))return;if(FED.vd.size>256)FED.vd.clear();FED.vd.add(k);FED.vb.add(c.url);
+  fedRankCheck(c,req,a).catch(e=>console.error('[tubes] ranking check',e)).finally(()=>FED.vb.delete(c.url));}
+/* Checks a ranks answer a of connection c for request req: gives true (it matches), false (it does not, twice: the
+   server is then untrusted) or null (could not be checked: offline, a slot went by, a record from a server unknown here). */
+async function fedRankCheck(c,req,a){const f=c.M.fed,me=f.key.pub,rows=a.rows.filter(r=>r.key!==me);
+  const picks=[{key:me,own:true}];if(rows.length)picks.push({key:rows[Math.min(rows.length-1,Math.floor(FED.rand()*rows.length))].key});
+  for(const p of picks){let r=await fedRankRow(c,req,a,p);
+    if(r===false){const a2=fedRanksOk(await fedAskRetry(c,req));if(!a2||!fedLive(c))return null;r=await fedRankRow(c,req,a2,p);}
+    if(r===false){await fedDistrust(c);return false;}}
+  return true;}
+// One row (p: {key, own}) of an answer against the records rankwhy shows for it.
+async function fedRankRow(c,req,a,p){const w=await fedAskRetry(c,{m:'rankwhy',board:req.board,measure:req.measure,division:req.division,filters:req.filters,key:p.key},true);
+  if(!w||w.m!=='recs'||w.slot!==a.slot||!fedLive(c))return null;const now=fedNow(),srvs=await fedServers(),recs=[];let ann=null,annT=null;
+  for(const it of w.items){if(!it||typeof it!=='object')continue;const chk=await fedCheck(it.rec,now);if(!chk.ok)continue;const r=chk.rec;
+    if(r.kind==='announce'&&r.key===p.key){if(annT===null||r.t>annT){ann=r.body;annT=r.t;}continue;}if(r.kind!=='stats')continue;
+    // A receipt from a server this browser does not know cannot be checked: then neither can the row.
+    for(const rc of Array.isArray(it.rcpt)?it.rcpt.slice(0,16):[]){const sid=rc&&rc.body&&rc.body.server;if(typeof sid==='string'&&sid!==c.srv&&!srvs.some(x=>x.id===sid))return null;}
+    const pl=await fedPlace(c,chk,it.rcpt,now,srvs);if(pl.slot!==null)recs.push({id:chk.id,key:r.key,slot:pl.slot,t:r.t,body:r.body,cc:pl.cc});}
+  const ex=new Set(await fedServerExcl(c)),q={now:a.slot,board:req.board,measure:req.measure,division:req.division,exclude:[...ex],cities:req.filters.cities||null,filters:req.filters};
+  const x=fedRankOne(q,p.key,recs,ann);
+  if(p.own){const m=a.me;return m?x.listed&&x.value===m.value&&(m.rank===null?!x.kept:x.kept):!x.listed;}
+  const row=a.rows.find(r=>r.key===p.key);return !!row&&x.kept&&x.value===row.value;}
+// What one server leaves off its boards, as it told this game: its excluded list, and its hide list's hidden and refused.
+async function fedServerExcl(c){const o=await fedGet('kv',fedExclKey(c.url,c.M.fed.key.pub)),out=new Set(o&&Array.isArray(o.keys)?o.keys:[]);
+  const h=await fedHides(c.srv);if(h){for(const k of h.rec.body.hide)out.add(k);for(const k of h.rec.body.refuse)out.add(k);}return [...out];}
+/* The values the filter sheet offers (§9.5 facets), from every joined server (connected: asked; else the last kept):
+   {models, harnesses, from, homes}, each sorted. */
+async function fedFacets(urls){const f=S&&S.fed,sets={models:new Set(),harnesses:new Set(),from:new Set(),homes:new Set()};if(!f)return {models:[],harnesses:[],from:[],homes:[]};
+  for(const u of urls||f.servers){const c=fedReadyConn(u);let a=null;
+    if(c){const x=await fedAskRetry(c,{m:'facets'});if(x&&x.m==='facets'){a=x;await fedPut('kv','facets:'+u,{at:fedNow(),a:{models:x.models,harnesses:x.harnesses,from:x.from,homes:x.homes}});}}
+    if(!a){const o=await fedGet('kv','facets:'+u);a=o&&o.a;}
+    if(a)for(const [k,ok] of [['models',v=>!FdText(1,64)(v)],['harnesses',v=>!FdText(1,64)(v)],['from',v=>!FdCC(v)],['homes',v=>!FdCC(v)]])
+      if(Array.isArray(a[k]))for(const v of a[k].slice(0,256))if(ok(v))sets[k].add(v);}
+  return Object.fromEntries(Object.entries(sets).map(([k,s])=>[k,[...s].sort()]));}
+/* For the gameplay (§9.5 nets): of the networks keys (at most 64), whether each is an AI and Tier 1, and what other
+   networks report about traffic with this one, from each connected joined server; kept per server for offline. */
+async function fedNetsFetch(keys){const f=S&&S.fed;if(!f)return;keys=[...new Set(keys)].filter(k=>!FdK(k)).slice(0,64);
+  for(const u of f.servers){const c=fedReadyConn(u);if(!c)continue;const a=await fedAskRetry(c,{m:'nets',keys});if(!a||a.m!=='netstats')continue;
+    const nets=a.nets.filter(x=>x&&!FdK(x.key)&&typeof x.ai==='boolean'&&typeof x.tier1==='boolean').slice(0,64).map(x=>({key:x.key,ai:x.ai,tier1:x.tier1}));
+    const reports=a.reports.filter(x=>x&&!FdK(x.key)&&Number.isSafeInteger(x.in)&&x.in>=0&&Number.isSafeInteger(x.out)&&x.out>=0).slice(0,256).map(x=>({key:x.key,in:x.in,out:x.out}));
+    await fedPut('kv','nets:'+u,{at:fedNow(),me:f.key.pub,nets,reports});}
+  FED.netsAt=fedNow();}
+/* What the gameplay knows of other networks' stats, from the kept nets answers of the joined servers: Map key -> {ai,
+   tier1, traffic: [{key: this network, in, out}] (what that network reports about traffic with this one)}. */
+async function fedNetsStats(){const f=S&&S.fed,m=new Map();if(!f||!f.key)return m;const me=f.key.pub;
+  const get=k=>{let o=m.get(k);if(!o)m.set(k,o={ai:false,tier1:false,traffic:[]});return o;};
+  for(const u of f.servers){const o=await fedGet('kv','nets:'+u);if(!o||o.me!==me)continue;
+    for(const x of o.nets||[])if(!m.has(x.key)||!m.get(x.key).seen){const e=get(x.key);e.ai=x.ai;e.tier1=x.tier1;e.seen=true;}
+    for(const x of o.reports||[]){const e=get(x.key);if(!e.traffic.length)e.traffic.push({key:me,in:x.in,out:x.out});}}
+  return m;}
 
 /* ---------- the catalog: the registry on the site, gossip from nodes, cached ---------- */
 // Fetches the registry (same origin, a static file on the site) and keeps what checks; the cache stays when it fails.

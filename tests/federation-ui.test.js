@@ -204,16 +204,20 @@ test('a shunned player is told why and that solo play goes on; 14 days unreachab
   assert.deepEqual(p.errors, []);
 });
 
-// A cached board: Bob and Carol (AI) and this network, as if fetched earlier from Packet Lunch.
-async function seedBoard(p) {
-  const me = p.ev('S.fed.key.pub'), now = p.ev('FED.now()'), slot = now - (now % 300) - 600;
-  const row = (k, id, body) => ({ id, key: k, slot, t: slot + 10, cc: 'DE', body: { mode: 'normal', pops: { fra: 1 }, traffic: [], tier1: false, shareCountry: true, ...body } });
-  const items = [
-    row(key('bob').pub, 'b'.repeat(43), { pops: { fra: 1, ams: 1, lon: 1 } }),
-    row(key('carol').pub, 'c'.repeat(43), { pops: { fra: 1, ams: 1 }, ai: { model: 'm1', harness: 'h1' } }),
-    row(me, 'd'.repeat(43), { pops: { fra: 1 } }),
-  ];
-  await p.ev(`fedBoardPut(${JSON.stringify(PL.id)},${JSON.stringify(items)})`);
+// A board: Bob and Carol (AI) and this network, ranked by a fake server that filters as a relay does (only the
+// filters these tests use), and their announces as heard from Packet Lunch.
+async function seedBoard(p, n) {
+  const me = p.ev('S.fed.key.pub'), now = p.ev('FED.now()');
+  const nets = [{ key: key('bob').pub, value: 3, ai: false, pol: 'open' }, { key: key('carol').pub, value: 2, ai: true, model: 'm1', pol: 'selective' }, { key: me, value: 1, ai: false, pol: 'open' }];
+  if (n) n.ranks = (f) => {
+    const F = f.filters || {};
+    if (f.measure === 'growth') return { slot: 0, n: 0, rows: [], me: null };
+    const ok = (x) => !(f.division === 'ai' && !x.ai || f.division === 'human' && x.ai || F.model != null && x.model !== F.model || F.policy != null && x.pol !== F.policy);
+    const rows = nets.filter(ok).map((x, i) => ({ rank: i + 1, key: x.key, value: x.value, asn: 4200000001, ai: x.ai }));
+    const mi = rows.findIndex((r) => r.key === me);
+    return { slot: now - (now % 300), n: rows.length, rows, me: { rank: mi >= 0 ? mi + 1 : null, value: 1 } };
+  };
+  if (n) n.facets = { models: ['m1'], harnesses: ['h1'], from: ['DE'], homes: ['DE'] };
   for (const [nm, pol] of [['bob', 'open'], ['carol', 'selective']]) {
     const r = ann(nm, now - 100, { name: nm === 'bob' ? 'Bob <b>Net</b>' : 'Carol Bot', policy: pol, ...(pol === 'selective' ? { cond: { minMbps: 0, maxRatio: 300, minShared: 1, rpki: false, tier1: false, ai: true } } : {}) });
     await p.ev(`fedAnnPut({rec:${JSON.stringify(r)},id:${JSON.stringify(rid(r))}},${now - 100},${JSON.stringify(PL.id)})`);
@@ -221,11 +225,8 @@ async function seedBoard(p) {
 }
 
 test('leaderboards: three boards, divisions with robot badges, own row pinned, filters combine, offline "as of"', async () => {
-  const p = fedPage({ registry: SERVERS_JSON });
-  p.net.node(URL1).up = false;// offline: the boards come from the cache
-  await joinGame(p);
-  await run(p, 1000);
-  await seedBoard(p);
+  const { p, n } = await joined();
+  await seedBoard(p, n);
   p.ev("ACT.fuOpen({v:'boards'});ACT.fuQ({k:'board',v:'pops'})");
   await run(p, 500);
   const rows = () => val(p, `[...document.querySelectorAll('#modalCard .fu-board:not(.pinned) .fu-row')].map(r=>r.querySelector('.fu-nm').textContent.trim())`);
@@ -233,7 +234,7 @@ test('leaderboards: three boards, divisions with robot badges, own row pinned, f
   assert.equal(p.ev(`document.querySelectorAll('#modalCard .fu-board b b').length`), 0, 'a typed name is never markup');
   assert.match(p.ev(`document.querySelector('#modalCard .fu-board.pinned').textContent`), /#3.*you/s, 'own row pinned with its rank');
   assert.match(txt(p), /All your servers, merged/);
-  assert.match(txt(p), /as of /, 'offline: the time of the cached board');
+  assert.doesNotMatch(txt(p), /as of /, 'a fresh answer');
   click(p, '#modalCard [data-act="fuQ"][data-args*="\\"ai\\""]');
   await run(p, 500);
   assert.deepEqual(rows().map((r) => r.split(' AS')[0]), ['Carol Bot 🤖']);
@@ -263,19 +264,27 @@ test('leaderboards: three boards, divisions with robot badges, own row pinned, f
   click(p, '#modalCard [data-act="fuQ"][data-args*="growth"]');
   await run(p, 500);
   assert.match(txt(p), /third day/);
+  // Offline: the last answer of a slice, "as of" when it came.
+  n.kill();
+  await run(p, 500);
+  click(p, '#modalCard [data-act="fuQ"][data-args*="measure"][data-args*="\\"total\\""]');
+  await run(p, 500);
+  assert.equal(rows().length, 2);
+  assert.match(txt(p), /as of /, 'offline: the time of the kept answer');
+  assert.ok(!n.asks.some((f) => f.m === 'board'));
   assert.deepEqual(p.errors, []);
 });
 
 test('looking glass: servers, policies, players; votes and the tally only for an operator, with the operator panel', async () => {
   const { p, n } = await joined();
-  await seedBoard(p);
+  await seedBoard(p, n);
   const now = p.ev('FED.now()'), target = key('bob').pub;
   const vote = rec('anna', 'shun', now - 3600, { server: PL.id, target, reason: 'spam' });
   p.ev("ACT.fuOpen({v:'glass'})");
   await run(p, 500);
   assert.match(txt(p), /2 servers known/);
   assert.match(txt(p), /Packet Lunch In the registry/);
-  assert.match(txt(p), /syncs openly · 3 players · 3 operators/);
+  assert.match(txt(p), /syncs openly · 2 players · 3 operators/);
   assert.doesNotMatch(txt(p), /Shun votes/, 'players see no votes');
   // A network's read-only status: no tally for a player.
   click(p, `#modalCard [data-act="fuOpen"][data-args*=${JSON.stringify(JSON.stringify(target).slice(1, -1))}]`);
@@ -329,8 +338,8 @@ test('looking glass: servers, policies, players; votes and the tally only for an
 });
 
 test('every multiplayer sheet works on a 360 px phone, in portrait and landscape, with the tab bar', async () => {
-  const { p } = await joined();
-  await seedBoard(p);
+  const { p, n } = await joined();
+  await seedBoard(p, n);
   await p.ev(`fedOpKeySet(${JSON.stringify(key('anna').seed)})`);
   const css = p.ev(`[...document.querySelectorAll('style')].map(s=>s.textContent).join('')`);
   assert.match(css, /\.fedui \.fu-chips:not\(\.wrap\)\{flex-wrap:nowrap;overflow-x:auto/, 'chip rows scroll sideways on phones');

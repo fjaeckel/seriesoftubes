@@ -2503,6 +2503,7 @@
 "fedui.quiet_dark":"apagada",
 "fedui.quiet_fading":"a desvanecer",
 "fedui.quit_multiplayer":"Sair do multijogador",
+"fedui.ranking_does_not_match":"{server} enviou uma classificação que não corresponde aos seus registos. As suas classificações ficam de fora durante um dia.",
 "fedui.reason_abuse":"Abuso",
 "fedui.reason_cheating":"Batota",
 "fedui.reason_offensive_name":"Nome ofensivo",
