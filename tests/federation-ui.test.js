@@ -8,9 +8,20 @@ const { fedPage, joinGame, settle, URL1, URL2, SERVERS_JSON, PL, key, rec, rid, 
 
 const txt = (p) => p.ev("$('modalCard').textContent");
 const click = (p, sel) => p.ev(`(()=>{const b=document.querySelector(${JSON.stringify(sel)});if(!b)throw new Error('no '+${JSON.stringify(sel)});b.click();})()`);
-// Lets the core's timers and the sheets' async loads run.
-// WebCrypto answers on its own thread, so a few real milliseconds go by too.
-async function run(p, ms = 3000) { for (let t = 0; t < ms; t += 500) { p.net.advance(500); await settle(); await new Promise((r) => setTimeout(r, 5)); } await settle(40); }
+// Lets the core's timers and the sheets' async loads run, then waits until the page is quiet: no sheet load queued or
+// running, no action busy, and the sheet unchanged over several checks. WebCrypto and IndexedDB answer on their own
+// time, so real milliseconds go by while waiting (up to a few seconds, never a fixed guess).
+async function run(p, ms = 3000) {
+  for (let t = 0; t < ms; t += 500) { p.net.advance(500); await settle(); await new Promise((r) => setTimeout(r, 5)); }
+  let last = null, same = 0;
+  for (let i = 0; i < 400 && same < 4; i++) {
+    const busy = p.ev('!!(typeof FU!=="undefined"&&(FU.loading||FU.loadNext||FU.busy))');
+    if (busy) await p.ev('FU.loading||null');
+    await settle(20); await new Promise((r) => setTimeout(r, 5));
+    const html = p.ev("($('modalCard')||{}).innerHTML||''") + p.ev('JSON.stringify(fedStatus().state)');
+    same = !busy && html === last ? same + 1 : 0; last = html;
+  }
+}
 // Values from the page's realm, as plain values of this one.
 const val = (p, x) => JSON.parse(p.ev(`JSON.stringify(${x})`));
 async function joined(o = {}) {
