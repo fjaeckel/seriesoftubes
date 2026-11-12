@@ -41,7 +41,7 @@ const (
 )
 
 // Request costs in a client's token bucket: the ones that answer from the whole store cost more.
-var clientCost = map[string]float64{"auth": 2, "rank": 10, "facets": 5, "nets": 5, "servers": 10, "sub": 5, "unsub": 2, "fetch": 2}
+var clientCost = map[string]float64{"auth": 2, "rank": 10, "rankwhy": 5, "facets": 5, "nets": 5, "servers": 10, "sub": 5, "unsub": 2, "fetch": 2}
 
 // session is one WebSocket connection, client or node.
 type session struct {
@@ -176,6 +176,7 @@ type listPager struct {
 	entries []*store.Entry
 	vals    []map[string]any
 	pos     int
+	slot    int64 // a rankwhy answer: the running slot its records are for
 }
 
 func (p *listPager) next(r *Relay, s *session) (map[string]any, bool) {
@@ -220,7 +221,11 @@ func (p *listPager) next(r *Relay, s *session) (map[string]any, bool) {
 		return map[string]any{"m": "catalog", "id": p.rid, "entries": page, "more": !done}, done
 	}
 	r.o.Metrics.Add("relay_records_out_total", "", float64(len(page)))
-	return map[string]any{"m": "recs", "id": p.rid, "items": page, "cursor": "", "more": !done}, done
+	m := map[string]any{"m": "recs", "id": p.rid, "items": page, "cursor": "", "more": !done}
+	if p.slot != 0 {
+		m["slot"] = p.slot
+	}
+	return m, done
 }
 
 // subPager sends a subscription's backlog by scanning the store from a cursor, a page at a time.
@@ -721,7 +726,7 @@ func (r *Relay) clientFrame(s *session, f *wire.Frame) {
 			}
 		}
 		r.later(s, &listPager{rid: f.ID, m: "recs", entries: list})
-	case "rank", "facets", "nets":
+	case "rank", "facets", "nets", "rankwhy":
 		r.rankFrame(s, f)
 	case "servers":
 		r.mu.Lock()

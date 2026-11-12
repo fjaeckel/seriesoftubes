@@ -718,18 +718,23 @@ func rcptCC(e *store.Entry) string {
 	return ""
 }
 
-// newestAnn is what the boards use of a key's newest announce (lock held), or nil.
-func (r *Relay) newestAnn(key string) *rank.Ann {
-	var best *fed.Record
+// newestAnnEntry is a key's newest announce (lock held), or nil.
+func (r *Relay) newestAnnEntry(key string) *store.Entry {
+	var best *store.Entry
 	for _, e := range r.st.Key(key) {
-		if x := e.Rec; x.Kind == "announce" && (best == nil || x.T > best.T || x.T == best.T && x.ID < best.ID) {
-			best = x
+		if x := e.Rec; x.Kind == "announce" && (best == nil || x.T > best.Rec.T || x.T == best.Rec.T && x.ID < best.Rec.ID) {
+			best = e
 		}
 	}
-	if best == nil {
-		return nil
+	return best
+}
+
+// newestAnn is what the boards use of a key's newest announce (lock held), or nil.
+func (r *Relay) newestAnn(key string) *rank.Ann {
+	if e := r.newestAnnEntry(key); e != nil {
+		return annOf(e.Rec)
 	}
-	return annOf(best)
+	return nil
 }
 
 func annOf(x *fed.Record) *rank.Ann {

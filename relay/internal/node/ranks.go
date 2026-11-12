@@ -3,121 +3,20 @@ package node
 import (
 	"context"
 	"errors"
-	"slices"
 	"time"
-	"unicode/utf8"
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/canon"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/rank"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/store"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/wire"
 )
 
 // Limits of the leaderboard requests (9.3, 9.5).
 const (
-	rankRows    = 50  // rows of a ranks answer unless n says otherwise
-	rankRowsMax = 100 // the most n may ask
-	rankKeysMax = 256 // keys in the keys filter
-	netsKeysMax = 64  // keys of a nets request
+	netsKeysMax = 64 // keys of a nets request
 	rankWait    = 10 * time.Second
 )
-
-// parseSlice reads a rank request (9.3) into a slice and the rows asked for; a value that is
-// not allowed gives bad_field.
-func parseSlice(f *wire.Frame) (*rank.Slice, int, string) {
-	q := &rank.Slice{}
-	q.Board, _ = f.Str("board")
-	q.Measure, _ = f.Str("measure")
-	q.Division, _ = f.Str("division")
-	if !slices.Contains([]string{"traffic", "total", "pops", "pies"}, q.Board) || !slices.Contains([]string{"total", "growth"}, q.Measure) ||
-		!slices.Contains([]string{"all", "human", "ai"}, q.Division) {
-		return nil, 0, fed.BadField
-	}
-	n := rankRows
-	if v, ok := f.Raw["n"]; ok {
-		x, ok := wire.Int(v)
-		if !ok || x < 1 || x > rankRowsMax {
-			return nil, 0, fed.BadField
-		}
-		n = int(x)
-	}
-	fl, ok := f.Raw["filters"]
-	if !ok {
-		return q, n, ""
-	}
-	m, ok := fl.(map[string]any)
-	if !ok {
-		return nil, 0, fed.BadField
-	}
-	strs := func(k string, max int, ok func(string) bool) ([]string, bool) {
-		v, has := m[k]
-		if !has {
-			return nil, true
-		}
-		a, isList := v.([]any)
-		if !isList || len(a) > max {
-			return nil, false
-		}
-		out := make([]string, 0, len(a))
-		for _, e := range a {
-			s, isStr := e.(string)
-			if !isStr || !ok(s) || slices.Contains(out, s) {
-				return nil, false
-			}
-			out = append(out, s)
-		}
-		slices.Sort(out)
-		return out, true
-	}
-	str := func(k string, ok func(string) bool) (*string, bool) {
-		v, has := m[k]
-		if !has {
-			return nil, true
-		}
-		s, isStr := v.(string)
-		if !isStr || !ok(s) {
-			return nil, false
-		}
-		return &s, true
-	}
-	count := func(k string) (*int64, bool) {
-		v, has := m[k]
-		if !has {
-			return nil, true
-		}
-		x, isInt := wire.Int(v)
-		if !isInt || x < 0 || x > 10000000 {
-			return nil, false
-		}
-		return &x, true
-	}
-	label := func(s string) bool { n := utf8.RuneCountInString(s); return n >= 1 && n <= 64 }
-	cc := func(s string) bool { return len(s) == 2 && s[0] >= 'A' && s[0] <= 'Z' && s[1] >= 'A' && s[1] <= 'Z' }
-	policy := func(s string) bool { return s == "open" || s == "selective" || s == "restrictive" }
-	var good [12]bool
-	q.Cities, good[0] = strs("cities", 512, fed.IsCity)
-	q.Keys, good[1] = strs("keys", rankKeysMax, fed.IsKey)
-	q.Model, good[2] = str("model", label)
-	q.Harness, good[3] = str("harness", label)
-	q.From, good[4] = str("from", cc)
-	q.Home, good[5] = str("home", cc)
-	q.Policy, good[6] = str("policy", policy)
-	q.AgeMin, good[7] = count("ageMin")
-	q.AgeMax, good[8] = count("ageMax")
-	q.DayMin, good[9] = count("dayMin")
-	q.DayMax, good[10] = count("dayMax")
-	good[11] = true
-	if v, has := m["tier1"]; has {
-		b, isBool := v.(bool)
-		q.Tier1, good[11] = &b, isBool
-	}
-	for _, g := range good {
-		if !g {
-			return nil, 0, fed.BadField
-		}
-	}
-	return q, n, ""
-}
 
 // ownRow is the key the session's own row is for: the first key it proved that is not an
 // operator of this server, else the first one ("" when none).
@@ -152,7 +51,7 @@ func (r *Relay) rankFrame(s *session, f *wire.Frame) {
 	now := r.now()
 	switch f.M {
 	case "rank":
-		q, n, code := parseSlice(f)
+		q, n, code := rank.ParseRequest(f)
 		if code != "" {
 			s.fail(f.ID, code, 0)
 			return
@@ -185,6 +84,40 @@ func (r *Relay) rankFrame(s *session, f *wire.Frame) {
 			me = map[string]any{"rank": rk, "value": ans.Me.Value}
 		}
 		s.enqueue(map[string]any{"m": "ranks", "id": f.ID, "slot": ans.Slot, "n": int64(ans.N), "rows": rows, "me": me})
+	case "rankwhy":
+		q, _, code := rank.ParseRequest(f)
+		key, _ := f.Str("key")
+		if code == "" && !fed.IsKey(key) {
+			code = fed.BadKey
+		}
+		if code != "" {
+			s.fail(f.ID, code, 0)
+			return
+		}
+		ids, slot, err := r.rank.Why(q, key, now)
+		if errors.Is(err, rank.ErrTooMany) {
+			s.fail(f.ID, fed.TooMany, 0)
+			return
+		}
+		if err != nil {
+			s.rankFail(f.ID, err)
+			return
+		}
+		r.mu.Lock()
+		defer r.mu.Unlock()
+		if !r.room(s, f.ID) {
+			return
+		}
+		list := make([]*store.Entry, 0, len(ids)+1)
+		for _, id := range ids {
+			if e := r.st.Get(id); e != nil {
+				list = append(list, e)
+			}
+		}
+		if a := r.newestAnnEntry(key); a != nil {
+			list = append(list, a)
+		}
+		r.later(s, &listPager{rid: f.ID, m: "recs", entries: list, slot: slot})
 	case "facets":
 		fc, err := r.rank.Facets(ctx, now)
 		if err != nil {
@@ -218,6 +151,6 @@ func (r *Relay) rankFrame(s *session, f *wire.Frame) {
 		for i, x := range reps {
 			rs[i] = map[string]any{"key": x.Key, "in": x.In, "out": x.Out}
 		}
-		s.enqueue(map[string]any{"m": "nets", "id": f.ID, "nets": ns, "reports": rs})
+		s.enqueue(map[string]any{"m": "netstats", "id": f.ID, "nets": ns, "reports": rs})
 	}
 }

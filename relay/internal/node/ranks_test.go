@@ -105,6 +105,25 @@ func TestRankAnswers(t *testing.T) {
 	if len(nets) != 1 || nets[0].(map[string]any)["tier1"] != true || len(reps) != 1 || reps[0].(map[string]any)["key"] != keys[2].Key {
 		t.Fatalf("nets: %v", f.Raw)
 	}
+	// rankwhy: Carol's records and announce, and on the traffic board those of the network she reports (Alice).
+	why, err := c.Collect(ctx(t), map[string]any{"m": "rankwhy", "board": "traffic", "measure": "total", "division": "all", "key": keys[2].Key})
+	if err != nil {
+		t.Fatal(err)
+	}
+	kinds := map[string]int{}
+	for _, it := range why {
+		r := it["rec"].(map[string]any)
+		kinds[r["kind"].(string)+" "+r["key"].(string)[:4]]++
+		if len(it["rcpt"].([]any)) == 0 {
+			t.Fatal("a record without its receipt")
+		}
+	}
+	if kinds["stats "+keys[2].Key[:4]] != 1 || kinds["stats "+keys[0].Key[:4]] != 1 || kinds["announce "+keys[2].Key[:4]] != 1 || len(why) != 3 {
+		t.Fatalf("rankwhy: %v", kinds)
+	}
+	if _, err := c.Request(ctx(t), map[string]any{"m": "rankwhy", "board": "pops", "measure": "total", "division": "all", "key": "nope"}); code(err) != fed.BadKey {
+		t.Fatalf("rankwhy bad key: %v", err)
+	}
 	// The status command ranks the same.
 	all, err := x.R.Board("pops", "total", "all")
 	if err != nil || len(all) != 3 || all[0].Key != keys[0].Key {

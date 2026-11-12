@@ -55,6 +55,28 @@ func (h held) list() []*boards.Stats {
 	return out
 }
 
+func keysOf(h held) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, s := range h {
+		if !seen[s.Key] {
+			seen[s.Key] = true
+			out = append(out, s.Key)
+		}
+	}
+	slices.Sort(out)
+	return out
+}
+
+func rowOf(rows []boards.Row, k string) (int64, bool) {
+	for _, r := range rows {
+		if r.Key == k {
+			return r.Value, true
+		}
+	}
+	return 0, false
+}
+
 func compare(t *testing.T, a *Agg, h held, now int64, ex map[string]bool, label string) {
 	t.Helper()
 	recs := h.list()
@@ -76,6 +98,26 @@ func compare(t *testing.T, a *Agg, h held, now int64, ex map[string]bool, label 
 					}
 					if !slices.Equal(got, want) {
 						t.Fatalf("%s: %s %s %s %v:\n got %v\nwant %v", label, b, m, d, cs, got, want)
+					}
+					if d != "all" {
+						continue
+					}
+					// rankwhy: the records it names are enough to work out each network's value alone.
+					for _, k := range keysOf(h) {
+						ids, _, err := a.Why(&Slice{Board: b, Measure: m, Division: d, Cities: cs}, k, now)
+						if err != nil {
+							t.Fatal(err)
+						}
+						var sub []*boards.Stats
+						for _, id := range ids {
+							sub = append(sub, h[id])
+						}
+						alone := boards.Compute(boards.Query{Now: now, Board: b, Measure: m, Division: d, Exclude: ex, Cities: cs}, sub)
+						wv, wok := rowOf(want, k)
+						gv, gok := rowOf(alone, k)
+						if wv != gv || wok != gok {
+							t.Fatalf("%s: rankwhy %s %s %v for %s: alone %d %v, on the board %d %v", label, b, m, cs, k, gv, gok, wv, wok)
+						}
 					}
 				}
 			}

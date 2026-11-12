@@ -106,6 +106,66 @@ func init() {
 		return map[string]any{"rows": rows}
 	}
 
+	areas["rank"] = func(t *testing.T, in, _ json.RawMessage) any {
+		x := decode[struct {
+			Now      int64           `json:"now"`
+			Request  json.RawMessage `json:"request"`
+			Me       *string         `json:"me"`
+			Excluded []string        `json:"excluded"`
+			Names    []string        `json:"names"`
+			Records  []struct {
+				ID   string          `json:"id"`
+				Key  string          `json:"key"`
+				Slot int64           `json:"slot"`
+				T    int64           `json:"t"`
+				CC   string          `json:"cc"`
+				Body json.RawMessage `json:"body"`
+			} `json:"records"`
+			Announces []struct {
+				Key, Name, Home, Policy string
+				Founded, Day            int64
+			} `json:"announces"`
+		}](t, in)
+		f, werr := wire.Parse(x.Request, fed.ClientFrame)
+		if werr != nil {
+			t.Fatal(werr)
+		}
+		q, n, code := rank.ParseRequest(f)
+		if code != "" {
+			return map[string]any{"error": code}
+		}
+		set := func(l []string) map[string]bool {
+			m := map[string]bool{}
+			for _, k := range l {
+				m[k] = true
+			}
+			return m
+		}
+		raws := make([]rank.Raw, len(x.Records))
+		for i, r := range x.Records {
+			raws[i] = rank.Raw{ID: r.ID, Key: r.Key, Slot: r.Slot, T: r.T, CC: r.CC, Body: strict(t, r.Body).(map[string]any)}
+		}
+		anns := map[string]*rank.Ann{}
+		for _, a := range x.Announces {
+			anns[a.Key] = &rank.Ann{Name: a.Name, Home: a.Home, Policy: a.Policy, Founded: a.Founded, Day: a.Day}
+		}
+		a := rank.New(1)
+		defer a.Close()
+		a.Load(raws, anns, set(x.Excluded), set(x.Names))
+		me := ""
+		if x.Me != nil {
+			me = *x.Me
+		}
+		ans, err := a.Rank(context.Background(), q, x.Now, me, n)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, _ := json.Marshal(ans)
+		var v any
+		_ = json.Unmarshal(b, &v)
+		return v
+	}
+
 	areas["quiet"] = func(t *testing.T, in, _ json.RawMessage) any {
 		x := decode[struct{ Now, LastHeard int64 }](t, in)
 		st, f := boards.Quiet(x.Now, x.LastHeard)
