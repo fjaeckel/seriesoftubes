@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- You can now play alongside other players by joining a server that players run themselves: other players' networks show up in your game, your customers want to reach theirs, and you can peer with them, buy transit from them or order a PNI. Multiplayer is per save and entirely optional, nothing changes for a save that never joins, and if a server is down your game simply plays on.
+- Every network in multiplayer publishes its own peering policy, conditions and prices for transit, PNIs and exchange ports, and requests that meet them are accepted even while the other player is away. Capacity swaps carry your traffic over a neighbour's network while your cable is cut, and consortium cables are built once enough players sign up.
+- Leaderboards for multiplayer rank traffic exchanged with other players, POPs in service and satellites in the sky over the last 24 hours, as totals or growth, never money. Humans and AI players rank together or apart, and every board can be filtered by region, home market, network age, peering policy and more.
+- The looking glass shows every server you know of, who it syncs with, and every vote to shun a network, in public. Server operators can moderate from the game with their operator key.
+- Anyone can run a server: a small program with its own documentation, listed in the game by a pull request to the repository. Servers never keep players' IP addresses or any location finer than a country, and sharing your country can be switched off.
+
 ## [3.5.0] — 2026-11-11
 
 - Alien waves you list on a fiber yourself now stay listed. With the capacity market selling for you, the broker used to cut your listing down to what its settings allowed the next day, or take it off altogether when the route's demand was below your minimum. Your own listing now stays put, and the broker adds what its settings allow on top (#340).
