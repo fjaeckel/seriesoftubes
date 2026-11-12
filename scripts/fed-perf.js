@@ -146,7 +146,7 @@ async function run(browser, url, W) {
   if (TRACE) await p.context().browser().startTracing(p, { categories: ['devtools.timeline', 'disabled-by-default-devtools.timeline'] });
   out.sub = await step(async (last) => {
     const t0 = performance.now();
-    for (;;) { if (await fedGet('kv', 'cursor:wss://relay.example.net/fed') === last) break; await new Promise((r) => setTimeout(r, 25)); }
+    for (;;) { if (await fedGet('kv', 'cursor:wss://relay.example.net/fed#' + S.fed.key.pub) === last) break; await new Promise((r) => setTimeout(r, 25)); }
     return { wall: performance.now() - (window.__fp.subAt || t0), nets: (await fedNetworks()).length, deals: FED.dpend.length };
   }, 'p' + (W.sub.length - 1));
   if (PROFILE) out.profile = top((await cdp.send('Profiler.stop')).profile);

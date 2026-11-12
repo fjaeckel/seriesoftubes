@@ -35,7 +35,7 @@ function fedWake(){if(fedWorker())return;const f=fedCur();if(FED.live&&FED.live.
 function fedStop(){const M=FED.live;if(!M)return;FED.live=null;FED.dpend=[];FED.clear(M.statsT);for(const c of M.conns.values())fedHang(c);FED.st={};fedEmit('status',fedStatus());}
 function fedListen(){if(FED.listening)return;FED.listening=true;
   const go=()=>{const M=FED.live;if(!M||!FED.visible())return;if(!fedMine(M)){fedWake();return;}
-    for(const c of M.conns.values())if(c.state==='waiting'||c.state==='offline'&&c.tries)fedDial(c);};
+    for(const c of M.conns.values())if(c.state==='waiting'||c.state==='offline'&&c.tries&&!(c.calm>fedNow()))fedDial(c);};
   try{document.addEventListener('visibilitychange',go);addEventListener('online',go);}catch(e){}}
 
 /* ---------- status ---------- */
@@ -80,6 +80,7 @@ const FED_STEADY=60;
 function fedDrop(c,why,min=0){fedErrLog(c.node,c.srv,why);fedHang(c);if(c.readyAt&&fedNow()-c.readyAt>=FED_STEADY)c.tries=0;c.readyAt=0;if(!fedLive(c))return;c.ni++;
   if(c.ni%c.nodes.length===0)c.tries++;
   fedSt(c,'offline');
+  c.calm=min?fedNow()+min:0;
   const wait=c.wait=Math.max(min*1000,c.ni%c.nodes.length?250:Math.min(FED.T.cap,FED.T.base*2**Math.min(20,Math.max(0,c.tries-1)))*(0.5+FED.rand()/2));
   c.t=FED.set(()=>fedDial(c),wait);}
 // The nodes of a connection's server, from the catalog: the joined URL first, then the others, for failing over.
@@ -248,7 +249,7 @@ const fedDpendSave=f=>fedPut('kv',fedDpKey(f),FED.dpend.slice());
 // A session starts: the deals this network had waiting come back, and are tried at once (an announce may have come).
 function fedDpendLoad(M){const p=(FED.recQ||Promise.resolve()).then(async()=>{const o=await fedGet('kv',fedDpKey(M.fed));if(!fedMine(M))return;
     for(const e of Array.isArray(o)?o:[])if(e&&e.rec&&typeof e.rec==='object'&&!FdId(e.id)&&Number.isSafeInteger(e.at)&&!FED.dpend.some(x=>x.id===e.id))FED.dpend.push(e);
-    FED.dpend.sort((a,b)=>a.at-b.at);FED.dpend=FED.dpend.slice(-FED_DPEND);if(FED.dpend.length||o)await fedDealRetry(M.fed);});
+    FED.dpend.sort((a,b)=>a.at-b.at);FED.dpend=FED.dpend.slice(-FED_DPEND);if(FED.dpend.length||Array.isArray(o)&&o.length)await fedDealRetry(M.fed);});
   FED.recQ=p.catch(()=>false);return p;}
 /* ---------- the leaderboards: the server ranks (§9.5) ---------- */
 // The joined URLs whose connection is ready now.
