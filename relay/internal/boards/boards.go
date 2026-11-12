@@ -86,7 +86,7 @@ func (x *Series) Value(s int64) *Stats {
 // Query describes one board.
 type Query struct {
 	Now      int64
-	Board    string // pops, pies, traffic
+	Board    string // pops, pies, traffic, total
 	Measure  string // total, growth
 	Division string // all, human, ai
 	Exclude  map[string]bool
@@ -168,10 +168,21 @@ func Compute(q Query, recs []*Stats) []Row {
 				return 0, false
 			}
 			return max(p95(ins), p95(outs)), true
+		case "total":
+			var v []int64
+			for s := from; s <= to; s += fed.SlotLen {
+				if r := x.Value(s); r != nil {
+					v = append(v, toInt(r.Body["total"]))
+				}
+			}
+			if len(v) == 0 {
+				return 0, false
+			}
+			return p95(v), true
 		}
 		return 0, false
 	}
-	floor := map[string]int64{"pops": 10, "pies": 100, "traffic": 1000}[q.Board]
+	floor := map[string]int64{"pops": 10, "pies": 100, "traffic": 1000, "total": 1000}[q.Board]
 	var rows []Row
 	for k, x := range series {
 		if q.Exclude[k] {
@@ -181,15 +192,12 @@ func Compute(q Query, recs []*Stats) []Row {
 		if last == nil {
 			continue
 		}
-		switch q.Board {
-		case "pops":
-			if region != nil && popsAt(last) == 0 {
-				continue
-			}
-		case "pies":
-			if _, ok := last.Body["pies"]; !ok {
-				continue
-			}
+		// With a region filter, every board lists only networks with a POP in the region (10.3).
+		if region != nil && popsAt(last) == 0 {
+			continue
+		}
+		if _, ok := last.Body["pies"]; q.Board == "pies" && !ok {
+			continue
 		}
 		_, ai := last.Body["ai"]
 		if q.Division == "ai" && !ai || q.Division == "human" && ai {

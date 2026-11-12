@@ -2550,6 +2550,8 @@
 "fedui.to_hide_or_shun_a_network":"Pour masquer ou exclure un réseau, ouvre-le depuis le looking glass ou un classement.",
 "fedui.top_n_of_m":"Les {n} premiers sur {m}.",
 "fedui.total":"Total",
+"fedui.total_board_note":"Tout le trafic de votre réseau, tel que chaque partie le déclare.",
+"fedui.total_traffic":"Trafic total",
 "fedui.traffic_board_note":"Le trafic que vous échangez directement avec d'autres joueurs (peering, PNI, transit entre joueurs), compté tel que les deux côtés le déclarent. Le trafic passant par le transit géré par l'ordinateur ne compte pas.",
 "fedui.traffic_with_players":"Trafic avec les joueurs",
 "fedui.unhide":"Ne plus masquer",

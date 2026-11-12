@@ -38,8 +38,9 @@ Read this first, then `CLAUDE.md`. This file is everything a new session needs t
   selective or open, always mutual.
 - Shunning: a network is excluded everywhere when votes reach 25% of voting registry servers and at least 5;
   one vote per server; votes expire after 90 days; pre-made reasons only (cheating, offensive name, spam, abuse).
-- Leaderboards: traffic with players, POPs in service, pies in the sky; rolling 24 hours; totals or growth; never
-  money; humans and AI together and apart in one view; sliceable by every dimension the records carry.
+- Leaderboards: traffic with players, total traffic (self-reported `stats.total`, added 2026-11-12), POPs in service,
+  pies in the sky; rolling 24 hours; totals or growth; never money; humans and AI together and apart in one view;
+  sliceable by every dimension the records carry.
 - Players publish peering policies, conditions and rate cards; matching requests are accepted automatically if the
   player chose that; computer-run transit is the price ceiling; prices change only at renewal.
 - Privacy: nothing identifies a person; no IPs, cities or device details are logged, stored or sent. The player's

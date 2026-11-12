@@ -445,6 +445,7 @@ func checkStats(r *Record) string {
 			}
 			return ""
 		}, 0, 256, true)),
+		opt("total", mbps),
 		req("tier1", boolean),
 		opt("ai", obj(req("model", textCheck(1, 64)), req("harness", textCheck(1, 64)))),
 		req("shareCountry", boolean),

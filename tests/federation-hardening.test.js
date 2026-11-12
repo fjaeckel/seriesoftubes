@@ -90,8 +90,8 @@ function fedBoardRef(q) {
         for (const y of r.body.traffic) { if (ex.has(y.key)) continue; const ry = eff(y.key)[i];
           if (cities && !(fedHas(ry) && fedPops(ry, cities) > 0)) continue;
           if (fedHas(ry)) { const z = rep(ry, X); ti += Math.min(y.in, z ? z.out : 0); to += Math.min(y.out, z ? z.in : 0); } else if (!ry) { ti += y.in; to += y.out; } }
-        IN.push(ti); OUT.push(to); } else { const v = q.board === 'pies' ? r.body.pies || 0 : fedPops(r, cities); if (lo === null || v < lo) lo = v; } }
-    return q.board === 'traffic' ? Math.max(fedP95(IN), fedP95(OUT)) : lo || 0; };
+        IN.push(ti); OUT.push(to); } else if (q.board === 'total') IN.push(r.body.total || 0); else { const v = q.board === 'pies' ? r.body.pies || 0 : fedPops(r, cities); if (lo === null || v < lo) lo = v; } }
+    return q.board === 'traffic' ? Math.max(fedP95(IN), fedP95(OUT)) : q.board === 'total' ? fedP95(IN) : lo || 0; };
   const rows = [];
   for (const X of by.keys()) { if (ex.has(X)) continue; const e = eff(X), r = e[N - 1]; if (!fedHas(r)) continue;
     if (q.board === 'pies' && !fedOwn(r.body, 'pies')) continue; if (cities && fedPops(r, cities) === 0) continue;
@@ -114,11 +114,11 @@ test('the boards give exactly what every-slot counting gives, on random federati
       const slot = W.previous.from + (ri(900) - 200) * ctx.FED_SLOT, tr = [], seen = new Set();
       for (let j = 0; j < ri(K); j++) { const y = ri(K + 2), yk = y < K ? keys[y] : 'ghost' + y; if (yk === keys[i] || seen.has(yk)) continue; seen.add(yk); tr.push({ key: yk, in: ri(5000), out: ri(5000) }); }
       const pops = {}; for (const c of ['fra', 'ams', 'lon']) if (rnd() < 0.5) pops[c] = 1 + ri(3);
-      const body = { mode: rnd() < 0.85 ? 'normal' : 'sandbox', pops, traffic: tr }; if (rnd() < 0.5) body.pies = ri(500); if (rnd() < 0.3) body.ai = { model: 'm', harness: 'h' };
+      const body = { mode: rnd() < 0.85 ? 'normal' : 'sandbox', pops, traffic: tr }; if (rnd() < 0.5) body.pies = ri(500); if (rnd() < 0.7) body.total = ri(20000); if (rnd() < 0.3) body.ai = { model: 'm', harness: 'h' };
       recs.push({ id: 'id' + recs.length, key: keys[i], slot, t: slot + ri(3), body });
     }
     w.__recs = recs;
-    for (const board of ['traffic', 'pops', 'pies']) for (const measure of ['total', 'growth']) for (const division of ['all', 'ai']) for (const exclude of [[], [keys[0]]]) for (const cities of [null, ['fra']]) {
+    for (const board of ['traffic', 'total', 'pops', 'pies']) for (const measure of ['total', 'growth']) for (const division of ['all', 'ai']) for (const exclude of [[], [keys[0]]]) for (const cities of [null, ['fra']]) {
       const q = { now, board, measure, division, exclude, cities };
       const got = ev(`JSON.stringify(fedBoard({...${JSON.stringify(q)},records:__recs}))`);
       const want = JSON.stringify(fedBoardRef({ ...q, records: JSON.parse(JSON.stringify(recs)), ctx }));

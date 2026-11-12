@@ -364,6 +364,10 @@ const SID = rid(genesis);
   bad('time-offer-old', 'offer older than 30 days.', rec('offer', 'alice', NOW - 30 * DAY - 1, { to: pub('bob'), deal: 'peering', basis: annId, terms: { at: ['fra'], via: 'ix' } }), 'too_old');
   bad('time-shun-old', 'shun older than 90 days: an expired vote is refused.', rec('shun', 'anna', NOW - 90 * DAY - 1, { server: SID, target: pub('mallory'), reason: 'spam' }), 'too_old');
   ok('time-announce-old', 'announce has no maximum age.', rec('announce', 'alice', NOW - 365 * DAY, { ...announceBody(), founded: 20000 }));
+
+  // --- stats: total (the network's whole traffic, optional) ---
+  ok('stats-total', 'stats with total, the network\'s whole traffic in Mbps (optional; absent counts as 0).', rec('stats', 'alice', T, { ...statsMin(), total: 48000 }));
+  bad('stats-total-over', 'total over 1000000000 Mbps.', rec('stats', 'alice', T, { ...statsMin(), total: 1000000001 }), 'bad_field');
 }
 
 // ======================================================================================

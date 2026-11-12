@@ -1,0 +1,116 @@
+{
+  "description": "now = 1767398410, so c = 1767398400; slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. Total traffic is the p95 of eff(X, s).total over the window (k = div(288 * 5, 100) = 14 highest slots do not count). kA: 1000, then 9000 from i = 562: 14 high slots, so p95 = 1000. kD: 2000, then 9000 from i = 561: 15 high slots, so p95 = 9000. kC: one record at i = 0 with 5000, carried forward through the window: 5000. kB: an older record without total: counts 0, still listed.",
+  "input": {
+    "now": 1767398410,
+    "board": "total",
+    "measure": "total",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "records": [
+      {
+        "id": "r1",
+        "key": "kA",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "total": 1000
+        }
+      },
+      {
+        "id": "r2",
+        "key": "kA",
+        "slot": 1767394200,
+        "t": 1767394220,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "total": 9000
+        }
+      },
+      {
+        "id": "r3",
+        "key": "kB",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r4",
+        "key": "kC",
+        "slot": 1767225600,
+        "t": 1767225620,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "total": 5000
+        }
+      },
+      {
+        "id": "r5",
+        "key": "kD",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "total": 2000
+        }
+      },
+      {
+        "id": "r6",
+        "key": "kD",
+        "slot": 1767393900,
+        "t": 1767393920,
+        "body": {
+          "mode": "normal",
+          "pops": {},
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "total": 9000
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kD",
+        "value": 9000
+      },
+      {
+        "key": "kC",
+        "value": 5000
+      },
+      {
+        "key": "kA",
+        "value": 1000
+      },
+      {
+        "key": "kB",
+        "value": 0
+      }
+    ]
+  }
+}

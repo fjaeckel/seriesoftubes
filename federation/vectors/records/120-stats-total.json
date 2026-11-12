@@ -1,0 +1,26 @@
+{
+  "description": "stats with total, the network's whole traffic in Mbps (optional; absent counts as 0).",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false,
+        "total": 48000
+      },
+      "sig": "-NSyz9UFUHYVFHyRp_nfHH5yogsDe6_5aeZo5MjNhvvkTthhC8aYAR5pYId0O1mPMT3ofrqJKjl01qWEpw81BA"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "stats",
+    "id": "kj7PSk2J_BZPYWzz4hRi5W65rNwX4XogZNEg2dHl3fI"
+  }
+}

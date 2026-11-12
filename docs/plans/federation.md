@@ -11,8 +11,9 @@ Players can join their save to relay servers that other players run. Once joined
 in your game as real networks: your customers want to reach theirs, and the cheapest way is to peer with them.
 A server hosts many players and can be run by several players together; servers sync with each other only if
 their operators choose to, and find each other through a registry kept in this repository (operators add their
-server by pull request, CI checks it, review merges it) and through gossip between servers. Three leaderboards, rolling over the last
-24 hours, rank what the mode is about: traffic exchanged with other players, POPs in service and pies in the sky.
+server by pull request, CI checks it, review merges it) and through gossip between servers. Four leaderboards, rolling over the last
+24 hours, rank what the mode is about: traffic exchanged with other players, total traffic, POPs in service and pies in
+the sky.
 Money is never ranked. AI players (through the MCP server) have their own division. Cheaters exist; we trust the
 community and let each server moderate itself.
 
@@ -113,11 +114,12 @@ Order of building: the core hook and the traceroute first; the rest builds on th
 
 ## Leaderboards
 
-Three boards, two divisions (human and AI), each rolling over the last 24 hours, with no reset.
+Four boards, two divisions (human and AI), each rolling over the last 24 hours, with no reset.
 
 | Board | What is measured | How the window counts it |
 | --- | --- | --- |
 | Traffic with players | Gbps exchanged with other players' networks (peering, transit, consortium cables), the busier direction, as 95th-percentile billing does | 95th percentile of 5-minute slots |
+| Total traffic | The network's whole traffic (what the game shows as traffic served), the busier direction, as each game reports it: nobody can confirm it, which is accepted (non-competitive) | 95th percentile of 5-minute slots |
 | POPs in service | POPs that are up and connected | Lowest value in the window: a new POP counts after a full day up |
 | Pies in the sky | Pies in service, `pieLiveAll()` | Lowest value in the window; only saves with a Pie in the Sky company appear |
 
@@ -138,8 +140,8 @@ Rules:
   - POPs and pies: the lowest value over the last 24 hours against the lowest value over the 24 hours before, as a
     share of the earlier one. A floor on the earlier value (10 POPs, 100 pies) stops a network going from 1 POP to 3
     from topping the board with +200%.
-  - Traffic with players: the 95th percentile over the last 24 hours against the 24 hours before, with a floor of
-    1 Gbps.
+  - Traffic with players and total traffic: the 95th percentile over the last 24 hours against the 24 hours before,
+    with a floor of 1 Gbps.
   - Growth needs 48 hours of records, so a network shows up on growth boards on its third day.
 
 ### Slicing the boards by every dimension
@@ -149,7 +151,7 @@ chips above the list, and the player's own row stays pinned whatever is selected
 
 | Dimension | Values | Comes from |
 | --- | --- | --- |
-| Board | Traffic with players, POPs in service, pies in the sky | the `stats` record |
+| Board | Traffic with players, total traffic, POPs in service, pies in the sky | the `stats` record |
 | Measure | Total, or growth over the last 24 hours | the `stats` records of the last 48 hours |
 | Division | All (humans and AI together), Humans, AI | the AI declaration |
 | AI setup | Model, harness | the AI declaration (AI entries only) |
@@ -704,6 +706,7 @@ percentile and lowest value, carry-forward, expiry, merging server lists), passe
   server, votes public and expiring, counted by everyone for themselves.
 - No central service: the registry is the repo, gossip carries liveness.
 - Leaderboards show totals or growth over the last 24 hours (with floors so tiny networks cannot top growth).
+- Leaderboards also rank total traffic (each game's own figure, self-reported), next to traffic with players.
 - A network is shunned everywhere when 25% of all voting servers vote for it, and at least 5 do.
 - Players publish peering policies, conditions and rate cards (transit, PNI, exchange ports); requests that pass
   are accepted automatically if the player chose that. Computer-run transit is the price ceiling; prices change only

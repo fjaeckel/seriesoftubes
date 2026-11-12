@@ -57,7 +57,7 @@ const FED_BODY={
     ['pops',v=>{if(!v||typeof v!=='object'||Array.isArray(v))return FdBF;const ks=Object.keys(v);if(ks.length>512)return 'too_many';
       for(const k of ks){if(FdCity(k)||FdInt(1,1000)(v[k]))return FdBF;}return null;}],
     ['pies',FdInt(0,1e7),1],
-    ['traffic',(v,c)=>FdList(FdObj([['key',FdK],['in',FdMbps],['out',FdMbps]]),{max:256,set:1,by:x=>x.key})(v)||(v.some(x=>x.key===c.rec.key)?FdBF:null)],
+    ['traffic',(v,c)=>FdList(FdObj([['key',FdK],['in',FdMbps],['out',FdMbps]]),{max:256,set:1,by:x=>x.key})(v)||(v.some(x=>x.key===c.rec.key)?FdBF:null)],['total',FdMbps,1],
     ['tier1',FdBool],['ai',FdObj([['model',FdText(1,64)],['harness',FdText(1,64)]]),1],['shareCountry',FdBool]]),
   offer:FdObj([['to',(v,c)=>FdK(v)||(v===c.rec.key?FdBF:null),1],['deal',FdOne(...FED_DEALS)],
     ['basis',(v,c)=>c.o.deal==='consortium'?FdBF:FdId(v),1],['renews',FdId,1],['terms',(v,c)=>FED_TERMS[c.o.deal](v)]],

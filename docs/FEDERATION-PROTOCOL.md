@@ -264,6 +264,7 @@ more than one per slot. Carrying forward (10.2) covers the slots in between, so 
 | `pops` | object | City → POPs in service in that city, 1 to 1000. At most 512 members (`too_many`); member names that are not City: `bad_field`; cities with none are left out. In this game version a network has at most one POP per city, so every count is 1; the count stays for later versions |
 | `pies` | Count(10000000), optional | Pies in service (`pieLiveAll()`). Absent: the save has no Pie in the Sky company |
 | `traffic` | [{key: Key, in: Mbps, out: Mbps}] max 256 | Traffic with each other player network right now: `in` received from it, `out` sent to it. Keys unique (`duplicate`), never the author's own (`bad_field`) |
+| `total` | Mbps, optional | The network's whole traffic right now, the busier direction: what the game shows as traffic served. Absent (older games): 0. Self-reported, nobody can confirm it; accepted, the boards are not competitive (ADR 0005) |
 | `tier1` | Bool | Tier 1 in the game's rank |
 | `ai` | object, optional | `{model: Label(64), harness: Label(64)}`, declared by whoever runs the agent. Absent: a human |
 | `shareCountry` | Bool | The player lets the server attach their country |
@@ -271,7 +272,7 @@ more than one per slot. Carrying forward (10.2) covers the slots in between, so 
 ```json
 {"v":1,"kind":"stats","key":"q6-YSQ…PWMw","t":1767312000,"sig":"…","body":{
  "mode":"normal","pops":{"ams":1,"fra":2,"lon":1},"pies":12,
- "traffic":[{"key":"BydB2y…CSz0","in":1800,"out":2400},{"key":"Of174J…dUKns","in":300,"out":0}],
+ "traffic":[{"key":"BydB2y…CSz0","in":1800,"out":2400},{"key":"Of174J…dUKns","in":300,"out":0}],"total":48000,
  "tier1":false,"ai":{"model":"example-model-1","harness":"tubes-mcp"},"shareCountry":true}}
 ```
 
@@ -713,9 +714,10 @@ hidden by this server, muted by this player; the caller passes this set), and:
 - POPs board: always.
 - Pies board: `eff(X, last)` has `pies`.
 - Traffic board: always.
+- Total traffic board: always.
 
 With a **region filter** (a set of cities), on every board `X` is listed only with at least one POP in the region at
-`last`. The totals then change as 10.4 says.
+`last`. The totals then change as 10.4 says (the total traffic board keeps the whole value: `total` is not per city).
 
 **Division** comes from `eff(X, last)`: AI when it has `ai`, human otherwise. `all` lists both.
 
@@ -739,6 +741,8 @@ Over the slots `s` of the window where `X` has a value:
   3. `p95(list)`: with `n` values sorted ascending into `a[0..n-1]`, `k = div(n * 5, 100)`, `p95 = a[n - 1 - k]`.
      With 288 values `k = 14`: the 14 highest slots (70 minutes) do not count, the 15th does.
   4. Total = `max(p95 of IN over the window, p95 of OUT over the window)`, in Mbps.
+- **Total traffic**: `p95` (as above) of `eff(X, s).total` over those slots, counting 0 where `total` is absent, in
+  Mbps. A region filter does not change it (10.3).
 
 Rows are sorted by value, highest first, then by key in byte order; the rank is the position, starting at 1.
 
@@ -752,7 +756,7 @@ the total over the previous window (10.4, each over its own slots):
 growth = div((cur - prev) * 10000, max(prev, FLOOR))      in basis points (10000 = +100%)
 ```
 
-with FLOOR = 10 for POPs, 100 for pies and 1000 (Mbps) for traffic. Note floor division: -333.3 is -334.
+with FLOOR = 10 for POPs, 100 for pies and 1000 (Mbps) for traffic and total traffic. Note floor division: -333.3 is -334.
 
 ### 10.6 Quiet networks
 

@@ -161,7 +161,8 @@ function fedTrafficList(){const out=[],me=fedMe();if(!R||!S.fedn||!me)return out
     for(const d of S.fed.deals)if(d.on&&d.key===n.k&&d.deal==='transit')inM+=d.role==='buy'?Math.round(fedExUse(d)*1000):(d.rep||0);
     if(inM<=0)continue;const outM=Math.round(inM*(m.content+100)/(n.mix[0]+100));out.push({key:n.k,in:Math.min(1e9,inM),out:Math.min(1e9,outM)});}
   return out.sort((a,b)=>Math.max(b.in,b.out)-Math.max(a.in,a.out)||fedByStr(a.key,b.key)).slice(0,256);}
-FED.hooks.stats=b=>{try{if(S&&S.fed)b.traffic=fedTrafficList();}catch(e){}return b;};
+// total: the network's whole traffic, what the HUD shows as traffic served (Gbps), in Mbps (§5.2).
+FED.hooks.stats=b=>{try{if(S&&S.fed){b.traffic=fedTrafficList();b.total=Math.max(0,Math.min(1e9,Math.round(((R&&R.served)||0)*1000)));}}catch(e){}return b;};
 // Offers and accepts the core passes on besides those to or from this network: open consortium projects and their signers.
 FED.hooks.deal=r=>r.kind==='offer'&&r.body.deal==='consortium'&&!fedOwn(r.body,'to')||r.kind==='accept'&&!!(S&&S.fedp&&S.fedp.cons.some(c=>c.id===r.body.offer));
 

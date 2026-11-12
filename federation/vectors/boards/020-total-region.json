@@ -1,0 +1,56 @@
+{
+  "description": "now = 1767398410, so c = 1767398400; slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. A region filter (fra) lists only networks with a POP in the region, and the total traffic stays the whole value (total is not per city): kA (fra and nyc) 7000. kB has POPs only in nyc: not listed.",
+  "input": {
+    "now": 1767398410,
+    "board": "total",
+    "measure": "total",
+    "division": "all",
+    "exclude": [],
+    "cities": [
+      "fra"
+    ],
+    "records": [
+      {
+        "id": "r1",
+        "key": "kA",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1,
+            "nyc": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "total": 7000
+        }
+      },
+      {
+        "id": "r2",
+        "key": "kB",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "nyc": 2
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "total": 9000
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 7000
+      }
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "description": "total over 1000000000 Mbps.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false,
+        "total": 1000000001
+      },
+      "sig": "vOg7fv3ayjoR6PYkYQbLm1NcJTOoy-ZANo6iV6aMnwIpqTRFFK1kZjLPIZvpTyeMpqeH9YnJkojRA12xJpoUDw"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

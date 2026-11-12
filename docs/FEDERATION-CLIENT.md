@@ -101,7 +101,7 @@ Pure functions, held to `federation/vectors/` by `tests/federation-vectors.test.
 ### Slicing
 
 `fedSlice(v, d)`, or `await fedBoardView(v)` which reads the cache for `d`. `v` takes any of: `board` (`pops`, `pies`,
-`traffic`), `measure` (`total`, `growth`), `division` (`all`, `human`, `ai`), `model`, `harness`, `region`
+`traffic`, `total`), `measure` (`total`, `growth`), `division` (`all`, `human`, `ai`), `model`, `harness`, `region`
 (`{continent: 'EU'}` as in `CITIES[].reg`, `{country: 'DE'}`, `{city: 'fra'}`), `home`, `from` (players' country,
 from receipts), `ageMin`/`ageMax` (real days since founded), `dayMin`/`dayMax` (game days), `tier1`, `policy`, `peers`
 (only networks in `S.fed.deals`), `server` (one server's view; omitted: all merged, each record once). Regions change
