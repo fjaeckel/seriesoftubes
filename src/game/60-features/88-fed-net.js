@@ -12,7 +12,7 @@ const FED={
   fetch:(u,o)=>fetch(u,o),idb:()=>indexedDB,registry:'federation/servers.json',
   // ms: opening a socket, a request's answer, ping when idle, give up when silent, the idle check, stats, back-off.
   T:{open:15000,req:20000,idle:60000,dead:120000,tick:30000,stats:300000,statsMax:3600,first:5000,base:2000,cap:1800000,fetch:10000},
-  hooks:{stats:null,deal:null},live:null,st:{},ev:{},soon:false,listening:false,sent:new Map(),ids:new WeakMap()};
+  hooks:{stats:null,deal:null},bgen:0,bd:null,vgen:0,shun:null,live:null,st:{},ev:{},soon:false,listening:false,sent:new Map(),ids:new WeakMap()};
 
 /* ---------- events for the interface and the gameplay ---------- */
 // fedOn(name, fn) gives a function that stops listening. Names: status, records, deal, board, catalog, mute.
@@ -150,18 +150,19 @@ async function fedPlace(c,chk,rcpts,now,srvs){let slot=null,cc=null;
   return {slot,cc};}
 /* Items [{rec, rcpt}] from a sub or a board answer. board: a Map id -> board item to fill, or null; known: board
    items already checked (by id), which are not checked again. */
-async function fedRecs(c,items,board,known){const now=fedNow(),me=c.M.fed.key.pub,votes=[],srvs=await fedServers();let n=0;
+async function fedRecs(c,items,board,known){const now=fedNow(),me=c.M.fed.key.pub,votes=[],srvs=await fedServers();let n=0,voters=null;
   for(const it of Array.isArray(items)?items:[]){if(!fedLive(c))return;if(!it||typeof it!=='object')continue;
     if(known&&it.rec&&it.rec.kind==='stats'&&!fedValues(it.rec)&&!fedEnv(it.rec,FED_REC)){const o=known.get(await fedId(it.rec));if(o){board.set(o.id,o);continue;}}
     const chk=await fedCheck(it.rec,now);if(!chk.ok)continue;n++;const r=chk.rec,pl=await fedPlace(c,chk,it.rcpt,now,srvs),heard=pl.slot??fedSlot(now);
     if(['announce','stats','offer','accept','decline'].includes(r.kind))await fedHeard(r.key,heard);
     if(r.kind==='announce')await fedAnnPut(chk,heard,c.srv);
     else if(r.kind==='leave')await fedLeft(r.key,r.t);
-    else if(r.kind==='shun'||r.kind==='unshun')votes.push(chk);
-    else if(r.kind==='hide'){const o=await fedGet('kv','hide:'+r.body.server);if(!o||fedNewer(chk,o))await fedPut('kv','hide:'+r.body.server,{rec:r,id:chk.id});}
+    // Votes only from an operator of a voting registry server, hide lists only from an operator of their server.
+    else if(r.kind==='shun'||r.kind==='unshun'){if(!voters)voters=await fedVoters();if(fedVoteOk(voters,r))votes.push(chk);}
+    else if(r.kind==='hide'){if(fedOpOf(srvs,r.body.server,r.key)){const o=await fedGet('kv','hide:'+r.body.server);if(!o||!o.rec||fedNewer(chk,o))await fedPut('kv','hide:'+r.body.server,{rec:r,id:chk.id});}}
     else if(r.kind==='stats'&&board&&pl.slot!==null)board.set(chk.id,{id:chk.id,key:r.key,slot:pl.slot,t:r.t,body:r.body,cc:pl.cc,srv:[c.srv]});
     else if((r.kind==='offer'||r.kind==='accept'||r.kind==='decline')&&(r.body.to===me||r.key===me||!!FED.hooks.deal&&FED.hooks.deal(r)))fedEmit('deal',{rec:r,id:chk.id,slot:heard,server:c.srv});}
-  if(votes.length)await fedVotesAdd(votes);
+  if(votes.length)await fedVotesAdd(votes,voters);
   if(n)fedEmit('records',{server:c.srv,n});}
 /* Fetches a joined server's board records (§9.5) and keeps them for offline viewing. Gives the number of records, or
    null when that server is not connected now (the cached ones stay). */
@@ -173,13 +174,23 @@ async function fedBoardFetch(url){const M=FED.live,c=M&&M.conns.get(url);if(!c||
 /* Everything the boards are computed from, from the cache (works offline): {records (merged over the joined servers,
    or one server's), announces (Map key -> announce), exclude (muted, hidden by those servers, shunned), at (oldest
    fetch time, for "as of …")}. */
-async function fedBoardData(server=null){const f=S&&S.fed,ids=Array.isArray(server)?server:server?[server]:Object.values(FED.st).map(x=>x.server).filter(Boolean),by=new Map(),now=fedNow();let at=null;
-  for(const id of new Set(ids)){const b=await fedBoardGet(id);if(!b)continue;at=at===null?b.at:Math.min(at,b.at);
-    for(const x of b.items){const o=by.get(x.id);if(o)o.srv=[...new Set([...o.srv,id])];else by.set(x.id,{...x,srv:[id]});}}
-  const anns=new Map((await fedNetworks(now)).map(n=>[n.key,n.rec])),ex=new Set(f?f.muted:[]);
-  for(const id of new Set(ids)){const h=await fedGet('kv','hide:'+id);if(h&&h.rec)for(const k of h.rec.body.hide)ex.add(k);}
+async function fedBoardData(server=null){const f=S&&S.fed,ids=[...new Set(Array.isArray(server)?server:server?[server]:Object.values(FED.st).map(x=>x.server).filter(Boolean))],now=fedNow(),me=f&&f.key?f.key.pub:null;
+  const {records,at}=await fedBoardRecs(ids,now,me),anns=new Map((await fedNetworks(now)).map(n=>[n.key,n.rec])),ex=new Set(f?f.muted:[]);
+  const srvs=ids.length?await fedServers():[];for(const id of ids){const h=await fedHides(id,srvs);if(h)for(const k of h.rec.body.hide)ex.add(k);}
   for(const k of await fedShunned(now))ex.add(k);
-  return {now,records:[...by.values()],announces:anns,exclude:[...ex],deals:f?f.deals:[],me:f&&f.key?f.key.pub:null,at};}
+  return {now,records,announces:anns,exclude:[...ex],deals:f?f.deals:[],me,at};}
+/* The board records of these servers merged, at most FED_BOARD_MAX (the newest) from at most FED_BOARD_KEYS networks
+   (the most recently heard, and this one). The same array again until a server's records change here (FED.bgen) or a
+   slot went by, so the boards over it are computed once (fedBoard keeps them per array). */
+async function fedBoardRecs(ids,now,me){const k=ids.join(' ')+'|'+me,o=FED.bd;if(o&&o.k===k&&o.g===FED.bgen&&now-o.made<FED_SLOT)return o;
+  const g=FED.bgen,by=new Map();let at=null;
+  for(const id of ids){const b=await fedBoardGet(id);if(!b||!Array.isArray(b.items))continue;at=at===null?b.at:Math.min(at,b.at);
+    for(const x of b.items){const o=by.get(x.id);if(o)o.srv=[...new Set([...o.srv,id])];else by.set(x.id,{...x,srv:[id]});}}
+  let records=[...by.values()];if(records.length>FED_BOARD_MAX){records.sort((a,b)=>b.slot-a.slot);records.length=FED_BOARD_MAX;}
+  const newest=new Map();for(const r of records)if(!(newest.get(r.key)>=r.slot))newest.set(r.key,r.slot);
+  if(newest.size>FED_BOARD_KEYS){const keep=new Set([...newest].sort((a,b)=>b[1]-a[1]||fedByStr(a[0],b[0])).slice(0,FED_BOARD_KEYS).map(x=>x[0]));
+    if(me)keep.add(me);records=records.filter(r=>keep.has(r.key));}
+  return FED.bd={k,g,made:now,records,at};}
 // A board slice, ready to show (fedSlice over fedBoardData).
 async function fedBoardView(v){const d=await fedBoardData(v.server||null);return {...fedSlice(v,d),at:d.at};}
 
@@ -208,12 +219,23 @@ async function fedServers(){const reg=(await fedGet('kv','registry'))||{servers:
   const info=new Map();for(const g of gos)if(!info.has(g.id)||g.server.t>info.get(g.id).t)info.set(g.id,g.server);for(const r of reg.servers)info.set(r.id,r);
   return fedCatalogMerge(reg.servers.map(s=>({id:s.id,server:s})),gos,now).map(row=>{const i=info.get(row.id)||{};
     return {...row,sync:i.sync,noLogs:i.noLogs,langs:i.langs||[],desc:i.desc||'',listed:i.listed??null,answered:i.answered??null};});}
-// Keys the federation shuns now (§10.7), counted here from the registry snapshot and the votes this browser has.
-async function fedShunned(now=fedNow()){const reg=await fedGet('kv','registry'),v=(await fedGet('kv','votes'))||[];if(!reg||!v.length)return [];
-  const R={asOf:reg.asOf,servers:reg.servers.map(s=>({id:s.id,operators:s.operators,listed:s.listed,answered:s.answered}))};
-  const recs=v.map(x=>({id:x.id,kind:x.rec.kind,key:x.rec.key,t:x.rec.t,server:x.rec.body.server,target:x.rec.body.target,reason:x.rec.body.reason}));
-  return [...new Set(recs.map(r=>r.target))].filter(k=>fedShun(R,recs,k,now).shunned);}
-// The tally about one network (its own game tells the player why it can no longer reach others, with the reasons).
-async function fedShunInfo(key,now=fedNow()){const reg=await fedGet('kv','registry'),v=(await fedGet('kv','votes'))||[];
+/* Who may vote and hide, at the head of each server's chain as the catalog has it. fedVoters: the voting registry
+   servers (§10.7) as Map id -> operator keys; fedOpOf: whether key operates server id. */
+async function fedVoters(){const reg=await fedGet('kv','registry'),m=new Map();if(!reg||!Array.isArray(reg.servers))return m;
+  for(const s of reg.servers)if(fedVoter(s,reg.asOf)&&Array.isArray(s.operators))m.set(s.id,new Set(s.operators));return m;}
+const fedVoteOk=(voters,r)=>{const o=r&&r.body&&voters.get(r.body.server);return !!o&&o.has(r.key);};
+const fedOpOf=(srvs,id,key)=>{const e=srvs.find(x=>x.id===id);return !!e&&Array.isArray(e.operators)&&e.operators.includes(key);};
+// A server's hide record ({rec, id}) when an operator of that server signed it, else null.
+async function fedHides(id,srvs){const h=await fedGet('kv','hide:'+id);if(!h||!h.rec)return null;return fedOpOf(srvs||await fedServers(),id,h.rec.key)?h:null;}
+/* The shun tally of every target, from the registry snapshot and the votes this browser has: {targets: Map target ->
+   its votes}, the tally per target counted on demand and kept until the votes, the registry or the slot change. */
+async function fedShunTally(now){const reg=await fedGet('kv','registry'),k=FED.vgen+'|'+(reg?reg.at+'/'+reg.asOf:'')+'|'+fedSlot(now);
+  if(FED.shun&&FED.shun.k===k)return FED.shun;const v=(await fedGet('kv','votes'))||[],targets=new Map();
   const R={asOf:reg?reg.asOf:0,servers:reg?reg.servers.map(s=>({id:s.id,operators:s.operators,listed:s.listed,answered:s.answered})):[]};
-  return fedShun(R,v.map(x=>({id:x.id,kind:x.rec.kind,key:x.rec.key,t:x.rec.t,server:x.rec.body.server,target:x.rec.body.target,reason:x.rec.body.reason})),key,now);}
+  for(const x of v){const b=x.rec.body,l=targets.get(b.target);const r={id:x.id,kind:x.rec.kind,key:x.rec.key,t:x.rec.t,server:b.server,target:b.target,reason:b.reason};if(l)l.push(r);else targets.set(b.target,[r]);}
+  return FED.shun={k,R,reg:!!reg,targets,res:new Map(),now};}
+const fedShunOf=(T,key,now)=>{if(T.now!==now){T.now=now;T.res=new Map();}let x=T.res.get(key);if(!x)T.res.set(key,x=fedShun(T.R,T.targets.get(key)||[],key,now));return x;};
+// Keys the federation shuns now (§10.7).
+async function fedShunned(now=fedNow()){const T=await fedShunTally(now);if(!T.reg)return [];return [...T.targets.keys()].filter(k=>fedShunOf(T,k,now).shunned);}
+// The tally about one network (its own game tells the player why it can no longer reach others, with the reasons).
+async function fedShunInfo(key,now=fedNow()){return fedShunOf(await fedShunTally(now),key,now);}

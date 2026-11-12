@@ -6,6 +6,10 @@ const fedBidi=s=>/[‪-‮⁦-⁩]/.test(s),fedLen=s=>{let n=0;for(const _ of s)
 const FdK=v=>fedBin(v,32)?null:'bad_key',FdSig=v=>fedBin(v,64)?null:'bad_sig',FdId=v=>fedBin(v,32)?null:FdBF;
 const FdText=(lo,hi)=>v=>{if(typeof v!=='string'||fedBidi(v))return FdBF;const n=fedLen(v);return n>=lo&&n<=hi?null:FdBF;};
 const FdName=v=>FdText(1,40)(v)||(/[^ ]/.test(v)?null:FdBF);
+/* A player-typed name as the game keeps it (NET, deals, consortiums): markup characters swapped for look-alikes, so a
+   name is plain text in every place the game shows network names, escaped there or not. Sinks escape as well. */
+const FED_SAFE={'<':'‹','>':'›','&':'＆','"':'”',"'":'’','`':'‘'};
+const fedSafeName=v=>String(v).replace(/[<>&"'`]/g,c=>FED_SAFE[c]);
 const FdCity=v=>typeof v==='string'&&/^[a-z0-9]{2,8}$/.test(v)?null:FdBF,FdCC=v=>typeof v==='string'&&/^[A-Z]{2}$/.test(v)?null:FdBF;
 const FdInt=(lo,hi)=>v=>Number.isSafeInteger(v)&&v>=lo&&v<=hi?null:FdBF;
 const FdMbps=FdInt(0,1e9),FdMoney=FdInt(0,1e12),FdDays=FdInt(1,3650),FdBool=v=>typeof v==='boolean'?null:FdBF,FdOne=(...a)=>v=>a.includes(v)?null:FdBF;

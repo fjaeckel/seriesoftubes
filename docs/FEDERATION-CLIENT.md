@@ -87,7 +87,7 @@ Pure functions, held to `federation/vectors/` by `tests/federation-vectors.test.
 | Function | Rule |
 | --- | --- |
 | `fedSlot`, `fedWindows(now)`, `fedBoardSlot(ts)`, `fedByKey`, `fedEffs` | Slots, windows, effective records (§10.1–10.2) |
-| `fedBoard({now, board, measure, division, exclude, cities, records})` | Board rows `[{key, value}]` (§10.3–10.5) |
+| `fedBoard({now, board, measure, division, exclude, cities, records})` | Board rows `[{key, value}]` (§10.3–10.5). Walks only the slots where an effective record changes; kept per `records` array (identity) and slot, so slicing the same data again is a lookup. `await fedBoardWarm(q)` works it out in short steps first (the boards sheet does) |
 | `fedSlice(view, data)` | A sliced board: `{rows: [{key, value, rank, ai}], me}` (see below) |
 | `fedQuiet(now, lastHeard)` | `{state: active/fading/dark/forgotten, factor}` per mille (§10.6) |
 | `fedShun(registry, votes, target, now)` | `{voters, need, votes, shunned, reasons}` (§10.7) |
@@ -113,7 +113,7 @@ the slice. `me` is the player's own row, pinned: `rank` is `null` when the slice
 | `fedWake()` | Starts, adjusts or stops the session to match the open save. Safe any time |
 | `fedStatus()` | `{state: 'off'|'connecting'|'connected'|'offline', since, servers: [{url, state, since, server, node}]}`; `since` is when it went offline (or connected). Per server `state` may also be `waiting` (hidden tab) |
 | `fedBoardFetch(url)` | Asks a connected server for its board records (§9.5), checks them (receipts give slot and country), caches them; `null` when not connected |
-| `fedBoardData(server?)` | `server`: one server id, a list of ids, or none (the connected ones). From the cache (works offline): `{now, records, announces, exclude, deals, me, at}`; `at` is the oldest fetch ("as of …") |
+| `fedBoardData(server?)` | `server`: one server id, a list of ids, or none (the connected ones). From the cache (works offline): `{now, records, announces, exclude, deals, me, at}`; `at` is the oldest fetch ("as of …"). `records`: at most 20000 (the newest) from at most 5000 networks, the same array until a server's cached records change or a slot passes |
 | `fedServers()` | Known servers, registry merged with gossip (§10.8): `[{id, source, name, nodes, operators, sync, noLogs, langs, desc, seen, path, listed, answered}]` |
 | `fedCatalogLoad()` | Fetches `federation/servers.json` (same origin), keeps the checked entries; the cache stays on failure |
 | `fedNetworks(now?)` | Other players' networks from cached announces: `[{key, rec, id, heard, quiet, srv}]` (`srv`: the servers it was heard on); forgets those silent 180 days |
@@ -123,7 +123,9 @@ Behaviour (§9): one connection per joined server; `hello` → `welcome`; when t
 must be one of its nodes and answer a `challenge` (otherwise the next node is tried); nothing is sent before. Then the
 queue is put (a record leaves it once every joined server took it, or refused it for good; `rate_limited` waits
 `retry`), a `sub` follows `announce`, `offer`, `accept`, `decline`, `leave`, `hide`, `shun`, `unshun` from the stored
-cursor, and `servers` brings gossip. Pings after 60 s idle, gives up after 120 s of silence, requests time out after
+cursor, and `servers` brings gossip. Of what arrives, `shun` and `unshun` are kept only when signed by an operator of
+a voting registry server (§10.7) and `hide` only when signed by an operator of its own server (at the head of the chain the
+catalog has); player names become plain text (`fedSafeName`: `<>&"'` swapped for look-alikes) before they reach `NET`. Pings after 60 s idle, gives up after 120 s of silence, requests time out after
 20 s. A lost connection tries the server's next node at once; after a full round it waits 2 s doubling up to 30 min,
 times 0.5–1 jitter, and only while the tab is visible (it dials at once when the tab comes back). Stats are signed every
 5 minutes when the body changed, or hourly as a heartbeat, at most once per slot.
@@ -148,8 +150,8 @@ times 0.5–1 jitter, and only while the tab is visible (it dials at once when t
 
 ## Browser storage (IndexedDB `sot-fed`, shared by every slot)
 
-Stores `ann` (other networks' newest announce and `heard`, at most 5000, the longest silent dropped first, forgotten
-after 180 days), `kv` (`registry`, `gossip`, `board:<server>` up to 20000 records, `votes` until expired, `hide:<server>`,
+Stores `ann` (other networks' newest announce and `heard`, at most 5000, the longest silent dropped first once a tenth
+over, counted without reading the store each time, forgotten after 180 days), `kv` (`registry`, `gossip`, `board:<server>` up to 20000 records, `votes` until expired, `hide:<server>`,
 `cursor:<node>`) and `op` (the operator key). Every access is wrapped; without IndexedDB (or when it fails) the same calls
 use memory for the tab. `fedGet/fedPut/fedDel/fedAll(store, …)`.
 

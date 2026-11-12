@@ -13,8 +13,10 @@ const fuRegion=q=>q.city?{city:q.city}:q.country?{country:q.country}:q.continent
 async function fuBoardsLoad(){const q=fuQ(),ids=q.server?[q.server]:fuSrvIds();
   // Fresh records from every connected joined server, once per opening (a request each; offline the cache stays).
   if(!FU.fetched&&S&&S.fed&&S.fed.on){FU.fetched=1;for(const u of S.fed.servers)if(FED.st[u]&&FED.st[u].state==='connected')fedBoardFetch(u).catch(()=>null);}
-  const d=await fedBoardData(ids.length?ids:null);FU.bd=d;FU.boardAt=d.at;
-  FU.slice=fedSlice(fuSliceQ(q),d);}
+  // The same records as last time give the same array, whose boards are kept: a chip only slices again. A new board is
+  // worked out in short steps, so a phone never freezes on a big federation.
+  const d=await fedBoardData(ids.length?ids:null);FU.bd=d;FU.boardAt=d.at;const v=fuSliceQ(q);
+  await fedSliceWarm(v,d);if(FU.bd===d)FU.slice=fedSlice(v,d);}
 // Active filters beyond board, measure and division: each a chip that removes itself.
 function fuActive(q){const a=[],cc=c=>esc(pieLicCountry(c));
   if(q.model!=null)a.push(['model',tr('fedui.model_x',{x:esc(q.model)})]);if(q.harness!=null)a.push(['harness',tr('fedui.harness_x',{x:esc(q.harness)})]);

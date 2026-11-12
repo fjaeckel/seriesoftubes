@@ -35,10 +35,10 @@ function fedpSanitize(s){
   const v=s.fedp;if(v==null){s.fedp=null;return;}if(typeof v!=='object'||Array.isArray(v)){s.fedp=null;return;}
   const o=fedPNew();o.pol=['open','selective','restrictive'].includes(v.pol)?v.pol:'open';o.cond=fedCondClean(v.cond);o.rates=fedRatesClean(v.rates);o.auto=fedAutoClean(v.auto,o.pol);
   o.rpki=v.rpki===true;o.annH=fedInt(v.annH,0,4294967295,0);o.annAt=fedInt(v.annAt,0,1e11,0);o.annTr=fedInt(v.annTr,0,4e9,0);o.leakD=fedInt(v.leakD,0,1e7,0);o.help=fedInt(v.help,0,1e6,0);
-  if(Array.isArray(v.mine))o.mine=v.mine.filter(x=>x&&!FdId(x.id)&&fedInt(x.t,0,1e11,null)!==null&&x.body&&typeof x.body==='object'&&x.body.auto&&typeof x.body.auto==='object'&&!fedValues(x.body)&&fedSize(fedCanon(x.body))<=16384).slice(0,3);
+  if(Array.isArray(v.mine))o.mine=v.mine.filter(x=>x&&!FdId(x.id)&&fedInt(x.t,0,1e11,null)!==null&&x.body&&typeof x.body==='object'&&!fedValues(x.body)&&fedSize(fedCanon(x.body))<=16384&&!FED_BODY.announce(x.body,{rec:{t:x.t},asn:x.body.asn})).slice(0,3);
   if(Array.isArray(v.rq))o.rq=v.rq.filter(x=>x&&!FdId(x.id)&&x.rec&&typeof x.rec==='object'&&!fedValues(x.rec)&&!fedEnv(x.rec,{offer:1})&&!FED_BODY.offer(x.rec.body,{rec:x.rec})).slice(0,FEDP_RQ_MAX).map(x=>({id:x.id,rec:x.rec}));
   if(Array.isArray(v.cons))o.cons=v.cons.filter(x=>x&&!FdId(x.id)&&!FdK(x.k)&&!FdName(x.name)&&own(CITY,x.a)&&own(CITY,x.b)&&x.a!==x.b&&fedInt(x.m,2,16,0)&&fedInt(x.sh,0,1e12,null)!==null&&fedInt(x.pr,1,16,0)&&Array.isArray(x.sg)&&fedInt(x.t,0,1e11,null)!==null)
-    .slice(0,FEDP_CONS_MAX).map(x=>({id:x.id,k:x.k,name:x.name,a:x.a,b:x.b,m:x.m,sh:x.sh,pr:x.pr,sg:[...new Set(x.sg.filter(k=>!FdK(k)))].slice(0,16),t:x.t,st:['open','funded','gone'].includes(x.st)?x.st:'open',me:x.me===true}));
+    .slice(0,FEDP_CONS_MAX).map(x=>({id:x.id,k:x.k,name:fedSafeName(x.name),a:x.a,b:x.b,m:x.m,sh:x.sh,pr:x.pr,sg:[...new Set(x.sg.filter(k=>!FdK(k)))].slice(0,16),t:x.t,st:['open','funded','gone'].includes(x.st)?x.st:'open',me:x.me===true}));
   if(Array.isArray(v.str))o.str=v.str.filter(x=>x&&!FdK(x.k)&&fedInt(x.mbps,0,2e9,null)!==null).slice(0,FEDP_STR_MAX).map(x=>({k:x.k,mbps:x.mbps}));
   s.fedp=o;
   // Deals keep only what this file reads, as plain values (the common part is checked by fedSanitize).

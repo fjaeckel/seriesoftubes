@@ -78,7 +78,7 @@ async function fuLoad(){const v=UI.fu&&UI.fu.v;if(!v)return;
   try{FU.srvs=await fedServers();FU.opKey=await fedOpKey();
     if(v==='glass'||v==='server'||v==='net'||v==='home'||v==='boards'||v==='filters'){FU.gossip=(await fedGet('kv','gossip'))||[];FU.votes=(await fedGet('kv','votes'))||[];
       FU.nets=new Map((await fedNetworks()).map(n=>[n.key,n]));FU.hideNames=new Set();
-      for(const s of FU.srvs){const h=await fedGet('kv','hide:'+s.id);if(h&&h.rec)for(const k of h.rec.body.names)FU.hideNames.add(k);}}
+      for(const s of FU.srvs){const h=await fedHides(s.id,FU.srvs);if(h)for(const k of h.rec.body.names)FU.hideNames.add(k);}}
     if(v==='home'){const f=S&&S.fed;FU.shun=f&&f.key?await fedShunInfo(f.key.pub):null;FU.asn=f&&f.key?await fedAsn(f.key.pub):null;}
     if(v==='glass'||v==='server')await fuGlassLoad();
     if(v==='server'&&UI.fu.id&&FU.opKey&&fuOpOf(UI.fu.id))FU.chain=await fedOpChain(UI.fu.id);
