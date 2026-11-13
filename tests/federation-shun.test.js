@@ -105,6 +105,26 @@ test('an operator\'s game gets the votes of its server and counts the tally itse
   assert.deepEqual(p.errors, []);
 });
 
+// Found in WebKit by scripts/fed-e2e.js: a tally read while new votes were still being written kept the old votes,
+// with the new cache key, until the next vote or slot.
+test('a tally read while votes are being written does not keep the old votes', async () => {
+  const p = fedPage();
+  await p.ev(`fedPut('kv','registry',${JSON.stringify(REG)})`);
+  assert.equal(await p.ev(`fedOpKeySet(${JSON.stringify(key('anna').seed)})`), true);
+  await p.ev(`fedVotesAdd(${JSON.stringify([1, 2, 3, 4].map((n) => ({ id: 'v' + n, rec: vote(n, 'spam') })))})`);
+  assert.equal((await p.ev(`fedShunInfo(${JSON.stringify(M)})`)).votes, 4);
+  // The fifth vote's write is held back; the operator panel reads the tally meanwhile.
+  p.ev("FED.slowPut=fedPut;FED.held=null;fedPut=(s,k,v)=>s==='kv'&&k==='votes'?new Promise(r=>{FED.held=()=>r(FED.slowPut(s,k,v));}):FED.slowPut(s,k,v);");
+  p.ev(`FED.adding=fedVotesAdd([{id:'v5',rec:${JSON.stringify(vote(5, 'spam'))}}])`);
+  assert.ok(await until(async () => (await settle(5), await p.ev('!!FED.held'))), 'the write started');
+  assert.equal((await p.ev(`fedShunInfo(${JSON.stringify(M)})`)).votes, 4, 'not written yet');
+  await p.ev('(FED.held(),fedPut=FED.slowPut,FED.adding)');
+  const info = JSON.parse(JSON.stringify(await p.ev(`fedShunInfo(${JSON.stringify(M)})`)));
+  assert.equal(info.votes, 5);
+  assert.equal(info.shunned, true);
+  assert.deepEqual(p.errors, []);
+});
+
 test('votes left on a device without an operator key are deleted when a session starts', async () => {
   const p = fedPage();
   p.net.node(URL1);

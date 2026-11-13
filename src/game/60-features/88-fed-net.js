@@ -132,7 +132,7 @@ function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.skip
   if(f.m==='update'&&f.id===undefined){const u=fedUpdOf(f);if(u&&c.srv){FED.upd[c.srv]=u;fedEmit('update',{srv:c.srv,...u});}return;}
   // The node refused the subscription for now (rate_limited, internal): subscribe again after its retry.
   if(f.m==='err'&&c.sub&&f.id===c.sub){c.sub=0;if(f.code==='rate_limited'||f.code==='internal')c.subT=FED.set(()=>{c.subT=null;if(fedLive(c)&&c.phase==='ready'&&!c.sub)fedSub(c);},Math.min(60,Math.max(1,Number.isSafeInteger(f.retry)?f.retry:5))*1000);return;}
-  if(f.m==='catalog'&&f.id===undefined){fedGossip(f.entries).catch(()=>{});return;}
+  if(f.m==='catalog'&&f.id===undefined){fedGossip(f.entries,c.srv).catch(()=>{});return;}
   const q=f.id!==undefined&&c.rq.get(f.id);
   if(!q)return;
   // A long answer (§9.3): recs items or catalog entries gathered over the frames until more is not true.
@@ -152,7 +152,7 @@ async function fedReady(c){await c.M.cat;if(!fedLive(c)||c.phase!=='check')retur
   c.phase='ready';c.readyAt=fedNow();fedSt(c,'connected');fedFlush(c);
   await fedSub(c);if(!fedLive(c)||c.phase!=='ready')return;if(c.op)await fedVoteSub(c);if(!fedLive(c)||c.phase!=='ready')return;
   if(c.op)await fedRepSub(c);if(!fedLive(c)||c.phase!=='ready')return;
-  const cat=await fedAskRetry(c,{m:'servers'},true);if(cat&&cat.m==='catalog')await fedGossip(cat.entries);}
+  const cat=await fedAskRetry(c,{m:'servers'},true);if(cat&&cat.m==='catalog')await fedGossip(cat.entries,c.srv);}
 /* Follows the news from the last cursor kept for this node and this network: IndexedDB is shared by every save slot,
    and what a sub gives depends on the key proved, so another network's cursor would skip this one's deals. */
 const fedCursorKey=c=>'cursor:'+c.node+'#'+c.M.fed.key.pub,fedVcKey=c=>c.node+'#'+c.M.fed.key.pub;
@@ -358,10 +358,14 @@ async function fedCatalogLoad(){let txt=null;
   await fedPut('kv','registry',{asOf:j.asOf,at:now,servers:out});fedEmit('catalog',{source:'registry'});return true;}
 const fedSum=r=>({id:r.id,rid:r.srvId,t:r.srv.t,name:r.name,nodes:r.nodes,operators:r.ops,sync:r.sync,noLogs:r.noLogs,langs:r.srv.body.langs,desc:r.srv.body.desc});
 // Gossip entries from a node ({genesis, chain, server, path, seen}): checked, then kept (a few per server).
-async function fedGossip(entries){if(!Array.isArray(entries))return;const now=fedNow(),g=(await fedGet('kv','gossip'))||[],L=entries.slice(0,256),rs=L.length?await fwDo('reg',{entries:L,now}):[];let ch=false;
+/* via: the server whose node sent the entries. A node gives clients an entry with the path it came by, which ends
+   before that node's own server (§10.8 adds it only when passing on to servers): the game adds it, so the looking
+   glass sees that the sending server syncs with the one before it on the path. */
+async function fedGossip(entries,via){if(!Array.isArray(entries))return;const now=fedNow(),g=(await fedGet('kv','gossip'))||[],L=entries.slice(0,256),rs=L.length?await fwDo('reg',{entries:L,now}):[];let ch=false;
   for(let i=0;i<L.length;i++){const e=L[i],r=rs[i];if(!r)continue;
     const x=fedGossipIn({id:r.id,path:e.path,seen:e.seen},null,now);if(x.action!=='store')continue;
-    g.push({id:r.id,server:r.sum,path:e.path,seen:e.seen,impl:fedImpls(e.impl,r.sum.nodes)});ch=true;}
+    const path=typeof via==='string'&&!FdId(via)&&!e.path.includes(via)&&e.path.length<16?[...e.path,via]:e.path;
+    g.push({id:r.id,server:r.sum,path,seen:e.seen,impl:fedImpls(e.impl,r.sum.nodes)});ch=true;}
   if(!ch)return;const keep=[],per=new Map();
   for(const e of g.sort((a,b)=>b.seen-a.seen)){const n=per.get(e.id)||0;if(now<e.seen+FED_CARRY&&n<4&&keep.length<4000){keep.push(e);per.set(e.id,n+1);}}
   await fedPut('kv','gossip',keep);fedEmit('catalog',{source:'gossip'});}

@@ -1,8 +1,10 @@
 #!/usr/bin/env node
-// Multiplayer end to end: the real Go relay (built from relay/ with `go build`) against the real game page in Chromium.
+// Multiplayer end to end: the real Go relay (built from relay/ with `go build`) against the real game page in Chromium, Firefox or WebKit.
 // Not part of npm test or CI; run it by hand after changing either side:
 //
 //   node scripts/fed-e2e.js            [--keep] (leave the temp folder) [--headed] [--fakes N] (default 260)
+//                                      [--browser chromium|firefox|webkit] (default chromium; also for --lan; the
+//                                      engines' differences are handled in launchEngine)
 //                                      [--quick] (skip the wait for the slot to end, and the leaderboard checks after it;
 //                                      the newcomer steps still wait once for a new slot: one stats per slot)
 //   node scripts/fed-e2e.js --play     [--fakes N] (default 12) [--port P] sets up the same relay without TLS (the
@@ -12,10 +14,11 @@
 //                                      certificate, no registry and no internet; one player opens the relay's page,
 //                                      takes the invite link (an IP address) and joins (docs/HOSTING.md, LAN party)
 //
-// Everything runs on loopback: the relay serves TLS itself with a certificate made for the run (Chromium is told to
-// ignore that it is self-signed), the page is served by a small static server, and a registry (servers.json) lists the
-// relay plus four servers that exist only to vote, so a shun can really reach its threshold. Two browser contexts are
-// two players. A Node client puts a few hundred signed records of made-up networks, so the relay's paging (backlogs,
+// Everything runs on loopback: the relays serve TLS themselves with a certificate made for the run (the browser is told
+// to ignore that it is self-signed, the relays trust it through RELAY_TEST_ROOTS), the page is served by a small static
+// server, and a registry (servers.json) lists five servers, so a shun can really reach its threshold: server 1 serves,
+// server 2 serves too with two nodes and syncs with server 1 (open policies, neighbours both ways), servers 3 to 5
+// exist only to vote. Browser contexts are players: Alice and Bob on server 1, Dave on server 2. A Node client puts a few hundred signed records of made-up networks, so the relay's paging (backlogs,
 // cursors) and its rate limit are exercised. The board only ranks finished 5-minute slots, so the run waits
 // for the next slot boundary once (up to five minutes). Prints one line per step and exits non-zero on any failure.
 const fs = require('node:fs');
@@ -31,8 +34,12 @@ const registry = require('./registry');
 const arg = (k) => process.argv.includes(k);
 const argv = (k, d) => { const i = process.argv.indexOf(k); return i >= 0 ? process.argv[i + 1] : d; };
 const PLAY = arg('--play'), KEEP = arg('--keep'), HEADED = arg('--headed'), QUICK = arg('--quick'), LAN = arg('--lan');
+const BROWSER = argv('--browser', 'chromium');
+if (!['chromium', 'firefox', 'webkit'].includes(BROWSER)) { console.error(`--browser ${BROWSER}: chromium, firefox or webkit`); process.exit(2); }
 const FAKES = Math.max(0, +argv('--fakes', PLAY ? 12 : 260) || 0);
 const HOST = 'relay.localhost', SLOT = 300, DAY = 86400;
+// The second serving server's two nodes (the two-server step).
+const HOSTS2 = ['relay2.localhost', 'relay2b.localhost'];
 // The relay runs as this release; the update feed of the run announces the next minor one.
 const RELAY_VER = require('../package.json').version, NEXT_VER = RELAY_VER.replace(/^(\d+)\.(\d+)\..*$/, (_, a, b) => `${a}.${+b + 1}.0`);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -124,26 +131,95 @@ function chromeIn(want) {
 }
 const freePort = () => new Promise((res, rej) => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); s.on('error', rej); });
 
+/* ---------- the browser engines ----------
+   The game page must be on a host that is not loopback (from a loopback page the game dials *.localhost nodes over
+   plain ws://, §9.1, and these runs test TLS), and still a secure context (WebCrypto). All three engines resolve
+   *.localhost to loopback themselves; the page's name, game.test, needs help, per engine:
+   - Chromium: --host-resolver-rules maps it, --unsafely-treat-insecure-origin-as-secure makes http://game.test secure;
+   - Firefox: the prefs network.dns.localDomains and dom.securecontext.allowlist do the same;
+   - WebKit has neither: the page is https://game.test with the run's self-signed certificate (so a secure context),
+     and the browser goes through a small proxy of the run that sends the run's names to 127.0.0.1.
+   Certificates: the context's ignoreHTTPSErrors everywhere (Chromium's full run also passes --ignore-certificate-errors,
+   as it always did). Firefox has no isMobile: its phone is a plain small viewport. */
+const PAGE_TLS = BROWSER === 'webkit';
+const pageURL = (wport) => `${PAGE_TLS ? 'https' : 'http'}://game.test:${wport}/`;
+const pageServer = (handler, tls) => tls ? require('node:https').createServer({ key: fs.readFileSync(tls.key), cert: fs.readFileSync(tls.crt) }, handler) : http.createServer(handler);
+// The run's names (hosts, and *.localhost) go to 127.0.0.1; anything else (the page's web fonts) where it really is.
+async function loopProxy(hosts) {
+  const to = (h) => (hosts.includes(h) || /\.localhost$/.test(h) || h === 'localhost' ? '127.0.0.1' : h);
+  const s = http.createServer((req, res) => {
+    const u = new URL(req.url);
+    const up = http.request({ host: to(u.hostname), port: u.port || 80, path: u.pathname + u.search, method: req.method, headers: req.headers }, (r) => { res.writeHead(r.statusCode, r.headers); r.pipe(res); });
+    up.on('error', () => { res.writeHead(502); res.end(); });
+    req.pipe(up);
+  });
+  s.on('connect', (req, sock, head) => {
+    const i = req.url.lastIndexOf(':'), host = req.url.slice(0, i).replace(/^\[|\]$/g, '');
+    const up = net.connect(+req.url.slice(i + 1), to(host), () => { sock.write('HTTP/1.1 200 Connection Established\r\n\r\n'); if (head.length) up.write(head); up.pipe(sock); sock.pipe(up); });
+    up.on('error', () => sock.destroy()); sock.on('error', () => up.destroy());
+  });
+  await new Promise((r) => s.listen(0, '127.0.0.1', r));
+  return s;
+}
+// hosts: names to send to 127.0.0.1 besides *.localhost; chromeArgs: more Chromium switches.
+async function launchEngine(PAGE, hosts, chromeArgs = []) {
+  const type = require('playwright-core')[BROWSER], o = { headless: !HEADED };
+  let proxy = null;
+  if (BROWSER === 'chromium') {
+    // The full Chromium of the Playwright cache (its new headless mode), so no separate headless shell is needed.
+    const exe = process.env.FED_E2E_CHROME || chromeIn(type.executablePath());
+    if (fs.existsSync(exe)) o.executablePath = exe;
+    o.args = [...chromeArgs, `--host-resolver-rules=${hosts.map((h) => `MAP ${h} 127.0.0.1`).join(', ')}`, `--unsafely-treat-insecure-origin-as-secure=${PAGE.slice(0, -1)}`];
+  } else if (BROWSER === 'firefox') {
+    o.firefoxUserPrefs = { 'network.dns.localDomains': hosts.join(','), 'dom.securecontext.allowlist': new URL(PAGE).hostname };
+  } else {
+    proxy = await loopProxy(hosts);
+    o.proxy = { server: `http://127.0.0.1:${proxy.address().port}` };
+  }
+  return { browser: await type.launch(o), proxy };
+}
+const phone = (width, height) => ({ ignoreHTTPSErrors: true, viewport: { width, height }, ...(BROWSER === 'firefox' ? {} : { isMobile: true, hasTouch: true }) });
+
 async function main() {
   // The relay's local control socket lives in its data folder, and Unix socket paths are short: keep the folder short.
   const tmp = fs.mkdtempSync(path.join(os.tmpdir().length < 60 ? os.tmpdir() : '/tmp', 'fe2e-'));
   const procs = [];
-  let browser = null, web = null;
+  let browser = null, web = null, proxy = null;
   const cleanup = async () => {
     try { if (browser) await browser.close(); } catch (e) { /* gone */ }
     for (const p of procs) try { p.kill('SIGTERM'); } catch (e) { /* gone */ }
     if (web) web.close();
+    if (proxy) proxy.close();
     if (!KEEP) fs.rmSync(tmp, { recursive: true, force: true }); else console.log(`kept ${tmp}`);
   };
   process.on('SIGINT', async () => { await cleanup(); process.exit(130); });
   const bin = path.join(tmp, 'relay');
   const relay = (dir, ...a) => execFileSync(bin, [a[0], '--data', dir, ...a.slice(1)], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   const ctl = (cmd, ...a) => JSON.parse(relay(path.join(tmp, 'd1'), cmd, ...a));
+  const ctl2 = (cmd, ...a) => JSON.parse(relay(path.join(tmp, 'd2'), cmd, ...a));
   let relayLog = '';
+  const logs2 = { d2: '', d2b: '' };
   const P = {};
+  // The two-server step: server 2 serves too (two nodes), and the two servers sync. Not with --play (no TLS there).
+  const TWO = !PLAY;
+  const TLS = { tlsCert: path.join(tmp, 'tls.crt'), tlsKey: path.join(tmp, 'tls.key') }, REG = path.join(tmp, 'site', 'federation', 'servers.json');
+  const conf = (d, o) => { const cf = path.join(d, 'config.json'), c = JSON.parse(fs.readFileSync(cf, 'utf8')); fs.writeFileSync(cf, JSON.stringify(Object.assign(c, o), null, 2)); };
+  const portUp = (p) => until(() => new Promise((res) => { const s = net.connect(p, '127.0.0.1', () => { s.end(); res(true); }); s.on('error', () => res(false)); }), 15000, `port ${p}`);
+  // Starts `relay serve` on a data folder; the other nodes of the run trust the run's certificate (RELAY_TEST_ROOTS).
+  const serveRelay = async (d, p, sink) => {
+    const r = spawn(bin, ['serve', '--data', d], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...(PLAY ? {} : { RELAY_TEST_ROOTS: TLS.tlsCert }) } });
+    procs.push(r);
+    r.stdout.on('data', sink); r.stderr.on('data', sink);
+    await portUp(p);
+    await until(() => { try { return JSON.parse(relay(d, 'status')).serving; } catch (e) { return false; } }, 15000, `relay status serving (${path.basename(d)})`);
+    return r;
+  };
+  const stopRelay = async (r) => { r.kill('SIGTERM'); await until(() => r.exitCode !== null || r.signalCode !== null, 15000, 'a relay to stop'); };
   try {
     const wport = PLAY && +argv('--port', 0) || await freePort(), [port, mport] = [await freePort(), await freePort()];
     const URL1 = `wss://${HOST}:${port}/fed`;
+    const [port2, port2b] = [await freePort(), await freePort()], URL2 = `wss://${HOSTS2[0]}:${port2}/fed`, URL2B = `wss://${HOSTS2[1]}:${port2b}/fed`;
+    let r2 = null, r2b = null;
 
     await step('build the relay (go build)', async () => {
       // Stamped like a release, so it compares itself with the update feed (a "dev" build never does).
@@ -151,15 +227,32 @@ async function main() {
       return path.relative(ROOT, bin) === bin ? bin : 'ok';
     });
 
-    // Server 1 serves; servers 2 to 5 only exist in the registry, so their operators can vote.
+    /* Server 1 serves; servers 3 to 5 only exist in the registry, so their operators can vote. Server 2 ("E2E Pipes")
+       votes too and, but with --play, serves as well: open like server 1, with two nodes (2 and 2b), all syncing. */
     const srv = [];
-    await step('found five servers (relay init, genesis) and build servers.json', async () => {
+    await step(TWO ? 'found five servers (relay init, genesis; server 2 with a second node) and build servers.json' : 'found five servers (relay init, genesis) and build servers.json', async () => {
+      if (!PLAY) execFileSync('openssl', ['req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:prime256v1', '-nodes', '-days', '2', '-subj', `/CN=${HOST}`,
+        '-addext', `subjectAltName=${[HOST, ...HOSTS2, 'game.test'].map((h) => 'DNS:' + h).join(',')}`, '-keyout', TLS.tlsKey, '-out', TLS.tlsCert], { stdio: 'ignore' });
       for (let i = 1; i <= 5; i++) {
-        const d = path.join(tmp, 'd' + i), url = i === 1 ? URL1 : `wss://vote${i}.localhost:9/fed`;
+        const d = path.join(tmp, 'd' + i), url = i === 1 ? URL1 : i === 2 && TWO ? URL2 : `wss://vote${i}.localhost:9/fed`;
         relay(d, 'init', '--url', url);
-        const out = relay(d, 'genesis', '--name', i === 1 ? 'E2E Tubes' : `E2E Voter ${i}`, '--sync', i === 1 ? 'standalone' : 'open', '--langs', 'en');
+        const out = relay(d, 'genesis', '--name', i === 1 ? 'E2E Tubes' : i === 2 ? 'E2E Pipes' : `E2E Voter ${i}`, '--sync', i === 1 && !TWO ? 'standalone' : 'open', '--langs', 'en');
         const id = /identity: (\S+)/.exec(out)[1];
         srv.push({ i, d, id, url, op: keyOf(Buffer.from(fs.readFileSync(path.join(d, 'operator.key'), 'utf8').trim(), 'base64url')) });
+      }
+      if (TWO) {
+        // Server 2's second node: its operator adds it (one operator, so a majority at once) and describes the server
+        // again so the server record lists both nodes; that record goes into the registry, where games learn nodes.
+        const d2b = path.join(tmp, 'd2b'), nk = /Node key:\s+(\S+)/.exec(relay(d2b, 'init', '--url', URL2B))[1];
+        srv[1].d2b = d2b; srv[1].nk2b = nk;
+        conf(srv[1].d, { listen: `127.0.0.1:${port2}`, ...TLS, registry: REG });
+        const tmpR = await serveRelay(srv[1].d, port2, () => {});
+        const ops = (...a) => execFileSync(bin, ['ops', a[0], '--data', srv[1].d, ...a.slice(1)], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+        ops('propose', 'add-node', nk, '--url', URL2B);
+        ops('server');
+        const st = JSON.parse(relay(srv[1].d, 'status'));
+        await stopRelay(tmpR);
+        must(st.nodes === 2, `server 2 has ${st.nodes} nodes`);
       }
       const dir = path.join(tmp, 'servers'), today = Math.floor(now() / DAY) * DAY;
       fs.mkdirSync(dir);
@@ -182,21 +275,22 @@ async function main() {
     });
 
     await step(PLAY ? 'relay serves plain ws on loopback' : 'relay serves TLS on loopback', async () => {
-      if (!PLAY) execFileSync('openssl', ['req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:prime256v1', '-nodes', '-days', '2', '-subj', `/CN=${HOST}`,
-        '-addext', `subjectAltName=DNS:${HOST}`, '-keyout', path.join(tmp, 'tls.key'), '-out', path.join(tmp, 'tls.crt')], { stdio: 'ignore' });
-      const cf = path.join(srv[0].d, 'config.json'), c = JSON.parse(fs.readFileSync(cf, 'utf8'));
-      Object.assign(c, { listen: `127.0.0.1:${port}`, metrics: `127.0.0.1:${mport}`, registry: path.join(tmp, 'site', 'federation', 'servers.json') },
-        PLAY ? {} : { tlsCert: path.join(tmp, 'tls.crt'), tlsKey: path.join(tmp, 'tls.key') });
-      fs.writeFileSync(cf, JSON.stringify(c, null, 2));
-      const p = spawn(bin, ['serve', '--data', srv[0].d], { stdio: ['ignore', 'pipe', 'pipe'] });
-      procs.push(p);
-      p.stdout.on('data', (b) => { relayLog += b; });
-      p.stderr.on('data', (b) => { relayLog += b; });
-      await until(() => new Promise((res) => { const s = net.connect(port, '127.0.0.1', () => { s.end(); res(true); }); s.on('error', () => res(false)); }), 15000, 'the relay port');
-      await until(() => { try { return ctl('status').serving; } catch (e) { return false; } }, 15000, 'relay status serving');
+      conf(srv[0].d, { listen: `127.0.0.1:${port}`, metrics: `127.0.0.1:${mport}`, registry: REG, ...(PLAY ? {} : TLS), ...(TWO ? { neighbours: [{ url: URL2 }] } : {}) });
+      await serveRelay(srv[0].d, port, (b) => { relayLog += b; });
       const st = ctl('status');
       must(st.registry === 5, `relay knows ${st.registry} registry servers, not 5`);
       return `${URL1}, registry ${st.registry}`;
+    });
+
+    // Server 2: its first node with server 1 as neighbour (each side dials the other), then its second node joins.
+    if (TWO) await step('server 2 serves too: two nodes, server 1 their neighbour both ways', async () => {
+      conf(srv[1].d, { neighbours: [{ url: URL1 }] });
+      r2 = await serveRelay(srv[1].d, port2, (b) => { logs2.d2 += b; });
+      relay(srv[1].d2b, 'join', srv[1].id, '--from', URL2);
+      conf(srv[1].d2b, { listen: `127.0.0.1:${port2b}`, ...TLS, registry: REG, neighbours: [{ url: URL1 }] });
+      r2b = await serveRelay(srv[1].d2b, port2b, (b) => { logs2.d2b += b; });
+      const st = await until(() => { const x = ctl2('status'); return x.peers.some((p) => p.same && p.node === srv[1].nk2b && p.synced) && x; }, 60000, 'server 2\'s nodes to sync with each other');
+      return `${URL2} and ${URL2B}, ${st.peers.length} peer session(s) at node 2`;
     });
 
     // The page: assembled from src/ as players get it, static files from site/, servers.json from this run.
@@ -204,7 +298,7 @@ async function main() {
       const { html } = assemble({ dev: false });
       const SITE = path.join(ROOT, 'site'), own = path.join(tmp, 'site');
       const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
-      web = http.createServer((req, res) => {
+      web = pageServer((req, res) => {
         const u = new URL(req.url, 'http://x').pathname;
         if (u === '/' || u === '/index.html') { res.writeHead(200, { 'content-type': TYPES['.html'], 'cache-control': 'no-store' }); return res.end(html); }
         const rel = path.normalize(decodeURIComponent(u)).replace(/^([/\\]|\.\.)+/, '');
@@ -216,9 +310,9 @@ async function main() {
           }
         }
         res.writeHead(404); res.end();
-      });
+      }, PAGE_TLS && !PLAY ? { key: path.join(tmp, 'tls.key'), crt: path.join(tmp, 'tls.crt') } : null);
       await new Promise((r) => web.listen(wport, '127.0.0.1', r));
-      return `http://127.0.0.1:${wport}/`;
+      return PLAY ? `http://127.0.0.1:${wport}/` : pageURL(wport);
     });
 
     // Made-up networks first, so the players' backlogs and boards are long enough to need several pages.
@@ -269,21 +363,15 @@ stay in the browser).`);
       await new Promise(() => {}); // until Ctrl-C (SIGINT cleans up)
     }
 
-    // The browsers.
-    const { chromium } = require('playwright-core');
-    // The full Chromium of the Playwright cache (its new headless mode), so no separate headless shell is needed.
-    const exe = process.env.FED_E2E_CHROME || chromeIn(chromium.executablePath());
-    /* The page is opened as http://game.test, not a loopback name: from a loopback page the game would dial *.localhost
-       nodes over plain ws:// (§9.1, development), and this run tests TLS. Chromium is told to treat it as secure, as
-       WebCrypto needs. */
-    const PAGE = `http://game.test:${wport}/`;
-    browser = await chromium.launch({ executablePath: fs.existsSync(exe) ? exe : undefined, headless: !HEADED,
-      args: ['--ignore-certificate-errors', `--host-resolver-rules=MAP ${HOST} 127.0.0.1, MAP game.test 127.0.0.1`, `--unsafely-treat-insecure-origin-as-secure=${PAGE.slice(0, -1)}`] });
+    // The browsers: the page is game.test, not a loopback name, and a secure context (see launchEngine).
+    const PAGE = pageURL(wport);
+    ({ browser, proxy } = await launchEngine(PAGE, [HOST, ...HOSTS2, 'game.test'], ['--ignore-certificate-errors']));
 
     const players = {};
     // title: start from the title screen's "Play with others" switch instead of joining from the menu afterwards.
-    async function player(name, title) {
-      const ctx = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    // srvName: the server card to pick on the title screen.
+    async function player(name, title, srvName = 'E2E Tubes') {
+      const ctx = await browser.newContext(phone(390, 844));
       const page = await ctx.newPage();
       const p = { name, ctx, page, errors: [], frames: [], sent: [] };
       page.on('pageerror', (e) => p.errors.push(String(e.message || e)));
@@ -296,7 +384,7 @@ stay in the browser).`);
       await page.goto(PAGE, { waitUntil: 'load' });
       if (title) {
         await page.locator('#fsTog').click();
-        await page.locator('#fsList .fs-srv', { hasText: 'E2E Tubes' }).first().click();
+        await page.locator('#fsList .fs-srv', { hasText: srvName }).first().click();
         await page.evaluate((nm) => { const i = document.getElementById('nmIn'); if (i) i.value = nm; UI.pitched = true; }, name);
         await page.locator('#modalCard .tcta [data-act="start"]').click();
         await page.waitForFunction(() => typeof S !== 'undefined' && S && UI.started);
@@ -594,8 +682,10 @@ stay in the browser).`);
       must(opAuth && A.frames.some((f) => f.m === 'ack' && f.id === opAuth.id && f.op === true), 'the relay did not take Alice\'s operator key');
       const aVotes = A.frames.filter((f) => f.m === 'recs').flatMap((f) => f.items || []).filter(isVote).length;
       must(aVotes >= 5, `Alice's game got ${aVotes} votes`);
-      const info = await ev(A, (k) => fedShunInfo(k), target.k.pub);
-      must(info.shunned && info.votes === 5 && info.reasons.spam === 5, `Alice's tally ${JSON.stringify(info)}`);
+      // The votes came in the frames above; the game checks and stores them one batch after another.
+      const info = await until(() => ev(A, async (k) => { const i = await fedShunInfo(k); return i.votes === 5 && i; }, target.k.pub), 15000, 'Alice\'s tally to count five votes')
+        .catch(async (e) => { throw new Error(e.message + ' ' + JSON.stringify(await ev(A, async (k) => ({ info: await fedShunInfo(k), stored: ((await fedGet('kv', 'votes')) || []).map((v) => v.rec.body.server.slice(0, 6)), vgen: FED.vgen }), target.k.pub))); });
+      must(info.shunned && info.reasons.spam === 5, `Alice's tally ${JSON.stringify(info)}`);
       // The target's own session proves its key and learns the reasons given, without counts.
       const own = new Raw(raw.url);
       const w = await own.open(), t = now();
@@ -609,6 +699,151 @@ stay in the browser).`);
       must(ex.keys.includes(target.k.pub) && JSON.stringify(ex.reasons) === '["spam"]', `the target's excluded frame: ${JSON.stringify({ ...ex, keys: ex.keys.length })}`);
       own.close();
       return `target ${target.k.pub.slice(0, 8)}… shunned at the relay and in both games; Bob saw 0 votes, Alice ${aVotes}, the target the reasons ${JSON.stringify(ex.reasons)}`;
+    });
+
+    /* ---------- two servers (§9.4, §10.9): server 2 ("E2E Pipes", nodes 2 and 2b) syncs with server 1 ---------- */
+    let D = null;
+    const authedAt = async (url, k) => { const c = new Raw(url), w = await c.open(), t = now();
+      const sig = b64(crypto.sign(null, Buffer.from(canon({ m: 'auth', key: k.pub, node: w.node, server: w.server, t }), 'utf8'), k.priv));
+      const a = (await c.ask({ m: 'auth', key: k.pub, t, sig }))[0]; must(a.m === 'ack', `auth: ${JSON.stringify(a)}`); return c; };
+    // Everything a session gets from a sub of these kinds, from the start.
+    const subAll = async (c, kinds) => (await c.ask({ m: 'sub', kinds, since: '' })).flatMap((p) => p.items || []);
+    if (TWO) await step('two servers: relay status on each shows the other server as a peer, with its relay version', async () => {
+      const peerOf = (st, id) => st.peers.find((p) => p.server === id && !p.same && p.synced);
+      const [s1, s2] = await until(() => { const a = ctl('status'), b = ctl2('status'); return peerOf(a, srv[1].id) && peerOf(b, srv[0].id) && [a, b]; }, 60000, 'the two servers to sync');
+      const p1 = s1.peers.filter((p) => p.server === srv[1].id), p2 = peerOf(s2, srv[0].id);
+      must(p1.every((p) => p.relay === RELAY_VER) && p2.relay === RELAY_VER, `peer versions: server 1 sees ${JSON.stringify(p1)}, server 2 sees ${JSON.stringify(p2)}`);
+      must(s2.peers.some((p) => p.same && p.node === srv[1].nk2b && p.relay === RELAY_VER), `server 2's node 2b missing from its peers: ${JSON.stringify(s2.peers)}`);
+      must(s1.sync === 'open' && s2.sync === 'open', `sync ${s1.sync}, ${s2.sync}`);
+      return `server 1: ${p1.length} session(s) with server 2's nodes (relay ${p1.map((p) => p.relay).join(', ')}); server 2: ${s2.peers.length} peer session(s)`;
+    });
+
+    let raw2 = null;
+    if (TWO) await step('records put on server 1 reach server 2: Alice\'s announce and stats, with server 1\'s receipts', async () => {
+      raw2 = new Raw(`wss://127.0.0.1:${port2}/fed`);
+      must((await raw2.open()).server === srv[1].id, 'server 2\'s welcome names another server');
+      const node1 = ctl('status').node;
+      let got = null;
+      for (let i = 0; i < 30 && !got; i++) {
+        const it = await subAll(raw2, ['announce', 'stats']), a = it.find((x) => x.rec.kind === 'announce' && x.rec.key === P.A), s = it.find((x) => x.rec.kind === 'stats' && x.rec.key === P.A);
+        if (a && s) got = { a, s, n: it.length }; else await sleep(2000);
+      }
+      must(got, 'Alice\'s announce and stats never reached server 2');
+      for (const x of [got.a, got.s]) must((x.rcpt || []).some((r) => r.key === node1 && r.body.server === srv[0].id), `${x.rec.kind} without server 1's receipt: ${JSON.stringify(x.rcpt)}`);
+      const pl = await until(() => ctl2('players').find((x) => x.key === P.A), 30000, 'Alice in server 2\'s players');
+      must(pl.name === 'Alice Net', `server 2 lists ${JSON.stringify(pl)}`);
+      return `server 2's backlog: ${got.n} announces and stats, Alice's with server 1's receipt`;
+    });
+
+    if (TWO) await step('Dave joins server 2 only (from the title screen) and sees Alice; his looking glass shows server 1, its relay and the sync', async () => {
+      D = await player('Dave Net', true, 'E2E Pipes');
+      await until(() => ev(D, () => fedStatus().state === 'connected'), 30000, 'Dave connected');
+      // The card joins one of the server's nodes (whichever the game picks); the other is for failing over.
+      const joined = await ev(D, () => S.fed.servers);
+      must(joined.length === 1 && [URL2, URL2B].includes(joined[0]), `Dave joined ${JSON.stringify(joined)}`);
+      must(D.sent.some((f) => f.m === 'challenge') && D.frames.some((f) => f.m === 'welcome' && f.server === srv[1].id), 'Dave did not check server 2\'s node');
+      await until(() => ev(D, async (k) => (await fedNetworks()).some((n) => n.key === k), P.A), 30000, 'Dave to see Alice');
+      P.D = await ev(D, () => S.fed.key.pub);
+      await until(() => ctl('players').find((x) => x.key === P.D), 30000, 'Dave\'s announce at server 1');
+      // Server 1's catalog entry came to Dave through server 2 (gossip): seen, its relay's version, the sync.
+      await ev(D, (id) => ACT.fuOpen({ v: 'server', id, back: 'glass' }), srv[0].id);
+      const txt = await until(async () => { const t = await D.page.locator('#modalCard').innerText(); return /E2E Pipes/.test(t) && t.includes(`relay ${RELAY_VER}`) && t; }, 30000, 'server 1\'s page in Dave\'s looking glass (relay version, syncs with E2E Pipes)')
+        .catch(async (e) => { throw new Error(`${e.message}: ${(await D.page.locator('#modalCard').innerText()).replace(/\s+/g, ' ').slice(0, 600)}`); });
+      must(txt.includes(`${HOST}:${port}`), 'no node address on server 1\'s page');
+      await ev(D, () => ACT.fuOpen({ v: 'glass' }));
+      await until(async () => { const g = await D.page.locator('#modalCard').innerText(); return g.includes('E2E Tubes') && g.includes('Alice Net'); }, 15000, 'server 1 and Alice in Dave\'s looking glass');
+      await ev(D, () => ACT.fuClose());
+      const ent = await ev(D, async (id) => (await fedServers()).find((s) => s.id === id), srv[0].id);
+      return `server 1 seen ${ent && ent.seen ? now() - ent.seen + ' s ago' : '?'} via gossip; Dave ${P.D.slice(0, 8)}…`;
+    });
+
+    if (TWO) await step('a sealed deal across servers: Dave (server 2) asks Alice (server 1) for peering, she accepts in her queue; third parties on either server get none of it', async () => {
+      // Alice reviews peering now, so the deal needs her accept (an automatic one binds without, §10.10).
+      await sleep(1100); // two announces of one network in the same second tie on t (§10.11): publish in a new second
+      await ev(A, () => ACT.fpTermsSet({ terms: JSON.stringify({ pol: 'open', auto: { peering: 'review' }, rates: {} }) }));
+      await until(() => ev(D, async (k) => { await fedPlayRefresh(); const a = FEDN.ann.get(k); return !!a && a.rec.body.auto.peering === 'review'; }, P.A), 30000, 'Dave to see Alice\'s new terms (through server 2)');
+      await ev(D, (k) => ACT.fuOpen({ v: 'net', key: k, back: 'glass' }), P.A);
+      await until(async () => (await D.page.locator('#modalCard [data-act="fpNet"]').count()) > 0, 15000, 'the Deals button in Dave\'s looking glass');
+      await click(D, '#modalCard [data-act="fpNet"]');
+      await ev(D, () => { closeModal(); S.cash = 1e8; if (!S.pops.fra) ACT.buildPop({ city: 'fra' }); after(); });
+      const r = await ev(D, (k) => ACT.fpReq({ key: k, deal: 'peering', via: 'pni', at: 'fra' }), P.A);
+      must(r === null || r === undefined, `request refused: ${JSON.stringify(r)}`);
+      const id = await until(() => ev(D, (k) => { const d = S.fed.deals.find((x) => x.key === k && x.deal === 'peering'); return d && d.id; }, P.A), 10000, 'Dave\'s deal');
+      must((await ev(D, (x) => S.fed.deals.find((y) => y.id === x).st, id)) === 'wait', 'Dave\'s deal is not waiting for Alice');
+      await until(() => ev(A, (x) => S.fedp.rq.some((y) => y.id === x), id), 30000, 'Dave\'s request in Alice\'s queue');
+      await ev(A, () => { closeModal(); ACT.fpQueue(); });
+      await A.page.locator(`[data-act="fpAccept"][data-args*="${id}"]`).first().click();
+      await until(() => ev(D, (x) => { const d = S.fed.deals.find((y) => y.id === x); return d && d.st === 'run'; }, id), 45000, 'Dave\'s deal to run').catch(async (e) => {
+        const seed = await ev(D, () => S.fed.key.priv), dk = keyOf(Buffer.from(seed, 'base64url')), per = {};
+        for (const [n, u] of [['node 1', raw.url], ['node 2', `wss://127.0.0.1:${port2}/fed`], ['node 2b', `wss://127.0.0.1:${port2b}/fed`]]) {
+          const c = await authedAt(u, dk); per[n] = (await subAll(c, ['offer', 'accept', 'decline'])).filter((x) => x.rec.key === P.D || x.rec.body.to === P.D).map((x) => x.rec.kind).join(','); c.close();
+        }
+        const st = (p) => ev(p, (x) => { const d = S.fed.deals.find((y) => y.id === x); return { deal: d && { st: d.st, why: d.why, role: d.role }, rq: S.fedp.rq.filter((q) => q.id === x).length, conn: [...FED.live.conns.values()].map((c) => [c.node, c.phase]) }; }, id);
+        throw new Error(`${e.message}: Dave ${JSON.stringify(await st(D))}, Alice ${JSON.stringify(await st(A))}, deal records per node ${JSON.stringify(per)}, Alice sent ${A.sent.filter((f) => f.m === 'put' && f.rec && f.rec.kind === 'accept').length} accept(s)`);
+      });
+      await ev(A, () => closeModal());
+      const ad = await until(() => ev(A, (x) => S.fed.deals.find((y) => y.id === x && y.st === 'run'), id), 30000, 'Alice\'s side of the deal');
+      must(ad.key === P.D, `Alice's deal ${JSON.stringify(ad)}`);
+      // Dave's own session gets the offer and Alice's accept, sealed; nobody else gets them.
+      const isDD = (it) => !!it && !!it.rec && ['offer', 'accept', 'decline'].includes(it.rec.kind) && (it.rec.key === P.D || (!!it.rec.body && it.rec.body.to === P.D));
+      const seed = await ev(D, () => S.fed.key.priv), dk = keyOf(Buffer.from(seed, 'base64url'));
+      const mine = await authedAt(raw2.url, dk), own = (await subAll(mine, ['offer', 'accept'])).filter(isDD);
+      mine.close();
+      if (!(own.some((x) => x.rec.kind === 'offer' && x.rec.key === P.D) && own.some((x) => x.rec.kind === 'accept' && x.rec.key === P.A))) {
+        const per = {};
+        for (const [n, u] of [['node 1', raw.url], ['node 2', raw2.url], ['node 2b', `wss://127.0.0.1:${port2b}/fed`]]) {
+          const c = await authedAt(u, dk); per[n] = (await subAll(c, ['offer', 'accept'])).filter(isDD).map((x) => x.rec.kind).join(','); c.close();
+        }
+        const dn = await ev(D, () => [...FED.live.conns.values()][0].node);
+        throw new Error(`Dave's session on server 2 got ${own.map((x) => x.rec.kind).join(',') || 'nothing'}; per node ${JSON.stringify(per)}; Dave is on ${dn}`);
+      }
+      for (const x of own) must(x.rec.kind !== 'offer' || JSON.stringify(Object.keys(x.rec.body).sort()) === '["enc","to"]', `an offer in clear: ${JSON.stringify(x.rec.body).slice(0, 120)}`);
+      const ids = own.map((x) => rid(x.rec)), out = [];
+      for (const [where, anon] of [['server 1', raw], ['server 2', raw2]]) {
+        const third = await authedAt(anon.url, fakes[3].k);
+        for (const [who, c] of [['an anonymous session', anon], ['another network', third]]) {
+          const items = await subAll(c, ['offer', 'accept', 'decline']);
+          must(!items.some(isDD), `${who} on ${where} got ${items.filter(isDD).length} of Dave and Alice's deal records`);
+          const got = (await c.ask({ m: 'fetch', ids })).flatMap((p) => p.items || []);
+          must(!got.length, `${who} on ${where} fetched ${got.length} of them`);
+          must(!c.frames.some((f) => f.m === 'recs' && (f.items || []).some(isDD)), `${who} on ${where} saw one live`);
+        }
+        third.close();
+        out.push(where);
+      }
+      must(!B.frames.some((f) => (f.m === 'recs' || f.m === 'push') && (f.items || []).some(isDD)), 'Bob\'s game got one of Dave and Alice\'s deal records');
+      return `deal ${id.slice(0, 8)}… runs in both games; Dave's session got ${own.length} sealed records; third parties on ${out.join(' and ')}, and Bob, got 0`;
+    });
+
+    if (TWO) await step('the shun counts on server 2 too: votes travel between servers, Dave\'s game excludes the target', async () => {
+      const target = fakes[0].k.pub;
+      await until(() => { const x = ctl2('players').find((y) => y.key === target); return x && x.shunned; }, 30000, 'server 2 to count the shun');
+      await until(() => ev(D, async (k) => (await fedShunned()).includes(k), target), 30000, 'Dave to exclude the target');
+      must(!D.frames.some((f) => (f.m === 'recs' || f.m === 'push') && (f.items || []).some((it) => it && it.rec && (it.rec.kind === 'shun' || it.rec.kind === 'unshun'))), 'a vote reached Dave\'s game');
+      const votes = (await subAll(raw2, ['shun'])).length;
+      must(votes === 0, `an anonymous session on server 2 got ${votes} votes`);
+      return `target ${target.slice(0, 8)}… excluded at server 2 and in Dave's game`;
+    });
+
+    if (TWO) await step('failover: the node of server 2 Dave is on stops; his game reconnects to the other one', async () => {
+      const at = await ev(D, () => [...FED.live.conns.values()][0].node);
+      must([URL2, URL2B].includes(at), `Dave is on ${at}`);
+      // Stop the node Dave is on; the other one must take him.
+      const [stop, to, toDir] = at === URL2 ? [r2, URL2B, srv[1].d2b] : [r2b, URL2, srv[1].d];
+      const toKey = JSON.parse(relay(toDir, 'status')).node;
+      const welcomes = D.frames.filter((f) => f.m === 'welcome').length;
+      raw2.close();
+      await stopRelay(stop);
+      await until(() => ev(D, (u) => { const c = [...FED.live.conns.values()][0]; return fedStatus().state === 'connected' && c.node === u; }, to), 60000, `Dave on ${to}`);
+      const w = D.frames.filter((f) => f.m === 'welcome').slice(welcomes).find((f) => f.node === toKey);
+      must(w && w.server === srv[1].id, `no welcome from ${to}`);
+      await until(() => JSON.parse(relay(toDir, 'status')).clients >= 1, 15000, 'the other node to count Dave');
+      // Still in the federation: a new record of Alice's arrives through node 2b.
+      await sleep(1100); // two announces of one network in the same second tie on t (§10.11): publish in a new second
+      const t0 = now();
+      await ev(A, () => ACT.fpTermsSet({ terms: JSON.stringify({ pol: 'open', auto: { peering: 'auto' }, rates: {} }) }));
+      await until(() => ev(D, async ([k, t]) => { await fedPlayRefresh(); const a = FEDN.ann.get(k); return !!a && a.rec.t >= t; }, [P.A, t0]), 45000, 'Alice\'s new announce at Dave through node 2b');
+      return `${at} → ${to}; Alice's new terms reached Dave there`;
     });
 
     await step('update notice: Alice (operator) sees the banner, Bob gets no update frame; the looking glass shows the relay version', async () => {
@@ -645,8 +880,8 @@ stay in the browser).`);
         res.end(JSON.stringify({ tag_name: `v${GH_VER}`, html_url: notes, published_at: new Date().toISOString(), body: 'notes' }));
       });
       await new Promise((r) => gh.listen(0, '127.0.0.1', r));
-      // Server 2's folder, with a registry folder that has servers.json and no relay.json.
-      const d = srv[1].d, noFeed = path.join(tmp, 'nofeed'), cf = path.join(d, 'config.json'), c = JSON.parse(fs.readFileSync(cf, 'utf8'));
+      // Server 3's folder (server 2 serves already), with a registry folder that has servers.json and no relay.json.
+      const d = srv[2].d, noFeed = path.join(tmp, 'nofeed'), cf = path.join(d, 'config.json'), c = JSON.parse(fs.readFileSync(cf, 'utf8'));
       fs.mkdirSync(noFeed, { recursive: true });
       fs.copyFileSync(path.join(tmp, 'site', 'federation', 'servers.json'), path.join(noFeed, 'servers.json'));
       delete c.metrics;
@@ -816,7 +1051,7 @@ stay in the browser).`);
     // A real browser has Worker: every record, receipt and registry entry was checked there, none on the page.
     await step('records were checked in the federation worker, never on the page', async () => {
       const out = [];
-      for (const p of [A, B]) {
+      for (const p of [A, B, D].filter(Boolean)) {
         const st = await ev(p, () => ({ ...FW.stat, dead: FW.dead, w: !!FW.w }));
         must(st.w && !st.dead && st.n > 0 && st.items > 0 && st.local === 0, `${p.name}: ${JSON.stringify(st)}`);
         out.push(`${p.name} ${st.n} batches, ${st.items} items`);
@@ -824,8 +1059,9 @@ stay in the browser).`);
       return out.join(', ');
     });
 
-    await step('no page errors in either game', async () => {
-      const errs = [...A.errors, ...B.errors].filter((e) => !/favicon|ERR_|404/.test(e));
+    await step('no page errors in any game', async () => {
+      // Dave's game lost its node on purpose (failover): WebKit logs that as an error of its own words.
+      const errs = [...A.errors, ...B.errors, ...(D ? D.errors.filter((e) => !/^WebSocket connection to 'wss:\/\/relay2b?\.localhost:\d+\/fed' failed/.test(e)) : [])].filter((e) => !/favicon|ERR_|404/.test(e));
       must(!errs.length, errs.slice(0, 5).join(' | '));
     });
     raw.close();
@@ -834,6 +1070,7 @@ stay in the browser).`);
     console.log(`FAIL  (setup) ${e && e.stack ? e.stack : e}`);
   } finally {
     if (failed && relayLog) console.log('--- relay log (last 40 lines) ---\n' + relayLog.trim().split('\n').slice(-40).join('\n'));
+    for (const [k, l] of Object.entries(logs2)) if (failed && l) console.log(`--- relay log ${k} (last 25 lines) ---\n` + l.trim().split('\n').slice(-25).join('\n'));
     await cleanup();
   }
   console.log(`${results.filter((r) => r[1]).length}/${results.length} steps passed`);
@@ -841,15 +1078,16 @@ stay in the browser).`);
 }
 
 /* --lan: `relay lan` as a LAN party host runs it, on loopback (127.0.0.1 is a local address a node URL may name, like
-   a LAN's 192.168.x.y). Chromium's ignoreHTTPSErrors stands in for the player accepting the certificate warning once;
+   a LAN's 192.168.x.y). The context's ignoreHTTPSErrors stands in for the player accepting the certificate warning once;
    the page is served by a static server standing in for GitHub Pages, with no servers.json: nothing from the internet. */
 async function lanMain() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir().length < 60 ? os.tmpdir() : '/tmp', 'fe2l-'));
-  let proc = null, browser = null, web = null, out = '', log = '';
+  let proc = null, browser = null, web = null, proxy = null, out = '', log = '';
   const cleanup = async () => {
     try { if (browser) await browser.close(); } catch (e) { /* gone */ }
     try { if (proc) proc.kill('SIGTERM'); } catch (e) { /* gone */ }
     if (web) web.close();
+    if (proxy) proxy.close();
     if (!KEEP) fs.rmSync(tmp, { recursive: true, force: true }); else console.log(`kept ${tmp}`);
   };
   process.on('SIGINT', async () => { await cleanup(); process.exit(130); });
@@ -895,7 +1133,11 @@ async function lanMain() {
       const { html } = assemble({ dev: false });
       const SITE = path.join(ROOT, 'site');
       const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
-      web = http.createServer((req, res) => {
+      // WebKit's page is https (launchEngine): a certificate of its own for the stand-in of GitHub Pages.
+      const tls = PAGE_TLS && { key: path.join(tmp, 'page.key'), crt: path.join(tmp, 'page.crt') };
+      if (tls) execFileSync('openssl', ['req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:prime256v1', '-nodes', '-days', '2', '-subj', '/CN=game.test',
+        '-addext', 'subjectAltName=DNS:game.test', '-keyout', tls.key, '-out', tls.crt], { stdio: 'ignore' });
+      web = pageServer((req, res) => {
         const u = new URL(req.url, 'http://x').pathname;
         if (u === '/' || u === '/index.html') { res.writeHead(200, { 'content-type': TYPES['.html'], 'cache-control': 'no-store' }); return res.end(html); }
         const rel = path.normalize(decodeURIComponent(u)).replace(/^([/\\]|\.\.)+/, '');
@@ -905,17 +1147,14 @@ async function lanMain() {
           return fs.createReadStream(f).pipe(res);
         }
         res.writeHead(404); res.end();
-      });
+      }, tls);
       await new Promise((r) => web.listen(wport, '127.0.0.1', r));
     });
 
-    const { chromium } = require('playwright-core');
-    const exe = process.env.FED_E2E_CHROME || chromeIn(chromium.executablePath());
-    const PAGE = `http://game.test:${wport}/`;
+    const PAGE = pageURL(wport);
     // No --ignore-certificate-errors here: only the context's ignoreHTTPSErrors, the stand-in for "accept the warning".
-    browser = await chromium.launch({ executablePath: fs.existsSync(exe) ? exe : undefined, headless: !HEADED,
-      args: ['--host-resolver-rules=MAP game.test 127.0.0.1', `--unsafely-treat-insecure-origin-as-secure=${PAGE.slice(0, -1)}`] });
-    const ctx = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 360, height: 740 }, isMobile: true, hasTouch: true });
+    ({ browser, proxy } = await launchEngine(PAGE, ['game.test']));
+    const ctx = await browser.newContext(phone(360, 740));
     const page = await ctx.newPage();
     const errors = [], frames = [];
     page.on('pageerror', (e) => errors.push(String(e.message || e)));
@@ -974,7 +1213,8 @@ async function lanMain() {
     });
 
     await step('no page errors', async () => {
-      const errs = errors.filter((e) => !/favicon|ERR_|404/.test(e));
+      // The relay was restarted on purpose: WebKit logs the lost connection in words of its own.
+      const errs = errors.filter((e) => !/favicon|ERR_|404/.test(e) && !e.startsWith(`WebSocket connection to '${NODE}' failed`));
       must(!errs.length, errs.slice(0, 5).join(' | '));
     });
   } catch (e) {
