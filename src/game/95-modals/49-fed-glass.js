@@ -63,6 +63,7 @@ function fuOpPanel(s){const c=fedConnTo(s.id),st=fedStatus(),ch=FU.chain;
   else if(!ch.pending.length)h+=`<p class="meta">${tr('fedui.nothing_waits_for_your_signature')}</p>`;
   else h+=`<ul class="fu-list">${ch.pending.map(p=>{const b=p.rec.body,signed=p.rec.sigs.some(x=>x.key===FU.opKey.pub),n=p.rec.sigs.filter(x=>ch.chain.ops.includes(x.key)).length;
     return `<li class="fu-item"><div class="grow fu-txt"><b>${fuProp(b.action)}</b><span class="meta mono">${esc(fuShort(b.target))}${b.url?' · '+esc(b.url):''}</span><span class="meta">${tr('fedui.n_of_m_signatures',{n,m:ch.chain.ops.length})} · ${fuWhen(p.rec.t)}</span></div>${signed?`<span class="fu-tag on">✓ ${tr('fedui.signed')}</span>`:btn(tr('fedui.sign'),'fuOpSign',{srv:s.id,id:p.id},'pink sm',!c||FU.busy)}</li>`;}).join('')}</ul>`;
+  h+=fuOpReports(s);
   h+=`<h4 class="fu-h4">${tr('fedui.node_status')}</h4><ul class="fu-list">${(s.nodes||[]).map(n=>{const on=st.servers.find(x=>x.node===n.url&&x.server===s.id),e=fedErrs(s.id).find(x=>x.node===n.url);
     return `<li class="fu-item"><span class="fed-dot ${on?on.state:'idle'}" aria-hidden="true"></span><div class="grow fu-txt"><span class="mono">${esc(n.url)}</span><span class="meta">${on?fuStatusText({state:on.state,since:on.since}):tr('fedui.not_in_use_by_this_game')}${e?' · '+tr('fedui.last_error_code',{code:esc(e.why)}):''}</span></div></li>`;}).join('')}</ul>`;
   const errs=fedErrs(s.id).slice(0,10);
@@ -90,7 +91,7 @@ function fuNetHtml(){const key=UI.fu.key,n=FU.nets.get(key),I=FU.netInfo&&FU.net
       (Object.keys(sh.reasons).length?`<ul class="fu-reasons">${Object.entries(sh.reasons).map(([r,c])=>`<li>${fuReason(r)}: ${trn('fedui.n_servers',c)}</li>`).join('')}</ul>`:'');
     else if(sh.shunned)h+=`<p class="why">${tr('fedui.excluded_by_the_federation')}</p>`;
     const hid=I.hides.filter(x=>x.hide||x.names||x.refuse);if(hid.length)h+=`<p class="meta">${tr('fedui.hidden_by_list',{list:hid.map(x=>fuSrvName(x.id)).join(', ')})}</p>`;}
-  if(f&&!me)h+=`<div class="btns">${f.on&&!muted&&!['dark','forgotten'].includes(n.quiet.state)?btn(tr('fedplay.deals'),'fpNet',{key},'sm'):''}${btn(muted?tr('fedui.unmute'):tr('fedui.mute'),'fuMute',{key,on:!muted},'ghost sm')}</div><p class="meta">${tr('fedui.muting_hides_a_network_from_your')}</p>`;
+  if(f&&!me)h+=`<div class="btns">${f.on&&!muted&&!['dark','forgotten'].includes(n.quiet.state)?btn(tr('fedplay.deals'),'fpNet',{key},'sm'):''}${btn(muted?tr('fedui.unmute'):tr('fedui.mute'),'fuMute',{key,on:!muted},'ghost sm')}${f.on&&fedHasPriv(f)?btn('🚩 '+tr('fedui.report'),'fuReport',{key},'ghost sm'):''}</div><p class="meta">${tr('fedui.muting_hides_a_network_from_your')}</p>`;
   // Operators: per server they operate, hide and shun with pre-made reasons only.
   const ops=FU.srvs.filter(s=>fuOpOf(s.id));
   if(ops.length&&I)for(const s of ops){const hd=I.hides.find(x=>x.id===s.id)||{},mine=FU.votes.filter(v=>v.rec.body.server===s.id&&v.rec.body.target===key).sort((a,b)=>b.rec.t-a.rec.t)[0],voted=mine&&mine.rec.kind==='shun',dis=!fedConnTo(s.id)||FU.busy;

@@ -80,7 +80,7 @@ const PL_ENTRY = { id: PL.id, name: 'Packet Lunch', nodes: PL.server.body.nodes,
    function (frame, socket) giving one; {m: 'err', code} answers an error); facets and netstats likewise for facets and
    nets; why: what it answers rankwhy ({items, slot} for one recs frame, or a function; none: not_found); asks: the
    rank, rankwhy, facets and nets requests it got; refuse: an error code for every put. Like the relay
-   (§9.3), it sends shun votes only to a session that proved one of its server's operator keys (ops: by default
+   (§9.3), it sends shun votes and players' reports only to a session that proved one of its server's operator keys (ops: by default
    Packet Lunch's, anna, ben and cleo) and only on a sub that asks for them; excl (null: never sent) is the excluded
    list it sends after a session's first sub and on exclude(), with reasons to a session that proved an excluded key; impl:
    what its welcome says it runs; update: an update notice it sends right after an operator key's ack. */
@@ -98,7 +98,7 @@ class Node {
     else if (f.m === 'put') { this.puts.push(f.rec); this.send(ws, this.refuse ? { m: 'err', id: f.id, code: this.refuse } : { m: 'ack', id: f.id, rid: rid(f.rec), dup: false }); }
     else if (f.m === 'auth') { this.auths.push(f); (ws.proved || (ws.proved = new Set())).add(f.key); const op = this.ops.includes(f.key); if (op) ws.op = true; this.send(ws, { m: 'ack', id: f.id, op }); if (op && this.update) this.send(ws, { m: 'update', ...this.update }); }
     else if (f.m === 'sub') {
-      const vote = (it) => !!it && !!it.rec && (it.rec.kind === 'shun' || it.rec.kind === 'unshun');
+      const vote = (it) => !!it && !!it.rec && ['shun', 'unshun', 'report'].includes(it.rec.kind);
       this.send(ws, { m: 'recs', id: f.id, items: this.feed.filter((it) => !vote(it) || ws.op && f.kinds.includes(it.rec.kind)), cursor: 'c1', more: false });
       if (this.excl && !ws.exSent) { ws.exSent = true; this.sendExcl(ws); }
     }

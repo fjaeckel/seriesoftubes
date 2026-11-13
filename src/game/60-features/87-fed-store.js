@@ -67,7 +67,9 @@ async function fedVotesRun(cs,voters){if(!await fedOpKey())return;voters=voters|
   if(!ch)return;const now=fedNow();l.sort((a,b)=>b.rec.t-a.rec.t);FED.vgen++;
   await fedPut('kv','votes',l.filter(x=>now-x.rec.t<=7776000+FED_CARRY&&fedVoteOk(voters,x.rec)).slice(0,FED_VOTES_MAX));}
 // Without an operator key no vote is kept: any left from one removed (or from before votes were for operators) go.
-async function fedVotesTidy(){if(await fedOpKey())return;if(await fedGet('kv','votes')){await fedDel('kv','votes');FED.vgen++;}await fedDel('kv','vcursors');}
+async function fedVotesTidy(){if(await fedOpKey())return;if(await fedGet('kv','votes')){await fedDel('kv','votes');FED.vgen++;}await fedDel('kv','vcursors');
+  // Players' reports too (§5.10): kept only on an operator's device.
+  if(await fedGet('kv','reports'))await fedDel('kv','reports');await fedDel('kv','rcursors');}
 /* The last ranks answer of each joined URL, network and slice, for offline viewing "as of" (§9.5): kv 'ranks',
    {entries: {"<url> <key> <slice>": {at, a}}}, at most FED_RANKS_MAX (the oldest go). One write at a time. Keyed by
    the network too: the answer's own row (me) is the row of the key proved, and the store is shared by every slot. */

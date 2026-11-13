@@ -25,7 +25,7 @@ function fuWhen(t){if(!Number.isFinite(t))return '—';const d=new Date(t*1000),
   try{return d.toDateString()===n.toDateString()?d.toLocaleTimeString(LANG,{hour:'2-digit',minute:'2-digit'}):d.toLocaleString(LANG,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
   catch(e){return d.toISOString().slice(0,16).replace('T',' ');}}
 const fuDate=day=>{try{return new Date(day*86400000).toLocaleDateString(LANG,{year:'numeric',month:'short',day:'numeric'});}catch(e){return String(day);}};
-const fuHead=(eyebrow,title,back)=>`<div style="display:flex;align-items:center;gap:8px">${back?`<button class="x fu-back" data-act="fuOpen" data-args="${esc(JSON.stringify(back))}" aria-label="${tr('common.back')}">‹</button>`:''}<div class="grow" style="min-width:0">${eyebrow?`<div class="eyebrow">${eyebrow}</div>`:''}<h2 style="font-size:24px">${title}</h2></div><button class="x" data-act="fuClose" aria-label="${tr('common.close')}">×</button></div>`;
+const fuHead=(eyebrow,title,back)=>`<div style="display:flex;align-items:center;gap:8px">${back?`<button class="x fu-back" data-act="${back.act||'fuOpen'}" data-args="${esc(JSON.stringify(back.act?{}:back))}" aria-label="${tr('common.back')}">‹</button>`:''}<div class="grow" style="min-width:0">${eyebrow?`<div class="eyebrow">${eyebrow}</div>`:''}<h2 style="font-size:24px">${title}</h2></div><button class="x" data-act="fuClose" aria-label="${tr('common.close')}">×</button></div>`;
 const fuAi=()=>`<span class="fu-bot" role="img" aria-label="${tr('fedui.ai_player')}" title="${tr('fedui.ai_player')}">🤖</span>`;
 // A network's name as others see it: as typed (escaped), or only its ASN where a server hides the name.
 function fuName(key){const a=FU.nets.get(key),b=a&&a.rec&&a.rec.body;if(!b)return esc(fuShort(key));if(FU.hideNames.has(key))return 'AS'+b.asn;return esc(b.name);}
@@ -40,7 +40,7 @@ function fuWhyMode(){if(!S||!UI.started)return tr('fedui.open_a_normal_network_f
 const fuPolicy=s=>s.sync==='open'?tr('fedui.policy_open'):s.sync==='selective'?tr('fedui.policy_selective'):s.sync==='standalone'?tr('fedui.policy_standalone'):tr('fedui.policy_unknown');
 const fuErrText=code=>({mode:fuWhyMode(),url:tr('fedui.that_is_not_a_server_address'),full:tr('fedui.you_are_on_four_servers_already'),crypto:tr('fedui.this_browser_cannot_sign'),
   offline:tr('fedui.not_connected_to_this_server_now'),timeout:tr('fedui.the_server_did_not_answer_in'),no_key:tr('fedui.no_operator_key_on_this_device'),
-  not_operator:tr('fedui.the_server_says_this_key_is'),no_majority:tr('fedui.needs_more_operators_signatures')}[code]||tr('fedui.the_server_said_no_code',{code:esc(code)}));
+  not_operator:tr('fedui.the_server_says_this_key_is'),no_majority:tr('fedui.needs_more_operators_signatures'),too_many:tr('fedui.report_enough_for_today')}[code]||tr('fedui.the_server_said_no_code',{code:esc(code)}));
 // Queued actions (offers and answers) say they are queued; stats and announcements are not the player's actions.
 const fuQueued=()=>S&&S.fed?S.fed.out.filter(r=>r.kind!=='stats'&&r.kind!=='announce').length:0;
 
@@ -87,12 +87,13 @@ function fuLoad(){if(FU.loadNext)return FU.loadNext;
   const p=FU.loadNext=(FU.loading||Promise.resolve()).then(()=>{FU.loadNext=null;return fuLoadRun();}).finally(()=>{if(FU.loading===p)FU.loading=null;});FU.loading=p;return p;}
 async function fuLoadRun(){const v=UI.fu&&UI.fu.v;if(!v)return;
   try{FU.srvs=await fedServers();FU.opKey=await fedOpKey();
-    if(v==='glass'||v==='server'||v==='net'||v==='home'||v==='boards'||v==='filters'){FU.gossip=(await fedGet('kv','gossip'))||[];FU.votes=FU.opKey?(await fedGet('kv','votes'))||[]:(await fedVotesTidy(),[]);
+    if(v==='glass'||v==='server'||v==='net'||v==='home'||v==='boards'||v==='filters'||v==='report'){FU.gossip=(await fedGet('kv','gossip'))||[];FU.votes=FU.opKey?(await fedGet('kv','votes'))||[]:(await fedVotesTidy(),[]);
       FU.nets=new Map((await fedNetworks()).map(n=>[n.key,n]));FU.hideNames=new Set();FU.excl=new Set(await fedShunned());
       for(const s of FU.srvs){const h=await fedHides(s.id,FU.srvs);if(h)for(const k of h.rec.body.names)FU.hideNames.add(k);}}
     if(v==='home'){const f=S&&S.fed;FU.shun=f&&f.key?await fedExclInfo(f.key.pub):null;FU.asn=f&&f.key?await fedAsn(f.key.pub):null;}
     if(v==='glass'||v==='server')await fuGlassLoad();
-    if(v==='server'&&UI.fu.id&&FU.opKey&&fuOpOf(UI.fu.id))FU.chain=await fedOpChain(UI.fu.id);
+    if(v==='server'&&UI.fu.id&&FU.opKey&&fuOpOf(UI.fu.id)){await fuOpReportsLoad(UI.fu.id);FU.chain=await fedOpChain(UI.fu.id);}
+    if(v==='report'&&UI.fu.key)await fuRepLoad(UI.fu.key);
     if(v==='net'&&UI.fu.key)await fuNetLoad(UI.fu.key);
     if(v==='boards'||v==='filters')await fuBoardsLoad();}
   catch(e){console.error('[tubes] multiplayer sheet',e);}
@@ -102,7 +103,7 @@ function fuRender(){if(!UI.fu)return;const h=`<div class="fedui" data-fu="${UI.f
 function fuHtml(){const v=UI.fu.v;
   if(v==='join')return fuJoinHtml();if(v==='move')return fuMoveHtml();if(v==='quit')return fuQuitHtml();if(v==='opkey')return fuOpKeyHtml();
   if(v==='boards')return fuBoardsHtml();if(v==='filters')return fuFiltersHtml();if(v==='glass')return fuGlassHtml();
-  if(v==='server')return fuServerHtml();if(v==='net')return fuNetHtml();return fuHomeHtml();}
+  if(v==='server')return fuServerHtml();if(v==='net')return fuNetHtml();if(v==='report')return fuRepHtml();return fuHomeHtml();}
 const fuMsg=()=>FU.msg?`<p class="${FU.msg.bad?'why':'note'} fu-msg" role="status">${FU.msg.html}</p>`:'';
 
 /* ---------- the multiplayer sheet (settings) ---------- */

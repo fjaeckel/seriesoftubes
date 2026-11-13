@@ -59,7 +59,7 @@ const fedLive=c=>{if(fedMine(c.M)&&c.M.conns.get(c.url)===c)return true;if(FED.l
 // Closes a socket without its handlers firing back, and answers every pending request with null.
 function fedHang(c){FED.clear(c.t);FED.clear(c.tick);c.t=c.tick=null;const ws=c.ws;c.ws=null;c.phase='';
   if(ws){ws.onopen=ws.onmessage=ws.onerror=ws.onclose=null;try{ws.close();}catch(e){}}
-  for(const r of c.rq.values()){FED.clear(r.t);r.res(null);}c.rq.clear();c.sub=c.vsub=0;c.op=c.me=c.exBuf=c.impl=null;FED.clear(c.subT);c.subT=null;c.subQ=null;}
+  for(const r of c.rq.values()){FED.clear(r.t);r.res(null);}c.rq.clear();c.sub=c.vsub=c.rsub=0;c.op=c.me=c.exBuf=c.impl=null;FED.clear(c.subT);c.subT=null;c.subQ=null;}
 /* Development only (§9.1): a page loaded from a loopback host dials a *.localhost node over plain ws://, so a relay on
    the same machine needs no certificate. The page players load is never on a loopback host. */
 const FED_LOOP=/^(localhost|127\.0\.0\.1|\[::1\]|[a-z0-9.-]+\.localhost)$/;
@@ -123,6 +123,10 @@ function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.skip
   if(f.m==='recs'&&c.vsub&&f.id===c.vsub){const q=c.subQ||Promise.resolve(),k=fedVcKey(c);
     c.subQ=q.then(()=>fedRecs(c,f.items)).then(done=>{if(done&&fedCursorOk(f.cursor))return fedVoteCursor(k,f.cursor);}).catch(()=>{});return;}
   if(f.m==='err'&&c.vsub&&f.id===c.vsub){c.vsub=0;return;}
+  // Players' reports, for an operator of this server only (§5.10), from their own cursor.
+  if(f.m==='recs'&&c.rsub&&f.id===c.rsub){const q=c.subQ||Promise.resolve(),k=fedVcKey(c);
+    c.subQ=q.then(()=>fedRecs(c,f.items)).then(done=>{if(done&&fedCursorOk(f.cursor))return fedVoteCursor(k,f.cursor,'rcursors');}).catch(()=>{});return;}
+  if(f.m==='err'&&c.rsub&&f.id===c.rsub){c.rsub=0;return;}
   if(f.m==='excluded'&&f.id===undefined){fedExclIn(c,f);return;}
   // A newer relay is out: a node tells sessions that proved an operator key of its server, no one else.
   if(f.m==='update'&&f.id===undefined){const u=fedUpdOf(f);if(u&&c.srv){FED.upd[c.srv]=u;fedEmit('update',{srv:c.srv,...u});}return;}
@@ -147,6 +151,7 @@ async function fedReady(c){await c.M.cat;if(!fedLive(c)||c.phase!=='check')retur
   if(!c.me){fedDrop(c,'auth');return;}
   c.phase='ready';c.readyAt=fedNow();fedSt(c,'connected');fedFlush(c);
   await fedSub(c);if(!fedLive(c)||c.phase!=='ready')return;if(c.op)await fedVoteSub(c);if(!fedLive(c)||c.phase!=='ready')return;
+  if(c.op)await fedRepSub(c);if(!fedLive(c)||c.phase!=='ready')return;
   const cat=await fedAskRetry(c,{m:'servers'},true);if(cat&&cat.m==='catalog')await fedGossip(cat.entries);}
 /* Follows the news from the last cursor kept for this node and this network: IndexedDB is shared by every save slot,
    and what a sub gives depends on the key proved, so another network's cursor would skip this one's deals. */
@@ -161,16 +166,19 @@ async function fedAuth(c){const f=c.M.fed;c.me=null;if(!c.srv||!c.nodeKey)return
   c.me=a&&a.m==='ack'?f.key.pub:null;await fedAuthOp(c);}
 async function fedAuthOp(c){const k=await fedOpKey();if(!k||!fedLive(c)||c.op===k.pub||!fedOpOf(await fedServers(),c.srv,k.pub))return;
   const a=await fedAsk(c,{...await fedAuthMake(k.seed,c.nodeKey,c.srv,fedNow())});if(!fedLive(c))return;
-  if(a&&a.m==='ack'&&a.op===true){c.op=k.pub;if(c.phase==='ready')await fedVoteSub(c);}}
+  if(a&&a.m==='ack'&&a.op===true){c.op=k.pub;if(c.phase==='ready'){await fedVoteSub(c);await fedRepSub(c);}}}
 // The votes, for an operator: their own subscription, from their own cursor, so votes from before it are not skipped.
 async function fedVoteSub(c){const cur=(await fedGet('kv','vcursors'))||{},since=fedOwn(cur,fedVcKey(c))?cur[fedVcKey(c)]:'';if(!fedLive(c)||c.phase!=='ready'||c.vsub||!c.op)return;
   c.vsub=c.nid=c.nid%2147483646+1;fedSend(c,{m:'sub',id:c.vsub,kinds:['shun','unshun'],since:fedCursorOk(since)?since:''});}
-async function fedVoteCursor(k,x){const cur=(await fedGet('kv','vcursors'))||{};cur[k]=x;await fedPut('kv','vcursors',cur);}
+async function fedVoteCursor(k,x,store='vcursors'){const cur=(await fedGet('kv',store))||{};cur[k]=x;await fedPut('kv',store,cur);}
+// The reports players sent to this server (§5.10), for its operator: a third subscription with its own cursors.
+async function fedRepSub(c){const cur=(await fedGet('kv','rcursors'))||{},since=fedOwn(cur,fedVcKey(c))?cur[fedVcKey(c)]:'';if(!fedLive(c)||c.phase!=='ready'||c.rsub||!c.op)return;
+  c.rsub=c.nid=c.nid%2147483646+1;fedSend(c,{m:'sub',id:c.rsub,kinds:['report'],since:fedCursorOk(since)?since:''});}
 /* The operator key changed on this device: prove the new one to every connected server it operates, or stop following
    the votes and forget them when it was removed (votes are kept only on an operator's device). */
 async function fedOpChanged(){const M=FED.live,k=await fedOpKey();
   if(M)for(const c of M.conns.values()){if(!fedLive(c)||c.phase!=='ready')continue;
-    if(k)await fedAuthOp(c);else if(c.op){if(c.vsub)fedSend(c,{m:'unsub',id:c.vsub});c.vsub=0;c.op=null;}}
+    if(k)await fedAuthOp(c);else if(c.op){for(const x of [c.vsub,c.rsub])if(x)fedSend(c,{m:'unsub',id:x});c.vsub=c.rsub=0;c.op=null;}}
   await fedVotesTidy();}
 /* The networks a server excludes (§9.3 excluded): pages joined until more is not true, then kept per joined server with
    when it came (and the reasons, which are for this network only). Kept while offline; a new list replaces it. */
@@ -227,7 +235,7 @@ async function fedPlace(c,chk,rcpts,now,srvs){let slot=null,cc=null;
    server ranks them (§9.5). */
 function fedRecs(c,items){const p=(FED.recQ||Promise.resolve()).then(()=>fedRecsRun(c,items));FED.recQ=p.catch(()=>false);return p;}
 // The page's records are checked in one batch (the federation worker, 88-fed-worker.js), then kept here one by one.
-async function fedRecsRun(c,items){const now=fedNow(),me=c.M.fed.key.pub,votes=[],srvs=await fedServers(),L=Array.isArray(items)?items:[];let n=0,voters=null;
+async function fedRecsRun(c,items){const now=fedNow(),me=c.M.fed.key.pub,votes=[],reps=[],srvs=await fedServers(),L=Array.isArray(items)?items:[];let n=0,voters=null;
   const ck=L.length&&fedLive(c)?await fedCheckItems(L,now,c,srvs):[];
   for(let i=0;i<L.length;i++){if(!fedLive(c))return false;const chk=ck[i];if(!chk||!chk.ok)continue;n++;const r=chk.rec,heard=chk.slot??fedSlot(now);
     if(['announce','stats','offer','accept','decline'].includes(r.kind))await fedHeard(r.key,heard);
@@ -235,10 +243,13 @@ async function fedRecsRun(c,items){const now=fedNow(),me=c.M.fed.key.pub,votes=[
     else if(r.kind==='leave')await fedLeft(r.key,r.t);
     // Votes only from an operator of a voting registry server, hide lists only from an operator of their server.
     else if(r.kind==='shun'||r.kind==='unshun'){if(c.op&&!voters)voters=await fedVoters();if(c.op&&fedVoteOk(voters,r))votes.push(chk);}
+    // Reports only for an operator of the server they name, from that server's own node (§5.10).
+    else if(r.kind==='report'){if(c.op&&r.body.server===c.srv&&fedOpOf(srvs,c.srv,c.op))reps.push({id:chk.id,rec:r});}
     else if(r.kind==='hide'){if(fedOpOf(srvs,r.body.server,r.key)){const o=await fedGet('kv','hide:'+r.body.server);if(!o||!o.rec||fedNewer(chk,o))await fedPut('kv','hide:'+r.body.server,{rec:r,id:chk.id});}}
     else if((r.kind==='offer'||r.kind==='accept'||r.kind==='decline')&&(r.body.to===me||r.key===me||!!FED.hooks.deal&&FED.hooks.deal(r)))await fedDealIn(c.M.fed,{rec:r,id:chk.id,slot:heard,server:c.srv});}
   if(FED.dpend.length&&Array.isArray(items)&&items.some(it=>it&&it.rec&&it.rec.kind==='announce'))await fedDealRetry(c.M.fed);
   if(votes.length)await fedVotesAdd(votes,voters);
+  if(reps.length)await fedReportsAdd(reps);
   if(n)fedEmit('records',{server:c.srv,n});return true;}
 /* A deal record for this network goes to the gameplay opened (§5.3): sealed ones only once opened, so it reads them
    in clear. One whose sender's box is not known yet (its announce has not come) waits for the next announces, kept
