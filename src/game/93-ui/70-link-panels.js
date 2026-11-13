@@ -26,6 +26,11 @@ function ixBlock(c,multi){const city=ixCity(c),C=CITY[city],ix=ixName(c),X=XIXM[
 }
 function borderSection(l){const w=borderShut(l);return w?`<section><h3 style="color:var(--bad)">${tr('link_panels.border_closed')}</h3><p class="lead">${w==='gulf'?tr('link_panels.a_diplomatic_spat_has_closed_the')+' '+tr('link_panels.back_in_n_days',{n:S.ev.gulf-S.day}):tr('link_panels.russia_has_unplugged_itself_from_the')}</p></section>`:'';}
 // Both ends of a link in its panel header open that city (#196), say to upgrade the router there for a bigger wave.
+// A dark fiber's capacity, used against lit: your traffic, what is left for it once managed waves (named in the line
+// above) take their share of the same lit capacity (dfCap0), and everything the optics light. Left only differs from
+// lit when managed waves are sold.
+function litSplit(l,load,cap){const lit=dfLit(l);if(!lit)return '';const kv=(k,v)=>`<div class="kv"><span>${k}</span><b>${v}</b></div>`;
+  return kv(tr('link_panels.used_by_your_traffic'),fmtG(load))+(mwG(l)?kv(tr('link_panels.left_for_your_traffic'),fmtG(cap)):'')+kv(tr('link_panels.lit_on_this_fiber'),fmtG(lit));}
 const lkEnds=l=>[l.a,l.b].map(c=>cityOn(c)?btn(esc(CITY[c].name),'popGo',{city:c},'clink'):esc(CITY[c].name)).join(' ⇄ ');
 function vxcPanel(l){
   const load=R.load[l.id]||0,cap=VXC[l.vt].g,u=load/cap,down=linkDown(l),f=FAB[l.prov];
@@ -124,6 +129,7 @@ function dfPanel(l){
   else if(inc&&linkDown(l))h+=`<section><h3 style="color:var(--bad)">${tr('common.dark_6bf5')}</h3><p class="lead">${esc(inc.msg)}</p>${shipNote(inc)}${inc.cost?btn(`${esc(inc.fix||tr('common.rush_repair'))} ${fmt$(inc.cost)}`,'fixInc',{id:inc.id},'red',S.cash<inc.cost):''}</section>`;
   h+=borderSection(l);
   h+=`<section><h3>${tr('common.capacity')}</h3><div class="kv"><span>${tr('link_panels.n_of_max_channels_lit',{n:(l.ch||[]).length,max:chMax(l)})}${soldSlots(l)?` · ${tr('link_panels.n_sold_as_alien_waves',{n:soldSlots(l)})}`:''}${mwG(l)?` · ${tr('market.g_sold_as_managed',{g:fmtCap(mwG(l))})}`:''}</span><b>${fmtG(load)} / ${fmtG(cap)}</b></div><div class="bar ${barCls(u)}"><i style="width:${Math.min(100,u*100)}%"></i></div>
+  ${litSplit(l,load,cap)}
   ${seatPanel(l)}${l.own&&l.sub?`<div class="kv"><span>${tr('common.cable_design')}</span><b>${tr((SEA_DESIGNS[l.seaDesign]||SEA_DESIGNS.standard).n)}</b></div>`:''}
   <div class="kv"><span>${tr('common.latency')}</span><b>${tr('common.ms_ms_one_way',{ms:linkLat(l).toFixed(1)})}</b></div><div class="kv"><span>${l.own?tr('link_panels.right_of_way_upkeep'):tr('common.iru_lease')}</span><b>${tr('common.price_mo',{price:fmt$(l.mo)})}</b></div><div class="kv"><span>${tr('link_panels.n_amp_huts',{n:amps})}</span><b>${tr('common.price_mo',{price:fmt$(amps*AMP_MO)})}</b></div>${!bld&&!(l.ch||[]).length?`<p class="why">${tr('link_panels.this_fiber_is_dark_add_optics')}</p>`:''}</section>`;
   if(!bld){const sold=S.biz.filter(b=>b.link===l.id&&(b.type==='wwave'||b.type==='mwave'||b.type==='dfpair'||b.type==='pairs')),off=S.offers.find(o=>o.link===l.id),fc=freeCh(l);
