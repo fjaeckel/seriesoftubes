@@ -3,6 +3,9 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"encoding/pem"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -356,5 +359,70 @@ func TestReleasesURLOverride(t *testing.T) {
 		if testReleasesURL(u) != ok {
 			t.Errorf("%s: %v", u, !ok)
 		}
+	}
+}
+
+// An identity or key may start with "-" (one in 64 does); found when `relay join -8_s… --from …` stopped at
+// "flag provided but not defined" in scripts/fed-e2e.js.
+func TestParseDashIdentity(t *testing.T) {
+	id := "-8_spjIs7Fckh259SdqD_hDVb8lCMOroqontVSyDwXU"
+	if !fed.IsID(id) {
+		t.Fatal("not an identity")
+	}
+	fs, dir := flags("join")
+	from := fs.String("from", "", "")
+	pos := parse(fs, []string{"--data", "d", id, "--from", "wss://a.example/fed"})
+	if len(pos) != 1 || pos[0] != id || *from != "wss://a.example/fed" || *dir != "d" {
+		t.Fatalf("join: %q from %q data %q", pos, *from, *dir)
+	}
+	fs, _ = flags("ops propose")
+	url := fs.String("url", "", "")
+	pos = parse(fs, []string{"propose", "--data", "d", "add-node", id, "--url", "wss://b.example/fed", id[1:] + "A"})
+	if strings.Join(pos, " ") != "propose add-node "+id+" "+id[1:]+"A" || *url != "wss://b.example/fed" {
+		t.Fatalf("ops: %q url %q", pos, *url)
+	}
+	// The value of a flag stays its value, even shaped like an identity; a bool flag takes none.
+	fs, _ = flags("genesis")
+	desc := fs.String("desc", "", "")
+	noLogs := fs.Bool("no-logs", true, "")
+	pos = parse(fs, []string{"--desc", id, "--no-logs", id})
+	if *desc != id || len(pos) != 1 || pos[0] != id || !*noLogs {
+		t.Fatalf("genesis: desc %q pos %q", *desc, pos)
+	}
+}
+
+// RELAY_TEST_ROOTS: a run's self-signed certificate is trusted for outgoing connections, and only given that file.
+func TestTestRootsClient(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(204) }))
+	defer srv.Close()
+	if _, err := http.DefaultClient.Get(srv.URL); err == nil {
+		t.Fatal("the default client trusted a self-signed certificate")
+	}
+	dir := t.TempDir()
+	f := filepath.Join(dir, "roots.pem")
+	if err := os.WriteFile(f, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: srv.Certificate().Raw}), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	hc, err := testRootsClient(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := hc.Get(srv.URL)
+	if err != nil {
+		t.Fatalf("with the file: %v", err)
+	}
+	res.Body.Close()
+	if res.StatusCode != 204 {
+		t.Fatalf("status %d", res.StatusCode)
+	}
+	bad := filepath.Join(dir, "none.pem")
+	if err := os.WriteFile(bad, []byte("not a certificate"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := testRootsClient(bad); err == nil {
+		t.Fatal("a file without certificates was taken")
+	}
+	if _, err := testRootsClient(filepath.Join(dir, "missing.pem")); err == nil {
+		t.Fatal("a missing file was taken")
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/coder/websocket"
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/canon"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/chain"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/client"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/config"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
@@ -175,10 +176,7 @@ func (r *Relay) runPeer(s *session, server, node string) {
 			}
 			s.verified = true
 		}
-		s.send, s.take = config.Or(r.cfg.DefaultSend), config.Or(r.cfg.DefaultTake)
-		if n := r.cfg.Neighbour(s.dialURL); n != nil {
-			s.send, s.take = config.Or(n.Send), config.Or(n.Take)
-		}
+		r.setClasses(s, r.lookup(server))
 	}
 	r.nodes[s] = true
 	r.o.Metrics.Inc("relay_connections_total", "node")
@@ -256,6 +254,25 @@ func (r *Relay) runPeer(s *session, server, node string) {
 				held, heldBytes = nil, 0
 			}
 		}
+	}
+}
+
+// setClasses sets what a session with another server's node sends and takes (lock held): a
+// neighbour's classes when the session is with one of the neighbours' nodes, whichever side dialled
+// (a neighbour that lists this node too dials in as well), else the defaults for servers that
+// connect and are not neighbours. st is what this node knows of the peer's server, or nil.
+func (r *Relay) setClasses(s *session, st *chain.State) {
+	s.send, s.take = config.Or(r.cfg.DefaultSend), config.Or(r.cfg.DefaultTake)
+	n := r.cfg.Neighbour(s.dialURL)
+	if n == nil && st != nil {
+		for _, x := range st.Nodes {
+			if x.Key == s.peerNode {
+				n = r.cfg.Neighbour(x.URL)
+			}
+		}
+	}
+	if n != nil {
+		s.send, s.take = config.Or(n.Send), config.Or(n.Take)
 	}
 }
 

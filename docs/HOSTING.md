@@ -764,7 +764,8 @@ certificate and one more click per device.
 
 What was tested, and what was not:
 
-- **Tested** (end to end, `node scripts/fed-e2e.js --lan`): Chromium on the same machine opening the relay's page,
+- **Tested** (end to end, `node scripts/fed-e2e.js --lan`, with `--browser chromium`, `firefox` and `webkit`): each
+  engine on the same machine opening the relay's page,
   taking its invite link by IP address and joining over `wss://` with the self-signed certificate. The test tells the
   browser to accept the certificate (`ignoreHTTPSErrors`), standing in for the click on the warning.
 - **WebKit** (Safari's engine, via Playwright on macOS): with the certificate not accepted, both the page and the

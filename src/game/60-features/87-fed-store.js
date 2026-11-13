@@ -64,8 +64,9 @@ async function fedNetworks(now=fedNow()){const out=[],all=await fedAll('ann');FE
 function fedVotesAdd(cs,voters){const p=(FEDDB.vq||Promise.resolve()).then(()=>fedVotesRun(cs,voters));FEDDB.vq=p.catch(()=>{});return p;}
 async function fedVotesRun(cs,voters){if(!await fedOpKey())return;voters=voters||await fedVoters();const l=(await fedGet('kv','votes'))||[],ids=new Set(l.map(x=>x.id));let ch=false;
   for(const c of cs)if(!ids.has(c.id)&&fedVoteOk(voters,c.rec)){ids.add(c.id);l.push({id:c.id,rec:c.rec});ch=true;}
-  if(!ch)return;const now=fedNow();l.sort((a,b)=>b.rec.t-a.rec.t);FED.vgen++;
-  await fedPut('kv','votes',l.filter(x=>now-x.rec.t<=7776000+FED_CARRY&&fedVoteOk(voters,x.rec)).slice(0,FED_VOTES_MAX));}
+  if(!ch)return;const now=fedNow();l.sort((a,b)=>b.rec.t-a.rec.t);
+  // The tally's cache key moves only once the votes are written: a tally read in between would keep the old ones.
+  await fedPut('kv','votes',l.filter(x=>now-x.rec.t<=7776000+FED_CARRY&&fedVoteOk(voters,x.rec)).slice(0,FED_VOTES_MAX));FED.vgen++;}
 // Without an operator key no vote is kept: any left from one removed (or from before votes were for operators) go.
 async function fedVotesTidy(){if(await fedOpKey())return;if(await fedGet('kv','votes')){await fedDel('kv','votes');FED.vgen++;}await fedDel('kv','vcursors');
   // Players' reports too (§5.10): kept only on an operator's device.

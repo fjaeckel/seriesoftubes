@@ -84,6 +84,37 @@ func TestRecordThroughTwoPathsStoredOnce(t *testing.T) {
 	}
 }
 
+// Two servers that list each other as neighbours have a session each way (found by scripts/fed-e2e.js). A node's
+// classes for a neighbour hold on both: the one it dialled and the one the neighbour dialled in, not the defaults
+// for servers that are not neighbours.
+func TestNeighbourClassesHoldBothWays(t *testing.T) {
+	n := rt.New(t)
+	a := n.Found("both-a", "open")
+	b := n.Found("both-b", "open")
+	ax := a.Nodes[0]
+	ac := *ax.Cfg
+	ac.Neighbours = []config.Neighbour{{URL: b.Nodes[0].URL, Send: []string{"catalog"}}}
+	ax.Cfg = &ac
+	ax.R.Reload(&ac)
+	neighbours(b, a)
+	fromB := announce(t, b, "bee")
+	rt.Eventually(t, "a takes b's players (it takes every class)", func() bool { return ax.Has(fromB) })
+	rt.Eventually(t, "a session each way", func() bool {
+		n := 0
+		for _, p := range ax.R.Status()["peers"].([]map[string]any) {
+			if p["server"] == b.ID && p["synced"] == true {
+				n++
+			}
+		}
+		return n == 2
+	})
+	fromA := announce(t, a, "ay")
+	time.Sleep(500 * time.Millisecond)
+	if b.Nodes[0].Has(fromA) {
+		t.Fatal("a sent a player record to its neighbour b, which it sends only the catalog")
+	}
+}
+
 func TestCatalogGossip(t *testing.T) {
 	n := rt.New(t)
 	a := n.Found("gossip-a", "open")
