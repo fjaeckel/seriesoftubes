@@ -241,13 +241,13 @@ test('a sacrificial PNI takes all of its peer\'s junk, and a clean pipe scrubs a
   assert.deepEqual(errors, []);
 });
 
-test('several scrubbing centers share a flood by size, and a far one costs the target latency', () => {
+test('the nearest scrubbing center takes a flood first, and a far one it spills to costs the target latency', () => {
   const { ev, errors } = load();
   fra(ev);
-  ev("for(const c of ['ams','nyc'])ACT.buildPop({city:c});UI.pending={a:'fra',b:'ams'};ACT.buildLink({tier:1});UI.pending={a:'ams',b:'nyc'};ACT.buildLink({tier:1});closeModal();S.scrubs=[{city:'ams',tier:1},{city:'nyc',tier:0}];S.scrubMode='always';compute()");
-  const id = flood(ev, { gbps: 550 });
+  ev("for(const c of ['ams','nyc'])ACT.buildPop({city:c});UI.pending={a:'fra',b:'ams'};ACT.buildLink({tier:1});UI.pending={a:'ams',b:'nyc'};ACT.buildLink({tier:1});closeModal();S.scrubs=[{city:'nyc',tier:0},{city:'ams',tier:1}];S.scrubMode='always';compute()");
+  const id = flood(ev, { gbps: 1050 });
   const parts = JSON.parse(rep(ev, id, 'JSON.stringify(m.parts.map(p=>[p.city,Math.round(p.a)]))'));
-  assert.deepEqual(parts, [['ams', 500], ['nyc', 50]]);
+  assert.deepEqual(parts, [['ams', 1000], ['nyc', 50]]);
   assert.ok(ev("R.haul.find(q=>q.to==='nyc').ms") > ev("R.haul.find(q=>q.to==='ams').ms"), 'across the Atlantic and back');
   assert.match(ev("ddosOne(ddosAll()[0])"), /detour via New York/);
   assert.deepEqual(errors, []);
