@@ -9,4 +9,9 @@
       <image:loc>https://seriesoftub.es/images/og-image.png</image:loc>
     </image:image>
   </url>
+  <url>
+    <loc>https://seriesoftub.es/privacy.html</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
 </urlset>

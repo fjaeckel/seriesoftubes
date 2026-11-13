@@ -36,7 +36,7 @@ function settingsHtml(){const seg=(lab,act,cur,opts,note)=>`<div class="setline"
   ${seg(tr('common.sound'),'soundSet',UI.muted?'off':'on',[['on',tr('common.on')],['off',tr('common.off')]])}
   <div class="setline"><label for="langSel">${tr('common.language')}</label>${langPick('langSel')}</div>
   ${seg(tr('settings.diagnostic_info'),'vpSet',DIAG.on?'on':'off',[['on',tr('common.on')],['off',tr('common.off')]],tr('settings.for_bug_reports_shows_your_screen'))}
-  ${fuSettingsRow()}${installRow()}<div class="btns" style="margin-top:12px">${btn(tr('common.done_8dd3'),'settingsClose',{},'pink')}</div>`;}
+  ${fuSettingsRow()}<div class="setline"><span>🔒 ${tr('fedui.privacy')}</span>${btn(tr('privacy.what_the_game_keeps'),'privacy',{from:'settings'},'ghost sm')}</div>${installRow()}<div class="btns" style="margin-top:12px">${btn(tr('common.done_8dd3'),'settingsClose',{},'pink')}</div>`;}
 const refreshSettings=()=>{if(UI.setOpen)openModal(settingsHtml());};
 function animOn(){const m=UI.anim||'auto';if(m==='on')return true;if(m==='off')return false;try{return !matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){return true;}}
 function applyAnim(){const r=document.documentElement;r.classList.toggle('no-anim',UI.anim==='off');r.classList.toggle('anim-force',UI.anim==='on');if(!animOn())FLOATS.length=0;}

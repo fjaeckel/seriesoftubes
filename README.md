@@ -24,6 +24,9 @@ You start with one router in one city and grow into a transit-free Tier 1:
 
 Every company is a pun. No real company names are used.
 
+No accounts, no cookies: the [privacy page](https://seriesoftub.es/privacy.html) says exactly what the game keeps
+on your device, what it sends to multiplayer servers and what those servers keep.
+
 ## Learn how it really works
 
 This game simplifies a lot, and gets some things gloriously wrong on purpose. For

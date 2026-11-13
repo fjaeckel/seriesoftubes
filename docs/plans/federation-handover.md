@@ -52,6 +52,7 @@ Read this first, then `CLAUDE.md`. This file is everything a new session needs t
   (`…-move-PRIVATE.json`) does. Player-typed names are allowed as typed (real company names included).
 - Relay in **Go**, newest toolchain (`go 1.27.4` in `relay/go.mod`), newest maintained libraries, never step down.
   Metrics through `github.com/prometheus/client_golang` (Frederic asked for it explicitly).
+- Other players' networks are never drawn on the map (2026-11-13); a dark network is greyed in lists.
 - The extra page size is accepted (about +73 KB gzipped for every player, joined or not).
 
 ## What is where
@@ -65,6 +66,7 @@ Read this first, then `CLAUDE.md`. This file is everything a new session needs t
 | Client core | `src/game/60-features/81-88-fed-*.js`, `src/game/90-actions/93-fed.js` |
 | Interface | `src/game/95-modals/47-fed-home.js`, `48-fed-boards.js`, `49-fed-glass.js`, `src/game/90-actions/94-fed-ui.js`, `src/styles/46-fed.css`, phone rules in `src/styles/60-phone.css`, `#hFed` in `src/index.html` |
 | Gameplay | `src/game/60-features/89-fedplay-{nets,terms,deals}.js`, `src/game/90-actions/94-fedplay.js`, `src/game/94-dashboard/92-fedplay.js`, `src/styles/36-fedplay.css`, one-line hooks in routing, money, peering, traceroute, sanitize, newGame |
+| Help and privacy | `src/game/95-modals/61-help-more.js` (How multiplayer works, the privacy sheet; from How to play, Settings and the multiplayer sheet), `src/game/90-actions/89-help-privacy.js`, `site/privacy.html` (the same for the web, linked from the README and the registry README), `tests/help-privacy.test.js`; labels `mphelp.*`, `privacy.*` |
 | AI players | `src/agent/77-fed.js` (`apiFedDeclare`, `apiFedJoin`), MCP deal commands |
 | Strings | `fedui.*` and `fedplay.*` labels in `src/i18n/en.js` and all five `site/i18n/*.js` |
 | Tests | `tests/federation-*.test.js` (vectors, state, exports, messages, outage, catalog, boards, slices, shun, ui, gameplay, hardening), `tests/helpers/fed.js` (fake nodes on a virtual clock), `tests/registry-build.test.js`; Go tests in `relay/` |
@@ -186,8 +188,6 @@ at that sandbox method.
    - FEDERATION-PROTOCOL §9.3: an `ack` answering `unsub` carries only `id` (spec matched to what the relay sends).
    - Networks with deals, requests or picked in the looking glass (in memory, at most 8) take priority in the
      48-network snapshot.
-   - The map canvas never draws other players' networks, so "dark: greyed on the map" (`docs/plans/federation.md`)
-     has nothing to grey: build a players-on-the-map layer, or change that line to "greyed in lists".
 2. Let CI run the relay job once (workflows are still unlinted and unrun). Repo setting for the weekly liveness
    workflow: "Allow GitHub Actions to create and approve pull requests". Registry merges reach the site only with a
    release unless `federation/servers` is copied the way weekly puzzle files are.
@@ -200,6 +200,9 @@ at that sandbox method.
      operator actions need the save joined and connected to that server.
    - Exchanges run by players reuse the player's own exchange; capacity swaps back up one shared route.
    - No "Tier 1 among players" rule beyond reach.
+   - Two muting strings still say a muted network vanishes from "your map" (`fedui.muting_hides_a_network_from_your`,
+     `fedui.none_muted_networks_vanish_from_your`); players' networks are never on the map, so give them new labels
+     saying "lists". Keep the privacy sheet and `site/privacy.html` in step with `docs/RELAY.md` when retention changes.
 5. Spec gaps resolved locally, to settle with Frederic: `S.fedn` in the save (the route worker only receives `S`);
    no RPKI field in the announce; shared route leaks and consortium "funded" have no record; `decline` ending a
    running deal goes to the counterparty; a restrictive policy forces peering requests to review.
