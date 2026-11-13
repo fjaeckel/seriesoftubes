@@ -17,7 +17,7 @@
 // Everything runs on loopback: the relays serve TLS themselves with a certificate made for the run (the browser is told
 // to ignore that it is self-signed, the relays trust it through RELAY_TEST_ROOTS), the page is served by a small static
 // server, and a registry (servers.json) lists five servers, so a shun can really reach its threshold: server 1 serves,
-// server 2 serves too with two nodes and syncs with server 1 (open policies, neighbours both ways), servers 3 to 5
+// server 2 serves too with two nodes and syncs with server 1 (both open and listed: no neighbours configured), servers 3 to 5
 // exist only to vote. Browser contexts are players: Alice and Bob on server 1, Dave on server 2. A Node client puts a few hundred signed records of made-up networks, so the relay's paging (backlogs,
 // cursors) and its rate limit are exercised. The board only ranks finished 5-minute slots, so the run waits
 // for the next slot boundary once (up to five minutes). Prints one line per step and exits non-zero on any failure.
@@ -275,22 +275,22 @@ async function main() {
     });
 
     await step(PLAY ? 'relay serves plain ws on loopback' : 'relay serves TLS on loopback', async () => {
-      conf(srv[0].d, { listen: `127.0.0.1:${port}`, metrics: `127.0.0.1:${mport}`, registry: REG, ...(PLAY ? {} : TLS), ...(TWO ? { neighbours: [{ url: URL2 }] } : {}) });
+      conf(srv[0].d, { listen: `127.0.0.1:${port}`, metrics: `127.0.0.1:${mport}`, registry: REG, ...(PLAY ? {} : TLS) });
       await serveRelay(srv[0].d, port, (b) => { relayLog += b; });
       const st = ctl('status');
       must(st.registry === 5, `relay knows ${st.registry} registry servers, not 5`);
       return `${URL1}, registry ${st.registry}`;
     });
 
-    // Server 2: its first node with server 1 as neighbour (each side dials the other), then its second node joins.
-    if (TWO) await step('server 2 serves too: two nodes, server 1 their neighbour both ways', async () => {
-      conf(srv[1].d, { neighbours: [{ url: URL1 }] });
+    // Server 2: its first node, then its second node joins. No neighbours anywhere: servers 1 and 2 are open and in the
+    // run's registry, so they find each other there (10.9).
+    if (TWO) await step('server 2 serves too: two nodes, no neighbours configured', async () => {
       r2 = await serveRelay(srv[1].d, port2, (b) => { logs2.d2 += b; });
       // No --from: the second node finds server 2's nodes in this run's servers.json, as a listed server's would.
       execFileSync(bin, ['join', '--data', srv[1].d2b, srv[1].id, '--registry', REG], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, RELAY_TEST_ROOTS: TLS.tlsCert } });
       const seeds = JSON.parse(fs.readFileSync(path.join(srv[1].d2b, 'config.json'), 'utf8')).seeds;
       must(seeds && seeds[0] === URL2 && !seeds.includes(URL2B), `join found ${JSON.stringify(seeds)} in the registry, not ${URL2}`);
-      conf(srv[1].d2b, { listen: `127.0.0.1:${port2b}`, ...TLS, registry: REG, neighbours: [{ url: URL1 }] });
+      conf(srv[1].d2b, { listen: `127.0.0.1:${port2b}`, ...TLS, registry: REG });
       r2b = await serveRelay(srv[1].d2b, port2b, (b) => { logs2.d2b += b; });
       const st = await until(() => { const x = ctl2('status'); return x.peers.some((p) => p.same && p.node === srv[1].nk2b && p.synced) && x; }, 60000, 'server 2\'s nodes to sync with each other');
       return `${URL2} and ${URL2B}, ${st.peers.length} peer session(s) at node 2`;
@@ -711,14 +711,24 @@ stay in the browser).`);
       const a = (await c.ask({ m: 'auth', key: k.pub, t, sig }))[0]; must(a.m === 'ack', `auth: ${JSON.stringify(a)}`); return c; };
     // Everything a session gets from a sub of these kinds, from the start.
     const subAll = async (c, kinds) => (await c.ask({ m: 'sub', kinds, since: '' })).flatMap((p) => p.items || []);
-    if (TWO) await step('two servers: relay status on each shows the other server as a peer, with its relay version', async () => {
+    if (TWO) await step('two servers find each other in the registry: one session between them, dialled by the lower identity; relay status shows it with the relay version', async () => {
       const peerOf = (st, id) => st.peers.find((p) => p.server === id && !p.same && p.synced);
-      const [s1, s2] = await until(() => { const a = ctl('status'), b = ctl2('status'); return peerOf(a, srv[1].id) && peerOf(b, srv[0].id) && [a, b]; }, 60000, 'the two servers to sync');
-      const p1 = s1.peers.filter((p) => p.server === srv[1].id), p2 = peerOf(s2, srv[0].id);
+      const ctl2b = () => JSON.parse(relay(srv[1].d2b, 'status'));
+      // One session per pair of servers (10.9): across server 2's two nodes, exactly one with server 1.
+      const pairs = () => { const a = ctl('status'), b = ctl2('status'), c = ctl2b(), with1 = [...b.peers, ...c.peers].filter((p) => p.server === srv[0].id);
+        return { a, b, c, n1: a.peers.filter((p) => p.server === srv[1].id), n2: with1 }; };
+      const one = (x) => x.n1.length === 1 && x.n2.length === 1 && x.n1[0].synced && x.n2[0].synced && x.n1[0].dialled === (srv[0].id < srv[1].id) && x.n2[0].dialled === (srv[1].id < srv[0].id);
+      await until(() => one(pairs()), 60000, 'one session between the two servers');
+      await sleep(3000);
+      const x = pairs();
+      must(one(x), `not one session per pair: server 1 has ${JSON.stringify(x.n1)}, server 2 ${JSON.stringify(x.n2)}`);
+      const auto1 = x.a.auto.find((p) => p.server === srv[1].id);
+      must(auto1 && auto1.up && auto1.dials === (srv[0].id < srv[1].id ? 'this node' : 'peer') && x.n1[0].auto, `server 1's automatic peers: ${JSON.stringify(x.a.auto)}`);
+      const s1 = x.a, s2 = x.b, p1 = x.n1, p2 = x.n2[0];
       must(p1.every((p) => p.relay === RELAY_VER) && p2.relay === RELAY_VER, `peer versions: server 1 sees ${JSON.stringify(p1)}, server 2 sees ${JSON.stringify(p2)}`);
       must(s2.peers.some((p) => p.same && p.node === srv[1].nk2b && p.relay === RELAY_VER), `server 2's node 2b missing from its peers: ${JSON.stringify(s2.peers)}`);
       must(s1.sync === 'open' && s2.sync === 'open', `sync ${s1.sync}, ${s2.sync}`);
-      return `server 1: ${p1.length} session(s) with server 2's nodes (relay ${p1.map((p) => p.relay).join(', ')}); server 2: ${s2.peers.length} peer session(s)`;
+      return `one session (dialled by server ${srv[0].id < srv[1].id ? 1 : 2}, relay ${p1[0].relay}); server 1 dials ${x.a.auto.filter((p) => p.dials === 'this node').length} of its ${x.a.auto.length} automatic peers`;
     });
 
     let raw2 = null;
