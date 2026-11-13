@@ -38,6 +38,8 @@ test('the switch shows under the Normal door only, and only where the browser si
   await run(p, 500);
   assert.equal(sw(p), 'false', 'off by default');
   assert.ok(p.ev(`!!document.querySelector('#doorNormal #fsTog')`), 'inside the Normal door');
+  assert.equal(p.ev(`(()=>{const s=document.querySelector('#fsLbl svg.mm-ico');return !!s&&s.getAttribute('aria-hidden')==='true'})()`), true, 'the switch carries the Multimode tube icon, aria-hidden');
+  assert.doesNotMatch(p.ev("$('fsLbl').textContent"), /🌐/);
   assert.match(p.ev("$('modalCard').textContent"), /Play with others/);
   // Sandbox hides it, and starting there carries no multiplayer choice.
   p.ev("ACT.modeSet({m:'sandbox'})");
@@ -199,7 +201,7 @@ test('offline the switch is disabled, shows off and follows the online and offli
   await run(p, 500);
   assert.equal(sw(p), 'false', 'the invite shows off while offline');
   assert.equal(p.ev("$('fsTog').disabled"), true);
-  assert.match(p.ev("$('fsNote').textContent"), /Multiplayer needs a connection/);
+  assert.match(p.ev("$('fsNote').textContent"), /Multimode needs a connection/);
   assert.equal(p.ev(`document.querySelector('#modalCard .fs-list')`), null, 'no picker');
   assert.equal(p.ev(`document.querySelector('#fsUrl')`), null, 'no address field');
   click(p, '#fsTog');

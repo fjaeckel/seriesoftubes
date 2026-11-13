@@ -39,7 +39,7 @@ test('without WebCrypto Ed25519 multiplayer is not offered anywhere', async () =
   p.ev('ACT.start({});ACT.settings({})');
   await settle(40);
   p.ev('refreshSettings()');
-  assert.doesNotMatch(txt(p), /Multiplayer/);
+  assert.doesNotMatch(txt(p), /Multimode/);
   p.ev('ACT.menu({})');
   assert.equal(p.ev(`!!document.querySelector('#modalCard [data-act="fuOpen"]')`), false);
   assert.equal(p.ev("$('hFed').hidden"), true);
@@ -51,7 +51,7 @@ test('joining: the catalog with each policy first, names are public, the dot tur
   const n = p.net.node(URL1);
   p.ev('ACT.start({});ACT.settings({})');
   await run(p, 500);
-  assert.match(txt(p), /Multiplayer/, 'Settings has a multiplayer line once Ed25519 is known to work');
+  assert.match(txt(p), /Multimode/, 'Settings has a Multimode line once Ed25519 is known to work');
   click(p, '#modalCard [data-act="fuOpen"]');
   await run(p, 1000);
   click(p, '#modalCard .btns [data-act="fuOpen"][data-args*="join"]');
@@ -170,7 +170,7 @@ test('settings: share my country, mutes, the move file behind its warning, the o
   assert.equal(await p.ev('fedOpKey()'), null);
   // Quitting asks first, then sends a signed leave and forgets the identity.
   click(p, '#modalCard [data-act="fuOpen"][data-args*="quit"]');
-  assert.match(txt(p), /Leave multiplayer for good\?/);
+  assert.match(txt(p), /Leave Multimode for good\?/);
   click(p, '#modalCard [data-act="fuQuit"]');
   await run(p, 6000);
   assert.equal(p.ev('S.fed.key'), null);
@@ -414,7 +414,10 @@ test('from the first screen: the invite shows at once, the menu has its tile, a 
   p.ev('closeModal();ACT.start({})');
   // The capability check started at boot, so the very first menu has the tile.
   p.ev('ACT.menu({})');
-  assert.equal(p.ev(`!!document.querySelector('#modalCard [data-act="fuOpen"]')`), true, 'Multiplayer tile on the first menu');
+  assert.equal(p.ev(`!!document.querySelector('#modalCard [data-act="fuOpen"]')`), true, 'Multimode tile on the first menu');
+  // The tile carries Multimode's own icon (an orange tube), hidden from screen readers, not the globe.
+  assert.equal(p.ev(`(()=>{const s=document.querySelector('#modalCard [data-act="fuOpen"] i svg.mm-ico');return !!s&&s.getAttribute('aria-hidden')==='true'&&/#FF8C2E/.test(s.outerHTML)})()`), true, 'tube icon in the tile');
+  assert.doesNotMatch(p.ev(`document.querySelector('#modalCard [data-act="fuOpen"]').textContent`), /🌐/);
   p.ev('closeModal()');
   // Signing the charter of the new game opens the join sheet with the invite on top.
   p.ev('ACT.charter({k:Object.keys(CHARTERS)[0]})');

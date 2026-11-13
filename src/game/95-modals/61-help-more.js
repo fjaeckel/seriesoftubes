@@ -5,7 +5,7 @@
 FU_NOS.push('helpMp','privacy','infoBack','infoClose');// they work from the title screen's help and Settings too
 const infoHead=(eyebrow,title)=>`<div style="display:flex;align-items:center;gap:8px"><button class="x" data-act="infoBack" aria-label="${tr('common.back')}">‹</button><div class="grow" style="min-width:0"><div class="eyebrow">${eyebrow}</div><h2 style="font-size:24px">${title}</h2></div><button class="x" data-act="infoClose" aria-label="${tr('common.close')}">×</button></div>`;
 const infoSecs=s=>s.map(([h,p])=>`<h3 class="sub4">${h}</h3><p>${p}</p>`).join('');
-function showMpHelp(){openModal(`<div class="info" data-info="mp">${infoHead('🌐 '+tr('fedui.multiplayer'),tr('mphelp.how_multiplayer_works'))}
+function showMpHelp(){openModal(`<div class="info" data-info="mp">${infoHead(fuIcon()+' '+tr('fedui.multiplayer'),tr('mphelp.how_multiplayer_works'))}
   <p class="tagline">${tr('mphelp.multiplayer_puts_other_people_s')}</p>${infoSecs([
   [tr('mphelp.joining'),tr('mphelp.switch_on_play_with_others')],
   [tr('mphelp.servers_and_operators'),tr('mphelp.servers_are_run_by_players')],

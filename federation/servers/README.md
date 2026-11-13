@@ -1,6 +1,6 @@
 # The server registry
 
-This folder is the list of multiplayer servers that Series of Tubes shows its players. One file per server, added and
+This folder is the list of Multimode servers (the game's multiplayer) that Series of Tubes shows its players. One file per server, added and
 changed by pull request, checked by CI and merged by a maintainer. Each release turns the folder into
 `https://seriesoftub.es/federation/servers.json`, a plain static file the game reads; nothing else is involved.
 

@@ -26,6 +26,9 @@ function fuWhen(t){if(!Number.isFinite(t))return '—';const d=new Date(t*1000),
   catch(e){return d.toISOString().slice(0,16).replace('T',' ');}}
 const fuDate=day=>{try{return new Date(day*86400000).toLocaleDateString(LANG,{year:'numeric',month:'short',day:'numeric'});}catch(e){return String(day);}};
 const fuHead=(eyebrow,title,back)=>`<div style="display:flex;align-items:center;gap:8px">${back?`<button class="x fu-back" data-act="${back.act||'fuOpen'}" data-args="${esc(JSON.stringify(back.act?{}:back))}" aria-label="${tr('common.back')}">‹</button>`:''}<div class="grow" style="min-width:0">${eyebrow?`<div class="eyebrow">${eyebrow}</div>`:''}<h2 style="font-size:24px">${title}</h2></div><button class="x" data-act="fuClose" aria-label="${tr('common.close')}">×</button></div>`;
+// Multimode's own icon: an orange tube in the logo's style (orange like OM1/OM2 multimode fiber jackets). A constant.
+const FU_ICON='<svg class="mm-ico" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M5 26V20C5 13 10 9 17 9H23" fill="none" stroke="#1E2640" stroke-width="9" stroke-linecap="round"/><path d="M5 26V20C5 13 10 9 17 9H23" fill="none" stroke="#FF8C2E" stroke-width="5" stroke-linecap="round"/><circle cx="25" cy="9" r="4.6" fill="#C9541A" stroke="#1E2640" stroke-width="2.2"/><circle cx="5" cy="21" r="1.4" fill="#fff"/><circle cx="14.5" cy="9.4" r="1.4" fill="#fff"/></svg>';
+const fuIcon=()=>FU_ICON;
 const fuAi=()=>`<span class="fu-bot" role="img" aria-label="${tr('fedui.ai_player')}" title="${tr('fedui.ai_player')}">🤖</span>`;
 // A network's name as others see it: as typed (escaped), or only its ASN where a server hides the name.
 function fuName(key){const a=FU.nets.get(key),b=a&&a.rec&&a.rec.body;if(!b)return esc(fuShort(key));if(FU.hideNames.has(key))return 'AS'+b.asn;return esc(b.name);}
@@ -70,14 +73,14 @@ function fuBoot(){fuCan();// the capability check is async: start it now, so the
 /* The title screen mentions a waiting invite in one line (it is drawn before fuBoot, so the link itself counts until
    then); a new game started from it opens the join sheet once its charter is signed (fuInviteGo). */
 const fuInv=()=>UI.fedInvite!==undefined?UI.fedInvite:FU_INVITE;
-const fuInviteNote=()=>fuInv()&&!(S&&UI.started)?`<p class="note fu-invite">🌐 ${tr('fedui.you_were_invited_to_server',{url:`<b>${esc(fuInv())}</b>`})}</p>`:'';
+const fuInviteNote=()=>fuInv()&&!(S&&UI.started)?`<p class="note fu-invite">${fuIcon()} ${tr('fedui.you_were_invited_to_server',{url:`<b>${esc(fuInv())}</b>`})}</p>`:'';
 // A game started with the title's switch shown joins its pick (47-fed-start.js), or, switched off, opens nothing.
 function fuInviteGo(){const g=UI.fedGo;if(g&&g.s===S){UI.fedGo=null;if(g.url&&fedEligible()&&!(S.fed&&S.fed.on))fsJoin(g.url);return;}
   if(UI.fedInvite&&S&&UI.started&&fedEligible()&&!(S.fed&&S.fed.on))ACT.fuOpen({v:'join'});}
 // A line in Settings, and a tile in the network menu, only where multiplayer can work.
 function fuSettingsRow(){if(!fuCan())return '';const f=S&&S.fed,st=f&&f.on?fuStatusText():tr('fedui.not_joined');
-  return `<h3 class="sub4">🌐 ${tr('fedui.multiplayer')}</h3><div class="setline"><span class="fu-st">${st}</span>${btn(tr('fedui.open_multiplayer'),'fuOpen',{v:'home'},'ghost sm')}</div><p class="meta" style="margin:0 0 6px">${tr('fedui.join_a_server_to_meet_other')}</p>`;}
-const fuMenuTile=()=>fuCan()?[['🌐',tr('fedui.multiplayer'),'fuOpen']]:[];
+  return `<h3 class="sub4">${fuIcon()} ${tr('fedui.multiplayer')}</h3><div class="setline"><span class="fu-st">${st}</span>${btn(tr('fedui.open_multiplayer'),'fuOpen',{v:'home'},'ghost sm')}</div><p class="meta" style="margin:0 0 6px">${tr('fedui.join_a_server_to_meet_other')}</p>`;}
+const fuMenuTile=()=>fuCan()?[[fuIcon(),tr('fedui.multiplayer'),'fuOpen']]:[];
 
 /* ---------- loading what a sheet shows, then drawing it ---------- */
 /* Loads run one after another: events (status, catalog, board) and buttons ask for loads that overlap, and an older
@@ -108,7 +111,7 @@ const fuMsg=()=>FU.msg?`<p class="${FU.msg.bad?'why':'note'} fu-msg" role="statu
 
 /* ---------- the multiplayer sheet (settings) ---------- */
 function fuHomeHtml(){const f=S&&S.fed,ok=S&&UI.started&&fedEligible(),on=!!(f&&f.on),st=fedStatus();
-  let h=fuHead('🌐 '+tr('fedui.multiplayer'),tr('fedui.playing_with_others'));
+  let h=fuHead(fuIcon()+' '+tr('fedui.multiplayer'),tr('fedui.playing_with_others'));
   h+=`<p class="tagline">${tr('fedui.other_players_networks_become_places_to')}</p>${fuMsg()}`;
   if(!ok)h+=`<p class="note fu-why">${fuWhyMode()}</p>`;
   // Excluded by the federation: why, and that solo play goes on.
@@ -140,7 +143,7 @@ function fuSrvCard(s,f){const joined=!!f&&f.servers.some(u=>(s.nodes||[]).some(n
   ${s.desc?`<p class="meta">${esc(s.desc)}</p>`:''}<p class="meta">${trn('fedui.n_operators',(s.operators||[]).length)} · ${trn('fedui.n_nodes',(s.nodes||[]).length)}${s.langs&&s.langs.length?' · '+esc(s.langs.join(', ')):''}${s.noLogs?' · '+tr('fedui.no_address_logs'):''}</p>
   <div class="btns">${joined?`<span class="fu-tag on">✓ ${tr('fedui.joined')}</span>`:ok&&url?btn(tr('fedui.join'),'fuJoin',{url},'pink sm',FU.busy):''}${btn(tr('fedui.details'),'fuOpen',{v:'server',id:s.id,back:'join'},'ghost sm')}</div></div>`;}
 function fuJoinHtml(){const f=S&&S.fed,ok=S&&UI.started&&fedEligible(),inv=UI.fedInvite;
-  let h=fuHead('🌐 '+tr('fedui.multiplayer'),tr('fedui.join_a_server'),{v:'home'});
+  let h=fuHead(fuIcon()+' '+tr('fedui.multiplayer'),tr('fedui.join_a_server'),{v:'home'});
   h+=`<p class="tagline">${tr('fedui.names_are_public')}</p>${fuMsg()}`;
   if(!ok)h+=`<p class="note fu-why">${fuWhyMode()}</p>`;
   if(inv){const s=FU.srvs.find(x=>(x.nodes||[]).some(n=>n.url===inv));
@@ -151,14 +154,14 @@ function fuJoinHtml(){const f=S&&S.fed,ok=S&&UI.started&&fedEligible(),inv=UI.fe
   return h;}
 
 /* ---------- move, quit, operator key ---------- */
-function fuMoveHtml(){return fuHead('🌐 '+tr('fedui.multiplayer'),tr('fedui.move_to_another_device'),{v:'home'})+
+function fuMoveHtml(){return fuHead(fuIcon()+' '+tr('fedui.multiplayer'),tr('fedui.move_to_another_device'),{v:'home'})+
   `<div class="fu-box bad"><b>⚠️ ${tr('fedui.anyone_with_this_file_can_post')}</b><p>${tr('fedui.never_attach_it_to_a_bug')}</p></div>
   <p class="tagline">${tr('fedui.on_the_new_device_use_import')}</p>
   <div class="btns cta">${btn(tr('fedui.i_understand_download_the_file'),'fuMoveGo',{},'pink big')}${btn(tr('common.cancel'),'fuOpen',{v:'home'},'ghost')}</div>`;}
-function fuQuitHtml(){return fuHead('🌐 '+tr('fedui.multiplayer'),tr('fedui.leave_multiplayer_for_good'),{v:'home'})+
+function fuQuitHtml(){return fuHead(fuIcon()+' '+tr('fedui.multiplayer'),tr('fedui.leave_multiplayer_for_good'),{v:'home'})+
   `<p class="tagline">${tr('fedui.your_network_says_goodbye_to_every')}</p><p class="note">${tr('fedui.your_game_plays_on_as_always')}</p>
   <div class="btns cta">${btn(tr('fedui.leave_for_good'),'fuQuit',{},'red big',FU.busy)}${btn(tr('fedui.keep_playing_together'),'fuOpen',{v:'home'},'ghost')}</div>`;}
-function fuOpKeyHtml(){return fuHead('🌐 '+tr('fedui.operating_a_server'),tr('fedui.import_operator_key'),{v:'home'})+
+function fuOpKeyHtml(){return fuHead(fuIcon()+' '+tr('fedui.operating_a_server'),tr('fedui.import_operator_key'),{v:'home'})+
   `<p class="tagline">${tr('fedui.paste_the_private_seed_of_your')}</p>${fuMsg()}
   <label class="f" for="fuOpIn">${tr('fedui.operator_key')}</label><textarea class="t" id="fuOpIn" rows="2" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
   <p class="meta">${tr('fedui.kept_only_in_this_browser')}</p><div class="btns cta">${btn(tr('fedui.import_operator_key'),'fuOpKeyGo',{},'pink')}${btn(tr('common.cancel'),'fuOpen',{v:'home'},'ghost')}</div>`;}

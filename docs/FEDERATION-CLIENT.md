@@ -1,6 +1,7 @@
 # Federation: the client core
 
 The game's side of multiplayer ([design](plans/federation.md), [protocol](FEDERATION-PROTOCOL.md), cited as §n).
+Players know this feature as "Multimode" (a pun on multimode fiber); the code and these docs say federation or multiplayer.
 This is the API the interface and the gameplay build on. It has no interface of its own: no window, toast or button,
 and no player-facing text (functions answer with codes; the interface translates them).
 

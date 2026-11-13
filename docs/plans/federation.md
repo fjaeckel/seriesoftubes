@@ -1,6 +1,7 @@
 # Federation: playing together without a server for the game (design)
 
 Status: draft for review. Decision record: [ADR 0005](../adr/0005-federation-by-player-run-servers.md).
+Players know this feature as "Multimode" (a pun on multimode fiber); the code and these docs say federation or multiplayer.
 No code yet. Every later step follows CLAUDE.md (phones first, saves sacred, translated by label, perf measured).
 The exact messages, limits and rules are in [docs/FEDERATION-PROTOCOL.md](../FEDERATION-PROTOCOL.md), with shared test
 vectors in `federation/vectors/`; where this design and the protocol differ, the protocol wins.

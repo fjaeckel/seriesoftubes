@@ -25,7 +25,7 @@ You start with one router in one city and grow into a transit-free Tier 1:
 Every company is a pun. No real company names are used.
 
 No accounts, no cookies: the [privacy page](https://seriesoftub.es/privacy.html) says exactly what the game keeps
-on your device, what it sends to multiplayer servers and what those servers keep.
+on your device, what it sends to Multimode servers (the game's multiplayer) and what those servers keep.
 
 ## Learn how it really works
 
@@ -51,9 +51,9 @@ Progress is saved in your browser's local storage.
 The game speaks English, Italian, Portuguese, French, Spanish and German. It follows your browser's language the first time
 and remembers the one you pick under Settings or on the title screen.
 
-## Running a multiplayer server
+## Running a Multimode server
 
-Multiplayer runs on servers players host themselves: a small program, the relay, on a VPS, a Raspberry Pi, or a
+Multimode runs on servers players host themselves: a small program, the relay, on a VPS, a Raspberry Pi, or a
 laptop at a LAN party. **[How to host a server](docs/HOSTING.md)** walks through it step by step; downloads for
 Linux, macOS, Windows and the BSDs, and a container image, come with every release.
 

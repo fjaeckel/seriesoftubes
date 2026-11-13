@@ -1,6 +1,6 @@
 # How to host a Series of Tubes server
 
-This is the walkthrough: from "I have never run a server" to a multiplayer server your friends (or the whole
+This is the walkthrough: from "I have never run a server" to a Multimode server (the game's multiplayer) that your friends (or the whole
 internet) play on, or a LAN party with no internet at all. [RELAY.md](RELAY.md) is the reference it links to for every
 command and setting; this page puts them in order.
 

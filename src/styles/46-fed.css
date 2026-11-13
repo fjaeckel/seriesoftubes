@@ -1,4 +1,5 @@
 /* Multiplayer sheets (95-modals/47-49-fed-*.js): the status dot, joining, the boards and the looking glass. */
+.mm-ico{display:inline-block;width:1.1em;height:1.1em;vertical-align:middle;flex:none}
 .fed-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--ink2);border:2px solid var(--paper);box-shadow:0 0 0 1px var(--line);flex:none;vertical-align:middle}
 .fed-dot.connected{background:var(--ok)}.fed-dot.connecting{background:var(--warn)}.fed-dot.offline,.fed-dot.waiting,.fed-dot.idle{background:#9AA3BF}
 #hFed{margin-left:4px;align-self:center}
