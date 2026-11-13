@@ -80,15 +80,19 @@ from the registry by pull request and shunned by its peers.
 
 ### 1. Get the relay
 
-- **Binary:** download `relay` for your platform from the GitHub release (Linux, macOS, Windows; amd64 and arm64, so a
-  Raspberry Pi works). It is one static file with nothing to install.
-- **Container:** the image is built `FROM scratch` (a few MB), runs as an unprivileged user and keeps everything in
-  the `/data` volume. Set `"listen": "0.0.0.0:8080"` in its config so the proxy can reach it, and add the address your
-  proxy connects from to `trustedProxies` (the proxy container's address, or your container network, for example
-  `"trustedProxies": ["127.0.0.0/8", "::1/128", "172.18.0.0/16"]`). Without it every player seems to come from the
-  proxy, shares its one connection limit (30 per 5 minutes by default) and gets no country. Trust only a network on
-  which nothing but your proxy can reach the relay: anything trusted can claim any address. The relay warns at start
-  when it listens beyond loopback, serves no TLS itself and trusts loopback proxies only.
+- **Binary:** download the archive for your platform from the GitHub release: Linux (amd64, arm64, armv6, armv7, 386,
+  riscv64, ppc64le, s390x, loong64), macOS, Windows, FreeBSD, OpenBSD and NetBSD, each with `SHA256SUMS` and a build
+  provenance attestation. It holds one static file with nothing to install. Which one, and how to check it:
+  [HOSTING.md, getting the relay](HOSTING.md#getting-the-relay).
+- **Container:** `ghcr.io/fjaeckel/seriesoftubes-relay` (tags `X.Y.Z`, `X.Y`, `latest`; linux/amd64 and arm64) is built
+  `FROM scratch` (a few MB), runs as an unprivileged user (uid 65532) and keeps everything in the `/data` volume.
+  `relay init` in it writes `"listen": "0.0.0.0:8080"` so the proxy can reach it, and metrics on `0.0.0.0:9100` for
+  the Docker network (see Metrics). Add the address your proxy connects from to `trustedProxies`
+  (`relay init --trusted-proxies 172.30.0.0/24`, your container network). Without it every player seems to come from
+  the proxy, shares its one connection limit (30 per 5 minutes by default) and gets no country. Trust only a network
+  on which nothing but your proxy can reach the relay: anything trusted can claim any address. The relay warns at
+  start when it listens beyond loopback, serves no TLS itself and trusts loopback proxies only. A complete Docker
+  Compose setup with Caddy, or with certbot and the relay serving TLS: [HOSTING.md](HOSTING.md).
 - **From source:** `cd relay && go build ./cmd/relay`.
 
 Every command takes `--data DIR` (default: `$RELAY_DATA`, else `./relay-data`). Everything lives in that one folder.
@@ -107,6 +111,10 @@ This makes the data folder (mode 0700) with:
 | `node.key` | This node's key. Nodes sign receipts and prove who they are with it. |
 | `operator.key` | Your operator key, separate from any game save: it is your control of the server. **Back it up.** Pass `--operator-key FILE` to use one you already have. |
 | `config.json` | What rarely changes (below). |
+
+`init` also takes `--listen ADDR`, `--trusted-proxies CIDR,…` (added to loopback), `--tls-cert FILE --tls-key FILE`,
+and `--metrics ADDR [--metrics-public]`; `--listen`, `--metrics` and `--metrics-public` default to `$RELAY_LISTEN`,
+`$RELAY_METRICS` and `$RELAY_METRICS_PUBLIC` (set in the container image).
 
 ### 3. Found a server, or join one
 
@@ -154,14 +162,15 @@ The relay logs to stderr: counts, error codes, record kinds and network keys. Ne
 ## The config file
 
 `config.json` in the data folder. The relay rereads it on `SIGHUP` (`systemctl reload relay`); `listen`, `metrics`
-and the TLS files change on restart only. Unknown settings are refused, so a typo cannot silently do nothing.
+and the TLS file names change on restart only. The certificate and key themselves are reread when the files change
+(checked at most once a minute), so a renewal needs no restart; a pair that does not load keeps the old one serving. Unknown settings are refused, so a typo cannot silently do nothing.
 
 | Setting | Default | What |
 | --- | --- | --- |
 | `listen` | `127.0.0.1:8080` | Where the relay listens (behind your proxy) |
 | `path` | `/fed` | The WebSocket path |
 | `url` | | This node's public `wss://` URL |
-| `tlsCert`, `tlsKey` | | Serve TLS directly instead of behind a proxy |
+| `tlsCert`, `tlsKey` | | Serve TLS directly instead of behind a proxy (both or neither; reloaded when the files change) |
 | `server` | | The server identity (written by `genesis` or `join`) |
 | `seeds` | | `join`: URLs of running nodes of the server |
 | `selective` | `[]` | Server identities allowed when the server's sync policy is `selective` |
@@ -169,7 +178,8 @@ and the TLS files change on restart only. Unknown settings are refused, so a typ
 | `defaultSend`, `defaultTake` | all | Classes for servers that connect to you and are not neighbours |
 | `countryDb` | | A country-only MaxMind-format database (GeoLite2-Country, DB-IP Country Lite). Optional |
 | `registry` | `https://seriesoftub.es/federation/servers.json` | The registry snapshot (a URL or a file); used for the shun tally |
-| `metrics` | | A **localhost** address for `/metrics`, for example `127.0.0.1:9464`. Anything else is refused |
+| `metrics` | | A **localhost** address for `/metrics`, for example `127.0.0.1:9100`. Anything else is refused unless `metricsPublic` is set |
+| `metricsPublic` | `false` | Allow `metrics` beyond localhost, for a Prometheus in another container (the image sets it, with `0.0.0.0:9100`). The relay warns at start; keep the port off the internet |
 | `trustedProxies` | loopback | Proxies whose `X-Forwarded-For` is believed (in a container: add the proxy's network, see Container above) |
 | `listed` | `false` | A note for yourself: whether you mean to be in the registry |
 | `notifyURL` | off | An `https://` URL the relay POSTs to once per new relay release (see Versions and update notices). Anything else is refused |
@@ -396,20 +406,46 @@ such release, so a relay older than it is told "security" even after later, ordi
   webhook or alerting. It carries your server identity and versions only: no addresses, players or keys. Off unless
   you set it, and only `https://` URLs (without a user or password in them) are accepted.
 
+## LAN parties: `relay lan`
+
+`relay lan [--name NAME] [--port 8443] [--listen ADDR] [--host NAME|ADDR] [--data relay-lan]` runs a standalone
+server for a local network in one step, with no domain, no public certificate and no internet:
+
+- it uses its own data folder (`relay-lan` by default; it refuses one holding a relay that is not a LAN server);
+- the first time, it runs `init` and founds a `standalone` server (`--name`, default "LAN Before Time"), with no
+  registry and no update feed, so it fetches nothing;
+- it makes a self-signed certificate (ECDSA P-256, one year, files `lan-cert.pem` and `lan-key.pem`) for the
+  machine's mDNS name `<hostname>.local`, `localhost`, loopback and its LAN addresses (private and link-local IPv4,
+  IPv6 unique local addresses), and keeps it while it still covers them and is valid for another week;
+- it listens on `--port` on every interface (or `--listen`), serves the protocol at `/fed` and, at `/`, a small page of
+  its own (no scripts, nothing loaded from elsewhere; never the game, which is only on GitHub Pages) with the invite
+  link for the address the browser used;
+- it prints for the players, on its own terminal only, the page addresses and the invite links by `.local` name and by
+  address.
+
+Node URLs may name private, link-local and loopback addresses for this (protocol section 5, Url); the registry refuses
+any IP address and any `.local` name (`local_url`), so LAN servers are never listed. How to run a LAN party, and what
+works on phones: [HOSTING.md, LAN party](HOSTING.md#lan-party).
+
 ## Testing against the game
 
 `node scripts/fed-e2e.js` (from the repository root, after `npm ci`) builds this relay, runs it with TLS on loopback and
 plays two games against it in Chromium: join, announce, deals, a shun reaching its threshold, the boards. Not part of CI. `node scripts/fed-e2e.js --play` sets up the same relay and
 opens two Chromium windows on an invite to it, so you can play two networks against each other by hand.
+`node scripts/fed-e2e.js --lan` runs `relay lan` on 127.0.0.1 and has a Chromium player open its page, take the invite
+by IP address and join with the self-signed certificate.
 
 ## Metrics
 
-Set `"metrics": "127.0.0.1:9464"` to serve `/metrics` in the Prometheus text format on localhost: connections by
+Set `"metrics": "127.0.0.1:9100"` to serve `/metrics` in the Prometheus text format on localhost: connections by
 role, records stored by kind, records sent, refusals by error code, sync sessions, open clients and sessions, records
 held, disk use, and the version it runs and whether an update is out (`relay_build_info`, `relay_update_available`,
 `relay_latest_version_info`, see Versions and update notices), all `relay_*`, plus the standard Go runtime (`go_*`) and process
 (`process_*`) metrics. It uses the Prometheus client library on its own registry, so nothing else is exposed. Counts
-and versions only: no label ever holds an address, a key or a name. The relay refuses a metrics address that is not on localhost.
+and versions only: no label ever holds an address, a key or a name. The relay refuses a metrics address that is not on
+localhost unless `"metricsPublic": true` is set, as in the container image, so a Prometheus on the same Docker network
+can scrape `http://relay:9100/metrics` (the image exposes 9100; never publish it to the internet). A ready scrape job,
+labels for several nodes and alerting rules: [HOSTING.md, monitoring](HOSTING.md#monitoring-with-prometheus).
 
 ## Privacy, in short
 
