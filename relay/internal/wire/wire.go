@@ -39,9 +39,9 @@ func Closes(code string) bool { return closes(code) }
 // Role-specific message sets.
 var (
 	clientMsgs = map[string]bool{"hello": true, "auth": true, "challenge": true, "put": true, "cosign": true, "sub": true,
-		"unsub": true, "fetch": true, "rank": true, "rankwhy": true, "facets": true, "nets": true, "servers": true, "ping": true, "pong": true, "err": true}
+		"unsub": true, "fetch": true, "rank": true, "rankwhy": true, "facets": true, "nets": true, "servers": true, "ping": true, "pong": true, "err": true, "state": true}
 	nodeMsgs = map[string]bool{"hello": true, "welcome": true, "proof": true, "carry": true, "inv": true,
-		"want": true, "push": true, "catalog": true, "err": true, "ping": true, "pong": true}
+		"want": true, "push": true, "catalog": true, "err": true, "ping": true, "pong": true, "states": true}
 	// Requests carry an id.
 	requests = map[string]bool{"auth": true, "challenge": true, "put": true, "cosign": true, "sub": true, "unsub": true,
 		"fetch": true, "rank": true, "rankwhy": true, "facets": true, "nets": true, "servers": true, "ping": true, "pong": true}
@@ -139,6 +139,24 @@ type Hello struct {
 	Node   string
 	Nonce  string
 	Impl   *update.Impl // node role: what the caller runs (informational, nil when absent or malformed)
+	Feats  []string     // node role: optional messages the caller takes (9.4 feats)
+}
+
+// Feat is the one optional feature of this version: live states (5.11), the client's state and the
+// nodes' states messages, and the measure now (9.5).
+const Feat = "state"
+
+// Feats reads a feats member (9.3, 9.4): the strings of a list, anything else none. It is
+// informational: a side sends an optional message only to a peer that listed it.
+func Feats(v any) []string {
+	a, _ := v.([]any)
+	var out []string
+	for _, e := range a[:min(len(a), 16)] {
+		if s, ok := e.(string); ok && len(s) <= 32 {
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 // CheckHello checks a hello frame against the versions this side speaks.
@@ -160,6 +178,7 @@ func CheckHello(f *Frame, speaks []int64) (*Hello, *Error) {
 			return nil, bad(fed.BadFrame)
 		}
 		h.Impl = update.ReadImpl(f.Raw["impl"])
+		h.Feats = Feats(f.Raw["feats"])
 	default:
 		return nil, bad(fed.BadFrame)
 	}
@@ -200,7 +219,7 @@ func CheckClient(f *Frame, ready bool, speaks []int64) (*Hello, *Error) {
 		if _, ok := Int(f.Raw["t"]); !ok || !okStr("key") || !okStr("sig") {
 			return nil, bad(fed.BadFrame)
 		}
-	case "put":
+	case "put", "state":
 		if _, ok := f.Raw["rec"]; !ok {
 			return nil, bad(fed.BadFrame)
 		}
@@ -255,7 +274,7 @@ func CheckNode(f *Frame) *Error {
 		if !ok || len(ids) > fed.MaxInv {
 			return bad(fed.BadFrame)
 		}
-	case "push":
+	case "push", "states":
 		a, ok := f.Raw["items"].([]any)
 		if !ok || len(a) > fed.MaxItems {
 			return bad(fed.BadFrame)

@@ -1,0 +1,59 @@
+{
+  "description": "Division ai: only live states that declare an ai. kA (an AI) 3 POPs, kB (a human) 5: kA alone.",
+  "input": {
+    "now": 1767398410,
+    "board": "pops",
+    "division": "ai",
+    "exclude": [],
+    "cities": null,
+    "founded": {},
+    "states": [
+      {
+        "id": "s1",
+        "key": "kA",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1,
+            "ams": 1,
+            "lon": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "ai": {
+            "model": "m1",
+            "harness": "h1"
+          }
+        }
+      },
+      {
+        "id": "s2",
+        "key": "kB",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1,
+            "ams": 1,
+            "lon": 1,
+            "nyc": 1,
+            "par": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 3
+      }
+    ]
+  }
+}

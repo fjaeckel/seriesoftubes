@@ -1,0 +1,69 @@
+{
+  "description": "The pies board of now: only live states with pies are listed. kA 12, kB 0 (a company with none live yet), kC has no pies field (no Pie in the Sky company): not listed.",
+  "input": {
+    "now": 1767398410,
+    "board": "pies",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "founded": {},
+    "states": [
+      {
+        "id": "s1",
+        "key": "kA",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "pies": 12
+        }
+      },
+      {
+        "id": "s2",
+        "key": "kB",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "pies": 0
+        }
+      },
+      {
+        "id": "s3",
+        "key": "kC",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 12
+      },
+      {
+        "key": "kB",
+        "value": 0
+      }
+    ]
+  }
+}

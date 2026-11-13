@@ -89,8 +89,14 @@ type session struct {
 	wanted     map[string]bool // ids asked for and not yet pushed (guarded by r.mu, bounded)
 	push       *listPager      // records waiting to be pushed for want (guarded by r.mu)
 	dialURL    string
-	dialer     string       // the r.dialers key of the dialer that made this session, when this node dialled
-	impl       *update.Impl // what the peer node runs, when it said (informational)
+	dialer     string          // the r.dialers key of the dialer that made this session, when this node dialled
+	impl       *update.Impl    // what the peer node runs, when it said (informational)
+	feats      []string        // optional messages the peer node takes (9.4 feats)
+	stPend     map[string]bool // keys whose newest live state goes to this peer next (guarded by r.mu)
+
+	// client: its own token bucket for live states (states.go)
+	stTok float64
+	stAt  time.Time
 
 	updSent string // the update hint this operator session was last sent (guarded by r.mu)
 }
@@ -219,6 +225,7 @@ type listPager struct {
 	vals    []map[string]any
 	pos     int
 	slot    int64 // a rankwhy answer: the running slot its records are for
+	at      int64 // a rankwhy answer for the measure now: the time of its snapshot
 }
 
 func (p *listPager) next(r *Relay, s *session) (map[string]any, bool) {
@@ -270,6 +277,9 @@ func (p *listPager) next(r *Relay, s *session) (map[string]any, bool) {
 	m := map[string]any{"m": "recs", "id": p.rid, "items": page, "cursor": "", "more": !done}
 	if p.slot != 0 {
 		m["slot"] = p.slot
+	}
+	if p.at != 0 {
+		m["at"] = p.at
 	}
 	return m, done
 }
@@ -659,7 +669,7 @@ func (r *Relay) serve(s *session) {
 		r.mu.Unlock()
 	}()
 	s.ver = h.Ver
-	s.enqueue(map[string]any{"m": "welcome", "ver": h.Ver, "server": r.ServerID(), "node": r.Key(), "now": r.now(), "impl": r.implValue()})
+	s.enqueue(map[string]any{"m": "welcome", "ver": h.Ver, "server": r.ServerID(), "node": r.Key(), "now": r.now(), "impl": r.implValue(), "feats": feats()})
 	for {
 		f, ok := s.readFrame(s.ctx)
 		if !ok {
@@ -794,6 +804,8 @@ func (r *Relay) clientFrame(s *session, f *wire.Frame) {
 		r.later(s, &listPager{rid: f.ID, m: "recs", entries: list})
 	case "rank", "facets", "nets", "rankwhy":
 		r.rankFrame(s, f)
+	case "state":
+		r.clientState(s, f, now)
 	case "servers":
 		r.mu.Lock()
 		defer r.mu.Unlock()

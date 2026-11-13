@@ -1,0 +1,92 @@
+{
+  "description": "The traffic board of now in a region (fra): only partners with a POP in the region count. kA (fra) reports kB (nyc only) in 500 out 500 and kC (fra) in 200 out 100; both report it back alike. kA: only kC counts: in min(200, 200) = 200, out min(100, 100) = 100: 200. kC: 200. kB: no POP in the region: not listed.",
+  "input": {
+    "now": 1767398410,
+    "board": "traffic",
+    "division": "all",
+    "exclude": [],
+    "cities": [
+      "fra"
+    ],
+    "founded": {},
+    "states": [
+      {
+        "id": "s1",
+        "key": "kA",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kB",
+              "in": 500,
+              "out": 500
+            },
+            {
+              "key": "kC",
+              "in": 200,
+              "out": 100
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s2",
+        "key": "kB",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "nyc": 1
+          },
+          "traffic": [
+            {
+              "key": "kA",
+              "in": 500,
+              "out": 500
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s3",
+        "key": "kC",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kA",
+              "in": 100,
+              "out": 200
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 200
+      },
+      {
+        "key": "kC",
+        "value": 200
+      }
+    ]
+  }
+}

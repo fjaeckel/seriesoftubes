@@ -139,23 +139,18 @@ func Compute(q Query, recs []*Stats) []Row {
 		x := series[k]
 		switch q.Board {
 		case "pops", "pies":
-			best, any := int64(0), false
-			for s := from; s <= to; s += fed.SlotLen {
+			// The value at the latest slot of the window where the key has one.
+			for s := to; s >= from; s -= fed.SlotLen {
 				r := x.Value(s)
 				if r == nil {
 					continue
 				}
-				var v int64
 				if q.Board == "pops" {
-					v = popsAt(r)
-				} else {
-					v = toInt(r.Body["pies"])
+					return popsAt(r), true
 				}
-				if !any || v < best {
-					best, any = v, true
-				}
+				return toInt(r.Body["pies"]), true
 			}
-			return best, any
+			return 0, false
 		case "traffic":
 			var ins, outs []int64
 			for s := from; s <= to; s += fed.SlotLen {

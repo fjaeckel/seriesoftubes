@@ -33,15 +33,25 @@ type Agg struct {
 	cmu  sync.Mutex // guards cone
 	cone *coneSet   // per-slot cone sizes of one state, worked out when a cone board is asked for
 
-	workers int
-	jobs    chan func()
-	fmu     sync.Mutex
-	bases   *lru
-	slices  *lru
-	facets  *lru
-	stop    chan struct{}
-	wg      sync.WaitGroup
-	once    sync.Once
+	// Live states (5.11, live.go): the newest of each key, in memory only, and recent snapshots.
+	lmu         sync.RWMutex
+	lm          map[string]*Live
+	lbytes      int
+	lmax, lmaxB int
+	snaps       []*snap
+	xgen        atomic.Uint64 // changes when the excluded set changes
+
+	workers   int
+	jobs      chan func()
+	fmu       sync.Mutex
+	bases     *lru
+	slices    *lru
+	facets    *lru
+	nowBases  *lru
+	nowSlices *lru
+	stop      chan struct{}
+	wg        sync.WaitGroup
+	once      sync.Once
 }
 
 type event struct {
@@ -69,7 +79,8 @@ func New(workers int) *Agg {
 	}
 	a := &Agg{nets: map[string]*net{}, byID: map[string]*stat{}, words: map[string]string{}, ex: map[string]bool{}, names: map[string]bool{},
 		wake: make(chan struct{}, 1), workers: workers, jobs: make(chan func(), queueLen),
-		bases: newLRU(maxBases), slices: newLRU(maxSlices), facets: newLRU(maxFacets), stop: make(chan struct{})}
+		bases: newLRU(maxBases), slices: newLRU(maxSlices), facets: newLRU(maxFacets), stop: make(chan struct{}),
+		lm: map[string]*Live{}, lmax: LiveMax, lmaxB: LiveMaxBytes, nowBases: newLRU(maxBases / 4), nowSlices: newLRU(maxSlices / 4)}
 	a.wg.Add(workers + 1)
 	for range workers {
 		go a.worker()
@@ -413,6 +424,7 @@ func (a *Agg) apply(e event) {
 		}
 		a.ex = e.ex
 		a.gen.Add(1)
+		a.xgen.Add(1)
 		// Traffic with an excluded network counts 0: only those that list it change.
 		if a.c != 0 {
 			for _, k := range changed {

@@ -1,0 +1,90 @@
+{
+  "description": "A partner whose live state has expired counts 0, like one that never sent any. kA reports kB in 400 out 400 and kC in 900 out 900; kB reports kA in 300 out 300 (live); kC reported kA in 900 out 900 but its newest state is 1000 s old. kA: in min(400, 300) = 300, out 300: 300. kB: 300. kC: not listed, and nothing for kA.",
+  "input": {
+    "now": 1767398410,
+    "board": "traffic",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "founded": {},
+    "states": [
+      {
+        "id": "s1",
+        "key": "kA",
+        "t": 1767398405,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kB",
+              "in": 400,
+              "out": 400
+            },
+            {
+              "key": "kC",
+              "in": 900,
+              "out": 900
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s2",
+        "key": "kB",
+        "t": 1767398405,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kA",
+              "in": 300,
+              "out": 300
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s3",
+        "key": "kC",
+        "t": 1767397410,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kA",
+              "in": 900,
+              "out": 900
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 300
+      },
+      {
+        "key": "kB",
+        "value": 300
+      }
+    ]
+  }
+}

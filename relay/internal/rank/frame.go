@@ -11,6 +11,9 @@ import (
 // Boards are the leaderboards a rank request may ask for (9.5).
 var Boards = []string{"traffic", "total", "pops", "pies", "cone"}
 
+// Measures a rank request may ask for (9.5): over the window, its growth, and now (10.13).
+var Measures = []string{"total", "growth", "now"}
+
 // Limits of a rank request (9.3, 9.5).
 const (
 	Rows    = 50  // rows of a ranks answer unless n says otherwise
@@ -25,7 +28,7 @@ func ParseRequest(f *wire.Frame) (*Slice, int, string) {
 	q.Board, _ = f.Str("board")
 	q.Measure, _ = f.Str("measure")
 	q.Division, _ = f.Str("division")
-	if !slices.Contains(Boards, q.Board) || !slices.Contains([]string{"total", "growth"}, q.Measure) ||
+	if !slices.Contains(Boards, q.Board) || !slices.Contains(Measures, q.Measure) ||
 		!slices.Contains([]string{"all", "human", "ai"}, q.Division) {
 		return nil, 0, fed.BadField
 	}

@@ -1,0 +1,152 @@
+{
+  "description": "now = 1767398410, the time of the snapshot. Each key counts with its newest live state (greatest t, then lowest id) whose t is less than 900 s before now. kA sent 5 POPs at now - 60, then 3 at now - 10: 3 (the newest wins, even when lower). kB sent two states with the same t: s3 (4 POPs) and s4 (6 POPs): the lower id, s3, counts: 4. kC's only state is exactly 900 s old: gone, not listed. kD's is 899 s old: 2. kE plays a sandbox: not listed. kF's state is 300 s ahead of now (clocks differ; it was accepted within the 600 s skew): 1.",
+  "input": {
+    "now": 1767398410,
+    "board": "pops",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "founded": {},
+    "states": [
+      {
+        "id": "s1",
+        "key": "kA",
+        "t": 1767398350,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1,
+            "ams": 1,
+            "lon": 1,
+            "par": 1,
+            "mad": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s2",
+        "key": "kA",
+        "t": 1767398400,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1,
+            "ams": 1,
+            "lon": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s4",
+        "key": "kB",
+        "t": 1767398405,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "nyc": 6
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s3",
+        "key": "kB",
+        "t": 1767398405,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "nyc": 4
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s5",
+        "key": "kC",
+        "t": 1767397510,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 9
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s6",
+        "key": "kD",
+        "t": 1767397511,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1,
+            "ams": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s7",
+        "key": "kE",
+        "t": 1767398409,
+        "body": {
+          "mode": "sandbox",
+          "pops": {
+            "fra": 20
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s8",
+        "key": "kF",
+        "t": 1767398710,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kB",
+        "value": 4
+      },
+      {
+        "key": "kA",
+        "value": 3
+      },
+      {
+        "key": "kD",
+        "value": 2
+      },
+      {
+        "key": "kF",
+        "value": 1
+      }
+    ]
+  }
+}

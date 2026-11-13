@@ -1,0 +1,84 @@
+{
+  "description": "The total traffic board of now: the total of the live state (0 when absent). kA 4000 (899 s old); kB has no total: 0; kC's newest state is 900 s old: not listed; kD sent 9000 at now - 950 (expired) and nothing since: not listed.",
+  "input": {
+    "now": 1767398410,
+    "board": "total",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "founded": {},
+    "states": [
+      {
+        "id": "s1",
+        "key": "kA",
+        "t": 1767397511,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "total": 4000
+        }
+      },
+      {
+        "id": "s2",
+        "key": "kB",
+        "t": 1767398409,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s3",
+        "key": "kC",
+        "t": 1767397510,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "total": 7000
+        }
+      },
+      {
+        "id": "s4",
+        "key": "kD",
+        "t": 1767397460,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "total": 9000
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 4000
+      },
+      {
+        "key": "kB",
+        "value": 0
+      }
+    ]
+  }
+}

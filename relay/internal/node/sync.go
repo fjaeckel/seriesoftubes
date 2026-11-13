@@ -49,9 +49,9 @@ func (r *Relay) answerNode(s *session, h *wire.Hello) {
 	}
 	mine := nonce()
 	now := r.now()
-	s.ver, s.impl = h.Ver, h.Impl
+	s.ver, s.impl, s.feats = h.Ver, h.Impl, h.Feats
 	s.enqueue(map[string]any{"m": "welcome", "ver": h.Ver, "server": own, "node": r.Key(), "nonce": mine,
-		"proof": r.o.Node.MakeProof(h.Nonce, own, now), "impl": r.implValue()})
+		"proof": r.o.Node.MakeProof(h.Nonce, own, now), "impl": r.implValue(), "feats": feats()})
 	ctx, cancel := context.WithTimeout(s.ctx, handshakeTimeout)
 	f, ok := s.readFrame(ctx)
 	cancel()
@@ -95,7 +95,7 @@ func (r *Relay) dialNode(ctx context.Context, dialer, url string) error {
 	for i, v := range r.speaks {
 		vers[i] = v
 	}
-	s.enqueue(map[string]any{"m": "hello", "vers": vers, "role": "node", "server": own, "node": r.Key(), "nonce": mine, "impl": r.implValue()})
+	s.enqueue(map[string]any{"m": "hello", "vers": vers, "role": "node", "server": own, "node": r.Key(), "nonce": mine, "impl": r.implValue(), "feats": feats()})
 	hctx, cancel := context.WithTimeout(s.ctx, handshakeTimeout)
 	f, ok := s.readFrame(hctx)
 	cancel()
@@ -122,7 +122,7 @@ func (r *Relay) dialNode(ctx context.Context, dialer, url string) error {
 	if node == r.Key() {
 		return errClosed // dialled ourselves
 	}
-	s.ver, s.impl = ver, update.ReadImpl(f.Raw["impl"])
+	s.ver, s.impl, s.feats = ver, update.ReadImpl(f.Raw["impl"]), wire.Feats(f.Raw["feats"])
 	r.mu.Lock()
 	r.urlSrv[url] = server
 	r.mu.Unlock()
@@ -374,6 +374,7 @@ func (r *Relay) nodeFrame(s *session, f *wire.Frame) bool {
 			s.enqueue(map[string]any{"m": "inv", "ids": strList(ids[i:end]), "more": end < len(ids)})
 		}
 		s.synced = true
+		r.queueAllStates(s)
 		if s.same {
 			// Signatures added to a proposal or server record keep its id, so an inventory
 			// cannot show them: push this server's multi-signer records anyway; copies merge.
@@ -429,6 +430,8 @@ func (r *Relay) nodeFrame(s *session, f *wire.Frame) bool {
 		for _, x := range list {
 			r.takePushed(s, x, now)
 		}
+	case "states":
+		r.nodeStates(s, f, now)
 	case "catalog":
 		entries, _ := f.Raw["entries"].([]any)
 		for _, x := range entries {

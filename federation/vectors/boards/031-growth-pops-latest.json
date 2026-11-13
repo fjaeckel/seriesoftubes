@@ -1,0 +1,130 @@
+{
+  "description": "now = 1767398410, so c = 1767398400; slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. POPs growth compares the latest value of each window, never the lowest: kA 10 at i = 0, 20 from i = 200 (previous window: 20), 12 from i = 300, 30 from i = 400 (current window: 30): div((30 - 20) * 10000, 20) = 5000. kB 8 at i = 0, 4 from i = 250 (previous: 4), 6 from i = 500 (current: 6): div(2 * 10000, max(4, 10)) = 2000.",
+  "input": {
+    "now": 1767398410,
+    "board": "pops",
+    "measure": "growth",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "records": [
+      {
+        "id": "r1",
+        "key": "kA",
+        "slot": 1767225600,
+        "t": 1767225620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 10
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r2",
+        "key": "kA",
+        "slot": 1767285600,
+        "t": 1767285620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 20
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r3",
+        "key": "kA",
+        "slot": 1767315600,
+        "t": 1767315620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 12
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r4",
+        "key": "kA",
+        "slot": 1767345600,
+        "t": 1767345620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 30
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r5",
+        "key": "kB",
+        "slot": 1767225600,
+        "t": 1767225620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 8
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r6",
+        "key": "kB",
+        "slot": 1767300600,
+        "t": 1767300620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 4
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r7",
+        "key": "kB",
+        "slot": 1767375600,
+        "t": 1767375620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 6
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 5000
+      },
+      {
+        "key": "kB",
+        "value": 2000
+      }
+    ]
+  }
+}

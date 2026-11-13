@@ -1,0 +1,72 @@
+{
+  "description": "A region (cities fra, ams): only live states with a POP there are listed, POPs counted in the region. kA fra 1, ams 1, nyc 1: 2. kB nyc only: not listed. kC ams 1: 1.",
+  "input": {
+    "now": 1767398410,
+    "board": "pops",
+    "division": "all",
+    "exclude": [],
+    "cities": [
+      "ams",
+      "fra"
+    ],
+    "founded": {},
+    "states": [
+      {
+        "id": "s1",
+        "key": "kA",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1,
+            "ams": 1,
+            "nyc": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s2",
+        "key": "kB",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "nyc": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s3",
+        "key": "kC",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "ams": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 2
+      },
+      {
+        "key": "kC",
+        "value": 1
+      }
+    ]
+  }
+}

@@ -39,7 +39,7 @@ Files are numbered (`001-…`) only to keep a stable order; the number means not
   SHA-256("tubes-fed.1 vector key <name>") for the names alice, bob, carol, mallory (networks), anna, ben, cleo, dan
   (operators) and node1, node2, node3 (nodes). Ed25519 is deterministic, so the files never change unless the script
   does. The script only fills in keys, signatures and ids; which result is expected is written as a literal in it.
-- **Hand-written**, with the working in each `description`: `canonical`, `slots`, `boards`, `quiet`, `shun`,
+- **Hand-written**, with the working in each `description`: `canonical`, `slots`, `boards`, `now`, `quiet`, `shun`,
   `catalog`, `deals`, `majority`, `sync`, `autosync`, `wire`, `impl`. Edit these files directly. They use short labels (`kA`, `s01`,
   `o01`, `r1`) for keys, server identities, operator keys and record ids: treat them as opaque strings, compared in
   byte order like real ones. Their records are already validated, so only the rule under test applies.
@@ -51,7 +51,7 @@ Files are numbered (`001-…`) only to keep a stable order; the number means not
 | `canonical` | 2 | `text` (JSON text), or `hex` (raw bytes) | `canonical` (the canonical text) or `error` |
 | `signing` | 3.2, 3.3 | `seeds` (name → hex) or `seed`/`seeds` and `unsigned` (a record without `sig`/`sigs`) | `keys` (name → Key); or `signed_text`, `sig` or `sigs`, `id` (and the full `record`) |
 | `asn` | 3.4 | cases: `key` | `asn` |
-| `records` | 2, 4, 5, 7.1 steps 2–8 | `now` and either `record` (a parsed value) or `text` (JSON text to parse first) | `{ok: true, kind, id}` or `{ok: false, error}` |
+| `records` | 2, 4, 5, 7.1 steps 2–8 | `now` and either `record` (a parsed value) or `text` (JSON text to parse first); `as: "state"` when it is checked where a live state is expected (5.11, a `state` frame) | `{ok: true, kind, id}` or `{ok: false, error}` |
 | `receipts` | 6.1 | `now`, `server`, `nodes` (the server's node keys), `record`, `receipt` | `{ok: true}` or `{ok: false, error}` |
 | `proofs` | 6.2 | `now`, `nonce`, `server`, `node` (the node asked), `proof` | `{ok: true}` or `{ok: false, error}` |
 | `auth` | 9.3 | `now`, `node` (the node's key), `server`, `auth` (the client's `auth` frame) | `{ok: true}` or `{ok: false, error}` |
@@ -60,6 +60,7 @@ Files are numbered (`001-…`) only to keep a stable order; the number means not
 | `dedupe` | 10.11 | `now`, `arrivals` (in order, each `{record}` or `{text}`) | `stored` (sorted by id; multi-signer records with their signer keys) and `results` per arrival: `stored`, `duplicate`, `merged` or an error code |
 | `slots` | 10.1, 10.2 | cases: `t` → `slot`; `now` → windows; `receipts` → board slot. Files: `records` (`{id, key, slot, t, mode}`) and `queries` (slots) | as named; `results` per query: `{s, eff (id or null), value}` |
 | `boards` | 10.3–10.5 | `now`, `board` (`pops`, `pies`, `traffic`, `total`, `cone`), `measure` (`total`, `growth`), `division` (`all`, `human`, `ai`), `exclude` (keys), `cities` (region filter or null), `founded` (cone board: key -> founded of its newest announce; a key without one has no announce), `records` (`{id, key, slot, t, body}`, `slot` being the board slot) | `rows`: `[{key, value}]` in board order |
+| `now` | 10.13 | `now` (the snapshot's time), `board`, `division`, `exclude`, `cities`, `founded` (as in `boards`), `states` (live states `{id, key, t, body}`, in the order they arrived) | `rows`: `[{key, value}]` in board order |
 | `rank` | 9.5, 10.12 | `now`, `request` (a `rank` frame), `me` (the proved key, or null), `excluded` (keys the server leaves off), `names` (keys shown without a name), `records` (as in `boards`, plus `cc`), `announces` (`{key, name, home, policy, founded, day}`) | the `ranks` answer `{slot, n, rows, me}`, or `{error}`. Run by servers; a game merges answers instead |
 | `quiet` | 10.6 | cases: `now`, `lastHeard` | `{state, factor}` |
 | `shun` | 10.7 | `now`, `target`, `registry` (`{asOf, servers: [{id, operators, listed?, answered?}]}`), `records` (`{id, kind, key, t, server, target, reason?}`) | `{voters, need, votes, shunned, reasons}` (`votes` and `reasons` at `now`) |

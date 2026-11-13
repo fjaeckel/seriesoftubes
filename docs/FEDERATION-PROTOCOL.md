@@ -221,7 +221,8 @@ without `sigs`, is `missing_field`.
 ## 5. Record kinds
 
 Records are what players and operators publish; relays store and forward them. Every kind below is single-signer
-except `operators` and `server`.
+except `operators` and `server`. A live state (5.11) has the same envelope but is no record: it is never stored, and
+only a `state` frame (9.3) or a `states` frame (9.4) carries one; anywhere a record is expected its kind is `bad_kind`.
 
 **Field types** used in the tables (each wrong value is `bad_field` unless the type says otherwise):
 
@@ -304,6 +305,7 @@ What the boards rank. The country is never in here: the receiving node adds it t
 
 **When a client sends it:** whenever the values change, and at least once an hour while the game is open, but never
 more than one per slot. Carrying forward (10.2) covers the slots in between, so there is no need to send every slot.
+What the game's numbers are right now goes in live states (5.11), which the boards of now rank (10.13).
 
 The largest body a game can send (512 cities, 256 traffic entries, 128 customers, 16 upstreams, an AI setup, every
 number at its maximum) is under the 40960-byte limit (13.2); the `records` vector `stats-biggest` holds it.
@@ -504,6 +506,36 @@ per day, counted by receipt slot, and keeps at most 65536. Reports are kept 30 d
 ```json
 {"v":1,"kind":"report","key":"<bob>","t":1767312000,"sig":"…","body":{"server":"<id>","target":"<mallory>","reason":"offensive_name"}}
 ```
+
+### 5.11 `state` (client, live, never stored)
+
+A network's numbers **now**: what the boards of now rank (10.13). Its body is exactly a `stats` body (5.2: the same
+fields, the same checks, the same limits), signed by the network's key like any single-signer object, `kind: "state"`,
+at most 40960 bytes. It is **not a record**: no node stores it, writes it to disk, puts it in a `sub` backlog or an
+inventory, or signs a receipt for it; anywhere a record is expected (`put`, `push`, a store) it is `bad_kind`, and a
+`state` frame takes nothing else (`bad_kind`).
+
+- **Time.** `t` is the author's clock. Refused when `t > now + 600` (`too_new`) or `now - t > 900` (`too_old`): its
+  maximum age is 900 s (13.2). A state is **live** at a time `x` while `x - t < 900`.
+- **Newest wins.** Of one key, a node keeps only the newest state it has (greatest `t`, then lowest id), in memory: an
+  older or equal one changes nothing (and is not passed on). It forgets a key once its newest state is no longer live,
+  and it MAY bound how many keys it keeps (answering `rate_limited` for a new key while full; the reference relay keeps
+  at most 50000 keys and 128 MB of states). A restart forgets every state.
+- **State checks** (7.1 step 9) as for records of that key: `refused` (the key left with a later `t`, or the server
+  refuses it), `shunned`.
+- **When a game sends one:** while the tab is visible and a session with a node that lists `state` in `feats` (9.3) is
+  ready: every 10 s when the body changed since the last one that node took, and at least every 180 s otherwise (so the
+  network stays live), never twice within 5 s; nothing is queued or kept: a state missed is replaced by the next.
+
+```json
+{"v":1,"kind":"state","key":"q6-YSQ…PWMw","t":1767312042,"sig":"…","body":{
+ "mode":"normal","pops":{"ams":1,"fra":1},"pies":12,"traffic":[{"key":"BydB2y…CSz0","in":1800,"out":2400}],"total":48000,
+ "tier1":false,"shareCountry":true}}
+```
+
+**Why** a signed object and not a record: validation and the body's rules are shared with `stats`, every node can
+check a state it is passed (and a game can check a ranking of now against them, 9.5), and nothing has to be stored to
+show what is happening now.
 
 ## 6. Receipts and proofs
 
@@ -707,11 +739,12 @@ it is neither answered nor a reason to close, so an older game keeps working wit
 | Message | Direction | Fields | Answer |
 | --- | --- | --- | --- |
 | `hello` | client → node | `vers`, `role: "client"` | `welcome` |
-| `welcome` | node → client | `ver` (chosen), `server` (Id), `node` (Key), `now`, `impl` (optional, below) | |
+| `welcome` | node → client | `ver` (chosen), `server` (Id), `node` (Key), `now`, `impl` (optional, below), `feats` (optional, below) | |
 | `update` | node → client | `version`, `security` (Bool), `source` (`feed` or `github`), `notes` (optional, an `https://` URL); no `id` | Only to a session that proved an operator key of the node's server: a newer relay is out (below) |
 | `auth` | client → node | `id`, `key` (Key), `t` (unix seconds), `sig` (Sig) | `ack` with `op`, or `err` (`bad_key`, `bad_sig`, `too_old`, `too_new`, `too_many`): proves the session holds `key` (below) |
 | `challenge` | client → node | `id`, `nonce` | `proof` `{m, id, proof}`, a proof envelope (6.2) |
 | `put` | client → node | `id`, `rec` (a record) | `ack` or `err` |
+| `state` | client → node | `id` (optional), `rec` (a live state, 5.11) | with `id`: `ack` (`rid`, `dup`: it was not newer) or `err`; without: only an `err` |
 | `ack` | node → client | `id`; answering `put` and `cosign` also `rid` (record id), `dup` (Bool: already had it) and `rcpt` (the receipt, when the record came from this client); answering `auth` also `op` (Bool: `key` is a current operator of this node's server); answering `unsub` only `id` | |
 | `excluded` | node → client | `keys` ([Key], sorted), `more` (Bool), `reasons` ([reason], only to a session that proved an excluded key); no `id` | The networks this server excludes now (10.7), below |
 | `cosign` | client → node | `id`, `rid` (a pending proposal or server record), `key`, `sig` | `ack` or `err`: adds one operator signature to a multi-signer record (same check as 4 and 8) |
@@ -719,8 +752,8 @@ it is neither answered nor a reason to close, so an older game keeps working wit
 | `unsub` | client → node | `id` (of the `sub`) | `ack` |
 | `fetch` | client → node | `id`, `ids` ([Id] max 256) | `recs` (missing ids are left out) |
 | `rank` | client → node | `id`, `board`, `measure`, `division`, `filters` (optional), `n` (optional) | `ranks`: the top rows of a slice and the asker's own row (9.5) |
-| `ranks` | node → client | `id`, `slot`, `n`, `rows`, `me` | |
-| `rankwhy` | client → node | `id`, `board`, `measure`, `division`, `filters` (optional), `key` | `recs` with the records behind one row, and `slot` (9.5) |
+| `ranks` | node → client | `id`, `slot`, `n`, `rows`, `me`; `at` for the measure `now` | |
+| `rankwhy` | client → node | `id`, `board`, `measure`, `division`, `filters` (optional), `key`, `at` (optional, the measure `now`) | `recs` with the records behind one row, and `slot` (and `at` for `now`) (9.5) |
 | `facets` | either | `id`; answering, also `slot`, `models`, `harnesses`, `from`, `homes` | `facets`: the values a filter sheet offers (9.5) |
 | `nets` | client → node | `id`, `keys` ([Key] max 64) | `netstats` `{id, nets, reports}` (9.5) |
 | `servers` | client → node | `id` | `catalog` |
@@ -777,6 +810,15 @@ it is neither answered nor a reason to close, so an older game keeps working wit
   starting with a letter or digit (the reference relay: `{"name": "tubes-relay", "version": "3.6.0"}`, `"dev"` for a
   build without a version). It is optional and informational: a receiver ignores a missing or malformed one (never an
   error), shows it, and uses it for nothing else. The same member is in a node's `hello` and `welcome` (9.4).
+- **`feats`** lists the optional messages a node takes in this version: `["state"]` means it takes `state` frames
+  (5.11) and answers the measure `now` (9.5). It is optional: a receiver reads it as a list of strings and ignores
+  anything else. A game sends `state` frames, and asks for boards of `now`, only to a node whose `welcome` lists
+  `state` (an older node would close the connection on a message it does not know). The same member is in a node's
+  `hello` and `welcome` (9.4).
+- **`state`** sends a live state (5.11). The node checks it (7.1 steps 2 to 8 for kind `state`, then 5.11's state
+  checks); a newer state is kept in memory and passed on to other nodes (9.4). A node limits each connection's states
+  on its own: the reference relay allows one every 4 s with a burst of 2, and answers `rate_limited` (with `retry`)
+  beyond. A `state` frame without `id` is answered only when it is refused.
 - **`update`** tells an operator that a newer relay is out. A node sends it only to a client session that proved
   (`auth`) a current operator key of its server, right after the `ack` of that `auth` and again whenever what it knows
   changes; other sessions never get it and are not told. `version` is the newer version; `security` is true when the
@@ -797,13 +839,14 @@ Nodes of one server, and nodes of different servers that sync, use the same tran
 
 | Message | Fields | Meaning |
 | --- | --- | --- |
-| `hello` | `vers`, `role: "node"`, `server`, `node`, `nonce`, `impl` (optional, 9.3) | Sent by the side that connected |
-| `welcome` | `ver`, `server`, `node`, `nonce`, `proof`, `impl` (optional, 9.3) | The answer: its own nonce, and a proof (6.2) over the caller's nonce, `body.server` its own server |
+| `hello` | `vers`, `role: "node"`, `server`, `node`, `nonce`, `impl` and `feats` (optional, 9.3) | Sent by the side that connected |
+| `welcome` | `ver`, `server`, `node`, `nonce`, `proof`, `impl` and `feats` (optional, 9.3) | The answer: its own nonce, and a proof (6.2) over the caller's nonce, `body.server` its own server |
 | `proof` | `proof` | The caller's proof over the answerer's nonce |
 | `carry` | `classes` ([string]), `since` (slot, 0 for everything) | What this side will send (below), and from which receipt slot it wants the other side's inventory |
 | `inv` | `ids` ([Id] max 4096), `more` (Bool) | Ids of records this side holds and will send, with a first receipt slot at or after the other side's `since` |
 | `want` | `ids` ([Id] max 4096) | Ids it lacks and wants |
 | `push` | `items` ([{rec, rcpt}] max 256) | Records, answering `want` or as they arrive |
+| `states` | `items` ([state] max 256) | Live states (5.11), newer than what this side had sent: below. Only to a peer whose `hello` or `welcome` listed `state` in `feats` |
 | `catalog` | `entries` | Gossip (10.8): its own entry always on connect (below), other entries on connect and whenever an entry changes, at most every 10 minutes |
 | `err`, `ping`, `pong` | | As above |
 
@@ -838,23 +881,36 @@ Nodes of one server, and nodes of different servers that sync, use the same tran
 5. **Pacing.** A node answers `want` with `push` frames one at a time as the peer takes them, and MAY slow down reading
    a peer's frames (by the records, entries and ids they carry) rather than refuse them. Nothing is dropped for being
    paced.
+6. **Live states** travel like records of the `players` class (same server: always), but are never stored or listed in
+   an inventory. A node passes a state on when it is newer than the one it held for that key (5.11), to every session
+   that takes `players` (or is of its own server) and listed `state` in `feats`, except the one it came from. It sends
+   them in `states` frames, coalesced: per session the keys whose state changed, and every few seconds (the reference
+   relay: every 2 s) their newest states, so a key that changed twice meanwhile costs one; a session whose send queue
+   is still full keeps its keys for the next round. When a session starts (after `carry`), the node sends it every
+   live state it holds. A receiver checks each state like one from a client (7.1 steps 2 to 9, 5.11), keeps it only
+   when newer and passes it on the same way; invalid ones are dropped, counted, never answered. Since only newer states
+   are kept and passed on, a state stops where it is already known, whatever loops the sync graph has. A node MAY skip
+   checking a state whose `t` is older than the one it holds.
 
 ### 9.5 Leaderboards: what `rank`, `rankwhy`, `facets` and `nets` return
 
 **The server ranks.** A game never downloads the records of a leaderboard: it asks for the slice it shows and gets
 the top rows and its own row. The relay keeps the boards in memory (`docs/RELAY.md`, "Leaderboards") and must give
-exactly what 10.1 to 10.5 and 10.12 say over the `stats` records it holds; the shared vectors (`boards`, `rank`) hold
-it to that. The game trusts its server's ranking as it trusts its `excluded` list (non-competitive, ADR 0005), and
+exactly what 10.1 to 10.5 and 10.12 say over the `stats` records it holds, and 10.13 over the live states it holds;
+the shared vectors (`boards`, `now`, `rank`) hold it to that. The game trusts its server's ranking as it trusts its `excluded` list (non-competitive, ADR 0005), and
 checks it by spot checks (below).
 
 With `c = slot(now)` at the node:
 
 - **`rank`** `{m, id, board, measure, division, filters?, n?}`. `board` is `traffic`, `total`, `pops`, `pies` or `cone`;
-  `measure` `total` or `growth`; `division` `all`, `human` or `ai`; `n` the rows wanted, 1 to 100 (default 50);
+  `measure` `total` (over the window, 10.4: shown as "24 h"), `growth` (10.5) or `now` (the live states, 10.13); `division` `all`, `human` or `ai`; `n` the rows wanted, 1 to 100 (default 50);
   `filters` an object with any of the members of 10.12. A value not allowed is answered `err` `bad_field` (the frame
   is fine, so the connection stays); members of `filters` not defined here are ignored. The answer is
   **`ranks`** `{m, id, slot, n, rows, me}`:
   - `slot`: `c`, the running slot the ranking is for (its windows end at `c - 300`).
+  - `at` (the measure `now` only): the time of the snapshot of live states it ranks (10.13). A node ranks a snapshot
+    taken when asked, reused while it is under a few seconds old (the reference relay: 2 s), and keeps recent snapshots
+    a while (the reference relay: 30 s) for `rankwhy`.
   - `n`: how many networks the whole slice holds.
   - `rows`: its first `n` (asked) rows in board order, each `{rank, key, value, asn, ai, name?, home?, cc?}`: `rank`
     the position in the slice (1 first), `value` the board's value (10.4, 10.5), `asn` the key's ASN (3.4), `ai`
@@ -877,6 +933,11 @@ With `c = slot(now)` at the node:
   reach: those any held record of the key lists in `cust`, those any held record of theirs lists, and so on (whose
   `up`, traffic and `founded` decide each edge, 10.4), except networks the server leaves out.
   At most 512 such networks and 20000 records: beyond that `err` `too_many`. `key` not a Key: `bad_key`.
+  For the measure `now`, `rankwhy` answers from the snapshot made at `at` (the `ranks` answer's) when the node still
+  keeps it, else from the newest; its frames carry that snapshot's `at`. They hold the live states behind the row (no
+  receipts): the key's, on the traffic board those of each network its state lists, on the cone board those of each
+  network its cone can reach over `cust` lists of live states (with their newest announces), except networks the
+  server leaves out; plus the key's newest announce and its newest `stats` record (the country, 10.12).
 - **`facets`** `{m, id}`: the values a filter sheet offers. The answer `facets` `{m, id, slot, models, harnesses, from,
   homes}` lists, over the networks with a value at `last` that the server does not leave out, the AI `model`s and
   `harness`es of `eff(X, last)` (at most 64 each), the countries of their records' receipts (`from`) and the `home` of
@@ -896,8 +957,9 @@ With `c = slot(now)` at the node:
 works the key's value out with 10.1 to 10.5 and 10.12 from those records alone (the excluded set: the server's
 `excluded` list and its `hide` record's `hide` and `refuse`), and compares: a row must be listed, pass the filters
 and have the same `value`; `me` must match whether the key is on the board, whether it passes the filters (`rank`
-null or not) and its `value`. When the `rankwhy` answer is for another slot, or a record carries a receipt of a server
-the game does not know, the row cannot be checked and nothing follows. A row that does not match, asked again and
+null or not) and its `value`. When the `rankwhy` answer is for another slot (for `now`: another `at`), or a record carries a receipt of a server
+the game does not know, the row cannot be checked and nothing follows. A board of `now` is worked out with 10.13 at
+`at`, each state checked as at `at` (so one live then is never too old). A row that does not match, asked again and
 still not matching, means the server sent a ranking its own records do not give: the game leaves that server's
 rankings out (and prefers its other servers) for 24 hours and tells the player. Spot checks deter; they cannot prove
 which networks a server left out or which rows it chose to send.
@@ -949,8 +1011,9 @@ city, and a cone is the network's, wherever its members are).
 
 Over the slots `s` of the window where `X` has a value:
 
-- **POPs**: the lowest of `sum of eff(X, s).pops` (with a region filter: the sum over the cities in the region).
-- **Pies**: the lowest of `eff(X, s).pies`, counting 0 where `pies` is absent.
+- **POPs**: `sum of eff(X, s).pops` at the latest slot `s` of the window where `X` has a value (with a region filter:
+  the sum over the cities in the region). For the current window of a listed key that is `eff(X, last)`.
+- **Pies**: `eff(X, s).pies` at that same latest slot, 0 where `pies` is absent.
 - **Traffic**, 95th percentile of the busier direction, as billing does:
   1. For each slot `s` and each other key `Y`:
      - `X`'s report: if `eff(X, s)` lists `Y`, its `in` and `out`; else 0 and 0.
@@ -1003,7 +1066,7 @@ the total over the previous window (10.4, each over its own slots):
 growth = div((cur - prev) * 10000, max(prev, FLOOR))      in basis points (10000 = +100%)
 ```
 
-with FLOOR = 10 for POPs and the customer cone, 100 for pies and 1000 (Mbps) for traffic and total traffic. Note floor division: -333.3 is -334.
+(for POPs and pies, `cur` and `prev` are each window's latest value, 10.4) with FLOOR = 10 for POPs and the customer cone, 100 for pies and 1000 (Mbps) for traffic and total traffic. Note floor division: -333.3 is -334.
 
 ### 10.6 Quiet networks
 
@@ -1247,6 +1310,31 @@ key stays in the slice only when it passes every filter, read from `l = eff(X, l
 | `dayMin`, `dayMax` | Count(10000000) | `A` exists and `A.day` is at least `dayMin` (0 when left out) and at most `dayMax` |
 | `keys` | [Key] max 256, unique | The key is one of them (a game sends the networks it has a deal with) |
 
+On a board of `now` (10.13) the same filters read `l` = the key's live state at `at` instead of `eff(X, last)`, the
+country of `from` (and of a row's `cc`) from the earliest receipt of the key's newest `stats` record (greatest board
+slot, then 10.2's order; none: no country), and `day = div(at, 86400)`.
+
+### 10.13 Boards of now
+
+The measure `now` ranks what networks report right now, from live states (5.11) instead of the windows. Inputs: the
+time of the snapshot `at`, the live states held then, the excluded set (10.3) and, for the cone board, the newest
+announces. `L(X)` is `X`'s newest state (greatest `t`, then lowest id) with `at - t < 900`; `X` **counts** when `L(X)`
+exists, has `mode` `normal` and `X` is not excluded.
+
+- **Listed**: `X` counts; on the pies board `L(X)` has `pies`; with a region filter, `L(X)` has a POP in the region.
+  Division: AI when `L(X)` has `ai`.
+- **POPs**: the sum of `L(X).pops` (with a region, over its cities). **Pies**: `L(X).pies`. **Total traffic**:
+  `L(X).total`, 0 when absent.
+- **Traffic**: for each `Y` that `L(X).traffic` lists: when `Y` counts (and with a region, `L(Y)` has a POP there),
+  `in += min(X.in, Y.out)` and `out += min(X.out, Y.in)` from the two states (`Y`'s report about `X`, 0 and 0 when it
+  lists none); otherwise 0: **a partner without a live state counts 0** (unlike 10.4, where a network with no record
+  counts what the other reports: a live board shows only what both sides confirm now). The value is `max(in, out)`.
+- **Customer cone**: the cone of 10.4 over one graph: `Z -> Y` is a counted edge when both count, `L(Z).cust` lists `Y`,
+  `L(Y).up` lists `Z`, each state reports traffic with the other with `in > 0` and `out > 0`, and `Y` is established at
+  `at`: its newest announce has `div(at, 86400) - founded >= 30`. A region does not change it.
+
+Rows are sorted as in 10.4. There is no growth of now.
+
 ## 11. The registry
 
 ### 11.1 Files
@@ -1382,6 +1470,9 @@ of 9.3 and an optional webhook; see docs/RELAY.md). It never tells anyone else.
    operator key of its server, and only to the other nodes of that server. The reported network, other players and
    other servers never learn that a report was made, by whom or why. Operators see the reporters' network keys and
    names, as on any record: networks, never people.
+12. Live states (5.11) carry the fields of a `stats` record and nothing else. No node stores them: they are kept in
+   memory, the newest of each key, until 900 s after their `t`, and passed to other nodes as records of the `players`
+   class are. A game sends one at most every 5 s, and only while it is visible.
 
 ## 13. Constants
 
@@ -1408,6 +1499,8 @@ of 9.3 and an optional webhook; see docs/RELAY.md). It never tells anyone else.
 | Shortest exchange port term | 30 days |
 | Newcomer: joined less than, newcomer price | 30 days, 750 per mille of the card |
 | Cone member: joined at least | 30 days before the slot |
+| Live state: live for, maximum age, ahead | 900 s, 900 s, 600 s |
+| Live state from a game: every, keepalive, at least apart | 10 s, 180 s, 5 s |
 
 ### 13.2 Records
 
@@ -1426,6 +1519,7 @@ of 9.3 and an optional webhook; see docs/RELAY.md). It never tells anyone else.
 | `unshun` | one | 1024 | 7776000 s |
 | `leave` | one | 512 | none |
 | `report` | one | 1024 | 2592000 s (30 days) |
+| `state` (5.11, never stored) | one | 40960 | 900 s |
 | `receipt` | one (a node) | 1024 | none |
 | `proof` | one (a node) | 1024 | ±300 s |
 
@@ -1458,7 +1552,7 @@ of 9.3 and an optional webhook; see docs/RELAY.md). It never tells anyone else.
 | `impl` items in a catalog entry; `impl` name and version | 16; 40 characters each |
 | `relay.json` | 4096 bytes |
 | GitHub latest-release answer (11.4) | 262144 bytes |
-| `fetch` ids, `recs` and `push` items | 256 |
+| `fetch` ids, `recs`, `push` and `states` items | 256 |
 | `inv` and `want` ids | 4096 |
 | Names, descriptions, AI model and harness | 40, 280, 64, 64 code points |
 | Registry file | 65536 bytes |

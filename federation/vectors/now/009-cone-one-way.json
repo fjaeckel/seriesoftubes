@@ -1,0 +1,110 @@
+{
+  "description": "A cone of now over two edges, one of them cut. kA sells to kB, kB to kC, all joined on day 20400 (established). kC reports traffic with kB in 50 out 0 (one way only): the edge kB -> kC does not count. kA reaches kB: 1; kB 0; kC 0.",
+  "input": {
+    "now": 1767398410,
+    "board": "cone",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "founded": {
+      "kA": 20400,
+      "kB": 20400,
+      "kC": 20400
+    },
+    "states": [
+      {
+        "id": "s1",
+        "key": "kA",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kB",
+              "in": 100,
+              "out": 100
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false,
+          "cust": [
+            "kB"
+          ]
+        }
+      },
+      {
+        "id": "s2",
+        "key": "kB",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kA",
+              "in": 100,
+              "out": 100
+            },
+            {
+              "key": "kC",
+              "in": 50,
+              "out": 50
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false,
+          "cust": [
+            "kC"
+          ],
+          "up": [
+            "kA"
+          ]
+        }
+      },
+      {
+        "id": "s3",
+        "key": "kC",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kB",
+              "in": 50,
+              "out": 0
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false,
+          "up": [
+            "kB"
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 1
+      },
+      {
+        "key": "kB",
+        "value": 0
+      },
+      {
+        "key": "kC",
+        "value": 0
+      }
+    ]
+  }
+}

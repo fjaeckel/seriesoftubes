@@ -1,0 +1,151 @@
+{
+  "description": "The traffic board of now: the busier direction of what both sides' live states confirm (min() of each side's report). kA reports kB in 800 out 300, kE in 50 out 1000, kC in 1000 out 1000, kF in 5000 out 5000, kG in 700 out 700. kB reports kA in 200 out 500; kE reports kA in 100 out 100. kA: in min(800, 500) + min(50, 100) = 550, out min(300, 200) + min(1000, 100) = 300: 550. kB: in min(200, 300) = 200, out min(500, 800) = 500: 500. kE: in min(100, 1000) = 100, out min(100, 50) = 50: 100. kC sends no live state: its traffic counts 0 (unlike the 24-hour board, where a network without any record counts what the other reports) and it is not listed. kF is excluded by the server: 0, not listed. kG plays a sandbox: 0 for kA, not listed.",
+  "input": {
+    "now": 1767398410,
+    "board": "traffic",
+    "division": "all",
+    "exclude": [
+      "kF"
+    ],
+    "cities": null,
+    "founded": {},
+    "states": [
+      {
+        "id": "s1",
+        "key": "kA",
+        "t": 1767398390,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kB",
+              "in": 800,
+              "out": 300
+            },
+            {
+              "key": "kE",
+              "in": 50,
+              "out": 1000
+            },
+            {
+              "key": "kC",
+              "in": 1000,
+              "out": 1000
+            },
+            {
+              "key": "kF",
+              "in": 5000,
+              "out": 5000
+            },
+            {
+              "key": "kG",
+              "in": 700,
+              "out": 700
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s2",
+        "key": "kB",
+        "t": 1767398380,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kA",
+              "in": 200,
+              "out": 500
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s3",
+        "key": "kE",
+        "t": 1767398370,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kA",
+              "in": 100,
+              "out": 100
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s4",
+        "key": "kF",
+        "t": 1767398370,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kA",
+              "in": 5000,
+              "out": 5000
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s5",
+        "key": "kG",
+        "t": 1767398370,
+        "body": {
+          "mode": "sandbox",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kA",
+              "in": 700,
+              "out": 700
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 550
+      },
+      {
+        "key": "kB",
+        "value": 500
+      },
+      {
+        "key": "kE",
+        "value": 100
+      }
+    ]
+  }
+}

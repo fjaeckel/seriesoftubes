@@ -28,6 +28,7 @@ var kinds = map[string]kindInfo{
 	"unshun":    {false, 1024, 7776000},
 	"leave":     {false, 512, 0},
 	"report":    {false, 1024, 2592000},
+	"state":     {false, 40960, StateLife},
 	"receipt":   {false, 1024, 0},
 	"proof":     {false, 1024, 0},
 }
@@ -35,10 +36,10 @@ var kinds = map[string]kindInfo{
 // RecordKinds are the kinds a put may carry (section 5).
 var RecordKinds = []string{"announce", "stats", "offer", "accept", "decline", "genesis", "operators", "server", "hide", "shun", "unshun", "leave", "report"}
 
-// IsRecordKind reports whether k is a section 5 kind.
+// IsRecordKind reports whether k is a section 5 kind (stored records: never a live state).
 func IsRecordKind(k string) bool {
 	switch k {
-	case "receipt", "proof":
+	case "receipt", "proof", "state":
 		return false
 	}
 	_, ok := kinds[k]
@@ -116,6 +117,14 @@ type Opts struct {
 	Allow func(kind string) bool
 	// Trusted skips signatures and time: records read back from this node's own disk.
 	Trusted bool
+}
+
+// IsState allows only live states (5.11) where a record is checked.
+func IsState(k string) bool { return k == "state" }
+
+// CheckState checks a live state from a frame (5.11): the steps of 7.1 for kind state alone.
+func CheckState(v any, now int64) (*Record, string) {
+	return CheckLoose(v, now, Opts{Allow: IsState})
 }
 
 // ParseRecord checks record text, steps 2 to 8 of 7.1.

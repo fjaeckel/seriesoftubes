@@ -1,0 +1,26 @@
+{
+  "description": "A live state may be up to 900 s old (its maximum age): t = now - 900 checks.",
+  "input": {
+    "now": 1767312100,
+    "as": "state",
+    "record": {
+      "v": 1,
+      "kind": "state",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767311200,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false
+      },
+      "sig": "6EU52IS5F8BYv1aAluu8cS7AB4H9OIVHsv2XR7JYbkkM5e_OSWSEePOuqztPETek8mas0guY3WzJbAZHyVuRAQ"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "state",
+    "id": "bABOOUGuuy7a80UUOgr3FYyrgCaXUW4yHoAokr2fRoU"
+  }
+}

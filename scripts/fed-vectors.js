@@ -455,6 +455,17 @@ const SID = rid(genesis);
   bad('genesis-ipv4-leading-zero', 'One spelling per address: no leading zeros.', gNode('wss://192.168.001.20/fed'), 'bad_field');
   bad('genesis-ipv6-long-form', 'One spelling per address: IPv6 as RFC 5952 writes it (zeros compressed).', gNode('wss://[fd12:3456:0:0:0:0:0:1]/fed'), 'bad_field');
   bad('genesis-ipv6-public', 'A global IPv6 address is refused.', gNode('wss://[2001:db8::1]/fed'), 'bad_field');
+  // Live states (5.11): checked where a state is expected (as: "state", a state frame); never a record.
+  const okState = (name, d, r) => put(A, name, d, { now: NOW, as: 'state', record: r }, { ok: true, kind: r.kind, id: rid(r) });
+  const badState = (name, d, r, error) => put(A, name, d, { now: NOW, as: 'state', record: r }, { ok: false, error });
+  const live = rec('state', 'alice', NOW - 10, statsBody());
+  okState('state-full', 'A live state (5.11): the envelope of a record with kind state and the body of a stats record. Checked where a state is expected (as: "state"); its id is that of any single-signer object.', live);
+  okState('state-900-s-old', 'A live state may be up to 900 s old (its maximum age): t = now - 900 checks.', rec('state', 'alice', NOW - 900, statsMin()));
+  badState('state-901-s-old', 'A live state 901 s old is too old.', rec('state', 'alice', NOW - 901, statsMin()), 'too_old');
+  badState('state-too-new', 'A live state more than 600 s ahead of now is too new, like a record.', rec('state', 'alice', NOW + 601, statsMin()), 'too_new');
+  badState('state-own-traffic', 'A live state is checked like stats: traffic with its own key is bad_field.', rec('state', 'alice', NOW, { ...statsMin(), traffic: [{ key: pub('alice'), in: 1, out: 1 }] }), 'bad_field');
+  badState('state-stats-kind', 'Where a state is expected, a stats record is the wrong kind.', rec('stats', 'alice', T, statsMin()), 'bad_kind');
+  bad('state-not-a-record', 'A live state is not a record: put (or anywhere a record is expected) refuses its kind.', live, 'bad_kind');
 }
 
 // ======================================================================================

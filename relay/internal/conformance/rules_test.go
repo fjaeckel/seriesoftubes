@@ -112,6 +112,55 @@ func init() {
 		return map[string]any{"rows": rows}
 	}
 
+	areas["now"] = func(t *testing.T, in, _ json.RawMessage) any {
+		x := decode[struct {
+			Now      int64            `json:"now"`
+			Board    string           `json:"board"`
+			Division string           `json:"division"`
+			Exclude  []string         `json:"exclude"`
+			Cities   []string         `json:"cities"`
+			Founded  map[string]int64 `json:"founded"`
+			States   []struct {
+				ID   string          `json:"id"`
+				Key  string          `json:"key"`
+				T    int64           `json:"t"`
+				Body json.RawMessage `json:"body"`
+			} `json:"states"`
+		}](t, in)
+		q := boards.NowQuery{Now: x.Now, Board: x.Board, Division: x.Division, Exclude: map[string]bool{}, Cities: x.Cities, Founded: x.Founded}
+		for _, k := range x.Exclude {
+			q.Exclude[k] = true
+		}
+		var states []*boards.State
+		for _, s := range x.States {
+			states = append(states, &boards.State{ID: s.ID, Key: s.Key, T: s.T, Body: strict(t, s.Body).(map[string]any)})
+		}
+		rows := boards.ComputeNow(q, states)
+		// The node's live map, fed the states in order, must rank the same.
+		a := rank.New(1)
+		defer a.Close()
+		anns := map[string]*rank.Ann{}
+		for k, f := range x.Founded {
+			anns[k] = &rank.Ann{Name: k, Founded: f}
+		}
+		a.Load(nil, anns, q.Exclude, nil)
+		for _, s := range states {
+			a.State(s.ID, s.Key, s.T, s.Body, []byte(s.ID), x.Now)
+		}
+		ans, err := a.Rank(context.Background(), &rank.Slice{Board: x.Board, Measure: "now", Division: x.Division, Cities: x.Cities}, x.Now, "", -1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := []boards.Row{}
+		for _, r := range ans.Rows {
+			got = append(got, boards.Row{Key: r.Key, Value: r.Value})
+		}
+		if !slices.Equal(got, rows) {
+			t.Errorf("rank now: %v, reference %v", got, rows)
+		}
+		return map[string]any{"rows": rows}
+	}
+
 	areas["rank"] = func(t *testing.T, in, _ json.RawMessage) any {
 		x := decode[struct {
 			Now      int64           `json:"now"`

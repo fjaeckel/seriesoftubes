@@ -1,5 +1,5 @@
 {
-  "description": "How a node answers a client's frame. state \"new\": before hello; \"ready\": after welcome. Members a frame does not define are ignored. An auth frame needs id, key and sig (strings) and t (an integer); whether it checks is the auth area. A rank frame needs board, measure and division (strings); whether their values are allowed is answered bad_field, not a frame error (9.3). A nets frame needs keys (a list). board is no longer a message (version 1 replaced it with rank before any release).",
+  "description": "How a node answers a client's frame. state \"new\": before hello; \"ready\": after welcome. Members a frame does not define are ignored. An auth frame needs id, key and sig (strings) and t (an integer); whether it checks is the auth area. A rank frame needs board, measure and division (strings); whether their values are allowed is answered bad_field, not a frame error (9.3). A nets frame needs keys (a list). board is no longer a message (version 1 replaced it with rank before any release). A state frame (5.11) carries rec (the live state, checked as the records area does with as: state) and may carry an id (then it is answered ack or err; without one only an err is sent). The measure now is a value of rank and rankwhy like the others; rankwhy may carry at, the time of the snapshot the ranking used.",
   "cases": [
     {
       "input": {
@@ -376,6 +376,97 @@
       },
       "expect": {
         "error": "bad_frame"
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "{\"m\":\"state\",\"id\":8,\"rec\":{}}"
+      },
+      "expect": {
+        "ok": true
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "{\"m\":\"state\",\"rec\":{}}"
+      },
+      "expect": {
+        "ok": true
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "{\"m\":\"state\",\"id\":8}"
+      },
+      "expect": {
+        "error": "bad_frame"
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "{\"m\":\"state\",\"id\":0,\"rec\":{}}"
+      },
+      "expect": {
+        "error": "bad_frame"
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "new",
+        "frame": "{\"m\":\"state\",\"id\":8,\"rec\":{}}"
+      },
+      "expect": {
+        "error": "not_ready"
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "{\"m\":\"rank\",\"id\":4,\"board\":\"pops\",\"measure\":\"now\",\"division\":\"all\"}"
+      },
+      "expect": {
+        "ok": true
+      }
+    },
+    {
+      "input": {
+        "role": "client",
+        "speaks": [
+          1
+        ],
+        "state": "ready",
+        "frame": "{\"m\":\"rankwhy\",\"id\":4,\"board\":\"pops\",\"measure\":\"now\",\"division\":\"all\",\"key\":\"k\",\"at\":1767312000}"
+      },
+      "expect": {
+        "ok": true
       }
     }
   ]

@@ -1,0 +1,31 @@
+{
+  "description": "A live state is checked like stats: traffic with its own key is bad_field.",
+  "input": {
+    "now": 1767312100,
+    "as": "state",
+    "record": {
+      "v": 1,
+      "kind": "state",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312100,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [
+          {
+            "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+            "in": 1,
+            "out": 1
+          }
+        ],
+        "tier1": false,
+        "shareCountry": false
+      },
+      "sig": "MM5_zEpocytdgdzoy3avMPgfH22p9qEcGJVAYZuqI5pd0E_W4CXbw-3vudVc5Epw1z6FY0pXInI6pPnGG2e0DA"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

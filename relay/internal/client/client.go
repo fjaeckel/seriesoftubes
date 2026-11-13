@@ -34,6 +34,7 @@ type Welcome struct {
 	Node   string
 	Now    int64
 	Impl   *update.Impl // what the node runs, when it says (informational)
+	Feats  []string     // optional messages the node takes (9.3 feats)
 }
 
 // ErrFrame is an err frame from the node.
@@ -101,6 +102,7 @@ func Dial(ctx context.Context, url string, o Options) (*Client, error) {
 	cl.Welcome.Node, _ = f.Str("node")
 	cl.Welcome.Now, _ = wire.Int(f.Raw["now"])
 	cl.Welcome.Impl = update.ReadImpl(f.Raw["impl"])
+	cl.Welcome.Feats = wire.Feats(f.Raw["feats"])
 	go cl.loop()
 	return cl, nil
 }

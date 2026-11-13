@@ -1,0 +1,25 @@
+{
+  "description": "A live state more than 600 s ahead of now is too new, like a record.",
+  "input": {
+    "now": 1767312100,
+    "as": "state",
+    "record": {
+      "v": 1,
+      "kind": "state",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312701,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false
+      },
+      "sig": "tZvWJug2IXwbCtUjkURTQcdUQAL5PGwqdxxEmPpMTAgbrLieWsHKN_zEMS6bAYU3eXxKeXVsN46ZIY08g_pXCA"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "too_new"
+  }
+}

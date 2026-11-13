@@ -228,17 +228,22 @@ func init() {
 			Now    int64           `json:"now"`
 			Record json.RawMessage `json:"record"`
 			Text   *string         `json:"text"`
+			As     string          `json:"as"` // "state": where a live state is expected (5.11)
 		}](t, in)
+		o := fed.Opts{}
+		if x.As == "state" {
+			o.Allow = fed.IsState
+		}
 		var r *fed.Record
 		var code string
 		if x.Text != nil {
 			if len(*x.Text) > fed.ClientFrame {
 				code = fed.TooBig // step 1: the frame limit
 			} else {
-				r, code = fed.ParseRecord([]byte(*x.Text), x.Now, fed.Opts{})
+				r, code = fed.ParseRecord([]byte(*x.Text), x.Now, o)
 			}
 		} else {
-			r, code = fed.ParseRecord(x.Record, x.Now, fed.Opts{})
+			r, code = fed.ParseRecord(x.Record, x.Now, o)
 		}
 		if code != "" {
 			return errOr(code, nil)

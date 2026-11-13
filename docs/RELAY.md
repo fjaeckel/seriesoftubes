@@ -438,6 +438,17 @@ How it works (`relay/internal/rank`):
 - **Memory.** About 4.6 KB per network that reports player traffic (its per-slot totals, 32 bits each until a network
   needs more) plus about 400 bytes per stats record held (the record packed, sharing other networks' keys with them).
   With the store's own entry, a relay takes about 0.7 KB per record in all: see [Memory and disk](#memory-and-disk).
+- **Boards of now.** Games also send their current numbers every 10 s while they play (live states, protocol 5.11),
+  and the boards' default view ranks those (10.13): POPs, pies and total traffic as reported now, traffic with
+  players from both sides' current reports (a partner that is not playing counts 0), the customer cone over the
+  current transit relationships. Live states are never written anywhere: your node keeps the newest of each network
+  in memory (at most 50000 networks and 128 MB), forgets a network 15 minutes after its last state, and loses them
+  all on a restart (games send again within seconds). A state that is newer than what your node had goes on to the
+  servers it syncs players with, in batches every 2 seconds, and from them onward; so a player on any server shows
+  on every connected server's boards of now within a few seconds. Each connection may send one state every 4 seconds.
+  A ranking of now is worked out from a snapshot of the live states at most every 2 seconds per slice, on the same
+  workers, and kept 30 seconds for the games' spot checks. `relay_live_states` counts the networks held,
+  `relay_states_total` the states taken from clients and nodes and sent to nodes.
 - `relay board` shows a whole board as players' games see it.
 
 ## Upgrades, backups and data

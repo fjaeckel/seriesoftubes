@@ -408,7 +408,7 @@ func (p *slots) shift(d int) {
 // filters do not filter.
 type Slice struct {
 	Board    string   // traffic, total, pops, pies, cone
-	Measure  string   // total, growth
+	Measure  string   // total, growth, now
 	Division string   // all, human, ai
 	Cities   []string // region: sorted, unique; nil for the world
 	Model    *string

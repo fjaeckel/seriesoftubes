@@ -691,8 +691,8 @@ func checkBody(r *Record) string {
 	switch r.Kind {
 	case "announce":
 		return checkAnnounce(r)
-	case "stats":
-		return checkStats(r)
+	case "stats", "state":
+		return checkStats(r) // a live state holds the fields of a stats record (5.11)
 	case "offer":
 		return checkOffer(r)
 	case "accept":

@@ -40,6 +40,8 @@ type Answer struct {
 	N    int   `json:"n"`
 	Rows []Row `json:"rows"`
 	Me   *Me   `json:"me"`
+	// At: the time of the snapshot of live states a ranking of now is for (0 for the other measures).
+	At int64 `json:"at,omitempty"`
 	// Cached: the slice was already worked out (or being worked out) for this state when asked.
 	Cached bool `json:"-"`
 }
@@ -247,21 +249,18 @@ func (a *Agg) total(x *net, board string, rg *region, lo, hi int, from int64, bu
 		buf[0] = v
 		return p95(v)
 	case "pops", "pies":
-		var best int64
-		any := false
+		// The value of the latest slot of the window with a value (runs come in order).
+		var latest int64
 		x.runs(from, lo, hi, func(i, j int, r *stat) {
 			if r == nil || !r.normal {
 				return
 			}
-			v := int64(r.pies)
+			latest = int64(r.pies)
 			if board == "pops" {
-				v = r.popsIn(rg.set())
-			}
-			if !any || v < best {
-				best, any = v, true
+				latest = r.popsIn(rg.set())
 			}
 		})
-		return best
+		return latest
 	case "total":
 		v := buf[0][:0]
 		x.runs(from, lo, hi, func(i, j int, r *stat) {
@@ -370,6 +369,9 @@ func (a *Agg) slice(f *flight, q *Slice, c int64) {
 func (a *Agg) Rank(ctx context.Context, q *Slice, now int64, me string, n int) (*Answer, error) {
 	if !a.ready.Load() {
 		return nil, ErrNotReady
+	}
+	if q.Measure == "now" {
+		return a.rankNow(ctx, q, now, me, n)
 	}
 	c := a.prepare(now)
 	// Announces change all the time (terms, day, traffic); only slices that read them depend on

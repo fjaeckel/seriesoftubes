@@ -1,0 +1,138 @@
+{
+  "description": "The customer cone board of now: one graph of the live states. now is on UTC day 20455; a customer is established when its newest announce has founded <= 20425 (30 days). kA sells transit to kB, kB to kC, kD to kE; each edge listed by both sides (cust and up) with traffic both ways. kB joined on day 20400, kC on day 20440 (15 days ago: not established), kE on day 20400 but sends no live state. kA reaches kB: 1; kB: kC is too new: 0; kC 0; kD: kE has no live state: 0.",
+  "input": {
+    "now": 1767398410,
+    "board": "cone",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "founded": {
+      "kA": 20000,
+      "kB": 20400,
+      "kC": 20440,
+      "kE": 20400
+    },
+    "states": [
+      {
+        "id": "s1",
+        "key": "kA",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kB",
+              "in": 100,
+              "out": 100
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false,
+          "cust": [
+            "kB"
+          ]
+        }
+      },
+      {
+        "id": "s2",
+        "key": "kB",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kA",
+              "in": 100,
+              "out": 100
+            },
+            {
+              "key": "kC",
+              "in": 50,
+              "out": 50
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false,
+          "cust": [
+            "kC"
+          ],
+          "up": [
+            "kA"
+          ]
+        }
+      },
+      {
+        "id": "s3",
+        "key": "kC",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kB",
+              "in": 50,
+              "out": 50
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false,
+          "up": [
+            "kB"
+          ]
+        }
+      },
+      {
+        "id": "s4",
+        "key": "kD",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kE",
+              "in": 10,
+              "out": 10
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false,
+          "cust": [
+            "kE"
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 1
+      },
+      {
+        "key": "kB",
+        "value": 0
+      },
+      {
+        "key": "kC",
+        "value": 0
+      },
+      {
+        "key": "kD",
+        "value": 0
+      }
+    ]
+  }
+}

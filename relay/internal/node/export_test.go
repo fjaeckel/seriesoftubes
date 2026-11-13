@@ -51,3 +51,11 @@ func SetReportLimits(day, total int) func() {
 
 // RankReady reports whether the leaderboards finished loading.
 func (r *Relay) RankReady() bool { return r.rank.Ready() }
+
+// SetStatesEvery changes how often live states go out to other nodes (set before the relays
+// start); it returns the restore.
+func SetStatesEvery(d time.Duration) func() {
+	old := statesEvery
+	statesEvery = d
+	return func() { statesEvery = old }
+}

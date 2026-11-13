@@ -88,7 +88,11 @@ func (r *Relay) rankFrame(s *session, f *wire.Frame) {
 			}
 			me = map[string]any{"rank": rk, "value": ans.Me.Value}
 		}
-		s.enqueue(map[string]any{"m": "ranks", "id": f.ID, "slot": ans.Slot, "n": int64(ans.N), "rows": rows, "me": me})
+		m := map[string]any{"m": "ranks", "id": f.ID, "slot": ans.Slot, "n": int64(ans.N), "rows": rows, "me": me}
+		if q.Measure == "now" {
+			m["at"] = ans.At
+		}
+		s.enqueue(m)
 	case "rankwhy":
 		q, _, code := rank.ParseRequest(f)
 		key, _ := f.Str("key")
@@ -97,6 +101,10 @@ func (r *Relay) rankFrame(s *session, f *wire.Frame) {
 		}
 		if code != "" {
 			s.fail(f.ID, code, 0)
+			return
+		}
+		if q.Measure == "now" {
+			r.whyNow(s, f, q, key, now)
 			return
 		}
 		ids, anns, slot, err := r.rank.Why(q, key, now)
@@ -160,4 +168,41 @@ func (r *Relay) rankFrame(s *session, f *wire.Frame) {
 		}
 		s.enqueue(map[string]any{"m": "netstats", "id": f.ID, "nets": ns, "reports": rs})
 	}
+}
+
+// whyNow answers a rankwhy for the measure now (9.5): the live states behind the row, from the
+// snapshot the ranking at f's at used when it is still kept, with the key's newest stats record
+// (its receipt gives the country) and the announces; recs frames carry slot and at.
+func (r *Relay) whyNow(s *session, f *wire.Frame, q *rank.Slice, key string, now int64) {
+	at, _ := wire.Int(f.Raw["at"])
+	states, ids, anns, at, err := r.rank.WhyNow(q, key, now, at)
+	if errors.Is(err, rank.ErrTooMany) {
+		s.fail(f.ID, fed.TooMany, 0)
+		return
+	}
+	if err != nil {
+		s.rankFail(f.ID, err)
+		return
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if !r.room(s, f.ID) {
+		return
+	}
+	vals := make([]map[string]any, len(states))
+	for i, l := range states {
+		vals[i] = map[string]any{"rec": canon.Raw(l.Raw), "rcpt": []any{}}
+	}
+	list := make([]*store.Entry, 0, len(ids)+len(anns))
+	for _, id := range ids {
+		if e := r.st.Get(id); e != nil {
+			list = append(list, e)
+		}
+	}
+	for _, k := range anns {
+		if a := r.newestAnnEntry(k); a != nil {
+			list = append(list, a)
+		}
+	}
+	r.later(s, &listPager{rid: f.ID, m: "recs", vals: vals, entries: list, slot: fed.Slot(now), at: at})
 }

@@ -1,5 +1,5 @@
 {
-  "description": "now = 1767398410, so c = 1767398400; slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. Pies: kA 50, then 30 from i = 350, then 60 from i = 400: lowest 30. kB has no pies field (no Pie in the Sky company): not listed. kC has no pies field until i = 500, then 70: those earlier slots count 0, lowest 0.",
+  "description": "now = 1767398410, so c = 1767398400; slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. Pies: the value at the latest slot of the window with a value. kA 50, then 30 from i = 350, then 60 from i = 400: 60. kB has no pies field (no Pie in the Sky company): not listed. kC has no pies field until i = 500, then 70: 70.",
   "input": {
     "now": 1767398410,
     "board": "pies",
@@ -95,12 +95,12 @@
   "expect": {
     "rows": [
       {
-        "key": "kA",
-        "value": 30
+        "key": "kC",
+        "value": 70
       },
       {
-        "key": "kC",
-        "value": 0
+        "key": "kA",
+        "value": 60
       }
     ]
   }

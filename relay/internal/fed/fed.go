@@ -93,6 +93,7 @@ const (
 	NewcomerPrice   = 750 // per mille of the card price a newcomer pays (10.10)
 	AutoPeers       = 64  // most registry servers one server syncs with automatically (10.9)
 	AutoFallback    = 900 // seconds without a session before the higher identity of a pair dials too (10.9)
+	StateLife       = 900 // a live state counts, and is kept in memory, until its t is this many seconds old (5.11)
 )
 
 // Version is the protocol version this document describes.

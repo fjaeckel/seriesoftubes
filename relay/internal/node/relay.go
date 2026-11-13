@@ -189,6 +189,7 @@ func New(o Options) (*Relay, error) {
 		m.Gauge("relay_clients", "Open client connections.", func() float64 { return float64(r.count(false)) })
 		m.Gauge("relay_node_sessions", "Open node sessions.", func() float64 { return float64(r.count(true)) })
 		m.Gauge("relay_records", "Records stored.", func() float64 { r.mu.Lock(); defer r.mu.Unlock(); return float64(r.st.Len()) })
+		m.Gauge("relay_live_states", "Live states held in memory (networks playing now).", func() float64 { n, _ := r.rank.LiveStats(); return float64(n) })
 		m.Gauge("relay_disk_bytes", "Bytes used by the record files.", func() float64 {
 			r.mu.Lock()
 			defer r.mu.Unlock()
@@ -875,6 +876,7 @@ func (r *Relay) after(e *store.Entry, rec *fed.Record, cc string, now int64) {
 		if rec.T > r.left[rec.Key] {
 			r.left[rec.Key] = rec.T
 		}
+		r.rank.DropState(rec.Key)
 		var drop []string
 		for x := range r.st.Key(rec.Key) {
 			if x.Kind != "leave" && x.T <= rec.T {
@@ -926,7 +928,7 @@ func itemSize(it map[string]any) int {
 // records, and players' reports, which are for this server's operators alone).
 func classOf(kind string) string {
 	switch kind {
-	case "announce", "stats", "offer", "accept", "decline", "leave":
+	case "announce", "stats", "offer", "accept", "decline", "leave", "state":
 		return "players"
 	case "hide":
 		return "advice"
@@ -1272,6 +1274,9 @@ func (r *Relay) Run() {
 			r.rank.Warm(now)
 		}
 	})
+	// Live states go out to other nodes in batches; quiet keys are forgotten (5.11).
+	r.loop("states", statesEvery, r.flushStates)
+	r.loop("live", 30*time.Second, func() { r.rank.ExpireStates(r.now()) })
 	// Votes expire and shuns lift with time alone: clients following the excluded list hear of it.
 	r.loop("shun", time.Minute, func() {
 		r.mu.Lock()

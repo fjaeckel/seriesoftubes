@@ -1,5 +1,5 @@
 {
-  "description": "now = 1767398410, so c = 1767398400; slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. POPs: the lowest total in the current window. kA has 2 for i = 288..399, then 3: 2. kB has no value for i = 288..299, 5 for 300..499, 7 after: 5. kC reported 10 at i = 100, carried forward (475 slots later is 142500 s, under 7 days): 10. kD is in sandbox mode: not listed.",
+  "description": "now = 1767398410, so c = 1767398400; slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. POPs: the value at the latest slot of the current window where the key has a value (the effective record at c - 300 for a listed key). kA has 2 for i = 288..399, then 3: 3. kB has no value for i = 288..299, 5 for 300..499, 7 after: 7. kC reported 10 at i = 100, carried forward (475 slots later is 142500 s, under 7 days): 10. kD is in sandbox mode: not listed.",
   "input": {
     "now": 1767398410,
     "board": "pops",
@@ -112,11 +112,11 @@
       },
       {
         "key": "kB",
-        "value": 5
+        "value": 7
       },
       {
         "key": "kA",
-        "value": 2
+        "value": 3
       }
     ]
   }
