@@ -851,6 +851,10 @@ groups:
           summary: '{{ $labels.instance }} has used 80% of its open files (raise LimitNOFILE or lower maxClients)'
 ```
 
+**A Grafana dashboard** ready to import: [relay/grafana/tubes-relay.json](../relay/grafana/tubes-relay.json)
+(Dashboards → New → Import, then pick your Prometheus). It shows players, sync, records, refusals, leaderboards and the
+process, per server and node, using the `server` and `node` labels above.
+
 Change the thresholds to suit your machine. Other series worth a graph: `relay_clients` and `relay_node_sessions`
 (open connections), `relay_records_in_total` by `kind`, `relay_records`, `relay_refused_total` by `code`,
 `relay_syncs_total`, `relay_rank_answers_total` by `cache` (hit or miss), `relay_build_info` and
