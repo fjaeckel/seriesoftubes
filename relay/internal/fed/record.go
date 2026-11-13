@@ -27,12 +27,13 @@ var kinds = map[string]kindInfo{
 	"shun":      {false, 1024, 7776000},
 	"unshun":    {false, 1024, 7776000},
 	"leave":     {false, 512, 0},
+	"report":    {false, 1024, 2592000},
 	"receipt":   {false, 1024, 0},
 	"proof":     {false, 1024, 0},
 }
 
 // RecordKinds are the kinds a put may carry (section 5).
-var RecordKinds = []string{"announce", "stats", "offer", "accept", "decline", "genesis", "operators", "server", "hide", "shun", "unshun", "leave"}
+var RecordKinds = []string{"announce", "stats", "offer", "accept", "decline", "genesis", "operators", "server", "hide", "shun", "unshun", "leave", "report"}
 
 // IsRecordKind reports whether k is a section 5 kind.
 func IsRecordKind(k string) bool {

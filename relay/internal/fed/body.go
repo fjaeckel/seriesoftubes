@@ -683,6 +683,10 @@ func checkBody(r *Record) string {
 		return object(r.Body, []field{req("server", idCheck), req("target", keyCheck)})
 	case "leave":
 		return object(r.Body, nil)
+	case "report":
+		// A player's report to its server's operators (5.10): a pre-made reason, never about itself.
+		return object(r.Body, []field{req("server", idCheck), req("target", notSelfKey(r.Key)),
+			req("reason", oneOf("cheating", "offensive_name", "spam", "abuse"))})
 	case "receipt":
 		return object(r.Body, []field{req("rec", idCheck), req("server", idCheck), opt("cc", cc)})
 	case "proof":

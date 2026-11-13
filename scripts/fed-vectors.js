@@ -438,6 +438,13 @@ const SID = rid(genesis);
   bad('stats-cust-duplicate', 'The same customer twice.', rec('stats', 'alice', T, { ...statsMin(), cust: [pub('bob'), pub('bob')] }), 'duplicate');
   bad('stats-up-bad-key', 'An upstream that is not a key.', rec('stats', 'alice', T, { ...statsMin(), up: ['nope'] }), 'bad_key');
   bad('stats-tier2-string', 'tier2 is a Bool.', rec('stats', 'alice', T, { ...statsMin(), tier2: 'yes' }), 'bad_field');
+
+  // --- report (5.10): a player tells its own server's operators about a network ---
+  ok('report', 'report: a player tells its server\'s operators about a network, with a reason from the fixed list.', rec('report', 'bob', T, { server: SID, target: pub('mallory'), reason: 'offensive_name' }));
+  bad('report-self', 'A network cannot report itself: target is not the author.', rec('report', 'bob', T, { server: SID, target: pub('bob'), reason: 'spam' }), 'bad_field');
+  bad('report-free-text-reason', 'report reasons come from the same fixed list as shun votes.', rec('report', 'bob', T, { server: SID, target: pub('mallory'), reason: 'he was rude' }), 'bad_field');
+  bad('report-note', 'No free text anywhere in a report.', rec('report', 'bob', T, { server: SID, target: pub('mallory'), reason: 'abuse', note: 'see chat' }), 'unknown_field');
+  bad('time-report-old', 'report older than 30 days.', rec('report', 'bob', NOW - 30 * DAY - 1, { server: SID, target: pub('mallory'), reason: 'spam' }), 'too_old');
 }
 
 // ======================================================================================

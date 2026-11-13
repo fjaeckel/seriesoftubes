@@ -483,6 +483,28 @@ A server's vote to exclude a network everywhere, and its withdrawal (10.7).
 the leave's `t` (except the `leave` itself, kept 180 days so it spreads), and remove it from boards and maps at once.
 Records with a later `t` are accepted again, as a network back from nothing.
 
+### 5.10 `report` (client)
+
+A player tells the operators of one of its joined servers that a network breaks the rules. Only that server's operators
+ever see it (9.3, 9.4, 12): a report is not a vote and excludes no one; operators decide what to do (hide it, 5.7, or
+vote, 5.8).
+
+| Field | Type | Rule |
+| --- | --- | --- |
+| `server` | Id | The server whose operators it is for |
+| `target` | Key | The network reported; not the author (`bad_field`) |
+| `reason` | string | `cheating`, `offensive_name`, `spam` or `abuse`, as for `shun`. No free text anywhere |
+
+A node takes a report only when `server` is its own server (`not_node` otherwise) and, from a client, only from a key it
+holds an `announce` of (`refused`): operators judge reports by who sent them. It keeps one report per author and
+`target`, the newest (greatest `t`, then lowest id): a newer one replaces it, an older one is `refused`. It MAY bound
+what one author and everyone can make it keep (`too_many`); the reference relay takes at most 20 new reports per author
+per day, counted by receipt slot, and keeps at most 65536. Reports are kept 30 days (13.1).
+
+```json
+{"v":1,"kind":"report","key":"<bob>","t":1767312000,"sig":"…","body":{"server":"<id>","target":"<mallory>","reason":"offensive_name"}}
+```
+
 ## 6. Receipts and proofs
 
 Signed with the same envelope, but never stored or forwarded as records on their own; `put` refuses them (`bad_kind`).
@@ -536,7 +558,7 @@ A received record is checked in this order; the first failing step gives the err
 7. Signatures (3.2, 4): `bad_sig`; author not among `sigs`: `bad_field`.
 8. Time (4): `too_old`, `too_new`.
 9. State (relays and games, with what they know): `shunned`, `refused`, `not_operator`, `no_majority`, `bad_chain`,
-   `unknown_server`.
+   `unknown_server`; for a `report` also `not_node` and `too_many` (5.10).
 
 Steps 1 to 8 depend only on the record and `now`, and are what the `records` vectors test. (The registry check,
 11.2, runs them with the wall clock as `now`.)
@@ -565,7 +587,7 @@ Steps 1 to 8 depend only on the record and `now`, and are what the `records` vec
 | `too_old` | Before 2025-01-01 or past the kind's maximum age; an `auth` more than 600 s behind | no |
 | `too_new` | More than 600 s ahead (records and `auth`) | no |
 | `not_operator` | Signed by a key that is not a current operator of that server | no |
-| `not_node` | A node key that is not one of the server's nodes | yes for node sessions |
+| `not_node` | A node key that is not one of the server's nodes; a `report` for a server this node is not a node of | yes for node sessions |
 | `no_majority` | Not signed by a strict majority of the operators | no |
 | `bad_chain` | Operator chain broken: unknown `prev`/`head`, lists not matching | no |
 | `unknown_server` | A server identity this node does not know | no |
@@ -733,6 +755,10 @@ it is neither answered nor a reason to close, so an older game keeps working wit
 - **Shun votes go to operators only.** A node sends `shun` and `unshun` records to a client session only when it proved
   a key that is a current operator of the node's server: other sessions never get them, from `sub` (backlog and live),
   `fetch` or `rankwhy`, and are not told they were left out. Between nodes they travel unchanged (9.4).
+- **Reports go to their server's operators only** (5.10). A node sends a `report` to a client session only when it
+  proved a key that is a current operator of the node's server, like the votes: never to its author or any other
+  session, from `sub` (backlog and live), `fetch` or `rankwhy`, and other sessions are not told they were left out. A
+  game puts a report only to a node of the server it names. Between nodes it travels only within that server (9.4).
 - **Deals go to their two parties only** (5.3). A node sends an `offer`, `accept` or `decline` to a client session only
   when that session proved (`auth`) the record's author or its `to`. The exceptions are public by design: an `offer`
   without `to` (an open consortium project) goes to everyone, and so does an `accept` or `decline` of such an offer
@@ -799,7 +825,8 @@ Nodes of one server, and nodes of different servers that sync, use the same tran
      already listed instead of through the new node.
 2. **Classes.** `players` (`announce`, `stats`, `offer`, `accept`, `decline`, `leave`), `catalog` (gossip), `advice`
    (`hide`). `shun` and `unshun` records **always travel**, whatever the classes. Between nodes of the same server all
-   classes plus `genesis`, `operators` (with every signature) and `server` records travel. A server MAY take records
+   classes plus `genesis`, `operators` (with every signature) and `server` records travel, and `report` records (5.10),
+   which are in no class: they **never** travel to another server, and a node takes none from one (`bad_kind`). A server MAY take records
    without passing them on.
 3. **Inventory.** After `carry`, each side sends `inv` for what it will send; the other answers `want` with ids it
    neither has nor has refused; the first side `push`es them. Afterwards new records are `push`ed as they arrive.
@@ -1299,6 +1326,10 @@ of 9.3 and an optional webhook; see docs/RELAY.md). It never tells anyone else.
    sells transit to and buys it from (`cust`, `up`), never the price or terms, as BGP paths show real ones.
 10. No operator can end other players' deals alone: a game ends running deals with an excluded network only when most
    of its joined servers, and at least two, list it (10.7).
+11. Reports are for the operators of the server they name (5.10): a node sends them only to sessions that proved an
+   operator key of its server, and only to the other nodes of that server. The reported network, other players and
+   other servers never learn that a report was made, by whom or why. Operators see the reporters' network keys and
+   names, as on any record: networks, never people.
 
 ## 13. Constants
 
@@ -1319,6 +1350,7 @@ of 9.3 and an optional webhook; see docs/RELAY.md). It never tells anyone else.
 | Voter: answered within | 1209600 s (14 days) |
 | Gossip expiry | 604800 s (7 days) |
 | Offer kept by relays | 2592000 s (30 days) |
+| Report kept by relays | 2592000 s (30 days) |
 | Quiet: fading, dark, forgotten | 604800, 3196800, 15552000 s |
 | Deal terms grace | 86400 s |
 | Shortest exchange port term | 30 days |
@@ -1341,6 +1373,7 @@ of 9.3 and an optional webhook; see docs/RELAY.md). It never tells anyone else.
 | `shun` | one | 1024 | 7776000 s (90 days) |
 | `unshun` | one | 1024 | 7776000 s |
 | `leave` | one | 512 | none |
+| `report` | one | 1024 | 2592000 s (30 days) |
 | `receipt` | one (a node) | 1024 | none |
 | `proof` | one (a node) | 1024 | ±300 s |
 
@@ -1364,6 +1397,7 @@ of 9.3 and an optional webhook; see docs/RELAY.md). It never tells anyone else.
 | `rankwhy`: networks listed, records | 512, 20000 |
 | `facets`: models and harnesses, countries | 64, 256 each |
 | Hide lists together | 512 |
+| Reports kept: per author and target; new per author and day; in all (reference relay, 5.10) | 1; 20; 65536 |
 | Chain in a registry file or catalog entry | 64 |
 | Catalog entry (canonical JSON) | 61440 bytes |
 | Gossip path | 16 |

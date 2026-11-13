@@ -90,7 +90,9 @@ const FED_BODY={
   hide:FdObj([['server',FdId],['hide',FdKeys(512)],['names',FdKeys(512)],['refuse',FdKeys(512)]],b=>b.hide.length+b.names.length+b.refuse.length>512?'too_many':null),
   shun:FdObj([['server',FdId],['target',FdK],['reason',FdOne('cheating','offensive_name','spam','abuse')]]),
   unshun:FdObj([['server',FdId],['target',FdK]]),
-  leave:FdObj([])};
+  leave:FdObj([]),
+  // A player's report to its server's operators (§5.10): a pre-made reason, never about itself.
+  report:FdObj([['server',FdId],['target',(v,c)=>FdK(v)||(v===c.rec.key?FdBF:null)],['reason',FdOne('cheating','offensive_name','spam','abuse')]])};
 const FED_REC=Object.fromEntries(Object.keys(FED_KIND).map(k=>[k,1]));
 
 // The envelope (§4, §7.1 step 4). kinds: the kinds allowed here.

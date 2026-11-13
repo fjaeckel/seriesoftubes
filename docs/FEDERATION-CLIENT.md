@@ -8,7 +8,7 @@ Code: `src/game/60-features/81-fed-core.js` to `88-fed-worker.js`, actions in `s
 declaration in `src/agent/77-fed.js`. Everything is plain functions in the page's one scope, named `fed…` (`FED` is the
 runtime object). Tests: `tests/federation-*.test.js`; `tests/helpers/fed.js` has fake relay nodes on a virtual clock.
 End to end against the real relay: `node scripts/fed-e2e.js` builds the Go relay, serves it over TLS on loopback and
-drives two players in Chromium through joining, announcing, deals, a shun and the boards (about 6 minutes; not in CI).
+drives two players in Chromium through joining, announcing, deals, a shun, a report and the boards (about 6 minutes; not in CI).
 
 ## Rules that hold everywhere
 
@@ -143,6 +143,8 @@ from" a server passes that server's URLs.
 | `fedNetworks(now?)` | Other players' networks from cached announces: `[{key, rec, id, heard, quiet, srv}]` (`srv`: the servers it was heard on); forgets those silent 180 days |
 | `fedShunned()`, `fedConfirmed()`, `fedExcl()`, `fedExclInfo(key)` | Keys listed as excluded by any joined server, as each last sent its list (kept offline); keys whose exclusion is confirmed (§10.7: listed by a strict majority of the joined servers that sent a list, and by at least two; `fedExclConfirmed(m, n)`); both with who lists what; about one key `{shunned, confirmed, servers: [{srv, url}], reasons}`, the reasons (a set, no counts) only for this network's own key |
 | `fedShunInfo(key)` | Operators only: the tally (§10.7) from the votes their nodes sent, `{voters, need, votes, shunned, reasons}` with counts |
+| `fedReport(target, reason, servers)` | Reports a network (§5.10) to the operators of joined servers (ids, connected now): a signed `report` per server, `put` to that server's node only, never queued. `{ok: [ids], failed: [{srv, error}]}` or `{error}` (`bad_field`, `offline`, `too_many`: at most 10 networks a day from one network). `fedReported()`, `fedReportedOf(target)`: what this network reported in the last 30 days (`kv` `reported#<network key>`) |
+| `fedReportsFor(server)` | Operators only: the reports their nodes sent about networks on that server, `[{target, reasons {reason: count}, reporters [keys], t}]`, newest first |
 
 Behaviour (§9): one connection per joined server; `hello` → `welcome`; when the registry knows the server, the node
 must be one of its nodes and answer a `challenge` (otherwise the next node is tried); nothing is sent before. Then
@@ -156,7 +158,9 @@ Then the queue is put (a record leaves it once every joined server took it, or r
 `auth` with `op: true` does a second `sub` follow `shun` and `unshun` from its own cursor, and votes are kept only then,
 only on a device with an operator key, and only when signed by an operator of a voting registry server (§10.7);
 importing or removing the operator key proves it to the connected servers or stops following and deletes the votes
-(`fedOpChanged`). Every game keeps each joined server's `excluded` list (pages joined first). A network on any of
+(`fedOpChanged`). Reports (§5.10) likewise: with `op: true` a third `sub` follows `report` from its own cursor
+(`rcursors`), and only reports naming that server, from its own node, are kept (`fedReportsAdd`: the newest per reporter
+and network, 30 days, at most 4096). Every game keeps each joined server's `excluded` list (pages joined first). A network on any of
 them is hidden (boards, looking glass, the routing snapshot, unless a deal with it still runs) and gets no new deals
 (requests answer the miss `excluded`, its offers are declined `excluded`, waiting ones cannot be accepted); running
 deals end only once the exclusion is confirmed (§10.7), so one server cannot end anyone's deals: until then that
@@ -229,7 +233,7 @@ Stores `ann` (other networks' newest announce and `heard`, at most 5000, the lon
 over, counted without reading the store each time, forgotten after 180 days), `kv` (`registry`, `gossip`, `ranks` (the last answer per joined URL, network and slice, at most 48), `facets:<URL>`, `nets:<URL>`, `untrusted` (servers caught, for 24 hours), `excl:<joined URL>` (`{at, srv, keys, me, reasons}`), `hide:<server>`,
 `cursor:<node>#<network key>` (cursors are per network: what a sub gives depends on the key proved), `dpend#<network
 key>` (sealed deal records waiting for their sender's announce, at most 256, 30 days), and on an operator's device only
-`votes` until expired and `vcursors` (per `<node>#<network key>`); without an operator key they are
+`votes` until expired and `vcursors` (per `<node>#<network key>`), `reports` and `rcursors`; without an operator key they are
 deleted when a session starts or the sheet opens) and `op` (the operator key). Every access is wrapped; without IndexedDB (or when it fails) the same calls
 use memory for the tab. `fedGet/fedPut/fedDel/fedAll(store, …)`.
 
@@ -254,7 +258,7 @@ or the node's code). `fedErrLog`/`fedErrs(server?)`: the last 24 connection and 
 ## The interface (`95-modals/47-49-fed-*.js`, actions `90-actions/94-fed-ui.js`)
 
 Sheets (modals, so bottom sheets on phones) opened with `ACT.fuOpen({v})`: `home` (multiplayer settings), `join`,
-`move`, `quit`, `opkey`, `boards`, `filters`, `glass`, `server` (`id`), `net` (`key`). The HUD's status dot is `#hFed`.
+`move`, `quit`, `opkey`, `boards`, `filters`, `glass`, `server` (`id`), `net` (`key`), `report` (`key`). The HUD's status dot is `#hFed`.
 An invite link is `#join=<node URL>` in the page address. Labels are `fedui.*`.
 
 **Relay versions and the update banner.** A node's `welcome` may say what it runs (§9.3 `impl`, read by `fedImpl`, kept
@@ -276,6 +280,14 @@ Settings, How to play, the home sheet and the help sheet. Each takes `{from}` (`
 short stack `UI.info`, so Back (`ACT.infoBack`) returns where it came from and × (`ACT.infoClose`) closes everything;
 Settings' `UI.setOpen` is put aside meanwhile so it cannot redraw over the sheet. Nothing is fetched: the web copy,
 `site/privacy.html`, is only a link. Its facts follow `docs/RELAY.md` (what relays keep) and §12; change both together.
+
+**Reporting** (`95-modals/49-fed-report.js`, actions `90-actions/94-fed-report.js`). "Report" on a network's looking
+glass sheet and on a player network's deals sheet (`ACT.fuReport({key, from})`) opens the `report` sheet: one of the four
+reasons (chips), which joined servers' operators get it (connected ones; by default those the network was heard on,
+else all connected), and "Also mute this network". No text field. The toast names the servers; the sheet goes back to
+where it came from (the deals sheet too). An operator's panel lists "Reports from players" for that server: per network
+the reasons with counts, how many players reported it, when, and on demand ("Who reported?") the reporters' network
+names; buttons hide it on this server or vote to shun it with the most-given reason (`fuOpHide`, `fuOpShun`).
 
 ### Starting in multiplayer (`95-modals/47-fed-start.js`, actions `90-actions/94-fed-start.js`)
 

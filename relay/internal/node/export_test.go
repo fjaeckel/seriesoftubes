@@ -41,3 +41,10 @@ func (r *Relay) RefusedLen() int { r.mu.Lock(); defer r.mu.Unlock(); return len(
 
 // MaxRefused is the bound of RefusedLen.
 func MaxRefused() int { return maxRefused }
+
+// SetReportLimits lowers the reports per reporter and day and the reports kept; it returns the restore.
+func SetReportLimits(day, total int) func() {
+	d, t := maxReportsPerDay, maxReports
+	maxReportsPerDay, maxReports = day, total
+	return func() { maxReportsPerDay, maxReports = d, t }
+}

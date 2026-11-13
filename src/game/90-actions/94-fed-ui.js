@@ -4,7 +4,7 @@
 async function fuDo(p,okHtml){FU.busy=true;FU.msg=null;fuRender();let r;try{r=await p;}catch(e){r={error:'internal'};}FU.busy=false;
   if(r&&r.error)FU.msg={bad:true,html:fuErrText(r.error)};else if(okHtml)FU.msg={html:okHtml};return r;}
 Object.assign(ACT,{
- fuOpen:({v='home',id,key,back}={})=>{if(!['home','join','move','quit','opkey','boards','filters','glass','server','net'].includes(v))return;
+ fuOpen:({v='home',id,key,back}={})=>{if(!['home','join','move','quit','opkey','boards','filters','glass','server','net','report'].includes(v))return;
    const was=UI.fu&&UI.fu.v;if(!UI.fu)UI.fu={};if(v!==was)FU.msg=null;if(v==='boards'&&was!=='filters')FU.facets=null;
    UI.fu.v=v;if(id!==undefined)UI.fu.id=id;if(key!==undefined)UI.fu.key=key;UI.fu.back=back||null;if(v==='server'&&id!==undefined)FU.chain=null;
    fuRender();fuLoad();if(v==='join')fedCatalogLoad().catch(()=>false);},

@@ -72,6 +72,7 @@ const (
 	VoterAnswered   = 1209600
 	GossipExpiry    = 604800
 	OfferKept       = 2592000
+	ReportKept      = 2592000
 	QuietFading     = 604800
 	QuietDark       = 3196800
 	QuietForgotten  = 15552000

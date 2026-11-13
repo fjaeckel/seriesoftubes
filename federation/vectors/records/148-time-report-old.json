@@ -1,0 +1,22 @@
+{
+  "description": "report older than 30 days.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "report",
+      "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+      "t": 1764720099,
+      "body": {
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "target": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+        "reason": "spam"
+      },
+      "sig": "z0oiDWjqy1U6QqPmXFyvGiEigL7rCrGkhWcc7gY9B00rlec2_tKcyLmz2wgIquLlZ9V1x7uj1wQFDukzK3tLCA"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "too_old"
+  }
+}

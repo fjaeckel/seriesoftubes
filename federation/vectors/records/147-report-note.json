@@ -1,0 +1,23 @@
+{
+  "description": "No free text anywhere in a report.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "report",
+      "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+      "t": 1767312000,
+      "body": {
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "target": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+        "reason": "abuse",
+        "note": "see chat"
+      },
+      "sig": "spZqiEDLG_wkh2JLrEOHQpYcIvCFaAEX6YZ_ub6aNAVG3sqtBIhBrCu4f9iExyrvZVctVbRmBLMH1Wrxgm3xBw"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "unknown_field"
+  }
+}

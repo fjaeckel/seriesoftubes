@@ -58,7 +58,8 @@ function fedNetModal(key){const n=fedNetOf(key);if(!n){closeModal();return;}UI.f
   h+=`<p class="meta">${tr('fedplay.you_and_them',{in:fmtG(p.in/1000),out:fmtG(p.out/1000),ix:p.ix.length,pops:p.pops.length})}</p>`;
   const ds=S.fed.deals.filter(d=>d.key===key&&(d.st!=='over'||fedNow()-(d.end||d.start||0)<30*FED_DAY));
   if(ds.length)h+=`<h3 class="fp-sub">${tr('fedplay.your_deals')}</h3>`+ds.map(fedDealRow).join('');
-  if(!B){h+=`<p class="empty">${tr('fedplay.no_terms_yet')}</p>`;openModal(h);return;}
+  const rp=btn('🚩 '+tr('fedui.report'),'fuReport',{key,from:'deals'},'ghost sm');
+  if(!B){h+=`<p class="empty">${tr('fedplay.no_terms_yet')}</p><div class="btns">${rp}</div>`;openModal(h);return;}
   // Their published terms, and what this network still misses.
   h+=`<h3 class="fp-sub">${tr('fedplay.their_terms')}</h3>`;
   if(B.policy==='selective'&&B.cond){const c=B.cond,miss=fedCondMiss(c,me);h+=`<p class="meta">${tr('fedplay.cond_line',{mbps:fpSpeed(c.minMbps),r:c.maxRatio>=100000?'∞':Math.round(c.maxRatio/100),n:c.minShared})}${c.rpki?' · RPKI':''}${c.tier1?' · '+tr('common.tier_1'):''}${c.ai?'':' · '+tr('fedplay.no_ai')}</p>${miss.length?`<p class="why">${esc(fedMissText(miss))}</p>`:''}`;}
@@ -88,7 +89,7 @@ function fedNetModal(key){const n=fedNetOf(key);if(!n){closeModal();return;}UI.f
       x.terms?`<p class="meta">${tr('fedplay.wave_computer',{price:fmt$(fedWaveCeil(x.terms.a,x.terms.b,x.terms.gbps))})}</p>`:'');}
   {const prs=fedSwapPairs(n),o={at:sel['swap.at']||prs[0],mbps:+sel['swap.mbps']||10000};
     h+=ask('swap',o,(prs.length?fpSel(tr('fedplay.route'),'swap.at',prs.map(k=>[k,k.split('|').map(fpCity).join('–')]),o.at):'')+fpSel(tr('fedplay.capacity'),'swap.mbps',[[10000,'10G'],[100000,'100G'],[400000,'400G']],o.mbps),`<p class="meta">${tr('fedplay.swap_note')}</p>`);}
-  h+=`<div class="btns" style="margin-top:10px">${btn(tr('fedplay.mute'),'fedMute',{key,on:true},'ghost sm')}</div>`;
+  h+=`<div class="btns" style="margin-top:10px">${btn(tr('fedplay.mute'),'fedMute',{key,on:true},'ghost sm')}${rp}</div>`;
   openModal(h);}
 
 /* ---------- your published terms ---------- */
