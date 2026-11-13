@@ -36,8 +36,10 @@ services:
       RELAY_SYNC: ${RELAY_SYNC:-open}
       RELAY_LANGS: ${RELAY_LANGS:-en}
       RELAY_DESC: ${RELAY_DESC:-}
+      # A second node of an existing server: its nodes come from the registry (RELAY_JOIN_FROM for unlisted servers).
       RELAY_JOIN: ${RELAY_JOIN:-}
       RELAY_JOIN_FROM: ${RELAY_JOIN_FROM:-}
+      RELAY_REGISTRY: ${RELAY_REGISTRY:-}
       RELAY_LISTEN: 0.0.0.0:8443
       RELAY_TLS_CERT: /certs/fullchain.pem
       RELAY_TLS_KEY: /certs/privkey.pem

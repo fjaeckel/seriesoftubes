@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/config"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/lan"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/node"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/ops"
 )
 
@@ -31,11 +33,14 @@ type upSettings struct {
 	metricsPublic                bool
 	tlsCert, tlsKey              string
 	join, joinFrom, opKey        string
+	registry                     string // servers.json: first start, and where a join finds the server's nodes
 	// Applied to the config on every start when given (nil: not given): they describe this
 	// machine's surroundings, not the server, and are signed nowhere.
 	proxies, notifyURL *string
 	logJSON            bool
 	initCfg            func(*config.Config) // tests: offline settings for a new config
+	jn                 joinNet              // tests: the registry and nodes of a relaytest.Net
+	nodeOpts           func(*node.Options)  // tests: the same for the node
 }
 
 // upOpts: settings plus what tests replace.
@@ -45,6 +50,7 @@ type upOpts struct {
 	stop         <-chan struct{} // closed: stop (waiting for the certificate, or serving)
 	ready        func(net.Addr)
 	wait         [2]time.Duration // the certificate wait: first and longest pause
+	joinWait     [2]time.Duration // looking for the server's nodes, waiting for the add-node: the same
 	certInterval time.Duration    // how often the reloader looks at the files (default a minute)
 }
 
@@ -67,7 +73,8 @@ func cmdUp(args []string) error {
 	fs.StringVar(&s.tlsCert, "tls-cert", os.Getenv("RELAY_TLS_CERT"), "serve TLS with this certificate chain, first start ($RELAY_TLS_CERT)")
 	fs.StringVar(&s.tlsKey, "tls-key", os.Getenv("RELAY_TLS_KEY"), "and this key ($RELAY_TLS_KEY)")
 	fs.StringVar(&s.join, "join", os.Getenv("RELAY_JOIN"), "join this existing server instead of founding one ($RELAY_JOIN)")
-	fs.StringVar(&s.joinFrom, "join-from", os.Getenv("RELAY_JOIN_FROM"), "wss:// URL of a running node of that server ($RELAY_JOIN_FROM)")
+	fs.StringVar(&s.joinFrom, "join-from", os.Getenv("RELAY_JOIN_FROM"), "wss:// URL of a running node of that server, for servers not in the registry ($RELAY_JOIN_FROM)")
+	fs.StringVar(&s.registry, "registry", os.Getenv("RELAY_REGISTRY"), "servers.json, an https:// URL or a file, first start; empty: the game's ($RELAY_REGISTRY)")
 	fs.StringVar(&s.opKey, "operator-key", os.Getenv("RELAY_OPERATOR_KEY"), "use this operator key file instead of making one, first start ($RELAY_OPERATOR_KEY)")
 	proxies := fs.String("trusted-proxies", os.Getenv("RELAY_TRUSTED_PROXIES"), "networks a proxy connects from, besides loopback; applied on every start ($RELAY_TRUSTED_PROXIES)")
 	notify := fs.String("notify-url", os.Getenv("RELAY_NOTIFY_URL"), "https:// URL called once per new release, empty: off; applied on every start ($RELAY_NOTIFY_URL)")
@@ -85,12 +92,16 @@ func cmdUp(args []string) error {
 	// SIGTERM while waiting for the certificate stops at once; serve handles signals itself.
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
-	return up(upOpts{s: s, out: os.Stderr, stop: ctx.Done(), wait: [2]time.Duration{2 * time.Second, time.Minute}, certInterval: time.Minute})
+	return up(upOpts{s: s, out: os.Stderr, stop: ctx.Done(), wait: [2]time.Duration{2 * time.Second, time.Minute},
+		joinWait: [2]time.Duration{5 * time.Second, 5 * time.Minute}, certInterval: time.Minute})
 }
 
 func up(o upOpts) error {
 	log := newLogger(o.out, o.s.logJSON)
-	if err := setUp(o.s, o.out, log); err != nil {
+	if err := setUp(o.s, o.out, log, o.stop, o.joinWait); err != nil {
+		if errors.Is(err, errStopped) {
+			return nil
+		}
 		return err
 	}
 	c, err := config.Load(cfgPath(o.s.dir))
@@ -109,17 +120,56 @@ func up(o upOpts) error {
 			rl.Interval = o.certInterval
 		}
 	}
-	return serve(o.s.dir, serveOpts{log: log, tls: rl, stop: o.stop, ready: func(a net.Addr) {
+	quit := make(chan struct{})
+	var waiting sync.WaitGroup
+	defer waiting.Wait()
+	defer close(quit)
+	return serve(o.s.dir, serveOpts{log: log, tls: rl, stop: o.stop, node: o.s.nodeOpts, ready: func(a net.Addr) {
 		compareServer(o.s, log)
+		waiting.Go(func() { awaitAdded(o.s.dir, c.URL, log, quit, o.joinWait) })
 		if o.ready != nil {
 			o.ready(a)
 		}
 	}})
 }
 
+// awaitAdded, while this node is not on its server's list yet (a join the operators have not signed): logs the
+// add-node line for them, with pauses doubling from wait[0] to wait[1], and once more when the node is added. The
+// node itself fetches the server's records from its seeds meanwhile and starts syncing on its own.
+func awaitAdded(dir, url string, log *slog.Logger, quit <-chan struct{}, wait [2]time.Duration) {
+	if wait[0] <= 0 {
+		wait = [2]time.Duration{5 * time.Second, 5 * time.Minute}
+	}
+	d, said := wait[0], false
+	for {
+		v, err := call(dir, ops.Request{Cmd: "state"})
+		if m, ok := v.(map[string]any); err == nil && ok {
+			if m["serving"] == true {
+				if said {
+					log.Info("this node is on the server's list now: syncing")
+				}
+				return
+			}
+			if nk, ok := m["node"].(string); ok {
+				log.Info("waiting for the server's operators to add this node", "next_check_in", d.String(),
+					"how", "relay ops propose add-node "+nk+" --url "+url+", signed by a majority of its operators")
+				said = true
+			}
+		}
+		select {
+		case <-quit:
+			return
+		case <-time.After(d):
+		}
+		if d *= 2; d > wait[1] {
+			d = wait[1]
+		}
+	}
+}
+
 // setUp makes what is missing: the data folder (init), then the server (genesis, or join). Each
 // step checks what is there, so a start after a crash halfway carries on where it stopped.
-func setUp(s upSettings, out io.Writer, log *slog.Logger) error {
+func setUp(s upSettings, out io.Writer, log *slog.Logger, stop <-chan struct{}, joinWait [2]time.Duration) error {
 	if s.sync != "standalone" && s.sync != "selective" && s.sync != "open" {
 		return fmt.Errorf("RELAY_SYNC %q: standalone, selective or open", s.sync)
 	}
@@ -139,6 +189,9 @@ func setUp(s upSettings, out io.Writer, log *slog.Logger) error {
 			}
 			if s.notifyURL != nil {
 				c.NotifyURL = *s.notifyURL
+			}
+			if s.registry != "" {
+				c.Registry = s.registry
 			}
 			if s.initCfg != nil {
 				s.initCfg(c)
@@ -169,22 +222,39 @@ func setUp(s upSettings, out io.Writer, log *slog.Logger) error {
 		if !fed.IsID(s.join) {
 			return fmt.Errorf("RELAY_JOIN %q is not a server identity", s.join)
 		}
-		if !fed.URLOK(s.joinFrom) {
-			return errors.New("RELAY_JOIN needs RELAY_JOIN_FROM: the wss:// URL of a running node of that server")
+		addNode := "relay ops propose add-node " + nk.Key + " --url " + c.URL
+		seeds := []string{s.joinFrom}
+		if s.joinFrom == "" {
+			src := s.registry
+			if src == "" {
+				src = c.Registry
+			}
+			if joinWait[0] <= 0 {
+				joinWait = [2]time.Duration{5 * time.Second, 5 * time.Minute}
+			}
+			if seeds, err = waitSeeds(src, s.join, c.URL, s.jn, log, stop, joinWait, addNode); err != nil {
+				if errors.Is(err, errStopped) {
+					return err
+				}
+				return fmt.Errorf("RELAY_JOIN: %w", err)
+			}
+			log.Info("found the server's nodes in the registry", "answered", seeds[0], "nodes", len(seeds))
+		} else if !fed.URLOK(s.joinFrom) {
+			return errors.New("RELAY_JOIN_FROM must be the wss:// URL of a running node of that server")
 		}
-		c.Server, c.Seeds = s.join, []string{s.joinFrom}
+		c.Server, c.Seeds = s.join, seeds
 		if err := c.Save(cfgPath(s.dir)); err != nil {
 			return err
 		}
 		notice(out, s.dir, fmt.Sprintf("This node joins the server %s.", s.join), nk, op, c.URL, []string{
 			"Ask an operator of that server to run",
-			"  relay ops propose add-node " + nk.Key + " --url " + c.URL,
+			"  " + addNode,
 			"and a majority of its operators to sign it (relay ops sign ID).",
 		})
 		return nil
 	}
 	if s.name == "" {
-		return errors.New("set RELAY_NAME to found the server (or RELAY_JOIN and RELAY_JOIN_FROM to join one)")
+		return errors.New("set RELAY_NAME to found the server (or RELAY_JOIN to join one)")
 	}
 	id, err := found(s.dir, "", ops.ServerFields{Name: s.name, Sync: s.sync, NoLogs: true, Langs: splitList(s.langs), Desc: s.desc})
 	if err != nil {
@@ -263,8 +333,12 @@ func applyEnv(s upSettings, c *config.Config, log *slog.Logger) error {
 
 // compareServer reads the running server's record and says which of the name, sync policy,
 // languages and description differ from the environment. Operators change those by signing a new
-// server record, which the relay does not do on its own.
+// server record, which the relay does not do on its own. A node that joined another's server was
+// never told them (RELAY_JOIN): nothing to compare.
 func compareServer(s upSettings, log *slog.Logger) {
+	if s.join != "" {
+		return
+	}
 	v, err := call(s.dir, ops.Request{Cmd: "state"})
 	if err != nil {
 		return

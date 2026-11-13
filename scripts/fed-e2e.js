@@ -286,7 +286,10 @@ async function main() {
     if (TWO) await step('server 2 serves too: two nodes, server 1 their neighbour both ways', async () => {
       conf(srv[1].d, { neighbours: [{ url: URL1 }] });
       r2 = await serveRelay(srv[1].d, port2, (b) => { logs2.d2 += b; });
-      relay(srv[1].d2b, 'join', srv[1].id, '--from', URL2);
+      // No --from: the second node finds server 2's nodes in this run's servers.json, as a listed server's would.
+      execFileSync(bin, ['join', '--data', srv[1].d2b, srv[1].id, '--registry', REG], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, RELAY_TEST_ROOTS: TLS.tlsCert } });
+      const seeds = JSON.parse(fs.readFileSync(path.join(srv[1].d2b, 'config.json'), 'utf8')).seeds;
+      must(seeds && seeds[0] === URL2 && !seeds.includes(URL2B), `join found ${JSON.stringify(seeds)} in the registry, not ${URL2}`);
       conf(srv[1].d2b, { listen: `127.0.0.1:${port2b}`, ...TLS, registry: REG, neighbours: [{ url: URL1 }] });
       r2b = await serveRelay(srv[1].d2b, port2b, (b) => { logs2.d2b += b; });
       const st = await until(() => { const x = ctl2('status'); return x.peers.some((p) => p.same && p.node === srv[1].nk2b && p.synced) && x; }, 60000, 'server 2\'s nodes to sync with each other');

@@ -152,7 +152,7 @@ func TestUpJoins(t *testing.T) {
 		t.Skip("test identity format")
 	}
 	var out bytes.Buffer
-	if err := setUp(s, &out, newLogger(&out, false)); err != nil {
+	if err := setUp(s, &out, newLogger(&out, false), nil, [2]time.Duration{}); err != nil {
 		t.Fatal(err)
 	}
 	c, _ := config.Load(cfgPath(dir))
@@ -164,10 +164,10 @@ func TestUpJoins(t *testing.T) {
 		t.Fatalf("notice:\n%s", out.String())
 	}
 	noSecrets(t, dir, out.String())
-	// Joining needs where from.
+	// Without a registry (offline), joining needs where from.
 	s2 := upSet(filepath.Join(rt.Dir(t), "d2"))
 	s2.join = id
-	if err := setUp(s2, &out, newLogger(&out, false)); err == nil || !strings.Contains(err.Error(), "RELAY_JOIN_FROM") {
+	if err := setUp(s2, &out, newLogger(&out, false), nil, [2]time.Duration{}); err == nil || !strings.Contains(err.Error(), "RELAY_JOIN_FROM") {
 		t.Fatalf("join without a node to join from: %v", err)
 	}
 }
@@ -180,7 +180,7 @@ func TestUpResumes(t *testing.T) {
 	nk, _ := ops.NewKey(filepath.Join(dir, "node.key"))
 	op, _ := ops.NewKey(filepath.Join(dir, "operator.key"))
 	var out bytes.Buffer
-	if err := setUp(upSet(dir), &out, newLogger(&out, false)); err != nil {
+	if err := setUp(upSet(dir), &out, newLogger(&out, false), nil, [2]time.Duration{}); err != nil {
 		t.Fatal(err)
 	}
 	c, nk2, _ := loadAll(dir)
@@ -194,7 +194,7 @@ func TestUpResumes(t *testing.T) {
 		t.Fatal(err)
 	}
 	out.Reset()
-	if err := setUp(upSet(dir), &out, newLogger(&out, false)); err != nil {
+	if err := setUp(upSet(dir), &out, newLogger(&out, false), nil, [2]time.Duration{}); err != nil {
 		t.Fatal(err)
 	}
 	if c, _ := config.Load(cfgPath(dir)); c.Server == "" || !strings.Contains(out.String(), "founded") {
@@ -203,7 +203,7 @@ func TestUpResumes(t *testing.T) {
 	// Nothing to found without a name.
 	s := upSet(filepath.Join(rt.Dir(t), "data3"))
 	s.name = ""
-	if err := setUp(s, &out, newLogger(&out, false)); err == nil || !strings.Contains(err.Error(), "RELAY_NAME") {
+	if err := setUp(s, &out, newLogger(&out, false), nil, [2]time.Duration{}); err == nil || !strings.Contains(err.Error(), "RELAY_NAME") {
 		t.Fatalf("founded without a name: %v", err)
 	}
 }

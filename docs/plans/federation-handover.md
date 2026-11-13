@@ -116,6 +116,9 @@ at that sandbox method.
   flags/env, then serve; waits for a missing certificate; the image's default command) and `relay/docker-compose.yml`
   + `relay/.env.example` (relay serving TLS, certbot issuing and renewing, named volumes and inline configs only, so a
   remote Docker context works); HOSTING.md "From the repo", RELAY.md "relay up", `tests/docker.test.js`.
+- **Joining finds nodes in the registry** (Frederic, 2026-11-13): `relay join SERVER` / `RELAY_JOIN` take the server's
+  node URLs from servers.json (own URL left out, first that answers first); `--from`/`RELAY_JOIN_FROM` only for
+  unlisted servers; `relay up` retries and logs the add-node line until approved (`cmd/relay/joinreg.go`).
 - **Relay versions and update notices:** `welcome`/node `hello` carry `impl`, catalog entries an `impl` list; the site
   build writes `federation/relay.json` (security via package.json `relaySecurity`); relays read it beside the
   registry and tell operators (log, `relay status`, metrics, `update` frame, opt-in `notifyURL`); the looking glass

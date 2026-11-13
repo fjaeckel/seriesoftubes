@@ -47,7 +47,8 @@ Setting up:
              [--listen ADDR] [--trusted-proxies CIDR,…] [--tls-cert F --tls-key F]
              [--metrics ADDR [--metrics-public]]
   relay genesis --name NAME [--sync open] [--langs en,de] [--desc TEXT]   found a new server
-  relay join SERVER --from wss://existing-node/path          prepare this node for an existing server
+  relay join SERVER [--from wss://existing-node/path]        prepare this node for an existing server (its nodes
+                                                             from the registry; --from for unlisted servers)
   relay registry-file [--from FILE]                          print the file for the registry pull request, keeping
                                                              listed/answered from FILE (default: federation/servers/<id>.json)
   relay serve                                                run the relay
@@ -209,7 +210,7 @@ func cmdInit(args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Data folder:  %s\nNode key:     %s\nOperator key: %s\n\nNext: relay genesis --name \"…\" (new server) or relay join SERVER --from wss://… (existing one).\nBack up %s: it is your control of the server.\n",
+	fmt.Printf("Data folder:  %s\nNode key:     %s\nOperator key: %s\n\nNext: relay genesis --name \"…\" (new server) or relay join SERVER (existing one).\nBack up %s: it is your control of the server.\n",
 		*dir, nk.Key, op.Key, opPath)
 	return nil
 }
@@ -415,33 +416,53 @@ func writeAtomic(path string, b []byte, mode os.FileMode) error {
 
 func cmdJoin(args []string) error {
 	fs, dir := flags("join")
-	from := fs.String("from", "", "wss:// URL of a running node of that server")
+	from := fs.String("from", "", "wss:// URL of a running node of that server (default: its nodes in the registry)")
+	reg := fs.String("registry", os.Getenv("RELAY_REGISTRY"), "servers.json to find the server's nodes in, an https:// URL or a file (default $RELAY_REGISTRY, else config.json's registry)")
 	url := fs.String("url", "", "this node's public wss:// URL (default: from config)")
 	pos := parse(fs, args)
 	if len(pos) != 1 || !fed.IsID(pos[0]) {
-		return errors.New("usage: relay join SERVER-IDENTITY --from wss://existing-node/path")
+		return errors.New("usage: relay join SERVER-IDENTITY [--from wss://existing-node/path]")
 	}
-	c, nk, err := loadAll(*dir)
+	return join(*dir, pos[0], *from, *reg, *url, joinNet{}, os.Stdout)
+}
+
+// join points this node at a server: --from when given, else the server's nodes in the registry. The node fetches
+// and checks the server's chain when it serves, and waits until the operators add it.
+func join(dir, server, from, reg, ownURL string, j joinNet, out io.Writer) error {
+	c, nk, err := loadAll(dir)
 	if err != nil {
 		return err
 	}
 	if c.Server != "" {
 		return fmt.Errorf("this node already belongs to server %s", c.Server)
 	}
-	if !fed.URLOK(*from) {
-		return errors.New("give --from wss://… of a node of that server")
+	if from != "" && !fed.URLOK(from) {
+		return errors.New("--from must be the wss://… URL of a node of that server")
 	}
-	if *url != "" {
-		c.URL = *url
+	if ownURL != "" {
+		c.URL = ownURL
 	}
 	if !fed.URLOK(c.URL) {
 		return errors.New("set this node's public URL with --url wss://your.host/path")
 	}
-	c.Server, c.Seeds = pos[0], []string{*from}
-	if err := c.Save(cfgPath(*dir)); err != nil {
+	seeds := []string{from}
+	if from == "" {
+		if reg == "" {
+			reg = c.Registry
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		seeds, err = findSeeds(ctx, reg, server, c.URL, j)
+		cancel()
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(out, "Found the server's nodes in the registry: %s answered.\n", seeds[0])
+	}
+	c.Server, c.Seeds = server, seeds
+	if err := c.Save(cfgPath(dir)); err != nil {
 		return err
 	}
-	fmt.Printf("This node will join %s.\nAsk an operator of that server to run:\n\n  relay ops propose add-node %s --url %s\n\nand a majority of its operators to sign it (relay ops sign ID). Then run: relay serve\n", pos[0], nk.Key, c.URL)
+	fmt.Fprintf(out, "This node will join %s.\nAsk an operator of that server to run:\n\n  relay ops propose add-node %s --url %s\n\nand a majority of its operators to sign it (relay ops sign ID). Then run: relay serve\n", server, nk.Key, c.URL)
 	return nil
 }
 
@@ -789,10 +810,11 @@ type lanServe struct {
 type serveOpts struct {
 	logJSON bool
 	lan     *lanServe
-	log     *slog.Logger    // default: text (or JSON) on stderr
-	tls     *certs.Reloader // the certificate pair, already loaded (relay up waits for it)
-	stop    <-chan struct{} // closed: stop as on SIGTERM (tests)
-	ready   func(net.Addr)  // called once listening, with the address
+	log     *slog.Logger        // default: text (or JSON) on stderr
+	tls     *certs.Reloader     // the certificate pair, already loaded (relay up waits for it)
+	stop    <-chan struct{}     // closed: stop as on SIGTERM (tests)
+	ready   func(net.Addr)      // called once listening, with the address
+	node    func(*node.Options) // tests: the net and clock of a relaytest.Net
 }
 
 func newLogger(w io.Writer, logJSON bool) *slog.Logger {
@@ -852,6 +874,9 @@ func serve(dir string, so serveOpts) error {
 	}
 	if countries != nil {
 		o.Countries = countries
+	}
+	if so.node != nil {
+		so.node(&o)
 	}
 	r, err := node.New(o)
 	if err != nil {

@@ -174,7 +174,9 @@ Steps 2 to 4 in one command, for containers and one-command setups (the image's 
 | `--sync` | `RELAY_SYNC` | first start | `open` (as `genesis`): a server is set up to play with others |
 | `--langs` | `RELAY_LANGS` | first start | `en` |
 | `--desc` | `RELAY_DESC` | first start | empty |
-| `--join`, `--join-from` | `RELAY_JOIN`, `RELAY_JOIN_FROM` | first start: join that server instead of founding one | empty |
+| `--join` | `RELAY_JOIN` | first start: join that server instead of founding one; its nodes come from the registry | empty |
+| `--join-from` | `RELAY_JOIN_FROM` | first start: a running node's `wss://` URL, for a server not in the registry | empty |
+| `--registry` | `RELAY_REGISTRY` | first start: `servers.json`, an `https://` URL or a file | the game's |
 | `--operator-key` | `RELAY_OPERATOR_KEY` | first start: an operator key file to use | a new key |
 | `--listen` | `RELAY_LISTEN` | first start | `127.0.0.1:8080` (the image: `0.0.0.0:8080`) |
 | `--metrics`, `--metrics-public` | `RELAY_METRICS`, `RELAY_METRICS_PUBLIC` | first start | off (the image: `0.0.0.0:9100`, public) |
@@ -186,7 +188,11 @@ Steps 2 to 4 in one command, for containers and one-command setups (the image's 
 What it does:
 
 - **First start** (no `config.json` in the data folder): `init` with those settings, then `genesis` (or, with
-  `RELAY_JOIN`, what `join` does), then `serve`. It prints, once, a notice with the server identity, the node key, the
+  `RELAY_JOIN`, what `join` does: without `RELAY_JOIN_FROM` it finds the server's nodes in the registry, and while the
+  registry or every node is out of reach it logs why and tries again, 5 seconds to 5 minutes apart; a server the
+  registry does not list stops it with a message naming `RELAY_JOIN_FROM`), then `serve`. A joining node serves while
+  it waits for its operators, logging the `relay ops propose add-node …` line (5 seconds, then up to 5 minutes apart)
+  until it is on the list, then once more when it is. It prints, once, a notice with the server identity, the node key, the
   operator key's **public** half, the invite link and how to copy `operator.key` off the machine
   (`docker compose cp relay:/data/operator.key ./operator.key`). The private key is never printed or logged.
 - **A setup stopped halfway** (a crash, a restart) carries on: keys already made are kept (never replaced), a config
@@ -247,9 +253,16 @@ A server is its operator list; there is no shared server key. Changes to the ope
 3. They prepare their node to join and start it; it fetches the server's records from yours and waits:
 
    ```sh
-   relay join SERVER_IDENTITY --from wss://relay.example.net/fed
+   relay join SERVER_IDENTITY
    relay serve
    ```
+
+   `join` finds the server's nodes in the registry (`servers.json`, from the config's `registry`, `--registry` or
+   `$RELAY_REGISTRY`), leaves out this node's own URL and tries them in order; the first that answers as that server
+   goes first in `seeds`, the others stay as fallbacks. The registry only supplies addresses: the records the node then
+   fetches are checked against the server's signed chain as always. A server that is not listed (new, unlisted,
+   private, on a LAN) needs `--from wss://relay.example.net/fed`, the URL of one of its running nodes; `--from` always
+   wins over the registry.
 
 4. Now there are two operators, so adding their node needs both signatures. Their node is not on the list yet and
    cannot sync, so they send their signature to your node over `wss://` (signed on their machine, with their key):

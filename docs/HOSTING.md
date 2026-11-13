@@ -152,8 +152,9 @@ cp .env.example .env
 nano .env
 ```
 
-Three settings matter at first; the rest have defaults, each explained in
-[`.env.example`](../relay/.env.example):
+Three settings matter at first ("Required" and "Your server"); everything else sits commented out under "Advanced
+(optional)" with its default, each explained in [`.env.example`](../relay/.env.example) (uncomment a line to change
+it):
 
 | Setting | What to put |
 | --- | --- |
@@ -162,7 +163,7 @@ Three settings matter at first; the rest have defaults, each explained in
 | `RELAY_NAME` | Your server's name, unique in the server list. Also `RELAY_SYNC` (default `open`), `RELAY_LANGS` (default `en`), `RELAY_DESC`. |
 
 Compose refuses to start without `RELAY_DOMAIN` and `LETSENCRYPT_EMAIL`. To try the setup first without using up
-Let's Encrypt's limits, set `CERTBOT_STAGING=true` (a certificate browsers do not trust); set it back to `false` and run
+Let's Encrypt's limits, uncomment `CERTBOT_STAGING=true` (a certificate browsers do not trust); set it back to `false` and run
 `docker compose up -d` again, and certbot replaces it.
 
 **3. Start it:**
@@ -238,13 +239,17 @@ A checkout build reports its version as `dev` (and so gets no update notices); s
 release you checked out (`git checkout vX.Y.Z`) to have it reported. Or run a published release instead of building:
 set `RELAY_IMAGE=ghcr.io/fjaeckel/seriesoftubes-relay:X.Y.Z` and `docker compose pull && docker compose up -d`.
 
-**A second node of an existing server** (yours or a co-operator's, on another machine): set `RELAY_JOIN` to the server
-identity and `RELAY_JOIN_FROM` to a running node's `wss://` URL in that machine's `.env`, and `RELAY_NAME` is not needed.
-The first start prints the `relay ops propose add-node …` line for the server's operators to sign
-([adding a node](RELAY.md#adding-a-second-operator-and-their-node)).
+**A second node of an existing server** (yours or a co-operator's, on another machine): in that machine's `.env`,
+uncomment `RELAY_JOIN` under "Advanced" and set it to the server identity; nothing else (`RELAY_NAME` and the rest of
+"Your server" are not used). The relay finds the server's nodes in the game's server list and fetches the server's
+records from one that answers. The first start prints the `relay ops propose add-node …` line, and the log repeats it
+while the node waits: the server's operators run it (`docker compose exec relay /relay ops propose add-node …` on a
+running node) and a majority sign it; within a minute the new node is on the list and syncing
+([adding a node](RELAY.md#adding-a-second-operator-and-their-node)). Only a server that is not listed (new, unlisted,
+private or on a LAN) also needs `RELAY_JOIN_FROM`, a running node's `wss://` URL.
 
 **Testing the setup without a real certificate** (on your own computer, say): set a made-up `RELAY_DOMAIN`, other
-ports (`RELAY_HTTPS_PORT=18443`, `RELAY_HTTP_PORT=18080`) and `CERTBOT_STAGING=true`. certbot cannot get a certificate
+ports (`RELAY_HTTPS_PORT=18443`, `RELAY_HTTP_PORT=18080`) and `CERTBOT_STAGING=true` (uncommented under "Advanced"). certbot cannot get a certificate
 and retries; the relay founds the server and waits. Hand it a self-signed pair the way certbot's hook does, and it
 starts serving within the minute:
 

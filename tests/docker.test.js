@@ -169,3 +169,30 @@ test('the relay’s Compose file: built from relay/, named volumes only, certbot
   assert.ok(read('.gitignore').split('\n').includes('/relay/.env'));
   assert.ok(read('relay/.dockerignore').split('\n').includes('.env'));
 });
+
+// relay/.env.example: what every server needs, then its description, then the rest commented out under "Advanced", so
+// a copy of the file founds a server. A second node sets RELAY_JOIN only: its nodes come from the registry.
+test('the relay’s .env.example: required, your server, and the advanced settings commented out', () => {
+  const env = read('relay/.env.example');
+  const y = code('relay/docker-compose.yml');
+  const at = (h) => { const i = env.indexOf(`# --- ${h}`); assert.ok(i >= 0, h); return i; };
+  const req = at('Required'), srv = at('Your server'), adv = at('Advanced (optional)');
+  assert.ok(req < srv && srv < adv, 'in that order');
+  const set = (part) => [...part.matchAll(/^(\w+)=/gm)].map((m) => m[1]);
+  const off = (part) => [...part.matchAll(/^# (\w+)=/gm)].map((m) => m[1]);
+  assert.deepEqual(set(env.slice(req, srv)), ['RELAY_DOMAIN', 'LETSENCRYPT_EMAIL']);
+  assert.deepEqual(set(env.slice(srv, adv)), ['RELAY_NAME', 'RELAY_SYNC', 'RELAY_LANGS', 'RELAY_DESC']);
+  assert.deepEqual(set(env.slice(adv)), [], 'nothing advanced is set');
+  const advanced = off(env.slice(adv));
+  for (const v of ['RELAY_JOIN', 'RELAY_JOIN_FROM', 'RELAY_REGISTRY', 'RELAY_NOTIFY_URL', 'RELAY_IMAGE', 'RELAY_VERSION', 'CERTBOT_IMAGE',
+    'RELAY_HTTPS_PORT', 'RELAY_HTTP_PORT', 'RELAY_METRICS', 'RELAY_URL', 'RELAY_LOG_JSON', 'CERTBOT_STAGING']) assert.ok(advanced.includes(v), `${v} under Advanced`);
+  // Every variable Compose reads is in the file, and every one there is read.
+  const used = new Set([...y.matchAll(/\$\{(\w+)/g)].map((m) => m[1]));
+  assert.deepEqual([...new Set([...set(env), ...off(env)])].sort(), [...used].sort());
+  // Joining: the registry gives the nodes; RELAY_JOIN_FROM is for servers not in it; a notice per release.
+  const a = env.slice(adv);
+  assert.match(a.slice(0, a.indexOf('# RELAY_JOIN=')), /servers\.json/, 'RELAY_JOIN explains the registry');
+  assert.match(a, /not in the list \(new, unlisted, private or on a LAN\)/);
+  assert.match(a, /ntfy/);
+  for (const v of ['RELAY_JOIN', 'RELAY_JOIN_FROM', 'RELAY_REGISTRY']) assert.match(y, new RegExp(`${v}: \\$\\{${v}:-\\}`), `${v} passed through, empty by default`);
+});
