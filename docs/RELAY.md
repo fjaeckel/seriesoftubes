@@ -447,6 +447,88 @@ opens two Chromium windows on an invite to it, so you can play two networks agai
 `node scripts/fed-e2e.js --lan` runs `relay lan` on 127.0.0.1 and has a Chromium player open its page, take the invite
 by IP address and join with the self-signed certificate.
 
+## Load test
+
+`relayload` (`relay/cmd/relayload`, a development tool: not in the release archives or the container image) starts
+many relays and many simulated players on one machine and reports what the players see and what the relays cost:
+
+```sh
+cd relay
+go run ./cmd/relayload --quick              # 2.5 minutes, no board checks
+go run ./cmd/relayload                      # 20 servers, 1000 players, 12 minutes (two slot boundaries)
+go run ./cmd/relayload --mesh full --spread skewed --json out.json
+go run ./cmd/relayload --help               # every rate and threshold
+```
+
+- **Relays**: each is a separate process (the tool runs itself as `relayload node`, which does what `relay serve`
+  does with the same `node` package, operator socket, TLS listener and `/metrics`), with its own data folder in a
+  temporary folder, real TLS on loopback with a certificate made for the run, and its own founded server. All are
+  in a generated `servers.json` as voters (listed and answered), sync policy `open`. The one difference from
+  `relay serve`: outgoing connections trust the run's certificate and reach `*.localhost` names on loopback, and
+  nothing else (Go on macOS ignores `SSL_CERT_FILE`, and nothing here touches the system's trust store).
+  Topology: a ring with chords (each server has 3 or 4 neighbours, so records cross up to 4 hops among 20
+  servers), or `--mesh full`.
+- **Players** (default 1000, round-robin over the servers or `--spread skewed`) each have their own Ed25519 key
+  and the X25519 box key derived from it. They connect as a game does (hello, the node's challenge, `auth`, the
+  game's `sub` kinds, the shun/unshun `sub`), put an announce at start and when their terms change, `stats`
+  once per 5-minute slot, look at leaderboards (`rank`, about a third filtered, a quarter spot-checked with `rankwhy`),
+  ask `nets` and `facets`, make sealed peering offers to random players (mostly on other servers) which the
+  counterparty opens and accepts or declines (sealed), and now and then lose the connection and resume with
+  their cursor. Defaults model a busy evening with everyone online at once: an announce every 15 minutes, a
+  leaderboard look every 2 minutes, `nets` every 5, an offer every 10, a dropped connection every 30.
+- **Limits stay as in production.** Every player sends its own private address in `X-Forwarded-For`, which
+  the relays believe from loopback (their default `trustedProxies`), so the per-address connection limit counts
+  each player separately; no limit is raised.
+- **Measured**: latency (p50/p95/p99/max) of connecting, `put` to `ack` by kind, `rank` (and warm `rank`, after
+  the first finished slot), `nets`, `facets`, `rankwhy`, and `sub` backlogs; errors by code; how long an
+  announce takes to reach a subscriber on every other server, by hop count; sealed deals answered across servers,
+  and that no session other than the two parties (players and an observer per server) ever got a deal record;
+  per relay CPU, RSS, goroutines and its `/metrics` (records, sessions, refusals, rank cache hits) at start, mid
+  and end; records and frames per second. After a full run every server's `pops` board must list the players
+  that sent stats, with the same top rows on every server.
+- **Fails** (exit 1) when a relay exits, a player cannot connect, fewer than 99% of puts are acked, announce
+  propagation p95 is over 10 s, a deal record leaks, fewer than 95% of offers are answered, warm `rank` p95 is
+  over 1 s, the boards disagree, or a relay's memory grows by half between mid-run and the end. Thresholds are
+  flags.
+- **Open files**: 1000 players need about 2500 descriptors across the processes. The tool raises its own soft
+  limit to the hard limit (the relays inherit it) and reports `EMFILE` plainly; if it does, raise `ulimit -n`.
+
+### Results
+
+On an Apple Silicon Mac (8 CPUs, 24 GB), November 2026, with the defaults (20 servers in a ring with chords, 1000
+players round-robin, 12 minutes after a one-minute ramp). Browser end-to-end tests ran on the same machine at times
+(load average 2 to 10 during the run), so the tails are pessimistic. Every assertion passed.
+
+| Players saw (ms) | n | p50 | p95 | p99 | max |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Connect (TLS, hello, challenge, `auth`) | 1442 | 2.5 | 4.4 | 7.0 | 22.6 |
+| `put` to `ack` (all kinds) | 6943 | 1.8 | 9.2 | 15.5 | 49.3 |
+| `rank` once a slot had finished | 4497 | 0.7 | 2.7 | 6.1 | 53.0 |
+| `nets` | 2252 | 0.7 | 1.7 | 5.8 | 19.0 |
+| `rankwhy` (to the last frame) | 937 | 0.4 | 1.3 | 4.0 | 14.5 |
+| `sub` backlog, first connection | 1000 | 7.2 | 15.3 | 23.3 | 34.0 |
+| `sub` backlog, resumed with a cursor | 442 | 0.2 | 0.4 | 0.8 | 2.7 |
+| Announce reaching another server, 1 hop | 7096 | 5.4 | 12.2 | 16.9 | 29.8 |
+| Announce reaching another server, 4 hops | 3548 | 13.5 | 22.1 | 25.9 | 39.7 |
+| Sealed offer to its answer, across servers | 853 | 6.6 | 15.0 | | 59.1 |
+
+- All 6943 puts acked, no error of any kind, no `rate_limited`; every announce reached every other server within
+  10 s; 1018 offers, all delivered and answered (697 accepted, 321 declined, sealed both ways and opened by the
+  other party); not one deal record at a third party (players or the 20 observers).
+- After the run every server's `pops` board listed all 1000 networks, with the same top rows on all 20.
+- Each relay (50 players, 4 neighbours, 6727 records at the end): 1.1% of one core on average, 6% at most over
+  30 s (a slot boundary); 195 goroutines throughout; RSS 49 MB at start, 82 mid-run, 110 at the end, its Go heap
+  50 to 80 MB. Memory grows with the records held, about 4.4 KB of heap per record (the store keeps every record
+  parsed in memory, plus the boards' per-network slots). Records: 9.6 per second put by players, 155 per second
+  stored over the 20 relays, 1650 per second sent; the load generator used 6% of one core.
+- `--quick --mesh full --spread skewed` (2.5 minutes, every server synced with all 19 others, the first server
+  with 278 players) also passed, with a load average of 30 to 50 from other work on the machine: put p95 0.8 s and
+  connect p95 2.4 s during the ramp, warm `rank` p95 5 ms, announce propagation p95 215 ms.
+
+The run found one thing to change: every new announce threw away every cached ranking (a cache hit rate of 0 to 8%
+in a 2.5-minute run); now only slices that filter by announce fields (home, policy, age, day) and the cone board are
+worked out again, and the same run hits the cache 36 to 63% of the time.
+
 ## Metrics
 
 Set `"metrics": "127.0.0.1:9100"` to serve `/metrics` in the Prometheus text format on localhost: connections by
