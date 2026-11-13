@@ -157,6 +157,9 @@ func (c *cluster) sample(ctx context.Context, label string) *sample {
 		}
 	}
 	s.ps, _ = psStats(pids)
+	if s.ps == nil {
+		s.ps = map[int]procStat{}
+	}
 	var wg sync.WaitGroup
 	for i, r := range c.relays {
 		wg.Add(1)
@@ -168,6 +171,16 @@ func (c *cluster) sample(ctx context.Context, label string) *sample {
 		}()
 	}
 	wg.Wait()
+	// The relay's own process metrics are finer than ps (whose CPU time macOS rounds): used when present.
+	for i, r := range c.relays {
+		if m := s.m[i]; m != nil && r.cmd != nil && r.cmd.Process != nil {
+			cpu, ok1 := m["process_cpu_seconds_total"]
+			rss, ok2 := m["process_resident_memory_bytes"]
+			if ok1 && ok2 {
+				s.ps[r.cmd.Process.Pid] = procStat{cpu: cpu, rss: rss}
+			}
+		}
+	}
 	return s
 }
 
@@ -504,6 +517,8 @@ type RelayRow struct {
 	RSSStart   float64 `json:"rssStartMB"`
 	RSSMid     float64 `json:"rssMidMB"`
 	RSSEnd     float64 `json:"rssEndMB"`
+	HeapMid    float64 `json:"heapMidMB"` // Go heap in use (go_memstats_heap_alloc_bytes)
+	HeapEnd    float64 `json:"heapEndMB"`
 	GorMid     float64 `json:"goroutinesMid"`
 	GorEnd     float64 `json:"goroutinesEnd"`
 	Clients    float64 `json:"clientsEnd"`
@@ -603,9 +618,11 @@ func buildReport(o options, c *cluster, w *world, idle, st, mid, end *sample, ti
 		row.RSSStart, row.RSSMid, row.RSSEnd = mb(st.ps[pid].rss), mb(mid.ps[pid].rss), mb(end.ps[pid].rss)
 		if mm := mid.m[i]; mm != nil {
 			row.GorMid = mm["go_goroutines"]
+			row.HeapMid = mb(mm["go_memstats_heap_alloc_bytes"])
 		}
 		if em := end.m[i]; em != nil {
 			row.GorEnd = em["go_goroutines"]
+			row.HeapEnd = mb(em["go_memstats_heap_alloc_bytes"])
 			row.Clients, row.Sessions, row.Records = em["relay_clients"], em["relay_node_sessions"], em["relay_records"]
 			row.Refused = em["relay_refused_total"]
 			if sm := st.m[i]; sm != nil {
@@ -829,7 +846,7 @@ func (r *Report) markdown() string {
 		p("## Boards after the run\n\nSlot %d: %d players had stats acked before it; networks on each server's pops board: %v; top rows identical on every server: %v.\n\n",
 			r.Boards.Slot, r.Boards.Expected, r.Boards.N, r.Boards.Agree)
 	}
-	p("## Relays (start = all players connected; CPU %% of one core)\n\n| Relay | Players | Nbrs | CPU avg | CPU peak | RSS start/mid/end MB | Goroutines mid/end | Clients | Node sessions | Records | Stored | Sent | Refused | Rank cache hits | Log errors |\n| --- | ---: | ---: | ---: | ---: | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |\n")
+	p("## Relays (start = all players connected; CPU %% of one core)\n\n| Relay | Players | Nbrs | CPU avg | CPU peak | RSS start/mid/end MB | Heap mid/end MB | Goroutines mid/end | Clients | Node sessions | Records | Stored | Sent | Refused | Rank cache hits | Log errors |\n| --- | ---: | ---: | ---: | ---: | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |\n")
 	for _, x := range r.Relays {
 		hits := "n/a"
 		if x.RankHits >= 0 {
@@ -839,8 +856,8 @@ func (r *Report) markdown() string {
 		if x.Crashed {
 			name += " (exited)"
 		}
-		p("| %s | %d | %d | %.1f | %.1f | %.0f / %.0f / %.0f | %.0f / %.0f | %.0f | %.0f | %.0f | %.0f | %.0f | %.0f | %s | %d |\n",
-			name, x.Players, x.Neighbours, x.CPUAvg, x.CPUPeak, x.RSSStart, x.RSSMid, x.RSSEnd, x.GorMid, x.GorEnd, x.Clients, x.Sessions, x.Records, x.RecordsIn, x.RecordsOut, x.Refused, hits, x.LogErrors)
+		p("| %s | %d | %d | %.1f | %.1f | %.0f / %.0f / %.0f | %.0f / %.0f | %.0f / %.0f | %.0f | %.0f | %.0f | %.0f | %.0f | %.0f | %s | %d |\n",
+			name, x.Players, x.Neighbours, x.CPUAvg, x.CPUPeak, x.RSSStart, x.RSSMid, x.RSSEnd, x.HeapMid, x.HeapEnd, x.GorMid, x.GorEnd, x.Clients, x.Sessions, x.Records, x.RecordsIn, x.RecordsOut, x.Refused, hits, x.LogErrors)
 	}
 	t := r.Totals
 	p("\n## Totals\n\nRecords put by players %.1f/s; stored by relays %.1f/s (each record once per server); sent by relays %.1f/s. Player frames %.1f/s, %.0f KB/s on the wire (TLS, both ways). The load generator itself used %.1f%% of one core.\n",
