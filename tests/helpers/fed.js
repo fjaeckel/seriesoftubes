@@ -3,7 +3,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
-const { load } = require('../harness');
+const { load, cryptoBusy } = require('../harness');
 const { until } = require('../net');
 
 const b64 = (b) => Buffer.from(b).toString('base64url');
@@ -146,7 +146,15 @@ class Net {
   pending() { return this.timers.map((x) => x.at - this.t).sort((a, b) => a - b); }
 }
 // Lets promises, WebCrypto and the fake sockets run.
-const settle = async (n = 30) => { for (let i = 0; i < n; i++) await new Promise((r) => setImmediate(r)); };
+// Then, while any WebCrypto call is still running on Node's thread pool (slow machines), waits for it and lets its result
+// run on: turns alone do not see the thread pool. Bounded, so a stuck call still fails the test instead of hanging it.
+const settle = async (n = 30) => {
+  for (let i = 0; i < n; i++) await new Promise((r) => setImmediate(r));
+  for (let w = 0; cryptoBusy.n > 0 && w < 5000; w++) {
+    await new Promise((r) => setTimeout(r, 1));
+    if (cryptoBusy.n === 0) for (let i = 0; i < n; i++) await new Promise((r) => setImmediate(r));
+  }
+};
 
 /* A page with the federation runtime wired to a Net. opts.registry: what the site's servers.json answers (an object,
    or null for a 404); the rest goes to load(). */

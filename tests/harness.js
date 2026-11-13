@@ -17,6 +17,8 @@ const page = (dev) => PAGE[dev] || (PAGE[dev] = assemble({ dev }).html);
 // on 2 MB of script text (it was more than half of every load()), so the DOM is built from the rest of the page and
 // the scripts then run in its window, in order, the same way jsdom runs them (vm.Script.runInContext). Only plain
 // <script> tags run, as in the browser here; data blocks (ld+json) stay in the page untouched.
+// WebCrypto calls still running, across every page (see load({crypto:true})).
+const cryptoBusy = { n: 0 };
 const SPLIT = new Map();
 function split(html) {
   let s = SPLIT.get(html);
@@ -70,7 +72,13 @@ function load(opts = {}) {
       // jsdom has no CompressionStream; {gzip:true} lends the page Node's, the same API browsers have (#176).
       if (opts.gzip) for (const k of ['CompressionStream', 'DecompressionStream', 'TextEncoder', 'TextDecoder']) window[k] = globalThis[k];
       // jsdom has no crypto.subtle; {crypto:true} lends Node's WebCrypto (Ed25519, SHA-256) for multiplayer tests.
-      if (opts.crypto) Object.defineProperty(window, 'crypto', { configurable: true, value: globalThis.crypto });
+      // Each WebCrypto call is counted while it runs (Node runs them on its thread pool): settle() waits for them, so a slow
+      // machine cannot leave a signature half done when a test looks.
+      if (opts.crypto) {
+        const c = globalThis.crypto, subtle = new Proxy(c.subtle, { get(t, k) { const v = t[k]; if (typeof v !== 'function') return v;
+          return (...a) => { cryptoBusy.n++; return v.apply(t, a).finally(() => { cryptoBusy.n--; }); }; } });
+        Object.defineProperty(window, 'crypto', { configurable: true, value: { subtle, getRandomValues: (a) => c.getRandomValues(a), randomUUID: () => c.randomUUID() } });
+      }
       // {idb:true}: a fresh in-memory IndexedDB (fake-indexeddb, a dev dependency) per page; {idb: factory} shares one.
       if (opts.idb) { const F = require('fake-indexeddb'); window.indexedDB = opts.idb === true ? new F.IDBFactory() : opts.idb; window.IDBKeyRange = F.IDBKeyRange; }
       window.Path2D = class { moveTo() {} lineTo() {} quadraticCurveTo() {} bezierCurveTo() {} arc() {} rect() {} closePath() {} };
@@ -149,4 +157,4 @@ function browser({ locks = true, channel = true } = {}) {
 }
 const flush = (n = 3) => new Promise((r) => { const go = (i) => (i ? setTimeout(() => go(i - 1), 2) : r()); go(n); });
 
-module.exports = { load, seed, browser, flush };
+module.exports = { cryptoBusy, load, seed, browser, flush };

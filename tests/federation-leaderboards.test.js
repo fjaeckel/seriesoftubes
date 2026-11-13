@@ -22,14 +22,17 @@ async function run(p, ms = 1500) {
 async function joined(o = {}) {
   const p = fedPage({ registry: SERVERS_JSON, ...o });
   const n = p.net.node(URL1);
-  assert.equal(await joinGame(p), null);
-  const me = p.ev('S.fed.key.pub');
+  // The answer is set up before joining: the rank chip asks as soon as the game connects. me is read when asked.
+  let me = null;
   n.ranks = (f) => {
+    me = me || p.ev('S.fed&&S.fed.key&&S.fed.key.pub');
     const rows = [];
     for (let i = 0; i < 30; i++) rows.push({ rank: i + 1, key: i === 24 && f.board === 'traffic' ? me : key('n' + i).pub, value: 50000 - i * 1000, asn: 4200000100 + i, ai: i % 5 === 1, ...(i === 2 ? { name: 'Extraordinarily Long Network Name Corp' } : { name: 'Net ' + i }), home: 'DE' });
     const top = (o.n || 30);
     return { slot: 0, n: 60, rows: rows.slice(0, top), me: f.board === 'traffic' ? { rank: 25, value: 26000 } : { rank: 40, value: 10 } };
   };
+  assert.equal(await joinGame(p), null);
+  me = p.ev('S.fed.key.pub');
   await run(p);
   return { p, n, me };
 }
