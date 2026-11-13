@@ -103,6 +103,9 @@ label.f+select.pick{width:100%}
 /* The NOC's traffic table has a row per network: classes, not inline styles, keep its hundreds of rows cheap to parse. */
 .nmc{display:inline-flex;align-items:center;gap:6px}.dlost{color:var(--bad)}.b.pall{display:block;margin-top:5px}
 .tscroll{overflow-x:auto}
+/* Links & routers: every row, in a box of its own so the AS facts below stay in reach. */
+.iscroll{max-height:min(56vh,520px);overflow-y:auto;overscroll-behavior:contain;padding-right:2px}
+.ihit{cursor:pointer;border-radius:8px}.ihit:hover{background:var(--soft)}
 #modal{position:fixed;inset:0;background:rgba(30,38,64,.45);display:grid;place-items:center;z-index:20;padding:16px max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px))}
 #modal .card{width:min(560px,100%);max-height:calc(100% - 20px);overflow:auto;padding:20px 22px}
 .title-art{display:flex;align-items:center;gap:14px}

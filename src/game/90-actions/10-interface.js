@@ -22,6 +22,7 @@ const ACT={
    toast(B.equity?tr('interface.you_bought_out_bank_they_flew',{bank:esc(B.name)}):tr('interface.loan_from_bank_repaid_early',{bank:esc(B.name)}),'good');after();renderBank();},
  leaseSwap:({a,b,src})=>{if(!S.pops[a]||!S.pops[b]||a===b)return;$('dash').hidden=true;UI.lmode='df';UI.dfSrc=['lease','build','cable'].includes(src)?src:isSub(a,b)?'cable':'build';UI.dfSys=glassLvl()>=3?'roadm':'lite';openLinkModal(a,b);},
  dashLink:({id})=>{$('dash').hidden=true;selectLink(id);focusLink(id);},
+ dashPop:({city})=>{if(!S.pops[city])return;$('dash').hidden=true;ACT.focusCity({city});UI.tab='links';renderPanel();},
  mapSet:({v})=>{if(!['auto','2d'].includes(v))return;mapGl(v==='auto');refreshSettings();},
  animSet:({v})=>{if(!['auto','on','off'].includes(v))return;UI.anim=v;try{localStorage.setItem('sot-anim',v);}catch(e){}applyAnim();refreshSettings();},
  soundSet:({v})=>{UI.muted=v==='off';try{localStorage.setItem('sot-mute',UI.muted?'1':'0');}catch(e){}renderHUD();refreshSettings();},

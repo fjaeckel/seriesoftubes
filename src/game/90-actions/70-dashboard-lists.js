@@ -1,6 +1,6 @@
 Object.assign(ACT,{
  custGo:({id})=>{const b=S.biz.find(x=>x.id===id);if(!b)return;$('dash').hidden=true;ACT.focusCity({city:b.city});UI.tab='cust';renderPanel();},
- listMore:({k})=>{if(k!=='conn'&&k!=='cust'&&k!=='nets'&&k!=='pni'&&k!=='pops')return;UI.listN=UI.listN||{};UI.listN[k]=listN(k)+LIST_PAGE;if(k==='nets'){renderLeft();return;}if(k==='pni'){renderPanel();return;}renderDash();},
+ listMore:({k})=>{if(!['conn','cust','nets','pni','pops','links','routers'].includes(k))return;UI.listN=UI.listN||{};UI.listN[k]=listN(k)+listPg(k);if(k==='nets'){renderLeft();return;}if(k==='pni'){renderPanel();return;}renderDash();},
  custF:({v})=>{UI.kf=UI.kf||{};UI.kf.f=v==='sad'?'sad':'';listReset('cust');renderDash();},
  custCity:({v})=>{UI.kf=UI.kf||{};UI.kf.city=isCity(v)?v:'';listReset('cust');renderDash();},
  custSort:({k})=>{if(!['mood','mo','name','city'].includes(k))return;listReset('cust');if(UI.custSort===k)UI.custDir=-(UI.custDir||1);else{UI.custSort=k;UI.custDir=k==='mo'?-1:1;}renderDash();},
@@ -13,6 +13,8 @@ Object.assign(ACT,{
  connCity:({v})=>{UI.cf=UI.cf||{};listReset('conn');UI.cf.city=isCity(v)?v:'';renderDash();},
  connNet:({v})=>{UI.cf=UI.cf||{};listReset('conn');UI.cf.net=NET[v]?v:'';renderDash();},
  connSort:({k})=>{if(!['k','city','name','use','mo'].includes(k))return;listReset('conn');if(UI.connSort===k)UI.connDir=-(UI.connDir||1);else{UI.connSort=k;UI.connDir=k==='use'||k==='mo'?-1:1;}renderDash();},
+ infraF:({v})=>{if(v!==''&&!LK.includes(v))return;UI.infraF=v;listReset('links');renderDash();},
+ infraSort:({w,k})=>{if((w!=='links'&&w!=='routers')||(k!=='use'&&k!=='name'))return;listReset(w);const I=UI.infraSort=UI.infraSort||{},o=I[w]||{},d0=k==='name'?1:-1;I[w]={k,d:(o.k||'use')===k?-(o.d||d0):d0};renderDash();},
  connFor:({net})=>{if(!NET[net])return;UI.cf={net};ACT.connOpen();},
  connCancel:({k,id})=>{const r=conns().find(x=>x.k===k&&x.id===id);if(!r||r.mine)return;const key='cc:'+k+':'+id;if(UI.confirm!==key){UI.confirm=key;renderDash();return;}UI.confirm=null;
    if(k==='t')ACT.cancelTransit({id,ok:1});else if(k==='p')ACT.cancelPni({id,ok:1});else if(k==='ix')ACT.cancelIx({city:id,ok:1});else if(k==='c')ACT.rmCache({id});else{const [city,prov]=id.split('|');ACT.rmNni({city,prov});}renderDash();},

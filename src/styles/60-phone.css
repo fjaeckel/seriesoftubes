@@ -21,6 +21,7 @@ button,.chip,.b,a{touch-action:manipulation;-webkit-tap-highlight-color:transpar
 #tabbar,.grab{display:none}
 @media (max-width:760px),(max-height:500px) and (pointer:coarse){
   :root{--tabbar:calc(58px + env(safe-area-inset-bottom,0px))}
+  .iscroll{max-height:46vh}
   #hud{flex-wrap:nowrap;top:calc(env(safe-area-inset-top,0px) + 6px);left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));gap:5px}
   #hud .speed,#hud #hNoc,#hud .spacer{display:none !important}
   #hud .chip{flex:0 1 auto;min-width:0}

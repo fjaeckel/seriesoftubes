@@ -13,8 +13,9 @@ const custStats=()=>{const bz=S.biz.filter(b=>!BIZ_T[b.type].event),mo=bz.reduce
   return {n:bz.length,unhappy:bz.filter(b=>b.mood<60).length,furious:bz.filter(b=>b.mood<30).length,avg:bz.length?(mo>0?bz.reduce((a,b)=>a+b.mood*bizMo(b),0)/mo:bz.reduce((a,b)=>a+b.mood,0)/bz.length):100,risk:bz.filter(b=>b.mood<60).reduce((a,b)=>a+bizMo(b),0)};};
 // Long lists show their first rows and grow on request: a thousand rows of buttons take the browser a long time to
 // lay out again every day, worst of all on a phone. Filters, sorting and totals still cover every row.
-const LIST_PAGE=100,listN=k=>(UI.listN&&UI.listN[k])||LIST_PAGE,listReset=k=>{if(UI.listN)delete UI.listN[k];};
-const listMore=(k,n,lab)=>n>listN(k)?`<div class="btns" style="margin-top:6px">${btn(lab(Math.min(LIST_PAGE,n-listN(k))),'listMore',{k},'ghost sm')}</div>`:'';
+// Links & routers sit in a scrolling box that shows a dozen rows at a time, so a smaller page is plenty there.
+const LIST_PAGE=100,LIST_PG={links:50,routers:50},listPg=k=>LIST_PG[k]||LIST_PAGE,listN=k=>(UI.listN&&UI.listN[k])||listPg(k),listReset=k=>{if(UI.listN)delete UI.listN[k];};
+const listMore=(k,n,lab)=>n>listN(k)?`<div class="btns" style="margin-top:6px">${btn(lab(Math.min(listPg(k),n-listN(k))),'listMore',{k},'ghost sm')}</div>`:'';
 function custSection(){const F=UI.kf||{};let h=`<div class="panel2" id="custSec" style="margin-top:12px"><h3>${tr('common.customers')}</h3>`;
   if(!S.biz.length)return h+`<p class="empty">${tr('customers.no_customers_yet_offers_show_up')}</p></div>`;
   const st=custStats();
