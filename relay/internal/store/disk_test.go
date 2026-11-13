@@ -24,7 +24,7 @@ func key(name string) *fed.Signer {
 	return s
 }
 
-func check(t *testing.T, m map[string]any) *fed.Record {
+func check(t testing.TB, m map[string]any) *fed.Record {
 	t.Helper()
 	r, code := fed.CheckValue(m, t0+30*fed.Day, fed.Opts{Trusted: true})
 	if code != "" {
@@ -33,7 +33,7 @@ func check(t *testing.T, m map[string]any) *fed.Record {
 	return r
 }
 
-func stats(t *testing.T, k *fed.Signer, at int64) *fed.Record {
+func stats(t testing.TB, k *fed.Signer, at int64) *fed.Record {
 	return check(t, k.Seal("stats", at, map[string]any{"mode": "normal", "pops": map[string]any{"fra": 1 + at%7},
 		"traffic": []any{}, "tier1": false, "shareCountry": true}))
 }
@@ -356,4 +356,33 @@ func TestLocked(t *testing.T) {
 	s.Close()
 	s = open(t, dir)
 	s.Close()
+}
+
+// BenchmarkRaw reads records back: from the day files (what a backlog, fetch or push of an older
+// record costs; the page cache holds them) and from memory (a recent one).
+func BenchmarkRaw(b *testing.B) {
+	for _, recent := range []int{0, 64 << 20} {
+		b.Run(fmt.Sprint("inMemory=", recent > 0), func(b *testing.B) {
+			defer func(n int) { store.RecentBytes = n }(store.RecentBytes)
+			store.RecentBytes = recent
+			s, err := store.Open(b.TempDir())
+			if err != nil {
+				b.Fatal(err)
+			}
+			defer s.Close()
+			var es []*store.Entry
+			for i := range 2000 {
+				at := t0 + int64(i)*300
+				r := stats(b, key(fmt.Sprint(i%50)), at)
+				_, e, _ := s.Put(r, rcpt(r, at), fed.Slot(at), at/fed.Day)
+				es = append(es, e)
+			}
+			b.ResetTimer()
+			for i := range b.N {
+				if _, _, err := s.Raw(es[(i*7919)%len(es)]); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
 }
