@@ -337,14 +337,31 @@ func found(dir, url string, f ops.ServerFields) (string, error) {
 		return "", err
 	}
 	now := time.Now().Unix()
-	g := op.Seal("genesis", now, map[string]any{"name": f.Name, "node": map[string]any{"key": nk.Key, "url": url}})
+	// The founding records are written to a pending file before they are stored, and reused from it: a crash
+	// between storing them and saving the config (relay up restarts on its own) finishes this server instead of
+	// founding a second one.
+	pending := filepath.Join(dir, "genesis.pending.json")
+	g, srv := pendingFounding(pending, op.Key, nk.Key)
+	if g == nil {
+		g = op.Seal("genesis", now, map[string]any{"name": f.Name, "node": map[string]any{"key": nk.Key, "url": url}})
+	}
 	gr, code := fed.CheckValue(g, now, fed.Opts{})
 	if code != "" {
 		return "", fmt.Errorf("genesis refused: %s", code)
 	}
-	st := &ops.State{Server: gr.ID, Head: gr.ID, Operators: []string{op.Key}}
-	st.Nodes = append(st.Nodes, struct{ Key, URL string }{nk.Key, url})
-	srv := ops.ServerRecord(st, op, f, now)
+	if srv == nil {
+		st := &ops.State{Server: gr.ID, Head: gr.ID, Operators: []string{op.Key}}
+		st.Nodes = append(st.Nodes, struct{ Key, URL string }{nk.Key, url})
+		srv = ops.ServerRecord(st, op, f, now)
+		if err := writeAtomic(pending, canon.Encode(map[string]any{"genesis": g, "server": srv}), 0o600); err != nil {
+			return "", err
+		}
+	}
+	if b, _ := gr.Body["node"].(map[string]any); b != nil {
+		if u, _ := b["url"].(string); u != "" {
+			url = u
+		}
+	}
 	c.Server, c.URL = gr.ID, url
 	r, err := node.New(node.Options{Dir: dir, Config: c, Node: nk})
 	if err != nil {
@@ -356,7 +373,44 @@ func found(dir, url string, f ops.ServerFields) (string, error) {
 			return "", fmt.Errorf("record refused: %s", code)
 		}
 	}
-	return gr.ID, c.Save(cfgPath(dir))
+	if err := c.Save(cfgPath(dir)); err != nil {
+		return "", err
+	}
+	_ = os.Remove(pending)
+	return gr.ID, nil
+}
+
+// pendingFounding reads founding records left by an interrupted found: both, when they are this operator's and
+// name this node; else nil, nil (and an unusable file is removed).
+func pendingFounding(path, opKey, nodeKey string) (map[string]any, map[string]any) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, nil
+	}
+	v, code := canon.ParseStrict(b) // strict values (int64 numbers), as records are checked
+	m, _ := v.(map[string]any)
+	g, _ := m["genesis"].(map[string]any)
+	srv, _ := m["server"].(map[string]any)
+	if code != "" || g == nil || srv == nil || g["key"] != opKey {
+		_ = os.Remove(path)
+		return nil, nil
+	}
+	if body, _ := g["body"].(map[string]any); body != nil {
+		if n, _ := body["node"].(map[string]any); n == nil || n["key"] != nodeKey {
+			_ = os.Remove(path)
+			return nil, nil
+		}
+	}
+	return g, srv
+}
+
+// writeAtomic writes a file under a temporary name and renames it into place.
+func writeAtomic(path string, b []byte, mode os.FileMode) error {
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, b, mode); err != nil {
+		return err
+	}
+	return os.Rename(tmp, path)
 }
 
 func cmdJoin(args []string) error {

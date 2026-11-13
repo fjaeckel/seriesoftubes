@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fjaeckel/seriesoftubes/relay/internal/canon"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/certs"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/config"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
@@ -274,4 +275,55 @@ func TestUpWaitsForCertificate(t *testing.T) {
 	r = startUp(t, s, out2, 0)
 	time.Sleep(50 * time.Millisecond)
 	r.halt(t)
+}
+
+// A crash after the founding records were stored but before the config was saved: the next start finishes that
+// same server from the pending file instead of founding a second one; a pending file of another operator is ignored.
+func TestFoundResumesFromPending(t *testing.T) {
+	dir := filepath.Join(rt.Dir(t), "data")
+	if _, _, _, err := initData(dir, "", func(c *config.Config) { c.URL = "wss://relay.example.net/fed"; c.Registry = "" }); err != nil {
+		t.Fatal(err)
+	}
+	f := ops.ServerFields{Name: "Ping Floyd", Sync: "open", Langs: []string{"en"}}
+	first, err := found(dir, "", f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pending := filepath.Join(dir, "genesis.pending.json")
+	if _, err := os.Stat(pending); !os.IsNotExist(err) {
+		t.Fatal("the pending file stays after a finished founding")
+	}
+	// Simulate the crash: the records are stored, the config never got the server, the pending file is there.
+	c, nk, _ := loadAll(dir)
+	op, _ := ops.LoadKey(filepath.Join(dir, "operator.key"))
+	now := time.Now().Unix()
+	// Another name than the first founding, so the two can be told apart (signatures are deterministic).
+	g := op.Seal("genesis", now, map[string]any{"name": "Pending Floyd", "node": map[string]any{"key": nk.Key, "url": c.URL}})
+	gr, _ := fed.CheckValue(g, now, fed.Opts{})
+	st := &ops.State{Server: gr.ID, Head: gr.ID, Operators: []string{op.Key}}
+	st.Nodes = append(st.Nodes, struct{ Key, URL string }{nk.Key, c.URL})
+	srv := ops.ServerRecord(st, op, f, now)
+	if err := writeAtomic(pending, canon.Encode(map[string]any{"genesis": g, "server": srv}), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	c.Server = ""
+	if err := c.Save(cfgPath(dir)); err != nil {
+		t.Fatal(err)
+	}
+	again, err := found(dir, "", f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again != gr.ID || again == first {
+		t.Fatalf("resumed as %s, want the pending server %s (first founding %s)", again, gr.ID, first)
+	}
+	if _, err := os.Stat(pending); !os.IsNotExist(err) {
+		t.Fatal("the pending file stays after resuming")
+	}
+	// Another operator's pending file is not used.
+	other := rt.Key("someone else")
+	writeAtomic(pending, canon.Encode(map[string]any{"genesis": other.Seal("genesis", now, map[string]any{"name": "x", "node": map[string]any{"key": nk.Key, "url": c.URL}}), "server": srv}), 0o600)
+	if g2, s2 := pendingFounding(pending, op.Key, nk.Key); g2 != nil || s2 != nil {
+		t.Fatal("used another operator's founding records")
+	}
 }
