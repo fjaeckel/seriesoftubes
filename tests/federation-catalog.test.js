@@ -50,6 +50,24 @@ test('gossip fills in, the registry wins on records, bad and expired gossip is d
   assert.deepEqual(p.errors, []);
 });
 
+// Two servers syncing (found by scripts/fed-e2e.js): a node gives its clients an entry with the path it came by, which
+// ends before the node's own server; the game adds that server, so the looking glass shows who syncs with whom.
+test('gossip from a node: the node\'s server ends the path kept, so the looking glass sees the sync', async () => {
+  const p = fedPage({ registry: { ...SERVERS_JSON, servers: [PL] } });
+  const n = p.net.node(URL1);
+  n.gossip = [entry(HOP, [HOP.id], NOW - 30), entry(PL, [PL.id], NOW - 20)];
+  await joinGame(p);
+  assert.ok(await until(async () => (await settle(5), (await servers(p)).length === 2)));
+  const l = await servers(p);
+  assert.deepEqual(l.find((s) => s.id === HOP.id).path, [HOP.id, PL.id], 'heard through Packet Lunch');
+  assert.deepEqual(l.find((s) => s.id === PL.id).path, [PL.id], 'its own entry is not passed on');
+  const kept = JSON.parse(await p.ev("fedGet('kv','gossip').then(g=>JSON.stringify(g))"));
+  assert.ok(kept.every((g) => new Set(g.path).size === g.path.length && g.path[0] === g.id));
+  await p.ev('(async()=>{FU.srvs=await fedServers();FU.nets=new Map();FU.gossip=(await fedGet("kv","gossip"))||[];await fuGlassLoad();})()');
+  assert.deepEqual(JSON.parse(await p.ev(`JSON.stringify([...(FU.syncs.get(${JSON.stringify(HOP.id)})||[])])`)), [PL.id]);
+  assert.deepEqual(p.errors, []);
+});
+
 test('no registry (a 404, or offline): gossip alone; and a registry that fails later leaves the cached one', async () => {
   const p = fedPage({ registry: null });
   const n = p.net.node(URL1);
