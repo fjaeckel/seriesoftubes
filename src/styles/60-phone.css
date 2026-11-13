@@ -76,6 +76,8 @@ button,.chip,.b,a{touch-action:manipulation;-webkit-tap-highlight-color:transpar
 }
 /* Phones on their side: the sheets slide in from the right and leave the map visible. */
 @media (orientation:landscape) and (max-height:500px) and (pointer:coarse),(orientation:landscape) and (max-width:760px) and (max-height:500px){
+  /* A phone on its side has no room for two pinned bars: the Links and Routers filters scroll away, the tab bar stays. */
+  .ibar{position:static;margin-top:0}
   :root{--tabbar:calc(50px + env(safe-area-inset-bottom,0px))}
   #left,#panel{left:auto !important;right:0 !important;width:min(440px,58%) !important;top:calc(env(safe-area-inset-top,0px) + 50px) !important;max-height:none !important;border-radius:20px 0 0 0 !important;border-right:0 !important}
   #left.full,#panel.full{width:min(640px,80%) !important}
