@@ -219,8 +219,9 @@ func TestRandomStreamsMatchReference(t *testing.T) {
 						slot = lo + int64(rng.IntN(int(c-lo)/fed.SlotLen))*fed.SlotLen + int64(rng.IntN(3))*100
 					}
 					if rng.IntN(5) == 0 && len(h) > 0 { // same board slot as another record of the key
-						for _, s := range h {
-							if s.Key == k {
+						// In id order, not map order (Go randomises it): every run builds the same stream.
+						for _, id := range slices.Sorted(maps.Keys(h)) {
+							if s := h[id]; s.Key == k {
 								slot = s.Slot
 								break
 							}
@@ -234,11 +235,11 @@ func TestRandomStreamsMatchReference(t *testing.T) {
 				case op < 8 && rng.IntN(3) == 0:
 					announce(keys[rng.IntN(K)])
 				case op < 9:
-					for id := range h {
-						delete(h, id)
-						a.Drop(id)
-						break
-					}
+					// A record picked by the stream's own random numbers, never by map order.
+					ids := slices.Sorted(maps.Keys(h))
+					id := ids[rng.IntN(len(ids))]
+					delete(h, id)
+					a.Drop(id)
 				default:
 					k := keys[rng.IntN(K)]
 					if ex[k] {
