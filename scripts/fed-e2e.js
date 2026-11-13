@@ -8,6 +8,9 @@
 //   node scripts/fed-e2e.js --play     [--fakes N] (default 12) [--port P] sets up the same relay without TLS (the
 //                                      game dials *.localhost nodes over ws:// from a localhost page, §9.1) and prints
 //                                      two addresses to open in any browser, one player each; runs until Ctrl-C
+//   node scripts/fed-e2e.js --lan      [--headed] a LAN party: `relay lan` on 127.0.0.1 with its own self-signed
+//                                      certificate, no registry and no internet; one player opens the relay's page,
+//                                      takes the invite link (an IP address) and joins (docs/HOSTING.md, LAN party)
 //
 // Everything runs on loopback: the relay serves TLS itself with a certificate made for the run (Chromium is told to
 // ignore that it is self-signed), the page is served by a small static server, and a registry (servers.json) lists the
@@ -27,7 +30,7 @@ const registry = require('./registry');
 
 const arg = (k) => process.argv.includes(k);
 const argv = (k, d) => { const i = process.argv.indexOf(k); return i >= 0 ? process.argv[i + 1] : d; };
-const PLAY = arg('--play'), KEEP = arg('--keep'), HEADED = arg('--headed'), QUICK = arg('--quick');
+const PLAY = arg('--play'), KEEP = arg('--keep'), HEADED = arg('--headed'), QUICK = arg('--quick'), LAN = arg('--lan');
 const FAKES = Math.max(0, +argv('--fakes', PLAY ? 12 : 260) || 0);
 const HOST = 'relay.localhost', SLOT = 300, DAY = 86400;
 // The relay runs as this release; the update feed of the run announces the next minor one.
@@ -762,4 +765,152 @@ stay in the browser).`);
   process.exit(failed ? 1 : 0);
 }
 
-main();
+/* --lan: `relay lan` as a LAN party host runs it, on loopback (127.0.0.1 is a local address a node URL may name, like
+   a LAN's 192.168.x.y). Chromium's ignoreHTTPSErrors stands in for the player accepting the certificate warning once;
+   the page is served by a static server standing in for GitHub Pages, with no servers.json: nothing from the internet. */
+async function lanMain() {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir().length < 60 ? os.tmpdir() : '/tmp', 'fe2l-'));
+  let proc = null, browser = null, web = null, out = '', log = '';
+  const cleanup = async () => {
+    try { if (browser) await browser.close(); } catch (e) { /* gone */ }
+    try { if (proc) proc.kill('SIGTERM'); } catch (e) { /* gone */ }
+    if (web) web.close();
+    if (!KEEP) fs.rmSync(tmp, { recursive: true, force: true }); else console.log(`kept ${tmp}`);
+  };
+  process.on('SIGINT', async () => { await cleanup(); process.exit(130); });
+  const bin = path.join(tmp, 'relay'), data = path.join(tmp, 'lan');
+  const ctl = (cmd) => JSON.parse(execFileSync(bin, [cmd, '--data', data], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }));
+  try {
+    const [port, wport] = [await freePort(), await freePort()];
+    const NODE = `wss://127.0.0.1:${port}/fed`;
+    let invite = null, cert = null;
+
+    await step('build the relay (go build)', async () => {
+      execFileSync('go', ['build', '-o', bin, './cmd/relay'], { cwd: path.join(ROOT, 'relay'), stdio: ['ignore', 'pipe', 'pipe'] });
+    });
+
+    await step('relay lan: founds a standalone server, makes its certificate, prints the invite', async () => {
+      proc = spawn(bin, ['lan', '--data', data, '--listen', `127.0.0.1:${port}`, '--name', 'E2E LAN Party'], { stdio: ['ignore', 'pipe', 'pipe'] });
+      proc.stdout.on('data', (b) => { out += b; });
+      proc.stderr.on('data', (b) => { log += b; });
+      await until(() => /relay serving/.test(log), 20000, 'the relay to serve');
+      invite = (out.match(/https:\/\/seriesoftub\.es\/#join=\S+/) || [])[0];
+      must(invite === `https://seriesoftub.es/#join=${NODE}`, `printed invite ${invite}`);
+      must(out.includes(`https://127.0.0.1:${port}/`), 'no page address printed');
+      const st = ctl('status');
+      must(st.serving, 'status: not serving');
+      return invite;
+    });
+
+    await step('its certificate: self-signed, for 127.0.0.1 and localhost, a year', async () => {
+      const tls = require('node:tls');
+      cert = await new Promise((res, rej) => {
+        const s = tls.connect({ host: '127.0.0.1', port, rejectUnauthorized: false }, () => { const c = s.getPeerCertificate(); const why = s.authorizationError; s.end(); res({ c, why }); });
+        s.on('error', rej);
+      });
+      must(/SELF_SIGNED/.test(String(cert.why)), `not refused as self-signed by default (${cert.why})`);
+      const san = cert.c.subjectaltname || '';
+      must(/IP Address:127\.0\.0\.1/.test(san) && /DNS:localhost/.test(san), `SANs ${san}`);
+      const days = (Date.parse(cert.c.valid_to) - Date.now()) / 86400e3;
+      must(days > 360 && days < 366, `valid for ${days.toFixed(0)} days`);
+      return `${san.split(', ').length} names, ${days.toFixed(0)} days`;
+    });
+
+    await step('serve the game page (no servers.json: offline)', async () => {
+      const { html } = assemble({ dev: false });
+      const SITE = path.join(ROOT, 'site');
+      const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
+      web = http.createServer((req, res) => {
+        const u = new URL(req.url, 'http://x').pathname;
+        if (u === '/' || u === '/index.html') { res.writeHead(200, { 'content-type': TYPES['.html'], 'cache-control': 'no-store' }); return res.end(html); }
+        const rel = path.normalize(decodeURIComponent(u)).replace(/^([/\\]|\.\.)+/, '');
+        const f = path.join(SITE, rel);
+        if (!rel.startsWith('federation') && f.startsWith(SITE + path.sep) && fs.statSync(f, { throwIfNoEntry: false })?.isFile()) {
+          res.writeHead(200, { 'content-type': TYPES[path.extname(f)] || 'application/octet-stream', 'cache-control': 'no-store' });
+          return fs.createReadStream(f).pipe(res);
+        }
+        res.writeHead(404); res.end();
+      });
+      await new Promise((r) => web.listen(wport, '127.0.0.1', r));
+    });
+
+    const { chromium } = require('playwright-core');
+    const exe = process.env.FED_E2E_CHROME || chromeIn(chromium.executablePath());
+    const PAGE = `http://game.test:${wport}/`;
+    // No --ignore-certificate-errors here: only the context's ignoreHTTPSErrors, the stand-in for "accept the warning".
+    browser = await chromium.launch({ executablePath: fs.existsSync(exe) ? exe : undefined, headless: !HEADED,
+      args: ['--host-resolver-rules=MAP game.test 127.0.0.1', `--unsafely-treat-insecure-origin-as-secure=${PAGE.slice(0, -1)}`] });
+    const ctx = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 360, height: 740 }, isMobile: true, hasTouch: true });
+    const page = await ctx.newPage();
+    const errors = [], frames = [];
+    page.on('pageerror', (e) => errors.push(String(e.message || e)));
+    page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+    page.on('websocket', (ws) => { if (ws.url().startsWith('wss://127.0.0.1')) ws.on('framereceived', (f) => { try { frames.push(JSON.parse(f.payload)); } catch (e) { /* not JSON */ } }); });
+    let link = null;
+
+    await step("the relay's own page (what a player opens first): the invite for the address used, nothing loaded", async () => {
+      const reqs = [];
+      page.on('request', (r) => reqs.push(r.url()));
+      const r = await page.goto(`https://127.0.0.1:${port}/`, { waitUntil: 'load' });
+      must(r.status() === 200, `status ${r.status()}`);
+      link = await page.locator('a.go').getAttribute('href');
+      must(link === invite, `page invite ${link}`);
+      must(reqs.length === 1, `the page loaded more: ${reqs.join(' ')}`);
+      must(await page.locator('script').count() === 0, 'a script on the page');
+      page.removeAllListeners('request');
+      return link;
+    });
+
+    await step('a player follows the invite (an IP address) on a new game: joins the LAN server over wss', async () => {
+      // The link opens seriesoftub.es; here the same page from the stand-in server, with the same fragment.
+      await page.goto(PAGE + link.slice(link.indexOf('#')), { waitUntil: 'load' });
+      await page.waitForSelector('#fsList .fs-srv.on', { timeout: 15000 });
+      must(await page.evaluate(() => UI.fs && UI.fs.on && UI.fs.inv), 'the title switch is not on with the invite');
+      await page.evaluate(() => { const i = document.getElementById('nmIn'); if (i) i.value = 'LAN Net'; UI.pitched = true; });
+      await page.locator('#modalCard .tcta [data-act="start"]').click();
+      await page.waitForFunction(() => typeof S !== 'undefined' && S && UI.started);
+      await page.locator('#modalCard [data-act="charter"]').first().click();
+      await until(() => page.evaluate(() => fedStatus().state === 'connected'), 30000, 'connected');
+      const w = frames.find((f) => f.m === 'welcome');
+      must(w && w.server === ctl('status').server, 'welcome from another server');
+      must(await page.evaluate((u) => S.fed.servers.length === 1 && S.fed.servers[0] === u, NODE), 'the save joined another URL');
+      return `server ${w.server.slice(0, 8)}…`;
+    });
+
+    await step('the relay lists the player; the log holds no address but its own', async () => {
+      const l = await until(() => { const x = ctl('players'); return x.find((p) => p.name === 'LAN Net') && x; }, 30000, 'the announce at the relay');
+      const addr = log.split('\n').filter((x) => !/msg="relay serving"/.test(x)).find((x) => /127\.0\.0\.1|::1|\[::/.test(x));
+      must(!addr, `the relay log holds an address: ${addr}`);
+      return `${l.length} network(s)`;
+    });
+
+    await step('relay lan again: same server, same certificate (players accept once)', async () => {
+      const st = ctl('status');
+      proc.kill('SIGTERM');
+      await until(() => proc.exitCode !== null || proc.signalCode !== null, 10000, 'the relay to stop');
+      out = ''; log = '';
+      proc = spawn(bin, ['lan', '--data', data, '--listen', `127.0.0.1:${port}`], { stdio: ['ignore', 'pipe', 'pipe'] });
+      proc.stdout.on('data', (b) => { out += b; });
+      proc.stderr.on('data', (b) => { log += b; });
+      await until(() => /relay serving/.test(log), 20000, 'the relay to serve again');
+      must(/Same certificate/.test(out) && out.includes('E2E LAN Party'), `second start said:\n${out}`);
+      must(ctl('status').server === st.server, 'another server');
+      await until(() => page.evaluate(() => fedStatus().state === 'connected'), 60000, 'the game to reconnect');
+    });
+
+    await step('no page errors', async () => {
+      const errs = errors.filter((e) => !/favicon|ERR_|404/.test(e));
+      must(!errs.length, errs.slice(0, 5).join(' | '));
+    });
+  } catch (e) {
+    failed++;
+    console.log(`FAIL  (setup) ${e && e.stack ? e.stack : e}`);
+  } finally {
+    if (failed && (out || log)) console.log('--- relay lan output ---\n' + (out + log).trim().split('\n').slice(-40).join('\n'));
+    await cleanup();
+  }
+  console.log(`${results.filter((r) => r[1]).length}/${results.length} steps passed`);
+  process.exit(failed ? 1 : 0);
+}
+
+if (LAN) lanMain(); else main();

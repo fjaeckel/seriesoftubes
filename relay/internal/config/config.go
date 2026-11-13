@@ -50,6 +50,7 @@ type Config struct {
 	CountryDB      string      `json:"countryDb,omitempty"`      // country-only MaxMind-format database
 	Registry       string      `json:"registry,omitempty"`       // servers.json: a file path or an https:// URL
 	Metrics        string      `json:"metrics,omitempty"`        // loopback address for /metrics, empty: off
+	MetricsPublic  bool        `json:"metricsPublic,omitempty"`  // allow metrics beyond loopback (a container's Prometheus)
 	TrustedProxies []string    `json:"trustedProxies,omitempty"` // prefixes whose X-Forwarded-For is believed
 	Listed         bool        `json:"listed"`                   // the operators mean to be in the registry
 	NotifyURL      string      `json:"notifyURL,omitempty"`      // https:// URL POSTed once per new relay release; empty: off
@@ -112,6 +113,21 @@ func (c *Config) ProxyWarning() string {
 		"connection limit; add the proxy's address to trustedProxies"
 }
 
+func loopback(host string) bool {
+	ip, err := netip.ParseAddr(host)
+	return host == "localhost" || err == nil && ip.IsLoopback()
+}
+
+// MetricsWarning is a warning when /metrics listens beyond loopback (metricsPublic), or "".
+func (c *Config) MetricsWarning() string {
+	host, _, err := net.SplitHostPort(c.Metrics)
+	if c.Metrics == "" || err != nil || loopback(host) {
+		return ""
+	}
+	return "metrics listen on " + c.Metrics + " (metricsPublic): anyone who can reach that port reads them; " +
+		"keep it on an internal network or behind a firewall, never published to the internet"
+}
+
 // Load reads and checks a config file.
 func Load(path string) (*Config, error) {
 	b, err := os.ReadFile(path)
@@ -135,6 +151,9 @@ func Load(path string) (*Config, error) {
 func (c *Config) Check() error {
 	if c.URL != "" && !fed.URLOK(c.URL) {
 		return fmt.Errorf("url %q is not a wss:// URL with a host name", c.URL)
+	}
+	if (c.TLSCert == "") != (c.TLSKey == "") {
+		return fmt.Errorf("tlsCert and tlsKey go together")
 	}
 	if c.Server != "" && !fed.IsID(c.Server) {
 		return fmt.Errorf("server is not a server identity")
@@ -171,9 +190,8 @@ func (c *Config) Check() error {
 		if err != nil {
 			return fmt.Errorf("metrics: %w", err)
 		}
-		ip, err := netip.ParseAddr(host)
-		if host != "localhost" && (err != nil || !ip.IsLoopback()) {
-			return fmt.Errorf("metrics must listen on localhost only, not %q", c.Metrics)
+		if !c.MetricsPublic && !loopback(host) {
+			return fmt.Errorf("metrics must listen on localhost only, not %q (in a container, set metricsPublic: true and keep the port off the internet)", c.Metrics)
 		}
 	}
 	for _, p := range c.TrustedProxies {
