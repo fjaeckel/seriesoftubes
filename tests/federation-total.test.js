@@ -21,7 +21,7 @@ test('stats carry total: traffic served in Mbps, a valid record', async () => {
   assert.deepEqual(p.errors, []);
 });
 
-test('leaderboards: a Total traffic chip, its note, values in Mbps then Gbps', async () => {
+test('leaderboards: a Total traffic board, its note, values in Mbps then Gbps', async () => {
   const p = fedPage({ registry: SERVERS_JSON });
   const n = p.net.node(URL1);
   await joinGame(p);
@@ -30,12 +30,12 @@ test('leaderboards: a Total traffic chip, its note, values in Mbps then Gbps', a
   const row = (k, rank, value) => ({ rank, key: k, value, asn: 4200000001, ai: false });
   n.ranks = (f) => f.board === 'total' ? { slot: 0, n: 3, rows: [row(key('carol').pub, 1, 48000), row(me, 2, 900), row(key('bob').pub, 3, 32)], me: { rank: 2, value: 900 } } : {};
   p.ev("ACT.fuOpen({v:'boards'})");
-  const chip = `[...document.querySelectorAll('#modalCard .fu-chip')].find(b=>b.textContent==='Total traffic')`;
-  assert.ok(p.ev(`!!${chip}`), 'the chip is there');
-  p.ev(`${chip}.click()`);
+  const opt = `[...document.querySelectorAll('#modalCard select.fu-bsel option')].find(o=>o.textContent==='Total traffic')`;
+  assert.ok(p.ev(`!!${opt}`), 'the board is offered');
+  p.ev(`(()=>{const s=document.querySelector('#modalCard select.fu-bsel');s.value=${opt}.value;s.dispatchEvent(new Event('change',{bubbles:true}));})()`);
   for (let i = 0; i < 40 && !p.ev("!!FU.slice&&UI.fu.q.board==='total'&&!!document.querySelector('#modalCard .fu-board')"); i++) await settle(20);
   const vals = JSON.parse(p.ev(`JSON.stringify([...document.querySelectorAll('#modalCard .fu-board .fu-v')].map(x=>x.textContent))`));
-  assert.deepEqual(vals, ['900 Mbps', p.ev('fmtG(48)'), '32 Mbps'], 'own row pinned, then the board');
+  assert.deepEqual(vals, [p.ev('fmtG(48)'), '900 Mbps', '32 Mbps'], 'the own row in its place on the board');
   assert.match(p.ev("$('modalCard').textContent"), /whole traffic, as each game reports it/);
   assert.deepEqual(p.errors, []);
 });

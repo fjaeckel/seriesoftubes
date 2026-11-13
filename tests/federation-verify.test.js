@@ -23,6 +23,12 @@ async function setup(ranks) {
   n.why = (f) => ({ slot: slotOf(NOW), items: recs[f.key] ? [{ rec: recs[f.key], rcpt: [rcpt(recs[f.key], t0)] }] : [] });
   await joinGame(p);
   assert.ok(await until(async () => (await settle(5), p.ev('fedStatus().state') === 'connected')));
+  // The HUD's rank chip asks once on connecting (and its answer is spot-checked too): let it finish, then count afresh.
+  assert.ok(await until(async () => (await settle(5), p.ev('FUR.at>0&&!FUR.busy&&!(FED.vb&&FED.vb.size)'))));
+  await settle(20);
+  n.asks.length = 0;
+  p.ev('FED.bad={}');
+  await p.ev("fedPut('kv','untrusted',{})");
   return { p, n };
 }
 const check = (p) => p.ev(`(async()=>{const c=FED.live.conns.get(${JSON.stringify(URL1)}),req=fedRankReq({board:'pops'},[]);

@@ -23,7 +23,11 @@ Object.assign(ACT,{
    if(r&&r.ok){ACT.fuOpen({v:'home'});FU.msg={html:tr('fedui.operator_key_imported')};fuRender();}else{FU.msg={bad:true,html:tr('fedui.that_is_not_an_operator_key')};fuRender();}},
  fuOpKeyDel:async()=>{await fedOpKeyDel();FU.opKey=null;FU.msg={html:tr('fedui.operator_key_removed')};fuLoad();},
  // Board chips: one dimension each; null clears it. A wider region clears the narrower ones.
- fuQ:({k,v}={})=>{const q=fuQ(),ok={board:FU_BOARDS,measure:['total','growth'],division:['all','human','ai']};
+ // The HUD's rank chip and the menu tile.
+ fuBoards:()=>{if(fuRankOn())ACT.fuOpen({v:'boards'});},
+ // The board's note: one line, or all of it.
+ fuNote:()=>{if(!UI.fu)return;UI.fu.note=!UI.fu.note;fuRender();},
+ fuQ:({k,v}={})=>{const q=fuQ(),ok={board:FU_BOARDS,measure:FU_MEASURES,division:['all','human','ai']};
    if(ok[k]){if(!ok[k].includes(v))return;q[k]=v;}
    else if(['model','harness','home','from','continent','country','city','age','gday','tier1','policy','peers','server'].includes(k)){
      if(v===null||v===undefined||v==='')delete q[k];else q[k]=v;
