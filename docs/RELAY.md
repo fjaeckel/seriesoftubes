@@ -91,9 +91,12 @@ from the registry by pull request and shunned by its peers.
   (`relay init --trusted-proxies 172.30.0.0/24`, your container network). Without it every player seems to come from
   the proxy, shares its one connection limit (30 per 5 minutes by default) and gets no country. Trust only a network
   on which nothing but your proxy can reach the relay: anything trusted can claim any address. The relay warns at
-  start when it listens beyond loopback, serves no TLS itself and trusts loopback proxies only. A complete Docker
+  start when it listens beyond loopback, serves no TLS itself and trusts loopback proxies only. The image runs
+  [`relay up`](#relay-up) unless given another command. A complete Docker
   Compose setup with Caddy, or with certbot and the relay serving TLS: [HOSTING.md](HOSTING.md).
 - **From source:** `cd relay && go build ./cmd/relay`.
+- **From the repository with Docker Compose:** `relay/docker-compose.yml` builds the image from the checkout and runs
+  it with certbot, every setting in `relay/.env` ([HOSTING.md, from the repo](HOSTING.md#from-the-repo-recommended)).
 
 Every command takes `--data DIR` (default: `$RELAY_DATA`, else `./relay-data`). Everything lives in that one folder.
 One relay at a time: a running relay locks its folder (`LOCK`), and a second `relay serve` on it refuses to start.
@@ -158,6 +161,48 @@ WantedBy=multi-user.target
 ```
 
 The relay logs to stderr: counts, error codes, record kinds and network keys. Never addresses, headers or user agents.
+
+### `relay up`
+
+Steps 2 to 4 in one command, for containers and one-command setups (the image's default command, and what
+`relay/docker-compose.yml` runs). Every setting is a flag or an environment variable:
+
+| Flag | Environment | Used | Default |
+| --- | --- | --- | --- |
+| `--url` | `RELAY_URL` | first start (init) | none: required for a new folder |
+| `--name` | `RELAY_NAME` | first start (genesis) | none: required to found a server |
+| `--sync` | `RELAY_SYNC` | first start | `open` (as `genesis`): a server is set up to play with others |
+| `--langs` | `RELAY_LANGS` | first start | `en` |
+| `--desc` | `RELAY_DESC` | first start | empty |
+| `--join`, `--join-from` | `RELAY_JOIN`, `RELAY_JOIN_FROM` | first start: join that server instead of founding one | empty |
+| `--operator-key` | `RELAY_OPERATOR_KEY` | first start: an operator key file to use | a new key |
+| `--listen` | `RELAY_LISTEN` | first start | `127.0.0.1:8080` (the image: `0.0.0.0:8080`) |
+| `--metrics`, `--metrics-public` | `RELAY_METRICS`, `RELAY_METRICS_PUBLIC` | first start | off (the image: `0.0.0.0:9100`, public) |
+| `--tls-cert`, `--tls-key` | `RELAY_TLS_CERT`, `RELAY_TLS_KEY` | first start | none: plain HTTP behind a proxy |
+| `--trusted-proxies` | `RELAY_TRUSTED_PROXIES` | **every start**, when set | loopback only |
+| `--notify-url` | `RELAY_NOTIFY_URL` | **every start**, when set (empty: off) | off |
+| `--log-json` | `RELAY_LOG_JSON` (`true`) | every start | text |
+
+What it does:
+
+- **First start** (no `config.json` in the data folder): `init` with those settings, then `genesis` (or, with
+  `RELAY_JOIN`, what `join` does), then `serve`. It prints, once, a notice with the server identity, the node key, the
+  operator key's **public** half, the invite link and how to copy `operator.key` off the machine
+  (`docker compose cp relay:/data/operator.key ./operator.key`). The private key is never printed or logged.
+- **A setup stopped halfway** (a crash, a restart) carries on: keys already made are kept (never replaced), a config
+  without a server goes on to genesis or join.
+- **Later starts** only serve; nothing is founded again. Trusted proxies and the release webhook are local settings,
+  signed nowhere, so they follow the environment whenever it sets them (an empty `RELAY_NOTIFY_URL` turns the webhook
+  off). Everything else stays as `config.json` and the server's signed record have it: a different `RELAY_URL`,
+  `RELAY_LISTEN`, metrics or TLS setting is logged with how to change it (edit `config.json`; a node's URL is a signed
+  node change), and a different name, sync policy, languages or description with the `relay ops server …` command
+  that signs a new server record. `relay up` never rewrites them on its own.
+- **A certificate that is not there yet** (certbot has not issued it): instead of exiting, it logs "waiting for the
+  TLS certificate" and tries again after 2, 4, 8… seconds, at most a minute apart, until the pair loads, then serves
+  it and rereads renewals as `serve` does. SIGTERM while waiting stops it at once.
+
+`serve` keeps working on any folder, so a Compose file that runs `serve` (or `init` and `genesis` by hand, then the
+default command) behaves as before.
 
 ## The config file
 

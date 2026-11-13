@@ -112,6 +112,10 @@ at that sandbox method.
 
 ## Done since the first handover (2026-11-12)
 
+- **Hosting straight from the repo** (Frederic, 2026-11-13): `relay up` (init + genesis or join on the first start from
+  flags/env, then serve; waits for a missing certificate; the image's default command) and `relay/docker-compose.yml`
+  + `relay/.env.example` (relay serving TLS, certbot issuing and renewing, named volumes and inline configs only, so a
+  remote Docker context works); HOSTING.md "From the repo", RELAY.md "relay up", `tests/docker.test.js`.
 - **Relay versions and update notices:** `welcome`/node `hello` carry `impl`, catalog entries an `impl` list; the site
   build writes `federation/relay.json` (security via package.json `relaySecurity`); relays read it beside the
   registry and tell operators (log, `relay status`, metrics, `update` frame, opt-in `notifyURL`); the looking glass

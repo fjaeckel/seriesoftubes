@@ -13,16 +13,17 @@ Contents:
 
 1. [What you need](#what-you-need)
 2. [Getting the relay](#getting-the-relay)
-3. [Path A: a VPS with Docker Compose and Caddy (recommended)](#path-a-a-vps-with-docker-compose-and-caddy-recommended)
-4. [Path A2: Docker Compose, the relay serving TLS with certbot](#path-a2-docker-compose-the-relay-serving-tls-with-certbot)
-5. [Path B: the binary, systemd and a reverse proxy](#path-b-the-binary-systemd-and-a-reverse-proxy)
-6. [Path C: a home server or Raspberry Pi](#path-c-a-home-server-or-raspberry-pi)
-7. [First run: found your server](#first-run-found-your-server)
-8. [Day two: listing, friends, backups, upgrades](#day-two-listing-friends-backups-upgrades)
-9. [Monitoring with Prometheus](#monitoring-with-prometheus)
-10. [Logs and privacy: your duties](#logs-and-privacy-your-duties)
-11. [LAN party](#lan-party)
-12. [Troubleshooting](#troubleshooting)
+3. [From the repo (recommended)](#from-the-repo-recommended)
+4. [Path A: a VPS with Docker Compose and Caddy](#path-a-a-vps-with-docker-compose-and-caddy)
+5. [Path A2: Docker Compose, the relay serving TLS with certbot](#path-a2-docker-compose-the-relay-serving-tls-with-certbot)
+6. [Path B: the binary, systemd and a reverse proxy](#path-b-the-binary-systemd-and-a-reverse-proxy)
+7. [Path C: a home server or Raspberry Pi](#path-c-a-home-server-or-raspberry-pi)
+8. [First run: found your server](#first-run-found-your-server)
+9. [Day two: listing, friends, backups, upgrades](#day-two-listing-friends-backups-upgrades)
+10. [Monitoring with Prometheus](#monitoring-with-prometheus)
+11. [Logs and privacy: your duties](#logs-and-privacy-your-duties)
+12. [LAN party](#lan-party)
+13. [Troubleshooting](#troubleshooting)
 
 ## What you need
 
@@ -123,12 +124,151 @@ downloaded with `curl` as above is not. (Or: `xattr -d com.apple.quarantine rela
 
 The image is built `FROM scratch`: the relay, CA certificates and nothing else (no shell), running as an unprivileged
 user (uid 65532) with its data in `/data`. Inside it, `relay init` listens on `0.0.0.0:8080` and serves metrics on
-`0.0.0.0:9100` for the Docker network (`RELAY_LISTEN`, `RELAY_METRICS`, `RELAY_METRICS_PUBLIC` in the image).
+`0.0.0.0:9100` for the Docker network (`RELAY_LISTEN`, `RELAY_METRICS`, `RELAY_METRICS_PUBLIC` in the image). It runs
+[`relay up`](RELAY.md#relay-up) by default: on a data folder that already holds a server that is `relay serve`; on an
+empty one it sets the server up from `RELAY_URL`, `RELAY_NAME` and the like first.
 
-## Path A: a VPS with Docker Compose and Caddy (recommended)
+**From the repository**: `relay/` holds the Dockerfile and a Compose file that builds it ([From the
+repo](#from-the-repo-recommended)); `cd relay && go build ./cmd/relay` builds the program with Go.
 
-The simplest setup that stays up: a rented Linux server, Docker, the relay image, and [Caddy](https://caddyserver.com)
-in front of it, which gets and renews the Let's Encrypt certificate by itself.
+## From the repo (recommended)
+
+The quickest way to a server for everyone: a Linux machine with Docker, a checkout of this repository, and one
+Compose file, [`relay/docker-compose.yml`](../relay/docker-compose.yml). It builds the relay from the checkout (no
+registry or GitHub Actions involved), runs [certbot](https://certbot.eff.org) to get and renew the Let's Encrypt
+certificate by itself, and the relay serves TLS on port 443 itself. Every setting is in one file, `relay/.env`.
+
+**1. A machine, a name, open ports.** Steps 1 to 3 of [path A](#path-a-a-vps-with-docker-compose-and-caddy): a VPS
+(or [a home server](#path-c-a-home-server-or-raspberry-pi)) with a public address, an A (and AAAA) record from your name
+to it, ports 80 and 443 open. Port 80 is only for Let's Encrypt's check; players use 443. Install Docker with its
+Compose plugin (version 2.23 or newer, for the inline configs) and git.
+
+**2. Check out the repository and fill in `.env`:**
+
+```sh
+git clone https://github.com/fjaeckel/seriesoftubes.git
+cd seriesoftubes/relay
+cp .env.example .env
+nano .env
+```
+
+Three settings matter at first; the rest have defaults, each explained in
+[`.env.example`](../relay/.env.example):
+
+| Setting | What to put |
+| --- | --- |
+| `RELAY_DOMAIN` | Your name, `relay.example.net`. The node's address becomes `wss://relay.example.net/fed`. |
+| `LETSENCRYPT_EMAIL` | An address for expiry warnings. **Setting it means you accept the [Let's Encrypt subscriber agreement](https://letsencrypt.org/repository/)**: certbot runs without questions (`--agree-tos`). Read it first. |
+| `RELAY_NAME` | Your server's name, unique in the server list. Also `RELAY_SYNC` (default `open`), `RELAY_LANGS` (default `en`), `RELAY_DESC`. |
+
+Compose refuses to start without `RELAY_DOMAIN` and `LETSENCRYPT_EMAIL`. To try the setup first without using up
+Let's Encrypt's limits, set `CERTBOT_STAGING=true` (a certificate browsers do not trust); set it back to `false` and run
+`docker compose up -d` again, and certbot replaces it.
+
+**3. Start it:**
+
+```sh
+docker compose up -d --build
+docker compose logs -f relay        # Ctrl-C stops watching
+```
+
+On the first start the relay ([`relay up`](RELAY.md#relay-up)) makes its keys and config, founds the server and prints
+its **server identity**, the node key, your operator key's **public** half and the invite link, then waits for the
+certificate ("waiting for the TLS certificate … not there yet") while certbot gets it, usually within a minute.
+Then: "TLS certificate loaded" and "relay serving". `docker compose exec relay /relay status` shows it running; then
+[test it with the game](#test-it-with-the-game).
+
+**4. Back up the operator key now.** It is the control of your server, there is no reset, and backups leave it out on
+purpose ([why](#first-run-found-your-server)). The log prints the command:
+
+```sh
+docker compose cp relay:/data/operator.key ./operator.key
+```
+
+Move that file off the server (a password manager, a USB stick in a drawer) and delete the copy there. Through a
+remote context (below) the command copies it straight to your own computer.
+
+**From your own computer, over SSH.** Docker can run everything on the server from a checkout on your machine: the
+build context is sent over SSH and built on the server, and the Compose file uses only named volumes and inline
+configs, so nothing has to be copied there first.
+
+```sh
+docker context create tubes --docker host=ssh://you@relay.example.net
+cd seriesoftubes/relay && cp .env.example .env && nano .env
+docker --context tubes compose up -d --build
+docker --context tubes compose logs -f relay
+docker --context tubes compose cp relay:/data/operator.key ./operator.key    # lands on your computer
+```
+
+**What runs.** Two services and three named volumes:
+
+| | What |
+| --- | --- |
+| `relay` | The relay, built from `relay/` (or pulled as `RELAY_IMAGE`), serving `wss://…/fed` with TLS on 443. Metrics on port 9100 stay on the Compose network; the file shows, commented, how to publish them to `127.0.0.1` for a Prometheus on the same machine. |
+| `certbot` | Gets the certificate on its first start (`--standalone` on port 80, retrying with growing pauses while DNS or the port is not ready), renews every 12 hours (certbot renews only certificates due within 30 days) and after each issuance copies the pair into `relay_certs` as the relay's user, both files under temporary names first. The relay rereads it within a minute, without a restart. |
+| `relay_data` | Keys, config and records. |
+| `relay_certs`, `letsencrypt_certs` | The pair as the relay reads it; certbot's account, certificates and renewal settings. |
+
+No access logs anywhere: nothing sits in front of the relay, and the relay never logs addresses, as your `noLogs`
+promise requires ([your duties](#logs-and-privacy-your-duties)).
+
+**Day to day.** Commands run in the container: `docker compose exec relay /relay status` (`players`, `ops pending`,
+and the rest of [RELAY.md](RELAY.md#day-to-day)). Name, sync policy, languages and description are in the server's
+signed record: change them with `docker compose exec relay /relay ops server --name "…"`, and in `.env` to match (the
+relay logs any difference at start, with that command). `RELAY_NOTIFY_URL` and trusted proxies follow `.env` on every
+start. Other settings are in `config.json`, in the `relay_data` volume; the image has no shell, so edit it with the
+`toolbox` service (busybox `vi`, as the relay's user), then reload:
+
+```sh
+docker compose run --rm toolbox                 # edits /data/config.json
+docker compose kill -s HUP relay                # most settings; listen, metrics, TLS: docker compose restart relay
+```
+
+**Backups:** `docker compose exec relay /relay backup /data/backup.tar.gz`, then
+`docker compose cp relay:/data/backup.tar.gz ./` and `docker compose run --rm toolbox rm /data/backup.tar.gz`.
+
+**Updating:**
+
+```sh
+cd seriesoftubes && git pull
+cd relay && docker compose up -d --build
+```
+
+A checkout build reports its version as `dev` (and so gets no update notices); set `RELAY_VERSION` in `.env` to the
+release you checked out (`git checkout vX.Y.Z`) to have it reported. Or run a published release instead of building:
+set `RELAY_IMAGE=ghcr.io/fjaeckel/seriesoftubes-relay:X.Y.Z` and `docker compose pull && docker compose up -d`.
+
+**A second node of an existing server** (yours or a co-operator's, on another machine): set `RELAY_JOIN` to the server
+identity and `RELAY_JOIN_FROM` to a running node's `wss://` URL in that machine's `.env`, and `RELAY_NAME` is not needed.
+The first start prints the `relay ops propose add-node …` line for the server's operators to sign
+([adding a node](RELAY.md#adding-a-second-operator-and-their-node)).
+
+**Testing the setup without a real certificate** (on your own computer, say): set a made-up `RELAY_DOMAIN`, other
+ports (`RELAY_HTTPS_PORT=18443`, `RELAY_HTTP_PORT=18080`) and `CERTBOT_STAGING=true`. certbot cannot get a certificate
+and retries; the relay founds the server and waits. Hand it a self-signed pair the way certbot's hook does, and it
+starts serving within the minute:
+
+```sh
+openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -days 7 -subj /CN=relay.example.test \
+  -addext subjectAltName=DNS:relay.example.test -keyout testcert/privkey.pem -out testcert/fullchain.pem
+docker compose cp testcert certbot:/tmp/testcert
+docker compose exec -e RENEWED_LINEAGE=/tmp/testcert certbot sh /hook.sh
+docker compose logs relay              # "TLS certificate loaded", "relay serving"
+docker compose down -v                 # afterwards: removes the test server and its volumes
+```
+
+**Not with Compose: LAN parties.** `relay lan` puts the machine's `.local` name and LAN addresses into its certificate
+and invite links; in a container it would see the container's addresses instead (and Docker Desktop on macOS and
+Windows has no host network to give it), so run the program itself: [LAN party](#lan-party).
+
+**Prefer Caddy in front**, or no Docker at all? The paths below do the same by hand: Caddy (path A), certbot with your
+own Compose file (A2), the binary with systemd (B).
+
+## Path A: a VPS with Docker Compose and Caddy
+
+A rented Linux server, Docker, the published relay image, and [Caddy](https://caddyserver.com) in front of it, which
+gets and renews the Let's Encrypt certificate by itself. Choose it if you want a proxy in front (to serve other sites
+from the same machine, say); otherwise [from the repo](#from-the-repo-recommended) needs less writing.
 
 **1. Rent a VPS** with a public IPv4 address (IPv6 too if offered) and a recent Debian or Ubuntu. Log in with SSH.
 
@@ -231,7 +371,8 @@ or `docker compose restart relay` (listen, metrics and TLS settings).
 
 ## Path A2: Docker Compose, the relay serving TLS with certbot
 
-If you would rather have no proxy at all, the relay can terminate TLS itself, with a certificate from Let's Encrypt
+[From the repo](#from-the-repo-recommended) sets this up for you; this section is the same by hand, with bind-mounted
+folders, for your own Compose file. The relay can terminate TLS itself, with a certificate from Let's Encrypt
 fetched by [certbot](https://certbot.eff.org) in a container of its own. The relay rereads the certificate when its
 files change (it looks at most once a minute), so renewals need no restart. Caddy (path A) is simpler; this path has
 fewer moving parts at run time.
@@ -504,6 +645,8 @@ firewall: there is no NAT to forward through.
 
 The commands below are written plainly (`relay …`). With Docker it is `docker compose run --rm relay …` before the
 relay runs and `docker compose exec relay /relay …` while it runs; with systemd, `relayctl …` (path B).
+[From the repo](#from-the-repo-recommended), `relay up` does steps 1 and 2 on the first start from `.env`; what follows
+explains what it made.
 
 **1. `relay init --url wss://relay.example.net/fed`** makes the data folder with:
 
@@ -585,6 +728,7 @@ with fill most of it back in ([RELAY.md, backups](RELAY.md#upgrades-backups-and-
 have upgraded, so upgrade whenever suits you.
 
 ```sh
+# From the repo: git pull, then in relay/: docker compose up -d --build
 # Docker (path A): :latest or :X.Y moves by itself; a pinned :X.Y.Z, edit compose.yaml first.
 docker compose pull && docker compose up -d
 # Binary (path B): fetch and check the new archive as in "Getting the relay", then
