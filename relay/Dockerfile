@@ -9,7 +9,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
-    go build -trimpath -ldflags "-s -w -buildid= -X main.version=${VERSION}" -o /out/relay ./cmd/relay
+    go build -trimpath -buildvcs=false -ldflags "-s -w -buildid= -X main.version=${VERSION}" -o /out/relay ./cmd/relay
 # The data folder, owned by the unprivileged user the relay runs as.
 RUN mkdir -p /out/data && chown 65532:65532 /out/data && chmod 0700 /out/data
 
@@ -19,8 +19,10 @@ COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certifica
 COPY --from=build /out/relay /relay
 COPY --from=build --chown=65532:65532 /out/data /data
 USER 65532:65532
-ENV RELAY_DATA=/data
+# What `relay init` writes into a new config here: listen where the proxy container reaches it, and
+# /metrics for a Prometheus on the same Docker network (never publish 9100 on the host).
+ENV RELAY_DATA=/data RELAY_LISTEN=0.0.0.0:8080 RELAY_METRICS=0.0.0.0:9100 RELAY_METRICS_PUBLIC=true
 VOLUME ["/data"]
-EXPOSE 8080
+EXPOSE 8080 9100
 ENTRYPOINT ["/relay"]
 CMD ["serve"]

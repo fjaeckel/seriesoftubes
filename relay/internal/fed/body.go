@@ -1,6 +1,7 @@
 package fed
 
 import (
+	"net/netip"
 	"regexp"
 	"strconv"
 	"strings"
@@ -153,7 +154,7 @@ var (
 	cityRe = regexp.MustCompile(`^[a-z0-9]{2,8}$`)
 	ccRe   = regexp.MustCompile(`^[A-Z]{2}$`)
 	langRe = regexp.MustCompile(`^[a-z]{2}$`)
-	urlRe  = regexp.MustCompile(`^wss://([a-z0-9.-]+)(:([0-9]+))?(/[A-Za-z0-9._~/-]*)?$`)
+	urlRe  = regexp.MustCompile(`^wss://([a-z0-9.-]+|\[[0-9a-f:]+\])(:([0-9]+))?(/[A-Za-z0-9._~/-]*)?$`)
 	label  = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`)
 )
 
@@ -175,50 +176,98 @@ var (
 	cc   = reCheck(ccRe)
 )
 
-// URLOK is the Url type of section 5.
+// URLOK is the Url type of section 5: a host name with a dot, or a local address (LocalAddr).
 func URLOK(s string) bool {
-	if len(s) > 200 {
+	host, ok := urlHost(s)
+	if !ok {
 		return false
 	}
-	for i := 0; i < len(s); i++ {
-		if s[i] >= 0x80 {
-			return false
-		}
+	if a, err := netip.ParseAddr(strings.Trim(host, "[]")); err == nil || host[0] == '[' {
+		return err == nil && host == addrText(a) && LocalAddr(a)
 	}
-	m := urlRe.FindStringSubmatch(s)
-	if m == nil {
-		return false
+	if allDigitsAndDots(host) {
+		return false // a malformed or non-canonical IPv4 literal (010.0.0.1, 10.1)
 	}
-	host := m[1]
 	labels := strings.Split(host, ".")
 	if len(labels) < 2 {
 		return false
 	}
-	allDigits := true
 	for _, l := range labels {
 		if !label.MatchString(l) {
 			return false
 		}
-		for _, c := range l {
-			if c < '0' || c > '9' {
-				allDigits = false
-			}
-		}
 	}
-	if allDigits {
+	return true
+}
+
+// PublicURL reports whether a Url names a host anyone on the internet can look up: not an IP
+// literal and not an mDNS name (.local). The registry lists only those (11.2 step 6).
+func PublicURL(s string) bool {
+	host, ok := urlHost(s)
+	if !ok || !URLOK(s) {
 		return false
 	}
-	if m[2] != "" {
-		p := m[3]
-		if p == "" || p[0] == '0' {
-			return false
-		}
-		n, err := strconv.Atoi(p)
-		if err != nil || n < 1 || n > 65535 {
+	if _, err := netip.ParseAddr(strings.Trim(host, "[]")); err == nil {
+		return false
+	}
+	return !strings.HasSuffix(host, ".local")
+}
+
+// LocalAddr reports whether an address is one a Url may name directly (section 5): private
+// IPv4 (10/8, 172.16/12, 192.168/16), IPv4 link-local (169.254/16), loopback (127/8, ::1)
+// and IPv6 unique local addresses (fc00::/7). Never one reachable from the internet.
+func LocalAddr(a netip.Addr) bool {
+	if a.Zone() != "" || a.Is4In6() {
+		return false
+	}
+	if a.Is4() {
+		return a.IsPrivate() || a.IsLoopback() || a.IsLinkLocalUnicast()
+	}
+	return a.IsLoopback() || a.IsPrivate()
+}
+
+// addrText is how a Url writes an address: dotted decimal, or RFC 5952 IPv6 in brackets.
+func addrText(a netip.Addr) string {
+	if a.Is6() {
+		return "[" + a.String() + "]"
+	}
+	return a.String()
+}
+
+func allDigitsAndDots(h string) bool {
+	for _, c := range h {
+		if (c < '0' || c > '9') && c != '.' {
 			return false
 		}
 	}
 	return true
+}
+
+// urlHost checks the length, the characters, the shape and the port, and returns the host.
+func urlHost(s string) (string, bool) {
+	if len(s) > 200 {
+		return "", false
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] >= 0x80 {
+			return "", false
+		}
+	}
+	m := urlRe.FindStringSubmatch(s)
+	if m == nil {
+		return "", false
+	}
+	if m[2] != "" {
+		p := m[3]
+		if p == "" || p[0] == '0' {
+			return "", false
+		}
+		n, err := strconv.Atoi(p)
+		if err != nil || n < 1 || n > 65535 {
+			return "", false
+		}
+	}
+	return m[1], true
 }
 
 func urlCheck(v any) string {

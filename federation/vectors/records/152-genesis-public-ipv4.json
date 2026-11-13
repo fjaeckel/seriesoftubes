@@ -1,0 +1,24 @@
+{
+  "description": "A public IPv4 address is refused: a server on the internet has a name.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "genesis",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "name": "LAN Before Time",
+        "node": {
+          "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+          "url": "wss://198.51.100.20/fed"
+        }
+      },
+      "sig": "H7Iv5Ad0o13wkgjOIbh25pTcsw02OQaXx5TO_eIZOfiuOIBZ0rGih2oSwjRTj7eh8mz0_F9pYmwGFGg_TfhOAg"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

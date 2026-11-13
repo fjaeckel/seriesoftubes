@@ -71,6 +71,7 @@ async function fedRegCheck(files,name,base,now){const txt=files[name];if(fedSize
   if(!r.ok){if(['bad_chain','no_majority'].includes(r.error))return name===r.id+'.json'?r.error:'id_mismatch';return r.error;}
   if(name!==r.id+'.json')return 'id_mismatch';
   if(r.noLogs!==true)return 'no_logs';
+  {const n=j.genesis&&j.genesis.body&&j.genesis.body.node,u=[n&&n.url,...j.chain.map(p=>p&&p.body&&p.body.url).filter(x=>x!==undefined),...(j.server.body.nodes||[]).map(x=>x&&x.url)];if(u.some(x=>!fedPublicUrl(x)))return 'local_url';}
   for(const [n,t] of Object.entries(files)){if(n===name)continue;let o=null;try{o=JSON.parse(t);}catch(x){}
     const nm=o&&o.server&&o.server.body&&o.server.body.name;if(typeof nm==='string'&&fedFold(nm)===fedFold(r.name))return 'name_taken';}
   if(base!=null){let b=null;try{b=JSON.parse(base);}catch(x){}if(b&&(b.listed!==j.listed||b.answered!==j.answered))return FdBF;}

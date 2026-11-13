@@ -10,7 +10,9 @@ The rules are in [the protocol, section 11](../../docs/FEDERATION-PROTOCOL.md#11
 ## Before you start
 
 - A running relay that answers on a public `wss://` address with a real TLS certificate (browsers refuse anything
-  else from an HTTPS page). The relay's own documentation covers that.
+  else from an HTTPS page), at a host name: the registry refuses IP addresses and `.local` names, which are for LAN
+  servers. [How to host a server](../../docs/HOSTING.md) walks through it; [RELAY.md](../../docs/RELAY.md) is the
+  reference.
 - **No address logs, anywhere.** Listing a server means its operators declare `noLogs: true`: neither the relay nor
   anything in front of it (reverse proxy, load balancer, CDN, hosting provider's access logs you control) logs
   players' IP addresses. A file with `noLogs: false` is refused. If you cannot promise that, run your server unlisted:
@@ -41,7 +43,7 @@ binary you run, so there is one definition of "valid":
 4. The chain starts at the genesis record and each operator change follows the one before, signed by a strict
    majority of the operators at that point.
 5. The `server` record is at the last head of the chain, its operator and node lists match it, and a majority signed it.
-6. `noLogs` is `true`.
+6. `noLogs` is `true`, and every node URL names a public host: no IP address, no `.local` name (`local_url`).
 7. No other file uses the same name.
 8. `listed` and `answered` are unchanged (only the weekly job writes them).
 9. At least one of your nodes answers: CI connects to each node's URL in turn (10 s each), sends a challenge, and

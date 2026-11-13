@@ -23,6 +23,7 @@ func TestCheck(t *testing.T) {
 		},
 		func(c *Config) { c.Selective = []string{"not-an-id"} },
 		func(c *Config) { c.TrustedProxies = []string{"nonsense"} },
+		func(c *Config) { c.TLSCert = "/certs/fullchain.pem" }, // a certificate without its key
 	}
 	for i, f := range bad {
 		c := Default()
@@ -30,6 +31,36 @@ func TestCheck(t *testing.T) {
 		if c.Check() == nil {
 			t.Errorf("case %d accepted", i)
 		}
+	}
+}
+
+// Metrics beyond loopback only with the explicit opt-in (a Prometheus in another container), and
+// then with a warning at start.
+func TestMetricsPublic(t *testing.T) {
+	c := Default()
+	if c.MetricsWarning() != "" {
+		t.Fatal("metrics off warned")
+	}
+	c.Metrics = "127.0.0.1:9100"
+	if c.Check() != nil || c.MetricsWarning() != "" {
+		t.Fatal("loopback metrics refused or warned")
+	}
+	for _, addr := range []string{"0.0.0.0:9100", "[::]:9100", "172.18.0.5:9100"} {
+		c.Metrics, c.MetricsPublic = addr, false
+		if c.Check() == nil {
+			t.Errorf("%s accepted without metricsPublic", addr)
+		}
+		c.MetricsPublic = true
+		if err := c.Check(); err != nil {
+			t.Errorf("%s with metricsPublic: %v", addr, err)
+		}
+		if c.MetricsWarning() == "" {
+			t.Errorf("%s: no warning", addr)
+		}
+	}
+	c.Metrics = "nonsense"
+	if c.Check() == nil {
+		t.Error("a metrics address without a port was accepted")
 	}
 }
 

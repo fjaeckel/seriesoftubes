@@ -170,6 +170,9 @@ func Check(name string, files map[string][]byte, base []byte, now int64, challen
 	if !e.Server.Bool("noLogs") {
 		return fail(6, fed.NoLogs, "")
 	}
+	if u := localURL(e); u != "" {
+		return fail(6, fed.LocalURL, u)
+	}
 	if f := nameTaken(name, e, files); f != nil {
 		return f
 	}
@@ -200,6 +203,34 @@ func lowerASCII(s string) string {
 		}
 	}
 	return string(b)
+}
+
+// localURL is the first node URL in the file that names an IP address or a .local host, or "":
+// LAN servers are fine to join by invite, but the registry lists servers the internet can reach.
+func localURL(e *Entry) string {
+	var urls []string
+	if n, ok := e.Genesis.Body["node"].(map[string]any); ok {
+		u, _ := n["url"].(string)
+		urls = append(urls, u)
+	}
+	for _, p := range e.Chain {
+		if p.Has("url") {
+			urls = append(urls, p.Str("url"))
+		}
+	}
+	if list, ok := e.Server.Body["nodes"].([]any); ok {
+		for _, x := range list {
+			n, _ := x.(map[string]any)
+			u, _ := n["url"].(string)
+			urls = append(urls, u)
+		}
+	}
+	for _, u := range urls {
+		if !fed.PublicURL(u) {
+			return u
+		}
+	}
+	return ""
 }
 
 func nameTaken(name string, e *Entry, files map[string][]byte) *Failure {

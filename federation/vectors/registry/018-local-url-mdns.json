@@ -1,0 +1,62 @@
+{
+  "description": "A node named by an mDNS (.local) name: fine for an invite, refused by the registry.",
+  "input": {
+    "files": {
+      "Ad0EO99PEHiQNdkea7MmwrLecL7j2kTzgx1RYPARCWI.json": {
+        "v": 1,
+        "genesis": {
+          "v": 1,
+          "kind": "genesis",
+          "key": "N89XRM5btfKwgjV3JAWYWooznBfmDV9RimFj_xyUwtY",
+          "t": 1766880000,
+          "body": {
+            "name": "LAN Before Time",
+            "node": {
+              "key": "KZRK5XTNKGHhctlRk_ynNF4_ZNUpCYmNCabMhCNDkGk",
+              "url": "wss://freds-laptop.local:8443/fed"
+            }
+          },
+          "sig": "6C73QxI1-53bX6L1dtQ33cjGRo5bGlfWbhYzBpcxy5PwSk9InAIYisICPphAEEih3CyovPlZWcfBpJ5sBzyHCQ"
+        },
+        "chain": [],
+        "server": {
+          "v": 1,
+          "kind": "server",
+          "key": "N89XRM5btfKwgjV3JAWYWooznBfmDV9RimFj_xyUwtY",
+          "t": 1766880000,
+          "body": {
+            "server": "Ad0EO99PEHiQNdkea7MmwrLecL7j2kTzgx1RYPARCWI",
+            "head": "Ad0EO99PEHiQNdkea7MmwrLecL7j2kTzgx1RYPARCWI",
+            "name": "LAN Before Time",
+            "nodes": [
+              {
+                "key": "KZRK5XTNKGHhctlRk_ynNF4_ZNUpCYmNCabMhCNDkGk",
+                "url": "wss://freds-laptop.local:8443/fed"
+              }
+            ],
+            "operators": [
+              "N89XRM5btfKwgjV3JAWYWooznBfmDV9RimFj_xyUwtY"
+            ],
+            "sync": "standalone",
+            "noLogs": true,
+            "langs": [
+              "en"
+            ],
+            "desc": ""
+          },
+          "sigs": [
+            {
+              "key": "N89XRM5btfKwgjV3JAWYWooznBfmDV9RimFj_xyUwtY",
+              "sig": "VbBN9vmsKDIq5TpyNwkhkN1w0ntTDx3mgkFpXf_NTNEMWyDwRfCHQj6YNWgNYGRsBTQIBSjNN9uPJrU-R6qbDQ"
+            }
+          ]
+        }
+      }
+    },
+    "check": "Ad0EO99PEHiQNdkea7MmwrLecL7j2kTzgx1RYPARCWI.json"
+  },
+  "expect": {
+    "ok": false,
+    "error": "local_url"
+  }
+}

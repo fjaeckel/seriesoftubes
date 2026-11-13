@@ -13,9 +13,24 @@ const fedSafeName=v=>String(v).replace(/[<>&"'`]/g,c=>FED_SAFE[c]);
 const FdCity=v=>typeof v==='string'&&/^[a-z0-9]{2,8}$/.test(v)?null:FdBF,FdCC=v=>typeof v==='string'&&/^[A-Z]{2}$/.test(v)?null:FdBF;
 const FdInt=(lo,hi)=>v=>Number.isSafeInteger(v)&&v>=lo&&v<=hi?null:FdBF;
 const FdMbps=FdInt(0,1e9),FdMoney=FdInt(0,1e12),FdDays=FdInt(1,3650),FdBool=v=>typeof v==='boolean'?null:FdBF,FdOne=(...a)=>v=>a.includes(v)?null:FdBF;
-// A node URL (§5): wss, a lower-case host name with a dot and not only digits, an optional port, a plain path.
-function FdUrl(v){if(typeof v!=='string'||v.length>200)return FdBF;const m=/^wss:\/\/([a-z0-9.-]+)(?::([1-9][0-9]{0,4}))?(\/[A-Za-z0-9._~\/-]*)?$/.exec(v);
-  if(!m||!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(m[1])||/^[0-9.]+$/.test(m[1])||m[2]&&+m[2]>65535)return FdBF;return null;}
+// A node URL (§5): wss, a lower-case host name with a dot, or a local address (a LAN server), an optional port, a plain path.
+function FdUrl(v){if(typeof v!=='string'||v.length>200)return FdBF;const m=/^wss:\/\/([a-z0-9.-]+|\[[0-9a-f:]+\])(?::([1-9][0-9]{0,4}))?(\/[A-Za-z0-9._~\/-]*)?$/.exec(v);
+  if(!m||m[2]&&+m[2]>65535)return FdBF;const h=m[1];
+  if(h[0]==='[')return fedLocal6(h.slice(1,-1))?null:FdBF;if(/^[0-9.]+$/.test(h))return fedLocal4(h)?null:FdBF;
+  return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(h)?null:FdBF;}
+// Private or link-local IPv4 and loopback, in plain dotted decimal.
+function fedLocal4(h){const p=h.split('.');if(p.length!==4||!p.every(x=>/^(0|[1-9][0-9]{0,2})$/.test(x)&&+x<=255))return false;
+  const [a,b]=p.map(Number);return a===10||a===127||a===172&&b>=16&&b<=31||a===192&&b===168||a===169&&b===254;}
+// IPv6 unique local (fc00::/7) or ::1, written as RFC 5952 has it (one spelling per address).
+function fedLocal6(h){const hv=h.split('::');if(hv.length>2)return false;const pt=s=>s===''?[]:s.split(':');
+  const hd=pt(hv[0]),tl=hv.length===2?pt(hv[1]):[];if(![...hd,...tl].every(g=>/^[0-9a-f]{1,4}$/.test(g)))return false;
+  const fill=8-hd.length-tl.length;if(hv.length===2?fill<1:fill!==0)return false;
+  const g=[...hd,...Array(hv.length===2?fill:0).fill('0'),...tl].map(x=>parseInt(x,16));let at=-1,len=0;
+  for(let i=0;i<8;i++){let j=i;while(j<8&&g[j]===0)j++;if(j-i>len&&j-i>=2){at=i;len=j-i;}if(j>i)i=j-1;}
+  const x=g.map(n=>n.toString(16)),t=at<0?x.join(':'):x.slice(0,at).join(':')+'::'+x.slice(at+len).join(':');
+  return t===h&&((g[0]&0xfe00)===0xfc00||h==='::1');}
+// What the registry lists (§11.2 step 6): a host name the internet can look up, not an address or a .local name.
+const fedPublicUrl=u=>!FdUrl(u)&&!/^wss:\/\/(\[|[0-9.]+(?:[:\/]|$))/.test(u)&&!/^wss:\/\/[^\/:]+\.local(?:[:\/]|$)/.test(u);
 /* A list: o.max (too_many over it), o.min, o.set (entries unique: duplicate), o.asc (strictly ascending: bad_field),
    o.by (what an entry is compared by). */
 const FdList=(T,o)=>(v,c)=>{if(!Array.isArray(v))return FdBF;if(v.length>o.max)return 'too_many';if(v.length<(o.min||0))return FdBF;

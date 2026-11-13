@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/canon"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/certs"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/client"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/config"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
@@ -41,11 +42,15 @@ const usage = `relay: the Series of Tubes federation relay (docs/RELAY.md)
 
 Setting up:
   relay init [--operator-key FILE] [--url wss://host/path]   make the data folder, node key, operator key, config
+             [--listen ADDR] [--trusted-proxies CIDR,…] [--tls-cert F --tls-key F]
+             [--metrics ADDR [--metrics-public]]
   relay genesis --name NAME [--sync open] [--langs en,de] [--desc TEXT]   found a new server
   relay join SERVER --from wss://existing-node/path          prepare this node for an existing server
   relay registry-file [--from FILE]                          print the file for the registry pull request, keeping
                                                              listed/answered from FILE (default: federation/servers/<id>.json)
   relay serve                                                run the relay
+  relay lan [--name NAME] [--port 8443]                      a LAN party server in one step: no domain, no internet
+                                                             (self-signed certificate, docs/HOSTING.md#lan-party)
 
 Day to day (talks to the running relay over its local socket):
   relay status | servers | players | nodes
@@ -61,7 +66,7 @@ Registry (CI and the site build):
   relay check-registry [--offline] [--base GITREF] FILE...
   relay build-servers-json DIR OUT
 
-Every command takes --data DIR (default $RELAY_DATA, else ./relay-data).
+Every command takes --data DIR (default $RELAY_DATA, else ./relay-data; relay lan: ./relay-lan).
 `
 
 func main() {
@@ -82,6 +87,8 @@ func main() {
 		err = cmdRegistryFile(args)
 	case "serve":
 		err = cmdServe(args)
+	case "lan":
+		err = cmdLan(args)
 	case "status", "servers", "players", "nodes":
 		err = cmdShow(cmd, args)
 	case "board":
@@ -141,42 +148,68 @@ func cmdInit(args []string) error {
 	fs, dir := flags("init")
 	opKey := fs.String("operator-key", "", "use this operator key file instead of making one")
 	url := fs.String("url", "", "this node's public wss:// URL")
-	listen := fs.String("listen", "127.0.0.1:8080", "address to listen on (behind your TLS proxy)")
+	listen := fs.String("listen", envOr("RELAY_LISTEN", "127.0.0.1:8080"), "address to listen on (behind your TLS proxy; default $RELAY_LISTEN)")
+	metricsAddr := fs.String("metrics", os.Getenv("RELAY_METRICS"), "address for /metrics (default $RELAY_METRICS, else off)")
+	metricsPublic := fs.Bool("metrics-public", os.Getenv("RELAY_METRICS_PUBLIC") == "true", "allow /metrics beyond localhost, for a Prometheus in another container (default $RELAY_METRICS_PUBLIC)")
+	tlsCert := fs.String("tls-cert", "", "serve TLS itself with this certificate chain (PEM; reread when it changes)")
+	tlsKey := fs.String("tls-key", "", "and this private key (PEM)")
+	proxies := fs.String("trusted-proxies", "", "networks your proxy connects from, comma separated, trusted besides loopback (a Docker network: 172.30.0.0/24)")
 	parse(fs, args)
-	if err := os.MkdirAll(*dir, 0o700); err != nil {
-		return err
+	if (*tlsCert == "") != (*tlsKey == "") {
+		return errors.New("give both --tls-cert and --tls-key, or neither")
 	}
-	if _, err := os.Stat(cfgPath(*dir)); err == nil {
-		return fmt.Errorf("%s already holds a relay", *dir)
-	}
-	nk, err := ops.NewKey(filepath.Join(*dir, "node.key"))
+	nk, op, opPath, err := initData(*dir, *opKey, func(c *config.Config) {
+		c.Listen, c.URL, c.Metrics, c.MetricsPublic = *listen, *url, *metricsAddr, *metricsPublic
+		c.TLSCert, c.TLSKey = *tlsCert, *tlsKey
+		c.TrustedProxies = append(c.TrustedProxies, splitList(*proxies)...)
+	})
 	if err != nil {
-		return err
-	}
-	opPath := filepath.Join(*dir, "operator.key")
-	var op *fed.Signer
-	if *opKey != "" {
-		if op, err = ops.LoadKey(*opKey); err != nil {
-			return err
-		}
-		b, _ := os.ReadFile(*opKey)
-		if err := os.WriteFile(opPath, b, 0o600); err != nil {
-			return err
-		}
-	} else if op, err = ops.NewKey(opPath); err != nil {
-		return err
-	}
-	c := config.Default()
-	c.Listen, c.URL = *listen, *url
-	if err := c.Check(); err != nil {
-		return err
-	}
-	if err := c.Save(cfgPath(*dir)); err != nil {
 		return err
 	}
 	fmt.Printf("Data folder:  %s\nNode key:     %s\nOperator key: %s\n\nNext: relay genesis --name \"…\" (new server) or relay join SERVER --from wss://… (existing one).\nBack up %s: it is your control of the server.\n",
 		*dir, nk.Key, op.Key, opPath)
 	return nil
+}
+
+func envOr(k, def string) string {
+	if v := os.Getenv(k); v != "" {
+		return v
+	}
+	return def
+}
+
+// initData makes the data folder, the node and operator keys and the config (set by cfg).
+func initData(dir, opKey string, cfg func(*config.Config)) (nk, op *fed.Signer, opPath string, err error) {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return nil, nil, "", err
+	}
+	if _, err := os.Stat(cfgPath(dir)); err == nil {
+		return nil, nil, "", fmt.Errorf("%s already holds a relay", dir)
+	}
+	c := config.Default()
+	cfg(c)
+	if err := c.Check(); err != nil {
+		return nil, nil, "", err
+	}
+	if nk, err = ops.NewKey(filepath.Join(dir, "node.key")); err != nil {
+		return nil, nil, "", err
+	}
+	opPath = filepath.Join(dir, "operator.key")
+	if opKey != "" {
+		if op, err = ops.LoadKey(opKey); err != nil {
+			return nil, nil, "", err
+		}
+		b, _ := os.ReadFile(opKey)
+		if err := os.WriteFile(opPath, b, 0o600); err != nil {
+			return nil, nil, "", err
+		}
+	} else if op, err = ops.NewKey(opPath); err != nil {
+		return nil, nil, "", err
+	}
+	if err := c.Save(cfgPath(dir)); err != nil {
+		return nil, nil, "", err
+	}
+	return nk, op, opPath, nil
 }
 
 func loadAll(dir string) (*config.Config, *fed.Signer, error) {
@@ -211,51 +244,58 @@ func cmdGenesis(args []string) error {
 	desc := fs.String("desc", "", "a short description (280 characters)")
 	noLogs := fs.Bool("no-logs", true, "declare that nothing in front of the relay logs addresses")
 	parse(fs, args)
-	if ops.Running(*dir) {
-		return errors.New("stop the relay first")
-	}
-	c, nk, err := loadAll(*dir)
+	id, err := found(*dir, *url, ops.ServerFields{Name: *name, Sync: *sync, NoLogs: *noLogs, Langs: splitList(*langs), Desc: *desc})
 	if err != nil {
 		return err
+	}
+	fmt.Printf("Server founded. Its identity: %s\nStart it with: relay serve\nTo be listed: relay registry-file > federation/servers/%s.json, then open a pull request.\n", id, id)
+	return nil
+}
+
+// found signs the genesis and the first server record with the operator key and stores them;
+// it returns the server identity.
+func found(dir, url string, f ops.ServerFields) (string, error) {
+	if ops.Running(dir) {
+		return "", errors.New("stop the relay first")
+	}
+	c, nk, err := loadAll(dir)
+	if err != nil {
+		return "", err
 	}
 	if c.Server != "" {
-		return fmt.Errorf("this node already belongs to server %s", c.Server)
+		return "", fmt.Errorf("this node already belongs to server %s", c.Server)
 	}
-	if *url == "" {
-		*url = c.URL
+	if url == "" {
+		url = c.URL
 	}
-	if !fed.URLOK(*url) {
-		return errors.New("give --url wss://your.host/path (a host name, not an IP address)")
+	if !fed.URLOK(url) {
+		return "", errors.New("give --url wss://your.host/path (a host name, not a public IP address)")
 	}
-	op, err := ops.LoadKey(filepath.Join(*dir, "operator.key"))
+	op, err := ops.LoadKey(filepath.Join(dir, "operator.key"))
 	if err != nil {
-		return err
+		return "", err
 	}
 	now := time.Now().Unix()
-	g := op.Seal("genesis", now, map[string]any{"name": *name, "node": map[string]any{"key": nk.Key, "url": *url}})
+	g := op.Seal("genesis", now, map[string]any{"name": f.Name, "node": map[string]any{"key": nk.Key, "url": url}})
 	gr, code := fed.CheckValue(g, now, fed.Opts{})
 	if code != "" {
-		return fmt.Errorf("genesis refused: %s", code)
+		return "", fmt.Errorf("genesis refused: %s", code)
 	}
 	st := &ops.State{Server: gr.ID, Head: gr.ID, Operators: []string{op.Key}}
-	st.Nodes = append(st.Nodes, struct{ Key, URL string }{nk.Key, *url})
-	srv := ops.ServerRecord(st, op, ops.ServerFields{Name: *name, Sync: *sync, NoLogs: *noLogs, Langs: splitList(*langs), Desc: *desc}, now)
-	c.Server, c.URL = gr.ID, *url
-	r, err := node.New(node.Options{Dir: *dir, Config: c, Node: nk})
+	st.Nodes = append(st.Nodes, struct{ Key, URL string }{nk.Key, url})
+	srv := ops.ServerRecord(st, op, f, now)
+	c.Server, c.URL = gr.ID, url
+	r, err := node.New(node.Options{Dir: dir, Config: c, Node: nk})
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer r.Close()
 	for _, rec := range []map[string]any{g, srv} {
 		if _, code := r.ImportOwn(rec); code != "" {
-			return fmt.Errorf("record refused: %s", code)
+			return "", fmt.Errorf("record refused: %s", code)
 		}
 	}
-	if err := c.Save(cfgPath(*dir)); err != nil {
-		return err
-	}
-	fmt.Printf("Server founded. Its identity: %s\nStart it with: relay serve\nTo be listed: relay registry-file > federation/servers/%s.json, then open a pull request.\n", gr.ID, gr.ID)
-	return nil
+	return gr.ID, c.Save(cfgPath(dir))
 }
 
 func cmdJoin(args []string) error {
@@ -621,7 +661,17 @@ func cmdServe(args []string) error {
 	fs, dir := flags("serve")
 	logJSON := fs.Bool("log-json", false, "log as JSON lines")
 	parse(fs, args)
-	c, nk, err := loadAll(*dir)
+	return serve(*dir, *logJSON, nil)
+}
+
+// lanServe is what relay lan adds to serve: its self-signed certificate and the page at /.
+type lanServe struct {
+	cert *tls.Certificate
+	page http.Handler
+}
+
+func serve(dir string, logJSON bool, lanOpt *lanServe) error {
+	c, nk, err := loadAll(dir)
 	if err != nil {
 		return err
 	}
@@ -630,15 +680,18 @@ func cmdServe(args []string) error {
 	}
 	// Another relay on this folder would lose its operator socket and share the store: refuse
 	// (the store's lock refuses it too, where the system has one).
-	if ops.Running(*dir) {
+	if ops.Running(dir) {
 		return errors.New("a relay is already serving this data folder")
 	}
 	var h slog.Handler = slog.NewTextHandler(os.Stderr, nil)
-	if *logJSON {
+	if logJSON {
 		h = slog.NewJSONHandler(os.Stderr, nil)
 	}
 	logger := slog.New(h)
 	if w := c.ProxyWarning(); w != "" {
+		logger.Warn(w)
+	}
+	if w := c.MetricsWarning(); w != "" {
 		logger.Warn(w)
 	}
 	var countries *privacy.MMDB
@@ -648,7 +701,7 @@ func cmdServe(args []string) error {
 		}
 	}
 	m := metrics.New()
-	o := node.Options{Dir: *dir, Config: c, Node: nk, Log: logger, Metrics: m, Version: version}
+	o := node.Options{Dir: dir, Config: c, Node: nk, Log: logger, Metrics: m, Version: version}
 	// For end-to-end tests only: a stand-in for GitHub's releases API (https, or http on loopback).
 	if u := os.Getenv("RELAY_RELEASES_URL"); u != "" {
 		if !testReleasesURL(u) {
@@ -664,23 +717,43 @@ func cmdServe(args []string) error {
 		return err
 	}
 	defer r.Close()
-	sock, err := ops.Serve(*dir, r)
+	sock, err := ops.Serve(dir, r)
 	if err != nil {
 		return fmt.Errorf("local socket: %w", err)
 	}
 	defer sock.Close()
 	r.Run()
-	srv := &http.Server{Addr: c.Listen, Handler: r.Handler(), ReadHeaderTimeout: 10 * time.Second,
+	hh := r.Handler()
+	if lanOpt != nil && lanOpt.page != nil {
+		ws := hh
+		hh = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			if req.URL.Path == "/" {
+				lanOpt.page.ServeHTTP(w, req)
+				return
+			}
+			ws.ServeHTTP(w, req)
+		})
+	}
+	srv := &http.Server{Addr: c.Listen, Handler: hh, ReadHeaderTimeout: 10 * time.Second,
 		// net/http logs failed handshakes with the peer's address: never let that out.
 		ErrorLog: log.New(io.Discard, "", 0)}
-	if c.TLSCert != "" {
-		srv.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	switch {
+	case lanOpt != nil && lanOpt.cert != nil:
+		srv.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12, Certificates: []tls.Certificate{*lanOpt.cert}}
+	case c.TLSCert != "":
+		// Reread when the files change (a Let's Encrypt renewal), so no restart is needed.
+		rl, err := certs.NewReloader(c.TLSCert, c.TLSKey, logger)
+		if err != nil {
+			return fmt.Errorf("TLS certificate: %w", err)
+		}
+		srv.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12, GetCertificate: rl.GetCertificate}
+		logger.Info("TLS certificate loaded", "notAfter", rl.NotAfter().UTC().Format(time.RFC3339))
 	}
 	errc := make(chan error, 2)
 	go func() {
 		var err error
-		if c.TLSCert != "" {
-			err = srv.ListenAndServeTLS(c.TLSCert, c.TLSKey)
+		if srv.TLSConfig != nil {
+			err = srv.ListenAndServeTLS("", "")
 		} else {
 			err = srv.ListenAndServe()
 		}
@@ -704,7 +777,7 @@ func cmdServe(args []string) error {
 			}
 		case s := <-sig:
 			if s == syscall.SIGHUP {
-				nc, err := config.Load(cfgPath(*dir))
+				nc, err := config.Load(cfgPath(dir))
 				if err != nil {
 					logger.Error("config not reloaded", "err", err)
 					continue

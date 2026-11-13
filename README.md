@@ -51,6 +51,12 @@ Progress is saved in your browser's local storage.
 The game speaks English, Italian, Portuguese, French, Spanish and German. It follows your browser's language the first time
 and remembers the one you pick under Settings or on the title screen.
 
+## Running a multiplayer server
+
+Multiplayer runs on servers players host themselves: a small program, the relay, on a VPS, a Raspberry Pi, or a
+laptop at a LAN party. **[How to host a server](docs/HOSTING.md)** walks through it step by step; downloads for
+Linux, macOS, Windows and the BSDs, and a container image, come with every release.
+
 ## Development
 
 ```sh

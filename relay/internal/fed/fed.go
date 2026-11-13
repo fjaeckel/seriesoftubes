@@ -48,6 +48,7 @@ const (
 	BadChallenge = "bad_challenge"
 	IDMismatch   = "id_mismatch"
 	NoLogs       = "no_logs"
+	LocalURL     = "local_url"
 	NameTaken    = "name_taken"
 	NoAnswer     = "no_answer"
 	StaleTerms   = "stale_terms"

@@ -1,0 +1,24 @@
+{
+  "description": "One spelling per address: IPv6 as RFC 5952 writes it (zeros compressed).",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "genesis",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "name": "LAN Before Time",
+        "node": {
+          "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+          "url": "wss://[fd12:3456:0:0:0:0:0:1]/fed"
+        }
+      },
+      "sig": "jpraoHwmQwSreQFgTFLwXlY6Xw3xh8facYoK56gLio5EiApIhIIcmC5HhXthQwYjCupeRQNX7NMP5kkZPnXrCw"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}
