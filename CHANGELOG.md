@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
-- DDoS protection customers in a city with its own scrubbing center no longer complain that their attacks are hauled to a far center. Your other centers still take their share of a flood, but the local one keeps the detour short, as its panel promises (#345).
+- A flood now goes to your nearest scrubbing center first, and only what it cannot clean spills to the next nearest. Floods used to be shared between all your centers by size, so even with a center in the same city, part of every attack crossed the ocean and back and annoyed your DDoS protection customers (#345).
 
 ## [3.5.0] — 2026-11-11
 

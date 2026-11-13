@@ -41,9 +41,8 @@ const ddosCol=a=>{const m=ddosReport(a);return m&&R.demand>0?m.col/R.demand:0;};
 function ddosWho(a){const b=ddosBiz(a);return b?tr('ddos.who_customer',{name:b.name,what:BIZ_T[b.type].l,city:CITY[a.city].name}):tr('ddos.who_subscribers',{city:CITY[a.city].name});}
 // Flowspec capability of a POP's router: 0 none, 1 basic, 2 full (its rule budget is fsCap).
 const fsAt=c=>{const p=S.pops[c];return p?(RG[p.rgen||0].fs||0):0;};
-// A DDoS-protection customer whose attacks ride far to be cleaned (#117). A working center in its own city keeps the
-// detour short, as the city panel promises, even though far centers take their share of the flood too (#345).
-const scrubFar=c=>{if(popUp(c)&&S.scrubs.some(x=>x.city===c))return null;for(const a of ddosAll())if(a.city===c){const q=(R.haul||[]).find(q=>q.attack===a.id&&q.city===c&&q.ms!==null&&q.ms>=SCRUB_FAR_MS);if(q)return q;}return null;};
+// A DDoS-protection customer whose attacks ride far to be cleaned (#117).
+const scrubFar=c=>{for(const a of ddosAll())if(a.city===c){const q=(R.haul||[]).find(q=>q.attack===a.id&&q.city===c&&q.ms!==null&&q.ms>=SCRUB_FAR_MS);if(q)return q;}return null;};
 /* ---------- who gets attacked, how hard and how often ----------
    Most real floods are small and short; the giant ones are rare (Cloudflare, H1 2026: 96.6% under 500 Mbps; the record
    is 31.4 Tbps). Sizes come from that world, never from how big your network is. Gamers and hosting attract them. */
