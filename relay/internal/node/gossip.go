@@ -240,6 +240,7 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 			return ""
 		}
 		from.verified = true
+		r.setClasses(from, st)
 		r.startSync(from)
 	}
 	old = r.cat[g.ID]
