@@ -1,0 +1,22 @@
+{
+  "description": "report reasons come from the same fixed list as shun votes.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "report",
+      "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+      "t": 1767312000,
+      "body": {
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "target": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+        "reason": "he was rude"
+      },
+      "sig": "mTQT9hn6eJrFlJkmffDObgmIIHDhfc0YRnWUgj1aGVR2-HoqSFnNh_vEDjJHdh9nP174tU575YcnDlus2bKWBg"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

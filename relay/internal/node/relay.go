@@ -74,6 +74,10 @@ type Relay struct {
 	statsAt map[string]int64                // key -> slot of its last stats from a client
 	refused map[string]bool                 // ids refused from nodes (not wanted again)
 	lastSyn map[string]int64                // peer node key -> start of the last session
+
+	reports map[string]map[string]*store.Entry // reporter -> target -> its stored report (5.10)
+	reportN int                                // reports stored
+
 	clients map[*session]bool
 	nodes   map[*session]bool
 	epoch   string
@@ -149,6 +153,7 @@ func New(o Options) (*Relay, error) {
 	for _, e := range st.Kind("offer") {
 		r.countOffer(e.Rec, 1)
 	}
+	r.indexReports()
 	r.loadCatalog()
 	r.loadRegistryCache()
 	r.loadUpdateState()
@@ -303,7 +308,7 @@ func (r *Relay) operator(s *session) bool {
 }
 
 // shows reports whether a session may be sent this record (lock held). Other nodes get everything.
-// Shun votes go to this server's operators only; every other client learns the outcome from
+// Shun votes and players' reports go to this server's operators only; every other client learns the outcome from
 // excluded. Deals go to their two parties only, open consortium projects to everyone (9.3).
 func (r *Relay) shows(s *session, rec *fed.Record) bool {
 	if s.node {
@@ -314,6 +319,8 @@ func (r *Relay) shows(s *session, rec *fed.Record) bool {
 		return r.operator(s)
 	case "offer", "accept", "decline":
 		return r.party(s, rec)
+	case "report":
+		return r.operator(s)
 	}
 	return true
 }
@@ -407,6 +414,95 @@ var (
 	maxOffersPerKey   = 4096
 	maxOffersPerPair  = 128
 )
+
+// Bounds of reports (5.10; vars so tests can lower them): one reporter's new reports per day (by
+// receipt slot, which the reporter cannot pick), and every report this node keeps.
+var (
+	maxReportsPerDay = 20
+	maxReports       = 65536
+)
+
+// indexReports rebuilds the reports by reporter and target from the store (start). A report
+// replaced by a newer one stays in the files until they are rewritten: it goes again here.
+func (r *Relay) indexReports() {
+	r.reports, r.reportN = map[string]map[string]*store.Entry{}, 0
+	var gone []string
+	for _, e := range r.st.Kind("report") {
+		if old := r.noteReport(e); old != nil {
+			gone = append(gone, old.Rec.ID)
+		}
+	}
+	r.st.Remove(gone)
+}
+
+// noteReport indexes a stored report; it returns the report of the same reporter and target that
+// is no longer kept (the older one, which may be e itself), for the caller to remove (lock held).
+func (r *Relay) noteReport(e *store.Entry) *store.Entry {
+	by := r.reports[e.Rec.Key]
+	if by == nil {
+		by = map[string]*store.Entry{}
+		r.reports[e.Rec.Key] = by
+	}
+	target := e.Rec.Str("target")
+	cur := by[target]
+	if cur == e {
+		return nil
+	}
+	if cur != nil && betterAnn(cur.Rec, e.Rec) {
+		return e
+	}
+	by[target] = e
+	if cur == nil {
+		r.reportN++
+	}
+	return cur
+}
+
+// dropReport takes a removed report out of the index (lock held).
+func (r *Relay) dropReport(e *store.Entry) {
+	by := r.reports[e.Rec.Key]
+	target := e.Rec.Str("target")
+	if by == nil || by[target] != e {
+		return
+	}
+	delete(by, target)
+	r.reportN--
+	if len(by) == 0 {
+		delete(r.reports, e.Rec.Key)
+	}
+}
+
+// reportCheck is the state check of a report (5.10): to this server only, from a network this node
+// knows when a client puts it, the newest per reporter and target, and within the caps (lock held).
+func (r *Relay) reportCheck(rec *fed.Record, now int64, o origin) string {
+	if r.own == nil || rec.Str("server") != r.own.ID {
+		return fed.NotNode
+	}
+	if o.peer != nil && !o.same {
+		return fed.BadKind // reports never leave their server
+	}
+	if o.client && r.ann[rec.Key] == nil {
+		return fed.Refused
+	}
+	if r.st.Get(rec.ID) != nil {
+		return ""
+	}
+	by := r.reports[rec.Key]
+	cur := by[rec.Str("target")]
+	if cur != nil && betterAnn(cur.Rec, rec) {
+		return fed.Refused // older than the report kept
+	}
+	day := 0
+	for _, e := range by {
+		if e != cur && e.Slot > now-fed.Day {
+			day++
+		}
+	}
+	if day >= maxReportsPerDay || cur == nil && r.reportN >= maxReports {
+		return fed.TooMany
+	}
+	return ""
+}
 
 // countOffer adds d to the offers counted for a stored offer's author and pair (lock held).
 func (r *Relay) countOffer(rec *fed.Record, d int) {
@@ -632,6 +728,8 @@ func (r *Relay) stateCheck(rec *fed.Record, now int64, o origin) string {
 		if r.st.Get(rec.ID) == nil && (r.offerN[rec.Key] >= maxOffersPerKey || r.offerN[rec.Key+"|"+to] >= maxOffersPerPair) {
 			return fed.TooMany
 		}
+	case "report":
+		return r.reportCheck(rec, now, o)
 	}
 	return ""
 }
@@ -735,6 +833,12 @@ func (r *Relay) after(e *store.Entry, now int64) {
 		r.rank.Announce(rec.Key, r.newestAnn(rec.Key))
 	case "offer":
 		r.countOffer(rec, 1)
+	case "report":
+		// One per reporter and target, the newest (5.10): the older one goes.
+		if old := r.noteReport(e); old != nil {
+			r.refuse(old.Rec.ID)
+			r.remove([]string{old.Rec.ID})
+		}
 	}
 	switch rec.Kind {
 	case "genesis", "operators", "server", "hide":
@@ -789,7 +893,8 @@ func item(e *store.Entry) map[string]any {
 	return map[string]any{"rec": e.Rec.Value, "rcpt": rc}
 }
 
-// classOf is the sync class of a kind ("" for kinds only nodes of one server exchange).
+// classOf is the sync class of a kind ("" for kinds only nodes of one server exchange: the chain
+// records, and players' reports, which are for this server's operators alone).
 func classOf(kind string) string {
 	switch kind {
 	case "announce", "stats", "offer", "accept", "decline", "leave":
@@ -980,6 +1085,8 @@ func (r *Relay) remove(ids []string) {
 			}
 		case "offer":
 			r.countOffer(e.Rec, -1)
+		case "report":
+			r.dropReport(e)
 		}
 	}
 	r.st.Remove(ids)
@@ -1045,7 +1152,7 @@ func (r *Relay) expired(now int64) []string {
 	// Votes are kept until they can no longer count: a vote counts for 90 days, and a shun holds
 	// 7 days after the votes fell below the threshold (10.7 step 5), so 97 days.
 	ages := map[string]int64{"offer": fed.OfferKept, "accept": fed.OfferKept, "decline": fed.OfferKept,
-		"shun": fed.VoteLife + fed.ShunLift, "unshun": fed.VoteLife + fed.ShunLift, "leave": fed.LeaveKept}
+		"shun": fed.VoteLife + fed.ShunLift, "unshun": fed.VoteLife + fed.ShunLift, "leave": fed.LeaveKept, "report": fed.ReportKept}
 	for k, age := range ages {
 		for id, e := range r.st.Kind(k) {
 			if now-e.Rec.T > age {

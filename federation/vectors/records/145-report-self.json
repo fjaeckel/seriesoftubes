@@ -1,0 +1,22 @@
+{
+  "description": "A network cannot report itself: target is not the author.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "report",
+      "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+      "t": 1767312000,
+      "body": {
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "target": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+        "reason": "spam"
+      },
+      "sig": "dODH70sJFg8I-uwLYzk3wnRk5TRqgQVbXtnU55fuoXjEp5_6vyG8Y3F7pLZFQQPCCZmAkPjUdG4NvJW0rrsFAQ"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

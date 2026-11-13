@@ -1,0 +1,23 @@
+{
+  "description": "report: a player tells its server's operators about a network, with a reason from the fixed list.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "report",
+      "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+      "t": 1767312000,
+      "body": {
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+        "target": "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI",
+        "reason": "offensive_name"
+      },
+      "sig": "XLAlDxctsI8viesPrMnNlORPYoCy__QPAsd00_0RdUPX75RqzrpXTh55B9svU9bhOAuEVBOqJH4gbG_HJRA2Bg"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "report",
+    "id": "JJAUfN_ZMTW-ijCgQtO4K8uqFp79SYjdY7zA3jHlF3Y"
+  }
+}

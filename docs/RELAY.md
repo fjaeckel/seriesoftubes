@@ -309,6 +309,12 @@ player only the reasons given, never counts or who voted. A game joined to sever
 with an excluded network only when most of them (and at least two) list it; one server's list alone hides the network
 and stops new deals with it, nothing more.
 
+Players can **report** a network to the operators of a server they joined, with one of the same four reasons and no
+text. A report goes only to your server: your node keeps it 30 days (one per player and reported network, the newest;
+at most 20 new ones per player a day), passes it to your other nodes and to no other server, and shows it only in the
+operator panel of a game that proved your operator key (Reports: per network, the reasons with counts and how many
+players reported it). It changes nothing by itself: you decide whether to hide the network or vote.
+
 ## Leaderboards
 
 Your node ranks the leaderboards itself and sends players only what they look at: the top 50 rows of the slice they
@@ -350,7 +356,7 @@ How it works (`relay/internal/rank`):
   server's other nodes and the servers it syncs with fill it back in; what nobody else had is only recent stats and
   offers, which players send again.
 - **What is kept:** records go into one file per day under `log/`. Stats are kept 72 hours (plus, for carrying forward,
-  each network's newest and the one in force when the previous window starts), offers and answers 30 days, votes 97
+  each network's newest and the one in force when the previous window starts), offers, answers and players' reports 30 days, votes 97
   days (90 they count, and the 7 a shun takes to lift), announcements until a network has been silent 180 days (one per
 network and 5-minute slot, the newest; at most 4096 offers per network, 128 to any one other). What a
   `leave` removes is removed for good. Daily files are rewritten or deleted once nothing in them is kept, today's
