@@ -104,7 +104,7 @@ const fedRetryIn=(c,a)=>new Promise(res=>{if(!a||a.m!=='err'||a.code!=='rate_lim
 async function fedAskRetry(c,m,many){for(let i=0;;i++){const a=await fedAsk(c,m,many);if(i>=5||!(await fedRetryIn(c,a)))return a;}}
 
 /* ---------- frames from a node ---------- */
-function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.error){fedDrop(c,r.error);return;}const f=r.f;
+function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.skip)return;if(r.error){fedDrop(c,r.error);return;}const f=r.f;
   if(f.m==='welcome'){if(c.phase!=='hello'||f.ver!==1||c.srv&&f.server!==c.srv){fedDrop(c,'welcome');return;}
     FED.clear(c.t);c.t=null;c.srv=f.server;c.nodeKey=f.node;c.impl=fedImpl(f.impl);c.phase='check';
     c.tick=FED.set(function tk(){if(!fedLive(c)||!c.ws)return;const n=fedNow();

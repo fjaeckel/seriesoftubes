@@ -675,6 +675,10 @@ reference relay: 8192; over it, `too_many`).
 `err` `unsupported` and the connection closes. So two servers keep speaking the older version until both have
 upgraded. This document is version 1; records carry `v: 1` in it.
 
+A client **skips** a frame from a node whose `m` it does not know (a newer relay's message within the same version):
+it is neither answered nor a reason to close, so an older game keeps working with a newer relay. A frame with a known
+`m` that fails its checks is still `bad_frame`.
+
 ### 9.3 Client and node
 
 | Message | Direction | Fields | Answer |

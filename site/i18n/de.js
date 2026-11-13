@@ -2556,7 +2556,7 @@
 "fedui.seen_on":"Gesehen auf",
 "fedui.seen_on_other_servers":"Auf anderen Servern gesehen: der Hinweis von der Website ließ sich nicht lesen.",
 "fedui.server":"Server",
-"fedui.server_did_not_answer_solo":"{server} hat nicht geantwortet, also startet dein Netz solo. Über „Multiplayer“ kannst du jederzeit einem Server beitreten.",
+"fedui.server_not_answering_yet":"{server} antwortet noch nicht. Dein Netz ist beigetreten und verbindet sich, sobald er antwortet; was du bis dahin tust, wartet aufs Senden.",
 "fedui.server_voted_to_shun_network":"{server} stimmte für den Ausschluss von {network}",
 "fedui.server_withdrew_its_vote_on_network":"{server} zog seine Stimme zu {network} zurück",
 "fedui.servers_and_networks":"Server und Netze",

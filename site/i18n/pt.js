@@ -2554,7 +2554,7 @@
 "fedui.seen_on":"Visto em",
 "fedui.seen_on_other_servers":"Visto noutros servidores: não foi possível ler o aviso do site.",
 "fedui.server":"Servidor",
-"fedui.server_did_not_answer_solo":"{server} não respondeu, então sua rede começa sozinha. Entre num servidor quando quiser pelo Multijogador.",
+"fedui.server_not_answering_yet":"{server} ainda não responde. A tua rede já aderiu e liga-se assim que responder; o que fizeres entretanto espera para ser enviado.",
 "fedui.server_voted_to_shun_network":"{server} votou para excluir {network}",
 "fedui.server_withdrew_its_vote_on_network":"{server} retirou o voto sobre {network}",
 "fedui.servers_and_networks":"Servidores e redes",

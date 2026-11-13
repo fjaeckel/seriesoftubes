@@ -128,7 +128,10 @@ const FED_FROM={client:['hello','auth','challenge','put','cosign','sub','unsub',
    For a node reading a client's frame, state ('new' or 'ready') and speaks (its versions) apply the handshake rules. */
 function fedFrame(text,who,state,speaks){if(typeof text!=='string')return {error:'bad_frame'};if(fedSize(text)>FED_FRAME)return {error:'too_big'};
   let f;try{f=JSON.parse(text);}catch(e){return {error:'bad_json'};}
-  if(!f||typeof f!=='object'||Array.isArray(f)||typeof f.m!=='string'||!fedOwn(FED_MSG,f.m)||!FED_FROM[who].includes(f.m))return {error:'bad_frame'};
+  if(!f||typeof f!=='object'||Array.isArray(f)||typeof f.m!=='string')return {error:'bad_frame'};
+  // A message type this version does not know (a newer relay's) is skipped, never fatal (§9.2): an older game keeps
+  // talking to a newer relay instead of reconnecting in a loop.
+  if(!fedOwn(FED_MSG,f.m))return who==='node'?{skip:true}:{error:'bad_frame'};if(!FED_FROM[who].includes(f.m))return {error:'bad_frame'};
   if(state==='new'&&f.m!=='hello')return {error:'not_ready'};if(state==='ready'&&f.m==='hello')return {error:'bad_frame'};
   for(const [k,ok] of Object.entries(FED_MSG[f.m]))if(!ok(f[k]))return {error:'bad_frame'};
   if(f.m==='hello'){if(f.role!=='client'&&f.role!=='node')return {error:'bad_frame'};if(speaks){const v=fedVersion(f.vers,speaks);if(v.error)return v;}}

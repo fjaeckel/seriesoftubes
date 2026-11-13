@@ -128,3 +128,14 @@ test('only a page on a loopback host dials a *.localhost node over plain ws:// (
   assert.equal(await sock('wss://relay.localhost.example.net/fed', 'localhost'), 'wss://relay.localhost.example.net/fed');
   assert.equal(await sock('wss://relay.localhost:8443/fed', 'localhost.example.net'), 'wss://relay.localhost:8443/fed');
 });
+
+test('a message type this game does not know is skipped, never a reason to hang up (§9.2)', async () => {
+  const p = fedPage();
+  await joinGame(p);
+  await run(p, 1000);
+  const n = p.net.node(URL1);
+  for (const ws of n.socks) n.send(ws, { m: 'from_the_future', id: 7, stuff: [1, 2, 3] });
+  await run(p, 1000);
+  assert.equal(await p.ev('fedStatus().state'), 'connected');
+  assert.deepEqual(p.errors, []);
+});

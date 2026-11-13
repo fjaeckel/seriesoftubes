@@ -123,7 +123,7 @@ test('starting with the switch on joins the pick once the charter is signed, wit
   assert.deepEqual(p.errors, []);
 });
 
-test('a join that fails starts solo, with a toast that opens the join sheet', async () => {
+test('a refused join starts solo with a toast to the join sheet; a server not answering yet keeps the join', async () => {
   // A typed address that is not one.
   const p = page();
   await run(p, 500);
@@ -142,7 +142,7 @@ test('a join that fails starts solo, with a toast that opens the join sheet', as
   assert.equal(p.ev('UI.fu.v'), 'join');
   assert.deepEqual(p.errors, []);
 
-  // A server that never answers: joined for a moment, then left again.
+  // A server that does not answer yet: the game stays joined with the offline dot and connects once it does.
   const q = page();
   q.net.node(URL1).up = false;
   await run(q, 500);
@@ -151,11 +151,14 @@ test('a join that fails starts solo, with a toast that opens the join sheet', as
   q.ev('ACT.start({})');
   charter(q);
   await run(q, 40000);
-  assert.equal(q.ev('S.fed.on'), false, 'back to solo');
-  assert.deepEqual(val(q, 'S.fed.servers'), []);
-  assert.match(toasts(q), /Packet Lunch did not answer, so your network starts solo/);
-  assert.equal(q.ev("$('hFed').hidden"), true);
+  assert.equal(q.ev('S.fed.on'), true, 'still joined');
+  assert.deepEqual(val(q, 'S.fed.servers'), [URL1]);
+  assert.match(toasts(q), /Packet Lunch is not answering yet\. Your network is joined/);
+  assert.equal(q.ev("$('hFed').hidden"), false, 'the dot shows (offline)');
   assert.equal(q.ev('UI.fu&&UI.fu.v||null'), null, 'no sheet opened by itself');
+  q.net.node(URL1).up = true;
+  await run(q, 120000);
+  assert.equal(q.ev('fedStatus().state'), 'connected', 'connects once the server answers');
   assert.deepEqual(q.errors, []);
 });
 

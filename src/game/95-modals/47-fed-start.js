@@ -60,8 +60,10 @@ async function fsJoin(url){const s=S,code=await fedJoin(url).catch(()=>'internal
   if(code){fsFail(code,url);return;}if(UI.fedInvite===url)UI.fedInvite=null;track('fed_join');fuDot();
   let done=false,off=null,t=null;
   const end=ok=>{if(done)return;done=true;if(off)off();FED.clear(t);if(S!==s||!(s.fed&&s.fed.servers.includes(url)))return;
-    if(ok)fsName(url).then(n=>{if(S===s)toast(tr('fedui.joined_server',{server:n}),'good');});else{fedLeave(url);fsFail('offline',url);}fuDot();};
+    // Not answering (yet): the game stays joined with the offline dot and connects when the server does; what the
+    // player does meanwhile waits in the queue. Only a refused join (bad address, crypto, full) starts solo.
+    if(ok)fsName(url).then(n=>{if(S===s)toast(tr('fedui.joined_server',{server:n}),'good');});else fsName(url).then(n=>{if(S===s)toast(tr('fedui.server_not_answering_yet',{server:n}),'',[{l:tr('fedui.see_other_servers'),act:'fuOpen',args:{v:'join'}}]);});fuDot();};
   const look=()=>{const x=FED.st[url];if(x&&x.state==='connected')end(true);else if(x&&x.state==='offline')end(false);};
   off=fedOn('status',look);t=FED.set(()=>{const x=FED.st[url];if(x&&x.state==='waiting'){done=true;off();}else end(false);},FED.T.open*2);look();}
-async function fsFail(code,url){const s=S,m=code==='offline'?tr('fedui.server_did_not_answer_solo',{server:await fsName(url)}):tr('fedui.your_network_starts_solo_why',{why:fuErrText(code)});
+async function fsFail(code,url){const s=S,m=tr('fedui.your_network_starts_solo_why',{why:fuErrText(code)});
   if(S===s)toast(m,'bad',[{l:tr('fedui.join_a_server'),act:'fuOpen',args:{v:'join'}}]);}

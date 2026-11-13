@@ -2555,7 +2555,7 @@
 "fedui.seen_on":"Seen on",
 "fedui.seen_on_other_servers":"Seen on other servers: the notice from the site could not be read.",
 "fedui.server":"Server",
-"fedui.server_did_not_answer_solo":"{server} did not answer, so your network starts solo. Join a server any time from Multiplayer.",
+"fedui.server_not_answering_yet":"{server} is not answering yet. Your network is joined and connects as soon as it does; what you do meanwhile waits to be sent.",
 "fedui.server_voted_to_shun_network":"{server} voted to shun {network}",
 "fedui.server_withdrew_its_vote_on_network":"{server} withdrew its vote on {network}",
 "fedui.servers_and_networks":"Servers and networks",
