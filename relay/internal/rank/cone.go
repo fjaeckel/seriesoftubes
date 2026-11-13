@@ -61,8 +61,8 @@ func spans(x *net, from int64, list func(*stat) []string) []span {
 	return out
 }
 
-func custOf(s *stat) []string { return s.custOK }
-func upOf(s *stat) []string   { return s.upOK }
+func custOf(s *stat) []string { return s.custOK() }
+func upOf(s *stat) []string   { return s.upOK() }
 
 // mix64 is splitmix64's finalizer: spreads an edge code over 64 bits for the edge-set hash.
 func mix64(z uint64) uint64 {
@@ -115,7 +115,7 @@ func (a *Agg) computeCones(c int64) map[*net][]int32 {
 	var evs []coneEv
 	for xi, x := range cand {
 		for _, sx := range spans(x, from, custOf) {
-			for _, yk := range sx.r.custOK {
+			for _, yk := range sx.r.custOK() {
 				if yk == x.key || a.ex[yk] {
 					continue
 				}

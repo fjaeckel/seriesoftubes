@@ -30,9 +30,18 @@ func randBody(rng *rand.Rand, self string, keys []string) map[string]any {
 		}
 	}
 	var tr []any
+	// Now and then a network of the biggest numbers the checks allow (10^9 each way): its slot
+	// sums pass what 32 bits hold, and the aggregate must move them to 64 bits.
+	big := rng.IntN(3) == 0
+	mb := func() int64 {
+		if big && rng.IntN(4) != 0 {
+			return int64(1e9 - rng.IntN(3)*1000)
+		}
+		return int64(rng.IntN(5) * 1000)
+	}
 	for _, k := range keys {
 		if k != self && rng.IntN(2) == 0 {
-			tr = append(tr, map[string]any{"key": k, "in": int64(rng.IntN(5) * 1000), "out": int64(rng.IntN(5) * 1000)})
+			tr = append(tr, map[string]any{"key": k, "in": mb(), "out": mb()})
 		}
 	}
 	if tr == nil {
@@ -255,7 +264,10 @@ func TestRandomStreamsMatchReference(t *testing.T) {
 	if coneSeen < 20 {
 		t.Fatalf("only %d cone rows above 0: the streams hardly test the cone board", coneSeen)
 	}
-	t.Logf("%d cone rows above 0 compared", coneSeen)
+	if widened.Load() == 0 {
+		t.Fatal("no slot sums passed 32 bits: the streams do not test the wide sums")
+	}
+	t.Logf("%d cone rows above 0 compared, %d slot sums widened to 64 bits", coneSeen, widened.Load())
 }
 
 // Filters, n, own row and names behave as the spec says.

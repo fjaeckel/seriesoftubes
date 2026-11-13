@@ -253,7 +253,7 @@ func (a *Agg) total(x *net, board string, rg *region, lo, hi int, from int64, bu
 			if r == nil || !r.normal {
 				return
 			}
-			v := r.pies
+			v := int64(r.pies)
 			if board == "pops" {
 				v = r.popsIn(rg.set())
 			}
@@ -266,7 +266,7 @@ func (a *Agg) total(x *net, board string, rg *region, lo, hi int, from int64, bu
 		v := buf[0][:0]
 		x.runs(from, lo, hi, func(i, j int, r *stat) {
 			if r != nil && r.normal {
-				v = append(v, [2]int64{r.total, int64(j - i)})
+				v = append(v, [2]int64{int64(r.total), int64(j - i)})
 			}
 		})
 		buf[0] = v
@@ -288,8 +288,8 @@ func (a *Agg) total(x *net, board string, rg *region, lo, hi int, from int64, bu
 				var ti, to int64
 				switch {
 				case rg == nil && sums:
-					if x.in != nil {
-						ti, to = x.in[k], x.out[k]
+					if !x.sums.none() {
+						ti, to = x.sums.at(k)
 					}
 				case len(r.tr) > 0:
 					ti, to = a.traffic(x, r, from+int64(k)*fed.SlotLen, rg)
@@ -309,7 +309,7 @@ func keep(q *Slice, r brow, day int64, keys map[string]bool) bool {
 	switch {
 	case q.Division == "ai" && !l.ai, q.Division == "human" && l.ai:
 		return false
-	case q.Model != nil && (!l.ai || l.model != *q.Model), q.Harness != nil && (!l.ai || l.harness != *q.Harness):
+	case q.Model != nil && (!l.ai || l.model() != *q.Model), q.Harness != nil && (!l.ai || l.harness() != *q.Harness):
 		return false
 	case q.Tier1 != nil && l.tier1 != *q.Tier1, q.From != nil && l.cc != *q.From:
 		return false
@@ -514,8 +514,8 @@ func (a *Agg) computeFacets(c int64) *Facets {
 			continue
 		}
 		if l.ai {
-			sets[0][l.model] = true
-			sets[1][l.harness] = true
+			sets[0][l.model()] = true
+			sets[1][l.harness()] = true
 		}
 		sets[2][l.cc] = true
 		if x.ann != nil {
@@ -574,7 +574,7 @@ func (a *Agg) Nets(keys []string, me string) ([]Net, []Report) {
 	for _, k := range keys {
 		if x := a.nets[k]; x != nil && !a.ex[k] {
 			if r := x.newest(); r != nil {
-				nets = append(nets, Net{Key: k, AI: r.ai, Tier1: r.tier1, Tier2: r.tier2, Pops: r.popsN, Cust: len(r.cust), Slot: r.slot})
+				nets = append(nets, Net{Key: k, AI: r.ai, Tier1: r.tier1, Tier2: r.tier2, Pops: int64(r.popsN), Cust: len(r.cust()), Slot: r.slot})
 			}
 		}
 	}
@@ -588,7 +588,7 @@ func (a *Agg) Nets(keys []string, me string) ([]Net, []Report) {
 			if r := y.newest(); r != nil {
 				for _, e := range r.tr {
 					if e.key == me {
-						reps = append(reps, Report{Key: k, In: e.in, Out: e.out})
+						reps = append(reps, Report{Key: k, In: int64(e.in), Out: int64(e.out)})
 						break
 					}
 				}

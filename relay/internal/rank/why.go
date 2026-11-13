@@ -48,7 +48,7 @@ func (a *Agg) Why(q *Slice, key string, now int64) ([]string, []string, int64, e
 			z := todo[len(todo)-1]
 			todo = todo[:len(todo)-1]
 			for _, s := range z.all {
-				for _, k := range s.cust {
+				for _, k := range s.cust() {
 					if seen[k] || a.ex[k] {
 						continue
 					}

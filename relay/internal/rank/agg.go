@@ -18,7 +18,8 @@ type Agg struct {
 	mu    sync.RWMutex
 	nets  map[string]*net
 	byID  map[string]*stat
-	c     int64 // the running slot the per-slot sums are for; 0: not yet worked out
+	words map[string]string // strings records share (intern)
+	c     int64             // the running slot the per-slot sums are for; 0: not yet worked out
 	ex    map[string]bool
 	names map[string]bool
 	gen   atomic.Uint64 // changes when a value in the windows may have changed
@@ -66,7 +67,7 @@ func New(workers int) *Agg {
 	if workers <= 0 {
 		workers = runtime.GOMAXPROCS(0)
 	}
-	a := &Agg{nets: map[string]*net{}, byID: map[string]*stat{}, ex: map[string]bool{}, names: map[string]bool{},
+	a := &Agg{nets: map[string]*net{}, byID: map[string]*stat{}, words: map[string]string{}, ex: map[string]bool{}, names: map[string]bool{},
 		wake: make(chan struct{}, 1), workers: workers, jobs: make(chan func(), queueLen),
 		bases: newLRU(maxBases), slices: newLRU(maxSlices), facets: newLRU(maxFacets), stop: make(chan struct{})}
 	a.wg.Add(workers + 1)
@@ -173,6 +174,12 @@ type Raw struct {
 	ID, Key, CC string
 	Slot, T     int64
 	Body        map[string]any
+	s           *stat // already parsed (Parsed)
+}
+
+// Parsed is a stats record for Load, parsed now: the body need not be kept until Load.
+func Parsed(id, key string, slot, t int64, body map[string]any, cc string) Raw {
+	return Raw{s: parse(id, key, slot, t, body, cc)}
 }
 
 // Load builds the aggregate from the store (start): records are parsed in parallel chunks, then
@@ -181,7 +188,9 @@ func (a *Agg) Load(stats []Raw, anns map[string]*Ann, ex, names map[string]bool)
 	parsed := make([]*stat, len(stats))
 	parallel(len(stats), a.workers, func(i int) {
 		r := stats[i]
-		parsed[i] = parse(r.ID, r.Key, r.Slot, r.T, r.Body, r.CC)
+		if parsed[i] = r.s; r.s == nil {
+			parsed[i] = parse(r.ID, r.Key, r.Slot, r.T, r.Body, r.CC)
+		}
 	})
 	a.mu.Lock()
 	for _, s := range parsed {
@@ -190,6 +199,7 @@ func (a *Agg) Load(stats []Raw, anns map[string]*Ann, ex, names map[string]bool)
 		}
 		a.byID[s.id] = s
 		x := a.net(s.key)
+		s.key = x.key
 		x.all = append(x.all, s)
 		if len(s.tr) > 0 {
 			x.withTr++
@@ -200,6 +210,7 @@ func (a *Agg) Load(stats []Raw, anns map[string]*Ann, ex, names map[string]bool)
 		for _, e := range s.tr {
 			a.lister(e.key, s.key, 1)
 		}
+		a.intern(s)
 	}
 	list := slices.Collect(maps.Values(a.nets))
 	parallel(len(list), a.workers, func(i int) {
@@ -293,6 +304,52 @@ func (a *Agg) lister(of, by string, d int32) {
 	}
 }
 
+// maxWords bounds the other strings the aggregate shares between records (cities, countries,
+// models, harnesses): what clients send is not a fixed set.
+const maxWords = 4096
+
+// intern makes a new record share the strings it repeats with the records already held: keys
+// with the networks' own, the rest with a bounded table (write lock held, before s is published).
+// Most of what a stats record holds is other networks' keys.
+func (a *Agg) intern(s *stat) {
+	key := func(k string) string {
+		if y := a.nets[k]; y != nil {
+			return y.key
+		}
+		return k
+	}
+	word := func(w string) string {
+		if v, ok := a.words[w]; ok {
+			return v
+		}
+		if len(a.words) < maxWords {
+			a.words[w] = w
+		}
+		return w
+	}
+	for i := range s.tr {
+		s.tr[i].key = key(s.tr[i].key)
+	}
+	if s.trIdx != nil {
+		for i, e := range s.tr {
+			if j, ok := s.trIdx[e.key]; ok && int(j) == i {
+				delete(s.trIdx, e.key)
+				s.trIdx[e.key] = j
+			}
+		}
+	}
+	for i := range s.links {
+		s.links[i] = key(s.links[i])
+	}
+	for i := range s.pops {
+		s.pops[i].city = word(s.pops[i].city)
+	}
+	if s.aiw != nil {
+		s.aiw.model, s.aiw.harness = word(s.aiw.model), word(s.aiw.harness)
+	}
+	s.cc = word(s.cc)
+}
+
 // tidy forgets a network nothing refers to any more.
 func (a *Agg) tidy(x *net) {
 	if len(x.all) == 0 && len(x.listers) == 0 && x.ann == nil {
@@ -312,11 +369,13 @@ func (a *Agg) apply(e event) {
 		}
 		s := parse(e.id, e.key, e.slot, e.t, e.body, e.cc)
 		x := a.net(s.key)
+		s.key = x.key
 		x.insert(s)
 		a.byID[s.id] = s
 		for _, t := range s.tr {
 			a.lister(t.key, s.key, 1)
 		}
+		a.intern(s)
 		a.touch(x, s.slot, x.reach(s.slot))
 	case 'd':
 		if o := a.byID[e.id]; o != nil {
@@ -379,7 +438,7 @@ func (a *Agg) drop(s *stat) {
 		a.lister(t.key, s.key, -1)
 	}
 	if x.withTr == 0 {
-		x.in, x.out = nil, nil
+		x.sums.clear()
 	}
 	a.tidy(x)
 }
@@ -420,21 +479,22 @@ func (a *Agg) fill(x *net, i0, i1 int) {
 	if x == nil {
 		return
 	}
-	if x.in == nil {
+	if x.sums.none() {
 		if x.withTr == 0 {
 			return
 		}
-		x.in, x.out = make([]int64, N), make([]int64, N)
+		x.sums.make()
 		i0, i1 = 0, N
 	}
 	from := a.c - N*fed.SlotLen
 	x.runs(from, i0, i1, func(i, j int, r *stat) {
 		for k := i; k < j; k++ {
 			if r == nil || !r.normal || len(r.tr) == 0 {
-				x.in[k], x.out[k] = 0, 0
+				x.sums.set(k, 0, 0)
 				continue
 			}
-			x.in[k], x.out[k] = a.traffic(x, r, from+int64(k)*fed.SlotLen, nil)
+			in, out := a.traffic(x, r, from+int64(k)*fed.SlotLen, nil)
+			x.sums.set(k, in, out)
 		}
 	})
 }
@@ -455,13 +515,13 @@ func (a *Agg) traffic(x *net, r *stat, s int64, rg *region) (int64, int64) {
 		}
 		switch {
 		case ye == nil:
-			in += e.in
-			out += e.out
+			in += int64(e.in)
+			out += int64(e.out)
 		case !ye.normal:
 		default:
 			yi, yo := ye.report(x.key)
-			in += min(e.in, yo)
-			out += min(e.out, yi)
+			in += min(int64(e.in), yo)
+			out += min(int64(e.out), yi)
 		}
 	}
 	return in, out
@@ -490,7 +550,7 @@ func (a *Agg) shift(c int64) {
 	}
 	var list []*net
 	for _, x := range a.nets {
-		if x.in != nil || x.withTr > 0 {
+		if !x.sums.none() || x.withTr > 0 {
 			list = append(list, x)
 		}
 	}
@@ -499,18 +559,17 @@ func (a *Agg) shift(c int64) {
 		a.c = c
 		parallel(len(list), a.workers, func(i int) {
 			x := list[i]
-			if x.in == nil {
+			if x.sums.none() {
 				a.fill(x, 0, N)
 				return
 			}
-			copy(x.in, x.in[d:])
-			copy(x.out, x.out[d:])
+			x.sums.shift(d)
 			a.fill(x, N-d, N)
 		})
 	} else {
 		a.c = c
 		parallel(len(list), a.workers, func(i int) {
-			list[i].in, list[i].out = nil, nil
+			list[i].sums.clear()
 			a.fill(list[i], 0, N)
 		})
 	}
