@@ -28,7 +28,7 @@ const AREA = {
       const o={signed_text:text,id:await fedId(rec),record:rec};if(rec.sigs)o.sigs=rec.sigs;else o.sig=rec.sig;return o;})()`, { unsigned: i.unsigned, seeds });
   },
   asn: (run, i) => run(`fedAsn(i.key).then(asn=>({asn}))`, i),
-  records: (run, i) => run(`fedCheck(i.text!==undefined?i.text:i.record,i.now).then(r=>r.ok?{ok:true,kind:r.kind,id:r.id}:r)`, i),
+  records: (run, i) => run(`fedCheck(i.text!==undefined?i.text:i.record,i.now,i.as==='state'?{kinds:FED_STATE}:{}).then(r=>r.ok?{ok:true,kind:r.kind,id:r.id}:r)`, i),
   receipts: (run, i) => run(`(async()=>{const c=await fedCheck(i.record,i.now);if(!c.ok)return {ok:false,error:'record '+c.error};
     const e=await fedRcptErr(i.receipt,c.rec,c.id,i.server,i.nodes,i.now);return e?{ok:false,error:e}:{ok:true};})()`, i),
   proofs: (run, i) => run(`fedProofErr(i.proof,i.nonce,i.server,i.node,i.now).then(e=>e?{ok:false,error:e}:{ok:true})`, i),
@@ -56,6 +56,9 @@ const AREA = {
     return {results:out};})()`, i),
   // The relay ranks; a game works out one network's value to check a row (fedRankOne): every key of a vector, ranked.
   boards: (run, i) => run(`({rows:(()=>{const rows=[];for(const k of new Set(i.records.map(r=>r.key))){const x=fedRankOne({...i,filters:{}},k,i.records,null);
+    if(x.listed&&x.kept)rows.push({key:k,value:x.value});}return rows.sort((a,b)=>b.value-a.value||fedByStr(a.key,b.key));})()})`, i),
+  // Boards of now (10.13): fedNowOne for every key of a vector, ranked.
+  now: (run, i) => run(`({rows:(()=>{const rows=[];for(const k of new Set(i.states.map(r=>r.key))){const x=fedNowOne({...i,filters:{}},k,i.states,null,null);
     if(x.listed&&x.kept)rows.push({key:k,value:x.value});}return rows.sort((a,b)=>b.value-a.value||fedByStr(a.key,b.key));})()})`, i),
   quiet: (run, i) => run(`fedQuiet(i.now,i.lastHeard)`, i),
   shun: (run, i) => run(`(()=>{const r=fedShun(i.registry,i.records,i.target,i.now);return r;})()`, i),

@@ -260,6 +260,11 @@ test('leaderboards: three boards, divisions with robot badges, own row pinned, f
   click(p, '#modalCard .fu-chip.act[data-args*="model"]');
   await run(p, 500);
   assert.equal(rows().length, 2);
+  // The boards open on now; the 24-hour board is asked once here, so it is kept for offline below.
+  assert.equal(p.ev('fuQ().measure'), 'now');
+  click(p, '#modalCard [data-act="fuQ"][data-args*="measure"][data-args*="\\"total\\""]');
+  await run(p, 500);
+  assert.equal(rows().length, 2);
   // Growth needs two days of records: nobody yet, and it says why.
   click(p, '#modalCard [data-act="fuQ"][data-args*="growth"]');
   await run(p, 500);

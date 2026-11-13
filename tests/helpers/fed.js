@@ -83,9 +83,10 @@ const PL_ENTRY = { id: PL.id, name: 'Packet Lunch', nodes: PL.server.body.nodes,
    (§9.3), it sends shun votes and players' reports only to a session that proved one of its server's operator keys (ops: by default
    Packet Lunch's, anna, ben and cleo) and only on a sub that asks for them; excl (null: never sent) is the excluded
    list it sends after a session's first sub and on exclude(), with reasons to a session that proved an excluded key; impl:
-   what its welcome says it runs; update: an update notice it sends right after an operator key's ack. */
+   what its welcome says it runs; update: an update notice it sends right after an operator key's ack. feats: what its
+   welcome lists (default ['state']: it takes live states, which it keeps in states, and ranks the boards of now). */
 class Node {
-  constructor(net, url, o = {}) { Object.assign(this, { net, url, server: o.server || PL.id, key: key(o.key || 'node1'), up: true, mute: false, feed: [], ranks: null, facets: null, netstats: null, why: null, asks: [], gossip: [], puts: [], refuse: null, socks: new Set(), hellos: 0,
+  constructor(net, url, o = {}) { Object.assign(this, { net, url, server: o.server || PL.id, key: key(o.key || 'node1'), up: true, mute: false, feed: [], ranks: null, facets: null, netstats: null, why: null, asks: [], gossip: [], puts: [], refuse: null, socks: new Set(), hellos: 0, feats: o.feats || ['state'], states: [],
     ops: o.ops || ['anna', 'ben', 'cleo'].map((n) => key(n).pub), auths: [], excl: null, reasons: null }); }
   sendExcl(ws) { const m = { m: 'excluded', keys: this.excl, more: false }; if (this.reasons && [...(ws.proved || [])].some((k) => this.excl.includes(k))) m.reasons = this.reasons; this.send(ws, m); }
   exclude(keys, reasons = null) { this.excl = keys; this.reasons = reasons; for (const ws of this.socks) if (ws.exSent) this.sendExcl(ws); }
@@ -93,7 +94,8 @@ class Node {
   take(ws, text) {
     const f = JSON.parse(text);
     if (this.mute) return;
-    if (f.m === 'hello') { this.hellos++; this.send(ws, { m: 'welcome', ver: 1, server: this.server, node: this.key.pub, now: this.net.now(), ...(this.impl ? { impl: this.impl } : {}) }); }
+    if (f.m === 'hello') { this.hellos++; this.send(ws, { m: 'welcome', ver: 1, server: this.server, node: this.key.pub, now: this.net.now(), ...(this.impl ? { impl: this.impl } : {}), ...(this.feats.length ? { feats: this.feats } : {}) }); }
+    else if (f.m === 'state') { this.states.push(f.rec); if (f.id) this.send(ws, { m: 'ack', id: f.id, rid: rid(f.rec), dup: false }); }
     else if (f.m === 'challenge') { const p = { v: 1, kind: 'proof', key: this.key.pub, t: this.net.now(), body: { nonce: f.nonce, server: this.server } }; p.sig = signText(this.key, canon(p)); this.send(ws, { m: 'proof', id: f.id, proof: p }); }
     else if (f.m === 'put') { this.puts.push(f.rec); this.send(ws, this.refuse ? { m: 'err', id: f.id, code: this.refuse } : { m: 'ack', id: f.id, rid: rid(f.rec), dup: false }); }
     else if (f.m === 'auth') { this.auths.push(f); (ws.proved || (ws.proved = new Set())).add(f.key); const op = this.ops.includes(f.key); if (op) ws.op = true; this.send(ws, { m: 'ack', id: f.id, op }); if (op && this.update) this.send(ws, { m: 'update', ...this.update }); }

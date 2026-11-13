@@ -91,7 +91,7 @@ function fedBoardRef(q) {
         for (const y of r.body.traffic) { if (ex.has(y.key)) continue; const ry = eff(y.key)[i];
           if (cities && !(fedHas(ry) && fedPops(ry, cities) > 0)) continue;
           if (fedHas(ry)) { const z = rep(ry, X); ti += Math.min(y.in, z ? z.out : 0); to += Math.min(y.out, z ? z.in : 0); } else if (!ry) { ti += y.in; to += y.out; } }
-        IN.push(ti); OUT.push(to); } else if (q.board === 'total') IN.push(r.body.total || 0); else { const v = q.board === 'pies' ? r.body.pies || 0 : fedPops(r, cities); if (lo === null || v < lo) lo = v; } }
+        IN.push(ti); OUT.push(to); } else if (q.board === 'total') IN.push(r.body.total || 0); else lo = q.board === 'pies' ? r.body.pies || 0 : fedPops(r, cities); }  // POPs and pies: the latest slot's value
     return q.board === 'traffic' ? Math.max(fedP95(IN), fedP95(OUT)) : q.board === 'total' ? fedP95(IN) : lo || 0; };
   const rows = [];
   for (const X of by.keys()) { if (ex.has(X)) continue; const e = eff(X), r = e[N - 1]; if (!fedHas(r)) continue;
