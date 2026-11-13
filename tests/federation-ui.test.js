@@ -417,7 +417,9 @@ test('from the first screen: the invite shows at once, the menu has its tile, a 
   await settle(40);
   // Started without the title's switch (federation-start.test.js covers it), the invite opens the join sheet as before.
   p.ev('closeModal();ACT.start({})');
-  // The capability check started at boot, so the very first menu has the tile.
+  // The capability check started at boot, so the very first menu has the tile (waited for: it is async, and slow on CI).
+  await p.ev('fedCan()');
+  await settle(40);
   p.ev('ACT.menu({})');
   assert.equal(p.ev(`!!document.querySelector('#modalCard [data-act="fuOpen"]')`), true, 'Multimode tile on the first menu');
   // The tile carries Multimode's own icon (an orange tube), hidden from screen readers, not the globe.

@@ -259,7 +259,9 @@ test('an AI player joins once it has declared itself, and AI networks carry the 
   assert.deepEqual(JSON.parse(JSON.stringify(await p.ev(`apiFedJoin({url:'${URL1}'})`))), { joined: URL1 });
   assert.equal(p.ev('S.fed.on'), true);
   assert.equal(p.ev("API_PLAYER_OWNS.apiFedJoin"), 1, 'never in the player\'s own tab');
-  for (let i = 0; i < 20 && !p.ev('S.fedn&&S.fedn.nets.length'); i++) { p.net.advance(1500); await settle(10); }
+  // Waits for Alice's network itself, not a fixed number of turns: CI machines are slower.
+  for (let i = 0; i < 200 && !p.ev('S.fedn&&S.fedn.nets.length'); i++) { p.net.advance(1500); await settle(30); }
+  assert.ok(p.ev('S.fedn&&S.fedn.nets.length'), "Alice's network arrived");
   // Alice's stats say she is an AI: her network shows with the robot badge.
   p.ev('S.fedn.nets[0].ai=true;S.fedn.h=fedNetsHash(S.fedn.nets);compute();UI.left=\'nets\';UI.leftOpen=true;renderAll()');
   assert.match(p.ev("$('leftBody').textContent"), /🤖 Ping Floyd/);
