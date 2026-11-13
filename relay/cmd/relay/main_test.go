@@ -362,6 +362,35 @@ func TestReleasesURLOverride(t *testing.T) {
 	}
 }
 
+// An identity or key may start with "-" (one in 64 does); found when `relay join -8_s… --from …` stopped at
+// "flag provided but not defined" in scripts/fed-e2e.js.
+func TestParseDashIdentity(t *testing.T) {
+	id := "-8_spjIs7Fckh259SdqD_hDVb8lCMOroqontVSyDwXU"
+	if !fed.IsID(id) {
+		t.Fatal("not an identity")
+	}
+	fs, dir := flags("join")
+	from := fs.String("from", "", "")
+	pos := parse(fs, []string{"--data", "d", id, "--from", "wss://a.example/fed"})
+	if len(pos) != 1 || pos[0] != id || *from != "wss://a.example/fed" || *dir != "d" {
+		t.Fatalf("join: %q from %q data %q", pos, *from, *dir)
+	}
+	fs, _ = flags("ops propose")
+	url := fs.String("url", "", "")
+	pos = parse(fs, []string{"propose", "--data", "d", "add-node", id, "--url", "wss://b.example/fed", id[1:] + "A"})
+	if strings.Join(pos, " ") != "propose add-node "+id+" "+id[1:]+"A" || *url != "wss://b.example/fed" {
+		t.Fatalf("ops: %q url %q", pos, *url)
+	}
+	// The value of a flag stays its value, even shaped like an identity; a bool flag takes none.
+	fs, _ = flags("genesis")
+	desc := fs.String("desc", "", "")
+	noLogs := fs.Bool("no-logs", true, "")
+	pos = parse(fs, []string{"--desc", id, "--no-logs", id})
+	if *desc != id || len(pos) != 1 || pos[0] != id || !*noLogs {
+		t.Fatalf("genesis: desc %q pos %q", *desc, pos)
+	}
+}
+
 // RELAY_TEST_ROOTS: a run's self-signed certificate is trusted for outgoing connections, and only given that file.
 func TestTestRootsClient(t *testing.T) {
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(204) }))

@@ -129,18 +129,54 @@ func flags(name string) (*flag.FlagSet, *string) {
 	return fs, fs.String("data", def, "data folder")
 }
 
-// parse lets flags come before or after positional arguments.
+// parse lets flags come before or after positional arguments. A server identity or key can
+// start with "-" (base64url): one standing where a positional argument may is never a flag.
 func parse(fs *flag.FlagSet, args []string) []string {
 	var pos []string
-	for {
-		_ = fs.Parse(args)
-		args = fs.Args()
-		if len(args) == 0 {
-			return pos
+	for len(args) > 0 {
+		cut := len(args)
+		for i := range args {
+			if dashID(fs, args, i) {
+				cut = i
+				break
+			}
 		}
-		pos = append(pos, args[0])
-		args = args[1:]
+		rest := args[:cut]
+		for len(rest) > 0 {
+			_ = fs.Parse(rest)
+			rest = fs.Args()
+			if len(rest) > 0 {
+				pos = append(pos, rest[0])
+				rest = rest[1:]
+			}
+		}
+		if cut < len(args) {
+			pos = append(pos, args[cut])
+			cut++
+		}
+		args = args[cut:]
 	}
+	return pos
+}
+
+// dashID: args[i] is an identity or key that starts with "-", and not the value of the flag before it.
+func dashID(fs *flag.FlagSet, args []string, i int) bool {
+	if !strings.HasPrefix(args[i], "-") || !fed.IsID(args[i]) {
+		return false
+	}
+	if i == 0 {
+		return true
+	}
+	p := args[i-1]
+	if !strings.HasPrefix(p, "-") || strings.Contains(p, "=") || p == "--" {
+		return true
+	}
+	f := fs.Lookup(strings.TrimLeft(p, "-"))
+	if f == nil {
+		return true
+	}
+	b, ok := f.Value.(interface{ IsBoolFlag() bool })
+	return ok && b.IsBoolFlag()
 }
 
 func cfgPath(dir string) string { return filepath.Join(dir, "config.json") }
