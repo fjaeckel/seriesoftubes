@@ -55,7 +55,7 @@ func cmdLan(args []string) error {
 	if err != nil {
 		return err
 	}
-	return serve(*dir, *logJSON, &lanServe{cert: cert, page: page})
+	return serve(*dir, serveOpts{logJSON: *logJSON, lan: &lanServe{cert: cert, page: page}})
 }
 
 // prepare makes or checks the data folder, founds the server, makes the certificate and prints

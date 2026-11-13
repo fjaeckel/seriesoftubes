@@ -13,6 +13,7 @@ import (
 	"io"
 	"log"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -50,6 +51,9 @@ Setting up:
   relay registry-file [--from FILE]                          print the file for the registry pull request, keeping
                                                              listed/answered from FILE (default: federation/servers/<id>.json)
   relay serve                                                run the relay
+  relay up                                                   init + genesis (or join) on the first start, then serve;
+                                                             settings from $RELAY_URL, $RELAY_NAME… (containers;
+                                                             docs/RELAY.md#relay-up)
   relay lan [--name NAME] [--port 8443]                      a LAN party server in one step: no domain, no internet
                                                              (self-signed certificate, docs/HOSTING.md#lan-party)
 
@@ -88,6 +92,8 @@ func main() {
 		err = cmdRegistryFile(args)
 	case "serve":
 		err = cmdServe(args)
+	case "up":
+		err = cmdUp(args)
 	case "lan":
 		err = cmdLan(args)
 	case "status", "servers", "players", "nodes":
@@ -228,11 +234,22 @@ func initData(dir, opKey string, cfg func(*config.Config)) (nk, op *fed.Signer, 
 	if err := c.Check(); err != nil {
 		return nil, nil, "", err
 	}
-	if nk, err = ops.NewKey(filepath.Join(dir, "node.key")); err != nil {
+	// Keys left by a setup that stopped before the config was written are kept, never replaced:
+	// operator.key may already be backed up (relay up resumes this way).
+	if nk, err = newOrLoadKey(filepath.Join(dir, "node.key")); err != nil {
 		return nil, nil, "", err
 	}
 	opPath = filepath.Join(dir, "operator.key")
-	if opKey != "" {
+	if _, err := os.Stat(opPath); err == nil {
+		if op, err = ops.LoadKey(opPath); err != nil {
+			return nil, nil, "", err
+		}
+		if opKey != "" {
+			if given, err := ops.LoadKey(opKey); err != nil || given.Key != op.Key {
+				return nil, nil, "", fmt.Errorf("%s already holds another operator key", opPath)
+			}
+		}
+	} else if opKey != "" {
 		if op, err = ops.LoadKey(opKey); err != nil {
 			return nil, nil, "", err
 		}
@@ -247,6 +264,13 @@ func initData(dir, opKey string, cfg func(*config.Config)) (nk, op *fed.Signer, 
 		return nil, nil, "", err
 	}
 	return nk, op, opPath, nil
+}
+
+func newOrLoadKey(path string) (*fed.Signer, error) {
+	if _, err := os.Stat(path); err == nil {
+		return ops.LoadKey(path)
+	}
+	return ops.NewKey(path)
 }
 
 func loadAll(dir string) (*config.Config, *fed.Signer, error) {
@@ -698,7 +722,7 @@ func cmdServe(args []string) error {
 	fs, dir := flags("serve")
 	logJSON := fs.Bool("log-json", false, "log as JSON lines")
 	parse(fs, args)
-	return serve(*dir, *logJSON, nil)
+	return serve(*dir, serveOpts{logJSON: *logJSON})
 }
 
 // lanServe is what relay lan adds to serve: its self-signed certificate and the page at /.
@@ -707,7 +731,25 @@ type lanServe struct {
 	page http.Handler
 }
 
-func serve(dir string, logJSON bool, lanOpt *lanServe) error {
+// serveOpts: what serve's callers add. Everything but logJSON is optional.
+type serveOpts struct {
+	logJSON bool
+	lan     *lanServe
+	log     *slog.Logger    // default: text (or JSON) on stderr
+	tls     *certs.Reloader // the certificate pair, already loaded (relay up waits for it)
+	stop    <-chan struct{} // closed: stop as on SIGTERM (tests)
+	ready   func(net.Addr)  // called once listening, with the address
+}
+
+func newLogger(w io.Writer, logJSON bool) *slog.Logger {
+	if logJSON {
+		return slog.New(slog.NewJSONHandler(w, nil))
+	}
+	return slog.New(slog.NewTextHandler(w, nil))
+}
+
+func serve(dir string, so serveOpts) error {
+	lanOpt := so.lan
 	c, nk, err := loadAll(dir)
 	if err != nil {
 		return err
@@ -720,11 +762,10 @@ func serve(dir string, logJSON bool, lanOpt *lanServe) error {
 	if ops.Running(dir) {
 		return errors.New("a relay is already serving this data folder")
 	}
-	var h slog.Handler = slog.NewTextHandler(os.Stderr, nil)
-	if logJSON {
-		h = slog.NewJSONHandler(os.Stderr, nil)
+	logger := so.log
+	if logger == nil {
+		logger = newLogger(os.Stderr, so.logJSON)
 	}
-	logger := slog.New(h)
 	if w := c.ProxyWarning(); w != "" {
 		logger.Warn(w)
 	}
@@ -788,20 +829,26 @@ func serve(dir string, logJSON bool, lanOpt *lanServe) error {
 		srv.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12, Certificates: []tls.Certificate{*lanOpt.cert}}
 	case c.TLSCert != "":
 		// Reread when the files change (a Let's Encrypt renewal), so no restart is needed.
-		rl, err := certs.NewReloader(c.TLSCert, c.TLSKey, logger)
-		if err != nil {
-			return fmt.Errorf("TLS certificate: %w", err)
+		rl := so.tls
+		if rl == nil {
+			if rl, err = certs.NewReloader(c.TLSCert, c.TLSKey, logger); err != nil {
+				return fmt.Errorf("TLS certificate: %w", err)
+			}
 		}
 		srv.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12, GetCertificate: rl.GetCertificate}
 		logger.Info("TLS certificate loaded", "notAfter", rl.NotAfter().UTC().Format(time.RFC3339))
+	}
+	ln, err := net.Listen("tcp", c.Listen)
+	if err != nil {
+		return err
 	}
 	errc := make(chan error, 2)
 	go func() {
 		var err error
 		if srv.TLSConfig != nil {
-			err = srv.ListenAndServeTLS("", "")
+			err = srv.ServeTLS(ln, "", "")
 		} else {
-			err = srv.ListenAndServe()
+			err = srv.Serve(ln)
 		}
 		errc <- err
 	}()
@@ -813,10 +860,17 @@ func serve(dir string, logJSON bool, lanOpt *lanServe) error {
 		go func() { errc <- msrv.ListenAndServe() }()
 	}
 	logger.Info("relay serving", "version", version, "server", c.Server, "node", nk.Key, "listen", c.Listen)
+	if so.ready != nil {
+		so.ready(ln.Addr())
+	}
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(sig)
 	for {
 		select {
+		case <-so.stop: // nil: never
+			so.stop = nil
+			sig <- syscall.SIGTERM
 		case err := <-errc:
 			if !errors.Is(err, http.ErrServerClosed) {
 				return err

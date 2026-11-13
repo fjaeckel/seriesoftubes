@@ -1,5 +1,6 @@
 # The Series of Tubes relay: a static binary in an otherwise empty image.
 # Build context is relay/:  docker build --build-arg VERSION=x.y.z -f relay/Dockerfile relay
+# (or relay/docker-compose.yml: docker compose up -d --build, docs/HOSTING.md)
 FROM --platform=$BUILDPLATFORM golang:1.27.4 AS build
 ARG TARGETOS
 ARG TARGETARCH
@@ -25,4 +26,6 @@ ENV RELAY_DATA=/data RELAY_LISTEN=0.0.0.0:8080 RELAY_METRICS=0.0.0.0:9100 RELAY_
 VOLUME ["/data"]
 EXPOSE 8080 9100
 ENTRYPOINT ["/relay"]
-CMD ["serve"]
+# up: on a data folder without a node, init and genesis (or join) from $RELAY_URL, $RELAY_NAME…; then serve.
+# On a folder that already holds a server it just serves, as `serve` did (docs/RELAY.md, relay up).
+CMD ["up"]
