@@ -588,9 +588,16 @@ func (r *Relay) reconcileLocked() {
 				}
 			}
 		}
-		if len(r.auto) > 0 && r.autoDialer() {
+		dialer := r.autoDialer()
+		for p := range r.quiet {
+			// Counted afresh when a peer comes back, or when this node takes over from a sibling.
+			if !r.auto[p] || !dialer {
+				delete(r.quiet, p)
+			}
+		}
+		if len(r.auto) > 0 && dialer {
 			for p := range r.auto {
-				if registry.Dials(r.own.ID, p) {
+				if registry.Dials(r.own.ID, p) || r.fallback(p) {
 					want[autoPrefix+p] = true
 				}
 			}

@@ -127,6 +127,10 @@ at that sandbox method.
   every registry install; automatic peers have their own room beside `maxNodes`. `relay/internal/registry/auto.go`,
   `relay/internal/node/auto.go`, vectors `federation/vectors/autosync/`, `relay status` `auto`, config `autoSync:
   false` opt-out, `relayload --mesh registry`; fed-e2e's two servers have no neighbours configured.
+- **New servers live at once, higher side dials as a fallback** (Frederic, 2026-11-13): for auto-sync only, `last` =
+  `answered`, else `listed`, else `asOf` (unstamped = merged since the weekly run, its PR passed the live check); voters
+  unchanged (both stamps, 30 days); the higher identity dials after 900 s without a session (`fed.AutoFallback`,
+  `node.fallback`), vectors `autosync/002`, `shun/021`.
 - **Relay versions and update notices:** `welcome`/node `hello` carry `impl`, catalog entries an `impl` list; the site
   build writes `federation/relay.json` (security via package.json `relaySecurity`); relays read it beside the
   registry and tell operators (log, `relay status`, metrics, `update` frame, opt-in `notifyURL`); the looking glass

@@ -78,6 +78,7 @@ type Relay struct {
 	refused map[string]bool                 // ids refused from nodes (not wanted again)
 	lastSyn map[string]int64                // peer node key -> start of the last session
 	auto    map[string]bool                 // this server's automatic peers (10.9), nil when none
+	quiet   map[string]int64                // automatic peer this node does not dial -> since when it has had no session with it
 	urlSrv  map[string]string               // node URL dialled -> the server that answered there
 
 	reports map[string]map[string]*store.Entry // reporter -> target -> its stored report (5.10)

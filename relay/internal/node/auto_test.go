@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/config"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 	rt "github.com/fjaeckel/seriesoftubes/relay/internal/relaytest"
 )
 
@@ -268,4 +269,102 @@ func otherNode(s *rt.Server, x *rt.Node) *rt.Node {
 		}
 	}
 	return nil
+}
+
+// lowHigh orders two servers by identity (byte order).
+func lowHigh(a, b *rt.Server) (lo, hi *rt.Server) {
+	if b.ID < a.ID {
+		return b, a
+	}
+	return a, b
+}
+
+func setAutoSync(s *rt.Server, on bool) {
+	for _, x := range s.Nodes {
+		c := *x.Cfg
+		c.AutoSync = &on
+		x.Cfg = &c
+		x.R.Reload(&c)
+	}
+}
+
+// grace is fed.AutoFallback as a duration.
+const grace = fed.AutoFallback * time.Second
+
+// The lower server never dials (autoSync off here; an older relay in the wild): after fed.AutoFallback
+// seconds without a session, by the relay's clock, the higher one dials, and keeps that one session.
+func TestAutoFallbackDial(t *testing.T) {
+	n := rt.New(t)
+	lo, hi := lowHigh(n.Found("fall-a", "open"), n.Found("fall-b", "open"))
+	setAutoSync(lo, false)
+	rt.SetRegistry(t, n.Snapshot([]*rt.Server{lo, hi}), lo, hi)
+	time.Sleep(600 * time.Millisecond)
+	if k, _ := sessions(hi, lo.ID); k != 0 {
+		t.Fatal("the higher server dialled at once")
+	}
+	if p := autoOf(hi.Nodes[0])[lo.ID]; p == nil || p["dials"] != "peer" {
+		t.Fatalf("the higher server's status before the grace: %v", p)
+	}
+	n.Clock.Add(grace - time.Minute)
+	time.Sleep(600 * time.Millisecond)
+	if k, _ := sessions(hi, lo.ID); k != 0 {
+		t.Fatal("the higher server dialled before the grace")
+	}
+	n.Clock.Add(2 * time.Minute)
+	check := func() bool {
+		n1, d1 := sessions(hi, lo.ID)
+		n2, d2 := sessions(lo, hi.ID)
+		return n1 == 1 && d1 == 1 && n2 == 1 && d2 == 0
+	}
+	rt.Eventually(t, "the higher server dials after the grace", check)
+	if p := autoOf(hi.Nodes[0])[lo.ID]; p["dials"] != "this node (fallback)" || p["up"] != true {
+		t.Fatalf("the higher server's status: %v", p)
+	}
+	time.Sleep(600 * time.Millisecond)
+	if !check() {
+		t.Fatal("the fallback session did not stay")
+	}
+	fromLo := announce(t, lo, "low")
+	rt.Eventually(t, "records cross on the fallback session", func() bool { return hi.Nodes[0].Has(fromLo) })
+}
+
+// Both sides dial at about the same moment (the lower one is back just as the grace runs out): one
+// session per pair remains.
+func TestAutoFallbackBothDial(t *testing.T) {
+	n := rt.New(t)
+	lo, hi := lowHigh(n.Found("both-a", "open"), n.Found("both-b", "open"))
+	setAutoSync(lo, false)
+	rt.SetRegistry(t, n.Snapshot([]*rt.Server{lo, hi}), lo, hi)
+	time.Sleep(400 * time.Millisecond)
+	n.Clock.Add(grace + time.Minute)
+	setAutoSync(lo, true)
+	check := func() bool {
+		n1, d1 := sessions(hi, lo.ID)
+		n2, d2 := sessions(lo, hi.ID)
+		return n1 == 1 && n2 == 1 && d1+d2 == 1
+	}
+	rt.Eventually(t, "one session between the two", check)
+	for range 4 {
+		time.Sleep(300 * time.Millisecond)
+		if !check() {
+			n1, d1 := sessions(hi, lo.ID)
+			n2, d2 := sessions(lo, hi.ID)
+			t.Fatalf("not one session: higher %d (%d dialled), lower %d (%d dialled)", n1, d1, n2, d2)
+		}
+	}
+}
+
+// A normal pair: the lower server dials within the grace, and the higher one never does, however
+// long the session lasts.
+func TestAutoFallbackNotNeeded(t *testing.T) {
+	n := rt.New(t)
+	lo, hi := lowHigh(n.Found("calm-a", "open"), n.Found("calm-b", "open"))
+	rt.SetRegistry(t, n.Snapshot([]*rt.Server{lo, hi}), lo, hi)
+	onePair(t, lo, hi)
+	n.Clock.Add(3 * grace)
+	time.Sleep(600 * time.Millisecond)
+	onePair(t, lo, hi)
+	if p := autoOf(hi.Nodes[0])[lo.ID]; p["dials"] != "peer" {
+		t.Fatalf("the higher server's status: %v", p)
+	}
 }

@@ -1120,9 +1120,13 @@ record, signed like any other.
 there, with no configuration:
 
 1. **Eligible.** From the registry snapshot (`servers.json`, 11.3), the servers whose server record has `sync: "open"`
-   and that are live: `answered >= asOf - 1209600` (the voters' window of 10.7, against the snapshot's `asOf`). A
-   server without `answered` (merged since the last weekly run) is not eligible yet. `E` is their identities, sorted
-   in byte order, `n = |E|`.
+   and that are **live**: `last >= asOf - 1209600` (the 14 days of 10.7, against the snapshot's `asOf`), where `last`
+   is `answered`; for a server that has never answered, `listed`; for one with neither stamp, `asOf`. A server without
+   stamps was merged since the last weekly run, and its listing pull request passed the live challenge (11.2 step 9),
+   so it takes part as soon as relays read the snapshot that lists it. A server that never answered the weekly job
+   stays live 14 days from `listed`, the same days after which that job removes it (11.3). This is liveness for
+   automatic sync only: voters (10.7) still need both stamps, `listed` 30 days back and `answered` within 14 days, so a
+   new server never votes early. `E` is their identities, sorted in byte order, `n = |E|`.
 2. **Who takes part.** A server whose identity is in `E` and whose own current policy is `open` syncs automatically
    with its **peers** in `E` (below). Selective and standalone servers, servers not in the registry and servers that are
    not live take no part (they still sync with the neighbours their operators configure, as the policies allow).
@@ -1137,6 +1141,12 @@ there, with no configuration:
    `open` policy allows it). A server with several nodes dials from one of them; which one is up to the implementation
    (the reference relay: the node with the lowest key among those up), and it dials one node of the peer, going on to
    the peer's next node (from the registry) when one does not answer.
+   **Fallback.** The higher identity dials too when the pair has had no session for 900 s (15 minutes), counted by the
+   higher server (the node that would dial) from when the peer became one of its peers, or from the end of the last
+   session with it; this covers a lower server that does not dial (an older relay, or one whose operators turned
+   automatic dialling off). It keeps that session while it lasts, retries with the backoff of any dial, and stops
+   dialling once a session with the peer is up that it did not dial; when a session ends, the 900 s start again. If
+   both sides end up dialling, the rule below keeps one session.
 5. **Classes.** Every class both ways (`players`, `catalog`, `advice`; `shun` and `unshun` always travel), unless the
    operators configured that server's nodes as neighbours: then the configured classes hold on the one session,
    whichever side dialled.
@@ -1298,8 +1308,9 @@ of the object below followed by one `\n`:
 relay and every game with the same file gets the same voters.
 
 The weekly CI job (`federation-liveness.yml`) challenges every node, sets `listed` on files that have none, updates
-`answered`, and removes files not answered for 14 days, in one pull request. It is the only change to the stamps, so
-step 8 of 11.2 does not apply to it.
+`answered`, and removes files not answered for 14 days (counted from `listed` for a file that never answered), in one
+pull request. It is the only change to the stamps, so step 8 of 11.2 does not apply to it. A file merged since its
+last run has no stamps; it is listed in `servers.json` all the same and is live for automatic sync (10.9) at once.
 
 ### 11.4 `relay.json`: the update feed
 
@@ -1443,6 +1454,7 @@ of 9.3 and an optional webhook; see docs/RELAY.md). It never tells anyone else.
 | Catalog entry (canonical JSON) | 61440 bytes |
 | Gossip path | 16 |
 | Automatic sync peers of one server (10.9, `cap`) | 64 |
+| Automatic sync: the higher identity dials after, without a session (10.9) | 900 s (15 minutes) |
 | `impl` items in a catalog entry; `impl` name and version | 16; 40 characters each |
 | `relay.json` | 4096 bytes |
 | GitHub latest-release answer (11.4) | 262144 bytes |

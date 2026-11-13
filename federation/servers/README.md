@@ -53,6 +53,15 @@ A failing check prints the file, the step and the error code (for example `no_ma
 again, and CI reruns. Passing CI proves the file is genuine and the server reachable; a maintainer merging it says it
 belongs on the list.
 
+## After your pull request is merged
+
+The next site build publishes your server in `federation/servers.json`. Players see it in their server list, and if
+your server is `open`, the other open servers' relays start syncing with yours at their next registry refresh (within
+6 hours): the check on your pull request counts as your first answer, so you do not wait for the weekly job. Of each
+pair the server whose identity sorts first dials; if that one runs an older relay that does not, yours dials it after
+15 minutes. The first weekly run then stamps `listed` (and `answered` if a node answers); a server that never answers
+it is removed 14 days later. Votes on shuns count only from servers listed for 30 days.
+
 ## Changing a listing
 
 Any operator runs `relay registry-file` again after the change (new node, new operator, new description, new sync

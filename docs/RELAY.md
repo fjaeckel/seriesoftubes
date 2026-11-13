@@ -309,14 +309,20 @@ Syncing is mutual: two servers sync only when **both** policies allow it. Change
 with every other open server in the registry that answered the weekly check in the last 14 days: your relay reads
 them from `servers.json` at start and on every refresh (every 6 hours), connects to the new ones and drops the ones that
 left, went quiet or changed their policy. Of each two servers the one whose identity sorts first dials, so there is one
-session between them, not two. With many servers (more than 65) each server syncs with at most 64 others, picked the
+session between them, not two. If it never does (an older relay without automatic sync, or `autoSync: false`), the
+other one dials after 15 minutes without a session, and again 15 minutes after each session ends; if both dial at
+once, one session is kept. With many servers (more than 65) each server syncs with at most 64 others, picked the
 same way by every relay so that any server is at most a few hops from any other. A server with several nodes dials
 from one of them (the node with the lowest key among those up; if it stops, the next one takes over within seconds) to
-one node of the other server (the next one when that does not answer). A new server takes part once the weekly job
-has stamped it (`answered`), at most a week after its pull request is merged.
+one node of the other server (the next one when that does not answer). A new server takes part as soon as its pull
+request is merged and the site is rebuilt: the check on that pull request already proved a node answers, so the other
+relays pick it up at their next registry refresh (within 6 hours, or at once on restart). From then on the weekly job
+keeps it: a server that never answers it drops out 14 days after it was first stamped. Being live this way is only
+about syncing: a server votes on shuns only after 30 days in the registry.
 
 `relay status` shows it: `auto` lists your automatic peers with their name, who dials (`this node`, `sibling` for
-another node of your server, `peer` when the other server dials you) and whether the session is `up`; each entry of
+another node of your server, `peer` when the other server dials you, `this node (fallback)` when it did not for 15
+minutes and your node dials it instead) and whether the session is `up`; each entry of
 `peers` says whether it is `auto` and whether this node `dialled` it.
 
 **Neighbours** (`neighbours` in the config) are for everything else: servers not in the registry (a friend's, a LAN

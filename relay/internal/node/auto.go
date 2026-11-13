@@ -11,7 +11,9 @@ import (
 
 // Automatic sync among registry servers (10.9 "Who connects"): an open server in the registry
 // snapshot syncs with every other open, live one (or, past fed.AutoPeers, with its neighbours in
-// a graph every server computes alike). Of each pair the lower identity dials.
+// a graph every server computes alike). Of each pair the lower identity dials; the higher one dials
+// too when the pair has had no session for fed.AutoFallback seconds (a lower server whose relay
+// does not dial, an older one or one with autoSync off), and one-session-per-pair keeps one.
 
 // autoCap is fed.AutoPeers; a var for tests.
 var autoCap = fed.AutoPeers
@@ -49,6 +51,33 @@ func (r *Relay) autoDialer() bool {
 		}
 	}
 	return true
+}
+
+// fallback reports whether this node, the higher identity of the pair, dials the automatic peer p
+// (lock held, called on every reconcile): once it has had no session with p for fed.AutoFallback
+// seconds by the relay's clock, counted from when p became its peer or the last session with p
+// ended, and for as long as the session it dialled that way is up. When the peer dials in, the
+// dialer stops (dedupe keeps the session the lower identity dialled, if both are up at once).
+func (r *Relay) fallback(p string) bool {
+	key := autoPrefix + p
+	if r.hasPeer(p) {
+		delete(r.quiet, p)
+		for s := range r.nodes {
+			if s.dialer == key && s.verified && s.peerServer == p {
+				return true
+			}
+		}
+		return false
+	}
+	if r.quiet == nil {
+		r.quiet = map[string]int64{}
+	}
+	since, ok := r.quiet[p]
+	if !ok {
+		r.quiet[p] = r.now()
+		return false
+	}
+	return r.now()-since >= fed.AutoFallback
 }
 
 // autoURLs are the node URLs of a server, sorted by node key (lock taken): an automatic dialer
@@ -126,7 +155,8 @@ func (r *Relay) dedupe(s *session) bool {
 }
 
 // AutoStatus is what `relay status` shows of the automatic peers (lock held): each one, whether
-// this node dials it (else it waits for the peer, or a sibling node dials), and whether a session is up.
+// this node dials it (else it waits for the peer, or a sibling node dials; "this node (fallback)"
+// when the peer has not dialled for fed.AutoFallback seconds), and whether a session is up.
 func (r *Relay) autoStatus() []map[string]any {
 	out := []map[string]any{}
 	dialer := r.own != nil && r.autoDialer()
@@ -136,6 +166,9 @@ func (r *Relay) autoStatus() []map[string]any {
 			name = e.Name()
 		}
 		by := "peer"
+		if _, ok := r.dialers[autoPrefix+id]; ok && dialer && !registry.Dials(r.own.ID, id) {
+			by = "this node (fallback)"
+		}
 		if registry.Dials(r.own.ID, id) {
 			by = "sibling"
 			if dialer {

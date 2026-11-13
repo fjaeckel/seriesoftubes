@@ -68,6 +68,6 @@ Files are numbered (`001-…`) only to keep a stable order; the number means not
 | `deals` | 10.10 | `announces` (summaries `{id, kind, key, t, body: {rates, auto}}`), `offer`, optional `accept` (`{t}`), optional `renews` (the running deal) | `{ok: true, auto, start, end}` or `{ok: false, error}` |
 | `majority` | 8.1 | cases: `operators`, `signers` (counts) | `majority` |
 | `sync` | 9.2, 10.9 | cases: policies (`same`, `a`, `b`), or versions (`a`, `b` as `vers` lists) | `sync`, or `ver` or `error` |
-| `autosync` | 10.9 | cases: `asOf`, `cap`, `self`, `servers` (`[{id, sync, answered?}]`, as in the registry snapshot) | `eligible` (sorted ids), `peers` (`self`'s automatic peers, sorted), `dials` (those `self` dials) |
+| `autosync` | 10.9 | cases: `asOf`, `cap`, `self`, `servers` (`[{id, sync, listed?, answered?}]`, as in the registry snapshot) | `eligible` (sorted ids), `peers` (`self`'s automatic peers, sorted), `dials` (those `self` dials; the fallback dial after 900 s is not part of the vectors) |
 | `wire` | 9.1–9.3 | cases: `role`, `speaks` (the node's versions), `state` (`new` or `ready`), `frame` (text) | `{ok: true}` when the node accepts the frame (any record inside is then checked as in `records`), or `{error}` |
 | `impl` | 9.3, 9.4, 10.8 | cases: `welcome` (one `impl` value), or `entry` (a catalog entry's `impl` list) with `nodes` (the server's node keys) | `impl`: `{name, version}` or null for `welcome`; node key → `{name, version}` for `entry` (malformed parts left out, never an error) |
