@@ -3,6 +3,9 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"encoding/pem"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -356,5 +359,41 @@ func TestReleasesURLOverride(t *testing.T) {
 		if testReleasesURL(u) != ok {
 			t.Errorf("%s: %v", u, !ok)
 		}
+	}
+}
+
+// RELAY_TEST_ROOTS: a run's self-signed certificate is trusted for outgoing connections, and only given that file.
+func TestTestRootsClient(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(204) }))
+	defer srv.Close()
+	if _, err := http.DefaultClient.Get(srv.URL); err == nil {
+		t.Fatal("the default client trusted a self-signed certificate")
+	}
+	dir := t.TempDir()
+	f := filepath.Join(dir, "roots.pem")
+	if err := os.WriteFile(f, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: srv.Certificate().Raw}), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	hc, err := testRootsClient(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := hc.Get(srv.URL)
+	if err != nil {
+		t.Fatalf("with the file: %v", err)
+	}
+	res.Body.Close()
+	if res.StatusCode != 204 {
+		t.Fatalf("status %d", res.StatusCode)
+	}
+	bad := filepath.Join(dir, "none.pem")
+	if err := os.WriteFile(bad, []byte("not a certificate"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := testRootsClient(bad); err == nil {
+		t.Fatal("a file without certificates was taken")
+	}
+	if _, err := testRootsClient(filepath.Join(dir, "missing.pem")); err == nil {
+		t.Fatal("a missing file was taken")
 	}
 }

@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -709,6 +710,15 @@ func serve(dir string, logJSON bool, lanOpt *lanServe) error {
 		}
 		o.ReleasesURL = u
 	}
+	// For end-to-end tests only: other nodes of the run serve a self-signed certificate.
+	if p := os.Getenv("RELAY_TEST_ROOTS"); p != "" {
+		hc, err := testRootsClient(p)
+		if err != nil {
+			return fmt.Errorf("RELAY_TEST_ROOTS: %w", err)
+		}
+		o.HTTPClient = hc
+		logger.Warn("RELAY_TEST_ROOTS: also trusting the certificates in that file for outgoing connections (for tests only)")
+	}
 	if countries != nil {
 		o.Countries = countries
 	}
@@ -889,6 +899,24 @@ func cmdBuild(args []string) error {
 		return err
 	}
 	return os.WriteFile(pos[1], b, 0o644)
+}
+
+// testRootsClient trusts the PEM certificates in path, besides the system's, for outgoing https and wss.
+func testRootsClient(path string) (*http.Client, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	pool, err := x509.SystemCertPool()
+	if err != nil || pool == nil {
+		pool = x509.NewCertPool()
+	}
+	if !pool.AppendCertsFromPEM(b) {
+		return nil, fmt.Errorf("no PEM certificate in %s", path)
+	}
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	t.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: pool}
+	return &http.Client{Transport: t, Timeout: 0}, nil
 }
 
 // testReleasesURL accepts a stand-in for GitHub's releases API: https://, or http:// on loopback.
