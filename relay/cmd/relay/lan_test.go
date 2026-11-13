@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"net/netip"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -96,5 +97,35 @@ func TestLanPrepare(t *testing.T) {
 	s.dir = other
 	if _, _, err := s.prepare(&out); err == nil || !strings.Contains(err.Error(), "not a LAN server") {
 		t.Fatalf("took over another relay's folder: %v", err)
+	}
+}
+
+// relay init as the container image runs it: listen, metrics and the proxy network from flags or
+// the image's environment; nothing is written when a setting is refused.
+func TestInitFlags(t *testing.T) {
+	dir := filepath.Join(rt.Dir(t), "d")
+	t.Setenv("RELAY_LISTEN", "0.0.0.0:8080")
+	t.Setenv("RELAY_METRICS", "0.0.0.0:9100")
+	t.Setenv("RELAY_METRICS_PUBLIC", "true")
+	if err := cmdInit([]string{"--data", dir, "--url", "wss://relay.example.net/fed", "--trusted-proxies", "172.30.0.0/24"}); err != nil {
+		t.Fatal(err)
+	}
+	c, err := config.Load(cfgPath(dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Listen != "0.0.0.0:8080" || c.Metrics != "0.0.0.0:9100" || !c.MetricsPublic || !contains(c.TrustedProxies, "172.30.0.0/24") || !contains(c.TrustedProxies, "127.0.0.0/8") {
+		t.Fatalf("config %+v", c)
+	}
+	bad := filepath.Join(rt.Dir(t), "bad")
+	t.Setenv("RELAY_METRICS_PUBLIC", "")
+	if err := cmdInit([]string{"--data", bad}); err == nil {
+		t.Fatal("metrics on 0.0.0.0 without the opt-in accepted")
+	}
+	if _, err := os.Stat(filepath.Join(bad, "node.key")); err == nil {
+		t.Fatal("keys made for a refused config")
+	}
+	if err := cmdInit([]string{"--data", bad, "--metrics", "127.0.0.1:9100", "--tls-cert", "/certs/fullchain.pem"}); err == nil {
+		t.Fatal("a certificate without its key accepted")
 	}
 }

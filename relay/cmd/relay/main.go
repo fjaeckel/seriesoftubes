@@ -41,7 +41,8 @@ const usage = `relay: the Series of Tubes federation relay (docs/RELAY.md)
 
 Setting up:
   relay init [--operator-key FILE] [--url wss://host/path]   make the data folder, node key, operator key, config
-             [--listen ADDR] [--tls-cert F --tls-key F] [--metrics ADDR [--metrics-public]]
+             [--listen ADDR] [--trusted-proxies CIDR,…] [--tls-cert F --tls-key F]
+             [--metrics ADDR [--metrics-public]]
   relay genesis --name NAME [--sync open] [--langs en,de] [--desc TEXT]   found a new server
   relay join SERVER --from wss://existing-node/path          prepare this node for an existing server
   relay registry-file [--from FILE]                          print the file for the registry pull request, keeping
@@ -151,6 +152,7 @@ func cmdInit(args []string) error {
 	metricsPublic := fs.Bool("metrics-public", os.Getenv("RELAY_METRICS_PUBLIC") == "true", "allow /metrics beyond localhost, for a Prometheus in another container (default $RELAY_METRICS_PUBLIC)")
 	tlsCert := fs.String("tls-cert", "", "serve TLS itself with this certificate chain (PEM; reread when it changes)")
 	tlsKey := fs.String("tls-key", "", "and this private key (PEM)")
+	proxies := fs.String("trusted-proxies", "", "networks your proxy connects from, comma separated, trusted besides loopback (a Docker network: 172.30.0.0/24)")
 	parse(fs, args)
 	if (*tlsCert == "") != (*tlsKey == "") {
 		return errors.New("give both --tls-cert and --tls-key, or neither")
@@ -158,6 +160,7 @@ func cmdInit(args []string) error {
 	nk, op, opPath, err := initData(*dir, *opKey, func(c *config.Config) {
 		c.Listen, c.URL, c.Metrics, c.MetricsPublic = *listen, *url, *metricsAddr, *metricsPublic
 		c.TLSCert, c.TLSKey = *tlsCert, *tlsKey
+		c.TrustedProxies = append(c.TrustedProxies, splitList(*proxies)...)
 	})
 	if err != nil {
 		return err
