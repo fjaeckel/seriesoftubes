@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- A flood now goes to your nearest scrubbing center first, and only what it cannot clean spills to the next nearest. Floods used to be shared between all your centers by size, so even with a center in the same city, part of every attack crossed the ocean and back and annoyed your DDoS protection customers (#345).
+
 ## [3.5.0] — 2026-11-11
 
 - Alien waves you list on a fiber yourself now stay listed. With the capacity market selling for you, the broker used to cut your listing down to what its settings allowed the next day, or take it off altogether when the route's demand was below your minimum. Your own listing now stays put, and the broker adds what its settings allow on top (#340).
