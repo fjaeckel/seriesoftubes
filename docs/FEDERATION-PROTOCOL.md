@@ -685,7 +685,7 @@ it is neither answered nor a reason to close, so an older game keeps working wit
 | --- | --- | --- | --- |
 | `hello` | client → node | `vers`, `role: "client"` | `welcome` |
 | `welcome` | node → client | `ver` (chosen), `server` (Id), `node` (Key), `now`, `impl` (optional, below) | |
-| `update` | node → client | `version`, `security` (Bool), `source` (`feed` or `gossip`), `notes` (optional, an `https://` URL); no `id` | Only to a session that proved an operator key of the node's server: a newer relay is out (below) |
+| `update` | node → client | `version`, `security` (Bool), `source` (`feed` or `github`), `notes` (optional, an `https://` URL); no `id` | Only to a session that proved an operator key of the node's server: a newer relay is out (below) |
 | `auth` | client → node | `id`, `key` (Key), `t` (unix seconds), `sig` (Sig) | `ack` with `op`, or `err` (`bad_key`, `bad_sig`, `too_old`, `too_new`, `too_many`): proves the session holds `key` (below) |
 | `challenge` | client → node | `id`, `nonce` | `proof` `{m, id, proof}`, a proof envelope (6.2) |
 | `put` | client → node | `id`, `rec` (a record) | `ack` or `err` |
@@ -754,7 +754,7 @@ it is neither answered nor a reason to close, so an older game keeps working wit
   (`auth`) a current operator key of its server, right after the `ack` of that `auth` and again whenever what it knows
   changes; other sessions never get it and are not told. `version` is the newer version; `security` is true when the
   newer release, or one between, fixes a security issue in the relay; `source` is `feed` (the site's `relay.json`,
-  section 11.4) or `gossip` (versions that other servers' catalog entries report, 10.8; never `security`); `notes`,
+  section 11.4) or `github` (GitHub's latest release, read when `relay.json` cannot be, 11.4; never `security`); `notes`,
   when present, is the release notes' `https://` URL. A game shows it in the operator panel, keeping `notes` only when
   it is an `https://` URL; a malformed `update` is ignored.
 - **Operator actions** in the game are `put` of operator-signed records (`hide`, `shun`, `unshun`, `operators`,
@@ -1043,7 +1043,7 @@ and `path` it came with: a server passing the entry on forwards the `impl` of th
 an entry for its `seen` (below) it keeps that entry's `impl`. A receiver reads it leniently: a value that is not a list
 or has more than 16 items is ignored, and so is an item for a key that is not one of the server's nodes or with a
 malformed `name` or `version`; none of that refuses the entry. It is for display (a looking glass shows the version per
-node) and for the update hint of 11.4; it never counts for anything else. It is not part of the size check of step 1.
+node); it never counts for anything else, update hints included (11.4). It is not part of the size check of step 1.
 
 Receiving an entry from a neighbour, a server with identity `self`:
 
@@ -1261,9 +1261,18 @@ running version `own`:
 1. does nothing when `own` is not a semantic version (a development build);
 2. is behind when `version > own` (semver precedence, build metadata ignored); the update is a security one when
    `security` is true or `own < minSafe`;
-3. without any `relay.json` read, is behind when at least two other servers' catalog entries (10.8, not expired)
-   report a `tubes-relay` version newer than `own`; the newest such version is the hint, `source: "gossip"`, never a
-   security one.
+3. when `relay.json` cannot be read, asks GitHub's REST API for the project's latest release
+   (`GET https://api.github.com/repos/fjaeckel/seriesoftubes/releases/latest`, unauthenticated, `Accept:
+   application/vnd.github+json`, a `User-Agent` of `tubes-relay/<own>` and nothing else about the relay; at most
+   256 KiB read, a short timeout) on the same schedule. `tag_name` with a leading `v` dropped must be a semantic
+   version, else the answer is ignored, and so are drafts and pre-releases; `html_url` is the notes only when it is an
+   `https://` page on `github.com`. It is behind when that version `> own`, `source: "github"`, never a security
+   one (only `relay.json` says that). A 403 or 429 means waiting as long as `Retry-After`, or an exhausted
+   rate limit's reset, asks, and at least 6 hours, doubling up to 48 hours while it repeats; the last release read is
+   kept through failures. The last `relay.json` read stands unless GitHub has a newer release, and a `relay.json`
+   read again replaces what GitHub said.
+
+Versions other servers report (`impl`, 10.8 and 9.4) are shown and never give a hint, however many report one.
 
 How a relay tells its operators is up to it (the reference relay: its log, `relay status`, metrics, the `update` frame
 of 9.3 and an optional webhook; see docs/RELAY.md). It never tells anyone else.
@@ -1360,6 +1369,7 @@ of 9.3 and an optional webhook; see docs/RELAY.md). It never tells anyone else.
 | Gossip path | 16 |
 | `impl` items in a catalog entry; `impl` name and version | 16; 40 characters each |
 | `relay.json` | 4096 bytes |
+| GitHub latest-release answer (11.4) | 262144 bytes |
 | `fetch` ids, `recs` and `push` items | 256 |
 | `inv` and `want` ids | 4096 |
 | Names, descriptions, AI model and harness | 40, 280, 64, 64 code points |

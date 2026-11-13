@@ -2,22 +2,28 @@ package node
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
-	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/store"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/update"
 )
 
-// Update notices (docs/RELAY.md): relay.json beside the registry, read on the registry's schedule;
-// gossip from other servers when it cannot be had. Operators hear of it in the log, the metrics,
-// `relay status`, an `update` frame to their game sessions and, when configured, one POST.
+// Update notices (docs/RELAY.md): versions come from GitHub. relay.json beside the registry, read
+// on the registry's schedule; when it cannot be read, the latest release from GitHub's API. What
+// other servers' nodes run (gossip) is only ever shown, never a hint. Operators hear of it in the
+// log, the metrics, `relay status`, an `update` frame to their game sessions and, when
+// configured, one POST.
 
 // updState is what this node knows of newer relays (guarded by r.mu).
 type updState struct {
 	feed     *update.Feed // the last relay.json that read well (memory only)
+	gh       *update.Feed // the last GitHub release read while relay.json could not be (memory only)
+	ghNext   int64        // GitHub is not asked again before this (after a 403 or 429)
+	ghBack   int64        // the current back-off after a 403 or 429, seconds
 	hint     *update.Hint // the update this node should get, nil when none
 	warned   int64        // when the log last said so
 	notified string       // the version notifyURL was told of (kept in update.json)
@@ -26,6 +32,10 @@ type updState struct {
 
 // warnEvery: the log says it at start and then at most once a day.
 const warnEvery = 86400
+
+// ghBackMin is the first back-off after GitHub limits this relay without saying for how long;
+// it doubles up to update.MaxWait.
+const ghBackMin = 6 * 3600
 
 // version is what this node runs ("dev" for a build without one).
 func (r *Relay) version() string {
@@ -54,11 +64,13 @@ func (r *Relay) loadUpdateState() {
 	}
 }
 
-// checkUpdate reads relay.json beside the registry and works out the hint again.
+// checkUpdate reads relay.json beside the registry, or GitHub's latest release when that cannot
+// be read, and works out the hint again.
 func (r *Relay) checkUpdate() {
 	r.mu.Lock()
 	src := update.URLBeside(r.cfg.Registry)
 	r.mu.Unlock()
+	read := false
 	if src != "" {
 		var b []byte
 		var err error
@@ -74,50 +86,71 @@ func (r *Relay) checkUpdate() {
 		if err != nil {
 			r.o.Log.Info("update feed: not read", "err", err)
 		} else {
+			read = true
 			r.mu.Lock()
-			r.upd.feed = f
+			// relay.json is the authority again: a release read from GitHub meanwhile is dropped.
+			r.upd.feed, r.upd.gh = f, nil
 			r.mu.Unlock()
 		}
+	}
+	if !read {
+		r.checkReleases()
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.setHint(r.now())
 }
 
-// gossipVersions is, per version, the other servers whose nodes report it (lock held).
-func (r *Relay) gossipVersions(now int64) map[string]map[string]bool {
-	out := map[string]map[string]bool{}
-	self := ""
-	if r.own != nil {
-		self = r.own.ID
+// releasesURL is GitHub's latest-release API, or what the options put instead (tests).
+func (r *Relay) releasesURL() string {
+	if r.o.ReleasesURL != "" {
+		return r.o.ReleasesURL
 	}
-	for id, c := range r.cat {
-		if id == self || now >= c.Seen+fed.GossipExpiry {
-			continue
-		}
-		for _, im := range c.Impl {
-			if im.Name != update.Name {
-				continue
-			}
-			if out[im.Version] == nil {
-				out[im.Version] = map[string]bool{}
-			}
-			out[im.Version][id] = true
-		}
-	}
-	return out
+	return update.ReleasesURL
 }
 
-// setHint works out the hint from the feed, else from gossip, and tells everyone who should
-// hear of a change (lock held).
+// checkReleases asks GitHub for the latest release, unless a 403 or 429 said to wait. A failure
+// keeps the last release read.
+func (r *Relay) checkReleases() {
+	now := r.now()
+	r.mu.Lock()
+	wait := now < r.upd.ghNext
+	r.mu.Unlock()
+	if wait {
+		return
+	}
+	f, err := update.FetchRelease(r.ctx, r.o.HTTPClient, r.releasesURL(), r.version(), time.Unix(now, 0))
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var lim *update.LimitedError
+	switch {
+	case errors.As(err, &lim):
+		r.upd.ghBack = min(max(2*r.upd.ghBack, ghBackMin), int64(update.MaxWait/time.Second))
+		w := max(int64(lim.Wait/time.Second), r.upd.ghBack)
+		r.upd.ghNext = now + w
+		r.o.Log.Info("update: GitHub releases not read", "err", err, "next", time.Unix(r.upd.ghNext, 0).UTC().Format(time.RFC3339))
+	case err != nil:
+		r.o.Log.Info("update: GitHub releases not read", "err", err)
+	default:
+		r.upd.gh, r.upd.ghBack, r.upd.ghNext = f, 0, 0
+	}
+}
+
+// latest is the release the hint comes from (lock held): relay.json, unless it could not be read
+// lately and GitHub has a newer release; nil when neither was ever read.
+func (r *Relay) latest() *update.Feed {
+	f, g := r.upd.feed, r.upd.gh
+	if f == nil || g != nil && update.Newer(g.Version, f.Version) {
+		return g
+	}
+	return f
+}
+
+// setHint works out the hint from the latest release and tells everyone who should hear of a
+// change (lock held).
 func (r *Relay) setHint(now int64) {
 	own := r.version()
-	var h *update.Hint
-	if r.upd.feed != nil {
-		h = update.FromFeed(own, r.upd.feed)
-	} else {
-		h = update.FromGossip(own, r.gossipVersions(now))
-	}
+	h := update.FromFeed(own, r.latest())
 	changed := !h.Same(r.upd.hint)
 	r.upd.hint = h
 	r.updMetrics()
@@ -134,7 +167,7 @@ func (r *Relay) setHint(now int64) {
 			r.sendUpdate(s)
 		}
 	}
-	if r.cfg.NotifyURL != "" && h.Source == "feed" && h.Version != r.upd.notified && h.Version != r.upd.sending {
+	if r.cfg.NotifyURL != "" && h.Version != r.upd.notified && h.Version != r.upd.sending {
 		r.notify(h)
 	}
 }
@@ -154,11 +187,11 @@ func (r *Relay) updMetrics() {
 			avail["false"] = 1
 		}
 		latest[h.Version] = 1
-	} else if r.upd.feed != nil {
-		latest[r.upd.feed.Version] = 1
+	} else if f := r.latest(); f != nil {
+		latest[f.Version] = 1
 	}
 	m.Set("relay_update_available", "1 when a newer relay is out, by whether it fixes a security issue.", "security", avail)
-	m.Set("relay_latest_version_info", "The newest relay version known (relay.json, or gossip from other servers).", "version", latest)
+	m.Set("relay_latest_version_info", "The newest relay version known (relay.json, else GitHub releases).", "version", latest)
 }
 
 // sendUpdate tells a client session that proved an operator key of this server about the hint,

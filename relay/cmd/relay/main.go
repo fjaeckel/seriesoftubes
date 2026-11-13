@@ -13,6 +13,7 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -648,6 +649,13 @@ func cmdServe(args []string) error {
 	}
 	m := metrics.New()
 	o := node.Options{Dir: *dir, Config: c, Node: nk, Log: logger, Metrics: m, Version: version}
+	// For end-to-end tests only: a stand-in for GitHub's releases API (https, or http on loopback).
+	if u := os.Getenv("RELAY_RELEASES_URL"); u != "" {
+		if !testReleasesURL(u) {
+			return fmt.Errorf("RELAY_RELEASES_URL %q is not an https:// URL or an http:// URL on loopback", u)
+		}
+		o.ReleasesURL = u
+	}
 	if countries != nil {
 		o.Countries = countries
 	}
@@ -808,4 +816,20 @@ func cmdBuild(args []string) error {
 		return err
 	}
 	return os.WriteFile(pos[1], b, 0o644)
+}
+
+// testReleasesURL accepts a stand-in for GitHub's releases API: https://, or http:// on loopback.
+func testReleasesURL(s string) bool {
+	u, err := url.Parse(s)
+	if err != nil || u.Host == "" || u.User != nil {
+		return false
+	}
+	switch u.Scheme {
+	case "https":
+		return true
+	case "http":
+		h := u.Hostname()
+		return h == "127.0.0.1" || h == "::1" || h == "localhost"
+	}
+	return false
 }

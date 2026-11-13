@@ -348,3 +348,13 @@ func TestInitGenesisRegistryFile(t *testing.T) {
 		t.Fatal("stamps taken from another server's file")
 	}
 }
+
+func TestReleasesURLOverride(t *testing.T) {
+	for u, ok := range map[string]bool{"https://api.example.com/latest": true, "http://127.0.0.1:9/latest": true,
+		"http://localhost:9/x": true, "http://[::1]:9/x": true, "http://api.example.com/latest": false,
+		"https://u:p@api.example.com/": false, "file:///etc/passwd": false, "latest": false} {
+		if testReleasesURL(u) != ok {
+			t.Errorf("%s: %v", u, !ok)
+		}
+	}
+}

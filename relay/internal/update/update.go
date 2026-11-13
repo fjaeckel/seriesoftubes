@@ -1,7 +1,7 @@
-// Package update tells a relay's operators that a newer relay exists. Its only source is a static
-// file on the site, relay.json beside servers.json (docs/RELAY.md "Update notices"); when that
-// cannot be had, versions other servers' nodes report in gossip give a hint. No central service
-// is ever asked anything: the relay reads a file, as it reads the registry.
+// Package update tells a relay's operators that a newer relay exists. Versions come from GitHub
+// (docs/RELAY.md "Update notices"): first relay.json beside servers.json on the site, the only
+// source that can say a release fixes a security issue; when that cannot be read, the project's
+// latest release from GitHub's public API. Nothing is sent but a plain GET: no server, no player.
 package update
 
 import (
@@ -126,6 +126,8 @@ type Feed struct {
 	// MinSafe, optional: the newest release that fixed a relay security issue. A relay older than
 	// it misses that fix, even when the newest release is not itself a security release.
 	MinSafe string `json:"minSafe,omitempty"`
+	// Source is where it came from: "feed" (relay.json) or "github" (the releases API).
+	Source string `json:"-"`
 }
 
 var dateRe = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
@@ -155,6 +157,7 @@ func ParseFeed(b []byte) (*Feed, error) {
 	if _, ok := Parse(f.MinSafe); !ok {
 		f.MinSafe = ""
 	}
+	f.Source = "feed"
 	return &f, nil
 }
 
@@ -196,7 +199,7 @@ type Hint struct {
 	Security bool   `json:"security"`
 	Notes    string `json:"notes,omitempty"`
 	Released string `json:"released,omitempty"`
-	// Source: "feed" (relay.json) or "gossip" (seen on other servers; never a security hint).
+	// Source: "feed" (relay.json) or "github" (GitHub's releases API; never a security hint).
 	Source string `json:"source"`
 }
 
@@ -214,8 +217,8 @@ func (h *Hint) Text() string {
 	if h.Security {
 		s += " (security)"
 	}
-	if h.Source == "gossip" {
-		s += " (seen on other servers)"
+	if h.Source == "github" {
+		s += " (from GitHub releases)"
 	}
 	if h.Notes != "" {
 		s += " " + h.Notes
@@ -224,35 +227,135 @@ func (h *Hint) Text() string {
 }
 
 // FromFeed is the hint for a relay running own, or nil when it is up to date or a development
-// build (own is not a semantic version).
+// build (own is not a semantic version). Only relay.json can make it a security hint.
 func FromFeed(own string, f *Feed) *Hint {
 	if f == nil || !Newer(f.Version, own) {
 		return nil
 	}
-	sec := f.Security || f.MinSafe != "" && Newer(f.MinSafe, own)
-	return &Hint{Version: f.Version, Security: sec, Notes: f.Notes, Released: f.Released, Source: "feed"}
+	src := f.Source
+	if src == "" {
+		src = "feed"
+	}
+	sec := src == "feed" && (f.Security || f.MinSafe != "" && Newer(f.MinSafe, own))
+	return &Hint{Version: f.Version, Security: sec, Notes: f.Notes, Released: f.Released, Source: src}
 }
 
-// GossipQuorum is how many other servers must report a version before it counts: one server
-// alone could report any version it likes.
-const GossipQuorum = 2
+// Repo is the project on GitHub. ReleasesURL, its latest release in GitHub's REST API, is derived
+// from it here and nowhere else.
+const Repo = "fjaeckel/seriesoftubes"
 
-// FromGossip is the hint from what other servers' nodes report (version -> distinct servers):
-// the newest version newer than own that at least GossipQuorum servers run.
-func FromGossip(own string, seen map[string]map[string]bool) *Hint {
-	if _, ok := Parse(own); !ok {
-		return nil
+// ReleasesURL is asked only when relay.json cannot be read.
+const ReleasesURL = "https://api.github.com/repos/" + Repo + "/releases/latest"
+
+// MaxRelease bounds the API's answer (a release with long notes is a few tens of KB).
+const MaxRelease = 256 << 10
+
+// ReleaseTimeout bounds one request to the API.
+var ReleaseTimeout = 15 * time.Second
+
+// ParseRelease reads GitHub's latest release as a feed: tag_name, with a leading "v" dropped, must
+// be a semantic version; html_url is kept as the notes only when it is an https:// page on
+// github.com. It never says security: only relay.json does.
+func ParseRelease(b []byte) (*Feed, error) {
+	if len(b) > MaxRelease {
+		return nil, errors.New("release: too big")
 	}
-	best := ""
-	for v, servers := range seen {
-		if len(servers) >= GossipQuorum && Newer(v, own) && (best == "" || Newer(v, best)) {
-			best = v
+	var x struct {
+		Tag        string `json:"tag_name"`
+		HTML       string `json:"html_url"`
+		Published  string `json:"published_at"`
+		Draft      bool   `json:"draft"`
+		Prerelease bool   `json:"prerelease"`
+	}
+	if err := json.Unmarshal(b, &x); err != nil {
+		return nil, fmt.Errorf("release: %w", err)
+	}
+	if x.Draft || x.Prerelease {
+		return nil, errors.New("release: a draft or pre-release")
+	}
+	v := strings.TrimPrefix(x.Tag, "v")
+	if _, ok := Parse(v); !ok {
+		return nil, errors.New("release: tag is not a semantic version")
+	}
+	f := &Feed{V: 1, Version: v, Source: "github"}
+	if GitHubPage(x.HTML) {
+		f.Notes = x.HTML
+	}
+	if len(x.Published) >= 10 && dateRe.MatchString(x.Published[:10]) {
+		f.Released = x.Published[:10]
+	}
+	return f, nil
+}
+
+// GitHubPage reports whether s is an https:// page on github.com.
+func GitHubPage(s string) bool {
+	if !HTTPSURL(s) {
+		return false
+	}
+	u, _ := url.Parse(s)
+	return u.Host == "github.com"
+}
+
+// LimitedError is a 403 or 429 from the API: ask again no sooner than Wait from now (0: the
+// answer did not say; the caller backs off on its own).
+type LimitedError struct {
+	Status string
+	Wait   time.Duration
+}
+
+func (e *LimitedError) Error() string { return "release: " + e.Status }
+
+// FetchRelease asks GitHub's API for the latest release: one unauthenticated GET whose only
+// header about this relay is a plain User-Agent with its version.
+func FetchRelease(ctx context.Context, c *http.Client, target, own string, now time.Time) (*Feed, error) {
+	if c == nil {
+		c = http.DefaultClient
+	}
+	ctx, cancel := context.WithTimeout(ctx, ReleaseTimeout)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("User-Agent", Name+"/"+own)
+	resp, err := c.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	switch {
+	case resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusTooManyRequests:
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
+		return nil, &LimitedError{Status: resp.Status, Wait: limitWait(resp.Header, now)}
+	case resp.StatusCode != http.StatusOK:
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
+		return nil, fmt.Errorf("release: %s", resp.Status)
+	}
+	b, err := io.ReadAll(io.LimitReader(resp.Body, MaxRelease+1))
+	if err != nil {
+		return nil, err
+	}
+	return ParseRelease(b)
+}
+
+// MaxWait caps how long a rate limit keeps the relay from asking again.
+const MaxWait = 48 * time.Hour
+
+// limitWait is what Retry-After or an exhausted x-ratelimit-reset ask for (0 when neither does).
+func limitWait(h http.Header, now time.Time) time.Duration {
+	var d time.Duration
+	if s, err := strconv.ParseInt(strings.TrimSpace(h.Get("Retry-After")), 10, 64); err == nil && s > 0 {
+		d = time.Duration(min(s, int64(MaxWait/time.Second))) * time.Second
+	}
+	if h.Get("X-Ratelimit-Remaining") == "0" {
+		if t, err := strconv.ParseInt(strings.TrimSpace(h.Get("X-Ratelimit-Reset")), 10, 64); err == nil {
+			if r := time.Unix(t, 0).Sub(now); r > d {
+				d = min(r, MaxWait)
+			}
 		}
 	}
-	if best == "" {
-		return nil
-	}
-	return &Hint{Version: best, Source: "gossip"}
+	return d
 }
 
 // Notice is what notifyURL receives: the server, never an address or a player.

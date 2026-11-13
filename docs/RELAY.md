@@ -362,16 +362,22 @@ network and 5-minute slot, the newest; at most 4096 offers per network, 128 to a
 `impl: {name: "tubes-relay", version: "x.y.z"}`, and your server's catalog entry lists the versions of its nodes as far as
 the emitting node knows them (itself, and the nodes of your server it has a session with). Players see "relay x.y.z" per
 node on your server's page in the looking glass; `relay status` shows yours and each peer's. It is informational: no
-one signs it and nothing but displays and the hint below uses it. A build without a version (`go build` by hand) says
+one signs it and nothing but displays uses it, not even the update notices below. A build without a version (`go build` by hand) says
 `dev` and is never told to update.
 
 **Where the news comes from.** The site publishes one static file beside the registry,
 `https://seriesoftub.es/federation/relay.json` (`{v, version, released, security, notes, minSafe?}`), written by the
 site build at each release. Your relay reads it from the folder its `registry` setting points at (a file `relay.json`
 next to a local `servers.json` works too), at start and with each registry refresh (every 6 hours). It sends nothing
-when it reads it: no version, no identity, just a GET like the registry's. If it cannot read the file, a newer version
-that at least two other servers report in gossip gives a hint instead, marked "seen on other servers" (never a
-security one: one server alone could claim anything).
+when it reads it: no version, no identity, just a GET like the registry's. Only if it cannot read the file does it ask
+GitHub: `https://api.github.com/repos/fjaeckel/seriesoftubes/releases/latest`, on the same schedule, unauthenticated,
+with `User-Agent: tubes-relay/<version>` and nothing else about your server. It takes the release's tag (`v3.7.0`
+is 3.7.0; anything that is not a version is ignored) and its page on github.com as the notes, and marks the hint
+"from GitHub releases". It is never a security hint: only `relay.json` says that. If GitHub answers 403 or 429 the
+relay waits as long as it is asked to, and at least 6 hours (doubling to at most 48 while it repeats); it keeps the
+last release it read. A `relay.json` read again takes over. What other servers' nodes run (gossip) is only shown,
+never taken as news of a release. (The environment variable `RELAY_RELEASES_URL` replaces the API's address, `https://`
+or `http://` on loopback only; it is for end-to-end tests.)
 
 **Security releases.** `security: true` marks a release that fixes a relay security issue; `minSafe` names the newest
 such release, so a relay older than it is told "security" even after later, ordinary releases.

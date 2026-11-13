@@ -43,6 +43,8 @@ type Options struct {
 	Versions   []int64           // protocol versions spoken; nil: [1]
 	Metrics    *metrics.M
 	Version    string // the relay software version (main.version); "" or "dev": a development build
+	// ReleasesURL replaces GitHub's latest-release API (update.ReleasesURL); tests only.
+	ReleasesURL string
 	// Retry pacing; tests shorten them. Defaults: one minute and one second.
 	BootstrapEvery time.Duration
 	DialBase       time.Duration

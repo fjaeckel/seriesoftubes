@@ -633,6 +633,42 @@ stay in the browser).`);
       return `relay ${RELAY_VER}, feed ${NEXT_VER} (security): Alice's banner, Bob none; looking glass "${relays.trim()}"`;
     });
 
+    await step('update notice without relay.json: a second relay asks (a stand-in for) GitHub\'s releases API', async () => {
+      const GH_VER = RELAY_VER.replace(/^(\d+)\..*$/, (_, a) => `${+a + 1}.0.0`), notes = `https://github.com/fjaeckel/seriesoftubes/releases/tag/v${GH_VER}`;
+      const asked = [];
+      const gh = http.createServer((req, res) => {
+        asked.push({ url: req.url, ua: req.headers['user-agent'], accept: req.headers.accept, auth: req.headers.authorization, cookie: req.headers.cookie });
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ tag_name: `v${GH_VER}`, html_url: notes, published_at: new Date().toISOString(), body: 'notes' }));
+      });
+      await new Promise((r) => gh.listen(0, '127.0.0.1', r));
+      // Server 2's folder, with a registry folder that has servers.json and no relay.json.
+      const d = srv[1].d, noFeed = path.join(tmp, 'nofeed'), cf = path.join(d, 'config.json'), c = JSON.parse(fs.readFileSync(cf, 'utf8'));
+      fs.mkdirSync(noFeed, { recursive: true });
+      fs.copyFileSync(path.join(tmp, 'site', 'federation', 'servers.json'), path.join(noFeed, 'servers.json'));
+      delete c.metrics;
+      Object.assign(c, { listen: `127.0.0.1:${await freePort()}`, registry: path.join(noFeed, 'servers.json') });
+      fs.writeFileSync(cf, JSON.stringify(c, null, 2));
+      let log = '';
+      const p = spawn(bin, ['serve', '--data', d], { stdio: ['ignore', 'pipe', 'pipe'],
+        env: { ...process.env, RELAY_RELEASES_URL: `http://127.0.0.1:${gh.address().port}/repos/fjaeckel/seriesoftubes/releases/latest` } });
+      procs.push(p);
+      p.stdout.on('data', (b) => { log += b; });
+      p.stderr.on('data', (b) => { log += b; });
+      try {
+        const st = await until(() => { try { const s = JSON.parse(relay(d, 'status')); return s.update && s; } catch (e) { return false; } }, 15000, 'the second relay\'s update');
+        must(st.update.version === GH_VER && st.update.source === 'github' && st.update.security === false && st.update.notes === notes, `update ${JSON.stringify(st.update)}`);
+        must(/from GitHub releases/.test(st.update.says), `says ${st.update.says}`);
+        must(asked.length >= 1 && asked[0].url === '/repos/fjaeckel/seriesoftubes/releases/latest', `asked ${JSON.stringify(asked)}`);
+        must(asked[0].ua === `tubes-relay/${RELAY_VER}` && asked[0].accept === 'application/vnd.github+json' && !asked[0].auth && !asked[0].cookie, `headers ${JSON.stringify(asked[0])}`);
+        must(/update feed: not read/.test(log) && /relay update available/.test(log), 'the second relay did not log the fallback');
+        return `relay.json missing: ${GH_VER} from the stand-in GitHub API, ${asked.length} request(s), User-Agent "${asked[0].ua}"`;
+      } finally {
+        p.kill('SIGTERM');
+        gh.close();
+      }
+    });
+
     await step('operator panel: the chain is read with a sub, ended by its unsub, the connection stays', async () => {
       const hellos = A.sent.filter((f) => f.m === 'hello').length;
       const ch = await ev(A, async (id) => { const c = await fedOpChain(id); return c && { ops: c.chain.ops.length, pending: c.pending.length }; }, srv[0].id);

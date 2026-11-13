@@ -199,42 +199,218 @@ func TestUpdateUpToDate(t *testing.T) {
 	}
 }
 
-func TestUpdateHintFromGossip(t *testing.T) {
+// fakeGitHub stands in for GitHub's latest-release API for the nodes of a net made from now on.
+type fakeGitHub struct {
+	mu     sync.Mutex
+	status int
+	body   string
+	hdr    map[string]string
+	calls  int
+	ua     []string
+}
+
+func newFakeGitHub(n *rt.Net) *fakeGitHub {
+	g := &fakeGitHub{status: http.StatusInternalServerError}
+	n.ReleasesURL = n.Serve("api-github", g) + "/repos/fjaeckel/seriesoftubes/releases/latest"
+	return g
+}
+
+func (g *fakeGitHub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.calls++
+	g.ua = append(g.ua, r.Header.Get("User-Agent")+" "+r.Header.Get("Accept"))
+	for k, v := range g.hdr {
+		w.Header().Set(k, v)
+	}
+	w.WriteHeader(g.status)
+	_, _ = w.Write([]byte(g.body))
+}
+
+// release makes it answer 200 with a release tagged v<tag>.
+func (g *fakeGitHub) release(tag string) {
+	g.set(http.StatusOK, `{"tag_name":"v`+tag+`","html_url":"https://github.com/fjaeckel/seriesoftubes/releases/tag/v`+tag+`","published_at":"2026-11-13T09:00:00Z"}`, nil)
+}
+
+func (g *fakeGitHub) set(status int, body string, hdr map[string]string) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.status, g.body, g.hdr = status, body, hdr
+}
+
+func (g *fakeGitHub) count() int { g.mu.Lock(); defer g.mu.Unlock(); return g.calls }
+
+// Versions other servers' nodes report in gossip are shown (catalog impl, looking glass) and
+// never make a hint, however many servers report them.
+func TestGossipVersionsNeverHint(t *testing.T) {
 	n := rt.New(t)
+	gh := newFakeGitHub(n) // answers 500: neither source can be read
 	n.Release = "3.5.0"
 	a := n.Found("gossip-a", "open")
 	n.Release = "3.7.0"
 	b := n.Found("gossip-b", "open")
 	c := n.Found("gossip-c", "open")
-	n.Release = "9.9.9"
-	liar := n.Found("gossip-liar", "open")
-	neighbours(a, b, c, liar)
+	neighbours(a, b, c)
 	x := a.Nodes[0]
-	rt.Eventually(t, "a heard of b, c and the liar with their versions", func() bool {
-		x.R.CheckUpdate() // no registry: no feed, so gossip decides
-		h := x.R.UpdateStatus()
-		return h != nil && h.Version == "3.7.0"
-	})
-	h := x.R.UpdateStatus()
-	if h.Security || h.Source != "gossip" || !strings.Contains(h.Text(), "seen on other servers") {
-		t.Fatalf("%+v", h)
-	}
-	// The catalog a game gets carries each server's node versions.
 	seen := map[string]string{}
-	for _, e := range catalogOf(t, x) {
-		m := e.(map[string]any)
-		for _, v := range implsOf(m) {
-			path, _ := m["path"].([]any)
-			seen[path[0].(string)] = v
+	rt.Eventually(t, "a heard of b and c with their versions", func() bool {
+		for _, e := range catalogOf(t, x) {
+			m := e.(map[string]any)
+			for _, v := range implsOf(m) {
+				path, _ := m["path"].([]any)
+				seen[path[0].(string)] = v
+			}
 		}
-	}
-	if seen[a.ID] != "3.5.0" || seen[b.ID] != "3.7.0" || seen[liar.ID] != "9.9.9" {
+		return seen[b.ID] == "3.7.0" && seen[c.ID] == "3.7.0"
+	})
+	if seen[a.ID] != "3.5.0" {
 		t.Fatalf("versions in the catalog: %v", seen)
 	}
-	// relay.json, once read, wins over gossip.
-	withFeed(t, x, `{"v":1,"version":"3.6.0","released":"2026-11-12","security":false,"notes":"https://example.com/n"}`, nil)
-	if h := x.R.UpdateStatus(); h == nil || h.Version != "3.6.0" || h.Source != "feed" {
+	x.R.CheckUpdate()
+	if h := x.R.UpdateStatus(); h != nil {
+		t.Fatalf("a hint from gossip: %+v", h)
+	}
+	if gh.count() == 0 {
+		t.Fatal("GitHub was not asked though relay.json could not be read")
+	}
+}
+
+func TestUpdateFromGitHubWhenFeedMissing(t *testing.T) {
+	n := rt.New(t)
+	gh := newFakeGitHub(n)
+	n.Release = "3.5.0"
+	a := n.Found("github-fallback", "open")
+	x := a.Nodes[0]
+	rt.Eventually(t, "the start-up check asked GitHub", func() bool { return gh.count() >= 1 })
+	gh.release("3.6.0")
+	withFeed(t, x, "", nil) // a registry folder without relay.json
+	h := x.R.UpdateStatus()
+	if h == nil || h.Version != "3.6.0" || h.Security || h.Source != "github" ||
+		h.Notes != "https://github.com/fjaeckel/seriesoftubes/releases/tag/v3.6.0" || h.Text() != "update available: 3.6.0 (from GitHub releases) "+h.Notes {
 		t.Fatalf("%+v", h)
+	}
+	gh.mu.Lock()
+	ua := gh.ua[len(gh.ua)-1]
+	gh.mu.Unlock()
+	if ua != "tubes-relay/3.5.0 application/vnd.github+json" {
+		t.Fatalf("request headers: %q", ua)
+	}
+	if u, _ := x.R.Status()["update"].(map[string]any); u == nil || u["source"] != "github" {
+		t.Fatalf("status %v", x.R.Status()["update"])
+	}
+	// The operator's frame says where it came from.
+	op := x.Client(nil)
+	if ok, err := op.Auth(ctx(t), a.Op, n.Clock.Unix()); err != nil || !ok {
+		t.Fatalf("operator auth %v %v", ok, err)
+	}
+	f := updateFrame(op, 3*time.Second)
+	if f == nil || f.Raw["source"] != "github" || f.Raw["security"] != false || f.Raw["version"] != "3.6.0" {
+		t.Fatalf("frame %v", f)
+	}
+
+	// relay.json is read: it wins, and GitHub is not asked.
+	asked := gh.count()
+	dir := filepath.Dir(x.Cfg.Registry)
+	feed := filepath.Join(dir, "relay.json")
+	if err := os.WriteFile(feed, []byte(`{"v":1,"version":"3.6.1","released":"2026-11-13","security":true,"notes":"https://example.com/n"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	x.R.CheckUpdate()
+	if h := x.R.UpdateStatus(); h == nil || h.Version != "3.6.1" || !h.Security || h.Source != "feed" || gh.count() != asked {
+		t.Fatalf("%+v, asked %d", h, gh.count()-asked)
+	}
+	// relay.json can no longer be read: the last one read stands unless GitHub has a newer release.
+	if err := os.Remove(feed); err != nil {
+		t.Fatal(err)
+	}
+	x.R.CheckUpdate()
+	if h := x.R.UpdateStatus(); h == nil || h.Version != "3.6.1" || h.Source != "feed" || gh.count() != asked+1 {
+		t.Fatalf("an older GitHub release replaced relay.json: %+v", h)
+	}
+	gh.release("3.7.0")
+	x.R.CheckUpdate()
+	if h := x.R.UpdateStatus(); h == nil || h.Version != "3.7.0" || h.Security || h.Source != "github" {
+		t.Fatalf("%+v", h)
+	}
+	// GitHub fails: the last release read is kept.
+	gh.set(http.StatusBadGateway, "", nil)
+	x.R.CheckUpdate()
+	if h := x.R.UpdateStatus(); h == nil || h.Version != "3.7.0" {
+		t.Fatalf("lost the last release: %+v", h)
+	}
+	// Bad tags and foreign links are not believed.
+	gh.set(http.StatusOK, `{"tag_name":"latest","html_url":"https://github.com/x"}`, nil)
+	x.R.CheckUpdate()
+	if h := x.R.UpdateStatus(); h == nil || h.Version != "3.7.0" {
+		t.Fatalf("%+v", h)
+	}
+	gh.set(http.StatusOK, `{"tag_name":"v3.8.0","html_url":"https://evil.example/releases/v3.8.0"}`, nil)
+	x.R.CheckUpdate()
+	if h := x.R.UpdateStatus(); h == nil || h.Version != "3.8.0" || h.Notes != "" {
+		t.Fatalf("%+v", h)
+	}
+	if !strings.Contains(metricsText(t, x), `relay_latest_version_info{version="3.8.0"} 1`) {
+		t.Fatal(metricsText(t, x))
+	}
+}
+
+func TestGitHubRateLimitBackoff(t *testing.T) {
+	n := rt.New(t)
+	gh := newFakeGitHub(n)
+	n.Release = "3.5.0"
+	a := n.Found("github-limited", "open")
+	x := a.Nodes[0]
+	rt.Eventually(t, "the start-up check asked GitHub", func() bool { return gh.count() >= 1 })
+	withFeed(t, x, "", nil)
+	// 429 with Retry-After: not asked again before it.
+	gh.set(http.StatusTooManyRequests, `{"message":"slow down"}`, map[string]string{"Retry-After": "86400"})
+	base := gh.count()
+	x.R.CheckUpdate()
+	x.R.CheckUpdate()
+	if gh.count() != base+1 {
+		t.Fatalf("asked %d times while told to wait", gh.count()-base)
+	}
+	gh.release("3.6.0")
+	n.Clock.Add(23 * time.Hour)
+	x.R.CheckUpdate()
+	if gh.count() != base+1 || x.R.UpdateStatus() != nil {
+		t.Fatal("asked before Retry-After")
+	}
+	n.Clock.Add(time.Hour + time.Second)
+	x.R.CheckUpdate()
+	if gh.count() != base+2 || x.R.UpdateStatus() == nil {
+		t.Fatal("not asked after Retry-After")
+	}
+	// 403 saying nothing: six hours, then twelve; a success clears it, and the release is kept.
+	gh.set(http.StatusForbidden, `{"message":"rate limit"}`, nil)
+	n.Clock.Add(time.Second)
+	x.R.CheckUpdate() // a success just before: asked
+	if gh.count() != base+3 {
+		t.Fatal("not asked")
+	}
+	n.Clock.Add(6*time.Hour - time.Minute)
+	x.R.CheckUpdate()
+	if gh.count() != base+3 {
+		t.Fatal("asked within six hours of a 403")
+	}
+	n.Clock.Add(2 * time.Minute)
+	x.R.CheckUpdate() // a second 403: twelve hours
+	n.Clock.Add(11 * time.Hour)
+	x.R.CheckUpdate()
+	if gh.count() != base+4 {
+		t.Fatalf("asked %d", gh.count()-base)
+	}
+	if h := x.R.UpdateStatus(); h == nil || h.Version != "3.6.0" {
+		t.Fatalf("the last release was dropped: %+v", h)
+	}
+	gh.release("3.6.1")
+	n.Clock.Add(time.Hour + time.Second)
+	x.R.CheckUpdate()
+	if h := x.R.UpdateStatus(); gh.count() != base+5 || h == nil || h.Version != "3.6.1" {
+		t.Fatalf("%+v", h)
+	}
+	if !strings.Contains(x.Log.String(), "update: GitHub releases not read") {
+		t.Fatal("not logged")
 	}
 }
 
@@ -301,6 +477,7 @@ func TestNotifyURLOncePerVersion(t *testing.T) {
 		got = append(got, m)
 	}))
 	count := func() int { mu.Lock(); defer mu.Unlock(); return len(got) }
+	gh := newFakeGitHub(n)
 	n.Release = "3.5.0"
 	a := n.Found("notified", "open")
 	x := a.Nodes[0]
@@ -329,6 +506,22 @@ func TestNotifyURLOncePerVersion(t *testing.T) {
 	}
 	x.R.CheckUpdate()
 	rt.Eventually(t, "the hook was told of 3.6.1", func() bool { return count() == 2 })
+	// relay.json gone, GitHub has a newer release: told of it once, too.
+	if err := os.Remove(filepath.Join(filepath.Dir(x.Cfg.Registry), "relay.json")); err != nil {
+		t.Fatal(err)
+	}
+	gh.release("3.7.0")
+	x.R.CheckUpdate()
+	rt.Eventually(t, "the hook was told of 3.7.0", func() bool { return count() == 3 })
+	rt.Eventually(t, "delivery of 3.7.0 noted", func() bool { return strings.Count(x.Log.String(), "update notice: delivered") == 3 })
+	x.R.CheckUpdate()
+	time.Sleep(200 * time.Millisecond)
+	mu.Lock()
+	m = got[2]
+	mu.Unlock()
+	if count() != 3 || m["version"] != "3.7.0" || m["security"] != false || m["notes"] != "https://github.com/fjaeckel/seriesoftubes/releases/tag/v3.7.0" {
+		t.Fatalf("told %d times, %v", count(), m)
+	}
 }
 
 func TestNotifyURLChecked(t *testing.T) {

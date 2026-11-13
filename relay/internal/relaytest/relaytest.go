@@ -105,6 +105,9 @@ type Net struct {
 	Country privacy.Countries
 	// Release is the relay version nodes made from now on run ("": a development build).
 	Release string
+	// ReleasesURL stands in for GitHub's releases API for nodes started from now on ("": the
+	// real one, which this net cannot reach).
+	ReleasesURL string
 }
 
 // Serve runs an https:// endpoint the relays can reach (a webhook, a site); it returns its URL.
@@ -238,7 +241,8 @@ func (x *Node) options() node.Options {
 	return node.Options{Dir: x.Dir, Config: x.Cfg, Node: x.Key, Clock: x.Net.Clock.Now,
 		Log:        slog.New(slog.NewTextHandler(x.Log, &slog.HandlerOptions{Level: slog.LevelDebug})),
 		HTTPClient: x.Net.HTTP, Countries: x.Net.Country, Metrics: x.Metrics,
-		BootstrapEvery: 200 * time.Millisecond, DialBase: 50 * time.Millisecond, Versions: x.Versions, Version: x.Release}
+		BootstrapEvery: 200 * time.Millisecond, DialBase: 50 * time.Millisecond, Versions: x.Versions, Version: x.Release,
+		ReleasesURL: x.Net.ReleasesURL}
 }
 
 // Stop stops the relay (its URL stays reserved but answers 503).

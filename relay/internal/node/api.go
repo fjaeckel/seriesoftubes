@@ -114,7 +114,7 @@ func (r *Relay) Status() map[string]any {
 		"version": r.impl.Version}
 	if h := r.upd.hint; h != nil {
 		out["update"] = map[string]any{"says": h.Text(), "version": h.Version, "security": h.Security, "notes": h.Notes, "source": h.Source}
-	} else if f := r.upd.feed; f != nil {
+	} else if f := r.latest(); f != nil {
 		out["latest"] = f.Version
 	}
 	if r.own != nil {

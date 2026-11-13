@@ -75,22 +75,90 @@ func TestFromFeed(t *testing.T) {
 	}
 }
 
-func TestFromGossip(t *testing.T) {
-	seen := map[string]map[string]bool{
-		"9.9.9": {"liar": true},         // one server alone: not believed
-		"3.7.0": {"a": true, "b": true}, // two servers
-		"3.6.0": {"a": true, "c": true}, // older
-		"dev":   {"x": true, "y": true}, // not a version
+func TestParseRelease(t *testing.T) {
+	f, err := ParseRelease([]byte(`{"tag_name":"v3.7.0","html_url":"https://github.com/fjaeckel/seriesoftubes/releases/tag/v3.7.0",
+		"published_at":"2026-11-12T10:00:00Z","body":"notes","assets":[]}`))
+	if err != nil || f.Version != "3.7.0" || f.Source != "github" || f.Security || f.Released != "2026-11-12" ||
+		f.Notes != "https://github.com/fjaeckel/seriesoftubes/releases/tag/v3.7.0" {
+		t.Fatalf("%+v %v", f, err)
 	}
-	h := FromGossip("3.5.0", seen)
-	if h == nil || h.Version != "3.7.0" || h.Security || h.Source != "gossip" || h.Notes != "" {
+	if f, err := ParseRelease([]byte(`{"tag_name":"3.7.1"}`)); err != nil || f.Version != "3.7.1" || f.Notes != "" {
+		t.Fatalf("no v: %+v %v", f, err)
+	}
+	// Only an https:// page on github.com is kept as the notes.
+	for _, u := range []string{"http://github.com/x", "https://github.com.evil.example/x", "https://example.com/x",
+		"https://user@github.com/x", "javascript:alert(1)"} {
+		b, _ := json.Marshal(map[string]any{"tag_name": "v3.7.0", "html_url": u})
+		if f, err := ParseRelease(b); err != nil || f.Notes != "" {
+			t.Errorf("%s kept: %+v %v", u, f, err)
+		}
+	}
+	// It is never a security hint, even below anything.
+	if h := FromFeed("1.0.0", f); h == nil || h.Security || h.Source != "github" || h.Text() != "update available: 3.7.0 (from GitHub releases) "+f.Notes {
 		t.Fatalf("%+v", h)
 	}
-	if h.Text() != "update available: 3.7.0 (seen on other servers)" {
-		t.Fatal(h.Text())
+	for _, bad := range []string{`{"tag_name":"vv3.7.0"}`, `{"tag_name":"release-3.7"}`, `{"tag_name":"v3.7"}`, `{"tag_name":""}`,
+		`{"tag_name":"v3.7.0","draft":true}`, `{"tag_name":"v3.8.0-rc.1","prerelease":true}`, `[]`, `{`} {
+		if _, err := ParseRelease([]byte(bad)); err == nil {
+			t.Errorf("%s read", bad)
+		}
 	}
-	if FromGossip("3.7.0", seen) != nil || FromGossip("dev", seen) != nil {
-		t.Fatal("hint when up to date or a development build")
+	if _, err := ParseRelease(make([]byte, MaxRelease+1)); err == nil {
+		t.Error("too big read")
+	}
+}
+
+func TestFetchRelease(t *testing.T) {
+	var hdr http.Header
+	status, extra := http.StatusOK, map[string]string{}
+	body := `{"tag_name":"v3.7.0","html_url":"https://github.com/fjaeckel/seriesoftubes/releases/tag/v3.7.0"}`
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hdr = r.Header.Clone()
+		for k, v := range extra {
+			w.Header().Set(k, v)
+		}
+		w.WriteHeader(status)
+		_, _ = w.Write([]byte(body))
+	}))
+	defer srv.Close()
+	now := time.Unix(1_800_000_000, 0)
+	f, err := FetchRelease(context.Background(), srv.Client(), srv.URL, "3.5.0", now)
+	if err != nil || f.Version != "3.7.0" {
+		t.Fatalf("%+v %v", f, err)
+	}
+	// A plain GET: the API's media type and the relay's name and version, nothing else about it.
+	if hdr.Get("Accept") != "application/vnd.github+json" || hdr.Get("User-Agent") != "tubes-relay/3.5.0" || hdr.Get("Authorization") != "" || hdr.Get("Cookie") != "" {
+		t.Fatalf("headers %v", hdr)
+	}
+	// 403 and 429 are a LimitedError, with the wait the answer asks for.
+	for _, c := range []struct {
+		status int
+		h      map[string]string
+		want   time.Duration
+	}{
+		{http.StatusTooManyRequests, map[string]string{"Retry-After": "120"}, 2 * time.Minute},
+		{http.StatusForbidden, map[string]string{"X-Ratelimit-Remaining": "0", "X-Ratelimit-Reset": "1800003600"}, time.Hour},
+		{http.StatusForbidden, map[string]string{"X-Ratelimit-Remaining": "0", "X-Ratelimit-Reset": "1900000000"}, MaxWait},
+		{http.StatusForbidden, nil, 0},
+	} {
+		status, extra = c.status, c.h
+		_, err := FetchRelease(context.Background(), srv.Client(), srv.URL, "3.5.0", now)
+		lim, ok := err.(*LimitedError)
+		if !ok || lim.Wait != c.want {
+			t.Errorf("%d %v: %v", c.status, c.h, err)
+		}
+	}
+	status, extra = http.StatusNotFound, nil
+	if _, err := FetchRelease(context.Background(), srv.Client(), srv.URL, "3.5.0", now); err == nil {
+		t.Error("404 read")
+	}
+	// An answer bigger than MaxRelease is not read.
+	status, body = http.StatusOK, `{"tag_name":"v3.7.0","body":"`+string(make([]byte, MaxRelease))+`"}`
+	if _, err := FetchRelease(context.Background(), srv.Client(), srv.URL, "3.5.0", now); err == nil {
+		t.Error("too big read")
+	}
+	if ReleasesURL != "https://api.github.com/repos/fjaeckel/seriesoftubes/releases/latest" {
+		t.Error(ReleasesURL)
 	}
 }
 
