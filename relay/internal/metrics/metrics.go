@@ -38,6 +38,7 @@ func New() *M {
 	m.counter("relay_records_out_total", "", "Records sent to clients and nodes.")
 	m.counter("relay_refused_total", "code", "Records and frames refused, by error code.")
 	m.counter("relay_syncs_total", "", "Node sync sessions started.")
+	m.counter("relay_rank_answers_total", "cache", "Rankings answered, by whether the slice was already worked out for the current state (hit) or not (miss).", "hit", "miss")
 	return m
 }
 

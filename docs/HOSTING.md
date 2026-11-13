@@ -687,7 +687,8 @@ groups:
 
 Change the thresholds to suit your machine. Other series worth a graph: `relay_clients` and `relay_node_sessions`
 (open connections), `relay_records_in_total` by `kind`, `relay_records`, `relay_refused_total` by `code`,
-`relay_syncs_total`, `relay_build_info` and `relay_latest_version_info`.
+`relay_syncs_total`, `relay_rank_answers_total` by `cache` (hit or miss), `relay_build_info` and
+`relay_latest_version_info`.
 
 ## Logs and privacy: your duties
 

@@ -40,6 +40,8 @@ type Answer struct {
 	N    int   `json:"n"`
 	Rows []Row `json:"rows"`
 	Me   *Me   `json:"me"`
+	// Cached: the slice was already worked out (or being worked out) for this state when asked.
+	Cached bool `json:"-"`
 }
 
 // brow is a ranked network of a board: the network, its effective record at the last slot.
@@ -383,7 +385,9 @@ func (a *Agg) Rank(ctx context.Context, q *Slice, now int64, me string, n int) (
 	if err := wait(ctx, f); err != nil {
 		return nil, err
 	}
-	return a.answer(f, now, me, n), nil
+	ans := a.answer(f, now, me, n)
+	ans.Cached = !owner
+	return ans, nil
 }
 
 // prepare applies what is queued and brings the windows to now; it gives the running slot.

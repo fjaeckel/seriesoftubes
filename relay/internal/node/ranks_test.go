@@ -140,3 +140,22 @@ func TestRankAnswers(t *testing.T) {
 		t.Fatal("twelve rankings at once were not rate limited")
 	}
 }
+
+// The node counts rankings answered from a slice already worked out (relay_rank_answers_total):
+// the first ask of a slice in a state is a miss, the same slice asked again a hit.
+func TestRankCacheMetric(t *testing.T) {
+	n := rt.New(t)
+	s := n.Found("cached", "open")
+	x := s.Nodes[0]
+	x.MustPut(rt.Stats(rt.Key("alice"), n.Clock.Unix(), 3, false))
+	n.Clock.Add(10 * time.Minute)
+	q := map[string]any{"m": "rank", "board": "pops", "measure": "total", "division": "human"}
+	ask(t, x.Client(nil), q)
+	if hit, miss := x.Metrics.Get("relay_rank_answers_total", "hit"), x.Metrics.Get("relay_rank_answers_total", "miss"); hit != 0 || miss != 1 {
+		t.Fatalf("first ask: hit %v miss %v", hit, miss)
+	}
+	ask(t, x.Client(nil), q)
+	if hit, miss := x.Metrics.Get("relay_rank_answers_total", "hit"), x.Metrics.Get("relay_rank_answers_total", "miss"); hit != 1 || miss != 1 {
+		t.Fatalf("second ask: hit %v miss %v", hit, miss)
+	}
+}

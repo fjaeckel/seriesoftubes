@@ -451,7 +451,7 @@ by IP address and join with the self-signed certificate.
 
 Set `"metrics": "127.0.0.1:9100"` to serve `/metrics` in the Prometheus text format on localhost: connections by
 role, records stored by kind, records sent, refusals by error code, sync sessions, open clients and sessions, records
-held, disk use, and the version it runs and whether an update is out (`relay_build_info`, `relay_update_available`,
+held, disk use, rankings answered from the cache or worked out (`relay_rank_answers_total` by `cache`, hit or miss), and the version it runs and whether an update is out (`relay_build_info`, `relay_update_available`,
 `relay_latest_version_info`, see Versions and update notices), all `relay_*`, plus the standard Go runtime (`go_*`) and process
 (`process_*`) metrics. It uses the Prometheus client library on its own registry, so nothing else is exposed. Counts
 and versions only: no label ever holds an address, a key or a name. The relay refuses a metrics address that is not on

@@ -61,6 +61,11 @@ func (r *Relay) rankFrame(s *session, f *wire.Frame) {
 			s.rankFail(f.ID, err)
 			return
 		}
+		cache := "miss"
+		if ans.Cached {
+			cache = "hit"
+		}
+		r.o.Metrics.Inc("relay_rank_answers_total", cache)
 		rows := make([]any, len(ans.Rows))
 		for i, x := range ans.Rows {
 			row := map[string]any{"rank": int64(x.Rank), "key": x.Key, "value": x.Value, "asn": x.ASN, "ai": x.AI}

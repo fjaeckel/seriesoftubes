@@ -45,6 +45,7 @@ func TestExposition(t *testing.T) {
 		"# TYPE relay_clients gauge",
 		"relay_clients 7",
 		"relay_syncs_total 0",
+		`relay_rank_answers_total{cache="hit"} 0`,
 		"go_goroutines ",
 	} {
 		if !strings.Contains(out, want) {
