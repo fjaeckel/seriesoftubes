@@ -238,7 +238,7 @@ except `operators` and `server`.
 | Days | Integer 1 to 3650, real days |
 | Count(n) | Integer 0 to n |
 | Bool | `true` or `false` |
-| Url | ASCII string of at most 200 bytes matching `^wss://H(:P)?(/[A-Za-z0-9._~/-]*)?$`, where H is a lower-case host name of dot-separated labels `[a-z0-9]([a-z0-9-]*[a-z0-9])?` with at least one dot and not made only of digits and dots (no IP literals), and P is a port 1 to 65535 without leading zeros. No user info, query or fragment |
+| Url | ASCII string of at most 200 bytes matching `^wss://H(:P)?(/[A-Za-z0-9._~/-]*)?$`, where P is a port 1 to 65535 without leading zeros and H is either a lower-case host name of dot-separated labels `[a-z0-9]([a-z0-9-]*[a-z0-9])?` with at least one dot and not made only of digits and dots, or a local address (for servers on a LAN): an IPv4 address in 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16 or 127.0.0.0/8 in dotted decimal without leading zeros, or an IPv6 address in fc00::/7 or `::1` in brackets, written as RFC 5952 section 4 has it (lower case, no leading zeros, the longest run of two or more zero groups, the first on a tie, as `::`; no zone, no embedded IPv4). Any other IP literal is refused. No user info, query or fragment. The registry takes host names only (11.2 step 6) |
 | [T] max n | A list of T with at most n entries (`too_many`); entries that are sets are unique (`duplicate`) |
 
 All listed fields are required unless marked optional (`missing_field`). Fields not listed are refused
@@ -579,6 +579,7 @@ Steps 1 to 8 depend only on the record and `now`, and are what the `records` vec
 | `bad_challenge` | A proof that does not answer the challenge | yes |
 | `id_mismatch` | Registry file name is not the genesis id | (registry check) |
 | `no_logs` | Registry file without `noLogs: true` | (registry check) |
+| `local_url` | Registry file with a node URL that is an IP address or a `.local` name | (registry check) |
 | `name_taken` | Registry server name already used by another file | (registry check) |
 | `no_answer` | No listed node answered the registry challenge | (registry check) |
 | `stale_terms` | An offer relying on terms the counterparty replaced more than 24 h before (10.10) | no |
@@ -1202,7 +1203,9 @@ Run by CI on every pull request that touches `federation/servers/`, for each add
    proposal is by an operator, applicable, and has a majority at its `prev` (`no_majority` for the majority,
    `bad_chain` otherwise).
 5. The server record: valid against the chain (8.2) and its `head` is the chain's last head (`bad_chain`).
-6. `server.body.noLogs` is true (`no_logs`).
+6. `server.body.noLogs` is true (`no_logs`), and every node URL in the file (the genesis node, `url` of the chain's
+   proposals, the server record's `nodes`) names a host anyone can look up: no IP literal and no host ending in
+   `.local` (`local_url`). Such servers are valid and can be joined by invite (a LAN party), but are not listed.
 7. No other file's server name equals this one when both are compared with `A`–`Z` turned into `a`–`z` (`name_taken`).
    Only other files whose server name can be read (the file parses as JSON with a `server` record holding a string
    `name`) are compared; files that do not parse are skipped here (they fail their own check).
@@ -1271,7 +1274,8 @@ of 9.3 and an optional webhook; see docs/RELAY.md). It never tells anyone else.
 ## 12. Privacy
 
 1. No record, receipt, proof, frame, file or log line carries an IP address, a city or anything finer than a country,
-   a device, browser, user agent, time zone, email or account. The schemas make that structural: unknown fields are
+   a device, browser, user agent, time zone, email or account. (The one address a record may hold is a LAN server's
+   own local node address in its node URL (5, Url): the server's, never a player's, and never routable.) The schemas make that structural: unknown fields are
    refused, and no field holds free text about a person.
 2. The only place a country appears is `cc` in a receipt for a `stats` record whose author set `shareCountry`.
 3. Receipt times are slots: exact times of activity are never kept.

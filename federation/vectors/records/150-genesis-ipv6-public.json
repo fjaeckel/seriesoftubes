@@ -1,0 +1,24 @@
+{
+  "description": "A global IPv6 address is refused.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "genesis",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "name": "LAN Before Time",
+        "node": {
+          "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+          "url": "wss://[2001:db8::1]/fed"
+        }
+      },
+      "sig": "XDkFcEGjGwqu5pc0dAcDZCDne7SIEgb22LwOR2RKfqeFciceUEfjKgZDjYzkd99cm1UZs4t6IGevJpNoLXPgAQ"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

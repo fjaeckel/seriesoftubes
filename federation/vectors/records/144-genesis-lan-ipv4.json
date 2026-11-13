@@ -1,0 +1,25 @@
+{
+  "description": "A LAN server: its node named by a private IPv4 address (192.168/16), as `relay lan` founds one.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "genesis",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "name": "LAN Before Time",
+        "node": {
+          "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+          "url": "wss://192.168.1.20:8443/fed"
+        }
+      },
+      "sig": "uNK8zJMrdCd151i4RwByXkbaEbPRl3f6MnA8uHRwP_IvMSlTY4t22UjeWEY_4Fwz8537VrPnso0IDqPYuA2VBQ"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "genesis",
+    "id": "DeWg_uhRjI7XvC26TNUpdobtQrUx_3fwqu3UIue8TpI"
+  }
+}

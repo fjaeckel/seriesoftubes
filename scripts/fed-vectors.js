@@ -438,6 +438,15 @@ const SID = rid(genesis);
   bad('stats-cust-duplicate', 'The same customer twice.', rec('stats', 'alice', T, { ...statsMin(), cust: [pub('bob'), pub('bob')] }), 'duplicate');
   bad('stats-up-bad-key', 'An upstream that is not a key.', rec('stats', 'alice', T, { ...statsMin(), up: ['nope'] }), 'bad_key');
   bad('stats-tier2-string', 'tier2 is a Bool.', rec('stats', 'alice', T, { ...statsMin(), tier2: 'yes' }), 'bad_field');
+  // LAN servers (5, Url): a node may be named by a private, link-local or loopback address, never a public one.
+  const gNode = (url) => rec('genesis', 'anna', T, { name: 'LAN Before Time', node: { key: pub('node1'), url } });
+  ok('genesis-lan-ipv4', 'A LAN server: its node named by a private IPv4 address (192.168/16), as `relay lan` founds one.', gNode('wss://192.168.1.20:8443/fed'));
+  ok('genesis-lan-ipv6', 'A LAN server named by an IPv6 unique local address (fc00::/7) in brackets, in RFC 5952 form.', gNode('wss://[fd12:3456::1]:8443/fed'));
+  ok('genesis-lan-mdns', 'A LAN server named by its mDNS name (.local): a host name like any other.', gNode('wss://freds-laptop.local:8443/fed'));
+  bad('genesis-public-ipv4', 'A public IPv4 address is refused: a server on the internet has a name.', gNode('wss://198.51.100.20/fed'), 'bad_field');
+  bad('genesis-ipv4-leading-zero', 'One spelling per address: no leading zeros.', gNode('wss://192.168.001.20/fed'), 'bad_field');
+  bad('genesis-ipv6-long-form', 'One spelling per address: IPv6 as RFC 5952 writes it (zeros compressed).', gNode('wss://[fd12:3456:0:0:0:0:0:1]/fed'), 'bad_field');
+  bad('genesis-ipv6-public', 'A global IPv6 address is refused.', gNode('wss://[2001:db8::1]/fed'), 'bad_field');
 }
 
 // ======================================================================================
@@ -691,6 +700,12 @@ const nodesOf = list => list.map(([n, url]) => ({ key: pub(n), url })).sort((a, 
     'The build turns the folder into _site/federation/servers.json (the site path federation/servers.json): v 1, asOf = the greatest "answered" of all files (0 if none), servers = one entry per file sorted by id, each {id, genesis, chain, server} plus listed and answered when present. Files are assumed checked already.',
     { files: { [F2]: file2, [F1]: file1 } },
     { servers_json: { v: 1, asOf: 1767225600, servers: [{ id: SID, ...(({ v, ...x }) => x)(file1) }, { id: S2, ...(({ v, ...x }) => x)(file2) }].sort((a, b) => byStr(a.id, b.id)) } });
+  // The registry lists servers anyone can reach: a LAN server (an address or a .local name) is valid but not listed.
+  for (const [name, url] of [['local-url-ip', 'wss://192.168.1.20:8443/fed'], ['local-url-mdns', 'wss://freds-laptop.local:8443/fed']]) {
+    const g = rec('genesis', 'erin', T - 5 * DAY, { name: 'LAN Before Time', node: { key: pub('node3'), url } }), id = rid(g);
+    const sr = multi('server', 'erin', T - 5 * DAY, { server: id, head: id, name: 'LAN Before Time', nodes: [{ key: pub('node3'), url }], operators: [pub('erin')], sync: 'standalone', noLogs: true, langs: ['en'], desc: '' }, ['erin']);
+    go(name, `A node named ${url.includes('.local') ? 'by an mDNS (.local) name' : 'by a private address'}: fine for an invite, refused by the registry.`, { [id + '.json']: { v: 1, genesis: g, chain: [], server: sr } }, id + '.json', { ok: false, error: 'local_url' });
+  }
 }
 
 // ======================================================================================

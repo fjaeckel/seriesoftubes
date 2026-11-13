@@ -8,13 +8,17 @@ Design: [docs/plans/federation.md](plans/federation.md). Protocol: [docs/FEDERAT
 Decision: [ADR 0005](adr/0005-federation-by-player-run-servers.md). The project runs no server of its own; every server
 is someone's choice and responsibility.
 
+This is the reference. Never run a server before? [HOSTING.md](HOSTING.md) walks through it step by step: a VPS with
+Docker Compose, a binary with systemd, a Raspberry Pi at home, and a LAN party without the internet.
+
 ## Before anything else: a domain and a real TLS certificate
 
 The game is served over HTTPS, and a page served over HTTPS may only open **`wss://`** connections. Browsers refuse
 plain `ws://`, a bare IP address and a self-signed certificate without telling the player much. So you need:
 
 - **A domain name** (a subdomain is fine, for example `relay.example.net`). The protocol refuses node addresses that
-  are IP literals.
+  are public IP literals, and the registry refuses any IP literal or `.local` name. (Private addresses are fine for
+  a server on a LAN: see `relay lan` and [HOSTING.md, LAN party](HOSTING.md#lan-party).)
 - **A certificate a browser trusts**, for example from Let's Encrypt. Caddy gets and renews one on its own.
 - **Port 443 reachable** from the internet (or another port, written into your node's URL as `wss://host:8443/fed`).
 

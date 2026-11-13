@@ -55,12 +55,42 @@ const points = (s) => [...s].length;
 const isName = (s) => typeof s === 'string' && points(s) >= 1 && points(s) <= 40 && !/^ +$/.test(s) && !BIDI.test(s);
 const isText = (s, n) => typeof s === 'string' && points(s) <= n && !BIDI.test(s);
 const LABEL = '[a-z0-9](?:[a-z0-9-]*[a-z0-9])?';
-const URL_RE = new RegExp(`^wss://(${LABEL}(?:\\.${LABEL})+)(?::([1-9][0-9]{0,4}))?(?:/[A-Za-z0-9._~/-]*)?$`);
+const URL_RE = new RegExp(`^wss://(${LABEL}(?:\\.${LABEL})+|[0-9.]+|\\[[0-9a-f:]+\\])(?::([1-9][0-9]{0,4}))?(?:/[A-Za-z0-9._~/-]*)?$`);
+// A local address a Url may name (5): private or link-local IPv4, loopback, IPv6 ULA; one spelling each.
+function localV4(h) {
+  const p = h.split('.');
+  if (p.length !== 4 || !p.every((x) => /^(0|[1-9][0-9]{0,2})$/.test(x) && +x <= 255)) return false;
+  const [a, b] = p.map(Number);
+  return a === 10 || a === 127 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254);
+}
+function localV6(h) {
+  const halves = h.split('::');
+  if (halves.length > 2) return false;
+  const part = (s) => (s === '' ? [] : s.split(':'));
+  const head = part(halves[0]), tail = halves.length === 2 ? part(halves[1]) : [];
+  if (![...head, ...tail].every((g) => /^[0-9a-f]{1,4}$/.test(g))) return false;
+  const fill = 8 - head.length - tail.length;
+  if (halves.length === 2 ? fill < 1 : fill !== 0) return false;
+  const g = [...head, ...Array(halves.length === 2 ? fill : 0).fill('0'), ...tail].map((x) => parseInt(x, 16));
+  // RFC 5952: no leading zeros, the longest run (2 or more, the first on a tie) of zero groups as ::.
+  let at = -1, len = 0;
+  for (let i = 0; i < 8; i++) { let j = i; while (j < 8 && g[j] === 0) j++; if (j - i > len && j - i >= 2) { at = i; len = j - i; } if (j > i) i = j - 1; }
+  const hex = g.map((x) => x.toString(16));
+  const text = at < 0 ? hex.join(':') : `${hex.slice(0, at).join(':')}::${hex.slice(at + len).join(':')}`;
+  if (text !== h) return false;
+  return (g[0] & 0xfe00) === 0xfc00 || h === '::1';
+}
 function isUrl(s) {
   if (typeof s !== 'string' || !/^[\x20-\x7e]*$/.test(s) || s.length > 200) return false;
   const m = URL_RE.exec(s);
-  return !!m && !/^[0-9.]+$/.test(m[1]) && (m[2] === undefined || +m[2] <= 65535);
+  if (!m || (m[2] !== undefined && +m[2] > 65535)) return false;
+  const h = m[1];
+  if (h[0] === '[') return localV6(h.slice(1, -1));
+  if (/^[0-9.]+$/.test(h)) return localV4(h);
+  return true;
 }
+// The registry lists servers the internet can reach: a host name, not an address or an mDNS (.local) name (11.2).
+const isPublicUrl = (s) => isUrl(s) && !/^wss:\/\/(\[|[0-9.]+(?:[:/]|$))/.test(s) && !/^wss:\/\/[^/:]+\.local(?:[:/]|$)/.test(s);
 // Exactly these members: missing first (in table order), then unknown.
 function shape(o, fields, optional = []) {
   if (!isObj(o)) fail('bad_field');
@@ -210,7 +240,12 @@ function checkFile(name, f, { now, names = [], base } = {}) {
     if (canon(b.operators) !== canon(st.operators) || canon(b.nodes) !== canon(st.nodes)) fail('bad_chain', 'lists differ from the chain');
     if (!majority(f.server.sigs.map((s) => s.key), st.operators)) fail('no_majority', 'the server record');
   });
-  STEP(6, () => { if (f.server.body.noLogs !== true) fail('no_logs'); });
+  STEP(6, () => {
+    if (f.server.body.noLogs !== true) fail('no_logs');
+    const urls = [f.genesis.body.node.url, ...f.chain.filter((p) => 'url' in p.body).map((p) => p.body.url), ...f.server.body.nodes.map((n) => n.url)];
+    const u = urls.find((x) => !isPublicUrl(x));
+    if (u) fail('local_url', u);
+  });
   STEP(7, () => { if (names.includes(lowerName(f.server.body.name))) fail('name_taken', f.server.body.name); });
   STEP(8, () => { if (base) for (const k of ['listed', 'answered']) if (base[k] !== f[k]) fail('bad_field', `${k} is written by the weekly job only`); });
   return gid;
@@ -269,7 +304,7 @@ function stamp(dir, day, answered) {
   return report;
 }
 
-module.exports = { canon, checkFolder, checkFile, parseFile, serversJson, serversText, build, stamp, readFolder, Fault };
+module.exports = { isUrl, isPublicUrl, canon, checkFolder, checkFile, parseFile, serversJson, serversText, build, stamp, readFolder, Fault };
 
 if (require.main === module) {
   const [cmd, ...args] = process.argv.slice(2);

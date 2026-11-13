@@ -1,0 +1,25 @@
+{
+  "description": "A LAN server named by its mDNS name (.local): a host name like any other.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "genesis",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "name": "LAN Before Time",
+        "node": {
+          "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+          "url": "wss://freds-laptop.local:8443/fed"
+        }
+      },
+      "sig": "Vxas3UAMKEyBUfjEFwM0t09cUXIIB5jtwCobJHgeh5MnkS4NJTqANYUYfP5trCbas8FUqIqqRR_h1TVPjOHODA"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "genesis",
+    "id": "f6FRM_cZYN3BQYFdw02P_ulOwFLPVmkue03zj0GSmx0"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "description": "A LAN server named by an IPv6 unique local address (fc00::/7) in brackets, in RFC 5952 form.",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "genesis",
+      "key": "_4NCZB58pFcXvVew1YHOv65R8W1WAGoxLeLYJ0JxktY",
+      "t": 1767312000,
+      "body": {
+        "name": "LAN Before Time",
+        "node": {
+          "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+          "url": "wss://[fd12:3456::1]:8443/fed"
+        }
+      },
+      "sig": "QciaqccRALKpm02ulWqkM2OENjWnMlsmwX796NvtYe1b1JVMmiQEBXra7vwzhXsnI-UdTweXf61KzwfNJILwAg"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "genesis",
+    "id": "EeUgCH9DxgCBlire_rUsNRhvmIL2db898GIq0D_OFYE"
+  }
+}

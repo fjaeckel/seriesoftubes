@@ -1,0 +1,62 @@
+{
+  "description": "A node named by a private address: fine for an invite, refused by the registry.",
+  "input": {
+    "files": {
+      "UsAbgo0iFfhM62piWTOD6cVyqCyneCLJd9Pdhw6kSAg.json": {
+        "v": 1,
+        "genesis": {
+          "v": 1,
+          "kind": "genesis",
+          "key": "N89XRM5btfKwgjV3JAWYWooznBfmDV9RimFj_xyUwtY",
+          "t": 1766880000,
+          "body": {
+            "name": "LAN Before Time",
+            "node": {
+              "key": "KZRK5XTNKGHhctlRk_ynNF4_ZNUpCYmNCabMhCNDkGk",
+              "url": "wss://192.168.1.20:8443/fed"
+            }
+          },
+          "sig": "W3X2R4FOnIiRVVlNqVtwXJt_1W9jU1vakST7KAhswmY8QmzWb57Kcw1ZXbJRzyzXN2_VVmeTJfTJKQfZFeiRCA"
+        },
+        "chain": [],
+        "server": {
+          "v": 1,
+          "kind": "server",
+          "key": "N89XRM5btfKwgjV3JAWYWooznBfmDV9RimFj_xyUwtY",
+          "t": 1766880000,
+          "body": {
+            "server": "UsAbgo0iFfhM62piWTOD6cVyqCyneCLJd9Pdhw6kSAg",
+            "head": "UsAbgo0iFfhM62piWTOD6cVyqCyneCLJd9Pdhw6kSAg",
+            "name": "LAN Before Time",
+            "nodes": [
+              {
+                "key": "KZRK5XTNKGHhctlRk_ynNF4_ZNUpCYmNCabMhCNDkGk",
+                "url": "wss://192.168.1.20:8443/fed"
+              }
+            ],
+            "operators": [
+              "N89XRM5btfKwgjV3JAWYWooznBfmDV9RimFj_xyUwtY"
+            ],
+            "sync": "standalone",
+            "noLogs": true,
+            "langs": [
+              "en"
+            ],
+            "desc": ""
+          },
+          "sigs": [
+            {
+              "key": "N89XRM5btfKwgjV3JAWYWooznBfmDV9RimFj_xyUwtY",
+              "sig": "cTjYU49xCBl34tvrAvBH2rEJI19KSSbPAJ6jvaHzh9QWWmCVJXxSYk6wjZaQfs2zRKsFm1GeEs11FK2Lm74FAQ"
+            }
+          ]
+        }
+      }
+    },
+    "check": "UsAbgo0iFfhM62piWTOD6cVyqCyneCLJd9Pdhw6kSAg.json"
+  },
+  "expect": {
+    "ok": false,
+    "error": "local_url"
+  }
+}
