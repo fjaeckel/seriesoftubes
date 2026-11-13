@@ -76,7 +76,7 @@ services:
   # Not started by `up`: `docker compose run --rm toolbox` edits config.json as the relay's user (the image has no
   # shell), `docker compose run --rm toolbox rm /data/backup.tar.gz` and the like. Then: docker compose kill -s HUP relay
   toolbox:
-    image: busybox:1.37
+    image: busybox:1.38
     profiles: [tools]
     user: "65532:65532"
     working_dir: /data
