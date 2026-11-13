@@ -122,6 +122,9 @@ at that sandbox method.
   versions are display only. **Multiplayer only online:** the title's switch is disabled offline and falls back off
   when the server list fails or is empty (a valid typed address still counts); Start is never blocked by it.
 
+- **Relay memory** (Frederic, 2026-11-13): the store keeps a 112-byte entry per record and reads records back from
+  the day files (recent ones and the chain in memory), the aggregator packs its records and slot sums: about 0.7 KB
+  of heap per record instead of 5.4 to 5.9 (`BenchmarkMemory`), same day-file format; sizing in HOSTING.md.
 - `relay/go.sum` regenerated from scratch with a fresh module cache against proxy.golang.org and sum.golang.org:
   byte-identical, `go mod verify` clean.
 - Relay tests failed on macOS (operator socket path over the 104-byte Unix limit under `t.TempDir()`): tests use

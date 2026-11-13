@@ -52,12 +52,26 @@ The relay is one small program (about 14 MB) that keeps its data in one folder. 
 your own with `relay status` and the [metrics](#monitoring-with-prometheus)):
 
 - **Machine.** Any small VPS (1 vCPU, 1 GB RAM, a few GB of disk; typically a few euros or dollars a month) or a
-  Raspberry Pi 3 or newer. Memory grows with the networks it ranks, about 23 KB each: 1,000 networks take some 25 MB
-  on top of the program's own 30 to 50 MB; 10,000 networks about 230 MB.
+  Raspberry Pi 3 or newer is enough for a thousand networks. Memory and disk grow with the networks whose records
+  the relay holds: its own players and, once it syncs, those of the servers it syncs with. Measured per network
+  ([how](RELAY.md#memory-and-disk)): a network that sends statistics about once an hour, as a typical game does,
+  takes about 65 KB of memory and 100 KB of disk; one that sends them every five minutes, the most the relay accepts,
+  about 630 KB of memory and 930 KB of disk (some 700 bytes of memory and 1 KB of disk per record kept). The program
+  itself takes 30 to 40 MB, and Go may hold up to as much again as the records take before it frees memory, so plan
+  twice the record memory:
+
+  | Networks | Memory, hourly stats | Memory, stats every slot | Disk, hourly | Disk, every slot | A machine with |
+  | ---: | ---: | ---: | ---: | ---: | --- |
+  | 100 | about 55 MB | about 170 MB | 10 MB | 95 MB | 1 GB (any VPS, a Raspberry Pi) |
+  | 1,000 | about 170 MB | about 1.3 GB | 100 MB | 930 MB | 1 GB; 2 GB if most play all day |
+  | 10,000 | about 1.3 GB | about 13 GB | 1 GB | 9.3 GB | 2 to 4 GB; 16 GB if most play all day |
+
+  Nobody plays every five minutes around the clock, so real figures sit between the two columns, near the first.
+  Watch `process_resident_memory_bytes` ([monitoring](#monitoring-with-prometheus)) as your federation grows.
 - **Disk.** The relay keeps game statistics for 72 hours, offers 30 days, votes 97 days, announcements until a network
   has been silent 180 days ([what is kept](RELAY.md#upgrades-backups-and-data)). Each player sends at most one
-  statistics record per five minutes, usually a few kilobytes: a hundred players busy all day add up to well under a
-  gigabyte. A few GB of free disk is plenty.
+  statistics record per five minutes, about a kilobyte with its receipt: the table above has the totals. A few GB of
+  free disk is plenty for most servers.
 - **Traffic.** Records in, receipts and the pieces of leaderboards players look at out (never whole boards). A hundred
   active players are a few hundred MB a day at most; the terabyte a typical VPS includes is far more than you need.
   The limits that bound it: 5000 open connections, 20 messages per second each, 30 new connections per address per

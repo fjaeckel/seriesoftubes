@@ -353,10 +353,9 @@ How it works (`relay/internal/rank`):
   rankings through a queue, so storing them never waits for a ranking.
 - **Start-up.** The rankings are built from the data folder in parallel while the node already serves; until they
   are ready (a fraction of a second for ten thousand networks) `rank` is answered `rate_limited`.
-- **Memory.** About 9 KB per network that reports player traffic (its per-slot totals) plus about half a kilobyte per
-  stats record held. Measured: 10,000 networks with a record every two hours (270,000 records) take about 23 KB each,
-  some 230 MB; networks that report every five minutes take more, in proportion to their records (which the data
-  folder holds anyway).
+- **Memory.** About 4.6 KB per network that reports player traffic (its per-slot totals, 32 bits each until a network
+  needs more) plus about 400 bytes per stats record held (the record packed, sharing other networks' keys with them).
+  With the store's own entry, a relay takes about 0.7 KB per record in all: see [Memory and disk](#memory-and-disk).
 - `relay board` shows a whole board as players' games see it.
 
 ## Upgrades, backups and data
@@ -376,6 +375,27 @@ How it works (`relay/internal/rank`):
 network and 5-minute slot, the newest; at most 4096 offers per network, 128 to any one other). What a
   `leave` removes is removed for good. Daily files are rewritten or deleted once nothing in them is kept, today's
   included, at the hourly retention run.
+
+### Memory and disk
+
+The files are the records; memory holds an index of them. Per record the store keeps a 112-byte entry (id, author,
+kind, time, board slot, storage number, where its line is in its day file) and the indexes over it, about 240 bytes in
+all, and reads the record back from its file when it sends it (half a microsecond from the page cache; frames carry the
+stored text as it is, nothing is parsed or encoded again). The last 4 MB of records stored stay in memory, for the
+pushes, fetches and resumed subscriptions that ask for them most, and so do the server's own chain and hide records.
+The leaderboards keep their own packed copy of each stats record (about 400 bytes). Measured with
+`go test ./internal/node -run '^$' -bench Memory -benchtime 1x` on a generated data folder (stats with four traffic
+partners and a transit relationship, a week of daily announces, ten answered offers per network):
+
+| Each network | Records held | Go heap | Disk |
+| --- | ---: | ---: | ---: |
+| Stats once an hour (typical) | about 100 | 65 KB (660 B a record) | 97 KB |
+| Stats every 5-minute slot (the most a client may send) | about 890 | 630 KB (705 B a record) | 930 KB |
+
+Earlier builds kept every record parsed in memory: 5.4 to 5.9 KB of heap per record, 534 KB and 5.2 MB
+per network in the two cases above. The process's resident size is the heap plus 30 to 40 MB for the program, and up to
+the heap again before Go collects garbage; [HOSTING.md](HOSTING.md#what-it-costs) turns this into machine sizes. The
+data folder from earlier builds is read as it is (same day-file format).
 
 ## Versions and update notices
 
@@ -503,32 +523,40 @@ go run ./cmd/relayload --help               # every rate and threshold
 
 ### Results
 
-On an Apple Silicon Mac (8 CPUs, 24 GB), November 2026, with the defaults (20 servers in a ring with chords, 1000
-players round-robin, 12 minutes after a one-minute ramp). Browser end-to-end tests ran on the same machine at times
-(load average 2 to 10 during the run), so the tails are pessimistic. Every assertion passed.
+On an Apple Silicon Mac (8 CPUs, 24 GB), 13 November 2026, with the defaults (20 servers in a ring with chords, 1000
+players round-robin, 12 minutes after a one-minute ramp), once with the store that reads records back from its files
+(now) and once, right after, with the build before it that kept every record parsed in memory. Other work ran on the
+machine throughout (load average 3 to 13 in both runs), so the tails are pessimistic. Every assertion passed in both.
 
-| Players saw (ms) | n | p50 | p95 | p99 | max |
+| Players saw (ms), now / before | n | p50 | p95 | p99 | max |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Connect (TLS, hello, challenge, `auth`) | 1442 | 2.5 | 4.4 | 7.0 | 22.6 |
-| `put` to `ack` (all kinds) | 6943 | 1.8 | 9.2 | 15.5 | 49.3 |
-| `rank` once a slot had finished | 4497 | 0.7 | 2.7 | 6.1 | 53.0 |
-| `nets` | 2252 | 0.7 | 1.7 | 5.8 | 19.0 |
-| `rankwhy` (to the last frame) | 937 | 0.4 | 1.3 | 4.0 | 14.5 |
-| `sub` backlog, first connection | 1000 | 7.2 | 15.3 | 23.3 | 34.0 |
-| `sub` backlog, resumed with a cursor | 442 | 0.2 | 0.4 | 0.8 | 2.7 |
-| Announce reaching another server, 1 hop | 7096 | 5.4 | 12.2 | 16.9 | 29.8 |
-| Announce reaching another server, 4 hops | 3548 | 13.5 | 22.1 | 25.9 | 39.7 |
-| Sealed offer to its answer, across servers | 853 | 6.6 | 15.0 | | 59.1 |
+| Connect (TLS, hello, challenge, `auth`) | 1443 | 3.3 / 2.8 | 5.5 / 5.2 | 10.7 / 10.1 | 30.8 / 39.4 |
+| `put` to `ack` (all kinds) | 6551 | 2.5 / 2.5 | 12.3 / 10.4 | 19.4 / 16.0 | 30.6 / 54.1 |
+| `rank` once a slot had finished | 3532 | 1.2 / 1.0 | 3.8 / 3.7 | 7.8 / 8.0 | 22.1 / 21.9 |
+| `nets` | 2260 | 1.1 / 1.0 | 2.5 / 2.1 | 8.5 / 6.2 | 17.2 / 15.4 |
+| `rankwhy` (to the last frame) | 794 | 0.4 / 0.5 | 1.2 / 1.5 | 5.6 / 5.0 | 8.3 / 11.0 |
+| `sub` backlog, first connection | 1000 | 8.8 / 7.7 | 19.8 / 15.5 | 22.8 / 25.0 | 29.6 / 40.0 |
+| `sub` backlog, resumed with a cursor | 443 | 0.2 / 0.2 | 0.4 / 0.3 | 0.8 / 0.9 | 5.3 / 1.4 |
+| Announce reaching another server, 1 hop | 7032 | 3.8 / 6.9 | 12.2 / 13.3 | 17.9 / 17.4 | 29.2 / 49.3 |
+| Announce reaching another server, 4 hops | 3516 | 11.6 / 15.9 | 23.6 / 22.6 | 28.8 / 26.3 | 37.9 / 41.8 |
+| Sealed offer to its answer, across servers | 807 | 13.1 / 12.5 | 16.8 / 16.2 | | 30.1 / 68.0 |
 
-- All 6943 puts acked, no error of any kind, no `rate_limited`; every announce reached every other server within
-  10 s; 1018 offers, all delivered and answered (697 accepted, 321 declined, sealed both ways and opened by the
+| Each relay (mean of 20), now / before | |
+| --- | --- |
+| Records held at the end | 6229 / 6810 |
+| CPU, average and highest over 10 s (% of one core) | 1.2 and 1.5 / 1.1 and 1.2 |
+| RSS at start, mid-run, end (MB) | 37, 56, 63 / 50, 91, 114 |
+| Go heap mid-run, end (MB) | 23, 27 / 46, 74 |
+
+- All 6551 puts acked, no error of any kind, no `rate_limited`; every announce reached every other server within
+  10 s; 998 offers, all delivered and answered (698 accepted, 300 declined, sealed both ways and opened by the
   other party); not one deal record at a third party (players or the 20 observers).
 - After the run every server's `pops` board listed all 1000 networks, with the same top rows on all 20.
-- Each relay (50 players, 4 neighbours, 6727 records at the end): 1.1% of one core on average, 6% at most over
-  30 s (a slot boundary); 195 goroutines throughout; RSS 49 MB at start, 82 mid-run, 110 at the end, its Go heap
-  50 to 80 MB. Memory grows with the records held, about 4.4 KB of heap per record (the store keeps every record
-  parsed in memory, plus the boards' per-network slots). Records: 9.6 per second put by players, 155 per second
-  stored over the 20 relays, 1650 per second sent; the load generator used 6% of one core.
+- Each relay (50 players, 4 neighbours) ran 195 goroutines throughout. Its memory now grows with the records it holds
+  at under a kilobyte each (its 50 sessions, caches and buffers are most of the heap here); before,
+  about 4.4 KB each. Latencies are the same within the noise of the machine: reading a record back from its file
+  costs half a microsecond, against encoding it from the parsed copy before. Records: 9.1 per second put by players,
+  154 per second stored over the 20 relays, 1620 per second sent; the load generator used 7% of one core.
 - `--quick --mesh full --spread skewed` (2.5 minutes, every server synced with all 19 others, the first server
   with 278 players) also passed, with a load average of 30 to 50 from other work on the machine: put p95 0.8 s and
   connect p95 2.4 s during the ramp, warm `rank` p95 5 ms, announce propagation p95 215 ms.
