@@ -1,0 +1,139 @@
+{
+  "description": "now = 1767398410, so c = 1767398400 (the running slot, i = 576); slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. The live states held at now make the running slot one more slot of the current window (10.13): a key whose live state (t less than 900 s before now) is in normal mode gets one more sample there, the latest. POPs growth: the current window's latest value is the running slot's. kA had 20 POPs in the previous window (i = 0), 25 from i = 288, and its live state says 30: div((30 - 20) * 10000, 20) = 5000.",
+  "input": {
+    "now": 1767398410,
+    "board": "pops",
+    "measure": "growth",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "records": [
+      {
+        "id": "r1",
+        "key": "kA",
+        "slot": 1767225600,
+        "t": 1767225620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "c00": 1,
+            "c01": 1,
+            "c02": 1,
+            "c03": 1,
+            "c04": 1,
+            "c05": 1,
+            "c06": 1,
+            "c07": 1,
+            "c08": 1,
+            "c09": 1,
+            "c10": 1,
+            "c11": 1,
+            "c12": 1,
+            "c13": 1,
+            "c14": 1,
+            "c15": 1,
+            "c16": 1,
+            "c17": 1,
+            "c18": 1,
+            "c19": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r2",
+        "key": "kA",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "c00": 1,
+            "c01": 1,
+            "c02": 1,
+            "c03": 1,
+            "c04": 1,
+            "c05": 1,
+            "c06": 1,
+            "c07": 1,
+            "c08": 1,
+            "c09": 1,
+            "c10": 1,
+            "c11": 1,
+            "c12": 1,
+            "c13": 1,
+            "c14": 1,
+            "c15": 1,
+            "c16": 1,
+            "c17": 1,
+            "c18": 1,
+            "c19": 1,
+            "c20": 1,
+            "c21": 1,
+            "c22": 1,
+            "c23": 1,
+            "c24": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ],
+    "states": [
+      {
+        "id": "s1",
+        "key": "kA",
+        "t": 1767398400,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "c00": 1,
+            "c01": 1,
+            "c02": 1,
+            "c03": 1,
+            "c04": 1,
+            "c05": 1,
+            "c06": 1,
+            "c07": 1,
+            "c08": 1,
+            "c09": 1,
+            "c10": 1,
+            "c11": 1,
+            "c12": 1,
+            "c13": 1,
+            "c14": 1,
+            "c15": 1,
+            "c16": 1,
+            "c17": 1,
+            "c18": 1,
+            "c19": 1,
+            "c20": 1,
+            "c21": 1,
+            "c22": 1,
+            "c23": 1,
+            "c24": 1,
+            "c25": 1,
+            "c26": 1,
+            "c27": 1,
+            "c28": 1,
+            "c29": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 5000
+      }
+    ]
+  }
+}

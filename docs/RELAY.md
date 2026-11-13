@@ -598,7 +598,11 @@ go run ./cmd/relayload --help               # every rate and threshold
   ask `nets` and `facets`, make sealed peering offers to random players (mostly on other servers) which the
   counterparty opens and accepts or declines (sealed), and now and then lose the connection and resume with
   their cursor. Defaults model a busy evening with everyone online at once: an announce every 15 minutes, a
-  leaderboard look every 2 minutes, `nets` every 5, an offer every 10, a dropped connection every 30.
+  leaderboard look every 2 minutes, `nets` every 5, an offer every 10, a dropped connection every 30. Each player also
+  sends a live state every 10 s when its numbers changed (half the ticks) and a keepalive every 3 minutes
+  (`--state-every`, `--state-change`); every 5 s a probe gives one player's state a marker and a session on every other
+  server asks its pies board of now until the marker shows, which measures how long a state takes to reach the boards
+  of now elsewhere.
 - **Limits stay as in production.** Every player sends its own private address in `X-Forwarded-For`, which
   the relays believe from loopback (their default `trustedProxies`), so the per-address connection limit counts
   each player separately; no limit is raised.
@@ -610,7 +614,8 @@ go run ./cmd/relayload --help               # every rate and threshold
   and end; records and frames per second. After a full run every server's `pops` board must list the players
   that sent stats, with the same top rows on every server.
 - **Fails** (exit 1) when a relay exits, a player cannot connect, fewer than 99% of puts are acked, announce
-  propagation p95 is over 10 s, a deal record leaks, fewer than 95% of offers are answered, warm `rank` p95 is
+  propagation p95 is over 10 s, live state propagation p95 to the boards of now is over 10 s (`--state-p95`), a deal
+  record leaks, fewer than 95% of offers are answered, warm `rank` p95 is
   over 1 s, the boards disagree, or a relay's memory grows by half between mid-run and the end. Thresholds are
   flags.
 - **Open files**: 1000 players need about 2500 descriptors across the processes. The tool raises its own soft

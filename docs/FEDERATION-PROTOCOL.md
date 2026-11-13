@@ -752,8 +752,8 @@ it is neither answered nor a reason to close, so an older game keeps working wit
 | `unsub` | client → node | `id` (of the `sub`) | `ack` |
 | `fetch` | client → node | `id`, `ids` ([Id] max 256) | `recs` (missing ids are left out) |
 | `rank` | client → node | `id`, `board`, `measure`, `division`, `filters` (optional), `n` (optional) | `ranks`: the top rows of a slice and the asker's own row (9.5) |
-| `ranks` | node → client | `id`, `slot`, `n`, `rows`, `me`; `at` for the measure `now` | |
-| `rankwhy` | client → node | `id`, `board`, `measure`, `division`, `filters` (optional), `key`, `at` (optional, the measure `now`) | `recs` with the records behind one row, and `slot` (and `at` for `now`) (9.5) |
+| `ranks` | node → client | `id`, `slot`, `n`, `rows`, `me`, `at` (the snapshot of live states, 10.13) | |
+| `rankwhy` | client → node | `id`, `board`, `measure`, `division`, `filters` (optional), `key`, `at` (optional) | `recs` with the records and live states behind one row, `slot` and `at` (9.5) |
 | `facets` | either | `id`; answering, also `slot`, `models`, `harnesses`, `from`, `homes` | `facets`: the values a filter sheet offers (9.5) |
 | `nets` | client → node | `id`, `keys` ([Key] max 64) | `netstats` `{id, nets, reports}` (9.5) |
 | `servers` | client → node | `id` | `catalog` |
@@ -908,9 +908,12 @@ With `c = slot(now)` at the node:
   is fine, so the connection stays); members of `filters` not defined here are ignored. The answer is
   **`ranks`** `{m, id, slot, n, rows, me}`:
   - `slot`: `c`, the running slot the ranking is for (its windows end at `c - 300`).
-  - `at` (the measure `now` only): the time of the snapshot of live states it ranks (10.13). A node ranks a snapshot
-    taken when asked, reused while it is under a few seconds old (the reference relay: 2 s), and keeps recent snapshots
-    a while (the reference relay: 30 s) for `rankwhy`.
+  - `at`: the time of the snapshot of live states it ranks (10.13): the whole of a board of `now`, and the running
+    slot that ends the current window of the other measures. A node ranks a snapshot taken when asked, reused while it
+    is under a few seconds old and in the same slot (the reference relay: 2 s for `now`, 10 s for the others), and
+    keeps recent snapshots a while (the reference relay: 30 s) for `rankwhy`. **Freshness:** a node never answers a
+    `rank`, `rankwhy` or `facets` from anything worked out more than 30 s before, whatever the measure, so what a game
+    shows follows what networks report within about 30 s.
   - `n`: how many networks the whole slice holds.
   - `rows`: its first `n` (asked) rows in board order, each `{rank, key, value, asn, ai, name?, home?, cc?}`: `rank`
     the position in the slice (1 first), `value` the board's value (10.4, 10.5), `asn` the key's ASN (3.4), `ai`
@@ -933,8 +936,10 @@ With `c = slot(now)` at the node:
   reach: those any held record of the key lists in `cust`, those any held record of theirs lists, and so on (whose
   `up`, traffic and `founded` decide each edge, 10.4), except networks the server leaves out.
   At most 512 such networks and 20000 records: beyond that `err` `too_many`. `key` not a Key: `bad_key`.
-  For the measure `now`, `rankwhy` answers from the snapshot made at `at` (the `ranks` answer's) when the node still
-  keeps it, else from the newest; its frames carry that snapshot's `at`. They hold the live states behind the row (no
+  Every `rankwhy` may carry `at` (the `ranks` answer's) and answers from the snapshot made then when the node still
+  keeps it, else from the newest; its frames carry that snapshot's `at`. For the measures `total` and `growth` they also
+  hold the live states the running slot reads (10.13): the key's and, when it has one, those of the networks named
+  above (partners, cone members, whose cone lists include their live states' `cust`). For the measure `now` they hold the live states behind the row (no
   receipts): the key's, on the traffic board those of each network its state lists, on the cone board those of each
   network its cone can reach over `cust` lists of live states (with their newest announces), except networks the
   server leaves out; plus the key's newest announce and its newest `stats` record (the country, 10.12).
@@ -957,9 +962,9 @@ With `c = slot(now)` at the node:
 works the key's value out with 10.1 to 10.5 and 10.12 from those records alone (the excluded set: the server's
 `excluded` list and its `hide` record's `hide` and `refuse`), and compares: a row must be listed, pass the filters
 and have the same `value`; `me` must match whether the key is on the board, whether it passes the filters (`rank`
-null or not) and its `value`. When the `rankwhy` answer is for another slot (for `now`: another `at`), or a record carries a receipt of a server
-the game does not know, the row cannot be checked and nothing follows. A board of `now` is worked out with 10.13 at
-`at`, each state checked as at `at` (so one live then is never too old). A row that does not match, asked again and
+null or not) and its `value`. When the `rankwhy` answer is for another slot or another `at`, or a record carries a receipt of a server the game
+does not know, the row cannot be checked and nothing follows. The row is worked out at `at` (its slot `c`), each
+state checked as at `at` (so one live then is never too old). A row that does not match, asked again and
 still not matching, means the server sent a ranking its own records do not give: the game leaves that server's
 rankings out (and prefers its other servers) for 24 hours and tells the player. Spot checks deter; they cannot prove
 which networks a server left out or which rows it chose to send.
@@ -976,7 +981,7 @@ it was silent for more than 72 hours and has posted again since.
 
 - `slot(x) = x - (x mod 300)`.
 - At time `now`, let `c = slot(now)`. The **current window** is the 288 complete slots before `c`:
-  `c - 288 * 300` to `c - 300`. The **previous window** is the 288 slots before that: `c - 576 * 300` to
+  `c - 288 * 300` to `c - 300`, followed by the **running slot** `c` for keys with a live state (10.13). The **previous window** is the 288 slots before that: `c - 576 * 300` to
   `c - 289 * 300`. The slot `c` itself is still running and belongs to neither.
 - The **board slot** of a record is the slot of its receipt (6.1). When a record carries several valid receipts, the
   earliest `t` among them. Never the author's `t`. A record with no valid receipt (6.1) has no board slot and takes no
@@ -1334,6 +1339,22 @@ exists, has `mode` `normal` and `X` is not excluded.
   `at`: its newest announce has `div(at, 86400) - founded >= 30`. A region does not change it.
 
 Rows are sorted as in 10.4. There is no growth of now.
+
+**The running slot.** The measures `total` and `growth` (10.4, 10.5) also read the live states held at `at` (the
+snapshot's time, in slot `c`): a key `X` listed on a board (10.3, unchanged: a value at `last`) whose `L(X)` exists in
+normal mode has one more sample in its current window, at the running slot `c`, after the 288 complete slots (so 289
+samples, and `k = div(289 * 5, 100) = 14`). There, every network reports with its live state, else with its effective
+record at `c` (10.2, records of the running slot included), else nothing: `run(Y) = L(Y)`, else `eff(Y, c)`.
+
+- POPs and pies: the sample is `L(X)`'s, and the latest of the window, so it is the value.
+- Total traffic: `L(X).total` (0 when absent). Traffic: as 10.4 step 1 with `L(X)`'s list and each `Y`'s `run(Y)` in
+  place of `eff(Y, s)` (no `run(Y)` at all: `X`'s report counts; `run(Y)` not in `normal` mode, or `Y` excluded: 0;
+  with a region, only `Y` whose `run(Y)` is in `normal` mode with a POP there).
+- Customer cone: 10.4's cone at `c` over the graph of `run(·)`, established counted at `div(c, 86400)`.
+- Growth compares the current window, its running sample included, with the previous one (unchanged).
+
+A key without a live state, or with one in another mode, has no sample there: its value is that of the complete
+slots. So a change a game reports shows on every measure within seconds, not when the slot ends.
 
 ## 11. The registry
 

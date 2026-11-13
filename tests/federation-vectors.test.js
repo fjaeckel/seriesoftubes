@@ -55,7 +55,7 @@ const AREA = {
     for(const s of i.queries){const w=by.get(i.records[0].key)||[],e=fedEffs(w,s,s)[0];out.push({s,eff:e?e.id:null,value:fedHas(e)});}
     return {results:out};})()`, i),
   // The relay ranks; a game works out one network's value to check a row (fedRankOne): every key of a vector, ranked.
-  boards: (run, i) => run(`({rows:(()=>{const rows=[];for(const k of new Set(i.records.map(r=>r.key))){const x=fedRankOne({...i,filters:{}},k,i.records,null);
+  boards: (run, i) => run(`({rows:(()=>{const rows=[];for(const k of new Set(i.records.map(r=>r.key))){const x=fedRankOne({...i,filters:{}},k,i.records,null,i.states);
     if(x.listed&&x.kept)rows.push({key:k,value:x.value});}return rows.sort((a,b)=>b.value-a.value||fedByStr(a.key,b.key));})()})`, i),
   // Boards of now (10.13): fedNowOne for every key of a vector, ranked.
   now: (run, i) => run(`({rows:(()=>{const rows=[];for(const k of new Set(i.states.map(r=>r.key))){const x=fedNowOne({...i,filters:{}},k,i.states,null,null);

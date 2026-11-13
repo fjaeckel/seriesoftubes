@@ -62,6 +62,7 @@ type options struct {
 	r                  rates
 	minAcked, minDeals float64
 	propP95, rankP95   time.Duration
+	stateP95           time.Duration
 	memGrowth          float64
 	readyTimeout       time.Duration
 }
@@ -100,6 +101,9 @@ func parseFlags(args []string) options {
 	fs.DurationVar(&o.r.facets, "facets-every", 15*time.Minute, "mean interval of a player's facets request")
 	fs.DurationVar(&o.r.deal, "deal-every", 10*time.Minute, "mean interval of a player's offer")
 	fs.DurationVar(&o.r.reconnect, "reconnect-every", 30*time.Minute, "mean interval of a player's dropped connection (resumed with its cursor)")
+	fs.DurationVar(&o.r.state, "state-every", 10*time.Second, "a player's live state tick (0: no live states)")
+	fs.Float64Var(&o.r.change, "state-change", 0.5, "fraction of state ticks whose numbers changed (the others send only the keepalive)")
+	fs.DurationVar(&o.stateP95, "state-p95", 10*time.Second, "assert: a live state shows on every other server's board of now within this (p95)")
 	fs.Float64Var(&o.r.rankwhy, "rankwhy", 0.25, "fraction of rank answers spot-checked with rankwhy")
 	fs.Float64Var(&o.r.filtered, "filtered", 0.3, "fraction of rank requests with filters")
 	fs.Float64Var(&o.r.cross, "cross", 0.8, "fraction of offers to a player on another server")
@@ -249,7 +253,7 @@ func run(o options) int {
 	logf("relays up and synced with their neighbours in %.1fs", syncTime.Seconds())
 
 	m := newMeter()
-	w := &world{c: c, m: m, prop: newPropagation(c.dist), deals: newDealBook(), r: o.r, byKey: map[string]*player{},
+	w := &world{c: c, m: m, prop: newPropagation(c.dist), sprop: newPropagation(c.dist), deals: newDealBook(), r: o.r, byKey: map[string]*player{},
 		live: make([]atomic.Int64, o.servers)}
 	w.hc = &http.Client{Transport: loopbackTransport(c.pool, func(nc net.Conn) net.Conn { return counted{nc, m} })}
 	for i := range o.clients {
@@ -269,6 +273,14 @@ func run(o options) int {
 		go p.run(pctx, time.Duration(float64(o.ramp)*float64(i)/float64(o.clients)), &wg)
 	}
 	obs := startObservers(pctx, w)
+	probes := make(chan struct{})
+	go func() {
+		defer close(probes)
+		if o.r.state > 0 {
+			time.Sleep(o.ramp)
+			probeStates(pctx, w)
+		}
+	}()
 
 	// Periodic samples: progress, peaks, and the start / mid / end the report compares.
 	var samples []*sample
@@ -336,6 +348,7 @@ loop:
 	pcancel()
 	wg.Wait()
 	obs.wait()
+	<-probes
 	var boardsOK *boardCheck
 	if !o.quick && ctx.Err() == nil {
 		boardsOK = checkBoards(ctx, w)
@@ -546,6 +559,7 @@ type Report struct {
 	Counts      map[string]int64            `json:"counts"`
 	Refusals    map[string]float64          `json:"relayRefusals"`
 	Prop        PropReport                  `json:"propagation"`
+	StateProp   PropReport                  `json:"statePropagation"`
 	Deals       DealReport                  `json:"deals"`
 	Observers   map[string]int64            `json:"observers"`
 	Relays      []RelayRow                  `json:"relays"`
@@ -569,7 +583,7 @@ func buildReport(o options, c *cluster, w *world, idle, st, mid, end *sample, ti
 				"rankwhy": fmt.Sprint(o.r.rankwhy), "filtered": fmt.Sprint(o.r.filtered), "cross": fmt.Sprint(o.r.cross)}},
 		SyncSeconds: syncTime.Seconds(), PlaySeconds: playEnd.Sub(playStart).Seconds(), Connected: m.count("connected"),
 		Latency: map[string]Dist{}, Errors: m.errs, Counts: m.counts, Refusals: map[string]float64{},
-		Prop: w.prop.report(playEnd), Deals: w.deals.report(playEnd),
+		Prop: w.prop.report(playEnd), StateProp: w.sprop.report(playEnd), Deals: w.deals.report(playEnd),
 		Totals: map[string]float64{}, Load: map[string][3]float64{}, Boards: boards}
 	if allConn {
 		rep.AllBy = allAt.Seconds()
@@ -692,6 +706,12 @@ func buildReport(o options, c *cluster, w *world, idle, st, mid, end *sample, ti
 	}
 	if p := rep.Prop.All; p.N > 0 && p.P95 > float64(o.propP95/time.Millisecond) {
 		fail("announce propagation p95 %.0f ms (want under %s)", p.P95, o.propP95)
+	}
+	if p := rep.StateProp.All; p.N > 0 && p.P95 > float64(o.stateP95/time.Millisecond) {
+		fail("live state propagation p95 %.0f ms (want under %s)", p.P95, o.stateP95)
+	}
+	if o.r.state > 0 && rep.StateProp.Expected > 0 && rep.StateProp.Within60 < 0.99 {
+		fail("only %.2f%% of live states showed on every other server's board of now within 60 s", 100*rep.StateProp.Within60)
 	}
 	if rep.Prop.Expected > 0 && rep.Prop.Within60 < 0.99 {
 		fail("only %.2f%% of announces reached every other server within 60 s", 100*rep.Prop.Within60)
@@ -848,6 +868,20 @@ func (r *Report) markdown() string {
 	p("| all | %d | %s | %s | %s | %s |\n\n", d.N, ms(d.P50), ms(d.P95), ms(d.P99), ms(d.Max))
 	p("Of %d (announce, other server) pairs put at least 60 s before the end: %.2f%% within 10 s, %.2f%% within 60 s, %d never.\n\n",
 		r.Prop.Expected, 100*r.Prop.Within10, 100*r.Prop.Within60, r.Prop.Never)
+	p("## Live states: a state sent on one server, shown on another server's board of now (ms)\n\n| Hops | n | p50 | p95 | p99 | max |\n| ---: | ---: | ---: | ---: | ---: | ---: |\n")
+	hs = hs[:0]
+	for h := range r.StateProp.ByHops {
+		hs = append(hs, h)
+	}
+	sort.Ints(hs)
+	for _, h := range hs {
+		d := r.StateProp.ByHops[h]
+		p("| %d | %d | %s | %s | %s | %s |\n", h, d.N, ms(d.P50), ms(d.P95), ms(d.P99), ms(d.Max))
+	}
+	d = r.StateProp.All
+	p("| all | %d | %s | %s | %s | %s |\n\n", d.N, ms(d.P50), ms(d.P95), ms(d.P99), ms(d.Max))
+	p("Of %d (state, other server) pairs sent at least 60 s before the end: %.2f%% within 10 s, %.2f%% within 60 s, %d never. Includes the boards' snapshot age (up to 2 s) and the 500 ms polling.\n\n",
+		r.StateProp.Expected, 100*r.StateProp.Within10, 100*r.StateProp.Within60, r.StateProp.Never)
 	dl := r.Deals
 	p("## Sealed deals\n\n%d offers (put at least 60 s before the end), %d cross-server: answered %.1f%% cross-server, %.1f%% same server; %d accepted, %d declined (sealed), %d never delivered.  \n",
 		dl.Offers, dl.Cross, 100*dl.CrossRate, 100*dl.SameRate, dl.Accepted, dl.Declined, dl.Undelivered)

@@ -29,6 +29,8 @@ type rates struct {
 	facets    time.Duration // the filter sheet opened
 	deal      time.Duration // an offer to another player
 	reconnect time.Duration // the connection drops (phone changes network) and resumes with its cursor
+	state     time.Duration // the game's live state tick (5.11): a state when the numbers changed
+	change    float64       // fraction of state ticks whose numbers changed
 	rankwhy   float64       // fraction of rank answers spot-checked with rankwhy
 	filtered  float64       // fraction of rank requests with filters
 	cross     float64       // fraction of offers to a player on another server
@@ -43,6 +45,7 @@ type world struct {
 	byKey   map[string]*player
 	m       *meter
 	prop    *propagation
+	sprop   *propagation // live states: a probe's marker seen on another server's board of now
 	deals   *dealBook
 	r       rates
 	warmAt  time.Time      // rank answers after this count as warm (a finished slot with records)
@@ -81,6 +84,9 @@ type player struct {
 	day       int64
 	handled   map[string]bool // offers answered
 	lastStats int64           // slot of the last stats put (one per slot, 5.2)
+	stBody    map[string]any  // the numbers of the live state (5.11)
+	stAt      time.Time       // when the last state was acked
+	marker    int64           // pies value a probe set (states.go), 0 for none
 	connected atomic.Bool
 }
 
@@ -497,9 +503,19 @@ func strs(l []string) []any {
 	return out
 }
 
-// stats puts this slot's stats: POPs, traffic with a few other players, and the transit
-// relationships of its group of ten (one seller, nine customers), so every board has data.
+// stats puts this slot's stats.
 func (p *player) stats(ctx context.Context) {
+	p.mu.Lock()
+	body := p.body()
+	p.mu.Unlock()
+	if p.put(ctx, p.key.Seal("stats", time.Now().Unix(), body)) != "" {
+		p.w.statsAt.LoadOrStore(p.key.Key, time.Now().Unix())
+	}
+}
+
+// body is what the player reports (p.mu held): POPs, traffic with a few other players, and the
+// transit relationships of its group of ten (one seller, nine customers), so every board has data.
+func (p *player) body() map[string]any {
 	w := p.w
 	n := len(w.players)
 	pops := map[string]any{}
@@ -507,7 +523,6 @@ func (p *player) stats(ctx context.Context) {
 		pops[c] = int64(1)
 	}
 	var traffic []any
-	p.mu.Lock()
 	for j := 1; j <= 4 && j < n; j++ {
 		o := w.players[(p.i+j*37)%n]
 		if o == p {
@@ -516,7 +531,6 @@ func (p *player) stats(ctx context.Context) {
 		traffic = append(traffic, map[string]any{"key": o.key.Key, "in": int64(100 + p.rnd.IntN(5000)), "out": int64(100 + p.rnd.IntN(5000))})
 	}
 	total := int64(1000 + p.rnd.IntN(100000))
-	p.mu.Unlock()
 	body := map[string]any{"mode": "normal", "pops": pops, "traffic": traffic, "total": total, "tier1": p.i%50 == 0,
 		"shareCountry": false, "pies": int64(p.i % 7)}
 	if traffic == nil {
@@ -537,9 +551,7 @@ func (p *player) stats(ctx context.Context) {
 	if p.ai {
 		body["ai"] = map[string]any{"model": "example-model-1", "harness": "tubes-mcp"}
 	}
-	if p.put(ctx, p.key.Seal("stats", time.Now().Unix(), body)) != "" {
-		w.statsAt.LoadOrStore(p.key.Key, time.Now().Unix())
-	}
+	return body
 }
 
 var boards = []struct {
@@ -748,6 +760,9 @@ func (p *player) act(ctx context.Context, lost <-chan struct{}) string {
 		"deal":      now.Add(p.exp(w.r.deal)),
 		"reconnect": now.Add(p.exp(w.r.reconnect)),
 	}
+	if w.r.state > 0 {
+		next["state"] = now.Add(time.Duration(p.rnd.Int64N(int64(w.r.state))))
+	}
 	p.mu.Unlock()
 	for {
 		what, at := "", time.Time{}
@@ -778,7 +793,10 @@ func (p *player) act(ctx context.Context, lost <-chan struct{}) string {
 			next[what] = now.Add(p.exp(w.r.facets))
 		case "deal":
 			next[what] = now.Add(p.exp(w.r.deal))
+		case "state":
+			next[what] = now.Add(w.r.state)
 		}
+		change := p.rnd.Float64() < w.r.change
 		p.mu.Unlock()
 		switch what {
 		case "stats":
@@ -800,6 +818,8 @@ func (p *player) act(ctx context.Context, lost <-chan struct{}) string {
 			p.request(ctx, "facets", map[string]any{"m": "facets"})
 		case "deal":
 			p.offer(ctx)
+		case "state":
+			p.state(ctx, change)
 		case "reconnect":
 			return "drop"
 		}

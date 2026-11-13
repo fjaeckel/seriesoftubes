@@ -6,6 +6,7 @@ import (
 	"math/rand/v2"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/boards"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
@@ -218,5 +219,27 @@ func TestLiveStateKeeping(t *testing.T) {
 	a.DropState("k3")
 	if n, _ := a.LiveStats(); n != 1 {
 		t.Fatal("dropped", n)
+	}
+}
+
+// Nothing worked out is served once it is older than flightMaxAge, whatever the measure: the same
+// slice in the same state is worked out again.
+func TestNoAnswerOlderThanMaxAge(t *testing.T) {
+	old := flightMaxAge
+	flightMaxAge = 50 * time.Millisecond
+	defer func() { flightMaxAge = old }()
+	a := New(1)
+	defer a.Close()
+	a.Load(nil, nil, nil, nil)
+	a.Stats("r1", "k1", fed.Slot(t0)-fed.SlotLen, t0-300, map[string]any{"mode": "normal", "pops": map[string]any{"fra": int64(1)}, "traffic": []any{}, "tier1": false, "shareCountry": false}, "")
+	for _, m := range Measures {
+		q := &Slice{Board: "pops", Measure: m, Division: "all"}
+		first, _ := a.Rank(context.Background(), q, t0, "", 10)
+		again, _ := a.Rank(context.Background(), q, t0, "", 10)
+		time.Sleep(80 * time.Millisecond)
+		later, _ := a.Rank(context.Background(), q, t0, "", 10)
+		if first.Cached || !again.Cached || later.Cached {
+			t.Fatalf("%s: cached %v %v %v (want false, true, false)", m, first.Cached, again.Cached, later.Cached)
+		}
 	}
 }

@@ -106,14 +106,14 @@ func rowOf(rows []boards.Row, k string) (int64, bool) {
 	return 0, false
 }
 
-func compare(t *testing.T, a *Agg, h held, now int64, ex map[string]bool, founded map[string]int64, label string) {
+func compare(t *testing.T, a *Agg, h held, states []*boards.State, now int64, ex map[string]bool, founded map[string]int64, label string) {
 	t.Helper()
 	recs := h.list()
 	for _, b := range Boards {
 		for _, m := range []string{"total", "growth"} {
 			for _, d := range []string{"all", "human", "ai"} {
 				for _, cs := range [][]string{nil, {"fra"}, {"ams", "fra"}} {
-					want := boards.Compute(boards.Query{Now: now, Board: b, Measure: m, Division: d, Exclude: ex, Founded: founded, Cities: cs}, recs)
+					want := boards.Compute(boards.Query{Now: now, Board: b, Measure: m, Division: d, Exclude: ex, Founded: founded, Cities: cs, States: states}, recs)
 					ans, err := a.Rank(context.Background(), &Slice{Board: b, Measure: m, Division: d, Cities: cs}, now, "", -1)
 					if err != nil {
 						t.Fatal(err)
@@ -140,9 +140,13 @@ func compare(t *testing.T, a *Agg, h held, now int64, ex map[string]bool, founde
 					}
 					// rankwhy: the records it names are enough to work out each network's value alone.
 					for _, k := range keysOf(h) {
-						ids, anns, _, err := a.Why(&Slice{Board: b, Measure: m, Division: d, Cities: cs}, k, now)
-						if err != nil {
-							t.Fatal(err)
+						ids, anns, ls, _, at, err := a.Why(&Slice{Board: b, Measure: m, Division: d, Cities: cs}, k, now, ans.At)
+						if err != nil || at != ans.At {
+							t.Fatal(err, at, ans.At)
+						}
+						var sts []*boards.State
+						for _, l := range ls {
+							sts = append(sts, byID(states, l.ID))
 						}
 						// Only the announces it names: their founded must be enough.
 						fd := map[string]int64{}
@@ -155,7 +159,7 @@ func compare(t *testing.T, a *Agg, h held, now int64, ex map[string]bool, founde
 						for _, id := range ids {
 							sub = append(sub, h[id])
 						}
-						alone := boards.Compute(boards.Query{Now: now, Board: b, Measure: m, Division: d, Exclude: ex, Founded: fd, Cities: cs}, sub)
+						alone := boards.Compute(boards.Query{Now: now, Board: b, Measure: m, Division: d, Exclude: ex, Founded: fd, Cities: cs, States: sts}, sub)
 						wv, wok := rowOf(want, k)
 						gv, gok := rowOf(alone, k)
 						if wv != gv || wok != gok {
@@ -205,6 +209,7 @@ func TestRandomStreamsMatchReference(t *testing.T) {
 			announce(k)
 		}
 		nid := 0
+		var states []*boards.State
 		for step := range 6 {
 			c := fed.Slot(now)
 			lo := c - N*fed.SlotLen - fed.CarryForward - 3*fed.SlotLen
@@ -256,9 +261,18 @@ func TestRandomStreamsMatchReference(t *testing.T) {
 					}
 				}
 			}
-			compare(t, a, h, now, ex, founded, fmt.Sprintf("seed %d step %d", seed, step))
-			// The windows move on: a slot, a few, or a long gap.
-			now += []int64{fed.SlotLen, 3 * fed.SlotLen, 7, 400 * fed.SlotLen, 2000 * fed.SlotLen}[rng.IntN(5)]
+			// Live states: the running slot of the current window (10.13).
+			for range rng.IntN(2 * K) {
+				k := keys[rng.IntN(K)]
+				nid++
+				st := &boards.State{ID: fmt.Sprintf("s%05d", nid), Key: k, T: now - int64([]int{0, 3, 60, 890}[rng.IntN(4)]), Body: randBody(rng, k, partners)}
+				states = append(states, st)
+				a.State(st.ID, st.Key, st.T, st.Body, []byte(st.ID), now)
+			}
+			compare(t, a, h, states, now, ex, founded, fmt.Sprintf("seed %d step %d", seed, step))
+			// The windows move on: a slot, a few, or a long gap (the running slot's snapshot after
+			// winEvery seconds at most: a few seconds is past it).
+			now += []int64{fed.SlotLen, 3 * fed.SlotLen, winEvery + 1, 400 * fed.SlotLen, 2000 * fed.SlotLen}[rng.IntN(5)]
 		}
 		a.Close()
 	}

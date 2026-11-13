@@ -1,0 +1,124 @@
+{
+  "description": "now = 1767398410, so c = 1767398400 (the running slot, i = 576); slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. The live states held at now make the running slot one more slot of the current window (10.13): a key whose live state (t less than 900 s before now) is in normal mode gets one more sample there, the latest. POPs: the latest value, so the live state's. kA reported 3 at i = 300 and its live state says 5: 5. kB reported 4, its live state plays a sandbox: no sample, 4. kC reported 2, its live state is 900 s old (gone): 2.",
+  "input": {
+    "now": 1767398410,
+    "board": "pops",
+    "measure": "total",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "records": [
+      {
+        "id": "r1",
+        "key": "kA",
+        "slot": 1767315600,
+        "t": 1767315620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1,
+            "ams": 1,
+            "lon": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r2",
+        "key": "kB",
+        "slot": 1767315600,
+        "t": 1767315620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "nyc": 4
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r3",
+        "key": "kC",
+        "slot": 1767315600,
+        "t": 1767315620,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 2
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ],
+    "states": [
+      {
+        "id": "s1",
+        "key": "kA",
+        "t": 1767398405,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1,
+            "ams": 1,
+            "lon": 1,
+            "par": 1,
+            "mad": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s2",
+        "key": "kB",
+        "t": 1767398405,
+        "body": {
+          "mode": "sandbox",
+          "pops": {
+            "nyc": 9
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s3",
+        "key": "kC",
+        "t": 1767397510,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 7
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 5
+      },
+      {
+        "key": "kB",
+        "value": 4
+      },
+      {
+        "key": "kC",
+        "value": 2
+      }
+    ]
+  }
+}

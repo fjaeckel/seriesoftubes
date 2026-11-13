@@ -327,11 +327,12 @@ async function fedRankCheck(c,req,a){const f=c.M.fed,me=f.key.pub,rows=a.rows.fi
     if(r===false){await fedDistrust(c);return false;}}
   return true;}
 // One row (p: {key, own}) of an answer against the records rankwhy shows for it.
-// On a board of now, the states of the snapshot the answer used (at): another snapshot cannot check it.
-async function fedRankRow(c,req,a,p){const isNow=req.measure==='now',m={m:'rankwhy',board:req.board,measure:req.measure,division:req.division,filters:req.filters,key:p.key};
-  if(isNow)m.at=a.at;const w=await fedAskRetry(c,m,true);
-  if(!w||w.m!=='recs'||w.slot!==a.slot||isNow&&w.at!==a.at||!fedLive(c))return null;const now=fedNow(),srvs=await fedServers();
-  const ex=new Set(await fedServerExcl(c)),q={now:isNow?a.at:a.slot,board:req.board,measure:req.measure,division:req.division,exclude:[...ex],cities:req.filters.cities||null,filters:req.filters};
+// The live states of the snapshot the answer used (at: a board of now, and the running slot of the others, §10.13);
+// another snapshot cannot check it. An answer without at (an older relay) is checked against its slot alone.
+async function fedRankRow(c,req,a,p){const has=a.at!==undefined,m={m:'rankwhy',board:req.board,measure:req.measure,division:req.division,filters:req.filters,key:p.key};
+  if(has)m.at=a.at;const w=await fedAskRetry(c,m,true);
+  if(!w||w.m!=='recs'||w.slot!==a.slot||has&&w.at!==a.at||!fedLive(c))return null;const now=fedNow(),srvs=await fedServers();
+  const ex=new Set(await fedServerExcl(c)),q={now:has?a.at:a.slot,board:req.board,measure:req.measure,division:req.division,exclude:[...ex],cities:req.filters.cities||null,filters:req.filters};
   // The records checked and worked out in the federation worker (fedWhyRun): null when a receipt comes from a server
   // this browser does not know, which cannot be checked, and then neither can the row.
   const x=await fwDo('why',{items:w.items,now,at:{srv:c.srv,nodeKey:c.nodeKey},srvs:fwSrvs(srvs),key:p.key,q});if(!x)return null;

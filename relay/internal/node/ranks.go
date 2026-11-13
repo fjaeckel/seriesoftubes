@@ -89,9 +89,7 @@ func (r *Relay) rankFrame(s *session, f *wire.Frame) {
 			me = map[string]any{"rank": rk, "value": ans.Me.Value}
 		}
 		m := map[string]any{"m": "ranks", "id": f.ID, "slot": ans.Slot, "n": int64(ans.N), "rows": rows, "me": me}
-		if q.Measure == "now" {
-			m["at"] = ans.At
-		}
+		m["at"] = ans.At // the snapshot of live states it ranks (its running slot, 10.13)
 		s.enqueue(m)
 	case "rankwhy":
 		q, _, code := rank.ParseRequest(f)
@@ -107,7 +105,8 @@ func (r *Relay) rankFrame(s *session, f *wire.Frame) {
 			r.whyNow(s, f, q, key, now)
 			return
 		}
-		ids, anns, slot, err := r.rank.Why(q, key, now)
+		at, _ := wire.Int(f.Raw["at"])
+		ids, anns, states, slot, at, err := r.rank.Why(q, key, now, at)
 		if errors.Is(err, rank.ErrTooMany) {
 			s.fail(f.ID, fed.TooMany, 0)
 			return
@@ -132,7 +131,11 @@ func (r *Relay) rankFrame(s *session, f *wire.Frame) {
 				list = append(list, a)
 			}
 		}
-		r.later(s, &listPager{rid: f.ID, m: "recs", entries: list, slot: slot})
+		vals := make([]map[string]any, len(states))
+		for i, l := range states {
+			vals[i] = map[string]any{"rec": canon.Raw(l.Raw), "rcpt": []any{}}
+		}
+		r.later(s, &listPager{rid: f.ID, m: "recs", vals: vals, entries: list, slot: slot, at: at})
 	case "facets":
 		fc, err := r.rank.Facets(ctx, now)
 		if err != nil {

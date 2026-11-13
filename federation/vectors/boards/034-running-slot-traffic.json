@@ -1,0 +1,224 @@
+{
+  "description": "now = 1767398410, so c = 1767398400 (the running slot, i = 576); slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. The live states held at now make the running slot one more slot of the current window (10.13): a key whose live state (t less than 900 s before now) is in normal mode gets one more sample there, the latest. Traffic: each key reported at i = 575 only, so its samples are that slot and, with a live state, the running slot (n = 2, k = 0: the higher counts). In the running slot a partner reports with its live state, else with its effective stats record at c, else (no record at all) the key's own report counts, as in 10.4. kA and kB both have live states: kA reports kB in 5000 out 5000, kB reports kA in 3000 out 800: kA in min(5000, 800), out min(5000, 3000): 3000; kB in 3000, out 800: 3000. Their records reported 100 each way. kC's live state reports kD 7000/7000, and kD has nothing: 7000. kE's live state reports kF 900/900; kF has no live state, its record reports kE 200/200: min 200, so kE 200. kF has no live state: no sample, its record's 200.",
+  "input": {
+    "now": 1767398410,
+    "board": "traffic",
+    "measure": "total",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "records": [
+      {
+        "id": "r1",
+        "key": "kA",
+        "slot": 1767398100,
+        "t": 1767398120,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kB",
+              "in": 100,
+              "out": 100
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r2",
+        "key": "kB",
+        "slot": 1767398100,
+        "t": 1767398120,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kA",
+              "in": 100,
+              "out": 100
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r3",
+        "key": "kC",
+        "slot": 1767398100,
+        "t": 1767398120,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kD",
+              "in": 300,
+              "out": 300
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r4",
+        "key": "kE",
+        "slot": 1767398100,
+        "t": 1767398120,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kF",
+              "in": 200,
+              "out": 200
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "r5",
+        "key": "kF",
+        "slot": 1767398100,
+        "t": 1767398120,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kE",
+              "in": 200,
+              "out": 200
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ],
+    "states": [
+      {
+        "id": "s1",
+        "key": "kA",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kB",
+              "in": 5000,
+              "out": 5000
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s2",
+        "key": "kB",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kA",
+              "in": 3000,
+              "out": 800
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s3",
+        "key": "kC",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kD",
+              "in": 7000,
+              "out": 7000
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      },
+      {
+        "id": "s4",
+        "key": "kE",
+        "t": 1767398407,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [
+            {
+              "key": "kF",
+              "in": 900,
+              "out": 900
+            }
+          ],
+          "tier1": false,
+          "shareCountry": false
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kC",
+        "value": 7000
+      },
+      {
+        "key": "kA",
+        "value": 3000
+      },
+      {
+        "key": "kB",
+        "value": 3000
+      },
+      {
+        "key": "kE",
+        "value": 200
+      },
+      {
+        "key": "kF",
+        "value": 200
+      }
+    ]
+  }
+}

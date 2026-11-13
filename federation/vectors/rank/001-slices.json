@@ -1,5 +1,5 @@
 {
-  "description": "now = 1767398410, so c = 1767398400; one stats record each at slot i = 500 of the windows. POPs: alice 5 (fra, from DE), bob 4 (nyc, an AI on model m1, from US), carol 3 (fra, Tier 1), mallory 2 (fra, no announce: no name or home). Announces: alice home DE, open, founded 3 days ago, game day 40; bob home US, selective, 100 days, day 2000; carol home FR, open, 400 days, day 500. me is the key the session proved: its rank in the slice (null when the filters leave it out), none when it is not on the board. excluded: networks the server leaves off; names: networks shown without their name. A filter with a value that is not allowed: bad_field.",
+  "description": "now = 1767398410, so c = 1767398400; one stats record each at slot i = 500 of the windows. POPs: alice 5 (fra, from DE), bob 4 (nyc, an AI on model m1, from US), carol 3 (fra, Tier 1), mallory 2 (fra, no announce: no name or home). Announces: alice home DE, open, founded 3 days ago, game day 40; bob home US, selective, 100 days, day 2000; carol home FR, open, 400 days, day 500. at is the time of the snapshot of live states the ranking reads (here now: none are held, 10.13). me is the key the session proved: its rank in the slice (null when the filters leave it out), none when it is not on the board. excluded: networks the server leaves off; names: networks shown without their name. A filter with a value that is not allowed: bad_field.",
   "cases": [
     {
       "input": {
@@ -111,6 +111,7 @@
       },
       "expect": {
         "slot": 1767398400,
+        "at": 1767398410,
         "n": 4,
         "rows": [
           {
@@ -267,6 +268,7 @@
       },
       "expect": {
         "slot": 1767398400,
+        "at": 1767398410,
         "n": 4,
         "rows": [
           {
@@ -409,6 +411,7 @@
       },
       "expect": {
         "slot": 1767398400,
+        "at": 1767398410,
         "n": 1,
         "rows": [
           {
@@ -542,6 +545,7 @@
       },
       "expect": {
         "slot": 1767398400,
+        "at": 1767398410,
         "n": 3,
         "rows": [
           {
@@ -686,6 +690,7 @@
       },
       "expect": {
         "slot": 1767398400,
+        "at": 1767398410,
         "n": 1,
         "rows": [
           {
@@ -815,6 +820,7 @@
       },
       "expect": {
         "slot": 1767398400,
+        "at": 1767398410,
         "n": 0,
         "rows": [],
         "me": null
@@ -935,6 +941,7 @@
       },
       "expect": {
         "slot": 1767398400,
+        "at": 1767398410,
         "n": 3,
         "rows": [
           {
@@ -1080,6 +1087,7 @@
       },
       "expect": {
         "slot": 1767398400,
+        "at": 1767398410,
         "n": 1,
         "rows": [
           {
@@ -1208,6 +1216,7 @@
       },
       "expect": {
         "slot": 1767398400,
+        "at": 1767398410,
         "n": 1,
         "rows": [
           {
@@ -1337,6 +1346,7 @@
       },
       "expect": {
         "slot": 1767398400,
+        "at": 1767398410,
         "n": 1,
         "rows": [
           {
@@ -1466,6 +1476,7 @@
       },
       "expect": {
         "slot": 1767398400,
+        "at": 1767398410,
         "n": 2,
         "rows": [
           {
@@ -1604,6 +1615,7 @@
       },
       "expect": {
         "slot": 1767398400,
+        "at": 1767398410,
         "n": 1,
         "rows": [
           {
@@ -1733,6 +1745,7 @@
       },
       "expect": {
         "slot": 1767398400,
+        "at": 1767398410,
         "n": 1,
         "rows": [
           {
@@ -1865,6 +1878,7 @@
       },
       "expect": {
         "slot": 1767398400,
+        "at": 1767398410,
         "n": 2,
         "rows": [
           {
@@ -2224,6 +2238,7 @@
       },
       "expect": {
         "slot": 1767398400,
+        "at": 1767398410,
         "n": 4,
         "rows": [
           {

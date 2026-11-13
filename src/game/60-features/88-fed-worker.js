@@ -52,12 +52,12 @@ async function fedCheckItems(items,now,c,srvs){const r=await fwDo('items',{items
 /* A rankwhy answer's items worked out into one row (fedRankRow): the key's newest announce and the stats records with
    a valid receipt go to fedRankOne (q: its query, exclusions included; on the cone board every network's newest
    announce gives its founded). null when a receipt names a server this browser does not know: then the row cannot be
-   checked. On a board of now (§10.13) the live states go to fedNowOne instead, each checked as at the snapshot's time
-   (q.now: a state that was live then is never too old for the check), and the key's newest stats record gives its
-   country (the from filter). */
+   checked. Live states (the running slot of the current window, §10.13; a board of now) are each checked as at the
+   snapshot's time (q.now: a state that was live then is never too old for the check); on a board of now they go to
+   fedNowOne instead, and the key's newest stats record gives its country (the from filter). */
 async function fedWhyRun(items,now,at,srvs,key,q){const recs=[],anns=new Map(),states=[],isNow=q.measure==='now';
   for(const it of items){if(!it||typeof it!=='object')continue;
-    if(isNow&&it.rec&&it.rec.kind==='state'){const c=await fedCheck(it.rec,q.now,{kinds:FED_STATE});if(c.ok)states.push({id:c.id,key:c.rec.key,t:c.rec.t,body:c.rec.body});continue;}
+    if(it.rec&&it.rec.kind==='state'){const c=await fedCheck(it.rec,q.now,{kinds:FED_STATE});if(c.ok)states.push({id:c.id,key:c.rec.key,t:c.rec.t,body:c.rec.body});continue;}
     const chk=await fedCheck(it.rec,now);if(!chk.ok)continue;const r=chk.rec;
     if(r.kind==='announce'){const o=anns.get(r.key);if(!o||r.t>o.t||r.t===o.t&&fedByStr(chk.id,o.id)<0)anns.set(r.key,{t:r.t,id:chk.id,body:r.body});continue;}if(r.kind!=='stats')continue;
     for(const rc of Array.isArray(it.rcpt)?it.rcpt.slice(0,16):[]){const sid=rc&&rc.body&&rc.body.server;if(typeof sid==='string'&&sid!==at.srv&&!srvs.some(x=>x.id===sid))return null;}
@@ -65,7 +65,7 @@ async function fedWhyRun(items,now,at,srvs,key,q){const recs=[],anns=new Map(),s
   const a=anns.get(key),founded={};for(const [k,o] of anns)founded[k]=o.body.founded;
   if(isNow){let n=null;for(const r of recs)if(r.key===key&&(!n||r.slot>n.slot||r.slot===n.slot&&(r.t>n.t||r.t===n.t&&fedByStr(r.id,n.id)<0)))n=r;
     return fedNowOne({...q,founded},key,states,a?a.body:null,n&&n.cc);}
-  return fedRankOne({...q,founded},key,recs,a?a.body:null);}
+  return fedRankOne({...q,founded},key,recs,a?a.body:null,states);}
 // Registry or gossip entries (fedRegEntry, a whole chain each): null or {id, sum (fedSum)}.
 async function fedRegRun(entries,now){const out=[];
   for(const e of entries){if(!e||typeof e!=='object'){out.push(null);continue;}const r=await fedRegEntry(e,now);out.push(r.ok?{id:r.id,sum:fedSum(r)}:null);}

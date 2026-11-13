@@ -94,6 +94,9 @@ type Query struct {
 	Exclude  map[string]bool
 	Founded  map[string]int64 // cone board: key -> founded of its newest announce
 	Cities   []string         // region filter, nil for none
+	// States are the live states held at Now (5.11): they make the running slot a slot of the current
+	// window (10.13). Nil: none.
+	States []*State
 }
 
 // Row is one line of a board.
@@ -135,10 +138,98 @@ func Compute(q Query, recs []*Stats) []Row {
 		}
 		return n
 	}
+	c := fed.Slot(q.Now)
+	L := Latest(q.Now, q.States)
+	// run is what a key reports in the running slot: its live state, else its effective record at c.
+	run := func(k string) *Stats {
+		if s := L[k]; s != nil {
+			return &Stats{ID: s.ID, Key: k, Slot: c, T: s.T, Body: s.Body}
+		}
+		if x := series[k]; x != nil {
+			return x.Eff(c)
+		}
+		return nil
+	}
+	runCone := func(k string) int64 {
+		seen := map[string]bool{k: true}
+		todo := []string{k}
+		for len(todo) > 0 {
+			z := todo[len(todo)-1]
+			todo = todo[:len(todo)-1]
+			r := run(z)
+			for _, y := range Keys(r.Body["cust"]) {
+				if seen[y] || q.Exclude[y] {
+					continue
+				}
+				f, ok := q.Founded[y]
+				if !ok || fed.Div(c, fed.Day)-f < fed.NewcomerDays {
+					continue
+				}
+				ye := run(y)
+				if ye == nil || ye.mode() != "normal" || !slices.Contains(Keys(ye.Body["up"]), z) || !BothWays(r, y) || !BothWays(ye, z) {
+					continue
+				}
+				seen[y] = true
+				todo = append(todo, y)
+			}
+		}
+		return int64(len(seen) - 1)
+	}
+	// sample is a key's value in the running slot, when its live state is in normal mode.
+	sample := func(k string) (int64, int64, bool) {
+		s := L[k]
+		if s == nil || s.mode() != "normal" {
+			return 0, 0, false
+		}
+		r := &Stats{ID: s.ID, Key: k, Slot: c, T: s.T, Body: s.Body}
+		switch q.Board {
+		case "pops":
+			return popsAt(r), 0, true
+		case "pies":
+			return toInt(r.Body["pies"]), 0, true
+		case "total":
+			return toInt(r.Body["total"]), 0, true
+		case "cone":
+			return runCone(k), 0, true
+		}
+		var in, out int64
+		list, _ := r.Body["traffic"].([]any)
+		for _, e := range list {
+			m, _ := e.(map[string]any)
+			y, _ := m["key"].(string)
+			xin, xout := toInt(m["in"]), toInt(m["out"])
+			if q.Exclude[y] {
+				continue
+			}
+			ye := run(y)
+			if region != nil && (ye == nil || ye.mode() != "normal" || popsIn(ye, region) == 0) {
+				continue
+			}
+			switch {
+			case ye == nil:
+				in += xin
+				out += xout
+			case ye.mode() != "normal":
+			default:
+				yin, yout := report(ye, k)
+				in += min(xin, yout)
+				out += min(xout, yin)
+			}
+		}
+		return in, out, true
+	}
 	total := func(k string, from, to int64) (int64, bool) {
 		x := series[k]
+		// The current window ends with the running slot (10.13): one more sample, the latest.
+		sin, sout, ok := int64(0), int64(0), false
+		if to == curTo {
+			sin, sout, ok = sample(k)
+		}
 		switch q.Board {
 		case "pops", "pies":
+			if ok {
+				return sin, true
+			}
 			// The value at the latest slot of the window where the key has one.
 			for s := to; s >= from; s -= fed.SlotLen {
 				r := x.Value(s)
@@ -162,6 +253,9 @@ func Compute(q Query, recs []*Stats) []Row {
 				ins = append(ins, in)
 				outs = append(outs, out)
 			}
+			if ok {
+				ins, outs = append(ins, sin), append(outs, sout)
+			}
 			if len(ins) == 0 {
 				return 0, false
 			}
@@ -176,6 +270,9 @@ func Compute(q Query, recs []*Stats) []Row {
 						v = append(v, toInt(r.Body["total"]))
 					}
 				}
+			}
+			if ok {
+				v = append(v, sin)
 			}
 			if len(v) == 0 {
 				return 0, false

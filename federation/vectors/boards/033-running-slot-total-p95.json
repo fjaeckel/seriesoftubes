@@ -1,0 +1,106 @@
+{
+  "description": "now = 1767398410, so c = 1767398400 (the running slot, i = 576); slot i means 1767225600 + 300 * i; the current window is i = 288..575 and the previous one i = 0..287. The live states held at now make the running slot one more slot of the current window (10.13): a key whose live state (t less than 900 s before now) is in normal mode gets one more sample there, the latest. Total traffic, p95 over 289 samples: k = div(289 * 5, 100) = 14, so the 15th highest counts. kA and kB both report 1000 from i = 288 and 9000 for i = 562..575 (14 slots): without the running slot the 14 highest do not count, 1000 (kB, no live state). kA's live state says 9000: a 15th high sample, so 9000.",
+  "input": {
+    "now": 1767398410,
+    "board": "total",
+    "measure": "total",
+    "division": "all",
+    "exclude": [],
+    "cities": null,
+    "records": [
+      {
+        "id": "r1",
+        "key": "kA",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "total": 1000
+        }
+      },
+      {
+        "id": "r2",
+        "key": "kA",
+        "slot": 1767394200,
+        "t": 1767394220,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "total": 9000
+        }
+      },
+      {
+        "id": "r3",
+        "key": "kB",
+        "slot": 1767312000,
+        "t": 1767312020,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "total": 1000
+        }
+      },
+      {
+        "id": "r4",
+        "key": "kB",
+        "slot": 1767394200,
+        "t": 1767394220,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "total": 9000
+        }
+      }
+    ],
+    "states": [
+      {
+        "id": "s1",
+        "key": "kA",
+        "t": 1767398380,
+        "body": {
+          "mode": "normal",
+          "pops": {
+            "fra": 1
+          },
+          "traffic": [],
+          "tier1": false,
+          "shareCountry": false,
+          "total": 9000
+        }
+      }
+    ]
+  },
+  "expect": {
+    "rows": [
+      {
+        "key": "kA",
+        "value": 9000
+      },
+      {
+        "key": "kB",
+        "value": 1000
+      }
+    ]
+  }
+}

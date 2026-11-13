@@ -6,6 +6,7 @@ import (
 	"errors"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 )
@@ -55,6 +56,7 @@ type brow struct {
 
 // flight is one result being worked out, or worked out: done closes when it is there.
 type flight struct {
+	born time.Time // when it was started: never served once older than flightMaxAge
 	done chan struct{}
 	rows []brow
 	idx  []int32
@@ -101,15 +103,22 @@ func (c *lru) del(k string, f *flight) {
 	}
 }
 
+// flightMaxAge bounds how long a worked-out ranking, board or facets answer is served: whatever its
+// key, nothing older is (a var for tests).
+var flightMaxAge = 30 * time.Second
+
 // once gives the flight for k: an existing one (done or still running), or a new one the caller
 // must work out (owner true). A failed flight is dropped so the next ask tries again.
 func (a *Agg) flightFor(c *lru, k string) (*flight, bool) {
 	a.fmu.Lock()
 	defer a.fmu.Unlock()
 	if f := c.get(k); f != nil {
-		return f, false
+		if time.Since(f.born) < flightMaxAge {
+			return f, false
+		}
+		c.del(k, f) // too old to serve: worked out again
 	}
-	f := &flight{done: make(chan struct{})}
+	f := &flight{born: time.Now(), done: make(chan struct{})}
 	c.put(k, f)
 	return f, true
 }
@@ -139,14 +148,14 @@ func (a *Agg) stamp(c int64) string {
 
 // base is a board, ranked, unfiltered but for the region: worked out once per state and kept.
 // Called on a worker; it waits only for a base another worker is working out.
-func (a *Agg) base(ctx context.Context, q *Slice, c int64) (*flight, error) {
-	k := a.stamp(c) + q.baseKey()
+func (a *Agg) base(ctx context.Context, q *Slice, c int64, sn *snap) (*flight, error) {
+	k := a.stamp(c) + q.baseKey() + "|" + snapKey(sn)
 	if q.Board == "cone" { // who is established comes from the announces
 		k += "|" + itoa(int64(a.meta.Load()))
 	}
 	f, owner := a.flightFor(a.bases, k)
 	if owner {
-		f.rows = a.computeBase(q.Board, q.Measure, q.Cities, c)
+		f.rows = a.computeBase(q.Board, q.Measure, q.Cities, c, sn)
 		f.slot = c
 		a.land(a.bases, k, f)
 	}
@@ -156,7 +165,10 @@ func (a *Agg) base(ctx context.Context, q *Slice, c int64) (*flight, error) {
 // computeBase is 10.3 to 10.5 for one board, measure and region at running slot c (read lock).
 // c is the slot the job was queued for: the windows may have moved on meanwhile, and the answer
 // must be what that slot gives, since it is labelled with it (9.5) and spot-checked against it.
-func (a *Agg) computeBase(board, measure string, cities []string, c int64) []brow {
+//
+// sn, when not nil, is the snapshot of live states whose values make the running slot c a slot of the
+// current window (10.13, running slot): a key with a live state in normal mode gets one more sample there.
+func (a *Agg) computeBase(board, measure string, cities []string, c int64, sn *snap) []brow {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	var rg *region
@@ -174,6 +186,10 @@ func (a *Agg) computeBase(board, measure string, cities []string, c int64) []bro
 		cs = a.cones(c)
 	}
 	sums := a.c == c // the per-slot traffic sums are for this slot
+	var coneRun map[string]int32
+	if board == "cone" && sn != nil {
+		coneRun = a.coneRun(sn, c)
+	}
 	for _, x := range a.nets {
 		if len(x.win) == 0 || a.ex[x.key] {
 			continue
@@ -186,9 +202,9 @@ func (a *Agg) computeBase(board, measure string, cities []string, c int64) []bro
 		if growth && x.value(from) == nil {
 			continue
 		}
-		v := a.total(x, board, rg, fed.WindowSlots, N, from, &buf, cs[x], sums)
+		v := a.total(x, board, rg, fed.WindowSlots, N, from, &buf, cs[x], sums, a.runSample(x.key, board, sn, c, rg, coneRun))
 		if growth {
-			prev := a.total(x, board, rg, 0, fed.WindowSlots, from, &buf, cs[x], sums)
+			prev := a.total(x, board, rg, 0, fed.WindowSlots, from, &buf, cs[x], sums, sample{})
 			v = fed.Div((v-prev)*10000, max(prev, floor[board]))
 		}
 		rows = append(rows, brow{x, l, v})
@@ -225,8 +241,9 @@ func (g *region) has(s *stat) bool {
 }
 
 // total is 10.4 over window slots lo..hi-1 (read lock held). cone: x's cone size per window slot
-// (nil: none at any slot). sums: x.in and x.out are for the windows starting at from.
-func (a *Agg) total(x *net, board string, rg *region, lo, hi int, from int64, buf *[2][][2]int64, cone []int32, sums bool) int64 {
+// (nil: none at any slot). sums: x.in and x.out are for the windows starting at from. run: the
+// value of the running slot, when x has one (10.13): one more sample, and the latest one.
+func (a *Agg) total(x *net, board string, rg *region, lo, hi int, from int64, buf *[2][][2]int64, cone []int32, sums bool, run sample) int64 {
 	switch board {
 	case "cone":
 		v := buf[0][:0]
@@ -246,6 +263,9 @@ func (a *Agg) total(x *net, board string, rg *region, lo, hi int, from int64, bu
 				}
 			}
 		})
+		if run.ok {
+			v = append(v, [2]int64{run.in, 1})
+		}
 		buf[0] = v
 		return p95(v)
 	case "pops", "pies":
@@ -260,6 +280,9 @@ func (a *Agg) total(x *net, board string, rg *region, lo, hi int, from int64, bu
 				latest = r.popsIn(rg.set())
 			}
 		})
+		if run.ok {
+			latest = run.in
+		}
 		return latest
 	case "total":
 		v := buf[0][:0]
@@ -268,6 +291,9 @@ func (a *Agg) total(x *net, board string, rg *region, lo, hi int, from int64, bu
 				v = append(v, [2]int64{int64(r.total), int64(j - i)})
 			}
 		})
+		if run.ok {
+			v = append(v, [2]int64{run.in, 1})
+		}
 		buf[0] = v
 		return p95(v)
 	case "traffic":
@@ -296,6 +322,9 @@ func (a *Agg) total(x *net, board string, rg *region, lo, hi int, from int64, bu
 				in, out = add(in, ti), add(out, to)
 			}
 		})
+		if run.ok {
+			in, out = add(in, run.in), add(out, run.out)
+		}
 		buf[0], buf[1] = in, out
 		return max(p95(in), p95(out))
 	}
@@ -338,8 +367,8 @@ func deref(p *int64, d int64) int64 {
 }
 
 // slice works out a slice's rows (indexes into its base) into f, on a worker.
-func (a *Agg) slice(f *flight, q *Slice, c int64) {
-	b, err := a.base(context.Background(), q, c)
+func (a *Agg) slice(f *flight, q *Slice, c int64, sn *snap) {
+	b, err := a.base(context.Background(), q, c, sn)
 	if err != nil {
 		f.err = err
 		return
@@ -374,6 +403,7 @@ func (a *Agg) Rank(ctx context.Context, q *Slice, now int64, me string, n int) (
 		return a.rankNow(ctx, q, now, me, n)
 	}
 	c := a.prepare(now)
+	sn := a.snapshot(now, winEvery)
 	// Announces change all the time (terms, day, traffic); only slices that read them depend on
 	// them, so only those are worked out again when one arrives. Names and homes in the rows are
 	// read as the answer is built.
@@ -381,11 +411,11 @@ func (a *Agg) Rank(ctx context.Context, q *Slice, now int64, me string, n int) (
 	if q.readsAnnounces() {
 		k += itoa(int64(a.meta.Load()))
 	}
-	k += "|" + q.key()
+	k += "|" + snapKey(sn) + "|" + q.key()
 	f, owner := a.flightFor(a.slices, k)
 	if owner {
 		select {
-		case a.jobs <- func() { a.slice(f, q, c); a.land(a.slices, k, f) }:
+		case a.jobs <- func() { a.slice(f, q, c, sn); a.land(a.slices, k, f) }:
 		default:
 			f.err = ErrBusy
 			a.land(a.slices, k, f)
@@ -395,6 +425,7 @@ func (a *Agg) Rank(ctx context.Context, q *Slice, now int64, me string, n int) (
 		return nil, err
 	}
 	ans := a.answer(f, now, me, n)
+	ans.At = sn.at
 	ans.Cached = !owner
 	return ans, nil
 }
@@ -453,11 +484,12 @@ func (a *Agg) Warm(now int64) {
 		return
 	}
 	c := a.prepare(now)
+	sn := a.snapshot(now, winEvery)
 	for _, b := range Boards {
 		for _, m := range []string{"total", "growth"} {
 			q := &Slice{Board: b, Measure: m, Division: "all"}
 			select {
-			case a.jobs <- func() { _, _ = a.base(context.Background(), q, c) }:
+			case a.jobs <- func() { _, _ = a.base(context.Background(), q, c, sn) }:
 			default:
 			}
 		}

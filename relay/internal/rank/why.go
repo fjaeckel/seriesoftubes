@@ -14,92 +14,113 @@ const (
 // ErrTooMany is a rankwhy answer over its bounds.
 var ErrTooMany = errors.New("rank: too many records to show")
 
-// Why gives the ids of the stats records a client needs to work out key's value in the slice
-// at now (10.2 to 10.5, 10.12) and the running slot they are for: every held stats record of
-// the key, and on the traffic board every held stats record of each network its records list
-// (whose reports the min() rule reads, and whose POPs a region asks about). On the cone board,
-// every held stats record of each network the key's cone can reach: the customers its records
-// list, theirs, and so on (whose up lists confirm each edge). The key's newest announce, which the
-// filters read, the node adds, and on the cone board those of the networks the cone can reach
-// (whose founded says who is established): anns, the keys whose newest announce goes with them.
-// Excluded networks' records are not needed: traffic with them counts 0, and no edge leads to them.
-func (a *Agg) Why(q *Slice, key string, now int64) ([]string, []string, int64, error) {
+// Why gives what a client needs to work out key's value in the slice at now (10.2 to 10.5, 10.12,
+// 10.13): the ids of every held stats record of the key, and on the traffic board of each network
+// its records or its live state list (whose reports the min() rule reads, and whose POPs a region
+// asks about); on the cone board, of each network the key's cone can reach over the customers its
+// records and live states list, theirs, and so on. The keys whose newest announce goes with them
+// (the filters read the key's, the cone board the members' founded). And, for the running slot
+// (10.13), the live states of the snapshot made at at (the newest when it is not kept, or at is 0)
+// of the key and of those networks, the running slot c and the snapshot's time. Excluded networks'
+// records are not needed: traffic with them counts 0, and no edge leads to them.
+func (a *Agg) Why(q *Slice, key string, now, at int64) ([]string, []string, []*Live, int64, int64, error) {
 	if !a.ready.Load() {
-		return nil, nil, 0, ErrNotReady
+		return nil, nil, nil, 0, 0, ErrNotReady
 	}
 	c := a.prepare(now)
+	var sn *snap
+	if at != 0 {
+		sn = a.snapAt(at)
+	}
+	if sn == nil {
+		sn = a.snapshot(now, winEvery)
+	}
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	x := a.nets[key]
-	if x == nil {
-		return []string{}, []string{key}, c, nil
+	lk := sn.live(key)
+	var ids []string
+	var states []*Live
+	if x != nil {
+		for _, s := range x.all {
+			ids = append(ids, s.id)
+		}
 	}
-	ids := make([]string, 0, len(x.all))
-	for _, s := range x.all {
-		ids = append(ids, s.id)
+	if lk != nil {
+		states = append(states, lk)
 	}
 	anns := []string{key}
-	if q.Board == "cone" {
-		// The networks any held record of the cone lists as a customer, transitively.
+	var ps []string
+	switch q.Board {
+	case "cone":
+		// The networks any held record or live state of the cone lists as a customer, transitively.
 		seen := map[string]bool{key: true}
-		todo := []*net{x}
-		var ps []string
+		todo := []string{key}
 		for len(todo) > 0 {
 			z := todo[len(todo)-1]
 			todo = todo[:len(todo)-1]
-			for _, s := range z.all {
-				for _, k := range s.cust() {
+			var lists [][]string
+			if y := a.nets[z]; y != nil {
+				for _, s := range y.all {
+					lists = append(lists, s.cust())
+				}
+			}
+			if l := sn.live(z); l != nil {
+				lists = append(lists, l.s.cust())
+			}
+			for _, l := range lists {
+				for _, k := range l {
 					if seen[k] || a.ex[k] {
 						continue
 					}
 					seen[k] = true
 					ps = append(ps, k)
 					if len(ps) > WhyPartners {
-						return nil, nil, c, ErrTooMany
+						return nil, nil, nil, c, sn.at, ErrTooMany
 					}
-					if y := a.nets[k]; y != nil {
-						todo = append(todo, y)
-					}
+					todo = append(todo, k)
 				}
 			}
 		}
 		slices.Sort(ps)
 		anns = append(anns, ps...) // their founded says who is established
-		for _, k := range ps {
-			if y := a.nets[k]; y != nil {
-				for _, s := range y.all {
-					ids = append(ids, s.id)
-				}
-			}
-		}
-	}
-	if q.Board == "traffic" {
+	case "traffic":
 		seen := map[string]bool{}
-		for _, s := range x.all {
-			for _, e := range s.tr {
-				if e.key != key && !a.ex[e.key] {
-					seen[e.key] = true
-				}
+		var all []tentry
+		if x != nil {
+			for _, s := range x.all {
+				all = append(all, s.tr...)
 			}
 		}
-		if len(seen) > WhyPartners {
-			return nil, nil, c, ErrTooMany
+		if lk != nil {
+			all = append(all, lk.s.tr...)
 		}
-		ps := make([]string, 0, len(seen))
-		for k := range seen {
-			ps = append(ps, k)
+		for _, e := range all {
+			if e.key != key && !a.ex[e.key] && !seen[e.key] {
+				seen[e.key] = true
+				ps = append(ps, e.key)
+			}
+		}
+		if len(ps) > WhyPartners {
+			return nil, nil, nil, c, sn.at, ErrTooMany
 		}
 		slices.Sort(ps)
-		for _, k := range ps {
-			if y := a.nets[k]; y != nil {
-				for _, s := range y.all {
-					ids = append(ids, s.id)
-				}
+	}
+	for _, k := range ps {
+		if y := a.nets[k]; y != nil {
+			for _, s := range y.all {
+				ids = append(ids, s.id)
 			}
 		}
+		if l := sn.live(k); l != nil && lk != nil {
+			states = append(states, l)
+		}
 	}
-	if len(ids) > WhyRecords {
-		return nil, nil, c, ErrTooMany
+	if ids == nil {
+		ids = []string{}
 	}
-	return ids, anns, c, nil
+	if len(ids)+len(states) > WhyRecords {
+		return nil, nil, nil, c, sn.at, ErrTooMany
+	}
+	return ids, anns, states, c, sn.at, nil
 }

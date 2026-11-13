@@ -27,9 +27,10 @@ const FED_FLOOR={pops:10,pies:100,traffic:1000,total:1000,cone:10},FED_NEWCOMER=
    server ranked (§9.5 rankwhy). q: {now, board, measure, division, exclude (keys the server leaves off), cities (a region,
    or null), filters (as in a rank request), founded (the cone board: key -> founded of its newest announce)}; recs: stats
    records [{id, key, slot, t, body, cc}] (the key's and, on the traffic board, its partners', on the cone board those of
-   every network its cone can reach); ann: the key's newest announce body, or null. Gives {listed (on the board), kept
-   (also in the slice), value}. A pure function of its arguments (it may move to a worker). */
-function fedRankOne(q,key,recs,ann){const W=fedWindows(q.now),from=W.previous.from,last=W.current.to,by=fedByKey(recs),ex=new Set(q.exclude||[]),
+   every network its cone can reach); ann: the key's newest announce body, or null; states: the live states held at
+   q.now (§10.13: the running slot ends the current window; the key's and those rankwhy adds), or none. Gives {listed (on
+   the board), kept (also in the slice), value}. A pure function of its arguments (it may move to a worker). */
+function fedRankOne(q,key,recs,ann,states){const W=fedWindows(q.now),from=W.previous.from,last=W.current.to,by=fedByKey(recs),ex=new Set(q.exclude||[]),
     cs=q.cities?new Set(q.cities):null,F=q.filters||{},w=by.get(key),pops=r=>{let n=0;for(const c of Object.keys(r.body.pops))if(!cs||cs.has(c))n+=r.body.pops[c];return n;};
   const no={listed:false,kept:false,value:0},l=fedEffAt(w,last);
   if(ex.has(key)||!fedHas(l)||q.board==='pies'&&!fedOwn(l.body,'pies')||cs&&pops(l)===0||q.measure==='growth'&&!fedHas(fedEffAt(w,from)))return no;
@@ -40,18 +41,28 @@ function fedRankOne(q,key,recs,ann){const W=fedWindows(q.now),from=W.previous.fr
      value (heard in the 7 days before), neither is excluded, X lists Y in cust and Y lists X in up, each reports traffic
      with the other both ways, and Y joined at least 30 days before s. */
   const fd=q.founded||{},both=(r,k)=>{const z=r.body.traffic.find(x=>x.key===k);return !!z&&z.in>0&&z.out>0;};
-  const cone=s=>{const seen=new Set([key]),todo=[key];
-    while(todo.length){const z=todo.pop(),r=fedEffAt(by.get(z),s);
-      for(const y of r.body.cust||[]){if(seen.has(y)||ex.has(y)||!fedOwn(fd,y)||fedDiv(s,FED_DAY)-fd[y]<FED_NEWCOMER)continue;const ye=fedEffAt(by.get(y),s);
+  const cone=(s,at=k=>fedEffAt(by.get(k),s))=>{const seen=new Set([key]),todo=[key];
+    while(todo.length){const z=todo.pop(),r=at(z);
+      for(const y of r.body.cust||[]){if(seen.has(y)||ex.has(y)||!fedOwn(fd,y)||fedDiv(s,FED_DAY)-fd[y]<FED_NEWCOMER)continue;const ye=at(y);
         if(!fedHas(ye)||!(ye.body.up||[]).includes(z)||!both(r,y)||!both(ye,z))continue;seen.add(y);todo.push(y);}}
     return seen.size-1;};
   // POPs and pies: the value at the latest slot of the window with one (slots run in order: the last wins).
-  const total=(a,b)=>{const IN=[],OUT=[];let lo=null;
+  /* The running slot c (§10.13): a key whose live state is in normal mode has one more sample there, the latest of the
+     current window. Partners and cone members report there with their live state, else their effective record at c. */
+  const c=fedSlot(q.now),L=fedLatest(q.now,states||[]),run=k=>{const s=L.get(k);return s?{body:s.body}:fedEffAt(by.get(k),c);};
+  const smp=(()=>{const s=L.get(key);if(!s||s.body.mode!=='normal')return null;const r={body:s.body};
+    if(q.board==='pops')return [pops(r),0];if(q.board==='pies')return [r.body.pies||0,0];if(q.board==='total')return [r.body.total||0,0];
+    if(q.board==='cone')return [cone(c,run),0];
+    let i=0,o=0;for(const e of r.body.traffic){if(ex.has(e.key))continue;const y=run(e.key);
+      if(cs&&!(fedHas(y)&&pops(y)>0))continue;if(!y){i+=e.in;o+=e.out;}else if(fedHas(y)){const z=y.body.traffic.find(x=>x.key===key);if(z){i+=Math.min(e.in,z.out);o+=Math.min(e.out,z.in);}}}
+    return [i,o];})();
+  const total=(a,b,x)=>{const IN=[],OUT=[];let lo=null;
     for(let k=a;k<b;k++){const s=from+k*FED_SLOT,r=fedEffAt(w,s);if(!fedHas(r))continue;
       if(q.board==='traffic'){const [i,o]=traffic(r,s);IN.push(i);OUT.push(o);}else if(q.board==='total')IN.push(r.body.total||0);else if(q.board==='cone')IN.push(cone(s));
       else lo=q.board==='pies'?r.body.pies||0:pops(r);}
+    if(x){if(q.board==='traffic'){IN.push(x[0]);OUT.push(x[1]);}else if(q.board==='total'||q.board==='cone')IN.push(x[0]);else lo=x[0];}
     return q.board==='traffic'?Math.max(fedP95(IN),fedP95(OUT)):q.board==='total'||q.board==='cone'?fedP95(IN):lo||0;};
-  let value=total(FED_WIN,2*FED_WIN);
+  let value=total(FED_WIN,2*FED_WIN,smp);
   if(q.measure==='growth'){const prev=total(0,FED_WIN);value=fedDiv((value-prev)*10000,Math.max(prev,FED_FLOOR[q.board]));}
   return {listed:true,kept:fedKept(q,key,l,ann,fedDiv(q.now,FED_DAY)),value};}
 // Whether a listed network passes a slice's division and filters (§10.12): l {body, cc}, a its newest announce body.

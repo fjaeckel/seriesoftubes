@@ -190,7 +190,8 @@ async function main() {
     for (const p of procs) try { p.kill('SIGTERM'); } catch (e) { /* gone */ }
     if (web) web.close();
     if (proxy) proxy.close();
-    if (!KEEP) fs.rmSync(tmp, { recursive: true, force: true }); else console.log(`kept ${tmp}`);
+    // Relays may still be writing as they stop: retry the removal a few times.
+    if (!KEEP) fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }); else console.log(`kept ${tmp}`);
   };
   process.on('SIGINT', async () => { await cleanup(); process.exit(130); });
   const bin = path.join(tmp, 'relay');
@@ -770,6 +771,28 @@ stay in the browser).`);
       return `server 1 seen ${ent && ent.seen ? now() - ent.seen + ' s ago' : '?'} via gossip; Dave ${P.D.slice(0, 8)}…`;
     });
 
+    if (TWO) await step('boards of now: Alice builds a POP; within 15 s her, Bob\'s (server 1) and Dave\'s (server 2, by propagation) boards of now show it, server 2\'s 24-hour board within 45 s', async () => {
+      const value = (p) => ev(p, async (k) => { const v = await fedRankView({ board: 'pops', measure: 'now', division: 'all' });
+        const r = v.rows.find((x) => x.key === k); return r ? r.value : k === S.fed.key.pub && v.me ? v.me.value : null; }, P.A);
+      // Alice is live everywhere first (her states every 10 s), then she builds.
+      const before = await until(async () => { const a = await value(A), d = await value(D); return a !== null && a === d && a; }, 30000, 'Alice on the boards of now of both servers');
+      const t0 = Date.now();
+      const want = await ev(A, () => { S.cash = 1e9; const c = ['mil', 'vie', 'waw', 'sto', 'cph', 'bru', 'zrh', 'dub', 'lis', 'ath'].find((x) => CITY[x] && !S.pops[x]); ACT.buildPop({ city: c }); after(); return Object.keys(fedStatsBody().pops).length; });
+      must(want > before, `Alice's POPs did not grow (${before} -> ${want})`);
+      const seen = {};
+      await until(async () => { for (const [nm, p] of [['Alice', A], ['Bob', B], ['Dave', D]]) if (!seen[nm] && await value(p) === want) seen[nm] = Date.now() - t0; return Object.keys(seen).length === 3; }, 15000, `${want} POPs on every board of now`);
+      const st = A.sent.filter((f) => f.m === 'state');
+      must(st.length >= 2 && st.every((f) => f.rec && f.rec.kind === 'state' && f.rec.key === P.A), `Alice sent ${st.length} state frame(s)`);
+      const gaps = st.slice(1).map((f, i) => f.rec.t - st[i].rec.t);
+      must(gaps.every((g) => g >= 5), `states closer than 5 s: ${JSON.stringify(gaps)}`);
+      // The 24-hour board reads the running slot from the live states too (§10.13): server 2 shows it within 45 s.
+      const day = (p) => ev(p, async (k) => { const v = await fedRankView({ board: 'pops', measure: 'total', division: 'all' });
+        const r = v.rows.find((x) => x.key === k); return r ? r.value : null; }, P.A);
+      await until(async () => { if (!seen.day && await day(D) === want) seen.day = Date.now() - t0; return !!seen.day; }, 45000, `${want} POPs on server 2's 24-hour board`);
+      const cost = await ev(A, () => FED.stCost);
+      return `${before} -> ${want} POPs: Alice ${seen.Alice} ms, Bob ${seen.Bob} ms, Dave (server 2) ${seen.Dave} ms, on server 2's 24-hour board ${seen.day} ms; ${st.length} states sent, ${(cost.ms / Math.max(1, cost.n)).toFixed(2)} ms each on the page`;
+    });
+
     if (TWO) await step('a sealed deal across servers: Dave (server 2) asks Alice (server 1) for peering, she accepts in her queue; third parties on either server get none of it', async () => {
       // Alice reviews peering now, so the deal needs her accept (an automatic one binds without, §10.10).
       await sleep(1100); // two announces of one network in the same second tie on t (§10.11): publish in a new second
@@ -1101,7 +1124,8 @@ async function lanMain() {
     try { if (proc) proc.kill('SIGTERM'); } catch (e) { /* gone */ }
     if (web) web.close();
     if (proxy) proxy.close();
-    if (!KEEP) fs.rmSync(tmp, { recursive: true, force: true }); else console.log(`kept ${tmp}`);
+    // Relays may still be writing as they stop: retry the removal a few times.
+    if (!KEEP) fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }); else console.log(`kept ${tmp}`);
   };
   process.on('SIGINT', async () => { await cleanup(); process.exit(130); });
   const bin = path.join(tmp, 'relay'), data = path.join(tmp, 'lan');

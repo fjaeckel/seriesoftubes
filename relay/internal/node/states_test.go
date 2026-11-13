@@ -65,11 +65,13 @@ func TestLiveStates(t *testing.T) {
 	if _, err := sendState(t, cb, stateRec(bob, now, 5, map[string]any{"key": alice.Key, "in": int64(300), "out": int64(2000)})); err != nil {
 		t.Fatal(err)
 	}
+	// Past the snapshot the node may have taken as it started (it warms its boards).
+	n.Clock.Add(3 * time.Second)
 	rows, f := nowBoard(t, c, "pops")
 	if fmt.Sprint(rows) != fmt.Sprint([]string{bob.Key[:4] + "=5", alice.Key[:4] + "=3"}) {
 		t.Fatalf("pops now: %v", rows)
 	}
-	if at, _ := wire.Int(f.Raw["at"]); at != now {
+	if at, _ := wire.Int(f.Raw["at"]); at != now+3 {
 		t.Fatalf("ranks at: %v", f.Raw)
 	}
 	n.Clock.Add(3 * time.Second) // past the snapshot

@@ -41,6 +41,7 @@ const (
 	LiveMax      = 50000
 	LiveMaxBytes = 128 << 20
 	snapEvery    = 2  // seconds: a ranking of now is at most this old
+	winEvery     = 10 // seconds: a ranking over the windows (its running slot, 10.13) is at most this old
 	snapKeep     = 30 // seconds a snapshot is kept for spot checks
 	snapMax      = 16
 )
@@ -164,13 +165,13 @@ func (a *Agg) LiveStats() (int, int) {
 	return len(a.lm), a.lbytes
 }
 
-// snapshot gives the snapshot rankings of now at now use: the newest when it is under snapEvery
-// seconds old, else a new one.
-func (a *Agg) snapshot(now int64) *snap {
+// snapshot gives the snapshot a ranking at now uses: the newest when it is under every seconds old
+// and in the same slot, else a new one.
+func (a *Agg) snapshot(now, every int64) *snap {
 	a.lmu.Lock()
 	defer a.lmu.Unlock()
 	if n := len(a.snaps); n > 0 {
-		if s := a.snaps[n-1]; now >= s.at && now-s.at < snapEvery {
+		if s := a.snaps[n-1]; now >= s.at && now-s.at < every && fed.Slot(s.at) == fed.Slot(now) {
 			return s
 		}
 	}
@@ -204,7 +205,7 @@ func (a *Agg) snapAt(at int64) *snap {
 // rankNow answers a slice of the measure now (10.13).
 func (a *Agg) rankNow(ctx context.Context, q *Slice, now int64, me string, n int) (*Answer, error) {
 	c := a.prepare(now)
-	sn := a.snapshot(now)
+	sn := a.snapshot(now, snapEvery)
 	k := a.nowStamp(sn) + "|" + itoa(int64(a.meta.Load())) + "|" + q.key()
 	f, owner := a.flightFor(a.nowSlices, k)
 	if owner {
@@ -400,7 +401,7 @@ func (a *Agg) WhyNow(q *Slice, key string, now, at int64) ([]*Live, []string, []
 		sn = a.snapAt(at)
 	}
 	if sn == nil {
-		sn = a.snapshot(now)
+		sn = a.snapshot(now, snapEvery)
 	}
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -453,4 +454,126 @@ func (a *Agg) WhyNow(q *Slice, key string, now, at int64) ([]*Live, []string, []
 		states = append(states, sn.live(k))
 	}
 	return states, ids, anns, sn.at, nil
+}
+
+// snapKey names a snapshot in a cache key ("-" for none).
+func snapKey(sn *snap) string {
+	if sn == nil {
+		return "-"
+	}
+	return itoa(sn.at)
+}
+
+// sample is a key's value in the running slot (10.13, running slot): in (and out for traffic).
+type sample struct {
+	in, out int64
+	ok      bool
+}
+
+// runOf is what a key reports in the running slot c: its live state in the snapshot, else its
+// effective stats record at c (10.2, records of the running slot included), else nil (read lock).
+func (a *Agg) runOf(k string, sn *snap, c int64) *stat {
+	if l := sn.live(k); l != nil {
+		return l.s
+	}
+	if x := a.nets[k]; x != nil {
+		return x.eff(c)
+	}
+	return nil
+}
+
+// runSample is key's sample in the running slot of the current window: only a key with a live
+// state in normal mode has one (read lock). coneRun: the cone sizes of the running slot.
+func (a *Agg) runSample(k, board string, sn *snap, c int64, rg *region, coneRun map[string]int32) sample {
+	if sn == nil {
+		return sample{}
+	}
+	l := sn.live(k)
+	if l == nil || !l.s.normal {
+		return sample{}
+	}
+	s := l.s
+	switch board {
+	case "pops":
+		return sample{in: s.popsIn(rg.set()), ok: true}
+	case "pies":
+		return sample{in: int64(s.pies), ok: true}
+	case "total":
+		return sample{in: int64(s.total), ok: true}
+	case "cone":
+		return sample{in: int64(coneRun[k]), ok: true}
+	}
+	var in, out int64
+	for _, e := range s.tr {
+		if a.ex[e.key] {
+			continue
+		}
+		y := a.runOf(e.key, sn, c)
+		if rg != nil && (y == nil || !y.normal || !rg.has(y)) {
+			continue
+		}
+		switch {
+		case y == nil:
+			in += int64(e.in)
+			out += int64(e.out)
+		case !y.normal:
+		default:
+			yi, yo := y.report(k)
+			in += min(int64(e.in), yo)
+			out += min(int64(e.out), yi)
+		}
+	}
+	return sample{in: in, out: out, ok: true}
+}
+
+// coneRun is every key's cone size in the running slot c (read lock): the graph of what each key
+// reports there (runOf), established counted at c.
+func (a *Agg) coneRun(sn *snap, c int64) map[string]int32 {
+	day := fed.Div(c, fed.Day)
+	seen := map[string]bool{}
+	var cand []string
+	add := func(k string) {
+		if seen[k] {
+			return
+		}
+		seen[k] = true
+		if r := a.runOf(k, sn, c); r != nil && r.normal && r.lists() && !a.ex[k] {
+			cand = append(cand, k)
+		}
+	}
+	for k := range sn.m {
+		add(k)
+	}
+	for k, x := range a.nets {
+		if x.withCn > 0 {
+			add(k)
+		}
+	}
+	slices.Sort(cand)
+	idx := make(map[string]uint32, len(cand))
+	for i, k := range cand {
+		idx[k] = uint32(i)
+	}
+	edges := map[uint64]int32{}
+	for zi, z := range cand {
+		for _, y := range a.runOf(z, sn, c).custOK() {
+			yi, ok := idx[y]
+			if !ok || y == z || !a.runOf(y, sn, c).hasUp(z) {
+				continue
+			}
+			x := a.nets[y]
+			if x == nil || x.ann == nil || day-x.ann.Founded < fed.NewcomerDays {
+				continue
+			}
+			edges[uint64(zi)<<32|uint64(yi)] = 1
+		}
+	}
+	out := map[string]int32{}
+	if len(edges) == 0 {
+		return out
+	}
+	for _, r := range coneGraph(edges) {
+		out[cand[r.node]] = r.size
+	}
+	return out
 }

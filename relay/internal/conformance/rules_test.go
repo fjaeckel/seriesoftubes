@@ -72,9 +72,18 @@ func init() {
 				T    int64           `json:"t"`
 				Body json.RawMessage `json:"body"`
 			} `json:"records"`
+			States []struct { // live states held at now (optional): the running slot (10.13)
+				ID   string          `json:"id"`
+				Key  string          `json:"key"`
+				T    int64           `json:"t"`
+				Body json.RawMessage `json:"body"`
+			} `json:"states"`
 		}](t, in)
 		q := boards.Query{Now: x.Now, Board: x.Board, Measure: x.Measure, Division: x.Division,
 			Exclude: map[string]bool{}, Cities: x.Cities, Founded: x.Founded}
+		for _, s := range x.States {
+			q.States = append(q.States, &boards.State{ID: s.ID, Key: s.Key, T: s.T, Body: strict(t, s.Body).(map[string]any)})
+		}
 		for _, k := range x.Exclude {
 			q.Exclude[k] = true
 		}
@@ -98,6 +107,9 @@ func init() {
 			anns[k] = &rank.Ann{Name: k, Founded: f}
 		}
 		a.Load(raws, anns, q.Exclude, nil)
+		for _, s := range q.States {
+			a.State(s.ID, s.Key, s.T, s.Body, []byte(s.ID), x.Now)
+		}
 		ans, err := a.Rank(context.Background(), &rank.Slice{Board: x.Board, Measure: x.Measure, Division: x.Division, Cities: x.Cities}, x.Now, "", -1)
 		if err != nil {
 			t.Fatal(err)
