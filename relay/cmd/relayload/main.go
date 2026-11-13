@@ -177,7 +177,7 @@ func (c *cluster) sample(ctx context.Context, label string) *sample {
 			cpu, ok1 := m["process_cpu_seconds_total"]
 			rss, ok2 := m["process_resident_memory_bytes"]
 			if ok1 && ok2 {
-				s.ps[r.cmd.Process.Pid] = procStat{cpu: cpu, rss: rss}
+				s.ps[r.cmd.Process.Pid] = procStat{cpu: cpu, rss: rss, metrics: true}
 			}
 		}
 	}
@@ -606,14 +606,26 @@ func buildReport(o options, c *cluster, w *world, idle, st, mid, end *sample, ti
 		if a, b := st.ps[pid], end.ps[pid]; el > 0 && b.cpu >= a.cpu {
 			row.CPUAvg = math.Round((b.cpu-a.cpu)/el*1000) / 10
 		}
-		for j := 1; j < len(ticks); j++ {
-			a, b := ticks[j-1], ticks[j]
+		// Peaks over the periodic samples: intervals of 10 s or more (start, mid and end can fall
+		// right after one, where a scheduler tick of CPU would read as a burst), one source each.
+		var prev *sample
+		for _, b := range ticks {
 			if b.at.Before(st.at) {
 				continue
 			}
-			if d := b.at.Sub(a.at).Seconds(); d > 0 && b.ps[pid].cpu >= a.ps[pid].cpu {
-				row.CPUPeak = max(row.CPUPeak, math.Round((b.ps[pid].cpu-a.ps[pid].cpu)/d*1000)/10)
+			if prev == nil {
+				prev = b
+				continue
 			}
+			d := b.at.Sub(prev.at).Seconds()
+			if d < 10 {
+				continue
+			}
+			x, y := prev.ps[pid], b.ps[pid]
+			if x.metrics == y.metrics && y.cpu >= x.cpu {
+				row.CPUPeak = max(row.CPUPeak, math.Round((y.cpu-x.cpu)/d*1000)/10)
+			}
+			prev = b
 		}
 		row.RSSStart, row.RSSMid, row.RSSEnd = mb(st.ps[pid].rss), mb(mid.ps[pid].rss), mb(end.ps[pid].rss)
 		if mm := mid.m[i]; mm != nil {

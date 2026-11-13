@@ -395,6 +395,8 @@ func scrape(ctx context.Context, port int) (map[string]float64, error) {
 type procStat struct {
 	cpu float64 // seconds
 	rss float64 // bytes
+	// metrics: read from the relay's own process metrics rather than ps
+	metrics bool
 }
 
 func psStats(pids []int) (map[int]procStat, error) {
