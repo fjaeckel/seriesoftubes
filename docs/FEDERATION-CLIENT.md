@@ -269,6 +269,20 @@ Sheets (modals, so bottom sheets on phones) opened with `ACT.fuOpen({v})`: `home
 `move`, `quit`, `opkey`, `boards`, `filters`, `glass`, `server` (`id`), `net` (`key`), `report` (`key`). The HUD's status dot is `#hFed`.
 An invite link is `#join=<node URL>` in the page address. Labels are `fedui.*`.
 
+**The leaderboards** (`95-modals/48-fed-boards.js`). Title "Leaderboards"; the board is a native select under it (the
+sheet's subtitle), measure (`FU_MEASURES`, the first is the default; the 24 h measure of traffic, total and cone reads
+"p95 · 24 h") and division are two small segmented controls, and every other filter sits behind the filters button (a
+count badge when some are active), on the `filters` sheet. Nothing scrolls sideways; on a phone on its side all
+controls share one line. The board's note (`fuBoardNote`, one label per board, and per measure where it differs) is one
+line that opens on a tap (`ACT.fuNote`). Rows: rank (top three tinted), the name as a button over a small line (🤖, AS,
+home country), the value in a fixed column. The own row is highlighted in place, or, when not among the rows, kept in
+a sticky row at the bottom (`.fu-mine`). The open board refreshes every 30 s whatever the measure (`fuBoardsTick`, on
+`FED.set`): only while visible and connected, a tick with an ask in flight is skipped, and the sheet re-renders only
+when the answer changed. **The rank chip** (`95-modals/48-fed-rank.js`, `#hFu`, `ACT.fuBoards`): for a joined save, 🏆
+and the own rank on the default slice, from the sheet's answer for that slice or its own ask every 30 s (visible and
+connected only; at once on reconnecting or showing the page again). `fuMyRank()` is the one way to read it. The
+network menu has a Leaderboards tile for joined saves, and the home sheet leads with a Leaderboards card.
+
 **Relay versions and the update banner.** A node's `welcome` may say what it runs (§9.3 `impl`, read by `fedImpl`, kept
 as `FED.st[url].impl`), and a server's catalog entry what its nodes run (§10.8 `impl`, read by `fedImpls` for the
 server's own nodes only, kept with the gossip entry; `fedServers()` gives it as `relays`, node key → `{name, version}`

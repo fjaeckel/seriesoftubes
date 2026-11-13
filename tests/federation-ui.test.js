@@ -224,20 +224,20 @@ async function seedBoard(p, n) {
   }
 }
 
-test('leaderboards: three boards, divisions with robot badges, own row pinned, filters combine, offline "as of"', async () => {
+test('leaderboards: three boards, divisions with robot badges, own row in place, filters combine, offline "as of"', async () => {
   const { p, n } = await joined();
   await seedBoard(p, n);
   p.ev("ACT.fuOpen({v:'boards'});ACT.fuQ({k:'board',v:'pops'})");
   await run(p, 500);
-  const rows = () => val(p, `[...document.querySelectorAll('#modalCard .fu-board:not(.pinned) .fu-row')].map(r=>r.querySelector('.fu-nm').textContent.trim())`);
-  assert.deepEqual(rows().map((r) => r.split(' AS')[0]), ['Bob <b>Net</b>', 'Carol Bot 🤖'], 'names as typed, as text; the AI with its robot');
+  const rows = () => val(p, `[...document.querySelectorAll('#modalCard .fu-board .fu-row:not(.fu-me)')].map(r=>r.querySelector('.fu-nm').textContent.trim()+(r.querySelector('.fu-bot')?' 🤖':''))`);
+  assert.deepEqual(rows(), ['Bob <b>Net</b>', 'Carol Bot 🤖'], 'names as typed, as text; the AI with its robot');
   assert.equal(p.ev(`document.querySelectorAll('#modalCard .fu-board b b').length`), 0, 'a typed name is never markup');
-  assert.match(p.ev(`document.querySelector('#modalCard .fu-board.pinned').textContent`), /#3.*you/s, 'own row pinned with its rank');
+  assert.match(p.ev(`document.querySelector('#modalCard .fu-board .fu-me').textContent`), /^3.*you/s, 'own row in place with its rank');
   assert.match(txt(p), /All your servers, merged/);
   assert.doesNotMatch(txt(p), /as of /, 'a fresh answer');
   click(p, '#modalCard [data-act="fuQ"][data-args*="\\"ai\\""]');
   await run(p, 500);
-  assert.deepEqual(rows().map((r) => r.split(' AS')[0]), ['Carol Bot 🤖']);
+  assert.deepEqual(rows(), ['Carol Bot 🤖']);
   assert.match(txt(p), /not in this slice/);
   click(p, '#modalCard [data-act="fuQ"][data-args*="\\"all\\""]');
   await run(p, 500);
@@ -254,7 +254,7 @@ test('leaderboards: three boards, divisions with robot badges, own row pinned, f
   assert.equal(p.ev('UI.fu.q.model'), 'm1');
   click(p, '#modalCard .cta [data-act="fuOpen"]');
   await run(p, 500);
-  assert.deepEqual(rows().map((r) => r.split(' AS')[0]), ['Carol Bot 🤖']);
+  assert.deepEqual(rows(), ['Carol Bot 🤖']);
   assert.equal(p.ev(`document.querySelectorAll('#modalCard .fu-chip.act').length`), 2);
   click(p, '#modalCard .fu-chip.act[data-args*="policy"]');
   click(p, '#modalCard .fu-chip.act[data-args*="model"]');
@@ -347,7 +347,7 @@ test('every multiplayer sheet works on a 360 px phone, in portrait and landscape
   await seedBoard(p, n);
   await p.ev(`fedOpKeySet(${JSON.stringify(key('anna').seed)})`);
   const css = p.ev(`[...document.querySelectorAll('style')].map(s=>s.textContent).join('')`);
-  assert.match(css, /\.fedui \.fu-chips:not\(\.wrap\)\{flex-wrap:nowrap;overflow-x:auto/, 'chip rows scroll sideways on phones');
+  assert.doesNotMatch(css, /fu-chips[^{]*\{[^}]*overflow-x:auto/, 'no chip row scrolls sideways');
   for (const [w, h] of [[360, 740], [740, 360]]) {
     p.ev(`window.innerWidth=${w};window.innerHeight=${h};renderTabbar()`);
     assert.equal(p.ev('isPhone()'), true);
@@ -365,7 +365,7 @@ test('every multiplayer sheet works on a 360 px phone, in portrait and landscape
     // "More filters" is a second sheet on phones, with its own way back to the board.
     p.ev("ACT.fuOpen({v:'boards'})");
     await run(p, 300);
-    click(p, '#modalCard .fu-chip.more');
+    click(p, '#modalCard .fu-more');
     await run(p, 300);
     assert.equal(p.ev("$('modalCard').querySelector('.fedui').dataset.fu"), 'filters');
     click(p, '#modalCard .fu-back');

@@ -28,20 +28,59 @@
 .fu-srv .meta{margin:2px 0}
 .fu-typed{display:flex;gap:8px;align-items:center}
 .fu-typed input{flex:1;min-width:0}
+/* Chips (active filters, the filter sheet) always wrap: nothing in the boards scrolls sideways. */
 .fu-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
-.fu-chip{border:2px solid var(--ink);border-radius:999px;background:var(--paper);color:var(--ink);font:inherit;font-weight:800;font-size:13px;padding:5px 12px;cursor:pointer;white-space:nowrap;min-height:34px}
+.fu-chip{border:2px solid var(--ink);border-radius:999px;background:var(--paper);color:var(--ink);font:inherit;font-weight:800;font-size:13px;line-height:1.2;padding:5px 12px;cursor:pointer;min-height:34px;max-width:100%;text-align:left;overflow-wrap:anywhere}
 .fu-chip.on{background:var(--ink);color:#fff}
-.fu-chip.act{background:#FFF3C4;color:var(--ink);border-color:var(--sun)}
-.fu-chip.more{border-style:dashed}
-.fu-sep{width:1px;background:var(--line);margin:0 2px;align-self:stretch}
-.fu-seen{margin:4px 0}
-.fu-board{list-style:none;margin:6px 0;padding:0}
-.fu-row{display:grid;grid-template-columns:3.2em minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--line)}
-.fu-row .fu-rank{font-weight:800;color:var(--ink2)}
-.fu-row .fu-nm{min-width:0;overflow:hidden;text-overflow:ellipsis;overflow-wrap:anywhere}
-.fu-row .fu-v{font-weight:800;white-space:nowrap}
-.fu-board.pinned .fu-row{background:#FFF3C4;border:2px solid var(--sun);border-radius:12px}
-.fu-bot{font-size:14px}
+.fu-chip.act{background:#FFF3C4;color:var(--ink);border-color:var(--sun);min-height:30px;padding:3px 10px;font-size:12.5px}
+/* The boards' controls: the board picker (the subtitle) with the filters button, then measure and division. */
+.fu-ctl{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0 0;min-width:0}
+.fu-br{flex:0 0 100%;height:0;margin-bottom:-2px}
+.fu-bsel.pick{flex:1 1 0;min-width:0;width:auto;min-height:42px;font-size:17px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;padding:4px 32px 4px 12px;border-width:2.5px;border-radius:12px;box-shadow:0 2px 0 var(--ink);background-position:right 11px center}
+.fu-more{flex:none;position:relative;display:flex;align-items:center;gap:6px;min-height:42px;min-width:44px;justify-content:center;padding:0 12px;border:2.5px solid var(--ink);border-radius:12px;background:var(--paper);color:var(--ink);font:800 13px var(--display);cursor:pointer;box-shadow:0 2px 0 var(--ink)}
+.fu-more.on{background:#FFF3C4}
+.fu-cnt{position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:var(--me);color:#fff;border:2px solid var(--ink);font:900 10.5px/14px Nunito,sans-serif;text-align:center}
+.segc.fu-seg{display:inline-flex;flex:0 1 auto;margin:0;padding:2px;gap:2px;border-width:2.5px;border-radius:12px;box-shadow:0 2px 0 var(--ink);max-width:100%;min-width:0}
+.segc.fu-seg button{flex:0 1 auto;min-height:34px;padding:2px 9px;font-size:13px;border-width:2px;border-radius:9px;white-space:nowrap}
+.fu-note{display:flex;align-items:flex-start;gap:6px;width:100%;margin:8px 0 2px;padding:4px 0;border:0;background:none;color:var(--ink2);font:inherit;font-size:13px;line-height:1.35;text-align:left;cursor:pointer;min-width:0}
+.fu-note .fu-i{flex:none;font-weight:900;color:var(--ink)}
+.fu-note .fu-nt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fu-note.open .fu-nt{white-space:normal}
+/* Rows: rank, name over a small line, the value in a fixed column. The name is a button the whole height of the row. */
+.fu-board{list-style:none;margin:4px 0;padding:0}
+.fu-row{display:grid;grid-template-columns:2.3em minmax(0,1fr) 6.4em;gap:8px;align-items:center;min-height:48px;padding:0 6px 0 4px;border-bottom:1px solid var(--line)}
+.fu-row .fu-rank{justify-self:center;min-width:1.9em;text-align:center;font:800 14px var(--display);color:var(--ink2);border-radius:999px;padding:2px 0}
+.fu-row.top1 .fu-rank{background:#FFE58A;color:var(--ink)}.fu-row.top2 .fu-rank{background:#E3E8F2;color:var(--ink)}.fu-row.top3 .fu-rank{background:#F6D3B5;color:var(--ink)}
+.fu-who{display:flex;flex-direction:column;justify-content:center;align-self:stretch;min-width:0;min-height:44px;padding:4px 0;border:0;background:none;color:var(--ink);font:inherit;text-align:left}
+button.fu-who{cursor:pointer}button.fu-who:hover .fu-nm{color:var(--me)}
+.fu-nm{display:block;font-weight:800;font-size:14.5px;line-height:1.25;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fu-sub{display:block;font-size:11.5px;line-height:1.3;color:var(--ink2);font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fu-sub .fu-tag{font-size:10px;padding:0 6px;vertical-align:1px}
+.fu-row .fu-v{justify-self:end;font-weight:800;white-space:nowrap;font-size:14px}
+.fu-row.fu-me{background:#FFF3C4;box-shadow:inset 4px 0 0 var(--sun);border-radius:10px}
+.fu-foot{margin:6px 0 0;font-size:12px}
+.fedui .note.bad{border:2px solid var(--bad);background:#FFF1F2;color:var(--ink);border-radius:12px;padding:6px 10px;margin:8px 0 4px}
+/* Not among the rows: the own row sticks to the bottom of the sheet, like a sheet's call to action. */
+.fu-mine{position:sticky;bottom:-20px;z-index:1;margin:10px -22px 0;padding:4px 22px 8px;background:var(--paper);border-top:2px solid var(--line)}
+.fu-mine .fu-board{margin:4px 0 0}.fu-mine .meta{margin:0 0 2px 2.9em;font-size:12px}
+.fu-bot{font-size:13px}
+/* The leaderboards card that leads the Multimode sheet. */
+button.plug.fu-lb{width:100%;font:inherit;text-align:left;cursor:pointer;margin:6px 0 10px}
+.fu-lb .grow{min-width:0}.fu-lb .pi{font-size:26px}.fu-lb .go{font-size:22px}
+/* The HUD's rank chip: a trophy over this network's rank; a tap opens the leaderboards. */
+#hud .chip.fu-hud{position:relative;align-items:center;justify-content:center;cursor:pointer;font:inherit;color:var(--ink);min-width:44px;padding-left:8px;padding-right:8px}
+.fu-hud .ic{font-size:15px;line-height:1.1}
+.fu-hud .val:empty{display:none}
+/* Narrow phones: a square trophy with the rank as a badge, a slimmer find chip and no menu caret, so the date fits. */
+@media (max-width:420px){
+  #hud .chip.fu-hud{width:34px;min-width:34px;padding:0;flex:none}
+  #hud .chip.fu-hud .ic{font-size:17px}
+  #hud .chip.fu-hud .val{position:absolute;top:-7px;right:-9px;background:var(--sun);color:var(--ink);border:2px solid var(--ink);border-radius:9px;font:900 10.5px/14px Nunito,sans-serif;padding:0 4px;letter-spacing:-.02em}
+  #hud:has(#hFu:not([hidden])) .chip.find{width:34px;min-width:34px;font-size:15px}
+  #hud:has(#hFu:not([hidden])) .menubtn .caret{display:none}
+  #hud:has(#hFu:not([hidden])){gap:4px}
+  #hud:has(#hFu:not([hidden])) .chip:not(.fu-hud):not(.find){padding-left:6px;padding-right:6px}
+}
 .fu-sel select{max-width:60%}
 .fu-dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;margin:8px 0}
 .fu-dl dt{font-weight:800}

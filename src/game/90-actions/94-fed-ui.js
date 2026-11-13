@@ -8,7 +8,7 @@ Object.assign(ACT,{
    const was=UI.fu&&UI.fu.v;if(!UI.fu)UI.fu={};if(v!==was)FU.msg=null;if(v==='boards'&&was!=='filters')FU.facets=null;
    UI.fu.v=v;if(id!==undefined)UI.fu.id=id;if(key!==undefined)UI.fu.key=key;UI.fu.back=back||null;if(v==='server'&&id!==undefined)FU.chain=null;
    fuRender();fuLoad();if(v==='join')fedCatalogLoad().catch(()=>false);},
- fuClose:()=>{fuNowStop();UI.fu=null;FU.msg=null;if(UI.setOpen){if(!S||!UI.started)showTitle();else ACT.settings();return;}if(!S||!UI.started)showTitle();else closeModal();},
+ fuClose:()=>{UI.fu=null;FU.msg=null;if(UI.setOpen){if(!S||!UI.started)showTitle();else ACT.settings();return;}if(!S||!UI.started)showTitle();else closeModal();},
  fuJoin:async({url}={})=>{if(FU.busy)return;const r=await fuDo(fedJoin(url).then(code=>code?{error:code}:{ok:true}));
    if(r&&r.ok){if(UI.fedInvite===url)UI.fedInvite=null;const s=fuSrvOf(url);FU.msg={html:tr('fedui.joined_server',{server:s?esc(s.name):esc(url)})};UI.fu.v='home';track('fed_join');fuDot();fuLoad();return;}
    fuRender();},
@@ -23,7 +23,11 @@ Object.assign(ACT,{
    if(r&&r.ok){ACT.fuOpen({v:'home'});FU.msg={html:tr('fedui.operator_key_imported')};fuRender();}else{FU.msg={bad:true,html:tr('fedui.that_is_not_an_operator_key')};fuRender();}},
  fuOpKeyDel:async()=>{await fedOpKeyDel();FU.opKey=null;FU.msg={html:tr('fedui.operator_key_removed')};fuLoad();},
  // Board chips: one dimension each; null clears it. A wider region clears the narrower ones.
- fuQ:({k,v}={})=>{const q=fuQ(),ok={board:FU_BOARDS,measure:['now','total','growth'],division:['all','human','ai']};
+ // The HUD's rank chip and the menu tile.
+ fuBoards:()=>{if(fuRankOn())ACT.fuOpen({v:'boards'});},
+ // The board's note: one line, or all of it.
+ fuNote:()=>{if(!UI.fu)return;UI.fu.note=!UI.fu.note;fuRender();},
+ fuQ:({k,v}={})=>{const q=fuQ(),ok={board:FU_BOARDS,measure:FU_MEASURES,division:['all','human','ai']};
    if(ok[k]){if(!ok[k].includes(v))return;q[k]=v;}
    else if(['model','harness','home','from','continent','country','city','age','gday','tier1','policy','peers','server'].includes(k)){
      if(v===null||v===undefined||v==='')delete q[k];else q[k]=v;

@@ -61,38 +61,39 @@ test('a server that does not list the state feature gets no states and is not as
   assert.deepEqual(p.errors, []);
 });
 
-test('the boards sheet opens on now and asks again every 10 s while it shows, then stops', async () => {
+test('the boards sheet opens on now and asks again every 30 s, whatever the measure, then stops', async () => {
   const { p, n } = await joined();
   const me = p.ev('S.fed.key.pub');
   n.ranks = (f) => ({ slot: 0, at: p.net.now(), n: 1, rows: [{ rank: 1, key: me, value: n.asks.length, asn: 4200000001, ai: false }], me: { rank: 1, value: 1 } });
   p.ev("ACT.fuOpen({v:'boards'})");
   await step(p, 500);
-  const ranks = () => n.asks.filter((f) => f.m === 'rank');
+  const ranks = (m) => n.asks.filter((f) => f.m === 'rank' && (!m || f.measure === m));
   assert.equal(ranks()[0].measure, 'now', 'the default measure');
-  const k = ranks().length;
+  const k = ranks('now').length;
+  await step(p, 20000);
+  assert.equal(ranks('now').length, k, 'not before 30 s');
   await step(p, 10000);
-  assert.equal(ranks().length, k + 1, 'asked again after 10 s');
-  assert.equal(ranks().at(-1).measure, 'now');
+  assert.ok(ranks('now').length > k, 'asked again after 30 s');
   // Hidden: no asks; visible again: asks resume.
   p.net.vis = false;
-  await step(p, 30000);
-  assert.equal(ranks().length, k + 1);
+  const h = ranks().length;
+  await step(p, 60000);
+  assert.equal(ranks().length, h, 'none while hidden');
   p.net.vis = true;
-  await step(p, 10000);
-  assert.equal(ranks().length, k + 2);
-  // The 24-hour board is not refreshed; closing the sheet stops everything.
+  await step(p, 30000);
+  assert.ok(ranks().length > h, 'asks resume when visible');
+  // The 24-hour board refreshes too.
   p.ev("ACT.fuQ({k:'measure',v:'total'})");
   await step(p, 500);
-  const j = ranks().length;
+  const j = ranks('total').length;
   await step(p, 30000);
-  assert.equal(ranks().length, j);
-  p.ev("ACT.fuQ({k:'measure',v:'now'})");
-  await step(p, 500);
+  assert.ok(ranks('total').length > j, 'the 24 h board refreshes every 30 s too');
+  // Closing the sheet stops the sheet's asks.
   p.ev('ACT.fuClose()');
-  const c = ranks().length;
+  await step(p, 500);
+  const c = ranks('total').length;
   await step(p, 60000);
-  assert.equal(ranks().length, c, 'no asks once closed');
-  assert.equal(p.ev('FU.nowT'), null);
+  assert.equal(ranks('total').length, c, 'no board asks once closed');
   assert.deepEqual(p.errors, []);
 });
 

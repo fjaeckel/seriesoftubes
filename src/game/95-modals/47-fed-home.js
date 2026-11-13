@@ -51,7 +51,7 @@ const fuQueued=()=>S&&S.fed?S.fed.out.filter(r=>r.kind!=='stats'&&r.kind!=='anno
 function fuStatusText(st=fedStatus()){
   if(st.state==='connected')return tr('fedui.connected');if(st.state==='connecting')return tr('fedui.connecting');
   if(st.state==='offline')return st.since?tr('fedui.offline_since_time',{time:fuWhen(st.since)}):tr('fedui.offline');return tr('fedui.not_joined');}
-function fuDot(){const el=$('hFed');if(!el)return;const st=fedStatus(),on=st.state!=='off'&&!!(S&&S.fed&&S.fed.on);el.hidden=!on;if(!on)return;
+function fuDot(){fuRankChip();const el=$('hFed');if(!el)return;const st=fedStatus(),on=st.state!=='off'&&!!(S&&S.fed&&S.fed.on);el.hidden=!on;if(!on)return;
   el.className='fed-dot '+st.state;const q=fuQueued(),t=tr('fedui.multiplayer')+': '+fuStatusText(st)+(q&&st.state!=='connected'?' · '+trn('fedui.n_actions_queued',q):'');
   el.title=t;el.setAttribute('aria-label',t);}
 // When this network last reached a server (per device, outside the save): for the one suggestion after 14 days.
@@ -68,7 +68,7 @@ function fuOnStatus(st){fuDot();const f=S&&S.fed;if(f&&f.key&&st.state==='connec
 // After boot: listen (memory only: no socket, no timer), and an invite link opens the join sheet.
 function fuBoot(){fuCan();// the capability check is async: start it now, so the menu has its tile from the first look
   fedOn('status',fuOnStatus);fedOn('catalog',()=>{if(fuShown())fuLoad();});fedOn('excluded',()=>{if(fuShown())fuLoad();});fedOn('mute',()=>{if(fuShown())fuRender();});
-  fedOn('board',()=>{if(fuShown()&&UI.fu.v==='boards')fuLoad();});fedOn('update',()=>{if(fuShown()&&UI.fu.v==='server')fuRender();});fuDot();
+  fedOn('board',()=>{if(fuShown()&&UI.fu.v==='boards')fuLoad();});fedOn('update',()=>{if(fuShown()&&UI.fu.v==='server')fuRender();});fuRankBoot();fuDot();
   if(FU_INVITE){UI.fedInvite=FU_INVITE;if(S&&UI.started&&fedEligible())ACT.fuOpen({v:'join'});}}
 /* The title screen mentions a waiting invite in one line (it is drawn before fuBoot, so the link itself counts until
    then); a new game started from it opens the join sheet once its charter is signed (fuInviteGo). */
@@ -80,7 +80,8 @@ function fuInviteGo(){const g=UI.fedGo;if(g&&g.s===S){UI.fedGo=null;if(g.url&&fe
 // A line in Settings, and a tile in the network menu, only where multiplayer can work.
 function fuSettingsRow(){if(!fuCan())return '';const f=S&&S.fed,st=f&&f.on?fuStatusText():tr('fedui.not_joined');
   return `<h3 class="sub4">${fuIcon()} ${tr('fedui.multiplayer')}</h3><div class="setline"><span class="fu-st">${st}</span>${btn(tr('fedui.open_multiplayer'),'fuOpen',{v:'home'},'ghost sm')}</div><p class="meta" style="margin:0 0 6px">${tr('fedui.join_a_server_to_meet_other')}</p>`;}
-const fuMenuTile=()=>fuCan()?[[fuIcon(),tr('fedui.multiplayer'),'fuOpen']]:[];
+// A joined save also gets the leaderboards, next to Multimode.
+const fuMenuTile=()=>fuCan()?[[fuIcon(),tr('fedui.multiplayer'),'fuOpen'],...(fuRankOn()?[['🏆',tr('fedui.leaderboards'),'fuBoards']]:[])]:[];
 
 /* ---------- loading what a sheet shows, then drawing it ---------- */
 /* Loads run one after another: events (status, catalog, board) and buttons ask for loads that overlap, and an older
@@ -113,6 +114,8 @@ const fuMsg=()=>FU.msg?`<p class="${FU.msg.bad?'why':'note'} fu-msg" role="statu
 function fuHomeHtml(){const f=S&&S.fed,ok=S&&UI.started&&fedEligible(),on=!!(f&&f.on),st=fedStatus();
   let h=fuHead(fuIcon()+' '+tr('fedui.multiplayer'),tr('fedui.playing_with_others'));
   h+=`<p class="tagline">${tr('fedui.other_players_networks_become_places_to')}</p>${fuMsg()}`;
+  // Joined: the leaderboards come first, as a card with this network's rank.
+  if(ok&&on){const m=fuMyRank();h+=`<button class="plug fu-lb" data-act="fuOpen" data-args='{"v":"boards"}'><span class="pi" aria-hidden="true">🏆</span><span class="grow"><b>${tr('fedui.leaderboards')}</b><span class="meta">${m?'#'+m.rank+' · ':''}${fuBoardName(fuDefQ().board)}</span></span><span class="go" aria-hidden="true">›</span></button>`;}
   if(!ok)h+=`<p class="note fu-why">${fuWhyMode()}</p>`;
   // Excluded by the federation: why, and that solo play goes on.
   if(on&&FU.shun&&FU.shun.shunned)h+=`<div class="fu-box bad"><b>${tr('fedui.the_federation_excluded_your_network')}</b><p class="meta">${FU.shun.reasons.length?tr('fedui.enough_servers_voted_to_shun_it'):tr('fedui.enough_servers_voted_to_exclude_it')}</p>${FU.shun.reasons.length?`<ul class="fu-reasons">${FU.shun.reasons.map(r=>`<li>${fuReason(r)}</li>`).join('')}</ul>`:''}${FU.shun.servers&&FU.shun.servers.length?`<p class="meta">${tr('fedui.listed_by_servers',{servers:[...new Set(FU.shun.servers.map(x=>FU.srvs.some(s=>s.id===x.srv)?fuSrvName(x.srv):esc(fedUrlHost(x.url))))].join(', ')})}</p>`:''}<p class="meta">${tr('fedui.your_game_plays_on_as_always')}</p></div>`;
@@ -123,7 +126,7 @@ function fuHomeHtml(){const f=S&&S.fed,ok=S&&UI.started&&fedEligible(),on=!!(f&&
   // Joined servers.
   if(f&&f.servers.length){h+=`<h3 class="sub4">${tr('fedui.your_servers')}</h3><div class="fu-list">${f.servers.map(u=>{const s=fuSrvOf(u),x=FED.st[u];
       return `<div class="fu-item"><span class="fed-dot ${x?x.state:'offline'}" aria-hidden="true"></span><div class="grow fu-txt"><b>${s?esc(s.name):esc(u)}</b><span class="meta">${s?fuPolicy(s):esc(u)}</span></div>${btn(tr('fedui.leave'),'fuLeave',{url:u},'ghost sm')}</div>`;}).join('')}</div>`;}
-  if(ok){const full=f&&f.servers.length>=FED_MAX_SERVERS;h+=`<div class="btns">${btn(f&&f.servers.length?tr('fedui.join_another_server'):tr('fedui.join_a_server'),'fuOpen',{v:'join'},'pink',full)}${on?btn(tr('fedui.leaderboards'),'fuOpen',{v:'boards'},''):''}${btn(tr('fedui.looking_glass'),'fuOpen',{v:'glass'},'ghost')}</div>`;
+  if(ok){const full=f&&f.servers.length>=FED_MAX_SERVERS;h+=`<div class="btns">${btn(f&&f.servers.length?tr('fedui.join_another_server'):tr('fedui.join_a_server'),'fuOpen',{v:'join'},'pink',full)}${btn(tr('fedui.looking_glass'),'fuOpen',{v:'glass'},'ghost')}</div>`;
     if(full)h+=`<p class="meta">${tr('fedui.you_are_on_four_servers_already')}</p>`;}
   else h+=`<div class="btns">${btn(tr('fedui.looking_glass'),'fuOpen',{v:'glass'},'ghost')}</div>`;
   h+=`<div class="btns fu-info">${btn(tr('mphelp.how_multiplayer_works'),'helpMp',{from:'fed'},'ghost sm')}${btn(tr('fedui.privacy'),'privacy',{from:'fed'},'ghost sm')}</div>`;

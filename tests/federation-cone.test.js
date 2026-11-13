@@ -54,7 +54,8 @@ async function setup(bobFounded, value) {
   const p = fedPage({ registry: SERVERS_JSON });
   const n = p.net.node(URL1);
   const sa = st('alice', { cust: [B], traffic: [{ key: B, in: 300, out: 200 }] }), sb = st('bob', { up: [A], traffic: [{ key: A, in: 200, out: 300 }] });
-  n.ranks = { slot: slotOf(NOW), n: 2, rows: [{ rank: 1, key: A, value, asn: asn(A), ai: false }], me: null };
+  // Only the cone board has rows (the HUD's rank chip asks the traffic board, which must not check against cone records).
+  n.ranks = (f) => f.board === 'cone' ? { slot: slotOf(NOW), n: 2, rows: [{ rank: 1, key: A, value, asn: asn(A), ai: false }], me: null } : { slot: slotOf(NOW), n: 0, rows: [], me: null };
   n.why = (f) => ({ slot: slotOf(NOW), items: f.key === A ? [{ rec: sa, rcpt: [rcpt(sa, t0)] }, { rec: sb, rcpt: [rcpt(sb, t0)] }, { rec: ann('alice', TODAY - 300), rcpt: [] }, { rec: ann('bob', bobFounded), rcpt: [] }] : [] });
   await joinGame(p);
   assert.ok(await until(async () => (await settle(5), p.ev('fedStatus().state') === 'connected')));
@@ -76,11 +77,11 @@ test('a cone that counts a newcomer is caught', async () => {
   assert.deepEqual(p.errors, []);
 });
 
-test('the boards sheet has a Customer cone chip with its explanation, at phone width', async () => {
+test('the boards sheet has a Customer cone board with its explanation, at phone width', async () => {
   const { p, n } = await setup(TODAY - 100, 1);
   p.ev('innerWidth=360;innerHeight=640;ACT.fuOpen({v:"boards"});');
   await p.ev('ACT.fuQ({k:"board",v:"cone"})');
-  assert.ok(await until(async () => (await settle(5), /Customer cone/.test(p.ev("$('modalCard').textContent")) && /#1/.test(p.ev("$('modalCard').textContent")))));
+  assert.ok(await until(async () => (await settle(5), /Customer cone/.test(p.ev("$('modalCard').textContent")) && p.ev("!!document.querySelector('#modalCard .fu-row .fu-rank')"))));
   const txt = p.ev("$('modalCard').textContent");
   assert.match(txt, /buy transit from you/);
   assert.match(txt, /30 days/);
