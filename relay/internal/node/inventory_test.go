@@ -13,8 +13,8 @@ import (
 func fullInventory(r *Relay, s *session, since int64) []string {
 	var ids []string
 	for _, e := range r.st.All() {
-		if e.Slot >= since && s.sends(e.Rec) && !r.shunned[e.Rec.Key] && classOrChain(e, r) {
-			ids = append(ids, e.Rec.ID)
+		if e.Slot >= since && s.sends(e.Kind) && !r.shunned[e.Key] && classOrChain(e, r) {
+			ids = append(ids, e.ID)
 		}
 	}
 	return ids

@@ -232,14 +232,14 @@ func (p *listPager) next(r *Relay, s *session) (map[string]any, bool) {
 		var v map[string]any
 		if p.pos < len(p.vals) {
 			v = p.vals[p.pos]
-		} else if e := p.entries[p.pos-len(p.vals)]; r.st.Get(e.Rec.ID) == e && !r.shunned[e.Rec.Key] && r.shows(s, e.Rec) {
-			v = item(e)
+		} else if e := p.entries[p.pos-len(p.vals)]; r.st.Get(e.ID) == e && !r.shunned[e.Key] && r.shows(s, e) {
+			v = r.item(e)
 		}
 		if v == nil {
 			p.pos++
 			continue
 		}
-		b := len(canon.Encode(v))
+		b := itemSize(v)
 		if b > limit {
 			p.pos++ // could never be sent: no page is ever over the frame limit
 			continue
@@ -305,12 +305,15 @@ func (p *subPager) next(r *Relay, s *session) (map[string]any, bool) {
 			full, s.yield = true, true
 			return false
 		}
-		if r.shunned[e.Rec.Key] || !r.shows(s, e.Rec) {
+		it := map[string]any(nil)
+		if !r.shunned[e.Key] && r.shows(s, e) {
+			it = r.item(e)
+		}
+		if it == nil {
 			last = e.Seq
 			return true
 		}
-		it := item(e)
-		b := len(canon.Encode(it))
+		b := itemSize(it)
 		if len(page) > 0 && (len(page) >= fed.MaxItems || size+b > fed.ClientFrame-1024) {
 			full = true
 			return false
@@ -814,7 +817,7 @@ func pageItems(items []map[string]any, n, limit int) [][]any {
 	var cur []any
 	size := 0
 	for _, it := range items {
-		b := len(canon.Encode(it))
+		b := itemSize(it)
 		if len(cur) > 0 && (len(cur) >= n || size+b > limit) {
 			pages = append(pages, cur)
 			cur, size = nil, 0
@@ -877,11 +880,11 @@ func (r *Relay) Cosign(rid, key, sig string) (string, string) {
 		r.mu.Unlock()
 		return "", fed.NotFound
 	}
-	rec := e.Rec
-	if rec.Kind != "operators" && rec.Kind != "server" {
+	if e.Kind != "operators" && e.Kind != "server" {
 		r.mu.Unlock()
 		return "", fed.BadKind
 	}
+	rec := r.st.Rec(e)
 	if !fed.IsKey(key) {
 		r.mu.Unlock()
 		return "", fed.BadKey

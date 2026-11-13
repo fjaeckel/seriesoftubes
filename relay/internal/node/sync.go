@@ -323,9 +323,11 @@ func (r *Relay) nodeFrame(s *session, f *wire.Frame) bool {
 			// cannot show them: push this server's multi-signer records anyway; copies merge.
 			var items []map[string]any
 			for _, k := range []string{"operators", "server"} {
-				for _, e := range store.Sorted(r.st.Kind(k)) {
-					if r.own != nil && e.Rec.Str("server") == r.own.ID {
-						items = append(items, item(e))
+				for e := range r.st.Kind(k) {
+					if r.own != nil && r.st.Rec(e).Str("server") == r.own.ID {
+						if it := r.item(e); it != nil {
+							items = append(items, it)
+						}
 					}
 				}
 			}
@@ -359,7 +361,7 @@ func (r *Relay) nodeFrame(s *session, f *wire.Frame) bool {
 		r.mu.Lock()
 		var list []*store.Entry
 		for _, id := range ids {
-			if e := r.st.Get(id); e != nil && s.sends(e.Rec) && !r.shunned[e.Rec.Key] {
+			if e := r.st.Get(id); e != nil && s.sends(e.Kind) && !r.shunned[e.Key] {
 				list = append(list, e)
 			}
 		}
@@ -415,8 +417,8 @@ func (r *Relay) inventory(s *session, since int64) []string {
 			}
 			n++
 			after = e.Seq
-			if e.Slot >= since && s.sends(e.Rec) && !r.shunned[e.Rec.Key] && classOrChain(e, r) {
-				ids = append(ids, e.Rec.ID)
+			if e.Slot >= since && s.sends(e.Kind) && !r.shunned[e.Key] && classOrChain(e, r) {
+				ids = append(ids, e.ID)
 			}
 			return true
 		})
@@ -447,9 +449,9 @@ func (r *Relay) refuse(id string) {
 
 // classOrChain: chain records travel only between nodes of this server, and only this server's.
 func classOrChain(e *store.Entry, r *Relay) bool {
-	switch e.Rec.Kind {
+	switch e.Kind {
 	case "genesis", "operators", "server":
-		return r.own != nil && (e.Rec.ID == r.own.ID || e.Rec.Str("server") == r.own.ID)
+		return r.own != nil && (e.ID == r.own.ID || r.st.Rec(e).Str("server") == r.own.ID)
 	}
 	return true
 }

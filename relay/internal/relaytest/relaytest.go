@@ -342,7 +342,7 @@ func (x *Node) Has(id string) bool {
 func (x *Node) Count(kind string) int {
 	x.R.Lock()
 	defer x.R.Unlock()
-	return len(x.R.Store().Kind(kind))
+	return x.R.Store().Count(kind)
 }
 
 // Stats makes a signed stats record for a network key.

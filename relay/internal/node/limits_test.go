@@ -103,7 +103,8 @@ func TestMergedSignaturesKeepOperatorsOnly(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	got := x.R.Store().Get(id).Rec.Signers()
+	st := x.R.Store()
+	got := st.Rec(st.Get(id)).Signers()
 	x.R.Unlock()
 	if len(got) != 2 || !slices.Contains(got, s.Op.Key) || !slices.Contains(got, ben.Key) {
 		t.Fatalf("merged signers %d: want the author and the operator only", len(got))

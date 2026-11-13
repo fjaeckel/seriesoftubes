@@ -38,7 +38,9 @@ func (r *Relay) Get(id string) map[string]any {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if e := r.st.Get(id); e != nil {
-		return e.Rec.Value
+		if rec := r.st.Rec(e); rec != nil {
+			return rec.Value
+		}
 	}
 	return nil
 }
@@ -77,8 +79,8 @@ func (r *Relay) Pending() []map[string]any {
 		out = append(out, map[string]any{"id": p.ID, "kind": p.Kind, "action": p.Str("action"), "target": p.Str("target"),
 			"url": p.Str("url"), "t": p.T, "signers": p.Signers(), "expires": p.T + fed.PendingLife, "record": p.Value})
 	}
-	for _, e := range r.st.Kind("server") {
-		s := e.Rec
+	for e := range r.st.Kind("server") {
+		s := r.st.Rec(e)
 		if s == r.ownSrv || s.Str("server") != r.own.ID || r.own.ServerShape(s) != "" || r.own.CheckServer(s) == "" || now >= s.T+fed.PendingLife {
 			continue
 		}
@@ -96,7 +98,7 @@ func (r *Relay) Status() map[string]any {
 	defer r.mu.Unlock()
 	kinds := map[string]int{}
 	for _, k := range fed.RecordKinds {
-		kinds[k] = len(r.st.Kind(k))
+		kinds[k] = r.st.Count(k)
 	}
 	peers := []map[string]any{}
 	for s := range r.nodes {
@@ -171,8 +173,11 @@ func (r *Relay) Players() []map[string]any {
 	r.tally(now)
 	var out []map[string]any
 	for key, recs := range r.byKeyKind("announce") {
-		sort.Slice(recs, func(i, j int) bool { return recs[i].Rec.T > recs[j].Rec.T })
-		a := recs[0].Rec
+		sort.Slice(recs, func(i, j int) bool { return recs[i].T > recs[j].T })
+		a := r.st.Rec(recs[0])
+		if a == nil {
+			continue
+		}
 		heard := r.lastHeard(key)
 		state, _ := boards.Quiet(now, heard)
 		out = append(out, map[string]any{"key": key, "name": a.Str("name"), "asn": a.Int("asn"), "lastHeard": heard,

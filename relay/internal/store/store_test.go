@@ -28,7 +28,7 @@ func TestMergeNeverPassesSixteenSigners(t *testing.T) {
 	b = append(b, "author")
 	s.Put(rec("x", "operators", "author", a...), nil, 0, 0)
 	s.Put(rec("x", "operators", "author", b...), nil, 0, 0)
-	got := s.Get("x").Rec.Signers()
+	got := s.Rec(s.Get("x")).Signers()
 	if len(got) != fed.MaxSigners {
 		t.Fatalf("%d signers", len(got))
 	}
@@ -48,7 +48,7 @@ func TestMergeNeverPassesSixteenSigners(t *testing.T) {
 	if res, _, _ := s.Put(rec("y", "server", "author", b...), nil, 0, 0); res != Merged {
 		t.Fatalf("second copy: %s", res)
 	}
-	if got := s.Get("y").Rec.Signers(); fmt.Sprint(got) != "[a03 author b07]" {
+	if got := s.Rec(s.Get("y")).Signers(); fmt.Sprint(got) != "[a03 author b07]" {
 		t.Fatalf("kept %v", got)
 	}
 	// A copy that brings nothing new is a duplicate.

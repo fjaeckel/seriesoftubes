@@ -388,9 +388,10 @@ func init() {
 		}
 		stored := []out{}
 		for _, e := range st.All() {
-			o := out{ID: e.Rec.ID}
-			if e.Rec.Sigs != nil {
-				o.Sigs = e.Rec.Signers()
+			rec := st.Rec(e)
+			o := out{ID: e.ID}
+			if rec.Sigs != nil {
+				o.Sigs = rec.Signers()
 			}
 			stored = append(stored, o)
 		}

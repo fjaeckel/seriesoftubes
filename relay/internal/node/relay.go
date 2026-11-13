@@ -19,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fjaeckel/seriesoftubes/relay/internal/canon"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/chain"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/config"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
@@ -118,7 +119,14 @@ func New(o Options) (*Relay, error) {
 	if o.DialBase == 0 {
 		o.DialBase = time.Second
 	}
-	st, err := store.Open(o.Dir)
+	// The leaderboards' records are parsed as the store reads them (stats only); those removed
+	// before the boards load are left out then.
+	var pre []loaded
+	st, err := store.OpenWith(o.Dir, func(e *store.Entry, rec *fed.Record, rcpts []map[string]any) {
+		if e.Kind == "stats" {
+			pre = append(pre, loaded{e, rank.Parsed(e.ID, e.Key, e.Slot, e.T, rec.Body, rcptCC(rcpts, e.Slot))})
+		}
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -140,8 +148,8 @@ func New(o Options) (*Relay, error) {
 	}
 	r.mu.Lock()
 	r.recompute()
-	for _, e := range st.Kind("leave") {
-		r.left[e.Rec.Key] = max(r.left[e.Rec.Key], e.Rec.T)
+	for e := range st.Kind("leave") {
+		r.left[e.Key] = max(r.left[e.Key], e.T)
 	}
 	// What a leave removed stays removed, even if a restart came before the file was rewritten.
 	if gone := r.leftBehind(); len(gone) > 0 {
@@ -149,11 +157,11 @@ func New(o Options) (*Relay, error) {
 	}
 	r.indexVotes()
 	r.ann, r.offerN = map[string]*store.Entry{}, map[string]int{}
-	for _, e := range st.Kind("announce") {
+	for e := range st.Kind("announce") {
 		r.noteAnn(e)
 	}
-	for _, e := range st.Kind("offer") {
-		r.countOffer(e.Rec, 1)
+	for e := range st.Kind("offer") {
+		r.countOffer(e.Key, e.To(), 1)
 	}
 	r.indexReports()
 	r.loadCatalog()
@@ -162,7 +170,8 @@ func New(o Options) (*Relay, error) {
 	// The leaderboards are built from the store in parallel chunks while the node already serves
 	// (rank answers rate_limited until then); records stored meanwhile are applied after.
 	r.rank = rank.New(0)
-	raws, anns := r.rankSnapshot()
+	raws, anns := r.rankSnapshot(pre)
+	pre = nil
 	ex, names := r.excludedSets()
 	r.mu.Unlock()
 	r.wg.Add(1)
@@ -218,19 +227,19 @@ func (r *Relay) recompute() {
 		return
 	}
 	g := r.st.Get(id)
-	if g == nil || g.Rec.Kind != "genesis" {
+	if g == nil || g.Kind != "genesis" {
 		return
 	}
 	var ops, srvs []*fed.Record
-	for _, e := range r.st.Kind("operators") {
-		ops = append(ops, e.Rec)
+	for e := range r.st.Kind("operators") {
+		ops = append(ops, r.st.Rec(e))
 	}
-	for _, e := range r.st.Kind("server") {
-		if e.Rec.Str("server") == id {
-			srvs = append(srvs, e.Rec)
+	for e := range r.st.Kind("server") {
+		if x := r.st.Rec(e); x.Str("server") == id {
+			srvs = append(srvs, x)
 		}
 	}
-	r.own = chain.Compute(g.Rec, ops)
+	r.own = chain.Compute(r.st.Rec(g), ops)
 	r.ownSrv = r.own.Current(srvs)
 	var atHead []*fed.Record
 	for _, x := range srvs {
@@ -239,8 +248,8 @@ func (r *Relay) recompute() {
 		}
 	}
 	r.headSrv = r.own.Current(atHead)
-	for _, e := range r.st.Kind("hide") {
-		h := e.Rec
+	for e := range r.st.Kind("hide") {
+		h := r.st.Rec(e)
 		if h.Str("server") != id || !r.own.IsOperator(h.Key) {
 			continue
 		}
@@ -312,15 +321,15 @@ func (r *Relay) operator(s *session) bool {
 // shows reports whether a session may be sent this record (lock held). Other nodes get everything.
 // Shun votes and players' reports go to this server's operators only; every other client learns the outcome from
 // excluded. Deals go to their two parties only, open consortium projects to everyone (9.3).
-func (r *Relay) shows(s *session, rec *fed.Record) bool {
+func (r *Relay) shows(s *session, e *store.Entry) bool {
 	if s.node {
 		return true
 	}
-	switch rec.Kind {
+	switch e.Kind {
 	case "shun", "unshun":
 		return r.operator(s)
 	case "offer", "accept", "decline":
-		return r.party(s, rec)
+		return r.party(s, e)
 	case "report":
 		return r.operator(s)
 	}
@@ -329,26 +338,23 @@ func (r *Relay) shows(s *session, rec *fed.Record) bool {
 
 // party reports whether a client session may see a deal record: it proved the author or to, or
 // the record is an open consortium project (an offer without to) or an answer to one (lock held).
-func (r *Relay) party(s *session, rec *fed.Record) bool {
-	to, has := rec.Body["to"].(string)
-	if rec.Kind == "offer" && !has {
+func (r *Relay) party(s *session, e *store.Entry) bool {
+	if e.Kind == "offer" && e.To() == "" {
 		return true
 	}
 	for _, k := range s.proved {
-		if k == rec.Key || k == to {
+		if k == e.Key || k == e.To() {
 			return true
 		}
 	}
-	if rec.Kind == "offer" {
+	if e.Kind == "offer" {
 		return false
 	}
-	id, _ := rec.Body["offer"].(string)
-	e := r.st.Get(id)
-	if e == nil || e.Rec.Kind != "offer" || e.Rec.Key != to {
+	o := r.st.Get(e.Offer())
+	if o == nil || o.Kind != "offer" || o.Key != e.To() {
 		return false
 	}
-	_, private := e.Rec.Body["to"]
-	return !private
+	return o.To() == ""
 }
 
 // sendExcluded queues the excluded list for a client (lock held), with the reasons when the
@@ -391,8 +397,10 @@ func (r *Relay) exclChanged(now int64, target string) {
 func (r *Relay) indexVotes() {
 	r.votes, r.voteN = map[string]map[string]shun.Vote{}, map[string]int{}
 	for _, k := range []string{"shun", "unshun"} {
-		for _, e := range r.st.Kind(k) {
-			r.addVote(e.Rec)
+		for e := range r.st.Kind(k) {
+			if rec := r.st.Rec(e); rec != nil {
+				r.addVote(rec)
+			}
 		}
 	}
 	r.shunAt = 0
@@ -429,28 +437,32 @@ var (
 func (r *Relay) indexReports() {
 	r.reports, r.reportN = map[string]map[string]*store.Entry{}, 0
 	var gone []string
-	for _, e := range r.st.Kind("report") {
-		if old := r.noteReport(e); old != nil {
-			gone = append(gone, old.Rec.ID)
+	for e := range r.st.Kind("report") {
+		rec := r.st.Rec(e)
+		if rec == nil {
+			continue
+		}
+		if old := r.noteReport(e, rec.Str("target")); old != nil {
+			gone = append(gone, old.ID)
 		}
 	}
 	r.st.Remove(gone)
 }
 
-// noteReport indexes a stored report; it returns the report of the same reporter and target that
-// is no longer kept (the older one, which may be e itself), for the caller to remove (lock held).
-func (r *Relay) noteReport(e *store.Entry) *store.Entry {
-	by := r.reports[e.Rec.Key]
+// noteReport indexes a stored report about target; it returns the report of the same reporter and
+// target that is no longer kept (the older one, which may be e itself), for the caller to remove
+// (lock held).
+func (r *Relay) noteReport(e *store.Entry, target string) *store.Entry {
+	by := r.reports[e.Key]
 	if by == nil {
 		by = map[string]*store.Entry{}
-		r.reports[e.Rec.Key] = by
+		r.reports[e.Key] = by
 	}
-	target := e.Rec.Str("target")
 	cur := by[target]
 	if cur == e {
 		return nil
 	}
-	if cur != nil && betterAnn(cur.Rec, e.Rec) {
+	if cur != nil && newer(cur.T, cur.ID, e.T, e.ID) {
 		return e
 	}
 	by[target] = e
@@ -462,15 +474,16 @@ func (r *Relay) noteReport(e *store.Entry) *store.Entry {
 
 // dropReport takes a removed report out of the index (lock held).
 func (r *Relay) dropReport(e *store.Entry) {
-	by := r.reports[e.Rec.Key]
-	target := e.Rec.Str("target")
-	if by == nil || by[target] != e {
-		return
+	by := r.reports[e.Key]
+	for target, x := range by {
+		if x == e {
+			delete(by, target)
+			r.reportN--
+			break
+		}
 	}
-	delete(by, target)
-	r.reportN--
-	if len(by) == 0 {
-		delete(r.reports, e.Rec.Key)
+	if by != nil && len(by) == 0 {
+		delete(r.reports, e.Key)
 	}
 }
 
@@ -491,7 +504,7 @@ func (r *Relay) reportCheck(rec *fed.Record, now int64, o origin) string {
 	}
 	by := r.reports[rec.Key]
 	cur := by[rec.Str("target")]
-	if cur != nil && betterAnn(cur.Rec, rec) {
+	if cur != nil && newer(cur.T, cur.ID, rec.T, rec.ID) {
 		return fed.Refused // older than the report kept
 	}
 	day := 0
@@ -507,30 +520,29 @@ func (r *Relay) reportCheck(rec *fed.Record, now int64, o origin) string {
 }
 
 // countOffer adds d to the offers counted for a stored offer's author and pair (lock held).
-func (r *Relay) countOffer(rec *fed.Record, d int) {
-	to, _ := rec.Body["to"].(string)
-	for _, k := range []string{rec.Key, rec.Key + "|" + to} {
+func (r *Relay) countOffer(key, to string, d int) {
+	for _, k := range []string{key, key + "|" + to} {
 		if r.offerN[k] += d; r.offerN[k] <= 0 {
 			delete(r.offerN, k)
 		}
 	}
 }
 
-// betterAnn reports whether announce a is newer than b (greatest t, then lowest id).
-func betterAnn(a, b *fed.Record) bool { return a.T > b.T || a.T == b.T && a.ID < b.ID }
+// newer reports whether announce (or report) a is newer than b: greatest t, then lowest id.
+func newer(at int64, aid string, bt int64, bid string) bool { return at > bt || at == bt && aid < bid }
 
 // noteAnn indexes a stored announce as its key's newest when it is (lock held).
 func (r *Relay) noteAnn(e *store.Entry) {
-	if cur := r.ann[e.Rec.Key]; cur == nil || betterAnn(e.Rec, cur.Rec) {
-		r.ann[e.Rec.Key] = e
+	if cur := r.ann[e.Key]; cur == nil || newer(e.T, e.ID, cur.T, cur.ID) {
+		r.ann[e.Key] = e
 	}
 }
 
 // reindexAnn works out a key's newest announce again after one was removed (lock held).
 func (r *Relay) reindexAnn(key string) {
 	delete(r.ann, key)
-	for _, e := range r.st.Key(key) {
-		if e.Rec.Kind == "announce" {
+	for e := range r.st.Key(key) {
+		if e.Kind == "announce" {
 			r.noteAnn(e)
 		}
 	}
@@ -793,7 +805,7 @@ func (r *Relay) ingest(rec *fed.Record, rcpts []any, o origin) (string, map[stri
 			list, slot = []map[string]any{mine}, fed.Slot(now)
 		}
 		// One announce per key and slot is kept, the newest (5.1): an older one is not stored.
-		if cur := r.ann[rec.Key]; rec.Kind == "announce" && cur != nil && cur.Slot == slot && betterAnn(cur.Rec, rec) {
+		if cur := r.ann[rec.Key]; rec.Kind == "announce" && cur != nil && cur.Slot == slot && newer(cur.T, cur.ID, rec.T, rec.ID) {
 			r.o.Metrics.Inc("relay_refused_total", fed.Refused)
 			return "", nil, fed.Refused
 		}
@@ -810,7 +822,7 @@ func (r *Relay) ingest(rec *fed.Record, rcpts []any, o origin) (string, map[stri
 		r.statsAt[rec.Key] = fed.Slot(now)
 	}
 	r.o.Metrics.Inc("relay_records_in_total", rec.Kind)
-	r.after(e, now)
+	r.after(e, rec, rcptCC(list, slot), now)
 	r.fanout(e, o.peer)
 	if !o.client {
 		mine = nil
@@ -818,28 +830,28 @@ func (r *Relay) ingest(rec *fed.Record, rcpts []any, o origin) (string, map[stri
 	return res, mine, ""
 }
 
-// after updates what depends on a newly stored or merged record.
-func (r *Relay) after(e *store.Entry, now int64) {
-	rec := e.Rec
+// after updates what depends on a newly stored or merged record (rec: the copy just taken; cc:
+// the country of its earliest receipt).
+func (r *Relay) after(e *store.Entry, rec *fed.Record, cc string, now int64) {
 	switch rec.Kind {
 	case "stats":
-		r.rank.Stats(rec.ID, rec.Key, e.Slot, rec.T, rec.Body, rcptCC(e))
+		r.rank.Stats(e.ID, e.Key, e.Slot, rec.T, rec.Body, cc)
 	case "announce":
 		// One per key and slot: a newer announce in the slot of the key's newest replaces it.
 		cur := r.ann[rec.Key]
 		r.noteAnn(e)
-		if cur != nil && cur != e && cur.Slot == e.Slot && betterAnn(rec, cur.Rec) {
-			r.refuse(cur.Rec.ID) // not wanted again from peers
-			r.remove([]string{cur.Rec.ID})
+		if cur != nil && cur != e && cur.Slot == e.Slot && newer(rec.T, rec.ID, cur.T, cur.ID) {
+			r.refuse(cur.ID) // not wanted again from peers
+			r.remove([]string{cur.ID})
 		}
 		r.rank.Announce(rec.Key, r.newestAnn(rec.Key))
 	case "offer":
-		r.countOffer(rec, 1)
+		r.countOffer(e.Key, e.To(), 1)
 	case "report":
 		// One per reporter and target, the newest (5.10): the older one goes.
-		if old := r.noteReport(e); old != nil {
-			r.refuse(old.Rec.ID)
-			r.remove([]string{old.Rec.ID})
+		if old := r.noteReport(e, rec.Str("target")); old != nil {
+			r.refuse(old.ID)
+			r.remove([]string{old.ID})
 		}
 	}
 	switch rec.Kind {
@@ -861,9 +873,9 @@ func (r *Relay) after(e *store.Entry, now int64) {
 			r.left[rec.Key] = rec.T
 		}
 		var drop []string
-		for id, x := range r.st.Key(rec.Key) {
-			if x.Rec.Kind != "leave" && x.Rec.T <= rec.T {
-				drop = append(drop, id)
+		for x := range r.st.Key(rec.Key) {
+			if x.Kind != "leave" && x.T <= rec.T {
+				drop = append(drop, x.ID)
 			}
 		}
 		// The files catch up at the next retention run (today's included); until then a restart
@@ -877,22 +889,34 @@ func (r *Relay) after(e *store.Entry, now int64) {
 func (r *Relay) leftBehind() []string {
 	var drop []string
 	for key, t := range r.left {
-		for id, x := range r.st.Key(key) {
-			if x.Rec.Kind != "leave" && x.Rec.T <= t {
-				drop = append(drop, id)
+		for x := range r.st.Key(key) {
+			if x.Kind != "leave" && x.T <= t {
+				drop = append(drop, x.ID)
 			}
 		}
 	}
 	return drop
 }
 
-// item is a record with its receipts, as recs and push carry it.
-func item(e *store.Entry) map[string]any {
-	rc := make([]any, len(e.Rcpts))
-	for i, x := range e.Rcpts {
-		rc[i] = x
+// item is a record with its receipts, as recs and push carry it: its stored text, not parsed
+// again (lock held). Nil when it cannot be read back.
+func (r *Relay) item(e *store.Entry) map[string]any {
+	rec, rcpt, err := r.st.Raw(e)
+	if err != nil {
+		r.o.Log.Error("store: a record could not be read back", "id", e.ID, "err", err)
+		return nil
 	}
-	return map[string]any{"rec": e.Rec.Value, "rcpt": rc}
+	return map[string]any{"rec": canon.Raw(rec), "rcpt": canon.Raw(rcpt)}
+}
+
+// itemSize is the length of an item's canonical text.
+func itemSize(it map[string]any) int {
+	a, ok := it["rec"].(canon.Raw)
+	b, _ := it["rcpt"].(canon.Raw)
+	if !ok {
+		return len(canon.Encode(it))
+	}
+	return len(a) + len(b) + len(`{"rcpt":,"rec":}`)
 }
 
 // classOf is the sync class of a kind ("" for kinds only nodes of one server exchange: the chain
@@ -909,23 +933,26 @@ func classOf(kind string) string {
 	return ""
 }
 
-// sends reports whether a session carries this record to its peer.
-func (s *session) sends(rec *fed.Record) bool {
+// sends reports whether a session carries records of this kind to its peer.
+func (s *session) sends(kind string) bool {
 	if s.same {
 		return true
 	}
-	c := classOf(rec.Kind)
+	c := classOf(kind)
 	return c == "always" || c != "" && slices.Contains(s.send, c)
 }
 
 // fanout pushes a stored record to node sessions and client subscriptions (lock held).
 func (r *Relay) fanout(e *store.Entry, from *session) {
-	if r.shunned[e.Rec.Key] {
+	if r.shunned[e.Key] {
 		return
 	}
-	it := item(e)
+	it := r.item(e)
+	if it == nil {
+		return
+	}
 	for s := range r.nodes {
-		if s == from || !s.synced || !s.sends(e.Rec) {
+		if s == from || !s.synced || !s.sends(e.Kind) {
 			continue
 		}
 		s.enqueue(map[string]any{"m": "push", "items": []any{it}})
@@ -934,7 +961,7 @@ func (r *Relay) fanout(e *store.Entry, from *session) {
 	for s := range r.clients {
 		for id, sub := range s.subs {
 			// A sub still sending its backlog reaches this record by scanning.
-			if sub.live && sub.kinds[e.Rec.Kind] && r.shows(s, e.Rec) {
+			if sub.live && sub.kinds[e.Kind] && r.shows(s, e) {
 				s.enqueue(map[string]any{"m": "recs", "id": id, "items": []any{it}, "cursor": r.cursor(e.Seq), "more": false})
 				r.o.Metrics.Inc("relay_records_out_total", "")
 			}
@@ -959,9 +986,9 @@ func (r *Relay) parseCursor(c string) uint64 {
 }
 
 // rcptCC is the country of a record's earliest receipt (the one that gives its board slot), or "".
-func rcptCC(e *store.Entry) string {
-	for _, rc := range e.Rcpts {
-		if t, _ := rc["t"].(int64); t == e.Slot {
+func rcptCC(rcpts []map[string]any, slot int64) string {
+	for _, rc := range rcpts {
+		if t, _ := rc["t"].(int64); t == slot {
 			b, _ := rc["body"].(map[string]any)
 			cc, _ := b["cc"].(string)
 			return cc
@@ -976,7 +1003,9 @@ func (r *Relay) newestAnnEntry(key string) *store.Entry { return r.ann[key] }
 // newestAnn is what the boards use of a key's newest announce (lock held), or nil.
 func (r *Relay) newestAnn(key string) *rank.Ann {
 	if e := r.newestAnnEntry(key); e != nil {
-		return annOf(e.Rec)
+		if x := r.st.Rec(e); x != nil {
+			return annOf(x)
+		}
 	}
 	return nil
 }
@@ -986,24 +1015,26 @@ func annOf(x *fed.Record) *rank.Ann {
 		Founded: x.Int("founded"), Day: x.Int("day")}
 }
 
+// loaded is a stats record as the store read it at start, parsed for the leaderboards.
+type loaded struct {
+	e   *store.Entry
+	raw rank.Raw
+}
+
 // rankSnapshot is what the leaderboards are built from at start (lock held): every stats record
-// and each key's newest announce.
-func (r *Relay) rankSnapshot() ([]rank.Raw, map[string]*rank.Ann) {
-	stats := r.st.Kind("stats")
-	raws := make([]rank.Raw, 0, len(stats))
-	for _, e := range stats {
-		raws = append(raws, rank.Raw{ID: e.Rec.ID, Key: e.Rec.Key, Slot: e.Slot, T: e.Rec.T, Body: e.Rec.Body, CC: rcptCC(e)})
-	}
-	newest := map[string]*fed.Record{}
-	for _, e := range r.st.Kind("announce") {
-		x := e.Rec
-		if b := newest[x.Key]; b == nil || x.T > b.T || x.T == b.T && x.ID < b.ID {
-			newest[x.Key] = x
+// still stored and each key's newest announce.
+func (r *Relay) rankSnapshot(pre []loaded) ([]rank.Raw, map[string]*rank.Ann) {
+	raws := make([]rank.Raw, 0, r.st.Count("stats"))
+	for _, p := range pre {
+		if r.st.Get(p.e.ID) == p.e {
+			raws = append(raws, p.raw)
 		}
 	}
-	anns := make(map[string]*rank.Ann, len(newest))
-	for k, x := range newest {
-		anns[k] = annOf(x)
+	anns := make(map[string]*rank.Ann, len(r.ann))
+	for k := range r.ann {
+		if a := r.newestAnn(k); a != nil {
+			anns[k] = a
+		}
 	}
 	return raws, anns
 }
@@ -1036,7 +1067,7 @@ func (r *Relay) rankExcluded() {
 // lastHeard is the newest board slot of any record by a key.
 func (r *Relay) lastHeard(key string) int64 {
 	var m int64
-	for _, e := range r.st.Key(key) {
+	for e := range r.st.Key(key) {
 		m = max(m, e.Slot)
 	}
 	return m
@@ -1076,17 +1107,17 @@ func (r *Relay) remove(ids []string) {
 		if e == nil {
 			continue
 		}
-		switch e.Rec.Kind {
+		switch e.Kind {
 		case "shun", "unshun":
 			votes = true
 		case "stats":
 			r.rank.Drop(id)
 		case "announce":
-			if r.ann[e.Rec.Key] == e {
-				anns[e.Rec.Key] = true // its newest goes: look for the next
+			if r.ann[e.Key] == e {
+				anns[e.Key] = true // its newest goes: look for the next
 			}
 		case "offer":
-			r.countOffer(e.Rec, -1)
+			r.countOffer(e.Key, e.To(), -1)
 		case "report":
 			r.dropReport(e)
 		}
@@ -1114,10 +1145,10 @@ func (r *Relay) expired(now int64) []string {
 			if a.Slot != b.Slot {
 				return a.Slot > b.Slot
 			}
-			if a.Rec.T != b.Rec.T {
-				return a.Rec.T > b.Rec.T
+			if a.T != b.T {
+				return a.T > b.T
 			}
-			return a.Rec.ID < b.Rec.ID
+			return a.ID < b.ID
 		})
 		// Besides the newest, the record effective at the previous window's start (10.2) is kept
 		// while it can carry forward into the windows: a network silent for days that posts again
@@ -1132,22 +1163,22 @@ func (r *Relay) expired(now int64) []string {
 		for i, e := range recs {
 			carried := (i == 0 || i == atPrev) && e.Slot > carryFrom
 			if e.Slot < keepStats && !carried {
-				drop = append(drop, e.Rec.ID)
+				drop = append(drop, e.ID)
 			}
 		}
 	}
 	for key, recs := range r.byKeyKind("announce") {
-		sort.Slice(recs, func(i, j int) bool { return recs[i].Rec.T > recs[j].Rec.T })
+		sort.Slice(recs, func(i, j int) bool { return recs[i].T > recs[j].T })
 		if now-r.lastHeard(key) >= fed.QuietForgotten {
 			for _, e := range recs {
-				drop = append(drop, e.Rec.ID)
+				drop = append(drop, e.ID)
 			}
 			continue
 		}
 		// Older announces stay while an offer may still rely on them.
 		for i := 1; i < len(recs); i++ {
-			if now-recs[i-1].Rec.T > fed.OfferKept+fed.Day {
-				drop = append(drop, recs[i].Rec.ID)
+			if now-recs[i-1].T > fed.OfferKept+fed.Day {
+				drop = append(drop, recs[i].ID)
 			}
 		}
 	}
@@ -1156,24 +1187,24 @@ func (r *Relay) expired(now int64) []string {
 	ages := map[string]int64{"offer": fed.OfferKept, "accept": fed.OfferKept, "decline": fed.OfferKept,
 		"shun": fed.VoteLife + fed.ShunLift, "unshun": fed.VoteLife + fed.ShunLift, "leave": fed.LeaveKept, "report": fed.ReportKept}
 	for k, age := range ages {
-		for id, e := range r.st.Kind(k) {
-			if now-e.Rec.T > age {
-				drop = append(drop, id)
+		for e := range r.st.Kind(k) {
+			if now-e.T > age {
+				drop = append(drop, e.ID)
 			}
 		}
 	}
 	// Hide: the newest per server.
 	newest := map[string]*fed.Record{}
-	for _, e := range r.st.Kind("hide") {
-		h := e.Rec
+	for e := range r.st.Kind("hide") {
+		h := r.st.Rec(e)
 		s := h.Str("server")
 		if n := newest[s]; n == nil || h.T > n.T || h.T == n.T && h.ID < n.ID {
 			newest[s] = h
 		}
 	}
-	for id, e := range r.st.Kind("hide") {
-		if newest[e.Rec.Str("server")] != e.Rec {
-			drop = append(drop, id)
+	for e := range r.st.Kind("hide") {
+		if h := r.st.Rec(e); newest[h.Str("server")] != h {
+			drop = append(drop, e.ID)
 		}
 	}
 	// Chain records: this server's applied ones forever, pending ones for 14 days.
@@ -1186,23 +1217,24 @@ func (r *Relay) expired(now int64) []string {
 		for _, p := range r.own.Pending(now) {
 			pend[p.ID] = true
 		}
-		for id := range r.st.Kind("operators") {
-			if !applied[id] && !pend[id] {
-				drop = append(drop, id)
+		for e := range r.st.Kind("operators") {
+			if !applied[e.ID] && !pend[e.ID] {
+				drop = append(drop, e.ID)
 			}
 		}
-		for id, e := range r.st.Kind("server") {
-			if e.Rec == r.ownSrv || e.Rec == r.headSrv {
+		for e := range r.st.Kind("server") {
+			x := r.st.Rec(e)
+			if x == r.ownSrv || x == r.headSrv {
 				continue
 			}
-			pending := e.Rec.Str("server") == r.own.ID && e.Rec.Str("head") == r.own.Head && now < e.Rec.T+fed.PendingLife
-			if !pending || r.ownSrv != nil && e.Rec.T < r.ownSrv.T {
-				drop = append(drop, id)
+			pending := x.Str("server") == r.own.ID && x.Str("head") == r.own.Head && now < x.T+fed.PendingLife
+			if !pending || r.ownSrv != nil && x.T < r.ownSrv.T {
+				drop = append(drop, e.ID)
 			}
 		}
-		for id := range r.st.Kind("genesis") {
-			if id != r.own.ID {
-				drop = append(drop, id)
+		for e := range r.st.Kind("genesis") {
+			if e.ID != r.own.ID {
+				drop = append(drop, e.ID)
 			}
 		}
 	}
@@ -1211,8 +1243,8 @@ func (r *Relay) expired(now int64) []string {
 
 func (r *Relay) byKeyKind(kind string) map[string][]*store.Entry {
 	out := map[string][]*store.Entry{}
-	for _, e := range r.st.Kind(kind) {
-		out[e.Rec.Key] = append(out[e.Rec.Key], e)
+	for e := range r.st.Kind(kind) {
+		out[e.Key] = append(out[e.Key], e)
 	}
 	return out
 }

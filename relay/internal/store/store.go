@@ -1,6 +1,12 @@
 // Package store keeps records as plain files in one data folder: one append-only file per
 // real day (log/<day>.jsonl), each line a record with its receipts. Indexes live in memory
 // and are rebuilt on start. Callers serialise access (the relay holds one lock).
+//
+// Memory holds a small fixed entry per record (id, author, kind, t, board slot, where its line
+// is), not the record: the line is read back from its day file when the record is sent, and
+// parsed only where a field of its body is needed. Recent lines stay in memory for a while (they
+// are the ones fanned out, pushed and fetched most), and so do the few records the relay reads
+// all the time (its server's chain and hide records), parsed.
 package store
 
 import (
@@ -10,6 +16,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"iter"
 	"os"
 	"path/filepath"
 	"slices"
@@ -25,15 +32,83 @@ import (
 // A var so tests can play an upgrade through the migration chain.
 var DataVersion = 1
 
-// Entry is a stored record.
+// Entry is a stored record: what the indexes and the hot paths need, and where its line is.
+// Exported fields never change after Put.
 type Entry struct {
-	Rec   *fed.Record
-	Rcpts []map[string]any // receipts as received, strict values
-	Slot  int64            // board slot: earliest valid receipt t
-	Seq   uint64           // storage order, for cursors
-	Day   int64            // real day of the file holding it
-	gone  bool             // removed; still in the ordered lists until they are compacted
+	ID   string
+	Key  string // the author (one string per key, shared by its entries)
+	Kind string
+	T    int64
+	Slot int64  // board slot: earliest valid receipt t
+	Seq  uint64 // storage order, for cursors
+
+	deal *parties // a deal's (offer, accept, decline)
+	off  int64    // where its latest line starts; -1: not on disk (held in memory)
+	day  int32    // real day of the file holding that line
+	n    int32    // the line's length, without the newline
+	rc   int32    // the receipts' length (the line is {"rcpt":R,"rec":C,"slot":N})
+	gone bool     // removed; still in the ordered lists until they are compacted
+	x    *held    // what is kept in memory besides: nil for most entries
 }
+
+// The entry is kept small (112 bytes): there is one per record.
+type parties struct{ to, offer string }
+
+type held struct {
+	mem []byte      // the line, while kept in memory
+	rec *fed.Record // parsed, for the kinds kept parsed (pinned)
+}
+
+// To is a deal's to key ("" for an open offer, and for other kinds).
+func (e *Entry) To() string {
+	if e.deal == nil {
+		return ""
+	}
+	return e.deal.to
+}
+
+// Offer is the offer an accept or decline answers ("" for other kinds).
+func (e *Entry) Offer() string {
+	if e.deal == nil {
+		return ""
+	}
+	return e.deal.offer
+}
+
+func (e *Entry) mem() []byte {
+	if e.x == nil {
+		return nil
+	}
+	return e.x.mem
+}
+
+func (e *Entry) rec() *fed.Record {
+	if e.x == nil {
+		return nil
+	}
+	return e.x.rec
+}
+
+func (e *Entry) setMem(b []byte) {
+	if b != nil && e.x == nil {
+		e.x = &held{}
+	}
+	if e.x != nil {
+		if e.x.mem = b; b == nil && e.x.rec == nil {
+			e.x = nil
+		}
+	}
+}
+
+func (e *Entry) setRec(r *fed.Record) {
+	if e.x == nil {
+		e.x = &held{}
+	}
+	e.x.rec = r
+}
+
+// day64 is the real day of the file holding the entry's line.
+func (e *Entry) day64() int64 { return int64(e.day) }
 
 // Results of Put.
 const (
@@ -44,19 +119,43 @@ const (
 	logFolder = "log"
 )
 
+// The layout of a line (canonical JSON of {rec, rcpt, slot}: keys sorted, no spaces).
+const (
+	linePre = `{"rcpt":`
+	lineRec = `,"rec":`
+	lineSlo = `,"slot":`
+)
+
+// RecentBytes bounds the lines of recent records kept in memory (a var for tests).
+var RecentBytes = 4 << 20
+
+// maxOpen bounds the day files kept open for reading.
+const maxOpen = 32
+
+// keyList is one author's entries in storage order (removed ones until compacted).
+type keyList struct {
+	key  string
+	ents []*Entry
+	gone int
+}
+
 // Store is the record store. A zero dir keeps everything in memory (tests, vectors).
 type Store struct {
 	dir    string
 	byID   map[string]*Entry
-	byKind map[string]map[string]*Entry
-	byKey  map[string]map[string]*Entry
+	byKey  map[string]*keyList
+	count  map[string]int      // live entries per kind
 	order  []*Entry            // every entry in storage order (removed ones until compacted)
 	kinds  map[string][]*Entry // the same per kind
 	gone   int                 // removed entries still in the ordered lists
 	shrunk map[int64]bool      // days whose file holds records removed since (Compact rewrites them)
 	seq    uint64
 	day    int64
-	file   *os.File
+	file   *os.File // today's file, for appending
+	end    int64    // its size
+	open   map[int64]*os.File
+	recent []*Entry // entries whose line was kept in memory when stored, oldest first
+	recN   int      // bytes of those lines
 	lock   *os.File // the data folder's lock, held while open
 	Loaded int      // lines read on open
 	Bad    int      // lines that did not check on open
@@ -64,12 +163,16 @@ type Store struct {
 	// author and the first others by key, at most fed.MaxSigners. Set by the relay, which knows
 	// the chain; called with its lock held.
 	Keep func(rec *fed.Record, sigs []fed.SigEntry) []fed.SigEntry
+	// OnLoad, when set before records are loaded (OpenWith), sees each record read on open as it
+	// is stored, parsed, with its receipts: what is built from records at start is built from
+	// these, without reading them a second time.
+	onLoad func(e *Entry, rec *fed.Record, rcpts []map[string]any)
 }
 
 // Memory returns a store without files.
 func Memory() *Store {
-	return &Store{byID: map[string]*Entry{}, byKind: map[string]map[string]*Entry{}, byKey: map[string]map[string]*Entry{},
-		kinds: map[string][]*Entry{}, shrunk: map[int64]bool{}}
+	return &Store{byID: map[string]*Entry{}, byKey: map[string]*keyList{}, count: map[string]int{},
+		kinds: map[string][]*Entry{}, shrunk: map[int64]bool{}, open: map[int64]*os.File{}}
 }
 
 // ErrLocked: another relay has the data folder open.
@@ -80,7 +183,10 @@ const LockName = "LOCK"
 
 // Open opens (and migrates) a data folder and loads every record. The folder stays locked until
 // Close: a second Open of it, in this process or another, fails with ErrLocked.
-func Open(dir string) (*Store, error) {
+func Open(dir string) (*Store, error) { return OpenWith(dir, nil) }
+
+// OpenWith is Open, calling onLoad for each record stored while loading (in storage order).
+func OpenWith(dir string, onLoad func(e *Entry, rec *fed.Record, rcpts []map[string]any)) (*Store, error) {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, err
 	}
@@ -88,7 +194,7 @@ func Open(dir string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	s, err := open(dir)
+	s, err := open(dir, onLoad)
 	if err != nil {
 		lock.Close()
 		return nil, err
@@ -97,12 +203,12 @@ func Open(dir string) (*Store, error) {
 	return s, nil
 }
 
-func open(dir string) (*Store, error) {
+func open(dir string, onLoad func(e *Entry, rec *fed.Record, rcpts []map[string]any)) (*Store, error) {
 	if err := Migrate(dir); err != nil {
 		return nil, err
 	}
 	s := Memory()
-	s.dir = dir
+	s.dir, s.onLoad = dir, onLoad
 	if err := os.MkdirAll(filepath.Join(dir, logFolder), 0o700); err != nil {
 		return nil, err
 	}
@@ -112,9 +218,11 @@ func open(dir string) (*Store, error) {
 	}
 	for _, d := range days {
 		if err := s.load(d); err != nil {
+			s.closeFiles()
 			return nil, err
 		}
 	}
+	s.onLoad = nil
 	return s, nil
 }
 
@@ -143,9 +251,9 @@ func (s *Store) days() ([]int64, error) {
 }
 
 type line struct {
-	Rec  json.RawMessage   `json:"rec"`
-	Rcpt []json.RawMessage `json:"rcpt"`
-	Slot int64             `json:"slot"`
+	Rec  json.RawMessage `json:"rec"`
+	Rcpt json.RawMessage `json:"rcpt"`
+	Slot int64           `json:"slot"`
 }
 
 func (s *Store) load(day int64) error {
@@ -156,8 +264,11 @@ func (s *Store) load(day int64) error {
 	defer f.Close()
 	sc := bufio.NewScanner(f)
 	sc.Buffer(make([]byte, 64<<10), maxLine)
+	var off int64
 	for sc.Scan() {
 		b := sc.Bytes()
+		at := off
+		off += int64(len(b)) + 1
 		if len(bytes.TrimSpace(b)) == 0 {
 			continue
 		}
@@ -173,15 +284,48 @@ func (s *Store) load(day int64) error {
 			continue
 		}
 		var rcpts []map[string]any
-		for _, r := range l.Rcpt {
-			v, code := canon.ParseStrict(r)
-			if m, ok := v.(map[string]any); code == "" && ok {
-				rcpts = append(rcpts, m)
+		if v, code := canon.ParseStrict(l.Rcpt); code == "" {
+			list, _ := v.([]any)
+			for _, r := range list {
+				if m, ok := r.(map[string]any); ok {
+					rcpts = append(rcpts, m)
+				}
 			}
 		}
-		s.insert(rec, rcpts, l.Slot, day)
+		res, e := s.insert(rec, rcpts, l.Slot, day)
+		if res == Dup {
+			continue
+		}
+		// The entry points at this line when it is exactly what Put would write; otherwise (a
+		// line from an older build, edited by hand, or junk receipts dropped) the line it should
+		// be stays in memory and the next compaction writes it.
+		if res == Merged {
+			// The copy read last holds every signature kept: it is the one the files keep.
+			rcpts = s.Rcpts(e)
+		}
+		want, rc := encodeLine(e.rec(), rec, encodeRcpts(rcpts), e.Slot)
+		e.day, e.n, e.rc = int32(day), int32(len(want)), int32(rc)
+		e.setMem(nil)
+		if bytes.Equal(want, b) {
+			e.off = at
+		} else {
+			e.off = -1
+			e.setMem(want)
+			s.shrunk[day] = true
+		}
+		if e.rec() != nil {
+			e.setMem(want)
+		}
+		if res == Stored && s.onLoad != nil {
+			s.onLoad(e, rec, rcpts)
+		}
 	}
 	return sc.Err()
+}
+
+// pinned kinds stay parsed in memory: the server's chain and hide records, read all the time.
+func pinned(kind string) bool {
+	return fed.IsMulti(kind) || kind == "genesis" || kind == "hide"
 }
 
 func (s *Store) keep(rec *fed.Record, sigs []fed.SigEntry) []fed.SigEntry {
@@ -191,19 +335,28 @@ func (s *Store) keep(rec *fed.Record, sigs []fed.SigEntry) []fed.SigEntry {
 	return fed.KeepSigs(rec.Key, sigs, nil)
 }
 
+var kindNames = func() map[string]string {
+	m := map[string]string{}
+	for _, k := range fed.RecordKinds {
+		m[k] = k
+	}
+	return m
+}()
+
 // insert adds or merges in memory; it reports the result. Signatures of multi-signer records
 // pass through Keep, so no copy, however padded, makes a stored record exceed 16 signers.
 func (s *Store) insert(rec *fed.Record, rcpts []map[string]any, slot, day int64) (string, *Entry) {
 	if e, ok := s.byID[rec.ID]; ok {
-		if rec.Sigs == nil {
+		old := e.rec()
+		if rec.Sigs == nil || old == nil {
 			return Dup, e
 		}
-		sigs, _ := fed.MergeSigs(e.Rec.Sigs, rec.Sigs)
-		sigs = s.keep(e.Rec, sigs)
-		if fed.SameSigs(sigs, e.Rec.Sigs) {
+		sigs, _ := fed.MergeSigs(old.Sigs, rec.Sigs)
+		sigs = s.keep(old, sigs)
+		if fed.SameSigs(sigs, old.Sigs) {
 			return Dup, e
 		}
-		e.Rec = e.Rec.WithSigs(sigs)
+		e.setRec(old.WithSigs(sigs))
 		return Merged, e
 	}
 	if rec.Sigs != nil {
@@ -212,20 +365,37 @@ func (s *Store) insert(rec *fed.Record, rcpts []map[string]any, slot, day int64)
 		}
 	}
 	s.seq++
-	e := &Entry{Rec: rec, Rcpts: rcpts, Slot: slot, Seq: s.seq, Day: day}
-	s.byID[rec.ID] = e
-	add(s.byKind, rec.Kind, e)
-	add(s.byKey, rec.Key, e)
-	s.order = append(s.order, e)
-	s.kinds[rec.Kind] = append(s.kinds[rec.Kind], e)
-	return Stored, e
-}
-
-func add(m map[string]map[string]*Entry, k string, e *Entry) {
-	if m[k] == nil {
-		m[k] = map[string]*Entry{}
+	kind := rec.Kind
+	if k, ok := kindNames[kind]; ok {
+		kind = k
 	}
-	m[k][e.Rec.ID] = e
+	kl := s.byKey[rec.Key]
+	if kl == nil {
+		kl = &keyList{key: rec.Key}
+		s.byKey[rec.Key] = kl
+	}
+	e := &Entry{ID: rec.ID, Key: kl.key, Kind: kind, T: rec.T, Slot: slot, Seq: s.seq, day: int32(day), off: -1}
+	switch kind {
+	case "offer", "accept", "decline":
+		p := &parties{}
+		if to, _ := rec.Body["to"].(string); to != "" {
+			p.to = to
+			if t := s.byKey[to]; t != nil {
+				p.to = t.key
+			}
+		}
+		p.offer, _ = rec.Body["offer"].(string)
+		e.deal = p
+	}
+	if pinned(kind) {
+		e.setRec(rec)
+	}
+	s.byID[e.ID] = e
+	kl.ents = append(kl.ents, e)
+	s.count[kind]++
+	s.order = append(s.order, e)
+	s.kinds[kind] = append(s.kinds[kind], e)
+	return Stored, e
 }
 
 // Put stores a checked record with its receipts, received on real day `day`.
@@ -234,17 +404,77 @@ func (s *Store) Put(rec *fed.Record, rcpts []map[string]any, slot, day int64) (s
 	if res == Dup {
 		return res, e, nil
 	}
+	// A merged copy goes into today's file, with the receipts and slot it was stored with;
+	// loading merges the lines again.
+	rj := encodeRcpts(rcpts)
 	if res == Merged {
-		// A merged copy goes into today's file; loading merges the lines again.
-		e.Day = max(e.Day, day)
+		if _, rj, _ = s.Raw(e); rj == nil {
+			rj = []byte("[]")
+		}
+		slot = e.Slot
 	}
-	return res, e, s.write(e, day)
+	line, rc := encodeLine(e.rec(), rec, rj, slot)
+	e.day, e.off, e.n, e.rc = int32(max(e.day64(), day)), -1, int32(len(line)), int32(rc)
+	e.setMem(line)
+	if s.dir == "" {
+		return res, e, nil
+	}
+	off, err := s.write(line, e.day64())
+	if err != nil {
+		return res, e, err // the line stays in memory; the next compaction writes it
+	}
+	e.off = off
+	if e.rec() == nil {
+		s.recent = append(s.recent, e)
+		s.recN += len(line)
+		for s.recN > RecentBytes && len(s.recent) > 1 {
+			old := s.recent[0]
+			s.recent[0] = nil
+			s.recent = s.recent[1:]
+			s.recN -= int(old.n)
+			if old.off >= 0 && old.rec() == nil {
+				old.setMem(nil)
+			}
+		}
+		if cap(s.recent) > 4*len(s.recent)+1024 {
+			s.recent = slices.Clone(s.recent)
+		}
+	}
+	return res, e, nil
 }
 
-func (s *Store) write(e *Entry, day int64) error {
-	if s.dir == "" {
-		return nil
+// encodeLine is the line of a record: pinned holds the merged copy when there is one. It returns
+// the line (without newline) and the receipts' length.
+func encodeLine(pinned, rec *fed.Record, rcpts []byte, slot int64) ([]byte, int) {
+	if pinned != nil {
+		rec = pinned
 	}
+	b := make([]byte, 0, 1024)
+	b = append(b, linePre...)
+	b = append(b, rcpts...)
+	rc := len(rcpts)
+	b = append(b, lineRec...)
+	b = canon.Append(b, rec.Value)
+	b = append(b, lineSlo...)
+	b = strconv.AppendInt(b, slot, 10)
+	b = append(b, '}')
+	return b, rc
+}
+
+// encodeRcpts is the canonical JSON array of receipts.
+func encodeRcpts(rcpts []map[string]any) []byte {
+	b := []byte{'['}
+	for i, r := range rcpts {
+		if i > 0 {
+			b = append(b, ',')
+		}
+		b = canon.Append(b, r)
+	}
+	return append(b, ']')
+}
+
+// write appends a line to a day's file; it returns where the line starts.
+func (s *Store) write(line []byte, day int64) (int64, error) {
 	if s.file == nil || s.day != day {
 		if s.file != nil {
 			s.file.Close()
@@ -252,21 +482,29 @@ func (s *Store) write(e *Entry, day int64) error {
 		}
 		// A line cut short by a crash would glue the next record onto it: cut it off first.
 		if err := repairTail(s.path(day)); err != nil {
-			return err
+			return -1, err
 		}
 		f, err := os.OpenFile(s.path(day), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 		if err != nil {
-			return err
+			return -1, err
 		}
-		s.file, s.day = f, day
+		fi, err := f.Stat()
+		if err != nil {
+			f.Close()
+			return -1, err
+		}
+		s.file, s.day, s.end = f, day, fi.Size()
 	}
-	if _, err := s.file.Write(encodeLine(e)); err != nil {
+	at := s.end
+	buf := make([]byte, 0, len(line)+1)
+	if _, err := s.file.Write(append(append(buf, line...), '\n')); err != nil {
 		// Part of the line may be written: reopen (and repair) before the next one.
 		s.file.Close()
 		s.file = nil
-		return err
+		return -1, err
 	}
-	return nil
+	s.end += int64(len(line)) + 1
+	return at, nil
 }
 
 // repairTail cuts a file back to its last newline, dropping a line a crash left unfinished.
@@ -304,20 +542,107 @@ func repairTail(path string) error {
 	return nil
 }
 
-func encodeLine(e *Entry) []byte {
-	rc := make([]any, len(e.Rcpts))
-	for i, r := range e.Rcpts {
-		rc[i] = r
+// reader is a day's file open for reading.
+func (s *Store) reader(day int64) (*os.File, error) {
+	if f := s.open[day]; f != nil {
+		return f, nil
 	}
-	b := canon.Encode(map[string]any{"rec": canon.Raw(e.Rec.Canon()), "rcpt": rc, "slot": e.Slot})
-	return append(b, '\n')
+	if len(s.open) >= maxOpen {
+		for d, f := range s.open {
+			f.Close()
+			delete(s.open, d)
+			break
+		}
+	}
+	f, err := os.Open(s.path(day))
+	if err != nil {
+		return nil, err
+	}
+	s.open[day] = f
+	return f, nil
 }
 
-// SetReceipts replaces an entry's receipts (when one with no valid receipt gets this node's own).
-func (s *Store) SetReceipts(e *Entry, rcpts []map[string]any, slot, day int64) error {
-	e.Rcpts, e.Slot = rcpts, slot
-	e.Day = max(e.Day, day)
-	return s.write(e, day)
+func (s *Store) closeReader(day int64) {
+	if f := s.open[day]; f != nil {
+		f.Close()
+		delete(s.open, day)
+	}
+}
+
+// ErrUnreadable: a record's line could not be read back from its day file.
+var ErrUnreadable = errors.New("store: a record's line could not be read back")
+
+// line returns an entry's line: from memory, or read from its day file.
+func (s *Store) line(e *Entry) ([]byte, error) {
+	if m := e.mem(); m != nil {
+		return m, nil
+	}
+	if e.gone || e.off < 0 {
+		return nil, ErrUnreadable
+	}
+	f, err := s.reader(e.day64())
+	if err != nil {
+		return nil, err
+	}
+	b := make([]byte, e.n)
+	if _, err := f.ReadAt(b, e.off); err != nil {
+		s.closeReader(e.day64())
+		return nil, err
+	}
+	if !bytes.HasPrefix(b, []byte(linePre)) {
+		return nil, ErrUnreadable
+	}
+	return b, nil
+}
+
+// Raw returns a record's canonical text and its receipts as a canonical JSON array, as frames
+// carry them (the slices share one buffer; callers do not change them).
+func (s *Store) Raw(e *Entry) (rec, rcpt []byte, err error) {
+	b, err := s.line(e)
+	if err != nil {
+		return nil, nil, err
+	}
+	p, rc := len(linePre), int(e.rc)
+	start := p + rc + len(lineRec)
+	end := bytes.LastIndex(b, []byte(lineSlo))
+	if start > end || end < 0 || string(b[p+rc:start]) != lineRec {
+		return nil, nil, ErrUnreadable
+	}
+	return b[start:end:end], b[p : p+rc : p+rc], nil
+}
+
+// Rec returns the record parsed, or nil when it cannot be read back. Only the server's chain and
+// hide records stay parsed: for others this parses a copy, which callers may keep.
+func (s *Store) Rec(e *Entry) *fed.Record {
+	if r := e.rec(); r != nil {
+		return r
+	}
+	b, _, err := s.Raw(e)
+	if err != nil {
+		return nil
+	}
+	rec, code := fed.ParseRecord(b, 0, fed.Opts{Trusted: true})
+	if code != "" || rec.ID != e.ID {
+		return nil
+	}
+	return rec
+}
+
+// Rcpts returns a record's receipts, parsed.
+func (s *Store) Rcpts(e *Entry) []map[string]any {
+	_, b, err := s.Raw(e)
+	if err != nil {
+		return nil
+	}
+	v, _ := canon.ParseStrict(b)
+	list, _ := v.([]any)
+	out := make([]map[string]any, 0, len(list))
+	for _, r := range list {
+		if m, ok := r.(map[string]any); ok {
+			out = append(out, m)
+		}
+	}
+	return out
 }
 
 // Get returns an entry by id.
@@ -326,20 +651,33 @@ func (s *Store) Get(id string) *Entry { return s.byID[id] }
 // Len is the number of records.
 func (s *Store) Len() int { return len(s.byID) }
 
-// Kind returns the entries of one kind (unordered).
-func (s *Store) Kind(k string) map[string]*Entry { return s.byKind[k] }
+// Count is the number of records of one kind.
+func (s *Store) Count(kind string) int { return s.count[kind] }
 
-// Key returns the entries by one author key (unordered).
-func (s *Store) Key(k string) map[string]*Entry { return s.byKey[k] }
-
-// Sorted returns entries in storage order.
-func Sorted(m map[string]*Entry) []*Entry {
-	out := make([]*Entry, 0, len(m))
-	for _, e := range m {
-		out = append(out, e)
+// Kind returns the entries of one kind, in storage order.
+func (s *Store) Kind(k string) iter.Seq[*Entry] {
+	return func(yield func(*Entry) bool) {
+		for _, e := range s.kinds[k] {
+			if !e.gone && !yield(e) {
+				return
+			}
+		}
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Seq < out[j].Seq })
-	return out
+}
+
+// Key returns the entries by one author key, in storage order.
+func (s *Store) Key(k string) iter.Seq[*Entry] {
+	return func(yield func(*Entry) bool) {
+		kl := s.byKey[k]
+		if kl == nil {
+			return
+		}
+		for _, e := range kl.ents {
+			if !e.gone && !yield(e) {
+				return
+			}
+		}
+	}
 }
 
 // All returns every entry in storage order.
@@ -393,32 +731,34 @@ func (s *Store) Scan(after uint64, kinds []string, fn func(*Entry) bool) {
 	}
 }
 
-// KindSorted returns the entries of one kind in storage order.
-func (s *Store) KindSorted(k string) []*Entry {
-	var out []*Entry
-	s.Scan(0, []string{k}, func(e *Entry) bool { out = append(out, e); return true })
-	return out
-}
-
 // Seq is the last storage number given.
 func (s *Store) Seq() uint64 { return s.seq }
 
 // Remove forgets entries in memory; Compact drops them from the files.
 func (s *Store) Remove(ids []string) {
+	isGone := func(e *Entry) bool { return e.gone }
 	for _, id := range ids {
 		e := s.byID[id]
 		if e == nil {
 			continue
 		}
 		delete(s.byID, id)
-		delete(s.byKind[e.Rec.Kind], id)
-		delete(s.byKey[e.Rec.Key], id)
+		if s.count[e.Kind]--; s.count[e.Kind] <= 0 {
+			delete(s.count, e.Kind)
+		}
 		e.gone = true
+		e.setMem(nil)
 		s.gone++
-		s.shrunk[e.Day] = true
+		s.shrunk[e.day64()] = true
+		kl := s.byKey[e.Key]
+		if kl.gone++; kl.gone == len(kl.ents) {
+			delete(s.byKey, e.Key)
+		} else if kl.gone > 8 && kl.gone*2 > len(kl.ents) {
+			kl.ents = slices.DeleteFunc(kl.ents, isGone)
+			kl.gone = 0
+		}
 	}
 	if s.gone > 1024 && s.gone*2 > len(s.order) {
-		isGone := func(e *Entry) bool { return e.gone }
 		s.order = slices.DeleteFunc(s.order, isGone)
 		for k, l := range s.kinds {
 			if l = slices.DeleteFunc(l, isGone); len(l) == 0 {
@@ -428,12 +768,19 @@ func (s *Store) Remove(ids []string) {
 			}
 		}
 		s.gone = 0
+		// The ring of recent lines may hold removed entries: they no longer count.
+		s.recent = slices.DeleteFunc(s.recent, isGone)
+		s.recN = 0
+		for _, e := range s.recent {
+			s.recN += int(e.n)
+		}
 	}
 }
 
 // Compact rewrites or deletes day files so they hold only the entries still kept, through a
 // temporary file. Today's file (and a later one) is rewritten only when records in it were
-// removed, so a removal is durable the same day and nothing comes back after a restart.
+// removed, so a removal is durable the same day and nothing comes back after a restart. A file
+// that already holds exactly its kept lines, in order, is left alone.
 func (s *Store) Compact(today int64) error {
 	if s.dir == "" {
 		return nil
@@ -443,48 +790,133 @@ func (s *Store) Compact(today int64) error {
 		return err
 	}
 	byDay := map[int64][]*Entry{}
-	for _, e := range s.byID {
-		byDay[e.Day] = append(byDay[e.Day], e)
+	for _, e := range s.order {
+		if !e.gone {
+			byDay[e.day64()] = append(byDay[e.day64()], e)
+		}
 	}
 	for _, d := range days {
 		if d >= today && !s.shrunk[d] {
 			continue
 		}
-		if s.file != nil && s.day == d {
+		kept := byDay[d]
+		if s.file != nil && s.day == d && (len(kept) == 0 || !s.intact(d, kept)) {
 			s.file.Close() // reopened by the next write
 			s.file = nil
 		}
-		kept := byDay[d]
 		if len(kept) == 0 {
+			s.closeReader(d)
 			if err := os.Remove(s.path(d)); err != nil && !errors.Is(err, fs.ErrNotExist) {
 				return err
 			}
 			continue
 		}
-		sort.Slice(kept, func(i, j int) bool { return kept[i].Seq < kept[j].Seq })
-		var buf bytes.Buffer
-		for _, e := range kept {
-			buf.Write(encodeLine(e))
-		}
-		if old, err := os.ReadFile(s.path(d)); err == nil && bytes.Equal(old, buf.Bytes()) {
+		if s.intact(d, kept) {
 			continue
 		}
-		if err := WriteAtomic(s.path(d), buf.Bytes(), 0o600); err != nil {
+		if err := s.rewrite(d, kept); err != nil {
 			return err
 		}
 	}
 	clear(s.shrunk)
-	// Entries whose latest copy lives in a later file are now written there; nothing else to do.
 	return nil
 }
 
-// Close closes the open file and lets the folder go.
+// intact reports whether a day's file holds exactly the lines of kept (in storage order), each
+// where its entry says, and nothing else.
+func (s *Store) intact(d int64, kept []*Entry) bool {
+	var at int64
+	for _, e := range kept {
+		if e.off != at {
+			return false
+		}
+		at += int64(e.n) + 1
+	}
+	fi, err := os.Stat(s.path(d))
+	return err == nil && fi.Size() == at
+}
+
+// rewrite writes a day's kept lines to a temporary file, renames it over the day's file and
+// points the entries at their new places.
+func (s *Store) rewrite(d int64, kept []*Entry) error {
+	tmp, err := os.CreateTemp(filepath.Join(s.dir, logFolder), ".tmp-*")
+	if err != nil {
+		return err
+	}
+	name := tmp.Name()
+	fail := func(err error) error {
+		tmp.Close()
+		os.Remove(name)
+		return err
+	}
+	w := bufio.NewWriterSize(tmp, 256<<10)
+	offs := make([]int64, len(kept))
+	var at int64
+	for i, e := range kept {
+		b, err := s.line(e)
+		if err != nil {
+			offs[i] = -1 // lost from the file already (a disk error, a hand edit): not written again
+			continue
+		}
+		offs[i] = at
+		w.Write(b)
+		w.WriteByte('\n')
+		at += int64(len(b)) + 1
+	}
+	if err := w.Flush(); err != nil {
+		return fail(err)
+	}
+	if err := tmp.Sync(); err != nil {
+		return fail(err)
+	}
+	if err := tmp.Close(); err != nil {
+		os.Remove(name)
+		return err
+	}
+	if err := os.Chmod(name, 0o600); err != nil {
+		os.Remove(name)
+		return err
+	}
+	if s.file != nil && s.day == d {
+		s.file.Close()
+		s.file = nil
+	}
+	if err := os.Rename(name, s.path(d)); err != nil {
+		os.Remove(name)
+		return err
+	}
+	s.closeReader(d)
+	for i, e := range kept {
+		e.off = offs[i]
+		if e.off >= 0 && e.rec() == nil && !s.isRecent(e) {
+			e.setMem(nil)
+		}
+	}
+	return nil
+}
+
+func (s *Store) isRecent(e *Entry) bool {
+	return len(s.recent) > 0 && e.Seq >= s.recent[0].Seq && e.mem() != nil
+}
+
+func (s *Store) closeFiles() {
+	if s.file != nil {
+		s.file.Close()
+		s.file = nil
+	}
+	for d := range s.open {
+		s.closeReader(d)
+	}
+}
+
+// Close closes the open files and lets the folder go.
 func (s *Store) Close() error {
 	var err error
 	if s.file != nil {
 		err = s.file.Close()
 		s.file = nil
 	}
+	s.closeFiles()
 	if s.lock != nil {
 		s.lock.Close()
 		s.lock = nil
@@ -506,6 +938,16 @@ func (s *Store) Size() int64 {
 		}
 		return nil
 	})
+	return n
+}
+
+// MemSize returns the bytes of record lines held in memory (recent and pinned records, lines
+// waiting for a compaction).
+func (s *Store) MemSize() int64 {
+	var n int64
+	for _, e := range s.byID {
+		n += int64(len(e.mem()))
+	}
 	return n
 }
 

@@ -48,3 +48,6 @@ func SetReportLimits(day, total int) func() {
 	maxReportsPerDay, maxReports = day, total
 	return func() { maxReportsPerDay, maxReports = d, t }
 }
+
+// RankReady reports whether the leaderboards finished loading.
+func (r *Relay) RankReady() bool { return r.rank.Ready() }
