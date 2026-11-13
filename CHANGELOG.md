@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Multimode shows who is worth peering with: the players you reach over transit, what peering would save on your transit bill and where you can meet them, in the Multimode sheet and the NOC dashboard. Once you peer with a player directly, your customers send each other more traffic, up to twice as much after 30 days, and it works the same way in their game.
 - Multimode servers now ignore stray files in their data folder whose names are not a day, instead of reading them as a wrong day, and refuse to store a record under a day out of range.
 
 ## [4.0.0] — 2026-11-13

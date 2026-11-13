@@ -116,6 +116,8 @@ function fuHomeHtml(){const f=S&&S.fed,ok=S&&UI.started&&fedEligible(),on=!!(f&&
   h+=`<p class="tagline">${tr('fedui.other_players_networks_become_places_to')}</p>${fuMsg()}`;
   // Joined: the leaderboards come first, as a card with this network's rank.
   if(ok&&on){const m=fuMyRank();h+=`<button class="plug fu-lb" data-act="fuOpen" data-args='{"v":"boards"}'><span class="pi" aria-hidden="true">🏆</span><span class="grow"><b>${tr('fedui.leaderboards')}</b><span class="meta">${m?'#'+m.rank+' · ':''}${fuBoardName(fuDefQ().board)}</span></span><span class="go" aria-hidden="true">›</span></button>`;}
+  // Then who is worth peering with (89-fedplay-suggest.js): the nudge towards working with other players.
+  if(ok&&on&&f.key)h+=fedSuggestHtml();
   if(!ok)h+=`<p class="note fu-why">${fuWhyMode()}</p>`;
   // Excluded by the federation: why, and that solo play goes on.
   if(on&&FU.shun&&FU.shun.shunned)h+=`<div class="fu-box bad"><b>${tr('fedui.the_federation_excluded_your_network')}</b><p class="meta">${FU.shun.reasons.length?tr('fedui.enough_servers_voted_to_shun_it'):tr('fedui.enough_servers_voted_to_exclude_it')}</p>${FU.shun.reasons.length?`<ul class="fu-reasons">${FU.shun.reasons.map(r=>`<li>${fuReason(r)}</li>`).join('')}</ul>`:''}${FU.shun.servers&&FU.shun.servers.length?`<p class="meta">${tr('fedui.listed_by_servers',{servers:[...new Set(FU.shun.servers.map(x=>FU.srvs.some(s=>s.id===x.srv)?fuSrvName(x.srv):esc(fedUrlHost(x.url))))].join(', ')})}</p>`:''}<p class="meta">${tr('fedui.your_game_plays_on_as_always')}</p></div>`;

@@ -22,9 +22,10 @@ const fedBot=n=>n&&n.ai?'🤖 ':'';
 const fedNetsHash=l=>l.length+':'+hstr(JSON.stringify(l));
 // The network type its traffic mix suggests: content, eyeballs, or a carrier in between.
 const fedNetType=m=>m[0]>=500?'cdn':m[1]>=500?'eye':'t2';
-/* Demand towards a player network: grows with its traffic (log scale), at most FEDP_SH, times its quiet factor. Shares
-   come out of every other network's share, so a city still asks for the same total. */
-const fedNetShare=n=>n.st==='dark'?0:Math.min(FEDP_SH,0.002+0.002*Math.log10(1+n.tr/1000))*n.q/1000;
+/* Demand towards a player network: grows with its traffic (log scale), at most FEDP_SH, times its quiet factor, and
+   more while you peer with it directly (on-net growth, b per mille, 89-fedplay-suggest.js). Shares come out of every
+   other network's share, so a city still asks for the same total. */
+const fedNetShare=n=>n.st==='dark'?0:Math.min(FEDP_SH,0.002+0.002*Math.log10(1+n.tr/1000))*(1+(n.b||0)/1000)*n.q/1000;
 
 /* ---------- applying the snapshot to NETS and the tables built from it ---------- */
 function fedNetsSync(){const s=S&&S.fedn&&Array.isArray(S.fedn.nets)?S.fedn:null,h=s?s.h:'';if(h!==FEDN.h)fedNetsApply(s?s.nets:[],h);}
@@ -44,7 +45,7 @@ function fedNetsApply(list,h){
     // Not Tier 1 itself: in the cone of two founding Tier 1s (players start on computer-run transit), as rule N3 asks.
     const up=n.t1?[]:[FEDP_UP[hstr(n.k)%4],FEDP_UP[(hstr(n.k)+1+hstr(n.k+'u')%3)%4]];
     const N={id,name:n.name,asn:n.asn,type:fedNetType(n.mix),pol:'fed',share:sh.get(id)*k,col:FEDP_COL[hstr(n.k)%FEDP_COL.length],
-      pops:[],ix:[],fpops:n.pops,fix:n.ix,fmix:n.mix,ftr:n.tr,blurb:'',up,fed:n.k,fst:n.st,fq:n.q,fpol:n.pol,ai:!!n.ai,home:n.home};
+      pops:[],ix:[],fpops:n.pops,fix:n.ix,fmix:n.mix,ftr:n.tr,blurb:'',up,fed:n.k,fst:n.st,fq:n.q,fpol:n.pol,ai:!!n.ai,home:n.home,fb:n.b||0};
     NETS.push(N);NET_IDS.push(id);NET[id]=N;NSH[id]=N.share;NSH_KRX[id]=N.share;
     CONE[id]=[id];CONE_S[id]=new Set([id]);DOWN[id]=[];ANC[id]=up.slice();
     for(const u of up){CONE[u]=CONE[u].concat(id);CONE_S[u].add(id);DOWN[u]=DOWN[u].concat(id);}
@@ -66,7 +67,7 @@ function fednClean(v){if(!v||typeof v!=='object'||!Array.isArray(v.nets))return 
     seen.add(n.k);const cs=l=>[...new Set(l.filter(c=>typeof c==='string'&&own(CITY,c)))].slice(0,512);
     out.push({k:n.k,name:fedSafeName(n.name),asn:n.asn,home:typeof n.home==='string'&&!FdCC(n.home)?n.home:'ZZ',pops:cs(n.pops),ix:cs(n.ix),mix:n.mix.slice(),tr:int(n.tr,0,2e9)?n.tr:0,
       cust:int(n.cust,0,1e7)?n.cust:0,pol:['open','selective','restrictive'].includes(n.pol)?n.pol:'open',q:int(n.q,0,1000)?n.q:0,st:FEDP_ST.includes(n.st)?n.st:'dark',
-      ai:n.ai===true,t1:n.t1===true,bid:FdId(n.bid)?'':n.bid,at:int(n.at,0,1e11)?n.at:0});}
+      ai:n.ai===true,t1:n.t1===true,bid:FdId(n.bid)?'':n.bid,at:int(n.at,0,1e11)?n.at:0,b:int(n.b,0,FEDO_MAX)?n.b:0});}
   return {h:fedNetsHash(out),nets:out};}
 /* What the servers say of other networks' newest stats (§9.5 nets): Map key -> {ai, tier1, traffic} (who is AI, who
    is Tier 1, what they report about traffic with this network). Asked for the networks in the snapshot and the deals
@@ -94,6 +95,8 @@ async function fedPlayRun(){const s=S;if(!s||!s.fed||!s.fed.key||!fedEligible(s)
   const myIx=new Set(fedMyIx()),near=n=>n.st!=='dark'&&n.ix.some(c=>myIx.has(c));
   const list=all.filter(n=>n.key!==me&&!muted.has(n.key)).map(n=>fedNetSnap(n,shun.has(n.key),stats.get(n.key)))
     .sort((a,b)=>keep.has(b.k)-keep.has(a.k)||near(b)-near(a)||(a.st==='dark')-(b.st==='dark')||b.tr-a.tr||fedByStr(a.k,b.k)).slice(0,FEDP_MAX);
+  // On-net growth from the direct deals running now: part of the snapshot, so routing reads it from the save.
+  const on=fedOnNet(s,now);for(const n of list)n.b=on.get(n.k)||0;
   const h=fedNetsHash(list);let ch=false;
   // A joined save has its terms (the defaults) from its first look on, not only once it announced.
   if(!s.fedp){fedP(s);ch=true;}

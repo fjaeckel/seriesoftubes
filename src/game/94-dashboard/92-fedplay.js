@@ -30,6 +30,7 @@ function fedDealRow(d){const now=fedNow(),soon=d.st==='run'&&d.end!==null&&d.end
 function fedPlayCard(){const f=S.fed,P=S.fedp,nets=S.fedn?S.fedn.nets:[];
   let h=`<section class="fp-card"><div class="fp-h"><h3>${tr('fedplay.players')}</h3><span class="grow"></span>${btn(tr('fedplay.your_terms'),'fpTerms',{},'ghost sm')}${btn(tr('fedplay.d_consortium'),'fpCons',{},'ghost sm')}</div>`;
   if(P&&P.rq.length)h+=`<div class="btns">${btn(trn('fedplay.n_to_review',P.rq.length),'fpQueue',{},'pink sm')}</div>`;
+  h+=fedSuggestHtml();
   if(!nets.length)h+=`<p class="empty">${f.on?tr('fedplay.no_players_yet'):tr('fedplay.join_to_meet')}</p>`;
   for(const s of nets){const n=fedNetOf(s.k);if(!n)continue;const ds=f.deals.filter(d=>d.key===s.k&&d.st!=='over'),p=fedPair(n),a=FEDN.ann.get(s.k),nw=!!a&&a.rec&&fedIsNew(a.rec.body.founded,fedNow());
     h+=`<div class="row fp-${s.st}">${logo(n)}<div class="grow"><div class="nm">${fedBot(n)}${esc(n.name)} <span class="meta">AS${n.asn}</span>${nw?` <span class="tag fp-new">${tr('fedplay.newcomer')}</span>`:''}</div>
@@ -56,6 +57,9 @@ function fedNetModal(key){const n=fedNetOf(key);if(!n){closeModal();return;}UI.f
   if(xs)h+=`<p class="note">${tr(S.fed.deals.some(d=>d.key===key&&d.st==='run')?N_('fedplay.excluded_running'):N_('fedplay.excluded_new'),{servers:xs})}</p>`;
   else if(n.fst==='fading')h+=`<p class="note">${tr('fedplay.fading_note')}</p>`;else if(n.fst==='dark')h+=`<p class="note">${tr('fedplay.dark_note')}</p>`;
   h+=`<p class="meta">${tr('fedplay.you_and_them',{in:fmtG(p.in/1000),out:fmtG(p.out/1000),ix:p.ix.length,pops:p.pops.length})}</p>`;
+  // On-net growth: how far it has come with a direct deal, or what one would bring.
+  {const od=fedOnNetDays(S,key,fedNow());if(od>=0)h+=`<p class="meta fp-onnet">📈 ${trn('fedplay.onnet_line',od,{pct:'+'+Math.round((n.fb||0)/10)+'%'})}</p>`;
+    else if(n.fst!=='dark')h+=`<p class="meta fp-onnet">📈 ${tr('fedplay.onnet_hint')}</p>`;}
   const ds=S.fed.deals.filter(d=>d.key===key&&(d.st!=='over'||fedNow()-(d.end||d.start||0)<30*FED_DAY));
   if(ds.length)h+=`<h3 class="fp-sub">${tr('fedplay.your_deals')}</h3>`+ds.map(fedDealRow).join('');
   const rp=btn('🚩 '+tr('fedui.report'),'fuReport',{key,from:'deals'},'ghost sm');
