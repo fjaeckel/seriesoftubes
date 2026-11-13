@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- DDoS protection customers in a city with its own scrubbing center no longer complain that their attacks are hauled to a far center. Your other centers still take their share of a flood, but the local one keeps the detour short, as its panel promises (#345).
+
 ## [3.5.0] — 2026-11-11
 
 - Alien waves you list on a fiber yourself now stay listed. With the capacity market selling for you, the broker used to cut your listing down to what its settings allowed the next day, or take it off altogether when the route's demand was below your minimum. Your own listing now stays put, and the broker adds what its settings allow on top (#340).
