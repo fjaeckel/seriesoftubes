@@ -21,6 +21,9 @@ You start with one router in one city and grow into a transit-free Tier 1:
 - **Things break, constantly:** backhoes, sharks, fat fingers, route leaks, RPKI
   mishaps, DDoS, cooling failures, Red Sea and Baltic cable cuts, sanctions and
   sovereign internet drills.
+- **Multimode:** play alongside other people on servers that players run themselves.
+  Peer with them, sell them transit and waves, build cables together, and see where you
+  rank on live leaderboards. Optional and per save: solo games stay exactly as they are.
 
 Every company is a pun. No real company names are used.
 
@@ -37,6 +40,17 @@ undersea fiber, as the internet works today, in 2010 and in 1995, with simple or
 technical explanations. If you enjoy Series of Tubes, you will learn more from
 an hour there than from a year of laying cartoon fiber here.
 
+## Multimode: play with others
+
+Switch on **Play with others** when you start a new game, or join later from Multimode in the menu. Other players'
+networks then show up in your world as places your customers want to reach, and you can do business with them:
+peering, transit, PNIs, exchange ports, waves, capacity swaps and consortium cables. Deals are sealed end to end, so
+the servers carrying them cannot read them. Leaderboards rank traffic, POPs, pies in the sky and customer cone, live
+every 30 seconds, and your rank sits in the top bar.
+
+The first server, **SeriesOfTubes Server 1** (`wss://s1.seriesoftub.es/fed`), is open to everyone. More are listed in
+the game as players add them. If a server is down, your game simply plays on.
+
 ## Playing locally
 
 It is a single static page, assembled from the files in `src/` by a small Node script:
@@ -46,16 +60,47 @@ npm ci
 npm run dev                   # http://localhost:8080
 ```
 
-Progress is saved in your browser's local storage.
+Progress is saved in your browser's local storage. To try Multimode from a phone on your network,
+`npm run dev -- --https` serves a secure page (browsers only sign Multimode records on one) and prints how to trust
+its certificate.
 
 The game speaks English, Italian, Portuguese, French, Spanish and German. It follows your browser's language the first time
 and remembers the one you pick under Settings or on the title screen.
 
-## Running a Multimode server
+## Host your own server
 
-Multimode runs on servers players host themselves: a small program, the relay, on a VPS, a Raspberry Pi, or a
-laptop at a LAN party. **[How to host a server](docs/HOSTING.md)** walks through it step by step; downloads for
-Linux, macOS, Windows and the BSDs, and a container image, come with every release.
+Multimode runs on servers players host themselves: a small Go program, the relay, that passes signed records between
+games and other servers. It never sees anyone's strategy or money, never keeps IP addresses, and runs happily on a
+small VPS or a Raspberry Pi.
+
+**For everyone on the internet** you need a machine with a public IP address, a DNS name pointing at it, ports 80 and
+443 open, and a TLS certificate (browsers refuse anything else). The repository has all of it in one Compose file,
+certbot included:
+
+```sh
+git clone https://github.com/fjaeckel/seriesoftubes.git
+cd seriesoftubes/relay
+cp .env.example .env        # set RELAY_DOMAIN, LETSENCRYPT_EMAIL and RELAY_NAME
+docker compose up -d --build
+docker compose logs -f relay
+```
+
+The first start founds your server, gets the certificate and prints your server identity and an invite link. Back up
+the operator key it tells you about: it is the control of your server, and there is no reset.
+
+- **Get listed** in the game's server list with a pull request adding one signed file,
+  `relay registry-file` makes it ([how](federation/servers/README.md)). Open servers that are listed sync with each other
+  automatically.
+- **LAN party:** no domain needed. `relay lan` on one laptop makes a self-signed certificate, each device accepts it
+  once and joins over the local network, no internet required ([LAN party](docs/HOSTING.md#lan-party)).
+- **Without Docker:** static binaries for Linux, macOS, Windows and the BSDs, and container images for amd64 and arm64,
+  come with every release.
+- **Monitoring:** Prometheus metrics (counts only, never addresses) and a
+  [Grafana dashboard](relay/grafana/tubes-relay.json) to import.
+
+**[How to host a server](docs/HOSTING.md)** walks through every path step by step: Docker Compose, a binary with
+systemd, a home server, upgrades, backups and your privacy duties. [RELAY.md](docs/RELAY.md) is the relay's reference
+and [the protocol](docs/FEDERATION-PROTOCOL.md) describes everything on the wire.
 
 ## Development
 
@@ -66,7 +111,13 @@ npm test       # headless tests: boot, geography, a year of play, every incident
 npm run build  # writes the site for GitHub Pages to _site/, with version and date stamped in
 npm run i18n:check  # lists text missing from (or stale in) the translations
 npm run mcp    # the game as an MCP server, so an AI client can play and debug it, headless or in your tab (docs/MCP.md)
+npm run perf -- --base-ref origin/main   # big-network benchmark against main (--browser: also in Chromium)
+node scripts/fed-e2e.js --quick          # Multimode end to end: real relays, two servers, games in a browser
+(cd relay && go test ./...)              # the relay (Go 1.27)
 ```
+
+[ARCHITECTURE.md](docs/ARCHITECTURE.md) explains where the code lives and how a day of simulation runs, and
+[FEDERATION-CLIENT.md](docs/FEDERATION-CLIENT.md) how the game talks to Multimode servers.
 
 ## Community
 
