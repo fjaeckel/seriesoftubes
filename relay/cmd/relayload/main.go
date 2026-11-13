@@ -33,7 +33,8 @@ const usage = `relayload: a load test for the relay (docs/RELAY.md, "Load test")
 
 Starts --servers relays as separate processes on loopback (real TLS with a certificate made for the
 run, real stores in a temporary folder, each its own founded server, all in a generated registry as
-voters, sync policy open) linked in a ring with chords (--mesh full: every pair), and --clients
+voters, sync policy open) linked in a ring with chords (--mesh full: every pair; --mesh registry:
+no neighbours configured, the servers find each other in the registry and sync automatically), and --clients
 simulated players spread over them, each with its own keys, acting like a game on a busy evening.
 It prints a markdown report (and JSON with --json) and exits 1 when an assertion fails.
 
@@ -86,7 +87,7 @@ func parseFlags(args []string) options {
 	fs.DurationVar(&o.duration, "duration", 12*time.Minute, "how long the players play, from the first connection (two slot boundaries need 11m)")
 	fs.DurationVar(&o.ramp, "ramp", time.Minute, "players connect spread over this")
 	fs.BoolVar(&o.quick, "quick", false, "a short run (2.5m, 20s ramp) without the board checks")
-	fs.StringVar(&o.mesh, "mesh", "ring", "ring (a ring with chords, 3 or 4 neighbours each) or full")
+	fs.StringVar(&o.mesh, "mesh", "ring", "ring (a ring with chords, 3 or 4 neighbours each), full, or registry (automatic sync among the registry's open servers)")
 	fs.IntVar(&o.chord, "chord", 0, "ring: each server also links the one this far along (0: servers/4)")
 	fs.StringVar(&o.spread, "spread", "round-robin", "players over servers: round-robin or skewed (Zipf: the first servers get most)")
 	fs.StringVar(&o.jsonOut, "json", "", "also write the report as JSON to this file")

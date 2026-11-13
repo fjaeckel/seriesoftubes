@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"os"
+	"slices"
 	"testing"
 	"time"
 
@@ -46,6 +48,38 @@ func TestTopology(t *testing.T) {
 	}
 	if small := topology(3, "ring", 0); len(small[0]) != 2 {
 		t.Fatalf("three servers: %v", small)
+	}
+}
+
+// The registry mesh is the graph every relay computes (10.9): all pairs up to the cap, each link
+// seen from both ends.
+func TestRegistryGraph(t *testing.T) {
+	if topology(20, "registry", 0) != nil {
+		t.Fatal("the registry mesh is worked out once the identities are known")
+	}
+	for _, n := range []int{3, 20, 100} {
+		var relays []*relayProc
+		for i := range n {
+			relays = append(relays, &relayProc{i: i, id: fmt.Sprintf("id-%03d", (i*37)%n)})
+		}
+		adj := registryGraph(relays)
+		for i, l := range adj {
+			if n <= 65 && len(l) != n-1 {
+				t.Fatalf("n=%d: server %d has %d peers", n, i, len(l))
+			}
+			for _, j := range l {
+				if !slices.Contains(adj[j], i) {
+					t.Fatalf("n=%d: %d-%d one way only", n, i, j)
+				}
+			}
+		}
+		for _, row := range hops(adj) {
+			for _, h := range row {
+				if h < 0 || h > 2 {
+					t.Fatalf("n=%d: %d hops", n, h)
+				}
+			}
+		}
 	}
 }
 

@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -58,8 +59,12 @@ type cluster struct {
 }
 
 // topology gives each server's neighbours: a ring with chords (each server with 3 or 4 others,
-// so records cross several hops) or a full mesh.
+// so records cross several hops) or a full mesh. For the registry mesh the servers find each other
+// in the registry (10.9): setup works the graph out once their identities are known.
 func topology(n int, mesh string, chord int) [][]int {
+	if mesh == "registry" {
+		return nil
+	}
 	set := make([]map[int]bool, n)
 	for i := range set {
 		set[i] = map[int]bool{}
@@ -140,9 +145,10 @@ func freePorts(n int) ([]int, error) {
 }
 
 // setup founds n servers in folders under root, each with its own operator and node key, makes
-// the run's certificate and a registry listing them all as voters, and writes each config.
+// the run's certificate and a registry listing them all as voters, and writes each config. adj nil:
+// no neighbours configured, the servers sync automatically through the registry.
 func setup(root string, n int, adj [][]int) (*cluster, error) {
-	c := &cluster{root: root, adj: adj, dist: hops(adj)}
+	c := &cluster{root: root, adj: adj}
 	ports, err := freePorts(2 * n)
 	if err != nil {
 		return nil, err
@@ -207,10 +213,15 @@ func setup(root string, n int, adj [][]int) (*cluster, error) {
 		cfg.Metrics = fmt.Sprintf("127.0.0.1:%d", r.mport)
 		cfg.TLSCert, cfg.TLSKey = c.caPath, keyPath
 		cfg.Registry = filepath.Join(root, "servers.json")
-		// Of two neighbours the lower one dials; the other takes the session as it comes.
-		for _, b := range adj[r.i] {
-			if b > r.i {
-				cfg.Neighbours = append(cfg.Neighbours, config.Neighbour{URL: c.relays[b].url})
+		if adj != nil {
+			// A topology of its own: neighbours by hand, nothing automatic. Of two neighbours
+			// the lower one dials; the other takes the session as it comes.
+			off := false
+			cfg.AutoSync = &off
+			for _, b := range adj[r.i] {
+				if b > r.i {
+					cfg.Neighbours = append(cfg.Neighbours, config.Neighbour{URL: c.relays[b].url})
+				}
 			}
 		}
 		if err := cfg.Save(filepath.Join(r.dir, "config.json")); err != nil {
@@ -239,7 +250,31 @@ func setup(root string, n int, adj [][]int) (*cluster, error) {
 	if err := os.WriteFile(filepath.Join(root, "servers.json"), b, 0o600); err != nil {
 		return nil, err
 	}
+	if c.adj == nil {
+		c.adj = registryGraph(c.relays)
+	}
+	c.dist = hops(c.adj)
 	return c, nil
+}
+
+// registryGraph is who syncs with whom when every server is open and live in the registry: the
+// graph each relay computes for itself (10.9).
+func registryGraph(relays []*relayProc) [][]int {
+	var ids []string
+	at := map[string]int{}
+	for _, r := range relays {
+		ids = append(ids, r.id)
+		at[r.id] = r.i
+	}
+	slices.Sort(ids)
+	adj := make([][]int, len(relays))
+	for _, r := range relays {
+		for _, p := range registry.AutoPeers(ids, r.id, fed.AutoPeers) {
+			adj[r.i] = append(adj[r.i], at[p])
+		}
+		slices.Sort(adj[r.i])
+	}
+	return adj
 }
 
 // start runs every relay as a child process of this binary.
