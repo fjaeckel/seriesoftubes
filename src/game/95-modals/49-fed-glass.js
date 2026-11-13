@@ -52,7 +52,7 @@ function fuRelaysDl(s){const live=Object.values(FED.st),rel=s.relays||{};
    The notes link is https only (fedUpdOf) and escaped here. */
 function fuUpdBanner(id){const u=FED.upd[id];if(!u)return '';
   return `<div class="fu-box fu-upd${u.security?' bad':''}" role="status"><b>${u.security?'⚠️ '+tr('fedui.security_update_available'):'⬆️ '+tr('fedui.update_available')}</b>
-    <p>${u.security?tr('fedui.relay_version_fixes_a_security_issue',{version:esc(u.version)}):tr('fedui.relay_version_is_out',{version:esc(u.version)})}${u.gossip?' '+tr('fedui.seen_on_other_servers'):''}</p>
+    <p>${u.security?tr('fedui.relay_version_fixes_a_security_issue',{version:esc(u.version)}):tr('fedui.relay_version_is_out',{version:esc(u.version)})}${u.github?' '+tr('fedui.from_github_releases'):''}</p>
     ${u.notes?`<p><a href="${esc(u.notes)}" target="_blank" rel="noopener noreferrer">${tr('common.release_notes')}</a></p>`:''}</div>`;}
 // The operator panel of a server the imported key operates.
 function fuOpPanel(s){const c=fedConnTo(s.id),st=fedStatus(),ch=FU.chain;

@@ -262,7 +262,8 @@ as `FED.st[url].impl`), and a server's catalog entry what its nodes run (§10.8 
 server's own nodes only, kept with the gossip entry; `fedServers()` gives it as `relays`, node key → `{name, version}`
 from the freshest entry). The `server` sheet shows "relay x.y.z" per node under "Relay software": the connected node's
 own word first, else the entry's. A session that proved an operator key gets `update` frames (§9.3): `fedUpdOf` keeps
-the version, `security`, the `notes` link only when it is `https://`, and whether it came from gossip; the operator
+the version, `security`, the `notes` link only when it is `https://`, and whether it came from GitHub releases (`source: 'github'`, when the relay could not read `relay.json`:
+the banner adds "From GitHub releases"); versions seen in gossip are shown only, never a banner. The operator
 panel opens with an "Update available" banner (`.fu-upd`; for a security fix "Security update available" in the red
 `.fu-box.bad`) with the release notes link (escaped, `rel="noopener noreferrer"`). Players who are not operators never
 get the frame and never see a banner. Nothing is stored, and nothing is fetched for it: the page never asks for
@@ -277,6 +278,10 @@ lists without it (`fedEligible` stays the rule at join time).
 - **Default:** off; on when an invite link is waiting, otherwise as this device left it when it last started a new
   game (localStorage `sot-fed-start`, `{on, url}`, read through try/catch and checked with `FdUrl`; a convenience,
   never forced).
+- **Online only:** while `navigator.onLine === false` the switch is shown off and disabled with "Multiplayer needs a
+  connection", no picker and no address field; it follows the `online`/`offline` events while the title is up. An
+  invite or a remembered "on" shows off while offline and comes back with the connection; starting offline is solo
+  and leaves the remembered choice as it was.
 - **Lazy:** switching it on is the only thing that fetches `servers.json` (`fedCatalogLoad`, once per page). Switched
   on by itself (invite, remembered), the picker shows the catalog this browser already has (`fedServers()`, IndexedDB),
   so drawing the title adds no request.
@@ -286,16 +291,25 @@ lists without it (`fedEligible` stays the rule at join time).
   The invited server comes first, picked at the invited node.
 - **Default server** when nothing is picked: the open registry server whose node answered the registry's liveness
   check most recently (`answered`, then name), else any registry server the same way, else one known from gossip.
-- **Start:** `ACT.start` passes the pick to `beginGame(…, {fed})`: a node URL, `false` (switch shown and off) or
-  absent (not shown). On with nothing picked or typed, the game does not start and a toast asks for a server.
+- **Something to join, or off:** after turning it on, the switch stays on only when there is something to join: a
+  server row (not from an older cache when the fetch the player asked for failed), the invite, or a valid typed
+  address (`FdUrl`). Otherwise it turns back off with a note: "Couldn't reach the server list" (the fetch failed; turning
+  it on again retries) or "No servers listed yet". The address field stays under the note, and typing a valid address
+  turns the switch on again, so invites and private servers work with an empty or unreachable list; clearing it turns
+  it off again. Switched on by itself (invite, remembered) with nothing to join, it goes off without a note. Text that
+  is not a valid address never keeps it on, but while it is on for another reason typed text still wins as the pick
+  (and a refused join then starts solo, below).
+- **Start:** `ACT.start` passes the pick to `beginGame(…, {fed})`: a node URL, `false` (switch shown and off, or
+  offline) or absent (not shown). Multiplayer never blocks Start: "on but no server" cannot happen.
   `beginGame` keeps it as `UI.fedGo = {url, s: S}` for that game only. Signing the charter calls `fuInviteGo()`,
   which joins (`fsJoin` → `fedJoin`) without opening the join sheet; switched off, it opens nothing (a pending
   invite still shows in the join sheet when the player opens it). Without the switch (no title, no crypto) an
   invite opens the join sheet after the charter as before.
 - **Joined or not:** `fsJoin` waits for the server's first word: connected gives the "Joined …" toast and the green
-  dot; `offline`, a refused join (`url`, `crypto`, `full`) or no answer in `2 × FED.T.open` leaves the server again
-  (`fedLeave`), so the game plays solo, and a red toast says why with a "Join a server" button (the join sheet).
-  A hidden tab (`waiting`) stays joined and connects when it is seen.
+  dot. A refused join (`url`, `crypto`, `full`) starts solo with a red toast that says why and a "Join a server"
+  button (the join sheet). A server that is `offline` or gives no answer in `2 × FED.T.open` keeps the join: the
+  offline dot and a toast, and the game connects when the server does. A hidden tab (`waiting`) stays joined and
+  connects when it is seen.
 
 ## Left to the interface and gameplay
 

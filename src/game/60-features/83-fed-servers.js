@@ -143,8 +143,8 @@ const fedImpl=x=>!!x&&typeof x==='object'&&!Array.isArray(x)&&typeof x.name==='s
 // An entry's impl list ([{node, name, version}], at most 16) as {node key: {name, version}}, for the server's own nodes only.
 function fedImpls(list,nodes){const out={};if(!Array.isArray(list)||list.length>16)return out;const keys=new Set((nodes||[]).map(n=>n&&n.key));
   for(const x of list){const i=fedImpl(x);if(i&&typeof x.node==='string'&&keys.has(x.node))out[x.node]=i;}return out;}
-/* An operator's update notice (§9.3 update): {version, security, notes, gossip} or null. The notes link is kept only
+/* An operator's update notice (§9.3 update): {version, security, notes, github} or null. The notes link is kept only
    when it is an https:// URL; the interface escapes it anyway. */
 function fedUpdOf(f){if(!f||typeof f.version!=='string'||!FED_IMPL.test(f.version))return null;let notes=null;
   if(typeof f.notes==='string'&&f.notes.length<=512)try{const u=new URL(f.notes);if(u.protocol==='https:'&&u.hostname&&!u.username&&!u.password)notes=u.href;}catch(e){}
-  return {version:f.version,security:f.security===true,notes,gossip:f.source==='gossip'};}
+  return {version:f.version,security:f.security===true,notes,github:f.source==='github'};}

@@ -1,7 +1,7 @@
 Object.assign(ACT,{
  randomName:()=>{const input=$('nmIn');if(input)input.value=UI.nm=randomNetworkName(input.value);},
  start:()=>{if(UI.asnTxt&&!asnOk(+UI.asnTxt)){toast(tr('title.asn_not_usable'),'bad');const i=$('asnIn');if(i){i.classList.add('bad');i.focus();}return;}const nm=(($('nmIn')&&$('nmIn').value)||randomNetworkName()).slice(0,24),sb=UI.mode==='sandbox';
-   const fed=fsChoice();if(fed===null){toast(tr('fedui.pick_a_server_or_type_its'),'bad');return;}// "Play with others" on, but no server
+   const fed=fsChoice();// "Play with others": a node URL, false or undefined; it never stops the start
    beginGame(nm,homeOk(UI.startCity)?UI.startCity:'fra',sb?{mode:'sandbox',rules:{chaos:own(CHAOS,UI.sbChaos)?UI.sbChaos:'none'}}:{mode:'normal',preset:NORMAL_PRESETS.includes(UI.preset)?UI.preset:'oncall',fed});},
  // Title-screen doors and their options toggle in place, so the name being typed and the city stay as they are.
  modeSet:({m})=>{if(m!=='sandbox'&&m!=='normal')return;UI.mode=m;document.querySelectorAll('.door').forEach(b=>b.classList.toggle('on',b.dataset.door===m));const n=$('doorNormal'),x=$('doorSandbox');if(n)n.hidden=m!=='normal';if(x)x.hidden=m!=='sandbox';},

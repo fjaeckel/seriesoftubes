@@ -61,6 +61,9 @@ function load(opts = {}) {
       if (opts.browser) opts.browser.attach(window, opts.tab || new Map(), opts);
       for (const [k, v] of Object.entries(opts.storage || {})) window.localStorage.setItem(k, v);
       if (opts.navigatorLanguage) Object.defineProperty(window.navigator, 'language', { value: opts.navigatorLanguage });
+      // navigator.onLine: {online:false} starts offline; __online(v) changes it and fires the 'online'/'offline' event.
+      { let on = opts.online !== false; Object.defineProperty(window.navigator, 'onLine', { configurable: true, get: () => on });
+        window.__online = (v) => { on = !!v; window.dispatchEvent(new window.Event(on ? 'online' : 'offline')); }; }
       // A non-English game: jsdom does not fetch the dictionary script, so register it up front.
       // (opts.dir: the folder the dictionary comes from, e.g. a build's _site/i18n.)
       if (opts.lang) { window.localStorage.setItem('sot-lang', opts.lang); window.eval(fs.readFileSync(path.join(opts.dir || path.join(__dirname, '..', 'site', 'i18n'), opts.lang + '.js'), 'utf8')); }

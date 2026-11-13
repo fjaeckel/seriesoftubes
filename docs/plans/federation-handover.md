@@ -115,6 +115,10 @@ at that sandbox method.
   registry and tell operators (log, `relay status`, metrics, `update` frame, opt-in `notifyURL`); the looking glass
   shows "relay x.y.z" per node and the operator panel an update banner (`relay/internal/update`, `node/update.go`,
   spec §9.3, §10.8, §11.4, RELAY.md "Versions and update notices", vectors `impl`, `tests/federation-update.test.js`).
+- **Versions come from GitHub** (Frederic, 2026-11-13): relay.json first, else GitHub's latest-release API
+  (`update.ReleasesURL`, `source: "github"`, never security, 403/429 back-off); the gossip quorum hint is gone, gossip
+  versions are display only. **Multiplayer only online:** the title's switch is disabled offline and falls back off
+  when the server list fails or is empty (a valid typed address still counts); Start is never blocked by it.
 
 - `relay/go.sum` regenerated from scratch with a fresh module cache against proxy.golang.org and sum.golang.org:
   byte-identical, `go mod verify` clean.

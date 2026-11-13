@@ -59,6 +59,7 @@
 .fs-tog{flex:none;position:relative;width:52px;height:30px;padding:0;border:3px solid var(--ink);border-radius:999px;background:var(--soft);cursor:pointer}
 .fs-tog span{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--ink);transition:left .12s ease}
 .fs-tog[aria-checked=true]{background:var(--me)}.fs-tog[aria-checked=true] span{left:24px;background:#fff}
+.fs-tog:disabled{opacity:.45;cursor:not-allowed}
 .fs-list{display:flex;flex-direction:column;gap:6px;max-height:min(190px,30vh);overflow-y:auto;overscroll-behavior:contain;margin:6px 0}
 .fs-srv{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;flex:none;text-align:left;border:2px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);font:inherit;padding:6px 10px;cursor:pointer;overflow-wrap:anywhere}
 .fs-srv.on{border-color:var(--me);background:#FFE3F0}

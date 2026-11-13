@@ -736,11 +736,16 @@ percentile and lowest value, carry-forward, expiry, merging server lists), passe
 - Shun votes carry one pre-made reason (cheating, offensive name, spam, abuse); no free text for now.
 - Servers publish their version; operators are told about updates (2026-11-12). Each node says what it runs in its
   `welcome` (and node `hello`), and a server's catalog entry lists its nodes' versions (unsigned, display only). The
-  only update feed is a static file on the site, `federation/relay.json`, written by the build; a relay reads it beside
+  update feed is a static file on the site, `federation/relay.json`, written by the build; a relay reads it beside
   the registry every 6 hours and tells its operators (log once a day, `relay status`, metrics, an `update` frame to
-  operator sessions only, an opt-in `notifyURL` webhook). Without the file, a newer version that two other servers
-  report in gossip gives a hint (never a security one). A release is marked security by `relaySecurity` in
+  operator sessions only, an opt-in `notifyURL` webhook). A release is marked security by `relaySecurity` in
   package.json.
+- Versions come from GitHub (2026-11-13): when `relay.json` cannot be read, a relay asks GitHub's REST API for the
+  latest release (unauthenticated, plain User-Agent, same schedule, 403/429 honoured), `source: "github"`, never a
+  security hint. Versions seen in gossip are for display only: the earlier hint from two servers' gossip is gone.
+- Multiplayer can only be started or picked online, on new games (2026-11-13): the title's "Play with others" switch
+  is disabled while the browser is offline, and turns itself back off when the server list cannot be loaded or lists
+  no server (a valid typed address still counts: invites and private servers); Start is never blocked by it.
 - Nothing logs or stores what identifies a person: no IP addresses, no city or finer location, no device details.
   The player's country is allowed, derived by the relay from a country-only database, and players can switch it off.
 

@@ -48,10 +48,10 @@ test('an operator gets the update banner, louder for a security fix; the notes l
   const a = p.ev("(()=>{const a=document.querySelector('#modalCard .fu-upd a');return a&&[a.getAttribute('href'),a.rel,a.target].join(' ')})()");
   assert.equal(a, 'https://github.com/fjaeckel/seriesoftubes/releases/tag/v3.7.0 noopener noreferrer _blank');
 
-  // Gossip only, a plain update, a link that is not https: no link, "seen on other servers".
-  p.ev(`fedIn([...FED.live.conns.values()][0],${JSON.stringify(JSON.stringify({ m: 'update', version: '3.8.0', security: false, notes: 'javascript:alert(1)', source: 'gossip' }))})`);
+  // From GitHub releases (relay.json could not be read), a plain update, a link that is not https: no link.
+  p.ev(`fedIn([...FED.live.conns.values()][0],${JSON.stringify(JSON.stringify({ m: 'update', version: '3.8.0', security: false, notes: 'javascript:alert(1)', source: 'github' }))})`);
   await open(p, { v: 'server', id: PL.id });
-  assert.match(txt(p), /⬆️ Update available\s*Relay 3\.8\.0 is out\. Update your nodes when you can\. Seen on other servers/);
+  assert.match(txt(p), /⬆️ Update available\s*Relay 3\.8\.0 is out\. Update your nodes when you can\. From GitHub releases\./);
   assert.equal(p.ev("document.querySelector('#modalCard .fu-upd').className"), 'fu-box fu-upd');
   assert.equal(p.ev("document.querySelectorAll('#modalCard .fu-upd a').length"), 0);
   // A malformed notice changes nothing and does not drop the connection.
@@ -70,7 +70,9 @@ test('an operator gets the update banner, louder for a security fix; the notes l
 test('fedUpdOf and fedImpls keep only well-formed values', () => {
   const p = fedPage({ registry: SERVERS_JSON });
   const u = (f) => JSON.parse(p.ev(`JSON.stringify(fedUpdOf(${JSON.stringify(f)}))`));
-  assert.deepEqual(u({ version: '3.6.0', security: 'yes', notes: 'https://a.example/n' }), { version: '3.6.0', security: false, notes: 'https://a.example/n', gossip: false });
+  assert.deepEqual(u({ version: '3.6.0', security: 'yes', notes: 'https://a.example/n' }), { version: '3.6.0', security: false, notes: 'https://a.example/n', github: false });
+  assert.equal(u({ version: '3.6.0', source: 'github' }).github, true);
+  assert.equal(u({ version: '3.6.0', source: 'gossip' }).github, false, 'gossip is no update source');
   assert.equal(u({ version: '3.6.0', notes: 'https://user:pw@a.example/' }).notes, null);
   assert.equal(u({ version: '3.6.0', notes: 'http://a.example/' }).notes, null);
   assert.equal(u({ version: 'x'.repeat(41) }), null);

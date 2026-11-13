@@ -177,17 +177,116 @@ test('the choice is remembered for the next new game on this device, never force
   assert.equal(p.ev('UI.fu&&UI.fu.v||null'), null);
   p.ev('showTitle()');
   assert.equal(sw(p), 'false');
-  // Broken memory is ignored; on with nothing known and nothing typed asks for a server instead of starting.
+  // Broken memory is ignored; remembered on with nothing known falls back off by itself (no fetch, no note), and
+  // Start is never blocked: the game starts solo.
   const q = page({ storage: { 'sot-fed-start': '{"on":true,"url":"javascript:alert(1)"}' }, registry: null });
   await run(q, 500);
-  assert.equal(sw(q), 'true');
-  assert.deepEqual(rows(q), []);
-  assert.match(q.ev("$('modalCard').textContent"), /No servers known yet/);
+  assert.equal(sw(q), 'false', 'nothing to join: off');
+  assert.equal(q.fetches, 0);
+  assert.equal(q.ev(`document.querySelector('#fsNote')`), null, 'no note: the player did not ask');
   q.ev('ACT.start({})');
-  assert.equal(q.ev('!!UI.started'), false);
-  assert.match(toasts(q), /Pick a server to play with others/);
+  assert.equal(q.ev('!!UI.started'), true, 'started');
+  assert.equal(q.ev('UI.fedGo&&UI.fedGo.url'), null, 'solo');
+  assert.doesNotMatch(toasts(q), /Pick a server/);
   assert.deepEqual(p.errors, []);
   assert.deepEqual(q.errors, []);
+});
+
+test('offline the switch is disabled, shows off and follows the online and offline events', async () => {
+  // An invite and a remembered "on", offline: both show off; the remembered choice is not written.
+  const mem = JSON.stringify({ on: true, url: URL2 });
+  const p = page({ online: false, url: 'https://tests.invalid/#join=' + encodeURIComponent(URL1), storage: { 'sot-fed-start': mem } });
+  await run(p, 500);
+  assert.equal(sw(p), 'false', 'the invite shows off while offline');
+  assert.equal(p.ev("$('fsTog').disabled"), true);
+  assert.match(p.ev("$('fsNote').textContent"), /Multiplayer needs a connection/);
+  assert.equal(p.ev(`document.querySelector('#modalCard .fs-list')`), null, 'no picker');
+  assert.equal(p.ev(`document.querySelector('#fsUrl')`), null, 'no address field');
+  click(p, '#fsTog');
+  p.ev('ACT.fsSet({on:true})');
+  await run(p, 300);
+  assert.equal(sw(p), 'false', 'cannot be turned on');
+  assert.equal(p.fetches, 0, 'nothing fetched offline');
+  // Back online: the invite's "on" comes back, without a fetch.
+  p.ev('__online(true)');
+  await run(p, 300);
+  assert.equal(sw(p), 'true');
+  assert.equal(p.ev("$('fsTog').disabled"), false);
+  assert.equal(p.ev(`document.querySelector('#fsNote')`), null);
+  assert.deepEqual(rows(p).filter((x) => x.on).map((x) => x.url), [URL1], 'the invited server is picked');
+  // Offline again: off and disabled; starting now is solo and leaves the remembered choice as it was.
+  p.ev('__online(false)');
+  await run(p, 100);
+  assert.equal(sw(p), 'false');
+  assert.equal(p.ev("$('fsTog').disabled"), true);
+  p.ev('ACT.start({})');
+  assert.equal(p.ev('UI.started'), true);
+  assert.equal(p.ev('UI.fedGo&&UI.fedGo.url'), null, 'solo');
+  assert.equal(p.ev("localStorage.getItem('sot-fed-start')"), mem, 'the remembered choice is untouched');
+  assert.equal(p.fetches, 0);
+  assert.deepEqual(p.errors, []);
+});
+
+test('a server list that cannot be fetched or lists nobody turns the switch back off; a valid typed address counts', async () => {
+  // The fetch fails: back off with a note, even though nothing else is known.
+  const p = page({ registry: null });
+  await run(p, 500);
+  click(p, '#fsTog');
+  await run(p, 500);
+  assert.equal(p.fetches, 1);
+  assert.equal(sw(p), 'false', 'back off');
+  assert.match(p.ev("$('fsNote').textContent"), /Couldn't reach the server list/);
+  // The address field stays for a private server: an invalid address does not count, a valid one turns it on.
+  p.ev(`$('fsUrl').focus()`);
+  p.ev(`const i=$('fsUrl');i.value='http://nope.example';i.dispatchEvent(new Event('input'))`);
+  assert.equal(sw(p), 'false', 'not a server address');
+  p.ev(`const i=$('fsUrl');i.value='wss://private.example/fed';i.dispatchEvent(new Event('input'))`);
+  assert.equal(sw(p), 'true', 'a valid typed address turns it on');
+  assert.equal(p.ev(`document.activeElement.id`), 'fsUrl', 'still typing');
+  assert.equal(p.ev(`document.querySelector('#fsNote')`), null);
+  // Cleared again: off with the note.
+  p.ev(`const i=$('fsUrl');i.value='';i.dispatchEvent(new Event('input'))`);
+  assert.equal(sw(p), 'false');
+  assert.match(p.ev("$('fsNote').textContent"), /Couldn't reach the server list/);
+  p.ev(`const i=$('fsUrl');i.value='wss://private.example/fed';i.dispatchEvent(new Event('input'))`);
+  p.ev('ACT.start({})');
+  assert.equal(p.ev('UI.fedGo.url'), 'wss://private.example/fed', 'starts with the typed address');
+  assert.deepEqual(p.errors, []);
+
+  // Turning it on again retries a fetch that failed.
+  const r = page({ registry: null });
+  await run(r, 500);
+  click(r, '#fsTog');
+  await run(r, 500);
+  r.w.__fetch = async () => { r.fetches++; return { ok: true, text: async () => JSON.stringify(SERVERS_JSON) }; };
+  click(r, '#fsTog');
+  await run(r, 500);
+  assert.equal(r.fetches, 2, 'fetched again');
+  assert.equal(sw(r), 'true');
+  assert.equal(rows(r).length, 2);
+  assert.deepEqual(r.errors, []);
+
+  // The list is fetched and lists nobody: back off, "No servers listed yet".
+  const q = page({ registry: { ...SERVERS_JSON, servers: [] } });
+  await run(q, 500);
+  click(q, '#fsTog');
+  await run(q, 500);
+  assert.equal(q.fetches, 1);
+  assert.equal(sw(q), 'false');
+  assert.match(q.ev("$('fsNote').textContent"), /No servers listed yet/);
+  q.ev('ACT.start({})');
+  assert.equal(q.ev('UI.started'), true, 'Start is never blocked');
+  assert.equal(q.ev('UI.fedGo&&UI.fedGo.url'), null);
+  assert.deepEqual(q.errors, []);
+
+  // An invite keeps it on even when the list cannot be fetched: the player brought the address.
+  const v = page({ registry: null, url: 'https://tests.invalid/#join=' + encodeURIComponent(URL2) });
+  await run(v, 500);
+  click(v, '#fsTog'); click(v, '#fsTog');
+  await run(v, 500);
+  assert.equal(sw(v), 'true');
+  assert.equal(v.ev('fsSel()'), URL2);
+  assert.deepEqual(v.errors, []);
 });
 
 test('the switch and its picker fit a 360 px phone, in portrait and landscape', async () => {
