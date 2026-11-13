@@ -405,6 +405,30 @@ A deal of kind `wave` (§5.3, §10.10) sells one managed wave from the seller's 
 Both sides book the monthly price in `fedMoney` (`R.cost.fed` / `R.rev.fed`). The buyer's sheet names what is missing:
 `ends` (POPs at both ends), `gear` (routers that take that wave size); the seller's accept fails with `room`.
 
+## Exchanges players run (`60-features/89-fedplay-ix.js`)
+
+An exchange you founded (`S.myIx`) counts players too: every running `port` or `cofound` deal you sell there is a
+player member. Members need no new state: they are read from `S.fed.deals`. Feature `ix2` (§9.3) carries who is on an
+exchange (`rates.ix.members`) and co-founding (`auto.cofound`, deal `cofound`, §5.3).
+
+| Name | What it does |
+| --- | --- |
+| `fedIx2(s)` | Every joined server listed `ix2` in its last `welcome` (`FED.ix2`, memory only, per node URL). Only then do `fedRatesOut` and `fedAnnBody` add `members` and `auto.cofound`, and `fedOffer` makes co-founding offers. The game lists `ix2` in its own `hello` |
+| `fedIxPl(c)` | The player members of your exchange at `c` (one per player). The day loop's member look waits `fedIxNext(c, days)`: `days / (1 + 0.25 × players)`, at most 8 players counted, never under a day. Players take no computer member slot |
+| `fedIxMembersOut(at)` | `rates.ix.members`: per exchange sold on, its computer-run members (at most 48) and the player count. `fedAnnBody` cuts the longest lists first to stay under 16000 bytes |
+| `fedIxSnap(b)` / `fedIxSnapClean(x)` | A player's members in the snapshot (`S.fedn.nets[].x = {city: {n: [ids], p}}`, `fxm` on its `NET` entry): the exits of a bought port or co-founding reach those networks (`fedDealExits`), routing reads them from the save |
+| `fedCofoundPrice(c, share)` | A co-founder's share (per mille) of `MYIX_COST` once and of the fabric's monthly cost. `fedCofoundFair` is what a co-founder's game accepts: at most that share of founding and of the biggest fabric |
+| `fedCofoundFee(d)` | A co-founder's share of member fees a month: the founder counts its own members, the co-founder the founder's newest announce. `fedMoney` books the monthly share and the fee share on each side, `fedDealGo` the setup |
+| `fedIxList(nets)` | Exchanges players run, from the networks known (the sheet's `FU.nets`): founder, city, players, cheapest port. Rows in the Multimode sheet and the looking glass (`fedIxListHtml`), a button opens the founder's sheet with the port request first (`fpNet {key, at, deal}`, `UI.fpFocus`) |
+| `fedSuggestPorts()` | In "Worth peering with" (`89-fedplay-suggest.js`): a port on a player's exchange where it reaches two or more players this network reaches over transit, with the combined saving (`fedTransitSaved`) |
+| `fedFoundHints()` | Cities with your POP, no exchange (founding allowed: `foundIxWhy`), none run by a player, and two or more other players with POPs: the Multimode sheet's nudge to found one (`foundIx`) |
+| `fedIxMineHtml(c)` | Your exchange's panel: player members (🤖 for AI players), co-founders (at most two) and players with a POP there to invite |
+
+Co-founding goes from the founder to the player: `fedOffer(key, 'cofound', {at, share, term})` on the player's
+announce (it must list `auto.cofound`). Missing: `myix`, `cfpop` (a POP there on both sides), `ixsell` (sell ports
+first), `ix2`, `cofull`; the co-founder's game declines or refuses an accept on `noix` (the founder's announce sells no
+ports there), `fair` and `cash`. There is no renewal: the founder invites again.
+
 ## Live states
 
 While a joined save is open and the tab is visible, `fedStateTick` (every `FED.T.state`, 10 s) signs the current
