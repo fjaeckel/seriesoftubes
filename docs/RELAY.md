@@ -225,7 +225,8 @@ and the TLS file names change on restart only. The certificate and key themselve
 | `server` | | The server identity (written by `genesis` or `join`) |
 | `seeds` | | `join`: URLs of running nodes of the server |
 | `selective` | `[]` | Server identities allowed when the server's sync policy is `selective` |
-| `neighbours` | `[]` | Other servers' nodes this node connects to: `{url, send, take}`, see Sync |
+| `neighbours` | `[]` | Extra servers' nodes this node connects to: `{url, send, take}`, see Sync (open servers in the registry need none) |
+| `autoSync` | `true` | `false`: this node does not dial the registry's other open servers itself (see Sync); for tests and hand-built meshes |
 | `defaultSend`, `defaultTake` | all | Classes for servers that connect to you and are not neighbours |
 | `countryDb` | | A country-only MaxMind-format database (GeoLite2-Country, DB-IP Country Lite). Optional |
 | `registry` | `https://seriesoftub.es/federation/servers.json` | The registry snapshot (a URL or a file); used for the shun tally |
@@ -304,9 +305,26 @@ Your players always see each other. Whether they also see other servers' players
 Syncing is mutual: two servers sync only when **both** policies allow it. Change yours with
 `relay ops server --sync open` (signed by a majority, like every change to the server record).
 
-Your node connects to the servers in `neighbours`; others may connect to you. For each neighbour you choose what you
-**send** and what you **take**, by class (they hold on every session with that neighbour's node, also when it
-connects to you because it lists you too; `defaultSend` and `defaultTake` are for servers that are not neighbours):
+**Open and listed: nothing to configure.** When your server is `open` and in the registry, it syncs automatically
+with every other open server in the registry that answered the weekly check in the last 14 days: your relay reads
+them from `servers.json` at start and on every refresh (every 6 hours), connects to the new ones and drops the ones that
+left, went quiet or changed their policy. Of each two servers the one whose identity sorts first dials, so there is one
+session between them, not two. With many servers (more than 65) each server syncs with at most 64 others, picked the
+same way by every relay so that any server is at most a few hops from any other. A server with several nodes dials
+from one of them (the node with the lowest key among those up; if it stops, the next one takes over within seconds) to
+one node of the other server (the next one when that does not answer). A new server takes part once the weekly job
+has stamped it (`answered`), at most a week after its pull request is merged.
+
+`relay status` shows it: `auto` lists your automatic peers with their name, who dials (`this node`, `sibling` for
+another node of your server, `peer` when the other server dials you) and whether the session is `up`; each entry of
+`peers` says whether it is `auto` and whether this node `dialled` it.
+
+**Neighbours** (`neighbours` in the config) are for everything else: servers not in the registry (a friend's, a LAN
+party's), selective servers, or different classes for one of your automatic peers. Your node connects to them; others
+may connect to you. Your node keeps one session with each server whichever side dials (when both list each other, the
+one dialled by the lower identity stays). For each neighbour you choose what you **send** and what you **take**, by
+class (they hold on the session with that server whichever side dialled, also for an automatic peer; automatic peers
+otherwise get every class both ways, and `defaultSend` and `defaultTake` are for other servers that connect to you):
 
 | Class | Carries |
 | --- | --- |
@@ -521,8 +539,8 @@ works on phones: [HOSTING.md, LAN party](HOSTING.md#lan-party).
 ## Testing against the game
 
 `node scripts/fed-e2e.js` (from the repository root, after `npm ci`) builds this relay, runs it with TLS on loopback and
-plays two games against it in Chromium: join, announce, deals, a shun reaching its threshold, a report reaching only the operator, the boards. A second server with two nodes syncs with the first (open policies, neighbours
-both ways): a third player there sees the first server's players, makes a sealed deal across the two servers, and
+plays two games against it in Chromium: join, announce, deals, a shun reaching its threshold, a report reaching only the operator, the boards. A second server with two nodes syncs with the first (both open and in
+the run's registry, no neighbours configured, one session between them): a third player there sees the first server's players, makes a sealed deal across the two servers, and
 fails over to the other node when the first one stops. `--browser firefox` or `--browser webkit` runs it in those
 engines instead. Not part of CI. `node scripts/fed-e2e.js --play` sets up the same relay and prints two addresses to
 open in any browser, one player each, so you can play two networks against each other by hand.
@@ -553,7 +571,9 @@ go run ./cmd/relayload --help               # every rate and threshold
   `relay serve`: outgoing connections trust the run's certificate and reach `*.localhost` names on loopback, and
   nothing else (Go on macOS ignores `SSL_CERT_FILE`, and nothing here touches the system's trust store).
   Topology: a ring with chords (each server has 3 or 4 neighbours, so records cross up to 4 hops among 20
-  servers), or `--mesh full`.
+  servers), or `--mesh full`, both configured as neighbours with `autoSync: false`; or `--mesh registry`: no
+  neighbours at all, the servers find each other in the generated `servers.json` and sync automatically (every pair up
+  to 65 servers, the capped graph beyond).
 - **Players** (default 1000, round-robin over the servers or `--spread skewed`) each have their own Ed25519 key
   and the X25519 box key derived from it. They connect as a game does (hello, the node's challenge, `auth`, the
   game's `sub` kinds, the shun/unshun `sub`), put an announce at start and when their terms change, `stats`

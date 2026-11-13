@@ -119,6 +119,14 @@ at that sandbox method.
 - **Joining finds nodes in the registry** (Frederic, 2026-11-13): `relay join SERVER` / `RELAY_JOIN` take the server's
   node URLs from servers.json (own URL left out, first that answers first); `--from`/`RELAY_JOIN_FROM` only for
   unlisted servers; `relay up` retries and logs the add-node line until approved (`cmd/relay/joinreg.go`).
+- **Open listed servers sync automatically** (Frederic, 2026-11-13: "all open servers listed on the GitHub server list
+  should all auto accept each other"): spec §10.9 "Who connects": open + live (`answered` within 14 days of `asOf`)
+  registry servers sync with each other, every pair up to 64 peers, a deterministic chord graph beyond (offsets
+  `c*b^j`, diameter ≤ L); the lower identity dials, one session per server pair (also when both configure each other
+  by hand); multi-node servers dial from their lowest-key live node, rotating through the peer's nodes; recomputed on
+  every registry install; automatic peers have their own room beside `maxNodes`. `relay/internal/registry/auto.go`,
+  `relay/internal/node/auto.go`, vectors `federation/vectors/autosync/`, `relay status` `auto`, config `autoSync:
+  false` opt-out, `relayload --mesh registry`; fed-e2e's two servers have no neighbours configured.
 - **Relay versions and update notices:** `welcome`/node `hello` carry `impl`, catalog entries an `impl` list; the site
   build writes `federation/relay.json` (security via package.json `relaySecurity`); relays read it beside the
   registry and tell operators (log, `relay status`, metrics, `update` frame, opt-in `notifyURL`); the looking glass

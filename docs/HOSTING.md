@@ -710,7 +710,10 @@ Unlisted servers work just as well by invite link.
 
 **Choosing a sync policy**: `standalone` (your players only see each other: a club, a class, a LAN party), `selective`
 (you list the servers you sync with) or `open` (any server that is not standalone). Change it with
-`relay ops server --sync selective`. [RELAY.md, sync policy](RELAY.md#sync-policy-who-your-server-syncs-with).
+`relay ops server --sync selective`. An `open` server in the server list needs no neighbour configuration: it finds
+the other open listed servers in the list and syncs with them by itself (`relay status` shows them under `auto`).
+Neighbours in the config are only for extras: unlisted servers, a LAN party, a selective friend.
+[RELAY.md, sync policy](RELAY.md#sync-policy-who-your-server-syncs-with).
 
 **Friends as co-operators, and more nodes**: operators and nodes change by majority-signed proposals
 (`relay ops propose add-operator KEY`, `relay ops sign ID`). A second node on another machine keeps the server up when
