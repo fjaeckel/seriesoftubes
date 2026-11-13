@@ -32,7 +32,8 @@ test('Dependabot keeps the actions, the image’s base and the npm tools current
 
 test('the image is published for releases only, as their version, never as latest', () => {
   const w = code('.github/workflows/docker.yml');
-  assert.doesNotMatch(w, /:latest\b|\blatest\b.*tags|tags:.*latest/, 'no latest');
+  const mcp = w.slice(0, w.indexOf('\n  relay-test:'));
+  assert.doesNotMatch(mcp, /:latest\b|\blatest\b.*tags|tags:.*latest/, 'no latest for the MCP image');
   assert.doesNotMatch(w, /\$GITHUB_SHA|github\.sha\b.*tags/, 'no image per commit');
   assert.doesNotMatch(w, /^\s+release:/m, 'releases dispatch it; the release event does not');
   // Only the publish job may push or hold packages: write, and it runs only when a release dispatches it.
@@ -48,6 +49,44 @@ test('the image is published for releases only, as their version, never as lates
   assert.doesNotMatch(w, /pages: write|deploy-pages/, 'never to Pages');
   // auto-release.yml is what dispatches it, with the new tag.
   assert.match(read('.github/workflows/auto-release.yml'), /gh workflow run docker\.yml [^\n]*-f tag=/);
+});
+
+// The relay image (docs/HOSTING.md): its version always; X.Y and latest move only to the newest stable release, so a
+// rebuilt older tag or a pre-release never takes them.
+test('the relay image: version, X.Y and latest tags only for the newest release, with OCI labels and provenance', () => {
+  const w = code('.github/workflows/docker.yml');
+  const job = w.slice(w.indexOf('\n  relay-publish:'));
+  assert.match(job, /if: github\.event_name == 'workflow_dispatch'/);
+  assert.match(job, /needs: \[gate, relay-test\]/);
+  assert.match(job, /platforms: linux\/amd64,linux\/arm64/);
+  assert.match(job, /tags="\$image:\$ver"/, 'the exact version, always');
+  assert.match(job, /\*-\*\) echo "\$ver is a pre-release/, 'pre-releases get their version only');
+  assert.match(job, /ls-remote --tags --refs origin 'refs\/tags\/v\*'/, 'compared with the release tags');
+  assert.match(job, /tail -n1\)" = "\$ver" \]; then\n\s+tags="\$tags"\$'\\n'"\$image:latest"/, 'latest only for the newest');
+  assert.match(job, /tags: \$\{\{ steps\.meta\.outputs\.tags \}\}/);
+  for (const l of ['source', 'version', 'licenses', 'description', 'revision']) assert.match(job, new RegExp(`org\\.opencontainers\\.image\\.${l}=`), l);
+  assert.match(job, /provenance: mode=max/); assert.match(job, /sbom: true/);
+  const d = code('relay/Dockerfile');
+  assert.match(d, /^FROM scratch$/m); assert.match(d, /^USER 65532:65532$/m);
+  assert.match(d, /^EXPOSE 8080 9100$/m, 'the relay and its metrics');
+  assert.match(d, /RELAY_METRICS=0\.0\.0\.0:9100 RELAY_METRICS_PUBLIC=true/, 'relay init in the image opts in to metrics for the Docker network');
+});
+
+// relay-release.yml: archives for every platform, checksums, provenance; write permissions only in the job that needs them.
+test('the relay binaries: archives for many platforms, SHA256SUMS and a provenance attestation', () => {
+  const w = code('.github/workflows/relay-release.yml');
+  assert.match(w, /^permissions:\n {2}contents: read\n/m);
+  const job = w.slice(w.indexOf('\n  binaries:'));
+  for (const p of ['contents: write', 'id-token: write', 'attestations: write']) assert.match(job, new RegExp(p));
+  for (const t of ['linux/amd64', 'linux/arm64', 'linux/arm/6', 'linux/arm/7', 'linux/riscv64', 'darwin/arm64', 'windows/amd64', 'freebsd/amd64', 'openbsd/arm64', 'netbsd/amd64'])
+    assert.ok(job.includes(t), t);
+  assert.match(job, /CGO_ENABLED=0 [^\n]*go build -trimpath -buildvcs=false/);
+  assert.match(job, /-buildid= -X main\.version=\$ver/);
+  assert.match(job, /zip -q -X/); assert.match(job, /gzip -n/);
+  assert.match(job, /cp \.\.\/LICENSE/); assert.match(job, /HOSTING\.md/);
+  assert.match(job, /sha256sum tubes-relay-\* > SHA256SUMS/);
+  assert.match(read('.github/workflows/relay-release.yml'), /uses: actions\/attest-build-provenance@[0-9a-f]{40} # v\d/);
+  assert.match(read('.github/workflows/auto-release.yml'), /gh workflow run relay-release\.yml [^\n]*-f tag=/);
 });
 
 test('the image: pinned base, locked dependencies, only what the servers need, not root', () => {

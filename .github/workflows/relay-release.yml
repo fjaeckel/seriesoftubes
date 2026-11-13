@@ -1,9 +1,10 @@
 name: Relay binaries
 
 # Attaches the multiplayer relay (relay/, docs/adr/0005-federation-by-player-run-servers.md) to a GitHub release as
-# static binaries: linux, darwin and windows, each for amd64 and arm64, plus SHA256SUMS. auto-release.yml dispatches
-# this workflow with the new tag, like the container images (docker.yml); it never deploys anything. The game itself
-# only deploys from release.yml to GitHub Pages.
+# static binaries for many systems and processors, each in an archive with LICENSE and a README, plus SHA256SUMS and
+# build provenance attestations. auto-release.yml dispatches this workflow with the new tag, like the container images
+# (docker.yml); it never deploys anything. The game itself only deploys from release.yml to GitHub Pages. How to run
+# one: docs/HOSTING.md.
 on:
   workflow_dispatch:
     inputs:
@@ -21,9 +22,11 @@ concurrency:
 jobs:
   binaries:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     permissions:
-      contents: write   # upload the release assets
+      contents: write      # upload the release assets
+      id-token: write      # sign the provenance attestation (Sigstore, through GitHub's OIDC token)
+      attestations: write  # store it with the repository
     env:
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ inputs.tag }}
@@ -53,25 +56,69 @@ jobs:
         working-directory: relay
         run: go vet ./... && go test ./...
 
-      # CGO off: one static file per platform, nothing to install (a Raspberry Pi takes linux-arm64). -trimpath and
-      # no build id keep the builds reproducible; main.version is set when the relay declares it.
+      # CGO off: one static file per platform, nothing to install. -trimpath, no VCS stamp and no build id keep the
+      # builds reproducible (the same tag gives the same bytes); main.version is the release's. Every target Go
+      # supports without cgo that someone might run a server on: PCs and servers, Raspberry Pis (arm64; armv6 for a
+      # Pi Zero or Pi 1, armv7 for a Pi 2 or 32-bit OS), routers and boards (riscv64, loong64), mainframes and POWER.
+      # Each archive holds the binary, LICENSE and a README pointing at docs/HOSTING.md.
       - name: Build
         if: steps.has.outputs.relay == 'true'
         working-directory: relay
         run: |
           set -euo pipefail
           ver="${TAG#v}"
-          out="$RUNNER_TEMP/dist"; mkdir -p "$out"
-          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64; do
-            os="${target%/*}"; arch="${target#*/}"; ext=""; [ "$os" = windows ] && ext=".exe"
-            name="tubes-relay-$ver-$os-$arch$ext"
-            CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath -buildvcs=false \
-              -ldflags "-s -w -buildid= -X main.version=$ver" -o "$out/$name" ./cmd/relay
-            echo "$name: $(wc -c < "$out/$name") bytes"
+          out="$RUNNER_TEMP/dist"; stage="$RUNNER_TEMP/stage"; mkdir -p "$out" "$stage"
+          # Archive entries get one fixed time and owner, so the archives are reproducible too.
+          stamp=$(git log -1 --format=%ct)
+          for target in linux/amd64 linux/arm64 linux/arm/6 linux/arm/7 linux/386 linux/riscv64 linux/ppc64le linux/s390x \
+                        linux/loong64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64 windows/386 \
+                        freebsd/amd64 freebsd/arm64 openbsd/amd64 openbsd/arm64 netbsd/amd64; do
+            IFS=/ read -r os arch arm <<< "$target"
+            suffix="$arch"; [ -n "$arm" ] && suffix="armv$arm"
+            ext=""; [ "$os" = windows ] && ext=".exe"
+            name="tubes-relay-$ver-$os-$suffix"
+            dir="$stage/$name"; mkdir -p "$dir"
+            CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" GOARM="$arm" go build -trimpath -buildvcs=false \
+              -ldflags "-s -w -buildid= -X main.version=$ver" -o "$dir/relay$ext" ./cmd/relay
+            cp ../LICENSE "$dir/LICENSE"
+            {
+              echo "Series of Tubes relay $ver ($os/$suffix)"
+              echo
+              echo "A multiplayer server for Series of Tubes (https://seriesoftub.es), for players to run themselves."
+              echo "One static program, nothing to install: run 'relay$ext help' to see its commands."
+              echo
+              echo "How to host a server (internet or LAN party), step by step:"
+              echo "  https://github.com/$GITHUB_REPOSITORY/blob/$TAG/docs/HOSTING.md"
+              echo "Reference (every command and setting):"
+              echo "  https://github.com/$GITHUB_REPOSITORY/blob/$TAG/docs/RELAY.md"
+              echo
+              echo "Check this download: SHA256SUMS on the release, or"
+              echo "  gh attestation verify $name.$([ "$os" = windows ] && echo zip || echo tar.gz) --repo $GITHUB_REPOSITORY"
+            } > "$dir/README.txt"
+            touch -d "@$stamp" "$dir" "$dir"/*
+            if [ "$os" = windows ]; then
+              (cd "$stage" && zip -q -X -r "$out/$name.zip" "$name")
+            else
+              tar -C "$stage" --sort=name --mtime="@$stamp" --owner=0 --group=0 --numeric-owner -cf - "$name" \
+                | gzip -n -9 > "$out/$name.tar.gz"
+            fi
+            echo "$name: $(wc -c < "$dir/relay$ext") bytes"
           done
           (cd "$out" && sha256sum tubes-relay-* > SHA256SUMS && cat SHA256SUMS)
-          # The linux/amd64 one runs here: make sure it really is static.
-          file "$out/tubes-relay-$ver-linux-amd64" | tee /dev/stderr | grep -q 'statically linked'
+          # The linux/amd64 one runs here: make sure it really is static, and that it says its version.
+          bin="$stage/tubes-relay-$ver-linux-amd64/relay"
+          file "$bin" | tee /dev/stderr | grep -q 'statically linked'
+          test "$("$bin" version)" = "relay $ver"
+
+      # Signed statements, kept by GitHub, that these archives were built by this workflow from this tag. Anyone can
+      # check one with `gh attestation verify FILE --repo OWNER/REPO` (docs/HOSTING.md).
+      - name: Attest build provenance
+        if: steps.has.outputs.relay == 'true'
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            ${{ runner.temp }}/dist/tubes-relay-*.tar.gz
+            ${{ runner.temp }}/dist/tubes-relay-*.zip
 
       - name: Attach them to the release
         if: steps.has.outputs.relay == 'true'
