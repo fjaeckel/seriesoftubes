@@ -56,7 +56,7 @@ function fedNetModal(key){const n=fedNetOf(key);if(!n){closeModal();return;}UI.f
   const X=FEDN.ex,xs=X&&X.any.has(key)&&!X.ok.has(key)?(X.by.get(key)||[]).map(esc).join(', '):'';
   if(xs)h+=`<p class="note">${tr(S.fed.deals.some(d=>d.key===key&&d.st==='run')?N_('fedplay.excluded_running'):N_('fedplay.excluded_new'),{servers:xs})}</p>`;
   else if(n.fst==='fading')h+=`<p class="note">${tr('fedplay.fading_note')}</p>`;else if(n.fst==='dark')h+=`<p class="note">${tr('fedplay.dark_note')}</p>`;
-  h+=`<p class="meta">${tr('fedplay.you_and_them',{in:fmtG(p.in/1000),out:fmtG(p.out/1000),ix:p.ix.length,pops:p.pops.length})}</p>`;
+  h+=`<p class="meta">${tr('fedplay.you_and_them',{in:fmtG(p.in/1000),out:fmtG(p.out/1000),ix:trn('fedplay.n_shared_ix',p.ix.length),pops:trn('fedplay.n_shared_pop_cities',p.pops.length)})}</p>`;
   // On-net growth: how far it has come with a direct deal, or what one would bring.
   {const od=fedOnNetDays(S,key,fedNow());if(od>=0)h+=`<p class="meta fp-onnet">📈 ${trn('fedplay.onnet_line',od,{pct:'+'+Math.round((n.fb||0)/10)+'%'})}</p>`;
     else if(n.fst!=='dark')h+=`<p class="meta fp-onnet">📈 ${tr('fedplay.onnet_hint')}</p>`;}

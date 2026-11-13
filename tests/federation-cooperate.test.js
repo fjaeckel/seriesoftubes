@@ -83,6 +83,8 @@ test('on-net growth: peering directly ramps a player\'s demand up to twice over 
   // Alice's sheet says what a direct deal would bring.
   p.ev(`fedNetModal('${ka}')`);
   assert.match(p.ev("$('modalCard').textContent"), /up to twice the traffic within 30 days/);
+  // Counts read right in the singular too.
+  assert.match(p.ev("$('modalCard').textContent"), /· 1 shared exchange · 2 shared POP cities/);
   p.ev('closeModal()');
   await p.ev(`ACT.fpReq({key:'${ka}',deal:'peering',via:'ix',at:'fra'})`);
   await settle(10);
