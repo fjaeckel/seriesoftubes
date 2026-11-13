@@ -240,6 +240,9 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 			return ""
 		}
 		from.verified = true
+		if !r.dedupe(from) {
+			return ""
+		}
 		r.setClasses(from, st)
 		r.startSync(from)
 	}
@@ -407,7 +410,12 @@ func (r *Relay) loadRegistryCache() {
 func (r *Relay) SetRegistry(b []byte) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	return r.setRegistryLocked(b)
+	if err := r.setRegistryLocked(b); err != nil {
+		return err
+	}
+	// Automatic peers follow the snapshot: new ones dialled, ones gone or no longer eligible closed.
+	r.reconcileLocked()
+	return nil
 }
 
 func (r *Relay) setRegistryLocked(b []byte) error {

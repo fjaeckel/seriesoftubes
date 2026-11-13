@@ -102,7 +102,8 @@ func (r *Relay) Status() map[string]any {
 	}
 	peers := []map[string]any{}
 	for s := range r.nodes {
-		p := map[string]any{"server": s.peerServer, "node": s.peerNode, "same": s.same, "synced": s.synced, "ver": s.ver}
+		p := map[string]any{"server": s.peerServer, "node": s.peerNode, "same": s.same, "synced": s.synced, "ver": s.ver,
+			"auto": !s.same && r.auto[s.peerServer], "dialled": s.dialURL != ""}
 		if s.impl != nil {
 			p["relay"] = s.impl.Version
 		}
@@ -113,7 +114,7 @@ func (r *Relay) Status() map[string]any {
 	out := map[string]any{"server": r.cfg.Server, "node": r.Key(), "serving": r.serving(), "sync": r.ownSync(),
 		"clients": len(r.clients), "peers": peers, "records": r.st.Len(), "kinds": kinds,
 		"diskBytes": r.st.Size(), "shunned": len(r.shunned), "catalog": len(r.cat), "registry": len(r.regs),
-		"version": r.impl.Version}
+		"version": r.impl.Version, "auto": r.autoStatus()}
 	if h := r.upd.hint; h != nil {
 		out["update"] = map[string]any{"says": h.Text(), "version": h.Version, "security": h.Security, "notes": h.Notes, "source": h.Source}
 	} else if f := r.latest(); f != nil {

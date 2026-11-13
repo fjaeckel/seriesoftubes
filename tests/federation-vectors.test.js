@@ -11,6 +11,7 @@ const DIR = path.join(__dirname, '..', 'federation', 'vectors');
 // Areas the client does not compute, and why. Everything else runs, every case.
 const SKIP = {
   rank: 'the server answers rank requests (9.5); the game merges answers (tests/federation-slices.test.js)',
+  autosync: 'which servers connect to which (10.9) is for relays; a game never dials another server',
 };
 const hexB64 = (h) => Buffer.from(h, 'hex').toString('base64url');
 

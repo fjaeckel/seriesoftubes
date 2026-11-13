@@ -261,6 +261,9 @@ func (x *Node) Stop() {
 	x.srv.CloseClientConnections()
 }
 
+// Stopped reports whether Stop was called (and no Restart since).
+func (x *Node) Stopped() bool { return x.stopped }
+
 // Restart starts the relay again on the same folder.
 func (x *Node) Restart() {
 	x.Stop()

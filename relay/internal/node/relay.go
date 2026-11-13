@@ -77,6 +77,8 @@ type Relay struct {
 	statsAt map[string]int64                // key -> slot of its last stats from a client
 	refused map[string]bool                 // ids refused from nodes (not wanted again)
 	lastSyn map[string]int64                // peer node key -> start of the last session
+	auto    map[string]bool                 // this server's automatic peers (10.9), nil when none
+	urlSrv  map[string]string               // node URL dialled -> the server that answered there
 
 	reports map[string]map[string]*store.Entry // reporter -> target -> its stored report (5.10)
 	reportN int                                // reports stored
@@ -134,7 +136,7 @@ func New(o Options) (*Relay, error) {
 	_, _ = rand.Read(eb[:])
 	r := &Relay{o: o, cfg: o.Config, st: st, regs: map[string]*registry.Entry{}, cat: map[string]*catEntry{}, catVia: map[string]int{},
 		shunned: map[string]bool{}, left: map[string]int64{}, statsAt: map[string]int64{}, refused: map[string]bool{},
-		lastSyn: map[string]int64{}, clients: map[*session]bool{}, nodes: map[*session]bool{},
+		lastSyn: map[string]int64{}, urlSrv: map[string]string{}, clients: map[*session]bool{}, nodes: map[*session]bool{},
 		epoch: fed.Encode(eb[:]), dialers: map[string]context.CancelFunc{}, speaks: o.Versions}
 	r.impl = &update.Impl{Name: update.Name, Version: r.version()}
 	if update.ReadImpl(r.impl.Value()) == nil {

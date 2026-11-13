@@ -84,9 +84,9 @@ func TestRecordThroughTwoPathsStoredOnce(t *testing.T) {
 	}
 }
 
-// Two servers that list each other as neighbours have a session each way (found by scripts/fed-e2e.js). A node's
-// classes for a neighbour hold on both: the one it dialled and the one the neighbour dialled in, not the defaults
-// for servers that are not neighbours.
+// Two servers that list each other as neighbours keep one session (found by scripts/fed-e2e.js: they had one each
+// way, and records were pushed twice), the one the lower identity dialled. A node's classes for a neighbour hold on
+// it whichever side dialled, not the defaults for servers that are not neighbours.
 func TestNeighbourClassesHoldBothWays(t *testing.T) {
 	n := rt.New(t)
 	a := n.Found("both-a", "open")
@@ -99,15 +99,7 @@ func TestNeighbourClassesHoldBothWays(t *testing.T) {
 	neighbours(b, a)
 	fromB := announce(t, b, "bee")
 	rt.Eventually(t, "a takes b's players (it takes every class)", func() bool { return ax.Has(fromB) })
-	rt.Eventually(t, "a session each way", func() bool {
-		n := 0
-		for _, p := range ax.R.Status()["peers"].([]map[string]any) {
-			if p["server"] == b.ID && p["synced"] == true {
-				n++
-			}
-		}
-		return n == 2
-	})
+	onePair(t, a, b)
 	fromA := announce(t, a, "ay")
 	time.Sleep(500 * time.Millisecond)
 	if b.Nodes[0].Has(fromA) {

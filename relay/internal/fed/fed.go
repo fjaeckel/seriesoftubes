@@ -91,6 +91,7 @@ const (
 	RegistryFileMax = 65536
 	NewcomerDays    = 30  // a network is new for this many real days after it joined (10.10)
 	NewcomerPrice   = 750 // per mille of the card price a newcomer pays (10.10)
+	AutoPeers       = 64  // most registry servers one server syncs with automatically (10.9)
 )
 
 // Version is the protocol version this document describes.

@@ -1,0 +1,454 @@
+{
+  "description": "Who connects (10.9): eligible are the registry servers whose sync is open and that answered at or after asOf - 1209600 (s02 exactly at the edge; s03 15 days before, s04 selective, s05 standalone, s06 never answered are not). With at most cap others, a server syncs with every other eligible one; of each pair the lower identity (byte order) dials. Over the cap (12 servers, cap 8): b is the largest base in [2, n] with 2*(b-1)*L <= cap, L the least L >= 1 with b^L >= n: b=2 gives L=4 (16 >= 12) and 2*1*4 = 8; b=3 gives L=3 and 12, b=4 L=2 and 12, larger b only more; so b=2, offsets c*b^j for 1 <= c < b, 0 <= j < L: 1, 2, 4, 8. s00 (index 0) links to indexes 0+-1, 0+-2, 0+-4, 0+-8 mod 12: 1, 11, 2, 10, 4, 8, 8, 4: s01 s02 s04 s08 s10 s11, all higher so it dials them all. s05 (index 5): 6, 4, 7, 3, 9, 1, 13 mod 12 = 1, -3 mod 12 = 9: s01 s03 s04 s06 s07 s09, and dials the three above it. With cap 11 the 11 others fit: s05 syncs with all of them and dials the six above it. A server that is not eligible has no peers.",
+  "cases": [
+    {
+      "input": {
+        "asOf": 1767225600,
+        "cap": 64,
+        "self": "s01",
+        "servers": [
+          {
+            "id": "s01",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s02",
+            "sync": "open",
+            "answered": 1766016000
+          },
+          {
+            "id": "s03",
+            "sync": "open",
+            "answered": 1765929600
+          },
+          {
+            "id": "s04",
+            "sync": "selective",
+            "answered": 1767225600
+          },
+          {
+            "id": "s05",
+            "sync": "standalone",
+            "answered": 1767225600
+          },
+          {
+            "id": "s06",
+            "sync": "open"
+          }
+        ]
+      },
+      "expect": {
+        "eligible": [
+          "s01",
+          "s02"
+        ],
+        "peers": [
+          "s02"
+        ],
+        "dials": [
+          "s02"
+        ]
+      }
+    },
+    {
+      "input": {
+        "asOf": 1767225600,
+        "cap": 64,
+        "self": "s02",
+        "servers": [
+          {
+            "id": "s01",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s02",
+            "sync": "open",
+            "answered": 1766016000
+          },
+          {
+            "id": "s03",
+            "sync": "open",
+            "answered": 1765929600
+          },
+          {
+            "id": "s04",
+            "sync": "selective",
+            "answered": 1767225600
+          },
+          {
+            "id": "s05",
+            "sync": "standalone",
+            "answered": 1767225600
+          },
+          {
+            "id": "s06",
+            "sync": "open"
+          }
+        ]
+      },
+      "expect": {
+        "eligible": [
+          "s01",
+          "s02"
+        ],
+        "peers": [
+          "s01"
+        ],
+        "dials": []
+      }
+    },
+    {
+      "input": {
+        "asOf": 1767225600,
+        "cap": 64,
+        "self": "s04",
+        "servers": [
+          {
+            "id": "s01",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s02",
+            "sync": "open",
+            "answered": 1766016000
+          },
+          {
+            "id": "s03",
+            "sync": "open",
+            "answered": 1765929600
+          },
+          {
+            "id": "s04",
+            "sync": "selective",
+            "answered": 1767225600
+          },
+          {
+            "id": "s05",
+            "sync": "standalone",
+            "answered": 1767225600
+          },
+          {
+            "id": "s06",
+            "sync": "open"
+          }
+        ]
+      },
+      "expect": {
+        "eligible": [
+          "s01",
+          "s02"
+        ],
+        "peers": [],
+        "dials": []
+      }
+    },
+    {
+      "input": {
+        "asOf": 1767225600,
+        "cap": 8,
+        "self": "s00",
+        "servers": [
+          {
+            "id": "s00",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s01",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s02",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s03",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s04",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s05",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s06",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s07",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s08",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s09",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s10",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s11",
+            "sync": "open",
+            "answered": 1767225600
+          }
+        ]
+      },
+      "expect": {
+        "eligible": [
+          "s00",
+          "s01",
+          "s02",
+          "s03",
+          "s04",
+          "s05",
+          "s06",
+          "s07",
+          "s08",
+          "s09",
+          "s10",
+          "s11"
+        ],
+        "peers": [
+          "s01",
+          "s02",
+          "s04",
+          "s08",
+          "s10",
+          "s11"
+        ],
+        "dials": [
+          "s01",
+          "s02",
+          "s04",
+          "s08",
+          "s10",
+          "s11"
+        ]
+      }
+    },
+    {
+      "input": {
+        "asOf": 1767225600,
+        "cap": 8,
+        "self": "s05",
+        "servers": [
+          {
+            "id": "s00",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s01",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s02",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s03",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s04",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s05",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s06",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s07",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s08",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s09",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s10",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s11",
+            "sync": "open",
+            "answered": 1767225600
+          }
+        ]
+      },
+      "expect": {
+        "eligible": [
+          "s00",
+          "s01",
+          "s02",
+          "s03",
+          "s04",
+          "s05",
+          "s06",
+          "s07",
+          "s08",
+          "s09",
+          "s10",
+          "s11"
+        ],
+        "peers": [
+          "s01",
+          "s03",
+          "s04",
+          "s06",
+          "s07",
+          "s09"
+        ],
+        "dials": [
+          "s06",
+          "s07",
+          "s09"
+        ]
+      }
+    },
+    {
+      "input": {
+        "asOf": 1767225600,
+        "cap": 11,
+        "self": "s05",
+        "servers": [
+          {
+            "id": "s00",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s01",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s02",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s03",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s04",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s05",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s06",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s07",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s08",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s09",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s10",
+            "sync": "open",
+            "answered": 1767225600
+          },
+          {
+            "id": "s11",
+            "sync": "open",
+            "answered": 1767225600
+          }
+        ]
+      },
+      "expect": {
+        "eligible": [
+          "s00",
+          "s01",
+          "s02",
+          "s03",
+          "s04",
+          "s05",
+          "s06",
+          "s07",
+          "s08",
+          "s09",
+          "s10",
+          "s11"
+        ],
+        "peers": [
+          "s00",
+          "s01",
+          "s02",
+          "s03",
+          "s04",
+          "s06",
+          "s07",
+          "s08",
+          "s09",
+          "s10",
+          "s11"
+        ],
+        "dials": [
+          "s06",
+          "s07",
+          "s08",
+          "s09",
+          "s10",
+          "s11"
+        ]
+      }
+    }
+  ]
+}

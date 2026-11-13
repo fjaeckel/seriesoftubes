@@ -1109,8 +1109,42 @@ Nodes of one server always sync, whatever the policy.
 
 A server's policy is the `sync` of its published server record (8.2): its own for its own half, the other server's
 (from the registry or the catalog) for "not `standalone`". A relay's config does not set the policy; it only holds the
-`selective` list and the neighbours it connects to (with the classes each way). Changing the policy is a new server
+`selective` list and the extra neighbours it connects to (with the classes each way; open servers in the registry need
+none for each other, see "Who connects" below). Changing the policy is a new server
 record, signed like any other.
+
+**Who connects.** The policy says who may sync; this says who dials whom. Open servers in the registry find each other
+there, with no configuration:
+
+1. **Eligible.** From the registry snapshot (`servers.json`, 11.3), the servers whose server record has `sync: "open"`
+   and that are live: `answered >= asOf - 1209600` (the voters' window of 10.7, against the snapshot's `asOf`). A
+   server without `answered` (merged since the last weekly run) is not eligible yet. `E` is their identities, sorted
+   in byte order, `n = |E|`.
+2. **Who takes part.** A server whose identity is in `E` and whose own current policy is `open` syncs automatically
+   with its **peers** in `E` (below). Selective and standalone servers, servers not in the registry and servers that are
+   not live take no part (they still sync with the neighbours their operators configure, as the policies allow).
+3. **Peers.** With `cap = 64`: if `n - 1 <= cap`, every other server of `E`. Otherwise, with `i` the server's index in
+   `E`: let `b` be the largest integer in `[2, n]` with `2 * (b - 1) * L(b) <= cap`, where `L(b)` is the least
+   `L >= 1` with `b^L >= n` (if there is none, `b = 2`); with `L = L(b)`, the offsets are `c * b^j` for
+   `1 <= c <= b - 1` and `0 <= j <= L - 1`, and the peers are the servers at indexes `(i + d) mod n` and
+   `(i - d) mod n` for every offset `d`, other than `i` itself. Integers only, so every server computes the same graph
+   and the same links from both ends; each server has at most `cap` peers (for `n` up to `2^32`), and any two are at
+   most `L` hops apart (200 servers: `b = 17`, `L = 2`).
+4. **One session per pair.** Of two peers, the one with the lower identity (byte order) dials; the other accepts (its
+   `open` policy allows it). A server with several nodes dials from one of them; which one is up to the implementation
+   (the reference relay: the node with the lowest key among those up), and it dials one node of the peer, going on to
+   the peer's next node (from the registry) when one does not answer.
+5. **Classes.** Every class both ways (`players`, `catalog`, `advice`; `shun` and `unshun` always travel), unless the
+   operators configured that server's nodes as neighbours: then the configured classes hold on the one session,
+   whichever side dialled.
+6. **Following the registry.** A relay works this out again whenever its snapshot changes (the reference relay: at
+   start and on every refresh, every 6 hours): it opens sessions to new peers and closes the ones it dialled to servers
+   that are no longer its peers.
+
+A server keeps **at most one session with each other server**, automatic or configured: when a second one with the same
+server is verified (9.4), the one dialled by the lower identity stays and the other closes (when both were dialled by the
+same side, the newer closes), and a node does not dial a server it already has a session with. Two servers that list
+each other as neighbours therefore keep one session, not one each way.
 
 ### 10.10 Deal terms
 
@@ -1405,6 +1439,7 @@ of 9.3 and an optional webhook; see docs/RELAY.md). It never tells anyone else.
 | Chain in a registry file or catalog entry | 64 |
 | Catalog entry (canonical JSON) | 61440 bytes |
 | Gossip path | 16 |
+| Automatic sync peers of one server (10.9, `cap`) | 64 |
 | `impl` items in a catalog entry; `impl` name and version | 16; 40 characters each |
 | `relay.json` | 4096 bytes |
 | GitHub latest-release answer (11.4) | 262144 bytes |

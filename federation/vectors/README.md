@@ -40,7 +40,7 @@ Files are numbered (`001-…`) only to keep a stable order; the number means not
   (operators) and node1, node2, node3 (nodes). Ed25519 is deterministic, so the files never change unless the script
   does. The script only fills in keys, signatures and ids; which result is expected is written as a literal in it.
 - **Hand-written**, with the working in each `description`: `canonical`, `slots`, `boards`, `quiet`, `shun`,
-  `catalog`, `deals`, `majority`, `sync`, `wire`, `impl`. Edit these files directly. They use short labels (`kA`, `s01`,
+  `catalog`, `deals`, `majority`, `sync`, `autosync`, `wire`, `impl`. Edit these files directly. They use short labels (`kA`, `s01`,
   `o01`, `r1`) for keys, server identities, operator keys and record ids: treat them as opaque strings, compared in
   byte order like real ones. Their records are already validated, so only the rule under test applies.
 
@@ -68,5 +68,6 @@ Files are numbered (`001-…`) only to keep a stable order; the number means not
 | `deals` | 10.10 | `announces` (summaries `{id, kind, key, t, body: {rates, auto}}`), `offer`, optional `accept` (`{t}`), optional `renews` (the running deal) | `{ok: true, auto, start, end}` or `{ok: false, error}` |
 | `majority` | 8.1 | cases: `operators`, `signers` (counts) | `majority` |
 | `sync` | 9.2, 10.9 | cases: policies (`same`, `a`, `b`), or versions (`a`, `b` as `vers` lists) | `sync`, or `ver` or `error` |
+| `autosync` | 10.9 | cases: `asOf`, `cap`, `self`, `servers` (`[{id, sync, answered?}]`, as in the registry snapshot) | `eligible` (sorted ids), `peers` (`self`'s automatic peers, sorted), `dials` (those `self` dials) |
 | `wire` | 9.1–9.3 | cases: `role`, `speaks` (the node's versions), `state` (`new` or `ready`), `frame` (text) | `{ok: true}` when the node accepts the frame (any record inside is then checked as in `records`), or `{error}` |
 | `impl` | 9.3, 9.4, 10.8 | cases: `welcome` (one `impl` value), or `entry` (a catalog entry's `impl` list) with `nodes` (the server's node keys) | `impl`: `{name, version}` or null for `welcome`; node key → `{name, version}` for `entry` (malformed parts left out, never an error) |

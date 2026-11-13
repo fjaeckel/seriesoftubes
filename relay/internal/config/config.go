@@ -45,6 +45,7 @@ type Config struct {
 	Seeds          []string    `json:"seeds,omitempty"`     // join: existing nodes of the server
 	Selective      []string    `json:"selective,omitempty"` // servers allowed when the server's sync is selective
 	Neighbours     []Neighbour `json:"neighbours,omitempty"`
+	AutoSync       *bool       `json:"autoSync,omitempty"`    // false: do not dial the registry's open servers (10.9); unset: on
 	DefaultSend    []string    `json:"defaultSend,omitempty"` // for servers that dial in and are not neighbours
 	DefaultTake    []string    `json:"defaultTake,omitempty"`
 	CountryDB      string      `json:"countryDb,omitempty"`      // country-only MaxMind-format database
@@ -234,6 +235,9 @@ func (c *Config) Neighbour(url string) *Neighbour {
 	}
 	return nil
 }
+
+// Auto reports whether this node syncs automatically with the registry's open servers (10.9).
+func (c *Config) Auto() bool { return c.AutoSync == nil || *c.AutoSync }
 
 // Save writes the config file (0600).
 func (c *Config) Save(path string) error {

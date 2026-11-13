@@ -132,6 +132,9 @@ func TestHostilePushesAreDropped(t *testing.T) {
 	neighbours(b, a)
 	good := announce(t, b, "honest")
 	rt.Eventually(t, "honest record crosses", func() bool { return a.Nodes[0].Has(good) })
+	// One session per pair of servers: b's own goes first, or a would close the second one.
+	neighbours(b)
+	rt.Eventually(t, "b's session ends", func() bool { return len(a.Nodes[0].R.Status()["peers"].([]map[string]any)) == 0 })
 	// Speak as b's node directly and push garbage next to one real record.
 	bkey := b.Nodes[0].Key
 	r, err := dialRaw(t, a.Nodes[0], []string{fed.Subprotocol})

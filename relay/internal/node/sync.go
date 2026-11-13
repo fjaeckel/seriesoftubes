@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"math/big"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/coder/websocket"
@@ -14,6 +15,7 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/client"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/config"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/registry"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/store"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/update"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/wire"
@@ -71,8 +73,9 @@ func (r *Relay) answerNode(s *session, h *wire.Hello) {
 	r.runPeer(s, h.Server, h.Node)
 }
 
-// dialNode connects to another node and runs the session until it ends.
-func (r *Relay) dialNode(ctx context.Context, url string) error {
+// dialNode connects to another node and runs the session until it ends; dialer is the key of
+// the dialer in r.dialers.
+func (r *Relay) dialNode(ctx context.Context, dialer, url string) error {
 	c, _, err := websocket.Dial(ctx, url, &websocket.DialOptions{HTTPClient: r.o.HTTPClient, Subprotocols: []string{fed.Subprotocol}})
 	if err != nil {
 		return err
@@ -82,7 +85,7 @@ func (r *Relay) dialNode(ctx context.Context, url string) error {
 		return errClosed
 	}
 	s := newSession(r, c, true)
-	s.dialURL = url
+	s.dialURL, s.dialer = url, dialer
 	defer s.end()
 	r.mu.Lock()
 	own := r.cfg.Server
@@ -120,6 +123,9 @@ func (r *Relay) dialNode(ctx context.Context, url string) error {
 		return errClosed // dialled ourselves
 	}
 	s.ver, s.impl = ver, update.ReadImpl(f.Raw["impl"])
+	r.mu.Lock()
+	r.urlSrv[url] = server
+	r.mu.Unlock()
 	s.enqueue(map[string]any{"m": "proof", "proof": r.o.Node.MakeProof(theirs, own, r.now())})
 	r.runPeer(s, server, node)
 	return nil
@@ -132,9 +138,14 @@ func (r *Relay) nodeRoom(server string) bool {
 	if r.own != nil && server == r.own.ID {
 		return true
 	}
+	// Automatic peers are registry servers, at most fed.AutoPeers of them, one session each:
+	// they have room of their own, so servers that dial in unasked never take theirs.
+	if r.auto[server] {
+		return true
+	}
 	others, unverified := 0, 0
 	for s := range r.nodes {
-		if !s.same {
+		if !s.same && !r.auto[s.peerServer] {
 			others++
 			if !s.verified {
 				unverified++
@@ -178,7 +189,15 @@ func (r *Relay) runPeer(s *session, server, node string) {
 		}
 		r.setClasses(s, r.lookup(server))
 	}
+	if s.verified && !r.dedupe(s) {
+		r.mu.Unlock()
+		return
+	}
 	r.nodes[s] = true
+	if s.same {
+		// Which node of this server dials the automatic peers depends on which siblings are up.
+		r.reconcileLocked()
+	}
 	r.o.Metrics.Inc("relay_connections_total", "node")
 	r.o.Metrics.Inc("relay_syncs_total", "")
 	// Our own entry first: it tells a peer that does not know us who our nodes are.
@@ -193,6 +212,9 @@ func (r *Relay) runPeer(s *session, server, node string) {
 	defer func() {
 		r.mu.Lock()
 		delete(r.nodes, s)
+		if s.same {
+			r.reconcileLocked()
+		}
 		r.mu.Unlock()
 		r.o.Log.Info("sync: session down", "server", server, "node", node)
 	}()
@@ -258,21 +280,24 @@ func (r *Relay) runPeer(s *session, server, node string) {
 }
 
 // setClasses sets what a session with another server's node sends and takes (lock held): a
-// neighbour's classes when the session is with one of the neighbours' nodes, whichever side dialled
-// (a neighbour that lists this node too dials in as well), else the defaults for servers that
-// connect and are not neighbours. st is what this node knows of the peer's server, or nil.
+// neighbour's classes when the session is with a server one of whose nodes is a neighbour,
+// whichever side dialled; else every class for an automatic peer (10.9); else the defaults for
+// servers that connect and are not neighbours. st is what this node knows of the peer's server, or nil.
 func (r *Relay) setClasses(s *session, st *chain.State) {
 	s.send, s.take = config.Or(r.cfg.DefaultSend), config.Or(r.cfg.DefaultTake)
 	n := r.cfg.Neighbour(s.dialURL)
 	if n == nil && st != nil {
 		for _, x := range st.Nodes {
-			if x.Key == s.peerNode {
+			if n == nil {
 				n = r.cfg.Neighbour(x.URL)
 			}
 		}
 	}
-	if n != nil {
+	switch {
+	case n != nil:
 		s.send, s.take = config.Or(n.Send), config.Or(n.Take)
+	case r.auto[s.peerServer]:
+		s.send, s.take = config.Classes, config.Classes
 	}
 }
 
@@ -529,6 +554,9 @@ func (r *Relay) reconcileLocked() {
 	if r.ctx.Err() != nil {
 		return
 	}
+	r.setAuto()
+	// Dialers by key: a node URL (this server's nodes, configured neighbours), or autoPrefix and
+	// the identity of an automatic peer.
 	want := map[string]bool{}
 	if r.serving() {
 		for _, n := range r.own.Nodes {
@@ -539,33 +567,48 @@ func (r *Relay) reconcileLocked() {
 		}
 		if r.ownSync() != "standalone" {
 			for _, n := range r.cfg.Neighbours {
-				want[n.URL] = true
+				// A neighbour that is also an automatic peer gets the one automatic session
+				// (with the neighbour's classes), dialled by whichever server is lower.
+				if !r.auto[r.serverOfURL(n.URL)] {
+					want[n.URL] = true
+				}
+			}
+		}
+		if len(r.auto) > 0 && r.autoDialer() {
+			for p := range r.auto {
+				if registry.Dials(r.own.ID, p) {
+					want[autoPrefix+p] = true
+				}
 			}
 		}
 	} else if r.cfg.Server != "" {
 		r.bootstrapLocked()
 	}
-	for url, stop := range r.dialers {
-		if !want[url] && url != "bootstrap" {
+	for key, stop := range r.dialers {
+		if !want[key] && key != "bootstrap" {
 			stop()
-			delete(r.dialers, url)
+			delete(r.dialers, key)
 			for s := range r.nodes {
-				if s.dialURL == url {
+				if s.dialer == key {
 					s.close("")
 				}
 			}
 		}
 	}
-	for url := range want {
-		if _, ok := r.dialers[url]; ok {
+	for key := range want {
+		if _, ok := r.dialers[key]; ok {
 			continue
 		}
 		ctx, cancel := context.WithCancel(r.ctx)
-		r.dialers[url] = cancel
+		r.dialers[key] = cancel
+		urls := func() []string { return []string{key} }
+		if p, ok := strings.CutPrefix(key, autoPrefix); ok {
+			urls = func() []string { return r.autoURLs(p) }
+		}
 		r.wg.Add(1)
 		go func() {
 			defer r.wg.Done()
-			r.dialLoop(ctx, url)
+			r.dialLoop(ctx, key, urls)
 		}()
 	}
 }
@@ -578,17 +621,38 @@ func backoff(base time.Duration, n int) time.Duration {
 	return d - d/10 + time.Duration(j.Int64())
 }
 
-func (r *Relay) dialLoop(ctx context.Context, url string) {
-	fails := 0
+// dialLoop keeps a session up through one of urls (asked again before each attempt), moving on
+// to the next URL after each failure. It does not dial a server it already has a session with
+// (one session per pair of servers) and looks again later.
+func (r *Relay) dialLoop(ctx context.Context, key string, urls func() []string) {
+	fails, next := 0, 0
 	for ctx.Err() == nil {
-		start := time.Now()
-		dctx, cancel := context.WithTimeout(ctx, handshakeTimeout)
-		err := r.dialOnce(ctx, dctx, url)
-		cancel()
-		if err == nil && time.Since(start) > time.Minute {
-			fails = 0
-		} else {
+		if list := urls(); len(list) == 0 {
 			fails++
+		} else {
+			url := list[next%len(list)]
+			r.mu.Lock()
+			srv := r.serverOfURL(url)
+			busy := srv != "" && (r.own == nil || srv != r.own.ID) && r.hasPeer(srv)
+			r.mu.Unlock()
+			if busy {
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(backoff(r.o.DialBase, 5)):
+				}
+				continue
+			}
+			start := time.Now()
+			dctx, cancel := context.WithTimeout(ctx, handshakeTimeout)
+			err := r.dialOnce(ctx, dctx, key, url)
+			cancel()
+			if err == nil && time.Since(start) > time.Minute {
+				fails = 0
+			} else {
+				fails++
+				next++
+			}
 		}
 		select {
 		case <-ctx.Done():
@@ -598,10 +662,10 @@ func (r *Relay) dialLoop(ctx context.Context, url string) {
 	}
 }
 
-func (r *Relay) dialOnce(ctx, dctx context.Context, url string) error {
+func (r *Relay) dialOnce(ctx, dctx context.Context, key, url string) error {
 	// The dial itself is bounded by dctx; the session lives with ctx.
 	done := make(chan error, 1)
-	go func() { done <- r.dialNode(dctx, url) }()
+	go func() { done <- r.dialNode(dctx, key, url) }()
 	select {
 	case err := <-done:
 		return err

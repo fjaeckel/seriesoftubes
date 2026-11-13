@@ -89,6 +89,7 @@ type session struct {
 	wanted     map[string]bool // ids asked for and not yet pushed (guarded by r.mu, bounded)
 	push       *listPager      // records waiting to be pushed for want (guarded by r.mu)
 	dialURL    string
+	dialer     string       // the r.dialers key of the dialer that made this session, when this node dialled
 	impl       *update.Impl // what the peer node runs, when it said (informational)
 
 	updSent string // the update hint this operator session was last sent (guarded by r.mu)
