@@ -12,30 +12,46 @@ func Live(e *Entry, asOf int64) bool {
 	return e.Answered != nil && *e.Answered >= asOf-fed.VoterAnswered
 }
 
+// AutoLive reports whether a registry server is live for automatic sync (10.9 "Who connects"):
+// its last answer to the weekly challenge, or, when it has none yet, its `listed` stamp, or, when
+// it has neither (merged since the last weekly run: its listing pull request passed the live
+// challenge), asOf itself, is at most 14 days before asOf. The same dates as the weekly job's
+// removals (11.3), so a server is live for automatic sync while it is kept in the registry. Not
+// for voters: they need both stamps (10.7).
+func AutoLive(asOf int64, listed, answered *int64) bool {
+	last := asOf
+	if answered != nil {
+		last = *answered
+	} else if listed != nil {
+		last = *listed
+	}
+	return last >= asOf-fed.VoterAnswered
+}
+
 // AutoEligible lists, sorted by id (byte order), the snapshot's servers that sync automatically
-// with one another (10.9 "Who connects"): sync policy open, and live.
+// with one another (10.9 "Who connects"): sync policy open, and live for automatic sync.
 func AutoEligible(s *Snapshot) []string {
 	if s == nil {
 		return nil
 	}
 	var list []Candidate
 	for _, e := range s.Entries {
-		list = append(list, Candidate{ID: e.ID, Sync: e.Server.Str("sync"), Answered: e.Answered})
+		list = append(list, Candidate{ID: e.ID, Sync: e.Server.Str("sync"), Listed: e.Listed, Answered: e.Answered})
 	}
 	return Eligible(s.AsOf, list)
 }
 
 // Candidate is what eligibility reads of a registry server.
 type Candidate struct {
-	ID, Sync string
-	Answered *int64
+	ID, Sync         string
+	Listed, Answered *int64
 }
 
 // Eligible is AutoEligible over candidates.
 func Eligible(asOf int64, list []Candidate) []string {
 	var ids []string
 	for _, c := range list {
-		if c.Sync == "open" && c.Answered != nil && *c.Answered >= asOf-fed.VoterAnswered {
+		if c.Sync == "open" && AutoLive(asOf, c.Listed, c.Answered) {
 			ids = append(ids, c.ID)
 		}
 	}
@@ -103,5 +119,6 @@ func AutoPeers(ids []string, self string, cap int) []string {
 }
 
 // Dials reports whether self is the side that dials an automatic peer: the lower identity
-// (byte order) dials, the higher one accepts.
+// (byte order) dials, the higher one accepts (and dials only as a fallback, after
+// fed.AutoFallback seconds without a session; the node package keeps that time).
 func Dials(self, peer string) bool { return self < peer }

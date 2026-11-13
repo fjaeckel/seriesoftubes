@@ -16,12 +16,13 @@ func init() {
 			Servers []struct {
 				ID       string `json:"id"`
 				Sync     string `json:"sync"`
+				Listed   *int64 `json:"listed"`
 				Answered *int64 `json:"answered"`
 			} `json:"servers"`
 		}](t, in)
 		var list []registry.Candidate
 		for _, s := range x.Servers {
-			list = append(list, registry.Candidate{ID: s.ID, Sync: s.Sync, Answered: s.Answered})
+			list = append(list, registry.Candidate{ID: s.ID, Sync: s.Sync, Listed: s.Listed, Answered: s.Answered})
 		}
 		el := registry.Eligible(x.AsOf, list)
 		peers := registry.AutoPeers(el, x.Self, x.Cap)

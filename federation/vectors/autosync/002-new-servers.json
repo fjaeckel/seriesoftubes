@@ -1,0 +1,181 @@
+{
+  "description": "New servers (10.9 'Who connects', 11.3): a server is live for automatic sync when its answered stamp, or listed when it has never answered, or asOf when it has neither stamp (merged since the last weekly run: its listing pull request passed the live challenge), is at or after asOf - 1209600. asOf = 1767225600. s01 answered at asOf. s02 was listed today and has not answered: eligible. s03 has no stamps yet: eligible. s04 was listed exactly 14 days before and never answered: eligible (the edge). s05 listed 15 days before, never answered: not eligible (the weekly job removes it). s06 answered 15 days before: its answered stamp counts, not listed: not eligible. s07 is selective. None of s02, s03, s04 is a voter (10.7 needs both stamps and listed 30 days before; see shun 021). s01 dials s02, s03 and s04; s03 dials s04 only; s05 is not eligible and has no peers.",
+  "cases": [
+    {
+      "input": {
+        "asOf": 1767225600,
+        "cap": 64,
+        "self": "s01",
+        "servers": [
+          {
+            "id": "s01",
+            "sync": "open",
+            "listed": 1764547200,
+            "answered": 1767225600
+          },
+          {
+            "id": "s02",
+            "sync": "open",
+            "listed": 1767225600
+          },
+          {
+            "id": "s03",
+            "sync": "open"
+          },
+          {
+            "id": "s04",
+            "sync": "open",
+            "listed": 1766016000
+          },
+          {
+            "id": "s05",
+            "sync": "open",
+            "listed": 1765929600
+          },
+          {
+            "id": "s06",
+            "sync": "open",
+            "listed": 1764547200,
+            "answered": 1765929600
+          },
+          {
+            "id": "s07",
+            "sync": "selective"
+          }
+        ]
+      },
+      "expect": {
+        "eligible": [
+          "s01",
+          "s02",
+          "s03",
+          "s04"
+        ],
+        "peers": [
+          "s02",
+          "s03",
+          "s04"
+        ],
+        "dials": [
+          "s02",
+          "s03",
+          "s04"
+        ]
+      }
+    },
+    {
+      "input": {
+        "asOf": 1767225600,
+        "cap": 64,
+        "self": "s03",
+        "servers": [
+          {
+            "id": "s01",
+            "sync": "open",
+            "listed": 1764547200,
+            "answered": 1767225600
+          },
+          {
+            "id": "s02",
+            "sync": "open",
+            "listed": 1767225600
+          },
+          {
+            "id": "s03",
+            "sync": "open"
+          },
+          {
+            "id": "s04",
+            "sync": "open",
+            "listed": 1766016000
+          },
+          {
+            "id": "s05",
+            "sync": "open",
+            "listed": 1765929600
+          },
+          {
+            "id": "s06",
+            "sync": "open",
+            "listed": 1764547200,
+            "answered": 1765929600
+          },
+          {
+            "id": "s07",
+            "sync": "selective"
+          }
+        ]
+      },
+      "expect": {
+        "eligible": [
+          "s01",
+          "s02",
+          "s03",
+          "s04"
+        ],
+        "peers": [
+          "s01",
+          "s02",
+          "s04"
+        ],
+        "dials": [
+          "s04"
+        ]
+      }
+    },
+    {
+      "input": {
+        "asOf": 1767225600,
+        "cap": 64,
+        "self": "s05",
+        "servers": [
+          {
+            "id": "s01",
+            "sync": "open",
+            "listed": 1764547200,
+            "answered": 1767225600
+          },
+          {
+            "id": "s02",
+            "sync": "open",
+            "listed": 1767225600
+          },
+          {
+            "id": "s03",
+            "sync": "open"
+          },
+          {
+            "id": "s04",
+            "sync": "open",
+            "listed": 1766016000
+          },
+          {
+            "id": "s05",
+            "sync": "open",
+            "listed": 1765929600
+          },
+          {
+            "id": "s06",
+            "sync": "open",
+            "listed": 1764547200,
+            "answered": 1765929600
+          },
+          {
+            "id": "s07",
+            "sync": "selective"
+          }
+        ]
+      },
+      "expect": {
+        "eligible": [
+          "s01",
+          "s02",
+          "s03",
+          "s04"
+        ],
+        "peers": [],
+        "dials": []
+      }
+    }
+  ]
+}

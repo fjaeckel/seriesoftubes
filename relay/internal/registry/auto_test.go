@@ -8,6 +8,7 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 	. "github.com/fjaeckel/seriesoftubes/relay/internal/registry"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/relaytest"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/shun"
 )
 
 func TestAutoEligible(t *testing.T) {
@@ -18,21 +19,27 @@ func TestAutoEligible(t *testing.T) {
 	edge := asOf - fed.VoterAnswered
 	files := map[string][]byte{}
 	want := []string{}
-	add := func(name, sync string, answered *int64, ok bool) {
+	add := func(name, sync string, listed, answered *int64, ok bool) {
 		op := relaytest.Key("op " + name)
 		nk := relaytest.Key("node " + name)
-		id, b := relaytest.FileSync(name, sync, op, nk, "wss://"+name+".example.org/fed", now-40*fed.Day, &listed, answered, true)
+		id, b := relaytest.FileSync(name, sync, op, nk, "wss://"+name+".example.org/fed", now-40*fed.Day, listed, answered, true)
 		files[id+".json"] = b
 		if ok {
 			want = append(want, id)
 		}
 	}
-	add("live", "open", &asOf, true)
-	add("edge", "open", &edge, true)
-	add("quiet", "open", &old, false)
-	add("new", "open", nil, false)
-	add("picky", "selective", &asOf, false)
-	add("alone", "standalone", &asOf, false)
+	add("live", "open", &listed, &asOf, true)
+	add("edge", "open", &listed, &edge, true)
+	add("quiet", "open", &listed, &old, false)
+	// Never answered: live from `listed` for 14 days, as long as the weekly job keeps the file.
+	add("never", "open", &listed, nil, false)
+	add("today", "open", &asOf, nil, true)
+	add("listededge", "open", &edge, nil, true)
+	add("listedold", "open", &old, nil, false)
+	// No stamps at all: merged since the last weekly run, after its pull request passed the live check.
+	add("fresh", "open", nil, nil, true)
+	add("picky", "selective", &listed, &asOf, false)
+	add("alone", "standalone", &listed, &asOf, false)
 	b, skipped := Build(files, now)
 	if len(skipped) > 0 {
 		t.Fatal(skipped)
@@ -44,6 +51,25 @@ func TestAutoEligible(t *testing.T) {
 	slices.Sort(want)
 	if got := AutoEligible(snap); !slices.Equal(got, want) {
 		t.Fatalf("eligible %v, want %v", got, want)
+	}
+	// Live for automatic sync is not a vote (10.7): of all these only the servers listed 31 days
+	// ago that answered within 14 days vote, never one without both stamps.
+	reg := shun.Registry{AsOf: snap.AsOf}
+	for _, e := range snap.Entries {
+		reg.Servers = append(reg.Servers, shun.Server{ID: e.ID, Operators: e.State.Operators, Listed: e.Listed, Answered: e.Answered})
+	}
+	voters := map[string]bool{}
+	for _, v := range reg.Voters() {
+		voters[v.ID] = true
+	}
+	for _, e := range snap.Entries {
+		vote := e.Listed != nil && e.Answered != nil && *e.Listed == listed && *e.Answered >= edge
+		if voters[e.ID] != vote {
+			t.Fatalf("%s (listed %v, answered %v): voter %v", e.Name(), e.Listed, e.Answered, voters[e.ID])
+		}
+	}
+	if len(voters) != 4 {
+		t.Fatalf("%d voters, want live, edge, picky and alone", len(voters))
 	}
 }
 
