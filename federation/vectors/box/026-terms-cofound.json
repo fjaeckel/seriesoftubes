@@ -1,0 +1,22 @@
+{
+  "description": "alice, who runs the exchange in Frankfurt, offers bob a quarter of it: 250 per mille, 20000 once, 750 a month, 180 days. The basis is bob's announce (his auto.cofound).",
+  "input": {
+    "kind": "offer",
+    "author": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+    "body": {
+      "to": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+      "deal": "cofound",
+      "basis": "PHceQTGFyrFM3znRzpZ_tbdfzizWGPIwIz325cdcyjM",
+      "terms": {
+        "at": "fra",
+        "share": 250,
+        "setup": 20000,
+        "monthly": 750,
+        "term": 180
+      }
+    }
+  },
+  "expect": {
+    "ok": true
+  }
+}

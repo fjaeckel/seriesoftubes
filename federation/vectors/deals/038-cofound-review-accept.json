@@ -1,0 +1,52 @@
+{
+  "description": "Bob takes co-founding offers by hand (C1, auto.cofound review). Alice, who runs the exchange in Frankfurt, offers him a quarter of it on that announce: there are no published prices for co-founding (the founder sets the terms, the co-founder's game judges them), so only steps 1 to 3 apply. Bob accepts at 1767240000: start = accept.t, end = 1767240000 + 180 * 86400 = 1782792000.",
+  "input": {
+    "announces": [
+      {
+        "id": "C1",
+        "kind": "announce",
+        "key": "kBob",
+        "t": 1767225600,
+        "body": {
+          "rates": {},
+          "auto": {
+            "peering": "auto",
+            "transit": "decline",
+            "pni": "decline",
+            "swap": "decline",
+            "consortium": "decline",
+            "port": "decline",
+            "cofound": "review"
+          }
+        }
+      }
+    ],
+    "offer": {
+      "id": "O1",
+      "kind": "offer",
+      "key": "kAlice",
+      "t": 1767229200,
+      "body": {
+        "to": "kBob",
+        "deal": "cofound",
+        "basis": "C1",
+        "terms": {
+          "at": "fra",
+          "share": 250,
+          "setup": 20000,
+          "monthly": 750,
+          "term": 180
+        }
+      }
+    },
+    "accept": {
+      "t": 1767240000
+    }
+  },
+  "expect": {
+    "ok": true,
+    "auto": false,
+    "start": 1767240000,
+    "end": 1782792000
+  }
+}

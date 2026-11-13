@@ -108,6 +108,8 @@ type Net struct {
 	// ReleasesURL stands in for GitHub's releases API for nodes started from now on ("": the
 	// real one, which this net cannot reach).
 	ReleasesURL string
+	// Feats is what nodes made from now on list in hello and welcome (nil: every feature).
+	Feats []string
 }
 
 // Serve runs an https:// endpoint the relays can reach (a webhook, a site); it returns its URL.
@@ -171,6 +173,8 @@ type Node struct {
 	Versions []int64
 	// Release is the relay software version it runs ("": a development build).
 	Release string
+	// Feats is what it lists in hello and welcome (nil: every feature; ["state"]: a 4.0 relay).
+	Feats   []string
 	srv     *httptest.Server
 	handler *handler
 	sock    net.Listener
@@ -209,7 +213,7 @@ func (n *Net) Listen(name string) *Node {
 	n.ports[hp] = srv.Listener.Addr().String()
 	n.mu.Unlock()
 	x := &Node{Net: n, Name: name, URL: "wss://" + hp + "/fed", Key: Key("node " + name), srv: srv, handler: h,
-		Log: &SyncBuffer{}, Metrics: metrics.New(), Release: n.Release}
+		Log: &SyncBuffer{}, Metrics: metrics.New(), Release: n.Release, Feats: n.Feats}
 	n.mu.Lock()
 	n.nodes = append(n.nodes, x)
 	n.mu.Unlock()
@@ -242,7 +246,7 @@ func (x *Node) options() node.Options {
 		Log:        slog.New(slog.NewTextHandler(x.Log, &slog.HandlerOptions{Level: slog.LevelDebug})),
 		HTTPClient: x.Net.HTTP, Countries: x.Net.Country, Metrics: x.Metrics,
 		BootstrapEvery: 200 * time.Millisecond, DialBase: 50 * time.Millisecond, Versions: x.Versions, Version: x.Release,
-		ReleasesURL: x.Net.ReleasesURL}
+		ReleasesURL: x.Net.ReleasesURL, Feats: x.Feats}
 }
 
 // Stop stops the relay (its URL stays reserved but answers 503).
@@ -309,11 +313,18 @@ func (n *Net) Found(name, sync string) *Server {
 
 // Client connects to a node as a game would.
 func (x *Node) Client(header http.Header) *client.Client {
+	x.Net.T.Helper()
+	return x.ClientFeats(header, nil)
+}
+
+// ClientFeats connects as a game whose hello lists feats (nil: every feature; empty: none, an
+// older game).
+func (x *Node) ClientFeats(header http.Header, feats []string) *client.Client {
 	t := x.Net.T
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	c, err := client.Dial(ctx, x.URL, client.Options{HTTPClient: x.Net.HTTP, Header: header})
+	c, err := client.Dial(ctx, x.URL, client.Options{HTTPClient: x.Net.HTTP, Header: header, Feats: feats})
 	if err != nil {
 		t.Fatalf("dial %s: %v", x.Name, err)
 	}

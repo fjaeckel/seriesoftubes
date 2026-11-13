@@ -139,12 +139,16 @@ type Hello struct {
 	Node   string
 	Nonce  string
 	Impl   *update.Impl // node role: what the caller runs (informational, nil when absent or malformed)
-	Feats  []string     // node role: optional messages the caller takes (9.4 feats)
+	Feats  []string     // optional messages and fields the caller takes (9.3, 9.4 feats)
 }
 
-// Feat is the one optional feature of this version: live states (5.11), the client's state and the
-// nodes' states messages, and the measure now (9.5).
+// Feat is the optional feature of live states (5.11): the client's state and the nodes' states
+// messages, and the measure now (9.5).
 const Feat = "state"
+
+// FeatIx2 is the optional feature of players' exchanges (5.1 rates.ix.members, auto.cofound;
+// 5.3 cofound): records that carry it go only to sessions that list it.
+const FeatIx2 = fed.FeatIx2
 
 // Feats reads a feats member (9.3, 9.4): the strings of a list, anything else none. It is
 // informational: a side sends an optional message only to a peer that listed it.
@@ -169,6 +173,8 @@ func CheckHello(f *Frame, speaks []int64) (*Hello, *Error) {
 	h := &Hello{Role: role}
 	switch role {
 	case "client":
+		// A client may list what it takes too (ix2): a node holds back records an older game refuses.
+		h.Feats = Feats(f.Raw["feats"])
 	case "node":
 		var ok1, ok2, ok3 bool
 		h.Server, ok1 = f.Str("server")

@@ -174,6 +174,9 @@ func reCheck(re *regexp.Regexp) check {
 var (
 	city = reCheck(cityRe)
 	cc   = reCheck(ccRe)
+	// netID is the Net type (5.1): a computer-run network id of the game's catalog, the same
+	// shape as a City. Unknown ids are not refused; the game ignores them.
+	netID = reCheck(cityRe)
 )
 
 // URLOK is the Url type of section 5: a host name with a dot, or a local address (LocalAddr).
@@ -316,6 +319,9 @@ func setKey(e any) string {
 		if k, ok := x["key"].(string); ok {
 			return k
 		}
+		if at, ok := x["at"].(string); ok {
+			return "at:" + at // an exchange's members (5.1): one entry per city
+		}
 		if a, ok := x["a"].(string); ok {
 			if b, ok := x["b"].(string); ok {
 				return a + "|" + b
@@ -429,11 +435,7 @@ var rates = obj(
 		req("ports", ascending(port, 1, 8)),
 		req("term", days),
 	)),
-	opt("ix", obj(
-		req("ports", ascending(port, 1, 8)),
-		req("join", oneOf("anyone", "selective", "approval")),
-		req("at", cities16),
-	)),
+	opt("ix", ixCard),
 	opt("wave", obj(
 		req("routes", list(waveRoute, 1, 32, true)),
 		req("sizes", ascendingBy(obj(req("gbps", waveGbps), req("monthly", money)), 1, 4, "gbps")),
@@ -441,11 +443,66 @@ var rates = obj(
 	)),
 )
 
+// MaxIxNets is how many computer-run members an exchange lists in rates.ix.members (5.1).
+const MaxIxNets = 48
+
+// ixMember is one exchange's members (5.1): its city, the computer-run networks on it and how
+// many players have a port there.
+var ixMember = obj(req("at", city), req("nets", list(netID, 0, MaxIxNets, true)), req("players", count(64)))
+
+// ixCard is rates.ix (5.1): the ports, who may join, where, and optionally (ix2) the members
+// of each of those exchanges, every one of them in at.
+func ixCard(v any) string {
+	if code := object(v, []field{
+		req("ports", ascending(port, 1, 8)),
+		req("join", oneOf("anyone", "selective", "approval")),
+		req("at", cities16),
+		opt("members", list(ixMember, 1, 16, true)),
+	}); code != "" {
+		return code
+	}
+	m := v.(map[string]any)
+	at := map[string]bool{}
+	for _, c := range strs(m["at"]) {
+		at[c] = true
+	}
+	ms, _ := m["members"].([]any)
+	for _, e := range ms {
+		if c, _ := e.(map[string]any)["at"].(string); !at[c] {
+			return BadField
+		}
+	}
+	return ""
+}
+
 var auto = func() check {
 	a := oneOf("auto", "review", "decline")
-	// wave is optional: announces from before wave deals (absent: wave requests are declined).
-	return obj(req("peering", a), req("transit", a), req("pni", a), req("swap", a), req("consortium", a), req("port", a), opt("wave", a))
+	// wave is optional: announces from before wave deals (absent: wave requests are declined);
+	// cofound likewise (ix2; absent: co-founding offers are declined).
+	return obj(req("peering", a), req("transit", a), req("pni", a), req("swap", a), req("consortium", a), req("port", a), opt("wave", a), opt("cofound", a))
 }()
+
+// FeatIx2 names the optional feature of players' exchanges (9.3 feats): rates.ix.members and
+// auto.cofound in an announce, and cofound offers.
+const FeatIx2 = "ix2"
+
+// Ix2 reports whether a record holds what only the ix2 feature carries: an announce listing its
+// exchanges' members (rates.ix.members) or how it takes co-founding (auto.cofound). A node passes
+// such a record only to sessions that listed ix2 in feats (9.3, 9.4): older ones refuse those fields.
+func Ix2(r *Record) bool {
+	if r.Kind != "announce" {
+		return false
+	}
+	if a, ok := r.Body["auto"].(map[string]any); ok {
+		if _, ok := a["cofound"]; ok {
+			return true
+		}
+	}
+	rt, _ := r.Body["rates"].(map[string]any)
+	ix, _ := rt["ix"].(map[string]any)
+	_, ok := ix["members"]
+	return ok
+}
 
 var cond = obj(
 	req("minMbps", mbps), req("maxRatio", intIn(100, 100000)), req("minShared", count(64)),
@@ -588,6 +645,9 @@ var dealTerms = map[string]check{
 	"wave": ordered(obj(req("a", city), req("b", city), req("gbps", waveGbps), req("monthly", money), req("term", days), opt("founded", count(10000000)))),
 	"consortium": obj(req("name", nameCheck), req("a", city), req("b", city), req("members", intIn(2, 16)),
 		req("share", money), req("pairs", intIn(1, 16))),
+	// cofound (ix2): the author, who runs the exchange at at, offers the counterparty share per mille
+	// of it for setup once and monthly a month.
+	"cofound": obj(req("at", city), req("share", intIn(100, 500)), req("setup", money), req("monthly", money), req("term", days)),
 }
 
 // Box limits (5.3): a 12-byte AES-GCM nonce, and a ciphertext of at least one byte plus the 16-byte tag.
@@ -661,7 +721,7 @@ func CheckOfferTerms(author string, body map[string]any) string {
 	}
 	return object(body, []field{
 		toField,
-		req("deal", oneOf("peering", "transit", "pni", "swap", "consortium", "port", "wave")),
+		req("deal", oneOf("peering", "transit", "pni", "swap", "consortium", "port", "wave", "cofound")),
 		basis,
 		opt("renews", idCheck),
 		req("terms", terms),

@@ -1,0 +1,49 @@
+{
+  "description": "Bob takes co-founding offers at once (C3, auto.cofound auto): the deal binds at the offer's t, 1767229200, and runs its 365 days: end = 1767229200 + 365 * 86400 = 1798765200. Whether the setup and monthly shares are fair is Bob's game's business (it declines with conditions otherwise), not these rules.",
+  "input": {
+    "announces": [
+      {
+        "id": "C3",
+        "kind": "announce",
+        "key": "kBob",
+        "t": 1767225600,
+        "body": {
+          "rates": {},
+          "auto": {
+            "peering": "auto",
+            "transit": "decline",
+            "pni": "decline",
+            "swap": "decline",
+            "consortium": "decline",
+            "port": "decline",
+            "cofound": "auto"
+          }
+        }
+      }
+    ],
+    "offer": {
+      "id": "O1",
+      "kind": "offer",
+      "key": "kAlice",
+      "t": 1767229200,
+      "body": {
+        "to": "kBob",
+        "deal": "cofound",
+        "basis": "C3",
+        "terms": {
+          "at": "fra",
+          "share": 500,
+          "setup": 40000,
+          "monthly": 1500,
+          "term": 365
+        }
+      }
+    }
+  },
+  "expect": {
+    "ok": true,
+    "auto": true,
+    "start": 1767229200,
+    "end": 1798765200
+  }
+}

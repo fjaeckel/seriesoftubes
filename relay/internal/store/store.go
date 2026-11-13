@@ -49,6 +49,7 @@ type Entry struct {
 	n    int32    // the line's length, without the newline
 	rc   int32    // the receipts' length (the line is {"rcpt":R,"rec":C,"slot":N})
 	gone bool     // removed; still in the ordered lists until they are compacted
+	ix2  bool     // it carries ix2 fields (fed.Ix2): sent only to sessions that take them
 	x    *held    // what is kept in memory besides: nil for most entries
 }
 
@@ -67,6 +68,9 @@ func (e *Entry) To() string {
 	}
 	return e.deal.to
 }
+
+// Ix2 reports whether the record carries ix2 fields (fed.Ix2).
+func (e *Entry) Ix2() bool { return e.ix2 }
 
 // Offer is the offer an accept or decline answers ("" for other kinds).
 func (e *Entry) Offer() string {
@@ -385,7 +389,7 @@ func (s *Store) insert(rec *fed.Record, rcpts []map[string]any, slot, day int64)
 		kl = &keyList{key: rec.Key}
 		s.byKey[rec.Key] = kl
 	}
-	e := &Entry{ID: rec.ID, Key: kl.key, Kind: kind, T: rec.T, Slot: slot, Seq: s.seq, day: i32(day), off: -1}
+	e := &Entry{ID: rec.ID, Key: kl.key, Kind: kind, T: rec.T, Slot: slot, Seq: s.seq, day: i32(day), off: -1, ix2: fed.Ix2(rec)}
 	switch kind {
 	case "offer", "accept", "decline":
 		p := &parties{}

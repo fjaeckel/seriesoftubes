@@ -233,6 +233,7 @@ only a `state` frame (9.3) or a `states` frame (9.4) carries one; anywhere a rec
 | Text(n) | String, 0 to n code points, no bidi controls |
 | Label(n) | String, 1 to n code points, no bidi controls |
 | City | String matching `^[a-z0-9]{2,8}$`, a game city id. Unknown cities are not refused; the game ignores them |
+| Net | String matching `^[a-z0-9]{2,8}$`, the id of a computer-run network in the game's catalog (`NETS` in `src/game/30-networks/`; every id there has this shape, `tests/ix-players.test.js` checks it). Like cities, the catalog is not part of this protocol: unknown ids are not refused, the game ignores them. A player's network is never a Net (it is a Key) |
 | CC | String matching `^[A-Z]{2}$`, a country code |
 | Mbps | Integer 0 to 1000000000 |
 | Money | Integer 0 to 1000000000000, in game money |
@@ -268,7 +269,7 @@ board slot (6.1, 10.1), the newest: a newer one in that slot replaces it, and an
 | `policy` | string | `open`, `selective` or `restrictive` |
 | `cond` | object | Required when `policy` is `selective`, refused (`bad_field`) otherwise. See below |
 | `rates` | object | Rate card, see below; `{}` when it sells nothing |
-| `auto` | object | How requests are handled: `{peering, transit, pni, swap, consortium, port, wave}`, each `auto`, `review` or `decline`. The first six are required; `wave` is optional (announces from before wave deals) and absent means `decline` (10.10) |
+| `auto` | object | How requests are handled: `{peering, transit, pni, swap, consortium, port, wave, cofound}`, each `auto`, `review` or `decline`. The first six are required; `wave` is optional (announces from before wave deals) and absent means `decline` (10.10); `cofound` likewise (feature `ix2`, below) |
 
 `cond`, the conditions of a selective policy: `{minMbps: Mbps, maxRatio: integer 100 to 100000 (the highest in/out ratio
 accepted, times 100: 300 means 3:1), minShared: Count(64) (shared locations), rpki: Bool, tier1: Bool (Tier 1 only),
@@ -279,11 +280,22 @@ ai: Bool (AI players accepted)}`, all required.
 - `transit`: `{perGbps: Money (per Gbps per month at the 95th percentile), commit: [{mbps: Mbps, off: Count(900)}] max 8
   with strictly ascending `mbps` (discount per mille for committing at least `mbps`), term: Days (minimum term)}`.
 - `pni`: `{setup: Money, ports: [{mbps: Mbps, monthly: Money}] 1 to 8 with strictly ascending mbps, term: Days}`.
-- `ix` (an exchange it runs): `{ports: [{mbps, monthly}] 1 to 8 with strictly ascending mbps, join: anyone|selective|approval, at: [City] 1 to 16 unique}`.
+- `ix` (an exchange it runs): `{ports: [{mbps, monthly}] 1 to 8 with strictly ascending mbps, join: anyone|selective|approval, at: [City] 1 to 16 unique, members?}`.
+  `members` (optional, feature `ix2`): who is on those exchanges, `[{at: City, nets: [Net] max 48, players: Count(64)}]`
+  1 to 16, one entry per city (`duplicate`), each `at` also in `ix.at` (`bad_field`). `nets` are the computer-run
+  networks that joined that exchange in the author's game, unique (`duplicate`); `players` how many players have a port
+  there (a running `port` or `cofound` deal it sells). A buyer's port reaches them too (10.10), and a co-founder's
+  share of member fees counts them. Absent: the buyer's port reaches the author and the open players it knows there.
 - `wave` (managed waves on routes it has lit): `{routes: [{a: City, b: City}] 1 to 32, sizes: [{gbps: 100|400|800|1600,
   monthly: Money}] 1 to 4 with strictly ascending gbps, term: Days (minimum term)}`. A route's cities are in byte order
   (`a < b`, `bad_field` otherwise; so a route has one spelling and a city is never paired with itself); routes are unique
   (`duplicate`). Whether the routes are really lit is the seller's game's business, not a rule here.
+
+**Feature `ix2`** (players' exchanges): `rates.ix.members` and `auto.cofound` are newer than this version's first
+relays, which refuse them (`unknown_field`). A game puts them in an announce only while every server it joined lists
+`ix2` in `feats` (9.3); a node passes an announce holding either only to sessions that listed `ix2` (9.3, 9.4). The
+`cofound` deal (5.3) needs no relay to know it (it travels sealed), but a game offers it only on an announce with
+`auto.cofound`, so only to a game that takes it.
 
 Example (keys and signatures shortened):
 
@@ -363,8 +375,8 @@ The offer in clear (an open consortium project on the wire, or a sealed offer on
 | Field | Type | Rule |
 | --- | --- | --- |
 | `to` | Key | The counterparty, never the author (`bad_field`). Optional for `consortium` only (absent: open to anyone; present: an invitation, sealed like any offer to someone) |
-| `deal` | string | `peering`, `transit`, `pni`, `swap`, `consortium`, `port` or `wave` |
-| `basis` | Id | The counterparty's `announce` whose terms the offer takes. Required for `peering`, `transit`, `pni`, `port`, `wave`; optional for `swap`; refused for `consortium` (`bad_field`) |
+| `deal` | string | `peering`, `transit`, `pni`, `swap`, `consortium`, `port`, `wave` or `cofound` |
+| `basis` | Id | The counterparty's `announce` whose terms the offer takes. Required for `peering`, `transit`, `pni`, `port`, `wave`, `cofound`; optional for `swap`; refused for `consortium` (`bad_field`) |
 | `renews` | Id, optional | The offer that started the running deal this one renews |
 | `terms` | object | By `deal`, below |
 
@@ -377,6 +389,16 @@ The offer in clear (an open consortium project on the wire, or a sealed offer on
 | `swap` | `{give: {a: City, b: City, mbps: Mbps}, take: {a: City, b: City, mbps: Mbps}, term: Days}` |
 | `consortium` | `{name: Name, a: City, b: City, members: integer 2 to 16, share: Money, pairs: integer 1 to 16}` |
 | `wave` | `{a: City, b: City (a < b, as on the card), gbps: 100\|400\|800\|1600, monthly: Money, term: Days, founded?}`: one wave the author buys from `to` |
+| `cofound` | `{at: City, share: integer 100 to 500, setup: Money, monthly: Money, term: Days}`: feature `ix2` (5.1). The author, who runs the exchange at `at`, offers `to` a share of it, in per mille: `to` pays `setup` once and `monthly` a month, gets a port on it, and earns `share` of its members' fees |
+
+`cofound` turns the usual direction around: the author sells and `to` pays. Each game books only its own side, as with
+every deal: the co-founder pays its `setup` when the deal starts and `monthly` while it runs, and earns
+`div(n * fee * share, 1000)` a month, where `n` is the number of `nets` in the `members` entry for `at` of the founder's
+newest announce it holds and `fee` is the game's monthly member fee; the founder earns `setup` and `monthly` and pays
+the same share of the fees its own members pay. The co-founder's port reaches the founder, the members and the open
+players at `at`, as a bought `port` does (10.10). A founder has at most two co-founders per exchange; that and whether
+the shares are fair (no more than `share` of the game's own founding cost and of its biggest fabric's monthly cost) are
+the co-founder's game's business, which declines (`conditions`) otherwise.
 
 `founded` (optional, Count(10000000), on the four priced deals): the buyer (the offer's author) claims the newcomer
 price, giving the real day it joined, as its `announce` says (5.1). 10.10 checks it.
@@ -738,7 +760,7 @@ it is neither answered nor a reason to close, so an older game keeps working wit
 
 | Message | Direction | Fields | Answer |
 | --- | --- | --- | --- |
-| `hello` | client → node | `vers`, `role: "client"` | `welcome` |
+| `hello` | client → node | `vers`, `role: "client"`, `feats` (optional, below) | `welcome` |
 | `welcome` | node → client | `ver` (chosen), `server` (Id), `node` (Key), `now`, `impl` (optional, below), `feats` (optional, below) | |
 | `update` | node → client | `version`, `security` (Bool), `source` (`feed` or `github`), `notes` (optional, an `https://` URL); no `id` | Only to a session that proved an operator key of the node's server: a newer relay is out (below) |
 | `auth` | client → node | `id`, `key` (Key), `t` (unix seconds), `sig` (Sig) | `ack` with `op`, or `err` (`bad_key`, `bad_sig`, `too_old`, `too_new`, `too_many`): proves the session holds `key` (below) |
@@ -815,6 +837,11 @@ it is neither answered nor a reason to close, so an older game keeps working wit
   anything else. A game sends `state` frames, and asks for boards of `now`, only to a node whose `welcome` lists
   `state` (an older node would close the connection on a message it does not know). The same member is in a node's
   `hello` and `welcome` (9.4).
+  **`ix2`** means it takes the fields of players' exchanges (5.1 `rates.ix.members`, `auto.cofound`): a game puts them
+  in an announce only while every server it joined lists `ix2` in its `welcome`. A client lists what it takes in its own
+  `hello` (`feats: ["ix2"]`; an older node ignores the member): a node sends a record holding `ix2` fields to a client
+  session only when its `hello` listed `ix2`, from `sub` (backlog and live), `fetch` and `rankwhy` alike, and the session
+  is not told what it did not get (an older game would refuse the record and drop the whole announce).
 - **`state`** sends a live state (5.11). The node checks it (7.1 steps 2 to 8 for kind `state`, then 5.11's state
   checks); a newer state is kept in memory and passed on to other nodes (9.4). A node limits each connection's states
   on its own: the reference relay allows one every 4 s with a burst of 2, and answers `rate_limited` (with `retry`)
@@ -876,6 +903,9 @@ Nodes of one server, and nodes of different servers that sync, use the same tran
    neither has nor has refused; the first side `push`es them. Afterwards new records are `push`ed as they arrive.
    Every pushed record is checked like a record from a client (7.1); invalid ones are dropped and logged by kind and
    code, never forwarded.
+   **Feature `ix2`:** a record holding `ix2` fields (5.1) is neither listed in an `inv`, nor answered to a `want`, nor
+   pushed live to a peer whose `hello` or `welcome` did not list `ix2` in `feats`, nodes of the same server included
+   (a server upgrades its nodes one at a time). Such a peer refuses those fields, so it never asks for them again.
 4. Records keep their original signatures and receipts on every hop. Each record is stored once per server, however
    many paths brought it (10.11).
 5. **Pacing.** A node answers `want` with `push` frames one at a time as the peer takes them, and MAY slow down reading
@@ -1235,14 +1265,17 @@ not an `announce` by `to`). It is checked, in this order:
 1. `basis.t <= offer.t`, otherwise `bad_field`.
 2. **Still current**: the next `announce` by `to` after `basis` (smallest `t` greater than `basis.t`), if any, has
    `t > offer.t - 86400`. Otherwise `stale_terms`. (A day of grace for terms that changed while the offer was on its way.)
-3. `basis.auto[deal]` is `decline`, or absent (an announce from before `wave` deals has no `auto.wave`): `declined`.
+3. `basis.auto[deal]` is `decline`, or absent (an announce from before `wave` deals has no `auto.wave`, one without
+   feature `ix2` no `auto.cofound`): `declined`.
 4. **Terms are the published ones** (`no_terms` when the basis publishes none for this deal, `bad_terms` when they
    differ):
    - `transit`: let `off` be the `off` of the commit tier with the greatest `mbps <= terms.mbps` (0 when none). Then
      `terms.perGbps` MUST equal `div(perGbps * (1000 - off), 1000)` and `terms.term >= rates.transit.term`.
    - `pni`: a port with `mbps == terms.mbps` exists; `terms.setup == rates.pni.setup`, `terms.monthly` equals that port's
      `monthly`, `terms.term >= rates.pni.term`.
-   - `port`: `terms.at` is in `rates.ix.at`, a port with that `mbps` exists, `monthly` equal, `term >= 30`.
+   - `port`: `terms.at` is in `rates.ix.at`, a port with that `mbps` exists, `monthly` equal, `term >= 30`. While it
+     runs, the buyer's game reaches the seller, the open players whose newest announce lists `at` in `ix`, and the `nets`
+     of the `members` entry for `at` in the seller's newest announce it holds (5.1), through that port.
    - `wave`: `{a, b}` is one of `rates.wave.routes` (same `a`, same `b`); a size with `gbps == terms.gbps` exists;
      `terms.monthly` equals its `monthly`; `terms.term >= rates.wave.term`. The computer-run price of a wave (what the
      game's own vendors charge) is a ceiling the seller's game applies when it publishes, as it does for transit; it is
@@ -1251,6 +1284,8 @@ not an `announce` by `to`). It is checked, in this order:
      nothing in the buyer's.
    - `peering`, `swap`, `consortium`: no prices. The policy's conditions (`cond`) need game data and are checked by the
      game, not by these rules.
+   - `cofound`: no prices either. The basis is the counterparty's announce (the co-founder's); the founder sets the
+     terms, and the co-founder's game judges them (5.3).
    - **Newcomer price.** When `terms` has `founded` (transit, pni, port, wave), let `d = div(offer.t, 86400)`. It is
      allowed when `d - terms.founded` is 0 to 29 (the buyer joined less than 30 days before the offer) and the basis's
      `founded` gives `d - basis.founded >= 30` (the seller is established); otherwise `bad_terms`. Every price above is
@@ -1555,6 +1590,8 @@ of 9.3 and an optional webhook; see docs/RELAY.md). It never tells anyone else.
 | POP cities in `announce` and `stats` | 512 |
 | Traffic entries | 256 |
 | `stats` `cust`, `up` | 128, 16 |
+| `rates.ix.members`: exchanges, networks on each, players on each (`ix2`) | 16, 48, 64 |
+| Co-founders of one exchange (`cofound`, the co-founder's game checks) | 2 |
 | Signers, operators, nodes | 16 |
 | Box ciphertext (3.5), tag included | 17 to 2048 bytes |
 | Keys proved by one client session (`auth`) | 4 |

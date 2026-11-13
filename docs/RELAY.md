@@ -463,6 +463,21 @@ How it works (`relay/internal/rank`):
   migrated on start; a relay refuses a folder written by a newer one instead of misreading it. Servers agree on a
   protocol version when they connect and keep speaking the older one until both sides have upgraded, so a federation
   upgrades one server at a time.
+- **New record fields roll out by feature, relay first.** A relay refuses fields it does not know (`unknown_field`),
+  so a field older relays have never seen travels only where it is understood. Each node lists what it takes in
+  `feats` (in its `welcome` to games, its `hello` and `welcome` to other nodes; games list theirs in their `hello`), and
+  a node sends a record holding a newer field only to a game or node that listed that feature. The first such feature
+  is `ix2` (players' exchanges: an exchange's members and co-founding in a player's announce, spec 5.1). The order:
+  1. **Relays first.** Release a relay that lists `ix2` and upgrade servers at your pace, nodes of one server one at a
+     time: until a node lists `ix2`, the others keep those records from it, and it keeps serving everything else.
+  2. **The game uses it once servers have upgraded.** A game puts `ix2` fields in its announce only while every server
+     it joined lists `ix2`; while one does not (4.0.0 does not), it announces as before, and its players still trade
+     ports on their exchanges, only without the member lists and co-founding. Nothing needs switching on: the
+     first announce after the last of its servers upgraded carries them.
+  3. **Older games keep working.** A game whose `hello` does not list `ix2` never gets those announces from an upgraded
+     relay (it would refuse them); it sees the player's earlier announce, or none, until it is reloaded.
+  To check which servers have upgraded: the looking glass shows each node's relay version, and `relay status` each
+  peer's (every relay released after 4.0.0 takes `ix2`).
 - **Backups:** `relay backup FILE.tar.gz` writes the records, catalog, config and node key (mode 0600). The operator
   key is left out on purpose: keep your own copy of `operator.key` somewhere safe. If a node loses its disk, the
   server's other nodes and the servers it syncs with fill it back in; what nobody else had is only recent stats and

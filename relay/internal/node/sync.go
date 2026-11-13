@@ -51,7 +51,7 @@ func (r *Relay) answerNode(s *session, h *wire.Hello) {
 	now := r.now()
 	s.ver, s.impl, s.feats = h.Ver, h.Impl, h.Feats
 	s.enqueue(map[string]any{"m": "welcome", "ver": h.Ver, "server": own, "node": r.Key(), "nonce": mine,
-		"proof": r.o.Node.MakeProof(h.Nonce, own, now), "impl": r.implValue(), "feats": feats()})
+		"proof": r.o.Node.MakeProof(h.Nonce, own, now), "impl": r.implValue(), "feats": r.feats()})
 	ctx, cancel := context.WithTimeout(s.ctx, handshakeTimeout)
 	f, ok := s.readFrame(ctx)
 	cancel()
@@ -95,7 +95,7 @@ func (r *Relay) dialNode(ctx context.Context, dialer, url string) error {
 	for i, v := range r.speaks {
 		vers[i] = v
 	}
-	s.enqueue(map[string]any{"m": "hello", "vers": vers, "role": "node", "server": own, "node": r.Key(), "nonce": mine, "impl": r.implValue(), "feats": feats()})
+	s.enqueue(map[string]any{"m": "hello", "vers": vers, "role": "node", "server": own, "node": r.Key(), "nonce": mine, "impl": r.implValue(), "feats": r.feats()})
 	hctx, cancel := context.WithTimeout(s.ctx, handshakeTimeout)
 	f, ok := s.readFrame(hctx)
 	cancel()
@@ -418,7 +418,7 @@ func (r *Relay) nodeFrame(s *session, f *wire.Frame) bool {
 		r.mu.Lock()
 		var list []*store.Entry
 		for _, id := range ids {
-			if e := r.st.Get(id); e != nil && s.sends(e.Kind) && !r.shunned[e.Key] {
+			if e := r.st.Get(id); e != nil && s.sends(e.Kind) && s.takes(e) && !r.shunned[e.Key] {
 				list = append(list, e)
 			}
 		}
@@ -476,7 +476,7 @@ func (r *Relay) inventory(s *session, since int64) []string {
 			}
 			n++
 			after = e.Seq
-			if e.Slot >= since && s.sends(e.Kind) && !r.shunned[e.Key] && classOrChain(e, r) {
+			if e.Slot >= since && s.sends(e.Kind) && s.takes(e) && !r.shunned[e.Key] && classOrChain(e, r) {
 				ids = append(ids, e.ID)
 			}
 			return true

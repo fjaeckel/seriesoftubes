@@ -49,6 +49,9 @@ type Options struct {
 	// Retry pacing; tests shorten them. Defaults: one minute and one second.
 	BootstrapEvery time.Duration
 	DialBase       time.Duration
+	// Feats replaces what hello and welcome list (9.3, 9.4); nil: every feature this relay has.
+	// Tests set fewer to play an older relay.
+	Feats []string
 }
 
 // Relay is one node.
@@ -328,6 +331,9 @@ func (r *Relay) operator(s *session) bool {
 func (r *Relay) shows(s *session, e *store.Entry) bool {
 	if s.node {
 		return true
+	}
+	if !s.takes(e) {
+		return false
 	}
 	switch e.Kind {
 	case "shun", "unshun":
@@ -947,6 +953,13 @@ func (s *session) sends(kind string) bool {
 	return c == "always" || c != "" && slices.Contains(s.send, c)
 }
 
+// takes reports whether a session may be sent a stored record by what it listed in feats (lock
+// held): a record carrying ix2 fields goes only to a node or game that takes them (9.3, 9.4), since
+// an older one refuses those fields. Nodes of this server too: they may still run an older relay.
+func (s *session) takes(e *store.Entry) bool {
+	return !e.Ix2() || slices.Contains(s.feats, fed.FeatIx2)
+}
+
 // fanout pushes a stored record to node sessions and client subscriptions (lock held).
 func (r *Relay) fanout(e *store.Entry, from *session) {
 	if r.shunned[e.Key] {
@@ -957,7 +970,7 @@ func (r *Relay) fanout(e *store.Entry, from *session) {
 		return
 	}
 	for s := range r.nodes {
-		if s == from || !s.synced || !s.sends(e.Kind) {
+		if s == from || !s.synced || !s.sends(e.Kind) || !s.takes(e) {
 			continue
 		}
 		s.enqueue(map[string]any{"m": "push", "items": []any{it}})

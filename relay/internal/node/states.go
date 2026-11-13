@@ -33,7 +33,16 @@ const (
 )
 
 // feats is what this side lists in hello and welcome (9.3, 9.4): the optional messages it takes.
-func feats() []any { return []any{wire.Feat} }
+func (r *Relay) feats() []any {
+	if r.o.Feats == nil {
+		return []any{wire.Feat, wire.FeatIx2}
+	}
+	out := make([]any, len(r.o.Feats))
+	for i, f := range r.o.Feats {
+		out[i] = f
+	}
+	return out
+}
 
 // stateAllow is a client session's own token bucket for states; ok, or the seconds to wait.
 func (s *session) stateAllow() (bool, int64) {

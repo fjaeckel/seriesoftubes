@@ -1,0 +1,22 @@
+{
+  "description": "A co-founding offer needs a basis: the counterparty's announce says whether it takes them.",
+  "input": {
+    "kind": "offer",
+    "author": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+    "body": {
+      "to": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+      "deal": "cofound",
+      "terms": {
+        "at": "fra",
+        "share": 250,
+        "setup": 20000,
+        "monthly": 750,
+        "term": 180
+      }
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "missing_field"
+  }
+}

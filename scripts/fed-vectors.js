@@ -466,6 +466,22 @@ const SID = rid(genesis);
   badState('state-own-traffic', 'A live state is checked like stats: traffic with its own key is bad_field.', rec('state', 'alice', NOW, { ...statsMin(), traffic: [{ key: pub('alice'), in: 1, out: 1 }] }), 'bad_field');
   badState('state-stats-kind', 'Where a state is expected, a stats record is the wrong kind.', rec('stats', 'alice', T, statsMin()), 'bad_kind');
   bad('state-not-a-record', 'A live state is not a record: put (or anywhere a record is expected) refuses its kind.', live, 'bad_kind');
+
+  // --- players' exchanges (ix2): rates.ix.members and auto.cofound (both optional) ---
+  const IXM = { at: 'fra', nets: ['cog', 'ntt', 'tly'], players: 2 };
+  const annIx = (members, auto = 'review') => { const b = announceBody(); b.rates.ix = { ...b.rates.ix, members }; if (auto !== null) b.auto.cofound = auto; return b; };
+  ok('announce-ix-members', 'An exchange\'s members (ix2): per city in rates.ix.at, the computer-run networks on it (Net ids) and how many players have a port; auto.cofound set.', rec('announce', 'alice', T, annIx([IXM])));
+  ok('announce-ix-members-empty', 'An exchange nobody joined yet: nets may be empty, players 0. auto.cofound is optional (absent: co-founding offers are declined).', rec('announce', 'alice', T, annIx([{ at: 'fra', nets: [], players: 0 }], null)));
+  ok('announce-ix-members-48', 'At most 48 networks per exchange; unknown ids of the right shape are not refused (the game ignores them).', rec('announce', 'alice', T, annIx([{ ...IXM, nets: Array.from({ length: 48 }, (_, i) => 'n' + String(i).padStart(2, '0')) }])));
+  bad('announce-ix-members-49', '49 networks on one exchange (limit 48).', rec('announce', 'alice', T, annIx([{ ...IXM, nets: Array.from({ length: 49 }, (_, i) => 'n' + String(i).padStart(2, '0')) }])), 'too_many');
+  bad('announce-ix-members-not-at', 'Members only for the exchanges it sells ports on: every at is in rates.ix.at.', rec('announce', 'alice', T, annIx([{ ...IXM, at: 'ams' }])), 'bad_field');
+  bad('announce-ix-members-city-twice', 'One entry per exchange.', rec('announce', 'alice', T, annIx([IXM, { ...IXM, nets: [] }])), 'duplicate');
+  bad('announce-ix-members-empty-list', 'members, when present, names at least one exchange.', rec('announce', 'alice', T, annIx([])), 'bad_field');
+  bad('announce-ix-members-net-shape', 'A Net is shaped like a City: 2 to 8 lower-case letters and digits.', rec('announce', 'alice', T, annIx([{ ...IXM, nets: ['Cogentle'] }])), 'bad_field');
+  bad('announce-ix-members-net-twice', 'A network once per exchange.', rec('announce', 'alice', T, annIx([{ ...IXM, nets: ['cog', 'cog'] }])), 'duplicate');
+  bad('announce-ix-members-players', 'players is Count(64).', rec('announce', 'alice', T, annIx([{ ...IXM, players: 65 }])), 'bad_field');
+  bad('announce-ix-members-extra', 'Nothing else in a members entry.', rec('announce', 'alice', T, annIx([{ ...IXM, fee: 1500 }])), 'unknown_field');
+  bad('announce-auto-cofound', 'auto.cofound is auto, review or decline.', rec('announce', 'alice', T, annIx([IXM], 'maybe')), 'bad_field');
 }
 
 // ======================================================================================
@@ -523,6 +539,13 @@ const SID = rid(genesis);
   terms('terms-extra', 'Nothing but the fields of 5.3 in an opened offer.', 'bob', { to: pub('alice'), deal: 'pni', basis: rid(ann), terms: { at: 'fra', mbps: 10000, setup: 5000, monthly: 1500, term: 180 }, note: 'hi' }, { ok: false, error: 'unknown_field' });
   terms('decline-reason', 'An opened decline holds {reason} from the fixed list.', 'alice', { reason: 'depeer' }, ok, 'decline');
   terms('decline-free-text', 'decline reasons come from a fixed list; free text is refused even sealed.', 'alice', { reason: 'you smell' }, { ok: false, error: 'bad_field' }, 'decline');
+  // Co-founding (ix2): the founder (author) offers a share of its exchange at at, on the counterparty's announce.
+  const CF = { at: 'fra', share: 250, setup: 20000, monthly: 750, term: 180 };
+  terms('terms-cofound', 'alice, who runs the exchange in Frankfurt, offers bob a quarter of it: 250 per mille, 20000 once, 750 a month, 180 days. The basis is bob\'s announce (his auto.cofound).', 'alice', { to: pub('bob'), deal: 'cofound', basis: annB, terms: CF }, ok);
+  terms('terms-cofound-no-basis', 'A co-founding offer needs a basis: the counterparty\'s announce says whether it takes them.', 'alice', { to: pub('bob'), deal: 'cofound', terms: CF }, { ok: false, error: 'missing_field' });
+  terms('terms-cofound-share-low', 'share is 100 to 500 per mille.', 'alice', { to: pub('bob'), deal: 'cofound', basis: annB, terms: { ...CF, share: 99 } }, { ok: false, error: 'bad_field' });
+  terms('terms-cofound-share-high', 'A co-founder never gets more than half.', 'alice', { to: pub('bob'), deal: 'cofound', basis: annB, terms: { ...CF, share: 501 } }, { ok: false, error: 'bad_field' });
+  terms('terms-cofound-no-term', 'A co-founding runs a term like any priced deal.', 'alice', { to: pub('bob'), deal: 'cofound', basis: annB, terms: { at: 'fra', share: 250, setup: 20000, monthly: 750 } }, { ok: false, error: 'missing_field' });
 }
 
 // ======================================================================================

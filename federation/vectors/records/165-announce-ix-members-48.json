@@ -1,0 +1,165 @@
+{
+  "description": "At most 48 networks per exchange; unknown ids of the right shape are not refused (the game ignores them).",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "announce",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "name": "Ping Floyd",
+        "asn": 4215690104,
+        "box": "tO4Fv_k6I0AaD4GNgg7WfxxSrjMCD6t-aY-ulE4Fi2Y",
+        "home": "DE",
+        "day": 412,
+        "founded": 20454,
+        "pops": [
+          "fra",
+          "ams",
+          "lon"
+        ],
+        "ix": [
+          "fra",
+          "ams"
+        ],
+        "cust": 37,
+        "mix": {
+          "content": 200,
+          "eyeball": 700,
+          "enterprise": 100
+        },
+        "traffic": {
+          "in": 42000,
+          "out": 9000
+        },
+        "policy": "selective",
+        "cond": {
+          "minMbps": 1000,
+          "maxRatio": 300,
+          "minShared": 2,
+          "rpki": true,
+          "tier1": false,
+          "ai": true
+        },
+        "rates": {
+          "transit": {
+            "perGbps": 900,
+            "commit": [
+              {
+                "mbps": 10000,
+                "off": 100
+              },
+              {
+                "mbps": 100000,
+                "off": 250
+              }
+            ],
+            "term": 90
+          },
+          "pni": {
+            "setup": 5000,
+            "ports": [
+              {
+                "mbps": 10000,
+                "monthly": 1500
+              },
+              {
+                "mbps": 100000,
+                "monthly": 9000
+              }
+            ],
+            "term": 180
+          },
+          "ix": {
+            "ports": [
+              {
+                "mbps": 1000,
+                "monthly": 200
+              },
+              {
+                "mbps": 10000,
+                "monthly": 800
+              }
+            ],
+            "join": "anyone",
+            "at": [
+              "fra"
+            ],
+            "members": [
+              {
+                "at": "fra",
+                "nets": [
+                  "n00",
+                  "n01",
+                  "n02",
+                  "n03",
+                  "n04",
+                  "n05",
+                  "n06",
+                  "n07",
+                  "n08",
+                  "n09",
+                  "n10",
+                  "n11",
+                  "n12",
+                  "n13",
+                  "n14",
+                  "n15",
+                  "n16",
+                  "n17",
+                  "n18",
+                  "n19",
+                  "n20",
+                  "n21",
+                  "n22",
+                  "n23",
+                  "n24",
+                  "n25",
+                  "n26",
+                  "n27",
+                  "n28",
+                  "n29",
+                  "n30",
+                  "n31",
+                  "n32",
+                  "n33",
+                  "n34",
+                  "n35",
+                  "n36",
+                  "n37",
+                  "n38",
+                  "n39",
+                  "n40",
+                  "n41",
+                  "n42",
+                  "n43",
+                  "n44",
+                  "n45",
+                  "n46",
+                  "n47"
+                ],
+                "players": 2
+              }
+            ]
+          }
+        },
+        "auto": {
+          "peering": "auto",
+          "transit": "auto",
+          "pni": "review",
+          "swap": "review",
+          "consortium": "review",
+          "port": "auto",
+          "cofound": "review"
+        }
+      },
+      "sig": "TtG3bk7IbJ7B6v4t8ELoatEVFcphL-4UNbBpZD0W72p3aEWJ528A-fZIhHBffTZaf3gQPDTH2eea-psVlHF0Dg"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "announce",
+    "id": "BFKfHEa4-kUgf20joJ953bTb_Somho0N31-HadJ69XA"
+  }
+}

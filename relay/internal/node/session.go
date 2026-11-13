@@ -91,7 +91,7 @@ type session struct {
 	dialURL    string
 	dialer     string          // the r.dialers key of the dialer that made this session, when this node dialled
 	impl       *update.Impl    // what the peer node runs, when it said (informational)
-	feats      []string        // optional messages the peer node takes (9.4 feats)
+	feats      []string        // optional messages and fields the peer takes (9.3, 9.4 feats)
 	stPend     map[string]bool // keys whose newest live state goes to this peer next (guarded by r.mu)
 
 	// client: its own token bucket for live states (states.go)
@@ -655,6 +655,8 @@ func (r *Relay) serve(s *session) {
 	r.mu.Lock()
 	ok = r.serving() && len(r.clients) < r.cfg.Limits.MaxClients
 	if ok {
+		// Read by shows under the lock: set before the session can be sent anything.
+		s.feats = h.Feats
 		r.clients[s] = true
 	}
 	r.mu.Unlock()
@@ -669,7 +671,7 @@ func (r *Relay) serve(s *session) {
 		r.mu.Unlock()
 	}()
 	s.ver = h.Ver
-	s.enqueue(map[string]any{"m": "welcome", "ver": h.Ver, "server": r.ServerID(), "node": r.Key(), "now": r.now(), "impl": r.implValue(), "feats": feats()})
+	s.enqueue(map[string]any{"m": "welcome", "ver": h.Ver, "server": r.ServerID(), "node": r.Key(), "now": r.now(), "impl": r.implValue(), "feats": r.feats()})
 	for {
 		f, ok := s.readFrame(s.ctx)
 		if !ok {

@@ -1,0 +1,46 @@
+{
+  "description": "Bob's announce has no cofound member in auto (C2, an announce from before co-founding, or from a game whose servers do not all take ix2): a co-founding offer on it is declined, as wave offers are without auto.wave.",
+  "input": {
+    "announces": [
+      {
+        "id": "C2",
+        "kind": "announce",
+        "key": "kBob",
+        "t": 1767225600,
+        "body": {
+          "rates": {},
+          "auto": {
+            "peering": "auto",
+            "transit": "decline",
+            "pni": "decline",
+            "swap": "decline",
+            "consortium": "decline",
+            "port": "decline"
+          }
+        }
+      }
+    ],
+    "offer": {
+      "id": "O1",
+      "kind": "offer",
+      "key": "kAlice",
+      "t": 1767229200,
+      "body": {
+        "to": "kBob",
+        "deal": "cofound",
+        "basis": "C2",
+        "terms": {
+          "at": "fra",
+          "share": 250,
+          "setup": 20000,
+          "monthly": 750,
+          "term": 180
+        }
+      }
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "declined"
+  }
+}

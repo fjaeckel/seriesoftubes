@@ -25,6 +25,9 @@ type Options struct {
 	HTTPClient *http.Client // nil: the default, with system roots
 	Header     http.Header  // extra handshake headers (tests set X-Forwarded-For)
 	Versions   []int64      // nil: [1]
+	// Feats is what hello lists (9.3 feats); nil: what this relay's checks take (ix2), empty: none,
+	// as an older game.
+	Feats []string
 }
 
 // Welcome is the node's answer to hello.
@@ -79,7 +82,20 @@ func Dial(ctx context.Context, url string, o Options) (*Client, error) {
 	for i, v := range vers {
 		vl[i] = v
 	}
-	if err := cl.send(ctx, map[string]any{"m": "hello", "vers": vl, "role": "client"}); err != nil {
+	// By default it reads what this relay's checks take, ix2 records included (9.3 feats).
+	hello := map[string]any{"m": "hello", "vers": vl, "role": "client"}
+	feats := o.Feats
+	if feats == nil {
+		feats = []string{wire.FeatIx2}
+	}
+	if len(feats) > 0 {
+		fl := make([]any, len(feats))
+		for i, f := range feats {
+			fl[i] = f
+		}
+		hello["feats"] = fl
+	}
+	if err := cl.send(ctx, hello); err != nil {
 		c.CloseNow()
 		return nil, err
 	}
