@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Multimode servers now ignore stray files in their data folder whose names are not a day, instead of reading them as a wrong day, and refuse to store a record under a day out of range.
+
 ## [4.0.0] — 2026-11-13
 
 - New Multimode: play alongside other players on servers that players run themselves. Switch on Play with others when you start a new game from the title screen, or join later from Multimode in the menu or in Settings. Other players' networks then show up in your game as places your customers want to reach. Multimode is per save and entirely optional, nothing changes for a save that never joins, and if a server is down your game simply plays on. How to play has a new page that explains it all.

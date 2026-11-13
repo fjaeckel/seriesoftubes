@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"io/fs"
 	"iter"
+	"math"
 	"os"
 	"path/filepath"
 	"slices"
@@ -226,6 +227,15 @@ func open(dir string, onLoad func(e *Entry, rec *fed.Record, rcpts []map[string]
 	return s, nil
 }
 
+// i32 narrows a day, a line length or an offset within a line for an Entry. Days are checked where they come in (days,
+// Put) and a line is at most maxLine bytes, so out of range here is a bug: it stops loudly instead of wrapping around.
+func i32(n int64) int32 {
+	if n < math.MinInt32 || n > math.MaxInt32 {
+		panic(fmt.Sprintf("store: %d does not fit an int32", n))
+	}
+	return int32(n)
+}
+
 func (s *Store) path(day int64) string {
 	return filepath.Join(s.dir, logFolder, strconv.FormatInt(day, 10)+".jsonl")
 }
@@ -241,8 +251,9 @@ func (s *Store) days() ([]int64, error) {
 		if !ok {
 			continue
 		}
+		// Days are kept as int32 (entries stay small); a file named outside that range is not one of ours.
 		d, err := strconv.ParseInt(name, 10, 64)
-		if err == nil {
+		if err == nil && d >= 0 && d <= math.MaxInt32 {
 			out = append(out, d)
 		}
 	}
@@ -304,7 +315,7 @@ func (s *Store) load(day int64) error {
 			rcpts = s.Rcpts(e)
 		}
 		want, rc := encodeLine(e.rec(), rec, encodeRcpts(rcpts), e.Slot)
-		e.day, e.n, e.rc = int32(day), int32(len(want)), int32(rc)
+		e.day, e.n, e.rc = i32(day), i32(int64(len(want))), i32(int64(rc))
 		e.setMem(nil)
 		if bytes.Equal(want, b) {
 			e.off = at
@@ -374,7 +385,7 @@ func (s *Store) insert(rec *fed.Record, rcpts []map[string]any, slot, day int64)
 		kl = &keyList{key: rec.Key}
 		s.byKey[rec.Key] = kl
 	}
-	e := &Entry{ID: rec.ID, Key: kl.key, Kind: kind, T: rec.T, Slot: slot, Seq: s.seq, day: int32(day), off: -1}
+	e := &Entry{ID: rec.ID, Key: kl.key, Kind: kind, T: rec.T, Slot: slot, Seq: s.seq, day: i32(day), off: -1}
 	switch kind {
 	case "offer", "accept", "decline":
 		p := &parties{}
@@ -400,6 +411,9 @@ func (s *Store) insert(rec *fed.Record, rcpts []map[string]any, slot, day int64)
 
 // Put stores a checked record with its receipts, received on real day `day`.
 func (s *Store) Put(rec *fed.Record, rcpts []map[string]any, slot, day int64) (string, *Entry, error) {
+	if day < 0 || day > math.MaxInt32 {
+		return "", nil, fmt.Errorf("store: day %d out of range", day)
+	}
 	res, e := s.insert(rec, rcpts, slot, day)
 	if res == Dup {
 		return res, e, nil
@@ -414,7 +428,7 @@ func (s *Store) Put(rec *fed.Record, rcpts []map[string]any, slot, day int64) (s
 		slot = e.Slot
 	}
 	line, rc := encodeLine(e.rec(), rec, rj, slot)
-	e.day, e.off, e.n, e.rc = int32(max(e.day64(), day)), -1, int32(len(line)), int32(rc)
+	e.day, e.off, e.n, e.rc = i32(max(e.day64(), day)), -1, i32(int64(len(line))), i32(int64(rc))
 	e.setMem(line)
 	if s.dir == "" {
 		return res, e, nil
