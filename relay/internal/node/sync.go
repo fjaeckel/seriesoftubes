@@ -334,6 +334,20 @@ func (r *Relay) startSync(s *session) {
 				s.enqueue(map[string]any{"m": "catalog", "entries": p})
 			}
 		}
+	} else if s.same {
+		// A node of this server hears every entry this node keeps, with the path it came by: it
+		// may have no session with those servers itself (one session per pair of servers).
+		var list []map[string]any
+		for _, k := range sortedKeys(r.cat) {
+			if c := r.cat[k]; !slices.Contains(c.Path, r.own.ID) {
+				list = append(list, c.value(c.Path))
+			}
+		}
+		for _, p := range pageItems(list, fed.MaxItems, fed.NodeFrame-64<<10) {
+			if len(p) > 0 {
+				s.enqueue(map[string]any{"m": "catalog", "entries": p})
+			}
+		}
 	}
 	cl := make([]any, len(s.send))
 	for i, c := range s.send {

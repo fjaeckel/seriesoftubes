@@ -1083,7 +1083,10 @@ Receiving an entry from a neighbour, a server with identity `self`:
    holds unchanged.
 2. Drops it silently if `self` is in `path` (a loop) or if `now >= seen + 604800` (expired).
 3. Otherwise stores it, and passes it on to neighbours that take `catalog` as `path + [self]`, unless that would make
-   the path longer than 16.
+   the path longer than 16. It also passes it, unchanged (same `path`, `seen` and `impl`), to the other nodes of its own
+   server, which are not a hop: with one session per pair of servers (10.9) often only one of them has a session with
+   the server the entry came from. A node starting a session with another node of its server sends it the entries it
+   keeps in the same way.
 4. A relay MAY bound the entries it keeps, in all and per neighbour they first came from (the reference relay: 4096
    and 512). An entry for a server it does not keep yet is then dropped silently; entries it keeps still update.
 

@@ -216,6 +216,13 @@ func TestAutoSyncMultiNodeFailover(t *testing.T) {
 	n.AddNode(y, "multi-y2")
 	rt.SetRegistry(t, n.Snapshot([]*rt.Server{x, y}), x, y)
 	onePair(t, x, y)
+	// Only one node of each server has the session; the other learns the peer's catalog entry
+	// from its sibling (players tell which servers sync from the paths).
+	for _, s := range []*rt.Server{x, y} {
+		for _, nd := range s.Nodes {
+			rt.Eventually(t, nd.Name+" hears the other server's entry", func() bool { return nd.R.Status()["catalog"] == 1 })
+		}
+	}
 	lo, hi := x, y
 	if y.ID < x.ID {
 		lo, hi = y, x

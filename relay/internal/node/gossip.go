@@ -251,7 +251,9 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 	if from != nil {
 		via = from.peerServer
 	}
-	if old == nil && (len(r.cat) >= maxCatalog || r.catVia[via] >= maxCatalogVia) {
+	// A node of this server is no neighbour to bound: it passes on what other servers told it.
+	sibling := from != nil && from.same
+	if old == nil && (len(r.cat) >= maxCatalog || !sibling && r.catVia[via] >= maxCatalogVia) {
 		return "" // full: entries already kept still update, new ones wait for room
 	}
 	impl := readImpls(m["impl"], st)
@@ -280,9 +282,26 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 		} else {
 			delete(fw, "impl")
 		}
+		// This server's other nodes get it as it came (they are the same server, not a hop):
+		// with one session per pair of servers, often only one of them has one with its server.
+		var sib map[string]any
+		if from != nil && !from.same {
+			sib = c.value(path)
+			sib["seen"] = seen
+			if v := implsValue(impl); v != nil {
+				sib["impl"] = v
+			} else {
+				delete(sib, "impl")
+			}
+		}
 		for s := range r.nodes {
-			if s != from && !s.same && s.verified && hasClass(s.send, "catalog") {
+			if s == from || !s.verified || !hasClass(s.send, "catalog") {
+				continue
+			}
+			if !s.same {
 				s.enqueue(map[string]any{"m": "catalog", "entries": []any{fw}})
+			} else if sib != nil {
+				s.enqueue(map[string]any{"m": "catalog", "entries": []any{sib}})
 			}
 		}
 	}
