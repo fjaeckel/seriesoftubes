@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy — Series of Tubes</title>
+<meta name="description" content="What Series of Tubes keeps on your device, what it sends to multiplayer servers, and what those servers keep.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@800&family=Nunito:wght@700;800&display=swap">
+<style>
+  :root{--sea:#57C4E5;--ink:#1E2640;--ink2:#55608A;--paper:#fff;--sun:#FFD23F;--me:#FF4F9A}
+  body{margin:0;background:var(--sea);color:var(--ink);font:16px/1.5 Nunito,system-ui,sans-serif;padding:16px max(16px,env(safe-area-inset-left,0px));box-sizing:border-box}
+  .card{background:var(--paper);border:4px solid var(--ink);border-radius:24px;box-shadow:6px 6px 0 var(--ink);padding:28px 30px;max-width:640px;margin:16px auto;box-sizing:border-box}
+  h1{font:800 44px/1 'Baloo 2',system-ui,sans-serif;margin:0 0 10px}
+  h1 span{color:var(--me)}
+  h2{font:800 24px/1.1 'Baloo 2',system-ui,sans-serif;margin:22px 0 6px}
+  p,li{color:var(--ink2);font-weight:700}
+  p{margin:0 0 12px}
+  ul{margin:0 0 12px;padding-left:20px}
+  p a,li a{color:var(--ink)}
+  a.b{display:inline-block;margin-top:8px;font:800 18px 'Baloo 2',system-ui,sans-serif;color:var(--ink);background:var(--sun);border:3px solid var(--ink);border-radius:12px;box-shadow:0 3px 0 var(--ink);padding:6px 16px;text-decoration:none}
+  a:focus-visible{outline:3px solid var(--me);outline-offset:2px}
+  @media (max-width:420px){.card{padding:20px 18px}h1{font-size:36px}}
+</style>
+</head>
+<body>
+  <main class="card">
+    <h1>Privacy, <span>in plain words</span></h1>
+    <p>Series of Tubes has no accounts, no email sign-ups and no cookies. Here is everything the game keeps on your
+      device, everything that leaves it, and who keeps what.</p>
+
+    <h2>On your device</h2>
+    <p>Your saves, settings, badges and progress are kept in your browser's storage on this device. Nothing is uploaded
+      unless you join a multiplayer server or send a save somewhere yourself.</p>
+    <p>If you play multiplayer, the browser also keeps:</p>
+    <ul>
+      <li>your network's private key, inside its save (it signs everything your network sends);</li>
+      <li>what your servers sent about other networks, forgotten after 180 days without news of them;</li>
+      <li>an operator key, only if you run a server and imported it (kept apart from every save).</li>
+    </ul>
+    <p>Exports and shared saves never carry the private key. Only "Move to another device" makes a file with it:
+      anyone with that file can speak as your network, so never share it or attach it to a bug report.</p>
+
+    <h2>What goes to a multiplayer server</h2>
+    <p>Multiplayer is off until you join a server. Then your game sends signed records:</p>
+    <ul>
+      <li>your network's name, its AS number and its home market in the game;</li>
+      <li>the game cities where it has POPs and exchange ports, its number of customers and its traffic numbers;</li>
+      <li>its published peering policy, conditions and prices, and which networks it buys or sells transit from
+        (never the price);</li>
+      <li>deals with other players, sealed so that only the other player can read them: servers carry them without
+        being able to see what was offered, at what price, or why someone said no;</li>
+      <li>your real country, and only while "Share my country" is on. The server looks it up from your connection
+        in a country-only database.</li>
+    </ul>
+    <p>Your network's name is public on every server you join, so better not to use your real name.</p>
+
+    <h2>What servers keep, and for how long</h2>
+    <ul>
+      <li>Traffic numbers: 72 hours (plus each network's newest ones).</li>
+      <li>Deal records: 30 days.</li>
+      <li>A network's description: until it has been silent for 180 days.</li>
+      <li>Operators' votes about a network: 97 days.</li>
+      <li>Times are rounded to five minutes.</li>
+    </ul>
+
+    <h2>What servers never keep</h2>
+    <p>IP addresses, any location finer than a country, or your device, browser, time zone, email or account. A server
+      uses your connection's address only in memory, to look up the country and to slow down floods for a few minutes,
+      and never writes it down or passes it on. Servers listed in the game promise that nothing in front of them logs
+      addresses either. Server logs hold counts, error codes and network keys, never addresses.</p>
+    <p>Servers are run by players, not by us. The details are in the
+      <a href="https://github.com/fjaeckel/seriesoftubes/blob/main/docs/RELAY.md">server documentation</a> and the
+      <a href="https://github.com/fjaeckel/seriesoftubes/blob/main/docs/FEDERATION-PROTOCOL.md">protocol</a>.</p>
+
+    <h2>The visit counter</h2>
+    <p>On seriesoftub.es the game page loads a small visit counter (its script from jsDelivr, reporting to
+      stats.seriesoftub.es). It sends:</p>
+    <ul>
+      <li>a page view: the page's address, the page you came from and the width of the window;</li>
+      <li>how long the page stayed open;</li>
+      <li>the names of some moments in the game, such as starting a new game, earning a badge or importing a save.</li>
+    </ul>
+    <p>It sets no cookies and stores nothing in your browser. Copies of the game anywhere else send nothing, and this
+      page loads no counter at all.</p>
+
+    <h2>Leaving</h2>
+    <ul>
+      <li><b>Leave</b> a server in the Multiplayer sheet and your game stops talking to it. What it kept fades out
+        within 180 days.</li>
+      <li><b>Leave for good</b> signs a goodbye that tells every server to delete your network's records at once
+        (only the goodbye itself stays, 180 days, so it reaches every server), and the save forgets its multiplayer
+        identity.</li>
+      <li>Deleting a save, or clearing the site's data in your browser, removes it from your device.</li>
+    </ul>
+
+    <a class="b" href="/">Back to the map</a>
+  </main>
+</body>
+</html>

@@ -32,7 +32,7 @@ test('pages: the build is plain static files within GitHub Pages limits', () => 
     total += size;
   }
   assert.ok(total < 1e9, 'the site is under the 1 GB limit');
-  for (const f of ['index.html', '404.html', 'CNAME', 'version.json', 'sw.js', 'federation/servers.json', 'federation/relay.json']) assert.ok(fs.existsSync(path.join(OUT, f)), `${f} is shipped`);
+  for (const f of ['index.html', '404.html', 'CNAME', 'version.json', 'sw.js', 'federation/servers.json', 'federation/relay.json', 'privacy.html']) assert.ok(fs.existsSync(path.join(OUT, f)), `${f} is shipped`);
   assert.equal(read('CNAME').trim(), 'seriesoftub.es');
 });
 
@@ -114,4 +114,16 @@ test('pages: the shipped page and dictionaries, with labels shrunk to ids, still
     assert.notEqual(ev("tr(FLOOD_WHO[0])"), 'failures.a_botnet_of_40_000_smart');
     assert.deepEqual(errors, []);
   }
+});
+
+test('pages: privacy.html is a plain static page, and the game page only links to it', () => {
+  const html = read('privacy.html');
+  assert.doesNotMatch(html, /<script/i, 'the privacy page runs no script, no counter');
+  for (const m of html.matchAll(/<link[^>]*rel="stylesheet"[^>]*href="(https?:[^"]+)"/g)) assert.match(m[1], /^https:\/\/fonts\.googleapis\.com\//);
+  for (const w of ['IP addresses', '72 hours', '30 days', '180 days', 'stats.seriesoftub.es', 'Share my country', 'Leave for good']) assert.ok(html.includes(w), `privacy.html says ${w}`);
+  // The game page refers to it only as a link: nothing fetches or caches it on load.
+  const page = read('index.html');
+  assert.match(page, /<a href="\/privacy\.html"/);
+  assert.doesNotMatch(page, /fetch\([^)]*privacy|src="\/privacy/);
+  assert.doesNotMatch(read('sw.js'), /privacy/);
 });

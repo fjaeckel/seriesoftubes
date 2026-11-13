@@ -587,6 +587,10 @@ const API_VIEW={
  scenarios:{args:[],doc:'Open the scenario picker. Start one with startScn.'},
  helpClose:{args:[],doc:'Close the help modal.'},
  whatsNewShow:{args:[],doc:'Open the release notes.'},
+ helpMp:{args:[['from','string',false]],doc:'Open How multiplayer works (from: help, settings, fed or mp, where Back returns).'},
+ privacy:{args:[['from','string',false]],doc:'Open the privacy sheet: what the game keeps and sends (from: where Back returns).'},
+ infoBack:{args:[],doc:'Back from How multiplayer works or the privacy sheet to where it was opened.'},
+ infoClose:{args:[],doc:'Close How multiplayer works or the privacy sheet.'},
 };
 
 const API_BOUND={

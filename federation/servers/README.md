@@ -15,6 +15,8 @@ The rules are in [the protocol, section 11](../../docs/FEDERATION-PROTOCOL.md#11
   anything in front of it (reverse proxy, load balancer, CDN, hosting provider's access logs you control) logs
   players' IP addresses. A file with `noLogs: false` is refused. If you cannot promise that, run your server unlisted:
   players can still join it by address or invite link.
+- Players read what a listed server keeps, and never keeps, on the game's
+  [privacy page](https://seriesoftub.es/privacy.html) (source: `site/privacy.html`). A listed server keeps that promise.
 - A name no other listed server uses (compared ignoring the case of `A`–`Z`).
 
 ## Listing a server

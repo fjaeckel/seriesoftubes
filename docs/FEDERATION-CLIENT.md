@@ -269,6 +269,14 @@ panel opens with an "Update available" banner (`.fu-upd`; for a security fix "Se
 get the frame and never see a banner. Nothing is stored, and nothing is fetched for it: the page never asks for
 `relay.json`.
 
+**Help and privacy** (`95-modals/61-help-more.js`, actions `90-actions/89-help-privacy.js`). Two plain sheets:
+"How multiplayer works" (`showMpHelp`, `ACT.helpMp`, labels `mphelp.*`), offered in How to play where `fuCan()` holds
+and in the home sheet (`.fu-info`), and the privacy sheet (`showPrivacy`, `ACT.privacy`, labels `privacy.*`), offered in
+Settings, How to play, the home sheet and the help sheet. Each takes `{from}` (`help`, `settings`, `fed`, `mp`) onto a
+short stack `UI.info`, so Back (`ACT.infoBack`) returns where it came from and × (`ACT.infoClose`) closes everything;
+Settings' `UI.setOpen` is put aside meanwhile so it cannot redraw over the sheet. Nothing is fetched: the web copy,
+`site/privacy.html`, is only a link. Its facts follow `docs/RELAY.md` (what relays keep) and §12; change both together.
+
 ### Starting in multiplayer (`95-modals/47-fed-start.js`, actions `90-actions/94-fed-start.js`)
 
 The title screen's Normal door has a "Play with others" switch (`#fsTog`, `ACT.fsSet({on})`), shown only where `fuCan()`

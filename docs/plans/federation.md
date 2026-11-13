@@ -199,7 +199,7 @@ We accept that some players cheat. What remains is about identity and correctnes
   touches `S` or the screen. Names are plain text, never HTML.
 - **Server moderation.** Each server can hide an entry or a name, and refuse a key. Servers pass on hide lists only as
   advice; each decides for itself.
-- **Player muting.** Any player can mute a network locally; it disappears from their boards and their map.
+- **Player muting.** Any player can mute a network locally; it disappears from their boards and lists.
 - **Shunning.** When enough registered servers vote to shun a network, it is excluded everywhere (below).
 
 ### Shunning: excluded everywhere when enough servers agree
@@ -499,8 +499,8 @@ any server the viewer can see:
 | --- | --- | --- | --- |
 | 0 to 7 days | Unchanged: last known state, deals hold, traffic flows | Listed, last values carried forward | Kept |
 | 7 to 37 days | Fading: customers' demand for it shrinks, traffic drifts to other routes | Not listed | Kept |
-| 37 to 180 days | Dark: greyed on the map, no traffic, deals ended with a notice in the NOC dashboard (never a surprise bill) | Not listed | Kept |
-| Over 180 days | Gone from the map and the cache. Nothing else refers to it by then | Not listed | Deleted |
+| 37 to 180 days | Dark: greyed in lists (players' networks are never drawn on the map), no traffic, deals ended with a notice in the NOC dashboard (never a surprise bill) | Not listed | Kept |
+| Over 180 days | Gone from lists and the cache. Nothing else refers to it by then | Not listed | Deleted |
 
 - **Back within 7 days:** nobody notices. Their game did not move on while it was closed (the game only runs while
   open), so their new records simply continue where the old ones stopped: a fresh `announce` replaces the last one,
@@ -720,6 +720,8 @@ percentile and lowest value, carry-forward, expiry, merging server lists), passe
   them to a game only when it proved an operator key of that relay's server. Games learn only which networks are
   excluded; the excluded player sees which reasons were given, never how many votes, which servers or which operators.
 - No central service: the registry is the repo, gossip carries liveness.
+- Other players' networks are never drawn on the map (2026-11-13): they appear in lists, sheets, the looking glass and
+  the boards. A dark network is greyed in lists.
 - Leaderboards show totals or growth over the last 24 hours (with floors so tiny networks cannot top growth).
 - Leaderboards also rank total traffic (each game's own figure, self-reported), next to traffic with players.
 - A network is shunned everywhere when 25% of all voting servers vote for it, and at least 5 do.

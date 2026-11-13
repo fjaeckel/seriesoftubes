@@ -62,6 +62,6 @@ Object.assign(ACT,{
 // open anything in it. Everything but these and the pz* actions does nothing while a puzzle is on. The main game's
 // routing controls (metric, standby, the redundancy check) work in a puzzle too, and their changes can be undone.
 // This file is the last of the actions, so every one is here to wrap.
-const PZ_ACTS=new Set(['animSet','closeModal','closePanel','help','helpClose','install','keepPlaying','langSet','linkCheck','mapSet','menu','metricMode','metricSet','mute','prefSet','puzzleDoor','puzzleMenu','selLink','setMetric','setStandby','settings','settingsClose','soundSet','speed','updateLater','updateNow','vpSet','whatsNewShow']);
+const PZ_ACTS=new Set(['animSet','closeModal','closePanel','help','helpClose','helpMp','infoBack','infoClose','install','keepPlaying','langSet','linkCheck','mapSet','menu','metricMode','metricSet','mute','prefSet','privacy','puzzleDoor','puzzleMenu','selLink','setMetric','setStandby','settings','settingsClose','soundSet','speed','updateLater','updateNow','vpSet','whatsNewShow']);
 const PZ_UNDO=new Set(['metricMode','metricSet','setMetric','setStandby']);
 for(const k of Object.keys(ACT)){const f=ACT[k];if(PZ_UNDO.has(k))ACT[k]=a=>{if(pzOn())pzSnap();return f(a);};else if(!PZ_ACTS.has(k)&&!/^pz[A-Z]/.test(k))ACT[k]=a=>pzOn()?undefined:f(a);}
