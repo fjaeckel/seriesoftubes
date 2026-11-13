@@ -1,6 +1,8 @@
-# Keeps what the workflows and the container image pin up to date: every GitHub Action is pinned to a commit SHA
-# (Dependabot moves the SHA and its version comment together), the image's Node base to a digest, and the npm tools
-# to the lockfile. Updates come as pull requests, one group per ecosystem, once a week.
+# Keeps what the workflows, the container images and the relay pin up to date: every GitHub Action is pinned to a
+# commit SHA (Dependabot moves the SHA and its version comment together), the game image's Node base to a digest, the
+# npm tools to the lockfile, the relay's Go modules to go.sum, and the relay's Go build image and Compose images to their
+# tags. Updates come as pull requests, one group per ecosystem, once a week. CI builds and tests the relay with the Go of
+# relay/go.mod (go-version-file), so a Go toolchain update there and the golang image in relay/Dockerfile go together.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -37,3 +39,36 @@ updates:
         update-types: [minor, patch]
     commit-message:
       prefix: "Tools"
+
+  - package-ecosystem: gomod
+    directory: /relay
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      relay-go:
+        patterns: ["*"]
+    commit-message:
+      prefix: "Relay"
+
+  - package-ecosystem: docker
+    directory: /relay
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      relay-image:
+        patterns: ["*"]
+    commit-message:
+      prefix: "Relay"
+
+  - package-ecosystem: docker-compose
+    directory: /relay
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      relay-compose:
+        patterns: ["*"]
+    commit-message:
+      prefix: "Relay"
