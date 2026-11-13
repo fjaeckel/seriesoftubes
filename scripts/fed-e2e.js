@@ -773,7 +773,14 @@ stay in the browser).`);
       await until(() => ev(A, (x) => S.fedp.rq.some((y) => y.id === x), id), 30000, 'Dave\'s request in Alice\'s queue');
       await ev(A, () => { closeModal(); ACT.fpQueue(); });
       await A.page.locator(`[data-act="fpAccept"][data-args*="${id}"]`).first().click();
-      await until(() => ev(D, (x) => { const d = S.fed.deals.find((y) => y.id === x); return d && d.st === 'run'; }, id), 45000, 'Dave\'s deal to run');
+      await until(() => ev(D, (x) => { const d = S.fed.deals.find((y) => y.id === x); return d && d.st === 'run'; }, id), 45000, 'Dave\'s deal to run').catch(async (e) => {
+        const seed = await ev(D, () => S.fed.key.priv), dk = keyOf(Buffer.from(seed, 'base64url')), per = {};
+        for (const [n, u] of [['node 1', raw.url], ['node 2', `wss://127.0.0.1:${port2}/fed`], ['node 2b', `wss://127.0.0.1:${port2b}/fed`]]) {
+          const c = await authedAt(u, dk); per[n] = (await subAll(c, ['offer', 'accept', 'decline'])).filter((x) => x.rec.key === P.D || x.rec.body.to === P.D).map((x) => x.rec.kind).join(','); c.close();
+        }
+        const st = (p) => ev(p, (x) => { const d = S.fed.deals.find((y) => y.id === x); return { deal: d && { st: d.st, why: d.why, role: d.role }, rq: S.fedp.rq.filter((q) => q.id === x).length, conn: [...FED.live.conns.values()].map((c) => [c.node, c.phase]) }; }, id);
+        throw new Error(`${e.message}: Dave ${JSON.stringify(await st(D))}, Alice ${JSON.stringify(await st(A))}, deal records per node ${JSON.stringify(per)}, Alice sent ${A.sent.filter((f) => f.m === 'put' && f.rec && f.rec.kind === 'accept').length} accept(s)`);
+      });
       await ev(A, () => closeModal());
       const ad = await until(() => ev(A, (x) => S.fed.deals.find((y) => y.id === x && y.st === 'run'), id), 30000, 'Alice\'s side of the deal');
       must(ad.key === P.D, `Alice's deal ${JSON.stringify(ad)}`);
