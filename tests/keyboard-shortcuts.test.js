@@ -111,7 +111,7 @@ test('n opens the NOC dashboard, and n followed by a letter opens one of its tab
   key('c'); assert.equal(tab(), 'conn', 'n c: Connections');
   key('n'); assert.ok(open(), 'n does not close it, so n c can switch tabs without a flash');
   key('u'); assert.equal(tab(), 'cust');
-  for (const [l, t] of [['o', 'overview'], ['t', 'traffic'], ['r', 'infra'], ['l', 'lease'], ['c', 'conn']]) { key('n'); key(l); assert.equal(tab(), t, 'n ' + l); }
+  for (const [l, t] of [['o', 'overview'], ['t', 'traffic'], ['r', 'routers'], ['k', 'links'], ['l', 'lease'], ['c', 'conn']]) { key('n'); key(l); assert.equal(tab(), t, 'n ' + l); }
   key('o'); assert.equal(tab(), 'conn', 'a letter on its own does nothing');
   key('n'); key('Shift'); key('T'); assert.equal(tab(), 'traffic', 'Shift on the way does not cancel it');
   key('n'); ev('keyLead=Date.now()-KEY_LEAD-1'); key('c'); assert.equal(tab(), 'traffic', 'too late: the letter stands alone');

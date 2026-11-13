@@ -103,9 +103,19 @@ label.f+select.pick{width:100%}
 /* The NOC's traffic table has a row per network: classes, not inline styles, keep its hundreds of rows cheap to parse. */
 .nmc{display:inline-flex;align-items:center;gap:6px}.dlost{color:var(--bad)}.b.pall{display:block;margin-top:5px}
 .tscroll{overflow-x:auto}
-/* Links & routers: every row, in a box of its own so the AS facts below stay in reach. */
-.iscroll{max-height:min(56vh,520px);overflow-y:auto;overscroll-behavior:contain;padding-right:2px}
-.ihit{cursor:pointer;border-radius:8px}.ihit:hover{background:var(--soft)}
+/* Links and Routers tabs: the page scrolls like every tab; the filter bar sticks just under the tab bar (.dtabs, whose
+   height fitList() measures into --dtabh), so sorting and filters stay in reach. */
+.itop{align-items:start}
+.ibar{position:sticky;top:calc(var(--dtabh,50px) - 12px);z-index:2;background:var(--paper);display:flex;flex-direction:column;gap:6px;padding:8px 0;margin-top:-8px;border-bottom:1px solid var(--line)}
+.ibar h3{margin:0}.ifoot{align-items:center}.ifoot .trsel{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:800;margin-right:4px}
+.ilist>.row:first-child{border-top:0}
+.optq{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:12px;font-weight:800;margin-right:6px}.optn{white-space:nowrap}.optq .b{min-width:30px;padding-inline:6px}
+/* Rows reach out into the panel's padding, so a hovered or picked row has room around its content while the text stays
+   in line with the filter bar; the line between rows steps aside for a picked one. */
+.ihit{cursor:pointer;border-radius:10px;padding:9px 10px 9px 12px;margin-inline:-6px}.ihit:hover{background:var(--soft)}
+.ihit.on{background:var(--soft);box-shadow:inset 4px 0 0 var(--pink,#FF4F9A),0 0 0 1.5px var(--line)}.ihit.on,.ihit.on+.ihit{border-top-color:transparent}.ihit .btns{margin-top:6px}
+.lpct{min-width:42px;text-align:right}
+.btns.lmore{margin:0;padding-top:8px;justify-content:center}
 #modal{position:fixed;inset:0;background:rgba(30,38,64,.45);display:grid;place-items:center;z-index:20;padding:16px max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px))}
 #modal .card{width:min(560px,100%);max-height:calc(100% - 20px);overflow:auto;padding:20px 22px}
 .title-art{display:flex;align-items:center;gap:14px}
