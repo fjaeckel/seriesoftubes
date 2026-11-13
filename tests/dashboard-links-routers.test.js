@@ -192,6 +192,30 @@ test('quick buttons in a link row: one more optic, one more fiber pair, a bigger
   assert.deepEqual(errors, []);
 });
 
+test('a link row says what is used and, on dark fiber, what is sold: alien-wave channels and managed waves', (t) => {
+  const { ev, errors } = big(t, MIXED);
+  ev("ACT.infraF({v:'own'})");
+  const id = links(ev)[0];
+  // Light four channels, rent two more out as alien waves and sell 2 × 400G as managed waves on top of the lit ones.
+  ev(`(()=>{const l=S.links.find(x=>x.id==='${id}'),o=quickOpt(l);l.ch=[o,o,o,o];
+    S.biz.push({id:'aw',type:'wwave',link:l.id,slots:2,rate:1000,name:'Alien',city:l.a,city2:l.b,bw:1,reqs:[],mood:80,since:0,day:0,what:'x'});
+    S.biz.push({id:'mw',type:'mwave',link:l.id,slots:2,g:400,rate:5000,name:'Managed',city:l.a,city2:l.b,bw:1,reqs:[],mood:80,since:0,day:0,route:'normal',what:'x'});
+    compute();renderDash();})()`);
+  const row = ev(`document.querySelector('#linksSec .ihit[data-args*="${id}"]').textContent`);
+  const max = ev(`chMax(S.links.find(l=>l.id==='${id}'))`);
+  assert.ok(row.includes(`Channels: 4 lit · 2 sold · ${max - 6} free of ${max}`), row);
+  assert.ok(row.includes('800G sold as managed waves'), 'managed waves, as the link panel words them');
+  const used = ev(`fmtG(R.load['${id}']||0)`), cap = ev(`fmtG(capOf(S.links.find(l=>l.id==='${id}')))`);
+  assert.ok(row.includes(`Used ${used} of ${cap}`), 'used against what is left for your own traffic');
+  assert.ok(ev(`capOf(S.links.find(l=>l.id==='${id}'))===dfLit(S.links.find(l=>l.id==='${id}'))-800`), 'managed waves come out of your own lit capacity');
+  // A leased wave sells nothing: only what is used.
+  ev("ACT.infraF({v:'wave'})");
+  const w = ev("document.querySelector('#linksSec .ihit').textContent");
+  assert.match(w, /Used .+ of /);
+  assert.doesNotMatch(w, /Channels:|managed waves/);
+  assert.deepEqual(errors, []);
+});
+
 test('tapping a row picks it in the side panel behind the dashboard, which stays open; Open goes there', (t) => {
   const { ev, errors } = big(t);
   const [id, id2] = links(ev);

@@ -27,7 +27,12 @@ function linkActs(l){let h=optActs(l);
   return h?`<div class="btns">${h}</div>`:'';}
 // The row picked in the side panel behind the dashboard; the NOC window has no side panel of its own.
 const sel=(type,id)=>!NOC.win&&UI.sel&&UI.sel.type===type&&UI.sel.id===id?' on':'';
-const linkMeta=l=>[tr(LK_L[lkOf(l)]),capName(l),l.kind==='df'&&l.ready<=S.day?tr('link_panels.n_of_max_channels_lit',{n:(l.ch||[]).length,max:chMax(l)}):'',`${linkLat(l).toFixed(1)} ms`].filter(Boolean).map(x=>`<span class="optn">${x}</span>`).join(' · ');
+const linkMeta=l=>[tr(LK_L[lkOf(l)]),capName(l),`${linkLat(l).toFixed(1)} ms`].filter(Boolean).map(x=>`<span class="optn">${x}</span>`).join(' · ');
+// Used against what is left for your own traffic (capOf, the load bar's 100%); on dark fiber also what is sold:
+// channels rented out as alien waves and capacity sold as managed waves, which come out of your own lit capacity (dfCap0).
+const linkUse=(l,c)=>{const m=[tr('dashboard.used_of',{used:fmtG(R.load[l.id]||0),cap:fmtG(c)})];
+  if(l.kind==='df'&&!(l.ready>S.day)){const sold=soldSlots(l),mw=mwG(l);m.push(tr('dashboard.ch_lit_sold_free',{lit:(l.ch||[]).length,sold,free:Math.max(0,freeCh(l)),max:chMax(l)}));if(mw)m.push(tr('market.g_sold_as_managed',{g:fmtCap(mw)}));}
+  return `<div class="meta">${m.map(x=>`<span class="optn">${x}</span>`).join(' · ')}</div>`;};
 const pct2=(r)=>`<b class="num lpct">${r.down?tr('common.down'):pct(r.u)}</b>`;
 function linksTab(){if(!S.links.length)return `<div class="panel2 itab" id="linksSec"><h3>${tr('common.links')}</h3><p class="empty">${tr('common.no_links_yet')}</p></div>`;
   const all=S.links.map(l=>{const c=capOf(l);return {l,id:l.id,nm:(CITY[l.a].name+' '+CITY[l.b].name).toLowerCase(),cap:c,u:c>0?(R.load[l.id]||0)/c:0,down:linkDown(l)};});
@@ -39,7 +44,7 @@ function linksTab(){if(!S.links.length)return `<div class="panel2 itab" id="link
   ${Object.keys(lc).length>1||lf?`<div class="seg">${btn(tr('dashboard.all_n',{n:inC.length}),'infraF',{v:''},!lf?'pink sm':'ghost sm')}${LK.filter(k=>lc[k]).map(k=>btn(`${tr(LK_L[k])} (${lc[k]})`,'infraF',{v:k},lf===k?'pink sm':'ghost sm')).join('')}</div>`:''}
   ${hotSeg('links',ofK,hf)}<div class="seg ifoot"><label class="trsel">${tr('common.city_906b')} <select data-chg="infraCity"><option value="">${tr('common.all_cities')}</option>${cities.map(c=>`<option value="${c}"${city===c?' selected':''}>${esc(CITY[c].name)}</option>`).join('')}</select></label>${infraSeg('links')}</div></div>`;
   if(!ls.length)return h+`<p class="empty">${tr('common.nothing_yet')}</p></div>`;
-  h+=`<div class="ilist">`+ls.slice(0,listN('links')).map(r=>{const {l,u}=r;return `<div class="row ihit${sel('link',l.id)}" data-act="dashLink" data-args='{"id":"${l.id}","bg":1}'><div class="grow"><div class="nm">${CITY[l.a].name} ⇄ ${CITY[l.b].name} <span class="meta">${linkMeta(l)}</span></div><div class="bar ${r.down?'bad':barCls(u)}"><i style="width:${r.down?100:Math.min(100,u*100)}%"></i></div>${linkActs(l)}</div>${pct2(r)}${btn(tr('common.open'),'dashLink',{id:l.id},'ghost sm')}</div>`;}).join('')+`</div>`;
+  h+=`<div class="ilist">`+ls.slice(0,listN('links')).map(r=>{const {l,u}=r;return `<div class="row ihit${sel('link',l.id)}" data-act="dashLink" data-args='{"id":"${l.id}","bg":1}'><div class="grow"><div class="nm">${CITY[l.a].name} ⇄ ${CITY[l.b].name} <span class="meta">${linkMeta(l)}</span></div>${linkUse(l,r.cap)}<div class="bar ${r.down?'bad':barCls(u)}"><i style="width:${r.down?100:Math.min(100,u*100)}%"></i></div>${linkActs(l)}</div>${pct2(r)}${btn(tr('common.open'),'dashLink',{id:l.id},'ghost sm')}</div>`;}).join('')+`</div>`;
   return h+listMore('links',ls.length,n=>trn('dashboard.view_more_link',n),'lmore')+`</div>`;}
 function routersTab(){const all=Object.keys(S.pops).map(c=>({c,id:c,nm:CITY[c].name.toLowerCase(),cap:R.nodeCap[c]||0,u:(R.nodeLoad[c]||0)/(R.nodeCap[c]||1)}));
   const hf=['warm','hot'].includes((UI.infraHot||{}).routers)?UI.infraHot.routers:'',rs=infraRows('routers',all.filter(r=>!hf||LH[hf][1](r)));
