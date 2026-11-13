@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Development server: http://127.0.0.1:8080 (--host/--port, or SOT_DEV_HOST=/PORT=, to change). The page is assembled from
+// Development server: http://127.0.0.1:8080 (--host/--port, or SOT_DEV_HOST=/PORT=, to change; --https for a phone on the LAN). The page is assembled from
 // src/ on every request, static files come straight from site/, and the browser reloads itself when you save a file.
 // The page is not version-stamped, so the game runs in dev mode (IS_DEV) like a local copy always has, and it is
 // the development page: with the agent facade (src/agent/, window.TUBES) that the page players get has not.
@@ -9,6 +9,9 @@
 // relay's ws. For the production build as GitHub Pages will serve it: npm run serve.
 const fs = require('node:fs');
 const http = require('node:http');
+const https = require('node:https');
+const os = require('node:os');
+const { execFileSync } = require('node:child_process');
 const path = require('node:path');
 const { assemble, ROOT } = require('./lib/page');
 const { createRelay } = require('./agent/relay');
@@ -17,7 +20,10 @@ const { lit } = require('./lib/js-literal');
 // --host/--port; a bare --host binds loopback (never undefined, which would listen on every interface).
 const argOf = (k) => { const i = process.argv.indexOf(k); return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : null; };
 // Not $HOST: some shells (tcsh) export it as the machine's name, which would quietly bind to the LAN.
-const HOST = argOf('--host') || process.env.SOT_DEV_HOST || '127.0.0.1';
+// --https: for a phone on the LAN (crypto.subtle, which Multimode needs, exists only on secure pages), so it listens on
+// every interface unless --host says otherwise.
+const HTTPS = process.argv.includes('--https');
+const HOST = argOf('--host') || process.env.SOT_DEV_HOST || (HTTPS ? '0.0.0.0' : '127.0.0.1');
 const PORT = (() => { const p = +argOf('--port'); return Number.isInteger(p) && p > 0 && p < 65536 ? p : (+process.env.PORT || 8080); })();
 const SITE = path.join(ROOT, 'site');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json',
@@ -33,8 +39,37 @@ function page() {
   return html.replace('</body>', `${hint}${RELOAD}</body>`);
 }
 
-const server = http.createServer((req, res) => {
+/* --https: a local certificate authority and a certificate for this machine's names and LAN addresses, kept in .dev-certs/
+   (git-ignored). A phone trusts the authority once (it is served at /dev-ca.crt), then every page here is secure. The
+   certificate is made again when the addresses change. Needs openssl (macOS and Linux have it). */
+function devCerts() {
+  const dir = path.join(ROOT, '.dev-certs'), f = (n) => path.join(dir, n), run = (...a) => execFileSync('openssl', a, { cwd: dir, stdio: 'pipe' });
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  const ips = ['127.0.0.1', ...Object.values(os.networkInterfaces()).flat().filter((i) => i && i.family === 'IPv4' && !i.internal).map((i) => i.address)];
+  const names = ['localhost', `${os.hostname().replace(/\.local$/, '')}.local`];
+  const sans = [...names.map((n) => `DNS:${n}`), ...ips.map((i) => `IP:${i}`)].join(',');
+  if (!fs.existsSync(f('ca.crt'))) {
+    fs.writeFileSync(f('ca.cnf'), '[req]\ndistinguished_name=dn\n[dn]\n[ca]\nbasicConstraints=critical,CA:TRUE\nkeyUsage=critical,keyCertSign,cRLSign\nsubjectKeyIdentifier=hash\n');
+    run('req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-sha256', '-days', '825', '-keyout', 'ca.key', '-out', 'ca.crt',
+      '-subj', '/CN=Series of Tubes dev CA', '-config', 'ca.cnf', '-extensions', 'ca');
+  }
+  if (!fs.existsSync(f('cert.pem')) || (fs.existsSync(f('sans.txt')) ? fs.readFileSync(f('sans.txt'), 'utf8') : '') !== sans) {
+    fs.writeFileSync(f('leaf.cnf'), `basicConstraints=CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\nsubjectAltName=${sans}\n`);
+    run('req', '-newkey', 'rsa:2048', '-nodes', '-sha256', '-keyout', 'key.pem', '-out', 'leaf.csr', '-subj', '/CN=Series of Tubes dev');
+    run('x509', '-req', '-sha256', '-days', '397', '-in', 'leaf.csr', '-CA', 'ca.crt', '-CAkey', 'ca.key', '-CAcreateserial', '-out', 'cert.pem', '-extfile', 'leaf.cnf');
+    fs.writeFileSync(f('sans.txt'), sans);
+  }
+  return { key: fs.readFileSync(f('key.pem')), cert: fs.readFileSync(f('cert.pem')), ca: fs.readFileSync(f('ca.crt')), ips };
+}
+const TLS = HTTPS ? devCerts() : null;
+
+const server = (HTTPS ? (h) => https.createServer({ key: TLS.key, cert: TLS.cert }, h) : http.createServer)((req, res) => {
   const url = new URL(req.url, 'http://localhost');
+  // The authority's certificate, for a phone to install (iPhone: then Settings → General → About → Certificate Trust Settings).
+  if (TLS && url.pathname === '/dev-ca.crt') {
+    res.writeHead(200, { 'content-type': 'application/x-x509-ca-cert', 'content-disposition': 'attachment; filename="series-of-tubes-dev-ca.crt"' });
+    return res.end(TLS.ca);
+  }
   if (url.pathname === '/__dev') {
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store' });
     res.write(': hi\n\n');
@@ -67,7 +102,16 @@ server.listen(PORT, HOST, () => {
   // The banner reports the socket's real address, not the flag it was asked for.
   const ad = server.address(), at = `${ad.family === 'IPv6' ? `[${ad.address}]` : ad.address}:${ad.port}`;
   const local = /^(127\.|::1$|localhost$)/.test(ad.address);
-  console.log(`Series of Tubes (dev): http://${at}/  — edits in src/ and site/ reload the page`);
+  console.log(`Series of Tubes (dev): ${HTTPS ? 'https' : 'http'}://${at}/  — edits in src/ and site/ reload the page`);
+  if (TLS) {
+    // The LAN addresses, Wi-Fi first (the order the system lists them); loopback is no use to a phone.
+    const urls = (ad.address === '0.0.0.0' || ad.address === '::' ? TLS.ips.filter((i) => i !== '127.0.0.1') : [ad.address]).map((i) => `https://${i}:${ad.port}/`);
+    const u = urls[0] || `https://localhost:${ad.port}/`;
+    console.log(`  on your phone (same Wi-Fi): ${urls.join('  ')}`);
+    console.log(`  first time on a phone: open ${u}dev-ca.crt (accept the warning once), install the profile,`);
+    console.log('  then iPhone: Settings → General → About → Certificate Trust Settings → turn on "Series of Tubes dev CA"');
+    console.log(`  play against a server: ${u}#join=wss://your.server/fed`);
+  }
   console.error(`[series-of-tubes] agent relay on ws://${at}${relay.path} (no token)${local ? '' : `: bound to ${ad.address}, so anything that can reach this address can drive a game whose player turned agent mode on`}`);
   console.error('[series-of-tubes] to let an agent play: Settings → Agent API in the game, then node scripts/mcp.js --browser');
 });
