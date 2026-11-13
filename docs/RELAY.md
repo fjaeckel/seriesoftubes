@@ -449,6 +449,11 @@ How it works (`relay/internal/rank`):
   A ranking of now is worked out from a snapshot of the live states at most every 2 seconds per slice, on the same
   workers, and kept 30 seconds for the games' spot checks. `relay_live_states` counts the networks held,
   `relay_states_total` the states taken from clients and nodes and sent to nodes.
+- **The running slot, and at most 30 s old.** The 24-hour and growth boards also count the 5-minute slot still running,
+  from the live states (protocol 10.13): a network that is playing gets one more sample there, so a new POP or a
+  traffic jump shows on every board within seconds instead of when the slot ends. Rankings of those boards are worked
+  out from a snapshot of the live states at most 10 s old, and nothing (rankings, `rankwhy` snapshots, facets) is
+  served once it is 30 s old.
 - `relay board` shows a whole board as players' games see it.
 
 ## Upgrades, backups and data
@@ -622,6 +627,13 @@ go run ./cmd/relayload --help               # every rate and threshold
   limit to the hard limit (the relays inherit it) and reports `EMFILE` plainly; if it does, raise `ulimit -n`.
 
 ### Results
+
+With live states (13 November 2026, `--quick`, 20 servers in a ring, 1000 players, 150 s, load average 6 to 11 from
+other work): all assertions passed; 7478 states acked (p50 0.6 ms, p95 24 ms); a state reached the boards of now of
+the other servers in p50 4.0 s and p95 6.0 s (1 hop p95 3.5 s, 4 hops 6.1 s: each hop waits for the 2-second batch,
+and the board's snapshot is up to 2 s old), 100% within 10 s; announces still p95 63 ms. Each relay: CPU 2.9 to 3.2%
+of one core, RSS 42 to 50 MB at start, 54 to 63 mid-run, 73 to 82 at the end, 198 goroutines; warm `rank` p95 7.7 ms.
+
 
 On an Apple Silicon Mac (8 CPUs, 24 GB), 13 November 2026, with the defaults (20 servers in a ring with chords, 1000
 players round-robin, 12 minutes after a one-minute ramp), once with the store that reads records back from its files
