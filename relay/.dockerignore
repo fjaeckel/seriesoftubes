@@ -1,5 +1,13 @@
+# Only the Go sources go into the image build.
 relay
 relay-data
+relay-lan
 *.tar.gz
+*.pem
+*.key
 Dockerfile
 .dockerignore
+# The server's Compose setup and its settings (docker-compose.yml, docs/HOSTING.md): never in the image.
+.env
+.env.*
+docker-compose*.yml

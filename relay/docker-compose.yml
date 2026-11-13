@@ -1,0 +1,131 @@
+# A Series of Tubes server (a relay) from this checkout, with its own Let's Encrypt certificate.
+# docs/HOSTING.md, "From the repo". In short:
+#
+#   cp .env.example .env        # then set RELAY_DOMAIN, LETSENCRYPT_EMAIL, RELAY_NAME
+#   docker compose up -d --build
+#   docker compose logs -f relay
+#   docker compose cp relay:/data/operator.key ./operator.key    # back it up off the server, once
+#
+# Through a remote Docker context it works the same (docker --context NAME compose up -d --build): named volumes only
+# and inline configs, so nothing here depends on files on the server; the build context (this folder) is sent over.
+#
+# certbot answers Let's Encrypt on port 80 and copies the certificate into relay_certs; the relay serves TLS itself on
+# 443, waits for the first certificate and rereads renewals without a restart.
+
+name: tubes-relay
+
+services:
+  relay:
+    # `up --build` builds this folder into that tag; after a release, `docker compose pull` fetches it instead.
+    image: ${RELAY_IMAGE:-ghcr.io/fjaeckel/seriesoftubes-relay:latest}
+    build:
+      context: .
+      args:
+        VERSION: ${RELAY_VERSION:-dev}
+    command: ["up"]
+    restart: unless-stopped
+    stop_grace_period: 15s
+    ports:
+      - "${RELAY_HTTPS_PORT:-443}:8443"
+      # Metrics (9100) stay on the Compose network. For a Prometheus on this machine, publish them on loopback only:
+      # - "127.0.0.1:9100:9100"
+    environment:
+      # Used when the data volume is still empty (the first start); later starts say what differs. docs/RELAY.md, relay up.
+      RELAY_URL: ${RELAY_URL:-wss://${RELAY_DOMAIN:?set RELAY_DOMAIN in .env}/fed}
+      RELAY_NAME: ${RELAY_NAME:-}
+      RELAY_SYNC: ${RELAY_SYNC:-open}
+      RELAY_LANGS: ${RELAY_LANGS:-en}
+      RELAY_DESC: ${RELAY_DESC:-}
+      RELAY_JOIN: ${RELAY_JOIN:-}
+      RELAY_JOIN_FROM: ${RELAY_JOIN_FROM:-}
+      RELAY_LISTEN: 0.0.0.0:8443
+      RELAY_TLS_CERT: /certs/fullchain.pem
+      RELAY_TLS_KEY: /certs/privkey.pem
+      RELAY_METRICS: ${RELAY_METRICS-0.0.0.0:9100}
+      RELAY_METRICS_PUBLIC: "true"
+      # Applied on every start.
+      RELAY_NOTIFY_URL: ${RELAY_NOTIFY_URL:-}
+      RELAY_LOG_JSON: ${RELAY_LOG_JSON:-false}
+    volumes:
+      - relay_data:/data
+      - relay_certs:/certs:ro
+
+  # Issues the certificate on its first start, then renews every 12 hours (certbot renews only certificates due within
+  # 30 days). Non-interactive: LETSENCRYPT_EMAIL accepts the Let's Encrypt subscriber agreement (--agree-tos).
+  certbot:
+    image: ${CERTBOT_IMAGE:-certbot/certbot:latest}
+    restart: unless-stopped
+    ports:
+      - "${RELAY_HTTP_PORT:-80}:80"
+    environment:
+      DOMAIN: ${RELAY_DOMAIN:?set RELAY_DOMAIN in .env}
+      EMAIL: ${LETSENCRYPT_EMAIL:?set LETSENCRYPT_EMAIL in .env (it accepts the Let's Encrypt subscriber agreement)}
+      CERTBOT_STAGING: ${CERTBOT_STAGING:-false}
+    volumes:
+      - letsencrypt_certs:/etc/letsencrypt
+      - relay_certs:/certs
+    configs:
+      - source: certbot-run
+        target: /run.sh
+      - source: certbot-hook
+        target: /hook.sh
+    entrypoint: ["/bin/sh", "/run.sh"]
+
+  # Not started by `up`: `docker compose run --rm toolbox` edits config.json as the relay's user (the image has no
+  # shell), `docker compose run --rm toolbox rm /data/backup.tar.gz` and the like. Then: docker compose kill -s HUP relay
+  toolbox:
+    image: busybox:1.37
+    profiles: [tools]
+    user: "65532:65532"
+    working_dir: /data
+    command: ["vi", "/data/config.json"]
+    stdin_open: true
+    tty: true
+    volumes:
+      - relay_data:/data
+
+volumes:
+  relay_data:          # keys, config, records: back it up (relay backup), and operator.key apart from it
+  relay_certs:         # the certificate pair as the relay reads it (uid 65532)
+  letsencrypt_certs:   # certbot's account, certificates and renewal settings
+
+configs:
+  certbot-run:
+    content: |
+      set -eu
+      trap 'exit 0' TERM INT
+      pause() { sleep "$$1" & wait $$!; }
+      server=""
+      [ "$$CERTBOT_STAGING" = true ] && server="--staging"
+      conf="/etc/letsencrypt/renewal/$$DOMAIN.conf"
+      # A staging certificate from a test run is replaced once CERTBOT_STAGING is off.
+      again=""
+      if [ -e "$$conf" ] && [ "$$CERTBOT_STAGING" != true ] && grep -q staging "$$conf"; then again="--force-renewal"; fi
+      delay=120
+      while [ ! -e "$$conf" ] || [ -n "$$again" ]; do
+        if certbot certonly --standalone --non-interactive --agree-tos -m "$$EMAIL" --no-eff-email $$server $$again \
+            --cert-name "$$DOMAIN" -d "$$DOMAIN" --deploy-hook "sh /hook.sh"; then
+          break
+        fi
+        echo "certbot: no certificate for $$DOMAIN yet (does its DNS point here, is port 80 open?); next try in $$delay s"
+        pause "$$delay"
+        delay=$$((delay * 2)); [ "$$delay" -gt 3600 ] && delay=3600
+      done
+      # The relay's copy is gone (its volume was removed): copy it again.
+      [ -e /certs/fullchain.pem ] || RENEWED_LINEAGE="/etc/letsencrypt/live/$$DOMAIN" sh /hook.sh
+      while :; do
+        certbot renew --standalone --quiet --deploy-hook "sh /hook.sh" || echo "certbot: renewal failed, next try in 12 h"
+        pause 12h
+      done
+  # After each issuance and renewal: the pair where the relay (uid 65532) reads it, both files written under temporary
+  # names first, so the relay never loads a half-copied pair.
+  certbot-hook:
+    content: |
+      set -eu
+      umask 077
+      cp -L "$$RENEWED_LINEAGE/fullchain.pem" /certs/.fullchain.pem.new
+      cp -L "$$RENEWED_LINEAGE/privkey.pem" /certs/.privkey.pem.new
+      chown 65532:65532 /certs/.fullchain.pem.new /certs/.privkey.pem.new
+      mv /certs/.privkey.pem.new /certs/privkey.pem
+      mv /certs/.fullchain.pem.new /certs/fullchain.pem
+      echo "certbot: certificate handed to the relay"

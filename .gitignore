@@ -4,3 +4,5 @@ _site/
 # relay build output and local data folders
 /relay/relay
 /relay/relay-data/
+/relay/relay-lan/
+/relay/.env

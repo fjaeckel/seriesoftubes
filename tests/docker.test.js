@@ -129,3 +129,43 @@ test('the entrypoint: both modes, a token unless told otherwise, and the servers
   // Every file the image's servers load at start is in the image.
   for (const f of ['scripts/mcp.js', 'scripts/dev.js', 'tests/harness.js', 'scripts/lib/page.js']) assert.ok(fs.existsSync(path.join(ROOT, f)), f);
 });
+
+// relay/docker-compose.yml: the whole server from a checkout (docs/HOSTING.md, "From the repo"), also through a remote
+// Docker context, where bind mounts would name the server's files: named volumes and inline configs only, the image
+// built from relay/ itself, every setting from .env, certbot without questions, metrics never published.
+test('the relay’s Compose file: built from relay/, named volumes only, certbot non-interactive, metrics unpublished', () => {
+  const y = code('relay/docker-compose.yml');
+  assert.match(y, /^ {4}image: \$\{RELAY_IMAGE:-ghcr\.io\/fjaeckel\/seriesoftubes-relay:latest\}\n {4}build:\n {6}context: \.\n/m);
+  assert.match(y, /command: \["up"\]/);
+  assert.match(code('relay/Dockerfile'), /^CMD \["up"\]$/m, 'the image sets up and serves by default');
+  // Volumes: named, declared at the top level; no host paths, no bind mounts.
+  const top = y.slice(y.indexOf('\nvolumes:\n'));
+  const named = [...top.slice(0, top.indexOf('\nconfigs:')).matchAll(/^ {2}(\w+):/gm)].map((m) => m[1]);
+  assert.deepEqual(named.sort(), ['letsencrypt_certs', 'relay_certs', 'relay_data']);
+  const mounts = [...y.matchAll(/^\s+- ([^\s"]+):(\/\S*)$/gm)];
+  assert.ok(mounts.length >= 5, 'the mounts are found');
+  for (const m of mounts) assert.ok(named.includes(m[1]), `${m[0].trim()} is a named volume`);
+  assert.doesNotMatch(y, /type: bind|^\s+- \.{0,2}\/|^\s+- ~/m, 'no bind mounts');
+  assert.match(y, /- relay_certs:\/certs:ro/, 'the relay only reads the certificates');
+  // Required settings fail clearly.
+  assert.match(y, /\$\{RELAY_DOMAIN:\?set RELAY_DOMAIN in \.env\}/);
+  assert.match(y, /\$\{LETSENCRYPT_EMAIL:\?set LETSENCRYPT_EMAIL in \.env/);
+  // The relay serves TLS itself; metrics stay on the Compose network.
+  assert.match(y, /- "\$\{RELAY_HTTPS_PORT:-443\}:8443"/);
+  assert.match(y, /RELAY_TLS_CERT: \/certs\/fullchain\.pem/);
+  for (const m of y.matchAll(/^\s+- "([^"]+)"$/gm)) assert.doesNotMatch(m[1], /9100/, 'metrics are not published');
+  assert.match(read('relay/docker-compose.yml'), /# - "127\.0\.0\.1:9100:9100"/, 'publishing them to loopback is shown, commented');
+  // certbot: issues by itself, never asks, renews every 12 hours, hands the pair over atomically as the relay's user.
+  const run = y.slice(y.indexOf('certbot-run:'), y.indexOf('certbot-hook:\n    content'));
+  assert.match(run, /certbot certonly --standalone --non-interactive --agree-tos -m "\$\$EMAIL"/);
+  assert.match(run, /--staging/); assert.match(run, /certbot renew --standalone/); assert.match(run, /pause 12h/);
+  const hook = y.slice(y.indexOf('certbot-hook:\n    content'));
+  assert.match(hook, /chown 65532:65532/);
+  assert.ok(hook.indexOf('mv /certs/.privkey.pem.new') > hook.indexOf('chown') && hook.indexOf('mv /certs/.fullchain.pem.new') > hook.indexOf('mv /certs/.privkey.pem.new'));
+  // Every setting is in .env.example; .env is never committed and never sent into the image.
+  const env = read('relay/.env.example');
+  for (const v of new Set([...y.matchAll(/\$\{(\w+)/g)].map((m) => m[1]))) assert.match(env, new RegExp(`^(# )?${v}=`, 'm'), `${v} in .env.example`);
+  assert.match(env, /subscriber agreement/);
+  assert.ok(read('.gitignore').split('\n').includes('/relay/.env'));
+  assert.ok(read('relay/.dockerignore').split('\n').includes('.env'));
+});
