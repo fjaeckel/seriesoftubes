@@ -4,7 +4,7 @@ The relay is the small server that lets Series of Tubes players play together: t
 and forwards their signed records, ranks them on its leaderboards, and syncs with other servers if you want it to.
 It runs no game logic and holds nothing a player cannot lose: every player keeps their own network in their own save.
 
-Design: [docs/plans/federation.md](plans/federation.md). Protocol: [docs/FEDERATION-PROTOCOL.md](FEDERATION-PROTOCOL.md).
+Protocol: [docs/FEDERATION-PROTOCOL.md](FEDERATION-PROTOCOL.md).
 Decision: [ADR 0005](adr/0005-federation-by-player-run-servers.md). The project runs no server of its own; every server
 is someone's choice and responsibility.
 

@@ -5,7 +5,7 @@ changed by pull request, checked by CI and merged by a maintainer. Each release 
 `https://seriesoftub.es/federation/servers.json`, a plain static file the game reads; nothing else is involved.
 
 The rules are in [the protocol, section 11](../../docs/FEDERATION-PROTOCOL.md#11-the-registry) and the reasons in
-[the design](../../docs/plans/federation.md). This page is the how-to for operators.
+[ADR 0005](../../docs/adr/0005-federation-by-player-run-servers.md). This page is the how-to for operators.
 
 ## Before you start
 

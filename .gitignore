@@ -6,3 +6,6 @@ _site/
 /relay/relay-data/
 /relay/relay-lan/
 /relay/.env
+
+# Planning notes stay local
+/docs/plans/

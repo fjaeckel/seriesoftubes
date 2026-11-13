@@ -1,7 +1,7 @@
 # Federation protocol, version 1
 
-The wire protocol and the shared rules of multiplayer ("federation"). Design and reasons:
-[docs/plans/federation.md](plans/federation.md); decision: [ADR 0005](adr/0005-federation-by-player-run-servers.md).
+The wire protocol and the shared rules of multiplayer ("federation"). The decision and its reasons:
+[ADR 0005](adr/0005-federation-by-player-run-servers.md).
 
 Two implementations follow this document: the relay (Go, `relay/`) and the game (JavaScript, `src/game/`). Both must
 pass every vector in [`federation/vectors/`](../federation/vectors/README.md). Where this text and a vector disagree,

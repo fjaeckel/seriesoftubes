@@ -3,7 +3,6 @@
 - Status: proposed
 - Date: 2026-11-12
 - Amends: [ADR 0001](0001-github-pages-only.md) (one narrow exception, below)
-- Design: [docs/plans/federation.md](../plans/federation.md)
 
 ## Context
 
