@@ -247,7 +247,8 @@ Syncing is mutual: two servers sync only when **both** policies allow it. Change
 `relay ops server --sync open` (signed by a majority, like every change to the server record).
 
 Your node connects to the servers in `neighbours`; others may connect to you. For each neighbour you choose what you
-**send** and what you **take**, by class:
+**send** and what you **take**, by class (they hold on every session with that neighbour's node, also when it
+connects to you because it lists you too; `defaultSend` and `defaultTake` are for servers that are not neighbours):
 
 | Class | Carries |
 | --- | --- |
@@ -442,10 +443,17 @@ works on phones: [HOSTING.md, LAN party](HOSTING.md#lan-party).
 ## Testing against the game
 
 `node scripts/fed-e2e.js` (from the repository root, after `npm ci`) builds this relay, runs it with TLS on loopback and
-plays two games against it in Chromium: join, announce, deals, a shun reaching its threshold, a report reaching only the operator, the boards. Not part of CI. `node scripts/fed-e2e.js --play` sets up the same relay and
-opens two Chromium windows on an invite to it, so you can play two networks against each other by hand.
-`node scripts/fed-e2e.js --lan` runs `relay lan` on 127.0.0.1 and has a Chromium player open its page, take the invite
-by IP address and join with the self-signed certificate.
+plays two games against it in Chromium: join, announce, deals, a shun reaching its threshold, a report reaching only the operator, the boards. A second server with two nodes syncs with the first (open policies, neighbours
+both ways): a third player there sees the first server's players, makes a sealed deal across the two servers, and
+fails over to the other node when the first one stops. `--browser firefox` or `--browser webkit` runs it in those
+engines instead. Not part of CI. `node scripts/fed-e2e.js --play` sets up the same relay and prints two addresses to
+open in any browser, one player each, so you can play two networks against each other by hand.
+`node scripts/fed-e2e.js --lan` runs `relay lan` on 127.0.0.1 and has a player open its page, take the invite
+by IP address and join with the self-signed certificate (`--browser` works there too).
+
+The run's relays trust its self-signed certificate through the environment variable `RELAY_TEST_ROOTS` (a PEM file
+of certificates trusted besides the system's, for the relay's outgoing connections). It is for tests only: never set
+it on a real relay.
 
 ## Metrics
 
