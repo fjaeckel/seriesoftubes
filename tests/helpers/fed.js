@@ -176,4 +176,16 @@ async function joinGame(p, url = URL1, start = 'ACT.start({})') {
   return r;
 }
 
-module.exports = { b64, sha, canon, key, rec, rid, asn, box, sealRec, openRec, NOW, SERVERS_JSON, PL, PL_ENTRY, URL1, URL2, Net, fedPage, joinGame, settle, until, signText };
+/* Moves the page's clock on in small steps until ok() holds (or max ms of game-clock time pass), settling after each.
+   For waits on work that finishes in real time (signing, a server's answer): a test that advanced a fixed amount and
+   then looked raced the machine's speed, and timers started by that work count from when it finished. */
+const advanceUntil = async (p, ok, { step = 250, max = 120000 } = {}) => {
+  for (let t = 0; ; t += step) {
+    if (await ok()) return true;
+    if (t >= max) return false;
+    p.net.advance(step);
+    await settle();
+  }
+};
+
+module.exports = { advanceUntil, b64, sha, canon, key, rec, rid, asn, box, sealRec, openRec, NOW, SERVERS_JSON, PL, PL_ENTRY, URL1, URL2, Net, fedPage, joinGame, settle, until, signText };

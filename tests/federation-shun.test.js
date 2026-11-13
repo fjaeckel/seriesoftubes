@@ -3,7 +3,7 @@
 // given, without counts, and plays on solo; an operator's game gets the votes and counts the tally itself.
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { fedPage, joinGame, settle, until, URL1, NOW, PL_ENTRY, rec, key, b64, sha } = require('./helpers/fed');
+const { advanceUntil, fedPage, joinGame, settle, until, URL1, NOW, PL_ENTRY, rec, key, b64, sha } = require('./helpers/fed');
 
 const DAY = 86400, sid = (n) => b64(sha('server ' + n)), M = key('mallory').pub;
 // Six registry servers old and alive enough to vote (need = max(5, div(6 + 3, 4)) = 5), each with one operator, and the
@@ -74,15 +74,15 @@ test('the excluded network\'s own game is told which reasons were given, no coun
   assert.deepEqual(p.errors, []);
 });
 
-test('an operator\'s game gets the votes of its server and counts the tally itself', { skip: 'timing-dependent on slow CI machines; to be made deterministic (4.0.0)' }, async () => {
+test('an operator\'s game gets the votes of its server and counts the tally itself', async () => {
   const p = fedPage(), n = spy(p.net.node(URL1));
   n.feed = [vote(1, 'spam'), vote(2, 'spam'), vote(3, 'cheating'), vote(4, 'spam'), rec('op9', 'shun', NOW - DAY, { server: sid(9), target: M, reason: 'spam' })].map((r) => ({ rec: r, rcpt: [] }));
   await p.ev(`fedPut('kv','registry',${JSON.stringify(REG)})`);
   assert.equal(await p.ev(`fedOpKeySet(${JSON.stringify(key('anna').seed)})`), true);
   await joinGame(p);
-  await run(p);
-  assert.ok(n.got.some((f) => f.m === 'auth' && f.key === key('anna').pub), 'the operator key is proved');
-  assert.ok(n.got.some((f) => f.m === 'sub' && f.kinds.join() === 'shun,unshun'), 'and the votes followed');
+  // Proving the key is signing work that finishes in real time: wait for it, not for a fixed stretch of game time.
+  assert.ok(await advanceUntil(p, () => n.got.some((f) => f.m === 'auth' && f.key === key('anna').pub)), 'the operator key is proved');
+  assert.ok(await advanceUntil(p, () => n.got.some((f) => f.m === 'sub' && f.kinds.join() === 'shun,unshun')), 'and the votes followed');
   assert.ok(await until(async () => (await settle(5), ((await p.ev("fedGet('kv','votes')")) || []).length === 4)), 'the vote from an unknown server is not even kept');
   assert.equal((await p.ev(`fedShunInfo(${JSON.stringify(M)})`)).shunned, false, 'four registered votes are not enough');
   // The fifth vote arrives with the next sync.

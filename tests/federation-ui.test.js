@@ -410,7 +410,7 @@ test('the operator panel lists a pending proposal and signs it with the operator
   assert.deepEqual(p.errors, []);
 });
 
-test('from the first screen: the invite shows at once, the menu has its tile, a new game opens the join sheet', { skip: 'timing-dependent on slow CI machines; to be made deterministic (4.0.0)' }, async () => {
+test('from the first screen: the invite shows at once, the menu has its tile, a new game opens the join sheet', async () => {
   const p = fedPage({ registry: SERVERS_JSON, url: 'https://tests.invalid/#join=' + encodeURIComponent(URL2) });
   // The title drawn at load already names the invite (it is drawn before the multiplayer code boots).
   assert.match(p.ev("document.body.textContent"), /You were invited to wss:\/\/second\.example\.org:8443\/fed/);

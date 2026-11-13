@@ -5,7 +5,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
-const { fedPage, joinGame, settle, until, URL1, NOW, SERVERS_JSON, PL, rec, rid, key, asn, box, canon, signText } = require('./helpers/fed');
+const { advanceUntil, fedPage, joinGame, settle, until, URL1, NOW, SERVERS_JSON, PL, rec, rid, key, asn, box, canon, signText } = require('./helpers/fed');
 
 const DAY = 86400, TODAY = Math.floor(NOW / DAY);
 const slotOf = (t) => t - (t % 300);
@@ -77,11 +77,16 @@ test('a cone that counts a newcomer is caught', async () => {
   assert.deepEqual(p.errors, []);
 });
 
-test('the boards sheet has a Customer cone board with its explanation, at phone width', { skip: 'timing-dependent on slow CI machines; to be made deterministic (4.0.0)' }, async () => {
+test('the boards sheet has a Customer cone board with its explanation, at phone width', async () => {
   const { p, n } = await setup(TODAY - 100, 1);
   p.ev('innerWidth=360;innerHeight=640;ACT.fuOpen({v:"boards"});');
+  // This server's records are the 24-hour ones (stats, not live states), so the board is the 24-hour cone: on Now its
+  // spot check would rightly find the row does not check out.
+  await p.ev('ACT.fuQ({k:"measure",v:"total"})');
   await p.ev('ACT.fuQ({k:"board",v:"cone"})');
-  assert.ok(await until(async () => (await settle(5), /Customer cone/.test(p.ev("$('modalCard').textContent")) && p.ev("!!document.querySelector('#modalCard .fu-row .fu-rank')"))));
+  // The board's answer and its spot check finish in real time, and a retry waits on the game clock: move it on.
+  assert.ok(await advanceUntil(p, () => /Customer cone/.test(p.ev("$('modalCard').textContent")) && p.ev("!!document.querySelector('#modalCard .fu-row .fu-rank')")));
+  assert.doesNotMatch(p.ev("$('modalCard').textContent"), /does not check out/, 'the spot check passes');
   const txt = p.ev("$('modalCard').textContent");
   assert.match(txt, /buy transit from you/);
   assert.match(txt, /30 days/);

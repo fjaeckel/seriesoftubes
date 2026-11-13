@@ -19,6 +19,7 @@ const page = (dev) => PAGE[dev] || (PAGE[dev] = assemble({ dev }).html);
 // <script> tags run, as in the browser here; data blocks (ld+json) stay in the page untouched.
 // WebCrypto calls still running, across every page (see load({crypto:true})).
 const cryptoBusy = { n: 0 };
+const CRYPTO_DELAY = Number(process.env.TEST_CRYPTO_DELAY) || 0;
 const SPLIT = new Map();
 function split(html) {
   let s = SPLIT.get(html);
@@ -76,7 +77,10 @@ function load(opts = {}) {
       // machine cannot leave a signature half done when a test looks.
       if (opts.crypto) {
         const c = globalThis.crypto, subtle = new Proxy(c.subtle, { get(t, k) { const v = t[k]; if (typeof v !== 'function') return v;
-          return (...a) => { cryptoBusy.n++; return v.apply(t, a).finally(() => { cryptoBusy.n--; }); }; } });
+          return (...a) => { cryptoBusy.n++;
+            // TEST_CRYPTO_DELAY=ms: each call takes up to that long more, like a slow CI machine (hunting timing bugs).
+            const slow = CRYPTO_DELAY ? new Promise((r) => setTimeout(r, Math.random() * CRYPTO_DELAY)) : null;
+            return (slow ? slow.then(() => v.apply(t, a)) : v.apply(t, a)).finally(() => { cryptoBusy.n--; }); }; } });
         Object.defineProperty(window, 'crypto', { configurable: true, value: { subtle, getRandomValues: (a) => c.getRandomValues(a), randomUUID: () => c.randomUUID() } });
       }
       // {idb:true}: a fresh in-memory IndexedDB (fake-indexeddb, a dev dependency) per page; {idb: factory} shares one.

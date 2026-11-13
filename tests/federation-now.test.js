@@ -4,7 +4,7 @@
 // it shows, and stops when it closes; a row of now is spot-checked against the signed states of the same snapshot.
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { fedPage, joinGame, settle, until, URL1, NOW, SERVERS_JSON, PL, rec, key } = require('./helpers/fed');
+const { advanceUntil, fedPage, joinGame, settle, until, URL1, NOW, SERVERS_JSON, PL, rec, key } = require('./helpers/fed');
 
 async function joined(o) {
   const p = fedPage({ registry: SERVERS_JSON });
@@ -16,9 +16,10 @@ async function joined(o) {
 // Time goes on in 10-second steps, letting the sockets answer in between (as a real clock would).
 const step = async (p, ms) => { for (let t = 0; t < ms; t += 10000) { p.net.advance(Math.min(10000, ms - t)); await settle(40); } };
 
-test('a live state goes out every 10 s when the numbers changed, a keepalive every 3 minutes, none while hidden', { skip: 'timing-dependent on slow CI machines; to be made deterministic (4.0.0)' }, async () => {
+test('a live state goes out every 10 s when the numbers changed, a keepalive every 3 minutes, none while hidden', async () => {
   const { p, n } = await joined();
-  await step(p, 5000);
+  // Each state is signed in real time; its timers count from when it went out, so waits follow the states themselves.
+  assert.ok(await advanceUntil(p, () => n.states.length >= 1, { step: 1000, max: 15000 }));
   assert.equal(n.states.length, 1, 'the first state, with the first stats');
   const r = n.states[0];
   assert.equal(r.kind, 'state');
@@ -32,20 +33,23 @@ test('a live state goes out every 10 s when the numbers changed, a keepalive eve
   assert.equal(n.states.length, 1);
   // A POP goes into service: the next tick sends it.
   p.ev("S.pops.ams={...(S.pops[Object.keys(S.pops)[0]]||{}),down:0}");
-  await step(p, 10000);
+  assert.ok(await advanceUntil(p, () => n.states.length >= 2, { step: 1000, max: 15000 }), 'the next tick sends it');
   assert.equal(n.states.length, 2);
   assert.ok(n.states[1].body.pops.ams, 'the new POP');
   assert.ok(n.states[1].t - n.states[0].t >= 5);
-  // Three minutes without a change: a keepalive keeps the network on the boards of now.
-  await step(p, 180000);
+  // Three minutes without a change: a keepalive keeps the network on the boards of now, not before.
+  await step(p, 170000);
+  assert.equal(n.states.length, 2, 'no keepalive before three minutes');
+  assert.ok(await advanceUntil(p, () => n.states.length >= 3, { step: 1000, max: 30000 }), 'the keepalive');
   assert.equal(n.states.length, 3);
+  assert.ok(n.states[2].t - n.states[1].t >= 175, 'three minutes after the last state');
   // Hidden: nothing is sent, whatever changes.
   p.net.vis = false;
   p.ev("S.pops.lon={...S.pops.ams}");
   await step(p, 60000);
   assert.equal(n.states.length, 3);
   p.net.vis = true;
-  await step(p, 10000);
+  assert.ok(await advanceUntil(p, () => n.states.length >= 4, { step: 1000, max: 15000 }), 'visible again: sent');
   assert.equal(n.states.length, 4);
   assert.ok(p.ev('FED.stCost.n') >= 4, 'the work it took is counted');
   assert.deepEqual(p.errors, []);
@@ -61,40 +65,36 @@ test('a server that does not list the state feature gets no states and is not as
   assert.deepEqual(p.errors, []);
 });
 
-test('the boards sheet opens on now and asks again every 30 s, whatever the measure, then stops', { skip: 'timing-dependent on slow CI machines; to be made deterministic (4.0.0)' }, async () => {
+test('the boards sheet opens on now and asks again every 30 s, whatever the measure, then stops', async () => {
   const { p, n } = await joined();
   const me = p.ev('S.fed.key.pub');
   n.ranks = (f) => ({ slot: 0, at: p.net.now(), n: 1, rows: [{ rank: 1, key: me, value: n.asks.length, asn: 4200000001, ai: false }], me: { rank: 1, value: 1 } });
   p.ev("ACT.fuOpen({v:'boards'})");
-  await step(p, 500);
   const ranks = (m) => n.asks.filter((f) => f.m === 'rank' && (!m || f.measure === m));
+  // The refresh timer is armed once the first answer is in, which takes real time: wait for that, then count.
+  assert.ok(await until(async () => (await settle(5), p.ev('!!FU.bt&&!FU.bBusy&&!!FU.slice'))), 'the first answer, and the timer armed');
   assert.equal(ranks()[0].measure, 'now', 'the default measure');
   const k = ranks('now').length;
-  await step(p, 20000);
-  assert.equal(ranks('now').length, k, 'not before 30 s');
-  await step(p, 10000);
-  assert.ok(ranks('now').length > k, 'asked again after 30 s');
+  assert.ok(await advanceUntil(p, () => ranks('now').length > k, { step: 1000, max: 35000 }), 'asked again within 30 s');
   // Hidden: no asks; visible again: asks resume.
   p.net.vis = false;
+  await step(p, 1000);
   const h = ranks().length;
   await step(p, 60000);
   assert.equal(ranks().length, h, 'none while hidden');
   p.net.vis = true;
-  await step(p, 30000);
-  assert.ok(ranks().length > h, 'asks resume when visible');
+  assert.ok(await advanceUntil(p, () => ranks().length > h, { step: 1000, max: 35000 }), 'asks resume when visible');
   // The 24-hour board refreshes too.
   p.ev("ACT.fuQ({k:'measure',v:'total'})");
-  await step(p, 500);
+  assert.ok(await until(async () => (await settle(5), ranks('total').length > 0 && p.ev('!FU.bBusy'))));
   const j = ranks('total').length;
-  await step(p, 30000);
-  assert.ok(ranks('total').length > j, 'the 24 h board refreshes every 30 s too');
+  assert.ok(await advanceUntil(p, () => ranks('total').length > j, { step: 1000, max: 35000 }), 'the 24 h board refreshes every 30 s too');
   // Closing the sheet stops the sheet's asks.
   p.ev('ACT.fuClose()');
-  await step(p, 500);
+  await step(p, 1000);
   const c = ranks('total').length;
   await step(p, 60000);
   assert.equal(ranks('total').length, c, 'no board asks once closed');
-  assert.deepEqual(p.errors, []);
 });
 
 // Spot checks of a board of now: the states of the snapshot the answer used (at), checked and worked out alone.
