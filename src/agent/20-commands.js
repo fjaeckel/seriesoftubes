@@ -10,7 +10,7 @@
    filled from args); quote (the dry run, priced with the game's own helpers); doc. */
 const API_CMD={
 /* ---------- multiplayer gameplay: deals with other players (a joined save; requests are signed and sent) ---------- */
- fpReq:{args:[['key','string'],['deal','string'],['via','string',false],['at','string',false],['mbps','integer',false],['term','integer',false]],watch:['fed.deals'],doc:'Ask a player network (its key, from state fedn.nets[].k) for a deal on its published terms: deal peering (via ix or pni, at a city), transit (at a city where you both have POPs, mbps the commit), pni (at, mbps a port size it sells), port (on the exchange it runs, at its city), swap (at "cityA|cityB", a route of your links where it has POPs at both ends), wave (at "cityA|cityB", a route on its wave card, mbps the size: 100000, 400000, 800000 or 1600000; you need POPs and routers for that size at both ends). What its conditions still miss comes back as a notice; with automatic acceptance the deal runs at once.'},
+ fpReq:{args:[['key','string'],['deal','string'],['via','string',false],['at','string',false],['mbps','integer',false],['term','integer',false],['share','integer',false]],watch:['fed.deals'],doc:'Ask a player network (its key, from state fedn.nets[].k) for a deal on its published terms: deal peering (via ix or pni, at a city), transit (at a city where you both have POPs, mbps the commit), pni (at, mbps a port size it sells), port (on the exchange it runs, at its city), swap (at "cityA|cityB", a route of your links where it has POPs at both ends), wave (at "cityA|cityB", a route on its wave card, mbps the size: 100000, 400000, 800000 or 1600000; you need POPs and routers for that size at both ends), cofound (invite it to co-found the exchange you run at at: share in per mille, 100, 200, 250, 333 or 500, term 90, 180 or 365 days; it pays that share of founding and of the fabric, gets a port and earns that share of member fees). What its conditions still miss comes back as a notice; with automatic acceptance the deal runs at once.'},
  fpAccept:{args:[['id','string']],watch:['fed.deals','fedp.rq'],doc:'Accept a request waiting for review (fedp.rq[].id): the deal starts now.'},
  fpDecline:{args:[['id','string']],watch:['fedp.rq'],doc:'Decline a request waiting for review.'},
  fpEnd:{args:[['id','string']],watch:['fed.deals'],doc:'End a deal with a player (depeer): traffic takes a detour through transit.'},
@@ -492,7 +492,7 @@ const API_CMD={
 };
 
 const API_VIEW={
- fpNet:{args:[['key','string']],doc:'Open a player network\'s sheet: its published terms, your deals with it and what you can ask for, with what is missing.'},
+ fpNet:{args:[['key','string'],['at','string',false],['deal','string',false]],doc:'Open a player network\'s sheet: its published terms, your deals with it and what you can ask for, with what is missing. With at (a city) and deal (port or cofound) that request comes first, picked at that city.'},
  fpTerms:{args:[],doc:'Open Your terms: peering policy, conditions, rate card and request handling.'},
  fpQueue:{args:[],doc:'Open the NOC dashboard where requests from players wait for review.'},
  fpCons:{args:[],doc:'Open the consortium cables sheet.'},

@@ -9,7 +9,8 @@
    (depeering only costs a detour through transit). Nothing here runs in the day loop except fedPlayDay (swaps). */
 const FEDP_PNI_G=10,FEDP_CONS_NAMES=['Brine Line','Deep Blue Tube','Salty Spaghetti','Kraken Express','Tidal Tube','Mermaid Mainline','Barnacle Backbone','Seaweed Skein'];
 const fedMe=(s=S)=>s&&s.fed&&s.fed.key?s.fed.key.pub:null;
-const fedRoleOf=(deal,mine)=>deal==='peering'||deal==='swap'?'peer':mine?'buy':'sell';
+// Who pays: the author buys, except in co-founding, where the founder (the author) sells a share of its exchange.
+const fedRoleOf=(deal,mine)=>deal==='peering'||deal==='swap'?'peer':deal==='cofound'?(mine?'sell':'buy'):mine?'buy':'sell';
 // A deal as the save keeps it, from an offer and when it starts (null: waiting for the accept).
 function fedDealMk(rec,id,res,mine){const b=rec.body,k=mine?b.to:rec.key,n=fedNetOf(k);
   return {id,deal:b.deal,key:k,name:n?n.name:'AS?',asn:n?n.asn:0,start:res.start,end:res.end,terms:JSON.parse(JSON.stringify(b.terms)),role:fedRoleOf(b.deal,mine),
@@ -21,18 +22,18 @@ const fedRenewal=(f,id)=>f.deals.find(d=>d.renews===id&&d.st!=='over')||null;
 function fedRenStart(f,id,key,t){const o=id?f.deals.find(d=>d.id===id&&d.key===key):null;return o?Math.max(o.end??t,t):t;}
 // A wave renewal takes over the room of the running wave it renews (same route, at least as big): it needs no more.
 const fedWaveRen=(s,b,from)=>!!b.renews&&s.fed.deals.some(d=>d.id===b.renews&&d.key===from&&d.deal==='wave'&&d.role==='sell'&&d.st==='run'&&d.terms.a===b.terms.a&&d.terms.b===b.terms.b&&d.terms.gbps>=b.terms.gbps);
-// A deal starts: one-off fees (a PNI's setup) move in this game only, the buyer pays and the seller earns.
-function fedDealGo(d){if(d.deal==='pni'){const v=d.terms.setup||0;if(d.role==='buy')S.cash-=v;else if(d.role==='sell')S.cash+=v;}}
+// A deal starts: one-off fees (a PNI's or a co-founder's setup) move in this game only, the buyer pays and the seller earns.
+function fedDealGo(d){if(d.deal==='pni'||d.deal==='cofound'){const v=d.terms.setup||0;if(d.role==='buy')S.cash-=v;else if(d.role==='sell')S.cash+=v;}}
 // Running now, by the clock (unix seconds): the flag compute() reads. Deals past their end are over.
 function fedDealsOn(s,now){let ch=false;if(!s.fed)return false;
   for(const d of s.fed.deals){if(d.st!=='run'){if(d.on){d.on=false;ch=true;}continue;}
     // Renew is for the side that asks for deals (fpRenew), and only while no renewal follows.
     if(d.end!==null&&now>=d.end){d.st='over';d.on=false;d.why='term';ch=true;
-      toast(tr('fedplay.deal_ran_out',{net:esc(d.name),deal:fedDealName(d.deal)}),'',d.role!=='sell'&&!fedRenewal(s.fed,d.id)?[{l:tr('fedplay.renew'),act:'fpRenew',args:{id:d.id}}]:[]);continue;}
+      toast(tr('fedplay.deal_ran_out',{net:esc(d.name),deal:fedDealName(d.deal)}),'',d.role!=='sell'&&d.deal!=='cofound'&&!fedRenewal(s.fed,d.id)?[{l:tr('fedplay.renew'),act:'fpRenew',args:{id:d.id}}]:[]);continue;}
     const on=d.start!==null&&d.start<=now&&!!fedNetOf(d.key);if(on!==d.on){d.on=on;ch=true;}}
   // Waves sold come off the seller's fiber (mwG() caches by CM_V); waves bought are links.
   if(ch)CM_V++;return fedWaveLinks(s)||ch;}
-const FEDP_DN={peering:N_('fedplay.d_peering'),transit:N_('fedplay.d_transit'),pni:N_('fedplay.d_pni'),swap:N_('fedplay.d_swap'),consortium:N_('fedplay.d_consortium'),port:N_('fedplay.d_port'),wave:N_('fedplay.d_wave')};
+const FEDP_DN={peering:N_('fedplay.d_peering'),transit:N_('fedplay.d_transit'),pni:N_('fedplay.d_pni'),swap:N_('fedplay.d_swap'),consortium:N_('fedplay.d_consortium'),port:N_('fedplay.d_port'),wave:N_('fedplay.d_wave'),cofound:N_('fedplay.d_cofound')};
 const fedDealName=k=>tr(FEDP_DN[k]||FEDP_DN.peering);
 // Ends a running or waiting deal here and tells the other side (a signed decline; queued, sent when online).
 function fedEnd(s,d,why,reason){d.st='over';d.on=false;d.why=why;const f=s.fed;CM_V++;fedWaveLinks(s);
@@ -71,6 +72,11 @@ function fedOffer(key,deal,o={}){const n=fedNetOf(key),a=FEDN.ann.get(key);if(!n
     const rt=r.routes.find(x=>x.a+'|'+x.b===o.at)||r.routes.find(x=>S.pops[x.a]&&S.pops[x.b])||r.routes[0],sz=r.sizes.find(x=>x.gbps*1000===mb)||r.sizes[0],tier=fedWaveT(sz.gbps);
     if(!S.pops[rt.a]||!S.pops[rt.b])miss.push({l:'ends'});else if(tier<0||!waveOk(rt.a,rt.b,tier))miss.push({l:'gear',n:fmtCap(sz.gbps)});
     terms={a:rt.a,b:rt.b,gbps:sz.gbps,monthly:sz.monthly,term:term(r.term)};}
+  else if(deal==='cofound'){// This network runs the exchange and offers a share of it (89-fedplay-ix.js): o.at, o.share, o.term.
+    const mine=Object.keys(S.myIx),fp=n.fpops||[],at=o.at&&S.myIx[o.at]?o.at:mine.find(c=>fp.includes(c))||mine[0],share=FEDX_SHARES.includes(+o.share)?+o.share:250;
+    if(!at)return {miss:[{l:'myix'}]};if(!fp.includes(at))miss.push({l:'cfpop',n:fpCity(at)});if(!fedP().rates.ix)miss.push({l:'ixsell'});
+    if(!fedIx2())miss.push({l:'ix2'});if(fedCofounders(at).length>=FEDX_CO)miss.push({l:'cofull',n:FEDX_CO});
+    terms={at,share,...fedCofoundPrice(at,share),term:FEDX_TERMS.includes(+o.term)?+o.term:180};}
   if(B.policy!=='selective'&&B.cond&&!B.cond.ai&&S.fed.ai)miss.push({l:'ai'});
   // A newcomer buying from an established network pays the newcomer price (§10.10, 89-fedplay-mentor.js).
   terms=fedNewTerms(deal,terms,B,fedNow());
@@ -105,6 +111,9 @@ function fedTheirMiss(s,b,from){const P=fedP(s),n=fedNetOf(from),T=b.terms,miss=
   else if(b.deal==='port'){if(!s.myIx[T.at])miss.push({l:'myix'});}
   else if(b.deal==='swap'){if(!s.pops[T.take.a]||!s.pops[T.take.b])miss.push({l:'pop'});}
   else if(b.deal==='wave'){if(!fedWaveRen(s,b,from)&&!fedWaveRoom(T.a,T.b,T.gbps))miss.push({l:'room'});}
+  // Co-founding: a POP there, the founder's newest announce selling ports there, honest shares, the cash for the setup.
+  else if(b.deal==='cofound'){if(!s.pops[T.at])miss.push({l:'cfpop',n:fpCity(T.at)});const a=FEDN.ann.get(from),r=a&&a.rec&&a.rec.body.rates&&a.rec.body.rates.ix;
+    if(!r||!r.at.includes(T.at))miss.push({l:'noix'});if(!fedCofoundFair(T))miss.push({l:'fair'});if(s.cash<T.setup)miss.push({l:'cash'});}
   if(n&&n.ai&&P.pol==='selective'&&!P.cond.ai)miss.push({l:'ai'});
   // The newcomer price claims the day the buyer joined: it must be the one its announce says, when this game has it.
   if(fedOwn(T,'founded')){const a=FEDN.ann.get(from);if(a&&a.rec&&a.rec.body.founded!==T.founded)miss.push({l:'newcomer'});}
@@ -142,6 +151,8 @@ async function fedAcceptRq(id){const s=S,f=s&&s.fed,P=s&&s.fedp;if(!f||!P||!fedH
   if(b.renews&&fedRenewal(f,b.renews))return 'dup';
   // A wave needs room on the route when it starts, not only when it was asked for (a renewal takes over its own).
   if(b.deal==='wave'){const T=b.terms;if(!fedWaveRen(s,b,q.rec.key)&&!fedWaveRoom(T.a,T.b,T.gbps))return {miss:[{l:'room'}]};}
+  // Co-founding is checked again when accepted: the cash for the setup, and the founder still selling ports there.
+  if(b.deal==='cofound'){const m=fedTheirMiss(s,b,q.rec.key);if(m&&m.length)return {miss:m};}
   const r=await fedSignMine('accept',{offer:id,to:q.rec.key},f);if(S!==s)return 'mode';if(!fedQueue(r,f))return 'full';
   const term=b.terms.term,st=fedRenStart(f,b.renews,q.rec.key,r.t),d=fedDealMk(q.rec,id,{start:st,end:term?st+term*FED_DAY:null},false);
   P.rq=P.rq.filter(x=>x!==q);fedDealAdd(f,d);fedDealGo(d);fedDealsOn(s,fedNow());toast(tr('fedplay.deal_started',{net:esc(d.name),deal:fedDealName(d.deal)}),'good');after();return null;}
@@ -180,8 +191,11 @@ function fedDealExits(){const out=[],f=S.fed;if(!f)return out;
     else if(d.deal==='pni'){if(popUp(T.at))out.push({k:'p',id:k,city:T.at,cap:T.mbps/1000,lab:labOf(N_('common.pni_with_net'),'net',n.name),net:id,set:one});}
     else if(d.deal==='transit'){for(const c of T.at)if(popUp(c))out.push(d.role==='buy'?{k:'t',id:k+':'+c,city:c,cap:Math.max(1,T.mbps/1000*2),lab:labOf(N_('common.net_transit'),'net',n.name),net:id,set:null}
       :{k:'p',id:k+':'+c,city:c,cap:Math.max(1,T.mbps/1000*2),lab:labOf(N_('fedplay.ex_customer'),'net',n.name),net:id,set:one});}
-    else if(d.deal==='port'&&popUp(T.at)){let set=one;if(d.role==='buy'){set=new Set([id]);for(const m of NETS)if(m.fed&&m.fst!=='dark'&&m.fpol==='open'&&(m.fix||[]).includes(T.at))set.add(m.id);}
-      out.push({k:'p',id:k,city:T.at,cap:T.mbps/1000,lab:labOf(d.role==='buy'?N_('fedplay.ex_port'):N_('fedplay.ex_member'),'net',n.name),net:id,set});}}
+    /* A port on a player's exchange (a co-founder's comes with its share) reaches the founder, the open players there
+       and, from the founder's newest announce (ix2), the computer-run networks on it. Sold: that player only. */
+    else if((d.deal==='port'||d.deal==='cofound')&&popUp(T.at)){let set=one;if(d.role==='buy'){set=new Set([id]);for(const m of NETS)if(m.fed&&m.fst!=='dark'&&m.fpol==='open'&&(m.fix||[]).includes(T.at))set.add(m.id);
+        const xm=n.fxm&&n.fxm[T.at];if(xm)for(const x of xm.n)if(NET[x]&&!NET[x].fed)set.add(x);}
+      out.push({k:'p',id:k,city:T.at,cap:d.deal==='cofound'?FEDP_PNI_G:T.mbps/1000,lab:labOf(d.role==='buy'?N_('fedplay.ex_port'):N_('fedplay.ex_member'),'net',n.name),net:id,set});}}
   return out;}
 // Peering sessions at an exchange (ixSessions): players you peer with there.
 function fedIxSes(c,set){const f=S.fed;if(!f)return;for(const d of f.deals)if(d.on&&d.deal==='peering'&&d.terms.via==='ix'&&d.terms.at.includes(c)){const n=fedNetOf(d.key);if(n&&n.fst!=='dark')set.add(n.id);}}
