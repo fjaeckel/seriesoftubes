@@ -203,6 +203,13 @@ at that sandbox method.
 
 ## Open work, roughly in order
 
+- **Registry loophole (deferred by Frederic, 2026-11-13):** §11.2 step 8 compares `listed`/`answered` only for files
+  already on the base branch, so a NEW server file can carry made-up stamps (a `listed` backdated past 30 days plus a
+  fresh `answered`) and pass CI as an immediate shun voter; a future-dated `answered` would even move `asOf`. Only PR
+  review stops it today. Fix: "a new file carries neither stamp" in the spec, Go `registry.Check`/`checkFiles`,
+  `scripts/registry.js` and the game's `fedRegCheck`, with a vector for "new on the base branch" (touches `src/`: perf).
+- **Auto-sync fallback noise:** when the higher server has several nodes and the lower server's session lands on a
+  sibling, the dialling node opens a short extra session about every 15 minutes, which dedupe closes. Harmless.
 0. Follow-ups from the review: (a) two announces of one network signed in the same second tie on `t` and games keep
    the lower id (§10.11); the e2e waits a second between term changes. Proper fix: a per-network sequence number in
    the announce (spec, Go, vectors). (b) The fiber market's cut shock picks its city by hashing a clock-based incident
