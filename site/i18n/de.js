@@ -4482,6 +4482,8 @@
 "privacy.what_the_game_keeps":"Was das Spiel speichert",
 "privacy.what_the_game_keeps_and":"Was das Spiel speichert und sendet",
 "privacy.when_you_join_a_server":"Wenn du einem Server beitrittst",
+"privacy.while_you_play":"Während du spielst",
+"privacy.your_current_numbers_every_10":"Deine aktuellen Werte (dieselben wie oben, nicht mehr) alle 10 Sekunden, solange das Spiel offen ist und sie sich geändert haben, damit die Bestenlisten zeigen, was gerade passiert. Server halten sie nur im Arbeitsspeicher, nie auf der Festplatte, und vergessen sie 15 Minuten nach den letzten.",
 "privacy.your_game_sends_signed_records":"Dein Spiel sendet signierte Einträge: Name, AS-Nummer und Heimatmarkt deines Netzes im Spiel, seine POP- und Exchange-Städte, Kundenzahl und Traffic-Werte, seine veröffentlichte Policy und Preise und von wem es Transit kauft oder an wen es Transit verkauft (nie den Preis). Deals gehen versiegelt nur an den anderen Spieler. Dein echtes Land kommt nur dazu, solange <b>Mein Land teilen</b> an ist.",
 "privacy.your_saves_settings_and_badges":"Deine Spielstände, Einstellungen, Abzeichen und Fortschritte bleiben im Speicher dieses Browsers. Im Multimode kommen der private Schlüssel deines Netzes (im Spielstand), was deine Server über andere Netze geschickt haben (nach 180 Tagen ohne Neuigkeiten vergessen) und ein Betreiberschlüssel dazu, falls du einen importiert hast. Nichts wird hochgeladen, außer du trittst einem Server bei oder verschickst selbst einen Spielstand.",
 "progress.1_6t_on_every_hop_from":"1.6T auf jedem Hop von Los Angeles nach Sydney",

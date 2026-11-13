@@ -4481,6 +4481,8 @@
 "privacy.what_the_game_keeps":"What the game keeps",
 "privacy.what_the_game_keeps_and":"What the game keeps and sends",
 "privacy.when_you_join_a_server":"When you join a server",
+"privacy.while_you_play":"While you play",
+"privacy.your_current_numbers_every_10":"Your current numbers (the same as above, nothing more) every 10 seconds while the game is open and they changed, so the leaderboards show what is happening now. Servers keep them only in memory, never on disk, and forget them 15 minutes after the last one.",
 "privacy.your_game_sends_signed_records":"Your game sends signed records: your network's name, AS number and home market in the game, its POP and exchange cities, customer count and traffic numbers, its published policy and prices, and whom it buys or sells transit from (never the price). Deals go sealed for the other player only. Your real country is added only while <b>Share my country</b> is on.",
 "privacy.your_saves_settings_and_badges":"Your saves, settings, badges and progress stay in this browser's storage. In Multimode it also keeps your network's private key (inside the save), what your servers sent about other networks (forgotten after 180 days without news) and an operator key if you imported one. Nothing is uploaded unless you join a server or send a save yourself.",
 "progress.1_6t_on_every_hop_from":"1.6T on every hop from Los Angeles to Sydney",

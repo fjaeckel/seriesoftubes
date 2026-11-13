@@ -4480,6 +4480,8 @@
 "privacy.what_the_game_keeps":"O que o jogo guarda",
 "privacy.what_the_game_keeps_and":"O que o jogo guarda e envia",
 "privacy.when_you_join_a_server":"Quando entras num servidor",
+"privacy.while_you_play":"Enquanto jogas",
+"privacy.your_current_numbers_every_10":"Os teus números atuais (os mesmos de cima, nada mais) a cada 10 segundos enquanto o jogo está aberto e mudaram, para que as classificações mostrem o que acontece agora. Os servidores guardam-nos só em memória, nunca em disco, e esquecem-nos 15 minutos depois dos últimos.",
 "privacy.your_game_sends_signed_records":"O teu jogo envia registos assinados: o nome, número AS e mercado de origem da tua rede no jogo, as suas cidades com POP e exchange, número de clientes e números de tráfego, a política e os preços publicados, e a quem compra ou vende trânsito (nunca o preço). Os acordos vão selados só para o outro jogador. O teu país real só é acrescentado enquanto <b>Partilhar o meu país</b> estiver ligado.",
 "privacy.your_saves_settings_and_badges":"Os teus jogos guardados, configurações, medalhas e progresso ficam no armazenamento deste navegador. No Multimode junta-se a chave privada da tua rede (dentro do jogo guardado), o que os teus servidores enviaram sobre outras redes (esquecido após 180 dias sem notícias) e uma chave de operador, se importaste uma. Nada é enviado a não ser que entres num servidor ou envies tu um jogo guardado.",
 "progress.1_6t_on_every_hop_from":"1.6T em cada trecho de Los Angeles a Sydney",

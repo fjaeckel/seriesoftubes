@@ -9,7 +9,10 @@ const FED_PROTO='tubes-fed.1',FED_VERS=[1],FED_EPOCH=1735689600,FED_SKEW=600,FED
   FED_PKCS8=[0x30,0x2e,0x02,0x01,0x00,0x30,0x05,0x06,0x03,0x2b,0x65,0x70,0x04,0x22,0x04,0x20],
   // Kinds (§13.2): max canonical bytes, max age in seconds (0: none), multi-signer.
   FED_KIND={announce:[16384,0],stats:[40960,777600],offer:[4096,2592000],accept:[1024,2592000],decline:[1024,2592000],
-    genesis:[2048,0],operators:[8192,0,1],server:[16384,0,1],hide:[32768,0],shun:[1024,7776000],unshun:[1024,7776000],leave:[512,0],report:[1024,2592000]};
+    genesis:[2048,0],operators:[8192,0,1],server:[16384,0,1],hide:[32768,0],shun:[1024,7776000],unshun:[1024,7776000],leave:[512,0],report:[1024,2592000],
+    // A live state (§5.11) is no record: never stored, only sent while playing; checked where one is expected.
+    state:[40960,900]};
+const FED_STATE_LIFE=900;
 const fedOwn=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
 // Floor division, exact for safe integers (§1).
 const fedDiv=(a,b)=>{const r=((a%b)+b)%b;return (a-r)/b;};

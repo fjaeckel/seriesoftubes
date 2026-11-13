@@ -108,7 +108,10 @@ const FED_BODY={
   leave:FdObj([]),
   // A player's report to its server's operators (§5.10): a pre-made reason, never about itself.
   report:FdObj([['server',FdId],['target',(v,c)=>FdK(v)||(v===c.rec.key?FdBF:null)],['reason',FdOne('cheating','offensive_name','spam','abuse')]])};
-const FED_REC=Object.fromEntries(Object.keys(FED_KIND).map(k=>[k,1]));
+// A live state holds the fields of a stats record (§5.11).
+FED_BODY.state=FED_BODY.stats;
+// The kinds a record may have (§5); a live state is checked only where one is expected (FED_STATE).
+const FED_REC=Object.fromEntries(Object.keys(FED_KIND).filter(k=>k!=='state').map(k=>[k,1])),FED_STATE={state:1};
 
 // The envelope (§4, §7.1 step 4). kinds: the kinds allowed here.
 function fedEnv(v,kinds){if(!v||typeof v!=='object'||Array.isArray(v))return FdBF;

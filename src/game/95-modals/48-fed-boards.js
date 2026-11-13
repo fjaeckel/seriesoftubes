@@ -4,7 +4,7 @@
    sheet. The player's own row is pinned whatever is selected, with its rank in the current slice. The servers rank
    (fedRankView: the top 50 and this network's row); the last answers are kept, so the boards work offline, "as of". */
 const FU_BOARDS=['traffic','total','pops','pies','cone'];
-const fuQ=()=>UI.fu.q||(UI.fu.q={board:'traffic',measure:'total',division:'all'});
+const fuQ=()=>UI.fu.q||(UI.fu.q={board:'traffic',measure:'now',division:'all'});
 const fuBoardName=b=>b==='traffic'?tr('fedui.traffic_with_players'):b==='total'?tr('fedui.total_traffic'):b==='pops'?tr('fedui.pops_in_service'):b==='cone'?tr('fedui.customer_cone'):tr('fedui.pies_in_the_sky');
 /* A board value as players read it: traffic in Mbps below 1 Gbps (records count Mbps; 32 Mbps must not read as
    "0.0 Gbps"), Gbps and up from there, counts as they are, growth in per cent. */
@@ -16,7 +16,15 @@ const fuRankUrls=q=>{const f=S&&S.fed;if(!f)return [];return q.server?f.servers.
 // Asks the servers for the slice on screen (and, for the filter sheet, the values it offers). Only the newest ask shows.
 async function fuBoardsLoad(){const q=fuQ(),v=fuSliceQ(q),n=FU.rankN=(FU.rankN||0)+1,urls=fuRankUrls(q);
   if(UI.fu&&UI.fu.v==='filters'&&!FU.facets)FU.facets=await fedFacets(urls);
-  const sl=await fedRankView(v,urls);if(FU.rankN===n)FU.slice=sl;}
+  const sl=await fedRankView(v,urls);if(FU.rankN===n)FU.slice=sl;fuNowTick();}
+/* A board of now is asked again every FU_NOW_MS while the sheet shows it and the tab is visible: only the slice on screen,
+   redrawn in place (fuRender morphs the sheet, so scroll and focus stay). Closing the sheet or leaving the board stops it. */
+const FU_NOW_MS=10000;
+const fuNowOn=()=>!!UI.fu&&UI.fu.v==='boards'&&fuQ().measure==='now';
+function fuNowStop(){if(FU.nowT)FED.clear(FU.nowT);FU.nowT=null;}
+function fuNowTick(){fuNowStop();if(!fuNowOn())return;
+  FU.nowT=FED.set(()=>{FU.nowT=null;if(!fuNowOn())return;if(!FED.visible()){fuNowTick();return;}
+    fuBoardsLoad().then(()=>{if(fuNowOn())fuRender();});},FU_NOW_MS);}
 // Active filters beyond board, measure and division: each a chip that removes itself.
 function fuActive(q){const a=[],cc=c=>esc(pieLicCountry(c));
   if(q.model!=null)a.push(['model',tr('fedui.model_x',{x:esc(q.model)})]);if(q.harness!=null)a.push(['harness',tr('fedui.harness_x',{x:esc(q.harness)})]);

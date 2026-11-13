@@ -96,6 +96,7 @@ Pure functions, held to `federation/vectors/` by `tests/federation-vectors.test.
 | --- | --- |
 | `fedSlot`, `fedWindows(now)`, `fedBoardSlot(ts)`, `fedByKey`, `fedEffs` | Slots, windows, effective records (§10.1–10.2) |
 | `fedRankOne(q, key, records, announce)` | One network's place on a board from records alone (§10.3–10.5, §10.12): `{listed, kept, value}`. `q`: `{now, board, measure, division, exclude, cities, filters, founded}` (`founded`: the cone board's key -> founded of its newest announce; the worker fills it from the announces `rankwhy` sends). How a game checks a server's row (§9.5); a pure function, runs every `boards` vector |
+| `fedNowOne(q, key, states, announce, cc)`, `fedLatest(now, states)` | The same for a board of now (§10.13) from live states `[{id, key, t, body}]`; `q.now` is the snapshot's `at`, `cc` the country of the key's newest stats record. Runs every `now` vector |
 | `fedRankReq(view, deals, n)`, `fedRankKey(req)`, `fedRanksOk(answer)`, `fedRankMerge(answers, me, drop, n)` | A view as a `rank` request, the slice's cache key, a checked `ranks` answer, several servers' answers merged (see below) |
 | `fedQuiet(now, lastHeard)` | `{state: active/fading/dark/forgotten, factor}` per mille (§10.6) |
 | `fedShun(registry, votes, target, now)` | `{voters, need, votes, shunned, reasons}` (§10.7) |
@@ -108,8 +109,8 @@ Pure functions, held to `federation/vectors/` by `tests/federation-vectors.test.
 
 The game never downloads leaderboard records. `await fedRankView(v, urls?)` asks each joined server (or those `urls`)
 for the slice (`rank`, §9.5) and gives `{rows: [{rank, key, value, asn, ai, name, home, cc}], me: {rank, value} or null,
-n, at, slot, untrusted}`. `v` takes any of: `board` (`pops`, `pies`, `traffic`, `total`, `cone`), `measure` (`total`,
-`growth`), `division` (`all`, `human`, `ai`), `model`, `harness`, `region` (`{continent: 'EU'}` as in `CITIES[].reg`,
+n, at, slot, snap, untrusted}`. `v` takes any of: `board` (`pops`, `pies`, `traffic`, `total`, `cone`), `measure` (`now`:
+the live states, §10.13, the sheet's default; `total`: the 24-hour window; `growth`), `division` (`all`, `human`, `ai`), `model`, `harness`, `region` (`{continent: 'EU'}` as in `CITIES[].reg`,
 `{country: 'DE'}`, `{city: 'fra'}`, sent as its city list), `home`, `from`, `ageMin`/`ageMax`, `dayMin`/`dayMax`,
 `tier1`, `policy`, `peers` (sent as the keys in `S.fed.deals`); their meaning is §10.12. The boards sheet's "as seen
 from" a server passes that server's URLs.
@@ -128,6 +129,12 @@ from" a server passes that server's URLs.
   between) marks the server untrusted for 24 hours (`kv` `untrusted`, `fedUntrusted()`): its rankings are left out,
   `fedRankView` lists it in `untrusted`, the sheet says so (`fedui.ranking_does_not_match`), and an `untrusted` event
   fires. A row that cannot be checked (another slot, a receipt from a server unknown here, no answer) counts for nothing.
+- **Now** (`measure: 'now'`) is asked only of servers whose `welcome` lists `state` in `feats` (others give their kept
+  answer, if any). `snap` is the newest snapshot time (`at` of the `ranks` answers) among them. The boards sheet asks
+  again every 10 s while it shows a board of now and the tab is visible (`fuNowTick`, only the slice on screen,
+  redrawn in place) and stops when the sheet closes or shows something else. Its spot checks send the answer's `at`
+  with `rankwhy`, check each live state as at `at` and work the row out with `fedNowOne`; a `rankwhy` for another `at`
+  cannot check it.
 - `await fedFacets(urls?)`: the values the filter sheet offers, `{models, harnesses, from, homes}`, from each server's
   `facets` (kept per URL for offline).
 
@@ -383,3 +390,13 @@ A deal of kind `wave` (§5.3, §10.10) sells one managed wave from the seller's 
 
 Both sides book the monthly price in `fedMoney` (`R.cost.fed` / `R.rev.fed`). The buyer's sheet names what is missing:
 `ends` (POPs at both ends), `gear` (routers that take that wave size); the seller's accept fails with `room`.
+
+## Live states
+
+While a joined save is open and the tab is visible, `fedStateTick` (every `FED.T.state`, 10 s) signs the current
+`fedStatsBody()` as a `state` (§5.11) and sends it in a `state` frame to every ready connection whose node lists `state`
+in `feats`, when the body changed since the last one that node took, or `FED.T.stateKeep` (180 s) went by; never twice
+within `FED.T.stateMin` (5 s). Nothing is queued or saved: a state that is not taken (offline, hidden, `rate_limited`)
+is simply replaced by the next. Signing runs on the page (the worker holds no key): one canonical text and one Ed25519
+signature per state sent; `FED.stCost` counts states signed (`n`), the milliseconds they took (`ms`) and those spent on
+ticks that sent nothing (`idle`).

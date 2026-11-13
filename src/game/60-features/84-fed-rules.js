@@ -45,19 +45,46 @@ function fedRankOne(q,key,recs,ann){const W=fedWindows(q.now),from=W.previous.fr
       for(const y of r.body.cust||[]){if(seen.has(y)||ex.has(y)||!fedOwn(fd,y)||fedDiv(s,FED_DAY)-fd[y]<FED_NEWCOMER)continue;const ye=fedEffAt(by.get(y),s);
         if(!fedHas(ye)||!(ye.body.up||[]).includes(z)||!both(r,y)||!both(ye,z))continue;seen.add(y);todo.push(y);}}
     return seen.size-1;};
+  // POPs and pies: the value at the latest slot of the window with one (slots run in order: the last wins).
   const total=(a,b)=>{const IN=[],OUT=[];let lo=null;
     for(let k=a;k<b;k++){const s=from+k*FED_SLOT,r=fedEffAt(w,s);if(!fedHas(r))continue;
       if(q.board==='traffic'){const [i,o]=traffic(r,s);IN.push(i);OUT.push(o);}else if(q.board==='total')IN.push(r.body.total||0);else if(q.board==='cone')IN.push(cone(s));
-      else{const v=q.board==='pies'?r.body.pies||0:pops(r);if(lo===null||v<lo)lo=v;}}
+      else lo=q.board==='pies'?r.body.pies||0:pops(r);}
     return q.board==='traffic'?Math.max(fedP95(IN),fedP95(OUT)):q.board==='total'||q.board==='cone'?fedP95(IN):lo||0;};
   let value=total(FED_WIN,2*FED_WIN);
   if(q.measure==='growth'){const prev=total(0,FED_WIN);value=fedDiv((value-prev)*10000,Math.max(prev,FED_FLOOR[q.board]));}
-  const ai=l.body.ai,day=fedDiv(q.now,FED_DAY),a=ann,keys=F.keys?new Set(F.keys):null;
-  const kept=!(q.division==='ai'&&!ai||q.division==='human'&&ai||F.model!=null&&(!ai||ai.model!==F.model)||F.harness!=null&&(!ai||ai.harness!==F.harness)||
+  return {listed:true,kept:fedKept(q,key,l,ann,fedDiv(q.now,FED_DAY)),value};}
+// Whether a listed network passes a slice's division and filters (§10.12): l {body, cc}, a its newest announce body.
+function fedKept(q,key,l,a,day){const F=q.filters||{},ai=l.body.ai,keys=F.keys?new Set(F.keys):null;
+  return !(q.division==='ai'&&!ai||q.division==='human'&&ai||F.model!=null&&(!ai||ai.model!==F.model)||F.harness!=null&&(!ai||ai.harness!==F.harness)||
     F.tier1!=null&&l.body.tier1!==F.tier1||F.from!=null&&l.cc!==F.from||F.home!=null&&(!a||a.home!==F.home)||F.policy!=null&&(!a||a.policy!==F.policy)||
     (F.ageMin!=null||F.ageMax!=null)&&(!a||day-a.founded<(F.ageMin??0)||F.ageMax!=null&&day-a.founded>F.ageMax)||
-    (F.dayMin!=null||F.dayMax!=null)&&(!a||a.day<(F.dayMin??0)||F.dayMax!=null&&a.day>F.dayMax)||keys&&!keys.has(key));
-  return {listed:true,kept,value};}
+    (F.dayMin!=null||F.dayMax!=null)&&(!a||a.day<(F.dayMin??0)||F.dayMax!=null&&a.day>F.dayMax)||keys&&!keys.has(key));}
+/* Each key's live state at now (§10.13): the newest (greatest t, then lowest id) less than 900 s old. states: [{id, key, t,
+   body}]. Gives Map key -> state. */
+function fedLatest(now,states){const m=new Map();
+  for(const s of states){if(!s||now-s.t>=FED_STATE_LIFE)continue;const o=m.get(s.key);if(!o||s.t>o.t||s.t===o.t&&fedByStr(s.id,o.id)<0)m.set(s.key,s);}
+  return m;}
+/* One network's place on a board of now (§10.13), from live states alone: how a game checks a row of now. q: {now (the
+   snapshot's time, the ranks answer's at), board, division, exclude, cities, filters, founded (the cone board)}; states:
+   live states [{id, key, t, body}] (the key's and those rankwhy adds); ann: the key's newest announce body or null; cc:
+   the country of its newest stats record (the from filter), or null. Gives {listed, kept, value}. */
+function fedNowOne(q,key,states,ann,cc){const L=fedLatest(q.now,states),ex=new Set(q.exclude||[]),cs=q.cities?new Set(q.cities):null;
+  const has=k=>{const s=L.get(k);return s&&s.body.mode==='normal'&&!ex.has(k)?s:null;},pops=b=>{let n=0;for(const c of Object.keys(b.pops))if(!cs||cs.has(c))n+=b.pops[c];return n;};
+  const inR=s=>!cs||pops(s.body)>0,l=has(key);
+  if(!l||!inR(l)||q.board==='pies'&&!fedOwn(l.body,'pies'))return {listed:false,kept:false,value:0};
+  const b=l.body,day=fedDiv(q.now,FED_DAY);let value=0;
+  if(q.board==='pops')value=pops(b);else if(q.board==='pies')value=b.pies;else if(q.board==='total')value=b.total||0;
+  else if(q.board==='traffic'){let i=0,o=0;
+    // min() of both live states; a partner without one (or not normal, excluded, outside the region) counts 0.
+    for(const e of b.traffic){const y=has(e.key);if(!y||!inR(y))continue;const z=y.body.traffic.find(x=>x.key===key);if(z){i+=Math.min(e.in,z.out);o+=Math.min(e.out,z.in);}}
+    value=Math.max(i,o);}
+  else if(q.board==='cone'){const fd=q.founded||{},both=(r,k)=>{const z=r.body.traffic.find(x=>x.key===k);return !!z&&z.in>0&&z.out>0;},seen=new Set([key]),todo=[key];
+    while(todo.length){const z=todo.pop(),r=has(z);
+      for(const y of r.body.cust||[]){const ye=has(y);if(seen.has(y)||!ye||!fedOwn(fd,y)||day-fd[y]<FED_NEWCOMER)continue;
+        if(!(ye.body.up||[]).includes(z)||!both(r,y)||!both(ye,z))continue;seen.add(y);todo.push(y);}}
+    value=seen.size-1;}
+  return {listed:true,kept:fedKept(q,key,{body:b,cc:cc||null},ann,day),value};}
 // Networks that go quiet (§10.6): state and the demand factor in per mille.
 function fedQuiet(now,heard){const age=now-heard;
   if(age<FED_CARRY)return {state:'active',factor:1000};

@@ -4480,6 +4480,8 @@
 "privacy.what_the_game_keeps":"Qué guarda el juego",
 "privacy.what_the_game_keeps_and":"Qué guarda y envía el juego",
 "privacy.when_you_join_a_server":"Cuando te unes a un servidor",
+"privacy.while_you_play":"Mientras juegas",
+"privacy.your_current_numbers_every_10":"Tus cifras actuales (las mismas de arriba, nada más) cada 10 segundos mientras el juego está abierto y han cambiado, para que las clasificaciones muestren lo que pasa ahora. Los servidores las guardan solo en memoria, nunca en disco, y las olvidan 15 minutos después de las últimas.",
 "privacy.your_game_sends_signed_records":"Tu partida envía registros firmados: el nombre, número AS y mercado de origen de tu red en el juego, sus ciudades con POP y exchange, número de clientes y cifras de tráfico, su política y precios publicados, y a quién compra o vende tránsito (nunca el precio). Los acuerdos van sellados solo para el otro jugador. Tu país real se añade solo mientras <b>Compartir mi país</b> está activado.",
 "privacy.your_saves_settings_and_badges":"Tus partidas, ajustes, medallas y progreso se quedan en el almacenamiento de este navegador. En Multimode también guarda la clave privada de tu red (dentro de la partida), lo que tus servidores enviaron sobre otras redes (olvidado tras 180 días sin noticias) y una clave de operador si importaste una. No se sube nada salvo que te unas a un servidor o envíes tú mismo una partida.",
 "progress.1_6t_on_every_hop_from":"1.6T en cada salto de Los Ángeles a Sídney",

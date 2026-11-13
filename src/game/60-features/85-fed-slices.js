@@ -18,7 +18,9 @@ const FdRow=r=>!r||typeof r!=='object'||!Number.isSafeInteger(r.rank)||r.rank<1|
   typeof r.ai!=='boolean'||r.name!==undefined&&(typeof r.name!=='string'||!!FdName(r.name))||r.home!==undefined&&!!FdCC(r.home)||r.cc!==undefined&&!!FdCC(r.cc);
 function fedRanksOk(a){if(!a||a.m!=='ranks'||!Number.isSafeInteger(a.slot)||!Number.isSafeInteger(a.n)||a.n<0||!Array.isArray(a.rows)||a.rows.length>100||a.rows.some(FdRow))return null;
   const me=a.me;if(me!==null&&me!==undefined&&(typeof me!=='object'||!Number.isSafeInteger(me.value)||me.rank!==null&&!(Number.isSafeInteger(me.rank)&&me.rank>=1)))return null;
-  return {slot:a.slot,n:a.n,rows:a.rows.map(r=>({rank:r.rank,key:r.key,value:r.value,asn:r.asn,ai:r.ai,name:r.name,home:r.home,cc:r.cc})),me:me?{rank:me.rank,value:me.value}:null};}
+  // at: the time of the snapshot of live states a ranking of now is for (§9.5).
+  if(a.at!==undefined&&!Number.isSafeInteger(a.at))return null;
+  return {slot:a.slot,...(a.at!==undefined?{at:a.at}:{}),n:a.n,rows:a.rows.map(r=>({rank:r.rank,key:r.key,value:r.value,asn:r.asn,ai:r.ai,name:r.name,home:r.home,cc:r.cc})),me:me?{rank:me.rank,value:me.value}:null};}
 /* Several servers' answers as one ("All your servers, merged"): rows joined by key (a key on two servers takes the
    higher value), those in drop (muted by this player, hidden by a joined server, excluded) left out, sorted again
    (value, then key) and ranked by position, top n. The own row (me: this network's key): its merged position when it is

@@ -114,7 +114,7 @@ function fedSyncOk(a,b,same){if(same)return true;const ok=(x,y)=>x.sync==='open'
 const FED_FID=v=>Number.isSafeInteger(v)&&v>=1&&v<=2147483647;
 const FED_MSG={
   hello:{vers:Array.isArray,role:v=>typeof v==='string'},welcome:{ver:Number.isSafeInteger,server:v=>!FdId(v),node:v=>!FdK(v),now:Number.isSafeInteger},
-  challenge:{id:FED_FID,nonce:v=>!FdId(v)},proof:{id:FED_FID,proof:v=>!!v&&typeof v==='object'},put:{id:FED_FID,rec:v=>v!==undefined},
+  challenge:{id:FED_FID,nonce:v=>!FdId(v)},state:{id:v=>v===undefined||FED_FID(v),rec:v=>v!==undefined},proof:{id:FED_FID,proof:v=>!!v&&typeof v==='object'},put:{id:FED_FID,rec:v=>v!==undefined},
   ack:{id:FED_FID,rid:v=>v===undefined||typeof v==='string'},cosign:{id:FED_FID,rid:v=>typeof v==='string',key:v=>typeof v==='string',sig:v=>typeof v==='string'},
   sub:{id:FED_FID,kinds:Array.isArray,since:v=>typeof v==='string'},unsub:{id:FED_FID},fetch:{id:FED_FID,ids:v=>Array.isArray(v)&&v.length<=256},
   rank:{id:FED_FID,board:v=>typeof v==='string',measure:v=>typeof v==='string',division:v=>typeof v==='string'},
@@ -123,7 +123,7 @@ const FED_MSG={
   servers:{id:FED_FID},recs:{items:v=>Array.isArray(v)&&v.length<=256},catalog:{entries:Array.isArray},
   err:{code:v=>typeof v==='string'},ping:{id:FED_FID},pong:{id:FED_FID},
   auth:{id:FED_FID,key:v=>typeof v==='string',t:Number.isSafeInteger,sig:v=>typeof v==='string'},excluded:{keys:Array.isArray},update:{version:v=>typeof v==='string'}};
-const FED_FROM={client:['hello','auth','challenge','put','cosign','sub','unsub','fetch','rank','rankwhy','facets','nets','servers','err','ping','pong'],
+const FED_FROM={client:['hello','auth','challenge','put','state','cosign','sub','unsub','fetch','rank','rankwhy','facets','nets','servers','err','ping','pong'],
   node:['welcome','proof','ack','recs','catalog','excluded','update','ranks','facets','netstats','err','ping','pong']};
 /* Reads one text frame: who: the side that sent it ('client' or 'node'). Gives {f} (the frame) or {error}.
    For a node reading a client's frame, state ('new' or 'ready') and speaks (its versions) apply the handshake rules. */

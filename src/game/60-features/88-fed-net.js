@@ -10,8 +10,9 @@ const FED={
   rand:()=>{try{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]/4294967296;}catch(e){return 0.5;}},
   visible:()=>{try{return document.visibilityState!=='hidden';}catch(e){return true;}},
   fetch:(u,o)=>fetch(u,o),idb:()=>indexedDB,registry:'federation/servers.json',
-  // ms: opening a socket, a request's answer, ping when idle, give up when silent, the idle check, stats, back-off.
-  T:{open:15000,req:20000,idle:60000,dead:120000,tick:30000,stats:300000,statsMax:3600,first:5000,base:2000,cap:1800000,fetch:10000},
+  // ms: opening a socket, a request's answer, ping when idle, give up when silent, the idle check, stats, back-off;
+  // live states (§5.11): the check, the keepalive when nothing changed, the least time between two (s: statsMax, stateMin).
+  T:{open:15000,req:20000,idle:60000,dead:120000,tick:30000,stats:300000,statsMax:3600,first:5000,base:2000,cap:1800000,fetch:10000,state:10000,stateKeep:180000,stateMin:5},
   hooks:{stats:null,deal:null},vgen:0,shun:null,xgen:0,ex:null,live:null,st:{},ev:{},soon:false,listening:false,sent:new Map(),ids:new WeakMap(),dpend:[],
   // Server id -> the newest relay its node told this device's operator about (§9.3 update), memory only.
   upd:{}};
@@ -30,11 +31,11 @@ const fedMine=M=>!!M&&FED.live===M&&fedCur()===M.fed;
 function fedWake(){if(fedWorker())return;const f=fedCur();if(FED.live&&FED.live.fed!==f)fedStop();if(!f)return;
   let M=FED.live;
   if(!M){M=FED.live={fed:f,conns:new Map(),statsT:null,body:'',bodyAt:0};fedListen();M.cat=fedCatalogLoad().catch(()=>false);M.cat.then(()=>fedLearnAll(M));
-    M.statsT=FED.set(()=>fedStatsTick(M),FED.T.first);fedVotesTidy();fedDpendLoad(M);if(fwOn())fwStart();}
+    M.statsT=FED.set(()=>fedStatsTick(M),FED.T.first);M.stateT=FED.set(()=>fedStateTick(M),FED.T.first);fedVotesTidy();fedDpendLoad(M);if(fwOn())fwStart();}
   for(const u of f.servers)if(!M.conns.has(u))fedConnect(M,u);
   for(const [u,c] of M.conns)if(!f.servers.includes(u)){M.conns.delete(u);fedHang(c);delete FED.st[u];}
   fedEmit('status',fedStatus());}
-function fedStop(){const M=FED.live;if(!M)return;FED.live=null;FED.dpend=[];FED.clear(M.statsT);for(const c of M.conns.values())fedHang(c);FED.st={};fedEmit('status',fedStatus());}
+function fedStop(){const M=FED.live;if(!M)return;FED.live=null;FED.dpend=[];FED.clear(M.statsT);FED.clear(M.stateT);for(const c of M.conns.values())fedHang(c);FED.st={};fedEmit('status',fedStatus());}
 function fedListen(){if(FED.listening)return;FED.listening=true;
   const go=()=>{const M=FED.live;if(!M||!FED.visible())return;if(!fedMine(M)){fedWake();return;}
     for(const c of M.conns.values())if(c.state==='waiting'||c.state==='offline'&&c.tries&&!(c.calm>fedNow()))fedDial(c);};
@@ -59,7 +60,7 @@ const fedLive=c=>{if(fedMine(c.M)&&c.M.conns.get(c.url)===c)return true;if(FED.l
 // Closes a socket without its handlers firing back, and answers every pending request with null.
 function fedHang(c){FED.clear(c.t);FED.clear(c.tick);c.t=c.tick=null;const ws=c.ws;c.ws=null;c.phase='';
   if(ws){ws.onopen=ws.onmessage=ws.onerror=ws.onclose=null;try{ws.close();}catch(e){}}
-  for(const r of c.rq.values()){FED.clear(r.t);r.res(null);}c.rq.clear();c.sub=c.vsub=c.rsub=0;c.op=c.me=c.exBuf=c.impl=null;FED.clear(c.subT);c.subT=null;c.subQ=null;}
+  for(const r of c.rq.values()){FED.clear(r.t);r.res(null);}c.rq.clear();c.sub=c.vsub=c.rsub=0;c.op=c.me=c.exBuf=c.impl=c.feats=c.stTxt=null;c.stAt=0;FED.clear(c.subT);c.subT=null;c.subQ=null;}
 /* Development only (§9.1): a page loaded from a loopback host dials a *.localhost node over plain ws://, so a relay on
    the same machine needs no certificate. The page players load is never on a loopback host. */
 const FED_LOOP=/^(localhost|127\.0\.0\.1|\[::1\]|[a-z0-9.-]+\.localhost)$/;
@@ -107,6 +108,8 @@ async function fedAskRetry(c,m,many){for(let i=0;;i++){const a=await fedAsk(c,m,
 function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.skip)return;if(r.error){fedDrop(c,r.error);return;}const f=r.f;
   if(f.m==='welcome'){if(c.phase!=='hello'||f.ver!==1||c.srv&&f.server!==c.srv){fedDrop(c,'welcome');return;}
     FED.clear(c.t);c.t=null;c.srv=f.server;c.nodeKey=f.node;c.impl=fedImpl(f.impl);c.phase='check';
+    // The optional messages the node takes (§9.3 feats): live states and the boards of now only where it lists them.
+    c.feats=Array.isArray(f.feats)?f.feats.slice(0,16).filter(x=>typeof x==='string'):[];
     c.tick=FED.set(function tk(){if(!fedLive(c)||!c.ws)return;const n=fedNow();
       if(n-c.lastIn>=FED.T.dead/1000){fedDrop(c,'silent');return;}
       if(n-c.lastOut>=FED.T.idle/1000)fedSend(c,{m:'ping',id:c.nid=c.nid%2147483646+1});c.tick=FED.set(tk,FED.T.tick);},FED.T.tick);
@@ -222,6 +225,22 @@ async function fedStatsTick(M){if(!fedMine(M))return;M.statsT=FED.set(()=>fedSta
   const r=await fedSignRec(f.key.priv,'stats',body,now);if(!fedMine(M))return;
   M.body=txt;M.bodyAt=now;f.last=slot;fedQueue(r,f);fedSaved();}
 
+/* ---------- live states (§5.11): this network's current numbers, for the boards of now ----------
+   Every FED.T.state while the tab is visible and a joined server that takes them (feats) is connected: the same body as
+   stats, signed as a state, sent only when it changed since the last one that server took, or after FED.T.stateKeep so
+   the network stays on the boards of now; never twice within FED.T.stateMin seconds. Nothing is queued or saved: a
+   state missed (offline, hidden, rate limited) is simply replaced by the next. FED.stCost counts the work it took here. */
+const fedFeat=(c,x)=>!!c&&Array.isArray(c.feats)&&c.feats.includes(x);
+async function fedStateTick(M){if(!fedMine(M))return;FED.clear(M.stateT);M.stateT=FED.set(()=>fedStateTick(M),FED.T.state);
+  if(!FED.visible())return;const now=fedNow(),cs=[...M.conns.values()].filter(c=>c.phase==='ready'&&fedFeat(c,'state'));if(!cs.length)return;
+  const t0=fedPerf();let body;try{body=fedStatsBody();}catch(e){return;}const txt=fedCanon(body);
+  const need=cs.filter(c=>now-(c.stAt||0)>=FED.T.stateMin&&(c.stTxt!==txt||now-(c.stAt||0)>=FED.T.stateKeep/1000));
+  if(!need.length){FED.stCost.idle+=fedPerf()-t0;return;}
+  const r=await fedSignRec(M.fed.key.priv,'state',body,now);FED.stCost.n++;FED.stCost.ms+=fedPerf()-t0;if(!fedMine(M))return;
+  await Promise.all(need.map(async c=>{const a=await fedAsk(c,{m:'state',rec:r});if(a&&a.m==='ack'){c.stTxt=txt;c.stAt=now;}}));}
+const fedPerf=()=>{try{return performance.now();}catch(e){return Date.now();}};
+FED.stCost={n:0,ms:0,idle:0};
+
 /* ---------- records from a node: checked, then kept where they belong ---------- */
 // Receipts: the earliest valid one gives the board slot (§10.1), and its country (a shared stats record only).
 async function fedPlace(c,chk,rcpts,now,srvs){let slot=null,cc=null;
@@ -278,12 +297,15 @@ async function fedRankView(v,urls){const f=S&&S.fed;if(!f||!f.key)return {rows:[
   const muted=f.muted||[],req=fedRankReq(v,f.deals,50+Math.min(50,muted.length)),k=fedRankKey(req),me=f.key.pub;let at=null,slot=null;
   // A server caught sending a ranking its records do not give is left out (others are preferred) for a day.
   const bad=await fedUntrusted(),untrusted=urls.filter(u=>bad[u]).map(u=>bad[u].srv||u);urls=urls.filter(u=>!bad[u]);
-  const got=await Promise.all(urls.map(async u=>{const c=fedReadyConn(u);
+  // The boards of now are asked only of servers that take live states (feats); others give their kept answer, if any.
+  const got=await Promise.all(urls.map(async u=>{const c0=fedReadyConn(u),c=req.measure!=='now'||fedFeat(c0,'state')?c0:null;
     if(c){const a=fedRanksOk(await fedAskRetry(c,req));if(a){fedRanksPut(u,me,k,a).catch(()=>{});fedRankCheckSoon(c,req,a);return {a,srv:c.srv};}}
     const o=await fedRanksGet(u,me,k);if(!o)return null;at=at===null?o.at:Math.min(at,o.at);return {a:o.a,srv:FED.st[u]&&FED.st[u].server};}));
+  // snap: the newest snapshot of live states among the answers of a board of now (null for other measures).
+  let snap=null;for(const g of got)if(g&&Number.isSafeInteger(g.a.at))snap=Math.max(snap||0,g.a.at);
   const drop=new Set([...muted,...await fedShunned()]),srvs=await fedServers();
   for(const g of got)if(g&&g.srv){slot=Math.max(slot||0,g.a.slot);const h=await fedHides(g.srv,srvs);if(h)for(const x of h.rec.body.hide)drop.add(x);}
-  return {...fedRankMerge(got.map(g=>g&&g.a),me,drop,50),at,slot,untrusted};}
+  return {...fedRankMerge(got.map(g=>g&&g.a),me,drop,50),at,slot,snap,untrusted};}
 /* ---------- checking a server's ranking (§9.5 rankwhy) ----------
    After each fresh ranks answer, in the background: this network's own row and one row picked at random are worked out
    again from the signed records the server shows for them (fedRankOne). A row that does not match, twice (a record may
@@ -305,9 +327,11 @@ async function fedRankCheck(c,req,a){const f=c.M.fed,me=f.key.pub,rows=a.rows.fi
     if(r===false){await fedDistrust(c);return false;}}
   return true;}
 // One row (p: {key, own}) of an answer against the records rankwhy shows for it.
-async function fedRankRow(c,req,a,p){const w=await fedAskRetry(c,{m:'rankwhy',board:req.board,measure:req.measure,division:req.division,filters:req.filters,key:p.key},true);
-  if(!w||w.m!=='recs'||w.slot!==a.slot||!fedLive(c))return null;const now=fedNow(),srvs=await fedServers();
-  const ex=new Set(await fedServerExcl(c)),q={now:a.slot,board:req.board,measure:req.measure,division:req.division,exclude:[...ex],cities:req.filters.cities||null,filters:req.filters};
+// On a board of now, the states of the snapshot the answer used (at): another snapshot cannot check it.
+async function fedRankRow(c,req,a,p){const isNow=req.measure==='now',m={m:'rankwhy',board:req.board,measure:req.measure,division:req.division,filters:req.filters,key:p.key};
+  if(isNow)m.at=a.at;const w=await fedAskRetry(c,m,true);
+  if(!w||w.m!=='recs'||w.slot!==a.slot||isNow&&w.at!==a.at||!fedLive(c))return null;const now=fedNow(),srvs=await fedServers();
+  const ex=new Set(await fedServerExcl(c)),q={now:isNow?a.at:a.slot,board:req.board,measure:req.measure,division:req.division,exclude:[...ex],cities:req.filters.cities||null,filters:req.filters};
   // The records checked and worked out in the federation worker (fedWhyRun): null when a receipt comes from a server
   // this browser does not know, which cannot be checked, and then neither can the row.
   const x=await fwDo('why',{items:w.items,now,at:{srv:c.srv,nodeKey:c.nodeKey},srvs:fwSrvs(srvs),key:p.key,q});if(!x)return null;

@@ -4480,6 +4480,8 @@
 "privacy.what_the_game_keeps":"Cosa tiene il gioco",
 "privacy.what_the_game_keeps_and":"Cosa tiene e invia il gioco",
 "privacy.when_you_join_a_server":"Quando entri in un server",
+"privacy.while_you_play":"Mentre giochi",
+"privacy.your_current_numbers_every_10":"I tuoi numeri attuali (gli stessi di sopra, niente di più) ogni 10 secondi finché il gioco è aperto e sono cambiati, così le classifiche mostrano cosa succede adesso. I server li tengono solo in memoria, mai su disco, e li dimenticano 15 minuti dopo gli ultimi.",
 "privacy.your_game_sends_signed_records":"La tua partita invia record firmati: nome, numero AS e mercato di casa della tua rete nel gioco, le sue città con POP ed exchange, numero di clienti e cifre di traffico, la policy e i prezzi pubblicati, e da chi compra o a chi vende transit (mai il prezzo). Gli accordi partono sigillati solo per l'altro giocatore. Il tuo paese reale si aggiunge solo finché <b>Condividi il mio paese</b> è attivo.",
 "privacy.your_saves_settings_and_badges":"I tuoi salvataggi, impostazioni, badge e progressi restano nella memoria di questo browser. In Multimode si aggiungono la chiave privata della tua rete (nel salvataggio), quello che i tuoi server hanno mandato sulle altre reti (dimenticato dopo 180 giorni senza notizie) e una chiave da operatore se ne hai importata una. Non viene caricato niente a meno che tu non entri in un server o mandi tu stesso un salvataggio.",
 "progress.1_6t_on_every_hop_from":"1.6T su ogni tratta da Los Angeles a Sydney",
