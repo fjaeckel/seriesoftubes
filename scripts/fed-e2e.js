@@ -644,6 +644,45 @@ stay in the browser).`);
       must(A.sent.filter((f) => f.m === 'hello').length === hellos && await ev(A, () => fedStatus().state === 'connected'), 'the connection dropped');
     });
 
+    // Reports (§5.10): for the operators of the server they name, and nobody else.
+    await step('a report: Bob reports a made-up network from the sheet; Alice (operator) sees it; nobody else gets it', async () => {
+      const target = fakes[1], isRep = (it) => it && it.rec && it.rec.kind === 'report';
+      await until(() => ev(B, async (k) => (await fedNetworks()).some((n) => n.key === k), target.k.pub), 15000, 'Bob to know the network');
+      await ev(B, (k) => ACT.fuReport({ key: k }), target.k.pub);
+      await B.page.waitForSelector('#modalCard .fedui[data-fu="report"] [data-act="fuRepPick"][data-args*="spam"]', { timeout: 15000 });
+      await click(B, '#modalCard [data-act="fuRepPick"][data-args*="spam"]');
+      await click(B, '#modalCard [data-act="fuRepGo"]');
+      const put = await until(() => B.sent.find((f) => f.m === 'put' && f.rec && f.rec.kind === 'report'), 15000, 'Bob\'s report');
+      must(put.rec.key === P.B && put.rec.body.server === srv[0].id && put.rec.body.target === target.k.pub && put.rec.body.reason === 'spam', `Bob's report ${JSON.stringify(put.rec.body)}`);
+      must(B.frames.some((f) => f.m === 'ack' && f.id === put.id), 'the relay did not take Bob\'s report');
+      await until(() => ctl('status').kinds.report === 1, 10000, 'the relay to hold the report');
+      // Alice proved the operator key: her game follows reports and lists it in the operator panel.
+      must(A.sent.some((f) => f.m === 'sub' && f.kinds.join() === 'report'), 'Alice\'s game does not follow reports');
+      await until(() => ev(A, async (a) => (await fedReportsFor(a.srv)).some((x) => x.target === a.k && x.reasons.spam === 1), { srv: srv[0].id, k: target.k.pub }), 15000, 'Alice\'s game to keep the report');
+      await ev(A, (id) => ACT.fuOpen({ v: 'server', id }), srv[0].id);
+      await A.page.waitForFunction(() => /Reports from players[\s\S]*Spam 1 · 1 player reported it/.test(document.querySelector('#modalCard').textContent), null, { timeout: 15000 });
+      await ev(A, () => ACT.fuClose());
+      // Bob (no operator) never got a report record, his own neither, and never asked.
+      must(!B.frames.some((f) => (f.m === 'recs' || f.m === 'push') && (f.items || []).some(isRep)), 'a report reached Bob\'s game');
+      must(!B.sent.some((f) => f.m === 'sub' && f.kinds.includes('report')), 'Bob\'s game asked for reports');
+      // A third client, with a network key of its own proved: no report by sub (backlog or live) or by fetch.
+      const third = new Raw(raw.url), w = await third.open(), t = now(), k3 = keyOf(sha('fed-e2e third'));
+      const sig = b64(crypto.sign(null, Buffer.from(canon({ m: 'auth', key: k3.pub, node: w.node, server: w.server, t }), 'utf8'), k3.priv));
+      must((await third.ask({ m: 'auth', key: k3.pub, t, sig }))[0].m === 'ack', 'the third client\'s auth');
+      const back = (await third.ask({ m: 'sub', kinds: ['report', 'announce'], since: '' })).flatMap((pg) => pg.items);
+      must(back.length >= FAKES && !back.some(isRep), `the third client's backlog holds ${back.filter(isRep).length} reports`);
+      const got = (await third.ask({ m: 'fetch', ids: [rid(put.rec)] })).flatMap((pg) => pg.items || []);
+      must(!got.length, 'the third client fetched the report');
+      const again = sign(fakes[2].k, 'report', now(), { server: srv[0].id, target: target.k.pub, reason: 'abuse' });
+      must((await raw.put(again)).m === 'ack', 'a second report through the raw client');
+      await until(() => ev(A, async (a) => (await fedReportsFor(a.srv)).some((x) => x.target === a.k && x.reporters.length === 2), { srv: srv[0].id, k: target.k.pub }), 15000, 'Alice\'s game to get the second report live');
+      await sleep(500);
+      must(!third.frames.some((f) => (f.m === 'recs' || f.m === 'push') && (f.items || []).some(isRep)), 'a live report reached the third client');
+      must(!B.frames.some((f) => (f.m === 'recs' || f.m === 'push') && (f.items || []).some(isRep)), 'a live report reached Bob');
+      third.close();
+      return `Bob's report and a second one reached Alice's panel; Bob and a third client got 0`;
+    });
+
     await step('stats reach the relay with a receipt slot', async () => {
       await until(async () => (await ev(A, () => S.fed.last > 0)) && (await ev(B, () => S.fed.last > 0)), 30000, 'both games to send stats');
       const st = ctl('status');
