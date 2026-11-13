@@ -325,6 +325,13 @@ type Slice struct {
 	Keys     []string // only these networks; nil for all
 }
 
+// readsAnnounces reports whether which networks a slice keeps depends on their announces: the
+// filters on home, policy, age and day, and the cone board (whose edges need established networks).
+func (q *Slice) readsAnnounces() bool {
+	return q.Board == "cone" || q.Home != nil || q.Policy != nil || q.AgeMin != nil || q.AgeMax != nil ||
+		q.DayMin != nil || q.DayMax != nil
+}
+
 // baseKey names the part of a slice that is worked out from the records: board, measure, region.
 func (q *Slice) baseKey() string {
 	return q.Board + "|" + q.Measure + "|" + regionKey(q.Cities)

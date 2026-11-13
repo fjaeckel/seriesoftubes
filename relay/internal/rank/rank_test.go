@@ -345,6 +345,36 @@ func TestSliceFiltersAndMe(t *testing.T) {
 	}
 }
 
+// A new announce leaves slices that do not read announces cached (their names still follow),
+// and works out again those that do, which then see the new home.
+func TestAnnounceKeepsSlices(t *testing.T) {
+	a := New(1)
+	defer a.Close()
+	s := fed.Slot(t0) - 10*fed.SlotLen
+	body := map[string]any{"mode": "normal", "pops": map[string]any{"fra": int64(2)}, "traffic": []any{}, "tier1": false, "shareCountry": false}
+	a.Load([]Raw{{ID: "r1", Key: "kA", Slot: s, T: s, Body: body}}, map[string]*Ann{"kA": {Name: "Alpha", Home: "DE", Policy: "open"}}, nil, nil)
+	rk := func(q Slice) *Answer {
+		q.Board, q.Measure, q.Division = "pops", "total", "human"
+		ans, err := a.Rank(context.Background(), &q, t0, "", 50)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ans
+	}
+	de := "DE"
+	if rk(Slice{}).Cached || rk(Slice{Home: &de}).Cached {
+		t.Fatal("first asks were cached")
+	}
+	a.Announce("kA", &Ann{Name: "Alpha Two", Home: "FR", Policy: "open"})
+	plain := rk(Slice{})
+	if !plain.Cached || plain.Rows[0].Name != "Alpha Two" || plain.Rows[0].Home != "FR" {
+		t.Fatalf("plain slice after an announce: cached %v rows %+v", plain.Cached, plain.Rows)
+	}
+	if home := rk(Slice{Home: &de}); home.Cached || home.N != 0 {
+		t.Fatalf("home slice after the home changed: cached %v n %d", home.Cached, home.N)
+	}
+}
+
 func TestNotReadyAndNets(t *testing.T) {
 	a := New(1)
 	defer a.Close()

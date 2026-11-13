@@ -372,7 +372,14 @@ func (a *Agg) Rank(ctx context.Context, q *Slice, now int64, me string, n int) (
 		return nil, ErrNotReady
 	}
 	c := a.prepare(now)
-	k := a.stamp(c) + itoa(int64(a.meta.Load())) + "|" + q.key()
+	// Announces change all the time (terms, day, traffic); only slices that read them depend on
+	// them, so only those are worked out again when one arrives. Names and homes in the rows are
+	// read as the answer is built.
+	k := a.stamp(c)
+	if q.readsAnnounces() {
+		k += itoa(int64(a.meta.Load()))
+	}
+	k += "|" + q.key()
 	f, owner := a.flightFor(a.slices, k)
 	if owner {
 		select {
