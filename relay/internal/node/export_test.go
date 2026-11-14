@@ -170,3 +170,11 @@ func SetCatalogUnlisted(n int) func() {
 
 // InCatalog reports whether the catalog holds a server's entry.
 func (r *Relay) InCatalog(id string) bool { r.mu.Lock(); defer r.mu.Unlock(); return r.cat[id] != nil }
+
+// SetReportRoom sets the reports kept for reporters with history, the age that gives history and
+// the reports per address an hour; it returns the restore.
+func SetReportRoom(reserve int, elder int64, perAddr int) func() {
+	r, e, a := reportReserve, reportElder, maxReportsPerAddr
+	reportReserve, reportElder, maxReportsPerAddr = reserve, elder, perAddr
+	return func() { reportReserve, reportElder, maxReportsPerAddr = r, e, a }
+}

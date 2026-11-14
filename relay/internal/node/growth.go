@@ -43,11 +43,13 @@ func (b *budget) left(now int64, per float64) float64 {
 }
 
 // quota is the budgets of one connection, address or other server.
-type quota struct{ keys, bytes, live budget }
+type quota struct{ keys, bytes, live, reports budget }
 
 // idle reports whether every budget of q is full again (it can be forgotten).
 func (q *quota) idle(now int64, keys, bytes, live float64) bool {
-	return q.keys.left(now, keys) >= keys && q.bytes.left(now, bytes) >= bytes && q.live.left(now, live) >= live
+	rep := float64(maxReportsPerAddr)
+	return q.keys.left(now, keys) >= keys && q.bytes.left(now, bytes) >= bytes && q.live.left(now, live) >= live &&
+		q.reports.left(now, rep) >= rep
 }
 
 // quotaRef is one bucket set that a record or state is counted against, with its hourly amounts.

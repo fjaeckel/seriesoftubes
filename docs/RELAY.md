@@ -444,7 +444,8 @@ and stops new deals with it, nothing more.
 
 Players can **report** a network to the operators of a server they joined, with one of the same four reasons and no
 text. A report goes only to your server: your node keeps it 30 days (one per player and reported network, the newest;
-at most 20 new ones per player a day), passes it to your other nodes and to no other server, and shows it only in the
+at most 20 new ones per player a day and 60 an hour from one address, 65536 in all, a quarter of which is kept for players
+it has known for a week or more, whose reports push out the newest players' oldest ones when it is full), passes it to your other nodes and to no other server, and shows it only in the
 operator panel of a game that proved your operator key (Reports: per network, the reasons with counts and how many
 players reported it). It changes nothing by itself: you decide whether to hide the network or vote.
 

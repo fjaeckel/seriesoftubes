@@ -1,6 +1,7 @@
 package node_test
 
 import (
+	"fmt"
 	"slices"
 	"testing"
 	"time"
@@ -135,6 +136,7 @@ func TestReportsStayOnTheirServer(t *testing.T) {
 // reporter and day and in all, only from networks it knows, 30 days (5.10, 13).
 func TestReportLimitsAndRetention(t *testing.T) {
 	defer node.SetReportLimits(3, 5)()
+	defer node.SetReportRoom(0, int64(7*fed.Day), 60)() // no room set aside: these limits alone
 	n := rt.New(t)
 	a := n.Found("careful", "open")
 	x := a.Nodes[0]
@@ -195,5 +197,59 @@ func TestReportLimitsAndRetention(t *testing.T) {
 	x.R.GC()
 	if x.Count("report") != 0 {
 		t.Fatalf("after 30 days of the last: %d left", x.Count("report"))
+	}
+}
+
+// Keys cost nothing to make: reporters without history here cannot fill the reports a node keeps.
+// Room is kept for reporters with history, who take the place of the newest key's oldest report.
+func TestReportsKeepRoomForReportersWithHistory(t *testing.T) {
+	defer node.SetReportLimits(20, 4)()
+	defer node.SetReportRoom(1, int64(7*fed.Day), 60)()
+	n := rt.New(t)
+	a := n.Found("busy", "open")
+	x := a.Nodes[0]
+	elder := rt.Key("elder")
+	x.MustPut(rt.Announce(elder, n.Clock.Unix(), "Old Net"))
+	n.Clock.Add(8 * fed.Day * time.Second)
+	now := n.Clock.Unix()
+	fresh := []*fed.Signer{rt.Key("fresh 1"), rt.Key("fresh 2")}
+	for _, k := range fresh {
+		x.MustPut(rt.Announce(k, now, "New"))
+	}
+	var first map[string]any
+	for i := range 3 {
+		rec := report(fresh[i%2], now+int64(i), a.ID, rt.Key(fmt.Sprint("target ", i)).Key, "spam")
+		if i == 0 {
+			first = rec
+		}
+		x.MustPut(rec)
+	}
+	if code := x.Put(report(fresh[1], now, a.ID, rt.Key("target 9").Key, "spam")); code != fed.TooMany {
+		t.Fatalf("new keys past their share: %q", code)
+	}
+	x.MustPut(report(elder, now, a.ID, rt.Key("target 10").Key, "spam"))
+	x.MustPut(report(elder, now, a.ID, rt.Key("target 11").Key, "spam")) // full: a new key's report makes way
+	if x.Count("report") != 4 {
+		t.Fatalf("kept %d reports, want 4", x.Count("report"))
+	}
+	if x.Has(rt.ID(first)) == x.Has(rt.ID(report(fresh[1], now+1, a.ID, rt.Key("target 1").Key, "spam"))) {
+		t.Fatal("exactly one new key's report should have made way")
+	}
+}
+
+// A game's reports also count by its address.
+func TestReportsPerAddress(t *testing.T) {
+	defer node.SetReportRoom(-1, int64(7*fed.Day), 2)()
+	n := rt.New(t)
+	a := n.Found("addr", "open")
+	x := a.Nodes[0]
+	now := n.Clock.Unix()
+	for i := range 3 {
+		k := rt.Key(fmt.Sprint("reporter ", i))
+		x.MustPut(rt.Announce(k, now, "Net"))
+		_, err := x.Client(from("203.0.113.5")).Put(ctx(t), report(k, now, a.ID, rt.Key("target").Key, "spam"))
+		if i < 2 && err != nil || i == 2 && code(err) != fed.RateLimited {
+			t.Fatalf("report %d from one address: %v", i, err)
+		}
 	}
 }

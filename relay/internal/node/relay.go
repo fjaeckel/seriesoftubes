@@ -105,6 +105,7 @@ type Relay struct {
 	heap      int64                              // heap in use then
 	free      int64                              // free disk then (-1: unknown)
 	reportN   int                                // reports stored
+	repYoung  map[*store.Entry]int64             // reports of reporters without history here -> their first announce's slot
 
 	clients map[*session]bool
 	nodes   map[*session]bool
@@ -485,23 +486,67 @@ var (
 )
 
 // Bounds of reports (5.10; vars so tests can lower them): one reporter's new reports per day (by
-// receipt slot, which the reporter cannot pick), and every report this node keeps.
+// receipt slot, which the reporter cannot pick), and every report this node keeps. Keys cost
+// nothing to make, so reporters without history here (their first announce this node holds is
+// younger than reportElder) may fill only the room left after reportReserve (-1: a quarter), and a
+// reporter with history takes the place of the oldest report of the newest key when the node is
+// full. Reports from games are also counted per address, maxReportsPerAddr an hour.
 var (
-	maxReportsPerDay = 20
-	maxReports       = 65536
+	maxReportsPerDay  = 20
+	maxReports        = 65536
+	maxReportsPerAddr = 60
+	reportReserve     = -1
+	reportElder       = int64(7 * fed.Day)
 )
+
+// reserved is the room for reports kept for reporters with history.
+func reserved() int {
+	if reportReserve >= 0 {
+		return reportReserve
+	}
+	return maxReports / 4
+}
+
+// firstAnn is the receipt slot of the oldest announce of key this node holds, or now (lock held).
+func (r *Relay) firstAnn(key string, now int64) int64 {
+	first := now
+	for e := range r.st.Key(key) {
+		if e.Kind == "announce" && e.Slot < first {
+			first = e.Slot
+		}
+	}
+	return first
+}
+
+// evictYoung drops the oldest report of the reporter whose first announce is the newest (lock held).
+func (r *Relay) evictYoung() bool {
+	var o *store.Entry
+	var of int64
+	for e, f := range r.repYoung {
+		if o == nil || f > of || f == of && (e.T < o.T || e.T == o.T && e.ID < o.ID) {
+			o, of = e, f
+		}
+	}
+	if o == nil {
+		return false
+	}
+	r.refuse(o.ID)
+	r.remove([]string{o.ID})
+	return true
+}
 
 // indexReports rebuilds the reports by reporter and target from the store (start). A report
 // replaced by a newer one stays in the files until they are rewritten: it goes again here.
 func (r *Relay) indexReports() {
-	r.reports, r.reportN = map[string]map[string]*store.Entry{}, 0
+	r.reports, r.reportN, r.repYoung = map[string]map[string]*store.Entry{}, 0, map[*store.Entry]int64{}
 	var gone []string
+	now := r.now()
 	for e := range r.st.Kind("report") {
 		rec := r.st.Rec(e)
 		if rec == nil {
 			continue
 		}
-		if old := r.noteReport(e, rec.Str("target")); old != nil {
+		if old := r.noteReport(e, rec.Str("target"), now); old != nil {
 			gone = append(gone, old.ID)
 		}
 	}
@@ -511,7 +556,7 @@ func (r *Relay) indexReports() {
 // noteReport indexes a stored report about target; it returns the report of the same reporter and
 // target that is no longer kept (the older one, which may be e itself), for the caller to remove
 // (lock held).
-func (r *Relay) noteReport(e *store.Entry, target string) *store.Entry {
+func (r *Relay) noteReport(e *store.Entry, target string, now int64) *store.Entry {
 	by := r.reports[e.Key]
 	if by == nil {
 		by = map[string]*store.Entry{}
@@ -527,6 +572,11 @@ func (r *Relay) noteReport(e *store.Entry, target string) *store.Entry {
 	by[target] = e
 	if cur == nil {
 		r.reportN++
+	} else {
+		delete(r.repYoung, cur)
+	}
+	if f := r.firstAnn(e.Key, now); now-f < reportElder {
+		r.repYoung[e] = f
 	}
 	return cur
 }
@@ -553,6 +603,7 @@ func (r *Relay) dropReport(e *store.Entry) {
 	for target, x := range by {
 		if x == e {
 			delete(by, target)
+			delete(r.repYoung, e)
 			r.reportN--
 			break
 		}
@@ -588,8 +639,21 @@ func (r *Relay) reportCheck(rec *fed.Record, now int64, o origin) string {
 			day++
 		}
 	}
-	if day >= maxReportsPerDay || cur == nil && r.reportN >= maxReports {
+	if day >= maxReportsPerDay {
 		return fed.TooMany
+	}
+	if cur == nil {
+		young := now-r.firstAnn(rec.Key, now) < reportElder
+		if young && (len(r.repYoung) >= maxReports-reserved() || r.reportN >= maxReports) ||
+			!young && r.reportN >= maxReports && len(r.repYoung) == 0 {
+			return fed.TooMany
+		}
+	}
+	// A game's reports also count by its address: keys cost nothing to make.
+	if o.sess != nil && o.sess.addr.IsValid() {
+		if q := quotaOf(r, r.addrQ, o.sess.addr, now); q == nil || q.reports.left(now, float64(maxReportsPerAddr)) < 1 {
+			return fed.RateLimited
+		}
 	}
 	return ""
 }
@@ -916,6 +980,11 @@ func (r *Relay) ingest(rec *fed.Record, rcpts []any, o origin) (string, map[stri
 	}
 	if res == store.Stored {
 		charge(refs, newKey, e)
+		if rec.Kind == "report" && o.sess != nil && o.sess.addr.IsValid() {
+			if q := r.addrQ[o.sess.addr]; q != nil {
+				q.reports.n--
+			}
+		}
 	}
 	if o.client && rec.Kind == "stats" {
 		r.statsAt[rec.Key] = fed.Slot(now)
@@ -948,9 +1017,12 @@ func (r *Relay) after(e *store.Entry, rec *fed.Record, cc string, now int64) {
 		r.countOffer(e.Key, e.To(), 1)
 	case "report":
 		// One per reporter and target, the newest (5.10): the older one goes.
-		if old := r.noteReport(e, rec.Str("target")); old != nil {
+		if old := r.noteReport(e, rec.Str("target"), now); old != nil {
 			r.refuse(old.ID)
 			r.remove([]string{old.ID})
+		}
+		// Past the bound (a reporter with history came, reportCheck): the newest key's oldest goes.
+		for r.reportN > maxReports && r.evictYoung() {
 		}
 	case "hide":
 		// One per server, the newest (5.7): the one it replaces goes now, not at retention.

@@ -542,7 +542,11 @@ A node takes a report only when `server` is its own server (`not_node` otherwise
 holds an `announce` of (`refused`): operators judge reports by who sent them. It keeps one report per author and
 `target`, the newest (greatest `t`, then lowest id): a newer one replaces it, an older one is `refused`. It MAY bound
 what one author and everyone can make it keep (`too_many`); the reference relay takes at most 20 new reports per author
-per day, counted by receipt slot, and keeps at most 65536. Reports are kept 30 days (13.1).
+per day, counted by receipt slot, and keeps at most 65536. Keys cost nothing to make, so a node SHOULD keep room for
+reporters with history: the reference relay lets authors whose oldest announce it holds is younger than 7 days fill at
+most three quarters of it, and when it is full a report from an older author takes the place of the oldest report of
+the author whose oldest announce is newest. It also counts a game's reports by its address (at most 60 an hour,
+`rate_limited`). Reports are kept 30 days (13.1).
 
 ```json
 {"v":1,"kind":"report","key":"<bob>","t":1767312000,"sig":"…","body":{"server":"<id>","target":"<mallory>","reason":"offensive_name"}}
