@@ -28,9 +28,11 @@ const fsTyped=()=>{const t=UI.fs?UI.fs.typed.trim():'';return t&&!FdUrl(t)?t:nul
 // A server's name for a toast: from the catalog (the session's own load of it first, when one runs), else the address.
 async function fsName(url){try{await (FED.live&&FED.live.cat);FS.srvs=await fedServers();}catch(e){}const s=fsOf(url);return s?esc(s.name):esc(url);}
 /* Nothing picked yet: the open registry server whose node answered the registry's liveness check most recently (then
-   by name), else any registry server the same way, else one only heard of through gossip. */
+   by name), else any registry server the same way, else (only servers heard of) the game's own first server (FED_FIRST). Never one only heard
+   of through gossip: whoever runs a server could otherwise make theirs the default for players with no registry yet. */
+const FED_FIRST='wss://s1.seriesoftub.es/fed';
 function fsDefault(L){const by=(a,b)=>(b.answered||0)-(a.answered||0)||a.name.localeCompare(b.name),reg=L.filter(s=>s.source==='registry'&&fsNode(s));
-  return fsNode(reg.filter(s=>s.sync==='open').sort(by)[0]||reg.sort(by)[0]||L.find(fsNode));}
+  return fsNode(reg.filter(s=>s.sync==='open').sort(by)[0]||reg.sort(by)[0])||(L.some(fsNode)?FED_FIRST:null);}
 // The rows: an address the catalog does not know (the invite first), the invited server, then registry servers by name.
 function fsRows(){const f=UI.fs,L=(FS.srvs||[]).filter(fsNode).sort((a,b)=>(a.source==='registry'?0:1)-(b.source==='registry'?0:1)||a.name.localeCompare(b.name)),inv=f.inv&&fsOf(f.inv);
   if(inv){L.splice(L.indexOf(inv),1);L.unshift(inv);}

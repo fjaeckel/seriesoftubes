@@ -318,3 +318,17 @@ test('the switch and its picker fit a 360 px phone, in portrait and landscape', 
   }
   assert.deepEqual(p.errors, []);
 });
+
+test('with no registry server known, the default is the game\'s own first server, never one only heard of in gossip', () => {
+  const p = page();
+  const gossip = { id: 'g'.repeat(43), name: 'Aaa Heard Of', source: 'gossip', nodes: [{ url: 'wss://heard.example.org/fed' }] };
+  assert.equal(p.ev(`fsDefault(${JSON.stringify([gossip])})`), p.ev('FED_FIRST'), 'gossip alone: the built-in first server');
+  assert.equal(p.ev('fsDefault([])'), null, 'nothing known at all: nothing picked (the list is still loading, or empty)');
+  const reg = { ...gossip, id: 'r'.repeat(43), name: 'Zzz Listed', source: 'registry', sync: 'open', nodes: [{ url: URL2 }] };
+  assert.equal(p.ev(`fsDefault(${JSON.stringify([gossip, reg])})`), URL2, 'a registry server wins when there is one');
+  // FED_FIRST is the node of a server in the registry folder the build publishes.
+  const fs = require('node:fs'), path = require('node:path'), dir = path.join(__dirname, '..', 'federation', 'servers');
+  const urls = fs.readdirSync(dir).filter((f) => f.endsWith('.json')).flatMap((f) => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')).server.body.nodes.map((n) => n.url));
+  assert.ok(urls.includes(p.ev('FED_FIRST')), 'a registry server\'s node');
+  assert.deepEqual(p.errors, []);
+});
