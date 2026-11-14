@@ -3,6 +3,8 @@ package fed
 import (
 	"crypto/ed25519"
 	"testing"
+
+	"github.com/fjaeckel/seriesoftubes/relay/internal/canon"
 )
 
 // The identity point verifies (R = identity, S = 0) for any message: such keys are refused.
@@ -43,5 +45,19 @@ func TestWeakKeys(t *testing.T) {
 	pub := ed25519.NewKeyFromSeed(seed).Public().(ed25519.PublicKey)
 	if !IsKey(Encode(pub)) {
 		t.Fatal("a real key refused")
+	}
+}
+
+// A member name with a lone surrogate escape is refused on the loose path (frames) as by
+// ParseStrict, even when a later member has the name without it.
+func TestLooseLoneName(t *testing.T) {
+	for _, text := range []string{`{"v\ud800":1}`, `{"body":{"v\ud800":1,"v":2}}`} {
+		v, code := canon.Parse([]byte(text))
+		if code != "" {
+			t.Fatal(code)
+		}
+		if _, code := CheckLoose(v, Earliest, Opts{}); code != BadString {
+			t.Fatalf("%s: %q, want bad_string", text, code)
+		}
 	}
 }

@@ -1,0 +1,8 @@
+{
+  "description": "A member name with a lone surrogate escape is a bad string, like a value with one (2.2), even when another member has the name left without it: \"v\\ud800\" is not \"v\".",
+  "cases": [
+    { "input": { "text": "{\"v\\ud800\":1}" }, "expect": { "error": "bad_string" } },
+    { "input": { "text": "{\"v\\ud800\":1,\"v\":2}" }, "expect": { "error": "bad_string" } },
+    { "input": { "text": "{\"a\":{\"\\udc00\":true}}" }, "expect": { "error": "bad_string" } }
+  ]
+}

@@ -70,7 +70,8 @@ Records arrive as JSON text (RFC 8259) and are checked before anything else is d
    A number is accepted when the double is finite, integral, within the safe range and not negative zero. So `12`,
    `12.0` and `1.2e1` are all the integer 12, while `12.5`, `-0`, `1e400` and `9007199254740992` are `bad_number`.
 3. **String escapes** are decoded as JSON defines. A `\uD800`–`\uDFFF` escape that is not part of a high-then-low
-   surrogate pair is a lone surrogate: `bad_string`.
+   surrogate pair is a lone surrogate: `bad_string`. This holds for member names too (before the name rule of 2.1):
+   `"v\ud800"` is a bad string, never the name `v`, even when the object also has a member `v`.
 4. **Repeated member names** in one object: the last one wins (what `JSON.parse` and Go's `encoding/json` both do).
 5. Then the value rules of 2.1 apply to the decoded value, depth first, members in any order. A vector never holds
    two different faults of this step, so the order within it does not matter.
@@ -78,8 +79,8 @@ Records arrive as JSON text (RFC 8259) and are checked before anything else is d
 **Go, take care.** `encoding/json` silently replaces invalid UTF-8 and lone surrogate escapes with U+FFFD, matches
 struct field names case-insensitively, and fails the whole decode on `1e400`. Check `utf8.Valid` on the text, scan the
 raw text for lone surrogate escapes, decode into `any` with `Decoder.UseNumber()`, and convert numbers by the rule
-above. **JavaScript, take care.** Check strings with `String.prototype.isWellFormed()` (or an equivalent test) after
-`JSON.parse`, and `Number.isSafeInteger(n) && !Object.is(n, -0)` for numbers.
+above. **JavaScript, take care.** Check strings and member names with `String.prototype.isWellFormed()` (or an
+equivalent test) after `JSON.parse`, and `Number.isSafeInteger(n) && !Object.is(n, -0)` for numbers.
 
 ### 2.3 Writing canonical JSON
 

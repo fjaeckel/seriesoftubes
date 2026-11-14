@@ -31,6 +31,13 @@ const MaxDepth = 8
 // Num is a JSON number as written, before the integer rule is applied.
 type Num string
 
+// loneMark ends a member name that held a lone surrogate escape in a loose tree. The text was valid
+// UTF-8, so no other name holds the byte 0xff.
+const loneMark = "\xff"
+
+// IsLoneName says whether a loose tree's member name held a lone surrogate escape.
+func IsLoneName(k string) bool { return strings.HasSuffix(k, loneMark) }
+
 // Lone is a string that held a lone surrogate escape; it is never a valid value.
 type Lone string
 
@@ -318,7 +325,8 @@ func (p *parser) value() (any, bool) {
 			}
 			switch k := k.(type) {
 			case Lone:
-				m[string(k)] = v
+				// Kept apart from any other name, so a later member cannot hide it (IsLoneName).
+				m[string(k)+loneMark] = v
 			case string:
 				m[k] = v
 			}

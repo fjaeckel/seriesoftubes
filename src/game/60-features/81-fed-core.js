@@ -57,7 +57,7 @@ function fedStrOk(s){for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);if(c<32
   if(c>=0xd800&&c<0xe000){if(c>=0xdc00)return false;const d=s.charCodeAt(i+1);if(!(d>=0xdc00&&d<0xe000))return false;i++;}}return true;}
 // The first value rule a decoded value breaks (§2.1), or null. d: the depth of v, the record itself being 1.
 // Names a reader could take for an object's prototype (§2.1): an own __proto__ from JSON.parse would become one on copy.
-const FED_PROTO_NAMES=['__proto__','constructor','prototype'];
+const FED_PROTO_NAMES=['__proto__','constructor','prototype'],FED_LONE=/[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/;
 function fedValues(v,d=1){if(v===null)return 'bad_value';const t=typeof v;
   if(t==='string')return fedStrOk(v)?null:'bad_string';
   if(t==='number')return Number.isSafeInteger(v)&&!Object.is(v,-0)?null:'bad_number';
@@ -65,7 +65,8 @@ function fedValues(v,d=1){if(v===null)return 'bad_value';const t=typeof v;
   if(t!=='object')return 'bad_value';
   if(d>8)return 'too_deep';
   if(Array.isArray(v)){for(const x of v){const e=fedValues(x,d+1);if(e)return e;}return null;}
-  for(const k of Object.keys(v)){if(!FED_NAME.test(k)||FED_PROTO_NAMES.includes(k))return 'bad_name';const e=fedValues(v[k],d+1);if(e)return e;}
+  // A name with a lone surrogate is a bad string first, as the relay's reader has it (§2.2).
+  for(const k of Object.keys(v)){if(FED_LONE.test(k))return 'bad_string';if(!FED_NAME.test(k)||FED_PROTO_NAMES.includes(k))return 'bad_name';const e=fedValues(v[k],d+1);if(e)return e;}
   return null;}
 // JSON text (already a string, so valid UTF-8) to a checked value: {v} or {e: error code}.
 function fedParse(text){let v;try{v=JSON.parse(text);}catch(e){return {e:'bad_json'};}const e=fedValues(v);return e?{e}:{v};}

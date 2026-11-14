@@ -153,8 +153,8 @@ func canonHasLone(v any) bool {
 	case canon.Lone:
 		return true
 	case map[string]any:
-		for _, e := range x {
-			if canonHasLone(e) {
+		for k, e := range x {
+			if canon.IsLoneName(k) || canonHasLone(e) {
 				return true
 			}
 		}
