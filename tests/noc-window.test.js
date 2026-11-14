@@ -64,7 +64,8 @@ test('a malformed ?noc= is just the game', (t) => {
 test('every dashboard tab draws the same from the copy as in the game, also during a flood', async (t) => {
   const { G, W } = await pair(t);
   const html = (h) => h.ev("(()=>{const o={};for(const k of DTABS){UI.dtab=k;UI._dh=null;renderDash();o[k]=document.getElementById('dashCard').innerHTML;}return JSON.stringify(o)})()");
-  G.ev("$('dash').hidden=false");
+  // The row marked as picked in the game window's side panel is the game window's own: the NOC window has no side panel.
+  G.ev("$('dash').hidden=false;UI.sel=null");
   G.ev('NOC.dirty=true'); pump(G); await wait();
   // uid-free views: the same state must render the same.
   assert.deepEqual(JSON.parse(html(W)), JSON.parse(html(G)));
@@ -104,8 +105,8 @@ test('view clicks stay in the window; the game ignores anything off its list', a
   const { G, W, id } = await pair(t);
   const c0 = G.ev('S.cash');
   W.ev("nocView('details')");
-  click(W, '#dashCard [data-act="dashTab"][data-args*="infra"]');
-  assert.equal(W.ev('UI.dtab'), 'infra'); assert.notEqual(G.ev('UI.dtab'), 'infra');
+  click(W, '#dashCard [data-act="dashTab"][data-args*="routers"]');
+  assert.equal(W.ev('UI.dtab'), 'routers'); assert.notEqual(G.ev('UI.dtab'), 'routers');
   W.ev(`NOC.ctl.postMessage({t:'act',id:${lit(id)},act:'newgame',args:{}});NOC.ctl.postMessage({t:'act',id:${lit(id)},act:'takeLoan',args:{id:'x'}});ACT.newgame({});ACT.buildPop({city:'ams'})`);
   await wait();
   assert.equal(G.ev('S.cash'), c0);

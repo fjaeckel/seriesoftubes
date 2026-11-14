@@ -876,10 +876,10 @@ test('NOC link navigation replaces the phone and tablet sheet immediately', () =
     for (const action of ['dashLink', 'selLink']) {
       ev("UI.sel=null;UI.left='noc';UI.leftOpen=true;renderPanel();renderLeft();$('left').classList.add('full');$('panel').classList.add('full');UI.confirm='stale'");
       assert.equal(ev("$('left').classList.contains('closed')"), false);
-      if (action === 'dashLink') ev("UI.dtab='infra';ACT.dash()");
+      if (action === 'dashLink') ev("UI.dtab='links';ACT.dash()");
       // Use the actual dashboard or congested-link button, rather than invoking its handler.
       const root = action === 'dashLink' ? '#dashCard' : '#leftBody';
-      ev(`document.querySelector('${root} [data-act=${action}][data-args*=noc-link]').click()`);
+      ev(`document.querySelector('${root} [data-act=${action}][data-args*=noc-link]:not(.ihit)').click()`);
       assert.equal(ev("$('dash').hidden"), true);
       assert.equal(ev('UI.leftOpen'), false, `${action} dismisses NOC at ${width}px`);
       assert.equal(ev("$('left').classList.contains('closed')"), true, 'DOM closes before a game tick');

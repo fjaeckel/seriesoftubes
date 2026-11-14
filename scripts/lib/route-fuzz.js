@@ -50,7 +50,8 @@ function firstDiff(A, B) {
   return out;
 }
 
-const DTABS = ['overview', 'cust', 'conn', 'traffic', 'infra', 'lease'];
+// Not Links or Routers: their rows carry buttons main's single Links & routers tab never had (more rows, optics, pairs).
+const DTABS = ['overview', 'cust', 'conn', 'traffic', 'lease'];
 const TABS = ['cust', 'up', 'peer', 'links'];
 const LEFT = ['nets', 'noc', 'deals', 'goals'];
 const PRESETS = ['freeze', 'oncall', 'bgp'];
@@ -112,12 +113,13 @@ function playGame(pages, seed, opts = {}) {
   // A screen's buttons on both pages; the same list or a divergence.
   // Buttons for actions main's page does not have (a new feature's) are left out: the driver only presses what both have.
   // So are the switches and dials of a standing order this checkout retired (main's sheet still shows them), and a
-  // dashboard tab main's page does not have yet.
-  let baseActs = null, retired = null, baseTabs = null;
+  // dashboard tab main's page does not have yet, or one this checkout split or retired.
+  let baseActs = null, retired = null, baseTabs = null, headTabs = null;
   const screen = (w) => { const [a0, b0] = both('screen', w); baseActs = baseActs || new Set(base.call('acts'));
     if (!retired) { const [o1, o2] = both('sKeys'); retired = new Set(o1.orders.filter((k) => !o2.orders.includes(k))); }
-    const a = Array.isArray(a0) ? a0.filter((x) => !(/^ops/.test(x.act) && retired.has(x.args && x.args.k))) : a0;
     if (!baseTabs) baseTabs = new Set(JSON.parse(base.ev('JSON.stringify(DTABS)')));
+    if (!headTabs) headTabs = new Set(JSON.parse(head.ev('JSON.stringify(DTABS)')));
+    const a = Array.isArray(a0) ? a0.filter((x) => !(/^ops/.test(x.act) && retired.has(x.args && x.args.k)) && !(x.act === 'dashTab' && x.args && !headTabs.has(x.args.k))) : a0;
     const b = Array.isArray(b0) ? b0.filter((x) => baseActs.has(x.act) && !(x.act === 'dashTab' && x.args && !baseTabs.has(x.args.k))) : b0; same('buttons of ' + JSON.stringify(w), a, b); return a || []; };
   const press = (b, where) => { acts[b.act] = (acts[b.act] || 0) + 1; const [e1, e2] = both('press', b); same('press ' + where, e1, e2); note(where + ' ' + b.act + JSON.stringify(b.args) + (e1 ? ' !' + e1 : '')); };
   // Answer whatever window opened, a few levels deep, then close it.

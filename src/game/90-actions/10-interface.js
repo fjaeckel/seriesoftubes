@@ -6,7 +6,7 @@ const ACT={
  help:()=>showHelp(),
  dash:()=>{if(!S||pzOn())return;const d=$('dash');d.hidden=!d.hidden;if(!d.hidden)renderDash();},
  dashClose:()=>{$('dash').hidden=true;},
- dashTab:({k})=>{if(!DTABS.includes(k))return;UI.dtab=k;renderDash();const d=$('dash');if(d)d.scrollTop=0;},
+ dashTab:({k})=>{if(k==='infra')k='links';if(!DTABS.includes(k))return;UI.dtab=k;renderDash();const d=$('dash');if(d)d.scrollTop=0;},
  dashSort:({k})=>{if(!['name','asn','type','traffic','cost','lost'].includes(k))return;if(UI.dashSort===k)UI.dashDir=-(UI.dashDir||-1);else{UI.dashSort=k;UI.dashDir=k==='name'||k==='type'||k==='asn'?1:-1;}renderDash();},
  bank:()=>{if(!S||pzOn())return;UI.confirm=null;$('dash').hidden=true;const b=$('bankBox');b.hidden=false;UI._bh=null;renderBank();},
  bankClose:()=>{UI.confirm=null;$('bankBox').hidden=true;},
@@ -21,7 +21,9 @@ const ACT={
    if(UI.confirm!==id){UI.confirm=id;renderBank();return;}UI.confirm=null;if(!spend(cost)){renderBank();return;}S.loans=S.loans.filter(x=>x!==l);track('loan_repaid');
    toast(B.equity?tr('interface.you_bought_out_bank_they_flew',{bank:esc(B.name)}):tr('interface.loan_from_bank_repaid_early',{bank:esc(B.name)}),'good');after();renderBank();},
  leaseSwap:({a,b,src})=>{if(!S.pops[a]||!S.pops[b]||a===b)return;$('dash').hidden=true;UI.lmode='df';UI.dfSrc=['lease','build','cable'].includes(src)?src:isSub(a,b)?'cable':'build';UI.dfSys=glassLvl()>=3?'roadm':'lite';openLinkModal(a,b);},
- dashLink:({id})=>{$('dash').hidden=true;selectLink(id);focusLink(id);},
+ // bg: a tap on a dashboard row picks it in the side panel behind the dashboard, which stays open; Open goes there.
+ dashLink:({id,bg})=>{if(!S.links.some(l=>l.id===id))return;if(!bg)$('dash').hidden=true;selectLink(id);focusLink(id);if(bg)renderDash();},
+ dashPop:({city,bg})=>{if(!S.pops[city])return;if(!bg)$('dash').hidden=true;ACT.focusCity({city});UI.tab='links';renderPanel();if(bg)renderDash();},
  mapSet:({v})=>{if(!['auto','2d'].includes(v))return;mapGl(v==='auto');refreshSettings();},
  animSet:({v})=>{if(!['auto','on','off'].includes(v))return;UI.anim=v;try{localStorage.setItem('sot-anim',v);}catch(e){}applyAnim();refreshSettings();},
  soundSet:({v})=>{UI.muted=v==='off';try{localStorage.setItem('sot-mute',UI.muted?'1':'0');}catch(e){}renderHUD();refreshSettings();},
