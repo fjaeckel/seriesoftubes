@@ -95,13 +95,15 @@ const fedPathLess=(a,b)=>{if(a.length!==b.length)return a.length<b.length;for(le
 /* Merging the registry with gossip (§10.8), clients and relays alike. registry: [{id, server:{rid, t, name, nodes,
    operators}}]; gossip: [{id, server, path, seen}]. Gives the servers sorted by id: {id, source, rid, name, nodes,
    operators, seen, path}. The registry wins on records; gossip only adds when it was last seen and by which path. */
-function fedCatalogMerge(registry,gossip,now){const live=gossip.filter(g=>now<g.seen+FED_CARRY),out=new Map();
-  const best=list=>list.reduce((a,g)=>!a||g.seen>a.seen||g.seen===a.seen&&fedPathLess(g.path,a.path)?g:a,null);
+function fedCatalogMerge(registry,gossip,now){const out=new Map(),by=new Map();
+  // One pass over gossip: per server, the freshest entry (seen, then path) and the newest server record.
+  for(const g of gossip){if(!(now<g.seen+FED_CARRY))continue;const o=by.get(g.id);
+    if(!o){by.set(g.id,{b:g,s:g.server});continue;}
+    if(g.seen>o.b.seen||g.seen===o.b.seen&&fedPathLess(g.path,o.b.path))o.b=g;
+    if(g.server.t>o.s.t||g.server.t===o.s.t&&g.server.rid<o.s.rid)o.s=g.server;}
   const row=(id,source,s,b)=>({id,source,rid:s.rid,name:s.name,nodes:s.nodes,operators:s.operators,seen:b?b.seen:null,path:b?b.path:null});
-  for(const r of registry)out.set(r.id,row(r.id,'registry',r.server,best(live.filter(g=>g.id===r.id))));
-  for(const id of new Set(live.map(g=>g.id))){if(out.has(id))continue;const mine=live.filter(g=>g.id===id);
-    const s=mine.reduce((a,g)=>!a||g.server.t>a.t||g.server.t===a.t&&g.server.rid<a.rid?g.server:a,null);
-    out.set(id,row(id,'gossip',s,best(mine)));}
+  for(const r of registry){const o=by.get(r.id);out.set(r.id,row(r.id,'registry',r.server,o&&o.b));}
+  for(const [id,o] of by)if(!out.has(id))out.set(id,row(id,'gossip',o.s,o.b));
   return [...out.values()].sort((a,b)=>fedByStr(a.id,b.id));}
 
 /* ---------- sessions: versions, sync policies, frames ---------- */

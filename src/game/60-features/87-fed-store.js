@@ -6,8 +6,10 @@
    on an operator's device only, shun votes. The operator key has its own store
    (op): never in a save or an export. Every access is wrapped: with IndexedDB missing, blocked or failing (some private
    windows), the same calls work from memory for this tab, and the game plays on. */
-const FED_DB_NAME='sot-fed',FED_STORES=['ann','kv','op'],FED_ANN_MAX=5000,FED_FORGET=15552000,FED_VOTES_MAX=4096,FED_RANKS_MAX=48;
-const FEDDB={p:null,mem:null,annN:null};
+const FED_DB_NAME='sot-fed',FED_STORES=['ann','kv','op'],FED_ANN_MAX=5000,FED_FORGET=15552000,FED_VOTES_MAX=4096,FED_RANKS_MAX=48,FED_GOSSIP_MAX=400;
+// catGen counts writes of the registry and gossip; cat is fedServers' answer for one catGen.
+const FEDDB={p:null,mem:null,annN:null,catGen:0,cat:null};
+const fedCatKey=(store,key)=>store==='kv'&&(key==='gossip'||key==='registry');
 function fedMem(){if(!FEDDB.mem)FEDDB.mem=Object.fromEntries(FED_STORES.map(s=>[s,new Map()]));return FEDDB.mem;}
 function fedDb(){if(FEDDB.p)return FEDDB.p;
   return FEDDB.p=new Promise(res=>{let f=null;try{f=FED.idb();}catch(e){}if(!f){res(null);return;}
@@ -21,8 +23,9 @@ function fedReq(store,mode,f){return fedDb().then(d=>{if(!d)return {mem:true};re
   .catch(()=>({mem:true}));}
 async function fedGet(store,key){const r=await fedReq(store,'readonly',o=>o.get(key));if(!r.mem)return r.v===undefined?null:r.v;FEDDB.p=Promise.resolve(null);
   const v=fedMem()[store].get(key);return v===undefined?null:v;}
-async function fedPut(store,key,val){const r=await fedReq(store,'readwrite',o=>o.put(val,key));if(r.mem){FEDDB.p=Promise.resolve(null);fedMem()[store].set(key,val);}}
-async function fedDel(store,key){const r=await fedReq(store,'readwrite',o=>o.delete(key));if(r.mem){FEDDB.p=Promise.resolve(null);fedMem()[store].delete(key);}}
+// The catalog's generation moves only once a write is done: a read that began before it is not cached.
+async function fedPut(store,key,val){const r=await fedReq(store,'readwrite',o=>o.put(val,key));if(r.mem){FEDDB.p=Promise.resolve(null);fedMem()[store].set(key,val);}if(fedCatKey(store,key))FEDDB.catGen++;}
+async function fedDel(store,key){const r=await fedReq(store,'readwrite',o=>o.delete(key));if(r.mem){FEDDB.p=Promise.resolve(null);fedMem()[store].delete(key);}if(fedCatKey(store,key))FEDDB.catGen++;}
 // How many entries a store has.
 async function fedCount(store){const r=await fedReq(store,'readonly',o=>o.count());if(!r.mem&&Number.isSafeInteger(r.v))return r.v;FEDDB.p=Promise.resolve(null);return fedMem()[store].size;}
 // Every [key, value] of a store.

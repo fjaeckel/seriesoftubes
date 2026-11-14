@@ -75,7 +75,8 @@ function fuOpPanel(s){const c=fedConnTo(s.id),st=fedStatus(),ch=FU.chain;
 const fuProp=a=>({add_operator:tr('fedui.add_an_operator'),remove_operator:tr('fedui.remove_an_operator'),set_node:tr('fedui.add_or_move_a_node'),remove_node:tr('fedui.remove_a_node')}[a]||esc(a));
 
 /* ---------- one network: read-only status (and an operator's hide and shun) ---------- */
-async function fuNetLoad(key){const hides=[];for(const s of FU.srvs){const h=await fedHides(s.id,FU.srvs);if(h){const b=h.rec.body;hides.push({id:s.id,hide:b.hide.includes(key),names:b.names.includes(key),refuse:b.refuse.includes(key)});}}
+// Hide lists kept are only of joined servers (and those this player operates): no read per server in the catalog.
+async function fuNetLoad(key){const hides=[];for(const id of new Set([...fuSrvIds(),...FU.srvs.filter(s=>fuOpOf(s.id)).map(s=>s.id)])){const h=await fedHides(id,FU.srvs);if(h){const b=h.rec.body;hides.push({id,hide:b.hide.includes(key),names:b.names.includes(key),refuse:b.refuse.includes(key)});}}
   let ai=false;try{const st=(await fedNetsStats()).get(key);ai=!!(st&&st.ai)||!!(FU.slice&&FU.slice.rows.some(r=>r.key===key&&r.ai));}catch(e){}
   // The tally only for an operator (from the votes its nodes sent); everyone else knows only excluded or not.
   const op=!!FU.opKey;FU.netInfo={key,op,shun:op?await fedShunInfo(key):await fedExclInfo(key),hides,ai};}

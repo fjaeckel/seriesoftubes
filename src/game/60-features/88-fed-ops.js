@@ -36,7 +36,7 @@ async function fedHideOf(srv){const h=await fedHides(srv),b=h&&h.rec.body;
 async function fedOpHide(srv,key,list,on){if(FdK(key)||!['hide','names','refuse'].includes(list))return {error:'bad_field'};const b=await fedHideOf(srv);
   b[list]=b[list].filter(k=>k!==key);if(on)b[list].push(key);b[list].sort(fedByStr);
   const r=await fedOpSign('hide',b);if(!r)return {error:'no_key'};const x=await fedOpPut(srv,r);
-  if(x.ok)await fedPut('kv','hide:'+srv,{rec:r,id:await fedId(r)});return x;}
+  if(x.ok)await fedHidePut(srv,{rec:r,id:await fedId(r)});return x;}
 async function fedOpShun(srv,target,reason){if(FdK(target))return {error:'bad_field'};
   const body=reason?{server:srv,target,reason}:{server:srv,target};if(reason&&!['cheating','offensive_name','spam','abuse'].includes(reason))return {error:'bad_field'};
   const r=await fedOpSign(reason?'shun':'unshun',body);if(!r)return {error:'no_key'};const x=await fedOpPut(srv,r);

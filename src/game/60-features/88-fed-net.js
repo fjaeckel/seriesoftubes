@@ -276,7 +276,8 @@ async function fedRecsRun(c,items){const now=fedNow(),me=c.M.fed.key.pub,votes=[
     else if(r.kind==='shun'||r.kind==='unshun'){if(c.op&&!voters)voters=await fedVoters();if(c.op&&fedVoteOk(voters,r))votes.push(chk);}
     // Reports only for an operator of the server they name, from that server's own node (§5.10).
     else if(r.kind==='report'){if(c.op&&r.body.server===c.srv&&fedOpOf(srvs,c.srv,c.op))reps.push({id:chk.id,rec:r});}
-    else if(r.kind==='hide'){if(fedOpOf(srvs,r.body.server,r.key)){const o=await fedGet('kv','hide:'+r.body.server);if(!o||!o.rec||fedNewer(chk,o))await fedPut('kv','hide:'+r.body.server,{rec:r,id:chk.id});}}
+    // Hide lists only of the joined server this connection is to: others' would only take room (one each, up to 32 KB).
+    else if(r.kind==='hide'){if(r.body.server===c.srv&&fedOpOf(srvs,r.body.server,r.key)){const o=await fedGet('kv','hide:'+r.body.server);if(!o||!o.rec||fedNewer(chk,o))await fedHidePut(r.body.server,{rec:r,id:chk.id});}}
     else if((r.kind==='offer'||r.kind==='accept'||r.kind==='decline')&&(r.body.to===me||r.key===me||!!FED.hooks.deal&&FED.hooks.deal(r)))await fedDealIn(c.M.fed,{rec:r,id:chk.id,slot:heard,server:c.srv});}
   if(FED.dpend.length&&Array.isArray(items)&&items.some(it=>it&&it.rec&&it.rec.kind==='announce'))await fedDealRetry(c.M.fed);
   if(votes.length)await fedVotesAdd(votes,voters);
@@ -400,15 +401,27 @@ const fedSum=r=>({id:r.id,rid:r.srvId,t:r.srv.t,name:r.name,nodes:r.nodes,operat
    glass sees that the sending server syncs with the one before it on the path. */
 async function fedGossip(entries,via){if(!Array.isArray(entries))return;const now=fedNow(),g=(await fedGet('kv','gossip'))||[],L=entries.slice(0,256),rs=L.length?await fwDo('reg',{entries:L,now}):[];let ch=false;
   for(let i=0;i<L.length;i++){const e=L[i],r=rs[i];if(!r)continue;
+    // Every hop must be a server identity (the vectors use short labels, so it is checked here); path and seen are
+    // unsigned, so they stay advisory: shown, never trusted.
+    if(!Array.isArray(e.path)||e.path.some(x=>FdId(x)))continue;
     const x=fedGossipIn({id:r.id,path:e.path,seen:e.seen},null,now);if(x.action!=='store')continue;
     const path=typeof via==='string'&&!FdId(via)&&!e.path.includes(via)&&e.path.length<16?[...e.path,via]:e.path;
     g.push({id:r.id,server:r.sum,path,seen:e.seen,impl:fedImpls(e.impl,r.sum.nodes)});ch=true;}
   if(!ch)return;const keep=[],per=new Map();
-  for(const e of g.sort((a,b)=>b.seen-a.seen)){const n=per.get(e.id)||0;if(now<e.seen+FED_CARRY&&n<4&&keep.length<4000){keep.push(e);per.set(e.id,n+1);}}
+  // At most FED_GOSSIP_MAX entries, the freshest: the list is one IndexedDB value, read whole when the catalog is.
+  for(const e of g.sort((a,b)=>b.seen-a.seen)){const n=per.get(e.id)||0;if(now<e.seen+FED_CARRY&&n<4&&keep.length<FED_GOSSIP_MAX){keep.push(e);per.set(e.id,n+1);}}
   await fedPut('kv','gossip',keep);fedEmit('catalog',{source:'gossip'});}
 /* The servers this browser knows (§10.8 merge, registry first): [{id, source ('registry' or 'gossip'), name, nodes
    [{key, url}], operators, sync, noLogs, langs, desc, seen, path, listed, answered}], sorted by id. */
-async function fedServers(){const reg=(await fedGet('kv','registry'))||{servers:[]},gos=(await fedGet('kv','gossip'))||[],now=fedNow();
+/* Read and merged again only when the registry or gossip was written (FEDDB.catGen) or an entry expired since: the
+   catalog is asked for on every page of records. Callers get their own array, the rows are shared (read only). */
+async function fedServers(){const now=fedNow(),k=FEDDB.cat;
+  if(k&&k.gen===FEDDB.catGen&&now>=k.now&&now<k.exp)return k.list.slice();
+  const gen=FEDDB.catGen,list=await fedServersRead(now);
+  if(gen===FEDDB.catGen){let exp=Infinity;const gos=(await fedGet('kv','gossip'))||[];for(const g of gos)if(now<g.seen+FED_CARRY)exp=Math.min(exp,g.seen+FED_CARRY);
+    if(gen===FEDDB.catGen){FEDDB.cat={gen,now,exp,list};await fedHidesTidy(list);}}
+  return list.slice();}
+async function fedServersRead(now){const reg=(await fedGet('kv','registry'))||{servers:[]},gos=(await fedGet('kv','gossip'))||[];
   const info=new Map();for(const g of gos)if(!info.has(g.id)||g.server.t>info.get(g.id).t)info.set(g.id,g.server);for(const r of reg.servers)info.set(r.id,r);
   // What its nodes run, from the freshest entry that said (informational, set by the server itself).
   const rel=new Map();for(const g of gos)if(g.impl&&typeof g.impl==='object'&&Object.keys(g.impl).length&&now<g.seen+FED_CARRY&&(!rel.has(g.id)||g.seen>rel.get(g.id).seen))rel.set(g.id,g);
@@ -420,6 +433,13 @@ async function fedVoters(){const reg=await fedGet('kv','registry'),m=new Map();i
   for(const s of reg.servers)if(fedVoter(s,reg.asOf)&&Array.isArray(s.operators))m.set(s.id,new Set(s.operators));return m;}
 const fedVoteOk=(voters,r)=>{const o=r&&r.body&&voters.get(r.body.server);return !!o&&o.has(r.key);};
 const fedOpOf=(srvs,id,key)=>{const e=srvs.find(x=>x.id===id);return !!e&&Array.isArray(e.operators)&&e.operators.includes(key);};
+/* Hide records are kept per server ('hide:'+id) with an index of the ids ('hides'), so the ones of servers that left
+   the catalog can be dropped without reading every document. An index missing (kept before it existed) is rebuilt once. */
+async function fedHideIds(){const ix=await fedGet('kv','hides');if(Array.isArray(ix))return ix;
+  const ids=(await fedAll('kv')).map(([k])=>k).filter(k=>typeof k==='string'&&k.startsWith('hide:')).map(k=>k.slice(5));await fedPut('kv','hides',ids);return ids;}
+async function fedHidePut(id,v){await fedPut('kv','hide:'+id,v);const ix=await fedHideIds();if(!ix.includes(id))await fedPut('kv','hides',ix.concat([id]));}
+async function fedHidesTidy(srvs){if(!srvs.length)return;/* no catalog yet: nothing to compare with */const ix=await fedHideIds(),ids=new Set(srvs.map(s=>s.id)),gone=ix.filter(id=>!ids.has(id));if(!gone.length)return;
+  for(const id of gone)await fedDel('kv','hide:'+id);await fedPut('kv','hides',ix.filter(id=>ids.has(id)));}
 // A server's hide record ({rec, id}) when an operator of that server signed it, else null.
 async function fedHides(id,srvs){const h=await fedGet('kv','hide:'+id);if(!h||!h.rec)return null;return fedOpOf(srvs||await fedServers(),id,h.rec.key)?h:null;}
 /* What every game knows of shunning (§10.7, §10.7): the excluded lists of the servers this save joined, as each last

@@ -93,7 +93,8 @@ async function fuLoadRun(){const v=UI.fu&&UI.fu.v;if(!v)return;
   try{FU.srvs=await fedServers();FU.opKey=await fedOpKey();
     if(v==='glass'||v==='server'||v==='net'||v==='home'||v==='boards'||v==='filters'||v==='report'){FU.gossip=(await fedGet('kv','gossip'))||[];FU.votes=FU.opKey?(await fedGet('kv','votes'))||[]:(await fedVotesTidy(),[]);
       FU.nets=new Map((await fedNetworks()).map(n=>[n.key,n]));FU.hideNames=new Set();FU.excl=new Set(await fedShunned());
-      for(const s of FU.srvs){const h=await fedHides(s.id,FU.srvs);if(h)for(const k of h.rec.body.names)FU.hideNames.add(k);}}
+      // Names are hidden only as the servers this save joined ask: any other server's list is not this player's.
+      for(const id of fuSrvIds()){const h=await fedHides(id,FU.srvs);if(h)for(const k of h.rec.body.names)FU.hideNames.add(k);}}
     if(v==='home'){const f=S&&S.fed;FU.shun=f&&f.key?await fedExclInfo(f.key.pub):null;FU.asn=f&&f.key?await fedAsn(f.key.pub):null;}
     if(v==='glass'||v==='server')await fuGlassLoad();
     if(v==='server'&&UI.fu.id&&FU.opKey&&fuOpOf(UI.fu.id)){await fuOpReportsLoad(UI.fu.id);FU.chain=await fedOpChain(UI.fu.id);}
