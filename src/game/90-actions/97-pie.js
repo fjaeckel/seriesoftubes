@@ -4,8 +4,18 @@ const pieNo=why=>{toast(why,'bad');sfx('err');pieRe();};
 // Launch options live in the save, so they stay as the player left them.
 const pieOpt=k=>{const P=pieGet();if(!P)return;P.opt[k]=!P.opt[k];sfx('click');pieRe();};
 // A paid launch onto the queue, at the pad its quote picked.
-function pieQueue(rk,cr,q,o){const P=S.pie,pad=P.pads.find(p=>p.city===q.pad);pad.next=q.day+piePadGap(pad,rk);if(rk==='again'&&!pad.boosters.length)pad.boosters.push({id:uid(),flights:0});
-  P.stock=Math.max(0,P.stock-q.n);P.crusts[cr].queued+=q.n;P.q.push({id:uid(),rk,cr,pad:q.pad,n:q.n,day:q.day,cost:q.ins?q.insured:0,ins:q.ins,las:o.las&&!q.test,test:q.test});pieGrabUse(q);}
+function pieQueue(rk,cr,q,o){const P=S.pie,pad=P.pads.find(p=>p.city===q.pad),pn=pad.next;pad.next=q.day+piePadGap(pad,rk);if(rk==='again'&&!pad.boosters.length)pad.boosters.push({id:uid(),flights:0});
+  P.stock=Math.max(0,P.stock-q.n);P.crusts[cr].queued+=q.n;P.q.push({id:uid(),rk,cr,pad:q.pad,n:q.n,day:q.day,cost:q.ins?q.insured:0,ins:q.ins,las:o.las&&!q.test,test:q.test,paid:q.cost,at:S.day,pn});pieGrabUse(q);}
+/* Calling off a queued launch (#365), before its day: the pies go back on the shelf (as far as it holds them), and the money
+   comes back in full the day it was booked (a misclick), or half later (the launch provider keeps the rest). The pad's
+   slot frees up when it was the last launch queued there. */
+const pieCxBack=L=>Math.round((L.paid||0)*(L.at===S.day?1:0.5));
+function pieCancel(L){const P=S.pie,pad=P.pads.find(p=>p.city===L.pad),v=pieCxBack(L);P.q=P.q.filter(x=>x!==L);
+  P.crusts[L.cr].queued=Math.max(0,P.crusts[L.cr].queued-L.n);P.stock=Math.min(pieStockMax(),P.stock+L.n);pieRefund(v);
+  // Launches queued after it on the pad inherit the slot the pad had before it, so calling off every one frees the pad.
+  for(const x of P.q)if(x.pad===L.pad&&x.day>L.day)x.pn=Math.min(x.pn??S.day,L.pn??S.day);
+  if(pad){const rest=P.q.filter(x=>x.pad===pad.city);pad.next=rest.length?Math.max(...rest.map(x=>x.day+piePadGap(pad,x.rk))):Math.max(S.day,Math.min(pad.next,L.pn??S.day));}
+  return v;}
 Object.assign(ACT,{
  pieOpen:()=>{if(!S||pzOn()||!pieOn())return;UI.confirm=null;pieModal();},
  pieFound:()=>{const P=pieGet();if(!P||P.co)return;if(!pieCanBuild())return pieNo(tr('pie.why_not_t1'));if(!pieSpend(piePrice(PIE_CO)))return pieRe();
@@ -24,6 +34,11 @@ Object.assign(ACT,{
    const q=pieQuote(rk,cr,o);if(!q.ok)return pieNo(q.why);if(!pieSpend(q.cost))return pieRe();pieQueue(rk,cr,q,o);
    {const v={n:q.n,crust:tr(CRUSTS[cr].n),city:CITY[q.pad].name,d:dateStr(q.day)};toast(q.test?tr('pie.t_queued_test',v):tr('pie.t_queued',v),'good');}pieRe();},
  pieAll:()=>pieOpt('all'),
+ // Calling off a queued launch: asked once (what comes back), then for good.
+ pieCx:({id,ok})=>{const P=pieGet();const L=P&&P.q.find(x=>x.id===id);if(!L)return;if(L.day<=S.day)return pieNo(tr('pie.cx_too_late'));
+   if(!ok){UI.pieCxAsk=id;sfx('click');return pieModal();}UI.pieCxAsk=null;const v=pieCancel(L);
+   toast(tr('pie.t_cancelled',{crust:tr(CRUSTS[L.cr].n),amt:fmt$(v)}),'good');pieRe();},
+ pieCxKeep:()=>{UI.pieCxAsk=null;sfx('click');pieModal();},
  // Scaling up (60-features/99-pie-scale.js).
  pieLine:()=>{const P=pieGet();if(!P||!P.fac||P.lines>=PIE_LINE_MAX)return;if(!pieCanBuild())return pieNo(tr('pie.why_not_t1'));if(!pieSpend(piePrice(PIE_LINE)))return pieRe();
    P.lines++;toast(tr('pie.t_line',{n:P.lines,m:pieFacMonth()}),'good');pieRe();},

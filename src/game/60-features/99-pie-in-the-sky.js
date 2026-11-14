@@ -148,7 +148,7 @@ function pieSanitize(s){s.pieV=int(s.pieV,0,1,0);pieEximFix(s);const p=s.pie,ob=
   const ccs=new Set(CITIES.map(c=>c.cc));
   if(ob(p.lic))for(const cc of Object.keys(p.lic)){const l=p.lic[cc];if(!ccs.has(cc)||!ob(l))continue;o.lic[cc]={state:PIE_LIC_STATES.includes(l.state)?l.state:'ok',until:int(l.until,0,day+PIE_LIC_DAYS*10,0)};}
   o.q=(Array.isArray(p.q)?p.q:[]).filter(L=>ob(L)&&own(ROCKETS,L.rk)&&own(CRUSTS,L.cr)&&o.pads.some(x=>x.city===L.pad)&&(!ROCKETS[L.rk].rd||o.rd[ROCKETS[L.rk].rd])).slice(0,PIE_Q_MAX)
-    .map(L=>{const t=L.rk==='heavy'&&!!L.test;return {id:sid0(L.id),rk:L.rk,cr:L.cr,pad:L.pad,n:t?0:n(L.n,ROCKETS[L.rk].pies),day:int(L.day,0,day+3650,day),cost:m(L.cost,1e10),ins:!!L.ins,las:!!L.las,test:t};});
+    .map(L=>{const t=L.rk==='heavy'&&!!L.test;return {id:sid0(L.id),rk:L.rk,cr:L.cr,pad:L.pad,n:t?0:n(L.n,ROCKETS[L.rk].pies),day:int(L.day,0,day+3650,day),cost:m(L.cost,1e10),ins:!!L.ins,las:!!L.las,test:t,paid:m(L.paid,1e10),at:int(L.at,-1,day,-1),pn:int(L.pn,0,day+3650,day)};});
   // Lasers used to be a launch toggle: a save that flew lasered pies (or asked for them) has the research.
   if(o.q.some(L=>L.las)||Object.values(o.crusts).some(c=>c.cohorts.some(k=>k.las)))o.rd.las=true;
   for(const L of o.q)o.crusts[L.cr].queued+=L.n;

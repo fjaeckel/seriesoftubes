@@ -40,6 +40,8 @@ const API_CMD={
  pieDishAll:{args:[['cc','countryCode']],watch:['pie'],doc:'Build a pie dish at every POP of a country that has none.'},
  piePadNew:{args:[],doc:'Show or hide the coastal sites where a new launch pad could go (Company tab).'},
  piePadKeep:{args:[],doc:'Cancel demolishing a launch pad (after piePadClose asked).'},
+ pieCx:{args:[['id','string'],['ok','boolean',false]],watch:['pie'],doc:'Call off a queued launch (its id from the queue) before its day: its pies go back on the shelf, and the money comes back in full the day it was booked, half later. Without ok it only asks.'},
+ pieCxKeep:{args:[],doc:'Keep a queued launch (after pieCx asked).'},
  piePadClose:{args:[['city','cityId'],['ok','boolean',false]],watch:['pie'],doc:'Close the launch pad in a city for a quarter of what it and its towers cost; without ok it only asks. Not while launches are queued there.'},
  pieSafe:{args:[],watch:['pie'],doc:'Toggle safe mode: pies ride out solar storms, carrying nothing meanwhile.'},
  pieName:{args:[],watch:['pie'],doc:'Rename the rocket company to the next name on the list.'},

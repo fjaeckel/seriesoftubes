@@ -86,7 +86,7 @@ function pieCrustTab(P,can){let nudge=false;const o=P.opt,Q=R&&R.pie;
   return h;}
 // The launches waiting on the pads, soonest first: under the Crusts tab, and the first few under the overview's globe.
 function pieQueueHtml(P,max){if(!P.q.length)return '';const q=P.q.slice().sort((a,b)=>a.day-b.day),sh=max?q.slice(0,max):q,cr=id=>esc(tr(CRUSTS[id].n).replace(/\s*\(.*\)$/,''));
-  return `<div class="pie-queue${max?' side':''}"><h3>${tr('pie.queue')} <span class="meta">${q.length}</span></h3>`+sh.map(L=>`<div class="pie-ql"><span class="d">${dateStr(L.day)}</span><span>🚀 ${esc(tr(ROCKETS[L.rk].d))} → ${cr(L.cr)}</span><span class="m">${L.test?tr('pie.test_flight'):trn('pie.n_pies',L.n)} · ${esc(CITY[L.pad].name)}</span></div>`).join('')
+  return `<div class="pie-queue${max?' side':''}"><h3>${tr('pie.queue')} <span class="meta">${q.length}</span></h3>`+sh.map(L=>`<div class="pie-ql"><span class="d">${dateStr(L.day)}</span><span>🚀 ${esc(tr(ROCKETS[L.rk].d))} → ${cr(L.cr)}</span><span class="m">${L.test?tr('pie.test_flight'):trn('pie.n_pies',L.n)} · ${esc(CITY[L.pad].name)}${!max&&L.day>S.day?' '+btn('✕','pieCx',{id:L.id},'ghost sm',UI.pieCxAsk===L.id,tr('pie.cx')):''}</span>${!max&&UI.pieCxAsk===L.id?pieCxConfirm(L):''}</div>`).join('')
     +(max&&q.length>max?`<div class="btns">${btn(trn('pie.pad_more',q.length-max),'pieTab',{t:'crust'},'ghost sm')}</div>`:'')+`</div>`;}
 // Production: the factory and its lines, R&D, the pads and their towers, and where the next pad could go.
 function pieProdHtml(P,can){let h=`<div class="dcols"><div>`;
@@ -112,6 +112,8 @@ function piePadRow(P,p){const la=CITY[p.city].lat,left=Math.max(0,p.next-S.day),
 function piePadCloseBtn(P,p){const n=P.q.filter(L=>L.pad===p.city).length;if(n)return btn(tr('pie.pad_close'),'piePadClose',{city:p.city},'ghost sm',true,trn('pie.pad_close_n',n));
   return btn(tr('pie.pad_close'),'piePadClose',{city:p.city},'ghost sm',UI.piePadAsk===p.city);}
 // The confirm takes a full line under the pad, so it fits however narrow the column is.
+// Calling off a launch (#365): what comes back, asked once.
+const pieCxConfirm=L=>`<div class="pie-confirm">${L.at===S.day?tr('pie.cx_q_today',{amt:fmt$(pieCxBack(L))}):tr('pie.cx_q_later',{amt:fmt$(pieCxBack(L))})}<div class="btns">${btn(tr('pie.cx_yes'),'pieCx',{id:L.id,ok:true},'red sm')}${btn(tr('pie.cx_keep'),'pieCxKeep',{},'ghost sm')}</div></div>`;
 const piePadConfirm=p=>`<div class="pie-confirm"><span>${tr('pie.pad_close_q2',{city:esc(CITY[p.city].name),amt:fmt$(piePadSalvage(p))})}</span><div class="btns">${btn(tr('pie.pad_close_yes'),'piePadClose',{city:p.city,ok:true},'red sm')}${btn(tr('common.cancel'),'piePadKeep',{},'ghost sm')}</div></div>`;
 function pieCoHtml(P){let h=`<div class="dgrid">${pieTile(tr('pie.running_costs'),tr('common.price_mo',{price:fmt$(pieMo())}))}${pieTile(tr('pie.spent'),fmt$(P.book.spent))}${pieTile(tr('pie.earned'),fmt$(P.book.earned))}${pieSand()?pieTile(tr('pie.would_have'),fmt$(P.book.wouldHave)):''}</div>`;
   if(R&&R.pie)h+=`<p class="meta">${tr('pie.earned_mo',{amt:fmt$(R.pie.rev),n:R.pie.isl.length})}</p>`;

@@ -122,6 +122,8 @@
 .pie-queue h3{font-size:15px;margin:10px 0 4px}
 .pie-ql{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 8px;font-size:12.5px;padding:3px 0;border-top:1px dashed var(--line)}
 .pie-ql .d{font-weight:800;white-space:nowrap}.pie-ql .m{color:var(--ink2);white-space:nowrap}
+.pie-ql .pie-confirm{grid-column:1/-1}.pie-ql .m .b{margin-left:4px}
+@media (max-width:420px){.pie-ql{grid-template-columns:auto minmax(0,1fr)}.pie-ql .m{grid-column:2;white-space:normal}}
 .pie-queue.side .pie-ql{grid-template-columns:auto minmax(0,1fr)}.pie-queue.side .pie-ql .m{grid-column:2}
 @media (min-width:761px){.pie-dr{grid-template-columns:minmax(150px,1fr) 150px 130px minmax(330px,auto)}.pie-dr .ac{flex-wrap:nowrap}.pie-dr .nm{white-space:nowrap}}
 @media (max-width:760px){.pie-queue.side{display:none}}
