@@ -9,7 +9,7 @@
    leakD (real day of the last shared-leak look), help (times a swap partner carried your traffic), ment and heard (the
    mentor dividend, 89-fedplay-mentor.js)}. */
 const FEDP_DEALS=['peering','transit','pni','swap','consortium','port','wave','cofound'],FEDP_WG=[100,400,800,1600],FEDP_TERMS=[30,90,180,365],FEDP_RATIO=[100,200,300,500,1000,100000],
-  FEDP_RPKI_MO=1500,FEDP_RQ_MAX=32,FEDP_CONS_MAX=24,FEDP_STR_MAX=8,FEDP_LEAK=12,FEDP_SPEEDS=[1000,10000,100000],
+  FEDP_RPKI_MO=1500,FEDP_RQ_MAX=32,FEDP_RQ_PER=4,FEDP_CONS_MAX=24,FEDP_CONS_PER=2,FEDP_STR_MAX=8,FEDP_LEAK=12,FEDP_LEAK_AGE=30,FEDP_SPEEDS=[1000,10000,100000],
   // Business traffic that is content going out (hosting, streaming, games, clouds); the rest is enterprise.
   FEDP_CONTENT=['host','stream','game','cgame','esport','metav','ingest','onramp','gpu','ai','hyper','mtrain','agi'];
 function fedPNew(){return {pol:'open',cond:{minMbps:0,maxRatio:300,minShared:1,rpki:false,tier1:false,ai:true},rates:{},
@@ -52,7 +52,9 @@ function fedpSanitize(s){
 // from deals stay only while their deal runs: a swap partner's restoration wave, a wave bought from a player.
 function fedpLinks(s){
   if(s.fed&&Array.isArray(s.fed.deals))for(const d of s.fed.deals){if(!['wait','run','over'].includes(d.st))d.st=d.start===null?'wait':'run';
-    if(!['buy','sell','peer'].includes(d.role))d.role='peer';d.on=d.on===true&&d.st==='run';d.rep=fedInt(d.rep,0,2e9,0);if(typeof d.why!=='string')d.why='';}
+    if(!['buy','sell','peer'].includes(d.role))d.role='peer';d.on=d.on===true&&d.st==='run';d.rep=fedInt(d.rep,0,2e9,0);if(typeof d.why!=='string')d.why='';
+    // Transit sold on terms no card would give (a buyer's game can ask anything): billed as the most it could be.
+    if(d.deal==='transit'&&d.role==='sell'&&d.terms&&Number.isSafeInteger(d.terms.mbps)){d.terms.mbps=Math.min(d.terms.mbps,fedTransitMax(s.fedp));d.rep=Math.min(d.rep,fedRepMax(d));}}
   const on=(id,k)=>!!(s.fed&&Array.isArray(s.fed.deals)&&s.fed.deals.some(d=>d.id===id&&d.on&&(!k||d.deal===k&&d.role==='buy')));
   s.links=s.links.filter(l=>(!l.fsw||on(l.fsw))&&(!l.fwv||on(l.fwv,'wave')));}
 
@@ -123,12 +125,17 @@ const fedMeFor=n=>{const p=fedPair(n);return {mbps:p.mbps,ratio:p.ratio,shared:p
 function fedCeil(c){let lo=Infinity;for(const n of NETS)if(!n.fed&&sellsAt(n,c))lo=Math.min(lo,transitPerG(n,c,false)*S.priceMul);return lo;}
 // The highest price this network may publish: the dearest of the cheapest computer-run transit at its POPs.
 function fedCeilMine(){let hi=0;for(const c of Object.keys(S.pops)){const v=fedCeil(c);if(v<Infinity)hi=Math.max(hi,v);}return Math.max(1,Math.ceil(hi||10));}
+/* The most transit a buyer may commit to on this network's card: ten times its biggest commit tier (at least 10G). */
+const fedTransitMax=P=>10*Math.max(1000,...(P&&P.rates&&P.rates.transit?P.rates.transit.commit.map(c=>c.mbps):[]));
+// The most a seller counts of what a buyer reports (Mbps): what the deal's exits can carry, twice the commit at each city.
+const fedRepMax=d=>Math.max(1,(d.terms.at||[]).length)*Math.max(1000,2*(d.terms.mbps||0));
 /* What deals with players cost and earn per month (computeMoney): transit at the published price on the committed
-   volume or what crossed, whichever is more (a seller counts what the buyer reported, signed); PNIs, exchange ports
-   and waves their monthly price; RPKI filtering its upkeep. Setup fees are paid once, when the deal starts. */
+   volume or what crossed, whichever is more (a seller counts what the buyer reported, signed, never more than the
+   deal's exits carry); PNIs, exchange ports and waves their monthly price; RPKI filtering its upkeep. Setup fees are
+   paid once, when the deal starts. */
 function fedMoney(C,V,R2){const f=S.fed;let c=S.fedp&&S.fedp.rpki?FEDP_RPKI_MO:0,v=0;
   if(f)for(const d of f.deals){if(!d.on)continue;const T=d.terms;
-    if(d.deal==='transit'){const use=d.role==='buy'?fedExUse(d,R2):(d.rep||0)/1000,g=Math.max((T.mbps||0)/1000,use),m=g*(T.perGbps||0);if(d.role==='buy')c+=m;else v+=m;}
+    if(d.deal==='transit'){const use=d.role==='buy'?fedExUse(d,R2):Math.min(d.rep||0,fedRepMax(d))/1000,g=Math.max((T.mbps||0)/1000,use),m=g*(T.perGbps||0);if(d.role==='buy')c+=m;else v+=m;}
     else if(d.deal==='pni'||d.deal==='port'||d.deal==='wave'){const m=T.monthly||0;if(d.role==='buy')c+=m;else if(d.role==='sell')v+=m;}
     // Co-founding: the co-founder pays its monthly share and earns its share of member fees; the founder the other way.
     else if(d.deal==='cofound'){const fee=fedCofoundFee(d);if(d.role==='buy'){c+=T.monthly;v+=fee;}else{v+=T.monthly;c+=fee;}}}

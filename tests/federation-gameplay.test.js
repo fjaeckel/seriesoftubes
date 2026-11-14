@@ -232,7 +232,7 @@ test('a shunned network goes dark at once with a notice; a shared leak hits part
   const k = key('alice').pub;
   assert.equal(await p.ev(`fedRequest('${k}','peering',{via:'ix'})`), null);
   // A real day on which the federation's leak comes from Alice, as every game that knows both networks works it out.
-  const D = p.ev(`(()=>{const me=S.fed.key.pub;for(let d=20400;d<23000;d++)if(hstr('leak|'+d)%FEDP_LEAK===0&&hstr(d+'|${k}')<hstr(d+'|'+me))return d;return 0;})()`);
+  const D = p.ev(`(()=>{for(let d=20400;d<23000;d++)if(hstr('leak|'+d)%FEDP_LEAK===0&&fedLeaker(S,d)==='${k}')return d;return 0;})()`);
   assert.ok(D > 0);
   p.ev(`S.fedp.rpki=true;fedLeakCheck(S,${D * DAY + 100})`);
   assert.ok(p.ev("S.log.some(e=>/RPKI filters dropped it/.test(e.t))"), 'contained by filtering');

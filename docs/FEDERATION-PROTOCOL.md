@@ -269,6 +269,9 @@ ever hold one fault.
 A network's public description: enough for other games to build it as a network, plus its published terms. The newest
 `announce` of a key (greatest `t`, then lowest id) replaces older ones. A relay keeps at most one `announce` of a key per
 board slot (6.1, 10.1), the newest: a newer one in that slot replaces it, and an older one is refused (`refused`).
+A network's `founded` never changes: a relay refuses (`refused`) an `announce` whose `founded` differs from that of the
+newest `announce` of the key it holds, and a game keeps the `founded` a key first said and ignores announces saying
+another one.
 
 | Field | Type | Rule |
 | --- | --- | --- |
@@ -1401,7 +1404,8 @@ not an `announce` by `to`). It is checked, in this order:
      then `div(p * 750, 1000)` of the card's `p` (the transit price after its commit tier, the PNI's `setup` and
      `monthly`, the port's and the wave's `monthly`): 25% off, rounded down. Both games compute it from the offer and
      the basis alone, so they agree on the price. That `terms.founded` is the buyer's real join day is the seller's
-     game's business: it declines (`conditions`) when the buyer's newest announce it has says otherwise. Two newcomers
+     game's business: it declines (`conditions`) when the buyer's newest announce it has says otherwise, or when it
+     first heard of the buyer more than a day before `terms.founded`. Two newcomers
      get no discount from each other; a renewal gets it only while the buyer is still new.
 5. Then: with `auto`, the deal is binding at once (`start = offer.t`); with `review`, it binds when the counterparty
    signs `accept` (`start = accept.t`). `end = start + term * 86400`; deals whose terms have no `term` (peering,
@@ -1418,7 +1422,8 @@ before acting on it or accepting it.
 
 **Prices change only at renewal.** A running deal keeps its terms until `end`, whatever newer announces say. A renewal
 is an offer with `renews` set, checked as above against the basis it names; its deal starts at
-`max(end of the renewed deal, its own start)` and runs its own term. A `decline` with reason `depeer` ends a deal at the
+`max(end of the renewed deal, its own start)` and runs its own term. Only the network the renewed deal is with can
+renew it: the counterparty declines (`conditions`) an offer whose `renews` names no deal it has with the offer's author. A `decline` with reason `depeer` ends a deal at the
 decline's `t`.
 
 ### 10.11 Merging and dedupe

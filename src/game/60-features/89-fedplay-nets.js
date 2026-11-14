@@ -13,7 +13,7 @@ const FEDP_MAX=48,FEDP_SH=0.012,FEDP_SH_ALL=0.12,FEDP_TICK=3600000,FEDP_UP=['lvl
   FEDP_COL=['#8E7DBE','#2E86AB','#E07A5F','#3D9970','#B565A7','#F2A541','#5B8E7D','#C44536','#4F6D7A','#9C6644'],
   FEDP_ST=['active','fading','dark'];
 // Runtime only: what is applied to NETS (h, ids, base shares), the newest announces by key, the timer.
-const FEDN={h:'',ids:[],base:null,ann:new Map(),cur:Promise.resolve(),pend:null,t:null,on:false,q:Promise.resolve(),rt:null,pin:new Set(),ex:null};
+const FEDN={h:'',ids:[],base:null,ann:new Map(),left:new Set(),cur:Promise.resolve(),pend:null,t:null,on:false,q:Promise.resolve(),rt:null,pin:new Set(),ex:null};
 // A player network's id in NET: stable for a key, letters and digits only.
 const fedNetId=k=>'fp'+String(k).slice(0,12).replace(/[-_]/g,'x');
 const fedNetOf=k=>{const n=NET[fedNetId(k)];return n&&n.fed===k?n:null;};
@@ -85,7 +85,7 @@ function fedPlayRefresh(){if(FEDN.pend)return FEDN.pend;
   const p=FEDN.pend=FEDN.cur.then(()=>{FEDN.pend=null;return fedPlayRun();}).catch(e=>console.error('[tubes] federation gameplay',e));FEDN.cur=p;return p;}
 async function fedPlayRun(){const s=S;if(!s||!s.fed||!s.fed.key||!fedEligible(s))return;
   const now=fedNow(),all=await fedNetworks(now),X=await fedExcl(),stats=await fedPlayStats(),srvs=X.by.size?await fedServers():[];if(S!==s||!s.fed)return;
-  const me=s.fed.key.pub,muted=new Set(s.fed.muted);FEDN.ann=new Map(all.map(n=>[n.key,n]));fedExclKeep(X,srvs);
+  const me=s.fed.key.pub,muted=new Set(s.fed.muted);FEDN.ann=new Map(all.map(n=>[n.key,n]));FEDN.left=all.left||new Set();fedExclKeep(X,srvs);
   /* Listed by any joined server: dark (no demand, hidden) unless a deal with it still runs; that goes on, and ends
      only once the exclusion is confirmed (fedDealsTick). */
   const live=new Set(s.fed.deals.filter(d=>d.st!=='over').map(d=>d.key)),shun=new Set([...X.keys].filter(k=>X.ok.has(k)||!live.has(k)));

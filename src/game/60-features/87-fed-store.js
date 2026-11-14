@@ -36,27 +36,41 @@ async function fedAll(store){const d=await fedDb();
   return [...fedMem()[store].entries()];}
 
 /* ---------- other players' networks: their newest announce and when they were last heard ---------- */
-// Keeps an announce ({rec, id}, checked) if it is the newest of its key; heard: its board slot (or when we got it).
-async function fedAnnPut(c,heard,srv){const k=c.rec.key,o=await fedGet('ann',k);
+/* Keeps an announce ({rec, id}, checked) if it is the newest of its key; heard: its board slot (or when we got it). Each
+   key also keeps when this browser first heard it (fs) and the founded day it first said (fd): a network's founded never
+   changes (§5.1), so an announce saying another one is not kept (it would fake the newcomer price or an old network). */
+async function fedAnnPut(c,heard,srv){const k=c.rec.key,o=await fedGet('ann',k),b=c.rec.body;
   if(o&&o.left&&c.rec.t<=o.left)return false;
-  const n={rec:c.rec,id:c.id,heard:Math.max(heard,o?o.heard:0),srv:[...new Set([...(o&&o.srv||[]),srv].filter(Boolean))].slice(0,16)};
-  if(o&&o.rec&&!fedNewer({rec:c.rec,id:c.id},{rec:o.rec,id:o.id})){if(n.heard===o.heard&&n.srv.length===o.srv.length)return false;n.rec=o.rec;n.id=o.id;}
+  const fd=o&&Number.isSafeInteger(o.fd)?o.fd:o&&o.rec?o.rec.body.founded:b.founded;if(b.founded!==fd)return false;
+  const n={rec:c.rec,id:c.id,heard:Math.max(heard,o?o.heard:0),srv:[...new Set([...(o&&o.srv||[]),srv].filter(Boolean))].slice(0,16),fs:o?fedAnnFs(o):heard,fd};
+  if(o&&o.rec&&!fedNewer({rec:c.rec,id:c.id},{rec:o.rec,id:o.id})){if(n.heard===o.heard&&n.srv.length===o.srv.length&&o.fd===fd)return false;n.rec=o.rec;n.id=o.id;}
   await fedPut('ann',k,n);if(!o)await fedAnnGrew();return true;}
+// When a key was first heard here; entries from before fs was kept count as heard long ago.
+const fedAnnFs=o=>Number.isSafeInteger(o.fs)?o.fs:0;
 // Any record of a key heard: its network is not quiet.
 async function fedHeard(key,heard){const o=await fedGet('ann',key);if(o&&heard>o.heard){o.heard=heard;await fedPut('ann',key,o);}}
 // A leave (§5.9): every record of that key at or before it is dropped, and it leaves the maps at once.
-async function fedLeft(key,t){const o=await fedGet('ann',key);if(o&&o.rec&&o.rec.t>t)return;await fedPut('ann',key,{rec:null,id:null,heard:o?o.heard:0,left:t,srv:[]});if(!o)await fedAnnGrew();}
-/* The store holds at most FED_ANN_MAX keys, the least recently heard going first. A count is kept (read once), and the
-   store is read whole only when it is a tenth over, so a first sync of thousands of networks does not read it each time. */
+async function fedLeft(key,t){const o=await fedGet('ann',key);if(o&&o.rec&&o.rec.t>t)return;
+  const x={rec:null,id:null,heard:o?o.heard:0,left:t,srv:[],fs:o?fedAnnFs(o):t};if(o&&Number.isSafeInteger(o.fd))x.fd=o.fd;await fedPut('ann',key,x);if(!o)await fedAnnGrew();}
+/* The store holds at most FED_ANN_MAX keys. A count is kept (read once), and the store is read whole only when it is a
+   tenth over, so a first sync of thousands of networks does not read it each time. What goes first: keys heard only
+   briefly (less than a day between first and last heard), the newest of them first, so a burst of throwaway networks
+   cannot push out the ones known for long; then the least recently heard. Keys the open game still needs (a deal
+   waiting or running, a request waiting for review, a pin, a mute: FED.hooks.keep) are never let go. */
 async function fedAnnGrew(){if(FEDDB.annN===null)FEDDB.annN=await fedCount('ann');else FEDDB.annN++;
   if(FEDDB.annN>FED_ANN_MAX+(FED_ANN_MAX/10|0))await fedAnnCap();}
+const fedAnnOld=o=>o.heard-fedAnnFs(o)>=FED_DAY;
 async function fedAnnCap(){const all=await fedAll('ann');FEDDB.annN=all.length;if(all.length<=FED_ANN_MAX)return;
-  all.sort((a,b)=>a[1].heard-b[1].heard);for(const [k] of all.slice(0,all.length-FED_ANN_MAX))await fedDel('ann',k);FEDDB.annN=FED_ANN_MAX;}
-/* Other players' networks as the game knows them: [{key, rec (the announce), heard, quiet {state, factor}}].
-   Forgets those silent for 180 days (§10.6), and leaves out keys that left. */
-async function fedNetworks(now=fedNow()){const out=[],all=await fedAll('ann');FEDDB.annN=all.length;
+  let keep=null;try{keep=FED.hooks.keep?FED.hooks.keep():null;}catch(e){}
+  const go=all.filter(([k])=>!(keep&&keep.has(k)));
+  go.sort((a,b)=>fedAnnOld(a[1])-fedAnnOld(b[1])||(fedAnnOld(a[1])?a[1].heard-b[1].heard:fedAnnFs(b[1])-fedAnnFs(a[1]))||fedByStr(a[0],b[0]));
+  const n=Math.min(go.length,all.length-FED_ANN_MAX);for(const [k] of go.slice(0,n))await fedDel('ann',k);FEDDB.annN=all.length-n;}
+/* Other players' networks as the game knows them: [{key, rec (the announce), heard, fs, quiet {state, factor}}], and
+   as out.left the keys that left (§5.9), which are not in the list. Forgets those silent for 180 days (§10.6). */
+async function fedNetworks(now=fedNow()){const out=[],all=await fedAll('ann');FEDDB.annN=all.length;out.left=new Set();
   for(const [k,o] of all){if(!o||now-o.heard>=FED_FORGET){await fedDel('ann',k);FEDDB.annN--;continue;}
-    if(o.rec)out.push({key:k,rec:o.rec,id:o.id,heard:o.heard,quiet:fedQuiet(now,o.heard),srv:o.srv||[]});}
+    if(o.left&&!o.rec)out.left.add(k);
+    if(o.rec)out.push({key:k,rec:o.rec,id:o.id,heard:o.heard,fs:fedAnnFs(o),quiet:fedQuiet(now,o.heard),srv:o.srv||[]});}
   return out;}
 
 /* ---------- small documents ---------- */

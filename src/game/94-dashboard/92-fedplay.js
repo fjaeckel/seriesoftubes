@@ -23,7 +23,7 @@ function fedDealState(d){const now=fedNow();
   if(d.st==='over')return tr(fedOwn(FEDP_WHY,d.why)?FEDP_WHY[d.why]:FEDP_WHY.depeer);
   if(d.start>now)return trn('fedplay.s_from',Math.ceil((d.start-now)/FED_DAY));
   return d.end===null?tr('fedplay.s_open'):trn('fedplay.s_left',Math.max(0,Math.ceil((d.end-now)/FED_DAY)));}
-function fedDealRow(d){const now=fedNow(),soon=d.st==='run'&&d.end!==null&&d.end-now<7*FED_DAY,renew=d.role!=='sell'&&d.deal!=='cofound'&&!fedRenewal(S.fed,d.id)&&(soon||d.st==='over'&&d.why!=='excluded'&&d.why!=='muted');
+function fedDealRow(d){const now=fedNow(),soon=d.st==='run'&&d.end!==null&&d.end-now<7*FED_DAY,renew=d.role!=='sell'&&d.deal!=='cofound'&&!fedRenewal(S.fed,d.id,d.key)&&(soon||d.st==='over'&&d.why!=='excluded'&&d.why!=='muted');
   return `<div class="row"><div class="grow"><div class="nm">${fedDealName(d.deal)}${d.role==='sell'?` <span class="meta">${tr('fedplay.you_sell')}</span>`:''}${d.terms&&fedOwn(d.terms,'founded')?` <span class="tag fp-new">${tr('fedplay.newcomer_price')}</span>`:''}</div><div class="meta">${esc(fedTermsText(d.deal,d.terms))}</div><div class="meta">${esc(fedDealState(d))}</div></div>
     ${renew?btn(tr('fedplay.renew'),'fpRenew',{id:d.id},'sm'):''}${d.st!=='over'?btn(d.deal==='peering'?tr('fedplay.depeer'):tr('fedplay.end'),'fpEnd',{id:d.id},'ghost sm'):''}</div>`;}
 

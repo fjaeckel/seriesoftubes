@@ -268,8 +268,10 @@ IndexedDB, frame parsing, and the game routing once when the snapshot changes), 
 
 ## Browser storage (IndexedDB `sot-fed`, shared by every slot)
 
-Stores `ann` (other networks' newest announce and `heard`, at most 5000, the longest silent dropped first once a tenth
-over, counted without reading the store each time, forgotten after 180 days), `kv` (`registry`, `gossip`, `ranks` (the last answer per joined URL, network and slice, at most 48), `facets:<URL>`, `nets:<URL>`, `untrusted` (servers caught, for 24 hours), `excl:<joined URL>` (`{at, srv, keys, me, reasons}`), `hide:<server>`,
+Stores `ann` (other networks' newest announce, `heard`, `fs` (first heard here) and `fd` (the `founded` it first said: an
+announce saying another is not kept), at most 5000 once a tenth over, counted without reading the store each time,
+forgotten after 180 days; what goes first: keys heard for less than a day, the newest first, then the longest silent;
+never a key the open game deals with, has a review request from, pinned or muted (`FED.hooks.keep`)), `kv` (`registry`, `gossip`, `ranks` (the last answer per joined URL, network and slice, at most 48), `facets:<URL>`, `nets:<URL>`, `untrusted` (servers caught, for 24 hours), `excl:<joined URL>` (`{at, srv, keys, me, reasons}`), `hide:<server>`,
 `cursor:<node>#<network key>` (cursors are per network: what a sub gives depends on the key proved), `dpend#<network
 key>` (sealed deal records waiting for their sender's announce, at most 256, 30 days), and on an operator's device only
 `votes` until expired and `vcursors` (per `<node>#<network key>`), `reports` and `rcursors`; without an operator key they are
@@ -395,14 +397,26 @@ the 14-day "join another server" suggestion (from `fedStatus().since`).
 
 - `S.fed.deals` holds at most 256 deals (`fedDealsCap`, on load and in `fedDealAdd`): waiting and running deals always
   stay, ended ones only as room is left, the newest first.
-- A deal is renewed once: each deal keeps `renews` (the id of the deal it renews, or null); `fedRenewal(f, id)` finds a
-  waiting or running renewal. The buyer cannot book a second (`dup`, and Renew is hidden, offered to buyers only); the
-  seller declines a second renewal offer (`conditions`).
+- A deal is renewed once, and only by the network it is with: each deal keeps `renews` (the id of the deal it renews
+  with the same network, or null); `fedRenewal(f, id, key)` finds a waiting or running renewal. The buyer cannot book a
+  second (`dup`, and Renew is hidden, offered to buyers only); the seller declines a second renewal offer, or one naming
+  a deal it has with someone else (`conditions`).
+- A deal keeps `heard` (when its network was last heard) and `box` (its box key): it ends as quiet only once that
+  network is itself dark (37 days silent), never because its announce left this browser's store, and its decline can
+  still be sealed (`fedDealBox`).
+- Transit sold: a buyer may commit to at most ten times the card's biggest tier (`fedTransitMax`; more is declined even
+  under review), and the seller counts at most twice the commit at each city of what the buyer reports (`fedRepMax`);
+  saves holding more are repaired on load. Co-founding terms must use the listed shares and terms.
 - A renewal starts when the renewed deal ends, or when it binds if later (§10.10), on both paths: automatic (`fedDeal`)
   and reviewed (`fedRenStart`, for the accept received and the accept given), so the two never bill together. A wave
   renewal on the same route, no bigger, takes over the room of the wave it renews (`fedWaveRen`).
-- The review queue (`S.fedp.rq`) holds 32 offers. When full, the oldest leaves with a `decline` (`declined`), so its
-  requester is not left waiting, and the new one waits: a flood of offers cannot keep new ones out.
+- The review queue (`S.fedp.rq`) holds 32 offers, at most 4 per requester (`fedRqRoom`): a fifth lets that requester's
+  oldest go, and a full queue lets go the oldest offer of the requester with the most, each with a `decline`
+  (`declined`) so no one is left waiting. One network's flood cannot push out the others' requests.
+- Open consortium projects (`S.fedp.cons`, 24): at most 2 open per author (a third lets its oldest go); a full list
+  lets go an ended project, else the oldest open one of the author with the most. Projects this network signed stay.
+- The shared route leak (`fedLeaker`): candidates are active networks known here for 30 days that joined at least 30
+  days before; the hash is salted with the set of candidates, so no key can be made to win a given day.
 - A consortium project shows and costs at least `fedConsShare(a, b, pairs)` in this game, whatever share its author
   wrote (a share of 0 is not a free cable).
 
@@ -412,8 +426,8 @@ the 14-day "join another server" suggestion (from `fedStatus().since`).
   sold or bought) and `tier2` to every stats body; the cone board counts an edge both sides list.
 - **Newcomer price**: `fedOffer` passes its terms through `fedNewTerms`: while this save joined less than 30 days ago
   (`S.fed.joined`, as the announce's `founded`) and the seller did not, the terms carry `founded` and 25% off every
-  price. The seller's game checks the same rule (`fedDeal`) and that `founded` is what the buyer's announce says
-  (`fedTheirMiss`, `miss_newcomer`). Deal rows say "newcomer price".
+  price. The seller's game checks the same rule (`fedDeal`) and that `founded` is what the buyer's announce says and not
+  more than a day after this browser first heard the buyer (`fedTheirMiss`, `miss_newcomer`). Deal rows say "newcomer price".
 - **Mentor dividend** (`fedMentorTick`, from the hourly look, with the `nets` answers' `tier2`, `pops`, `cust`, `slot`):
   newcomers with a running deal that started while they were new and this network was not, less than 60 days ago.
   Kept in `S.fedp.ment` (`[{k, n, m: seen|pops|t2|cust, v, t, cap?}]`, at most 512) and `S.fedp.heard` (`[{k, d: [UTC

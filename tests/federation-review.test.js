@@ -315,7 +315,7 @@ test('G5: a consortium project with a share under the honest price costs the hon
   assert.equal(c1 - p.ev('S.cash'), honest);
 });
 
-test('G6: a full review queue declines the offer it lets go, so its sender is not left waiting', async () => {
+test('G6: a review queue declines the offers it lets go, so their sender is not left waiting', async () => {
   const { p, n } = await game([ann('alice')]);
   p.ev("fedTermsApply({pol:'open',rates:{},auto:{peering:'review'}})");
   assert.ok(await until(async () => (await settle(5), p.ev("S.fedp.mine[0]&&S.fedp.mine[0].body.auto.peering==='review'"))));
@@ -324,8 +324,10 @@ test('G6: a full review queue declines the offer it lets go, so its sender is no
   for (let i = 0; i < 33; i++) offers.push(sealRec('alice', 'offer', p.net.now() + i, { to, deal: 'peering', basis: mine.id, terms: { at: ['fra'], via: 'ix' } }, to, mine.body.box));
   p.ev('window.__ans=[];{const A=fedAnswer;fedAnswer=(s,r,id,why)=>{__ans.push([id,why]);return A(s,r,id,why);};}');
   await resync(p, n, offers);
-  assert.ok(await until(async () => (await settle(5), p.ev('S.fedp.rq.length') === 32 && p.ev('__ans.length') === 1)));
-  assert.deepEqual(json(p, '__ans'), [[rid(offers[0]), 'declined']]);
+  // One requester keeps FEDP_RQ_PER (4) waiting, its newest; each one let go is declined.
+  assert.ok(await until(async () => (await settle(5), p.ev('S.fedp.rq.length') === 4 && p.ev('__ans.length') === 29)));
+  assert.deepEqual(json(p, '__ans.map(a=>a[1])'), Array(29).fill('declined'));
+  assert.deepEqual(new Set(json(p, '__ans.map(a=>a[0])')), new Set(offers.slice(0, 29).map(rid)));
   assert.equal(p.ev(`S.fedp.rq.some(q=>q.id===${J(rid(offers[0]))})`), false);
   assert.equal(p.ev(`S.fedp.rq.some(q=>q.id===${J(rid(offers[32]))})`), true);
 });

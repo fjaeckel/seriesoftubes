@@ -28,6 +28,13 @@ All notable changes to this project are documented here. The project follows
 - Multimode servers no longer let anyone pass as a node of a server that is in the public list or is known to be up to date. Servers in the public list must run this version to keep syncing with up-to-date servers.
 - Multimode servers no longer refuse a neighbour's own players because of what that neighbour passed on from elsewhere: servers outside the public list share one budget, and records held back by a budget are fetched again once it refills.
 - Multimode servers keep the moderation lists only of their own server and of servers in the public list, one per server, and count them like other new data, so made-up servers can no longer fill other servers' memory with them.
+- Your running Multimode deals no longer end because someone floods the game with thousands of new networks: the players you deal with, wait on or pinned always stay in your game, and a deal only ends for silence when that player has really gone quiet.
+- Only the player a Multimode deal is with can renew it: someone else can no longer book a "renewal" of your deal and block the real one.
+- Transit you sell to another player is billed on what your network can really carry: a buyer can no longer commit to far more than your rate card offers or report traffic that inflates your books, and saves holding such deals are corrected when they load.
+- A Multimode network's founding day can no longer change once it is announced: games and servers ignore an announce that claims another one, so nobody gets the newcomer price by pretending to be new.
+- One player can no longer fill your list of open consortium projects or your review queue: each player keeps at most two open projects and four waiting requests there, and your other players' requests stay.
+- The shared route leak of the day is picked only among networks that have been around for at least 30 days, in a way no one can arrange in advance, and co-founding offers must use the listed shares and terms.
+- The customer cone check of a Multimode leaderboard row is many times faster on big federations.
 - Multimode servers can no longer be filled up by someone making new networks by the thousand: new networks and the data they bring are counted per connection, address and server each hour, and a nearly full server keeps serving the players it knows. The defaults leave plenty of room for players running many games or AI agents at once.
 - The live boards of "now" keep their places for real players: when they are full, networks that were made up and never announced make way first.
 - A Multimode server sends each new record to a game once, even if the game follows it more than once.

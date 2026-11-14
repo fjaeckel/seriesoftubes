@@ -44,7 +44,8 @@ function fedOutClean(list,pub){let bytes=0;const out=[],one={};
 /* A deal with another player, as the save keeps it: self-contained, so it works with no other data. The gameplay
    builds them: {id (the offer's id), deal, key, name, asn, start, end (null: no end), terms (as offered, checked like
    an offer's), role (who pays: peer for peering and swaps, else buy or sell), st (wait, run, over), on, rep, why, ai,
-   renews (the id of the deal it renews, or null)}.
+   renews (the id of the deal it renews, or null), heard (when the other network was last heard, unix seconds; 0 not
+   known yet), box (its box key, so a decline can still be sealed for it once its announce left this browser)}.
    Only those fields are kept; a deal whose terms, role or state do not check is dropped (compute() reads its terms). */
 const FED_DEAL_ST=['wait','run','over'];
 /* At most FED_DEALS_MAX deals: waiting and running ones always stay (they bill and route), ended ones only as room is
@@ -63,7 +64,8 @@ function fedDealClean(d){if(!d||typeof d!=='object'||Array.isArray(d)||FdId(d.id
   if(peer?role!=='peer':role!=='buy'&&role!=='sell')return null;if(!FED_DEAL_ST.includes(st)||st==='run'&&start===null)return null;
   return {id:d.id,deal:d.deal,key:d.key,name:typeof d.name==='string'&&!FdName(d.name.slice(0,40))?fedSafeName(d.name.slice(0,40)):'AS?',
     asn:Number.isSafeInteger(d.asn)&&d.asn>=0&&d.asn<=4294967295?d.asn:0,start,end,terms:JSON.parse(fedCanon(T)),role,st,
-    on:d.on===true&&st==='run',rep:Number.isSafeInteger(d.rep)&&d.rep>=0&&d.rep<=2e9?d.rep:0,why:typeof d.why==='string'?d.why.slice(0,16):'',ai:d.ai===true,renews:FdId(d.renews)?null:d.renews};}
+    on:d.on===true&&st==='run',rep:Number.isSafeInteger(d.rep)&&d.rep>=0&&d.rep<=2e9?d.rep:0,why:typeof d.why==='string'?d.why.slice(0,16):'',ai:d.ai===true,renews:FdId(d.renews)?null:d.renews,
+    heard:t(d.heard)||0,box:FdBox(d.box)?null:d.box};}
 
 /* ---------- shared saves and bug reports never carry a way to act as the network ---------- */
 // The save with its private key, its queued records and any operator key taken out (a copy; s is untouched).
@@ -126,7 +128,9 @@ async function fedJoinWhy(url){if(!fedEligible())return 'mode';if(FdUrl(url))ret
 async function fedJoin(url){const why=await fedJoinWhy(url);if(why)return why;const s=S;
   if(!s.fed)s.fed=fedNewState();const f=s.fed;
   if(!fedHasPriv(f)){const k=await fedNewKey();if(S!==s)return 'mode';f.key=k;f.out=[];f.deals=[];f.joined=0;}
-  if(!f.servers.includes(url))f.servers.push(url);f.on=true;if(!f.joined)f.joined=fedDiv(fedNow(),FED_DAY);
+  if(!f.servers.includes(url))f.servers.push(url);f.on=true;
+  // The day joined is the founded every announce says, and it never changes (§5.1): a save that announced without one keeps that.
+  if(!f.joined&&!(s.fedp&&s.fedp.annAt))f.joined=fedDiv(fedNow(),FED_DAY);
   fedSaved();fedWake();return null;}
 // Leaves one server (or all with no url). Multiplayer is off once no server is left; the identity stays in the save.
 function fedLeave(url){const f=S&&S.fed;if(!f)return;const pub=f.key?f.key.pub:'';
