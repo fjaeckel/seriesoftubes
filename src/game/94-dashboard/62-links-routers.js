@@ -7,11 +7,16 @@ const lkOf=l=>l.kind==='wave'?'wave':l.kind==='vxc'?'vxc':!l.own?'iru':l.sub?'se
 // Load filters, with the map legend's thresholds (barCls); routers have no "down".
 const LH={warm:[N_('noc.legend_warm'),r=>r.u>=0.65],hot:[N_('noc.legend_hot'),r=>r.u>=0.9],down:[N_('noc.legend_down'),r=>!!r.down]};
 const infraSortOf=w=>{const o=(UI.infraSort||{})[w]||{};return {k:o.k||'use',d:o.d||(o.k==='name'?1:-1)};};
-const infraRows=(w,rows)=>{const {k,d}=infraSortOf(w);return rows.sort((a,b)=>(k==='name'?(a.nm<b.nm?-1:a.nm>b.nm?1:0):k==='cap'?a.cap-b.cap:k==='ports'?a.pf-b.pf:a.u-b.u)*d||b.u-a.u||(a.id<b.id?-1:a.id>b.id?1:0));};
-// Routers sort by forwarding load or by the share of their router ports in use, as well as capacity and name.
-const infraSeg=w=>{const {k:sk,d}=infraSortOf(w);return `<div class="seg">${(w==='routers'?[['use',tr('common.forwarding_load')],['ports',tr('common.router_ports')]]:[['use',tr('common.load')]]).concat([['cap',tr('common.capacity')],['name',tr('common.name')]]).map(([k,l])=>btn(l+(sk===k?(d>0?' ▲':' ▼'):''),'infraSort',{w,k},sk===k?'pink sm':'ghost sm')).join('')}</div>`;};
+const infraRows=(w,rows)=>{const {k,d}=infraSortOf(w);return rows.sort((a,b)=>(k==='name'?(a.nm<b.nm?-1:a.nm>b.nm?1:0):k==='cap'?a.cap-b.cap:k==='ports'?a.pf-b.pf:k==='type'?a.ty-b.ty:k==='n'?a.n-b.n:k==='fs'?a.fsU-b.fsU||a.fsC-b.fsC:a.u-b.u)*d||b.u-a.u||(a.id<b.id?-1:a.id>b.id?1:0));};
+// Routers sort by city, router type, number of routers, capacity, forwarding load, share of router ports in use or
+// Flowspec rules in use (then the rule budget): in
+// the table's header on a wide screen (rtrTh), with these buttons on a phone, as in the Connections tab.
+const RTR_SORT=()=>[['name',tr('common.city_906b')],['type',tr('dashboard.router_type')],['n',tr('common.routers')],['cap',tr('common.capacity')],['use',tr('common.forwarding_load')],['ports',tr('common.router_ports')],['fs',tr('ddos.fs_rules')]];
+const sortMark=(w,k)=>{const {k:sk,d}=infraSortOf(w);return sk===k?(d>0?' ▲':' ▼'):'';};
+const rtrTh=(k,l,c)=>`<th class="${c||''}">${k?`<button class="thb" data-act="infraSort" data-args="${esc(JSON.stringify({w:'routers',k}))}">${l}${sortMark('routers',k)}</button>`:l}</th>`;
+const infraSeg=w=>{const {k:sk,d}=infraSortOf(w);return `<div class="seg">${(w==='routers'?RTR_SORT():[['use',tr('common.load')],['cap',tr('common.capacity')],['name',tr('common.name')]]).map(([k,l])=>btn(l+(sk===k?(d>0?' ▲':' ▼'):''),'infraSort',{w,k},sk===k?'pink sm':'ghost sm')).join('')}</div>`;};
 // Load chips toggle: a second tap shows every load again.
-const hotSeg=(w,all,f)=>`<div class="seg">${Object.keys(LH).filter(k=>w==='links'||k!=='down').map(k=>{const n=all.filter(LH[k][1]).length;return n||f===k?btn(`${tr(LH[k][0])} (${n})`,'infraHot',{w,v:k},f===k?'pink sm':'ghost sm'):'';}).join('')}</div>`;
+const hotSeg=(w,all,f)=>{const b=Object.keys(LH).filter(k=>w==='links'||k!=='down').map(k=>{const n=all.filter(LH[k][1]).length;return n||f===k?btn(`${tr(LH[k][0])} (${n})`,'infraHot',{w,v:k},f===k?'pink sm':'ghost sm'):'';}).join('');return b?`<div class="seg">${b}</div>`:'';};
 // One more optic: the kind already lit, or on dark fiber the fastest that fits; null when the line system is full.
 function quickOpt(l){if(l.kind!=='df'||l.ready>S.day)return null;const last=(l.ch||[]).at(-1);if(last&&OPT[last]&&!chWhy(l,last))return last;
   let best=null,bg=0;for(const k of Object.keys(OPT))if(!chWhy(l,k)){const g=(optMode(k,l)||{}).g||0;if(g>bg){bg=g;best=k;}}return best;}
@@ -60,18 +65,25 @@ const meter=(txt,f)=>`<div class="optn">${txt}</div><div class="bar ${barCls(f)}
 const fsTxt=r=>r.fsC?tr('ddos.fs_used',{used:r.fsU,cap:r.fsC}):tr('ddos.fs_no_tcam');
 function asBox(){const kv=(k,v)=>`<div class="kv"><span>${k}</span><b>${v}</b></div>`;
   return `<div class="panel2" id="asSec" style="margin-top:12px"><h3>${tr('common.your_as')}</h3><div class="askv">${kv(tr('common.as_number'),'AS'+S.asn)}${kv(tr('common.prefixes'),`${Math.max(1,Math.ceil(Object.keys(S.pops).length/3))} × /22 IPv4, 1 × /32 IPv6`)}${kv(tr('common.bgp_sessions'),R.sessions)}${kv(tr('common.upstreams'),new Set(S.transit.map(t=>t.net)).size)}${kv(tr('common.reach'),pct(R.reach))}${kv(tr('common.customers'),tr('dashboard.n_businesses',{n:S.biz.length}))}</div></div>`;}
-// Your AS first, then every POP: forwarding load, router ports and Flowspec rules in use, and the intern's next step.
-// A table on a wide screen; on a phone each POP is a row of its own, as in the Connections tab.
-function routersTab(){const cs=Object.keys(S.pops),pu=portsAt(cs);
-  const all=cs.map(c=>{const pm=portsMax(c),fc=fsCap(c);return {c,id:c,nm:CITY[c].name.toLowerCase(),cap:R.nodeCap[c]||0,u:(R.nodeLoad[c]||0)/(R.nodeCap[c]||1),pu:pu.get(c)||0,pm,pf:pm?(pu.get(c)||0)/pm:0,fsC:fc,fsU:fc&&R.fsUse&&R.fsUse[c]?R.fsUse[c].used:0};});
-  const hf=['warm','hot'].includes((UI.infraHot||{}).routers)?UI.infraHot.routers:'',rs=infraRows('routers',all.filter(r=>!hf||LH[hf][1](r)));
-  let h=asBox()+`<div class="panel2 itab" id="routersSec" style="margin-top:12px"><div class="ibar"><h3>${tr('common.router_load')} <span class="meta">${rs.length} / ${all.length}</span></h3>${all.length?hotSeg('routers',all,hf)+`<div class="seg ifoot">${infraSeg('routers')}</div>`:''}</div>`;
-  const page=rs.slice(0,listN('routers')),nm=c=>`${CITY[c].name} <span class="meta">${(S.pops[c].routers||1)} × ${esc(RG[S.pops[c].rgen||0].n)}</span>`,args=c=>`data-act="dashPop" data-args='{"city":"${c}","bg":1}'`;
-  const load=r=>meter(`${fmtG(R.nodeLoad[r.c]||0)} / ${fmtG(r.cap)} · ${pct(r.u)}`,r.u),ports=r=>meter(tr('city_panel.used_max_in_use',{used:fmtPorts(r.pu),max:r.pm}),r.pf);
-  if(isPhone())h+=`<div class="ilist">`+page.map(r=>`<div class="row ihit rrow${sel('city',r.c)}" ${args(r.c)}><div class="grow"><div class="nm">${nm(r.c)}</div>
+// Your AS first, then every POP: router type and count, capacity, forwarding load, router ports and Flowspec rules in use,
+// and the intern's next step. Filtered by city or region; a table on a wide screen, one row per POP on a phone.
+function routersTab(){const cs=Object.keys(S.pops),pu=portsAt(cs),F=UI.rtrF||{};
+  const all=cs.map(c=>{const p=S.pops[c],g=p.rgen||0,pm=portsMax(c),fc=fsCap(c);return {c,id:c,nm:CITY[c].name.toLowerCase(),g,ty:RG[g].cap,n:p.routers||1,cap:R.nodeCap[c]||0,u:(R.nodeLoad[c]||0)/(R.nodeCap[c]||1),pu:pu.get(c)||0,pm,pf:pm?(pu.get(c)||0)/pm:0,fsC:fc,fsU:fc&&R.fsUse&&R.fsUse[c]?R.fsUse[c].used:0};});
+  // Flowspec: rules in use now (a flood under way), routers that hold rules at all, or routers with no TCAM.
+  const FS={use:r=>r.fsU>0,has:r=>r.fsC>0,none:r=>!r.fsC},fs=own(FS,F.fs)?F.fs:'';
+  const city=S.pops[F.city]?F.city:'',reg=own(REG,F.reg)&&cs.some(c=>CITY[c].reg===F.reg)?F.reg:'',inF=all.filter(r=>(!city||r.c===city)&&(!reg||CITY[r.c].reg===reg)&&(!fs||FS[fs](r)));
+  const hf=['warm','hot'].includes((UI.infraHot||{}).routers)?UI.infraHot.routers:'',rs=infraRows('routers',inF.filter(r=>!hf||LH[hf][1](r)));
+  const regs=Object.keys(REG).filter(k=>cs.some(c=>CITY[c].reg===k)),opts=cs.slice().sort((a,b)=>CITY[a].name.localeCompare(CITY[b].name));
+  const drop=(act,lab,any,o,v)=>`<label class="trsel">${lab} <select data-chg="${act}"><option value="">${any}</option>${o.map(([k,l])=>`<option value="${k}"${v===k?' selected':''}>${esc(l)}</option>`).join('')}</select></label>`;
+  const sels=`<div class="seg ifoot">${drop('rtrReg',tr('unbuilt_pops.region'),tr('unbuilt_pops.all_regions'),regs.map(k=>[k,REG[k]]),reg)}${drop('rtrCity',tr('common.city_906b'),tr('common.all_cities'),opts.map(c=>[c,CITY[c].name]),city)}${drop('rtrFs',tr('ddos.fs_rules'),tr('dashboard.fs_all'),[['use',tr('dashboard.fs_in_use')],['has',tr('dashboard.fs_has')],['none',tr('dashboard.fs_none')]],fs)}</div>`;
+  let h=asBox()+`<div class="panel2 itab" id="routersSec" style="margin-top:12px"><div class="ibar"><h3>${tr('common.routers')} <span class="meta">${rs.length} / ${all.length}</span></h3>${all.length?hotSeg('routers',inF,hf)+sels+(isPhone()?`<div class="seg ifoot">${infraSeg('routers')}</div>`:''):''}</div>`;
+  const page=rs.slice(0,listN('routers')),model=r=>esc(RG[r.g].n),args=c=>`data-act="dashPop" data-args='{"city":"${c}","bg":1}'`;
+  const load=r=>meter(`${fmtG(R.nodeLoad[r.c]||0)} · ${pct(r.u)}`,r.u),ports=r=>meter(tr('city_panel.used_max_in_use',{used:fmtPorts(r.pu),max:r.pm}),r.pf);
+  if(isPhone())h+=`<div class="ilist">`+page.map(r=>`<div class="row ihit rrow${sel('city',r.c)}" ${args(r.c)}><div class="grow"><div class="nm">${CITY[r.c].name} <span class="meta">${r.n} × ${model(r)} · ${fmtG(r.cap)}</span></div>
     <div class="meta">${tr('common.forwarding_load')}</div>${load(r)}<div class="meta">${tr('common.router_ports')}</div>${ports(r)}<div class="meta">${tr('ddos.fs_rules')}: <span class="optn">${fsTxt(r)}</span></div><div class="btns">${rtrActs(r.c,r.pu)}${btn(tr('common.open'),'dashPop',{city:r.c},'ghost sm')}</div></div></div>`).join('')+`</div>`;
-  else h+=`<div class="tscroll"><table class="tbl rtbl"><thead><tr><th>${tr('common.routers')}</th><th>${tr('common.forwarding_load')}</th><th>${tr('common.router_ports')}</th><th>${tr('ddos.fs_rules')}</th><th></th></tr></thead><tbody>`+
-    page.map(r=>`<tr class="rrow${sel('city',r.c)}" ${args(r.c)}><td><b>${nm(r.c)}</b></td><td>${load(r)}</td><td>${ports(r)}</td><td class="optn">${fsTxt(r)}</td><td><div class="btns">${rtrActs(r.c,r.pu)}${btn(tr('common.open'),'dashPop',{city:r.c},'ghost sm')}</div></td></tr>`).join('')+`</tbody></table></div>`;
+  else h+=`<div class="tscroll"><table class="tbl rtbl"><thead><tr>${rtrTh('name',tr('common.city_906b'))}${rtrTh('type',tr('dashboard.router_type'))}${rtrTh('n',tr('common.routers'),'r')}${rtrTh('cap',tr('common.capacity'),'r')}${rtrTh('use',tr('common.forwarding_load'))}${rtrTh('ports',tr('common.router_ports'))}${rtrTh('fs',tr('ddos.fs_rules'))}<th></th></tr></thead><tbody>`+
+    page.map(r=>`<tr class="rrow${sel('city',r.c)}" ${args(r.c)}><td><b>${CITY[r.c].name}</b></td><td>${model(r)}</td><td class="r">${r.n}</td><td class="r optn">${fmtG(r.cap)}</td><td>${load(r)}</td><td>${ports(r)}</td><td class="optn">${fsTxt(r)}</td><td><div class="btns">${rtrActs(r.c,r.pu)}${btn(tr('common.open'),'dashPop',{city:r.c},'ghost sm')}</div></td></tr>`).join('')+`</tbody></table></div>`;
+  if(!rs.length)h+=`<p class="empty">${tr('common.nothing_yet')}</p>`;
   return h+listMore('routers',rs.length,n=>trn('dashboard.view_more_router',n),'lmore')+`</div>`;}
 // The filter bar sticks under the dashboard's tab bar, whose height depends on the font and the window: measured after
 // drawing, onto #dash (which morph() leaves alone); the CSS has a fallback for the first frame.

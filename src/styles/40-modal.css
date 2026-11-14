@@ -107,7 +107,7 @@ label.f+select.pick{width:100%}
    height fitList() measures into --dtabh), so sorting and filters stay in reach. */
 .itop{align-items:start}
 .ibar{position:sticky;top:calc(var(--dtabh,50px) - 12px);z-index:2;background:var(--paper);display:flex;flex-direction:column;gap:6px;padding:8px 0;margin-top:-8px;border-bottom:1px solid var(--line)}
-.ibar h3{margin:0}.ifoot{align-items:center}.ifoot .trsel{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:800;margin-right:4px}
+.ibar h3{margin:0}.ifoot{align-items:center}.ifoot .trsel{display:inline-flex;flex-direction:row;align-items:center;gap:5px;margin:0 4px 0 0;font-size:12.5px;font-weight:800}
 .ilist>.row:first-child{border-top:0}
 .optq{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:12px;font-weight:800;margin-right:6px}.optn{white-space:nowrap}.optq .b{min-width:30px;padding-inline:6px}
 /* Rows reach out into the panel's padding, so a hovered or picked row has room around its content while the text stays

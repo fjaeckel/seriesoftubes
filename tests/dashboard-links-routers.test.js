@@ -276,35 +276,81 @@ for (const tab of ['links', 'routers']) {
   });
 }
 
-test('Routers: Your AS on top, then a table of forwarding load, router ports and Flowspec rules per POP', (t) => {
+const thText = (ev) => json(ev, "[...document.querySelectorAll('#routersSec thead th')].map(th=>th.textContent)");
+const sortBy = (ev, k) => ev(`[...document.querySelectorAll('#routersSec thead [data-act="infraSort"]')].find(b=>JSON.parse(b.dataset.args).k==='${k}').click()`);
+
+test('Routers: Your AS on top, then a table of city, router type and count, capacity, load, ports and Flowspec rules', (t) => {
   const { ev, errors } = big(t, BIG, 'routers');
   assert.ok(ev("$('asSec').compareDocumentPosition($('routersSec'))&Node.DOCUMENT_POSITION_FOLLOWING"), 'Your AS comes first');
   assert.ok(ev("$('asSec').textContent.includes('AS'+S.asn)"));
-  assert.deepEqual(json(ev, "[...document.querySelectorAll('#routersSec thead th')].map(th=>th.textContent)"), ['Routers', 'Forwarding load', 'Router ports', 'Flowspec rules', '']);
+  assert.deepEqual(thText(ev), ['City', 'Router type', 'Routers', 'Capacity', 'Forwarding load ▼', 'Router ports', 'Flowspec rules', '']);
   // A flood under way uses Flowspec rules on one POP's routers.
   const c = pops(ev)[0];
   ev(`R.fsUse={'${c}':{used:3,cap:fsCap('${c}')}};UI._dh=null;renderDash()`);
   const cells = json(ev, `[...document.querySelector('#routersSec .rrow[data-args*="${c}"]').children].map(td=>td.textContent)`);
-  assert.ok(cells[1].includes(ev(`fmtG(R.nodeLoad['${c}']||0)`)), 'forwarding load');
-  assert.equal(cells[2], `${ev(`fmtPorts(portsUsed('${c}'))`)} / ${ev(`portsMax('${c}')`)} in use`, 'router ports, as the city panel counts them');
-  assert.equal(cells[3], ev(`fsCap('${c}')`) ? `3 / ${ev(`fsCap('${c}')`)} in use` : 'none (no TCAM)', 'Flowspec rules in use');
+  assert.equal(cells[0], ev(`CITY['${c}'].name`));
+  assert.equal(cells[1], ev(`RG[S.pops['${c}'].rgen||0].n`), 'router type');
+  assert.equal(cells[2], String(ev(`S.pops['${c}'].routers||1`)), 'number of routers');
+  assert.equal(cells[3], ev(`fmtG(R.nodeCap['${c}'])`), 'capacity');
+  assert.ok(cells[4].startsWith(ev(`fmtG(R.nodeLoad['${c}']||0)`)), 'forwarding load');
+  assert.equal(cells[5], `${ev(`fmtPorts(portsUsed('${c}'))`)} / ${ev(`portsMax('${c}')`)} in use`, 'router ports, as the city panel counts them');
+  assert.equal(cells[6], ev(`fsCap('${c}')`) ? `3 / ${ev(`fsCap('${c}')`)} in use` : 'none (no TCAM)', 'Flowspec rules in use');
+  assert.equal(ev("document.querySelectorAll('#routersSec .ibar [data-act=\"infraSort\"]').length"), 0, 'sorting is in the table header, not in buttons');
   assert.deepEqual(errors, []);
 });
 
-test('Routers sort by router ports in use, both ways, and links have no ports sort', (t) => {
+test('Routers sort from the table header: city, router type, routers, capacity, forwarding load, router ports, Flowspec rules', (t) => {
   const { ev, errors } = big(t, BIG, 'routers');
-  ev("ACT.infraSort({w:'routers',k:'ports'})"); more(ev, 'routers');
-  const f = json(ev, `${lit(pops(ev))}.map(c=>portsUsed(c)/portsMax(c))`);
-  assert.equal(f.length, ev('Object.keys(S.pops).length'));
-  assert.ok(desc(f), 'fullest first');
-  assert.match(ev("document.querySelector('#routersSec .pink[data-act=\"infraSort\"]').textContent"), /Router ports ▼/);
-  ev("ACT.infraSort({w:'routers',k:'ports'})"); more(ev, 'routers');
-  assert.ok(asc(json(ev, `${lit(pops(ev))}.map(c=>portsUsed(c)/portsMax(c))`)), 'emptiest first');
-  ev("ACT.infraSort({w:'routers',k:'use'})"); more(ev, 'routers');
-  assert.ok(desc(json(ev, `${lit(pops(ev))}.map(c=>(R.nodeLoad[c]||0)/(R.nodeCap[c]||1))`)), 'forwarding load, busiest first');
+  // Give the POPs a spread of models and router counts, so type and count orders mean something.
+  ev("Object.keys(S.pops).forEach((c,i)=>{S.pops[c].routers=1+i%4;S.pops[c].rgen=i%5;});compute();UI._dh=null;renderDash()");
+  // A flood under way on a few POPs, so the Flowspec order means something too.
+  ev("R.fsUse={};Object.keys(S.pops).slice(0,5).forEach((c,i)=>{if(fsCap(c))R.fsUse[c]={used:i+1,cap:fsCap(c)};});UI._dh=null;renderDash()");
+  const col = { name: 'CITY[c].name.toLowerCase()', type: 'RG[S.pops[c].rgen||0].cap', n: '(S.pops[c].routers||1)', cap: 'R.nodeCap[c]||0', use: '(R.nodeLoad[c]||0)/(R.nodeCap[c]||1)', ports: 'portsUsed(c)/portsMax(c)', fs: '(R.fsUse[c]?R.fsUse[c].used:0)' };
+  const vals = (k) => json(ev, `${lit(pops(ev))}.map(c=>${col[k]})`);
+  for (const [k, first] of [['name', 'asc'], ['type', 'desc'], ['n', 'desc'], ['cap', 'desc'], ['ports', 'desc'], ['fs', 'desc'], ['use', 'desc']]) {
+    if (ev(`infraSortOf('routers').k`) !== k) sortBy(ev, k);
+    more(ev, 'routers');
+    const v = vals(k);
+    assert.equal(v.length, ev('Object.keys(S.pops).length'), k);
+    assert.ok(first === 'asc' ? asc(v) : desc(v), `${k}: ${first} first`);
+    assert.match(thText(ev).find((x) => /[▲▼]/.test(x)), first === 'asc' ? /▲$/ : /▼$/, `${k}: the header shows the order`);
+    sortBy(ev, k); more(ev, 'routers');
+    assert.ok(first === 'asc' ? desc(vals(k)) : asc(vals(k)), `${k}: a second tap flips it`);
+  }
   const before = ev('JSON.stringify(UI.infraSort)');
-  ev("ACT.infraSort({w:'links',k:'ports'})");
-  assert.equal(ev('JSON.stringify(UI.infraSort)'), before, 'links have no ports to sort by');
+  ev("ACT.infraSort({w:'links',k:'ports'});ACT.infraSort({w:'links',k:'type'});ACT.infraSort({w:'links',k:'n'});ACT.infraSort({w:'links',k:'fs'})");
+  assert.equal(ev('JSON.stringify(UI.infraSort)'), before, 'links have no ports, type, count or Flowspec to sort by');
+  assert.deepEqual(errors, []);
+});
+
+test('Routers filter by region, city and Flowspec rules, with the load filter on top', (t) => {
+  const { ev, errors } = big(t, BIG, 'routers');
+  assert.match(ev("$('routersSec').querySelector('h3').textContent"), /^Routers \d+ \/ \d+/, 'the heading says Routers');
+  assert.deepEqual(json(ev, "[...document.querySelectorAll('#routersSec .ibar select')].map(s=>s.dataset.chg)"), ['rtrReg', 'rtrCity', 'rtrFs'], 'region before city, then Flowspec');
+  const c = pops(ev)[0], reg = ev(`CITY['${c}'].reg`);
+  ev(`ACT.rtrCity({v:'${c}'})`);
+  assert.deepEqual(pops(ev), [c]);
+  assert.equal(ev("document.querySelector('#routersSec select[data-chg=\"rtrCity\"]').value"), c);
+  ev("ACT.rtrCity({v:''})");
+  ev(`ACT.rtrReg({v:'${reg}'})`); more(ev, 'routers');
+  const want = json(ev, `Object.keys(S.pops).filter(c=>CITY[c].reg==='${reg}').sort()`);
+  assert.deepEqual([...pops(ev)].sort(), want, 'every POP in the region, and only those');
+  const regions = json(ev, "[...document.querySelectorAll('#routersSec select[data-chg=\"rtrReg\"] option')].map(o=>o.value).filter(Boolean)");
+  assert.deepEqual(regions, json(ev, "Object.keys(REG).filter(k=>Object.keys(S.pops).some(c=>CITY[c].reg===k))"), 'only regions with a POP');
+  ev(`for(const c of ${lit(want)}.slice(0,2))R.nodeLoad[c]=(R.nodeCap[c]||1)*0.95;ACT.infraHot({w:'routers',v:'hot'})`);
+  assert.deepEqual([...pops(ev)].sort(), want.slice(0, 2).sort(), 'region and load together');
+  ev("ACT.rtrReg({v:''});ACT.infraHot({w:'routers',v:'hot'})");
+  // Flowspec: rules in use during a flood, routers with a TCAM, routers without one.
+  const fsPops = json(ev, "Object.keys(S.pops).filter(c=>fsCap(c)>0)"), noTcam = json(ev, "Object.keys(S.pops).filter(c=>!fsCap(c))");
+  ev(`R.fsUse={'${fsPops[0]}':{used:2,cap:fsCap('${fsPops[0]}')}};ACT.rtrFs({v:'use'})`);
+  assert.deepEqual(pops(ev), [fsPops[0]], 'rules in use');
+  ev("ACT.rtrFs({v:'has'})"); more(ev, 'routers');
+  assert.deepEqual([...pops(ev)].sort(), [...fsPops].sort(), 'routers with Flowspec');
+  ev("ACT.rtrFs({v:'none'})"); more(ev, 'routers');
+  assert.deepEqual([...pops(ev)].sort(), [...noTcam].sort(), 'routers with no TCAM');
+  assert.equal(ev("document.querySelector('#routersSec select[data-chg=\"rtrFs\"]').value"), 'none');
+  ev("ACT.rtrReg({v:'XX'});ACT.rtrCity({v:'nowhere'});ACT.rtrFs({v:'lots'})");
+  assert.deepEqual(json(ev, 'UI.rtrF'), { city: '', reg: '', fs: '' }, 'unknown values clear the filters');
   assert.deepEqual(errors, []);
 });
 
@@ -366,6 +412,7 @@ test('Routers on a phone: one POP per row, with the same numbers and buttons', (
   assert.ok(ev("!document.querySelector('#routersSec table')&&document.querySelectorAll('#routersSec .row.rrow').length===10"));
   const c = pops(ev)[0], row = ev(`document.querySelector('#routersSec .rrow[data-args*="${c}"]').textContent`);
   for (const s of ['Forwarding load', 'Router ports', 'Flowspec rules']) assert.ok(row.includes(s), s);
+  assert.deepEqual(json(ev, "[...document.querySelectorAll('#routersSec .ibar [data-act=\"infraSort\"]')].map(b=>JSON.parse(b.dataset.args).k)"), ['name', 'type', 'n', 'cap', 'use', 'ports', 'fs'], 'no table header on a phone: the sorts are buttons');
   assert.ok(ev(`!!document.querySelector('#routersSec .rrow[data-args*="${c}"] [data-act="dashPop"]:not(.rrow)')`));
   assert.deepEqual(errors, []);
 });

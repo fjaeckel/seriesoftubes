@@ -325,8 +325,8 @@ test('NOC dashboard has a tab bar for its sections', () => {
   ev("ACT.start({});ACT.dash()");
   const card = () => ev("document.getElementById('dashCard').textContent");
   assert.match(card(), /Traffic by way out/);
-  assert.doesNotMatch(card(), /Router load/);
-  for (const [k, re] of [['cust', /Customers/], ['conn', /Every port that connects/], ['traffic', /Traffic by network/], ['links', /No links yet/], ['routers', /Router load/]]) {
+  assert.doesNotMatch(card(), /Router ports/);
+  for (const [k, re] of [['cust', /Customers/], ['conn', /Every port that connects/], ['traffic', /Traffic by network/], ['links', /No links yet/], ['routers', /Router ports/]]) {
     ev(`ACT.dashTab({k:'${k}'})`);
     assert.match(card(), re, k);
   }

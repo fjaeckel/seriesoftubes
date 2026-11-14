@@ -5,7 +5,7 @@
    per network, opened once a window says hello, so other games' tabs never unpack them. With no window nothing is sent. */
 const NOC_HB=3000,NOC_LOST=10000,NOC_GAP=1000;
 // What a click in the window does: changes only its own view, or runs in the game. Every button the dashboard draws is in one list.
-const NOC_LOCAL=['chartToggle','connCity','connF','connNet','connSort','custCity','custF','custSort','dashClose','dashSort','dashTab','infraCity','infraF','infraHot','infraSort','listMore','popsReg','popsSort'];
+const NOC_LOCAL=['chartToggle','connCity','connF','connNet','connSort','custCity','custF','custSort','dashClose','dashSort','dashTab','infraCity','infraF','infraHot','infraSort','listMore','popsReg','popsSort','rtrCity','rtrFs','rtrReg'];
 const NOC_GO=['addCh','addPair','addRouter','buyIx','buyNni','buyTransit','cache','connCancel','custGo','dashLink','dashPop','downIx','downP','downT','goConn','lagIx','lagNni','lagP','lagT','leaseSwap','mktCfg','mktHold','mktRoute','netFocus','opsOpen','pni','pniAllOpen','pniChase','popGo','rmCh','upLink','upRouter'];
 const NOC={win:false,id:null,ctl:null,st:null,stId:null,peer:false,until:0,dirty:false,sent:0,speed:1,hid:false,yoAt:0,gone:false};
 {const id=RW_IN?null:new URLSearchParams(location.search).get('noc');if(slotOkId(id)){NOC.win=true;NOC.id=id;}}

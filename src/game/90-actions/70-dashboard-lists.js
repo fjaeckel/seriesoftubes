@@ -15,8 +15,11 @@ Object.assign(ACT,{
  connSort:({k})=>{if(!['k','city','name','use','mo'].includes(k))return;listReset('conn');if(UI.connSort===k)UI.connDir=-(UI.connDir||1);else{UI.connSort=k;UI.connDir=k==='use'||k==='mo'?-1:1;}renderDash();},
  infraF:({v})=>{if(v!==''&&!LK.includes(v))return;UI.infraF=v;listReset('links');renderDash();},
  infraHot:({w,v})=>{if((w!=='links'&&w!=='routers')||(v!==''&&!own(LH,v))||(w==='routers'&&v==='down'))return;listReset(w);UI.infraHot={...UI.infraHot,[w]:(UI.infraHot||{})[w]===v?'':v};renderDash();},
+ rtrCity:({v})=>{UI.rtrF={...UI.rtrF,city:S.pops[v]?v:''};listReset('routers');renderDash();},
+ rtrFs:({v})=>{UI.rtrF={...UI.rtrF,fs:['use','has','none'].includes(v)?v:''};listReset('routers');renderDash();},
+ rtrReg:({v})=>{UI.rtrF={...UI.rtrF,reg:own(REG,v)?v:''};listReset('routers');renderDash();},
  infraCity:({v})=>{UI.infraCity=isCity(v)?v:'';listReset('links');renderDash();},
- infraSort:({w,k})=>{if((w!=='links'&&w!=='routers')||!['use','cap','name','ports'].includes(k)||(k==='ports'&&w!=='routers'))return;listReset(w);const I=UI.infraSort=UI.infraSort||{},o=I[w]||{},d0=k==='name'?1:-1;I[w]={k,d:(o.k||'use')===k?-(o.d||d0):d0};renderDash();},
+ infraSort:({w,k})=>{if((w!=='links'&&w!=='routers')||!['use','cap','name','ports','type','n','fs'].includes(k)||(w!=='routers'&&['ports','type','n','fs'].includes(k)))return;listReset(w);const I=UI.infraSort=UI.infraSort||{},o=I[w]||{},d0=k==='name'?1:-1;I[w]={k,d:(o.k||'use')===k?-(o.d||d0):d0};renderDash();},
  connFor:({net})=>{if(!NET[net])return;UI.cf={net};ACT.connOpen();},
  connCancel:({k,id})=>{const r=conns().find(x=>x.k===k&&x.id===id);if(!r||r.mine)return;const key='cc:'+k+':'+id;if(UI.confirm!==key){UI.confirm=key;renderDash();return;}UI.confirm=null;
    if(k==='t')ACT.cancelTransit({id,ok:1});else if(k==='p')ACT.cancelPni({id,ok:1});else if(k==='ix')ACT.cancelIx({city:id,ok:1});else if(k==='c')ACT.rmCache({id});else{const [city,prov]=id.split('|');ACT.rmNni({city,prov});}renderDash();},
