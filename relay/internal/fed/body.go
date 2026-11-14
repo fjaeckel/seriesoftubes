@@ -96,6 +96,16 @@ func oneOf(vals ...string) check {
 	}
 }
 
+// boxCheck is a box key's format (3.1): 32 bytes. The weak-key rule is for Ed25519 keys only; a
+// low-order box fails when sealing (3.5).
+func boxCheck(v any) string {
+	s, _ := v.(string)
+	if _, ok := Decode(s, 32); !ok {
+		return BadKey
+	}
+	return ""
+}
+
 func keyCheck(v any) string {
 	s, _ := v.(string)
 	if !IsKey(s) {
@@ -530,7 +540,7 @@ func checkAnnounce(r *Record) string {
 			}
 			return ""
 		}),
-		req("box", keyCheck),
+		req("box", boxCheck),
 		req("home", cc),
 		req("day", count(10000000)),
 		req("founded", intIn(0, Div(r.T, Day))),

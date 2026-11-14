@@ -482,6 +482,18 @@ const SID = rid(genesis);
   bad('announce-ix-members-players', 'players is Count(64).', rec('announce', 'alice', T, annIx([{ ...IXM, players: 65 }])), 'bad_field');
   bad('announce-ix-members-extra', 'Nothing else in a members entry.', rec('announce', 'alice', T, annIx([{ ...IXM, fee: 1500 }])), 'unknown_field');
   bad('announce-auto-cofound', 'auto.cofound is auto, review or decline.', rec('announce', 'alice', T, annIx([IXM], 'maybe')), 'bad_field');
+  // Weak keys (3.1): small-order points and y >= 2^255 - 19. With the identity as key, R = identity and S = 0 pass a
+  // plain Ed25519 verification for any message, so anyone could sign as it.
+  {
+    const id = Buffer.alloc(32); id[0] = 1;
+    const forged = Buffer.alloc(64); forged[0] = 1;
+    bad('key-small-order', 'The key is the identity point (order 1); the signature (R = identity, S = 0) would verify for any message.', { ...st, key: b64(id), sig: b64(forged) }, 'bad_key');
+    const o8 = Buffer.from('c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a', 'hex'); o8[31] |= 0x80;
+    bad('key-order-8', 'A point of order 8 (with its sign bit set): small order, refused.', { ...st, key: b64(o8) }, 'bad_key');
+    const p1 = Buffer.alloc(32, 0xff); p1[0] = 0xee; p1[31] = 0x7f;
+    bad('key-y-over-p', 'y = 2^255 - 19 + 1: not below the field prime, a non-canonical encoding of y = 1.', { ...st, key: b64(p1) }, 'bad_key');
+    ok('announce-box-zero', 'The weak-key rule is for Ed25519 keys: a box (X25519) is checked for its format only, so 32 zero bytes pass here (sealing to it fails).', rec('announce', 'alice', T, { ...announceBody(), box: b64(Buffer.alloc(32)) }));
+  }
 }
 
 // ======================================================================================

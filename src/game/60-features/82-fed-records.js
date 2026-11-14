@@ -3,7 +3,7 @@
    failing step gives the error code. Checkers return an error code or null. */
 const FdBF='bad_field',FdMF='missing_field';
 const fedBidi=s=>/[‪-‮⁦-⁩]/.test(s),fedLen=s=>{let n=0;for(const _ of s)n++;return n;};
-const FdK=v=>fedBin(v,32)?null:'bad_key',FdSig=v=>fedBin(v,64)?null:'bad_sig',FdId=v=>fedBin(v,32)?null:FdBF;
+const FdK=v=>{const u=fedBin(v,32);return u&&!fedWeakKey(u)?null:'bad_key';},FdBox=v=>fedBin(v,32)?null:'bad_key',FdSig=v=>fedBin(v,64)?null:'bad_sig',FdId=v=>fedBin(v,32)?null:FdBF;
 const FdText=(lo,hi)=>v=>{if(typeof v!=='string'||fedBidi(v))return FdBF;const n=fedLen(v);return n>=lo&&n<=hi?null:FdBF;};
 const FdName=v=>FdText(1,40)(v)||(/[^ ]/.test(v)?null:FdBF);
 /* A player-typed name as the game keeps it (NET, deals, consortiums): markup characters swapped for look-alikes, so a
@@ -81,7 +81,7 @@ const FED_OFFER=FdObj([['to',(v,c)=>FdK(v)||(v===c.rec.key?FdBF:null),1],['deal'
 const FED_REASON=FdObj([['reason',FdOne('declined','conditions','depeer','excluded','quiet')]]);
 // Bodies by kind (§5). c: {rec (the envelope), asn (the key's ASN, for announce)}.
 const FED_BODY={
-  announce:FdObj([['name',FdName],['asn',(v,c)=>v===c.asn?null:FdBF],['box',FdK],['home',FdCC],['day',FdInt(0,1e7)],
+  announce:FdObj([['name',FdName],['asn',(v,c)=>v===c.asn?null:FdBF],['box',FdBox],['home',FdCC],['day',FdInt(0,1e7)],
     ['founded',(v,c)=>FdInt(0,fedDiv(c.rec.t,FED_DAY))(v)],['pops',FdList(FdCity,{max:512,set:1})],
     ['ix',(v,c)=>FdList(FdCity,{max:512,set:1})(v)||(Array.isArray(c.o.pops)&&v.every(x=>c.o.pops.includes(x))?null:FdBF)],
     ['cust',FdInt(0,1e7)],['mix',FdObj([['content',FdInt(0,1000)],['eyeball',FdInt(0,1000)],['enterprise',FdInt(0,1000)]],m=>m.content+m.eyeball+m.enterprise===1000?null:FdBF)],

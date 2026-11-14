@@ -117,6 +117,15 @@ padding, other alphabets, wrong lengths and non-zero unused bits in the last cha
 | Box key (X25519 public key, 3.5) | 32 | 43 | `bad_key` |
 | Box nonce (3.5) | 12 | 16 | `bad_field` |
 
+A **Key** is also refused (`bad_key`) when it is a weak point: take its 32 bytes with the top bit of the last byte
+cleared as a little-endian `y`; the key is weak when `y >= 2^255 - 20` (that is `y = p - 1`, a point of order 2, or a
+non-canonical `y >= p`, with `p = 2^255 - 19`) or `y` is `0`, `1`, or one of the two `y` of the points of order 8
+(hex, little-endian: `26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc05` and
+`c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a`), whatever the sign bit. These are every
+small-order point: with one as key, some verifiers (Go's among them) take one signature for any message (with the
+identity, `R` = identity and `S = 0`), so anyone could sign as it. No key made from a seed is ever weak. This rule is
+for Ed25519 keys only: a box key (X25519) is checked for its format alone (a low-order box fails when sealing, 3.5).
+
 ### 3.2 Signatures
 
 - **Ed25519 only** (RFC 8032, pure Ed25519, no context, no prehash). WebCrypto `Ed25519` in the browser, `crypto/ed25519`
@@ -130,7 +139,8 @@ padding, other alphabets, wrong lengths and non-zero unused bits in the last cha
   one either, and it names the node and server it is for.
 - Verification uses the platform verifier as it is. It MUST refuse a non-reduced scalar (S >= L), as both platforms
   do. A key whose bytes are not a valid curve point simply fails to verify (WebCrypto may throw on import: treat that
-  as `bad_sig`). The vectors avoid the few small-order-point cases where Ed25519 libraries are known to differ.
+  as `bad_sig`). Weak keys (3.1) are refused before any verification, so the small-order cases where Ed25519
+libraries are known to differ never reach a verifier.
 
 ### 3.3 Record ids
 

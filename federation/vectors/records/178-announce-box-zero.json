@@ -1,0 +1,108 @@
+{
+  "description": "The weak-key rule is for Ed25519 keys: a box (X25519) is checked for its format only, so 32 zero bytes pass here (sealing to it fails).",
+  "input": {
+    "now": 1767312100,
+    "record": {
+      "v": 1,
+      "kind": "announce",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312000,
+      "body": {
+        "name": "Ping Floyd",
+        "asn": 4215690104,
+        "box": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "home": "DE",
+        "day": 412,
+        "founded": 20454,
+        "pops": [
+          "fra",
+          "ams",
+          "lon"
+        ],
+        "ix": [
+          "fra",
+          "ams"
+        ],
+        "cust": 37,
+        "mix": {
+          "content": 200,
+          "eyeball": 700,
+          "enterprise": 100
+        },
+        "traffic": {
+          "in": 42000,
+          "out": 9000
+        },
+        "policy": "selective",
+        "cond": {
+          "minMbps": 1000,
+          "maxRatio": 300,
+          "minShared": 2,
+          "rpki": true,
+          "tier1": false,
+          "ai": true
+        },
+        "rates": {
+          "transit": {
+            "perGbps": 900,
+            "commit": [
+              {
+                "mbps": 10000,
+                "off": 100
+              },
+              {
+                "mbps": 100000,
+                "off": 250
+              }
+            ],
+            "term": 90
+          },
+          "pni": {
+            "setup": 5000,
+            "ports": [
+              {
+                "mbps": 10000,
+                "monthly": 1500
+              },
+              {
+                "mbps": 100000,
+                "monthly": 9000
+              }
+            ],
+            "term": 180
+          },
+          "ix": {
+            "ports": [
+              {
+                "mbps": 1000,
+                "monthly": 200
+              },
+              {
+                "mbps": 10000,
+                "monthly": 800
+              }
+            ],
+            "join": "anyone",
+            "at": [
+              "fra"
+            ]
+          }
+        },
+        "auto": {
+          "peering": "auto",
+          "transit": "auto",
+          "pni": "review",
+          "swap": "review",
+          "consortium": "review",
+          "port": "auto"
+        }
+      },
+      "sig": "Xc90VvVLEcubg5M9gm8POLUKJPjf8EkQmkMBf4ljqqLdvWm3XfimZAk1rYJYomJl9-bPYc4Tc7-JZ14AkQA4Cw"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "kind": "announce",
+    "id": "tQhFxQP41nkekq21yL3g0E3Y-kqdIYuohp64TV08xyY"
+  }
+}

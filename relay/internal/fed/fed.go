@@ -139,8 +139,43 @@ func Decode(s string, n int) ([]byte, bool) {
 // Encode is base64url without padding.
 func Encode(b []byte) string { return b64.EncodeToString(b) }
 
-// IsKey, IsSig and IsID check the format of 3.1.
-func IsKey(s string) bool { _, ok := Decode(s, 32); return ok }
+// IsKey, IsSig and IsID check the format of 3.1. A key is also no small-order point and its y is
+// below the field prime (3.1): with such a key, ed25519.Verify takes one signature for any message.
+func IsKey(s string) bool {
+	b, ok := Decode(s, 32)
+	return ok && !WeakKey(b)
+}
+
+// weakY are the y coordinates (little-endian, sign bit clear) of the points of order 1, 2, 4 and 8.
+var weakY = [][32]byte{
+	{0x00}, // order 4 (both signs)
+	{0x01}, // order 1: the identity
+	{0x26, 0xe8, 0x95, 0x8f, 0xc2, 0xb2, 0x27, 0xb0, 0x45, 0xc3, 0xf4, 0x89, 0xf2, 0xef, 0x98, 0xf0,
+		0xd5, 0xdf, 0xac, 0x05, 0xd3, 0xc6, 0x33, 0x39, 0xb1, 0x38, 0x02, 0x88, 0x6d, 0x53, 0xfc, 0x05}, // order 8
+	{0xc7, 0x17, 0x6a, 0x70, 0x3d, 0x4d, 0xd8, 0x4f, 0xba, 0x3c, 0x0b, 0x76, 0x0d, 0x10, 0x67, 0x0f,
+		0x2a, 0x20, 0x53, 0xfa, 0x2c, 0x39, 0xcc, 0xc6, 0x4e, 0xc7, 0xfd, 0x77, 0x92, 0xac, 0x03, 0x7a}, // order 8
+}
+
+// WeakKey says whether 32 key bytes are a small-order point (any sign bit) or have y >= 2^255 - 19.
+func WeakKey(b []byte) bool {
+	var y [32]byte
+	copy(y[:], b)
+	y[31] &= 0x7f
+	// y >= p: bytes 1..30 all 0xff, the top byte 0x7f, the lowest >= 0xed. y = p - 1 (0xec): order 2.
+	high := y[31] == 0x7f
+	for _, c := range y[1:31] {
+		high = high && c == 0xff
+	}
+	if high && y[0] >= 0xec {
+		return true
+	}
+	for _, w := range weakY {
+		if y == w {
+			return true
+		}
+	}
+	return false
+}
 func IsSig(s string) bool { _, ok := Decode(s, 64); return ok }
 func IsID(s string) bool  { _, ok := Decode(s, 32); return ok }
 
@@ -153,7 +188,7 @@ func Hash(b []byte) string {
 // Verify checks an Ed25519 signature given as protocol strings.
 func Verify(key, sig string, msg []byte) bool {
 	k, ok := Decode(key, 32)
-	if !ok {
+	if !ok || WeakKey(k) {
 		return false
 	}
 	s, ok := Decode(sig, 64)

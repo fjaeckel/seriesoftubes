@@ -41,7 +41,7 @@ async function fedOpen(seed,me,peer,peerBox,rec){const e=rec&&rec.body&&rec.body
   try{const t=fedUtf8Text(new Uint8Array(await fedSubtle().decrypt({name:'AES-GCM',iv:n,additionalData:fedBoxAad(rec)},k,c)));
     const p=t==null?{e:1}:fedParse(t);return p.e?null:p.v;}catch(err){return null;}}
 // A network's box from its newest announce here, or null.
-async function fedBoxOf(key){const o=await fedGet('ann',key),b=o&&o.rec&&o.rec.body&&o.rec.body.box;return FdK(b)?null:b;}
+async function fedBoxOf(key){const o=await fedGet('ann',key),b=o&&o.rec&&o.rec.body&&o.rec.body.box;return FdBox(b)?null:b;}
 /* Signs a record of this network, sealing what §5.3 seals: an offer to someone and a decline go out with only
    FED_CLEAR in clear. body is the record as the game thinks of it (in clear). Throws 'nobox' when the other network's
    box is not known here (no announce of it). */

@@ -31,6 +31,12 @@ function fedUnb64(s){if(typeof s!=='string'||s.length%4===1||!/^[A-Za-z0-9_-]*$/
   return fedB64(out)===s?out:null;}
 // The bytes of a Key, Sig, Id or Nonce, or null when it is not exactly n bytes in canonical form.
 const fedBin=(s,n)=>{const u=typeof s==='string'&&s.length===Math.ceil(n*4/3)?fedUnb64(s):null;return u&&u.length===n?u:null;};
+/* A key that is a small-order point (any sign bit) or has y >= 2^255 - 19 (§3.1): with such a key, some verifiers take
+   one signature for any message. FED_WEAK: the y (hex, little-endian, sign bit clear) of the points of order 1 to 8. */
+const FED_WEAK=['00'.repeat(32),'01'+'00'.repeat(31),'26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc05',
+  'c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a'];
+const fedWeakKey=u=>{const y=Array.from(u,(b,i)=>(i===31?b&127:b).toString(16).padStart(2,'0')).join('');
+  return FED_WEAK.includes(y)||/^(e[c-f]|f[0-9a-f])(ff){30}7f$/.test(y);};
 
 /* ---------- UTF-8 ---------- */
 // Strings handed in here are already checked (§2.1), so every surrogate is paired.
@@ -92,7 +98,7 @@ async function fedNewKey(){const s=fedSubtle(),p=await s.generateKey({name:'Ed25
   const der=new Uint8Array(await s.exportKey('pkcs8',p.privateKey)),pub=new Uint8Array(await s.exportKey('raw',p.publicKey));
   return {pub:fedB64(pub),priv:fedB64(der.slice(der.length-32))};}
 // Verifies with the platform verifier as it is; a key WebCrypto will not import simply fails (§3.2).
-async function fedVerify(pub,sig,bytes){const s=fedSubtle(),sb=fedBin(sig,64);if(!s||!sb)return false;
+async function fedVerify(pub,sig,bytes){const s=fedSubtle(),sb=fedBin(sig,64),pb=fedBin(pub,32);if(!s||!sb||!pb||fedWeakKey(pb))return false;
   try{let k=FED_KEYS.get(pub);if(!k){k=await s.importKey('raw',fedBin(pub,32),{name:'Ed25519'},false,['verify']);if(FED_KEYS.size>512)FED_KEYS.clear();FED_KEYS.set(pub,k);}
     return await s.verify({name:'Ed25519'},k,sb,bytes);}catch(e){return false;}}
 async function fedSignText(seed,text){const k=await fedSigner(seed);return fedB64(new Uint8Array(await fedSubtle().sign({name:'Ed25519'},k.key,fedUtf8(text))));}

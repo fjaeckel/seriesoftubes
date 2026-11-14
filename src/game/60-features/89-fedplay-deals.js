@@ -50,7 +50,7 @@ function fedOffer(key,deal,o={}){const n=fedNetOf(key),a=FEDN.ann.get(key);if(!n
   // Listed by a joined server: no new deals with it (running ones go on until the exclusion is confirmed).
   if(fedExcl1(key))return {miss:[{l:'excluded'}]};
   // Without a box key (an announce from before sealed deals) nothing can be sealed for it: wait for a newer announce.
-  if(n.fst==='dark'||FdK(a.rec.body.box))return {miss:[{l:'quiet'}]};
+  if(n.fst==='dark'||FdBox(a.rec.body.box))return {miss:[{l:'quiet'}]};
   const B=a.rec.body,R0=B.rates||{},p=fedPair(n),miss=[];let terms=null;
   if(!FEDP_DEALS.includes(deal)||deal==='consortium')return {miss:[{l:'terms'}]};
   if(!B.auto[deal]||B.auto[deal]==='decline')return {miss:[{l:'declines'}]};

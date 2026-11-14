@@ -5,7 +5,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
 
-const K = (c) => c.repeat(42) + 'A';
+// Distinct test keys (the last character keeps all-'A' clear of the all-zero key, a weak point that FdK refuses).
+const K = (c) => c.repeat(42) + 'w';
 const A = K('A'), B = K('B'), C = K('C'), D = K('D'), ME = K('M');
 const row = (key, value, o = {}) => ({ rank: 1, key, value, asn: 4200000001, ai: false, ...o });
 
