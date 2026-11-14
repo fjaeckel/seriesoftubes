@@ -198,6 +198,9 @@ const bizCity=c=>CITY[c].cc!=='KP';
 const OFFC=ALLC.filter(c=>!CITY[c].off&&bizCity(c));
 const ruCity=c=>!!CITY[c].ru;
 const cnCity=c=>!!CITY[c].cn;
+// What crossing into mainland China loses: a premium route little, the regular border a fifth, more while it is stricter
+// (S.ev.gfw). Routing and every panel that names the loss read it here.
+const gfwLoss=(prem,strict)=>prem?0.03:strict?0.35:0.2;
 const BIGC=['man','edi','bcn','mil','rom','lis','ath','atn','den','phx','bos','hou','ruh','jed','doh','kyv','mel','bne','osa','kul','bkk','sgn','khi','dac','waw','prg','vie','bud','buh','ist','rio','bue','scl','bog','lim','del','maa','blr','hyd','tpe','cpt','auh','ber','zrh','nbo','cai','jkt','mnl','per','akl','dub','lax','tor','mex','dxb','cph','icn','sjc','dal','chi','ash','nyc','mia','sao','lon','ams','fra','par','mrs','mad','sto','bom','sin','hkg','tok','syd','jnb','lag','lys'];
 const MIDC=['man','bcn','mil','lis','atn','den','phx','bos','hou','mel','osa','kul','bkk','waw','vie','ist','rio','bue','scl','bog','del','maa','blr','tpe','auh','ber','zrh','jkt','mnl','dub','lax','tor','dxb','icn','sjc','ash','nyc','chi','dal','mia','lon','ams','fra','par','mad','sin','hkg','tok','syd','bom','sao','lys'];
 

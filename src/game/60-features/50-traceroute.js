@@ -57,7 +57,7 @@ function traceroute(src,to,mode){mode=TR_MODES.includes(mode)?mode:'normal';cons
   else if(e.k==='c'){hop(`cache-${slug(N.name)}.${e.city}.${me}`,ip(hstr(N.id),4),0.1,tr('traceroute.embedded_cache_in_your_rack'));}
   asPath.push(N.asn);if(e.k!=='c')hop(`www.${slug(N.name)}.example`,`198.51.100.${(hstr(N.id)+1)%250}`,0.5+(e.k==='t'?1:0.2),`${N.name}`);
   const order=e.via?tr('traceroute.a_peer_s_customers_come_after'):{c:tr('traceroute.caches_beat_pnis'),p:tr('traceroute.pnis_beat_ix_peering'),ix:tr('traceroute.ix_peering_beats_transit'),t:tr('traceroute.transit_is_the_last_resort')}[e.k];
-  const cn=cnCity(src)!==!!N.cn?' '+tr('traceroute.crossing_the_great_firewall_here',{p:S.ev.gfw>S.day?35:20}):'';
+  const cn=cnCity(src)!==!!N.cn?' '+tr('traceroute.crossing_the_great_firewall_here',{p:Math.round(gfwLoss(false,S.ev.gfw>S.day)*100)}):'';
   return {text:lines.join('\n'),why:`${trBhWhy(bh,ep)}${tr('traceroute.exit_exit_in_city',{exit:e.lab,city:CITY[e.city].name})} ${tr('traceroute.rule_and_closer_exits_win_ties',{rule:order[0].toUpperCase()+order.slice(1)})}${e.pref!=='normal'?tr('traceroute.this_one_is_set_to_mode',{mode:e.pref==='high'?tr('common.prefer'):tr('common.backup_only')}):''}.${direct}${e.used>=e.cap*0.999?' '+tr('traceroute.it_is_full_so_some_traffic'):''}${cn}`,asPath};}
 // A note when the trace rode a cut-off POP's backhaul: why, and what orbit adds.
 function trBhWhy(c,path){const b=trBh(c);return b&&path&&path.some(h=>h.l.bh)?tr('traceroute.bh_why',{city:CITY[c].name,dish:CITY[b.land].name,ms:pieMs(2*b.ms)})+' ':'';}
