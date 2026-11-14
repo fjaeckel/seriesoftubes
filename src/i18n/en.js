@@ -1863,6 +1863,7 @@
 "dashboard.traffic_by_way_out":"Traffic by way out",
 "dashboard.two_nines_and_change":"two nines and change",
 "dashboard.used_of":"Used {used} of {cap}",
+"dashboard.used_of_lit":"Used {used} of {cap} ({lit} lit)",
 "dashboard.view_more_link":{"one":"View {n} more link","other":"View {n} more links"},
 "dashboard.view_more_router":{"one":"View {n} more POP","other":"View {n} more POPs"},
 "dashboard.waves_and_fiber":"Waves and fiber",

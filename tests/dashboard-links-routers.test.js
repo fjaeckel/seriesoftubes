@@ -192,7 +192,7 @@ test('quick buttons in a link row: one more optic, one more fiber pair, a bigger
   assert.deepEqual(errors, []);
 });
 
-test('a link row says what is used and, on dark fiber, what is sold: alien-wave channels and managed waves', (t) => {
+test('a link row says what is used and, on dark fiber, what is sold (alien-wave channels, managed waves) and, with managed waves, what is lit', (t) => {
   const { ev, errors } = big(t, MIXED);
   ev("ACT.infraF({v:'own'})");
   const id = links(ev)[0];
@@ -206,7 +206,13 @@ test('a link row says what is used and, on dark fiber, what is sold: alien-wave 
   assert.ok(row.includes(`Channels: 4 lit · 2 sold · ${max - 6} free of ${max}`), row);
   assert.ok(row.includes('800G sold as managed waves'), 'managed waves, as the link panel words them');
   const used = ev(`fmtG(R.load['${id}']||0)`), cap = ev(`fmtG(capOf(S.links.find(l=>l.id==='${id}')))`);
-  assert.ok(row.includes(`Used ${used} of ${cap}`), 'used against what is left for your own traffic');
+  const lit = ev(`fmtG(dfLit(S.links.find(l=>l.id==='${id}')))`);
+  assert.ok(row.includes(`Used ${used} of ${cap} (${lit} lit)`), 'used against what is left for your own traffic, and everything lit');
+  // Another own fiber without managed waves: lit is what is left, so no lit total.
+  const other = links(ev).find((x) => x !== id);
+  ev(`(()=>{const l=S.links.find(x=>x.id==='${other}'),o=quickOpt(l);l.ch=[o];compute();renderDash();})()`);
+  const r2 = ev(`document.querySelector('#linksSec .ihit[data-args*="${other}"]').textContent`);
+  assert.match(r2, /Used .+ of /); assert.doesNotMatch(r2, / lit\)/);
   assert.ok(ev(`capOf(S.links.find(l=>l.id==='${id}'))===dfLit(S.links.find(l=>l.id==='${id}'))-800`), 'managed waves come out of your own lit capacity');
   // A leased wave sells nothing: only what is used.
   ev("ACT.infraF({v:'wave'})");

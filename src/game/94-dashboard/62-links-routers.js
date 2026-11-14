@@ -30,8 +30,9 @@ const sel=(type,id)=>!NOC.win&&UI.sel&&UI.sel.type===type&&UI.sel.id===id?' on':
 const linkMeta=l=>[tr(LK_L[lkOf(l)]),capName(l),`${linkLat(l).toFixed(1)} ms`].filter(Boolean).map(x=>`<span class="optn">${x}</span>`).join(' · ');
 // Used against what is left for your own traffic (capOf, the load bar's 100%); on dark fiber also what is sold:
 // channels rented out as alien waves and capacity sold as managed waves, which come out of your own lit capacity (dfCap0).
-const linkUse=(l,c)=>{const m=[tr('dashboard.used_of',{used:fmtG(R.load[l.id]||0),cap:fmtG(c)})];
-  if(l.kind==='df'&&!(l.ready>S.day)){const sold=soldSlots(l),mw=mwG(l);m.push(tr('dashboard.ch_lit_sold_free',{lit:(l.ch||[]).length,sold,free:Math.max(0,freeCh(l)),max:chMax(l)}));if(mw)m.push(tr('market.g_sold_as_managed',{g:fmtCap(mw)}));}
+// With managed waves sold, also everything the fiber lights (dfLit), as the dark fiber's side panel does.
+const linkUse=(l,c)=>{const df=l.kind==='df'&&!(l.ready>S.day),mw=df?mwG(l):0,used=fmtG(R.load[l.id]||0),m=[mw?tr('dashboard.used_of_lit',{used,cap:fmtG(c),lit:fmtG(dfLit(l))}):tr('dashboard.used_of',{used,cap:fmtG(c)})];
+  if(df){const sold=soldSlots(l);m.push(tr('dashboard.ch_lit_sold_free',{lit:(l.ch||[]).length,sold,free:Math.max(0,freeCh(l)),max:chMax(l)}));if(mw)m.push(tr('market.g_sold_as_managed',{g:fmtCap(mw)}));}
   return `<div class="meta">${m.map(x=>`<span class="optn">${x}</span>`).join(' · ')}</div>`;};
 const pct2=(r)=>`<b class="num lpct">${r.down?tr('common.down'):pct(r.u)}</b>`;
 function linksTab(){if(!S.links.length)return `<div class="panel2 itab" id="linksSec"><h3>${tr('common.links')}</h3><p class="empty">${tr('common.no_links_yet')}</p></div>`;

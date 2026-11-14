@@ -1862,6 +1862,7 @@
 "dashboard.traffic_by_way_out":"Traffico per via d’uscita",
 "dashboard.two_nines_and_change":"due nove e spiccioli",
 "dashboard.used_of":"In uso {used} su {cap}",
+"dashboard.used_of_lit":"In uso {used} su {cap} ({lit} accesi)",
 "dashboard.view_more_link":{"one":"Mostra {n} link in più","other":"Mostra {n} link in più"},
 "dashboard.view_more_router":{"one":"Mostra {n} POP in più","other":"Mostra {n} POP in più"},
 "dashboard.waves_and_fiber":"Wave e fibra",

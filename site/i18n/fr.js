@@ -1862,6 +1862,7 @@
 "dashboard.traffic_by_way_out":"Trafic par sortie",
 "dashboard.two_nines_and_change":"deux neuf et des poussières",
 "dashboard.used_of":"{used} utilisés sur {cap}",
+"dashboard.used_of_lit":"{used} utilisés sur {cap} ({lit} allumés)",
 "dashboard.view_more_link":{"one":"Voir {n} lien de plus","other":"Voir {n} liens de plus"},
 "dashboard.view_more_router":{"one":"Voir {n} POP de plus","other":"Voir {n} POP de plus"},
 "dashboard.waves_and_fiber":"Longueurs d’onde et fibre",

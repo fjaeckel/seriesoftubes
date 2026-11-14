@@ -1862,6 +1862,7 @@
 "dashboard.traffic_by_way_out":"Tráfego por saída",
 "dashboard.two_nines_and_change":"dois noves e uns trocados",
 "dashboard.used_of":"Em uso {used} de {cap}",
+"dashboard.used_of_lit":"Em uso {used} de {cap} ({lit} acesos)",
 "dashboard.view_more_link":{"one":"Ver mais {n} link","other":"Ver mais {n} links"},
 "dashboard.view_more_router":{"one":"Ver mais {n} POP","other":"Ver mais {n} POPs"},
 "dashboard.waves_and_fiber":"Waves e fibra",

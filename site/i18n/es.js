@@ -1862,6 +1862,7 @@
 "dashboard.traffic_by_way_out":"Tráfico por vía de salida",
 "dashboard.two_nines_and_change":"dos nueves y pico",
 "dashboard.used_of":"En uso {used} de {cap}",
+"dashboard.used_of_lit":"En uso {used} de {cap} ({lit} encendidos)",
 "dashboard.view_more_link":{"one":"Ver {n} enlace más","other":"Ver {n} enlaces más"},
 "dashboard.view_more_router":{"one":"Ver {n} POP más","other":"Ver {n} POP más"},
 "dashboard.waves_and_fiber":"Ondas y fibra",

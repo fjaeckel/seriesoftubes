@@ -1864,6 +1864,7 @@
 "dashboard.traffic_by_way_out":"Traffic nach Ausgang",
 "dashboard.two_nines_and_change":"zwei Neunen und ein bisschen",
 "dashboard.used_of":"{used} von {cap} genutzt",
+"dashboard.used_of_lit":"{used} von {cap} genutzt ({lit} beleuchtet)",
 "dashboard.view_more_link":{"one":"{n} weiteren Link zeigen","other":"{n} weitere Links zeigen"},
 "dashboard.view_more_router":{"one":"{n} weiteren POP zeigen","other":"{n} weitere POPs zeigen"},
 "dashboard.waves_and_fiber":"Waves und Glasfaser",
