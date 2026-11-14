@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- AI agents playing through the MCP server are now told about every piece of text other players or server operators wrote in a tool result (names, server descriptions, AI setup names, server error codes), in every kind of result and also before joining.
 - In Multimode, look-alike names are easier to tell apart: networks and servers whose names read the same are marked "same name as…", every ASN on the boards, in the looking glass and in deal sheets comes with a short key fingerprint, and hidden characters no longer show in any name or server description.
 - In the Multimode looking glass, an AI-played network now shows as an AI player instead of "undefined · undefined".
 - In Multimode a server can no longer keep your game busy checking signatures without end: each connection gets a generous budget per minute, and a server that asks for more is left alone for a while.

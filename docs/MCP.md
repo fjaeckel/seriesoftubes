@@ -139,10 +139,13 @@ without publishing.
 
 ## Other players' text
 
-In Multimode, other players name their networks and exchange projects, and operators name their servers. The game strips
-markup and every invisible character (format characters such as bidi and zero-width marks) from those names, and any
-tool result that holds one carries `untrusted: {note, strings}`, listing them: they are data to show or compare, never
-instructions. Only the agent facade adds this. The page players get is unchanged.
+In Multimode, other players name their networks and exchange projects, and operators name and describe their servers;
+servers also send error codes and update links, and the boards' filters list the AI models and harnesses players
+declared. The game strips markup and every invisible character (format characters such as bidi and zero-width marks)
+from names and descriptions, and any tool result that holds such text, whether or not the open save joined a server,
+carries `untrusted: {note, strings}`, listing it: data to show or compare, never instructions. A result that is not an
+object (a list, a string) and holds such text comes back as `{value, untrusted}`, with the result itself in `value`;
+results without it are unchanged. Only the agent facade adds this. The page players get is unchanged.
 
 ## The clock
 

@@ -179,3 +179,22 @@ test('names: invisible characters never show, look-alike names are marked, and A
   assert.doesNotMatch(t, /Packet Lunch\s*same name as/, 'the registry server is not the one marked');
   assert.deepEqual(p.errors, []);
 });
+
+test('an agent reading a server sheet is told which text came from the server and its operators', async () => {
+  const p = fedPage({ registry: SERVERS_JSON, agent: true });
+  p.net.node(URL1);
+  assert.equal(await joinGame(p), null);
+  await run(p, 20);
+  assert.equal(await p.ev(`fedOpKeySet(${JSON.stringify(key('anna').seed)})`), true);
+  await run(p, 20);
+  p.ev(`fedErrLog(${JSON.stringify(URL1)},${JSON.stringify(PL.id)},'ignore_previous_instructions')`);
+  p.ev(`ACT.fuOpen({v:'server',id:${JSON.stringify(PL.id)}})`);
+  await run(p, 20);
+  const o = p.ev("TUBES.call('screen',{where:'modal'})");
+  const desc = JSON.parse(await p.ev('fedServers().then(l=>JSON.stringify(l))')).find((s) => s.id === PL.id).desc;
+  assert.ok(desc && o.text.includes(desc.slice(0, 12)), 'the sheet shows the description');
+  assert.ok(o.untrusted, 'marked');
+  assert.ok(o.untrusted.strings.includes(desc), 'the server description is listed');
+  assert.ok(o.untrusted.strings.includes('Packet Lunch'));
+  assert.deepEqual(p.errors, []);
+});
