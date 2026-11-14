@@ -24,6 +24,7 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/config"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/metrics"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/netguard"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/privacy"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/rank"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/registry"
@@ -41,9 +42,12 @@ type Options struct {
 	Log        *slog.Logger
 	Countries  privacy.Countries // nil: no country lookups
 	HTTPClient *http.Client      // outgoing wss:// and registry fetches; nil: default
-	Versions   []int64           // protocol versions spoken; nil: [1]
-	Metrics    *metrics.M
-	Version    string // the relay software version (main.version); "" or "dev": a development build
+	// AllowInternal lets URLs from the registry, the catalog or peers reach loopback, private and
+	// link-local addresses, as the operator's own URLs always may; tests and RELAY_TEST hooks only.
+	AllowInternal bool
+	Versions      []int64 // protocol versions spoken; nil: [1]
+	Metrics       *metrics.M
+	Version       string // the relay software version (main.version); "" or "dev": a development build
 	// ReleasesURL replaces GitHub's latest-release API (update.ReleasesURL); tests only.
 	ReleasesURL string
 	// Retry pacing; tests shorten them. Defaults: one minute and one second.
@@ -57,6 +61,8 @@ type Options struct {
 // Relay is one node.
 type Relay struct {
 	o       Options
+	hc      *http.Client // outgoing wss:// to URLs the operator gave: no redirects
+	hcPeer  *http.Client // to URLs from the registry, catalog or peers: no redirects, public addresses only
 	mu      sync.Mutex
 	cfg     *config.Config
 	st      *store.Store
@@ -141,7 +147,8 @@ func New(o Options) (*Relay, error) {
 	r := &Relay{o: o, cfg: o.Config, st: st, regs: map[string]*registry.Entry{}, cat: map[string]*catEntry{}, catVia: map[string]int{},
 		shunned: map[string]bool{}, left: map[string]int64{}, statsAt: map[string]int64{}, refused: map[string]bool{},
 		lastSyn: map[string]int64{}, urlSrv: map[string]string{}, clients: map[*session]bool{}, nodes: map[*session]bool{},
-		epoch: fed.Encode(eb[:]), dialers: map[string]context.CancelFunc{}, speaks: o.Versions}
+		epoch: fed.Encode(eb[:]), dialers: map[string]context.CancelFunc{}, speaks: o.Versions,
+		hc: netguard.Client(o.HTTPClient, false), hcPeer: netguard.Client(o.HTTPClient, !o.AllowInternal)}
 	r.impl = &update.Impl{Name: update.Name, Version: r.version()}
 	if update.ReadImpl(r.impl.Value()) == nil {
 		r.impl.Version = "dev" // a build stamped with something no peer would read

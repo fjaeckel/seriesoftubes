@@ -57,7 +57,7 @@ func runNode(args []string) error {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	m := metrics.New()
 	r, err := node.New(node.Options{Dir: *dir, Config: c, Node: nk, Log: logger, Metrics: m, Version: "load",
-		HTTPClient: hc, ReleasesURL: "https://releases.localhost:1/latest"})
+		HTTPClient: hc, AllowInternal: true, ReleasesURL: "https://releases.localhost:1/latest"})
 	if err != nil {
 		return err
 	}

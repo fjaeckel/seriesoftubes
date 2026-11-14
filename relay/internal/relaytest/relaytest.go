@@ -244,7 +244,7 @@ func (x *Node) Start(dir string, cfg *config.Config) {
 func (x *Node) options() node.Options {
 	return node.Options{Dir: x.Dir, Config: x.Cfg, Node: x.Key, Clock: x.Net.Clock.Now,
 		Log:        slog.New(slog.NewTextHandler(x.Log, &slog.HandlerOptions{Level: slog.LevelDebug})),
-		HTTPClient: x.Net.HTTP, Countries: x.Net.Country, Metrics: x.Metrics,
+		HTTPClient: x.Net.HTTP, AllowInternal: true, Countries: x.Net.Country, Metrics: x.Metrics,
 		BootstrapEvery: 200 * time.Millisecond, DialBase: 50 * time.Millisecond, Versions: x.Versions, Version: x.Release,
 		ReleasesURL: x.Net.ReleasesURL, Feats: x.Feats}
 }

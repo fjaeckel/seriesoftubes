@@ -87,7 +87,12 @@ func (r *Relay) answerNode(s *session, h *wire.Hello) {
 // dialNode connects to another node and runs the session until it ends; dialer is the key of
 // the dialer in r.dialers.
 func (r *Relay) dialNode(ctx context.Context, dialer, url string) error {
-	c, _, err := websocket.Dial(ctx, url, &websocket.DialOptions{HTTPClient: r.o.HTTPClient, Subprotocols: []string{fed.Subprotocol}})
+	// An automatic peer's URL comes from the registry or the catalog, not from the operator.
+	hc := r.hc
+	if strings.HasPrefix(dialer, autoPrefix) {
+		hc = r.hcPeer
+	}
+	c, _, err := websocket.Dial(ctx, url, &websocket.DialOptions{HTTPClient: hc, Subprotocols: []string{fed.Subprotocol}})
 	if err != nil {
 		return err
 	}
@@ -774,7 +779,8 @@ func (r *Relay) bootstrapLocked() {
 func (r *Relay) fetchChain(ctx context.Context, url, server string) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	cl, err := client.Dial(ctx, url, client.Options{HTTPClient: r.o.HTTPClient})
+	// Seeds are the operator's (--from) or this server's own nodes.
+	cl, err := client.Dial(ctx, url, client.Options{HTTPClient: r.hc})
 	if err != nil {
 		return
 	}

@@ -16,13 +16,14 @@ import (
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/canon"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/netguard"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/update"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/wire"
 )
 
 // Options for Dial.
 type Options struct {
-	HTTPClient *http.Client // nil: the default, with system roots
+	HTTPClient *http.Client // nil: the default, with system roots; redirects are never followed
 	Header     http.Header  // extra handshake headers (tests set X-Forwarded-For)
 	Versions   []int64      // nil: [1]
 	// Feats is what hello lists (9.3 feats); nil: what this relay's checks take (ix2), empty: none,
@@ -66,8 +67,9 @@ func Dial(ctx context.Context, url string, o Options) (*Client, error) {
 	if vers == nil {
 		vers = []int64{fed.Version}
 	}
+	// A node URL is dialled as given: a redirect (to an internal address, say) is a failed dial.
 	c, _, err := websocket.Dial(ctx, url, &websocket.DialOptions{
-		HTTPClient: o.HTTPClient, HTTPHeader: o.Header, Subprotocols: []string{fed.Subprotocol},
+		HTTPClient: netguard.Client(o.HTTPClient, false), HTTPHeader: o.Header, Subprotocols: []string{fed.Subprotocol},
 	})
 	if err != nil {
 		return nil, err

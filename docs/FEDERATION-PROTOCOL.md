@@ -741,6 +741,11 @@ reference relay: 8192; over it, `too_many`).
   name ending in `.localhost`) dials a node whose URL host ends in `.localhost` with plain `ws://` instead, so a relay
   run on the same machine needs no certificate. URLs in records stay `wss://`; nothing else changes. The page players
   load is never on a loopback host, so this never applies to them.
+- A node URL is dialled as it is: an answer to the opening request that redirects (3xx) is a failed connection, never
+  followed. A node dialling a URL it did not get from its operator (from the registry or the catalog, for an
+  automatic peer, 10.9) connects only to public unicast addresses, checked on the address it actually connects to:
+  never loopback, private (RFC 1918, `fc00::/7`), link-local, `100.64.0.0/10`, unspecified, multicast or reserved
+  ones. URLs the operator gave (neighbours, seeds, the server's own nodes, a LAN server's) may be anywhere.
 - Every message is one **text frame** holding one JSON object with a string member `m` (the message type). Binary
   frames close the connection.
 - Frame limits: **65536 bytes** between clients and nodes, **1048576 bytes** between nodes. Larger: `too_big`, and the

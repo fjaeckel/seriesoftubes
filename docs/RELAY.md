@@ -325,6 +325,11 @@ another node of your server, `peer` when the other server dials you, `this node 
 minutes and your node dials it instead) and whether the session is `up`; each entry of
 `peers` says whether it is `auto` and whether this node `dialled` it.
 
+Automatic peers' addresses come from the registry, not from you, so your relay dials them only on public addresses: a
+name that resolves to a loopback, private, link-local or carrier-grade NAT address is refused, and no node URL is ever
+followed through a redirect. `relay join` without `--from` and `relay check-registry` treat the registry's URLs the
+same way. Neighbours, `--from` seeds and your own server's nodes may be on private addresses.
+
 **Neighbours** (`neighbours` in the config) are for everything else: servers not in the registry (a friend's, a LAN
 party's), selective servers, or different classes for one of your automatic peers. Your node connects to them; others
 may connect to you. Your node keeps one session with each server whichever side dials (when both list each other, the

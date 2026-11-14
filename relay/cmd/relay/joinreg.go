@@ -13,6 +13,7 @@ import (
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/client"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/netguard"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/registry"
 )
 
@@ -35,6 +36,15 @@ func (j joinNet) client() *http.Client {
 		}
 	}
 	return http.DefaultClient
+}
+
+// nodeClient dials the node URLs the registry lists: no redirects and, unless tests set the client (or
+// RELAY_TEST_ROOTS), public addresses only, as they come from the registry rather than the operator.
+func (j joinNet) nodeClient() *http.Client {
+	if j.http != nil || os.Getenv("RELAY_TEST_ROOTS") != "" {
+		return netguard.Client(j.client(), false)
+	}
+	return netguard.Client(j.client(), true)
 }
 
 func (j joinNet) unix() int64 {
@@ -112,9 +122,11 @@ func findSeeds(ctx context.Context, src, server, own string, j joinNet) ([]strin
 		return nil, err
 	}
 	var why []string
+	hc := j.nodeClient()
+	defer hc.CloseIdleConnections()
 	for i, u := range urls {
 		dctx, cancel := context.WithTimeout(ctx, 15*time.Second)
-		cl, err := client.Dial(dctx, u, client.Options{HTTPClient: j.client()})
+		cl, err := client.Dial(dctx, u, client.Options{HTTPClient: hc})
 		cancel()
 		if err != nil {
 			why = append(why, u+": no answer")

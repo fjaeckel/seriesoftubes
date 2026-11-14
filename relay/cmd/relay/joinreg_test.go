@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/config"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/netguard"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/node"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/ops"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/registry"
@@ -168,5 +170,39 @@ func TestUpJoinsFromRegistryOnceAdded(t *testing.T) {
 	var buf bytes.Buffer
 	if err := setUp(st2, &buf, newLogger(&buf, false), nil, [2]time.Duration{time.Millisecond, time.Millisecond}); err == nil || !strings.Contains(err.Error(), "RELAY_JOIN_FROM") {
 		t.Fatalf("unlisted server under relay up: %v", err)
+	}
+}
+
+// The node URLs a join takes from the registry are not the operator's: the default client reaches only public
+// addresses and follows no redirect; one a test (or RELAY_TEST_ROOTS) gives may reach internal ones.
+func TestJoinNodeClientRefusesInternalAddresses(t *testing.T) {
+	t.Setenv("RELAY_TEST_ROOTS", "")
+	var hits atomic.Int32
+	s := httptest.NewUnstartedServer(http.NotFoundHandler())
+	s.Config.ConnState = func(_ net.Conn, st http.ConnState) {
+		if st == http.StateNew {
+			hits.Add(1)
+		}
+	}
+	s.Start()
+	defer s.Close()
+	get := func(hc *http.Client) error {
+		resp, err := hc.Get(s.URL)
+		if err == nil {
+			resp.Body.Close()
+		}
+		return err
+	}
+	if err := get(joinNet{}.nodeClient()); !errors.Is(err, netguard.ErrInternal) {
+		t.Fatalf("default client: err %v, want netguard.ErrInternal", err)
+	}
+	if hits.Load() != 0 {
+		t.Fatal("the default client reached a loopback address")
+	}
+	if err := get(joinNet{http: &http.Client{}}.nodeClient()); err != nil {
+		t.Fatalf("test client: %v", err)
+	}
+	if (joinNet{}).nodeClient().CheckRedirect == nil {
+		t.Fatal("redirects followed")
 	}
 }

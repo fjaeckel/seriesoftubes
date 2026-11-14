@@ -1,6 +1,9 @@
 package node
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 // SetEpoch fixes a relay's cursor epoch for a test.
 func (r *Relay) SetEpoch(e string) { r.mu.Lock(); r.epoch = e; r.mu.Unlock() }
@@ -58,4 +61,14 @@ func SetStatesEvery(d time.Duration) func() {
 	old := statesEvery
 	statesEvery = d
 	return func() { statesEvery = old }
+}
+
+// DialNode dials url as a configured neighbour does, or with auto as an automatic peer (a URL from the
+// registry or the catalog) does, and returns when the session ends.
+func (r *Relay) DialNode(ctx context.Context, url string, auto bool) error {
+	key := url
+	if auto {
+		key = autoPrefix + "peer"
+	}
+	return r.dialNode(ctx, key, url)
 }

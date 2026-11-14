@@ -31,6 +31,7 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/config"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/metrics"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/netguard"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/node"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/ops"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/privacy"
@@ -869,7 +870,7 @@ func serve(dir string, so serveOpts) error {
 		if err != nil {
 			return fmt.Errorf("RELAY_TEST_ROOTS: %w", err)
 		}
-		o.HTTPClient = hc
+		o.HTTPClient, o.AllowInternal = hc, true
 		logger.Warn("RELAY_TEST_ROOTS: also trusting the certificates in that file for outgoing connections (for tests only)")
 	}
 	if countries != nil {
@@ -992,7 +993,8 @@ func cmdCheckRegistry(args []string, out io.Writer) int {
 	}
 	var challenge registry.Challenger
 	if !*offline {
-		challenge = liveChallenge(nil, func() int64 { return time.Now().Unix() })
+		// The URLs come from the files checked: public addresses only, no redirects (CI runs this on pull requests).
+		challenge = liveChallenge(netguard.Client(nil, true), func() int64 { return time.Now().Unix() })
 	}
 	return checkFiles(paths, *base, challenge, out)
 }
