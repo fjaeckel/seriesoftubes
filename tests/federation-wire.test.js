@@ -1,7 +1,8 @@
 // What the end-to-end run against the real relay (scripts/fed-e2e.js) found in the client's side of the wire (§9.3):
 // a refused subscription is asked again, an unsub names its sub, an ack may come without a record id, catalog answers
 // span frames, a cursor is kept only for a page handled whole, and a network picked in the looking glass becomes a
-// place in the game even when more networks are known than the game models. Fake nodes on a virtual clock.
+// place in the game even when more networks are known than the game models. A node is its server's only at its
+// listed URL, and frames waiting to be handled are bounded (FED_HELD). Fake nodes on a virtual clock.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { fedPage, joinGame, settle, until, URL1, NOW, PL_ENTRY, rec, key, asn, box, b64, sha } = require('./helpers/fed');
@@ -139,3 +140,52 @@ test('a message type this game does not know is skipped, never a reason to hang 
   assert.equal(await p.ev('fedStatus().state'), 'connected');
   assert.deepEqual(p.errors, []);
 });
+
+// fedReady (88-fed-net.js): a node counts as its server's only at the URL the catalog lists for that node key. A server
+// claiming another's identity from its own URL could otherwise pass our challenge on to a real node of it, then the
+// auth we sign for it.
+test('a welcome claiming a known server\'s node key from another URL is dropped not_node, before any auth', async () => {
+  const { SERVERS_JSON, PL } = require('./helpers/fed');
+  const p = fedPage({ registry: SERVERS_JSON });
+  const FAKE = 'wss://lookalike.example.org/fed';
+  const n = p.net.node(FAKE, { key: 'node1', server: PL.id });   // Packet Lunch's node1 key, at the wrong address
+  n.got = [];
+  const take = n.take.bind(n);
+  n.take = (ws, text) => { n.got.push(JSON.parse(text)); take(ws, text); };
+  assert.equal(await joinGame(p, FAKE), null);
+  assert.ok(await until(async () => (await run(p, 250), p.ev("(FED.errs||[]).some(e=>e.why==='not_node')"))), 'dropped not_node');
+  const e = JSON.parse(p.ev("JSON.stringify((FED.errs||[]).find(e=>e.why==='not_node'))"));
+  assert.equal(e.node, FAKE);
+  assert.equal(e.srv, PL.id);
+  assert.ok(n.got.some((f) => f.m === 'hello'), 'it was dialled and said hello');
+  assert.deepEqual(n.got.filter((f) => ['challenge', 'auth', 'put', 'sub'].includes(f.m)), [], 'no challenge, no auth, nothing else sent to it');
+  assert.equal(n.auths.length, 0);
+  assert.notEqual(await p.ev('fedStatus().state'), 'connected');
+  assert.deepEqual(p.errors, []);
+});
+
+// FED_HELD: frames waiting to be handled are bounded; a node that streams faster than the tab handles them is dropped.
+for (const [what, setup, frame] of [
+  ['subscription pages (fedSubQ)', 'fedRecs=()=>new Promise(()=>{})', (sub) => ({ m: 'recs', id: sub, items: [], cursor: 'x', more: true })],
+  ['unasked catalog frames (gossip)', 'fedGossip=()=>new Promise(()=>{})', () => ({ m: 'catalog', entries: [] })],
+]) {
+  test(`a flood of more than FED_HELD ${what} drops the node as slow`, async () => {
+    const p = fedPage();
+    let sock = null, subId = null;
+    spy(p, { sub: (ws, f) => { sock = ws; subId = f.id; return false; } });
+    await joinGame(p);
+    assert.ok(await until(async () => (await run(p, 250), subId !== null && p.ev('fedStatus().state') === 'connected')), 'connected and subscribed');
+    const held = p.ev('FED_HELD');
+    assert.equal(held, 256);
+    p.ev(setup);                                                   // nothing handled ever finishes: every frame waits
+    for (let i = 0; i < held; i++) sock.onmessage({ data: JSON.stringify(frame(subId)) });
+    await settle();
+    assert.equal(p.ev("(FED.errs||[]).some(e=>e.why==='slow')"), false, `${held} waiting is still fine`);
+    assert.equal(p.ev('fedStatus().state'), 'connected');
+    sock.onmessage({ data: JSON.stringify(frame(subId)) });
+    await settle();
+    assert.equal(p.ev("(FED.errs||[]).some(e=>e.why==='slow')"), true, 'one more: dropped as slow');
+    assert.notEqual(p.ev('fedStatus().state'), 'connected');
+    assert.deepEqual(p.errors, []);
+  });
+}
