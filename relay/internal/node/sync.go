@@ -496,7 +496,11 @@ func (r *Relay) nodeFrame(s *session, f *wire.Frame) bool {
 		s.enqueue(map[string]any{"m": "pong", "id": f.ID, "now": now})
 	case "pong":
 	case "err":
+		// The peer chooses the code: at most 32 bytes of it reach the log.
 		code, _ := f.Str("code")
+		if len(code) > 32 {
+			code = strings.ToValidUTF8(code[:32], "") + "…"
+		}
 		r.o.Log.Info("sync: peer reported", "code", code)
 	case "carry":
 		// Answered once per session (9.4: it starts the sync): each answer walks the whole store.
