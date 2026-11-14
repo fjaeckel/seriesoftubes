@@ -31,19 +31,21 @@ test('with managed waves sold: used, left for your traffic and lit, and lit = le
   assert.deepEqual(errors, []);
 });
 
-test('without managed waves, lit is what is left: only used and lit', (t) => {
+test('without managed waves the capacity line says it all: no split', (t) => {
   const { ev, errors } = game(t);
   const r = rows(ev, 1);
-  assert.equal(r['Used by your traffic'], ev('fmtG(R.load[S.links[1].id]||0)'));
-  assert.equal(r['Lit on this fiber'], ev('fmtG(dfLit(S.links[1]))'));
-  assert.ok(!('Left for your traffic' in r));
+  for (const k of ['Used by your traffic', 'Left for your traffic', 'Lit on this fiber']) assert.ok(!(k in r), k);
+  assert.ok(ev("$('panel').textContent.includes(fmtG(R.load[S.links[1].id]||0)+' / '+fmtG(dfLit(S.links[1])))"), 'used / lit in the capacity line');
   assert.deepEqual(errors, []);
 });
 
 test('a fiber with nothing lit, or still being built, shows no split', (t) => {
   const { ev, errors } = game(t);
-  ev('S.links[1].ch=[];compute()');
-  assert.ok(!('Lit on this fiber' in rows(ev, 1)), 'dark fiber');
+  const ch = ev('JSON.stringify(S.links[0].ch)');
+  ev("S.links[0].ch=[];compute()");
+  assert.ok(!('Lit on this fiber' in rows(ev, 0)), 'dark fiber, managed waves or not');
+  ev(`S.links[0].ch=${ch};compute()`);
+  assert.ok('Lit on this fiber' in rows(ev, 0), 'lit again');
   ev('S.links[0].ready=S.day+30;compute()');
   assert.ok(!('Lit on this fiber' in rows(ev, 0)), 'still being built');
   assert.deepEqual(errors, []);

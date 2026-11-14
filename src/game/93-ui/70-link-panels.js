@@ -26,11 +26,11 @@ function ixBlock(c,multi){const city=ixCity(c),C=CITY[city],ix=ixName(c),X=XIXM[
 }
 function borderSection(l){const w=borderShut(l);return w?`<section><h3 style="color:var(--bad)">${tr('link_panels.border_closed')}</h3><p class="lead">${w==='gulf'?tr('link_panels.a_diplomatic_spat_has_closed_the')+' '+tr('link_panels.back_in_n_days',{n:S.ev.gulf-S.day}):tr('link_panels.russia_has_unplugged_itself_from_the')}</p></section>`:'';}
 // Both ends of a link in its panel header open that city (#196), say to upgrade the router there for a bigger wave.
-// A dark fiber's capacity, used against lit: your traffic, what is left for it once managed waves (named in the line
-// above) take their share of the same lit capacity (dfCap0), and everything the optics light. Left only differs from
-// lit when managed waves are sold.
-function litSplit(l,load,cap){const lit=dfLit(l);if(!lit)return '';const kv=(k,v)=>`<div class="kv"><span>${k}</span><b>${v}</b></div>`;
-  return kv(tr('link_panels.used_by_your_traffic'),fmtG(load))+(mwG(l)?kv(tr('link_panels.left_for_your_traffic'),fmtG(cap)):'')+kv(tr('link_panels.lit_on_this_fiber'),fmtG(lit));}
+// A dark fiber with managed waves sold, used against lit: your traffic, what is left for it once the managed waves (named
+// in the line above) take their share of the same lit capacity (dfCap0), and everything the optics light. Without
+// managed waves the capacity line above already says all of it.
+function litSplit(l,load,cap){const lit=dfLit(l);if(!lit||!mwG(l))return '';const kv=(k,v)=>`<div class="kv"><span>${k}</span><b>${v}</b></div>`;
+  return kv(tr('link_panels.used_by_your_traffic'),fmtG(load))+kv(tr('link_panels.left_for_your_traffic'),fmtG(cap))+kv(tr('link_panels.lit_on_this_fiber'),fmtG(lit));}
 const lkEnds=l=>[l.a,l.b].map(c=>cityOn(c)?btn(esc(CITY[c].name),'popGo',{city:c},'clink'):esc(CITY[c].name)).join(' ⇄ ');
 function vxcPanel(l){
   const load=R.load[l.id]||0,cap=VXC[l.vt].g,u=load/cap,down=linkDown(l),f=FAB[l.prov];
