@@ -156,12 +156,14 @@ async function fedCheck(x,now,o={}){let v=x;
 
 /* ---------- receipts and proofs (§6) ---------- */
 const FED_RCPT=FdObj([['rec',FdId],['server',FdId],['cc',FdCC,1]]);
+// No node signs a receipt before slot(rec.t) - skew, nor after rec.t + the kind's maximum age (§6.1).
+const fedRcptTimeOk=(t,rec)=>{const age=FED_KIND[rec.kind][1];return t>=fedSlot(rec.t)-FED_SKEW&&(!age||t<=rec.t+age);};
 /* A node's receipt for a record (already checked, with its id) received by `server`, whose node keys are `nodes`.
    Gives null when valid, else the error code. */
 async function fedRcptErr(rc,rec,rid,server,nodes,now){let e=fedValues(rc)||fedEnv(rc,{receipt:1});if(e)return e;
   if(fedSize(fedCanon(rc))>1024)return 'too_big';
   if((e=FED_RCPT(rc.body)))return e;
-  if(rc.t%FED_SLOT||rc.body.rec!==rid||rc.body.server!==server)return FdBF;
+  if(rc.t%FED_SLOT||rc.body.rec!==rid||rc.body.server!==server||!fedRcptTimeOk(rc.t,rec))return FdBF;
   if(fedOwn(rc.body,'cc')&&!(rec.kind==='stats'&&rec.body.shareCountry===true))return FdBF;
   if(!nodes.includes(rc.key))return 'not_node';
   if(await fedSigsOk(rc))return 'bad_sig';

@@ -575,18 +575,24 @@ When a node receives a record **from a client**, it signs a receipt. The receipt
 | Envelope | Rule |
 | --- | --- |
 | `key` | The node's key, which MUST be one of the server's nodes (`not_node`) |
-| `t` | `slot(receive time)`: a multiple of 300 (`bad_field`). Exact times are never kept |
+| `t` | `slot(receive time)`: a multiple of 300, and `slot(rec.t) - 600 <= t`, and, for a kind with a maximum age (13.2), `t <= rec.t + ` that age (each otherwise `bad_field`). Exact times are never kept |
 | `body.rec` | Id of the record (`bad_field` if it is not that record's id) |
 | `body.server` | The server identity (`bad_field` if not the server the node belongs to) |
 | `body.cc` | CC, optional: only on a `stats` record whose `shareCountry` is true (`bad_field` otherwise), and only when the node found a country for the connection |
 
-Size at most 1024 bytes. Time: `t > now + 600` is `too_new`; there is no maximum age.
+Size at most 1024 bytes. Time: `t > now + 600` is `too_new`; there is no maximum age. The bounds on `t` against the
+record's own `t` hold for every honest receipt (a node takes a record only while `rec.t <= now + 600` and within its
+kind's age, and signs at `slot(now)`); a receipt outside them would move the record's board slot to a time it never
+had, such as a slot long past or one more than 7 days back.
 A node receiving a record from another node keeps the receipts that came with it and adds none, except when a record
 arrives with no valid receipt at all, when it adds its own.
 
-A **valid receipt** is one that checks as above and whose `key` is a node of a server the checker knows: for a client,
-a server in its registry snapshot or catalog (10.8), or the server it is connected to (from its `welcome`); for a
-node, its own server or one it knows from the registry or gossip. Receipts from any other key are ignored. A `stats`
+A **valid receipt** is one that checks as above and whose `key` is a node of a server whose receipts count: a server
+in the checker's registry snapshot (11.3), and for a client the server it is connected to (from its `welcome`, with
+that server's nodes as its catalog has them), for a node its own server. A server known from gossip alone (10.8) costs
+nothing to make up (8.3), so its receipts could date any record to any slot: they are ignored, like those of any other
+key. A record that reaches a node with no valid receipt gets the node's own. Receipts are kept as the first copy of a
+record brought them; a later copy of the same record changes nothing (10.11). A `stats`
 record without a valid receipt has no board slot and is not ranked (10.1).
 
 ### 6.2 Proofs (a node)
@@ -1050,7 +1056,8 @@ it was silent for more than 72 hours and has posted again since.
   `c - 288 * 300` to `c - 300`, followed by the **running slot** `c` for keys with a live state (10.13). The **previous window** is the 288 slots before that: `c - 576 * 300` to
   `c - 289 * 300`. The slot `c` itself is still running and belongs to neither.
 - The **board slot** of a record is the slot of its receipt (6.1). When a record carries several valid receipts, the
-  earliest `t` among them. Never the author's `t`. A record with no valid receipt (6.1) has no board slot and takes no
+  earliest `t` among them. Only receipts of registry servers and of the server that took the record count, and none
+  is earlier than `slot(rec.t) - 600` (6.1). Never the author's `t`. A record with no valid receipt (6.1) has no board slot and takes no
   part in any board.
 
 ### 10.2 Effective record

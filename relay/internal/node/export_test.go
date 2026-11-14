@@ -105,3 +105,13 @@ func (r *Relay) LeftLen() int { r.mu.Lock(); defer r.mu.Unlock(); return len(r.l
 
 // IsRefused reports whether an id is remembered as refused.
 func (r *Relay) IsRefused(id string) bool { r.mu.Lock(); defer r.mu.Unlock(); return r.refused[id] }
+
+// SlotOf is the board slot a stored record has (its earliest counted receipt), or -1.
+func (r *Relay) SlotOf(id string) int64 {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if e := r.st.Get(id); e != nil {
+		return e.Slot
+	}
+	return -1
+}

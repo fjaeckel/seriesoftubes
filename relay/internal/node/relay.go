@@ -320,6 +320,17 @@ func (r *Relay) lookup(id string) *chain.State {
 	return nil
 }
 
+// receiptState is the chain state of a server whose receipts count: this server or a registry one.
+func (r *Relay) receiptState(id string) *chain.State {
+	if r.own != nil && id == r.own.ID {
+		return r.own
+	}
+	if e, ok := r.regs[id]; ok {
+		return e.State
+	}
+	return nil
+}
+
 func (r *Relay) syncOf(id string) string {
 	if e, ok := r.regs[id]; ok {
 		return e.Server.Str("sync")
@@ -796,7 +807,9 @@ func (r *Relay) stateCheck(rec *fed.Record, now int64, o origin) string {
 	return ""
 }
 
-// validReceipts keeps the receipts that check against servers this node knows.
+// validReceipts keeps the receipts that check against servers whose receipts count (6.1): this
+// server and registry servers. A server known from gossip alone costs nothing to make up (8.3), so
+// its receipts could date any record to any slot.
 func (r *Relay) validReceipts(rec *fed.Record, list []any, now int64) ([]map[string]any, int64) {
 	var out []map[string]any
 	slot := int64(0)
@@ -808,7 +821,7 @@ func (r *Relay) validReceipts(rec *fed.Record, list []any, now int64) ([]map[str
 		if !ok {
 			continue
 		}
-		st := r.lookup(srv)
+		st := r.receiptState(srv)
 		if st == nil {
 			continue
 		}

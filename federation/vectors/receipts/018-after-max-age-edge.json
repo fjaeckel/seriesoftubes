@@ -1,0 +1,39 @@
+{
+  "description": "A stats record at its maximum age (777600 s): a receipt at rec.t + 777600 or before is fine.",
+  "input": {
+    "now": 1767312100,
+    "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+    "nodes": [
+      "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+      "i7ibH5fd16Yxj6GRgQEpbUBEj1AI3_5nPrGRxGnWgXc"
+    ],
+    "record": {
+      "v": 1,
+      "kind": "stats",
+      "key": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+      "t": 1766534500,
+      "body": {
+        "mode": "normal",
+        "pops": {},
+        "traffic": [],
+        "tier1": false,
+        "shareCountry": false
+      },
+      "sig": "82buRXRb7uCcwYuOdoJj1EJhSykDsin4Ogj1rxHZw9OzE7w8KdG951Y4iMbP2TZ-RqvlrC3CVLIJb9sN1ShuAg"
+    },
+    "receipt": {
+      "v": 1,
+      "kind": "receipt",
+      "key": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+      "t": 1767312000,
+      "body": {
+        "rec": "AzxHuDjMydqnv2bBaLtaOb7sRMsyvsq3TU1LJrd41KM",
+        "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4"
+      },
+      "sig": "2gQ8xOoICqCYhyT62ZffOhghasfVBn7Lxft7VQqy_M3ne7zpvgWecTcSxcZZprHsNoGFwXYW9JopEibb-daEBw"
+    }
+  },
+  "expect": {
+    "ok": true
+  }
+}

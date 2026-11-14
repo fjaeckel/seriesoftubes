@@ -27,7 +27,7 @@ func CheckReceipt(v any, rec *Record, server string, nodes []string, now int64) 
 	if code != "" {
 		return nil, code
 	}
-	if r.T%SlotLen != 0 {
+	if r.T%SlotLen != 0 || !ReceiptTimeOK(r.T, rec) {
 		return nil, BadField
 	}
 	if r.Str("rec") != rec.ID || r.Str("server") != server {
@@ -46,6 +46,19 @@ func CheckReceipt(v any, rec *Record, server string, nodes []string, now int64) 
 		return nil, NotNode
 	}
 	return r, ""
+}
+
+// ReceiptTimeOK says whether a receipt's t fits its record's t (6.1). A node signs a receipt at
+// slot(receive time) and takes a record only while rec.t <= now + Skew and its age is within the
+// kind's maximum, so an honest receipt is never earlier than slot(rec.t) - Skew, nor later than
+// rec.t plus that maximum. Anything else would move the record's board slot (10.1) to a time it
+// never had: backfilled slots, or a fresh record dated more than 7 days back.
+func ReceiptTimeOK(t int64, rec *Record) bool {
+	if t < Slot(rec.T)-Skew {
+		return false
+	}
+	age := kinds[rec.Kind].maxAge
+	return age == 0 || t <= rec.T+age
 }
 
 // ReceiptServer returns the server a receipt names, if it is shaped like one.

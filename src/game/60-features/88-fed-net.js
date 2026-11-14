@@ -254,10 +254,13 @@ const fedPerf=()=>{try{return performance.now();}catch(e){return Date.now();}};
 FED.stCost={n:0,ms:0,idle:0};
 
 /* ---------- records from a node: checked, then kept where they belong ---------- */
-// Receipts: the earliest valid one gives the board slot (§10.1), and its country (a shared stats record only).
+/* Receipts: the earliest valid one gives the board slot (§10.1), and its country (a shared stats record only). Only
+   receipts of registry servers and of the server we are connected to count (§6.1): one known from gossip alone costs
+   nothing to make up, so its receipts could date a record to any slot. */
 async function fedPlace(c,chk,rcpts,now,srvs){let slot=null,cc=null;
   for(const rc of Array.isArray(rcpts)?rcpts.slice(0,16):[]){const sid=rc&&rc.body&&rc.body.server;if(typeof sid!=='string')continue;
-    const e=srvs.find(x=>x.id===sid),nodes=e?e.nodes.map(n=>n.key):sid===c.srv&&c.nodeKey?[c.nodeKey]:null;if(!nodes)continue;
+    const e=srvs.find(x=>x.id===sid),mine=sid===c.srv?[...(e?e.nodes.map(n=>n.key):[]),...(c.nodeKey?[c.nodeKey]:[])]:[];
+    const nodes=e&&e.source!=='gossip'?e.nodes.map(n=>n.key):mine.length?mine:null;if(!nodes)continue;
     if(await fedRcptErr(rc,chk.rec,chk.id,sid,nodes,now))continue;if(slot===null||rc.t<slot){slot=rc.t;cc=rc.body.cc||null;}}
   return {slot,cc};}
 /* Items [{rec, rcpt}] from a sub or a fetch. Gives true when every item was looked at. Calls run one after another,

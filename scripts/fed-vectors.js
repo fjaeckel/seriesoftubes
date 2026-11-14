@@ -579,6 +579,13 @@ const SID = rid(genesis);
   go('not-a-node', 'Signed by a key that is not one of the server\'s nodes.', st, R(st, { rec: rid(st), server: SID }, 'node3'), { ok: false, error: 'not_node' });
   go('bad-sig', 'Claims node1, signed by node2.', st, R(st, { rec: rid(st), server: SID }, 'node1', SLOT, 'node2'), { ok: false, error: 'bad_sig' });
   go('future', 'A receipt more than 600 s in the future.', st, R(st, { rec: rid(st), server: SID }, 'node1', T + 900), { ok: false, error: 'too_new' });
+  // A node takes a record only while rec.t <= now + 600 and within its kind's age, and signs at slot(now): so a receipt
+  // is never before slot(rec.t) - 600, nor after rec.t + the kind's maximum age.
+  go('before-record-edge', 'The record\'s author clock ran 600 s ahead of the node: slot(rec.t) - 600 is still fine.', st, R(st, { rec: rid(st), server: SID }, 'node1', SLOT - 600), { ok: true });
+  go('before-record', 'A receipt dated before its record could have reached any node (slot(rec.t) - 900): it would backdate the board slot.', st, R(st, { rec: rid(st), server: SID }, 'node1', SLOT - 900), { ok: false, error: 'bad_field' });
+  const stAged = rec('stats', 'bob', NOW - 777600, statsMin());
+  go('after-max-age-edge', 'A stats record at its maximum age (777600 s): a receipt at rec.t + 777600 or before is fine.', stAged, R(stAged, { rec: rid(stAged), server: SID }, 'node1', SLOT), { ok: true });
+  go('after-max-age', 'A receipt later than rec.t + 777600: no node would have taken the record then.', stAged, R(stAged, { rec: rid(stAged), server: SID }, 'node1', SLOT + 300), { ok: false, error: 'bad_field' });
 }
 
 // ======================================================================================

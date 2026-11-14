@@ -35,7 +35,7 @@ async function fwDo(op,a){const w=fwOn()&&fwStart();
 // In the worker: one batch, answered with its result or the error.
 function fwServe(m){Promise.resolve().then(()=>FW_OPS[m.op](m.a)).then(r=>postMessage({fw:m.fw,r}),e=>postMessage({fw:m.fw,err:String(e&&e.stack||e)}));}
 // The catalog as the worker needs it: which node keys each server has.
-const fwSrvs=srvs=>srvs.map(e=>({id:e.id,nodes:(e.nodes||[]).map(n=>({key:n.key}))}));
+const fwSrvs=srvs=>srvs.map(e=>({id:e.id,source:e.source,nodes:(e.nodes||[]).map(n=>({key:n.key}))}));
 
 /* ---------- the batches: pure functions of what they are given ---------- */
 /* Items [{rec, rcpt}] from a sub or a fetch, each checked (§7.1) and placed by its receipts (fedPlace): null (not an

@@ -224,3 +224,19 @@ test('the MCP server\'s export_save never carries the multiplayer private key or
   assert.equal(s.fed.op, undefined);
   assert.equal(ev('S.fed.key.priv'), k.seed, 'the running game keeps its key');
 });
+
+test('only receipts of registry servers and the connected one set a board slot, and none dates a record before its time', async () => {
+  const { ev } = load({ crypto: true });
+  const t = NOW - 100, st = rec('alice', 'stats', t, { mode: 'normal', pops: { fra: 1 }, traffic: [], tier1: false, shareCountry: false });
+  const id = b64(sha(require('./helpers/fed').canon(st)));
+  const R = (node, server, at) => rec(node, 'receipt', at, { rec: id, server });
+  const fake = b64(sha('a server made up in gossip')), here = b64(sha('the server we are on'));
+  const srvs = [{ id: PL.id, source: 'registry', nodes: [{ key: key('node1').pub }] }, { id: fake, source: 'gossip', nodes: [{ key: key('node9').pub }] }];
+  const place = (rcpts) => ev(`(async()=>{const c=await fedCheck(${JSON.stringify(st)},${NOW});
+    return fedPlace({srv:${JSON.stringify(here)},nodeKey:${JSON.stringify(key('node5').pub)}},c,${JSON.stringify(rcpts)},${NOW},${JSON.stringify(srvs)});})()`);
+  const slot = t - (t % 300);
+  assert.equal((await place([R('node1', PL.id, slot)])).slot, slot, 'a registry server\'s receipt counts');
+  assert.equal((await place([R('node5', here, slot)])).slot, slot, 'so does the connected server\'s');
+  assert.equal((await place([R('node9', fake, slot - 300), R('node1', PL.id, slot)])).slot, slot, 'a gossip-only server\'s does not');
+  assert.equal((await place([R('node1', PL.id, slot - 8 * DAY), R('node1', PL.id, slot)])).slot, slot, 'a receipt 8 days before its record does not');
+});
