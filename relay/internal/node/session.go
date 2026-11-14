@@ -791,11 +791,11 @@ func (r *Relay) serve(s *session) {
 // server's chain lists for it.
 func (r *Relay) ownURLs() []string {
 	var out []string
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	if u := r.cfg.URL; u != "" {
 		out = append(out, u)
 	}
-	r.mu.Lock()
-	defer r.mu.Unlock()
 	if r.own != nil {
 		for _, n := range r.own.Nodes {
 			if n.Key == r.Key() && n.URL != "" && !slices.Contains(out, n.URL) {
@@ -806,9 +806,19 @@ func (r *Relay) ownURLs() []string {
 	return out
 }
 
+// legacyAuth counts a client auth of the older, unbound form (relay_auth_total legacy), and logs
+// the count at most once an hour: legacyAuth can be switched off once they stop.
+func (r *Relay) legacyAuth(now int64) {
+	r.o.Metrics.Inc("relay_auth_total", "legacy")
+	n := r.legacyN.Add(1)
+	if at := r.legacyAt.Load(); now-at >= 3600 && r.legacyAt.CompareAndSwap(at, now) {
+		r.o.Log.Info("auth: games still prove keys the older, unbound way (legacyAuth)", "since_start", n)
+	}
+}
+
 // allow is a per-connection token bucket; requests cost by the work they ask for (clientCost).
 func (s *session) allow(cost float64) bool {
-	rate := float64(s.r.cfg.Limits.MsgsPerSec)
+	rate := float64(s.r.conf.Load().Limits.MsgsPerSec) // Reload may replace the config meanwhile
 	now := time.Now()
 	s.tokens = min(4*rate, s.tokens+now.Sub(s.tokenAt).Seconds()*rate)
 	s.tokenAt = now
@@ -833,11 +843,13 @@ func (r *Relay) clientFrame(s *session, f *wire.Frame) {
 		var code string
 		if _, bound := f.Raw["url"]; bound {
 			url, _ := f.Raw["url"].(string)
-			code = fed.CheckAuthBound(key, t, sig, r.Key(), r.ServerID(), now, s.authNonce, url, s.authURLs)
-		} else if !r.cfg.LegacyAuthOK() {
+			if code = fed.CheckAuthBound(key, t, sig, r.Key(), r.ServerID(), now, s.authNonce, url, s.authURLs); code == "" {
+				r.o.Metrics.Inc("relay_auth_total", "bound")
+			}
+		} else if !r.conf.Load().LegacyAuthOK() {
 			code = fed.BadSig // only bound auth is taken (legacyAuth: false)
-		} else {
-			code = fed.CheckAuth(key, t, sig, r.Key(), r.ServerID(), now)
+		} else if code = fed.CheckAuth(key, t, sig, r.Key(), r.ServerID(), now); code == "" {
+			r.legacyAuth(now)
 		}
 		if code != "" {
 			s.fail(f.ID, code, 0)

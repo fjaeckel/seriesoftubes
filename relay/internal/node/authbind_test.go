@@ -40,6 +40,13 @@ func TestBoundAuth(t *testing.T) {
 	if _, err := other.Request(ctx(t), legacy); err != nil {
 		t.Fatalf("legacy auth: %v", err)
 	}
+	// Counted, so operators see when legacyAuth can be switched off.
+	if got := x.Metrics.Get("relay_auth_total", "legacy"); got != 1 {
+		t.Fatalf("legacy auths counted: %v", got)
+	}
+	if got := x.Metrics.Get("relay_auth_total", "bound"); got != 2 {
+		t.Fatalf("bound auths counted: %v", got)
+	}
 	off := false
 	cfg := *x.Cfg
 	cfg.LegacyAuth = &off
@@ -51,4 +58,38 @@ func TestBoundAuth(t *testing.T) {
 	if _, err := other.Auth(ctx(t), k, now); err != nil {
 		t.Fatalf("bound auth with legacyAuth off: %v", err)
 	}
+}
+
+// The config is read per frame without the lock while Reload replaces it (run with -race).
+func TestReloadWhileClientsTalk(t *testing.T) {
+	n := rt.New(t)
+	a := n.Found("reloading", "open")
+	x := a.Nodes[0]
+	stop, done := make(chan struct{}), make(chan struct{})
+	go func() {
+		defer close(done)
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			c := *x.Cfg
+			x.R.Reload(&c)
+		}
+	}()
+	now := n.Clock.Unix()
+	k := rt.Key("busy")
+	for range 20 {
+		c := x.Client(nil)
+		legacy := map[string]any{"m": "auth", "key": k.Key, "t": now, "sig": k.Auth(x.Key.Key, a.ID, now)}
+		if _, err := c.Request(ctx(t), legacy); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := c.Request(ctx(t), map[string]any{"m": "ping"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	close(stop)
+	<-done
 }

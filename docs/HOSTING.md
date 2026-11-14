@@ -911,7 +911,8 @@ Change the thresholds to suit your machine. Other series worth a graph: `relay_c
 (open connections), `relay_records_in_total` by `kind`, `relay_records`, `relay_refused_total` by `code`,
 `relay_budget_refused_total` by `budget` (which growth budget refused records or live states), `relay_high_water` (1
 while only known networks may put), `relay_live_evicted`,
-`relay_syncs_total`, `relay_rank_answers_total` by `cache` (hit or miss), `relay_build_info` and
+`relay_syncs_total`, `relay_auth_total` by `form` (`legacy`: games still proving keys the older way, see `legacyAuth`
+in docs/RELAY.md), `relay_rank_answers_total` by `cache` (hit or miss), `relay_build_info` and
 `relay_latest_version_info`.
 
 ## Logs and privacy: your duties

@@ -39,6 +39,7 @@ func New() *M {
 	m.counter("relay_refused_total", "code", "Records and frames refused, by error code.")
 	m.counter("relay_budget_refused_total", "budget", "Records and live states refused rate_limited by a growth budget or the high-water mark, by which.",
 		"conn_keys", "addr_keys", "peer_keys", "conn_bytes", "addr_bytes", "peer_bytes", "live_conn", "live_addr", "live_peer", "high_water")
+	m.counter("relay_auth_total", "form", "Client auths taken, by form: bound to the session (bound) or the older form (legacy, legacyAuth).", "bound", "legacy")
 	m.counter("relay_syncs_total", "", "Node sync sessions started.")
 	m.counter("relay_states_total", "how", "Live states (never stored): taken from clients and nodes, sent to nodes.", "client", "node", "sent")
 	m.counter("relay_rank_answers_total", "cache", "Rankings answered, by whether the slice was already worked out for the current state (hit) or not (miss).", "hit", "miss")

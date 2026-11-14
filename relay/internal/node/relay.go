@@ -67,6 +67,9 @@ type Relay struct {
 	hcPeer   *http.Client // to URLs from the registry, catalog or peers: no redirects, public addresses only
 	mu       sync.Mutex
 	cfg      *config.Config
+	conf     atomic.Pointer[config.Config] // cfg, for the reads per frame made without the lock
+	legacyN  atomic.Int64                  // client auths of the older, unbound form taken since start
+	legacyAt atomic.Int64                  // when one was last logged
 	st       *store.Store
 	own      *chain.State            // nil until the server's genesis is known
 	ownSrv   *fed.Record             // current server record (8.2)
@@ -170,6 +173,7 @@ func New(o Options) (*Relay, error) {
 		lastSyn: map[string]int64{}, addrQ: map[netip.Addr]*quota{}, peerQ: map[string]*quota{}, urlSrv: map[string]string{}, binds: map[string]bool{}, clients: map[*session]bool{}, nodes: map[*session]bool{},
 		epoch: fed.Encode(eb[:]), dialers: map[string]context.CancelFunc{}, speaks: o.Versions,
 		hc: netguard.Client(o.HTTPClient, false), hcPeer: netguard.Client(o.HTTPClient, !o.AllowInternal)}
+	r.conf.Store(o.Config)
 	r.impl = &update.Impl{Name: update.Name, Version: r.version()}
 	if update.ReadImpl(r.impl.Value()) == nil {
 		r.impl.Version = "dev" // a build stamped with something no peer would read
@@ -1539,6 +1543,7 @@ func addrLimits(c *config.Config) privacy.Limits {
 func (r *Relay) Reload(c *config.Config) {
 	r.mu.Lock()
 	r.cfg = c
+	r.conf.Store(c)
 	r.limiter.Set(addrLimits(c))
 	r.mu.Unlock()
 	r.reconcile()
