@@ -63,8 +63,9 @@ test('landing rights run for whole years at a time, never more than ten years ah
   assert.equal(cost(ev, "ACT.pieLic({cc:'NL',y:1})"), 0, 'refused rights are not for sale');
   // every country with a dish
   ev("for(const c of ['sin','mia','ams'])ACT.pieDish({city:c})");
+  ev("S.pie.lic.FR={state:'ok',until:S.day+30}"); // rights, but no dish in France
   const q = JSON.parse(ev('JSON.stringify(pieLicAllQuote(10))'));
-  assert.deepEqual(q.list.map((x) => x[0]).sort(), ['SG', 'US'], 'not the refused one, not the ones already covered');
+  assert.deepEqual(q.list.map((x) => x[0]).sort(), ['SG', 'US'], 'not the refused one, not the ones already covered, not one without a dish');
   assert.equal(cost(ev, 'ACT.pieLicAll({y:10})'), q.cost);
   assert.ok(ev("pieLicYears('SG',10)===0&&pieLicYears('US',10)===0"));
   ev('S=migrate(JSON.parse(JSON.stringify(S)))');
@@ -209,7 +210,7 @@ test('launch options stay set across saves, and the Launch tab explains rockets 
   const { ev, dom, errors } = load();
   company(ev);
   ev("ACT.pieIns();ACT.pieAll();S=migrate(JSON.parse(JSON.stringify(S)))");
-  assert.deepEqual(JSON.parse(ev('JSON.stringify(S.pie.opt)')), { ins: true, las: false, all: true });
+  assert.deepEqual(JSON.parse(ev('JSON.stringify(S.pie.opt)')), { ins: true, all: true });
   ev("ACT.pieTab({t:'crust'})");
   const t = doc(dom).getElementById('modalCard').textContent.replace(/\s+/g, ' ');
   assert.match(t, /Medium rocket/);

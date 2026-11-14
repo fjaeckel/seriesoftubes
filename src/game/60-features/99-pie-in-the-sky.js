@@ -17,7 +17,7 @@
    - pieFounder(k,{n,c})    -> a Founder post (k from FOUNDER_POSTS); pieCharge(v) bills a cost (book kept)
    - book.earned: revenue from orbit, for the customers that come with routing. */
 function pieBlank(day){const crusts={};for(const id in CRUSTS)crusts[id]={cohorts:[],queued:0};
-  return {born:day,co:null,fac:false,lines:1,stock:0,rd:{reuse:false,heavy:false,heavyTests:0,las:false,vband:false,eband:false},pads:[],crusts,dishes:[],lic:{},q:[],opt:{ins:false,las:false,all:false},
+  return {born:day,co:null,fac:false,lines:1,stock:0,rd:{reuse:false,heavy:false,heavyTests:0,las:false,vband:false,eband:false},pads:[],crusts,dishes:[],lic:{},q:[],opt:{ins:false,all:false},
     founder:{posts:[],promises:0,broken:0,due:[],jit:0,next:0,kid:0,bill:0,nerv:0,hype:0,leak:0,mars:0},book:{spent:0,earned:0,wouldHave:0},spat:{},safe:false,gov:pieGovBlank()};}
 function pieInit(){if(!S.pie)S.pie=pieBlank(S.day);return S.pie;}
 // The unlock: only on the Tier 1 transition of a save of this version, and only in a normal game.
@@ -134,7 +134,7 @@ function pieSanitize(s){s.pieV=int(s.pieV,0,1,0);pieEximFix(s);const p=s.pie,ob=
   if(!ob(p)||(s.pieV<1&&s.mode!=='sandbox')||s.scn||s.mode==='puzzle'){s.pie=null;return;}
   const o=pieBlank(int(p.born,0,s.day,s.day)),day=s.day,n=(v,hi)=>int(v,0,hi,0),m=(v,hi)=>clamp(num(v,0),0,hi);
   if(ob(p.co)){const nm=p.co.name;o.co={name:typeof nm==='string'&&nm.trim()?(PIE_NAMES.includes(nm)?nm:nm.replace(/\s+/g,' ').trim().slice(0,40)):PIE_NAMES[0]};}
-  if(ob(p.opt))o.opt={ins:!!p.opt.ins,las:!!p.opt.las,all:!!p.opt.all};o.fac=!!p.fac&&!!o.co;o.lines=o.fac?int(p.lines,1,PIE_LINE_MAX,1):1;o.stock=o.fac?m(p.stock,PIE_STOCK_MAX*o.lines):0;o.safe=!!p.safe;o.t1=!!p.t1;
+  if(ob(p.opt))o.opt={ins:!!p.opt.ins,all:!!p.opt.all};o.fac=!!p.fac&&!!o.co;o.lines=o.fac?int(p.lines,1,PIE_LINE_MAX,1):1;o.stock=o.fac?m(p.stock,PIE_STOCK_MAX*o.lines):0;o.safe=!!p.safe;o.t1=!!p.t1;
   if(ob(p.rd)){o.rd.reuse=!!p.rd.reuse;o.rd.heavy=!!p.rd.heavy;o.rd.heavyTests=o.rd.heavy?n(p.rd.heavyTests,PIE_HEAVY_TESTS):0;o.rd.las=!!p.rd.las;o.rd.vband=!!p.rd.vband;o.rd.eband=o.rd.vband&&!!p.rd.eband;}
   const seen=new Set();
   o.pads=(Array.isArray(p.pads)?p.pads:[]).filter(x=>ob(x)&&isCity(x.city)&&s.pops[x.city]&&pieCoast(x.city)&&!seen.has(x.city)&&seen.add(x.city)).slice(0,PIE_PAD_MAX)
@@ -150,7 +150,7 @@ function pieSanitize(s){s.pieV=int(s.pieV,0,1,0);pieEximFix(s);const p=s.pie,ob=
   o.q=(Array.isArray(p.q)?p.q:[]).filter(L=>ob(L)&&own(ROCKETS,L.rk)&&own(CRUSTS,L.cr)&&o.pads.some(x=>x.city===L.pad)&&(!ROCKETS[L.rk].rd||o.rd[ROCKETS[L.rk].rd])).slice(0,PIE_Q_MAX)
     .map(L=>{const t=L.rk==='heavy'&&!!L.test;return {id:sid0(L.id),rk:L.rk,cr:L.cr,pad:L.pad,n:t?0:n(L.n,ROCKETS[L.rk].pies),day:int(L.day,0,day+3650,day),cost:m(L.cost,1e10),ins:!!L.ins,las:!!L.las,test:t};});
   // Lasers used to be a launch toggle: a save that flew lasered pies (or asked for them) has the research.
-  if(o.opt.las||o.q.some(L=>L.las)||Object.values(o.crusts).some(c=>c.cohorts.some(k=>k.las)))o.rd.las=true;
+  if(o.q.some(L=>L.las)||Object.values(o.crusts).some(c=>c.cohorts.some(k=>k.las)))o.rd.las=true;
   for(const L of o.q)o.crusts[L.cr].queued+=L.n;
   if(ob(p.founder)){const F=p.founder;o.founder.promises=n(F.promises,1e6);o.founder.broken=n(F.broken,o.founder.promises);
     o.founder.posts=(Array.isArray(F.posts)?F.posts:[]).filter(x=>ob(x)&&FOUNDER_POSTS.includes(x.k)).slice(0,PIE_POSTS).map(x=>{const q={d:int(x.d,0,day,day),k:x.k};if(x.n!==undefined)q.n=n(x.n,1e7);if(own(CRUSTS,x.c||''))q.c=x.c;return q;});

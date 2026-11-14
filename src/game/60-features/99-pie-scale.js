@@ -10,8 +10,8 @@ const pieLicBase=cc=>{const l=S.pie.lic[cc];return Math.max(S.day,l&&l.state==='
 const pieLicRoom=cc=>Math.max(0,Math.floor((S.day+PIE_LIC_DAYS*10-pieLicBase(cc))/PIE_LIC_DAYS));
 const pieLicYears=(cc,y)=>Math.max(0,Math.min(Math.ceil((S.day+y*PIE_LIC_DAYS-pieLicBase(cc))/PIE_LIC_DAYS),pieLicRoom(cc)));
 const pieLicAdd=(cc,n)=>{S.pie.lic[cc]={state:'ok',until:pieLicBase(cc)+n*PIE_LIC_DAYS};};
-// Countries the ground segment needs: those with a dish, or with rights held.
-const pieLicCcs=()=>[...new Set([...S.pie.dishes.map(x=>CITY[x.city].cc),...Object.keys(S.pie.lic)])];
+// Countries the ground segment needs: those with a dish (rights held where none is left are not renewed).
+const pieLicCcs=()=>[...new Set(S.pie.dishes.map(x=>CITY[x.city].cc))];
 // The bill to cover every such country for y years: [[cc,years]] and the total.
 function pieLicAllQuote(y){const o=[];let cost=0;for(const cc of pieLicCcs()){if(!pieFree(cc))continue;const n=pieLicYears(cc,y);if(n){o.push([cc,n]);cost+=n*pieLicPrice(cc);}}return {list:o,cost};}
 const pieAntLeft=x=>PIE_ANT_MAX-x.ant;
