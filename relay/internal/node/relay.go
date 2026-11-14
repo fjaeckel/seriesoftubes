@@ -1012,12 +1012,18 @@ func (r *Relay) fanout(e *store.Entry, from *session) {
 		r.o.Metrics.Inc("relay_records_out_total", "")
 	}
 	for s := range r.clients {
+		// Once per session, however many of its subs follow the kind: in the lowest live one's recs
+		// (a sub still sending its backlog reaches this record by scanning).
+		var to int64
+		found := false
 		for id, sub := range s.subs {
-			// A sub still sending its backlog reaches this record by scanning.
-			if sub.live && sub.kinds[e.Kind] && r.shows(s, e) {
-				s.enqueue(map[string]any{"m": "recs", "id": id, "items": []any{it}, "cursor": r.cursor(e.Seq), "more": false})
-				r.o.Metrics.Inc("relay_records_out_total", "")
+			if sub.live && sub.kinds[e.Kind] && (!found || id < to) {
+				to, found = id, true
 			}
+		}
+		if found && r.shows(s, e) {
+			s.enqueue(map[string]any{"m": "recs", "id": to, "items": []any{it}, "cursor": r.cursor(e.Seq), "more": false})
+			r.o.Metrics.Inc("relay_records_out_total", "")
 		}
 	}
 }

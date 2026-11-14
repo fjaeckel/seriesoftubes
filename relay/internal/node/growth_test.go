@@ -13,6 +13,7 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/node"
 	rt "github.com/fjaeckel/seriesoftubes/relay/internal/relaytest"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/wire"
 )
 
 // budgets applies changes to a node's growth budgets.
@@ -278,6 +279,40 @@ func TestPeerLiveBudget(t *testing.T) {
 	time.Sleep(400 * time.Millisecond)
 	if got := held(); got != 2 {
 		t.Fatalf("b holds %d states of keys without an announce from one server", got)
+	}
+}
+
+// A session with several subs that follow the same kind gets each new record once, not once
+// per sub.
+func TestOverlappingSubsGetARecordOnce(t *testing.T) {
+	n := rt.New(t)
+	x := n.Found("subs", "open").Nodes[0]
+	c := x.Client(nil)
+	var chans []<-chan *wire.Frame
+	for range 4 {
+		_, ch, err := c.Start(ctx(t), map[string]any{"m": "sub", "kinds": []any{"announce"}, "since": ""})
+		if err != nil {
+			t.Fatal(err)
+		}
+		chans = append(chans, ch)
+	}
+	time.Sleep(200 * time.Millisecond) // the backlogs are out: the subs are live
+	for _, ch := range chans {
+		for len(ch) > 0 {
+			<-ch
+		}
+	}
+	x.MustPut(rt.Announce(rt.Key("once"), n.Clock.Unix(), "Once"))
+	time.Sleep(300 * time.Millisecond)
+	got := 0
+	for _, ch := range chans {
+		for len(ch) > 0 {
+			f := <-ch
+			got += len(f.Raw["items"].([]any))
+		}
+	}
+	if got != 1 {
+		t.Fatalf("the record came %d times", got)
 	}
 }
 

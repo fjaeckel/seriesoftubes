@@ -794,7 +794,7 @@ it is neither answered nor a reason to close, so an older game keeps working wit
 | `ack` | node → client | `id`; answering `put` and `cosign` also `rid` (record id), `dup` (Bool: already had it) and `rcpt` (the receipt, when the record came from this client); answering `auth` also `op` (Bool: `key` is a current operator of this node's server); answering `unsub` only `id` | |
 | `excluded` | node → client | `keys` ([Key], sorted), `more` (Bool), `reasons` ([reason], only to a session that proved an excluded key); no `id` | The networks this server excludes now (10.7), below |
 | `cosign` | client → node | `id`, `rid` (a pending proposal or server record), `key`, `sig` | `ack` or `err`: adds one operator signature to a multi-signer record (same check as 4 and 8) |
-| `sub` | client → node | `id`, `kinds` ([kind]), `since` (cursor, `""` for everything kept) | `recs` frames carrying the `id`, first the backlog, then live records, until `unsub` |
+| `sub` | client → node | `id`, `kinds` ([kind]), `since` (cursor, `""` for everything kept) | `recs` frames carrying the `id`, first the backlog, then live records, until `unsub` (a new record goes once per connection: see below) |
 | `unsub` | client → node | `id` (of the `sub`) | `ack` |
 | `fetch` | client → node | `id`, `ids` ([Id] max 256) | `recs` (missing ids are left out) |
 | `rank` | client → node | `id`, `board`, `measure`, `division`, `filters` (optional), `n` (optional) | `ranks`: the top rows of a slice and the asker's own row (9.5) |
@@ -820,6 +820,9 @@ it is neither answered nor a reason to close, so an older game keeps working wit
   too often, or while several of its answers are still being sent. A node MAY stop a backlog frame after skipping
   records the session may not see (shun votes, others' deals), so a frame can hold no items with `more: true`; its
   cursor still covers what was skipped.
+- **One live copy per connection.** When several `sub`s of one connection follow a record's kind, a node sends the new
+  record once, in the `recs` of the lowest `id` among those whose backlog is sent; each backlog is still sent whole.
+  A client that wants a kind live follows it in one `sub`.
 - **`sub` kinds** this version does not define are ignored. A `sub` left with no kind (`kinds: []`, or only unknown
   ones) gets one `recs` frame with no items and `more: false`, and no live records: never every kind.
 - **A `catalog` answer** that does not fit in one frame is split across several `catalog` frames with the same `id`,
