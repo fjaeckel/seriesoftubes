@@ -493,7 +493,9 @@ The server's description, signed by a strict majority of its operators at `head`
 ### 5.7 `hide` (an operator)
 
 The server's moderation lists. The newest `hide` of a server (greatest `t`, then lowest id) signed by any of its
-current operators replaces the previous one; it applies on all its nodes and is advice to other servers.
+current operators replaces the previous one; it applies on all its nodes and is advice to other servers. A relay keeps
+one `hide` per server: it refuses one older than the one it holds (`refused`) and drops the one a newer one replaces
+at once. Like votes, only the `hide` records of the relay's own server and of registry servers are kept (8.3).
 
 | Field | Type | Rule |
 | --- | --- | --- |
@@ -757,10 +759,12 @@ not yet signed one after the last change) emits no catalog entry and cannot make
 
 `hide`, `shun` and `unshun` are accepted from a key that is a current operator of `body.server` (`not_operator`
 otherwise), as far as the receiver knows the server's chain (`unknown_server` if it knows nothing of it). Relays keep
-and pass on `shun` and `unshun` only of servers in their registry snapshot (11.3), with its operator lists, and of their
-own server; any other is refused (`unknown_server`) and neither stored nor passed on: such a vote could never count
-(10.7 counts registry servers only), and a server known from gossip alone costs nothing to make up, so keeping its votes
-would let anyone fill every relay's store and tally. A relay MAY also bound the votes it keeps of one server (the
+and pass on `hide`, `shun` and `unshun` only of servers in their registry snapshot (11.3), with its operator lists, and
+of their own server; any other is refused (`unknown_server`) and neither stored nor passed on: such a vote could never
+count (10.7 counts registry servers only), and a server known from gossip alone costs nothing to make up, so keeping its
+votes or hides would let anyone fill every relay's store and tally. A `hide` from a client or another server counts
+against the receiving relay's growth budgets like any other record (the reference relay lets its own server's `hide`
+pass its high-water mark). A relay MAY also bound the votes it keeps of one server (the
 reference relay: 8192; over it, `too_many`).
 
 ## 9. The wire protocol

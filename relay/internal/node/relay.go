@@ -68,10 +68,11 @@ type Relay struct {
 	mu      sync.Mutex
 	cfg     *config.Config
 	st      *store.Store
-	own     *chain.State // nil until the server's genesis is known
-	ownSrv  *fed.Record  // current server record (8.2)
-	headSrv *fed.Record  // newest valid server record at the chain's final head (for gossip)
-	hide    *fed.Record  // current hide record
+	own     *chain.State            // nil until the server's genesis is known
+	ownSrv  *fed.Record             // current server record (8.2)
+	headSrv *fed.Record             // newest valid server record at the chain's final head (for gossip)
+	hide    *fed.Record             // current hide record
+	hides   map[string]*store.Entry // server -> its newest stored hide (this server's and registry servers')
 	reg     *registry.Snapshot
 	regs    map[string]*registry.Entry
 	cat     map[string]*catEntry
@@ -192,6 +193,7 @@ func New(o Options) (*Relay, error) {
 		r.countOffer(e.Key, e.To(), 1)
 	}
 	r.indexReports()
+	r.indexHides()
 	// The registry first: the catalog's budget for servers not listed there is smaller.
 	r.loadRegistryCache()
 	r.loadCatalog()
@@ -525,6 +527,22 @@ func (r *Relay) noteReport(e *store.Entry, target string) *store.Entry {
 	return cur
 }
 
+// indexHides rebuilds the newest hide per server from the store (start, and after hides were
+// removed; few are kept).
+func (r *Relay) indexHides() {
+	r.hides = map[string]*store.Entry{}
+	for e := range r.st.Kind("hide") {
+		h := r.st.Rec(e)
+		if h == nil {
+			continue
+		}
+		srv := h.Str("server")
+		if cur := r.hides[srv]; cur == nil || newer(e.T, e.ID, cur.T, cur.ID) {
+			r.hides[srv] = e
+		}
+	}
+}
+
 // dropReport takes a removed report out of the index (lock held).
 func (r *Relay) dropReport(e *store.Entry) {
 	by := r.reports[e.Key]
@@ -769,12 +787,19 @@ func (r *Relay) stateCheck(rec *fed.Record, now int64, o origin) string {
 			return fed.TooOld
 		}
 	case "hide":
-		st := r.lookup(rec.Str("server"))
+		// Only hides of this server and of registry servers are kept and passed on (8.3), like
+		// votes: a server known from gossip alone costs nothing to make up. One per server, the
+		// newest: an older one is refused, a newer one replaces it at once (after).
+		srv := rec.Str("server")
+		st := r.receiptState(srv)
 		if st == nil {
 			return fed.UnknownSrv
 		}
 		if !st.IsOperator(rec.Key) {
 			return fed.NotOperator
+		}
+		if cur := r.hides[srv]; cur != nil && cur.ID != rec.ID && newer(cur.T, cur.ID, rec.T, rec.ID) {
+			return fed.Refused
 		}
 	case "shun", "unshun":
 		// Only votes that can count are kept and passed on (8.3): those of registry servers (10.7
@@ -921,6 +946,16 @@ func (r *Relay) after(e *store.Entry, rec *fed.Record, cc string, now int64) {
 		if old := r.noteReport(e, rec.Str("target")); old != nil {
 			r.refuse(old.ID)
 			r.remove([]string{old.ID})
+		}
+	case "hide":
+		// One per server, the newest (5.7): the one it replaces goes now, not at retention.
+		srv := rec.Str("server")
+		if cur := r.hides[srv]; cur == nil || newer(e.T, e.ID, cur.T, cur.ID) {
+			r.hides[srv] = e
+			if cur != nil && cur != e {
+				r.refuse(cur.ID)
+				r.remove([]string{cur.ID})
+			}
 		}
 	}
 	switch rec.Kind {
@@ -1190,7 +1225,7 @@ func (r *Relay) gc() {
 
 // remove drops records from the store and from what is indexed beside it (lock held).
 func (r *Relay) remove(ids []string) {
-	votes := false
+	votes, hides := false, false
 	anns := map[string]bool{}
 	for _, id := range ids {
 		e := r.st.Get(id)
@@ -1210,9 +1245,14 @@ func (r *Relay) remove(ids []string) {
 			r.countOffer(e.Key, e.To(), -1)
 		case "report":
 			r.dropReport(e)
+		case "hide":
+			hides = true
 		}
 	}
 	r.st.Remove(ids)
+	if hides {
+		r.indexHides()
+	}
 	for k := range anns {
 		r.reindexAnn(k)
 		r.rank.Announce(k, r.newestAnn(k))
@@ -1283,7 +1323,8 @@ func (r *Relay) expired(now int64) []string {
 			}
 		}
 	}
-	// Hide: the newest per server.
+	// Hide: the newest per server, of this server and registry servers only (older relays kept
+	// those of servers known from gossip). Without a registry snapshot yet, others wait for one.
 	newest := map[string]*fed.Record{}
 	for e := range r.st.Kind("hide") {
 		h := r.st.Rec(e)
@@ -1292,8 +1333,10 @@ func (r *Relay) expired(now int64) []string {
 			newest[s] = h
 		}
 	}
+	regKnown := r.reg != nil || r.cfg.Registry == ""
 	for e := range r.st.Kind("hide") {
-		if h := r.st.Rec(e); newest[h.Str("server")] != h {
+		h := r.st.Rec(e)
+		if newest[h.Str("server")] != h || regKnown && r.receiptState(h.Str("server")) == nil {
 			drop = append(drop, e.ID)
 		}
 	}

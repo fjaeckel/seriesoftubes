@@ -113,10 +113,14 @@ func (o origin) stranger() bool { return o.sess != nil || o.peer != nil && !o.sa
 // held). It gives the buckets to charge once the record is stored, whether its key is new here,
 // and "" or rate_limited.
 func (r *Relay) growthCheck(rec *fed.Record, now int64, o origin) ([]quotaRef, bool, string) {
-	if !o.stranger() || operatorKinds[rec.Kind] || r.st.Get(rec.ID) != nil {
+	// Hides count like any record (one is kept per server, 5.7, but it may be some 30 KB and
+	// replaced at will); other operator records are bounded by their chains and vote caps.
+	if !o.stranger() || operatorKinds[rec.Kind] && rec.Kind != "hide" || r.st.Get(rec.ID) != nil {
 		return nil, false, ""
 	}
-	if r.ann[rec.Key] == nil && r.highWater(now) {
+	// This server's own hide passes the high-water mark: operators moderate most when it is busy.
+	ownHide := rec.Kind == "hide" && r.own != nil && rec.Str("server") == r.own.ID
+	if r.ann[rec.Key] == nil && !ownHide && r.highWater(now) {
 		r.o.Metrics.Inc("relay_budget_refused_total", "high_water")
 		return nil, false, fed.RateLimited
 	}

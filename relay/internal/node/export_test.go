@@ -115,3 +115,6 @@ func (r *Relay) SlotOf(id string) int64 {
 	}
 	return -1
 }
+
+// Knows reports whether the relay knows a server's lists (its own, the registry's or gossip's).
+func (r *Relay) Knows(id string) bool { r.mu.Lock(); defer r.mu.Unlock(); return r.lookup(id) != nil }
