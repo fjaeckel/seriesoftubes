@@ -20,7 +20,7 @@ function showMpHelp(){openModal(`<div class="info" data-info="mp">${infoHead(fuI
 function showPrivacy(){openModal(`<div class="info" data-info="privacy">${infoHead('🔒 '+tr('fedui.privacy'),tr('privacy.what_the_game_keeps_and'))}
   <p class="tagline">${tr('privacy.no_account_no_email_no')}</p>${infoSecs([
   [tr('privacy.on_this_device'),tr('privacy.your_saves_settings_and_badges')],
-  [tr('privacy.when_you_join_a_server'),tr('privacy.your_game_sends_signed_records')],
+  [tr('privacy.when_you_join_a_server'),tr('privacy.your_game_sends_these_signed_records')],
   [tr('privacy.while_you_play'),tr('privacy.your_current_numbers_every_10')],
   [tr('privacy.what_servers_keep'),tr('privacy.traffic_numbers_for_72_hours')],
   [tr('privacy.what_servers_never_keep'),tr('privacy.ip_addresses_or_anything_finer')],

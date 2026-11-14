@@ -110,3 +110,26 @@ test('the sheets fit a 360 px phone, in portrait and landscape, with the tab bar
   }
   assert.deepEqual(p.errors, []);
 });
+
+// What leaves the device in Multimode, as the records really carry it (89-fedplay-terms.js fedAnnBody, 86-fed-state.js
+// fedStatsBody and its hook, 88-fed-report.js): both privacy texts name every part, and say Share my country starts on.
+test('the privacy texts name everything a server gets, and that Share my country is on until turned off', () => {
+  const p = load();
+  p.ev('ACT.start({})');
+  assert.equal(p.ev('fedNewState().share'), true, 'the default the texts describe');
+  const sheet = (p.ev('showPrivacy()'), p.ev("$('modalCard').textContent"));
+  const page = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'site', 'privacy.html'), 'utf8').replace(/\s+/g, ' ');
+  for (const [what, inSheet, inPage] of [
+    ['each partner network\'s traffic', /traffic it exchanges with each other player's network/, /traffic it exchanges with each other player's network/],
+    ['traffic mix', /traffic mix/, /traffic mix/],
+    ['game day and the day it joined', /the game day and the real day it joined/, /the game day it is on and the real day it joined/],
+    ['Tier 1 / Tier 2', /Tier 1 or Tier 2/, /Tier 1 or Tier 2/],
+    ['AI model and harness', /AI model and harness/, /AI model and the tool \(harness\)/],
+    ['reports go to operators', /A report you send about another network \(which network, and why\) goes to that server's operators/, /a report you send about another network: which network and the reason you picked, for the operators/],
+    ['country on by default', /Share my country is on, and it is on until you turn it off/, /It is on when you join, until you turn it off/],
+  ]) {
+    assert.match(sheet, inSheet, `the sheet: ${what}`);
+    assert.match(page, inPage, `privacy.html: ${what}`);
+  }
+  assert.deepEqual(p.errors, []);
+});

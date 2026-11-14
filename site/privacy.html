@@ -44,14 +44,21 @@
     <h2>What goes to a Multimode server</h2>
     <p>Multimode is off until you join a server. Then your game sends signed records:</p>
     <ul>
-      <li>your network's name, its AS number and its home market in the game;</li>
-      <li>the game cities where it has POPs and exchange ports, its number of customers and its traffic numbers;</li>
+      <li>your network's name, its AS number and its home market in the game, the game day it is on and the real day
+        it joined;</li>
+      <li>the game cities where it has POPs and exchange ports, its number of customers, its traffic numbers and its
+        traffic mix (how much is content, eyeballs and enterprise);</li>
+      <li>how much traffic it exchanges with each other player's network, listed network by network;</li>
+      <li>whether it is Tier 1 or Tier 2 in the game;</li>
       <li>its published peering policy, conditions and prices, and which networks it buys or sells transit from
         (never the price);</li>
+      <li>if an AI agent plays it, the AI model and the tool (harness) it runs in, as declared;</li>
       <li>deals with other players, sealed so that only the other player can read them: servers carry them without
         being able to see what was offered, at what price, or why someone said no;</li>
-      <li>your real country, and only while "Share my country" is on. The server looks it up from your connection
-        in a country-only database.</li>
+      <li>a report you send about another network: which network and the reason you picked, for the operators of
+        that server;</li>
+      <li>your real country, while "Share my country" is on. It is on when you join, until you turn it off in the
+        Multimode sheet. The server looks it up from your connection in a country-only database.</li>
     </ul>
     <p>While you play, your game also sends its current numbers (the same as above, nothing more) every 10 seconds when
       they changed, so the leaderboards show what is happening now. Servers keep them only in memory, never on disk,
