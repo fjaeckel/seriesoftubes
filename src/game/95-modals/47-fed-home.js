@@ -31,7 +31,21 @@ const FU_ICON='<svg class="mm-ico" viewBox="0 0 32 32" aria-hidden="true" focusa
 const fuIcon=()=>FU_ICON;
 const fuAi=()=>`<span class="fu-bot" role="img" aria-label="${tr('fedui.ai_player')}" title="${tr('fedui.ai_player')}">🤖</span>`;
 // A network's name as others see it: as typed (escaped), or only its ASN where a server hides the name.
-function fuName(key){const a=FU.nets.get(key),b=a&&a.rec&&a.rec.body;if(!b)return esc(fuShort(key));if(FU.hideNames.has(key))return 'AS'+b.asn;return esc(b.name);}
+function fuName(key){const a=FU.nets.get(key),b=a&&a.rec&&a.rec.body;if(!b)return esc(fuShort(key));if(FU.hideNames.has(key))return 'AS'+b.asn;return esc(fedSafeName(b.name));}
+// The key's short fingerprint, next to an ASN wherever who is who matters (an ASN alone can be ground out).
+const fuFp=k=>{const x=fedFp(k);return x?`<span class="fu-fp" title="${tr('fedui.key_fingerprint')}">#${x}</span>`:'';};
+/* Networks whose names read alike (fedLook): those this browser knows, the rows of the board shown, and this player's
+   own. Worked out again only when one of them changed. */
+function fuLookNets(){const f=S&&S.fed,sl=FU.slice,me=f&&f.key?f.key.pub:'',nm=S?S.name:'';
+  const c=FU.lookN;if(c&&c.nets===FU.nets&&c.sl===sl&&c.me===me&&c.nm===nm)return c.set;
+  const l=[...FU.nets.values()].filter(n=>n.rec&&n.rec.body&&!FU.hideNames.has(n.key)).map(n=>[n.key,n.rec.body.name]);
+  if(sl&&Array.isArray(sl.rows))for(const r of sl.rows)if(r.name&&!FU.nets.has(r.key))l.push([r.key,r.name]);if(me&&nm)l.push([me,nm]);
+  const set=fedLookDups(l);FU.lookN={nets:FU.nets,sl,me,nm,set};return set;}
+const fuLookTag=k=>fuLookNets().has(k)?` <span class="fu-tag look">${tr('fedui.same_name_as_another_network')}</span>`:'';
+// A server only heard of whose name reads like another known server's: says which (the registry's first).
+function fuSrvLook(s,srvs=FU.srvs){if(!s||s.source==='registry')return '';const f=fedLook(s.name);if(!f)return '';
+  const o=srvs.filter(x=>x.id!==s.id&&fedLook(x.name)===f).sort((a,b)=>(a.source==='registry'?0:1)-(b.source==='registry'?0:1))[0];
+  return o?` <span class="fu-tag look">${tr('fedui.same_name_as_server',{server:esc(o.name)})}</span>`:'';}
 const fuSrvName=id=>{const s=FU.srvs.find(x=>x.id===id);return s?esc(s.name):esc(fuShort(id));};
 // The server a joined node URL belongs to (from the status, or the catalog's node lists).
 function fuSrvOf(url){const st=FED.st[url];if(st&&st.server)return FU.srvs.find(x=>x.id===st.server)||{id:st.server,name:fuShort(st.server),nodes:[],operators:[],source:'gossip'};
@@ -149,7 +163,7 @@ const fuReason=r=>({cheating:tr('fedui.reason_cheating'),offensive_name:tr('fedu
 
 /* ---------- joining: the catalog, policy first; a typed address; an invite ---------- */
 function fuSrvCard(s,f,at){const joined=!!f&&f.servers.some(u=>(s.nodes||[]).some(n=>n.url===u)),url=at||fedJoinUrl(s),ok=S&&UI.started&&fedEligible();
-  return `<div class="fu-srv${s.source==='registry'?' reg':''}"><p class="fu-pol">${fuPolicy(s)}</p><div class="fu-srvh"><b>${esc(s.name)}</b>${s.source==='registry'?`<span class="fu-tag reg">${tr('fedui.in_the_registry')}</span>`:`<span class="fu-tag">${tr('fedui.only_heard_of')}</span>`}</div>
+  return `<div class="fu-srv${s.source==='registry'?' reg':''}"><p class="fu-pol">${fuPolicy(s)}</p><div class="fu-srvh"><b>${esc(s.name)}</b>${s.source==='registry'?`<span class="fu-tag reg">${tr('fedui.in_the_registry')}</span>`:`<span class="fu-tag">${tr('fedui.only_heard_of')}</span>`}${fuSrvLook(s)}</div>
   ${s.desc?`<p class="meta">${esc(s.desc)}</p>`:''}<p class="meta">${trn('fedui.n_operators',(s.operators||[]).length)} · ${trn('fedui.n_nodes',(s.nodes||[]).length)}${s.langs&&s.langs.length?' · '+esc(s.langs.join(', ')):''}${s.noLogs?' · '+tr('fedui.no_address_logs'):''}</p>
   <div class="btns">${joined?`<span class="fu-tag on">✓ ${tr('fedui.joined')}</span>`:ok&&url?btn(tr('fedui.join'),'fuJoin',{url},'pink sm',FU.busy):''}${btn(tr('fedui.details'),'fuOpen',{v:'server',id:s.id,back:'join'},'ghost sm')}</div></div>`;}
 function fuJoinHtml(){const f=S&&S.fed,ok=S&&UI.started&&fedEligible(),inv=UI.fedInvite;

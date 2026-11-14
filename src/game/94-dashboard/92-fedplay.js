@@ -34,7 +34,7 @@ function fedPlayCard(){const f=S.fed,P=S.fedp,nets=S.fedn?S.fedn.nets:[];
   h+=fedSuggestHtml();
   if(!nets.length)h+=`<p class="empty">${f.on?tr('fedplay.no_players_yet'):tr('fedplay.join_to_meet')}</p>`;
   for(const s of nets){const n=fedNetOf(s.k);if(!n)continue;const ds=f.deals.filter(d=>d.key===s.k&&d.st!=='over'),p=fedPair(n),a=FEDN.ann.get(s.k),nw=!!a&&a.rec&&fedIsNew(a.rec.body.founded,fedNow());
-    h+=`<div class="row fp-${s.st}">${logo(n)}<div class="grow"><div class="nm">${fedBot(n)}${esc(n.name)} <span class="meta">AS${n.asn}</span>${nw?` <span class="tag fp-new">${tr('fedplay.newcomer')}</span>`:''}</div>
+    h+=`<div class="row fp-${s.st}">${logo(n)}<div class="grow"><div class="nm">${fedBot(n)}${esc(n.name)} <span class="meta">AS${n.asn} ${fuFp(s.k)}</span>${fpLook(s.k)}${nw?` <span class="tag fp-new">${tr('fedplay.newcomer')}</span>`:''}</div>
       <div class="meta"><span class="tag ${s.pol}">${tr(FEDP_POL[s.pol])}</span>${FEDP_STL[s.st]?` <span class="tag fp-q">${tr(FEDP_STL[s.st])}</span>`:''} · ${trn('fedplay.n_pops',s.pops.length)} · ${fmtG(s.tr/1000)}${p.ix.length?' · '+tr('fedplay.meet_at',{at:p.ix.slice(0,3).map(fpCity).join(', ')}):''}</div>
       ${ds.length?`<div class="meta">${ds.map(d=>`<span class="tag fp-d">${fedDealName(d.deal)}</span>`).join(' ')}</div>`:''}</div>${btn(tr('fedplay.deals'),'fpNet',{key:s.k},'ghost sm')}</div>`;}
   if(P&&P.str.length){h+=`<h3 class="fp-sub">${tr('fedplay.strangers')}</h3><p class="meta">${tr('fedplay.strangers_note')}</p>`;
@@ -50,8 +50,13 @@ function fedConsRow(c){return `<div class="row"><div class="grow"><div class="nm
   ${c.me?`<span class="meta">${tr('fedplay.cons_in')}</span>`:btn(tr('fedplay.cons_join'),'fpConsJoin',{id:c.id},'sm',S.cash<c.sh||!S.fed.on)}</div>`;}
 
 /* ---------- one player's sheet: their terms, your deals with them, what you can ask for ---------- */
+// Player networks whose names read alike (fedLook), among those in play and this network itself: tagged in the deals sheets.
+const FP_LOOK={h:null,set:new Set()};
+function fpLook(k){const f=S&&S.fed,h=(S&&S.fedn?S.fedn.h:'')+'|'+(S?S.name:'');
+  if(FP_LOOK.h!==h){const l=(S&&S.fedn?S.fedn.nets:[]).map(n=>[n.k,n.name]);if(f&&f.key)l.push([f.key.pub,S.name]);FP_LOOK.set=fedLookDups(l);FP_LOOK.h=h;}
+  return FP_LOOK.set.has(k)?` <span class="tag fu-tag look">${tr('fedui.same_name_as_another_network')}</span>`:'';}
 function fedNetModal(key){const n=fedNetOf(key);if(!n){closeModal();return;}UI.fpOpen={k:'net',key};const a=FEDN.ann.get(key),B=a&&a.rec?a.rec.body:null,p=fedPair(n),sel=UI.fpSel||{},me=fedMeFor(n);
-  let h=`<div style="display:flex;align-items:center"><div><div class="eyebrow">${tr('fedplay.player_network')} · AS${n.asn}${n.home?' · '+esc(n.home):''}</div><h2 style="font-size:24px">${fedBot(n)}${esc(n.name)}</h2></div><button class="x" data-act="closeModal" aria-label="${tr('common.close')}">×</button></div>`;
+  let h=`<div style="display:flex;align-items:center"><div><div class="eyebrow">${tr('fedplay.player_network')} · AS${n.asn} ${fuFp(key)}${n.home?' · '+esc(n.home):''}</div><h2 style="font-size:24px">${fedBot(n)}${esc(n.name)}</h2>${fpLook(key)}</div><button class="x" data-act="closeModal" aria-label="${tr('common.close')}">×</button></div>`;
   h+=`<div class="facts"><span class="fact">${tr(fedOwn(FEDP_POL,n.fpol)?FEDP_POL[n.fpol]:FEDP_POL.open)}</span><span class="fact">${trn('fedplay.n_pops',n.fpops.length)}</span><span class="fact">${trn('fedplay.n_exchanges',n.fix.length)}</span><span class="fact">${fmtG((n.ftr||0)/1000)}</span>${n.ai?`<span class="fact">🤖 ${tr('fedplay.ai_player')}</span>`:''}</div>`;
   // Excluded by a joined server, not confirmed by others: no new deals, running ones continue (§10.7).
   const X=FEDN.ex,xs=X&&X.any.has(key)&&!X.ok.has(key)?(X.by.get(key)||[]).map(esc).join(', '):'';

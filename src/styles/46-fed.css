@@ -20,6 +20,9 @@
 .fu-tag{display:inline-block;font-size:11px;font-weight:800;border-radius:999px;padding:1px 8px;background:var(--soft);border:1px solid var(--line);color:var(--ink2);white-space:nowrap}
 .fu-tag.reg{background:#EAF7EF;border-color:var(--ok);color:#137A4B}
 .fu-tag.on{background:#FFF3C4;border-color:var(--sun);color:var(--ink)}
+/* Same name as another network or server (fedLook): may wrap on a phone. The key fingerprint beside an ASN. */
+.fu-tag.look{background:#FFE9E0;border-color:#E2683C;color:#8A2E0E;white-space:normal}
+.fu-fp{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.92em;white-space:nowrap}
 .fu-srvs{display:flex;flex-direction:column;gap:8px}
 .fu-srv{border:2px solid var(--line);border-radius:14px;padding:8px 12px;min-width:0}
 .fu-srv.reg{border-color:#BFE8D1}

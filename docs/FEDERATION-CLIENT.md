@@ -73,6 +73,14 @@ counted from what a `recs` or `catalog` frame holds before any of it is checked 
 its receipts, a registry entry's whole chain). A frame over the budget is not looked at and the node is dropped `slow`
 until the window is over; a subscription page is taken whole or not at all, so its cursor never skips one.
 
+Names are not unique, and an ASN alone can be ground out with a few hours of key making. Every network and server name
+and server description the interface shows goes through `fedSafeName`/`fedSafeText` (markup swapped for look-alikes,
+invisible characters dropped; server names and descriptions already in `fedSum` and again when the catalog is read).
+Where who is who matters (the boards, the looking glass, the deals sheets) the ASN comes with `fedFp(key)`, the first
+24 bits of the network's key in hex. Names that read alike (`fedLook`: case, accents, width, Cyrillic and Greek
+look-alikes, 0/O, 1/l/I, rn/m, spacing) are marked "same name as another network" (`fedLookDups`), and a server only
+heard of whose name reads like another known server's is marked "same name as …".
+
 ## Exports and imports
 
 | Function | What it does |

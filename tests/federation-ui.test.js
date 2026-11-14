@@ -230,7 +230,7 @@ test('leaderboards: three boards, divisions with robot badges, own row in place,
   p.ev("ACT.fuOpen({v:'boards'});ACT.fuQ({k:'board',v:'pops'})");
   await run(p, 500);
   const rows = () => val(p, `[...document.querySelectorAll('#modalCard .fu-board .fu-row:not(.fu-me)')].map(r=>r.querySelector('.fu-nm').textContent.trim()+(r.querySelector('.fu-bot')?' 🤖':''))`);
-  assert.deepEqual(rows(), ['Bob <b>Net</b>', 'Carol Bot 🤖'], 'names as typed, as text; the AI with its robot');
+  assert.deepEqual(rows(), ['Bob ‹b›Net‹/b›', 'Carol Bot 🤖'], 'names as typed, markup turned into look-alikes (fedSafeName); the AI with its robot');
   assert.equal(p.ev(`document.querySelectorAll('#modalCard .fu-board b b').length`), 0, 'a typed name is never markup');
   assert.match(p.ev(`document.querySelector('#modalCard .fu-board .fu-me').textContent`), /^3.*you/s, 'own row in place with its rank');
   assert.match(txt(p), /All your servers, merged/);
@@ -310,7 +310,7 @@ test('looking glass: servers, policies, players; votes and the tally only for an
   await p.ev(`fedVotesAdd([{id:${JSON.stringify(rid(vote))},rec:${JSON.stringify(vote)}}])`);
   p.ev("ACT.fuOpen({v:'glass'})");
   await run(p, 500);
-  assert.match(txt(p), /Packet Lunch voted to shun Bob <b>Net<\/b> · Spam/);
+  assert.match(txt(p), /Packet Lunch voted to shun Bob ‹b›Net‹\/b› · Spam/);
   assert.match(txt(p), /Only server operators see votes/);
   p.ev(`ACT.fuOpen({v:'net',key:${JSON.stringify(target)}})`);
   await run(p, 500);

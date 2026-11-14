@@ -12,7 +12,19 @@ const FED_SAFE={'<':'‹','>':'›','&':'＆','"':'”',"'":'’','`':'‘'};
 // Invisible characters go too (format characters such as bidi marks and zero-width ones, fillers, odd line breaks),
 // so a name shows what it says, to players and to AI agents alike. Spaces of any width become a plain one.
 const FED_INVIS=/[\p{Cf}\p{Cc}\p{Zl}\p{Zp}\u034f\u115f\u1160\u17b4\u17b5\u2800\u3164\uffa0\ufe00-\ufe0d\u{e0100}-\u{e01ef}]/gu;
-const fedSafeName=v=>{const s=String(v).replace(FED_INVIS,'').replace(/\p{Zs}/gu,' ').replace(/[<>&"'`]/g,c=>FED_SAFE[c]);return /[^ ]/.test(s)?s:'AS?';};
+const fedSafeText=v=>String(v).replace(FED_INVIS,'').replace(/\p{Zs}/gu,' ').replace(/[<>&"'`]/g,c=>FED_SAFE[c]);
+const fedSafeName=v=>{const s=fedSafeText(v);return /[^ ]/.test(s)?s:'AS?';};
+/* Names are not unique and anyone can type any: two names that read alike (case, accents, width, Cyrillic or Greek
+   letters that look Latin, 0/O, 1/l/I, rn/m) fold to the same text here, so the interface can say "same name as". */
+const FED_CONF={'а':'a','в':'b','е':'e','ё':'e','к':'k','м':'m','н':'h','о':'o','р':'p','с':'c','т':'t','у':'y','х':'x','ѕ':'s','і':'l','ї':'l','ј':'j','һ':'h','ԁ':'d','ԛ':'q','ԝ':'w','ӏ':'l','ɡ':'g','ı':'l',
+  'α':'a','β':'b','γ':'y','ε':'e','η':'n','ι':'l','κ':'k','ν':'v','ο':'o','ρ':'p','τ':'t','υ':'u','χ':'x','ω':'w','0':'o','1':'l','i':'l','|':'l','!':'l','5':'s','$':'s','@':'a'};
+const fedLook=v=>{const t=[...String(v).normalize('NFKD').replace(FED_INVIS,'').replace(/\p{M}/gu,'').toLowerCase()].map(c=>FED_CONF[c]||c).join('');
+  return t.replace(/rn/g,'m').replace(/vv/g,'w').replace(/[^\p{L}\p{N}]/gu,'');};
+// Of [[id, name]], the ids whose name reads like another id's.
+function fedLookDups(l){const m=new Map(),out=new Set();for(const [k,n] of l){const f=fedLook(n);if(!f)continue;const s=m.get(f)||new Set();s.add(k);m.set(f,s);}
+  for(const s of m.values())if(s.size>1)for(const k of s)out.add(k);return out;}
+// A short fingerprint of a network's key (24 bits, hex): next to the ASN, which alone can be ground out in hours.
+const fedFp=k=>{const u=fedBin(k,32);return u?[...u.subarray(0,3)].map(b=>b.toString(16).padStart(2,'0')).join(''):'';};
 const FdCity=v=>typeof v==='string'&&/^[a-z0-9]{2,8}$/.test(v)?null:FdBF,FdCC=v=>typeof v==='string'&&/^[A-Z]{2}$/.test(v)?null:FdBF;
 const FdInt=(lo,hi)=>v=>Number.isSafeInteger(v)&&v>=lo&&v<=hi?null:FdBF;
 const FdMbps=FdInt(0,1e9),FdMoney=FdInt(0,1e12),FdDays=FdInt(1,3650),FdBool=v=>typeof v==='boolean'?null:FdBF,FdOne=(...a)=>v=>a.includes(v)?null:FdBF;

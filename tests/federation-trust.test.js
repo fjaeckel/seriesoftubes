@@ -131,3 +131,51 @@ test('the looking glass says an AI network is one, without made-up model or harn
   assert.doesNotMatch(t, /undefined/);
   assert.deepEqual(p.errors, []);
 });
+
+test('names: invisible characters never show, look-alike names are marked, and ASNs carry a key fingerprint', async () => {
+  const p = fedPage({ registry: SERVERS_JSON });
+  p.net.node(URL1);
+  assert.equal(await joinGame(p), null);
+  await run(p, 20);
+  // Folding: case, accents, width, Cyrillic and Greek look-alikes, 0/O, 1/l/I, rn/m, invisible characters, spacing.
+  const look = (a) => p.ev(`fedLook(${JSON.stringify(a)})`);
+  for (const [a, b] of [['Packet Lunch', 'packet  lunch'], ['Packet Lunch', 'Pаcket Lunch'], ['Packet Lunch', 'Packet​Lunch'], ['Hop Shop', 'H0p Sh0p'],
+    ['Lil Net', 'I1l Net'], ['Modem', 'Rnodem'], ['Café', 'Cafe'], ['ＡＢＣ', 'abc'], ['Ορεn', 'open']]) assert.equal(look(a), look(b), `${a} ~ ${b}`);
+  assert.notEqual(look('Packet Lunch'), look('Packet Brunch'));
+  const now = p.ev('FED.now()');
+  await heard(p, ann('bob', now - 200, { name: 'Tube​Works‏' }));
+  await heard(p, ann('eve', now - 200, { name: 'Tubeworks' }));
+  await heard(p, ann('carl', now - 200, { name: 'Unique Fiber' }));
+  const [bob, eve, carl] = ['bob', 'eve', 'carl'].map((n) => key(n).pub);
+  p.ev("ACT.fuOpen({v:'glass'})");
+  await run(p, 20);
+  assert.doesNotMatch(p.ev("$('modalCard').innerHTML"), /[​‏]/, 'no invisible characters in the sheet');
+  const item = (k) => p.ev(`(()=>{const b=document.querySelector('#modalCard [data-act="fuOpen"][data-args*=${JSON.stringify(JSON.stringify(k).slice(1, -1))}]');return b.closest('li').textContent})()`);
+  const fp = (k) => p.ev(`fedFp(${JSON.stringify(k)})`);
+  assert.match(fp(bob), /^[0-9a-f]{6}$/);
+  assert.match(item(bob), new RegExp(`TubeWorks[\\s\\S]*AS4200000001 #${fp(bob)}[\\s\\S]*same name as another network`));
+  assert.match(item(eve), /same name as another network/);
+  assert.doesNotMatch(item(carl), /same name as/);
+  assert.match(item(carl), new RegExp(`#${fp(carl)}`));
+  p.ev(`ACT.fuOpen({v:'net',key:${JSON.stringify(bob)}})`);
+  await run(p, 20);
+  assert.match(p.ev("$('modalCard').textContent"), new RegExp(`AS4200000001 #${fp(bob)}\\s*same name as another network`));
+  // A board row: the fingerprint beside the ASN, and the mark.
+  const row = p.ev(`fuRow({rank:1,key:${JSON.stringify(eve)},value:5,asn:4200000001,ai:false},fuQ(),false)`);
+  assert.match(row, new RegExp(`AS4200000001 <span class="fu-fp"[^>]*>#${fp(eve)}</span>`));
+  assert.match(row, /same name as another network/);
+  // A server only heard of whose name reads like a registry server's; names and descriptions lose invisible characters.
+  const gid = key('zed').pub;
+  await p.ev(`(async()=>{const r=await fedGet('kv','registry');r.servers=r.servers.map(s=>s.id===${JSON.stringify(PL.id)}?{...s,desc:'Small\\u2028friendly\\u200e'}:s);await fedPut('kv','registry',r);
+    await fedPut('kv','gossip',[{id:${JSON.stringify(gid)},server:{id:${JSON.stringify(gid)},rid:'x',t:1,name:'Pаcket\\u200bLunch',nodes:[{key:${JSON.stringify(gid)},url:'wss://lookalike.example.org/fed'}],operators:[],sync:'open',desc:'hi\\u202e'},path:[],seen:FED.now()}]);})()`);
+  const srvs = JSON.parse(await p.ev('fedServers().then(l=>JSON.stringify(l))'));
+  const g = srvs.find((s) => s.id === gid), pl = srvs.find((s) => s.id === PL.id);
+  assert.equal(g.name, 'Pаcket' + 'Lunch');
+  assert.equal(pl.desc, 'Smallfriendly');
+  p.ev("ACT.fuOpen({v:'glass'})");
+  await run(p, 20);
+  const t = p.ev("$('modalCard').textContent");
+  assert.match(t, /PаcketLunch\s*same name as Packet Lunch/);
+  assert.doesNotMatch(t, /Packet Lunch\s*same name as/, 'the registry server is not the one marked');
+  assert.deepEqual(p.errors, []);
+});

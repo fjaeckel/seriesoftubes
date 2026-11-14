@@ -45,7 +45,7 @@ const fsUsable=()=>!!UI.fs&&(!!fsTyped()||!!UI.fs.inv||!(FS.fetched&&FS.failed)&
 function fsCheck(said){const f=UI.fs;if(!f||FS.busy)return;
   if(f.on&&!fsUsable()){f.on=false;f.note=said?(FS.failed?'fail':'empty'):null;}
   else if(!f.on&&f.note&&fsOnline()&&fsTyped()){f.on=true;f.note=null;}}
-const fsRow=(r,on)=>`<button class="fs-srv${on?' on':''}" role="radio" aria-checked="${on}" data-url="${esc(r.url)}" data-act="fsPick" data-args="${esc(JSON.stringify({url:r.url}))}"><b>${r.s?esc(r.s.name):`<span class="mono">${esc(r.url)}</span>`}${r.url===UI.fs.inv?` <span class="fu-tag on">${tr('fedui.you_were_invited')}</span>`:''}</b><span class="meta">${r.s?fuPolicy(r.s):tr('fedui.policy_unknown')}</span></button>`;
+const fsRow=(r,on)=>`<button class="fs-srv${on?' on':''}" role="radio" aria-checked="${on}" data-url="${esc(r.url)}" data-act="fsPick" data-args="${esc(JSON.stringify({url:r.url}))}"><b>${r.s?esc(r.s.name):`<span class="mono">${esc(r.url)}</span>`}${r.s?fuSrvLook(r.s,FS.srvs||[]):''}${r.url===UI.fs.inv?` <span class="fu-tag on">${tr('fedui.you_were_invited')}</span>`:''}</b><span class="meta">${r.s?fuPolicy(r.s):tr('fedui.policy_unknown')}</span></button>`;
 function fsList(){const rows=fsRows(),sel=UI.fs.typed.trim()?null:UI.fs.url;
   return rows.length?`<div class="fs-list" role="radiogroup" aria-labelledby="fsLbl">${rows.map(r=>fsRow(r,r.url===sel)).join('')}</div>`:`<p class="meta">${FS.busy?tr('fedui.looking_for_servers'):tr('fedui.no_servers_known_yet')}</p>`;}
 const fsNote=f=>!fsOnline()?tr('fedui.multiplayer_needs_a_connection'):f.note==='fail'?tr('fedui.couldn_t_reach_the_server_list'):f.note==='empty'?tr('fedui.no_servers_listed_yet'):'';

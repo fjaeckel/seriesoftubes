@@ -66,7 +66,7 @@ const fuSeg=(k,opts,cur,aria)=>`<div class="segc fu-seg" role="group" aria-label
 // A row's name: as this browser knows the network, else as the server sent it (hidden names come without one).
 const fuRowName=r=>FU.nets.has(r.key)?fuName(r.key):r.name?esc(fedSafeName(r.name)):'AS'+r.asn;
 // Rank, the name over a small line (AS, home country, robot), and the value in a fixed right-hand column.
-function fuRow(r,q,me){const sub=(r.ai?fuAi()+' ':'')+[r.asn?'AS'+r.asn:'',r.home?esc(pieLicCountry(r.home)):''].filter(Boolean).join(' · ');
+function fuRow(r,q,me){const sub=(r.ai?fuAi()+' ':'')+[r.asn?'AS'+r.asn+' '+fuFp(r.key):'',r.home?esc(pieLicCountry(r.home)):''].filter(Boolean).join(' · ')+(me?'':fuLookTag(r.key));
   const who=me?`<div class="fu-who"><b class="fu-nm">${esc(S?S.name:'')}</b><span class="fu-sub"><span class="fu-tag on">${tr('fedui.you')}</span> ${sub}</span></div>`
     :`<button class="fu-who" data-act="fuOpen" data-args="${esc(JSON.stringify({v:'net',key:r.key,back:'boards'}))}"><b class="fu-nm">${fuRowName(r)}</b><span class="fu-sub">${sub}</span></button>`;
   return `<li class="fu-row${me?' fu-me':''}${r.rank&&r.rank<=3?' top'+r.rank:''}"><span class="fu-rank num">${r.rank||'—'}</span>${who}<span class="fu-v num">${fuVal(q,r.value)}</span></li>`;}
