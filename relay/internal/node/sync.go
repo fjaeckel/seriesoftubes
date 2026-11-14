@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"math/big"
+	"net/netip"
 	"slices"
 	"strings"
 	"time"
@@ -39,7 +40,7 @@ func nonce() string {
 // answerNode is the answering side of a node handshake (9.4).
 func (r *Relay) answerNode(s *session, h *wire.Hello) {
 	r.mu.Lock()
-	ok := r.serving() && r.nodeRoom(h.Server)
+	ok := r.serving() && r.nodeRoom(h.Server, s.addr)
 	own := r.cfg.Server
 	r.mu.Unlock()
 	if !ok {
@@ -222,10 +223,37 @@ func (r *Relay) siblingAt(node, url string) bool {
 	return false
 }
 
-// nodeRoom reports whether a session with a node of server may start (lock held). This server's
-// own nodes always may: they are few, and must never be locked out by others. Other servers share
-// MaxNodes, and servers this node knows nothing of yet (which may be made up) at most maxUnverified.
-func (r *Relay) nodeRoom(server string) bool {
+// Bounds of inbound sessions with other servers' nodes (vars for tests): from one address (an IPv6
+// /64), and with servers outside the registry that are not configured neighbours, which may be
+// made up: per server, and in all as a share of MaxNodes (1/unlistedShare).
+var (
+	maxNodesPerAddr     = 8
+	maxNodesPerUnlisted = 2
+	unlistedShare       = 2
+)
+
+// listedPeer reports whether server is in the registry or one of its nodes is a configured
+// neighbour (lock held): one whose sessions are not bounded as made up.
+func (r *Relay) listedPeer(server string) bool {
+	if r.regs[server] != nil {
+		return true
+	}
+	if st := r.lookup(server); st != nil {
+		for _, n := range st.Nodes {
+			if r.cfg.Neighbour(n.URL) != nil {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// nodeRoom reports whether a session with a node of server, from addr, may start (lock held). This
+// server's own nodes always may: they are few, and must never be locked out by others. Other
+// servers share MaxNodes, servers this node knows nothing of yet (which may be made up) at most
+// maxUnverified, and servers outside the registry half of it; one address and one such server
+// have a few each.
+func (r *Relay) nodeRoom(server string, addr netip.Addr) bool {
 	if r.own != nil && server == r.own.ID {
 		return true
 	}
@@ -234,10 +262,19 @@ func (r *Relay) nodeRoom(server string) bool {
 	if r.auto[server] {
 		return true
 	}
-	others, unverified := 0, 0
+	others, unverified, fromAddr, unlisted, ofServer := 0, 0, 0, 0, 0
 	for s := range r.nodes {
 		if !s.same && !r.auto[s.peerServer] {
 			others++
+			if addr.IsValid() && s.addr == addr {
+				fromAddr++
+			}
+			if !r.listedPeer(s.peerServer) {
+				unlisted++
+			}
+			if s.peerServer == server {
+				ofServer++
+			}
 			// A peer is verified by its own entry even when the catalog had no room to keep it:
 			// it still counts as a server this node does not know.
 			if !s.verified || r.lookup(s.peerServer) == nil {
@@ -245,7 +282,10 @@ func (r *Relay) nodeRoom(server string) bool {
 			}
 		}
 	}
-	if others >= r.cfg.Limits.MaxNodes {
+	if others >= r.cfg.Limits.MaxNodes || fromAddr >= maxNodesPerAddr {
+		return false
+	}
+	if !r.listedPeer(server) && (ofServer >= maxNodesPerUnlisted || unlisted >= max(1, r.cfg.Limits.MaxNodes/unlistedShare)) {
 		return false
 	}
 	return r.lookup(server) != nil || unverified < min(maxUnverified, r.cfg.Limits.MaxNodes)

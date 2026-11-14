@@ -380,7 +380,9 @@ neighbour, each at most 60 KB (so any one fits a game's frame); servers that are
 and 4 MB of that, since anyone can make one, and never keep a registry server's entry out (the oldest of theirs makes
 way). It sends its catalog to a new neighbour a frame at a time as it reads, and reads nothing a new neighbour says about other servers until
 its own entry has checked. A neighbour that does not send its own entry within 30 seconds is dropped, and sessions with
-servers your node does not know yet take at most 8 of its `maxNodes` slots; your own server's nodes always get one.
+servers your node does not know yet take at most 8 of its `maxNodes` slots (a server it learned of but did not keep in
+its catalog counts as one it does not know), servers that are neither in the registry nor your neighbours at most half
+of them and 2 each, and one address (an IPv6 /64) at most 8; your own server's nodes always get one.
 
 ```json
 "neighbours": [

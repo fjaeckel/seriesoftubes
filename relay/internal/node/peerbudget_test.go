@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/config"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/node"
 	rt "github.com/fjaeckel/seriesoftubes/relay/internal/relaytest"
 )
@@ -79,5 +80,39 @@ func TestVerifiedButUnknownPeersBounded(t *testing.T) {
 	time.Sleep(2 * time.Second)
 	if got := w.Nodes[0].R.NodeSessions(); got != 1 {
 		t.Fatalf("%d sessions with servers W does not know, want 1", got)
+	}
+}
+
+// Made-up servers cannot take every node session: one address has a few.
+func TestNodeSessionsPerAddress(t *testing.T) {
+	defer node.SetNodeSessionLimits(2, 2)()
+	n := rt.New(t)
+	w := n.Found("w", "open")
+	for i := range 3 {
+		neighbours(n.Found(fmt.Sprint("made-up ", i), "open"), w)
+		if i < 2 {
+			rt.Eventually(t, "a session", func() bool { return w.Nodes[0].R.NodeSessions() == i+1 })
+		}
+	}
+	time.Sleep(time.Second)
+	if got := w.Nodes[0].R.NodeSessions(); got != 2 {
+		t.Fatalf("%d sessions from one address, want 2", got)
+	}
+}
+
+// A server outside the registry has few sessions, however many nodes it claims.
+func TestNodeSessionsPerUnlistedServer(t *testing.T) {
+	defer node.SetNodeSessionLimits(16, 1)()
+	n := rt.New(t)
+	w := n.Found("w", "open")
+	s := n.Found("made-up", "open")
+	neighbours(s, w)
+	rt.Eventually(t, "a session", func() bool { return w.Nodes[0].R.NodeSessions() == 1 })
+	// A second session claiming the same server is refused at hello, before any proof.
+	c := dialWS(t, n, w.Nodes[0].URL)
+	c.send(map[string]any{"m": "hello", "vers": []any{int64(fed.Version)}, "role": "node", "server": s.ID, "node": rt.Key("other node").Key,
+		"nonce": fed.Encode(make([]byte, 32)), "feats": []any{fed.FeatBind}})
+	if code, _ := c.refused(); code != fed.NotReady {
+		t.Fatalf("a second session with an unlisted server: %q, want %s", code, fed.NotReady)
 	}
 }

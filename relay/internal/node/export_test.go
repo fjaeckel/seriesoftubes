@@ -178,3 +178,11 @@ func SetReportRoom(reserve int, elder int64, perAddr int) func() {
 	reportReserve, reportElder, maxReportsPerAddr = reserve, elder, perAddr
 	return func() { reportReserve, reportElder, maxReportsPerAddr = r, e, a }
 }
+
+// SetNodeSessionLimits lowers the inbound node sessions per address and per server outside the
+// registry; it returns the restore.
+func SetNodeSessionLimits(perAddr, perUnlisted int) func() {
+	a, u := maxNodesPerAddr, maxNodesPerUnlisted
+	maxNodesPerAddr, maxNodesPerUnlisted = perAddr, perUnlisted
+	return func() { maxNodesPerAddr, maxNodesPerUnlisted = a, u }
+}
