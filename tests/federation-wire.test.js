@@ -156,7 +156,7 @@ test('a welcome claiming a known server\'s node key from another URL is dropped 
   assert.ok(await until(async () => (await run(p, 250), p.ev("(FED.errs||[]).some(e=>e.why==='not_node')"))), 'dropped not_node');
   const e = JSON.parse(p.ev("JSON.stringify((FED.errs||[]).find(e=>e.why==='not_node'))"));
   assert.equal(e.node, FAKE);
-  assert.equal(e.srv, PL.id);
+  assert.equal(e.srv, null, 'a claim that failed the node check is attributed to no server');
   assert.ok(n.got.some((f) => f.m === 'hello'), 'it was dialled and said hello');
   assert.deepEqual(n.got.filter((f) => ['challenge', 'auth', 'put', 'sub'].includes(f.m)), [], 'no challenge, no auth, nothing else sent to it');
   assert.equal(n.auths.length, 0);

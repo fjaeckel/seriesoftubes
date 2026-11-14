@@ -57,6 +57,14 @@ private, loopback, link-local or `.local` address. `fedHeardOk(u, local)` allows
 server already (`fedOnLocal()`, or the joined URL itself for failover): a LAN party. A URL the player typed or was
 invited to is never filtered.
 
+A welcome only claims a server. Until a node of that server passed the check (its key at the dialled URL in the
+catalog's node list, and a fresh proof), the game takes nothing from the connection but answers to its own requests
+(the challenge, the auths) and an operator's update notice after a proved operator key; it attributes nothing to the
+claimed server (status, error log, excluded lists, gossip paths); and it fails over only to the nodes the catalog lists
+with the joined URL, never to the claimed server's (`fedNodesSet`). A node at an address the catalog lists must claim
+that address's server. A claim that fails (`not_node`, `bad_challenge`) is forgotten with whatever the connection set
+under it (`fedUnclaim`).
+
 ## Exports and imports
 
 | Function | What it does |
