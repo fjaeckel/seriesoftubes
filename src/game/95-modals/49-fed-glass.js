@@ -78,7 +78,7 @@ const fuProp=a=>({add_operator:tr('fedui.add_an_operator'),remove_operator:tr('f
 // Hide lists kept are only of joined servers (and those this player operates): no read per server in the catalog.
 async function fuNetLoad(key){const hides=[];for(const id of new Set([...fuSrvIds(),...FU.srvs.filter(s=>fuOpOf(s.id)).map(s=>s.id)])){const h=await fedHides(id,FU.srvs);if(h){const b=h.rec.body;hides.push({id,hide:b.hide.includes(key),names:b.names.includes(key),refuse:b.refuse.includes(key)});}}
   let ai=false;try{const st=(await fedNetsStats()).get(key);ai=!!(st&&st.ai)||!!(FU.slice&&FU.slice.rows.some(r=>r.key===key&&r.ai));}catch(e){}
-  // The tally only for an operator (from the votes its nodes sent); everyone else knows only excluded or not.
+  // ai: only whether it is an AI (servers' nets answers and boards rows say no more). The tally only for an operator (from the votes its nodes sent); everyone else knows only excluded or not.
   const op=!!FU.opKey;FU.netInfo={key,op,shun:op?await fedShunInfo(key):await fedExclInfo(key),hides,ai};}
 function fuNetHtml(){const key=UI.fu.key,n=FU.nets.get(key),I=FU.netInfo&&FU.netInfo.key===key?FU.netInfo:null,back={v:UI.fu.back||'glass'},f=S&&S.fed;
   if(!n)return fuHead('🔭 '+tr('fedui.looking_glass'),esc(fuShort(key)),back)+`<p class="meta">${tr('fedui.this_network_is_not_known_here')}</p>`;
@@ -87,7 +87,7 @@ function fuNetHtml(){const key=UI.fu.key,n=FU.nets.get(key),I=FU.netInfo&&FU.net
   h+=`<dl class="fu-dl"><dt>ASN</dt><dd>AS${b.asn}</dd><dt>${tr('fedui.home_market')}</dt><dd>${esc(pieLicCountry(b.home))}</dd>
   <dt>${tr('fedui.peering_policy')}</dt><dd>${fuPolName(b.policy)}</dd><dt>${tr('fedui.pops')}</dt><dd>${b.pops.length}</dd><dt>${tr('fedui.customers')}</dt><dd>${b.cust}</dd>
   <dt>${tr('fedui.game_day')}</dt><dd>${b.day}</dd><dt>${tr('fedui.joined_on')}</dt><dd>${b.founded?fuDate(b.founded):'—'}</dd>
-  ${I&&I.ai?`<dt>${tr('fedui.ai_setup')}</dt><dd>${esc(I.ai.model)} · ${esc(I.ai.harness)}</dd>`:''}
+  ${I&&I.ai?`<dt>${tr('fedui.ai_setup')}</dt><dd>${tr('fedui.ai_player')}</dd>`:''}
   <dt>${tr('fedui.last_heard')}</dt><dd>${fuWhen(n.heard)} · ${fuQuietName(n.quiet.state)}</dd><dt>${tr('fedui.seen_on')}</dt><dd>${(n.srv||[]).length?n.srv.map(fuSrvName).join(', '):'—'}</dd></dl>`;
   if(I){const sh=I.shun;
     if(I.op)h+=`<h3 class="sub4">${tr('fedui.shun_votes')}</h3><p class="meta">${sh.shunned?tr('fedui.excluded_by_the_federation'):tr('fedui.n_of_m_votes_needed',{n:sh.votes,m:sh.need})}</p>`+

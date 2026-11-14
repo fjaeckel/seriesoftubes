@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- In the Multimode looking glass, an AI-played network now shows as an AI player instead of "undefined · undefined".
 - In Multimode a server can no longer keep your game busy checking signatures without end: each connection gets a generous budget per minute, and a server that asks for more is left alone for a while.
 - In Multimode, error messages from a server are shown only as the short codes the game knows; anything else shows as an unknown error.
 - In Multimode your game trusts a server's name only after one of its nodes proved who it is, so a node pretending to be another server can no longer put an update notice, errors or an excluded list under that server's name, or send your game to that server's other nodes.

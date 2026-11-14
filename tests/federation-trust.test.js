@@ -3,7 +3,11 @@
 // under that server's name, and is never a reason to dial that server's nodes. Fake nodes, no network.
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { fedPage, joinGame, settle, SERVERS_JSON, PL, URL1, URL2, key } = require('./helpers/fed');
+const { fedPage, joinGame, settle, SERVERS_JSON, PL, URL1, URL2, key, rec, rid, box } = require('./helpers/fed');
+const ann = (name, t, body) => rec(name, 'announce', t, { name: 'Net ' + name, asn: 4200000001, box: box(name), home: 'DE', day: 120, founded: 20000, pops: ['fra', 'ams'], ix: ['fra'], cust: 7,
+  mix: { content: 200, eyeball: 700, enterprise: 100 }, traffic: { in: 1000, out: 900 }, policy: 'open', rates: {}, auto: { peering: 'auto', transit: 'auto', pni: 'review', swap: 'review', consortium: 'review', port: 'auto' }, ...body });
+// An announce as heard from Packet Lunch.
+const heard = (p, r) => p.ev(`fedAnnPut({rec:${JSON.stringify(r)},id:${JSON.stringify(rid(r))}},FED.now()-100,${JSON.stringify(PL.id)})`);
 
 const EVIL = 'wss://evil.example.org/fed';
 const run = async (p, n = 40) => { for (let i = 0; i < n; i++) { p.net.advance(200); await settle(5); } };
@@ -109,5 +113,21 @@ test('a node that asks for more signature checks than the budget allows is dropp
   assert.ok(p.ev(`${c}.wait`) >= 59000, 'not redialled before the window is over');
   // A page of records counts its records and receipts too.
   assert.equal(p.ev(`fedSigCost({m:'recs',items:[{rec:{sig:'x'},rcpt:[{},{}]},{rec:{sigs:[1,2,3]}}]})`), 6);
+  assert.deepEqual(p.errors, []);
+});
+
+test('the looking glass says an AI network is one, without made-up model or harness', async () => {
+  const p = fedPage({ registry: SERVERS_JSON });
+  p.net.node(URL1);
+  assert.equal(await joinGame(p), null);
+  await run(p, 20);
+  const bob = key('bob').pub;
+  await heard(p, ann('bob', p.ev('FED.now()') - 200));
+  await p.ev(`fedPut('kv','nets:'+${JSON.stringify(URL1)},{at:FED.now(),me:S.fed.key.pub,nets:[{key:${JSON.stringify(bob)},ai:true,tier1:false,tier2:false,pops:2,cust:0,slot:0}],reports:[]})`);
+  p.ev(`ACT.fuOpen({v:'net',key:${JSON.stringify(bob)}})`);
+  await run(p, 20);
+  const t = p.ev("$('modalCard').textContent");
+  assert.match(t, /AI setup\s*AI player/);
+  assert.doesNotMatch(t, /undefined/);
   assert.deepEqual(p.errors, []);
 });
