@@ -5077,6 +5077,7 @@
 "save.that_network_went_bankrupt_it_cannot":"Ce réseau a fait faillite. Impossible de le ressusciter, on ne peut que le pleurer.",
 "save.that_save_has_a_pop_in":"Cette sauvegarde a un POP dans une ville que cette version ne connaît pas ({city}).",
 "save.this_browser_is_not_letting_the":"<b>Votre partie n'est pas sauvegardée.</b> Ce navigateur n'autorise pas le jeu à stocker quoi que ce soit (fenêtre privée ou données de sites désactivées). Exportez une sauvegarde pour garder votre réseau.",
+"save.this_file_carries_a_multimode_identity":"Ce fichier contient l'identité Multimode du réseau. Il jouait sur {servers}. Il arrive hors ligne : une fois chargé, rejoins ces serveurs depuis Multimode, et seulement si tu les connais.",
 "save.your_network_is_too_big_to":"<b>Votre partie n'est pas sauvegardée.</b> Votre réseau est devenu trop gros pour le stockage de ce navigateur. Exportez une sauvegarde maintenant et gardez le fichier : c'est votre copie de secours.",
 "scenario_progress.goal_goal_time_d_days_start":"<b>Objectif :</b> {goal} · <b>Durée :</b> {d} jours · départ à {city}",
 "scenario_progress.goal_was_not_reached_in_d":"Objectif non atteint en {d} jours : {goal}. Continue avec ce réseau en partie libre, ou réessaie.",

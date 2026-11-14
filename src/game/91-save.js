@@ -82,18 +82,19 @@ function exportSlot(id){const e=slotIdx().find(x=>x.id===id),raw=slotRaw(id);if(
   (raw.startsWith(GZ)?gunzip(raw):Promise.resolve(raw)).then(t=>saveDl(`{"app":"series-of-tubes","version":${JSON.stringify(APP_VERSION)},"exported":"${new Date().toISOString()}","S":${fedPublicText(t)}}`,e.name),()=>toast(tr('loop.your_saved_game_could_not_be'),'bad'));}
 function parseSave(txt){if(typeof txt!=='string')return {err:tr('save.that_file_is_not_valid_json')};let j;try{j=JSON.parse(txt);}catch(e){return {err:tr('save.that_file_is_not_valid_json')};}
   const s=j&&j.app==='series-of-tubes'&&j.S?j.S:j;
-  // Only a move file carries the network's multiplayer identity over; any other save arrives detached.
-  if(!(j&&j.app==='series-of-tubes'&&j.move===true))fedDetach(s);
+  // Only a move file carries the network's multiplayer identity over, and even it arrives offline; any other save
+  // arrives detached.
+  const was=j&&j.app==='series-of-tubes'&&j.move===true?fedArrive(s):(fedDetach(s),[]);
   if(!s||typeof s!=='object'||s.v!==1||typeof s.day!=='number'||typeof s.cash!=='number'||!s.pops||typeof s.pops!=='object'||!Array.isArray(s.links))return {err:tr('save.that_does_not_look_like_a')};
   if(s.lost)return {err:tr('save.that_network_went_bankrupt_it_cannot')};
   for(const c of Object.keys(s.pops))if(!isCity(c))return {err:tr('save.that_save_has_a_pop_in',{city:esc(String(c).slice(0,12))})};
-  return {s,ver:j.version||'?',name:String(s.name||tr('common.unnamed_network'))};}
+  return {s,ver:j.version||'?',name:String(s.name||tr('common.unnamed_network')),was};}
 function importFile(file){if(!file)return;if(file.size>64e6){toast(tr('save.that_file_is_too_big_to'),'bad');return;}
   const rd=new FileReader();rd.onload=()=>{const r=parseSave(String(rd.result));if(r.err){toast(tr('save.import_failed_err',{err:esc(r.err)}),'bad');sfx('err');return;}
     importAsk(r);};
   rd.readAsText(file);}
 // A save from a file or a transfer link (#263), checked by parseSave(): what it is, and whether to load it.
-function importAsk(r){UI.importing=r.s;openModal(`<div class="eyebrow">${tr('common.import_a_save')}</div><h2 style="font-size:26px">${tr('save.load_name',{name:esc(r.name)})}</h2><p class="tagline">${esc(dateStr(r.s.day))} · ${tr('save.cash_in_the_bank',{cash:fmt$(r.s.cash)})} · ${trn('save.n_pop',Object.keys(r.s.pops).length)} · ${tr('save.saved_by_v_ver',{ver:esc(r.ver)})}</p><p class="note">${tr('slots.it_joins_your_networks_on_this')}</p><div class="btns">${btn(tr('save.load_this_network'),'importGo',{},'pink big')}${btn(tr('common.cancel'),UI.started?'closeModal':'helpClose',{},'ghost big')}</div>`);}
+function importAsk(r){UI.importing=r.s;openModal(`<div class="eyebrow">${tr('common.import_a_save')}</div><h2 style="font-size:26px">${tr('save.load_name',{name:esc(r.name)})}</h2><p class="tagline">${esc(dateStr(r.s.day))} · ${tr('save.cash_in_the_bank',{cash:fmt$(r.s.cash)})} · ${trn('save.n_pop',Object.keys(r.s.pops).length)} · ${tr('save.saved_by_v_ver',{ver:esc(r.ver)})}</p><p class="note">${tr('slots.it_joins_your_networks_on_this')}</p>${r.was&&r.was.length?`<p class="note">${tr('save.this_file_carries_a_multimode_identity',{servers:r.was.map(u=>`<b>${esc(fedUrlName(u))}</b>`).join(', ')})}</p>`:''}<div class="btns">${btn(tr('save.load_this_network'),'importGo',{},'pink big')}${btn(tr('common.cancel'),UI.started?'closeModal':'helpClose',{},'ghost big')}</div>`);}
 // This window's network, read synchronously (a compressed one was unpacked before boot). UI.loadBad: there, but unreadable.
 function loadSave(){UI.loadBad=false;const raw=slotRaw(UI.slot);if(raw==null)return null;
   try{const t=raw.startsWith(GZ)?raw===UI.gzRaw?UI.gzText:null:raw;if(t){const s=JSON.parse(t);if(s&&s.v===1){if(!s.lost)return s;return null;}}}catch(e){}

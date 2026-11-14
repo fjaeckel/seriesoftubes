@@ -5079,6 +5079,7 @@
 "save.that_network_went_bankrupt_it_cannot":"Dieses Netz ist pleitegegangen. Es lässt sich nicht zurückholen, nur betrauern.",
 "save.that_save_has_a_pop_in":"Dieser Spielstand hat einen POP in einer Stadt, die diese Version nicht kennt ({city}).",
 "save.this_browser_is_not_letting_the":"<b>Dein Spiel wird nicht gespeichert.</b> Dieser Browser lässt das Spiel nichts speichern (ein privates Fenster oder deaktivierte Websitedaten). Exportiere einen Spielstand, um dein Netz zu behalten.",
+"save.this_file_carries_a_multimode_identity":"Diese Datei enthält die Multimode-Identität des Netzes. Es spielte auf {servers}. Es kommt offline an: Tritt diesen Servern nach dem Laden in Multimode wieder bei, und nur, wenn du sie kennst.",
 "save.your_network_is_too_big_to":"<b>Dein Spiel wird nicht gespeichert.</b> Dein Netz ist zu groß für den Speicher dieses Browsers geworden. Exportiere jetzt einen Spielstand und bewahre die Datei auf: Sie ist dein Backup.",
 "scenario_progress.goal_goal_time_d_days_start":"<b>Ziel:</b> {goal} · <b>Zeit:</b> {d} Tage · Start in {city}",
 "scenario_progress.goal_was_not_reached_in_d":"{goal} wurde in {d} Tagen nicht erreicht. Spiel dieses Netz im freien Spiel weiter oder versuch es nochmal.",

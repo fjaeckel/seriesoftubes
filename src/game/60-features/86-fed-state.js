@@ -73,6 +73,15 @@ function fedPublic(s){if(!s||!s.fed||typeof s.fed!=='object')return s;const f={.
 function fedPublicText(t){if(typeof t!=='string'||t.indexOf('"fed":{')<0)return t;try{return JSON.stringify(fedPublic(JSON.parse(t)));}catch(e){return t;}}
 // An imported save that is not a move file: detached from its network (joining makes a new identity).
 function fedDetach(s){if(s&&s.fed&&typeof s.fed==='object'){const p=fedPublic(s).fed;p.on=false;s.fed=p;}return s;}
+/* A move file: the identity comes over (key, queue, deals), never a connection. Whatever servers and switch the file
+   says, the network arrives offline with no servers, and the player joins again from Multimode; the file's servers are
+   only shown (fedArrive gives them), since anyone can write a file that says move. */
+function fedArrive(s){const f=s&&s.fed;if(!f||typeof f!=='object'||Array.isArray(f))return [];
+  const was=Array.isArray(f.servers)?[...new Set(f.servers.filter(u=>!FdUrl(u)))].slice(0,FED_MAX_SERVERS):[];f.on=false;f.servers=[];return was;}
+// A node URL as the player can judge it: its host, and the server's name when the registry lists it there.
+function fedUrlName(u){let h='?';try{h=new URL(u).host;}catch(e){}
+  const s=typeof FU==='object'&&FU&&Array.isArray(FU.srvs)?FU.srvs.find(x=>x.source==='registry'&&(x.nodes||[]).some(n=>n.url===u)):null;
+  return s&&typeof s.name==='string'?`${s.name} (${h})`:h;}
 const fedMoveName=nm=>saveFileName(nm).replace(/\.json$/,'-move-PRIVATE.json');
 // "Move to another device": the one export that keeps the key (and the queue), behind the UI's warning.
 function fedExportMove(){if(!S||pzOn()||!S.fed)return false;save(true);

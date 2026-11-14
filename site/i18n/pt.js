@@ -5077,6 +5077,7 @@
 "save.that_network_went_bankrupt_it_cannot":"Essa rede foi à falência. Não dá para trazer de volta, só chorar.",
 "save.that_save_has_a_pop_in":"Esse save tem um POP numa cidade que esta versão não conhece ({city}).",
 "save.this_browser_is_not_letting_the":"<b>Seu jogo não está sendo salvo.</b> Este navegador não deixa o jogo guardar nada (janela anônima ou dados de sites desativados). Exporte um save para não perder sua rede.",
+"save.this_file_carries_a_multimode_identity":"Este ficheiro traz a identidade Multimode da rede. Estava a jogar em {servers}. Chega offline: depois de carregada, volta a entrar nesses servidores pelo Multimode, e só se os conheceres.",
 "save.your_network_is_too_big_to":"<b>Seu jogo não está sendo salvo.</b> Sua rede ficou grande demais para o armazenamento deste navegador. Exporte um save agora e guarde o arquivo: é o seu backup.",
 "scenario_progress.goal_goal_time_d_days_start":"<b>Objetivo:</b> {goal} · <b>Tempo:</b> {d} dias · começa em {city}",
 "scenario_progress.goal_was_not_reached_in_d":"Objetivo não alcançado em {d} dias: {goal}. Continue jogando esta rede no modo livre, ou tente de novo.",

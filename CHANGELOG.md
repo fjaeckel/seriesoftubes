@@ -39,6 +39,7 @@ All notable changes to this project are documented here. The project follows
 - For developers: the agent relay of `npm run dev`, which lets AI agents play in your browser tab, now needs a key made for each run, which the dev page and the MCP server pick up on their own, and `npm run dev -- --https` stays on your own machine unless you add `--host`.
 - For developers: the certificate authority `npm run dev -- --https` asks a phone to trust can now only vouch for local names and private addresses, and lasts 180 days; an older one is replaced on the next start, so trust the new one on your phone once more.
 - The game page now has a Content Security Policy: only its own code, its dictionaries and the visit counter may run, and it may only connect to the site itself, Multimode servers and the counter, which keeps your Multimode key out of reach of anything slipped into the page.
+- A network moved to another device with its Multimode file now arrives offline: the import names the servers it played on, and you join them again from Multimode, so a file or link from someone else can never connect your game to servers you did not choose.
 
 ## [4.0.0] — 2026-11-13
 

@@ -57,6 +57,7 @@ Helpers: `fedNewState()`, `fedMode(s)` (`normal`, `sandbox`, `open_gates`, `puzz
 | --- | --- |
 | `fedPublic(s)`, `fedPublicText(t)` | A copy of a save without `key.priv` and `out` (used by `exportSave()`, `exportSlot()`, the transfer sheet and link `xferText()`, and the agent's `state` tool) |
 | `fedDetach(s)` | Used by `parseSave()` on everything that is not a move file: the save arrives off and keyless; joining makes a new identity |
+| `fedArrive(s)` | Used by `parseSave()` on a move file: the identity (key, queue, deals) comes over, but the save arrives off with no servers whatever the file says; it gives the file's servers (checked), which the import prompt names so the player can join them again by hand |
 | `fedExportMove()` | "Move to another device": the one file with the key and the queue, named `…-move-PRIVATE.json`, wrapper `move: true`. Action `fedMoveExport`. The interface must show its warning first |
 
 ## Actions

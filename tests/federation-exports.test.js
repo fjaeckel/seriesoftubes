@@ -69,18 +69,45 @@ test('importing an ordinary export gives a detached save; joining it makes a new
   assert.deepEqual(p.errors, []);
 });
 
-test('importing the move file carries the identity and the queue over', async () => {
+test('importing the move file carries the identity and the queue over, offline: the player joins again', async () => {
   const p = await joined();
-  const priv = p.ev('S.fed.key.priv');
+  const priv = p.ev('S.fed.key.priv'), pub = p.ev('S.fed.key.pub');
   p.ev('fedExportMove()');
   const txt = files(p)[0].text;
+  assert.equal(JSON.parse(txt).S.fed.on, true, 'the file says it was on');
   const q = fedPage();
   q.net.node(URL1).up = false;
-  q.ev(`(()=>{const r=parseSave(${JSON.stringify(txt)});UI.importing=r.s;ACT.importGo();})()`);
+  q.ev(`(()=>{const r=parseSave(${JSON.stringify(txt)});importAsk(r);ACT.importGo();})()`);
   await settle();
   assert.equal(q.ev('S.fed.key.priv'), priv);
-  assert.equal(q.ev('S.fed.on'), true);
   assert.equal(q.ev('S.fed.out.length'), 1);
+  assert.equal(q.ev('S.fed.on'), false, 'it arrives offline');
+  assert.deepEqual(JSON.parse(q.ev('JSON.stringify(S.fed.servers)')), [], 'with no server to dial');
+  assert.equal(q.ev('FED.live'), null, 'and nothing connects');
+  // Joining again keeps the identity.
+  assert.equal(await q.ev(`fedJoin(${JSON.stringify(URL1)})`), null);
+  assert.equal(q.ev('S.fed.key.pub'), pub, 'the same network, rejoined');
+  assert.deepEqual(q.errors, []);
+});
+
+test('a crafted move file or link never connects to the servers it names: they are shown, and only joined by hand', async () => {
+  const q = fedPage();
+  const s0 = JSON.parse(q.ev("ACT.start({});JSON.stringify(S)"));
+  const evil = ['wss://evil.example/fed', 'wss://10.0.0.5:8443/fed'];
+  s0.fed = { on: true, key: { pub: q.ev('S.fed?S.fed.key.pub:null') }, servers: [...evil, 'not a url'], out: [], muted: [], deals: [], share: true, joined: 0, last: 0 };
+  const txt = JSON.stringify({ app: 'series-of-tubes', version: '9', move: true, S: s0 });
+  const r = JSON.parse(q.ev(`(()=>{const r=parseSave(${JSON.stringify(txt)});importAsk(r);return JSON.stringify({was:r.was,on:r.s.fed.on,servers:r.s.fed.servers});})()`));
+  assert.deepEqual(r.was, evil, 'the servers the file names, checked, for the prompt only');
+  assert.equal(r.on, false);
+  assert.deepEqual(r.servers, []);
+  const card = q.ev("$('modalCard').textContent");
+  assert.match(card, /evil\.example/, 'the prompt names them');
+  assert.match(card, /10\.0\.0\.5:8443/);
+  assert.match(card, /arrives offline/);
+  q.ev('ACT.importGo()');
+  await settle();
+  assert.equal(q.ev('!!(S.fed&&S.fed.on)'), false);
+  assert.deepEqual(q.net.opened, [], 'no socket to any of them');
   assert.deepEqual(q.errors, []);
 });
 
