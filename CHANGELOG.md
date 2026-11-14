@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- In Multimode, error messages from a server are shown only as the short codes the game knows; anything else shows as an unknown error.
 - In Multimode your game trusts a server's name only after one of its nodes proved who it is, so a node pretending to be another server can no longer put an update notice, errors or an excluded list under that server's name, or send your game to that server's other nodes.
 - The NOC dashboard has separate Links and Routers tabs that list every link and every POP, sorted by load, capacity or name and filtered by load, by city, or by kind of link: leased waves, IRU dark fiber, or fiber you built over land or under the sea. A link's row shows what is used and, on dark fiber, how many channels are lit, sold as alien waves or free and what is sold as managed waves, with buttons to add or remove optics, light another fiber pair or order a bigger wave. The Routers tab shows Your AS first, then a table of every POP's router type and count, capacity, forwarding load, router ports and Flowspec rules in use, filtered by region, city or Flowspec and sorted from its header, with buttons to add a router or swap to the next model as the NOC intern would. Tapping a row picks it in the side panel behind the dashboard, so a stray tap never leaves the NOC (#354).
 - Once you sell managed waves on a dark fiber, its panel shows what your traffic uses, how much is left for it and everything the fiber lights (#357).

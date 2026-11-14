@@ -43,7 +43,9 @@ function fuWhyMode(){if(!S||!UI.started)return tr('fedui.open_a_normal_network_f
 const fuPolicy=s=>s.sync==='open'?tr('fedui.policy_open'):s.sync==='selective'?tr('fedui.policy_selective'):s.sync==='standalone'?tr('fedui.policy_standalone'):tr('fedui.policy_unknown');
 const fuErrText=code=>({mode:fuWhyMode(),url:tr('fedui.that_is_not_a_server_address'),full:tr('fedui.you_are_on_four_servers_already'),crypto:tr('fedui.this_browser_cannot_sign'),
   offline:tr('fedui.not_connected_to_this_server_now'),timeout:tr('fedui.the_server_did_not_answer_in'),no_key:tr('fedui.no_operator_key_on_this_device'),
-  not_operator:tr('fedui.the_server_says_this_key_is'),no_majority:tr('fedui.needs_more_operators_signatures'),too_many:tr('fedui.report_enough_for_today')}[code]||tr('fedui.the_server_said_no_code',{code:esc(code)}));
+  not_operator:tr('fedui.the_server_says_this_key_is'),no_majority:tr('fedui.needs_more_operators_signatures'),too_many:tr('fedui.report_enough_for_today')}[code]||(fedCodeKnown(code)?tr('fedui.the_server_said_no_code',{code:esc(code)}):tr('fedui.the_server_said_no')));
+// An error code in the operator panel: as it is when this game knows it, else as an unknown error.
+const fuCode=x=>fedCodeKnown(x)?`<span class="mono">${esc(x)}</span>`:tr('fedui.unknown_error');
 // Queued actions (offers and answers) say they are queued; stats and announcements are not the player's actions.
 const fuQueued=()=>S&&S.fed?S.fed.out.filter(r=>r.kind!=='stats'&&r.kind!=='announce').length:0;
 

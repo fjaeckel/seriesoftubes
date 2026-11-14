@@ -4,7 +4,7 @@
    save is connected to can be reached; nothing here opens a socket of its own. Also the short log of recent errors the
    operator panel shows (memory only, never in a save). */
 const FED_ERRS_MAX=24;
-function fedErrLog(node,srv,why){const l=FED.errs||(FED.errs=[]);l.unshift({t:fedNow(),node:node||null,srv:srv||null,why:String(why||'')});if(l.length>FED_ERRS_MAX)l.length=FED_ERRS_MAX;}
+function fedErrLog(node,srv,why){const l=FED.errs||(FED.errs=[]);l.unshift({t:fedNow(),node:node||null,srv:srv||null,why:FED_CODE_RE.test(why)?why:'bad_frame'});if(l.length>FED_ERRS_MAX)l.length=FED_ERRS_MAX;}
 const fedErrs=srv=>(FED.errs||[]).filter(e=>!srv||e.srv===srv);
 // A ready connection to one of a server's nodes, or null.
 function fedConnTo(srv){const M=FED.live;if(!M)return null;for(const c of M.conns.values())if(c.srv===srv&&c.phase==='ready')return c;return null;}

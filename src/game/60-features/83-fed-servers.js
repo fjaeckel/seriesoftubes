@@ -151,7 +151,15 @@ function fedFrame(text,who,state,speaks){if(typeof text!=='string')return {error
   if(state==='new'&&f.m!=='hello')return {error:'not_ready'};if(state==='ready'&&f.m==='hello')return {error:'bad_frame'};
   for(const [k,ok] of Object.entries(FED_MSG[f.m]))if(!ok(f[k]))return {error:'bad_frame'};
   if(f.m==='hello'){if(f.role!=='client'&&f.role!=='node')return {error:'bad_frame'};if(speaks){const v=fedVersion(f.vers,speaks);if(v.error)return v;}}
+  // A node's error code is shown to players and kept in the error log: a short code, never free text.
+  if(f.m==='err'&&who==='node'&&!FED_CODE_RE.test(f.code))f.code='bad_frame';
   return {f};}
+const FED_CODE_RE=/^[a-z_]{1,32}$/;
+/* The error codes this game knows (§7.2, and the ones it makes itself for a connection): shown as they are; any other
+   code a node sends is shown as an unknown error (fedCodeKnown). */
+const FED_CODES=new Set(['bad_frame','too_big','bad_json','too_deep','bad_number','bad_string','bad_name','bad_value','bad_version','bad_kind','missing_field','unknown_field','bad_field','bad_key','bad_sig','too_many','duplicate','too_old','too_new','not_operator','not_node','no_majority','bad_chain','unknown_server','shunned','refused','not_found','unsupported','not_ready','policy','rate_limited','bad_challenge','id_mismatch','no_logs','local_url','name_taken','no_answer','stale_terms','bad_terms','no_terms','declined','internal',
+  'open','timeout','closed','silent','welcome','slow','auth','ranking','offline']);
+const fedCodeKnown=x=>FED_CODES.has(x);
 /* What a relay says it runs (§9.3 welcome impl, §10.8 an entry's impl): shown in the looking glass and never trusted
    for anything else, so a malformed one is just left out. */
 const FED_IMPL=/^[0-9A-Za-z][0-9A-Za-z.+_-]{0,39}$/;

@@ -65,6 +65,9 @@ with the joined URL, never to the claimed server's (`fedNodesSet`). A node at an
 that address's server. A claim that fails (`not_node`, `bad_challenge`) is forgotten with whatever the connection set
 under it (`fedUnclaim`).
 
+An error code from a node is a short code (`[a-z_]{1,32}`, else it is read as `bad_frame`), and the interface shows only
+the codes this game knows (`FED_CODES`); any other is shown as an unknown error, never as the node's text.
+
 ## Exports and imports
 
 | Function | What it does |
