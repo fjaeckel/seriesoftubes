@@ -20,6 +20,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"syscall"
@@ -842,6 +843,11 @@ func serve(dir string, so serveOpts) error {
 	logger := so.log
 	if logger == nil {
 		logger = newLogger(os.Stderr, so.logJSON)
+	}
+	if abs, err := filepath.Abs(dir); err == nil {
+		if w := dataFolderWarning(abs, runtime.GOOS, os.Getenv("USERPROFILE")); w != "" {
+			logger.Warn(w)
+		}
 	}
 	if w := c.ProxyWarning(); w != "" {
 		logger.Warn(w)

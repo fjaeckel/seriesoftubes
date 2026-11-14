@@ -19,6 +19,7 @@ All notable changes to this project are documented here. The project follows
 - `relay backup` always writes a fresh file readable only by the relay's user, and backups kept in the data folder (in its new `backups/` folder) are no longer copied into later backups.
 - The relay's container image no longer turns on metrics for every network by itself: the Compose file that wants them sets them, and the hosting guide warns that ports Docker publishes get past the host's firewall.
 - The relay's Compose file now runs a pinned relay version by default (following every release is opt-in), drops the privileges its containers do not need, and published container images come with signed build provenance.
+- On Windows, the relay now warns at start when its data folder is outside your user profile, where other users of the machine may be able to read its keys.
 
 ## [4.0.0] — 2026-11-13
 

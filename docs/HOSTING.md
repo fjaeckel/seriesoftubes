@@ -1015,6 +1015,10 @@ up the name, so this needs DNS (or the internet) at the party.
 - The certificate and keys stay in the data folder (`lan-cert.pem`, `lan-key.pem`, `node.key`, `operator.key`); delete
   the folder to start afresh. Players' saves keep the server, and reconnect at the next party at the same address.
 - The day-to-day commands work as for any relay, given the LAN folder: `relay status --data relay-lan`.
+- **On Windows** the file modes the relay sets (keys readable by you only) do nothing; what protects the keys is the
+  folder's permissions. Keep the data folder under your user profile (run `relay lan` from a folder in
+  `C:\Users\you\…`, or give `--data` such a path), which only you and administrators can read, not in `C:\relay` or
+  on a shared drive, which other users of the machine usually can. The relay warns at start when it is not.
 
 ## Troubleshooting
 
