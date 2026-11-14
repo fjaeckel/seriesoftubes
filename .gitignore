@@ -10,3 +10,4 @@ _site/
 # Planning notes stay local
 /docs/plans/
 /.dev-certs/
+/.dev-agent/

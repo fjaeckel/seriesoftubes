@@ -5154,6 +5154,7 @@
 "settings.a_pace_runs_one_simulated_day":"Con un ritmo pasa un día simulado cada 30 segundos a 5 minutos, y el agente tiene que seguirlo. Si lo mueve el agente, el reloj se queda quieto hasta que pide días.",
 "settings.agent_api":"API de agentes",
 "settings.agent_relay_connected":"Relay de agentes conectado: ahora una herramienta puede jugar esta partida en esta pestaña.",
+"settings.agent_relay_refused":"El relay de agentes ha rechazado esta pestaña: no tiene la clave de esta ejecución de npm run dev. Recarga la página desde este equipo o abre el enlace que mostró npm run dev.",
 "settings.agent_s_clock":"Reloj del agente",
 "settings.always_2d":"Siempre 2D",
 "settings.an_early_heads_up_below_60":"Un aviso temprano por debajo del 60 % de felicidad, mucho antes de que estén furiosos.",

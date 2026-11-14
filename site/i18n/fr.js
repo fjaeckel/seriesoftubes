@@ -5154,6 +5154,7 @@
 "settings.a_pace_runs_one_simulated_day":"Avec un rythme, un jour simulé passe toutes les 30 secondes à 5 minutes, et l'agent doit suivre. Avancée par l'agent, l'horloge reste immobile tant qu'il ne demande pas de jours.",
 "settings.agent_api":"API agent",
 "settings.agent_relay_connected":"Relais pour agents connecté : un outil peut maintenant jouer cette partie dans cet onglet.",
+"settings.agent_relay_refused":"Le relais pour agents a refusé cet onglet : il n'a pas la clé de cette exécution de npm run dev. Recharge la page depuis cette machine, ou ouvre le lien affiché par npm run dev.",
 "settings.agent_s_clock":"Horloge de l'agent",
 "settings.always_2d":"Toujours en 2D",
 "settings.an_early_heads_up_below_60":"Une alerte précoce sous 60 % de satisfaction, bien avant qu’il soit furieux.",

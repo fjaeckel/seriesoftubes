@@ -2,7 +2,8 @@
 // (scripts/lib/mcp-browser.js). The game runs in the player's browser, never in this process, connected to the relay
 // from Settings. The relay rides the server that serves the page, same port, path /agent (npm run dev, 8080 unless
 // told otherwise), so host and port say where the page is served, nothing else. A call travels
-// tool → relay → page → TUBES.call and back.
+// tool → relay → page → TUBES.call and back. The relay wants the dev server's token for this run: opts.token, a
+// string or a function read again on every (re)connect, so a dev server restarted with a new token heals.
 const WebSocket = require('ws');
 
 // A healthy page answers in milliseconds, and a page that goes away has its calls answered at once (by the relay, or
@@ -18,23 +19,27 @@ function createRelaySession(opts = {}) {
   };
   const url = `ws://${cfg.host.includes(':') && !cfg.host.startsWith('[') ? `[${cfg.host}]` : cfg.host}:${cfg.port}/agent`;
 
+  const tokenOf = () => String((typeof opts.token === 'function' ? opts.token() : opts.token) || '');
   let ws = null, connecting = null, id = 0, page = false;
   const pending = new Map();
 
   function connect() {
     if (ws && ws.readyState === 1) return Promise.resolve();
     if (connecting) return connecting;
+    const token = tokenOf();
+    if (!token) return Promise.reject(new Error(`relay ${url}: no token (${opts.tokenHint || 'is npm run dev running?'})`));
     connecting = new Promise((res, rej) => {
       const w = new WebSocket(url);
       let done = false;
       const finish = (e) => { if (done) return; done = true; connecting = null; e ? rej(e) : res(); };
-      w.on('open', () => { w.send(JSON.stringify({ kind: 'auth', role: 'tool' })); finish(); });
+      w.on('open', () => { w.send(JSON.stringify({ kind: 'auth', role: 'tool', token })); finish(); });
       w.on('error', (e) => finish(new Error(`relay ${url}: ${e.message}`)));
-      w.on('close', () => {
+      w.on('close', (code) => {
+        const why = code === 4005 ? `relay ${url}: refused this run's token (${opts.tokenHint || 'a dev server restarted?'})` : `relay ${url}: connection closed before the game page answered`;
         if (ws === w) { ws = null; page = false; }
         // The socket died with calls in flight: answer them here too, so no tool waits out its timeout on a
         // connection that is already gone (the relay answers for a dead page).
-        for (const [k, p] of [...pending]) { pending.delete(k); clearTimeout(p.t); p.res({ error: `relay ${url}: connection closed before the game page answered` }); }
+        for (const [k, p] of [...pending]) { pending.delete(k); clearTimeout(p.t); p.res({ error: why }); }
         if (!done) finish(new Error(`relay ${url}: connection closed`));
       });
       w.on('message', (d) => {

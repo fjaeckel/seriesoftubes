@@ -3,7 +3,7 @@
 // in jsdom, the page's own client dials the relay (a test opts in with __AGENT_RELAY_TEST__ and points it at the
 // relay's port, because under __TUBES_TEST__ nothing dials on its own), and a raw WebSocket tool client, the relay
 // client (scripts/lib/relay-client.js) and the MCP server in browser mode (scripts/mcp.js --browser) take turns driving
-// it. No token anywhere: whatever can connect to the port may drive the game, by design.
+// it. Every client, page or tool, must send the run's token (scripts/dev.js makes one per run).
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -24,13 +24,14 @@ let PORT;                                                     // a free one from
 test.before(async () => { PORT = await freePort(); });
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'tubes-relay-'));
+const TOKEN = 'relay-test-token-0123456789abcdef';             // the run's token, as dev.js would make one
 
 // The relay in-process, riding a real http.Server (the same createRelay the servers host): no child to leak, and
 // 'listening' means the first dial cannot race the bind.
 let CUR = null;                                               // the relay started last
 function startRelay(port = PORT) {
   const srv = http.createServer((req, res) => { res.writeHead(404); res.end(); });
-  const relay = createRelay({ server: srv });
+  const relay = createRelay({ server: srv, token: TOKEN });
   return CUR = {
     relay, srv,
     listening: () => new Promise((res, rej) => { srv.once('error', rej); srv.listen(port, '127.0.0.1', res); }),
@@ -43,10 +44,10 @@ function startRelay(port = PORT) {
 // Origin is same-origin (the relay refuses a foreign one; a Node tool sends none).
 function page(opts = {}) {
   const a = load({ url: `http://127.0.0.1:${opts.port ?? PORT}/`, seed: opts.seed ?? 5, storage: { 'sot-agent': JSON.stringify({ on: true, ms: opts.ms ?? 60000 }) }, agent: true });
-  dial(a, opts.port);
+  dial(a, opts.port, opts.token);
   return a;
 }
-const dial = (a, port = PORT) => a.ev(`window.__AGENT_RELAY_TEST__=true;API_RELAY_HOST='127.0.0.1:'+${port};apiAgentSync()`);
+const dial = (a, port = PORT, token = TOKEN) => a.ev(`window.__AGENT_RELAY_TEST__=true;API_RELAY_TOKEN=${lit(token)};API_RELAY_HOST='127.0.0.1:'+${port};apiAgentSync()`);
 // Waits until the relay holds this page and the page knows how many tools are there (the clock follows that count).
 async function joined(a) {
   assert.ok(await until(() => { const s = CUR.relay.status(); return s.page && a.ev('API_RELAY.tools') === s.tools; }), 'the page joined the relay');
@@ -71,7 +72,7 @@ function toolClient(port = PORT, headers) {
   return {
     ws, events,
     open: () => new Promise((res, rej) => { ws.on('open', res); ws.on('error', rej); }),
-    auth: (role = 'tool') => ws.send(JSON.stringify({ kind: 'auth', role })),
+    auth: (role = 'tool', token = TOKEN) => ws.send(JSON.stringify({ kind: 'auth', role, ...(token === null ? {} : { token }) })),
     call: (tool, args) => new Promise((res) => {                    // a timeout, never a hang
       const id = 'c' + (++seq);
       const t = setTimeout(() => { calls.delete(id); res({ error: `no answer for ${tool} (the page went silent?)` }); }, 20000);
@@ -82,7 +83,7 @@ function toolClient(port = PORT, headers) {
   };
 }
 // A tool that has been let in: the relay's first presence message comes right after the role is granted.
-async function tool(port = PORT) { const t = toolClient(port); await t.open(); t.auth('tool'); assert.ok(await until(() => t.events.length > 0), 'the relay let the tool in'); return t; }
+async function tool(port = PORT, token = TOKEN) { const t = toolClient(port); await t.open(); t.auth('tool', token); assert.ok(await until(() => t.events.length > 0), 'the relay let the tool in'); return t; }
 
 async function withRelay(fn) {
   const r = startRelay();
@@ -91,8 +92,8 @@ async function withRelay(fn) {
 }
 
 // The MCP server over stdio, as a client runs it.
-function mcp(argv, onErr) {
-  const child = spawn(process.execPath, [SERVER, ...argv], { stdio: ['pipe', 'pipe', 'pipe'] });
+function mcp(argv, onErr, env = { SOT_RELAY_TOKEN: TOKEN }) {
+  const child = spawn(process.execPath, [SERVER, ...argv], { stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, ...env } });
   let buf = '', id = 0, err = '';
   const waiting = new Map();
   child.stderr.on('data', (d) => { err += d; if (onErr) onErr(String(d)); });
@@ -116,7 +117,7 @@ function mcp(argv, onErr) {
   };
 }
 
-test('the relay binds loopback, gates on the role, and never needs a token', () => withRelay(async () => {
+test('the relay gates on the role and the token', () => withRelay(async () => {
   const silent = toolClient();
   await silent.open();
   assert.equal(await new Promise((res) => silent.ws.on('close', (code) => res(code))), 4003, 'a client that never states a role is closed');
@@ -241,7 +242,7 @@ test('the agent\'s clock moves only with advance; a running clock only with time
     try {
       const { createBrowserSession } = require('../scripts/lib/mcp-browser');
       const { TOOLS } = require('../scripts/lib/mcp-game');
-      const s = createBrowserSession({ port: PORT });
+      const s = createBrowserSession({ port: PORT, token: TOKEN });
       const w = await TOOLS.find((x) => x.name === 'wait').run(s, { days: 1, maxSeconds: 10 });
       assert.ok(w.daysRun >= 1, `wait returns once a day has passed (${lit(w)})`);
       assert.equal(w.stoppedBecause, null);
@@ -392,29 +393,117 @@ test('the MCP server answers the handshake at once and waits for the game page',
 }));
 
 
-test('dev.js binds loopback and parses --port; the page dials its own host', async () => {
-  const port = await freePort();
-  const child = spawn(process.execPath, [path.join(ROOT, 'scripts', 'dev.js'), '--port', String(port)], { stdio: ['ignore', 'ignore', 'pipe'] });
+// dev.js with its token folder in a temporary directory: the token file is where the MCP server finds it.
+function devServer(argv) {
+  const dir = tmp();
+  const child = spawn(process.execPath, [path.join(ROOT, 'scripts', 'dev.js'), ...argv], { stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, SOT_RELAY_TOKEN_DIR: dir } });
   let serr = '';
   child.stderr.on('data', (d) => { serr += d; });
-  let a = null;
+  return { child, dir, serr: () => serr };
+}
+const getPage = (port, host = `127.0.0.1:${port}`) => new Promise((res, rej) => {
+  http.get({ agent: false, host: '127.0.0.1', port, path: '/', headers: { host } }, (r) => { let t = ''; r.setEncoding('utf8'); r.on('data', (d) => { t += d; }); r.on('end', () => res(t)); }).on('error', rej);
+});
+
+test('dev.js binds loopback and parses --port; the page dials its own host with the run\'s token', async () => {
+  const port = await freePort();
+  const dev = devServer(['--port', String(port)]);
+  let a = null, m = null;
   try {
     const banner = new RegExp(`agent relay on ws://127\\.0\\.0\\.1:${port}/agent`);
-    await until(() => banner.test(serr));                      // dev.js builds the page first: seconds on a busy runner
-    assert.match(serr, banner, 'dev.js binds loopback and honours --port');
-    const t = await tool(port);
+    await until(() => banner.test(dev.serr()));                // dev.js builds the page first: seconds on a busy runner
+    assert.match(dev.serr(), banner, 'dev.js binds loopback and honours --port');
+    const file = path.join(dev.dir, `relay-${port}.token`);
+    assert.ok(await until(() => fs.existsSync(file)), 'the token file is written');
+    const token = fs.readFileSync(file, 'utf8').trim();
+    assert.match(token, /^[A-Za-z0-9_-]{32}$/, 'a random token, URL-safe');
+    if (process.platform !== 'win32') assert.equal(fs.statSync(file).mode & 0o777, 0o600, 'only its user can read it');
+    // The page served to this machine carries it; a page asked for by a DNS name (rebinding) does not.
+    const html = await getPage(port);
+    assert.ok(html.includes(`<meta name="sot-agent-token" content="${token}">`), 'the dev page carries the token');
+    assert.ok(!(await getPage(port, `evil.example:${port}`)).includes(token), 'never to a page asked for by a name');
+    const bad = toolClient(port);
+    await bad.open();
+    bad.auth('tool', 'not-the-token-0123456789');
+    assert.equal(await new Promise((res) => bad.ws.on('close', (code) => res(code))), 4005, 'the relay wants this run\'s token');
+    const t = await tool(port, token);
     assert.ok(t.events.some((e) => e.page === false), 'the relay answers on 127.0.0.1');
-    t.close();
     a = load({ url: `http://127.0.0.1:${port}/`, agent: true, storage: { 'sot-agent': JSON.stringify({ on: true }) } });
     assert.equal(a.ev('API_RELAY.on'), false, 'under __TUBES_TEST__ nothing dials on its own');
-    a.ev(`window.__AGENT_RELAY_TEST__=true;API_RELAY_HOST='';apiAgentSync()`);
+    a.ev(`window.__AGENT_RELAY_TEST__=true;API_RELAY_TOKEN=${lit(token)};API_RELAY_HOST='';apiAgentSync()`);
     assert.equal(a.ev('API_RELAY.on'), true);
     assert.equal(a.ev('apiRelayUrl()'), `ws://127.0.0.1:${port}/agent`, 'its own host and port, the relay path');
+    assert.ok(await until(() => t.events.some((e) => e.page === true)), 'the page with the token joined');
+    t.close();
+    // The MCP server finds the token in the file dev.js wrote, with nothing given (several may run at once).
+    a.ev('ACT.start({});S.cash=777000;compute()');
+    m = mcp(['--browser', '--relay-port', String(port)], null, { SOT_RELAY_TOKEN: '', SOT_RELAY_TOKEN_DIR: dev.dir });
+    await m.init();
+    assert.equal(await m.json('state', { path: 'cash' }), 777000, 'the MCP server read the token file');
   } finally {
     stop(a);
-    await kill(child);
+    if (m) await m.kill();
+    await kill(dev.child);
   }
 });
+
+test('without the token nothing gets in: no tool, and no page that would replace the player\'s tab', () => withRelay(async () => {
+  assert.throws(() => createRelay({ server: http.createServer() }), /needs a token/, 'a relay never runs without one');
+  for (const tok of [null, '', 'wrong-token-0123456789abcdef', 42]) {
+    const t = toolClient();
+    await t.open();
+    t.auth('tool', tok);
+    assert.equal(await new Promise((res) => t.ws.on('close', (code) => res(code))), 4005, `tool with ${lit(tok)} refused`);
+  }
+  const a = page({ seed: 5 });
+  try {
+    a.ev('ACT.start({});S.cash=111000;compute()');
+    await joined(a);
+    // A client that says it is the page, without the token: refused before it could replace the live one.
+    const fake = toolClient();
+    await fake.open();
+    fake.auth('page', null);
+    assert.equal(await new Promise((res) => fake.ws.on('close', (code) => res(code))), 4005, 'the stand-in is refused');
+    const imp = toolClient();
+    await imp.open();
+    imp.auth('page', 'guess-0123456789abcdefghij');
+    assert.equal(await new Promise((res) => imp.ws.on('close', (code) => res(code))), 4005);
+    assert.equal(a.ev('API_RELAY.on'), true, 'the player\'s tab was not replaced');
+    assert.equal(a.ev('API_RELAY.ws.readyState'), 1);
+    // Many agents at once: every tool with the token reaches the same page.
+    const ts = await Promise.all([tool(), tool(), tool()]);
+    const got = await Promise.all(ts.map((t) => t.call('state', { path: 'cash' })));
+    assert.deepEqual(got.map((r) => r.value), [111000, 111000, 111000], 'three tools at once, all answered by the real page');
+    for (const t of ts) t.close();
+    // A page with a stale token (a dev server restarted) is told so, once, and stops dialling.
+    const b = page({ seed: 6, token: 'stale-token-0123456789abcdef' });
+    try {
+      assert.ok(await until(() => b.ev('API_RELAY.on') === false), 'the refused page stops dialling');
+      assert.equal(b.ev('API_RELAY.timer'), null, 'and does not retry');
+      assert.equal(a.ev('API_RELAY.ws.readyState'), 1, 'the live page is still the one');
+    } finally { stop(b); }
+  } finally { stop(a); }
+}));
+
+test('the page takes the token from a #agent= link, keeps it for the tab and takes it off the address', () => {
+  const a = load({ url: 'http://127.0.0.1:8080/#agent=abcdefghijklmnop0123', agent: true });
+  assert.equal(a.ev('API_RELAY_TOKEN'), 'abcdefghijklmnop0123');
+  assert.equal(a.ev('location.hash'), '', 'the token leaves the address bar');
+  assert.equal(a.ev("sessionStorage.getItem('sot-agent-token')"), 'abcdefghijklmnop0123', 'and survives the dev reload');
+  const b = load({ url: 'http://127.0.0.1:8080/#agent=<script>', agent: true });
+  assert.equal(b.ev('API_RELAY_TOKEN'), '', 'anything else is no token');
+});
+
+test('the MCP server says where the token is when it has none', () => withRelay(async () => {
+  const dir = tmp();
+  const m = mcp(['--browser', '--relay-port', String(PORT), '--page-wait-ms', '1500'], null, { SOT_RELAY_TOKEN: '', SOT_RELAY_TOKEN_DIR: dir });
+  try {
+    const code = await new Promise((r) => m.child.on('exit', (c2) => r(c2)));
+    assert.equal(code, 1);
+    assert.match(m.stderr(), /no token/);
+    assert.ok(m.stderr().includes(path.join(dir, `relay-${PORT}.token`)), 'it names the file npm run dev writes');
+  } finally { await m.kill(); }
+}));
 
 test('calls neither page nor relay can answer resolve as errors, not hangs', async () => {
   const r = startRelay();
@@ -440,7 +529,7 @@ test('calls neither page nor relay can answer resolve as errors, not hangs', asy
     b.ev('ACT.start({});S.cash=222000;compute()');
     await joined(b);
     b.ev('API_RELAY.ws.onmessage=()=>{}');
-    const s = createRelaySession({ host: '127.0.0.1', port: PORT });
+    const s = createRelaySession({ host: '127.0.0.1', port: PORT, token: TOKEN });
     const p2 = s.call('state', { path: 'cash' });
     assert.ok(await until(() => r.relay.status().calls === 1), 'the call reached the relay');
     await r.close();
@@ -458,7 +547,7 @@ test('a page that hangs on a call answers within --call-ms, not minutes later', 
     a.ev('ACT.start({});compute()');
     await joined(a);
     a.ev('API_RELAY.ws.onmessage=()=>{}');            // connected, alive, and never answering
-    const s = createRelaySession({ host: '127.0.0.1', port: PORT, callMs: 300 });
+    const s = createRelaySession({ host: '127.0.0.1', port: PORT, callMs: 300, token: TOKEN });
     const t0 = Date.now();
     const r = await s.call('state', { path: 'cash' });
     assert.match(r.refused || '', /no answer from the game page in 0\.3 s/);
@@ -468,7 +557,7 @@ test('a page that hangs on a call answers within --call-ms, not minutes later', 
   } finally { stop(a); }
 }));
 
-test('the relay refuses a cross-site Origin and takes a same-origin page or a token-less tool', () => withRelay(async () => {
+test('the relay refuses a cross-site Origin and takes a same-origin page or a Node tool, each with the token', () => withRelay(async () => {
   const evil = toolClient(PORT, { Origin: 'http://evil.example' });
   await evil.open();
   assert.equal(await new Promise((res) => evil.ws.on('close', (code) => res(code))), 4004, 'refused before any role is granted');
@@ -490,7 +579,7 @@ test('the relay refuses a cross-site Origin and takes a same-origin page or a to
 
 // Spawns a server script and resolves with the address its relay banner reports (server.address()).
 function bannerOf(argv) {
-  const child = spawn(process.execPath, argv, { stdio: ['ignore', 'ignore', 'pipe'] });
+  const child = spawn(process.execPath, argv, { stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, SOT_RELAY_TOKEN_DIR: tmp() } });
   let serr = '';
   return new Promise((res) => {
     const done = (v) => { clearTimeout(t); child.kill('SIGKILL'); res(v); };
@@ -506,14 +595,20 @@ test('dev.js: a bare --host binds loopback, never every interface; binding wider
   const p2 = await freePort();
   const wide = await bannerOf([path.join(ROOT, 'scripts', 'dev.js'), '--host', '0.0.0.0', '--port', String(p2)]);
   assert.equal(wide.addr, `0.0.0.0:${p2}`, 'the banner is the real socket, not the flag echoed back');
-  assert.match(wide.serr, /bound to 0\.0\.0\.0, so anything that can reach this address can drive/);
+  assert.match(wide.serr, /bound to 0\.0\.0\.0, so anything that can reach this address can try it \(the token keeps it out\)/);
+});
+
+test('dev.js --https binds loopback too, unless --host says otherwise', async () => {
+  const p = await freePort();
+  const dev = await bannerOf([path.join(ROOT, 'scripts', 'dev.js'), '--https', '--port', String(p)]);
+  assert.equal(dev.addr, `127.0.0.1:${p}`, `--https alone stays on this machine (${dev.serr})`);
 });
 
 test('browser mode over HTTP: a client connects to the server, the server to the player\'s page', () => withRelay(async () => {
   const a = page({ seed: 11, ms: 0 });
   a.ev("ACT.start({});S.cash=555000;compute()");
   await joined(a);
-  const child = spawn(process.execPath, [SERVER, '--browser', '--relay-port', String(PORT), '--http', '127.0.0.1:0'], { stdio: ['ignore', 'ignore', 'pipe'] });
+  const child = spawn(process.execPath, [SERVER, '--browser', '--relay-port', String(PORT), '--http', '127.0.0.1:0'], { stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, SOT_RELAY_TOKEN: TOKEN } });
   let err = '';
   try {
     const port = await new Promise((res, rej) => {

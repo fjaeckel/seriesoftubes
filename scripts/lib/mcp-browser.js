@@ -5,6 +5,7 @@
 const { load } = require('../../tests/harness');
 const { pageCall } = require('./mcp-game');
 const { createRelaySession } = require('./relay-client');
+const { relayTokenFile, readRelayToken } = require('../agent/relay');
 
 // Days the player watches take their time: an advance may run for minutes on a big network.
 const ADVANCE_MS = 10 * 60 * 1000;
@@ -25,8 +26,19 @@ function localSchema() {
 // changed arguments, domains or docs, so the comparison is deep.
 const drift = (live, local = localSchema()) => CONTRACT.filter((k) => JSON.stringify(live && live[k]) !== JSON.stringify(local[k]));
 
+// The relay's token: given (opts.token, SOT_RELAY_TOKEN), or read from the file the dev server for that port writes
+// (opts.tokenFile, --relay-token-file), again on every connect, so a restarted dev server's new token is picked up.
+function relayToken(opts) {
+  const file = opts.tokenFile ? String(opts.tokenFile) : relayTokenFile(opts.port);
+  const token = opts.token || process.env.SOT_RELAY_TOKEN || '';
+  return {
+    token: token ? () => token : () => readRelayToken(file),
+    tokenHint: token ? 'the token given does not match this dev server\'s run' : `npm run dev writes it to ${file} when it starts; or give --relay-token-file or SOT_RELAY_TOKEN`,
+  };
+}
+
 function createBrowserSession(opts = {}) {
-  const relay = createRelaySession(opts);
+  const relay = createRelaySession({ ...opts, ...relayToken(opts) });
   const session = {
     mode: 'browser', relay,
     async tool(name, args = {}) {

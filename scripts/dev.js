@@ -5,8 +5,9 @@
 // the development page: with the agent facade (src/agent/, window.TUBES) that the page players get has not.
 // The agent relay rides this same server, same port, path /agent: agent mode in the game's Settings dials it, and
 // tools (node scripts/mcp.js --browser) drive the page this server serves.
-// Binds loopback by default; --host binds wherever the operator chooses, the relay with it. Plain node:http and the
-// relay's ws. For the production build as GitHub Pages will serve it: npm run serve.
+// Binds loopback by default (--https too); --host binds wherever the operator chooses, the relay with it. Every run makes
+// a token for the relay: in the page it serves to this machine, in the link it prints, and in a file only this user can
+// read (scripts/agent/relay.js relayTokenFile) for node scripts/mcp.js --browser. Plain node:http and the relay's ws. For the production build as GitHub Pages will serve it: npm run serve.
 const fs = require('node:fs');
 const http = require('node:http');
 const https = require('node:https');
@@ -14,16 +15,16 @@ const os = require('node:os');
 const { execFileSync } = require('node:child_process');
 const path = require('node:path');
 const { assemble, ROOT } = require('./lib/page');
-const { createRelay } = require('./agent/relay');
+const { createRelay, hostOk, newRelayToken, relayTokenFile, writeRelayToken } = require('./agent/relay');
 const { lit } = require('./lib/js-literal');
 
 // --host/--port; a bare --host binds loopback (never undefined, which would listen on every interface).
 const argOf = (k) => { const i = process.argv.indexOf(k); return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : null; };
 // Not $HOST: some shells (tcsh) export it as the machine's name, which would quietly bind to the LAN.
-// --https: for a phone on the LAN (crypto.subtle, which Multimode needs, exists only on secure pages), so it listens on
-// every interface unless --host says otherwise.
+// --https: for a phone on the LAN (crypto.subtle, which Multimode needs, exists only on secure pages). It binds loopback
+// like everything else: a phone needs --host 0.0.0.0 (or the LAN address), the operator's choice, said in the banner.
 const HTTPS = process.argv.includes('--https');
-const HOST = argOf('--host') || process.env.SOT_DEV_HOST || (HTTPS ? '0.0.0.0' : '127.0.0.1');
+const HOST = argOf('--host') || process.env.SOT_DEV_HOST || '127.0.0.1';
 const PORT = (() => { const p = +argOf('--port'); return Number.isInteger(p) && p > 0 && p < 65536 ? p : (+process.env.PORT || 8080); })();
 const SITE = path.join(ROOT, 'site');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json',
@@ -31,12 +32,20 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
   '.webmanifest': 'application/manifest+json' };
 const RELOAD = '<script>new EventSource("/__dev").onmessage=()=>location.reload()</script>';
 const clients = new Set();
+const TOKEN = newRelayToken();
 
-function page() {
+// A request from this machine (any of its own addresses: a browser here may use the LAN address), to an address
+// rather than a DNS name (a rebound name would hand the token to that name's page).
+const OWN = () => new Set(['127.0.0.1', '::1', ...Object.values(os.networkInterfaces()).flat().filter(Boolean).map((i) => i.address)]);
+const fromHere = (req) => hostOk(req.headers.host) && OWN().has(String(req.socket.remoteAddress || '').replace(/^::ffff:/, ''));
+
+function page(req) {
   const { html, map } = assemble({ dev: true });
   // Errors report a line of the assembled page; the console also says which file under src/ that is.
   const hint = `<script>addEventListener('error',e=>{const n=e.lineno,m=n&&(${lit(map)}).find(m=>n>=m.from&&n<=m.to);if(m)console.warn('↑ src/'+m.file+':'+(n-m.from+1))});</script>`;
-  return html.replace('</body>', `${hint}${RELOAD}</body>`);
+  // The relay's token goes only to a browser on this machine; another device opens the link with #agent= (the banner).
+  const tok = fromHere(req) ? `<meta name="sot-agent-token" content="${TOKEN}">` : '';
+  return html.replace('</head>', `${tok}</head>`).replace('</body>', `${hint}${RELOAD}</body>`);
 }
 
 /* --https: a local certificate authority and a certificate for this machine's names and LAN addresses, kept in .dev-certs/
@@ -80,7 +89,7 @@ const server = (HTTPS ? (h) => https.createServer({ key: TLS.key, cert: TLS.cert
   try {
     if (url.pathname === '/' || url.pathname === '/index.html') {
       res.writeHead(200, { 'content-type': TYPES['.html'], 'cache-control': 'no-store' });
-      return res.end(page());
+      return res.end(page(req));
     }
     const file = path.join(SITE, path.normalize(decodeURIComponent(url.pathname)).replace(/^([/\\]|\.\.)+/, ''));
     if (!file.startsWith(SITE + path.sep) || !fs.statSync(file, { throwIfNoEntry: false })?.isFile()) {
@@ -96,14 +105,18 @@ const server = (HTTPS ? (h) => https.createServer({ key: TLS.key, cert: TLS.cert
     res.end('Could not build the page: see the terminal running npm run dev.');
   }
 });
-const relay = createRelay({ server });
+const relay = createRelay({ server, token: TOKEN });
+const TOKEN_FILE = relayTokenFile(PORT);
 server.on('error', (e) => { console.error(`error: could not listen on ${HOST}:${PORT}: ${e.message}`); process.exit(1); });
 server.listen(PORT, HOST, () => {
+  // Only once the port is ours: a second dev server that failed to bind must not overwrite the first one's token.
+  try { writeRelayToken(TOKEN_FILE, TOKEN); } catch (e) { console.error(`[series-of-tubes] could not write the relay token to ${TOKEN_FILE}: ${e.message} (set SOT_RELAY_TOKEN_DIR)`); }
   // The banner reports the socket's real address, not the flag it was asked for.
   const ad = server.address(), at = `${ad.family === 'IPv6' ? `[${ad.address}]` : ad.address}:${ad.port}`;
   const local = /^(127\.|::1$|localhost$)/.test(ad.address);
   console.log(`Series of Tubes (dev): ${HTTPS ? 'https' : 'http'}://${at}/  — edits in src/ and site/ reload the page`);
-  if (TLS) {
+  if (TLS && local) console.log('  for a phone on the same Wi-Fi: npm run dev -- --https --host 0.0.0.0 (it binds this machine only otherwise)');
+  if (TLS && !local) {
     // The LAN addresses, Wi-Fi first (the order the system lists them); loopback is no use to a phone.
     const urls = (ad.address === '0.0.0.0' || ad.address === '::' ? TLS.ips.filter((i) => i !== '127.0.0.1') : [ad.address]).map((i) => `https://${i}:${ad.port}/`);
     const u = urls[0] || `https://localhost:${ad.port}/`;
@@ -112,10 +125,13 @@ server.listen(PORT, HOST, () => {
     console.log('  then iPhone: Settings → General → About → Certificate Trust Settings → turn on "Series of Tubes dev CA"');
     console.log(`  play against a server: ${u}#join=wss://your.server/fed`);
   }
-  console.error(`[series-of-tubes] agent relay on ws://${at}${relay.path} (no token)${local ? '' : `: bound to ${ad.address}, so anything that can reach this address can drive a game whose player turned agent mode on`}`);
+  console.error(`[series-of-tubes] agent relay on ws://${at}${relay.path} (token in ${TOKEN_FILE})${local ? '' : `: bound to ${ad.address}, so anything that can reach this address can try it (the token keeps it out)`}`);
   console.error('[series-of-tubes] to let an agent play: Settings → Agent API in the game, then node scripts/mcp.js --browser');
+  // Pages served to this machine carry the token; a browser elsewhere (another device, a container's host) gets it here.
+  if (!local && !HTTPS) console.error(`[series-of-tubes] a browser not on this machine: open http://ADDRESS:${ad.port}/#agent=${TOKEN} (from a container's host: http://localhost:${ad.port}/#agent=${TOKEN})`);
 });
-const shutdown = () => { relay.close(); process.exit(0); };
+// The token dies with the run; a file left behind would only point the MCP server at a relay that is gone.
+const shutdown = () => { relay.close(); try { if (fs.readFileSync(TOKEN_FILE, 'utf8').trim() === TOKEN) fs.unlinkSync(TOKEN_FILE); } catch {} process.exit(0); };
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 

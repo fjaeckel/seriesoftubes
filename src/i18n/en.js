@@ -5155,6 +5155,7 @@
 "settings.a_pace_runs_one_simulated_day":"A pace runs one simulated day every 30 seconds to 5 minutes, and the agent has to keep up. Moved by the agent, the clock stands still until the agent asks for days.",
 "settings.agent_api":"Agent API",
 "settings.agent_relay_connected":"Agent relay connected: a tool can now drive this game in this tab.",
+"settings.agent_relay_refused":"The agent relay refused this tab: it has no key for this run of npm run dev. Reload the page from this machine, or open the link npm run dev printed.",
 "settings.agent_s_clock":"Agent's clock",
 "settings.always_2d":"Always 2D",
 "settings.an_early_heads_up_below_60":"An early heads-up below 60% happiness, long before they are furious.",

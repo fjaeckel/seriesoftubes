@@ -5156,6 +5156,7 @@
 "settings.a_pace_runs_one_simulated_day":"Mit Tempo vergeht alle 30 Sekunden bis 5 Minuten ein simulierter Tag, und der Agent muss mithalten. Stellt der Agent die Uhr, steht sie still, bis er nach Tagen fragt.",
 "settings.agent_api":"Agent-API",
 "settings.agent_relay_connected":"Agenten-Relay verbunden: Jetzt kann ein Tool dieses Spiel in diesem Tab spielen.",
+"settings.agent_relay_refused":"Das Agenten-Relay hat diesen Tab abgelehnt: Ihm fehlt der Schlüssel dieses Laufs von npm run dev. Lade die Seite auf diesem Rechner neu oder öffne den Link, den npm run dev ausgegeben hat.",
 "settings.agent_s_clock":"Uhr des Agenten",
 "settings.always_2d":"Immer 2D",
 "settings.an_early_heads_up_below_60":"Eine frühe Warnung unter 60 % Zufriedenheit, lange bevor sie wütend sind.",

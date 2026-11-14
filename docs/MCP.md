@@ -33,22 +33,34 @@ the same seed and the same moves give the same game. `--seed N` sets the first g
 
 ### Browser
 
-1. `npm run dev`. It hosts the agent relay on its own port, at `/agent`.
+1. `npm run dev`. It hosts the agent relay on its own port, at `/agent`, and makes a random token for this run.
 2. Open the game at `http://localhost:8080`, start or load the game you want the agent to play, and turn on
-   **Settings → Agent API → "Let an AI agent drive this game"**. That connects the page to the relay; there are no
-   tokens and no ports to configure. The section only exists while the page is served over plain `http://` to an
-   address (`localhost`, `127.0.0.1`, or the IP the dev server is bound to).
+   **Settings → Agent API → "Let an AI agent drive this game"**. That connects the page to the relay. The section only
+   exists while the page is served over plain `http://` to an address (`localhost`, `127.0.0.1`, or the IP the dev
+   server is bound to).
 3. Point your MCP client at `node /path/to/seriesoftubes/scripts/mcp.js --browser` (add `--relay-port N` if the dev
-   server runs on another port, `--relay-host ADDR` if it is bound elsewhere).
+   server runs on another port, `--relay-host ADDR` if it is bound elsewhere). Run as many as you like: every MCP
+   server (and every agent behind it) is a tool client of the same relay, and they all drive the one tab.
 
 The order does not matter. The server answers the MCP handshake at once, then waits up to 90 s (`--page-wait-ms`) for
 a page on the relay. When one connects it checks that the page was built from the code on disk, and over stdio stops
 with a message if the tab is older (reload it). A call the page has not answered after 30 s comes back as an error
 (`--call-ms`); a page that goes away answers its calls at once. One tab drives the relay at a time: the newest one wins.
 
-`npm run dev` binds loopback by default. `npm run dev -- --host 0.0.0.0` (to try the game on a phone, say) binds every
-interface, the relay with it, and says so: then anything that can reach the address can drive a game whose player
-turned agent mode on. Whatever the bind address, the relay only takes connections made to an IP address or
+**The relay's token.** Every client of the relay, the page and every MCP server, must send this run's token; without
+it nothing is routed, and nobody can stand in for your tab and answer your agents' calls. You never type it:
+
+- `npm run dev` writes it into the page it serves to a browser on the same machine, and into
+  `.dev-agent/relay-<port>.token` in the checkout (git-ignored, readable only by your user; `SOT_RELAY_TOKEN_DIR`
+  moves the folder). `mcp.js --browser` reads that file on every connect, so a restarted dev server's new token is
+  picked up. `--relay-token-file FILE` or `SOT_RELAY_TOKEN=…` give it another way (a dev server on another machine).
+- A browser on another device (or on a container's host) does not get it in the page: open the link the dev server
+  prints, `http://ADDRESS:8080/#agent=TOKEN`. The page keeps it for that tab and takes it off the address bar.
+- A tab without the right token (an old tab from an earlier run) is refused, says so, and stops dialling: reload it.
+
+`npm run dev` binds loopback by default, `--https` too. `npm run dev -- --host 0.0.0.0` (to try the game on a phone, say)
+binds every interface, the relay with it, and says so: then anything that can reach the address can try the relay,
+and the token keeps it out. Whatever the bind address, the relay only takes connections made to an IP address or
 `localhost`, and refuses a page from another site, so a website in your browser cannot reach it.
 
 ### Over HTTP
@@ -96,8 +108,9 @@ game itself is served from GitHub Pages and nowhere else.
   interface of the host, and Docker's rules go around ufw and firewalld. To reach it from elsewhere, keep the token,
   add `--allow-host NAME` for the name or address clients use (requests naming the host's address are refused
   otherwise, since that is not an address inside the container), and put TLS in front.
-- **The relay has no token** (as with `npm run dev -- --host`): in browser mode, anyone who reaches port 8080 can drive
-  a game whose player turned agent mode on. Publish it to loopback too.
+- **The relay has a token of its own**, made by the development server for each run, which the MCP server inside the
+  container reads. Your browser on the host is not on the container's machine, so open the link with `#agent=` that
+  `docker logs sot` prints. Publish port 8080 to loopback too.
 
 ```sh
 V=2.10.1   # a release
@@ -107,7 +120,8 @@ docker run -d --name sot -p 127.0.0.1:7777:7777 -e MCP_MODE=headless -e SOT_MCP_
   ghcr.io/fjaeckel/seriesoftubes:$V --clock realtime --pace 60000
 claude mcp add --transport http seriesoftubes http://127.0.0.1:7777/mcp --header "Authorization: Bearer secret"
 
-# The browser session: open http://localhost:8080, then Settings → Agent API. The token is in `docker logs sot`.
+# The browser session: open the http://localhost:8080/#agent=… link from `docker logs sot`, then Settings → Agent API.
+# The MCP token is in the log too.
 docker run -d --name sot -p 127.0.0.1:8080:8080 -p 127.0.0.1:7777:7777 ghcr.io/fjaeckel/seriesoftubes:$V
 ```
 

@@ -59,15 +59,15 @@ test('the same scripted session gives the same outcomes headless and through the
   headless.close();
 
   const srv = http.createServer((q, r) => { r.writeHead(404); r.end(); });
-  const relay = createRelay({ server: srv });
+  const relay = createRelay({ server: srv, token: 'parity-test-token-0123456789' });
   await new Promise((r) => srv.listen(PORT, '127.0.0.1', r));
   // The player's tab: the same page and seed, the same first game, and the agent's clock in Settings.
   const a = load({ url: `http://127.0.0.1:${PORT}/`, seed: 12345, agent: true, storage: { 'sot-agent': JSON.stringify({ on: true, ms: 0 }) } });
-  const s = createBrowserSession({ port: PORT });
+  const s = createBrowserSession({ port: PORT, token: 'parity-test-token-0123456789' });
   try {
     a.ev(HEADLESS_JS);
     a.ev("__mcpHeadless.newGame({city:'fra',name:'Scratch Networks',preset:'oncall'})");
-    a.ev(`window.__AGENT_RELAY_TEST__=true;API_RELAY_HOST='127.0.0.1:${PORT}';apiAgentSync()`);
+    a.ev(`window.__AGENT_RELAY_TEST__=true;API_RELAY_TOKEN='parity-test-token-0123456789';API_RELAY_HOST='127.0.0.1:${PORT}';apiAgentSync()`);
     // ready() waits for the page itself, generously: jsdom on a busy runner can take seconds to dial.
     assert.deepEqual(await s.ready({ waitMs: 20000 }), { ok: true }, 'the tab serves this checkout\'s contract');
     const there = await play(s);

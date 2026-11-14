@@ -3,8 +3,10 @@
    its own port) and answers tool calls from connected tools (the MCP server, node scripts/mcp.js --browser) through
    TUBES.call, so a human follows along on the real UI: toasts fire, panels render, the map moves.
 
-   No endpoint to configure and no token: the relay rides the server that served the page, same port, path
-   API_RELAY_PATH, so the endpoint is where the page already is. The relay refuses a page from any other origin and a
+   No endpoint to configure: the relay rides the server that served the page, same port, path API_RELAY_PATH, so the
+   endpoint is where the page already is. The relay wants this run's token (scripts/dev.js makes one per run): the dev
+   server writes it into the page it serves to its own machine (<meta name="sot-agent-token">), and a browser elsewhere
+   gets it from the link the server prints (#agent=TOKEN, kept for the tab in sessionStorage and taken off the URL). The relay refuses a page from any other origin and a
    Host that is a name, so no website can reach it through the player's browser; who else can reach it is the
    operator's choice of bind address. No eval ever: a message is JSON with a tool name from TUBES.tools, a fixed list,
    answered as the relay (ctx.relay): the player's game, clock, windows and settings stay theirs, and the dice stay
@@ -13,6 +15,11 @@
    API_RELAY_HOST is a var because tests point it at their relay (under __TUBES_TEST__ nothing dials unless the test
    opts in with __AGENT_RELAY_TEST__): a jsdom page is not loaded from the relay's server. */
 var API_RELAY_HOST='';                   // tests: '127.0.0.1:<port>'; live pages use their own host
+var API_RELAY_TOKEN=(()=>{try{
+  const m=/^#agent=([A-Za-z0-9_-]{16,128})$/.exec(location.hash||'');
+  if(m){sessionStorage.setItem('sot-agent-token',m[1]);history.replaceState(null,'',location.pathname+location.search);}
+  const e=document.querySelector('meta[name="sot-agent-token"]');
+  return e&&e.content||sessionStorage.getItem('sot-agent-token')||'';}catch(e){return '';}})();
 const API_RELAY={ws:null,on:false,timer:null,tries:0,said:false,tools:0,host:null,queue:null};
 const API_RELAY_PATH='/agent';
 const apiRelayUrl=()=>`ws://${API_RELAY_HOST||location.host}${API_RELAY_PATH}`;
@@ -57,7 +64,7 @@ function apiRelayDial(){
   API_RELAY.ws=ws;
   ws.onopen=()=>{
     if(API_RELAY.ws!==ws)return;
-    ws.send(JSON.stringify({kind:'auth',role:'page'}));
+    ws.send(JSON.stringify({kind:'auth',role:'page',token:API_RELAY_TOKEN}));
     API_RELAY.tries=0;
     if(!API_RELAY.said){API_RELAY.said=true;toast(tr('settings.agent_relay_connected'),'good');}};
   ws.onmessage=e=>{
@@ -70,8 +77,10 @@ function apiRelayDial(){
     if(typeof m.tool!=='string'||!TUBES.tools.includes(m.tool)){ws.send(JSON.stringify({kind:'result',id:m.id,error:`no tool "${m.tool}" here`}));return;}
     apiRelayAnswer(ws,m);};
   // Replaced (4000): another tab took the relay, so this one yields instead of fighting it: redialing would just
-  // replace the new tab back, forever. Toggling agent mode dials again.
+  // replace the new tab back, forever. Refused (4005): no token, or one from an earlier run; redialing cannot fix that.
+  // Toggling agent mode dials again.
   ws.onclose=e=>{if(API_RELAY.ws!==ws)return;API_RELAY.ws=null;
     apiRelayPresence(0);                                   // off the relay: the clock holds
-    if(e&&e.code===4000)API_RELAY.on=false;else apiRelayRetry();};
+    if(e&&e.code===4005){API_RELAY.on=false;toast(tr('settings.agent_relay_refused'),'bad');}
+    else if(e&&e.code===4000)API_RELAY.on=false;else apiRelayRetry();};
   ws.onerror=()=>{};}

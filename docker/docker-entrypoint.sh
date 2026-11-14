@@ -30,6 +30,10 @@ if [ -z "${SOT_MCP_TOKEN:-}" ] && ! has --token-file && [ "${MCP_NO_TOKEN:-}" !=
   echo "[entrypoint]   claude mcp add --transport http seriesoftubes http://127.0.0.1:7777/mcp --header \"Authorization: Bearer $SOT_MCP_TOKEN\"" >&2
 fi
 
+# The dev server writes the relay's token for the MCP server to read; the checkout is read-only here.
+SOT_RELAY_TOKEN_DIR=${SOT_RELAY_TOKEN_DIR:-$(mktemp -d)}
+export SOT_RELAY_TOKEN_DIR
+
 pids=()
 start() { "$@" & pids+=("$!"); }
 shutdown() {
