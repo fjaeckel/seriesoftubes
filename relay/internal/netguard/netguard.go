@@ -25,10 +25,23 @@ var blocked = []netip.Prefix{
 	netip.MustParsePrefix("198.18.0.0/15"),  // benchmarking
 	netip.MustParsePrefix("240.0.0.0/4"),    // reserved, broadcast
 	netip.MustParsePrefix("64:ff9b:1::/48"), // local-use NAT64
+	netip.MustParsePrefix("2001::/32"),      // Teredo: reaches an IPv4 address it hides
+	netip.MustParsePrefix("fec0::/10"),      // site-local (deprecated, still routed inside some networks)
+}
+
+// Prefixes whose addresses carry an IPv4 address, at the given byte offset: it is checked too.
+var embeds = []struct {
+	p  netip.Prefix
+	at int
+}{
+	{netip.MustParsePrefix("::/96"), 12},        // IPv4-compatible
+	{netip.MustParsePrefix("64:ff9b::/96"), 12}, // well-known NAT64
+	{netip.MustParsePrefix("2002::/16"), 2},     // 6to4
 }
 
 // Internal reports whether a is not a public unicast address: loopback, private (RFC 1918, ULA),
-// link-local, carrier-grade NAT, unspecified, multicast or reserved.
+// link-local, carrier-grade NAT, unspecified, multicast or reserved, or an IPv6 address that
+// carries an IPv4 address that is one of those (IPv4-compatible, NAT64, 6to4) or hides one (Teredo).
 func Internal(a netip.Addr) bool {
 	a = a.Unmap()
 	if !a.IsValid() || !a.IsGlobalUnicast() || a.IsPrivate() {
@@ -37,6 +50,14 @@ func Internal(a netip.Addr) bool {
 	for _, p := range blocked {
 		if p.Contains(a) {
 			return true
+		}
+	}
+	if a.Is6() {
+		b := a.As16()
+		for _, e := range embeds {
+			if e.p.Contains(a) && Internal(netip.AddrFrom4([4]byte(b[e.at:e.at+4]))) {
+				return true
+			}
 		}
 	}
 	return false

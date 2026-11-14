@@ -789,7 +789,8 @@ reference relay: 8192; over it, `too_many`).
   followed. A node dialling a URL it did not get from its operator (from the registry or the catalog, for an
   automatic peer, 10.9) connects only to public unicast addresses, checked on the address it actually connects to:
   never loopback, private (RFC 1918, `fc00::/7`), link-local, `100.64.0.0/10`, unspecified, multicast or reserved
-  ones. URLs the operator gave (neighbours, seeds, the server's own nodes, a LAN server's) may be anywhere.
+  ones, nor an IPv6 address that carries such an IPv4 address (IPv4-compatible `::/96`, NAT64 `64:ff9b::/96`, 6to4
+  `2002::/16`) or hides one (Teredo `2001::/32`), nor site-local `fec0::/10`. URLs the operator gave (neighbours, seeds, the server's own nodes, a LAN server's) may be anywhere.
 - Every message is one **text frame** holding one JSON object with a string member `m` (the message type). Binary
   frames close the connection.
 - Frame limits: **65536 bytes** between clients and nodes, **1048576 bytes** between nodes. Larger: `too_big`, and the

@@ -14,12 +14,16 @@ import (
 func TestInternal(t *testing.T) {
 	for _, s := range []string{"127.0.0.1", "::1", "10.1.2.3", "172.16.0.1", "192.168.1.1", "169.254.169.254",
 		"fe80::1", "fd00::1", "100.64.0.1", "0.0.0.0", "::", "224.0.0.1", "ff02::1", "::ffff:127.0.0.1",
-		"::ffff:169.254.169.254", "0.1.2.3", "255.255.255.255"} {
+		"::ffff:169.254.169.254", "0.1.2.3", "255.255.255.255",
+		// IPv6 carrying an internal IPv4 address: IPv4-compatible, well-known NAT64, 6to4; Teredo; site-local.
+		"::127.0.0.1", "::a9fe:a9fe", "64:ff9b::7f00:1", "64:ff9b::a9fe:a9fe", "2002:7f00:1::1", "2002:a9fe:a9fe::",
+		"2001:0:4136:e378:8000:63bf:3fff:fdd2", "fec0::1"} {
 		if !Internal(netip.MustParseAddr(s)) {
 			t.Errorf("%s: not internal", s)
 		}
 	}
-	for _, s := range []string{"1.1.1.1", "8.8.8.8", "2606:4700::1111", "100.128.0.1", "172.32.0.1"} {
+	for _, s := range []string{"1.1.1.1", "8.8.8.8", "2606:4700::1111", "100.128.0.1", "172.32.0.1",
+		"64:ff9b::808:808", "2002:808:808::1"} {
 		if Internal(netip.MustParseAddr(s)) {
 			t.Errorf("%s: internal", s)
 		}

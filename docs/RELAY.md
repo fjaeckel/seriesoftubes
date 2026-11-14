@@ -355,7 +355,8 @@ minutes and your node dials it instead) and whether the session is `up`; each en
 `peers` says whether it is `auto` and whether this node `dialled` it.
 
 Automatic peers' addresses come from the registry, not from you, so your relay dials them only on public addresses: a
-name that resolves to a loopback, private, link-local or carrier-grade NAT address is refused, and no node URL is ever
+name that resolves to a loopback, private, link-local or carrier-grade NAT address (also inside an IPv6 address such as
+NAT64, 6to4 or Teredo) is refused, and no node URL is ever
 followed through a redirect. `relay join` without `--from` and `relay check-registry` treat the registry's URLs the
 same way. Neighbours, `--from` seeds and your own server's nodes may be on private addresses.
 
