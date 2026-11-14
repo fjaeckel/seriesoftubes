@@ -1,0 +1,24 @@
+{
+  "description": "Signed with the nonce of another session.",
+  "input": {
+    "now": 1767312100,
+    "node": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+    "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+    "nonce": "w-I93q5_hK4l30XKnUxYIxwrwDuKxW12bPQGkfXtX7s",
+    "urls": [
+      "wss://relay.example.net/fed"
+    ],
+    "auth": {
+      "m": "auth",
+      "id": 7,
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312100,
+      "url": "wss://relay.example.net/fed",
+      "sig": "YJKIeDIGa4UodCoMzl4LhaH-RyeWd0J0AOAXDfrJ4ApG7nCj4fPeoFiabVwT6ZnW1X2Baa7itLQFM3UNSaCnCA"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_sig"
+  }
+}

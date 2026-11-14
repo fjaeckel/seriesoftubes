@@ -109,6 +109,9 @@ type session struct {
 	stAt  time.Time
 
 	updSent string // the update hint this operator session was last sent (guarded by r.mu)
+
+	authNonce string   // the nonce this client session's welcome carried, for bound auth (9.3); "" when none
+	authURLs  []string // this node's own URLs when the welcome was sent: a bound auth names one
 }
 
 // sub is one client subscription.
@@ -749,7 +752,13 @@ func (r *Relay) serve(s *session) {
 		r.mu.Unlock()
 	}()
 	s.ver = h.Ver
-	s.enqueue(map[string]any{"m": "welcome", "ver": h.Ver, "server": r.ServerID(), "node": r.Key(), "now": r.now(), "impl": r.implValue(), "feats": r.feats()})
+	welcome := map[string]any{"m": "welcome", "ver": h.Ver, "server": r.ServerID(), "node": r.Key(), "now": r.now(), "impl": r.implValue(), "feats": r.feats()}
+	// A nonce for bound auth (9.3), only when this node knows its own URL: a game signs it with the URL it dialled.
+	if s.authURLs = r.ownURLs(); len(s.authURLs) > 0 {
+		s.authNonce = nonce()
+		welcome["nonce"] = s.authNonce
+	}
+	s.enqueue(welcome)
 	for {
 		f, ok := s.readFrame(s.ctx)
 		if !ok {
@@ -772,6 +781,25 @@ func (r *Relay) serve(s *session) {
 		}
 		r.clientFrame(s, f)
 	}
+}
+
+// ownURLs are the URLs a game may have dialled this node at: its configured url and the one its
+// server's chain lists for it.
+func (r *Relay) ownURLs() []string {
+	var out []string
+	if u := r.cfg.URL; u != "" {
+		out = append(out, u)
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.own != nil {
+		for _, n := range r.own.Nodes {
+			if n.Key == r.Key() && n.URL != "" && !slices.Contains(out, n.URL) {
+				out = append(out, n.URL)
+			}
+		}
+	}
+	return out
 }
 
 // allow is a per-connection token bucket; requests cost by the work they ask for (clientCost).
@@ -798,7 +826,16 @@ func (r *Relay) clientFrame(s *session, f *wire.Frame) {
 		key, _ := f.Str("key")
 		sig, _ := f.Str("sig")
 		t, _ := wire.Int(f.Raw["t"])
-		if code := fed.CheckAuth(key, t, sig, r.Key(), r.ServerID(), now); code != "" {
+		var code string
+		if _, bound := f.Raw["url"]; bound {
+			url, _ := f.Raw["url"].(string)
+			code = fed.CheckAuthBound(key, t, sig, r.Key(), r.ServerID(), now, s.authNonce, url, s.authURLs)
+		} else if !r.cfg.LegacyAuthOK() {
+			code = fed.BadSig // only bound auth is taken (legacyAuth: false)
+		} else {
+			code = fed.CheckAuth(key, t, sig, r.Key(), r.ServerID(), now)
+		}
+		if code != "" {
 			s.fail(f.ID, code, 0)
 			return
 		}

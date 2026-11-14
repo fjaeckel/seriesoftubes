@@ -1,0 +1,23 @@
+{
+  "description": "alice signs {m: \"auth\", key, node, nonce, server, t, url}: the nonce this session's welcome gave and the URL she dialled, one of the node's own.",
+  "input": {
+    "now": 1767312100,
+    "node": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+    "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+    "nonce": "w-I93q5_hK4l30XKnUxYIxwrwDuKxW12bPQGkfXtX7s",
+    "urls": [
+      "wss://relay.example.net/fed"
+    ],
+    "auth": {
+      "m": "auth",
+      "id": 7,
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312095,
+      "url": "wss://relay.example.net/fed",
+      "sig": "isKUS4wpdD24y7_HUKz63RHtZ90u57KZEVevkMdi48B9PPWx08C8vptfeRRwoEffTya4VrtKOmXs9TdXWnlbBQ"
+    }
+  },
+  "expect": {
+    "ok": true
+  }
+}

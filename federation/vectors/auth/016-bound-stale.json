@@ -1,0 +1,24 @@
+{
+  "description": "Bound or not, t within 600 s.",
+  "input": {
+    "now": 1767312100,
+    "node": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+    "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+    "nonce": "w-I93q5_hK4l30XKnUxYIxwrwDuKxW12bPQGkfXtX7s",
+    "urls": [
+      "wss://relay.example.net/fed"
+    ],
+    "auth": {
+      "m": "auth",
+      "id": 7,
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767311499,
+      "url": "wss://relay.example.net/fed",
+      "sig": "4Z6iaduAfkwCxObKJg08y496MjXhS3sE6JSXBnro5wcoT8_WZGnssw5_rQsrU6_Nbb9aatS0bOMi3hn1900wAw"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "too_old"
+  }
+}

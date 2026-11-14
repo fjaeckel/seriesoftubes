@@ -175,10 +175,14 @@ async function fedProofErr(p,nonce,server,node,now){const B='bad_challenge';
   if(await fedSigsOk(p))return 'bad_sig';
   return p.body.nonce!==nonce||Math.abs(p.t-now)>300?B:null;}
 /* A client proving a key to one node of one server (§9.3 auth): the signed text has m:'auth' and no kind, so it is
-   never a record, and it names the node and server, so it is good for no other. */
-const fedAuthText=(key,node,server,t)=>fedCanon({m:'auth',key,node,server,t});
-async function fedAuthMake(seed,node,server,t){const k=await fedSigner(seed);return {m:'auth',key:k.pub,t,sig:await fedSignText(seed,fedAuthText(k.pub,node,server,t))};}
-// How a node answers an auth frame: null (taken) or the error code, in the spec's order.
-async function fedAuthErr(a,node,server,now){if(FdK(a.key))return 'bad_key';if(FdSig(a.sig)||!Number.isSafeInteger(a.t))return 'bad_sig';
-  if(!await fedVerify(a.key,a.sig,fedUtf8(fedAuthText(a.key,node,server,a.t))))return 'bad_sig';
+   never a record, and it names the node and server, so it is good for no other. Bound (the welcome listed bind and
+   gave a nonce): it also names that nonce and the URL dialled, so a server cannot pass it on to another's node. */
+const fedAuthText=(key,node,server,t,nonce,url)=>fedCanon(nonce?{m:'auth',key,node,nonce,server,t,url}:{m:'auth',key,node,server,t});
+async function fedAuthMake(seed,node,server,t,nonce,url){const k=await fedSigner(seed),a={m:'auth',key:k.pub,t,sig:await fedSignText(seed,fedAuthText(k.pub,node,server,t,nonce,url))};
+  if(nonce)a.url=url;return a;}
+/* How a node answers an auth frame: null (taken) or the error code, in the spec's order. nonce: the one its welcome
+   gave this session; urls: its own. A bound auth (with url) naming another URL is bad_sig, like one for another node. */
+async function fedAuthErr(a,node,server,now,nonce,urls){if(FdK(a.key))return 'bad_key';if(FdSig(a.sig)||!Number.isSafeInteger(a.t))return 'bad_sig';
+  const bound=a.url!==undefined;if(bound&&(!nonce||typeof a.url!=='string'||!(urls||[]).includes(a.url)))return 'bad_sig';
+  if(!await fedVerify(a.key,a.sig,fedUtf8(bound?fedAuthText(a.key,node,server,a.t,nonce,a.url):fedAuthText(a.key,node,server,a.t))))return 'bad_sig';
   return a.t>now+FED_SKEW?'too_new':a.t<now-FED_SKEW?'too_old':null;}

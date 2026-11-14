@@ -285,6 +285,8 @@ func init() {
 			Node   string          `json:"node"`
 			Server string          `json:"server"`
 			Auth   json.RawMessage `json:"auth"`
+			Nonce  string          `json:"nonce"`
+			URLs   []string        `json:"urls"`
 		}](t, in)
 		f, werr := wire.Parse(x.Auth, fed.ClientFrame)
 		if werr != nil {
@@ -296,6 +298,10 @@ func init() {
 		key, _ := f.Str("key")
 		sig, _ := f.Str("sig")
 		ts, _ := wire.Int(f.Raw["t"])
+		if _, bound := f.Raw["url"]; bound {
+			url, _ := f.Raw["url"].(string)
+			return errOr(fed.CheckAuthBound(key, ts, sig, x.Node, x.Server, x.Now, x.Nonce, url, x.URLs), map[string]any{"ok": true})
+		}
 		return errOr(fed.CheckAuth(key, ts, sig, x.Node, x.Server, x.Now), map[string]any{"ok": true})
 	}
 }

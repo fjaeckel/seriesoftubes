@@ -87,9 +87,15 @@ type Config struct {
 	Listed         bool        `json:"listed"`                   // the operators mean to be in the registry
 	NotifyURL      string      `json:"notifyURL,omitempty"`      // https:// URL POSTed once per new relay release; empty: off
 	AllowedOrigins []string    `json:"allowedOrigins,omitempty"` // web pages besides the game's that may connect (https://example.org, https://*.example.org, or "*": any)
-	Limits         Limits      `json:"limits"`
-	Budgets        Budgets     `json:"budgets"`
+	// LegacyAuth: whether a client's auth may be the older form, bound to no session nonce or URL
+	// (9.3). Unset: true, while older games are about; it will be switched off in a later release.
+	LegacyAuth *bool   `json:"legacyAuth,omitempty"`
+	Limits     Limits  `json:"limits"`
+	Budgets    Budgets `json:"budgets"`
 }
+
+// LegacyAuthOK says whether the older, unbound client auth is taken (legacyAuth, default true).
+func (c *Config) LegacyAuthOK() bool { return c.LegacyAuth == nil || *c.LegacyAuth }
 
 // DefaultRegistry is where the site publishes servers.json.
 const DefaultRegistry = "https://seriesoftub.es/federation/servers.json"

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"sync"
 	"time"
 
@@ -39,6 +40,7 @@ type Welcome struct {
 	Now    int64
 	Impl   *update.Impl // what the node runs, when it says (informational)
 	Feats  []string     // optional messages the node takes (9.3 feats)
+	Nonce  string       // for bound auth (9.3), when the node listed bind and gave one
 }
 
 // ErrFrame is an err frame from the node.
@@ -59,6 +61,7 @@ type Client struct {
 	other   chan *wire.Frame
 	done    chan struct{}
 	err     error
+	url     string // the URL dialled, which a bound auth names
 }
 
 // Dial connects, says hello as a client and waits for welcome.
@@ -121,6 +124,10 @@ func Dial(ctx context.Context, url string, o Options) (*Client, error) {
 	cl.Welcome.Now, _ = wire.Int(f.Raw["now"])
 	cl.Welcome.Impl = update.ReadImpl(f.Raw["impl"])
 	cl.Welcome.Feats = wire.Feats(f.Raw["feats"])
+	if n, _ := f.Str("nonce"); fed.IsID(n) && slices.Contains(cl.Welcome.Feats, wire.FeatBind) {
+		cl.Welcome.Nonce = n
+	}
+	cl.url = url
 	go cl.loop()
 	return cl, nil
 }
@@ -334,7 +341,11 @@ func (cl *Client) Challenge(ctx context.Context, server, node string, now int64)
 // Auth proves a key to the node (9.3 auth), signed for the node and server of the welcome at t;
 // it reports whether the node took it as an operator's of its server.
 func (cl *Client) Auth(ctx context.Context, k *fed.Signer, t int64) (bool, error) {
-	f, err := cl.Request(ctx, map[string]any{"m": "auth", "key": k.Key, "t": t, "sig": k.Auth(cl.Welcome.Node, cl.Welcome.Server, t)})
+	m := map[string]any{"m": "auth", "key": k.Key, "t": t, "sig": k.Auth(cl.Welcome.Node, cl.Welcome.Server, t)}
+	if cl.Welcome.Nonce != "" {
+		m["url"], m["sig"] = cl.url, k.AuthBound(cl.Welcome.Node, cl.Welcome.Server, t, cl.Welcome.Nonce, cl.url)
+	}
+	f, err := cl.Request(ctx, m)
 	if err != nil {
 		return false, err
 	}

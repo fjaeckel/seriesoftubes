@@ -84,7 +84,8 @@ const PL_ENTRY = { id: PL.id, name: 'Packet Lunch', nodes: PL.server.body.nodes,
    Packet Lunch's, anna, ben and cleo) and only on a sub that asks for them; excl (null: never sent) is the excluded
    list it sends after a session's first sub and on exclude(), with reasons to a session that proved an excluded key; impl:
    what its welcome says it runs; update: an update notice it sends right after an operator key's ack. feats: what its
-   welcome lists (default ['state']: it takes live states, which it keeps in states, and ranks the boards of now). */
+   welcome lists (default ['state']: it takes live states, which it keeps in states, and ranks the boards of now); nonce:
+   the welcome's nonce for bound auth (with 'bind' in feats). */
 class Node {
   constructor(net, url, o = {}) { Object.assign(this, { net, url, server: o.server || PL.id, key: key(o.key || 'node1'), up: true, mute: false, feed: [], ranks: null, facets: null, netstats: null, why: null, asks: [], gossip: [], puts: [], refuse: null, socks: new Set(), hellos: 0, feats: o.feats || ['state'], states: [],
     ops: o.ops || ['anna', 'ben', 'cleo'].map((n) => key(n).pub), auths: [], excl: null, reasons: null }); }
@@ -94,7 +95,7 @@ class Node {
   take(ws, text) {
     const f = JSON.parse(text);
     if (this.mute) return;
-    if (f.m === 'hello') { this.hellos++; this.send(ws, { m: 'welcome', ver: 1, server: this.server, node: this.key.pub, now: this.net.now(), ...(this.impl ? { impl: this.impl } : {}), ...(this.feats.length ? { feats: this.feats } : {}) }); }
+    if (f.m === 'hello') { this.hellos++; this.send(ws, { m: 'welcome', ver: 1, server: this.server, node: this.key.pub, now: this.net.now(), ...(this.impl ? { impl: this.impl } : {}), ...(this.feats.length ? { feats: this.feats } : {}), ...(this.nonce ? { nonce: this.nonce } : {}) }); }
     else if (f.m === 'state') { this.states.push(f.rec); if (f.id) this.send(ws, { m: 'ack', id: f.id, rid: rid(f.rec), dup: false }); }
     else if (f.m === 'challenge') { const p = { v: 1, kind: 'proof', key: this.key.pub, t: this.net.now(), body: { nonce: f.nonce, server: this.server } }; p.sig = signText(this.key, canon(p)); this.send(ws, { m: 'proof', id: f.id, proof: p }); }
     else if (f.m === 'put') { this.puts.push(f.rec); this.send(ws, this.refuse ? { m: 'err', id: f.id, code: this.refuse } : { m: 'ack', id: f.id, rid: rid(f.rec), dup: false }); }

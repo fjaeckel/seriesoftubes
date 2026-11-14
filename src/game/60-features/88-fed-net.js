@@ -113,6 +113,8 @@ function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.skip
     c.feats=Array.isArray(f.feats)?f.feats.slice(0,16).filter(x=>typeof x==='string'):[];
     // Whether this server takes ix2 fields, kept past the connection: the announce carries them only while all do (fedIx2).
     (FED.ix2||(FED.ix2={}))[c.url]=c.feats.includes('ix2');
+    // A node that binds auth (§9.3 bind) gives a nonce: our auth then names it and the URL we dialled.
+    c.anonce=c.feats.includes('bind')&&typeof f.nonce==='string'&&!FdId(f.nonce)?f.nonce:null;
     c.tick=FED.set(function tk(){if(!fedLive(c)||!c.ws)return;const n=fedNow();
       if(n-c.lastIn>=FED.T.dead/1000){fedDrop(c,'silent');return;}
       if(n-c.lastOut>=FED.T.idle/1000)fedSend(c,{m:'ping',id:c.nid=c.nid%2147483646+1});c.tick=FED.set(tk,FED.T.tick);},FED.T.tick);
@@ -177,10 +179,10 @@ const fedCursorOk=x=>typeof x==='string'&&/^[A-Za-z0-9_-]{1,64}$/.test(x);
 /* Proves this network's key to the node (§9.3 auth), so it is told the reasons if the federation excluded it, then the
    operator key when this device has one of this server's: only then does the node send the shun votes. */
 async function fedAuth(c){const f=c.M.fed;c.me=null;if(!c.srv||!c.nodeKey)return;
-  const a=await fedAsk(c,{...await fedAuthMake(f.key.priv,c.nodeKey,c.srv,fedNow())});if(!fedLive(c))return;
+  const a=await fedAsk(c,{...await fedAuthMake(f.key.priv,c.nodeKey,c.srv,fedNow(),c.anonce,c.node)});if(!fedLive(c))return;
   c.me=a&&a.m==='ack'?f.key.pub:null;await fedAuthOp(c);}
 async function fedAuthOp(c){const k=await fedOpKey();if(!k||!fedLive(c)||c.op===k.pub||!fedOpOf(await fedServers(),c.srv,k.pub))return;
-  const a=await fedAsk(c,{...await fedAuthMake(k.seed,c.nodeKey,c.srv,fedNow())});if(!fedLive(c))return;
+  const a=await fedAsk(c,{...await fedAuthMake(k.seed,c.nodeKey,c.srv,fedNow(),c.anonce,c.node)});if(!fedLive(c))return;
   if(a&&a.m==='ack'&&a.op===true){c.op=k.pub;if(c.phase==='ready'){await fedVoteSub(c);await fedRepSub(c);}}}
 // The votes, for an operator: their own subscription, from their own cursor, so votes from before it are not skipped.
 async function fedVoteSub(c){const cur=(await fedGet('kv','vcursors'))||{},since=fedOwn(cur,fedVcKey(c))?cur[fedVcKey(c)]:'';if(!fedLive(c)||c.phase!=='ready'||c.vsub||!c.op)return;

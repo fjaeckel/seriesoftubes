@@ -1,0 +1,24 @@
+{
+  "description": "Signed for the URL of another server's node that passed the welcome on: not one of this node's URLs.",
+  "input": {
+    "now": 1767312100,
+    "node": "cMrg4HG9DBJYCJbmyjPTW8VAqd-b_30nxjySY5KV4lQ",
+    "server": "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4",
+    "nonce": "w-I93q5_hK4l30XKnUxYIxwrwDuKxW12bPQGkfXtX7s",
+    "urls": [
+      "wss://relay.example.net/fed"
+    ],
+    "auth": {
+      "m": "auth",
+      "id": 7,
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312100,
+      "url": "wss://second.example.org:8443/fed",
+      "sig": "HOF-XY7LgB2BlOiSzg_30ywGXvg9UD1d0KJH3kAldjRTzusLoxlHtQwyDPcE6y-RuMi5q2eM85-MCUpK690bDw"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_sig"
+  }
+}

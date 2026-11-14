@@ -796,9 +796,9 @@ it is neither answered nor a reason to close, so an older game keeps working wit
 | Message | Direction | Fields | Answer |
 | --- | --- | --- | --- |
 | `hello` | client → node | `vers`, `role: "client"`, `feats` (optional, below) | `welcome` |
-| `welcome` | node → client | `ver` (chosen), `server` (Id), `node` (Key), `now`, `impl` (optional, below), `feats` (optional, below) | |
+| `welcome` | node → client | `ver` (chosen), `server` (Id), `node` (Key), `now`, `impl` (optional, below), `feats` (optional, below), `nonce` (Nonce, optional: for bound `auth`, below) | |
 | `update` | node → client | `version`, `security` (Bool), `source` (`feed` or `github`), `notes` (optional, an `https://` URL); no `id` | Only to a session that proved an operator key of the node's server: a newer relay is out (below) |
-| `auth` | client → node | `id`, `key` (Key), `t` (unix seconds), `sig` (Sig) | `ack` with `op`, or `err` (`bad_key`, `bad_sig`, `too_old`, `too_new`, `too_many`): proves the session holds `key` (below) |
+| `auth` | client → node | `id`, `key` (Key), `t` (unix seconds), `sig` (Sig), `url` (only in a bound auth, below) | `ack` with `op`, or `err` (`bad_key`, `bad_sig`, `too_old`, `too_new`, `too_many`): proves the session holds `key` (below) |
 | `challenge` | client → node | `id`, `nonce` | `proof` `{m, id, proof}`, a proof envelope (6.2) |
 | `put` | client → node | `id`, `rec` (a record) | `ack` or `err` |
 | `state` | client → node | `id` (optional), `rec` (a live state, 5.11) | with `id`: `ack` (`rid`, `dup`: it was not newer) or `err`; without: only an `err` |
@@ -846,6 +846,15 @@ it is neither answered nor a reason to close, so an older game keeps working wit
   `key` is a current operator of the node's server (`op`). Proved keys last as long as the connection and are never
   stored. A game sends `auth` with its network's key, and with an imported operator key of that server, after it checked
   the node and before its `sub`.
+  **Bound auth.** The form above names no session and no address, so a server a game talks to could pass the game's
+  `auth` on to a node of another server within the 600 s, if the game took that server's `welcome` for the other's. A
+  node that lists `bind` in its client `welcome` and knows its own URL also puts a fresh `nonce` (32 random bytes, one
+  per connection) in it. A game that sees both signs instead `{"m": "auth", "key", "node", "nonce": <the welcome's
+  nonce>, "server", "t", "url": <the URL it dialled>}` and sends `url` in the `auth` frame. The node checks it as above,
+  and that `url` is one of its own (its configured URL and the one its chain lists for it) and the nonce the one it sent
+  on this connection: otherwise `bad_sig`, as for an auth signed for another node. A frame with a `url` member is
+  always checked as bound. A node MAY still take the older form from games that predate this (the reference relay:
+  config `legacyAuth`, default true for now; set to false, the older form is `bad_sig`).
 - **Shun votes go to operators only.** A node sends `shun` and `unshun` records to a client session only when it proved
   a key that is a current operator of the node's server: other sessions never get them, from `sub` (backlog and live),
   `fetch` or `rankwhy`, and are not told they were left out. Between nodes they travel unchanged (9.4).
@@ -875,6 +884,7 @@ it is neither answered nor a reason to close, so an older game keeps working wit
   anything else. A game sends `state` frames, and asks for boards of `now`, only to a node whose `welcome` lists
   `state` (an older node would close the connection on a message it does not know). The same member is in a node's
   `hello` and `welcome` (9.4).
+  **`bind`** in a client `welcome` means the node takes bound `auth` (above), when the `welcome` also has a `nonce`.
   **`ix2`** means it takes the fields of players' exchanges (5.1 `rates.ix.members`, `auto.cofound`): a game puts them
   in an announce only while every server it joined lists `ix2` in its `welcome`. A client lists what it takes in its own
   `hello` (`feats: ["ix2"]`; an older node ignores the member): a node sends a record holding `ix2` fields to a client

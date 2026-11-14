@@ -240,3 +240,21 @@ test('only receipts of registry servers and the connected one set a board slot, 
   assert.equal((await place([R('node9', fake, slot - 300), R('node1', PL.id, slot)])).slot, slot, 'a gossip-only server\'s does not');
   assert.equal((await place([R('node1', PL.id, slot - 8 * DAY), R('node1', PL.id, slot)])).slot, slot, 'a receipt 8 days before its record does not');
 });
+
+test('a game binds its auth to the node\'s nonce and the URL it dialled where the node offers it, and not elsewhere', async () => {
+  const nonce = b64(sha('a welcome nonce'));
+  const auths = async (o) => {
+    const p = fedPage(), n = p.net.node(URL1, o);
+    n.nonce = o.nonce;
+    await joinGame(p);
+    assert.ok(await until(async () => (p.net.advance(500), await settle(5), n.auths.length > 0)), 'the game proved its key');
+    return { p, n, a: n.auths[0] };
+  };
+  const { p, n, a } = await auths({ feats: ['state', 'bind'], nonce });
+  assert.equal(a.url, URL1, 'the URL dialled');
+  const check = (nc, urls) => p.ev(`fedAuthErr(${JSON.stringify(a)},${JSON.stringify(n.key.pub)},${JSON.stringify(PL.id)},${p.net.now()},${JSON.stringify(nc)},${JSON.stringify(urls)})`);
+  assert.equal(await check(nonce, [URL1]), null, 'good for this session of this node');
+  assert.equal(await check(nonce, ['wss://other.example.net/fed']), 'bad_sig', 'relayed to another node');
+  assert.equal(await check(b64(sha('another session')), [URL1]), 'bad_sig', 'replayed on another session');
+  assert.equal((await auths({ feats: ['state'], nonce })).a.url, undefined, 'a node that does not list bind gets the older form');
+});

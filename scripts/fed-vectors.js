@@ -631,6 +631,17 @@ const SID = rid(genesis);
   go('other-signer', 'Claims alice, signed by mallory.', F('alice', NOW, {}, 'mallory'), { ok: false, error: 'bad_sig' });
   go('bad-key', 'key is not a Key.', F('alice', NOW, { key: 'alice' }), { ok: false, error: 'bad_key' });
   go('bad-sig-format', 'sig is not a Sig.', F('alice', NOW, { sig: 'AAAA' }), { ok: false, error: 'bad_sig' });
+  // Bound auth (bind): the node's welcome gave this session a nonce; the game signs {m, key, node, nonce, server, t, url}
+  // with url the URL it dialled, and sends url in the frame. Input nonce: the session's; urls: the node's own.
+  const N = b64(sha('tubes-fed.1 vector welcome nonce')), N2 = b64(sha('tubes-fed.1 vector other welcome nonce'));
+  const B = (who, t, nonce, url, over = {}) =>
+    ({ m: 'auth', id: 7, key: pub(who), t, url, sig: signText(who, canon({ m: 'auth', key: pub(who), node: pub('node1'), nonce, server: SID, t, url })), ...over });
+  const bound = (name, d, auth, expect, nonce = N) => put(A, name, d, { now: NOW, node: pub('node1'), server: SID, ...(nonce ? { nonce } : {}), urls: [URL1], auth }, expect);
+  bound('bound-valid', 'alice signs {m: "auth", key, node, nonce, server, t, url}: the nonce this session\'s welcome gave and the URL she dialled, one of the node\'s own.', B('alice', NOW - 5, N, URL1), { ok: true });
+  bound('bound-other-url', 'Signed for the URL of another server\'s node that passed the welcome on: not one of this node\'s URLs.', B('alice', NOW, N, URL2), { ok: false, error: 'bad_sig' });
+  bound('bound-other-nonce', 'Signed with the nonce of another session.', B('alice', NOW, N2, URL1), { ok: false, error: 'bad_sig' });
+  bound('bound-no-nonce', 'A bound auth on a session whose welcome gave no nonce.', B('alice', NOW, N, URL1), { ok: false, error: 'bad_sig' }, null);
+  bound('bound-stale', 'Bound or not, t within 600 s.', B('alice', NOW - 601, N, URL1), { ok: false, error: 'too_old' });
 }
 
 // ======================================================================================

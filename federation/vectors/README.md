@@ -54,7 +54,7 @@ Files are numbered (`001-…`) only to keep a stable order; the number means not
 | `records` | 2, 4, 5, 7.1 steps 2–8 | `now` and either `record` (a parsed value) or `text` (JSON text to parse first); `as: "state"` when it is checked where a live state is expected (5.11, a `state` frame) | `{ok: true, kind, id}` or `{ok: false, error}` |
 | `receipts` | 6.1 | `now`, `server`, `nodes` (the server's node keys), `record`, `receipt` | `{ok: true}` or `{ok: false, error}` |
 | `proofs` | 6.2 | `now`, `nonce`, `server`, `node` (the node asked), `proof` | `{ok: true}` or `{ok: false, error}` |
-| `auth` | 9.3 | `now`, `node` (the node's key), `server`, `auth` (the client's `auth` frame) | `{ok: true}` or `{ok: false, error}` |
+| `auth` | 9.3 | `now`, `node` (the node's key), `server`, `auth` (the client's `auth` frame); for a bound auth (a frame with `url`) also `urls` (the node's own URLs) and `nonce` (its welcome's, absent when it gave none) | `{ok: true}` or `{ok: false, error}` |
 | `operators` | 8 | `now`, `genesis`, `records` (`operators` proposals); optionally `server` | `{head, operators, nodes, pending}` (lists sorted by key, `pending` as ids); with `server`: `{ok}` or `{ok: false, error}` |
 | `registry` | 11 | `files` (file name → file object, or `{text}` for raw text), `check` (the file to check), optional `base` (that file on the base branch) | `{ok: true}` or `{ok: false, error}`; for the build: `servers_json` |
 | `dedupe` | 10.11 | `now`, `arrivals` (in order, each `{record}` or `{text}`) | `stored` (sorted by id; multi-signer records with their signer keys) and `results` per arrival: `stored`, `duplicate`, `merged` or an error code |
