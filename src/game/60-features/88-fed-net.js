@@ -60,7 +60,7 @@ const fedLive=c=>{if(fedMine(c.M)&&c.M.conns.get(c.url)===c)return true;if(FED.l
 // Closes a socket without its handlers firing back, and answers every pending request with null.
 function fedHang(c){FED.clear(c.t);FED.clear(c.tick);c.t=c.tick=null;const ws=c.ws;c.ws=null;c.phase='';
   if(ws){ws.onopen=ws.onmessage=ws.onerror=ws.onclose=null;try{ws.close();}catch(e){}}
-  for(const r of c.rq.values()){FED.clear(r.t);r.res(null);}c.rq.clear();c.sub=c.vsub=c.rsub=0;c.op=c.me=c.exBuf=c.impl=c.feats=c.stTxt=null;c.stAt=0;FED.clear(c.subT);c.subT=null;c.subQ=null;}
+  for(const r of c.rq.values()){FED.clear(r.t);r.res(null);}c.rq.clear();c.sub=c.vsub=c.rsub=0;c.op=c.me=c.exBuf=c.impl=c.feats=c.stTxt=null;c.stAt=0;FED.clear(c.subT);c.subT=null;c.subQ=null;c.subN=0;c.gosN=0;}
 /* Development only (§9.1): a page loaded from a loopback host dials a *.localhost node over plain ws://, so a relay on
    the same machine needs no certificate. The page players load is never on a loopback host. */
 const FED_LOOP=/^(localhost|127\.0\.0\.1|\[::1\]|[a-z0-9.-]+\.localhost)$/;
@@ -123,32 +123,41 @@ function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.skip
   if(f.m==='ping'){fedSend(c,{m:'pong',id:f.id,now:fedNow()});return;}
   /* A page of the subscription: pages are handled one after another, and its cursor is kept only once every record of
      it was handled, so a connection lost in the middle resumes from the last whole page and skips nothing (§9.3). */
-  if(f.m==='recs'&&c.sub&&f.id===c.sub){const q=c.subQ||Promise.resolve(),k=fedCursorKey(c);
-    c.subQ=q.then(()=>fedRecs(c,f.items)).then(done=>{if(done&&fedCursorOk(f.cursor))return fedPut('kv',k,f.cursor);}).catch(()=>{});return;}
+  if(f.m==='recs'&&c.sub&&f.id===c.sub){const k=fedCursorKey(c);
+    fedSubQ(c,()=>fedRecs(c,f.items).then(done=>{if(done&&fedCursorOk(f.cursor))return fedPut('kv',k,f.cursor);}));return;}
   // The operators' own subscription to the votes (§9.3: only a session that proved an operator key gets them).
-  if(f.m==='recs'&&c.vsub&&f.id===c.vsub){const q=c.subQ||Promise.resolve(),k=fedVcKey(c);
-    c.subQ=q.then(()=>fedRecs(c,f.items)).then(done=>{if(done&&fedCursorOk(f.cursor))return fedVoteCursor(k,f.cursor);}).catch(()=>{});return;}
+  if(f.m==='recs'&&c.vsub&&f.id===c.vsub){const k=fedVcKey(c);
+    fedSubQ(c,()=>fedRecs(c,f.items).then(done=>{if(done&&fedCursorOk(f.cursor))return fedVoteCursor(k,f.cursor);}));return;}
   if(f.m==='err'&&c.vsub&&f.id===c.vsub){c.vsub=0;return;}
   // Players' reports, for an operator of this server only (§5.10), from their own cursor.
-  if(f.m==='recs'&&c.rsub&&f.id===c.rsub){const q=c.subQ||Promise.resolve(),k=fedVcKey(c);
-    c.subQ=q.then(()=>fedRecs(c,f.items)).then(done=>{if(done&&fedCursorOk(f.cursor))return fedVoteCursor(k,f.cursor,'rcursors');}).catch(()=>{});return;}
+  if(f.m==='recs'&&c.rsub&&f.id===c.rsub){const k=fedVcKey(c);
+    fedSubQ(c,()=>fedRecs(c,f.items).then(done=>{if(done&&fedCursorOk(f.cursor))return fedVoteCursor(k,f.cursor,'rcursors');}));return;}
   if(f.m==='err'&&c.rsub&&f.id===c.rsub){c.rsub=0;return;}
   if(f.m==='excluded'&&f.id===undefined){fedExclIn(c,f);return;}
   // A newer relay is out: a node tells sessions that proved an operator key of its server, no one else.
   if(f.m==='update'&&f.id===undefined){const u=fedUpdOf(f);if(u&&c.srv){FED.upd[c.srv]=u;fedEmit('update',{srv:c.srv,...u});}return;}
   // The node refused the subscription for now (rate_limited, internal): subscribe again after its retry.
   if(f.m==='err'&&c.sub&&f.id===c.sub){c.sub=0;if(f.code==='rate_limited'||f.code==='internal')c.subT=FED.set(()=>{c.subT=null;if(fedLive(c)&&c.phase==='ready'&&!c.sub)fedSub(c);},Math.min(60,Math.max(1,Number.isSafeInteger(f.retry)?f.retry:5))*1000);return;}
-  if(f.m==='catalog'&&f.id===undefined){fedGossip(f.entries,c.srv).catch(()=>{});return;}
+  // Unasked gossip is checked one frame at a time; a node that sends it faster than that is dropped (FED_HELD).
+  if(f.m==='catalog'&&f.id===undefined){if(c.gosN>=FED_HELD){fedDrop(c,'slow');return;}c.gosN=(c.gosN||0)+1;
+    fedGossip(f.entries,c.srv).catch(()=>{}).finally(()=>{c.gosN--;});return;}
   const q=f.id!==undefined&&c.rq.get(f.id);
   if(!q)return;
   // A long answer (§9.3): recs items or catalog entries gathered over the frames until more is not true.
   const L=q.many&&{recs:'items',catalog:'entries'}[f.m];
   if(L){q.items.push(...f[L]);if(f.more===true&&++q.n<512&&q.items.length<200000){FED.clear(q.t);q.t=FED.set(()=>{c.rq.delete(f.id);q.res(null);},FED.T.req);return;}}
   FED.clear(q.t);c.rq.delete(f.id);q.res(L?{...f,[L]:q.items}:f);}
+/* Pages of the subscriptions are handled one after another (each needs signature checks and storage). At most FED_HELD
+   wait at once (64 KB each at most): a node that streams them faster than this tab can handle them would otherwise fill its memory. */
+const FED_HELD=256;
+function fedSubQ(c,job){if((c.subN||0)>=FED_HELD){fedDrop(c,'slow');return;}c.subN=(c.subN||0)+1;const q=c.subQ||Promise.resolve();
+  c.subQ=q.then(job).catch(()=>{}).finally(()=>{if(c.subN>0)c.subN--;});}
 /* Just connected: make sure the node is one of its server's (when the catalog knows the server: the registry is asked
    first, for at most FED.T.fetch), then send what waits and follow the news. */
 async function fedReady(c){await c.M.cat;if(!fedLive(c)||c.phase!=='check')return;const e=await fedLearn(c);
-  if(e){const keys=e.nodes.map(n=>n.key);if(!keys.includes(c.nodeKey)){fedDrop(c,'not_node');return;}
+  /* The node must be the server's node at the URL dialled: a server that claims another's identity could otherwise
+     relay our challenge to a real node of it, then the auth we sign for it (§6.2, §9.3). */
+  if(e){if(!e.nodes.some(n=>n.key===c.nodeKey&&n.url===c.node)){fedDrop(c,'not_node');return;}
     const nonce=fedB64(fedNonce()),p=await fedAsk(c,{m:'challenge',nonce});if(!fedLive(c)||c.phase!=='check')return;if(!p||p.m!=='proof'){fedDrop(c,'bad_challenge');return;}
     if(await fedProofErr(p.proof,nonce,c.srv,c.nodeKey,fedNow())){fedDrop(c,'bad_challenge');return;}}
   if(!fedLive(c)||c.phase!=='check')return;await fedAuth(c);

@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Your game now only proves your network to a Multimode server at the address that server really lists, and drops a server that floods it with more updates than it can handle instead of slowing down or running out of memory.
 - Multimode servers check more carefully that the other servers and nodes they sync with are who they say they are. Every node of one server must run this version together: an upgraded node no longer syncs with a sibling that has not been upgraded, while syncing with other servers keeps working.
 - Exchanges you found grow with other players: every player with a port on yours is listed as a member and draws computer-run networks in faster, Multimode lists the exchanges players run and where a port would save you transit, and suggests founding one where two or more players already are. On up-to-date servers a port on a player's exchange also reaches every network on it, and you can invite up to two players to co-found an exchange: they pay their share of its cost, get a port and earn their share of the members' fees.
 - Multimode servers can now carry the member lists of players' exchanges and co-founding offers, to the games and servers that understand them only, so older servers and games keep working; servers should upgrade before players can use them.
