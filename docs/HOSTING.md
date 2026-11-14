@@ -188,7 +188,7 @@ docker compose cp relay:/data/operator.key ./operator.key
 
 Move that file off the server (a password manager, a USB stick in a drawer) and delete the copy there. Through a
 remote context (below) the command copies it straight to your own computer. Once it is safe, remove it from the
-server too, `docker compose exec relay rm /data/operator.key`: the relay never needs it to run or restart, and a key
+server too, `docker compose run --rm toolbox rm /data/operator.key` (the relay's image has no shell): the relay never needs it to run or restart, and a key
 that is not on the server cannot be stolen from it. See [operator actions without the key on the
 server](#operator-actions-without-the-key-on-the-server) for when you need it.
 
@@ -228,8 +228,9 @@ docker compose run --rm toolbox                 # edits /data/config.json
 docker compose kill -s HUP relay                # most settings; listen, metrics, TLS: docker compose restart relay
 ```
 
-**Backups:** `docker compose exec relay /relay backup /data/backup.tar.gz`, then
-`docker compose cp relay:/data/backup.tar.gz ./` and `docker compose run --rm toolbox rm /data/backup.tar.gz`.
+**Backups:** `docker compose exec relay /relay backup /data/backups/backup.tar.gz`, then
+`docker compose cp relay:/data/backups/backup.tar.gz ./` and `docker compose run --rm toolbox rm /data/backups/backup.tar.gz`.
+(`backups/` in the data folder is made when needed and, like any `.tar.gz` there, left out of later backups.)
 
 **Updating:**
 
@@ -757,7 +758,9 @@ one goes down. [RELAY.md, adding a second operator](RELAY.md#adding-a-second-ope
 
 **Backups**: `relay backup /path/backup.tar.gz` writes a consistent copy of records, config and node key while the relay
 runs (mode 0600). With Docker, write it into the data folder and copy it out:
-`docker compose exec relay /relay backup /data/backup.tar.gz && sudo mv relay-data/backup.tar.gz ~/`. Keep backups
+`docker compose exec relay /relay backup /data/backups/backup.tar.gz && sudo mv relay-data/backups/backup.tar.gz ~/`
+(the data folder's `backups/` is made when needed, and it and any `.tar.gz` in the folder are left out of later
+backups). Keep backups
 off the machine. `operator.key` is not in them: you saved it at the first run.
 
 **Restoring** on a new machine: install the relay, unpack the backup into an empty data folder owned by the relay's

@@ -218,7 +218,8 @@ func (r *Relay) Nodes() []map[string]any {
 }
 
 // Backup writes a gzipped tar of the data folder (records, catalog, config, node key).
-// The operator key is left out: it is backed up separately, and on purpose by hand.
+// The operator key is left out: it is backed up separately, and on purpose by hand. So are
+// earlier backups in the folder (backups/, *.tar.gz), which the folder's backups/ is for.
 // Under the lock it only opens every file and notes its size: files are appended to or replaced
 // by a rename, so what was there then stays readable, and the copy is written without the lock.
 func (r *Relay) Backup(path string) error {
@@ -239,7 +240,12 @@ func (r *Relay) Backup(path string) error {
 		}
 		rel, _ := filepath.Rel(r.o.Dir, p)
 		base := filepath.Base(p)
-		if fi.IsDir() || !fi.Mode().IsRegular() || base == "operator.key" || base == store.LockName || strings.HasPrefix(base, ".tmp-") {
+		// Backups written into the data folder (backups/, or any *.tar.gz) are not backed up again.
+		if fi.IsDir() && rel == backupsDir {
+			return filepath.SkipDir
+		}
+		if fi.IsDir() || !fi.Mode().IsRegular() || base == "operator.key" || base == store.LockName || strings.HasPrefix(base, ".tmp-") ||
+			strings.HasSuffix(base, ".tar.gz") {
 			return nil
 		}
 		src, err := os.Open(p)
@@ -263,11 +269,30 @@ func (r *Relay) Backup(path string) error {
 	if err != nil {
 		return err
 	}
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
+	// A new file beside the target, 0600 whatever the umask, renamed over it when complete: an
+	// existing file's mode is not kept and a symlink at path is replaced, not followed.
+	if d, _ := filepath.Abs(filepath.Dir(path)); d != "" {
+		if own, _ := filepath.Abs(filepath.Join(r.o.Dir, backupsDir)); d == own {
+			if err := os.MkdirAll(d, 0o700); err != nil {
+				return err
+			}
+		}
+	}
+	f, err := os.CreateTemp(filepath.Dir(path), ".tmp-backup-*")
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	tmp := f.Name()
+	ok := false
+	defer func() {
+		f.Close()
+		if !ok {
+			os.Remove(tmp)
+		}
+	}()
+	if err := f.Chmod(0o600); err != nil {
+		return err
+	}
 	gz := gzip.NewWriter(f)
 	tw := tar.NewWriter(gz)
 	for _, s := range files {
@@ -281,8 +306,24 @@ func (r *Relay) Backup(path string) error {
 	if err := tw.Close(); err != nil {
 		return err
 	}
-	return gz.Close()
+	if err := gz.Close(); err != nil {
+		return err
+	}
+	if err := f.Sync(); err != nil {
+		return err
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		return err
+	}
+	ok = true
+	return nil
 }
+
+// backupsDir is the data folder's place for backups written into it; backups leave it out.
+const backupsDir = "backups"
 
 // Store exposes the record store to tests in this module.
 func (r *Relay) Store() *store.Store { return r.st }

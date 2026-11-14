@@ -484,8 +484,10 @@ How it works (`relay/internal/rank`):
      relay (it would refuse them); it sees the player's earlier announce, or none, until it is reloaded.
   To check which servers have upgraded: the looking glass shows each node's relay version, and `relay status` each
   peer's (every relay released after 4.0.0 takes `ix2`).
-- **Backups:** `relay backup FILE.tar.gz` writes the records, catalog, config and node key (mode 0600). The operator
-  key is left out on purpose: keep your own copy of `operator.key` somewhere safe. If a node loses its disk, the
+- **Backups:** `relay backup FILE.tar.gz` writes the records, catalog, config and node key to a new file (mode 0600)
+  that replaces `FILE.tar.gz` when complete (a symlink there is replaced, not followed). To keep backups in the data
+  folder, write them into its `backups/` folder (made when needed): it, and any `*.tar.gz` in the data folder, is left
+  out of later backups. The operator key is left out on purpose: keep your own copy of `operator.key` somewhere safe. If a node loses its disk, the
   server's other nodes and the servers it syncs with fill it back in; what nobody else had is only recent stats and
   offers, which players send again.
 - **What is kept:** records go into one file per day under `log/`. Stats are kept 72 hours (plus, for carrying forward,

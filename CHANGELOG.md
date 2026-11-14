@@ -16,6 +16,7 @@ All notable changes to this project are documented here. The project follows
 - A Multimode server started with `relay up` (the container default) now restarts without its operator key in the data folder, so operators can keep that key only on their own computer, as the hosting guide now recommends.
 - `relay lan` really contacts nothing on the internet now: a relay without a registry no longer checks GitHub for new releases.
 - `relay lan` now answers only devices on the local network, even where the machine also has a public address.
+- `relay backup` always writes a fresh file readable only by the relay's user, and backups kept in the data folder (in its new `backups/` folder) are no longer copied into later backups.
 
 ## [4.0.0] — 2026-11-13
 
