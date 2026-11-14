@@ -81,6 +81,7 @@ type player struct {
 	cursor    string
 	annID     string
 	annT      int64 // t of the last announce
+	founded   int64 // the real day it says it joined: the same in every announce (5.1)
 	day       int64
 	handled   map[string]bool // offers answered
 	lastStats int64           // slot of the last stats put (one per slot, 5.2)
@@ -479,11 +480,15 @@ func (p *player) announce(ctx context.Context) {
 	// one second would tie on t, so each is a second after the last.
 	t := max(time.Now().Unix(), p.annT+1)
 	p.annT = t
+	if p.founded == 0 {
+		p.founded = t/86400 - int64(10+p.i%90)
+	}
+	founded := p.founded
 	p.mu.Unlock()
 	asn, _ := fed.ASN(p.key.Key)
 	ix := p.cities[:1+len(p.cities)/2]
 	rec := p.key.Seal("announce", t, map[string]any{"name": fmt.Sprintf("Load Net %d", p.i), "asn": asn, "box": p.boxPub,
-		"home": p.home, "day": day, "founded": t/86400 - int64(10+p.i%90), "pops": strs(p.cities), "ix": strs(ix),
+		"home": p.home, "day": day, "founded": founded, "pops": strs(p.cities), "ix": strs(ix),
 		"cust": int64(p.i % 50), "mix": map[string]any{"content": int64(200), "eyeball": int64(700), "enterprise": int64(100)},
 		"traffic": map[string]any{"in": in, "out": out}, "policy": policy, "rates": map[string]any{},
 		"auto": map[string]any{"peering": "auto", "transit": "review", "pni": "review", "swap": "decline", "consortium": "decline", "port": "decline"}})

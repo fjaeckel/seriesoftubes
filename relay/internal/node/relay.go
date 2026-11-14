@@ -893,6 +893,14 @@ func (r *Relay) stateCheck(rec *fed.Record, now int64, o origin) string {
 		if r.voteN[srv] >= maxVotesPerServer && r.st.Get(rec.ID) == nil {
 			return fed.TooMany
 		}
+	case "announce":
+		// A network's founded never changes (5.1): an announce saying another day than the key's
+		// newest here is refused, so no one claims the newcomer price late or an old network early.
+		if cur := r.ann[rec.Key]; cur != nil && cur.ID != rec.ID {
+			if x := r.st.Rec(cur); x != nil && x.Int("founded") != rec.Int("founded") {
+				return fed.Refused
+			}
+		}
 	case "offer":
 		to, _ := rec.Body["to"].(string)
 		if r.st.Get(rec.ID) == nil && (r.offerN[rec.Key] >= maxOffersPerKey || r.offerN[rec.Key+"|"+to] >= maxOffersPerPair) {

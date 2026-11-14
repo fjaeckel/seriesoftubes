@@ -61,7 +61,7 @@ func Folder(dir string, f FolderSpec) (map[string]int, error) {
 					t := f.Now - int64(a)*fed.Day - int64(i%600)
 					asn, _ := fed.ASN(k.Key)
 					add(k.Seal("announce", t, map[string]any{"name": fmt.Sprint("Folder Net ", i), "asn": asn, "box": k.Key,
-						"home": []string{"DE", "FR", "US", "JP"}[i%4], "day": int64(100 + a), "founded": t/86400 - int64(10+i%90),
+						"home": []string{"DE", "FR", "US", "JP"}[i%4], "day": int64(100 + a), "founded": f.Now/86400 - int64(f.Anns+10+i%90),
 						"pops": []any{cities[i%10], cities[(i+3)%10], cities[(i+7)%10]}, "ix": []any{cities[i%10]}, "cust": int64(i % 50),
 						"mix":     map[string]any{"content": int64(200), "eyeball": int64(700), "enterprise": int64(100)},
 						"traffic": map[string]any{"in": int64(1000 + i), "out": int64(500 + i)}, "policy": "open", "rates": map[string]any{},

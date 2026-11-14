@@ -365,12 +365,19 @@ func Stats(k *fed.Signer, t int64, pops int64, share bool) map[string]any {
 		"traffic": []any{}, "tier1": false, "shareCountry": share})
 }
 
-// Announce makes a signed announce for a network key.
+// Announce makes a signed announce for a network key. Its founded is one day for every
+// announce of the tests (a key's founded never changes, 5.1): 400 days before Start, or t's day
+// for an earlier t.
 func Announce(k *fed.Signer, t int64, name string) map[string]any {
+	return AnnounceFounded(k, t, name, min(t/86400, Start/86400-400))
+}
+
+// AnnounceFounded makes a signed announce for a network key that says it joined on real day founded.
+func AnnounceFounded(k *fed.Signer, t int64, name string, founded int64) map[string]any {
 	asn, _ := fed.ASN(k.Key)
 	// box: any Key does for a relay, which never opens a deal (the games derive theirs, 5.1).
 	return k.Seal("announce", t, map[string]any{"name": name, "asn": asn, "box": k.Key, "home": "DE", "day": int64(1),
-		"founded": t / 86400, "pops": []any{"fra"}, "ix": []any{}, "cust": int64(1),
+		"founded": founded, "pops": []any{"fra"}, "ix": []any{}, "cust": int64(1),
 		"mix":     map[string]any{"content": int64(0), "eyeball": int64(1000), "enterprise": int64(0)},
 		"traffic": map[string]any{"in": int64(0), "out": int64(0)}, "policy": "open", "rates": map[string]any{},
 		"auto": map[string]any{"peering": "auto", "transit": "decline", "pni": "decline", "swap": "decline", "consortium": "decline", "port": "decline"}})
