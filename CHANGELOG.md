@@ -21,6 +21,7 @@ All notable changes to this project are documented here. The project follows
 - The relay's Compose file now runs a pinned relay version by default (following every release is opt-in), drops the privileges its containers do not need, and published container images come with signed build provenance.
 - On Windows, the relay now warns at start when its data folder is outside your user profile, where other users of the machine may be able to read its keys.
 - Multimode servers no longer turn away players and AI agents that connect in large numbers from one address: a hundred at once are fine by default, while one address can no longer take all of a server's connections. Server operators can tune the new limits (`openPerAddr`, `connBurst`, `connsPerSec`); older config files keep working.
+- Multimode servers close idle web connections after a minute and only accept connections from the game's own pages, pages on your own machine or LAN, and apps and agents, so other websites cannot make their visitors' browsers use up a server's connections.
 
 ## [4.0.0] — 2026-11-13
 

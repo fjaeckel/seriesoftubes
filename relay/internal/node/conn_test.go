@@ -155,3 +155,40 @@ func TestHandshakesCountAgainstMaxClients(t *testing.T) {
 		t.Fatalf("a fourth silent connection with room for three: %v %+v", err, resp)
 	}
 }
+
+// Browsers say which page opened a connection: the game's and pages on one's own machine or LAN
+// may connect, other websites may not; agents and relays send no Origin at all.
+func TestOrigins(t *testing.T) {
+	n := rt.New(t)
+	x := n.Found("origins", "open").Nodes[0]
+	try := func(origin string) int {
+		h := http.Header{}
+		if origin != "" {
+			h.Set("Origin", origin)
+		}
+		c, resp, err := dialHdr(t, n, x.URL, h)
+		if err == nil {
+			c.CloseNow()
+			return http.StatusSwitchingProtocols
+		}
+		if resp == nil {
+			t.Fatalf("%s: %v", origin, err)
+		}
+		return resp.StatusCode
+	}
+	for _, o := range []string{"", "https://seriesoftub.es", "http://localhost:8080", "http://127.0.0.1:8080", "https://192.168.1.20:8080",
+		"https://myhost.local:8080", "https://[::1]:8080", "http://game.test:5000"} {
+		if got := try(o); got != http.StatusSwitchingProtocols {
+			t.Errorf("origin %q: %d", o, got)
+		}
+	}
+	for _, o := range []string{"https://evil.example", "null", "http://seriesoftub.es.evil.example", "https://8.8.8.8"} {
+		if got := try(o); got != http.StatusForbidden {
+			t.Errorf("origin %q: %d, want 403", o, got)
+		}
+	}
+	reload(x, func(c *config.Config) { c.AllowedOrigins = []string{"https://*.example.org"} })
+	if got := try("https://play.example.org"); got != http.StatusSwitchingProtocols {
+		t.Errorf("an allowed origin: %d", got)
+	}
+}

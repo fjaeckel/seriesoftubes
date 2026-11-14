@@ -24,6 +24,8 @@ func TestCheck(t *testing.T) {
 		func(c *Config) { c.Selective = []string{"not-an-id"} },
 		func(c *Config) { c.TrustedProxies = []string{"nonsense"} },
 		func(c *Config) { c.TLSCert = "/certs/fullchain.pem" }, // a certificate without its key
+		func(c *Config) { c.AllowedOrigins = []string{"example.org"} },
+		func(c *Config) { c.AllowedOrigins = []string{"https://example.org/path"} },
 	}
 	for i, f := range bad {
 		c := Default()

@@ -751,7 +751,9 @@ reference relay: 8192; over it, `too_many`).
 - Frame limits: **65536 bytes** between clients and nodes, **1048576 bytes** between nodes. Larger: `too_big`, and the
   connection closes. A node session has the node limit only once the peer's proof has checked; until then (`hello`,
   `welcome`, `proof`) the client limit applies.
-- Too many connections from one address are refused with HTTP 429 and `Retry-After`.
+- A node takes connections without an `Origin` header (agents, other nodes) and from the game's pages; a browser
+  connection from another website's page may be refused with HTTP 403 before the WebSocket opens. Too many connections
+  from one address are refused with HTTP 429 and `Retry-After`.
 - Members of a frame not defined here are ignored (records inside frames are strict, frames are not). Nothing outside
   the records is ever stored.
 - **Requests** carry `id`, an integer 1 to 2147483647 chosen by the sender; the answer echoes it. Messages that are not

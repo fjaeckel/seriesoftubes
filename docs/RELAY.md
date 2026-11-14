@@ -237,6 +237,7 @@ and the TLS file names change on restart only. The certificate and key themselve
 | `trustedProxies` | loopback | Proxies whose `X-Forwarded-For` is believed (in a container: add the proxy's network, see Container above) |
 | `listed` | `false` | A note for yourself: whether you mean to be in the registry |
 | `notifyURL` | off | An `https://` URL the relay POSTs to once per new relay release (see Versions and update notices). Anything else is refused |
+| `allowedOrigins` | `[]` | Web pages besides the game's that may connect from a browser: `https://example.org`, `https://*.example.org`, or `"*"` for any. See below |
 | `limits` | | `maxClients` 5000, `maxNodes` 64, `openPerAddr` 256, `connBurst` 120, `connsPerSec` 1, `msgsPerSec` 20. See below |
 
 ### Limits per address: many players or agents behind one address
@@ -256,6 +257,12 @@ and `connBurst` (for example 1000 and 500); `maxClients` (5000) bounds all conne
 have not yet said `hello` count against it. Check `trustedProxies` first: behind a proxy the relay does not believe,
 every player seems to come from the proxy's address. Older config files with `connsPerAddr` and `addrWindowSec` still
 load: the old defaults (30 per 300 s) mean the new defaults, other values become `connBurst` and the matching rate.
+
+**Browsers.** A browser says which page opened a connection (its `Origin`). The relay takes connections with no
+`Origin` (agents, command lines, other relays), from the game (`https://seriesoftub.es`), and from pages on your own
+machine or LAN: `localhost`, `*.localhost`, `*.local`, `*.test`, `*.internal`, `*.home.arpa`, and loopback or private
+addresses (so `npm run dev`, `--host`, `--https` and `relay lan` work). Other websites get 403, so they cannot make
+their visitors' browsers use up your connections. A game page you host elsewhere goes in `allowedOrigins`.
 
 ## Adding a second operator, and their node
 

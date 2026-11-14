@@ -15,6 +15,7 @@ import (
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/canon"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
+	weborigin "github.com/fjaeckel/seriesoftubes/relay/internal/origin"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/privacy"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/store"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/update"
@@ -617,6 +618,7 @@ func (r *Relay) accept(w http.ResponseWriter, req *http.Request) {
 	}
 	r.mu.Lock()
 	trusted := r.cfg.Proxies()
+	origins := r.cfg.AllowedOrigins
 	full := len(r.clients)+int(r.hand.Load()) >= r.cfg.Limits.MaxClients+r.cfg.Limits.MaxNodes
 	if !full {
 		r.hand.Add(1)
@@ -633,6 +635,13 @@ func (r *Relay) accept(w http.ResponseWriter, req *http.Request) {
 			r.hand.Add(-1)
 		}
 	}()
+	// A browser always says which page opened the connection: only the game's may (and the
+	// operator's own). Agents, command lines and other relays send no Origin.
+	if !weborigin.OK(req.Header.Get("Origin"), origins) {
+		r.o.Metrics.Inc("relay_refused_total", "origin")
+		http.Error(w, "origin not allowed", http.StatusForbidden)
+		return
+	}
 	// The address is used here, in memory only: counted while the connection is open, then
 	// dropped (the limiter forgets it once its bucket has refilled).
 	cc := ""
@@ -652,7 +661,8 @@ func (r *Relay) accept(w http.ResponseWriter, req *http.Request) {
 	}
 	c, err := websocket.Accept(w, req, &websocket.AcceptOptions{
 		Subprotocols: []string{fed.Subprotocol},
-		// Browsers connect from the game's origin; no cookies or ambient authority exist.
+		// Checked above (weborigin.OK): no cookies or ambient authority exist, the check only keeps
+		// other websites from spending the relay's connections.
 		InsecureSkipVerify: true,
 	})
 	if err != nil {

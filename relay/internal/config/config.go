@@ -11,6 +11,7 @@ import (
 	"slices"
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/origin"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/store"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/update"
 )
@@ -65,6 +66,7 @@ type Config struct {
 	TrustedProxies []string    `json:"trustedProxies,omitempty"` // prefixes whose X-Forwarded-For is believed
 	Listed         bool        `json:"listed"`                   // the operators mean to be in the registry
 	NotifyURL      string      `json:"notifyURL,omitempty"`      // https:// URL POSTed once per new relay release; empty: off
+	AllowedOrigins []string    `json:"allowedOrigins,omitempty"` // web pages besides the game's that may connect (https://example.org, https://*.example.org, or "*": any)
 	Limits         Limits      `json:"limits"`
 }
 
@@ -222,6 +224,11 @@ func (c *Config) Check() error {
 	for _, p := range c.TrustedProxies {
 		if _, err := netip.ParsePrefix(p); err != nil {
 			return fmt.Errorf("trustedProxies: %w", err)
+		}
+	}
+	for _, o := range c.AllowedOrigins {
+		if !origin.Pattern(o) {
+			return fmt.Errorf("allowedOrigins: %q is not an origin (https://example.org, https://*.example.org or *)", o)
 		}
 	}
 	if c.NotifyURL != "" && !update.HTTPSURL(c.NotifyURL) {
