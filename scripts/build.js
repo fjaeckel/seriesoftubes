@@ -64,6 +64,8 @@ if (!html.includes(PH)) die('release-notes placeholder missing from the page');
 const story = execFileSync(process.execPath, [path.join(__dirname, 'release-notes.js'), VERSION, '--story'], { encoding: 'utf8' }), PS = '/*__RELEASE_STORY__*/[]';
 if (!html.includes(PS)) die('release-story placeholder missing from the page');
 fs.writeFileSync(page, html.replace(PH, () => notes.replace(/</g, '\\u003c')).replace(PS, () => story.replace(/</g, '\\u003c')));
+// Last change to the page: its Content Security Policy, with the hashes of its finished inline scripts.
+fs.writeFileSync(page, require('./lib/csp').withCsp(fs.readFileSync(page, 'utf8')));
 fs.writeFileSync(path.join(OUT, 'version.json'), JSON.stringify({ version: VERSION, date: BUILD_DATE, notes: JSON.parse(notes), story: JSON.parse(story) }, null, 2) + '\n');
 
 // Nothing may ship half-stamped.

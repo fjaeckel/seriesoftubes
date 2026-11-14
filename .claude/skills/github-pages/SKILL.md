@@ -18,6 +18,9 @@ one, redesign the feature.
 - **No HTTP headers, redirects or rewrites.** Pages ignores `_headers`, `_redirects`, `.htaccess`,
   `vercel.json`, `netlify.toml`. Need a policy? Use a `<meta>` tag. Need a different URL? Add a
   static file there.
+- **The page's Content Security Policy is a `<meta>` tag** the build adds last (`scripts/lib/csp.js`): inline scripts by
+  hash, same-origin and the counter's one file for scripts, `'self'`, `wss:` and the collector for connections. A new
+  kind of request or a new third-party file needs it changed; `tests/csp.test.js` says when.
 - **Caching is Pages' (short, the same for every file) plus the service worker's.** Offline play and
   updates are `site/sw.js`'s job; its cache name carries the version. When you add a file the game
   needs offline, add it to `CORE` there.
