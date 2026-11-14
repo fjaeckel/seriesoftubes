@@ -56,9 +56,14 @@ function fedRankOne(q,key,recs,ann,states){const W=fedWindows(q.now),from=W.prev
     let i=0,o=0;for(const e of r.body.traffic){if(ex.has(e.key))continue;const y=run(e.key);
       if(cs&&!(fedHas(y)&&pops(y)>0))continue;if(!y){i+=e.in;o+=e.out;}else if(fedHas(y)){const z=y.body.traffic.find(x=>x.key===key);if(z){i+=Math.min(e.in,z.out);o+=Math.min(e.out,z.in);}}}
     return [i,o];})();
-  const total=(a,b,x)=>{const IN=[],OUT=[];let lo=null;
+  /* The cone at slot s changes only where some record starts or stops counting (its slot, 7 days on) or a day begins
+     (the 30-day rule): between two such points it is worked out once. */
+  const cps=q.board==='cone'?(()=>{const v=new Set();for(const l of by.values())for(const r of l){v.add(r.slot);v.add(r.slot+FED_CARRY);}
+    for(let d=fedDiv(from,FED_DAY)+1;d*FED_DAY<=last;d++)v.add(d*FED_DAY);return [...v].sort((x,y)=>x-y);})():null;
+  const total=(a,b,x)=>{const IN=[],OUT=[];let lo=null,j=0,cj=-1,cv=0;
     for(let k=a;k<b;k++){const s=from+k*FED_SLOT,r=fedEffAt(w,s);if(!fedHas(r))continue;
-      if(q.board==='traffic'){const [i,o]=traffic(r,s);IN.push(i);OUT.push(o);}else if(q.board==='total')IN.push(r.body.total||0);else if(q.board==='cone')IN.push(cone(s));
+      if(q.board==='traffic'){const [i,o]=traffic(r,s);IN.push(i);OUT.push(o);}else if(q.board==='total')IN.push(r.body.total||0);
+      else if(q.board==='cone'){while(j<cps.length&&cps[j]<=s)j++;if(j!==cj){cj=j;cv=cone(s);}IN.push(cv);}
       else lo=q.board==='pies'?r.body.pies||0:pops(r);}
     if(x){if(q.board==='traffic'){IN.push(x[0]);OUT.push(x[1]);}else if(q.board==='total'||q.board==='cone')IN.push(x[0]);else lo=x[0];}
     return q.board==='traffic'?Math.max(fedP95(IN),fedP95(OUT)):q.board==='total'||q.board==='cone'?fedP95(IN):lo||0;};
