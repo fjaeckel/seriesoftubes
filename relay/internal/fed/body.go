@@ -486,6 +486,10 @@ var auto = func() check {
 // auto.cofound in an announce, and cofound offers.
 const FeatIx2 = "ix2"
 
+// FeatBind names bound node handshake proofs (6.2, 9.4): a node that lists it in hello or welcome
+// signs and wants proofs that name the checking node and the role.
+const FeatBind = "bind"
+
 // Ix2 reports whether a record holds what only the ix2 feature carries: an announce listing its
 // exchanges' members (rates.ix.members) or how it takes co-founding (auto.cofound). A node passes
 // such a record only to sessions that listed ix2 in feats (9.3, 9.4): older ones refuse those fields.
@@ -799,6 +803,10 @@ func checkBody(r *Record) string {
 	case "receipt":
 		return object(r.Body, []field{req("rec", idCheck), req("server", idCheck), opt("cc", cc)})
 	case "proof":
+		// to and role (a node handshake's bound proof, 6.2) come together or not at all.
+		if _, to := r.Body["to"]; to {
+			return object(r.Body, []field{req("nonce", idCheck), req("role", oneOf(RoleAnswer, RoleCall)), req("server", idCheck), req("to", keyCheck)})
+		}
 		return object(r.Body, []field{req("nonce", idCheck), req("server", idCheck)})
 	}
 	return BadKind

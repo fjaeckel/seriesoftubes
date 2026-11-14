@@ -35,11 +35,15 @@ const (
 // feats is what this side lists in hello and welcome (9.3, 9.4): the optional messages it takes.
 func (r *Relay) feats() []any {
 	if r.o.Feats == nil {
-		return []any{wire.Feat, wire.FeatIx2}
+		return []any{wire.Feat, wire.FeatIx2, wire.FeatBind}
 	}
-	out := make([]any, len(r.o.Feats))
-	for i, f := range r.o.Feats {
-		out[i] = f
+	out := make([]any, 0, len(r.o.Feats)+1)
+	for _, f := range r.o.Feats {
+		out = append(out, f)
+	}
+	// Bound proofs are a security property, not an optional message: always listed.
+	if !slices.Contains(r.o.Feats, wire.FeatBind) {
+		out = append(out, wire.FeatBind)
 	}
 	return out
 }

@@ -150,6 +150,9 @@ const Feat = "state"
 // 5.3 cofound): records that carry it go only to sessions that list it.
 const FeatIx2 = fed.FeatIx2
 
+// FeatBind is the feature of bound node handshake proofs (6.2, 9.4).
+const FeatBind = fed.FeatBind
+
 // Feats reads a feats member (9.3, 9.4): the strings of a list, anything else none. It is
 // informational: a side sends an optional message only to a peer that listed it.
 func Feats(v any) []string {

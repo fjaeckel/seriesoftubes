@@ -594,6 +594,17 @@ never the record error codes); `kind` is `proof`, `key` is the node it asked, `b
 (each otherwise `bad_challenge`); the signature (`bad_sig`); `body.nonce` is the nonce it sent and `|t - now| <= 300`
 (otherwise `bad_challenge`). Nonces are 32 random bytes, used once.
 
+**Bound proofs (node handshakes).** A proof answering a client's `challenge` names no checker, so anyone can obtain
+one from any node, over any nonce. In a node handshake (9.4) such a proof would let someone pass as that node by
+relaying the checker's nonce to it. So a node that lists `bind` in its `feats` signs, in node handshakes, a body
+`{nonce, role, server, to}`: `to` is the node key of the node that will check the proof, `role` is `"answer"` in a
+`welcome` and `"call"` in the caller's `proof`. `to` and `role` come together or not at all. The checker additionally
+requires `to` to be its own key and `role` the other side's role (`bad_challenge`); a client checking a `challenge`
+refuses a bound proof. A node refuses an unbound proof in a node handshake, except from a node of another server
+that did not list `bind` (older relays, for the transition). A `hello` that claims the answerer's own server and does
+not list `bind` is refused with `bad_challenge` before any proof is made, and a node only accepts a `welcome` from
+its own server at the URL its chain lists for that node.
+
 ## 7. Validation order and error codes
 
 ### 7.1 Order

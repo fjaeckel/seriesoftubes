@@ -47,11 +47,22 @@ func (r *Relay) answerNode(s *session, h *wire.Hello) {
 		s.fail(0, fed.NotReady, 0)
 		return
 	}
+	// A caller that claims this server must bind its proofs (6.2): nodes of one server are
+	// upgraded together, and an unbound proof can be had from any node by asking it.
+	bind := slices.Contains(h.Feats, wire.FeatBind)
+	if !bind && h.Server == own {
+		s.fail(0, fed.BadChallenge, 0)
+		return
+	}
 	mine := nonce()
 	now := r.now()
 	s.ver, s.impl, s.feats = h.Ver, h.Impl, h.Feats
+	proof := r.o.Node.MakeProof(h.Nonce, own, now)
+	if bind {
+		proof = r.o.Node.MakeBoundProof(h.Nonce, own, h.Node, fed.RoleAnswer, now)
+	}
 	s.enqueue(map[string]any{"m": "welcome", "ver": h.Ver, "server": own, "node": r.Key(), "nonce": mine,
-		"proof": r.o.Node.MakeProof(h.Nonce, own, now), "impl": r.implValue(), "feats": r.feats()})
+		"proof": proof, "impl": r.implValue(), "feats": r.feats()})
 	ctx, cancel := context.WithTimeout(s.ctx, handshakeTimeout)
 	f, ok := s.readFrame(ctx)
 	cancel()
@@ -64,7 +75,7 @@ func (r *Relay) answerNode(s *session, h *wire.Hello) {
 	}
 	pv, code := canon.Check(f.Raw["proof"])
 	if code == "" {
-		code = fed.CheckProof(pv, mine, h.Server, h.Node, r.now())
+		code = fed.CheckNodeProof(pv, mine, h.Server, h.Node, r.now(), r.Key(), fed.RoleCall, !bind)
 	}
 	if code != "" {
 		s.fail(0, fed.BadChallenge, 0)
@@ -111,9 +122,11 @@ func (r *Relay) dialNode(ctx context.Context, dialer, url string) error {
 	server, _ := f.Str("server")
 	node, _ := f.Str("node")
 	theirs, _ := f.Str("nonce")
+	feats := wire.Feats(f.Raw["feats"])
+	bind := slices.Contains(feats, wire.FeatBind)
 	pv, code := canon.Check(f.Raw["proof"])
 	if code == "" {
-		code = fed.CheckProof(pv, mine, server, node, r.now())
+		code = fed.CheckNodeProof(pv, mine, server, node, r.now(), r.Key(), fed.RoleAnswer, !bind && server != own)
 	}
 	if code != "" || !slices.Contains(r.speaks, ver) || !fed.IsID(theirs) {
 		s.fail(0, fed.BadChallenge, 0)
@@ -122,13 +135,38 @@ func (r *Relay) dialNode(ctx context.Context, dialer, url string) error {
 	if node == r.Key() {
 		return errClosed // dialled ourselves
 	}
-	s.ver, s.impl, s.feats = ver, update.ReadImpl(f.Raw["impl"]), wire.Feats(f.Raw["feats"])
+	if server == own && !r.siblingAt(node, url) {
+		// A sibling is only ever dialled at the URL the chain lists for it; anyone else claiming
+		// to be one could be relaying a real sibling's handshake (6.2).
+		s.fail(0, fed.NotNode, 0)
+		return errClosed
+	}
+	s.ver, s.impl, s.feats = ver, update.ReadImpl(f.Raw["impl"]), feats
 	r.mu.Lock()
 	r.urlSrv[url] = server
 	r.mu.Unlock()
-	s.enqueue(map[string]any{"m": "proof", "proof": r.o.Node.MakeProof(theirs, own, r.now())})
+	proof := r.o.Node.MakeProof(theirs, own, r.now())
+	if bind {
+		proof = r.o.Node.MakeBoundProof(theirs, own, node, fed.RoleCall, r.now())
+	}
+	s.enqueue(map[string]any{"m": "proof", "proof": proof})
 	r.runPeer(s, server, node)
 	return nil
+}
+
+// siblingAt reports whether node is a node of this server listed at url.
+func (r *Relay) siblingAt(node, url string) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.own == nil {
+		return false
+	}
+	for _, n := range r.own.Nodes {
+		if n.Key == node && n.URL == url {
+			return true
+		}
+	}
+	return false
 }
 
 // nodeRoom reports whether a session with a node of server may start (lock held). This server's

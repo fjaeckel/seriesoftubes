@@ -183,14 +183,14 @@ func TestNodeNotOnTheListRefused(t *testing.T) {
 		return f
 	}
 	mine := fed.Encode(make([]byte, 32))
-	send(map[string]any{"m": "hello", "vers": []any{int64(1)}, "role": "node", "server": s.ID, "node": intruder.Key, "nonce": mine})
+	send(map[string]any{"m": "hello", "vers": []any{int64(1)}, "role": "node", "server": s.ID, "node": intruder.Key, "nonce": mine, "feats": []any{fed.FeatBind}})
 	w := read()
 	theirs, _ := w.Str("nonce")
 	pv, _ := canon.Check(w.Raw["proof"])
-	if code := fed.CheckProof(pv, mine, s.ID, x.Key.Key, n.Clock.Unix()); code != "" {
+	if code := fed.CheckNodeProof(pv, mine, s.ID, x.Key.Key, n.Clock.Unix(), intruder.Key, fed.RoleAnswer, false); code != "" {
 		t.Fatalf("node's proof: %s", code)
 	}
-	send(map[string]any{"m": "proof", "proof": intruder.MakeProof(theirs, s.ID, n.Clock.Unix())})
+	send(map[string]any{"m": "proof", "proof": intruder.MakeBoundProof(theirs, s.ID, x.Key.Key, fed.RoleCall, n.Clock.Unix())})
 	for {
 		f := read()
 		if f.M == "err" {
