@@ -78,7 +78,9 @@ test('rows: rank, a bold name button over AS and country, the value in its own c
   await run(p);
   const rows = val(p, `[...document.querySelectorAll('#modalCard .fu-board .fu-row')].map(r=>({rank:r.querySelector('.fu-rank').textContent,nm:r.querySelector('.fu-nm').textContent,sub:r.querySelector('.fu-sub').textContent,v:r.querySelector('.fu-v').textContent,btn:r.querySelector('.fu-who').tagName,top:/top\\d/.test(r.className),me:r.classList.contains('fu-me')}))`);
   assert.equal(rows.length, 30);
-  assert.deepEqual(rows[0], { rank: '1', nm: 'Net 0', sub: 'AS4200000100 · Germany', v: '50.0 Gbps', btn: 'BUTTON', top: true, me: false });
+  // The AS comes with the network key's short fingerprint (fedFp): an ASN alone can be made up to match.
+  assert.match(rows[0].sub, /^AS4200000100 #[0-9a-f]{6} · Germany$/);
+  assert.deepEqual({ ...rows[0], sub: null }, { rank: '1', nm: 'Net 0', sub: null, v: '50.0 Gbps', btn: 'BUTTON', top: true, me: false });
   assert.match(rows[1].sub, /^🤖 AS4200000101/, 'an AI network has its robot first in the small line');
   assert.equal(rows[3].top, false);
   assert.equal(rows[2].nm, 'Extraordinarily Long Network Name Corp', 'long names are whole in the page; CSS truncates them');
