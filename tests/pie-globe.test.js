@@ -31,7 +31,7 @@ test('opening starts one loop, closing stops it and removes every listener', asy
   assert.ok(ev('__ls') >= 4, 'pointer listeners on the canvas');
   assert.equal(ev("$('pgTest').style.touchAction"), 'none');
   ev("pieGlobeOpen($('pgTest'),__pgData)"); // opening twice keeps one loop
-  assert.ok(ev('__ls') >= 4 && ev('__ls') <= 5);
+  assert.ok(ev('__ls') >= 4 && ev('__ls') <= 6); // pointer events and the wheel (zoom)
   await wait(120);
   assert.ok(ev('__raf') >= 2, 'the loop keeps itself going while open');
   ev('pieGlobeClose()');

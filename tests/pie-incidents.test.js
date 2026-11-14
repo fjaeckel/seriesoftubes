@@ -72,7 +72,7 @@ test('food fight: a slice gone, launches dearer for a year, a Space Roomba fixes
   assert.ok(i, 'debris');
   assert.equal(i.until - ev('S.day'), 360, 'a year');
   assert.ok(ev("pieLive('short')+pieLive('upper')") < n0, 'a slice of the crust is gone');
-  ev("UI.pieIns=false;UI.pieLas=false");
+  ev("S.pie.opt.ins=false");
   const q = ev(`pieQuote('falcon','${i.ref}').cost`), q0 = i.ref === 'short' ? before : null;
   if (q0) assert.ok(q > q0, `launches cost more (${q} > ${q0})`);
   ev(`ACT.fixInc({id:'${i.id}'})`);

@@ -1,7 +1,7 @@
-/* Pie Control's Traffic tab: what rides your satellites, how much, for whom, and why a sky or a dish is idle. Read from
+/* Pie Control's traffic, spread over the tabs that own it (overview, crusts, dishes): what rides your satellites, how much, for whom, and why a sky or a dish is idle. Read from
    the last compute (R.pie: flows, crust, dish from 35-pie-paths.js); the fiber comparison is worked out only here
    (pieFiberMs, once per compute). The highlighted row (UI.pieHi) is display only and never saved. */
-const PIE_ROWS=40;
+const PIE_ROWS=60;
 const pieIcon=t=>({pizza:'🏡',flywifi:'✈️',boat:'🚢',marsorb:'🔴',mars:'🔴',hft:'📈',bh:'🛰️'})[t]||'🔗';
 const pieCn=c=>c&&CITY[c]?esc(CITY[c].name):'?';
 const pieMs=v=>v<10?v.toFixed(1):String(Math.round(v));
@@ -37,25 +37,56 @@ function pieBhRow(b){const id='bh:'+b.city,hi=UI.pieHi===id;
   const u=b.g/b.cap;
   return `<div class="pft-d"><button class="pft-row${hi?' on':''}" data-act="pieHi" data-args="${esc(JSON.stringify({id}))}" data-fid="${esc(id)}" aria-pressed="${hi}">
     <span class="pft-ic" aria-hidden="true">🛰️</span><span class="pft-m"><b>${tr('pie_traffic.bh_for',{city:pieCn(b.city)})}</b><small>${tr('pie_traffic.bh_line',{g:fmtG(b.g),cap:fmtG(b.cap),dish:pieCn(b.land),ms:pieMs(b.ms)})}</small></span>
-    <span class="pft-n"><b>${pct(u)}</b></span></button>${pieBar(u,pieLoadCls(u))}${u>=0.9?`<p class="meta"><span class="pft-st">${tr('pie_traffic.bh_full',{city:pieCn(b.city)})}</span></p>`:''}</div>`;}
-function pieTrafficHtml(){const Q=R&&R.pie;if(!Q||!Q.flows)return `<p class="meta">${tr('pie_traffic.no_data')}</p>`;
-  const bh=Q.bh||[],bg=bh.reduce((a,b)=>a+b.g,0),fl=Q.flows.filter(f=>f.k!=='b'&&(f.g>0||f.k==='t')).sort((a,b)=>b.g-a.g),g=fl.reduce((a,f)=>a+f.g,0),n=fl.filter(f=>f.g>0).length,B=new Map(S.biz.map(b=>[b.id,b]));
+    <span class="pft-n"><b>${pct(u)}</b></span></button>${pieBar(u,pieLoadCls(u))}${u>=0.9?`<p class="meta"><span class="pft-st">${tr('pie_traffic.bh_full',{city:pieCn(b.city)})}</span></p>`:''}<div class="ops-p">${pieFixAnt(b.city)}${pieFixAnt(b.land)}</div></div>`;}
+// What flies right now, for the overview: the headline, patchy-sky money, and the checklist while nothing flies.
+function pieSkyHead(Q){if(!Q||!Q.flows)return `<p class="meta">${tr('pie_traffic.no_data')}</p>`;
+  const bh=Q.bh||[],bg=bh.reduce((a,b)=>a+b.g,0),fl=Q.flows.filter(f=>f.k!=='b'&&(f.g>0||f.k==='t')),g=fl.reduce((a,f)=>a+f.g,0),n=fl.filter(f=>f.g>0).length;
   let h=`<p class="pft-head">${trn('pie_traffic.headline',n,{g:fmtG(g),of:fmtG(pieMarket()),amt:fmt$(Q.rev)})}</p>`;
   // Patchy-sky customers (99-pie-patchy.js): money, no traffic, so a line of its own.
   if(Q.patchy&&Q.patchy.mo>0)h+=`<div class="ops-o pft-patchy"><div class="kv"><span>📶 ${tr('pie_traffic.patchy')}</span><b>${tr('common.price_mo',{price:fmt$(Q.patchy.mo)})}</b></div>
     <p class="meta">${esc(PIE_PATCHY_NAMES.slice(0,piePatchyN(Q.patchy.mo)).join(' · '))}</p><p class="meta">${tr('pie_traffic.patchy_hint',{lo:pct(PIE_PATCHY_LO),min:pct(PIE_RAW),max:pct(PIE_BAKED)})}</p></div>`;
   if(!(g>0)&&!(bg>0))h+=`<div class="ops-o pft-why"><div class="nm">${tr('pie_traffic.empty_title')}</div><ul class="pft-ck">${pieChecks(Q).map(c=>`<li class="${c.ok?'on':'off'}" data-k="${c.k}"><span aria-hidden="true">${c.ok?'✅':'⬜'}</span><span><b>${c.l}</b>${c.ok?'':`<small>${c.h}</small>`}</span></li>`).join('')}</ul></div>`;
-  h+=`<h3 class="pft-h">${tr('pie_traffic.crusts')}</h3>`+(Q.crust.length?Q.crust.map(c=>{const why=pieCrustWhy(c);
-    return `<div class="pft-cr"><div class="kv"><span>${tr(CRUSTS[c.id].n)} ${pieTag(c.st==='half'||c.st==='part'?tr('pie.half_baked'):tr('pie.baked'),c.st!=='half'&&c.st!=='part')}</span><b>${c.cap>0?tr('pie_traffic.used_of',{u:fmtG(c.used),cap:fmtG(c.cap)}):pct(c.cov)}</b></div>
-      ${c.cap>0?pieBar(c.used/c.cap,pieLoadCls(c.used/c.cap)):pieBar(c.cov/PIE_RAW,'warn')}${why?`<p class="meta">${why}</p>`:''}</div>`;}).join(''):`<p class="meta">${tr('pie_traffic.ck_baked_none')}</p>`);
+  return h;}
+// A crust's traffic for its card in the Crusts tab: used against what it carries now, or why it carries nothing.
+function pieCrustLoad(id,Q){const c=Q&&Q.crust?Q.crust.find(x=>x.id===id):null;if(!c)return '';const why=pieCrustWhy(c);
+  return c.cap>0?`<div class="pie-cl"><span>${tr('pie_traffic.used_of',{u:fmtG(c.used),cap:fmtG(c.cap)})}</span>${pieBar(c.used/c.cap,pieLoadCls(c.used/c.cap))}</div>${why?`<p class="meta">${why}</p>`:''}`:why?`<p class="meta">${why}</p>`:'';}
+// The Dishes tab's load view: every dish by load, then the cut-off POPs' backhaul. A row leads to the dish in its country.
+function pieLoadHtml(Q){if(!Q||!Q.flows)return `<p class="meta">${tr('pie_traffic.no_data')}</p>`;const bh=Q.bh||[];
+  let h=`<p class="meta pie-how">${tr('pie_traffic.how',{g:PIE_ANT_G,n:PIE_ANT_MAX,max:fmtG(PIE_ANT_MAX*PIE_ANT_G)})}</p>`;
+  const so=PIE_DS.includes(UI.pieDs)?UI.pieDs:'u',ds=Q.dish.slice().sort(so==='name'?(a,b)=>CITY[a.city].name.localeCompare(CITY[b.city].name):so==='off'?(a,b)=>(a.st==='ok'||a.st==='idle')-(b.st==='ok'||b.st==='idle')||b.u-a.u:(a,b)=>b.u-a.u||b.used-a.used),o=(v,l)=>`<option value="${v}"${v===so?' selected':''}>${esc(l)}</option>`;
+  if(ds.length)h+=`<div class="trsel pie-gf"><label>${tr('pie.gs_sort')}<select data-chg="pieDs">${o('u',tr('pie_traffic.ds_u'))}${o('off',tr('pie_traffic.ds_off'))}${o('name',tr('pie_traffic.ds_name'))}</select></label></div><div class="pie-drs">`
+    +ds.slice(0,UI.pieDAll?ds.length:PIE_ROWS).map(d=>{const why=d.st==='ok'?'':pieDishWhy(d),x=S.pie.dishes.find(y=>y.city===d.city);
+      const det=d.bh>0?tr('pie_traffic.dish_line_bh',{t:fmtG(d.term),b:fmtG(d.bh),x:fmtG(d.transit),cap:fmtG(d.cap)}):tr('pie_traffic.dish_line',{t:fmtG(d.term),x:fmtG(d.transit),cap:fmtG(d.cap)});
+      return `<div class="pie-dr"><span class="nm"><b>${pieCn(d.city)}</b>${x?` <small>${x.ant}×${pieAntG(x)}G</small>`:''}</span><span class="ld">${pieBar(d.u,pieLoadCls(d.u))}<b>${d.cap>0?pct(d.u):'–'}</b></span>
+        <span class="mt" title="${esc(det+(why?' · '+why.replace(/<[^>]+>/g,''):''))}">${fmtG(d.used)}${why?` · <span class="${d.st==='backhaul'?'':'pft-st'}">${why}</span>`:''}</span><span class="ac">${d.cap>0&&d.u>=PIE_FULL?pieGrow(d.city,Q):''}${pieDishActs(d)}</span></div>`;}).join('')+`</div>`
+    +(ds.length>PIE_ROWS?`<div class="btns">${btn(UI.pieDAll?tr('pie.pad_less'):trn('pie.pad_more',ds.length-PIE_ROWS),'pieDAll',{},'ghost sm')}</div>`:'');
+  else h+=`<p class="meta">${tr('pie.ground_none')}</p>`;
   if(bh.length)h+=`<h3 class="pft-h">${tr('pie_traffic.backhaul')}</h3><p class="meta">${tr('pie_traffic.bh_hint')}</p>`+bh.slice().sort((a,b)=>b.g-a.g).map(pieBhRow).join('');
-  if(fl.length){h+=`<h3 class="pft-h">${tr('pie_traffic.riding')}</h3><p class="meta">${tr('pie_traffic.tap_hint')}</p><div class="pft-list">${fl.slice(0,PIE_ROWS).map(f=>pieFlowRow(f,B)).join('')}</div>`;
-    if(fl.length>PIE_ROWS)h+=`<p class="meta">${trn('pie_traffic.n_more',fl.length-PIE_ROWS)}</p>`;}
-  if(Q.dish.length)h+=`<h3 class="pft-h">${tr('pie_traffic.dishes')}</h3>`+Q.dish.slice().sort((a,b)=>b.used-a.used).map(d=>{const why=d.st==='ok'?'':pieDishWhy(d);
-    return `<div class="pft-d"><div class="kv"><span>📡 ${pieCn(d.city)}</span><b>${d.cap>0?pct(d.u):'–'}</b></div>${pieBar(d.u,pieLoadCls(d.u))}
-      <p class="meta">${d.bh>0?tr('pie_traffic.dish_line_bh',{t:fmtG(d.term),b:fmtG(d.bh),x:fmtG(d.transit),cap:fmtG(d.cap)}):tr('pie_traffic.dish_line',{t:fmtG(d.term),x:fmtG(d.transit),cap:fmtG(d.cap)})}${why?` · <span class="${d.st==='backhaul'?'':'pft-st'}">${why}</span>`:''}</p></div>`;}).join('');
+  return h;}
+// What a dish row offers: look at it on the globe, fill its antennas, fix what keeps it idle, open its city.
+const PIE_DS=['u','off','name'];
+// What grows a full dish: its antennas up to 16, then a higher band, else a dish at the nearest free POP under the same sky
+// (with how far it is), else the research that would help: a higher band, or lasers to land customers further away.
+function pieGrow(c,Q){const x=S.pie.dishes.find(y=>y.city===c);if(x&&pieAntLeft(x)){const v=pieAntLeft(x)*pieAntPrice(x.band);return pieBtn(`↑16 📡 <small>${fmt$(v)}</small>`,'pieAntMax',{id:x.id},'ghost sm',v);}
+  if(x){const v=pieBandCost(x);if(v)return pieBtn(`⬆ ${PIE_BAND_N[pieBandMax()]} <small>${fmt$(v)}</small>`,'pieBand',{id:x.id},'ghost sm',v);}
+  const p=pieNearPop(c,Q);return p?pieFixDish(p,c,true):pieFixRd()||`<small class="pft-st">${tr('pie_fix.grow_none')}</small>`;}
+// One way out of a dish row: the dish in the Dishes tab, with the globe on it; the fixes live there.
+const pieDishActs=d=>btn(tr('pie_traffic.a_dish'),'pieDishGo',{city:d.city},'ghost sm');
+// The Customers tab: everyone riding orbit, terminals and sky circuits, filtered and sorted; a tap turns the globe to it.
+const PIE_CK=['t','c'],PIE_CS=['g','rev','name'];
+function pieCustHtml(){const Q=R&&R.pie;if(!Q||!Q.flows)return `<p class="meta">${tr('pie_traffic.no_data')}</p>`;const B=new Map(S.biz.map(b=>[b.id,b]));
+  const k=PIE_CK.includes(UI.pieCk)?UI.pieCk:'',so=PIE_CS.includes(UI.pieCs)?UI.pieCs:'g',all=Q.flows.filter(f=>f.k!=='b'&&(f.g>0||f.k==='t')),o=(v,l,cur)=>`<option value="${v}"${v===cur?' selected':''}>${esc(l)}</option>`;
+  const nm=f=>{const b=B.get(f.id);return b?b.name:'';},fl=all.filter(f=>!k||f.k===k).sort(so==='rev'?(a,b)=>b.rev-a.rev:so==='name'?(a,b)=>nm(a).localeCompare(nm(b)):(a,b)=>b.g-a.g);
+  const n=x=>all.filter(f=>f.k===x).length;
+  let h=`<p class="pft-head">${trn('pie_traffic.headline',all.filter(f=>f.g>0).length,{g:fmtG(all.reduce((a,f)=>a+f.g,0)),of:fmtG(pieMarket()),amt:fmt$(Q.rev)})}</p><p class="meta">${tr('pie_cust.intro')}</p>`;
+  h+=`<div class="trsel pie-gf"><label>${tr('pie.ground_show')}<select data-chg="pieCk">${o('',`${tr('dashboard.fs_all')} (${all.length})`,k)}${o('t',`${tr('pie_cust.k_t')} (${n('t')})`,k)}${o('c',`${tr('pie_cust.k_c')} (${n('c')})`,k)}</select></label>
+    <label>${tr('pie.gs_sort')}<select data-chg="pieCs">${o('g',tr('pie_cust.s_g'),so)}${o('rev',tr('pie_cust.s_rev'),so)}${o('name',tr('pie_cust.s_name'),so)}</select></label></div>`;
+  if(!fl.length)return h+`<p class="meta">${tr('pie_cust.none')}</p>`;
+  h+=`<div class="pft-list">${fl.slice(0,PIE_ROWS).map(f=>pieFlowRow(f,B)).join('')}</div>`;
+  if(fl.length>PIE_ROWS)h+=`<p class="meta">${trn('pie_traffic.n_more',fl.length-PIE_ROWS)}</p>`;
   return h;}
 // Tapping a row: mark it in place and point the globe at it, without rebuilding the panel (the scroll stays where it is).
 function pieHiSet(id){UI.pieHi=UI.pieHi===id?null:id;
+  {const Q=R&&R.pie,f=UI.pieHi&&Q&&Q.flows?Q.flows.find(x=>x.id===UI.pieHi):null;if(f&&PG.cv)pieGlobeLook(f.k==='c'?[f.a,f.b,...f.via]:[f.city,f.dish].filter(Boolean));else if(!UI.pieHi&&PG.cv)PG.goal={yaw:PG.yaw,tilt:PG.tilt,z:1};}
   for(const r of document.querySelectorAll('#modal .pft-row')){const on=r.dataset.fid===UI.pieHi;r.classList.toggle('on',on);r.setAttribute('aria-pressed',String(on));}
   if(PG.cv){PG.dAt=-1e9;PG.dirty=true;}}

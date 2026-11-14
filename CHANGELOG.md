@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Pie Control's Dishes tab is sorted by country: each one shows its landing rights, every POP with or without a pie dish and its antennas, with filters by region, by dish and by rights that end within a year, and sorting by country, antennas, load, rights or POPs still without a dish. A globe beside the list shows your dishes and the POPs that could take one, with the satellites hidden if you like; tap a city on it to find it in the list. Landing rights can be bought 1, 5 or 10 years ahead, for one country or every country at once, and antennas and dishes can be added in bulk.
+- Rocket companies can grow: the pie factory takes up to six production lines (which can be closed again), and a launch pad up to three towers that each fly their own rocket. A new toggle queues one launch per free tower in a single tap, and the pad picker shows coastal POPs as cards, nearest the equator first, with their latitude, launch discount and the orbits each one reaches.
+- Pie Control is wider and laid out like the NOC dashboard, with one tab per thing you run: an overview, bottlenecks, crusts (pies, lasers, wear, traffic and launches), dishes (by country or by load), customers and the company (factory, research, pads, books).
+- Orbit customers have their own tab in Pie Control: tap one and the globe turns to its link while the other satellites fade.
+- The launch options are explained and now stay set in your save: insurance and launching from every pad. Each rocket is described in plain words, and each crust says how many more pies it can take, how many have lasers and how many wear out within a year.
+- Lasers are now research: once done, every pie you launch has them, and launches past a crust's size replace its pies without lasers. Games that already flew lasered pies keep the research.
+- Two new research projects move pie dishes to the V band and then the E band, doubling and doubling again what each antenna carries; the dishes are upgraded antenna by antenna, and rain hurts higher bands more.
+- Launch pads can be demolished, for a quarter of what they and their towers cost, to build somewhere better.
+- A new Bottlenecks tab lists everything that is full in orbit, with the button that fixes it: a full dish, a crust that needs more pies or another crust, fiber where orbit traffic gets stuck, customers with no dish in reach. You can filter it by kind and sort it, and a greyed button says why underneath.
+
 ## [4.1.3] — 2026-11-14
 
 - Joining a Multimode server no longer costs you Tier 1, and with it Pie in the Sky: other players' networks, including players who are Tier 1 themselves, no longer count towards the reach Tier 1 needs. The same goes for your customers and offers, which need 99% reach: other players you cannot reach no longer take it from you.

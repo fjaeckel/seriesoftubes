@@ -65,18 +65,21 @@ test('R.pie lists every flow, and crust and dish numbers add up', () => {
   assert.deepEqual(errors, []);
 });
 
-test('the Traffic tab is first, fits 360 px and lists a terminal and a sky circuit; tapping a row highlights it', () => {
+test('the Traffic tab fits 360 px and lists a terminal and a sky circuit; tapping a row highlights it', () => {
   const { dom, ev, errors } = load();
   ev('window.innerWidth=360');
   world(ev);
   circuit(ev, 'hft1', 'fra', 'nyc');
   term(ev, 'pz', 'pcn');
-  ev('UI.pieTab=null;ACT.pieOpen()');
+  ev("UI.pieTab=null;ACT.pieOpen()");
   const d = doc(dom);
-  assert.equal(d.querySelector('#modalCard .pie-tabs [aria-pressed="true"]').textContent, ev("tr('pie_traffic.tab')"), 'Traffic is the default tab');
+  assert.equal(d.querySelector('#modalCard .pie-tabs [aria-pressed="true"]').textContent, ev("tr('common.overview')"), 'the overview opens first');
   const txt = d.querySelector('#modalCard').textContent;
   assert.match(txt, /In orbit now: .* of .* sellable · .*\/mo · 2 customers/);
-  assert.match(txt, /Who's riding/);
+  ev("ACT.pieTab({t:'dish'});ACT.pieDv({v:'load'})");
+  assert.ok(d.querySelectorAll('#modalCard .pie-dr').length === 3, 'a row per dish in the load view');
+  // who rides has a tab of its own
+  ev("ACT.pieTab({t:'cust'})");
   const rows = [...d.querySelectorAll('#modalCard .pft-row')];
   assert.equal(rows.length, 2);
   const byId = Object.fromEntries(rows.map((r) => [r.dataset.fid, r.textContent.replace(/\s+/g, ' ')]));
@@ -86,10 +89,13 @@ test('the Traffic tab is first, fits 360 px and lists a terminal and a sky circu
   for (const r of rows) assert.equal(r.tagName, 'BUTTON', 'rows are buttons (44 px min-height in CSS)');
   // The sheet has no fixed widths of its own.
   assert.equal(/style="[^"]*width:\s*\d{3,}px/.test(d.querySelector('#modalCard').innerHTML), false);
-  assert.ok(d.querySelectorAll('#modalCard .pft-d').length === 3, 'a row per dish');
-  // tap
+  // tap: the row lights up and the globe turns to the circuit
   rows.find((r) => r.dataset.fid === 'hft1').click();
   assert.equal(ev('UI.pieHi'), 'hft1');
+  assert.ok(ev('!PG.cv||(!!PG.goal&&Math.abs(PG.goal.tilt)<=60)'), 'the globe turns to it');
+  ev("ACT.pieCk({v:'t'})");
+  assert.deepEqual([...d.querySelectorAll('#modalCard .pft-row')].map((r) => r.dataset.fid), ['pz'], 'terminals only');
+  ev("ACT.pieCk({v:''})");
   assert.equal(d.querySelector('#modalCard .pft-row.on').dataset.fid, 'hft1');
   assert.equal(ev("pieGlobeData().hi"), 'hft1');
   assert.equal(ev('JSON.stringify(S).includes("pieHi")'), false, 'the highlight is never saved');
@@ -99,6 +105,8 @@ test('the Traffic tab is first, fits 360 px and lists a terminal and a sky circu
   assert.deepEqual(errors, []);
 });
 
+// Traffic lives where its things are: the overview (headline, the empty-sky checklist), the crusts, the dishes' load view.
+const skyText = (ev, dom) => [['home', 'cc'], ['crust', 'cc'], ['dish', 'load']].map(([t, v]) => { ev(`UI.pieDv='${v}';ACT.pieTab({t:'${t}'})`); return doc(dom).querySelector('#modalCard').textContent; }).join(' | ');
 const checks = (dom) => Object.fromEntries([...doc(dom).querySelectorAll('#modalCard .pft-ck li')].map((li) => [li.dataset.k, li.className]));
 
 test('an empty sky says why: a half-baked crust', () => {
@@ -106,16 +114,16 @@ test('an empty sky says why: a half-baked crust', () => {
   ev('window.innerWidth=360');
   world(ev, { n: 'Math.floor(CRUSTS.short.full*0.39)' });
   term(ev, 'pz', 'dub');
-  ev("ACT.pieTab({t:'traffic'})");
-  const txt = doc(dom).querySelector('#modalCard').textContent;
+  const txt = skyText(ev, dom);
+  ev("ACT.pieTab({t:'home'})");
   assert.match(txt, /Why is my sky empty\?/);
   assert.equal(checks(dom).baked, 'off');
   assert.match(txt, /Shortcrust \(550 km\) is 39% baked; it carries traffic from 40%/);
   assert.equal(checks(dom).customers, 'on');
   ev('closeModal()');
   try {
-    ev("S.pie.crusts.short.cohorts[0].n=CRUSTS.short.full/2;compute();ACT.pieTab({t:'traffic'})");
-    assert.match(doc(dom).querySelector('#modalCard').textContent, /is 50% baked: half-baked, it carries 50% of its traffic, all of it from 60%/);
+    ev("S.pie.crusts.short.cohorts[0].n=CRUSTS.short.full/2;compute()");
+    assert.match(skyText(ev, dom), /is 50% baked: half-baked, it carries 50% of its traffic, all of it from 60%/);
   } finally { ev('closeModal()'); }
   assert.deepEqual(errors, []);
 });
@@ -124,19 +132,21 @@ test('an empty sky says why: no lasers, and a dish cut off from the backbone', (
   const { dom, ev, errors } = load();
   ev('window.innerWidth=360');
   world(ev, { las: false });
-  ev("ACT.pieTab({t:'traffic'})");
+  let t0 = skyText(ev, dom);
+  ev("ACT.pieTab({t:'home'})");
   let c = checks(dom);
   assert.equal(c.baked, 'on');
   assert.equal(c.dish, 'on');
   assert.equal(c.lasers, 'off');
   assert.equal(c.customers, 'off');
-  assert.match(doc(dom).querySelector('#modalCard').textContent, /no lasers yet/);
+  assert.match(t0, /no lasers yet/);
   // Now only Sydney has a working dish, and it has no fiber to the rest.
-  ev("ACT.buildPop({city:'syd'});ACT.pieDish({city:'syd'});S.pie.lic.AU={state:'ok',until:1e6};for(const x of S.pie.dishes)if(x.city!=='syd')x.down=S.day+30;compute();ACT.pieTab({t:'traffic'})");
+  ev("ACT.buildPop({city:'syd'});ACT.pieDish({city:'syd'});S.pie.lic.AU={state:'ok',until:1e6};for(const x of S.pie.dishes)if(x.city!=='syd')x.down=S.day+30;compute()");
+  const txt = skyText(ev, dom);
+  ev("ACT.pieTab({t:'home'})");
   c = checks(dom);
   assert.equal(c.dish, 'on');
   assert.equal(c.backbone, 'off');
-  const txt = doc(dom).querySelector('#modalCard').textContent;
   assert.match(txt, /Sydney has no fiber to the rest of your network/);
   assert.match(txt, /out of action \(a backhoe\)/);
   assert.equal(JSON.parse(ev("JSON.stringify(R.pie.dish.find(d=>d.city==='syd'))")).st, 'isl');
@@ -169,7 +179,7 @@ test('the globe draws the flows, the highlight on top, and load rings in both st
   assert.equal(ev('pgFrame(1000,true)'), true);
   assert.equal(ev('PG.fl.length'), 2);
   assert.equal(ev('PG.fl[0].id'), 'hft1', 'the highlighted flow is always kept');
-  assert.ok(ev('PG.fl.find(f=>f.id==="pz").w') > ev('PG.fl.find(f=>f.id==="hft1").w'), 'wider for more Gbps');
+  assert.ok(ev('PG.fl.find(f=>f.id==="pz").w') > ev('PG.fl.find(f=>f.id==="hft1").w') - 2, 'wider for more Gbps (the highlighted one gets 2 px more)');
   assert.ok(ev('PG.fl.every(f=>f.w<=7)'), 'capped');
   ev('pieGlobeNight(true)');
   assert.equal(ev('pgFrame(1100,true)'), true, 'night style draws too');

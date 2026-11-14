@@ -116,7 +116,7 @@ test('a leaked launch date makes launch insurance dearer for 30 days', () => {
   ev("pieAntic('leak')");
   const q1 = q();
   assert.equal(q1.cost - base, Math.round(q1.insured * 0.08 * 1.75), 'premium 14% instead of 8%');
-  ev("UI.pieIns=true;UI.pieTab='fly';ACT.pieOpen()");
+  ev("S.pie.opt.ins=true;UI.pieTab='crust';ACT.pieOpen()");
   assert.match(ev("document.querySelector('#modal').textContent"), /Insurance: on \(14%\)/);
   ev('closeModal()');
   days(ev, 29);

@@ -55,25 +55,25 @@ test('the bank shows Government money only with a rocket company, and pieGovOpen
   assert.deepEqual(errors, []);
 });
 
-test('Pie Control: four tabs in one segmented control; old Gov and Founder tabs fall back', () => {
+test('Pie Control: NOC-style tabs; old Gov and Founder tabs fall back', () => {
   const { dom, ev, errors } = load();
   const doc = dom.window.document;
   ev(sandbox + ";window.innerWidth=360;ACT.pieFound();UI.pieTab=null;ACT.pieOpen()");
-  const seg = doc.querySelector('#modalCard .segc.pie-tabs');
-  assert.ok(seg, 'one segmented control');
-  assert.deepEqual([...seg.querySelectorAll('button')].map((b) => JSON.parse(b.dataset.args).t), ['traffic', 'co', 'fly', 'dish']);
+  const seg = doc.querySelector('#modalCard .dtabs.pie-tabs');
+  assert.ok(seg, 'one tab bar, as on the NOC dashboard');
+  assert.deepEqual([...seg.querySelectorAll('button')].map((b) => JSON.parse(b.dataset.args).t), ['home', 'fix', 'crust', 'dish', 'cust', 'co']);
   assert.equal(seg.querySelectorAll('button.on').length, 1);
   assert.equal(seg.querySelector('button.on').getAttribute('aria-pressed'), 'true');
-  assert.deepEqual(JSON.parse(ev('JSON.stringify(PIE_TABS)')), ['traffic', 'co', 'fly', 'dish']);
-  // A tab name left over from before: Founder lands on Company, Gov on traffic (or the bank, when asked for by name).
+  assert.deepEqual(JSON.parse(ev('JSON.stringify(PIE_TABS)')), ['home', 'fix', 'crust', 'dish', 'cust', 'co']);
+  // A tab name left over from before: Founder lands on Company, Gov on the overview (or the bank, when asked for by name).
   ev("UI.pieTab='founder';ACT.pieOpen()");
   assert.equal(ev('UI.pieTab'), 'co');
   ev("UI.pieTab='book';ACT.pieOpen()");
   assert.equal(ev('UI.pieTab'), 'co');
   ev("UI.pieTab='gov';ACT.pieOpen()");
-  assert.equal(ev('UI.pieTab'), 'traffic');
+  assert.equal(ev('UI.pieTab'), 'home');
   ev("UI.pieTab='nonsense';ACT.pieOpen()");
-  assert.equal(ev('UI.pieTab'), 'traffic');
+  assert.equal(ev('UI.pieTab'), 'home');
   ev("ACT.pieTab({t:'gov'})");
   assert.equal(ev("$('bankBox').hidden"), false, 'the old Gov tab name opens the bank');
   ev("ACT.bankClose();ACT.pieTab({t:'book'})");

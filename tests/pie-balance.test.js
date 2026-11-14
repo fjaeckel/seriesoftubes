@@ -30,7 +30,7 @@ function sim(days, stop = false, seed = 7, gov = false) {
   const g = load({ seed });
   const save = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
   g.ev(`S=migrate(JSON.parse(${lit(save)}));S.pieV=1;UI.started=true;UI.pitched=true;UI.speed=0;S.nextFail=1e9;S.nextEvent=1e9;
-    isTier1=()=>true;after=()=>{};pieModal=()=>{};compute();pieInit();UI.pieLas=true;ACT.pieFound();ACT.pieFactory();ACT.pieRd({k:'reuse'});
+    isTier1=()=>true;after=()=>{};pieModal=()=>{};compute();pieInit();ACT.pieFound();ACT.pieFactory();ACT.pieRd({k:'reuse'});ACT.pieRd({k:'las'});
     for(const c of Object.keys(S.pops).filter(c=>pieCoast(c)&&piePadOk(c,'short')).sort((a,b)=>Math.abs(CITY[a].lat)-Math.abs(CITY[b].lat)).slice(0,2))ACT.piePad({city:c});
     window.__site=()=>{const ds=S.pie.dishes,lic=c=>pieLicOk(CITY[c].cc)?0:pieLicPrice(CITY[c].cc);
       const c=Object.keys(S.pops).filter(c=>pieCovers('short',c)&&!ds.some(x=>x.city===c)&&sfOf(R,c)>=0.98).sort((a,b)=>lic(a)-lic(b)||CITY[b].P-CITY[a].P);

@@ -8,14 +8,22 @@ const PIE_CO=250e6,PIE_CO_MO=5e6,PIE_FAC=1e9,PIE_FAC_MO=8e6,PIE_FAC_MONTH=120,PI
   PIE_REUSE=500e6,PIE_HEAVY=3e9,PIE_HEAVY_TESTS=3,PIE_BOOST=40e6,PIE_BOOST_MAX=20,PIE_BOOSTERS=6,PIE_INS=0.08,
   PIE_DISH=25e6,PIE_ANT=2e6,PIE_ANT_MAX=16,PIE_ANT_G=20,PIE_DISH_MO=3e5,PIE_DISH_MAX=200,
   PIE_LIC_MIN=10e6,PIE_LIC_MAX=100e6,PIE_LIC_P=12000,PIE_LIC_DAYS=360,PIE_LEOIX=50e6,PIE_LEOIX_MO=1e6,PIE_PARTY=2e6,
-  PIE_QUIET=90,PIE_PREP=7,PIE_Q_MAX=40,PIE_COHORTS=240,PIE_POSTS=20,PIE_RAW=0.4,PIE_BAKED=0.6,PIE_SPARE=1.1,PIE_WEAR=0.3;
+  PIE_QUIET=90,PIE_PREP=7,PIE_Q_MAX=120,PIE_COHORTS=240,PIE_POSTS=20,PIE_RAW=0.4,PIE_BAKED=0.6,PIE_SPARE=1.1,PIE_WEAR=0.3;
+// Salvage when a pad or a factory line goes: this share of what it cost.
+const PIE_SALVAGE=0.25;
+// Scaling up (60-features/99-pie-scale.js): more factory lines, more towers per pad, landing rights bought years ahead.
+const PIE_LINE=600e6,PIE_LINE_MO=5e6,PIE_LINE_MAX=6,PIE_TOWER=150e6,PIE_TOWER_MO=1e6,PIE_TOWER_MAX=3,PIE_LIC_YEARS=[1,5,10];
 // In generation order. fail: chance a launch is lost (x chaos); land: chance a reused booster does not come back.
 const ROCKETS={
- falcon:{n:N_('pie.rk_falcon_punch'),cost:60e6,pies:20,fail:0.05,gap:14},
- again:{n:N_('pie.rk_falcon_punch_again'),cost:30e6,pies:20,fail:0.04,land:0.06,gap:10,rd:'reuse'},
- heavy:{n:N_('pie.rk_starshipping_and_handling'),cost:100e6,pies:100,fail:0.08,gap:30,rd:'heavy'},
+ falcon:{n:N_('pie.rk_falcon_punch'),d:N_('pie.rk_d_medium'),cost:60e6,pies:20,fail:0.05,gap:14},
+ again:{n:N_('pie.rk_falcon_punch_again'),d:N_('pie.rk_d_reuse'),cost:30e6,pies:20,fail:0.04,land:0.06,gap:10,rd:'reuse'},
+ heavy:{n:N_('pie.rk_starshipping_and_handling'),d:N_('pie.rk_d_heavy'),cost:100e6,pies:100,fail:0.08,gap:30,rd:'heavy'},
 };
-const PIE_RD={reuse:{n:N_('pie.rd_reuse'),cost:PIE_REUSE},heavy:{n:N_('pie.rd_heavy'),cost:PIE_HEAVY}};
+// need: the research that must come first. las: every pie launched afterwards has lasers. vband, eband: antennas in a
+// higher band carry PIE_BAND times the Gbps (dishes are upgraded antenna by antenna) and suffer more in the rain.
+const PIE_RD={reuse:{n:N_('pie.rd_reuse'),cost:PIE_REUSE},heavy:{n:N_('pie.rd_heavy'),cost:PIE_HEAVY},
+ las:{n:N_('pie.rd_las'),cost:400e6},vband:{n:N_('pie.rd_vband'),cost:800e6},eband:{n:N_('pie.rd_eband'),cost:2e9,need:'vband'}};
+const PIE_BAND=[1,2,4],PIE_BAND_PRICE=[1,1.75,3],PIE_BAND_N=['Ka','V','E'];
 // alt km, full: pies for 100% coverage, inc: the orbit's inclination (a pad can launch to it from |lat| <= inc),
 // life in game days (a year is 360), g: Gbps the whole crust carries when full.
 const CRUSTS={

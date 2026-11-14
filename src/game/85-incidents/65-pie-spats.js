@@ -86,7 +86,7 @@ const PIE_SPAT_DEF={
   pick:(o,c)=>{if(c!==0){pieSpatEnd(o);return tr('pie_spat.pad_r1');}o.until=S.day+PIE_PAD_DAYS;return tr('pie_spat.pad_r0',{n:PIE_PAD_DISHES,a:pieCcN(o.cc),d:dateStr(o.until)});},
   day:(o,d)=>{if(o.st!=='on'||o.ok||o.fail)return;
     if(pieDishesIn(o.cc)>=PIE_PAD_DISHES){o.ok=1;pieSpatEnd(o);const P=S.pie,c=Object.keys(S.pops).filter(x=>CITY[x].cc===o.cc&&pieCoast(x)&&!P.pads.some(p=>p.city===x)).sort()[0];
-      if(c&&P.pads.length<PIE_PAD_MAX){P.pads.push({city:c,next:d,boosters:[]});toast(tr('pie_spat.pad_won',{city:CITY[c].name}),'goal');}
+      if(c&&P.pads.length<PIE_PAD_MAX){P.pads.push({city:c,next:d,t:1,boosters:[]});toast(tr('pie_spat.pad_won',{city:CITY[c].name}),'goal');}
       else{const v=Math.round(piePrice(PIE_PAD)*PIE_PAD_AID);pieRefund(v);toast(tr('pie_spat.pad_cheque',{a:pieCcN(o.cc),cost:fmt$(v)}),'goal');}sfx('coin');return;}
     if(d>=o.until-1){o.fail=1;o.until=d+PIE_AIR_SUS;pieHold(o,o.cc,'sus');compute();toast(tr('pie_spat.pad_failed',{a:pieCcN(o.cc),d:dateStr(o.until)}),'bad');}}},
 };

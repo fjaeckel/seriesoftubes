@@ -93,7 +93,7 @@ test('actions cost what they should', () => {
   ev("ACT.pieLaunch({rk:'falcon',cr:'short'})");
   assert.ok(ev('S.pie.q[1].day') >= ev('S.pie.q[0].day') + ev('leadDays(ROCKETS.falcon.gap)'), 'pad cadence');
   // insurance adds 8%
-  ev('UI.pieIns=true');
+  ev('S.pie.opt.ins=true');
   const q = JSON.parse(ev("JSON.stringify(pieQuote('falcon','short',{ins:true}))"));
   assert.equal(q.cost - q.insured, Math.round(q.insured * 0.08));
   // running costs show up in the monthly bill
@@ -258,7 +258,7 @@ test('Pie Control renders every tab on a phone', () => {
   ev('window.innerWidth=360');
   won(ev);
   company(ev);
-  for (const t of ['traffic', 'co', 'fly', 'dish']) {
+  for (const t of ['home', 'fix', 'crust', 'dish', 'cust', 'co']) {
     ev(`ACT.pieTab({t:'${t}'})`);
     assert.equal(ev("$('modal').hidden"), false);
     assert.ok(dom.window.document.querySelectorAll('#modalCard [data-act]').length > 2, t);
@@ -276,8 +276,8 @@ test('the globe spins only while Pie Control is open', () => {
   won(ev);
   company(ev);
   assert.equal(ev('PG.raf'), 0, 'nothing runs before the panel opens');
-  ev("ACT.pieTab({t:'fly'})");
-  assert.ok(dom.window.document.querySelector('#modal .pgcv'), 'the panel carries the globe');
+  ev("ACT.pieTab({t:'home'})");
+  assert.ok(dom.window.document.querySelector('#modal .pgcv'), 'the overview carries the globe');
   assert.ok(ev('PG.raf') > 0, 'and it spins');
   ev('closeModal()');
   assert.equal(ev('PG.raf'), 0, 'closing the panel stops it');

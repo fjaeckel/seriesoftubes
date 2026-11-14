@@ -14,7 +14,7 @@ function pieChaos(){const P=S&&S.pie;return !!P&&!!P.co&&chaosMul()>0&&S.day-P.b
 const pieIncOf=(t,r)=>S.inc.find(i=>i.type===t&&i.ref===r&&i.until>S.day)||null;
 const pieLiveAll=()=>Object.keys(CRUSTS).reduce((a,id)=>a+pieLive(id),0);
 // Read by pieDishes(), pieQuote() and pieLiveLas() in 60-features/99-pie-in-the-sky.js.
-function pieDishMul(x){let m=1;for(const i of S.inc)if(i.type==='pierain'&&i.ref===x.city&&i.until>S.day)m=PIE_RAIN;return m*pieSpatDishMul(x);}
+function pieDishMul(x){let m=1;for(const i of S.inc)if(i.type==='pierain'&&i.ref===x.city&&i.until>S.day)m=PIE_RAIN**(1+0.5*(x.band||0));return m*pieSpatDishMul(x);}
 function pieCrMul(cr){return 1+(pieIncOf('piefood',cr)?PIE_FOOD_MUL:0)+pieGrabMul();}
 function pieLasCut(id){return !!S.inc.length&&!!pieIncOf('pielaser',id);}
 function pieIncTitle(t){return {piedig:tr('pie_inc.t_dig'),piefood:tr('pie_inc.t_food'),pielaser:tr('pie_inc.t_laser'),pierain:tr('pie_inc.t_rain'),piestorm:tr('pie_inc.t_storm')}[t]||'';}

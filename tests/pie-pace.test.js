@@ -25,7 +25,7 @@ test('the Launch tab says when a crust is full at this pace, and nudges for a pa
   assert.equal(f.pad, true);
   assert.equal(f.mo, 43);
   assert.equal(f.days, Math.ceil(1584 / (20 / 14)), 'the whole crust at one launch per gap');
-  ev("ACT.pieTab({t:'fly'})");
+  ev("ACT.pieTab({t:'crust'})");
   const html = () => doc(dom).getElementById('modal').innerHTML;
   assert.match(html(), /At this pace \(43 pies a month\), this crust is full in about 3 years\./);
   // The nudge names the coastal POP nearest the equator (Singapore, 1°N) and builds a pad there in one tap.
@@ -60,7 +60,7 @@ test('the pace counts the factory: pads that outrun it fly from the shelf, then 
   assert.equal(f.days, Math.ceil(100 + (1584 - 600) / 4));
   // Nothing to forecast without a factory, or once the crust is full.
   cover(ev, 1);
-  ev("ACT.pieTab({t:'fly'})");
+  ev("ACT.pieTab({t:'crust'})");
   assert.equal(ev("document.querySelectorAll('#modal .pie-pace').length"), 0);
   ev("S.pie.fac=false");
   assert.equal(ev("piePace('short')"), null);
@@ -111,12 +111,12 @@ test('patchy-sky customers pay a little from 10% coverage and hand over to regul
   assert.deepEqual(errors, []);
 });
 
-test('the Traffic tab shows patchy-sky customers with their names, and a game without a rocket company has none', () => {
+test('the overview shows patchy-sky customers with their names, and a game without a rocket company has none', () => {
   const { ev, dom, errors } = load();
   company(ev);
   dish(ev, 'sin');
   cover(ev, 0.3);
-  ev("ACT.pieTab({t:'traffic'})");
+  ev("ACT.pieTab({t:'home'})");
   const row = doc(dom).querySelector('#modal .pft-patchy');
   assert.ok(row, 'a patchy-sky row');
   assert.match(row.textContent, /Patchy-sky customers/);
@@ -137,7 +137,7 @@ test('the Dishes tab says dishes earn nothing while the sky is nearly empty, and
   const { ev, dom, errors } = load();
   company(ev);
   cover(ev, 0.12);
-  ev("UI.pieCity='sin';ACT.pieTab({t:'dish'})");
+  ev("ACT.pieCc({cc:'SG'});ACT.pieTab({t:'dish'})");
   const hint = () => doc(dom).querySelector('#modal .pie-wait');
   assert.ok(hint(), 'the hint');
   assert.match(hint().textContent, /Dishes earn nothing until a crust is 40% covered, and your fullest is at 12%\./);

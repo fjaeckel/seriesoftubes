@@ -164,11 +164,11 @@ test("a cut-off dish says 'backhaul' or 'isl', even with its own terminals (no m
   assert.deepEqual(errors, []);
 });
 
-test('the Traffic tab shows backhaul at 360 px, why it is missing, and taps highlight it on the globe', () => {
+test('the Dishes tab\'s load view shows backhaul at 360 px, why it is missing, and taps highlight it on the globe', () => {
   const { dom, ev, errors } = load();
   ev('window.innerWidth=360');
   world(ev, { d: 300 });
-  ev("S.pie.dishes.find(x=>x.city==='pcn').ant=2;compute();UI.pieTab=null;ACT.pieOpen()");
+  ev("S.pie.dishes.find(x=>x.city==='pcn').ant=2;compute();UI.pieTab='dish';UI.pieDv='load';ACT.pieOpen()");
   try {
   const d = doc(dom);
   const card = () => d.querySelector('#modalCard');
@@ -179,7 +179,7 @@ test('the Traffic tab shows backhaul at 360 px, why it is missing, and taps high
   assert.match(row.textContent.replace(/\s+/g, ' '), /Backhaul for Adamstown.*40\.0 Gbps of 40\.0 Gbps · lands at Auckland · \+2\d ms/);
   assert.ok(row.parentNode.querySelector('.bar.bad'), 'a full pipe shows red');
   assert.match(txt, /The pipe is full: lay fiber to Adamstown/);
-  assert.match(txt, /Terminals .* · backhaul .* · transit .* · of /);
+  assert.ok([...card().querySelectorAll('.pie-dr .mt')].some((m) => /Terminals .* · backhaul .* · transit .* · of /.test(m.title)), 'the breakdown sits in the row\'s tooltip');
   assert.match(txt, /backhauls its own town through orbit/);
   assert.equal(/style="[^"]*width:\s*\d{3,}px/.test(card().innerHTML), false, 'no fixed widths');
   row.click();
@@ -195,8 +195,10 @@ test('the Traffic tab shows backhaul at 360 px, why it is missing, and taps high
   assert.equal(ev('PG.fl[0].sky'), true, 'an arc through the sky');
   ev('pieGlobeClose()');
   // In safe mode the sky is empty and the checklist says why Pitcairn has no backhaul.
-  ev("UI.pieHi=null;S.pie.safe=true;compute();ACT.pieTab({t:'traffic'})");
+  ev("UI.pieHi=null;S.pie.safe=true;compute();ACT.pieTab({t:'dish'})");
   txt = card().textContent.replace(/\s+/g, ' ');
+  ev("ACT.pieTab({t:'home'})");
+  txt += ' ' + card().textContent.replace(/\s+/g, ' ');
   assert.match(txt, /Why is my sky empty\?/);
   assert.match(txt, /Backhaul for Adamstown – no baked crust overhead|Backhaul for Adamstown.*no baked crust overhead/);
   const ck = Object.fromEntries([...card().querySelectorAll('.pft-ck li')].map((li) => [li.dataset.k, li.className]));

@@ -1,0 +1,130 @@
+/* Pie Control's Dishes tab (93-ui/87-pie-ground.js): a country per row a thumb can hit, buttons that wrap at 360 px. */
+.pie-cc{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;margin:6px 0 0;padding:6px 10px;border:2px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);text-align:left;cursor:pointer;box-sizing:border-box}
+.pie-cc.on{border-color:var(--ink);border-bottom-left-radius:0;border-bottom-right-radius:0}
+.pie-cc .grow{flex:1;min-width:0;overflow-wrap:anywhere}
+.pie-cc small{color:var(--ink2);font-size:12px}
+.pie-cc .tag{flex:none;max-width:45%;white-space:normal;text-align:center}
+.pie-ccb{border:2px solid var(--ink);border-top:0;border-radius:0 0 12px 12px;padding:4px 10px 8px}
+.pie-ccb .kv{align-items:center;flex-wrap:wrap}
+.pie-ccb .kv>span:first-child{min-width:0;overflow-wrap:anywhere}
+.pie-ab{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.pie-yrs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
+.pie-yrs>span{flex:1 0 100%;font:800 12px Nunito,sans-serif}
+.pie-gf label{flex:1 1 140px;min-width:0}.pie-gf select{width:100%;max-width:100%}
+.pie-gsum{margin-top:8px}
+/* The pad picker's cards (87-pie-ground.js) and the Traffic tab's bottlenecks (88-pie-fix.js). */
+.pie-sites{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:6px 0}
+.pie-site{border:2px solid var(--line);border-radius:12px;padding:8px;background:var(--paper);display:flex;flex-direction:column;gap:4px;min-width:0}
+.pie-site-h{display:flex;align-items:center;gap:6px;justify-content:space-between}
+.pie-site-h b{min-width:0;overflow-wrap:anywhere}
+.pie-site .btns{margin-top:auto}
+.pie-lat{display:flex;align-items:center;gap:6px}
+.pie-lat small{flex:none;font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.pie-lat-g{position:relative;flex:1;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--ok) 0 14%,var(--warn) 64%,var(--line) 64%)}
+.pie-lat-g i{position:absolute;top:-3px;width:4px;height:14px;margin-left:-2px;border-radius:2px;background:var(--ink)}
+.pie-crs{display:flex;flex-wrap:wrap;gap:4px}
+.pie-cr{font-size:11px;font-weight:800;padding:1px 6px;border-radius:8px;background:var(--line);color:var(--ink2);text-decoration:line-through}
+.pie-cr.on{background:var(--ok);color:#fff;text-decoration:none}
+.pie-room{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px}
+.pie-room>div{min-width:0}.pie-room span{display:block;font-size:12px;font-weight:800;color:var(--ink2)}.pie-room b{font-size:13px;overflow-wrap:anywhere}
+.pie-fx{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-top:1px dashed var(--line)}
+.pie-fx-ic{font-size:20px;flex:none}
+.pie-fx-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;overflow-wrap:anywhere}
+.pie-fx-m small{font-size:12px;color:var(--ink2)}
+@media (max-width:420px){.pie-room{grid-template-columns:1fr}}
+/* Pie Control, NOC-style (85-pie-control.js): wide on a desktop, tabs that stick, the globe in a side column. */
+#modal.pie .card{width:min(1000px,100%)}
+#modal.pie .dtabs{top:-20px}
+.pie-cols{display:grid;grid-template-columns:minmax(260px,360px) minmax(0,1fr);gap:14px;align-items:start}
+.pie-side{position:sticky;top:40px}
+.pie-side .pglobe{margin-top:0}
+.pie-main{min-width:0}
+.pie-tiles{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+.pie-bw{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;max-width:100%}
+.pie-bw .why{font-size:11px;margin:0;max-width:220px}
+.pie-fx-n{flex:none;font-weight:900;font-size:13px;color:var(--bad);font-variant-numeric:tabular-nums}
+.pie-fxl .pie-fx:first-child{border-top:0}
+@media (max-width:760px){.pie-cols{grid-template-columns:minmax(0,1fr)}.pie-side{position:static}#modal.pie .dtabs{top:-16px}}
+/* Launch options as toggles with their explanation, and the rocket table. */
+.pie-tgs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+.pie-tg{display:flex;gap:8px;align-items:flex-start;text-align:left;min-height:44px;padding:8px 10px;border:2px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);cursor:pointer;font:inherit}
+.pie-tg.on{border-color:var(--ok);box-shadow:0 0 0 2px var(--ok) inset}
+.pie-tg>span:last-child{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pie-tg small{font-size:12px;color:var(--ink2);font-weight:600}
+.pie-tg-b{flex:none;width:20px;height:20px;border:2px solid var(--ink);border-radius:6px;display:grid;place-items:center;font-weight:900;font-size:13px;background:#fff}
+.pie-tg.on .pie-tg-b{background:var(--ok);color:#fff;border-color:var(--ok)}
+.pie-rk td{vertical-align:top}.pie-rk small{color:var(--ink2)}.pie-rk tr.pie-off td{opacity:.55}
+.pie-las{margin-top:2px}.pie-las.on{color:var(--ok);font-weight:800}
+.pie-ccb .kv.pie-focus{background:var(--soft);box-shadow:inset 4px 0 0 var(--pink,#FF4F9A);border-radius:6px;padding:2px 6px}
+/* Denser Pie Control: smaller buttons and tighter rows everywhere in the panel. */
+#modal.pie .b.sm{font-size:11.5px;padding:2px 8px 1px;border-width:2px;border-radius:8px;box-shadow:0 2px 0 var(--ink);min-height:0}
+#modal.pie .ops-o{padding:6px 10px;margin:6px 0}
+#modal.pie .panel2{padding:8px 10px}
+#modal.pie .ops-p{gap:4px;margin-top:4px}
+.pie-fx{display:grid;grid-template-columns:22px minmax(0,1fr) auto;grid-template-areas:"ic m n" "ic b b";gap:2px 8px;align-items:start;padding:5px 0}
+.pie-fx-ic{grid-area:ic;font-size:16px}.pie-fx-m{grid-area:m}.pie-fx-n{grid-area:n}
+.pie-fx-b{grid-area:b;display:flex;flex-wrap:wrap;gap:4px}
+@media (min-width:761px){.pie-fx{grid-template-columns:22px minmax(0,1fr) 80px auto;grid-template-areas:"ic m n b"}.pie-fx-b{justify-content:flex-end;max-width:360px}.pie-fx-n{text-align:right}}
+.pie-fx-m b{font-size:13px}.pie-fx-m small{font-size:11.5px;line-height:1.3}
+.pie-drs{display:flex;flex-direction:column}
+.pie-dr{display:grid;grid-template-columns:minmax(90px,1.1fr) minmax(90px,1fr) minmax(0,2fr) auto;gap:2px 10px;align-items:center;padding:4px 0;border-top:1px dashed var(--line);font-size:12.5px}
+.pie-dr .nm small{color:var(--ink2);font-weight:700}
+.pie-dr .ld{display:flex;align-items:center;gap:6px}.pie-dr .ld .bar{flex:1;margin:0;height:9px}.pie-dr .ld b{font-size:12px;min-width:34px;text-align:right}
+.pie-dr .mt{font-size:11.5px;color:var(--ink2);min-width:0;overflow-wrap:anywhere}
+.pie-dr .ac{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
+@media (max-width:760px){.pie-dr{grid-template-columns:minmax(0,1fr) minmax(80px,1fr)}.pie-dr .mt,.pie-dr .ac{grid-column:1/-1}.pie-dr .ac{justify-content:flex-start}}
+.pie-how{font-size:12px;margin:2px 0 6px}
+.pie-crl .pie-crr{display:grid;grid-template-columns:minmax(110px,1.2fr) minmax(80px,2fr) auto auto;gap:8px;align-items:center;font-size:12.5px;padding:2px 0}
+.pie-crr .bar{margin:0;height:9px}.pie-crr .n{font-variant-numeric:tabular-nums}.pie-crr .gap{color:var(--bad);font-weight:800}.pie-crr .ok{color:var(--ok);font-weight:900}
+.pie-cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:8px}
+.pie-cc2 .nm small{font-weight:600}.pie-cc2 .meta{font-size:12px}
+.pie-tgs{grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px;margin-bottom:8px}
+.pie-tg{min-height:0;padding:5px 8px}.pie-tg small{font-size:11px}
+.pie-rk{font-size:12.5px}.pie-rk td,.pie-rk th{padding:3px 6px}
+.pie-ant{display:inline-block;margin-left:6px;font-size:12px;font-weight:800;color:var(--ink)}.pie-ant.off{color:var(--ink2);font-weight:600}
+.pie-pad .b.sm{white-space:nowrap}
+#modal.pie .pft-ck li{min-height:0;margin:2px 0}#modal.pie .pft-why{padding:6px 10px}
+@media (min-width:761px){.pie-dr{grid-template-columns:minmax(90px,1fr) minmax(110px,1fr) minmax(0,2fr) 260px}}
+#modal.pie .pft-d{margin:2px 0}#modal.pie .pft-d .meta{margin:0}#modal.pie .pft-d .kv{margin:0}
+.pie-crl .pie-crr{grid-template-columns:minmax(120px,170px) minmax(60px,1fr) 100px 150px}.pie-crr .n{text-align:right}@media (max-width:760px){.pie-crl .pie-crr{grid-template-columns:minmax(0,1fr) 70px;}.pie-crr .bar{grid-column:1/-1;grid-row:2}}
+.pie-ab{align-items:flex-start}
+.pie-ask{border-color:var(--pink,#FF4F9A);margin-bottom:10px}
+.pie-fxm{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:6px;align-items:center;font-size:12.5px;padding:2px 0}.pie-fxm .n{color:var(--bad);font-weight:800}
+.pie-post{font-size:12.5px;padding:3px 0;border-top:1px dashed var(--line)}.pie-post small{color:var(--ink2);font-weight:800}
+#modal.pie .b.sm.pie-loc{padding:0 4px;font-size:11px}
+.pie-crl .pie-crr{grid-template-columns:minmax(130px,165px) minmax(90px,1fr) 85px 130px 125px}
+.pie-crr .tu{font-size:12px;font-weight:800;color:var(--ok)}.pie-crr .tu.warn{color:#B07A00}.pie-crr .tu.bad{color:var(--bad)}.pie-crr .tu:not(.warn):not(.bad):not(.ok){color:var(--ink2);font-weight:600}
+@media (max-width:760px){.pie-crl .pie-crr{grid-template-columns:minmax(0,1fr) auto}.pie-crr .bar{grid-column:1/-1;grid-row:2}}
+.pie-crr>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.pie-sec{font-size:17px;margin:14px 0 4px;padding-top:8px;border-top:2px solid var(--line)}
+.pie-cl{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700}.pie-cl .bar{flex:1;margin:0;height:9px}
+.pie-rkd{margin:4px 0 8px}.pie-rkd summary{cursor:pointer;font-weight:800;font-size:13px;padding:4px 0}
+.pie-dv{margin-bottom:6px}.pie-dl{font-size:12px;font-weight:800;color:var(--ok)}.pie-dl.warn{color:#B07A00}.pie-dl.bad{color:var(--bad)}
+.pie-confirm{border:2px solid var(--bad);border-radius:10px;padding:6px 8px;margin:4px 0 8px;font-size:12.5px;background:var(--paper)}.pie-confirm .btns{margin-top:4px}.pie-confirm .b.sm{white-space:normal}
+/* A launch pad on one line (85-pie-control.js piePadRow). */
+.pie-padr{display:grid;grid-template-columns:minmax(150px,230px) 62px 46px minmax(110px,1fr) 70px 220px;gap:8px;align-items:center;padding:5px 0;border-top:1px dashed var(--line);font-size:12.5px}
+.pie-padr:first-of-type{border-top:0}
+.pie-padr .nm small{color:var(--ink2);font-weight:700}
+.pie-tw{color:var(--pink,#FF4F9A);letter-spacing:1px;font-size:13px}
+.pie-rdy{display:flex;align-items:center;gap:6px}.pie-rdy .bar{flex:1;margin:0;height:9px}.pie-rdy small{white-space:nowrap;font-weight:800}
+.pie-rdy.ok .bar>i{background:var(--ok)}.pie-rdy.busy .bar>i{background:var(--warn)}.pie-rdy.ok small{color:var(--ok)}
+.pie-pq{font-size:12px;font-weight:800;color:var(--ink2);white-space:nowrap}
+.pie-padr .pie-ab{justify-content:flex-end}
+@media (max-width:760px){.pie-padr{grid-template-columns:minmax(0,1fr) auto auto}.pie-rdy{grid-column:1/-1}.pie-pq{grid-column:1/2}.pie-padr .pie-ab{grid-column:2/-1}}
+.pie-padr .tag{justify-self:start}
+.pie-site-cc{display:block;margin-top:-3px;font-size:12px;font-weight:700;color:var(--ink2)}
+.pie-dr .mt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (min-width:761px){.pie-dr{grid-template-columns:minmax(110px,1fr) minmax(110px,1fr) minmax(0,1.4fr) 330px}}
+/* Crusts tab: two cards a row on a desktop (room for the launch buttons on one line), one on a phone. */
+.pie-cgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:760px){.pie-cgrid{grid-template-columns:minmax(0,1fr)}}
+/* Launches waiting on the pads (85-pie-control.js pieQueueHtml): a line each; under the overview's globe, the first few. */
+.pie-queue h3{font-size:15px;margin:10px 0 4px}
+.pie-ql{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 8px;font-size:12.5px;padding:3px 0;border-top:1px dashed var(--line)}
+.pie-ql .d{font-weight:800;white-space:nowrap}.pie-ql .m{color:var(--ink2);white-space:nowrap}
+.pie-queue.side .pie-ql{grid-template-columns:auto minmax(0,1fr)}.pie-queue.side .pie-ql .m{grid-column:2}
+@media (min-width:761px){.pie-dr{grid-template-columns:minmax(150px,1fr) 150px 130px minmax(330px,auto)}.pie-dr .ac{flex-wrap:nowrap}.pie-dr .nm{white-space:nowrap}}
+@media (max-width:760px){.pie-queue.side{display:none}}
+@media (min-width:761px){.pie-dr{grid-template-columns:minmax(120px,1fr) 130px minmax(70px,.6fr) auto}}
+@media (min-width:761px){.pie-dr{grid-template-columns:minmax(120px,1fr) 130px 80px 300px}.pie-dr .ac{justify-content:flex-end}}
+@media (min-width:761px){.pie-dr{grid-template-columns:minmax(90px,1fr) 90px 64px 320px;gap:2px 8px}.pie-dr .nm{overflow:hidden;text-overflow:ellipsis}}

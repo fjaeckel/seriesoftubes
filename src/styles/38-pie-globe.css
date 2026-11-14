@@ -21,3 +21,5 @@
 .pft-ck li span:last-child{display:flex;flex-direction:column;min-width:0}
 .pft-ck small{font-size:12px;color:var(--ink2);overflow-wrap:anywhere}
 .pft-st{color:var(--bad);font-weight:800}
+.pglobe .pgzoom{position:absolute;bottom:6px;right:6px;display:flex;flex-direction:column;gap:4px}
+.pglobe .pgzoom .b{min-width:36px;min-height:36px;font-size:18px;padding:0}
