@@ -1485,6 +1485,10 @@ Run by CI on every pull request that touches `federation/servers/`, for each add
    apply to the weekly liveness pull request from `federation-liveness.yml` (11.3), the one place stamps change.
    `relay registry-file` copies both stamps from the existing file (`--from FILE`, by default
    `federation/servers/<id>.json` when present and not empty), so a replacement made with it passes.
+   The file also only moves its server forward: the base file's `chain` is a prefix of the new one (`bad_chain`), and
+   the new `server` record is the base file's (same id) or has a greater `t` (`too_old`). Relays prefer the registry's
+   chain to gossip (10.8), so an earlier signed file (from before an operator or a node was removed) must never replace
+   a later one. A base file that does not pass steps 1 to 5 itself is not compared.
 9. At least one listed node answers: the check connects to each node's URL in turn (10 s timeout each), sends `hello`
    and `challenge`, and checks the `proof` (6.2) (`no_answer` when none does).
 

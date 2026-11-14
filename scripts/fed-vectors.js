@@ -748,6 +748,18 @@ const nodesOf = list => list.map(([n, url]) => ({ key: pub(n), url })).sort((a, 
     const sr = multi('server', 'erin', T - 5 * DAY, { server: id, head: id, name: 'LAN Before Time', nodes: [{ key: pub('node3'), url }], operators: [pub('erin')], sync: 'standalone', noLogs: true, langs: ['en'], desc: '' }, ['erin']);
     go(name, `A node named ${url.includes('.local') ? 'by an mDNS (.local) name' : 'by a private address'}: fine for an invite, refused by the registry.`, { [id + '.json']: { v: 1, genesis: g, chain: [], server: sr } }, id + '.json', { ok: false, error: 'local_url' });
   }
+  // No rollback (step 8): relays prefer the registry's chain to gossip, so an earlier signed file of the same server
+  // (from before an operator or a node was removed) must not replace a later one.
+  const atP2 = multi('server', 'anna', T - 15 * DAY, { ...server1.body, head: rid(P2), nodes: nodesOf([['node1', URL1]]) }, ['anna', 'ben']);
+  const fileP2 = { ...file1, chain: [P1, P2], server: atP2 };
+  go('rollback-chain', 'The base branch holds the chain up to P3; the change puts back an earlier signed file whose chain stops at P2 (valid on its own). The base file\'s chain must be a prefix of the new one.',
+    { [F1]: fileP2 }, F1, { ok: false, error: 'bad_chain' }, file1);
+  go('rollback-server', 'Same chain, but the server record is an earlier one (t older than the base file\'s): refused.',
+    { [F1]: { ...file1, server: multi('server', 'anna', T - 12 * DAY, { ...server1.body, desc: 'Small, friendly, sometimes on.' }, ['anna', 'ben']) } }, F1, { ok: false, error: 'too_old' }, file1);
+  go('rollback-server-same-t', 'Another server record with the same t as the base file\'s is not newer either.',
+    { [F1]: { ...file1, server: multi('server', 'anna', server1.t, { ...server1.body, desc: 'Small, friendly, never off.' }, ['anna', 'ben']) } }, F1, { ok: false, error: 'too_old' }, file1);
+  go('chain-extends', 'Moving forward passes: the base file stops at P2, the change adds P3 with a newer server record.',
+    { [F1]: file1 }, F1, { ok: true }, fileP2);
 }
 
 // ======================================================================================

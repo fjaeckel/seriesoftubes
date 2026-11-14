@@ -200,6 +200,8 @@ function apply(st, p) {
 }
 
 const STEP = (n, fn) => { try { return fn(); } catch (e) { if (e instanceof Fault) e.step = n; throw e; } };
+// A multi-signer record's id (§3.3): its text without sigs.
+const mid = (r) => b64(sha(canon((({ sigs, ...x }) => x)(r))));
 const lowerName = (s) => s.replace(/[A-Z]/g, (c) => c.toLowerCase());
 
 // Parse a registry file's text: step 1. Returns the file object.
@@ -247,7 +249,15 @@ function checkFile(name, f, { now, names = [], base } = {}) {
     if (u) fail('local_url', u);
   });
   STEP(7, () => { if (names.includes(lowerName(f.server.body.name))) fail('name_taken', f.server.body.name); });
-  STEP(8, () => { if (base) for (const k of ['listed', 'answered']) if (base[k] !== f[k]) fail('bad_field', `${k} is written by the weekly job only`); });
+  STEP(8, () => {
+    if (!base) return;
+    for (const k of ['listed', 'answered']) if (base[k] !== f[k]) fail('bad_field', `${k} is written by the weekly job only`);
+    // No rollback: relays prefer the registry's chain to gossip, so an earlier signed file of the same server must not
+    // replace a later one. A base file that does not check is not compared (it is broken on the base branch already).
+    try { checkFile(name, base, { now }); } catch (e) { if (e instanceof Fault) return; throw e; }
+    if (base.chain.length > f.chain.length || base.chain.some((p, i) => mid(p) !== mid(f.chain[i]))) fail('bad_chain', 'the chain does not extend the one on the base branch');
+    if (mid(base.server) !== mid(f.server) && !(f.server.t > base.server.t)) fail('too_old', 'the server record is not newer than the one on the base branch');
+  });
   return gid;
 }
 

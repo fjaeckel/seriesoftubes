@@ -180,6 +180,9 @@ func Check(name string, files map[string][]byte, base []byte, now int64, challen
 		if f := stampsKept(files[name], base); f != nil {
 			return f
 		}
+		if f := noRollback(name, e, base, now); f != nil {
+			return f
+		}
 	}
 	if challenge == nil {
 		return nil
@@ -268,6 +271,30 @@ func stampsKept(data, base []byte) *Failure {
 		if xok != yok || xn != yn {
 			return fail(8, fed.BadField, f+" changed")
 		}
+	}
+	return nil
+}
+
+// noRollback is the rest of step 8: a file may only move a server forward. Relays prefer the
+// registry's chain to gossip, so an earlier signed file of the same server (from before an operator
+// or a node was removed) must not replace a later one: the base file's chain is a prefix of the new
+// chain (bad_chain), and the new server record is the base's or has a greater t (too_old).
+// A base file that does not parse is not compared (it is broken on the base branch already).
+func noRollback(name string, e *Entry, base []byte, now int64) *Failure {
+	b, f := Parse(name, base, now)
+	if f != nil {
+		return nil
+	}
+	if b.ID != e.ID || len(b.Chain) > len(e.Chain) {
+		return fail(8, fed.BadChain, "the chain on the base branch is longer or another")
+	}
+	for i, r := range b.Chain {
+		if e.Chain[i].ID != r.ID {
+			return fail(8, fed.BadChain, "the chain does not extend the one on the base branch")
+		}
+	}
+	if e.Server.ID != b.Server.ID && e.Server.T <= b.Server.T {
+		return fail(8, fed.TooOld, "the server record is not newer than the one on the base branch")
 	}
 	return nil
 }
