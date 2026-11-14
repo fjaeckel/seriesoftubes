@@ -160,3 +160,13 @@ func (r *Relay) UnboundSessions(server string) int {
 	}
 	return n
 }
+
+// SetCatalogUnlisted lowers the catalog entries kept of servers the registry does not list; it returns the restore.
+func SetCatalogUnlisted(n int) func() {
+	old := maxCatalogUnlistedN
+	maxCatalogUnlistedN = n
+	return func() { maxCatalogUnlistedN = old }
+}
+
+// InCatalog reports whether the catalog holds a server's entry.
+func (r *Relay) InCatalog(id string) bool { r.mu.Lock(); defer r.mu.Unlock(); return r.cat[id] != nil }

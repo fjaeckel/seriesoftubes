@@ -41,13 +41,17 @@ type catEntry struct {
 
 // Bounds of the catalog: in all, and learned through any one neighbour (10.8 allows them), by
 // entries and by bytes, since one entry may be some 60 KB. Servers the registry does not list
-// share a smaller budget: anyone can make one. Vars so tests can lower them.
+// share a smaller budget, by entries and bytes: anyone can make one. They never crowd out registry
+// servers: a neighbour's bound for those leaves out the unlisted entries it passed on, and a
+// registry server's entry takes the place of the oldest unlisted one when the catalog is full.
+// Vars so tests can lower them.
 var (
-	maxCatalog         = 4096
-	maxCatalogVia      = 512
-	maxCatalogBytes    = 16 << 20
-	maxCatalogViaBytes = 2 << 20
-	maxCatalogUnlisted = 4 << 20
+	maxCatalog          = 4096
+	maxCatalogVia       = 512
+	maxCatalogBytes     = 16 << 20
+	maxCatalogViaBytes  = 2 << 20
+	maxCatalogUnlisted  = 4 << 20
+	maxCatalogUnlistedN = 1024
 )
 
 // minForward is the least time between two forwards of one server's entry, changed or not, so
@@ -57,7 +61,7 @@ const minForward = 60
 // catSizes counts the catalog's bytes (lock held).
 type catSizes struct {
 	all, unlisted int
-	via           map[string]int
+	via, viaUn    map[string]int // per neighbour: all entries, and those of unlisted servers
 }
 
 func (z *catSizes) add(c *catEntry, sign int) {
@@ -68,24 +72,82 @@ func (z *catSizes) add(c *catEntry, sign int) {
 	}
 	if c.unseen {
 		z.unlisted += n
+		if z.viaUn[c.via] += n; z.viaUn[c.via] <= 0 {
+			delete(z.viaUn, c.via)
+		}
 	}
 }
 
 // fits reports whether records of size bytes may replace old (nil for a new entry) within the
-// bounds; bounded is whether the per-neighbour bound applies.
+// bounds; bounded is whether the per-neighbour bound applies. For a registry server's entry the
+// neighbour's bound leaves out the unlisted servers' entries that came through it.
 func (z *catSizes) fits(old *catEntry, via string, size int, unlisted, bounded bool) bool {
 	all, v, un := z.all+size, z.via[via]+size, 0
 	if unlisted {
 		un = z.unlisted + size
+	} else {
+		v -= z.viaUn[via]
 	}
 	if old != nil {
 		all -= old.size
-		v -= old.size
+		if unlisted || !old.unseen {
+			v -= old.size
+		}
 		if old.unseen {
 			un -= old.size
 		}
 	}
 	return all <= maxCatalogBytes && (!bounded || v <= maxCatalogViaBytes) && (!unlisted || un <= maxCatalogUnlisted)
+}
+
+// countCat adds sign to the entry counts of c: through its neighbour, and of unlisted servers (lock held).
+func (r *Relay) countCat(c *catEntry, sign int) {
+	if r.catVia[c.via] += sign; r.catVia[c.via] <= 0 {
+		delete(r.catVia, c.via)
+	}
+	if c.unseen {
+		r.catUnN += sign
+		if r.catViaUn[c.via] += sign; r.catViaUn[c.via] <= 0 {
+			delete(r.catViaUn, c.via)
+		}
+	}
+}
+
+// catRoom reports whether a new entry of size bytes may be kept (lock held), making room for a
+// registry server's entry by dropping the oldest entries of unlisted servers.
+func (r *Relay) catRoom(via string, size int, unlisted, bounded bool) bool {
+	n := r.catVia[via]
+	if !unlisted {
+		n -= r.catViaUn[via]
+	}
+	if bounded && n >= maxCatalogVia || unlisted && r.catUnN >= maxCatalogUnlistedN {
+		return false
+	}
+	if !unlisted && bounded && r.catSize.via[via]-r.catSize.viaUn[via]+size > maxCatalogViaBytes {
+		return false // nothing to drop for it: the neighbour's own bound
+	}
+	for len(r.cat) >= maxCatalog || r.catSize.all+size > maxCatalogBytes {
+		if unlisted || !r.evictUnlisted() {
+			return false
+		}
+	}
+	return r.catSize.fits(nil, via, size, unlisted, bounded)
+}
+
+// evictUnlisted drops the unlisted server's entry seen least recently (lock held); false when
+// there is none.
+func (r *Relay) evictUnlisted() bool {
+	var o *catEntry
+	for _, c := range r.cat {
+		if c.unseen && (o == nil || c.Seen < o.Seen || c.Seen == o.Seen && c.ID < o.ID) {
+			o = c
+		}
+	}
+	if o == nil {
+		return false
+	}
+	r.forget(o.ID)
+	return true
 }
 
 const catalogSaveDelay = 10 * time.Second
@@ -98,9 +160,7 @@ const maxEntry = fed.ClientFrame - 4096
 // forget drops a catalog entry (lock held).
 func (r *Relay) forget(id string) {
 	if c := r.cat[id]; c != nil {
-		if r.catVia[c.via]--; r.catVia[c.via] <= 0 {
-			delete(r.catVia, c.via)
-		}
+		r.countCat(c, -1)
 		r.catSize.add(c, -1)
 		delete(r.cat, id)
 		r.markCatalog()
@@ -330,8 +390,7 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 	// The catalog file was bounded when its entries came.
 	bounded := from != nil && !sibling
 	unlisted := r.regs[g.ID] == nil
-	if old == nil && (len(r.cat) >= maxCatalog || bounded && r.catVia[via] >= maxCatalogVia ||
-		!r.catSize.fits(nil, via, size, unlisted, bounded)) {
+	if old == nil && !r.catRoom(via, size, unlisted, bounded) {
 		return "" // full: entries already kept still update, new ones wait for room
 	}
 	impl := readImpls(m["impl"], st)
@@ -352,9 +411,9 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 		}
 		c.sent, c.via = old.sent, old.via
 		r.catSize.add(old, -1)
-	} else {
-		r.catVia[via]++
+		r.countCat(old, -1)
 	}
+	r.countCat(c, 1)
 	r.catSize.add(c, 1)
 	r.cat[g.ID] = c
 	if from != nil && from.peerServer == g.ID {

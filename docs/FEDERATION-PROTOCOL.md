@@ -1271,9 +1271,12 @@ Receiving an entry from a neighbour, a server with identity `self`:
    the server the entry came from. A node starting a session with another node of its server sends it the entries it
    keeps in the same way. Either list is sent a frame at a time as the other side reads, never all at once.
 4. A relay MAY bound the entries it keeps, in all and per neighbour they first came from, by count and by bytes of
-   their records (the reference relay: 4096 and 512 entries, 16 MiB and 2 MiB; servers not in its registry share 4 MiB
-   of it). An entry for a server it does not keep yet is then dropped silently; entries it keeps still update, unless
-   newer records would pass a bound (then it keeps the records it has).
+   their records (the reference relay: 4096 and 512 entries, 16 MiB and 2 MiB; servers not in its registry share 1024
+   entries and 4 MiB of it). An entry for a server it does not keep yet is then dropped silently; entries it keeps still
+   update, unless newer records would pass a bound (then it keeps the records it has). Entries of servers outside the
+   registry cost nothing to make up, so they SHOULD NOT keep out a registry server's: a neighbour's bound for registry
+   servers' entries leaves out the unlisted ones it passed on, and a registry server's entry takes the place of the
+   unlisted entry seen least recently when the catalog is full.
 5. A server's chain only grows (8.1). If the server already holds a chain for that server identity (from its registry
    snapshot or an entry kept), an entry whose chain neither extends that chain nor is part of it (the head held is not
    one of the entry's heads, and the entry's head is not one of those held) is a **fork**: signed by keys that were

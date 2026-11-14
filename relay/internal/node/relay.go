@@ -62,38 +62,40 @@ type Options struct {
 
 // Relay is one node.
 type Relay struct {
-	o       Options
-	hc      *http.Client // outgoing wss:// to URLs the operator gave: no redirects
-	hcPeer  *http.Client // to URLs from the registry, catalog or peers: no redirects, public addresses only
-	mu      sync.Mutex
-	cfg     *config.Config
-	st      *store.Store
-	own     *chain.State            // nil until the server's genesis is known
-	ownSrv  *fed.Record             // current server record (8.2)
-	headSrv *fed.Record             // newest valid server record at the chain's final head (for gossip)
-	hide    *fed.Record             // current hide record
-	hides   map[string]*store.Entry // server -> its newest stored hide (this server's and registry servers')
-	reg     *registry.Snapshot
-	regs    map[string]*registry.Entry
-	cat     map[string]*catEntry
-	catVia  map[string]int // neighbour server -> catalog entries first learned from it
-	catSize catSizes       // bytes of the catalog's records, in all, per neighbour and unlisted
-	rank    *rank.Agg      // the leaderboards in memory (9.5)
-	shunned map[string]bool
-	shunAt  int64
-	counter *shun.Counter                   // voters of the registry snapshot
-	votes   map[string]map[string]shun.Vote // target -> vote id -> vote
-	voteN   map[string]int                  // voting server -> votes stored
-	ann     map[string]*store.Entry         // key -> its newest announce
-	offerN  map[string]int                  // author, and author|to -> offers stored
-	left    map[string]int64                // key -> t of its newest leave
-	statsAt map[string]int64                // key -> slot of its last stats from a client
-	refused map[string]bool                 // ids refused from nodes (not wanted again)
-	lastSyn map[string]int64                // peer node key -> start of the last session
-	auto    map[string]bool                 // this server's automatic peers (10.9), nil when none
-	quiet   map[string]int64                // automatic peer this node does not dial -> since when it has had no session with it
-	urlSrv  map[string]string               // node URL dialled -> the server that answered there
-	binds   map[string]bool                 // other servers whose nodes bound their proofs in a session (memory only, bounded)
+	o        Options
+	hc       *http.Client // outgoing wss:// to URLs the operator gave: no redirects
+	hcPeer   *http.Client // to URLs from the registry, catalog or peers: no redirects, public addresses only
+	mu       sync.Mutex
+	cfg      *config.Config
+	st       *store.Store
+	own      *chain.State            // nil until the server's genesis is known
+	ownSrv   *fed.Record             // current server record (8.2)
+	headSrv  *fed.Record             // newest valid server record at the chain's final head (for gossip)
+	hide     *fed.Record             // current hide record
+	hides    map[string]*store.Entry // server -> its newest stored hide (this server's and registry servers')
+	reg      *registry.Snapshot
+	regs     map[string]*registry.Entry
+	cat      map[string]*catEntry
+	catVia   map[string]int // neighbour server -> catalog entries first learned from it
+	catViaUn map[string]int // of those, entries of servers the registry does not list
+	catUnN   int            // catalog entries of servers the registry does not list
+	catSize  catSizes       // bytes of the catalog's records, in all, per neighbour and unlisted
+	rank     *rank.Agg      // the leaderboards in memory (9.5)
+	shunned  map[string]bool
+	shunAt   int64
+	counter  *shun.Counter                   // voters of the registry snapshot
+	votes    map[string]map[string]shun.Vote // target -> vote id -> vote
+	voteN    map[string]int                  // voting server -> votes stored
+	ann      map[string]*store.Entry         // key -> its newest announce
+	offerN   map[string]int                  // author, and author|to -> offers stored
+	left     map[string]int64                // key -> t of its newest leave
+	statsAt  map[string]int64                // key -> slot of its last stats from a client
+	refused  map[string]bool                 // ids refused from nodes (not wanted again)
+	lastSyn  map[string]int64                // peer node key -> start of the last session
+	auto     map[string]bool                 // this server's automatic peers (10.9), nil when none
+	quiet    map[string]int64                // automatic peer this node does not dial -> since when it has had no session with it
+	urlSrv   map[string]string               // node URL dialled -> the server that answered there
+	binds    map[string]bool                 // other servers whose nodes bound their proofs in a session (memory only, bounded)
 
 	reports   map[string]map[string]*store.Entry // reporter -> target -> its stored report (5.10)
 	addrQ     map[netip.Addr]*quota              // growth budgets by address, memory only (growth.go)
@@ -162,7 +164,7 @@ func New(o Options) (*Relay, error) {
 	}
 	var eb [6]byte
 	_, _ = rand.Read(eb[:])
-	r := &Relay{o: o, cfg: o.Config, st: st, regs: map[string]*registry.Entry{}, cat: map[string]*catEntry{}, catVia: map[string]int{}, catSize: catSizes{via: map[string]int{}},
+	r := &Relay{o: o, cfg: o.Config, st: st, regs: map[string]*registry.Entry{}, cat: map[string]*catEntry{}, catVia: map[string]int{}, catViaUn: map[string]int{}, catSize: catSizes{via: map[string]int{}, viaUn: map[string]int{}},
 		shunned: map[string]bool{}, left: map[string]int64{}, statsAt: map[string]int64{}, refused: map[string]bool{},
 		lastSyn: map[string]int64{}, addrQ: map[netip.Addr]*quota{}, peerQ: map[string]*quota{}, urlSrv: map[string]string{}, binds: map[string]bool{}, clients: map[*session]bool{}, nodes: map[*session]bool{},
 		epoch: fed.Encode(eb[:]), dialers: map[string]context.CancelFunc{}, speaks: o.Versions,
