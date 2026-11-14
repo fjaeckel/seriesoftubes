@@ -32,7 +32,7 @@ function linkActs(l){let h=optActs(l);
   const w=quickWave(l);if(w)h+=btn(`↑ ${LT[w.i].n} <small>${tr('common.price_mo',{price:fmt$(w.mo)})}</small>`,'upLink',{id:l.id,tier:w.i},'sm',S.cash<w.mo);
   return h?`<div class="btns">${h}</div>`:'';}
 // The row picked in the side panel behind the dashboard; the NOC window has no side panel of its own.
-const sel=(type,id)=>!NOC.win&&UI.sel&&UI.sel.type===type&&UI.sel.id===id?' on':'';
+const dashSel=(type,id)=>!NOC.win&&UI.sel&&UI.sel.type===type&&UI.sel.id===id?' on':'';
 const linkMeta=l=>[tr(LK_L[lkOf(l)]),capName(l),`${linkLat(l).toFixed(1)} ms`].filter(Boolean).map(x=>`<span class="optn">${x}</span>`).join(' · ');
 // Used against what is left for your own traffic (capOf, the load bar's 100%); on dark fiber also what is sold:
 // channels rented out as alien waves and capacity sold as managed waves, which come out of your own lit capacity (dfCap0).
@@ -40,7 +40,7 @@ const linkMeta=l=>[tr(LK_L[lkOf(l)]),capName(l),`${linkLat(l).toFixed(1)} ms`].f
 const linkUse=(l,c)=>{const df=l.kind==='df'&&!(l.ready>S.day),mw=df?mwG(l):0,used=fmtG(R.load[l.id]||0),m=[mw?tr('dashboard.used_of_lit',{used,cap:fmtG(c),lit:fmtG(dfLit(l))}):tr('dashboard.used_of',{used,cap:fmtG(c)})];
   if(df){const sold=soldSlots(l);m.push(tr('dashboard.ch_lit_sold_free',{lit:(l.ch||[]).length,sold,free:Math.max(0,freeCh(l)),max:chMax(l)}));if(mw)m.push(tr('market.g_sold_as_managed',{g:fmtCap(mw)}));}
   return `<div class="meta">${m.map(x=>`<span class="optn">${x}</span>`).join(' · ')}</div>`;};
-const pct2=(r)=>`<b class="num lpct">${r.down?tr('common.down'):pct(r.u)}</b>`;
+const lkPct=(r)=>`<b class="num lpct">${r.down?tr('common.down'):pct(r.u)}</b>`;
 function linksTab(){if(!S.links.length)return `<div class="panel2 itab" id="linksSec"><h3>${tr('common.links')}</h3><p class="empty">${tr('common.no_links_yet')}</p></div>`;
   const all=S.links.map(l=>{const c=capOf(l);return {l,id:l.id,nm:(CITY[l.a].name+' '+CITY[l.b].name).toLowerCase(),cap:c,u:c>0?(R.load[l.id]||0)/c:0,down:linkDown(l)};});
   const city=isCity(UI.infraCity)&&all.some(r=>r.l.a===UI.infraCity||r.l.b===UI.infraCity)?UI.infraCity:'',inC=all.filter(r=>!city||r.l.a===city||r.l.b===city);
@@ -51,7 +51,7 @@ function linksTab(){if(!S.links.length)return `<div class="panel2 itab" id="link
   ${Object.keys(lc).length>1||lf?`<div class="seg">${btn(tr('dashboard.all_n',{n:inC.length}),'infraF',{v:''},!lf?'pink sm':'ghost sm')}${LK.filter(k=>lc[k]).map(k=>btn(`${tr(LK_L[k])} (${lc[k]})`,'infraF',{v:k},lf===k?'pink sm':'ghost sm')).join('')}</div>`:''}
   ${hotSeg('links',ofK,hf)}<div class="seg ifoot"><label class="trsel">${tr('common.city_906b')} <select data-chg="infraCity"><option value="">${tr('common.all_cities')}</option>${cities.map(c=>`<option value="${c}"${city===c?' selected':''}>${esc(CITY[c].name)}</option>`).join('')}</select></label>${infraSeg('links')}</div></div>`;
   if(!ls.length)return h+`<p class="empty">${tr('common.nothing_yet')}</p></div>`;
-  h+=`<div class="ilist">`+ls.slice(0,listN('links')).map(r=>{const {l,u}=r;return `<div class="row ihit${sel('link',l.id)}" data-act="dashLink" data-args='{"id":"${l.id}","bg":1}'><div class="grow"><div class="nm">${CITY[l.a].name} ⇄ ${CITY[l.b].name} <span class="meta">${linkMeta(l)}</span></div>${linkUse(l,r.cap)}<div class="bar ${r.down?'bad':barCls(u)}"><i style="width:${r.down?100:Math.min(100,u*100)}%"></i></div>${linkActs(l)}</div>${pct2(r)}${btn(tr('common.open'),'dashLink',{id:l.id},'ghost sm')}</div>`;}).join('')+`</div>`;
+  h+=`<div class="ilist">`+ls.slice(0,listN('links')).map(r=>{const {l,u}=r;return `<div class="row ihit${dashSel('link',l.id)}" data-act="dashLink" data-args='{"id":"${l.id}","bg":1}'><div class="grow"><div class="nm">${CITY[l.a].name} ⇄ ${CITY[l.b].name} <span class="meta">${linkMeta(l)}</span></div>${linkUse(l,r.cap)}<div class="bar ${r.down?'bad':barCls(u)}"><i style="width:${r.down?100:Math.min(100,u*100)}%"></i></div>${linkActs(l)}</div>${lkPct(r)}${btn(tr('common.open'),'dashLink',{id:l.id},'ghost sm')}</div>`;}).join('')+`</div>`;
   return h+listMore('links',ls.length,n=>trn('dashboard.view_more_link',n),'lmore')+`</div>`;}
 // A POP's next router step, the intern's own (rtrNext()): add a router and/or swap to the next model. Its pick is in pink
 // only where the intern would act, at or over its "at" setting (rtrLoad()). Nothing on a day this POP already had new
@@ -61,7 +61,7 @@ function rtrActs(c,pu){const p=S.pops[c];if(p.rupDay===S.day)return `<span class
   if(add){const cost=routerCost(g,rt);h+=btn(tr('city_panel.add_router_cost_mo_mo',{cost:fmt$(cost),mo:fmt$(routerMo(g)+(rt>=RCAGE?CAGE_MO:0))}),'addRouter',{city:c},pick==='add'?'pink sm':'ghost sm',S.cash<cost,why('add'));}
   if(swap){const N=RG[nx],cost=swapCost(c,nx);h+=btn(tr('city_panel.upgrade_to_model_cost_mo_mo',{model:esc(N.n),cost:fmt$(cost),mo:fmt$(N.mo*rt)}),'upRouter',{city:c,g:nx},pick==='swap'?'pink sm':'ghost sm',S.cash<cost,why('swap'));}
   return h;}
-const meter=(txt,f)=>`<div class="optn">${txt}</div><div class="bar ${barCls(f)}"><i style="width:${Math.min(100,f*100)}%"></i></div>`;
+const dashMeter=(txt,f)=>`<div class="optn">${txt}</div><div class="bar ${barCls(f)}"><i style="width:${Math.min(100,f*100)}%"></i></div>`;
 const fsTxt=r=>r.fsC?tr('ddos.fs_used',{used:r.fsU,cap:r.fsC}):tr('ddos.fs_no_tcam');
 function asBox(){const kv=(k,v)=>`<div class="kv"><span>${k}</span><b>${v}</b></div>`;
   return `<div class="panel2" id="asSec" style="margin-top:12px"><h3>${tr('common.your_as')}</h3><div class="askv">${kv(tr('common.as_number'),'AS'+S.asn)}${kv(tr('common.prefixes'),`${Math.max(1,Math.ceil(Object.keys(S.pops).length/3))} × /22 IPv4, 1 × /32 IPv6`)}${kv(tr('common.bgp_sessions'),R.sessions)}${kv(tr('common.upstreams'),new Set(S.transit.map(t=>t.net)).size)}${kv(tr('common.reach'),pct(R.reach))}${kv(tr('common.customers'),tr('dashboard.n_businesses',{n:S.biz.length}))}</div></div>`;}
@@ -78,11 +78,11 @@ function routersTab(){const cs=Object.keys(S.pops),pu=portsAt(cs),F=UI.rtrF||{};
   const sels=`<div class="seg ifoot">${drop('rtrReg',tr('unbuilt_pops.region'),tr('unbuilt_pops.all_regions'),regs.map(k=>[k,REG[k]]),reg)}${drop('rtrCity',tr('common.city_906b'),tr('common.all_cities'),opts.map(c=>[c,CITY[c].name]),city)}${drop('rtrFs',tr('ddos.fs_rules'),tr('dashboard.fs_all'),[['use',tr('dashboard.fs_in_use')],['has',tr('dashboard.fs_has')],['none',tr('dashboard.fs_none')]],fs)}</div>`;
   let h=asBox()+`<div class="panel2 itab" id="routersSec" style="margin-top:12px"><div class="ibar"><h3>${tr('common.routers')} <span class="meta">${rs.length} / ${all.length}</span></h3>${all.length?hotSeg('routers',inF,hf)+sels+(isPhone()?`<div class="seg ifoot">${infraSeg('routers')}</div>`:''):''}</div>`;
   const page=rs.slice(0,listN('routers')),model=r=>esc(RG[r.g].n),args=c=>`data-act="dashPop" data-args='{"city":"${c}","bg":1}'`;
-  const load=r=>meter(`${fmtG(R.nodeLoad[r.c]||0)} · ${pct(r.u)}`,r.u),ports=r=>meter(tr('city_panel.used_max_in_use',{used:fmtPorts(r.pu),max:r.pm}),r.pf);
-  if(isPhone())h+=`<div class="ilist">`+page.map(r=>`<div class="row ihit rrow${sel('city',r.c)}" ${args(r.c)}><div class="grow"><div class="nm">${CITY[r.c].name} <span class="meta">${r.n} × ${model(r)} · ${fmtG(r.cap)}</span></div>
+  const load=r=>dashMeter(`${fmtG(R.nodeLoad[r.c]||0)} · ${pct(r.u)}`,r.u),ports=r=>dashMeter(tr('city_panel.used_max_in_use',{used:fmtPorts(r.pu),max:r.pm}),r.pf);
+  if(isPhone())h+=`<div class="ilist">`+page.map(r=>`<div class="row ihit rrow${dashSel('city',r.c)}" ${args(r.c)}><div class="grow"><div class="nm">${CITY[r.c].name} <span class="meta">${r.n} × ${model(r)} · ${fmtG(r.cap)}</span></div>
     <div class="meta">${tr('common.forwarding_load')}</div>${load(r)}<div class="meta">${tr('common.router_ports')}</div>${ports(r)}<div class="meta">${tr('ddos.fs_rules')}: <span class="optn">${fsTxt(r)}</span></div><div class="btns">${rtrActs(r.c,r.pu)}${btn(tr('common.open'),'dashPop',{city:r.c},'ghost sm')}</div></div></div>`).join('')+`</div>`;
   else h+=`<div class="tscroll"><table class="tbl rtbl"><thead><tr>${rtrTh('name',tr('common.city_906b'))}${rtrTh('type',tr('dashboard.router_type'))}${rtrTh('n',tr('common.routers'),'r')}${rtrTh('cap',tr('common.capacity'),'r')}${rtrTh('use',tr('common.forwarding_load'))}${rtrTh('ports',tr('common.router_ports'))}${rtrTh('fs',tr('ddos.fs_rules'))}<th></th></tr></thead><tbody>`+
-    page.map(r=>`<tr class="rrow${sel('city',r.c)}" ${args(r.c)}><td><b>${CITY[r.c].name}</b></td><td>${model(r)}</td><td class="r">${r.n}</td><td class="r optn">${fmtG(r.cap)}</td><td>${load(r)}</td><td>${ports(r)}</td><td class="optn">${fsTxt(r)}</td><td><div class="btns">${rtrActs(r.c,r.pu)}${btn(tr('common.open'),'dashPop',{city:r.c},'ghost sm')}</div></td></tr>`).join('')+`</tbody></table></div>`;
+    page.map(r=>`<tr class="rrow${dashSel('city',r.c)}" ${args(r.c)}><td><b>${CITY[r.c].name}</b></td><td>${model(r)}</td><td class="r">${r.n}</td><td class="r optn">${fmtG(r.cap)}</td><td>${load(r)}</td><td>${ports(r)}</td><td class="optn">${fsTxt(r)}</td><td><div class="btns">${rtrActs(r.c,r.pu)}${btn(tr('common.open'),'dashPop',{city:r.c},'ghost sm')}</div></td></tr>`).join('')+`</tbody></table></div>`;
   if(!rs.length)h+=`<p class="empty">${tr('common.nothing_yet')}</p>`;
   return h+listMore('routers',rs.length,n=>trn('dashboard.view_more_router',n),'lmore')+`</div>`;}
 // The filter bar sticks under the dashboard's tab bar, whose height depends on the font and the window: measured after

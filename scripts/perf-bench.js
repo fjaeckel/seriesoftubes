@@ -41,7 +41,7 @@ const METRICS = [
   ['day', 'One game day: dayTick()', 'S.nextFail=S.day+99;S.nextEvent=S.day+99;dayTick()'],
   ['action', 'An action: after()', 'after()'],
   ['panels', 'Side panel and left list', "for(const f of [true,false]){UI.sel={type:'city',id:f?'fra':'ams'};UI.tab=f?'peer':'up';UI.left=f?'nets':'noc';UI.leftOpen=true;renderPanel();renderLeft();}"],
-  ['dash', 'NOC dashboard tabs', "$('dash').hidden=false;for(const k of ['overview','conn','traffic','infra','cust']){UI.dtab=k;renderDash();}$('dash').hidden=true"],
+  ['dash', 'NOC dashboard tabs', "$('dash').hidden=false;for(const k of ['overview','conn','traffic','infra','links','routers','cust']){UI.dtab=k;renderDash();}$('dash').hidden=true"],
   ['map', 'Map at three zoom levels', "for(const z of [1,3.2,7]){cam.x=CITY.fra.x;cam.y=CITY.fra.y;cam.z=z;draw(0);}"],
   // The NOC intern runs every order, every day: one shift, its recomputes included (hired here if the save has none).
   ['ops', "The NOC intern's shift: opsDay()", "if(!S.ops.intern){S.ops.intern='tracy';S.ops.hired=S.day;for(const k in S.ops.on)S.ops.on[k]=true;S.ops.floor=0;for(const k in S.ops.cap)S.ops.cap[k]=0;}S.cash=1e9;opsDay(S.day)"],
