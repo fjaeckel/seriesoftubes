@@ -13,8 +13,8 @@ import (
 /* Growth budgets. Keys cost nothing to make, so without bounds one address could have a node keep
    a new network's records many times a second, and every federated server with it. What is new is
    counted by the hour in token buckets: keys this node has no record of, bytes of new records, and
-   live-state keys without an announce here. One bucket per connection, per address (an IPv6 /64)
-   and per other server; addresses live in memory only, like the connection limiter's, and a full
+   live-state keys without an announce here. One bucket per connection, per address (an IPv6 /64,
+   and its /56 and /48 with twice and four times the room) and per other server; addresses live in memory only, like the connection limiter's, and a full
    bucket is forgotten. Another server's identity costs nothing to make up, so only registry servers
    and configured neighbours have a bucket of their own: all other servers share one, and a
    session with one of them is also counted by the address it came from, as a game's is. A record another server
@@ -60,7 +60,7 @@ type quotaRef struct {
 }
 
 // maxQuotas bounds the addresses and servers with buckets held (a var for tests); past it, idle
-// ones are forgotten first, and a new one is let through uncounted, as the connection limiter does.
+// ones are forgotten first, and a new one is refused (rate_limited) rather than let through uncounted.
 var maxQuotas = 1 << 16
 
 // addrKey is what an address is counted by: an IPv4 address, or an IPv6 address's /64.
@@ -72,6 +72,37 @@ func addrKey(a netip.Addr) netip.Addr {
 		}
 	}
 	return a
+}
+
+// addrLevel is one prefix an address is counted under, with its share of the per-address budgets.
+type addrLevel struct {
+	p   netip.Prefix
+	mul float64
+}
+
+// addrLevels are the prefixes an address key is counted under, as the connection limiter counts
+// them (privacy.Limiter): an IPv4 address alone; an IPv6 /64, and its /56 and /48 (a site's) with
+// twice and four times the room, so a site with many /64s does not get a budget for each.
+func addrLevels(a netip.Addr) []addrLevel {
+	if !a.Is6() {
+		return []addrLevel{{netip.PrefixFrom(a, a.BitLen()), 1}}
+	}
+	var out []addrLevel
+	for _, lv := range []addrLevel{{netip.PrefixFrom(a, 64), 1}, {netip.PrefixFrom(a, 56), 2}, {netip.PrefixFrom(a, 48), 4}} {
+		out = append(out, addrLevel{lv.p.Masked(), lv.mul})
+	}
+	return out
+}
+
+// mulOf is the share of the per-address budgets of a prefix in addrQ.
+func mulOf(p netip.Prefix) float64 {
+	switch {
+	case !p.Addr().Is6() || p.Bits() >= 64:
+		return 1
+	case p.Bits() >= 56:
+		return 2
+	}
+	return 4
 }
 
 // quotaOf finds or makes the buckets of k in m (lock held); nil when m is full of busy ones.
@@ -90,18 +121,31 @@ func quotaOf[K comparable](r *Relay, m map[K]*quota, k K, now int64) *quota {
 	return q
 }
 
+// addrQuotas appends the buckets of an address key (lock held); false when there is no room for them.
+func (r *Relay) addrQuotas(out []quotaRef, a netip.Addr, now int64) ([]quotaRef, bool) {
+	b := r.cfg.Budgets
+	for _, lv := range addrLevels(a) {
+		q := quotaOf(r, r.addrQ, lv.p, now)
+		if q == nil {
+			return out, false
+		}
+		out = append(out, quotaRef{q, float64(b.NewKeysPerAddr) * lv.mul, float64(b.BytesPerAddr) * lv.mul, float64(b.LiveKeysPerAddr) * lv.mul, "addr"})
+	}
+	return out, true
+}
+
 // quotas lists the buckets a record or state from o is counted against (lock held): none for this
-// server's own nodes, bootstrapping and the command line.
-func (r *Relay) quotas(o origin, now int64) []quotaRef {
+// server's own nodes, bootstrapping and the command line. False when there is no room for its
+// buckets (many addresses busy at once): it is refused rather than let through uncounted.
+func (r *Relay) quotas(o origin, now int64) ([]quotaRef, bool) {
 	b := r.cfg.Budgets
 	var out []quotaRef
+	ok := true
 	switch {
 	case o.sess != nil:
 		out = append(out, quotaRef{&o.sess.q, float64(b.NewKeysPerConn), float64(b.BytesPerConn), float64(b.LiveKeysPerConn), "conn"})
 		if o.sess.addr.IsValid() {
-			if q := quotaOf(r, r.addrQ, o.sess.addr, now); q != nil {
-				out = append(out, quotaRef{q, float64(b.NewKeysPerAddr), float64(b.BytesPerAddr), float64(b.LiveKeysPerAddr), "addr"})
-			}
+			out, ok = r.addrQuotas(out, o.sess.addr, now)
 		}
 	case o.peer != nil && !o.same:
 		// Registry servers and configured neighbours have a bucket each; every other server, which
@@ -111,18 +155,18 @@ func (r *Relay) quotas(o origin, now int64) []quotaRef {
 		if !own {
 			id = ""
 		}
-		if q := quotaOf(r, r.peerQ, id, now); q != nil {
-			out = append(out, quotaRef{q, float64(b.NewKeysPerPeer), float64(b.BytesPerPeer), float64(b.LiveKeysPerPeer), "peer"})
+		q := quotaOf(r, r.peerQ, id, now)
+		if q == nil {
+			return out, false
 		}
+		out = append(out, quotaRef{q, float64(b.NewKeysPerPeer), float64(b.BytesPerPeer), float64(b.LiveKeysPerPeer), "peer"})
 		if !own && o.peer.addr.IsValid() {
 			// And by the address it came from, as a game's connection is: speaking as a node does
 			// not get around the address's budget.
-			if q := quotaOf(r, r.addrQ, o.peer.addr, now); q != nil {
-				out = append(out, quotaRef{q, float64(b.NewKeysPerAddr), float64(b.BytesPerAddr), float64(b.LiveKeysPerAddr), "addr"})
-			}
+			out, ok = r.addrQuotas(out, o.peer.addr, now)
 		}
 	}
-	return out
+	return out, ok
 }
 
 // vouched reports whether a record from another server carries a receipt that counts here (rcpts,
@@ -154,7 +198,11 @@ func (r *Relay) growthCheck(rec *fed.Record, now int64, o origin, rcpts []map[st
 	if vouched(o, rcpts) {
 		return nil, false, ""
 	}
-	refs := r.quotas(o, now)
+	refs, ok := r.quotas(o, now)
+	if !ok {
+		r.o.Metrics.Inc("relay_budget_refused_total", "full")
+		return nil, false, fed.RateLimited
+	}
 	newKey := !r.st.HasKey(rec.Key)
 	for _, x := range refs {
 		if newKey && x.q.keys.left(now, x.keys) < 1 {
@@ -187,7 +235,11 @@ func (r *Relay) liveCheck(key string, now int64, o origin) (func(), string) {
 	if !o.stranger() || r.ann[key] != nil || r.rank.LiveOf(key) != nil {
 		return func() {}, ""
 	}
-	refs := r.quotas(o, now)
+	refs, ok := r.quotas(o, now)
+	if !ok {
+		r.o.Metrics.Inc("relay_budget_refused_total", "full")
+		return nil, fed.RateLimited
+	}
 	for _, x := range refs {
 		if x.q.live.left(now, x.live) < 1 {
 			r.o.Metrics.Inc("relay_budget_refused_total", "live_"+x.name)
@@ -205,7 +257,8 @@ func (r *Relay) liveCheck(key string, now int64, o origin) (func(), string) {
 func (r *Relay) sweepQuotas(now int64) {
 	b := r.cfg.Budgets
 	for k, q := range r.addrQ {
-		if q.idle(now, float64(b.NewKeysPerAddr), float64(b.BytesPerAddr), float64(b.LiveKeysPerAddr)) {
+		m := mulOf(k)
+		if q.idle(now, float64(b.NewKeysPerAddr)*m, float64(b.BytesPerAddr)*m, float64(b.LiveKeysPerAddr)*m) {
 			delete(r.addrQ, k)
 		}
 	}

@@ -186,3 +186,10 @@ func SetNodeSessionLimits(perAddr, perUnlisted int) func() {
 	maxNodesPerAddr, maxNodesPerUnlisted = perAddr, perUnlisted
 	return func() { maxNodesPerAddr, maxNodesPerUnlisted = a, u }
 }
+
+// SetMaxQuotas lowers the addresses and servers with growth buckets held; it returns the restore.
+func SetMaxQuotas(n int) func() {
+	old := maxQuotas
+	maxQuotas = n
+	return func() { maxQuotas = old }
+}

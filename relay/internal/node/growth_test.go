@@ -332,3 +332,34 @@ func TestLeftIsBounded(t *testing.T) {
 		t.Fatalf("%d leaves remembered past their keeping time", got)
 	}
 }
+
+// An IPv6 site gets its /64s' budgets only up to its /48's (four times one /64's), as the
+// connection limiter counts it; when no more addresses can be counted, new ones are refused,
+// not let through uncounted.
+func TestAddrBudgetsBySiteAndFailClosed(t *testing.T) {
+	n := rt.New(t)
+	x := n.Found("sites", "open").Nodes[0]
+	budgets(x, func(b *config.Budgets) { b.NewKeysPerConn, b.NewKeysPerAddr = 100, 2 })
+	now := n.Clock.Unix()
+	put := func(addr string, k string) error {
+		_, err := x.Client(from(addr)).Put(ctx(t), rt.Announce(rt.Key(k), now, "N"))
+		return err
+	}
+	// Eight /64s of one /48 (two keys each): the /48 has room for eight keys in all.
+	ok := 0
+	for i := range 8 {
+		for j := range 2 {
+			if put(fmt.Sprintf("2001:db8:7:%x::1", i<<8), fmt.Sprint("site ", i, j)) == nil {
+				ok++
+			}
+		}
+	}
+	if ok != 8 {
+		t.Fatalf("%d new keys from one /48, want 8", ok)
+	}
+	defer node.SetMaxQuotas(3)()
+	// A fresh IPv4 address while the buckets of the /48 above are busy: refused, not uncounted.
+	if err := put("198.51.100.99", "no room"); code(err) != fed.RateLimited {
+		t.Fatalf("with no room to count an address: %v", err)
+	}
+}

@@ -101,7 +101,7 @@ type Relay struct {
 	binds    map[string]bool                 // other servers whose nodes bound their proofs in a session (memory only, bounded)
 
 	reports   map[string]map[string]*store.Entry // reporter -> target -> its stored report (5.10)
-	addrQ     map[netip.Addr]*quota              // growth budgets by address, memory only (growth.go)
+	addrQ     map[netip.Prefix]*quota            // growth budgets by address, memory only (growth.go)
 	peerQ     map[string]*quota                  // growth budgets by other server ("": all servers outside the registry)
 	peerAddrQ map[netip.Addr]*quota              // growth budgets of sessions with those servers, by address
 	hwAt      int64                              // when the heap and the free disk were last read
@@ -170,7 +170,7 @@ func New(o Options) (*Relay, error) {
 	_, _ = rand.Read(eb[:])
 	r := &Relay{o: o, cfg: o.Config, st: st, regs: map[string]*registry.Entry{}, cat: map[string]*catEntry{}, catVia: map[string]int{}, catViaUn: map[string]int{}, catSize: catSizes{via: map[string]int{}, viaUn: map[string]int{}},
 		shunned: map[string]bool{}, left: map[string]int64{}, statsAt: map[string]int64{}, refused: map[string]bool{},
-		lastSyn: map[string]int64{}, addrQ: map[netip.Addr]*quota{}, peerQ: map[string]*quota{}, urlSrv: map[string]string{}, binds: map[string]bool{}, clients: map[*session]bool{}, nodes: map[*session]bool{},
+		lastSyn: map[string]int64{}, addrQ: map[netip.Prefix]*quota{}, peerQ: map[string]*quota{}, urlSrv: map[string]string{}, binds: map[string]bool{}, clients: map[*session]bool{}, nodes: map[*session]bool{},
 		epoch: fed.Encode(eb[:]), dialers: map[string]context.CancelFunc{}, speaks: o.Versions,
 		hc: netguard.Client(o.HTTPClient, false), hcPeer: netguard.Client(o.HTTPClient, !o.AllowInternal)}
 	r.conf.Store(o.Config)
@@ -655,7 +655,7 @@ func (r *Relay) reportCheck(rec *fed.Record, now int64, o origin) string {
 	}
 	// A game's reports also count by its address: keys cost nothing to make.
 	if o.sess != nil && o.sess.addr.IsValid() {
-		if q := quotaOf(r, r.addrQ, o.sess.addr, now); q == nil || q.reports.left(now, float64(maxReportsPerAddr)) < 1 {
+		if q := quotaOf(r, r.addrQ, addrLevels(o.sess.addr)[0].p, now); q == nil || q.reports.left(now, float64(maxReportsPerAddr)) < 1 {
 			return fed.RateLimited
 		}
 	}
@@ -985,7 +985,7 @@ func (r *Relay) ingest(rec *fed.Record, rcpts []any, o origin) (string, map[stri
 	if res == store.Stored {
 		charge(refs, newKey, e)
 		if rec.Kind == "report" && o.sess != nil && o.sess.addr.IsValid() {
-			if q := r.addrQ[o.sess.addr]; q != nil {
+			if q := r.addrQ[addrLevels(o.sess.addr)[0].p]; q != nil {
 				q.reports.n--
 			}
 		}
