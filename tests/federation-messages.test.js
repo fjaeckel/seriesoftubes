@@ -32,7 +32,7 @@ test('hostile records are refused with their code, without an exception', async 
   const check = (x) => p.ev(`fedCheck(${JSON.stringify(x)},${NOW}).then(c=>c.ok?'ok':c.error)`);
   const ok = announce('bob', NOW);
   assert.equal(await check('x'.repeat(70000)), 'too_big', 'a frame over 64 KB');
-  assert.equal(await check('{"__proto__":{"admin":true},"v":1}'), 'missing_field');
+  assert.equal(await check('{"__proto__":{"admin":true},"v":1}'), 'bad_name', 'a name that could reach a prototype');
   assert.equal(await p.ev('({}).admin'), undefined, 'nothing reaches a prototype');
   assert.equal(await check('[[[[[[[[[[1]]]]]]]]]]'), 'too_deep');
   assert.equal(await check('{"v":1e400}'), 'bad_number');

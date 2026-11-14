@@ -156,9 +156,10 @@ func Int(n Num) (int64, bool) {
 	return int64(f), true
 }
 
-// GoodName reports whether s matches ^[A-Za-z0-9_]{1,32}$.
+// GoodName reports whether s matches ^[A-Za-z0-9_]{1,32}$ and is none of __proto__, constructor
+// and prototype (2.1): names that a JavaScript reader could take for an object's prototype.
 func GoodName(s string) bool {
-	if len(s) < 1 || len(s) > 32 {
+	if len(s) < 1 || len(s) > 32 || s == "__proto__" || s == "constructor" || s == "prototype" {
 		return false
 	}
 	for i := 0; i < len(s); i++ {

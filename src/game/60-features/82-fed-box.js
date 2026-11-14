@@ -57,6 +57,8 @@ async function fedOpenRec(f,r){if(!fedOwn(r.body,'enc'))return r;const me=f.key.
   if(r.key!==me&&r.body.to!==me)return null;const box=await fedBoxOf(peer);if(!box)return undefined;
   const p=await fedOpen(f.key.priv,me,peer,box,r);if(!p||typeof p!=='object'||Array.isArray(p))return null;
   const cl=FED_CLEAR[r.kind]||[];if(Object.keys(p).some(k=>cl.includes(k)||k==='enc'))return null;
-  const body={};for(const k of Object.keys(r.body))if(k!=='enc')body[k]=r.body[k];Object.assign(body,p);
+  // Members are defined, never assigned: assigning an own __proto__ would set the prototype (fedValues refuses it too).
+  const body={},def=(k,v)=>Object.defineProperty(body,k,{value:v,enumerable:true,writable:true,configurable:true});
+  for(const k of Object.keys(r.body))if(k!=='enc')def(k,r.body[k]);for(const k of Object.keys(p))def(k,p[k]);
   if(r.kind==='offer'?FED_OFFER(body,{rec:r}):FED_REASON(p))return null;
   return {...r,body};}

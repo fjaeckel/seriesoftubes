@@ -258,3 +258,18 @@ test('a game binds its auth to the node\'s nonce and the URL it dialled where th
   assert.equal(await check(b64(sha('another session')), [URL1]), 'bad_sig', 'replayed on another session');
   assert.equal((await auths({ feats: ['state'], nonce })).a.url, undefined, 'a node that does not list bind gets the older form');
 });
+
+test('a sealed deal whose plain text has a __proto__ member is not opened: nothing can be inherited past the checks', async () => {
+  const p = fedPage();
+  await joinGame(p);
+  await settle();
+  const bob = key('bob').pub;
+  await p.ev(`fedPut('ann','${bob}',{rec:${JSON.stringify(ann('bob'))},id:'x',heard:${NOW},srv:[]})`);
+  const open = (extra) => p.ev(`(async()=>{const me=S.fed.key.pub,plain=JSON.parse(${JSON.stringify(JSON.stringify({ deal: 'peering', basis: 'A'.repeat(43), terms: { at: ['fra'], via: 'ix' } }).slice(0, -1))}+${JSON.stringify(extra)}+'}');
+    const env={v:1,kind:'offer',key:me,t:${NOW},body:{to:'${bob}'}},enc=await fedSeal(S.fed.key.priv,me,'${bob}',await fedBoxOf('${bob}'),env,plain);
+    const o=await fedOpenRec(S.fed,await fedSignRec(S.fed.key.priv,'offer',{to:'${bob}',enc},${NOW}));return JSON.stringify(o?{renews:o.body.renews||null,own:Object.keys(o.body).sort()}:null);})()`).then(JSON.parse);
+  assert.deepEqual(await open(''), { renews: null, own: ['basis', 'deal', 'terms', 'to'] }, 'the same offer without it opens');
+  assert.equal(await open(`,"__proto__":{"renews":"${'B'.repeat(43)}"}`), null);
+  assert.equal(await open(',"constructor":1'), null);
+  assert.deepEqual(p.errors, []);
+});

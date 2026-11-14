@@ -47,7 +47,9 @@ Records are signed and hashed in one exact byte form, the same in JavaScript and
 
 ### 2.1 Values a record may hold
 
-1. **Objects**, whose member names match `^[A-Za-z0-9_]{1,32}$`. Otherwise `bad_name`.
+1. **Objects**, whose member names match `^[A-Za-z0-9_]{1,32}$` and are none of `__proto__`, `constructor` and
+   `prototype`. Otherwise `bad_name`. (JavaScript's `JSON.parse` makes an own `__proto__` member, and copying it onto
+   another object sets that object's prototype instead; the other two are refused alike.)
 2. **Arrays.**
 3. **Strings** of Unicode scalar values: no character below U+0020 (`bad_string`), no lone surrogate (`bad_string`).
 4. **Booleans.**

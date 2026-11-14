@@ -1,0 +1,9 @@
+{
+  "description": "Member names that a JavaScript reader could take for an object's prototype are refused: JSON.parse makes an own __proto__ member, and copying it onto another object (Object.assign) sets that object's prototype instead, so members missing from the record could be inherited. constructor and prototype likewise. Other names with underscores stay fine.",
+  "cases": [
+    { "input": { "text": "{\"__proto__\":{\"renews\":\"x\"}}" }, "expect": { "error": "bad_name" } },
+    { "input": { "text": "{\"a\":{\"constructor\":1}}" }, "expect": { "error": "bad_name" } },
+    { "input": { "text": "{\"prototype\":1}" }, "expect": { "error": "bad_name" } },
+    { "input": { "text": "{\"__proto\":1,\"proto__\":2}" }, "expect": { "canonical": "{\"__proto\":1,\"proto__\":2}" } }
+  ]
+}

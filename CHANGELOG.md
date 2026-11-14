@@ -22,6 +22,7 @@ All notable changes to this project are documented here. The project follows
 - Multimode leaderboards only take the time a record arrived from servers in the public list or the server that received it, and never a time before the record was made, so nobody can place stats in the past or push other players off the boards.
 - When your game proves your network to an up-to-date Multimode server, the proof now only works on that connection to that server, so no other server can reuse it. Server operators can refuse the older kind of proof with the new `legacyAuth` setting; it stays allowed for now so older games keep working.
 - Multimode games and servers now refuse a handful of malformed network keys that could let anyone sign in that network's name.
+- Multimode games refuse deal offers that carry hidden fields meant to slip past their checks.
 - Multimode servers now ignore stray files in their data folder whose names are not a day, instead of reading them as a wrong day, and refuse to store a record under a day out of range.
 - Multimode servers no longer follow redirects when they connect to other servers, and connect to servers they learned of from the registry only on public internet addresses, never on addresses inside the operator's own network.
 - A Multimode server started with `relay up` (the container default) now restarts without its operator key in the data folder, so operators can keep that key only on their own computer, as the hosting guide now recommends.
