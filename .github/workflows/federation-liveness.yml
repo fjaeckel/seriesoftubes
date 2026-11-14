@@ -35,12 +35,13 @@ jobs:
       contents: write        # push the federation-liveness branch
       pull-requests: write   # open or update its pull request
     env:
-      GH_TOKEN: ${{ github.token }}
       BRANCH: federation-liveness
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
+          # The challenge step talks to servers anyone can list: no token sits in .git/config while it runs.
+          persist-credentials: false
 
       - id: has
         run: |
@@ -65,7 +66,7 @@ jobs:
         run: |
           set -uo pipefail
           (cd relay && go build -o "$RUNNER_TEMP/relay" ./cmd/relay) || exit 1
-          stop="stop-$RANDOM$RANDOM$RANDOM"
+          stop="stop-$(openssl rand -hex 16)"
           answered=""; total=0
           { echo "## Federation liveness"; echo; } >> "$GITHUB_STEP_SUMMARY"
           for f in federation/servers/*.json; do
@@ -98,6 +99,7 @@ jobs:
         if: steps.has.outputs.run == 'true'
         env:
           DAY: ${{ steps.stamp.outputs.day }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if [ -z "$(git status --porcelain -- federation/servers)" ]; then echo "Nothing changed."; exit 0; fi
@@ -120,7 +122,8 @@ jobs:
           git add -A federation/servers
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit -q -m "Registry: weekly liveness stamps $DAY"
-          git push --force origin "HEAD:refs/heads/$BRANCH"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" \
+            push --force "https://github.com/$GITHUB_REPOSITORY.git" "HEAD:refs/heads/$BRANCH"
           pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --base main --state open --json number -q '.[0].number')
           if [ -n "$pr" ]; then
             gh pr edit "$pr" --repo "$GITHUB_REPOSITORY" --title "Registry: weekly liveness $DAY" --body-file "$RUNNER_TEMP/body.md"

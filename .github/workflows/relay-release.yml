@@ -122,4 +122,4 @@ jobs:
 
       - name: Attach them to the release
         if: steps.has.outputs.relay == 'true'
-        run: gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber "$RUNNER_TEMP"/dist/*
+        run: gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" "$RUNNER_TEMP"/dist/*

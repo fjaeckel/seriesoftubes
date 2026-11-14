@@ -176,6 +176,7 @@ jobs:
         name: Server files in this pull request
         run: |
           set -euo pipefail
+          set -f   # file names come from the pull request: split them, never glob them
           files=$(git diff --name-only --diff-filter=d HEAD^1 HEAD -- federation/servers/)
           bad=0
           for f in $files; do
@@ -207,9 +208,10 @@ jobs:
           GOFLAGS: -mod=readonly
         run: |
           set -uo pipefail
+          set -f
           (cd "$RUNNER_TEMP/base/relay" && go build -o "$RUNNER_TEMP/relay" ./cmd/relay) || exit 1
           # The relay's output quotes the files, which come from the pull request: never read it as workflow commands.
-          stop="stop-$RANDOM$RANDOM$RANDOM"
+          stop="stop-$(openssl rand -hex 16)"
           failed=0
           { echo "## Registry check"; echo; } >> "$GITHUB_STEP_SUMMARY"
           for f in $FILES; do
