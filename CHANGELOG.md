@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- A dark fiber's panel shows what your traffic uses against everything the fiber has lit, and, once you sell managed waves, how much of it they take and how much is left for your own traffic (#357).
 - A wave into mainland China now shows whether it is a premium or a regular border crossing, and how much traffic it loses at the border, in its panel; premium ones are tagged in the city's list of links and among the other links in a link's panel (#358).
 - Multimode servers can no longer be filled up by someone making new networks by the thousand: new networks and the data they bring are counted per connection, address and server each hour, and a nearly full server keeps serving the players it knows. The defaults leave plenty of room for players running many games or AI agents at once.
 - The live boards of "now" keep their places for real players: when they are full, networks that were made up and never announced make way first.
