@@ -13,6 +13,7 @@ All notable changes to this project are documented here. The project follows
 - Multimode shows who is worth peering with: the players you reach over transit, what peering would save on your transit bill and where you can meet them, in the Multimode sheet and the NOC dashboard. Once you peer with a player directly, your customers send each other more traffic, up to twice as much after 30 days, and it works the same way in their game.
 - Multimode servers now ignore stray files in their data folder whose names are not a day, instead of reading them as a wrong day, and refuse to store a record under a day out of range.
 - Multimode servers no longer follow redirects when they connect to other servers, and connect to servers they learned of from the registry only on public internet addresses, never on addresses inside the operator's own network.
+- A Multimode server started with `relay up` (the container default) now restarts without its operator key in the data folder, so operators can keep that key only on their own computer, as the hosting guide now recommends.
 
 ## [4.0.0] — 2026-11-13
 

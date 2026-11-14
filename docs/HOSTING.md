@@ -187,7 +187,10 @@ docker compose cp relay:/data/operator.key ./operator.key
 ```
 
 Move that file off the server (a password manager, a USB stick in a drawer) and delete the copy there. Through a
-remote context (below) the command copies it straight to your own computer.
+remote context (below) the command copies it straight to your own computer. Once it is safe, remove it from the
+server too, `docker compose exec relay rm /data/operator.key`: the relay never needs it to run or restart, and a key
+that is not on the server cannot be stolen from it. See [operator actions without the key on the
+server](#operator-actions-without-the-key-on-the-server) for when you need it.
 
 **From your own computer, over SSH.** Docker can run everything on the server from a checkout on your machine: the
 build context is sent over SSH and built on the server, and the Compose file uses only named volumes and inline
@@ -352,7 +355,14 @@ explains each step):
 ```sh
 docker compose run --rm relay init --url wss://relay.example.net/fed --trusted-proxies 172.30.0.0/24
 docker compose run --rm relay genesis --name "Packet Lunch" --sync open --langs en --desc "Small, friendly, always on."
-sudo cp relay-data/operator.key ~/operator.key.backup && sudo chown "$USER" ~/operator.key.backup
+```
+
+Then copy `operator.key` to **your own computer** and delete it from the server (a copy beside the data folder is no
+backup: it goes when the server goes, and anyone who gets in finds it). On your computer:
+
+```sh
+(umask 077; ssh you@relay.example.net 'sudo cat ~/tubes/relay-data/operator.key' > operator.key)
+ssh you@relay.example.net 'sudo rm ~/tubes/relay-data/operator.key'   # once the copy is safe
 ```
 
 `--trusted-proxies` makes the relay believe the `X-Forwarded-For` header from Caddy's network. Without it every player
@@ -459,9 +469,15 @@ certbot remembers the hook for every renewal of this certificate.
 docker compose run --rm relay init --url wss://relay.example.net/fed --listen 0.0.0.0:8443 \
   --tls-cert /certs/fullchain.pem --tls-key /certs/privkey.pem
 docker compose run --rm relay genesis --name "Packet Lunch" --sync open --langs en
-sudo cp relay-data/operator.key ~/operator.key.backup && sudo chown "$USER" ~/operator.key.backup
 docker compose up -d
 docker compose logs relay       # "TLS certificate loaded" with the expiry date, then "relay serving"
+```
+
+Copy `operator.key` to **your own computer**, then delete it from the server; on your computer:
+
+```sh
+(umask 077; ssh you@relay.example.net 'sudo cat ~/tubes/relay-data/operator.key' > operator.key)
+ssh you@relay.example.net 'sudo rm ~/tubes/relay-data/operator.key'   # once the copy is safe
 ```
 
 No proxy here, so `trustedProxies` stays loopback and the relay sees players' addresses directly (see
@@ -496,7 +512,13 @@ sudo install -d -o relay -g relay -m 0700 /var/lib/relay
 ```sh
 sudo -u relay RELAY_DATA=/var/lib/relay relay init --url wss://relay.example.net/fed
 sudo -u relay RELAY_DATA=/var/lib/relay relay genesis --name "Packet Lunch" --sync open --langs en
-sudo cp /var/lib/relay/operator.key ~/operator.key.backup && sudo chown "$USER" ~/operator.key.backup
+```
+
+Copy `operator.key` to **your own computer** and delete it from the server once the copy is safe; on your computer:
+
+```sh
+(umask 077; ssh you@relay.example.net 'sudo cat /var/lib/relay/operator.key' > operator.key)
+ssh you@relay.example.net 'sudo rm /var/lib/relay/operator.key'
 ```
 
 The relay listens on `127.0.0.1:8080`, only for the proxy on the same machine.
@@ -659,7 +681,9 @@ explains what it made.
 - `operator.key`: **your** key. It is the control of the server: whoever holds it can change the server's
   operators, nodes, name and policy, and vote in shuns in its name. There is no password reset and no one to ask.
   **Copy it somewhere safe and offline now** (a password manager, a USB stick in a drawer). Backups leave it out on
-  purpose. To use the same key on several machines, pass `--operator-key FILE` to `init`.
+  purpose. To use the same key on several machines, pass `--operator-key FILE` to `init`. Then **delete it from the
+  server**: the relay never reads it to run or restart (`relay up` included), only operator actions do ([below](#operator-actions-without-the-key-on-the-server)).
+
 - `config.json`: the settings. The ones that matter first:
 
 | Setting | What to put |
@@ -683,6 +707,16 @@ To make this machine a second node of an existing server instead, see
 
 **3. Start it** (`relay serve`, the systemd unit, or `docker compose up -d`) and look at **`relay status`**: server and
 node, operators, open sessions, records held, disk use and the version.
+
+### Operator actions without the key on the server
+
+Changing operators, nodes or the server's name and policy takes your signature. With the key off the server:
+
+- **From the game**: import the key in Multimode's operator panel; it signs there and sends the signature to your node.
+- **From your own computer**: `relay ops sign ID --via wss://relay.example.net/fed --data FOLDER`, where `FOLDER`
+  holds your `operator.key`; it fetches the pending record from the node, signs it locally and sends back the signature.
+- **On the server, for a moment**: copy the key back (`docker compose cp ./operator.key relay:/data/operator.key`, or
+  `scp`), run `relay ops propose …`, `relay ops server …` or `relay ops sign …`, and delete it again.
 
 ### Test it with the game
 

@@ -197,7 +197,8 @@ What it does:
   (`docker compose cp relay:/data/operator.key ./operator.key`). The private key is never printed or logged.
 - **A setup stopped halfway** (a crash, a restart) carries on: keys already made are kept (never replaced), a config
   without a server goes on to genesis or join.
-- **Later starts** only serve; nothing is founded again. Trusted proxies and the release webhook are local settings,
+- **Later starts** only serve; nothing is founded again, and `operator.key` is not read: once you have copied it
+  off the machine, delete it there (operator actions can be signed elsewhere, see HOSTING.md). Trusted proxies and the release webhook are local settings,
   signed nowhere, so they follow the environment whenever it sets them (an empty `RELAY_NOTIFY_URL` turns the webhook
   off). Everything else stays as `config.json` and the server's signed record have it: a different `RELAY_URL`,
   `RELAY_LISTEN`, metrics or TLS setting is logged with how to change it (edit `config.json`; a node's URL is a signed

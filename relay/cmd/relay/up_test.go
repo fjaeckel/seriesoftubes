@@ -141,6 +141,27 @@ func TestUpFoundsThenServes(t *testing.T) {
 	noSecrets(t, dir, got)
 }
 
+// Once set up, relay up needs no operator.key: an operator who moved it off the server after backing it up (as the
+// notice and HOSTING.md say) gets a node that restarts, not one that crash-loops.
+func TestUpRestartsWithoutOperatorKey(t *testing.T) {
+	dir := filepath.Join(rt.Dir(t), "data")
+	s := upSet(dir)
+	out := &syncBuf{}
+	r := startUp(t, s, out, 0)
+	r.addr(t, out)
+	r.halt(t)
+	if err := os.Remove(filepath.Join(dir, "operator.key")); err != nil {
+		t.Fatal(err)
+	}
+	out2 := &syncBuf{}
+	r = startUp(t, s, out2, 0)
+	r.addr(t, out2)
+	r.halt(t)
+	if _, err := os.Stat(filepath.Join(dir, "operator.key")); err == nil {
+		t.Fatal("operator.key made again")
+	}
+}
+
 // A second node of an existing server: init and join, the add-node line for its operators.
 func TestUpJoins(t *testing.T) {
 	dir := filepath.Join(rt.Dir(t), "data")

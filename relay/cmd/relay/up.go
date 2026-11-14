@@ -208,15 +208,16 @@ func setUp(s upSettings, out io.Writer, log *slog.Logger, stop <-chan struct{}, 
 	if err != nil {
 		return err
 	}
-	op, err := ops.LoadKey(filepath.Join(s.dir, "operator.key"))
-	if err != nil {
-		return fmt.Errorf("operator key: %w", err)
-	}
 	if c.Server != "" {
+		// Set up already: operator.key is not needed (and should be off the server once backed up).
 		if !fresh {
 			return applyEnv(s, c, log)
 		}
 		return nil
+	}
+	op, err := ops.LoadKey(filepath.Join(s.dir, "operator.key"))
+	if err != nil {
+		return fmt.Errorf("operator key: %w", err)
 	}
 	if s.join != "" {
 		if !fed.IsID(s.join) {
