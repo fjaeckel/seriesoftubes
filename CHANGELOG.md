@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
-- A dark fiber's panel shows what your traffic uses against everything the fiber has lit, and, once you sell managed waves, how much of it they take and how much is left for your own traffic.
+- A dark fiber's panel shows what your traffic uses against everything the fiber has lit, and, once you sell managed waves, how much of it they take and how much is left for your own traffic (#357).
 - Exchanges you found grow with other players: every player with a port on yours is listed as a member and draws computer-run networks in faster, Multimode lists the exchanges players run and where a port would save you transit, and suggests founding one where two or more players already are. On up-to-date servers a port on a player's exchange also reaches every network on it, and you can invite up to two players to co-found an exchange: they pay their share of its cost, get a port and earn their share of the members' fees.
 - Multimode servers can now carry the member lists of players' exchanges and co-founding offers, to the games and servers that understand them only, so older servers and games keep working; servers should upgrade before players can use them.
 - Multimode shows who is worth peering with: the players you reach over transit, what peering would save on your transit bill and where you can meet them, in the Multimode sheet and the NOC dashboard. Once you peer with a player directly, your customers send each other more traffic, up to twice as much after 30 days, and it works the same way in their game.
