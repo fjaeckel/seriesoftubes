@@ -95,6 +95,7 @@ type session struct {
 	same       bool
 	verified   bool            // the peer node is known to be a node of its server
 	synced     bool            // carry exchanged: live pushes flow
+	carried    bool            // the peer's carry was answered (once per session)
 	send, take []string        // classes
 	wanted     map[string]bool // ids asked for and not yet pushed (guarded by r.mu, bounded)
 	retry      map[string]bool // ids refused rate_limited, asked for again later (guarded by r.mu, bounded)

@@ -459,6 +459,12 @@ func (r *Relay) nodeFrame(s *session, f *wire.Frame) bool {
 		code, _ := f.Str("code")
 		r.o.Log.Info("sync: peer reported", "code", code)
 	case "carry":
+		// Answered once per session (9.4: it starts the sync): each answer walks the whole store.
+		if s.carried {
+			r.o.Metrics.Inc("relay_refused_total", "carry_again")
+			return true
+		}
+		s.carried = true
 		since, _ := wire.Int(f.Raw["since"])
 		ids := r.inventory(s, since) // returns with the lock held
 		for i := 0; i < len(ids) || i == 0; i += fed.MaxInv {

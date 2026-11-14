@@ -981,7 +981,8 @@ Nodes of one server, and nodes of different servers that sync, use the same tran
    which are in no class: they **never** travel to another server, and a node takes none from one (`bad_kind`). A server MAY take records
    without passing them on.
 3. **Inventory.** After `carry`, each side sends `inv` for what it will send; the other answers `want` with ids it
-   neither has nor has refused; the first side `push`es them. Afterwards new records are `push`ed as they arrive.
+   neither has nor has refused. Each side sends `carry` once per session; a node answers only the first (a later one
+   is ignored: each answer walks the whole store); the first side `push`es them. Afterwards new records are `push`ed as they arrive.
    Every pushed record is checked like a record from a client (7.1); invalid ones are dropped and logged by kind and
    code, never forwarded.
    **Feature `ix2`:** a record holding `ix2` fields (5.1) is neither listed in an `inv`, nor answered to a `want`, nor
