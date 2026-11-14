@@ -229,18 +229,41 @@ func (s *State) CheckServer(r *fed.Record) string {
 	return ""
 }
 
-// Current picks the current server record among candidates: valid, greatest t, then lowest id.
+// Current picks the current server record among candidates (8.2): the valid one at the chain's final
+// head with the greatest t, then the lowest id. Only when there is none at the final head (its operators
+// have not signed one since the last change) does it fall back to the latest earlier head that has one.
+// A record at an older head never wins over one at a later head, whatever its t: keys removed from the
+// chain could still sign at the heads where they were operators.
 func (s *State) Current(recs []*fed.Record) *fed.Record {
-	var best *fed.Record
-	for _, r := range recs {
-		if r.Kind != "server" || s.CheckServer(r) != "" {
-			continue
+	for i := len(s.Applied); i >= 0; i-- {
+		head := s.ID
+		if i > 0 {
+			head = s.Applied[i-1].ID
 		}
-		if best == nil || r.T > best.T || r.T == best.T && r.ID < best.ID {
-			best = r
+		var best *fed.Record
+		for _, r := range recs {
+			if r.Kind != "server" || r.Str("head") != head || s.CheckServer(r) != "" {
+				continue
+			}
+			if best == nil || r.T > best.T || r.T == best.T && r.ID < best.ID {
+				best = r
+			}
+		}
+		if best != nil {
+			return best
 		}
 	}
-	return best
+	return nil
+}
+
+// Extends reports whether s's applied chain continues o's (o's head is one of s's heads): chains of one
+// server only grow (8.1), so a chain that neither extends nor is extended by another is a fork.
+func (s *State) Extends(o *State) bool {
+	if s == nil || o == nil || s.ID != o.ID {
+		return false
+	}
+	_, ok := s.At[o.Head]
+	return ok
 }
 
 // CheckSequence checks an ordered chain as the registry holds it (11.2 step 4).

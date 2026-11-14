@@ -742,6 +742,11 @@ func (r *Relay) stateCheck(rec *fed.Record, now int64, o origin) string {
 		if code := r.own.ServerShape(rec); code != "" {
 			return code
 		}
+		if rec.Str("head") != r.own.Head {
+			// New server records only at the final head (8.2): keys removed since could still sign at
+			// the heads where they were operators.
+			return fed.BadChain
+		}
 		if l := r.own.At[rec.Str("head")]; !l.IsOperator(rec.Key) || r.strangers(rec) {
 			return fed.NotOperator
 		}

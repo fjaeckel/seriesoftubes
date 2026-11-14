@@ -716,7 +716,12 @@ majority stays applied however old it is. Relays drop expired pending proposals 
 A `server` record is **valid** when its `head` is the genesis id or an applied proposal (otherwise `bad_chain`), its
 `nodes` and `operators` equal the lists at that head (`bad_chain`), and the number of its signers who were operators at
 that head, times 2, is greater than the number of those operators (`no_majority`). The **current** server record is the
-valid one with the greatest `t` (then lowest id). The lists shown for a server always come from the chain; the
+valid one at the chain's final head with the greatest `t` (then lowest id); only while there is none at the final head
+(its operators have not signed one since the last change) is it the newest valid one at the latest earlier head that
+has one. A record at an earlier head never wins over one at a later head, whatever its `t`: a key removed from the
+chain can still sign valid records at the heads where it was an operator. For the same reason a node takes a **new**
+server record (one it does not hold yet) from a client or another server only when its `head` is the final head
+(`bad_chain` otherwise); the nodes of one server pass each other what they hold. The lists shown for a server always come from the chain; the
 descriptive fields (`name`, `sync`, `noLogs`, `langs`, `desc`) from the current server record, or the genesis `name`
 while there is none.
 
