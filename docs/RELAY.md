@@ -374,8 +374,9 @@ otherwise get every class both ways, and `defaultSend` and `defaultTake` are for
 Shun votes always travel, whatever you choose, as long as the voting server is in your node's registry snapshot (or is
 your own server): only registry servers' votes can count, and a server known from gossip alone costs nothing to make up,
 so your node refuses the votes of any other (and keeps at most 8192 votes of any one server). A server may take records
-without passing them on. Your node keeps at most 4096 catalog entries, 512 of them first heard from any one neighbour,
-each at most 60 KB (so any one fits a game's frame), and reads nothing a new neighbour says about other servers until
+without passing them on. Your node keeps at most 4096 catalog entries (16 MB), 512 of them (2 MB) first heard from any one
+neighbour, each at most 60 KB (so any one fits a game's frame); servers that are not in the registry share 4 MB of
+that, since anyone can make one. It sends its catalog to a new neighbour a frame at a time as it reads, and reads nothing a new neighbour says about other servers until
 its own entry has checked. A neighbour that does not send its own entry within 30 seconds is dropped, and sessions with
 servers your node does not know yet take at most 8 of its `maxNodes` slots; your own server's nodes always get one.
 

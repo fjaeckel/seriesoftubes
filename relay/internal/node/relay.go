@@ -76,6 +76,7 @@ type Relay struct {
 	regs    map[string]*registry.Entry
 	cat     map[string]*catEntry
 	catVia  map[string]int // neighbour server -> catalog entries first learned from it
+	catSize catSizes       // bytes of the catalog's records, in all, per neighbour and unlisted
 	rank    *rank.Agg      // the leaderboards in memory (9.5)
 	shunned map[string]bool
 	shunAt  int64
@@ -154,7 +155,7 @@ func New(o Options) (*Relay, error) {
 	}
 	var eb [6]byte
 	_, _ = rand.Read(eb[:])
-	r := &Relay{o: o, cfg: o.Config, st: st, regs: map[string]*registry.Entry{}, cat: map[string]*catEntry{}, catVia: map[string]int{},
+	r := &Relay{o: o, cfg: o.Config, st: st, regs: map[string]*registry.Entry{}, cat: map[string]*catEntry{}, catVia: map[string]int{}, catSize: catSizes{via: map[string]int{}},
 		shunned: map[string]bool{}, left: map[string]int64{}, statsAt: map[string]int64{}, refused: map[string]bool{},
 		lastSyn: map[string]int64{}, addrQ: map[netip.Addr]*quota{}, peerQ: map[string]*quota{}, urlSrv: map[string]string{}, clients: map[*session]bool{}, nodes: map[*session]bool{},
 		epoch: fed.Encode(eb[:]), dialers: map[string]context.CancelFunc{}, speaks: o.Versions,
@@ -187,8 +188,9 @@ func New(o Options) (*Relay, error) {
 		r.countOffer(e.Key, e.To(), 1)
 	}
 	r.indexReports()
-	r.loadCatalog()
+	// The registry first: the catalog's budget for servers not listed there is smaller.
 	r.loadRegistryCache()
+	r.loadCatalog()
 	r.loadUpdateState()
 	// The leaderboards are built from the store in parallel chunks while the node already serves
 	// (rank answers rate_limited until then); records stored meanwhile are applied after.

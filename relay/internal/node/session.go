@@ -44,6 +44,9 @@ const (
 	nodeBurst = 50000.0
 )
 
+// A node session's queue bounds; vars so tests can lower them.
+var nodeQueue, nodeLow int64 = nodeQueueBytes, nodeLowWater
+
 // Request costs in a client's token bucket: the ones that answer from the whole store cost more.
 var clientCost = map[string]float64{"auth": 2, "rank": 10, "rankwhy": 5, "facets": 5, "nets": 5, "servers": 10, "sub": 5, "unsub": 2, "fetch": 2}
 
@@ -143,8 +146,8 @@ func (s *session) shook() {
 func (s *session) becomeNode() {
 	s.node = true
 	s.limit = fed.NodeFrame
-	s.maxQ = nodeQueueBytes
-	s.lowQ = nodeLowWater
+	s.maxQ = nodeQueue
+	s.lowQ = nodeLow
 	s.tokens = nodeBurst
 }
 
@@ -233,10 +236,16 @@ func (r *Relay) later(s *session, p pager) {
 	r.pump(s)
 }
 
-// listPager pages a list fixed when asked: fetch and catalog answers, pushes for want.
+// oneFrame is a frame that waits its turn behind the pages queued before it.
+type oneFrame struct{ f map[string]any }
+
+func (o *oneFrame) next(*Relay, *session) (map[string]any, bool) { return o.f, true }
+
+// listPager pages a list fixed when asked: fetch and catalog answers, pushes for want, the
+// catalog a new node session hears (gossip).
 type listPager struct {
 	rid     int64
-	m       string // recs, catalog or push
+	m       string // recs, catalog, push or gossip
 	entries []*store.Entry
 	vals    []map[string]any
 	pos     int
@@ -246,8 +255,11 @@ type listPager struct {
 
 func (p *listPager) next(r *Relay, s *session) (map[string]any, bool) {
 	limit := fed.ClientFrame - 1024
-	if p.m == "push" {
+	if p.m == "push" || p.m == "gossip" {
 		limit = fed.NodeFrame - 64<<10
+	}
+	if p.m == "gossip" {
+		limit = min(limit, int(s.lowQ)) // pages that never fill the queue (2 MB in use: no change)
 	}
 	n := len(p.entries) + len(p.vals)
 	page := []any{}
@@ -288,6 +300,11 @@ func (p *listPager) next(r *Relay, s *session) (map[string]any, bool) {
 		return map[string]any{"m": "push", "items": page}, done
 	case "catalog":
 		return map[string]any{"m": "catalog", "id": p.rid, "entries": page, "more": !done}, done
+	case "gossip":
+		if len(page) == 0 {
+			return nil, done
+		}
+		return map[string]any{"m": "catalog", "entries": page}, done
 	}
 	r.o.Metrics.Add("relay_records_out_total", "", float64(len(page)))
 	m := map[string]any{"m": "recs", "id": p.rid, "items": page, "cursor": "", "more": !done}

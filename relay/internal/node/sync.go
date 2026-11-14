@@ -359,7 +359,7 @@ func allowsOne(own string, list []string, other, otherSync string) bool {
 	return false
 }
 
-// startSync sends carry (lock held).
+// startSync sends the catalog, then carry (lock held).
 func (r *Relay) startSync(s *session) {
 	since := int64(0)
 	if t, ok := r.lastSyn[s.peerNode]; ok {
@@ -376,11 +376,7 @@ func (r *Relay) startSync(s *session) {
 			}
 			list = append(list, c.value(append(slices.Clone(c.Path), r.own.ID)))
 		}
-		for _, p := range pageItems(list, fed.MaxItems, fed.NodeFrame-64<<10) {
-			if len(p) > 0 {
-				s.enqueue(map[string]any{"m": "catalog", "entries": p})
-			}
-		}
+		r.later(s, &listPager{m: "gossip", vals: list})
 	} else if s.same {
 		// A node of this server hears every entry this node keeps, with the path it came by: it
 		// may have no session with those servers itself (one session per pair of servers).
@@ -390,17 +386,15 @@ func (r *Relay) startSync(s *session) {
 				list = append(list, c.value(c.Path))
 			}
 		}
-		for _, p := range pageItems(list, fed.MaxItems, fed.NodeFrame-64<<10) {
-			if len(p) > 0 {
-				s.enqueue(map[string]any{"m": "catalog", "entries": p})
-			}
-		}
+		r.later(s, &listPager{m: "gossip", vals: list})
 	}
 	cl := make([]any, len(s.send))
 	for i, c := range s.send {
 		cl[i] = c
 	}
-	s.enqueue(map[string]any{"m": "carry", "classes": cl, "since": since})
+	// After the catalog, which is paged as the peer reads (pump): it may be megabytes, more than
+	// the queue holds at once.
+	r.later(s, &oneFrame{map[string]any{"m": "carry", "classes": cl, "since": since}})
 }
 
 // nodeFrame handles one sync message; false ends the session.

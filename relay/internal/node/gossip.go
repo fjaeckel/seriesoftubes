@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -34,14 +35,58 @@ type catEntry struct {
 	sent    int64                   // when it was last passed on
 	via     string                  // the neighbour server it first came from ("" from disk)
 	hash    string                  // of the records as checked: the same records again are not checked again
+	size    int                     // bytes of the records (genesis, chain, server record)
+	unseen  bool                    // its server was not in the registry when its records were taken
 }
 
-// Bounds of the catalog: in all, and learned through any one neighbour (10.8 allows them).
-// Vars so tests can lower them.
+// Bounds of the catalog: in all, and learned through any one neighbour (10.8 allows them), by
+// entries and by bytes, since one entry may be some 60 KB. Servers the registry does not list
+// share a smaller budget: anyone can make one. Vars so tests can lower them.
 var (
-	maxCatalog    = 4096
-	maxCatalogVia = 512
+	maxCatalog         = 4096
+	maxCatalogVia      = 512
+	maxCatalogBytes    = 16 << 20
+	maxCatalogViaBytes = 2 << 20
+	maxCatalogUnlisted = 4 << 20
 )
+
+// minForward is the least time between two forwards of one server's entry, changed or not, so
+// a server that keeps publishing, or a peer that replays, cannot make this node flood its neighbours.
+const minForward = 60
+
+// catSizes counts the catalog's bytes (lock held).
+type catSizes struct {
+	all, unlisted int
+	via           map[string]int
+}
+
+func (z *catSizes) add(c *catEntry, sign int) {
+	n := sign * c.size
+	z.all += n
+	if z.via[c.via] += n; z.via[c.via] <= 0 {
+		delete(z.via, c.via)
+	}
+	if c.unseen {
+		z.unlisted += n
+	}
+}
+
+// fits reports whether records of size bytes may replace old (nil for a new entry) within the
+// bounds; bounded is whether the per-neighbour bound applies.
+func (z *catSizes) fits(old *catEntry, via string, size int, unlisted, bounded bool) bool {
+	all, v, un := z.all+size, z.via[via]+size, 0
+	if unlisted {
+		un = z.unlisted + size
+	}
+	if old != nil {
+		all -= old.size
+		v -= old.size
+		if old.unseen {
+			un -= old.size
+		}
+	}
+	return all <= maxCatalogBytes && (!bounded || v <= maxCatalogViaBytes) && (!unlisted || un <= maxCatalogUnlisted)
+}
 
 const catalogSaveDelay = 10 * time.Second
 
@@ -56,6 +101,7 @@ func (r *Relay) forget(id string) {
 		if r.catVia[c.via]--; r.catVia[c.via] <= 0 {
 			delete(r.catVia, c.via)
 		}
+		r.catSize.add(c, -1)
 		delete(r.cat, id)
 		r.markCatalog()
 	}
@@ -164,8 +210,9 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 		return fed.BadField
 	}
 	for _, p := range pl {
+		// Every hop is a server id; path and seen are not signed, so they stay advisory (10.8).
 		ps, ok := p.(string)
-		if !ok {
+		if !ok || !fed.IsID(ps) {
 			return fed.BadField
 		}
 		path = append(path, ps)
@@ -183,7 +230,8 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 	if code != "" {
 		return code
 	}
-	hash := fed.Hash(canon.Encode([]any{gv, chv, sv}))
+	recs := canon.Encode([]any{gv, chv, sv})
+	hash, size := fed.Hash(recs), len(recs)
 	r.mu.Lock()
 	old := r.cat[g.ID]
 	r.mu.Unlock()
@@ -253,27 +301,39 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 	}
 	// A node of this server is no neighbour to bound: it passes on what other servers told it.
 	sibling := from != nil && from.same
-	if old == nil && (len(r.cat) >= maxCatalog || !sibling && r.catVia[via] >= maxCatalogVia) {
+	// The catalog file was bounded when its entries came.
+	bounded := from != nil && !sibling
+	unlisted := r.regs[g.ID] == nil
+	if old == nil && (len(r.cat) >= maxCatalog || bounded && r.catVia[via] >= maxCatalogVia ||
+		!r.catSize.fits(nil, via, size, unlisted, bounded)) {
 		return "" // full: entries already kept still update, new ones wait for room
 	}
 	impl := readImpls(m["impl"], st)
-	c := &catEntry{ID: g.ID, Genesis: g, Chain: ch, Server: srv, State: st, Path: path, Seen: seen, Impl: impl, via: via, hash: hash}
-	changed := old == nil || old.Server.ID != srv.ID
+	c := &catEntry{ID: g.ID, Genesis: g, Chain: ch, Server: srv, State: st, Path: path, Seen: seen, Impl: impl, via: via, hash: hash,
+		size: size, unseen: unlisted}
 	if old != nil {
-		// Records from the newest server record; seen and path from the freshest entry.
-		if srv.T < old.Server.T || srv.T == old.Server.T && srv.ID > old.Server.ID {
+		// Records from the newest server record, if they fit; seen and path from the freshest entry.
+		if srv.T < old.Server.T || srv.T == old.Server.T && srv.ID > old.Server.ID ||
+			!r.catSize.fits(old, old.via, size, unlisted, old.via != "" && old.via != self) {
 			c.Genesis, c.Chain, c.Server, c.State, c.hash = old.Genesis, old.Chain, old.Server, old.State, old.hash
+			c.size, c.unseen = old.size, old.unseen
 		}
 		if seen < old.Seen || seen == old.Seen && !shorter(path, old.Path) {
 			c.Path, c.Seen, c.Impl = old.Path, old.Seen, old.Impl
 		}
 		c.sent, c.via = old.sent, old.via
+		r.catSize.add(old, -1)
 	} else {
 		r.catVia[via]++
 	}
+	r.catSize.add(c, 1)
 	r.cat[g.ID] = c
-	r.markCatalog()
-	if d.Forward != nil && (changed || now-c.sent >= 600) {
+	// Changed means what is kept changed, not what came: an older entry replayed changes nothing.
+	changed := old == nil || old.hash != c.hash
+	if changed || old.Seen != c.Seen || !slices.Equal(old.Path, c.Path) {
+		r.markCatalog()
+	}
+	if d.Forward != nil && now-c.sent >= minForward && (changed || now-c.sent >= 600) {
 		c.sent = now
 		fw := c.value(d.Forward)
 		fw["seen"] = seen
@@ -363,7 +423,7 @@ func (r *Relay) markCatalog() {
 	})
 }
 
-// flushCatalog writes the catalog file if it changed; the file is written outside the lock.
+// flushCatalog writes the catalog file if it changed; it is encoded and written outside the lock.
 func (r *Relay) flushCatalog() {
 	r.catWrite.Lock()
 	defer r.catWrite.Unlock()
@@ -373,12 +433,14 @@ func (r *Relay) flushCatalog() {
 		return
 	}
 	r.catDirty = false
+	// Only the list is made under the lock (records are never changed once checked): encoding
+	// some megabytes is done after, so the node keeps serving meanwhile.
 	list := []any{}
 	for _, k := range sortedKeys(r.cat) {
 		list = append(list, r.cat[k].value(r.cat[k].Path))
 	}
-	b := append(canon.Encode(map[string]any{"entries": list}), '\n')
 	r.mu.Unlock()
+	b := append(canon.Encode(map[string]any{"entries": list}), '\n')
 	if err := store.WriteAtomic(r.catalogPath(), b, 0o600); err != nil {
 		r.o.Log.Error("catalog: write failed", "err", err)
 	}

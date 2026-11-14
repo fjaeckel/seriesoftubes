@@ -1207,17 +1207,25 @@ Receiving an entry from a neighbour, a server with identity `self`:
 1. Refuses it (`err`, no store, the session goes on) if its canonical JSON (2.3) is over 61440 bytes (`too_big`: every
    entry kept then fits a client's `catalog` frame), if the records do not check (sections 4, 5, 8; the server record
    must be at the chain's final head), if `path` is empty, its first element is not the entry's server identity
-   (`bad_field`), it has more than 16 elements (`too_many`) or repeats one (`duplicate`), or `seen > now + 600`
+   (`bad_field`), an element is not a server identity (`bad_field`), it has more than 16 elements (`too_many`) or
+   repeats one (`duplicate`), or `seen > now + 600`
    (`too_new`). A relay checks the size before any signature, and need not check again the records of an entry it
    holds unchanged.
 2. Drops it silently if `self` is in `path` (a loop) or if `now >= seen + 604800` (expired).
 3. Otherwise stores it, and passes it on to neighbours that take `catalog` as `path + [self]`, unless that would make
-   the path longer than 16. It also passes it, unchanged (same `path`, `seen` and `impl`), to the other nodes of its own
+   the path longer than 16, and only when what it keeps changed (an older entry again changes nothing) or it last
+   passed that server's entry on 600 s ago or more; the reference relay passes one server's entry on at most once a
+   minute however often it changes. It also passes it, unchanged (same `path`, `seen` and `impl`), to the other nodes of its own
    server, which are not a hop: with one session per pair of servers (10.9) often only one of them has a session with
    the server the entry came from. A node starting a session with another node of its server sends it the entries it
-   keeps in the same way.
-4. A relay MAY bound the entries it keeps, in all and per neighbour they first came from (the reference relay: 4096
-   and 512). An entry for a server it does not keep yet is then dropped silently; entries it keeps still update.
+   keeps in the same way. Either list is sent a frame at a time as the other side reads, never all at once.
+4. A relay MAY bound the entries it keeps, in all and per neighbour they first came from, by count and by bytes of
+   their records (the reference relay: 4096 and 512 entries, 16 MiB and 2 MiB; servers not in its registry share 4 MiB
+   of it). An entry for a server it does not keep yet is then dropped silently; entries it keeps still update, unless
+   newer records would pass a bound (then it keeps the records it has).
+
+`path` and `seen` are not signed: any server passing an entry on can change them. They are advisory, for display and
+for choosing among entries (below); nothing a relay or game decides for trust or safety may rest on them.
 
 **Merging** what a viewer knows (clients and relays alike), per server identity:
 

@@ -15,6 +15,27 @@ func SetCatalogLimits(total, via int) func() {
 	return func() { maxCatalog, maxCatalogVia = t, v }
 }
 
+// SetCatalogBytes lowers the catalog's byte bounds (in all, per neighbour, servers not in the
+// registry); the returned func restores them.
+func SetCatalogBytes(total, via, unlisted int) func() {
+	t, v, u := maxCatalogBytes, maxCatalogViaBytes, maxCatalogUnlisted
+	maxCatalogBytes, maxCatalogViaBytes, maxCatalogUnlisted = total, via, unlisted
+	return func() { maxCatalogBytes, maxCatalogViaBytes, maxCatalogUnlisted = t, v, u }
+}
+
+// SetNodeQueue lowers a node session's queue bound and low water; it returns the restore.
+func SetNodeQueue(max, low int64) func() {
+	m, l := nodeQueue, nodeLow
+	nodeQueue, nodeLow = max, low
+	return func() { nodeQueue, nodeLow = m, l }
+}
+
+// CatalogDirty reports whether the catalog file is behind (a write is due).
+func (r *Relay) CatalogDirty() bool { r.mu.Lock(); defer r.mu.Unlock(); return r.catDirty }
+
+// FlushCatalog writes the catalog file now.
+func (r *Relay) FlushCatalog() { r.flushCatalog() }
+
 // SetVerifyTimeout shortens the time an unknown peer has to send its entry; it returns the restore.
 func SetVerifyTimeout(d time.Duration) func() {
 	old := verifyTimeout
