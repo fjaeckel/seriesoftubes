@@ -922,6 +922,9 @@ func serve(dir string, so serveOpts) error {
 	if err != nil {
 		return err
 	}
+	if lanOpt != nil {
+		ln = lanListener{ln} // a LAN server answers devices on private networks only
+	}
 	errc := make(chan error, 2)
 	go func() {
 		var err error

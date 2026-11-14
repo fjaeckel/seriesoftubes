@@ -570,7 +570,8 @@ server for a local network in one step, with no domain, no public certificate an
 - it makes a self-signed certificate (ECDSA P-256, one year, files `lan-cert.pem` and `lan-key.pem`) for the
   machine's mDNS name `<hostname>.local`, `localhost`, loopback and its LAN addresses (private and link-local IPv4,
   IPv6 unique local addresses), and keeps it while it still covers them and is valid for another week;
-- it listens on `--port` on every interface (or `--listen`), serves the protocol at `/fed` and, at `/`, a small page of
+- it listens on `--port` on every interface (or `--listen`), answers only devices on loopback, private, link-local and
+  carrier-grade NAT addresses (it closes any other connection at once), serves the protocol at `/fed` and, at `/`, a small page of
   its own (no scripts, nothing loaded from elsewhere; never the game, which is only on GitHub Pages) with the invite
   link for the address the browser used;
 - it prints for the players, on its own terminal only, the page addresses and the invite links by `.local` name and by

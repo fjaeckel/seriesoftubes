@@ -2,9 +2,11 @@ package main
 
 import (
 	"bytes"
+	"net"
 	"net/netip"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -127,5 +129,62 @@ func TestInitFlags(t *testing.T) {
 	}
 	if err := cmdInit([]string{"--data", bad, "--metrics", "127.0.0.1:9100", "--tls-cert", "/certs/fullchain.pem"}); err == nil {
 		t.Fatal("a certificate without its key accepted")
+	}
+}
+
+// fakeListener hands out pipe ends that claim the given remote addresses.
+type fakeListener struct{ conns chan net.Conn }
+
+func (f fakeListener) Accept() (net.Conn, error) {
+	c, ok := <-f.conns
+	if !ok {
+		return nil, net.ErrClosed
+	}
+	return c, nil
+}
+func (f fakeListener) Close() error   { return nil }
+func (f fakeListener) Addr() net.Addr { return &net.TCPAddr{} }
+
+type fromConn struct {
+	net.Conn
+	from net.Addr
+}
+
+func (c fromConn) RemoteAddr() net.Addr { return c.from }
+
+// relay lan answers devices on the local network only: a peer from a public IPv4 or global IPv6 address is closed.
+func TestLanListenerRefusesInternetPeers(t *testing.T) {
+	fl := fakeListener{conns: make(chan net.Conn, 16)}
+	froms := []string{"203.0.113.7:5000", "[2001:db8::1]:5000", "192.168.1.20:5000", "8.8.8.8:1", "127.0.0.1:5000",
+		"[fd00::5]:5000", "10.0.0.3:5000", "[fe80::1%eth0]:5000", "[2606:4700::1]:443", "172.20.0.2:5000"}
+	var far []net.Conn
+	for _, f := range froms {
+		ap := netip.MustParseAddrPort(f)
+		a, b := net.Pipe()
+		far = append(far, b)
+		fl.conns <- fromConn{a, net.TCPAddrFromAddrPort(ap)}
+	}
+	close(fl.conns)
+	ln := lanListener{fl}
+	var got []string
+	for {
+		c, err := ln.Accept()
+		if err != nil {
+			break
+		}
+		got = append(got, c.RemoteAddr().String())
+	}
+	want := []string{"192.168.1.20:5000", "127.0.0.1:5000", "[fd00::5]:5000", "10.0.0.3:5000", "[fe80::1%eth0]:5000", "172.20.0.2:5000"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("accepted %v, want %v", got, want)
+	}
+	// The refused ones were closed.
+	for i, f := range froms {
+		if contains(want, f) {
+			continue
+		}
+		if _, err := far[i].Write([]byte("x")); err == nil {
+			t.Errorf("%s: connection left open", f)
+		}
 	}
 }

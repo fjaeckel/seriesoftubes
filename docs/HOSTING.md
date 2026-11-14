@@ -934,7 +934,9 @@ relay lan                      # or: relay lan --name "The LAN Before Time" --po
 The first time, it makes a data folder `relay-lan` (kept apart from any other relay's; `--data` to choose), founds a
 standalone server named after the `--name` flag, and makes a **self-signed certificate** covering this machine's mDNS
 name (`yourmachine.local`), `localhost` and its LAN addresses (private IPv4 such as `192.168.1.20`, and IPv6 unique
-local addresses). It listens on port 8443 on every interface and prints what the players need:
+local addresses). It listens on port 8443 on every interface, answers only devices on loopback, private, link-local and
+carrier-grade NAT addresses (a connection from the internet, over a public IPv4 or a global IPv6 address, is closed at
+once) and prints what the players need:
 
 ```
 The LAN Before Time is ready for a LAN party on port 8443.
@@ -950,7 +952,8 @@ On each device, once:
 ```
 
 Allow incoming connections when the system asks (macOS: "Accept incoming network connections?"; Windows: allow on
-**private** networks; Linux with a firewall: `sudo ufw allow 8443/tcp`). Ctrl-C stops it. Next time, `relay lan` reuses
+**private** networks only; Linux with a firewall: allow the party's network only, such as
+`sudo ufw allow from 192.168.0.0/16 to any port 8443 proto tcp`, not the port for everyone). Ctrl-C stops it. Next time, `relay lan` reuses
 the server and the certificate (while it still covers the machine's addresses and is valid for another week), so
 devices that accepted it before join straight away. A new address (another network, another DHCP lease) means a new
 certificate and one more click per device.

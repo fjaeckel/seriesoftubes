@@ -19,6 +19,7 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/config"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/lan"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/netguard"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/ops"
 )
 
@@ -41,7 +42,7 @@ func cmdLan(args []string) error {
 	fs := flag.NewFlagSet("lan", flag.ExitOnError)
 	dir := fs.String("data", "relay-lan", "data folder of the LAN server (kept apart from any other relay's)")
 	name := fs.String("name", "LAN Before Time", "the server's name (when founding it)")
-	port := fs.Int("port", 8443, "port to listen on, on every interface")
+	port := fs.Int("port", 8443, "port to listen on, on every interface (only devices on private networks may connect)")
 	listen := fs.String("listen", "", "address to listen on instead (for example 127.0.0.1:8443)")
 	host := fs.String("host", "", "host name or address for the server's node URL (default: this machine's .local name)")
 	logJSON := fs.Bool("log-json", false, "log as JSON lines")
@@ -204,4 +205,23 @@ func serverName(dir string) (string, error) {
 	}
 	err = json.Unmarshal(b, &f)
 	return f.Server.Body.Name, err
+}
+
+// lanListener accepts connections only from loopback, private, link-local and carrier-grade NAT
+// addresses: relay lan listens on every interface, and its certificate and invites are for the local
+// network only, so a peer from the internet (over a global IPv6 address or a public IPv4 one) is
+// closed at once.
+type lanListener struct{ net.Listener }
+
+func (l lanListener) Accept() (net.Conn, error) {
+	for {
+		c, err := l.Listener.Accept()
+		if err != nil {
+			return nil, err
+		}
+		if ap, err := netip.ParseAddrPort(c.RemoteAddr().String()); err == nil && netguard.Internal(ap.Addr()) {
+			return c, nil
+		}
+		c.Close()
+	}
 }

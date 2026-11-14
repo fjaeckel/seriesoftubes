@@ -15,6 +15,7 @@ All notable changes to this project are documented here. The project follows
 - Multimode servers no longer follow redirects when they connect to other servers, and connect to servers they learned of from the registry only on public internet addresses, never on addresses inside the operator's own network.
 - A Multimode server started with `relay up` (the container default) now restarts without its operator key in the data folder, so operators can keep that key only on their own computer, as the hosting guide now recommends.
 - `relay lan` really contacts nothing on the internet now: a relay without a registry no longer checks GitHub for new releases.
+- `relay lan` now answers only devices on the local network, even where the machine also has a public address.
 
 ## [4.0.0] — 2026-11-13
 
