@@ -1508,7 +1508,10 @@ Run by CI on every pull request that touches `federation/servers/`, for each add
 6. `server.body.noLogs` is true (`no_logs`), and every node URL in the file (the genesis node, `url` of the chain's
    proposals, the server record's `nodes`) names a host anyone can look up: no IP literal and no host ending in
    `.local` (`local_url`). Such servers are valid and can be joined by invite (a LAN party), but are not listed.
-7. No other file's server name equals this one when both are compared with `A`–`Z` turned into `a`–`z` (`name_taken`).
+7. The server name uses only ASCII letters and digits, the punctuation `- . ' & ! + _ : , ( ) /` and single spaces
+   between other characters (`bad_name`): so no listed name can pass for another with look-alike characters (Cyrillic or
+   Greek letters, fullwidth forms, two spaces for one). Such names are fine for a server, which can be joined by invite
+   or found through gossip; they are only not listed. Then no other file's server name equals this one when both are compared with `A`–`Z` turned into `a`–`z` (`name_taken`).
    Only other files whose server name can be read (the file parses as JSON with a `server` record holding a string
    `name`) are compared; files that do not parse are skipped here (they fail their own check).
 8. If the file exists on the base branch, `listed` and `answered` are unchanged (`bad_field`). This step does not

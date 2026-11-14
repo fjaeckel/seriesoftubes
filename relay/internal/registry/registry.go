@@ -173,6 +173,9 @@ func Check(name string, files map[string][]byte, base []byte, now int64, challen
 	if u := localURL(e); u != "" {
 		return fail(6, fed.LocalURL, u)
 	}
+	if f := nameSafe(e); f != nil {
+		return f
+	}
 	if f := nameTaken(name, e, files); f != nil {
 		return f
 	}
@@ -234,6 +237,22 @@ func localURL(e *Entry) string {
 		}
 	}
 	return ""
+}
+
+// nameSafe is the first part of step 7: a registry server name uses ASCII letters, digits, single
+// spaces and - . ' & ! + _ : , ( ) / only, so no listed name can pass for another with look-alike
+// characters (Cyrillic or Greek letters, fullwidth forms, two spaces for one).
+func nameSafe(e *Entry) *Failure {
+	n := e.Name()
+	ok := n != "" && n[0] != ' ' && n[len(n)-1] != ' ' && !strings.Contains(n, "  ")
+	for i := 0; ok && i < len(n); i++ {
+		c := n[i]
+		ok = c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || strings.IndexByte(" -.'&!+_:,()/", c) >= 0
+	}
+	if !ok {
+		return fail(7, fed.BadName, "not a safe registry name")
+	}
+	return nil
 }
 
 func nameTaken(name string, e *Entry, files map[string][]byte) *Failure {

@@ -203,6 +203,7 @@ const STEP = (n, fn) => { try { return fn(); } catch (e) { if (e instanceof Faul
 // A multi-signer record's id (§3.3): its text without sigs.
 const mid = (r) => b64(sha(canon((({ sigs, ...x }) => x)(r))));
 const lowerName = (s) => s.replace(/[A-Z]/g, (c) => c.toLowerCase());
+const SAFE_NAME = /^[A-Za-z0-9\-.'&!+_:,()/]+( [A-Za-z0-9\-.'&!+_:,()/]+)*$/;
 
 // Parse a registry file's text: step 1. Returns the file object.
 function parseFile(buf) {
@@ -248,7 +249,11 @@ function checkFile(name, f, { now, names = [], base } = {}) {
     const u = urls.find((x) => !isPublicUrl(x));
     if (u) fail('local_url', u);
   });
-  STEP(7, () => { if (names.includes(lowerName(f.server.body.name))) fail('name_taken', f.server.body.name); });
+  STEP(7, () => {
+    // A safe set, so no listed name can pass for another with look-alike characters.
+    if (!SAFE_NAME.test(f.server.body.name)) fail('bad_name', f.server.body.name);
+    if (names.includes(lowerName(f.server.body.name))) fail('name_taken', f.server.body.name);
+  });
   STEP(8, () => {
     if (!base) return;
     for (const k of ['listed', 'answered']) if (base[k] !== f[k]) fail('bad_field', `${k} is written by the weekly job only`);

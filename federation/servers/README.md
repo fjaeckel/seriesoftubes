@@ -44,7 +44,8 @@ binary you run, so there is one definition of "valid":
    majority of the operators at that point.
 5. The `server` record is at the last head of the chain, its operator and node lists match it, and a majority signed it.
 6. `noLogs` is `true`, and every node URL names a public host: no IP address, no `.local` name (`local_url`).
-7. No other file uses the same name.
+7. The server name uses only ASCII letters, digits, single spaces and `- . ' & ! + _ : , ( ) /`, and no other file
+   uses the same name.
 8. `listed` and `answered` are unchanged (only the weekly job writes them).
 9. At least one of your nodes answers: CI connects to each node's URL in turn (10 s each), sends a challenge, and
    checks the answer is signed by that node's key. Keep a node up while the pull request is open.

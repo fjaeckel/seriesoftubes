@@ -790,6 +790,12 @@ const nodesOf = list => list.map(([n, url]) => ({ key: pub(n), url })).sort((a, 
     { [F1]: { ...file1, server: multi('server', 'anna', server1.t, { ...server1.body, desc: 'Small, friendly, never off.' }, ['anna', 'ben']) } }, F1, { ok: false, error: 'too_old' }, file1);
   go('chain-extends', 'Moving forward passes: the base file stops at P2, the change adds P3 with a newer server record.',
     { [F1]: file1 }, F1, { ok: true }, fileP2);
+  // Registry names use a safe set, so no listed name can pass for another with look-alike characters (11.2 step 7).
+  go('name-look-alike', 'A Cyrillic е (U+0435) in "Packet Lunch": it would look like the listed name. Registry names use ASCII letters, digits, single spaces and - . \' & ! + _ : , ( ) / only.',
+    { [F1]: file1, [F2]: { ...file2, server: srv2({ name: 'Packet Lunch'.replace('e', '\u0435') }) } }, F2, { ok: false, error: 'bad_name' });
+  go('name-fullwidth', 'Fullwidth letters (what NFKC would fold to ASCII) are outside the safe set.', { [F2]: { ...file2, server: srv2({ name: 'Ｈop Shop' }) } }, F2, { ok: false, error: 'bad_name' });
+  go('name-double-space', 'Two spaces in a row would look like one.', { [F2]: { ...file2, server: srv2({ name: 'Hop  Shop' }) } }, F2, { ok: false, error: 'bad_name' });
+  go('name-punctuation', 'Digits and the allowed punctuation are fine.', { [F2]: { ...file2, server: srv2({ name: "Hop & Shop (2): Fred's/Bo_b-1.0+!," }) } }, F2, { ok: true });
 }
 
 // ======================================================================================

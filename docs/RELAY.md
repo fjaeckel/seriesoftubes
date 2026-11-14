@@ -399,7 +399,7 @@ relay registry-file > federation/servers/SERVER_IDENTITY.json
 
 and open a pull request adding that file. CI runs `relay check-registry` on it: the file parses and fits 64 KB; its
 records are signed; the operator chain follows from the genesis by majority-signed changes; the server record is
-signed by a majority of the current operators and declares `noLogs: true`; no other server has the same name; and one
+signed by a majority of the current operators and declares `noLogs: true`; its name uses only ASCII letters, digits, single spaces and `- . ' & ! + _ : , ( ) /` and no other server has the same name; and one
 of your nodes answers a challenge signed with its node key over `wss://`. A failing check prints the step and the
 error code. You can run the same check yourself:
 

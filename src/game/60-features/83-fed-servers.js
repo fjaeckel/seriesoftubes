@@ -55,6 +55,8 @@ async function fedRegEntry(j,now){
   const e=fedServerErr(s.rec,chain);if(e)return no(e);
   const b=s.rec.body;return {ok:true,id:g.id,name:b.name,sync:b.sync,noLogs:b.noLogs,ops:st.ops,nodes:st.nodes,srv:s.rec,srvId:s.id,chain};}
 const fedFold=s=>s.replace(/[A-Z]/g,c=>c.toLowerCase());
+// A registry server name (§11.2 step 7): a safe set, so no listed name can pass for another with look-alike letters.
+const FED_REGNAME=/^[A-Za-z0-9\-.'&!+_:,()\/]+( [A-Za-z0-9\-.'&!+_:,()\/]+)*$/;
 // A registry file's shape (§11.2 step 1, after size and JSON).
 function fedRegShape(j){if(!j||typeof j!=='object'||Array.isArray(j))return FdBF;
   for(const k of Object.keys(j))if(!FED_REGF.includes(k))return 'unknown_field';
@@ -72,6 +74,7 @@ async function fedRegCheck(files,name,base,now){const txt=files[name];if(fedSize
   if(name!==r.id+'.json')return 'id_mismatch';
   if(r.noLogs!==true)return 'no_logs';
   {const n=j.genesis&&j.genesis.body&&j.genesis.body.node,u=[n&&n.url,...j.chain.map(p=>p&&p.body&&p.body.url).filter(x=>x!==undefined),...(j.server.body.nodes||[]).map(x=>x&&x.url)];if(u.some(x=>!fedPublicUrl(x)))return 'local_url';}
+  if(!FED_REGNAME.test(r.name))return 'bad_name';
   for(const [n,t] of Object.entries(files)){if(n===name)continue;let o=null;try{o=JSON.parse(t);}catch(x){}
     const nm=o&&o.server&&o.server.body&&o.server.body.name;if(typeof nm==='string'&&fedFold(nm)===fedFold(r.name))return 'name_taken';}
   if(base!=null){let b=null;try{b=JSON.parse(base);}catch(x){}if(b&&(b.listed!==j.listed||b.answered!==j.answered))return FdBF;

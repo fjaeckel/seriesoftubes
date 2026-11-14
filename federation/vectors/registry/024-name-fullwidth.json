@@ -1,0 +1,62 @@
+{
+  "description": "Fullwidth letters (what NFKC would fold to ASCII) are outside the safe set.",
+  "input": {
+    "files": {
+      "eYVIb2jN0KGxd3VFgLT9c0btb0oe03YBEKvj9CTp53U.json": {
+        "v": 1,
+        "genesis": {
+          "v": 1,
+          "kind": "genesis",
+          "key": "TwBHJ3QJzHW6GFkXDkFFLpyDi9wNU9WaZ_eAjo53hTk",
+          "t": 1766880000,
+          "body": {
+            "name": "Hop Shop",
+            "node": {
+              "key": "KZRK5XTNKGHhctlRk_ynNF4_ZNUpCYmNCabMhCNDkGk",
+              "url": "wss://third.example.com"
+            }
+          },
+          "sig": "oRwJ446CmnS-T4CIrbd3wHcJCkBU-lI68-AugpOCIXO4y3l0Jjz63Z1bM81BtfYs7ln8zn5dRzNmhFuz-DVkCg"
+        },
+        "chain": [],
+        "server": {
+          "v": 1,
+          "kind": "server",
+          "key": "TwBHJ3QJzHW6GFkXDkFFLpyDi9wNU9WaZ_eAjo53hTk",
+          "t": 1766880000,
+          "body": {
+            "server": "eYVIb2jN0KGxd3VFgLT9c0btb0oe03YBEKvj9CTp53U",
+            "head": "eYVIb2jN0KGxd3VFgLT9c0btb0oe03YBEKvj9CTp53U",
+            "name": "Ｈop Shop",
+            "nodes": [
+              {
+                "key": "KZRK5XTNKGHhctlRk_ynNF4_ZNUpCYmNCabMhCNDkGk",
+                "url": "wss://third.example.com"
+              }
+            ],
+            "operators": [
+              "TwBHJ3QJzHW6GFkXDkFFLpyDi9wNU9WaZ_eAjo53hTk"
+            ],
+            "sync": "selective",
+            "noLogs": true,
+            "langs": [
+              "fr"
+            ],
+            "desc": ""
+          },
+          "sigs": [
+            {
+              "key": "TwBHJ3QJzHW6GFkXDkFFLpyDi9wNU9WaZ_eAjo53hTk",
+              "sig": "SYfJvzkAhlVcNk7urYy3V2Z6G2F2vuCV2t8NHLGFLvYhi6J-FJkmxcq0zVGKEa5lDLPhtbOuf_gxwoGVXgsoCg"
+            }
+          ]
+        }
+      }
+    },
+    "check": "eYVIb2jN0KGxd3VFgLT9c0btb0oe03YBEKvj9CTp53U.json"
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_name"
+  }
+}

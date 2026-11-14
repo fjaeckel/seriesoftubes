@@ -1,0 +1,62 @@
+{
+  "description": "Two spaces in a row would look like one.",
+  "input": {
+    "files": {
+      "eYVIb2jN0KGxd3VFgLT9c0btb0oe03YBEKvj9CTp53U.json": {
+        "v": 1,
+        "genesis": {
+          "v": 1,
+          "kind": "genesis",
+          "key": "TwBHJ3QJzHW6GFkXDkFFLpyDi9wNU9WaZ_eAjo53hTk",
+          "t": 1766880000,
+          "body": {
+            "name": "Hop Shop",
+            "node": {
+              "key": "KZRK5XTNKGHhctlRk_ynNF4_ZNUpCYmNCabMhCNDkGk",
+              "url": "wss://third.example.com"
+            }
+          },
+          "sig": "oRwJ446CmnS-T4CIrbd3wHcJCkBU-lI68-AugpOCIXO4y3l0Jjz63Z1bM81BtfYs7ln8zn5dRzNmhFuz-DVkCg"
+        },
+        "chain": [],
+        "server": {
+          "v": 1,
+          "kind": "server",
+          "key": "TwBHJ3QJzHW6GFkXDkFFLpyDi9wNU9WaZ_eAjo53hTk",
+          "t": 1766880000,
+          "body": {
+            "server": "eYVIb2jN0KGxd3VFgLT9c0btb0oe03YBEKvj9CTp53U",
+            "head": "eYVIb2jN0KGxd3VFgLT9c0btb0oe03YBEKvj9CTp53U",
+            "name": "Hop  Shop",
+            "nodes": [
+              {
+                "key": "KZRK5XTNKGHhctlRk_ynNF4_ZNUpCYmNCabMhCNDkGk",
+                "url": "wss://third.example.com"
+              }
+            ],
+            "operators": [
+              "TwBHJ3QJzHW6GFkXDkFFLpyDi9wNU9WaZ_eAjo53hTk"
+            ],
+            "sync": "selective",
+            "noLogs": true,
+            "langs": [
+              "fr"
+            ],
+            "desc": ""
+          },
+          "sigs": [
+            {
+              "key": "TwBHJ3QJzHW6GFkXDkFFLpyDi9wNU9WaZ_eAjo53hTk",
+              "sig": "7kvlPvCI_2HUovjwn_i2UB9SvUZ27AVmBLhGswpkLM5xdoObmClHLdErVecOtV-v_48ZeV22wRX_yh-HiMr0DQ"
+            }
+          ]
+        }
+      }
+    },
+    "check": "eYVIb2jN0KGxd3VFgLT9c0btb0oe03YBEKvj9CTp53U.json"
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_name"
+  }
+}
