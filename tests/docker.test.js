@@ -26,7 +26,7 @@ test('every GitHub Action in every workflow is pinned to a commit, with its vers
 
 test('Dependabot keeps the actions, the image’s base and the npm tools current', () => {
   const d = read('.github/dependabot.yml');
-  for (const [eco, dir] of [['github-actions', '/'], ['docker', '/docker'], ['npm', '/']])
+  for (const [eco, dir] of [['github-actions', '/'], ['docker', '/docker'], ['npm', '/'], ['gomod', '/relay'], ['docker', '/relay'], ['docker-compose', '/relay']])
     assert.match(d, new RegExp(`package-ecosystem: ${eco}\\s+directory: ${dir.replace('/', '\\/')}\\n`), eco);
 });
 
@@ -44,12 +44,20 @@ test('the image is published for releases only, as their version, never as lates
   assert.match(pub, /push: true/);
   assert.match(pub, /tags: \$\{\{ steps\.meta\.outputs\.image \}\}:\$\{\{ steps\.meta\.outputs\.version \}\}\n/, 'one tag: the version');
   assert.match(pub, /does not match package\.json/, 'the tag must be the release in package.json');
+  attested(pub);
   assert.doesNotMatch(tst, /push: true|packages: write/, 'the test job never publishes');
   assert.match(w, /^permissions:\n {2}contents: read\n/m, 'read-only unless publishing');
   assert.doesNotMatch(w, /pages: write|deploy-pages/, 'never to Pages');
   // auto-release.yml is what dispatches it, with the new tag.
   assert.match(read('.github/workflows/auto-release.yml'), /gh workflow run docker\.yml [^\n]*-f tag=/);
 });
+
+// A pushed image gets GitHub's signed build provenance for its digest, pushed beside it to the registry.
+function attested(job) {
+  assert.match(job, /id: push\n\s+uses: docker\/build-push-action@/);
+  assert.match(job, /uses: actions\/attest-build-provenance@[0-9a-f]{40}\s*\n\s+with:\n\s+subject-name: \$\{\{ steps\.meta\.outputs\.image \}\}\n\s+subject-digest: \$\{\{ steps\.push\.outputs\.digest \}\}\n\s+push-to-registry: true/);
+  assert.match(job, /id-token: write/); assert.match(job, /attestations: write/);
+}
 
 // The relay image (docs/HOSTING.md): its version always; X.Y and latest move only to the newest stable release, so a
 // rebuilt older tag or a pre-release never takes them.
@@ -66,10 +74,11 @@ test('the relay image: version, X.Y and latest tags only for the newest release,
   assert.match(job, /tags: \$\{\{ steps\.meta\.outputs\.tags \}\}/);
   for (const l of ['source', 'version', 'licenses', 'description', 'revision']) assert.match(job, new RegExp(`org\\.opencontainers\\.image\\.${l}=`), l);
   assert.match(job, /provenance: mode=max/); assert.match(job, /sbom: true/);
+  attested(job);
   const d = code('relay/Dockerfile');
   assert.match(d, /^FROM scratch$/m); assert.match(d, /^USER 65532:65532$/m);
-  assert.match(d, /^EXPOSE 8080 9100$/m, 'the relay and its metrics');
-  assert.match(d, /RELAY_METRICS=0\.0\.0\.0:9100 RELAY_METRICS_PUBLIC=true/, 'relay init in the image opts in to metrics for the Docker network');
+  assert.match(d, /^EXPOSE 8080$/m, 'the relay only: metrics are not exposed');
+  assert.doesNotMatch(d, /RELAY_METRICS/, 'metrics stay off in the image; the Compose file that wants them sets them');
 });
 
 // relay-release.yml: archives for every platform, checksums, provenance; write permissions only in the job that needs them.
@@ -135,7 +144,18 @@ test('the entrypoint: both modes, a token unless told otherwise, and the servers
 // built from relay/ itself, every setting from .env, certbot without questions, metrics never published.
 test('the relay’s Compose file: built from relay/, named volumes only, certbot non-interactive, metrics unpublished', () => {
   const y = code('relay/docker-compose.yml');
-  assert.match(y, /^ {4}image: \$\{RELAY_IMAGE:-ghcr\.io\/fjaeckel\/seriesoftubes-relay:latest\}\n {4}build:\n {6}context: \.\n/m);
+  // A versioned tag by default (dev for a checkout build); latest only when RELAY_VERSION asks for it.
+  assert.match(y, /^ {4}image: \$\{RELAY_IMAGE:-ghcr\.io\/fjaeckel\/seriesoftubes-relay:\$\{RELAY_VERSION:-dev\}\}\n {4}build:\n {6}context: \.\n/m);
+  assert.doesNotMatch(y, /seriesoftubes-relay:latest/);
+  // Hardening: no new privileges anywhere, no capabilities but certbot's few, the relay's filesystem read-only.
+  const svc = (n) => { const i = y.indexOf(`\n  ${n}:\n`); assert.ok(i >= 0, n); const rest = y.slice(i + 1); const j = rest.search(/\n {2}\w+:\n|\n\S/); return rest.slice(0, j < 0 ? undefined : j); };
+  for (const n of ['relay', 'certbot', 'toolbox']) {
+    assert.match(svc(n), /security_opt: \["no-new-privileges:true"\]/, `${n}: no-new-privileges`);
+    assert.match(svc(n), /cap_drop: \[ALL\]/, `${n}: capabilities dropped`);
+  }
+  assert.match(svc('relay'), /read_only: true\n\s+tmpfs: \/tmp\n/);
+  assert.doesNotMatch(svc('relay'), /cap_add/);
+  assert.match(svc('certbot'), /cap_add: \[NET_BIND_SERVICE, CHOWN, DAC_OVERRIDE, FOWNER\]/);
   assert.match(y, /command: \["up"\]/);
   assert.match(code('relay/Dockerfile'), /^CMD \["up"\]$/m, 'the image sets up and serves by default');
   // Volumes: named, declared at the top level; no host paths, no bind mounts.
@@ -167,7 +187,8 @@ test('the relay’s Compose file: built from relay/, named volumes only, certbot
   for (const v of new Set([...y.matchAll(/\$\{(\w+)/g)].map((m) => m[1]))) assert.match(env, new RegExp(`^(# )?${v}=`, 'm'), `${v} in .env.example`);
   assert.match(env, /subscriber agreement/);
   assert.ok(read('.gitignore').split('\n').includes('/relay/.env'));
-  assert.ok(read('relay/.dockerignore').split('\n').includes('.env'));
+  const ign = read('relay/.dockerignore').split('\n');
+  for (const p of ['**/.env', '**/*.key', '**/*.pem', '**/*.tar.gz', '**/relay-data', '**/relay-lan']) assert.ok(ign.includes(p), `${p} never sent into the build`);
 });
 
 // relay/.env.example: what every server needs, then its description, then the rest commented out under "Advanced", so
@@ -183,6 +204,8 @@ test('the relay’s .env.example: required, your server, and the advanced settin
   assert.deepEqual(set(env.slice(req, srv)), ['RELAY_DOMAIN', 'LETSENCRYPT_EMAIL']);
   assert.deepEqual(set(env.slice(srv, adv)), ['RELAY_NAME', 'RELAY_SYNC', 'RELAY_LANGS', 'RELAY_DESC']);
   assert.deepEqual(set(env.slice(adv)), [], 'nothing advanced is set');
+  // Required values are empty, so Compose (:?) or relay up refuses to start until they are filled in.
+  for (const v of ['RELAY_DOMAIN', 'LETSENCRYPT_EMAIL', 'RELAY_NAME']) assert.match(env, new RegExp(`^${v}=$`, 'm'), `${v} empty`);
   const advanced = off(env.slice(adv));
   for (const v of ['RELAY_JOIN', 'RELAY_JOIN_FROM', 'RELAY_REGISTRY', 'RELAY_NOTIFY_URL', 'RELAY_IMAGE', 'RELAY_VERSION', 'CERTBOT_IMAGE',
     'RELAY_HTTPS_PORT', 'RELAY_HTTP_PORT', 'RELAY_METRICS', 'RELAY_URL', 'RELAY_LOG_JSON', 'CERTBOT_STAGING']) assert.ok(advanced.includes(v), `${v} under Advanced`);

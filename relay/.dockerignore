@@ -1,13 +1,13 @@
-# Only the Go sources go into the image build.
+# Only the Go sources go into the image build. Secrets and data never, in any folder (**/).
 relay
-relay-data
-relay-lan
-*.tar.gz
-*.pem
-*.key
+**/relay-data
+**/relay-lan
+**/*.tar.gz
+**/*.pem
+**/*.key
 Dockerfile
 .dockerignore
 # The server's Compose setup and its settings (docker-compose.yml, docs/HOSTING.md): never in the image.
-.env
-.env.*
+**/.env
+**/.env.*
 docker-compose*.yml

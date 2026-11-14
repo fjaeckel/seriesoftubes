@@ -86,8 +86,8 @@ from the registry by pull request and shunned by its peers.
   [HOSTING.md, getting the relay](HOSTING.md#getting-the-relay).
 - **Container:** `ghcr.io/fjaeckel/seriesoftubes-relay` (tags `X.Y.Z`, `X.Y`, `latest`; linux/amd64 and arm64) is built
   `FROM scratch` (a few MB), runs as an unprivileged user (uid 65532) and keeps everything in the `/data` volume.
-  `relay init` in it writes `"listen": "0.0.0.0:8080"` so the proxy can reach it, and metrics on `0.0.0.0:9100` for
-  the Docker network (see Metrics). Add the address your proxy connects from to `trustedProxies`
+  `relay init` in it writes `"listen": "0.0.0.0:8080"` so the proxy can reach it; metrics stay off unless the Compose
+  file sets `RELAY_METRICS` and `RELAY_METRICS_PUBLIC` (see Metrics). Add the address your proxy connects from to `trustedProxies`
   (`relay init --trusted-proxies 172.30.0.0/24`, your container network). Without it every player seems to come from
   the proxy, shares its one connection limit (30 per 5 minutes by default) and gets no country. Trust only a network
   on which nothing but your proxy can reach the relay: anything trusted can claim any address. The relay warns at
@@ -117,7 +117,8 @@ This makes the data folder (mode 0700) with:
 
 `init` also takes `--listen ADDR`, `--trusted-proxies CIDR,…` (added to loopback), `--tls-cert FILE --tls-key FILE`,
 and `--metrics ADDR [--metrics-public]`; `--listen`, `--metrics` and `--metrics-public` default to `$RELAY_LISTEN`,
-`$RELAY_METRICS` and `$RELAY_METRICS_PUBLIC` (set in the container image).
+`$RELAY_METRICS` and `$RELAY_METRICS_PUBLIC` (the container image sets `RELAY_LISTEN`; `relay/docker-compose.yml` the
+other two).
 
 ### 3. Found a server, or join one
 
@@ -179,7 +180,7 @@ Steps 2 to 4 in one command, for containers and one-command setups (the image's 
 | `--registry` | `RELAY_REGISTRY` | first start: `servers.json`, an `https://` URL or a file | the game's |
 | `--operator-key` | `RELAY_OPERATOR_KEY` | first start: an operator key file to use | a new key |
 | `--listen` | `RELAY_LISTEN` | first start | `127.0.0.1:8080` (the image: `0.0.0.0:8080`) |
-| `--metrics`, `--metrics-public` | `RELAY_METRICS`, `RELAY_METRICS_PUBLIC` | first start | off (the image: `0.0.0.0:9100`, public) |
+| `--metrics`, `--metrics-public` | `RELAY_METRICS`, `RELAY_METRICS_PUBLIC` | first start | off (`relay/docker-compose.yml`: `0.0.0.0:9100`, public) |
 | `--tls-cert`, `--tls-key` | `RELAY_TLS_CERT`, `RELAY_TLS_KEY` | first start | none: plain HTTP behind a proxy |
 | `--trusted-proxies` | `RELAY_TRUSTED_PROXIES` | **every start**, when set | loopback only |
 | `--notify-url` | `RELAY_NOTIFY_URL` | **every start**, when set (empty: off) | off |
@@ -232,7 +233,7 @@ and the TLS file names change on restart only. The certificate and key themselve
 | `countryDb` | | A country-only MaxMind-format database (GeoLite2-Country, DB-IP Country Lite). Optional |
 | `registry` | `https://seriesoftub.es/federation/servers.json` | The registry snapshot (a URL or a file); used for the shun tally |
 | `metrics` | | A **localhost** address for `/metrics`, for example `127.0.0.1:9100`. Anything else is refused unless `metricsPublic` is set |
-| `metricsPublic` | `false` | Allow `metrics` beyond localhost, for a Prometheus in another container (the image sets it, with `0.0.0.0:9100`). The relay warns at start; keep the port off the internet |
+| `metricsPublic` | `false` | Allow `metrics` beyond localhost, for a Prometheus in another container (`relay/docker-compose.yml` sets it, with `0.0.0.0:9100`). The relay warns at start; keep the port off the internet |
 | `trustedProxies` | loopback | Proxies whose `X-Forwarded-For` is believed (in a container: add the proxy's network, see Container above) |
 | `listed` | `false` | A note for yourself: whether you mean to be in the registry |
 | `notifyURL` | off | An `https://` URL the relay POSTs to once per new relay release (see Versions and update notices). Anything else is refused |
@@ -710,8 +711,9 @@ held, disk use, rankings answered from the cache or worked out (`relay_rank_answ
 `relay_latest_version_info`, see Versions and update notices), all `relay_*`, plus the standard Go runtime (`go_*`) and process
 (`process_*`) metrics. It uses the Prometheus client library on its own registry, so nothing else is exposed. Counts
 and versions only: no label ever holds an address, a key or a name. The relay refuses a metrics address that is not on
-localhost unless `"metricsPublic": true` is set, as in the container image, so a Prometheus on the same Docker network
-can scrape `http://relay:9100/metrics` (the image exposes 9100; never publish it to the internet). A ready scrape job,
+localhost unless `"metricsPublic": true` is set, as `relay/docker-compose.yml` does, so a Prometheus on the same Docker
+network can scrape `http://relay:9100/metrics` (never publish it to the internet: Docker's published ports bypass `ufw`,
+so publish it on `127.0.0.1` only if at all). A ready scrape job,
 labels for several nodes and alerting rules: [HOSTING.md, monitoring](HOSTING.md#monitoring-with-prometheus).
 
 ## Privacy, in short

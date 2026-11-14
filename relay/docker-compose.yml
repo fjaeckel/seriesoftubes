@@ -16,8 +16,9 @@ name: tubes-relay
 
 services:
   relay:
-    # `up --build` builds this folder into that tag; after a release, `docker compose pull` fetches it instead.
-    image: ${RELAY_IMAGE:-ghcr.io/fjaeckel/seriesoftubes-relay:latest}
+    # `up --build` builds this folder into that tag (dev unless RELAY_VERSION says otherwise); with RELAY_VERSION=X.Y.Z,
+    # `docker compose pull` fetches that release instead, and only RELAY_VERSION=latest follows every release.
+    image: ${RELAY_IMAGE:-ghcr.io/fjaeckel/seriesoftubes-relay:${RELAY_VERSION:-dev}}
     build:
       context: .
       args:
@@ -25,6 +26,11 @@ services:
     command: ["up"]
     restart: unless-stopped
     stop_grace_period: 15s
+    # The relay writes only /data (and the Go runtime perhaps /tmp); it needs no privileges at all.
+    read_only: true
+    tmpfs: /tmp
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
     ports:
       - "${RELAY_HTTPS_PORT:-443}:8443"
       # Metrics (9100) stay on the Compose network. For a Prometheus on this machine, publish them on loopback only:
@@ -43,6 +49,7 @@ services:
       RELAY_LISTEN: 0.0.0.0:8443
       RELAY_TLS_CERT: /certs/fullchain.pem
       RELAY_TLS_KEY: /certs/privkey.pem
+      # Metrics for a Prometheus on this Compose network (the image itself has them off).
       RELAY_METRICS: ${RELAY_METRICS-0.0.0.0:9100}
       RELAY_METRICS_PUBLIC: "true"
       # Applied on every start.
@@ -57,6 +64,11 @@ services:
   certbot:
     image: ${CERTBOT_IMAGE:-certbot/certbot:latest}
     restart: unless-stopped
+    # Root in the container, but only what it needs: port 80 (NET_BIND_SERVICE) and the hook's chown of the pair to
+    # the relay's user (CHOWN) in /certs, which it writes as root (DAC_OVERRIDE, FOWNER).
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE, CHOWN, DAC_OVERRIDE, FOWNER]
+    security_opt: ["no-new-privileges:true"]
     ports:
       - "${RELAY_HTTP_PORT:-80}:80"
     environment:
@@ -79,6 +91,8 @@ services:
     image: busybox:1.38
     profiles: [tools]
     user: "65532:65532"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
     working_dir: /data
     command: ["vi", "/data/config.json"]
     stdin_open: true

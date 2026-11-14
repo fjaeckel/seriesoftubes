@@ -122,9 +122,14 @@ downloaded with `curl` as above is not. (Or: `xattr -d com.apple.quarantine rela
 | `ghcr.io/fjaeckel/seriesoftubes-relay:X.Y` | To each new patch release of X.Y (fixes only) |
 | `ghcr.io/fjaeckel/seriesoftubes-relay:latest` | To each new release (pre-releases never) |
 
+Each published image carries GitHub's signed build provenance, also stored in the registry beside it: `gh attestation
+verify oci://ghcr.io/fjaeckel/seriesoftubes-relay:X.Y.Z -R fjaeckel/seriesoftubes` checks it was built by this
+repository's workflow.
+
 The image is built `FROM scratch`: the relay, CA certificates and nothing else (no shell), running as an unprivileged
-user (uid 65532) with its data in `/data`. Inside it, `relay init` listens on `0.0.0.0:8080` and serves metrics on
-`0.0.0.0:9100` for the Docker network (`RELAY_LISTEN`, `RELAY_METRICS`, `RELAY_METRICS_PUBLIC` in the image). It runs
+user (uid 65532) with its data in `/data`. Inside it, `relay init` listens on `0.0.0.0:8080` (`RELAY_LISTEN` in the
+image); metrics are off unless your Compose file sets `RELAY_METRICS` (and `RELAY_METRICS_PUBLIC`), as
+`relay/docker-compose.yml` does for the Compose network ([Monitoring](#monitoring-with-prometheus)). It runs
 [`relay up`](RELAY.md#relay-up) by default: on a data folder that already holds a server that is `relay serve`; on an
 empty one it sets the server up from `RELAY_URL`, `RELAY_NAME` and the like first.
 
@@ -239,9 +244,11 @@ cd seriesoftubes && git pull
 cd relay && docker compose up -d --build
 ```
 
-A checkout build reports its version as `dev` (and so gets no update notices); set `RELAY_VERSION` in `.env` to the
-release you checked out (`git checkout vX.Y.Z`) to have it reported. Or run a published release instead of building:
-set `RELAY_IMAGE=ghcr.io/fjaeckel/seriesoftubes-relay:X.Y.Z` and `docker compose pull && docker compose up -d`.
+A checkout build reports its version as `dev` (and so gets no update notices) and is tagged
+`ghcr.io/fjaeckel/seriesoftubes-relay:dev` locally; set `RELAY_VERSION` in `.env` to the release you checked out
+(`git checkout vX.Y.Z`) to have it reported and tagged so. Or run a published release instead of building: set
+`RELAY_VERSION=X.Y.Z` and `docker compose pull && docker compose up -d`. Only `RELAY_VERSION=latest` follows every
+release by itself; a pinned version moves when you change it (Dependabot does the same for this repository's files).
 
 **A second node of an existing server** (yours or a co-operator's, on another machine): in that machine's `.env`,
 uncomment `RELAY_JOIN` under "Advanced" and set it to the server identity; nothing else (`RELAY_NAME` and the rest of
@@ -310,12 +317,13 @@ sudo install -d -o 65532 -g 65532 -m 0700 relay-data   # the relay runs as uid 6
 # Series of Tubes relay behind Caddy. docs/HOSTING.md, path A.
 services:
   relay:
-    image: ghcr.io/fjaeckel/seriesoftubes-relay:latest   # or pin a release: :X.Y.Z
+    image: ghcr.io/fjaeckel/seriesoftubes-relay:X.Y.Z   # the release to run (:X.Y takes its fixes, :latest every release)
     restart: unless-stopped
     volumes:
       - ./relay-data:/data
     networks: [tubes]
-    # No ports: only Caddy reaches the relay (8080), and only the Docker network reaches its metrics (9100).
+    # No ports: only Caddy reaches the relay (8080). Metrics are off; for a Prometheus on this Docker network add
+    # environment: {RELAY_METRICS: "0.0.0.0:9100", RELAY_METRICS_PUBLIC: "true"} before the first start.
 
   caddy:
     image: caddy:2
@@ -427,7 +435,7 @@ mv /certs/.fullchain.pem.new /certs/fullchain.pem
 # Series of Tubes relay serving TLS itself, certificates from certbot. docs/HOSTING.md, path A2.
 services:
   relay:
-    image: ghcr.io/fjaeckel/seriesoftubes-relay:latest   # or pin a release: :X.Y.Z
+    image: ghcr.io/fjaeckel/seriesoftubes-relay:X.Y.Z   # the release to run (:X.Y takes its fixes, :latest every release)
     restart: unless-stopped
     ports:
       - "443:8443"
@@ -786,10 +794,14 @@ A relay never runs on a data folder written by a newer relay: to go back a versi
 
 The relay serves Prometheus metrics at `/metrics` when `metrics` is set: counts and versions only, never an address, a
 key or a name ([RELAY.md, metrics](RELAY.md#metrics)). On a machine of its own, keep it on loopback
-(`"metrics": "127.0.0.1:9100"`) and run Prometheus there, or reach it through an SSH tunnel. In a container the image
-listens on `0.0.0.0:9100` with `"metricsPublic": true`, so a Prometheus **on the same Docker network** can scrape
-`http://relay:9100/metrics`. Keep port 9100 off the internet: don't publish it in `compose.yaml`, or firewall it to your
-monitoring host. Without `metricsPublic` the relay refuses any address but localhost, and with it, it warns at start.
+(`"metrics": "127.0.0.1:9100"`) and run Prometheus there, or reach it through an SSH tunnel. In a container metrics are
+off unless the Compose file sets `RELAY_METRICS: 0.0.0.0:9100` and `RELAY_METRICS_PUBLIC: "true"` before the first
+start (`relay/docker-compose.yml` does), so a Prometheus **on the same Docker network** can scrape
+`http://relay:9100/metrics`. Keep port 9100 off the internet: don't publish it in `compose.yaml`, and if a Prometheus
+on the host needs it, publish it on loopback only (`"127.0.0.1:9100:9100"`). **Docker's published ports bypass
+`ufw`** and most host firewalls (Docker writes its own iptables rules ahead of them), so `"9100:9100"` is open to the
+whole internet whatever `ufw status` says. Without `metricsPublic` the relay refuses any address but localhost, and
+with it, it warns at start.
 
 A scrape job for your `prometheus.yml`:
 
