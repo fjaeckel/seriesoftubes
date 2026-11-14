@@ -68,6 +68,11 @@ under it (`fedUnclaim`).
 An error code from a node is a short code (`[a-z_]{1,32}`, else it is read as `bad_frame`), and the interface shows only
 the codes this game knows (`FED_CODES`); any other is shown as an unknown error, never as the node's text.
 
+Each connection may ask at most `FED.T.sigMax` signature checks (30 000) of the tab per `FED.T.sigWin` seconds (60),
+counted from what a `recs` or `catalog` frame holds before any of it is checked (`fedSigCost`: a record's signatures,
+its receipts, a registry entry's whole chain). A frame over the budget is not looked at and the node is dropped `slow`
+until the window is over; a subscription page is taken whole or not at all, so its cursor never skips one.
+
 ## Exports and imports
 
 | Function | What it does |

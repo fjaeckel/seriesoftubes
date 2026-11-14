@@ -87,3 +87,27 @@ test('a node\'s error codes are short codes; ones this game does not know are sh
   assert.match(t, /bad_frame/);
   assert.deepEqual(p.errors, []);
 });
+
+test('a node that asks for more signature checks than the budget allows is dropped slow and waited out', async () => {
+  const p = fedPage({ registry: SERVERS_JSON });
+  p.net.node(URL1);
+  assert.equal(await joinGame(p), null);
+  await run(p, 20);
+  const c = `FED.live.conns.get(${JSON.stringify(URL1)})`;
+  assert.equal(p.ev(`${c}.phase`), 'ready');
+  p.ev(`${c}.sig=null`);
+  p.ev('FED.T.sigMax=100;window.__gos=0;const g0=fedGossip;fedGossip=(...a)=>{__gos++;return g0(...a);}');
+  // Unasked gossip: each entry a chain of multi-signed records (junk: the cost is counted before anything is checked).
+  const junk = { genesis: { sigs: [1] }, chain: Array.from({ length: 8 }, () => ({ sigs: [1, 2, 3] })), server: { sigs: [1] }, path: [], seen: 0 };
+  const frame = JSON.stringify(JSON.stringify({ m: 'catalog', entries: [junk, junk] }));   // 2 × 26 = 52 checks
+  p.ev(`fedIn(${c},${frame})`);
+  assert.equal(p.ev(`${c}.phase`), 'ready', 'within the budget');
+  p.ev(`fedIn(${c},${frame})`);
+  assert.equal(p.ev('__gos'), 1, 'the frame over the budget is not looked at');
+  assert.equal(p.ev('FED.errs[0].why'), 'slow');
+  assert.notEqual(p.ev(`${c}.phase`), 'ready', 'dropped');
+  assert.ok(p.ev(`${c}.wait`) >= 59000, 'not redialled before the window is over');
+  // A page of records counts its records and receipts too.
+  assert.equal(p.ev(`fedSigCost({m:'recs',items:[{rec:{sig:'x'},rcpt:[{},{}]},{rec:{sigs:[1,2,3]}}]})`), 6);
+  assert.deepEqual(p.errors, []);
+});

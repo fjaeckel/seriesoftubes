@@ -12,7 +12,9 @@ const FED={
   fetch:(u,o)=>fetch(u,o),idb:()=>indexedDB,registry:'federation/servers.json',
   // ms: opening a socket, a request's answer, ping when idle, give up when silent, the idle check, stats, back-off;
   // live states (§5.11): the check, the keepalive when nothing changed, the least time between two (s: statsMax, stateMin).
-  T:{open:15000,req:20000,idle:60000,dead:120000,tick:30000,stats:300000,statsMax:3600,first:5000,base:2000,cap:1800000,fetch:10000,state:10000,stateKeep:180000,stateMin:5},
+  T:{open:15000,req:20000,idle:60000,dead:120000,tick:30000,stats:300000,statsMax:3600,first:5000,base:2000,cap:1800000,fetch:10000,state:10000,stateKeep:180000,stateMin:5,
+    // The signature checks one connection may ask of this tab per sigWin seconds (fedBudget).
+    sigMax:30000,sigWin:60},
   hooks:{stats:null,deal:null},vgen:0,shun:null,xgen:0,ex:null,live:null,st:{},ev:{},soon:false,listening:false,sent:new Map(),ids:new WeakMap(),dpend:[],
   // Server id -> the newest relay its node told this device's operator about (§9.3 update), memory only.
   upd:{}};
@@ -139,6 +141,7 @@ function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.skip
   // Until the node check and auth are done, only answers to our own requests (and an operator's update notice, which
   // follows the ack of a proved operator key): nothing unasked is taken from a node whose server is not checked yet.
   if(c.phase!=='ready'&&f.m!=='update'&&!(f.id!==undefined&&c.rq.has(f.id)))return;
+  if((f.m==='recs'||f.m==='catalog')&&!fedBudget(c,fedSigCost(f)))return;
   /* A page of the subscription: pages are handled one after another, and its cursor is kept only once every record of
      it was handled, so a connection lost in the middle resumes from the last whole page and skips nothing (§9.3). */
   if(f.m==='recs'&&c.sub&&f.id===c.sub){const k=fedCursorKey(c);
@@ -168,6 +171,18 @@ function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.skip
 /* Pages of the subscriptions are handled one after another (each needs signature checks and storage). At most FED_HELD
    wait at once (64 KB each at most): a node that streams them faster than this tab can handle them would otherwise fill its memory. */
 const FED_HELD=256;
+/* Every signed record, receipt and registry entry a node sends costs this tab signature checks (in the worker, but a
+   worker kept busy forever still drains a phone). Each connection gets FED.T.sigMax of them per FED.T.sigWin seconds,
+   counted from what a frame asks for (fedSigCost) before any of it is checked, across reconnects; over it the frame is
+   not looked at and the node is dropped 'slow' until the window is over. A whole page is taken or none of it, so a
+   subscription's cursor never skips a page. */
+const fedSigN=r=>r&&typeof r==='object'&&Array.isArray(r.sigs)?Math.max(1,Math.min(64,r.sigs.length)):1;
+function fedSigCost(f){let n=0;
+  if(f.m==='recs'&&Array.isArray(f.items))for(const it of f.items){if(it&&typeof it==='object')n+=fedSigN(it.rec)+(Array.isArray(it.rcpt)?Math.min(16,it.rcpt.length):0);}
+  else if(f.m==='catalog'&&Array.isArray(f.entries))for(const e of f.entries.slice(0,256)){if(e&&typeof e==='object')n+=fedSigN(e.genesis)+fedSigN(e.server)+(Array.isArray(e.chain)?e.chain.slice(0,64).reduce((a,r)=>a+fedSigN(r),0):0);}
+  return n;}
+function fedBudget(c,n){const now=fedNow(),w=FED.T.sigWin;if(!c.sig||now-c.sig.t>=w)c.sig={t:now,n:0};
+  if(c.sig.n+n<=FED.T.sigMax){c.sig.n+=n;return true;}fedDrop(c,'slow',Math.max(1,c.sig.t+w-now));return false;}
 function fedSubQ(c,job){if((c.subN||0)>=FED_HELD){fedDrop(c,'slow');return;}c.subN=(c.subN||0)+1;const q=c.subQ||Promise.resolve();
   c.subQ=q.then(job).catch(()=>{}).finally(()=>{if(c.subN>0)c.subN--;});}
 /* Just connected: make sure the node is one of its server's (when the catalog knows the server: the registry is asked
