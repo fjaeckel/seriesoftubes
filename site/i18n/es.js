@@ -3946,7 +3946,7 @@
 "ops.o_optics":"Encender más fibra",
 "ops.o_optics_d":"Añadir ópticas a la fibra oscura que va caliente y encender la fibra nueva el día que te la entregan.",
 "ops.o_optup":"Mejorar el transporte óptico",
-"ops.o_optup_d":"En la fibra que está llena y va caliente, sube el sistema de línea un tamaño o cambia los canales más pequeños por ópticas más grandes (las viejas van a la estantería). Elige un sistema de línea y cada fibra con uno más pequeño sube a ese. Cambiar el sistema de línea deja la fibra sin servicio un día, así que solo donde el tráfico puede rodearla y ningún cliente va por ella, uno por noche.",
+"ops.o_optup_d":"En la fibra que está llena y va caliente, o de la que los compradores del mercado de capacidad quieren más de lo que puede vender, sube el sistema de línea un tamaño o cambia los canales más pequeños por ópticas más grandes (las viejas van a la estantería). Elige un sistema de línea y cada fibra con uno más pequeño sube a ese. Cambiar el sistema de línea deja la fibra sin servicio un día, así que solo donde el tráfico puede rodearla y ningún cliente va por ella, uno por noche.",
 "ops.o_pni":"PNI con los grandes",
 "ops.o_pni_d":"Cada semana: pedir un PNI a cada red dispuesta que envíe suficiente tráfico en tus POPs, con el tamaño mínimo de cada red.",
 "ops.o_ports":"Margen en puertos de peering",

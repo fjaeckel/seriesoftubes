@@ -3946,7 +3946,7 @@
 "ops.o_optics":"Accendi più fibra",
 "ops.o_optics_d":"Aggiungi ottiche alla dark fiber che scotta e accendi la fibra nuova il giorno della consegna.",
 "ops.o_optup":"Potenzia il trasporto ottico",
-"ops.o_optup_d":"Sulla fibra piena che va calda, porta il line system alla taglia successiva, o scambia i canali più piccoli con ottiche più grandi (le vecchie finiscono a scaffale). Scegli un line system e ogni fibra con uno più piccolo passa a quello. Cambiare line system spegne la fibra per un giorno, quindi solo dove il traffico può girarle intorno e nessun cliente ci passa, uno per notte.",
+"ops.o_optup_d":"Sulla fibra piena che va calda, o di cui i compratori sul mercato della capacità vogliono più di quanto possa vendere, porta il line system alla taglia successiva, o scambia i canali più piccoli con ottiche più grandi (le vecchie finiscono a scaffale). Scegli un line system e ogni fibra con uno più piccolo passa a quello. Cambiare line system spegne la fibra per un giorno, quindi solo dove il traffico può girarle intorno e nessun cliente ci passa, uno per notte.",
 "ops.o_pni":"PNI con i grandi",
 "ops.o_pni_d":"Ogni settimana: ordina un PNI con ogni rete disponibile che manda abbastanza traffico nei tuoi POP, alla taglia minima di ciascuna rete.",
 "ops.o_ports":"Margine sulle porte di peering",

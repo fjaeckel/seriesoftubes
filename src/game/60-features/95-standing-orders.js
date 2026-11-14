@@ -233,10 +233,14 @@ const OPS_RUN={
        cap+=optG(o,l);X.did('optics',l.a+'|'+l.b);yield;}}},
  *optup(X){const at=opsP('optup','at')/100,goal=opsP('optup','sys'),swap=opsP('optup','swap');let ups=0,tries=0;
    const hot=l=>{const c=dfCap(l);return c>0&&((R.load&&R.load[l.id])||0)*opsAhead()>=c*at;},full=l=>freeCh(l)<=0,u=l=>((R.load&&R.load[l.id])||0)/Math.max(1,dfCap(l));
+   // Buyers the fiber cannot serve count as much as your own traffic (#347): waves for bigger optics, spectrum too for a
+   // bigger line system. The routes are worked out once a night; the line system swap still never darkens a fiber with
+   // a customer on it (opsDark()).
+   const rs=S.cm?cmRoutes():null,sold=rs&&cmSold(rs),press=(l,w)=>!!rs&&cmPress(l,rs,sold,w);
    const ls=S.links.filter(l=>l.kind==='df'&&!l.seat&&l.ready<=S.day&&!(l.eqDown>S.day)&&!(l.cut>S.day)).sort((a,b)=>u(b)-u(a));
    for(const l of ls){
      // The line system: one step at a time up to the chosen one, or the next one where the fiber is full and hot.
-     const want=goal==='next'?(full(l)&&hot(l)?sysNext(l):null):SYS_RANK[l.sys]<SYS_RANK[goal]?goal:null;
+     const want=goal==='next'?(full(l)&&(hot(l)||press(l,false))?sysNext(l):null):SYS_RANK[l.sys]<SYS_RANK[goal]?goal:null;
      if(want&&ups<OPTUP_MAX*(opsIs('kevin')?2:1)&&tries<OPTUP_TRY*(opsIs('kevin')?2:1)){const to=sysNext(l),cost=sysUpCost(l);
        if(to&&techOk('sys',to,DF_SYS[to].lvl)&&!(OPTUP_NO.get(l.id)>S.day)&&X.can('optup',cost)){tries++;const ok=yield* opsDark(l,X);if(!ok)OPTUP_NO.set(l.id,S.day+OPTUP_WAIT);
          if(ok){const s0=l.sys,top=goal==='next'?to:goal;
@@ -247,7 +251,7 @@ const OPS_RUN={
      // Optics: a full, hot fiber trades its smallest channels for the biggest optic that fits, one at a time. Hitless, and
      // the old optics go on the shelf as spares.
      if(!swap)continue;
-     for(let step=0;step<8&&full(l)&&hot(l);step++){const cnt={};for(const k of l.ch||[])cnt[k]=(cnt[k]||0)+1;
+     for(let step=0;step<8&&full(l)&&(hot(l)||press(l,true));step++){const cnt={};for(const k of l.ch||[])cnt[k]=(cnt[k]||0)+1;
        const lit=Object.keys(cnt).sort((a,b)=>optG(a,l)-optG(b,l)),o1=lit[0];if(!o1)break;
        const ports=(o,c)=>S.pops[c]?chPorts(o,c):0,room=(o2,c)=>!S.pops[c]||portsUsed(c)+ports(o2,c)-ports(o1,c)<=portsMax(c)+1e-9;
        // Asked with one small channel already out: a full fiber refuses any optic.

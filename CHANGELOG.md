@@ -11,6 +11,7 @@ All notable changes to this project are documented here. The project follows
 - Two new research projects move pie dishes to the V band and then the E band, doubling and doubling again what each antenna carries; dishes are upgraded antenna by antenna, and rain hurts higher bands more (#374).
 - Landing rights can be bought 1, 5 or 10 years ahead, for one country or every country with a pie dish, and antennas and dishes can be added in bulk (#374).
 - Pie Control is wider and laid out like the NOC dashboard, with a tab for each thing you run: an overview, bottlenecks with the button that fixes each one, crusts, dishes by country or by load, orbit customers shown on the globe, and the company. Launch options such as insurance now stay set in your save (#374).
+- The NOC's optical upgrades now also act when buyers on the capacity market want waves a full fiber cannot sell: a fiber a carrier rides gets bigger optics, and one nobody rides gets the next line system where your traffic gets around it (#347).
 
 ## [4.1.3] — 2026-11-14
 

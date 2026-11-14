@@ -3947,7 +3947,7 @@
 "ops.o_optics":"Light more fiber",
 "ops.o_optics_d":"Add optics to dark fiber that runs hot, and light new fiber the day it is handed over.",
 "ops.o_optup":"Upgrade optical transport",
-"ops.o_optup_d":"On fiber that is full and runs hot, move the line system up a size, or trade the smallest channels for bigger optics (the old ones go on the shelf). Pick a line system, and every fiber on a smaller one is moved up to it. A line system swap takes the fiber down for a day, so only where the traffic gets around it and no customer rides it, one a night.",
+"ops.o_optup_d":"On fiber that is full and runs hot, or that buyers on the capacity market want more of than it can sell, move the line system up a size, or trade the smallest channels for bigger optics (the old ones go on the shelf). Pick a line system, and every fiber on a smaller one is moved up to it. A line system swap takes the fiber down for a day, so only where the traffic gets around it and no customer rides it, one a night.",
 "ops.o_pni":"PNI with the big ones",
 "ops.o_pni_d":"Every week: order a PNI with every willing network sending enough traffic at your POPs, at each network's own minimum size.",
 "ops.o_ports":"Keep peering headroom",

@@ -120,3 +120,31 @@ test('the budget holds, the setting is saved, and the sheet shows it as lists', 
   assert.match(dom.window.document.getElementById('modalCard').textContent, /Upgrade optical transport/);
   assert.deepEqual(errors, []);
 });
+
+// #347: buyers on the capacity market the fiber cannot serve count like your own traffic running hot. Here your traffic
+// fills 75% (under the order's 80%), and with a quarter kept back the broker has no 100G or 400G wave left to sell.
+const market = "for(const p of CM_W)S.cm.p[p]={on:true,min:CM_MIN[p][0],floor:CM_FLOOR[0]};R.load.f=dfCap(S.links[0])*0.75";
+test('#347 waves the broker cannot sell: bigger optics on a fiber a carrier rides, a line system where none does', t => {
+  const { ev, errors } = game(t, "S.biz.push({id:'mw',name:'Carrier',city:'fra',city2:'ams',type:'mwave',link:'f',slots:1,g:100,bw:1,rate:1})");
+  order(ev, { at: 80 });
+  ev(market);
+  assert.equal(ev("(()=>{const rs=cmRoutes();return cmPress(S.links[0],rs,cmSold(rs),true)})()"), true, 'buyers left, no room');
+  const c0 = ev('dfCap(S.links[0])');
+  ev('opsDay(S.day)');
+  assert.equal(fiber(ev).sys, 'lite', 'never a day without the fiber a carrier rides');
+  assert.match(fiber(ev).ch, /zr8/, 'bigger optics, hitless');
+  assert.ok(ev('dfCap(S.links[0])') > c0);
+  // No customer on it and a way around: the next line system, as for hot traffic.
+  const { ev: ev2 } = game(t);
+  order(ev2, { at: 80 });
+  ev2(market);
+  ev2('opsDay(S.day)');
+  assert.equal(fiber(ev2).sys, 'roadm');
+  // The broker told to leave the route alone: nothing, as before.
+  const { ev: ev3 } = game(t);
+  order(ev3, { at: 80 });
+  ev3(market + ";S.cm.off[edgeKey(S.links[0])]=1");
+  ev3('opsDay(S.day)');
+  assert.deepEqual(fiber(ev3), { sys: 'lite', ch: Array(16).fill('zr4').join(), down: false });
+  assert.deepEqual(errors, []);
+});

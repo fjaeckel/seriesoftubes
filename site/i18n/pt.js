@@ -3946,7 +3946,7 @@
 "ops.o_optics":"Acender mais fibra",
 "ops.o_optics_d":"Adicionar ópticas à fibra escura que está esquentando e acender a fibra nova no dia da entrega.",
 "ops.o_optup":"Melhorar o transporte óptico",
-"ops.o_optup_d":"Na fibra que está cheia e esquentando, sobe o sistema de linha um tamanho ou troca os canais menores por ópticas maiores (as antigas vão para a prateleira). Escolha um sistema de linha e cada fibra com um menor sobe para ele. Trocar o sistema de linha derruba a fibra por um dia, então só onde o tráfego consegue contorná-la e nenhum cliente passa por ela, uma por noite.",
+"ops.o_optup_d":"Na fibra que está cheia e esquentando, ou da qual os compradores do mercado de capacidade querem mais do que ela pode vender, sobe o sistema de linha um tamanho ou troca os canais menores por ópticas maiores (as antigas vão para a prateleira). Escolha um sistema de linha e cada fibra com um menor sobe para ele. Trocar o sistema de linha derruba a fibra por um dia, então só onde o tráfego consegue contorná-la e nenhum cliente passa por ela, uma por noite.",
 "ops.o_pni":"PNI com os grandes",
 "ops.o_pni_d":"Toda semana: pedir um PNI com cada rede disposta que mande tráfego suficiente nos seus POPs, no tamanho mínimo de cada rede.",
 "ops.o_ports":"Folga nas portas de peering",

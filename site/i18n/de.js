@@ -3948,7 +3948,7 @@
 "ops.o_optics":"Mehr Dark Fiber beleuchten",
 "ops.o_optics_d":"Optiken auf heiß laufende Dark Fiber stecken und neue Glasfaser am Tag der Übergabe beleuchten.",
 "ops.o_optup":"Optischen Transport ausbauen",
-"ops.o_optup_d":"Auf Glasfaser, die voll ist und heiß läuft, das Line System eine Größe hochziehen oder die kleinsten Kanäle gegen größere Optiken tauschen (die alten kommen ins Ersatzteillager). Wähl ein Line System, und jede Faser mit einem kleineren wird darauf hochgezogen. Ein Tausch des Line Systems legt die Faser für einen Tag lahm, also nur, wo der Traffic einen Weg drumherum hat und kein Kunde darauf fährt, einer pro Nacht.",
+"ops.o_optup_d":"Auf Glasfaser, die voll ist und heiß läuft oder von der Käufer am Kapazitätsmarkt mehr wollen, als sie verkaufen kann, das Line System eine Größe hochziehen oder die kleinsten Kanäle gegen größere Optiken tauschen (die alten kommen ins Ersatzteillager). Wähl ein Line System, und jede Faser mit einem kleineren wird darauf hochgezogen. Ein Tausch des Line Systems legt die Faser für einen Tag lahm, also nur, wo der Traffic einen Weg drumherum hat und kein Kunde darauf fährt, einer pro Nacht.",
 "ops.o_pni":"PNI mit den Großen",
 "ops.o_pni_d":"Jede Woche: mit jedem willigen Netz, das an deinen POPs genug Traffic schickt, einen PNI bestellen, in der jeweils kleinsten Größe des Netzes.",
 "ops.o_ports":"Peering-Reserve halten",

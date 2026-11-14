@@ -3946,7 +3946,7 @@
 "ops.o_optics":"Allumer plus de fibre",
 "ops.o_optics_d":"Ajouter des optiques sur la fibre noire qui chauffe, et allumer la nouvelle fibre le jour de sa livraison.",
 "ops.o_optup":"Améliorer le transport optique",
-"ops.o_optup_d":"Sur une fibre pleine qui chauffe, passer le système de ligne à la taille au-dessus, ou échanger les plus petits canaux contre des optiques plus grandes (les anciennes partent sur l’étagère). Choisissez un système de ligne, et chaque fibre équipée d’un plus petit y passe. Un changement de système de ligne coupe la fibre pour une journée : seulement là où le trafic peut la contourner et où aucun client ne passe, un par nuit.",
+"ops.o_optup_d":"Sur une fibre pleine qui chauffe, ou dont les acheteurs du marché de capacité veulent plus qu’elle ne peut vendre, passer le système de ligne à la taille au-dessus, ou échanger les plus petits canaux contre des optiques plus grandes (les anciennes partent sur l’étagère). Choisissez un système de ligne, et chaque fibre équipée d’un plus petit y passe. Un changement de système de ligne coupe la fibre pour une journée : seulement là où le trafic peut la contourner et où aucun client ne passe, un par nuit.",
 "ops.o_pni":"PNI avec les gros",
 "ops.o_pni_d":"Chaque semaine : commander un PNI avec chaque réseau partant qui envoie assez de trafic sur tes POP, à la taille minimale de chaque réseau.",
 "ops.o_ports":"Garder de la marge sur les ports de peering",
