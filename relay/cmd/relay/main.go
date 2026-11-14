@@ -802,6 +802,18 @@ func cmdServe(args []string) error {
 	return serve(*dir, serveOpts{logJSON: *logJSON})
 }
 
+// idleTimeout closes keep-alive HTTP connections that sit idle (a var for tests). A WebSocket is
+// hijacked from the server, so its own timeouts (idlePing, idleClose) apply instead.
+var idleTimeout = 60 * time.Second
+
+// httpServer is the relay's HTTP server, and the metrics': bounded headers and idle connections.
+func httpServer(addr string, h http.Handler) *http.Server {
+	return &http.Server{Addr: addr, Handler: h, ReadHeaderTimeout: 10 * time.Second, IdleTimeout: idleTimeout,
+		MaxHeaderBytes: 16 << 10,
+		// net/http logs failed handshakes with the peer's address: never let that out.
+		ErrorLog: log.New(io.Discard, "", 0)}
+}
+
 // lanServe is what relay lan adds to serve: its self-signed certificate and the page at /.
 type lanServe struct {
 	cert *tls.Certificate
@@ -907,9 +919,7 @@ func serve(dir string, so serveOpts) error {
 			ws.ServeHTTP(w, req)
 		})
 	}
-	srv := &http.Server{Addr: c.Listen, Handler: hh, ReadHeaderTimeout: 10 * time.Second,
-		// net/http logs failed handshakes with the peer's address: never let that out.
-		ErrorLog: log.New(io.Discard, "", 0)}
+	srv := httpServer(c.Listen, hh)
 	switch {
 	case lanOpt != nil && lanOpt.cert != nil:
 		srv.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12, Certificates: []tls.Certificate{*lanOpt.cert}}
@@ -945,7 +955,7 @@ func serve(dir string, so serveOpts) error {
 	if c.Metrics != "" {
 		mux := http.NewServeMux()
 		mux.Handle("/metrics", m.Handler())
-		msrv = &http.Server{Addr: c.Metrics, Handler: mux, ReadHeaderTimeout: 10 * time.Second, ErrorLog: log.New(io.Discard, "", 0)}
+		msrv = httpServer(c.Metrics, mux)
 		go func() { errc <- msrv.ListenAndServe() }()
 	}
 	logger.Info("relay serving", "version", version, "server", c.Server, "node", nk.Key, "listen", c.Listen)
