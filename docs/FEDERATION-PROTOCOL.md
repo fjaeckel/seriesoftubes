@@ -188,12 +188,16 @@ ciphertext with its 16-byte tag appended, 17 to 2048 bytes. Anything else is `ba
    `kind` (`offer` or `decline`), so a box can never be moved into a record of another kind.
 3. `aad = canon(the record without sig, its body without enc)`: the box is bound to `v`, `kind`, the author, `t` and
    every field left in clear (`to`, and `offer` for a decline).
-4. `c = AES-256-GCM(key, nonce n, plaintext = canon(the sealed fields as one object), aad)`. `n` is 12 random bytes,
-   never reused with the same key (pick them at random every time).
+4. `c = AES-256-GCM(key, nonce n, plaintext, aad)`, where `plaintext` is `canon(the sealed fields as one object)`
+   followed by spaces (0x20) up to the next multiple of 256 bytes, at most 2032 (so `c` stays within 2048 bytes; a longer
+   canonical text is not padded). `n` is 12 random bytes, never reused with the same key (pick them at random every
+   time). The padding keeps relays from telling deals apart by their length (a decline from a priced offer, a short
+   offer from a consortium); games before it sealed without padding.
 
 **Opening** is the same derivation from the other side (X25519 is symmetric: `X25519(B_priv, A) = shared`), then
 AES-GCM decryption with the same `aad`. A box that does not open (wrong keys, a changed field, a tampered ciphertext) is
-dropped silently. The plaintext is then read as JSON (2.2, 2.1) and checked as 5.3 says.
+dropped silently. The plaintext is then read as JSON (2.2, 2.1), its trailing spaces being JSON whitespace, so padded
+and unpadded boxes read alike, and checked as 5.3 says.
 
 **Why**: X25519, HKDF-SHA256 and AES-GCM are in WebCrypto and in Go's standard library, so neither side needs a library.
 Static keys on both sides mean an offer can be sealed for someone who is offline; the signature over the whole record

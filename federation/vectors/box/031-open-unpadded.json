@@ -1,0 +1,36 @@
+{
+  "description": "An offer sealed by an older game, without padding: openers read both (spaces after JSON are whitespace).",
+  "input": {
+    "seed": "6efe7f97b6b2c6aa12c79f26c7caa4b63d9f42629af20b25a58535db3ac64542",
+    "peer": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+    "peerBox": "tO4Fv_k6I0AaD4GNgg7WfxxSrjMCD6t-aY-ulE4Fi2Y",
+    "record": {
+      "v": 1,
+      "kind": "offer",
+      "key": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "t": 1767312005,
+      "body": {
+        "to": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+        "enc": {
+          "n": "TmcI-sWvJ20zHGnz",
+          "c": "IOCveYWMuAHqHofFLYQsVUXTRK53W8vMwqdiuYmi1d3VH0WquClzFfydYslBzU4GXrFW0Aq6tsX0g6IHhktG9eavjX0Q3_hB0zQQhSzfqwPMdBrNTDC6_zLuOuRwFmzlPWn0e78ReQ6LWo6YCqHAvHNVbpKbtXH3itgiKBwDJ0k"
+        }
+      },
+      "sig": "ouL_lzisiW5mpjWVNRYXydntS8zQ8N_-IUZAVQcObUNLkgdiDIXwZrsLuMshl1_ZcICnCQLd4qV8mzwQ-IsXDg"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "plain": {
+      "deal": "peering",
+      "basis": "PHceQTGFyrFM3znRzpZ_tbdfzizWGPIwIz325cdcyjM",
+      "terms": {
+        "at": [
+          "fra",
+          "ams"
+        ],
+        "via": "ix"
+      }
+    }
+  }
+}

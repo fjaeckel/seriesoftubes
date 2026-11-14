@@ -31,10 +31,14 @@ const fedBoxAad=r=>{const e={};for(const k of Object.keys(r))if(k!=='sig')e[k]=r
 // AES-GCM nonce: from the browser's secure random source only. A repeated nonce under one key would leak the plaintext,
 // so without it nothing is sealed (the deal fails instead of going out weak).
 function fedNonce12(){const a=new Uint8Array(12);crypto.getRandomValues(a);return a;}
+/* The sealed plaintext, padded with spaces to the next multiple of 256 bytes (at most 2032) so a relay cannot tell deals
+   apart by their length (§3.5). Spaces after JSON are whitespace, so games that do not pad open it alike. */
+function fedPadded(plain){const u=fedUtf8(fedCanon(plain)),n=Math.min(Math.ceil(u.length/256)*256,2032);if(u.length>=n)return u;
+  const o=new Uint8Array(n).fill(32);o.set(u);return o;}
 /* Seals plain (a value) inside env (the record without sig and enc) for peer: {n, c}. n: a fixed nonce (vectors). */
 async function fedSeal(seed,me,peer,peerBox,env,plain,n){const k=await fedDealKey(seed,me,peer,peerBox,env.kind);if(!k)throw new Error('box');
   const iv=n?fedBin(n,12):fedNonce12();
-  return {n:fedB64(iv),c:fedB64(new Uint8Array(await fedSubtle().encrypt({name:'AES-GCM',iv,additionalData:fedBoxAad(env)},k,fedUtf8(fedCanon(plain)))))};}
+  return {n:fedB64(iv),c:fedB64(new Uint8Array(await fedSubtle().encrypt({name:'AES-GCM',iv,additionalData:fedBoxAad(env)},k,fedPadded(plain))))};}
 // Opens a sealed record with this seed's key and the other party's (peer, peerBox): the plain value, or null.
 async function fedOpen(seed,me,peer,peerBox,rec){const e=rec&&rec.body&&rec.body.enc,n=e&&fedBin(e.n,12),c=e&&fedUnb64(e.c);if(!n||!c)return null;
   const k=await fedDealKey(seed,me,peer,peerBox,rec.kind);if(!k)return null;

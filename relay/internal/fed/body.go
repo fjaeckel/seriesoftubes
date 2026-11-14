@@ -687,6 +687,21 @@ func bytesCheck(lo, hi int) check {
 
 // encCheck is the Box type of 5.3: {n, c}, which only the two parties of a deal can open. A relay
 // checks its shape, never what is inside.
+// BoxPad is the bucket sealed plaintexts are padded to (3.5).
+const BoxPad = 256
+
+// PadSealed pads a sealed plaintext (canonical JSON) with spaces to the next multiple of BoxPad,
+// at most BoxMax - 16 bytes, so a relay cannot tell deals apart by their length (3.5). Spaces after
+// JSON are whitespace: an opener that does not pad reads it the same.
+func PadSealed(b []byte) []byte {
+	n := (len(b) + BoxPad - 1) / BoxPad * BoxPad
+	n = min(n, BoxMax-16)
+	for len(b) < n {
+		b = append(b, ' ')
+	}
+	return b
+}
+
 var encCheck = obj(req("n", bytesCheck(BoxNonce, BoxNonce)), req("c", bytesCheck(BoxMin, BoxMax)))
 
 // notSelfKey: a Key that is not the author's own.

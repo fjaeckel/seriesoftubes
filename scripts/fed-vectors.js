@@ -104,10 +104,13 @@ function dealKey(me, peer, peerBox, kind) {
 }
 const boxAad = env => { const { sig, ...r } = env; const { enc, ...body } = r.body; return canon({ ...r, body }); };
 const vnonce = label => b64(sha('tubes-fed.1 vector nonce ' + label).subarray(0, 12));
-function sealEnc(me, peer, peerBox, env, plain, n) {
+// The sealed plaintext: canonical JSON padded with spaces to the next multiple of 256 bytes, at most 2032 (3.5).
+// unpadded: as games before padding sealed it (openers read both).
+const padded = (plain) => { const b = Buffer.from(canon(plain), 'utf8'), n = Math.min(Math.ceil(b.length / 256) * 256, 2032); return b.length >= n ? b : Buffer.concat([b, Buffer.alloc(n - b.length, 0x20)]); };
+function sealEnc(me, peer, peerBox, env, plain, n, unpadded) {
   const c = crypto.createCipheriv('aes-256-gcm', dealKey(me, peer, peerBox, env.kind), Buffer.from(n, 'base64url'));
   c.setAAD(Buffer.from(boxAad(env), 'utf8'));
-  return { n, c: b64(Buffer.concat([c.update(Buffer.from(canon(plain), 'utf8')), c.final(), c.getAuthTag()])) };
+  return { n, c: b64(Buffer.concat([c.update(unpadded ? Buffer.from(canon(plain), 'utf8') : padded(plain)), c.final(), c.getAuthTag()])) };
 }
 // A sealed offer or decline from author to the network named to: clear holds what stays in clear (to, and offer for a
 // decline), plain what is sealed. The nonce comes from a label, so the files never change.
@@ -516,7 +519,8 @@ const SID = rid(genesis);
     'Sealing an offer from alice to bob. shared = X25519(alice\'s box private key, bob\'s box). key = HKDF-SHA256(shared, ' +
     'salt = the 32 raw bytes of each of the two Ed25519 keys, the one whose Key text sorts first (byte order) first, info = ' +
     '"tubes-fed v1 offer" (the record kind), 32 bytes). aad = canonical JSON of the record without sig and without body.enc. ' +
-    'c = AES-256-GCM(key, nonce n, plaintext = canonical JSON of what is sealed, aad), the 16-byte tag appended. Gives enc.',
+    'c = AES-256-GCM(key, nonce n, plaintext = canonical JSON of what is sealed padded with spaces to the next multiple of 256 bytes ' +
+    '(at most 2032), aad), the 16-byte tag appended. Gives enc.',
     { seed: hex('alice'), peer: pub('bob'), peerBox: boxPub('bob'), envelope: env, plain, nonce: n },
     { aad: boxAad(env), key: dealKey('alice', pub('bob'), boxPub('bob'), 'offer').toString('hex'), enc: offer.body.enc });
   const open = (name, d, who, peer, record, expect) => put(A, name, d, { seed: hex(who), peer: pub(peer), peerBox: boxPub(peer), record }, expect);
@@ -558,6 +562,9 @@ const SID = rid(genesis);
   terms('terms-cofound-share-low', 'share is 100 to 500 per mille.', 'alice', { to: pub('bob'), deal: 'cofound', basis: annB, terms: { ...CF, share: 99 } }, { ok: false, error: 'bad_field' });
   terms('terms-cofound-share-high', 'A co-founder never gets more than half.', 'alice', { to: pub('bob'), deal: 'cofound', basis: annB, terms: { ...CF, share: 501 } }, { ok: false, error: 'bad_field' });
   terms('terms-cofound-no-term', 'A co-founding runs a term like any priced deal.', 'alice', { to: pub('bob'), deal: 'cofound', basis: annB, terms: { at: 'fra', share: 250, setup: 20000, monthly: 750 } }, { ok: false, error: 'missing_field' });
+  { const envU = { v: 1, kind: 'offer', key: pub('alice'), t: T + 5, body: clear };
+    const old = rec('offer', 'alice', T + 5, { ...clear, enc: sealEnc('alice', pub('bob'), boxPub('bob'), envU, plain, vnonce('box offer unpadded'), true) });
+    open('open-unpadded', 'An offer sealed by an older game, without padding: openers read both (spaces after JSON are whitespace).', 'bob', 'alice', old, { ok: true, plain }); }
 }
 
 // ======================================================================================

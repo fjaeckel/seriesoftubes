@@ -24,6 +24,7 @@ All notable changes to this project are documented here. The project follows
 - Multimode games and servers now refuse a handful of malformed network keys that could let anyone sign in that network's name.
 - Multimode games refuse deal offers that carry hidden fields meant to slip past their checks.
 - Server names in the public Multimode list now use plain letters, digits and simple punctuation only, so no server can be listed under a look-alike of another's name.
+- Sealed Multimode deals are now padded, so the servers carrying them can no longer guess what kind of deal it is from its size; older games still open them.
 - Multimode servers now ignore stray files in their data folder whose names are not a day, instead of reading them as a wrong day, and refuse to store a record under a day out of range.
 - Multimode servers no longer follow redirects when they connect to other servers, and connect to servers they learned of from the registry only on public internet addresses, never on addresses inside the operator's own network.
 - A Multimode server started with `relay up` (the container default) now restarts without its operator key in the data folder, so operators can keep that key only on their own computer, as the hosting guide now recommends.

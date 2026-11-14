@@ -124,7 +124,7 @@ func init() {
 			env := strict(t, x.Envelope).(map[string]any)
 			key := dealKey(t, seed, pubOf(seed), x.Peer, x.PeerBox, env["kind"].(string))
 			n, _ := fed.Decode(x.Nonce, fed.BoxNonce)
-			c := gcm(t, key).Seal(nil, n, canon.Encode(strict(t, x.Plain)), boxAAD(env))
+			c := gcm(t, key).Seal(nil, n, fed.PadSealed(canon.Encode(strict(t, x.Plain))), boxAAD(env))
 			return map[string]any{"aad": string(boxAAD(env)), "key": hex.EncodeToString(key),
 				"enc": map[string]any{"n": x.Nonce, "c": fed.Encode(c)}}
 		case x.Record != nil: // opening
