@@ -36,7 +36,7 @@ func TestReceiptsOfGossipServersDoNotCount(t *testing.T) {
 		t.Fatal(err)
 	}
 	r.send(websocket.MessageText, canon.Encode(map[string]any{"m": "hello", "vers": []any{int64(1)}, "role": "node",
-		"server": b.ID, "node": bkey.Key, "nonce": fed.Encode(bytes.Repeat([]byte{9}, 32))}))
+		"server": b.ID, "node": bkey.Key, "nonce": fed.Encode(bytes.Repeat([]byte{9}, 32)), "feats": []any{fed.FeatBind}}))
 	cx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_, wb, err := r.c.Read(cx)
@@ -45,7 +45,7 @@ func TestReceiptsOfGossipServersDoNotCount(t *testing.T) {
 	}
 	w, _ := wire.Parse(wb, fed.NodeFrame)
 	theirs, _ := w.Str("nonce")
-	r.send(websocket.MessageText, canon.Encode(map[string]any{"m": "proof", "proof": bkey.MakeProof(theirs, b.ID, now)}))
+	r.send(websocket.MessageText, canon.Encode(map[string]any{"m": "proof", "proof": bkey.MakeBoundProof(theirs, b.ID, a.Nodes[0].Key.Key, fed.RoleCall, now)}))
 	r.send(websocket.MessageText, canon.Encode(map[string]any{"m": "carry", "classes": []any{"players"}, "since": int64(0)}))
 
 	// Within the time bound, but from a gossip-only server; and 8 days before its record.

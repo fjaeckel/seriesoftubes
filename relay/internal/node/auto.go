@@ -130,9 +130,21 @@ func (r *Relay) hasPeer(server string) bool {
 	return false
 }
 
-// dedupe keeps one session per pair of servers (lock held), called as s is verified: of two
-// sessions with the same server, the one dialled by the lower identity stays (the same choice on
-// both sides); when both were dialled by the same side, the older one. It reports whether s stays.
+// hasBoundPeer is hasPeer counting only sessions whose peer bound its proof (lock held).
+func (r *Relay) hasBoundPeer(server string) bool {
+	for s := range r.nodes {
+		if !s.same && s.verified && !s.unbound && s.peerServer == server {
+			return true
+		}
+	}
+	return false
+}
+
+// dedupe keeps one session per pair of servers (lock held), called as s is verified: a session
+// whose peer bound its proof stays over one that did not (an unbound proof may be an impersonator
+// relaying the real node's answer, 6.2); else, of two sessions with the same server, the one
+// dialled by the lower identity stays (the same choice on both sides); when both were dialled by
+// the same side, the older one. It reports whether s stays.
 func (r *Relay) dedupe(s *session) bool {
 	if s.same || r.own == nil {
 		return true
@@ -141,6 +153,16 @@ func (r *Relay) dedupe(s *session) bool {
 	for o := range r.nodes {
 		if o == s || o.same || !o.verified || o.peerServer != s.peerServer {
 			continue
+		}
+		if o.unbound != s.unbound {
+			if o.unbound {
+				r.o.Log.Info("sync: one session per server, closing the unbound one", "server", s.peerServer, "node", o.peerNode)
+				o.close("duplicate")
+				continue
+			}
+			r.o.Log.Info("sync: one session per server, closing this unbound one", "server", s.peerServer, "node", s.peerNode)
+			s.close("duplicate")
+			return false
 		}
 		if byLower(s) && !byLower(o) {
 			r.o.Log.Info("sync: one session per server, closing the other", "server", s.peerServer, "node", o.peerNode)

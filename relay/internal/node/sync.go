@@ -47,9 +47,14 @@ func (r *Relay) answerNode(s *session, h *wire.Hello) {
 		return
 	}
 	// A caller that claims this server must bind its proofs (6.2): nodes of one server are
-	// upgraded together, and an unbound proof can be had from any node by asking it.
+	// upgraded together, and an unbound proof can be had from any node by asking it. So must one
+	// that claims a registry server or a server known to bind: an unbound proof would let anyone
+	// pass as its node.
 	bind := slices.Contains(h.Feats, wire.FeatBind)
-	if !bind && h.Server == own {
+	r.mu.Lock()
+	must := h.Server == own || r.mustBind(h.Server)
+	r.mu.Unlock()
+	if !bind && must {
 		s.fail(0, fed.BadChallenge, 0)
 		return
 	}
@@ -83,7 +88,43 @@ func (r *Relay) answerNode(s *session, h *wire.Hello) {
 	// Proved: node bounds from here on, and no longer a handshake waiting.
 	s.becomeNode()
 	s.shook()
+	s.unbound = !bind
 	r.runPeer(s, h.Server, h.Node)
+}
+
+// bindSince is the last relay release whose nodes did not bind their handshake proofs: a server
+// whose nodes say they run a later one binds.
+const bindSince = "4.0.0"
+
+// maxBinds bounds the servers remembered as binding.
+const maxBinds = 1 << 13
+
+// mustBind reports whether a node of server must prove itself with a bound proof (lock held): a
+// registry server (every relay that can be listed now binds), a server whose catalog entry says
+// its nodes run a relay that binds, or one that bound in an earlier session.
+func (r *Relay) mustBind(server string) bool {
+	if r.regs[server] != nil || r.binds[server] {
+		return true
+	}
+	if c := r.cat[server]; c != nil {
+		for _, im := range c.Impl {
+			if im.Name == update.Name && update.Newer(im.Version, bindSince) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// noteBinds remembers that a verified session with a node of another server bound its proof (lock held).
+func (r *Relay) noteBinds(s *session) {
+	if s.same || s.unbound || !s.verified || r.lookup(s.peerServer) == nil || r.binds[s.peerServer] {
+		return
+	}
+	if len(r.binds) >= maxBinds {
+		clear(r.binds)
+	}
+	r.binds[s.peerServer] = true
 }
 
 // dialNode connects to another node and runs the session until it ends; dialer is the key of
@@ -131,9 +172,12 @@ func (r *Relay) dialNode(ctx context.Context, dialer, url string) error {
 	theirs, _ := f.Str("nonce")
 	feats := wire.Feats(f.Raw["feats"])
 	bind := slices.Contains(feats, wire.FeatBind)
+	r.mu.Lock()
+	legacy := !bind && server != own && !r.mustBind(server)
+	r.mu.Unlock()
 	pv, code := canon.Check(f.Raw["proof"])
 	if code == "" {
-		code = fed.CheckNodeProof(pv, mine, server, node, r.now(), r.Key(), fed.RoleAnswer, !bind && server != own)
+		code = fed.CheckNodeProof(pv, mine, server, node, r.now(), r.Key(), fed.RoleAnswer, legacy)
 	}
 	if code != "" || !slices.Contains(r.speaks, ver) || !fed.IsID(theirs) {
 		s.fail(0, fed.BadChallenge, 0)
@@ -157,6 +201,7 @@ func (r *Relay) dialNode(ctx context.Context, dialer, url string) error {
 		proof = r.o.Node.MakeBoundProof(theirs, own, node, fed.RoleCall, r.now())
 	}
 	s.becomeNode()
+	s.unbound = !bind
 	s.enqueue(map[string]any{"m": "proof", "proof": proof})
 	r.runPeer(s, server, node)
 	return nil
@@ -241,6 +286,7 @@ func (r *Relay) runPeer(s *session, server, node string) {
 		r.mu.Unlock()
 		return
 	}
+	r.noteBinds(s)
 	r.nodes[s] = true
 	if s.same {
 		// Which node of this server dials the automatic peers depends on which siblings are up.
@@ -747,7 +793,9 @@ func (r *Relay) dialLoop(ctx context.Context, key string, urls func() []string) 
 			url := list[next%len(list)]
 			r.mu.Lock()
 			srv := r.serverOfURL(url)
-			busy := srv != "" && (r.own == nil || srv != r.own.ID) && r.hasPeer(srv)
+			// Only a bound session keeps this node from dialling: one an impersonator holds with an
+			// unbound proof must not keep the real server out (dedupe closes it once the real one is up).
+			busy := srv != "" && (r.own == nil || srv != r.own.ID) && r.hasBoundPeer(srv)
 			r.mu.Unlock()
 			if busy {
 				select {

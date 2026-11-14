@@ -93,6 +93,7 @@ type Relay struct {
 	auto    map[string]bool                 // this server's automatic peers (10.9), nil when none
 	quiet   map[string]int64                // automatic peer this node does not dial -> since when it has had no session with it
 	urlSrv  map[string]string               // node URL dialled -> the server that answered there
+	binds   map[string]bool                 // other servers whose nodes bound their proofs in a session (memory only, bounded)
 
 	reports   map[string]map[string]*store.Entry // reporter -> target -> its stored report (5.10)
 	addrQ     map[netip.Addr]*quota              // growth budgets by address, memory only (growth.go)
@@ -163,7 +164,7 @@ func New(o Options) (*Relay, error) {
 	_, _ = rand.Read(eb[:])
 	r := &Relay{o: o, cfg: o.Config, st: st, regs: map[string]*registry.Entry{}, cat: map[string]*catEntry{}, catVia: map[string]int{}, catSize: catSizes{via: map[string]int{}},
 		shunned: map[string]bool{}, left: map[string]int64{}, statsAt: map[string]int64{}, refused: map[string]bool{},
-		lastSyn: map[string]int64{}, addrQ: map[netip.Addr]*quota{}, peerQ: map[string]*quota{}, urlSrv: map[string]string{}, clients: map[*session]bool{}, nodes: map[*session]bool{},
+		lastSyn: map[string]int64{}, addrQ: map[netip.Addr]*quota{}, peerQ: map[string]*quota{}, urlSrv: map[string]string{}, binds: map[string]bool{}, clients: map[*session]bool{}, nodes: map[*session]bool{},
 		epoch: fed.Encode(eb[:]), dialers: map[string]context.CancelFunc{}, speaks: o.Versions,
 		hc: netguard.Client(o.HTTPClient, false), hcPeer: netguard.Client(o.HTTPClient, !o.AllowInternal)}
 	r.impl = &update.Impl{Name: update.Name, Version: r.version()}

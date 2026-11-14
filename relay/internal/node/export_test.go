@@ -135,3 +135,28 @@ func SetMaxUnverified(n int) func() {
 
 // NodeSessions is how many node sessions are up.
 func (r *Relay) NodeSessions() int { return r.count(true) }
+
+// PeerSession reports whether a verified session with node of server is up, and whether its proof was bound.
+func (r *Relay) PeerSession(server, node string) (up, bound bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for s := range r.nodes {
+		if s.peerServer == server && s.peerNode == node && s.verified {
+			return true, !s.unbound
+		}
+	}
+	return false, false
+}
+
+// UnboundSessions is how many verified sessions with nodes of server proved themselves unbound.
+func (r *Relay) UnboundSessions(server string) int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	n := 0
+	for s := range r.nodes {
+		if s.peerServer == server && s.verified && s.unbound {
+			n++
+		}
+	}
+	return n
+}

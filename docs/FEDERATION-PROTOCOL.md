@@ -630,7 +630,11 @@ relaying the checker's nonce to it. So a node that lists `bind` in its `feats` s
 `welcome` and `"call"` in the caller's `proof`. `to` and `role` come together or not at all. The checker additionally
 requires `to` to be its own key and `role` the other side's role (`bad_challenge`); a client checking a `challenge`
 refuses a bound proof. A node refuses an unbound proof in a node handshake, except from a node of another server
-that did not list `bind` (older relays, for the transition). A `hello` that claims the answerer's own server and does
+that did not list `bind` (older relays, for the transition) and that is neither in the node's registry snapshot nor
+known to bind (its catalog entry's `impl` names a relay that binds, or it bound its proofs in an earlier session).
+A session proved with an unbound proof never displaces or blocks one whose proof was bound: of two sessions with one
+server the bound one stays (10.9), and an unbound one does not stop a node from dialling that server. The transition
+ends with the next major version of the protocol's reference relay, which takes bound proofs only. A `hello` that claims the answerer's own server and does
 not list `bind` is refused with `bad_challenge` before any proof is made, and a node only accepts a `welcome` from
 its own server at the URL its chain lists for that node.
 

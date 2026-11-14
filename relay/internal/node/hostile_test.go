@@ -143,7 +143,7 @@ func TestHostilePushesAreDropped(t *testing.T) {
 	}
 	mine := fed.Encode(bytes.Repeat([]byte{7}, 32))
 	r.send(websocket.MessageText, canon.Encode(map[string]any{"m": "hello", "vers": []any{int64(1)}, "role": "node",
-		"server": b.ID, "node": bkey.Key, "nonce": mine}))
+		"server": b.ID, "node": bkey.Key, "nonce": mine, "feats": []any{fed.FeatBind}}))
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_, wb, err := r.c.Read(ctx)
@@ -152,7 +152,7 @@ func TestHostilePushesAreDropped(t *testing.T) {
 	}
 	w, _ := wire.Parse(wb, fed.NodeFrame)
 	theirs, _ := w.Str("nonce")
-	r.send(websocket.MessageText, canon.Encode(map[string]any{"m": "proof", "proof": bkey.MakeProof(theirs, b.ID, n.Clock.Unix())}))
+	r.send(websocket.MessageText, canon.Encode(map[string]any{"m": "proof", "proof": bkey.MakeBoundProof(theirs, b.ID, a.Nodes[0].Key.Key, fed.RoleCall, n.Clock.Unix())}))
 	r.send(websocket.MessageText, canon.Encode(map[string]any{"m": "carry", "classes": []any{"players"}, "since": int64(0)}))
 	forged := rt.Announce(rt.Key("forged"), n.Clock.Unix(), "Forged")
 	forged["sig"] = rt.Announce(rt.Key("other"), n.Clock.Unix(), "x")["sig"]

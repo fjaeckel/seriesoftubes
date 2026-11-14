@@ -514,6 +514,13 @@ How it works (`relay/internal/rank`):
      relay (it would refuse them); it sees the player's earlier announce, or none, until it is reloaded.
   To check which servers have upgraded: the looking glass shows each node's relay version, and `relay status` each
   peer's (every relay released after 4.0.0 takes `ix2`).
+- **Bound node proofs.** Every relay released after 4.0.0 binds the proof its nodes give in a handshake with another
+  node to that node (`bind`, spec 6.2), so a proof cannot be relayed to pass as a node. Such a relay takes an unbound
+  proof only from a server that is not in the registry, does not say (in its catalog entry) that it runs a relay
+  after 4.0.0, and has not bound its proofs in an earlier session; a session proved that way never keeps out or
+  replaces one that bound its proof. **Servers in the registry must run a relay after 4.0.0 to sync with up-to-date
+  servers.** The unbound form is a transition path only: it is planned to be removed in relay 5.0.0, and not before
+  2027-03-01; upgrade every node before then.
 - **Backups:** `relay backup FILE.tar.gz` writes the records, catalog, config and node key to a new file (mode 0600)
   that replaces `FILE.tar.gz` when complete (a symlink there is replaced, not followed). To keep backups in the data
   folder, write them into its `backups/` folder (made when needed): it, and any `*.tar.gz` in the data folder, is left

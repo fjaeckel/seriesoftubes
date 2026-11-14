@@ -99,6 +99,7 @@ type session struct {
 	wanted     map[string]bool // ids asked for and not yet pushed (guarded by r.mu, bounded)
 	retry      map[string]bool // ids refused rate_limited, asked for again later (guarded by r.mu, bounded)
 	neighbour  bool            // the peer's server is a configured neighbour (guarded by r.mu)
+	unbound    bool            // the peer proved itself with an unbound proof (legacy, 6.2): it never displaces a bound session
 	push       *listPager      // records waiting to be pushed for want (guarded by r.mu)
 	dialURL    string
 	dialer     string          // the r.dialers key of the dialer that made this session, when this node dialled

@@ -357,6 +357,9 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 	}
 	r.catSize.add(c, 1)
 	r.cat[g.ID] = c
+	if from != nil && from.peerServer == g.ID {
+		r.noteBinds(from) // known now
+	}
 	// Changed means what is kept changed, not what came: an older entry replayed changes nothing.
 	changed := old == nil || old.hash != c.hash
 	if changed || old.Seen != c.Seen || !slices.Equal(old.Path, c.Path) {
