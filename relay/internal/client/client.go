@@ -237,6 +237,16 @@ func (cl *Client) Request(ctx context.Context, m map[string]any) (*wire.Frame, e
 	}
 }
 
+// Bounds of one Collect: a node that answers more forever is not followed past them. Frames are
+// at most a client frame each, so maxCollectFrames bounds the bytes (32 MB). Vars for tests.
+var (
+	maxCollectItems  = 1 << 16
+	maxCollectFrames = 512
+)
+
+// ErrTooLong is Collect's error for an answer past its bounds; what came before it is returned.
+var ErrTooLong = errors.New("answer too long")
+
 // Collect gathers recs frames of a request until more is false.
 func (cl *Client) Collect(ctx context.Context, m map[string]any) ([]map[string]any, error) {
 	id, ch, err := cl.Start(ctx, m)
@@ -246,11 +256,15 @@ func (cl *Client) Collect(ctx context.Context, m map[string]any) ([]map[string]a
 	defer cl.Stop(id)
 	var items []map[string]any
 	var entries []any // a catalog answer's entries, joined over its frames (9.3)
+	frames := 0
 	for {
 		select {
 		case f, ok := <-ch:
 			if !ok {
 				return items, errors.New("connection closed")
+			}
+			if frames++; frames > maxCollectFrames || len(items) >= maxCollectItems || len(entries) >= maxCollectItems {
+				return items, ErrTooLong
 			}
 			if f.M == "err" {
 				code, _ := f.Str("code")
