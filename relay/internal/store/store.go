@@ -69,6 +69,9 @@ func (e *Entry) To() string {
 	return e.deal.to
 }
 
+// Size is the length of the record's line.
+func (e *Entry) Size() int { return int(e.n) }
+
 // Ix2 reports whether the record carries ix2 fields (fed.Ix2).
 func (e *Entry) Ix2() bool { return e.ix2 }
 
@@ -161,6 +164,7 @@ type Store struct {
 	open   map[int64]*os.File
 	recent []*Entry // entries whose line was kept in memory when stored, oldest first
 	recN   int      // bytes of those lines
+	bytes  int64    // bytes of the lines of every entry kept (what the files hold once compacted)
 	lock   *os.File // the data folder's lock, held while open
 	Loaded int      // lines read on open
 	Bad    int      // lines that did not check on open
@@ -319,7 +323,8 @@ func (s *Store) load(day int64) error {
 			rcpts = s.Rcpts(e)
 		}
 		want, rc := encodeLine(e.rec(), rec, encodeRcpts(rcpts), e.Slot)
-		e.day, e.n, e.rc = i32(day), i32(int64(len(want))), i32(int64(rc))
+		s.setLen(e, len(want))
+		e.day, e.rc = i32(day), i32(int64(rc))
 		e.setMem(nil)
 		if bytes.Equal(want, b) {
 			e.off = at
@@ -432,7 +437,8 @@ func (s *Store) Put(rec *fed.Record, rcpts []map[string]any, slot, day int64) (s
 		slot = e.Slot
 	}
 	line, rc := encodeLine(e.rec(), rec, rj, slot)
-	e.day, e.off, e.n, e.rc = i32(max(e.day64(), day)), -1, i32(int64(len(line))), i32(int64(rc))
+	s.setLen(e, len(line))
+	e.day, e.off, e.rc = i32(max(e.day64(), day)), -1, i32(int64(rc))
 	e.setMem(line)
 	if s.dir == "" {
 		return res, e, nil
@@ -672,6 +678,18 @@ func (s *Store) Len() int { return len(s.byID) }
 // Count is the number of records of one kind.
 func (s *Store) Count(kind string) int { return s.count[kind] }
 
+// setLen sets an entry's line length, keeping Bytes in step.
+func (s *Store) setLen(e *Entry, n int) {
+	s.bytes += int64(n) - int64(e.n)
+	e.n = i32(int64(n))
+}
+
+// Bytes is the length of every kept record's line: what the files hold once compacted.
+func (s *Store) Bytes() int64 { return s.bytes }
+
+// HasKey reports whether any record by an author is kept.
+func (s *Store) HasKey(key string) bool { return s.byKey[key] != nil }
+
 // Kind returns the entries of one kind, in storage order.
 func (s *Store) Kind(k string) iter.Seq[*Entry] {
 	return func(yield func(*Entry) bool) {
@@ -761,6 +779,7 @@ func (s *Store) Remove(ids []string) {
 			continue
 		}
 		delete(s.byID, id)
+		s.bytes -= int64(e.n)
 		if s.count[e.Kind]--; s.count[e.Kind] <= 0 {
 			delete(s.count, e.Kind)
 		}

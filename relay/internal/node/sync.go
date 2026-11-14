@@ -597,8 +597,9 @@ func (r *Relay) takePushed(s *session, x any, now int64) {
 	_, _, code = r.ingest(rec, rcpts, origin{peer: s, same: s.same})
 	r.mu.Lock()
 	delete(s.wanted, rec.ID)
-	// unknown_server is not for good: the server may be learned later.
-	if code != "" && code != fed.UnknownSrv {
+	// unknown_server is not for good: the server may be learned later; rate_limited (a growth
+	// budget, growth.go) neither: the record comes again in a later session.
+	if code != "" && code != fed.UnknownSrv && code != fed.RateLimited {
 		r.refuse(rec.ID)
 	}
 	r.mu.Unlock()

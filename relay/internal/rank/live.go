@@ -26,13 +26,15 @@ type Live struct {
 	Raw     []byte // the canonical text, as signed: what is passed on and shown
 	asn     int64
 	s       *stat
+	at      int64 // when this node took it: how recently its key was heard from
+	ann     bool  // its key had an announce on this node then
 }
 
 // Results of State.
 const (
 	StateNew   = iota // kept: newer than what was held (pass it on)
 	StateOld          // not newer than the state held: nothing changes
-	StateFull         // a key not held, and the map is at its bound
+	StateFull         // a key not held, and the map is at its bound with nothing it may drop for it
 	StateStale        // t is StateLife seconds old or more: never live
 )
 
@@ -84,8 +86,11 @@ func (a *Agg) Fresher(key string, t int64) bool {
 }
 
 // State keeps a checked live state when it is newer than the one held (the body as checked,
-// raw its canonical text). now: this node's clock.
-func (a *Agg) State(id, key string, t int64, body map[string]any, raw []byte, now int64) int {
+// raw its canonical text; ann: its key has an announce on this node). now: this node's clock.
+// When the map is at its bound, states heard from least recently are dropped to make room: first
+// those of keys without an announce, and those of keys with one only for a key with one. So keys
+// made up by the thousand cannot keep players off the boards of now, or hold their place.
+func (a *Agg) State(id, key string, t int64, body map[string]any, raw []byte, ann bool, now int64) int {
 	if now-t >= fed.StateLife {
 		return StateStale
 	}
@@ -94,7 +99,7 @@ func (a *Agg) State(id, key string, t int64, body map[string]any, raw []byte, no
 	}
 	s := parse(id, key, 0, t, body, "")
 	asn, _ := fed.ASN(key)
-	l := &Live{ID: id, Key: key, T: t, Raw: raw, asn: asn, s: s}
+	l := &Live{ID: id, Key: key, T: t, Raw: raw, asn: asn, s: s, at: now, ann: ann}
 	a.lmu.Lock()
 	defer a.lmu.Unlock()
 	cur := a.lm[key]
@@ -103,25 +108,78 @@ func (a *Agg) State(id, key string, t int64, body map[string]any, raw []byte, no
 	}
 	if cur == nil && (len(a.lm) >= a.lmax || a.lbytes+len(raw) > a.lmaxB) {
 		a.expireLocked(now)
-		if len(a.lm) >= a.lmax || a.lbytes+len(raw) > a.lmaxB {
+		if (len(a.lm) >= a.lmax || a.lbytes+len(raw) > a.lmaxB) && !a.evictLocked(ann, len(raw)) {
 			return StateFull
 		}
 	}
 	if cur != nil {
-		a.lbytes -= len(cur.Raw)
+		a.dropLocked(key, cur)
 	}
 	a.lm[key] = l
 	a.lbytes += len(raw)
+	if !ann {
+		a.lnoAnn++
+	}
 	return StateNew
 }
+
+// dropLocked forgets a held state (live lock held).
+func (a *Agg) dropLocked(k string, l *Live) {
+	a.lbytes -= len(l.Raw)
+	if !l.ann {
+		a.lnoAnn--
+	}
+	delete(a.lm, k)
+}
+
+// evictLocked drops the states heard from least recently, of keys without an announce first (and
+// with one only when ann), until a state of size n fits, plus a 64th of the bound so the next ones
+// fit without another pass. False when not enough could go (live lock held).
+func (a *Agg) evictLocked(ann bool, n int) bool {
+	if !ann && a.lnoAnn == 0 {
+		return false
+	}
+	var cand []*Live
+	for _, l := range a.lm {
+		if ann || !l.ann {
+			cand = append(cand, l)
+		}
+	}
+	slices.SortFunc(cand, func(p, q *Live) int {
+		if p.ann != q.ann {
+			if p.ann {
+				return 1
+			}
+			return -1
+		}
+		if p.at != q.at {
+			return cmp64(p.at, q.at)
+		}
+		return strings.Compare(p.Key, q.Key)
+	})
+	room := func(extra int) bool {
+		return len(a.lm)+extra < a.lmax && a.lbytes+n+extra*n <= a.lmaxB
+	}
+	extra := a.lmax / 64
+	for _, l := range cand {
+		if room(extra) {
+			break
+		}
+		a.dropLocked(l.Key, l)
+		a.evicted.Add(1)
+	}
+	return room(0)
+}
+
+// LiveEvicted is how many states were dropped to make room for others since start.
+func (a *Agg) LiveEvicted() int64 { return a.evicted.Load() }
 
 // DropState forgets a key's live state (it left, or is shunned).
 func (a *Agg) DropState(key string) {
 	a.lmu.Lock()
 	defer a.lmu.Unlock()
 	if l := a.lm[key]; l != nil {
-		a.lbytes -= len(l.Raw)
-		delete(a.lm, key)
+		a.dropLocked(key, l)
 	}
 }
 
@@ -137,8 +195,7 @@ func (a *Agg) ExpireStates(now int64) int {
 func (a *Agg) expireLocked(now int64) {
 	for k, l := range a.lm {
 		if now-l.T >= fed.StateLife {
-			a.lbytes -= len(l.Raw)
-			delete(a.lm, k)
+			a.dropLocked(k, l)
 		}
 	}
 	a.snaps = slices.DeleteFunc(a.snaps, func(s *snap) bool { return now-s.at > snapKeep })

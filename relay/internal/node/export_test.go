@@ -72,3 +72,15 @@ func (r *Relay) DialNode(ctx context.Context, url string, auto bool) error {
 	}
 	return r.dialNode(ctx, key, url)
 }
+
+// SetLiveCap lowers the bound of live states held, in keys.
+func (r *Relay) SetLiveCap(keys int) { r.rank.SetLiveCap(keys, 0) }
+
+// LiveHeld reports whether a live state of key is held.
+func (r *Relay) LiveHeld(key string) bool { return r.rank.LiveOf(key) != nil }
+
+// LeftLen is how many keys the relay remembers a leave of.
+func (r *Relay) LeftLen() int { r.mu.Lock(); defer r.mu.Unlock(); return len(r.left) }
+
+// IsRefused reports whether an id is remembered as refused.
+func (r *Relay) IsRefused(id string) bool { r.mu.Lock(); defer r.mu.Unlock(); return r.refused[id] }

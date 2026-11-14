@@ -73,7 +73,7 @@ func (r *Relay) clientState(s *session, f *wire.Frame, now int64) {
 	rec, code := fed.CheckState(f.Raw["rec"], now)
 	if code == "" {
 		var res int
-		res, code = r.takeState(rec, nil, now)
+		res, code = r.takeState(rec, origin{sess: s}, now)
 		if code == "" {
 			r.o.Metrics.Inc("relay_states_total", "client")
 			if f.ID != 0 {
@@ -90,24 +90,29 @@ func (r *Relay) clientState(s *session, f *wire.Frame, now int64) {
 }
 
 // takeState keeps a checked state when it is newer than the one held, and passes it on to node
-// sessions (from: the session it came from, nil for a client). It gives the aggregate's result
-// and an error code: refused, shunned (as for records, 7.1 step 9), too_old, or rate_limited
-// when the map is at its bound.
-func (r *Relay) takeState(rec *fed.Record, from *session, now int64) (int, string) {
+// sessions (o: where it came from, a client session or a node session). It gives the aggregate's
+// result and an error code: refused, shunned (as for records, 7.1 step 9), too_old, or
+// rate_limited when a new key is past its live budget (growth.go), or the map is at its bound
+// and holds nothing it may drop for it. A key with an announce here goes before one without.
+func (r *Relay) takeState(rec *fed.Record, o origin, now int64) (int, string) {
 	r.mu.Lock()
 	code := ""
+	var charge func()
 	if t, ok := r.left[rec.Key]; ok && rec.T <= t {
 		code = fed.Refused
 	} else if r.isShunned(rec.Key) {
 		code = fed.Shunned
 	} else if r.refusesKey(rec.Key) {
 		code = fed.Refused
+	} else if r.rank.Fresher(rec.Key, rec.T) {
+		charge, code = r.liveCheck(rec.Key, now, o)
 	}
+	ann := r.ann[rec.Key] != nil
 	r.mu.Unlock()
 	if code != "" {
 		return 0, code
 	}
-	res := r.rank.State(rec.ID, rec.Key, rec.T, rec.Body, rec.Canon(), now)
+	res := r.rank.State(rec.ID, rec.Key, rec.T, rec.Body, rec.Canon(), ann, now)
 	switch res {
 	case rank.StateFull:
 		return res, fed.RateLimited
@@ -115,7 +120,10 @@ func (r *Relay) takeState(rec *fed.Record, from *session, now int64) (int, strin
 		return res, fed.TooOld
 	case rank.StateNew:
 		r.mu.Lock()
-		r.queueState(rec.Key, from)
+		if charge != nil {
+			charge()
+		}
+		r.queueState(rec.Key, o.peer)
 		r.mu.Unlock()
 	}
 	return res, ""
@@ -208,7 +216,7 @@ func (r *Relay) nodeStates(s *session, f *wire.Frame, now int64) {
 		rec, code := fed.CheckState(x, now)
 		res := 0
 		if code == "" {
-			res, code = r.takeState(rec, s, now)
+			res, code = r.takeState(rec, origin{peer: s, same: s.same}, now)
 		}
 		if code != "" {
 			r.o.Metrics.Inc("relay_refused_total", code)

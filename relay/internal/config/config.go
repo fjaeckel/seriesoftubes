@@ -45,6 +45,26 @@ const (
 	oldAddrWindowSec = 300
 )
 
+// Budgets bound how fast others can make a node keep more: keys cost nothing to make, so what is
+// new (keys, record bytes, live-state keys) is counted per connection, per address and per other
+// server, by the hour, in memory only. Past a high-water mark only networks that have an announce
+// here may put. Players running many games from one address stay well inside them.
+type Budgets struct {
+	NewKeysPerConn  int   `json:"newKeysPerConn"`  // keys not seen before, per connection per hour
+	NewKeysPerAddr  int   `json:"newKeysPerAddr"`  // per address (an IPv6 /64) per hour
+	NewKeysPerPeer  int   `json:"newKeysPerPeer"`  // per other server syncing with this one, per hour
+	BytesPerConn    int64 `json:"bytesPerConn"`    // bytes of new records per connection per hour
+	BytesPerAddr    int64 `json:"bytesPerAddr"`    // per address per hour
+	BytesPerPeer    int64 `json:"bytesPerPeer"`    // per other server per hour
+	LiveKeysPerConn int   `json:"liveKeysPerConn"` // live-state keys without an announce, per connection per hour
+	LiveKeysPerAddr int   `json:"liveKeysPerAddr"` // per address per hour
+	LiveKeysPerPeer int   `json:"liveKeysPerPeer"` // per other server per hour
+	MaxRecords      int   `json:"maxRecords"`      // high-water mark: records kept
+	MaxStoreBytes   int64 `json:"maxStoreBytes"`   // high-water mark: bytes of records kept
+	MaxHeapBytes    int64 `json:"maxHeapBytes"`    // high-water mark: Go heap in use
+	MinFreeDisk     int64 `json:"minFreeDisk"`     // high-water mark: free space left on the data folder's disk
+}
+
 // Config is the config file.
 type Config struct {
 	Listen         string      `json:"listen"`              // address the relay listens on, usually behind a proxy
@@ -68,6 +88,7 @@ type Config struct {
 	NotifyURL      string      `json:"notifyURL,omitempty"`      // https:// URL POSTed once per new relay release; empty: off
 	AllowedOrigins []string    `json:"allowedOrigins,omitempty"` // web pages besides the game's that may connect (https://example.org, https://*.example.org, or "*": any)
 	Limits         Limits      `json:"limits"`
+	Budgets        Budgets     `json:"budgets"`
 }
 
 // DefaultRegistry is where the site publishes servers.json.
@@ -110,6 +131,25 @@ func (c *Config) fill() {
 		l.ConnsPerSec = 1
 	}
 	def(&l.MsgsPerSec, 20)
+	b := &c.Budgets
+	def(&b.NewKeysPerConn, 64)
+	def(&b.NewKeysPerAddr, 1024)
+	def(&b.NewKeysPerPeer, 20000)
+	def(&b.LiveKeysPerConn, 16)
+	def(&b.LiveKeysPerAddr, 256)
+	def(&b.LiveKeysPerPeer, 5000)
+	def(&b.MaxRecords, 20_000_000)
+	def64 := func(p *int64, v int64) {
+		if *p <= 0 {
+			*p = v
+		}
+	}
+	def64(&b.BytesPerConn, 16<<20)
+	def64(&b.BytesPerAddr, 256<<20)
+	def64(&b.BytesPerPeer, 2<<30)
+	def64(&b.MaxStoreBytes, 32<<30)
+	def64(&b.MaxHeapBytes, 6<<30)
+	def64(&b.MinFreeDisk, 1<<30)
 	if c.TrustedProxies == nil {
 		c.TrustedProxies = []string{"127.0.0.0/8", "::1/128"}
 	}

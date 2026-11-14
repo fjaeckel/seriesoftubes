@@ -123,7 +123,7 @@ func TestRandomLiveStatesMatchReference(t *testing.T) {
 					t := now - int64([]int{0, 0, 0, 5, 60, 400, 890}[rng.IntN(7)])
 					s := &boards.State{ID: fmt.Sprintf("s%05d", nid), Key: k, T: t, Body: randBody(rng, k, partners)}
 					states = append(states, s)
-					a.State(s.ID, s.Key, s.T, s.Body, []byte(s.ID), now)
+					a.State(s.ID, s.Key, s.T, s.Body, []byte(s.ID), false, now)
 				case op < 9:
 					k := keys[rng.IntN(K)]
 					if ex[k] {
@@ -153,8 +153,8 @@ func TestRandomLiveStatesMatchReference(t *testing.T) {
 	t.Logf("%d cone rows above 0 compared", nowConeSeen)
 }
 
-// One state per key, the newest; older and stale ones change nothing; the bound refuses new keys
-// until quiet ones expire; a snapshot is reused for snapEvery seconds and kept for spot checks.
+// One state per key, the newest; older and stale ones change nothing; at the bound, a key without
+// an announce is refused while every state held has one, until quiet ones expire; a snapshot is reused for snapEvery seconds and kept for spot checks.
 func TestLiveStateKeeping(t *testing.T) {
 	a := New(1)
 	defer a.Close()
@@ -163,26 +163,26 @@ func TestLiveStateKeeping(t *testing.T) {
 		return map[string]any{"mode": "normal", "pops": map[string]any{"fra": n}, "traffic": []any{}, "tier1": false, "shareCountry": false}
 	}
 	now := t0
-	if r := a.State("b", "k1", now, body(2), []byte("xx"), now); r != StateNew {
+	if r := a.State("b", "k1", now, body(2), []byte("xx"), true, now); r != StateNew {
 		t.Fatal("first state", r)
 	}
-	if r := a.State("c", "k1", now-1, body(9), []byte("xx"), now); r != StateOld {
+	if r := a.State("c", "k1", now-1, body(9), []byte("xx"), false, now); r != StateOld {
 		t.Fatal("older state", r)
 	}
-	if r := a.State("c", "k1", now, body(9), []byte("xx"), now); r != StateOld {
+	if r := a.State("c", "k1", now, body(9), []byte("xx"), false, now); r != StateOld {
 		t.Fatal("same t, higher id", r)
 	}
-	if r := a.State("a", "k1", now, body(3), []byte("xx"), now); r != StateNew {
+	if r := a.State("a", "k1", now, body(3), []byte("xx"), true, now); r != StateNew {
 		t.Fatal("same t, lower id", r)
 	}
-	if r := a.State("d", "k2", now-fed.StateLife, body(1), []byte("xx"), now); r != StateStale {
+	if r := a.State("d", "k2", now-fed.StateLife, body(1), []byte("xx"), false, now); r != StateStale {
 		t.Fatal("stale state", r)
 	}
 	a.SetLiveCap(2, 0)
-	if r := a.State("e", "k2", now-fed.StateLife+10, body(1), []byte("xx"), now); r != StateNew {
+	if r := a.State("e", "k2", now-fed.StateLife+10, body(1), []byte("xx"), true, now); r != StateNew {
 		t.Fatal("second key", r)
 	}
-	if r := a.State("f", "k3", now, body(1), []byte("xx"), now); r != StateFull {
+	if r := a.State("f", "k3", now, body(1), []byte("xx"), false, now); r != StateFull {
 		t.Fatal("over the bound", r)
 	}
 	ans, err := a.Rank(context.Background(), &Slice{Board: "pops", Measure: "now", Division: "all"}, now, "k1", 10)
@@ -190,7 +190,7 @@ func TestLiveStateKeeping(t *testing.T) {
 		t.Fatalf("ranking %+v %v", ans, err)
 	}
 	// A state that arrives now shows in the next snapshot, snapEvery seconds on.
-	a.State("g", "k1", now+1, body(7), []byte("xx"), now+1)
+	a.State("g", "k1", now+1, body(7), []byte("xx"), true, now+1)
 	ans, _ = a.Rank(context.Background(), &Slice{Board: "pops", Measure: "now", Division: "all"}, now+1, "", 10)
 	if ans.At != now || ans.Rows[0].Value != 3 {
 		t.Fatalf("within snapEvery the snapshot stays: %+v", ans)
@@ -210,7 +210,7 @@ func TestLiveStateKeeping(t *testing.T) {
 	if ans.N != 1 {
 		t.Fatalf("a quiet key stays on the board: %+v", ans)
 	}
-	if r := a.State("h", "k3", later, body(1), []byte("xx"), later); r != StateNew {
+	if r := a.State("h", "k3", later, body(1), []byte("xx"), false, later); r != StateNew {
 		t.Fatal("room after expiry", r)
 	}
 	if n, b := a.LiveStats(); n != 2 || b != 4 {
@@ -219,6 +219,63 @@ func TestLiveStateKeeping(t *testing.T) {
 	a.DropState("k3")
 	if n, _ := a.LiveStats(); n != 1 {
 		t.Fatal("dropped", n)
+	}
+}
+
+// At the bound, the states heard from least recently go to make room: those of keys without an
+// announce first, those of keys with one only for a key with one. Keys made up by the thousand
+// neither keep players with an announce out nor hold their place.
+func TestLiveStateEviction(t *testing.T) {
+	a := New(1)
+	defer a.Close()
+	a.Load(nil, nil, nil, nil)
+	body := map[string]any{"mode": "normal", "pops": map[string]any{"fra": int64(1)}, "traffic": []any{}, "tier1": false, "shareCountry": false}
+	now := t0
+	a.SetLiveCap(128, 0)
+	// Two players with an announce, then made-up keys fill the map (dated ahead does not help).
+	for _, k := range []string{"p1", "p2"} {
+		if r := a.State(k, k, now, body, []byte("xx"), true, now); r != StateNew {
+			t.Fatal("player", k, r)
+		}
+	}
+	for i := range 126 {
+		k := fmt.Sprintf("junk%03d", i)
+		if r := a.State(k, k, now+600, body, []byte("xx"), false, now+1); r != StateNew {
+			t.Fatal("junk", i, r)
+		}
+	}
+	// A third player arrives: room is made from the made-up keys, never the players.
+	if r := a.State("p3", "p3", now+2, body, []byte("xx"), true, now+2); r != StateNew {
+		t.Fatal("a player with an announce at the bound:", r)
+	}
+	for _, k := range []string{"p1", "p2", "p3"} {
+		if a.LiveOf(k) == nil {
+			t.Fatal("a player's state was dropped:", k)
+		}
+	}
+	if a.LiveEvicted() == 0 {
+		t.Fatal("nothing evicted")
+	}
+	// More made-up keys take the places of the made-up keys heard from least recently.
+	if r := a.State("junkX", "junkX", now+3, body, []byte("xx"), false, now+3); r != StateNew {
+		t.Fatal("a key without an announce, with others like it held:", r)
+	}
+	if a.LiveOf("junkX") == nil || a.LiveOf("p1") == nil {
+		t.Fatal("eviction order")
+	}
+	// Players only: a key without an announce has nothing to take the place of.
+	b := New(1)
+	defer b.Close()
+	b.Load(nil, nil, nil, nil)
+	b.SetLiveCap(2, 0)
+	b.State("p1", "p1", now, body, []byte("xx"), true, now)
+	b.State("p2", "p2", now, body, []byte("xx"), true, now+50)
+	if r := b.State("j", "j", now, body, []byte("xx"), false, now+60); r != StateFull {
+		t.Fatal("a key without an announce took a player's place:", r)
+	}
+	// A third player takes the place of the one heard from least recently.
+	if r := b.State("p3", "p3", now+70, body, []byte("xx"), true, now+70); r != StateNew || b.LiveOf("p1") != nil || b.LiveOf("p2") == nil {
+		t.Fatal("players at the bound:", r)
 	}
 }
 

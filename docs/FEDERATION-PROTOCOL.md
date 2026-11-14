@@ -542,7 +542,11 @@ inventory, or signs a receipt for it; anywhere a record is expected (`put`, `pus
 - **Newest wins.** Of one key, a node keeps only the newest state it has (greatest `t`, then lowest id), in memory: an
   older or equal one changes nothing (and is not passed on). It forgets a key once its newest state is no longer live,
   and it MAY bound how many keys it keeps (answering `rate_limited` for a new key while full; the reference relay keeps
-  at most 50000 keys and 128 MB of states). A restart forgets every state.
+  at most 50000 keys and 128 MB of states). A node that bounds them SHOULD make room by dropping the states it heard
+  from least recently, those of keys without an announce first, rather than refuse a key that has one: keys cost
+  nothing to make, and states of made-up keys must not keep players off the boards of now. It MAY also bound how many
+  keys without an announce one connection, address or other server brings in an hour (`rate_limited`; the reference
+  relay: 16 per connection, 256 per address, 5000 per server). A restart forgets every state.
 - **State checks** (7.1 step 9) as for records of that key: `refused` (the key left with a later `t`, or the server
   refuses it), `shunned`.
 - **When a game sends one:** while the tab is visible and a session with a node that lists `state` in `feats` (9.3) is
@@ -878,7 +882,11 @@ it is neither answered nor a reason to close, so an older game keeps working wit
   line does the same over its local socket.
 - A node attaches a receipt only to records it received from a client, and rate-limits each key (at most one `stats`
   per slot: `rate_limited`). Before a client has put anything, a node may rate-limit by connection address **in memory
-  only** (section 12).
+  only** (section 12). Keys cost nothing to make, so a node MAY also bound, per hour, how many keys it holds no record
+  of yet, and how many bytes of new records, one connection, one address (counted in memory only) or one other server
+  brings (`rate_limited`), and MAY refuse records of keys without an announce while its storage is nearly full
+  (`rate_limited`). A node that answers a pushed record `rate_limited` does not remember it as refused: it is
+  wanted again in a later session.
 
 ### 9.4 Node and node
 
@@ -1531,7 +1539,8 @@ of 9.3 and an optional webhook; see docs/RELAY.md). It never tells anyone else.
 2. The only place a country appears is `cc` in a receipt for a `stats` record whose author set `shareCountry`.
 3. Receipt times are slots: exact times of activity are never kept.
 4. A relay uses the connection address only in memory: to look up the country (in a country-only database) and to
-   rate-limit connections before a client has put anything, counting for a few minutes. It never writes it.
+   rate-limit connections before a client has put anything, counting for a few minutes, and to count what new keys
+   and records the address brings, for at most an hour (9.3). It never writes it.
 5. Relay logs hold counts, error codes, record kinds and network keys; never addresses or headers.
 6. Registered servers declare `noLogs: true` for everything in front of the relay too.
 7. Shun votes are for operators: a `shun` or `unshun` record goes from node to node, and from a node only to a client

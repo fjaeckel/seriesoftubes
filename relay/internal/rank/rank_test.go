@@ -267,7 +267,7 @@ func TestRandomStreamsMatchReference(t *testing.T) {
 				nid++
 				st := &boards.State{ID: fmt.Sprintf("s%05d", nid), Key: k, T: now - int64([]int{0, 3, 60, 890}[rng.IntN(4)]), Body: randBody(rng, k, partners)}
 				states = append(states, st)
-				a.State(st.ID, st.Key, st.T, st.Body, []byte(st.ID), now)
+				a.State(st.ID, st.Key, st.T, st.Body, []byte(st.ID), false, now)
 			}
 			compare(t, a, h, states, now, ex, founded, fmt.Sprintf("seed %d step %d", seed, step))
 			// The windows move on: a slot, a few, or a long gap (the running slot's snapshot after

@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"maps"
 	"net/http"
+	"net/netip"
 	"slices"
 	"sort"
 	"strconv"
@@ -92,6 +93,11 @@ type Relay struct {
 	urlSrv  map[string]string               // node URL dialled -> the server that answered there
 
 	reports map[string]map[string]*store.Entry // reporter -> target -> its stored report (5.10)
+	addrQ   map[netip.Addr]*quota              // growth budgets by address, memory only (growth.go)
+	peerQ   map[string]*quota                  // growth budgets by other server
+	hwAt    int64                              // when the heap and the free disk were last read
+	heap    int64                              // heap in use then
+	free    int64                              // free disk then (-1: unknown)
 	reportN int                                // reports stored
 
 	clients map[*session]bool
@@ -150,7 +156,7 @@ func New(o Options) (*Relay, error) {
 	_, _ = rand.Read(eb[:])
 	r := &Relay{o: o, cfg: o.Config, st: st, regs: map[string]*registry.Entry{}, cat: map[string]*catEntry{}, catVia: map[string]int{},
 		shunned: map[string]bool{}, left: map[string]int64{}, statsAt: map[string]int64{}, refused: map[string]bool{},
-		lastSyn: map[string]int64{}, urlSrv: map[string]string{}, clients: map[*session]bool{}, nodes: map[*session]bool{},
+		lastSyn: map[string]int64{}, addrQ: map[netip.Addr]*quota{}, peerQ: map[string]*quota{}, urlSrv: map[string]string{}, clients: map[*session]bool{}, nodes: map[*session]bool{},
 		epoch: fed.Encode(eb[:]), dialers: map[string]context.CancelFunc{}, speaks: o.Versions,
 		hc: netguard.Client(o.HTTPClient, false), hcPeer: netguard.Client(o.HTTPClient, !o.AllowInternal)}
 	r.impl = &update.Impl{Name: update.Name, Version: r.version()}
@@ -204,6 +210,15 @@ func New(o Options) (*Relay, error) {
 		m.Gauge("relay_node_sessions", "Open node sessions.", func() float64 { return float64(r.count(true)) })
 		m.Gauge("relay_records", "Records stored.", func() float64 { r.mu.Lock(); defer r.mu.Unlock(); return float64(r.st.Len()) })
 		m.Gauge("relay_live_states", "Live states held in memory (networks playing now).", func() float64 { n, _ := r.rank.LiveStats(); return float64(n) })
+		m.Gauge("relay_high_water", "1 while this node is past its high-water mark (only networks with an announce may put).", func() float64 {
+			r.mu.Lock()
+			defer r.mu.Unlock()
+			if r.highWater(r.now()) {
+				return 1
+			}
+			return 0
+		})
+		m.Gauge("relay_live_evicted", "Live states dropped to make room for others since start.", func() float64 { return float64(r.rank.LiveEvicted()) })
 		m.Gauge("relay_disk_bytes", "Bytes used by the record files.", func() float64 {
 			r.mu.Lock()
 			defer r.mu.Unlock()
@@ -673,6 +688,7 @@ func (r *Relay) hidden(key string) bool {
 // origin says where a record came from.
 type origin struct {
 	client bool     // a client (or the local command line): this node signs a receipt
+	sess   *session // the client session it came from (nil for the command line)
 	cc     string   // the connection's country, for the receipt
 	peer   *session // the node session it came from
 	same   bool     // that session is a node of this server
@@ -810,6 +826,11 @@ func (r *Relay) ingest(rec *fed.Record, rcpts []any, o origin) (string, map[stri
 	if o.client && rec.Kind == "stats" && r.statsAt[rec.Key] == fed.Slot(now) && r.st.Get(rec.ID) == nil {
 		return "", nil, fed.RateLimited
 	}
+	refs, newKey, code := r.growthCheck(rec, now, o)
+	if code != "" {
+		r.o.Metrics.Inc("relay_refused_total", code)
+		return "", nil, code
+	}
 	var mine map[string]any
 	var list []map[string]any
 	var slot int64
@@ -838,6 +859,9 @@ func (r *Relay) ingest(rec *fed.Record, rcpts []any, o origin) (string, map[stri
 	}
 	if res == store.Dup {
 		return res, nil, ""
+	}
+	if res == store.Stored {
+		charge(refs, newKey, e)
 	}
 	if o.client && rec.Kind == "stats" {
 		r.statsAt[rec.Key] = fed.Slot(now)
@@ -1122,6 +1146,13 @@ func (r *Relay) gc() {
 			delete(r.statsAt, k)
 		}
 	}
+	// A leave is kept LeaveKept: past that its key is forgotten, as a restart would forget it.
+	for k, t := range r.left {
+		if now-t > fed.LeaveKept {
+			delete(r.left, k)
+		}
+	}
+	r.sweepQuotas(now)
 	if len(drop) > 0 {
 		r.o.Log.Info("retention: dropped records", "count", len(drop))
 	}

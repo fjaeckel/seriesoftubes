@@ -76,7 +76,10 @@ your own with `relay status` and the [metrics](#monitoring-with-prometheus)):
 - **Traffic.** Records in, receipts and the pieces of leaderboards players look at out (never whole boards). A hundred
   active players are a few hundred MB a day at most; the terabyte a typical VPS includes is far more than you need.
   The limits that bound it: 5000 open connections, 20 messages per second each, 256 open and 120 new at once per
-  address (all in [the config](RELAY.md#limits-per-address-many-players-or-agents-behind-one-address)).
+  address (all in [the config](RELAY.md#limits-per-address-many-players-or-agents-behind-one-address)), and hourly
+  budgets of new networks and record bytes per connection, address and other server, with a high-water mark past
+  which only known networks may put ([`budgets`](RELAY.md#the-config-file)). If you run the relay with a memory limit,
+  set `GOMEMLIMIT` too: the relay stops taking new networks at 4/5 of it.
 - **Time.** An hour to set up, a few minutes a month: updates and an eye on the logs.
 
 ## Getting the relay
@@ -906,6 +909,8 @@ process, per server and node, using the `server` and `node` labels above.
 
 Change the thresholds to suit your machine. Other series worth a graph: `relay_clients` and `relay_node_sessions`
 (open connections), `relay_records_in_total` by `kind`, `relay_records`, `relay_refused_total` by `code`,
+`relay_budget_refused_total` by `budget` (which growth budget refused records or live states), `relay_high_water` (1
+while only known networks may put), `relay_live_evicted`,
 `relay_syncs_total`, `relay_rank_answers_total` by `cache` (hit or miss), `relay_build_info` and
 `relay_latest_version_info`.
 

@@ -276,7 +276,8 @@ async function main() {
     });
 
     await step(PLAY ? 'relay serves plain ws on loopback' : 'relay serves TLS on loopback', async () => {
-      conf(srv[0].d, { listen: `127.0.0.1:${port}`, metrics: `127.0.0.1:${mport}`, registry: REG, ...(PLAY ? {} : TLS) });
+      // The made-up networks all come over one connection: more new networks than a real one brings.
+      conf(srv[0].d, { listen: `127.0.0.1:${port}`, metrics: `127.0.0.1:${mport}`, registry: REG, budgets: { newKeysPerConn: 100000 }, ...(PLAY ? {} : TLS) });
       await serveRelay(srv[0].d, port, (b) => { relayLog += b; });
       const st = ctl('status');
       must(st.registry === 5, `relay knows ${st.registry} registry servers, not 5`);

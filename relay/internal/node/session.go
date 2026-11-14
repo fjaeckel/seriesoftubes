@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/netip"
 	"slices"
 	"strconv"
 	"sync"
@@ -75,7 +76,9 @@ type session struct {
 	unshake func() // ends this session's place among the handshakes (accept); nil once done
 
 	// client
-	cc      string         // the connection's country, never its address
+	cc      string         // the connection's country
+	addr    netip.Addr     // what its address is counted by (an IPv6 /64), in memory only, for the growth budgets
+	q       quota          // its own growth budgets (guarded by r.mu)
 	subs    map[int64]*sub // (guarded by r.mu)
 	proved  []string       // keys this session proved with auth, at most 4 (guarded by r.mu)
 	exSent  bool           // the excluded list follows this session (guarded by r.mu)
@@ -645,8 +648,10 @@ func (r *Relay) accept(w http.ResponseWriter, req *http.Request) {
 	// The address is used here, in memory only: counted while the connection is open, then
 	// dropped (the limiter forgets it once its bucket has refilled).
 	cc := ""
+	var akey netip.Addr // what the growth budgets count it by (growth.go), memory only
 	addr := privacy.ClientAddr(req, trusted)
 	if addr.IsValid() {
+		akey = addrKey(addr)
 		ok, retry := r.limiter.Acquire(addr, r.now())
 		if !ok {
 			r.o.Metrics.Inc("relay_refused_total", fed.RateLimited)
@@ -669,7 +674,7 @@ func (r *Relay) accept(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	s := newSession(r, c)
-	s.cc = cc
+	s.cc, s.addr = cc, akey
 	shaking = false
 	s.unshake = func() { r.hand.Add(-1) }
 	r.serve(s)
@@ -808,7 +813,7 @@ func (r *Relay) clientFrame(s *session, f *wire.Frame) {
 			s.fail(f.ID, code, 0)
 			return
 		}
-		res, rcpt, code := r.ingest(rec, nil, origin{client: true, cc: s.cc})
+		res, rcpt, code := r.ingest(rec, nil, origin{client: true, cc: s.cc, sess: s})
 		if code != "" {
 			retry := int64(0)
 			if code == fed.RateLimited {

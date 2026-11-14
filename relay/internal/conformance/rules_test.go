@@ -108,7 +108,7 @@ func init() {
 		}
 		a.Load(raws, anns, q.Exclude, nil)
 		for _, s := range q.States {
-			a.State(s.ID, s.Key, s.T, s.Body, []byte(s.ID), x.Now)
+			a.State(s.ID, s.Key, s.T, s.Body, []byte(s.ID), false, x.Now)
 		}
 		ans, err := a.Rank(context.Background(), &rank.Slice{Board: x.Board, Measure: x.Measure, Division: x.Division, Cities: x.Cities}, x.Now, "", -1)
 		if err != nil {
@@ -157,7 +157,7 @@ func init() {
 		}
 		a.Load(nil, anns, q.Exclude, nil)
 		for _, s := range states {
-			a.State(s.ID, s.Key, s.T, s.Body, []byte(s.ID), x.Now)
+			a.State(s.ID, s.Key, s.T, s.Body, []byte(s.ID), false, x.Now)
 		}
 		ans, err := a.Rank(context.Background(), &rank.Slice{Board: x.Board, Measure: "now", Division: x.Division, Cities: x.Cities}, x.Now, "", -1)
 		if err != nil {

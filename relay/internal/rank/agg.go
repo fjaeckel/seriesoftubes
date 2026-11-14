@@ -38,6 +38,8 @@ type Agg struct {
 	lm          map[string]*Live
 	lbytes      int
 	lmax, lmaxB int
+	lnoAnn      int          // states held of keys without an announce
+	evicted     atomic.Int64 // states dropped to make room since start
 	snaps       []*snap
 	xgen        atomic.Uint64 // changes when the excluded set changes
 

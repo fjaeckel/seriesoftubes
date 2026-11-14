@@ -33,8 +33,8 @@ that **nothing in front of the relay logs addresses either**. So turn access log
 recording client addresses. That is the whole reason for the examples below being the way they are.
 
 The relay reads the client's address from `X-Forwarded-For` only when the request comes from a trusted proxy
-(`trustedProxies`, loopback by default), uses it in memory for the country lookup and connection limits, and forgets
-it.
+(`trustedProxies`, loopback by default), uses it in memory for the country lookup, connection limits and growth
+budgets (`budgets` below: counted by the address, an IPv6 address by its /64, for at most an hour), and forgets it.
 
 ### Caddy
 
@@ -239,6 +239,7 @@ and the TLS file names change on restart only. The certificate and key themselve
 | `notifyURL` | off | An `https://` URL the relay POSTs to once per new relay release (see Versions and update notices). Anything else is refused |
 | `allowedOrigins` | `[]` | Web pages besides the game's that may connect from a browser: `https://example.org`, `https://*.example.org`, or `"*"` for any. See below |
 | `limits` | | `maxClients` 5000, `maxNodes` 64, `openPerAddr` 256, `connBurst` 120, `connsPerSec` 1, `msgsPerSec` 20. See below |
+| `budgets` | | How fast others can make the node keep more (network keys cost nothing to make), per hour, counted in memory only. New network keys (ones the node has no record of yet): `newKeysPerConn` 64, `newKeysPerAddr` 1024, `newKeysPerPeer` 20000 (per other server). Bytes of new records: `bytesPerConn` 16 MiB, `bytesPerAddr` 256 MiB, `bytesPerPeer` 2 GiB. Live states of networks without an announce: `liveKeysPerConn` 16, `liveKeysPerAddr` 256, `liveKeysPerPeer` 5000. High-water mark, past which only networks that already have an announce here may put (newcomers get `rate_limited` until there is room): `maxRecords` 20000000, `maxStoreBytes` 32 GiB, `maxHeapBytes` 6 GiB (or 4/5 of `GOMEMLIMIT` when lower), `minFreeDisk` 1 GiB. Players running many games, or many AI agents, from one address stay well inside the defaults. Records from this server's own nodes and the command line are not counted |
 
 ### Limits per address: many players or agents behind one address
 
@@ -474,7 +475,8 @@ How it works (`relay/internal/rank`):
   and the boards' default view ranks those (10.13): POPs, pies and total traffic as reported now, traffic with
   players from both sides' current reports (a partner that is not playing counts 0), the customer cone over the
   current transit relationships. Live states are never written anywhere: your node keeps the newest of each network
-  in memory (at most 50000 networks and 128 MB), forgets a network 15 minutes after its last state, and loses them
+  in memory (at most 50000 networks and 128 MB; when full, the states heard from least recently make room, those of
+  networks without an announce first), forgets a network 15 minutes after its last state, and loses them
   all on a restart (games send again within seconds). A state that is newer than what your node had goes on to the
   servers it syncs players with, in batches every 2 seconds, and from them onward; so a player on any server shows
   on every connected server's boards of now within a few seconds. Each connection may send one state every 4 seconds.
