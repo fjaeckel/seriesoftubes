@@ -208,7 +208,7 @@ async function main() {
   const portUp = (p) => until(() => new Promise((res) => { const s = net.connect(p, '127.0.0.1', () => { s.end(); res(true); }); s.on('error', () => res(false)); }), 15000, `port ${p}`);
   // Starts `relay serve` on a data folder; the other nodes of the run trust the run's certificate (RELAY_TEST_ROOTS).
   const serveRelay = async (d, p, sink) => {
-    const r = spawn(bin, ['serve', '--data', d], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...(PLAY ? {} : { RELAY_TEST_ROOTS: TLS.tlsCert }) } });
+    const r = spawn(bin, ['serve', '--data', d], { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...(PLAY ? {} : { RELAY_TEST_ROOTS: TLS.tlsCert, RELAY_TEST_ALLOW_INTERNAL: '1' }) } });
     procs.push(r);
     r.stdout.on('data', sink); r.stderr.on('data', sink);
     await portUp(p);
@@ -289,7 +289,7 @@ async function main() {
     if (TWO) await step('server 2 serves too: two nodes, no neighbours configured', async () => {
       r2 = await serveRelay(srv[1].d, port2, (b) => { logs2.d2 += b; });
       // No --from: the second node finds server 2's nodes in this run's servers.json, as a listed server's would.
-      execFileSync(bin, ['join', '--data', srv[1].d2b, srv[1].id, '--registry', REG], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, RELAY_TEST_ROOTS: TLS.tlsCert } });
+      execFileSync(bin, ['join', '--data', srv[1].d2b, srv[1].id, '--registry', REG], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, RELAY_TEST_ROOTS: TLS.tlsCert, RELAY_TEST_ALLOW_INTERNAL: '1' } });
       const seeds = JSON.parse(fs.readFileSync(path.join(srv[1].d2b, 'config.json'), 'utf8')).seeds;
       must(seeds && seeds[0] === URL2 && !seeds.includes(URL2B), `join found ${JSON.stringify(seeds)} in the registry, not ${URL2}`);
       conf(srv[1].d2b, { listen: `127.0.0.1:${port2b}`, ...TLS, registry: REG });

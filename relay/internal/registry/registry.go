@@ -405,7 +405,7 @@ func KeepStamps(file, existing []byte) ([]byte, error) {
 	if code != "" || om == nil {
 		return nil, fmt.Errorf("existing registry file: not a JSON object (%s)", code)
 	}
-	if nm["genesis"] == nil || !bytes.Equal(canon.Encode(nm["genesis"]), canon.Encode(om["genesis"])) {
+	if nm["genesis"] == nil || om["genesis"] == nil || !bytes.Equal(canon.Encode(nm["genesis"]), canon.Encode(om["genesis"])) {
 		return nil, fmt.Errorf("the existing registry file is for another server")
 	}
 	for _, f := range []string{"listed", "answered"} {

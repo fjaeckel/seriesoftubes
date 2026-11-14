@@ -637,8 +637,10 @@ open in any browser, one player each, so you can play two networks against each 
 by IP address and join with the self-signed certificate (`--browser` works there too).
 
 The run's relays trust its self-signed certificate through the environment variable `RELAY_TEST_ROOTS` (a PEM file
-of certificates trusted besides the system's, for the relay's outgoing connections). It is for tests only: never set
-it on a real relay.
+of certificates trusted besides the system's, for the relay's outgoing connections), and may dial the run's other
+nodes on loopback through `RELAY_TEST_ALLOW_INTERNAL=1` (URLs from the registry, the catalog and other servers may
+then reach loopback and private addresses; the relay logs a warning at start). Both are for tests only: never set them
+on a real relay.
 
 ## Load test
 

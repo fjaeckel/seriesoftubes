@@ -888,8 +888,13 @@ func serve(dir string, so serveOpts) error {
 		if err != nil {
 			return fmt.Errorf("RELAY_TEST_ROOTS: %w", err)
 		}
-		o.HTTPClient, o.AllowInternal = hc, true
+		o.HTTPClient = hc
 		logger.Warn("RELAY_TEST_ROOTS: also trusting the certificates in that file for outgoing connections (for tests only)")
+	}
+	// For end-to-end tests only, and only when asked for on its own: the run's nodes are on loopback.
+	if testAllowInternal() {
+		o.AllowInternal = true
+		logger.Warn("RELAY_TEST_ALLOW_INTERNAL: URLs from the registry, the catalog and other servers may reach loopback and private addresses. FOR TESTS ONLY: never set this on a real relay")
 	}
 	if countries != nil {
 		o.Countries = countries

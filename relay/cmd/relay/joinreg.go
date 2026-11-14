@@ -38,10 +38,14 @@ func (j joinNet) client() *http.Client {
 	return http.DefaultClient
 }
 
+// testAllowInternal reports whether RELAY_TEST_ALLOW_INTERNAL=1 is set (end-to-end tests only):
+// URLs that do not come from the operator may then reach loopback and private addresses.
+func testAllowInternal() bool { return os.Getenv("RELAY_TEST_ALLOW_INTERNAL") == "1" }
+
 // nodeClient dials the node URLs the registry lists: no redirects and, unless tests set the client (or
-// RELAY_TEST_ROOTS), public addresses only, as they come from the registry rather than the operator.
+// RELAY_TEST_ALLOW_INTERNAL), public addresses only, as they come from the registry rather than the operator.
 func (j joinNet) nodeClient() *http.Client {
-	if j.http != nil || os.Getenv("RELAY_TEST_ROOTS") != "" {
+	if j.http != nil || testAllowInternal() {
 		return netguard.Client(j.client(), false)
 	}
 	return netguard.Client(j.client(), true)

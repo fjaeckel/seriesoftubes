@@ -174,9 +174,11 @@ func TestUpJoinsFromRegistryOnceAdded(t *testing.T) {
 }
 
 // The node URLs a join takes from the registry are not the operator's: the default client reaches only public
-// addresses and follows no redirect; one a test (or RELAY_TEST_ROOTS) gives may reach internal ones.
+// addresses and follows no redirect; one a test (or RELAY_TEST_ALLOW_INTERNAL) gives may reach internal ones.
+// RELAY_TEST_ROOTS alone (trusting a certificate) does not open internal addresses.
 func TestJoinNodeClientRefusesInternalAddresses(t *testing.T) {
-	t.Setenv("RELAY_TEST_ROOTS", "")
+	t.Setenv("RELAY_TEST_ROOTS", "/nonexistent/roots.pem")
+	t.Setenv("RELAY_TEST_ALLOW_INTERNAL", "")
 	var hits atomic.Int32
 	s := httptest.NewUnstartedServer(http.NotFoundHandler())
 	s.Config.ConnState = func(_ net.Conn, st http.ConnState) {
@@ -204,5 +206,10 @@ func TestJoinNodeClientRefusesInternalAddresses(t *testing.T) {
 	}
 	if (joinNet{}).nodeClient().CheckRedirect == nil {
 		t.Fatal("redirects followed")
+	}
+	t.Setenv("RELAY_TEST_ROOTS", "")
+	t.Setenv("RELAY_TEST_ALLOW_INTERNAL", "1")
+	if err := get(joinNet{}.nodeClient()); err != nil {
+		t.Fatalf("with RELAY_TEST_ALLOW_INTERNAL: %v", err)
 	}
 }
