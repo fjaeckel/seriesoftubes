@@ -19,18 +19,18 @@ function drawFrame(now){
   else{glShow(false);GLX.c0clean=false;const wl=worldLayer(z);
   ctx.setTransform(DPR,0,0,DPR,0,0);
   // sea
-  const g=ctx.createLinearGradient(0,0,0,CH);g.addColorStop(0,'#62CBEA');g.addColorStop(1,'#43AED6');ctx.fillStyle=g;ctx.fillRect(0,0,CW,CH);
+  const g=ctx.createLinearGradient(0,0,0,CH);g.addColorStop(0,MAPC.sea0);g.addColorStop(1,MAPC.sea1);ctx.fillStyle=g;ctx.fillRect(0,0,CW,CH);
   for(const k of ks){
     ctx.setTransform(DPR*z,0,0,DPR*z,DPR*((k*W-cam.x)*z+CW/2),DPR*((-cam.y)*z+CH/2));
     // waves: one path, one stroke
-    ctx.strokeStyle='rgba(255,255,255,.45)';ctx.lineWidth=2/z;ctx.lineCap='round';ctx.beginPath();
+    ctx.strokeStyle=MAPC.wave;ctx.lineWidth=2/z;ctx.lineCap='round';ctx.beginPath();
     const ph0=now/900;for(const [x,y,ph] of WAVES){const o=Math.sin(ph0+ph*6)*3;ctx.moveTo(x-9+o,y);ctx.quadraticCurveTo(x-4.5+o,y-4,x+o,y);ctx.quadraticCurveTo(x+4.5+o,y+4,x+9+o,y);}ctx.stroke();
   }
   for(const k of ks){if(wl)drawWorldLayer(wl,k,z,ks[0]);else{ctx.setTransform(DPR*z,0,0,DPR*z,DPR*((k*W-cam.x)*z+CW/2),DPR*((-cam.y)*z+CH/2));paintWorld(ctx,z,false);}}
   for(const k of ks){
     ctx.setTransform(DPR*z,0,0,DPR*z,DPR*((k*W-cam.x)*z+CW/2),DPR*((-cam.y)*z+CH/2));
     // clouds
-    ctx.fillStyle='rgba(255,255,255,.55)';ctx.beginPath();
+    ctx.fillStyle=MAPC.cloud;ctx.beginPath();
     for(const c of CLOUDS){const x=((c.x+now/1000*c.v)%(W+200))-100,y=c.y;ctx.moveTo(x+16*c.s,y);ctx.arc(x,y,16*c.s,0,7);ctx.moveTo(x+38*c.s,y-8*c.s);ctx.arc(x+18*c.s,y-8*c.s,20*c.s,0,7);ctx.moveTo(x+55*c.s,y);ctx.arc(x+40*c.s,y,15*c.s,0,7);}ctx.fill();
   }
   }
@@ -142,11 +142,11 @@ function ptsBox(pts){let a=Infinity,b=Infinity,c=-Infinity,d=-Infinity;for(const
 function drawCone(x,y,now){stamp('cone',26,28,13,13,1,x,y-12+Math.sin(now/300)*1.5,()=>{ctx.strokeStyle='#1E2640';ctx.lineWidth=2;ctx.fillStyle='#FF8A3D';ctx.beginPath();ctx.moveTo(-7,9);ctx.lineTo(0,-10);ctx.lineTo(7,9);ctx.closePath();ctx.fill();ctx.stroke();ctx.fillStyle='#fff';ctx.fillRect(-4,-1,8,3);ctx.fillStyle='#1E2640';rr(-10,8,20,4,2);ctx.fill();});}
 // Static land + cable map, rendered once per zoom bucket into an offscreen canvas.
 function paintWorld(c,z,withCables){const LANDP=lodFar()?LANDP_FAR:LANDP_ALL;
-  for(const o of [0,W,-W]){c.save();c.translate(o+5/z,7/z);c.fillStyle='rgba(20,90,130,.35)';for(const p of LANDP)c.fill(p);c.restore();}
-  c.strokeStyle='#F8E6A8';c.lineWidth=10/z;c.lineJoin='round';for(const o of [0,W,-W]){c.save();c.translate(o,0);for(const p of LANDP)c.stroke(p);c.restore();}
-  c.fillStyle='#9BDA6C';for(const o of [0,W,-W]){c.save();c.translate(o,0);for(const p of LANDP)c.fill(p);c.restore();}
-  c.fillStyle='#86CB5B';c.beginPath();for(const [x,y,r] of HILLS){c.moveTo(x+r*1.4,y);c.ellipse(x,y,r*1.4,r*.8,0,0,Math.PI*2);}c.fill();
-  c.fillStyle='rgba(255,255,255,.18)';c.beginPath();for(const [x,y,r] of HILLS){c.moveTo(x-r*.3+r*.6,y-r*.25);c.ellipse(x-r*.3,y-r*.25,r*.6,r*.3,0,0,Math.PI*2);}c.fill();
+  for(const o of [0,W,-W]){c.save();c.translate(o+5/z,7/z);c.fillStyle=MAPC.shadow;for(const p of LANDP)c.fill(p);c.restore();}
+  c.strokeStyle=MAPC.sand;c.lineWidth=10/z;c.lineJoin='round';for(const o of [0,W,-W]){c.save();c.translate(o,0);for(const p of LANDP)c.stroke(p);c.restore();}
+  c.fillStyle=MAPC.grass;for(const o of [0,W,-W]){c.save();c.translate(o,0);for(const p of LANDP)c.fill(p);c.restore();}
+  c.fillStyle=MAPC.hill;c.beginPath();for(const [x,y,r] of HILLS){c.moveTo(x+r*1.4,y);c.ellipse(x,y,r*1.4,r*.8,0,0,Math.PI*2);}c.fill();
+  c.fillStyle=MAPC.shine;c.beginPath();for(const [x,y,r] of HILLS){c.moveTo(x-r*.3+r*.6,y-r*.25);c.ellipse(x-r*.3,y-r*.25,r*.6,r*.3,0,0,Math.PI*2);}c.fill();
   c.strokeStyle='#1E2640';c.lineWidth=2.5/z;for(const o of [0,W,-W]){c.save();c.translate(o,0);for(const p of LANDP)c.stroke(p);c.restore();}
   if(withCables)for(const off of [0,W,-W]){c.save();c.translate(off,0);for(const cp of CABLE_PAIRS){const C=CAB[cp.cid];c.globalAlpha=0.4;c.strokeStyle=cableCol(C);c.lineWidth=1.6/z;c.lineJoin='round';c.setLineDash(C.age==='old'?[6/z,5/z]:[]);c.beginPath();c.moveTo(cp.pts[0][0],cp.pts[0][1]);for(let i=1;i<cp.pts.length;i++)c.lineTo(cp.pts[i][0],cp.pts[i][1]);c.stroke();}c.restore();}
   c.globalAlpha=1;c.setLineDash([]);

@@ -10,7 +10,7 @@ function wlCovers(z){if(WL.full)return true;const hw=CW/2/z,hh=CH/2/z,w=WL.cv.wi
   return cam.x-hw>=WL.ox&&cam.x+hw<=WL.ox+w&&cam.y-hh>=WL.oy&&cam.y+hh<=WL.oy+h;}
 function worldLayer(z){
   const now=performance.now();if(z!==WL.lastZ){WL.lastZ=z;WL.zAt=now;}
-  const sc=z*DPR,key=sc.toFixed(4)+(arOn()?'a':''),have=!!(WL.cv&&WL.key);
+  const sc=z*DPR,key=sc.toFixed(4)+(arOn()?'a':'')+MAPC.k,have=!!(WL.cv&&WL.key);
   if(have&&WL.key===key&&wlCovers(z))return WL;
   if(have&&now-WL.zAt<250)return WL; // mid-gesture: scale the last image
   const full=W*sc+2<=MAXPX;let ox=0,oy=0,w=W,h=H;

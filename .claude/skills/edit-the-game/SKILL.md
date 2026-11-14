@@ -62,6 +62,11 @@ next to it. `npm run page -- -o /tmp/page.html` writes the page players get if y
   the agent in a game file. See docs/adr/0004-dev-only-code.md.
 - **Panels and modals:** `93-ui/` (HUD, side panels), `94-dashboard/` (NOC dashboard, bank), `95-modals/`.
 - **Styles:** the matching `src/styles/*.css`; phone rules go in `60-phone.css`.
+- **Dark mode (#80):** outlines and shadows use `var(--edge)`, text on a bright fill `var(--on)`, text and surfaces
+  `var(--ink)`/`var(--paper)`/`var(--soft)`, so they switch with the theme. A colour written out by hand gets its dark
+  version in `99-dark-auto.css`: after changing any stylesheet (or an inline `style="background:#…"`), run
+  `node scripts/dark-css.js` (`tests/dark-mode.test.js` fails until you do). Fix-ups it cannot guess go in
+  `98-dark.css`; the map's sea and land colours are `MAP_PAL` in `96-map/12-theme.js`.
 - **Data tables** (cities, cables, networks): one entry per line, and keep id-keyed objects such as
   `CITY_LL` sorted by id, so two people adding cities touch different lines.
 - **Static markup** goes in `src/index.html`; it is short and rarely changes.

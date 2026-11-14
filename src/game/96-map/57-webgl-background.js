@@ -2,8 +2,9 @@
    the 2D map paints them (drawFrame(), paintWorld()) and in the same colours. The land and the cables are geometry
    built once, so panning and zooming repaint nothing; only the waves and the clouds move. */
 const glPm=s=>{const [r,g,b,a]=glColor(s);return [r*a,g*a,b*a,a];}; // premultiplied, as the card blends
-const SEA_TOP=glPm('#62CBEA'),SEA_BOT=glPm('#43AED6'),CLOUD_COL=glPm('rgba(255,255,255,.55)');
-const LAND_SHADOW=glPm('rgba(20,90,130,.35)'),LAND_GRASS=glPm('#9BDA6C'),HILL_COL=glPm('#86CB5B'),HILL_SHINE=glPm('rgba(255,255,255,.18)');
+// The colours, from the map palette (MAPC, 12-theme.js): worked out again when the theme changes.
+let GLP=null;const glPal=()=>{if(!GLP||GLP.k!==MAPC.k){const c=MAPC;GLP={k:c.k,sea0:glPm(c.sea0),sea1:glPm(c.sea1),cloud:glPm(c.cloud),shadow:glPm(c.shadow),
+  grass:glPm(c.grass),hill:glPm(c.hill),shine:glPm(c.shine),wave:glColor(c.wave),sand:glColor(c.sand)};}return GLP;};
 // The land's fill: a fan of triangles per coastline, counted in the stencil (how many times the coasts wind round each
 // pixel: glLandFill()), then one cover where the count is not zero. uOff shifts it in CSS px (the shadow).
 const FAN_VS=GL_HEAD+GL_CLIP+`layout(location=0) in vec2 aV;uniform vec2 uView,uOff;uniform vec3 uCam;
@@ -48,8 +49,8 @@ function coastLevel(z){const want=Math.floor(Math.log2(Math.max(z,1/64))),cur=GL
    two coasts overlap (Timor is drawn twice) the land is 2, still land, as each coast filled on its own in 2D. */
 function coastFan(P,out){let a=0;const n=P.length;for(let i=0;i<n;i++){const p=P[i],q=P[(i+1)%n];a+=p[0]*q[1]-q[0]*p[1];}
   const s=a<0?1:0;for(let i=1;i+1<n;i++){const b=P[i+s],c=P[i+1-s];out.push(P[0][0],P[0][1],b[0],b[1],c[0],c[1]);}return out;}
-function glLandGeo(gl,far,lv){const key=(far?'far':'all')+(lv===undefined?'':'@'+lv);let G=GLX.land[key];if(G)return G;
-  const keep=far?new Set(LANDP_FAR):null,tol=lv===undefined?0:COAST_TOL/Math.pow(2,lv),fan=[],sand=[],edge=[],SAND=glColor('#F8E6A8'),EDGE=glColor('#1E2640');
+function glLandGeo(gl,far,lv){const key=(far?'far':'all')+(lv===undefined?'':'@'+lv)+MAPC.k;let G=GLX.land[key];if(G)return G;
+  const keep=far?new Set(LANDP_FAR):null,tol=lv===undefined?0:COAST_TOL/Math.pow(2,lv),fan=[],sand=[],edge=[],SAND=glPal().sand,EDGE=glColor('#1E2640');
   COAST.forEach((ring,ri)=>{if(keep&&!keep.has(LANDP_ALL[ri]))return;if(ring.length<3)return;
     const P=coastSimplify(coastPts(ri),tol);if(P.length<4)return;
     coastFan(P,fan);
@@ -75,16 +76,15 @@ function glLandFill(gl,G,ks,ox,oy,col){const P=GLX.fan;gl.enable(gl.STENCIL_TEST
 function glEllipses(gl,vao,n,ks,col){const P=GLX.ell;gl.useProgram(P.p);gl.bindVertexArray(vao);gl.uniform2f(P.u.uView,CW,CH);gl.uniform1f(P.u.uDpr,DPR);gl.uniform4fv(P.u.uCol,col);
   for(const k of ks){gl.uniform3f(P.u.uCam,cam.x-k*W,cam.y,cam.z);gl.drawArraysInstanced(gl.TRIANGLE_STRIP,0,4,n);}}
 // In paintWorld()'s order: the shadow (5, 7 px down and right), the sand, the grass, the hills, the coastline.
-function glLand(gl,ks){const G=glLandGeo(gl,lodFar(),coastLevel(cam.z));
-  glLandFill(gl,G,ks,5,7,LAND_SHADOW);
+function glLand(gl,ks){const G=glLandGeo(gl,lodFar(),coastLevel(cam.z)),C=glPal();
+  glLandFill(gl,G,ks,5,7,C.shadow);
   glLines(gl,G.sand,G.nSeg,ks);
-  glLandFill(gl,G,ks,0,0,LAND_GRASS);
-  glEllipses(gl,G.hills,G.nHill,ks,HILL_COL);glEllipses(gl,G.shine,G.nHill,ks,HILL_SHINE);
+  glLandFill(gl,G,ks,0,0,C.grass);
+  glEllipses(gl,G.hills,G.nHill,ks,C.hill);glEllipses(gl,G.shine,G.nHill,ks,C.shine);
   glLines(gl,G.edge,G.nSeg,ks);}
 // The waves: each one two quadratic curves of four segments, swaying with the map's clock as in drawFrame(). They are
 // written into the same array every frame (no garbage for the collector to pick up while you play).
-const WAVE_COL=glColor('rgba(255,255,255,.45)');
-function glWaves(gl,now,ks){const A=GLX.wa||(GLX.wa=new Float32Array(WAVES.length*8*LINE_STRIDE)),ph0=now/900;let m=0;
+function glWaves(gl,now,ks){const WAVE_COL=glPal().wave;const A=GLX.wa||(GLX.wa=new Float32Array(WAVES.length*8*LINE_STRIDE)),ph0=now/900;let m=0;
   for(const [x,y,ph] of WAVES){const o=Math.sin(ph0+ph*6)*3,m0=m;
     // Two curves: up from x-9 to x, then down to x+9 (no array literals per wave: they were garbage every frame).
     for(let c=0;c<2;c++){const x0=x+o+(c?0:-9),cx=x0+4.5,cy=y+(c?4:-4),x1=x0+9;let px=x0,py=y;
@@ -100,7 +100,7 @@ function glClouds(gl,now,ks){const need=ks.length*CLOUDS.length*12;if(!need)retu
   const F=A.subarray(0,n),P=GLX.circ;gl.bindBuffer(gl.ARRAY_BUFFER,GLX.cl.b);gl.bufferData(gl.ARRAY_BUFFER,F,gl.DYNAMIC_DRAW);
   gl.enable(gl.STENCIL_TEST);gl.stencilFunc(gl.ALWAYS,1,255);gl.stencilOp(gl.KEEP,gl.KEEP,gl.REPLACE);gl.colorMask(false,false,false,false);
   gl.useProgram(P.p);gl.bindVertexArray(GLX.cl.v);gl.uniform2f(P.u.uView,CW,CH);gl.uniform3f(P.u.uCam,cam.x,cam.y,cam.z);gl.drawArraysInstanced(gl.TRIANGLE_STRIP,0,4,F.length/4);
-  gl.colorMask(true,true,true,true);gl.stencilFunc(gl.EQUAL,1,255);gl.stencilOp(gl.KEEP,gl.KEEP,gl.KEEP);glFill(gl,CLOUD_COL);gl.disable(gl.STENCIL_TEST);}
+  gl.colorMask(true,true,true,true);gl.stencilFunc(gl.EQUAL,1,255);gl.stencilOp(gl.KEEP,gl.KEEP,gl.KEEP);glFill(gl,glPal().cloud);gl.disable(gl.STENCIL_TEST);}
 // The cables, as drawCables() strokes them: rebuilt only when the highlighted city or the architect view changes.
 function glCables(gl,ks,selC,ar){const key=[selC,ar];
   if(!GLX.ckey||key.some((v,i)=>v!==GLX.ckey[i])){const A=[];
@@ -119,7 +119,7 @@ function glBegin(now,ks){const gl=GLX.gl,c=GLX.c,f=GLX.f;glShow(true);GLS.frame=
   gl.viewport(0,0,c.width,c.height);gl.clearColor(0,0,0,0);gl.clearDepth(1);gl.clearStencil(0);gl.colorMask(true,true,true,true);gl.depthMask(true);
   gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT|gl.STENCIL_BUFFER_BIT);
   gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.disable(gl.DEPTH_TEST);gl.disable(gl.STENCIL_TEST);
-  glFill(gl,SEA_TOP,SEA_BOT);
+  glFill(gl,glPal().sea0,glPal().sea1);
   glLand(gl,ks);
   glWaves(gl,now,ks);
   glClouds(gl,now,ks);

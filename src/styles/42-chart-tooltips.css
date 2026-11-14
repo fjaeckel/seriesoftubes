@@ -8,7 +8,7 @@
 .chtip div span{margin-left:auto;padding-left:10px;font-variant-numeric:tabular-nums}
 .chtip i{width:9px;height:9px;border-radius:3px;border:1px solid #fff}
 .chtip .tot{border-top:1px solid rgba(255,255,255,.35);margin-top:4px;padding-top:3px}
-.chcur{position:fixed;z-index:59;pointer-events:none;width:0;border-left:1px dashed var(--ink)}
+.chcur{position:fixed;z-index:59;pointer-events:none;width:0;border-left:1px dashed var(--edge)}
 .mix[data-mix]{cursor:help}
 .nw-chart[data-ch]{touch-action:pan-y;cursor:crosshair}
 .noc-window .chtip{border:1px solid #3A4A78}
