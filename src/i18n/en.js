@@ -1840,6 +1840,7 @@
 "dashboard.five_nines_ish":"five nines-ish",
 "dashboard.how_it_arrives":"How it arrives",
 "dashboard.in_in_out_out":"{in} in · {out} out",
+"dashboard.intern_pick":"What the NOC intern would do here",
 "dashboard.investor_revenue_share":"Investor revenue share",
 "dashboard.licenses_and_scrubbing":"Licenses and scrubbing",
 "dashboard.lk_iru":"IRU dark fiber",

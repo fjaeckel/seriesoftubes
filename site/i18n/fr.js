@@ -1839,6 +1839,7 @@
 "dashboard.five_nines_ish":"cinq neuf, ou presque",
 "dashboard.how_it_arrives":"Comment il arrive",
 "dashboard.in_in_out_out":"{in} encaissés · {out} dépensés",
+"dashboard.intern_pick":"Ce que ferait ici le stagiaire du NOC",
 "dashboard.investor_revenue_share":"Part du CA aux investisseurs",
 "dashboard.licenses_and_scrubbing":"Licences et scrubbing",
 "dashboard.lk_iru":"Fibre noire en IRU",

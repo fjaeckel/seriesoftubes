@@ -1841,6 +1841,7 @@
 "dashboard.five_nines_ish":"fünf Neunen, so ungefähr",
 "dashboard.how_it_arrives":"Wie er ankommt",
 "dashboard.in_in_out_out":"{in} rein · {out} raus",
+"dashboard.intern_pick":"Das würde der NOC-Praktikant hier tun",
 "dashboard.investor_revenue_share":"Umsatzbeteiligung Investoren",
 "dashboard.licenses_and_scrubbing":"Lizenzen und Scrubbing",
 "dashboard.lk_iru":"Dark Fiber per IRU",

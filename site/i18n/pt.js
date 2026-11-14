@@ -1839,6 +1839,7 @@
 "dashboard.five_nines_ish":"cinco noves, quase",
 "dashboard.how_it_arrives":"Como chega",
 "dashboard.in_in_out_out":"{in} entram · {out} saem",
+"dashboard.intern_pick":"O que o estagiário do NOC faria aqui",
 "dashboard.investor_revenue_share":"Receita dividida com investidores",
 "dashboard.licenses_and_scrubbing":"Licenças e scrubbing",
 "dashboard.lk_iru":"Dark fiber em IRU",

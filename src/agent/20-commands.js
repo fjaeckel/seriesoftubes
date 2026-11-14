@@ -552,7 +552,7 @@ const API_VIEW={
  infraF:{args:[['v','infraKind']],doc:'Filter the dashboard\'s links list by kind: leased waves, IRU dark fiber, your own terrestrial or subsea fiber, virtual circuits, or "" for all.'},
  infraHot:{args:[['w','infraList'],['v','infraLoad']],doc:'Filter the dashboard\'s links or routers list by load: warm (over 65%), hot (over 90%), down (links only), or "" for all; the same value again clears it.'},
  infraCity:{args:[['v','string']],doc:'Filter the dashboard\'s links list to links touching one city ("" for all).'},
- infraSort:{args:[['w','infraList'],['k','infraSortKey']],doc:'Sort the dashboard\'s links or routers list by load (busiest first), capacity (biggest first) or name; the same key again flips it.'},
+ infraSort:{args:[['w','infraList'],['k','infraSortKey']],doc:'Sort the dashboard\'s links or routers list by load (busiest first; for routers, forwarding load), capacity (biggest first), name, or for routers the share of router ports in use; the same key again flips it.'},
  connFor:{args:[['net','netId']],doc:'Open the connections of one network.'},
  linkCheck:{args:[['id','entityId']],doc:'Open the redundancy check for a link: what a single cut would drop, without changing anything.'},
  findOpen:{args:[],doc:'Open the city finder (the 🔍 in the top bar).'},

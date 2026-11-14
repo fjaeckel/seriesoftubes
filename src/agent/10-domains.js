@@ -63,7 +63,7 @@ const API_DOMAINS={
   infraList:{kind:'enum',values:['links','routers']},
   infraKind:{kind:'enum',values:['','wave','iru','own','sea','vxc']},
   infraLoad:{kind:'enum',values:['','warm','hot','down']},
-  infraSortKey:{kind:'enum',values:['use','cap','name']},
+  infraSortKey:{kind:'enum',values:['use','cap','name','ports']},
   popsSortKey:{kind:'enum',values:['eye','cost','name']},
   custSortKey:{kind:'enum',values:['mood','mo','name','city']},
   connFilter:{kind:'enum',values:['all','k']},

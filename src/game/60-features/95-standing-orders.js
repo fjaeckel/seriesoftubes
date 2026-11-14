@@ -142,13 +142,20 @@ function opsTransitOk(n,c){if(n.id==='cog'&&(scnRule('spat')||S.ev.depeer>S.day)
 const cheapestTransit=c=>NETS.filter(n=>sellsAt(n,c)&&opsTransitOk(n,c)).sort((a,b)=>transitPerG(a,c,premOnlyAt(a,c))-transitPerG(b,c,premOnlyAt(b,c)))[0];
 // 'cheap' and 'have' (Already connected) name no network: quote the cheapest seller (#249).
 const opsProv=c=>{const pv=opsP('transit','prov'),n=isNet(pv)?NET[pv]:null;return n&&sellsAt(n,c)&&opsTransitOk(n,c)?n:cheapestTransit(c);};
+// A busy POP's next step, as the intern takes it with "next model": swap to the next model up (unlocked, fits, and only
+// with a second router to carry the traffic or nothing there yet), and/or add a router (up to RMAX). pick is what
+// "auto" does when both are open: swap from four routers on, add before that. The NOC's Routers tab offers the same.
+function rtrNext(c){const p=S.pops[c],rt=p.routers||1,nx=mainRG(RG[p.rgen||0].cls+1),swap=nx>=0&&rgOpen(nx)&&!modelFits(c,nx)&&(rt>1||popIdle(c)),add=rt<RMAX;
+  return {nx,swap,add,pick:swap&&(rt>=4||!add)?'swap':add?'add':null};}
+// How busy the intern finds a POP: forwarding load with its look-ahead, or the share of router ports in use (u, from
+// portsAt()), whichever is higher. It works on POPs at or over its "at" setting.
+const rtrLoad=(c,u)=>Math.max((R.nodeLoad[c]||0)*opsAhead()/(R.nodeCap[c]||nodeCap(c)||1),u/Math.max(1,portsMax(c)));
 // The orders. Each takes the shift and does its jobs through the player's own actions. Most are generators: a yield
 // after a job is only a place where a long shift may let a frame through (opsRun()), nothing changes there.
 const OPS_RUN={
  *repair(X){purgeInc();for(const i of S.inc.slice())if(i.type!=='ddos'&&i.until>S.day&&i.cost>0&&!(i.slow&&i.rushed)&&X.can('repair',i.cost)&&X.pay('repair',()=>ACT.fixInc({id:i.id}))){X.did('repair');yield;}},
  // Ports in use are counted for every POP at once, after the model swaps: a router added or swapped here changes no other POP's count.
- *routers(X){const at=opsP('routers','at')/100,how=opsP('routers','how'),m=opsP('routers','model'),fix=m!=='next',cs=opsPops('routers'),
-     load=(c,u)=>Math.max((R.nodeLoad[c]||0)*opsAhead()/(R.nodeCap[c]||nodeCap(c)||1),u/Math.max(1,portsMax(c)));
+ *routers(X){const at=opsP('routers','at')/100,how=opsP('routers','how'),m=opsP('routers','model'),fix=m!=='next',cs=opsPops('routers'),load=rtrLoad;
    // A chosen model: swap every POP still on a smaller one to it, the busiest first, while the budget lasts. Never a
    // step down, never a model that is not unlocked or does not fit, and only with a second router or no traffic there.
    if(fix&&rgOpen(m)){const pu=portsAt(cs);for(const c of cs.slice().sort((a,b)=>load(b,pu.get(b))-load(a,pu.get(a)))){const p=S.pops[c],g=p.rgen||0;
@@ -158,10 +165,10 @@ const OPS_RUN={
    const pu=portsAt(cs);
    for(const c of cs){const p=S.pops[c];if(p.rupDay===S.day)continue;
      const ld=load(c,pu.get(c));if(ld<at)continue;
-     const rt=p.routers||1,g=p.rgen||0,nx=mainRG(RG[g].cls+1);
+     const rt=p.routers||1,g=p.rgen||0,nr=rtrNext(c),nx=nr.nx;
      // A swap with one router is a maintenance window: the intern only swaps where a second router carries the traffic.
      // With a chosen model the swaps are the ones above; a busy POP only gets more routers.
-     const swap=!fix&&nx>=0&&rgOpen(nx)&&!modelFits(c,nx)&&(rt>1||popIdle(c)),add=rt<RMAX;
+     const swap=!fix&&nr.swap,add=nr.add;
      const doSwap=how==='swap'?swap:how==='add'?false:swap&&(rt>=4||!add);if(!doSwap&&(how==='swap'||!add))continue;
      const cost=doSwap?swapCost(c,nx):routerCost(g,rt);if(!X.can('routers',cost))continue;
      if(X.pay('routers',()=>doSwap?ACT.upRouter({city:c,g:nx}):ACT.addRouter({city:c})))X.did('routers',c+(doSwap?' ⇧'+RG[nx].pn:' +1'));yield;}},

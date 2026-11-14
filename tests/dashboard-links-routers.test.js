@@ -18,7 +18,7 @@ const big = (t, save = BIG, tab = 'links') => { const h = load({ seed: 777 }); t
   h.ev(`S=migrate(JSON.parse(${lit(save)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();compute();ACT.dash();ACT.dashTab({k:'${tab}'})`); return h; };
 const json = (ev, code) => JSON.parse(ev(`JSON.stringify(${code})`));
 const links = (ev) => json(ev, "[...document.querySelectorAll('#linksSec .ihit')].map(b=>JSON.parse(b.dataset.args).id)");
-const pops = (ev) => json(ev, "[...document.querySelectorAll('#routersSec .ihit')].map(b=>JSON.parse(b.dataset.args).city)");
+const pops = (ev) => json(ev, "[...document.querySelectorAll('#routersSec .rrow')].map(b=>JSON.parse(b.dataset.args).city)");
 const more = (ev, k) => { while (ev(`!!document.querySelector('#${k}Sec [data-act="listMore"]')`)) ev(`ACT.listMore({k:'${k}'})`); };
 const use = (ev, ids) => json(ev, `${lit(ids)}.map(id=>{const l=S.links.find(x=>x.id===id),c=capOf(l);return c>0?(R.load[id]||0)/c:0;})`);
 const linkNames = (ev) => json(ev, `${lit(links(ev))}.map(id=>{const l=S.links.find(x=>x.id===id);return (CITY[l.a].name+' '+CITY[l.b].name).toLowerCase();})`);
@@ -235,12 +235,12 @@ test('tapping a row picks it in the side panel behind the dashboard, which stays
   assert.deepEqual(json(ev, 'UI.sel'), { type: 'link', id: id2 });
   ev("ACT.dash();ACT.dashTab({k:'routers'})");
   const city = pops(ev)[0];
-  ev(`document.querySelector('#routersSec .ihit .nm').click()`);
+  ev(`document.querySelector('#routersSec .rrow b').click()`);
   assert.ok(!ev("$('dash').hidden"));
   assert.deepEqual(json(ev, 'UI.sel'), { type: 'city', id: city });
   assert.equal(ev('UI.tab'), 'links', 'at the Infra tab');
-  assert.ok(ev(`$('routersSec').querySelector('.ihit.on').dataset.args.includes('${city}')`));
-  ev(`document.querySelector('#routersSec .ihit [data-act="dashPop"]:not(.ihit)').click()`);
+  assert.ok(ev(`$('routersSec').querySelector('.rrow.on').dataset.args.includes('${city}')`));
+  ev(`document.querySelector('#routersSec .rrow [data-act="dashPop"]:not(.rrow)').click()`);
   assert.ok(ev("$('dash').hidden"));
   ev("ACT.dash();ACT.dashPop({city:'nowhere',bg:1});ACT.dashLink({id:'nope',bg:1})");
   assert.ok(!ev("$('dash').hidden"), 'a city without a POP or a link that is gone is ignored');
@@ -275,6 +275,100 @@ for (const tab of ['links', 'routers']) {
     assert.deepEqual(errors, []);
   });
 }
+
+test('Routers: Your AS on top, then a table of forwarding load, router ports and Flowspec rules per POP', (t) => {
+  const { ev, errors } = big(t, BIG, 'routers');
+  assert.ok(ev("$('asSec').compareDocumentPosition($('routersSec'))&Node.DOCUMENT_POSITION_FOLLOWING"), 'Your AS comes first');
+  assert.ok(ev("$('asSec').textContent.includes('AS'+S.asn)"));
+  assert.deepEqual(json(ev, "[...document.querySelectorAll('#routersSec thead th')].map(th=>th.textContent)"), ['Routers', 'Forwarding load', 'Router ports', 'Flowspec rules', '']);
+  // A flood under way uses Flowspec rules on one POP's routers.
+  const c = pops(ev)[0];
+  ev(`R.fsUse={'${c}':{used:3,cap:fsCap('${c}')}};UI._dh=null;renderDash()`);
+  const cells = json(ev, `[...document.querySelector('#routersSec .rrow[data-args*="${c}"]').children].map(td=>td.textContent)`);
+  assert.ok(cells[1].includes(ev(`fmtG(R.nodeLoad['${c}']||0)`)), 'forwarding load');
+  assert.equal(cells[2], `${ev(`fmtPorts(portsUsed('${c}'))`)} / ${ev(`portsMax('${c}')`)} in use`, 'router ports, as the city panel counts them');
+  assert.equal(cells[3], ev(`fsCap('${c}')`) ? `3 / ${ev(`fsCap('${c}')`)} in use` : 'none (no TCAM)', 'Flowspec rules in use');
+  assert.deepEqual(errors, []);
+});
+
+test('Routers sort by router ports in use, both ways, and links have no ports sort', (t) => {
+  const { ev, errors } = big(t, BIG, 'routers');
+  ev("ACT.infraSort({w:'routers',k:'ports'})"); more(ev, 'routers');
+  const f = json(ev, `${lit(pops(ev))}.map(c=>portsUsed(c)/portsMax(c))`);
+  assert.equal(f.length, ev('Object.keys(S.pops).length'));
+  assert.ok(desc(f), 'fullest first');
+  assert.match(ev("document.querySelector('#routersSec .pink[data-act=\"infraSort\"]').textContent"), /Router ports ▼/);
+  ev("ACT.infraSort({w:'routers',k:'ports'})"); more(ev, 'routers');
+  assert.ok(asc(json(ev, `${lit(pops(ev))}.map(c=>portsUsed(c)/portsMax(c))`)), 'emptiest first');
+  ev("ACT.infraSort({w:'routers',k:'use'})"); more(ev, 'routers');
+  assert.ok(desc(json(ev, `${lit(pops(ev))}.map(c=>(R.nodeLoad[c]||0)/(R.nodeCap[c]||1))`)), 'forwarding load, busiest first');
+  const before = ev('JSON.stringify(UI.infraSort)');
+  ev("ACT.infraSort({w:'links',k:'ports'})");
+  assert.equal(ev('JSON.stringify(UI.infraSort)'), before, 'links have no ports to sort by');
+  assert.deepEqual(errors, []);
+});
+
+test('Routers: add a router or swap to the next model, exactly where and as the NOC intern would', (t) => {
+  const { ev, errors, dom } = load({ seed: 777 }); t.after(() => dom.window.close());
+  // Broadband at home: the POP is in use, so a swap with one router would be a maintenance window (not idle, popIdle()).
+  ev("ACT.start({});closeModal();UI.speed=0;S.cash=1e12;S.lvl=12;S.nextFail=S.nextEvent=1e9;ACT.launchBB({city:S.home});compute();ACT.dash();ACT.dashTab({k:'routers'})");
+  assert.equal(ev('popIdle(S.home)'), false);
+  const acts = (c) => json(ev, `[...document.querySelectorAll('#routersSec .rrow[data-args*="${c}"] .btns [data-act]')].filter(b=>b.dataset.act!=='dashPop').map(b=>[b.dataset.act,b.classList.contains('pink')])`);
+  const home = ev('S.home');
+  // A quiet POP: the intern would leave it alone, so nothing is its pick, though both buttons are there.
+  ev(`S.pops['${home}'].routers=1;S.pops['${home}'].rgen=0;R.nodeLoad['${home}']=0;UI._dh=null;renderDash()`);
+  assert.ok(ev(`rtrLoad('${home}',portsUsed('${home}'))<opsP('routers','at')/100`));
+  assert.deepEqual(acts(home), [['addRouter', false]], 'quiet: no pick');
+  // Busy (over the intern's "at" setting). One router: no swap (it would be a maintenance window), only an add, the pick.
+  const busy = `R.nodeLoad['${home}']=R.nodeCap['${home}']*2;UI._dh=null;renderDash()`;
+  ev(busy);
+  let nr = json(ev, `rtrNext('${home}')`);
+  assert.equal(nr.swap, false); assert.equal(nr.pick, 'add');
+  assert.deepEqual(acts(home), [['addRouter', true]]);
+  // Four routers: both open, the intern swaps.
+  ev(`S.pops['${home}'].routers=4;compute();${busy}`);
+  nr = json(ev, `rtrNext('${home}')`);
+  assert.equal(nr.pick, nr.swap ? 'swap' : 'add');
+  assert.deepEqual(acts(home), [['addRouter', nr.pick === 'add'], ...(nr.swap ? [['upRouter', true]] : [])]);
+  assert.equal(ev(`document.querySelector('#routersSec .rrow[data-args*="${home}"] .pink').title`), 'What the NOC intern would do here');
+  // The buttons are the city panel's: one more router, then the next model; the dashboard stays open.
+  const rt = ev(`S.pops['${home}'].routers`);
+  ev(`document.querySelector('#routersSec .rrow[data-args*="${home}"] [data-act="addRouter"]').click()`);
+  assert.equal(ev(`S.pops['${home}'].routers`), rt + 1);
+  assert.ok(!ev("$('dash').hidden"));
+  if (nr.swap) {
+    ev(`S.pops['${home}'].rupDay=-1;compute();${busy}`);
+    ev(`document.querySelector('#routersSec .rrow[data-args*="${home}"] [data-act="upRouter"]').click()`);
+    assert.equal(ev(`S.pops['${home}'].rgen`), nr.nx, 'swapped to the model the intern would pick');
+  }
+  // A POP that had new routers today waits, like the intern.
+  ev(`S.pops['${home}'].rupDay=S.day;UI._dh=null;renderDash()`);
+  assert.deepEqual(acts(home), []);
+  assert.match(ev(`document.querySelector('#routersSec .rrow[data-args*="${home}"]').textContent`), /New routers went in today/);
+  assert.deepEqual(errors, []);
+});
+
+test('the intern adds and swaps routers just as before rtrNext() and rtrLoad() were shared with the dashboard', (t) => {
+  const { ev, errors } = big(t);
+  const loads = ev(`Object.keys(S.pops).every(c=>{const u=portsUsed(c);return rtrLoad(c,u)===Math.max((R.nodeLoad[c]||0)*opsAhead()/(R.nodeCap[c]||nodeCap(c)||1),u/Math.max(1,portsMax(c)));})`);
+  assert.equal(loads, true, 'the same busy measure');
+  // Every POP: the old inline rule, side by side with rtrNext().
+  const diff = ev(`(()=>{let n=0;for(const c of Object.keys(S.pops)){const p=S.pops[c];for(const rt of [1,2,4,RMAX]){p.routers=rt;
+    const g=p.rgen||0,nx=mainRG(RG[g].cls+1),swap=nx>=0&&rgOpen(nx)&&!modelFits(c,nx)&&(rt>1||popIdle(c)),add=rt<RMAX,o=rtrNext(c);
+    if(o.nx!==nx||o.swap!==swap||o.add!==add||o.pick!==(swap&&(rt>=4||!add)?'swap':add?'add':null))n++;}}return n;})()`);
+  assert.equal(diff, 0);
+  assert.deepEqual(errors, []);
+});
+
+test('Routers on a phone: one POP per row, with the same numbers and buttons', (t) => {
+  const { ev, errors } = big(t, BIG, 'routers');
+  ev("window.innerWidth=360;UI._dh=null;renderDash()");
+  assert.ok(ev("!document.querySelector('#routersSec table')&&document.querySelectorAll('#routersSec .row.rrow').length===10"));
+  const c = pops(ev)[0], row = ev(`document.querySelector('#routersSec .rrow[data-args*="${c}"]').textContent`);
+  for (const s of ['Forwarding load', 'Router ports', 'Flowspec rules']) assert.ok(row.includes(s), s);
+  assert.ok(ev(`!!document.querySelector('#routersSec .rrow[data-args*="${c}"] [data-act="dashPop"]:not(.rrow)')`));
+  assert.deepEqual(errors, []);
+});
 
 test('bad arguments change nothing', (t) => {
   const { ev, errors } = big(t);

@@ -115,6 +115,10 @@ label.f+select.pick{width:100%}
 .ihit{cursor:pointer;border-radius:10px;padding:9px 10px 9px 12px;margin-inline:-6px}.ihit:hover{background:var(--soft)}
 .ihit.on{background:var(--soft);box-shadow:inset 4px 0 0 var(--pink,#FF4F9A),0 0 0 1.5px var(--line)}.ihit.on,.ihit.on+.ihit{border-top-color:transparent}.ihit .btns{margin-top:6px}
 .lpct{min-width:42px;text-align:right}
+/* Routers tab: Your AS as a compact grid on top; the router table's rows pick their POP behind the dashboard. */
+.askv{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));column-gap:24px}
+.rtbl td{vertical-align:middle}.rtbl td .bar{margin-top:3px;min-width:110px}.rtbl td .btns{margin-top:0;flex-wrap:wrap;min-width:200px}
+.rtbl tr.rrow{cursor:pointer}.rtbl tr.rrow:hover td,.rtbl tr.rrow.on td{background:var(--soft)}.rtbl tr.rrow.on td:first-child{box-shadow:inset 4px 0 0 var(--pink,#FF4F9A)}
 .btns.lmore{margin:0;padding-top:8px;justify-content:center}
 #modal{position:fixed;inset:0;background:rgba(30,38,64,.45);display:grid;place-items:center;z-index:20;padding:16px max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px))}
 #modal .card{width:min(560px,100%);max-height:calc(100% - 20px);overflow:auto;padding:20px 22px}
