@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/canon"
@@ -106,6 +107,9 @@ type Relay struct {
 	impl    *update.Impl
 	upd     updState
 
+	hand     atomic.Int64 // inbound sessions accepted that have not yet said hello (or proved a node)
+	nodeHand atomic.Int64 // of those, node handshakes before the proof
+
 	catDirty bool       // the catalog file is behind
 	loading  bool       // reading the catalog file
 	catWrite sync.Mutex // one catalog file write at a time
@@ -153,7 +157,7 @@ func New(o Options) (*Relay, error) {
 	if update.ReadImpl(r.impl.Value()) == nil {
 		r.impl.Version = "dev" // a build stamped with something no peer would read
 	}
-	r.limiter = privacy.NewLimiter(r.cfg.Limits.ConnsPerAddr, int64(r.cfg.Limits.AddrWindowSec))
+	r.limiter = privacy.NewLimiter(addrLimits(r.cfg))
 	st.Keep = r.keepSigs
 	r.ctx, r.cancel = context.WithCancel(context.Background())
 	if st.Bad > 0 {
@@ -1345,11 +1349,16 @@ func (r *Relay) Close() error {
 // GC runs retention now (tests and the command line).
 func (r *Relay) GC() { r.gc() }
 
+// addrLimits is what one address may do (privacy.Limiter).
+func addrLimits(c *config.Config) privacy.Limits {
+	return privacy.Limits{Open: c.Limits.OpenPerAddr, Burst: c.Limits.ConnBurst, Rate: c.Limits.ConnsPerSec}
+}
+
 // Reload applies a new config (SIGHUP).
 func (r *Relay) Reload(c *config.Config) {
 	r.mu.Lock()
 	r.cfg = c
-	r.limiter.Set(c.Limits.ConnsPerAddr, int64(c.Limits.AddrWindowSec))
+	r.limiter.Set(addrLimits(c))
 	r.mu.Unlock()
 	r.reconcile()
 	r.o.Log.Info("config reloaded")

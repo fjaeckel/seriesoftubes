@@ -18,7 +18,7 @@ func (r *Relay) ImportOwn(v map[string]any) (string, string) {
 }
 
 // AddressesHeld is how many connection addresses the rate limiter holds in memory now.
-func (r *Relay) AddressesHeld() int { return r.limiter.Len() }
+func (r *Relay) AddressesHeld() int { return r.limiter.Len(r.now()) }
 
 // RegistryFile is the file for the registry pull request (11.1), without listed and answered.
 func (r *Relay) RegistryFile() ([]byte, error) {

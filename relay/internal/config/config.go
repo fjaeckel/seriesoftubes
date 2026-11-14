@@ -27,12 +27,22 @@ type Neighbour struct {
 
 // Limits bound what one connection or address may do.
 type Limits struct {
-	MaxClients    int `json:"maxClients"`    // open client connections
-	MaxNodes      int `json:"maxNodes"`      // open node sessions
-	ConnsPerAddr  int `json:"connsPerAddr"`  // new connections per address per window, before anything is put
-	AddrWindowSec int `json:"addrWindowSec"` // the window, seconds (kept in memory only)
-	MsgsPerSec    int `json:"msgsPerSec"`    // frames per connection per second (burst 4x)
+	MaxClients    int     `json:"maxClients"`              // open client connections
+	MaxNodes      int     `json:"maxNodes"`                // open node sessions
+	OpenPerAddr   int     `json:"openPerAddr"`             // connections open at once per address (IPv6: per /64; a /56 twice, a /48 four times)
+	ConnBurst     int     `json:"connBurst"`               // new connections per address at once (a token bucket, kept in memory only)
+	ConnsPerSec   float64 `json:"connsPerSec"`             // and how fast that refills, per second
+	ConnsPerAddr  int     `json:"connsPerAddr,omitempty"`  // older form: new connections per address per window (read into connBurst/connsPerSec)
+	AddrWindowSec int     `json:"addrWindowSec,omitempty"` // the older form's window, seconds
+	MsgsPerSec    int     `json:"msgsPerSec"`              // frames per connection per second (burst 4x)
 }
+
+// Old defaults of the older per-address limit: files written by older relays carry them, and they
+// mean "the default", not a choice to keep 30 connections per 5 minutes.
+const (
+	oldConnsPerAddr  = 30
+	oldAddrWindowSec = 300
+)
 
 // Config is the config file.
 type Config struct {
@@ -81,8 +91,22 @@ func (c *Config) fill() {
 	}
 	def(&l.MaxClients, 5000)
 	def(&l.MaxNodes, 64)
-	def(&l.ConnsPerAddr, 30)
-	def(&l.AddrWindowSec, 300)
+	if l.ConnBurst <= 0 && l.ConnsPerAddr > 0 && (l.ConnsPerAddr != oldConnsPerAddr || l.AddrWindowSec > 0 && l.AddrWindowSec != oldAddrWindowSec) {
+		// An operator's own older setting: the same number of connections at once, refilled over the window.
+		w := l.AddrWindowSec
+		if w <= 0 {
+			w = oldAddrWindowSec
+		}
+		l.ConnBurst = l.ConnsPerAddr
+		if !(l.ConnsPerSec > 0) {
+			l.ConnsPerSec = float64(l.ConnsPerAddr) / float64(w)
+		}
+	}
+	def(&l.OpenPerAddr, 256)
+	def(&l.ConnBurst, 120)
+	if !(l.ConnsPerSec > 0) {
+		l.ConnsPerSec = 1
+	}
 	def(&l.MsgsPerSec, 20)
 	if c.TrustedProxies == nil {
 		c.TrustedProxies = []string{"127.0.0.0/8", "::1/128"}

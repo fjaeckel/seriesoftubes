@@ -118,24 +118,29 @@ func TestAddressesOnlyInMemoryForMinutes(t *testing.T) {
 	a := n.Found("limits", "open")
 	x := a.Nodes[0]
 	c := *x.Cfg
-	c.Limits.ConnsPerAddr = 3
+	c.Limits.ConnBurst, c.Limits.ConnsPerSec = 3, 0.01
 	x.Cfg = &c
 	x.R.Reload(&c)
+	var cs []*client.Client
 	for i := 0; i < 3; i++ {
-		x.Client(from(testAddrs[0]))
+		cs = append(cs, x.Client(from(testAddrs[0])))
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	if _, err := client.Dial(ctx, x.URL, client.Options{HTTPClient: n.HTTP, Header: from(testAddrs[0])}); err == nil {
-		t.Fatal("a fourth connection from one address within the window was accepted")
+		t.Fatal("a fourth connection from one address within the burst was accepted")
 	}
 	// Another address is not affected.
-	x.Client(from(testAddrs[1]))
-	if x.R.AddressesHeld() != 2 {
-		t.Fatalf("held %d addresses", x.R.AddressesHeld())
+	cs = append(cs, x.Client(from(testAddrs[1])))
+	if x.R.AddressesHeld() != 4 { // the IPv6 one as its /64, /56 and /48
+		t.Fatalf("held %d prefixes", x.R.AddressesHeld())
 	}
-	// After the window the addresses are forgotten.
+	// Once the connections are closed and the buckets have refilled, the addresses are forgotten.
+	for _, c := range cs {
+		c.Close()
+	}
 	n.Clock.Add(5*time.Minute + time.Second)
+	rt.Eventually(t, "the addresses forgotten", func() bool { return x.R.AddressesHeld() == 0 })
 	x.Client(from(testAddrs[2]))
 	if x.R.AddressesHeld() != 1 {
 		t.Fatalf("still holding %d addresses after the window", x.R.AddressesHeld())

@@ -749,7 +749,9 @@ reference relay: 8192; over it, `too_many`).
 - Every message is one **text frame** holding one JSON object with a string member `m` (the message type). Binary
   frames close the connection.
 - Frame limits: **65536 bytes** between clients and nodes, **1048576 bytes** between nodes. Larger: `too_big`, and the
-  connection closes.
+  connection closes. A node session has the node limit only once the peer's proof has checked; until then (`hello`,
+  `welcome`, `proof`) the client limit applies.
+- Too many connections from one address are refused with HTTP 429 and `Retry-After`.
 - Members of a frame not defined here are ignored (records inside frames are strict, frames are not). Nothing outside
   the records is ever stored.
 - **Requests** carry `id`, an integer 1 to 2147483647 chosen by the sender; the answer echoes it. Messages that are not

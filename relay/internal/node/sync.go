@@ -81,6 +81,9 @@ func (r *Relay) answerNode(s *session, h *wire.Hello) {
 		s.fail(0, fed.BadChallenge, 0)
 		return
 	}
+	// Proved: node bounds from here on, and no longer a handshake waiting.
+	s.becomeNode()
+	s.shook()
 	r.runPeer(s, h.Server, h.Node)
 }
 
@@ -100,7 +103,7 @@ func (r *Relay) dialNode(ctx context.Context, dialer, url string) error {
 		c.CloseNow()
 		return errClosed
 	}
-	s := newSession(r, c, true)
+	s := newSession(r, c) // client bounds until the peer's proof checks
 	s.dialURL, s.dialer = url, dialer
 	defer s.end()
 	r.mu.Lock()
@@ -154,6 +157,7 @@ func (r *Relay) dialNode(ctx context.Context, dialer, url string) error {
 	if bind {
 		proof = r.o.Node.MakeBoundProof(theirs, own, node, fed.RoleCall, r.now())
 	}
+	s.becomeNode()
 	s.enqueue(map[string]any{"m": "proof", "proof": proof})
 	r.runPeer(s, server, node)
 	return nil

@@ -103,3 +103,32 @@ func TestLoadRefusesUnknownFields(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// The per-address limits: generous defaults, and config files of older relays still load. Their
+// written-out defaults (30 per 300 s) mean the new defaults; an operator's own values are kept.
+func TestAddrLimits(t *testing.T) {
+	load := func(limits string) Limits {
+		t.Helper()
+		p := filepath.Join(t.TempDir(), "config.json")
+		if err := os.WriteFile(p, []byte(`{"listen":"127.0.0.1:8080","listed":false,"limits":`+limits+`}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		c, err := Load(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return c.Limits
+	}
+	if l := load(`{}`); l.OpenPerAddr != 256 || l.ConnBurst != 120 || l.ConnsPerSec != 1 {
+		t.Fatalf("defaults: %+v", l)
+	}
+	if l := load(`{"maxClients":5000,"connsPerAddr":30,"addrWindowSec":300,"msgsPerSec":20}`); l.ConnBurst != 120 || l.ConnsPerSec != 1 {
+		t.Fatalf("an older relay's defaults: %+v", l)
+	}
+	if l := load(`{"connsPerAddr":600,"addrWindowSec":60}`); l.ConnBurst != 600 || l.ConnsPerSec != 10 {
+		t.Fatalf("an operator's own older limit: %+v", l)
+	}
+	if l := load(`{"openPerAddr":1000,"connBurst":500,"connsPerSec":5}`); l.OpenPerAddr != 1000 || l.ConnBurst != 500 || l.ConnsPerSec != 5 {
+		t.Fatalf("the new keys: %+v", l)
+	}
+}

@@ -75,8 +75,8 @@ your own with `relay status` and the [metrics](#monitoring-with-prometheus)):
   free disk is plenty for most servers.
 - **Traffic.** Records in, receipts and the pieces of leaderboards players look at out (never whole boards). A hundred
   active players are a few hundred MB a day at most; the terabyte a typical VPS includes is far more than you need.
-  The limits that bound it: 5000 open connections, 20 messages per second each, 30 new connections per address per
-  5 minutes (all in [the config](RELAY.md#the-config-file)).
+  The limits that bound it: 5000 open connections, 20 messages per second each, 256 open and 120 new at once per
+  address (all in [the config](RELAY.md#limits-per-address-many-players-or-agents-behind-one-address)).
 - **Time.** An hour to set up, a few minutes a month: updates and an eye on the logs.
 
 ## Getting the relay

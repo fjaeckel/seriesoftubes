@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"slices"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -70,6 +71,8 @@ type session struct {
 	hasPend atomic.Bool
 	yield   bool // the last page stopped at maxScan (guarded by r.mu)
 
+	unshake func() // ends this session's place among the handshakes (accept); nil once done
+
 	// client
 	cc      string         // the connection's country, never its address
 	subs    map[int64]*sub // (guarded by r.mu)
@@ -108,20 +111,29 @@ type sub struct {
 	live  bool // the backlog is sent: live records follow
 }
 
-func newSession(r *Relay, c *websocket.Conn, node bool) *session {
+// newSession starts a session with client bounds; a node session gets node bounds (becomeNode)
+// only once the peer has proved it is a node.
+func newSession(r *Relay, c *websocket.Conn) *session {
 	ctx, cancel := context.WithCancel(r.ctx)
-	s := &session{r: r, c: c, node: node, limit: fed.ClientFrame, out: make(chan []byte, queueFrames),
+	s := &session{r: r, c: c, limit: fed.ClientFrame, out: make(chan []byte, queueFrames),
 		maxQ: clientQueueBytes, lowQ: clientLowWater, ctx: ctx, cancel: cancel, subs: map[int64]*sub{},
 		wanted: map[string]bool{}, tokenAt: time.Now(), wdone: make(chan struct{})}
+	r.mu.Lock() // the config may be reloaded meanwhile
 	s.tokens = float64(4 * r.cfg.Limits.MsgsPerSec)
-	if node {
-		s.becomeNode()
-	}
+	r.mu.Unlock()
 	s.heard.Store(time.Now().UnixNano())
 	c.SetReadLimit(-1) // frames are limited by our own reader, so we can answer too_big first
 	go s.writer()
 	go s.watch()
 	return s
+}
+
+// shook ends the session's handshake: it no longer counts among those waiting for one.
+func (s *session) shook() {
+	if f := s.unshake; f != nil {
+		s.unshake = nil
+		f()
+	}
 }
 
 func (s *session) becomeNode() {
@@ -594,6 +606,10 @@ func splitTokens(v string) []string {
 	return append(out, cur)
 }
 
+// Handshakes waiting at once: inbound sessions that have not yet said hello count against
+// MaxClients, and node handshakes before their proof are also held to maxNodeHandshakes.
+const maxNodeHandshakes = 16
+
 func (r *Relay) accept(w http.ResponseWriter, req *http.Request) {
 	if !offers(req) {
 		http.Error(w, "subprotocol "+fed.Subprotocol+" required", http.StatusBadRequest)
@@ -601,22 +617,36 @@ func (r *Relay) accept(w http.ResponseWriter, req *http.Request) {
 	}
 	r.mu.Lock()
 	trusted := r.cfg.Proxies()
-	full := len(r.clients) >= r.cfg.Limits.MaxClients+r.cfg.Limits.MaxNodes
+	full := len(r.clients)+int(r.hand.Load()) >= r.cfg.Limits.MaxClients+r.cfg.Limits.MaxNodes
+	if !full {
+		r.hand.Add(1)
+	}
 	r.mu.Unlock()
 	if full {
+		w.Header().Set("Retry-After", "10")
 		http.Error(w, "busy", http.StatusServiceUnavailable)
 		return
 	}
-	// The address is used here, in memory, and dropped when this block ends.
+	shaking := true
+	defer func() {
+		if shaking {
+			r.hand.Add(-1)
+		}
+	}()
+	// The address is used here, in memory only: counted while the connection is open, then
+	// dropped (the limiter forgets it once its bucket has refilled).
 	cc := ""
-	{
-		addr := privacy.ClientAddr(req, trusted)
-		if addr.IsValid() && !r.limiter.Allow(addr, r.now()) {
+	addr := privacy.ClientAddr(req, trusted)
+	if addr.IsValid() {
+		ok, retry := r.limiter.Acquire(addr, r.now())
+		if !ok {
 			r.o.Metrics.Inc("relay_refused_total", fed.RateLimited)
+			w.Header().Set("Retry-After", strconv.FormatInt(retry, 10))
 			http.Error(w, "too many connections", http.StatusTooManyRequests)
 			return
 		}
-		if r.o.Countries != nil && addr.IsValid() {
+		defer func() { r.limiter.Release(addr, r.now()) }()
+		if r.o.Countries != nil {
 			cc = r.o.Countries.Country(addr)
 		}
 	}
@@ -628,14 +658,17 @@ func (r *Relay) accept(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		return
 	}
-	s := newSession(r, c, false)
+	s := newSession(r, c)
 	s.cc = cc
+	shaking = false
+	s.unshake = func() { r.hand.Add(-1) }
 	r.serve(s)
 }
 
 // serve runs an accepted connection until it ends.
 func (r *Relay) serve(s *session) {
 	defer s.end()
+	defer s.shook()
 	hctx, cancel := context.WithTimeout(s.ctx, handshakeTimeout)
 	f, ok := s.readFrame(hctx)
 	cancel()
@@ -648,7 +681,19 @@ func (r *Relay) serve(s *session) {
 		return
 	}
 	if h.Role == "node" {
-		s.becomeNode()
+		// Client bounds until the proof checks (answerNode), and few such handshakes at once.
+		if r.nodeHand.Add(1) > maxNodeHandshakes {
+			r.nodeHand.Add(-1)
+			s.fail(0, fed.NotReady, 0)
+			return
+		}
+		un := s.unshake
+		s.unshake = func() {
+			r.nodeHand.Add(-1)
+			if un != nil {
+				un()
+			}
+		}
 		r.answerNode(s, h)
 		return
 	}
@@ -658,6 +703,7 @@ func (r *Relay) serve(s *session) {
 		// Read by shows under the lock: set before the session can be sent anything.
 		s.feats = h.Feats
 		r.clients[s] = true
+		s.shook()
 	}
 	r.mu.Unlock()
 	if !ok {

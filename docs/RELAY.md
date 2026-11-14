@@ -237,7 +237,25 @@ and the TLS file names change on restart only. The certificate and key themselve
 | `trustedProxies` | loopback | Proxies whose `X-Forwarded-For` is believed (in a container: add the proxy's network, see Container above) |
 | `listed` | `false` | A note for yourself: whether you mean to be in the registry |
 | `notifyURL` | off | An `https://` URL the relay POSTs to once per new relay release (see Versions and update notices). Anything else is refused |
-| `limits` | | `maxClients` 5000, `maxNodes` 64, `connsPerAddr` 30 per `addrWindowSec` 300, `msgsPerSec` 20 |
+| `limits` | | `maxClients` 5000, `maxNodes` 64, `openPerAddr` 256, `connBurst` 120, `connsPerSec` 1, `msgsPerSec` 20. See below |
+
+### Limits per address: many players or agents behind one address
+
+A whole school behind one NAT, or someone running a hundred AI agents side by side, all come from one address. The
+relay counts per address, in memory only, never on disk:
+
+- **`openPerAddr`** (256): connections open at once from one address. With IPv6 it counts per `/64`, and also per
+  `/56` (twice as many) and `/48` (four times as many), so a block of addresses gets no more than a few subscribers.
+- **`connBurst`** (120) and **`connsPerSec`** (1): new connections from one address, as a bucket that holds
+  `connBurst` and refills at `connsPerSec`. A hundred agents starting at once all get in; a hundred more within the
+  same minute wait about a second each.
+
+A refused connection gets HTTP 429 with `Retry-After` (seconds). An address is held only while it has a connection open
+and until its bucket has refilled, then forgotten. If many agents behind one address are refused, raise `openPerAddr`
+and `connBurst` (for example 1000 and 500); `maxClients` (5000) bounds all connections together, and connections that
+have not yet said `hello` count against it. Check `trustedProxies` first: behind a proxy the relay does not believe,
+every player seems to come from the proxy's address. Older config files with `connsPerAddr` and `addrWindowSec` still
+load: the old defaults (30 per 300 s) mean the new defaults, other values become `connBurst` and the matching rate.
 
 ## Adding a second operator, and their node
 
@@ -720,8 +738,8 @@ labels for several nodes and alerting rules: [HOSTING.md, monitoring](HOSTING.md
 
 - Records hold only what the player signed, plus your node's receipt with the time rounded to the 5-minute slot.
 - The connecting address is used in memory only: to look up a country (when you configured a country-only database and
-  the player shares their country) and to limit connections per address for a few minutes. It is never written,
-  logged, or passed on.
+  the player shares their country) and to limit connections per address while they are open and for a few minutes
+  after. It is never written, logged, or passed on.
 - Logs and metrics hold counts, error codes, record kinds and network keys (the public, pseudonymous game identity).
 - Unknown fields in records are refused, so nothing finer than a country can ever be smuggled into one.
 - Deals between players are sealed for the two players (offers and declines): your node checks their shape and
