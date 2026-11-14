@@ -266,7 +266,7 @@ func TestGossipVersionsNeverHint(t *testing.T) {
 	if seen[a.ID] != "3.5.0" {
 		t.Fatalf("versions in the catalog: %v", seen)
 	}
-	x.R.CheckUpdate()
+	withFeed(t, x, "", nil) // a registry folder without relay.json
 	if h := x.R.UpdateStatus(); h != nil {
 		t.Fatalf("a hint from gossip: %+v", h)
 	}
@@ -281,7 +281,6 @@ func TestUpdateFromGitHubWhenFeedMissing(t *testing.T) {
 	n.Release = "3.5.0"
 	a := n.Found("github-fallback", "open")
 	x := a.Nodes[0]
-	rt.Eventually(t, "the start-up check asked GitHub", func() bool { return gh.count() >= 1 })
 	gh.release("3.6.0")
 	withFeed(t, x, "", nil) // a registry folder without relay.json
 	h := x.R.UpdateStatus()
@@ -360,8 +359,7 @@ func TestGitHubRateLimitBackoff(t *testing.T) {
 	n.Release = "3.5.0"
 	a := n.Found("github-limited", "open")
 	x := a.Nodes[0]
-	rt.Eventually(t, "the start-up check asked GitHub", func() bool { return gh.count() >= 1 })
-	withFeed(t, x, "", nil)
+	withFeed(t, x, "", nil) // a registry folder without relay.json: GitHub is asked
 	// 429 with Retry-After: not asked again before it.
 	gh.set(http.StatusTooManyRequests, `{"message":"slow down"}`, map[string]string{"Retry-After": "86400"})
 	base := gh.count()
@@ -532,5 +530,28 @@ func TestNotifyURLChecked(t *testing.T) {
 		if err := c.Check(); (err == nil) != ok {
 			t.Errorf("notifyURL %q: %v", u, err)
 		}
+	}
+}
+
+// Without a registry (relay lan, an offline server) a relay asks no one about releases: not at start, not on the
+// registry schedule.
+func TestNoRegistryNoUpdateCheck(t *testing.T) {
+	n := rt.New(t)
+	gh := newFakeGitHub(n)
+	gh.release("99.0.0")
+	n.Release = "3.5.0"
+	s := n.Found("offline", "standalone")
+	x := s.Nodes[0]
+	c := *x.Cfg
+	c.Registry = ""
+	x.Cfg = &c
+	x.R.Reload(&c)
+	before := gh.count()
+	x.R.CheckUpdate()
+	x.Restart()
+	x.R.CheckUpdate()
+	time.Sleep(100 * time.Millisecond)
+	if n := gh.count() - before; n != 0 {
+		t.Fatalf("GitHub asked %d time(s) without a registry", n)
 	}
 }

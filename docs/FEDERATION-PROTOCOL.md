@@ -1510,6 +1510,9 @@ running version `own`:
    kept through failures. The last `relay.json` read stands unless GitHub has a newer release, and a `relay.json`
    read again replaces what GitHub said.
 
+A relay with no registry configured (a LAN or offline server) reads no `relay.json` and asks GitHub nothing: it has
+no hint.
+
 Versions other servers report (`impl`, 10.8 and 9.4) are shown and never give a hint, however many report one.
 
 How a relay tells its operators is up to it (the reference relay: its log, `relay status`, metrics, the `update` frame

@@ -14,6 +14,7 @@ All notable changes to this project are documented here. The project follows
 - Multimode servers now ignore stray files in their data folder whose names are not a day, instead of reading them as a wrong day, and refuse to store a record under a day out of range.
 - Multimode servers no longer follow redirects when they connect to other servers, and connect to servers they learned of from the registry only on public internet addresses, never on addresses inside the operator's own network.
 - A Multimode server started with `relay up` (the container default) now restarts without its operator key in the data folder, so operators can keep that key only on their own computer, as the hosting guide now recommends.
+- `relay lan` really contacts nothing on the internet now: a relay without a registry no longer checks GitHub for new releases.
 
 ## [4.0.0] — 2026-11-13
 

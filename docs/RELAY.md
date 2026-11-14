@@ -536,7 +536,8 @@ is 3.7.0; anything that is not a version is ignored) and its page on github.com 
 "from GitHub releases". It is never a security hint: only `relay.json` says that. If GitHub answers 403 or 429 the
 relay waits as long as it is asked to, and at least 6 hours (doubling to at most 48 while it repeats); it keeps the
 last release it read. A `relay.json` read again takes over. What other servers' nodes run (gossip) is only shown,
-never taken as news of a release. (The environment variable `RELAY_RELEASES_URL` replaces the API's address, `https://`
+never taken as news of a release. A relay with no `registry` (`relay lan`, or `"registry": ""`) checks for releases
+nowhere: it asks neither the site nor GitHub. (The environment variable `RELAY_RELEASES_URL` replaces the API's address, `https://`
 or `http://` on loopback only; it is for end-to-end tests.)
 
 **Security releases.** `security: true` marks a release that fixes a relay security issue; `minSafe` names the newest

@@ -65,11 +65,16 @@ func (r *Relay) loadUpdateState() {
 }
 
 // checkUpdate reads relay.json beside the registry, or GitHub's latest release when that cannot
-// be read, and works out the hint again.
+// be read, and works out the hint again. Without a registry (relay lan, an offline server) it asks
+// nothing of anyone.
 func (r *Relay) checkUpdate() {
 	r.mu.Lock()
+	offline := r.cfg.Registry == ""
 	src := update.URLBeside(r.cfg.Registry)
 	r.mu.Unlock()
+	if offline {
+		return
+	}
 	read := false
 	if src != "" {
 		var b []byte
