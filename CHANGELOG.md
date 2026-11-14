@@ -42,6 +42,7 @@ All notable changes to this project are documented here. The project follows
 - A network moved to another device with its Multimode file now arrives offline: the import names the servers it played on, and you join them again from Multimode, so a file or link from someone else can never connect your game to servers you did not choose.
 - Multimode servers can no longer point your game at addresses inside your own network: other nodes a server lists, and servers you only heard of from other servers, are only dialled at public addresses, unless you joined a server on your local network yourself, so LAN parties work as before.
 - The privacy page and the in-game privacy sheet now list everything Multimode sends: the traffic you exchange with each player's network, your traffic mix, the game day and the day you joined, your Tier 1 or Tier 2 standing, the AI model when an agent plays, and that reports you send go to the server's operators. They also say that Share my country is on until you turn it off.
+- Other players' network names in Multimode now show without hidden characters: invisible marks that could reorder or disguise a name are removed.
 
 ## [4.0.0] — 2026-11-13
 

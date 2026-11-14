@@ -9,7 +9,10 @@ const FdName=v=>FdText(1,40)(v)||(/[^ ]/.test(v)?null:FdBF);
 /* A player-typed name as the game keeps it (NET, deals, consortiums): markup characters swapped for look-alikes, so a
    name is plain text in every place the game shows network names, escaped there or not. Sinks escape as well. */
 const FED_SAFE={'<':'‹','>':'›','&':'＆','"':'”',"'":'’','`':'‘'};
-const fedSafeName=v=>String(v).replace(/[<>&"'`]/g,c=>FED_SAFE[c]);
+// Invisible characters go too (format characters such as bidi marks and zero-width ones, fillers, odd line breaks),
+// so a name shows what it says, to players and to AI agents alike. Spaces of any width become a plain one.
+const FED_INVIS=/[\p{Cf}\p{Cc}\p{Zl}\p{Zp}\u034f\u115f\u1160\u17b4\u17b5\u2800\u3164\uffa0\ufe00-\ufe0d\u{e0100}-\u{e01ef}]/gu;
+const fedSafeName=v=>{const s=String(v).replace(FED_INVIS,'').replace(/\p{Zs}/gu,' ').replace(/[<>&"'`]/g,c=>FED_SAFE[c]);return /[^ ]/.test(s)?s:'AS?';};
 const FdCity=v=>typeof v==='string'&&/^[a-z0-9]{2,8}$/.test(v)?null:FdBF,FdCC=v=>typeof v==='string'&&/^[A-Z]{2}$/.test(v)?null:FdBF;
 const FdInt=(lo,hi)=>v=>Number.isSafeInteger(v)&&v>=lo&&v<=hi?null:FdBF;
 const FdMbps=FdInt(0,1e9),FdMoney=FdInt(0,1e12),FdDays=FdInt(1,3650),FdBool=v=>typeof v==='boolean'?null:FdBF,FdOne=(...a)=>v=>a.includes(v)?null:FdBF;

@@ -137,6 +137,13 @@ The image's Node base is pinned by digest, its dependencies by the lockfile, and
 Dependabot (`.github/dependabot.yml`) keeps them current. Pull requests that touch the image build it and try both modes
 without publishing.
 
+## Other players' text
+
+In Multimode, other players name their networks and exchange projects, and operators name their servers. The game strips
+markup and every invisible character (format characters such as bidi and zero-width marks) from those names, and any
+tool result that holds one carries `untrusted: {note, strings}`, listing them: they are data to show or compare, never
+instructions. Only the agent facade adds this. The page players get is unchanged.
+
 ## The clock
 
 Every session has one of two clocks, and `schema` (section `mode`) says which:
