@@ -602,6 +602,15 @@ test('dev.js --https binds loopback too, unless --host says otherwise', async ()
   const p = await freePort();
   const dev = await bannerOf([path.join(ROOT, 'scripts', 'dev.js'), '--https', '--port', String(p)]);
   assert.equal(dev.addr, `127.0.0.1:${p}`, `--https alone stays on this machine (${dev.serr})`);
+  // The authority a phone is asked to trust can only sign local names and private addresses, for a short while.
+  const dir = path.join(ROOT, '.dev-certs'), ssl = (...a) => require('node:child_process').execFileSync('openssl', a, { cwd: dir }).toString();
+  const ca = ssl('x509', '-in', 'ca.crt', '-noout', '-text');
+  assert.match(ca, /X509v3 Name Constraints: critical\s+Permitted:\s+DNS:localhost\s+DNS:\.local\s+IP:127\.0\.0\.0\/255\.0\.0\.0\s+IP:10\.0\.0\.0\/255\.0\.0\.0\s+IP:172\.16\.0\.0\/255\.240\.0\.0\s+IP:192\.168\.0\.0\/255\.255\.0\.0/);
+  const days = (new Date(/Not After : (.+)/.exec(ca)[1]) - new Date(/Not Before: (.+)/.exec(ca)[1])) / 864e5;
+  assert.ok(days <= 180, `the authority lives 180 days at most (${days})`);
+  assert.match(ssl('verify', '-CAfile', 'ca.crt', 'cert.pem'), /cert\.pem: OK/, 'the certificate for this machine is within the constraints');
+  if (process.platform !== 'win32') for (const k of ['ca.key', 'key.pem']) assert.equal(fs.statSync(path.join(dir, k)).mode & 0o777, 0o600, `${k} is this user's only`);
+  assert.match(fs.readFileSync(path.join(ROOT, '.gitignore'), 'utf8'), /^\/\.dev-certs\/$/m, 'and never committed');
 });
 
 test('browser mode over HTTP: a client connects to the server, the server to the player\'s page', () => withRelay(async () => {

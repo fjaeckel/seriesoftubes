@@ -49,26 +49,43 @@ function page(req) {
 }
 
 /* --https: a local certificate authority and a certificate for this machine's names and LAN addresses, kept in .dev-certs/
-   (git-ignored). A phone trusts the authority once (it is served at /dev-ca.crt), then every page here is secure. The
-   certificate is made again when the addresses change. Needs openssl (macOS and Linux have it). */
+   (git-ignored, its keys readable by this user only). A phone trusts the authority once (it is served at /dev-ca.crt),
+   then every page here is secure. Trusting an authority is a big thing to ask of a phone, so this one can sign for
+   nothing but local names and private addresses (critical name constraints) and lives CA_DAYS; an older or
+   unconstrained one is replaced (the phone then trusts the new one once more). The certificate is made again when the
+   addresses change, the authority changes or it nears its end. Needs openssl (macOS and Linux have it). */
+const CA_DAYS = 180, LEAF_DAYS = 90, RENEW_S = 14 * 86400;
+const CA_LIMITS = ['DNS:localhost', 'DNS:.local', 'IP:127.0.0.0/255.0.0.0', 'IP:10.0.0.0/255.0.0.0', 'IP:172.16.0.0/255.240.0.0',
+  'IP:192.168.0.0/255.255.0.0', 'IP:169.254.0.0/255.255.0.0', 'IP:100.64.0.0/255.192.0.0'].map((n) => `permitted;${n}`).join(',');
 function devCerts() {
   const dir = path.join(ROOT, '.dev-certs'), f = (n) => path.join(dir, n), run = (...a) => execFileSync('openssl', a, { cwd: dir, stdio: 'pipe' });
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
-  const ips = ['127.0.0.1', ...Object.values(os.networkInterfaces()).flat().filter((i) => i && i.family === 'IPv4' && !i.internal).map((i) => i.address)];
+  fs.chmodSync(dir, 0o700);
+  // Still valid for RENEW_S (openssl -checkend exits non-zero otherwise).
+  const fresh = (n) => { try { run('x509', '-in', n, '-noout', '-checkend', String(RENEW_S)); return true; } catch { return false; } };
+  const constrained = () => { try { return /Name Constraints: critical/.test(String(run('x509', '-in', 'ca.crt', '-noout', '-text'))); } catch { return false; } };
+  // Only the addresses the authority may sign for: one other address in the certificate would void all of it.
+  const priv = (a) => /^(127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.)/.test(a);
+  const ips = ['127.0.0.1', ...Object.values(os.networkInterfaces()).flat().filter((i) => i && i.family === 'IPv4' && !i.internal && priv(i.address)).map((i) => i.address)];
   const names = ['localhost', `${os.hostname().replace(/\.local$/, '')}.local`];
   const sans = [...names.map((n) => `DNS:${n}`), ...ips.map((i) => `IP:${i}`)].join(',');
-  if (!fs.existsSync(f('ca.crt'))) {
-    fs.writeFileSync(f('ca.cnf'), '[req]\ndistinguished_name=dn\n[dn]\n[ca]\nbasicConstraints=critical,CA:TRUE\nkeyUsage=critical,keyCertSign,cRLSign\nsubjectKeyIdentifier=hash\n');
-    run('req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-sha256', '-days', '825', '-keyout', 'ca.key', '-out', 'ca.crt',
+  let newCa = false;
+  if (!fs.existsSync(f('ca.crt')) || !fs.existsSync(f('ca.key')) || !constrained() || !fresh('ca.crt')) {
+    fs.writeFileSync(f('ca.cnf'), `[req]\ndistinguished_name=dn\n[dn]\n[ca]\nbasicConstraints=critical,CA:TRUE,pathlen:0\nkeyUsage=critical,keyCertSign,cRLSign\nsubjectKeyIdentifier=hash\nnameConstraints=critical,${CA_LIMITS}\n`);
+    run('req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-sha256', '-days', String(CA_DAYS), '-keyout', 'ca.key', '-out', 'ca.crt',
       '-subj', '/CN=Series of Tubes dev CA', '-config', 'ca.cnf', '-extensions', 'ca');
+    newCa = true;
+    console.log('  made a new dev certificate authority: a phone that trusted the old one must trust this one (/dev-ca.crt)');
   }
-  if (!fs.existsSync(f('cert.pem')) || (fs.existsSync(f('sans.txt')) ? fs.readFileSync(f('sans.txt'), 'utf8') : '') !== sans) {
+  fs.chmodSync(f('ca.key'), 0o600);
+  if (newCa || !fs.existsSync(f('cert.pem')) || !fresh('cert.pem') || (fs.existsSync(f('sans.txt')) ? fs.readFileSync(f('sans.txt'), 'utf8') : '') !== sans) {
     fs.writeFileSync(f('leaf.cnf'), `basicConstraints=CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\nsubjectAltName=${sans}\n`);
     run('req', '-newkey', 'rsa:2048', '-nodes', '-sha256', '-keyout', 'key.pem', '-out', 'leaf.csr', '-subj', '/CN=Series of Tubes dev');
-    run('x509', '-req', '-sha256', '-days', '397', '-in', 'leaf.csr', '-CA', 'ca.crt', '-CAkey', 'ca.key', '-CAcreateserial', '-out', 'cert.pem', '-extfile', 'leaf.cnf');
+    run('x509', '-req', '-sha256', '-days', String(LEAF_DAYS), '-in', 'leaf.csr', '-CA', 'ca.crt', '-CAkey', 'ca.key', '-CAcreateserial', '-out', 'cert.pem', '-extfile', 'leaf.cnf');
     fs.writeFileSync(f('sans.txt'), sans);
   }
-  return { key: fs.readFileSync(f('key.pem')), cert: fs.readFileSync(f('cert.pem')), ca: fs.readFileSync(f('ca.crt')), ips };
+  fs.chmodSync(f('key.pem'), 0o600);
+  return { key: fs.readFileSync(f('key.pem')), cert: fs.readFileSync(f('cert.pem')), ca: fs.readFileSync(f('ca.crt')), ips, dir };
 }
 const TLS = HTTPS ? devCerts() : null;
 

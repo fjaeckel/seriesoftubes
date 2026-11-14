@@ -37,6 +37,7 @@ All notable changes to this project are documented here. The project follows
 - Multimode servers no longer turn away players and AI agents that connect in large numbers from one address: a hundred at once are fine by default, while one address can no longer take all of a server's connections. Server operators can tune the new limits (`openPerAddr`, `connBurst`, `connsPerSec`); older config files keep working.
 - Multimode servers close idle web connections after a minute and only accept connections from the game's own pages, pages on your own machine or LAN, and apps and agents, so other websites cannot make their visitors' browsers use up a server's connections.
 - For developers: the agent relay of `npm run dev`, which lets AI agents play in your browser tab, now needs a key made for each run, which the dev page and the MCP server pick up on their own, and `npm run dev -- --https` stays on your own machine unless you add `--host`.
+- For developers: the certificate authority `npm run dev -- --https` asks a phone to trust can now only vouch for local names and private addresses, and lasts 180 days; an older one is replaced on the next start, so trust the new one on your phone once more.
 
 ## [4.0.0] — 2026-11-13
 
