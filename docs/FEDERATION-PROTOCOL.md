@@ -1228,6 +1228,12 @@ Receiving an entry from a neighbour, a server with identity `self`:
    their records (the reference relay: 4096 and 512 entries, 16 MiB and 2 MiB; servers not in its registry share 4 MiB
    of it). An entry for a server it does not keep yet is then dropped silently; entries it keeps still update, unless
    newer records would pass a bound (then it keeps the records it has).
+5. A server's chain only grows (8.1). If the server already holds a chain for that server identity (from its registry
+   snapshot or an entry kept), an entry whose chain neither extends that chain nor is part of it (the head held is not
+   one of the entry's heads, and the entry's head is not one of those held) is a **fork**: signed by keys that were
+   operators at some head and are no longer. It is dropped silently and the entry held stays (a relay MAY count and
+   log it). An entry whose chain is longer replaces the one held; one at the same head replaces it when its server
+   record is newer (greatest `t`, then lowest id); one whose chain is part of the one held never changes the records.
 
 `path` and `seen` are not signed: any server passing an entry on can change them. They are advisory, for display and
 for choosing among entries (below); nothing a relay or game decides for trust or safety may rest on them.
@@ -1237,8 +1243,12 @@ for choosing among entries (below); nothing a relay or game decides for trust or
 - Gossip entries with `now >= seen + 604800` are ignored first.
 - In the registry: genesis, chain and server record come from the registry, whatever gossip says. Gossip only adds
   `seen` and `path` (chosen as below). Registry servers never expire; without gossip their `seen` is unknown.
-- Gossip only: the entry with the newest server record (greatest `t`, then lowest id) gives the records; `seen` is the
-  greatest `seen` of all entries for it, and `path` comes from the entry with that `seen` (then the shortest path, then
+- Gossip only: the **chain held** is that of the first entry (in the order they arrived), then of each later entry whose
+  chain extends it. Entries whose chain is neither the chain held nor part of it (forks) are ignored here and below.
+  Of the entries at its final head, the one with the newest server record (greatest `t`, then lowest id) gives the
+  records, whatever the `t` of records at earlier heads.
+- `seen` is the greatest `seen` of the entries whose chain agrees with the chain held (the registry's, or gossip's as
+  above): it is part of it or extends it. `path` comes from the entry with that `seen` (then the shortest path, then
   the lowest path compared element by element). `impl`, registry or not, comes from the freshest entry that has one. The server is forgotten when `now >= seen + 604800`.
 - Standalone servers neither send nor take gossip (`policy`).
 

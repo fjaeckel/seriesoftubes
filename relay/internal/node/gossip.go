@@ -176,6 +176,19 @@ func (r *Relay) sendOwnEntry(now int64) {
 	}
 }
 
+// heldChain is the chain this node holds for a server other than its own: the registry's and the
+// catalog's (lock held).
+func (r *Relay) heldChain(id string) []*chain.State {
+	var out []*chain.State
+	if e, ok := r.regs[id]; ok && e.State != nil {
+		out = append(out, e.State)
+	}
+	if c := r.cat[id]; c != nil && c.State != nil {
+		out = append(out, c.State)
+	}
+	return out
+}
+
 // receiveEntry checks and stores one gossip entry, passing it on when it is new.
 func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 	m, ok := x.(map[string]any)
@@ -266,6 +279,19 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	// A server's chain only grows (8.1): an entry whose chain neither extends nor is part of the one
+	// this node already holds for it (from gossip or the registry) is a fork, signed by keys that were
+	// operators once but no longer are. It is dropped and the entry already held stays.
+	for _, held := range r.heldChain(g.ID) {
+		if !st.Extends(held) && !held.Extends(st) {
+			r.forks++
+			if now-r.forkLogged >= 60 {
+				r.forkLogged = now
+				r.o.Log.Warn("catalog: dropped an entry whose chain forks from the one held", "server", g.ID, "forks", r.forks)
+			}
+			return ""
+		}
+	}
 	self := ""
 	if r.own != nil {
 		self = r.own.ID
@@ -312,8 +338,11 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 	c := &catEntry{ID: g.ID, Genesis: g, Chain: ch, Server: srv, State: st, Path: path, Seen: seen, Impl: impl, via: via, hash: hash,
 		size: size, unseen: unlisted}
 	if old != nil {
-		// Records from the newest server record, if they fit; seen and path from the freshest entry.
-		if srv.T < old.Server.T || srv.T == old.Server.T && srv.ID > old.Server.ID ||
+		// Records from the longer chain (the fork check above made one extend the other), then from
+		// the newest server record at that head, if they fit; seen and path from the freshest entry.
+		longer := st.Head != old.State.Head && st.Extends(old.State)
+		newer := st.Head == old.State.Head && (srv.T > old.Server.T || srv.T == old.Server.T && srv.ID <= old.Server.ID)
+		if !longer && !newer ||
 			!r.catSize.fits(old, old.via, size, unlisted, old.via != "" && old.via != self) {
 			c.Genesis, c.Chain, c.Server, c.State, c.hash = old.Genesis, old.Chain, old.Server, old.State, old.hash
 			c.size, c.unseen = old.size, old.unseen

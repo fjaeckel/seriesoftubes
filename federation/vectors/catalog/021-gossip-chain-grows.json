@@ -1,0 +1,96 @@
+{
+  "description": "sC is known by gossip only. Entries in the order they arrived: chain p1 (t 200), then p1, p2 (t 100), which extends it and so becomes the chain held, then the genesis alone (an empty chain, t 300), a prefix of it. The records come from the newest server record at the final head of the chain held (rC2), whatever the t of records at earlier heads. The prefix entry agrees with the chain held, so its seen (the greatest) and path count.",
+  "input": {
+    "now": 1767312000,
+    "registry": [],
+    "gossip": [
+      {
+        "id": "sC",
+        "server": {
+          "rid": "rC1",
+          "t": 200,
+          "name": "Hop Shop",
+          "nodes": [
+            "n1"
+          ],
+          "operators": [
+            "o1"
+          ],
+          "chain": [
+            "p1"
+          ]
+        },
+        "path": [
+          "sC"
+        ],
+        "seen": 1767311600
+      },
+      {
+        "id": "sC",
+        "server": {
+          "rid": "rC2",
+          "t": 100,
+          "name": "Hop Shop",
+          "nodes": [
+            "n1",
+            "n2"
+          ],
+          "operators": [
+            "o1"
+          ],
+          "chain": [
+            "p1",
+            "p2"
+          ]
+        },
+        "path": [
+          "sC",
+          "sD"
+        ],
+        "seen": 1767311700
+      },
+      {
+        "id": "sC",
+        "server": {
+          "rid": "rC0",
+          "t": 300,
+          "name": "Hop Shop",
+          "nodes": [
+            "n9"
+          ],
+          "operators": [
+            "o1"
+          ],
+          "chain": []
+        },
+        "path": [
+          "sC",
+          "sE"
+        ],
+        "seen": 1767311950
+      }
+    ]
+  },
+  "expect": {
+    "servers": [
+      {
+        "id": "sC",
+        "source": "gossip",
+        "rid": "rC2",
+        "name": "Hop Shop",
+        "nodes": [
+          "n1",
+          "n2"
+        ],
+        "operators": [
+          "o1"
+        ],
+        "seen": 1767311950,
+        "path": [
+          "sC",
+          "sE"
+        ]
+      }
+    ]
+  }
+}

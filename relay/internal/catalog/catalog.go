@@ -56,6 +56,8 @@ type Summary struct {
 	Name      string   `json:"name"`
 	Nodes     []string `json:"nodes"`
 	Operators []string `json:"operators"`
+	// Chain is the ids of the entry's applied operators records, in order (none: genesis only).
+	Chain []string `json:"chain,omitempty"`
 }
 
 // Known is a server in the registry.
@@ -87,6 +89,13 @@ type Merged struct {
 }
 
 // Merge combines registry and gossip, sorted by id.
+//
+// A server's chain only grows (8.1). For a server in the registry, its chain is the registry's.
+// For one known by gossip alone, the entries are taken in the order given (the order they
+// arrived): the chain of the first, then of each later one that extends it. Entries whose chain
+// forks from it (signed by keys that were operators once) never count; among those at its final
+// head, the newest server record gives the records. seen and path come from the entries whose
+// chain agrees with it (is a prefix of it, or extends a registry chain).
 func Merge(now int64, registry []Known, gossip []Heard) []Merged {
 	live := map[string][]int{}
 	for i, h := range gossip {
@@ -96,15 +105,31 @@ func Merge(now int64, registry []Known, gossip []Heard) []Merged {
 		live[h.ID] = append(live[h.ID], i)
 	}
 	out := map[string]*Merged{}
+	held := map[string][]string{}
 	for _, k := range registry {
 		out[k.ID] = &Merged{ID: k.ID, Source: "registry", RID: k.Server.RID, Name: k.Server.Name,
 			Nodes: k.Server.Nodes, Operators: k.Server.Operators, From: -1}
+		held[k.ID] = k.Server.Chain
 	}
 	for id, idx := range live {
 		m := out[id]
+		cur := held[id]
 		if m == nil {
-			best := idx[0]
+			cur = gossip[idx[0]].Server.Chain
 			for _, i := range idx[1:] {
+				if c := gossip[i].Server.Chain; hasPrefix(c, cur) {
+					cur = c
+				}
+			}
+			best := -1
+			for _, i := range idx {
+				if !slices.Equal(gossip[i].Server.Chain, cur) {
+					continue
+				}
+				if best < 0 {
+					best = i
+					continue
+				}
 				a, b := gossip[i].Server, gossip[best].Server
 				if a.T > b.T || a.T == b.T && a.RID < b.RID {
 					best = i
@@ -114,12 +139,18 @@ func Merge(now int64, registry []Known, gossip []Heard) []Merged {
 			m = &Merged{ID: id, Source: "gossip", RID: s.RID, Name: s.Name, Nodes: s.Nodes, Operators: s.Operators, From: best}
 			out[id] = m
 		}
-		bi := idx[0]
-		for _, i := range idx[1:] {
-			a, b := gossip[i], gossip[bi]
-			if a.Seen > b.Seen || a.Seen == b.Seen && pathLess(a.Path, b.Path) {
+		bi := -1
+		for _, i := range idx {
+			c := gossip[i].Server.Chain
+			if !hasPrefix(c, cur) && !hasPrefix(cur, c) {
+				continue // a fork
+			}
+			if a := gossip[i]; bi < 0 || a.Seen > gossip[bi].Seen || a.Seen == gossip[bi].Seen && pathLess(a.Path, gossip[bi].Path) {
 				bi = i
 			}
+		}
+		if bi < 0 {
+			continue
 		}
 		seen := gossip[bi].Seen
 		m.Seen = &seen
@@ -132,6 +163,9 @@ func Merge(now int64, registry []Known, gossip []Heard) []Merged {
 	sort.Slice(list, func(i, j int) bool { return list[i].ID < list[j].ID })
 	return list
 }
+
+// hasPrefix reports whether chain c starts with p (c extends p, or is p).
+func hasPrefix(c, p []string) bool { return len(c) >= len(p) && slices.Equal(c[:len(p)], p) }
 
 // pathLess: the shorter path, then the lower one element by element.
 func pathLess(a, b []string) bool {

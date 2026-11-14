@@ -93,14 +93,21 @@ function fedGossipIn(e,self,now){const p=e.path,no=error=>({action:'refuse',erro
   return {action:'store',forward:self==null||p.length>=16?null:p.concat([self])};}
 const fedPathLess=(a,b)=>{if(a.length!==b.length)return a.length<b.length;for(let i=0;i<a.length;i++)if(a[i]!==b[i])return a[i]<b[i];return false;};
 /* Merging the registry with gossip (§10.8), clients and relays alike. registry: [{id, server:{rid, t, name, nodes,
-   operators}}]; gossip: [{id, server, path, seen}]. Gives the servers sorted by id: {id, source, rid, name, nodes,
-   operators, seen, path}. The registry wins on records; gossip only adds when it was last seen and by which path. */
-function fedCatalogMerge(registry,gossip,now){const out=new Map(),by=new Map();
-  // One pass over gossip: per server, the freshest entry (seen, then path) and the newest server record.
-  for(const g of gossip){if(!(now<g.seen+FED_CARRY))continue;const o=by.get(g.id);
-    if(!o){by.set(g.id,{b:g,s:g.server});continue;}
-    if(g.seen>o.b.seen||g.seen===o.b.seen&&fedPathLess(g.path,o.b.path))o.b=g;
-    if(g.server.t>o.s.t||g.server.t===o.s.t&&g.server.rid<o.s.rid)o.s=g.server;}
+   operators, chain}}]; gossip: [{id, server, path, seen}] in the order they arrived (chain: the ids of the applied
+   operators records). Gives the servers sorted by id: {id, source, rid, name, nodes, operators, seen, path}. The
+   registry wins on records; gossip only adds when it was last seen and by which path. A chain only grows: the chain
+   held is the registry's, or for a gossip-only server the first entry's, then each later one that extends it. An entry
+   that forks from it never counts (a fork stays one as the chain grows, so one pass is enough), and the newest server
+   record at its final head gives the records. */
+const fedPre=(c,p)=>{c=c||[];p=p||[];return c.length>=p.length&&p.every((x,i)=>c[i]===x);};
+function fedCatalogMerge(registry,gossip,now){const out=new Map(),by=new Map(),reg=new Map(registry.map(r=>[r.id,r.server.chain||[]]));
+  // One pass over gossip: per server, the chain held, the newest server record at its head and the freshest entry.
+  for(const g of gossip){if(!(now<g.seen+FED_CARRY))continue;const c=g.server.chain||[];let o=by.get(g.id);
+    if(!o){const fixed=reg.has(g.id);o={cur:fixed?reg.get(g.id):c,fixed,s:null,b:null};by.set(g.id,o);}
+    if(!fedPre(c,o.cur)&&!fedPre(o.cur,c))continue;
+    if(!o.fixed&&c.length>o.cur.length){o.cur=c;o.s=null;}
+    if(c.length===o.cur.length&&(!o.s||g.server.t>o.s.t||g.server.t===o.s.t&&g.server.rid<o.s.rid))o.s=g.server;
+    if(!o.b||g.seen>o.b.seen||g.seen===o.b.seen&&fedPathLess(g.path,o.b.path))o.b=g;}
   const row=(id,source,s,b)=>({id,source,rid:s.rid,name:s.name,nodes:s.nodes,operators:s.operators,seen:b?b.seen:null,path:b?b.path:null});
   for(const r of registry){const o=by.get(r.id);out.set(r.id,row(r.id,'registry',r.server,o&&o.b));}
   for(const [id,o] of by)if(!out.has(id))out.set(id,row(id,'gossip',o.s,o.b));

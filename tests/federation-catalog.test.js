@@ -2,7 +2,7 @@
 // merged with gossip from nodes; registry entries win; either one missing still gives a list; the cache stays.
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { fedPage, joinGame, settle, until, URL1, NOW, SERVERS_JSON, PL, key, canon, signText } = require('./helpers/fed');
+const { fedPage, joinGame, settle, until, URL1, NOW, SERVERS_JSON, PL, key, canon, signText, rid } = require('./helpers/fed');
 
 const HOP = SERVERS_JSON.servers[1];
 const entry = (s, path, seen) => ({ genesis: s.genesis, chain: s.chain, server: s.server, path, seen });
@@ -90,4 +90,38 @@ test('no registry (a 404, or offline): gossip alone; and a registry that fails l
 test('the registry is fetched from the site itself, never from another origin', () => {
   const p = fedPage();
   assert.equal(p.ev('FED.registry'), 'federation/servers.json');
+});
+
+// A chain only grows (§8.1, §10.8). Hop Shop's founder dan hands it to erin (dan adds erin, both remove dan). dan's key,
+// operator alone at genesis, signs a fork there that adds a node of his, with a newer server record, and gossips it:
+// a game that knows Hop Shop by gossip keeps the chain it heard first, and still takes an honest extension.
+test('gossip: a fork signed by a former operator never replaces the chain held', async () => {
+  const multi = (name, signers, kind, t, body) => {
+    const r = { v: 1, kind, key: key(name).pub, t, body };
+    return { ...r, sigs: signers.map((n) => ({ key: key(n).pub, sig: signText(key(n), canon(r)) })).sort((a, b) => (a.key < b.key ? -1 : 1)) };
+  };
+  const mid = (r) => { const { sigs, ...x } = r; return rid(x); };
+  const sid = HOP.id, n3 = HOP.server.body.nodes[0], evil = { key: key('mallory').pub, url: 'wss://evil.example.net/fed' };
+  const p1 = multi('dan', ['dan'], 'operators', NOW - 3000, { server: sid, prev: sid, action: 'add_operator', target: key('erin').pub });
+  const p2 = multi('erin', ['dan', 'erin'], 'operators', NOW - 2900, { server: sid, prev: mid(p1), action: 'remove_operator', target: key('dan').pub });
+  const srv = (name, t, head, nodes, ops, desc) => multi(name, [name], 'server', t, { ...HOP.server.body, head, nodes, operators: ops, desc });
+  const honest = { genesis: HOP.genesis, chain: [p1, p2], server: srv('erin', NOW - 2800, mid(p2), [n3], [key('erin').pub], 'honest'), path: [sid], seen: NOW - 60 };
+  const f1 = multi('dan', ['dan'], 'operators', NOW - 200, { server: sid, prev: sid, action: 'set_node', target: evil.key, url: evil.url });
+  const fork = { genesis: HOP.genesis, chain: [f1], server: srv('dan', NOW - 100, mid(f1), [n3, evil].sort((a, b) => (a.key < b.key ? -1 : 1)), [key('dan').pub], 'forged'), path: [sid], seen: NOW - 10 };
+  const p = fedPage({ registry: { ...SERVERS_JSON, servers: [PL] } });
+  const n = p.net.node(URL1);
+  n.gossip = [honest, fork];
+  await joinGame(p);
+  assert.ok(await until(async () => (await settle(5), (await servers(p)).length === 2)));
+  let hop = (await servers(p)).find((s) => s.id === sid);
+  assert.deepEqual(hop.nodes.map((x) => x.url), [n3.url], 'the fork\'s node is not listed');
+  assert.equal(hop.desc, 'honest');
+  assert.equal(hop.seen, NOW - 60, 'a fork does not keep the server alive');
+  // erin extends the chain: taken, whatever the t of records elsewhere.
+  const p3 = multi('erin', ['erin'], 'operators', NOW - 50, { server: sid, prev: mid(p2), action: 'set_node', target: n3.key, url: 'wss://fourth.example.com' });
+  await p.ev(`fedGossip(${JSON.stringify([{ genesis: HOP.genesis, chain: [p1, p2, p3], server: srv('erin', NOW - 40, mid(p3), [{ key: n3.key, url: 'wss://fourth.example.com' }], [key('erin').pub], 'moved'), path: [sid], seen: NOW - 5 }])})`);
+  hop = (await servers(p)).find((s) => s.id === sid);
+  assert.deepEqual(hop.nodes.map((x) => x.url), ['wss://fourth.example.com']);
+  assert.equal(hop.desc, 'moved');
+  assert.deepEqual(p.errors, []);
 });

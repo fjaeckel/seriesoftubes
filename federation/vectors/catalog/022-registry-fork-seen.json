@@ -1,0 +1,94 @@
+{
+  "description": "sA is in the registry with chain p1. A gossip entry whose chain (x1) forks from it does not count for seen and path, however fresh; one that extends it (p1, p2) does. The records still come from the registry.",
+  "input": {
+    "now": 1767312000,
+    "registry": [
+      {
+        "id": "sA",
+        "server": {
+          "rid": "rA1",
+          "t": 100,
+          "name": "Packet Lunch",
+          "nodes": [
+            "n1"
+          ],
+          "operators": [
+            "o1"
+          ],
+          "chain": [
+            "p1"
+          ]
+        }
+      }
+    ],
+    "gossip": [
+      {
+        "id": "sA",
+        "server": {
+          "rid": "rAx",
+          "t": 300,
+          "name": "Packet Lunch",
+          "nodes": [
+            "nX"
+          ],
+          "operators": [
+            "o0"
+          ],
+          "chain": [
+            "x1"
+          ]
+        },
+        "path": [
+          "sA",
+          "sB"
+        ],
+        "seen": 1767311990
+      },
+      {
+        "id": "sA",
+        "server": {
+          "rid": "rA2",
+          "t": 200,
+          "name": "Packet Lunch",
+          "nodes": [
+            "n1",
+            "n2"
+          ],
+          "operators": [
+            "o1"
+          ],
+          "chain": [
+            "p1",
+            "p2"
+          ]
+        },
+        "path": [
+          "sA",
+          "sC"
+        ],
+        "seen": 1767311800
+      }
+    ]
+  },
+  "expect": {
+    "servers": [
+      {
+        "id": "sA",
+        "source": "registry",
+        "rid": "rA1",
+        "name": "Packet Lunch",
+        "nodes": [
+          "n1"
+        ],
+        "operators": [
+          "o1"
+        ],
+        "seen": 1767311800,
+        "path": [
+          "sA",
+          "sC"
+        ]
+      }
+    ]
+  }
+}

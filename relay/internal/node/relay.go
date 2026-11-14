@@ -120,6 +120,10 @@ type Relay struct {
 	catDirty bool       // the catalog file is behind
 	loading  bool       // reading the catalog file
 	catWrite sync.Mutex // one catalog file write at a time
+
+	// Catalog entries dropped because their chain forked from the one held (10.8), and when one was last logged.
+	forks      int
+	forkLogged int64
 }
 
 // New opens the data folder and rebuilds every index.

@@ -13,6 +13,7 @@ import (
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/boards"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/catalog"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/chain"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/rank"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/store"
@@ -113,7 +114,7 @@ func (r *Relay) Status() map[string]any {
 	r.tally(now)
 	out := map[string]any{"server": r.cfg.Server, "node": r.Key(), "serving": r.serving(), "sync": r.ownSync(),
 		"clients": len(r.clients), "peers": peers, "records": r.st.Len(), "kinds": kinds,
-		"diskBytes": r.st.Size(), "shunned": len(r.shunned), "catalog": len(r.cat), "registry": len(r.regs),
+		"diskBytes": r.st.Size(), "shunned": len(r.shunned), "catalog": len(r.cat), "catalogForks": r.forks, "registry": len(r.regs),
 		"version": r.impl.Version, "auto": r.autoStatus()}
 	if h := r.upd.hint; h != nil {
 		out["update"] = map[string]any{"says": h.Text(), "version": h.Version, "security": h.Security, "notes": h.Notes, "source": h.Source}
@@ -141,21 +142,27 @@ func (r *Relay) Servers() []catalog.Merged {
 	defer r.mu.Unlock()
 	var reg []catalog.Known
 	for _, e := range r.regs {
-		reg = append(reg, catalog.Known{ID: e.ID, Server: summary(e.Server)})
+		reg = append(reg, catalog.Known{ID: e.ID, Server: summary(e.Server, e.State)})
 	}
 	var gos []catalog.Heard
 	for _, c := range r.cat {
-		gos = append(gos, catalog.Heard{ID: c.ID, Server: summary(c.Server), Path: c.Path, Seen: c.Seen})
+		gos = append(gos, catalog.Heard{ID: c.ID, Server: summary(c.Server, c.State), Path: c.Path, Seen: c.Seen})
 	}
 	if r.own != nil && r.ownSrv != nil {
 		if _, ok := r.regs[r.own.ID]; !ok {
-			gos = append(gos, catalog.Heard{ID: r.own.ID, Server: summary(r.ownSrv), Path: []string{r.own.ID}, Seen: now})
+			gos = append(gos, catalog.Heard{ID: r.own.ID, Server: summary(r.ownSrv, r.own), Path: []string{r.own.ID}, Seen: now})
 		}
 	}
 	return catalog.Merge(now, reg, gos)
 }
 
-func summary(s *fed.Record) catalog.Summary {
+func summary(s *fed.Record, st *chain.State) catalog.Summary {
+	var ch []string
+	if st != nil {
+		for _, a := range st.Applied {
+			ch = append(ch, a.ID)
+		}
+	}
 	var nodes []string
 	list, _ := s.Body["nodes"].([]any)
 	for _, n := range list {
@@ -163,7 +170,7 @@ func summary(s *fed.Record) catalog.Summary {
 		u, _ := m["url"].(string)
 		nodes = append(nodes, u)
 	}
-	return catalog.Summary{RID: s.ID, T: s.T, Name: s.Str("name"), Nodes: nodes, Operators: s.StrList("operators")}
+	return catalog.Summary{RID: s.ID, T: s.T, Name: s.Str("name"), Nodes: nodes, Operators: s.StrList("operators"), Chain: ch}
 }
 
 // Players lists the networks with an announce: name, ASN, quiet state, flags.

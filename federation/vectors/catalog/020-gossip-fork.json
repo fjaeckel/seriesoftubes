@@ -1,0 +1,74 @@
+{
+  "description": "sB is known by gossip only. The first entry (chain p1, p2: o1 added o2, then both removed o1) is the chain held. The second arrives later with a newer server record (t 300) and more recent seen, but its chain (x1, which o1 signed alone at genesis) does not extend p1, p2: a fork by a former operator. It never counts, for records nor for seen and path.",
+  "input": {
+    "now": 1767312000,
+    "registry": [],
+    "gossip": [
+      {
+        "id": "sB",
+        "server": {
+          "rid": "rB1",
+          "t": 100,
+          "name": "Hop Shop",
+          "nodes": [
+            "n1"
+          ],
+          "operators": [
+            "o2"
+          ],
+          "chain": [
+            "p1",
+            "p2"
+          ]
+        },
+        "path": [
+          "sB"
+        ],
+        "seen": 1767311500
+      },
+      {
+        "id": "sB",
+        "server": {
+          "rid": "rBx",
+          "t": 300,
+          "name": "Hop Shop",
+          "nodes": [
+            "n1",
+            "nX"
+          ],
+          "operators": [
+            "o1"
+          ],
+          "chain": [
+            "x1"
+          ]
+        },
+        "path": [
+          "sB",
+          "sC"
+        ],
+        "seen": 1767311900
+      }
+    ]
+  },
+  "expect": {
+    "servers": [
+      {
+        "id": "sB",
+        "source": "gossip",
+        "rid": "rB1",
+        "name": "Hop Shop",
+        "nodes": [
+          "n1"
+        ],
+        "operators": [
+          "o2"
+        ],
+        "seen": 1767311500,
+        "path": [
+          "sB"
+        ]
+      }
+    ]
+  }
+}
