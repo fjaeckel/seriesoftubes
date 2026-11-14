@@ -931,7 +931,11 @@ it is neither answered nor a reason to close, so an older game keeps working wit
   of yet, and how many bytes of new records, one connection, one address (counted in memory only) or one other server
   brings (`rate_limited`), and MAY refuse records of keys without an announce while its storage is nearly full
   (`rate_limited`). A node that answers a pushed record `rate_limited` does not remember it as refused: it is
-  wanted again in a later session.
+  wanted again later in the session (the reference relay: every 10 minutes) and in a later session. A server's
+  identity costs nothing to make up, so a node that bounds other servers SHOULD give its own budget only to servers in
+  its registry snapshot and to its configured neighbours, have all other servers share one (and count their sessions
+  by address too, as clients are), and SHOULD NOT charge a server for a record it passes on that carries a receipt
+  of a registry server or of the node's own server: that server counted it when it first took it.
 
 ### 9.4 Node and node
 

@@ -15,7 +15,11 @@ import (
    counted by the hour in token buckets: keys this node has no record of, bytes of new records, and
    live-state keys without an announce here. One bucket per connection, per address (an IPv6 /64)
    and per other server; addresses live in memory only, like the connection limiter's, and a full
-   bucket is forgotten. Past a high-water mark (records, bytes kept, heap, free disk) only networks
+   bucket is forgotten. Another server's identity costs nothing to make up, so only registry servers
+   and configured neighbours have a bucket of their own: all other servers share one, and a
+   session with one of them is also counted by the address it came from, as a game's is. A record another server
+   passes on that carries a receipt of a registry server (or of this server) was counted where
+   that server took it: it is not counted again, so a neighbour never pays for what it forwards. Past a high-water mark (records, bytes kept, heap, free disk) only networks
    that already have an announce here may put: players keep playing, newcomers wait. Records from
    nodes of this server, bootstrapping and the operator's command line are not counted. */
 
@@ -98,11 +102,32 @@ func (r *Relay) quotas(o origin, now int64) []quotaRef {
 			}
 		}
 	case o.peer != nil && !o.same:
-		if q := quotaOf(r, r.peerQ, o.peer.peerServer, now); q != nil {
+		// Registry servers and configured neighbours have a bucket each; every other server, which
+		// may be made up by the thousand, shares one ("" never is a server id).
+		id := o.peer.peerServer
+		own := r.regs[id] != nil || o.peer.neighbour
+		if !own {
+			id = ""
+		}
+		if q := quotaOf(r, r.peerQ, id, now); q != nil {
 			out = append(out, quotaRef{q, float64(b.NewKeysPerPeer), float64(b.BytesPerPeer), float64(b.LiveKeysPerPeer), "peer"})
+		}
+		if !own && o.peer.addr.IsValid() {
+			// And by the address it came from, as a game's connection is: speaking as a node does
+			// not get around the address's budget.
+			if q := quotaOf(r, r.addrQ, o.peer.addr, now); q != nil {
+				out = append(out, quotaRef{q, float64(b.NewKeysPerAddr), float64(b.BytesPerAddr), float64(b.LiveKeysPerAddr), "addr"})
+			}
 		}
 	}
 	return out
+}
+
+// vouched reports whether a record from another server carries a receipt that counts here (rcpts,
+// already checked): a registry server or a node of this server took it and counted it against its
+// own budgets then, so the server passing it on is not charged for it again.
+func vouched(o origin, rcpts []map[string]any) bool {
+	return o.peer != nil && !o.same && len(rcpts) > 0
 }
 
 // stranger reports whether a record comes from someone the budgets and the high-water mark apply
@@ -112,7 +137,7 @@ func (o origin) stranger() bool { return o.sess != nil || o.peer != nil && !o.sa
 // growthCheck is the check of a new record against the budgets and the high-water mark (lock
 // held). It gives the buckets to charge once the record is stored, whether its key is new here,
 // and "" or rate_limited.
-func (r *Relay) growthCheck(rec *fed.Record, now int64, o origin) ([]quotaRef, bool, string) {
+func (r *Relay) growthCheck(rec *fed.Record, now int64, o origin, rcpts []map[string]any) ([]quotaRef, bool, string) {
 	// Hides count like any record (one is kept per server, 5.7, but it may be some 30 KB and
 	// replaced at will); other operator records are bounded by their chains and vote caps.
 	if !o.stranger() || operatorKinds[rec.Kind] && rec.Kind != "hide" || r.st.Get(rec.ID) != nil {
@@ -123,6 +148,9 @@ func (r *Relay) growthCheck(rec *fed.Record, now int64, o origin) ([]quotaRef, b
 	if r.ann[rec.Key] == nil && !ownHide && r.highWater(now) {
 		r.o.Metrics.Inc("relay_budget_refused_total", "high_water")
 		return nil, false, fed.RateLimited
+	}
+	if vouched(o, rcpts) {
+		return nil, false, ""
 	}
 	refs := r.quotas(o, now)
 	newKey := !r.st.HasKey(rec.Key)

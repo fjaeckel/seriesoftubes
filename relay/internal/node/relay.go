@@ -94,13 +94,14 @@ type Relay struct {
 	quiet   map[string]int64                // automatic peer this node does not dial -> since when it has had no session with it
 	urlSrv  map[string]string               // node URL dialled -> the server that answered there
 
-	reports map[string]map[string]*store.Entry // reporter -> target -> its stored report (5.10)
-	addrQ   map[netip.Addr]*quota              // growth budgets by address, memory only (growth.go)
-	peerQ   map[string]*quota                  // growth budgets by other server
-	hwAt    int64                              // when the heap and the free disk were last read
-	heap    int64                              // heap in use then
-	free    int64                              // free disk then (-1: unknown)
-	reportN int                                // reports stored
+	reports   map[string]map[string]*store.Entry // reporter -> target -> its stored report (5.10)
+	addrQ     map[netip.Addr]*quota              // growth budgets by address, memory only (growth.go)
+	peerQ     map[string]*quota                  // growth budgets by other server ("": all servers outside the registry)
+	peerAddrQ map[netip.Addr]*quota              // growth budgets of sessions with those servers, by address
+	hwAt      int64                              // when the heap and the free disk were last read
+	heap      int64                              // heap in use then
+	free      int64                              // free disk then (-1: unknown)
+	reportN   int                                // reports stored
 
 	clients map[*session]bool
 	nodes   map[*session]bool
@@ -875,18 +876,19 @@ func (r *Relay) ingest(rec *fed.Record, rcpts []any, o origin) (string, map[stri
 	if o.client && rec.Kind == "stats" && r.statsAt[rec.Key] == fed.Slot(now) && r.st.Get(rec.ID) == nil {
 		return "", nil, fed.RateLimited
 	}
-	refs, newKey, code := r.growthCheck(rec, now, o)
+	var mine map[string]any
+	var list []map[string]any
+	var slot int64
+	existing := r.st.Get(rec.ID)
+	if existing == nil && !o.client {
+		list, slot = r.validReceipts(rec, rcpts, now)
+	}
+	refs, newKey, code := r.growthCheck(rec, now, o, list)
 	if code != "" {
 		r.o.Metrics.Inc("relay_refused_total", code)
 		return "", nil, code
 	}
-	var mine map[string]any
-	var list []map[string]any
-	var slot int64
-	if existing := r.st.Get(rec.ID); existing == nil {
-		if !o.client {
-			list, slot = r.validReceipts(rec, rcpts, now)
-		}
+	if existing == nil {
 		if len(list) == 0 {
 			cc := ""
 			if o.client {

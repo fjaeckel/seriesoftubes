@@ -97,6 +97,8 @@ type session struct {
 	synced     bool            // carry exchanged: live pushes flow
 	send, take []string        // classes
 	wanted     map[string]bool // ids asked for and not yet pushed (guarded by r.mu, bounded)
+	retry      map[string]bool // ids refused rate_limited, asked for again later (guarded by r.mu, bounded)
+	neighbour  bool            // the peer's server is a configured neighbour (guarded by r.mu)
 	push       *listPager      // records waiting to be pushed for want (guarded by r.mu)
 	dialURL    string
 	dialer     string          // the r.dialers key of the dialer that made this session, when this node dialled

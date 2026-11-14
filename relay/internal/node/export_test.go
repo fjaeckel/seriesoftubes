@@ -118,3 +118,20 @@ func (r *Relay) SlotOf(id string) int64 {
 
 // Knows reports whether the relay knows a server's lists (its own, the registry's or gossip's).
 func (r *Relay) Knows(id string) bool { r.mu.Lock(); defer r.mu.Unlock(); return r.lookup(id) != nil }
+
+// SetRetryEvery changes how often a session asks again for records a budget refused; it returns the restore.
+func SetRetryEvery(d time.Duration) func() {
+	old := retryEvery
+	retryEvery = d
+	return func() { retryEvery = old }
+}
+
+// SetMaxUnverified lowers the sessions with servers this node does not know; it returns the restore.
+func SetMaxUnverified(n int) func() {
+	old := maxUnverified
+	maxUnverified = n
+	return func() { maxUnverified = old }
+}
+
+// NodeSessions is how many node sessions are up.
+func (r *Relay) NodeSessions() int { return r.count(true) }

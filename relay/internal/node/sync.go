@@ -26,10 +26,9 @@ import (
 // with servers this node does not know yet, so they never take the slots of servers it knows.
 var verifyTimeout = 30 * time.Second
 
-const (
-	maxHeld       = 1 << 20
-	maxUnverified = 8
-)
+const maxHeld = 1 << 20
+
+var maxUnverified = 8
 
 func nonce() string {
 	var b [32]byte
@@ -194,7 +193,9 @@ func (r *Relay) nodeRoom(server string) bool {
 	for s := range r.nodes {
 		if !s.same && !r.auto[s.peerServer] {
 			others++
-			if !s.verified {
+			// A peer is verified by its own entry even when the catalog had no room to keep it:
+			// it still counts as a server this node does not know.
+			if !s.verified || r.lookup(s.peerServer) == nil {
 				unverified++
 			}
 		}
@@ -256,6 +257,9 @@ func (r *Relay) runPeer(s *session, server, node string) {
 	}
 	r.mu.Unlock()
 	r.o.Log.Info("sync: session up", "server", server, "node", node, "same", s.same)
+	if !s.same {
+		go r.retryLater(s)
+	}
 	defer func() {
 		r.mu.Lock()
 		delete(r.nodes, s)
@@ -340,6 +344,7 @@ func (r *Relay) setClasses(s *session, st *chain.State) {
 			}
 		}
 	}
+	s.neighbour = n != nil
 	switch {
 	case n != nil:
 		s.send, s.take = config.Or(n.Send), config.Or(n.Take)
@@ -592,13 +597,56 @@ func (r *Relay) takePushed(s *session, x any, now int64) {
 	r.mu.Lock()
 	delete(s.wanted, rec.ID)
 	// unknown_server is not for good: the server may be learned later; rate_limited (a growth
-	// budget, growth.go) neither: the record comes again in a later session.
-	if code != "" && code != fed.UnknownSrv && code != fed.RateLimited {
+	// budget, growth.go) neither: the record is asked for again once the budget had time to refill
+	// (retryLater), and comes again in a later session anyway.
+	switch {
+	case code == fed.RateLimited:
+		if s.retry == nil {
+			s.retry = map[string]bool{}
+		}
+		if len(s.retry) < maxRetry {
+			s.retry[rec.ID] = true
+		}
+	case code != "" && code != fed.UnknownSrv:
 		r.refuse(rec.ID)
 	}
 	r.mu.Unlock()
 	if code != "" {
 		r.o.Log.Info("sync: dropped record", "kind", rec.Kind, "key", rec.Key, "code", code)
+	}
+}
+
+// retryEvery is how often a session asks again for records refused rate_limited (a var for
+// tests); maxRetry bounds the ids it remembers for that.
+var retryEvery = 10 * time.Minute
+
+const maxRetry = fed.MaxInv
+
+// retryLater asks the peer again, every retryEvery while the session lasts, for the records it
+// pushed that a growth budget refused then.
+func (r *Relay) retryLater(s *session) {
+	t := time.NewTicker(retryEvery)
+	defer t.Stop()
+	for {
+		select {
+		case <-s.ctx.Done():
+			return
+		case <-t.C:
+		}
+		r.mu.Lock()
+		var want []string
+		for id := range s.retry {
+			if r.st.Get(id) == nil && !r.refused[id] {
+				want = append(want, id)
+				s.wanted[id] = true
+			}
+		}
+		s.retry = nil
+		r.mu.Unlock()
+		if len(want) > 0 {
+			slices.Sort(want)
+			s.enqueue(map[string]any{"m": "want", "ids": strList(want)})
+		}
 	}
 }
 
