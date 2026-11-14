@@ -89,7 +89,8 @@ function fedDrop(c,why,min=0){fedErrLog(c.node,c.srv,why);fedHang(c);if(c.readyA
   c.t=FED.set(()=>fedDial(c),wait);}
 // The nodes of a connection's server, from the catalog: the joined URL first, then the others, for failing over.
 async function fedLearn(c,srvs){const e=c.srv&&(srvs||await fedServers()).find(x=>x.id===c.srv);if(!e||!fedLive(c))return null;
-  const cur=c.nodes[c.ni%c.nodes.length];c.nodes=[c.url,...e.nodes.map(n=>n.url).filter(u=>u!==c.url)];c.ni=Math.max(0,c.nodes.indexOf(cur));return e;}
+  // Only public nodes to fail over to, unless the joined URL is itself local (fedHeardOk).
+  const cur=c.nodes[c.ni%c.nodes.length],loc=!fedPublicUrl(c.url);c.nodes=[c.url,...e.nodes.map(n=>n.url).filter(u=>u!==c.url&&fedHeardOk(u,loc))];c.ni=Math.max(0,c.nodes.indexOf(cur));return e;}
 async function fedLearnAll(M){if(!fedMine(M))return;const s=await fedServers();for(const c of M.conns.values())await fedLearn(c,s);}
 function fedSend(c,m){const t=JSON.stringify(m);if(!c.ws||fedSize(t)>FED_FRAME)return false;try{c.ws.send(t);c.lastOut=fedNow();return true;}catch(e){return false;}}
 // A request: resolves with the answer frame, or null on timeout or a lost connection. many: answers come as several

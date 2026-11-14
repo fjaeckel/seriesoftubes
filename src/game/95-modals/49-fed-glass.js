@@ -38,7 +38,7 @@ function fuServerHtml(){const id=UI.fu.id,s=FU.srvs.find(x=>x.id===id),back={v:U
   <dt>${tr('fedui.players')}</dt><dd>${FU.players?FU.players.get(id)||0:0}</dd><dt>${tr('fedui.operators')}</dt><dd>${(s.operators||[]).length}</dd><dt>${tr('fedui.nodes')}</dt><dd>${(s.nodes||[]).length}</dd>${fuRelaysDl(s)}
   <dt>${tr('fedui.syncs_with')}</dt><dd>${sy&&sy.size?[...sy].map(fuSrvName).join(', '):'—'}</dd>${s.langs&&s.langs.length?`<dt>${tr('common.language')}</dt><dd>${esc(s.langs.join(', '))}</dd>`:''}
   <dt>${tr('fedui.address_logs')}</dt><dd>${s.noLogs?tr('fedui.operators_declare_no_address_logs'):'—'}</dd></dl>`;
-  if(ok&&!joined&&s.nodes&&s.nodes[0])h+=`<div class="btns">${btn(tr('fedui.join'),'fuJoin',{url:s.nodes[0].url},'pink sm',FU.busy)}</div>`;
+  {const u=fedJoinUrl(s);if(ok&&!joined&&u)h+=`<div class="btns">${btn(tr('fedui.join'),'fuJoin',{url:u},'pink sm',FU.busy)}</div>`;}
   const votes=FU.votes.filter(v=>v.rec.body.server===id).sort((a,b)=>b.rec.t-a.rec.t);
   if(FU.opKey)h+=`<h3 class="sub4">${tr('fedui.votes_cast_by_this_server')}</h3>`+(votes.length?`<ul class="fu-list">${votes.map(fuVoteLine).join('')}</ul>`:`<p class="meta">${tr('fedui.no_votes')}</p>`);
   if(fuOpOf(id))h+=fuOpPanel(s);

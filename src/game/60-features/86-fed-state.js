@@ -109,6 +109,14 @@ function fedStatsBody(s=S){const pops={};for(const c of Object.keys(s.pops)){con
   return FED.hooks.stats?FED.hooks.stats(b)||b:b;}
 
 /* ---------- joining and leaving ---------- */
+/* Node URLs a server told this game about (gossip, a server's own list of nodes to fail over to) are only dialled when
+   public: no server may make the browser dial into the player's own network or machine. A local address is fine when
+   the player chose a local server themselves (a LAN party): there, local addresses are the point. A URL the player
+   typed or was invited to is theirs, and never filtered. */
+const fedOnLocal=(f=S&&S.fed)=>!!f&&Array.isArray(f.servers)&&f.servers.some(u=>!FdUrl(u)&&!fedPublicUrl(u));
+const fedHeardOk=(u,local)=>!FdUrl(u)&&(fedPublicUrl(u)||!!local);
+// The node to join a catalog server at: the registry's first (public by construction), else the first one allowed.
+function fedJoinUrl(s){const L=(s&&Array.isArray(s.nodes)?s.nodes:[]).map(n=>n&&n.url);return s&&s.source==='registry'?L[0]:L.find(u=>fedHeardOk(u,fedOnLocal()));}
 // Why this save cannot join now, or null: 'mode' (not a normal game), 'crypto' (no WebCrypto Ed25519), 'url', 'full'.
 async function fedJoinWhy(url){if(!fedEligible())return 'mode';if(FdUrl(url))return 'url';
   if(S.fed&&!S.fed.servers.includes(url)&&S.fed.servers.length>=FED_MAX_SERVERS)return 'full';

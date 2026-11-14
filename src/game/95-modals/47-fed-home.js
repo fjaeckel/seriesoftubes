@@ -146,7 +146,7 @@ function fuHomeHtml(){const f=S&&S.fed,ok=S&&UI.started&&fedEligible(),on=!!(f&&
 const fuReason=r=>({cheating:tr('fedui.reason_cheating'),offensive_name:tr('fedui.reason_offensive_name'),spam:tr('fedui.reason_spam'),abuse:tr('fedui.reason_abuse')}[r]||esc(r));
 
 /* ---------- joining: the catalog, policy first; a typed address; an invite ---------- */
-function fuSrvCard(s,f){const joined=!!f&&f.servers.some(u=>(s.nodes||[]).some(n=>n.url===u)),url=s.nodes&&s.nodes[0]&&s.nodes[0].url,ok=S&&UI.started&&fedEligible();
+function fuSrvCard(s,f,at){const joined=!!f&&f.servers.some(u=>(s.nodes||[]).some(n=>n.url===u)),url=at||fedJoinUrl(s),ok=S&&UI.started&&fedEligible();
   return `<div class="fu-srv${s.source==='registry'?' reg':''}"><p class="fu-pol">${fuPolicy(s)}</p><div class="fu-srvh"><b>${esc(s.name)}</b>${s.source==='registry'?`<span class="fu-tag reg">${tr('fedui.in_the_registry')}</span>`:`<span class="fu-tag">${tr('fedui.only_heard_of')}</span>`}</div>
   ${s.desc?`<p class="meta">${esc(s.desc)}</p>`:''}<p class="meta">${trn('fedui.n_operators',(s.operators||[]).length)} · ${trn('fedui.n_nodes',(s.nodes||[]).length)}${s.langs&&s.langs.length?' · '+esc(s.langs.join(', ')):''}${s.noLogs?' · '+tr('fedui.no_address_logs'):''}</p>
   <div class="btns">${joined?`<span class="fu-tag on">✓ ${tr('fedui.joined')}</span>`:ok&&url?btn(tr('fedui.join'),'fuJoin',{url},'pink sm',FU.busy):''}${btn(tr('fedui.details'),'fuOpen',{v:'server',id:s.id,back:'join'},'ghost sm')}</div></div>`;}
@@ -155,7 +155,7 @@ function fuJoinHtml(){const f=S&&S.fed,ok=S&&UI.started&&fedEligible(),inv=UI.fe
   h+=`<p class="tagline">${tr('fedui.names_are_public')}</p>${fuMsg()}`;
   if(!ok)h+=`<p class="note fu-why">${fuWhyMode()}</p>`;
   if(inv){const s=FU.srvs.find(x=>(x.nodes||[]).some(n=>n.url===inv));
-    h+=`<div class="fu-box"><b>${tr('fedui.you_were_invited')}</b>${s?fuSrvCard(s,f):`<p class="fu-pol">${tr('fedui.policy_unknown')}</p><p class="meta mono">${esc(inv)}</p>${ok?`<div class="btns">${btn(tr('fedui.join'),'fuJoin',{url:inv},'pink sm',FU.busy)}</div>`:''}`}</div>`;}
+    h+=`<div class="fu-box"><b>${tr('fedui.you_were_invited')}</b>${s?fuSrvCard(s,f,inv):`<p class="fu-pol">${tr('fedui.policy_unknown')}</p><p class="meta mono">${esc(inv)}</p>${ok?`<div class="btns">${btn(tr('fedui.join'),'fuJoin',{url:inv},'pink sm',FU.busy)}</div>`:''}`}</div>`;}
   const list=FU.srvs.slice().sort((a,b)=>(a.source==='registry'?0:1)-(b.source==='registry'?0:1)||a.name.localeCompare(b.name));
   h+=`<h3 class="sub4">${tr('fedui.servers_we_know')}</h3>`+(list.length?`<div class="fu-srvs">${list.map(s=>fuSrvCard(s,f)).join('')}</div>`:`<p class="meta">${tr('fedui.no_servers_known_yet')}</p>`);
   if(ok)h+=`<label class="f" for="fuUrl">${tr('fedui.or_type_a_server_address')}</label><div class="fu-typed"><input class="t" id="fuUrl" type="url" inputmode="url" placeholder="wss://…" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(UI.fu.url||'')}">${btn(tr('fedui.join'),'fuJoinTyped',{},'',FU.busy)}</div><p class="meta">${tr('fedui.a_server_you_type_shows_its')}</p>`;

@@ -51,6 +51,12 @@ not a normal game. Queued records are kept only with the key that signed them.
 Helpers: `fedNewState()`, `fedMode(s)` (`normal`, `sandbox`, `open_gates`, `puzzle`, `architect`, `scenario`,
 `weekly`), `fedEligible(s)`, `fedHasPriv(f)`.
 
+Node URLs a server tells the game about (a server's other nodes to fail over to in `fedLearn`, a server only heard of
+through gossip, offered by `fedJoinUrl(s)` on its Join button) are dialled only when public (`fedPublicUrl`): no
+private, loopback, link-local or `.local` address. `fedHeardOk(u, local)` allows them when the player is on a local
+server already (`fedOnLocal()`, or the joined URL itself for failover): a LAN party. A URL the player typed or was
+invited to is never filtered.
+
 ## Exports and imports
 
 | Function | What it does |
