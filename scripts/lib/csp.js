@@ -6,9 +6,12 @@
 //   worker-src   'self' (the service worker) and blob: (the routing and cable workers are made from the page's code)
 //   connect-src  'self' (version.json, servers.json, puzzles, dictionaries), wss: (any Multimode server, by design),
 //                ws://*.localhost:* (a relay on the developer's machine, §9.1) and the counter's collector
-//   object-src 'none', base-uri 'none'
-// Styles, fonts and images stay open: Google Fonts and inline style attributes are used everywhere, and none of them
-// can run code. The hashes must be taken from the final page, so the build adds the tag last (scripts/build.js).
+//   default-src  'self': anything not named below (the manifest, media) from the site only
+//   style-src    'self', 'unsafe-inline' (style attributes and the page's <style> are everywhere; styles run no code)
+//                and Google Fonts' stylesheet; font-src its font files
+//   img-src      'self' (icons), data: (the share card, inline SVG in CSS) and the counter's collector (a pixel)
+//   object-src, frame-src, form-action 'none' (no plugin, no frame; the one form is handled in the page), base-uri 'none'
+// The hashes must be taken from the final page, so the build adds the tag last (scripts/build.js).
 const crypto = require('node:crypto');
 
 const STATS = 'https://stats.seriesoftub.es';
@@ -31,10 +34,16 @@ const sha = (s) => `'sha256-${crypto.createHash('sha256').update(s, 'utf8').dige
 function policy(html) {
   const counter = counterOf(html);
   return [
+    "default-src 'self'",
     `script-src 'self' ${[...new Set(inlineScripts(html).map(sha))].join(' ')}${counter ? ' ' + counter : ''}`,
     "worker-src 'self' blob:",
     `connect-src 'self' wss: ws://*.localhost:* ${STATS}`,
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src https://fonts.gstatic.com",
+    `img-src 'self' data: ${STATS}`,
     "object-src 'none'",
+    "frame-src 'none'",
+    "form-action 'none'",
     "base-uri 'none'",
   ].join('; ');
 }

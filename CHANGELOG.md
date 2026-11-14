@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- The game page's security policy is tighter: besides scripts and connections it now also limits where styles, fonts and images may come from, and allows no frames and no form submissions.
 - AI agents playing through the MCP server are now told about every piece of text other players or server operators wrote in a tool result (names, server descriptions, AI setup names, server error codes), in every kind of result and also before joining.
 - In Multimode, look-alike names are easier to tell apart: networks and servers whose names read the same are marked "same name as…", every ASN on the boards, in the looking glass and in deal sheets comes with a short key fingerprint, and hidden characters no longer show in any name or server description.
 - In the Multimode looking glass, an AI-played network now shows as an AI player instead of "undefined · undefined".
