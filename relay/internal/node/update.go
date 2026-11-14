@@ -24,6 +24,7 @@ type updState struct {
 	gh       *update.Feed // the last GitHub release read while relay.json could not be (memory only)
 	ghNext   int64        // GitHub is not asked again before this (after a 403 or 429)
 	ghBack   int64        // the current back-off after a 403 or 429, seconds
+	ghBusy   bool         // a GitHub request is under way: checks meanwhile do not ask again
 	hint     *update.Hint // the update this node should get, nil when none
 	warned   int64        // when the log last said so
 	notified string       // the version notifyURL was told of (kept in update.json)
@@ -119,7 +120,8 @@ func (r *Relay) releasesURL() string {
 func (r *Relay) checkReleases() {
 	now := r.now()
 	r.mu.Lock()
-	wait := now < r.upd.ghNext
+	wait := now < r.upd.ghNext || r.upd.ghBusy
+	r.upd.ghBusy = !wait
 	r.mu.Unlock()
 	if wait {
 		return
@@ -127,6 +129,7 @@ func (r *Relay) checkReleases() {
 	f, err := update.FetchRelease(r.ctx, r.o.HTTPClient, r.releasesURL(), r.version(), time.Unix(now, 0))
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.upd.ghBusy = false
 	var lim *update.LimitedError
 	switch {
 	case errors.As(err, &lim):
