@@ -49,14 +49,14 @@ const FRAME=[],MAP_MOVING=0,MAP_AMBIENT=1,MAP_STILL=2,AMB_MS=29;
 function mapStill(t,now){const sl=UI.sel,dr=UI.drag;
   const v=[t,cam.x,cam.y,cam.z,CW,CH,DPR,S,R,S&&S.day,S&&S.links.length,S&&S.offers.length,S&&S.inc.length,sl&&sl.type,sl&&sl.id,UI.hover,UI.snap&&UI.snap.id,dr&&dr.mode,dr&&dr.cx,dr&&dr.cy,FLOATS.length,UI.mk?UI.mk.tx:0,UI.mk?UI.mk.mood:0,zoomMoving()];
   let same=v.length===FRAME.length,clock=same&&FRAME[0]!==v[0];for(let i=0;i<v.length;i++)if(FRAME[i]!==v[i]){if(i)clock=false;same=false;FRAME[i]=v[i];}
-  if(!(glOn()||WL.cv&&WL.key===(cam.z*DPR).toFixed(4)&&wlCovers(cam.z)))return MAP_MOVING;
+  if(!(glOn()||WL.cv&&WL.key===wlKey(cam.z)&&wlCovers(cam.z)))return MAP_MOVING;
   return same?(now-(UI.drawnAt||0)<1000?MAP_STILL:MAP_MOVING):clock?MAP_AMBIENT:MAP_MOVING;}
 function tickErr(e){console.error('[tubes] tick failed',e);if(UI.tickErr)return;UI.tickErr=true;track('tick_error',true);
   toast(tr('loop.something_in_the_noc_glitched_the'),'bad');}
 function boot(data){
   i18nDom();
   try{UI.muted=localStorage.getItem('sot-mute')==='1';UI.anim=localStorage.getItem('sot-anim')||'auto';}catch(e){}
-  applyAnim();
+  applyAnim();themeBoot();
   if(data&&data.S){S=migrate(data.S);UI.started=true;if(data.cam)Object.assign(cam,data.cam);compute();renderAll();}
   else{const sv=UI.slot?loadSave():null,stamp=sv&&sv.sv;if(sv)delete sv.sv;
     let okSave=false;if(sv){try{S=migrate(sv);compute();okSave=true;}catch(e){console.error('[tubes] loading the network failed',e);S=null;UI.started=false;}}

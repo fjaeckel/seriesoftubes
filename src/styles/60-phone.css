@@ -2,16 +2,16 @@
    A decluttered, app-like layout: a one-row status strip at the top, a tab bar at the bottom
    (play, speed, goals, deals, NOC, networks), and bottom sheets you drag up, down or away. */
 html,body{overscroll-behavior:none}
-.dtabs{position:sticky;top:-12px;z-index:3;display:flex;gap:6px;overflow-x:auto;margin:10px -4px 4px;padding:8px 4px;background:var(--paper);border-bottom:2.5px solid var(--ink);scrollbar-width:none}
-.dtabs button{flex:0 0 auto;font:800 13px Nunito,sans-serif;border:2.5px solid var(--ink);border-radius:999px;background:#fff;padding:5px 12px;cursor:pointer;color:var(--ink)}
+.dtabs{position:sticky;top:-12px;z-index:3;display:flex;gap:6px;overflow-x:auto;margin:10px -4px 4px;padding:8px 4px;background:var(--paper);border-bottom:2.5px solid var(--edge);scrollbar-width:none}
+.dtabs button{flex:0 0 auto;font:800 13px Nunito,sans-serif;border:2.5px solid var(--edge);border-radius:999px;background:#fff;padding:5px 12px;cursor:pointer;color:var(--ink)}
 .dtabs button.on{background:var(--pink,#FF4F9A);color:#fff}
 .dtabs .cnt{display:inline-block;margin-left:5px;min-width:16px;padding:0 4px;border-radius:8px;background:var(--bad);color:#fff;font-size:10.5px;line-height:16px;text-align:center}
-.pcard{border:2.5px solid var(--ink);border-radius:14px;padding:8px 10px;margin:0 0 10px;background:#FFF6CF}
+.pcard{border:2.5px solid var(--edge);border-radius:14px;padding:8px 10px;margin:0 0 10px;background:#FFF6CF}
 .pcard .pt{font-weight:900;font-size:15px;margin:1px 0 2px}.pcard .kv{margin-top:5px}.pcard .bar{margin-top:2px}
 .pcard.lv{background:#EAF6FF}
-.pitch{list-style:none;padding:0;margin:10px 0}.pitch li{margin:7px 0;line-height:1.38;font-size:14px}.pitch li.warn{background:#FFF4D6;border:2px solid var(--ink);border-radius:10px;padding:6px 8px}
+.pitch{list-style:none;padding:0;margin:10px 0}.pitch li{margin:7px 0;line-height:1.38;font-size:14px}.pitch li.warn{background:#FFF4D6;border:2px solid var(--edge);border-radius:10px;padding:6px 8px}
 .isteps{padding-left:22px;margin:8px 0 4px}.isteps li{margin:5px 0;line-height:1.38;font-size:14px}.isteps svg{vertical-align:-3px}
-.icard{margin:8px 0 10px;border:2.5px solid var(--ink);border-radius:14px;padding:8px 10px;background:#FFF4D6}
+.icard{margin:8px 0 10px;border:2.5px solid var(--edge);border-radius:14px;padding:8px 10px;background:#FFF4D6}
 /* iPhone home-screen app with a viewport shorter than the screen: the page box takes the real screen height
    and becomes the containing block for everything fixed, so bottom-anchored UI reaches the bottom. */
 html.iosfix,html.iosfix body{height:var(--app-h)}
@@ -28,7 +28,7 @@ button,.chip,.b,a{touch-action:manipulation;-webkit-tap-highlight-color:transpar
   #hud .chip .lbl{font-size:8.5px;letter-spacing:.05em}
   #hud .cashbtn{flex:0 1 auto}
   #leftToggle{display:none !important}
-  #tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:9;height:var(--tabbar);padding:6px max(6px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(6px,env(safe-area-inset-left,0px));background:var(--paper);border-top:3px solid var(--ink);box-sizing:border-box;gap:2px;align-items:stretch}
+  #tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:9;height:var(--tabbar);padding:6px max(6px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(6px,env(safe-area-inset-left,0px));background:var(--paper);border-top:3px solid var(--edge);box-sizing:border-box;gap:2px;align-items:stretch}
   #tabbar button{flex:1 1 0;min-width:0;border:0;background:transparent;border-radius:12px;font:inherit;font-weight:900;font-size:10.5px;color:var(--ink2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:2px 0;position:relative}
   #tabbar button .ic{font-size:19px;line-height:1.05;color:var(--ink)}
   #tabbar button.on{background:var(--soft);color:var(--ink)}
@@ -37,7 +37,7 @@ button,.chip,.b,a{touch-action:manipulation;-webkit-tap-highlight-color:transpar
   #tabbar .cnt{position:absolute;top:2px;right:calc(50% - 22px);min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--me);color:#fff;font-size:10px;line-height:16px;box-sizing:border-box}
   #tabbar .cnt.red{background:var(--bad)}
   #tabbar .cnt.dot{min-width:0;width:10px;height:10px;padding:0;top:6px;right:calc(50% - 16px)}
-  #left,#panel{top:auto !important;left:0 !important;right:0 !important;width:auto !important;bottom:var(--tabbar) !important;max-height:min(62%,calc(100% - var(--tabbar) - 70px)) !important;border-radius:20px 20px 0 0 !important;border-bottom:0 !important;box-shadow:0 -3px 0 var(--ink) !important;transition:max-height .22s ease,transform .22s ease;z-index:7}
+  #left,#panel{top:auto !important;left:0 !important;right:0 !important;width:auto !important;bottom:var(--tabbar) !important;max-height:min(62%,calc(100% - var(--tabbar) - 70px)) !important;border-radius:20px 20px 0 0 !important;border-bottom:0 !important;box-shadow:0 -3px 0 var(--edge) !important;transition:max-height .22s ease,transform .22s ease;z-index:7}
   #left.full,#panel.full{max-height:calc(100% - var(--tabbar) - 56px - env(safe-area-inset-top,0px)) !important}
   #left.closed{display:none}
   .grab{display:block;height:22px;flex:0 0 22px;cursor:grab;touch-action:none;position:relative}
@@ -48,7 +48,7 @@ button,.chip,.b,a{touch-action:manipulation;-webkit-tap-highlight-color:transpar
   .ph .eyebrow{font-size:10px}
   #panel .tags,#panel .ph .btns{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
   #toasts{top:calc(env(safe-area-inset-top,0px) + 54px) !important;bottom:auto !important;width:calc(100% - 16px) !important;flex-direction:column !important;pointer-events:auto}
-  .toast{pointer-events:auto;padding:6px 10px;border-width:2.5px;box-shadow:2px 2px 0 var(--ink);border-radius:12px}
+  .toast{pointer-events:auto;padding:6px 10px;border-width:2.5px;box-shadow:2px 2px 0 var(--edge);border-radius:12px}
   .toast .tx{font-size:12px;line-height:1.3}
   .toast .tx b{font-size:12.5px}
   #hint{top:auto !important;bottom:calc(var(--tabbar) + 10px) !important}
@@ -100,7 +100,7 @@ button,.chip,.b,a{touch-action:manipulation;-webkit-tap-highlight-color:transpar
   .brand .val{font-size:16px}
   .hide-sm{display:none !important}
   #hud{gap:6px}
-  .chip{min-height:34px;padding:2px 7px;border-width:2.5px;box-shadow:2px 2px 0 var(--ink);border-radius:11px}
+  .chip{min-height:34px;padding:2px 7px;border-width:2.5px;box-shadow:2px 2px 0 var(--edge);border-radius:11px}
   .chip .val{font-size:14px}
   .chip .sub{font-size:10px}
   .brand .tube{width:22px;height:22px}
@@ -116,7 +116,7 @@ button,.chip,.b,a{touch-action:manipulation;-webkit-tap-highlight-color:transpar
   .ph h2{font-size:22px}
   #hint{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 70px)}
   #toasts{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 112px);flex-direction:column;width:calc(100% - 24px)}
-  .toast{padding:6px 10px;border-width:2.5px;box-shadow:2px 2px 0 var(--ink)}
+  .toast{padding:6px 10px;border-width:2.5px;box-shadow:2px 2px 0 var(--edge)}
   .toast .tx{font-size:12px}
   .toast .tx b{font-size:13px}
 }

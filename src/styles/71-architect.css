@@ -1,5 +1,5 @@
 /* Architect runs (prototype): the brief, its sites, the review line */
-.arsteps{display:flex;gap:4px;margin:4px 0 6px}.arsteps i{flex:1;height:7px;border:2px solid var(--ink);border-radius:99px;background:#fff}
+.arsteps{display:flex;gap:4px;margin:4px 0 6px}.arsteps i{flex:1;height:7px;border:2px solid var(--edge);border-radius:99px;background:#fff}
 .arsteps i.done{background:var(--ok)}.arsteps i.on{background:#FFD23F}
 .arbrief{margin:2px 0 8px;font-size:14.5px;font-weight:800;line-height:1.35}
 .arsites{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0 6px}

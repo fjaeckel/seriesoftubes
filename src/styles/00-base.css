@@ -2,6 +2,8 @@
 :root{
   --sea:#57C4E5; --sea2:#3AA6CF; --wave:#9BE2F2; --land:#9BDA6C; --land2:#7FC455; --sand:#F8E6A8;
   --ink:#1E2640; --ink2:#55608A; --paper:#FFFFFF; --soft:#EEF5FB; --line:#D5DEEC;
+  /* Outlines and shadows (--edge) stay dark in dark mode, and so does text on a bright fill (--on): 98-dark.css. */
+  --edge:#1E2640; --on:#1E2640;
   --me:#FF4F9A; --sun:#FFD23F; --ok:#22C47A; --warn:#FFAA1F; --bad:#FF4D5E;
   --t1:#7B61FF; --t2:#2F8CFF; --cdn:#FF8A3D; --eye:#16A866;
   --display:'Baloo 2','Trebuchet MS',system-ui,sans-serif;
@@ -25,5 +27,5 @@ button{font:inherit;color:inherit}
 :focus-visible{outline:3px solid var(--me);outline-offset:2px}
 
 /* sticker surfaces */
-.card{background:var(--paper);border:3px solid var(--ink);border-radius:18px;box-shadow:4px 4px 0 var(--ink)}
+.card{background:var(--paper);border:3px solid var(--edge);border-radius:18px;box-shadow:4px 4px 0 var(--edge)}
 
