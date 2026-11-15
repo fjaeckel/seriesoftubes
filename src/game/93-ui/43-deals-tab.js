@@ -7,7 +7,8 @@ const DL_PG=5,DL_SOON=5,DL_SECS=['seat','conf','lvl'];
 function dlState(){if(!UI.dl)UI.dl={f:'all',n:DL_PG,open:{}};return UI.dl;}
 const dlOpen=k=>!!dlState().open[k];
 // An offer's state: 2 ready to sign as it is, 1 signable but a requirement is not met yet, 0 needs a POP first.
-const dlSt=o=>!bHas(o)?0:reqOk(o)?2:1;
+// (an orbit offer the sky cannot deliver yet can be signed, but it is not ready: it needs work in orbit first)
+const dlSt=o=>!bHas(o)?0:reqOk(o)&&!pieOfferWhy(o)?2:1;
 // What the tab bar counts, worked out once per routing and day (requirements can walk the network): offers you can sign
 // today and haggles waiting for an answer; red while customers are unhappy.
 function dealsBadge(){let m=UI._dlb;const hg=clHags(),red=custStats().unhappy>0;
@@ -22,15 +23,16 @@ function dlCust(st){return `<div class="row dl-cust"><div class="grow"><div clas
 // One offer: name and a countdown, what and where, one line of state, and the buttons. Unmet requirements, the buy-and-sign
 // button and risks stay in sight; the rest (who referred them, why they called, requirements already met) is a tap away.
 function dlOffer(o,s){const k='o:'+o.id,op=dlOpen(k),left=o.exp-S.day,n=(o.reqs||[]).length,miss=bCities(o).filter(x=>!S.pops[x]);
+  const sky=pieOfferWhy(o),un=(o.reqs||[]).filter(q=>REQS[q]&&!REQS[q].ok(o)).length;
   const more=(o.refN?`<div class="meta">${tr('lifecycle.referred_by',{name:esc(o.refN)})}</div>`:'')+spotWhy(o)+(s===2?reqList(o):'');
   const tog=lab=>`<button class="dl-tg${s===2?' dl-st ok':' b ghost sm'}" data-act="dealsFold" data-args="${esc(JSON.stringify({k,o:op?0:1}))}" aria-expanded="${op}">${op?'▾':'▸'} ${lab}</button>`;
   // Ready: the state sits next to the buttons, and is what unfolds the fine print.
   const st=s===2?`✓ ${tr('deals.ready_to_sign')}${n?` · ${trn('hud_and_panels.n_special_requirement',n)}`:''}`:'';
   const line=s===0?`<div class="dl-st bad">${tr('hud_and_panels.needs_a_pop_in_cities',{cities:miss.map(x=>CITY[x].name).join(', ')})}</div>`
-    :s===1?`<div class="dl-st warn">${trn('deals.n_requirements_not_met',(o.reqs||[]).filter(q=>REQS[q]&&!REQS[q].ok(o)).length)}</div>${reqList(o)}${reqFixHtml(o)}`:'';
+    :s===1&&un?`<div class="dl-st warn">${trn('deals.n_requirements_not_met',un)}</div>${reqList(o)}${reqFixHtml(o)}`:'';
   return `<div class="row dl-o"><div class="grow"><div class="nm">${esc(o.name)} <span class="dl-d${left<=DL_SOON?' soon':''}">${tr('ui.n_d_left',{n:left})}</span></div>
-    <div class="meta">${esc(BIZ_T[o.type].l)} · ${CITY[o.city].name}${o.city2?' ⇄ '+CITY[o.city2].name:''} · <b>${bTerms(o)}</b></div>${line}${bRisk(o)}${op?more:''}
-    <div class="btns">${s?btn(tr('common.accept'),'accept',{id:o.id},'green sm'):btn(tr('common.go_there'),'focusCity',{city:miss[0]},'ghost sm')}${btn(tr('common.decline'),'decline',{id:o.id},'ghost sm')}${s===2?(more?tog(st):`<span class="dl-st ok">${st}</span>`):more?tog(tr('noc.details')):''}</div></div></div>`;}
+    <div class="meta">${esc(BIZ_T[o.type].l)} · ${CITY[o.city].name}${o.city2?' ⇄ '+CITY[o.city2].name:''} · <b>${bTerms(o)}</b></div>${line}${sky}${bRisk(o)}${op?more:''}
+    <div class="btns">${s?btn(tr('common.accept'),'accept',{id:o.id},sky?'ghost sm':'green sm'):btn(tr('common.go_there'),'focusCity',{city:miss[0]},'ghost sm')}${btn(tr('common.decline'),'decline',{id:o.id},'ghost sm')}${s===2?(more?tog(st):`<span class="dl-st ok">${st}</span>`):more?tog(tr('noc.details')):''}</div></div></div>`;}
 function dlOffers(){const D=dlState(),all=S.offers.map(o=>[o,dlSt(o)]).sort((a,b)=>b[1]-a[1]||a[0].exp-b[0].exp);
   if(!all.length)return `<p class="empty">${S.biz.length?tr('hud_and_panels.no_open_offers_right_now_businesses'):tr('deals.no_offers_yet')}</p>`;
   const rd=all.filter(x=>x[1]===2).length,f=all.length>DL_PG?D.f:'all',rows=f==='ready'?all.filter(x=>x[1]===2):f==='work'?all.filter(x=>x[1]<2):all;

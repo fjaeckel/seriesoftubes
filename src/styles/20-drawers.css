@@ -66,6 +66,8 @@ section h3{font-size:17px;margin-bottom:6px;display:flex;align-items:center;gap:
 .row:first-of-type{border-top:none}
 .row .grow{flex:1;min-width:0}
 .row .nm{font-weight:800;font-size:13.5px;line-height:1.2}
+.row.hi{background:var(--soft);box-shadow:0 0 0 2px var(--me) inset;border-radius:10px;padding-left:8px;padding-right:8px}
+.row .grow>.btns{margin-top:4px}
 .row .meta{font-size:11.5px;color:var(--ink2);line-height:1.3}
 .btns{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
 .why{font-size:11px;color:#B23A48;font-weight:700;margin-top:3px;line-height:1.3}

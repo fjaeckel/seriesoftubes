@@ -33,11 +33,12 @@ const pieSkyMs=(km,alt)=>2*(alt/PIE_C+PIE_HOP)+km*(PIE_RE+alt)/PIE_RE/PIE_C;
 const pieLandOk=(ca,dc)=>!(pieSpatHome(ca)&&dc!==ca)&&!pieAirBlock(ca,dc);
 /* Where a terminal customer in city c lands: {k (index in ds), cr, left} or null. ds: dishes with .ok (on the backbone).
    The nearest dish with room left (for all of bw if any has it) that a crust over c with room left also covers: within PIE_BENT km (bent pipe, any dish), else with lasers on that
-   crust any dish on the backbone. Some customers need lasers (flywifi, marsorb: T.las). cr: what each crust has left (none: no limit). */
-function pieLand(c,t,ds,hubs,bw=0,cr=null){const T=BIZ_T[t],cc=CITY[c].cc;let best=null,bk=Infinity;
+   crust any dish on the backbone. Some customers need lasers (flywifi, marsorb: T.las). cr: what each crust has left (none: no limit).
+   Between crusts that land it as well, the one with most room left: overflow fills an idle crust, not the polar one far north depends on. */
+function pieLand(c,t,ds,hubs,bw=0,cr=null){const T=BIZ_T[t],cc=CITY[c].cc;let best=null,bk=Infinity,bl=-1;
   for(const id of hubs){if(!pieCovers(id,c))continue;const las=pieLased(id);if(T.las&&!las)continue;const cl=cr&&id in cr?cr[id]:Infinity;if(!(cl>0))continue;
     for(let k=0;k<ds.length;k++){const d=ds[k];if(!pieCovers(id,d.city)||!pieLandOk(cc,d.cc))continue;const km=c===d.city?0:pieKm(c,d.city),left=Math.min(d.left,cl);
-      if(d.left>0&&(km<=PIE_BENT||(las&&d.ok))){const v=km+(d.ok?0:1)+(left<bw?1e6:0);if(v<bk){bk=v;best={k,cr:id,left};}}}}
+      if(d.left>0&&(km<=PIE_BENT||(las&&d.ok))){const v=km+(d.ok?0:1)+(left<bw?1e6:0);if(v<bk||v===bk&&cl>bl){bk=v;bl=cl;best={k,cr:id,left};}}}}
   return best;}
 function pieGraph(adj,edges,COMP,pops,NE){const NC=CITIES.length,hubs=pieHubs(),ds=pieDishes();
   const X={hubs,ds,term:{},gs:{},gsBw:{},cr:{},isl:[],l2o:{},l2p:{},up:[],ne:NE,adj,nc:NC,sk:[],bh:[],bhNo:[],res:{},main:-1};
@@ -150,8 +151,8 @@ function pieFiberMs(f){const P=R&&R.pie,x=P&&P._x;if(!x||!f||f.k!=='c')return In
   const Ai=CIDX[f.a],Bi=CIDX[f.b],r=dijkstra(x.adj,Ai,e=>e.lat+0.05,(v,e)=>!!e.sky||!!e.bh,Bi);let ms=Infinity;
   if(r.D[Bi]<Infinity){const w=walkI(r.P,Ai,Bi);ms=w.path.reduce((a,e)=>a+e.lat,0)+w.path.length*0.05;}return x.fm[f.id]=ms;}
 // What the network could sell from orbit today (offers, F3 spirit): a city that a baked crust with room left covers and a
-// dish with room left can land; read from the last compute (R.pie), never computed here.
-function pieServe(c,t){if(!S.pie||!R||!R.pie)return null;const ds=pieDishes();if(!ds.length)return null;const isl=new Set(R.pie.isl);for(const d of ds){d.ok=!isl.has(d.city);d.left=d.g-(R.pie.term[d.city]||0);}
-  const cr={};for(const x of R.pie.crust||[])cr[x.id]=x.cap-x.used;return pieLand(c,t,ds,R.pie.hubs.filter(pieUp),0,cr);}
+// dish with room left can land; read from the last compute (R.pie), never computed here. bw: prefer a landing with that much room.
+function pieServe(c,t,bw=0){if(!S.pie||!R||!R.pie)return null;const ds=pieDishes();if(!ds.length)return null;const isl=new Set(R.pie.isl);for(const d of ds){d.ok=!isl.has(d.city);d.left=d.g-(R.pie.term[d.city]||0);}
+  const cr={};for(const x of R.pie.crust||[])cr[x.id]=x.cap-x.used;return pieLand(c,t,ds,R.pie.hubs.filter(pieUp),bw,cr);}
 // Book what orbit earned, day by day.
 PIE_ON.day.push(()=>{if(R&&R.pie&&R.pie.rev>0)S.pie.book.earned+=R.pie.rev/30;});

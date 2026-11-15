@@ -11,6 +11,8 @@
 .pft-list{display:flex;flex-direction:column;gap:6px}
 .pft-row{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:6px 10px;border:2px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);font:inherit;text-align:left;cursor:pointer;box-sizing:border-box}
 .pft-row.on{border-color:var(--me);box-shadow:0 0 0 2px var(--me) inset}
+.pft-acts{display:none;margin:-2px 0 4px;flex-wrap:wrap;gap:6px}
+.pft-row.on+.pft-acts{display:flex}
 .pft-ic{font-size:20px;flex:none}
 .pft-m{flex:1;min-width:0;display:flex;flex-direction:column}
 .pft-m b,.pft-m small,.pft-n small{overflow-wrap:anywhere}

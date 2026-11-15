@@ -38,17 +38,23 @@ function pieFullWhy(c,Q){const x=S.pie.dishes.find(y=>y.city===c);if(x&&pieAntLe
   const a=pieNearAnt(c,Q),p=pieNearPop(c,Q);return a?tr('pie_fix.dish_full_top',{city:pieCn(a)}):p?tr('pie_fix.dish_full_near',{city:pieCn(p)}):tr('pie_fix.dish_full_none',{km:PIE_BENT.toLocaleString()});}
 const pieFixGo=c=>btn(tr('pie_fix.open_city',{city:pieCn(c)}),'pieGo',{city:c},'ghost sm');
 const pieFixSee=c=>S.pie.dishes.some(x=>x.city===c)?btn(tr('pie_traffic.a_dish'),'pieDishGo',{city:c},'ghost sm'):'';
+// What keeps orbit customer b short, grouped by its fix: {g group key, k kind, c city, near}.
+function pieShort(b,Q){const gs=Q.gs[b.id];
+  // A dish with room left did not limit it: the crusts over it ran out.
+  if(gs)return sfOf(R,gs)<0.95?{g:'f:'+gs,k:'fiber',c:gs}:(Q.load[gs]||0)<PIE_FULL?{g:'s:'+gs,k:'skyfull',c:gs}:{g:'a:'+gs,k:'ant',c:gs};
+  if(!Q.hubs.some(id=>pieCovers(id,b.city)))return {g:'nocrust',k:'nocrust'};
+  const p=pieNearPop(b.city,Q);return p?{g:'d:'+p,k:'dish',c:p,near:b.city}:{g:'far:'+b.city,k:'far',c:b.city};}
+// The same, as a sentence for the customer's card and the unhappy toast.
+function pieShortWhy(b){const Q=R&&R.pie;if(!Q||!Q.sf)return '';const w=pieShort(b,Q),c=w.c&&CITY[w.c]?CITY[w.c].name:'',km=PIE_BENT.toLocaleString();
+  return w.k==='fiber'?tr('pie_fix.why_fiber',{city:c}):w.k==='skyfull'?tr('pie_fix.why_skyfull',{city:c}):w.k==='ant'?tr('pie_fix.why_ant',{city:c})
+    :w.k==='dish'?tr('pie_fix.why_dish',{city:c,km}):w.k==='far'?tr('pie_fix.why_far',{km}):tr('pie_fix.why_nocrust');}
 // Worked out once per compute, cash, day and Tier 1 state: the tab badge, the overview and the list all ask for it.
 let PIE_FX=null;
 function pieFixes(Q){const can=pieCanBuild();if(PIE_FX&&PIE_FX.Q===Q&&PIE_FX.cash===S.cash&&PIE_FX.day===S.day&&PIE_FX.can===can)return PIE_FX.o;const o=pieFixList(Q);PIE_FX={Q,cash:S.cash,day:S.day,can,o};return o;}
 function pieFixList(Q){const P=S.pie,o=[],fly=btn(tr('pie_fix.to_launch'),'pieTab',{t:'crust'},'ghost sm');
   // Starved terminal customers, grouped by what would fix them.
   const grp=new Map(),add=(k,lack,v)=>{const g=grp.get(k)||{...v,n:0,lack:0};g.n++;g.lack+=lack;grp.set(k,g);};
-  for(const b of S.biz){if(!BIZ_T[b.type].orbit)continue;const s=Q.sf[b.id]||0;if(s>=0.95)continue;const lack=b.bw*(1-s),gs=Q.gs[b.id];
-    // A dish with room left did not limit it: the crusts over it ran out.
-    if(gs){if(sfOf(R,gs)<0.95)add('f:'+gs,lack,{k:'fiber',c:gs});else if((Q.load[gs]||0)<PIE_FULL)add('s:'+gs,lack,{k:'skyfull',c:gs});else add('a:'+gs,lack,{k:'ant',c:gs});continue;}
-    if(!Q.hubs.some(id=>pieCovers(id,b.city))){add('nocrust',lack,{k:'nocrust'});continue;}
-    const p=pieNearPop(b.city,Q);if(p)add('d:'+p,lack,{k:'dish',c:p,near:b.city});else add('far:'+b.city,lack,{k:'far',c:b.city});}
+  for(const b of S.biz){if(!BIZ_T[b.type].orbit)continue;const s=Q.sf[b.id]||0;if(s>=0.95)continue;const w=pieShort(b,Q);add(w.g,b.bw*(1-s),w);}
   for(const g of grp.values()){const lk=fmtG(g.lack),x={k:g.k,w:1,lack:g.lack,c:g.c||g.near};
     if(g.k==='fiber')o.push({...x,ic:'🧵',t:tr('pie_fix.fiber_t',{city:pieCn(g.c)}),h:trn('pie_fix.fiber_h',g.n,{lack:lk,sf:pct(sfOf(R,g.c)),city:pieCn(g.c)}),b:pieFixGo(g.c)});
     else if(g.k==='ant')o.push({...x,ic:'📡',t:tr('pie_fix.ant_t',{city:pieCn(g.c)}),h:trn('pie_fix.ant_h',g.n,{lack:lk}),b:pieFixMore(g.c,Q)+pieFixSee(g.c)});
