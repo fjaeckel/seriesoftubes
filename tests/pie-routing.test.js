@@ -260,3 +260,20 @@ test('Bottlenecks blame the crusts, not a dish with room, and offer antennas on 
   assert.match(ev("pieFullWhy('lon',R.pie)"), /Frankfurt/);
   assert.deepEqual(errors, []);
 });
+
+test('overflow lands under the crust with most room, keeping the polar crust for the far north', () => {
+  const { ev, errors } = load();
+  world(ev);
+  ev("for(const id of ['frozen','flaky'])S.pie.crusts[id].cohorts=[{n:CRUSTS[id].full,day:S.day,las:true}];CRUSTS.short.g=60;CRUSTS.frozen.g=100;compute()");
+  for (const id of ['a', 'b', 'c']) term(ev, id, 'lon', 'pizza', 50);
+  term(ev, 'p', 'brw', 'pizza', 100);
+  assert.equal(ev("R.pie.crust.find(c=>c.id==='frozen').used"), 100, 'only Utqiagvik rides the polar crust');
+  assert.ok(ev('R.pie.sf.p') > 0.95, `Utqiagvik served in full (${ev('R.pie.sf.p')})`);
+  // A polar crust too small even for the far north: the customer's card says where it lands and what is full.
+  ev("CRUSTS.frozen.g=50;compute()");
+  assert.ok(ev('R.pie.sf.p') < 0.95);
+  assert.match(ev("bizWhy(S.biz.find(b=>b.id==='p'))[0]"), /getting only .* they pay for\. They land at .*, but every crust over it is full/);
+  ev("S.pie.crusts.frozen.cohorts=[];compute()");
+  assert.match(ev("bizWhy(S.biz.find(b=>b.id==='p'))[0]"), /No crust over them carries traffic/);
+  assert.deepEqual(errors, []);
+});
