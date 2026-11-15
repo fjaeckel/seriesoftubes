@@ -6,14 +6,16 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
-- A Multimode server keeps its session with a neighbour that the registry turns into an automatic peer, instead of dropping it and reconnecting.
-- In dark mode, the cash amount at the top is readable again on iPhones, where it showed dark on the dark chip.
-- Joining a busy Multimode server no longer drops the reach you see: players who are Tier 1 themselves are left out of it, as they already were for Tier 1 and your customers, and the bank covenant that asks for 99% reach no longer breaks because of them.
-- Switching tabs in Pie Control now gives the globe back in full: a highlighted customer, backhaul or dish no longer keeps the rest dimmed and zoomed in.
-- Orbit customers now land under any crust over them that has room, instead of going short when the first one is full, and the sales desk stops selling under full crusts.
-- Pie Control's Bottlenecks list only what really costs you traffic: no more full dish or full crust while a neighbour has room, and a full crust shows the traffic it loses rather than its whole size. A full dish with all its antennas offers to fill up a dish nearby.
+## [4.3.0] — 2026-11-15
+
 - The NOC intern can now run your rocket launches: a new standing order books launches to keep your crusts at 60, 80 or 100% as old pies wear out, with its own monthly budget.
 - Pie dishes can be taken down, antennas and all, from Pie Control's Dishes tab, to free a slot under the 200-dish limit: the scrap dealer pays back a quarter of what they cost.
+- Orbit customers now land under any crust over them that has room, instead of going short when the first one is full, and the sales desk stops selling under full crusts.
+- Pie Control's Bottlenecks list only what really costs you traffic: no more full dish or full crust while a neighbour has room, and a full crust shows the traffic it loses rather than its whole size. A full dish with all its antennas offers to fill up a dish nearby.
+- Joining a busy Multimode server no longer drops the reach you see: players who are Tier 1 themselves are left out of it, as they already were for Tier 1 and your customers, and the bank covenant that asks for 99% reach no longer breaks because of them.
+- Switching tabs in Pie Control now gives the globe back in full: a highlighted customer, backhaul or dish no longer keeps the rest dimmed and zoomed in.
+- In dark mode, the cash amount at the top is readable again on iPhones, where it showed dark on the dark chip.
+- A Multimode server keeps its session with a neighbour that the registry turns into an automatic peer, instead of dropping it and reconnecting.
 
 ## [4.2.1] — 2026-11-15
 
