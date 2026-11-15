@@ -6,10 +6,9 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
-- Space pauses the game again after you click a button, instead of pressing that button a second time; a button you reach with Tab still presses with Space (#381).
-- Time keeps running while Pie Control is open, and the panel keeps up with each day without jumping back to the top (#376).
-- A circuit that routing sends through orbit now says so: its customer row and the "Move to another path" dialog show the pie crust it crosses, and the fiber path it would otherwise take is offered as a move, so pinning it really takes the circuit off orbit (#379).
-- Launching pies no longer wrecks low-latency circuits that your fiber already carried: a circuit only flies through orbit when the dishes have room for all of it, and otherwise stays on its fiber (#380).
+## [4.2.0] — 2026-11-15
+
+- Dark mode: Settings has a Theme choice, Light (still the default), Dark, or Auto to follow your device, which darkens the panels and the map's sea and land (#80).
 - Lasers are now research: once it is done, every pie you launch has them, and launches past a crust's size replace its pies without lasers. Games that already flew lasered pies keep the research (#374).
 - Rocket companies can grow: the pie factory takes up to six production lines and a launch pad up to three towers, each flying its own rocket. Lines and pads can be closed again for a quarter of what they cost, and one tap queues a launch for every free tower (#374).
 - Two new research projects move pie dishes to the V band and then the E band, doubling and doubling again what each antenna carries; dishes are upgraded antenna by antenna, and rain hurts higher bands more (#374).
@@ -17,7 +16,10 @@ All notable changes to this project are documented here. The project follows
 - Pie Control is wider and laid out like the NOC dashboard, with a tab for each thing you run: an overview, bottlenecks with the button that fixes each one, crusts, dishes by country or by load, orbit customers shown on the globe, and the company. Launch options such as insurance now stay set in your save (#374).
 - The NOC's optical upgrades now also act when buyers on the capacity market want waves a full fiber cannot sell: a fiber a carrier rides gets bigger optics, and one nobody rides gets the next line system where your traffic gets around it (#347).
 - A queued rocket launch can be called off before its day: its pies go back on the shelf, and you get all your money back the day you booked it, or half later (#365).
-- Dark mode: Settings has a Theme choice, Light (still the default), Dark, or Auto to follow your device, which darkens the panels and the map's sea and land (#80).
+- Space pauses the game again after you click a button, instead of pressing that button a second time; a button you reach with Tab still presses with Space (#381).
+- Time keeps running while Pie Control is open, and the panel keeps up with each day without jumping back to the top (#376).
+- A circuit that routing sends through orbit now says so: its customer row and the "Move to another path" dialog show the pie crust it crosses, and the fiber path it would otherwise take is offered as a move, so pinning it really takes the circuit off orbit (#379).
+- Launching pies no longer wrecks low-latency circuits that your fiber already carried: a circuit only flies through orbit when the dishes have room for all of it, and otherwise stays on its fiber (#380).
 
 ## [4.1.3] — 2026-11-14
 
