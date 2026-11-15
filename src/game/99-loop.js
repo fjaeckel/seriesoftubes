@@ -12,9 +12,9 @@ function frame(now){
   if(ANALYTICS.host&&S&&!S.lost&&UI.speed&&document.visibilityState==='visible'){UI.playMs=(UI.playMs||0)+dt;const m=UI.playMs/60000;for(const k of PLAY_MARKS)if(m>=k)track('play_'+k+'m',true);}
   if(S&&UI.started&&!S.lost&&now-(UI.lastSave||0)>5000)save();
   // The panels catch up on the frame after a day, so one frame does not carry both the day's simulation and them.
-  if(UI.panelsDue){NOC.dirty=true;UI.panelsDue=false;if(!pressing){renderPanel();renderLeft();if(!$('dash').hidden)renderDash();renderBank();}renderHint();}
+  if(UI.panelsDue){NOC.dirty=true;UI.panelsDue=false;if(!pressing){renderPanel();renderLeft();if(!$('dash').hidden)renderDash();renderBank();if(!$('modal').hidden&&$('modal').className==='pie')pieModal(true);}renderHint();}
   if(NOC.peer)nocPump(now);
-  if(S&&!S.lost&&$('modal').hidden&&UI.speed&&!pzOn())runClock(dt);
+  if(S&&!S.lost&&!modalStops()&&UI.speed&&!pzOn())runClock(dt);
   if((UI.speed||pzOn())&&!(S&&S.lost))animT+=dt; /* paused = frozen dots, waves and clouds */
   const t=animOn()?animT:0;
   if(!(UI.mapHid=mapHidden())){const st=mapStill(t,now);if(st!==MAP_STILL&&!(st===MAP_AMBIENT&&now-(UI.drawnAt||0)<AMB_MS)){
