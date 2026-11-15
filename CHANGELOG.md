@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The project follows
 
 - In dark mode, the cash amount at the top is readable again on iPhones, where it showed dark on the dark chip.
 - Joining a busy Multimode server no longer drops the reach you see: players who are Tier 1 themselves are left out of it, as they already were for Tier 1 and your customers, and the bank covenant that asks for 99% reach no longer breaks because of them.
+- Switching tabs in Pie Control now gives the globe back in full: a highlighted customer, backhaul or dish no longer keeps the rest dimmed and zoomed in.
 
 ## [4.2.1] — 2026-11-15
 

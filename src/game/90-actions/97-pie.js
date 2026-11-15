@@ -98,7 +98,10 @@ Object.assign(ACT,{
    a.bid=f;toast(tr('pie_gov.t_bid',{city:esc(CITY[a.city].name),mo:fmt$(Math.round(a.ask*f)),d:dateStr(a.close)}),'good');sfx('click');pieRe();},
  pieExim:()=>{const P=pieGet();if(!P||!P.co)return;if(!pieCanBuild())return pieNo(tr('pie.why_not_t1'));if(!pieEximTake())return pieRe();
    const l=pieEximLoan();toast(`<b>${tr('interface.amt_from_bank_has_landed',{amt:fmt$(l.amount),bank:esc(BANKS.exim.name)})}</b><br>${loanSummary(l)}`,'good');sfx('coin');pieRe();},
- pieTab:({t})=>{if(t==='gov')return ACT.pieGovOpen();if(typeof t!=='string')return;UI.pieTab=pieTabOf(t);pieModal();},
+ pieTab:({t})=>{if(t==='gov')return ACT.pieGovOpen();if(typeof t!=='string')return;const n=pieTabOf(t);
+  // A highlight or picked dish belongs to its tab: a new tab gets the whole globe back.
+  if(n!==UI.pieTab){if((UI.pieHi||UI.pieFocus)&&PG.cv)PG.goal={yaw:PG.yaw,tilt:PG.tilt,z:1};UI.pieHi=null;UI.pieFocus=null;}
+  UI.pieTab=n;pieModal();},
  pieHi:({id})=>{if(typeof id!=='string')return;sfx('click');pieHiSet(id);},
  piePadAll:()=>{UI.piePadAll=!UI.piePadAll;sfx('click');pieModal();},
  pieGo:({city})=>{if(!S||!isCity(city))return;closeModal();ACT.focusCity({city});},
