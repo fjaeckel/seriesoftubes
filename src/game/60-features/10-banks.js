@@ -46,7 +46,7 @@ const COVS={
  nogen:{l:tr('banks.no_diesel_generators_anywhere_our'),ok:()=>!Object.values(S.pops).some(p=>p.gen)},
  friday:{l:tr('banks.no_new_links_on_a_friday'),ok:l=>!S.links.some(x=>(x.day||0)>=l.start&&(x.day||0)%7===4)},
  nocache:{l:tr('banks.no_goggle_cache_boxes_our_chairman'),ok:()=>!S.caches.some(c=>c.net==='ggl')},
- reach99:{l:tr('banks.reach_99_of_the_internet_at'),ok:()=>(R.reach||0)>=0.99},
+ reach99:{l:tr('banks.reach_99_of_the_internet_at'),ok:()=>reachSolo()>=0.99},
  tier3:{l:tr('banks.stay_tier_3_number_go_up'),ok:()=>tierLabel()==='Tier 3'},
  nephew:{l:tr('banks.give_our_ceo_s_nephew_a'),fee:3000,ok:()=>true},
  yacht:{l:tr('banks.our_chairman_needs_a_yacht_for'),fee:8000,ok:()=>true},

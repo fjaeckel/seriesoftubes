@@ -15,7 +15,7 @@ function renderHUD(){
   $('hTraffic').textContent=`${fmtG(R.served)}`;
   $('hTrafBar').style.width=(R.demand?R.served/R.demand*100:0)+'%';
   $('hTrafBar').style.background=R.demand&&R.served/R.demand<0.9?'var(--bad)':'var(--ok)';
-  $('hReach').textContent=reachPct(R.reach);$('hReach').style.color=reachSolo()<0.99?'var(--bad)':'var(--eye)';
+  $('hReach').textContent=reachPct(reachSolo());$('hReach').style.color=reachSolo()<0.99?'var(--bad)':'var(--eye)';
   $('hTier').textContent=tierLabel()+' · '+tr('hud_and_panels.lv_n',{n:S.lvl||1});
   {const P=scnProg(),hs=$('hScn');hs.hidden=!P;if(P){const sc=S.scn;$('hScnVal').textContent=sc.done?tr('common.done'):sc.failed?tr('common.time_s_up'):`${Math.round(P.f*100)}% · ${tr('ui.n_d_left',{n:Math.max(0,sc.days-S.day)})}`;}}
   $('hDate').textContent=dateStr(S.day);
