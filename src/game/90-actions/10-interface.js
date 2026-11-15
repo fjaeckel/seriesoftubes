@@ -25,7 +25,6 @@ const ACT={
  dashLink:({id,bg})=>{if(!S.links.some(l=>l.id===id))return;if(!bg)$('dash').hidden=true;selectLink(id);focusLink(id);if(bg)renderDash();},
  dashPop:({city,bg})=>{if(!S.pops[city])return;if(!bg)$('dash').hidden=true;ACT.focusCity({city});UI.tab='links';renderPanel();if(bg)renderDash();},
  mapSet:({v})=>{if(!['auto','2d'].includes(v))return;mapGl(v==='auto');refreshSettings();},
- themeSet:({v})=>{if(!THEMES.includes(v))return;UI.theme=v;try{localStorage.setItem('sot-theme',v);}catch(e){}applyTheme();refreshSettings();},
  animSet:({v})=>{if(!['auto','on','off'].includes(v))return;UI.anim=v;try{localStorage.setItem('sot-anim',v);}catch(e){}applyAnim();refreshSettings();},
  soundSet:({v})=>{UI.muted=v==='off';try{localStorage.setItem('sot-mute',UI.muted?'1':'0');}catch(e){}renderHUD();refreshSettings();},
  langSet:({v})=>{if(!Object.hasOwn(LANGS,v)||v===LANG)return;try{localStorage.setItem('sot-lang',v);}catch(e){}save(true);location.reload();},

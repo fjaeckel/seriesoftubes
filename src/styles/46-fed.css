@@ -33,17 +33,17 @@
 .fu-typed input{flex:1;min-width:0}
 /* Chips (active filters, the filter sheet) always wrap: nothing in the boards scrolls sideways. */
 .fu-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
-.fu-chip{border:2px solid var(--edge);border-radius:999px;background:var(--paper);color:var(--ink);font:inherit;font-weight:800;font-size:13px;line-height:1.2;padding:5px 12px;cursor:pointer;min-height:34px;max-width:100%;text-align:left;overflow-wrap:anywhere}
+.fu-chip{border:2px solid var(--ink);border-radius:999px;background:var(--paper);color:var(--ink);font:inherit;font-weight:800;font-size:13px;line-height:1.2;padding:5px 12px;cursor:pointer;min-height:34px;max-width:100%;text-align:left;overflow-wrap:anywhere}
 .fu-chip.on{background:var(--ink);color:#fff}
 .fu-chip.act{background:#FFF3C4;color:var(--ink);border-color:var(--sun);min-height:30px;padding:3px 10px;font-size:12.5px}
 /* The boards' controls: the board picker (the subtitle) with the filters button, then measure and division. */
 .fu-ctl{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0 0;min-width:0}
 .fu-br{flex:0 0 100%;height:0;margin-bottom:-2px}
-.fu-bsel.pick{flex:1 1 0;min-width:0;width:auto;min-height:42px;font-size:17px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;padding:4px 32px 4px 12px;border-width:2.5px;border-radius:12px;box-shadow:0 2px 0 var(--edge);background-position:right 11px center}
-.fu-more{flex:none;position:relative;display:flex;align-items:center;gap:6px;min-height:42px;min-width:44px;justify-content:center;padding:0 12px;border:2.5px solid var(--edge);border-radius:12px;background:var(--paper);color:var(--ink);font:800 13px var(--display);cursor:pointer;box-shadow:0 2px 0 var(--edge)}
+.fu-bsel.pick{flex:1 1 0;min-width:0;width:auto;min-height:42px;font-size:17px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;padding:4px 32px 4px 12px;border-width:2.5px;border-radius:12px;box-shadow:0 2px 0 var(--ink);background-position:right 11px center}
+.fu-more{flex:none;position:relative;display:flex;align-items:center;gap:6px;min-height:42px;min-width:44px;justify-content:center;padding:0 12px;border:2.5px solid var(--ink);border-radius:12px;background:var(--paper);color:var(--ink);font:800 13px var(--display);cursor:pointer;box-shadow:0 2px 0 var(--ink)}
 .fu-more.on{background:#FFF3C4}
-.fu-cnt{position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:var(--me);color:#fff;border:2px solid var(--edge);font:900 10.5px/14px Nunito,sans-serif;text-align:center}
-.segc.fu-seg{display:inline-flex;flex:0 1 auto;margin:0;padding:2px;gap:2px;border-width:2.5px;border-radius:12px;box-shadow:0 2px 0 var(--edge);max-width:100%;min-width:0}
+.fu-cnt{position:absolute;top:-7px;right:-7px;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:var(--me);color:#fff;border:2px solid var(--ink);font:900 10.5px/14px Nunito,sans-serif;text-align:center}
+.segc.fu-seg{display:inline-flex;flex:0 1 auto;margin:0;padding:2px;gap:2px;border-width:2.5px;border-radius:12px;box-shadow:0 2px 0 var(--ink);max-width:100%;min-width:0}
 .segc.fu-seg button{flex:0 1 auto;min-height:34px;padding:2px 9px;font-size:13px;border-width:2px;border-radius:9px;white-space:nowrap}
 .fu-note{display:flex;align-items:flex-start;gap:6px;width:100%;margin:8px 0 2px;padding:4px 0;border:0;background:none;color:var(--ink2);font:inherit;font-size:13px;line-height:1.35;text-align:left;cursor:pointer;min-width:0}
 .fu-note .fu-i{flex:none;font-weight:900;color:var(--ink)}
@@ -78,7 +78,7 @@ button.plug.fu-lb{width:100%;font:inherit;text-align:left;cursor:pointer;margin:
 @media (max-width:420px){
   #hud .chip.fu-hud{width:34px;min-width:34px;padding:0;flex:none}
   #hud .chip.fu-hud .ic{font-size:17px}
-  #hud .chip.fu-hud .val{position:absolute;top:-7px;right:-9px;background:var(--sun);color:var(--ink);border:2px solid var(--edge);border-radius:9px;font:900 10.5px/14px Nunito,sans-serif;padding:0 4px;letter-spacing:-.02em}
+  #hud .chip.fu-hud .val{position:absolute;top:-7px;right:-9px;background:var(--sun);color:var(--ink);border:2px solid var(--ink);border-radius:9px;font:900 10.5px/14px Nunito,sans-serif;padding:0 4px;letter-spacing:-.02em}
   #hud:has(#hFu:not([hidden])) .chip.find{width:34px;min-width:34px;font-size:15px}
   #hud:has(#hFu:not([hidden])) .menubtn .caret{display:none}
   #hud:has(#hFu:not([hidden])){gap:4px}
@@ -99,7 +99,7 @@ button.plug.fu-lb{width:100%;font:inherit;text-align:left;cursor:pointer;margin:
 .fstart .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;overflow-wrap:anywhere}
 .fs-head{display:flex;align-items:center;gap:10px;min-width:0}
 .fs-head label.f{flex:1;min-width:0;margin:4px 0;cursor:pointer}
-.fs-tog{flex:none;position:relative;width:52px;height:30px;padding:0;border:3px solid var(--edge);border-radius:999px;background:var(--soft);cursor:pointer}
+.fs-tog{flex:none;position:relative;width:52px;height:30px;padding:0;border:3px solid var(--ink);border-radius:999px;background:var(--soft);cursor:pointer}
 .fs-tog span{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--ink);transition:left .12s ease}
 .fs-tog[aria-checked=true]{background:var(--me)}.fs-tog[aria-checked=true] span{left:24px;background:#fff}
 .fs-tog:disabled{opacity:.45;cursor:not-allowed}

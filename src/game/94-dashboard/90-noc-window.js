@@ -56,7 +56,7 @@ function nocBar(){const b=$('nocBar');if(!b)return;
   if(b._h!==h){b._h=h;morph(b,h);}}
 function nocBeat(now=performance.now()){nocPost({t:'hi',id:NOC.id});if(now-NOC.yoAt>NOC_LOST&&!NOC.gone){NOC.gone=true;nocBar();}}
 function nocFwd(act,a){if(NOC_GO.includes(act))nocPost({t:'act',id:NOC.id,act,args:a||{}});}
-function nocWinBoot(){i18nDom();document.body.classList.add('noc-window');UI.dtab='conn';try{UI.anim=localStorage.getItem('sot-anim')||'auto';}catch(e){}themeBoot();$('dash').hidden=true;$('dash').insertAdjacentHTML('beforebegin','<div id="nocBoard"><header id="nocBar"></header><main id="nocWall"></main></div>');
+function nocWinBoot(){i18nDom();document.body.classList.add('noc-window');UI.dtab='conn';try{UI.anim=localStorage.getItem('sot-anim')||'auto';}catch(e){}$('dash').hidden=true;$('dash').insertAdjacentHTML('beforebegin','<div id="nocBoard"><header id="nocBar"></header><main id="nocWall"></main></div>');
   const bd=$('nocBoard');bd.addEventListener('click',nocUiClick);bd.addEventListener('change',e=>{if(e.target.hasAttribute&&e.target.hasAttribute('data-nc-city')){NOCW.city=e.target.value;nocRender();}});bd.addEventListener('pointerdown',e=>{if(e.target.closest('#nocWall'))pressing=true;});
   // The game's keyboard shortcuts are for the map, which is not here. Tab and the browser's own keys still work.
   addEventListener('keydown',e=>e.stopImmediatePropagation(),true);

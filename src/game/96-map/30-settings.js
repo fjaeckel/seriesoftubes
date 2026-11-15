@@ -31,7 +31,6 @@ function settingsHtml(){const seg=(lab,act,cur,opts,note)=>`<div class="setline"
   ${seg(tr('settings.pause_on_outages_that_hurt'),'prefSet',cur('pauseIncident'),onoff('pauseIncident'),tr('settings.stops_the_game_when_a_failure'))}
   ${seg(tr('settings.quiet_notifications'),'prefSet',cur('quiet'),onoff('quiet'),tr('settings.only_trouble_and_milestones_pop_up'))}
   <h3 class="sub4">${tr('settings.display_and_sound')}</h3>
-  ${seg(tr('settings.theme'),'themeSet',UI.theme||'light',[['light',tr('settings.theme_light')],['dark',tr('settings.theme_dark')],['auto',tr('common.auto')]],tr('settings.theme_note'))}
   ${seg(tr('common.animations'),'animSet',UI.anim||'auto',[['auto',tr('common.auto')],['on',tr('common.on')],['off',tr('common.off')]],tr('settings.auto_follows_your_device_s_reduce'))}
   ${seg(tr('settings.map_drawing'),'mapSet',GLX.want?'auto':'2d',[['auto',tr('common.auto')],['2d',tr('settings.always_2d')]],tr('settings.auto_draws_the_map_with_your')+(GLX.want&&!glCan()?' '+tr('settings.this_browser_cannot_so_the_map'):''))}
   ${seg(tr('common.sound'),'soundSet',UI.muted?'off':'on',[['on',tr('common.on')],['off',tr('common.off')]])}

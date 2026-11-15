@@ -704,7 +704,7 @@ const API_DENY={
   start:'start',newgame:'start',cont:'start',toTitle:'start',resetAsk:'start',
   exportSave:'files',importGo:'files',importPick:'files',slotExport:'files',xfer:'files',xferFile:'files',xferPaste:'files',xferRecv:'files',
   slotBack:'slots',slotDel:'slots',slotDelGo:'slots',slotMenu:'slots',slotRetry:'slots',slotSpace:'slots',slotSwitch:'slots',slotTake:'slots',
-  animSet:'prefs',themeSet:'prefs',langSet:'prefs',mapSet:'prefs',menu:'prefs',mute:'prefs',prefSet:'prefs',settings:'prefs',settingsClose:'prefs',soundSet:'prefs',vpSet:'prefs',
+  animSet:'prefs',langSet:'prefs',mapSet:'prefs',menu:'prefs',mute:'prefs',prefSet:'prefs',settings:'prefs',settingsClose:'prefs',soundSet:'prefs',vpSet:'prefs',
   fedJoin:'fed',fedLeave:'fed',fedQuit:'fed',fedMute:'fed',fedShare:'fed',fedMoveExport:'files',
   fuOpen:'fed',fuClose:'fed',fuJoin:'fed',fuJoinTyped:'fed',fuLeave:'fed',fuQuit:'fed',fuShare:'fed',fuMute:'fed',fuMoveGo:'files',fuOpKeyGo:'fed',fuOpKeyDel:'fed',fuQ:'fed',fuFilt:'fed',fuBoards:'fed',fuNote:'fed',fuOpSign:'fed',fuOpHide:'fed',fuOpShun:'fed',
   fuReport:'fed',fuRepBack:'fed',fuRepPick:'fed',fuRepGo:'fed',fuRepWho:'fed',
