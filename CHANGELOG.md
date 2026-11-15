@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- A Multimode server keeps its session with a neighbour that the registry turns into an automatic peer, instead of dropping it and reconnecting.
 - In dark mode, the cash amount at the top is readable again on iPhones, where it showed dark on the dark chip.
 
 ## [4.2.1] — 2026-11-15
