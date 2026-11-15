@@ -83,6 +83,10 @@ Object.assign(ACT,{
  pieDish:({city})=>{const P=pieGet();if(!P||!P.co||!isCity(city))return;if(!pieCanBuild())return pieNo(tr('pie.why_not_t1'));if(!S.pops[city])return pieNo(tr('pie.why_dish_city'));
    if(P.dishes.some(x=>x.city===city)||P.dishes.length>=PIE_DISH_MAX)return;if(!pieSpend(pieDishPrice()))return pieRe();
    P.dishes.push({id:uid(),city,ant:1,down:0,band:pieBandMax()});if(P.dishes.length===1)pieFounder(N_('pie.fp_dish'));toast(tr('pie.t_dish',{city:CITY[city].name}),'good');pieRe();},
+ // Taking a dish down (with its antennas): asked once, a quarter of its price back. Its terminals land elsewhere next compute.
+ pieDishKeep:()=>{UI.pieDishAsk=null;sfx('click');pieModal();},
+ pieDishClose:({city,ok})=>{const P=pieGet();const x=P&&P.dishes.find(d=>d.city===city);if(!x)return;
+   if(!ok){UI.pieDishAsk=city;sfx('click');return pieModal();}UI.pieDishAsk=null;const v=pieDishSalvage(x);P.dishes=P.dishes.filter(d=>d!==x);pieRefund(v);toast(tr('pie.t_dish_closed',{city:CITY[city].name,amt:fmt$(v)}),'good');pieRe();},
  pieAnt:({id})=>{const P=pieGet();const x=P&&P.dishes.find(d=>d.id===id);if(!x||x.ant>=PIE_ANT_MAX)return;if(!pieCanBuild())return pieNo(tr('pie.why_not_t1'));if(!pieSpend(pieAntPrice(x.band)))return pieRe();x.ant++;pieRe();},
  // Landing rights: bought for a year, renewed for another from whenever they run out.
  pieLic:({cc,y})=>{const P=pieGet();if(!P||!P.co||typeof cc!=='string'||!CITIES.some(c=>c.cc===cc))return;if(!pieFree(cc))return pieNo(tr('pie.why_lic_refused'));
