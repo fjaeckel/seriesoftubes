@@ -370,7 +370,7 @@ const API_CMD={
  opsParam:{args:[['k','opsKey'],['p','string'],['v','string',false]],watch:['ops'],
    doc:'Step one of a standing order\'s settings to its next value (the provider to prefer, the port size to order, the load ceiling…). With v (a position in the list the sheet shows, 0 first) it picks that value instead, such as the model to standardize routers on.'},
  opsCap:{args:[['k','opsKey'],['v','string',false]],watch:['ops'],
-   doc:'Step the monthly budget of an order that has one: 10k, 25k, 50k, 100k, 250k, no limit. With v (a position in that list, 0 first) it picks that one.'},
+   doc:'Step the monthly budget of an order that has one: 10k, 50k, 250k, 1M, 5M, no limit (the launch order: 100M, 250M, 1B, 5B, no limit). With v (a position in that list, 0 first) it picks that one.'},
  opsFloor:{args:[['v','string',false]],watch:['ops'],
    doc:'Step the floor under your cash that the intern keeps clear when paying for jobs: 0, 50k, 250k, 1M, 5M. With v (a position in that list, 0 first) it picks that one.'},
  opsPop:{args:[['k','opsPopKind'],['city','cityId']],watch:['ops'],
