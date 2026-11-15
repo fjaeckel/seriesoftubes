@@ -58,16 +58,17 @@
   // Long lists open on a short first page, and panels fold their rarer buttons away (finished goals, a row's "Change",
   // "+N more"): older pages show all of it at once. So every page is read unfolded, every button once:
   // each fold on screen is opened in turn (they only change the view) and the buttons it shows are added.
-  const FOLDS = new Set(['panelMore', 'panelFold', 'dashRow', 'leftFold', 'nlOpen', 'bazRow', 'bazMore', 'bazHelp']);
+  const FOLDS = new Set(['panelMore', 'panelFold', 'pniGrp', 'dashRow', 'leftFold', 'nlOpen', 'bazRow', 'bazMore', 'bazHelp']);
   const unfolded = (root, again) => {
     UI.listN = new Proxy({}, { get: () => 1e6, deleteProperty: () => true });
     const armed = UI.confirm, seen = new Map(), done = new Set();
     for (let i = 0; i < 600; i++) {
       again(); UI._lh = UI._ph = null;
       const all = btns(root());
-      const f = all.find((b) => FOLDS.has(b.act) && !done.has(sig(b)));
+      // (a section's own button says which way it folds: only ever open one, or what is inside it is never reached)
+      const f = all.find((b) => FOLDS.has(b.act) && !(b.args && b.args.o === 0) && !done.has(sig(b)));
       // A page with nothing folded is read as it always was, doubles and all.
-      if (!f && !done.size) return all.filter((b) => b.act !== 'listMore');
+      if (!f && !done.size) return all.filter((b) => b.act !== 'listMore' && !FOLDS.has(b.act));
       for (const b of all) if (!FOLDS.has(b.act) && b.act !== 'listMore') seen.set(sig(b), b);
       if (!f) break;
       done.add(sig(f)); ACT[f.act](f.args); UI.confirm = armed;
@@ -77,7 +78,9 @@
   // The buttons of one place on screen, after opening it.
   const screen = (w) => {
     if (w.where === 'modal') return btns($('modal'));
-    if (w.where === 'city') { UI.sel = { type: 'city', id: w.city }; UI.tab = w.tab; renderAll(); return unfolded(() => $('panel'), renderPanel); }
+    // The network filter of an earlier screen ("Connected only") hides exchanges and networks you have no port with, and
+    // older pages hid less: every city is read unfiltered. A panel that did not open (a puzzle's empty city) offers nothing.
+    if (w.where === 'city') { UI.sel = { type: 'city', id: w.city }; UI.tab = w.tab; UI.netQ = ''; UI.netOnly = false; renderAll(); return $('panel').hidden ? [] : unfolded(() => $('panel'), renderPanel); }
     // The city names in a link panel's header open the city (#196); older pages have plain text there. They only change
     // the view, so neither page offers them, and both stay in lockstep.
     if (w.where === 'link') { if (!S.links.some((l) => l.id === w.id)) return []; UI.sel = { type: 'link', id: w.id }; renderAll(); const P = $('panel'); return unfolded(() => { const Q = $('panel'); for (const h of Q.querySelectorAll('.ph h2 [data-act]')) h.removeAttribute('data-act'); return Q; }, renderPanel); }

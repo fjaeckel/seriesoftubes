@@ -150,7 +150,10 @@ function dfPanel(l){
     const offRow=()=>off?`<div class="row"><div class="grow"><div class="nm">${esc(off.name)}</div><div class="meta">${esc(off.what)} · ${tr('common.price_mo',{price:fmt$(off.rate)})} · ${tr('ui.n_d_left',{n:off.exp-S.day})}${off.broker?' · '+tr('link_panels.via_a_capacity_broker'):''}</div></div>${btn(tr('common.accept'),'accept',{id:off.id},'pink sm')}</div>`:'',inc=sold.reduce((a,b)=>a+(b.rate||0),0);
     sell=pnSec('sell',tr('link_panels.selling_spare_capacity'),{sum:`${tr('common.free_channels')} ${fc}/${chMax(l)}${inc?' · '+tr('common.price_mo',{price:fmt$(inc)}):''}`,flags:off?[['paid',tr('common.offers')]]:[],tot:sold.length+1,lead:`<p class="lead">${tr('link_panels.other_carriers_rent_what_you_do')}</p>`,body:m=>m===1?offRow():`
     <div class="kv"><span>${tr('common.free_channels')}</span><b>${fc} / ${chMax(l)}</b></div>${sold.map(b=>`<div class="row"><div class="grow"><div class="nm">${esc(b.name)}</div><div class="meta">${esc(b.what||BIZ_T[b.type].l)} · ${tr('common.price_mo',{price:fmt$(b.rate)})}</div>${pathCtl(b)}</div></div>`).join('')}
-    ${off?offRow():brListHtml(l,fc)}`});}
+    ${off?offRow():brListHtml(l,fc)}`});
+    // Folded, the section still leaves the market one tap away: its window opens on this route.
+    if(!sell.startsWith('<section class="psec on'))sell+=`<div class="btns" style="margin:-2px 0 8px">${btn(tr('market.open'),'marketOpen',{k:edgeKey(l)},'ghost sm')}</div>`;
+  }
   // Optics first: adding capacity is what this panel is opened for. One line per model: what is lit, − count + (75-optic-counts.js).
   const ex=!pnVet()||pnOpen('h:opt'),lit=Object.keys(OPT).map(k=>[k,(l.ch||[]).filter(x=>x===k).length]).filter(x=>x[1]);
   h+=`<section>${pnHead('opt',tr('common.optics')+(lit.length?` <span class="meta osum">${lit.map(([k,n])=>n+'× '+optShort(k)).join(', ')}</span>`:''),`<p class="lead">${tr('link_panels.each_channel_is_a_pair_of')}</p>`)}`;

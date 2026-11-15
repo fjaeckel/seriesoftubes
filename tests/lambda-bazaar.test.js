@@ -220,7 +220,7 @@ test('saves keep a route\'s rules; old saves load without any, and garbage is dr
   assert.deepEqual(errors, []);
 });
 
-test('on a 360 px phone: a bottom sheet with tabs on one line, every control within reach', () => {
+test('on a 360 px phone: a bottom sheet with every tab in view, every control within reach', () => {
   const { ev, errors } = load();
   ev('window.innerWidth=360;window.innerHeight=740');
   start(ev);
@@ -230,9 +230,9 @@ test('on a 360 px phone: a bottom sheet with tabs on one line, every control wit
   assert.equal(ev("$('modal').className"), 'baz');
   assert.equal(has(ev, '.dhead .dtabs'), true, 'the tabs stay pinned at the top');
   assert.equal(has(ev, '.bz-r.open .bz-ctl'), true);
-  // Selects and chips are big enough to tap; the stylesheet keeps the tabs on one line on phones.
+  // Selects and chips are big enough to tap; the stylesheet wraps the tabs on phones, so none hides under the close button.
   const css = ev("[...document.querySelectorAll('style')].map(s=>s.textContent).join('')");
-  assert.match(css, /@media \(max-width:760px\)\{[^@]*#modal\.baz \.dtabs\{flex-wrap:nowrap;overflow-x:auto/);
+  assert.match(css, /@media \(max-width:760px\)\{[^@]*#modal\.baz \.dtabs\{flex-wrap:wrap;/);
   assert.match(css, /\.bz-chip\{min-height:34px\}/);
   for (const t of ['home', 'routes', 'prod', 'news', 'scout']) { ev(`ACT.bazTab({t:'${t}'})`); assert.ok(card(ev).length > 50, t); }
   assert.deepEqual(errors, []);

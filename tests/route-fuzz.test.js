@@ -31,7 +31,8 @@ test('random games route the same as main, with and without the routing cache, m
   for (const seed of [20, 23, 27, 26]) {
     const g = playGame(P, seed, { moves: 35 });
     assert.equal(g.div, null, `seed ${seed} diverged: ${lit(g.div, null, 1)}`);
-    assert.ok(g.moves >= 35, `seed ${seed} played its moves`);
+    // (a puzzle's walk is shorter: a city outside the puzzle has no panel, so nothing to press there)
+    assert.ok(g.moves >= (g.start.kind === 'puzzle' ? 20 : 35), `seed ${seed} played its moves`);
     assert.deepEqual(g.errors, [], `seed ${seed}: no page errors`);
   }
 });

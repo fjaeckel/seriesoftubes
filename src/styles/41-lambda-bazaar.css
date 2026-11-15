@@ -113,10 +113,9 @@
 @media (max-width:760px){
   #modal.baz .dhead{top:-16px}
   #modal.baz .dtitle h2{font-size:22px}
-  /* The tabs stay on one line and scroll sideways. */
-  #modal.baz .dtabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
-  #modal.baz .dtabs::-webkit-scrollbar{display:none}
-  #modal.baz .dtabs button{flex:none}
+  /* Every tab in view, as in the NOC dashboard: they wrap instead of hiding the last one under the close button. */
+  #modal.baz .dtabs{flex-wrap:wrap;overflow:visible;gap:5px 4px}
+  #modal.baz .dtabs button{flex:none;font-size:12.5px;padding:5px 9px;border-width:2px}
   .bz-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
   .bz-need{grid-template-columns:24px minmax(0,1fr)}
   .bz-need .btns{grid-column:2;justify-content:flex-start}

@@ -152,7 +152,7 @@ function playGame(pages, seed, opts = {}) {
       const tab = r.pick(TABS);
       let bs = screen({ where: 'city', city, tab });
       if (mv === 'build') { const p = bs.filter((b) => /^(buildPop|launchBB|opsNewPop|popStdSet)$/.test(b.act)); if (p.length) bs = p; }
-      if (bs.length) press(r.wp(bs, weight), `city ${city}/${tab}`);
+      if (bs.length) press(r.wp(bs, weight), `city ${city}/${tab}`); else note(`city ${city}/${tab} (nothing to press)`);
       if (!div) compare('city button');
       modal();
     } else if (mv === 'openLink') {
