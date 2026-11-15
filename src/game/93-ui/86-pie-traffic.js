@@ -58,18 +58,20 @@ function pieLoadHtml(Q){if(!Q||!Q.flows)return `<p class="meta">${tr('pie_traffi
     +ds.slice(0,UI.pieDAll?ds.length:PIE_ROWS).map(d=>{const why=d.st==='ok'?'':pieDishWhy(d),x=S.pie.dishes.find(y=>y.city===d.city);
       const det=d.bh>0?tr('pie_traffic.dish_line_bh',{t:fmtG(d.term),b:fmtG(d.bh),x:fmtG(d.transit),cap:fmtG(d.cap)}):tr('pie_traffic.dish_line',{t:fmtG(d.term),x:fmtG(d.transit),cap:fmtG(d.cap)});
       return `<div class="pie-dr"><span class="nm"><b>${pieCn(d.city)}</b>${x?` <small>${x.ant}×${pieAntG(x)}G</small>`:''}</span><span class="ld">${pieBar(d.u,pieLoadCls(d.u))}<b>${d.cap>0?pct(d.u):'–'}</b></span>
-        <span class="mt" title="${esc(det+(why?' · '+why.replace(/<[^>]+>/g,''):''))}">${fmtG(d.used)}${why?` · <span class="${d.st==='backhaul'?'':'pft-st'}">${why}</span>`:''}</span><span class="ac">${d.cap>0&&d.u>=PIE_FULL?pieGrow(d.city,Q):''}${pieDishActs(d)}</span></div>`;}).join('')+`</div>`
+        <span class="mt" title="${esc(det+(why?' · '+why.replace(/<[^>]+>/g,''):''))}">${fmtG(d.used)}${why?` · <span class="${d.st==='backhaul'?'':'pft-st'}">${why}</span>`:''}</span><span class="ac">${d.cap>0&&d.u>=PIE_FULL?(n=>n?`<small class="meta">${tr('pie_traffic.spill',{city:pieCn(n)})}</small>`:pieGrow(d.city,Q))(pieNearRoom(d.city,Q)):''}${pieDishActs(d)}</span></div>`;}).join('')+`</div>`
     +(ds.length>PIE_ROWS?`<div class="btns">${btn(UI.pieDAll?tr('pie.pad_less'):trn('pie.pad_more',ds.length-PIE_ROWS),'pieDAll',{},'ghost sm')}</div>`:'');
   else h+=`<p class="meta">${tr('pie.ground_none')}</p>`;
   if(bh.length)h+=`<h3 class="pft-h">${tr('pie_traffic.backhaul')}</h3><p class="meta">${tr('pie_traffic.bh_hint')}</p>`+bh.slice().sort((a,b)=>b.g-a.g).map(pieBhRow).join('');
   return h;}
 // What a dish row offers: look at it on the globe, fill its antennas, fix what keeps it idle, open its city.
 const PIE_DS=['u','off','name'];
-// What grows a full dish: its antennas up to 16, then a higher band, else a dish at the nearest free POP under the same sky
-// (with how far it is), else the research that would help: a higher band, or lasers to land customers further away.
-function pieGrow(c,Q){const x=S.pie.dishes.find(y=>y.city===c);if(x&&pieAntLeft(x)){const v=pieAntLeft(x)*pieAntPrice(x.band);return pieBtn(`↑16 📡 <small>${fmt$(v)}</small>`,'pieAntMax',{id:x.id},'ghost sm',v);}
+// What grows a full dish: its antennas up to 16, then a higher band, else antennas on the nearest dish under the same sky
+// or a dish at the nearest free POP (with how far it is; one button, the row has room for one), else research.
+const pieAntUp=(x,from)=>{const v=pieAntLeft(x)*pieAntPrice(x.band),km=from?Math.round(pieKm(from,x.city)):0;
+  return pieBtn(`↑16 📡${km?` ${pieCn(x.city)} · ${km.toLocaleString()} km`:''} <small>${fmt$(v)}</small>`,'pieAntMax',{id:x.id},'ghost sm',v,'',km?tr('pie_fix.ant_at',{city:CITY[x.city].name,n:x.ant,max:PIE_ANT_MAX}):'');};
+function pieGrow(c,Q){const x=S.pie.dishes.find(y=>y.city===c);if(x&&pieAntLeft(x))return pieAntUp(x);
   if(x){const v=pieBandCost(x);if(v)return pieBtn(`⬆ ${PIE_BAND_N[pieBandMax()]} <small>${fmt$(v)}</small>`,'pieBand',{id:x.id},'ghost sm',v);}
-  const p=pieNearPop(c,Q);return p?pieFixDish(p,c,true):pieFixRd()||`<small class="pft-st">${tr('pie_fix.grow_none')}</small>`;}
+  const a=pieNearAnt(c,Q),p=a?null:pieNearPop(c,Q);return a?pieAntUp(S.pie.dishes.find(y=>y.city===a),c):p?pieFixDish(p,c,true):pieFixRd()||`<small class="pft-st">${tr('pie_fix.grow_none')}</small>`;}
 // One way out of a dish row: the dish in the Dishes tab, with the globe on it; the fixes live there.
 const pieDishActs=d=>btn(tr('pie_traffic.a_dish'),'pieDishGo',{city:d.city},'ghost sm');
 // The Customers tab: everyone riding orbit, terminals and sky circuits, filtered and sorted; a tap turns the globe to it.
