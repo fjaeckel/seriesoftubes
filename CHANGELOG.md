@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Orbit customers link the NOC, Pie Control and their POP: each view has buttons to the other two, the NOC shows the POP whose dish lands them, Pie Control can drop them, and that POP's panel lists the orbit customers coming down there.
+
 ## [4.3.0] — 2026-11-15
 
 - The NOC intern can now run your rocket launches: a new standing order books launches to keep your crusts at 60, 80 or 100% as old pies wear out, with its own monthly budget.

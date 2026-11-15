@@ -30,7 +30,7 @@ function pieFlowRow(f,B){const b=B.get(f.id),hi=UI.pieHi===f.id,nm=b?esc(b.name)
     if(f.ms!=null){const fm=pieFiberMs(f);ms=isFinite(fm)?tr('pie_traffic.orbit_vs_fiber',{o:pieMs(f.ms),f:pieMs(fm)}):tr('pie_traffic.orbit_no_fiber',{o:pieMs(f.ms)});}}
   return `<button class="pft-row${hi?' on':''}" data-act="pieHi" data-args="${esc(JSON.stringify({id:f.id}))}" data-fid="${esc(f.id)}" aria-pressed="${hi}">
     <span class="pft-ic" aria-hidden="true">${pieIcon(f.type)}</span><span class="pft-m"><b>${nm}</b><small>${route}</small>${ms?`<small>${ms}</small>`:''}</span>
-    <span class="pft-n"><b>${fmtG(f.g)}</b><small>${tr('common.price_mo',{price:fmt$(f.rev)})}</small></span></button>`;}
+    <span class="pft-n"><b>${fmtG(f.g)}</b><small>${tr('common.price_mo',{price:fmt$(f.rev)})}</small></span></button>${b?pieRowActs(b):''}`;}
 // A cut-off POP's backhaul: how full the pipe is, where it lands and what orbit adds, or why it has none. Tap: the globe shows it.
 function pieBhRow(b){const id='bh:'+b.city,hi=UI.pieHi===id;
   if(!(b.cap>0))return `<div class="pft-d"><div class="kv"><span>🛰️ ${tr('pie_traffic.bh_for',{city:pieCn(b.city)})}</span><b>–</b></div><p class="meta"><span class="pft-st">${pieBhWhy(b.why)}</span></p></div>`;
@@ -84,11 +84,15 @@ function pieCustHtml(){const Q=R&&R.pie;if(!Q||!Q.flows)return `<p class="meta">
   h+=`<div class="trsel pie-gf"><label>${tr('pie.ground_show')}<select data-chg="pieCk">${o('',`${tr('dashboard.fs_all')} (${all.length})`,k)}${o('t',`${tr('pie_cust.k_t')} (${n('t')})`,k)}${o('c',`${tr('pie_cust.k_c')} (${n('c')})`,k)}</select></label>
     <label>${tr('pie.gs_sort')}<select data-chg="pieCs">${o('g',tr('pie_cust.s_g'),so)}${o('rev',tr('pie_cust.s_rev'),so)}${o('name',tr('pie_cust.s_name'),so)}</select></label></div>`;
   if(!fl.length)return h+`<p class="meta">${tr('pie_cust.none')}</p>`;
-  h+=`<div class="pft-list">${fl.slice(0,PIE_ROWS).map(f=>pieFlowRow(f,B)).join('')}</div>`;
+  // A customer opened from elsewhere (pieCust) shows even past the first rows.
+  const top=fl.slice(0,PIE_ROWS),hf=UI.pieHi&&fl.findIndex(f=>f.id===UI.pieHi)>=PIE_ROWS?fl.find(f=>f.id===UI.pieHi):null;
+  h+=`<div class="pft-list">${(hf?[hf,...top]:top).map(f=>pieFlowRow(f,B)).join('')}</div>`;
   if(fl.length>PIE_ROWS)h+=`<p class="meta">${trn('pie_traffic.n_more',fl.length-PIE_ROWS)}</p>`;
   return h;}
 // Tapping a row: mark it in place and point the globe at it, without rebuilding the panel (the scroll stays where it is).
-function pieHiSet(id){UI.pieHi=UI.pieHi===id?null:id;
+function pieHiSet(id){UI.pieHi=UI.pieHi===id?null:id;UI.confirm=null;pieHiShow();}
+// Mark UI.pieHi's row and turn the globe to it.
+function pieHiShow(){
   {const Q=R&&R.pie,f=UI.pieHi&&Q&&Q.flows?Q.flows.find(x=>x.id===UI.pieHi):null;if(f&&PG.cv)pieGlobeLook(f.k==='c'?[f.a,f.b,...f.via]:[f.city,f.dish].filter(Boolean));else if(!UI.pieHi&&PG.cv)PG.goal={yaw:PG.yaw,tilt:PG.tilt,z:1};}
   for(const r of document.querySelectorAll('#modal .pft-row')){const on=r.dataset.fid===UI.pieHi;r.classList.toggle('on',on);r.setAttribute('aria-pressed',String(on));}
   if(PG.cv){PG.dAt=-1e9;PG.dirty=true;}}
