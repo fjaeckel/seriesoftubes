@@ -76,11 +76,11 @@ function fedRatesOut(P){const r=JSON.parse(JSON.stringify(P.rates||{}));const my
   if(r.wave){const lit=new Set(fedWaveLit());r.wave.routes=r.wave.routes.filter(x=>lit.has(x.a+'|'+x.b));if(!r.wave.routes.length)delete r.wave;}
   return r;}
 // This network's announce body (§5.1) now.
-async function fedAnnBody(s=S){const f=s.fed,P=fedP(s),pops=Object.keys(s.pops).filter(fedCityOk).slice(0,512),m=fedMyMix(),inM=Math.min(1e9,Math.round(((R&&R.served)||0)*1000));
+async function fedAnnBody(s=S){const f=s.fed,P=fedP(s),pops=Object.keys(s.pops).filter(fedCityOk).slice(0,512),m=fedMyMix(),inM=Math.min(FED_TRAFFIC_MAX,Math.round(((R&&R.served)||0)*1000));
   const nm=String(s.name||'').replace(/[‪-‮⁦-⁩\u0000-\u001f]/g,'').slice(0,40);
   const b={name:/[^ ]/.test(nm)?nm:'AS'+(await fedAsn(f.key.pub)),asn:await fedAsn(f.key.pub),box:await fedBoxPub(f.key.priv),home:CITY[s.home]?CITY[s.home].cc:'ZZ',day:Math.min(1e7,s.day),founded:Math.min(f.joined,fedDiv(fedNow(),FED_DAY)),
     pops,ix:fedMyIx().filter(c=>pops.includes(c)),cust:Math.min(1e7,s.biz.length),mix:m,
-    traffic:{in:inM,out:Math.min(1e9,Math.round(inM*(m.content+m.enterprise*0.5+m.eyeball*0.15)/1000))},policy:P.pol,rates:fedRatesOut(P),auto:fedAutoClean(P.auto,P.pol)};
+    traffic:{in:inM,out:Math.min(FED_TRAFFIC_MAX,Math.round(inM*(m.content+m.enterprise*0.5+m.eyeball*0.15)/1000))},policy:P.pol,rates:fedRatesOut(P),auto:fedAutoClean(P.auto,P.pol)};
   if(P.pol==='selective')b.cond=fedCondClean(P.cond);
   // auto.cofound is an ix2 field: older servers refuse the whole announce with it.
   if(!fedIx2(s))delete b.auto.cofound;

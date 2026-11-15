@@ -253,7 +253,7 @@ only a `state` frame (9.3) or a `states` frame (9.4) carries one; anywhere a rec
 | Net | String matching `^[a-z0-9]{2,8}$`, the id of a computer-run network in the game's catalog (`NETS` in `src/game/30-networks/`; every id there has this shape, `tests/federation-exchanges.test.js` checks it). Like cities, the catalog is not part of this protocol: unknown ids are not refused, the game ignores them. A player's network is never a Net (it is a Key) |
 | CC | String matching `^[A-Z]{2}$`, a country code |
 | Mbps | Integer 0 to 1000000000 |
-| Traffic | Integer 0 to 1000000000000, in Mbps (up to 1 Ebps): a network's traffic as reported for the boards. Games send at most 1000000000 (1 Pbps) for now, so that servers and games from before Traffic, which refuse more, still take every record; a later version lifts that |
+| Traffic | Integer 0 to 1000000000000, in Mbps (up to 1 Ebps): a network's traffic as reported for the boards. Games from 4.2.1 send the full value; servers and games from before Traffic (relay 4.1.3) refuse more than 1000000000 (1 Pbps) |
 | Money | Integer 0 to 1000000000000, in game money |
 | Days | Integer 1 to 3650, real days |
 | Count(n) | Integer 0 to n |

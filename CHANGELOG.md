@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Networks past 1 Pbps now show their real traffic on the Multimode leaderboards instead of all reading 1.00 Pbps. Servers need relay 4.1.3 or newer to take their records.
+
 ## [4.2.0] — 2026-11-15
 
 - Dark mode: Settings has a Theme choice, Light (still the default), Dark, or Auto to follow your device, which darkens the panels and the map's sea and land (#80).

@@ -236,7 +236,9 @@ const trPops=N=>N.fpops&&N.fpops.length?N.fpops:N.pops;
    out whenever its body changes (fedStatsTick), and exact figures change every slot, which would send a record every
    5 minutes per player instead of about hourly, swelling relays and every board download for no ranking gain. */
 const FED_STEPS=[1,1.2,1.5,2,2.5,3,4,5,6,8,10];
-const fedStep=v=>{if(!(v>0))return 0;const e=10**Math.floor(Math.log10(v)),m=v/e;let b=1;for(const x of FED_STEPS)if(Math.abs(x-m)<Math.abs(b-m))b=x;return Math.min(1e9,Math.round(b*e));};
+// Reported traffic is Traffic (spec 2.1): up to 10^12 Mbps, so the boards rank networks past 1 Pbps as what they carry.
+const FED_TRAFFIC_MAX=1e12;
+const fedStep=v=>{if(!(v>0))return 0;const e=10**Math.floor(Math.log10(v)),m=v/e;let b=1;for(const x of FED_STEPS)if(Math.abs(x-m)<Math.abs(b-m))b=x;return Math.min(FED_TRAFFIC_MAX,Math.round(b*e));};
 function fedTrafficList(){const out=[],me=fedMe();if(!R||!S.fedn||!me)return out;const m=fedMyMix();
   for(const n of S.fedn.nets){if(n.k===me)continue;const N=fedNetOf(n.k);if(!N)continue;const e=R.netEg[N.id];let inM=e?Math.round(((e.p||0)+(e.ix||0))*1000):0;
     for(const d of S.fed.deals)if(d.on&&d.key===n.k&&d.deal==='transit')inM+=d.role==='buy'?Math.round(fedExUse(d)*1000):(d.rep||0);

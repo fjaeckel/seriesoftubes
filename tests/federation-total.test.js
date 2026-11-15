@@ -16,7 +16,7 @@ test('stats carry total: traffic served in Mbps, a valid record', async () => {
   assert.equal(JSON.parse(p.ev('JSON.stringify(fedStatsBody())')).total, 15000);
   assert.deepEqual([0, 0.4, 1, 32, 111, 999, 1000].map((v) => p.ev(`fedStep(${v})`)), [0, 0, 1, 30, 120, 1000, 1000]);
   p.ev('R.served=5e6');
-  assert.equal(JSON.parse(p.ev('JSON.stringify(fedStatsBody())')).total, 1e9, 'capped at the Mbps limit');
+  assert.equal(JSON.parse(p.ev('JSON.stringify(fedStatsBody())')).total, 5e9, 'past 1 Pbps, as Traffic (federation-traffic-past-pbps)');
   assert.equal(await p.ev("fedCheck({v:1,kind:'stats',key:'" + key('alice').pub + "',t:" + NOW + ",body:fedStatsBody(),sig:'" + 'A'.repeat(86) + "'}," + NOW + ").then(c=>c.error)"), 'bad_sig');
   assert.deepEqual(p.errors, []);
 });
