@@ -6,6 +6,9 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Space pauses the game again after you click a button, instead of pressing that button a second time; a button you reach with Tab still presses with Space (#381).
+- Time keeps running while Pie Control is open, and the panel keeps up with each day without jumping back to the top (#376).
+- A circuit that routing sends through orbit now says so: its customer row and the "Move to another path" dialog show the pie crust it crosses, and the fiber path it would otherwise take is offered as a move, so pinning it really takes the circuit off orbit (#379).
 - Launching pies no longer wrecks low-latency circuits that your fiber already carried: a circuit only flies through orbit when the dishes have room for all of it, and otherwise stays on its fiber (#380).
 - Lasers are now research: once it is done, every pie you launch has them, and launches past a crust's size replace its pies without lasers. Games that already flew lasered pies keep the research (#374).
 - Rocket companies can grow: the pie factory takes up to six production lines and a launch pad up to three towers, each flying its own rocket. Lines and pads can be closed again for a quarter of what they cost, and one tap queues a launch for every free tower (#374).

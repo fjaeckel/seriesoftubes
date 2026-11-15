@@ -43,20 +43,30 @@ function pathNow(b,G){if(b.pin&&pathHops(G,b.pin))return b.pin;
   return pathWalk(G,b.city,b.city2,b.route==='fast'?e=>e.lat+0.05:e=>e.w);}
 // Paths that avoid what is in use: each one is priced as if every trench already used were nearly unusable, so the next
 // one is the most diverse there is, sharing a trench only if there is no way round it.
-function circuitTargets(b){const G=pathEdges(),now=pathNow(b,G);if(!now)return {now:null,alts:[]};
-  const hops=pathHops(G,now)||[],used=new Set(),seen=new Set([now.join()]),own=new Set(hops.map(e=>e.k)),got=R.l2&&R.l2[b.id]||0,alts=[];
+// A circuit routing sent through orbit (R.pie.flows, kind 'c', #379): fiber paths between the same POPs only list the
+// cities, so the panels name the sky leg from the flow itself. Its fiber legs, for the diversity of the paths offered.
+const pathSky=b=>{const P=R&&R.pie;if(b.pin||!P||!P.flows)return null;const f=P.flows.find(x=>x.k==='c'&&x.id===b.id);return f&&f.hops.some(h=>h.k!=='f')?f:null;};
+function skyStr(f){const o=[pathCity(f.a)];let c=f.a,up=false;const to=x=>{if(x!==c){o.push(pathCity(x));c=x;}};
+  for(const h of f.hops){if(h.k==='f'||h.k==='down'){if(h.k==='down')up=false;to(h.city);}
+    else if(!up){up=true;c=null;o.push(h.cr&&CRUSTS[h.cr]?tr('customer_paths.through_crust',{crust:tr(CRUSTS[h.cr].n)}):tr('customer_paths.through_orbit'));}}
+  to(f.b);return o.join(' → ');}
+const skyLegs=f=>{const o=[];let c=f.a;for(const h of f.hops){if(h.k==='f'){o.push(hopKey(c,h.city));c=h.city;}else if(h.k==='down')c=h.city;}return o;};
+function circuitTargets(b){const G=pathEdges(),sky=pathSky(b),now=pathNow(b,G);if(!now)return {now:null,sky,alts:[]};
+  // Through orbit, the fiber path pathNow() names is not in use: it is offered like any other.
+  const hops=sky?skyLegs(sky).map(k=>G.E[k]).filter(Boolean):pathHops(G,now)||[],used=new Set(),seen=new Set(sky?[]:[now.join()]),own=new Set(hops.map(e=>e.k)),got=R.l2&&R.l2[b.id]||0,alts=[];
   const nowT=new Set();for(const e of hops)for(const t of e.ts){nowT.add(t);used.add(t);}
   for(let i=0;i<PATH_ALT+1&&alts.length<PATH_ALT;i++){const p=pathWalk(G,b.city,b.city2,e=>{for(const t of e.ts)if(used.has(t))return (e.w+1)*PATH_FAR;return e.w+1;});if(!p)break;
     const h=pathHops(G,p);for(const e of h)for(const t of e.ts)used.add(t);if(seen.has(p.join()))continue;seen.add(p.join());
     alts.push({p,shared:h.filter(e=>[...e.ts].some(t=>nowT.has(t))).length,km:h.reduce((a,e)=>a+e.km,0),lat:h.reduce((a,e)=>a+e.lat+0.05,0),
       room:Math.max(0,Math.min(...h.map(e=>e.cap-e.load+(own.has(e.k)?got:0))))});}
-  alts.sort((x,y)=>x.shared-y.shared||x.lat-y.lat);return {now,alts};}
+  alts.sort((x,y)=>x.shared-y.shared||x.lat-y.lat);return {now,sky,alts};}
 // The pin as compute() walks it. Null while a link on it is down, and routing takes over.
 function pinRoute(p,edges){const path=[];for(let i=1;i<p.length;i++){const e=edges[hopKey(p[i-1],p[i])];if(!e)return null;path.push(e);}return {path,ni:p.map(x=>CIDX[x]),share:1};}
 // Under a customer in the panels.
 function pathCtl(b){if(!pathKind(b))return '';
   const pin=b.pin?`<div class="meta">${tr('customer_paths.pinned_to_path',{path:esc(pathStr(b.pin))})}${pinUp(b)?'':` · <b style="color:var(--bad)">${tr('customer_paths.that_path_is_down')}</b>`}</div>`:'';
-  return `${pin}<div class="btns">${btn(tr('customer_paths.move_to_another_path'),'pathOpen',{id:b.id},'ghost sm')}</div>`;}
+  const sky=pathSky(b),orb=sky?`<div class="meta">${tr('customer_paths.rides_orbit',{path:esc(skyStr(sky))})}</div>`:'';
+  return `${pin}${orb}<div class="btns">${btn(tr('customer_paths.move_to_another_path'),'pathOpen',{id:b.id},'ghost sm')}</div>`;}
 function pathModal(b){const a=pathCity(b.city),z=pathCity(b.city2),k=pathKind(b);let h=`<div style="display:flex;align-items:center"><h2 style="font-size:24px">${tr('customer_paths.move_name',{name:esc(b.name)})}</h2><button class="x" data-act="closeModal" aria-label="${tr('common.close')}">×</button></div>`;
   const row=(nm,meta,tag,button)=>`<div class="row"><div class="grow"><div class="nm">${nm}${tag?` <span class="tag st">${tag}</span>`:''}</div>${meta?`<div class="meta">${meta}</div>`:''}</div>${button}</div>`;
   if(k==='fiber'){const cur=S.links.find(l=>l.id===b.link),T=fiberTargets(b);
@@ -64,9 +74,10 @@ function pathModal(b){const a=pathCity(b.city),z=pathCity(b.city2),k=pathKind(b)
     if(cur)h+=`<div class="kv"><span>${tr('customer_paths.now_on')}</span><b>${fibLab(cur)}</b></div>`;
     if(!T.length)h+=`<p class="empty">${tr('customer_paths.no_other_working_fiber',{a,b:z})}</p>`;
     for(const t of T)h+=row(fibLab(t.l),t.no,t.diverse?tr('customer_paths.fully_diverse'):tr('customer_paths.same_trench'),btn(tr('customer_paths.move'),'pathMove',{id:b.id,link:t.l.id},'sm',!!t.no));}
-  else{const {now,alts}=circuitTargets(b);
+  else{const {now,sky,alts}=circuitTargets(b);
     h+=`<p class="lead" style="margin-top:6px">${tr('customer_paths.routing_chooses_this_circuit',{a,b:z})}</p>`;
-    if(now)h+=`<div class="kv"><span>${tr('customer_paths.now_on')}</span><b>${esc(pathStr(now))}</b></div>`;
+    if(sky)h+=`<div class="kv"><span>${tr('customer_paths.now_on')}</span><b>${esc(skyStr(sky))}</b></div><p class="meta">${tr('customer_paths.orbit_is_faster')}</p>`;
+    else if(now)h+=`<div class="kv"><span>${tr('customer_paths.now_on')}</span><b>${esc(pathStr(now))}</b></div>`;
     if(b.pin)h+=`<div class="btns">${btn(tr('customer_paths.let_routing_choose_again'),'pathAuto',{id:b.id},'ghost sm')}</div>`;
     if(!alts.length)h+=`<p class="empty">${tr('customer_paths.no_other_path',{a,b:z})}</p>`;
     for(const t of alts){const warn=[t.room<b.bw?`<b style="color:var(--bad)">${tr('customer_paths.fits_only_g_of_bw',{g:fmtG(t.room),bw:fmtG(b.bw)})}</b>`:'',b.latMax&&t.lat>b.latMax?`<b style="color:var(--bad)">${tr('customer_paths.over_the_ms_budget',{ms:b.latMax})}</b>`:''].filter(Boolean).join(' · ');
