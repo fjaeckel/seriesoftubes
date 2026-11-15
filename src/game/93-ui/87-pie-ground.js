@@ -15,10 +15,10 @@ function pieGroundHtml(P,can){const f=UI.pieGf||'',rg=own(REG,UI.pieGr||'')?UI.p
   const gs=Object.values(by).filter(keep).map(g=>[g,key(g)]).sort((a,b)=>a[1]-b[1]||(so==='reg'?ri(a[0])-ri(b[0]):0)||nm(a[0]).localeCompare(nm(b[0]))).map(x=>x[0]);
   const nAnt=P.dishes.reduce((a,x)=>a+x.ant,0),soon=pieDishCc().filter(cc=>left(cc)<PIE_LIC_SOON).length;
   const dv=UI.pieDv==='load'?'load':'cc',seg=`<div class="segc pie-dv">${[['cc',tr('pie.dv_cc')],['load',tr('pie.dv_load')]].map(([k,l])=>`<button class="${dv===k?'on':''}" data-act="pieDv" data-args='{"v":"${k}"}' aria-pressed="${dv===k}">${l}</button>`).join('')}</div>`;
-  if(dv==='load')return seg+pieLoadHtml(R&&R.pie);
+  if(dv==='load')return seg+piePlanBox()+pieLoadHtml(R&&R.pie);
   let h=seg+`<p class="meta">${tr('pie.dish_note')}</p>`;
   {const top=Math.max(...Object.keys(CRUSTS).map(pieCov));if(top<PIE_DISH_WAIT)h+=`<p class="note pie-wait">${tr('pie.dish_wait',{min:pct(PIE_RAW),p:pct(top),mo:fmt$(PIE_DISH_MO),lo:pct(PIE_PATCHY_LO)})}</p>`;}
-  h+=`<p class="meta pie-gsum">${tr('pie.ground_sum',{d:P.dishes.length,max:PIE_DISH_MAX,a:nAnt})}${soon?' · <b>'+trn('pie.ground_soon',soon)+'</b>':''}</p>`;
+  h+=`<p class="meta pie-gsum">${tr('pie.ground_sum',{d:P.dishes.length,max:PIE_DISH_MAX,a:nAnt})}${soon?' · <b>'+trn('pie.ground_soon',soon)+'</b>':''}</p>`+piePlanBox();
   {const v=pieAntAllCost(),ys=PIE_LIC_YEARS.map(y=>[y,pieLicAllQuote(y)]);
     const bv=P.dishes.reduce((a,x)=>a+pieBandCost(x),0);
     h+=`<div class="ops-p">${(v?pieBtn(tr('pie.ant_all',{price:fmt$(v)}),'pieAntAll',{},'ghost sm',v):'')}${bv?pieBtn(tr('pie.band_all',{b:PIE_BAND_N[pieBandMax()],price:fmt$(bv)}),'pieBandAll',{},'ghost sm',bv):''}</div>`;

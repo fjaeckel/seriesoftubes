@@ -151,6 +151,9 @@
 :where(:root.dark) .pie-pq{color:var(--ink2)}
 :where(:root.dark) .pie-site-cc{color:var(--ink2)}
 :where(:root.dark) .pie-ql .m{color:var(--ink2)}
+:where(:root.dark) .pie-plan{background:var(--soft);color:var(--ink)}
+:where(:root.dark) .pie-pl-back{color:var(--ok)}
+:where(:root.dark) .pie-pl-i{color:var(--ink2)}
 :where(:root.dark) .bdg{border:2px solid #C9CEDD;background:#28292F;color:var(--ink)}
 :where(:root.dark) .bdg .bt{color:var(--ink)}
 :where(:root.dark) .bdg .br{color:var(--rc)}
