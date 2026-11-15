@@ -6,7 +6,8 @@
    - the shark signs every offer whose POPs are up the moment it lands, promises and all: no trial, an unkept promise is
      the customer's problem. The commission is paid as on any shark deal, so only while the cash covers it;
    - the CEO signs like the engineer, and a decline is a handshake away (salesOverride: about one in three he signs anyway).
-   Orbit offers need no routing pass: the dish they land on (pieServe) must have room, except for the shark.
+   Orbit offers need no routing pass: like the player's offer card, the desk passes on what the sky cannot deliver today
+   (pieOfferFit: a crust over the city, a dish to land it, room on both for all of it). The shark only needs the landing.
    Nobody at the desk, nothing automatic: every deal is signed by hand. No random numbers are drawn here. */
 const SL_MINS=[0,2000,5000,10000,25000,50000],SL_TRIALS=1,SL_RETRY=7;
 const slAutoNew=()=>({on:false,min:0,wk:null,rep:null});
@@ -22,8 +23,6 @@ function slAutoFrom(s,on,p){if(!on||(s.slAuto&&typeof s.slAuto==='object'))retur
 // "This week Dave signed 3 customers (+$41k/mo), declined 17 tiny offers."
 function slWeekLine(x,last){const parts=[];if(x.n)parts.push(trn('sales.w_signed',x.n,{rev:opsMo$(x.rev)}));if(x.x)parts.push(trn('sales.w_declined',x.x));if(x.y)parts.push(trn('sales.w_anyway',x.y));
   const v={name:tr(SALES[x.p].s),list:parts.join(', ')};return last?tr('sales.w_last',v):tr('sales.w_now',v);}
-// An orbit offer fits where its dish has room for it; used: what this shift already signed on each dish.
-function slSkyOk(o,used){const L=pieServe(o.city,o.type);if(!L)return null;const k=L.cr+'|'+L.k;return slP()==='shark'||L.left-(used.get(k)||0)>=o.bw?k:null;}
 // Like a day, the desk is a generator: a routing trial is a step the day answers (in play, the route worker does).
 const slAutoDay=d=>dayGo(slAutoRun(d),(g,v)=>g.next(v));
 function* slAutoRun(d){if(!slAutoOn())return;const A=S.slAuto,p=slP(),w=Math.floor(d/7);
@@ -37,7 +36,7 @@ function* slAutoRun(d){if(!slAutoOn())return;const A=S.slAuto,p=slP(),w=Math.flo
     let b;const todo=opsQuiet(()=>{if(!S.offers.includes(o))return;const T=BIZ_T[o.type];if(!T||!(o.exp>d))return;const v=T.event?(o.fee||0):bizMo(o);
       if(A.min&&v<A.min){const b0=S.biz.length;ACT.decline({id:o.id});W.x++;if(S.biz.length>b0){W.y++;W.rev+=Math.round(bizMo(o));dirty=true;}return;}
       if(!A.on)return;
-      if(T.orbit){const k=slSkyOk(o,used);if(!k||(p==='shark'&&S.cash<bizMo(o)))return;ACT.accept({id:o.id});if(won(o))used.set(k,(used.get(k)||0)+o.bw);return;}
+      if(T.orbit){const f=pieOfferFit(o,used),k=f.key;if((f.w&&!(p==='shark'&&f.w.k==='room'))||(p==='shark'&&S.cash<bizMo(o)))return;ACT.accept({id:o.id});if(won(o))used.set(k,(used.get(k)||0)+o.bw);return;}
       if(!bCities(o).every(popUp))return;
       if(p==='shark'){if(S.cash<bizMo(o)||(T.event&&!(o.start>d)))return;ACT.accept({id:o.id});won(o);return;}
       // Each trial is a full routing pass: at most SL_TRIALS a day, and an offer that did not fit waits a week.
