@@ -85,7 +85,7 @@ test('joining multiplayer keeps you Tier 1, even next to a player who is Tier 1 
   assert.deepEqual(errors, []);
 });
 
-test('players you cannot reach do not cost you customers either', () => {
+test('players you cannot reach do not cost you customers, covenants or the reach you see', () => {
   const { ev, errors } = load();
   t1Club(ev);
   ev("for(const n of NETS)if(!R.reachable[n.id]){if(!S.pops[n.pops[0]])S.pops[n.pops[0]]={day:0,bb:null,boost:0,down:0,routers:1,gen:false};S.pni.push({id:'i'+n.id,net:n.id,city:n.pops[0],tier:0});}compute()");
@@ -97,7 +97,10 @@ test('players you cannot reach do not cost you customers either', () => {
   ev("S.biz.push({id:'h',name:'Host',type:'host',city:'fra',bw:1,rate:100,reqs:[],mood:0.5,day:0});compute()");
   assert.doesNotMatch(ev("bizWhy(S.biz.find(b=>b.id==='h')).join(' ')"), /whole internet/, 'no reach complaint');
   ev("renderAll()");
-  assert.notEqual(ev("document.getElementById('hReach').style.color"), 'var(--bad)', 'the HUD keeps the true reach, not in red');
+  assert.notEqual(ev("document.getElementById('hReach').style.color"), 'var(--bad)', 'the HUD is not red');
+  assert.equal(ev("document.getElementById('hReach').textContent"), '100%', 'nor does it show the reach drop');
+  ev("S.loans=[{id:'l',bank:'b',start:0,amount:1,got:1,bal:1,apr:0.05,apr0:0.05,pay:1,left:12,term:12,share:0,covs:['reach99']}]");
+  assert.equal(ev("COVS.reach99.ok(S.loans[0])"), true, 'the bank covenant holds');
   assert.deepEqual(errors, []);
 });
 

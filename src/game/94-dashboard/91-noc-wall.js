@@ -41,7 +41,7 @@ function nwTiles(){const H=(S.hist||[]).slice(-60),last30=(S.hist||[]).slice(-30
     +tile(tr('dashboard.delivered_30_days'),(up*100).toFixed(1)+'%','',nwSpark(H.map(r=>r.dem?Math.min(1,r.srv/r.dem):1),NW_COL.ok),up<0.99?'warn':'')
     +tile(tr('common.peering_ratio'),pct(R.peerShare||0),'',nwSpark(H.map(r=>r.srv?(r.c+r.p+r.ix)/r.srv:0),'#7B8CFF'))
     +tile(tr('noc.net_per_month'),esc(fmt$(net)),'',nwSpark(H.map(r=>r.rev-r.cost),net<0?NW_COL.bad:NW_COL.ok),net<0?'bad':'')
-    +tile(tr('common.peak'),esc(fmtG(S.stats.peak)),esc(tr('common.reach'))+' '+reachPct(R.reach||0))
+    +tile(tr('common.peak'),esc(fmtG(S.stats.peak)),esc(tr('common.reach'))+' '+reachPct(reachSolo()))
     +tile(tr('common.bgp_sessions'),String(R.sessions||0),esc(tr('noc.n_pops_n_links',{pops:Object.keys(S.pops).length,links:S.links.length})));}
 // Parallel links between two cities are one line on so small a map: their load over their capacity, down only when all are.
 function nwMap(){const by=new Map();
