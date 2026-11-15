@@ -193,7 +193,6 @@
 :where(:root.dark) #mega .mtrack{color:#fff}
 :where(:root.dark) #bankBox{background:rgba(30,38,64,.35)}
 :where(:root.dark) #bankCard{background:var(--paper);color:var(--ink)}
-:where(:root.dark) .cashbtn{color:inherit}
 :where(:root.dark) .cashbtn .badge{background:var(--me);color:#fff}
 :where(:root.dark) .grade{background:var(--sun);color:var(--on)}
 :where(:root.dark) #dash{background:rgba(30,38,64,.35)}

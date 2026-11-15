@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- In dark mode, the cash amount at the top is readable again on iPhones, where it showed dark on the dark chip.
+
 ## [4.2.1] — 2026-11-15
 
 - Networks past 1 Pbps now show their real traffic on the Multimode leaderboards instead of all reading 1.00 Pbps. Servers need relay 4.1.3 or newer to take their records.

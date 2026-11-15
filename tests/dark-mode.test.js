@@ -54,3 +54,22 @@ test('Auto follows the device, now and when it switches', t => {
   assert.equal(dark(ev), false, 'Light stays light whatever the device says');
   assert.deepEqual(errors, []);
 });
+
+// iPhone report: in dark mode the cash amount in the HUD was dark on the dark chip. The HUD chips set their own text
+// colour (--ink, which dark mode switches) instead of inheriting it, so a browser that hands a button another colour,
+// or keeps an old inherited one when the theme changes, cannot leave the money unreadable.
+test('HUD chips set their own text colour in both themes, the cash button too', t => {
+  const { ev, errors } = load(t);
+  ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();closeModal();renderAll()");
+  const ink = () => ev("getComputedStyle(document.documentElement).getPropertyValue('--ink').trim()");
+  const rgb = h => ev(`(()=>{const d=document.createElement('div');d.style.color=${JSON.stringify(h)};document.body.appendChild(d);const c=getComputedStyle(d).color;d.remove();return c;})()`);
+  for (const theme of ['light', 'dark']) {
+    ev(`ACT.themeSet({v:'${theme}'})`);
+    ev("document.getElementById('hud').style.color='rgb(1, 2, 3)'");
+    const want = rgb(ink());
+    for (const id of ['hCash']) assert.equal(ev(`getComputedStyle(document.getElementById('${id}')).color`), want, `${theme}: the cash amount is --ink`);
+    assert.equal(ev("getComputedStyle(document.querySelector('#hud .cashbtn')).color"), want, `${theme}: the cash button is --ink, not what it inherits`);
+    ev("document.getElementById('hud').style.color=''");
+  }
+  assert.deepEqual(errors, []);
+});

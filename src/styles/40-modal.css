@@ -74,7 +74,7 @@ label.f+select.pick{width:100%}
 #bankCard{max-width:760px;margin:0 auto;padding:16px 18px 18px;background:var(--paper)}
 .menubtn{cursor:pointer;text-align:left;font:inherit;border-color:var(--edge)}
 .menubtn .caret{font-size:13px;margin-left:2px;opacity:.85}
-.cashbtn{cursor:pointer;text-align:left;font:inherit;color:inherit;position:relative}
+.cashbtn{cursor:pointer;text-align:left;font:inherit;position:relative}
 .cashbtn .badge{position:absolute;top:-8px;right:-8px;background:var(--me);color:#fff;border:2.5px solid var(--edge);border-radius:10px;font:900 11px Nunito,sans-serif;padding:0 6px;line-height:16px}
 .loan{border:2.5px solid var(--edge);border-radius:14px;padding:10px 12px;margin-top:10px;display:flex;gap:10px;align-items:flex-start}
 .loan .grow{flex:1;min-width:0}

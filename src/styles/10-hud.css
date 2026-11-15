@@ -1,7 +1,8 @@
 /* HUD */
 #hud{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));display:flex;gap:8px;align-items:stretch;flex-wrap:wrap;pointer-events:none;z-index:5}
 #hud>*{pointer-events:auto}
-.chip{background:var(--paper);border:3px solid var(--edge);border-radius:14px;box-shadow:3px 3px 0 var(--edge);padding:3px 11px;display:flex;flex-direction:column;justify-content:center;min-height:46px}
+/* Chips set their own text colour: some HUD chips are buttons, and an iPhone left the cash amount dark on a dark chip. */
+.chip{background:var(--paper);color:var(--ink);-webkit-appearance:none;appearance:none;border:3px solid var(--edge);border-radius:14px;box-shadow:3px 3px 0 var(--edge);padding:3px 11px;display:flex;flex-direction:column;justify-content:center;min-height:46px}
 .chip .lbl{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
 .chip .val{font-family:var(--display);font-weight:800;font-size:19px;line-height:1.05;white-space:nowrap}
 .chip .sub{font-size:11px;font-weight:800;white-space:nowrap}
