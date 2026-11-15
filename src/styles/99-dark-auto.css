@@ -431,6 +431,9 @@
 :where(:root.dark) .fu-fold{background:var(--paper);color:var(--ink)}
 :where(:root.dark) .fu-fold.on{background:var(--soft);color:var(--ink)}
 :where(:root.dark) .fu-cnt2{background:var(--me);color:var(--on)}
+:where(:root.dark) .fnm-zoom .b{background:var(--paper);color:var(--ink)}
+:where(:root.dark) .fnm-lg{color:var(--ink)}
+:where(:root.dark) .fnm-ix{background:var(--on);color:var(--paper)}
 :where(:root.dark) .dtabs{background:var(--paper);color:var(--ink)}
 :where(:root.dark) .dtabs button{background:#262626;color:var(--ink)}
 :where(:root.dark) .dtabs button.on{background:var(--pink,#FF4F9A);color:#fff}

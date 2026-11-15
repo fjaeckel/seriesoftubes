@@ -83,7 +83,7 @@ async function fuNetLoad(key){const hides=[];for(const id of new Set([...fuSrvId
 function fuNetHtml(){const key=UI.fu.key,n=FU.nets.get(key),I=FU.netInfo&&FU.netInfo.key===key?FU.netInfo:null,back={v:UI.fu.back||'glass'},f=S&&S.fed;
   if(!n)return fuHead('🔭 '+tr('fedui.looking_glass'),esc(fuShort(key)),back)+`<p class="meta">${tr('fedui.this_network_is_not_known_here')}</p>`;
   const b=n.rec.body,muted=!!f&&f.muted.includes(key),me=!!(f&&f.key&&f.key.pub===key);
-  let h=fuHead('🔭 '+tr('fedui.looking_glass'),fuName(key)+(I&&I.ai?' '+fuAi():''),back)+fuMsg();
+  let h=fuHead('🔭 '+tr('fedui.looking_glass'),fuName(key)+(I&&I.ai?' '+fuAi():''),back)+fuMsg()+fnmHtml(key);
   h+=`<dl class="fu-dl"><dt>ASN</dt><dd>AS${b.asn} ${fuFp(key)}${fuLookTag(key)}</dd><dt>${tr('fedui.home_market')}</dt><dd>${esc(pieLicCountry(b.home))}</dd>
   <dt>${tr('fedui.peering_policy')}</dt><dd>${fuPolName(b.policy)}</dd><dt>${tr('fedui.pops')}</dt><dd>${b.pops.length}</dd><dt>${tr('fedui.customers')}</dt><dd>${b.cust}</dd>
   <dt>${tr('fedui.game_day')}</dt><dd>${b.day}</dd><dt>${tr('fedui.joined_on')}</dt><dd>${b.founded?fuDate(b.founded):'—'}</dd>
