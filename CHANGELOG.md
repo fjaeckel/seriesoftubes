@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The project follows
 
 - Orbit customers in the far north no longer go short when the crusts further south fill up: overflow now lands under the crust with the most room, keeping the polar crust free for the places only it reaches.
 - An unhappy orbit customer now says why it is short and what fixes it (a full dish, full crusts, no dish in reach, slow fiber where it lands), on its card and in the warning.
+- Orbit customers link the NOC, Pie Control and their POP: each view has buttons to the other two, the NOC shows the POP whose dish lands them, Pie Control can drop them, and that POP's panel lists the orbit customers coming down there.
 
 ## [4.3.0] — 2026-11-15
 

@@ -39,6 +39,7 @@
 :where(:root.dark) .fact.down{background:var(--bad);color:#fff}
 :where(:root.dark) .lead{color:var(--ink2)}
 :where(:root.dark) .note{color:var(--ink2)}
+:where(:root.dark) .row.hi{background:var(--soft);color:var(--ink)}
 :where(:root.dark) .row .meta{color:var(--ink2)}
 :where(:root.dark) .why{color:#D7848E}
 :where(:root.dark) .b{background:var(--sun);color:var(--on)}
