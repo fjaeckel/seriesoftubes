@@ -27,6 +27,8 @@ Object.assign(ACT,{
  fuBoards:()=>{if(fuRankOn())ACT.fuOpen({v:'boards'});},
  // The board's note: one line, or all of it.
  fuNote:()=>{if(!UI.fu)return;UI.fu.note=!UI.fu.note;fuRender();},
+ // A folded block of the open sheet (settings, the rest of a long list): view state, gone when the sheet closes.
+ fuFold:({k}={})=>{if(!UI.fu||typeof k!=='string'||k.length>40)return;UI.fu.o=UI.fu.o||{};UI.fu.o[k]=!UI.fu.o[k];fuRender();},
  fuQ:({k,v}={})=>{const q=fuQ(),ok={board:FU_BOARDS,measure:FU_MEASURES,division:['all','human','ai']};
    if(ok[k]){if(!ok[k].includes(v))return;q[k]=v;}
    else if(['model','harness','home','from','continent','country','city','age','gday','tier1','policy','peers','server'].includes(k)){

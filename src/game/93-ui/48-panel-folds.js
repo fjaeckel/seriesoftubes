@@ -21,7 +21,7 @@ const pnNote=(k,html)=>!pnVet()||pnOpen('h:'+k)?html:'';
 const pnJump=list=>`<div class="pnjump">${list.map(([k,l])=>btn(l,'panelJump',{k},'ghost sm')).join('')}</div>`;
 const pnAnchor=k=>`<div data-sec="${k}"></div>`;
 // A folded block with its own toggle; `body` is a function, so a folded block costs nothing to render.
-function pnFold(k,label,body){const o=pnOpen(k);return `<div class="btns pnfold">${btn(`${o?'▾':'▸'} ${label}`,'panelFold',{k},'ghost sm')}</div>${o?body():''}`;}
+function pnFold(k,label,body){const o=pnOpen(k);return `<div class="btns pnfold">${foldB(label,'panelFold',{k},o)}</div>${o?body():''}`;}
 /* A tab in sections (the Peering tab, the back half of Infra): each one is a heading with a one-line summary that
    unfolds it. Mode 0 is folded, 1 shows only what needs you (a hot port, something worth ordering), 2 all of it.
    Early in the game every section is open; later a section opens by itself only for what needs you, and a tap on the
@@ -32,7 +32,8 @@ const pnSecMode=(k,flag,hit)=>{const v=pnState().open['s:'+k];return v!==undefin
 // A new search starts from what it finds, not from what was folded by hand before.
 const pnSecReset=()=>{if(!UI.pn)return;for(const k in UI.pn.open)if(k.startsWith('s:'))delete UI.pn.open[k];};
 function pnSec(k,title,s){const fl=s.flags||[],m=pnSecMode(k,fl.length>0,s.hit),v=pnVet();
-  return `<section class="psec${m?' on':''}" data-sec="${k}"><div class="psh"><button class="psb" data-act="panelFold" data-args='{"k":"s:${k}","o":${m?0:1}}' aria-expanded="${!!m}"><span class="psa">${m?'▾':'▸'}</span><span class="pst">${title}</span><span class="pss">${s.sum||''}</span>${fl.map(([c,t])=>`<span class="tag psf ${c}">${t}</span>`).join('')}</button>${m&&v&&s.lead?pnQ(k):''}</div>${m?(s.lead&&(!v||pnOpen('h:'+k))?s.lead:'')+s.body(m)+(m===1?`<div class="btns pnmore">${btn(tr('notifications.show_all_n',{n:s.tot}),'panelFold',{k:'s:'+k,o:1},'ghost sm')}</div>`:''):''}</section>`;}
+  return `<section class="psec${m?' on':''}" data-sec="${k}"><div class="psh"><button class="psb" data-act="panelFold" data-args='{"k":"s:${k}","o":${m?0:1}}' aria-expanded="${!!m}"><span class="psa">${m?'▾':'▸'}</span><span class="pst">${title}</span><span class="pss">${s.sum||''}</span>${fl.map(([c,t])=>`<span class="tag psf ${c}">${t}</span>`).join('')}</button>${m&&v&&s.lead?pnQ(k):''}</div>${m?(s.lead&&(!v||pnOpen('h:'+k))?s.lead:'')+s.body(m)+(m===1?`<div class="btns pnmore">${btn(tr('notifications.show_all_n',{n:s.tot}),'panelFold',{k:'s:'+k,o:1},'ghost sm',false,'',' aria-expanded="false"')}</div>`:''):''}</section>`;}
 // A use bar and its number on one line: what a folded port shows.
 const pnUse=(u,cap)=>`<div class="cuse"><div class="bar ${barCls(cap?u/cap:0)}"><i style="width:${cap?Math.min(100,u/cap*100):0}%"></i></div><b>${fmtG(u)}</b></div>`;
-const pnChg=(k,o)=>btn(`${o?'▾':'▸'} ${tr('connections.change')}`,'panelFold',{k},'ghost sm');
+// nm: what it changes, so a screen reader hears "Change: Level Tree" and not a row of "Change".
+const pnChg=(k,o,nm)=>foldB(tr('connections.change'),'panelFold',{k},o,'ghost sm',nm?tr('common.change_name',{name:nm}):'');

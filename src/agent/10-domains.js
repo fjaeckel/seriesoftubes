@@ -57,6 +57,8 @@ const API_DOMAINS={
   dashTab:{kind:'enum',values:()=>DTABS.slice()},
   dashSortKey:{kind:'enum',values:['name','asn','type','traffic','cost','lost']},
   leftTab:{kind:'enum',values:['goals','deals','noc','nets']},
+  dealsFilter:{kind:'enum',values:['all','ready','work']},
+  logKind:{kind:'enum',values:['all','bad','good','goal','info']},
   leftFold:{kind:'enum',values:['done','badges','hot','slow','ports']},
   netFilter:{kind:'enum',values:['all','out']},
   pniFilter:{kind:'enum',values:['all','t','worth','pni']},

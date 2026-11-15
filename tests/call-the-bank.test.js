@@ -98,7 +98,7 @@ test('calling moves no money; taking the offer makes an ordinary loan', (t) => {
   assert.equal(ev('S.loans.length'), 0);
   assert.equal(ev('$("hBank").hidden'), false, 'the badge counts it straight away, paused or not');
   assert.equal(ev('JSON.parse(slotRaw(UI.slot)).loanOffers.length'), 1, 'saved right away');
-  assert.match(bank(ev), /Goldman Sacks offers/);
+  assert.match(bank(ev), /Offers.*Goldman Sacks\$1\.00M/s, 'the offer is on its card');
   ev('ACT.takeLoan({id:S.loanOffers[0].id})');
   assert.equal(ev('S.cash'), 1000 + 1e6);
   assert.equal(offers(ev).length, 0);

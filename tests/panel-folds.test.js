@@ -87,7 +87,7 @@ test('Peering: three sections with a summary line; what needs you is open, the r
   assert.equal(chg().length, pnis, 'every PNI you have here');
   assert.equal(q(g, '.psec[data-sec="pni"] .prow.crow .cuse').length, pnis, 'one line and a use bar each');
   chg()[0].click();
-  assert.equal(acts(g, 'cancelPni').length, 1, 'two taps to Remove');
+  assert.equal(acts(g, 'cancelPni').length, 1, 'Remove (one tap, then Undo)');
   assert.match(chg()[0].textContent, /▾ Change/);
   head('pni').click();
   assert.ok(!sec('pni').classList.contains('on'), 'the heading folds it again');
@@ -133,6 +133,18 @@ test('Infra: links right under the routers, the standards folded, every section 
   city(g, 'links');
   const secs = q(g, '[data-sec]').map(x => x.dataset.sec);
   assert.deepEqual(secs.slice(0, 5), ['rt', 'fib', 'metro', 'power', 'scrub']);
+  // The routers are one line (model × count, load and ports bars); their buttons and spec sheet unfold under Change.
+  const rg = q(g, '.rgrp');
+  assert.equal(rg.length, 1);
+  assert.equal(rg[0].querySelectorAll('.rbars .bar').length, 2, 'load and ports');
+  assert.equal(acts(g, 'upRouter').length + acts(g, 'addRouter').length, 0, 'folded: no router buttons');
+  // POP standards stay one tap away (their own fold), not hidden behind the routers' Change (#315).
+  assert.ok(ev('ptOn()'));
+  assert.ok(acts(g, 'panelFold').some(b => JSON.parse(b.dataset.args).k === 'std'), 'POP standards in view');
+  assert.match(q(g, '.scroll')[0].textContent, /POP standards/);
+  const chg = rg[0].querySelector('[data-act="panelFold"]');
+  assert.deepEqual(JSON.parse(chg.dataset.args), { k: 'rtc', o: 1 });
+  ev(`ACT.panelFold(${chg.dataset.args})`);
   assert.ok(acts(g, 'upRouter').length + acts(g, 'addRouter').length > 0, 'the router buttons');
   const kv = q(g, '.kv span').map(x => x.textContent), btns = q(g, '.b').map(x => x.dataset.act);
   assert.ok(btns.indexOf('models') >= 0 && kv.includes('Boot time'));
@@ -144,6 +156,32 @@ test('Infra: links right under the routers, the standards folded, every section 
   assert.ok(q(g, '.psec[data-sec="power"]')[0].classList.contains('on'));
   ev("ACT.panelJump({k:'no such'});ACT.panelJump({k:'\"]'})");
   assert.deepEqual(g.errors, []);
+});
+
+test('Infra: full routers unfold their buttons by themselves; the kit is one row with its buttons', () => {
+  const g = big(), { ev } = g;
+  city(g, 'links');
+  // The redundancy kit: its name and price on the left, Apply and Utilities on the same row.
+  const kit = q(g, 'section.kitl .row');
+  assert.equal(kit.length, 1);
+  assert.ok(kit[0].querySelector('[data-act="utilities"]') && kit[0].querySelector('[data-act="utilityKit"]'));
+  // A router at its limit needs you: the buttons show without a tap, and Change folds them away.
+  ev("R.nodeLoad.fra=R.nodeCap.fra;renderPanel()");
+  assert.ok(acts(g, 'upRouter').length + acts(g, 'addRouter').length > 0);
+  assert.deepEqual(JSON.parse(q(g, '.rgrp [data-act="panelFold"]')[0].dataset.args), { k: 'rtc', o: 0 });
+  ev("ACT.panelFold({k:'rtc',o:0})");
+  assert.equal(acts(g, 'upRouter').length + acts(g, 'addRouter').length, 0);
+  assert.deepEqual(g.errors, []);
+});
+
+test('Infra early in the game: every router button in view, no Change to find', () => {
+  const { ev, errors, dom } = load();
+  ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();closeModal();S.cash=1e9;ACT.buildPop({city:'fra'});closeModal();selectCity('fra');ACT.tab({t:'links'})");
+  const d = dom.window.document;
+  assert.ok(d.querySelector('#panelBody .rgrp'));
+  assert.ok(d.querySelector('#panelBody [data-act="addRouter"]'), 'Add router');
+  assert.equal(d.querySelector('#panelBody .rgrp [data-act="panelFold"]'), null);
+  assert.deepEqual(errors, []);
 });
 
 test('a link: redundancy check next to the parallel link, what is on it one line that unfolds to the top three sources', () => {
@@ -192,5 +230,16 @@ test('a new game keeps every explanation and has no "?" yet; short lists are nev
   assert.deepEqual(q(g, '.psec').map(x => x.classList.contains('on')), [true, true, true]);
   assert.equal(q(g, '.hb').length, 0);
   assert.ok(q(g, '.scroll')[0].textContent.includes(ev("tr('city_panel.cdns_put_free_cache_servers_inside')")));
+  assert.deepEqual(g.errors, []);
+});
+
+test('NOC tab on a phone: Inspect gets a finger-sized tap area without taller rows', () => {
+  const g = big(), { ev } = g;
+  ev("UI.left='noc';UI.leftOpen=true;renderAll()");
+  const d = g.dom.window.document;
+  assert.ok(d.querySelector('#leftBody .row>.b.sm[data-act="selLink"],#leftBody .row>.b.sm[data-act="focusCity"]'), 'row buttons are direct children of their row');
+  const css = [...d.querySelectorAll('style')].map(s => s.textContent).join('');
+  assert.match(css, /#leftBody \.row>\.b\.sm\{min-height:32px;position:relative\}/);
+  assert.match(css, /#leftBody \.row>\.b\.sm::after\{content:"";position:absolute;inset:-5\.5px -4px\}/, 'the hit area reaches past the 2.5 px border: about 38 px tall');
   assert.deepEqual(g.errors, []);
 });

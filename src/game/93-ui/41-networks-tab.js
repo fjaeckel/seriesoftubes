@@ -13,11 +13,13 @@ function netRow(n,where,foc,out){const open=!!foc||UI.nlOpen===n.id;
 function netsTab(){let h='';
   // The introduction is for new players: with a few POPs it only pushes the search box down.
   if(Object.keys(S.pops).length<4)h+=`<p class="lead">${tr('hud_and_panels.every_network_on_the_map_traffic')}</p>`;
+  // A new network reaches nobody: a list of red "Not reached" says what, this says how.
+  if(!(R.reach>0))h+=`<p class="lead">${tr('hud_and_panels.you_reach_nobody_yet')}</p>`;
   const where=netWhereIdx(),tl=NETS.filter(n=>n.tail),tlOn=tl.filter(n=>where(n.id).some(x=>x[2]==='ix')).length;
   const foc=UI.netFocus&&NET[UI.netFocus]?NET[UI.netFocus]:null,out=!foc&&UI.nf==='out',lostN=ntLost().length;
   const q=foc?'':nlQ(),ty=foc||!TYPE_L[UI.nlT]?'':UI.nlT;
   h+=`<div class="netf nlf"><input type="search" id="nlQ" class="t" value="${esc(UI.nlQ||'')}" maxlength="40" autocomplete="off" placeholder="${esc(tr('net_filter.find_a_network'))}" aria-label="${esc(tr('net_filter.find_a_network'))}">
-  <div class="btns">${btn(tr('common.all_networks'),'netFilter',{f:'all'},!foc&&!out?'sm':'ghost sm')}${btn(tr('hud_and_panels.out_of_reach_without_transit_n',{n:lostN}),'netFilter',{f:'out'},out?'sm':'ghost sm')}</div>
+  <div class="btns">${btn(tr('common.all_networks'),'netFilter',{f:'all'},!foc&&!out?'sm':'ghost sm',false,'',` aria-pressed="${!foc&&!out}"`)}${btn(tr('hud_and_panels.out_of_reach_without_transit_n',{n:lostN}),'netFilter',{f:'out'},out?'sm':'ghost sm',false,'',` aria-pressed="${!!out}"`)}</div>
   <div class="btns nlt">${Object.keys(TYPE_L).map(k=>`<button class="b sm ${ty===k?'green':'ghost'}" data-act="nlType" data-args='{"t":"${k}"}' aria-pressed="${ty===k}">${TYPE_L[k]}</button>`).join('')}${q||ty?btn(tr('net_filter.clear'),'nlClear',{},'ghost sm'):''}</div></div>`;
   // Finding a network comes first; the peering policy is one line under the filters, its choices behind Change.
   if(Object.keys(S.ixp).length||ppol()!=='open')h+=pdeskCard();
@@ -28,7 +30,7 @@ function netsTab(){let h='';
   if(!nl.length)h+=q||ty?netNone():out?`<p class="empty">${tr('hud_and_panels.nothing_every_network_is_reachable')}</p>`:'';
   for(const n of nl.slice(0,listN('nets')))h+=netRow(n,where,foc,out);
   h+=listMore('nets',nl.length,n=>trn('hud_and_panels.n_more_networks',n));
-  if(!foc&&!out&&!q&&(!ty||tl.some(n=>n.type===ty)))h+=`<div class="row"><div class="grow"><div class="nm">${tr('hud_and_panels.the_long_tail')} <span class="meta">${tr('hud_and_panels.n_small_networks',{n:tl.length})}</span></div><div class="meta">${tr('hud_and_panels.p_of_traffic_between_them_scattered',{p:(tl.reduce((a,n)=>a+NSH[n.id],0)*100).toFixed(1),n:tlOn})}</div></div>${btn(UI.tailOpen?tr('common.hide'):tr('common.show'),'tailTog',{},'ghost sm')}</div>`;
+  if(!foc&&!out&&!q&&(!ty||tl.some(n=>n.type===ty)))h+=`<div class="row"><div class="grow"><div class="nm">${tr('hud_and_panels.the_long_tail')} <span class="meta">${tr('hud_and_panels.n_small_networks',{n:tl.length})}</span></div><div class="meta">${tr('hud_and_panels.p_of_traffic_between_them_scattered',{p:(tl.reduce((a,n)=>a+NSH[n.id],0)*100).toFixed(1),n:tlOn})}</div></div>${foldB(UI.tailOpen?tr('common.hide'):tr('common.show'),'tailTog',{},UI.tailOpen,'ghost sm',tr('hud_and_panels.the_long_tail'))}</div>`;
   return h;}
 // Typing redraws the list. The morph swaps an input whose value changed, so the new box gets the focus and the caret back.
 document.addEventListener('input',e=>{if(e.target.id!=='nlQ'||!S)return;const at=e.target.selectionStart;ACT.nlFind({q:e.target.value});

@@ -129,6 +129,10 @@ test('on a phone the traffic list is one card per network, its details behind on
   assert.equal(cards, ev('LIST_PG.traffic[0]'));
   assert.equal(n(ev, '#trafficSec .trow [data-act="dashRow"]'), cards, 'every card has its Details');
   assert.ok(n(ev, '#trafficSec .trow [data-act="pniAllOpen"]') <= cards, 'at most one peer button a card');
+  // Peer and Details side by side, icon-sized, each named for screen readers.
+  assert.equal(n(ev, '#trafficSec .trow .ract.trac'), cards);
+  assert.equal(ev(`[...document.querySelectorAll('#trafficSec .trow .ract button')].every(b=>b.classList.contains('tib')&&b.getAttribute('aria-label'))`), true);
+  assert.match(ev("[...document.querySelectorAll('style')].map(s=>s.textContent).join('')"), /\.ract\.trac\{flex-direction:row/);
   assert.equal(n(ev, '#trafficSec .tmore'), 0);
   ev("document.querySelector('#trafficSec [data-act=\"dashRow\"]').click()");
   assert.equal(n(ev, '#trafficSec .tmore'), 1);

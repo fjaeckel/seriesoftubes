@@ -5,6 +5,8 @@
    servers rank (fedRankView: the top 50 and this network's row); the last answers are kept, so the boards work
    offline, "as of". The sheet may re-render often (live values): morph() keeps its nodes, scroll and focus. */
 const FU_BOARDS=['traffic','total','pops','pies','cone'];
+// Rows on the first page of a board: the rest of the top 50 unfold on a tap.
+const FU_PG=10;
 // The measures, in the order shown; the first, live "now", is the default.
 const FU_MEASURES=['now','total','growth'];
 const fuDefQ=()=>({board:'traffic',measure:FU_MEASURES[0],division:'all'});
@@ -83,11 +85,14 @@ function fuBoardsHtml(){const q=fuQ(),sl=FU.slice,act=fuActive(q),nf=act.length,
   h+=`<button class="fu-note${open?' open':''}" data-act="fuNote" aria-expanded="${open}"><span class="fu-i" aria-hidden="true">ⓘ</span><span class="fu-nt">${fuBoardNote(q.board,q.measure)}${q.measure==='growth'?' '+tr('fedui.growth_needs_two_days_of_records'):''}</span></button>`;
   if(!sl)return h+`<p class="meta">${tr('fedui.loading')}</p>`;
   for(const id of sl.untrusted||[])h+=`<p class="note bad">${tr('fedui.ranking_does_not_match',{server:fuSrvName(id)})}</p>`;
-  const me=S&&S.fed&&S.fed.key?S.fed.key.pub:null,inList=!!me&&sl.rows.some(r=>r.key===me);
-  h+=sl.rows.length?`<ol class="fu-board">${sl.rows.map(r=>fuRow(r,q,r.key===me)).join('')}</ol>`:`<p class="note">${tr('fedui.no_one_on_this_board_yet')}</p>`;
+  // A short first page (the top ten), the rest of the top 50 on a tap; the own row is in it or pinned below.
+  const me=S&&S.fed&&S.fed.key?S.fed.key.pub:null,all=fuOpenK('rows'),rows=all||sl.rows.length<=FU_PG+2?sl.rows:sl.rows.slice(0,FU_PG),inList=!!me&&rows.some(r=>r.key===me),mine=!inList&&!!me&&sl.rows.find(r=>r.key===me);
+  h+=sl.rows.length?`<ol class="fu-board">${rows.map(r=>fuRow(r,q,r.key===me)).join('')}</ol>`:`<p class="note">${tr('fedui.no_one_on_this_board_yet')}</p>`;
+  if(sl.rows.length>FU_PG+2)h+=`<div class="btns fu-pg">${btn(all?tr('common.show_fewer'):tr('notifications.show_all_n',{n:sl.rows.length}),'fuFold',{k:'rows'},'ghost sm')}</div>`;
   h+=`<p class="meta fu-foot">${sl.n>sl.rows.length?tr('fedui.top_n_of_m',{n:sl.rows.length,m:sl.n})+' ':''}${q.server?tr('fedui.as_seen_from_server',{server:fuSrvName(q.server)}):tr('fedui.all_your_servers_merged')}${sl.at?' · '+tr('fedui.as_of_time',{time:fuWhen(sl.at)}):''}</p>`;
   // Not among the rows shown: the own row stays in sight at the bottom of the sheet.
-  if(sl.me&&!inList)h+=`<div class="fu-mine"><ol class="fu-board">${fuRow({...sl.me,key:me,asn:FU.asn||0},q,true)}</ol>${sl.me.rank?'':`<p class="meta">${tr('fedui.you_are_not_in_this_slice')}</p>`}</div>`;
+  if(mine)h+=`<div class="fu-mine"><ol class="fu-board">${fuRow(mine,q,true)}</ol></div>`;
+  else if(sl.me&&!inList)h+=`<div class="fu-mine"><ol class="fu-board">${fuRow({...sl.me,key:me,asn:FU.asn||0},q,true)}</ol>${sl.me.rank?'':`<p class="meta">${tr('fedui.you_are_not_in_this_slice')}</p>`}</div>`;
   return h;}
 /* The second sheet: every other dimension. Values offered are the ones the servers list (fedFacets). */
 function fuFiltersHtml(){const q=fuQ(),fc=FU.facets||{models:[],harnesses:[],from:[],homes:[]};

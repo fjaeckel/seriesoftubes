@@ -64,9 +64,15 @@ test('#343 only cities a link could end in are offered: not the POP itself, not 
   assert.equal(ev("cityOn('aju')"), false, 'Aracaju is off the map');
   assert.equal(ev(`findCities('aracaju',${lit(a)}).includes('aju')`), false);
   assert.equal(ev("findCities('aracaju').includes('aju')"), true, 'the plain finder still finds it');
-  // An empty box lists your other POPs.
+  // An empty box lists your other POPs first, then the nearest cities without one.
   ev("ACT.buildPop({city:'syd'})");
-  assert.deepEqual(ev(`findCities('',${lit(a)}).join()`).split(',').filter(Boolean), ev(`Object.keys(S.pops).filter(c=>c!==${lit(a)}).sort((x,y)=>CITY[x].name.localeCompare(CITY[y].name)).join()`).split(',').filter(Boolean));
+  const mine = ev(`Object.keys(S.pops).filter(c=>c!==${lit(a)}).sort((x,y)=>CITY[x].name.localeCompare(CITY[y].name)).join()`).split(',').filter(Boolean);
+  const empty = ev(`findCities('',${lit(a)}).join()`).split(',').filter(Boolean);
+  assert.deepEqual(empty.slice(0, mine.length), mine);
+  const near = empty.slice(mine.length);
+  assert.ok(near.length > 0 && near.every(c => !ev(`!!S.pops[${lit(c)}]`) && ev(`cityOn(${lit(c)})`)), 'then cities a link could go to');
+  const km = near.map(c => ev(`kmBetween(${lit(a)},${lit(c)})`));
+  assert.deepEqual(km, [...km].sort((x, y) => x - y), 'nearest first');
   // Typed orders that make no sense do nothing.
   ev(`ACT.linkTo({a:${lit(a)},b:${lit(a)}})`);
   assert.equal(ev("$('modal').hidden"), true);

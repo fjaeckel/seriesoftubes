@@ -27,7 +27,9 @@ Object.assign(ACT,{
    if(r<0.15){if(p.up)p.up.ready=Math.max(S.day+1,p.up.ready-30);else p.ready=Math.max(S.day+1,p.ready-30);toast(tr('sites_peering_caches.your_account_manager_found_the_order'),'good');}
    else toast(pick([tr('sites_peering_caches.it_is_with_the_provisioning_team'),tr('sites_peering_caches.we_are_waiting_on_the_colo'),tr('sites_peering_caches.your_ticket_was_merged_into_another'),tr('sites_peering_caches.could_you_resend_the_loa_you'),tr('sites_peering_caches.your_account_manager_is_on_paternity')]));after();},
  peerPol:({p})=>{if(!PPOL.includes(p))return;S.ppol=p;after();},
- cancelPni:({id,ok})=>{if(!ok&&UI.confirm!==id){UI.confirm=id;renderPanel();return;}S.pni=S.pni.filter(p=>p.id!==id);UI.confirm=null;after();},
+ // One tap and Undo (74-undo.js), like a transit port.
+ cancelPni:({id,ok})=>{const go=()=>{S.pni=S.pni.filter(p=>p.id!==id);UI.confirm=null;after();},p=S.pni.find(x=>x.id===id);
+   if(ok||!p)return go();undoDo(go,['pni','inc'],tr('undo.pni_removed',{net:esc(NET[p.net]?NET[p.net].name:p.net),city:esc(CITY[p.city]?CITY[p.city].name:p.city)}));},
  cache:({city,net})=>{const n=NET[net];if(!n||!n.cache||!S.pops[city])return;if((R.demTo[net]||0)<n.cache.min){toast(tr('sites_peering_caches.net_says_not_yet_send_them',{net:esc(n.name),min:n.cache.min}),'bad');sfx('err');return;}const hv=S.caches.filter(x=>x.city===city&&x.net===net),nb=hv.filter(x=>x.site==='b').length,site=S.pops[city].site2&&nb<hv.length-nb?'b':'a';const box={site,...cacheBox(city)};if(!portGate(city,cachePortsAdd(city,[box])))return;
    S.caches.push({id:uid(),city,net,...box});toast(tr('sites_peering_caches.cache_installed_in_city_net_shipped',{cache:esc(n.cache.name),city:CITY[city].name,net:esc(n.name),mo:fmt$(cacheMo(box))}),'good');sfx('build');after();},
  rmCache:({id})=>{S.caches=S.caches.filter(c=>c.id!==id);after();},

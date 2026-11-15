@@ -13,9 +13,9 @@ Object.assign(ACT,{
  marketOpen:({t,f,k}={})=>{if(!S||pzOn())return;UI.confirm=null;
    if(typeof k==='string'&&cmRoutes().has(k)){UI.bazTab='routes';UI.bazFilt='all';UI.bazOpen=k;const D=bazData(),i=bazRows(D).findIndex(x=>x.k===k);UI.bazN=Math.max(UI.bazN||0,BAZ_PG*Math.ceil((i+1)/BAZ_PG));}
    else if(BAZ_TABS.includes(t)){UI.bazTab=t;if(t==='routes'&&(BAZ_FILT.includes(f)||BAZ_KIND.includes(f))){UI.bazFilt=f;UI.bazN=0;}}
-   UI._bazT=null;bazModal();
+   UI._bazT=null;UI.bazAsk=null;bazModal();
    if(typeof k==='string'){const el=document.querySelector(`#modal [data-route="${k.replace(/[^a-z0-9|]/g,'')}"]`);if(el&&el.scrollIntoView)el.scrollIntoView({block:'start'});}},
- bazTab:({t})=>{if(!BAZ_TABS.includes(t))return;UI.bazTab=t;bazView();},
+ bazTab:({t})=>{if(!BAZ_TABS.includes(t))return;UI.bazTab=t;UI.bazAsk=null;bazView();},
  bazSort:({v})=>{UI.bazSort=BAZ_SORT.includes(v)?v:'mo';bazView();},
  bazFilt:({v})=>{UI.bazFilt=BAZ_FILT.includes(v)||BAZ_KIND.includes(v)?v:'all';UI.bazN=0;bazView();},
  bazRow:({k})=>{UI.bazOpen=UI.bazOpen===k?null:k;bazView();},
@@ -45,7 +45,13 @@ Object.assign(ACT,{
  // Every product at once (the Products tab's quick setups).
  mktPreset:({v})=>{if(!own(CM_PRESET,v))return;for(const p of CM_P){const was=S.cm.p[p].on;S.cm.p[p]=CM_PRESET[v](p);if(was&&!S.cm.p[p].on)cmUnlist(S.links,p);}
    toast(v==='all'?tr('market.t_pre_all'):v==='careful'?tr('market.t_pre_careful'):tr('market.t_pre_stop'),'good');cmAfter();},
- // Wherever buyers pay less than your floor: the lowest floor, on the route's own rule where it has one, else everywhere.
- mktFloorLow:()=>{let n=0;for(const x of bazData().rows)for(const q of x.ps)if(q.st==='floor'&&q.fl>CM_FLOOR[0]){const o=cmRt(x.k);if(o&&o.floor!==undefined)o.floor=CM_FLOOR[0];else S.cm.p[q.p].floor=CM_FLOOR[0];n++;}
-   if(n)cmAfter();},
+ /* Wherever buyers pay less than your floor but at least the lowest one: that floor. w 'here' sets it as those routes'
+    own rule; otherwise everywhere, for the products it holds up (on a route's own rule where it has one). Routes where
+    buyers pay less still are left as they are: no floor would sell there. */
+ mktFloorLow:({w}={})=>{const F0=CM_FLOOR[0],D=bazData();UI.bazAsk=null;if(!D.fx.length)return;
+   if(w==='here'){const rt=S.cm.rt||{};for(const x of D.fx)rt[x.k]={...rt[x.k],floor:F0};S.cm.rt=rt;toast(trn('market.t_floor_here',D.fx.length,{f:F0}),'good');}
+   else{for(const x of D.fx)for(const q of x.fix){const o=cmRt(x.k);if(o&&o.floor!==undefined)o.floor=F0;else S.cm.p[q.p].floor=F0;}
+     toast(tr('market.t_floor_all',{f:F0,list:D.fxP.map(p=>tr(CM_NAME[p])).join(', ')}),'good');}
+   cmAfter();},
+ bazAsk:({v})=>{UI.bazAsk=UI.bazAsk===v||v!=='floor'?null:v;bazView();},
 });

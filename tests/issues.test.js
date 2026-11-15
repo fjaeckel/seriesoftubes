@@ -819,7 +819,9 @@ test('cancelling from the Connections list confirms once, without forging the pa
   assert.equal(ev('UI.confirm'), null);
   ev(`ACT.buyTransit({city:'fra',net:'cog',tier:1})`);
   ev(`ACT.cancelTransit({id:S.transit[0].id})`);
-  assert.equal(ev('S.transit.length'), 1, 'the POP panel still asks first');
+  assert.equal(ev('S.transit.length'), 0, 'the POP panel cancels on one tap now, with Undo');
+  ev('ACT.undo()');
+  assert.equal(ev('S.transit.length'), 1, 'and Undo puts the port back');
   assert.deepEqual(errors, []);
 });
 

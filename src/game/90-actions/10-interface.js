@@ -4,12 +4,14 @@ const ACT={
  linkCheck:({id})=>{const l=S.links.find(x=>x.id===id);if(!l||linkDown(l))return;linkCheckModal(l);},
  speed:({v})=>{v=+v;if(pzOn()||UI.clockLocked)return;if(![0,0.5,1,2,4,8].includes(v)||(S&&!rule('clock')&&v))return;if(v)UI.lastSpeed=v;UI.speed=v;renderHUD();},
  help:()=>showHelp(),
- dash:()=>{if(!S||pzOn())return;const d=$('dash');d.hidden=!d.hidden;if(!d.hidden)renderDash();},
- dashClose:()=>{$('dash').hidden=true;},
+ dash:()=>{if(!S||pzOn())return;const d=$('dash');d.hidden=!d.hidden;if(!d.hidden){renderDash();winIn($('dashCard'));}else winBack();},
+ dashClose:()=>{$('dash').hidden=true;winBack();},
  dashTab:({k})=>{if(k==='infra')k='links';if(!DTABS.includes(k))return;UI.dtab=k;renderDash();const d=$('dash');if(d)d.scrollTop=0;},
  dashSort:({k})=>{if(!['name','asn','type','traffic','cost','lost'].includes(k))return;listReset('traffic');if(UI.dashSort===k)UI.dashDir=-(UI.dashDir||-1);else{UI.dashSort=k;UI.dashDir=k==='name'||k==='type'||k==='asn'?1:-1;}renderDash();},
- bank:()=>{if(!S||pzOn())return;UI.confirm=null;$('dash').hidden=true;const b=$('bankBox');b.hidden=false;UI._bh=null;renderBank();},
- bankClose:()=>{UI.confirm=null;$('bankBox').hidden=true;},
+ bank:()=>{if(!S||pzOn())return;UI.confirm=null;$('dash').hidden=true;const b=$('bankBox');b.hidden=false;UI._bh=null;UI.bankOpen={};renderBank();winIn($('bankCard'));},
+ bankClose:()=>{UI.confirm=null;$('bankBox').hidden=true;winBack();},
+ // The bank's folds (the rating's reasons, a loan's kept conditions): view state only.
+ bankFold:({k})=>{if(!S||typeof k!=='string'||k.length>40)return;UI.bankOpen=UI.bankOpen||{};UI.bankOpen[k]=!UI.bankOpen[k];renderBank();},
  takeLoan:({id})=>{const o=S.loanOffers.find(x=>x.id===id);if(!o)return;S.stats.loans=(S.stats.loans||0)+1;const B=BANKS[o.bank];let got=o.amount,note='';
    if(B.crypto){const f=0.55+Math.random()*0.8;got=Math.round(o.amount*f);note=' '+(f>=1?tr('interface.tubecoin_moved_up_p_on_the',{p:Math.round(Math.abs(f-1)*100)}):tr('interface.tubecoin_moved_down_p_on_the',{p:Math.round(Math.abs(f-1)*100)}));}
    S.cash+=got;S.loanOffers=S.loanOffers.filter(x=>x!==o);
@@ -56,6 +58,7 @@ const ACT={
  badgesOpen:()=>{if(!S)return;for(const t of document.querySelectorAll('#toasts .btoast'))t.remove();$('dash').hidden=true;UI.fold=UI.fold||{};UI.fold.badges=true;
   if(isPhone()){UI.sel=null;renderPanel();$('left').classList.remove('full');}ACT.leftTab({t:'goals'});const h=document.querySelector('#leftBody .bhead');if(h&&h.scrollIntoView)h.scrollIntoView({block:'start'});},
  logAll:()=>{UI.logAll=!UI.logAll;renderLeft();},
+ logKind:({k})=>{UI.logKind=k==='all'?null:k==='info'?'':LOG_KINDS.includes(k)?k:null;renderLeft();},
  leftFold:({k})=>{if(!LEFT_FOLDS.includes(k))return;UI.fold=UI.fold||{};UI.fold[k]=!UI.fold[k];renderLeft();},
  findOpen:()=>findOpen(),
  findGo:({city})=>{if(!isCity(city))return;closeModal();$('dash').hidden=true;ACT.focusCity({city});},

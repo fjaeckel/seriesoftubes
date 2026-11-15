@@ -22,7 +22,11 @@ Object.assign(ACT,{
  fpEnd:({id}={})=>{const d=S&&S.fed&&S.fed.deals.find(x=>x.id===id&&x.st!=='over');if(!d)return;fedEnd(S,d,'mine','depeer');toast(tr('fedplay.you_ended',{net:esc(d.name),deal:fedDealName(d.deal)}),'');after();fpRe();},
  fpAccept:({id}={})=>fpDo(fedAcceptRq(id)),
  fpDecline:({id}={})=>fpDo(fedDeclineRq(id)),
- fpQueue:()=>{if(!S||!S.fed)return;const d=$('dash');UI.dtab='overview';if(d.hidden)d.hidden=false;renderDash();},
+ // Requests to review: the Multimode sheet, where what waits for an answer comes first (else the dashboard's list).
+ fpQueue:()=>{if(!S||!S.fed)return;if(fuCan()){ACT.fuOpen({v:'home'});return;}const d=$('dash');UI.dtab='overview';if(d.hidden)d.hidden=false;renderDash();},
+ // The terms of a request, the rest of a list of players: view state only.
+ fpFold:({k}={})=>{if(!S||!S.fed||typeof k!=='string'||k.length>40)return;UI.fpo=UI.fpo||{};UI.fpo[k]=!UI.fpo[k];
+   if(fuShown())fuRender();if(!$('dash').hidden)renderDash();renderLeft();},
  fpCons:()=>{if(!S||!S.fed)return;UI.fpSel={};fedConsModal();},
  fpConsNew:({a,b,pairs,members}={})=>fpDo(fedConsNew(a,b,+pairs||1,+members||3)),
  fpConsJoin:({id}={})=>fpDo(fedConsJoin(id)),

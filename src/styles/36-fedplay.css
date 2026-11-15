@@ -18,3 +18,12 @@
 .fp-ixs .row,.fp-found .row,.fp-sugg .row{gap:8px}
 .fp-ixs .row .b,.fp-found .row .b,.fp-sugg .row .b{flex:0 0 auto;white-space:nowrap}
 .fp-found{border-top:1px dashed var(--line);margin-top:6px}
+/* What waits for an answer: a request is its sender and kind with Accept and Decline first, its terms one line (a tap: all). */
+.fp-rq{border-top:1px solid var(--line);padding:6px 0 2px}
+.fp-rqh{display:flex;align-items:center;gap:6px;min-width:0}
+.fp-rqh .nm{flex:1 1 0;min-width:0;overflow-wrap:anywhere}
+.fp-rqh .b{flex:none}
+.fp-rq .fp-terms{margin:2px 0 0}
+.fp-wait{border:2px solid var(--me);border-radius:14px;padding:0 10px 4px;margin:8px 0}
+.fp-cap::first-letter{text-transform:uppercase}
+.fp-out .nm{overflow-wrap:anywhere}

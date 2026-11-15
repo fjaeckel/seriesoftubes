@@ -237,3 +237,88 @@ test('on a 360 px phone: a bottom sheet with every tab in view, every control wi
   for (const t of ['home', 'routes', 'prod', 'news', 'scout']) { ev(`ACT.bazTab({t:'${t}'})`); assert.ok(card(ev).length > 50, t); }
   assert.deepEqual(errors, []);
 });
+
+test('blocked counts only products that are on and wanted, says what is held up, and sorts by it', () => {
+  const { ev, errors } = load();
+  start(ev);
+  fiber(ev, 'a', 'fra', 'ams', 'zr4', 8);
+  fiber(ev, 'b', 'fra', 'par', 'zr4', 8);
+  // Spectrum is on everywhere, wanted on ams|fra only; buyers pay 70% of list against a floor of 80%.
+  ev("S.cm.p.spec.on=true;S.cm.p.spec.min=4;S.cm.p.spec.floor=80;window.__dem=cmDem;window.__idx=cmIdx;cmDem=(r,p,d,f)=>p==='spec'?(r.k==='ams|fra'?10:2):__dem(r,p,d,f);cmIdx=(r,p,s,i,d,f)=>p==='spec'?0.7:__idx(r,p,s,i,d,f);cmRelist()");
+  const st = JSON.parse(ev("JSON.stringify(bazData().rows.map(x=>[x.k,x.ps.find(q=>q.p==='spec').st,x.bad,x.w>0]))"));
+  assert.deepEqual(st.sort(), [['ams|fra', 'floor', true, true], ['fra|par', 'quiet', false, false]], 'under the minimum it waits, it is not blocked');
+  ev('ACT.marketOpen({})');
+  assert.equal(ev(`$('modalCard').querySelector('.dtabs .cnt.red').textContent`), '1', 'the tab badge counts the one route');
+  assert.match(card(ev), /\/mo held up/);
+  // Each line of Needs you opens its routes; the fix sits on the same line.
+  assert.equal(has(ev, '.bz-need > button.bz-nb[data-act="marketOpen"]'), true);
+  assert.equal(has(ev, '.bz-need > .btns [data-act="bazAsk"]'), true);
+  ev("ACT.marketOpen({t:'routes'});ACT.bazSort({v:'held'})");
+  assert.equal(ev(`$('modalCard').querySelector('.bz-r').dataset.route`), 'ams|fra');
+  const w = JSON.parse(ev('JSON.stringify(bazRows(bazData()).map(x=>x.w))'));
+  assert.deepEqual(w, w.slice().sort((a, b) => b - a));
+  ev('cmDem=__dem;cmIdx=__idx');
+  assert.deepEqual(errors, []);
+});
+
+test('a lower floor asks where first: these routes or everywhere, and leaves routes no floor would help', () => {
+  const setup = (ev) => {
+    start(ev);
+    fiber(ev, 'a', 'fra', 'ams', 'zr4', 8);
+    fiber(ev, 'b', 'fra', 'par', 'zr4', 8);
+    fiber(ev, 'c', 'ams', 'lon', 'zr4', 8);
+    // Spectrum wanted everywhere at floor 80%: buyers pay 70% on ams|fra and ams|lon, 50% on fra|par (under any floor).
+    ev("S.cm.p.spec.on=true;S.cm.p.spec.min=1;S.cm.p.spec.floor=80;window.__dem=cmDem;window.__idx=cmIdx;cmDem=(r,p,d,f)=>p==='spec'?10:__dem(r,p,d,f);cmIdx=(r,p,s,i,d,f)=>p==='spec'?(r.k==='fra|par'?0.5:0.7):__idx(r,p,s,i,d,f);cmRelist()");
+    ev('ACT.marketOpen({})');
+  };
+  {
+    const { ev, errors } = load();
+    setup(ev);
+    assert.equal(ev('bazData().floor'), 3);
+    assert.equal(has(ev, '.bz-ask'), false, 'nothing changes, nothing asked, before the tap');
+    ev("ACT.bazAsk({v:'floor'})");
+    assert.match(card(ev), /A floor of 60% lets 2 routes sell again/);
+    assert.match(card(ev), /1 route stays blocked: buyers there pay under 60%/);
+    assert.match(card(ev), /On these 2 routes/);
+    assert.match(card(ev), /The floor of Spectrum drops to 60% on every route/);
+    assert.equal(ev('S.cm.p.spec.floor'), 80, 'asking changes nothing');
+    ev("ACT.mktFloorLow({w:'here'})");
+    assert.deepEqual(JSON.parse(ev('JSON.stringify(S.cm.rt)')), { 'ams|fra': { floor: 60 }, 'ams|lon': { floor: 60 } });
+    assert.equal(ev('S.cm.p.spec.floor'), 80, 'everywhere stays as it was');
+    assert.equal(ev("bazData().rows.filter(x=>x.ps.some(q=>q.st==='floor')).map(x=>x.k).join()"), 'fra|par');
+    assert.equal(has(ev, '.bz-ask'), false, 'the question folds again');
+    ev('cmDem=__dem;cmIdx=__idx');
+    assert.deepEqual(errors, []);
+  }
+  {
+    const { ev, errors } = load();
+    setup(ev);
+    ev("ACT.bazAsk({v:'floor'});ACT.mktFloorLow({w:'all'})");
+    assert.equal(ev('S.cm.p.spec.floor'), 60);
+    assert.equal(ev("'rt' in S.cm"), false, 'no route rules');
+    // Nothing left that a lower floor could fix: no button, no question.
+    ev("ACT.bazAsk({v:'floor'})");
+    assert.equal(ev('UI.bazAsk'), 'floor');
+    assert.equal(has(ev, '.bz-ask'), false);
+    assert.equal(has(ev, '[data-act="mktFloorLow"]'), false);
+    const before = ev('JSON.stringify(S.cm)');
+    ev("ACT.mktFloorLow({w:'here'});ACT.bazAsk({v:'nope'})");
+    assert.equal(ev('JSON.stringify(S.cm)'), before);
+    ev('cmDem=__dem;cmIdx=__idx');
+    assert.deepEqual(errors, []);
+  }
+});
+
+test('a first-time player reads what the window is: one line in the empty and the idle state', () => {
+  const { ev, errors } = load();
+  start(ev);
+  const lead = ev("tr('market.lead_short')");
+  ev('ACT.marketOpen({})');
+  assert.ok(card(ev).includes(lead), 'empty');
+  ev('closeModal()');
+  fiber(ev, 'f', 'fra', 'ams');
+  ev('ACT.marketOpen({})');
+  assert.match(card(ev), /The broker is idle/);
+  assert.ok(card(ev).includes(lead), 'idle');
+  assert.deepEqual(errors, []);
+});

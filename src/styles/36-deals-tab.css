@@ -1,0 +1,24 @@
+/* Deals tab (43-deals-tab.js): offers as short cards with a countdown, filter chips, and one-line sections below. */
+.dl-h{display:flex;align-items:baseline;gap:6px;margin:10px 0 2px}
+.dl-f{display:flex;flex-wrap:wrap;gap:5px;margin:2px 0 4px}
+.dl-d{display:inline-block;border:1.5px solid var(--edge);border-radius:999px;padding:0 6px;font-size:10.5px;font-weight:900;line-height:15px;white-space:nowrap;vertical-align:1px;background:var(--paper);color:var(--ink)}
+.dl-d.soon{background:var(--bad);color:#fff}
+.dl-st{font-size:12px;font-weight:800;line-height:1.3;margin-top:2px}
+.dl-st.ok{color:#0B6B40}
+.dl-st.warn,.dl-st.bad{color:#B23A48}
+.dl-o .btns{margin-top:4px}
+.dl-cust{margin-bottom:4px}
+.dl-rest{margin-top:8px;border-top:2px solid var(--line)}
+.dl-rest .row{border-top:none}
+.dl-sec+.dl-sec,.dl-rest .row+.dl-sec,.dl-sec+.row{border-top:1px solid var(--line)}
+.dl-sec .psh>.b{flex:none}
+.dl-ln{cursor:default}
+.dl-lv{margin:0 0 6px 20px}
+.dl-sec .inc{margin-top:0}
+.dl-o .btns{align-items:center}
+.dl-o .btns>.dl-st{margin:0 0 0 4px}
+.dl-tg.dl-st{border:0;background:none;padding:4px 2px;font-family:inherit;cursor:pointer;text-align:left}
+.dl-tg.b{margin-left:auto}
+.dl-sec .pst{font-size:14.5px}
+.dl-sec .psb{min-height:34px}
+.dl-tg.dl-st{font-size:11.5px}

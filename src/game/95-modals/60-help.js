@@ -22,7 +22,7 @@ const HELP_G=()=>[
  [tr('common.dark_fiber'),tr('help.lease_an_iru_or_build_your')],
  [tr('common.subsea_cables'),tr('help.subsea_waves_can_only_follow_cable')],
  [tr('common.latency'),tr('help.every_link_has_latency_high')],
- [tr('common.noc_dashboard'),tr('help.the_chart_button_at_the_top')],
+ [tr('common.noc_dashboard'),tr('help.the_chart_button_or_open_noc_dashboard')],
  [tr('common.asia'),tr('help.a_weird_underserved_market_transit')],
  [tr('common.russia'),tr('help.moscow_needs_a_mandatory_government')],
  [tr('help.events_chains_and_wholesale'),tr('help.event_networks_a_final_a_festival')],
@@ -52,7 +52,7 @@ const HELP_G=()=>[
 function showHelp(){
   openModal(`<div class="mhead"><div style="display:flex;align-items:center"><h2 class="helph">${tr('help.how_the_internet_works_here')}</h2><button class="x" data-act="helpClose" aria-label="${tr('common.close')}">×</button></div>
   <input class="t helpq" id="helpQ" type="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="🔍 ${esc(tr('help.search_transit_ix_lag'))}" aria-label="${esc(tr('help.search_transit_ix_lag'))}" aria-controls="helpGl"></div>
-  <p class="tagline" style="margin:6px 0 4px">${tr('help.controls_drag_the_map_to_pan')}</p>
+  <p class="tagline" style="margin:6px 0 4px">${tr('help.controls_drag_the_map_or_link')}</p>
   <div class="gl" id="helpGl">${HELP_G().map(([h,t])=>`<details class="gt"><summary>${h}</summary><p>${t}</p></details>`).join('')}</div><p class="meta" id="helpNone" role="status" hidden></p>
 <h3 style="margin:16px 0 0">${tr('help.want_to_know_how_it_really')}</h3><div class="menu-plugs three">${[['🌍',HTIW,tr('modal_and_names.how_the_internet_works'),tr('modal_and_names.the_real_thing_follow_a_packet')],['💬',SIGNAL,tr('modal_and_names.join_the_noc_chat'),tr('modal_and_names.our_signal_group_screenshots_chat')],['🐛',ISSUES,tr('modal_and_names.found_a_bug_or_have_an'),tr('modal_and_names.tell_us_on_github_a_short')]].map(([i,u,l,t])=>`<a class="mplug" href="${u}" target="_blank" rel="noopener" title="${esc(t)}"><i aria-hidden="true">${i}</i><span>${l} →</span></a>`).join('')}</div><div class="btns" style="margin-top:14px">${btn(UI.started?tr('common.back_to_the_map'):tr('common.got_it'),'helpClose',{},'big')}${RELEASE_NOTES.length?btn(tr('common.what_s_new_in_v',{v:esc(APP_VERSION)}),'whatsNewShow',{},'ghost'):''}${UI.started&&S&&!S.lost?btn(tr('common.start_a_new_network'),'resetAsk',{},'ghost sm'):''}</div><div class="btns" style="margin-top:6px">${UI.started&&S&&!S.lost?btn(tr('common.export_save'),'exportSave',{},'ghost sm'):''}${btn(tr('common.import_a_save'),'importPick',{},'ghost sm')}${btn(tr('transfer.from_another_device'),'xferRecv',{},'ghost sm')}${btn(tr('common.settings'),'settings',{},'ghost sm')}${fuCan()?btn(tr('mphelp.how_multiplayer_works'),'helpMp',{from:'help'},'ghost sm'):''}${btn(tr('fedui.privacy'),'privacy',{from:'help'},'ghost sm')}${isPhone()?'':btn(tr('keys.keyboard_shortcuts'),'keys',{},'ghost sm')}</div>`);
 }

@@ -19,7 +19,7 @@ test('#168 only some conferences sell sponsorships, and a sponsor gets more loca
 
   // A sponsorable European meeting.
   const sp = JSON.parse(ev("JSON.stringify((()=>{for(const cf of CONFS){if(cf.cap||CITY[cf.c].reg!=='EU')continue;const k=confKey(cf,0);if(confSp({...cf,key:k}))return {k,n:cf.n,c:cf.c};}})())"));
-  ev(`S.day=confDay(CONFS.find(c=>c.n==='${sp.n}'&&c.c==='${sp.c}'),0)-20;ACT.leftTab({t:'deals'});renderAll()`);
+  ev(`S.day=confDay(CONFS.find(c=>c.n==='${sp.n}'&&c.c==='${sp.c}'),0)-20;ACT.leftTab({t:'deals'});ACT.dealsFold({k:'conf',o:1})`);
   assert.match(dom.window.document.body.innerHTML, /Sponsor \$/);
   const cash = ev('S.cash');
   ev(`ACT.confGo({key:'${sp.k}'});ACT.confSponsor({key:'${sp.k}'})`);

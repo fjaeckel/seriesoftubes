@@ -29,5 +29,5 @@ function pdeskLine(x){const pol=tr(PPOL_N[x.p]||PPOL_N.open);if(!x.a)return trn(
 // The policy picker, in the Networks tab: one line that says the policy (and last week's news); Change unfolds the
 // three choices and what the chosen one does.
 function pdeskCard(){const p=ppol(),r=S.pdeskRep,open=leftFolded('ppol');
-  return `<div class="row ppolr"><div class="grow"><div class="nm">🤝 ${tr('common.peering_policy')}: ${tr(PPOL_N[p])}</div>${r&&r.w>=Math.floor(S.day/7)-1&&(r.a||r.d)?`<div class="meta">${esc(pdeskLine(r))}</div>`:''}</div>${btn(tr('connections.change')+(open?' ▴':' ▾'),'leftFold',{k:'ppol'},'ghost sm')}</div>${open?`<div class="ppolx"><div class="seg">${PPOL.map(x=>btn(tr(PPOL_N[x]),'peerPol',{p:x},p===x?'sm':'ghost sm')).join('')}</div>
+  return `<div class="row ppolr"><div class="grow"><div class="nm">🤝 ${tr('common.peering_policy')}: ${tr(PPOL_N[p])}</div>${r&&r.w>=Math.floor(S.day/7)-1&&(r.a||r.d)?`<div class="meta">${esc(pdeskLine(r))}</div>`:''}</div>${foldB(tr('connections.change'),'leftFold',{k:'ppol'},open,'ghost sm',tr('common.change_name',{name:tr('common.peering_policy')}))}</div>${open?`<div class="ppolx"><div class="seg">${PPOL.map(x=>btn(tr(PPOL_N[x]),'peerPol',{p:x},p===x?'sm':'ghost sm')).join('')}</div>
   <p class="meta">${tr(PPOL_D[p])}</p></div>`:''}`;}

@@ -31,33 +31,28 @@ const LEFT_FOLDS=['done','badges','hot','slow','ports','lvq','ppol'],leftFolded=
 const nocCnt=a=>a.length>NOC_TOP+2?` <span class="meta">${a.length}</span>`:'';
 // A cut that would hide only one or two rows is not worth a button: those lists show whole.
 const nocCut=(k,rows)=>rows.length>NOC_TOP+2&&!leftFolded(k)?rows.slice(0,NOC_TOP):rows;
-function nocList(k,rows,fn,wrap){const all=leftFolded(k),sh=nocCut(k,rows);return (wrap?wrap(sh):sh.map(fn).join(''))+(rows.length>NOC_TOP+2?`<div class="btns" style="margin:2px 0 8px">${btn(all?tr('common.show_fewer'):tr('notifications.show_all_n',{n:rows.length}),'leftFold',{k},'ghost sm')}</div>`:'');}
+function nocList(k,rows,fn,wrap){const all=leftFolded(k),sh=nocCut(k,rows);return (wrap?wrap(sh):sh.map(fn).join(''))+(rows.length>NOC_TOP+2?`<div class="btns" style="margin:2px 0 8px">${btn(all?tr('common.show_fewer'):tr('notifications.show_all_n',{n:rows.length}),'leftFold',{k},'ghost sm',false,'',` aria-expanded="${!!all}"`)}</div>`:'');}
 function renderLeft(){checkLayer();
   // Tablets in landscape: both side panels don't fit next to the map, so the left one tucks away
-  // while a city or link is open and comes back with the toggle button.
-  const tab=isTablet(),L=$('left');L.classList.toggle('closed',tab?(!!UI.sel&&!UI.leftOpen):!UI.leftOpen);const tg=$('leftToggle');if(tg&&innerWidth>760)tg.hidden=!(tab&&L.classList.contains('closed'));
+  // while a city or link is open and comes back with the toggle button. A phone on its side (wider than 760 px) is not a
+  // tablet here: its sheet closes from the tab bar like any other.
+  const tab=isTablet()&&!isPhone(),L=$('left');L.classList.toggle('closed',tab?(!!UI.sel&&!UI.leftOpen):!UI.leftOpen);const tg=$('leftToggle');if(tg&&innerWidth>760)tg.hidden=!(tab&&L.classList.contains('closed'));
   renderTabbar();
   if(!S||pzOn()){L.hidden=true;return;}L.hidden=false;
   const G=goals(),ndone=G.filter(g=>S.done[g.id]!==undefined).length;
-  const tabs=[['goals',`<span class="tl">${tr('common.goals')}</span><span class="cnt">${ndone}/${G.length}</span>`],['deals',`<span class="tl">${tr('common.deals')}</span>${S.offers.length+clHags()?`<span class="cnt">${S.offers.length+clHags()}</span>`:''}`],['noc',`<span class="tl">NOC</span>${S.inc.length?`<span class="cnt red dot" aria-hidden="true"></span>`:''}`],['nets',`<span class="tl">${tr('common.networks')}</span>`]];
-  $('leftTabs').innerHTML=tabs.map(([k,l])=>`<button class="${UI.left===k?'on':''}" data-act="leftTab" data-args='{"t":"${k}"}'>${l}</button>`).join('')+(innerWidth<760?`<button data-act="toggleLeft" style="margin-left:auto" aria-label="${tr('common.close')}">×</button>`:'');
+  const tabs=[['goals',`<span class="tl">${tr('common.goals')}</span><span class="cnt">${ndone}/${G.length}</span>`],['deals',`<span class="tl">${tr('common.deals')}</span>${dealsCnt()}`],['noc',`<span class="tl">NOC</span>${S.inc.length?`<span class="cnt red dot" aria-hidden="true"></span>`:''}`],['nets',`<span class="tl">${tr('common.networks')}</span>`]];
+  $('leftTabs').innerHTML=tabs.map(([k,l])=>`<button class="${UI.left===k?'on':''}" role="tab" aria-selected="${UI.left===k}" data-act="leftTab" data-args='{"t":"${k}"}'>${l}</button>`).join('')+(innerWidth<760?`<button data-act="toggleLeft" style="margin-left:auto" aria-label="${tr('common.close')}">×</button>`:'');
   let h='';
   if(UI.left==='goals'){
     h+=charterCard()+scnCard()+lvlCard()+t1Card();
     const cur=G.find(g=>S.done[g.id]===undefined);
     // Finished goals fold into one line once there are more than a few, so what is still to do comes first (and fits a phone).
     const gRow=g=>{const d=S.done[g.id]!==undefined,c=g===cur;return `<div class="goal ${d?'done':''} ${c?'cur':''}"><div class="ck">${d?'✓':''}</div><div><div class="gt">${esc(g.t)}</div>${c||!d?`<div class="gd">${esc(g.d)}</div>`:''}${!d&&g.r?`<div class="gr">${tr('hud_and_panels.reward_cash',{cash:fmt$(g.r)})}</div>`:''}</div></div>`;};
-    if(ndone>3){const fo=leftFolded('done');h+=G.filter(g=>S.done[g.id]===undefined).map(gRow).join('')+`<div class="row gfold"><div class="ck">✓</div><div class="grow"><div class="nm">${trn('hud_and_panels.n_goals_done',ndone)}</div></div>${btn(fo?tr('common.hide'):tr('common.show'),'leftFold',{k:'done'},'ghost sm')}</div>`+(fo?G.filter(g=>S.done[g.id]!==undefined).map(gRow).join(''):'');}
+    if(ndone>3){const fo=leftFolded('done');h+=G.filter(g=>S.done[g.id]===undefined).map(gRow).join('')+`<div class="row gfold"><div class="ck">✓</div><div class="grow"><div class="nm">${trn('hud_and_panels.n_goals_done',ndone)}</div></div>${foldB(fo?tr('common.hide'):tr('common.show'),'leftFold',{k:'done'},fo,'ghost sm',trn('hud_and_panels.n_goals_done',ndone))}</div>`+(fo?G.filter(g=>S.done[g.id]!==undefined).map(gRow).join(''):'');}
     else h+=G.map(gRow).join('');
     h+=badgeGrid();
   }else if(UI.left==='deals'){
-    {const st=custStats();if(st.n)h+=`<div class="row" style="margin-bottom:8px"><div class="grow"><div class="nm">${tr('common.your_customers')} <span class="meta">${st.n} · ${tr('hud_and_panels.happiness_p',{p:Math.round(st.avg)})}</span></div><div class="bar ${moodCls(st.avg)}"><i style="width:${st.avg}%"></i></div>${st.unhappy?`<div class="why">${trn('hud_and_panels.n_unhappy_customer_price_mo_at',st.unhappy,{price:fmt$(st.risk)})}</div>`:''}</div>${btn(st.unhappy?tr('common.see_who'):tr('common.all_customers'),'custOpen',{sad:st.unhappy?1:0},st.unhappy?'pink sm':'ghost sm')}</div>`;}
-    h+=salesCard()+clDealsHtml()+confSection()+seatSection();
-    {const lv=S.lvl||1,nx=LEVELS[lv];h+=`<div class="inc" style="background:#FFF6CF"><div class="nm">${tr('hud_and_panels.customer_level_lv_name',{lv,name:LEVELS[lv-1].n})}</div><div class="meta">${nx?tr('hud_and_panels.next_req_unlocks_what',{req:nx.req,what:lc1(nx.unlock)}):tr('common.every_customer_type_is_unlocked_go')}</div></div>`;}
-    if(!S.offers.length)h+=`<p class="empty">${tr('hud_and_panels.no_open_offers_right_now_businesses')}</p>`;
-    for(const o of S.offers.slice().sort((a,b)=>a.exp-b.exp)){const has=bHas(o);
-      h+=`<div class="row"><div class="grow"><div class="nm">${esc(o.name)}</div><div class="meta">${esc(BIZ_T[o.type].l)} · ${CITY[o.city].name}${o.city2?' ⇄ '+CITY[o.city2].name:''} · <b>${bTerms(o)}</b> · ${tr('ui.n_d_left',{n:o.exp-S.day})}${(o.reqs||[]).length?` · ${trn('hud_and_panels.n_special_requirement',o.reqs.length)}`:''}</div>${o.refN?`<div class="meta">${tr('lifecycle.referred_by',{name:esc(o.refN)})}</div>`:''}${spotWhy(o)}${bRisk(o)}${reqList(o)}${reqFixHtml(o)}
-      <div class="btns">${has?btn(tr('common.accept'),'accept',{id:o.id},'green sm'):btn(tr('common.go_there'),'focusCity',{city:bCities(o).find(c=>!S.pops[c])},'ghost sm')}${btn(tr('common.decline'),'decline',{id:o.id},'ghost sm')}</div>${has?'':`<div class="why">${tr('hud_and_panels.needs_a_pop_in_cities',{cities:bCities(o).filter(x=>!S.pops[x]).map(x=>CITY[x].name).join(', ')})}</div>`}</div></div>`;}
+    h+=dealsTab();
   }else if(UI.left==='noc'){
     h+=`<div class="btns" style="margin-bottom:8px">${btn(tr('hud_and_panels.open_noc_dashboard'),'dash',{},'pink')}${pieNocBtn()}${bazNocBtn()}${btn(`⚙️ ${tr('routing.routing_and_ddos')}${S.te&&!coreTE()?'<span class="cnt red dot" aria-hidden="true"></span>':''}`,'routingOpen',{},'')}</div>`;
     // The introduction is for newcomers: once the network has grown or a few things have broken, it only costs a scroll.
@@ -80,6 +75,7 @@ function renderLeft(){checkLayer();
     h+=netsTab();
   }
   if(h!==UI._lh){UI._lh=h;morph($('leftBody'),h);}
+  if(S.tut!=null)coachGlow();
 }
 function renderPanel(){checkLayer();
   const P=$('panel');
@@ -90,4 +86,5 @@ function renderPanel(){checkLayer();
   const scrollEl=$('panelBody').querySelector('.scroll');const st=scrollEl?scrollEl.scrollTop:0;
   const html=pzOn()?pzPanel(UI.sel):UI.sel.type==='city'?cityPanel(UI.sel.id):linkPanel(UI.sel.id);if(!html){P.hidden=true;return;}if(html===UI._ph&&!P.hidden&&$('panelBody').firstChild)return;UI._ph=html;morph($('panelBody'),html);
   const ns=$('panelBody').querySelector('.scroll');if(ns)ns.scrollTop=st;
+  if(S.tut!=null)coachGlow();
 }

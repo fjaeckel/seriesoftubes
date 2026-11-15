@@ -29,7 +29,7 @@
 .trsel label{display:flex;flex-direction:column;font:800 12px Nunito,sans-serif;gap:2px}
 .trsel select{font:700 14px Nunito,sans-serif;padding:4px 6px;border:2px solid var(--edge);border-radius:8px;max-width:240px}
 .fact.trb{cursor:pointer;font:inherit;border:2px solid var(--edge);background:#fff}
-#coach{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 74px);z-index:16;width:min(520px,calc(100% - 24px));background:#fff;border:3px solid var(--edge);border-radius:14px;box-shadow:0 4px 0 var(--edge);padding:8px 10px;display:flex;gap:8px;align-items:center}
+#coach{box-sizing:border-box;position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 74px);z-index:16;width:min(520px,calc(100% - 24px));background:#fff;border:3px solid var(--edge);border-radius:14px;box-shadow:0 4px 0 var(--edge);padding:8px 10px;display:flex;gap:8px;align-items:center}
 #coach .ct{flex:1;font-weight:800;font-size:14px;line-height:1.35}
 #coach .cs{display:block;font:900 10px Nunito,sans-serif;color:var(--me);text-transform:uppercase;letter-spacing:.05em}
 .coach-glow{animation:coachglow 1s ease-in-out infinite;position:relative;z-index:2}
@@ -110,7 +110,7 @@ label.f+select.pick{width:100%}
 .mix{display:flex;height:10px;width:100px;border:1.5px solid var(--edge);border-radius:5px;overflow:hidden;background:var(--paper)}
 .mix i{display:block;height:100%}
 /* The NOC's traffic table has a row per network: classes, not inline styles, keep its hundreds of rows cheap to parse. */
-.nmc{display:inline-flex;align-items:center;gap:6px}.dlost{color:var(--bad)}.b.pall{white-space:nowrap}.ttbl td{padding-block:3px}
+.nmc{display:inline-flex;align-items:center;gap:6px}.dlost{color:#B23A48}.b.pall{white-space:nowrap}.ttbl td{padding-block:3px}
 .tscroll{overflow-x:auto}
 /* Links and Routers tabs: the page scrolls like every tab; the filter bar sticks just under the tab bar (.dtabs, whose
    height fitList() measures into --dtabh), so sorting and filters stay in reach. */
@@ -230,7 +230,7 @@ h2 .rn{font-size:18px;vertical-align:middle;padding:2px 4px}
 #modalCard{overflow-x:hidden}
 .menu-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
 .mtile{border:3px solid var(--edge);border-radius:14px;background:var(--paper);box-shadow:0 3px 0 var(--edge);padding:8px 4px 7px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;font:800 13px/1.15 var(--display);color:var(--ink);text-align:center;min-height:68px;justify-content:center}
-.mtile i{font-style:normal;font-size:22px;line-height:1}.mtile .mst{font-weight:800;color:var(--ok)}.mtile.off .mst{color:var(--ink2)}.mtile:active{transform:translateY(2px);box-shadow:0 1px 0 var(--edge)}
+.mtile i{font-style:normal;font-size:22px;line-height:1}.mtile .mst{font-weight:800;color:#0B6B40}.mtile.off .mst{color:var(--ink2)}.mtile:active{transform:translateY(2px);box-shadow:0 1px 0 var(--edge)}
 .menu-links{margin:12px 0 0;text-align:center;line-height:2;color:var(--ink2)}
 .menu-links .lnk{background:none;border:0;padding:4px 2px;font-weight:700;font-size:14px;font-family:inherit;color:var(--ink2);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .menu-plugs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
@@ -284,4 +284,11 @@ textarea.xfer-in{width:100%;box-sizing:border-box;border:3px solid var(--edge);b
   #modalCard:has(>.title-art) label.f{margin:9px 0 4px}
   .btns.tcta{margin-top:10px !important;grid-template-columns:repeat(4,minmax(0,1fr))}.btns.tcta .b{font-size:13.5px}
   .presets .preset b{min-width:0;hyphens:auto;-webkit-hyphens:auto}
+}
+/* A short laptop window (1280×720, 1024×768): a wider card in two columns, the name and the doors on the left, the
+   rules and the home city on the right, so Start is in view without scrolling. Taller windows and phones keep one. */
+@media (min-width:900px) and (max-height:860px){
+  #modal .card:has(.tcols){width:min(940px,100%)}
+  .tcols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:24px;align-items:start}
+  .tcol>:first-child,.tcol>:first-child>label.f:first-child{margin-top:0 !important}
 }

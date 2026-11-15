@@ -84,7 +84,8 @@ test('a badge note in the NOC log opens the wall of badges itself, not just the 
   assert.equal(ev("!!document.querySelector('#leftBody .badges,#leftBody .bgrid,#leftBody .badge')&&leftFolded('badges')"), false);
   ev(`ACT.logOpen({id:${JSON.stringify(id)}})`);
   assert.equal(ev('UI.left'), 'goals'); assert.equal(ev("leftFolded('badges')"), true, 'the grid is open');
-  assert.equal(ev("document.querySelector('#leftBody .bhead [data-act=\"leftFold\"]').textContent"), ev("tr('common.hide')"));
+  assert.equal(ev("document.querySelector('#leftBody .bhead [data-act=\"leftFold\"]').textContent"), '▾ ' + ev("tr('common.hide')"));
+  assert.equal(ev("document.querySelector('#leftBody .bhead [data-act=\"leftFold\"]').getAttribute('aria-expanded')"), 'true');
   // The target survives a save, and a goal note still opens just the tab.
   assert.equal(ev("JSON.stringify(migrate(JSON.parse(JSON.stringify(S))).log.find(e=>e.o&&e.o.a==='badges').o)"), '{"a":"badges"}');
   ev("UI.fold={};S.log.unshift({id:'old1',t:'x',k:'goal',at:Date.now(),d:S.day,o:{a:'tab',v:'goals'}});UI.left='noc';ACT.logOpen({id:'old1'})");

@@ -100,7 +100,14 @@
 :where(:root.dark) .segc button:hover{background:var(--paper);color:var(--ink)}
 :where(:root.dark) .segc button.on{background:var(--sun);color:var(--on)}
 :where(:root.dark) #hint{background:var(--on);color:#fff}
+:where(:root.dark) .tmore{background:var(--paper);color:var(--ink)}
+:where(:root.dark) .toast.undo{background:var(--on);color:var(--paper)}
+:where(:root.dark) .toast.undo .b{background:var(--sun);color:var(--on)}
 :where(:root.dark) .osum{color:var(--ink2)}
+:where(:root.dark) .dl-d{background:var(--paper);color:var(--ink)}
+:where(:root.dark) .dl-d.soon{background:var(--bad);color:#fff}
+:where(:root.dark) .dl-st.ok{color:#ACF3D3}
+:where(:root.dark) .dl-st.warn,:where(:root.dark) .dl-st.bad{color:#D7848E}
 :where(:root.dark) .tag.fp-q{background:var(--line);color:var(--ink)}
 :where(:root.dark) .tag.fp-d{background:var(--eye)}
 :where(:root.dark) .tag.fp-new{background:var(--sun);color:var(--on)}
@@ -221,7 +228,7 @@
 :where(:root.dark) .legend{color:var(--ink2)}
 :where(:root.dark) .tbl th{color:var(--ink2)}
 :where(:root.dark) .mix{background:var(--paper);color:var(--ink)}
-:where(:root.dark) .dlost{color:var(--bad)}
+:where(:root.dark) .dlost{color:#D7848E}
 :where(:root.dark) .ibar{background:var(--paper);color:var(--ink)}
 :where(:root.dark) .ihit:hover{background:var(--soft);color:var(--ink)}
 :where(:root.dark) .ihit.on{background:var(--soft);color:var(--ink)}
@@ -270,7 +277,7 @@
 :where(:root.dark) .slot-more:hover,:where(:root.dark) .slot-go:hover{background:rgba(255,79,154,.06)}
 :where(:root.dark) .slot-go:focus-visible,:where(:root.dark) .slot-more:focus-visible{outline:3px solid #FF4F9A}
 :where(:root.dark) .mtile{background:var(--paper);color:var(--ink)}
-:where(:root.dark) .mtile .mst{color:var(--ok)}
+:where(:root.dark) .mtile .mst{color:#ACF3D3}
 :where(:root.dark) .mtile.off .mst{color:var(--ink2)}
 :where(:root.dark) .menu-links{color:var(--ink2)}
 :where(:root.dark) .menu-links .lnk{color:var(--ink2)}
@@ -287,6 +294,12 @@
 :where(:root.dark) .tag.cmcool{background:#25353C;color:#8FCCE7}
 :where(:root.dark) textarea.xfer-in{background:var(--soft);color:var(--ink)}
 :where(:root.dark) .bz-warn{color:var(--bad)}
+:where(:root.dark) .bz-nb{color:var(--ink)}
+:where(:root.dark) .bz-nt small,:where(:root.dark) .bz-w{color:var(--ink2)}
+:where(:root.dark) .bz-hu{color:#F3D2AA;background:#403623;border:1.5px solid #FFAA1F}
+:where(:root.dark) .bz-ask{background:var(--soft);color:var(--ink)}
+:where(:root.dark) .bz-ao small{color:var(--ink2)}
+:where(:root.dark) .bz-lead{color:var(--ink)!important}
 :where(:root.dark) .bz-idle{background:var(--soft);color:var(--ink)}
 :where(:root.dark) .bz-hot{color:var(--ink)}
 :where(:root.dark) .bz-car{color:var(--ink2)}
@@ -323,7 +336,7 @@
 :where(:root.dark) .bz-pn .meta{color:var(--ink2)}
 :where(:root.dark) .bz-pr:not(.on):not(.hold) .bz-pn b{color:var(--ink2)}
 :where(:root.dark) .bz-pd{color:var(--ink2);background:var(--soft)}
-:where(:root.dark) .bz-q{background:var(--paper);color:var(--ink)}
+:where(:root.dark) .bz-q{background:var(--paper);color:var(--ink2)}
 :where(:root.dark) .bz-q.on{background:var(--on);color:var(--paper)}
 :where(:root.dark) .bz-sw{color:var(--ink2)}
 :where(:root.dark) .bz-sw.on{color:var(--ink)}
@@ -338,6 +351,11 @@
 :where(:root.dark) .chtip .tot{border-top:1px solid rgba(77,77,77,0.35)}
 :where(:root.dark) .noc-window .chtip{border:1px solid #3A4A78}
 :where(:root.dark) .noc-window .chcur{border-left-color:#3E485B}
+:where(:root.dark) .bwhy{background:var(--soft);color:var(--ink)}
+:where(:root.dark) .bfacts{background:var(--soft);color:var(--ink)}
+:where(:root.dark) .bf span{color:var(--ink2)}
+:where(:root.dark) .setsb h3.sub4,:where(:root.dark) .sub4.sets{color:var(--ink2)}
+:where(:root.dark) .setl small{color:var(--ink2)}
 :where(:root.dark) body.noc-window{background:#0B1224}
 :where(:root.dark) #nocBoard{color:#E8EEFA}
 :where(:root.dark) #nocBar{background:#0F1830;border-bottom:1px solid #2A3658}
@@ -409,6 +427,9 @@
 :where(:root.dark) .fs-tog[aria-checked=true] span{background:#262626;color:var(--ink)}
 :where(:root.dark) .fs-srv{background:var(--paper);color:var(--ink)}
 :where(:root.dark) .fs-srv.on{background:#3C202D;color:var(--ink)}
+:where(:root.dark) .fu-fold{background:var(--paper);color:var(--ink)}
+:where(:root.dark) .fu-fold.on{background:var(--soft);color:var(--ink)}
+:where(:root.dark) .fu-cnt2{background:var(--me);color:var(--on)}
 :where(:root.dark) .dtabs{background:var(--paper);color:var(--ink)}
 :where(:root.dark) .dtabs button{background:#262626;color:var(--ink)}
 :where(:root.dark) .dtabs button.on{background:var(--pink,#FF4F9A);color:#fff}
@@ -428,13 +449,17 @@
 :where(:root.dark) .grab::before{background:var(--line)}
 :where(:root.dark) #modal .cta{background:var(--paper);color:var(--ink)}
 }
+@media (orientation:landscape) and (max-height:500px) and (pointer:coarse),(orientation:landscape) and (max-width:760px) and (max-height:500px){
+:where(:root.dark) #left>.grab,:where(:root.dark) #panel>.grab{background:var(--paper);color:var(--ink)}
+:where(:root.dark) #left>.grab::before,:where(:root.dark) #panel>.grab::before{color:var(--ink)}
+}
 @media (display-mode: standalone){
 :where(:root.dark) body{background:#57C4E5;color:var(--on)}
 }
 :where(:root.dark) .iline .lnk{color:var(--ink2)}
 :where(:root.dark) .lvq{color:var(--ink2)}
 :where(:root.dark) .hgrp .meta{color:var(--ink2)}
-:where(:root.dark) .hpc.dlost{color:var(--bad)}
+:where(:root.dark) .hpc.dlost{color:#D7848E}
 :where(:root.dark) .ppolx .meta{color:var(--ink2)}
 :where(:root.dark) .tmore{background:var(--soft);color:var(--ink)}
 :where(:root.dark) .tag.fsc.on{background:var(--bad)}
@@ -509,4 +534,3 @@
 :where(:root.dark) [style*="background:#EEF0FF"]{background:#1E2138!important}
 :where(:root.dark) [style*="background:#FFE2E6"]{background:#3C2024!important}
 :where(:root.dark) [style*="background:#FFF1D6"]{background:#403623!important}
-:where(:root.dark) [style*="background:#FFF6CF"]{background:#433D24!important}

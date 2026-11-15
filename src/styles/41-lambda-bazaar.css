@@ -11,10 +11,22 @@
 .bz-dh{display:flex;gap:6px 12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px}
 .bz-dh .b{flex:none}
 .bz-two{margin-top:10px}
-/* What needs you: a line per kind of blocker, its fix on the right. */
-.bz-need{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:4px 8px;align-items:center;padding:7px 0;border-top:1px dashed var(--line);font-size:13.5px;font-weight:700;line-height:1.3}
+/* What needs you: a line per kind of blocker (a tap shows those routes), its fix on the right, on one line on phones too. */
+.bz-need{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;align-items:center;border-top:1px dashed var(--line)}
 .bz-needs h3+.bz-need{border-top:0}
-.bz-need .btns{margin:0;justify-content:flex-end}
+.bz-need .btns{margin:0;justify-content:flex-end;flex-wrap:nowrap}
+.bz-nb{display:grid;grid-template-columns:24px minmax(0,1fr) 12px;gap:8px;align-items:center;width:100%;min-height:40px;padding:6px 0;text-align:left;border:0;background:none;color:var(--ink);font:700 13.5px/1.3 var(--body)}
+button.bz-nb{cursor:pointer}
+div.bz-nb{grid-template-columns:24px minmax(0,1fr)}
+.bz-nt small,.bz-w{display:block;font-size:11.5px;color:var(--ink2);font-weight:700;margin-top:1px}
+.bz-hu{display:inline-block;font-size:11.5px;font-weight:800;color:#7A4300;background:#FFF1D6;border:1.5px solid #FFAA1F;border-radius:7px;padding:0 6px;line-height:1.5;white-space:nowrap}
+/* A one-tap fix that asks where first: what it changes, then the two ways. */
+.bz-ask{margin:0 0 8px 32px;padding:8px 10px;border-radius:11px;background:var(--soft);font-size:12.5px;line-height:1.4}
+.bz-ask p{margin:0 0 6px;font-weight:700}
+.bz-ao{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.bz-ao>div{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.bz-ao small{color:var(--ink2);font-size:11.5px;line-height:1.3}
+.bz-lead{font-weight:800;color:var(--ink) !important;margin:2px 0 10px !important}
 .bz-ni{font-size:18px;text-align:center}
 .bz-idle{background:var(--soft)}
 .bz-idle p{margin:2px 0 8px;font-size:13.5px;line-height:1.4}
@@ -96,7 +108,7 @@
 .bz-pr .bz-sw{grid-column:4;justify-self:end}
 .bz-pr.hold .bz-f{grid-column:2/-1;justify-self:end}
 .bz-pd{grid-column:1/-1;margin:2px 0 0;font-size:12.5px;color:var(--ink2);line-height:1.4;background:var(--soft);border-radius:9px;padding:6px 8px}
-.bz-q{width:22px;height:22px;border-radius:50%;border:2px solid var(--edge);background:var(--paper);color:var(--ink);font:900 12px var(--body);cursor:pointer;margin-left:6px;padding:0;vertical-align:1px}
+.bz-q{width:20px;height:20px;border-radius:50%;border:2px solid var(--edge);background:var(--paper);color:var(--ink2);font:900 11.5px/1 var(--body);cursor:pointer;margin-left:6px;padding:0;vertical-align:1px}
 .bz-q.on{background:var(--ink);color:var(--paper)}
 .bz-sw{display:inline-flex;align-items:center;gap:7px;border:0;background:none;cursor:pointer;font:800 12px var(--body);color:var(--ink2);padding:4px 0;min-height:34px}
 .bz-sw.on{color:var(--ink)}
@@ -117,8 +129,11 @@
   #modal.baz .dtabs{flex-wrap:wrap;overflow:visible;gap:5px 4px}
   #modal.baz .dtabs button{flex:none;font-size:12.5px;padding:5px 9px;border-width:2px}
   .bz-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .bz-need{grid-template-columns:24px minmax(0,1fr)}
-  .bz-need .btns{grid-column:2;justify-content:flex-start}
+  .bz-nb{gap:6px;font-size:13px}
+  .bz-need .b{white-space:normal;max-width:124px;min-height:34px;line-height:1.15;text-align:center}
+  .bz-ask{margin-left:0}
+  .bz-ao{grid-template-columns:minmax(0,1fr)}
+  .bz-ao .b{min-height:34px}
   .bz-p>.bz-pf{grid-column:1/-1;grid-row:auto;order:9;margin-top:4px}
   .bz-pres{gap:6px}
   .bz-pre{padding:6px 8px 5px}

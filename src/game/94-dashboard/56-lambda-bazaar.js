@@ -3,8 +3,9 @@
    unfolded at a time, with that route's own rules), the products (what the broker sells everywhere), the news, and the
    routes a Cable broker could build. Only the open tab is drawn, and the routes come a page at a time. The clock stands
    still while a modal is open, so the window is redrawn by its own actions only (bazRefresh()). View state is on UI:
-   bazTab, bazSort, bazFilt, bazOpen (the unfolded route), bazN (routes shown), bazHelp (the unfolded "?"). */
-const BAZ_TABS=['home','routes','prod','news','scout'],BAZ_SORT=['mo','val','heat','name'],BAZ_FILT=['all','bad','hot','off'],BAZ_KIND=['floor','room','optic'],BAZ_PG=12;
+   bazTab, bazSort, bazFilt, bazOpen (the unfolded route), bazN (routes shown), bazHelp (the unfolded "?"), bazAsk (the
+   unfolded question of a one-tap fix). */
+const BAZ_TABS=['home','routes','prod','news','scout'],BAZ_SORT=['mo','held','val','heat','name'],BAZ_FILT=['all','bad','hot','off'],BAZ_KIND=['floor','room','optic'],BAZ_PG=12;
 const bazIsOpen=()=>!$('modal').hidden&&$('modal').className==='baz';
 function bazRefresh(){if(S&&bazIsOpen())bazModal();}
 // The way in from the NOC tab: only once there is dark fiber to trade on.
@@ -13,7 +14,7 @@ const bazSel=(act,args,opts,cur,lab)=>`<select class="bz-s" data-chg="${act}" da
 const bazChips=(act,vals,cur,L)=>vals.map(v=>`<button class="bz-chip${v===cur?' on':''}" data-act="${act}" data-args='{"v":"${v}"}' aria-pressed="${v===cur}">${L[v]}</button>`).join('');
 function bazModal(){if(!S||pzOn())return;const card=$('modalCard'),was=bazIsOpen(),top=was?card.scrollTop:0,T=UI.bazTab=BAZ_TABS.includes(UI.bazTab)?UI.bazTab:'home',D=bazData();
   const L={home:tr('common.overview'),routes:tr('market.tab_routes'),prod:tr('market.tab_prod'),news:tr('market.tab_news'),scout:tr('market.tab_scout')};
-  let h=`<div class="dtitle"><div class="eyebrow">${tr('market.tab')}</div><h2>${tr('market.title')}</h2></div><div class="dhead"><nav class="dtabs">${BAZ_TABS.map(k=>`<button class="${T===k?'on':''}" data-act="bazTab" data-args='{"t":"${k}"}' aria-pressed="${T===k}">${L[k]}${k==='routes'&&D.bad?`<span class="cnt red">${D.bad}</span>`:k==='scout'&&!D.bk?' 🔒':''}</button>`).join('')}</nav><button class="x" data-act="closeModal" aria-label="${tr('common.close')}">×</button></div>`;
+  let h=`<div class="dtitle"><div class="eyebrow">${tr('market.tab')}</div><h2>${tr('market.title')}</h2></div><div class="dhead"><nav class="dtabs" role="tablist">${BAZ_TABS.map(k=>`<button class="${T===k?'on':''}" role="tab" aria-selected="${T===k}" data-act="bazTab" data-args='{"t":"${k}"}'>${L[k]}${k==='routes'&&D.bad?`<span class="cnt red">${D.bad}</span>`:k==='scout'&&!D.bk?' 🔒':''}</button>`).join('')}</nav><button class="x" data-act="closeModal" aria-label="${tr('common.close')}">×</button></div>`;
   h+=`<div class="bz-body">${bazTabHtml(T,D)}</div>`;
   openModal(h,'baz');if(was&&UI._bazT===T)card.scrollTop=top;UI._bazT=T;}
 // One tab's markup. all: every route, each unfolded (what the fuzz harness and the tests read).
@@ -22,11 +23,11 @@ function bazTabHtml(T,D,all){return T==='routes'?bazRoutes(D,all):T==='prod'?baz
 const bazHot=x=>x.H>=1.15;
 function bazRows(D){const f=UI.bazFilt||'all',so=UI.bazSort||'mo';
   const rs=D.rows.filter(x=>f==='bad'?x.bad:f==='hot'?bazHot(x):f==='off'?x.off:BAZ_KIND.includes(f)?x.ps.some(q=>q.st===f):true);
-  return rs.sort((x,y)=>(so==='name'?0:so==='heat'?y.H-x.H:so==='val'?y.val-x.val:y.mo-x.mo)||cmRouteName(x.r).localeCompare(cmRouteName(y.r))||(x.k<y.k?-1:1));}
+  return rs.sort((x,y)=>(so==='name'?0:so==='heat'?y.H-x.H:so==='held'?y.w-x.w:so==='val'?y.val-x.val:y.mo-x.mo)||cmRouteName(x.r).localeCompare(cmRouteName(y.r))||(x.k<y.k?-1:1));}
 function bazRoutes(D,all){if(!D.rows.length)return bazEmpty();const f=UI.bazFilt||'all',so=UI.bazSort||'mo',rs=all?D.rows:bazRows(D),n=all?rs.length:Math.max(BAZ_PG,UI.bazN||0),kind=BAZ_KIND.includes(f);
   const FL={all:tr('dashboard.fs_all'),bad:tr('market.f_bad'),hot:tr('market.f_hot'),off:tr('market.f_off'),floor:tr('market.f_floor'),room:tr('market.f_room'),optic:tr('market.f_optic')};
   let h=`<div class="bz-bar2"><div class="bz-cg"><span class="bz-cl">${tr('common.show')}</span>${bazChips('bazFilt',kind?[...BAZ_FILT,f]:BAZ_FILT,f,FL)}</div>`
-    +`<div class="bz-cg"><span class="bz-cl">${tr('pie.gs_sort')}</span>${bazChips('bazSort',BAZ_SORT,so,{mo:tr('market.so_mo'),val:tr('common.demand'),heat:tr('market.so_heat'),name:tr('common.name')})}</div></div>`;
+    +`<div class="bz-cg"><span class="bz-cl">${tr('pie.gs_sort')}</span>${bazChips('bazSort',BAZ_SORT,so,{mo:tr('market.so_mo'),held:tr('market.so_held'),val:tr('common.demand'),heat:tr('market.so_heat'),name:tr('common.name')})}</div></div>`;
   h+=`<div class="bz-lg" aria-hidden="true"><span>${tr('market.lg_chips')}</span><span class="bz-ch ok">${tr('market.selling')}</span><span class="bz-ch bad">⚠ ${tr('market.f_bad')}</span><span class="bz-ch idle">${tr('market.lg_idle')}</span><span class="bz-ch off">${tr('market.not_selling')}</span></div>`;
   if(!rs.length)return h+`<p class="empty">${tr('market.none_match')}</p>`;
   h+=`<div class="bz-rl">${rs.slice(0,n).map(x=>bazCard(x,D,all||UI.bazOpen===x.k)).join('')}</div>`;
@@ -37,7 +38,7 @@ const BAZ_CH={sell:'ok',full:'ok',floor:'bad',room:'bad',optic:'bad',idle:'idle'
    Unfolded: each product with its bar, price and blocker, then the route's own rules. */
 function bazCard(x,D,open){const r=x.r,sh=x.ps.filter(q=>q.show),ka=esc(JSON.stringify({k:x.k}));
   let h=`<div class="bz-r${open?' open':''}${x.off?' off':''}" data-route="${x.k}"><button class="bz-rh" data-act="bazRow" data-args="${ka}" aria-expanded="${!!open}">`
-    +`<span class="bz-rn"><b>${cmRouteName(r)}</b> <span class="tag st">${r.sub?tr('common.subsea'):tr('common.land')}</span>${bazHot(x)||x.H<=0.85?' '+cmHeatTag(r):''}${x.off?` <span class="tag selective">${tr('market.f_off')}</span>`:''}${x.o?` <span class="tag st on">${tr('market.own_rules')}</span>`:''}</span>`
+    +`<span class="bz-rn"><b>${cmRouteName(r)}</b> <span class="tag st">${r.sub?tr('common.subsea'):tr('common.land')}</span>${bazHot(x)||x.H<=0.85?' '+cmHeatTag(r):''}${x.off?` <span class="tag selective">${tr('market.f_off')}</span>`:''}${x.o?` <span class="tag st on">${tr('market.own_rules')}</span>`:''}${x.w>0?` <span class="bz-hu">⚠ ${tr('market.held_mo',{v:fmt$(x.w)})}</span>`:''}</span>`
     +`<span class="bz-rm">${tr('common.price_mo',{price:fmt$(x.mo)})}</span><span class="bz-car" aria-hidden="true">${open?'▾':'▸'}</span>`
     +`<span class="bz-chs">${sh.map(q=>`<span class="bz-ch ${BAZ_CH[q.st]||'off'}">${BAZ_BAD.includes(q.st)?'⚠ ':''}${cmShort(q.p)} <b>${q.s}/${cmN(q.D)}</b></span>`).join('')}</span></button>`;
   if(open)h+=bazCardBody(x,D,sh);
@@ -66,7 +67,7 @@ function bazCardBody(x,D,sh){const r=x.r,C=S.cm,o=x.o||{},m=mkt()*cmCut(),k=x.k,
 // ---------- Products ----------
 /* What the broker sells everywhere: three quick setups, the share kept back, then a row per product with its switch
    and, while it is on, the demand it lists from and its floor. The "?" unfolds what the product is. */
-function bazProducts(D){const C=S.cm,q=k=>`<button class="bz-q${UI.bazHelp===k?' on':''}" data-act="bazHelp" data-args='{"p":"${k}"}' aria-expanded="${UI.bazHelp===k}" aria-label="${esc(tr('market.what'))}">?</button>`;
+function bazProducts(D){const C=S.cm,q=k=>`<button class="bz-q${UI.bazHelp===k?' on':''}" data-act="bazHelp" data-args='{"p":"${k}"}' aria-expanded="${UI.bazHelp===k}" aria-label="${esc(tr('market.what'))}" title="${esc(tr('market.what'))}">?</button>`;
   const pre=(v,l,d,cls)=>`<button class="bz-pre ${cls}" data-act="mktPreset" data-args='{"v":"${v}"}'><b>${l}</b><small>${d}</small></button>`;
   let h=`<div class="bz-pres">${pre('all',tr('market.pre_all'),tr('market.pre_all_d'),'go')}${pre('careful',tr('market.pre_careful'),tr('market.pre_careful_d'),'')}${pre('stop',tr('market.pre_stop'),tr('market.pre_stop_d'),'stop')}</div>`;
   h+=`<div class="bz-pr hold"><div class="bz-pn"><b>${tr('market.hold')}</b>${q('hold')}</div><label class="bz-f"><span>${tr('market.hold_s')}</span>${bazSel('mktHold',{},CM_HOLD.map(v=>[String(v),v+'%']),String(C.hold),tr('market.hold'))}</label>${UI.bazHelp==='hold'?`<p class="bz-pd">${tr('market.hold_d')}</p>`:''}</div>`;

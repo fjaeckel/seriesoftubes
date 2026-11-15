@@ -45,7 +45,7 @@ test('every link and every POP is listed: the top 10 first, then 50 more at a ti
   const nl = ev('S.links.length'), np = ev('Object.keys(S.pops).length');
   assert.ok(nl > 100 && np > 100, 'the fixture is big enough to need a third page');
   assert.equal(links(ev).length, 10, 'the first look fits the window');
-  assert.match(ev("$('linksSec').textContent"), /View 50 more links/);
+  assert.match(ev("$('linksSec').textContent"), /\+50 more links/);
     assert.ok(ev("$('linksSec').firstElementChild.classList.contains('ibar')"), 'the filters come first');
   ev("ACT.listMore({k:'links'})");
   assert.equal(links(ev).length, 60);
@@ -359,38 +359,44 @@ test('Routers: add a router or swap to the next model, exactly where and as the 
   // Broadband at home: the POP is in use, so a swap with one router would be a maintenance window (not idle, popIdle()).
   ev("ACT.start({});closeModal();UI.speed=0;S.cash=1e12;S.lvl=12;S.nextFail=S.nextEvent=1e9;ACT.launchBB({city:S.home});compute();ACT.dash();ACT.dashTab({k:'routers'})");
   assert.equal(ev('popIdle(S.home)'), false);
-  const acts = (c) => json(ev, `[...document.querySelectorAll('#routersSec .rrow[data-args*="${c}"] .btns [data-act]')].filter(b=>b.dataset.act!=='dashPop').map(b=>[b.dataset.act,b.classList.contains('pink')])`);
+  // A wide screen: the row has Open and Change; Change (pink where the intern would act) unfolds the buttons in a row under it.
+  const under = (c) => `(document.querySelector('#routersSec .rrow[data-args*="${c}"]').nextElementSibling||{classList:{contains:()=>false}})`;
+  const acts = (c) => { ev(`UI.dashOpen='r:${c}';UI._dh=null;renderDash()`); return json(ev, `(()=>{const m=${under(c)};return m.classList.contains('rmtr')?[...m.querySelectorAll('[data-act]')].map(b=>[b.dataset.act,b.classList.contains('pink')]):[]})()`); };
+  const chgPink = (c) => ev(`document.querySelector('#routersSec .rrow[data-args*="${c}"] [data-act="dashRow"]').classList.contains('pink')`);
   const home = ev('S.home');
   // A quiet POP: the intern would leave it alone, so nothing is its pick, though both buttons are there.
   ev(`S.pops['${home}'].routers=1;S.pops['${home}'].rgen=0;R.nodeLoad['${home}']=0;UI._dh=null;renderDash()`);
   assert.ok(ev(`rtrLoad('${home}',portsUsed('${home}'))<opsP('routers','at')/100`));
   assert.deepEqual(acts(home), [['addRouter', false]], 'quiet: no pick');
+  assert.equal(chgPink(home), false);
+  assert.equal(ev(`[...document.querySelectorAll('#routersSec .rrow[data-args*="${home}"] [data-act]')].map(b=>b.dataset.act).join()`), 'dashPop,dashRow', 'one row: Open and Change');
   // Busy (over the intern's "at" setting). One router: no swap (it would be a maintenance window), only an add, the pick.
   const busy = `R.nodeLoad['${home}']=R.nodeCap['${home}']*2;UI._dh=null;renderDash()`;
   ev(busy);
   let nr = json(ev, `rtrNext('${home}')`);
   assert.equal(nr.swap, false); assert.equal(nr.pick, 'add');
   assert.deepEqual(acts(home), [['addRouter', true]]);
+  assert.equal(chgPink(home), true, 'Change is pink where the intern would act');
   // Four routers: both open, the intern swaps.
   ev(`S.pops['${home}'].routers=4;compute();${busy}`);
   nr = json(ev, `rtrNext('${home}')`);
   assert.equal(nr.pick, nr.swap ? 'swap' : 'add');
   assert.deepEqual(acts(home), [['addRouter', nr.pick === 'add'], ...(nr.swap ? [['upRouter', true]] : [])]);
-  assert.equal(ev(`document.querySelector('#routersSec .rrow[data-args*="${home}"] .pink').title`), 'What the NOC intern would do here');
+  assert.equal(ev(`${under(home)}.querySelector('.pink').title`), 'What the NOC intern would do here');
   // The buttons are the city panel's: one more router, then the next model; the dashboard stays open.
   const rt = ev(`S.pops['${home}'].routers`);
-  ev(`document.querySelector('#routersSec .rrow[data-args*="${home}"] [data-act="addRouter"]').click()`);
+  ev(`${under(home)}.querySelector('[data-act="addRouter"]').click()`);
   assert.equal(ev(`S.pops['${home}'].routers`), rt + 1);
   assert.ok(!ev("$('dash').hidden"));
   if (nr.swap) {
-    ev(`S.pops['${home}'].rupDay=-1;compute();${busy}`);
-    ev(`document.querySelector('#routersSec .rrow[data-args*="${home}"] [data-act="upRouter"]').click()`);
+    ev(`S.pops['${home}'].rupDay=-1;compute();${busy}`);acts(home);
+    ev(`${under(home)}.querySelector('[data-act="upRouter"]').click()`);
     assert.equal(ev(`S.pops['${home}'].rgen`), nr.nx, 'swapped to the model the intern would pick');
   }
   // A POP that had new routers today waits, like the intern.
   ev(`S.pops['${home}'].rupDay=S.day;UI._dh=null;renderDash()`);
   assert.deepEqual(acts(home), []);
-  assert.match(ev(`document.querySelector('#routersSec .rrow[data-args*="${home}"]').textContent`), /New routers went in today/);
+  assert.match(ev(`${under(home)}.textContent`), /New routers went in today/);
   assert.deepEqual(errors, []);
 });
 

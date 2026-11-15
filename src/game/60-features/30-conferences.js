@@ -14,7 +14,7 @@ function confBoost(id){const cb=S.conf;if(!cb||!(cb.until>S.day))return 1;const 
 // Once you have made Tier 1, conferences go quiet (#101): no reminders and no reports, only the Deals panel.
 const confQuiet=()=>!!(S.done&&S.done.t1!==undefined);
 function confTick(d){S.confReg=S.confReg||{};const q=confQuiet();
-  for(const cf of upcomingConfs(30)){if(!q&&cf.day-d===30&&!S.confReg[cf.key])toast(tr('conferences.conf_comes_to_city_in_30',{conf:esc(cf.n),city:esc(CITY[cf.c].name)}),'goal',[{l:tr('common.show_me'),act:'leftTab',args:{t:'deals'}}]);}
+  for(const cf of upcomingConfs(30)){if(!q&&cf.day-d===30&&!S.confReg[cf.key])toast(tr('conferences.conf_comes_to_city_in_30',{conf:esc(cf.n),city:esc(CITY[cf.c].name)}),'goal',[{l:tr('common.show_me'),act:'dealsFold',args:{k:'conf',o:1}}]);}
   for(const cf of upcomingConfs(0)){if(cf.day!==d||!S.confReg[cf.key])continue;const reg=CITY[cf.c].reg,sp=S.confReg[cf.key]==='sp';S.conf={until:d+CONF_DAYS,reg,name:cf.n,sp};S.stats.confs=(S.stats.confs||0)+1;if(sp)S.stats.confSp=(S.stats.confSp||0)+1;
     if(cf.cap)S.capDeal={at:d+4+Math.floor(Math.random()*5),c:cf.c};
     const r=Math.random();let extra='';if(r<0.3){const cash=5000+Math.floor(Math.random()*4)*5000;S.cash+=cash;extra=' '+tr('conferences.you_also_won_the_raffle_cash',{cash:fmt$(cash)});}else if(r<0.5)extra=' '+tr('conferences.someone_from_goggle_bought_you_a');if(cf.j)extra=' '+tr(cf.j)+(r<0.3?extra:'');

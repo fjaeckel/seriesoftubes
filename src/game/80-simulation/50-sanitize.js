@@ -144,4 +144,6 @@ function migrate(s){sanitize(s);
   // Months were 30 days before #257: the intern's budget month counts calendar months now, so it does not reset early.
   if(s.calV!==1){if(s.ops&&s.ops.mon===Math.floor((s.day||0)/30))s.ops.mon=monthIdx(s.day||0);s.calV=1;}
   if(s.grace&&(typeof s.grace!=='object'||!isFinite(s.grace.until)||!Array.isArray(s.grace.nets)))s.grace=null;if(s.grace)s.grace.nets=s.grace.nets.filter(isNet);
+  // The guided first game is a step number or nothing. A network with fiber and a customer is past it: no coach on load.
+  if(s.tut!=null&&(!(Number.isInteger(s.tut)&&s.tut>=0&&s.tut<TUT.length)||s.links.length&&s.biz.length))s.tut=null;
   return s;}

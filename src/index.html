@@ -105,7 +105,7 @@
 <canvas id="mapgl" aria-hidden="true" hidden></canvas><canvas id="mapfx" aria-hidden="true" hidden></canvas>
 
 <header id="hud">
-  <button class="chip brand menubtn" data-act="menu" aria-label="Network menu: save, load or start over" data-i18n-aria-label="page.network_menu_save_load_or_start" title="Network menu: save, load or start over" data-i18n-title="page.network_menu_save_load_or_start">
+  <button class="chip brand menubtn" data-act="menu" aria-haspopup="dialog" aria-label="Network menu: save, load or start over" data-i18n-aria-label="page.network_menu_save_load_or_start" title="Network menu: save, load or start over" data-i18n-title="page.network_menu_save_load_or_start">
     <svg class="tube" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 22c0-7 5-12 12-12h6" fill="none" stroke="#1E2640" stroke-width="7" stroke-linecap="round"/><path d="M4 22c0-7 5-12 12-12h6" fill="none" stroke="#FFD23F" stroke-width="3.5" stroke-linecap="round"/><circle cx="25" cy="10" r="5" fill="#fff" stroke="#1E2640" stroke-width="2.5"/></svg>
     <div><div class="val" id="hName">Series of Tubes</div><div class="lbl" id="hAsn">AS —</div></div><span class="fed-dot" id="hFed" role="img" hidden></span><span class="caret" aria-hidden="true">▾</span>
   </button>
@@ -134,7 +134,7 @@
 
 <aside id="left" class="card">
   <div class="grab" data-grab="left" aria-hidden="true"></div>
-  <nav class="tabs" id="leftTabs"></nav>
+  <nav class="tabs" id="leftTabs" role="tablist"></nav>
   <div class="scroll" id="leftBody"></div>
 </aside>
 <button id="leftToggle" class="b pink" data-act="toggleLeft" data-i18n="common.goals_noc">Goals & NOC</button>

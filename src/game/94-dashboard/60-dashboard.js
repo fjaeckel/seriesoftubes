@@ -1,5 +1,5 @@
 function dashTabs(){const u=custStats().unhappy,cur=UI.dtab||'overview',L={overview:tr('common.overview'),cust:tr('common.customers'),conn:tr('common.connections'),traffic:tr('common.traffic'),links:tr('common.links'),routers:tr('common.routers'),pops:tr('unbuilt_pops.no_pop_yet'),lease:tr('common.leased_lines'),market:tr('market.tab')};
-  return `<nav class="dtabs">${DTABS.map(k=>`<button class="${cur===k?'on':''}" data-act="dashTab" data-args='{"k":"${k}"}'>${L[k]}${k==='cust'&&u?`<span class="cnt red">${u}</span>`:''}</button>`).join('')}</nav>`;}
+  return `<nav class="dtabs" role="tablist">${DTABS.map(k=>`<button class="${cur===k?'on':''}" role="tab" aria-selected="${cur===k}" data-act="dashTab" data-args='{"k":"${k}"}'>${L[k]}${k==='cust'&&u?`<span class="cnt red">${u}</span>`:''}</button>`).join('')}</nav>`;}
 function renderDash(){checkLayer();
   const H=S.hist||[],rows=H.slice(-90),last30=H.slice(-30);
   const up=last30.length?last30.reduce((a,r)=>a+(r.dem?Math.min(1,r.srv/r.dem):1),0)/last30.length:1;

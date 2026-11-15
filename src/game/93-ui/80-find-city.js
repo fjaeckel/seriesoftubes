@@ -11,7 +11,10 @@ function findIndex(){if(FIND_IX)return FIND_IX;let dn=null,en=null;try{dn=new In
 // Best matches first: the name starts with it, a word of the name does, the name has it, then country, then exchange or DC.
 // With from (#343, a link from that POP), only cities a link could end in: not from itself, and only those the map shows.
 function findCities(q,from){q=fold(q);const mine=c=>S&&S.pops&&S.pops[c]?0:1,ok=c=>!from||(c!==from&&cityOn(c));
-  if(!q)return S&&S.pops?Object.keys(S.pops).filter(c=>isCity(c)&&ok(c)).sort((a,b)=>CITY[a].name.localeCompare(CITY[b].name)).slice(0,FIND_N):[];
+  if(!q){const m=S&&S.pops?Object.keys(S.pops).filter(c=>isCity(c)&&ok(c)).sort((a,b)=>CITY[a].name.localeCompare(CITY[b].name)).slice(0,FIND_N):[];
+    // A new link from a POP: your other POPs, then the nearest cities, so a first link needs no idea where anything is.
+    if(!from||m.length>=FIND_N)return m;
+    return m.concat(CITIES.filter(C=>!S.pops[C.id]&&ok(C.id)).map(C=>[kmBetween(from,C.id),C.id]).sort((a,b)=>a[0]-b[0]).slice(0,FIND_N-m.length).map(r=>r[1]));}
   const out=[];for(const e of findIndex()){const n=e.name;if(!ok(e.id))continue;
     const s=n.startsWith(q)?0:n.split(/[\s\-.'()]+/).some(w=>w.startsWith(q))?1:n.includes(q)?2:e.ctry.includes(q)?3:e.xtra.includes(q)?4:-1;
     if(s>=0)out.push([s,mine(e.id),-(CITY[e.id].P||0),e.id]);}
@@ -94,7 +97,7 @@ function findRows(q,from){
   if(from){const ids=findCities(q,from);
     if(!ids.length)return `<p class="meta" style="margin:10px 0">${q.trim()?tr('find.no_city_matches_q',{q:esc(q.trim())}):tr('find.type_a_city_a_country')}</p>`;
     return ids.map((c,i)=>{const C=CITY[c],p=S.pops[c],land=(findIndex().find(e=>e.id===c)||{}).land||'';
-      return `<button class="row findrow${i?'':' on'}" role="listitem" data-act="linkTo" data-args="${esc(JSON.stringify({a:from,b:c}))}"><span class="grow"><span class="nm">${p?'📍 ':''}${esc(C.name)}</span><span class="meta">${esc([land,C.ix].filter(Boolean).join(' · '))}${p?' · '+tr('find.your_pop'):''}</span></span><span aria-hidden="true">›</span></button>`;}).join('');}
+      return `<button class="row findrow${i?'':' on'}" role="listitem" data-act="linkTo" data-args="${esc(JSON.stringify({a:from,b:c}))}"><span class="grow"><span class="nm">${p?'📍 ':''}${esc(C.name)}</span><span class="meta">${esc([land,C.ix,kmBetween(from,c).toLocaleString()+' km'].filter(Boolean).join(' · '))}${p?' · '+tr('find.your_pop'):''}</span></span><span aria-hidden="true">›</span></button>`;}).join('');}
   if(!fold(q))return findStart();
   const gs=findAll(q);if(!gs.length)return `<p class="meta" style="margin:10px 0">${tr('find.nothing_matches_q',{q:esc(q.trim())})}</p>`;
   let n=0;return gs.map(({g,rows})=>{const cap=UI.findMore===g?FIND_ALL:FIND_CAP,more=Math.min(rows.length,FIND_ALL)-cap;

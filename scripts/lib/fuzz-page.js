@@ -8,7 +8,8 @@
     'slotRetry', 'slotSpace', 'slotSwitch', 'slotTake', 'soundSet', 'speed', 'start', 'toTitle', 'traceCopy', 'updateLater', 'updateNow', 'vpSet', 'wsShare',
     // Leave the game or open what is not this game: the title screen, menus of other modes, AI helpers that fetch.
     'closePanel', 'puzzleMenu', 'puzzleDoor', 'scnMenu', 'startScn', 'startWeekly', 'pzStart', 'pzArStart', 'arMenu', 'teSlop', 'help', 'helpClose', 'keepPlaying',
-    'logOpen', 'pitchSkip', 'pitchGo', 'feedback', 'tutSkip', 'tutNext',
+    // logKind only narrows the notification log to one kind (all of it is shown first).
+    'logOpen', 'logKind', 'pitchSkip', 'pitchGo', 'feedback', 'tutSkip', 'tutNext',
     // Opens the capacity market: main's page shows it in the dashboard, this one in a window of its own (whose settings
     // the dashboard's 'market' screen offers on both pages).
     'marketOpen']);
@@ -58,7 +59,7 @@
   // Long lists open on a short first page, and panels fold their rarer buttons away (finished goals, a row's "Change",
   // "+N more"): older pages show all of it at once. So every page is read unfolded, every button once:
   // each fold on screen is opened in turn (they only change the view) and the buttons it shows are added.
-  const FOLDS = new Set(['panelMore', 'panelFold', 'pniGrp', 'dashRow', 'leftFold', 'nlOpen', 'bazRow', 'bazMore', 'bazHelp']);
+  const FOLDS = new Set(['panelMore', 'panelFold', 'pniGrp', 'dashRow', 'leftFold', 'nlOpen', 'bazRow', 'bazMore', 'bazHelp', 'bazAsk', 'bankFold', 'dealsFold', 'dealsMore', 'fuFold', 'fpFold']);
   const unfolded = (root, again) => {
     UI.listN = new Proxy({}, { get: () => 1e6, deleteProperty: () => true });
     const armed = UI.confirm, seen = new Map(), done = new Set();
@@ -113,7 +114,11 @@
     if (w.where === 'openLink') { if (!S.pops[w.a]) return []; openLinkModal(w.a, w.b); return modalOpen() ? btns($('modal')) : []; }
     return [];
   };
-  const press = (b) => { const e = call(b.act, b.args); return e; };
+  // A removal this checkout puts back with Undo (UNDO_ACTS) acts on the first tap; older pages armed on the first and acted
+  // on the second. Pressed here as older pages take it: the first tap arms (UI.confirm, the same key), the second acts.
+  const press = (b) => {
+    if (typeof UNDO_ACTS !== 'undefined' && UNDO_ACTS.has(b.act) && !(b.args && b.args.ok)) { if (UI.confirm !== b.args.id) { UI.confirm = b.args.id; return ''; } }
+    const e = call(b.act, b.args); return e; };
   const close = () => { if (modalOpen()) closeModal(); $('dash').hidden = true; };
 
   // ---------- things a player does with no button handy here ----------

@@ -137,6 +137,9 @@ test('settings: share my country, mutes, the move file behind its warning, the o
   const { p } = await joined();
   p.ev("window.__files=[];saveDl=(txt,nm,fn)=>__files.push({name:fn,text:txt});ACT.fuOpen({v:'home'})");
   await run(p, 500);
+  // Joined, the settings fold behind one button (and stay unfolded while the sheet is open).
+  assert.doesNotMatch(txt(p), /Share my country/);
+  click(p, '#modalCard [data-act="fuFold"][data-args*="set"]');
   assert.match(txt(p), /Share my country/);
   assert.match(txt(p), /never anything finer/);
   click(p, '#modalCard [data-act="fuShare"][data-args*="false"]');
