@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Orbit offers now warn when the sky cannot deliver them: no crust over the city yet, every crust there full, no dish to land them, or too little room for the bandwidth they want. Your sales desk no longer signs those (the shark still oversells bandwidth); you still can.
+
 ## [4.3.0] — 2026-11-15
 
 - The NOC intern can now run your rocket launches: a new standing order books launches to keep your crusts at 60, 80 or 100% as old pies wear out, with its own monthly budget.

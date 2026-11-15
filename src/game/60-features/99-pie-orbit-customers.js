@@ -28,6 +28,15 @@ function pieSpawn(t){const T=BIZ_T[t],min=T.opts[0],ok=pieCands(t).filter(c=>{if
   const left=Math.min(pieRoom(t),pieSlRoom(pieServe(city,t))-S.offers.reduce((a,o)=>a+(BIZ_T[o.type].orbit?o.bw:0),0)),opts=T.opts.filter(g=>g<=left),bw=opts.length?pieSlSize(opts):0;if(!bw)return;
   const list=T.names.filter(n=>!S.usedNames.includes(n)),name=list.length?pick(list):pick(T.names);useName(name);
   const o={id:uid(),city,city2:null,name,type:t,bw,rate:T.rate,reqs:[],exp:S.day+40};pieSlShape(o);S.offers.push(o);}
+// Can the sky deliver orbit offer o today (last compute)? {key: its landing (crust|dish), w: why not, or null}.
+// used: Gbps already signed on each landing this shift (the sales desk). Read by the offer cards and the sales desk.
+function pieOfferFit(o,used){if(!S.pie||!R||!R.pie)return {key:null,w:{k:'nocrust'}};const L=pieServe(o.city,o.type,o.bw);
+  if(!L){const cv=(R.pie.crust||[]).filter(x=>x.cap>0&&R.pie.hubs.includes(x.id)&&pieUp(x.id)&&pieCovers(x.id,o.city));
+    return {key:null,w:{k:!cv.length?'nocrust':cv.every(x=>x.cap-x.used<=0)?'skyfull':'nodish'}};}
+  const key=L.cr+'|'+L.k,left=L.left-((used&&used.get(key))||0);return {key,w:left>=o.bw?null:{k:'room',left:Math.max(0,left),c:pieDishes()[L.k].city}};}
+// The same, as a warning line for an offer card ('' when it fits).
+function pieOfferWhy(o){if(!BIZ_T[o.type]||!BIZ_T[o.type].orbit)return '';const w=pieOfferFit(o).w;if(!w)return '';const city=esc(CITY[o.city].name);
+  return `<div class="why">🥧 ${w.k==='room'?tr('pie_offer.room',{left:fmtG(w.left),bw:fmtG(o.bw),dish:esc(CITY[w.c].name)}):w.k==='skyfull'?tr('pie_offer.skyfull',{city}):w.k==='nodish'?tr('pie_offer.nodish',{city}):tr('pie_offer.nocrust',{city})}</div>`;}
 // Grand opening: the first PIE_OPEN_DAYS after a crust starts carrying traffic (crust.open, the day it first did), the phone
 // rings every day and up to PIE_OPEN_OFFERS wait, so regular customers sign while the patchy-sky income fades (99-pie-patchy.js).
 const PIE_OPEN_DAYS=30,PIE_OPEN_OFFERS=4;

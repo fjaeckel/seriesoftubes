@@ -150,8 +150,8 @@ function pieFiberMs(f){const P=R&&R.pie,x=P&&P._x;if(!x||!f||f.k!=='c')return In
   const Ai=CIDX[f.a],Bi=CIDX[f.b],r=dijkstra(x.adj,Ai,e=>e.lat+0.05,(v,e)=>!!e.sky||!!e.bh,Bi);let ms=Infinity;
   if(r.D[Bi]<Infinity){const w=walkI(r.P,Ai,Bi);ms=w.path.reduce((a,e)=>a+e.lat,0)+w.path.length*0.05;}return x.fm[f.id]=ms;}
 // What the network could sell from orbit today (offers, F3 spirit): a city that a baked crust with room left covers and a
-// dish with room left can land; read from the last compute (R.pie), never computed here.
-function pieServe(c,t){if(!S.pie||!R||!R.pie)return null;const ds=pieDishes();if(!ds.length)return null;const isl=new Set(R.pie.isl);for(const d of ds){d.ok=!isl.has(d.city);d.left=d.g-(R.pie.term[d.city]||0);}
-  const cr={};for(const x of R.pie.crust||[])cr[x.id]=x.cap-x.used;return pieLand(c,t,ds,R.pie.hubs.filter(pieUp),0,cr);}
+// dish with room left can land; read from the last compute (R.pie), never computed here. bw: prefer a landing with that much room.
+function pieServe(c,t,bw=0){if(!S.pie||!R||!R.pie)return null;const ds=pieDishes();if(!ds.length)return null;const isl=new Set(R.pie.isl);for(const d of ds){d.ok=!isl.has(d.city);d.left=d.g-(R.pie.term[d.city]||0);}
+  const cr={};for(const x of R.pie.crust||[])cr[x.id]=x.cap-x.used;return pieLand(c,t,ds,R.pie.hubs.filter(pieUp),bw,cr);}
 // Book what orbit earned, day by day.
 PIE_ON.day.push(()=>{if(R&&R.pie&&R.pie.rev>0)S.pie.book.earned+=R.pie.rev/30;});
