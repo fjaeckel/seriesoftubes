@@ -208,6 +208,25 @@ test('the Dishes tab\'s load view shows backhaul at 360 px, why it is missing, a
   assert.deepEqual(errors, []);
 });
 
+test('changing tab clears the globe highlight and the picked dish, and zooms back out', () => {
+  const { ev, errors } = load();
+  world(ev, { d: 300 });
+  ev("S.pie.dishes.find(x=>x.city==='pcn').ant=2;compute();UI.pieTab='dish';UI.pieDv='load';ACT.pieOpen()");
+  try {
+    ev("ACT.pieHi({id:'bh:pcn'});ACT.pieLook({city:'pcn'})");
+    assert.equal(ev('UI.pieHi'), 'bh:pcn');
+    assert.equal(ev('UI.pieFocus'), 'pcn');
+    ev("ACT.pieTab({t:'dish'})");
+    assert.equal(ev('UI.pieHi'), 'bh:pcn', 'the same tab keeps it');
+    ev("ACT.pieTab({t:'cust'})");
+    assert.equal(ev('UI.pieHi'), null);
+    assert.equal(ev('UI.pieFocus'), null);
+    assert.equal(J(ev, 'pieGlobeData()').hi, null);
+    if (ev('!!PG.cv')) assert.equal(ev('PG.goal&&PG.goal.z'), 1, 'the camera zooms back out');
+  } finally { ev('closeModal()'); }
+  assert.deepEqual(errors, []);
+});
+
 test('the traceroute to and from a cut-off POP shows the orbit hops', () => {
   const { dom, ev, errors } = load();
   world(ev);

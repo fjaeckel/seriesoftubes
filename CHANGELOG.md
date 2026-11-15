@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 - In dark mode, the cash amount at the top is readable again on iPhones, where it showed dark on the dark chip.
+- Switching tabs in Pie Control now gives the globe back in full: a highlighted customer, backhaul or dish no longer keeps the rest dimmed and zoomed in.
 
 ## [4.2.1] — 2026-11-15
 
