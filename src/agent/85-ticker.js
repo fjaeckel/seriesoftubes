@@ -11,7 +11,7 @@ const API_TICKER={on:false,worker:null,interval:null,last:0};
 // Days for the time since the last tick, if the frame is not running them now.
 function apiAgentTick(now=performance.now()){
   const dt=API_TICKER.last?Math.max(0,Math.min(1000,now-API_TICKER.last)):0;API_TICKER.last=now;
-  const behind=document.visibilityState==='hidden'||!$('modal').hidden;
+  const behind=document.visibilityState==='hidden'||modalStops();
   if(behind&&UI.clockLocked&&S&&!S.lost&&UI.speed&&!pzOn())runClock(dt);}
 function apiTickerSync(){
   const want=UI.clockLocked&&apiAgentMs()>0&&!window.__TUBES_TEST__;

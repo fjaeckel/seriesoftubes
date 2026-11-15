@@ -7,6 +7,7 @@ const barCls=u=>u>=0.9?'bad':u>=0.65?'warn':'';
    of them again, so patch what changed instead: same HTML, far less work. A button that now does something else, and
    any form field that changed, is swapped out whole, so a tap that started on the old one still cannot fire it (#44). */
 const SWAP={INPUT:1,SELECT:1,TEXTAREA:1,OPTION:1};
+// A canvas kept in place keeps the size and style its drawing code gave it (Pie Control's globe, #376).
 function morph(el,html){const t=document.createElement(el.tagName);t.innerHTML=html;morphKids(el,t);}
 function sameNode(x,y){if(x.nodeType!==y.nodeType||x.nodeName!==y.nodeName)return false;if(x.nodeType!==1)return true;
   if(SWAP[x.nodeName])return x.outerHTML===y.outerHTML;
@@ -15,7 +16,7 @@ function morphKids(a,b){let x=a.firstChild,y=b.firstChild;
   while(y){const ny=y.nextSibling;
     if(!x)a.appendChild(y);
     else if(!sameNode(x,y)){a.replaceChild(y,x);x=y;}
-    else if(x.nodeType===1){if(!SWAP[x.nodeName]){const ya=y.attributes,xa=x.attributes;
+    else if(x.nodeType===1){if(!SWAP[x.nodeName]&&x.nodeName!=='CANVAS'){const ya=y.attributes,xa=x.attributes;
         for(let i=0;i<ya.length;i++){const {name,value}=ya[i];if(x.getAttribute(name)!==value)x.setAttribute(name,value);}
         for(let i=xa.length-1;i>=0;i--)if(!y.hasAttribute(xa[i].name))x.removeAttribute(xa[i].name);
         morphKids(x,y);}}

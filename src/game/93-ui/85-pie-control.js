@@ -18,11 +18,12 @@ const pieBtn=(label,act,args,cls,cost,why,title)=>{const w=pieOff(cost,why);retu
 const pieTile=(l,v,sub)=>`<div class="tile"><div class="lbl">${l}</div><div class="val">${v}</div>${sub?`<div class="sub">${sub}</div>`:''}</div>`;
 // The tabs that show the globe beside their content (on phones above it): what flies, and where.
 const PIE_GLOBE_TABS=['home','cust','dish'];
-function pieModal(){if(!S||!pieOn())return;const P=S.pie||pieBlank(S.day),can=pieCanBuild(),T=UI.pieTab=pieTabOf(UI.pieTab);
+// live: the day's refresh of an open panel, patched in place (morph()) so its scroll, focus, a name being typed and the globe stay.
+function pieModal(live){if(!S||!pieOn())return;const show=h=>live?morph($('modalCard'),h):openModal(h,'pie');const P=S.pie||pieBlank(S.day),can=pieCanBuild(),T=UI.pieTab=pieTabOf(UI.pieTab);
   let h=`<div style="display:flex;align-items:center;gap:10px"><div class="grow"><div class="eyebrow">${tr('pie.pie_in_the_sky')}</div><h2 style="font-size:26px">${P.co?esc(pieCoName()):tr('pie.pie_control')}</h2></div><button class="x" data-act="closeModal" aria-label="${tr('common.close')}">×</button></div>`;
   if(!can)h+=`<p class="why">${tr('pie.why_not_t1')}</p>`;
   if(pieSand())h+=`<p class="note">${tr('pie.sandbox_note',{amt:fmt$(P.book.wouldHave)})}</p>`;
-  if(!P.co){h+=`<p class="lead">${tr('pie.found_pitch')}</p><div class="btns">${btn(tr('pie.found_price',{price:fmt$(piePrice(PIE_CO)),mo:fmt$(PIE_CO_MO)}),'pieFound',{},'pink',!can)}</div>`;openModal(h,'pie');return;}
+  if(!P.co){h+=`<p class="lead">${tr('pie.found_pitch')}</p><div class="btns">${btn(tr('pie.found_price',{price:fmt$(piePrice(PIE_CO)),mo:fmt$(PIE_CO_MO)}),'pieFound',{},'pink',!can)}</div>`;show(h);return;}
   const Q=R&&R.pie,nfx=Q&&Q.flows?pieFixes(Q).length:0,L={home:tr('common.overview'),fix:tr('pie_fix.title'),crust:tr('pie_traffic.crusts'),dish:tr('pie.tab_dishes'),cust:tr('common.customers'),co:tr('pie.tab_company')};
   h+=`<nav class="dtabs pie-tabs">${PIE_TABS.map(k=>`<button class="${T===k?'on':''}" data-act="pieTab" data-args='{"t":"${k}"}' aria-pressed="${T===k}">${L[k]}${k==='fix'&&nfx?`<span class="cnt red">${nfx}</span>`:''}</button>`).join('')}</nav>`;
   let body='';
@@ -33,7 +34,7 @@ function pieModal(){if(!S||!pieOn())return;const P=S.pie||pieBlank(S.day),can=pi
   else if(T==='cust')body=pieCustHtml();
   else if(T==='co')body=pieProdHtml(P,can)+`<h3 class="pie-sec">${tr('pie.tab_company')}</h3>`+pieCoHtml(P);
   h+=PIE_GLOBE_TABS.includes(T)?`<div class="pie-cols"><div class="pie-side">${pieGlobeHtml()}${T==='home'?pieQueueHtml(P,8):''}<div class="btns">${btn(UI.pieNoSats?tr('pie.sats_show'):tr('pie.sats_hide'),'pieNoSats',{},'ghost sm')}</div>${T==='dish'?`<p class="meta">${tr('pie.globe_pick')}</p>`:''}</div><div class="pie-main">${body}</div></div>`:body;
-  openModal(h,'pie');{const cv=document.querySelector('#modal .pgcv');if(cv)pieGlobeOpen(cv,pieGlobeData);}}
+  show(h);{const cv=document.querySelector('#modal .pgcv');if(cv)pieGlobeOpen(cv,pieGlobeData);}}
 // Overview: the numbers that matter, then the worst bottlenecks.
 function pieHomeHtml(P,Q){const best=Object.keys(CRUSTS).sort((a,b)=>pieCov(b)-pieCov(a))[0],cr=Q&&Q.crust||[],cc=cr.reduce((a,c)=>a+c.cap,0),cu=cr.reduce((a,c)=>a+c.used,0);
   const ds=Q&&Q.dish||[],dc=ds.reduce((a,d)=>a+d.cap,0),du=ds.reduce((a,d)=>a+Math.min(d.used,d.cap),0),nx=P.q.slice().sort((a,b)=>a.day-b.day)[0];
