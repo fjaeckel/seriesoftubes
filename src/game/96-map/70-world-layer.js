@@ -8,7 +8,7 @@
 const softCanvas=ua=>/Android.*Firefox\//.test(ua),SOFT_CANVAS=softCanvas(navigator.userAgent);
 function wlCovers(z){if(WL.full)return true;const hw=CW/2/z,hh=CH/2/z,w=WL.cv.width/WL.sc,h=WL.cv.height/WL.sc;
   return cam.x-hw>=WL.ox&&cam.x+hw<=WL.ox+w&&cam.y-hh>=WL.oy&&cam.y+hh<=WL.oy+h;}
-// The world layer's key: scale, AR and theme. mapStill() checks the same key, or the map would redraw on every frame.
+// The world layer's cache key: the zoom it was painted at, the architect view, the theme (mapStill() asks it too).
 const wlKey=z=>(z*DPR).toFixed(4)+(arOn()?'a':'')+MAPC.k;
 function worldLayer(z){
   const now=performance.now();if(z!==WL.lastZ){WL.lastZ=z;WL.zAt=now;}
