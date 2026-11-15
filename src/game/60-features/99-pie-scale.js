@@ -18,6 +18,7 @@ const pieAntLeft=x=>PIE_ANT_MAX-x.ant;
 const pieAntAllCost=()=>S.pie.dishes.reduce((a,x)=>a+pieAntLeft(x)*pieAntPrice(x.band),0);
 // A new dish comes at the best band researched; moving a dish up a band pays the difference on each antenna.
 const pieDishPrice=()=>{const b=pieBandMax();return b?piePrice(PIE_DISH)+pieAntPrice(b):piePrice(PIE_DISH+PIE_ANT);};
+const pieDishSalvage=x=>Math.round((piePrice(PIE_DISH)+x.ant*pieAntPrice(x.band||0))*PIE_SALVAGE);
 const pieBandCost=x=>{const b=pieBandMax();return b>(x.band||0)?x.ant*(pieAntPrice(b)-pieAntPrice(x.band)):0;};
 // POPs in cc that could still get a dish.
 const pieDishFree=cc=>Object.keys(S.pops).filter(c=>CITY[c].cc===cc&&!S.pie.dishes.some(x=>x.city===c));
