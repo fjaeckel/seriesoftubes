@@ -283,12 +283,54 @@
 :where(:root.dark) .chopt{background:var(--paper);color:var(--ink)}
 :where(:root.dark) .chopt:hover,:where(:root.dark) .chopt:focus-visible{background:var(--soft);color:var(--ink)}
 :where(:root.dark) .cht span{color:var(--ink2)}
-:where(:root.dark) .cmbar{background:var(--soft);color:var(--ink)}
-:where(:root.dark) .cmbar i{background:var(--eye)}
-:where(:root.dark) .cmbar b{background:var(--on)}
 :where(:root.dark) .tag.cmhot{background:#402B23;color:#EB9274}
 :where(:root.dark) .tag.cmcool{background:#25353C;color:#8FCCE7}
 :where(:root.dark) textarea.xfer-in{background:var(--soft);color:var(--ink)}
+:where(:root.dark) .bz-warn{color:var(--bad)}
+:where(:root.dark) .bz-idle{background:var(--soft);color:var(--ink)}
+:where(:root.dark) .bz-hot{color:var(--ink)}
+:where(:root.dark) .bz-car{color:var(--ink2)}
+:where(:root.dark) .bz-nd{color:var(--ink2)}
+:where(:root.dark) .bz-empty p{color:var(--ink2)}
+:where(:root.dark) .bz-empty p.bz-wait{color:var(--ink)}
+:where(:root.dark) .bz-cl{color:var(--ink2)}
+:where(:root.dark) .bz-chip{background:var(--paper);color:var(--ink)}
+:where(:root.dark) .bz-chip.on{background:var(--on);color:var(--paper)}
+:where(:root.dark) .bz-lg{color:var(--ink2)}
+:where(:root.dark) .bz-r{background:var(--paper);color:var(--ink)}
+:where(:root.dark) .bz-rh{color:var(--ink)}
+:where(:root.dark) .bz-ch{color:var(--ink2);background:var(--soft)}
+:where(:root.dark) .bz-ch.ok{border-color:#16A866;color:#ACF3D3;background:#28382F}
+:where(:root.dark) .bz-ch.bad{border-color:#FFAA1F;color:#F3D2AA;background:#403623}
+:where(:root.dark) .bz-ch.idle{background:var(--paper);color:var(--ink)}
+:where(:root.dark) .bz-st{color:var(--ink2)}
+:where(:root.dark) .bz-p.ok .bz-st{border-color:#16A866;color:#ACF3D3;background:#28382F}
+:where(:root.dark) .bz-p.bad .bz-st{border-color:#FFAA1F;color:#F3D2AA;background:#403623}
+:where(:root.dark) .bz-bar{background:var(--soft);color:var(--ink)}
+:where(:root.dark) .bz-bar i{background:var(--eye)}
+:where(:root.dark) .bz-p.bad .bz-bar i{background:var(--warn);color:var(--on)}
+:where(:root.dark) .bz-pl{color:var(--ink2)}
+:where(:root.dark) .bz-pl b{color:var(--ink)}
+:where(:root.dark) .bz-why{background:var(--soft);color:var(--ink)}
+:where(:root.dark) .bz-p.bad .bz-why{background:#403623;color:#F4D7B4}
+:where(:root.dark) .bz-f{color:var(--ink2)}
+:where(:root.dark) .bz-s{color:var(--ink);background:var(--paper)}
+:where(:root.dark) .bz-ctl{background:var(--soft);color:var(--ink)}
+:where(:root.dark) .bz-pre{background:var(--paper);color:var(--ink)}
+:where(:root.dark) .bz-pre small{color:var(--ink2)}
+:where(:root.dark) .bz-pre.go{background:var(--sun);color:var(--on)}
+:where(:root.dark) .bz-pre.go small{color:var(--on)}
+:where(:root.dark) .bz-pn .meta{color:var(--ink2)}
+:where(:root.dark) .bz-pr:not(.on):not(.hold) .bz-pn b{color:var(--ink2)}
+:where(:root.dark) .bz-pd{color:var(--ink2);background:var(--soft)}
+:where(:root.dark) .bz-q{background:var(--paper);color:var(--ink)}
+:where(:root.dark) .bz-q.on{background:var(--on);color:var(--paper)}
+:where(:root.dark) .bz-sw{color:var(--ink2)}
+:where(:root.dark) .bz-sw.on{color:var(--ink)}
+:where(:root.dark) .bz-swk{background:var(--line)}
+:where(:root.dark) .bz-swk::after{background:var(--paper);color:var(--ink)}
+:where(:root.dark) .bz-sw.on .bz-swk{background:var(--ok)}
+:where(:root.dark) .bz-nw .meta{color:var(--ink2)}
 :where(:root.dark) .legend .lg{color:inherit}
 :where(:root.dark) .legend .lg:hover{background:rgba(30,38,64,.08)}
 :where(:root.dark) .chtip{background:var(--on);color:#fff}

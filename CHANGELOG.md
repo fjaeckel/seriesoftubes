@@ -6,6 +6,9 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Lambda Bazaar, the capacity market, has a window of its own with tabs for an overview, your routes, products and news. The overview says what you earn and lists what holds sales up, each with a one-tap fix such as lowering a floor or starting to sell a product carriers want; open it from the NOC dashboard, the NOC tab or a dark fiber's panel.
+- Each route you sell capacity on can now have its own rules: how much to keep back for your own traffic, the lowest price to sell at, and which products the broker sells there. Routes show as compact cards you can sort, filter and unfold, and the Products tab has quick setups to sell everything wanted, sell carefully or stop selling.
+
 - The 🔍 search now finds anything: cities, networks by name or AS number, your customers and open offers, your links (type both cities, like "fra ams"), and every screen, from the NOC dashboard tabs to the bank and settings. With nothing typed it offers your recent picks, your home, cities with an incident and every screen; on a computer, press / or Ctrl+K to open it.
 - The city's Peering tab is now three short sections (exchanges, PNIs, caches), each with a one-line summary, and the ones that need you open by themselves. Every port is one line with its controls behind "Change", and a transit port you hold is one compact row showing its load and bill.
 - Dark fiber and subsea cable panels are much shorter: optics come first, with one row per model in use, and adding capacity is right at the top. On every link, the line system, selling spare capacity, traffic and routing metric fold into one-line summaries you can tap open.

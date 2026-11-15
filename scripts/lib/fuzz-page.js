@@ -8,7 +8,10 @@
     'slotRetry', 'slotSpace', 'slotSwitch', 'slotTake', 'soundSet', 'speed', 'start', 'toTitle', 'traceCopy', 'updateLater', 'updateNow', 'vpSet', 'wsShare',
     // Leave the game or open what is not this game: the title screen, menus of other modes, AI helpers that fetch.
     'closePanel', 'puzzleMenu', 'puzzleDoor', 'scnMenu', 'startScn', 'startWeekly', 'pzStart', 'pzArStart', 'arMenu', 'teSlop', 'help', 'helpClose', 'keepPlaying',
-    'logOpen', 'pitchSkip', 'pitchGo', 'feedback', 'tutSkip', 'tutNext']);
+    'logOpen', 'pitchSkip', 'pitchGo', 'feedback', 'tutSkip', 'tutNext',
+    // Opens the capacity market: main's page shows it in the dashboard, this one in a window of its own (whose settings
+    // the dashboard's 'market' screen offers on both pages).
+    'marketOpen']);
   const sig = (b) => b.act + ' ' + JSON.stringify(b.args);
   const btns = (root) => (root ? [...root.querySelectorAll('[data-act]')] : []).filter((b) => !b.disabled && !DENY.has(b.dataset.act) && typeof ACT[b.dataset.act] === 'function')
     .map((b) => { let args = {}; try { args = JSON.parse(b.dataset.args || '{}'); } catch (e) {} return { act: b.dataset.act, args }; });
@@ -55,7 +58,7 @@
   // Long lists open on a short first page, and panels fold their rarer buttons away (finished goals, a row's "Change",
   // "+N more"): older pages show all of it at once. So every page is read unfolded, every button once:
   // each fold on screen is opened in turn (they only change the view) and the buttons it shows are added.
-  const FOLDS = new Set(['panelMore', 'panelFold', 'dashRow', 'leftFold', 'nlOpen']);
+  const FOLDS = new Set(['panelMore', 'panelFold', 'dashRow', 'leftFold', 'nlOpen', 'bazRow', 'bazMore', 'bazHelp']);
   const unfolded = (root, again) => {
     UI.listN = new Proxy({}, { get: () => 1e6, deleteProperty: () => true });
     const armed = UI.confirm, seen = new Map(), done = new Set();
@@ -78,7 +81,19 @@
     // The city names in a link panel's header open the city (#196); older pages have plain text there. They only change
     // the view, so neither page offers them, and both stay in lockstep.
     if (w.where === 'link') { if (!S.links.some((l) => l.id === w.id)) return []; UI.sel = { type: 'link', id: w.id }; renderAll(); const P = $('panel'); return unfolded(() => { const Q = $('panel'); for (const h of Q.querySelectorAll('.ph h2 [data-act]')) h.removeAttribute('data-act'); return Q; }, renderPanel); }
-    if (w.where === 'dash') { $('dash').hidden = false; UI.dtab = w.tab; renderDash(); return unfolded(() => $('dash'), renderDash); }
+    if (w.where === 'dash') {
+      $('dash').hidden = false; UI.dtab = w.tab; renderDash(); const b = unfolded(() => $('dash'), renderDash);
+      if (w.tab !== 'market') return b;
+      /* The capacity market's settings moved from this tab into a window of its own (Lambda Bazaar), where some are
+         drop-downs: on both pages this screen offers the same settings, the share kept back, each product's switch,
+         minimum and floor, and each route's switch, read from the window's Products tab and its routes, every card unfolded. */
+      const keep = (x) => x.act === 'mktHold' || x.act === 'mktCfg' || x.act === 'mktRoute';
+      if (typeof bazTabHtml !== 'function') return b.filter(keep);
+      const d = document.createElement('div'), D = bazData(); d.innerHTML = bazTabHtml('prod', D) + bazTabHtml('routes', D, true);
+      const sel = [...d.querySelectorAll('select[data-chg]')].flatMap((el) => { let a = {}; try { a = JSON.parse(el.dataset.args || '{}'); } catch (e) {}
+        return [...el.options].filter((o) => o.value !== '').map((o) => ({ act: el.dataset.chg, args: { ...a, v: +o.value } })); });
+      return btns(d).concat(sel).filter(keep);
+    }
     if (w.where === 'left') {
       UI.left = w.tab; UI.leftOpen = true; renderLeft(); let b = unfolded(() => $('leftBody'), renderLeft);
       // An unfolded network row also says where to meet that network and can put it in focus, which older pages only do for the one in focus:

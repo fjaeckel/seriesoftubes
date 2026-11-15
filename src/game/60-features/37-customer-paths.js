@@ -10,7 +10,7 @@ const samePair=(l,a,b)=>(l.a===a&&l.b===b)||(l.a===b&&l.b===a);
 const fibLab=l=>tr('customer_paths.fiber_label',{name:l.cname?esc(l.cname):capName(l),km:Math.round(l.km).toLocaleString()});
 // Why this fiber cannot take this customer, in the same terms as the market that sold it: waves only where the broker
 // could sell them, after the share kept back for your own traffic.
-function fiberNo(b,l){const n=b.slots||1,hold=S.cm.hold;
+function fiberNo(b,l){const n=b.slots||1,hold=cmHoldL(l);
   if(b.type==='wwave'){const free=freeCh(l),spare=cmSpare(l,'spec');return spare>=n?'':free<n?tr('customer_paths.not_enough_free_channels',{free:Math.max(0,free),n}):tr('customer_paths.not_enough_spare_channels',{free:spare,n,hold});}
   // A managed wave rides one channel of your lit capacity, so it needs an optic that big and that many Gbps spare.
   if(b.type==='mwave'){const g=b.g||100,free=Math.max(0,cmFreeG(l));if(cmOptG(l)<g)return tr('customer_paths.needs_a_g_channel',{g:fmtCap(g)});

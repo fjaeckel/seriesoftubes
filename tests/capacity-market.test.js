@@ -116,9 +116,12 @@ test('a Cable broker pays 3% instead of 10% and sees routes it could build with 
   const sc = JSON.parse(ev('JSON.stringify(cmScout().map(r=>r.k))'));
   assert.ok(sc.length > 0 && sc.every((k) => k.includes('|')));
   ev("UI.dtab='market';$('dash').hidden=false;renderDash()");
-  const html = ev("$('dashCard').textContent");
-  assert.match(html, /Lambda Bazaar/);
-  assert.match(html, /Routes you could build/);
+  assert.match(ev("$('dashCard').textContent"), /Lambda Bazaar/);
+  // Its window's last tab lists them, with what carriers spend there now and where each is heading.
+  ev("ACT.marketOpen({t:'scout'})");
+  const html = ev("$('modalCard').textContent");
+  assert.match(html, /carriers there spend about/);
+  assert.match(html, /in 90 days/);
   assert.deepEqual(errors, []);
 });
 

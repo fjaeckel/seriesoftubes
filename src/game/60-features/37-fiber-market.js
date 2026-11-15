@@ -7,7 +7,8 @@
    gives way to 400G, then 800G and 1.6T), and carriers already on your glass ask to move up a size. Hot routes pay more
    and fill faster; a short, straight route sells waves at a premium, and a long one costs more because its fiber does. The broker keeps 10% (3% for a Cable broker, who also sees where
    each route is heading). S.cm: hold (share kept for your own traffic), p (per product: auto on, min demand, price
-   floor), off (routes left alone), sh (shocks), news, seen (incidents already turned into news). */
+   floor), off (routes left alone), rt (a route's own rules, where they differ from everywhere else), sh (shocks), news,
+   seen (incidents already turned into news). */
 const CM_P=['spec','w100','w400','w800','w1600','iru'],CM_W=['w100','w400','w800','w1600'];
 const CM_L={spec:'w',w100:'m1',w400:'m4',w800:'m8',w1600:'m16',iru:'p'},CM_G={w100:100,w400:400,w800:800,w1600:1600};
 const CM_HOLD=[0,10,25,50],CM_FLOOR=[60,80,100,120],CM_MIN={spec:[1,2,4,8],w100:[1,4,8,16],w400:[1,2,4,8],w800:[1,2,4,8],w1600:[1,2,4],iru:[1,2]};
@@ -19,6 +20,14 @@ const CM_X={w100:[1,1],w400:[2.7,3.8],w800:[4.6,6.6],w1600:[7.8,11]};
 const CM_FIN=['nyc','chi','lon','fra','tok','sin','hkg','ams','ash'];
 const CM_HMAX=2.5;
 const cmNew=()=>({hold:25,p:JSON.parse(JSON.stringify(CM_DEF)),off:{},sh:[],news:[],seen:[]});
+/* A route's own rules, S.cm.rt[route key]: {hold?, floor?, p?:{product:0|1}}; S.cm.rt is there only while some route
+   has one, so a save without any is the save it always was. Whatever is not set there is "as
+   everywhere": the share kept back and each product's floor and switch are read through these three. */
+const cmRt=k=>(S.cm.rt||0)[k];
+const cmHold=k=>{const o=cmRt(k);return o&&o.hold!==undefined?o.hold:S.cm.hold;};
+const cmFloor=(k,p)=>{const o=cmRt(k);return o&&o.floor!==undefined?o.floor:S.cm.p[p].floor;};
+const cmOn=(k,p)=>{const o=cmRt(k);return o&&o.p&&o.p[p]!==undefined?!!o.p[p]:S.cm.p[p].on;};
+const cmHoldL=l=>cmHold(edgeKey(l));
 const cmCut=()=>broker()?0.97:0.9;
 /* A fiber's listing, l.list: {w: spectrum slots, p: pairs} as it always was, plus m1/m4/m8/m16 (managed 100G to 1.6T
    waves) when any are listed, and hw/hp: how many of w/p you listed by hand, which the broker's thresholds never take
@@ -93,9 +102,9 @@ function mwG(l){if(!S||!S.biz)return 0;if(!CM_MW||CM_MW.b!==S.biz||CM_MW.n!==S.b
 // How much of a product a fiber has spare, after the share kept back for your own traffic (spectrum slots, or lit
 // capacity your traffic is not using). A wave rides one channel, so an 800G or 1.6T one needs an optic that big. A pair
 // is never kept back: it is glass you are not lighting.
-const cmFreeG=(l,hold=S.cm.hold)=>dfCap0(l)-(R.load[l.id]||0)*1.05-hold/100*dfLit(l);
+const cmFreeG=(l,hold=cmHoldL(l))=>dfCap0(l)-(R.load[l.id]||0)*1.05-hold/100*dfLit(l);
 const cmOptG=l=>Math.max(0,...(l.ch||[]).map(c=>optG(c,l)));
-function cmSpare(l,p,hold=S.cm.hold){
+function cmSpare(l,p,hold=cmHoldL(l)){
   if(p==='spec')return Math.max(0,freeCh(l)-Math.ceil(hold/100*chMax(l)));
   if(p==='iru')return l.own&&pairFree(l)&&!(l.cut>S.day)?1:0;
   return cmOptG(l)<CM_G[p]?0:Math.max(0,Math.floor(cmFreeG(l,hold)/CM_G[p]));}
@@ -135,7 +144,7 @@ function cmShocks(d){const C=S.cm;C.sh=C.sh.filter(x=>x.until>d);
 /* Once a day: news, then on every route the broker lists what your thresholds allow (spare after the share kept back,
    while demand is at least your minimum and the price at least your floor) or takes it off, then each listing may
    find a buyer: the more room the route has left and the hotter it is, the sooner; the fastest fiber sells first. */
-function cmList1(r,p,s,d){const c=S.cm.p[p],lk=CM_L[p];if(!c.on||S.cm.off[r.k])return;const ok=cmDem(r,p,d)>=c.min&&cmIdx(r,p,s,0,d)*100>=c.floor;
+function cmList1(r,p,s,d){const c=S.cm.p[p],lk=CM_L[p];if(!cmOn(r.k,p)||S.cm.off[r.k])return;const ok=cmDem(r,p,d)>=c.min&&cmIdx(r,p,s,0,d)*100>=cmFloor(r.k,p);
   // What you listed by hand stays listed on top of what the thresholds allow, up to what the fiber has free.
   for(const l of r.ls){const h=cmHand(l,lk),n=Math.min(ok?cmSpare(l,p)+h:h,h?(p==='spec'?freeCh(l):1):Infinity);if(n>0)cmLs(l)[lk]=n;else if(l.list)l.list[lk]=0;}}
 // The listings as the thresholds want them right now (after you change a setting), without selling anything.
@@ -150,7 +159,7 @@ function cmDay(d=S.day){const C=S.cm;cmShocks(d);const rs=cmRoutes(),sold=cmSold
       if(Math.random()>=Math.min(0.35,0.06+0.25*room/Math.max(1,D))*(p==='iru'?0.08:1)*(p==='spec'?1:Math.sqrt(r.lp)))continue;
       const l=ls[0];let n=p==='iru'?1:Math.max(1,Math.min(l.list[lk],cmCan(l,p),room,1+Math.floor(Math.random()*(p==='spec'||p==='w100'?4:2))));
       // Never below your floor: fewer units, or none.
-      while(n>0&&cmIdx(r,p,s[p],n-1,d)*100<C.p[p].floor)n--;if(!n)continue;
+      while(n>0&&cmIdx(r,p,s[p],n-1,d)*100<cmFloor(r.k,p))n--;if(!n)continue;
       const cut=cmCut()*mkt(),L=cmList(r,p);let rate=0;for(let i=0;i<n;i++)rate+=L*cmIdx(r,p,s[p],i,d);
       const up=p==='iru'?Math.round(cmUpList(r)*cmIdx(r,p,s[p],0,d)*cut):0;
       cmSell(l,p,n,Math.round(rate*cut),up);s[p]+=n;l.list[lk]-=n;
@@ -173,8 +182,8 @@ function cmGrow(d){for(const b of S.biz){if(b.type!=='mwave')continue;const i=CM
    you keep back; or a carrier asked lately to grow its waves here and still cannot. waves: managed waves only (bigger
    optics make room for them); otherwise spectrum too (only a bigger line system adds slots). rs, sold: cmRoutes(), cmSold(). */
 function cmPress(l,rs,sold,waves){const C=S.cm,r=C&&rs.get(edgeKey(l)),d=S.day;if(!r||C.off[r.k])return false;const s=sold.get(r.k);
-  for(const p of CM_P){if(p==='iru'||waves&&p==='spec'||!C.p[p].on)continue;const D=cmDem(r,p,d);
-    if(D<C.p[p].min||Math.round(D-s[p])<1||cmIdx(r,p,s[p],0,d)*100<C.p[p].floor||r.ls.some(x=>cmCan(x,p)>0&&cmSpare(x,p)>0))continue;return true;}
+  for(const p of CM_P){if(p==='iru'||waves&&p==='spec'||!cmOn(r.k,p))continue;const D=cmDem(r,p,d);
+    if(D<C.p[p].min||Math.round(D-s[p])<1||cmIdx(r,p,s[p],0,d)*100<cmFloor(r.k,p)||r.ls.some(x=>cmCan(x,p)>0&&cmSpare(x,p)>0))continue;return true;}
   return S.biz.some(b=>{if(b.type!=='mwave'||b.link!==l.id||!(b.gw>d-180))return false;const q=CM_W[CM_W.indexOf(cmWP(b.g))+1];
     return !!q&&(cmOptG(l)<CM_G[q]||cmFreeG(l)<(CM_G[q]-b.g)*(b.slots||1));});}
 // How many more spectrum slots a fiber's route wants today (the fiber panel's market line).
@@ -190,6 +199,11 @@ function cmFix(s){const c=s.cm&&typeof s.cm==='object'&&!Array.isArray(s.cm)?s.c
   n.hold=CM_HOLD.includes(+c.hold)?+c.hold:25;
   for(const p of CM_P){const x=c.p&&c.p[p]||{};n.p[p]={on:!!x.on,min:CM_MIN[p].includes(+x.min)?+x.min:CM_DEF[p].min,floor:CM_FLOOR.includes(+x.floor)?+x.floor:CM_DEF[p].floor};}
   if(c.off&&typeof c.off==='object')for(const k in c.off){const [a,b]=k.split('|');if(c.off[k]&&isCity(a)&&isCity(b)&&a<b)n.off[k]=1;}
+  // A route's own rules: a real route key, values from the lists, and nothing kept that says nothing.
+  if(c.rt&&typeof c.rt==='object'&&!Array.isArray(c.rt))for(const k of Object.keys(c.rt).slice(0,2000)){const x=c.rt[k],[a,b,z]=k.split('|');if(!x||typeof x!=='object'||Array.isArray(x)||z!==undefined||!isCity(a)||!isCity(b)||!(a<b))continue;
+    const o={};if(CM_HOLD.includes(x.hold))o.hold=x.hold;if(CM_FLOOR.includes(x.floor))o.floor=x.floor;
+    if(x.p&&typeof x.p==='object'&&!Array.isArray(x.p)){const q={};for(const p of CM_P)if(x.p[p]===0||x.p[p]===1)q[p]=x.p[p];if(Object.keys(q).length)o.p=q;}
+    if(Object.keys(o).length)(n.rt||(n.rt={}))[k]=o;}
   if(Array.isArray(c.sh))n.sh=c.sh.filter(x=>x&&own(CM_NEWS,x.why)&&(x.k?typeof x.k==='string'&&x.k.split('|').every(isCity):x.c?isCity(x.c):!!x.sub)).slice(-24).map(x=>{
     const y={why:x.why,from:int(x.from,-1e6,1e7,0),until:int(x.until,-1e6,1e7,0),m:clamp(num(x.m,1),0.3,3)};if(x.k)y.k=x.k;else if(x.c)y.c=x.c;else y.sub=1;
     if(isCity(x.a))y.a=x.a;if(isCity(x.b))y.b=x.b;if(Array.isArray(x.p)){const p=x.p.filter(q=>CM_P.includes(q));if(p.length)y.p=p;}return y;});
