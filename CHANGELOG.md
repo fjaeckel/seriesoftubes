@@ -14,6 +14,7 @@ All notable changes to this project are documented here. The project follows
 - The NOC's optical upgrades now also act when buyers on the capacity market want waves a full fiber cannot sell: a fiber a carrier rides gets bigger optics, and one nobody rides gets the next line system where your traffic gets around it (#347).
 - A queued rocket launch can be called off before its day: its pies go back on the shelf, and you get all your money back the day you booked it, or half later (#365).
 - Dark mode: Settings has a Theme choice, Light (still the default), Dark, or Auto to follow your device, which darkens the panels and the map's sea and land (#80).
+- Big networks stutter less with a city's Peering tab open: its PNI list now works out only that city's traffic after each day and each change, instead of every city's, which halves the pause on a phone (#210).
 
 ## [4.1.3] — 2026-11-14
 

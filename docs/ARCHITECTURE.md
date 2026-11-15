@@ -138,7 +138,7 @@ The day:
    same `ACT` actions a player would, muted, within its monthly budget, and the shift routes again (a yield) before
    decommissioning, which reads today's loads, and at the end, each only if a job changed the network. An order that
    throws is paused; the day goes on. The NOC gets one notice a week. The orders plan for every POP each day, so what
-   they count is counted for all POPs in one pass (`portsAt()`, `cachePlan()`, `pniFlows()`, `pniBatch()`), never one
+   they count is counted for all POPs in one pass (`portsAt()`, `cachePlan()`, `pniWant()`, `pniBatch()`), never one
    pass over the network per POP.
    Then the sales desk (`slAutoDay()`), if someone runs sales and the player lets them sign: deals are Sales', never
    the intern's. Each salesperson signs in their own style (a routing trial a day, or the shark's sign-everything).
