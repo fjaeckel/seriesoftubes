@@ -81,7 +81,7 @@ test('every button the dashboard draws is in exactly one list', async (t) => {
   const local = JSON.parse(G.ev('JSON.stringify(NOC_LOCAL)')), go = JSON.parse(G.ev('JSON.stringify(NOC_GO)'));
   assert.deepEqual(local.filter((x) => go.includes(x)), []);
   for (const k of [...local, ...go]) assert.equal(G.ev(`typeof ACT[${lit(k)}]`), 'function', k);
-  const seen = JSON.parse(G.ev("(()=>{$('dash').hidden=false;S.biz.push({id:'b1',type:Object.keys(BIZ_T)[0],city:'fra',reqs:[],mood:50,name:'x',g:1,mo:1,day:0});const o=new Set();for(const k of DTABS){UI.dtab=k;UI._dh=null;renderDash();for(const e of document.querySelectorAll('#dashCard [data-act],#dashCard [data-chg]'))o.add(e.dataset.act||e.dataset.chg);}S.biz.pop();return JSON.stringify([...o])})()"));
+  const seen = JSON.parse(G.ev("(()=>{$('dash').hidden=false;S.biz.push({id:'b1',type:Object.keys(BIZ_T)[0],city:'fra',reqs:[],mood:50,name:'x',g:1,mo:1,day:0});const o=new Set();for(const k of DTABS){UI.dtab=k;UI._dh=null;renderDash();const add=()=>{for(const e of document.querySelectorAll('#dashCard [data-act],#dashCard [data-chg]'))o.add(e.dataset.act||e.dataset.chg);};add();for(const b of [...document.querySelectorAll('#dashCard [data-act=dashRow]')]){UI.dashOpen=JSON.parse(b.dataset.args).k;UI._dh=null;renderDash();add();}UI.dashOpen=null;}S.biz.pop();return JSON.stringify([...o])})()"));
   assert.ok(seen.includes('lagP') && seen.includes('buyIx'), 'the upgrade buttons are there');
   assert.deepEqual(seen.filter((x) => !local.includes(x) && !go.includes(x)), [], 'a new dashboard button must be sorted into a list');
   assert.deepEqual(W.errors, []);
@@ -92,6 +92,8 @@ test('an upgrade clicked in the window costs what the click costs and lands in t
   const { G, W } = await pair(t);
   const c0 = G.ev('S.cash'), t0 = twin.ev('S.cash');
   W.ev("UI.dtab='conn';UI._dh=null;renderDash()");
+  // A row's buttons are folded behind Change: unfold the one with the IX upgrade.
+  W.ev(`for(const b of [...document.querySelectorAll('#dashCard [data-act="dashRow"]')]){if(document.querySelector('#dashCard [data-act="buyIx"]'))break;UI.dashOpen=JSON.parse(b.dataset.args).k;UI._dh=null;renderDash();}`);
   click(W, '#dashCard [data-act="buyIx"]');
   await settle(W.ev, 'S.ixp.fra===1', 'the copy shows the bigger port');
   assert.equal(G.ev('S.ixp.fra'), 1);
@@ -177,11 +179,13 @@ test('the bar says when the game is paused, hidden or gone, and clears when the 
   assert.deepEqual(W.errors, []);
 });
 
-test('the button is in the speed group, asks for a noopener pop-up with the network, and a second click only focuses', async (t) => {
+test('the button is a tile in the network menu, asks for a noopener pop-up with the network, and a second click only focuses', async (t) => {
   const { G } = await pair(t);
-  assert.equal(G.ev(`!!document.querySelector('.speed [data-act="nocWindow"]')`), true);
-  // Only phones lose it: fitHud() hides .hide-md and .hide-md2 when the HUD is crowded, which a big network always is.
-  assert.equal(G.ev(`document.querySelector('[data-act="nocWindow"]').className`), 'hide-sm');
+  G.ev('ACT.menu()');
+  assert.equal(G.ev(`!!document.querySelector('#modalCard .menu-tiles [data-act="nocWindow"]')`), true);
+  // Only phones lose it (.hide-sm): a phone has no second window to put it in.
+  assert.equal(G.ev(`document.querySelector('[data-act="nocWindow"]').className`), 'mtile hide-sm');
+  G.ev('closeModal()');
   G.ev("window.__open=[];window.open=(...a)=>{__open.push(a);return null;};NOC.peer=false;ACT.nocWindow()");
   const a = JSON.parse(G.ev('JSON.stringify(__open[0])'));
   assert.equal(a[0], '/?noc=' + G.ev('UI.slot'));

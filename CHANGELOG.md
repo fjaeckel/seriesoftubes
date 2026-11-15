@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- The 🔍 search now finds anything: cities, networks by name or AS number, your customers and open offers, your links (type both cities, like "fra ams"), and every screen, from the NOC dashboard tabs to the bank and settings. With nothing typed it offers your recent picks, your home, cities with an incident and every screen; on a computer, press / or Ctrl+K to open it.
+- The city's Peering tab is now three short sections (exchanges, PNIs, caches), each with a one-line summary, and the ones that need you open by themselves. Every port is one line with its controls behind "Change", and a transit port you hold is one compact row showing its load and bill.
+- Dark fiber and subsea cable panels are much shorter: optics come first, with one row per model in use, and adding capacity is right at the top. On every link, the line system, selling spare capacity, traffic and routing metric fold into one-line summaries you can tap open.
+- The NOC dashboard fits a phone: traffic and routers are short cards whose details unfold, and on a computer each connection is one line with its buttons behind "Change".
+- The top bar has room for Traffic served and Rank again on laptop screens: sound, How to play and the NOC's own window now live in the menu, and sound is one tap on phones too.
+- The Goals, NOC and Networks tabs need less scrolling still: the current goal shows on the first screen, hot ports are grouped by kind with their advice said once, and the network search comes before the peering policy, which is now a single line.
+- Tapping a badge toast now opens your wall of badges, How to play ends in one compact row of links, and the "Best played as an app" card on the start screen shrinks to one line after a few visits.
+- On a phone held sideways, the city and link sheets shrink their header to one line so more of the sheet shows content.
 - Much less scrolling in the Goals and NOC tabs: finished goals fold into one line, the badge collection opens with a tap, and the NOC shows the five worst congested links, slow cities and hot ports with a button for the rest.
 - The Networks tab has a search box: type a name or AS number to find any network, or tap Tier 1, Tier 2, CDN or Eyeballs to see just that kind. Each network is one compact row; tap it for its story, your connections and where to meet it.
 - The NOC dashboard is much shorter to scroll: every long list opens on a short first page with a button for more, and the tabs and close button stay pinned at the top. On phones all tabs are visible at once, and Connections and Leased lines rows unfold their buttons and cost estimates with "Change" and "Details".

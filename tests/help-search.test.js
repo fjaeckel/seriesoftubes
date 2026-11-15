@@ -12,7 +12,8 @@ test('How to play: every topic is there, closed, with the controls and the searc
   const p = load();
   p.ev('ACT.start({});ACT.help()');
   const all = shown(p);
-  assert.ok(all.length >= 48, 'all topics listed');
+  assert.ok(all.length >= 47, 'all topics listed');
+  assert.equal(new Set(all).size, all.length, 'no two topics share a heading');
   for (const t of ['Eyeballs', 'POP', 'IP transit', 'Tier 1 / Tier 2', 'CDN', 'IX (Internet Exchange)', 'PNI', '95th percentile', 'LAGs']) assert.ok(all.includes(t), t);
   assert.deepEqual(open(p), [], 'topics start closed');
   assert.equal(p.ev("document.querySelectorAll('#helpGl details').length===document.querySelectorAll('#helpGl details>p').length"), true);
@@ -65,7 +66,7 @@ test('network menu: How to play and Export save are tiles, nothing was dropped',
   const acts = JSON.parse(p.ev("JSON.stringify([...document.querySelectorAll('#modalCard [data-act]')].map(b=>b.dataset.act))"));
   for (const a of ['closeModal', 'toTitle', 'puzzleMenu', 'scenarios', 'opsOpen', 'share', 'settings', 'help', 'exportSave', 'importPick', 'xfer', 'resetAsk', 'rename']) assert.ok(acts.includes(a), a);
   const tiles = JSON.parse(p.ev("JSON.stringify([...document.querySelectorAll('#modalCard .mtile')].map(b=>b.dataset.act))"));
-  assert.ok(tiles.includes('help') && tiles.includes('exportSave') && tiles.includes('settings'));
+  assert.ok(tiles.includes('help') && tiles.includes('exportSave') && tiles.includes('settings') && tiles.includes('mute'));
   assert.equal(acts.filter(a => a === 'exportSave').length, 1);
   assert.deepEqual(p.errors, []);
 });

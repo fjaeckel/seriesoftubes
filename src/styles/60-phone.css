@@ -54,6 +54,7 @@ button,.chip,.b,a{touch-action:manipulation;-webkit-tap-highlight-color:transpar
   .ph.cph>.facts .fact{flex:none;white-space:nowrap;font-size:11.5px}
   .ph.cph .trb{top:0}
   .hb{width:24px;height:24px}
+  .psb{min-height:44px}
   #panel .tags,#panel .ph .btns{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
   #toasts{top:calc(env(safe-area-inset-top,0px) + 54px) !important;bottom:auto !important;width:calc(100% - 16px) !important;flex-direction:column !important;pointer-events:auto}
   .toast{pointer-events:auto;padding:6px 10px;border-width:2.5px;box-shadow:2px 2px 0 var(--edge);border-radius:12px}
@@ -97,6 +98,19 @@ button,.chip,.b,a{touch-action:manipulation;-webkit-tap-highlight-color:transpar
   .doors{grid-template-columns:repeat(4,minmax(0,1fr))}.chaos{grid-template-columns:repeat(4,minmax(0,1fr))}
   .presets{grid-template-columns:repeat(4,minmax(0,1fr))}.preset{display:flex}
   body.sheet-open #coach{bottom:calc(var(--tabbar) + 8px);left:8px;transform:none;width:calc(42% - 16px)}
+  /* The city sheet is only a few hundred pixels tall here: its header is one line (the name, DOWN if it is, traceroute
+     and close; the picture and the fact chips stay away) and the tabs are small, so most of the sheet is content. */
+  #panel>.grab{height:12px;flex-basis:12px}#panel>.grab::before{top:4px}
+  .ph.cph{flex-wrap:nowrap;align-items:center;gap:8px;padding:0 12px 4px !important}
+  .ph.cph .phpic,.ph.cph .eyebrow,.ph.cph>.facts .fact:not(.down):not(.trb){display:none}
+  .ph.cph h2{font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ph.cph>.facts{flex:none;order:2;overflow:visible}.ph.cph>.x{order:3;margin-left:0}
+  .ph.cph .trb{position:static}.ph.cph.hastr .pht{padding-right:0}
+  #panel .tabs{padding:4px 8px 0}
+  #panel .tabs button{min-height:30px;padding:1px 9px 0;font-size:13px}
+  #panel .tabs button.on{padding-bottom:3px}
+  #panel .scroll{padding-top:8px}
+  #panel .netf{flex-direction:row;align-items:center;margin-bottom:4px}#panel .netf input.t{flex:1;min-width:0;min-height:36px;padding:3px 10px}#panel .netf .btns{flex:none}
 }
 /* Installed as an app: no browser chrome, so leave room for the notch and the home indicator. */
 @media (display-mode: standalone){
@@ -177,7 +191,55 @@ button,.chip,.b,a{touch-action:manipulation;-webkit-tap-highlight-color:transpar
   .mhead .helph{font-size:17px;flex:0 1 auto;min-width:0}.mhead .helpq{order:1;flex:1 1 140px;width:auto;margin:0}.mhead .x{order:2;margin-left:0}
 }
 @media (max-width:380px){.title-art h1{font-size:28px}.title-art svg{width:40px;height:40px}.btns.tcta .b{font-size:11.5px}}
+/* The start screen's install pitch: a small × on the card, and the one line that replaces it after a few visits. */
+.icard:has(>.ix){position:relative;margin-top:12px}.icard .ix{position:absolute;top:-9px;right:-7px;width:26px;height:26px;min-width:0;padding:0;font-size:16px;line-height:1;margin:0}
+.iline{margin:4px 0 6px}.iline .lnk{background:none;border:0;padding:6px 0;font:700 13px inherit;font-family:inherit;color:var(--ink2);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+/* Four words-long buttons do not fit side by side on a narrow phone in every language: two by two, each label whole. */
+@media (max-width:400px) and (orientation:portrait){.btns.tcta{grid-template-columns:repeat(2,minmax(0,1fr))}.btns.tcta .b{font-size:12px;min-height:32px}}
+/* How to play's three link cards stay one row on a phone. */
+@media (max-width:760px){.menu-plugs.three{gap:6px}.menu-plugs.three .mplug{font-size:11.5px;padding:7px 3px}}
 /* A phone on its side has no height for rows of tabs: the dashboard's tabs stay one line that scrolls sideways, and
    the open tab is brought into view (renderDash). */
 @media (max-height:500px){.dhead .dtabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}}
 @media (max-width:400px){.dhead .dtabs{gap:4px 3px}.dhead .dtabs button{font-size:12px;padding:5px 7px}}
+/* Goals tab: the level and Tier 1 cards stay short so the goal in hand is on the first screen. The level's flavour
+   text is two lines until tapped; progress rows are a tight label line over a thin bar. */
+.lvq{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;width:100%;border:0;background:none;padding:0;margin:0;text-align:left;font:inherit;font-size:12px;line-height:1.35;color:var(--ink2);cursor:pointer}
+.lvq.open{display:block}
+.pcard .kv{margin:4px 0 0;font-size:12.5px}.pcard .bar{height:9px;margin:1px 0 0}.pcard .btns{margin-top:4px}.pcard .why{margin:3px 0 0}.pcard .meta{line-height:1.3}
+/* NOC tab: hot ports by kind. The advice is in the group's heading, a row is one line. */
+.hgrp{display:flex;align-items:flex-start;padding:6px 0 2px;border-top:1px solid var(--line);font-size:13px;line-height:1.25}.hgrp .meta{font-size:11.5px;color:var(--ink2)}.hgrp .hotk{margin-top:-2px}
+.row.hrow{padding:4px 0;border-top:0}.hnm{font-weight:800;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hpc{font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}.hpc.dlost{color:var(--bad)}
+/* Link sheet: the optic stepper gets finger-sized buttons; on its side the header is one line (ends first, then what it is). */
+@media (max-width:760px),(max-height:500px) and (pointer:coarse){
+  .ochg .b,.optic-count input.t{min-height:40px}.ochg .om{min-width:40px}
+}
+@media (orientation:landscape) and (max-height:500px) and (pointer:coarse),(orientation:landscape) and (max-width:760px) and (max-height:500px){
+  .ph.lph{align-items:center;padding-bottom:4px}
+  .ph.lph>div:first-child{display:flex;flex-direction:row-reverse;justify-content:flex-end;align-items:baseline;gap:8px;min-width:0;flex:1 1 0}
+  .ph.lph h2{font-size:17px;white-space:nowrap;flex:none;max-width:70%;overflow:hidden;text-overflow:ellipsis}
+  .ph.lph .eyebrow{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .ph.lph .x{width:32px;height:32px}
+}
+/* Networks tab: the peering policy is one row under the search box; Change unfolds the choices. */
+.row.ppolr{border-top:0;padding:0 0 4px}.ppolx{margin:0 0 6px;padding:6px 8px;border:2px solid var(--line);border-radius:10px}.ppolx .meta{margin:4px 0 0;font-size:12px;color:var(--ink2);line-height:1.35}
+/* Find: the sheet hangs from the top and ends where the on-screen keyboard starts, with the box pinned above the results. */
+@media (max-width:760px),(max-height:500px) and (pointer:coarse){
+  #modal.find{align-items:start;padding-top:0}
+  #modal.find .card{max-height:min(var(--findh,100%),100%);border-radius:0 0 22px 22px;border-top:0;border-bottom:3px solid var(--edge);padding-top:0}
+  .findtop{top:0;margin:0 -16px;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 8px}
+  .findtop h2{font-size:18px}.findtop>div{margin-bottom:8px}
+  .findtop .x{width:36px;height:36px}
+  .findtop input.t::placeholder{font-size:15px}
+  .findlist{margin-top:0}
+}
+@media (max-width:560px){.findgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* NOC dashboard on a phone. The Links and Routers filter bar scrolls away with the list (the tab bar above it stays
+   pinned): two pinned bars took a quarter of the screen. */
+@media (max-width:760px),(max-height:500px) and (pointer:coarse){.ibar{position:static;margin-top:0}}
+/* Traffic: one card per network. */
+.trow .mix.wide{width:auto;margin-top:3px}.trow .ract .b{white-space:nowrap}.tsort{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:6px 0 2px;padding-bottom:2px}.tsort .b{flex:0 0 auto;white-space:nowrap}
+.tmore{margin:0 0 9px;padding:6px 8px;border-radius:10px;background:var(--soft)}.tmore .legend{margin:0 0 4px}.tmore .kv{font-size:12.5px;margin:2px 0}
+/* Routers: one compact card per POP: city and model on one line, load and ports as two thin bars side by side. */
+.rcard .rhd{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13.5px}.rbars{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:2px}
+.rbars .optn{font-size:11.5px;overflow:hidden;text-overflow:ellipsis}.rbars .bar{height:8px;margin:1px 0 0}.rcard .ract{align-items:flex-end}.tag.fsc{text-transform:none;letter-spacing:0;white-space:nowrap}.tag.fsc.on{background:var(--bad)}

@@ -142,7 +142,8 @@ test('a 400G fabric port in the Connections list offers a LAG member and no fast
   ev(`S.pops.fra.rgen=${fast(5)};ACT.buyNni({city:"fra",prov:FB,tier:2});compute()`);
   assert.ok(ev('portShown(3)'), 'an 800G port is on sale, so nothing stops the list from offering one');
   for (const [k, cf] of [['use', '{}'], ['k', "{k:'nni'}"]]) {
-    const h = ev(`UI.connSort='${k}';UI.connDir=-1;UI.cf=${cf};connSection()`);
+    // (a row's buttons sit behind its "Change": unfold the fabric port's row)
+    const h = ev(`UI.connSort='${k}';UI.connDir=-1;UI.cf=${cf};UI.dashOpen=(connSection().match(/&quot;k&quot;:&quot;(c:nni:[^&]*)&quot;/)||[])[1]||null;connSection()`);
     assert.match(h, /data-act="lagNni"/, `sorted by ${k}`);
     assert.doesNotMatch(h, /data-act="buyNni"/, `sorted by ${k}: no 800G fabric port`);
   }

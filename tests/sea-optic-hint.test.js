@@ -56,8 +56,10 @@ test('a consortium seat and a leased line keep their own message', () => {
 test('the optics list on the cable shows the new hint under the plug-in and none under the transponder', () => {
   const { ev, dom, errors } = cable();
   ev("ACT.selLink({id:'sea1'})");
+  // (with a few POPs the models not lit yet wait behind "Other models": unfold them; an optic's row is `row orow`)
+  ev("if(document.querySelector('#panelBody [data-act=\"panelFold\"][data-args*=\"ox\"]'))ACT.panelFold({k:'ox'})");
   const html = dom.window.document.getElementById('panelBody').innerHTML;
-  const rows = html.split('<div class="row">').filter((r) => /Sizzle 800ZR\+|Ackackia 400ZR\+|Sienna WaveMagic 1\.6T/.test(r));
+  const rows = html.split(/<div class="row(?: orow(?: ex)?)?">/).filter((r) => /Sizzle 800ZR\+|Ackackia 400ZR\+|Sienna WaveMagic 1\.6T/.test(r));
   const row = (n) => rows.find((r) => r.includes('<div class="nm">' + n)) || ''; // by the optic's own name: other rows name it in their hint
   assert.match(row('Sizzle 800ZR+'), /do not stretch this optic/);
   assert.match(row('Ackackia 400ZR+'), /do not stretch this optic/);

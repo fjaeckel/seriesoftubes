@@ -29,7 +29,7 @@ const ACT={
  animSet:({v})=>{if(!['auto','on','off'].includes(v))return;UI.anim=v;try{localStorage.setItem('sot-anim',v);}catch(e){}applyAnim();refreshSettings();},
  soundSet:({v})=>{UI.muted=v==='off';try{localStorage.setItem('sot-mute',UI.muted?'1':'0');}catch(e){}renderHUD();refreshSettings();},
  langSet:({v})=>{if(!Object.hasOwn(LANGS,v)||v===LANG)return;try{localStorage.setItem('sot-lang',v);}catch(e){}save(true);location.reload();},
- mute:()=>{UI.muted=!UI.muted;try{localStorage.setItem('sot-mute',UI.muted?'1':'0');}catch(e){}renderHUD();},
+ mute:()=>{UI.muted=!UI.muted;try{localStorage.setItem('sot-mute',UI.muted?'1':'0');}catch(e){}renderHUD();const t=document.querySelector('#modalCard .mtile.snd');if(t){t.outerHTML=soundTile();const n=document.querySelector('#modalCard .mtile.snd');if(n)n.focus({preventScroll:true});}sfx('click');},
  closePanel:()=>{UI.sel=null;UI.confirm=null;renderPanel();renderLeft();},
  closeModal:()=>closeModal(),
  tab:({t})=>{UI.tab=t;UI.confirm=null;renderPanel();},
@@ -43,16 +43,34 @@ const ACT={
  phoneSpeed:()=>{if(pzOn()||UI.clockLocked)return;if(S&&!rule('clock'))return;haptic(8);const cur=UI.speed||UI.lastSpeed||1,i=SPEEDS.indexOf(cur),n=SPEEDS[(i+1)%SPEEDS.length];UI.speed=n;UI.lastSpeed=n;renderHUD();},
  install:()=>{if(installEvt){installEvt.prompt();installEvt.userChoice.finally(()=>{installEvt=null;});return;}
    openModal(pitchHtml(false));},
+ installHide:()=>{installCard=false;try{localStorage.setItem('sot-install-card','x');}catch(e){}if(!UI.started&&!$('modal').hidden&&$('nmIn'))showTitle();},
  pitchSkip:()=>{const p=UI.pendGame;UI.pendGame=null;UI.pitched=true;if(p)beginGame(...p);else closeModal();},
  logOpen:({id})=>{const e=(S.log||[]).find(x=>x.id===id),o=e&&e.o;if(!o)return;$('dash').hidden=true;closeModal();
   if(o.a==='city'&&isCity(o.v)){ACT.focusCity({city:o.v});return;}
   if(o.a==='link'){if(S.links.some(l=>l.id===o.v)){ACT.selLink({id:o.v});return;}toast(tr('interface.that_link_is_gone_it_was'),'');return;}
   if(o.a==='cust'){if(S.biz.some(b=>b.id===o.v)){ACT.custGo({id:o.v});return;}toast(tr('interface.that_customer_is_gone_the_contract'),'');return;}
-  if(o.a==='bank'){ACT.bank({});return;}if(o.a==='ops'){ACT.opsOpen();return;}if(o.a==='tab'&&LOG_TABS.includes(o.v))ACT.leftTab({t:o.v});},
+  if(o.a==='bank'){ACT.bank({});return;}if(o.a==='ops'){ACT.opsOpen();return;}
+  if(o.a==='badges'){ACT.badgesOpen();return;}
+  if(o.a==='tab'&&LOG_TABS.includes(o.v))ACT.leftTab({t:o.v});},
+ // A badge (its toast, or its note in the NOC log) opens the wall of badges itself: unfolded and scrolled to, not just the Goals tab above it.
+ badgesOpen:()=>{if(!S)return;for(const t of document.querySelectorAll('#toasts .btoast'))t.remove();$('dash').hidden=true;UI.fold=UI.fold||{};UI.fold.badges=true;
+  if(isPhone()){UI.sel=null;renderPanel();$('left').classList.remove('full');}ACT.leftTab({t:'goals'});const h=document.querySelector('#leftBody .bhead');if(h&&h.scrollIntoView)h.scrollIntoView({block:'start'});},
  logAll:()=>{UI.logAll=!UI.logAll;renderLeft();},
  leftFold:({k})=>{if(!LEFT_FOLDS.includes(k))return;UI.fold=UI.fold||{};UI.fold[k]=!UI.fold[k];renderLeft();},
  findOpen:()=>findOpen(),
  findGo:({city})=>{if(!isCity(city))return;closeModal();$('dash').hidden=true;ACT.focusCity({city});},
+ // A result of the find box: close it, remember the pick for next time, and go there with the action its screen already has.
+ findPick:({k,id})=>{const e=S&&UI.started?findObj(k,id):null;if(!e||(k==='go'&&e.o.act))return;const o=e.o;closeModal();
+  UI.findRecent=[{k,id},...(UI.findRecent||[]).filter(r=>r.k!==k||r.id!==id)].slice(0,FIND_CAP);
+  if(k==='city')ACT.findGo({city:id});
+  else if(k==='net'){ACT.netFocus({id});if(isPhone())$('left').classList.remove('full');}
+  else if(k==='cust')ACT.custGo({id});
+  else if(k==='offer'){if(!isCity(o.city))return;$('dash').hidden=true;ACT.focusCity({city:o.city});UI.offerAt=o.id;if(S.pops[o.city])UI.tab='cust';renderPanel();}
+  else if(k==='link'){$('dash').hidden=true;ACT.selLink({id});}
+  else if(o.dt){$('dash').hidden=true;ACT.dash();if(!$('dash').hidden)ACT.dashTab({k:o.dt});}
+  else if(o.lt){$('dash').hidden=true;if(!isPhone())ACT.leftTab({t:o.lt});else if(!(UI.leftOpen&&UI.left===o.lt&&!UI.sel))ACT.phoneTab({t:o.lt});}
+  else if(o.bank)ACT.bank();},
+ findMore:({g})=>{if(!FIND_G.includes(g)||$('modal').hidden||!$('findIn'))return;UI.findMore=g;findDraw();},
  // A link from one of your POPs to a city you type instead of dragging to (#343): the same window the drag opens.
  findLink:({city})=>{if(!isCity(city)||!S.pops[city]||pzOn())return;findOpen(city);},
  linkTo:({a,b})=>{if(!isCity(a)||!isCity(b)||a===b||pzOn()||!linkFromOk(a)||!linkToOk(b))return;$('dash').hidden=true;sfx('click');openLinkModal(a,b);},

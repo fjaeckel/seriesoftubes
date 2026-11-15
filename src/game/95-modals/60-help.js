@@ -15,7 +15,7 @@ const HELP_G=()=>[
  [tr('common.embedded_cache'),tr('help.a_cdn_s_server_in_your')],
  ['DE-KICKS',tr('help.the_group_behind_several_big')],
  [tr('common.remote_peering'),tr('help.reach_an_ix_over_a_fabric')],
- [tr('common.peering_policy'),tr('help.open_peers_with_anyone_selective')],
+ [tr('help.how_other_networks_peer'),tr('help.open_peers_with_anyone_selective')],
  [tr('common.waves'),tr('help.your_fiber_links_are_leased_waves')],
  [tr('common.95th_percentile'),tr('help.transit_bills_sample_your_usage')],
  [tr('common.routers'),tr('help.each_pop_s_router_model_caps')],
@@ -41,21 +41,20 @@ const HELP_G=()=>[
  [tr('common.traceroute'),tr('help.tap_traceroute_on_any_of_your')],
  [tr('common.badges'),tr('help.below_your_goals_sits_a_wall')],
  [tr('common.the_giants'),tr('help.at_customer_level_3_and_4')],
- ['RouteScript',tr('help.once_auto_te_is_installed_you')],
+ ['RouteScript',tr('help.rules_for_your_auto_te_controller')+' '+tr('help.once_auto_te_is_installed_you')],
  ['Auto-TE',tr('help.traffic_follows_the_shortest_path_by')],
  [tr('common.metro_diversity'),tr('help.a_pop_is_one_building_until')],
  [tr('common.wave_markets'),tr('help.what_a_wave_costs_depends_on')],
  [tr('common.regional_quirks'),tr('help.in_the_gulf_saudi_pops_need')],
  [tr('common.boot_times'),tr('help.some_routers_take_forever_to_boot')],
  [tr('common.failures'),tr('help.things_break_all_the_time_fiber')],
- ['RouteScript',tr('help.rules_for_your_auto_te_controller')],
 ];
 function showHelp(){
   openModal(`<div class="mhead"><div style="display:flex;align-items:center"><h2 class="helph">${tr('help.how_the_internet_works_here')}</h2><button class="x" data-act="helpClose" aria-label="${tr('common.close')}">×</button></div>
   <input class="t helpq" id="helpQ" type="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="🔍 ${esc(tr('help.search_transit_ix_lag'))}" aria-label="${esc(tr('help.search_transit_ix_lag'))}" aria-controls="helpGl"></div>
   <p class="tagline" style="margin:6px 0 4px">${tr('help.controls_drag_the_map_to_pan')}</p>
   <div class="gl" id="helpGl">${HELP_G().map(([h,t])=>`<details class="gt"><summary>${h}</summary><p>${t}</p></details>`).join('')}</div><p class="meta" id="helpNone" role="status" hidden></p>
-<h3 style="margin:16px 0 0">${tr('help.want_to_know_how_it_really')}</h3>${plugHtml(true)}${chatHtml()}${issueHtml()}<div class="btns" style="margin-top:14px">${btn(UI.started?tr('common.back_to_the_map'):tr('common.got_it'),'helpClose',{},'big')}${RELEASE_NOTES.length?btn(tr('common.what_s_new_in_v',{v:esc(APP_VERSION)}),'whatsNewShow',{},'ghost'):''}${UI.started&&S&&!S.lost?btn(tr('common.start_a_new_network'),'resetAsk',{},'ghost sm'):''}</div><div class="btns" style="margin-top:6px">${UI.started&&S&&!S.lost?btn(tr('common.export_save'),'exportSave',{},'ghost sm'):''}${btn(tr('common.import_a_save'),'importPick',{},'ghost sm')}${btn(tr('transfer.from_another_device'),'xferRecv',{},'ghost sm')}${btn(tr('common.settings'),'settings',{},'ghost sm')}${fuCan()?btn(tr('mphelp.how_multiplayer_works'),'helpMp',{from:'help'},'ghost sm'):''}${btn(tr('fedui.privacy'),'privacy',{from:'help'},'ghost sm')}${isPhone()?'':btn(tr('keys.keyboard_shortcuts'),'keys',{},'ghost sm')}</div>`);
+<h3 style="margin:16px 0 0">${tr('help.want_to_know_how_it_really')}</h3><div class="menu-plugs three">${[['🌍',HTIW,tr('modal_and_names.how_the_internet_works'),tr('modal_and_names.the_real_thing_follow_a_packet')],['💬',SIGNAL,tr('modal_and_names.join_the_noc_chat'),tr('modal_and_names.our_signal_group_screenshots_chat')],['🐛',ISSUES,tr('modal_and_names.found_a_bug_or_have_an'),tr('modal_and_names.tell_us_on_github_a_short')]].map(([i,u,l,t])=>`<a class="mplug" href="${u}" target="_blank" rel="noopener" title="${esc(t)}"><i aria-hidden="true">${i}</i><span>${l} →</span></a>`).join('')}</div><div class="btns" style="margin-top:14px">${btn(UI.started?tr('common.back_to_the_map'):tr('common.got_it'),'helpClose',{},'big')}${RELEASE_NOTES.length?btn(tr('common.what_s_new_in_v',{v:esc(APP_VERSION)}),'whatsNewShow',{},'ghost'):''}${UI.started&&S&&!S.lost?btn(tr('common.start_a_new_network'),'resetAsk',{},'ghost sm'):''}</div><div class="btns" style="margin-top:6px">${UI.started&&S&&!S.lost?btn(tr('common.export_save'),'exportSave',{},'ghost sm'):''}${btn(tr('common.import_a_save'),'importPick',{},'ghost sm')}${btn(tr('transfer.from_another_device'),'xferRecv',{},'ghost sm')}${btn(tr('common.settings'),'settings',{},'ghost sm')}${fuCan()?btn(tr('mphelp.how_multiplayer_works'),'helpMp',{from:'help'},'ghost sm'):''}${btn(tr('fedui.privacy'),'privacy',{from:'help'},'ghost sm')}${isPhone()?'':btn(tr('keys.keyboard_shortcuts'),'keys',{},'ghost sm')}</div>`);
 }
 // The search box: hide the topics that match neither in the heading nor in the text; a short list of hits opens itself.
 function helpFilter(q){const G=$('helpGl');if(!G)return;q=fold(q);let n=0;const hit=[];

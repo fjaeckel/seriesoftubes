@@ -410,10 +410,14 @@ test('Routers on a phone: one POP per row, with the same numbers and buttons', (
   const { ev, errors } = big(t, BIG, 'routers');
   ev("window.innerWidth=360;UI._dh=null;renderDash()");
   assert.ok(ev("!document.querySelector('#routersSec table')&&document.querySelectorAll('#routersSec .row.rrow').length===10"));
-  const c = pops(ev)[0], row = ev(`document.querySelector('#routersSec .rrow[data-args*="${c}"]').textContent`);
-  for (const s of ['Forwarding load', 'Router ports', 'Flowspec rules']) assert.ok(row.includes(s), s);
+  const c = pops(ev)[0], row = () => ev(`document.querySelector('#routersSec .rrow[data-args*="${c}"]').textContent`);
+  for (const s of ['Load', 'Ports', 'Flowspec']) assert.ok(row().includes(s), s);
+  // The full numbers and the buttons unfold under the card.
+  ev(`ACT.dashRow({k:'r:${c}'})`);
+  const more = ev("document.querySelector('#routersSec .rmore').textContent");
+  for (const s of ['Forwarding load', 'Router ports', 'Flowspec rules']) assert.ok(more.includes(s), s);
   assert.deepEqual(json(ev, "[...document.querySelectorAll('#routersSec .ibar [data-act=\"infraSort\"]')].map(b=>JSON.parse(b.dataset.args).k)"), ['name', 'type', 'n', 'cap', 'use', 'ports', 'fs'], 'no table header on a phone: the sorts are buttons');
-  assert.ok(ev(`!!document.querySelector('#routersSec .rrow[data-args*="${c}"] [data-act="dashPop"]:not(.rrow)')`));
+  assert.ok(ev(`!!document.querySelector('#routersSec .rmore [data-act="dashPop"]')`));
   assert.deepEqual(errors, []);
 });
 

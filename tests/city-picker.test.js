@@ -50,7 +50,9 @@ test('#343 picking a city opens the same link window as dragging there, and Ente
   ev("closeModal();ACT.findOpen()");
   assert.equal(ev("UI.findFrom"), null);
   ev("$('findIn').value='sydney';$('findIn').dispatchEvent(new Event('input',{bubbles:true}))");
-  assert.equal(doc.querySelector('#findList .findrow').dataset.act, 'findGo');
+  const r = doc.querySelector('#findList .findrow');
+  assert.equal(r.dataset.act, 'findPick');
+  assert.deepEqual(JSON.parse(r.dataset.args), { k: 'city', id: 'syd' });
   assert.deepEqual(errors, []);
 });
 

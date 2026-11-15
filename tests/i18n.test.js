@@ -108,7 +108,7 @@ test('the static markup is translated by label', () => {
   const { ev } = load({ lang: 'it' });
   ev('ACT.start({})');
   assert.equal(ev("document.querySelector('[data-i18n=\"common.customers\"]').textContent"), 'Clienti');
-  assert.equal(ev("document.querySelector('[data-act=help]').getAttribute('aria-label')"), ev("tr('common.how_to_play')"));
+  assert.equal(ev("document.querySelector('#hud [data-act=dash]').getAttribute('aria-label')"), ev("tr('common.noc_dashboard')"));
 });
 
 test('the language dropdown on the title screen works before any game exists', () => {

@@ -36,7 +36,22 @@
 .pnjump{position:sticky;top:-12px;z-index:2;display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;margin:-12px -14px 10px;padding:8px 14px 9px;background:var(--paper);border-bottom:2px solid var(--line)}
 .pnjump .b{flex:none}
 .pnfold{margin:8px 0 2px}
-.fact.bad{background:#FFE3E3}.latwarn{background:#FFF1F1;border:2px solid #FF5A5F;border-radius:10px;padding:8px 10px;margin:6px 0;font-size:13px;line-height:1.4}
+/* A tab in sections (48-panel-folds.js): a heading with a one-line summary and flags that unfolds its section, and
+   inside it one short row per port (name, size, use bar) with its controls behind "Change". */
+section.psec{padding:4px 0}
+.psh{display:flex;align-items:center;gap:8px}
+.psb{flex:1;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:2px 7px;min-height:36px;padding:4px 0;border:0;background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.psb:hover .pst{text-decoration:underline}
+.psa{flex:none;width:13px;font-size:12px}
+.pst{font-family:var(--display);font-weight:800;font-size:16px}
+.pss{font-size:12px;font-weight:700;color:var(--ink2)}
+.psec>.psh+.row{border-top:none}
+.psec section{padding:8px 0}.psec section:last-child{border-bottom:0}
+.crow .nm small{font-size:11.5px;font-weight:700;color:var(--ink2)}
+.cuse{display:flex;align-items:center;gap:8px}.cuse .bar{flex:1}
+.cuse b{font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.xbody{margin:0 0 8px 4px;padding:0 0 2px 10px;border-left:3px solid var(--line)}
+.b.quiet{color:var(--ink2);border-color:var(--line);box-shadow:none}.fact.bad{background:#FFE3E3}.latwarn{background:#FFF1F1;border:2px solid #FF5A5F;border-radius:10px;padding:8px 10px;margin:6px 0;font-size:13px;line-height:1.4}
 .fact.ixf{background:#FFF3C4}
 .fact.mine{background:var(--me);color:#fff}
 .fact.down{background:var(--bad);color:#fff}

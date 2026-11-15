@@ -192,8 +192,10 @@
     for (const k of Object.keys(S)) if (!drop.top.includes(k)) o[k] = k === 'ops' && S.ops && (drop.ops || []).length ? opsDrop(drop.ops) : S[k];
     for (const k of ['biz', 'offers']) if (Array.isArray(o[k])) o[k] = o[k].map((x) => { const y = {}; for (const f of Object.keys(x)) if (!drop.items.includes(f)) y[f] = x[f]; return y; });
     return o; };
-  const sDigest = (drop) => JSON.stringify(sDrop(drop));
-  const sParts = (drop) => { const s = sDrop(drop), o = {}; for (const k of Object.keys(s)) o[k] = JSON.stringify(s[k]); return o; };
+  // A badge's note in the log opens the wall of badges now; on older pages it opened the Goals tab. Same note, same game.
+  const jz = (v) => JSON.stringify(v).split('"o":{"a":"badges"}').join('"o":{"a":"tab","v":"goals"}');
+  const sDigest = (drop) => jz(sDrop(drop));
+  const sParts = (drop) => { const s = sDrop(drop), o = {}; for (const k of Object.keys(s)) o[k] = jz(s[k]); return o; };
   /* After a move: what the move routed (a), routing again from the same state (b: on this checkout's page the kept
      tables are used), and routing from that state with the cache off (c: RC.on=false where there is an RC). b and c
      route from the same previous R; c's R is kept, as a plain compute would. */

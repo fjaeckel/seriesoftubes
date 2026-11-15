@@ -60,9 +60,12 @@ test('once a week the NOC log gets one folded peering desk line', () => {
   ev("window.innerWidth=360;UI.left='nets';UI.leftOpen=true;S.pdeskRep.w=Math.floor(S.day/7)-1;renderLeft()");
   const left = ev("document.getElementById('left').textContent");
   assert.match(left, /Peering policy: Selective/);
-  assert.match(left, /newcomers with an up-to-date PeeringDB/);
   assert.match(left, /Peering desk: 4 new sessions/);
   assert.doesNotMatch(left, /inbox/i);
+  // The choices and what the policy does unfold under Change.
+  assert.equal(ev("document.querySelectorAll('#left [data-act=peerPol]').length"), 0);
+  ev("ACT.leftFold({k:'ppol'})");
+  assert.match(ev("document.getElementById('left').textContent"), /newcomers with an up-to-date PeeringDB/);
   ev("document.querySelector('#left [data-act=peerPol][data-args*=closed]').click()");
   assert.equal(ev('ppol()'), 'closed');
   assert.match(ev("document.getElementById('left').textContent"), /Every peering request is declined/);

@@ -730,7 +730,8 @@ test('connections in the NOC dashboard can be cancelled right there, after a con
   base(ev);
   ev("ACT.buildPop({city:'ams'});ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.buyIx({city:'ams',tier:1});S.pni.push({id:'pn1',city:'fra',net:'nfx',tier:1});S.caches.push({id:'cc1',city:'fra',net:'ggl'},{id:'cc2',city:'fra',net:'ggl'});S.nni.push({city:'fra',prov:'mgp',tier:0});compute();ACT.connOpen()");
   const card = () => ev("document.getElementById('dashCard').textContent");
-  const click = (k, id) => ev(`ACT.connCancel(${lit({ k, id })})`);
+  // A row's buttons sit behind its Change button: the row is unfolded, then its button tapped.
+  const click = (k, id) => ev(`UI.dashOpen=${lit('c:' + k + ':' + id)};ACT.connCancel(${lit({ k, id })})`);
   assert.equal(ev("conns().length"), 5);
   const tid = ev("S.transit[0].id");
   click('t', tid);
@@ -760,7 +761,8 @@ test('connections in the NOC dashboard can be upgraded and grown into LAGs right
   const { ev, errors } = load();
   base(ev);
   ev("ACT.buildPop({city:'ams'});for(const c in S.pops)S.pops[c].rgen=2;ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.buyIx({city:'ams',tier:1});S.pni.push({id:'pn1',city:'fra',net:'nfx',tier:1});S.nni.push({city:'fra',prov:'mgp',tier:0});compute();ACT.connOpen()");
-  const tap = act => ev(`(()=>{const b=document.querySelector('#dashCard [data-act="${act}"]');if(!b||b.disabled)return false;b.click();return true;})()`);
+  // Each row's buttons unfold under its Change button: open the rows one after another until the button shows.
+  const tap = act => ev(`(()=>{const q=()=>document.querySelector('#dashCard [data-act="${act}"]');for(const t of [...document.querySelectorAll('#dashCard [data-act="dashRow"]')]){if(q())break;UI.dashOpen=JSON.parse(t.dataset.args).k;renderDash();}const b=q();if(!b||b.disabled)return false;b.click();return true;})()`);
   assert.ok(tap('lagT'), 'transit row offers a LAG member');
   assert.equal(ev("S.transit[0].n"), 2);
   assert.match(ev("document.getElementById('dashCard').textContent"), /Upgrade all to 400G/, 'the list refreshes with the LAG');

@@ -106,3 +106,60 @@ test('a leased line shows its best swap; Details unfolds every estimate and plan
   assert.match(ev(`${row}.textContent`), /up front/);
   assert.deepEqual(errors, []);
 });
+
+test('on a wide screen a connection row is Open and Change; the rest unfolds in a row of its own', (t) => {
+  const { ev, errors } = big(t, 1280);
+  ev("ACT.dashTab({k:'conn'})");
+  const acts = '#connSec [data-act="lagT"],#connSec [data-act="downT"],#connSec [data-act="connCancel"],#connSec [data-act="lagP"],#connSec [data-act="lagIx"]';
+  const rows = n(ev, '#connSec tbody tr');
+  assert.ok(rows > 5);
+  assert.equal(n(ev, acts), 0, 'folded rows carry only Open and Change');
+  assert.equal(n(ev, '#connSec tbody [data-act="goConn"]'), rows, 'Open stays in every row');
+  ev("document.querySelectorAll('#connSec [data-act=\"dashRow\"]')[0].click()");
+  assert.equal(n(ev, '#connSec tr.rmtr'), 1);
+  assert.ok(n(ev, '#connSec tr.rmtr [data-act="connCancel"]') === 1, 'cancel is in the unfolded row');
+  assert.deepEqual(errors, []);
+});
+
+test('on a phone the traffic list is one card per network, its details behind one button', (t) => {
+  const { ev, errors } = big(t, 390);
+  ev("ACT.dashTab({k:'traffic'})");
+  assert.equal(n(ev, '#trafficSec table'), 0, 'no table to scroll sideways');
+  const cards = n(ev, '#trafficSec .trow');
+  assert.equal(cards, ev('LIST_PG.traffic[0]'));
+  assert.equal(n(ev, '#trafficSec .trow [data-act="dashRow"]'), cards, 'every card has its Details');
+  assert.ok(n(ev, '#trafficSec .trow [data-act="pniAllOpen"]') <= cards, 'at most one peer button a card');
+  assert.equal(n(ev, '#trafficSec .tmore'), 0);
+  ev("document.querySelector('#trafficSec [data-act=\"dashRow\"]').click()");
+  assert.equal(n(ev, '#trafficSec .tmore'), 1);
+  assert.match(ev("document.querySelector('#trafficSec .tmore').textContent"), /AS\d+/);
+  ev("ACT.dashSort({k:'name'})");
+  assert.equal(n(ev, '#trafficSec .trow'), ev('LIST_PG.traffic[0]'), 'a sort starts short again');
+  assert.deepEqual(errors, []);
+});
+
+test('on a wide screen the traffic table keeps one line per network with Peer on all POPs in its last column', (t) => {
+  const { ev, errors } = big(t, 1440);
+  ev("ACT.dashTab({k:'traffic'})");
+  const rows = n(ev, '#trafficSec tbody tr');
+  assert.equal(rows, ev('LIST_PG.traffic[0]'));
+  assert.equal(n(ev, '#trafficSec tbody td:first-child [data-act="pniAllOpen"]'), 0, 'no button under the names');
+  assert.ok(n(ev, '#trafficSec tbody td:last-child [data-act="pniAllOpen"]') > 0);
+  assert.deepEqual(errors, []);
+});
+
+test('on a phone a router is a short card; its buttons unfold, one card at a time', (t) => {
+  const { ev, errors } = big(t, 390);
+  ev("ACT.dashTab({k:'routers'})");
+  const cards = n(ev, '#routersSec .rcard');
+  assert.ok(cards > 5);
+  assert.equal(n(ev, '#routersSec .rcard .rbars .bar'), cards * 2, 'load and ports side by side');
+  assert.equal(n(ev, '#routersSec .rcard .fsc'), cards, 'a Flowspec chip each');
+  assert.equal(n(ev, '#routersSec .rmore'), 0);
+  const tg = '#routersSec [data-act="dashRow"]';
+  ev(`document.querySelectorAll('${tg}')[0].click()`);
+  assert.equal(n(ev, '#routersSec .rmore'), 1);
+  ev(`document.querySelectorAll('${tg}')[1].click()`);
+  assert.equal(n(ev, '#routersSec .rmore'), 1, 'one card at a time');
+  assert.deepEqual(errors, []);
+});

@@ -245,7 +245,8 @@ test('the buttons are in the panels: under a customer in its city, and on the fi
   const { ev, errors } = game(t, wave + circuit(100));
   ev("UI.tab='cust';UI.sel={type:'city',id:'nyc'};selectCity('nyc');UI.tab='cust';renderPanel();");
   assert.equal(ev("document.querySelectorAll('#panel [data-act=pathOpen]').length"), 2);
-  ev("selectLink('a');renderPanel();");
+  // (the fiber's rentals are a folded section: one tap opens it)
+  ev("selectLink('a');renderPanel();ACT.panelFold({k:'s:sell',o:1});");
   assert.equal(ev("[...document.querySelectorAll('#panel [data-act=pathOpen]')].length"), 1);
   assert.deepEqual(errors, []);
 });

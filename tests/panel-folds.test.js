@@ -34,8 +34,18 @@ test('Transit: your ports first, then a short page of sellers; the lead folds be
   const have = ev("S.transit.filter(t=>t.city==='fra').length"), all = ev("NETS.filter(n=>sellsAt(n,'fra')).length");
   assert.ok(have > 0 && all - have > 6, 'the fixture has ports in Frankfurt and many more sellers');
   assert.equal(q(g, '.row').length, have + 2, 'every port you have and two more sellers');
-  assert.equal(acts(g, 'cancelTransit').length, have);
-  assert.ok(q(g, '.row')[0].querySelector('[data-act="cancelTransit"]'), 'your ports come first');
+  // A port you hold is one compact row: its load, its bill, the next size up and "Change"; the rest unfolds.
+  const tchg = () => acts(g, 'panelFold').filter(b => /^t:/.test(JSON.parse(b.dataset.args).k));
+  assert.equal(tchg().length, have);
+  assert.ok(q(g, '.row')[0].querySelector('[data-act="panelFold"]'), 'your ports come first');
+  assert.equal(acts(g, 'cancelTransit').length, 0, 'cancelling is behind "Change"');
+  assert.equal(q(g, '.row.crow .cuse').length, have);
+  tchg()[0].click();
+  assert.equal(acts(g, 'cancelTransit').length, 1);
+  const bs = [...q(g, '.row')[0].querySelectorAll('.b')].map(b => b.dataset.act);
+  assert.equal(bs[bs.length - 1], 'cancelTransit', 'cancel comes last');
+  assert.ok(q(g, '[data-act="cancelTransit"]')[0].classList.contains('quiet'));
+  tchg()[0].click();
   const more = q(g, '.pnmore [data-act="panelMore"]')[0];
   assert.match(more.textContent, new RegExp(`\\+${all - have - 2} more networks`));
   more.click();
@@ -54,29 +64,51 @@ test('Transit: your ports first, then a short page of sellers; the lead folds be
   assert.deepEqual(g.errors, []);
 });
 
-test('Peering: exchanges list four members at a time, PNIs you have always show, chips jump to a section', () => {
+test('Peering: three sections with a summary line; what needs you is open, the rest one tap away', () => {
   const g = big(), { ev } = g;
   city(g, 'peer');
+  assert.deepEqual(q(g, '.psec').map(x => x.dataset.sec), ['ix', 'pni', 'cache']);
+  for (const x of q(g, '.psb')) assert.ok(x.querySelector('.pss').textContent.trim(), 'every heading has a summary');
+  const sec = k => q(g, `.psec[data-sec="${k}"]`)[0], head = k => sec(k).querySelector('.psb');
+  // Open by itself only with something flagged; and then only what needs you plus "Show all".
+  for (const k of ['ix', 'pni', 'cache']) {
+    const flagged = !!sec(k).querySelector('.psf');
+    assert.equal(sec(k).classList.contains('on'), flagged, k);
+    if (flagged) assert.ok(sec(k).querySelector('.pnmore [data-act="panelFold"]'), k + ': show all');
+  }
+  assert.equal(acts(g, 'cancelPni').length, 0);
+  assert.ok(q(g, '.row').length < 12, 'a short first view, not dozens of rows');
+  // The PNIs: every one you have is a short row once the section is open, its controls behind "Change".
+  const pnis = ev("S.pni.filter(p=>p.city==='fra').length");
+  assert.ok(pnis > 4);
+  ev("ACT.panelFold({k:'s:pni',o:1})");
+  assert.ok(sec('pni').classList.contains('on'));
+  const chg = () => acts(g, 'panelFold').filter(b => /^p:/.test(JSON.parse(b.dataset.args).k));
+  assert.equal(chg().length, pnis, 'every PNI you have here');
+  assert.equal(q(g, '.psec[data-sec="pni"] .prow.crow .cuse').length, pnis, 'one line and a use bar each');
+  chg()[0].click();
+  assert.equal(acts(g, 'cancelPni').length, 1, 'two taps to Remove');
+  assert.match(chg()[0].textContent, /▾ Change/);
+  head('pni').click();
+  assert.ok(!sec('pni').classList.contains('on'), 'the heading folds it again');
+  assert.equal(acts(g, 'cancelPni').length, 0);
+  // An exchange: its row, then the full block (members a page at a time) behind "Change".
   const x = ev("ixIdsIn('fra').filter(i=>S.ixp[i]!==undefined).sort((a,b)=>ixMembers(b).length-ixMembers(a).length)[0]"), n = ev(`ixMembers('${x}').length`);
-  assert.ok(n > 6, 'a joined exchange with more members than a first page');
+  assert.ok(n > 6);
+  if (!sec('ix').classList.contains('on')) head('ix').click();
+  if (q(g, '.psec[data-sec="ix"] .pnmore [data-act="panelFold"]').length) q(g, '.psec[data-sec="ix"] .pnmore [data-act="panelFold"]')[0].click();
+  assert.equal(q(g, '.psec[data-sec="ix"] .row.crow').length, ev("ixIdsIn('fra').length"), 'every exchange in town is a row');
+  acts(g, 'panelFold').find(b => JSON.parse(b.dataset.args).k === 'x:' + x).click();
   const more = q(g, '[data-act="panelMore"]').find(b => JSON.parse(b.dataset.args).k === 'ix:' + x);
   assert.match(more.textContent, new RegExp(`\\+${n - 4} more networks`));
-  const pnis = ev("S.pni.filter(p=>p.city==='fra').length");
-  assert.ok(pnis > 0);
-  // With this many PNIs each one is a short row; its controls unfold with "Change".
-  assert.ok(pnis > 4);
-  const chg = () => acts(g, 'panelFold').filter(b => /^p:/.test(JSON.parse(b.dataset.args).k));
-  assert.equal(chg().length, pnis, 'every PNI you have here is on the first page');
-  assert.equal(q(g, '.pchip.pk-here').length, pnis);
-  assert.equal(acts(g, 'cancelPni').length, 0);
-  chg()[0].click();
-  assert.equal(acts(g, 'cancelPni').length, 1, 'one tap shows the upgrades, the egress choice and Remove');
-  assert.match(chg()[0].textContent, /▾ Change/);
-  assert.ok(q(g, '.prow').length < pnis + 3 * 5 + 1, 'at most three candidates per group');
-  assert.ok(q(g, '.row').length < 60, 'a few dozen rows, not hundreds');
-  assert.deepEqual(acts(g, 'panelJump').map(b => b.textContent), ['Internet Exchanges', 'PNIs', 'Caches']);
-  for (const k of ['ix', 'pni', 'cache']) assert.equal(q(g, `[data-sec="${k}"]`).length, 1, k);
-  ev("ACT.panelJump({k:'pni'});ACT.panelJump({k:'no such'});ACT.panelJump({k:'\"]'})");
+  // A search opens the sections it finds something in and folds the others.
+  const pn = ev("NET[S.pni.find(p=>p.city==='fra').net].name");
+  ev(`ACT.netFind({q:${JSON.stringify(pn)}})`);
+  assert.ok(sec('pni').classList.contains('on'));
+  assert.ok(q(g, '.psec[data-sec="pni"] .prow').length >= 1);
+  ev("ACT.netFind({q:'zzzz no such network'})");
+  assert.deepEqual(q(g, '.psec.on').map(x => x.dataset.sec), []);
+  ev('ACT.netClear()');
   assert.deepEqual(g.errors, []);
 });
 
@@ -106,10 +138,15 @@ test('Infra: links right under the routers, the standards folded, every section 
   assert.ok(btns.indexOf('models') >= 0 && kv.includes('Boot time'));
   const html = q(g, '.scroll')[0].innerHTML;
   assert.ok(html.indexOf('data-act="models"') < html.indexOf('Boot time'), 'the buttons come before the spec sheet');
+  // The rarely used sections are folded to one line each; their chip unfolds them.
+  for (const k of ['metro', 'power', 'scrub']) assert.ok(!q(g, `.psec[data-sec="${k}"]`)[0].classList.contains('on'), k);
+  ev("ACT.panelJump({k:'power'})");
+  assert.ok(q(g, '.psec[data-sec="power"]')[0].classList.contains('on'));
+  ev("ACT.panelJump({k:'no such'});ACT.panelJump({k:'\"]'})");
   assert.deepEqual(g.errors, []);
 });
 
-test('a link: redundancy check next to the parallel link, the top three sources, the rest unfolds', () => {
+test('a link: redundancy check next to the parallel link, what is on it one line that unfolds to the top three sources', () => {
   const g = big(), { ev } = g;
   const id = ev("S.links.filter(l=>l.kind!=='df'&&l.kind!=='vxc'&&!linkDown(l)&&R.ef[edgeKey(l)]&&Object.keys(R.ef[edgeKey(l)].net).length>5)[0].id");
   ev(`ACT.selLink({id:'${id}'})`);
@@ -118,6 +155,13 @@ test('a link: redundancy check next to the parallel link, the top three sources,
   assert.equal(acts(g, 'linkCheck').length, 1);
   const txt = () => q(g, '.scroll')[0].textContent;
   assert.ok(!/Redundancy check/.test(txt()) && !/Enters your network at/.test(txt()) && !/Going to customers in/.test(txt()));
+  const traf = () => q(g, 'section[data-sec="traf"]')[0];
+  if (!traf().querySelector('.psf')) {
+    // A link with room folds to its total and its biggest source; a busy one opens with its biggest feeder.
+    assert.ok(!traf().classList.contains('on') && /%/.test(traf().querySelector('.pss').textContent));
+    assert.equal(q(g, '.kv .dot').length, 0);
+  }
+  ev("ACT.panelFold({k:'s:traf',o:1})");
   assert.equal(q(g, '.kv .dot').length, 3, 'three sources');
   const fold = acts(g, 'panelFold').find(b => JSON.parse(b.dataset.args).k === 'tr');
   assert.match(fold.textContent, /▸ More: where it enters, where it goes/);
@@ -128,7 +172,7 @@ test('a link: redundancy check next to the parallel link, the top three sources,
   // The daily re-render keeps it open; another link starts folded.
   ev('renderAll()');
   assert.ok(/Going to customers in/.test(txt()));
-  ev(`ACT.selLink({id:S.links.find(l=>l.id!=='${id}'&&l.kind!=='df'&&l.kind!=='vxc').id})`);
+  ev(`ACT.selLink({id:S.links.find(l=>l.id!=='${id}'&&l.kind!=='df'&&l.kind!=='vxc').id});ACT.panelFold({k:'s:traf',o:1})`);
   assert.ok(!/Going to customers in/.test(txt()));
   assert.deepEqual(g.errors, []);
 });
@@ -143,5 +187,10 @@ test('a new game keeps every explanation and has no "?" yet; short lists are nev
   ev("ACT.tab({t:'links'})");
   assert.ok(/Redundancy check|Fiber from/.test(q(g, '.scroll')[0].textContent));
   assert.ok(q(g, '.scroll')[0].textContent.includes(ev("tr('city_panel.the_model_sets_your_fastest')")));
+  // A beginner's Peering tab: every section open, every explanation in view.
+  ev("ACT.tab({t:'peer'})");
+  assert.deepEqual(q(g, '.psec').map(x => x.classList.contains('on')), [true, true, true]);
+  assert.equal(q(g, '.hb').length, 0);
+  assert.ok(q(g, '.scroll')[0].textContent.includes(ev("tr('city_panel.cdns_put_free_cache_servers_inside')")));
   assert.deepEqual(g.errors, []);
 });

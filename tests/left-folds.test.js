@@ -49,15 +49,20 @@ test('NOC: long lists show the worst five with a button for the rest, and the in
   assert.ok(hot > 5 && ports > 5, 'the fixture runs hot');
   const acts = a => q(g, `button[data-act="${a}"]`).length;
   assert.equal(acts('selLink'), 5, 'five congested links');
-  assert.equal(q(g, '.hotk').length, 5, 'five hot ports');
+  assert.equal(q(g, '.hrow').length, 5, 'five hot ports');
   const more = q(g, 'button[data-act="leftFold"]').map(b => b.textContent);
   assert.ok(more.includes(`Show all ${hot}`) && more.includes(`Show all ${ports}`), more.join('|'));
   assert.equal(q(g, '.lead').length, 0, 'no introduction on a grown network');
   // The first rows are the fullest ones.
-  assert.equal(q(g, '.hotk')[0].parentNode.textContent.includes(ev('CITY[hotPorts()[0].city].name')), true);
+  assert.equal(q(g, '.hrow')[0].textContent.includes(ev('CITY[hotPorts()[0].city].name')), true);
   ev("ACT.leftFold({k:'hot'});ACT.leftFold({k:'ports'})");
   assert.equal(acts('selLink'), hot);
-  assert.equal(q(g, '.hotk').length, ports);
+  assert.equal(q(g, '.hrow').length, ports);
+  // Grouped by kind: one heading per kind, its advice said once there and not in the rows.
+  const kinds = JSON.parse(ev('JSON.stringify([...new Set(hotPorts().map(x=>x.k))])')), tips = JSON.parse(ev('JSON.stringify(hotPorts().map(x=>x.tip))'));
+  assert.equal(q(g, '.hgrp').length, kinds.length);
+  for (const tip of new Set(tips)) assert.equal(q(g, '.hgrp').filter(e => e.textContent.includes(tip)).length, 1, tip);
+  assert.ok(q(g, '.hrow').every(r => !tips.some(t => r.textContent.includes(t))), 'rows are one line, no advice');
   assert.ok(q(g, 'button[data-act="leftFold"]').some(b => b.textContent === 'Show fewer'));
   ev("ACT.leftFold({k:'hot'})");
   assert.equal(acts('selLink'), 5);
@@ -67,4 +72,42 @@ test('NOC: long lists show the worst five with a button for the rest, and the in
   assert.match(q(n, '.lead')[0].textContent, /Network Operations Center/);
   assert.equal(q(n, 'button[data-act="leftFold"]').length, 0);
   assert.deepEqual(n.errors, []);
+});
+
+test('NOC: a list one or two rows longer than the cut shows whole, with no button', () => {
+  const g = big(), { ev } = g;
+  for (const n of [6, 7, 8]) {
+    const h = ev(`(()=>{UI.fold={};const d=document.createElement('div');d.innerHTML=nocList('slow',Array.from({length:${n}},(_, i)=>i),i=>'<p class="x"></p>');return JSON.stringify([d.querySelectorAll('.x').length,d.querySelectorAll('[data-act="leftFold"]').length])})()`);
+    assert.deepEqual(JSON.parse(h), n <= 7 ? [n, 0] : [5, 1], `${n} rows`);
+  }
+  assert.deepEqual(g.errors, []);
+});
+
+test('Goals: the level flavour text is clamped until tapped', () => {
+  const g = big(), { ev } = g;
+  ev("UI.left='goals';renderLeft()");
+  const b = () => q(g, 'button.lvq')[0];
+  assert.ok(b(), 'the level card has its quote as a button');
+  assert.equal(b().getAttribute('aria-expanded'), 'false');
+  assert.equal(b().classList.contains('open'), false);
+  ev("ACT.leftFold({k:'lvq'})");
+  assert.equal(b().getAttribute('aria-expanded'), 'true');
+  assert.equal(b().classList.contains('open'), true);
+  assert.deepEqual(g.errors, []);
+});
+
+test('Networks: search first, the peering policy one line whose choices unfold', () => {
+  const g = big(), { ev } = g;
+  ev("UI.left='nets';renderLeft()");
+  const body = g.dom.window.document.getElementById('leftBody');
+  const html = body.innerHTML;
+  assert.ok(html.indexOf('id="nlQ"') < html.indexOf('ppolr'), 'the search box comes before the policy');
+  assert.equal(q(g, '[data-act="peerPol"]').length, 0, 'choices folded');
+  assert.match(q(g, '.ppolr')[0].textContent, /Peering policy/);
+  ev("ACT.leftFold({k:'ppol'})");
+  assert.equal(q(g, '[data-act="peerPol"]').length, 3);
+  q(g, '[data-act="peerPol"]').find(b => !b.className.includes('ghost')) || assert.fail('the chosen policy is marked');
+  ev("ACT.leftFold({k:'ppol'})");
+  assert.equal(q(g, '[data-act="peerPol"]').length, 0);
+  assert.deepEqual(g.errors, []);
 });

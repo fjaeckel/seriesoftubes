@@ -26,10 +26,12 @@ function renderHUD(){
   renderTabbar();
 }
 // Folded parts of the Goals and NOC tabs (view state): finished goals, the badge grid, and the rest of each long NOC list.
-const LEFT_FOLDS=['done','badges','hot','slow','ports'],leftFolded=k=>!!(UI.fold&&UI.fold[k]),NOC_TOP=5;
+const LEFT_FOLDS=['done','badges','hot','slow','ports','lvq','ppol'],leftFolded=k=>!!(UI.fold&&UI.fold[k]),NOC_TOP=5;
 // NOC lists are sorted worst first: show the worst few, one tap shows them all (and folds them again).
-const nocCnt=a=>a.length>NOC_TOP?` <span class="meta">${a.length}</span>`:'';
-function nocList(k,rows,fn){const all=leftFolded(k);return (all?rows:rows.slice(0,NOC_TOP)).map(fn).join('')+(rows.length>NOC_TOP?`<div class="btns" style="margin:2px 0 8px">${btn(all?tr('common.show_fewer'):tr('notifications.show_all_n',{n:rows.length}),'leftFold',{k},'ghost sm')}</div>`:'');}
+const nocCnt=a=>a.length>NOC_TOP+2?` <span class="meta">${a.length}</span>`:'';
+// A cut that would hide only one or two rows is not worth a button: those lists show whole.
+const nocCut=(k,rows)=>rows.length>NOC_TOP+2&&!leftFolded(k)?rows.slice(0,NOC_TOP):rows;
+function nocList(k,rows,fn,wrap){const all=leftFolded(k),sh=nocCut(k,rows);return (wrap?wrap(sh):sh.map(fn).join(''))+(rows.length>NOC_TOP+2?`<div class="btns" style="margin:2px 0 8px">${btn(all?tr('common.show_fewer'):tr('notifications.show_all_n',{n:rows.length}),'leftFold',{k},'ghost sm')}</div>`:'');}
 function renderLeft(){checkLayer();
   // Tablets in landscape: both side panels don't fit next to the map, so the left one tucks away
   // while a city or link is open and comes back with the toggle button.
@@ -71,7 +73,7 @@ function renderLeft(){checkLayer();
     const slow=Object.keys(S.pops).filter(latSlow).sort((a,b)=>R.latF[a]-R.latF[b]);
     if(slow.length)h+=`<h3 style="font-size:15px;margin:4px 0">🐢 ${tr('common.slow_cities')}${nocCnt(slow)}</h3><p class="meta" style="margin:0 0 4px">${tr('hud_and_panels.their_users_go_out_through_transit')}</p>`+nocList('slow',slow,c=>{const f=R.latFar[c];return `<div class="row"><div class="grow"><div class="nm">${CITY[c].name} → ${CITY[f.to].name}</div><div class="meta">${tr('hud_and_panels.p_of_its_traffic_ms_ms',{p:pct(Math.min(1,f.share)),ms:Math.round(f.ms),sf:pct(R.latF[c])})}</div></div>${btn(tr('common.inspect'),'focusCity',{city:c},'ghost sm')}</div>`;});
     const hotR=hotPorts();
-    if(hotR.length)h+=`<h3 style="font-size:15px;margin:4px 0">${tr('hud_and_panels.ports_caches_and_routers_running_hot')}${nocCnt(hotR)}</h3>`+nocList('ports',hotR,x=>`<div class="row"><span class="hotk hk-${x.k}">${HOTL[x.k]}</span><div class="grow"><div class="nm">${CITY[x.city].name} · ${esc(x.lab)}</div><div class="meta">${tr('hud_and_panels.p_full',{p:pct(Math.min(1,x.u))})}${x.u>=0.995?' · '+tr('hud_and_panels.dropping_or_overflowing'):''} · ${esc(x.tip)}</div></div>${btn(tr('common.inspect'),'focusCity',{city:x.city},'pink sm')}</div>`);
+    if(hotR.length)h+=`<h3 style="font-size:15px;margin:4px 0">${tr('hud_and_panels.ports_caches_and_routers_running_hot')}${nocCnt(hotR)}</h3>`+nocList('ports',hotR,null,nocHot);
     if(!S.inc.length&&!hot.length&&!hotR.length&&!slow.length)h+=`<p class="empty">${tr('hud_and_panels.all_systems_green_enjoy_it_while')}</p>`;
     h+=`<div class="kv" style="margin-top:8px"><span>${tr('hud_and_panels.incidents_so_far')}</span><b>${S.stats.incidents}</b></div><div class="kv"><span>${tr('hud_and_panels.survived_with_no_impact')}</span><b>${S.stats.survived}</b></div>`;
   }else{

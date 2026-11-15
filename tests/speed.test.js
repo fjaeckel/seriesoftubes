@@ -42,6 +42,8 @@ test('what crosses each link adds up, and is put together when it is looked at',
   assert.equal(ev("JSON.parse(JSON.stringify(R)).ef[Object.keys(R.ef)[0]].net!==undefined"), true);
   // the link panel reads it
   ev("const k=Object.keys(R.ef)[0],l=S.links.find(x=>edgeKey(x)===k);selectLink(l.id)");
+  // (what is on the link is a folded section on a big network: unfold it)
+  ev("ACT.panelFold({k:'s:traf',o:1})");
   assert.match(ev("document.getElementById('panelBody').textContent"), /Content from/);
   assert.deepEqual(errors, []);
 });

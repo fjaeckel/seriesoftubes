@@ -39,6 +39,10 @@
 :where(:root.dark) .hb{background:var(--paper);color:var(--ink2)}
 :where(:root.dark) .hb.on{background:var(--on);color:var(--paper)}
 :where(:root.dark) .pnjump{background:var(--paper);color:var(--ink)}
+:where(:root.dark) .psb{color:var(--ink)}
+:where(:root.dark) .pss{color:var(--ink2)}
+:where(:root.dark) .crow .nm small{color:var(--ink2)}
+:where(:root.dark) .b.quiet{color:var(--ink2)}
 :where(:root.dark) .fact.bad{background:#3C2020;color:var(--ink)}
 :where(:root.dark) .latwarn{background:#371D1D;border:2px solid #FF5A5F;color:var(--ink)}
 :where(:root.dark) .fact.ixf{background:#474026;color:var(--ink)}
@@ -96,6 +100,7 @@
 :where(:root.dark) .segc button:hover{background:var(--paper);color:var(--ink)}
 :where(:root.dark) .segc button.on{background:var(--sun);color:var(--on)}
 :where(:root.dark) #hint{background:var(--on);color:#fff}
+:where(:root.dark) .osum{color:var(--ink2)}
 :where(:root.dark) .tag.fp-q{background:var(--line);color:var(--ink)}
 :where(:root.dark) .tag.fp-d{background:var(--eye)}
 :where(:root.dark) .tag.fp-new{background:var(--sun);color:var(--on)}
@@ -209,6 +214,7 @@
 :where(:root.dark) #dash{background:rgba(30,38,64,.35)}
 :where(:root.dark) #dashCard{background:var(--paper);color:var(--ink)}
 :where(:root.dark) .dhead{background:var(--paper);color:var(--ink)}
+:where(:root.dark) .tbl tr.rmtr td{background:var(--soft);color:var(--ink)}
 :where(:root.dark) .tile{background:var(--soft);color:var(--ink)}
 :where(:root.dark) .tile .lbl{color:var(--ink2)}
 :where(:root.dark) .tile .sub{color:var(--ink2)}
@@ -264,9 +270,13 @@
 :where(:root.dark) .slot-more:hover,:where(:root.dark) .slot-go:hover{background:rgba(255,79,154,.06)}
 :where(:root.dark) .slot-go:focus-visible,:where(:root.dark) .slot-more:focus-visible{outline:3px solid #FF4F9A}
 :where(:root.dark) .mtile{background:var(--paper);color:var(--ink)}
+:where(:root.dark) .mtile .mst{color:var(--ok)}
+:where(:root.dark) .mtile.off .mst{color:var(--ink2)}
 :where(:root.dark) .menu-links{color:var(--ink2)}
 :where(:root.dark) .menu-links .lnk{color:var(--ink2)}
 :where(:root.dark) .mplug{color:var(--ink);background:var(--soft)}
+:where(:root.dark) .findtop{background:var(--paper);color:var(--ink)}
+:where(:root.dark) .findh{color:var(--ink)}
 :where(:root.dark) .findrow{color:var(--ink)}
 :where(:root.dark) .findrow.on{background:var(--soft);color:var(--ink)}
 :where(:root.dark) .findrow:hover{background:var(--soft);color:var(--ink)}
@@ -379,6 +389,13 @@
 @media (display-mode: standalone){
 :where(:root.dark) body{background:#57C4E5;color:var(--on)}
 }
+:where(:root.dark) .iline .lnk{color:var(--ink2)}
+:where(:root.dark) .lvq{color:var(--ink2)}
+:where(:root.dark) .hgrp .meta{color:var(--ink2)}
+:where(:root.dark) .hpc.dlost{color:var(--bad)}
+:where(:root.dark) .ppolx .meta{color:var(--ink2)}
+:where(:root.dark) .tmore{background:var(--soft);color:var(--ink)}
+:where(:root.dark) .tag.fsc.on{background:var(--bad)}
 :where(:root.dark) .pzj{color:var(--ink2)}
 :where(:root.dark) .pzs span.on{background:#474026;color:var(--ink)}
 :where(:root.dark) .pzc{background:#262626;color:var(--ink)}

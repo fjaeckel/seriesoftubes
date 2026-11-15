@@ -130,7 +130,7 @@ test('? shows every keyboard shortcut and closes again; Help links to it on a co
   key('?');
   assert.equal(ev("$('modal').className"), 'keys', '? opens the list');
   const txt = doc.getElementById('modalCard').textContent;
-  for (const s of ['Keyboard shortcuts', 'Move around the map', 'Space', 'Pause or play', 'Find a city', 'Previous or next of your POPs', 'Next open offer, soonest to expire first', 'Zoom the map out or in', 'NOC dashboard', 'Connections', 'Leased lines', 'Esc', 'Show this list'])
+  for (const s of ['Keyboard shortcuts', 'Move around the map', 'Space', 'Pause or play', 'Find anything', 'Previous or next of your POPs', 'Next open offer, soonest to expire first', 'Zoom the map out or in', 'NOC dashboard', 'Connections', 'Leased lines', 'Esc', 'Show this list'])
     assert.ok(txt.includes(s), s);
   for (const k of ['←', '↑', '↓', '→', 'w', 'a', 's', 'd', '[', ']', '$', '-', '=', '/', '?', '0', '4', 'n', 'o', 'u', 'c', 't', 'r', 'l']) assert.ok([...doc.querySelectorAll('#modalCard .kbd')].some(e => e.textContent === k), k);
   key('?', null, { repeat: true }); assert.equal(ev("$('modal').hidden"), false, 'holding ? does not flicker it');

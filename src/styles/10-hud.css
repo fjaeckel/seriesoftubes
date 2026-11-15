@@ -32,9 +32,12 @@
 
 /* Find a city: a square chip with just the magnifier. */
 #hud .chip.find{justify-content:center;align-items:center;padding:0;width:44px;min-width:44px;font-size:19px;cursor:pointer}
+/* Sound, How to play and the NOC's own window live in the menu, so the speed chip leaves room for Traffic and Rank.
+   A puzzle has no menu tiles: there the sound button stays. */
+.speed #muteBtn{display:none}body.pz .speed #muteBtn{display:block}
 /* The NOC dashboard is the one button in the speed chip that is not about time: it stands apart and wears the brand colour. */
 .speed .dashbtn{background:var(--me);color:#fff}
-@media (min-width:1361px){.speed .dashbtn{margin-left:5px}}
+@media (min-width:1501px){.speed .dashbtn{margin-left:5px}}
 /* A mouse gets an answer from everything it can press in the HUD and the panel tabs. */
 @media (hover:hover){
   .speed button:not(.on):not(.dashbtn):hover,.tabs button:not(.on):hover,.x:hover{background:var(--sun)}
@@ -42,3 +45,5 @@
   button.chip:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--edge)}
 }
 button.chip{cursor:pointer}
+/* A badge's toast is a door: one tap opens the wall of badges (ACT.badgesOpen). */
+.toast.btoast{pointer-events:auto;cursor:pointer}

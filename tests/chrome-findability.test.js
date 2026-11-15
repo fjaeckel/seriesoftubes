@@ -45,6 +45,11 @@ test('every button in the HUD says what it is: text, or a tooltip and a name for
     assert.ok(b.getAttribute('title'), `${what} has a tooltip`);
     assert.ok(b.getAttribute('aria-label'), `${what} has a name`);
   }
+  // The speed chip is about time (and the NOC dashboard): How to play, sound and the NOC's own window are menu tiles.
+  const sp = [...dom.window.document.querySelectorAll('#hud .speed button')].map(b => b.dataset.act);
+  assert.deepEqual([...new Set(sp)], ['speed', 'dash', 'mute']);
+  ev("ACT.menu()");
+  for (const t of dom.window.document.querySelectorAll('#modalCard .mtile')) assert.ok(t.textContent.trim().length > 2, `${t.dataset.act} tile has a caption`);
   assert.deepEqual(errors, []);
 });
 

@@ -47,7 +47,7 @@ test('the search box opens with / or the HUD button, Enter jumps to the first ci
   const i2 = doc.getElementById('findIn');
   i2.value = 'nowhere at all';
   i2.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
-  assert.match(doc.getElementById('findList').textContent, /No city matches/);
+  assert.match(doc.getElementById('findList').textContent, /Nothing matches/);
   key('Escape', i2);
   assert.equal(ev("$('modal').hidden"), true, 'Escape closes');
   ev("ACT.findOpen();ACT.findGo({city:'syd'})");
@@ -66,7 +66,7 @@ test('in German, a German country name finds the city, and the search works on a
   ev(start + ";if(ACT.pitchSkip)ACT.pitchSkip();window.innerWidth=360;ACT.findOpen()");
   assert.ok(ev("findCities('deutschland').includes('fra')"), 'Deutschland');
   assert.ok(ev("findCities('germany').includes('fra')"), 'and Germany still works');
-  assert.match(dom.window.document.getElementById('modalCard').textContent, /Stadt finden/);
+  assert.match(dom.window.document.getElementById('modalCard').textContent, /Alles finden/);
   assert.doesNotMatch(dom.window.document.getElementById('modalCard').textContent, /\/ /, 'no keyboard tip on a phone');
   assert.deepEqual(errors, []);
 });

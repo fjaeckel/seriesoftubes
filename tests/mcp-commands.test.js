@@ -310,6 +310,8 @@ test('the dashboard, the bank, the left drawer and the puzzle box read as text; 
   T('load_save', { path: BIG });
   // (The panel opens with a first page of each list; with the lists unfolded it is long.)
   T('panel', { city: 'fra', tab: 'peer' });
+  for (const k of ['s:ix', 's:pni', 's:cache']) T('act', { action: 'panelFold', args: { k, o: 1 } });
+  for (const g of ['t1', 't2', 'eye', 'cdn', 'paid']) T('act', { action: 'pniGrp', args: { g, o: 1 } });
   for (const k of ['pni:t1', 'pni:t2', 'pni:eye', 'pni:cdn', 'pni:paid']) T('act', { action: 'panelMore', args: { k, n: 500 } });
   const p1 = T('screen', { where: 'panel' });
   assert.match(p1.textMore || '', /offset \d+/, 'the panel says where the next page starts');
