@@ -4,6 +4,8 @@ function opsCard(){if(!S)return '';const last=opsHired()&&S.ops.log[0];
   return `<div class="ops-card"><div class="nm">${opsHired()?`${INTERNS[S.ops.intern].i} ${esc(tr('ops.ops_name',{name:opsName(true)}))}`:`🧑‍💻 ${tr('ops.standing_orders')}`}</div>
     <div class="meta">${opsHired()?esc(last?opsEntry(last):tr('ops.l_quiet',{name:opsName()})):opsCanHire()?tr('ops.hire_pitch_short'):tr('ops.locked',{lv:2})}</div>
     <div class="btns">${btn(opsHired()?tr('ops.standing_orders'):tr('ops.hire_an_intern'),'opsOpen',{},opsHired()?'sm':'pink sm',!opsHired()&&!opsCanHire())}</div></div>`;}
+// Orders for parts of the game not reached yet (launches before the rocket company) stay out of the sheet.
+const opsShow=d=>!d.show||d.show();
 const opsEntry=e=>(e.f!==undefined?opsFFLine(e)+' ':'')+(e.r.length||e.f===undefined?opsLine(e):'');
 function opsVal(k,p,v=opsP(k,p)){const P=OPSK[k].p[p];return p==='prov'?(v==='cheap'?tr('ops.cheapest'):v==='have'?tr('ops.already_connected'):NET[v].name):P.f(v);}
 // A setting as a list to pick from: the option values are positions in the list the action reads again.
@@ -28,7 +30,7 @@ function opsModal(){if(!S)return;const hired=opsHired();let h=`<div style="displ
     <p class="ops-mood">${esc(opsMood())}</p>${opsReportHtml()}
     ${O.log.length?`<pre class="term ops-log">${O.log.slice(0,6).map(e=>esc(tr('ops.day_d',{d:e.d})+': '+opsEntry(e))).join('\n')}</pre>`:''}
     <div class="ops-p">${opsSel(tr('ops.floor'),'opsFloor',{},OPS_FLOORS,O.floor,v=>v?fmt$(v):tr('ops.no_cap'))}</div></div>`;
-  h+=`<p class="note">${tr('ops.how_it_works',{name:opsName()})}</p>`+OPS.map(opsOrderHtml).join('');
+  h+=`<p class="note">${tr('ops.how_it_works',{name:opsName()})}</p>`+OPS.filter(opsShow).map(opsOrderHtml).join('');
   // Per POP: switch single orders off where the player wants to decide by hand.
   const cities=Object.keys(S.pops).sort((a,b)=>CITY[a].name.localeCompare(CITY[b].name)),c=S.pops[UI.opsCity]?UI.opsCity:cities[0];
   if(c)h+=`<section><h3>${tr('ops.per_pop')}</h3><div class="trsel"><label>${tr('common.your_pop')}<select data-chg="opsCity">${cities.map(x=>`<option value="${x}"${x===c?' selected':''}>${esc(CITY[x].name)}</option>`).join('')}</select></label></div>

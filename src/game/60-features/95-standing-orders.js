@@ -53,7 +53,7 @@ function opsP(k,p){const P=OPSK[k].p[p],v=S.ops.p[k]&&S.ops.p[k][p];return v!==u
 function opsOpts(k,p){const cur=opsP(k,p),L=p==='prov'?['cheap','have',...NETS.filter(n=>n.price&&Object.keys(S.pops).some(c=>sellsAt(n,c))).map(n=>n.id)]
   :p==='model'?['next',...RG.map((r,i)=>i).filter(i=>rgOpen(i)).sort((a,b)=>RG[a].cls-RG[b].cls||RG[a].cap-RG[b].cap||a-b)]:OPSK[k].p[p].v.slice();
   if(!L.includes(cur))L.push(cur);return L;}
-const opsCaps=k=>OPSK[k].mo?OPS_CAPS_MO:OPS_CAPS;
+const opsCaps=k=>OPSK[k].caps||(OPSK[k].mo?OPS_CAPS_MO:OPS_CAPS);
 function opsCap(k){const c=S.ops.cap[k];return opsCaps(k).includes(c)?c:OPSK[k].cap||0;}
 const opsHere=(k,c)=>!(S.ops.skip[c]||[]).includes(k);
 const opsPops=k=>Object.keys(S.pops).filter(c=>opsHere(k,c));
@@ -76,7 +76,7 @@ function opsSanitize(s){const o=s.ops&&typeof s.ops==='object'&&!Array.isArray(s
   slAutoFrom(s,on.sales===true&&!!n.intern,ob(p.sales));if(s.autoRepair===true)n.on.repair=true;delete s.autoSales;delete s.autoRepair;
   s.ops=n;}
 // A log entry: {d, i: intern, r: [[kind, n, [where…]]], f: fat-finger index, c: its city, up: paid up front, mo: running costs added}.
-const opsWhereOk=w=>typeof w==='string'&&w.length<=48&&/^[a-z0-9~|]+( [+\w.×→⇧]+)?$/i.test(w)&&w.split(' ')[0].split('|').every(x=>isIx(x)||own(OPSK,x)||isNet(x));
+const opsWhereOk=w=>typeof w==='string'&&w.length<=48&&/^[a-z0-9~|]+( [+\w.×→⇧]+)?$/i.test(w)&&w.split(' ')[0].split('|').every(x=>isIx(x)||own(OPSK,x)||isNet(x)||own(CRUSTS,x));
 function opsLogOk(e){if(!e||typeof e!=='object'||!own(INTERNS,e.i))return null;const r0=Array.isArray(e.r)?e.r:[],r=r0.filter(x=>Array.isArray(x)&&own(OPS_SAY,x[0])&&Array.isArray(x[2])).map(x=>[x[0],int(x[1],1,1e6,1),x[2].filter(opsWhereOk).slice(0,3)]).slice(0,16);
   const f=Number.isInteger(e.f)&&OPS_FF[e.f]?e.f:undefined,up=int(e.up,0,1e12,0),mo=int(e.mo,-1e9,1e9,0);
   // A day that only signed or declined deals (the retired sales order) has nothing left to say.
@@ -102,7 +102,7 @@ function opsMood(){const O=S.ops,x=O.wk&&O.wk.w===Math.floor(S.day/7)?O.wk:null,
     annie:N_('ops.mood_annie'),kevin:N_('ops.mood_kevin'),tracy:N_('ops.mood_tracy')}[k],{name:opsName()});}
 // "fra +1×100G", "fra|ams", "ams~3", "transit" (an order, for the budget line) or "ggl" (a network).
 // Peering is always at an exchange, and a city's first exchange has the city's id ("lon" is LYNX): name the exchange (#228).
-function opsWhere(w,k){if(k==='peer'&&isIx(w)&&ixName(w))return ixName(w);const [a,x]=w.split(' '),nm=a.split('|').map(p=>own(OPSK,p)?tr(OPSK[p].t):isCity(p)?CITY[p].name:isNet(p)?NET[p].name:ixName(p)).join('–');return x?nm+' '+(isNet(x)?NET[x].name:x):nm;}
+function opsWhere(w,k){if(k==='peer'&&isIx(w)&&ixName(w))return ixName(w);if(k==='pie'&&own(CRUSTS,w))return tr(CRUSTS[w].n);const [a,x]=w.split(' '),nm=a.split('|').map(p=>own(OPSK,p)?tr(OPSK[p].t):isCity(p)?CITY[p].name:isNet(p)?NET[p].name:ixName(p)).join('–');return x?nm+' '+(isNet(x)?NET[x].name:x):nm;}
 function opsLine(e){const I=INTERNS[e.i],name=I?tr(I.s):'',parts=e.r.map(([k,n,w])=>trn(OPS_SAY[k],n,{where:w.map(x=>opsWhere(x,k)).join(', ')}));
   return (parts.length?tr('ops.l_line',{name,list:parts.join(', ')}):tr('ops.l_quiet',{name}))+opsPaid(e);}
 const opsMo$=v=>(v>0?'+':'')+fmt$(v);

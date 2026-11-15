@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 - In dark mode, the cash amount at the top is readable again on iPhones, where it showed dark on the dark chip.
+- The NOC intern can now run your rocket launches: a new standing order books launches to keep your crusts at 60, 80 or 100% as old pies wear out, with its own monthly budget.
 
 ## [4.2.1] — 2026-11-15
 

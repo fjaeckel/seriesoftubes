@@ -70,6 +70,7 @@ function pieCrustTab(P,can){let nudge=false;const o=P.opt,Q=R&&R.pie;
       return `<tr class="${ok?'':'pie-off'}"><td><b>${tr(R0.d)}</b> <small>“${tr(R0.n)}”</small></td><td class="r">${R0.pies}</td><td class="r">${fmt$(piePrice(R0.cost))}</td><td class="r">${trn('pie.n_days',leadDays(R0.gap))}</td><td class="r">${pct(R0.fail)}</td><td><small>${note}${ok?'':' · '+tr('pie.why_no_rd',{rd:tr(PIE_RD[R0.rd].n)})}</small></td></tr>`;}).join('')
     +`</tbody></table></div></details>`;
   h+=`<p class="meta">${tr('pie.stock_line',{n:Math.floor(P.stock)})}${P.q.length>=PIE_Q_MAX*0.8?' · '+tr('pie.queue_room',{n:P.q.length,max:PIE_Q_MAX}):''}</p>`;
+  if(opsHired()&&S.ops.on.pie)h+=`<p class="note">${btn(tr('ops.standing_orders'),'opsOpen',{},'ghost sm')} ${esc(tr('pie.ops_on',{name:opsName(),p:opsP('pie','goal')+'%'}))}</p>`;
   h+=`<div class="pie-cgrid">`+Object.keys(CRUSTS).map(id=>{const C=CRUSTS[id],cv=pieCov(id),live=pieLive(id),qd=P.crusts[id].queued,max=Math.floor(C.full*PIE_SPARE),room=Math.max(0,max-live-qd);
     return `<div class="ops-o pie-cc2${pieUp(id)?' on':''}"><div class="nm">${tr(C.n)} ${live?pieTag(pieBaked(id)?tr('pie.baked'):tr('pie.half_baked'),pieBaked(id)):''} ${C.polar?'':`<small class="meta">≤${C.inc}°</small>`}</div>
     <div class="bar ${cv>=PIE_BAKED?'':'warn'}"><i style="width:${Math.round(cv*100)}%"></i></div>

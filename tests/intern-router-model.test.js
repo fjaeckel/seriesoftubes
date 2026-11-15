@@ -86,7 +86,7 @@ test('every setting in the Ops sheet is a list to pick from, on a phone too', t 
     s.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
   };
   // Every setting of every order, every budget and the floor.
-  const n = ev('OPS.reduce((a,d)=>a+Object.keys(d.p).length+(d.cap?1:0),0)+1');
+  const n = ev('OPS.filter(opsShow).reduce((a,d)=>a+Object.keys(d.p).length+(d.cap?1:0),0)+1');
   assert.equal(doc.querySelectorAll('#modalCard .ops-p select').length, n);
   // The model list: the next generation, then the models you can buy, smallest first.
   const model = sel('opsParam', { k: 'routers', p: 'model' });
