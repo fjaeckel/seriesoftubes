@@ -88,12 +88,18 @@ function pieBhHops(e,fromIsl){const b=e.bh,alt=CRUSTS[b.cr].alt,up=alt/PIE_C+PIE
 // A latency-routed circuit from A to B (compute()'s l2Routes, mode 'fast'): the fastest path, through the sky where it is
 // faster and the spats allow it; uplinks only in the two end countries when either asks to keep traffic home.
 // Only latency customers fly, and never between cities under PIE_MIN_KM apart (O4): the rest get the fiber-only answer.
+// A circuit the sky cannot carry in full keeps the fiber when the fiber carries more of it.
 // A backhaul edge is open only to circuits from its own cut-off POP (compute() puts that end first).
-function pieFast(X,fastSP,A,B,b,wLat){const Ai=CIDX[A],Bi=CIDX[B],nb=X.bh.length?e=>!!e.bh&&e.bh.ci!==Ai:null;
-  if(!BIZ_T[b.type].lat||pieKm(A,B)<PIE_MIN_KM){const k='g:'+A,r=fastSP[k]||(fastSP[k]=dijkstra(X.adj,Ai,wLat,nb?(v,e)=>!!e.sky||nb(e):(v,e)=>!!e.sky));return [{...walkI(r.P,Ai,Bi),share:1}];}
+function pieFast(X,fastSP,A,B,b,wLat){const Ai=CIDX[A],Bi=CIDX[B],nb=X.bh.length?e=>!!e.bh&&e.bh.ci!==Ai:null,
+    gr=()=>{const k='g:'+A;return fastSP[k]||(fastSP[k]=dijkstra(X.adj,Ai,wLat,nb?(v,e)=>!!e.sky||nb(e):(v,e)=>!!e.sky));};
+  if(!BIZ_T[b.type].lat||pieKm(A,B)<PIE_MIN_KM)return [{...walkI(gr().P,Ai,Bi),share:1}];
   const r=fastSP[A]||(fastSP[A]=dijkstra(X.adj,Ai,wLat,nb?(v,e)=>nb(e):undefined));let w=walkI(r.P,Ai,Bi);if(!w.path.some(e=>e.sky))return [{...w,share:1}];
   const ca=CITY[A].cc,cb=CITY[B].cc,home=pieSpatHome(ca)||pieSpatHome(cb),bad=e=>e.sky!=='las'&&(pieAirBlock(ca,e.sky.cc)||pieAirBlock(cb,e.sky.cc)||(home&&e.sky.cc!==ca&&e.sky.cc!==cb));
   if(w.path.some(e=>e.sky&&bad(e)))w=walkI(dijkstra(X.adj,Ai,wLat,(v,e)=>!!e.sky&&bad(e)||!!nb&&nb(e),Bi).P,Ai,Bi);
+  // Only where the sky has room (#380): a circuit that would get less up there (a dish full of terminals or of earlier
+  // circuits) than on its fiber stays on the fiber. Circuits are booked in turn, so res is what is left for this one.
+  const room=p=>p.reduce((a,e)=>Math.min(a,e.res),b.bw);
+  if(w.path.some(e=>e.sky)&&room(w.path)<b.bw){const g=gr();if(g.D[Bi]<Infinity){const f=walkI(g.P,Ai,Bi);if(room(f.path)>room(w.path))w=f;}}
   if(w.path.some(e=>e.sky)){X.l2o[b.id]=1;X.l2p[b.id]={w,A,B};}
   return [{...w,share:1}];}
 // After routing: what orbit earns (terminals, a premium on circuits riding the sky, patchy-sky customers) and what each dish carries.

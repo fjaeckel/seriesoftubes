@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Launching pies no longer wrecks low-latency circuits that your fiber already carried: a circuit only flies through orbit when the dishes have room for all of it, and otherwise stays on its fiber (#380).
 - Lasers are now research: once it is done, every pie you launch has them, and launches past a crust's size replace its pies without lasers. Games that already flew lasered pies keep the research (#374).
 - Rocket companies can grow: the pie factory takes up to six production lines and a launch pad up to three towers, each flying its own rocket. Lines and pads can be closed again for a quarter of what they cost, and one tap queues a launch for every free tower (#374).
 - Two new research projects move pie dishes to the V band and then the E band, doubling and doubling again what each antenna carries; dishes are upgraded antenna by antenna, and rain hurts higher bands more (#374).
