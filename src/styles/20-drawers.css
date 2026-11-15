@@ -1,6 +1,6 @@
-/* drawers */
-#left{position:fixed;top:calc(env(safe-area-inset-top,0px) + 76px);left:max(12px,env(safe-area-inset-left,0px));width:300px;max-height:calc(100% - 96px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;z-index:4}
-#panel{position:fixed;top:calc(env(safe-area-inset-top,0px) + 76px);right:max(12px,env(safe-area-inset-right,0px));width:370px;max-height:calc(100% - 96px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;z-index:4}
+/* drawers: both grow with a wide screen, so their long lists need less scrolling; tablets and phones set their own widths. */
+#left{position:fixed;top:calc(env(safe-area-inset-top,0px) + 76px);left:max(12px,env(safe-area-inset-left,0px));width:clamp(300px,24vw,420px);max-height:calc(100% - 96px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;z-index:4}
+#panel{position:fixed;top:calc(env(safe-area-inset-top,0px) + 76px);right:max(12px,env(safe-area-inset-right,0px));width:clamp(370px,25vw,440px);max-height:calc(100% - 96px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;z-index:4}
 .scroll{overflow:auto;padding:12px 14px 14px;overscroll-behavior:contain}
 /* Labels stay on one line and give way (with an ellipsis) before the bar overflows the panel; the counts sit on
    the tab's corner so they cost no width. */
@@ -20,6 +20,22 @@
 .x{margin-left:auto;border:2.5px solid var(--edge);background:var(--paper);border-radius:10px;width:32px;height:32px;font-size:20px;line-height:1;cursor:pointer;font-weight:900;flex:none}
 .facts{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .fact{background:var(--soft);border:2px solid var(--edge);border-radius:9px;padding:1px 8px;font-size:12px;font-weight:700}
+/* A city's header: picture, name and close on one row, the facts under them across the whole panel. */
+.ph.cph{flex-wrap:wrap}
+.ph.cph>.pht{flex:1 1 0}
+.ph.cph>.facts{flex:1 0 100%;margin-top:0}
+/* The traceroute is an icon button next to close (its name is the tooltip and the label for screen readers). */
+.ph.cph{position:relative}
+.ph.cph .trb{position:absolute;top:12px;right:52px;width:32px;height:32px;padding:0;border-width:2.5px;border-radius:10px;font-size:15px;line-height:1}
+.ph.cph .trl{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.ph.cph.hastr .pht{padding-right:40px}
+/* Short panels (93-ui/48-panel-folds.js): the "?" that unfolds a section's explanation, "+N more" under a first page. */
+.hb{flex:none;width:20px;height:20px;padding:0;border:2px solid var(--edge);border-radius:50%;background:var(--paper);color:var(--ink2);font:900 11.5px/1 var(--body);cursor:pointer}
+.hb.on{background:var(--ink);color:var(--paper)}
+.pnmore{margin-top:6px}
+.pnjump{position:sticky;top:-12px;z-index:2;display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;margin:-12px -14px 10px;padding:8px 14px 9px;background:var(--paper);border-bottom:2px solid var(--line)}
+.pnjump .b{flex:none}
+.pnfold{margin:8px 0 2px}
 .fact.bad{background:#FFE3E3}.latwarn{background:#FFF1F1;border:2px solid #FF5A5F;border-radius:10px;padding:8px 10px;margin:6px 0;font-size:13px;line-height:1.4}
 .fact.ixf{background:#FFF3C4}
 .fact.mine{background:var(--me);color:#fff}
@@ -84,6 +100,8 @@ section h3{font-size:17px;margin-bottom:6px;display:flex;align-items:center;gap:
 .goal.cur{background:#FFF6CF;margin:0 -14px;padding:9px 14px;border-top:2px solid var(--edge);border-bottom:2px solid var(--edge)}
 .goal .gt{font-weight:900;font-size:13.5px}
 .goal .gd{font-size:12px;color:var(--ink2);line-height:1.4;margin-top:2px}
+.gfold .ck{width:22px;height:22px;border:2.5px solid var(--edge);border-radius:7px;flex:none;display:grid;place-items:center;font-weight:900;background:var(--ok);color:#fff;font-size:13px}
+.bhead{font-size:15px;margin:14px 0 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.bhead .b{margin-left:auto}
 .goal .gr{font-size:11px;font-weight:900;color:var(--eye);margin-top:2px}
 .empty{color:var(--ink2);font-size:12.5px;line-height:1.45;padding:6px 0}
 .inc{border:2.5px solid var(--edge);border-radius:12px;padding:8px 10px;margin-bottom:8px;background:#FFF0F1}

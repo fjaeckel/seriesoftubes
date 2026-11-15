@@ -87,5 +87,5 @@ function routersTab(){const cs=Object.keys(S.pops),pu=portsAt(cs),F=UI.rtrF||{};
   return h+listMore('routers',rs.length,n=>trn('dashboard.view_more_router',n),'lmore')+`</div>`;}
 // The filter bar sticks under the dashboard's tab bar, whose height depends on the font and the window: measured after
 // drawing, onto #dash (which morph() leaves alone); the CSS has a fallback for the first frame.
-function fitList(){const d=$('dash'),t=d&&d.querySelector('.dtabs');if(t&&t.offsetHeight)d.style.setProperty('--dtabh',t.offsetHeight+'px');}
+function fitList(){const d=$('dash'),t=d&&d.querySelector('.dhead');if(t&&t.offsetHeight)d.style.setProperty('--dtabh',t.offsetHeight+'px');}
 addEventListener('resize',()=>{const d=$('dash');if(d&&!d.hidden)fitList();});

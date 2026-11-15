@@ -25,6 +25,10 @@
 :where(:root.dark) #hCust.hot{background:#3C2123;color:var(--ink)}
 :where(:root.dark) .minibar{background:var(--line)}
 :where(:root.dark) .minibar i{background:var(--ok)}
+:where(:root.dark) .speed .dashbtn{background:var(--me);color:#fff}
+@media (hover:hover){
+:where(:root.dark) .speed button:not(.on):not(.dashbtn):hover,:where(:root.dark) .tabs button:not(.on):hover,:where(:root.dark) .x:hover{background:var(--sun);color:var(--on)}
+}
 :where(:root.dark) .tabs button{background:var(--soft);color:var(--ink)}
 :where(:root.dark) .tabs button.on{background:var(--paper);color:var(--ink)}
 :where(:root.dark) .tabs .cnt{background:var(--me);color:#fff}
@@ -32,6 +36,9 @@
 :where(:root.dark) .eyebrow{color:var(--ink2)}
 :where(:root.dark) .x{background:var(--paper);color:var(--ink)}
 :where(:root.dark) .fact{background:var(--soft);color:var(--ink)}
+:where(:root.dark) .hb{background:var(--paper);color:var(--ink2)}
+:where(:root.dark) .hb.on{background:var(--on);color:var(--paper)}
+:where(:root.dark) .pnjump{background:var(--paper);color:var(--ink)}
 :where(:root.dark) .fact.bad{background:#3C2020;color:var(--ink)}
 :where(:root.dark) .latwarn{background:#371D1D;border:2px solid #FF5A5F;color:var(--ink)}
 :where(:root.dark) .fact.ixf{background:#474026;color:var(--ink)}
@@ -75,6 +82,7 @@
 :where(:root.dark) .goal.done .gt{color:var(--ink2)}
 :where(:root.dark) .goal.cur{background:#433D24;color:var(--ink)}
 :where(:root.dark) .goal .gd{color:var(--ink2)}
+:where(:root.dark) .gfold .ck{background:var(--ok);color:#fff}
 :where(:root.dark) .goal .gr{color:var(--eye)}
 :where(:root.dark) .empty{color:var(--ink2)}
 :where(:root.dark) .inc{background:#371E1F;color:var(--ink)}
@@ -92,6 +100,9 @@
 :where(:root.dark) .tag.fp-d{background:var(--eye)}
 :where(:root.dark) .tag.fp-new{background:var(--sun);color:var(--on)}
 :where(:root.dark) .fp-focus{background:color-mix(in srgb,var(--me) 7%,transparent)}
+:where(:root.dark) .neth{color:var(--ink)}
+:where(:root.dark) button.neth:hover{background:var(--soft);color:var(--ink)}
+:where(:root.dark) .nchev{color:var(--ink2)}
 :where(:root.dark) .ops-card{border:2px solid #8E5CF7;background:#271D36;color:var(--ink)}
 :where(:root.dark) .ops-o{background:var(--paper);color:var(--ink)}
 :where(:root.dark) .ops-sel{color:var(--ink2)}
@@ -197,6 +208,7 @@
 :where(:root.dark) .grade{background:var(--sun);color:var(--on)}
 :where(:root.dark) #dash{background:rgba(30,38,64,.35)}
 :where(:root.dark) #dashCard{background:var(--paper);color:var(--ink)}
+:where(:root.dark) .dhead{background:var(--paper);color:var(--ink)}
 :where(:root.dark) .tile{background:var(--soft);color:var(--ink)}
 :where(:root.dark) .tile .lbl{color:var(--ink2)}
 :where(:root.dark) .tile .sub{color:var(--ink2)}
@@ -234,7 +246,11 @@
 :where(:root.dark) .preset[data-preset=freeze].on::after{color:var(--sea2)}
 :where(:root.dark) .tierbtn{background:var(--paper);color:var(--ink)}
 :where(:root.dark) .tierbtn:hover{background:#433D24;color:var(--ink)}
-:where(:root.dark) .gl dd{color:var(--ink2)}
+:where(:root.dark) .gt{background:var(--soft);color:var(--ink)}
+:where(:root.dark) .gt[open]{background:var(--paper);color:var(--ink)}
+:where(:root.dark) .gt summary:focus-visible{outline:3px solid #FF4F9A}
+:where(:root.dark) .gt p{color:var(--ink2)}
+:where(:root.dark) #modal:not(.pie) #modalCard>div:first-child:has(>.x),:where(:root.dark) #modalCard>.mhead,:where(:root.dark) #modalCard>.info>div:first-child{background:var(--paper);color:var(--ink)}
 :where(:root.dark) .kbd{background:var(--soft);color:var(--ink)}
 :where(:root.dark) .keylist dd{color:var(--ink2)}
 :where(:root.dark) .slot{background:var(--paper);color:var(--ink)}

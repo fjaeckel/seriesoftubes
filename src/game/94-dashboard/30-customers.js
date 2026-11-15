@@ -14,12 +14,18 @@ const custStats=()=>{const bz=S.biz.filter(b=>!BIZ_T[b.type].event),mo=bz.reduce
 // Long lists show their first rows and grow on request: a thousand rows of buttons take the browser a long time to
 // lay out again every day, worst of all on a phone. Filters, sorting and totals still cover every row.
 // Links and Routers open on their top 10, so the first look fits the window, then grow 50 at a time.
-const LIST_PAGE=100,LIST_PG={links:[10,50],routers:[10,50]},listPg=k=>LIST_PG[k]?LIST_PG[k][1]:LIST_PAGE,listN=k=>(UI.listN&&UI.listN[k])||(LIST_PG[k]?LIST_PG[k][0]:LIST_PAGE),listReset=k=>{if(UI.listN)delete UI.listN[k];};
+const LIST_PAGE=100,LIST_PG={links:[10,50],routers:[10,50],nets:[25,50]},listPg=k=>LIST_PG[k]?LIST_PG[k][1]:LIST_PAGE,listN=k=>(UI.listN&&UI.listN[k])||(LIST_PG[k]?LIST_PG[k][0]:LIST_PAGE),listReset=k=>{if(UI.listN)delete UI.listN[k];};
+// The dashboard's other lists open on a page a phone gets through in a few swipes ([first page, step]); the rest is a tap away.
+Object.assign(LIST_PG,{cust:[20,40],conn:[20,40],pops:[20,40],traffic:[25,50],lease:[15,30]});
+// The paragraph that explains a list shows only while the list is short: above a long one it is a screen of text in the way.
+const LIST_INTRO=8,listIntro=(n,txt)=>n>LIST_INTRO?'':`<p class="note" style="margin-top:0">${txt}</p>`;
+// One row of a dashboard list at a time unfolds for its less used buttons and details (ACT.dashRow).
+const rowOpen=k=>UI.dashOpen===k,rowTog=(k,lab)=>btn(lab+(rowOpen(k)?' ▴':' ▾'),'dashRow',{k},'ghost sm rtog');
 const listMore=(k,n,lab,cls)=>n>listN(k)?`<div class="btns${cls?' '+cls:''}"${cls?'':' style="margin-top:6px"'}>${btn(lab(Math.min(listPg(k),n-listN(k))),'listMore',{k},'ghost sm')}</div>`:'';
 function custSection(){const F=UI.kf||{};let h=`<div class="panel2" id="custSec" style="margin-top:12px"><h3>${tr('common.customers')}</h3>`;
   if(!S.biz.length)return h+`<p class="empty">${tr('customers.no_customers_yet_offers_show_up')}</p></div>`;
   const st=custStats();
-  h+=`<p class="note" style="margin-top:0">${tr('customers.everyone_who_pays_you_happiest_last')}</p>`;
+  h+=listIntro(S.biz.length,tr('customers.everyone_who_pays_you_happiest_last'));
   h+=`<div class="dgrid" style="margin:0 0 8px"><div class="tile"><div class="lbl">${tr('common.happiness')}</div><div class="val" style="color:${st.avg<60?'var(--bad)':'inherit'}">${Math.round(st.avg)}%</div><div class="sub">${tr('customers.weighted_by_what_they_pay')}</div></div><div class="tile"><div class="lbl">${tr('common.unhappy')}</div><div class="val" style="color:${st.unhappy?'var(--bad)':'inherit'}">${st.unhappy}</div><div class="sub">${trn('customers.n_furious',st.furious)}</div></div><div class="tile"><div class="lbl">${tr('common.at_risk')}</div><div class="val">${tr('common.price_mo',{price:fmt$(st.risk)})}</div><div class="sub">${tr('customers.from_unhappy_customers')}</div></div></div>`;
   const cities=[...new Set(S.biz.map(b=>b.city))].sort((a,b)=>CITY[a].name.localeCompare(CITY[b].name));
   h+=`<div class="trsel" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px"><div class="seg">${btn(tr('dashboard.all_n',{n:S.biz.length}),'custF',{v:''},!F.f?'pink sm':'ghost sm')}${btn(tr('customers.unhappy_n',{n:S.biz.filter(b=>b.mood<60).length}),'custF',{v:'sad'},F.f==='sad'?'pink sm':'ghost sm')}</div><label>${tr('common.city_906b')} <select data-chg="custCity"><option value="">${tr('common.all_cities')}</option>${cities.map(c=>`<option value="${c}"${F.city===c?' selected':''}>${esc(CITY[c].name)}</option>`).join('')}</select></label></div>`;

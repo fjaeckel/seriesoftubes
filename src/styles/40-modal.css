@@ -82,6 +82,13 @@ label.f+select.pick{width:100%}
 .grade{font-family:var(--display);font-weight:800;font-size:30px;line-height:1;border:3px solid var(--edge);border-radius:12px;padding:4px 10px;background:var(--sun)}
 #dash{position:fixed;inset:0;background:rgba(30,38,64,.35);z-index:15;overflow:auto;padding:calc(env(safe-area-inset-top,0px) + 12px) max(12px,env(safe-area-inset-right,0px)) 16px max(12px,env(safe-area-inset-left,0px))}
 #dashCard{max-width:980px;margin:0 auto;padding:16px 18px 18px;background:var(--paper)}
+/* The dashboard's tabs and its close button stay pinned while a tab scrolls; the tabs wrap, so every one is in sight. */
+.dtitle h2{font-size:28px}
+.dhead{position:sticky;top:-12px;z-index:3;display:flex;align-items:center;gap:8px;margin:10px -4px 4px;padding:8px 4px;background:var(--paper);border-bottom:2.5px solid var(--edge)}
+.dhead .dtabs{position:static;flex:1;min-width:0;flex-wrap:wrap;overflow:visible;margin:0;padding:0;border:0}
+/* A list row's own buttons: Open and the unfold button in a column at its right, what unfolds in one wrapping line under it. */
+.ract{display:flex;flex-direction:column;gap:5px;align-items:stretch;flex:none}
+.btns.rmore{margin:0 0 9px}
 .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:10px 0}
 .tile{border:2.5px solid var(--edge);border-radius:13px;padding:6px 10px;background:var(--soft)}
 .tile .lbl{font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
@@ -174,8 +181,17 @@ input.t{width:100%;box-sizing:border-box;border:3px solid var(--edge);border-rad
 .tierbtn .sz{font-family:var(--display);font-weight:800;font-size:22px;width:70px}
 .tierbtn .grow{flex:1}
 .tierbtn .pr{font-family:var(--display);font-weight:800;font-size:18px}
-.gl dt{font-family:var(--display);font-weight:800;font-size:16px;margin-top:10px}
-.gl dd{margin:2px 0 0;color:var(--ink2);line-height:1.45;font-size:13px}
+/* How to play: an index of closed topics in two columns (the open one takes the full width), under a search box. */
+div.gl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px;align-items:start}
+.gt{border:2px solid var(--line);border-radius:10px;background:var(--soft);min-width:0}
+.gt[open]{grid-column:1/-1;background:var(--paper);border-color:var(--edge)}
+.gt summary{font-family:var(--display);font-weight:800;font-size:14.5px;line-height:1.2;padding:8px 10px 7px;cursor:pointer;overflow-wrap:anywhere}
+.gt[open] summary{font-size:16px}
+.gt summary:focus-visible{outline:3px solid #FF4F9A;outline-offset:1px;border-radius:8px}
+.gt p{margin:0;padding:0 10px 9px;color:var(--ink2);line-height:1.45;font-size:13px}
+.helph{font-size:28px}.helpq{width:100%;box-sizing:border-box;margin-top:8px}
+/* The row with a window's title and its close button stays on top while the rest scrolls. */
+#modal:not(.pie) #modalCard>div:first-child:has(>.x),#modalCard>.mhead,#modalCard>.info>div:first-child{position:sticky;top:-20px;z-index:4;background:var(--paper);margin:-20px -22px 0;padding:20px 22px 6px}
 .kbd{display:inline-block;border:2px solid var(--edge);border-radius:6px;padding:0 5px;font-weight:900;font-size:11px;background:var(--soft)}
 .keylist{display:grid;grid-template-columns:auto 1fr;gap:10px 16px;align-items:center;margin:14px 0 0}
 .keylist dt{margin:0;white-space:nowrap}.keylist dd{margin:0;color:var(--ink2);font-size:14px}

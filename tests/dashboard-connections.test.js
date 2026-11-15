@@ -23,7 +23,10 @@ for (const phone of [false, true]) {
   test(`#336 the connection list offers downgrades and a chase (${phone ? 'phone' : 'desktop'})`, () => {
     const { ev, errors } = setup();
     open(ev, phone);
-    const ix = ev('window.__ix'), a = acts(ev, '#connSec');
+    const ix = ev('window.__ix');
+    // On a phone each row keeps its buttons folded behind "Change": unfold the rows one after another and collect them.
+    const a = phone ? JSON.parse(ev(`JSON.stringify((()=>{const ks=[...document.querySelectorAll('#connSec [data-act="dashRow"]')].map(b=>JSON.parse(b.dataset.args).k),out=[];
+      for(const k of ks){UI.dashOpen=null;ACT.dashRow({k});out.push(...[...document.querySelectorAll('#connSec [data-act]')].map(b=>b.dataset.act+' '+b.dataset.args));}return out;})())`)) : acts(ev, '#connSec');
     assert.ok(has(a, 'downT', { id: 't1' }) && has(a, 'lagT', { id: 't1', d: -1 }), 'transit: smaller port, one member fewer');
     assert.ok(has(a, 'downP', { id: 'p1' }) && has(a, 'lagP', { id: 'p1', d: -1 }), 'PNI: smaller port, one member fewer');
     assert.ok(has(a, 'pniChase', { id: 'p2' }), 'a PNI on order can be chased');

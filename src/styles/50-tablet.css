@@ -43,3 +43,8 @@
   #hud .chip.find{width:32px;min-width:32px;font-size:15px}
   .speed button{min-width:23px;padding-left:2px;padding-right:2px}
 }
+/* Still two rows (a narrow tablet late in the game)? The speed chip would cover the left panel's tabs, so the extras go:
+   first half speed and the NOC's own window, then the Customers chip (the Deals tab has the same numbers). */
+#hud.fit4 .speed #sp0\.5,#hud.fit4 .speed [data-act="nocWindow"]{display:none}
+#hud.fit4 .speed button{min-width:23px;padding-left:2px;padding-right:2px}
+#hud.fit5 #hCust{display:none}

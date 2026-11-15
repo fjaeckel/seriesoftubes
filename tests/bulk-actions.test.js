@@ -151,6 +151,8 @@ test('#315 save a standard, bring a POP up to it, then every POP of that kind at
   const { ev, errors } = h;
   ev("UI.sel={type:'city',id:'fra'};UI.tab='links';window.innerWidth=390;renderAll()");
   assert.match(text(h, '#panel'), /POP standards/);
+  // With a few POPs the standards are folded under the routers; one tap unfolds them.
+  ev("ACT.panelFold({k:'std'})");
   assert.match(text(h, '#panel'), /Regional hub/);
   ev("ACT.ptSave({city:'fra',k:'medium'})");
   assert.equal(ev("JSON.stringify(S.popTiers.def.medium)"), JSON.stringify({ g: 1, rt: 2 }));

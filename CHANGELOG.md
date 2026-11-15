@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Much less scrolling in the Goals and NOC tabs: finished goals fold into one line, the badge collection opens with a tap, and the NOC shows the five worst congested links, slow cities and hot ports with a button for the rest.
+- The Networks tab has a search box: type a name or AS number to find any network, or tap Tier 1, Tier 2, CDN or Eyeballs to see just that kind. Each network is one compact row; tap it for its story, your connections and where to meet it.
+- The NOC dashboard is much shorter to scroll: every long list opens on a short first page with a button for more, and the tabs and close button stay pinned at the top. On phones all tabs are visible at once, and Connections and Leased lines rows unfold their buttons and cost estimates with "Change" and "Details".
+- City and link panels are much shorter: long lists show a first page with "+N more", your own ports and PNIs come first, and the Peering and Infra tabs have chips that jump to a section. On phones the city sheet has a one-row header and shows more, and once you run a few POPs the explanations fold behind a "?" beside each heading.
+- How to play is now a short index you can search: type a word like "transit" or "LAG" to find its explanation, or tap a topic to open it.
+- Menus and the start screen fit phones better: How to play and Export save are big tiles in the network menu, the start screen shows the name, doors and difficulty without scrolling, and a window's close button stays in view while you scroll.
+- The side panels are wider on big screens, and switching between Goals, Deals, NOC and Networks starts each list at the top. Escape closes the window on top first, Up and Down pick a result in Find a city, and every button in the top bar has a tooltip.
+- On tablets, the speed buttons no longer cover the Goals, Deals, NOC and Networks tabs late in the game.
+
 ## [4.3.0] — 2026-11-15
 
 - The NOC intern can now run your rocket launches: a new standing order books launches to keep your crusts at 60, 80 or 100% as old pies wear out, with its own monthly budget.

@@ -1,6 +1,6 @@
-function fitHud(){const h=$('hud');if(!h)return;h.classList.remove('fit1','fit2','fit3');if(innerWidth<=760)return;
+function fitHud(){const h=$('hud');if(!h)return;h.classList.remove('fit1','fit2','fit3','fit4','fit5');if(innerWidth<=760)return;
   const row=()=>{let m=0;for(const c of h.children)if(c.offsetParent)m=Math.max(m,c.offsetHeight);return m;};
-  for(const c of ['fit1','fit2','fit3']){if(h.offsetHeight<=row()*1.5)break;h.classList.add(c);}}
+  for(const c of ['fit1','fit2','fit3','fit4','fit5']){if(h.offsetHeight<=row()*1.5)break;h.classList.add(c);}}
 function renderHUD(){
   // No clock (puzzles): there is no time to speed up, so the speed buttons go.
   // A locked clock has no buttons: whoever locked it shows what it runs at (HOOKS.hud).
@@ -25,6 +25,11 @@ function renderHUD(){
   if(!window.__TUBES_TEST__)fitHud();
   renderTabbar();
 }
+// Folded parts of the Goals and NOC tabs (view state): finished goals, the badge grid, and the rest of each long NOC list.
+const LEFT_FOLDS=['done','badges','hot','slow','ports'],leftFolded=k=>!!(UI.fold&&UI.fold[k]),NOC_TOP=5;
+// NOC lists are sorted worst first: show the worst few, one tap shows them all (and folds them again).
+const nocCnt=a=>a.length>NOC_TOP?` <span class="meta">${a.length}</span>`:'';
+function nocList(k,rows,fn){const all=leftFolded(k);return (all?rows:rows.slice(0,NOC_TOP)).map(fn).join('')+(rows.length>NOC_TOP?`<div class="btns" style="margin:2px 0 8px">${btn(all?tr('common.show_fewer'):tr('notifications.show_all_n',{n:rows.length}),'leftFold',{k},'ghost sm')}</div>`:'');}
 function renderLeft(){checkLayer();
   // Tablets in landscape: both side panels don't fit next to the map, so the left one tucks away
   // while a city or link is open and comes back with the toggle button.
@@ -38,7 +43,10 @@ function renderLeft(){checkLayer();
   if(UI.left==='goals'){
     h+=charterCard()+scnCard()+lvlCard()+t1Card();
     const cur=G.find(g=>S.done[g.id]===undefined);
-    h+=G.map(g=>{const d=S.done[g.id]!==undefined,c=g===cur;return `<div class="goal ${d?'done':''} ${c?'cur':''}"><div class="ck">${d?'✓':''}</div><div><div class="gt">${esc(g.t)}</div>${c||!d?`<div class="gd">${esc(g.d)}</div>`:''}${!d&&g.r?`<div class="gr">${tr('hud_and_panels.reward_cash',{cash:fmt$(g.r)})}</div>`:''}</div></div>`;}).join('');
+    // Finished goals fold into one line once there are more than a few, so what is still to do comes first (and fits a phone).
+    const gRow=g=>{const d=S.done[g.id]!==undefined,c=g===cur;return `<div class="goal ${d?'done':''} ${c?'cur':''}"><div class="ck">${d?'✓':''}</div><div><div class="gt">${esc(g.t)}</div>${c||!d?`<div class="gd">${esc(g.d)}</div>`:''}${!d&&g.r?`<div class="gr">${tr('hud_and_panels.reward_cash',{cash:fmt$(g.r)})}</div>`:''}</div></div>`;};
+    if(ndone>3){const fo=leftFolded('done');h+=G.filter(g=>S.done[g.id]===undefined).map(gRow).join('')+`<div class="row gfold"><div class="ck">✓</div><div class="grow"><div class="nm">${trn('hud_and_panels.n_goals_done',ndone)}</div></div>${btn(fo?tr('common.hide'):tr('common.show'),'leftFold',{k:'done'},'ghost sm')}</div>`+(fo?G.filter(g=>S.done[g.id]!==undefined).map(gRow).join(''):'');}
+    else h+=G.map(gRow).join('');
     h+=badgeGrid();
   }else if(UI.left==='deals'){
     {const st=custStats();if(st.n)h+=`<div class="row" style="margin-bottom:8px"><div class="grow"><div class="nm">${tr('common.your_customers')} <span class="meta">${st.n} · ${tr('hud_and_panels.happiness_p',{p:Math.round(st.avg)})}</span></div><div class="bar ${moodCls(st.avg)}"><i style="width:${st.avg}%"></i></div>${st.unhappy?`<div class="why">${trn('hud_and_panels.n_unhappy_customer_price_mo_at',st.unhappy,{price:fmt$(st.risk)})}</div>`:''}</div>${btn(st.unhappy?tr('common.see_who'):tr('common.all_customers'),'custOpen',{sad:st.unhappy?1:0},st.unhappy?'pink sm':'ghost sm')}</div>`;}
@@ -50,36 +58,24 @@ function renderLeft(){checkLayer();
       <div class="btns">${has?btn(tr('common.accept'),'accept',{id:o.id},'green sm'):btn(tr('common.go_there'),'focusCity',{city:bCities(o).find(c=>!S.pops[c])},'ghost sm')}${btn(tr('common.decline'),'decline',{id:o.id},'ghost sm')}</div>${has?'':`<div class="why">${tr('hud_and_panels.needs_a_pop_in_cities',{cities:bCities(o).filter(x=>!S.pops[x]).map(x=>CITY[x].name).join(', ')})}</div>`}</div></div>`;}
   }else if(UI.left==='noc'){
     h+=`<div class="btns" style="margin-bottom:8px">${btn(tr('hud_and_panels.open_noc_dashboard'),'dash',{},'pink')}${pieNocBtn()}${btn(`⚙️ ${tr('routing.routing_and_ddos')}${S.te&&!coreTE()?'<span class="cnt red dot" aria-hidden="true"></span>':''}`,'routingOpen',{},'')}</div>`;
-    h+=`<p class="lead">${tr('hud_and_panels.your_network_operations_center_every')}</p>`;
+    // The introduction is for newcomers: once the network has grown or a few things have broken, it only costs a scroll.
+    if(Object.keys(S.pops).length<6&&(S.stats.incidents||0)<3)h+=`<p class="lead">${tr('hud_and_panels.your_network_operations_center_every')}</p>`;
     h+=opsCard()+pieSpatCard()+mkCard()+ddosPanel();
     // Incidents come first, the ones you can fix with one click at the top (#63): no scrolling past hot ports to replace an optic.
     for(const i of S.inc.filter(i=>i.type!=='ddos').sort((a,b)=>(b.cost?1:0)-(a.cost?1:0)||(b.impact||0)-(a.impact||0))){h+=`<div class="inc"><div class="nm">${incTitle(i.type)}</div><div class="meta">${esc(i.msg)}</div><div class="meta">${shipSea(i)?'🚢 '+esc(shipStatus(i)):trn('hud_and_panels.auto_fix_in_n_day',i.until-S.day)}${i.impact?` · ${tr('hud_and_panels.g_lost',{g:fmtG(i.impact)})}`:''}</div>${i.cost?`<div class="btns">${btn(`${esc(i.fix||tr('common.rush_repair'))} ${fmt$(i.cost)}`,'fixInc',{id:i.id},'red sm',S.cash<i.cost)}</div>`:''}</div>`;}
     h+=logSection();UI.logSeen=Date.now();
     if(S.grace&&S.grace.until>S.day&&R.graceNets)h+=`<div class="kv"><span>${tr('common.courtesy_route')}</span><b>${tr('hud_and_panels.n_networks_d_days_left',{n:R.graceNets,d:S.grace.until-S.day})}</b></div><p class="meta" style="margin:0 0 6px">${tr('hud_and_panels.reaches_networks_from_the_last')}</p>`;
     const hot=S.links.filter(l=>!linkDown(l)&&capOf(l)>0&&(R.load[l.id]||0)/capOf(l)>=0.85).sort((a,b)=>(R.load[b.id]/capOf(b))-(R.load[a.id]/capOf(a)));
-    if(hot.length){h+=`<h3 style="font-size:15px;margin:4px 0">${tr('common.congested_links')}</h3>${S.te&&S.te.on?'':'<p class="meta" style="margin:0 0 4px">'+tr('hud_and_panels.raise_a_full_link_s_metric')+'</p>'}`+hot.map(l=>`<div class="row"><div class="grow"><div class="nm">${CITY[l.a].name} ⇄ ${CITY[l.b].name}</div><div class="meta">${capName(l)} · ${tr('hud_and_panels.p_full',{p:pct((R.load[l.id]||0)/capOf(l))})}</div></div>${btn(tr('common.inspect'),'selLink',{id:l.id},'pink sm')}</div>`).join('');}
+    if(hot.length){h+=`<h3 style="font-size:15px;margin:4px 0">${tr('common.congested_links')}${nocCnt(hot)}</h3>${S.te&&S.te.on?'':'<p class="meta" style="margin:0 0 4px">'+tr('hud_and_panels.raise_a_full_link_s_metric')+'</p>'}`+nocList('hot',hot,l=>`<div class="row"><div class="grow"><div class="nm">${CITY[l.a].name} ⇄ ${CITY[l.b].name}</div><div class="meta">${capName(l)} · ${tr('hud_and_panels.p_full',{p:pct((R.load[l.id]||0)/capOf(l))})}</div></div>${btn(tr('common.inspect'),'selLink',{id:l.id},'pink sm')}</div>`);}
     h+=hwCard();
     const slow=Object.keys(S.pops).filter(latSlow).sort((a,b)=>R.latF[a]-R.latF[b]);
-    if(slow.length)h+=`<h3 style="font-size:15px;margin:4px 0">🐢 ${tr('common.slow_cities')}</h3><p class="meta" style="margin:0 0 4px">${tr('hud_and_panels.their_users_go_out_through_transit')}</p>`+slow.map(c=>{const f=R.latFar[c];return `<div class="row"><div class="grow"><div class="nm">${CITY[c].name} → ${CITY[f.to].name}</div><div class="meta">${tr('hud_and_panels.p_of_its_traffic_ms_ms',{p:pct(Math.min(1,f.share)),ms:Math.round(f.ms),sf:pct(R.latF[c])})}</div></div>${btn(tr('common.inspect'),'focusCity',{city:c},'ghost sm')}</div>`;}).join('');
+    if(slow.length)h+=`<h3 style="font-size:15px;margin:4px 0">🐢 ${tr('common.slow_cities')}${nocCnt(slow)}</h3><p class="meta" style="margin:0 0 4px">${tr('hud_and_panels.their_users_go_out_through_transit')}</p>`+nocList('slow',slow,c=>{const f=R.latFar[c];return `<div class="row"><div class="grow"><div class="nm">${CITY[c].name} → ${CITY[f.to].name}</div><div class="meta">${tr('hud_and_panels.p_of_its_traffic_ms_ms',{p:pct(Math.min(1,f.share)),ms:Math.round(f.ms),sf:pct(R.latF[c])})}</div></div>${btn(tr('common.inspect'),'focusCity',{city:c},'ghost sm')}</div>`;});
     const hotR=hotPorts();
-    if(hotR.length)h+=`<h3 style="font-size:15px;margin:4px 0">${tr('hud_and_panels.ports_caches_and_routers_running_hot')}</h3>`+hotR.map(x=>`<div class="row"><span class="hotk hk-${x.k}">${HOTL[x.k]}</span><div class="grow"><div class="nm">${CITY[x.city].name} · ${esc(x.lab)}</div><div class="meta">${tr('hud_and_panels.p_full',{p:pct(Math.min(1,x.u))})}${x.u>=0.995?' · '+tr('hud_and_panels.dropping_or_overflowing'):''} · ${esc(x.tip)}</div></div>${btn(tr('common.inspect'),'focusCity',{city:x.city},'pink sm')}</div>`).join('');
+    if(hotR.length)h+=`<h3 style="font-size:15px;margin:4px 0">${tr('hud_and_panels.ports_caches_and_routers_running_hot')}${nocCnt(hotR)}</h3>`+nocList('ports',hotR,x=>`<div class="row"><span class="hotk hk-${x.k}">${HOTL[x.k]}</span><div class="grow"><div class="nm">${CITY[x.city].name} · ${esc(x.lab)}</div><div class="meta">${tr('hud_and_panels.p_full',{p:pct(Math.min(1,x.u))})}${x.u>=0.995?' · '+tr('hud_and_panels.dropping_or_overflowing'):''} · ${esc(x.tip)}</div></div>${btn(tr('common.inspect'),'focusCity',{city:x.city},'pink sm')}</div>`);
     if(!S.inc.length&&!hot.length&&!hotR.length&&!slow.length)h+=`<p class="empty">${tr('hud_and_panels.all_systems_green_enjoy_it_while')}</p>`;
     h+=`<div class="kv" style="margin-top:8px"><span>${tr('hud_and_panels.incidents_so_far')}</span><b>${S.stats.incidents}</b></div><div class="kv"><span>${tr('hud_and_panels.survived_with_no_impact')}</span><b>${S.stats.survived}</b></div>`;
   }else{
-    if(Object.keys(S.ixp).length||ppol()!=='open')h+=pdeskCard();
-    if(S.fed)h+=fedPlayCard();
-    h+=`<p class="lead">${tr('hud_and_panels.every_network_on_the_map_traffic')}</p>`;
-    {const nc=connsN();if(nc)h+=`<div class="btns" style="margin-bottom:8px">${btn(tr('hud_and_panels.all_connections_n',{n:nc}),'connOpen',{},'pink sm')}</div>`;}
-    const where=netWhereIdx(),tl=NETS.filter(n=>n.tail),tlOn=tl.filter(n=>where(n.id).some(x=>x[2]==='ix')).length;
-    const foc=UI.netFocus&&NET[UI.netFocus]?NET[UI.netFocus]:null,out=!foc&&UI.nf==='out',lostN=ntLost().length;
-    h+=`<div class="btns" style="margin-bottom:8px">${btn(tr('common.all_networks'),'netFilter',{f:'all'},!foc&&!out?'sm':'ghost sm')}${btn(tr('hud_and_panels.out_of_reach_without_transit_n',{n:lostN}),'netFilter',{f:'out'},out?'sm':'ghost sm')}</div>`;
-    if(out&&!lostN)h+=`<p class="empty">${tr('hud_and_panels.nothing_every_network_is_reachable')}</p>`;
-    // Shown 100 at a time like the dashboard lists: every country's own eyeballs made this list long (2.0).
-    const nl=(foc?[foc]:out?ntLost():NETS).filter(n=>!n.fed&&(!n.tail||UI.tailOpen||foc||out));
-    for(const n of nl.slice(0,listN('nets'))){
-      h+=`<div class="row">${logo(n)}<div class="grow"><div class="nm">${esc(n.name)} <span class="meta">AS${n.asn}</span></div><div class="meta"><span class="tag ${n.type}">${TYPE_L[n.type]}</span> <span class="tag ${n.pol}">${n.pol}</span> · ${tr('hud_and_panels.p_of_traffic',{p:(NSH[n.id]*100).toFixed(1)})}${n.price?` · ${tr('hud_and_panels.transit_price_gbps',{price:(n.price*S.priceMul).toFixed(2)})}`:''}</div><div class="pchips">${pniChip(n.id,null)}</div><div class="meta">${esc(n.blurb)}</div>${netWhere(n,where)}${(foc||out)&&!R.nt[n.id]?`<p class="why">${esc(offTransitHint(n.id))}</p>`:''}${(foc||out)&&coneVia(n.id)&&(R.cone[n.id]||!R.nt[n.id])?`<p class="meta">${R.cone[n.id]?tr('hud_and_panels.reached_through_the_customer_cone_of',{net:esc((NET[R.cone[n.id]]||coneVia(n.id)).name)}):tr('hud_and_panels.buys_transit_from_net_peer_with',{net:esc(coneVia(n.id).name)})}</p>`:''}${foc||out&&!R.nt[n.id]?meetLine(n,foc?24:4):''}</div></div>`;}
-    h+=listMore('nets',nl.length,n=>trn('hud_and_panels.n_more_networks',n));
-    if(!foc&&!out)h+=`<div class="row"><div class="grow"><div class="nm">${tr('hud_and_panels.the_long_tail')} <span class="meta">${tr('hud_and_panels.n_small_networks',{n:tl.length})}</span></div><div class="meta">${tr('hud_and_panels.p_of_traffic_between_them_scattered',{p:(tl.reduce((a,n)=>a+NSH[n.id],0)*100).toFixed(1),n:tlOn})}</div></div>${btn(UI.tailOpen?tr('common.hide'):tr('common.show'),'tailTog',{},'ghost sm')}</div>`;
+    h+=netsTab();
   }
   if(h!==UI._lh){UI._lh=h;morph($('leftBody'),h);}
 }

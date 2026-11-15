@@ -22,13 +22,16 @@ function findRows(q,from){const ids=findCities(q,from),land=c=>(findIndex().find
     return `<button class="row findrow${i?'':' on'}" data-act="${from?'linkTo':'findGo'}" data-args="${esc(JSON.stringify(from?{a:from,b:c}:{city:c}))}"><span class="grow"><span class="nm">${p?'📍 ':''}${esc(C.name)}</span><span class="meta">${esc([land(c),C.ix].filter(Boolean).join(' · '))}${p?' · '+tr('find.your_pop'):''}</span></span><span aria-hidden="true">›</span></button>`;}).join('');}
 /* The same box picks where a new link from one of your POPs goes (#343): on a crowded phone map, dragging from a POP
    to a city far away is fiddly, so you type the other end and get the link window the drag would have opened. */
-function findOpen(from){if(!S||!UI.started)return;from=from&&S.pops[from]?from:null;UI.findFrom=from;
+function findOpen(from){if(!S||!UI.started)return;from=from&&S.pops[from]?from:null;UI.findFrom=from;UI.findAt=0;
   const title=from?tr('find.link_from_city',{city:CITY[from].name}):tr('find.find_a_city');
   openModal(`<h2 style="font-size:24px;margin:0 0 10px">${from?'🔗':'🔍'} ${esc(title)}</h2><input class="t" id="findIn" type="search" enterkeyhint="go" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(tr('find.city_country_or_exchange'))}" aria-label="${esc(title)}" aria-controls="findList">
     <div id="findList" class="findlist" role="list">${findRows('',from)}</div>${from?`<p class="meta" style="margin:8px 0 0">${tr('find.pick_where_the_link_goes')}</p>`:isPhone()?'':`<p class="meta" style="margin:8px 0 0">${tr('find.press_slash_to_search_from')}</p>`}`,'find');
   const el=$('findIn');if(el)el.focus();}
-document.addEventListener('input',e=>{if(e.target.id!=='findIn')return;const L=$('findList');if(L)L.innerHTML=findRows(e.target.value,UI.findFrom);});
+document.addEventListener('input',e=>{if(e.target.id!=='findIn')return;UI.findAt=0;const L=$('findList');if(L)L.innerHTML=findRows(e.target.value,UI.findFrom);});
+// Up and Down move the highlight through the results, and Enter takes the highlighted one.
+function findMove(d){const L=$('findList'),rows=L?[...L.querySelectorAll('.findrow')]:[];if(!rows.length)return;const i=Math.max(0,Math.min(rows.length-1,(UI.findAt||0)+d));UI.findAt=i;
+  rows.forEach((r,j)=>r.classList.toggle('on',j===i));if(rows[i].scrollIntoView)rows[i].scrollIntoView({block:'nearest'});}
 document.addEventListener('keydown',e=>{
-  if(e.target.id==='findIn'){if(e.key==='Escape'){closeModal();return;}if(e.key==='Enter'){e.preventDefault();const f=UI.findFrom,c=findCities(e.target.value,f)[0];if(c){if(f)ACT.linkTo({a:f,b:c});else ACT.findGo({city:c});}}return;}
+  if(e.target.id==='findIn'){if(e.key==='Escape'){closeModal();return;}if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();findMove(e.key==='ArrowDown'?1:-1);return;}if(e.key==='Enter'){e.preventDefault();const f=UI.findFrom,c=findCities(e.target.value,f)[UI.findAt||0];if(c){if(f)ACT.linkTo({a:f,b:c});else ACT.findGo({city:c});}}return;}
   if(e.key!=='/'||e.ctrlKey||e.metaKey||e.altKey||(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]')))return;
   if(!S||!UI.started||!$('modal').hidden)return;e.preventDefault();findOpen();});

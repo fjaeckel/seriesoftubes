@@ -95,7 +95,8 @@ test('a snubbing peer tears down an existing session and the Request button expl
   ev('dayTick()');
   assert.equal(ev(`!!S.peers['${id}@${c}']`), false, 'session torn down');
   assert.ok(ev(`S.log.some(e=>/de-peered you/.test(e.t))`));
-  ev(`selectCity('${c}');ACT.tab({t:'peer'})`);
+  // The member list shows a first page; the rest is one tap away.
+  ev(`selectCity('${c}');ACT.tab({t:'peer'});ACT.panelMore({k:'ix:${c}',n:5000})`);
   assert.match(ev("document.getElementById('panelBody').textContent"), /reconsider in/);
   assert.deepEqual(errors, []);
 });

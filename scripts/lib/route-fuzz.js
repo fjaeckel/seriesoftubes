@@ -120,7 +120,12 @@ function playGame(pages, seed, opts = {}) {
     if (!baseTabs) baseTabs = new Set(JSON.parse(base.ev('JSON.stringify(DTABS)')));
     if (!headTabs) headTabs = new Set(JSON.parse(head.ev('JSON.stringify(DTABS)')));
     const a = Array.isArray(a0) ? a0.filter((x) => !(/^ops/.test(x.act) && retired.has(x.args && x.args.k)) && !(x.act === 'dashTab' && x.args && !headTabs.has(x.args.k))) : a0;
-    const b = Array.isArray(b0) ? b0.filter((x) => baseActs.has(x.act) && !(x.act === 'dashTab' && x.args && !baseTabs.has(x.args.k))) : b0; same('buttons of ' + JSON.stringify(w), a, b); return a || []; };
+    const b = Array.isArray(b0) ? b0.filter((x) => baseActs.has(x.act) && !(x.act === 'dashTab' && x.args && !baseTabs.has(x.args.k))) : b0; 
+    // Panels may fold and reorder their buttons (fuzz-page.js reads them unfolded): the same set of buttons is the same
+    // screen, and the walk goes by the base page's order.
+    const set = (x) => JSON.stringify([...new Set(x.map((q) => q.act + ' ' + JSON.stringify(q.args)))].sort());
+    if (Array.isArray(a) && Array.isArray(b) && set(a) === set(b)) return a;
+    same('buttons of ' + JSON.stringify(w), a, b); return a || []; };
   const press = (b, where) => { acts[b.act] = (acts[b.act] || 0) + 1; const [e1, e2] = both('press', b); same('press ' + where, e1, e2); note(where + ' ' + b.act + JSON.stringify(b.args) + (e1 ? ' !' + e1 : '')); };
   // Answer whatever window opened, a few levels deep, then close it.
   const modal = (bias) => {

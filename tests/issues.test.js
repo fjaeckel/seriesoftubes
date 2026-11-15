@@ -117,7 +117,7 @@ test('a rare global outage shows a banner, dents traffic and only happens once',
 test('badges unlock with a rarity, persist across games, and secret ones stay hidden', () => {
   const { ev, errors } = load();
   base(ev);
-  ev("localStorage.removeItem('sot-badges');S.ach={};compute();checkGoals();ACT.leftTab({t:'goals'})");
+  ev("localStorage.removeItem('sot-badges');S.ach={};compute();checkGoals();ACT.leftTab({t:'goals'});ACT.leftFold({k:'badges'})");
   let txt = ev("document.body.textContent");
   assert.match(txt, /Badges/);
   assert.match(txt, /\?\?\?/, 'secret badges are hidden');
@@ -398,7 +398,8 @@ test('#31 #33 #38 connections overview lists every port, filters it and jumps to
   ev("ACT.goConn({city:'fra',k:'c'})");
   assert.equal(ev('UI.tab'), 'peer');
   // the Networks tab says where each network is connected (#33)
-  ev("UI.left='nets';UI.leftOpen=true;renderLeft()");
+  // rows are compact: the jump buttons show once the row is unfolded
+  ev("UI.left='nets';UI.leftOpen=true;UI.nlOpen='cog';renderLeft()");
   const cog = [...doc.querySelectorAll('#leftBody .row')].find((r) => /Cogentle/.test(r.textContent));
   const jump = cog.querySelector('[data-act="goConn"]');
   assert.ok(jump, 'Cogentle shows a jump button');
@@ -682,6 +683,8 @@ test('NOC leased lines tab prices leased dark fiber, own fiber and cables agains
   base(ev);
   ev("S.cash=1e9;S.lvl=3;for(const c of ['ams','lon','nyc','par'])ACT.buildPop({city:c});for(const c in S.pops)S.pops[c].rgen=2;const L=(a,b,t)=>{UI.via=null;openLinkModal(a,b);ACT.buildLink({tier:t});closeModal();};L('fra','ams',2);L('fra','ams',2);L('lon','nyc',1);L('fra','par',1);compute()");
   ev("ACT.dash();ACT.dashTab({k:'lease'})");
+  assert.doesNotMatch(ev("document.getElementById('dashCard').textContent"), /Lease dark fiber: .* up front/, 'a row opens on its best swap only');
+  ev("ACT.dashRow({k:'l:ams|fra'})");
   let t = ev("document.getElementById('dashCard').textContent");
   assert.match(t, /Leased lines/);
   assert.match(t, /Amsterdam ⇄ Frankfurt/);

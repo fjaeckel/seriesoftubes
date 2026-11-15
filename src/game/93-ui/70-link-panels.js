@@ -1,12 +1,12 @@
 const portMo=v=>v?tr('common.price_mo',{price:fmt$(v)}):tr('common.free');
 function ixSection(c){const ids=ixIdsIn(c);if(ids.length<2)return ixBlock(c,false);
-  let h=`<section><h3>${tr('common.internet_exchanges')}</h3><p class="lead">${tr('link_panels.n_exchanges_compete_in_city_members',{n:ids.length,city:esc(CITY[c].name)})}</p></section>`;
+  let h=`<section>${pnHead('ixs',tr('common.internet_exchanges'),`<p class="lead">${tr('link_panels.n_exchanges_compete_in_city_members',{n:ids.length,city:esc(CITY[c].name)})}</p>`)}</section>`;
   for(const x of ids)h+=ixBlock(x,true);return h;}
 function ixBlock(c,multi){const city=ixCity(c),C=CITY[city],ix=ixName(c),X=XIXM[c];let h='';
     h+=`<section><h3>${multi?esc(ix)+(X?' <span class="tag st">'+tr('common.challenger')+'</span>':' <span class="tag st">'+tr('common.incumbent')+'</span>'):tr('common.internet_exchange')}</h3>`;
     if(!ix&&C.cn){h+=`<p class="lead">${tr('link_panels.running_an_exchange_in_mainland')}</p>`;}
     else if(!ix){h+=`<p class="lead">${tr('link_panels.there_s_no_ix_in_city',{city:C.name})}</p>${S.pops[city]?btn(tr('link_panels.found_your_own_ix_cost_mo',{cost:fmt$(MYIX_COST),mo:fmt$(MYIX_MO)}),'foundIx',{city:c},'pink',S.cash<MYIX_COST):'<p class="note">'+tr('link_panels.build_a_pop_here_first')+'</p>'}`;}
-    else if(S.ixp[c]===undefined){h+=`<p class="lead">${tr('link_panels.ix_is_a_shared_switch_one',{ix:esc(ix),list:(()=>{const m=ixMembers(c),big=m.filter(id=>!NET[id].tail),t=m.length-big.length;return (big.map(id=>esc(NET[id].name)).join(', ')||tr('common.nobody_yet'))+(t?trn('link_panels.plus_n_small_network',t):'');})()})}</p>${S.pops[city]?'':REMOTE_WARN}${X?`<p class="note">${esc(X.blurb)} ${X.freeTo!==undefined?tr('link_panels.ports_up_to_port_are_free',{port:PORT[X.freeTo].n}):tr('link_panels.ports_at_p_of_the_usual',{p:Math.round(ixMul(c)*100)})}</p>`:''}${CITY[city].ixCheap?`<p class="note">${tr('link_panels.run_by_a_nonprofit_public_prices')}</p>`:''}${isDk(c)?`<p class="note">${tr('link_panels.run_by_de_kicks_group_no')}</p>`:''}<div class="btns">${PORT.map((P2,i)=>btn(isDk(c)?tr('link_panels.port_port_price_on_request',{port:P2.n}):tr('link_panels.port_port_price',{port:P2.n,price:portMo(ixPortMo(c,i))}),'buyIx',{city:c,tier:i},'',(!isDk(c)&&S.cash<ixPortMo(c,i))||(!!S.pops[city]&&!portOk(city,i))||(!S.pops[city]&&i>1))).join('')}</div>`;}
+    else if(S.ixp[c]===undefined){h+=`<p class="lead">${tr('link_panels.ix_is_a_shared_switch_one',{ix:esc(ix),list:(()=>{const m=ixMembers(c),big=m.filter(id=>!NET[id].tail),t=m.length-big.length;return (big.map(id=>esc(NET[id].name)).join(', ')||tr('common.nobody_yet'))+(t?trn('link_panels.plus_n_small_network',t):'');})()})}</p>${S.pops[city]?'':REMOTE_WARN}${X?`<p class="note">${esc(X.blurb)} ${X.freeTo!==undefined?tr('link_panels.ports_up_to_port_are_free',{port:PORT[X.freeTo].n}):tr('link_panels.ports_at_p_of_the_usual',{p:Math.round(ixMul(c)*100)})}</p>`:''}${CITY[city].ixCheap?`<p class="note">${tr('link_panels.run_by_a_nonprofit_public_prices')}</p>`:''}${isDk(c)?`<p class="note">${tr('link_panels.run_by_de_kicks_group_no')}</p>`:''}<div class="btns">${PORT.map((P2,i)=>btn(isDk(c)?tr('link_panels.port_port_price_on_request',{port:P2.n}):tr('link_panels.port_port_price',{port:P2.n,price:portMo(ixPortMo(c,i))}),'buyIx',{city:c,tier:i},pnVet()?'sm':'',(!isDk(c)&&S.cash<ixPortMo(c,i))||(!!S.pops[city]&&!portOk(city,i))||(!S.pops[city]&&i>1))).join('')}</div>`;}
     else{const mine=!!S.myIx[c],u=R.useIx[c]||0,cap=ixCap(c),set=ixSessions(c),xdown=S.ev.ixdown&&S.ev.ixdown[c]>S.day;
       h+=`<div class="kv"><span>${mine?tr('link_panels.your_own_fabric_name',{name:myFab(c).n}):lagName(S.ixp[c],(S.ixn||{})[c])}${xdown?' · <b style="color:var(--bad)">FABRIC DOWN</b>':''}</span><b>${fmtG(u)}</b></div><div class="bar ${barCls(u/cap)}"><i style="width:${u/cap*100}%"></i></div>${prefCtl('ix',c,S.ixPref&&S.ixPref[c])}${S.pops[city]?siteCtl('ix',c,city,(S.ixSite||{})[c]):''}`;
       if(isDk(c)&&S.dk){const ad=S.dk.add[c]||[],rt=S.dk.ret[c];h+=`<p class="note">${rt&&rt>S.day?tr('link_panels.de_kicks_personalised_pricing_p_of',{p:Math.round(dkMult(c)*100),n:rt-S.day}):tr('link_panels.de_kicks_personalised_pricing_p_of_3d4f',{p:Math.round(dkMult(c)*100)})}</p>`;
@@ -17,10 +17,13 @@ function ixBlock(c,multi){const city=ixCity(c),C=CITY[city],ix=ixName(c),X=XIXM[
       h+=`<div style="margin-top:8px">`;
       {const elig=mine?[]:ixMembers(c).filter(id=>!set.has(id)&&peerOk(id,'ix',c).ok);if(elig.length>1)h+=`<div class="btns">${btn(tr('link_panels.request_all_n_willing_peers',{n:elig.length}),'peerAll',{city:c},'pink sm')}</div>`;}
       {const ms=ixMembers(c),shown=ms.filter(id=>netKeep(NET[id],set.has(id)));if(ms.length&&!shown.length)h+=netNone();}
-      for(const id of ixMembers(c).filter(id=>netKeep(NET[id],set.has(id))).sort((a,b)=>NSH[b]-NSH[a])){const n=NET[id],on=set.has(id),viaRs=on&&!S.peers[id+'@'+c]&&!mine,chk=peerOk(id,'ix',c);
+      // A short page at a time (an exchange can have hundreds): first the members you could ask now, biggest first,
+      // then the ones that say no (and why), then the ones you already reach.
+      const mk=id=>set.has(id)?2:peerOk(id,'ix',c).ok?0:1,ml=ixMembers(c).filter(id=>netKeep(NET[id],set.has(id))).map(id=>[id,mine?1:mk(id)]).sort((a,b)=>a[1]-b[1]||NSH[b[0]]-NSH[a[0]]).map(x=>x[0]);
+      for(const id of ml.slice(0,pnN('ix:'+c,ml.length,4))){const n=NET[id],on=set.has(id),viaRs=on&&!S.peers[id+'@'+c]&&!mine,chk=peerOk(id,'ix',c);
         h+=`<div class="row">${logo(n)}<div class="grow"><div class="nm">${esc(n.name)}</div><div class="meta"><span class="tag ${n.type}">${TYPE_L[n.type]}</span> <span class="tag ${n.pol}">${n.pol}</span> · ${(NSH[id]*100).toFixed(NSH[id]<0.01?1:0)}%${n.tail?' <span class="tag st">'+tr('common.tiny')+'</span>':''}</div>${!on&&!chk.ok?`<div class="why">${esc(chk.why)}</div>`:''}</div>
         ${on?(viaRs||mine?`<span class="tag st on">${mine?tr('common.member_fef5'):tr('common.via_rs')}</span>`:btn(tr('common.peered_ce2f'),'unpeer',{city:c,net:id},'green sm',false,tr('link_panels.click_to_tear_down'))):btn(tr('common.request'),'peer',{city:c,net:id},'sm',!chk.ok)}</div>`;}
-      h+=`</div>`;}
+      h+=pnMore('ix:'+c,ml.length,n=>trn('hud_and_panels.n_more_networks',n),4)+`</div>`;}
   if(ix)h+=fedIxPlayers(c,city);
   h+=`</section>`;return h;
 }
@@ -60,24 +63,28 @@ function linkTrial(id){const save=S,live=R,hot=UI.hotMap,cache=TE_CACHE;
 function linkCheckModal(l){const t=linkTrial(l.id);if(!t)return;
   const title=t.split?tr('link_panels.this_backhoe_wins'):t.loss>.01?tr('link_panels.connected_but_tight'):tr('link_panels.one_backhoe_is_not_enough');
   openModal(`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><h2>${tr('common.redundancy_check')}</h2><button class="x" data-act="closeModal" aria-label="${tr('common.close')}">×</button></div><p class="eyebrow">${esc(CITY[l.a].name)} ⇄ ${esc(CITY[l.b].name)} · ${dateStr(t.day)}</p><div class="inc" style="background:${t.split?'#FFE3E3':t.loss>.01?'#FFF6CF':'#EAF7EE'}"><div class="nm">${title}</div><p class="lead">${t.split?tr('link_panels.no_alternate_backbone_path_connects'):t.loss>.01?tr('link_panels.an_alternate_path_exists_but_current'):tr('link_panels.with_current_demand_and_routing_this')}</p><div class="kv"><span>${tr('link_panels.additional_traffic_lost')}</span><b>${fmtG(t.loss)}</b></div></div>${t.losses.length?`<h3>${tr('common.service_affected')}</h3>${t.losses.map(x=>`<div class="kv"><span>${esc(x.name)}</span><b>−${fmtG(x.g)}</b></div>`).join('')}`:''}${t.busy.length?`<h3>${tr('link_panels.full_links_during_the_test')}</h3>${t.busy.slice(0,6).map(x=>`<div class="kv"><span>${esc(x.name)}</span><b>${fmtG(x.g)} / ${fmtG(x.cap)}</b></div>`).join('')}`:''}<p class="note">${tr('link_panels.snapshot_only_one_selected_link')}</p><div class="btns">${btn(tr('common.close'),'closeModal',{},'ghost')}</div>`,'link-check');}
-function linkCheckControl(l){return `<section><h3>${tr('common.redundancy_check')}</h3><p class="note">${tr('link_panels.what_happens_if_this_link_fails')}</p>${btn(tr('common.check_redundancy'),'linkCheck',{id:l.id},'ghost sm',linkDown(l))}</section>`;}
+const linkCheckBtn=l=>btn(tr('common.check_redundancy'),'linkCheck',{id:l.id},'ghost sm',linkDown(l),tr('link_panels.what_happens_if_this_link_fails'));
+// Early on (and in puzzles) the check is a section that says what it does; later it is one button.
+function linkCheckControl(l){return pnVet()?`<section><div class="btns" style="margin-top:0">${linkCheckBtn(l)}</div></section>`:`<section><h3>${tr('common.redundancy_check')}</h3><p class="note">${tr('link_panels.what_happens_if_this_link_fails')}</p>${btn(tr('common.check_redundancy'),'linkCheck',{id:l.id},'ghost sm',linkDown(l))}</section>`;}
 // At its own POP a carrier's port always takes that carrier's traffic (25-direct-egress.js). From POPs with no port of it, the
 // traffic goes to the nearest transit port, or across your network to this one. Only worth asking when something else could take it.
 function carryCtl(t){if(Object.keys(S.pops).length<2||!S.transit.some(x=>x.net!==t.net))return '';const n=esc(NET[t.net].name);
-  return `<div class="btns"><span class="meta" style="align-self:center">${tr('link_panels.traffic_for_net',{net:n})}</span>${btn(tr('link_panels.nearest_port'),'setCarry',{id:t.id,on:0},t.carry?'ghost sm':'pink sm')}${btn(tr('link_panels.carry_here'),'setCarry',{id:t.id,on:1},t.carry?'pink sm':'ghost sm')}</div><div class="meta">${t.carry?tr('link_panels.every_pop_carries_net_s_traffic',{net:n}):tr('link_panels.at_this_pop_net_s_traffic_always',{net:n})}</div>`;}
-function trafficSection(l){
-  const rec=R.ef[edgeKey(l)],n=pairLinks(l.a,l.b).length;
-  let h=linkCheckControl(l)+`<section><h3>${tr('link_panels.what_s_on_this_link')}</h3>`;
+  return `<div class="btns"><span class="meta" style="align-self:center">${tr('link_panels.traffic_for_net',{net:n})}</span>${btn(tr('link_panels.nearest_port'),'setCarry',{id:t.id,on:0},t.carry?'ghost sm':'pink sm')}${btn(tr('link_panels.carry_here'),'setCarry',{id:t.id,on:1},t.carry?'pink sm':'ghost sm')}</div>${pnNote('up',`<div class="meta">${t.carry?tr('link_panels.every_pop_carries_net_s_traffic',{net:n}):tr('link_panels.at_this_pop_net_s_traffic_always',{net:n})}</div>`)}`;}
+// The picture and the three biggest sources show; the rest (more sources, where it enters, where it goes) unfolds.
+function trafficSection(l,noCheck){
+  const rec=R.ef[edgeKey(l)],n=pairLinks(l.a,l.b).length,more=pnOpen('tr');
+  let h=(noCheck?'':linkCheckControl(l))+`<section><h3>${tr('link_panels.what_s_on_this_link')}</h3>`;
   if(!rec){return h+`<p class="empty">${tr('link_panels.no_traffic_right_now')}</p></section>`;}
   const tot=Object.values(rec.net).reduce((a,b)=>a+b,0)||1;
   const nets=Object.entries(rec.net).sort((a,b)=>b[1]-a[1]);
   const col=id=>id==='junk'?'#FF4D5E':id==='l2vpn'?'#7B61FF':id==='scrub'?'#22C47A':NET[id].col,nm=id=>id==='junk'?tr('common.ddos_junk'):id==='l2vpn'?tr('common.l2vpn_customers'):id==='scrub'?tr('common.scrubbed_traffic'):NET[id].name;
   h+=`${n>1?`<p class="note" style="margin-top:0">${tr('link_panels.totals_for_all_n_links_between',{n})}</p>`:''}<div class="stack">${nets.map(([id,v])=>`<i style="width:${v/tot*100}%;background:${col(id)}" title="${esc(nm(id))}"></i>`).join('')}</div>`;
-  h+=`<h4 class="sub4">${tr('common.content_from')}</h4>`+nets.slice(0,6).map(([id,v])=>`<div class="kv"><span><span class="dot" style="background:${col(id)}"></span>${esc(nm(id))}</span><b>${fmtG(v)} · ${pct(v/tot)}</b></div>`).join('');
+  h+=`<h4 class="sub4">${tr('common.content_from')}</h4>`+nets.slice(0,more?6:3).map(([id,v])=>`<div class="kv"><span><span class="dot" style="background:${col(id)}"></span>${esc(nm(id))}</span><b>${fmtG(v)} · ${pct(v/tot)}</b></div>`).join('');
   const egs=Object.entries(rec.eg).sort((a,b)=>b[1]-a[1]);
-  h+=`<h4 class="sub4">${tr('link_panels.enters_your_network_at')}</h4>`+egs.slice(0,6).map(([k,v])=>{const d=R.egDesc[k];return `<div class="row"><div class="grow"><div class="nm">${esc(d.lab)}</div><div class="meta">${CITY[d.city].name} · ${fmtG(v)} · ${pct(v/tot)}</div></div>${btn(tr('common.open'),'goEgress',{city:d.city,k:d.k},'ghost sm')}</div>`;}).join('');
+  h+=pnFold('tr',tr('panel_folds.more_where_it_enters'),()=>'');
+  if(more){h+=`<h4 class="sub4">${tr('link_panels.enters_your_network_at')}</h4>`+egs.slice(0,6).map(([k,v])=>{const d=R.egDesc[k];return `<div class="row"><div class="grow"><div class="nm">${esc(d.lab)}</div><div class="meta">${CITY[d.city].name} · ${fmtG(v)} · ${pct(v/tot)}</div></div>${btn(tr('common.open'),'goEgress',{city:d.city,k:d.k},'ghost sm')}</div>`;}).join('');
   const dst=Object.entries(rec.dst).sort((a,b)=>b[1]-a[1]);
-  h+=`<h4 class="sub4">${tr('link_panels.going_to_customers_in')}</h4>`+dst.slice(0,6).map(([c,v])=>`<div class="kv"><span>${CITY[c].name}</span><b>${fmtG(v)} · ${pct(v/tot)}</b></div>`).join('');
+  h+=`<h4 class="sub4">${tr('link_panels.going_to_customers_in')}</h4>`+dst.slice(0,6).map(([c,v])=>`<div class="kv"><span>${CITY[c].name}</span><b>${fmtG(v)} · ${pct(v/tot)}</b></div>`).join('');}
   const u=tot/pairLinks(l.a,l.b).filter(x=>!linkDown(x)).reduce((a,x)=>a+capOf(x),0);
   if(u>=0.8&&egs.length){const d=R.egDesc[egs[0][0]];h+=`<p class="why">${tr('link_panels.biggest_feeder_egress_in_city_set',{egress:esc(d.lab),city:CITY[d.city].name})}</p>`;}
   return h+`</section>`;
@@ -85,7 +92,7 @@ function trafficSection(l){
 // Safari keeps the number field focused through a button tap, and renderPanel() skips a focused field: let go first (#131).
 const metBlur=()=>{const t=$('metIn');if(t&&document.activeElement===t)t.blur();};
 function metricSection(l){const key=edgeKey(l),cur=pairMet(key),pl=pairLinks(l.a,l.b),sb=!!l.standby,base=l.km+60,sel=k=>cur===k?'pink sm':'ghost sm';
-  let h=`<section><h3>${tr('common.routing_metric')}</h3><p class="lead">${tr('link_panels.your_routers_pick_the_lowest_cost_0160')}</p><div class="btns">${Object.keys(MET).map(k=>btn(MET[k].l,'setMetric',{id:l.id,v:k},sel(k))).join('')}${btn(tr('common.custom'),'setMetric',{id:l.id,v:'custom'},sel('custom'))}</div>`;
+  let h=`<section>${pnHead('met',tr('common.routing_metric'),`<p class="lead">${tr('link_panels.your_routers_pick_the_lowest_cost_0160')}</p>`)}<div class="btns">${Object.keys(MET).map(k=>btn(MET[k].l,'setMetric',{id:l.id,v:k},sel(k))).join('')}${btn(tr('common.custom'),'setMetric',{id:l.id,v:'custom'},sel('custom'))}</div>`;
   const cm=pairCm(key);
   if(cm){const k=cm.k,[lo,hi]=MET_LIM[k],md=m=>k===m?'pink sm':'ghost sm';
     const pre=Object.keys(MET).map(m=>`${MET[m].l} ×${MET[m].f} = ${Math.round(base*MET[m].f)}`).join(', ');
@@ -154,7 +161,7 @@ function offersHere(c){
   const os=S.offers.filter(o=>bCities(o).includes(c));if(!os.length)return '';
   return `<section><h3>${tr('common.offers_here')}</h3>${os.map(o=>`<div class="row${o.id===UI.offerAt?' on':''}"><div class="grow"><div class="nm">${esc(o.name)}</div><div class="meta">${esc(BIZ_T[o.type].l)}${o.city2?` ${CITY[o.city].name} ⇄ ${CITY[o.city2].name}`:''} · ${bTerms(o)} · ${tr('ui.n_d_left',{n:o.exp-S.day})}</div>${spotWhy(o)}${reachSolo()<0.99&&!BIZ_T[o.type].l2?`<div class="why">${tr('link_panels.they_need_the_full_internet_your',{pct:pct(reachSolo())})}</div>`:''}${o.type==='scrub'&&!hasScrub()?`<div class="why">${tr('link_panels.needs_your_own_scrubbing_center')}</div>`:''}${bRisk(o)}${reqList(o)}${reqFixHtml(o)}${bHas(o)?'':`<div class="why">${tr('link_panels.needs_a_pop_in_cities_too',{cities:bCities(o).filter(x=>!S.pops[x]).map(x=>CITY[x].name).join(', ')})}</div>`}</div>${bHas(o)?btn(tr('common.accept'),'accept',{id:o.id},'green sm'):''}${btn(tr('common.no'),'decline',{id:o.id},'ghost sm')}</div>`).join('')}</section>`;
 }
-function linkPanel(id){
+function linkPanel(id){pnState();
   const l=S.links.find(x=>x.id===id);if(!l){UI.sel=null;return '';}
   if(l.kind==='vxc')return vxcPanel(l);
   if(l.kind==='df')return dfPanel(l);
@@ -169,8 +176,8 @@ function linkPanel(id){
   <div class="btns">${fw?'':LT.map((T,i)=>{const d=Math.round(waveMo(l.km,l.sub,i)*(l.mult||1)),sw=subWaveWhy(i,l.km,l.sub),so=i>l.tier&&!sw&&soldOut(l.a,l.b,i,l.cable),ok=waveOk(l.a,l.b,i);return i>l.tier&&waveShown(i)?btn(`${T.n} <small>${sw?tr('common.too_far_for_this_cable'):so?tr('link_modal.sold_out_for_n_days',{n:Math.max(1,so.until-S.day)}):ok?tr('common.price_mo',{price:fmt$(d)}):tr('link_panels.needs_what',{what:esc(waveNeed(i))})}</small>`,'upLink',{id:l.id,tier:i},'sm',S.cash<d||!ok||!!sw||!!so):'';}).join('')}${l.sub&&subMaxTier(l.km)<LT.length-1?`<p class="note">${tr('common.km_km_of_cable_carries_at',{km:Math.round(l.km).toLocaleString(),g:fmtCap(subCarrier(l.km))})}${l.tier>subMaxTier(l.km)?' '+tr('link_panels.your_wave_was_sold_before_the'):''}</p>`:''}</div></section>
   <section><h3>${tr('common.redundancy')}</h3><p class="lead">${mates.length?trn('link_panels.shares_a_trench_with_n_other',mates.length):sib.length?tr('link_panels.runs_on_its_own_route_a'):tr('link_panels.this_is_the_only_link_between')}</p>
   ${sib.map(x=>`<div class="row"><div class="grow"><div class="nm">${tr('link_panels.name_parallel_link',{name:capName(x)})}${x.premium?' <span class="tag paid">'+tr('common.premium')+'</span>':''} ${x.cut>S.day?'<span class="tag restrictive">'+tr('common.cut')+'</span>':''}</div><div class="meta">${(x.trench||x.id)===trk?tr('common.same_trench'):tr('common.diverse_route')}</div></div>${btn(tr('common.open'),'selLink',{id:x.id},'ghost sm')}</div>`).join('')}
-  <div class="btns">${btn(tr('link_panels.add_parallel_link'),'addParallel',{id:l.id},'pink sm')}</div></section>
-  ${trafficSection(l)}${metricSection(l)}
+  <div class="btns">${btn(tr('link_panels.add_parallel_link'),'addParallel',{id:l.id},'pink sm')}${linkCheckBtn(l)}</div></section>
+  ${trafficSection(l,true)}${metricSection(l)}
   <section>${fw?btn(tr('fedplay.end'),'fpEnd',{id:fw.id},'ghost sm'):btn(UI.confirm===l.id?tr('common.really_decommission'):tr('common.decommission_link'),'rmLink',{id:l.id},'ghost sm')}</section></div>`;
   return h;
 }

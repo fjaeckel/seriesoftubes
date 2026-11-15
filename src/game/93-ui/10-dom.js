@@ -26,3 +26,5 @@ function morphKids(a,b){let x=a.firstChild,y=b.firstChild;
 function renderAll(){if(isTablet()&&!UI.sel)UI.leftOpen=false;renderHUD();renderLeft();renderPanel();renderHint();renderMega();renderCoach();pzRender();routingRefresh();if(S)charterAsk();}
 function renderMega(){const el=$('mega');if(!el)return;const on=!!(S&&S.ev&&S.ev.php>S.day);if(el.hidden===!on)return;el.hidden=!on;}
 
+// A different tab of the left panel starts at its top; the daily re-render of the same tab keeps its place.
+function leftTop(){const b=$('leftBody');if(b)b.scrollTop=0;}

@@ -52,16 +52,38 @@
     return { pops, near: [...nb], cities: CITIES.length, links: S.links.map((l) => l.id), day: S.day, puzzle: pzOn(), modal: modalOpen(), lost: !!S.lost,
       clock: !!rule('clock'), core: S.core ? S.core.lv : 0, nets: NET_IDS.length, transit: S.transit.map((t) => t.id), pni: S.pni.map((p) => p.id), biz: S.biz.map((b) => b.id), offers: (S.offers || []).map((o) => o.id) };
   };
+  // Long lists open on a short first page, and panels fold their rarer buttons away (finished goals, a row's "Change",
+  // "+N more"): older pages show all of it at once. So every page is read unfolded, every button once:
+  // each fold on screen is opened in turn (they only change the view) and the buttons it shows are added.
+  const FOLDS = new Set(['panelMore', 'panelFold', 'dashRow', 'leftFold', 'nlOpen']);
+  const unfolded = (root, again) => {
+    UI.listN = new Proxy({}, { get: () => 1e6, deleteProperty: () => true });
+    const armed = UI.confirm, seen = new Map(), done = new Set();
+    for (let i = 0; i < 600; i++) {
+      again(); UI._lh = UI._ph = null;
+      const all = btns(root());
+      const f = all.find((b) => FOLDS.has(b.act) && !done.has(sig(b)));
+      // A page with nothing folded is read as it always was, doubles and all.
+      if (!f && !done.size) return all.filter((b) => b.act !== 'listMore');
+      for (const b of all) if (!FOLDS.has(b.act) && b.act !== 'listMore') seen.set(sig(b), b);
+      if (!f) break;
+      done.add(sig(f)); ACT[f.act](f.args); UI.confirm = armed;
+    }
+    return [...seen.values()];
+  };
   // The buttons of one place on screen, after opening it.
   const screen = (w) => {
     if (w.where === 'modal') return btns($('modal'));
-    if (w.where === 'city') { UI.sel = { type: 'city', id: w.city }; UI.tab = w.tab; renderAll(); return btns($('panel')); }
+    if (w.where === 'city') { UI.sel = { type: 'city', id: w.city }; UI.tab = w.tab; renderAll(); return unfolded(() => $('panel'), renderPanel); }
     // The city names in a link panel's header open the city (#196); older pages have plain text there. They only change
     // the view, so neither page offers them, and both stay in lockstep.
-    if (w.where === 'link') { if (!S.links.some((l) => l.id === w.id)) return []; UI.sel = { type: 'link', id: w.id }; renderAll(); const P = $('panel'); for (const h of P.querySelectorAll('.ph h2 [data-act]')) h.removeAttribute('data-act'); return btns(P); }
-    if (w.where === 'dash') { $('dash').hidden = false; UI.dtab = w.tab; renderDash(); const b = btns($('dash')); return b; }
+    if (w.where === 'link') { if (!S.links.some((l) => l.id === w.id)) return []; UI.sel = { type: 'link', id: w.id }; renderAll(); const P = $('panel'); return unfolded(() => { const Q = $('panel'); for (const h of Q.querySelectorAll('.ph h2 [data-act]')) h.removeAttribute('data-act'); return Q; }, renderPanel); }
+    if (w.where === 'dash') { $('dash').hidden = false; UI.dtab = w.tab; renderDash(); return unfolded(() => $('dash'), renderDash); }
     if (w.where === 'left') {
-      UI.left = w.tab; UI.leftOpen = true; renderLeft(); let b = btns($('leftBody'));
+      UI.left = w.tab; UI.leftOpen = true; renderLeft(); let b = unfolded(() => $('leftBody'), renderLeft);
+      // An unfolded network row also says where to meet that network and can put it in focus, which older pages only do for the one in focus:
+      // those buttons only move the map, so neither page offers them here.
+      if (w.tab === 'nets') return b.filter((x) => x.act !== 'meetGo' && x.act !== 'netFocus');
       if (w.tab !== 'noc') return b;
       // The backbone, Auto-TE and DDoS settings moved from the NOC tab into the Routing & DDoS modal: offer them here on
       // both pages, in one order, so main's page (settings in the tab) and this one (behind the button) stay in lockstep.
