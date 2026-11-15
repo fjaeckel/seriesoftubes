@@ -129,8 +129,8 @@ func (r *Relay) noteBinds(s *session) {
 }
 
 // dialNode connects to another node and runs the session until it ends; dialer is the key of
-// the dialer in r.dialers.
-func (r *Relay) dialNode(ctx context.Context, dialer, url string) error {
+// the dialer in r.dialers, live its lifetime, and ctx bounds the dial.
+func (r *Relay) dialNode(ctx, live context.Context, dialer, url string) error {
 	// An automatic peer's URL comes from the registry or the catalog, not from the operator.
 	hc := r.hc
 	if strings.HasPrefix(dialer, autoPrefix) {
@@ -145,7 +145,7 @@ func (r *Relay) dialNode(ctx context.Context, dialer, url string) error {
 		return errClosed
 	}
 	s := newSession(r, c) // client bounds until the peer's proof checks
-	s.dialURL, s.dialer = url, dialer
+	s.dialURL, s.dialer, s.dialing = url, dialer, live
 	defer s.end()
 	r.mu.Lock()
 	own := r.cfg.Server
@@ -295,6 +295,12 @@ func (r *Relay) nodeRoom(server string, addr netip.Addr) bool {
 func (r *Relay) runPeer(s *session, server, node string) {
 	s.peerServer, s.peerNode = server, node
 	r.mu.Lock()
+	if s.dialing != nil && s.dialing.Err() != nil {
+		// Its dialer stopped during the handshake (reconcile, under r.mu): nothing would close it later.
+		r.mu.Unlock()
+		s.close("")
+		return
+	}
 	s.same = r.own != nil && server == r.own.ID
 	if s.same {
 		if !r.own.IsNode(node) {
@@ -798,10 +804,20 @@ func (r *Relay) reconcileLocked() {
 		if !want[key] && key != "bootstrap" {
 			stop()
 			delete(r.dialers, key)
+			srv := ""
+			if !strings.HasPrefix(key, autoPrefix) {
+				srv = r.serverOfURL(key)
+			}
 			for s := range r.nodes {
-				if s.dialer == key {
-					s.close("")
+				if s.dialer != key {
+					continue
 				}
+				if srv != "" && want[autoPrefix+srv] && s.peerServer == srv {
+					// A neighbour this node now dials as an automatic peer keeps its session, now the automatic one.
+					s.dialer = autoPrefix + srv
+					continue
+				}
+				s.close("")
 			}
 		}
 	}
@@ -877,7 +893,7 @@ func (r *Relay) dialLoop(ctx context.Context, key string, urls func() []string) 
 func (r *Relay) dialOnce(ctx, dctx context.Context, key, url string) error {
 	// The dial itself is bounded by dctx; the session lives with ctx.
 	done := make(chan error, 1)
-	if !r.spawn(func() { done <- r.dialNode(dctx, key, url) }) {
+	if !r.spawn(func() { done <- r.dialNode(dctx, ctx, key, url) }) {
 		return errClosed
 	}
 	select {

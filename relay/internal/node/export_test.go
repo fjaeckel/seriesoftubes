@@ -91,7 +91,12 @@ func (r *Relay) DialNode(ctx context.Context, url string, auto bool) error {
 	if auto {
 		key = autoPrefix + "peer"
 	}
-	return r.dialNode(ctx, key, url)
+	return r.dialNode(ctx, ctx, key, url)
+}
+
+// DialNodeFor dials url as a configured neighbour whose dialer lives as long as live.
+func (r *Relay) DialNodeFor(ctx, live context.Context, url string) error {
+	return r.dialNode(ctx, live, url, url)
 }
 
 // SetLiveCap lowers the bound of live states held, in keys.

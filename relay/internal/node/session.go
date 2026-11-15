@@ -104,6 +104,7 @@ type session struct {
 	push       *listPager      // records waiting to be pushed for want (guarded by r.mu)
 	dialURL    string
 	dialer     string          // the r.dialers key of the dialer that made this session, when this node dialled
+	dialing    context.Context // that dialer's lifetime: a session it made after it stopped never comes up
 	impl       *update.Impl    // what the peer node runs, when it said (informational)
 	feats      []string        // optional messages and fields the peer takes (9.3, 9.4 feats)
 	stPend     map[string]bool // keys whose newest live state goes to this peer next (guarded by r.mu)
