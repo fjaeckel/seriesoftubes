@@ -7,6 +7,8 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 - In dark mode, the cash amount at the top is readable again on iPhones, where it showed dark on the dark chip.
+- Orbit customers now land under any crust over them that has room, instead of going short when the first one is full, and the sales desk stops selling under full crusts.
+- Pie Control's Bottlenecks list only what really costs you traffic: no more full dish or full crust while a neighbour has room, and a full crust shows the traffic it loses rather than its whole size. A full dish with all its antennas offers to fill up a dish nearby.
 
 ## [4.2.1] — 2026-11-15
 

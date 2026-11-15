@@ -214,3 +214,49 @@ test('a terminal lands on the nearest dish with room for all of it, not a sliver
   assert.ok(ev('R.pie.sf.b') > 0.95, `served in full (${ev('R.pie.sf.b')})`);
   assert.deepEqual(errors, []);
 });
+
+test('a full crust sends terminals to another crust over them, and sales see it full', () => {
+  const { ev, errors } = load();
+  world(ev);
+  ev("S.pie.crusts.frozen.cohorts=[{n:CRUSTS.frozen.full,day:S.day,las:true}];CRUSTS.short.g=60;compute()");
+  assert.equal(ev("R.pie.hubs.slice(0,2).join()"), 'short,frozen');
+  term(ev, 'a', 'lon', 'pizza', 50);
+  term(ev, 'b', 'lon', 'pizza', 50);
+  assert.ok(ev('R.pie.sf.a') > 0.95 && ev('R.pie.sf.b') > 0.95, `both served in full (${ev('R.pie.sf.a')}, ${ev('R.pie.sf.b')})`);
+  assert.ok(ev("R.pie.crust.find(c=>c.id==='frozen').used") >= 50, 'the second one rides the frozen crust');
+  const crustFx = () => JSON.parse(ev("JSON.stringify((PIE_FX=null,pieFixes(R.pie)).filter(x=>x.k==='crust').map(x=>Math.round(x.lack)))"));
+  assert.deepEqual(crustFx(), [], 'a full crust is no bottleneck while another one has room');
+  ev("S.pie.crusts.frozen.cohorts=[];compute()");
+  assert.ok(ev('R.pie.sf.b') < 0.5, 'with one crust, the second one is short');
+  assert.deepEqual(crustFx(), [Math.round(ev('50*(1-R.pie.sf.b)'))], 'now it is, missing what the customer misses, not its whole size');
+  assert.equal(ev("pieServe('lon','pizza')"), null, 'and nothing more is sold under a full crust');
+  assert.deepEqual(errors, []);
+});
+
+test('Bottlenecks blame the crusts, not a dish with room, and offer antennas on a dish nearby', () => {
+  const { ev, errors } = load();
+  world(ev);
+  const fx = () => JSON.parse(ev("JSON.stringify((PIE_FX=null,pieFixes(R.pie)).map(x=>({k:x.k,c:x.c,b:x.b})))"));
+  ev("CRUSTS.short.g=60;compute()");
+  term(ev, 'a', 'lon', 'pizza', 50);
+  term(ev, 'b', 'lon', 'pizza', 50);
+  let f = fx();
+  assert.ok(f.some((x) => x.k === 'skyfull' && x.c === 'lon'), 'the crusts over London are full');
+  assert.ok(!f.some((x) => x.k === 'ant' && x.c === 'lon'), 'London\'s dish is not blamed');
+  // London's dish full at 16 antennas, Frankfurt's 640 km away at 1: top Frankfurt up, from both views
+  ev("CRUSTS.short.g=40000;S.pie.dishes.find(x=>x.city==='fra').ant=1;compute()");
+  ev("const d=R.pie.dish.find(d=>d.city==='lon');d.u=0.97;d.used=d.cap*0.97");
+  f = fx();
+  assert.ok(!f.some((x) => x.c === 'lon'), 'Frankfurt has room for what no longer fits: not a bottleneck');
+  assert.match(ev("pieLoadHtml(R.pie)"), /What no longer fits lands at Frankfurt/);
+  ev("compute();for(const c of ['lon','fra','nyc']){const d=R.pie.dish.find(d=>d.city===c);d.u=c==='lon'?0.97:0.95;d.used=d.cap*d.u}");
+  f = fx();
+  const lon = f.find((x) => x.k === 'ant' && x.c === 'lon');
+  assert.ok(lon, 'London\'s dish is full');
+  const fra = ev("String(S.pie.dishes.find(x=>x.city==='fra').id)");
+  assert.match(lon.b, new RegExp(`pieAntMax[^>]*${fra}`), 'Max antennas on Frankfurt\'s dish');
+  assert.match(lon.b, / · \d+ km/, 'with how far it is');
+  assert.match(ev("pieGrow('lon',R.pie)"), new RegExp(`pieAntMax[^>]*${fra}`), 'the load view offers the same');
+  assert.match(ev("pieFullWhy('lon',R.pie)"), /Frankfurt/);
+  assert.deepEqual(errors, []);
+});
