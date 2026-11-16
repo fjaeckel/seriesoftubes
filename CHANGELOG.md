@@ -6,20 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
-- Lambda Bazaar, the capacity market, has a window of its own with tabs for an overview, your routes, products and news. The overview says what you earn and what holds sales up, each with a one-tap fix, and every route can have its own rules: how much to keep back, the lowest price, and which products to sell there.
-- The 🔍 search now finds anything: cities, networks by name or AS number, your customers and open offers, your links (type both cities, like "fra ams"), and every screen. On a computer, press / or Ctrl+K to open it.
-- Much less scrolling everywhere on a big network: long lists open on a short first page with "+N more", rarer buttons sit behind "▸ Change" and "▸ Details", and explanations fold behind a "?" once you run a few POPs.
-- Deals shows what needs you first: unhappy customers and renewals waiting for an answer, then the offers you can sign today as short cards with a countdown. Conferences, seats, the sales desk and your customer level fold to one line each.
-- The Goals, NOC and Networks tabs are much shorter: finished goals and badges fold away, the NOC shows the five worst of each problem with hot ports grouped by kind, and Networks has a search box, filters by kind and one compact row per network.
-- The NOC dashboard keeps its tabs and close button pinned, shows every tab at once on phones, and turns connections, traffic, routers and leased lines into compact rows and cards that unfold.
-- A city's Peering tab is now three short sections (exchanges, PNIs, caches) that open by themselves when they need you. Transit ports and routers are one row each, and your own ports come first.
-- Link panels are much shorter, most of all for dark fiber and subsea cables: optics and adding capacity come first, and the line system, selling, traffic and routing metric fold into one-line summaries.
-- Phones held sideways get a proper layout: the tabs become a slim bar down the left edge and every sheet stands on the right at full height, with the map usable beside it.
-- Multimode opens with where you stand: your connection, your rank and every request waiting for your answer. Choosing a server shows a recommended one first, and leaderboards show the top ten with your own row always in sight.
-- The bank shows offers as cards you can compare and marks the best deal you qualify for, Settings are grouped into sections, and toasts no longer pile up. Cancelling a transit port or PNI in a city takes one tap with an Undo button.
-- How to play is a short index you can search, the menu has tiles for How to play, Export save and sound, the start screen fits phones and laptop windows without scrolling, and the top bar has room for Traffic served and Rank again.
-- The "Tap your city, then Launch broadband" bubble no longer stays on screen for the whole game after you launched broadband on the first day. The tutorial points at the button that is on screen, and on tablets the speed buttons no longer cover the panel tabs.
-- Easier to use on a phone and with a keyboard or screen reader: buttons and tabs answer to a bigger tap area, say what they change and which one is picked, Escape closes the window on top first, and Z undoes a removal while its toast shows.
+- A large UX redesign: much less scrolling and things are easier to find, on phones and on computers. Lambda Bazaar has a window of its own, the 🔍 search finds anything, and the Deals, Goals, NOC and Networks tabs, the NOC dashboard, the city and link panels, Multimode, the bank, Settings and How to play are all shorter and put what needs you first.
 - Orbit customers in the far north no longer go short when the crusts further south fill up: overflow now lands under the crust with the most room, keeping the polar crust free for the places only it reaches.
 - An unhappy orbit customer now says why it is short and what fixes it (a full dish, full crusts, no dish in reach, slow fiber where it lands), on its card and in the warning.
 - Orbit customers link the NOC, Pie Control and their POP: each view has buttons to the other two, the NOC shows the POP whose dish lands them, Pie Control can drop them, and that POP's panel lists the orbit customers coming down there.
