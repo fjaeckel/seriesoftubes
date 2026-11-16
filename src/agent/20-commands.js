@@ -315,6 +315,8 @@ const API_CMD={
    doc:'Buy the Auto-TE controller, which spills overflow onto alternate paths. Level 3+, and it needs an RSVP-TE-or-higher backbone.'},
  teToggle:{args:[],watch:['te'],
   doc:'Turn Auto-TE on or off.'},
+ teL2Toggle:{args:[],watch:['te'],
+  doc:'Turn Auto-TE for L2 circuits on or off (off by default). While the controller runs, unpinned circuits can split across paths using its spill rules.'},
  teCheck:{args:[['script','string']],open:'teEdit',dom:['teSrc'],reads:'modal',
   bind:a=>{$('teSrc').value=String(a.script);},
   doc:'Parse and dry-run a RouteScript without deploying it. The parse errors, or served traffic and transit cost before and after, come back as the report. No state change.'},

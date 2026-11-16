@@ -173,6 +173,15 @@ The day:
    that budget: `tiers()` in `29-route-core.js`); RouteScript rules (`teRules()`) can prefer, avoid, cap, drain
    or blackhole.
 5. Layer-2 customers (L2VPN, SD-WAN, waves) are carved out of link capacity first.
+   The optional **Auto-TE for L2 circuits** switch (`S.te.l2`, off for new and existing saves)
+   lets unpinned circuits spill across residual paths before IP traffic is routed. It needs the
+   main Auto-TE controller and a supported backbone. `29-l2-te.js` applies spill thresholds,
+   latency tiers, router capacity, and circuit latency budgets; ordinary detours use the core's
+   metric reach, while latency tiers use their explicit extra-latency budget, as IP TE does.
+   Live pins and routes through orbit keep their existing allocation. Actual circuit paths and
+   shares are reported in `R.l2route`, their split count in `R.l2split`, and moved bandwidth in
+   `R.teMoved` along with IP detours. TE route records are marked so scenic routing does not
+   reuse partial TE allocations when the option is turned off.
 6. Totals costs (`R.cost`) and revenue (`R.rev`) per month.
 
 It runs every day and after every action, so it is built for big networks: the graph works on city
