@@ -2,13 +2,35 @@
    The city and link panels are where most of the game is played, and on a phone they are a sheet a few hundred
    pixels tall. So a long list (members of an exchange, transit sellers, PNIs, links) shows a short first page with
    "+N more", and once you run a real network the paragraphs that explain a section fold behind a "?" next to its
-   heading. What is unfolded is view state for the panel on screen: another city, link or tab starts short again. */
+   heading. What is unfolded is view state for the panel on screen: another city, link or tab starts short again,
+   except for the kinds of block in PN_KEYS below, which stay open from one POP to the next. */
 const PN_STEP=20;
+/* Blocks whose open state follows the player from POP to POP, so adding a port to ten POPs in a row is one click each.
+   The choice belongs to the kind of block (every POP's Internet exchange section; the "Get port" of a POP's first
+   exchange), not to the city it was made in, so it survives another POP, a tab and a reload. A city without the block
+   keeps the choice and shows nothing; the next one that has it opens it. Folding a block forgets it, so the next POP shows
+   what it would have shown (everything early on, later what needs you). An exchange's fold is told apart by where it
+   stands in its city's list (the incumbent first), so a city with three exchanges opens the one you opened, not all
+   three. Left out on purpose: a list's page ("+N more"), a "?" and the Change of one port or PNI (each is about one
+   thing), and Decommission (a button that shuts a POP down is opened on purpose, every time). Only from the fourth POP
+   on (pnVet), when sections start folded: a new game keeps every section open. This is a setting of this browser, like
+   the theme, and never part of the save. */
+const PN_KEYS=['s:ix','s:pni','s:cache','s:metro','s:power','s:scrub','s:nni','rtc','std'],PN_LS='sot-folds';
+// "xj0": the Get port of a city's first exchange (one you have not joined); "xc1": the Change of its second (one you have).
+const pnKindOk=q=>PN_KEYS.includes(q)||/^x[jc][0-8]$/.test(q);
+const pnKind=k=>{if(!k.startsWith('x:'))return PN_KEYS.includes(k)?k:'';const x=k.slice(2),c=ixCity(x),i=CITY[c]?ixIdsIn(c).indexOf(x):-1;return i<0||i>8?'':(S.ixp[x]===undefined?'xj':'xc')+i;};
+// {kind:1} for the kinds left open: read once from this browser and checked like any stored value.
+function pnPrefs(){if(!UI.pnPref){const p={};try{const j=JSON.parse(localStorage.getItem(PN_LS)||'null');for(const q in j)if(pnKindOk(q)&&j[q]===1)p[q]=1;}catch(e){}UI.pnPref=p;}return UI.pnPref;}
 function pnState(){const s=UI.sel,at=s?s.type+':'+s.id+(s.type==='city'?':'+UI.tab:''):'';if(!UI.pn||UI.pn.at!==at)UI.pn={at,n:{},open:{}};return UI.pn;}
+// Does the kind of block k stay open from the last POP?
+const pnStuck=k=>{const q=pnKind(k);return !!q&&pnVet()&&pnPrefs()[q]===1;};
+// A fold is set here: this panel shows it now, and the next POP starts from it.
+function pnSet(k,v){pnState().open[k]=v;const q=pnKind(k),p=pnPrefs();if(!q||!pnVet()||!!p[q]===v)return;
+  if(v)p[q]=1;else delete p[q];try{if(Object.keys(p).length)localStorage.setItem(PN_LS,JSON.stringify(p));else localStorage.removeItem(PN_LS);}catch(e){}}
 // How many rows of list k to show out of tot: the first page, or all of them when "more" would hide only one or two.
 const pnN=(k,tot,first=6)=>tot<=first+2?tot:pnState().n[k]||first;
 const pnMore=(k,tot,lab,first=6)=>tot>pnN(k,tot,first)?`<div class="btns pnmore">${btn(lab(tot-pnN(k,tot,first)),'panelMore',{k,n:pnN(k,tot,first)},'ghost sm')}</div>`:'';
-const pnOpen=k=>!!pnState().open[k];
+const pnOpen=k=>{const v=pnState().open[k];return v!==undefined?!!v:pnStuck(k);};
 // Past the early game: four POPs. Puzzles and the architect keep every explanation.
 const pnVet=()=>!!S&&!pzOn()&&!S.ar&&Object.keys(S.pops).length>=4;
 // A section heading and its explanation. `lead` is the finished HTML of the paragraph(s).
@@ -28,10 +50,11 @@ function pnFold(k,label,body){const o=pnOpen(k);return `<div class="btns pnfold"
    heading folds or unfolds it for as long as this panel stays on screen. A search opens the sections it finds
    something in (hit: how many it finds; a section without hit ignores the search) and folds the others.
    s: {sum, flags:[[class,text]], tot, hit, lead, body(mode)}; body is only called for an open section. */
-const pnSecMode=(k,flag,hit)=>{const v=pnState().open['s:'+k];return v!==undefined?(v?2:0):hit!==undefined&&netFiltered()?(hit?2:0):!pnVet()?2:flag?1:0;};
+// A section left open from the last POP opens again, unless there is nothing in it here (tot 0: a city with no exchange).
+const pnSecMode=(k,flag,hit,tot)=>{const v=pnState().open['s:'+k];return v!==undefined?(v?2:0):hit!==undefined&&netFiltered()?(hit?2:0):!pnVet()||(tot!==0&&pnStuck('s:'+k))?2:flag?1:0;};
 // A new search starts from what it finds, not from what was folded by hand before.
 const pnSecReset=()=>{if(!UI.pn)return;for(const k in UI.pn.open)if(k.startsWith('s:'))delete UI.pn.open[k];};
-function pnSec(k,title,s){const fl=s.flags||[],m=pnSecMode(k,fl.length>0,s.hit),v=pnVet();
+function pnSec(k,title,s){const fl=s.flags||[],m=pnSecMode(k,fl.length>0,s.hit,s.tot),v=pnVet();
   return `<section class="psec${m?' on':''}" data-sec="${k}"><div class="psh"><button class="psb" data-act="panelFold" data-args='{"k":"s:${k}","o":${m?0:1}}' aria-expanded="${!!m}"><span class="psa">${m?'▾':'▸'}</span><span class="pst">${title}</span><span class="pss">${s.sum||''}</span>${fl.map(([c,t])=>`<span class="tag psf ${c}">${t}</span>`).join('')}</button>${m&&v&&s.lead?pnQ(k):''}</div>${m?(s.lead&&(!v||pnOpen('h:'+k))?s.lead:'')+s.body(m)+(m===1?`<div class="btns pnmore">${btn(tr('notifications.show_all_n',{n:s.tot}),'panelFold',{k:'s:'+k,o:1},'ghost sm',false,'',' aria-expanded="false"')}</div>`:''):''}</section>`;}
 // A use bar and its number on one line: what a folded port shows.
 const pnUse=(u,cap)=>`<div class="cuse"><div class="bar ${barCls(cap?u/cap:0)}"><i style="width:${cap?Math.min(100,u/cap*100):0}%"></i></div><b>${fmtG(u)}</b></div>`;
