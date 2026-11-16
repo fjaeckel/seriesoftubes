@@ -177,6 +177,9 @@
 :where(:root.dark) .pie-plan{background:var(--soft);color:var(--ink)}
 :where(:root.dark) .pie-pl-back{color:var(--ok)}
 :where(:root.dark) .pie-pl-i{color:var(--ink2)}
+:where(:root.dark) .pie-pl-ring{border:2px dashed #FF4F9A}
+:where(:root.dark) .pie-pl-ring.pie-pl-grow{border-color:#FFAA1F}
+:where(:root.dark) .pie-pl-ring.pie-pl-drop{border-color:#FF4D5E}
 :where(:root.dark) .bdg{border:2px solid #C9CEDD;background:#28292F;color:var(--ink)}
 :where(:root.dark) .bdg .bt{color:var(--ink)}
 :where(:root.dark) .bdg .br{color:var(--rc)}
