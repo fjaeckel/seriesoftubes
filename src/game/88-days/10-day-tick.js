@@ -88,7 +88,7 @@ function* dayPost(d){
   yield DAY_REST;
   // own IX members join
   for(const c in S.myIx){const m=S.myIx[c];if(d>=m.next&&m.members.length<myFab(c).max){
-    const cands=NETS.filter(n=>n.type!=='t1'&&!m.members.includes(n.id)&&(n.pops.includes(c)||n.pops.some(p=>CITY[p].reg===CITY[c].reg)));
+    const cands=myIxCands(c);
     if(cands.length){cands.sort((a,b)=>(a.pol==='open'?0:1)-(b.pol==='open'?0:1)||b.share-a.share);const n=Math.random()<.6?cands[0]:pick(cands);m.members.push(n.id);toast(tr('day_tick.net_joined_ix_another_member_paying',{net:esc(n.name),ix:esc(m.name),fee:fmt$(MYIX_FEE)}),'good');sfx('coin');}
     // Players with a port on it draw networks in sooner (89-fedplay-ix.js).
     m.next=d+fedIxNext(c,8+Math.floor(Math.random()*10));}}

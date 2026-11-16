@@ -22,6 +22,9 @@ const OPS=[
    // A model to standardize on: every POP on a smaller one is swapped to it, busiest first, within the budget.
    model:{d:'next',ok:v=>v==='next'||(Number.isInteger(v)&&!!RG[v]),l:N_('ops.p_model'),f:v=>v==='next'?tr('ops.model_next'):RG[v].n}}},
  {k:'caches',i:'📦',pop:1,cap:5000,mo:1,t:N_('ops.o_caches'),d:N_('ops.o_caches_d'),p:{g:{d:5,v:[1,5,10,25,50],l:N_('ops.p_g'),f:v=>fmtG(v)}}},
+ // Exchanges you founded: the next fabric when traffic outgrows the headroom, or when every seat is taken and a network
+ // is waiting to join (each member pays more than the bigger fabric's extra rent). Shown once you run one.
+ {k:'fabric',i:'🧵',cap:250000,show:()=>!!S&&Object.keys(S.myIx||{}).length>0,t:N_('ops.o_fabric'),d:N_('ops.o_fabric_d'),p:{x:{d:1.5,v:[1.25,1.5,2,3],l:N_('ops.p_x'),f:v=>v+'×'}}},
  {k:'ix',i:'🔀',t:N_('ops.o_ix'),d:N_('ops.o_ix_d'),p:{}},
  {k:'pni',i:'🤝',pop:1,cap:50000,t:N_('ops.o_pni'),d:N_('ops.o_pni_d'),p:{g:{d:25,v:[5,10,25,50,100],l:N_('ops.p_g'),f:v=>fmtG(v)},tier:{d:0,v:[0,1,2],l:N_('ops.p_tier'),f:v=>tr('ops.at_least_port',{port:PORT[v].n})},paid:{d:false,v:[false,true],l:N_('ops.p_paid'),f:v=>v?tr('common.on'):tr('common.off')}}},
  {k:'repair',i:'🔧',cap:50000,t:N_('ops.o_repair'),d:N_('ops.o_repair_d'),p:{}},
@@ -38,7 +41,7 @@ const OPS=[
 const OPSK=Object.fromEntries(OPS.map(o=>[o.k,o])),OPS_POP=OPS.filter(o=>o.pop).map(o=>o.k);
 const OPS_TPL=['bb','transit','ix','kit'];
 // What the shift log can say. One line per day: "{name} did this, that and the other."
-const OPS_SAY={transit:N_('ops.l_transit'),ports:N_('ops.l_ports'),routers:N_('ops.l_routers'),caches:N_('ops.l_caches'),rs:N_('ops.l_rs'),peer:N_('ops.l_peer'),pni:N_('ops.l_pni'),repair:N_('ops.l_repair'),optics:N_('ops.l_optics'),optup:N_('ops.l_optup'),optswap:N_('ops.l_optswap'),decom:N_('ops.l_decom'),broke:N_('ops.l_broke'),snag:N_('ops.l_snag')};
+const OPS_SAY={transit:N_('ops.l_transit'),ports:N_('ops.l_ports'),fabric:N_('ops.l_fabric'),routers:N_('ops.l_routers'),caches:N_('ops.l_caches'),rs:N_('ops.l_rs'),peer:N_('ops.l_peer'),pni:N_('ops.l_pni'),repair:N_('ops.l_repair'),optics:N_('ops.l_optics'),optup:N_('ops.l_optup'),optswap:N_('ops.l_optswap'),decom:N_('ops.l_decom'),broke:N_('ops.l_broke'),snag:N_('ops.l_snag')};
 // Fat fingers: rare, visible, harmless. Only the LAG one costs anything, and only a little.
 const OPS_FF=[N_('ops.ff_desc'),N_('ops.ff_hostname'),N_('ops.ff_typo'),N_('ops.ff_lag'),N_('ops.ff_ping')];
 const OPS_FF_RATE={oncall:1/150,bgp:1/60};
@@ -102,7 +105,7 @@ function opsMood(){const O=S.ops,x=O.wk&&O.wk.w===Math.floor(S.day/7)?O.wk:null,
     annie:N_('ops.mood_annie'),kevin:N_('ops.mood_kevin'),tracy:N_('ops.mood_tracy')}[k],{name:opsName()});}
 // "fra +1×100G", "fra|ams", "ams~3", "transit" (an order, for the budget line) or "ggl" (a network).
 // Peering is always at an exchange, and a city's first exchange has the city's id ("lon" is LYNX): name the exchange (#228).
-function opsWhere(w,k){if(k==='peer'&&isIx(w)&&ixName(w))return ixName(w);if(k==='pie'&&own(CRUSTS,w))return tr(CRUSTS[w].n);const [a,x]=w.split(' '),nm=a.split('|').map(p=>own(OPSK,p)?tr(OPSK[p].t):isCity(p)?CITY[p].name:isNet(p)?NET[p].name:ixName(p)).join('–');return x?nm+' '+(isNet(x)?NET[x].name:x):nm;}
+function opsWhere(w,k){if((k==='peer'||k==='fabric')&&isIx(w)&&ixName(w))return ixName(w);if(k==='pie'&&own(CRUSTS,w))return tr(CRUSTS[w].n);const [a,x]=w.split(' '),nm=a.split('|').map(p=>own(OPSK,p)?tr(OPSK[p].t):isCity(p)?CITY[p].name:isNet(p)?NET[p].name:ixName(p)).join('–');return x?nm+' '+(isNet(x)?NET[x].name:x):nm;}
 function opsLine(e){const I=INTERNS[e.i],name=I?tr(I.s):'',parts=e.r.map(([k,n,w])=>trn(OPS_SAY[k],n,{where:w.map(x=>opsWhere(x,k)).join(', ')}));
   return (parts.length?tr('ops.l_line',{name,list:parts.join(', ')}):tr('ops.l_quiet',{name}))+opsPaid(e);}
 const opsMo$=v=>(v>0?'+':'')+fmt$(v);
@@ -268,6 +271,13 @@ const OPS_RUN={
      const want=add.filter(x=>cacheDem(c,x.net)>=g),free=()=>portsMax(c)-portsUsed(c)+1e-9;
      for(const x of want){if(cachePortsAdd(c,[x])>free())continue;if(!X.can('caches',0,cacheMo(x)))return;S.caches.push({id:uid(),city:c,net:x.net,site:x.site,...(x.g?{g:x.g}:{})});X.book('caches',0,cacheMo(x));X.did('caches',c);}
      yield;}},
+ // A flood is not traffic to build for; a full exchange still grows while networks wait at the door.
+ *fabric(X){const N=opsP('fabric','x'),dd=ddosAll().length>0;
+   for(const c of Object.keys(S.myIx)){const m=S.myIx[c],f=m.fab|0,nx=MYIX_FAB[f+1];if(!nx||nx.lvl>lvl())continue;
+     const F=myFab(c),use=dd?0:((R.useIx&&R.useIx[c])||0)*opsAhead(),full=m.members.length>=F.max&&myIxCands(c).length>0;
+     if(!(use>0&&F.g<N*use)&&!full)continue;
+     if(!X.can('fabric',nx.cost)||!X.pay('fabric',()=>{ACT.myIxUp({city:c});return (m.fab|0)===f+1;}))continue;
+     X.did('fabric',c);yield;}},
  // Weekly, like a person going through PeeringDB on a Monday: route servers, then every willing member (#192).
  ix(X){if(S.day%7&&!opsIs('annie'))return;for(const ix of utilityRouteServers()){S.rs[ix]=true;X.did('rs');}
    for(const row of utilityPeers())for(const id of row.requests){S.peers[id+'@'+row.ix]=true;X.did('peer',row.ix);}},
@@ -330,7 +340,7 @@ function promiseCheck(){let dg=null,ti=null,lg=null;const dv=new Map(),ld=new Ma
 // The links between each pair of cities, VXCs left out.
 function opsPairs(){const by=new Map();for(const l of S.links)if(l.kind!=='vxc'){const k=edgeKey(l);(by.get(k)||by.set(k,[]).get(k)).push(l);}return by;}
 const opsDecomWaits=()=>[...opsPairs().values()].some(ls=>ls.length>1&&ls.some(l=>l.kind==='wave'));
-const OPS_ORDER=['repair','routers','transit','ports','optup','optics','caches','ix','pni','decom'];
+const OPS_ORDER=['repair','routers','transit','ports','fabric','optup','optics','caches','ix','pni','decom'];
 // The shift: once per game day from dayTick, after outages and events have had their turn.
 // One shift. Like a day (dayRun()), it is a generator: each yield is a compute() it needs, answered by the route worker
 // in play, so the shift never routes on the page. opsDay() runs it in one go.

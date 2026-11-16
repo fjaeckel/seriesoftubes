@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- The intern can grow the exchanges you founded: a new standing order upgrades an exchange's fabric when its traffic outgrows your headroom, or when every seat is taken and a network is waiting to join. It has its own monthly budget and shows up in Ops once you run an exchange.
+
 ## [4.5.0] — 2026-11-16
 
 - The NOC dashboard has a DDoS tab: every attack under way with its RTBH, scrubbing and hack-back buttons, your totals, and a history of past attacks with their size, target and how they ended. Attacks your network shrugs off, and Auto-RTBH pulling the plug, no longer pop up (they are in the NOC's notifications and the new tab); an attack that hurts still does, and its button opens the tab.
