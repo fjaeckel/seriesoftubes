@@ -13,11 +13,13 @@ const nwClone=L=>L.map(i=>({...i}));
 const nwFree=()=>innerWidth>NW_FREE;
 const nwHit=(a,b)=>a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;
 const nwOk=(a,lo,hi)=>Number.isInteger(a)&&a>=lo&&a<=hi;
-// What is stored must be a whole layout of whole cells inside the grid; a window that is not, or is not there, gets its own place.
+// What is stored must be whole cells inside the grid; a window that is not, or is not there, gets its own place.
 function nwRead(){let o=null;try{o=JSON.parse(localStorage.getItem(NW_KEY));}catch(e){}
-  const m=o&&o.v===1&&o.w&&typeof o.w==='object'?o.w:{};
-  return nwSettle(nwDef().map(d=>{const a=m[d.id];
-    return Array.isArray(a)&&a.length===4&&nwOk(a[2],NW_MINW,NW_NCOL)&&nwOk(a[3],NW_MINH,NW_MAXH)&&nwOk(a[0],0,NW_NCOL-a[2])&&nwOk(a[1],0,400)?{id:d.id,x:a[0],y:a[1],w:a[2],h:a[3]}:d;}));}
+  const m=o&&o.v===1&&o.w&&typeof o.w==='object'?o.w:{},D=nwDef();
+  const good=d=>{const a=m[d.id];return Array.isArray(a)&&a.length===4&&nwOk(a[2],NW_MINW,NW_NCOL)&&nwOk(a[3],NW_MINH,NW_MAXH)&&nwOk(a[0],0,NW_NCOL-a[2])&&nwOk(a[1],0,400);};
+  const have=D.filter(good).map(d=>({id:d.id,x:m[d.id][0],y:m[d.id][1],w:m[d.id][2],h:m[d.id][3]}));
+  // Stored windows go first, so where one meets a default one they keep their place and the default one makes way.
+  const L=nwSettle([...have,...D.filter(d=>!good(d))]);return D.map(d=>L.find(i=>i.id===d.id));}
 function nwSave(){try{const w={};for(const i of NOCW.lay)w[i.id]=[i.x,i.y,i.w,i.h];localStorage.setItem(NW_KEY,JSON.stringify({v:1,w}));}catch(e){}}
 // The moved window keeps where it lands, except that it goes under a window whose middle is above its top; whatever it lands on goes below it
 // (and what that lands on below that); then every window falls up as far as it can. With no moved window it just tidies up.
