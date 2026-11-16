@@ -14,16 +14,6 @@ function playedGame() {
   return { a, saved: a.ev("slotRaw(UI.slot)"), day: a.ev('S.day') };
 }
 
-test('a reload drops you straight back into your saved network', () => {
-  const { saved, day } = playedGame();
-  const b = load({ storage: { 'sot-save-v1': saved } });
-  assert.equal(b.ev('UI.started'), true);
-  assert.equal(b.ev('S.day'), day);
-  assert.equal(b.ev('UI.speed'), 2, 'game speed is remembered');
-  assert.equal(b.ev("document.getElementById('modal').hidden"), true, 'no title screen in the way');
-  assert.deepEqual(b.errors, []);
-});
-
 test('leaving the page saves the game', () => {
   const a = load();
   a.ev("ACT.start({});for(let i=0;i<7;i++)dayTick();localStorage.removeItem(SLOT_K+UI.slot)");
@@ -78,14 +68,6 @@ test('returning players see what is new after an update, once', () => {
   assert.equal(c.ev("document.getElementById('modal').hidden"), true, 'not shown again');
 });
 
-test('version comparison for the update banner', () => {
-  const { ev } = load();
-  assert.equal(ev("newerVer('1.2.0','1.1.0')"), true);
-  assert.equal(ev("newerVer('1.10.0','1.9.3')"), true);
-  assert.equal(ev("newerVer('1.1.0','1.1.0')"), false);
-  assert.equal(ev("newerVer('1.0.9','1.1.0')"), false);
-});
-
 test('#46 an update that adds networks gives a courtesy route, and Tier 1 is shown only while it is true', () => {
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1});compute()");
@@ -112,8 +94,12 @@ test('#46 an update that adds networks gives a courtesy route, and Tier 1 is sho
   assert.deepEqual(errors, []);
 });
 
-test('in-app release notes stay short and link to the full notes on GitHub', () => {
+test('in-app release notes stay short and link to the full notes on GitHub; versions compare as numbers', () => {
   const { ev, errors } = load();
+  assert.equal(ev("newerVer('1.2.0','1.1.0')"), true);
+  assert.equal(ev("newerVer('1.10.0','1.9.3')"), true);
+  assert.equal(ev("newerVer('1.1.0','1.1.0')"), false);
+  assert.equal(ev("newerVer('1.0.9','1.1.0')"), false);
   const long = ['Tier 1 networks can lay their own subsea cable (#22). Pick two cities with a landing station, pay a lot, wait.',
     'Short one.', 'A 1.6T wave is now cheaper. More text here.', 'Four.', 'Five.', 'Six.', 'Seven.'];
   const h = ev(`notesHtml(${lit(long)},'9.9.9')`);

@@ -76,13 +76,18 @@ test('a change to links, POPs, ports, peering, events or RouteScript rebuilds wh
   assert.deepEqual(errors, []);
 });
 
-test('days in a row reuse the kept tables and route like a fresh start every day', () => {
+// Also: compute() is a pure function of the game, so a second call right after the first changes nothing (DDoS
+// reports hold the live attack, whose `worst` dayTick updates, so it is named by id).
+test('days in a row reuse the kept tables, route like a fresh start every day, and routing again changes nothing', () => {
   const { ev, errors } = open();
+  const rj = () => ev("JSON.stringify(R,(k,v)=>k==='attack'||k==='parent'?(v&&v.id):v)");
   for (let d = 0; d < 4; d++) {
     ev('dayTick()');
     const r = step(ev, '');
     assert.ok(r.same, `day ${d}: the same routing with and without the kept tables`);
     assert.ok(!r.g && !r.x, `day ${d}: a day of demand only keeps the tables`);
+    ev('compute()'); const a = rj(); ev('compute()');
+    assert.equal(rj(), a, `day ${d}: a second compute() changes nothing`);
   }
   assert.deepEqual(errors, []);
 });
@@ -142,5 +147,32 @@ test('an exit that turns from an exchange into a PNI at the same place in the li
   assert.equal(r.g, false, 'same graph');
   assert.equal(r.x, true, 'the exits changed');
   assert.equal(r.same, true, 'the same routing as without the kept tables');
+  assert.deepEqual(errors, []);
+});
+
+// compute() is idempotent: a second call on the same state gives the same R (moved from compute-idempotent.test.js).
+const big = (t) => { const h = load({ seed: 777 }); t.after(() => h.dom.window.close());
+  h.ev(`S=migrate(JSON.parse(${lit(SAVE)}));UI.started=true;UI.pitched=true;UI.speed=0;closeModal();compute();`); return h; };
+// R as JSON; DDoS reports hold the live attack, whose `worst` dayTick updates, so it is named by id.
+const rj = (ev) => ev("JSON.stringify(R,(k,v)=>k==='attack'||k==='parent'?(v&&v.id):v)");
+
+test('95th percentile: a recompute later in the day bills the same 30 days as the day tick did', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});S.cash=1e9;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'lvl',tier:1});closeModal()");
+  // Thirty days on file, two of them huge: counting today twice (and dropping the oldest day left) would lose one.
+  ev("S.offers=[];const t=S.transit[0];t.hist=Array.from({length:30},(_,i)=>i===1||i===3?5000:1);S.nextFail=S.nextEvent=S.day+99;dayTick()");
+  const tick = ev('R.p95[S.transit[0].id]'), cost = ev('R.cost.transit');
+  assert.equal(tick, 5000, 'the tick bills the 29 days before today and today');
+  ev('compute()');
+  assert.equal(ev('R.p95[S.transit[0].id]'), tick);
+  assert.equal(ev('R.cost.transit'), cost);
+  assert.deepEqual(errors, []);
+});
+
+test('scenic circuits keep the last path unless a new one is clearly better, so two calls converge', (t) => {
+  const { ev, errors } = big(t);
+  ev("for(const b of S.biz)if(BIZ_T[b.type].l2)b.route='scenic';R=emptyR();compute()");
+  ev('compute()'); const b = rj(ev);
+  ev('compute()'); assert.equal(rj(ev), b);
   assert.deepEqual(errors, []);
 });

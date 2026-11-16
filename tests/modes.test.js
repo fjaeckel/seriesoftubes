@@ -125,16 +125,14 @@ test('animations can be switched off, on or follow the system, and the choice st
   assert.deepEqual(errors, []);
 });
 
-test('half speed and deeper zoom', () => {
+// The deeper zoom (#126) is in tests/issues.test.js.
+test('half speed', () => {
   const { ev, errors } = load();
   ev("ACT.start({});ACT.speed({v:0.5})");
   assert.equal(ev("UI.speed"), 0.5);
   assert.equal(ev("document.getElementById('sp0.5').classList.contains('on')"), true);
   ev("ACT.speed({v:7})");
   assert.equal(ev("UI.speed"), 0.5, 'bogus speeds are ignored');
-  ev("cam.z=1;for(let i=0;i<40;i++)zoomAt(100,100,1.2)");
-  assert.equal(ev("cam.z"), ev("ZMAX"), 'zooming in stops at the maximum');
-  assert.ok(ev("ZMAX") >= 16, 'deep enough for dense regions (#126)');
   assert.deepEqual(errors, []);
 });
 

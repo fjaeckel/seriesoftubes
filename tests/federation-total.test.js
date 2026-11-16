@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { fedPage, joinGame, settle, NOW, SERVERS_JSON, URL1, key } = require('./helpers/fed');
 
-test('stats carry total: traffic served in Mbps, a valid record', async () => {
+test('stats carry total: traffic served in Mbps, past 1 Pbps up to 1 Ebps, in valid records', async () => {
   const p = fedPage();
   p.ev("ACT.start({});S.fed=fedNewState();R.served=12.3456");
   const b = JSON.parse(p.ev('JSON.stringify(fedStatsBody())'));
@@ -15,9 +15,20 @@ test('stats carry total: traffic served in Mbps, a valid record', async () => {
   p.ev('R.served=14.1');
   assert.equal(JSON.parse(p.ev('JSON.stringify(fedStatsBody())')).total, 15000);
   assert.deepEqual([0, 0.4, 1, 32, 111, 999, 1000].map((v) => p.ev(`fedStep(${v})`)), [0, 0, 1, 30, 120, 1000, 1000]);
+  // Past 1 Pbps, totals and announce traffic are Traffic (up to 10^12 Mbps, FEDERATION-PROTOCOL 2.1), so a network that
+  // big ranks as what it carries, not as 1.00 Pbps on every board.
   p.ev('R.served=5e6');
-  assert.equal(JSON.parse(p.ev('JSON.stringify(fedStatsBody())')).total, 5e9, 'past 1 Pbps, as Traffic (federation-traffic-past-pbps)');
+  assert.equal(JSON.parse(p.ev('JSON.stringify(fedStatsBody())')).total, 5e9, '5 Pbps reads as 5 Pbps, not 1');
+  // The checker takes it: only the signature fails on this made-up record.
   assert.equal(await p.ev("fedCheck({v:1,kind:'stats',key:'" + key('alice').pub + "',t:" + NOW + ",body:fedStatsBody(),sig:'" + 'A'.repeat(86) + "'}," + NOW + ").then(c=>c.error)"), 'bad_sig');
+  p.ev('R.served=2e9');
+  assert.equal(JSON.parse(p.ev('JSON.stringify(fedStatsBody())')).total, 1e12, 'capped at the Traffic limit, 1 Ebps');
+  assert.deepEqual([1.2e9, 4.4e11, 2e12].map((v) => p.ev(`fedStep(${v})`)), [1.2e9, 4e11, 1e12]);
+  const k = key('alice');
+  p.ev(`S.fed.key=${JSON.stringify({ pub: k.pub, priv: k.seed })};S.fed.op={seed:'x'};R.served=2e7`);
+  const ann = JSON.parse(await p.ev('fedAnnBody().then(b=>JSON.stringify(b.traffic))'));
+  assert.equal(ann.in, 2e10, 'announce traffic in: 20 Pbps');
+  assert.equal(ann.out, 3e9, 'announce traffic out follows the mix (all eyeballs: 15%), past 1 Pbps too');
   assert.deepEqual(p.errors, []);
 });
 

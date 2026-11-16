@@ -140,7 +140,7 @@ test('the open board refreshes every 30 s for any measure, never two asks at onc
   assert.equal(asks(), a0 + 2);
   // Closed: no more asks for it.
   p.ev('ACT.fuClose()');
-  await run(p, 65000);
+  await run(p, 31000);// one more 30 s tick would have asked
   assert.equal(asks(), a0 + 2, 'stops with the sheet');
   assert.deepEqual(p.errors, []);
 });
@@ -217,7 +217,7 @@ test('the HUD rank chip: only for a joined save, shows the rank, opens the board
   assert.equal(asks(), a0 + 2, 'and again 30 s later');
   // Hidden: paused; shown again: at once.
   p.ev("Object.defineProperty(document,'visibilityState',{value:'hidden',configurable:true})");p.net.vis = false;
-  await run(p, 61000);
+  await run(p, 31000);
   assert.equal(asks(), a0 + 2, 'nothing while the page is hidden');
   p.net.vis = true;p.ev("Object.defineProperty(document,'visibilityState',{value:'visible',configurable:true});document.dispatchEvent(new Event('visibilitychange'))");
   await run(p, 500);

@@ -47,7 +47,7 @@ const bigBiz = "ACT.start({});S.cash=1e9;ACT.launchBB({city:'fra'});ACT.buildPop
   "for(const b of S.biz)if(clOn(b)){b.te=400;b.mk=1;}compute()";
 const sorted = "JSON.stringify(S.biz.map(b=>Object.keys(b).sort().map(k=>[k,b[k]])))";
 
-test('#176 saves leave customer defaults out, and loading puts them back exactly', () => {
+test('#176 saves leave customer defaults out, and loading puts them back exactly; an older, unpacked save loads the same', () => {
   const { ev, errors } = load();
   ev(bigBiz);
   const full = ev('JSON.stringify(S).length'), packed = ev('JSON.stringify(packSave(S)).length');
@@ -62,16 +62,9 @@ test('#176 saves leave customer defaults out, and loading puts them back exactly
   assert.equal(ev("S.biz.find(b=>b.id==='w7').what"), ev("wwWhat(S.links.find(l=>l.id==='df1'),4)"), 'alien waves get their description back');
   assert.match(ev("slotRaw(UI.slot)"), /"Carrier 1"/);
   assert.doesNotMatch(ev("slotRaw(UI.slot)"), /alien wave on your/, 'descriptions are not stored');
-  assert.deepEqual(errors, []);
-});
-
-test('#176 an older, unpacked save still loads the same', () => {
-  const { ev, errors } = load();
-  ev(bigBiz);
-  const before = ev(sorted);
+  // A save from before packing: every field written out.
   ev("S=migrate(JSON.parse(JSON.stringify(S)));compute()");
-  const norm = list => list.map(b => Object.fromEntries(b)).map(b => ({ pm: b.mood, warned: false, warn60: false, ...b }));
-  assert.deepEqual(norm(JSON.parse(ev(sorted))), norm(JSON.parse(before)));
+  assert.deepEqual(norm(JSON.parse(ev(sorted))), norm(want), 'an older, unpacked save');
   assert.deepEqual(errors, []);
 });
 
@@ -80,15 +73,10 @@ test('#176 an older, unpacked save still loads the same', () => {
 const settle = async (ev, cond, what) => assert.ok(await until(() => ev(cond)), what || cond);
 const huge = "for(let i=0;i<12000;i++){const slots=1+i%4;S.biz.push({id:'h'+i,city:'fra',city2:'ams',name:'Huge Carrier '+i,type:'wwave',bw:1,rate:4000+i,mood:100,since:i,link:'df1',slots,what:wwWhat(S.links.find(l=>l.id==='df1'),slots)});}compute()";
 
-test('#176 small saves stay plain JSON, written at once', () => {
-  const { ev, errors } = load({ gzip: true });
-  ev("ACT.start({});save(true)");
-  assert.equal(ev("slotRaw(UI.slot)[0]"), '{');
-  assert.deepEqual(errors, []);
-});
-
-test('#176 a huge save is gzipped into storage and the next visit loads it', async () => {
+test('#176 small saves stay plain JSON, written at once; a huge save is gzipped into storage and the next visit loads it', async () => {
   const a = load({ gzip: true });
+  a.ev("ACT.start({});save(true)");
+  assert.equal(a.ev("slotRaw(UI.slot)[0]"), '{', 'a small save is plain');
   a.ev(bigBiz + ';' + huge);
   assert.ok(a.ev('JSON.stringify(packSave(S)).length') >= a.ev('GZ_MIN'), 'big enough to compress');
   a.ev('save(true)');

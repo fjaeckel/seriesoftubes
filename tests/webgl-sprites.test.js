@@ -1,6 +1,7 @@
 // The card's pictures (src/game/96-map/59-gl-sprites.js): painted on one reused canvas and sent to the atlas at once, so
 // a long zoom does not leave the browser holding a canvas per picture (it lost the graphics context and fell back to 2D).
-// The 2D map keeps a canvas per picture. jsdom has no WebGL: a stand-in context records what would go to the card.
+// The 2D map keeps a canvas per picture (checked on every frame of tests/map-2d.test.js). jsdom has no WebGL: a
+// stand-in context records what would go to the card.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -112,16 +113,6 @@ test('a full atlas starts again and the picture that did not fit goes into the n
   assert.equal(r.size, 1, 'the old pictures are gone');
   assert.equal(r.n, 1, 'drawn this frame');
   assert.equal(r.cv, false);
-  assert.deepEqual(errors, []);
-});
-
-test('the 2D map keeps a canvas per picture, and its pictures are not the card’s', () => {
-  const { ev, errors } = open();
-  ev(`mapGl(false);const h=CITY[S.home];cam.x=h.x;cam.y=h.y;cam.z=1.4;draw(1000);`);
-  const r = JSON.parse(ev(`(()=>{const es=[...SPRC.entries()];return JSON.stringify({n:es.length,cv:SPRS.size===0&&es.every(([k,e])=>e.cv&&e.cv.width===e.pw&&e.cv.height===e.ph),up:es.some(([,e])=>e.up)});})()`));
-  assert.ok(r.n > 10);
-  assert.equal(r.cv, true, 'each with its own canvas, at its size');
-  assert.equal(r.up, false, 'nothing went to a card');
   assert.deepEqual(errors, []);
 });
 

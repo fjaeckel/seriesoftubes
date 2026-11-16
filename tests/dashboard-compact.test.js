@@ -42,9 +42,10 @@ test('every long list opens on a short page, grows on request, and loses nothing
       assert.equal(first, p0);
       ev(`document.querySelector('#${k}Sec [data-act="listMore"]').click()`);
       assert.equal(n(ev, rows[k]), Math.min(ev(total[k]), p0 + p1), `${k} grows by its step`);
-      let guard = 0;
-      while (ev(`!!document.querySelector('#${k}Sec [data-act="listMore"]')`) && guard++ < 200) ev(`ACT.listMore({k:'${k}'})`);
+      // The end of the list in one go (a page at a time re-renders the big dashboard up to 200 times).
+      ev(`UI.listN.${k}=1e6;UI._dh=null;renderDash()`);
       assert.equal(n(ev, rows[k]), ev(total[k]), `${k}: every row can be reached`);
+      assert.equal(n(ev, `#${k}Sec [data-act="listMore"]`), 0, `${k}: no More button at the end`);
     }
     assert.equal(n(ev, `#${k}Sec p.note`), first > 8 ? 0 : n(ev, `#${k}Sec p.note`), `${k}: no intro paragraph above a long list`);
     ev(`listReset('${k}')`);

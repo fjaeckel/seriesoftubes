@@ -137,8 +137,9 @@ test('only an operator\'s game follows reports, keeps those of its own server an
   assert.deepEqual(p.errors, []);
 });
 
-test('the report sheet and the reports in the operator panel work on a 360 px phone, in every language', async () => {
-  for (const lang of [null, 'de', 'es', 'fr', 'it', 'pt']) {
+test('the report sheet and the reports in the operator panel work on a 360 px phone, translated too', async () => {
+  // Every label in every dictionary is checked by gameplay-rules C3; German's long words and Italian are the layout cases.
+  for (const lang of [null, 'de', 'it']) {
     const { p } = await joined(lang ? { lang } : {});
     await p.ev(`fedOpKeySet(${JSON.stringify(key('anna').seed)})`);
     const r = rec('bob', 'report', NOW - 60, { server: PL.id, target: M, reason: 'spam' });

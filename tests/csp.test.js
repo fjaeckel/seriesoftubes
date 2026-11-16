@@ -109,7 +109,7 @@ test('csp: the page makes no request of a kind the policy was not checked for', 
   assert.match(fs.readFileSync(path.join(ROOT, 'src', 'game', '93-ui', '75-optic-counts.js'), 'utf8'), /closest\('form\.optic-count'\);if\(!f\)return;e\.preventDefault\(\)/, 'the form never submits (form-action \'none\')');
 });
 
-test('csp: the development page has none (npm run dev adds scripts of its own), and the agent code is not in the build', () => {
+test('csp: the development page has none (npm run dev adds scripts of its own)', () => {
+  // That the build carries no agent code is tests/pages.test.js.
   assert.doesNotMatch(assemble({ dev: true }).html, /Content-Security-Policy/);
-  assert.doesNotMatch(html, /\bTUBES\b/);
 });

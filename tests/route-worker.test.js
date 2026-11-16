@@ -1,6 +1,6 @@
 // The route worker (src/game/80-simulation/28-route-worker.js): jsdom has no Worker, so these check the parts that
 // decide whether its answer is the same as routing on the page: R packed, cloned the way postMessage clones it, and
-// unpacked gives the same R; a day split around its routing is the same day; tests stay on the synchronous path.
+// unpacked gives the same R; tests stay on the synchronous path (a day split around its routings: tests/day-steps.test.js).
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -27,6 +27,8 @@ test('R packed, cloned and unpacked is the same R, lazy parts and key order incl
   // Sent back to the worker after an action, a link's sums still clone whole.
   assert.equal(ev("JSON.stringify(Object.entries(structuredClone(rwEfgOut(R.efg))).map(([k,t])=>[k,[...t.g],t.v,t.n,t.d]))"), efg);
   assert.equal(ev('pniFlows(Object.keys(S.pops)[0])!==null'), true, 'the PNI list reads the unpacked flows');
+  // Tests never use the worker (a day stepped through it is tests/day-steps.test.js).
+  assert.equal(ev('rwOn()'), false);
   assert.deepEqual(errors, []);
 });
 
@@ -44,16 +46,4 @@ test('the worker side routes what it is sent: same R as routing on the page', (t
   assert.equal(hot, ev('JSON.stringify(UI.hotMap)'));
   assert.ok(Object.keys(JSON.parse(hot)).length > 5, 'some ports are full on the big network');
   assert.deepEqual(errors, []);
-});
-
-test('a day split around its routing is the same day; tests never use the worker', (t) => {
-  const a = big(t), b = big(t);
-  for (const h of [a, b]) h.ev('S.nextFail=S.nextEvent=S.day+99;__reseed(4242)');
-  a.ev('for(let i=0;i<3;i++)dayTick()');
-  // Every routing it asks for done by hand (a DAY_REST is only a place to let a frame through, not a routing).
-  b.ev("for(let i=0;i<3;i++){const g=dayRun();for(let s=g.next();!s.done;s=g.next())if(s.value!==DAY_REST)compute();}");
-  const st = "JSON.stringify({day:S.day,cash:S.cash,moods:S.biz.map(b=>b.mood),offers:S.offers.length,served:R.served})";
-  assert.equal(b.ev(st), a.ev(st));
-  assert.equal(a.ev('rwOn()'), false);
-  assert.deepEqual([...a.errors, ...b.errors], []);
 });
