@@ -113,6 +113,8 @@ function* dayPost(d){
   yield* slAutoRun(d);
   if(opsHired())yield DAY_REST;
   yield* opsRun(d);
+  if(optxOn())yield DAY_REST;
+  yield* optxRun(d);
   if(S.pie){pieDay(d);pieTier();}
   if(S.fed&&fedPlayDay())yield;// a swap partner's wave comes or goes (89-fedplay-deals.js)
   // payday floaters

@@ -36,6 +36,9 @@ const API_DOMAINS={
   // The intern, their orders and the new-POP template (opsHire, opsToggle, opsParam…).
   internId:{table:'INTERNS',kind:'key'},
   opsKey:{table:'OPSK',kind:'key'},
+  // The optical engineering team (optxHire, optxMode…).
+  optxSize:{table:'OPTX',kind:'key'},
+  optxMode:{kind:'enum',values:['ask','auto']},
   opsPopKind:{kind:'enum',values:()=>OPS_POP.slice()},
   opsTplKey:{kind:'enum',values:()=>OPS_TPL.slice()},
   // The three POP standards (#315).

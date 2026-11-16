@@ -86,7 +86,7 @@ function sanitize(s){
     // Every number a loan's bill reads, as a number in range: a string or 1e308 here would turn cash into NaN.
     for(const k of ['amount','got','bal','pay'])l[k]=Math.min(1e13,Math.max(0,num(l[k],0)));for(const k of ['apr','apr0'])if(l[k]!==undefined)l[k]=Math.min(10,Math.max(0,num(l[k],0)));
     if(l.share!==undefined)l.share=Math.min(1,Math.max(0,num(l.share,0)));l.left=int(l.left,0,6000,0);l.term=int(l.term,0,6000,0);l.start=int(l.start,0,1e7,s.day||0);if(!Array.isArray(l.covs))l.covs=[];l.covs=l.covs.filter(c=>own(COVS,c));}s.loanOffers=s.loanOffers.filter(l=>l&&own(BANKS,l.bank));
-  s.usedNames=[...new Set(s.usedNames.filter(x=>typeof x==='string'))];s.log=s.log.filter(e=>e&&typeof e.t==='string').slice(0,LOG_KEEP).map(e=>{const o=e.o&&typeof e.o==='object'&&e.o.a==='inbox'?{a:'tab',v:'nets'}:e&&e.o&&typeof e.o==='object'&&LOG_OPEN.includes(e.o.a)?(e.o.a==='bank'||e.o.a==='ops'||e.o.a==='badges'?{a:e.o.a}:typeof e.o.v==='string'&&e.o.v.length<=64&&(e.o.a!=='city'||isCity(e.o.v))&&(e.o.a!=='tab'||LOG_TABS.includes(e.o.v))?{a:e.o.a,v:e.o.v}:null):null;
+  s.usedNames=[...new Set(s.usedNames.filter(x=>typeof x==='string'))];s.log=s.log.filter(e=>e&&typeof e.t==='string').slice(0,LOG_KEEP).map(e=>{const o=e.o&&typeof e.o==='object'&&e.o.a==='inbox'?{a:'tab',v:'nets'}:e&&e.o&&typeof e.o==='object'&&LOG_OPEN.includes(e.o.a)?(e.o.a==='bank'||e.o.a==='ops'||e.o.a==='optx'||e.o.a==='badges'?{a:e.o.a}:typeof e.o.v==='string'&&e.o.v.length<=64&&(e.o.a!=='city'||isCity(e.o.v))&&(e.o.a!=='tab'||LOG_TABS.includes(e.o.v))?{a:e.o.a,v:e.o.v}:null):null;
     return {id:typeof e.id==='string'&&e.id.length<=40?e.id:uid(),d:num(e.d,0),t:e.t.slice(0,600),h:typeof e.h==='string'?e.h.slice(0,200):'',k:LOG_KINDS.includes(e.k)?e.k:'',at:Number.isFinite(+e.at)?+e.at:0,o,n:int(e.n,1,9999,1)};});
   // One scrubbing center became a list (#117): older saves carry theirs over.
   if(!Array.isArray(s.scrubs))s.scrubs=s.scrubAt&&isCity(s.scrubAt)?[{city:s.scrubAt,tier:s.scrubTier}]:[];delete s.scrubAt;delete s.scrubTier;
@@ -124,6 +124,7 @@ function sanitize(s){
    const m={mods:r.mods};s.rules=s.scn&&typeof s.scn==='object'?makeRules('oncall',m):s.mode==='sandbox'?makeRules('sandbox',{...m,chaos:r.chaos}):makeRules(NORMAL_PRESETS.includes(r.preset)?r.preset:'oncall',m);}
   specSanitize(s);lcSanitize(s);
   cmFix(s);
+  optxFix(s);
   pieSanitize(s);pieIncFix(s);volFix(s);
   fedSanitize(s);// multiplayer: null unless this save joined (60-features/86-fed-state.js)
   fedpSanitize(s);// other players' networks and this one's published terms (60-features/89-fedplay-*.js)

@@ -62,6 +62,7 @@ const API_STATE_DOC={
  ppol:{type:'string',doc:'Your published peering policy: open | selective | closed.'},
  pdesk:{type:'map',doc:'This week\'s peering desk summary: sessions accepted and declined at which exchanges.'},
  pdeskRep:{type:'map',doc:'Last week\'s peering desk summary, as the NOC log reported it.'},
+ optx:{type:'map',doc:'The optical engineering team: size (s, m, l or null), hired (day), mode (ask or auto), bud (yearly build budget, 0 = no limit), pay (months a route may take to pay back), yr and spent (this year\'s builds), jobs (links it is building), prop (routes it proposes: a, b, sub, km, cost, days, mo, pb) and log. Its orders are the team ones in ops (optics, optup, waveup, decom).'},
  ops:{type:'map',doc:'The NOC intern: who is hired, each standing order\'s on/off switch and settings (network work only: deals belong to the sales desk, slAuto), the monthly budget and what it spent, per-POP exceptions, the new-POP template and the weekly log.'},
  core:{type:'map',doc:'Your backbone technology: lv bought, the level it runs at, the interop lab.'},
  ddosAuto:{type:'map',doc:'The NOC\'s auto-mitigation switches: rtbh and scrub.'},

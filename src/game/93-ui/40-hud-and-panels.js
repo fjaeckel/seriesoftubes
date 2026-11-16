@@ -57,7 +57,7 @@ function renderLeft(){checkLayer();
     h+=`<div class="btns" style="margin-bottom:8px">${btn(tr('hud_and_panels.open_noc_dashboard'),'dash',{},'pink')}${pieNocBtn()}${bazNocBtn()}${btn(`⚙️ ${tr('routing.routing_and_ddos')}${S.te&&!coreTE()?'<span class="cnt red dot" aria-hidden="true"></span>':''}`,'routingOpen',{},'')}</div>`;
     // The introduction is for newcomers: once the network has grown or a few things have broken, it only costs a scroll.
     if(Object.keys(S.pops).length<6&&(S.stats.incidents||0)<3)h+=`<p class="lead">${tr('hud_and_panels.your_network_operations_center_every')}</p>`;
-    h+=opsCard()+pieSpatCard()+mkCard()+ddosPanel();
+    h+=opsCard()+optxCard()+pieSpatCard()+mkCard()+ddosPanel();
     // Incidents come first, the ones you can fix with one click at the top (#63): no scrolling past hot ports to replace an optic.
     for(const i of S.inc.filter(i=>i.type!=='ddos').sort((a,b)=>(b.cost?1:0)-(a.cost?1:0)||(b.impact||0)-(a.impact||0))){h+=`<div class="inc"><div class="nm">${incTitle(i.type)}</div><div class="meta">${esc(i.msg)}</div><div class="meta">${shipSea(i)?'🚢 '+esc(shipStatus(i)):trn('hud_and_panels.auto_fix_in_n_day',i.until-S.day)}${i.impact?` · ${tr('hud_and_panels.g_lost',{g:fmtG(i.impact)})}`:''}</div>${i.cost?`<div class="btns">${btn(`${esc(i.fix||tr('common.rush_repair'))} ${fmt$(i.cost)}`,'fixInc',{id:i.id},'red sm',S.cash<i.cost)}</div>`:''}</div>`;}
     h+=logSection();UI.logSeen=Date.now();

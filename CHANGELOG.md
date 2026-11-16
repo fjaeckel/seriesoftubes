@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- You can hire an optical engineering team from Big League on: a department of its own, from $1.2M to $7M a year in three sizes, that plans and builds your fiber and subsea routes. Once hired they take over the intern's optical work (optics, line systems, handing back waves), move leased waves that run hot up a size, and every Wednesday plan routes from what the Lambda Bazaar's buyers want plus the leased waves you would no longer need. They either ask before building or build on their own within a yearly budget, and bigger teams run more projects at once. Now and then they get something wrong: a fat-fingered config darkens a fiber for a day, a build slips, or a build costs more.
 - The intern can grow the exchanges you founded: a new standing order upgrades an exchange's fabric when its traffic outgrows your headroom, or when every seat is taken and a network is waiting to join. It has its own monthly budget and shows up in Ops once you run an exchange.
 
 ## [4.5.0] — 2026-11-16
