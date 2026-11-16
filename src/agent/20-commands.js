@@ -647,7 +647,7 @@ const API_VIEW={
  pniSort:{args:[],doc:'Flip the PNI list sort between A-Z and worth-it-first.'},
  panelMore:{args:[['k','string'],['n','integer',false]],doc:'Show another page of a long list in the city or link panel (k names the list, n is how many rows it shows now).'},
  panelJump:{args:[['k','string']],doc:'Scroll the city panel to one of its sections (the chips at the top of the Peering and Infra tabs).'},
- panelFold:{args:[['k','string'],['o','boolean',false]],doc:'Fold or unfold a block of the city or link panel: a section, a section\'s explanation, the controls of one port, or the full traffic breakdown of a link.'},
+ panelFold:{args:[['k','string'],['o','boolean',false]],doc:'Fold or unfold a block of the city or link panel: a section, a section\'s explanation, the controls of one port, or the full traffic breakdown of a link. A section, an exchange\'s Get a port and the routers\' Change you unfold stay unfolded on the next POP (from the fourth POP on; folding one forgets it).'},
  netFind:{args:[['q','string']],doc:'Filter a POP\'s transit, exchange, PNI and cache lists by network name or AS number.'},
  netOnly:{args:[],doc:'Show only the networks you are connected to in a POP\'s lists, or all of them again.'},
  netClear:{args:[],doc:'Clear the network search and the connected-only switch.'},
