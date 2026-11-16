@@ -25,7 +25,7 @@ test('#187 a capability brings its customers before the level does, only when yo
   assert.deepEqual(o.reqs, ['lat']);
   assert.ok(o.latMax >= s.n, 'and the path you have already meets it');
   assert.equal(o.spot.k, 'lat');
-  ev("ACT.leftTab({t:'deals'});renderAll()");
+  ev(`ACT.leftTab({t:'deals'});ACT.dealsFold({k:'o:${o.id}',o:1})`);
   assert.match(dom.window.document.body.innerHTML, /They spotted your [\d.]+ ms (New York|Chicago)–(New York|Chicago) path/);
   // Lit dark fiber with enough capacity brings AI interconnects (level 4) to a level 3 network; not the bigger DCI.
   ev(`S.lvl=3;${df('d', 'nyc', 'chi', ['zr4', 'zr4'])}compute()`);

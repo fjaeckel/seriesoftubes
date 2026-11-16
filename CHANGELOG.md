@@ -6,11 +6,20 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- A subsea cable of your own can land in Bogotá, and in the other inland cities where cables land (Nairobi, Johannesburg, Khartoum, Atlanta, Montreal): it comes ashore where their cables do and runs on overland (#416).
+- Once you have made Tier 1, conference news and de-peerings no longer pop up: they go to the NOC's notification list instead. That covers conference reminders and reports (which used to vanish altogether), your sales engineer's bookings, the carriers a capacity conference sends, a network de-peering you at an exchange, and the Cogentle and Goggle peering spat (its incident stays in the NOC).
+- Big networks: a POP's Peering tab no longer slows every game day and every click while it is open. The list of PNIs worked out what a PNI would carry at every one of your POPs to show the one on screen; now it only works out that one.
+- Big networks: the first minute after loading a game is smoother. The lowest latency you could ever build between two cities, which latency offers are checked against, is now worked out about ten times faster, for every POP.
+
+## [4.4.0] — 2026-11-16
+
+- A large UX redesign: much less scrolling and things are easier to find, on phones and on computers. Lambda Bazaar has a window of its own, the 🔍 search finds anything, and the Deals, Goals, NOC and Networks tabs, the NOC dashboard, the city and link panels, Multimode, the bank, Settings and How to play are all shorter and put what needs you first.
 - Orbit customers in the far north no longer go short when the crusts further south fill up: overflow now lands under the crust with the most room, keeping the polar crust free for the places only it reaches.
 - An unhappy orbit customer now says why it is short and what fixes it (a full dish, full crusts, no dish in reach, slow fiber where it lands), on its card and in the warning.
 - Orbit customers link the NOC, Pie Control and their POP: each view has buttons to the other two, the NOC shows the POP whose dish lands them, Pie Control can drop them, and that POP's panel lists the orbit customers coming down there.
 - Orbit offers now warn when the sky cannot deliver them: no crust over the city yet, every crust there full, no dish to land them, or too little room for the bandwidth they want. Your sales desk no longer signs those (the shark still oversells bandwidth); you still can.
 - Pie Control's Dishes tab has a dish optimizer: it lists what to change on the ground, best payback first, each with its cost and a mark on the globe. It adds antennas to busy dishes, moves or takes down idle dishes whose cities other dishes already reach, and builds dishes (opening a POP if that pays best) where cities are out of reach, so orbit customers there can sign.
+- RouteScript's `spill at … within … ms` rules no longer push your ordinary internet traffic up through your pies: their detours now stay on fiber, so the crusts keep their room for the latency customers who pay for it (#409).
 
 ## [4.3.0] — 2026-11-15
 

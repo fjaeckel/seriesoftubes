@@ -105,13 +105,13 @@ test('the region filter narrows the list, ignores nonsense, and an emptied regio
 
 test('the list pages like the other long lists, and a new sort or filter starts from the top', (t) => {
   const { ev, errors } = game(t);
-  assert.equal(shown(ev).length, ev('LIST_PAGE'));
+  assert.equal(shown(ev).length, ev('LIST_PG.pops[0]'));
   ev("ACT.listMore({k:'pops'})");
-  assert.ok(shown(ev).length > ev('LIST_PAGE'));
+  assert.ok(shown(ev).length > ev('LIST_PG.pops[0]'));
   ev("ACT.popsSort({k:'name'})");
-  assert.equal(shown(ev).length, ev('LIST_PAGE'));
+  assert.equal(shown(ev).length, ev('LIST_PG.pops[0]'));
   ev("ACT.listMore({k:'pops'});ACT.popsReg({v:'EU'})");
-  assert.equal(ev("listN('pops')"), ev('LIST_PAGE'));
+  assert.equal(ev("listN('pops')"), ev('LIST_PG.pops[0]'));
   assert.deepEqual(errors, []);
 });
 

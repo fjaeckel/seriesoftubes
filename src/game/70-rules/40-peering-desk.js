@@ -26,7 +26,8 @@ function pdeskLine(x){const pol=tr(PPOL_N[x.p]||PPOL_N.open);if(!x.a)return trn(
   const nm=x.ix.slice(0,x.ix.length>4?3:4).map(ixName);if(x.ix.length>4)nm.push(trn('peering_desk.n_more_exchanges',x.ix.length-3));
   let ix;try{ix=new Intl.ListFormat(LANG,{type:'conjunction'}).format(nm);}catch(e){ix=nm.join(', ');}
   return x.d?trn('peering_desk.n_new_sessions_at_ix_declined',x.a,{ix,d:x.d,pol}):trn('peering_desk.n_new_sessions_at_ix',x.a,{ix,pol});}
-// The policy picker, in the Networks tab.
-function pdeskCard(){const p=ppol(),r=S.pdeskRep;
-  return `<div class="ibx ibxcard"><div class="nm">🤝 ${tr('common.peering_policy')}: ${tr(PPOL_N[p])}</div><div class="seg">${PPOL.map(x=>btn(tr(PPOL_N[x]),'peerPol',{p:x},p===x?'sm':'ghost sm')).join('')}</div>
-  <p class="meta">${tr(PPOL_D[p])}</p>${r&&r.w>=Math.floor(S.day/7)-1&&(r.a||r.d)?`<p class="meta">${esc(pdeskLine(r))}</p>`:''}</div>`;}
+// The policy picker, in the Networks tab: one line that says the policy (and last week's news); Change unfolds the
+// three choices and what the chosen one does.
+function pdeskCard(){const p=ppol(),r=S.pdeskRep,open=leftFolded('ppol');
+  return `<div class="row ppolr"><div class="grow"><div class="nm">🤝 ${tr('common.peering_policy')}: ${tr(PPOL_N[p])}</div>${r&&r.w>=Math.floor(S.day/7)-1&&(r.a||r.d)?`<div class="meta">${esc(pdeskLine(r))}</div>`:''}</div>${foldB(tr('connections.change'),'leftFold',{k:'ppol'},open,'ghost sm',tr('common.change_name',{name:tr('common.peering_policy')}))}</div>${open?`<div class="ppolx"><div class="seg">${PPOL.map(x=>btn(tr(PPOL_N[x]),'peerPol',{p:x},p===x?'sm':'ghost sm')).join('')}</div>
+  <p class="meta">${tr(PPOL_D[p])}</p></div>`:''}`;}

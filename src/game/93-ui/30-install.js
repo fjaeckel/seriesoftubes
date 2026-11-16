@@ -4,8 +4,13 @@ addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e;});
 addEventListener('appinstalled',()=>{installEvt=null;track('pwa_installed',true);if(UI.pendGame){const p=UI.pendGame;UI.pendGame=null;UI.pitched=true;beginGame(...p);}toast(tr('install.installed_open_series_of_tubes_from'),'good');});
 const isStandalone=()=>{try{return navigator.standalone===true||!!(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);}catch(e){return false;}};
 const isIOS=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-function installRow(){if(isStandalone())return '';
-  return `<div class="row icard"><div class="grow"><div class="nm">📲 ${tr('install.best_played_as_an_app')}</div><div class="meta">${tr('install.full_screen_works_offline_one_tap')}${isIOS()?' '+tr('install.install_it_before_you_start_a'):''}</div></div>${btn(tr('common.install'),'install',{},'pink sm')}</div>`;}
+/* The title's install card is a pitch for the first visits; after INSTALL_CARD_N of them, or once it is closed (×), it is one
+   line with the same button (Settings always has the card). Counted once per page load; 'x' = closed for good. Storage may be off: then it stays a card. */
+const INSTALL_CARD_N=3;let installCard=null;
+function installCardOn(){if(installCard==null){installCard=true;try{const v=localStorage.getItem('sot-install-card');if(v==='x')installCard=false;else{const n=(parseInt(v,10)||0)+1;installCard=n<=INSTALL_CARD_N;localStorage.setItem('sot-install-card',String(n));}}catch(e){}}return installCard;}
+function installRow(title){if(isStandalone())return '';
+  if(title&&!installCardOn())return `<p class="iline"><button class="lnk" data-act="install">📲 ${tr('install.best_played_as_an_app')} →</button></p>`;
+  return `<div class="row icard"><div class="grow"><div class="nm">📲 ${tr('install.best_played_as_an_app')}</div><div class="meta">${tr('install.full_screen_works_offline_one_tap')}${isIOS()?' '+tr('install.install_it_before_you_start_a'):''}</div></div>${btn(tr('common.install'),'install',{},'pink sm')}${title?`<button class="x ix" data-act="installHide" aria-label="${tr('common.close')}" title="${tr('common.close')}">×</button>`:''}</div>`;}
 /* Phones get a real pitch before a new game: an installed app is full screen, works offline, and on iPhone
    keeps its save away from Safari's clean-ups. Storage is separate on iOS, so installing first matters. */
 const SHARE_SVG='<svg width="16" height="18" viewBox="0 0 16 18" aria-hidden="true"><path d="M8 1v10M4.5 4.5 8 1l3.5 3.5M5 7H2.5v9.5h11V7H11" fill="none" stroke="#1E2640" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';

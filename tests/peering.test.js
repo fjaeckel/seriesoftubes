@@ -95,7 +95,8 @@ test('a snubbing peer tears down an existing session and the Request button expl
   ev('dayTick()');
   assert.equal(ev(`!!S.peers['${id}@${c}']`), false, 'session torn down');
   assert.ok(ev(`S.log.some(e=>/de-peered you/.test(e.t))`));
-  ev(`selectCity('${c}');ACT.tab({t:'peer'})`);
+  // The member list shows a first page; the rest is one tap away.
+  ev(`selectCity('${c}');ACT.tab({t:'peer'});ACT.panelMore({k:'ix:${c}',n:5000})`);
   assert.match(ev("document.getElementById('panelBody').textContent"), /reconsider in/);
   assert.deepEqual(errors, []);
 });
@@ -282,7 +283,7 @@ test('community exchanges are wired up in every city, and Barcelona has Catnip-I
   for (const k of exchanges)
     assert.ok(ev(`ixSessions('${k}').size`) > 0, `route server sessions at ${k}`);
   for (const c of ['ams', 'mad', 'fra', 'lon', 'nyc', 'jnb', 'syd', 'tok', 'bcn']) {
-    ev(`selectCity('${c}');ACT.tab({t:'peer'})`);
+    ev(`selectCity('${c}');ACT.tab({t:'peer'});ACT.panelFold({k:'s:ix',o:1})`);
     const txt = ev("document.getElementById('panelBody').textContent");
     for (const k of JSON.parse(ev(`JSON.stringify(ixIdsIn('${c}'))`))) assert.ok(txt.includes(ev(`ixName('${k}')`)), `${k} shown in ${c}`);
   }

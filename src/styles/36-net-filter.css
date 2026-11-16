@@ -3,3 +3,15 @@
 .netf input.t{font-size:16px;padding:6px 10px;min-height:44px}
 .netf .btns{margin:0}
 .ptier .row .btns{margin-top:4px}
+/* The Networks tab: compact rows that unfold, one at a time. */
+.nlf .nlt .b{white-space:nowrap}
+.row.netr{display:block;padding:0}
+.neth{display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;margin:0;padding:6px 0;border:0;border-radius:8px;background:none;color:var(--ink);text-align:left}
+button.neth{cursor:pointer}
+button.neth:hover{background:var(--soft)}
+.neth .nm,.neth .meta{display:block}
+.neth .nm .meta{display:inline}
+.neth .pchips{margin:2px 0 0}
+.nchev{flex:none;width:18px;text-align:center;color:var(--ink2);font-size:12px}
+.netd{padding:0 0 8px 43px}
+.netd .meta{margin-top:2px}

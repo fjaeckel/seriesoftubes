@@ -1,0 +1,36 @@
+/* The bank: offers as cards that compare at a glance, running loans with how far along they are. */
+.btiles .tile .lbl{display:flex;align-items:center;gap:5px}
+.bwhy{border:2px dashed var(--edge);border-radius:12px;padding:6px 10px;margin:-2px 0 8px;background:var(--soft)}
+.bwhy p{margin:4px 0 0}
+.bh3{font-size:18px;margin-top:14px}
+.bcall{margin:2px 0 0}
+.bhd{display:flex;align-items:baseline;gap:8px}
+.bhd .nm{flex:1;min-width:0}
+.bamt{font-family:var(--display);font-weight:800;font-size:20px;font-variant-numeric:tabular-nums;white-space:nowrap}
+/* Marks and the deadline first, the bank's blurb after them, two lines at most so the deadline never gets cut. */
+.bblurb{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}
+.bblurb .tag{vertical-align:1px}
+.bfoot{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}
+.bfoot .terms{margin:0;flex:1 1 auto}
+.bfoot .btns{margin:0 0 0 auto;flex-wrap:nowrap}
+.bfacts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:6px 0;border:2px solid var(--edge);border-radius:10px;background:var(--soft);overflow:hidden}
+.bf{padding:3px 8px;min-width:0;display:flex;align-items:baseline;gap:6px}
+.bf+.bf{border-left:2px solid var(--line)}
+.bf span{flex:none;font-size:9.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bf b{flex:1;min-width:0;font-size:13.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.boffer.best{border-color:var(--eye);box-shadow:3px 3px 0 var(--eye)}
+.bcov{font-size:12.5px;line-height:1.35}
+.bprog{display:flex;align-items:center;gap:8px;margin:4px 0 2px}
+.bprog .bar{flex:1;margin:0}
+.bprog .meta{flex:none;font-weight:800}
+.bcovs{font-size:12.5px;margin-top:2px}
+/* Settings: one line per setting, what it is on the left and its control on the right; a short note under both. */
+/* Sections other parts add (Multimode, the agent's) look like the rest. */
+.setsb h3.sub4,.sub4.sets{margin:10px 0 2px;padding-top:7px;border-top:2px solid var(--line);font-size:11.5px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.setline:has(>.setl){display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 8px;align-items:center;margin:5px 0}
+.setl{display:contents}
+.setl>span,.setl>label{font-weight:800;grid-column:1;grid-row:1}
+.setl small{grid-column:1/-1;grid-row:2;font-size:11.5px;line-height:1.3;color:var(--ink2);font-weight:600;margin-top:1px}
+.setline>.setl~*{grid-column:2;grid-row:1}
+.setline>.seg{flex-wrap:nowrap;gap:4px}
+.setsb p.meta{font-size:11.5px;line-height:1.3;margin:1px 0 4px !important}

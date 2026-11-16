@@ -29,5 +29,6 @@ function t1Card(){const cur=GOALS.find(g=>S.done[g.id]===undefined);if(!((cur&&c
   h+=pRow({l:tr('meet_a_network.reach_without_transit'),v:Math.min(R.reachNT,0.999),max:0.999,txt:`${reachPct(R.reachNT)} / 99.9%`});
   // Their customers come along for free (#85): say how many, so the long tail does not look like homework.
   {const nc=Object.keys(R.cone||{}).length;h+=`<p class="why">${nc?trn('meet_a_network.peer_with_the_tier_1_club_n',nc):tr('meet_a_network.peer_with_the_tier_1_club')}</p>`;}
-  if(lost.length)h+=`<div class="btns">${lost.slice(0,3).map(nb).join('')}${btn(trn('meet_a_network.all_n_out_of_reach',lost.length),'netFilter',{f:'out'},'pink sm')}</div>`;
+  // The Tier 1s still missing have their buttons above: here come the biggest of the rest, on one line.
+  if(lost.length)h+=`<div class="btns">${lost.filter(n=>!miss.includes(n)).slice(0,2).map(nb).join('')}${btn(trn('meet_a_network.all_n_out_of_reach',lost.length),'netFilter',{f:'out'},'pink sm')}</div>`;
   return h+'</div>';}

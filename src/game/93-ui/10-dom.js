@@ -1,6 +1,11 @@
 /* ================= DOM RENDER ================= */
 const $=id=>document.getElementById(id);
-const btn=(label,act,args={},cls='',dis=false,title='')=>`<button class="b ${cls}" data-act="${act}" data-args="${esc(JSON.stringify(args))}"${dis?' disabled':''}${title?` title="${esc(title)}"`:''}>${label}</button>`;
+const btn=(label,act,args={},cls='',dis=false,title='',at='')=>`<button class="b ${cls}" data-act="${act}" data-args="${esc(JSON.stringify(args))}"${dis?' disabled':''}${title?` title="${esc(title)}"`:''}${at}>${label}</button>`;
+/* Every button that unfolds something looks and reads the same: ▸ folded / ▾ open on the left of its words, and says
+   which with aria-expanded. `name` says what it opens ("Change: Level Tree transit"), for screen readers. */
+// One of a row of choices (a filter, a sort, a setting): pink when picked, and says so with aria-pressed.
+const segB=(label,act,args,on,cls='sm')=>btn(label,act,args,(on?'pink ':'ghost ')+cls,false,'',` aria-pressed="${!!on}"`);
+const foldB=(label,act,args,o,cls='ghost sm',name='')=>btn(`${o?'▾':'▸'} ${label}`,act,args,cls,false,'',` aria-expanded="${!!o}"${name?` aria-label="${esc(name)}"`:''}`);
 const logo=n=>`<span class="logo" style="--c:${n.col}">${initials(n)}</span>`;
 const barCls=u=>u>=0.9?'bad':u>=0.65?'warn':'';
 /* Panels are rebuilt from state every tick. Replacing a thousand rows makes the browser style and lay out every one
@@ -23,6 +28,8 @@ function morphKids(a,b){let x=a.firstChild,y=b.firstChild;
     else if(x.nodeValue!==y.nodeValue)x.nodeValue=y.nodeValue;
     x=x&&x.nextSibling;y=ny;}
   while(x){const nx=x.nextSibling;a.removeChild(x);x=nx;}}
-function renderAll(){if(isTablet()&&!UI.sel)UI.leftOpen=false;renderHUD();renderLeft();renderPanel();renderHint();renderMega();renderCoach();pzRender();routingRefresh();if(S)charterAsk();}
+function renderAll(){if(isTablet()&&!isPhone()&&!UI.sel)UI.leftOpen=false;renderHUD();renderLeft();renderPanel();renderHint();renderMega();renderCoach();pzRender();routingRefresh();if(S)charterAsk();}
 function renderMega(){const el=$('mega');if(!el)return;const on=!!(S&&S.ev&&S.ev.php>S.day);if(el.hidden===!on)return;el.hidden=!on;}
 
+// A different tab of the left panel starts at its top; the daily re-render of the same tab keeps its place.
+function leftTop(){const b=$('leftBody');if(b)b.scrollTop=0;}

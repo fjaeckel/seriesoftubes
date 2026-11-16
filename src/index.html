@@ -105,7 +105,7 @@
 <canvas id="mapgl" aria-hidden="true" hidden></canvas><canvas id="mapfx" aria-hidden="true" hidden></canvas>
 
 <header id="hud">
-  <button class="chip brand menubtn" data-act="menu" aria-label="Network menu: save, load or start over" data-i18n-aria-label="page.network_menu_save_load_or_start">
+  <button class="chip brand menubtn" data-act="menu" aria-haspopup="dialog" aria-label="Network menu: save, load or start over" data-i18n-aria-label="page.network_menu_save_load_or_start" title="Network menu: save, load or start over" data-i18n-title="page.network_menu_save_load_or_start">
     <svg class="tube" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 22c0-7 5-12 12-12h6" fill="none" stroke="#1E2640" stroke-width="7" stroke-linecap="round"/><path d="M4 22c0-7 5-12 12-12h6" fill="none" stroke="#FFD23F" stroke-width="3.5" stroke-linecap="round"/><circle cx="25" cy="10" r="5" fill="#fff" stroke="#1E2640" stroke-width="2.5"/></svg>
     <div><div class="val" id="hName">Series of Tubes</div><div class="lbl" id="hAsn">AS —</div></div><span class="fed-dot" id="hFed" role="img" hidden></span><span class="caret" aria-hidden="true">▾</span>
   </button>
@@ -116,27 +116,25 @@
   <button class="chip scn hide-sm" id="hScn" data-act="leftTab" data-args='{"t":"goals"}' hidden><span class="lbl" data-i18n="common.scenario">Scenario</span><span class="val num" id="hScnVal">—</span></button>
   <button class="chip cust hide-sm" id="hCust" data-act="custOpen" hidden><span class="lbl" data-i18n="common.customers">Customers</span><span class="val num" id="hCustVal">—</span></button>
   <button class="chip noc" id="hNoc" data-act="leftTab" data-args='{"t":"noc"}'><span class="lbl">NOC</span><span class="val num" id="hNocVal" data-i18n="common.all_quiet">All quiet</span><span class="badge" id="hNocNew" hidden></span></button>
-  <button class="chip fu-hud" id="hFu" data-act="fuBoards" aria-label="Leaderboards" data-i18n-aria-label="fedui.leaderboards" hidden><span class="ic" aria-hidden="true">🏆</span><span class="val num" id="hFuVal"></span></button>
+  <button class="chip fu-hud" id="hFu" data-act="fuBoards" aria-label="Leaderboards" data-i18n-aria-label="fedui.leaderboards" title="Leaderboards" data-i18n-title="fedui.leaderboards" hidden><span class="ic" aria-hidden="true">🏆</span><span class="val num" id="hFuVal"></span></button>
   <div class="spacer"></div>
   <div class="chip"><div class="lbl" data-i18n="common.date">Date</div><div class="val num" id="hDate">Y1 · Jan 1</div></div>
-  <button class="chip find" data-act="findOpen" aria-label="Find a city" data-i18n-aria-label="find.find_a_city" title="Find a city (/)" data-i18n-title="find.find_a_city_slash"><span aria-hidden="true">🔍</span></button>
+  <button class="chip find" data-act="findOpen" aria-label="Find anything" data-i18n-aria-label="find.find_anything" title="Find anything (/)" data-i18n-title="find.find_anything_slash"><span aria-hidden="true">🔍</span></button>
   <div class="chip speed" role="group" aria-label="Game speed" data-i18n-aria-label="common.game_speed">
-    <button data-act="speed" data-args='{"v":0}' id="sp0" aria-label="Pause" data-i18n-aria-label="common.pause">❚❚</button>
-    <button data-act="speed" data-args='{"v":0.5}' id="sp0.5" aria-label="Half speed" data-i18n-aria-label="common.half_speed">½×</button>
+    <button data-act="speed" data-args='{"v":0}' id="sp0" aria-label="Pause" data-i18n-aria-label="common.pause" title="Pause" data-i18n-title="common.pause">❚❚</button>
+    <button data-act="speed" data-args='{"v":0.5}' id="sp0.5" aria-label="Half speed" data-i18n-aria-label="common.half_speed" title="Half speed" data-i18n-title="common.half_speed">½×</button>
     <button data-act="speed" data-args='{"v":1}' id="sp1">1×</button>
     <button data-act="speed" data-args='{"v":2}' id="sp2">2×</button>
     <button data-act="speed" data-args='{"v":4}' id="sp4">4×</button>
     <button data-act="speed" data-args='{"v":8}' id="sp8">8×</button>
-    <button data-act="dash" aria-label="NOC dashboard" data-i18n-aria-label="common.noc_dashboard" title="NOC dashboard" data-i18n-title="common.noc_dashboard"><svg width="16" height="14" viewBox="0 0 16 14" aria-hidden="true"><path d="M1 13h14M2 10l4-5 3 3 5-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <button class="hide-sm" data-act="nocWindow" aria-label="Open the NOC dashboard in its own window" data-i18n-aria-label="noc.open_in_its_own_window" title="Open the NOC dashboard in its own window" data-i18n-title="noc.open_in_its_own_window"><svg width="17" height="14" viewBox="0 0 17 14" aria-hidden="true"><rect x="1" y="1" width="9" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="7" y="6" width="9" height="7" rx="1.5" fill="currentColor"/></svg></button>
-    <button data-act="help" aria-label="How to play" data-i18n-aria-label="common.how_to_play">?</button>
-    <button data-act="mute" id="muteBtn" aria-label="Toggle sound" data-i18n-aria-label="common.toggle_sound">♪</button>
+    <button class="dashbtn" data-act="dash" aria-label="NOC dashboard" data-i18n-aria-label="common.noc_dashboard" title="NOC dashboard" data-i18n-title="common.noc_dashboard"><svg width="16" height="14" viewBox="0 0 16 14" aria-hidden="true"><path d="M1 13h14M2 10l4-5 3 3 5-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button data-act="mute" id="muteBtn" aria-label="Toggle sound" data-i18n-aria-label="common.toggle_sound" title="Toggle sound" data-i18n-title="common.toggle_sound">♪</button>
   </div>
 </header>
 
 <aside id="left" class="card">
   <div class="grab" data-grab="left" aria-hidden="true"></div>
-  <nav class="tabs" id="leftTabs"></nav>
+  <nav class="tabs" id="leftTabs" role="tablist"></nav>
   <div class="scroll" id="leftBody"></div>
 </aside>
 <button id="leftToggle" class="b pink" data-act="toggleLeft" data-i18n="common.goals_noc">Goals & NOC</button>

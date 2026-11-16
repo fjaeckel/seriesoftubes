@@ -48,7 +48,7 @@ test('the Redundancy section tags a premium wave among the other links, as the c
   ev("S.links.push({id:'p1',a:'hkg',b:'sha',kind:'wave',border:true,premium:true,tier:0,km:1227,sub:false,mo:1,mult:4.8,trench:'p1',cut:0,day:0})");
   ev("S.links.push({id:'r1',a:'hkg',b:'sha',kind:'wave',border:true,premium:false,tier:0,km:1300,sub:false,mo:1,mult:3,trench:'r1',cut:0,day:0})");
   ev("S.links.push({id:'d1',a:'hkg',b:'sha',kind:'df',own:false,sys:'lite',ch:[],km:1300,sub:false,mo:1,trench:'d1',cut:0,day:0,ready:0})");
-  const red = id => ev(`selectLink('${id}');[...document.querySelectorAll('#panel section')].find(s=>/Redundancy/.test(s.querySelector('h3').textContent)).innerHTML`);
+  const red = id => ev(`selectLink('${id}');[...document.querySelectorAll('#panel section')].find(s=>/Redundancy/.test((s.querySelector('h3')||s).textContent)).innerHTML`);
   // From the regular wave: the premium one is tagged, the dark fiber is not.
   let h = red('r1');
   assert.match(h, /10G parallel link <span class="tag paid">premium<\/span>/);

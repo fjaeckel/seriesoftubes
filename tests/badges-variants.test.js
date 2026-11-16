@@ -34,7 +34,7 @@ test('Change Freeze earns frosted badges and BGP at 3 a.m. fiery ones, shown in 
     earnHello(ev);
     assert.equal(ev('S.achP.hello'), p);
     assert.match(ev("window.__t.join(' ')"), name, `${p}: the toast names the variant`);
-    ev("UI.left='goals';UI.leftOpen=true;UI.sel=null;renderLeft()");
+    ev("UI.left='goals';UI.leftOpen=true;UI.sel=null;renderLeft();ACT.leftFold({k:'badges'})");
     const card = dom.window.document.querySelector(`#leftBody .bdg.on.${cls}`);
     assert.ok(card, `${p}: the badge list shows the variant`);
     assert.match(card.textContent, name);

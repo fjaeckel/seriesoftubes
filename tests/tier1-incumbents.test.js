@@ -60,6 +60,8 @@ test('#194 the network list shows them as Tier 1 on a phone', () => {
   ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip()");
   dom.window.innerWidth = 360;
   ev("UI.sel={type:'city',id:'fra'};UI.tab='up';renderAll()");
+  // The sellers open on a short first page: turn the pages until the list is whole.
+  ev(`for(let i=0;i<40;i++){const b=document.querySelector('#panel [data-act="panelMore"]');if(!b)break;b.click();}`);
   const html = dom.window.document.getElementById('panel').innerHTML;
   assert.match(html, /Doitsche Telekomm <span class="tag t1">Tier 1</, 'Doitsche sells transit in Frankfurt, tagged Tier 1');
   assert.deepEqual(errors, []);

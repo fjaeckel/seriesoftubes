@@ -22,7 +22,7 @@ test('only the POP overview shows a picture: its model, left of the city name', 
   ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;selectCity(S.home);UI.tab='links';UI.models=true;renderAll()");
   const pics = dom.window.document.querySelectorAll('#panel .rgpic');
   assert.equal(pics.length, 1, 'the model in use only, not the list of other models');
-  assert.ok(dom.window.document.querySelector('#panel .ph > .rgpic.big svg.rgart'), 'in the header, beside the name');
+  assert.ok(dom.window.document.querySelector('#panel .ph > .rgpic svg.rgart'), 'in the header, beside the name');
   ev("UI.tab='cust';renderAll()");
   assert.equal(dom.window.document.querySelectorAll('#panel .rgpic').length, 1, 'on every tab');
   ev("selectCity(Object.keys(CITY).find(c=>!S.pops[c]&&!CITY[c].off));renderAll()");

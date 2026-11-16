@@ -15,9 +15,10 @@
   .speed button{min-height:34px}
 }
 /* Mid-size screens: keep the HUD on one row so it never wraps over the side panels. */
-@media (min-width:761px) and (max-width:1360px){
+@media (min-width:761px) and (max-width:1500px){
   #hud{gap:6px}
   .chip{padding:3px 8px}
+  .chip .val{font-size:18px}
   .speed{gap:3px;padding:4px 5px}
   .speed button{min-width:29px;font-size:12px}
 }
@@ -43,3 +44,9 @@
   #hud .chip.find{width:32px;min-width:32px;font-size:15px}
   .speed button{min-width:23px;padding-left:2px;padding-right:2px}
 }
+/* Still two rows (a narrow tablet late in the game)? The speed chip would cover the left panel's tabs, so the extras go:
+   first half speed, then the Customers chip (the Deals tab has the same numbers). Only tablets under about 800 px get
+   this far now that sound, How to play and the NOC's own window live in the menu. */
+#hud.fit4 .speed #sp0\.5{display:none}
+#hud.fit4 .speed button{min-width:23px;padding-left:2px;padding-right:2px}
+#hud.fit5 #hCust{display:none}

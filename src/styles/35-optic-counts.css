@@ -1,4 +1,14 @@
-.optic-count{display:flex;flex-wrap:wrap;align-items:end;gap:8px;margin-top:8px}
-.optic-count label{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:800}
-.optic-count input.t{width:88px;font-size:16px;min-height:44px}
-.optic-count .b{min-height:44px}
+/* Optics on a dark fiber: one row per model, with − [count] + beside its name. The count is a field; typing shows "Apply". */
+.orow{flex-wrap:wrap;align-items:center;gap:6px 10px}
+.orow>.grow{flex:1 1 110px}.orow.ex>.grow{flex-basis:100%}
+.orow>.ofull{flex:1 0 100%;order:5}.orow>.ofull:empty{display:none}
+.orow>.ochg{order:2}
+.osum{font:800 13px/1 var(--body);color:var(--ink2);white-space:nowrap}
+.ochg{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px;flex:none;max-width:100%}
+.ochg .b{min-height:36px;white-space:nowrap}
+.ochg .om{order:1;min-width:36px}
+.optic-count{display:contents}
+.optic-count input.t{order:2;width:58px;min-height:36px;padding:4px 6px;font-size:16px;text-align:center}
+.ochg .op{order:3}
+.optic-count .b{order:4}
+.optic-count .b[hidden]{display:none}

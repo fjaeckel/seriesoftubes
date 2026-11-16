@@ -29,7 +29,7 @@
 .trsel label{display:flex;flex-direction:column;font:800 12px Nunito,sans-serif;gap:2px}
 .trsel select{font:700 14px Nunito,sans-serif;padding:4px 6px;border:2px solid var(--edge);border-radius:8px;max-width:240px}
 .fact.trb{cursor:pointer;font:inherit;border:2px solid var(--edge);background:#fff}
-#coach{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 74px);z-index:16;width:min(520px,calc(100% - 24px));background:#fff;border:3px solid var(--edge);border-radius:14px;box-shadow:0 4px 0 var(--edge);padding:8px 10px;display:flex;gap:8px;align-items:center}
+#coach{box-sizing:border-box;position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 74px);z-index:16;width:min(520px,calc(100% - 24px));background:#fff;border:3px solid var(--edge);border-radius:14px;box-shadow:0 4px 0 var(--edge);padding:8px 10px;display:flex;gap:8px;align-items:center}
 #coach .ct{flex:1;font-weight:800;font-size:14px;line-height:1.35}
 #coach .cs{display:block;font:900 10px Nunito,sans-serif;color:var(--me);text-transform:uppercase;letter-spacing:.05em}
 .coach-glow{animation:coachglow 1s ease-in-out infinite;position:relative;z-index:2}
@@ -40,7 +40,7 @@
 .setline>span,.setline>label{font-weight:800}
 /* Title screen: the big start button across the top, the three others below it, all the same size. */
 .btns.tcta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.btns.tcta .b{margin:0;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.15;white-space:normal;hyphens:auto;-webkit-hyphens:auto;min-height:40px;padding:4px 6px;font-size:14px}
+.btns.tcta .b{margin:0;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.15;white-space:normal;hyphens:manual;-webkit-hyphens:manual;text-wrap:balance;min-height:40px;padding:4px 6px;font-size:14px}
 .btns.tcta .b.big{grid-column:1/-1;font-size:18px;padding:7px 18px 5px}
 /* Dropdowns that look like the game's buttons. 16px text: iOS zooms into anything smaller when it is tapped. */
 select.pick{-webkit-appearance:none;appearance:none;font:800 16px var(--display);color:var(--ink);background:var(--soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%231E2640' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center;border:3px solid var(--edge);border-radius:12px;padding:6px 36px 6px 12px;min-height:44px;cursor:pointer;box-shadow:0 3px 0 var(--edge)}
@@ -82,6 +82,15 @@ label.f+select.pick{width:100%}
 .grade{font-family:var(--display);font-weight:800;font-size:30px;line-height:1;border:3px solid var(--edge);border-radius:12px;padding:4px 10px;background:var(--sun)}
 #dash{position:fixed;inset:0;background:rgba(30,38,64,.35);z-index:15;overflow:auto;padding:calc(env(safe-area-inset-top,0px) + 12px) max(12px,env(safe-area-inset-right,0px)) 16px max(12px,env(safe-area-inset-left,0px))}
 #dashCard{max-width:980px;margin:0 auto;padding:16px 18px 18px;background:var(--paper)}
+/* The dashboard's tabs and its close button stay pinned while a tab scrolls; the tabs wrap, so every one is in sight. */
+.dtitle h2{font-size:28px}
+.dhead{position:sticky;top:-12px;z-index:3;display:flex;align-items:center;gap:8px;margin:10px -4px 4px;padding:8px 4px;background:var(--paper);border-bottom:2.5px solid var(--edge)}
+.dhead .dtabs{position:static;flex:1;min-width:0;flex-wrap:wrap;overflow:visible;margin:0;padding:0;border:0}
+/* A list row's own buttons: Open and the unfold button in a column at its right, what unfolds in one wrapping line under it. */
+.ract{display:flex;flex-direction:column;gap:5px;align-items:stretch;flex:none}
+.btns.rmore{margin:0 0 9px}
+/* Connections on a wide screen: Open and Change side by side keep a row one line high; the unfolded buttons get a row of their own. */
+.cact{display:flex;gap:6px;justify-content:flex-end;flex-wrap:nowrap}.cact .b{white-space:nowrap}.tbl tr.rmtr td{padding:2px 6px 8px;background:var(--soft)}.tbl tr.rmtr .rmore{margin:0;justify-content:flex-end}
 .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:10px 0}
 .tile{border:2.5px solid var(--edge);border-radius:13px;padding:6px 10px;background:var(--soft)}
 .tile .lbl{font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
@@ -101,7 +110,7 @@ label.f+select.pick{width:100%}
 .mix{display:flex;height:10px;width:100px;border:1.5px solid var(--edge);border-radius:5px;overflow:hidden;background:var(--paper)}
 .mix i{display:block;height:100%}
 /* The NOC's traffic table has a row per network: classes, not inline styles, keep its hundreds of rows cheap to parse. */
-.nmc{display:inline-flex;align-items:center;gap:6px}.dlost{color:var(--bad)}.b.pall{display:block;margin-top:5px}
+.nmc{display:inline-flex;align-items:center;gap:6px}.dlost{color:#B23A48}.b.pall{white-space:nowrap}.ttbl td{padding-block:3px}
 .tscroll{overflow-x:auto}
 /* Links and Routers tabs: the page scrolls like every tab; the filter bar sticks just under the tab bar (.dtabs, whose
    height fitList() measures into --dtabh), so sorting and filters stay in reach. */
@@ -174,8 +183,17 @@ input.t{width:100%;box-sizing:border-box;border:3px solid var(--edge);border-rad
 .tierbtn .sz{font-family:var(--display);font-weight:800;font-size:22px;width:70px}
 .tierbtn .grow{flex:1}
 .tierbtn .pr{font-family:var(--display);font-weight:800;font-size:18px}
-.gl dt{font-family:var(--display);font-weight:800;font-size:16px;margin-top:10px}
-.gl dd{margin:2px 0 0;color:var(--ink2);line-height:1.45;font-size:13px}
+/* How to play: an index of closed topics in two columns (the open one takes the full width), under a search box. */
+div.gl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px;align-items:start}
+.gt{border:2px solid var(--line);border-radius:10px;background:var(--soft);min-width:0}
+.gt[open]{grid-column:1/-1;background:var(--paper);border-color:var(--edge)}
+.gt summary{font-family:var(--display);font-weight:800;font-size:14.5px;line-height:1.2;padding:8px 10px 7px;cursor:pointer;overflow-wrap:anywhere}
+.gt[open] summary{font-size:16px}
+.gt summary:focus-visible{outline:3px solid #FF4F9A;outline-offset:1px;border-radius:8px}
+.gt p{margin:0;padding:0 10px 9px;color:var(--ink2);line-height:1.45;font-size:13px}
+.helph{font-size:28px}.helpq{width:100%;box-sizing:border-box;margin-top:8px}
+/* The row with a window's title and its close button stays on top while the rest scrolls. */
+#modal:not(.pie) #modalCard>div:first-child:has(>.x),#modalCard>.mhead,#modalCard>.info>div:first-child{position:sticky;top:-20px;z-index:4;background:var(--paper);margin:-20px -22px 0;padding:20px 22px 6px}
 .kbd{display:inline-block;border:2px solid var(--edge);border-radius:6px;padding:0 5px;font-weight:900;font-size:11px;background:var(--soft)}
 .keylist{display:grid;grid-template-columns:auto 1fr;gap:10px 16px;align-items:center;margin:14px 0 0}
 .keylist dt{margin:0;white-space:nowrap}.keylist dd{margin:0;color:var(--ink2);font-size:14px}
@@ -212,13 +230,28 @@ h2 .rn{font-size:18px;vertical-align:middle;padding:2px 4px}
 #modalCard{overflow-x:hidden}
 .menu-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
 .mtile{border:3px solid var(--edge);border-radius:14px;background:var(--paper);box-shadow:0 3px 0 var(--edge);padding:8px 4px 7px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;font:800 13px/1.15 var(--display);color:var(--ink);text-align:center;min-height:68px;justify-content:center}
-.mtile i{font-style:normal;font-size:22px;line-height:1}.mtile:active{transform:translateY(2px);box-shadow:0 1px 0 var(--edge)}
+.mtile i{font-style:normal;font-size:22px;line-height:1}.mtile .mst{font-weight:800;color:#0B6B40}.mtile.off .mst{color:var(--ink2)}.mtile:active{transform:translateY(2px);box-shadow:0 1px 0 var(--edge)}
 .menu-links{margin:12px 0 0;text-align:center;line-height:2;color:var(--ink2)}
 .menu-links .lnk{background:none;border:0;padding:4px 2px;font-weight:700;font-size:14px;font-family:inherit;color:var(--ink2);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .menu-plugs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+/* How to play ends in three small cards side by side (the map of the real internet, the chat, bug reports) instead of three tall ones. */
+.menu-plugs.three{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:8px}
+.menu-plugs.three .mplug{flex-direction:column;justify-content:center;text-align:center;gap:3px;padding:8px 6px;font-size:12.5px;line-height:1.2}
+.menu-plugs.three .mplug i{font-style:normal;font-size:22px;line-height:1}
+@media (hover:hover){.mplug:hover{border-color:var(--edge)}}
 .mplug{border:2px solid var(--line);border-radius:12px;padding:8px 10px;font-weight:700;font-size:13px;line-height:1.25;color:var(--ink);text-decoration:none;background:var(--soft);display:flex;align-items:center}
 /* Find a city: big tap targets, the first result (what Enter picks) highlighted. */
 .findlist{margin-top:8px}
+/* The box stays where it is while the results under it grow and shrink as you type. */
+#modal.find{align-items:start;padding-top:max(16px,8vh)}
+.findtop{position:sticky;top:-20px;z-index:4;background:var(--paper);margin:-20px -22px 0;padding:20px 22px 8px}
+.findtop h2{font-size:24px;margin:0;flex:1;min-width:0}
+.findtop>div{margin-bottom:10px}
+.findh{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);opacity:.65;margin:12px 8px 2px}
+.findgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 8px}
+.findgrid .findrow>span[aria-hidden]{display:none}
+.findgrid .findrow{border-top:1px solid var(--line)}
+.findmore{min-height:44px}
 .findrow{width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);font:inherit;color:var(--ink);min-height:48px;padding:6px 8px;cursor:pointer;border-radius:0}
 .findrow .nm,.findrow .meta{display:block}
 .findrow.on{background:var(--soft);border-radius:10px}
@@ -235,16 +268,27 @@ h2 .rn{font-size:18px;vertical-align:middle;padding:2px 4px}
   .chopts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.chopt{flex-direction:column;gap:2px;margin-top:6px;padding:8px 10px}.chi{font-size:22px}.cht span{font-size:12px;line-height:1.3}}
 /* The capacity market (Lambda Bazaar): a product's bar is what is sold (green) of what the route wants (the line), with
    your minimum as a pink tick. */
-.cmset{border-top:1.5px dashed var(--line);padding:8px 0 4px}
-.cmset .nm{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.cmset .seg{margin:4px 0 6px}
-.cmp{margin:6px 0 4px}
-.cmbar{position:relative;height:9px;border-radius:5px;background:var(--soft);border:1.5px solid var(--line);margin-top:3px;overflow:visible}
-.cmbar i{position:absolute;left:0;top:0;bottom:0;background:var(--eye);border-radius:4px}
-.cmbar b{position:absolute;top:-4px;bottom:-4px;width:3px;margin-left:-1.5px;background:var(--ink);border-radius:2px}
-.cmbar u{position:absolute;top:-5px;bottom:-5px;width:0;margin-left:-1px;border-left:3px dotted var(--me)}
-.cmroute{align-items:flex-start}
 .tag.cmhot{background:#FFE1D6;color:#B43A12}
 .tag.cmcool{background:#DDF1FB;color:#1E6A8C}
 /* Moving a network to another device (#263): a pasted link is long, so it wraps anywhere. */
 textarea.xfer-in{width:100%;box-sizing:border-box;border:3px solid var(--edge);border-radius:12px;padding:8px 10px;font:13px/1.35 ui-monospace,monospace;background:var(--soft);color:var(--ink);resize:vertical;word-break:break-all}
+/* The start screen on a laptop: the language sits beside the logo, the name is one line and each door keeps its icon
+   beside its name, so a 900 px tall window shows it all down to Start without scrolling. */
+@media (min-width:761px) and (max-height:1000px){
+  .tlang{float:right;margin:0 0 0 10px}.tlang .pick{max-width:none}
+  .title-art svg{width:50px;height:50px}.title-art h1{font-size:40px}.title-art h1 br{display:none}
+  .title-art+.tagline{margin:6px 0 8px}
+  .door{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:8px;row-gap:1px;align-content:start;padding:6px 11px 5px}.door span{grid-column:1/-1}
+  .door i{font-size:22px}.doors{margin-top:6px}.doors .door .pznew{top:-15px}
+  #presetWhat{margin-top:4px}.lockn{margin-top:5px}
+  #modalCard:has(>.title-art) label.f{margin:9px 0 4px}
+  .btns.tcta{margin-top:10px !important;grid-template-columns:repeat(4,minmax(0,1fr))}.btns.tcta .b{font-size:13.5px}
+  .presets .preset b{min-width:0;hyphens:auto;-webkit-hyphens:auto}
+}
+/* A short laptop window (1280×720, 1024×768): a wider card in two columns, the name and the doors on the left, the
+   rules and the home city on the right, so Start is in view without scrolling. Taller windows and phones keep one. */
+@media (min-width:900px) and (max-height:860px){
+  #modal .card:has(.tcols){width:min(940px,100%)}
+  .tcols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:24px;align-items:start}
+  .tcol>:first-child,.tcol>:first-child>label.f:first-child{margin-top:0 !important}
+}

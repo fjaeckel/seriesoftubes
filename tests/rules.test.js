@@ -77,6 +77,21 @@ test('the title screen: four doors, four Normal presets, a chaos picker for Sand
   assert.deepEqual(errors, []);
 });
 
+test('the title screen on a short laptop window: name and doors on the left, rules and home city on the right', () => {
+  const { ev, dom, errors } = load();
+  const doc = dom.window.document;
+  ev('showTitle()');
+  const cols = [...doc.querySelectorAll('#modal .tcols>.tcol')];
+  assert.equal(cols.length, 2);
+  assert.ok(cols[0].querySelector('#nmIn') && cols[0].querySelectorAll('.door').length === 4, 'left: the name and the doors');
+  assert.ok(cols[1].querySelector('#doorNormal') && cols[1].querySelector('#doorSandbox') && cols[1].querySelector('#homeSel'), 'right: the rules and the home city');
+  // Two columns only where the window is wide but short (1280×720, 1024×768); phones and tall windows keep one.
+  const css = [...doc.querySelectorAll('style')].map(s => s.textContent).join('');
+  assert.match(css, /@media \(min-width:900px\) and \(max-height:860px\)\{[^@]*\.tcols\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(0,1fr\)/);
+  assert.equal(css.split('.tcols{').length - 1, 1, 'no grid outside that window size');
+  assert.deepEqual(errors, []);
+});
+
 test('On-call shows no extra tag; the share card names other presets', () => {
   const { ev, errors } = load();
   start(ev, { mode: 'normal' });

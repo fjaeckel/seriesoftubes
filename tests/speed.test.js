@@ -42,6 +42,8 @@ test('what crosses each link adds up, and is put together when it is looked at',
   assert.equal(ev("JSON.parse(JSON.stringify(R)).ef[Object.keys(R.ef)[0]].net!==undefined"), true);
   // the link panel reads it
   ev("const k=Object.keys(R.ef)[0],l=S.links.find(x=>edgeKey(x)===k);selectLink(l.id)");
+  // (what is on the link is a folded section on a big network: unfold it)
+  ev("ACT.panelFold({k:'s:traf',o:1})");
   assert.match(ev("document.getElementById('panelBody').textContent"), /Content from/);
   assert.deepEqual(errors, []);
 });
@@ -147,7 +149,7 @@ test('a map with more than MAP_BUSY lines on screen leaves out link labels and f
   assert.deepEqual(errors, []);
 });
 
-test('long lists in the NOC dashboard show 100 rows at a time and grow on request', () => {
+test('long lists in the NOC dashboard open on a short first page and grow on request', () => {
   const { ev, errors } = load();
   bigNet(ev);
   // well over a hundred PNIs and customers
@@ -156,25 +158,27 @@ test('long lists in the NOC dashboard show 100 rows at a time and grow on reques
   const total = ev('conns().length');
   assert.ok(total > 200);
   ev("UI.dtab='conn';ACT.connOpen()");
+  const [c0, c1] = JSON.parse(ev('JSON.stringify(LIST_PG.conn)')), [k0, k1] = JSON.parse(ev('JSON.stringify(LIST_PG.cust)'));
+  assert.ok(c0 <= 25 && k0 <= 25, 'a first page a phone gets through in a few swipes');
   const rows = () => ev("document.querySelectorAll('#dashCard tbody tr').length");
-  assert.equal(rows(), 100);
-  assert.match(ev("document.querySelector('#dashCard [data-act=\"listMore\"]').textContent"), /\+100 more connections/);
+  assert.equal(rows(), c0);
+  assert.match(ev("document.querySelector('#dashCard [data-act=\"listMore\"]').textContent"), new RegExp(`\\+${c1} more connections`));
   assert.match(ev("document.getElementById('dashCard').textContent"), new RegExp(`${total} connections`), 'totals still count every connection');
   ev("document.querySelector('#dashCard [data-act=\"listMore\"]').click()");
-  assert.equal(rows(), 200);
+  assert.equal(rows(), c0 + c1);
   ev("ACT.connSort({k:'mo'})");
-  assert.equal(rows(), 100, 'a new sort starts short again');
+  assert.equal(rows(), c0, 'a new sort starts short again');
   // customers
   ev("ACT.custOpen()");
   const custRows = () => ev("document.querySelectorAll('#custSec .row').length");
-  assert.equal(custRows(), 100);
-  const left = ev('S.biz.length') - 100;
-  assert.ok(ev("document.querySelector('#custSec [data-act=\"listMore\"]').textContent").startsWith(`+${Math.min(100, left)} more customer`));
+  assert.equal(custRows(), k0);
+  const left = ev('S.biz.length') - k0;
+  assert.ok(ev("document.querySelector('#custSec [data-act=\"listMore\"]').textContent").startsWith(`+${Math.min(k1, left)} more customer`));
   ev("ACT.listMore({k:'cust'});ACT.listMore({k:'cust'});ACT.listMore({k:'nope'})");
-  assert.equal(custRows(), Math.min(300, ev('S.biz.length')));
+  assert.equal(custRows(), Math.min(k0 + 2 * k1, ev('S.biz.length')));
   // phones get the same cap
   ev("window.innerWidth=390;UI.dtab='conn';ACT.connOpen()");
-  assert.equal(ev("document.querySelectorAll('#connSec .row').length"), 100);
+  assert.equal(ev("document.querySelectorAll('#connSec .row').length"), c0);
   assert.deepEqual(errors, []);
 });
 

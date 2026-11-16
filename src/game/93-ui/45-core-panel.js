@@ -5,7 +5,7 @@ function corePanel(){if(!S.core||S.mode==='puzzle'||S.pz||S.ar||S.scn)return '';
   h+=`<p class="meta" style="margin:2px 0 6px">${tr(CORE_WHAT[run])}${run?' '+tr('core.uses_p_of_router_cpu',{p:pct(CORE_CPU[run])}):''}</p>`;
   if(C.legacy)h+=`<p class="note" style="margin:0 0 6px">${tr('core.your_auto_te_predates_backbones')}</p>`;
   // Run any level already paid for: one step down is the safe way past vendor squabbles.
-  if(lv>0)h+=`<div class="seg" style="margin-bottom:6px">${CORE_LV.slice(0,lv+1).map((l,i)=>btn(tr(l),'coreSet',{v:i},i===run&&!C.legacy?'pink sm':'ghost sm')).join('')}</div>`;
+  if(lv>0)h+=`<div class="seg" style="margin-bottom:6px">${CORE_LV.slice(0,lv+1).map((l,i)=>segB(tr(l),'coreSet',{v:i},i===run&&!C.legacy)).join('')}</div>`;
   if(n<=4){const lk=lvl()<CORE_REQ[n];h+=`<div class="btns">${btn(lk?tr('core.lv_at_customer_level_n',{lv:tr(CORE_LV[n]),n:CORE_REQ[n]}):tr('core.upgrade_to_lv_cost',{lv:tr(CORE_LV[n]),cost:fmt$(CORE_COST[n])}),'coreUp',{},'sm',lk||S.cash<CORE_COST[n])}</div>`;
     h+=`<p class="meta" style="margin:2px 0 6px">${tr(CORE_WHAT[n])}</p>`;}
   const out=coreOut();if(out.length)h+=`<p class="why">${trn('core.n_pop_outside_the_core_its',out.length,{list:out.slice(0,5).map(c=>CITY[c].name).join(', ')+(out.length>5?'…':''),lv:tr(CORE_LV[run])})}</p>`;

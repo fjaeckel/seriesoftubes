@@ -167,8 +167,8 @@ test('word of mouth: a happy customer of a year or more brings a referral at the
   assert.equal(o.bw, 10, 'the smallest size');
   assert.equal(o.refN, 'Big Fan Ltd');
   assert.equal(o.rate, Math.round(60 * ev('mkt()')));
-  ev("UI.left='deals';renderLeft()");
-  assert.match(ev("document.getElementById('left').innerHTML"), /Referred by Big Fan Ltd/);
+  ev(`UI.left='deals';UI.leftOpen=true;ACT.dealsFold({k:'o:${o.id}',o:1})`);
+  assert.match(ev("document.getElementById('left').innerHTML"), /Referred by Big Fan Ltd/, 'in the offer\'s fine print');
   assert.deepEqual(errors, []);
 });
 

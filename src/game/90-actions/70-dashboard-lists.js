@@ -3,7 +3,8 @@ Object.assign(ACT,{
   // An orbit terminal far from your POPs opens the POP whose dish lands it.
   {const L=!S.pops[b.city]&&pieLandOf(b);if(L){UI.tab='cust';ACT.focusCity({city:L});return;}}
   ACT.focusCity({city:b.city});UI.tab='cust';renderPanel();},
- listMore:({k})=>{if(!['conn','cust','nets','pni','pops','links','routers'].includes(k))return;UI.listN=UI.listN||{};UI.listN[k]=listN(k)+listPg(k);if(k==='nets'){renderLeft();return;}if(k==='pni'){renderPanel();return;}renderDash();},
+ dashRow:({k})=>{if(typeof k!=='string'||k.length>80)return;UI.dashOpen=UI.dashOpen===k?null:k;UI.confirm=null;renderDash();},
+ listMore:({k})=>{if(!['traffic','lease','conn','cust','nets','pni','pops','links','routers'].includes(k))return;UI.listN=UI.listN||{};UI.listN[k]=listN(k)+listPg(k);if(k==='nets'){renderLeft();return;}if(k==='pni'){renderPanel();return;}renderDash();},
  custF:({v})=>{UI.kf=UI.kf||{};UI.kf.f=v==='sad'?'sad':'';listReset('cust');renderDash();},
  custCity:({v})=>{UI.kf=UI.kf||{};UI.kf.city=isCity(v)?v:'';listReset('cust');renderDash();},
  custSort:({k})=>{if(!['mood','mo','name','city'].includes(k))return;listReset('cust');if(UI.custSort===k)UI.custDir=-(UI.custDir||1);else{UI.custSort=k;UI.custDir=k==='mo'?-1:1;}renderDash();},

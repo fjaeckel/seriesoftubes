@@ -8,7 +8,11 @@
     'slotRetry', 'slotSpace', 'slotSwitch', 'slotTake', 'soundSet', 'speed', 'start', 'toTitle', 'traceCopy', 'updateLater', 'updateNow', 'vpSet', 'wsShare',
     // Leave the game or open what is not this game: the title screen, menus of other modes, AI helpers that fetch.
     'closePanel', 'puzzleMenu', 'puzzleDoor', 'scnMenu', 'startScn', 'startWeekly', 'pzStart', 'pzArStart', 'arMenu', 'teSlop', 'help', 'helpClose', 'keepPlaying',
-    'logOpen', 'pitchSkip', 'pitchGo', 'feedback', 'tutSkip', 'tutNext']);
+    // logKind only narrows the notification log to one kind (all of it is shown first).
+    'logOpen', 'logKind', 'pitchSkip', 'pitchGo', 'feedback', 'tutSkip', 'tutNext',
+    // Opens the capacity market: main's page shows it in the dashboard, this one in a window of its own (whose settings
+    // the dashboard's 'market' screen offers on both pages).
+    'marketOpen']);
   const sig = (b) => b.act + ' ' + JSON.stringify(b.args);
   const btns = (root) => (root ? [...root.querySelectorAll('[data-act]')] : []).filter((b) => !b.disabled && !DENY.has(b.dataset.act) && typeof ACT[b.dataset.act] === 'function')
     .map((b) => { let args = {}; try { args = JSON.parse(b.dataset.args || '{}'); } catch (e) {} return { act: b.dataset.act, args }; });
@@ -52,16 +56,53 @@
     return { pops, near: [...nb], cities: CITIES.length, links: S.links.map((l) => l.id), day: S.day, puzzle: pzOn(), modal: modalOpen(), lost: !!S.lost,
       clock: !!rule('clock'), core: S.core ? S.core.lv : 0, nets: NET_IDS.length, transit: S.transit.map((t) => t.id), pni: S.pni.map((p) => p.id), biz: S.biz.map((b) => b.id), offers: (S.offers || []).map((o) => o.id) };
   };
+  // Long lists open on a short first page, and panels fold their rarer buttons away (finished goals, a row's "Change",
+  // "+N more"): older pages show all of it at once. So every page is read unfolded, every button once:
+  // each fold on screen is opened in turn (they only change the view) and the buttons it shows are added.
+  const FOLDS = new Set(['panelMore', 'panelFold', 'pniGrp', 'dashRow', 'leftFold', 'nlOpen', 'bazRow', 'bazMore', 'bazHelp', 'bazAsk', 'bankFold', 'dealsFold', 'dealsMore', 'fuFold', 'fpFold']);
+  const unfolded = (root, again) => {
+    UI.listN = new Proxy({}, { get: () => 1e6, deleteProperty: () => true });
+    const armed = UI.confirm, seen = new Map(), done = new Set();
+    for (let i = 0; i < 600; i++) {
+      again(); UI._lh = UI._ph = null;
+      const all = btns(root());
+      // (a section's own button says which way it folds: only ever open one, or what is inside it is never reached)
+      const f = all.find((b) => FOLDS.has(b.act) && !(b.args && b.args.o === 0) && !done.has(sig(b)));
+      // A page with nothing folded is read as it always was, doubles and all.
+      if (!f && !done.size) return all.filter((b) => b.act !== 'listMore' && !FOLDS.has(b.act));
+      for (const b of all) if (!FOLDS.has(b.act) && b.act !== 'listMore') seen.set(sig(b), b);
+      if (!f) break;
+      done.add(sig(f)); ACT[f.act](f.args); UI.confirm = armed;
+    }
+    return [...seen.values()];
+  };
   // The buttons of one place on screen, after opening it.
   const screen = (w) => {
     if (w.where === 'modal') return btns($('modal'));
-    if (w.where === 'city') { UI.sel = { type: 'city', id: w.city }; UI.tab = w.tab; renderAll(); return btns($('panel')); }
+    // The network filter of an earlier screen ("Connected only") hides exchanges and networks you have no port with, and
+    // older pages hid less: every city is read unfiltered. A panel that did not open (a puzzle's empty city) offers nothing.
+    if (w.where === 'city') { UI.sel = { type: 'city', id: w.city }; UI.tab = w.tab; UI.netQ = ''; UI.netOnly = false; renderAll(); return $('panel').hidden ? [] : unfolded(() => $('panel'), renderPanel); }
     // The city names in a link panel's header open the city (#196); older pages have plain text there. They only change
     // the view, so neither page offers them, and both stay in lockstep.
-    if (w.where === 'link') { if (!S.links.some((l) => l.id === w.id)) return []; UI.sel = { type: 'link', id: w.id }; renderAll(); const P = $('panel'); for (const h of P.querySelectorAll('.ph h2 [data-act]')) h.removeAttribute('data-act'); return btns(P); }
-    if (w.where === 'dash') { $('dash').hidden = false; UI.dtab = w.tab; renderDash(); const b = btns($('dash')); return b; }
+    if (w.where === 'link') { if (!S.links.some((l) => l.id === w.id)) return []; UI.sel = { type: 'link', id: w.id }; renderAll(); const P = $('panel'); return unfolded(() => { const Q = $('panel'); for (const h of Q.querySelectorAll('.ph h2 [data-act]')) h.removeAttribute('data-act'); return Q; }, renderPanel); }
+    if (w.where === 'dash') {
+      $('dash').hidden = false; UI.dtab = w.tab; renderDash(); const b = unfolded(() => $('dash'), renderDash);
+      if (w.tab !== 'market') return b;
+      /* The capacity market's settings moved from this tab into a window of its own (Lambda Bazaar), where some are
+         drop-downs: on both pages this screen offers the same settings, the share kept back, each product's switch,
+         minimum and floor, and each route's switch, read from the window's Products tab and its routes, every card unfolded. */
+      const keep = (x) => x.act === 'mktHold' || x.act === 'mktCfg' || x.act === 'mktRoute';
+      if (typeof bazTabHtml !== 'function') return b.filter(keep);
+      const d = document.createElement('div'), D = bazData(); d.innerHTML = bazTabHtml('prod', D) + bazTabHtml('routes', D, true);
+      const sel = [...d.querySelectorAll('select[data-chg]')].flatMap((el) => { let a = {}; try { a = JSON.parse(el.dataset.args || '{}'); } catch (e) {}
+        return [...el.options].filter((o) => o.value !== '').map((o) => ({ act: el.dataset.chg, args: { ...a, v: +o.value } })); });
+      return btns(d).concat(sel).filter(keep);
+    }
     if (w.where === 'left') {
-      UI.left = w.tab; UI.leftOpen = true; renderLeft(); let b = btns($('leftBody'));
+      UI.left = w.tab; UI.leftOpen = true; renderLeft(); let b = unfolded(() => $('leftBody'), renderLeft);
+      // An unfolded network row also says where to meet that network and can put it in focus, which older pages only do for the one in focus:
+      // those buttons only move the map, so neither page offers them here.
+      if (w.tab === 'nets') return b.filter((x) => x.act !== 'meetGo' && x.act !== 'netFocus');
       if (w.tab !== 'noc') return b;
       // The backbone, Auto-TE and DDoS settings moved from the NOC tab into the Routing & DDoS modal: offer them here on
       // both pages, in one order, so main's page (settings in the tab) and this one (behind the button) stay in lockstep.
@@ -73,7 +114,11 @@
     if (w.where === 'openLink') { if (!S.pops[w.a]) return []; openLinkModal(w.a, w.b); return modalOpen() ? btns($('modal')) : []; }
     return [];
   };
-  const press = (b) => { const e = call(b.act, b.args); return e; };
+  // A removal this checkout puts back with Undo (UNDO_ACTS) acts on the first tap; older pages armed on the first and acted
+  // on the second. Pressed here as older pages take it: the first tap arms (UI.confirm, the same key), the second acts.
+  const press = (b) => {
+    if (typeof UNDO_ACTS !== 'undefined' && UNDO_ACTS.has(b.act) && !(b.args && b.args.ok)) { if (UI.confirm !== b.args.id) { UI.confirm = b.args.id; return ''; } }
+    const e = call(b.act, b.args); return e; };
   const close = () => { if (modalOpen()) closeModal(); $('dash').hidden = true; };
 
   // ---------- things a player does with no button handy here ----------
@@ -170,8 +215,10 @@
     for (const k of Object.keys(S)) if (!drop.top.includes(k)) o[k] = k === 'ops' && S.ops && (drop.ops || []).length ? opsDrop(drop.ops) : S[k];
     for (const k of ['biz', 'offers']) if (Array.isArray(o[k])) o[k] = o[k].map((x) => { const y = {}; for (const f of Object.keys(x)) if (!drop.items.includes(f)) y[f] = x[f]; return y; });
     return o; };
-  const sDigest = (drop) => JSON.stringify(sDrop(drop));
-  const sParts = (drop) => { const s = sDrop(drop), o = {}; for (const k of Object.keys(s)) o[k] = JSON.stringify(s[k]); return o; };
+  // A badge's note in the log opens the wall of badges now; on older pages it opened the Goals tab. Same note, same game.
+  const jz = (v) => JSON.stringify(v).split('"o":{"a":"badges"}').join('"o":{"a":"tab","v":"goals"}');
+  const sDigest = (drop) => jz(sDrop(drop));
+  const sParts = (drop) => { const s = sDrop(drop), o = {}; for (const k of Object.keys(s)) o[k] = jz(s[k]); return o; };
   /* After a move: what the move routed (a), routing again from the same state (b: on this checkout's page the kept
      tables are used), and routing from that state with the cache off (c: RC.on=false where there is an RC). b and c
      route from the same previous R; c's R is kept, as a plain compute would. */

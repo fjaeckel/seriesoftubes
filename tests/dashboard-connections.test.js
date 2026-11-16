@@ -19,16 +19,25 @@ const open = (ev, phone) => ev(`window.innerWidth=${phone ? 390 : 1280};UI.dtab=
 const acts = (ev, sel) => JSON.parse(ev(`JSON.stringify([...document.querySelectorAll('${sel} [data-act]')].map(b=>b.dataset.act+' '+b.dataset.args))`));
 const has = (list, act, args) => list.includes(`${act} ${JSON.stringify(args)}`);
 
+// Every button of every row: unfold the rows one after another and collect them.
+const unfolded = (ev) => JSON.parse(ev(`JSON.stringify((()=>{const ks=[...document.querySelectorAll('#connSec [data-act="dashRow"]')].map(b=>JSON.parse(b.dataset.args).k),out=[];
+  for(const k of ks){UI.dashOpen=null;ACT.dashRow({k});out.push(...[...document.querySelectorAll('#connSec [data-act]')].map(b=>b.dataset.act+' '+b.dataset.args));}UI.dashOpen=null;renderDash();return out;})())`));
+
 for (const phone of [false, true]) {
   test(`#336 the connection list offers downgrades and a chase (${phone ? 'phone' : 'desktop'})`, () => {
     const { ev, errors } = setup();
     open(ev, phone);
-    const ix = ev('window.__ix'), a = acts(ev, '#connSec');
+    const ix = ev('window.__ix');
+    // Each row keeps its buttons folded behind "Change", on a phone and on a wide screen.
+    assert.equal(ev("document.querySelectorAll('#connSec [data-act=\"downT\"],#connSec [data-act=\"connCancel\"]').length"), 0, 'folded rows carry only Open and Change');
+    const a = unfolded(ev);
     assert.ok(has(a, 'downT', { id: 't1' }) && has(a, 'lagT', { id: 't1', d: -1 }), 'transit: smaller port, one member fewer');
     assert.ok(has(a, 'downP', { id: 'p1' }) && has(a, 'lagP', { id: 'p1', d: -1 }), 'PNI: smaller port, one member fewer');
     assert.ok(has(a, 'pniChase', { id: 'p2' }), 'a PNI on order can be chased');
     assert.ok(!has(a, 'pniChase', { id: 'p1' }) && !has(a, 'downP', { id: 'p2' }), 'no chase for a live PNI, no downgrade for one on order');
     assert.ok(has(a, 'downIx', { city: ix }) && has(a, 'lagIx', { city: ix, d: -1 }), 'IX: smaller port, one member fewer');
+    // The labels say what a button does: unfold the transit row and read it.
+    ev(`ACT.dashRow({k:JSON.parse([...document.querySelectorAll('#connSec [data-act="dashRow"]')][0].dataset.args).k})`);
     assert.match(ev("document.getElementById('connSec').textContent"), /Downgrade 100G/);
     assert.deepEqual(errors, []);
   });
@@ -39,7 +48,8 @@ test('#336 the buttons in the list do what the POP panel buttons do', () => {
   const ix = ev('window.__ix');
   open(ev, false);
   const click = (act, args) => {
-    const ok = ev(`(()=>{const b=[...document.querySelectorAll('#connSec [data-act]')].find(b=>b.dataset.act===${JSON.stringify(act)}&&b.dataset.args===${JSON.stringify(JSON.stringify(args))});if(!b)return false;b.click();return true})()`);
+    const ok = ev(`(()=>{const ks=[...document.querySelectorAll('#connSec [data-act="dashRow"]')].map(b=>JSON.parse(b.dataset.args).k);
+      for(const k of ks){UI.dashOpen=null;ACT.dashRow({k});const b=[...document.querySelectorAll('#connSec .rmore [data-act]')].find(b=>b.dataset.act===${JSON.stringify(act)}&&b.dataset.args===${JSON.stringify(JSON.stringify(args))});if(b){b.click();return true;}}return false})()`);
     assert.ok(ok, `${act} ${JSON.stringify(args)} is in the list`);
     open(ev, false);
   };
@@ -61,7 +71,7 @@ test('#336 the buttons in the list do what the POP panel buttons do', () => {
   click('pniChase', { id: 'p2' });
   assert.equal(ev("S.pni.find(p=>p.id==='p2').ready"), Math.max(ev('S.day') + 1, ready - 30));
   // No more members to take away: those buttons go away.
-  const a = acts(ev, '#connSec');
+  const a = unfolded(ev);
   assert.ok(!has(a, 'lagT', { id: 't1', d: -1 }) && !has(a, 'lagP', { id: 'p1', d: -1 }) && !has(a, 'lagIx', { city: ix, d: -1 }));
   assert.deepEqual(errors, []);
 });
@@ -69,7 +79,7 @@ test('#336 the buttons in the list do what the POP panel buttons do', () => {
 test('#336 the list offers the same downgrades as the POP panel', () => {
   const { ev, errors } = setup();
   open(ev, false);
-  const dash = acts(ev, '#connSec').filter(x => /^(downT|lagT|downIx|lagIx) /.test(x) && !x.includes('"d":1'));
+  const dash = unfolded(ev).filter(x => /^(downT|lagT|downIx|lagIx) /.test(x) && !x.includes('"d":1'));
   ev("UI.sel={type:'city',id:'fra'};UI.tab='up';renderPanel()");
   const panel = acts(ev, '#panelBody').filter(x => /^(downT|lagT) /.test(x) && !x.includes('"d":1'));
   assert.ok(panel.length >= 2, `the POP panel shows the transit downgrades: ${panel}`);

@@ -108,3 +108,18 @@ button.plug.fu-lb{width:100%;font:inherit;text-align:left;cursor:pointer;margin:
 .fs-srv.on{border-color:var(--me);background:#FFE3F0}
 .fs-srv .meta{font-size:12px;line-height:1.3;margin:0}
 .fstart input.t{font-size:16px;padding:6px 10px}
+/* Round 3: compact Multimode. Tags under a name sit at their own width; a fold is a full-width row with a count. */
+.fu-txt>.fu-tag{align-self:flex-start}
+.fu-fold{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;margin:8px 0 4px;padding:6px 12px;border:2px solid var(--edge);border-radius:12px;background:var(--paper);color:var(--ink);font:800 14px var(--display);text-align:left;cursor:pointer}
+.fu-fold.on{background:var(--soft)}
+.fu-cnt2{display:inline-block;min-width:20px;padding:0 6px;border-radius:999px;background:var(--me);color:var(--on);font:900 12px/20px Nunito,sans-serif;text-align:center;vertical-align:1px}
+.fu-where{border:2px solid var(--line);border-radius:14px;padding:4px 12px;margin:8px 0}
+.fu-where .fu-status{margin:4px 0 0}.fu-where p{margin:2px 0 6px}
+.fu-pg{margin:6px 0}
+/* Server cards: policy, then the name (its details) with Join on the same line, then one line of facts. */
+.fu-srv .fu-pol{font-size:13px;line-height:1.3;margin:0 0 2px}
+.fu-srv.rec{border-color:var(--me);box-shadow:0 2px 0 var(--edge)}
+.fu-srvh .grow{flex:1 1 0;min-width:0}
+.fu-srvh .lnk.fu-sn{font-size:16px;text-decoration:underline;text-underline-offset:3px;min-height:32px}
+.fu-srvh .b{flex:none}
+.fu-desc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}

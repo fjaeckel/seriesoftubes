@@ -57,7 +57,7 @@ const LEFT = ['nets', 'noc', 'deals', 'goals'];
 const PRESETS = ['freeze', 'oncall', 'bgp'];
 // How often a button is pressed against the others on screen: what changes the network often, looking around rarely.
 const BUILD = /^(buy\w*|pni\w*All|pni|peer|peerAll|unpeer|cache|cacheSite|rmCache|buildLink|buildPop|launchBB|accept|decline|dropBiz|pathMove|pathPin|pathAuto|takeLoan|repayLoan|lag[TPI]x?|setPref|setCarry|setStandby|setMetric|togglePrem|cleanPipe|sacrif|rs|foundIx|myIxUp|addRouter|rmRouter|upRouter|addSite|rmSite|siteSet|decomToggle|rmLink|upLink|addParallel|cancel\w*|upVxc|buyNni|rmNni|buildScrub|scrubUp|rmScrub|addGen|regen|addCh|rmCh|addPair|upSys|spares|layShip|crews|fixInc|seaPackage|subUpgrade|orderCable|orderDf|ownCab|opsHire|opsToggle|opsParam|opsCap|opsPop|opsTpl|opsNewPop|popStdSet|coreSet|teRecipe|dkOptOut|dkStay|utility\w*|listFiber|unlistFiber|leaseSwap|custGo|confGo|confSponsor|seatBuy|charter|cnPrem|applyCn|ad|ddosAuto|pz(Pop|RmPop|Link|AddPar|Tier|RmLink|RtAdd|RtRm|RtModel|Route|Via|Div)|setRoute|route|via|metricSet)$/;
-const UIACT = /^(tab|dashTab|leftTab|\w*Sort|\w*Filter|pniGrp|trace\w*|focusCity|findGo|selLink|dashLink|logAll|tailTog|listMore|netFocus|netFilter|meetGo|phoneTab|dashClose|connF|connCity|connNet|connFor|custF|custCity|popGo|popsReg|opsOpen|decomOpen|linkCheck|pathOpen)$/;
+const UIACT = /^(tab|dashTab|leftTab|\w*Sort|\w*Filter|pniGrp|trace\w*|focusCity|findGo|findPick|findMore|selLink|dashLink|logAll|tailTog|listMore|netFocus|netFilter|meetGo|phoneTab|dashClose|connF|connCity|connNet|connFor|custF|custCity|popGo|popsReg|opsOpen|decomOpen|linkCheck|pathOpen)$/;
 const DW = { launchBB: 4, accept: 4, buyTransit: 3, pni: 3, buyIx: 3, setPref: 4, cache: 2, peerAll: 2, setCarry: 2, takeLoan: 2 };
 const weight = (b) => (BUILD.test(b.act) ? 8 : UIACT.test(b.act) ? 0.3 : 1);
 
@@ -120,7 +120,12 @@ function playGame(pages, seed, opts = {}) {
     if (!baseTabs) baseTabs = new Set(JSON.parse(base.ev('JSON.stringify(DTABS)')));
     if (!headTabs) headTabs = new Set(JSON.parse(head.ev('JSON.stringify(DTABS)')));
     const a = Array.isArray(a0) ? a0.filter((x) => !(/^ops/.test(x.act) && retired.has(x.args && x.args.k)) && !(x.act === 'dashTab' && x.args && !headTabs.has(x.args.k))) : a0;
-    const b = Array.isArray(b0) ? b0.filter((x) => baseActs.has(x.act) && !(x.act === 'dashTab' && x.args && !baseTabs.has(x.args.k))) : b0; same('buttons of ' + JSON.stringify(w), a, b); return a || []; };
+    const b = Array.isArray(b0) ? b0.filter((x) => baseActs.has(x.act) && !(x.act === 'dashTab' && x.args && !baseTabs.has(x.args.k))) : b0; 
+    // Panels may fold and reorder their buttons (fuzz-page.js reads them unfolded): the same set of buttons is the same
+    // screen, and the walk goes by the base page's order.
+    const set = (x) => JSON.stringify([...new Set(x.map((q) => q.act + ' ' + JSON.stringify(q.args)))].sort());
+    if (Array.isArray(a) && Array.isArray(b) && set(a) === set(b)) return a;
+    same('buttons of ' + JSON.stringify(w), a, b); return a || []; };
   const press = (b, where) => { acts[b.act] = (acts[b.act] || 0) + 1; const [e1, e2] = both('press', b); same('press ' + where, e1, e2); note(where + ' ' + b.act + JSON.stringify(b.args) + (e1 ? ' !' + e1 : '')); };
   // Answer whatever window opened, a few levels deep, then close it.
   const modal = (bias) => {
@@ -147,7 +152,7 @@ function playGame(pages, seed, opts = {}) {
       const tab = r.pick(TABS);
       let bs = screen({ where: 'city', city, tab });
       if (mv === 'build') { const p = bs.filter((b) => /^(buildPop|launchBB|opsNewPop|popStdSet)$/.test(b.act)); if (p.length) bs = p; }
-      if (bs.length) press(r.wp(bs, weight), `city ${city}/${tab}`);
+      if (bs.length) press(r.wp(bs, weight), `city ${city}/${tab}`); else note(`city ${city}/${tab} (nothing to press)`);
       if (!div) compare('city button');
       modal();
     } else if (mv === 'openLink') {

@@ -76,6 +76,10 @@ test('rows: rank, a bold name button over AS and country, the value in its own c
   phone(p);
   p.ev("ACT.fuOpen({v:'boards'})");
   await run(p);
+  // A first page of ten, the own row (25th) pinned below it; all of them on a tap.
+  assert.equal(p.ev("document.querySelectorAll('#modalCard .fu-board:not(.fu-mine .fu-board) .fu-row').length"), 10);
+  assert.equal(p.ev("document.querySelectorAll('#modalCard .fu-mine .fu-me').length"), 1);
+  p.ev("ACT.fuFold({k:'rows'})");
   const rows = val(p, `[...document.querySelectorAll('#modalCard .fu-board .fu-row')].map(r=>({rank:r.querySelector('.fu-rank').textContent,nm:r.querySelector('.fu-nm').textContent,sub:r.querySelector('.fu-sub').textContent,v:r.querySelector('.fu-v').textContent,btn:r.querySelector('.fu-who').tagName,top:/top\\d/.test(r.className),me:r.classList.contains('fu-me')}))`);
   assert.equal(rows.length, 30);
   // The AS comes with the network key's short fingerprint (fedFp): an ASN alone can be made up to match.

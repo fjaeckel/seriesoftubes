@@ -145,7 +145,9 @@ test('#192 the Infra tab shows the kit as one line, without repeating its rows',
     ev("S.caches=[{id:'c1',city:'fra',net:'cfl'},{id:'c2',city:'fra',net:'cfl'}];compute();selectCity('fra');ACT.tab({t:'links'})");
     const body = dom.window.document.getElementById('panelBody');
     const txt = body.textContent;
-    assert.match(txt, /PoP redundancy kit · One-off: /);
+    assert.match(txt, /PoP redundancy kit\$[\d.]+k \+ \$[\d.]+k\/mo/);
+    const row = body.querySelector('section.kitl .row');
+    assert.ok(row.querySelector('[data-act="utilityKit"]') && row.querySelector('[data-act="utilities"]'), 'the kit is one row with its buttons');
     assert.doesNotMatch(txt, /Second site(None|Installed)/, 'no second copy of the second-site row');
     assert.doesNotMatch(txt, /At least two routers/, 'no second copy of the routers row');
     assert.doesNotMatch(txt, /Request missing caches/, 'caches are in the Peering tab and Utilities');
