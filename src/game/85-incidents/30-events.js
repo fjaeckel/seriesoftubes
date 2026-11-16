@@ -56,7 +56,7 @@ function fireEvent(){
   if(e==='viral'){S.ev.viral=S.day+8;toast(tr('events.new_season_of_stranger_pings_just'),'goal');}
   else if(e==='price'){S.priceMul*=0.92;toast(tr('events.transit_prices_fell_8_they_do'),'good');}
   else if(e==='grant'){S.cash+=30000;toast(tr('events.rural_broadband_grant_30k_the'),'good');sfx('coin');}
-  else if(e==='depeer'){S.ev.depeer=S.day+20;addInc({type:'depeer',ref:'cog',until:S.day+20,msg:tr('events.cogentle_and_goggle_are_in_a'),cost:0});toast(tr('events.peering_spat_cogentle_de_peered'),'bad');sfx('alert');}
+  else if(e==='depeer'){S.ev.depeer=S.day+20;addInc({type:'depeer',ref:'cog',until:S.day+20,msg:tr('events.cogentle_and_goggle_are_in_a'),cost:0});if(toastT1(tr('events.peering_spat_cogentle_de_peered'),'bad'))sfx('alert');}
   else if(e==='cake'){S.cash+=8000;toast(tr('events.drizzle_electric_sent_you_an_ipv6'),'good');sfx('coin');}
 }
 

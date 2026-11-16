@@ -11,6 +11,10 @@ function toast(html,kind='',actions=[],open=null){
   // Quiet notifications: what the day announces pops up only for trouble and milestones; the rest stays in the NOC log.
   if(UI.tick&&kind!=='bad'&&kind!=='goal'&&quietOn())return;
   toastShow(html,kind,actions,e);}
+// Once you have made Tier 1, conference news (#101) and de-peerings are routine: they are kept in the NOC log like any
+// notice, and nothing pops up. Says whether it popped up, for the sound that goes with it.
+const t1Quiet=()=>!!(S&&S.done&&S.done.t1!==undefined);
+function toastT1(html,kind='',actions=[],open=null){if(!t1Quiet()){toast(html,kind,actions,open);return true;}if(S)logNote(html,kind,actions,open);return false;}
 // The toast itself, for a notice already in the log (e) or one that is not logged at all (Undo).
 function toastShow(html,kind='',actions=[],e=null,ms=0){
   const box=$('toasts'),key=kind+'|'+toastKey(html),imp=kind==='bad'||actions.length>0;
