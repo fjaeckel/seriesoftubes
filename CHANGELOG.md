@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- "Move to another path" now shows where a circuit's bandwidth pinches: the spans and POP routers with less room than the customer wants, tightest first, on today's path and on each alternative, with a button that opens the link or the POP.
+
 ## [4.4.0] — 2026-11-16
 
 - A large UX redesign: much less scrolling and things are easier to find, on phones and on computers. Lambda Bazaar has a window of its own, the 🔍 search finds anything, and the Deals, Goals, NOC and Networks tabs, the NOC dashboard, the city and link panels, Multimode, the bank, Settings and How to play are all shorter and put what needs you first.
