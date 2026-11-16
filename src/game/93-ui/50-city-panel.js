@@ -74,7 +74,7 @@ function cityPanel(c){pnState(); // another city or tab starts with short lists 
     const rt=p.routers||1,g=p.rgen||0,G=RG[g],nl=R.nodeLoad[c]||0,nc=R.nodeCap[c]||nodeCap(c),Ni=g===mainRG(G.cls)?mainRG(G.cls+1):-1,N=Ni>=0?RG[Ni]:null,pu=portsUsed(c),pm=portsMax(c);
     /* The routers as one line (model × count, load and ports bars); what they are and every button to change them unfold
        under Change, by themselves while the routers are full, and always early in the game. */
-    const rtv=pnVet(),rtf=pnState().open.rtc,rto=!rtv||(rtf!==undefined?rtf:pu>=pm||nl>=nc*0.95||UI.models);
+    const rtv=pnVet(),rtf=pnState().open.rtc,rto=!rtv||(rtf!==undefined?rtf:pnStuck('rtc')||pu>=pm||nl>=nc*0.95||UI.models);
     h+=pnAnchor('rt')+`<section>${pnHead('rt',tr('common.routers'),`<p class="lead">${tr('city_panel.the_model_sets_your_fastest')}</p>`)}
     <div class="row rgrp"><span class="logo" style="--c:${G.badge?'#2C7A7B':'#FF4F9A'}">${G.badge||'R'+(G.cls+1)}</span><div class="grow"><div class="nm">${rt} × ${esc(G.n)}</div>
     <div class="rbars"><div>${dashMeter(`${tr('common.load')}: ${pct(nl/nc)}`,nl/nc)}</div><div>${dashMeter(`${tr('puzzles.ports')}: ${fmtPorts(pu)} / ${pm}`,pu/pm)}</div></div></div>${rtv?foldB(tr('connections.change'),'panelFold',{k:'rtc',o:rto?0:1},rto,'ghost sm',tr('common.change_name',{name:tr('common.routers')})):''}</div>
