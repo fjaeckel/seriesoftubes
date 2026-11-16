@@ -197,6 +197,21 @@ test('a click on a title bar, a picker, a button or a cancelled drag changes and
   assert.deepEqual(h.errors, []);
 });
 
+test('a press while an earlier drag never got its pointer up ends that drag and starts the new one', (t) => {
+  const b = browser();
+  const h = win(t, { browser: b });
+  ptr(h, 'pointerdown', title('traffic'), 100, 600);
+  ptr(h, 'pointermove', doc(h).documentElement, 100, 350);
+  assert.deepEqual(lay(h), SWAP);
+  ptr(h, 'pointerdown', title('map'), 100, 300);   // the button was let go outside the page: no pointerup came
+  assert.deepEqual(lay(h), DEF, 'the unfinished drag is undone');
+  assert.equal(h.ev('NWD.id'), 'map', 'and the new one is under way');
+  ptr(h, 'pointerup', doc(h).documentElement, 100, 300);
+  assert.equal(h.ev('NWD'), null);
+  assert.equal(b.ls.get(KEY), undefined);
+  assert.deepEqual(h.errors, []);
+});
+
 test('an edge or a corner resizes a window, and the others move out of its way', (t) => {
   const h = win(t);
   drag(h, edge('traffic', 'e'), [730, 700], [730 + 105, 700]);   // two columns wider

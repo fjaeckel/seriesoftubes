@@ -53,7 +53,8 @@ function nwReset(){NOCW.lay=nwDef();try{localStorage.removeItem(NW_KEY);}catch(e
 let NWD=null,nwT=0;
 // Cells to pixels: a column is a 24th of the deck (and a gap), a row is NW_ROW.
 const nwPitch=()=>{const d=$('nwDeck'),W=(d&&d.getBoundingClientRect().width)||1200;return [(W+NW_GAP)/NW_NCOL,NW_ROW];};
-function nwGrab(e){if(NWD||!nwFree()||e.button||!NOCW.lay)return;const w=e.target.closest&&e.target.closest('.nw-win');if(!w)return;
+// A press while an earlier drag never got its pointer up (released outside the browser) ends that one first.
+function nwGrab(e){if(!nwFree()||e.button||e.isPrimary===false||!NOCW.lay)return;if(NWD)nwDrop({type:'pointercancel'});const w=e.target.closest&&e.target.closest('.nw-win');if(!w)return;
   const rz=e.target.closest('.nw-rz');
   // A window moves by its title bar, but the picker and the buttons in it are still theirs.
   if(!rz&&(!e.target.closest('.nw-h,.nw-grip')||e.target.closest('select,input,a,button:not(.nw-grip)')))return;
