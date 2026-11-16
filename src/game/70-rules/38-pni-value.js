@@ -9,17 +9,20 @@ function pniIdx(){if(PNIX&&PNIX.R===R)return PNIX;
   for(const c in S.ixp){const nm=ixName(c);for(const id of ixSessions(c)){const a=ix[id]||(ix[id]=[]);if(!a.includes(nm))a.push(nm);}}
   for(const p of S.pni)(pn[p.net]||(pn[p.net]=[])).push(p);
   return PNIX={R,fl:{},all:false,ix,pn};}
-// One POP's flows by network, added up the first time that POP is asked about.
-// Every POP at once, in one pass over the flows: the intern's weekly PNI round asks about all of them, and one POP at a
-// time was a pass per POP. The flows are read straight from routing's columns (R.flc), not made into the objects of R.fl
-// (tens of thousands on a big network); each POP's sums still add up its flows in their order.
-function pniFlows(c){const X=pniIdx();if(!X.all){X.all=true;const F=X.fl,C=R.flc;
-  const add=(c,n,rem,gt,gi,gp,gh,ti,ii)=>{const m=F[c]||(F[c]={});let o=m[n];if(!o)o=m[n]={t:0,ix:0,p:0,h:0,u:0,T:{},I:{}};
+// One POP's flows by network, added up the first time that POP is asked about, from that POP's flows alone.
+// Only the PNI list asks, about the one POP on screen (the intern's weekly round asks pniWant()), and it asks again
+// after every routing: adding up every POP's flows for it made tens of thousands of sums a day that nobody read.
+// The flows are read straight from routing's columns (R.flc), not made into the objects of R.fl; a POP's sums add up
+// its flows in their order.
+function pniFlows(c){const X=pniIdx(),F=X.fl,C=R.flc;
+  const add=(m,n,rem,gt,gi,gp,gh,ti,ii)=>{let o=m[n];if(!o)o=m[n]={t:0,ix:0,p:0,h:0,u:0,T:{},I:{}};
     o.u+=rem;o.t+=gt;o.ix+=gi;o.p+=gp;o.h+=gh;if(gt)o.T[ti]=(o.T[ti]||0)+gt;if(gi)o.I[ii]=(o.I[ii]||0)+gi;};
-  if(C){const {NF,FREM,FCI,FNJ,FGT,FGI,FGP,FGH,FTI,FII,E}=C;
-    for(let i=0;i<NF;i++)add(CITIES[FCI[i]].id,NET_IDS[FNJ[i]],FREM[i],FGT[i],FGI[i],FGP[i],FGH[i],FTI[i]<0?null:E[FTI[i]].id,FII[i]<0?null:E[FII[i]].id);}
-  else for(const f of R.fl||[])if(!f.junk)add(f.c,f.n,f.rem,f.gt,f.gi,f.gp,f.gh,f.ti,f.ii);}
-  return X.fl[c]||(X.fl[c]={});}
+  if(C){let m=F[c];if(m)return m;m=F[c]={};const ci=CIDX[c];if(ci===undefined)return m;const {NF,FREM,FCI,FNJ,FGT,FGI,FGP,FGH,FTI,FII,E}=C;
+    for(let i=0;i<NF;i++)if(FCI[i]===ci)add(m,NET_IDS[FNJ[i]],FREM[i],FGT[i],FGI[i],FGP[i],FGH[i],FTI[i]<0?null:E[FTI[i]].id,FII[i]<0?null:E[FII[i]].id);
+    return m;}
+  // An R without columns (an old one): every POP at once, in one pass over the flows.
+  if(!X.all){X.all=true;for(const f of R.fl||[])if(!f.junk)add(F[f.c]||(F[f.c]={}),f.n,f.rem,f.gt,f.gi,f.gp,f.gh,f.ti,f.ii);}
+  return F[c]||(F[c]={});}
 // One status, most direct first. c: the POP you are looking at (null: anywhere).
 function pniStat(id,c){const X=pniIdx(),ps=X.pn[id]||[],h=c?ps.find(p=>p.city===c):null;
   if(h)return {k:'here',p:h};

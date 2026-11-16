@@ -7,6 +7,8 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 - A subsea cable of your own can land in Bogotá, and in the other inland cities where cables land (Nairobi, Johannesburg, Khartoum, Atlanta, Montreal): it comes ashore where their cables do and runs on overland (#416).
+- Big networks: a POP's Peering tab no longer slows every game day and every click while it is open. The list of PNIs worked out what a PNI would carry at every one of your POPs to show the one on screen; now it only works out that one.
+- Big networks: the first minute after loading a game is smoother. The lowest latency you could ever build between two cities, which latency offers are checked against, is now worked out about ten times faster, for every POP.
 
 ## [4.4.0] — 2026-11-16
 

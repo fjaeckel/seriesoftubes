@@ -84,9 +84,18 @@ let LATW=null;const LAT_FIN=['nyc','chi','lon','fra','tok','sin','hkg','ams','as
 function latWarm(ms){if(!S||!S.pops)return;const t=performance.now();
   for(;;){if(!LATW){const a=Object.keys(S.pops).concat(LAT_FIN).find(c=>CITY[c]&&!LATF.has(c));if(!a)return;LATW={a,g:latFloorRun(a)};}
     const s=LATW.g.next();if(s.done){if(!LATF.has(LATW.a))LATF.set(LATW.a,s.value);LATW=null;}if(performance.now()-t>ms)return;}}
+// What one hop costs follows from the map alone too, and every city's search asks about the same pairs: a city's row
+// (the km to each other city, Infinity where nothing can be built) is worked out the first time a search settles it
+// and kept. Worked out again for every search, the land, border and distance rules were nearly all of its time.
+// A hop costs the same both ways, so a row takes what the rows before it already hold: the first search of a session
+// works out each pair once, as it always did.
+let LATR=null,LATRD=null;
+function latRow(u){const n=CITIES.length;if(!LATR){LATR=new Float64Array(n*n);LATRD=new Uint8Array(n);}const o=u*n;
+  if(!LATRD[u]){const U=CITIES[u];for(let i=0;i<n;i++){if(i===u){LATR[o+i]=Infinity;continue;}if(LATRD[i]){LATR[o+i]=LATR[i*n+u];continue;}const V=CITIES[i],cw=LATC.get(Math.min(u,i)*4096+Math.max(u,i));
+    let w=overland(U,V)&&!noTalk(U.id,V.id)?kmBetween(U.id,V.id)*1.1:Infinity;if(cw<w)w=cw;LATR[o+i]=w;}LATRD[u]=1;}
+  return o;}
 function* latFloorRun(a){const n=CITIES.length,D=new Float64Array(n).fill(Infinity),done=new Uint8Array(n);let k=0;
   if(!LATC){LATC=new Map();for(const c of CABLE_PAIRS){const k=Math.min(CIDX[c.a],CIDX[c.b])*4096+Math.max(CIDX[c.a],CIDX[c.b]),w=c.km*Math.min(0.9,CAB[c.cid].lat||1);if(!(LATC.get(k)<=w))LATC.set(k,w);}}
-  D[CIDX[a]]=0;for(;;){if((++k&15)===0)yield;let u=-1,ud=Infinity;for(let i=0;i<n;i++)if(!done[i]&&D[i]<ud){u=i;ud=D[i];}if(u<0)break;done[u]=1;const U=CITIES[u];
-    for(let i=0;i<n;i++){if(done[i])continue;const V=CITIES[i],cw=LATC.get(Math.min(u,i)*4096+Math.max(u,i));
-      let w=overland(U,V)&&!noTalk(U.id,V.id)?kmBetween(U.id,V.id)*1.1:Infinity;if(cw<w)w=cw;if(w<Infinity){const d=ud+w/200+0.05;if(d<D[i])D[i]=d;}}}
+  D[CIDX[a]]=0;for(;;){if((++k&15)===0)yield;let u=-1,ud=Infinity;for(let i=0;i<n;i++)if(!done[i]&&D[i]<ud){u=i;ud=D[i];}if(u<0)break;done[u]=1;const o=latRow(u),W=LATR;
+    for(let i=0;i<n;i++){if(done[i])continue;const w=W[o+i];if(w<Infinity){const d=ud+w/200+0.05;if(d<D[i])D[i]=d;}}}
   return D;}
