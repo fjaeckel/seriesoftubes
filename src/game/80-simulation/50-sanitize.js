@@ -107,6 +107,10 @@ function sanitize(s){
     a.sla=Array.isArray(a.sla)?a.sla.filter(x=>typeof x==='string').slice(0,s.biz.length):[];return a;};
   const attacks=[s.ev.ddos,...(Array.isArray(s.ev.ddosMore)?s.ev.ddosMore:[])].map(repairAttack).filter(Boolean).slice(0,14);
   if(attacks.length)s.ev.ddos=attacks[0];else delete s.ev.ddos;s.ev.ddosMore=attacks.slice(1);
+  for(const a of attacks){for(const k of ['au','scr','hk'])if(a[k]!==undefined)a[k]=a[k]?1:0;}
+  // The DDoS tab's history: plain fields only, known vectors, cities and customer types, numbers in range, newest first.
+  s.ddosLog=(Array.isArray(s.ddosLog)?s.ddosLog:[]).filter(e=>e&&typeof e==='object'&&own(DDOS_VEC,e.v)&&isCity(e.c)&&DDOS_O.includes(e.o)).slice(0,DDOS_LOG).map(e=>{const d=int(e.d,0,Math.max(0,num(s.day,0)),0);
+    return {d,s:int(e.s,0,d,d),g:clamp(num(e.g,0),0,1e6),v:e.v,c:e.c,t:typeof e.t==='string'&&own(BIZ_T,e.t)?e.t:'',n:typeof e.n==='string'&&own(BIZ_T,e.t)?e.n.slice(0,60):'',o:e.o,w:clamp(num(e.w,1),0,1),x:clamp(num(e.x,0),0,1),bh:int(e.bh,0,2,0),sc:e.sc?1:0,hk:e.hk?1:0};});
   s.ddosStarts=(Array.isArray(s.ddosStarts)?s.ddosStarts:attacks.map(a=>a.start)).filter(d=>typeof d==='number'||typeof d==='string').map(Number).filter(d=>Number.isFinite(d)&&d>s.day-7&&d<=s.day).sort((a,b)=>a-b).slice(-14);
   s.auV=s.auV===1?1:0;if(s.auNews!==true)delete s.auNews;
   // Badges: S.ach[id] is the day it was earned (any save); S.achP[id] the variant (2.0). A missing variant is the standard one.

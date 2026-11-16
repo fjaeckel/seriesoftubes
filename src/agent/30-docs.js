@@ -41,6 +41,7 @@ const API_STATE_DOC={
  done:{type:'map',doc:'Goals landed, by goal id → day.'},
  ach:{type:'map',doc:'Badges earned this game, by badge id → day.'},
  inc:{type:'array',doc:'Open incidents: type, what they hit, until when, optional rush-repair price.'},
+ ddosLog:{type:'array',doc:'Finished DDoS attacks, newest first, at most 100: d day it ended, s day it started, g size in Gbps, v vector (DDOS_VEC), c city, t the customer\'s type ("" for broadband subscribers) and n its name, o outcome (h held, s sacrificed with RTBH, l got through), w the worst share of its traffic the target got, x the most it cost everyone else (share of all traffic), bh 1 blackholed by hand or 2 by Auto-RTBH, sc scrubbed, hk ended by a hack back. The NOC dashboard\'s DDoS tab shows it.'},
  ddosStarts:{type:'array',doc:'The days the attacks of the last week started; at most 14 a week.'},
  ev:{type:'map',doc:'Live world events: the running DDoS, route leaks, fabric failures, price shocks.'},
  stats:{type:'map',doc:'Counters: incidents survived, loans taken, sharks, conferences attended, peak traffic…'},

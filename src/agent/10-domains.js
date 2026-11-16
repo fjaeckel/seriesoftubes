@@ -62,7 +62,7 @@ const API_DOMAINS={
   leftFold:{kind:'enum',values:['done','badges','hot','slow','ports']},
   netFilter:{kind:'enum',values:['all','out']},
   pniFilter:{kind:'enum',values:['all','t','worth','pni']},
-  listPage:{kind:'enum',values:['traffic','lease','conn','cust','nets','pni','pops','links','routers']},
+  listPage:{kind:'enum',values:['traffic','lease','conn','cust','nets','pni','pops','links','routers','ddos']},
   infraList:{kind:'enum',values:['links','routers']},
   infraKind:{kind:'enum',values:['','wave','iru','own','sea','vxc']},
   infraLoad:{kind:'enum',values:['','warm','hot','down']},

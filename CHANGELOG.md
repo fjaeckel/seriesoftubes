@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- The NOC dashboard has a DDoS tab: every attack under way with its RTBH, scrubbing and hack-back buttons, your totals, and a history of past attacks with their size, target and how they ended. Attacks your network shrugs off, and Auto-RTBH pulling the plug, no longer pop up (they are in the NOC's notifications and the new tab); an attack that hurts still does, and its button opens the tab.
 - A subsea cable of your own can land in Bogotá, and in the other inland cities where cables land (Nairobi, Johannesburg, Khartoum, Atlanta, Montreal): it comes ashore where their cables do and runs on overland (#416).
 - Once you have made Tier 1, conference news and de-peerings no longer pop up: they go to the NOC's notification list instead. That covers conference reminders and reports (which used to vanish altogether), your sales engineer's bookings, the carriers a capacity conference sends, a network de-peering you at an exchange, and the Cogentle and Goggle peering spat (its incident stays in the NOC).
 - Big networks: a POP's Peering tab no longer slows every game day and every click while it is open. The list of PNIs worked out what a PNI would carry at every one of your POPs to show the one on screen; now it only works out that one.

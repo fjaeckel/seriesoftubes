@@ -30,6 +30,7 @@ const FIND_GO=[
  {id:'d-cust',i:'📊',l:()=>tr('common.customers'),dt:'cust'},
  {id:'d-conn',i:'📊',l:()=>tr('common.connections'),dt:'conn'},
  {id:'d-traffic',i:'📊',l:()=>tr('common.traffic'),dt:'traffic'},
+ {id:'d-ddos',i:'📊',l:()=>tr('ddos_dash.tab'),dt:'ddos'},
  {id:'d-links',i:'📊',l:()=>tr('common.links'),dt:'links'},
  {id:'d-routers',i:'📊',l:()=>tr('common.routers'),dt:'routers'},
  {id:'d-pops',i:'📊',l:()=>tr('common.pops'),dt:'pops'},

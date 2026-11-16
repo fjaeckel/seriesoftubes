@@ -112,6 +112,8 @@ label.f+select.pick{width:100%}
 /* The NOC's traffic table has a row per network: classes, not inline styles, keep its hundreds of rows cheap to parse. */
 .nmc{display:inline-flex;align-items:center;gap:6px}.dlost{color:#B23A48}.b.pall{white-space:nowrap}.ttbl td{padding-block:3px}
 .tscroll{overflow-x:auto}
+/* DDoS tab: sizes, days and outcome chips on one line; a phone card's mitigation chips under it. */
+.ddtbl .nw,.ddtbl .tag,.ddrow .tag{white-space:nowrap}.ddhow{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
 /* Links and Routers tabs: the page scrolls like every tab; the filter bar sticks just under the tab bar (.dtabs, whose
    height fitList() measures into --dtabh), so sorting and filters stay in reach. */
 .itop{align-items:start}
