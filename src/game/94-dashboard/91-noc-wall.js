@@ -32,6 +32,7 @@ function nwAlarms(){const A=[];
   const hot=hotPorts().filter(h=>h.k==='t'||h.k==='p'||h.k==='ix').length,sad=custStats().unhappy;
   if(hot)A.push({k:'warn',t:esc(trn('noc.n_ports_over_90_full',hot)),m:''});
   if(sad)A.push({k:'warn',t:esc(trn('noc.n_unhappy_customers',sad)),m:''});
+  if(!scnRule('local')&&fedLost()>=FEDL_WARN)A.push({k:'warn',t:esc(tr('noc.p_goes_to_players_not_peered',{p:pct(fedLost())})),m:''});
   return A;}
 // ---------- sections ----------
 function nwTiles(){const H=(S.hist||[]).slice(-60),last30=(S.hist||[]).slice(-30),net=R.revMo-R.costMo;

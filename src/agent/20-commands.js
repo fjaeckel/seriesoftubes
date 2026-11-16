@@ -520,6 +520,7 @@ const API_CMD={
 const API_VIEW={
  fpNet:{args:[['key','string'],['at','string',false],['deal','string',false]],doc:'Open a player network\'s sheet: its published terms, your deals with it and what you can ask for, with what is missing. With at (a city) and deal (port or cofound) that request comes first, picked at that city.'},
  fpTerms:{args:[],doc:'Open Your terms: peering policy, conditions, rate card and request handling.'},
+ fpLost:{args:[],doc:'Open the players card in the Networks tab, to peer with players you cannot reach.'},
  fpQueue:{args:[],doc:'Open the Multimode sheet (or, without it, the NOC dashboard) where requests from players wait for review.'},
  fpFold:{args:[['k','string']],doc:'Unfold or fold the terms of a request from a player (k "t:<request id>"), or the rest of a list of players (k "all" or "out"): view state only.'},
  fpCons:{args:[],doc:'Open the consortium cables sheet.'},

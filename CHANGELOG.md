@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- In Multimode, the game now tells you when other players you have not peered with cost you service. Unhappy customers name it, the Reach chip and your AS panel show your reach with players included, and the NOC warns before customers start leaving, with a button to the players to peer with (#414).
+
 ## [4.5.0] — 2026-11-16
 
 - The NOC dashboard has a DDoS tab: every attack under way with its RTBH, scrubbing and hack-back buttons, your totals, and a history of past attacks with their size, target and how they ended. Attacks your network shrugs off, and Auto-RTBH pulling the plug, no longer pop up (they are in the NOC's notifications and the new tab); an attack that hurts still does, and its button opens the tab.

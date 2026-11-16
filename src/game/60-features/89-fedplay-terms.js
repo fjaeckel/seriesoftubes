@@ -36,7 +36,7 @@ function fedAutoClean(a,pol){const o={};for(const k of FEDP_DEALS)o[k]=a&&['auto
   // A restrictive network chooses its peers itself: peering requests always wait for review.
   if(pol==='restrictive'&&o.peering==='auto')o.peering='review';return o;}
 // Repairs S.fedp from a save (sanitize). Null stays null: only a save that joined has terms.
-function fedpSanitize(s){
+function fedpSanitize(s){s.fedLw=!!s.fedLw;
   s.fedn=s.fedn==null?null:fednClean(s.fedn);
   const v=s.fedp;if(v==null||typeof v!=='object'||Array.isArray(v)){s.fedp=null;fedpLinks(s);return;}
   const o=fedPNew();o.pol=['open','selective','restrictive'].includes(v.pol)?v.pol:'open';o.cond=fedCondClean(v.cond);o.rates=fedRatesClean(v.rates);o.auto=fedAutoClean(v.auto,o.pol);
