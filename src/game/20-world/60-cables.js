@@ -185,6 +185,10 @@ const CABLE_PAIRS=CABLES.flatMap(c=>c.pairs.map(([a,b,mid])=>{const A=CITY[a],B=
   const mp=mid.map(q=>proj(q[0],q[1]));const pts=[[near(A.x,mp[0][0]),A.y]].concat(mp,[[near(B.x,mp[mp.length-1][0]),B.y]]);
   const ll=[[A.lon,A.lat]].concat(mid,[[B.lon,B.lat]]);let L=0;for(let i=1;i<ll.length;i++)L+=hav(ll[i-1][0],ll[i-1][1],ll[i][0],ll[i][1]);
   return {cid:c.id,a,b,pts,km:Math.round(L)};}));
+// Where each city's cables come ashore (#416): the waypoint next to the city on every cable that lands there. Inland
+// hubs (Bogotá, Nairobi, Johannesburg, Khartoum, Atlanta…) have their cables land on a coast and run on overland, and
+// a cable of your own (seaPorts()) starts from those shores when no sea is close to the city itself.
+for(const c of CABLES)for(const [a,b,mid] of c.pairs)if(mid&&mid.length){(CITY[a].shore||(CITY[a].shore=[])).push(mid[0]);(CITY[b].shore||(CITY[b].shore=[])).push(mid[mid.length-1]);}
 function cablesOk(a,b){const ban=S&&S.ev&&S.ev.landban&&S.ev.landban.until>S.day&&[a,b].includes(S.ev.landban.city);if(ban)return [];const rl=S&&S.scn&&S.scn.rules,bp=rl&&rl.banPairs,bc=rl&&rl.banCities;return bp||bc?cablesFor(a,b).filter(c=>!(bp&&(bp.includes(c.cid+':'+c.a+'-'+c.b)||bp.includes(c.cid+':'+c.b+'-'+c.a)))&&!(bc&&(bc.includes(c.a)||bc.includes(c.b)))):cablesFor(a,b);}
 function cablesFor(a,b){return CABLE_PAIRS.filter(c=>(c.a===a&&c.b===b)||(c.a===b&&c.b===a));}
 function cablePair(cid,a,b){const c=CABLE_PAIRS.find(x=>x.cid===cid&&((x.a===a&&x.b===b)||(x.a===b&&x.b===a)));if(!c)return null;return c.a===a?c:{...c,pts:c.pts.slice().reverse()};}

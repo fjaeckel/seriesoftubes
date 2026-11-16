@@ -87,6 +87,8 @@ function seaPorts(city){if(SEA_NAV.ports.has(city))return SEA_NAV.ports.get(city
   }
   // Nearby approaches are the default. A low-latency survey may also land further off and backhaul overland, like real
   // transatlantic systems that land in the west of England and run to London on land.
+  // No sea within reach of an inland hub's marker: its own cables' shores, the overland leg counted in the distance (#416).
+  if(!bins.size)(c.shore||[]).forEach((s,i)=>{const id=seaSnap(s);if(id!=null&&seaOpen(id))bins.set('s'+i+'|0',{id,d:hav(...p,...s)+hav(...s,...seaPoint(id)),bin:(i%16)+'|0'});});
   const sorted=[...bins.values()].sort((a,b)=>a.d-b.d),limit=sorted.length?(sorted[0].d<30?sorted[0].d+15:sorted[0].d*1.75):0,dir=new Set(),ports=sorted.map(p=>{const k=p.bin.split('|')[0]>>1;const first=!dir.has(k);dir.add(k);return {id:p.id,d:p.d,near:first&&p.d<=limit};});SEA_NAV.ports.set(city,ports);return ports;
 }
 const seaPort=city=>seaPorts(city)[0]?.id??null,seaNear=ps=>ps.filter(p=>p.near);
@@ -143,7 +145,7 @@ function seaReady(a,b){seaSync();const key=seaKey(a,b);
   try{
     if(!SEA_SURVEY.worker){
       const helpers=[seaSnap,seaPasses,seaGC,seaGreat,seaNear,seaKey,seaSync,seaLon,seaInit,seaLand,seaWater,seaCross,seaClear,seaPoint,seaNode,seaOpen,seaPorts,seaPort,seaStep,seaSearch,seaSimplify,seaDensify,seaLength,seaRoutes,hav,clamp];
-      const code='const SEA_PASS='+JSON.stringify(SEA_PASS)+';const COAST_LL='+JSON.stringify(COAST_LL)+';const CITY='+JSON.stringify(Object.fromEntries(CITIES.map(c=>[c.id,{lon:c.lon,lat:c.lat}])))+';const SEA_NAV={step:0.25,nx:1440,ny:641,rows:new Map(),edges:null,tiles:new Map(),fine:new Set(),routes:new Map(),ports:new Map(),pass:null,closed:new Set()};'+
+      const code='const SEA_PASS='+JSON.stringify(SEA_PASS)+';const COAST_LL='+JSON.stringify(COAST_LL)+';const CITY='+JSON.stringify(Object.fromEntries(CITIES.map(c=>[c.id,c.shore?{lon:c.lon,lat:c.lat,shore:c.shore}:{lon:c.lon,lat:c.lat}])))+';const SEA_NAV={step:0.25,nx:1440,ny:641,rows:new Map(),edges:null,tiles:new Map(),fine:new Set(),routes:new Map(),ports:new Map(),pass:null,closed:new Set()};'+
         helpers.map(f=>'const '+f.name+'='+f.toString()+';').join('')+'onmessage=({data:{a,b,key,closed}})=>{try{SEA_NAV.closed=new Set(closed||[]);postMessage({key,routes:seaRoutes(a,b)});}catch(e){postMessage({key,error:String(e)});}};';
       const url=URL.createObjectURL(new Blob([code],{type:'text/javascript'}));
       try{SEA_SURVEY.worker=new Worker(url);}finally{URL.revokeObjectURL(url);}
