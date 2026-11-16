@@ -5,16 +5,13 @@
    heading. What is unfolded is view state for the panel on screen: another city, link or tab starts short again,
    except for the kinds of block in PN_KEYS below, which stay open from one POP to the next. */
 const PN_STEP=20;
-/* Blocks whose open state follows the player from POP to POP, so adding a port to ten POPs in a row is one click each.
-   The choice belongs to the kind of block (every POP's Internet exchange section; the "Get port" of a POP's first
-   exchange), not to the city it was made in, so it survives another POP, a tab and a reload. A city without the block
-   keeps the choice and shows nothing; the next one that has it opens it. Folding a block forgets it, so the next POP shows
-   what it would have shown (everything early on, later what needs you). An exchange's fold is told apart by where it
-   stands in its city's list (the incumbent first), so a city with three exchanges opens the one you opened, not all
-   three. Left out on purpose: a list's page ("+N more"), a "?" and the Change of one port or PNI (each is about one
-   thing), and Decommission (a button that shuts a POP down is opened on purpose, every time). Only from the fourth POP
-   on (pnVet), when sections start folded: a new game keeps every section open. This is a setting of this browser, like
-   the theme, and never part of the save. */
+/* Blocks whose open state follows you from POP to POP, so a port in ten POPs in a row is one click each instead of three.
+   The choice belongs to the kind of block (every POP's Internet exchange section, the "Get port" of its first exchange),
+   not to the city, and lives in this browser like the theme: never in the save. A city without the block keeps it for the
+   next one that has it; folding a block forgets it. An exchange's fold is told apart by its place in its city's list, so
+   three exchanges do not all open for one tap. Left out on purpose: a list's page, a "?", one port's or PNI's Change (each
+   is about one thing) and Decommission (a button that shuts a POP down is opened on purpose). From the fourth POP on
+   (pnVet): before that every section is open anyway. */
 const PN_KEYS=['s:ix','s:pni','s:cache','s:metro','s:power','s:scrub','s:nni','rtc','std'],PN_LS='sot-folds';
 // "xj0": the Get port of a city's first exchange (one you have not joined); "xc1": the Change of its second (one you have).
 const pnKindOk=q=>PN_KEYS.includes(q)||/^x[jc][0-8]$/.test(q);
