@@ -117,7 +117,7 @@ function sanitize(s){
      game, On-call. Scenarios and the weekly run on On-call; a sandbox keeps only its chaos; a Normal game one of the
      three Normal presets, unchanged (its validated mods kept). So an edited or imported save cannot stop the clock or print money. */
   {const r=s.rules&&typeof s.rules==='object'&&!Array.isArray(s.rules)?s.rules:{};
-   const m={mods:r.mods};s.rules=s.scn&&typeof s.scn==='object'?makeRules('oncall',m):s.mode==='sandbox'?makeRules('sandbox',{...m,chaos:r.chaos}):makeRules(NORMAL_PRESETS.includes(r.preset)?r.preset:'oncall',m);}
+  const m={mods:s.mode==='normal'?r.mods:[]};s.rules=s.scn&&typeof s.scn==='object'?makeRules('oncall',m):s.mode==='sandbox'?makeRules('sandbox',{...m,chaos:r.chaos}):makeRules(NORMAL_PRESETS.includes(r.preset)?r.preset:'oncall',m);}
   specSanitize(s);lcSanitize(s);
   cmFix(s);
   pieSanitize(s);pieIncFix(s);volFix(s);

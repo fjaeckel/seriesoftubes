@@ -10,7 +10,7 @@ function pniHonours(n){let h=0;for(let i=0;i<n.length;i++)h=(h*31+n.charCodeAt(i
 const ddRank=e=>e.k==='p'?1:e.k==='ix'?2:e.k==='t'?3:9;
 // Adds to `out` (exit -> Gbps) the share of g that reaches you on each exit, before upstream tools.
 function ddosSpread(g,E,okBy,out){if(g<=0)return;let tot=0;const pick=[];
-  for(const n of NETS){const s=NSH[n.id]||0,L=okBy[n.id];if(s<=0||!L||!L.length)continue;let best=9,sac=false;
+  const shares=gameShares(NSH);for(const n of NETS){const s=shares[n.id]||0,L=okBy[n.id];if(!gameNetAllowed(n)||s<=0||!L||!L.length)continue;let best=9,sac=false;
     for(const e of L){if(e.id==='~grace')continue;const r=ddRank(e);if(r<best)best=r;}
     if(best===9)continue;if(best===1)for(const e of L)if(e.k==='p'&&e.sac)sac=true;
     let cap=0;for(const e of L)if(ddRank(e)===best&&e.id!=='~grace'&&(!sac||e.sac))cap+=e.cap;

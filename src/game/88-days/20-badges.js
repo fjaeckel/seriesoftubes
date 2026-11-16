@@ -90,6 +90,7 @@ const BADGES=[
  {id:'baked',i:'🥧',t:tr('pie.b_baked'),d:tr('pie.b_baked_d'),r:'l',ok:()=>!!S.pie&&Object.keys(CRUSTS).some(id=>pieCov(id)>=1)},
  {id:'tour',i:'🎙️',t:tr('pie.b_tour'),d:tr('pie.b_tour_d'),r:'r',ok:()=>!!(st().pieTour)},
  {id:'zero',i:'🕳️',t:tr('badges.zero_peers_given'),d:tr('badges.reach_tier_2_with_every_single'),r:'l',secret:true,ok:()=>isTier2()&&!Object.keys(S.peers).length&&!S.pni.length},
+ {id:'syd_master',i:'🌐',t:tr('badges.master_of_the_internet'),d:tr('badges.reach_tier_1_from_sydney_with_all'),r:'l',ok:()=>S.won&&!S.fed&&S.home==='syd'&&['pioneer','outcast','autarky'].every(modeOn)},
 ];
 /* Badge variants by ruleset (2.0): On-call earns the standard badge, Change Freeze a frosted one and BGP at 3 a.m. a
    fiery one; Sandbox and the puzzles earn none (puzzles have stars). Earning a badge again under a harder preset

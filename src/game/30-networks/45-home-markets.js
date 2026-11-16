@@ -27,4 +27,4 @@ function locSh(T,c){let m=LOC_SH.get(T);if(!m)LOC_SH.set(T,m=new Map());let a=m.
 /* Puzzles, Architect runs and scenarios (the weekly one too) are built and scored on the plain world shares: their
    reference builds and committed pars were made with them. There a city's split stays the table's. */
 const LOC_PLAIN=new Map(),locOn=()=>!(S&&(S.mode==='puzzle'||S.pz||S.ar||S.scn));
-function cityShares(T,c){if(locOn())return locSh(T,c);let a=LOC_PLAIN.get(T);if(!a)LOC_PLAIN.set(T,a=Float64Array.from(NETS,n=>T[n.id]||0));return a;}
+function cityShares(T,c){T=gameShares(T);if(locOn())return locSh(T,c);let a=LOC_PLAIN.get(T);if(!a)LOC_PLAIN.set(T,a=Float64Array.from(NETS,n=>T[n.id]||0));return a;}

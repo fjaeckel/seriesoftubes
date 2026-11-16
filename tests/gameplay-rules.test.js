@@ -323,6 +323,49 @@ test('M6: a charter changes what you set out to do, never what things cost', () 
   assert.deepEqual(g.errors, []);
 });
 
+test('M7: additional modes are independent Normal-only modifiers', () => {
+  const g = load();
+  const modes = ['autarky','outcast','pioneer'];
+  for (const preset of ['soft','freeze','oncall','bgp']) {
+    const rules = JSON.parse(g.ev(`JSON.stringify(makeRules('${preset}',{mods:GAME_MODS}))`));
+    assert.deepEqual(rules.mods, modes, `M7: ${preset} keeps every selected mode`);
+  }
+  g.ev("beginGame('Modes','fra',{mode:'normal',preset:'oncall',rules:{mods:['pioneer','outcast','autarky']}})");
+  assert.deepEqual(JSON.parse(g.ev('JSON.stringify(GAME_MODS)')), modes);
+  assert.equal(g.ev("modeOn('pioneer')&&modeOn('outcast')&&modeOn('autarky')"), true);
+  g.ev("S.mode='sandbox'");
+  assert.equal(g.ev("modeOn('pioneer')||modeOn('outcast')||modeOn('autarky')"), false);
+  assert.deepEqual(g.errors, []);
+});
+
+test('M8: Pioneer removes Tier 1 traffic and redistributes the remaining shares', () => {
+  const g = load();
+  g.ev("beginGame('Pioneer','fra',{mode:'normal',rules:{mods:['pioneer']}});compute()");
+  assert.ok(g.ev("NETS.some(n=>n.type==='t1')&&NETS.some(n=>n.type==='t2')"), 'M8: the shared catalog remains intact');
+  assert.equal(g.ev("NETS.filter(n=>!n.fed&&n.type==='t1').every(n=>!gameNetShare(n.id)&&!R.reachable[n.id])"), true);
+  assert.equal(g.ev("NETS.some(n=>!n.fed&&n.type==='t2'&&gameNetAllowed(n)&&gameNetShare(n.id)>0)"), true, 'M8: Tier 2 networks remain active');
+  assert.ok(Math.abs(g.ev('Object.values(gameShares(NSH)).reduce((a,b)=>a+b,0)')-1)<1e-9, 'M8: active traffic shares sum to one');
+  assert.equal(g.ev('t1Need().length'), 0, 'M8: the win goal does not require removed Tier 1 networks');
+  assert.equal(g.ev('localServiceOn()'), true, 'M8: the local service calculation is active');
+  assert.deepEqual(g.errors, []);
+});
+
+test('M9: Outcast blocks built-in IX port purchases', () => {
+  const g = load();
+  g.ev("beginGame('Outcast','fra',{mode:'normal',rules:{mods:['outcast']}});S.cash=1e9;ACT.buyIx({city:'fra',tier:1,signed:true})");
+  assert.equal(g.ev('S.ixp.fra'), undefined, 'M9: no public exchange port was bought');
+  assert.equal(g.ev("modeOn('outcast')"), true);
+  assert.deepEqual(g.errors, []);
+});
+
+test('M10: Autarky blocks built-in leased waves but leaves dark fiber orders available', () => {
+  const g = load();
+  g.ev("beginGame('Autarky','fra',{mode:'normal',rules:{mods:['autarky']}});S.cash=1e9;S.lvl=LEVELS.length;UI.pending={a:'fra',b:'ams'};ACT.buildLink({tier:1});ACT.orderDf() ");
+  assert.equal(g.ev("S.links.some(l=>l.kind==='wave')"), false, 'M10: no wave was leased');
+  assert.equal(g.ev("S.links.some(l=>l.kind==='df'&&!l.own)"), true, 'M10: a dark-fiber IRU remains available');
+  assert.deepEqual(g.errors, []);
+});
+
 // ---------- Content ----------
 
 test('C1: every scenario has a goal its card checks, and none is won on day 0', () => {

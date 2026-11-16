@@ -33,7 +33,7 @@ function cityPanel(c){pnState(); // another city or tab starts with short lists 
     else{const eye=R.cityEye[c]||0;
       h+=`<div class="kv"><span>${tr('common.eyeball_demand')}</span><b>${tr('city_panel.a_of_b',{a:fmtG(eye),b:fmtG(eyeP(c))})}</b></div><div class="bar me"><i style="width:${Math.min(100,eye/eyeP(c)*100)}%"></i></div>
       <div class="kv"><span>${tr('city_panel.served_in_city',{city:C.name})}</span><b style="color:${sf<0.9?'var(--bad)':'var(--eye)'}">${pct(sf)}</b></div><div class="bar ${sf<0.9?'bad':''}"><i style="width:${sf*100}%"></i></div>
-      <div class="kv"><span>${tr('common.revenue')}</span><b>${tr('common.price_mo',{price:fmt$(eye*sf*EYE_RATE*arpuOf(c))})}</b></div>
+      <div class="kv"><span>${tr('common.revenue')}</span><b>${tr('common.price_mo',{price:fmt$(broadbandRevenue(eye,sf,c,R.reach))})}</b></div>
       <div class="kv"><span>${tr('city_panel.network_wide_peering_ratio')}</span><b>${pct(R.peerShare||0)}</b></div>${pnVet()?'':`<p class="note">${tr('city_panel.more_traffic_over_peering_pnis_and')}</p>`}
       ${sf<0.9?`<p class="why">${tr('city_panel.customers_are_unhappy_and_leaving')}</p>`:''}
       <div class="btns">${p.boost>S.day?`<span class="tag st on">${tr('city_panel.ad_campaign_n_d_left',{n:p.boost-S.day})}</span>`:btn(tr('city_panel.run_ad_campaign_8k_2_growth'),'ad',{city:c},'',S.cash<8000)}</div>`;}
@@ -47,8 +47,8 @@ function cityPanel(c){pnState(); // another city or tab starts with short lists 
     h+=netFilterHtml()+portNote(c)+latNote(c);
     h+=`<section>${pnHead('up',tr('common.ip_transit'),`<p class="lead">${tr('city_panel.pay_a_bigger_network_per_gbps')}</p>`)}`;
     // The ports you have come first, all of them; the sellers you could still buy from follow, cheapest first, a short page at a time.
-    const has=n=>S.transit.some(x=>x.city===c&&x.net===n.id),prov0=NETS.filter(n=>sellsAt(n,c)).sort((a,b)=>a.price-b.price),provK=prov0.filter(n=>netKeep(n,has(n))),provH=provK.filter(has),provO=provK.filter(n=>!has(n)),up1=provH.length?2:4,prov=provH.concat(provO.slice(0,pnN('up',provO.length,up1)));
-    if(!prov0.length)h+=`<p class="empty">${tr('city_panel.nobody_sells_transit_here_haul_your')}</p>`;else if(!prov.length)h+=netNone();
+    const has=n=>S.transit.some(x=>x.city===c&&x.net===n.id),prov0=modeOn('pioneer')?[]:NETS.filter(n=>sellsAt(n,c)).sort((a,b)=>a.price-b.price),provK=prov0.filter(n=>netKeep(n,has(n))),provH=provK.filter(has),provO=provK.filter(n=>!has(n)),up1=provH.length?2:4,prov=provH.concat(provO.slice(0,pnN('up',provO.length,up1)));
+    if(modeOn('pioneer'))h+=`<p class="empty">${tr('title.pioneer_no_tier_1_desc')}</p>`;else if(!prov0.length)h+=`<p class="empty">${tr('city_panel.nobody_sells_transit_here_haul_your')}</p>`;else if(!prov.length)h+=netNone();
     for(const n of prov){const t=S.transit.find(x=>x.city===c&&x.net===n.id);const pr=transitPerG(n,c,premOnlyAt(n,c)||!!(t&&premOn(t)))*S.priceMul,sh=!!t&&pnVet()&&!pnOpen('t:'+t.id);
       // A folded port is one line of name and size, its load and its bill; the price per Gbps is in the bill.
       h+=`<div class="row${sh?' crow':''}">${logo(n)}<div class="grow"><div class="nm">${esc(n.name)} <span class="tag ${n.type}">${TYPE_L[n.type]}</span>${sh?` <small>${lagName(t.tier,t.n)}</small>${t.down>S.day?` <span class="tag restrictive">${tr('common.outage')}</span>`:''}`:''}</div>${sh?'':`<div class="meta">${tr('city_panel.price_per_gbps_month_billed_on',{price:pr.toFixed(2)})}</div>`}${premOnlyAt(n,c)&&!t?`<div class="meta">${tr('city_panel.only_the_cn_too_premium_crossing')}</div>`:''}`;

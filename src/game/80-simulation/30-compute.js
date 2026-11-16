@@ -48,7 +48,7 @@ function compute(){RW.gen++;fedNetsSync();
   const snd=scnRule('sender');
   // Stages with loops run as functions of their own (see rankPass below), here the exits.
   const E=(()=>{const E=[];
-  for(const t of S.transit){if(!popUp(t.city)||t.down>day||!liveN(t.city,t.site,t.n))continue;
+  for(const t of S.transit){if(modeOn('pioneer')||!popUp(t.city)||t.down>day||!liveN(t.city,t.site,t.n))continue;
     // AS-path prepending (#96) moves part of the port to a last-resort exit of its own.
     const cap=Math.min(liveCap(PORT[t.tier].g,t.city,t.site,t.n)*lagF(t),TRX&&TRX.cap[t.net]!==undefined?TRX.cap[t.net]:Infinity),pf=TRX&&TRX.prep[t.net]?PREPEND_F[TRX.prep[t.net]]:0;
     const ex=mkEx('t',t.id,t.city,cap*(1-pf),3,t.pref||'normal',labOf(N_('common.net_transit'),'net',NET[t.net].name),n=>!(depeer&&t.net==='cog'&&n==='ggl')&&n!==leak&&!(snd&&NET[n].kr),null,t.net);
@@ -70,13 +70,13 @@ function compute(){RW.gen++;fedNetsSync();
   // Who reaches whom and each network's exit lists, kept while the exits are the same (XC, 29-route-cache.js).
   // A backhaul through a dish changes a cut-off POP's distances: lists kept in order (29-route-cache.js) only for the same one.
   const BHK=PX&&PX.bh.length?PX.bh.map(e=>e.bh.city+'>'+e.bh.land).join(','):'';
-  const XK=RCON?rcExitKey(GK,E,(depeer?1:0)+'|'+leak+'|'+(snd?1:0)+'|'+(rp?ev.rpki.nets.join(','):'')+'|'+(TRX?S.te.script:'')+'|'+BHK):null,XC=XK!==null&&RC.xk===XK?RC.x:null;
+  const XK=RCON?rcExitKey(GK,E,(depeer?1:0)+'|'+leak+'|'+(snd?1:0)+'|'+(rp?ev.rpki.nets.join(','):'')+'|'+(TRX?S.te.script:'')+'|'+BHK+'|'+(modeOn('pioneer')?1:0)):null,XC=XK!==null&&RC.xk===XK?RC.x:null;
   // coneOf: does exit e reach network n only through a peer's customer cone (#85)?
   const coneOf=(e,n)=>e.k==='p'?e.net!==n:!!e.dir&&!e.dir.has(n);
   // ok() cannot change during one compute, so ask each exit once per network, not once per flow and rank.
   // okBy[net] lists the exits that reach it in E's order, like E.filter(e=>e.ok(net)).
   const okBy=XC?rcOkBy(XC,E):{};if(!XC)for(const id of NET_IDS)okBy[id]=[];
-  const okAdd=(e,n)=>{const L=okBy[n];if(L&&L[L.length-1]!==e&&e.ok(n))L.push(e);};
+  const okAdd=(e,n)=>{const L=okBy[n];if(L&&L[L.length-1]!==e&&gameNetAllowed(NET[n])&&e.ok(n))L.push(e);};
   // TSL: a slot per transit port id, for what it carries to each network (R.tNet, added up in TNA).
   const ekN={},TSL=new Map();(()=>{for(const e of E){e.ek=e.k+':'+e.id;ekN[e.ek]=(ekN[e.ek]||0)+1;}
   // dup: shares its key with another exit (a hand-edited save), so R.egDesc shows whichever pushed last.
@@ -84,7 +84,7 @@ function compute(){RW.gen++;fedNetsSync();
     if(XC)continue;
     // Index loops or forEach (same order): for…of here made an iterator result per exit and network.
     const ns=e.nets||NET_IDS;if(Array.isArray(ns)){for(let q=0;q<ns.length;q++)okAdd(e,ns[q]);}else ns.forEach(n=>okAdd(e,n));}
-  if(XC)rcReachPut(XC,R2);else for(const n of NETS){let any=false,nt=false;for(const e of okBy[n.id])if(e.rank>0){any=true;if(e.k!=='t'){nt=true;break;}}R2.reachable[n.id]=any;if(any)R2.reach+=NSH[n.id];if(nt){R2.nt[n.id]=1;R2.reachNT+=NSH[n.id];
+  const shares=gameShares(NSH);if(XC)rcReachPut(XC,R2);else for(const n of NETS){if(!gameNetAllowed(n)){R2.reachable[n.id]=false;continue;}let any=false,nt=false;for(const e of okBy[n.id])if(e.rank>0){any=true;if(e.k!=='t'){nt=true;break;}}R2.reachable[n.id]=any;if(any)R2.reach+=shares[n.id]||0;if(nt){R2.nt[n.id]=1;R2.reachNT+=shares[n.id]||0;
     // Reached without transit only through the customers of networks you peer with (#85). R.cone[id]: the peer that
     // carries it, the first PNI's network or else the nearest upstream that is a member of an exchange you are on.
     if(!okBy[n.id].some(e=>(e.k==='p'||e.k==='ix')&&!coneOf(e,n.id)))R2.cone[n.id]=coneBy(okBy[n.id],n.id);}}})();
@@ -97,14 +97,14 @@ function compute(){RW.gen++;fedNetsSync();
   // Customer demand per city, added up in S.biz order (what filtering S.biz for each city would give).
   const bizBw={};for(const b of S.biz){const T=BIZ_T[b.type];if(!T.l2&&!T.fiber&&(!T.event||eventLive(b))){if(T.orbit){const g=PX&&PX.gs[b.id];if(g)bizBw[g]=(bizBw[g]||0)+PX.term[b.id];continue;}const v=bizBw[b.city];bizBw[b.city]=(v===undefined?0:v)+b.bw;}}
   // Traffic shares by network index, and their sums, for each share table (and with Russia's throttle).
-  const shArr=new Map(),shSum=new Map(),DEMTO=new Float64Array(NN),loc=scnRule('local');
+  const shArr=new Map(),shSum=new Map(),DEMTO=new Float64Array(NN),loc=localServiceOn();
   (()=>{for(const c of Object.keys(S.pops)){
-    const p=S.pops[c],ci=CIDX[c],cn=cnCity(c),SH=cn?NSH_CN:ruCity(c)?NSH_RU:CITY[c].kr&&S.krExit?NSH_KRX:NSH;const eye=(p.bb?p.bb.d:0)*viral*(cn&&ev.golden>day?1.4:1);const biz=bizBw[c]??0;const d0=eye+biz;
+    const p=S.pops[c],ci=CIDX[c],cn=cnCity(c),SH0=cn?NSH_CN:ruCity(c)?NSH_RU:CITY[c].kr&&S.krExit?NSH_KRX:NSH;const eye=(p.bb?p.bb.d:0)*viral*(cn&&ev.golden>day?1.4:1);const biz=bizBw[c]??0;const d0=eye+biz;
     // Goggle video is throttled in Russia (#70): people there get half of it, so they ask for half. It is not
     // traffic you failed to deliver, and it does not cross your links only to be thrown away.
-    const ru=ruCity(c),thr=n=>n==='ggl'&&ru?0.5:1;let sa=shArr.get(SH),sm=shSum.get(SH);if(!sa){shArr.set(SH,sa=NETS.map(n=>SH[n.id]||0));shSum.set(SH,sm=[]);}
+    const ru=ruCity(c),thr=n=>n==='ggl'&&ru?0.5:1,SH=gameShares(SH0);let sa=shArr.get(SH),sm=shSum.get(SH);if(!sa){shArr.set(SH,sa=NETS.map(n=>SH[n.id]||0));shSum.set(SH,sm=[]);}
     // This city's own split: its traffic to networks that sell to homes goes mostly to the ones whose users are near (#48).
-    const ls=cityShares(SH,c);
+    const ls=cityShares(SH0,c);
     const tt=sm[+ru]||(sm[+ru]=[NETS.reduce((t,n,j)=>t+sa[j]*thr(n.id),0),NETS.reduce((t,n,j)=>t+sa[j],0)]),lf=loc?NETS.reduce((t,n,j)=>t+(R2.reachable[n.id]?ls[j]*thr(n.id):0),0)/(tt[0]||1):1,d=d0*tt[0]/(tt[1]||1)*lf;
     R2.cityEye[c]=eye;R2.cityDem[c]=d;R2.citySrv[c]=0;R2.demand+=d;
     for(let j=0;j<NN;j++)DEMTO[j]=(DEMTO[j]||0)+d0*ls[j]*thr(NETS[j].id);
@@ -244,6 +244,7 @@ function compute(){RW.gen++;fedNetsSync();
   flDefine(R2,{NF,FREM,FCI,FNJ,FCA,FBZ,FGT,FGI,FGP,FGH,FTI,FII,E,CNB,NCN});
   R=R2;UI.hotMap=hotByCity();
 }
+const broadbandRevenue=(eye,sf,city,reach)=>eye*sf*EYE_RATE*arpuOf(city)*(modeOn('pioneer')?reach:1);
 // What the network costs and earns per month, from what compute() routed.
 function computeMoney(R2,PX=null){
   const C=R2.cost,V=R2.rev,pm=S.priceMul;
@@ -259,7 +260,7 @@ function computeMoney(R2,PX=null){
   C.extras=(S.cnLic&&S.cnLic.state==='ok'?CN_JV_MO:0)+scrubMo()+Object.keys(S.pops).filter(ruCity).length*RU_BOX_MO+Object.values(S.pops).filter(p=>p.site2).length*SITE2_MO+(S.te?TE_MO:0)+(S.ops&&S.ops.intern?INTERN_MO:0)+salesMo();
   if(S.pie&&S.mode!=='sandbox')C.pie=pieMo();
   V.eyeballs=0;V.business=0;V.ix=0;
-  C.wholesale=0;C.levy=0;const lev=scnRule('levy');for(const c in S.pops){const sf=sfOf(R2,c)*(R2.bbF[c]??1),v=R2.cityEye[c]*sf*EYE_RATE*arpuOf(c);V.eyeballs+=v;if(CITY[c].au){if(lev)C.levy+=v*AU_LEVY;else C.wholesale+=v*AU_WHOLESALE;}}
+  C.wholesale=0;C.levy=0;const lev=scnRule('levy');for(const c in S.pops){const sf=sfOf(R2,c)*(R2.bbF[c]??1),v=broadbandRevenue(R2.cityEye[c],sf,c,R2.reach);V.eyeballs+=v;if(CITY[c].au){if(lev)C.levy+=v*AU_LEVY;else C.wholesale+=v*AU_WHOLESALE;}}
   const ids=linkIds();for(const b of S.biz){if(capPend(b)||BIZ_T[b.type].orbit)continue;const sf=BIZ_T[b.type].fiber?(fiberOk(b,ids)?1:0):BIZ_T[b.type].l2?clamp((R2.l2[b.id]||0)/b.bw,0,1):sfOf(R2,b.city)*(R2.tgtF[b.id]??1);V.business+=b.bw*b.rate*Math.min(1,sf/0.95);}
   for(const c in S.myIx)V.ix+=S.myIx[c].members.length*MYIX_FEE;
   if(PX)pieMoney(PX,R2,V);

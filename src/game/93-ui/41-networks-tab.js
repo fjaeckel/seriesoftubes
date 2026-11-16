@@ -15,7 +15,7 @@ function netsTab(){let h='';
   if(Object.keys(S.pops).length<4)h+=`<p class="lead">${tr('hud_and_panels.every_network_on_the_map_traffic')}</p>`;
   // A new network reaches nobody: a list of red "Not reached" says what, this says how.
   if(!(R.reach>0))h+=`<p class="lead">${tr('hud_and_panels.you_reach_nobody_yet')}</p>`;
-  const where=netWhereIdx(),tl=NETS.filter(n=>n.tail),tlOn=tl.filter(n=>where(n.id).some(x=>x[2]==='ix')).length;
+  const where=netWhereIdx(),tl=NETS.filter(n=>n.tail&&gameNetAllowed(n)),tlOn=tl.filter(n=>where(n.id).some(x=>x[2]==='ix')).length;
   const foc=UI.netFocus&&NET[UI.netFocus]?NET[UI.netFocus]:null,out=!foc&&UI.nf==='out',lostN=ntLost().length;
   const q=foc?'':nlQ(),ty=foc||!TYPE_L[UI.nlT]?'':UI.nlT;
   h+=`<div class="netf nlf"><input type="search" id="nlQ" class="t" value="${esc(UI.nlQ||'')}" maxlength="40" autocomplete="off" placeholder="${esc(tr('net_filter.find_a_network'))}" aria-label="${esc(tr('net_filter.find_a_network'))}">
@@ -26,7 +26,7 @@ function netsTab(){let h='';
   if(S.fed)h+=fedPlayCard();
   {const nc=connsN();if(nc)h+=`<div class="btns" style="margin:6px 0 8px">${btn(tr('hud_and_panels.all_connections_n',{n:nc}),'connOpen',{},'pink sm')}</div>`;}
   // A search looks through the long tail too, open or not. Shown a page at a time: three hundred rows of buttons are slow.
-  const nl=(foc?[foc]:out?ntLost():NETS).filter(n=>!n.fed&&(!n.tail||UI.tailOpen||foc||out||q)&&(!ty||n.type===ty)&&(!q||nlHit(n,q)));
+  const nl=(foc?[foc]:out?ntLost():NETS).filter(n=>!n.fed&&gameNetAllowed(n)&&(!n.tail||UI.tailOpen||foc||out||q)&&(!ty||n.type===ty)&&(!q||nlHit(n,q)));
   if(!nl.length)h+=q||ty?netNone():out?`<p class="empty">${tr('hud_and_panels.nothing_every_network_is_reachable')}</p>`:'';
   for(const n of nl.slice(0,listN('nets')))h+=netRow(n,where,foc,out);
   h+=listMore('nets',nl.length,n=>trn('hud_and_panels.n_more_networks',n));

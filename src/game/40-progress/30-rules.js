@@ -7,6 +7,7 @@
 // broke: deep in the red ends the game, or (rescue) a state loan keeps it going. moods: patient customers sour half as fast.
 // pnis: PNIs and their augments wait for the other network's team, or (instant) are up the moment they are ordered.
 const RULE_DEF={clock:true,chaos:'normal',lead:'real',market:true,money:'normal',gates:'ladder',sea:'ships',confs:true,broke:'lose',moods:'normal',pnis:'wait',mods:[]};
+const GAME_MODS=['autarky','outcast','pioneer'];
 const RULE_LATE=['sea','confs','broke','moods','pnis'];
 const RULE_OK={clock:[true,false],chaos:['none','calm','normal','spicy'],lead:['real','quick'],market:[true,false],money:['normal','infinite'],gates:['ladder','open'],sea:['ships','timer'],confs:[true,false],broke:['lose','rescue'],moods:['normal','patient'],pnis:['wait','instant']};
 // i: icon, n: name, d: the one-line joke, x: what is different, in small print.
@@ -23,6 +24,8 @@ const NORMAL_PRESETS=['soft','freeze','oncall','bgp'];
 const CHAOS={none:{i:'😴',n:tr('rules.chaos_none'),d:tr('rules.nothing_ever_breaks'),m:0},calm:{i:'🧊',n:tr('rules.chaos_calm'),d:tr('rules.a_cut_now_and_then'),m:0.35},normal:{i:'📟',n:tr('rules.chaos_normal'),d:tr('rules.like_the_real_game'),m:1},spicy:{i:'🔥',n:tr('rules.chaos_spicy'),d:tr('rules.your_pager_never_sleeps'),m:1.8}};
 const SPICY_LONG=1.5,LEAD_QUICK=10;
 function rule(k){const r=S&&S.rules;return r&&r[k]!==undefined?r[k]:RULE_DEF[k];}
+const modeOn=id=>!!(S&&S.mode==='normal'&&S.rules&&Array.isArray(S.rules.mods)&&S.rules.mods.includes(id));
+const localServiceOn=()=>modeOn('pioneer')||scnRule('local');
 function rulePreset(){const p=S&&S.rules&&S.rules.preset;return p&&Object.prototype.hasOwnProperty.call(PRESETS,p)?p:'oncall';}
 const shipsOn=()=>rule('sea')!=='timer',confsOn=()=>rule('confs')!==false;
 function gatesOpen(){return rule('gates')==='open';}
@@ -33,7 +36,7 @@ function leadDays(n){return rule('lead')==='quick'?Math.max(1,Math.round(n/LEAD_
 function makeRules(preset,o){const p=Object.prototype.hasOwnProperty.call(PRESETS,preset)?preset:'oncall',P=PRESETS[p],r={preset:p};o=o&&typeof o==='object'?o:{};
   // The later rules are written only where they differ from the classic game, so older networks' rules stay as they were.
   for(const k of Object.keys(RULE_OK)){const d=P[k]!==undefined?P[k]:RULE_DEF[k],v=RULE_OK[k].includes(o[k])?o[k]:d;if(!RULE_LATE.includes(k)||v!==RULE_DEF[k])r[k]=v;}
-  r.mods=Array.isArray(o.mods)?[...new Set(o.mods.filter(m=>typeof m==='string'&&/^[a-z0-9_-]{1,24}$/.test(m)))].slice(0,16):[];
+  r.mods=Array.isArray(o.mods)?[...new Set(o.mods.filter(m=>GAME_MODS.includes(m)))]:[];
   return r;}
 // What the HUD and the share card say about the rules. On-call says nothing: it is the game.
 function ruleTag(){const p=rulePreset();if(S&&S.mode==='sandbox'){const c=CHAOS[rule('chaos')];return tr('common.sandbox')+(c&&rule('chaos')!=='none'?' '+c.i:'');}

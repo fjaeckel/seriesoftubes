@@ -33,11 +33,11 @@ function lagName(tier,n){return (n||1)>1?`${n}×${PORT[tier].n} LAG`:tr('common.
 function ixCap(c){return ixLagF(c)*(S.myIx[c]?myFab(c).g*(myIxLive(c)?1:0):liveCap(PORT[S.ixp[c]].g,ixCity(c),(S.ixSite||{})[c],(S.ixn||{})[c])*(isRemote(c)?REMOTE_CAP:1));}
 function ixSessions(c){
   const s=new Set(); if(S.ixp[c]===undefined)return s;
-  for(const id of ixMembers(c)){const n=NET[id];
+   for(const id of ixMembers(c)){const n=NET[id];if(!gameNetAllowed(n))continue;
     if(S.peers[id+'@'+c]&&!snub(id,c)&&!(isRemote(c)&&noRemote(id)))s.add(id);
     else if(S.rs[c]&&n.pol==='open'&&ppol()==='open')s.add(id);
     else if(S.myIx[c]&&(n.pol==='open'||n.pol==='selective'))s.add(id);}
-  if(S.fed)fedIxSes(c,s);
+   if(S.fed)fedIxSes(c,s);for(const id of s)if(!gameNetAllowed(NET[id]))s.delete(id);
   return s;
 }
 function t1Club(){

@@ -1,7 +1,7 @@
 /* Single and bulk orders share the same checks, prices and provisioning. */
 // at: for a batch, where to look up the PNI there already is and the ports in use, which the batch itself never changes.
 function pniQuote(city,net,tier,reserved=0,at=null){tier=+tier;const g1=tier===-1;if(g1)tier=0;
-  if(!S||!S.pops[city]||!isNet(net)||!NET[net].pops.includes(city)||!Number.isInteger(tier)||!PORT[tier]||(g1&&!pniG1(net)))return null;
+  if(!S||!S.pops[city]||!isNet(net)||!gameNetAllowed(NET[net])||!NET[net].pops.includes(city)||!Number.isInteger(tier)||!PORT[tier]||(g1&&!pniG1(net)))return null;
   const ex=at?at.ex(city,net):S.pni.find(p=>p.city===city&&p.net===net),used=at?at.used:portsUsed;
   if(ex&&(g1||!pniOn(ex)||ex.up||(!(ex.g1&&tier===0)&&tier<=ex.tier)))return null;
   const cost=g1?PNI_G1_COST:(1500+PORT[tier].setup/2)*(ex&&ex.n||1),slots=ex?(PORT_SLOT(tier)-PORT_SLOT(ex.tier))*(ex.n||1):PORT_SLOT(tier);

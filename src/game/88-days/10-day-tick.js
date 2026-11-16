@@ -69,7 +69,7 @@ function* dayPost(d){
       (a.sla||(a.sla=[])).push(b.id);b.slaFor=a.start;S.cash-=SLA_PEN;b.mood=Math.max(0,b.mood-18);S.stats.sla=(S.stats.sla||0)+1;
       toast(tr('day_tick.sla_breach_name_the_attack_on',{name:esc(b.name),city:CITY[a.city].name,pen:fmt$(SLA_PEN)}),'bad');sfx('err');}}
   // businesses mood
-  const ids=linkIds(),rOk=reachSolo()>0.99,frr=(coreFrr()&&S.links.some(l=>l.cut)?.5:1)*(rule('moods')==='patient'?.5:1);const bhT=new Set(ddosAll().filter(a=>a.bh).map(a=>a.tgt));let nb=0;TERR={S,gen:RW.gen,m:null};try{for(const b of S.biz.slice()){if(++nb%256===0)yield DAY_REST;if(eventTick(b,d)||capPendTick(b,d))continue;b.pm=b.mood;if(bhT.has(b.id))continue;const sf=bizSf(b,ids),reachOk=BIZ_T[b.type].l2||BIZ_T[b.type].fiber||rOk||scnRule('local'),scrubOk=b.type!=='scrub'||(hasScrub()&&!scrubFar(b.city)),divOk=reqOk(b),lcX=lcBreach(b,d);
+  const ids=linkIds(),rOk=reachSolo()>0.99,frr=(coreFrr()&&S.links.some(l=>l.cut)?.5:1)*(rule('moods')==='patient'?.5:1);const bhT=new Set(ddosAll().filter(a=>a.bh).map(a=>a.tgt));let nb=0;TERR={S,gen:RW.gen,m:null};try{for(const b of S.biz.slice()){if(++nb%256===0)yield DAY_REST;if(eventTick(b,d)||capPendTick(b,d))continue;b.pm=b.mood;if(bhT.has(b.id))continue;const sf=bizSf(b,ids),reachOk=BIZ_T[b.type].l2||BIZ_T[b.type].fiber||rOk||localServiceOn(),scrubOk=b.type!=='scrub'||(hasScrub()&&!scrubFar(b.city)),divOk=reqOk(b),lcX=lcBreach(b,d);
     if(sf>=0.95&&reachOk&&scrubOk&&divOk)b.mood=Math.min(100,b.mood+2);
     else if(S.day-(b.since||0)<15){}
     else{const dm=frr*(Math.max(0,0.95-sf)*45+(!reachOk?3:0)+(!scrubOk?4:0)+(!divOk?3:0)+lcX);b.mood-=BIZ_T[b.type].orbit?Math.min(dm,PIE_PATIENCE):dm;

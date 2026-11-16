@@ -8,8 +8,8 @@ document.addEventListener('change',e=>{const el=e.target.closest('[data-chg]');i
    appeared or moved under the finger, nothing behind a menu that opened or closed mid-tap, and no toast button in
    the first half second after the toast popped up. Synthetic clicks (keyboard, tests) are not affected. */
 let PD={t:0,b:null};
-document.addEventListener('pointerdown',e=>{PD={t:performance.now(),b:e.target.closest('[data-act]')};},true);
+document.addEventListener('pointerdown',e=>{PD={t:performance.now(),b:e.target.closest('[data-act],[data-mode-id]')};},true);
 function tapOk(e,b){if(!e.isTrusted||!PD.t||e.detail===0)return true;const now=performance.now();if(now-PD.t>4000)return true;
   if(PD.b!==b)return false;if((UI.layerAt||0)>PD.t)return false;const ts=b.closest('.toast');if(ts&&PD.t-(+ts.dataset.born||0)<500)return false;return true;}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-mode-id]');if(!b||S||$('modal').hidden||!b.closest('#modal')||!tapOk(e,b))return;modeToggle(b.dataset.modeId);});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b||b.disabled)return;if(!$('modal').hidden&&!b.closest('#modal'))return;if(!tapOk(e,b))return;audioInit();const fn=ACT[b.dataset.act];if(!fn)return;if(!S&&!['start','keys','randomName','pickStart','cont','help','helpClose','newgame','mute','animSet','mapSet','soundSet','langSet','closeModal','speed','bankClose','whatsNewShow','updateNow','updateLater','importPick','importGo','modeSet','presetSet','chaosSet','puzzleDoor','puzzleMenu','pzStart','pzArStart','pzWeekly','scenarios','startScn','startWeekly','settings','settingsClose','prefSet','vpSet','install','installHide','pitchSkip','slotMenu','slotExport','slotDel','slotDelGo','slotBack','slotSwitch','slotTake','slotSpace','toTitle','xfer','xferShare','xferLink','xferFile','xferRecv','xferPaste'].includes(b.dataset.act)&&!FU_NOS.includes(b.dataset.act))return;let a={};try{a=JSON.parse(b.dataset.args||'{}');}catch(_){}fn(a);});
-

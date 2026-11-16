@@ -24,6 +24,8 @@ All notable changes to this project are documented here. The project follows
 - An unhappy orbit customer now says why it is short and what fixes it (a full dish, full crusts, no dish in reach, slow fiber where it lands), on its card and in the warning.
 - Orbit customers link the NOC, Pie Control and their POP: each view has buttons to the other two, the NOC shows the POP whose dish lands them, Pie Control can drop them, and that POP's panel lists the orbit customers coming down there.
 - Orbit offers now warn when the sky cannot deliver them: no crust over the city yet, every crust there full, no dish to land them, or too little room for the bandwidth they want. Your sales desk no longer signs those (the shark still oversells bandwidth); you still can.
+- Three optional challenge modes now join the Normal game setup: Pioneer, Outcast and Autarky.
+- A Tier 1 win from Sydney with all three additional modes active earns a new legendary badge.
 
 ## [4.3.0] — 2026-11-15
 

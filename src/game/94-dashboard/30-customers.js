@@ -3,7 +3,7 @@ const bizMo=b=>{const T=BIZ_T[b.type];return T.event?0:T.fiber?b.rate:b.bw*b.rat
 // Why a customer is unhappy, in the same terms the daily mood update uses.
 function bizWhy(b){const T=BIZ_T[b.type],out=[];if(T.event&&!eventLive(b))return out;if(capPend(b))return capWhy(b);
   const sf=bizSf(b);if(sf<0.95){const o=T.orbit?pieShortWhy(b):'';out.push((T.fiber?tr('customers.their_fiber_is_down'):tr('customers.getting_only_p_of_the_bandwidth',{p:pct(sf)}))+(o?'. '+o:''));}
-  if(!(T.l2||T.fiber)&&reachSolo()<=0.99&&!scnRule('local'))out.push(tr('customers.you_cannot_reach_the_whole_internet',{p:pct(reachSolo())}));
+  if(!(T.l2||T.fiber)&&reachSolo()<=0.99&&!localServiceOn())out.push(tr('customers.you_cannot_reach_the_whole_internet',{p:pct(reachSolo())}));
   if(b.type==='scrub'&&!hasScrub())out.push(tr('common.needs_a_scrubbing_center'));
   {const q=b.type==='scrub'&&scrubFar(b.city);if(q)out.push(tr('customers.attacks_on_city_are_hauled_to',{city:CITY[b.city].name,to:CITY[q.to].name,ms:Math.round(q.ms)}));}
   for(const k of b.reqs||[])if(REQS[k]&&!REQS[k].ok(b))out.push(typeof REQS[k].l==='function'?REQS[k].l(b):REQS[k].l);

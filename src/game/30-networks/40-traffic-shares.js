@@ -24,6 +24,12 @@ const PNI_NETS=CONE,CONE_RANK=2.5;
 const PNI_TIE=1e-3;
 for(const X of XIX){X.members=NETS.filter(n=>Array.isArray(n.ix)&&n.ix.includes(X.id)||!n.tail&&(X.core?X.core.includes(n.id):(n.ix==='ALL'||Array.isArray(n.ix)&&n.ix.includes(X.c))&&hstr(n.id+'|'+X.id)%100<(n.ix==='ALL'?72:X.take*100))).map(n=>n.id);}
 const NSH={}; {const t=NETS.reduce((a,n)=>a+n.share,0); NETS.forEach(n=>NSH[n.id]=n.share/t);}
+let GAME_SH_VER='',GAME_SH_CACHE=new Map();
+function gameShares(T=NSH){if(!modeOn('pioneer'))return T;const ver=NETS.length+'|'+(S&&S.fedn&&S.fedn.h||'');if(ver!==GAME_SH_VER){GAME_SH_VER=ver;GAME_SH_CACHE=new Map();}let out=GAME_SH_CACHE.get(T);if(out)return out;
+   let fed=0,base=0;for(const n of NETS){const v=T[n.id]||0;if(n.fed)fed+=v;else if(n.type!=='t1')base+=v;}
+   const scale=base>0?Math.max(0,1-fed)/base:0;out={};for(const n of NETS){const v=T[n.id]||0;if(n.fed)out[n.id]=v;else if(n.type!=='t1')out[n.id]=v*scale;}GAME_SH_CACHE.set(T,out);return out;}
+const gameNetAllowed=n=>!!n&&(!modeOn('pioneer')||n.fed||n.type!=='t1');
+const gameNetShare=id=>gameShares(NSH)[id]||0;
 // After Glitch leaves Korea, Seoul viewers watch half as much of it and the rest moves to everyone else.
 const NSH_KRX={}; {const w=id=>NSH[id]*(id==='amz'?0.5:1),t=NETS.reduce((a,n)=>a+w(n.id),0); NETS.forEach(n=>NSH_KRX[n.id]=w(n.id)/t);}
 const CN_W={ctc:.2,cun:.14,cmb:.08,tcs:.22,abc:.14,byd:.08,bdc:.08,akm:.02,msf:.02,amz:.01,drz:.01};

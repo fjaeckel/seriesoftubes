@@ -1,5 +1,5 @@
 Object.assign(ACT,{
- dfMode:({m})=>{UI.lmode=m;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
+ dfMode:({m})=>{if(m==='wave'&&modeOn('autarky'))return;UI.lmode=m;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
  seaPackage:({k})=>{const p=UI.pending;if(!own(SUB_UPGRADES,k)||!p)return;const km=seaQuote(p.a,p.b,own(SEA_DESIGNS,UI.seaDesign)?UI.seaDesign:'standard').km,up=seaUps(km);
    if(!up[k]&&!subHelps(km,k,up[subOther(k)]))return;UI.seaterminal=up.terminal;UI.seaengineering=up.engineering;UI['sea'+k]=!up[k];openLinkModal(p.a,p.b);},
  subUpgrade:({id,k})=>{const l=S.links.find(l=>l.id===id);if(!l||l.kind!=='df'||!l.own||!l.sub||l.seat||!own(SUB_UPGRADES,k)||glassLvl()<4||l['sub'+k]!==undefined||!subHelps(l.km,k,l['sub'+subOther(k)]!==undefined))return;if(!spend(subUpgradeCost(l,k)))return;l.paid=(l.paid>0?l.paid:ownCabCost(l.km))+subUpgradeCost(l,k);l['sub'+k]=Math.max(S.day,l.ready||0)+leadDays(SUB_UPGRADES[k].days);after();},
