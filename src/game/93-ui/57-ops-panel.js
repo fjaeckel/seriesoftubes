@@ -30,7 +30,8 @@ function opsModal(){if(!S)return;const hired=opsHired();let h=`<div style="displ
     <p class="ops-mood">${esc(opsMood())}</p>${opsReportHtml()}
     ${O.log.length?`<pre class="term ops-log">${O.log.slice(0,6).map(e=>esc(tr('ops.day_d',{d:e.d})+': '+opsEntry(e))).join('\n')}</pre>`:''}
     <div class="ops-p">${opsSel(tr('ops.floor'),'opsFloor',{},OPS_FLOORS,O.floor,v=>v?fmt$(v):tr('ops.no_cap'))}</div></div>`;
-  h+=`<p class="note">${tr('ops.how_it_works',{name:opsName()})}</p>`+OPS.filter(opsShow).map(opsOrderHtml).join('');
+  h+=`<p class="note">${tr('ops.how_it_works',{name:opsName()})}</p>`+OPS.filter(d=>opsShow(d)&&opsMine(d.k)).map(opsOrderHtml).join('');
+  if(optxOn())h+=`<p class="note">${tr('optx.orders_moved',{name:opsName()})} ${btn(tr('optx.title'),'optxOpen',{},'ghost sm')}</p>`;
   // Per POP: switch single orders off where the player wants to decide by hand.
   const cities=Object.keys(S.pops).sort((a,b)=>CITY[a].name.localeCompare(CITY[b].name)),c=S.pops[UI.opsCity]?UI.opsCity:cities[0];
   if(c)h+=`<section><h3>${tr('ops.per_pop')}</h3><div class="trsel"><label>${tr('common.your_pop')}<select data-chg="opsCity">${cities.map(x=>`<option value="${x}"${x===c?' selected':''}>${esc(CITY[x].name)}</option>`).join('')}</select></label></div>

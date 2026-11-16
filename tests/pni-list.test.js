@@ -133,3 +133,24 @@ test('every language renders the PNI list without raw labels', () => {
     assert.deepEqual(errors, [], lang);
   }
 });
+
+// The list asks about the one POP on screen, after every routing: its sums come from that POP's flows alone
+// (pniFlows()), and must be what adding up every flow of the network gives, flow by flow, in the same order.
+test('one POP\'s flows add up to the same sums as a pass over every flow', () => {
+  const { ev, errors } = load();
+  const BIG = require('node:fs').readFileSync(require('node:path').join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
+  ev(`S=migrate(JSON.parse(${JSON.stringify(BIG)}));UI.started=true;compute()`);
+  assert.ok(ev('R.flc.NF') > 10000, 'a big network');
+  const same = ev(`(()=>{const F={};for(const f of R.fl){if(f.junk)continue;const m=F[f.c]||(F[f.c]={});let o=m[f.n];if(!o)o=m[f.n]={t:0,ix:0,p:0,h:0,u:0,T:{},I:{}};
+    o.u+=f.rem;o.t+=f.gt;o.ix+=f.gi;o.p+=f.gp;o.h+=f.gh;if(f.gt)o.T[f.ti]=(o.T[f.ti]||0)+f.gt;if(f.gi)o.I[f.ii]=(o.I[f.ii]||0)+f.gi;}
+    let n=0;for(const c of Object.keys(S.pops)){if(JSON.stringify(pniFlows(c))!==JSON.stringify(F[c]||{}))return 'differs at '+c;n+=Object.keys(F[c]||{}).length;}
+    return n>1000?'same':'too few sums: '+n;})()`);
+  assert.equal(same, 'same');
+  // A POP that is asked about twice gets the sums it already has, a city with no POP gets none, and a new routing starts over.
+  assert.equal(ev("pniFlows('fra')===pniFlows('fra')"), true);
+  assert.equal(ev("JSON.stringify(pniFlows(CITIES.find(c=>!S.pops[c.id]).id))"), '{}');
+  assert.equal(ev("(()=>{const a=pniFlows('fra');compute();return pniFlows('fra')!==a&&JSON.stringify(pniFlows('fra'))===JSON.stringify(a);})()"), true);
+  // What a PNI would be worth still agrees with the order the intern sorts by.
+  assert.equal(ev("NETS.filter(n=>!n.tail&&n.pops.includes('fra')).every(n=>Math.abs(pniVal(n.id,'fra').want-pniWant('fra',n.id))<1e-9)"), true);
+  assert.deepEqual(errors, []);
+});

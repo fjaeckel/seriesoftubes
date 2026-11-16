@@ -72,7 +72,7 @@ test('a share that fails falls back to the download; closing the sheet does noth
   assert.deepEqual(a.errors, []);
 });
 
-test('one link carries the whole network: opened on another device it loads the same game, and leaves the address bar', async () => {
+test('one link carries the whole network: opened on another device it loads the same game, and leaves the address bar; bad or cut links load nothing', async () => {
   const a = await sender();
   const link = a.ev('UI.xfer.link'), want = a.ev(SNAP);
   assert.ok(link.startsWith('https://tests.invalid/#sot1.'), link.slice(0, 40));
@@ -90,20 +90,16 @@ test('one link carries the whole network: opened on another device it loads the 
   assert.ok(c.ev(`!!document.querySelector('#modalCard [data-act="importPick"]')`), 'Import a save is right there for the file');
   c.ev(`$('xferIn').value=${JSON.stringify('  ' + link + '\n')};ACT.xferPaste()`);
   await settle(c.ev, '!!UI.importing');
-  for (const x of [a, b, c]) assert.deepEqual(x.errors, []);
-});
 
-test('bad or cut links say so and load nothing', async () => {
-  const a = await sender();
-  const link = a.ev('UI.xfer.link');
-  const b = load({ gzip: true });
-  b.ev("xferTake('https://example.com/nothing-here')");
-  assert.match(b.ev('document.body.textContent'), /not a transfer link/);
-  b.ev(`xferTake(${JSON.stringify(link.slice(0, -40))})`);
-  await settle(b.ev, '/incomplete or damaged/.test(document.body.textContent)', 'a cut link is reported');
-  assert.equal(b.ev('!!UI.importing'), false);
-  assert.equal(b.ev('S'), null, 'nothing was loaded');
-  assert.deepEqual(b.errors, []);
+  // Bad or cut links say so and load nothing.
+  const d = load({ gzip: true });
+  d.ev("xferTake('https://example.com/nothing-here')");
+  assert.match(d.ev('document.body.textContent'), /not a transfer link/);
+  d.ev(`xferTake(${JSON.stringify(link.slice(0, -40))})`);
+  await settle(d.ev, '/incomplete or damaged/.test(document.body.textContent)', 'a cut link is reported');
+  assert.equal(d.ev('!!UI.importing'), false);
+  assert.equal(d.ev('S'), null, 'nothing was loaded');
+  for (const x of [a, b, c, d]) assert.deepEqual(x.errors, []);
 });
 
 test('any network on the title screen can be sent without loading it, and the screen fits a 360 px phone', async () => {

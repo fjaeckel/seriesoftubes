@@ -17,7 +17,7 @@ Object.assign(ACT,{
  // Sandbox only: try the tools on a flood of your own.
  ddosTest:()=>{if(S.mode!=='sandbox'||!Object.keys(S.pops).length)return;ddosAttack(true);after();},
  hackback:({id}={})=>{const a=ddosFind(id);if(!a||a.until<=S.day){toast(tr('security_and_china.nothing_to_hack_back_right_now'),'');return;}if(!spend(20000))return;S.stats.hackback=(S.stats.hackback||0)+1;
-   if(Math.random()<0.35){a.until=S.day;a.bh=false;S.stats.hackWin=(S.stats.hackWin||0)+1;toast(tr('security_and_china.hackback_3000tm_strikes_back_skynot',{city:CITY[a.city].name}),'goal');sfx('coin');}
+   if(Math.random()<0.35){a.until=S.day;a.bh=false;a.hk=1;S.stats.hackWin=(S.stats.hackWin||0)+1;toast(tr('security_and_china.hackback_3000tm_strikes_back_skynot',{city:CITY[a.city].name}),'goal');sfx('coin');}
    else{const fine=15000+Math.floor(Math.random()*35000);S.cash-=fine;S.stats.vigilante=(S.stats.vigilante||0)+1;
      toast(tr('security_and_china.hackback_3000tm_hit_the_wrong_target',{who:pick([tr('security_and_china.skynot_ai_flattened_a_grandma_s'),tr('security_and_china.you_counter_flooded_a_smart_fridge'),tr('security_and_china.the_botnet_was_already_someone_else')]),fine:fmt$(fine)}),'bad');sfx('err');}
    after();},

@@ -2,13 +2,33 @@
    The city and link panels are where most of the game is played, and on a phone they are a sheet a few hundred
    pixels tall. So a long list (members of an exchange, transit sellers, PNIs, links) shows a short first page with
    "+N more", and once you run a real network the paragraphs that explain a section fold behind a "?" next to its
-   heading. What is unfolded is view state for the panel on screen: another city, link or tab starts short again. */
+   heading. What is unfolded is view state for the panel on screen: another city, link or tab starts short again,
+   except for the kinds of block in PN_KEYS below, which stay open from one POP to the next. */
 const PN_STEP=20;
+/* Blocks whose open state follows you from POP to POP, so a port in ten POPs in a row is one click each instead of three.
+   The choice belongs to the kind of block (every POP's Internet exchange section, the port controls of its first exchange:
+   "Get a port" or "Change"), not to the city, and lives in this browser like the theme: never in the save. A city without
+   the block keeps it for the next one that has it; folding a block forgets it. An exchange's fold is told apart by its
+   place in its city's list, so three exchanges do not all open for one tap. Left out on purpose: a list's page, a "?", one port's or PNI's Change (each
+   is about one thing) and Decommission (a button that shuts a POP down is opened on purpose). From the fourth POP on
+   (pnVet): before that every section is open anyway. */
+const PN_KEYS=['s:ix','s:pni','s:cache','s:metro','s:power','s:scrub','s:nni','rtc','std'],PN_LS='sot-folds';
+// "x0": the port controls of a city's first exchange, "x1" of its second. One kind whether you have joined it ("Change") or not
+// ("Get a port"), so what you opened on an exchange you are in is open on the one you have yet to join, and the other way round.
+const pnKindOk=q=>PN_KEYS.includes(q)||/^x[0-8]$/.test(q);
+const pnKind=k=>{if(!k.startsWith('x:'))return PN_KEYS.includes(k)?k:'';const x=k.slice(2),c=ixCity(x),i=CITY[c]?ixIdsIn(c).indexOf(x):-1;return i<0||i>8?'':'x'+i;};
+// {kind:1} for the kinds left open: read once from this browser and checked like any stored value.
+function pnPrefs(){if(!UI.pnPref){const p={};try{const j=JSON.parse(localStorage.getItem(PN_LS)||'null');for(const q in j)if(pnKindOk(q)&&j[q]===1)p[q]=1;}catch(e){}UI.pnPref=p;}return UI.pnPref;}
 function pnState(){const s=UI.sel,at=s?s.type+':'+s.id+(s.type==='city'?':'+UI.tab:''):'';if(!UI.pn||UI.pn.at!==at)UI.pn={at,n:{},open:{}};return UI.pn;}
+// Does the kind of block k stay open from the last POP?
+const pnStuck=k=>{const q=pnKind(k);return !!q&&pnVet()&&pnPrefs()[q]===1;};
+// A fold is set here: this panel shows it now, and the next POP starts from it.
+function pnSet(k,v){pnState().open[k]=v;const q=pnKind(k),p=pnPrefs();if(!q||!pnVet()||!!p[q]===v)return;
+  if(v)p[q]=1;else delete p[q];try{if(Object.keys(p).length)localStorage.setItem(PN_LS,JSON.stringify(p));else localStorage.removeItem(PN_LS);}catch(e){}}
 // How many rows of list k to show out of tot: the first page, or all of them when "more" would hide only one or two.
 const pnN=(k,tot,first=6)=>tot<=first+2?tot:pnState().n[k]||first;
 const pnMore=(k,tot,lab,first=6)=>tot>pnN(k,tot,first)?`<div class="btns pnmore">${btn(lab(tot-pnN(k,tot,first)),'panelMore',{k,n:pnN(k,tot,first)},'ghost sm')}</div>`:'';
-const pnOpen=k=>!!pnState().open[k];
+const pnOpen=k=>{const v=pnState().open[k];return v!==undefined?!!v:pnStuck(k);};
 // Past the early game: four POPs. Puzzles and the architect keep every explanation.
 const pnVet=()=>!!S&&!pzOn()&&!S.ar&&Object.keys(S.pops).length>=4;
 // A section heading and its explanation. `lead` is the finished HTML of the paragraph(s).
@@ -28,7 +48,8 @@ function pnFold(k,label,body){const o=pnOpen(k);return `<div class="btns pnfold"
    heading folds or unfolds it for as long as this panel stays on screen. A search opens the sections it finds
    something in (hit: how many it finds; a section without hit ignores the search) and folds the others.
    s: {sum, flags:[[class,text]], tot, hit, lead, body(mode)}; body is only called for an open section. */
-const pnSecMode=(k,flag,hit)=>{const v=pnState().open['s:'+k];return v!==undefined?(v?2:0):hit!==undefined&&netFiltered()?(hit?2:0):!pnVet()?2:flag?1:0;};
+// A section left open from the last POP opens again, a city with no exchange included: its section is where you found your own.
+const pnSecMode=(k,flag,hit)=>{const v=pnState().open['s:'+k];return v!==undefined?(v?2:0):hit!==undefined&&netFiltered()?(hit?2:0):!pnVet()||pnStuck('s:'+k)?2:flag?1:0;};
 // A new search starts from what it finds, not from what was folded by hand before.
 const pnSecReset=()=>{if(!UI.pn)return;for(const k in UI.pn.open)if(k.startsWith('s:'))delete UI.pn.open[k];};
 function pnSec(k,title,s){const fl=s.flags||[],m=pnSecMode(k,fl.length>0,s.hit),v=pnVet();

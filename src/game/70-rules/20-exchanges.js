@@ -30,6 +30,8 @@ const PNI_LAG_RT=8,PNI_LAG_MAX=32;
 function pniLagMax(c){const p=S.pops[c];return Math.min(PNI_LAG_MAX,PNI_LAG_RT*((p&&p.routers)||1));}
 function lagCap(g,n){n=n||1;return g*n*(n>1?0.95:1);}
 function lagName(tier,n){return (n||1)>1?`${n}×${PORT[tier].n} LAG`:tr('common.port_port',{port:PORT[tier].n});}
+// Networks that would join an exchange you run: in the city or its region, not yet members, never a Tier 1.
+function myIxCands(c){const m=S.myIx[c];return m?NETS.filter(n=>n.type!=='t1'&&!m.members.includes(n.id)&&(n.pops.includes(c)||n.pops.some(p=>CITY[p].reg===CITY[c].reg))):[];}
 function ixCap(c){return ixLagF(c)*(S.myIx[c]?myFab(c).g*(myIxLive(c)?1:0):liveCap(PORT[S.ixp[c]].g,ixCity(c),(S.ixSite||{})[c],(S.ixn||{})[c])*(isRemote(c)?REMOTE_CAP:1));}
 function ixSessions(c){
   const s=new Set(); if(S.ixp[c]===undefined)return s;

@@ -28,6 +28,8 @@ test('changing the dropdown in Settings switches language and keeps the game', (
   ev("ACT.start({});dayTick();ACT.settings();const s=document.getElementById('langSel');s.value='fr';s.dispatchEvent(new Event('change',{bubbles:true}))");
   assert.equal(ev("localStorage.getItem('sot-lang')"), 'fr');
   assert.ok(ev("slotRaw(UI.slot)"), 'saved before reloading');
+  ev("ACT.langSet({v:'klingon'})");
+  assert.equal(ev("localStorage.getItem('sot-lang')"), 'fr', 'an unknown language is ignored');
   assert.deepEqual(errors, []);
 });
 
@@ -35,5 +37,9 @@ test('the dropdown fits a phone', () => {
   const { ev, errors } = load();
   ev('window.innerWidth=360;showTitle()');
   assert.ok(ev("document.getElementById('langTitle').classList.contains('pick')"));
+  // and works on the title screen before any game exists
+  assert.equal(ev('S'), null);
+  ev("const s=document.getElementById('langTitle');s.value='it';s.dispatchEvent(new Event('change',{bubbles:true}))");
+  assert.equal(ev("localStorage.getItem('sot-lang')"), 'it');
   assert.deepEqual(errors, []);
 });

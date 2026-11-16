@@ -48,9 +48,9 @@ test('indexed routing matches the simple allocation loop across network changes'
       "S.transit.forEach((t,i)=>{if(t.net!=='lvl')t.pref=i%3===0?'high':'normal'})",
       "S.pni.forEach((p,i)=>p.pref=i%3===0?'high':i%3===1?'low':'normal')",
       "S.te={on:true,script:''};S.core={lv:2,run:2,legacy:true}",
-      "S.te.script='prefer pni for goggle\\nspill at 80%\\navoid transit for netchill'",
-      "S.te.script='avoid transit level tree\\nprefer transit tell-ya\\nspill at 80%'",
-      "S.te.script='prefer transit Cogentle\\nprepend transit Cogentle 2\\nprotect customers'",
+      // (every kind of RouteScript rule, in two scripts)
+      "S.te.script='prefer pni for goggle\\nspill at 80%\\navoid transit for netchill\\navoid transit level tree'",
+      "S.te.script='prefer transit tell-ya\\nprefer transit Cogentle\\nprepend transit Cogentle 2\\nprotect customers'",
       "S.ev.rpki={nets:['ggl','nfx'],until:S.day+3};S.ev.depeer=S.day+3",
       "S.ev.ddos={city:'fra',until:S.day+3,gbps:300,vec:'syn',entry:{k:'edge'}}",
       "S.ev.ddosMore=[{id:'x2',city:'nyc',until:S.day+3,gbps:200,vec:'http',entry:{k:'t',id:'transit4'}}]",

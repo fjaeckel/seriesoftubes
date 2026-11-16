@@ -12,11 +12,15 @@ const play = (ev, name, city = 'fra', days = 5) => ev(`UI.pitched=true;UI.nm=${l
 const idx = (ev) => JSON.parse(ev("JSON.stringify(slotIdx())"));
 const card = (ev) => ev("document.getElementById('modalCard').textContent");
 
-// A save as the previous version wrote it: one key, no index.
+// A save as the previous version wrote it: one key, no index. Made once: the tests only read it.
+let LEGACY = null;
 function legacySave() {
+  if (LEGACY) return LEGACY;
   const a = load();
   a.ev("$('nmIn').value='Old Faithful';ACT.start({});ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1});for(let i=0;i<30;i++)dayTick();UI.speed=2");
-  return { txt: a.ev('JSON.stringify(packSave((S.uiSpeed=UI.speed,S.cam={x:cam.x,y:cam.y,z:cam.z},S)))'), snap: a.ev('JSON.stringify([S.name,S.day,S.cash,S.asn,Object.keys(S.pops),S.transit.length])') };
+  LEGACY = { txt: a.ev('JSON.stringify(packSave((S.uiSpeed=UI.speed,S.cam={x:cam.x,y:cam.y,z:cam.z},S)))'), snap: a.ev('JSON.stringify([S.name,S.day,S.cash,S.asn,Object.keys(S.pops),S.transit.length])') };
+  a.dom.window.close();
+  return LEGACY;
 }
 
 test('the single save of older versions becomes the first network, losslessly, and loads exactly as before', async () => {
@@ -25,7 +29,8 @@ test('the single save of older versions becomes the first network, losslessly, a
   const a = load({ browser: b, storage: { 'sot-save-v1': txt } });
   await settle(a.ev, 'UI.started===true');
   assert.equal(a.ev('JSON.stringify([S.name,S.day,S.cash,S.asn,Object.keys(S.pops),S.transit.length])'), snap, 'the same network');
-  assert.equal(a.ev('UI.speed'), 2);
+  assert.equal(a.ev('UI.speed'), 2, 'game speed is remembered');
+  assert.equal(a.ev("document.getElementById('modal').hidden"), true, 'no title screen in the way');
   assert.equal(b.ls.get('sot-save-v1:main'), txt, 'copied byte for byte');
   assert.equal(b.ls.get('sot-save-v1'), txt, 'the old key stays as a fallback until the network saves again');
   const e = idx(a.ev);
@@ -69,7 +74,7 @@ test('a compressed (gz) single save migrates and loads the same network', async 
   assert.deepEqual(a.errors, []);
 });
 
-test('two networks coexist and load independently; the title lists them, newest first', async () => {
+test('two networks coexist and load independently; the title lists them, newest first, from the index alone', async () => {
   const b = browser();
   const a = load({ browser: b });
   play(a.ev, 'First Net', 'fra', 4);
@@ -80,6 +85,10 @@ test('two networks coexist and load independently; the title lists them, newest 
   const second = a.ev('UI.slot');
   assert.notEqual(first, second);
   a.ev('ACT.toTitle()');
+  b.log.length = 0;
+  a.ev('showTitle()');
+  assert.deepEqual(b.log.filter((x) => x[1].startsWith('sot-save-v1')), [], 'the list reads no save');
+  assert.equal(a.ev("document.querySelectorAll('#slotList .slot').length"), 2);
   const list = a.ev("[...document.querySelectorAll('#slotList .slot b')].map(b=>b.textContent).join('|')");
   assert.equal(list, 'Second Net|First Net', 'most recent first');
   assert.match(card(a.ev), /Your networks/);
@@ -95,19 +104,6 @@ test('two networks coexist and load independently; the title lists them, newest 
   assert.equal(a.ev('S.day'), 9);
   assert.equal(JSON.parse(b.ls.get('sot-save-v1:' + first)).name, 'First Net', 'each in its own key');
   assert.deepEqual(a.errors, []);
-});
-
-test('the title lists networks from the index alone, without reading any save', () => {
-  const b = browser();
-  const a = load({ browser: b });
-  play(a.ev, 'One');
-  a.ev('ACT.toTitle()');
-  play(a.ev, 'Two');
-  a.ev('ACT.toTitle()');
-  b.log.length = 0;
-  a.ev('showTitle()');
-  assert.deepEqual(b.log.filter((x) => x[1].startsWith('sot-save-v1')), [], 'no save was read');
-  assert.equal(a.ev("document.querySelectorAll('#slotList .slot').length"), 2);
 });
 
 test('each tab continues its own network on reload, and two tabs play two networks at once', async () => {
@@ -225,7 +221,7 @@ test('a stale write is refused: a newer save of the same network from another wi
   assert.deepEqual(w2.errors, []);
 });
 
-test('saves are written slot first, then the index, and every write moves the sequence on', () => {
+test('saves are written slot first, then the index, every write moves the sequence on, and a rename reaches the list', () => {
   const b = browser();
   const a = load({ browser: b });
   play(a.ev, 'Ordered');
@@ -239,6 +235,10 @@ test('saves are written slot first, then the index, and every write moves the se
   a.ev('save(true)');
   assert.equal(JSON.parse(b.ls.get('sot-save-v1:' + id)).sv.seq, e.seq + 1);
   assert.equal(a.ev('"sv" in S'), false, 'the stamp lives in storage, not in the game');
+  a.ev("ACT.menu();document.querySelector('#modalCard [data-act=rename]').click()");
+  a.ev("document.getElementById('rnIn').value='  After   Rename ';ACT.renameGo()");
+  assert.equal(a.ev('S.name'), 'After Rename');
+  assert.equal(idx(a.ev)[0].name, 'After Rename');
 });
 
 test('deleting a network removes its save and its line, after a confirmation', async () => {
@@ -303,16 +303,6 @@ test('export the network on screen, or any network from the list; import adds a 
   assert.equal(j.S.name, 'Exported Net');
   assert.equal(a.ev(`parseSave(${lit(JSON.stringify(j))}).err||null`), null, 'and it imports');
   assert.deepEqual(a.errors, []);
-});
-
-test('renaming the network renames it in the list', () => {
-  const b = browser();
-  const a = load({ browser: b });
-  play(a.ev, 'Before');
-  a.ev("ACT.menu();document.querySelector('#modalCard [data-act=rename]').click()");
-  a.ev("document.getElementById('rnIn').value='  After   Rename ';ACT.renameGo()");
-  assert.equal(a.ev('S.name'), 'After Rename');
-  assert.equal(idx(a.ev)[0].name, 'After Rename');
 });
 
 test('puzzles never write a network, and a tab closed mid-puzzle keeps the network it set aside', async () => {
@@ -417,8 +407,8 @@ test('out of room: the warning offers to free up space, listing the other networ
   assert.deepEqual(a.errors, []);
 });
 
-test('the networks list fits a 360 px phone and has a tap target and a ⋯ menu per network, in every language', () => {
-  for (const lang of ['en', 'de', 'es', 'fr', 'it', 'pt']) {
+test('the networks list fits a 360 px phone and has a tap target and a ⋯ menu per network, translated too', () => {
+  for (const lang of ['en', 'de', 'it']) {// every dictionary's labels: gameplay-rules C3
     const b = browser();
     const a = load({ browser: b, lang: lang === 'en' ? undefined : lang });
     a.ev('window.innerWidth=360');

@@ -77,12 +77,7 @@ test('pages: the build carries no agent code, and is the page assembled without 
   const html = read('index.html');
   assert.doesNotMatch(html, /@include/, 'no include marker survives');
   for (const n of ['TUBES', 'API_CMD', 'API_DOMAINS', 'apiCall', 'apiDispatch']) assert.doesNotMatch(html, new RegExp(`\\b${n}\\b`), `${n} is not shipped`);
-  const { load } = require('./harness');
-  const { ev, errors } = load({ file: path.join(OUT, 'index.html') });
-  assert.equal(ev('typeof TUBES'), 'undefined');
-  ev("ACT.start({});ACT.launchBB({city:'fra'});for(let i=0;i<10;i++)dayTick()");
-  assert.ok(ev('S.day') >= 10);
-  assert.deepEqual(errors, []);
+  // That this page boots and plays without it: the English run of the shipped-page test below.
 });
 
 test('pages: only the release workflow deploys, and only with the GitHub Pages actions', () => {
@@ -104,6 +99,7 @@ test('pages: the shipped page and dictionaries, with labels shrunk to ids, still
   assert.doesNotMatch(read('index.html'), /tr\('pnis\.delivery/, 'labels are shrunk in the shipped page');
   for (const [lang, word] of [['en', 'Customers'], ['it', 'Clienti'], ['fr', null]]) {
     const { ev, errors } = load(lang === 'en' ? { file } : { file, lang, dir });
+    assert.equal(ev('typeof TUBES'), 'undefined', `${lang}: no agent facade`);
     ev("ACT.start({});S.cash=1e8;ACT.launchBB({city:'fra'});for(let i=0;i<40;i++)dayTick();ACT.leftTab({t:'noc'});renderAll()");
     // Text node by text node: a raw label sits inside one, while two elements' text run together ("facendo." then
     // "proprio ora") only looks like one.

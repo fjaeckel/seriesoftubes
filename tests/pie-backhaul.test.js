@@ -249,15 +249,23 @@ test('the traceroute to and from a cut-off POP shows the orbit hops', () => {
   assert.deepEqual(errors, []);
 });
 
-test('saves without pies, and pie saves whose POPs are all connected, route as before', () => {
+// (one big save for every "without pies" check: pie-routing and pie-traffic used to load it too)
+test('saves without pies route as before, pay nothing for orbit and show no sky; nor do connected pie saves', () => {
   const { ev, errors } = load();
   const save = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
   ev(`S=migrate(JSON.parse(${lit(save)}));compute()`);
   assert.equal(ev('S.pie'), null);
+  assert.equal(ev("R.pie===undefined&&R.rev.orbit===undefined"), true, 'no orbit traffic and no orbit income');
+  assert.equal(ev("trSkyList().length"), 0);
+  assert.equal(ev("pieFiberMs({k:'c',id:'x'})"), Infinity);
+  assert.deepEqual(JSON.parse(ev('JSON.stringify(pieGlobeData())')), { crusts: [], dishes: [], pads: [], launches: [] });
   const out = () => ev("JSON.stringify([R.served,R.demand,R.egT,R.load,R.l2,R.l2lat,R.citySrv])");
   const a = out();
+  // A rocket company with nothing in the sky routes the same traffic.
+  ev("S.pieV=1;pieInit();compute()");
+  assert.deepEqual(JSON.parse(out()).slice(0, 6), JSON.parse(a).slice(0, 6));
   // A rocket company with a baked, lasered crust and dishes at three connected POPs: nothing to backhaul, nothing moves.
-  ev("window.__rl=0;const o=pieRelink;pieRelink=function(){__rl++;return o.apply(this,arguments);};S.pieV=1;pieInit();S.pie.co={name:'X'};const ps=Object.keys(S.pops).filter(popUp).slice(0,6);for(const c of ps){S.pie.dishes.push({id:'d'+c,city:c,ant:PIE_ANT_MAX,down:0});S.pie.lic[CITY[c].cc]={state:'ok',until:1e6};}S.pie.crusts.short.cohorts=[{n:CRUSTS.short.full,day:S.day,las:true}];compute()");
+  ev("window.__rl=0;const o=pieRelink;pieRelink=function(){__rl++;return o.apply(this,arguments);};S.pie.co={name:'X'};const ps=Object.keys(S.pops).filter(popUp).slice(0,6);for(const c of ps){S.pie.dishes.push({id:'d'+c,city:c,ant:PIE_ANT_MAX,down:0});S.pie.lic[CITY[c].cc]={state:'ok',until:1e6};}S.pie.crusts.short.cohorts=[{n:CRUSTS.short.full,day:S.day,las:true}];compute()");
   // (the fixture has POPs off its backbone: keep only the dishes on it)
   ev("const isl=new Set(R.pie.isl);S.pie.dishes=S.pie.dishes.filter(x=>!isl.has(x.city));__rl=0;compute()");
   assert.ok(ev('S.pie.dishes.length') >= 1);

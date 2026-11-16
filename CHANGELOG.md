@@ -6,7 +6,19 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- You can hire an optical engineering team from Big League on: a department of its own, from $1.2M to $7M a year in three sizes, that plans and builds your fiber and subsea routes. Once hired they take over the intern's optical work (optics, line systems, handing back waves), move leased waves that run hot up a size, and every Wednesday plan routes from what the Lambda Bazaar's buyers want plus the leased waves you would no longer need. They either ask before building or build on their own within a yearly budget, and bigger teams run more projects at once. Now and then they get something wrong: a fat-fingered config darkens a fiber for a day, a build slips, or a build costs more.
+- The intern can grow the exchanges you founded: a new standing order upgrades an exchange's fabric when its traffic outgrows your headroom, or when every seat is taken and a network is waiting to join. It has its own monthly budget and shows up in Ops once you run an exchange.
+- A section you unfold in a POP's panel now stays unfolded when you move to another POP, so adding a peering port to POP after POP is one click each instead of three. It covers the exchange, PNI, cache, power and other sections, an exchange's port controls ("Get a port", or "Change" once you are in it) and the routers' "Change"; the exchange section also stays open in a POP with no exchange yet, where you can found your own; fold one again and the next POP goes back to what it would have shown. A POP without that section keeps your choice for the next one that has it, and this browser remembers it for next time.
 - "Move to another path" now shows where a circuit's bottlenecks are: the spans and POP routers with less headroom than the customer wants, tightest first, on today's path and on each alternative, with a button that opens the link or the POP.
+
+## [4.5.0] — 2026-11-16
+
+- The NOC dashboard has a DDoS tab: every attack under way with its RTBH, scrubbing and hack-back buttons, your totals, and a history of past attacks with their size, target and how they ended. Attacks your network shrugs off, and Auto-RTBH pulling the plug, no longer pop up (they are in the NOC's notifications and the new tab); an attack that hurts still does, and its button opens the tab.
+- Once you have made Tier 1, conference news and de-peerings no longer pop up: they go to the NOC's notification list instead. That covers conference reminders and reports (which used to vanish altogether), your sales engineer's bookings, the carriers a capacity conference sends, a network de-peering you at an exchange, and the Cogentle and Goggle peering spat (its incident stays in the NOC).
+- Big networks: a POP's Peering tab no longer slows every game day and every click while it is open. The list of PNIs worked out what a PNI would carry at every one of your POPs to show the one on screen; now it only works out that one.
+- Big networks: the first minute after loading a game is smoother. The lowest latency you could ever build between two cities, which latency offers are checked against, is now worked out about ten times faster, for every POP.
+- A subsea cable of your own can land in the inland cities where cables land (Nairobi, Johannesburg, Khartoum, Atlanta, Montreal): it comes ashore where their cables do and runs on overland (#416).
+- Barranquilla and Cartagena are on the map, and Colombia's Caribbean cables now land there, as they really do, instead of in Bogotá. Bogotá is reached overland from the coast, and cables you already lease to Bogotá keep working (#416).
 
 ## [4.4.0] — 2026-11-16
 

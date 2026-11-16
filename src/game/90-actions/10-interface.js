@@ -51,7 +51,7 @@ const ACT={
   if(o.a==='city'&&isCity(o.v)){ACT.focusCity({city:o.v});return;}
   if(o.a==='link'){if(S.links.some(l=>l.id===o.v)){ACT.selLink({id:o.v});return;}toast(tr('interface.that_link_is_gone_it_was'),'');return;}
   if(o.a==='cust'){if(S.biz.some(b=>b.id===o.v)){ACT.custGo({id:o.v});return;}toast(tr('interface.that_customer_is_gone_the_contract'),'');return;}
-  if(o.a==='bank'){ACT.bank({});return;}if(o.a==='ops'){ACT.opsOpen();return;}
+  if(o.a==='bank'){ACT.bank({});return;}if(o.a==='ops'){ACT.opsOpen();return;}if(o.a==='optx'){ACT.optxOpen();return;}
   if(o.a==='badges'){ACT.badgesOpen();return;}
   if(o.a==='tab'&&LOG_TABS.includes(o.v))ACT.leftTab({t:o.v});},
  // A badge (its toast, or its note in the NOC log) opens the wall of badges itself: unfolded and scrolled to, not just the Goals tab above it.

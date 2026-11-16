@@ -308,7 +308,7 @@ test('the switch and its picker fit a 360 px phone, in portrait and landscape', 
     assert.equal(p.ev(`[...document.querySelectorAll('#fsBox [style]')].length`), 0, 'no fixed sizes in the picker');
     assert.ok(p.ev(`!!document.querySelector('#modalCard #fsUrl.t')`), 'the address field is the full-width text field');
   }
-  for (const lang of ['de', 'es', 'fr', 'it', 'pt']) {
+  for (const lang of ['de', 'it']) {// every dictionary's labels: gameplay-rules C3
     const q = page({ lang });
     await run(q, 500);
     click(q, '#fsTog');

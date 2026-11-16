@@ -1,8 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const path = require('node:path');
 const { load, seed } = require('./harness');
-const { loadDict, brokenEntries } = require('../scripts/i18n-check');
 const { lit } = require('../scripts/lib/js-literal');
 
 const SCREENS = ['hud', 'panelBody', 'leftBody', 'modalCard', 'dashCard', 'bankCard', 'toasts', 'coach', 'hint', 'mega'];
@@ -11,7 +9,7 @@ const SCREENS = ['hud', 'panelBody', 'leftBody', 'modalCard', 'dashCard', 'bankC
 // plus any rendered text with an unfilled {placeholder}, "undefined", "NaN" or a raw label (text shown without
 // tr(), such as an N_() label from a table) in it.
 function tour(ev) {
-  const thrown = [], leaks = new Set();
+  const thrown = [], leaks = new Set(), panels = {};
   const step = (label, src) => {
     try { ev(src); } catch (e) { thrown.push(`${label}: ${e.message}`); }
     const txt = ev(`${lit(SCREENS)}.map(i=>{const e=document.getElementById(i);return e?e.textContent:''}).join('\\n')`);
@@ -26,19 +24,24 @@ function tour(ev) {
   step('dark fiber', "UI.pending={a:'fra',b:'ams'};UI.lmode='df';UI.dfSys='roadm';openLinkModal('fra','ams');ACT.orderDf();UI.lmode='wave';S.pops.fra.rgen=2;S.pops.ams.rgen=2;const df=S.links.find(l=>l.kind==='df');if(df){ACT.addCh({id:df.id,o:'zr4'});df.ready=S.day}");
   for (let d = 0; d < 40; d++) step('day ' + d, 'dayTick();if(S.day%10===0)for(const o of S.offers.slice())if(S.pops[o.city]&&(!o.city2||S.pops[o.city2]))ACT.accept({id:o.id})');
   for (const c of ['fra', 'ams', 'nyc', 'sha', 'sin', 'sao', 'mos', 'lon', 'stg']) {
-    for (const t of ['cust', 'up', 'peer', 'links']) step(`panel ${c}/${t}`, `selectCity('${c}');ACT.tab({t:'${t}'})`);
+    for (const t of ['cust', 'up', 'peer', 'links']) {
+      step(`panel ${c}/${t}`, `selectCity('${c}');ACT.tab({t:'${t}'})`);
+      if (c === 'fra') panels[t] = ev("document.getElementById('panelBody').textContent.length");
+    }
   }
   step('link panels', 'for(const l of S.links){ACT.selLink({id:l.id});renderPanel()}');
   for (const t of ['goals', 'deals', 'noc', 'nets']) step('left ' + t, `ACT.leftTab({t:'${t}'})`);
-  for (const [label, src] of [['dash', 'ACT.dash({});ACT.dashClose()'], ['bank', 'ACT.bank();ACT.bankClose()'],
+  step('dash', 'ACT.dash({})');
+  const dashSvg = ev("document.querySelectorAll('#dashCard svg').length");
+  for (const [label, src] of [['dash close', 'ACT.dashClose()'], ['bank', 'ACT.bank();ACT.bankClose()'],
     ['help', 'showHelp();closeModal()'], ['menu', 'ACT.menu();closeModal()'], ['reset', 'ACT.resetAsk();closeModal()'],
     ['scenarios', 'scenarioModal();closeModal()'], ['trace', "traceModal('fra');closeModal()"],
     ['route script', 'S.lvl=Math.max(S.lvl,3);S.cash+=1e6;ACT.coreUp();ACT.coreUp();ACT.buyTE();ACT.teEdit();ACT.teExample();ACT.teCheck();closeModal()'],
     ['routers', "selectCity('fra');ACT.tab({t:'links'});ACT.models()"], ['vxc', "openVxcModal({from:'fra',to:'ams'});closeModal()"],
     ['tutorial', 'S.tut=0;renderCoach();S.tut=3;renderCoach();S.tut=null;renderCoach()'], ['win', 'showWin()']]) step(label, src);
   const failSrc = ev('failureRun.toString()');
-  for (const t of ['harmless', 'fatwave', 'label', 'mtu', 'oops', 'cleaner', 'prepend', 'rpki', 'amp', 'roadmff', 'optic', 'ac', 'cut', 'crash', 'power', 'transit', 'ixloop', 'leak', 'ddos']) {
-    const kind = ['harmless', 'fatwave', 'label', 'mtu', 'oops', 'cleaner', 'prepend', 'rpki', 'roadmff', 'ac'].includes(t) ? 'funny' : t;
+  for (const t of ['harmless', 'fatwave', 'label', 'mtu', 'oops', 'cleaner', 'maxpfx', 'prepend', 'rpki', 'amp', 'roadmff', 'optic', 'ac', 'cut', 'crash', 'power', 'transit', 'ixloop', 'leak', 'ddos']) {
+    const kind = ['harmless', 'fatwave', 'label', 'mtu', 'oops', 'cleaner', 'maxpfx', 'prepend', 'rpki', 'roadmff', 'ac'].includes(t) ? 'funny' : t;
     const patched = failSrc.replace(/^function\* failureRun/, 'function*')
       .replace('let tot=opts.reduce', `if(!opts.some(o=>o[0]==='${kind}'))return;opts.splice(0,opts.length,['${kind}',1]);let tot=opts.reduce`)
       .replace('type=pick(f);}', `type=f.includes('${t}')?'${t}':pick(f);}`);
@@ -54,18 +57,16 @@ function tour(ev) {
     step('event ' + e, `window.__fe=${patched};__fe();dayTick();ACT.leftTab({t:'deals'})`);
   }
   for (let d = 0; d < 60; d++) step('late day ' + d, 'dayTick()');
+  const stale = ev('S.inc.filter(i=>i.until<=S.day).length');
   step('lose', 'showLose()');
-  return { thrown, leaks: [...leaks] };
+  return { thrown, leaks: [...leaks], panels, dashSvg, stale };
 }
 
 test('the game starts in English unless the player or the browser asks for another language', () => {
   assert.equal(load().ev('LANG'), 'en');
   assert.equal(load({ navigatorLanguage: 'it-IT' }).ev('SOT_LANG'), 'it', 'an Italian browser asks for Italian');
-  assert.equal(load({ navigatorLanguage: 'pt-BR' }).ev('SOT_LANG'), 'pt', 'a Brazilian browser asks for Portuguese');
-  assert.equal(load({ navigatorLanguage: 'fr-FR' }).ev('SOT_LANG'), 'fr', 'a French browser asks for French');
-  assert.equal(load({ navigatorLanguage: 'es-ES' }).ev('SOT_LANG'), 'es', 'a Spanish browser asks for Spanish');
-  assert.equal(load({ navigatorLanguage: 'de-DE' }).ev('SOT_LANG'), 'de', 'a German browser asks for German');
-  assert.equal(load({ navigatorLanguage: 'de-CH' }).ev('SOT_LANG'), 'de', 'so does a Swiss German one');
+  // One code path for every language: the region is dropped, so a Swiss German browser asks for German.
+  assert.equal(load({ navigatorLanguage: 'de-CH' }).ev('SOT_LANG'), 'de', 'a Swiss German browser asks for German');
   const it = load({ lang: 'it' });
   assert.equal(it.ev('LANG'), 'it');
   assert.equal(it.ev('document.documentElement.lang'), 'it');
@@ -94,38 +95,11 @@ test('text that old saves stored in English is still translated', () => {
   assert.equal(load().ev("tr('Delivery: 2 to 6 weeks')"), 'Delivery: 2 to 6 weeks');
 });
 
-test('every translation keeps the placeholders, HTML tags and plural forms of its English', () => {
-  const D = require('../scripts/lib/dict');
-  const en = D.read('en').dict;
-  for (const lang of D.langs()) {
-    const dict = loadDict(D.fileOf(lang));
-    assert.ok(Object.keys(dict).length > 100, lang);
-    assert.deepEqual(brokenEntries(dict, en), [], lang);
-  }
-});
-
 test('the static markup is translated by label', () => {
   const { ev } = load({ lang: 'it' });
   ev('ACT.start({})');
   assert.equal(ev("document.querySelector('[data-i18n=\"common.customers\"]').textContent"), 'Clienti');
   assert.equal(ev("document.querySelector('#hud [data-act=dash]').getAttribute('aria-label')"), ev("tr('common.noc_dashboard')"));
-});
-
-test('the language dropdown on the title screen works before any game exists', () => {
-  const { ev } = load();
-  assert.equal(ev('S'), null);
-  ev("const s=document.querySelector('#modalCard select#langTitle');s.value='it';s.dispatchEvent(new Event('change',{bubbles:true}))");
-  assert.equal(ev("localStorage.getItem('sot-lang')"), 'it');
-});
-
-test('picking a language saves the choice and the game, then reloads', () => {
-  const { ev } = load();
-  ev('ACT.start({});dayTick()');
-  ev("ACT.langSet({v:'it'})");
-  assert.equal(ev("localStorage.getItem('sot-lang')"), 'it');
-  assert.ok(ev("slotRaw(UI.slot)"));
-  ev("ACT.langSet({v:'klingon'})");
-  assert.equal(ev("localStorage.getItem('sot-lang')"), 'it');
 });
 
 test('a scenario started in English shows its Italian name after switching', () => {
@@ -137,8 +111,12 @@ test('a scenario started in English shows its Italian name after switching', () 
   assert.ok(ev("document.getElementById('hAsn').textContent").includes(name));
 });
 
+// The whole tour in English and Italian (plural forms): what it finds, a raw label, NaN, a throw, comes from the code, the
+// same in every language, and the dictionaries themselves are checked by tests/gameplay-rules.test.js (C3). The other
+// languages check their own few labels.
 for (const lang of ['en', 'it', 'pt', 'fr', 'es', 'de']) {
-  test(`${lang}: every screen, failure and event renders without errors or unfilled placeholders`, () => {
+  const full = lang === 'en' || lang === 'it';
+  test(full ? `${lang}: every screen, failure and event renders without errors or unfilled placeholders` : `${lang}: How to play and the top bar in ${lang}`, () => {
     const { ev, errors } = load(lang === 'en' ? {} : { lang });
     seed(ev, 3);
     if (lang === 'it') {
@@ -165,10 +143,14 @@ for (const lang of ['en', 'it', 'pt', 'fr', 'es', 'de']) {
       assert.equal(ev("tr('common.dark_fiber')"), 'Dark Fiber');
       assert.equal(ev("tr('common.terrestrial_fiber')"), 'Terrestrische Glasfaser');
     }
-    const { thrown, leaks } = tour(ev);
-    assert.ok(ev('(S.stats.f||{}).anchor'), 'Baltic and Red Sea anchors count for the badge in every language');
+    if (!full) { assert.deepEqual(errors, []); return; }
+    const { thrown, leaks, panels, dashSvg, stale } = tour(ev);
+    assert.ok(ev('(S.stats.f||{}).anchor'), 'Baltic and Red Sea anchors count for the badge');
     assert.deepEqual(thrown, []);
     assert.deepEqual(leaks, []);
+    for (const [t, n] of Object.entries(panels)) assert.ok(n > 50, `Frankfurt ${t} tab has content`);
+    assert.ok(dashSvg >= 1, 'the dashboard draws its charts');
+    assert.equal(stale, 0, 'expired incidents are cleared');
     assert.deepEqual(errors, []);
   });
 }

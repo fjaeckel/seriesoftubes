@@ -40,7 +40,7 @@ function* dayPreRun(){
   if(S.scn&&S.scn.id==='redsea')S.stats.asiaRun=asiaG()>=RS_G?(S.stats.asiaRun||0)+1:0;
   if(S.ev.php===d)toast(tr('day_tick.the_internet_is_back_half_of'),'good');
   for(const k in S.peers){const [id,c]=k.split('@'),sn=snub(id,c);if(!sn)continue;delete S.peers[k];S.stats.depeered=(S.stats.depeered||0)+1;
-    {const v={net:esc(NET[id].name),ix:esc(ixName(c)),city:esc(CITY[ixCity(c)].name),why:esc(sn.why)};toast(ixNamesCity(c)?tr('day_tick.net_de_peered_you_at_ix',v):tr('day_tick.net_de_peered_you_at_ix_caef',v),'bad');}}
+    {const v={net:esc(NET[id].name),ix:esc(ixName(c)),city:esc(CITY[ixCity(c)].name),why:esc(sn.why)};toastT1(ixNamesCity(c)?tr('day_tick.net_de_peered_you_at_ix',v):tr('day_tick.net_de_peered_you_at_ix_caef',v),'bad');}}
   if(S.cnLic&&S.cnLic.state==='pending'&&d>=S.cnLic.ready){S.cnLic.state='ok';toast(tr('day_tick.license_granted_your_joint_venture'),'goal');sfx('coin');}
   // cable ships: home again, sent to waiting cuts (50-cable-ships.js)
   shipDay();
@@ -88,7 +88,7 @@ function* dayPost(d){
   yield DAY_REST;
   // own IX members join
   for(const c in S.myIx){const m=S.myIx[c];if(d>=m.next&&m.members.length<myFab(c).max){
-    const cands=NETS.filter(n=>n.type!=='t1'&&!m.members.includes(n.id)&&(n.pops.includes(c)||n.pops.some(p=>CITY[p].reg===CITY[c].reg)));
+    const cands=myIxCands(c);
     if(cands.length){cands.sort((a,b)=>(a.pol==='open'?0:1)-(b.pol==='open'?0:1)||b.share-a.share);const n=Math.random()<.6?cands[0]:pick(cands);m.members.push(n.id);toast(tr('day_tick.net_joined_ix_another_member_paying',{net:esc(n.name),ix:esc(m.name),fee:fmt$(MYIX_FEE)}),'good');sfx('coin');}
     // Players with a port on it draw networks in sooner (89-fedplay-ix.js).
     m.next=d+fedIxNext(c,8+Math.floor(Math.random()*10));}}
@@ -113,6 +113,8 @@ function* dayPost(d){
   yield* slAutoRun(d);
   if(opsHired())yield DAY_REST;
   yield* opsRun(d);
+  if(optxOn())yield DAY_REST;
+  yield* optxRun(d);
   if(S.pie){pieDay(d);pieTier();}
   if(S.fed&&fedPlayDay())yield;// a swap partner's wave comes or goes (89-fedplay-deals.js)
   // payday floaters

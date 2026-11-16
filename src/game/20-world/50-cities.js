@@ -119,6 +119,8 @@ const CITIES=[
  {id:'bue',name:'Buenos Aires',x:0,y:0,land:'sa',reg:'SA',cc:'AR',P:500,andes:'e',arpu:0.7,ix:'Asado-IX',dc:'Puerto Madero DC',note:tr('cities.tango_steak_and_a_very')},
  {id:'scl',name:'Santiago',x:0,y:0,land:'sa',reg:'SA',cc:'CL',P:350,andes:'w',ix:'Empanada-IX',dc:'Andes-view Bunker',note:tr('cities.the_pacific_gateway_the_andes_sit')},
  {id:'lim',name:'Lima',x:0,y:0,land:'sa',reg:'SA',cc:'PE',P:400,andes:'w',ix:'Ceviche-IX',dc:'Fog-cooled DC',note:tr('cities.it_almost_never_rains_but_the')},
+ {id:'baq',name:'Barranquilla',x:0,y:0,land:'sa',reg:'SA',cc:'CO',P:85,dc:'Carnival Crosstalk DC',note:tr('cities.colombia_s_caribbean_port_where_cables')},
+ {id:'ctg',name:'Cartagena',x:0,y:0,land:'sa',reg:'SA',cc:'CO',P:40,dc:'Walled City Wavelengths',note:tr('cities.a_walled_colonial_port_where_most')},
  {id:'bog',name:'Bogotá',x:0,y:0,land:'sa',reg:'SA',cc:'CO',P:400,andes:'m',ix:'Arepa-IX',dc:'2,600 m Above Sea Level DC',note:tr('cities.high_up_in_the_andes_no')},
  {id:'pan',name:'Panama City',x:0,y:0,land:'am',reg:'AM',cc:'PA',P:80,ix:'Canal-IX',dc:'Isthmus Interconnect',note:tr('cities.every_cable_between_the_americas')},
  {id:'del',name:'Delhi',x:0,y:0,land:'eu',reg:'AS',cc:'IN',P:1600,arpu:0.4,india:true,ix:'Butter-Chicken-IX',dc:'Smog-filtered DC',note:tr('cities.an_enormous_very_online_city_a')},

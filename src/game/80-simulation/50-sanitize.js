@@ -86,7 +86,7 @@ function sanitize(s){
     // Every number a loan's bill reads, as a number in range: a string or 1e308 here would turn cash into NaN.
     for(const k of ['amount','got','bal','pay'])l[k]=Math.min(1e13,Math.max(0,num(l[k],0)));for(const k of ['apr','apr0'])if(l[k]!==undefined)l[k]=Math.min(10,Math.max(0,num(l[k],0)));
     if(l.share!==undefined)l.share=Math.min(1,Math.max(0,num(l.share,0)));l.left=int(l.left,0,6000,0);l.term=int(l.term,0,6000,0);l.start=int(l.start,0,1e7,s.day||0);if(!Array.isArray(l.covs))l.covs=[];l.covs=l.covs.filter(c=>own(COVS,c));}s.loanOffers=s.loanOffers.filter(l=>l&&own(BANKS,l.bank));
-  s.usedNames=[...new Set(s.usedNames.filter(x=>typeof x==='string'))];s.log=s.log.filter(e=>e&&typeof e.t==='string').slice(0,LOG_KEEP).map(e=>{const o=e.o&&typeof e.o==='object'&&e.o.a==='inbox'?{a:'tab',v:'nets'}:e&&e.o&&typeof e.o==='object'&&LOG_OPEN.includes(e.o.a)?(e.o.a==='bank'||e.o.a==='ops'||e.o.a==='badges'?{a:e.o.a}:typeof e.o.v==='string'&&e.o.v.length<=64&&(e.o.a!=='city'||isCity(e.o.v))&&(e.o.a!=='tab'||LOG_TABS.includes(e.o.v))?{a:e.o.a,v:e.o.v}:null):null;
+  s.usedNames=[...new Set(s.usedNames.filter(x=>typeof x==='string'))];s.log=s.log.filter(e=>e&&typeof e.t==='string').slice(0,LOG_KEEP).map(e=>{const o=e.o&&typeof e.o==='object'&&e.o.a==='inbox'?{a:'tab',v:'nets'}:e&&e.o&&typeof e.o==='object'&&LOG_OPEN.includes(e.o.a)?(e.o.a==='bank'||e.o.a==='ops'||e.o.a==='optx'||e.o.a==='badges'?{a:e.o.a}:typeof e.o.v==='string'&&e.o.v.length<=64&&(e.o.a!=='city'||isCity(e.o.v))&&(e.o.a!=='tab'||LOG_TABS.includes(e.o.v))?{a:e.o.a,v:e.o.v}:null):null;
     return {id:typeof e.id==='string'&&e.id.length<=40?e.id:uid(),d:num(e.d,0),t:e.t.slice(0,600),h:typeof e.h==='string'?e.h.slice(0,200):'',k:LOG_KINDS.includes(e.k)?e.k:'',at:Number.isFinite(+e.at)?+e.at:0,o,n:int(e.n,1,9999,1)};});
   // One scrubbing center became a list (#117): older saves carry theirs over.
   if(!Array.isArray(s.scrubs))s.scrubs=s.scrubAt&&isCity(s.scrubAt)?[{city:s.scrubAt,tier:s.scrubTier}]:[];delete s.scrubAt;delete s.scrubTier;
@@ -107,6 +107,10 @@ function sanitize(s){
     a.sla=Array.isArray(a.sla)?a.sla.filter(x=>typeof x==='string').slice(0,s.biz.length):[];return a;};
   const attacks=[s.ev.ddos,...(Array.isArray(s.ev.ddosMore)?s.ev.ddosMore:[])].map(repairAttack).filter(Boolean).slice(0,14);
   if(attacks.length)s.ev.ddos=attacks[0];else delete s.ev.ddos;s.ev.ddosMore=attacks.slice(1);
+  for(const a of attacks){for(const k of ['au','scr','hk'])if(a[k]!==undefined)a[k]=a[k]?1:0;}
+  // The DDoS tab's history: plain fields only, known vectors, cities and customer types, numbers in range, newest first.
+  s.ddosLog=(Array.isArray(s.ddosLog)?s.ddosLog:[]).filter(e=>e&&typeof e==='object'&&own(DDOS_VEC,e.v)&&isCity(e.c)&&DDOS_O.includes(e.o)).slice(0,DDOS_LOG).map(e=>{const d=int(e.d,0,Math.max(0,num(s.day,0)),0);
+    return {d,s:int(e.s,0,d,d),g:clamp(num(e.g,0),0,1e6),v:e.v,c:e.c,t:typeof e.t==='string'&&own(BIZ_T,e.t)?e.t:'',n:typeof e.n==='string'&&own(BIZ_T,e.t)?e.n.slice(0,60):'',o:e.o,w:clamp(num(e.w,1),0,1),x:clamp(num(e.x,0),0,1),bh:int(e.bh,0,2,0),sc:e.sc?1:0,hk:e.hk?1:0};});
   s.ddosStarts=(Array.isArray(s.ddosStarts)?s.ddosStarts:attacks.map(a=>a.start)).filter(d=>typeof d==='number'||typeof d==='string').map(Number).filter(d=>Number.isFinite(d)&&d>s.day-7&&d<=s.day).sort((a,b)=>a-b).slice(-14);
   s.auV=s.auV===1?1:0;if(s.auNews!==true)delete s.auNews;
   // Badges: S.ach[id] is the day it was earned (any save); S.achP[id] the variant (2.0). A missing variant is the standard one.
@@ -120,6 +124,7 @@ function sanitize(s){
    const m={mods:r.mods};s.rules=s.scn&&typeof s.scn==='object'?makeRules('oncall',m):s.mode==='sandbox'?makeRules('sandbox',{...m,chaos:r.chaos}):makeRules(NORMAL_PRESETS.includes(r.preset)?r.preset:'oncall',m);}
   specSanitize(s);lcSanitize(s);
   cmFix(s);
+  optxFix(s);
   pieSanitize(s);pieIncFix(s);volFix(s);
   fedSanitize(s);// multiplayer: null unless this save joined (60-features/86-fed-state.js)
   fedpSanitize(s);// other players' networks and this one's published terms (60-features/89-fedplay-*.js)

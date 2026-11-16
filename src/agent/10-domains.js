@@ -36,6 +36,9 @@ const API_DOMAINS={
   // The intern, their orders and the new-POP template (opsHire, opsToggle, opsParam…).
   internId:{table:'INTERNS',kind:'key'},
   opsKey:{table:'OPSK',kind:'key'},
+  // The optical engineering team (optxHire, optxMode…).
+  optxSize:{table:'OPTX',kind:'key'},
+  optxMode:{kind:'enum',values:['ask','auto']},
   opsPopKind:{kind:'enum',values:()=>OPS_POP.slice()},
   opsTplKey:{kind:'enum',values:()=>OPS_TPL.slice()},
   // The three POP standards (#315).
@@ -62,7 +65,7 @@ const API_DOMAINS={
   leftFold:{kind:'enum',values:['done','badges','hot','slow','ports']},
   netFilter:{kind:'enum',values:['all','out']},
   pniFilter:{kind:'enum',values:['all','t','worth','pni']},
-  listPage:{kind:'enum',values:['traffic','lease','conn','cust','nets','pni','pops','links','routers']},
+  listPage:{kind:'enum',values:['traffic','lease','conn','cust','nets','pni','pops','links','routers','ddos']},
   infraList:{kind:'enum',values:['links','routers']},
   infraKind:{kind:'enum',values:['','wave','iru','own','sea','vxc']},
   infraLoad:{kind:'enum',values:['','warm','hot','down']},

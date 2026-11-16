@@ -320,14 +320,31 @@ test('a second page replaces the first: one game per relay, the newest tab wins'
   } finally { stop(a, b); t.close(); }
 }));
 
-test('the MCP server drives the player\'s page in browser mode, over stdio', () => withRelay(async () => {
-  const a = page({ seed: 9, ms: 0 });
-  a.ev("ACT.start({});S.cash=1000000;compute()");
-  await joined(a);
-  const m = mcp(['--browser', '--relay-host', 'localhost', '--relay-port', String(PORT)]);
+test('the MCP server answers the handshake at once, waits for the game page, then drives it in browser mode, over stdio', () => withRelay(async () => {
+  const gone = mcp(['--browser', '--relay-port', String(PORT), '--page-wait-ms', '1200']);
+  const code = await new Promise((r) => gone.child.on('exit', (c2) => r(c2)));
+  assert.equal(code, 1, 'exits 1 without a page');
+  assert.match(gone.stderr(), /waiting for the game page/);
+  assert.match(gone.stderr(), /no game page answered/);
+  assert.match(gone.stderr(), /Settings → Agent API/);
+  assert.doesNotMatch(gone.stderr(), /TypeError/);
+  const m = mcp(['--browser', '--relay-host', 'localhost', '--relay-port', String(PORT), '--page-wait-ms', '20000']);
+  let a = null;
   try {
+    const t0 = Date.now();
     const init = await m.init();
+    // Far below the page wait (20 s), with room for a slow start of the process on a busy runner.
+    assert.ok(Date.now() - t0 < 10000, 'initialize does not wait for a browser tab');
     assert.match(init.result.instructions, /player's own browser tab/);
+    const early = await m.call('status');
+    assert.equal(early.isError, true, 'a tool before the page arrives is an error, not a hang');
+    await until(() => /waiting for the game page/.test(m.stderr()));
+    assert.match(m.stderr(), /waiting for the game page/);
+    a = page({ seed: 9, ms: 0 });
+    a.ev("ACT.start({});S.cash=1000000;compute()");
+    await joined(a);
+    await until(() => /ready/.test(m.stderr()));
+    assert.match(m.stderr(), /ready/, 'the server proceeded once the page answered');
     const list = (await m.send({ method: 'tools/list' })).result.tools.map((x) => x.name);
     for (const n of ['status', 'act', 'schema', 'state', 'advance', 'wait', 'screen', 'click']) assert.ok(list.includes(n), n);
     for (const n of ['new_game', 'load_save', 'export_save']) assert.ok(!list.includes(n), `${n} is the headless session's`);
@@ -335,7 +352,7 @@ test('the MCP server drives the player\'s page in browser mode, over stdio', () 
     assert.equal(mode.backend, 'browser');
     assert.equal(mode.transport, 'relay');
     assert.equal(mode.relay, `ws://localhost:${PORT}/agent`, 'the mode says which relay: host, port and path');
-    assert.equal(await m.json('state', { path: 'cash' }), 1000000);
+    assert.equal(await m.json('state', { path: 'cash' }), 1000000, 'it drives the late page');
     const r = await m.json('act', { action: 'buildPop', args: { city: 'ams' } });
     assert.equal(r.outcome, 'applied');
     assert.equal(r.charged, 20000);
@@ -364,34 +381,6 @@ test('a game page older than the code stops the server rather than mislead', () 
     assert.match(m.stderr(), /reload the page/);
   } finally { stop(a); await m.kill(); }
 }));
-
-test('the MCP server answers the handshake at once and waits for the game page', () => withRelay(async () => {
-  const gone = mcp(['--browser', '--relay-port', String(PORT), '--page-wait-ms', '1200']);
-  const code = await new Promise((r) => gone.child.on('exit', (c2) => r(c2)));
-  assert.equal(code, 1, 'exits 1 without a page');
-  assert.match(gone.stderr(), /waiting for the game page/);
-  assert.match(gone.stderr(), /no game page answered/);
-  assert.match(gone.stderr(), /Settings → Agent API/);
-  assert.doesNotMatch(gone.stderr(), /TypeError/);
-  const m = mcp(['--browser', '--relay-port', String(PORT), '--page-wait-ms', '20000']);
-  let a = null;
-  try {
-    const t0 = Date.now();
-    await m.init();
-    // Far below the page wait (20 s), with room for a slow start of the process on a busy runner.
-    assert.ok(Date.now() - t0 < 10000, 'initialize does not wait for a browser tab');
-    const early = await m.call('status');
-    assert.equal(early.isError, true, 'a tool before the page arrives is an error, not a hang');
-    await until(() => /waiting for the game page/.test(m.stderr()));
-    assert.match(m.stderr(), /waiting for the game page/);
-    a = page({ seed: 4 });
-    a.ev("ACT.start({});S.cash=444000;compute()");
-    await until(() => /ready/.test(m.stderr()));
-    assert.match(m.stderr(), /ready/, 'the server proceeded once the page answered');
-    assert.equal(await m.json('state', { path: 'cash' }), 444000, 'and drives the late page');
-  } finally { stop(a); await m.kill(); }
-}));
-
 
 // dev.js with its token folder in a temporary directory: the token file is where the MCP server finds it.
 function devServer(argv) {

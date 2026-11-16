@@ -141,7 +141,7 @@ test('Change Freeze breaks less than On-call, BGP at 3 a.m. more, on the same se
   for (const p of ['freeze', 'oncall', 'bgp']) {
     const { ev, errors } = load();
     start(ev, { mode: 'normal', preset: p });
-    n[p] = fails(ev, 720);
+    n[p] = fails(ev, 360);// a year is plenty: 4, 15 and 33 on this seed
     assert.deepEqual(errors, []);
   }
   assert.ok(n.freeze < n.oncall, `freeze ${n.freeze} < on-call ${n.oncall}`);

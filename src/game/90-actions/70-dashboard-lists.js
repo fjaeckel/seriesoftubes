@@ -4,7 +4,7 @@ Object.assign(ACT,{
   {const L=!S.pops[b.city]&&pieLandOf(b);if(L){UI.tab='cust';ACT.focusCity({city:L});return;}}
   ACT.focusCity({city:b.city});UI.tab='cust';renderPanel();},
  dashRow:({k})=>{if(typeof k!=='string'||k.length>80)return;UI.dashOpen=UI.dashOpen===k?null:k;UI.confirm=null;renderDash();},
- listMore:({k})=>{if(!['traffic','lease','conn','cust','nets','pni','pops','links','routers'].includes(k))return;UI.listN=UI.listN||{};UI.listN[k]=listN(k)+listPg(k);if(k==='nets'){renderLeft();return;}if(k==='pni'){renderPanel();return;}renderDash();},
+ listMore:({k})=>{if(!['traffic','lease','conn','cust','nets','pni','pops','links','routers','ddos'].includes(k))return;UI.listN=UI.listN||{};UI.listN[k]=listN(k)+listPg(k);if(k==='nets'){renderLeft();return;}if(k==='pni'){renderPanel();return;}renderDash();},
  custF:({v})=>{UI.kf=UI.kf||{};UI.kf.f=v==='sad'?'sad':'';listReset('cust');renderDash();},
  custCity:({v})=>{UI.kf=UI.kf||{};UI.kf.city=isCity(v)?v:'';listReset('cust');renderDash();},
  custSort:({k})=>{if(!['mood','mo','name','city'].includes(k))return;listReset('cust');if(UI.custSort===k)UI.custDir=-(UI.custDir||1);else{UI.custSort=k;UI.custDir=k==='mo'?-1:1;}renderDash();},
@@ -27,5 +27,8 @@ Object.assign(ACT,{
  connFor:({net})=>{if(!NET[net])return;UI.cf={net};ACT.connOpen();},
  connCancel:({k,id})=>{const r=conns().find(x=>x.k===k&&x.id===id);if(!r||r.mine)return;const key='cc:'+k+':'+id;if(UI.confirm!==key){UI.confirm=key;renderDash();return;}UI.confirm=null;
    if(k==='t')ACT.cancelTransit({id,ok:1});else if(k==='p')ACT.cancelPni({id,ok:1});else if(k==='ix')ACT.cancelIx({city:id,ok:1});else if(k==='c')ACT.rmCache({id});else{const [city,prov]=id.split('|');ACT.rmNni({city,prov});}renderDash();},
+ // The DDoS tab: from a toast, the NOC tab's attack card or the finder; its history filtered by outcome.
+ ddosOpen:()=>{if(!S||pzOn())return;UI.dtab='ddos';const d=$('dash');if(d.hidden){d.hidden=false;winIn($('dashCard'));}renderDash();d.scrollTop=0;},
+ ddosF:({v})=>{UI.ddF=DDOS_O.includes(v)&&UI.ddF!==v?v:'';listReset('ddos');renderDash();},
  connOpen:()=>{if(!S)return;UI.dtab='conn';listReset('conn');const d=$('dash');d.hidden=false;renderDash();d.scrollTop=0;},
 });
