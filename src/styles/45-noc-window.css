@@ -104,7 +104,6 @@ body.noc-window [data-act="dashClose"]{display:none}
   #nwTraffic,#nwMoney{overflow:hidden}
   .nw-map{display:flex;flex-direction:column}
   .nw-map .nw-world{aspect-ratio:auto !important;flex:1 1 0;min-height:0}
-  .nw-win:not(.nw-drag){transition:left .12s,top .12s,width .12s,height .12s}
   .nw-win.nw-drag{z-index:3;box-shadow:0 8px 28px rgba(0,0,0,.55);border-radius:14px}
   .nw-win .nw-h{position:relative;padding-left:20px;cursor:grab;user-select:none;touch-action:none}
   .nw-win.nw-drag .nw-h,body.nw-dragging{cursor:grabbing;user-select:none}
@@ -123,4 +122,3 @@ body.noc-window [data-act="dashClose"]{display:none}
   .nw-rz[data-d=nw]{top:-5px;left:-5px;cursor:nwse-resize}.nw-rz[data-d=se]{bottom:-5px;right:-5px;cursor:nwse-resize}
   .nw-rz[data-d=se]::after{content:'';position:absolute;right:7px;bottom:7px;width:8px;height:8px;border-right:2px solid #6F80A8;border-bottom:2px solid #6F80A8;border-radius:0 0 3px 0}
 }
-@media (min-width:1001px) and (prefers-reduced-motion:reduce){.nw-win:not(.nw-drag){transition:none}}

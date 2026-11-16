@@ -44,8 +44,9 @@ function nwPlace(){const d=$('nwDeck');if(!d||!NOCW.lay)return;let rows=0;
   for(const i of NOCW.lay){const e=d.querySelector(`.nw-win[data-w="${i.id}"]`);if(!e)continue;const s=e.style;
     s.setProperty('--x',i.x);s.setProperty('--y',i.y);s.setProperty('--w',i.w);s.setProperty('--h',i.h);rows=Math.max(rows,i.y+i.h);}
   d.style.setProperty('--rows',rows);}
-function nwCommit(L){NOCW.lay=L;nwPlace();nwSave();nocRender();}
-function nwReset(){NOCW.lay=nwDef();try{localStorage.removeItem(NW_KEY);}catch(e){}nwPlace();nocRender();}
+// The charts are drawn again at the new size (nwResized: a key held down is one change, and a drag ends with one).
+function nwCommit(L){NOCW.lay=L;nwPlace();nwSave();nwResized();}
+function nwReset(){NOCW.lay=nwDef();try{localStorage.removeItem(NW_KEY);}catch(e){}nwPlace();nwResized();}
 // ---------- the mouse and the finger ----------
 let NWD=null,nwT=0;
 // Cells to pixels: a column is a 24th of the deck (and a gap), a row is NW_ROW.
@@ -81,5 +82,5 @@ function nwKey(e){const g=e.target&&e.target.closest&&e.target.closest('.nw-grip
 function nwSize(id){const e=$(id);if(!nwFree()||!e||!e.clientWidth||!e.clientHeight)return null;const h=e.querySelector('.nw-h');
   return [Math.max(240,e.clientWidth-24),Math.max(110,e.clientHeight-20-(h?h.offsetHeight+6:40))];}
 const nwWin=(id,name,inner)=>`<div class="nw-win" data-w="${id}">${inner}<button class="nw-grip" type="button" data-w="${id}" aria-label="${esc(tr('noc.move_or_resize_name',{name}))}" title="${esc(tr('noc.drag_the_title_to_move_it'))}"><svg viewBox="0 0 10 16" aria-hidden="true">${[3,8,13].map(y=>`<circle cx="2.5" cy="${y}" r="1.4"/><circle cx="7.5" cy="${y}" r="1.4"/>`).join('')}</svg></button>${NW_RZ.map(d=>`<i class="nw-rz" data-d="${d}" aria-hidden="true"></i>`).join('')}</div>`;
-// The wallboard follows the window it is in: drawn again once it has stopped changing size.
+// Drawn again once the wallboard or a window has stopped changing size (a key held down is one change).
 const nwResized=()=>{clearTimeout(nwT);nwT=setTimeout(()=>{if(NOC.win&&NOCW.view==='wall'&&S)nocRender();},250);};
