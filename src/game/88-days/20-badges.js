@@ -18,7 +18,7 @@ const BADGES=[
  {id:'couch',i:'🛋️',t:tr('badges.peering_from_the_couch'),d:tr('badges.peer_at_an_ix_remotely'),r:'r',ok:()=>Object.keys(S.ixp).some(c=>isRemote(c)&&ixSessions(c).size>0)},
  {id:'sender',i:'🇰🇷',t:tr('common.sender_pays'),d:tr('badges.paid_pnis_with_all_three_korean'),r:'e',ok:()=>['ktt','skb','lgu'].every(n=>S.pni.some(p=>p.net===n&&pniOn(p)))},
  {id:'oink',i:'🐖',t:tr('common.pig_whisperer'),d:tr('badges.run_a_slow_booting_packetoinker'),r:'r',ok:()=>Object.keys(S.pops).some(c=>/Oinker/.test(RG[S.pops[c].rgen||0].chip)&&slowBoot(c))},
- {id:'gap',i:'🌴',t:tr('common.mind_the_gap'),d:tr('badges.link_panama_city_and_bogota'),r:'r',ok:()=>S.links.some(l=>[l.a,l.b].includes('pan')&&[l.a,l.b].includes('bog'))},
+ {id:'gap',i:'🌴',t:tr('common.mind_the_gap'),d:tr('badges.link_panama_city_and_colombia'),r:'r',ok:()=>S.links.some(l=>[l.a,l.b].includes('pan')&&[l.a,l.b].some(c=>CITY[c].cc==='CO'))},
  {id:'andes',i:'🏔️',t:tr('badges.over_the_mountains'),d:tr('badges.build_fiber_across_the_andes'),r:'r',ok:()=>S.links.some(l=>!l.sub&&andesPair(l.a,l.b))},
  {id:'duo',i:'🏜️',t:tr('common.duopoly_customer'),d:tr('badges.buy_a_wave_inside_the_uae'),r:'r',ok:()=>S.links.some(l=>uaePair(l.a,l.b))},
  {id:'shed',i:'🔌',t:tr('common.stage_six'),d:tr('badges.ride_out_load_shedding_on_your'),r:'r',ok:()=>(st().shed||0)>=1},

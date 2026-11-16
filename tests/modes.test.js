@@ -305,7 +305,8 @@ test('#34 scenario goal, progress and customer level are always in view', () => 
   assert.match(left(), /Customer level 1 of 13/);
   assert.equal(ev("$('hScn').hidden"), false, 'scenario chip in the top bar');
   const f0 = ev('scnProg().f');
-  ev("S.cash=1e8;UI.via='pccs';openLinkModal('pan','bog');ACT.buildLink({tier:1});closeModal();compute();renderAll()");
+  // Bogotá's cables land in Cartagena: across the sea, then overland.
+  ev("S.cash=1e8;UI.via='pccs';openLinkModal('pan','ctg');ACT.buildLink({tier:1});closeModal();UI.via=null;openLinkModal('ctg','bog');ACT.buildLink({tier:1});closeModal();compute();renderAll()");
   assert.ok(ev('scnProg().f') > f0, 'progress moves when a goal step is reached');
   assert.match(ev("$('hScnVal').textContent"), /%/);
   assert.match(ev("$('hTier').textContent"), /Lv 1/);
