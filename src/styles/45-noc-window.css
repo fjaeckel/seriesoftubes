@@ -111,14 +111,15 @@ body.noc-window [data-act="dashClose"]{display:none}
   .nw-grip{display:block;position:absolute;left:5px;top:9px;z-index:2;width:18px;height:24px;padding:3px 4px;border:0;border-radius:6px;background:none;color:#6F80A8;cursor:grab;touch-action:none}
   .nw-grip svg{display:block;width:100%;height:100%;fill:currentColor}
   .nw-grip:hover,.nw-grip:focus-visible{color:#E8EEFA;background:#1E2A4A}
-  .nw-grip:focus-visible,.nw-rz:focus-visible{outline:2px solid #7B8CFF;outline-offset:1px}
+  .nw-grip:focus-visible{outline:2px solid #7B8CFF;outline-offset:1px}
+  /* The edges sit in the 10 px gap between windows, so they never cover a scrollbar or a button inside one. */
   .nw-rz{display:block;position:absolute;z-index:2;touch-action:none;border-radius:6px}
   .nw-rz:hover{background:rgba(159,176,211,.28)}
-  .nw-rz[data-d=n],.nw-rz[data-d=s]{left:14px;right:14px;height:10px;cursor:ns-resize}
-  .nw-rz[data-d=e],.nw-rz[data-d=w]{top:14px;bottom:14px;width:10px;cursor:ew-resize}
-  .nw-rz[data-d=n]{top:-5px}.nw-rz[data-d=s]{bottom:-5px}.nw-rz[data-d=e]{right:-5px}.nw-rz[data-d=w]{left:-5px}
-  .nw-rz[data-d=ne],.nw-rz[data-d=nw],.nw-rz[data-d=se],.nw-rz[data-d=sw]{width:18px;height:18px}
-  .nw-rz[data-d=ne]{top:-5px;right:-5px;cursor:nesw-resize}.nw-rz[data-d=sw]{bottom:-5px;left:-5px;cursor:nesw-resize}
-  .nw-rz[data-d=nw]{top:-5px;left:-5px;cursor:nwse-resize}.nw-rz[data-d=se]{bottom:-5px;right:-5px;cursor:nwse-resize}
+  .nw-rz[data-d=n],.nw-rz[data-d=s]{left:12px;right:12px;height:8px;cursor:ns-resize}
+  .nw-rz[data-d=e],.nw-rz[data-d=w]{top:12px;bottom:12px;width:8px;cursor:ew-resize}
+  .nw-rz[data-d=n]{top:-6px}.nw-rz[data-d=s]{bottom:-6px}.nw-rz[data-d=e]{right:-6px}.nw-rz[data-d=w]{left:-6px}
+  .nw-rz[data-d=ne],.nw-rz[data-d=nw],.nw-rz[data-d=se],.nw-rz[data-d=sw]{width:16px;height:16px}
+  .nw-rz[data-d=ne]{top:-6px;right:-6px;cursor:nesw-resize}.nw-rz[data-d=sw]{bottom:-6px;left:-6px;cursor:nesw-resize}
+  .nw-rz[data-d=nw]{top:-6px;left:-6px;cursor:nwse-resize}.nw-rz[data-d=se]{bottom:-6px;right:-6px;cursor:nwse-resize}
   .nw-rz[data-d=se]::after{content:'';position:absolute;right:7px;bottom:7px;width:8px;height:8px;border-right:2px solid #6F80A8;border-bottom:2px solid #6F80A8;border-radius:0 0 3px 0}
 }

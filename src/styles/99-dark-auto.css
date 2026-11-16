@@ -390,7 +390,7 @@
 @media (min-width:1001px){
 :where(:root.dark) .nw-grip{color:#6F80A8}
 :where(:root.dark) .nw-grip:hover,:where(:root.dark) .nw-grip:focus-visible{color:#E8EEFA;background:#1E2A4A}
-:where(:root.dark) .nw-grip:focus-visible,:where(:root.dark) .nw-rz:focus-visible{outline:2px solid #7B8CFF}
+:where(:root.dark) .nw-grip:focus-visible{outline:2px solid #7B8CFF}
 :where(:root.dark) .nw-rz:hover{background:rgba(159,176,211,.28)}
 :where(:root.dark) .nw-rz[data-d=se]::after{border-right:2px solid #6F80A8;border-bottom:2px solid #6F80A8}
 }
