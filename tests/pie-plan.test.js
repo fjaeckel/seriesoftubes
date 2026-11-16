@@ -59,11 +59,15 @@ test('the planner shows in the Dishes tab, ranked, with a globe mark for each su
   assert.equal(box.querySelectorAll('[data-act=piePlanDo]').length, p.items.length);
   assert.equal(box.querySelectorAll('[data-act=pieLook]').length, p.items.length, 'each one can be seen on the globe');
   assert.match(box.querySelector('.pie-pl-i').textContent, /#1/);
-  assert.ok(box.querySelector('[data-act=piePlanAll]'));
+  assert.equal(box.querySelector('[data-act=piePlanAll]'), null, 'one line at a time, no do-all');
+  assert.match(box.querySelector('.pie-pl-tot').textContent, /in all/, 'the total up top');
+  assert.equal(box.querySelectorAll('.pie-pl-ring').length, 3, 'a legend for the rings');
+  assert.match(box.querySelector('.pie-pl .pie-fx-m small').textContent, /London dish \d+% full: 1 orbit customer lands there/, 'each line says why');
   assert.equal(ev('pieGlobeData().plan.length'), p.items.length);
   ev('ACT.piePlanOpen()');
   assert.equal(ev('pieGlobeData().plan.length'), 0, 'no marks once closed');
-  ev('closeModal()');
+  ev('ACT.piePlanOpen();closeModal()');
+  assert.equal(ev('!!UI.piePlan'), false, 'closing Pie Control closes the planner');
   assert.deepEqual(errors, []);
 });
 
@@ -77,6 +81,7 @@ test('a new POP is suggested where it pays best, and carrying it out opens the P
   assert.equal(np.pop, ev(`popCost('${np.to}')`));
   const args = { k: np.k, to: np.to };
   if (np.from) args.from = np.from;
+  if (np.from) args.ok = true;
   ev(`ACT.piePlanDo(${JSON.stringify(args)})`);
   assert.equal(ev(`!!S.pops['${np.to}']`), true, 'the POP opened');
   assert.equal(ev(`S.pie.dishes.some(x=>x.city==='${np.to}')`), true, 'with its dish');
@@ -93,19 +98,6 @@ test('an idle dish that alone covers some cities stays, and nothing is dropped b
   assert.ok(!plan(ev).items.some((x) => x.from === 'nyc'), 'New York idles but is the only dish over there');
   ev("S.pie.crusts.short.cohorts=[{n:Math.round(CRUSTS.short.full*0.3),day:S.day,las:false}];compute()");
   assert.ok(!plan(ev).items.some((x) => x.k === 'drop' || x.k === 'move'), 'no crust carries: idle says nothing');
-  assert.deepEqual(errors, []);
-});
-
-test('do all carries out every suggestion', () => {
-  const { ev, errors } = load();
-  world(ev);
-  term(ev, 'a', 'lon', 18);
-  const p = plan(ev);
-  ev('ACT.piePlanAll()');
-  assert.equal(ev("S.pie.dishes.find(x=>x.city==='lon').ant"), 2);
-  for (const it of p.items.filter((x) => x.to)) assert.ok(ev(`S.pie.dishes.some(x=>x.city==='${it.to}')`), it.to);
-  ev('compute()');
-  assert.ok(plan(ev).r0 >= p.r1, 'the cities the plan promised are reached');
   assert.deepEqual(errors, []);
 });
 
@@ -144,5 +136,129 @@ test('a town no dish can reach is named with the reason, and one-town sites are 
   ev('closeModal()');
   assert.match(txt, new RegExp(ev(`CITY['${p.out[0].c}'].name`)), 'the first ones by name');
   assert.match(txt, new RegExp(`${p.out.length - 5} more`), 'the rest counted');
+  assert.deepEqual(errors, []);
+});
+
+const args = (it) => { const a = { k: it.k }; for (const f of { ant: ['c', 'ant'], band: ['c'], add: ['to'], move: ['from', 'to'], drop: ['from'] }[it.k]) a[f] = it[f]; return a; };
+const leave = (ev) => ev("S.mode='normal';S.rules.gates='open'");
+
+test('moving or taking down a dish asks first, and cancelling keeps it', () => {
+  const { ev, dom, errors } = load();
+  world(ev);
+  term(ev, 'a', 'lon', 5);
+  const mv = plan(ev).items.find((x) => x.k === 'move');
+  const n = ev('S.pie.dishes.length');
+  ev("ACT.pieOpen();ACT.pieTab({t:'dish'});ACT.piePlanOpen()");
+  ev(`ACT.piePlanDo(${JSON.stringify(args(mv))})`);
+  assert.equal(ev(`S.pie.dishes.some(x=>x.city==='${mv.from}')`), true, 'nothing moved yet');
+  assert.equal(ev('S.pie.dishes.length'), n);
+  const box = dom.window.document.querySelector('#modal .pie-plan .pie-confirm');
+  assert.ok(box, 'the question shows under its line');
+  assert.match(box.textContent, new RegExp(ev(`CITY['${mv.from}'].name`)));
+  ev('ACT.piePlanKeep()');
+  assert.equal(dom.window.document.querySelector('#modal .pie-plan .pie-confirm'), null);
+  assert.equal(ev(`S.pie.dishes.some(x=>x.city==='${mv.from}')`), true);
+  ev('closeModal()');
+  assert.deepEqual(errors, []);
+});
+
+test('a dish an orbit customer lands on is never suggested for taking down', () => {
+  const { ev, errors } = load();
+  world(ev);
+  term(ev, 'a', 'lon', 5);
+  const from = plan(ev).items.find((x) => x.k === 'move').from;
+  // Pretend a customer lands there (a terminal with nothing carried still counts).
+  ev(`R.pie.gs.zz='${from}'`);
+  assert.ok(!plan(ev).items.some((x) => x.from === from));
+  assert.deepEqual(errors, []);
+});
+
+test('arguments must match a current suggestion of that kind exactly', () => {
+  const { ev, errors } = load();
+  world(ev);
+  term(ev, 'a', 'lon', 5);
+  const mv = plan(ev).items.find((x) => x.k === 'move');
+  const before = ev('JSON.stringify(S.pie.dishes)'), cash = ev('S.cash');
+  // A drop with a to (the move's arguments under another kind) does nothing at all.
+  ev(`ACT.piePlanDo({k:'drop',from:'${mv.from}',to:'${mv.to}',ok:true})`);
+  ev(`ACT.piePlanDo({k:'move',from:'${mv.from}',to:'${mv.to}',c:'lon',ok:true})`);
+  ev("ACT.piePlanDo({k:'nuke',from:'lon',ok:true})");
+  ev("ACT.piePlanDo({k:'ant',c:'lon',ant:16})");
+  ev(`ACT.piePlanDo({k:'drop',from:'lon',ok:true})`);
+  assert.equal(ev('JSON.stringify(S.pie.dishes)'), before);
+  assert.equal(ev('S.cash'), cash);
+  assert.deepEqual(errors, []);
+});
+
+test('a stale suggestion and the same line clicked twice do nothing the second time', () => {
+  const { ev, errors } = load();
+  world(ev);
+  term(ev, 'a', 'lon', 18);
+  const ant = plan(ev).items.find((x) => x.k === 'ant');
+  leave(ev);
+  ev('S.cash=1e9');
+  ev(`ACT.piePlanDo(${JSON.stringify(args(ant))})`);
+  assert.equal(ev("S.pie.dishes.find(x=>x.city==='lon').ant"), 2);
+  const cash = ev('S.cash');
+  ev(`ACT.piePlanDo(${JSON.stringify(args(ant))})`);
+  assert.equal(ev("S.pie.dishes.find(x=>x.city==='lon').ant"), 2, 'clicked twice: once');
+  assert.equal(ev('S.cash'), cash, 'and paid once');
+  // A dish built by hand where the plan wanted one makes that line stale.
+  const add = plan(ev).items.find((x) => x.k === 'add' && !x.pop);
+  if (add) {
+    const stale = args(add);
+    ev(`ACT.pieDish({city:'${add.to}'})`);
+    const n = ev('S.pie.dishes.length'), c2 = ev('S.cash');
+    ev(`ACT.piePlanDo(${JSON.stringify(stale)})`);
+    assert.equal(ev('S.pie.dishes.length'), n);
+    assert.equal(ev('S.cash'), c2);
+  }
+  assert.deepEqual(errors, []);
+});
+
+test('short of cash outside the sandbox: the line is greyed and the action pays nothing', () => {
+  const { ev, dom, errors } = load();
+  world(ev);
+  term(ev, 'a', 'lon', 5);
+  leave(ev);
+  ev('S.cash=10');
+  const p = plan(ev), np = p.items.find((x) => x.pop > 0);
+  ev("ACT.pieOpen();ACT.pieTab({t:'dish'});ACT.piePlanOpen()");
+  const btns = [...dom.window.document.querySelectorAll('#modal .pie-plan [data-act=piePlanDo]')];
+  p.items.forEach((it, i) => { if (it.cost > 10) assert.equal(btns[i].disabled, true, `${it.k} ${it.to || it.c || it.from} greyed`); });
+  const pops = ev('Object.keys(S.pops).length'), dishes = ev('S.pie.dishes.length'), spent = ev('S.pie.book.spent');
+  ev(`ACT.piePlanDo(${JSON.stringify({ ...args(np), ok: true })})`);
+  assert.equal(ev('Object.keys(S.pops).length'), pops, 'no POP');
+  assert.equal(ev('S.pie.dishes.length'), dishes, 'no dish');
+  assert.equal(ev('S.pie.book.spent'), spent, 'nothing spent');
+  assert.ok(ev('S.cash') >= 10);
+  ev('closeModal()');
+  assert.deepEqual(errors, []);
+});
+
+test('in a sandbox a POP is still real money: its line is greyed without the cash', () => {
+  const { ev, dom, errors } = load();
+  world(ev);
+  term(ev, 'a', 'lon', 5);
+  ev('S.cash=0');
+  const p = plan(ev), i = p.items.findIndex((x) => x.pop > 0);
+  ev("ACT.pieOpen();ACT.pieTab({t:'dish'});ACT.piePlanOpen()");
+  const btns = dom.window.document.querySelectorAll('#modal .pie-plan [data-act=piePlanDo]');
+  assert.equal(btns[i].disabled, true);
+  const j = p.items.findIndex((x) => !x.pop && x.k === 'add');
+  if (j >= 0) assert.equal(btns[j].disabled, false, 'a dish alone is free in a sandbox');
+  ev('closeModal()');
+  assert.deepEqual(errors, []);
+});
+
+test('the plan is built once while nothing it reads changes, not every day', () => {
+  const { ev, errors } = load();
+  world(ev);
+  term(ev, 'a', 'lon', 18);
+  ev('piePlan(R.pie);window.__n=0;const m=piePlanMake;piePlanMake=(...a)=>{window.__n++;return m(...a);}');
+  for (let i = 0; i < 3; i++) ev('compute();piePlan(R.pie)');
+  assert.equal(ev('window.__n'), 0, 'three computes, no rebuild');
+  ev("S.pie.dishes.find(x=>x.city==='lon').ant=2;compute();piePlan(R.pie)");
+  assert.equal(ev('window.__n'), 1, 'a dish changed: rebuilt');
   assert.deepEqual(errors, []);
 });

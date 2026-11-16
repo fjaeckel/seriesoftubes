@@ -167,7 +167,7 @@ function pgDraw(ctx,W,H){
     if(any){ctx.fillStyle='#FFFFFF';ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle=st.ink;ctx.stroke();}}
   // The dish planner's picks: a dashed ring where to build, amber where to grow, red where to take down.
   if(PG.plan&&PG.plan.length){ctx.setLineDash([3,3]);ctx.lineWidth=2.5;for(const d of PG.plan){const b=pgRot(d.v,d.s||(d.s=new Float32Array(3)),1);if(b[0]<0.08)continue;const [x,y]=P(b,0);
-    ctx.beginPath();ctx.arc(x,y,11,0,7);ctx.strokeStyle=d.k==='drop'?'#FF4D5E':d.k==='ant'||d.k==='band'?'#FFAA1F':st.hi;ctx.stroke();}ctx.setLineDash([]);}
+    ctx.beginPath();ctx.arc(x,y,11,0,7);ctx.strokeStyle=d.k==='drop'?'#FF4D5E':d.k==='ant'||d.k==='band'?'#FFAA1F':'#FF4F9A';ctx.stroke();}ctx.setLineDash([]);}
   // The city picked in the Dishes tab: a pulsing ring and its name.
   if(PG.focus&&isCity(PG.focus)){const v=new Float32Array(3);pgUnit(CITY[PG.focus].lon,CITY[PG.focus].lat,v,0);const b=pgRot(v,new Float32Array(3),1);
     if(b[0]>0.05){const [x,y]=P(b,0),r=10+Math.sin(t*4)*2;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.lineWidth=2.5;ctx.strokeStyle=st.hi;ctx.stroke();
