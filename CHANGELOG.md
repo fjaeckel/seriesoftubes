@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
-- "Move to another path" now shows where a circuit's bandwidth pinches: the spans and POP routers with less room than the customer wants, tightest first, on today's path and on each alternative, with a button that opens the link or the POP.
+- "Move to another path" now shows where a circuit's bottlenecks are: the spans and POP routers with less headroom than the customer wants, tightest first, on today's path and on each alternative, with a button that opens the link or the POP.
 
 ## [4.4.0] — 2026-11-16
 

@@ -54,23 +54,23 @@ function skyStr(f){const o=[pathCity(f.a)];let c=f.a,up=false;const to=x=>{if(x!
 const skyLegs=f=>{const o=[];let c=f.a;for(const h of f.hops){if(h.k==='f'){o.push(hopKey(c,h.city));c=h.city;}else if(h.k==='down')c=h.city;}return o;};
 // Where a path loses bandwidth: each span, and each POP's routers, with less room than the customer wants, tightest first. Room is what is left
 // after everything else on it, plus what this customer already takes there (it goes with the customer). Paths are lists of cities, so span i joins p[i] and p[i+1].
-function pathPinch(b,p,hops,own,ownN,got){const out=[];
+function pathBottleneck(b,p,hops,own,ownN,got){const out=[];
   hops.forEach((e,i)=>{const room=Math.max(0,e.cap-e.load+(own.has(e.k)?got:0));if(room<b.bw)out.push({a:p[i],z:p[i+1],room,cap:e.cap,link:e.link});});
   for(const c of p){const cap=R.nodeCap&&R.nodeCap[c];if(!(cap>0))continue;const room=Math.max(0,cap-((R.nodeLoad&&R.nodeLoad[c])||0)+(ownN.has(c)?got:0));if(room<b.bw)out.push({c,room,cap});}
   return out.sort((x,y)=>x.room-y.room);}
-function circuitTargets(b){const G=pathEdges(),sky=pathSky(b),now=pathNow(b,G);if(!now)return {now:null,sky,alts:[],pinch:[]};
+function circuitTargets(b){const G=pathEdges(),sky=pathSky(b),now=pathNow(b,G);if(!now)return {now:null,sky,alts:[],bn:[]};
   // Through orbit, the fiber path pathNow() names is not in use: it is offered like any other.
   const hops=sky?skyLegs(sky).map(k=>G.E[k]).filter(Boolean):pathHops(G,now)||[],used=new Set(),seen=new Set(sky?[]:[now.join()]),own=new Set(hops.map(e=>e.k)),got=R.l2&&R.l2[b.id]||0,alts=[];
-  const nowT=new Set(),ownN=new Set(sky?[b.city,b.city2]:now),pinch=sky?[]:pathPinch(b,now,hops,own,ownN,got);for(const e of hops)for(const t of e.ts){nowT.add(t);used.add(t);}
+  const nowT=new Set(),ownN=new Set(sky?[b.city,b.city2]:now),bn=sky?[]:pathBottleneck(b,now,hops,own,ownN,got);for(const e of hops)for(const t of e.ts){nowT.add(t);used.add(t);}
   for(let i=0;i<PATH_ALT+1&&alts.length<PATH_ALT;i++){const p=pathWalk(G,b.city,b.city2,e=>{for(const t of e.ts)if(used.has(t))return (e.w+1)*PATH_FAR;return e.w+1;});if(!p)break;
     const h=pathHops(G,p);for(const e of h)for(const t of e.ts)used.add(t);if(seen.has(p.join()))continue;seen.add(p.join());
     alts.push({p,shared:h.filter(e=>[...e.ts].some(t=>nowT.has(t))).length,km:h.reduce((a,e)=>a+e.km,0),lat:h.reduce((a,e)=>a+e.lat+0.05,0),
-      room:Math.max(0,Math.min(...h.map(e=>e.cap-e.load+(own.has(e.k)?got:0)))),pinch:pathPinch(b,p,h,own,ownN,got)});}
-  alts.sort((x,y)=>x.shared-y.shared||x.lat-y.lat);return {now,sky,alts,pinch};}
-// A pinch point in words: the span (or the POP's routers) and how much of it is free. The two tightest are enough on one line.
-const PINCH_SHOWN=3;
-const pinchTxt=x=>x.c?tr('customer_paths.pinch_routers',{city:esc(pathCity(x.c)),free:fmtG(x.room),cap:fmtG(x.cap)}):tr('customer_paths.pinch_hop',{a:esc(pathCity(x.a)),b:esc(pathCity(x.z)),free:fmtG(x.room),cap:fmtG(x.cap)});
-const pinchBtn=x=>x.c?btn(tr('common.show_me'),'pathShow',{city:x.c},'ghost sm'):x.link?btn(tr('common.show_me'),'pathShow',{link:x.link},'ghost sm'):'';
+      room:Math.max(0,Math.min(...h.map(e=>e.cap-e.load+(own.has(e.k)?got:0)))),bn:pathBottleneck(b,p,h,own,ownN,got)});}
+  alts.sort((x,y)=>x.shared-y.shared||x.lat-y.lat);return {now,sky,alts,bn};}
+// A bottleneck in words: the span (or the POP's routers) and how much of it is free. The two tightest are enough on one line.
+const BN_SHOWN=3;
+const bnTxt=x=>x.c?tr('customer_paths.bottleneck_routers',{city:esc(pathCity(x.c)),free:fmtG(x.room),cap:fmtG(x.cap)}):tr('customer_paths.bottleneck_hop',{a:esc(pathCity(x.a)),b:esc(pathCity(x.z)),free:fmtG(x.room),cap:fmtG(x.cap)});
+const bnBtn=x=>x.c?btn(tr('common.show_me'),'pathShow',{city:x.c},'ghost sm'):x.link?btn(tr('common.show_me'),'pathShow',{link:x.link},'ghost sm'):'';
 // The pin as compute() walks it. Null while a link on it is down, and routing takes over.
 function pinRoute(p,edges){const path=[];for(let i=1;i<p.length;i++){const e=edges[hopKey(p[i-1],p[i])];if(!e)return null;path.push(e);}return {path,ni:p.map(x=>CIDX[x]),share:1};}
 // Under a customer in the panels.
@@ -85,16 +85,16 @@ function pathModal(b){const a=pathCity(b.city),z=pathCity(b.city2),k=pathKind(b)
     if(cur)h+=`<div class="kv"><span>${tr('customer_paths.now_on')}</span><b>${fibLab(cur)}</b></div>`;
     if(!T.length)h+=`<p class="empty">${tr('customer_paths.no_other_working_fiber',{a,b:z})}</p>`;
     for(const t of T)h+=row(fibLab(t.l),t.no,t.diverse?tr('customer_paths.fully_diverse'):tr('customer_paths.same_trench'),btn(tr('customer_paths.move'),'pathMove',{id:b.id,link:t.l.id},'sm',!!t.no));}
-  else{const {now,sky,alts,pinch}=circuitTargets(b);
+  else{const {now,sky,alts,bn}=circuitTargets(b);
     h+=`<p class="lead" style="margin-top:6px">${tr('customer_paths.routing_chooses_this_circuit',{a,b:z})}</p>`;
     if(sky)h+=`<div class="kv"><span>${tr('customer_paths.now_on')}</span><b>${esc(skyStr(sky))}</b></div><p class="meta">${tr('customer_paths.orbit_is_faster')}</p>`;
     else if(now)h+=`<div class="kv"><span>${tr('customer_paths.now_on')}</span><b>${esc(pathStr(now))}</b></div>`;
     // Where today's path is short of what the customer pays for: the tightest spans and routers, each with a way to open it.
-    if(pinch.length){h+=`<p class="meta" style="margin:10px 0 0"><b>${tr('customer_paths.where_it_pinches')}</b></p>`;
-      for(const x of pinch.slice(0,PINCH_SHOWN))h+=row(`<b style="color:var(--bad)">${pinchTxt(x)}</b>`,'','',pinchBtn(x));}
+    if(bn.length){h+=`<p class="meta" style="margin:10px 0 0"><b>${tr('customer_paths.bottlenecks')}</b></p>`;
+      for(const x of bn.slice(0,BN_SHOWN))h+=row(`<b style="color:var(--bad)">${bnTxt(x)}</b>`,'','',bnBtn(x));}
     if(b.pin)h+=`<div class="btns">${btn(tr('customer_paths.let_routing_choose_again'),'pathAuto',{id:b.id},'ghost sm')}</div>`;
     if(!alts.length)h+=`<p class="empty">${tr('customer_paths.no_other_path',{a,b:z})}</p>`;
     for(const t of alts){const warn=[t.room<b.bw?`<b style="color:var(--bad)">${tr('customer_paths.fits_only_g_of_bw',{g:fmtG(t.room),bw:fmtG(b.bw)})}</b>`:'',b.latMax&&t.lat>b.latMax?`<b style="color:var(--bad)">${tr('customer_paths.over_the_ms_budget',{ms:b.latMax})}</b>`:''].filter(Boolean).join(' · ');
-      const pin=t.pinch.length?`<span style="display:block">${tr('customer_paths.pinch_at',{list:t.pinch.slice(0,2).map(pinchTxt).join('; ')})}</span>`:'';
-      h+=row(esc(pathStr(t.p)),tr('customer_paths.path_facts',{km:Math.round(t.km).toLocaleString(),ms:t.lat.toFixed(1)})+(warn?' · '+warn:'')+pin,t.shared?trn('customer_paths.shares_n_spans',t.shared):tr('customer_paths.fully_diverse'),btn(tr('customer_paths.move'),'pathPin',{id:b.id,via:t.p.join()},'sm'));}}
+      const bnLine=t.bn.length?`<span style="display:block">${tr('customer_paths.bottleneck_at',{list:t.bn.slice(0,2).map(bnTxt).join('; ')})}</span>`:'';
+      h+=row(esc(pathStr(t.p)),tr('customer_paths.path_facts',{km:Math.round(t.km).toLocaleString(),ms:t.lat.toFixed(1)})+(warn?' · '+warn:'')+bnLine,t.shared?trn('customer_paths.shares_n_spans',t.shared):tr('customer_paths.fully_diverse'),btn(tr('customer_paths.move'),'pathPin',{id:b.id,via:t.p.join()},'sm'));}}
   openModal(h);}

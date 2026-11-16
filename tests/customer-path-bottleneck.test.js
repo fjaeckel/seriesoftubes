@@ -1,4 +1,4 @@
-// "Move to another path" names where a circuit's bandwidth pinches: the spans, and the POPs' routers, with less room than the customer wants.
+// "Move to another path" names a circuit's bottlenecks: the spans, and the POPs' routers, with less headroom than the customer wants.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
@@ -18,12 +18,12 @@ const SMALL_E = "S.links.find(l=>l.id==='e').ch=['zr4'];";
 test('an alternative path names the span that is too small, with how much room it has', (t) => {
   const { ev, errors } = game(t, circuit(1000) + SMALL_E);
   const T = json(ev, 'circuitTargets(S.biz[0])');
-  assert.deepEqual(T.pinch, [], 'the direct fibers have room for 1T');
+  assert.deepEqual(T.bn, [], 'the direct fibers have room for 1T');
   assert.deepEqual(T.alts.map((x) => x.p), [['nyc', 'bos', 'ash']]);
-  assert.deepEqual(T.alts[0].pinch, [{ a: 'bos', z: 'ash', room: 400, cap: 400, link: 'e' }]);
+  assert.deepEqual(T.alts[0].bn, [{ a: 'bos', z: 'ash', room: 400, cap: 400, link: 'e' }]);
   ev("ACT.pathOpen({id:'k'})");
-  assert.match(modal(ev), /Pinches at Boston → Ashburn: room for 400 Gbps of 400 Gbps/);
-  assert.doesNotMatch(modal(ev), /Where it pinches/, 'today\'s path is fine');
+  assert.match(modal(ev), /Bottleneck: Boston → Ashburn: 400 Gbps headroom of 400 Gbps/);
+  assert.doesNotMatch(modal(ev), /Bottlenecks/, 'today\'s path is fine');
   assert.deepEqual(errors, []);
 });
 
@@ -32,10 +32,10 @@ test('today\'s path lists its tight spans, with a button that opens the link', (
   assert.equal(ev('R.l2.k'), 400, 'it gets what the small span has');
   const T = json(ev, 'circuitTargets(S.biz[0])');
   assert.deepEqual(T.now, ['nyc', 'bos', 'ash']);
-  assert.deepEqual(T.pinch, [{ a: 'bos', z: 'ash', room: 400, cap: 400, link: 'e' }], 'room counts what the circuit already takes there');
+  assert.deepEqual(T.bn, [{ a: 'bos', z: 'ash', room: 400, cap: 400, link: 'e' }], 'room counts what the circuit already takes there');
   ev("ACT.pathOpen({id:'k'})");
-  assert.match(modal(ev), /Where it pinches/);
-  assert.match(modal(ev), /Boston → Ashburn: room for 400 Gbps of 400 Gbps/);
+  assert.match(modal(ev), /Bottlenecks/);
+  assert.match(modal(ev), /Boston → Ashburn: 400 Gbps headroom of 400 Gbps/);
   const btn = JSON.parse(ev("document.querySelector('#modal [data-act=\"pathShow\"]').dataset.args"));
   assert.deepEqual(btn, { link: 'e' });
   ev("document.querySelector('#modal [data-act=\"pathShow\"]').click()");
@@ -44,17 +44,17 @@ test('today\'s path lists its tight spans, with a button that opens the link', (
   assert.deepEqual(errors, []);
 });
 
-test('a POP whose routers are full is a pinch point too, and its button opens the POP', (t) => {
+test('a POP whose routers are full is a bottleneck too, and its button opens the POP', (t) => {
   const { ev, errors } = game(t, circuit(100) + "S.pops.bos.routers=1;S.pops.bos.rgen=0;");
   const cap = ev('R.nodeCap.bos');
   assert.ok(cap > 0);
   ev(`S.biz[0].bw=${cap + 100};compute();`);
   const T = json(ev, 'circuitTargets(S.biz[0])');
-  const r = T.alts.flatMap((x) => x.pinch).find((x) => x.c === 'bos');
+  const r = T.alts.flatMap((x) => x.bn).find((x) => x.c === 'bos');
   assert.ok(r, 'the routers at Boston are named');
   assert.equal(r.cap, cap); assert.ok(r.room <= cap);
   ev("ACT.pathOpen({id:'k'})");
-  assert.match(modal(ev), /Boston routers: room for/);
+  assert.match(modal(ev), /Boston routers: .* headroom of/);
   ev("ACT.pathShow({city:'bos'})");
   assert.equal(ev("document.getElementById('modal').hidden"), true);
   assert.deepEqual(json(ev, 'UI.sel'), { type: 'city', id: 'bos' }, 'the POP is open');
@@ -64,10 +64,10 @@ test('a POP whose routers are full is a pinch point too, and its button opens th
 test('nothing is named when every span and router has room', (t) => {
   const { ev, errors } = game(t, circuit(100));
   const T = json(ev, 'circuitTargets(S.biz[0])');
-  assert.deepEqual(T.pinch, []);
-  assert.deepEqual(T.alts.map((x) => x.pinch), [[]]);
+  assert.deepEqual(T.bn, []);
+  assert.deepEqual(T.alts.map((x) => x.bn), [[]]);
   ev("ACT.pathOpen({id:'k'})");
-  assert.doesNotMatch(modal(ev), /pinch/i);
+  assert.doesNotMatch(modal(ev), /bottleneck/i);
   assert.deepEqual(errors, []);
 });
 
@@ -75,11 +75,11 @@ test('the tightest spans come first, and only a few are listed', (t) => {
   // d and e both small: Boston–Ashburn 400G, New York–Boston 800G, for a 1T circuit pinned through Boston.
   const { ev, errors } = game(t, circuit(1000) + SMALL_E + "S.links.find(l=>l.id==='d').ch=['zr4','zr4'];ACT.pathPin({id:'k',via:'nyc,bos,ash'});");
   const T = json(ev, 'circuitTargets(S.biz[0])');
-  assert.deepEqual(T.pinch.map((x) => [x.a, x.z, x.room]), [['bos', 'ash', 400], ['nyc', 'bos', 800]], 'tightest first');
+  assert.deepEqual(T.bn.map((x) => [x.a, x.z, x.room]), [['bos', 'ash', 400], ['nyc', 'bos', 800]], 'tightest first');
   ev("ACT.pathOpen({id:'k'})");
   const text = modal(ev);
-  // (the "Now on" line also names both spans, so compare the pinch lines themselves)
-  assert.ok(text.indexOf('Boston → Ashburn: room for') < text.indexOf('New York → Boston: room for'), 'listed in that order');
+  // (the "Now on" line also names both spans, so compare the bottleneck lines themselves)
+  assert.ok(text.indexOf('Boston → Ashburn: 400 Gbps headroom') < text.indexOf('New York → Boston: 800 Gbps headroom'), 'listed in that order');
   assert.deepEqual(errors, []);
 });
 
