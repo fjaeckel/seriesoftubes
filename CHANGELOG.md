@@ -7,7 +7,7 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 - The intern can grow the exchanges you founded: a new standing order upgrades an exchange's fabric when its traffic outgrows your headroom, or when every seat is taken and a network is waiting to join. It has its own monthly budget and shows up in Ops once you run an exchange.
-- A section you unfold in a POP's panel now stays unfolded when you move to another POP, so adding a peering port to POP after POP is one click each instead of three. It covers the exchange, PNI, cache, power and other sections, an exchange's "Get a port" and the routers' "Change"; fold one again and the next POP goes back to what it would have shown. A POP without that section keeps your choice for the next one that has it, and this browser remembers it for next time.
+- A section you unfold in a POP's panel now stays unfolded when you move to another POP, so adding a peering port to POP after POP is one click each instead of three. It covers the exchange, PNI, cache, power and other sections, an exchange's port controls ("Get a port", or "Change" once you are in it) and the routers' "Change"; the exchange section also stays open in a POP with no exchange yet, where you can found your own; fold one again and the next POP goes back to what it would have shown. A POP without that section keeps your choice for the next one that has it, and this browser remembers it for next time.
 
 ## [4.5.0] — 2026-11-16
 

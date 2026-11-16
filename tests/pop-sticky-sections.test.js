@@ -54,7 +54,7 @@ test('unfold the exchange section and "Get a port" once, and every POP you move 
   assert.deepEqual(errors, []);
 });
 
-test('[ and ] step through your POPs with the section still open; a POP with no exchange keeps your choice and shows nothing', (t) => {
+test('[ and ] step through your POPs with the section still open, a POP with no exchange yet included: there it is "found your own IX"', (t) => {
   const g = big(t), { ev, errors } = g;
   const order = plain(ev('popOrder()'));
   assert.deepEqual(order.slice(0, 3), ['auh', 'ams', 'ash'], 'Abu Dhabi has no exchange, Amsterdam and Ashburn do');
@@ -62,17 +62,19 @@ test('[ and ] step through your POPs with the section still open; a POP with no 
   at(g, 'ams', 'peer');
   ev("ACT.panelFold({k:'s:ix',o:1})");
   assert.equal(on(g, 'ix'), true);
+  assert.equal(q(g, '[data-act="foundIx"]').length, 0, 'Amsterdam has its exchange: nothing to found');
   key(g, '[');
   assert.equal(ev('UI.sel.id'), 'auh');
-  assert.equal(on(g, 'ix'), false, 'nothing in it for a city with no exchange, so it stays folded');
-  assert.equal(q(g, '[data-act="foundIx"]').length, 0, 'no "found your own IX" offer pushed under the pointer');
+  assert.equal(on(g, 'ix'), true, 'open with no exchange too: that is where you start your own');
+  assert.equal(q(g, '[data-act="foundIx"]').length, 1, 'the offer to found your own IX is there without a click');
   assert.equal(prefs(g), '{"s:ix":1}', 'the choice is kept');
-  // Round the list: open at every POP that has an exchange, all of it (not just what needs you), and closed where it has none.
+  // Round the list: open at every POP, all of it (not just what needs you); the offer where there is no exchange.
   const seen = [];
   for (let i = 0; i < 12; i++) {
     key(g, ']');
     const c = ev('UI.sel.id'), has = !!ev(`ixIdsIn('${c}').length&&ixName('${c}')`);
-    assert.equal(on(g, 'ix'), has, c);
+    assert.equal(on(g, 'ix'), true, c);
+    assert.equal(q(g, '[data-act="foundIx"]').length, has ? 0 : 1, c + (has ? ': it has an exchange' : ': no exchange, so the offer'));
     if (has) assert.equal(q(g, '.psec[data-sec="ix"] .pnmore [data-act="panelFold"]').length, 0, c + ': every exchange, not "Show all"');
     seen.push(has);
   }
@@ -84,8 +86,9 @@ test('[ and ] step through your POPs with the section still open; a POP with no 
 test('only what you opened opens: a city with three exchanges opens the one you opened, and the rest stays as it was', (t) => {
   const g = big(t), { ev, errors } = g;
   // An exchange is told apart by its place in its city's list: the first is the incumbent.
+  // Joined or not does not matter: it is the place in the list ('x:ams' is Amsterdam's, which you have joined).
   assert.deepEqual(plain(ev("['x:mnl','x:mnl~2','x:mnl~3','x:ams','x:nowhere','x:mnl~99','h:ix','s:decom','std','rtc'].map(pnKind)")),
-    ['xj0', 'xj1', 'xj2', 'xc0', '', '', '', '', 'std', 'rtc']);
+    ['x0', 'x1', 'x2', 'x0', '', '', '', '', 'std', 'rtc']);
   ev("for(const x of ['dxb','dxb~2'])delete S.ixp[x];compute()");
   at(g, 'mnl', 'peer');
   ev("ACT.panelFold({k:'s:ix',o:1})");
@@ -96,13 +99,44 @@ test('only what you opened opens: a city with three exchanges opens the one you 
   assert.deepEqual(xOpen(g), [false, true, false], 'a tap on one row does not move the others');
   at(g, 'dxb');
   assert.deepEqual(xOpen(g), [false, true], 'the second exchange of the next city; the incumbent stays folded');
-  // Joined exchanges are another kind: "Change" does not follow a "Get a port".
+  // Once you have a port the same tap is "Change": the place in the list is what counts, not whether you joined.
   ev("S.ixp.dxb=0;compute()");              // a port there now (set directly: what this checks is the fold)
   at(g, 'mnl');
   assert.deepEqual(xOpen(g), [false, true, false]);
   at(g, 'dxb');
-  assert.deepEqual(xOpen(g), [false, true], 'the Change of the exchange you now have is not open: it is another kind');
-  assert.equal(ev("pnKind('x:dxb')"), 'xc0');
+  assert.deepEqual(xOpen(g), [false, true], 'the second exchange is still the one that is open');
+  assert.equal(ev("pnKind('x:dxb')"), 'x0');
+  assert.deepEqual(errors, []);
+});
+
+test('a port is one click whether you are in the exchange, have to join it or have to found it: one fold follows you across all three', (t) => {
+  const g = big(t), { ev, errors } = g;
+  // Amsterdam: joined ("Change"). Darwin: an exchange you have not joined ("Get a port"). Abu Dhabi: no exchange yet.
+  assert.equal(ev("S.ixp.ams!==undefined&&S.ixp.drw===undefined&&!(ixIdsIn('auh').length&&ixName('auh'))"), true);
+  at(g, 'ams', 'peer');
+  // Only the first exchange of a city opens (Amsterdam has three), whatever you hold in it.
+  const first = (n, yes) => Array.from({ length: n }, (_, i) => i === 0 && yes);
+  ev("ACT.panelFold({k:'s:ix',o:1})");        // not a click on the heading: a hot port may have opened it already
+  const rows = xRows(g).length;
+  assert.equal(rows, 3);
+  assert.deepEqual(xOpen(g), first(rows, false));
+  xRows(g)[0].click();                        // the Change of the exchange you are in
+  assert.deepEqual(xOpen(g), first(rows, true));
+  for (const c of ['drw', 'auh', 'ams', 'mrs']) {
+    ev(`selectCity('${c}')`);
+    assert.equal(on(g, 'ix'), true, c + ': the section');
+    if (c === 'auh') assert.equal(q(g, '[data-act="foundIx"]').length, 1, c + ': founding your own, there without a click');
+    else assert.deepEqual(xOpen(g), first(xRows(g).length, true), c + ': Get a port or Change, open without a click');
+  }
+  ev("selectCity('drw')");
+  assert.ok(buy(g).length > 0, 'the port sizes of the exchange you have not joined');
+  xRows(g)[0].click();                        // fold it from the other kind: it goes everywhere, as it came
+  for (const c of ['ams', 'mrs']) {
+    ev(`selectCity('${c}')`);
+    assert.equal(on(g, 'ix'), true, c);
+    assert.deepEqual(xOpen(g), first(xRows(g).length, false), c);
+  }
+  assert.equal(prefs(g), '{"s:ix":1}');
   assert.deepEqual(errors, []);
 });
 
@@ -110,10 +144,10 @@ test('folding a block forgets it, so the next POP is back to what it would have 
   const g = big(t), { ev, errors } = g;
   at(g, 'drw', 'peer');
   head(g, 'ix').click(); head(g, 'pni').click(); xRows(g)[0].click();
-  assert.equal(prefs(g), '{"s:ix":1,"s:pni":1,"xj0":1}');
+  assert.equal(prefs(g), '{"s:ix":1,"s:pni":1,"x0":1}');
   head(g, 'pni').click();                     // fold one again
   assert.equal(on(g, 'pni'), false);
-  assert.equal(prefs(g), '{"s:ix":1,"xj0":1}');
+  assert.equal(prefs(g), '{"s:ix":1,"x0":1}');
   at(g, 'mrs');
   assert.deepEqual([on(g, 'ix'), on(g, 'pni')], [true, false]);
   head(g, 'ix').click(); xRows(g).length && assert.equal(xOpen(g).length, 0, 'a folded section has no rows');
@@ -209,7 +243,7 @@ test('this browser remembers it, validated like any stored value; the save is ne
   const save = ev('JSON.stringify(S)'), fields = ev('Object.keys(S).join()');
   at(g, 'drw', 'peer');
   head(g, 'ix').click(); xRows(g)[0].click();
-  assert.equal(stored(g), '{"s:ix":1,"xj0":1}');
+  assert.equal(stored(g), '{"s:ix":1,"x0":1}');
   at(g, 'mrs');
   assert.equal(ev('JSON.stringify(S)'), save, 'nothing of it is in S, so no default in newGame() or repair in sanitize()');
   assert.equal(ev('Object.keys(S).join()'), fields);
@@ -220,9 +254,9 @@ test('this browser remembers it, validated like any stored value; the save is ne
   assert.deepEqual(xOpen(h), [true]);
   // Anything else is ignored: unknown kinds, other values, damaged text.
   for (const [raw, want] of [
-    ['{"s:decom":1,"s:traf":1,"xj9":1,"xj":1,"h:ix":1,"__proto__":1,"bogus":1}', '{}'],
+    ['{"s:decom":1,"s:traf":1,"x9":1,"x":1,"xj0":1,"xc2":1,"h:ix":1,"__proto__":1,"bogus":1}', '{}'],
     ['{"s:ix":"yes","s:pni":true,"s:cache":2,"s:power":0}', '{}'],
-    ['{"s:ix":1,"xc2":1,"std":1,"rtc":1}', '{"s:ix":1,"std":1,"rtc":1,"xc2":1}'],
+    ['{"s:ix":1,"x2":1,"std":1,"rtc":1}', '{"s:ix":1,"std":1,"rtc":1,"x2":1}'],
     ['not json', '{}'], ['[1,2]', '{}'], ['"s:ix"', '{}'], ['null', '{}'], ['5', '{}'],
   ]) {
     const x = big(t, { storage: { 'sot-folds': raw } });
