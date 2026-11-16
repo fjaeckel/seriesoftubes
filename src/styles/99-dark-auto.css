@@ -387,6 +387,13 @@
 :where(:root.dark) .nw-bar{background:#26324F}
 :where(:root.dark) .nw-btns{color:#CCD2E7}
 :where(:root.dark) .nw-btns .meta{color:#9FB0D3}
+@media (min-width:1001px){
+:where(:root.dark) .nw-grip{color:#6F80A8}
+:where(:root.dark) .nw-grip:hover,:where(:root.dark) .nw-grip:focus-visible{color:#E8EEFA;background:#1E2A4A}
+:where(:root.dark) .nw-grip:focus-visible,:where(:root.dark) .nw-rz:focus-visible{outline:2px solid #7B8CFF}
+:where(:root.dark) .nw-rz:hover{background:rgba(159,176,211,.28)}
+:where(:root.dark) .nw-rz[data-d=se]::after{border-right:2px solid #6F80A8;border-bottom:2px solid #6F80A8}
+}
 :where(:root.dark) .fed-dot{background:var(--ink2)}
 :where(:root.dark) .fed-dot.connected{background:var(--ok)}
 :where(:root.dark) .fed-dot.connecting{background:var(--warn);color:var(--on)}

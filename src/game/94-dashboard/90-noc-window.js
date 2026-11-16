@@ -51,15 +51,15 @@ function nocBar(){const b=$('nocBar');if(!b)return;
   const {bad,warn}=NOCW.sum,tab=(v,l)=>`<button data-nc="${v}" class="${NOCW.view===v?'on':''}" aria-pressed="${NOCW.view===v}">${esc(l)}</button>`;
   const h=`<div class="nb-id">${S?`<span class="nb-as">AS${S.asn} · ${esc(S.name)} · ${esc(tierLabel())}</span>`:''}<div class="nb-title">${esc(tr('common.noc_dashboard'))}</div></div>`
     +(S?`<span class="nb-pill ${bad?'bad':warn?'warn':''}">${esc(bad?trn('noc.n_alarms',bad):warn?trn('noc.n_warnings',warn):tr('common.all_quiet'))}</span><span class="nb-now"><b>${esc(dateStr(S.day))}</b><span>${esc(fmt$(S.cash))}</span><span>${NOC.speed?NOC.speed+'×':'❚❚'}</span></span>`:'')
-    +`<div class="nb-tabs">${tab('wall',tr('noc.wallboard'))}${tab('details',tr('noc.details'))}${document.documentElement.requestFullscreen?`<button data-nc="fs">${esc(tr('noc.full_screen'))}</button>`:''}</div>`
+    +`<div class="nb-tabs">${tab('wall',tr('noc.wallboard'))}${tab('details',tr('noc.details'))}${NOCW.view==='wall'?`<button data-nc="layout" class="nb-lay">${esc(tr('noc.reset_layout'))}</button>`:''}${document.documentElement.requestFullscreen?`<button data-nc="fs">${esc(tr('noc.full_screen'))}</button>`:''}</div>`
     +(why?`<div class="nb-why">${esc(why)}</div>`:'');
   if(b._h!==h){b._h=h;morph(b,h);}}
 function nocBeat(now=performance.now()){nocPost({t:'hi',id:NOC.id});if(now-NOC.yoAt>NOC_LOST&&!NOC.gone){NOC.gone=true;nocBar();}}
 function nocFwd(act,a){if(NOC_GO.includes(act))nocPost({t:'act',id:NOC.id,act,args:a||{}});}
 function nocWinBoot(){i18nDom();document.body.classList.add('noc-window');UI.dtab='conn';try{UI.anim=localStorage.getItem('sot-anim')||'auto';}catch(e){}themeBoot();$('dash').hidden=true;$('dash').insertAdjacentHTML('beforebegin','<div id="nocBoard"><header id="nocBar"></header><main id="nocWall"></main></div>');
-  const bd=$('nocBoard');bd.addEventListener('click',nocUiClick);bd.addEventListener('change',e=>{if(e.target.hasAttribute&&e.target.hasAttribute('data-nc-city')){NOCW.city=e.target.value;nocRender();}});bd.addEventListener('pointerdown',e=>{if(e.target.closest('#nocWall'))pressing=true;});
-  // The game's keyboard shortcuts are for the map, which is not here. Tab and the browser's own keys still work.
-  addEventListener('keydown',e=>e.stopImmediatePropagation(),true);
+  const bd=$('nocBoard');bd.addEventListener('click',nocUiClick);bd.addEventListener('change',e=>{if(e.target.hasAttribute&&e.target.hasAttribute('data-nc-city')){NOCW.city=e.target.value;nocRender();}});bd.addEventListener('pointerdown',e=>{if(e.target.closest('#nocWall'))pressing=true;});bd.addEventListener('pointerdown',nwGrab);addEventListener('resize',nwResized);
+  // The game's keyboard shortcuts are for the map, which is not here. Tab and the browser's own keys still work (and the windows' arrows).
+  addEventListener('keydown',e=>{nwKey(e);e.stopImmediatePropagation();},true);
   for(const k of Object.keys(ACT))if(!NOC_LOCAL.includes(k))ACT[k]=a=>nocFwd(k,a);
   ACT.dashClose=()=>{try{window.close();}catch(e){}};
   ACT.connCancel=a=>{const key='cc:'+a.k+':'+a.id;if(UI.confirm!==key){UI.confirm=key;renderDash();return;}UI.confirm=null;nocFwd('connCancel',a);};
