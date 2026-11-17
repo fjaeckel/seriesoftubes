@@ -6,13 +6,15 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+## [4.7.0] — 2026-11-17
+
 - A normal game can start with a challenge, picked on the title screen: in Outcast mode the public exchanges will not sell you a port, so you found exchanges of your own in cities that have none and peer over PNIs. Challenge games are played alone, without Multimode.
-- A customer's path that shows exactly its latency budget (say 42.2 ms of 42.2 ms) now meets it: latencies are compared the way they are shown, to a tenth of a millisecond (#423).
-- Auto-TE can also spread L2 circuits across paths, with a new toggle in Routing & DDoS that starts off. It follows your spill rules and leaves pinned paths fixed.
 - The windows of the NOC screen can be moved and resized: drag a window's title bar, pull an edge or a corner, or use the arrow keys on its grip (with Shift they resize it). Windows never overlap or leave the screen: one dropped on another sends it below and the rest close up, and the charts redraw to fit. The layout is kept in this browser, and Reset layout in the top bar puts every window back. On a narrow screen the windows stack as before.
 - "Move to another path" now shows where a circuit's bottlenecks are: the spans and POP routers with less headroom than the customer wants, tightest first, on today's path and on each alternative, with a button that opens the link or the POP.
-- In Multimode, the game now tells you when other players you have not peered with cost you service. Unhappy customers name it, the Reach chip and your AS panel show your reach with players included, and the NOC warns before customers start leaving, with a button to the players to peer with (#414).
 - Pie Control's Dishes tab has a dish optimizer: it suggests what to change on the ground, one line at a time, each saying why it is there, with its cost, a rough payback and a mark on the globe. It adds antennas to busy dishes, builds dishes (opening a POP if that pays best) where cities are out of reach so orbit customers there can sign, and suggests moving or taking down idle dishes no customer lands on, asking before it does.
+- Auto-TE can also spread L2 circuits across paths, with a new toggle in Routing & DDoS that starts off. It follows your spill rules and leaves pinned paths fixed.
+- In Multimode, the game now tells you when other players you have not peered with cost you service. Unhappy customers name it, the Reach chip and your AS panel show your reach with players included, and the NOC warns before customers start leaving, with a button to the players to peer with (#414).
+- A customer's path that shows exactly its latency budget (say 42.2 ms of 42.2 ms) now meets it: latencies are compared the way they are shown, to a tenth of a millisecond (#423).
 
 ## [4.6.0] — 2026-11-16
 
