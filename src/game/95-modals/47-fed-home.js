@@ -53,6 +53,7 @@ function fuSrvOf(url){const st=FED.st[url];if(st&&st.server)return FU.srvs.find(
 // Server ids of the joined servers, known now or from the catalog (the boards are cached per server, also offline).
 function fuSrvIds(){const f=S&&S.fed;if(!f)return [];return [...new Set(f.servers.map(u=>{const s=fuSrvOf(u);return s&&s.id;}).filter(Boolean))];}
 function fuWhyMode(){if(!S||!UI.started)return tr('fedui.open_a_normal_network_first');if(S.lost)return tr('fedui.this_network_s_game_is_over');
+  if(challengeModsOn(S)){const modes=GAME_MODS.filter(modeOn).map(id=>GAME_MOD_NAME[id]).join(', ');return tr('fedui.challenge_modes_are_played_alone',{modes});}
   const m=fedMode(S);return m==='sandbox'||m==='open_gates'?tr('fedui.sandbox_and_open_gates_networks_play'):tr('fedui.puzzles_scenarios_and_the_weekly_challenge');}
 const fuPolicy=s=>s.sync==='open'?tr('fedui.policy_open'):s.sync==='selective'?tr('fedui.policy_selective'):s.sync==='standalone'?tr('fedui.policy_standalone'):tr('fedui.policy_unknown');
 const fuErrText=code=>({mode:fuWhyMode(),url:tr('fedui.that_is_not_a_server_address'),full:tr('fedui.you_are_on_four_servers_already'),crypto:tr('fedui.this_browser_cannot_sign'),

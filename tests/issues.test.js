@@ -754,6 +754,14 @@ test('connections in the NOC dashboard can be cancelled right there, after a con
   click('ix', 'fra'); click('ix', 'fra');
   assert.equal(ev("S.ixp.fra"), 2, 'your own exchange cannot be cancelled from the list');
   assert.equal(ev("document.getElementById('dash').hidden"), false);
+  // Without forging the panel state (no row unfolded): still one confirm, then gone, and nothing left to confirm.
+  ev("ACT.buyTransit({city:'fra',net:'cog',tier:1});UI.dashOpen=null");
+  const t2 = ev("S.transit[0].id");
+  ev(`ACT.connCancel({k:'t',id:'${t2}'})`);
+  assert.equal(ev('S.transit.length'), 1, 'first tap asks');
+  ev(`ACT.connCancel({k:'t',id:'${t2}'})`);
+  assert.equal(ev('S.transit.length'), 0, 'second tap cancels');
+  assert.equal(ev('UI.confirm'), null);
   assert.deepEqual(errors, []);
 });
 
@@ -808,23 +816,7 @@ test('leased-line savings only count when your own glass has room, and include t
   assert.deepEqual(errors, []);
 });
 
-test('cancelling from the Connections list confirms once, without forging the panel state', () => {
-  const { ev, errors } = load();
-  ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1});compute()");
-  const id = ev("S.transit[0].id");
-  ev(`ACT.connCancel({k:'t',id:'${id}'})`);
-  assert.equal(ev('S.transit.length'), 1, 'first tap asks');
-  ev(`ACT.connCancel({k:'t',id:'${id}'})`);
-  assert.equal(ev('S.transit.length'), 0, 'second tap cancels');
-  assert.equal(ev('UI.confirm'), null);
-  ev(`ACT.buyTransit({city:'fra',net:'cog',tier:1})`);
-  ev(`ACT.cancelTransit({id:S.transit[0].id})`);
-  assert.equal(ev('S.transit.length'), 0, 'the POP panel cancels on one tap now, with Undo');
-  ev('ACT.undo()');
-  assert.equal(ev('S.transit.length'), 1, 'and Undo puts the port back');
-  assert.deepEqual(errors, []);
-});
-
+// One tap and Undo on the POP panel: tests/undo.test.js.
 test('diversity offers respect buildable cable routes, not current infrastructure', () => {
   const { ev, dom, errors } = load();
   base(ev);
@@ -1244,9 +1236,15 @@ test('#113 Red Sea Crisis wants traffic into Asia for a month, not broadband and
   // Asian users backhauled to Marseille transit get slow service and would churn away; keep them subscribed,
   // this is about the 30-day counter.
   ev("window.__bb={sin:60,bom:60}");
-  let d = 0; while (!ev('S.scn.done') && d < 200) { ev('for(const c of ["sin","bom"])S.pops[c].bb.d=Math.max(S.pops[c].bb.d,__bb[c]);dayTick()'); d++; }
+  const day = 'for(const c of ["sin","bom"])S.pops[c].bb.d=Math.max(S.pops[c].bb.d,__bb[c]);dayTick()';
+  // Played until the waves are lit and 80 Gbps cross; the streak then skips ahead to its 29th day (the playtest in
+  // tests/scenarios-playtest.test.js plays a whole month).
+  let d = 0; while (ev('(S.stats.asiaRun||0)') < 1 && d < 200) { ev(day); d++; }
+  assert.ok(ev('S.stats.asiaRun') >= 1 && !ev('S.scn.done'), `80 Gbps cross into Asia from day ${d}`);
+  ev('S.stats.asiaRun=28'); ev(day);
+  assert.ok(ev('S.stats.asiaRun') === 29 && !ev('S.scn.done'), '29 days in a row are not a month');
+  ev(day);
   assert.ok(ev('S.scn.done'), 'won once 80 Gbps crossed into Asia for 30 days in a row');
-  assert.ok(d >= 30, `took ${d} days`);
   assert.match(ev("scnProg().items.map(x=>x.l+' '+x.txt).join(' | ')"), /Days in a row at 80(\.0)? Gbps or more 30 \/ 30/);
   // the streak only counts days in a row
   ev("S.stats.asiaRun=12;for(const l of S.links)l.cut=S.day+5;after();dayTick()");

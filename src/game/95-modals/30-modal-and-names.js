@@ -5,7 +5,7 @@ function openModal(html,cls=''){HOOKS.modal?.(true);$('modal').className=cls;$('
 // pieModal(true)). Every other window stops the clock until it is closed (#376).
 const CLOCK_MODALS={pie:1},modalStops=()=>!$('modal').hidden&&!CLOCK_MODALS[$('modal').className];
 // Keyboard focus goes back to what opened the modal (screen readers and keyboards keep their place).
-function closeModal(){const was=!$('modal').hidden;if(was)markLayer();pieGlobeClose();$('modal').hidden=true;UI.pending=null;HOOKS.modal?.(false);
+function closeModal(){const was=!$('modal').hidden;if(was)markLayer();pieGlobeClose();if($('modal').className==='pie')UI.piePlan=UI.piePlanAsk=UI.piePlanAll=null;$('modal').hidden=true;UI.pending=null;HOOKS.modal?.(false);
   const f=UI.modalFrom;UI.modalFrom=null;if(was&&f&&f.isConnected&&!f.closest('#modal'))try{f.focus({preventScroll:true});}catch(e){}}
 // The NOC dashboard and the bank are windows of their own, not modals: a keyboard that opened one lands in it, and goes
 // back to what opened it when it closes. A tap (nothing focused) moves nothing.

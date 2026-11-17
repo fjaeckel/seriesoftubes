@@ -48,7 +48,7 @@ function pieGlobeData(){const P=S&&S.pie;if(!P)return {crusts:[],dishes:[],pads:
     dishes:P.dishes.map(x=>({...ll(x.city),up:!(x.down>S.day),u:ld[x.city]})),pads:P.pads.map(p=>({...ll(p.city),next:p.next})),launches:P.q.map(L=>({id:L.id,rk:L.rk,cr:L.cr,n:L.n,day:L.day,pad:L.pad})),flown:PIE_LOG.filter(x=>x.day<=S.day&&S.day-x.day<=60&&P.pads.some(p=>p.city===x.pad)).map(x=>({pad:x.pad,ok:x.ok,rk:x.rk})),
     flows:flows.sort((a,b)=>b.g-a.g),hi:UI.pieHi||null,
     // The Dishes tab: every POP without a dish and the picked city; satellites hidden on request, on every tab.
-    pops:UI.pieTab==='dish'?Object.keys(S.pops).filter(c=>!P.dishes.some(x=>x.city===c)).map(c=>({city:c})):[],focus:UI.pieTab==='dish'?UI.pieFocus||null:null,noSats:!!UI.pieNoSats};}
+    pops:UI.pieTab==='dish'?Object.keys(S.pops).filter(c=>!P.dishes.some(x=>x.city===c)).map(c=>({city:c})):[],focus:UI.pieTab==='dish'?UI.pieFocus||null:null,plan:piePlanSites(),noSats:!!UI.pieNoSats};}
 // Spats (geopolitics) register in PIE_SPATS and keep their state in S.pie.spat; this ticks and ends them.
 function pieSpatDay(d){const sp=S.pie.spat;for(const k of Object.keys(sp)){const o=sp[k],D=PIE_SPATS[k];if(!D||o.until<=d){delete sp[k];if(D&&D.end)D.end(o);continue;}if(D.day)D.day(o,d);}}
 const pieYear=d=>1+Math.floor(d/360);

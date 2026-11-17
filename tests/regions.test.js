@@ -14,7 +14,8 @@ test('new cities exist, sit on land and have sellers, cables and IX members', ()
     // Juba is the one documented W3 exception: MTN and Zain haul its transit in from abroad
     if (c !== 'jub') assert.ok(ev(`NETS.some(n=>n.price&&n.pops.includes('${c}'))`), `${c} has a transit seller`);
   }
-  for (const c of ['for', 'rio', 'bue', 'scl', 'lim', 'bog', 'pan', 'maa', 'tpe', 'fuj', 'cpt'])
+  // Bogotá's cables land on the coast, in Cartagena and Barranquilla, and run on overland.
+  for (const c of ['for', 'rio', 'bue', 'scl', 'lim', 'ctg', 'baq', 'pan', 'maa', 'tpe', 'fuj', 'cpt'])
     assert.ok(ev(`CABLE_PAIRS.some(p=>p.a==='${c}'||p.b==='${c}')`), `${c} has a cable`);
   assert.ok(ev("ixMembers('sao').includes('clr')&&ixMembers('del').includes('jio')&&ixMembers('tpe').includes('cht')"));
   assert.ok(ev("CABLE_PAIRS.some(p=>(p.a==='scl'&&p.b==='syd')||(p.a==='syd'&&p.b==='scl'))"), 'Humboldt-ish cable to Sydney');

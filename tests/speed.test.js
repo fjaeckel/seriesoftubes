@@ -3,17 +3,25 @@ const assert = require('node:assert/strict');
 const { load } = require('./harness');
 const { lit } = require('../scripts/lib/js-literal');
 
-// A network on four continents: POPs, waves, transit, IX ports, PNIs, caches and customers.
+// A network on four continents: POPs, waves, transit, IX ports, PNIs, caches and customers. Built once on a page of its
+// own (it took seconds, in a dozen tests); each test gets a fresh page with its save.
+let BIG = null;
 function bigNet(ev) {
-  ev("ACT.start({});S.cash=1e10;S.lvl=6;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'})");
-  ev("for(const c of ['ams','lon','par','nyc','ash','chi','sjc','tok','hkg','sin','syd','sao'])ACT.buildPop({city:c})");
-  ev("for(const [a,b] of [['fra','ams'],['ams','lon'],['lon','par'],['par','fra'],['lon','nyc'],['nyc','ash'],['ash','chi'],['chi','sjc'],['sjc','syd'],['tok','hkg'],['hkg','sin'],['sin','syd'],['nyc','sao']]){UI.via=null;openLinkModal(a,b);ACT.buildLink({tier:1});closeModal();}");
-  ev("for(const c in S.pops){S.pops[c].bb=S.pops[c].bb||{d:0};S.pops[c].bb.d=500;}");
-  ev("for(const [c,n] of [['fra','cog'],['nyc','lvl'],['sin','cog'],['tok','lvl']])ACT.buyTransit({city:c,net:n,tier:1})");
-  ev("for(const c of ['fra','ams','lon','nyc','sin','tok'])ACT.buyIx({city:c,tier:1,signed:true});for(const c in S.ixp)ACT.rs({city:c});compute()");
-  ev("for(const n of ['ggl','nfx','fbk','amz','akm'])for(const c of ['fra','nyc','sin'])ACT.pni({city:c,net:n,tier:1});compute()");
-  ev("for(const n of ['nfx','ggl'])for(const c of ['fra','nyc','sin','lon'])ACT.cache({city:c,net:n})");
-  ev("for(let i=0;i<150;i++){S.offers=[];spawnOffer();for(const o of S.offers.slice())if(bHas(o))ACT.accept({id:o.id});}closeModal();compute()");
+  if (!BIG) {
+    const { ev: b, dom } = load();
+    b("ACT.start({});S.cash=1e10;S.lvl=6;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'})");
+    b("for(const c of ['ams','lon','par','nyc','ash','chi','sjc','tok','hkg','sin','syd','sao'])ACT.buildPop({city:c})");
+    b("for(const [a,b] of [['fra','ams'],['ams','lon'],['lon','par'],['par','fra'],['lon','nyc'],['nyc','ash'],['ash','chi'],['chi','sjc'],['sjc','syd'],['tok','hkg'],['hkg','sin'],['sin','syd'],['nyc','sao']]){UI.via=null;openLinkModal(a,b);ACT.buildLink({tier:1});closeModal();}");
+    b("for(const c in S.pops){S.pops[c].bb=S.pops[c].bb||{d:0};S.pops[c].bb.d=500;}");
+    b("for(const [c,n] of [['fra','cog'],['nyc','lvl'],['sin','cog'],['tok','lvl']])ACT.buyTransit({city:c,net:n,tier:1})");
+    b("for(const c of ['fra','ams','lon','nyc','sin','tok'])ACT.buyIx({city:c,tier:1,signed:true});for(const c in S.ixp)ACT.rs({city:c});compute()");
+    b("for(const n of ['ggl','nfx','fbk','amz','akm'])for(const c of ['fra','nyc','sin'])ACT.pni({city:c,net:n,tier:1});compute()");
+    b("for(const n of ['nfx','ggl'])for(const c of ['fra','nyc','sin','lon'])ACT.cache({city:c,net:n})");
+    b("for(let i=0;i<150;i++){S.offers=[];spawnOffer();for(const o of S.offers.slice())if(bHas(o))ACT.accept({id:o.id});}closeModal();compute()");
+    BIG = b('JSON.stringify(S)');
+    dom.window.close();
+  }
+  ev(`S=migrate(JSON.parse(${lit(BIG)}));UI.started=true;UI.pitched=true;closeModal();compute()`);
 }
 
 test('a preferred exit far away still wins over a normal one next door', () => {
@@ -232,8 +240,10 @@ test('payday money floaters fade after a long pause instead of piling up', () =>
   // a fake clock, so a ten-minute pause takes no time; no auto-pause in the middle
   ev("closeModal();ACT.animSet({v:'on'});setPref('pauseFurious',false);setPref('pauseIncident',false);window.__clk=5000;performance.now=()=>__clk;last=__clk;UI.speed=1");
   const run = (ms) => { for (let t = 0; t < ms; t += 16) ev('__clk+=16;frame(__clk)'); };
+  ev("ACT.buildPop({city:'mad'})");
+  assert.ok(ev('FLOATS.length') > 0, 'building shows the money');
   run(2000);
-  assert.equal(ev('FLOATS.length'), 0, 'floaters from building the network have faded');
+  assert.equal(ev('FLOATS.length'), 0, 'floaters from building have faded');
   ev('UI.speed=0;__clk+=600000;frame(__clk)');
   ev('while(cal(S.day+1).d!==1)dayTick();UI.speed=1;acc=DAY_MS');
   run(16);
@@ -267,8 +277,10 @@ test('the map is not drawn while the dashboard covers the whole screen', () => {
   const frame = () => { const a = ev('ctx.calls.n'); ev('__clk+=16;frame(__clk)'); return ev('ctx.calls.n') - a; };
   // jsdom has no layout, so the card says where it is: on a phone, scrolled down, it fills the screen
   const at = (top) => ev(`$('dashCard').getBoundingClientRect=()=>({top:${top},left:0,right:innerWidth,bottom:innerHeight+900})`);
+  ev("ACT.buildPop({city:'mad'})");
+  assert.ok(ev('FLOATS.length') > 0, 'building shows the money');
   for (let t = 0; t < 2000; t += 16) frame();
-  assert.equal(ev('FLOATS.length'), 0, 'floaters from building the network have faded');
+  assert.equal(ev('FLOATS.length'), 0, 'floaters from building have faded');
   assert.ok(frame() > 0, 'the running map is drawn every frame');
   ev('ACT.connOpen()'); at(-40);
   assert.equal(frame(), 0, 'nothing is drawn under the dashboard');
@@ -346,10 +358,10 @@ test('fast routing gives exactly the same result as the plain path it replaces',
   const sig = () => ev(`JSON.stringify({served:R.served,demand:R.demand,reach:R.reach,peered:R.peered,teMoved:R.teMoved,egT:R.egT,
     srv:Object.keys(R.citySrv).sort().map(c=>[c,R.citySrv[c]]),load:S.links.map(l=>R.load[l.id]||0),node:Object.keys(R.nodeLoad).sort().map(c=>[c,R.nodeLoad[c]]),
     t:Object.keys(R.useT).sort().map(k=>[k,R.useT[k]]),p:Object.keys(R.usePni).sort().map(k=>[k,R.usePni[k]]),ix:Object.keys(R.useIx).sort().map(k=>[k,R.useIx[k]]),c:Object.keys(R.useCache).sort().map(k=>[k,R.useCache[k]])})`);
-  for (let day = 0; day < 6; day++) {
-    // the last days run a RouteScript: spill keeps headroom on every link (push with a reserve), plus preferences
-    if (day === 4) ev(`S.te.script='spill at 80%\\nprefer transit '+NET[S.transit[0].net].name+'\\nprotect customers';`);
-    if (day >= 4) assert.ok(ev('!!teRules()&&teRules().spill===0.8'), 'the RouteScript is active');
+  for (let day = 0; day < 4; day++) {
+    // the last two days run a RouteScript: spill keeps headroom on every link (push with a reserve), plus preferences
+    if (day === 2) ev(`S.te.script='spill at 80%\\nprefer transit '+NET[S.transit[0].net].name+'\\nprotect customers';`);
+    if (day >= 2) assert.ok(ev('!!teRules()&&teRules().spill===0.8'), 'the RouteScript is active');
     ev('compute()'); const fast = sig();
     ev('__plain()'); const ref = sig();
     assert.equal(fast, ref, `day ${day}: the fast and the plain path route the same traffic`);

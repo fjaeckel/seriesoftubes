@@ -87,8 +87,8 @@ test('C2: when the node does not take this network\'s auth, the game does not su
 test('C3: a node that hangs up right after the sub is not redialled every two seconds', async () => {
   const p = fedPage(), n = spy(p, URL1, { sub: (ws, f, node) => { node.net.later(() => ws.drop()); return true; } });
   await joinGame(p); await run(p, 1000);
-  const h0 = n.hellos; await run(p, 120000);
-  assert.ok(n.hellos - h0 <= 10, `backs off (${n.hellos - h0} hellos in 2 minutes)`);
+  const h0 = n.hellos; await run(p, 60000);
+  assert.ok(n.hellos - h0 <= 10, `backs off (${n.hellos - h0} hellos in a minute; every two seconds would be 30)`);
 });
 
 test('C3: a connection-level rate limit is waited out', async () => {

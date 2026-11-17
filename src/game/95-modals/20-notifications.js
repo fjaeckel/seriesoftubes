@@ -1,5 +1,5 @@
 /* ---------- notifications: the NOC keeps the last ten minutes, readable and openable ---------- */
-const LOG_KEEP=60,LOG_MS=10*60*1000,LOG_KINDS=['','good','bad','goal'],LOG_OPEN=['city','link','cust','bank','tab','ops','badges'],LOG_TABS=['goals','deals','noc','nets'];
+const LOG_KEEP=60,LOG_MS=10*60*1000,LOG_KINDS=['','good','bad','goal'],LOG_OPEN=['city','link','cust','bank','tab','ops','optx','badges'],LOG_TABS=['goals','deals','noc','nets'];
 // What a notification is about, from the button it came with: the same place its own button would take you.
 function openOf(actions){for(const a of actions||[]){const g=a.args||{};
   if(a.act==='focusCity'&&isCity(g.city))return {a:'city',v:g.city};if(a.act==='selLink'&&g.id)return {a:'link',v:String(g.id)};

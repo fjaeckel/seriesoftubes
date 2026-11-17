@@ -1,5 +1,5 @@
-function dashTabs(){const u=custStats().unhappy,cur=UI.dtab||'overview',L={overview:tr('common.overview'),cust:tr('common.customers'),conn:tr('common.connections'),traffic:tr('common.traffic'),links:tr('common.links'),routers:tr('common.routers'),pops:tr('unbuilt_pops.no_pop_yet'),lease:tr('common.leased_lines'),market:tr('market.tab')};
-  return `<nav class="dtabs" role="tablist">${DTABS.map(k=>`<button class="${cur===k?'on':''}" role="tab" aria-selected="${cur===k}" data-act="dashTab" data-args='{"k":"${k}"}'>${L[k]}${k==='cust'&&u?`<span class="cnt red">${u}</span>`:''}</button>`).join('')}</nav>`;}
+function dashTabs(){const u=custStats().unhappy,dd=ddosLive().length,cur=UI.dtab||'overview',L={overview:tr('common.overview'),cust:tr('common.customers'),conn:tr('common.connections'),traffic:tr('common.traffic'),ddos:tr('ddos_dash.tab'),links:tr('common.links'),routers:tr('common.routers'),pops:tr('unbuilt_pops.no_pop_yet'),lease:tr('common.leased_lines'),market:tr('market.tab')};
+  return `<nav class="dtabs" role="tablist">${DTABS.map(k=>`<button class="${cur===k?'on':''}" role="tab" aria-selected="${cur===k}" data-act="dashTab" data-args='{"k":"${k}"}'>${L[k]}${k==='cust'&&u?`<span class="cnt red">${u}</span>`:''}${k==='ddos'&&dd?`<span class="cnt red">${dd}</span>`:''}</button>`).join('')}</nav>`;}
 function renderDash(){checkLayer();
   const H=S.hist||[],rows=H.slice(-90),last30=H.slice(-30);
   const up=last30.length?last30.reduce((a,r)=>a+(r.dem?Math.min(1,r.srv/r.dem):1),0)/last30.length:1;
@@ -25,6 +25,7 @@ function renderDash(){checkLayer();
   if(DT==='traffic')h+=`<div class="btns">${btn(tr('ops.standing_orders'),'opsOpen',{},'sm')}</div>`;
   if(DT==='traffic')h+=trafficTab(nets,tT);
   if(DT==='traffic'){const top=transitTop(S.transit.map(t=>t.id),8);if(top.length)h+=`<div class="panel2" style="margin-top:12px"><h3>${tr('dashboard.who_your_transit_carries')}</h3><p class="note" style="margin-top:0">${tr('dashboard.the_networks_you_pay_transit_to')}</p>${top.map(([id,v])=>`<div class="row">${logo(NET[id])}<div class="grow"><div class="nm">${esc(NET[id].name)} <span class="meta">AS${NET[id].asn} · ${fmtG(v)} · ${tr('dashboard.about_price_mo',{price:fmt$((R.cost.transit||0)*v/tT)})}</span></div><div class="meta">${esc(offTransitHint(id))}</div></div>${btn(tr('common.where_6276'),'netFocus',{id},'ghost sm')}</div>`).join('')}</div>`;}
+  if(DT==='ddos')h+=ddosTab();
   if(DT==='links')h+=`<div style="margin-top:12px">${linksTab()}</div>`;
   if(DT==='routers')h+=routersTab();
   if(DT==='pops')h+=popsSection();

@@ -19,10 +19,10 @@ function assertMarine(path, start, end, coast, passes = []) {
     const a = path[i - 1], b = [...path[i]];
     b[0] += 360 * Math.round((a[0] - b[0]) / 360);
     if (isPass(path[i - 1], path[i], passes)) continue;
+    // (the message is built only on a crossing: building it for each of millions of edge checks took most of the test)
     for (const [p, q] of edges) {
       const shift = 360 * Math.round((a[0] - p[0]) / 360), c = [p[0] + shift, p[1]], d = [q[0] + shift, q[1]];
-      assert.ok(!(turn(a, b, c) * turn(a, b, d) < -1e-12 && turn(c, d, a) * turn(c, d, b) < -1e-12),
-        `sea segment ${lit([a, b])} crosses a coastline`);
+      if (turn(a, b, c) * turn(a, b, d) < -1e-12 && turn(c, d, a) * turn(c, d, b) < -1e-12) assert.fail(`sea segment ${lit([a, b])} crosses a coastline`);
     }
   }
 }

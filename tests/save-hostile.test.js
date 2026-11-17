@@ -15,7 +15,7 @@ function game() {
   return { p, run };
 }
 
-test('a loan with hostile numbers in a save never turns cash into NaN', () => {
+test('hostile or malformed fields in a save load instead of rejecting it: loans never turn cash into NaN, grace, transit history', () => {
   const { p, run } = game();
   const loan = "s.loans=[{id:'L1',bank:Object.keys(BANKS)[0],start:0,amount:1e6,got:1e6,bal:1e6,apr:0.05,apr0:0.05,pay:5000,left:12,term:12,share:0,covs:[]}]";
   for (const bad of ["s.loans[0].pay='x'", 's.loans[0].pay=[]', 's.loans[0].share=1e308', "s.loans[0].bal='1e400'", 's.loans[0].left=-5']) {
@@ -23,19 +23,12 @@ test('a loan with hostile numbers in a save never turns cash into NaN', () => {
     assert.ok(!r.err && !r.fail, bad + ': loads');
     assert.ok(Number.isFinite(r.cash), bad + ': cash stays a number');
   }
+  // Each edit starts again from the same save (run() parses __B afresh).
+  for (const bad of ['s.grace={until:1e6,nets:5};s.seen=(s.seen||[]).slice(1)', "s.transit[0].hist='x'"]) {
+    const r = run(bad);
+    assert.ok(!r.err && !r.fail, bad + ': ' + JSON.stringify(r));
+  }
   assert.deepEqual(p.errors, []);
-});
-
-test('a malformed grace field does not reject the save when a release adds a network', () => {
-  const { run } = game();
-  const r = run('s.grace={until:1e6,nets:5};s.seen=(s.seen||[]).slice(1)');
-  assert.ok(!r.err && !r.fail, JSON.stringify(r));
-});
-
-test('a transit history that is not a list loads instead of throwing', () => {
-  const { run } = game();
-  const r = run("s.transit[0].hist='x'");
-  assert.ok(!r.err && !r.fail, JSON.stringify(r));
 });
 
 test('hiding the page while a day is in flight finishes that day and saves it', () => {

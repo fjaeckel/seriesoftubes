@@ -6,25 +6,41 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
-- Lambda Bazaar, the capacity market, has a window of its own with tabs for an overview, your routes, products and news. The overview says what you earn and what holds sales up, each with a one-tap fix, and every route can have its own rules: how much to keep back, the lowest price, and which products to sell there.
-- The 🔍 search now finds anything: cities, networks by name or AS number, your customers and open offers, your links (type both cities, like "fra ams"), and every screen. On a computer, press / or Ctrl+K to open it.
-- Much less scrolling everywhere on a big network: long lists open on a short first page with "+N more", rarer buttons sit behind "▸ Change" and "▸ Details", and explanations fold behind a "?" once you run a few POPs.
-- Deals shows what needs you first: unhappy customers and renewals waiting for an answer, then the offers you can sign today as short cards with a countdown. Conferences, seats, the sales desk and your customer level fold to one line each.
-- The Goals, NOC and Networks tabs are much shorter: finished goals and badges fold away, the NOC shows the five worst of each problem with hot ports grouped by kind, and Networks has a search box, filters by kind and one compact row per network.
-- The NOC dashboard keeps its tabs and close button pinned, shows every tab at once on phones, and turns connections, traffic, routers and leased lines into compact rows and cards that unfold.
-- A city's Peering tab is now three short sections (exchanges, PNIs, caches) that open by themselves when they need you. Transit ports and routers are one row each, and your own ports come first.
-- Link panels are much shorter, most of all for dark fiber and subsea cables: optics and adding capacity come first, and the line system, selling, traffic and routing metric fold into one-line summaries.
-- Phones held sideways get a proper layout: the tabs become a slim bar down the left edge and every sheet stands on the right at full height, with the map usable beside it.
-- Multimode opens with where you stand: your connection, your rank and every request waiting for your answer. Choosing a server shows a recommended one first, and leaderboards show the top ten with your own row always in sight.
-- The bank shows offers as cards you can compare and marks the best deal you qualify for, Settings are grouped into sections, and toasts no longer pile up. Cancelling a transit port or PNI in a city takes one tap with an Undo button.
-- How to play is a short index you can search, the menu has tiles for How to play, Export save and sound, the start screen fits phones and laptop windows without scrolling, and the top bar has room for Traffic served and Rank again.
-- The "Tap your city, then Launch broadband" bubble no longer stays on screen for the whole game after you launched broadband on the first day. The tutorial points at the button that is on screen, and on tablets the speed buttons no longer cover the panel tabs.
-- Easier to use on a phone and with a keyboard or screen reader: buttons and tabs answer to a bigger tap area, say what they change and which one is picked, Escape closes the window on top first, and Z undoes a removal while its toast shows.
 - In Multimode, another player's card now has a map of their network you can zoom and tap: their POPs (in another colour where you are too), the exchanges they are at or run, their wave routes, and what is in each city. Their traffic shows live while the card is open, with the traffic they exchange with other players.
+
+## [4.7.0] — 2026-11-17
+
+- A normal game can start with a challenge, picked on the title screen: in Outcast mode the public exchanges will not sell you a port, so you found exchanges of your own in cities that have none and peer over PNIs. Challenge games are played alone, without Multimode.
+- The windows of the NOC screen can be moved and resized: drag a window's title bar, pull an edge or a corner, or use the arrow keys on its grip (with Shift they resize it). Windows never overlap or leave the screen: one dropped on another sends it below and the rest close up, and the charts redraw to fit. The layout is kept in this browser, and Reset layout in the top bar puts every window back. On a narrow screen the windows stack as before.
+- "Move to another path" now shows where a circuit's bottlenecks are: the spans and POP routers with less headroom than the customer wants, tightest first, on today's path and on each alternative, with a button that opens the link or the POP.
+- Pie Control's Dishes tab has a dish optimizer: it suggests what to change on the ground, one line at a time, each saying why it is there, with its cost, a rough payback and a mark on the globe. It adds antennas to busy dishes, builds dishes (opening a POP if that pays best) where cities are out of reach so orbit customers there can sign, and suggests moving or taking down idle dishes no customer lands on, asking before it does.
+- Auto-TE can also spread L2 circuits across paths, with a new toggle in Routing & DDoS that starts off. It follows your spill rules and leaves pinned paths fixed.
+- In Multimode, the game now tells you when other players you have not peered with cost you service. Unhappy customers name it, the Reach chip and your AS panel show your reach with players included, and the NOC warns before customers start leaving, with a button to the players to peer with (#414).
+- A customer's path that shows exactly its latency budget (say 42.2 ms of 42.2 ms) now meets it: latencies are compared the way they are shown, to a tenth of a millisecond (#423).
+
+## [4.6.0] — 2026-11-16
+
+- You can hire an optical engineering team from Big League on: a department of its own, from $1.2M to $7M a year in three sizes, that plans and builds your fiber and subsea routes. Once hired they take over the intern's optical work (optics, line systems, handing back waves), move leased waves that run hot up a size, and every Wednesday plan routes from what the Lambda Bazaar's buyers want plus the leased waves you would no longer need. They either ask before building or build on their own within a yearly budget, and bigger teams run more projects at once. Now and then they get something wrong: a fat-fingered config darkens a fiber for a day, a build slips, or a build costs more.
+- The intern can grow the exchanges you founded: a new standing order upgrades an exchange's fabric when its traffic outgrows your headroom, or when every seat is taken and a network is waiting to join. It has its own monthly budget and shows up in Ops once you run an exchange.
+- A section you unfold in a POP's panel now stays unfolded when you move to another POP, so adding a peering port to POP after POP is one click each instead of three. It covers the exchange, PNI, cache, power and other sections, an exchange's port controls ("Get a port", or "Change" once you are in it) and the routers' "Change"; the exchange section also stays open in a POP with no exchange yet, where you can found your own; fold one again and the next POP goes back to what it would have shown. A POP without that section keeps your choice for the next one that has it, and this browser remembers it for next time.
+
+## [4.5.0] — 2026-11-16
+
+- The NOC dashboard has a DDoS tab: every attack under way with its RTBH, scrubbing and hack-back buttons, your totals, and a history of past attacks with their size, target and how they ended. Attacks your network shrugs off, and Auto-RTBH pulling the plug, no longer pop up (they are in the NOC's notifications and the new tab); an attack that hurts still does, and its button opens the tab.
+- Once you have made Tier 1, conference news and de-peerings no longer pop up: they go to the NOC's notification list instead. That covers conference reminders and reports (which used to vanish altogether), your sales engineer's bookings, the carriers a capacity conference sends, a network de-peering you at an exchange, and the Cogentle and Goggle peering spat (its incident stays in the NOC).
+- Big networks: a POP's Peering tab no longer slows every game day and every click while it is open. The list of PNIs worked out what a PNI would carry at every one of your POPs to show the one on screen; now it only works out that one.
+- Big networks: the first minute after loading a game is smoother. The lowest latency you could ever build between two cities, which latency offers are checked against, is now worked out about ten times faster, for every POP.
+- A subsea cable of your own can land in the inland cities where cables land (Nairobi, Johannesburg, Khartoum, Atlanta, Montreal): it comes ashore where their cables do and runs on overland (#416).
+- Barranquilla and Cartagena are on the map, and Colombia's Caribbean cables now land there, as they really do, instead of in Bogotá. Bogotá is reached overland from the coast, and cables you already lease to Bogotá keep working (#416).
+
+## [4.4.0] — 2026-11-16
+
+- A large UX redesign: much less scrolling and things are easier to find, on phones and on computers. Lambda Bazaar has a window of its own, the 🔍 search finds anything, and the Deals, Goals, NOC and Networks tabs, the NOC dashboard, the city and link panels, Multimode, the bank, Settings and How to play are all shorter and put what needs you first.
 - Orbit customers in the far north no longer go short when the crusts further south fill up: overflow now lands under the crust with the most room, keeping the polar crust free for the places only it reaches.
 - An unhappy orbit customer now says why it is short and what fixes it (a full dish, full crusts, no dish in reach, slow fiber where it lands), on its card and in the warning.
 - Orbit customers link the NOC, Pie Control and their POP: each view has buttons to the other two, the NOC shows the POP whose dish lands them, Pie Control can drop them, and that POP's panel lists the orbit customers coming down there.
 - Orbit offers now warn when the sky cannot deliver them: no crust over the city yet, every crust there full, no dish to land them, or too little room for the bandwidth they want. Your sales desk no longer signs those (the shark still oversells bandwidth); you still can.
+- RouteScript's `spill at … within … ms` rules no longer push your ordinary internet traffic up through your pies: their detours now stay on fiber, so the crusts keep their room for the latency customers who pay for it (#409).
 
 ## [4.3.0] — 2026-11-15
 

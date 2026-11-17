@@ -30,7 +30,7 @@ function capDealTick(d){const q=S.capDeal;if(!q||q.at!==d)return;S.capDeal=null;
   while(out.length<3&&pool.length){const [a,b,t]=pool.splice(Math.floor(Math.random()*pool.length),1)[0],T=BIZ_T[t];
     const nm=()=>{const list=T.names.filter(n=>!S.usedNames.includes(n)),n=list.length?pick(list):pick(T.names);useName(n);return n;};out.push(capOffer(a,b,t,nm));}
   if(!out.length)return;S.offers.push(...out);
-  toast(trn('capacity_deals.n_carriers_from_the_conference',out.length),'goal',[{l:tr('common.show_me'),act:'leftTab',args:{t:'deals'}}]);sfx('coin');}
+  if(toastT1(trn('capacity_deals.n_carriers_from_the_conference',out.length),'goal',[{l:tr('common.show_me'),act:'leftTab',args:{t:'deals'}}]))sfx('coin');}
 // A signed deal waits for its route. Fiber pairs need a fiber of your own between the two cities.
 function capFibLink(b){return S.links.find(l=>l.kind==='df'&&l.own&&l.ready<=S.day&&!(l.cut>S.day)&&((l.a===b.city&&l.b===b.city2)||(l.a===b.city2&&l.b===b.city))&&!S.biz.some(x=>x!==b&&(x.type==='pairs'||x.type==='capfib'||x.type==='dfpair')&&x.link===l.id));}
 function capPendTick(b,d){if(!capPend(b))return false;

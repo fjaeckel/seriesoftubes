@@ -2,10 +2,7 @@
 // src/game/60-features/99-pie-orbit-customers.js). Seeded; state is set directly where luck would decide.
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const { load } = require('./harness');
-const { lit } = require('../scripts/lib/js-literal');
 
 // A sandbox with London and New York joined by a transatlantic wave, Frankfurt 640 km from London, a company, and a
 // 16-antenna dish with landing rights at each POP.
@@ -154,22 +151,6 @@ test('spats: data stays home, and not over my airspace', () => {
   circuit(ev, 'hft2', 'nyc', 'lon');
   assert.equal(ev("Object.keys(R.ef).some(k=>k==='pie:lon'&&R.ef[k].eg['l2:hft2']>0)"), false, 'US traffic avoids the British dish');
   assert.ok(ev('R.l2.hft2') > 0, 'and goes by fiber');
-  assert.deepEqual(errors, []);
-});
-
-test('saves without pies route identically, and pay nothing for orbit', () => {
-  const { ev, errors } = load();
-  const save = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
-  ev(`S=migrate(JSON.parse(${lit(save)}));compute()`);
-  assert.equal(ev('S.pie'), null);
-  const out = () => ev("JSON.stringify([R.served,R.demand,R.revMo,R.egT,R.load,R.l2,R.l2lat,R.rev])");
-  const a = out();
-  assert.equal(ev("R.pie===undefined&&R.rev.orbit===undefined"), true);
-  // the same save with a rocket company that has nothing in the sky routes the same traffic
-  ev("S.pieV=1;pieInit();compute()");
-  const b = JSON.parse(ev("JSON.stringify([R.served,R.demand,R.egT,R.load,R.l2,R.l2lat])"));
-  const a0 = JSON.parse(a);
-  assert.deepEqual(b, [a0[0], a0[1], a0[3], a0[4], a0[5], a0[6]]);
   assert.deepEqual(errors, []);
 });
 

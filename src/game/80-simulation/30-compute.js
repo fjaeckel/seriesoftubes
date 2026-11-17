@@ -134,6 +134,8 @@ function compute(){RW.gen++;fedNetsSync();
   const NKN=NN+3,ACN=new Float64Array(NE*NKN),SEN=new Uint8Array(NE*NKN),ACD=new Float64Array(NE*NC),SED=new Uint8Array(NE*NC),EL=[];
   // The routing core (29-route-core.js) adds up what floods and circuits carry too.
   ROUTE.nodes({NRES,NSEEN,NORD,NLOAD,EL,NKN,SEN,ACN,NC,SED,ACD});const nodeTake=ROUTE.nodeTake,carry=ROUTE.carry;
+  const TE=!!(S.te&&S.te.on)&&coreTE(),TR=TE?teRules():null,REACH=coreTeReach();
+  const l2TE=TE&&S.te.l2?l2TeRouter({adj,HAS,NRES,CORE,OUT,TR,REACH,SPD,nodeTake,carry,NN,R2}):null;
   R2.l2route={};R2.l2split={};
   /* compute() reads only S, except here: scenic circuits remember yesterday's path in R.l2route and R.efg (deliberate
      hysteresis, so they do not flap). A second call can still move one; the third gives the same answer as the second. */
@@ -159,7 +161,7 @@ function compute(){RW.gen++;fedNetsSync();
     const p1=walkI(s1.P,Ai,Bi),c1=cost({path:p1.path,share:1}),used=new Set(p1.path.map(e=>e.id));let pick2=[{...p1,share:1}];
     const s2=dijkstra(adj,Ai,wf,(v,e)=>used.has(e.id),Bi);
     if(s2.D[Bi]!==Infinity){const p2=walkI(s2.P,Ai,Bi);if(cost({path:p2.path,share:1})<=c1*1.15)pick2=[{...p1,share:0.5},{...p2,share:0.5}];}
-    const key=b.id+'>'+A+'>'+B,old=R.l2route&&R.l2route[key];let out=pick2;
+    const key=b.id+'>'+A+'>'+B,prior=R.l2route&&R.l2route[key],old=!(TE&&S.te.l2)&&prior&&!prior.some(r=>r.te)&&prior;let out=pick2;
     if(old&&old.every(r=>r.keys.every(k=>edges[k]))){const prev=old.map(r=>{const path=r.keys.map(k=>edges[k]);return {path,ni:r.ns.map(c=>CIDX[c]),share:r.share};});
       if(prev.reduce((x,r)=>x+cost(r),0)<=pick2.reduce((x,r)=>x+cost(r),0)*1.1)out=prev;}
     R2.l2route[key]=out.map(r=>({keys:r.path.map(e=>e.id),ns:cityIds(r.ni),share:r.share}));return out;};
@@ -171,10 +173,11 @@ function compute(){RW.gen++;fedNetsSync();
     if(PX&&PX.bh.length&&SPD[B]&&!(SPD[A]&&SPD[A][CIDX[B]]<Infinity))[A,B]=[B,A];
     if(popUp(A)&&popUp(B)&&SPD[A]&&SPD[A][CIDX[B]]<Infinity){
       const ek='l2:'+b.id;R2.egDesc[ek]={lab:labOf(b.sites?N_('compute.sd_wan_for_name'):N_('compute.l2vpn_for_name'),'name',b.name),city:A,k:'l2'};
-      const routes=l2Routes(A,B,b);if(routes.length>1)R2.l2split[b.id]=routes.length;
-      for(const {path,ni,share} of routes){let a=b.bw*share;for(const l of path)a=Math.min(a,l.res);for(const i of ni)if(HAS[i])a=Math.min(a,NRES[i]);a=Math.max(0,a);amt+=a;maxLat=Math.max(maxLat,path.reduce((x,e)=>x+e.lat,0)+path.length*0.05);
+      const routes=l2Routes(A,B,b);
+      if(l2TE&&!BIZ_T[b.type].cap&&!(b.pin&&pinRoute(b.pin,edges))&&routes.every(r=>r.path.every(e=>e.w!==Infinity))){const r=l2TE(A,B,b,routes);amt=r.amt;maxLat=Math.max(maxLat,r.lat);}
+      else{if(routes.length>1)R2.l2split[b.id]=routes.length;for(const {path,ni,share} of routes){let a=b.bw*share;for(const l of path)a=Math.min(a,l.res);for(const i of ni)if(HAS[i])a=Math.min(a,NRES[i]);a=Math.max(0,a);amt+=a;maxLat=Math.max(maxLat,path.reduce((x,e)=>x+e.lat,0)+path.length*0.05);
         for(const i of ni)if(HAS[i])nodeTake(i,a);
-        for(const l of path){l.res-=a;l.ld+=a;carry(l,ek,NN+1,CIDX[B],a);}}}
+        for(const l of path){l.res-=a;l.ld+=a;carry(l,ek,NN+1,CIDX[B],a);}}}}
     else noPath=true;
     minF=Math.min(minF,amt/b.bw);tot+=amt;}
     R2.l2lat[b.id]=noPath?Infinity:maxLat;R2.l2[b.id]=b.bw*minF;R2.egT.l2=(R2.egT.l2||0)+tot;
@@ -189,7 +192,7 @@ function compute(){RW.gen++;fedNetsSync();
     if(!R2.egDesc[ek])R2.egDesc[ek]={lab:clean?labOf(N_('compute.scrubbed_traffic_from_city'),'city',CITY[A].name):labOf(N_('compute.attack_entering_in_city'),'city',CITY[from].name),city:B,k:'l2'};
     for(const i of ni)if(HAS[i])nodeTake(i,amt);for(const l of path){l.res-=amt;l.ld+=amt;if(!clean){l.jk=(l.jk||0)+amt;JK=1;}carry(l,ek,clean?NN+2:NN,Bi,amt);}return amt;};
   const DD=ddosLoad({E,okBy,R2,autoBh:!!(TRX&&TRX.blackhole),haul,ms:msOf});
-  const TE=!!(S.te&&S.te.on)&&coreTE(),TR=TE?teRules():null,REACH=coreTeReach();R2.teMoved=0;const teCache=new Map(),SPILL=TR&&TR.spill?TR.spill:1,TT=TR&&TR.tiers.length?TR.tiers:null;
+  R2.teMoved=R2.teMoved||0;const teCache=new Map(),SPILL=TR&&TR.spill?TR.spill:1,TT=TR&&TR.tiers.length?TR.tiers:null;
   /* A network in a peer's customer cone, reached through that peer (#85): after every network you peer with directly
      (its AS path is one hop longer) and before transit. */
   const base=(e,n)=>e.pref==='low'?4:e.rank>0&&e.rank<3&&coneOf(e,n)?CONE_RANK:e.rank;
@@ -256,7 +259,7 @@ function computeMoney(R2,PX=null){
   C.pni=S.pni.reduce((a,p)=>a+pniMo(p,R2.usePni[p.id]||0),0);
   C.caches=cachesMo();
   C.loans=(S.loans||[]).reduce((a,l)=>a+(BANKS[l.bank].equity?0:l.model==='transit'?Math.round((C.transit||0)*(l.cut||0.3)):l.pay)+loanFees(l),0);
-  C.extras=(S.cnLic&&S.cnLic.state==='ok'?CN_JV_MO:0)+scrubMo()+Object.keys(S.pops).filter(ruCity).length*RU_BOX_MO+Object.values(S.pops).filter(p=>p.site2).length*SITE2_MO+(S.te?TE_MO:0)+(S.ops&&S.ops.intern?INTERN_MO:0)+salesMo();
+  C.extras=(S.cnLic&&S.cnLic.state==='ok'?CN_JV_MO:0)+scrubMo()+Object.keys(S.pops).filter(ruCity).length*RU_BOX_MO+Object.values(S.pops).filter(p=>p.site2).length*SITE2_MO+(S.te?TE_MO:0)+(S.ops&&S.ops.intern?INTERN_MO:0)+salesMo()+optxMo();
   if(S.pie&&S.mode!=='sandbox')C.pie=pieMo();
   V.eyeballs=0;V.business=0;V.ix=0;
   C.wholesale=0;C.levy=0;const lev=scnRule('levy');for(const c in S.pops){const sf=sfOf(R2,c)*(R2.bbF[c]??1),v=R2.cityEye[c]*sf*EYE_RATE*arpuOf(c);V.eyeballs+=v;if(CITY[c].au){if(lev)C.levy+=v*AU_LEVY;else C.wholesale+=v*AU_WHOLESALE;}}

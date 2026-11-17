@@ -35,7 +35,7 @@ test('rules survive save and load, and junk is repaired', () => {
   assert.equal(ev("rule('chaos')"), 'calm', 'a bad value falls back to the preset');
   assert.equal(ev("rule('lead')"), 'quick');
   assert.equal(ev("rule('market')"), false);
-  assert.deepEqual(JSON.parse(ev('JSON.stringify(S.rules.mods)')), ['ok']);
+  assert.deepEqual(JSON.parse(ev('JSON.stringify(S.rules.mods)')), []);
   ev("S.rules={preset:'nope'};sanitize(S)");
   assert.equal(ev('rulePreset()'), 'oncall');
   ev("S.rules='hello';sanitize(S)");
@@ -52,11 +52,25 @@ test('the title screen: four doors, four Normal presets, a chaos picker for Sand
   ev('window.innerWidth=360;showTitle()');
   assert.equal(doc.querySelectorAll('#modal .door').length, 4);
   assert.equal(doc.querySelectorAll('#modal .preset').length, 4);
+  const challengeOptions=doc.querySelector('#modal .add-options');
+  assert.equal(challengeOptions.open, false, 'challenge options start collapsed');
+  assert.match(challengeOptions.textContent, /Challenges \(not for your first game\)/);
+  assert.ok(challengeOptions.querySelector('summary.f'), 'the disclosure heading uses the title screen small-caps label style');
+  const challengeStyle=doc.defaultView.getComputedStyle(challengeOptions.querySelector('summary'));
+  assert.equal(challengeStyle.fontSize, '12px');
+  assert.equal(challengeStyle.fontWeight, '900');
+  assert.equal(challengeStyle.textTransform, 'uppercase');
+  assert.equal(challengeStyle.display, 'list-item', 'the native disclosure arrow remains visible');
   assert.equal(doc.querySelectorAll('#modal .chs').length, 4);
   assert.equal(doc.getElementById('doorSandbox').hidden, true);
   assert.ok(doc.querySelector('.preset[data-preset=oncall].on'), 'On-call is the default');
   doc.querySelector('.preset[data-preset=freeze]').click();
   assert.ok(doc.querySelector('.preset[data-preset=freeze].on'));
+  challengeOptions.querySelector('summary').click();
+  assert.equal(challengeOptions.open, true);
+  assert.equal(challengeOptions.querySelectorAll('[role=switch]').length, 1);
+  doc.querySelector('[data-mode-id=outcast]').click();
+  assert.equal(doc.querySelector('[data-mode-id=outcast]').getAttribute('aria-checked'), 'true');
   doc.querySelector('.door[data-door=sandbox]').click();
   assert.equal(doc.getElementById('doorSandbox').hidden, false);
   assert.equal(doc.getElementById('doorNormal').hidden, true);
@@ -64,12 +78,14 @@ test('the title screen: four doors, four Normal presets, a chaos picker for Sand
   doc.querySelector('.door[data-door=normal]').click();
   ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip()");
   assert.equal(ev('rulePreset()'), 'freeze');
+  assert.deepEqual(JSON.parse(ev('JSON.stringify(S.rules.mods)')), ['outcast']);
   assert.match(ev("document.getElementById('hAsn').textContent"), /Change Freeze/);
   assert.match(ev("document.getElementById('hAsn').title"), /locked/);
   ev('showTitle()');
   doc.querySelector('.door[data-door=sandbox]').click();
   ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip()");
   assert.equal(ev('S.mode'), 'sandbox');
+  assert.deepEqual(JSON.parse(ev('JSON.stringify(S.rules.mods)')), []);
   assert.equal(ev("rule('chaos')"), 'spicy', 'the sandbox remembers the chaos it was given');
   ev('showTitle()');
   doc.querySelector('.door[data-door=scn]').click();
@@ -100,6 +116,14 @@ test('On-call shows no extra tag; the share card names other presets', () => {
   start(ev, { mode: 'normal', preset: 'bgp' });
   assert.match(ev('ruleTag()'), /BGP at 3/);
   ev('ACT.share()');
+  start(ev, { mode: 'normal', rules: { mods: ['outcast'] } });
+  assert.equal(ev('ruleTag()'), 'Outcast mode 🚫');
+  assert.match(ev("document.getElementById('hAsn').textContent"), /🚫/);
+  ev('shareCanvas()');
+  ev("GAME_MODS.push('autarky');GAME_MOD_ICON.autarky='🪨';GAME_MOD_NAME.autarky='Autarky mode';S.rules.mods.push('autarky');renderAll()");
+  assert.equal(ev('ruleTag()'), 'Outcast mode 🚫 Autarky mode 🪨');
+  assert.match(ev("document.getElementById('hAsn').textContent"), /Outcast mode 🚫 Autarky mode 🪨/);
+  ev('shareCanvas()');
   assert.deepEqual(errors, []);
 });
 
@@ -141,7 +165,7 @@ test('Change Freeze breaks less than On-call, BGP at 3 a.m. more, on the same se
   for (const p of ['freeze', 'oncall', 'bgp']) {
     const { ev, errors } = load();
     start(ev, { mode: 'normal', preset: p });
-    n[p] = fails(ev, 720);
+    n[p] = fails(ev, 360);// a year is plenty: 4, 15 and 33 on this seed
     assert.deepEqual(errors, []);
   }
   assert.ok(n.freeze < n.oncall, `freeze ${n.freeze} < on-call ${n.oncall}`);

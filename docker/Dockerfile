@@ -1,7 +1,7 @@
 # The MCP server and the development server in one image (docs/MCP.md, "In a container"). docker.yml builds it and
 # publishes it to GHCR for releases only; nothing here is ever deployed to GitHub Pages (docs/adr/0001-github-pages-only.md).
 # The base is pinned by digest and kept current by Dependabot (.github/dependabot.yml); CI tests on the same Node major.
-FROM node:24-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9
+FROM node:24-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54
 
 WORKDIR /series-of-tubes
 

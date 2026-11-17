@@ -66,8 +66,9 @@ test('weeks start Sunday 06:00 Berlin, in winter and in summer, and keys run acr
 // it was (--check still makes sure the weeks not over yet can be solved).
 test('generator: deterministic for a week', () => {
   const g = G.game(), a = tmp(), b = tmp();
-  const first = G.list(DIR).slice(-3)[0];
-  const keys = Math.min(3, G.list(DIR).length);
+  // Two weeks: the second one reads the first's file (themes and cities take turns), so history is covered too.
+  const first = G.list(DIR).slice(-2)[0];
+  const keys = Math.min(2, G.list(DIR).length);
   for (const d of [a, b]) for (let i = 0; i < keys; i++) G.writeWeek(d, G.generate(g, g.ev(`pzKeyAdd('${first}',${i})`), d));
   for (const k of G.list(a)) {
     assert.equal(fs.readFileSync(path.join(a, k + '.json'), 'utf8'), fs.readFileSync(path.join(b, k + '.json'), 'utf8'), `${k} twice the same`);
@@ -80,7 +81,8 @@ test('generator: a quarter of weeks, all verified, varied, small and in the sche
   let k = '2027-W10';
   const out = [];
   for (let i = 0; i < 12; i++, k = g.ev(`pzKeyAdd('${k}',1)`)) { const j = G.generate(g, k, d); G.writeWeek(d, j); out.push(j); }
-  assert.deepEqual(G.check(g, d, 0), [], 'every week verifies: both references earn their stars in the game');
+  // generate() only returns a week that verified; a check as if all were over reads them the way the game does.
+  assert.deepEqual(G.check(g, d, 8.64e15), [], 'every week is valid, under its own name, with sane references');
   for (let i = 1; i < out.length; i++) {
     assert.notEqual(out[i].theme, out[i - 1].theme, `${out[i].key}: not last week's theme`);
     for (const c of out[i].cities) assert.ok(!out[i - 1].cities.includes(c), `${out[i].key}: ${c} was a city last week too`);
@@ -103,7 +105,8 @@ test('--check passes on the committed files and rejects tampered ones', () => {
   assert.deepEqual(G.check(g, DIR), [], 'committed weeklies verify');
   const bad = (edit, why) => {
     const d = tmp();
-    for (const k of G.list(DIR).slice(-3)) fs.copyFileSync(path.join(DIR, k + '.json'), path.join(d, k + '.json'));
+    // One week (the one the cases were written against): an untouched one would only be solved again on every case.
+    for (const k of G.list(DIR).slice(-3, -2)) fs.copyFileSync(path.join(DIR, k + '.json'), path.join(d, k + '.json'));
     G.writeIndex(d);
     const k = G.list(d)[0], f = path.join(d, k + '.json'), j = JSON.parse(fs.readFileSync(f, 'utf8'));
     const r = edit(j, d, k); fs.writeFileSync(f, typeof r === 'string' ? r : JSON.stringify(j));
@@ -123,7 +126,8 @@ test('--check passes on the committed files and rejects tampered ones', () => {
 
 test('--check regenerates a published week when new prices break its budget, and only then', () => {
   const g = G.game(), d = tmp();
-  for (const k of G.list(DIR)) fs.copyFileSync(path.join(DIR, k + '.json'), path.join(d, k + '.json'));
+  // The last two weeks: one with a broken budget, one the game rejects; more would only be solved again each run.
+  for (const k of G.list(DIR).slice(-2)) fs.copyFileSync(path.join(DIR, k + '.json'), path.join(d, k + '.json'));
   G.writeIndex(d);
   const read = (k) => JSON.parse(fs.readFileSync(path.join(d, k + '.json'), 'utf8')), [k0, k1] = G.list(d).slice(-2);
   assert.deepEqual(G.refresh(g, d, 0), { fixed: [], bad: [] }, 'the committed weeks still verify: nothing changes');

@@ -5,8 +5,8 @@
    per network, opened once a window says hello, so other games' tabs never unpack them. With no window nothing is sent. */
 const NOC_HB=3000,NOC_LOST=10000,NOC_GAP=1000;
 // What a click in the window does: changes only its own view, or runs in the game. Every button the dashboard draws is in one list.
-const NOC_LOCAL=['chartToggle','connCity','connF','connNet','connSort','custCity','custF','custSort','dashClose','dashRow','dashSort','dashTab','infraCity','infraF','infraHot','infraSort','listMore','popsReg','popsSort','rtrCity','rtrFs','rtrReg'];
-const NOC_GO=['addCh','addPair','addRouter','buyIx','buyNni','buyTransit','cache','connCancel','custGo','dashLink','dashPop','downIx','downP','downT','goConn','lagIx','lagNni','lagP','lagT','leaseSwap','marketOpen','mktCfg','mktFloorLow','mktHold','mktPreset','mktRoute','netFocus','opsOpen','pni','pniAllOpen','pniChase','popGo','rmCh','upLink','upRouter'];
+const NOC_LOCAL=['chartToggle','connCity','connF','connNet','connSort','custCity','custF','custSort','dashClose','dashRow','dashSort','dashTab','ddosF','infraCity','infraF','infraHot','infraSort','listMore','popsReg','popsSort','rtrCity','rtrFs','rtrReg'];
+const NOC_GO=['addCh','addPair','addRouter','buyIx','buyNni','buyTransit','cache','connCancel','custGo','dashLink','dashPop','ddosEngage','downIx','downP','downT','goConn','hackback','lagIx','lagNni','lagP','lagT','leaseSwap','marketOpen','mktCfg','mktFloorLow','mktHold','mktPreset','mktRoute','netFocus','opsOpen','pni','pniAllOpen','pniChase','popGo','rmCh','routingOpen','rtbh','unrtbh','upLink','upRouter'];
 const NOC={win:false,id:null,ctl:null,st:null,stId:null,peer:false,until:0,dirty:false,sent:0,speed:1,hid:false,yoAt:0,gone:false};
 {const id=RW_IN?null:new URLSearchParams(location.search).get('noc');if(slotOkId(id)){NOC.win=true;NOC.id=id;}}
 if(!RW_IN)try{if(typeof BroadcastChannel==='function'){NOC.ctl=new BroadcastChannel('sot-noc');NOC.ctl.onmessage=e=>{const m=e.data;if(!m||typeof m!=='object'||!slotOkId(m.id))return;if(NOC.win)nocWinMsg(m);else nocGameMsg(m);};}}catch(e){}
@@ -45,21 +45,23 @@ function nocWinMsg(m){if(m.id!==NOC.id)return;
 function nocWinState(d){if(!d||!d.S||!d.R)return;S=d.S;R=Object.assign(emptyR(),d.R);const as=ddosAll(S,false);for(const m of R.ddos||[]){m.attack=as.find(a=>a.id===m.attack)||null;m.ports=new Map();}
   UI.started=true;NOC.speed=d.speed;NOC.hid=!!d.hid;NOC.gone=false;NOC.yoAt=performance.now();document.title=tr('common.noc_dashboard')+' · '+S.name;nocRender();}
 // Not under a finger: a button that moves during a press never gets its click.
-function nocRender(){if(pressing){setTimeout(nocRender,150);return;}document.body.classList.toggle('noc-still',!NOC.speed||NOC.gone||!animOn());try{if(S){if(NOCW.view==='wall')nocWall();else renderDash();}}catch(e){console.error('[tubes] NOC window render',e);}nocBar();}
+// One retry at a time while a drag holds the board, however many states arrive meanwhile.
+let nocRT=0;
+function nocRender(){if(pressing){if(!nocRT)nocRT=setTimeout(()=>{nocRT=0;nocRender();},150);return;}document.body.classList.toggle('noc-still',!NOC.speed||NOC.gone||!animOn());try{if(S){if(NOCW.view==='wall')nocWall();else renderDash();}}catch(e){console.error('[tubes] NOC window render',e);}nocBar();}
 function nocBar(){const b=$('nocBar');if(!b)return;
   const why=NOC.gone?tr('noc.the_game_window_is_closed'):!S?tr('noc.waiting_for_the_game_window'):NOC.hid?tr('noc.the_game_window_is_hidden'):!NOC.speed?tr('noc.the_game_is_paused'):'';
   const {bad,warn}=NOCW.sum,tab=(v,l)=>`<button data-nc="${v}" class="${NOCW.view===v?'on':''}" aria-pressed="${NOCW.view===v}">${esc(l)}</button>`;
   const h=`<div class="nb-id">${S?`<span class="nb-as">AS${S.asn} · ${esc(S.name)} · ${esc(tierLabel())}</span>`:''}<div class="nb-title">${esc(tr('common.noc_dashboard'))}</div></div>`
     +(S?`<span class="nb-pill ${bad?'bad':warn?'warn':''}">${esc(bad?trn('noc.n_alarms',bad):warn?trn('noc.n_warnings',warn):tr('common.all_quiet'))}</span><span class="nb-now"><b>${esc(dateStr(S.day))}</b><span>${esc(fmt$(S.cash))}</span><span>${NOC.speed?NOC.speed+'×':'❚❚'}</span></span>`:'')
-    +`<div class="nb-tabs">${tab('wall',tr('noc.wallboard'))}${tab('details',tr('noc.details'))}${document.documentElement.requestFullscreen?`<button data-nc="fs">${esc(tr('noc.full_screen'))}</button>`:''}</div>`
+    +`<div class="nb-tabs">${tab('wall',tr('noc.wallboard'))}${tab('details',tr('noc.details'))}${NOCW.view==='wall'?`<button data-nc="layout" class="nb-lay">${esc(tr('noc.reset_layout'))}</button>`:''}${document.documentElement.requestFullscreen?`<button data-nc="fs">${esc(tr('noc.full_screen'))}</button>`:''}</div>`
     +(why?`<div class="nb-why">${esc(why)}</div>`:'');
   if(b._h!==h){b._h=h;morph(b,h);}}
 function nocBeat(now=performance.now()){nocPost({t:'hi',id:NOC.id});if(now-NOC.yoAt>NOC_LOST&&!NOC.gone){NOC.gone=true;nocBar();}}
 function nocFwd(act,a){if(NOC_GO.includes(act))nocPost({t:'act',id:NOC.id,act,args:a||{}});}
 function nocWinBoot(){i18nDom();document.body.classList.add('noc-window');UI.dtab='conn';try{UI.anim=localStorage.getItem('sot-anim')||'auto';}catch(e){}themeBoot();$('dash').hidden=true;$('dash').insertAdjacentHTML('beforebegin','<div id="nocBoard"><header id="nocBar"></header><main id="nocWall"></main></div>');
-  const bd=$('nocBoard');bd.addEventListener('click',nocUiClick);bd.addEventListener('change',e=>{if(e.target.hasAttribute&&e.target.hasAttribute('data-nc-city')){NOCW.city=e.target.value;nocRender();}});bd.addEventListener('pointerdown',e=>{if(e.target.closest('#nocWall'))pressing=true;});
-  // The game's keyboard shortcuts are for the map, which is not here. Tab and the browser's own keys still work.
-  addEventListener('keydown',e=>e.stopImmediatePropagation(),true);
+  const bd=$('nocBoard');bd.addEventListener('click',nocUiClick);bd.addEventListener('change',e=>{if(e.target.hasAttribute&&e.target.hasAttribute('data-nc-city')){NOCW.city=e.target.value;nocRender();}});bd.addEventListener('pointerdown',e=>{if(e.target.closest('#nocWall'))pressing=true;});bd.addEventListener('pointerdown',nwGrab);addEventListener('resize',nwResized);
+  // The game's keyboard shortcuts are for the map, which is not here. Tab and the browser's own keys still work (and the windows' arrows).
+  addEventListener('keydown',e=>{nwKey(e);e.stopImmediatePropagation();},true);
   for(const k of Object.keys(ACT))if(!NOC_LOCAL.includes(k))ACT[k]=a=>nocFwd(k,a);
   ACT.dashClose=()=>{try{window.close();}catch(e){}};
   ACT.connCancel=a=>{const key='cc:'+a.k+':'+a.id;if(UI.confirm!==key){UI.confirm=key;renderDash();return;}UI.confirm=null;nocFwd('connCancel',a);};

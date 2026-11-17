@@ -24,8 +24,9 @@ function fiberTargets(b){const cur=S.links.find(l=>l.id===b.link),t=cur?trenchOf
     .map(l=>({l,diverse:trenchOf(l)!==t,no:fiberNo(b,l)})).sort((x,y)=>(y.diverse-x.diverse)||(!!x.no-!!y.no)||x.l.km-y.l.km);}
 // The live backbone by city pair, as compute() sees it: every link of a pair is one edge.
 function pathEdges(){const E={},N={};for(const l of S.links){if(linkDown(l)||!popUp(l.a)||!popUp(l.b))continue;const k=edgeKey(l);let e=E[k];
-    if(!e){e=E[k]={k,a:l.a,b:l.b,w:Infinity,km:Infinity,lat:Infinity,cap:0,load:0,ts:new Set()};(N[l.a]=N[l.a]||[]).push(e);(N[l.b]=N[l.b]||[]).push(e);}
-    e.w=Math.min(e.w,pairW(k,l.km));e.km=Math.min(e.km,l.km);e.lat=Math.min(e.lat,linkLat(l));e.cap+=capOf(l);e.load+=(R.load&&R.load[l.id])||0;e.ts.add(trenchOf(l));}
+    if(!e){e=E[k]={k,a:l.a,b:l.b,w:Infinity,km:Infinity,lat:Infinity,cap:0,load:0,ts:new Set(),link:null,lc:-1};(N[l.a]=N[l.a]||[]).push(e);(N[l.b]=N[l.b]||[]).push(e);}
+    e.w=Math.min(e.w,pairW(k,l.km));e.km=Math.min(e.km,l.km);e.lat=Math.min(e.lat,linkLat(l));e.cap+=capOf(l);e.load+=(R.load&&R.load[l.id])||0;e.ts.add(trenchOf(l));
+    if(capOf(l)>e.lc){e.link=l.id;e.lc=capOf(l);}}   // e.link: the biggest of the pair's links, the one to show when the span is tight
   return {E,N};}
 const hopKey=(a,b)=>a<b?a+'|'+b:b+'|'+a;
 // The cheapest path from a to b, as a list of cities.
@@ -51,15 +52,28 @@ function skyStr(f){const o=[pathCity(f.a)];let c=f.a,up=false;const to=x=>{if(x!
     else if(!up){up=true;c=null;o.push(h.cr&&CRUSTS[h.cr]?tr('customer_paths.through_crust',{crust:tr(CRUSTS[h.cr].n)}):tr('customer_paths.through_orbit'));}}
   to(f.b);return o.join(' → ');}
 const skyLegs=f=>{const o=[];let c=f.a;for(const h of f.hops){if(h.k==='f'){o.push(hopKey(c,h.city));c=h.city;}else if(h.k==='down')c=h.city;}return o;};
-function circuitTargets(b){const G=pathEdges(),sky=pathSky(b),now=pathNow(b,G);if(!now)return {now:null,sky,alts:[]};
+// Where a path loses bandwidth: each span, and each POP's routers, with less room than the customer wants, tightest first. Room is what is left
+// after everything else on it, plus what this customer already takes there (it goes with the customer). Paths are lists of cities, so span i joins p[i] and p[i+1].
+function pathBottleneck(b,p,hops,own,ownN,got){const out=[];
+  hops.forEach((e,i)=>{const room=Math.max(0,e.cap-e.load+(own.has(e.k)?got:0));if(room<b.bw)out.push({a:p[i],z:p[i+1],room,cap:e.cap,link:e.link});});
+  for(const c of p){const cap=R.nodeCap&&R.nodeCap[c];if(!(cap>0))continue;const room=Math.max(0,cap-((R.nodeLoad&&R.nodeLoad[c])||0)+(ownN.has(c)?got:0));if(room<b.bw)out.push({c,room,cap});}
+  return out.sort((x,y)=>x.room-y.room);}
+function circuitTargets(b){const G=pathEdges(),sky=pathSky(b),now=pathNow(b,G);if(!now)return {now:null,sky,alts:[],bn:[]};
   // Through orbit, the fiber path pathNow() names is not in use: it is offered like any other.
   const hops=sky?skyLegs(sky).map(k=>G.E[k]).filter(Boolean):pathHops(G,now)||[],used=new Set(),seen=new Set(sky?[]:[now.join()]),own=new Set(hops.map(e=>e.k)),got=R.l2&&R.l2[b.id]||0,alts=[];
-  const nowT=new Set();for(const e of hops)for(const t of e.ts){nowT.add(t);used.add(t);}
+  const nowT=new Set(),ownN=new Set(sky?[b.city,b.city2]:now),bn=sky?[]:pathBottleneck(b,now,hops,own,ownN,got);for(const e of hops)for(const t of e.ts){nowT.add(t);used.add(t);}
   for(let i=0;i<PATH_ALT+1&&alts.length<PATH_ALT;i++){const p=pathWalk(G,b.city,b.city2,e=>{for(const t of e.ts)if(used.has(t))return (e.w+1)*PATH_FAR;return e.w+1;});if(!p)break;
     const h=pathHops(G,p);for(const e of h)for(const t of e.ts)used.add(t);if(seen.has(p.join()))continue;seen.add(p.join());
+    // Full routers stop a circuit as surely as a full span (compute() reserves both), so they count in its room too.
+    const bn=pathBottleneck(b,p,h,own,ownN,got);
     alts.push({p,shared:h.filter(e=>[...e.ts].some(t=>nowT.has(t))).length,km:h.reduce((a,e)=>a+e.km,0),lat:h.reduce((a,e)=>a+e.lat+0.05,0),
-      room:Math.max(0,Math.min(...h.map(e=>e.cap-e.load+(own.has(e.k)?got:0))))});}
-  alts.sort((x,y)=>x.shared-y.shared||x.lat-y.lat);return {now,sky,alts};}
+      room:Math.max(0,Math.min(bn.length?bn[0].room:Infinity,...h.map(e=>e.cap-e.load+(own.has(e.k)?got:0)))),bn});}
+  alts.sort((x,y)=>x.shared-y.shared||x.lat-y.lat);return {now,sky,alts,bn};}
+// A bottleneck in words: the span (or the POP's routers) and how much of it is free. Today's path lists the three tightest;
+// on an alternative's line, the two tightest are enough.
+const BN_SHOWN=3,BN_ALT=2;
+const bnTxt=x=>x.c?tr('customer_paths.bottleneck_routers',{city:esc(pathCity(x.c)),free:fmtG(x.room),cap:fmtG(x.cap)}):tr('customer_paths.bottleneck_hop',{a:esc(pathCity(x.a)),b:esc(pathCity(x.z)),free:fmtG(x.room),cap:fmtG(x.cap)});
+const bnBtn=x=>x.c?btn(tr('common.show_me'),'pathShow',{city:x.c},'ghost sm'):x.link?btn(tr('common.show_me'),'pathShow',{link:x.link},'ghost sm'):'';
 // The pin as compute() walks it. Null while a link on it is down, and routing takes over.
 function pinRoute(p,edges){const path=[];for(let i=1;i<p.length;i++){const e=edges[hopKey(p[i-1],p[i])];if(!e)return null;path.push(e);}return {path,ni:p.map(x=>CIDX[x]),share:1};}
 // Under a customer in the panels.
@@ -74,12 +88,16 @@ function pathModal(b){const a=pathCity(b.city),z=pathCity(b.city2),k=pathKind(b)
     if(cur)h+=`<div class="kv"><span>${tr('customer_paths.now_on')}</span><b>${fibLab(cur)}</b></div>`;
     if(!T.length)h+=`<p class="empty">${tr('customer_paths.no_other_working_fiber',{a,b:z})}</p>`;
     for(const t of T)h+=row(fibLab(t.l),t.no,t.diverse?tr('customer_paths.fully_diverse'):tr('customer_paths.same_trench'),btn(tr('customer_paths.move'),'pathMove',{id:b.id,link:t.l.id},'sm',!!t.no));}
-  else{const {now,sky,alts}=circuitTargets(b);
+  else{const {now,sky,alts,bn}=circuitTargets(b);
     h+=`<p class="lead" style="margin-top:6px">${tr('customer_paths.routing_chooses_this_circuit',{a,b:z})}</p>`;
     if(sky)h+=`<div class="kv"><span>${tr('customer_paths.now_on')}</span><b>${esc(skyStr(sky))}</b></div><p class="meta">${tr('customer_paths.orbit_is_faster')}</p>`;
     else if(now)h+=`<div class="kv"><span>${tr('customer_paths.now_on')}</span><b>${esc(pathStr(now))}</b></div>`;
+    // Where today's path is short of what the customer pays for: the tightest spans and routers, each with a way to open it.
+    if(bn.length){h+=`<p class="meta" style="margin:10px 0 0"><b>${tr('customer_paths.bottlenecks')}</b></p>`;
+      for(const x of bn.slice(0,BN_SHOWN))h+=row(`<b style="color:var(--bad)">${bnTxt(x)}</b>`,'','',bnBtn(x));}
     if(b.pin)h+=`<div class="btns">${btn(tr('customer_paths.let_routing_choose_again'),'pathAuto',{id:b.id},'ghost sm')}</div>`;
     if(!alts.length)h+=`<p class="empty">${tr('customer_paths.no_other_path',{a,b:z})}</p>`;
-    for(const t of alts){const warn=[t.room<b.bw?`<b style="color:var(--bad)">${tr('customer_paths.fits_only_g_of_bw',{g:fmtG(t.room),bw:fmtG(b.bw)})}</b>`:'',b.latMax&&t.lat>b.latMax?`<b style="color:var(--bad)">${tr('customer_paths.over_the_ms_budget',{ms:b.latMax})}</b>`:''].filter(Boolean).join(' · ');
-      h+=row(esc(pathStr(t.p)),tr('customer_paths.path_facts',{km:Math.round(t.km).toLocaleString(),ms:t.lat.toFixed(1)})+(warn?' · '+warn:''),t.shared?trn('customer_paths.shares_n_spans',t.shared):tr('customer_paths.fully_diverse'),btn(tr('customer_paths.move'),'pathPin',{id:b.id,via:t.p.join()},'sm'));}}
+    for(const t of alts){const warn=[t.room<b.bw?`<b style="color:var(--bad)">${tr('customer_paths.fits_only_g_of_bw',{g:fmtG(t.room),bw:fmtG(b.bw)})}</b>`:'',b.latMax&&!latOk(t.lat,b.latMax)?`<b style="color:var(--bad)">${tr('customer_paths.over_the_ms_budget',{ms:b.latMax})}</b>`:''].filter(Boolean).join(' · ');
+      const bnLine=t.bn.length?`<span style="display:block">${tr('customer_paths.bottleneck_at',{list:t.bn.slice(0,BN_ALT).map(bnTxt).join('; ')})}</span>`:'';
+      h+=row(esc(pathStr(t.p)),tr('customer_paths.path_facts',{km:Math.round(t.km).toLocaleString(),ms:t.lat.toFixed(1)})+(warn?' · '+warn:'')+bnLine,t.shared?trn('customer_paths.shares_n_spans',t.shared):tr('customer_paths.fully_diverse'),btn(tr('customer_paths.move'),'pathPin',{id:b.id,via:t.p.join()},'sm'));}}
   openModal(h);}

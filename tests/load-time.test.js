@@ -19,13 +19,13 @@ test('diversity map: the indexed graph answers like disjointRoutes() over every 
   const cp = ev('CABLE_PAIRS[0].cid+":"+CABLE_PAIRS[0].a+"-"+CABLE_PAIRS[0].b');
   for (const st of [{ won: false }, { won: true }, { won: false, scn: { rules: { banCities: ['jam', 'lon'], banPairs: [cp] } } }]) {
     const r = JSON.parse(ev(`(()=>{const st=${lit(st)},L=plainLinks(st);diversityMap=null;diversityPossible('fra','nyc',st);
-      const ids=CITIES.map(c=>c.id),bad=[];let n=0;for(let i=0;i<ids.length;i+=9)for(let j=i+1;j<ids.length;j+=9){n++;const a=ids[i],b=ids[j];
+      const ids=CITIES.map(c=>c.id),bad=[];let n=0;for(let i=0;i<ids.length;i+=18)for(let j=i+1;j<ids.length;j+=18){n++;const a=ids[i],b=ids[j];
         const want=(st.scn&&st.scn.rules.banCities.some(x=>x===a||x===b))?diversityPossible(a,b,st):disjointRoutes(a,b,L);if(diversityPossible(a,b,st)!==want)bad.push(a+'-'+b);}
       return JSON.stringify({links:L.length,mine:diversityMap.links,n,bad})})()`));
     assert.equal(r.mine, r.links, 'the same possible links');
-    // Every 9th city against every 9th after it: over a thousand pairs, near and far, in all regions (each pair walks
-    // every possible link the plain way, so all pairs took 90 s).
-    assert.ok(r.n > 1000);
+    // Every 18th city against every 18th after it: over 200 pairs, near and far, in all regions (each pair walks every
+    // possible link the plain way, so all pairs took 90 s and every 9th still took 45 s).
+    assert.ok(r.n > 200);
     assert.deepEqual(r.bad, [], JSON.stringify(st));
   }
   assert.deepEqual(errors, []);
@@ -43,7 +43,7 @@ test('link curves: skipping far-away cities gives the same bend around the ones 
     const cand=[1,1.5,2.1,2.9,3.8].map(k=>lim(sg*mag*k)).concat([1,1.5,2.1,2.9,3.8].map(k=>lim(-sg*Math.max(mag,base)*k)));let best=null,bs=-Infinity;
     for(const off of cand){const cx=mx+nx*off,cy=my+ny*off,c=clear(cx,cy);if(c>=need){best=[cx,cy];break;}const sc=Math.min(c,need)-Math.abs(off)*0.35;if(sc>bs){bs=sc;best=[cx,cy];}}
     return {ax:A.x,ay:A.y,bx,by,cx:best[0],cy:best[1],len};}`);
-  const bad = JSON.parse(ev(`(()=>{const ids=CITIES.map(c=>c.id),bad=[];for(let i=0;i<ids.length;i+=12)for(let j=i+1;j<ids.length;j+=10)for(const k of [0,1,4]){
+  const bad = JSON.parse(ev(`(()=>{const ids=CITIES.map(c=>c.id),bad=[];for(let i=0;i<ids.length;i+=24)for(let j=i+1;j<ids.length;j+=20)for(const k of [0,1,4]){
     const l={id:'x'+i+'_'+j,a:ids[i],b:ids[j]};if(JSON.stringify(bezGeom(l,k))!==JSON.stringify(plainGeom(l,k)))bad.push(l.a+'-'+l.b+'#'+k);}return JSON.stringify(bad)})()`));
   assert.deepEqual(bad, []);
   assert.deepEqual(errors, []);
@@ -52,7 +52,7 @@ test('link curves: skipping far-away cities gives the same bend around the ones 
 test('land test: the bounding box shortcut agrees with walking every coastline', (t) => {
   const { ev, dom, errors } = load(); t.after(() => dom.window.close());
   const bad = ev(`(()=>{const plain=(x,y,pts)=>{let ins=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const [xi,yi]=pts[i],[xj,yj]=pts[j];if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))ins=!ins;}return ins;};
-    let bad=0;for(let x=0;x<W;x+=7)for(let y=0;y<H;y+=7)for(const p of COAST)if(inPoly(x,y,p)!==plain(x,y,p))bad++;for(const c of CITIES)for(const p of COAST)if(inPoly(c.x,c.y,p)!==plain(c.x,c.y,p))bad++;return bad;})()`);
+    let bad=0;for(let x=0;x<W;x+=14)for(let y=0;y<H;y+=14)for(const p of COAST)if(inPoly(x,y,p)!==plain(x,y,p))bad++;for(const c of CITIES)for(const p of COAST)if(inPoly(c.x,c.y,p)!==plain(c.x,c.y,p))bad++;return bad;})()`);
   assert.equal(bad, 0);
   assert.equal(ev('WAVES.length+HILLS.length'), 350);
   assert.deepEqual(errors, []);

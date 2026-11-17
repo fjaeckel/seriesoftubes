@@ -34,10 +34,11 @@ function fedPlayCard(){const f=S.fed,P=S.fedp,nets=S.fedn?S.fedn.nets:[];
   h+=fedSuggestHtml();
   if(!nets.length)h+=`<p class="empty">${f.on?tr('fedplay.no_players_yet'):tr('fedplay.join_to_meet')}</p>`;
   // A short first page of players: the rest on a tap (a joined save can see up to 48).
-  const all=fpOpenK('all'),cut=nets.length>FP_FIRST+2&&!all;
-  for(const s of cut?nets.slice(0,FP_FIRST):nets){const n=fedNetOf(s.k);if(!n)continue;const ds=f.deals.filter(d=>d.key===s.k&&d.st!=='over'),p=fedPair(n),a=FEDN.ann.get(s.k),nw=!!a&&a.rec&&fedIsNew(a.rec.body.founded,fedNow());
+  // Players you cannot reach first, marked: "Peer with players" lands here (fpLost), so they are never behind Show all.
+  const all=fpOpenK('all'),cut=nets.length>FP_FIRST+2&&!all,unr=s=>{const n=fedNetOf(s.k);return !!n&&!!R.reachable&&!R.reachable[n.id];},ord=scnRule('local')?nets:nets.filter(unr).concat(nets.filter(s=>!unr(s)));
+  for(const s of cut?ord.slice(0,FP_FIRST):ord){const n=fedNetOf(s.k);if(!n)continue;const nr=ord!==nets&&unr(s);const ds=f.deals.filter(d=>d.key===s.k&&d.st!=='over'),p=fedPair(n),a=FEDN.ann.get(s.k),nw=!!a&&a.rec&&fedIsNew(a.rec.body.founded,fedNow());
     h+=`<div class="row fp-${s.st}">${logo(n)}<div class="grow"><div class="nm">${fedBot(n)}${esc(n.name)} <span class="meta">AS${n.asn} ${fuFp(s.k)}</span>${fpLook(s.k)}${nw?` <span class="tag fp-new">${tr('fedplay.newcomer')}</span>`:''}</div>
-      <div class="meta"><span class="tag ${s.pol}">${tr(FEDP_POL[s.pol])}</span>${FEDP_STL[s.st]?` <span class="tag fp-q">${tr(FEDP_STL[s.st])}</span>`:''} · ${trn('fedplay.n_pops',s.pops.length)} · ${fmtG(s.tr/1000)}${p.ix.length?' · '+tr('fedplay.meet_at',{at:p.ix.slice(0,3).map(fpCity).join(', ')}):''}</div>
+      <div class="meta">${nr?`<span class="tag restrictive">${tr('pni_list.chip_not_reached')}</span> `:''}<span class="tag ${s.pol}">${tr(FEDP_POL[s.pol])}</span>${FEDP_STL[s.st]?` <span class="tag fp-q">${tr(FEDP_STL[s.st])}</span>`:''} · ${trn('fedplay.n_pops',s.pops.length)} · ${fmtG(s.tr/1000)}${p.ix.length?' · '+tr('fedplay.meet_at',{at:p.ix.slice(0,3).map(fpCity).join(', ')}):''}</div>
       ${ds.length?`<div class="meta">${ds.map(d=>`<span class="tag fp-d">${fedDealName(d.deal)}</span>`).join(' ')}</div>`:''}</div>${btn(tr('fedplay.deals'),'fpNet',{key:s.k},'ghost sm')}</div>`;}
   if(nets.length>FP_FIRST+2)h+=`<div class="btns">${btn(all?tr('common.show_fewer'):tr('notifications.show_all_n',{n:nets.length}),'fpFold',{k:'all'},'ghost sm')}</div>`;
   if(P&&P.str.length){h+=`<h3 class="fp-sub">${tr('fedplay.strangers')}</h3><p class="meta">${tr('fedplay.strangers_note')}</p>`;

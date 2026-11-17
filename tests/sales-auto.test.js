@@ -45,7 +45,7 @@ test('an old save whose intern ran the sales order loads cleanly: the order is g
   // The Ops sheet has no sales order, and every order it shows still has a switch.
   dom.window.innerWidth = 360; ev('opsModal()');
   const doc = dom.window.document, ks = [...doc.querySelectorAll('#modalCard [data-act="opsToggle"]')].map(b => JSON.parse(b.dataset.args).k);
-  assert.deepEqual(ks, JSON.parse(ev('JSON.stringify(OPS.filter(opsShow).map(o=>o.k))')));
+  assert.deepEqual(ks, JSON.parse(ev('JSON.stringify(OPS.filter(o=>opsShow(o)&&opsMine(o.k)).map(o=>o.k))')));
   assert.ok(!ks.includes('sales'));
   assert.doesNotMatch(doc.getElementById('modalCard').textContent, /Handle sales|signed|declined/);
   // An intern who was not hired never ran the order: nothing to carry over.

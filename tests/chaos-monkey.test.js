@@ -3,14 +3,22 @@ const assert = require('node:assert/strict');
 const { load } = require('./harness');
 const { lit } = require('../scripts/lib/js-literal');
 
-// A small network on a fixed seed: Frankfurt, Amsterdam, London and Paris in a ring, with a spur out to Zurich.
+// A small network on a fixed seed: Frankfurt, Amsterdam, London and Paris in a ring, with a spur out to Zurich. Built and
+// played 60 days once per preset, then each test gets a fresh page with that save (building it took most of the file).
+const NETS_BY_PRESET = {};
 function net(preset) {
+  if (!NETS_BY_PRESET[preset]) {
+    const { ev, dom } = load();
+    ev(`beginGame('Monkey Testers','fra',${lit({ mode: 'normal', preset })});if(UI.pendGame)ACT.pitchSkip()`);
+    ev("S.cash=1e9;S.lvl=4;for(const c of ['ams','lon','par','zrh'])ACT.buildPop({city:c})");
+    ev("ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1})");
+    ev("for(const [a,b] of [['fra','ams'],['ams','lon'],['lon','par'],['par','fra'],['fra','zrh']]){UI.pending={a,b};ACT.buildLink({tier:1});}closeModal()");
+    ev('for(let i=0;i<60;i++)dayTick();S.inc=[];for(const l of S.links)l.cut=0;compute()');
+    NETS_BY_PRESET[preset] = ev('JSON.stringify(S)');
+    dom.window.close();
+  }
   const { ev, errors, dom } = load();
-  ev(`beginGame('Monkey Testers','fra',${lit({ mode: 'normal', preset })});if(UI.pendGame)ACT.pitchSkip()`);
-  ev("S.cash=1e9;S.lvl=4;for(const c of ['ams','lon','par','zrh'])ACT.buildPop({city:c})");
-  ev("ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1})");
-  ev("for(const [a,b] of [['fra','ams'],['ams','lon'],['lon','par'],['par','fra'],['fra','zrh']]){UI.pending={a,b};ACT.buildLink({tier:1});}closeModal()");
-  ev('for(let i=0;i<60;i++)dayTick();S.inc=[];for(const l of S.links)l.cut=0;compute()');
+  ev(`S=migrate(JSON.parse(${lit(NETS_BY_PRESET[preset])}));UI.started=true;UI.pitched=true;closeModal();compute()`);
   return { ev, errors, dom };
 }
 const link = (ev, a, b) => `S.links.find(l=>(l.a==='${a}'&&l.b==='${b}')||(l.a==='${b}'&&l.b==='${a}'))`;
@@ -30,8 +38,11 @@ test('the chaos monkey visits On-call and BGP at 3 a.m., never Change Freeze or 
   assert.equal(ev('mkOn()'), false, 'never in a scenario');
 });
 
-test('a visit lasts 120 to 240 days, snips every couple of weeks and pauses the usual failures', () => {
+test('a visit lasts 120 to 240 days, snips every couple of weeks and pauses the usual failures; weak spots have no way round', () => {
   const { ev, errors } = net('oncall');
+  // Weak spots are tubes with no other way round: the spur, not the ring.
+  assert.equal(ev(`mkWeak(${link(ev, 'fra', 'zrh')})`), true);
+  assert.equal(ev(`mkWeak(${link(ev, 'fra', 'ams')})`), false);
   ev('S.monkey.next=S.day;dayTick()');
   const len = ev('S.monkey.until-S.monkey.start');
   assert.ok(len >= 120 && len <= 240, `visit of ${len} days`);
@@ -47,12 +58,6 @@ test('a visit lasts 120 to 240 days, snips every couple of weeks and pauses the 
   assert.ok(ev('S.monkey.next>S.day+200'));
   assert.ok(ev('S.nextFail>=S.day'));
   assert.deepEqual(errors, []);
-});
-
-test('weak spots are tubes with no other way round', () => {
-  const { ev } = net('oncall');
-  assert.equal(ev(`mkWeak(${link(ev, 'fra', 'zrh')})`), true);
-  assert.equal(ev(`mkWeak(${link(ev, 'fra', 'ams')})`), false);
 });
 
 test('outlasting it unnoticed pays a bonus and earns the badge; going home hurt pays nothing', () => {

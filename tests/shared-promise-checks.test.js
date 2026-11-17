@@ -1,7 +1,7 @@
 // Diverse paths, a land path and a latency budget asked for many pairs on one network: the offers spotted for
 // sovereign clouds (spots0()) and the intern's check before taking a wave out (opsDecomSafe()) build one graph per
 // network and ask it for every pair (divGraph()/divOn(), promiseCheck()). Same answers as before: the old ways are
-// written out here.
+// written out here. A latency budget is met as the player reads it, to 0.1 ms (latOk(), #423).
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -22,7 +22,7 @@ window.oldLand=(a,b)=>{const adj={};for(const l of S.links.filter(l=>!l.sub&&!li
 window.oldLat=(a,b)=>{const ls=S.links.filter(l=>!linkDown(l));const dist={[a]:0},done=new Set();for(;;){let u=null,ud=Infinity;for(const k in dist)if(!done.has(k)&&dist[k]<ud){u=k;ud=dist[k];}
   if(u===null)break;if(u===b)return ud;done.add(u);for(const l of ls){if(l.a!==u&&l.b!==u)continue;const v=l.a===u?l.b:l.a,nd=ud+linkLat(l)+0.05;if(nd<(dist[v]??Infinity))dist[v]=nd;}}return Infinity;};
 window.oldSafe=l=>{const bz=S.biz.filter(b=>(b.reqs||[]).some(k=>k==='diverse'||k==='sharks'||k==='lat')&&b.city2);if(!bz.length)return true;
-  const chk=b=>(b.reqs||[]).every(k=>k==='diverse'?oldDiv(b.city,b.city2):k==='sharks'?oldLand(b.city,b.city2):k==='lat'?oldLat(b.city,b.city2)<=b.latMax:true);
+  const chk=b=>(b.reqs||[]).every(k=>k==='diverse'?oldDiv(b.city,b.city2):k==='sharks'?oldLand(b.city,b.city2):k==='lat'?latOk(oldLat(b.city,b.city2),b.latMax):true);
   const was=bz.filter(chk),all=S.links;S.links=all.filter(x=>x!==l);try{return was.every(chk);}finally{S.links=all;}};`;
 // Seeded trouble: cuts, POPs down, trenches shared by several links, a VXC to a city with no POP.
 const MESS = (v) => `(()=>{let x=${v * 7919 + 13};const rnd=()=>{x=(x*1103515245+12345)%2147483648;return x/2147483648;};const D=S.day;
@@ -62,7 +62,7 @@ test('taking a wave out: the shared check refuses what asking customer by custom
     // From a few hubs to every POP: several customers of one city, some served and some not.
     const hub = JSON.parse(ev(`(()=>{const P=Object.keys(S.pops),H=P.filter((c,i)=>i%25===0);let n=0;for(const a of H)for(const b of P)if(a!==b)for(const k of ['diverse','sharks','lat']){const o={id:'hb'+n++,city:a,city2:b,type:'l2',bw:1,reqs:[k]};
         if(k==='lat')o.latMax=n%2?oldLat(a,b):oldLat(a,b)*0.995;S.biz.push(o);}
-      const chk=b=>(b.reqs||[]).every(k=>k==='diverse'?oldDiv(b.city,b.city2):k==='sharks'?oldLand(b.city,b.city2):k==='lat'?oldLat(b.city,b.city2)<=b.latMax:true);
+      const chk=b=>(b.reqs||[]).every(k=>k==='diverse'?oldDiv(b.city,b.city2):k==='sharks'?oldLand(b.city,b.city2):k==='lat'?latOk(oldLat(b.city,b.city2),b.latMax):true);
       const pc=promiseCheck(),bz=S.biz.filter(b=>/^hb/.test(b.id)),w=bz.map(chk);S.biz=S.biz.filter(b=>!/^hb/.test(b.id));
       return JSON.stringify({bad:bz.filter((b,i)=>pc(b)!==w[i]).map(b=>b.id).slice(0,5),yes:w.filter(Boolean).length,n:w.length});})()`));
     assert.deepEqual(hub.bad, [], `hubs, state ${v}`);

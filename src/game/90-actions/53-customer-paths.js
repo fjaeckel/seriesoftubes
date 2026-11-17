@@ -11,5 +11,7 @@ Object.assign(ACT,{
  pathPin:({id,via})=>{const b=S.biz.find(x=>x.id===id);if(!b||pathKind(b)!=='circuit'||typeof via!=='string')return;const p=via.split(',');
    if(p.length<2||p[0]!==b.city||p[p.length-1]!==b.city2||new Set(p).size!==p.length||!pathHops(pathEdges(),p))return;
    b.pin=p;closeModal();toast(tr('customer_paths.name_now_rides_path',{name:esc(b.name),path:esc(pathStr(p))}),'good');sfx('build');after();},
+ // From a bottleneck in the window: close it and open the span's link, or the POP whose routers are full, on the map.
+ pathShow:({link,city})=>{if(link&&S.links.some(l=>l.id===link)){closeModal();$('dash').hidden=true;selectLink(link);focusLink(link);}else if(isCity(city)&&S.pops[city]){closeModal();$('dash').hidden=true;ACT.focusCity({city});}},
  pathAuto:({id})=>{const b=S.biz.find(x=>x.id===id);if(!b||!b.pin)return;delete b.pin;closeModal();toast(tr('customer_paths.name_follows_routing_again',{name:esc(b.name)}),'good');sfx('click');after();},
 });

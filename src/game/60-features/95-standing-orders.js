@@ -11,7 +11,9 @@ const INTERNS={
  kevin:{i:'🌙',n:N_('ops.kevin_from_the_night_shift'),s:N_('ops.kevin'),d:N_('ops.kevin_d'),g:N_('ops.good_kevin')},
  tracy:{i:'🧭',n:N_('ops.tracy_route'),s:N_('ops.tracy'),d:N_('ops.tracy_d'),g:N_('ops.good_tracy')},
 };
-const OPS_AHEAD=1.1,opsIs=id=>!!S&&!!S.ops&&S.ops.intern===id,opsAhead=()=>opsIs('tracy')?OPS_AHEAD:1;
+// Who is running orders right now (opsOrders()): the intern's quirks are theirs only, the optical team works by its size.
+let OPS_WHO='intern';
+const OPS_AHEAD=1.1,opsIs=id=>!!S&&!!S.ops&&S.ops.intern===id,opsAhead=()=>OPS_WHO==='intern'&&opsIs('tracy')?OPS_AHEAD:1;
 // Deals are not the intern's: the sales desk signs them (39-sales-auto.js).
 // The orders, in the order the panel shows them. pop: can be switched off per POP. cap: default monthly budget, of setup
 // fees, or (mo) of the running costs the order adds, for caches, which are free to rack but cost rent every month.
@@ -22,23 +24,31 @@ const OPS=[
    // A model to standardize on: every POP on a smaller one is swapped to it, busiest first, within the budget.
    model:{d:'next',ok:v=>v==='next'||(Number.isInteger(v)&&!!RG[v]),l:N_('ops.p_model'),f:v=>v==='next'?tr('ops.model_next'):RG[v].n}}},
  {k:'caches',i:'📦',pop:1,cap:5000,mo:1,t:N_('ops.o_caches'),d:N_('ops.o_caches_d'),p:{g:{d:5,v:[1,5,10,25,50],l:N_('ops.p_g'),f:v=>fmtG(v)}}},
+ // Exchanges you founded: the next fabric when traffic outgrows the headroom, or when every seat is taken and a network
+ // is waiting to join (each member pays more than the bigger fabric's extra rent). Shown once you run one.
+ {k:'fabric',i:'🧵',cap:250000,show:()=>!!S&&Object.keys(S.myIx||{}).length>0,t:N_('ops.o_fabric'),d:N_('ops.o_fabric_d'),p:{x:{d:1.5,v:[1.25,1.5,2,3],l:N_('ops.p_x'),f:v=>v+'×'}}},
  {k:'ix',i:'🔀',t:N_('ops.o_ix'),d:N_('ops.o_ix_d'),p:{}},
  {k:'pni',i:'🤝',pop:1,cap:50000,t:N_('ops.o_pni'),d:N_('ops.o_pni_d'),p:{g:{d:25,v:[5,10,25,50,100],l:N_('ops.p_g'),f:v=>fmtG(v)},tier:{d:0,v:[0,1,2],l:N_('ops.p_tier'),f:v=>tr('ops.at_least_port',{port:PORT[v].n})},paid:{d:false,v:[false,true],l:N_('ops.p_paid'),f:v=>v?tr('common.on'):tr('common.off')}}},
  {k:'repair',i:'🔧',cap:50000,t:N_('ops.o_repair'),d:N_('ops.o_repair_d'),p:{}},
- {k:'optics',i:'🌈',cap:250000,t:N_('ops.o_optics'),d:N_('ops.o_optics_d'),p:{at:{d:70,v:[50,60,70,80,90],l:N_('ops.p_at'),f:v=>v+'%'},pick:{d:'cheap',v:['cheap','big'],l:N_('ops.p_pick'),f:v=>tr({cheap:N_('ops.pick_cheap'),big:N_('ops.pick_big')}[v])},
+ {k:'optics',i:'🌈',team:1,cap:250000,t:N_('ops.o_optics'),d:N_('ops.o_optics_d'),p:{at:{d:70,v:[50,60,70,80,90],l:N_('ops.p_at'),f:v=>v+'%'},pick:{d:'cheap',v:['cheap','big'],l:N_('ops.p_pick'),f:v=>tr({cheap:N_('ops.pick_cheap'),big:N_('ops.pick_big')}[v])},
    // New fiber pulls traffic onto itself the day it is lit (#316): the player may want to light it by hand, when the
    // ports behind it are ready. Off: fiber without a channel stays dark; lit fiber still gets more optics when hot.
    fresh:{d:true,v:[true,false],l:N_('ops.p_fresh'),f:v=>v?tr('common.on'):tr('common.off')}}},
  // Line systems up to a bigger one, and optics swapped for bigger ones, on fiber that is full and runs hot, or every fiber up to
  // a chosen line system. A line system swap is a day without that fiber: only where the traffic gets around it.
- {k:'optup',i:'🔭',cap:250000,t:N_('ops.o_optup'),d:N_('ops.o_optup_d'),p:{at:{d:80,v:[60,70,80,90],l:N_('ops.p_at'),f:v=>v+'%'},
+ {k:'optup',i:'🔭',team:1,cap:250000,t:N_('ops.o_optup'),d:N_('ops.o_optup_d'),p:{at:{d:80,v:[60,70,80,90],l:N_('ops.p_at'),f:v=>v+'%'},
    sys:{d:'next',v:['next','roadm','cl'],l:N_('ops.p_sys'),f:v=>v==='next'?tr('ops.sys_next'):DF_SYS[v].n},swap:{d:true,v:[true,false],l:N_('ops.p_swap'),f:v=>v?tr('common.on'):tr('common.off')}}},
- {k:'decom',i:'🧹',t:N_('ops.o_decom'),d:N_('ops.o_decom_d'),p:{keep:{d:true,v:[true,false],l:N_('ops.p_keep'),f:v=>v?tr('common.on'):tr('common.off')}}},
+ // Leased waves that run hot move up a size, where no glass of your own is coming on that route (the optical team only).
+ {k:'waveup',i:'🌊',team:1,only:1,cap:250000,t:N_('ops.o_waveup'),d:N_('ops.o_waveup_d'),p:{at:{d:80,v:[60,70,80,90],l:N_('ops.p_at'),f:v=>v+'%'}}},
+ {k:'decom',i:'🧹',team:1,t:N_('ops.o_decom'),d:N_('ops.o_decom_d'),p:{keep:{d:true,v:[true,false],l:N_('ops.p_keep'),f:v=>v?tr('common.on'):tr('common.off')}}},
 ];
 const OPSK=Object.fromEntries(OPS.map(o=>[o.k,o])),OPS_POP=OPS.filter(o=>o.pop).map(o=>o.k);
+// Optical orders move to the optical team once there is one (96-optical-team.js); some only the team runs.
+const opsTeam=k=>!!OPSK[k].team&&optxOn(),opsMine=k=>!OPSK[k].only&&!opsTeam(k);
+const opsCtl=k=>own(OPSK,k)&&(opsTeam(k)?true:opsMine(k)&&opsHired());
 const OPS_TPL=['bb','transit','ix','kit'];
 // What the shift log can say. One line per day: "{name} did this, that and the other."
-const OPS_SAY={transit:N_('ops.l_transit'),ports:N_('ops.l_ports'),routers:N_('ops.l_routers'),caches:N_('ops.l_caches'),rs:N_('ops.l_rs'),peer:N_('ops.l_peer'),pni:N_('ops.l_pni'),repair:N_('ops.l_repair'),optics:N_('ops.l_optics'),optup:N_('ops.l_optup'),optswap:N_('ops.l_optswap'),decom:N_('ops.l_decom'),broke:N_('ops.l_broke'),snag:N_('ops.l_snag')};
+const OPS_SAY={transit:N_('ops.l_transit'),ports:N_('ops.l_ports'),fabric:N_('ops.l_fabric'),routers:N_('ops.l_routers'),caches:N_('ops.l_caches'),rs:N_('ops.l_rs'),peer:N_('ops.l_peer'),pni:N_('ops.l_pni'),repair:N_('ops.l_repair'),optics:N_('ops.l_optics'),optup:N_('ops.l_optup'),waveup:N_('ops.l_waveup'),build:N_('ops.l_build'),optswap:N_('ops.l_optswap'),decom:N_('ops.l_decom'),broke:N_('ops.l_broke'),snag:N_('ops.l_snag')};
 // Fat fingers: rare, visible, harmless. Only the LAG one costs anything, and only a little.
 const OPS_FF=[N_('ops.ff_desc'),N_('ops.ff_hostname'),N_('ops.ff_typo'),N_('ops.ff_lag'),N_('ops.ff_ping')];
 const OPS_FF_RATE={oncall:1/150,bgp:1/60};
@@ -102,7 +112,7 @@ function opsMood(){const O=S.ops,x=O.wk&&O.wk.w===Math.floor(S.day/7)?O.wk:null,
     annie:N_('ops.mood_annie'),kevin:N_('ops.mood_kevin'),tracy:N_('ops.mood_tracy')}[k],{name:opsName()});}
 // "fra +1×100G", "fra|ams", "ams~3", "transit" (an order, for the budget line) or "ggl" (a network).
 // Peering is always at an exchange, and a city's first exchange has the city's id ("lon" is LYNX): name the exchange (#228).
-function opsWhere(w,k){if(k==='peer'&&isIx(w)&&ixName(w))return ixName(w);if(k==='pie'&&own(CRUSTS,w))return tr(CRUSTS[w].n);const [a,x]=w.split(' '),nm=a.split('|').map(p=>own(OPSK,p)?tr(OPSK[p].t):isCity(p)?CITY[p].name:isNet(p)?NET[p].name:ixName(p)).join('–');return x?nm+' '+(isNet(x)?NET[x].name:x):nm;}
+function opsWhere(w,k){if((k==='peer'||k==='fabric')&&isIx(w)&&ixName(w))return ixName(w);if(k==='pie'&&own(CRUSTS,w))return tr(CRUSTS[w].n);const [a,x]=w.split(' '),nm=a.split('|').map(p=>own(OPSK,p)?tr(OPSK[p].t):isCity(p)?CITY[p].name:isNet(p)?NET[p].name:ixName(p)).join('–');return x?nm+' '+(isNet(x)?NET[x].name:x):nm;}
 function opsLine(e){const I=INTERNS[e.i],name=I?tr(I.s):'',parts=e.r.map(([k,n,w])=>trn(OPS_SAY[k],n,{where:w.map(x=>opsWhere(x,k)).join(', ')}));
   return (parts.length?tr('ops.l_line',{name,list:parts.join(', ')}):tr('ops.l_quiet',{name}))+opsPaid(e);}
 const opsMo$=v=>(v>0?'+':'')+fmt$(v);
@@ -207,7 +217,7 @@ const OPS_RUN={
        lag:()=>n()<pniLagMax(c)&&!msfNope(p.net,c)&&PORT_SLOT(p.tier)<=room(c)?{cost:1500+PORT[p.tier].setup/2,cap:lagCap(pniG(p),n()+1),w:'+1×'+pniPN(p),go:()=>ACT.lagP({id:p.id,d:1})}:null,
        ups:()=>{const out=[];for(let t=p.g1?0:p.tier+1;t<PORT.length&&portShown(t);t++){const q=pniQuote(c,p.net,t,resv(c));if(q&&!q.why)out.push({cost:q.cost,cap:lagCap(PORT[t].g,n()),w:pniPN(p)+'→'+PORT[t].n,go:()=>ACT.pni({city:c,net:p.net,tier:t})});}return out;}});}
    // Nominal capacity, not ixCap(): a LACP fault or one building down halves a LAG for a day or two, not worth a bigger port.
-   for(const x in S.ixp){const c=ixCity(x),use=(R.useIx[x]||0)*opsAhead(),n=()=>(S.ixn||{})[x]||1,cap=()=>lagCap(PORT[S.ixp[x]].g,n())*(isRemote(x)?REMOTE_CAP:1),pop=S.pops[c];if(S.myIx[x]||!(use>0)||!(cap()>0)||cap()>=N*use||!opsHere('ports',c))continue;
+  for(const x in S.ixp){if(modeOn('outcast'))continue;const c=ixCity(x),use=(R.useIx[x]||0)*opsAhead(),n=()=>(S.ixn||{})[x]||1,cap=()=>lagCap(PORT[S.ixp[x]].g,n())*(isRemote(x)?REMOTE_CAP:1),pop=S.pops[c];if(S.myIx[x]||!(use>0)||!(cap()>0)||cap()>=N*use||!opsHere('ports',c))continue;
      const g=()=>PORT[S.ixp[x]].g;
      L.push({city:c,at:x,use,u:use/cap(),cap,n,rt:pop?pop.routers||1:1,busy:()=>false,sig:()=>S.ixp[x]+','+n(),
        lag:()=>pop&&n()<LAG_MAX&&PORT_SLOT(S.ixp[x])<=room(c)?{cost:ixPortMo(x,S.ixp[x]),cap:cap()*lagCap(g(),n()+1)/lagCap(g(),n()),w:'+1×'+PORT[S.ixp[x]].n,go:()=>ACT.lagIx({city:x,d:1})}:null,
@@ -241,7 +251,7 @@ const OPS_RUN={
    for(const l of ls){
      // The line system: one step at a time up to the chosen one, or the next one where the fiber is full and hot.
      const want=goal==='next'?(full(l)&&(hot(l)||press(l,false))?sysNext(l):null):SYS_RANK[l.sys]<SYS_RANK[goal]?goal:null;
-     if(want&&ups<OPTUP_MAX*(opsIs('kevin')?2:1)&&tries<OPTUP_TRY*(opsIs('kevin')?2:1)){const to=sysNext(l),cost=sysUpCost(l);
+     if(want&&ups<OPTUP_MAX*opsUpX()&&tries<OPTUP_TRY*opsUpX()){const to=sysNext(l),cost=sysUpCost(l);
        if(to&&techOk('sys',to,DF_SYS[to].lvl)&&!(OPTUP_NO.get(l.id)>S.day)&&X.can('optup',cost)){tries++;const ok=yield* opsDark(l,X);if(!ok)OPTUP_NO.set(l.id,S.day+OPTUP_WAIT);
          if(ok){const s0=l.sys,top=goal==='next'?to:goal;
            for(let k=0;k<2&&sysNext(l)&&SYS_RANK[l.sys]<SYS_RANK[top];k++){const nx=sysNext(l);
@@ -268,6 +278,13 @@ const OPS_RUN={
      const want=add.filter(x=>cacheDem(c,x.net)>=g),free=()=>portsMax(c)-portsUsed(c)+1e-9;
      for(const x of want){if(cachePortsAdd(c,[x])>free())continue;if(!X.can('caches',0,cacheMo(x)))return;S.caches.push({id:uid(),city:c,net:x.net,site:x.site,...(x.g?{g:x.g}:{})});X.book('caches',0,cacheMo(x));X.did('caches',c);}
      yield;}},
+ // A flood is not traffic to build for; a full exchange still grows while networks wait at the door.
+ *fabric(X){const N=opsP('fabric','x'),dd=ddosAll().length>0;
+   for(const c of Object.keys(S.myIx)){const m=S.myIx[c],f=m.fab|0,nx=MYIX_FAB[f+1];if(!nx||nx.lvl>lvl())continue;
+     const F=myFab(c),use=dd?0:((R.useIx&&R.useIx[c])||0)*opsAhead(),full=m.members.length>=F.max&&myIxCands(c).length>0;
+     if(!(use>0&&F.g<N*use)&&!full)continue;
+     if(!X.can('fabric',nx.cost)||!X.pay('fabric',()=>{ACT.myIxUp({city:c});return (m.fab|0)===f+1;}))continue;
+     X.did('fabric',c);yield;}},
  // Weekly, like a person going through PeeringDB on a Monday: route servers, then every willing member (#192).
  ix(X){if(S.day%7&&!opsIs('annie'))return;for(const ix of utilityRouteServers()){S.rs[ix]=true;X.did('rs');}
    for(const row of utilityPeers())for(const id of row.requests){S.peers[id+'@'+row.ix]=true;X.did('peer',row.ix);}},
@@ -285,6 +302,13 @@ const OPS_RUN={
    // let a frame through or waited for a routing, and the batch's quote would order it a second time.
    for(const q0 of b.orders.filter(q=>opsHere('pni',q.city)&&loc(q)>=g&&(paid||NET[q.net].pol!=='paid'||paidFree(NET[q.net]))).sort((a,b)=>loc(b)-loc(a))){
      const q=pniRequote(q0);if(!q)continue;if(!X.can('pni',q.cost))break;if(X.pay('pni',()=>{if(!spend(q.cost))return false;pniPlace(q);return true;}))X.did('pni',q.city+' '+q.net);yield;}},
+ // The next wave size up on a hot leased wave: the same click (upLink) and its price, a month of the new size. Never where
+ // dark fiber of your own runs or is being built on the route: that glass takes over, and decommissioning hands it back.
+ *waveup(X){const at=opsP('waveup','at')/100,glass=new Set(S.links.filter(l=>l.kind==='df').map(edgeKey));
+   for(const l of S.links.slice()){if(l.kind!=='wave'||l.fwv||linkDown(l)||glass.has(edgeKey(l)))continue;const cap=capOf(l),load=((R.load&&R.load[l.id])||0)*opsAhead();if(!(cap>0)||load<cap*at)continue;
+     let t=l.tier+1;while(LT[t]&&(subWaveWhy(t,l.km,l.sub)||soldOut(l.a,l.b,t,l.cable)||!waveOk(l.a,l.b,t)))t++;if(!LT[t])continue;
+     const nm=Math.round(waveMo(l.km,l.sub,t)*(l.mult||1));if(!X.can('waveup',nm,nm-(l.mo||0)))continue;
+     if(X.pay('waveup',()=>{const t0=l.tier;ACT.upLink({id:l.id,tier:t});return l.tier!==t0;})){X.did('waveup',l.a+'|'+l.b+' '+LT[t].n);yield;}}},
  // Hand back smaller waves once a bigger link between the same cities carries the pair with a quarter to spare (#102).
  // Loads must include what this shift already did (a customer just signed, a repair): opsRun() routes first if a
  // job changed the network and anything could go (opsDecomWaits()).
@@ -299,6 +323,7 @@ const OPS_RUN={
 // Line system swaps per shift, and how many fibers a shift may test for one: each test routes the whole network once,
 // so a shift costs at most one routing more, and only on a night with a fiber to try. A fiber that failed the test is not tested again for a week
 // (not saved: after a reload it is simply tested again).
+const opsUpX=()=>OPS_WHO==='optx'?optxUp():opsIs('kevin')?2:1;
 const OPTUP_MAX=1,OPTUP_TRY=1,OPTUP_WAIT=7,OPTUP_NO=new Map(),SYS_RANK={lite:0,roadm:1,cl:2},SYS_TAG={roadm:'ROADM',cl:'C+L'};
 // Another live path between the fiber's two cities, without it: a plain walk, no routing.
 function opsAround(l){const adj={};for(const x of S.links){if(x===l||linkDown(x))continue;(adj[x.a]=adj[x.a]||[]).push(x.b);(adj[x.b]=adj[x.b]||[]).push(x.a);}
@@ -326,36 +351,39 @@ function promiseCheck(){let dg=null,ti=null,lg=null;const dv=new Map(),ld=new Ma
   const div=(a,b)=>{const k=a+'>'+b;let r=dv.get(k);if(r===undefined)dv.set(k,r=divOn(dg||(dg=divGraph()),a,b));return r;};
   const land=(a,b)=>{if(a===b)return true;ti=ti||terrIslands();const A=ti.get(a);return A!==undefined&&A===ti.get(b);};
   const lat=(a,b)=>{lg=lg||latGraph();if(!ld.has(a))ld.set(a,latRun(lg,a));return latAt(lg,ld.get(a),a,b);};
-  return b=>(b.reqs||[]).every(k=>k==='diverse'?div(b.city,b.city2):k==='sharks'?land(b.city,b.city2):k==='lat'?lat(b.city,b.city2)<=b.latMax:true);}
+  return b=>(b.reqs||[]).every(k=>k==='diverse'?div(b.city,b.city2):k==='sharks'?land(b.city,b.city2):k==='lat'?latOk(lat(b.city,b.city2),b.latMax):true);}
 // The links between each pair of cities, VXCs left out.
 function opsPairs(){const by=new Map();for(const l of S.links)if(l.kind!=='vxc'){const k=edgeKey(l);(by.get(k)||by.set(k,[]).get(k)).push(l);}return by;}
 const opsDecomWaits=()=>[...opsPairs().values()].some(ls=>ls.length>1&&ls.some(l=>l.kind==='wave'));
-const OPS_ORDER=['repair','routers','transit','ports','optup','optics','caches','ix','pni','decom'];
+const OPS_ORDER=['repair','routers','transit','ports','fabric','optup','optics','waveup','caches','ix','pni','decom'];
 // The shift: once per game day from dayTick, after outages and events have had their turn.
 // One shift. Like a day (dayRun()), it is a generator: each yield is a compute() it needs, answered by the route worker
 // in play, so the shift never routes on the page. opsDay() runs it in one go.
 function opsDay(d){dayGo(opsRun(d),(g,v)=>g.next(v));}
-function* opsRun(d){if(!opsHired())return;const O=S.ops,m=monthIdx(d);if(m!==O.mon){O.mon=m;for(const k in O.spent)O.spent[k]=0;O.addMo={};}
-  // A new week: last week's tally becomes the shift report, and the one NOC notice of the week.
-  const w=Math.floor(d/7);if(!O.wk||O.wk.w!==w){if(opsWkAny(O.wk)&&O.wk.w<w){O.rep=O.wk;logNote(`<b>${esc(tr('ops.shift_report',{name:opsName()}))}</b> ${esc(opsWeekLine(O.rep))}`,'',[],{a:'ops'});}O.wk=opsWkNew(w);}
-  const X=opsShift();
-  // One order that trips over something (an odd save, a bug) is paused and noted; payday, goals and the save still happen.
-  // Each order is a step of the day: a long shift lets the map draw between two (DAY_REST). The interface the orders
-  // click through (selection, tab, confirmation) goes on from where the last order left it, as in one go; the player's
-  // own is back in between.
-  let ui=null;
+// A new month: every order starts on a fresh budget, whichever crew runs it.
+function opsMonth(d){const O=S.ops,m=monthIdx(d);if(m!==O.mon){O.mon=m;for(const k in O.spent)O.spent[k]=0;O.addMo={};}}
+// One crew's orders, in OPS_ORDER (who: 'intern' or 'optx'). Each order is a step of the day: a long shift lets the map
+// draw between two (DAY_REST). One that trips over something (an odd save, a bug) is paused and noted; payday, goals and
+// the save still happen. The interface the orders click through (selection, tab, confirmation) goes on from where the
+// last order left it, as in one go; the player's own is back in between.
+function* opsOrders(ks,X,who){const O=S.ops;let ui=null;
   // One step of an order, muted (opsQuiet()): a plain order all at once, a generator up to its next yield. A bare yield
   // is a rest; OPS_ROUTE or a {dark} test is a routing the day answers (v, passed back in).
-  const step=(k,st,v)=>opsQuiet(()=>{if(ui){UI.sel=ui.sel;UI.confirm=ui.cf;UI.tab=ui.tab;}st.ask=undefined;
+  const step=(k,st,v)=>opsQuiet(()=>{if(ui){UI.sel=ui.sel;UI.confirm=ui.cf;UI.tab=ui.tab;}st.ask=undefined;OPS_WHO=who;
     try{if(!st.it){const r=OPS_RUN[k](X);if(r&&typeof r.next==='function')st.it=r;else st.done=true;}if(!st.done){const s=st.it.next(v);if(s.done)st.done=true;else st.ask=s.value;}}
     catch(err){O.on[k]=false;X.dirty=true;X.did('snag',k);console.error('[tubes] standing order failed',k,err);st.done=true;}
+    finally{OPS_WHO='intern';}
     ui={sel:UI.sel,cf:UI.confirm,tab:UI.tab};});
   const order=function*(k){const st={it:null,done:false};let v;for(;;){step(k,st,v);v=undefined;if(st.done)return;
     if(st.ask===OPS_ROUTE)yield;else if(st.ask&&st.ask.dark)v=yield st.ask;else yield DAY_REST;}};
   // Every order but the last, decommissioning, which reads today's loads: routed first when a job changed them.
-  for(const k of OPS_ORDER.slice(0,-1))if(O.on[k]){yield* order(k);yield DAY_REST;}
-  if(O.on.decom&&X.dirty&&opsDecomWaits()){yield;X.dirty=false;}
-  ui=null;if(O.on.decom)yield* order('decom');
+  for(const k of ks)if(k!=='decom'&&O.on[k]){yield* order(k);yield DAY_REST;}
+  if(ks.includes('decom')&&O.on.decom){if(X.dirty&&opsDecomWaits()){yield;X.dirty=false;}ui=null;yield* order('decom');}}
+function* opsRun(d){if(!opsHired())return;const O=S.ops;opsMonth(d);
+  // A new week: last week's tally becomes the shift report, and the one NOC notice of the week.
+  const w=Math.floor(d/7);if(!O.wk||O.wk.w!==w){if(opsWkAny(O.wk)&&O.wk.w<w){O.rep=O.wk;logNote(`<b>${esc(tr('ops.shift_report',{name:opsName()}))}</b> ${esc(opsWeekLine(O.rep))}`,'',[],{a:'ops'});}O.wk=opsWkNew(w);}
+  const X=opsShift();
+  yield* opsOrders(OPS_ORDER.filter(opsMine),X,'intern');
   const e={d,i:O.intern,r:[]};for(const [k,x] of X.r)e.r.push([k,x.n,x.w]);if(X.broke.size)e.r.push(['broke',X.broke.size,[...X.broke]]);
   // Very rarely, and never under Change Freeze, the intern fat-fingers something harmless.
   // Kevin rolls the same dice (so a seeded game plays the same whoever is hired) and catches it before pressing Enter.
@@ -378,6 +406,6 @@ function opsTplQuote(c){if(!S||S.pops[c]||!cityOn(c)||(cnCity(c)&&!cnOk()))retur
   // The standard routers go in first (#261), so they are in the price and the kit is priced for them.
   const sq=popStdQuote();if(sq){cost+=sq.cost;parts.push(tr('ops.tpl_std'));}
   S.pops[c]={day:S.day,bb:null,boost:0,down:0,routers:sq?sq.rt:1,gen:false,rgen:sq?sq.g:0};
-  try{if(T.ix&&CITY[c].ix&&!isDk(c)&&S.ixp[c]===undefined){ix=c;cost+=ixPortMo(c,0);parts.push(tr('ops.tpl_ix'));}
+  try{if(T.ix&&!modeOn('outcast')&&CITY[c].ix&&!isDk(c)&&S.ixp[c]===undefined){ix=c;cost+=ixPortMo(c,0);parts.push(tr('ops.tpl_ix'));}
     if(T.kit){kit=utilityKit(c);if(kit&&kit.cost){cost+=kit.cost;parts.push(tr('ops.tpl_kit'));}}}finally{delete S.pops[c];}
   return {cost,net:net&&net.id,ix,kit:!!(kit&&kit.cost),parts};}

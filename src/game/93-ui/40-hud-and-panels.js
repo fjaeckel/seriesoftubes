@@ -15,7 +15,9 @@ function renderHUD(){
   $('hTraffic').textContent=`${fmtG(R.served)}`;
   $('hTrafBar').style.width=(R.demand?R.served/R.demand*100:0)+'%';
   $('hTrafBar').style.background=R.demand&&R.served/R.demand<0.9?'var(--bad)':'var(--ok)';
-  {const r=reachSolo();$('hReach').textContent=reachPct(r);$('hReach').style.color=r<0.99?'var(--bad)':'var(--eye)';}
+  {const r=reachSolo(),h=$('hReach'),x=fedLostOn(),w=$('hReachX');h.textContent=reachPct(r);h.style.color=r<0.99?'var(--bad)':'var(--eye)';
+    // Players you cannot reach are left out of the big number: the small one counts them (89-fedplay-unreached.js).
+    w.hidden=!x;w.textContent=x?'👥 '+reachPct(R.reach):'';w.style.color=x&&fedLost()>=FEDL_WARN?'var(--bad)':'';h.parentNode.title=x?tr('hud_and_panels.reach_with_players',{p:reachPct(R.reach),q:pct(fedLost())}):'';}
   $('hTier').textContent=tierLabel()+' · '+tr('hud_and_panels.lv_n',{n:S.lvl||1});
   {const P=scnProg(),hs=$('hScn');hs.hidden=!P;if(P){const sc=S.scn;$('hScnVal').textContent=sc.done?tr('common.done'):sc.failed?tr('common.time_s_up'):`${Math.round(P.f*100)}% · ${tr('ui.n_d_left',{n:Math.max(0,sc.days-S.day)})}`;}}
   $('hDate').textContent=dateStr(S.day);
@@ -47,7 +49,7 @@ function renderLeft(){checkLayer();
     h+=charterCard()+scnCard()+lvlCard()+t1Card();
     const cur=G.find(g=>S.done[g.id]===undefined);
     // Finished goals fold into one line once there are more than a few, so what is still to do comes first (and fits a phone).
-    const gRow=g=>{const d=S.done[g.id]!==undefined,c=g===cur;return `<div class="goal ${d?'done':''} ${c?'cur':''}"><div class="ck">${d?'✓':''}</div><div><div class="gt">${esc(g.t)}</div>${c||!d?`<div class="gd">${esc(g.d)}</div>`:''}${!d&&g.r?`<div class="gr">${tr('hud_and_panels.reward_cash',{cash:fmt$(g.r)})}</div>`:''}</div></div>`;};
+    const gRow=g=>{const d=S.done[g.id]!==undefined,c=g===cur;return `<div class="goal ${d?'done':''} ${c?'cur':''}"><div class="ck">${d?'✓':''}</div><div><div class="gt">${esc(g.t)}</div>${c||!d?`<div class="gd">${esc(g.dOut&&modeOn('outcast')?g.dOut:g.d)}</div>`:''}${!d&&g.r?`<div class="gr">${tr('hud_and_panels.reward_cash',{cash:fmt$(g.r)})}</div>`:''}</div></div>`;};
     if(ndone>3){const fo=leftFolded('done');h+=G.filter(g=>S.done[g.id]===undefined).map(gRow).join('')+`<div class="row gfold"><div class="ck">✓</div><div class="grow"><div class="nm">${trn('hud_and_panels.n_goals_done',ndone)}</div></div>${foldB(fo?tr('common.hide'):tr('common.show'),'leftFold',{k:'done'},fo,'ghost sm',trn('hud_and_panels.n_goals_done',ndone))}</div>`+(fo?G.filter(g=>S.done[g.id]!==undefined).map(gRow).join(''):'');}
     else h+=G.map(gRow).join('');
     h+=badgeGrid();
@@ -57,7 +59,7 @@ function renderLeft(){checkLayer();
     h+=`<div class="btns" style="margin-bottom:8px">${btn(tr('hud_and_panels.open_noc_dashboard'),'dash',{},'pink')}${pieNocBtn()}${bazNocBtn()}${btn(`⚙️ ${tr('routing.routing_and_ddos')}${S.te&&!coreTE()?'<span class="cnt red dot" aria-hidden="true"></span>':''}`,'routingOpen',{},'')}</div>`;
     // The introduction is for newcomers: once the network has grown or a few things have broken, it only costs a scroll.
     if(Object.keys(S.pops).length<6&&(S.stats.incidents||0)<3)h+=`<p class="lead">${tr('hud_and_panels.your_network_operations_center_every')}</p>`;
-    h+=opsCard()+pieSpatCard()+mkCard()+ddosPanel();
+    h+=opsCard()+optxCard()+pieSpatCard()+mkCard()+ddosPanel();
     // Incidents come first, the ones you can fix with one click at the top (#63): no scrolling past hot ports to replace an optic.
     for(const i of S.inc.filter(i=>i.type!=='ddos').sort((a,b)=>(b.cost?1:0)-(a.cost?1:0)||(b.impact||0)-(a.impact||0))){h+=`<div class="inc"><div class="nm">${incTitle(i.type)}</div><div class="meta">${esc(i.msg)}</div><div class="meta">${shipSea(i)?'🚢 '+esc(shipStatus(i)):trn('hud_and_panels.auto_fix_in_n_day',i.until-S.day)}${i.impact?` · ${tr('hud_and_panels.g_lost',{g:fmtG(i.impact)})}`:''}</div>${i.cost?`<div class="btns">${btn(`${esc(i.fix||tr('common.rush_repair'))} ${fmt$(i.cost)}`,'fixInc',{id:i.id},'red sm',S.cash<i.cost)}</div>`:''}</div>`;}
     h+=logSection();UI.logSeen=Date.now();

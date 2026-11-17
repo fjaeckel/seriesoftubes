@@ -92,3 +92,22 @@ test('idle frames work the latency floors out ahead, the same numbers as when as
   assert.equal(ev(`JSON.stringify(['nyc','lon'].map(b=>latFloor('${a}',b)))`), ev(`JSON.stringify(['nyc','lon'].map(b=>latFloor0('${a}')[CIDX[b]]))`));
   assert.deepEqual(errors, []);
 });
+
+// A hop's cost (land, borders, distance, the cables that land at both ends) is kept per city once a search has settled
+// it (latRow()), so the next city's search reads it instead of working it out again: the floors must be exactly the ones
+// the rules give when every hop is worked out on the spot, for every city on the map.
+test('the latency floors read kept hop costs, the same numbers as working every hop out', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();closeModal();UI.speed=0;");
+  const diff = ev(`(()=>{const n=CITIES.length,plain=a=>{const D=new Float64Array(n).fill(Infinity),done=new Uint8Array(n);D[CIDX[a]]=0;
+      for(;;){let u=-1,ud=Infinity;for(let i=0;i<n;i++)if(!done[i]&&D[i]<ud){u=i;ud=D[i];}if(u<0)break;done[u]=1;const U=CITIES[u];
+        for(let i=0;i<n;i++){if(done[i])continue;const V=CITIES[i],cw=LATC.get(Math.min(u,i)*4096+Math.max(u,i));
+          let w=overland(U,V)&&!noTalk(U.id,V.id)?kmBetween(U.id,V.id)*1.1:Infinity;if(cw<w)w=cw;if(w<Infinity){const d=ud+w/200+0.05;if(d<D[i])D[i]=d;}}}
+      return D;};
+    latFloor0('fra');let bad=0,fin=0;for(const c of CITIES){const A=latFloor0(c.id),B=plain(c.id);for(let i=0;i<n;i++){if(!Object.is(A[i],B[i]))bad++;if(A[i]<Infinity)fin++;}}
+    return {bad,fin,n};})()`);
+  assert.equal(diff.bad, 0, 'every floor the same, to the last bit');
+  assert.ok(diff.fin > diff.n * diff.n / 2, 'and most cities can be reached at all');
+  assert.equal(ev("latFloor('lon','nyc')===latFloor0('lon')[CIDX.nyc]&&latFloor('kyv','mos')>0"), true);
+  assert.deepEqual(errors, []);
+});

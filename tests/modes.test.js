@@ -125,16 +125,14 @@ test('animations can be switched off, on or follow the system, and the choice st
   assert.deepEqual(errors, []);
 });
 
-test('half speed and deeper zoom', () => {
+// The deeper zoom (#126) is in tests/issues.test.js.
+test('half speed', () => {
   const { ev, errors } = load();
   ev("ACT.start({});ACT.speed({v:0.5})");
   assert.equal(ev("UI.speed"), 0.5);
   assert.equal(ev("document.getElementById('sp0.5').classList.contains('on')"), true);
   ev("ACT.speed({v:7})");
   assert.equal(ev("UI.speed"), 0.5, 'bogus speeds are ignored');
-  ev("cam.z=1;for(let i=0;i<40;i++)zoomAt(100,100,1.2)");
-  assert.equal(ev("cam.z"), ev("ZMAX"), 'zooming in stops at the maximum');
-  assert.ok(ev("ZMAX") >= 16, 'deep enough for dense regions (#126)');
   assert.deepEqual(errors, []);
 });
 
@@ -305,7 +303,8 @@ test('#34 scenario goal, progress and customer level are always in view', () => 
   assert.match(left(), /Customer level 1 of 13/);
   assert.equal(ev("$('hScn').hidden"), false, 'scenario chip in the top bar');
   const f0 = ev('scnProg().f');
-  ev("S.cash=1e8;UI.via='pccs';openLinkModal('pan','bog');ACT.buildLink({tier:1});closeModal();compute();renderAll()");
+  // Bogotá's cables land in Cartagena: across the sea, then overland.
+  ev("S.cash=1e8;UI.via='pccs';openLinkModal('pan','ctg');ACT.buildLink({tier:1});closeModal();UI.via=null;openLinkModal('ctg','bog');ACT.buildLink({tier:1});closeModal();compute();renderAll()");
   assert.ok(ev('scnProg().f') > f0, 'progress moves when a goal step is reached');
   assert.match(ev("$('hScnVal').textContent"), /%/);
   assert.match(ev("$('hTier').textContent"), /Lv 1/);

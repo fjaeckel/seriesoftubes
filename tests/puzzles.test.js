@@ -46,8 +46,9 @@ function build(ev, steps) {
 const evalP = (ev) => JSON.parse(ev('JSON.stringify(pzEval())'));
 const links = (steps) => steps.filter((s) => s[0] !== '@rt');
 
-test('puzzle data: every puzzle is valid, carries traffic, and its references earn their stars through the real routing', () => {
+test('puzzle data: every puzzle is valid, carries traffic, its references earn their stars through the real routing, and budgets follow the teaching curve', () => {
   const { ev, errors } = load();
+  SV.install(ev);
   const ids = JSON.parse(ev('JSON.stringify(PZ.map(p=>p.id))'));
   assert.ok(ids.length >= 16 && ids.length <= 20, '16 to 20 puzzles');
   assert.equal(new Set(ids).size, ids.length, 'ids are unique');
@@ -58,6 +59,10 @@ test('puzzle data: every puzzle is valid, carries traffic, and its references ea
   assert.ok(ev("PZ_PACKS[0].need===0&&PZ_PACKS.every((k,i)=>!i||k.need>PZ_PACKS[i-1].need)"), 'packs unlock in order');
   assert.ok(ev("PZ_PACKS.every(k=>PZ.filter(p=>p.pack===k.id).length>=3)"), 'every pack has at least three puzzles');
   assert.ok(ev("PZ.filter(p=>p.pack==='hello'&&!p.budget).length>=2"), 'the first puzzles give the budget star away');
+  // Slack over the cheapest 3-star build found: roomy first, tight at the end. Traffic Cops is tight on purpose: the
+  // routing trick (a circuit on the lowest-latency path) is what brings it under budget.
+  const SLACK = { hello: [0.15, 0.22], rodeo: [0.09, 0.13], cops: [0.03, 0.06], n1: [0.05, 0.08], final: [0.04, 0.07] };
+  const meta = JSON.parse(ev('JSON.stringify(Object.fromEntries(PZ.map(p=>[p.id,{pack:p.pack,budget:p.budget}])))'));
   for (const id of ids) {
     ev(`pzBegin(pzDef('${id}'))`);
     build(ev, REF[id].one);
@@ -68,22 +73,8 @@ test('puzzle data: every puzzle is valid, carries traffic, and its references ea
     build(ev, REF[id].three);
     e = evalP(ev);
     assert.equal(e.stars, 3, `${id}: three stars (spend ${e.spend} of ${ev('S.pz.budget')}, n1 ${e.n1}, worst cut ${lit(e.worst)})`);
-  }
-  assert.deepEqual(errors, []);
-});
-
-test('budgets follow the teaching curve, and each 3-star reference is the cheapest build nearby', () => {
-  const { ev, errors } = load();
-  SV.install(ev);
-  // Slack over the cheapest 3-star build found: roomy first, tight at the end. Traffic Cops is tight on purpose: the
-  // routing trick (a circuit on the lowest-latency path) is what brings it under budget.
-  const SLACK = { hello: [0.15, 0.22], rodeo: [0.09, 0.13], cops: [0.03, 0.06], n1: [0.05, 0.08], final: [0.04, 0.07] };
-  const rows = JSON.parse(ev('JSON.stringify(PZ.filter(p=>p.budget).map(p=>({id:p.id,pack:p.pack,budget:p.budget})))'));
-  for (const { id, pack, budget } of rows) {
-    ev(`pzBegin(pzDef('${id}'))`);
-    build(ev, REF[id].three);
-    const e = evalP(ev);
-    assert.equal(e.stars, 3, id);
+    const { pack, budget } = meta[id];
+    if (!budget) continue;
     // The routers in the reference are the cheapest that carry it: the solver prices the same build the same.
     const L = links(REF[id].three), j = SV.judge(ev, L);
     assert.ok(j.three && Math.abs(j.spend - e.spend) < 1, `${id}: solver ${j.spend} vs game ${e.spend}`);
@@ -261,9 +252,11 @@ test('determinism and speed: the same build always gets the same stars, fast eno
   const [a, b] = run('kiwi'), [c] = run('kiwi');
   assert.equal(a, b, 'twice in a row');
   assert.equal(a, c, 'and from scratch');
-  // The biggest puzzle by failure units: one full evaluation (routing plus every single cut).
-  const big = ev("PZ.map(p=>p.id).sort()[0]") && JSON.parse(ev('JSON.stringify(PZ.map(p=>p.id))')).map((id) => { ev(`pzBegin(pzDef('${id}'))`); build(ev, REF[id].three); return [id, ev('new Set(S.links.map(pzUnit)).size')]; }).sort((x, y) => y[1] - x[1])[0];
+  // The biggest puzzle by failure units (Port Authority: 18, twice the next): one full evaluation (routing plus every single cut).
+  const big = ['ports'];
   ev(`pzBegin(pzDef('${big[0]}'))`); build(ev, REF[big[0]].three);
+  big[1] = ev('new Set(S.links.map(pzUnit)).size');
+  assert.ok(big[1] >= 18, `${big[0]}: ${big[1]} failure units`);
   for (let i = 0; i < 3; i++) ev('UI.pzEv=null;pzEval()');
   // The fastest of 7 runs: a busy machine (shared CI runners) slows some runs, never all of them.
   const ms = ev('(()=>{let b=Infinity;for(let i=0;i<7;i++){const t=performance.now();UI.pzEv=null;pzEval();b=Math.min(b,performance.now()-t);}return b})()');
@@ -369,7 +362,8 @@ test('weekly puzzle (seeded stand-in): stable per week, carries traffic, its ref
   const w = JSON.parse(a);
   assert.equal(w.key, '2026-W44');
   assert.ok(w.cities.length >= 4 && w.dem.length === w.cities.length - 1 && w.src[0] === w.cities[0]);
-  for (let i = 0; i < 400; i += 28) {
+  // Five weeks spread over a year: the stand-in's ring is the same recipe every week.
+  for (let i = 0; i < 400; i += 84) {
     const wi = JSON.parse(ev(`JSON.stringify(pzWeekly(new Date(2026,0,1+${i})))`));
     ev(`pzBegin(pzWeekly(new Date(2026,0,1+${i})))`);
     build(ev, wi.ref.map((x, j) => [x, wi.ref[(j + 1) % wi.ref.length], wi.refVia[j], 0]));
@@ -416,8 +410,9 @@ test('puzzle HUD and panels fit a 360 px phone, portrait and landscape', () => {
   assert.deepEqual(errors, []);
 });
 
-test('puzzles in every language', () => {
-  for (const lang of ['de', 'es', 'fr', 'it', 'pt']) {
+// Two languages: a raw label comes from the code, not the dictionary (tests/gameplay-rules.test.js C3 checks those).
+test('puzzles in other languages', () => {
+  for (const lang of ['de', 'pt']) {
     const { ev, errors } = load({ lang });
     ev("ACT.puzzleMenu({});pzBegin(pzDef('baltic'))");
     build(ev, REF.baltic.three);

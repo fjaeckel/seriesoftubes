@@ -106,14 +106,15 @@ function routeCore(){
      takes the fastest detour whose links are all still under that line, if it adds no more than the tier's milliseconds;
      the next tier lets links run hotter and detours longer. After the last tier the usual rules above take over. A detour
      is searched by latency over the links under the line (tierSearch), and kept per pair and tier while it still is:
-     links only fill up while routing, so a pair with no detour under a line never gets one. */
+     links only fill up while routing, so a pair with no detour under a line never gets one. Orbit edges (IGP weight Infinity)
+     carry no IP traffic, here as in altPath (#409): measured by latency, the sky would otherwise look like the best detour. */
   const pathMs=P=>{let ms=P.ms;if(ms<0){ms=0;const p=P.path;for(let k=0;k<p.length;k++)ms+=p[k].lat;P.ms=ms;}return ms;};
   let TC=null,TSD=null,TSP=null,TSS=null,TSG=0,TH=[],THU=[];
   const tierSearch=(src,dst,keep,lim)=>{const n=TEO.length-1,core=CORE;if(!TSD||TSD.length!==n){TSD=new Float64Array(n);TSP=new Array(n);TSS=new Int32Array(n);TSG=0;}
     const g=++TSG,D=TSD,P=TSP,ST=TSS;let m=0;D[src]=0;ST[src]=g;TH[0]=0;THU[0]=src;m=1;
     while(m){let best=0;for(let i=1;i<m;i++)if(TH[i]<TH[best])best=i;const d=TH[best],u=THU[best];m--;TH[best]=TH[m];THU[best]=THU[m];
       if(d>D[u])continue;if(u===dst)break;
-      for(let k=TEO[u],K=TEO[u+1];k<K;k++){const v=TEN[k],e=TEE[k];if(!(e.res>e.cap*keep+1e-3)||(HAS[v]&&NRES[v]<=1e-3)||(core&&OUT[v]&&v!==dst))continue;
+      for(let k=TEO[u],K=TEO[u+1];k<K;k++){const v=TEN[k],e=TEE[k];if(e.w===Infinity||!(e.res>e.cap*keep+1e-3)||(HAS[v]&&NRES[v]<=1e-3)||(core&&OUT[v]&&v!==dst))continue;
         const nd=d+e.lat;if(nd>lim||!(nd<(ST[v]===g?D[v]:Infinity)))continue;D[v]=nd;ST[v]=g;P[v]=e;TH[m]=nd;THU[m]=v;m++;}}
     return ST[dst]===g?walkP(P,src,dst):null;};
   const tierPath=(t,keep,src,dst,lim)=>{const key=(src*NC+dst)*TT.length+t,c=TC.get(key);if(c===false)return null;

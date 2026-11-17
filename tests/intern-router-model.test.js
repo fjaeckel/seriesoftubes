@@ -85,8 +85,8 @@ test('every setting in the Ops sheet is a list to pick from, on a phone too', t 
     s.value = o.value;
     s.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
   };
-  // Every setting of every order, every budget and the floor.
-  const n = ev('OPS.filter(opsShow).reduce((a,d)=>a+Object.keys(d.p).length+(d.cap?1:0),0)+1');
+  // Every setting of every order the intern runs (the optical team's own are in its sheet), every budget and the floor.
+  const n = ev('OPS.filter(d=>opsShow(d)&&opsMine(d.k)).reduce((a,d)=>a+Object.keys(d.p).length+(d.cap?1:0),0)+1');
   assert.equal(doc.querySelectorAll('#modalCard .ops-p select').length, n);
   // The model list: the next generation, then the models you can buy, smallest first.
   const model = sel('opsParam', { k: 'routers', p: 'model' });

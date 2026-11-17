@@ -250,27 +250,6 @@ test('the NOC gets one notice a week, the shift report; the daily lines stay in 
   assert.deepEqual(errors, []);
 });
 
-test('the Ops sheet opens with the intern\'s mood and the weekly shift report, at 360 px, in every language', t => {
-  for (const lang of ['en', 'de', 'es', 'fr', 'it', 'pt']) {
-    const h = load(lang === 'en' ? {} : { lang });
-    const { ev, dom, errors } = h;
-    ev(BASE); ev('S.day=14'); dom.window.innerWidth = 360;
-    hire(ev);
-    ev('opsModal()');
-    const mood = () => dom.window.document.querySelector('#modalCard .ops-mood').textContent;
-    assert.equal(mood(), ev("tr('ops.mood_new',{name:opsName()})"), lang + ': a new hire says so');
-    on(ev, 'transit', { x: 1.5 }, 0);
-    ev("S.transit[0].hist=[600];S.day=21");shift(ev);ev("S.transit[0].hist=[6000];S.day=28");shift(ev);ev('opsModal()');
-    const reps = [...dom.window.document.querySelectorAll('#modalCard .ops-rep')];
-    assert.equal(reps.length, 2, lang + ': last week, and this week so far');
-    assert.equal(reps[0].lastElementChild.textContent, ev('opsWeekLine(S.ops.rep)'), lang);
-    assert.ok(mood().length > 10, lang);
-    assert.doesNotMatch(dom.window.document.getElementById('modalCard').textContent, /\bops\.[a-z_]+/, lang);
-    assert.deepEqual(errors, [], lang);
-    dom.window.close();
-  }
-});
-
 test('the mood follows the week, with no dice', t => {
   const { ev, errors } = game(t);
   ev('S.day=100'); hire(ev); ev('S.day=110');
@@ -340,11 +319,12 @@ test('saves: old saves load with no intern and everything off, settings survive 
   assert.deepEqual(errors, []);
 });
 
-test('the Ops sheet works at 360 px in every language, from the NOC tab and the phone tab bar', t => {
+// One page per language for both: the Ops sheet from the phone tab bar, then its mood and weekly shift report.
+test('the Ops sheet works at 360 px in every language, from the NOC tab and the phone tab bar, with the mood and the weekly report', t => {
   for (const lang of ['en', 'de', 'es', 'fr', 'it', 'pt']) {
     const h = load(lang === 'en' ? {} : { lang });
     const { ev, dom, errors } = h;
-    ev(BASE);
+    ev(BASE); ev('S.day=14');
     dom.window.innerWidth = 360;
     const doc = dom.window.document;
     ev("ACT.phoneTab({t:'noc'})");
@@ -355,6 +335,8 @@ test('the Ops sheet works at 360 px in every language, from the NOC tab and the 
     assert.ok(hireBtn, lang);
     hireBtn.click();
     assert.ok(ev('opsHired()'), lang);
+    const mood = () => doc.querySelector('#modalCard .ops-mood').textContent;
+    assert.equal(mood(), ev("tr('ops.mood_new',{name:opsName()})"), lang + ': a new hire says so');
     doc.querySelector('#modalCard [data-act="opsToggle"]').click();
     assert.equal(doc.querySelector('#modalCard [data-act="opsToggle"]').getAttribute('aria-pressed'), 'true', lang);
     const sel = doc.querySelector('#modalCard select[data-chg="opsParam"]');
@@ -366,6 +348,14 @@ test('the Ops sheet works at 360 px in every language, from the NOC tab and the 
     ev("closeModal();selectCity('ams')");
     assert.ok(doc.querySelector('#panelBody [data-act="opsNewPop"]'), lang);
     assert.doesNotMatch(doc.getElementById('panelBody').textContent, /\bops\.[a-z_]+/, lang);
+    // A week of shifts: last week's report, and this week's so far.
+    ev('S.ops.floor=0'); on(ev, 'transit', { x: 1.5 }, 0);
+    ev("S.transit[0].hist=[600];S.day=21");shift(ev);ev("S.transit[0].hist=[6000];S.day=28");shift(ev);ev('opsModal()');
+    const reps = [...doc.querySelectorAll('#modalCard .ops-rep')];
+    assert.equal(reps.length, 2, lang + ': last week, and this week so far');
+    assert.equal(reps[0].lastElementChild.textContent, ev('opsWeekLine(S.ops.rep)'), lang);
+    assert.ok(mood().length > 10, lang);
+    assert.doesNotMatch(doc.getElementById('modalCard').textContent, /\bops\.[a-z_]+/, lang);
     assert.deepEqual(errors, [], lang);
     dom.window.close();
   }

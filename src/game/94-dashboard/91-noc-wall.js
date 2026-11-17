@@ -3,7 +3,7 @@
    and R (90-noc-window.js) with the game's own helpers, and the upgrade buttons are the dashboard's (connUp), so prices
    and rules cannot drift. Each section is patched with morph(): a flow on the map keeps running and a button stays put.
    Only the window runs any of this. */
-const NOCW={view:'wall',city:'',built:false,sum:{bad:0,warn:0}};
+const NOCW={view:'wall',city:'',built:false,sum:{bad:0,warn:0},lay:null,fit:false};
 const NW_HOT=0.9,NW_WARM=0.65,NW_FLOWS=40,NW_PORTS=8;
 const NW_COL={ok:'#2DD4A7',warn:'#FFB547',bad:'#FF5C6C',idle:'#5A6B94'};
 const nwCol=u=>u>=NW_HOT?NW_COL.bad:u>=NW_WARM?NW_COL.warn:NW_COL.ok;
@@ -32,6 +32,7 @@ function nwAlarms(){const A=[];
   const hot=hotPorts().filter(h=>h.k==='t'||h.k==='p'||h.k==='ix').length,sad=custStats().unhappy;
   if(hot)A.push({k:'warn',t:esc(trn('noc.n_ports_over_90_full',hot)),m:''});
   if(sad)A.push({k:'warn',t:esc(trn('noc.n_unhappy_customers',sad)),m:''});
+  if(!scnRule('local')&&fedLost()>=FEDL_WARN)A.push({k:'warn',t:esc(tr('noc.p_goes_to_players_not_peered',{p:pct(fedLost())})),m:''});
   return A;}
 // ---------- sections ----------
 function nwTiles(){const H=(S.hist||[]).slice(-60),last30=(S.hist||[]).slice(-30),net=R.revMo-R.costMo;
@@ -69,25 +70,28 @@ function nwPorts(){const all=conns().filter(r=>r.k==='t'||r.k==='p'||r.k==='ix')
 function nwAlarmsHtml(A){return `<div class="nw-h"><h3>${esc(tr('noc.alarms'))}</h3></div>`+(A.length?A.map(a=>`<div class="nw-al ${a.k}"><b>${a.t}</b>${a.m?`<div class="nw-s">${a.m}</div>`:''}${a.s?`<div class="nw-s">${a.s}</div>`:''}</div>`).join(''):`<p class="nw-quiet">${esc(tr('noc.nothing_on_fire'))}</p>`);}
 const nwBars=(title,rows)=>`<div class="nw-h"><h3>${esc(title)}</h3></div>`+rows.map(([n,m,u])=>`<div class="nw-row"><div class="nw-pm"><div class="nw-pt"><b>${esc(n)}</b> <span class="nw-s">${esc(m)}</span></div><div class="nw-bar"><i style="width:${Math.min(100,u*100).toFixed(1)}%;background:${nwCol(u)}"></i></div></div><b class="nw-pc num" style="color:${nwCol(u)}">${pct(u)}</b></div>`).join('');
 function nwBuild(){const w=$('nocWall');NOCW.box=nwMapBox();
-  w.innerHTML=`<div class="nw-tiles" id="nwTiles"></div>
-  <div class="nw-col"><section class="nw-panel nw-map"><div class="nw-h"><h3>${esc(tr('noc.your_network'))}</h3><div class="nw-legend"><span><i style="background:${NW_COL.ok}"></i>${esc(tr('noc.legend_ok'))}</span><span><i style="background:${NW_COL.warn}"></i>${esc(tr('noc.legend_warm'))}</span><span><i style="background:${NW_COL.bad}"></i>${esc(tr('noc.legend_hot'))}</span></div></div>
-    <div class="nw-world" style="aspect-ratio:${NOCW.box[2]}/${NOCW.box[3]}"><svg class="nw-land" viewBox="${NOCW.box.join(' ')}" aria-hidden="true"><path d="${nwLand()}"/></svg><div id="nwOver"></div></div></section>
-  <section class="nw-panel" id="nwTraffic"></section></div>
-  <div class="nw-col"><section class="nw-panel nw-alarms" id="nwAlarms"></section>
-  <section class="nw-panel" id="nwPorts"></section></div>
-  <div class="nw-low"><section class="nw-panel" id="nwRouters"></section><section class="nw-panel" id="nwLinks"></section><section class="nw-panel" id="nwMoney"></section></div>`;NOCW.built=true;}
+  const L=[tr('noc.your_network'),tr('dashboard.traffic_by_way_out'),tr('noc.alarms'),tr('noc.hottest_ports'),tr('common.router_load'),tr('common.busiest_links'),tr('dashboard.money_per_month')];
+  w.innerHTML=`<div class="nw-tiles" id="nwTiles"></div><div id="nwDeck">`
+  +nwWin('map',L[0],`<section class="nw-panel nw-map"><div class="nw-h"><h3>${esc(L[0])}</h3><div class="nw-legend"><span><i style="background:${NW_COL.ok}"></i>${esc(tr('noc.legend_ok'))}</span><span><i style="background:${NW_COL.warn}"></i>${esc(tr('noc.legend_warm'))}</span><span><i style="background:${NW_COL.bad}"></i>${esc(tr('noc.legend_hot'))}</span></div></div>
+    <div class="nw-world" style="aspect-ratio:${NOCW.box[2]}/${NOCW.box[3]}"><svg class="nw-land" viewBox="${NOCW.box.join(' ')}" aria-hidden="true"><path d="${nwLand()}"/></svg><div id="nwOver"></div></div></section>`)
+  +nwWin('traffic',L[1],'<section class="nw-panel" id="nwTraffic"></section>')+nwWin('alarms',L[2],'<section class="nw-panel nw-alarms" id="nwAlarms"></section>')+nwWin('ports',L[3],'<section class="nw-panel" id="nwPorts"></section>')
+  +nwWin('routers',L[4],'<section class="nw-panel" id="nwRouters"></section>')+nwWin('links',L[5],'<section class="nw-panel" id="nwLinks"></section>')+nwWin('money',L[6],'<section class="nw-panel" id="nwMoney"></section>')+'</div>';
+  NOCW.built=true;NOCW.fit=true;NOCW.lay=nwRead();nwPlace();}
 function nocWall(){if(!NOCW.built)nwBuild();const rows=(S.hist||[]).slice(-90),A=nwAlarms();
   NOCW.sum={bad:A.filter(a=>a.k==='bad').length,warn:A.filter(a=>a.k==='warn').length};
   const put=(id,h)=>{const e=$(id);if(e._h!==h){e._h=h;morph(e,h);}};
   put('nwTiles',nwTiles());put('nwOver',nwMap());put('nwAlarms',nwAlarmsHtml(A));
-  put('nwTraffic',`<div class="nw-h"><h3>${esc(tr('dashboard.traffic_by_way_out'))}</h3><div class="nw-legend">${Object.keys(EGC).filter(k=>(R.egT[k]||0)>0.01||rows.some(r=>(r[k]||0)>0)).map(k=>`<span><i style="background:${EGC[k][1]}"></i>${esc(EGC[k][0])} <b class="num">${esc(fmtG(R.egT[k]||0))}</b></span>`).join('')}<span><i class="dash"></i>${esc(tr('common.demand'))}</span></div></div>${nwChart(rows,['c','p','ix','t','l2'],[{k:'dem',col:'#E8EEFA',dash:true}],nwG,900,260,62,'traffic')}`);
+  put('nwTraffic',`<div class="nw-h"><h3>${esc(tr('dashboard.traffic_by_way_out'))}</h3><div class="nw-legend">${Object.keys(EGC).filter(k=>(R.egT[k]||0)>0.01||rows.some(r=>(r[k]||0)>0)).map(k=>`<span><i style="background:${EGC[k][1]}"></i>${esc(EGC[k][0])} <b class="num">${esc(fmtG(R.egT[k]||0))}</b></span>`).join('')}<span><i class="dash"></i>${esc(tr('common.demand'))}</span></div></div>${nwChart(rows,['c','p','ix','t','l2'],[{k:'dem',col:'#E8EEFA',dash:true}],nwG,...(nwSize('nwTraffic')||[900,260]),62,'traffic')}`);
   put('nwPorts',nwPorts());
   put('nwRouters',nwBars(tr('common.router_load'),Object.keys(S.pops).map(c=>[CITY[c].name,`${S.pops[c].routers||1} × ${RG[S.pops[c].rgen||0].n}`,(R.nodeLoad[c]||0)/(R.nodeCap[c]||1)]).sort((a,b)=>b[2]-a[2]).slice(0,6)));
   put('nwLinks',nwBars(tr('common.busiest_links'),S.links.filter(l=>capOf(l)>0).map(l=>[`${CITY[l.a].name} ⇄ ${CITY[l.b].name}`,capName(l),(R.load[l.id]||0)/capOf(l)]).sort((a,b)=>b[2]-a[2]).slice(0,6)));
-  put('nwMoney',`<div class="nw-h"><h3>${esc(tr('dashboard.money_per_month'))}</h3><div class="nw-legend"><span><i style="background:${NW_COL.ok}"></i>${esc(tr('common.revenue'))}</span><span><i style="background:${NW_COL.bad}"></i>${esc(tr('common.costs'))}</span></div></div>${nwChart(rows,[],[{k:'rev',col:NW_COL.ok},{k:'cost',col:NW_COL.bad}],fmt$,520,220,74,'money')}`);}
+  put('nwMoney',`<div class="nw-h"><h3>${esc(tr('dashboard.money_per_month'))}</h3><div class="nw-legend"><span><i style="background:${NW_COL.ok}"></i>${esc(tr('common.revenue'))}</span><span><i style="background:${NW_COL.bad}"></i>${esc(tr('common.costs'))}</span></div></div>${nwChart(rows,[],[{k:'rev',col:NW_COL.ok},{k:'cost',col:NW_COL.bad}],fmt$,...(nwSize('nwMoney')||[520,220]),74,'money')}`);
+  // The charts are sized from their title bars, which only exist now: once more, the first time.
+  if(NOCW.fit){NOCW.fit=false;nocWall();}}
 // The window's own controls never reach the game: they change what this screen shows.
 function nocUiClick(e){const b=e.target.closest&&e.target.closest('[data-nc]');if(!b)return;const v=b.getAttribute('data-nc');
   if(v==='wall'||v==='details')nocView(v);
+  else if(v==='layout')nwReset();
   else if(v==='fs'){try{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen();}catch(err){}}
   else if(v.startsWith('pop:')){const c=v.slice(4);NOCW.city=NOCW.city===c?'':c;nocRender();}}
 function nocView(v){NOCW.view=v;$('dash').hidden=v==='wall';$('nocWall').hidden=v!=='wall';UI._dh=null;nocRender();try{scrollTo(0,0);}catch(e){}}

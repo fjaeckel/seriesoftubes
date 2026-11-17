@@ -273,6 +273,7 @@ test('an attack started during the day is announced and scored after the day\'s 
   assert.equal(ev('ddosAll().length'), 1);
   assert.ok(ev('ddosAll()[0].worst') !== undefined, 'scored on its first day');
   assert.equal(ev('ddosAll()[0].fresh'), undefined, 'and announced');
-  assert.ok(ev("window.__t.some(m=>/attack is hitting/.test(m))"));
+  // Announced in the NOC log; it pops up as well only if it hurts (tests/ddos-dashboard.test.js).
+  assert.ok(ev("S.log.some(e=>/attack is hitting/.test(e.t))"));
   assert.deepEqual(errors, []);
 });

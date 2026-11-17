@@ -130,3 +130,13 @@
 @media (min-width:761px){.pie-dr{grid-template-columns:minmax(120px,1fr) 130px minmax(70px,.6fr) auto}}
 @media (min-width:761px){.pie-dr{grid-template-columns:minmax(120px,1fr) 130px 80px 300px}.pie-dr .ac{justify-content:flex-end}}
 @media (min-width:761px){.pie-dr{grid-template-columns:minmax(90px,1fr) 90px 64px 320px;gap:2px 8px}.pie-dr .nm{overflow:hidden;text-overflow:ellipsis}}
+/* The Dishes tab's planner (93-ui/87-pie-plan.js). */
+.pie-plan{border:2px solid var(--edge);border-radius:12px;padding:8px 10px;margin:6px 0 10px;background:var(--soft)}
+.pie-pl-reach{margin:4px 0;font-size:13px}
+.pie-pl-back{color:var(--ok)}
+.pie-pl-i{color:var(--ink2);font-variant-numeric:tabular-nums}
+.pie-fx-m small.pie-pl-pay{font-weight:800}
+.pie-pl-tot{margin:4px 0;font-weight:800;font-size:13px}
+.pie-pl-lk{white-space:nowrap;margin-left:6px}
+.pie-pl-ring{display:inline-block;box-sizing:border-box;width:12px;height:12px;border-radius:50%;border:2px dashed #FF4F9A;vertical-align:-1px;margin-right:3px}
+.pie-pl-ring.pie-pl-grow{border-color:#FFAA1F}.pie-pl-ring.pie-pl-drop{border-color:#FF4D5E}

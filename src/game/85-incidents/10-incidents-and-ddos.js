@@ -87,26 +87,30 @@ function ddosAttack(recompute=true){const fl=scnRule('ddos');ddosExpire();
   addInc({type:'ddos',ref:c,atk:a.id,until:a.until,msg:tr('ddos.started',{g:fmtG(a.gbps),vec:DDOS_VEC[vec].n,who:ddosWho(a)}),cost:0});
   if(recompute){compute();ddosNews();}
   return a;}
+/* Which DDoS news pops up as a toast; the rest goes to the NOC log only, and every attack is in the dashboard's DDoS tab.
+   An attack that hurts pops up; one your network shrugs off, and Auto-RTBH doing its job, do not. */
+const DDOS_POP={hurt:true,held:false,auto:false};
+function ddosSay(pop,html,kind,open){if(pop)toast(html,kind,[{l:tr('ddos.btn_dash'),act:'ddosOpen'}],open);else logNote(html,kind,[],open);}
 /* After the day's routing: announce new attacks with what they are doing, pull the plug when Auto-RTBH says so, and
    teach each lesson once. */
 function ddosNews(){runNow(ddosNewsRun());}
 // The same as a step of the day: its yield is the routing after Auto-RTBH pulled a plug.
 function* ddosNewsRun(){let again=false;const auto=S.ddosAuto&&S.ddosAuto.rtbh;
   for(const a of ddosAll()){const m=ddosReport(a);if(!m)continue;
-    if(auto&&!a.bh&&m.full>0&&ddosCol(a)>=0.01){a.bh=true;a.sac=1;S.stats.rtbh=(S.stats.rtbh||0)+1;ddosRtbhMood(a);again=true;
-      toast(tr('ddos.auto_rtbh',{who:esc(ddosWho(a))}),'bad',[{l:tr('common.open_noc'),act:'leftTab',args:{t:'noc'}}],{a:'city',v:a.city});}}
+    if(auto&&!a.bh&&m.full>0&&ddosCol(a)>=0.01){a.bh=true;a.sac=1;a.au=1;S.stats.rtbh=(S.stats.rtbh||0)+1;ddosRtbhMood(a);again=true;
+      ddosSay(DDOS_POP.auto,tr('ddos.auto_rtbh',{who:esc(ddosWho(a))}),'bad',{a:'city',v:a.city});}}
   if(again)yield;
   const T=S.stats.ddT||(S.stats.ddT={});
   for(const a of ddosAll()){const m=ddosReport(a);if(!m)continue;
     if(a.fresh){delete a.fresh;const fl=scnRule('ddos'),col=ddosCol(a),sf=ddosSf(a),bad=col>=0.01||sf<0.97;
       const how=a.bh?tr('ddos.news_rtbh'):col>=0.01?tr('ddos.news_ports',{n:m.full,k:m.slowed}):sf<0.97?tr('ddos.news_target',{p:pct(sf)}):tr('ddos.news_held');
-      toast(`<b>${incTitle('ddos')}: ${esc(ddosWho(a))}</b><br>${esc(tr('ddos.started',{g:fmtG(a.gbps),vec:DDOS_VEC[a.vec].n,who:ddosWho(a)}))} ${esc(how)}${fl&&a.who?`<br><i>${esc(tr('failures.attacker_who',{who:tr(a.who)}))}</i>`:''}`,bad?'bad':'good',[{l:tr('common.open_noc'),act:'leftTab',args:{t:'noc'}}],{a:'city',v:a.city});
-      if(bad)sfx('alert');}
+      ddosSay(bad?DDOS_POP.hurt:DDOS_POP.held,`<b>${incTitle('ddos')}: ${esc(ddosWho(a))}</b><br>${esc(tr('ddos.started',{g:fmtG(a.gbps),vec:DDOS_VEC[a.vec].n,who:ddosWho(a)}))} ${esc(how)}${fl&&a.who?`<br><i>${esc(tr('failures.attacker_who',{who:tr(a.who)}))}</i>`:''}`,bad?'bad':'good',{a:'city',v:a.city});
+      if(bad&&DDOS_POP.hurt)sfx('alert');}
     // Lessons, once a game each.
     if(!T.port&&m.full>0&&!a.bh){T.port=1;toast(tr('ddos.learn_port'),'',[],{a:'tab',v:'noc'});}
     if(!T.fs&&m.fsFull.length){T.fs=1;toast(tr('ddos.learn_fs',{city:CITY[m.fsFull[0]].name}),'',[],{a:'city',v:m.fsFull[0]});}}}
 // What the day did to each live attack's score: the worst the target got, the most it cost everyone else.
-function ddosTrack(list=ddosAll()){for(const a of list)if(S.pops[a.city]){a.worst=Math.min(a.worst??1,ddosSf(a));a.colMax=Math.max(a.colMax||0,ddosCol(a));}}
+function ddosTrack(list=ddosAll()){for(const a of list)if(S.pops[a.city]){a.worst=Math.min(a.worst??1,ddosSf(a));a.colMax=Math.max(a.colMax||0,ddosCol(a));const m=ddosReport(a);if(m&&m.pulled>0)a.scr=1;}}
 // RTBH costs the target: its service is gone while it lasts, and it remembers.
 function ddosRtbhMood(a){const b=ddosBiz(a);if(b)b.mood=Math.max(0,b.mood-25);}
 /* When an attack is over. Held: the target got 97% and nobody else lost more than 1%. Sacrificed: you blackholed the
@@ -116,18 +120,28 @@ function ddosDone(a){if(!a||a.done)return;a.done=1;if(a.worst===undefined&&S.pop
   if(held){S.stats.ddosOk=(S.stats.ddosOk||0)+1;S.stats.ddosHeld=(S.stats.ddosHeld||0)+1;if(a.gbps>=1000){S.stats.ddosOkBig=(S.stats.ddosOkBig||0)+1;S.stats.ddosMonster=(S.stats.ddosMonster||0)+1;}}
   else if(sac)S.stats.ddosSac=(S.stats.ddosSac||0)+1;
   else{S.stats.ddosLost=(S.stats.ddosLost||0)+1;if(col>=0.01)S.stats.ddosCol=(S.stats.ddosCol||0)+1;}
+  S.stats.ddosMax=Math.max(S.stats.ddosMax||0,a.gbps||0);ddosLogAdd(a,held?'h':sac?'s':'l',w,col);
   if(scnRule('ddos')){const w2=tr(FLOOD_WHO.includes(a.who)?a.who:FLOOD_WHO[0]),who=esc(w2.charAt(0).toUpperCase()+w2.slice(1));
     toast(held?tr('failures.flood_held_g_who_gave_up',{g:fmtG(a.gbps),who}):sac?tr('ddos.flood_sacrificed',{g:fmtG(a.gbps),who:esc(ddosWho(a))}):tr('failures.that_one_got_through_g_city',{g:fmtG(a.gbps),city:esc(CITY[a.city]?CITY[a.city].name:tr('common.your_network')),p:pct(w),who:esc(w2)}),held||sac?'goal':'bad');}}
+/* The DDoS tab's history (S.ddosLog): each finished attack as small plain fields, newest first. d the day it ended, s the
+   day it started, g its size, v its vector, c its city, t the customer's type ('' for broadband subscribers) and n its name,
+   o the outcome (h held, s sacrificed, l got through), w the worst the target got, x the most it cost everyone else,
+   bh 1 blackholed by hand or 2 by Auto-RTBH, sc scrubbed, hk ended by a hack back. */
+const DDOS_LOG=100,DDOS_O=['h','s','l'];
+function ddosLogAdd(a,o,w,x){const b=ddosBiz(a),L=S.ddosLog||(S.ddosLog=[]),r2=v=>Math.round(v*1000)/1000;
+  L.unshift({d:S.day,s:Math.min(S.day,a.start??S.day),g:a.gbps,v:a.vec,c:a.city,t:b?b.type:'',n:b?String(b.name).slice(0,60):'',o,w:r2(w),x:r2(x),bh:a.sac?(a.au?2:1):0,sc:a.scr?1:0,hk:a.hk?1:0});
+  if(L.length>DDOS_LOG)L.length=DDOS_LOG;}
 /* ---------- the NOC card: the flood's path, top to bottom, and the one thing to do now ---------- */
-function ddosPanel(){return S?ddosAll().filter(a=>S.pops[a.city]).map(ddosOne).join(''):'';}
+function ddosPanel(){return S?ddosAll().filter(a=>S.pops[a.city]).map(a=>ddosOne(a)).join(''):'';}
 const ddCities=l=>{const u=[...new Set(l)];return u.slice(0,3).map(c=>CITY[c].name).join(', ')+(u.length>3?' +'+(u.length-3):'');};
-function ddosOne(a){const V=DDOS_VEC[a.vec]||{n:'?',fs:false},m=ddosReport(a),row=(ok,t)=>`<div class="meta">${ok===true?'✓':ok===false?'~':'—'} ${t}</div>`;
+// In the NOC tab the card links to the dashboard's DDoS tab; in that tab (dash) to the POP.
+function ddosOne(a,dash=false){const V=DDOS_VEC[a.vec]||{n:'?',fs:false},m=ddosReport(a),row=(ok,t)=>`<div class="meta">${ok===true?'✓':ok===false?'~':'—'} ${t}</div>`;
   let h=`<div class="inc ddos" style="background:#FFE2E6;border:1px solid #FF8A9A"><div class="nm">🚨 ${tr('ddos.card_title',{g:fmtG(a.gbps),vec:esc(V.n)})}</div>
     <div class="meta"><b>${esc(ddosWho(a))}</b> · ${tr('ui.n_d_left',{n:Math.max(1,a.until-S.day)})}${a.carpet?' · '+tr('ddos.carpet'):''}</div>`;
   if(!m)return h+'</div>';
   const engIdle=hasScrub()&&!a.bh&&m.eng<1&&S.scrubMode==='ondemand'&&S.ddosAuto&&S.ddosAuto.scrub===false&&a.eng===undefined;
   // 1. Upstream and the ports.
-  if(a.bh)h+=row(true,tr('ddos.row_rtbh',{g:fmtG(m.up)}));
+  if(a.bh)h+=(a.au?row(null,tr('ddos.row_auto_rtbh')):'')+row(true,tr('ddos.row_rtbh',{g:fmtG(m.up)}));
   if(m.portList&&m.portList.length){const full=m.portList.filter(p=>p.fac<0.97);
     h+=row(full.length?false:true,full.length?trn('ddos.row_ports_full',m.portList.length,{k:full.length,labs:esc(full.slice(0,2).map(p=>p.lab+' ('+CITY[p.city].name+')').join(', '))+(full.length>2?' +'+(full.length-2):'')}):trn('ddos.row_ports_ok',m.portList.length));
     if(m.slowed)h+=row(false,trn('ddos.row_slowed',m.slowed));}
@@ -146,7 +160,8 @@ function ddosOne(a){const V=DDOS_VEC[a.vec]||{n:'?',fs:false},m=ddosReport(a),ro
   // The one thing to do now, and the rest behind "More".
   const rt=btn(tr('ddos.btn_rtbh'),'rtbh',{id:a.id},'red sm'),un=btn(tr('common.stop_blackholing'),'unrtbh',{id:a.id},'ghost sm'),eng=btn(tr('ddos.btn_engage'),'ddosEngage',{id:a.id},'green sm'),hb=btn(tr('incidents_and_ddos.hackback_3000tm_20k'),'hackback',{id:a.id},'sm',S.cash<20000);
   const main=a.bh?un:engIdle?eng:m.full>0&&col>=0.01?rt:'',more=[a.bh||main===rt?'':rt,hb].filter(Boolean).join('');
-  h+=`<div class="btns">${main}</div><details class="more"><summary>${tr('ddos.more')}</summary><div class="btns">${more}</div><p class="meta">${tr('ddos.rtbh_help')}</p></details></div>`;
+  const go=dash?btn(tr('ddos.open_pop',{city:esc(CITY[a.city].name)}),'dashPop',{city:a.city},'ghost sm'):btn(tr('ddos.btn_dash'),'ddosOpen',{},'ghost sm');
+  h+=`<div class="btns">${main}${go}</div><details class="more"><summary>${tr('ddos.more')}</summary><div class="btns">${more}</div><p class="meta">${tr('ddos.rtbh_help')}</p></details></div>`;
   return h;}
 // The NOC's standing DDoS settings: where the scrubbing is, the routers' Flowspec rules, and the two automations.
 function ddosSettings(){if(!S)return '';const pops=Object.keys(S.pops),fs=pops.filter(c=>fsCap(c)>0);

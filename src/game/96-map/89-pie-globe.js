@@ -62,7 +62,7 @@ const pgBuf=n=>(PG.buf&&PG.buf.length>=n*3)?PG.buf:(PG.buf=new Float32Array(Math
 const pgNum=(x,d)=>typeof x==='number'&&isFinite(x)?x:d,pgArr=x=>Array.isArray(x)?x:[];
 // A place is {lat,lon} or a city id in .city (or .pad, as launches name their pad).
 function pgPlace(list,cap){const out=[];for(const o of pgArr(list)){if(out.length>=cap)break;if(!o)continue;const id=typeof o.city==='string'?o.city:typeof o.pad==='string'?o.pad:null,C=id&&Object.prototype.hasOwnProperty.call(CITY,id)?CITY[id]:null;
-  const lat=pgNum(o.lat,C?C.lat:NaN),lon=pgNum(o.lon,C?C.lon:NaN);if(!isFinite(lat)||!isFinite(lon))continue;const v=new Float32Array(3);pgUnit(lon,lat,v,0);out.push({v,id,up:o.up!==false,ok:o.ok!==false,re:o.rk==='again'||o.rk==='heavy',u:typeof o.u==='number'&&isFinite(o.u)?Math.max(0,Math.min(1,o.u)):null});}return out;}
+  const lat=pgNum(o.lat,C?C.lat:NaN),lon=pgNum(o.lon,C?C.lon:NaN);if(!isFinite(lat)||!isFinite(lon))continue;const v=new Float32Array(3);pgUnit(lon,lat,v,0);out.push({v,id,up:o.up!==false,ok:o.ok!==false,re:o.rk==='again'||o.rk==='heavy',u:typeof o.u==='number'&&isFinite(o.u)?Math.max(0,Math.min(1,o.u)):null,k:typeof o.k==='string'?o.k:null});}return out;}
 function pgRefresh(now){PG.dAt=now;let d=null;try{d=PG.get?PG.get():null;}catch(e){d=null;}d=d&&typeof d==='object'?d:{};
   const cr=pgArr(d.crusts).filter(c=>c&&pgNum(c.n,0)>0).slice(0,8),ph=isPhone(),cap=ph?80:160;
   const sig=ph+'|'+cr.map(c=>[c.id,c.n,c.alt,c.inc,!!c.las].join(':')).join(',');
@@ -72,7 +72,7 @@ function pgRefresh(now){PG.dAt=now;let d=null;try{d=PG.get?PG.get():null;}catch(
       const P=Math.max(1,Math.round(polar?Math.sqrt(cnt/2):Math.sqrt(cnt*1.2))),K=Math.ceil(cnt/P),span=polar?Math.PI:2*Math.PI;
       const co=new Float32Array(P),so=new Float32Array(P);for(let p=0;p<P;p++){co[p]=Math.cos(p/P*span);so[p]=Math.sin(p/P*span);}
       return {cnt,P,K,co,so,ci:Math.cos(inc*PG_D),si:Math.sin(inc*PG_D),rr:1+alt/6371*PG_XF,w:0.18*Math.pow(550/alt,1.5),las:!!c.las,col:PG_CI[c.id]!=null?PG_CI[c.id]:j%4,pos:new Float32Array(cnt*3)};});}
-  PG.dish=pgPlace(d.dishes,ph?60:150);PG.pops=pgPlace(d.pops,400);PG.noSats=!!d.noSats;PG.focus=typeof d.focus==='string'?d.focus:null;PG.pads=pgPlace(d.pads,24);PG.lch=pgPlace(d.launches,ph?4:8);PG.fly=pgPlace(d.flown,ph?3:6);PG.hi=typeof d.hi==='string'?d.hi:null;
+  PG.dish=pgPlace(d.dishes,ph?60:150);PG.pops=pgPlace(d.pops,400);PG.plan=pgPlace(d.plan,60);PG.noSats=!!d.noSats;PG.focus=typeof d.focus==='string'?d.focus:null;PG.pads=pgPlace(d.pads,24);PG.lch=pgPlace(d.launches,ph?4:8);PG.fly=pgPlace(d.flown,ph?3:6);PG.hi=typeof d.hi==='string'?d.hi:null;
   PG.fl=pgFlows(d.flows,PG_FLOWS[ph?0:1],PG.hi);PG.dirty=true;}
 /* Flows as arcs of PG_ARC+1 points in world coordinates, rebuilt once a second. A sky circuit climbs to its crust in the
    first and last 15% and crosses at that height; a terminal bounces off the sky halfway. The highlighted one is always kept. */
@@ -165,6 +165,9 @@ function pgDraw(ctx,W,H){
   // POPs without a dish (the Dishes tab): small hollow marks, so you see where another dish could go.
   {ctx.beginPath();let any=false;for(const d of PG.pops){const b=pgRot(d.v,d.s||(d.s=new Float32Array(3)),1);if(b[0]<0.08)continue;const [x,y]=P(b,0);ctx.moveTo(x+3.5,y);ctx.arc(x,y,3.5,0,7);any=true;}
     if(any){ctx.fillStyle='#FFFFFF';ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle=st.ink;ctx.stroke();}}
+  // The dish planner's picks: a dashed ring where to build, amber where to grow, red where to take down.
+  if(PG.plan&&PG.plan.length){ctx.setLineDash([3,3]);ctx.lineWidth=2.5;for(const d of PG.plan){const b=pgRot(d.v,d.s||(d.s=new Float32Array(3)),1);if(b[0]<0.08)continue;const [x,y]=P(b,0);
+    ctx.beginPath();ctx.arc(x,y,11,0,7);ctx.strokeStyle=d.k==='drop'?'#FF4D5E':d.k==='ant'||d.k==='band'?'#FFAA1F':'#FF4F9A';ctx.stroke();}ctx.setLineDash([]);}
   // The city picked in the Dishes tab: a pulsing ring and its name.
   if(PG.focus&&isCity(PG.focus)){const v=new Float32Array(3);pgUnit(CITY[PG.focus].lon,CITY[PG.focus].lat,v,0);const b=pgRot(v,new Float32Array(3),1);
     if(b[0]>0.05){const [x,y]=P(b,0),r=10+Math.sin(t*4)*2;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.lineWidth=2.5;ctx.strokeStyle=st.hi;ctx.stroke();

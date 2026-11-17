@@ -378,8 +378,9 @@ test('every multiplayer sheet works on a 360 px phone, in portrait and landscape
   assert.deepEqual(p.errors, []);
 });
 
-test('the sheets are complete in every language', async () => {
-  for (const lang of ['de', 'es', 'fr', 'it', 'pt']) {
+test('the sheets show no raw labels in translation', async () => {
+  // Every label in every dictionary is checked by gameplay-rules C3; here the sheets as they render, long words and all.
+  for (const lang of ['de', 'it']) {
     const { p } = await joined({ lang });
     for (const v of ['home', 'join', 'boards', 'filters', 'glass']) {
       p.ev(`ACT.fuOpen({v:'${v}'})`);

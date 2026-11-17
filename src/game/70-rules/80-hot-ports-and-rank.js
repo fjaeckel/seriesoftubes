@@ -19,7 +19,7 @@ const t1Need=()=>NETS.filter(n=>n.type==='t1'&&(!T1_SINCE[n.id]||(S&&S.t1v>=T1_S
    version: what was Tier 1 stays Tier 1. Networks in nobody's cone still need peering of their own. */
 // The reach the game counts and shows (Tier 1, customers, offers, covenants, HUD): other players' networks you cannot
 // reach are left out. A player Tier 1 is in nobody's cone, and nothing may hang on who joins.
-const reachSolo=()=>{let r=R.reach||0;for(const id of FEDN.ids)if(!R.reachable[id])r+=NSH[id]||0;return r;};
+const reachSolo=()=>(R.reach||0)+fedLost();
 function isTier1(){return t1Need().every(n=>S.pni.some(p=>p.net===n.id&&pniOn(p)))&&S.transit.length===0&&reachSolo()>0.999;}
 // What you are now, not what you once were (#46): buying transit again or losing reach drops the label.
 function tierLabel(){return S.won&&isTier1()?'Tier 1':isTier2()?'Tier 2':'Tier 3';}

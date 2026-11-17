@@ -23,7 +23,7 @@ const PLAY = {
     win: [80, 250], cheese: [...home('mrs'), ['loans'], ['link', 'mrs', 'sin', 1], ['bb', 'sin']], by: null },
   spat: { ref: [...home('nyc'), HIRE], avoid: ['cog'], win: [50, 140], cheese: [...home('nyc'), ['hire', ['routers', 'repair']]], by: 160 },
   carnaval: { ref: [...home('rio'), ['hire'], ['wait', 69], ['prep', 'rio', 400], ['wait', 76], ['prep', 'rio', 400], ['wait', 83], ['prep', 'rio', 400]], win: [95, 95], cheese: [...home('rio'), ['loans']], by: null },
-  darien: { ref: [...home('pan'), ['link', 'pan', 'bog', 1, 'pccs'], ['bb', 'bog'], ['ix', 'bog'], ['link', 'bog', 'lim', 1], ['bb', 'lim'], ['ix', 'lim'], ['link', 'lim', 'scl', 1], ['bb', 'scl'], ['ix', 'scl'], ['link', 'scl', 'sao', 1], ['bb', 'sao'], ['tr', 'sao', 1], ['ix', 'sao'], HIRE],
+  darien: { ref: [...home('pan'), ['link', 'pan', 'ctg', 1, 'pccs'], ['link', 'ctg', 'bog', 1], ['bb', 'bog'], ['ix', 'bog'], ['link', 'bog', 'lim', 1], ['bb', 'lim'], ['ix', 'lim'], ['link', 'lim', 'scl', 1], ['bb', 'scl'], ['ix', 'scl'], ['link', 'scl', 'sao', 1], ['bb', 'sao'], ['tr', 'sao', 1], ['ix', 'sao'], HIRE],
     win: [30, 90], cheese: [...['pan', 'bog', 'lim', 'scl', 'sao'].flatMap((c) => [['bb', c], ['tr', c, 1]]), ['hire']], by: null },
   c2c: { ref: [...home('cpt'), ['link', 'cpt', 'jnb', 1], ['bb', 'jnb'], ['tr', 'jnb', 1], ['ix', 'jnb'], ['link', 'jnb', 'nbo', 1], ['bb', 'nbo'], ['ix', 'nbo'], ['link', 'nbo', 'cai', 1], ['bb', 'cai'], ['ix', 'cai'], ['link', 'jnb', 'lag', 1], ['bb', 'lag'], ['ix', 'lag'], HIRE],
     win: [70, 200], cheese: [...home('cpt'), ['link', 'cpt', 'cai', 0], ['pop', 'lag'], ['pop', 'nbo'], ['hire']], by: null },

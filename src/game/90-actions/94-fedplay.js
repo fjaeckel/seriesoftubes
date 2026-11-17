@@ -6,6 +6,8 @@ const fpRe=()=>{if(!$('modal').hidden&&UI.fpOpen){const o=UI.fpOpen;if(o.k==='ne
 const fpDo=p=>Promise.resolve(p).then(r=>{fpSay(r);fpRe();return r;},e=>{console.error('[tubes] federation gameplay',e);});
 Object.assign(ACT,{
  fpTerms:()=>{if(!S||!S.fed)return;UI.fpDraft=null;fedTermsModal();},
+ // To the players card (the Networks tab), where players you cannot reach can be peered with.
+ fpLost:()=>{if(!S||!S.fed)return;if(!$('modal').hidden)closeModal();$('dash').hidden=true;UI.nf='all';UI.netFocus=null;UI.sel=null;renderPanel();if(!isPhone())ACT.leftTab({t:'nets'});else if(!(UI.leftOpen&&UI.left==='nets'))ACT.phoneTab({t:'nets'});const c=document.querySelector('#leftBody .fp-card');if(c&&c.scrollIntoView)c.scrollIntoView({block:'start'});},
  fpEdit:({f,v}={})=>{if(!S||!S.fed)return;fedTermsEdit(f,v);fedTermsModal();},
  fpTermsSave:()=>{if(!S||!S.fed||!UI.fpDraft)return;const r=fedTermsApply(UI.fpDraft);UI.fpDraft=null;closeModal();toast(tr('fedplay.terms_saved'),'good');after();return fpDo(r);},
  fpTermsSet:({terms}={})=>{if(!S||!S.fed)return;let t;try{t=JSON.parse(String(terms));}catch(e){toast(tr('fedplay.err_off'),'bad');return;}after();return fpDo(fedTermsApply(t));},
