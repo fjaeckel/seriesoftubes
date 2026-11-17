@@ -64,11 +64,14 @@ function circuitTargets(b){const G=pathEdges(),sky=pathSky(b),now=pathNow(b,G);i
   const nowT=new Set(),ownN=new Set(sky?[b.city,b.city2]:now),bn=sky?[]:pathBottleneck(b,now,hops,own,ownN,got);for(const e of hops)for(const t of e.ts){nowT.add(t);used.add(t);}
   for(let i=0;i<PATH_ALT+1&&alts.length<PATH_ALT;i++){const p=pathWalk(G,b.city,b.city2,e=>{for(const t of e.ts)if(used.has(t))return (e.w+1)*PATH_FAR;return e.w+1;});if(!p)break;
     const h=pathHops(G,p);for(const e of h)for(const t of e.ts)used.add(t);if(seen.has(p.join()))continue;seen.add(p.join());
+    // Full routers stop a circuit as surely as a full span (compute() reserves both), so they count in its room too.
+    const bn=pathBottleneck(b,p,h,own,ownN,got);
     alts.push({p,shared:h.filter(e=>[...e.ts].some(t=>nowT.has(t))).length,km:h.reduce((a,e)=>a+e.km,0),lat:h.reduce((a,e)=>a+e.lat+0.05,0),
-      room:Math.max(0,Math.min(...h.map(e=>e.cap-e.load+(own.has(e.k)?got:0)))),bn:pathBottleneck(b,p,h,own,ownN,got)});}
+      room:Math.max(0,Math.min(bn.length?bn[0].room:Infinity,...h.map(e=>e.cap-e.load+(own.has(e.k)?got:0)))),bn});}
   alts.sort((x,y)=>x.shared-y.shared||x.lat-y.lat);return {now,sky,alts,bn};}
-// A bottleneck in words: the span (or the POP's routers) and how much of it is free. The two tightest are enough on one line.
-const BN_SHOWN=3;
+// A bottleneck in words: the span (or the POP's routers) and how much of it is free. Today's path lists the three tightest;
+// on an alternative's line, the two tightest are enough.
+const BN_SHOWN=3,BN_ALT=2;
 const bnTxt=x=>x.c?tr('customer_paths.bottleneck_routers',{city:esc(pathCity(x.c)),free:fmtG(x.room),cap:fmtG(x.cap)}):tr('customer_paths.bottleneck_hop',{a:esc(pathCity(x.a)),b:esc(pathCity(x.z)),free:fmtG(x.room),cap:fmtG(x.cap)});
 const bnBtn=x=>x.c?btn(tr('common.show_me'),'pathShow',{city:x.c},'ghost sm'):x.link?btn(tr('common.show_me'),'pathShow',{link:x.link},'ghost sm'):'';
 // The pin as compute() walks it. Null while a link on it is down, and routing takes over.
@@ -95,6 +98,6 @@ function pathModal(b){const a=pathCity(b.city),z=pathCity(b.city2),k=pathKind(b)
     if(b.pin)h+=`<div class="btns">${btn(tr('customer_paths.let_routing_choose_again'),'pathAuto',{id:b.id},'ghost sm')}</div>`;
     if(!alts.length)h+=`<p class="empty">${tr('customer_paths.no_other_path',{a,b:z})}</p>`;
     for(const t of alts){const warn=[t.room<b.bw?`<b style="color:var(--bad)">${tr('customer_paths.fits_only_g_of_bw',{g:fmtG(t.room),bw:fmtG(b.bw)})}</b>`:'',b.latMax&&!latOk(t.lat,b.latMax)?`<b style="color:var(--bad)">${tr('customer_paths.over_the_ms_budget',{ms:b.latMax})}</b>`:''].filter(Boolean).join(' · ');
-      const bnLine=t.bn.length?`<span style="display:block">${tr('customer_paths.bottleneck_at',{list:t.bn.slice(0,2).map(bnTxt).join('; ')})}</span>`:'';
+      const bnLine=t.bn.length?`<span style="display:block">${tr('customer_paths.bottleneck_at',{list:t.bn.slice(0,BN_ALT).map(bnTxt).join('; ')})}</span>`:'';
       h+=row(esc(pathStr(t.p)),tr('customer_paths.path_facts',{km:Math.round(t.km).toLocaleString(),ms:t.lat.toFixed(1)})+(warn?' · '+warn:'')+bnLine,t.shared?trn('customer_paths.shares_n_spans',t.shared):tr('customer_paths.fully_diverse'),btn(tr('customer_paths.move'),'pathPin',{id:b.id,via:t.p.join()},'sm'));}}
   openModal(h);}

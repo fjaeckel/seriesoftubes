@@ -22,7 +22,7 @@ test('an alternative path names the span that is too small, with how much room i
   assert.deepEqual(T.alts.map((x) => x.p), [['nyc', 'bos', 'ash']]);
   assert.deepEqual(T.alts[0].bn, [{ a: 'bos', z: 'ash', room: 400, cap: 400, link: 'e' }]);
   ev("ACT.pathOpen({id:'k'})");
-  assert.match(modal(ev), /Bottleneck: Boston → Ashburn: 400 Gbps headroom of 400 Gbps/);
+  assert.match(modal(ev), /Bottleneck: Boston → Ashburn: room for 400 Gbps of 400 Gbps/);
   assert.doesNotMatch(modal(ev), /Bottlenecks/, 'today\'s path is fine');
   assert.deepEqual(errors, []);
 });
@@ -35,7 +35,7 @@ test('today\'s path lists its tight spans, with a button that opens the link', (
   assert.deepEqual(T.bn, [{ a: 'bos', z: 'ash', room: 400, cap: 400, link: 'e' }], 'room counts what the circuit already takes there');
   ev("ACT.pathOpen({id:'k'})");
   assert.match(modal(ev), /Bottlenecks/);
-  assert.match(modal(ev), /Boston → Ashburn: 400 Gbps headroom of 400 Gbps/);
+  assert.match(modal(ev), /Boston → Ashburn: room for 400 Gbps of 400 Gbps/);
   const btn = JSON.parse(ev("document.querySelector('#modal [data-act=\"pathShow\"]').dataset.args"));
   assert.deepEqual(btn, { link: 'e' });
   ev("document.querySelector('#modal [data-act=\"pathShow\"]').click()");
@@ -54,7 +54,10 @@ test('a POP whose routers are full is a bottleneck too, and its button opens the
   assert.ok(r, 'the routers at Boston are named');
   assert.equal(r.cap, cap); assert.ok(r.room <= cap);
   ev("ACT.pathOpen({id:'k'})");
-  assert.match(modal(ev), /Boston routers: .* headroom of/);
+  assert.match(modal(ev), /Boston routers: room for .* of/);
+  const via = T.alts.find((x) => x.bn.some((y) => y.c === 'bos'));
+  assert.ok(via.room <= r.room, 'full routers count in what the path fits, as compute() reserves them');
+  assert.match(modal(ev), /Fits only/);
   ev("ACT.pathShow({city:'bos'})");
   assert.equal(ev("document.getElementById('modal').hidden"), true);
   assert.deepEqual(json(ev, 'UI.sel'), { type: 'city', id: 'bos' }, 'the POP is open');
@@ -79,14 +82,14 @@ test('the tightest spans come first, and only a few are listed', (t) => {
   ev("ACT.pathOpen({id:'k'})");
   const text = modal(ev);
   // (the "Now on" line also names both spans, so compare the bottleneck lines themselves)
-  assert.ok(text.indexOf('Boston → Ashburn: 400 Gbps headroom') < text.indexOf('New York → Boston: 800 Gbps headroom'), 'listed in that order');
+  assert.ok(text.indexOf('Boston → Ashburn: room for 400 Gbps') < text.indexOf('New York → Boston: room for 800 Gbps') && text.indexOf('Boston → Ashburn: room for 400 Gbps') >= 0, 'listed in that order');
   assert.deepEqual(errors, []);
 });
 
 test('the show button ignores a link or POP that is gone', (t) => {
   const { ev, errors } = game(t, circuit(1000) + SMALL_E);
   ev("ACT.pathOpen({id:'k'})");
-  ev("ACT.pathShow({link:'nope'});ACT.pathShow({city:'xyz'});ACT.pathShow({})");
+  ev("ACT.pathShow({link:'nope'});ACT.pathShow({city:'xyz'});ACT.pathShow({city:'constructor'});ACT.pathShow({})");
   assert.equal(ev("document.getElementById('modal').hidden"), false, 'nothing happened');
   assert.deepEqual(errors, []);
 });
