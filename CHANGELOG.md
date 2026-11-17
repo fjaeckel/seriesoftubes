@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+## [4.7.1] — 2026-11-17
+
 - Weekly puzzles that tell you to avoid a city now avoid one that is really in the way: a cable hub the cheap route crosses the sea from, so keeping out of it takes other landings. This week's puzzle, which named Seoul for cities in South-East Asia, is replaced, and a plain full mesh can no longer earn three stars (#419).
 
 ## [4.7.0] — 2026-11-17
