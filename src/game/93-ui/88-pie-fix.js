@@ -5,7 +5,7 @@
    within reach of starved terminal customers. A greyed button says why next to it (pieBtn). */
 const PIE_FULL=0.9;
 // Kinds, for the filter: crusts, dishes (full or missing), fiber where orbit lands, customers out of reach, backhaul.
-const PIE_FK={crust:'sky',skyfull:'sky',ant:'dish',dish:'dish',fiber:'fiber',far:'reach',nocrust:'reach',bh:'bh'};
+const PIE_FK={crust:'sky',skyfull:'sky',ant:'dish',dish:'dish',fiber:'fiber',far:'reach',nocrust:'reach',home:'reach',bh:'bh'};
 const PIE_FKS=['sky','dish','fiber','reach','bh'],PIE_FSORT=['sev','lack','city'];
 // The nearest POP to city c with no dish, within PIE_BENT km, that a carrying crust over c also covers.
 // Kept on this compute's R.pie (out of JSON): a full dish asks once, not on every redraw.
@@ -42,11 +42,13 @@ const pieFixSee=c=>S.pie.dishes.some(x=>x.city===c)?btn(tr('pie_traffic.a_dish')
 function pieShort(b,Q){const gs=Q.gs[b.id];
   // A dish with room left did not limit it: the crusts over it ran out.
   if(gs)return sfOf(R,gs)<0.95?{g:'f:'+gs,k:'fiber',c:gs}:(Q.load[gs]||0)<PIE_FULL?{g:'s:'+gs,k:'skyfull',c:gs}:{g:'a:'+gs,k:'ant',c:gs};
+  // Data stays home: they may only land in their own country, which has no dish yet. Its nearest POP takes one.
+  const cc=CITY[b.city].cc;if(pieSpatHome(cc)){const p=Object.keys(S.pops).filter(x=>CITY[x].cc===cc).sort((x,y)=>(x===b.city?0:pieKm(b.city,x))-(y===b.city?0:pieKm(b.city,y)))[0];return {g:'home:'+cc,k:'home',c:p||b.city,cc};}
   if(!Q.hubs.some(id=>pieCovers(id,b.city)))return {g:'nocrust',k:'nocrust'};
   const p=pieNearPop(b.city,Q);return p?{g:'d:'+p,k:'dish',c:p,near:b.city}:{g:'far:'+b.city,k:'far',c:b.city};}
 // The same, as a sentence for the customer's card and the unhappy toast.
 function pieShortWhy(b){const Q=R&&R.pie;if(!Q||!Q.sf)return '';const w=pieShort(b,Q),c=w.c&&CITY[w.c]?CITY[w.c].name:'',km=PIE_BENT.toLocaleString();
-  return w.k==='fiber'?tr('pie_fix.why_fiber',{city:c}):w.k==='skyfull'?tr('pie_fix.why_skyfull',{city:c}):w.k==='ant'?tr('pie_fix.why_ant',{city:c})
+  return w.k==='home'?tr('pie_fix.why_home',{a:pieCcN(w.cc)}):w.k==='fiber'?tr('pie_fix.why_fiber',{city:c}):w.k==='skyfull'?tr('pie_fix.why_skyfull',{city:c}):w.k==='ant'?tr('pie_fix.why_ant',{city:c})
     :w.k==='dish'?tr('pie_fix.why_dish',{city:c,km}):w.k==='far'?tr('pie_fix.why_far',{km}):tr('pie_fix.why_nocrust');}
 // Worked out once per compute, cash, day and Tier 1 state: the tab badge, the overview and the list all ask for it.
 let PIE_FX=null;
@@ -59,6 +61,7 @@ function pieFixList(Q){const P=S.pie,o=[],fly=btn(tr('pie_fix.to_launch'),'pieTa
     if(g.k==='fiber')o.push({...x,ic:'🧵',t:tr('pie_fix.fiber_t',{city:pieCn(g.c)}),h:trn('pie_fix.fiber_h',g.n,{lack:lk,sf:pct(sfOf(R,g.c)),city:pieCn(g.c)}),b:pieFixGo(g.c)});
     else if(g.k==='ant')o.push({...x,ic:'📡',t:tr('pie_fix.ant_t',{city:pieCn(g.c)}),h:trn('pie_fix.ant_h',g.n,{lack:lk}),b:pieFixMore(g.c,Q)+pieFixSee(g.c)});
     else if(g.k==='skyfull')o.push({...x,ic:'🥧',t:tr('pie_fix.skyfull_t',{city:pieCn(g.c)}),h:trn('pie_fix.skyfull_h',g.n,{lack:lk,city:pieCn(g.c)}),b:fly});
+    else if(g.k==='home')o.push({...x,ic:'🏠',t:tr('pie_fix.home_t',{a:pieCcN(g.cc)}),h:trn('pie_fix.home_h',g.n,{lack:lk,a:pieCcN(g.cc)}),b:pieFixDish(g.c)});
     else if(g.k==='dish')o.push({...x,c:g.near,ic:'📍',t:tr('pie_fix.dish_t',{city:pieCn(g.near)}),h:trn('pie_fix.dish_h',g.n,{lack:lk,km:PIE_BENT.toLocaleString()}),b:pieFixDish(g.c,g.near)});
     else if(g.k==='far')o.push({...x,w:0.9,ic:'🔦',t:tr('pie_fix.far_t',{city:pieCn(g.c)}),h:trn('pie_fix.far_h',g.n,{lack:lk,km:PIE_BENT.toLocaleString()}),b:S.pie.rd.las?fly:pieFixRd()||fly});
     else o.push({...x,w:0.9,ic:'🌐',t:tr('pie_fix.nocrust_t'),h:trn('pie_fix.nocrust_h',g.n,{lack:lk}),b:fly});}
