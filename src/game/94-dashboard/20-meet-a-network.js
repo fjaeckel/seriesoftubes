@@ -20,7 +20,7 @@ function meetLine(n,max){const sp=meetSpots(n.id);if(!sp.length)return '';
 function nearestSpot(id){const x=meetSpots(id)[0];return x&&!S.pops[x.c]?x:null;}
 // Networks you reach only through transit, biggest first: what stands between you and Tier 1.
 const ntLost=()=>NETS.filter(n=>!R.nt[n.id]&&!n.fed).sort((a,b)=>NSH[b.id]-NSH[a.id]);
-function t1Card(){const cur=GOALS.find(g=>S.done[g.id]===undefined);if(!((cur&&cur.id==='t1')||S.won)||isTier1())return '';
+function t1Card(){const cur=GOALS.find(g=>S.done[g.id]===undefined);if(!((cur&&cur.id==='t1')||S.won||broker()&&S.baronWon)||isTier1())return '';
   const need=t1Need(),miss=need.filter(n=>!S.pni.some(p=>p.net===n.id&&pniOn(p))),club=t1Club(),lost=ntLost(),nb=n=>btn(esc(n.name),'netFocus',{id:n.id},'ghost sm');
   let h=`<div class="pcard"><div class="eyebrow">${tr('common.goal')} · ${tr('common.go_transit_free_tier_1')}</div><div class="pt">${tr('meet_a_network.road_to_tier_1')}</div>`;
   h+=pRow({l:tr('meet_a_network.transit_ports_to_cancel'),v:S.transit.length?0:1,max:1,txt:S.transit.length?String(S.transit.length):'✓'});

@@ -198,3 +198,25 @@ test('on a 360 px phone the card and the sheet work: hire, proposals with one-ta
   assert.ok(ev("document.querySelectorAll('#modalCard [data-act=optxMode]').length") === 2);
   assert.deepEqual(errors, []);
 });
+
+// #424: the team counted every managed wave the Bazaar's buyers want on a route, also 1.6T waves your own cable can never
+// carry across a long ocean, so a $100M Hong Kong–New York cable looked like it paid back in months.
+test('#424 a route is worth only the waves its glass can carry: no 1.6T across a long ocean', t => {
+  const { ev, errors } = game(t);
+  ev("S.lvl=12;for(const c of ['hkg','nyc'])ACT.buildPop({city:c});compute()");
+  const g = (a, b) => ev(`(()=>{const sub=isSub('${a}','${b}');return cmBuildG(sub?seaQuote('${a}','${b}','standard').km:kmBetween('${a}','${b}'),sub,sub?optxUps(seaQuote('${a}','${b}','standard').km):null)})()`);
+  assert.ok(g('hkg', 'nyc') < 1600, `16,000 km of your own cable: no 1.6T (${g('hkg', 'nyc')}G at most)`);
+  assert.ok(g('lon', 'nyc') >= 1600, 'London–New York is short enough for 1.6T');
+  assert.ok(g('fra', 'ams') >= 1600, 'on land, ROADM glass carries the biggest waves');
+  // What the team counts is what can be sold: less than every product buyers want, by the waves left out.
+  const r = "cmRoute('hkg','nyc')", all = ev(`CM_P.reduce((s,p)=>s+cmDem(${r},p,S.day)*cmList(${r},p),0)`);
+  const gm = g('hkg', 'nyc'), can = ev(`cmBuildVal(${r},${gm})`);
+  const out = ev(`CM_P.filter(p=>CM_G[p]>${gm}).reduce((s,p)=>s+cmDem(${r},p,S.day)*cmList(${r},p),0)`);
+  assert.ok(ev(`cmDem(${r},'w1600',S.day)*cmList(${r},'w1600')`) > 0, 'buyers do want 1.6T there');
+  assert.ok(out > 0 && Math.abs(all - out - can) < 1e-6 * all, 'the waves too big for the cable are left out, and nothing else');
+  const q = JSON.parse(ev("JSON.stringify(optxQuote('hkg','nyc'))") || 'null');
+  if (q) assert.ok(q.mo <= Math.round(can * ev('mkt()*cmCut()')), 'the quote counts only what the cable can sell');
+  // And the Bazaar's "To build" list ranks routes by the same rule.
+  assert.equal(ev("typeof cmScout(6)"), 'object');
+  assert.deepEqual(errors, []);
+});

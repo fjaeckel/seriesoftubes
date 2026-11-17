@@ -188,11 +188,20 @@ function cmPress(l,rs,sold,waves){const C=S.cm,r=C&&rs.get(edgeKey(l)),d=S.day;i
     return !!q&&(cmOptG(l)<CM_G[q]||cmFreeG(l)<(CM_G[q]-b.g)*(b.slots||1));});}
 // How many more spectrum slots a fiber's route wants today (the fiber panel's market line).
 function cmRoomSpec(l){const rs=cmRoutes(),r=rs.get(edgeKey(l));if(!r)return 0;return Math.max(0,Math.round(cmDem(r,'spec',S.day)-cmSold(rs).get(r.k).spec));}
+/* What a route you have not built yet would sell a month: every product buyers want, but managed waves only up to gMax,
+   the biggest channel an optic you can buy lights over it (cmBuildG). On your own cable under the sea 1.6T stops at
+   6,000 km (the subsea upgrades only stretch smaller waves, and the cable takes no regens), so on the long oceans most
+   of what buyers want can never be sold there (#424). */
+const cmBuildVal=(r,gMax)=>CM_P.reduce((s,p)=>s+(CM_G[p]>gMax?0:cmDem(r,p,S.day)*cmList(r,p)),0);
+// That channel: on land, dug fiber of this length (ROADM where it is unlocked); under the sea, your own cable with the
+// upgrades up: the ones given (the team orders what the length needs), or both.
+function cmBuildG(km,sub,up){const sys=techOk('sys','roadm',DF_SYS.roadm.lvl)?'roadm':'lite';
+  return submarineRate(sub?{kind:'df',own:true,sub:true,km,sys:'roadm',subterminal:!up||up.terminal?0:undefined,subengineering:!up||up.engineering?0:undefined}:{kind:'df',own:true,sub:false,km,sys});}
 // Routes a Cable broker could build between two of its POPs, the most wanted first.
 function cmScout(n=6){const ps=Object.keys(S.pops),have=new Set(S.links.filter(l=>l.kind==='df').map(edgeKey)),out=[];
   for(let i=0;i<ps.length;i++)for(let j=i+1;j<ps.length;j++){const a=ps[i],b=ps[j],k=a<b?a+'|'+b:b+'|'+a;if(have.has(k))continue;
     const sub=isSub(a,b);if(sub?!seaCab(a,b):kmBetween(a,b)>1500||!dfAllowed(a,b))continue;const r=cmRoute(a,b);
-    out.push({r,v:CM_P.reduce((s,p)=>s+cmDem(r,p,S.day)*cmList(r,p),0)});}
+    out.push({r,v:cmBuildVal(r,cmBuildG(sub?seaQuote(a,b,'standard').km:r.km,sub))});}
   return out.sort((x,y)=>y.v-x.v).slice(0,n).map(x=>x.r);}
 // Saves: everything checked, old saves get the defaults.
 function cmFix(s){const c=s.cm&&typeof s.cm==='object'&&!Array.isArray(s.cm)?s.cm:{},n=cmNew();

@@ -34,11 +34,12 @@ const optxUps=km=>{const n=subNeed(km);return n?{terminal:n.includes('terminal')
    there at today's prices after the broker's cut, plus the leased waves on that route it would replace, less its own
    upkeep. null where the team cannot build it. */
 function optxQuote(a,b){if(noTalk(a,b))return null;const sub=isSub(a,b),k=a<b?a+'|'+b:b+'|'+a;
-  let cost,days,km,up0;
-  if(sub){if(ownCabWhy(a,b))return null;const u=optxUps(seaQuote(a,b,'standard').km);if(!u)return null;const q=seaQuote(a,b,'standard',u);cost=q.cost;days=q.days;km=q.km;up0=Math.round(km*OWNCAB_OM);}
+  let cost,days,km,up0,u=null;
+  if(sub){if(ownCabWhy(a,b))return null;u=optxUps(seaQuote(a,b,'standard').km);if(!u)return null;const q=seaQuote(a,b,'standard',u);cost=q.cost;days=q.days;km=q.km;up0=Math.round(km*OWNCAB_OM);}
   else{km=kmBetween(a,b);if(km>1500||!dfAllowed(a,b)||glassLvl()<2)return null;const sys=techOk('sys','roadm',DF_SYS.roadm.lvl)?'roadm':'lite';
     cost=digCost(km)+sysCost(sys)+ampCount(km)*AMP_COST;days=dfBuildDays(km);up0=Math.round(km*0.15);}
-  const r=cmRoute(a,b),sell=CM_P.reduce((s,p)=>s+cmDem(r,p,S.day)*cmList(r,p),0)*mkt()*cmCut();
+  // Only what the cable can carry: managed waves no optic lights this far are never sold there (#424).
+  const r=cmRoute(a,b),sell=cmBuildVal(r,cmBuildG(km,sub,u))*mkt()*cmCut();
   const lease=S.links.filter(l=>l.kind==='wave'&&!l.fwv&&edgeKey(l)===k).reduce((s,l)=>s+(l.mo||0),0);
   const mo=Math.round(sell+lease-up0);if(!(mo>0))return null;
   return {k,a,b,sub,km:Math.round(km),cost:Math.round(cost),days,mo,pb:Math.ceil(cost/mo)};}

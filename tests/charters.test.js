@@ -178,3 +178,27 @@ test('saves keep the broker and its win, and refuse charters that do not exist',
   assert.equal(ev('glassLvl()'), ev('lvl()'));
   assert.deepEqual(errors, []);
 });
+
+// #420: the broker's ladder has no Tier 1 goal, so its rank stayed Tier 2 with no transit and PNIs to every Tier 1.
+test('#420 a broker that goes transit-free and peers with every Tier 1 is Tier 1, and sees the road there after Glass Baron', () => {
+  const { ev, dom, errors } = picked('broker');
+  ev("ACT.launchBB({city:'fra'});S.cash=1e9;S.lvl=6;S.transit=[];S.ixp={};S.pni=[];compute()");
+  ev('S.baronWon=1;S.done.bk_win=1;compute()');
+  ev("ACT.leftTab({t:'goals'});renderAll()");
+  assert.match(dom.window.document.getElementById('left').textContent, /Road to Tier 1/, 'a Glass Baron sees what Tier 1 still needs');
+  ev("for(const n of t1Need())S.pni.push({id:'p'+n.id,net:n.id,city:'fra',tier:2});compute()");
+  ev("for(const n of NETS)if(!R.reachable[n.id])S.pni.push({id:'i'+n.id,net:n.id,city:'fra',tier:2});compute()");
+  assert.equal(ev('isTier1()'), true, 'transit-free and peering with every Tier 1');
+  assert.equal(ev('!!S.won'), false);
+  ev('checkGoals()');
+  assert.equal(ev('!!S.won'), true, 'Tier 1 is won');
+  assert.equal(ev('tierLabel()'), 'Tier 1');
+  assert.equal(ev("S.ach&&S.ach.t1!==undefined"), true, 'with its badge');
+  assert.equal(ev("Object.keys(S.done).some(k=>GOALS.some(g=>g.id===k))"), false, 'the classic ladder is still untouched');
+  ev('dayTick()');
+  assert.equal(ev('S.t1Now'), true);
+  // Buying transit again drops the label, as for anyone.
+  ev("S.transit.push({id:'t',city:'fra',net:'cog',tier:1});compute()");
+  assert.equal(ev('tierLabel()') === 'Tier 1', false);
+  assert.deepEqual(errors, []);
+});

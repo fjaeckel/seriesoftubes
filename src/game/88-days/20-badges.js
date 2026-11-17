@@ -126,6 +126,9 @@ function checkGoals(){checkBadges();
     if(ok){S.done[g.id]=S.day;if(g.r&&S.mode!=='sandbox'){S.cash+=g.r;}
       toast(`<b>${tr('badges.goal_complete_name',{name:esc(g.t)})}</b>${g.r?`<br>${tr('badges.reward_amt',{amt:fmt$(g.r)})}`:''}`,'goal',[],{a:'tab',v:'goals'});sfx('coin');
       // Glass Baron is the broker's win; S.won stays Tier 1, which a broker can still become.
-      track('goal_'+g.id);if(g.baron){if(!S.baronWon){S.baronWon=S.day||1;track('win_baron');checkBadges();showBaronWin();}}else if(g.win&&!S.won){S.won=true;track('win_tier1');pieUnlock();checkBadges();showWin();}}}
+      track('goal_'+g.id);if(g.baron){if(!S.baronWon){S.baronWon=S.day||1;track('win_baron');checkBadges();showBaronWin();}}else if(g.win&&!S.won)t1Win();}}
+  // The broker's ladder has no Tier 1 goal: going transit-free and peering with every Tier 1 wins it all the same (#420).
+  if(broker()&&!S.won&&!S.transit.length&&isTier1())t1Win();
 }
+function t1Win(){S.won=true;track('win_tier1');pieUnlock();checkBadges();showWin();}
 
