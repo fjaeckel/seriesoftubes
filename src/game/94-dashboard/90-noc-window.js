@@ -45,7 +45,9 @@ function nocWinMsg(m){if(m.id!==NOC.id)return;
 function nocWinState(d){if(!d||!d.S||!d.R)return;S=d.S;R=Object.assign(emptyR(),d.R);const as=ddosAll(S,false);for(const m of R.ddos||[]){m.attack=as.find(a=>a.id===m.attack)||null;m.ports=new Map();}
   UI.started=true;NOC.speed=d.speed;NOC.hid=!!d.hid;NOC.gone=false;NOC.yoAt=performance.now();document.title=tr('common.noc_dashboard')+' · '+S.name;nocRender();}
 // Not under a finger: a button that moves during a press never gets its click.
-function nocRender(){if(pressing){setTimeout(nocRender,150);return;}document.body.classList.toggle('noc-still',!NOC.speed||NOC.gone||!animOn());try{if(S){if(NOCW.view==='wall')nocWall();else renderDash();}}catch(e){console.error('[tubes] NOC window render',e);}nocBar();}
+// One retry at a time while a drag holds the board, however many states arrive meanwhile.
+let nocRT=0;
+function nocRender(){if(pressing){if(!nocRT)nocRT=setTimeout(()=>{nocRT=0;nocRender();},150);return;}document.body.classList.toggle('noc-still',!NOC.speed||NOC.gone||!animOn());try{if(S){if(NOCW.view==='wall')nocWall();else renderDash();}}catch(e){console.error('[tubes] NOC window render',e);}nocBar();}
 function nocBar(){const b=$('nocBar');if(!b)return;
   const why=NOC.gone?tr('noc.the_game_window_is_closed'):!S?tr('noc.waiting_for_the_game_window'):NOC.hid?tr('noc.the_game_window_is_hidden'):!NOC.speed?tr('noc.the_game_is_paused'):'';
   const {bad,warn}=NOCW.sum,tab=(v,l)=>`<button data-nc="${v}" class="${NOCW.view===v?'on':''}" aria-pressed="${NOCW.view===v}">${esc(l)}</button>`;

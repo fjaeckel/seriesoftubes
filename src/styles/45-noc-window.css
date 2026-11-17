@@ -122,4 +122,6 @@ body.noc-window [data-act="dashClose"]{display:none}
   .nw-rz[data-d=ne]{top:-6px;right:-6px;cursor:nesw-resize}.nw-rz[data-d=sw]{bottom:-6px;left:-6px;cursor:nesw-resize}
   .nw-rz[data-d=nw]{top:-6px;left:-6px;cursor:nwse-resize}.nw-rz[data-d=se]{bottom:-6px;right:-6px;cursor:nwse-resize}
   .nw-rz[data-d=se]::after{content:'';position:absolute;right:7px;bottom:7px;width:8px;height:8px;border-right:2px solid #6F80A8;border-bottom:2px solid #6F80A8;border-radius:0 0 3px 0}
+  /* A panel that scrolls keeps its title bar, the handle that moves it, in view. */
+  .nw-win>.nw-panel>.nw-h{position:sticky;top:-10px;z-index:1;background:#121B33;margin:-10px -12px 6px;padding:10px 12px 6px 32px}
 }

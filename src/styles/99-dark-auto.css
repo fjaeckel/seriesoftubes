@@ -399,6 +399,7 @@
 :where(:root.dark) .nw-grip:focus-visible{outline:2px solid #7B8CFF}
 :where(:root.dark) .nw-rz:hover{background:rgba(159,176,211,.28)}
 :where(:root.dark) .nw-rz[data-d=se]::after{border-right:2px solid #6F80A8;border-bottom:2px solid #6F80A8}
+:where(:root.dark) .nw-win>.nw-panel>.nw-h{background:#121B33}
 }
 :where(:root.dark) .fed-dot{background:var(--ink2)}
 :where(:root.dark) .fed-dot.connected{background:var(--ok)}
