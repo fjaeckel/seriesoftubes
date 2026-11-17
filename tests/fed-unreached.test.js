@@ -88,3 +88,29 @@ test('peering with the players brings the service back', () => {
   assert.doesNotMatch(ev(`bizWhy(${host}).join(' ')`), /players you have not peered with/);
   assert.deepEqual(errors, []);
 });
+
+test('the players card puts the players you cannot reach first, marked, and the HUD line turns red', () => {
+  const { ev, errors } = setup();
+  // Peer with the first four: the last four stay out of reach, and would sit behind "Show all" in list order.
+  ev(`S.fed.deals=${JSON.stringify(KEYS.slice(0, 4))}.map((k,i)=>({id:'d'+i,deal:'peering',key:k,name:'P',asn:1,start:0,end:null,terms:{at:['fra'],via:'pni'},role:'buy',st:'run',on:true,rep:0,why:'',ai:false,renews:null}));compute()`);
+  assert.ok(ev('fedLost()') >= ev('FEDL_WARN'), 'still enough to warn about');
+  ev('ACT.fpLost()');
+  const card = ev("(document.querySelector('#leftBody .fp-card')||{}).innerHTML||''");
+  const rows = card.split('class="row fp-').slice(1);
+  assert.ok(rows.length >= 5, `a first page of players (${rows.length})`);
+  const tagged = rows.map((r) => /Not reached/.test(r));
+  assert.deepEqual(tagged.slice(0, 4), [true, true, true, true], 'the four you cannot reach come first');
+  assert.ok(tagged.slice(4).every((x) => !x), 'and only they are marked');
+  ev('renderAll()');
+  assert.equal(ev("document.getElementById('hReachX').style.color"), 'var(--bad)', 'red once it costs enough to warn');
+  assert.deepEqual(errors, []);
+});
+
+test('a customer short for another reason does not blame the players', () => {
+  const { ev, errors } = setup();
+  const lost = ev('fedLost()');
+  assert.equal(ev(`fedBlame(${host},bizSf(${host}))`), true, 'short by about what the players take: they are the reason');
+  assert.equal(ev(`fedBlame(${host},${Math.max(0, 1 - lost * 3 - 0.2)})`), false, 'far shorter than the players explain: no');
+  assert.equal(ev(`fedBlame(${host},0.99)`), false, 'not short at all');
+  assert.deepEqual(errors, []);
+});

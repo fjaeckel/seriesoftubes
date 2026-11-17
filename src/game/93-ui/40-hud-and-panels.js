@@ -17,7 +17,7 @@ function renderHUD(){
   $('hTrafBar').style.background=R.demand&&R.served/R.demand<0.9?'var(--bad)':'var(--ok)';
   {const r=reachSolo(),h=$('hReach'),x=fedLostOn(),w=$('hReachX');h.textContent=reachPct(r);h.style.color=r<0.99?'var(--bad)':'var(--eye)';
     // Players you cannot reach are left out of the big number: the small one counts them (89-fedplay-unreached.js).
-    w.hidden=!x;w.textContent=x?'👥 '+reachPct(R.reach):'';h.parentNode.title=x?tr('hud_and_panels.reach_with_players',{p:reachPct(R.reach),q:pct(fedLost())}):'';}
+    w.hidden=!x;w.textContent=x?'👥 '+reachPct(R.reach):'';w.style.color=x&&fedLost()>=FEDL_WARN?'var(--bad)':'';h.parentNode.title=x?tr('hud_and_panels.reach_with_players',{p:reachPct(R.reach),q:pct(fedLost())}):'';}
   $('hTier').textContent=tierLabel()+' · '+tr('hud_and_panels.lv_n',{n:S.lvl||1});
   {const P=scnProg(),hs=$('hScn');hs.hidden=!P;if(P){const sc=S.scn;$('hScnVal').textContent=sc.done?tr('common.done'):sc.failed?tr('common.time_s_up'):`${Math.round(P.f*100)}% · ${tr('ui.n_d_left',{n:Math.max(0,sc.days-S.day)})}`;}}
   $('hDate').textContent=dateStr(S.day);
