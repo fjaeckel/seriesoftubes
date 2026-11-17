@@ -2,7 +2,7 @@
 const GOALS=[
  {id:'bb',t:tr('goals.light_up_your_first_customers'),d:tr('goals.open_your_home_city_and_press'),r:5000,ok:()=>Object.values(S.pops).some(p=>p.bb)},
  {id:'tr',t:tr('goals.reach_the_whole_internet'),d:tr('goals.your_eyeballs_want_everything_buy_ip'),r:5000,ok:()=>S.transit.length>0},
- {id:'ix',t:tr('goals.join_an_internet_exchange'),d:tr('goals.get_a_port_at_an_ix'),r:7500,ok:()=>Object.keys(S.ixp).length>0},
+ {id:'ix',t:tr('goals.join_an_internet_exchange'),d:tr('goals.get_a_port_at_an_ix'),dOut:tr('goals.outcast_found_an_ix'),r:7500,ok:()=>Object.keys(S.ixp).length>0},
  {id:'p5',t:tr('goals.make_5_peering_friends'),d:tr('goals.on_the_peering_tab_request_sessions'),r:10000,ok:()=>R.sessions>=5},
  {id:'ln',t:tr('goals.lay_your_first_fiber'),d:tr('goals.drag_from_your_pink_router_to'),r:10000,ok:()=>S.links.length>0},
  {id:'bz',t:tr('goals.sign_a_business_customer'),d:tr('goals.businesses_show_up_with_a_bubble'),r:12500,ok:()=>S.biz.some(b=>!b.scripted)},
@@ -11,7 +11,7 @@ const GOALS=[
  {id:'pn',t:tr('goals.set_up_a_pni'),d:tr('goals.a_private_cross_connect_to_one'),r:15000,ok:()=>S.pni.some(pniOn)},
  {id:'scrub',t:tr('goals.stand_up_ddos_defences'),d:tr('goals.build_a_scrubbing_center_from_a'),r:20000,ok:()=>hasScrub()},
  {id:'c3',t:tr('common.go_global'),d:tr('goals.have_pops_on_3_continents_subsea'),r:50000,ok:()=>regionsCount()>=3},
- {id:'t2',t:tr('goals.become_a_tier_2'),d:tr('goals.5_pops_ports_on_3_ixs'),r:50000,ok:()=>isTier2()},
+ {id:'t2',t:tr('goals.become_a_tier_2'),d:tr('goals.5_pops_ports_on_3_ixs'),dOut:tr('goals.outcast_tier_2'),r:50000,ok:()=>isTier2()},
  {id:'tb',t:tr('goals.serve_1_tbps'),d:tr('goals.a_terabit_per_second_of_happy'),r:75000,ok:()=>R.served>=1000},
  {id:'df',t:tr('goals.light_your_own_dark_fiber'),d:tr('goals.lease_or_dig_dark_fiber_put'),r:40000,ok:()=>S.links.some(l=>l.kind==='df'&&dfCap(l)>0)},
  {id:'m2',t:tr('goals.be_in_two_buildings_at_once'),d:tr('goals.add_a_second_site_in_a'),r:30000,ok:()=>Object.values(S.pops).some(p=>p.site2)},

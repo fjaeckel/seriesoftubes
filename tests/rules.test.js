@@ -54,7 +54,7 @@ test('the title screen: four doors, four Normal presets, a chaos picker for Sand
   assert.equal(doc.querySelectorAll('#modal .preset').length, 4);
   const challengeOptions=doc.querySelector('#modal .add-options');
   assert.equal(challengeOptions.open, false, 'challenge options start collapsed');
-  assert.match(challengeOptions.textContent, /Challenge Options \(not recommended for first playthrough\)/);
+  assert.match(challengeOptions.textContent, /Challenges \(not for your first game\)/);
   assert.ok(challengeOptions.querySelector('summary.f'), 'the disclosure heading uses the title screen small-caps label style');
   const challengeStyle=doc.defaultView.getComputedStyle(challengeOptions.querySelector('summary'));
   assert.equal(challengeStyle.fontSize, '12px');

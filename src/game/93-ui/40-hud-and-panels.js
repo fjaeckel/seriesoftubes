@@ -49,7 +49,7 @@ function renderLeft(){checkLayer();
     h+=charterCard()+scnCard()+lvlCard()+t1Card();
     const cur=G.find(g=>S.done[g.id]===undefined);
     // Finished goals fold into one line once there are more than a few, so what is still to do comes first (and fits a phone).
-    const gRow=g=>{const d=S.done[g.id]!==undefined,c=g===cur;return `<div class="goal ${d?'done':''} ${c?'cur':''}"><div class="ck">${d?'✓':''}</div><div><div class="gt">${esc(g.t)}</div>${c||!d?`<div class="gd">${esc(g.d)}</div>`:''}${!d&&g.r?`<div class="gr">${tr('hud_and_panels.reward_cash',{cash:fmt$(g.r)})}</div>`:''}</div></div>`;};
+    const gRow=g=>{const d=S.done[g.id]!==undefined,c=g===cur;return `<div class="goal ${d?'done':''} ${c?'cur':''}"><div class="ck">${d?'✓':''}</div><div><div class="gt">${esc(g.t)}</div>${c||!d?`<div class="gd">${esc(g.dOut&&modeOn('outcast')?g.dOut:g.d)}</div>`:''}${!d&&g.r?`<div class="gr">${tr('hud_and_panels.reward_cash',{cash:fmt$(g.r)})}</div>`:''}</div></div>`;};
     if(ndone>3){const fo=leftFolded('done');h+=G.filter(g=>S.done[g.id]===undefined).map(gRow).join('')+`<div class="row gfold"><div class="ck">✓</div><div class="grow"><div class="nm">${trn('hud_and_panels.n_goals_done',ndone)}</div></div>${foldB(fo?tr('common.hide'):tr('common.show'),'leftFold',{k:'done'},fo,'ghost sm',trn('hud_and_panels.n_goals_done',ndone))}</div>`+(fo?G.filter(g=>S.done[g.id]!==undefined).map(gRow).join(''):'');}
     else h+=G.map(gRow).join('');
     h+=badgeGrid();
