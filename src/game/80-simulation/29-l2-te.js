@@ -28,7 +28,7 @@ function l2TeRouter({adj,HAS,NRES,CORE,OUT,TR,REACH,SPD,nodeTake,carry,NN,R2}){
       for(const i of r.ni)if(HAS[i])nodeTake(i,a);
       for(const e of r.path){e.res-=a;e.ld+=a;carry(e,ek,NN+1,dst,a);}left-=a;maxLat=Math.max(maxLat,ms(r));
       const key=r.path.map(e=>e.id).join(','),old=placed.get(key);if(old)old.g+=a;else placed.set(key,{r,g:a});
-      if(detour&&!preferred.has(key))R2.teMoved+=a;return a;};
+      if(detour&&!preferred.has(key))R2.teMoved=(R2.teMoved||0)+a;return a;};
     const fill=(keep,lim,byLatency)=>{
       for(const r of routes){const old=placed.get(r.path.map(e=>e.id).join(','));push(r,b.bw*r.share-(old?old.g:0),keep,false);}
       while(left>1e-6){const skip=(v,e)=>e.w===Infinity||e.res<=e.cap*keep+1e-3||(HAS[v]&&NRES[v]<=1e-3)||(CORE&&OUT[v]&&v!==dst);

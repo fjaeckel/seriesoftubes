@@ -256,3 +256,12 @@ test('ordinary L2 Auto-TE detours never take orbit edges', t => {
   assert.equal(ev("Object.keys(R.ef).some(k=>k.startsWith('pie:')&&(R.ef[k].eg['l2:c']||0)>0)"), false);
   assert.deepEqual(errors, []);
 });
+
+test('wholesale waves and subsea capacity stay on one path: L2 Auto-TE cannot deliver a capacity deal', t => {
+  const { ev, errors } = game(t, circuit() + "S.te.l2=true;S.biz[0].type='capw';S.biz[0].due=S.day+100;");
+  assert.equal(got(ev), 10, 'a wave is one lambda on one route, not an LSP that can be split');
+  assert.equal(loadOn(ev, 'north'), 0);
+  ev('capPendTick(S.biz[0],S.day)');
+  assert.equal(ev('!!S.biz[0].live'), false);
+  assert.deepEqual(errors, []);
+});
