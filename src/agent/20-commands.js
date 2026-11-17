@@ -616,6 +616,7 @@ const API_VIEW={
  selLink:{args:[['id','entityId']],doc:'Select a link.'},
  custGo:{args:[['id','entityId']],doc:'Jump from the dashboard to a customer.'},
  pathOpen:{args:[['id','entityId']],doc:'Open the window listing the other paths a customer can move to: fibers for a fiber customer, routes for a circuit. pathMove and pathPin make the move.'},
+ pathShow:{args:[['link','entityId',false],['city','cityId',false]],doc:'From a bottleneck in that window: close it and open the tight span\'s link, or the POP whose routers are full, on the map.'},
  dashRow:{args:[['k','string']],doc:'Unfold one row of a dashboard list (its buttons on a phone\'s Connections tab, the estimates of a leased line), or fold it again.'},
  listMore:{args:[['k','listPage']],doc:'Show another page of the dashboard list.'},
  custF:{args:[['v','string']],doc:'Filter the customers list.'},
