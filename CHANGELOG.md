@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The project follows
 
 - A Cable broker that drops all transit and peers with every Tier 1 now becomes Tier 1, as any network does, and sees the Road to Tier 1 once it is a Glass Baron (#420).
 - The optical engineering team and the Lambda Bazaar's To build list now count only the waves a new cable can carry: no 1.6T waves across a long ocean, so a cable halfway round the world no longer looks like it pays back in months (#424).
+- The "Change" of your first transit port and PNI, every "?" explanation and the link panels' sections and folds (traffic, routing metric, what you sell, the line system, the spares shelf) now stay as you left them when you move to the next POP or link, as the peering sections already do. Fold one again and the next stops showing it; a list's "+N more" and Decommission still start closed.
 
 ## [4.7.1] — 2026-11-17
 
