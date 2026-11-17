@@ -138,7 +138,7 @@ test('--check regenerates a published week when new prices break its budget, and
   assert.deepEqual(r.bad, []);
   assert.equal(r.fixed.length, 1, r.fixed.join('; '));
   const n = read(k0);
-  assert.equal(n.rev, 2, 'a new revision');
+  assert.equal(n.rev, (old.rev || 1) + 1, 'a new revision');
   assert.deepEqual([n.theme, n.cities, n.via, n.avoid, n.twist, n.name, n.joke], [old.theme, old.cities, old.via, old.avoid, old.twist, old.name, old.joke], 'the same puzzle');
   assert.ok(n.budget >= n.ref.three && n.ref.three > j.budget);
   assert.deepEqual(G.check(g, d, 0), [], 'and it verifies');
@@ -147,7 +147,7 @@ test('--check regenerates a published week when new prices break its budget, and
   const b = read(k1); b.cities[0] = 'xxx'; fs.writeFileSync(path.join(d, k1 + '.json'), JSON.stringify(b));
   assert.equal(G.refresh(g, d, 0).fixed.length, 1);
   assert.equal(read(k1).key, k1);
-  assert.equal(read(k1).rev, 2);
+  assert.equal(read(k1).rev, (b.rev || 1) + 1);
   assert.deepEqual(G.check(g, d, 0), []);
   // Weeks that are over cannot be played again: their stars stay, so a broken budget there is left alone.
   const e = read(k0); e.budget = 50000; fs.writeFileSync(path.join(d, k0 + '.json'), JSON.stringify(e));
@@ -299,4 +299,29 @@ test('weekly puzzle in every language and on a 360 px phone', async () => {
     assert.doesNotMatch(ev("document.getElementById('pzBox').textContent"), /puzzles(_weekly)?\./);
     assert.deepEqual(errors, [], lang);
   }
+});
+
+// #419: the first 2026-W47 told players to avoid Seoul for cities in South-East Asia, and a plain 100G full mesh
+// between them earned three stars.
+const W47_OLD = {"v":2,"key":"2026-W47","theme":"detour","cities":["han","sgn","nyt","ktm"],"src":["han"],"dem":[{"t":"eye","a":"sgn","g":30},{"t":"eye","a":"nyt","g":60},{"t":"eye","a":"ktm","g":40}],"via":["bkk","pnh"],"avoid":["icn"],"budget":870000,"twist":{},"name":{"l":"puzzles_weekly.name_anywhere_but_hub","p":{"hub":"icn"}},"joke":{"l":"puzzles_weekly.joke_the_obvious_path_goes_through","p":{"hub":"icn"}},"ref":{"one":790064,"three":825264}};
+
+test('#419 a puzzle a plain full mesh solves, or whose avoided hub is nowhere on the way, is refused', () => {
+  const g = G.game(), W = G.world(g.ev);
+  const v = G.verify(g, W, W47_OLD, '2026-W47');
+  assert.equal(v.ok, false);
+  assert.match(v.why, /full mesh earns three stars/);
+  const def = JSON.parse(g.ev(`JSON.stringify(pzWkValid(${lit(W47_OLD)},'2026-W47'))`));
+  const P = G.shape(def);
+  assert.equal(G.detourOk(W, P, G.solve(W, P)), false, 'Seoul is on no cheap way between these cities');
+});
+
+test('#419 a detour avoids a cable hub the cheap way goes through, and keeping out of it costs more', () => {
+  const g = G.game(), W = G.world(g.ev), d = tmp();
+  const j = G.generate(g, '2027-W05', d);
+  for (const f of committed().filter((x) => x.theme === 'detour')) {
+    const def = JSON.parse(g.ev(`JSON.stringify(pzWkValid(${lit(f)},'${f.key}'))`)), P = G.shape(def);
+    assert.equal(G.detourOk(W, P, G.solve(W, P)), true, `${f.key}: avoiding ${f.avoid} matters`);
+  }
+  const v = G.verify(g, W, j, '2027-W05');
+  assert.equal(v.ok, true, v.why);
 });

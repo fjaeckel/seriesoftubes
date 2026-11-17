@@ -25,7 +25,7 @@ const path = require('node:path');
 const ROOT = path.join(__dirname, '..');
 const SV = require('./lib/puzzle-solver');
 const { lit } = require('./lib/js-literal');
-const SCHEMA = 2, HISTORY = 4, THEME_GAP = 3, REG_GAP = 2, ATTEMPTS = 40, KEEP = 6;
+const SCHEMA = 2, HISTORY = 4, THEME_GAP = 3, REG_GAP = 2, ATTEMPTS = 40, KEEP = 6, DETOUR_GAIN = 1.05;
 const THEMES = ['tour', 'ring', 'detour', 'ocean', 'islands', 'sprint'];
 
 // ---------- the game, headless ----------
@@ -178,19 +178,27 @@ const near = (W, c, from, n) => from.filter((x) => x !== c).sort((a, b) => W.km(
 function draft(W, theme, r, banned) {
   const { big, isl } = pools(W), free = (c) => !banned.has(c);
   const P = { theme, cities: [], via: [], avoid: [], noSub: false, ring: false, lat: null };
-  if (theme === 'tour' || theme === 'ring' || theme === 'detour') {
+  if (theme === 'tour' || theme === 'ring') {
     const g = pick(r, big).filter(free);
     if (g.length < 6) return null;
-    if (theme === 'detour') {
-      const hub = pick(r, g.slice().sort((a, b) => W.C[b].P - W.C[a].P).slice(0, 4)), around = near(W, hub, g, 8);
-      if (around.length < 6) return null;
-      const sh = shuffle(r, around); P.cities = sh.slice(0, 4); P.via = sh.slice(4, 6); P.avoid = [hub];
-    } else {
-      const seed = pick(r, g), n = theme === 'ring' ? 4 + Math.floor(r() * 2) : 4 + Math.floor(r() * 3);
-      P.cities = [seed, ...shuffle(r, near(W, seed, g, n + 2)).slice(0, n - 1)];
-      if (theme === 'tour') P.via = near(W, seed, g, n + 4).filter((c) => !P.cities.includes(c)).slice(0, 1);
-      P.ring = theme === 'ring';
-    }
+    const seed = pick(r, g), n = theme === 'ring' ? 4 + Math.floor(r() * 2) : 4 + Math.floor(r() * 3);
+    P.cities = [seed, ...shuffle(r, near(W, seed, g, n + 2)).slice(0, n - 1)];
+    if (theme === 'tour') P.via = near(W, seed, g, n + 4).filter((c) => !P.cities.includes(c)).slice(0, 1);
+    P.ring = theme === 'ring';
+  } else if (theme === 'detour') {
+    // A cable hub (where several cables land) between cities on its own shore and cities across the sea: the cheap way
+    // over lands there, so keeping out of it means other landing points. Overland, a city in the middle never pays
+    // for itself (a direct wave is as cheap as two), so a hub chosen by size alone was never on the way (#419).
+    const land = (c) => W.C[c].lands[0], hubs = W.cities.filter((c) => free(c.id) && c.P >= 50 && (W.cabs[c.id] || new Set()).size >= 3).map((c) => c.id);
+    const hub = pick(r, hubs); if (!hub) return null;
+    const over = shuffle(r, [...new Set(W.cablePairs.filter(([, a, b]) => a === hub || b === hub).map(([, a, b]) => (a === hub ? b : a)))].filter((c) => free(c) && land(c) !== land(hub))).slice(0, 2);
+    const home = shuffle(r, W.cities.filter((c) => c.id !== hub && free(c.id) && c.P >= 50 && land(c.id) === land(hub)).map((c) => c.id).sort((a, b) => W.km(hub, a) - W.km(hub, b)).slice(0, 4));
+    if (over.length < 2 || !home.length) return null;
+    const lands2 = new Set(over.map(land));
+    const around = [...new Set(W.cablePairs.filter(([, a, b]) => (land(a) === land(hub) && lands2.has(land(b))) || (land(b) === land(hub) && lands2.has(land(a)))).flatMap(([, a, b]) => [a, b]))]
+      .filter((c) => c !== hub && free(c) && land(c) === land(hub) && !home.includes(c)).sort((a, b) => W.km(hub, a) - W.km(hub, b));
+    if (!around.length) return null;
+    P.cities = [home[0], ...over, ...home.slice(1, 2)]; P.via = around.slice(0, 2); P.avoid = [hub];
   } else if (theme === 'ocean') {
     const land = (c) => W.C[c].lands[0], ok = W.cablePairs.filter(([, a, b]) => land(a) !== land(b) && free(a) && free(b) && big.some((g) => g.includes(a)) && big.some((g) => g.includes(b)));
     if (!ok.length) return null;
@@ -284,6 +292,29 @@ function sized(g, W, P, def) {
   const o = one.spend <= three.spend ? one : three;
   return { one: { cost: Math.round(o.spend), b: o }, three: { cost: Math.round(three.spend), b: three } };
 }
+// The build anyone tries first: every pair of cities joined directly (the cheapest way), all at one size, the smallest
+// that delivers. It must not earn three stars, or the puzzle is no puzzle (#419).
+function mesh(g, W, def) {
+  const { ev } = g, P = shape(def), cs = def.cities;
+  for (let t = 0; t < TIER_G.length; t++) {
+    const L = [];
+    for (let x = 0; x < cs.length; x++) for (let y = x + 1; y < cs.length; y++) {
+      const o = W.opts(cs[x], cs[y]).filter((q) => !q.second && !(P.noSub && q.sub))[0]; if (o) L.push([cs[x], cs[y], o.via, t, 0]); }
+    def.dem.forEach((f, i) => { if (f.ms) L.push(['@route', i, 'fast']); });
+    ev(`pzBegin(${lit(def)})`);
+    const s = play(ev, def, { links: L, rt: SV.judge(ev, L).rt });
+    if (s.goal) return s;
+  }
+  return null;
+}
+// A detour's hub must be worth avoiding: allowed as a stepping stone, the cheapest builds go through it, and keeping
+// out of it costs more. Otherwise "avoid" names a city nowhere near the puzzle (#419).
+function detourOk(W, P, sol) {
+  if (P.theme !== 'detour' || !P.avoid.length) return true;
+  const free = solve(W, { ...P, via: [...P.via, ...P.avoid], avoid: [] });
+  const uses = (s) => !!s && s.links.some((l) => P.avoid.includes(l.a) || P.avoid.includes(l.b));
+  return uses(free.one) && uses(free.three) && free.three.cost * DETOUR_GAIN <= sol.three.cost;
+}
 // The game's own validator decides what a puzzle is; then both references must earn their stars.
 function verify(g, W, j, key, known) {
   const { ev } = g, def = JSON.parse(ev(`JSON.stringify(pzWkValid(${lit(j)},'${key}'))`));
@@ -294,6 +325,9 @@ function verify(g, W, j, key, known) {
   const s1 = play(ev, def, sol.one.b), s3 = play(ev, def, sol.three.b);
   if (s1.stars < 1) return { ok: false, why: `the one-star reference earns ${s1.stars} stars` };
   if (s3.stars !== 3) return { ok: false, why: `the three-star reference earns ${s3.stars} stars (${JSON.stringify(s3)})` };
+  const m = mesh(g, W, def);
+  if (m && m.stars === 3) return { ok: false, why: `a plain full mesh earns three stars for ${Math.round(m.spend)}` };
+  if (!detourOk(W, P, solve(W, P))) return { ok: false, why: `avoiding ${def.avoid.join(', ')} changes nothing` };
   return { ok: true, sol, s1, s3 };
 }
 
@@ -313,7 +347,7 @@ function generate(g, key, dir) {
       // Not the same part of the world as the last two weeks.
       if (!P || hist.regs.some((c) => W.C[c] && W.C[c].reg === W.C[P.cities[0]].reg && W.C[c].lands[0] === W.C[P.cities[0]].lands[0])) continue;
       const sol = solve(W, P);
-      if (!sol.one || !sol.three) continue;
+      if (!sol.one || !sol.three || !detourOk(W, P, sol)) continue;
       // Prefer puzzles where surviving a cut takes real thought: the obvious "double everything" costs a lot more.
       const smart = sol.naive ? sol.naive.cost / sol.three.cost : 1.05, slack = sol.three.cost / sol.one.cost;
       const score = Math.min(smart, 1.6) + Math.min(slack, 2) * 0.2 + r() * 0.05;
@@ -387,7 +421,7 @@ function refresh(g, dir, now = Date.now()) {
 const writeIndex = (dir) => fs.writeFileSync(path.join(dir, 'index.json'), JSON.stringify({ v: SCHEMA, weeks: list(dir) }) + '\n');
 const writeWeek = (dir, j) => { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(path.join(dir, j.key + '.json'), JSON.stringify(j) + '\n'); writeIndex(dir); };
 
-module.exports = { game, generate, check, refresh, solve, sized, shape, world, writeWeek, writeIndex, list };
+module.exports = { game, generate, check, refresh, solve, sized, shape, world, writeWeek, writeIndex, list, verify, mesh, detourOk };
 
 if (require.main === module) {
   const args = process.argv.slice(2), opt = (n, d) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : d; };
