@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The project follows
 
 - Add challenge modes selection for normal games
 - Add Outcast challenge mode: public IX peering is off, but your own exchanges and PNIs are still available.
+- A customer's path that shows exactly its latency budget (say 42.2 ms of 42.2 ms) now meets it: latencies are compared the way they are shown, to a tenth of a millisecond (#423).
 
 ## [4.6.0] — 2026-11-16
 
