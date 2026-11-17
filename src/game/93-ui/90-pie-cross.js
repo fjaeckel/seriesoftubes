@@ -15,7 +15,7 @@ function pieXLinks(b,from,here){if(!pieInSky(b))return '';const L=pieLandOf(b);l
 // One line for where a terminal comes down, or that it does not.
 function pieLandTxt(b){if(!BIZ_T[b.type].orbit||!R||!R.pie)return '';const L=pieLandOf(b);return L?tr('pie_x.lands_at',{city:esc(CITY[L].name)}):tr('pie_x.no_dish');}
 // The city panel of a dish POP: terminals from elsewhere that come down here (its own city's customers are listed above).
-function pieLandHere(c){if(!S.pie||!R||!R.pie||!R.pie.gs)return '';const gs=R.pie.gs,bz=S.biz.filter(b=>gs[b.id]===c&&b.city!==c);if(!bz.length)return '';
+function pieLandHere(c){if(!S.pie||!R||!R.pie||!R.pie.gs)return '';const gs=R.pie.gs,gx=R.pie.gx||{},bz=S.biz.filter(b=>b.city!==c&&(gs[b.id]===c||!!gx[b.id]&&gx[b.id].some(p=>p[0]===c)));if(!bz.length)return '';
   return `<section><h3>🥧 ${tr('pie_x.here_h')}</h3><p class="lead">${trn('pie_x.here_lead',bz.length)}</p>`+
     bz.slice(0,PIE_ROWS).map(b=>`<div class="row"><div class="grow"><div class="nm">${pieIcon(b.type)} ${esc(b.name)}</div><div class="meta">${esc(BIZ_T[b.type].l)} · ${esc(CITY[b.city].name)} · ${bTerms(b)}</div><div class="bar ${moodCls(b.mood)}"><i style="width:${b.mood}%"></i></div><div class="meta">${tr('common.happiness_p',{p:Math.round(b.mood)})}</div><div class="btns">${pieXLinks(b,'pop',c)}</div></div></div>`).join('')+
     (bz.length>PIE_ROWS?`<p class="meta">${trn('pie_traffic.n_more',bz.length-PIE_ROWS)}</p>`:'')+`</section>`;}

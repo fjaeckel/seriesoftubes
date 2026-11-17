@@ -133,7 +133,7 @@ function piePlanHtml(){const Q=R&&R.pie;if(!Q||!Q.dish)return `<div class="pie-p
   const out=pl.out.length?`<p class="meta pie-pl-out">${tr('pie_plan.out',{list:pl.out.slice(0,PIE_PLAN_OUT).map(o=>`${pieCn(o.c)} <i>(${W[o.why]})</i>`).join(', ')+(pl.out.length>PIE_PLAN_OUT?' '+trn('pie_plan.out_more',pl.out.length-PIE_PLAN_OUT):'')})}</p>`:'';
   if(!pl.items.length)return h+(out||`<p class="meta">✅ ${tr('pie_plan.none')}</p>`)+'</div>';
   // Orbit customers landing on each dish today, for the reasons.
-  const on={};for(const c of Object.values(Q.gs||{}))on[c]=(on[c]||0)+1;
+  const on={};for(const id in Q.gs||{})for(const c of Q.gx&&Q.gx[id]?Q.gx[id].map(p=>p[0]):[Q.gs[id]])on[c]=(on[c]||0)+1;
   const tot=pl.items.reduce((a,x)=>a+x.cost,0);
   h+=`<p class="pie-pl-tot">${trn('pie_plan.total',pl.items.length,{price:piePlanCost(tot)})}</p>`;
   // The best few first: a big ground segment can have a line for every dish, a wall on a phone.
