@@ -217,7 +217,7 @@ const OPS_RUN={
        lag:()=>n()<pniLagMax(c)&&!msfNope(p.net,c)&&PORT_SLOT(p.tier)<=room(c)?{cost:1500+PORT[p.tier].setup/2,cap:lagCap(pniG(p),n()+1),w:'+1×'+pniPN(p),go:()=>ACT.lagP({id:p.id,d:1})}:null,
        ups:()=>{const out=[];for(let t=p.g1?0:p.tier+1;t<PORT.length&&portShown(t);t++){const q=pniQuote(c,p.net,t,resv(c));if(q&&!q.why)out.push({cost:q.cost,cap:lagCap(PORT[t].g,n()),w:pniPN(p)+'→'+PORT[t].n,go:()=>ACT.pni({city:c,net:p.net,tier:t})});}return out;}});}
    // Nominal capacity, not ixCap(): a LACP fault or one building down halves a LAG for a day or two, not worth a bigger port.
-   for(const x in S.ixp){const c=ixCity(x),use=(R.useIx[x]||0)*opsAhead(),n=()=>(S.ixn||{})[x]||1,cap=()=>lagCap(PORT[S.ixp[x]].g,n())*(isRemote(x)?REMOTE_CAP:1),pop=S.pops[c];if(S.myIx[x]||!(use>0)||!(cap()>0)||cap()>=N*use||!opsHere('ports',c))continue;
+  for(const x in S.ixp){if(modeOn('outcast'))continue;const c=ixCity(x),use=(R.useIx[x]||0)*opsAhead(),n=()=>(S.ixn||{})[x]||1,cap=()=>lagCap(PORT[S.ixp[x]].g,n())*(isRemote(x)?REMOTE_CAP:1),pop=S.pops[c];if(S.myIx[x]||!(use>0)||!(cap()>0)||cap()>=N*use||!opsHere('ports',c))continue;
      const g=()=>PORT[S.ixp[x]].g;
      L.push({city:c,at:x,use,u:use/cap(),cap,n,rt:pop?pop.routers||1:1,busy:()=>false,sig:()=>S.ixp[x]+','+n(),
        lag:()=>pop&&n()<LAG_MAX&&PORT_SLOT(S.ixp[x])<=room(c)?{cost:ixPortMo(x,S.ixp[x]),cap:cap()*lagCap(g(),n()+1)/lagCap(g(),n()),w:'+1×'+PORT[S.ixp[x]].n,go:()=>ACT.lagIx({city:x,d:1})}:null,
@@ -406,6 +406,6 @@ function opsTplQuote(c){if(!S||S.pops[c]||!cityOn(c)||(cnCity(c)&&!cnOk()))retur
   // The standard routers go in first (#261), so they are in the price and the kit is priced for them.
   const sq=popStdQuote();if(sq){cost+=sq.cost;parts.push(tr('ops.tpl_std'));}
   S.pops[c]={day:S.day,bb:null,boost:0,down:0,routers:sq?sq.rt:1,gen:false,rgen:sq?sq.g:0};
-  try{if(T.ix&&CITY[c].ix&&!isDk(c)&&S.ixp[c]===undefined){ix=c;cost+=ixPortMo(c,0);parts.push(tr('ops.tpl_ix'));}
+  try{if(T.ix&&!modeOn('outcast')&&CITY[c].ix&&!isDk(c)&&S.ixp[c]===undefined){ix=c;cost+=ixPortMo(c,0);parts.push(tr('ops.tpl_ix'));}
     if(T.kit){kit=utilityKit(c);if(kit&&kit.cost){cost+=kit.cost;parts.push(tr('ops.tpl_kit'));}}}finally{delete S.pops[c];}
   return {cost,net:net&&net.id,ix,kit:!!(kit&&kit.cost),parts};}

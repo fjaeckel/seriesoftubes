@@ -76,9 +76,14 @@ test('only normal games may join: never a sandbox or open gates, a puzzle, a sce
   assert.equal(p.ev('fedMode(S)'), 'puzzle');
   assert.equal(await why("S.mode='normal';delete S.pz;"), null);
   assert.equal(await p.ev("fedJoinWhy('ws://insecure.example.net')"), 'url');
+  assert.equal(await why("S.rules=makeRules('oncall',{mods:['outcast']})"), 'mode');
+  assert.equal(p.ev('fedEligible(S)'), false, 'a challenge save cannot join Multimode');
+  assert.equal(p.ev('fuWhyMode()'), p.ev("tr('fedui.challenge_modes_are_played_alone')"));
   // A sandbox save that says it joined is off after loading.
   const s = J(p.ev, `(()=>{const s=JSON.parse(JSON.stringify(S));s.mode='sandbox';s.fed={on:true,key:${JSON.stringify({ pub: key('alice').pub, priv: key('alice').seed })},servers:['${URL1}']};sanitize(s);return s.fed;})()`);
   assert.equal(s.on, false);
+  const challenge = J(p.ev, `(()=>{const s=JSON.parse(JSON.stringify(S));s.scn=null;s.rules=makeRules('oncall',{mods:['outcast']});s.fed={on:true,key:${JSON.stringify({ pub: key('alice').pub, priv: key('alice').seed })},servers:['${URL1}']};sanitize(s);return s.fed;})()`);
+  assert.equal(challenge.on, false, 'sanitize turns off a hand-edited joined challenge save');
   assert.deepEqual(p.errors, []);
 });
 

@@ -535,6 +535,7 @@ const API_CMD={
 };
 
 const API_VIEW={
+ modeToggle:{args:[['id','string']],doc:'Toggle an additional Normal-game option on the title screen.'},
  fpNet:{args:[['key','string'],['at','string',false],['deal','string',false]],doc:'Open a player network\'s sheet: its published terms, your deals with it and what you can ask for, with what is missing. With at (a city) and deal (port or cofound) that request comes first, picked at that city.'},
  fpTerms:{args:[],doc:'Open Your terms: peering policy, conditions, rate card and request handling.'},
  fpQueue:{args:[],doc:'Open the Multimode sheet (or, without it, the NOC dashboard) where requests from players wait for review.'},

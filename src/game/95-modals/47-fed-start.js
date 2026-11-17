@@ -50,13 +50,13 @@ function fsList(){const rows=fsRows(),sel=UI.fs.typed.trim()?null:UI.fs.url;
   return rows.length?`<div class="fs-list" role="radiogroup" aria-labelledby="fsLbl">${rows.map(r=>fsRow(r,r.url===sel)).join('')}</div>`:`<p class="meta">${FS.busy?tr('fedui.looking_for_servers'):tr('fedui.no_servers_known_yet')}</p>`;}
 const fsNote=f=>!fsOnline()?tr('fedui.multiplayer_needs_a_connection'):f.note==='fail'?tr('fedui.couldn_t_reach_the_server_list'):f.note==='empty'?tr('fedui.no_servers_listed_yet'):'';
 const fsTog=on=>{const b=$('fsTog');if(b){b.setAttribute('aria-checked',on);b.dataset.args=JSON.stringify({on:!on});}const x=b&&b.closest('.fstart');if(x)x.classList.toggle('on',on);};
-function fsHtml(){if(!fsCan())return '';const f=fsUI(),net=fsOnline(),on=f.on&&net,note=fsNote(f);
+function fsHtml(){if(!fsCan()||GAME_MODS.some(id=>UI.mods.includes(id)))return '';const f=fsUI(),net=fsOnline(),on=f.on&&net,note=fsNote(f);
   return `<div class="fstart${on?' on':''}"><div class="fs-head"><label class="f" id="fsLbl" for="fsTog">${fuIcon()} ${tr('fedui.play_with_others')}</label><button class="fs-tog" id="fsTog" role="switch" aria-checked="${on}"${net?'':' disabled'} data-act="fsSet" data-args='{"on":${!on}}'><span aria-hidden="true"></span></button></div>
   ${note?`<p class="meta fs-note" id="fsNote" role="status">${note}</p>`:''}${on?`<p class="meta">${tr('fedui.your_network_joins_once_its_charter')} ${tr('fedui.names_are_public')}</p><div id="fsList">${fsList()}</div>`:''}
   ${on||net&&f.note?`<label class="f" for="fsUrl">${tr('fedui.or_type_a_server_address')}</label><input class="t" id="fsUrl" type="url" inputmode="url" placeholder="wss://…" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(f.typed)}">`:''}</div>`;}
 // Redraws the switch in place (the name being typed stays); only the list while the address field has focus.
 function fsPaint(){const b=$('fsBox');if(!b)return;const l=$('fsList'),t=$('fsTog'),typing=document.activeElement&&document.activeElement.id==='fsUrl';
-  if(l&&typing&&t&&t.getAttribute('aria-checked')===String(!!(UI.fs&&UI.fs.on&&fsOnline()))){l.innerHTML=fsList();return;}
+  if(l&&typing&&t&&!GAME_MODS.some(id=>UI.mods.includes(id))&&t.getAttribute('aria-checked')===String(!!(UI.fs&&UI.fs.on&&fsOnline()))){l.innerHTML=fsList();return;}
   b.innerHTML=fsHtml();fsBind();const i=typing&&$('fsUrl');if(i)i.focus();}
 // The address field: typing deselects the rows; a valid address turns a fallen-back switch on, clearing it off again.
 function fsBind(){const i=$('fsUrl');if(i)i.addEventListener('input',e=>{const f=UI.fs,was=f.on;f.typed=e.target.value;const sel=f.typed.trim()?null:f.url;
@@ -78,7 +78,7 @@ const fsPick0=()=>{if(UI.fs&&!UI.fs.url)UI.fs.url=fsDefault(FS.srvs||[]);};
 /* What the switch says for the game being started (and remembered for the next one): a node URL, false (shown and off,
    or offline) or undefined (not shown: another door, no crypto, no title). Never a reason not to start. Offline the
    remembered choice is left as it was. */
-function fsChoice(){if(UI.mode==='sandbox'||!UI.fs||!fsCan()||!$('fsTog')||$('modal').hidden)return undefined;const f=UI.fs,url=f.on&&fsSel()||null;UI.fs=null;
+function fsChoice(){if(UI.mode==='sandbox'||GAME_MODS.some(id=>UI.mods.includes(id))||!UI.fs||!fsCan()||!$('fsTog')||$('modal').hidden)return undefined;const f=UI.fs,url=f.on&&fsSel()||null;UI.fs=null;
   if(!fsOnline())return false;fsMem({on:f.on,url:url||f.url||null});return url||false;}
 /* After the charter: joins, then waits for the first word from the server. Connected: a toast and the dot. Refused
    (bad address, crypto, full): solo, with a toast to the join sheet. Offline or no answer in time: still joined, the
