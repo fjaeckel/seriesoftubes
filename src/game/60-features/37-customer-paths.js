@@ -80,6 +80,6 @@ function pathModal(b){const a=pathCity(b.city),z=pathCity(b.city2),k=pathKind(b)
     else if(now)h+=`<div class="kv"><span>${tr('customer_paths.now_on')}</span><b>${esc(pathStr(now))}</b></div>`;
     if(b.pin)h+=`<div class="btns">${btn(tr('customer_paths.let_routing_choose_again'),'pathAuto',{id:b.id},'ghost sm')}</div>`;
     if(!alts.length)h+=`<p class="empty">${tr('customer_paths.no_other_path',{a,b:z})}</p>`;
-    for(const t of alts){const warn=[t.room<b.bw?`<b style="color:var(--bad)">${tr('customer_paths.fits_only_g_of_bw',{g:fmtG(t.room),bw:fmtG(b.bw)})}</b>`:'',b.latMax&&t.lat>b.latMax?`<b style="color:var(--bad)">${tr('customer_paths.over_the_ms_budget',{ms:b.latMax})}</b>`:''].filter(Boolean).join(' · ');
+    for(const t of alts){const warn=[t.room<b.bw?`<b style="color:var(--bad)">${tr('customer_paths.fits_only_g_of_bw',{g:fmtG(t.room),bw:fmtG(b.bw)})}</b>`:'',b.latMax&&!latOk(t.lat,b.latMax)?`<b style="color:var(--bad)">${tr('customer_paths.over_the_ms_budget',{ms:b.latMax})}</b>`:''].filter(Boolean).join(' · ');
       h+=row(esc(pathStr(t.p)),tr('customer_paths.path_facts',{km:Math.round(t.km).toLocaleString(),ms:t.lat.toFixed(1)})+(warn?' · '+warn:''),t.shared?trn('customer_paths.shares_n_spans',t.shared):tr('customer_paths.fully_diverse'),btn(tr('customer_paths.move'),'pathPin',{id:b.id,via:t.p.join()},'sm'));}}
   openModal(h);}

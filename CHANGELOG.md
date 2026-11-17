@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- A customer's path that shows exactly its latency budget (say 42.2 ms of 42.2 ms) now meets it: latencies are compared the way they are shown, to a tenth of a millisecond (#423).
+
 ## [4.6.0] — 2026-11-16
 
 - You can hire an optical engineering team from Big League on: a department of its own, from $1.2M to $7M a year in three sizes, that plans and builds your fiber and subsea routes. Once hired they take over the intern's optical work (optics, line systems, handing back waves), move leased waves that run hot up a size, and every Wednesday plan routes from what the Lambda Bazaar's buyers want plus the leased waves you would no longer need. They either ask before building or build on their own within a yearly budget, and bigger teams run more projects at once. Now and then they get something wrong: a fat-fingered config darkens a fiber for a day, a build slips, or a build costs more.
