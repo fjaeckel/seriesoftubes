@@ -259,6 +259,8 @@
 :where(:root.dark) .door.on,:where(:root.dark) .preset.on,:where(:root.dark) .chs.on{background:#3C202D;color:var(--ink)}
 :where(:root.dark) .door.on::after,:where(:root.dark) .preset.on::after,:where(:root.dark) .chs.on::after{color:var(--me)}
 :where(:root.dark) .door[data-door=puzzle],:where(:root.dark) .door[data-door=scn]{background:var(--soft);color:var(--ink)}
+:where(:root.dark) .add-options summary.f{color:var(--ink2)}
+:where(:root.dark) .add-opt-text span{color:var(--ink2)}
 :where(:root.dark) .preset small{color:var(--ink2)}
 :where(:root.dark) .preset[data-preset=bgp].on{background:#403023;border-color:#FF6A2B;color:var(--ink)}
 :where(:root.dark) .preset[data-preset=bgp].on::after{color:#FF6A2B}

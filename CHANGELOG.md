@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Add challenge modes selection for normal games
+- Add Outcast challenge mode: public IX peering is off, but your own exchanges and PNIs are still available.
 - A customer's path that shows exactly its latency budget (say 42.2 ms of 42.2 ms) now meets it: latencies are compared the way they are shown, to a tenth of a millisecond (#423).
 - Auto-TE can also spread L2 circuits across paths, with a new toggle in Routing & DDoS that starts off. It follows your spill rules and leaves pinned paths fixed.
 - The windows of the NOC screen can be moved and resized: drag a window's title bar, pull an edge or a corner, or use the arrow keys on its grip (with Shift they resize it). Windows never overlap or leave the screen: one dropped on another sends it below and the rest close up, and the charts redraw to fit. The layout is kept in this browser, and Reset layout in the top bar puts every window back. On a narrow screen the windows stack as before.

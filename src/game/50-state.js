@@ -1,6 +1,6 @@
 /* ================= STATE ================= */
 let S=null, R=emptyR();
-const UI={sel:null,tab:'cust',left:'goals',speed:1,hover:null,drag:null,snap:null,pending:null,confirm:null,leftOpen:false,muted:false,startCity:'fra',hintOff:false,clockLocked:false};
+const UI={sel:null,tab:'cust',left:'goals',speed:1,hover:null,drag:null,snap:null,pending:null,confirm:null,leftOpen:false,muted:false,startCity:'fra',hintOff:false,clockLocked:false,mods:[]};
 /* Where tools that are not part of the game (the development page's agent, src/agent/) may hook in. Empty in the page
    players get, and the game only ever calls into it with ?.(), so nothing changes there. clockLocked: the clock is not
    the player's (an agent drives): no pause, no speed buttons, no auto-pause, and the speed is HOOKS.speed()'s. */

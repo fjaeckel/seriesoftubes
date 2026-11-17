@@ -5,7 +5,7 @@ const TUT=[
  {t:tr('tutorial.your_router_is_live_press_launch'),sel:['[data-act="launchBB"]'],ok:()=>S.pops[S.home]&&S.pops[S.home].bb},
  {t:tr('tutorial.your_customers_want_the_whole'),sel:['[data-act="buyTransit"]','[data-act="tab"][data-args*=\'"up"\']'],ok:()=>S.transit.length>0,skip:()=>!NETS.some(n=>sellsAt(n,S.home))},
  // DE-KICKS ports are "price on request": a first-timer is better off on a challenger with a price list.
- {t:tr('tutorial.transit_costs_money_per_gigabit'),sel:['[data-act="rs"]','[data-act="buyIx"]','[data-act="tab"][data-args*=\'"peer"\']'],no:b=>b.dataset.act==='buyIx'&&tutDk(b),ok:()=>Object.keys(S.rs).length>0,skip:()=>!ixName(S.home)},
+ {t:tr('tutorial.transit_costs_money_per_gigabit'),sel:['[data-act="rs"]','[data-act="buyIx"]','[data-act="tab"][data-args*=\'"peer"\']'],no:b=>b.dataset.act==='buyIx'&&tutDk(b),ok:()=>Object.keys(S.rs).length>0,skip:()=>modeOn('outcast')||!ixName(S.home)},
  {t:tr('tutorial.the_clock_runs_at_half_speed'),sel:['#sp1','[data-act="phoneSpeed"]'],idle:()=>UI.speed>=1,ok:()=>S.day>=5},
  {t:tr('tutorial.grow_lay_fiber_to_a_nearby_city'),sel:['[data-act="findLink"]','#panel [data-act="tab"][data-args*=\'"links"\']'],ok:()=>S.links.length>0},
  {t:tr('tutorial.businesses_pop_up_as_bubbles_on'),sel:['#left [data-act="accept"]','[data-act="leftTab"][data-args*=\'"deals"\']','[data-act="phoneTab"][data-args*=\'"deals"\']'],ok:()=>S.biz.length>0},

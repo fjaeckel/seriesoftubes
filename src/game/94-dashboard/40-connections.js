@@ -24,8 +24,8 @@ function connUp(r){if(r.mine)return '';const nx=(t,T=PORT)=>T[t+1]&&portShown(t+
     if(i>=0){const a={port:PORT[i].n,cost:fmt$(c),mo:fmt$(PORT[i].pni*n)};h+=btn(n>1?tr('common.upgrade_all_to_port_cost_mo',a):tr('common.upgrade_port_cost_mo_mo',a),'pni',{city:p.city,net:p.net,tier:i},'sm',!portOk(p.city,i)||S.cash<c);}
     if(n<pniLagMax(p.city))h+=btn(tr('common.lag_member_cost_mo_mo',{cost:fmt$(1500+PORT[p.tier].setup/2),mo:fmt$(PORT[p.tier].pni)}),'lagP',{id:p.id,d:1},'sm',S.cash<1500+PORT[p.tier].setup/2);}
   else if(r.k==='ix'){const c=r.id,city=ixCity(c),n=(S.ixn||{})[c]||1,i=nx(S.ixp[c]);
-    if(i>=0)h+=btn(tr('common.upgrade_port_price',{port:PORT[i].n,price:portMo(ixPortMo(c,i)*n)}),'buyIx',{city:c,tier:i},'sm',(!!S.pops[city]&&!portOk(city,i))||(!S.pops[city]&&i>1));
-    if(S.pops[city]&&!S.myIx[c]&&n<LAG_MAX)h+=btn(tr('common.lag_member_price',{price:portMo(ixPortMo(c,S.ixp[c]))}),'lagIx',{city:c,d:1},'sm',S.cash<ixPortMo(c,S.ixp[c]));}
+    if(!modeOn('outcast')&&i>=0)h+=btn(tr('common.upgrade_port_price',{port:PORT[i].n,price:portMo(ixPortMo(c,i)*n)}),'buyIx',{city:c,tier:i},'sm',(!!S.pops[city]&&!portOk(city,i))||(!S.pops[city]&&i>1));
+    if(!modeOn('outcast')&&S.pops[city]&&!S.myIx[c]&&n<LAG_MAX)h+=btn(tr('common.lag_member_price',{price:portMo(ixPortMo(c,S.ixp[c]))}),'lagIx',{city:c,d:1},'sm',S.cash<ixPortMo(c,S.ixp[c]));}
   else if(r.k==='c')h+=btn(tr('common.box'),'cache',{city:r.city,net:r.net},'sm');
   else if(r.k==='nni'){const [city,prov]=r.id.split('|'),pt=nniPort(city,prov);if(!pt)return '';const n=pt.n||1,i=nx(pt.tier,NNI);
     if(i>=0){const c=NNI[i].mo*n;h+=btn(n>1?tr('common.upgrade_all_to_port_cost_mo',{port:NNI[i].n,cost:fmt$(c),mo:fmt$(c)}):tr('common.upgrade_port_price_mo',{port:NNI[i].n,price:fmt$(c)}),'buyNni',{city,prov,tier:i},'sm',S.cash<c||!portOk(city,i));}

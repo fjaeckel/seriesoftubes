@@ -4,13 +4,13 @@
     ai null|{model, harness} (written only by src/agent/), out [signed records waiting to be sent], muted [keys],
     deals [self-contained deals with other players], share (let servers attach my country), joined (real day of joining),
     last (slot of the last stats sent)}.
-   Joining is per save and only in normal games: never a sandbox or open gates, a puzzle, a scenario or the weekly. */
+  Joining is per save and only in normal games without challenge modes: never a sandbox or open gates, a puzzle, a scenario or the weekly. */
 const FED_MAX_SERVERS=4,FED_OUT_MAX=64,FED_OUT_BYTES=131072,FED_MUTED_MAX=512,FED_DEALS_MAX=256,FED_CLIENT_KINDS=['announce','stats','offer','accept','decline','leave'];
 // The mode a stats record declares (§5.2); only 'normal' is ranked, and only a normal game may join.
 function fedMode(s){if(!s)return 'normal';if(s.mode==='puzzle'||s.pz)return s.ar?'architect':'puzzle';
   if(s.scn)return s.scn.id==='weekly'?'weekly':'scenario';if(s.mode==='sandbox')return 'sandbox';
   return s.rules&&s.rules.gates==='open'?'open_gates':'normal';}
-const fedEligible=(s=S)=>!!s&&!s.lost&&fedMode(s)==='normal';
+const fedEligible=(s=S)=>!!s&&!s.lost&&fedMode(s)==='normal'&&!challengeModsOn(s);
 const fedKeyOk=k=>!!k&&typeof k==='object'&&!FdK(k.pub);
 const fedHasPriv=f=>!!f&&fedKeyOk(f.key)&&!!fedBin(f.key.priv,32);
 // Plain-text labels (§5 Label(64)): what an agent declared, or nothing.
