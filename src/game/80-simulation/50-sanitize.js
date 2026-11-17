@@ -128,7 +128,7 @@ function sanitize(s){
   pieSanitize(s);pieIncFix(s);volFix(s);
   fedSanitize(s);// multiplayer: null unless this save joined (60-features/86-fed-state.js)
   fedpSanitize(s);// other players' networks and this one's published terms (60-features/89-fedplay-*.js)
-  if(s.te){if(typeof s.te!=='object')s.te=null;else{s.te.on=!!s.te.on;s.te.script=typeof s.te.script==='string'?s.te.script.slice(0,4000):'';}}
+  if(s.te){if(typeof s.te!=='object')s.te=null;else{s.te.on=!!s.te.on;s.te.l2=s.te.l2===true;s.te.script=typeof s.te.script==='string'?s.te.script.slice(0,4000):'';}}
   return s;}
 function migrate(s){sanitize(s);
   // Older saves have one contract per broker sale: fold a carrier's alien waves on one fiber into one contract.

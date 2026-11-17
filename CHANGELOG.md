@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 - A customer's path that shows exactly its latency budget (say 42.2 ms of 42.2 ms) now meets it: latencies are compared the way they are shown, to a tenth of a millisecond (#423).
+- Auto-TE can also spread L2 circuits across paths, with a new toggle in Routing & DDoS that starts off. It follows your spill rules and leaves pinned paths fixed.
 
 ## [4.6.0] — 2026-11-16
 
