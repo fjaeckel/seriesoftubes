@@ -10,10 +10,11 @@
    adds to the bills. A city counts as reached when a crust with pies (or on the way) covers it and a dish within PIE_BENT
    km under that crust, or, with lasers on it, any dish on the backbone under it. */
 const PIE_HOT=0.75,PIE_RELAX=0.6,PIE_PLAN_ADD=8,PIE_CITY_P=0.5;
-const PIE_PLAN_OUT=5;
+const PIE_PLAN_OUT=5,PIE_PLAN_SHOW=8;
 const piePlanCityMo=()=>BIZ_T.pizza.opts[0]*BIZ_T.pizza.rate*PIE_CITY_P;
-// What a busy dish puts at risk a month: its traffic, more of it the fuller it is.
-const piePlanHotMo=d=>d.used*BIZ_T.pizza.rate*clamp((d.u-PIE_HOT)/(PIE_FULL-PIE_HOT),0.1,1);
+// What a busy dish puts at risk a month: its traffic, from none of it at PIE_HOT to all of it at PIE_FULL (the Bottlenecks
+// tab's full). Growing a dish that just turned busy is headroom, not money, so it ranks after what pays.
+const piePlanHotMo=d=>d.used*BIZ_T.pizza.rate*clamp((d.u-PIE_HOT)/(PIE_FULL-PIE_HOT),0,1);
 // Months to pay back: 0 when it pays at once (a refund that also saves), Infinity when it never does.
 const piePlanPay=it=>{const net=it.val-it.mo;return net>0?Math.max(0,it.cost)/net:Infinity;};
 // What the plan depends on: not the day's traffic (it moves daily), only which dishes run hot, and a monthly refresh.
@@ -46,8 +47,10 @@ function piePlanMake(P,Q){const cs=Object.keys(CRUSTS).filter(id=>pieLive(id)>0|
   // The cities a dish at p would bring in reach.
   const gainOf=p=>{const l=new Set();for(const c of rev.get(p))if(!reached(c))l.add(c);
     if(S.pops[p]&&!isl.has(p))for(const id of las)if(!lasN[id]&&pieCovers(id,p))for(const c of tgt)if(!reached(c)&&cnt.get(c)===0&&pieCovers(id,c))l.add(c);return [...l];};
-  const site=(p,o)=>{const cc=CITY[p].cc,lic=pieLicOk(cc)?0:pieLicPrice(cc),pop=S.pops[p]?0:popCost(p);
-    return {...o,to:p,lic,pop,cost:pieDishPrice()+lic+pop,mo:PIE_DISH_MO+lic/12+(pop?popMo(p):0)};};
+  // A new POP comes with your POP standard's routers (popOpen() buys them): priced here, or a move could take the old
+  // dish down and then not afford the new one.
+  const sq=popStdQuote(),site=(p,o)=>{const cc=CITY[p].cc,lic=pieLicOk(cc)?0:pieLicPrice(cc),pop=S.pops[p]?0:popCost(p)+(sq?sq.cost:0);
+    return {...o,to:p,lic,pop,cost:pieDishPrice()+lic+pop,mo:PIE_DISH_MO+lic/12+(pop?popMo(p)+(sq?sq.mo:0):0)};};
   for(const d of Q.dish.filter(d=>d.cap>0&&d.u>=PIE_HOT).sort((a,b)=>b.u-a.u)){const x=P.dishes.find(y=>y.city===d.city);if(!x)continue;const val=piePlanHotMo(d);
     // Enough antennas to bring it back to PIE_RELAX full, not always all 16.
     if(pieAntLeft(x)){const a=clamp(Math.ceil(d.used/(PIE_RELAX*d.cap/x.ant))-x.ant,1,pieAntLeft(x));items.push({k:'ant',c:d.city,u:d.u,ant:x.ant+a,cost:a*pieAntPrice(x.band),val,mo:0});continue;}
@@ -133,7 +136,10 @@ function piePlanHtml(){const Q=R&&R.pie;if(!Q||!Q.dish)return `<div class="pie-p
   const on={};for(const c of Object.values(Q.gs||{}))on[c]=(on[c]||0)+1;
   const tot=pl.items.reduce((a,x)=>a+x.cost,0);
   h+=`<p class="pie-pl-tot">${trn('pie_plan.total',pl.items.length,{price:piePlanCost(tot)})}</p>`;
-  h+=`<div class="pie-fxl">${pl.items.map((it,i)=>piePlanRow(it,i,Q,on)).join('')}</div>`;
+  // The best few first: a big ground segment can have a line for every dish, a wall on a phone.
+  const all=UI.piePlanAll||pl.items.length<=PIE_PLAN_SHOW+2;
+  h+=`<div class="pie-fxl">${(all?pl.items:pl.items.slice(0,PIE_PLAN_SHOW)).map((it,i)=>piePlanRow(it,i,Q,on)).join('')}</div>`;
+  if(pl.items.length>PIE_PLAN_SHOW+2)h+=`<div class="btns">${btn(UI.piePlanAll?tr('common.show_fewer'):tr('notifications.show_all_n',{n:pl.items.length}),'piePlanAll',{},'ghost sm')}</div>`;
   return h+out+`<p class="meta pie-pl-rough">${tr('pie_plan.rough')}</p>`+piePlanLegend()+'</div>';}
 // The planner's picks for the globe (Dishes tab, planner open): where to build, grow or take down.
 function piePlanSites(){const Q=R&&R.pie;if(!S.pie||!Q||!Q.dish||UI.pieTab!=='dish'||!UI.piePlan)return [];return piePlan(Q).items.map(it=>({city:piePlanAt(it),k:it.k}));}

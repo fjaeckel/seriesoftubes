@@ -2,6 +2,7 @@
 Object.assign(ACT,{
  piePlanOpen:()=>{UI.piePlan=!UI.piePlan;UI.piePlanAsk=null;sfx('click');pieModal();},
  piePlanKeep:()=>{UI.piePlanAsk=null;sfx('click');pieModal();},
+ piePlanAll:()=>{UI.piePlanAll=!UI.piePlanAll;sfx('click');pieModal();},
  piePlanDo:({k,c,from,to,ant,ok})=>{const P=pieGet(),Q=R&&R.pie,a={k,c,from,to,ant};if(!P||!P.co||!Q||!Q.dish||!own(PIE_PLAN_ARGS,k))return;
    // Exactly the arguments its kind takes: a drop with a to is not a move.
    const ks=PIE_PLAN_ARGS[a.k];if(['c','from','to','ant'].some(f=>(a[f]!==undefined)!==ks.includes(f)))return;

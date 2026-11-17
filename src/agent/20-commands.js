@@ -566,6 +566,7 @@ const API_VIEW={
  pieIns:{args:[],doc:'Toggle launch insurance for the next launches.'},
  pieDishGo:{args:[['city','cityId']],doc:'Open the Dishes tab at the dish in a city: its country unfolded and the row in view.'},
  piePlanOpen:{args:[],doc:'Open or close the dish optimizer in the Dishes tab: dishes to take down, move or add, with their cost.'},
+ piePlanAll:{args:[],doc:'Show all of the dish optimizer\'s suggestions, or only the best few.'},
  pieDv:{args:[['v','string']],doc:'Dishes tab view: cc (by country, with the actions) or load (every dish by load, and the backhaul).'},
  pieRkd:{args:[],doc:'Unfold or fold the rocket table in the Crusts tab.'},
  pieNoSats:{args:[],doc:'Hide or show the satellites on the Dishes tab\'s globe, to see your POPs.'},

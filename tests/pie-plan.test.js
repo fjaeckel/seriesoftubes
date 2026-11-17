@@ -262,3 +262,56 @@ test('the plan is built once while nothing it reads changes, not every day', () 
   assert.equal(ev('window.__n'), 1, 'a dish changed: rebuilt');
   assert.deepEqual(errors, []);
 });
+
+test('a new POP is priced with the POP standard\'s routers, so a move never loses the old dish for want of cash', () => {
+  const { ev, errors } = load();
+  world(ev);
+  term(ev, 'a', 'lon', 5);
+  leave(ev);
+  ev('S.popStd={g:0,rt:4};S.cash=1e9');
+  const q = JSON.parse(ev('JSON.stringify(popStdQuote())'));
+  assert.ok(q && q.cost > 0, 'the standard adds routers that cost money');
+  const np = plan(ev).items.find((x) => x.pop > 0 && x.k === 'move') || plan(ev).items.find((x) => x.pop > 0);
+  assert.ok(np, 'a site without a POP');
+  assert.equal(np.pop, ev(`popCost('${np.to}')`) + q.cost, 'the routers are in the price');
+  // Exactly the line's price in the bank: it either goes through whole, or leaves the old dish where it was.
+  ev(`S.cash=${np.cost}`);
+  ev(`ACT.piePlanDo(${JSON.stringify({ ...args(np), ok: true })})`);
+  const moved = ev(`S.pie.dishes.some(x=>x.city==='${np.to}')`);
+  assert.equal(moved, true, 'the new dish is built');
+  if (np.from && !moved) assert.equal(ev(`S.pie.dishes.some(x=>x.city==='${np.from}')`), true, 'or the old one stays');
+  assert.deepEqual(errors, []);
+});
+
+test('a dish that just turned busy has little money at risk yet, so growing it ranks after what pays', () => {
+  const { ev, errors } = load();
+  world(ev);
+  term(ev, 'a', 'lon', 15.2); // 76% of 20 Gbps: just over PIE_HOT, far from PIE_FULL
+  const ant = plan(ev).items.find((x) => x.k === 'ant' && x.c === 'lon');
+  assert.ok(ant, 'still suggested, as headroom');
+  const traffic = ev("R.pie.dish.find(d=>d.city==='lon').used*BIZ_T.pizza.rate");
+  assert.ok(ant.val > 0 && ant.val < traffic * 0.1, `a sliver of its traffic at risk (${ant.val} of ${traffic})`);
+  term(ev, 'b', 'lon', 2.8); // now 90%: all of it
+  const full = plan(ev).items.find((x) => x.k === 'ant' && x.c === 'lon');
+  assert.ok(Math.abs(full.val - ev("R.pie.dish.find(d=>d.city==='lon').used*BIZ_T.pizza.rate")) < 1e-6, 'full: all its traffic');
+  assert.ok(full.pay < ant.pay, 'pays back sooner once it is full');
+  assert.deepEqual(errors, []);
+});
+
+test('a long plan shows the best few lines, and all of them on a tap', () => {
+  const { ev, dom, errors } = load();
+  world(ev);
+  term(ev, 'a', 'lon', 18);
+  // A big ground segment has a line per dish: the same line many times stands in for it.
+  ev('const f0=piePlan;piePlan=Q=>{const p=f0(Q);return {...p,items:Array.from({length:14},()=>p.items[0])};}');
+  ev("ACT.pieOpen();ACT.pieTab({t:'dish'});ACT.piePlanOpen()");
+  const rows = () => dom.window.document.querySelectorAll('#modal .pie-plan [data-act=piePlanDo]').length;
+  assert.equal(rows(), ev('PIE_PLAN_SHOW'));
+  assert.match(ev("document.querySelector('#modal .pie-plan').textContent"), /14/, 'the total and the button count them all');
+  ev('ACT.piePlanAll()');
+  assert.equal(rows(), 14);
+  ev('closeModal();ACT.pieOpen();ACT.pieTab({t:\'dish\'});ACT.piePlanOpen()');
+  assert.equal(rows(), ev('PIE_PLAN_SHOW'), 'closing Pie Control folds it again');
+  ev('closeModal()');
+  assert.deepEqual(errors, []);
+});
