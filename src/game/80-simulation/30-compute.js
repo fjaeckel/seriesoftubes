@@ -95,7 +95,7 @@ function compute(){RW.gen++;fedNetsSync();
      index FNJ[F] and has FREM[F] left to place. Gathered in FLB here, then copied into this call's own columns below. */
   FLB.n=0;const NN=NETS.length,CNB=[],NCN=NETS.map(n=>!!n.cn),flow=(ci,j,rem,cache,bz)=>{const k=FLB.n;if(k===FLB.cap)flbGrow();FLB.rem[k]=rem;FLB.ci[k]=ci;FLB.nj[k]=j;FLB.ca[k]=cache?1:0;FLB.bz[k]=bz?1:0;FLB.n=k+1;};
   // Customer demand per city, added up in S.biz order (what filtering S.biz for each city would give).
-  const bizBw={};for(const b of S.biz){const T=BIZ_T[b.type];if(!T.l2&&!T.fiber&&(!T.event||eventLive(b))){if(T.orbit){const g=PX&&PX.gs[b.id];if(g)bizBw[g]=(bizBw[g]||0)+PX.term[b.id];continue;}const v=bizBw[b.city];bizBw[b.city]=(v===undefined?0:v)+b.bw;}}
+  const bizBw={};for(const b of S.biz){const T=BIZ_T[b.type];if(!T.l2&&!T.fiber&&(!T.event||eventLive(b))){if(T.orbit){const g=PX&&PX.gs[b.id],gx=g&&PX.gx[b.id];if(gx)for(const [c,v] of gx)bizBw[c]=(bizBw[c]||0)+v;else if(g)bizBw[g]=(bizBw[g]||0)+PX.term[b.id];continue;}const v=bizBw[b.city];bizBw[b.city]=(v===undefined?0:v)+b.bw;}}
   // Traffic shares by network index, and their sums, for each share table (and with Russia's throttle).
   const shArr=new Map(),shSum=new Map(),DEMTO=new Float64Array(NN),loc=scnRule('local');
   (()=>{for(const c of Object.keys(S.pops)){

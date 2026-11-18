@@ -22,7 +22,7 @@
    theirs; their traffic lands on a ground dish (bent pipe within PIE_BENT km, or lasers to any connected dish) and
    enters the network there as business demand. Spats: pieSpatHome(cc) keeps a country's customers on its own dishes,
    pieAirBlock(a,b) keeps country a's traffic off country b's dishes; both apply to backhaul as to terminals. */
-const PIE_C=300,PIE_RE=6371,PIE_MIN_KM=3000,PIE_BENT=1000,PIE_HOP=1,PIE_FOOT=3,PIE_LAT_PREM=0.5,PIE_BH_W=1e5;
+const PIE_C=300,PIE_RE=6371,PIE_MIN_KM=3000,PIE_BENT=1000,PIE_SPILL=8,PIE_HOP=1,PIE_FOOT=3,PIE_LAT_PREM=0.5,PIE_BH_W=1e5;
 const pieKm=(a,b)=>{const A=CITY[a],B=CITY[b];return hav(A.lon,A.lat,B.lon,B.lat);};
 // Does crust id cover city c? A shell reaches a few degrees past its inclination; a polar one reaches everywhere.
 const pieCovers=(id,c)=>!!CRUSTS[id].polar||Math.abs(CITY[c].lat)<=CRUSTS[id].inc+PIE_FOOT;
@@ -34,22 +34,26 @@ const pieLandOk=(ca,dc)=>!(pieSpatHome(ca)&&dc!==ca)&&!pieAirBlock(ca,dc);
 /* Where a terminal customer in city c lands: {k (index in ds), cr, left} or null. ds: dishes with .ok (on the backbone).
    The nearest dish with room left (for all of bw if any has it) that a crust over c with room left also covers: within PIE_BENT km (bent pipe, any dish), else with lasers on that
    crust any dish on the backbone. Some customers need lasers (flywifi, marsorb: T.las). cr: what each crust has left (none: no limit).
-   Between crusts that land it as well, the one with most room left: overflow fills an idle crust, not the polar one far north depends on. */
+   Between crusts that land it as well, the one with most room left: overflow fills an idle crust, not the polar one far north depends on.
+   A dish cut off from the backbone (a POP whose fiber is not lit yet) comes last: its traffic may have no way out. */
 function pieLand(c,t,ds,hubs,bw=0,cr=null){const T=BIZ_T[t],cc=CITY[c].cc;let best=null,bk=Infinity,bl=-1;
   for(const id of hubs){if(!pieCovers(id,c))continue;const las=pieLased(id);if(T.las&&!las)continue;const cl=cr&&id in cr?cr[id]:Infinity;if(!(cl>0))continue;
     for(let k=0;k<ds.length;k++){const d=ds[k];if(!pieCovers(id,d.city)||!pieLandOk(cc,d.cc))continue;const km=c===d.city?0:pieKm(c,d.city),left=Math.min(d.left,cl);
-      if(d.left>0&&(km<=PIE_BENT||(las&&d.ok))){const v=km+(d.ok?0:1)+(left<bw?1e6:0);if(v<bk||v===bk&&cl>bl){bk=v;bl=cl;best={k,cr:id,left};}}}}
+      if(d.left>0&&(km<=PIE_BENT||(las&&d.ok))){const v=km+(d.ok?0:PIE_BENT*3)+(left<bw?1e6:0);if(v<bk||v===bk&&cl>bl){bk=v;bl=cl;best={k,cr:id,left};}}}}
   return best;}
 function pieGraph(adj,edges,COMP,pops,NE){const NC=CITIES.length,hubs=pieHubs(),ds=pieDishes();
-  const X={hubs,ds,term:{},gs:{},gsBw:{},cr:{},isl:[],l2o:{},l2p:{},up:[],ne:NE,adj,nc:NC,sk:[],bh:[],bhNo:[],res:{},main:-1};
+  const X={hubs,ds,term:{},gs:{},gx:{},gsBw:{},cr:{},isl:[],l2o:{},l2p:{},up:[],ne:NE,adj,nc:NC,sk:[],bh:[],bhNo:[],res:{},main:-1};
   for(const id of hubs)X.cr[id]=pieCap(id);
   // The backbone: the island with the most POPs (ties: the home city's).
   const cnt=new Map();for(const p of pops){const k=COMP[CIDX[p]];if(k>=0)cnt.set(k,(cnt.get(k)||0)+1);}
   let main=-1,mn=0;const hk=S.home&&S.pops[S.home]?COMP[CIDX[S.home]]:-1;for(const [k,n] of cnt)if(n>mn||(n===mn&&k===hk)){main=k;mn=n;}X.main=main;
   for(const d of ds){const ci=CIDX[d.city];d.ok=COMP[ci]>=0&&COMP[ci]===main;d.left=d.g;if(!d.ok)X.isl.push(d.city);}
-  // Terminals first: each takes what its dish and its crust have left, in S.biz order.
-  if(hubs.length)for(const b of S.biz){const T=BIZ_T[b.type];if(!T.orbit)continue;const L=pieLand(b.city,b.type,ds,hubs,b.bw,X.cr);if(!L)continue;const d=ds[L.k];
-    const a=Math.max(0,Math.min(b.bw,d.left,X.cr[L.cr]));d.left-=a;X.cr[L.cr]-=a;X.term[b.id]=a;X.gs[b.id]=d.city;X.gsBw[d.city]=(X.gsBw[d.city]||0)+a;}
+  // Terminals first: each takes what its dish and its crust have left, in S.biz order. What one dish cannot hold spills onto
+  // the next one in reach (a customer bigger than a full dish); gs is the first dish, gx every [dish, Gbps] when split.
+  if(hubs.length)for(const b of S.biz){const T=BIZ_T[b.type];if(!T.orbit)continue;let r=b.bw;const parts=[];
+    for(let i=0;i<PIE_SPILL&&r>0;i++){const L=pieLand(b.city,b.type,ds,hubs,r,X.cr);if(!L)break;const d=ds[L.k],a=Math.max(0,Math.min(r,d.left,X.cr[L.cr]));if(!(a>0))break;
+      d.left-=a;X.cr[L.cr]-=a;r-=a;X.gsBw[d.city]=(X.gsBw[d.city]||0)+a;parts.push([d.city,a]);}
+    if(!parts.length)continue;X.gs[b.id]=parts[0][0];X.term[b.id]=b.bw-r;if(parts.length>1)X.gx[b.id]=parts;}
   // Backhaul for cut-off POPs, after terminals and before sky circuits (see the top).
   if(X.isl.length)for(const d of ds){if(d.ok)continue;const ci=CIDX[d.city];if(!adj[ci]||!pops.includes(d.city))continue;const L=pieBhLand(d,ds,hubs,X.cr);
     if(L.why){X.bhNo.push({city:d.city,why:L.why});continue;}
@@ -106,7 +110,7 @@ function pieFast(X,fastSP,A,B,b,wLat){const Ai=CIDX[A],Bi=CIDX[B],nb=X.bh.length
 // After routing: what orbit earns (terminals, a premium on circuits riding the sky, patchy-sky customers) and what each dish carries.
 function pieMoney(X,R2,V){let rev=0;const sf={},flows=[];
   for(const b of S.biz){const T=BIZ_T[b.type];
-    if(T.orbit){const a=X.term[b.id]||0,s=b.bw>0?a/b.bw*(X.gs[b.id]?sfOf(R2,X.gs[b.id]):0):0,v=b.bw*b.rate*Math.min(1,s/0.95);sf[b.id]=s;rev+=v;
+    if(T.orbit){const a=X.term[b.id]||0,gx=X.gx[b.id],s=!(b.bw>0)?0:gx?gx.reduce((t,[c,g])=>t+g*sfOf(R2,c),0)/b.bw:a/b.bw*(X.gs[b.id]?sfOf(R2,X.gs[b.id]):0),v=b.bw*b.rate*Math.min(1,s/0.95);sf[b.id]=s;rev+=v;
       flows.push({k:'t',id:b.id,type:b.type,city:b.city,dish:X.gs[b.id]||null,g:s*b.bw,rev:v});}
     else if(X.l2o[b.id]&&T.l2){const g=R2.l2[b.id]||0,v=b.bw*b.rate*PIE_LAT_PREM*clamp(g/b.bw,0,1);rev+=v;flows.push(pieCircuit(X,b,g,v,R2.l2lat[b.id]));}}
   // A dish's use: its terminals (what they took from d.left, not the backhaul booked there), then what crossed its edges.
@@ -118,7 +122,7 @@ function pieMoney(X,R2,V){let rev=0;const sf={},flows=[];
   const patchy=piePatchy(X.ds);rev+=patchy.mo;
   // The billing database is down (the Founder's antics, 99-pie-jitters.js): the sky carries on, nobody is invoiced.
   const billOff=pieBillOff()?rev:0;if(billOff)rev=0;
-  V.orbit=rev;R2.pie={rev,billOff,patchy,sf,gs:X.gs,isl:X.isl,used,term:X.gsBw,hubs:X.hubs,sky:X.up.length,flows,bh,...pieLoads(X,flows,used,term,bhG)};
+  V.orbit=rev;R2.pie={rev,billOff,patchy,sf,gs:X.gs,gx:X.gx,isl:X.isl,used,term:X.gsBw,hubs:X.hubs,sky:X.up.length,flows,bh,...pieLoads(X,flows,used,term,bhG)};
   // For the lazy fiber comparison (pieFiberMs): the graph of this compute, kept out of JSON.
   Object.defineProperty(R2.pie,'_x',{value:{adj:X.adj,fm:{}}});}
 // A sky circuit for the Traffic tab and the traceroute: entry and exit, the dishes it lands at, and each hop through space.
