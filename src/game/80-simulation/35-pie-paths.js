@@ -34,11 +34,12 @@ const pieLandOk=(ca,dc)=>!(pieSpatHome(ca)&&dc!==ca)&&!pieAirBlock(ca,dc);
 /* Where a terminal customer in city c lands: {k (index in ds), cr, left} or null. ds: dishes with .ok (on the backbone).
    The nearest dish with room left (for all of bw if any has it) that a crust over c with room left also covers: within PIE_BENT km (bent pipe, any dish), else with lasers on that
    crust any dish on the backbone. Some customers need lasers (flywifi, marsorb: T.las). cr: what each crust has left (none: no limit).
-   Between crusts that land it as well, the one with most room left: overflow fills an idle crust, not the polar one far north depends on. */
+   Between crusts that land it as well, the one with most room left: overflow fills an idle crust, not the polar one far north depends on.
+   A dish cut off from the backbone (a POP whose fiber is not lit yet) comes last: its traffic may have no way out. */
 function pieLand(c,t,ds,hubs,bw=0,cr=null){const T=BIZ_T[t],cc=CITY[c].cc;let best=null,bk=Infinity,bl=-1;
   for(const id of hubs){if(!pieCovers(id,c))continue;const las=pieLased(id);if(T.las&&!las)continue;const cl=cr&&id in cr?cr[id]:Infinity;if(!(cl>0))continue;
     for(let k=0;k<ds.length;k++){const d=ds[k];if(!pieCovers(id,d.city)||!pieLandOk(cc,d.cc))continue;const km=c===d.city?0:pieKm(c,d.city),left=Math.min(d.left,cl);
-      if(d.left>0&&(km<=PIE_BENT||(las&&d.ok))){const v=km+(d.ok?0:1)+(left<bw?1e6:0);if(v<bk||v===bk&&cl>bl){bk=v;bl=cl;best={k,cr:id,left};}}}}
+      if(d.left>0&&(km<=PIE_BENT||(las&&d.ok))){const v=km+(d.ok?0:PIE_BENT*3)+(left<bw?1e6:0);if(v<bk||v===bk&&cl>bl){bk=v;bl=cl;best={k,cr:id,left};}}}}
   return best;}
 function pieGraph(adj,edges,COMP,pops,NE){const NC=CITIES.length,hubs=pieHubs(),ds=pieDishes();
   const X={hubs,ds,term:{},gs:{},gx:{},gsBw:{},cr:{},isl:[],l2o:{},l2p:{},up:[],ne:NE,adj,nc:NC,sk:[],bh:[],bhNo:[],res:{},main:-1};
