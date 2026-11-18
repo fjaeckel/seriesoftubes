@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+## [4.8.0] — 2026-11-18
+
 - A Cable broker that drops all transit and peers with every Tier 1 now becomes Tier 1, as any network does, and sees the Road to Tier 1 once it is a Glass Baron (#420).
 - The optical engineering team and the Lambda Bazaar's To build list now count only the waves a new cable can carry: no 1.6T waves across a long ocean, so a cable halfway round the world no longer looks like it pays back in months (#424).
 - An orbit customer bigger than a full pie dish now lands what does not fit on the next dish within reach, instead of going short with nothing in Bottlenecks to fix it (#431).
