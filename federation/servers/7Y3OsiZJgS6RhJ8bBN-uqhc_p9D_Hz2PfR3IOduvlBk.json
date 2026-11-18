@@ -1,1 +1,52 @@
-{"chain":[],"genesis":{"body":{"name":"Vanvik Internet","node":{"key":"DuGIr-5yjOVL_nAcpjdNisvmuOgr1n1LazAeI-zp6Ns","url":"wss://multimode.as210152.net/fed"}},"key":"hTVwDR_tD4aJRSzmMcHdgurO2clNQvdbj-gOBq7Gw3Q","kind":"genesis","sig":"dygBFP6OAyUu2sRjZZPJUzAQmI_CGsGuy0aQscRkgm6RKl3ipPRG2Iwuo1q7wNQG2LX5ITZfi9JYL0nrlzaPBg","t":1794786317,"v":1},"server":{"body":{"desc":"AS210152, a Nordic hobby network. Hosted in Trondheim.","head":"7Y3OsiZJgS6RhJ8bBN-uqhc_p9D_Hz2PfR3IOduvlBk","langs":["en"],"name":"Vanvik Internet","noLogs":true,"nodes":[{"key":"DuGIr-5yjOVL_nAcpjdNisvmuOgr1n1LazAeI-zp6Ns","url":"wss://multimode.as210152.net/fed"}],"operators":["hTVwDR_tD4aJRSzmMcHdgurO2clNQvdbj-gOBq7Gw3Q"],"server":"7Y3OsiZJgS6RhJ8bBN-uqhc_p9D_Hz2PfR3IOduvlBk","sync":"open"},"key":"hTVwDR_tD4aJRSzmMcHdgurO2clNQvdbj-gOBq7Gw3Q","kind":"server","sigs":[{"key":"hTVwDR_tD4aJRSzmMcHdgurO2clNQvdbj-gOBq7Gw3Q","sig":"gdCF_kxN3v3pSV9Ap8rF8g-QBg_YX2-pzln69rN7qkQcEviRKHkm6fMsGR8rdNHOTGL24ysfPDWKwgGYDfkSAw"}],"t":1794786317,"v":1},"v":1}
+{
+  "chain": [],
+  "genesis": {
+    "body": {
+      "name": "Vanvik Internet",
+      "node": {
+        "key": "DuGIr-5yjOVL_nAcpjdNisvmuOgr1n1LazAeI-zp6Ns",
+        "url": "wss://multimode.as210152.net/fed"
+      }
+    },
+    "key": "hTVwDR_tD4aJRSzmMcHdgurO2clNQvdbj-gOBq7Gw3Q",
+    "kind": "genesis",
+    "sig": "dygBFP6OAyUu2sRjZZPJUzAQmI_CGsGuy0aQscRkgm6RKl3ipPRG2Iwuo1q7wNQG2LX5ITZfi9JYL0nrlzaPBg",
+    "t": 1794786317,
+    "v": 1
+  },
+  "server": {
+    "body": {
+      "desc": "AS210152, a Nordic hobby network. Hosted in Trondheim.",
+      "head": "7Y3OsiZJgS6RhJ8bBN-uqhc_p9D_Hz2PfR3IOduvlBk",
+      "langs": [
+        "en"
+      ],
+      "name": "Vanvik Internet",
+      "noLogs": true,
+      "nodes": [
+        {
+          "key": "DuGIr-5yjOVL_nAcpjdNisvmuOgr1n1LazAeI-zp6Ns",
+          "url": "wss://multimode.as210152.net/fed"
+        }
+      ],
+      "operators": [
+        "hTVwDR_tD4aJRSzmMcHdgurO2clNQvdbj-gOBq7Gw3Q"
+      ],
+      "server": "7Y3OsiZJgS6RhJ8bBN-uqhc_p9D_Hz2PfR3IOduvlBk",
+      "sync": "open"
+    },
+    "key": "hTVwDR_tD4aJRSzmMcHdgurO2clNQvdbj-gOBq7Gw3Q",
+    "kind": "server",
+    "sigs": [
+      {
+        "key": "hTVwDR_tD4aJRSzmMcHdgurO2clNQvdbj-gOBq7Gw3Q",
+        "sig": "gdCF_kxN3v3pSV9Ap8rF8g-QBg_YX2-pzln69rN7qkQcEviRKHkm6fMsGR8rdNHOTGL24ysfPDWKwgGYDfkSAw"
+      }
+    ],
+    "t": 1794786317,
+    "v": 1
+  },
+  "v": 1,
+  "listed": 1794960000,
+  "answered": 1794960000
+}

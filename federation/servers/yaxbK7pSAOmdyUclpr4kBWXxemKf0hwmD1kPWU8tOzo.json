@@ -1,1 +1,53 @@
-{"chain":[],"genesis":{"body":{"name":"mdvries Tubes","node":{"key":"Ug8c4bjYu41M84dD20BcRSjfyt9-i012I9qrLlQkPk8","url":"wss://tubes.mdvries.com/fed"}},"key":"lImySQSuS7NSYAEDHIqxa2SCheVQqT5VoAgR371SCr4","kind":"genesis","sig":"5-LBTybTetLQQbAmiHh-OesfgReGYkyFXlN-V7EU0XtC0nSL6cI26hDa8cyXzty0r7F_5qdbgVuTR2fMcuV6Ag","t":1794693030,"v":1},"server":{"body":{"desc":"","head":"yaxbK7pSAOmdyUclpr4kBWXxemKf0hwmD1kPWU8tOzo","langs":["en","nl"],"name":"mdvries Tubes","noLogs":true,"nodes":[{"key":"Ug8c4bjYu41M84dD20BcRSjfyt9-i012I9qrLlQkPk8","url":"wss://tubes.mdvries.com/fed"}],"operators":["lImySQSuS7NSYAEDHIqxa2SCheVQqT5VoAgR371SCr4"],"server":"yaxbK7pSAOmdyUclpr4kBWXxemKf0hwmD1kPWU8tOzo","sync":"open"},"key":"lImySQSuS7NSYAEDHIqxa2SCheVQqT5VoAgR371SCr4","kind":"server","sigs":[{"key":"lImySQSuS7NSYAEDHIqxa2SCheVQqT5VoAgR371SCr4","sig":"FHZc3O1WMptNd-PFl84tITdQoScHEggfgWyTxjQ3DJimw31e4dX7r3duRrtwl-f3gKBKuWYgjn4PZ0gi8mwXBA"}],"t":1794693030,"v":1},"v":1}
+{
+  "chain": [],
+  "genesis": {
+    "body": {
+      "name": "mdvries Tubes",
+      "node": {
+        "key": "Ug8c4bjYu41M84dD20BcRSjfyt9-i012I9qrLlQkPk8",
+        "url": "wss://tubes.mdvries.com/fed"
+      }
+    },
+    "key": "lImySQSuS7NSYAEDHIqxa2SCheVQqT5VoAgR371SCr4",
+    "kind": "genesis",
+    "sig": "5-LBTybTetLQQbAmiHh-OesfgReGYkyFXlN-V7EU0XtC0nSL6cI26hDa8cyXzty0r7F_5qdbgVuTR2fMcuV6Ag",
+    "t": 1794693030,
+    "v": 1
+  },
+  "server": {
+    "body": {
+      "desc": "",
+      "head": "yaxbK7pSAOmdyUclpr4kBWXxemKf0hwmD1kPWU8tOzo",
+      "langs": [
+        "en",
+        "nl"
+      ],
+      "name": "mdvries Tubes",
+      "noLogs": true,
+      "nodes": [
+        {
+          "key": "Ug8c4bjYu41M84dD20BcRSjfyt9-i012I9qrLlQkPk8",
+          "url": "wss://tubes.mdvries.com/fed"
+        }
+      ],
+      "operators": [
+        "lImySQSuS7NSYAEDHIqxa2SCheVQqT5VoAgR371SCr4"
+      ],
+      "server": "yaxbK7pSAOmdyUclpr4kBWXxemKf0hwmD1kPWU8tOzo",
+      "sync": "open"
+    },
+    "key": "lImySQSuS7NSYAEDHIqxa2SCheVQqT5VoAgR371SCr4",
+    "kind": "server",
+    "sigs": [
+      {
+        "key": "lImySQSuS7NSYAEDHIqxa2SCheVQqT5VoAgR371SCr4",
+        "sig": "FHZc3O1WMptNd-PFl84tITdQoScHEggfgWyTxjQ3DJimw31e4dX7r3duRrtwl-f3gKBKuWYgjn4PZ0gi8mwXBA"
+      }
+    ],
+    "t": 1794693030,
+    "v": 1
+  },
+  "v": 1,
+  "listed": 1794960000,
+  "answered": 1794960000
+}
