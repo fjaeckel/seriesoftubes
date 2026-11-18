@@ -2423,6 +2423,7 @@
 "fedplay.n_to_review":{"one":"{n} Anfrage zu prüfen","other":"{n} Anfragen zu prüfen"},
 "fedplay.newcomer":"neu",
 "fedplay.newcomer_price":"Neulingspreis",
+"fedplay.next_waiting":"Weiter: {net}",
 "fedplay.no_ai":"keine KI-Spieler",
 "fedplay.no_players_yet":"Noch keine Netze anderer Spieler. Sie erscheinen, sobald ihre Ankündigungen eintreffen.",
 "fedplay.no_terms_yet":"Ihre veröffentlichten Bedingungen sind noch nicht in diesem Browser angekommen.",

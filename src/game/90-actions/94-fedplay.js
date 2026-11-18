@@ -2,7 +2,10 @@
 // Requests wait on WebCrypto, so these answer with a promise; what they did shows in the sheet and the NOC log.
 const fpSay=r=>{if(r===null||r===undefined)return;if(r&&r.miss){toast(tr('fedplay.still_missing',{what:esc(fedMissText(r.miss))}),'bad');return;}
   toast(tr({full:N_('fedplay.err_full'),cash:N_('fedplay.err_cash'),dup:N_('fedplay.err_dup'),quiet:N_('fedplay.miss_quiet'),gone:N_('fedplay.err_gone')}[r]||N_('fedplay.err_off')),'bad');};
-const fpRe=()=>{if(!$('modal').hidden&&UI.fpOpen){const o=UI.fpOpen;if(o.k==='net')fedNetModal(o.key);else if(o.k==='terms')fedTermsModal();else if(o.k==='cons')fedConsModal();}};
+// The gameplay sheet on screen, by its header's data-fp ("net:<key>", "terms", "cons"), or ''. UI.fpOpen is only the last
+// one opened (× does not clear it), so an answer redraws what is shown: that sheet, or the Multimode sheet's list.
+const fpShown=()=>{const e=!$('modal').hidden&&$('modalCard').firstElementChild;return e&&e.dataset.fp||'';};
+const fpRe=()=>{const s=fpShown();if(s.startsWith('net:'))fedNetModal(s.slice(4));else if(s==='terms')fedTermsModal();else if(s==='cons')fedConsModal();else if(fuShown())fuRender();};
 const fpDo=p=>Promise.resolve(p).then(r=>{fpSay(r);fpRe();return r;},e=>{console.error('[tubes] federation gameplay',e);});
 Object.assign(ACT,{
  fpTerms:()=>{if(!S||!S.fed)return;UI.fpDraft=null;fedTermsModal();},
@@ -14,9 +17,14 @@ Object.assign(ACT,{
  fpRpki:({on}={})=>{if(!S||!S.fed)return;fedP().rpki=on!==false;after();return fpDo(fedAnnounceMaybe(true).then(()=>null));},
  // A network picked in the looking glass that is not a place in this game yet becomes one first (FEDN.pin, at most 8).
  // at and deal (port or cofound): open it with that request picked and first (exchanges run by players, an exchange's panel).
- fpNet:async({key,at,deal}={})=>{if(!S||!S.fed||FdK(key))return;
+ // Opened from the Multimode sheet it has a Back to it, where it was (UI.fpBack); rv (a requester in its list, then Next)
+ // goes through what waits for review one network after another, in the list's order as it was tapped.
+ fpNet:async({key,at,deal,rv}={})=>{if(!S||!S.fed||FdK(key))return;
+   const bk=UI.fpBack,b=fuShown()&&UI.fu&&UI.fu.v==='home'?{top:$('modalCard').scrollTop,rv:!!rv,order:rv&&S.fedp?[...new Set(S.fedp.rq.map(q=>q.rec.key))]:[]}:rv&&bk&&bk.rv&&fpShown()==='net:'+bk.key?bk:null;
    if(!fedNetOf(key)){FEDN.pin.delete(key);FEDN.pin.add(key);if(FEDN.pin.size>8)FEDN.pin.delete(FEDN.pin.values().next().value);await fedPlayRefresh();if(!fedNetOf(key))return;}
-   const d=deal==='cofound'?'cofound':'port';UI.fpSel=at&&own(CITY,at)?{[d+'.at']:at}:{};UI.fpFocus=at&&own(CITY,at)?d:null;fedNetModal(key);},
+   const d=deal==='cofound'?'cofound':'port';UI.fpSel=at&&own(CITY,at)?{[d+'.at']:at}:{};UI.fpFocus=at&&own(CITY,at)?d:null;
+   UI.fpBack=b?{top:b.top,rv:b.rv,order:b.order,key}:null;fedNetModal(key);$('modalCard').scrollTop=0;},
+ fpBack:()=>{const b=UI.fpBack;UI.fpBack=null;if(!S||!S.fed||!b)return;ACT.fuOpen({v:'home'});if(fuShown())$('modalCard').scrollTop=b.top;},
  fpPick:({f,v}={})=>{if(!S||!UI.fpOpen||!/^(peering|transit|pni|port|swap|wave|cons|cofound)\.(via|at|mbps|term|a|b|pairs|members|share)$/.test(String(f)))return;UI.fpSel=UI.fpSel||{};UI.fpSel[f]=String(v);fpRe();},
  fpReq:({key,deal,via,at,mbps,term,share}={})=>{if(!S||!S.fed||typeof key!=='string')return;return fpDo(fedRequest(key,String(deal),{via,at,mbps:mbps==null?0:+mbps,term:term==null?0:+term,share:share==null?0:+share}));},
  fpRenew:({id}={})=>{const d=S&&S.fed&&S.fed.deals.find(x=>x.id===id);if(!d||d.role==='sell'||d.deal==='cofound')return;const T=d.terms;

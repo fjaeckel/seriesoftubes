@@ -12,6 +12,7 @@ All notable changes to this project are documented here. The project follows
 - When a country wants its data kept home, Bottlenecks now says so and offers a dish in that country, instead of saying that no dish nearby has room.
 - Orbit customers no longer land on a pie dish whose POP is not connected yet (its fiber still being built) while a connected dish is in reach: their traffic had no way out.
 - The "Change" of your first transit port and PNI, every "?" explanation and the link panels' sections and folds (traffic, routing metric, what you sell, the line system, the spares shelf) now stay as you left them when you move to the next POP or link, as the peering sections already do. Fold one again and the next stops showing it; a list's "+N more" and Decommission still start closed.
+- In Multimode, Accept and Decline under "Waiting for your answer" now answer in place: the list no longer jumps to another player's sheet, and the answered request leaves it at once. Tap a requester's name to open its own sheet, with its AS number and key fingerprint (two networks can share an ASN), what it asks with Accept and Decline, a Back to the list where you were and a Next to the following network that waits.
 
 ## [4.7.1] — 2026-11-17
 
