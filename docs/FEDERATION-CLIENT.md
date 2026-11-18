@@ -474,12 +474,23 @@ announce (it must list `auto.cofound`). Missing: `myix`, `cfpop` (a POP there on
 first), `ix2`, `cofull`; the co-founder's game declines or refuses an accept on `noix` (the founder's announce sells no
 ports there), `fair` and `cash`. There is no renewal: the founder invites again.
 
-## Live states
+## A player's network on a small map, live (`95-modals/49-fed-netmap.js`, `60-features/89-fedplay-live.js`)
 
-While a joined save is open and the tab is visible, `fedStateTick` (every `FED.T.state`, 10 s) signs the current
-`fedStatsBody()` as a `state` (§5.11) and sends it in a `state` frame to every ready connection whose node lists `state`
-in `feats`, when the body changed since the last one that node took, or `FED.T.stateKeep` (180 s) went by; never twice
-within `FED.T.stateMin` (5 s). Nothing is queued or saved: a state that is not taken (offline, hidden, `rate_limited`)
-is simply replaced by the next. Signing runs on the page (the worker holds no key): one canonical text and one Ed25519
-signature per state sent; `FED.stCost` counts states signed (`n`), the milliseconds they took (`ms`) and those spent on
-ticks that sent nothing (`idle`).
+A network's card (looking glass, leaderboards) opens on a small map of that network alone, read-only. Where it is
+comes from its newest announce (§5.1): its POPs, pink where you have one too and teal elsewhere (IX: at the exchange,
+★: runs it), its wave routes dashed, with a legend of the counts. The map pans, zooms (wheel, pinch, ± buttons, ⤢ back
+to the whole network) and picks a POP on a tap: what is there (the exchange it runs, its cheapest port and members, the
+waves from there, whether you are there too). Links between its POPs, customers and incidents are not in any record.
+
+What it does now comes from its live state (§5.11): a `rankwhy` on the board of now for traffic (§9.5) answers with it
+and with the states of the players it lists, each checked in the federation worker (`fedLiveRun`, op `live`). Asked
+every 15 s while the card is open and the page visible; nothing is kept but a short line of its total in memory. A
+network not live shows the traffic of its last announce. Traffic with other players shows as a total, each of them
+behind a button.
+
+| Name | What it does |
+| --- | --- |
+| `fedLiveOf(key)` | The live state of a network and its partners, from the first joined server that lists `state`, or null |
+| `fnmOf(key)` / `fnmHtml(key)` | What the map shows, from `FU.nets`; the canvas, the legend, the POP picked and the live section |
+| `fnmDraw()` | After each render of the card (`fuRender`): wires the canvas once, paints, starts the live asks (`fnmLiveTick`) |
+| `fnmLoop` / `fnmKick()` | One rAF loop, at most 30 frames a second, only while something moves (a pan, a zoom, POPs pulsing with live traffic); it stops by itself once the canvas leaves the page |

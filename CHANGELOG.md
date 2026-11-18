@@ -17,6 +17,7 @@ All notable changes to this project are documented here. The project follows
 ## [4.7.1] — 2026-11-17
 
 - Weekly puzzles that tell you to avoid a city now avoid one that is really in the way: a cable hub the cheap route crosses the sea from, so keeping out of it takes other landings. This week's puzzle, which named Seoul for cities in South-East Asia, is replaced, and a plain full mesh can no longer earn three stars (#419).
+- In Multimode, another player's card now has a map of their network you can zoom and tap: their POPs (in another colour where you are too), the exchanges they are at or run, their wave routes, and what is in each city. Their traffic shows live while the card is open, with the traffic they exchange with other players.
 
 ## [4.7.0] — 2026-11-17
 

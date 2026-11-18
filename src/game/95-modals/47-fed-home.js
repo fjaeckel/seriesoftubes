@@ -121,7 +121,8 @@ async function fuLoadRun(){const v=UI.fu&&UI.fu.v;if(!v)return;
   catch(e){console.error('[tubes] multiplayer sheet',e);}
   if(UI.fu&&UI.fu.v===v)fuRender();}
 function fuRender(){if(!UI.fu)return;const h=`<div class="fedui" data-fu="${UI.fu.v}">${fuHtml()}</div>`;
-  if(fuShown())morph($('modalCard'),h);else openModal(h);}
+  if(fuShown())morph($('modalCard'),h);else openModal(h);
+  if(UI.fu.v==='net')fnmDraw();}
 function fuHtml(){const v=UI.fu.v;
   if(v==='join')return fuJoinHtml();if(v==='move')return fuMoveHtml();if(v==='quit')return fuQuitHtml();if(v==='opkey')return fuOpKeyHtml();
   if(v==='boards')return fuBoardsHtml();if(v==='filters')return fuFiltersHtml();if(v==='glass')return fuGlassHtml();

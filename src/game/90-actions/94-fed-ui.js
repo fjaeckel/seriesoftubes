@@ -17,6 +17,9 @@ Object.assign(ACT,{
  fuQuit:async()=>{if(FU.busy)return;await fuDo(fedQuit().then(ok=>ok?{ok:true}:{error:'no_key'}));UI.fu.v='home';fuDot();fuLoad();},
  fuShare:({on}={})=>{fedShare(on!==false);fuRender();},
  fuMute:({key,on}={})=>{fedMute(key,on!==false);fuRender();},
+ // The small map in a network's card (49-fed-netmap.js): ± zoom, 0 shows the whole network again.
+ fnmPeers:()=>{FNM.peers=!FNM.peers;fuRender();},
+ fnmZoom:({d}={})=>{if(d===0){if(FNM.fit)FNM.view={cx:FNM.fit.cx,cy:FNM.fit.cy,z:FNM.fit.z};fnmKick();}else fnmZoomAt(d>0?1.6:1/1.6);},
  fuMoveGo:()=>{if(fedExportMove())track('fed_move');ACT.fuOpen({v:'home'});},
  fuOpKeyGo:async()=>{const el=$('fuOpIn'),seed=el?el.value.trim():'';if(FU.busy)return;
    const r=await fuDo(fedOpKeySet(seed).then(ok=>ok?{ok:true}:{error:'bad_key'}));
