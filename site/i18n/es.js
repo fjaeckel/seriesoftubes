@@ -2421,6 +2421,7 @@
 "fedplay.n_to_review":{"one":"{n} solicitud por revisar","other":"{n} solicitudes por revisar"},
 "fedplay.newcomer":"nueva",
 "fedplay.newcomer_price":"precio de recién llegado",
+"fedplay.next_waiting":"Siguiente: {net}",
 "fedplay.no_ai":"sin jugadores IA",
 "fedplay.no_players_yet":"Aún no hay redes de otros jugadores. Aparecen a medida que llegan sus anuncios.",
 "fedplay.no_terms_yet":"Sus condiciones publicadas aún no han llegado a este navegador.",

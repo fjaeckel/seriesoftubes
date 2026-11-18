@@ -113,6 +113,7 @@
 :where(:root.dark) .tag.fp-d{background:var(--eye)}
 :where(:root.dark) .tag.fp-new{background:var(--sun);color:var(--on)}
 :where(:root.dark) .fp-focus{background:color-mix(in srgb,var(--me) 7%,transparent)}
+:where(:root.dark) .fp-who{color:inherit}
 :where(:root.dark) .neth{color:var(--ink)}
 :where(:root.dark) button.neth:hover{background:var(--soft);color:var(--ink)}
 :where(:root.dark) .nchev{color:var(--ink2)}

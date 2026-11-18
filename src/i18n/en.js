@@ -2422,6 +2422,7 @@
 "fedplay.n_to_review":{"one":"{n} request to review","other":"{n} requests to review"},
 "fedplay.newcomer":"new",
 "fedplay.newcomer_price":"newcomer price",
+"fedplay.next_waiting":"Next: {net}",
 "fedplay.no_ai":"no AI players",
 "fedplay.no_players_yet":"No other players' networks yet. They show up as their announcements arrive.",
 "fedplay.no_terms_yet":"Their published terms have not reached this browser yet.",

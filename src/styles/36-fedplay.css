@@ -25,5 +25,10 @@
 .fp-rqh .b{flex:none}
 .fp-rq .fp-terms{margin:2px 0 0}
 .fp-wait{border:2px solid var(--me);border-radius:14px;padding:0 10px 4px;margin:8px 0}
+/* The requester's name opens its sheet: a link in the row, as tall as a finger. A player's sheet then shows what it asks
+   and the next network that waits (fpNetWaiting). */
+.fp-who{background:none;border:0;padding:6px 0;margin:-6px 0;font:inherit;color:inherit;text-align:left;text-decoration:underline;text-underline-offset:3px;cursor:pointer;overflow-wrap:anywhere}
+.fp-rq .fp-t{margin:2px 0 4px}
+.fp-next{margin:6px 0 10px}.fp-next .empty{margin:4px 0}
 .fp-cap::first-letter{text-transform:uppercase}
 .fp-out .nm{overflow-wrap:anywhere}

@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The project follows
 
 - A Cable broker that drops all transit and peers with every Tier 1 now becomes Tier 1, as any network does, and sees the Road to Tier 1 once it is a Glass Baron (#420).
 - The optical engineering team and the Lambda Bazaar's To build list now count only the waves a new cable can carry: no 1.6T waves across a long ocean, so a cable halfway round the world no longer looks like it pays back in months (#424).
+- In Multimode, Accept and Decline under "Waiting for your answer" now answer in place: the list no longer jumps to another player's sheet, and the answered request leaves it at once. Tap a requester's name to open its own sheet, with its AS number and key fingerprint (two networks can share an ASN), what it asks with Accept and Decline, a Back to the list where you were and a Next to the following network that waits.
 
 ## [4.7.1] — 2026-11-17
 
