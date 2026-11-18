@@ -11,6 +11,7 @@ All notable changes to this project are documented here. The project follows
 - An orbit customer bigger than a full pie dish now lands what does not fit on the next dish within reach, instead of going short with nothing in Bottlenecks to fix it.
 - When a country wants its data kept home, Bottlenecks now says so and offers a dish in that country, instead of saying that no dish nearby has room.
 - Orbit customers no longer land on a pie dish whose POP is not connected yet (its fiber still being built) while a connected dish is in reach: their traffic had no way out.
+- The "Change" of your first transit port and PNI, every "?" explanation and the link panels' sections and folds (traffic, routing metric, what you sell, the line system, the spares shelf) now stay as you left them when you move to the next POP or link, as the peering sections already do. Fold one again and the next stops showing it; a list's "+N more" and Decommission still start closed.
 
 ## [4.7.1] — 2026-11-17
 

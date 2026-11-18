@@ -88,7 +88,7 @@ test('only what you opened opens: a city with three exchanges opens the one you 
   // An exchange is told apart by its place in its city's list: the first is the incumbent.
   // Joined or not does not matter: it is the place in the list ('x:ams' is Amsterdam's, which you have joined).
   assert.deepEqual(plain(ev("['x:mnl','x:mnl~2','x:mnl~3','x:ams','x:nowhere','x:mnl~99','h:ix','s:decom','std','rtc'].map(pnKind)")),
-    ['x0', 'x1', 'x2', 'x0', '', '', '', '', 'std', 'rtc']);
+    ['x0', 'x1', 'x2', 'x0', '', '', 'h:ix', '', 'std', 'rtc']);
   ev("for(const x of ['dxb','dxb~2'])delete S.ixp[x];compute()");
   at(g, 'mnl', 'peer');
   ev("ACT.panelFold({k:'s:ix',o:1})");
@@ -197,21 +197,17 @@ test('the routers\' Change and the POP tiers stay open from one POP to the next 
   assert.deepEqual(errors, []);
 });
 
-test('not everything follows you: a list\'s page, a "?", one PNI\'s Change and Decommission start closed on the next POP', (t) => {
+test('not everything follows you: a list\'s page and Decommission start closed on the next POP', (t) => {
   const g = big(t), { ev, errors } = g;
   const [a, b] = ev("Object.keys(S.pops).filter(c=>S.pni.filter(p=>p.city===c).length>4).sort().slice(0,2)");
   assert.ok(a && b, 'two POPs with PNIs');
   at(g, a, 'peer');
   head(g, 'pni').click();
-  q(g, '[data-act="panelFold"]').find((x) => /^p:/.test(JSON.parse(x.dataset.args).k)).click();
-  assert.equal(q(g, '[data-act="cancelPni"]').length, 1, 'one PNI\'s controls are open');
-  ev("ACT.panelFold({k:'h:pni',o:1});ACT.panelMore({k:'cache',n:4})");
-  assert.equal(ev("pnOpen('h:pni')"), true);
+  ev("ACT.panelMore({k:'cache',n:4})");
+  assert.ok(ev("pnState().n.cache") > 4, 'a longer page here');
   at(g, b);
   assert.equal(on(g, 'pni'), true, 'the PNI section follows you');
-  assert.equal(q(g, '[data-act="cancelPni"]').length, 0, 'its Change does not: that was one PNI');
-  assert.equal(ev("pnOpen('h:pni')"), false, 'nor does the "?"');
-  assert.equal(ev("pnState().n.cache"), undefined, 'nor does the length of a list');
+  assert.equal(ev("pnState().n.cache"), undefined, 'the length of a list does not');
   assert.equal(prefs(g), '{"s:pni":1}');
   // Decommission: a button that shuts a POP down is opened on purpose.
   at(g, a, 'links');
@@ -254,9 +250,10 @@ test('this browser remembers it, validated like any stored value; the save is ne
   assert.deepEqual(xOpen(h), [true]);
   // Anything else is ignored: unknown kinds, other values, damaged text.
   for (const [raw, want] of [
-    ['{"s:decom":1,"s:traf":1,"x9":1,"x":1,"xj0":1,"xc2":1,"h:ix":1,"__proto__":1,"bogus":1}', '{}'],
+    ['{"s:decom":1,"x9":1,"t9":1,"p9":1,"x":1,"t":1,"xj0":1,"xc2":1,"h:":1,"h:ix pni":1,"h:toolongkey":1,"h:IX":1,"__proto__":1,"bogus":1}', '{}'],
     ['{"s:ix":"yes","s:pni":true,"s:cache":2,"s:power":0}', '{}'],
     ['{"s:ix":1,"x2":1,"std":1,"rtc":1}', '{"s:ix":1,"std":1,"rtc":1,"x2":1}'],
+    ['{"s:traf":1,"sp":1,"t0":1,"p3":1,"h:pni":1}', '{"s:traf":1,"sp":1,"t0":1,"p3":1,"h:pni":1}'],
     ['not json', '{}'], ['[1,2]', '{}'], ['"s:ix"', '{}'], ['null', '{}'], ['5', '{}'],
   ]) {
     const x = big(t, { storage: { 'sot-folds': raw } });
@@ -278,18 +275,6 @@ test('a young network is left as it was: every section open, nothing remembered'
   // And a choice made on a big network does not close or open anything in one.
   ev("pnPrefs()['s:ix']=1");
   assert.equal(ev("pnStuck('s:ix')"), false);
-  assert.deepEqual(errors, []);
-});
-
-test('link panels are unchanged: a section opened on one link is not opened on the next', (t) => {
-  const g = big(t), { ev, errors } = g;
-  const [l1, l2] = ev("S.links.filter(l=>l.kind!=='df'&&l.kind!=='vxc'&&R.ef[edgeKey(l)]).map(l=>l.id).slice(0,2)");
-  ev(`ACT.selLink({id:'${l1}'});ACT.panelFold({k:'s:traf',o:1})`);
-  assert.equal(ev("pnOpen('s:traf')"), true);
-  ev(`ACT.selLink({id:'${l2}'})`);
-  assert.equal(ev("pnOpen('s:traf')"), false);
-  assert.equal(ev("pnStuck('s:traf')"), false);
-  assert.equal(prefs(g), '{}');
   assert.deepEqual(errors, []);
 });
 

@@ -207,11 +207,16 @@ test('a link: redundancy check next to the parallel link, what is on it one line
   assert.equal(q(g, '.kv .dot').length, 6);
   assert.ok(/Enters your network at/.test(txt()) && /Going to customers in/.test(txt()));
   assert.ok(acts(g, 'goEgress').length > 0, 'the entry points can be opened');
-  // The daily re-render keeps it open; another link starts folded.
+  // The daily re-render keeps it open; the next link has it open too (it is one fold for every link, see sticky-more-folds) until you fold it.
   ev('renderAll()');
   assert.ok(/Going to customers in/.test(txt()));
-  ev(`ACT.selLink({id:S.links.find(l=>l.id!=='${id}'&&l.kind!=='df'&&l.kind!=='vxc').id});ACT.panelFold({k:'s:traf',o:1})`);
+  const next = ev(`S.links.filter(l=>l.id!=='${id}'&&l.kind!=='df'&&l.kind!=='vxc'&&!linkDown(l)&&R.ef[edgeKey(l)]&&Object.keys(R.ef[edgeKey(l)].net).length>5)[0].id`);
+  ev(`ACT.selLink({id:'${next}'});ACT.panelFold({k:'s:traf',o:1})`);
+  assert.ok(/Going to customers in/.test(txt()), 'open on the next link, as you left it');
+  acts(g, 'panelFold').find(b => JSON.parse(b.dataset.args).k === 'tr').click();
   assert.ok(!/Going to customers in/.test(txt()));
+  ev(`ACT.selLink({id:'${id}'});ACT.panelFold({k:'s:traf',o:1})`);
+  assert.ok(!/Going to customers in/.test(txt()), 'folded again, and forgotten');
   assert.deepEqual(g.errors, []);
 });
 

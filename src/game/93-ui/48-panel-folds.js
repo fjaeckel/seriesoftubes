@@ -5,18 +5,23 @@
    heading. What is unfolded is view state for the panel on screen: another city, link or tab starts short again,
    except for the kinds of block in PN_KEYS below, which stay open from one POP to the next. */
 const PN_STEP=20;
-/* Blocks whose open state follows you from POP to POP, so a port in ten POPs in a row is one click each instead of three.
-   The choice belongs to the kind of block (every POP's Internet exchange section, the port controls of its first exchange:
-   "Get a port" or "Change"), not to the city, and lives in this browser like the theme: never in the save. A city without
-   the block keeps it for the next one that has it; folding a block forgets it. An exchange's fold is told apart by its
-   place in its city's list, so three exchanges do not all open for one tap. Left out on purpose: a list's page, a "?", one port's or PNI's Change (each
-   is about one thing) and Decommission (a button that shuts a POP down is opened on purpose). From the fourth POP on
-   (pnVet): before that every section is open anyway. */
-const PN_KEYS=['s:ix','s:pni','s:cache','s:metro','s:power','s:scrub','s:nni','rtc','std'],PN_LS='sot-folds';
+/* Blocks whose open state follows you from POP to POP (and from link to link), so a port in ten POPs in a row is one click each
+   instead of three. The choice belongs to the kind of block (every POP's Internet exchange section, the port controls of its
+   first exchange: "Get a port" or "Change"), not to the city or link, and lives in this browser like the theme: never in the
+   save. A city without the block keeps it for the next one that has it; folding a block forgets it. A port's fold is told
+   apart by its place in its city's list, so three exchanges do not all open for one tap. The same goes for the Change of the
+   transit ports and PNIs you hold ("t0", "p0": the first of each) and for every "?" ("h:ix"). Link panels have their own
+   kinds: the traffic, metric, selling and line-system sections and the folds under the optics. Left out on purpose: a list's
+   page ("+N more") and Decommission (a button that shuts a POP down is opened on purpose). From the fourth POP on (pnVet):
+   before that every section is open anyway. */
+const PN_KEYS=['s:ix','s:pni','s:cache','s:metro','s:power','s:scrub','s:nni','rtc','std','s:traf','s:met','s:sell','s:ls','tr','ox','su','sp'],PN_LS='sot-folds';
 // "x0": the port controls of a city's first exchange, "x1" of its second. One kind whether you have joined it ("Change") or not
 // ("Get a port"), so what you opened on an exchange you are in is open on the one you have yet to join, and the other way round.
-const pnKindOk=q=>PN_KEYS.includes(q)||/^x[0-8]$/.test(q);
-const pnKind=k=>{if(!k.startsWith('x:'))return PN_KEYS.includes(k)?k:'';const x=k.slice(2),c=ixCity(x),i=CITY[c]?ixIdsIn(c).indexOf(x):-1;return i<0||i>8?'':'x'+i;};
+// "t0", "p0": the Change of the first transit port, the first PNI you hold in a city.
+const pnKindOk=q=>PN_KEYS.includes(q)||/^[xtp][0-8]$/.test(q)||/^h:[a-z0-9]{1,8}$/.test(q);
+const pnKind=k=>{if(k.startsWith('x:')){const x=k.slice(2),c=ixCity(x),i=CITY[c]?ixIdsIn(c).indexOf(x):-1;return i<0||i>8?'':'x'+i;}
+  if(/^[tp]:/.test(k)){const L=S&&(k[0]==='t'?S.transit:S.pni)||[],e=L.find(x=>x.id===k.slice(2)),i=e?L.filter(x=>x.city===e.city).indexOf(e):-1;return i<0||i>8?'':k[0]+i;}
+  return pnKindOk(k)&&!/^[xtp]\d$/.test(k)?k:'';};
 // {kind:1} for the kinds left open: read once from this browser and checked like any stored value.
 function pnPrefs(){if(!UI.pnPref){const p={};try{const j=JSON.parse(localStorage.getItem(PN_LS)||'null');for(const q in j)if(pnKindOk(q)&&j[q]===1)p[q]=1;}catch(e){}UI.pnPref=p;}return UI.pnPref;}
 function pnState(){const s=UI.sel,at=s?s.type+':'+s.id+(s.type==='city'?':'+UI.tab:''):'';if(!UI.pn||UI.pn.at!==at)UI.pn={at,n:{},open:{}};return UI.pn;}
