@@ -43,7 +43,8 @@ function pieShort(b,Q){const gs=Q.gs[b.id];
   // A dish with room left did not limit it: the crusts over it ran out.
   if(gs)return sfOf(R,gs)<0.95?{g:'f:'+gs,k:'fiber',c:gs}:(Q.load[gs]||0)<PIE_FULL?{g:'s:'+gs,k:'skyfull',c:gs}:{g:'a:'+gs,k:'ant',c:gs};
   // Data stays home: they may only land in their own country, which has no dish yet. Its nearest POP takes one.
-  const cc=CITY[b.city].cc;if(pieSpatHome(cc)){const p=Object.keys(S.pops).filter(x=>CITY[x].cc===cc).sort((x,y)=>(x===b.city?0:pieKm(b.city,x))-(y===b.city?0:pieKm(b.city,y)))[0];return {g:'home:'+cc,k:'home',c:p||b.city,cc};}
+  // A dish already there (full, or out of reach) or no POP there to build one: the reasons below say it better.
+  const cc=CITY[b.city].cc;if(pieSpatHome(cc)&&!S.pie.dishes.some(x=>CITY[x.city].cc===cc)){const p=Object.keys(S.pops).filter(x=>CITY[x].cc===cc).sort((x,y)=>(x===b.city?0:pieKm(b.city,x))-(y===b.city?0:pieKm(b.city,y)))[0];if(p)return {g:'home:'+cc,k:'home',c:p,cc};}
   if(!Q.hubs.some(id=>pieCovers(id,b.city)))return {g:'nocrust',k:'nocrust'};
   const p=pieNearPop(b.city,Q);return p?{g:'d:'+p,k:'dish',c:p,near:b.city}:{g:'far:'+b.city,k:'far',c:b.city};}
 // The same, as a sentence for the customer's card and the unhappy toast.
