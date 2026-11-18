@@ -47,6 +47,10 @@ const RK_SKIP=new Set(['name','log','offers','usedNames','stats','cash','seen','
 function routeKey(){const o={};for(const k in S)if(!RK_SKIP.has(k))o[k]=S[k];return JSON.stringify(o);}
 function routeIfChanged(){const k=S&&!pzOn()?routeKey():null;if(k&&k===UI.rk&&R===UI.rkR)return false;compute();UI.rk=k;UI.rkR=R;return true;}
 function after(){if(pzOn()){pzAfter();return;}NOC.dirty=true;if(S)purgeInc();routeIfChanged();checkGoals();renderAll();if(S&&!$('dash').hidden)renderDash();save();}
+/* after() for a change the player did not make (multiplayer's snapshot of other networks, rebuilt after a sync): its
+   routing runs in the route worker (rwRouteOff) and the rest of after() follows when R is back, so a big network does
+   not stall the game each time a sync lands. Without a worker (tests, a failed one) it is after(). */
+function afterOff(){if(pzOn()||!S){after();return;}const s=S;if(!rwRouteOff(()=>{if(S===s)after();}))after();}
 const isTablet=()=>innerWidth>760&&innerWidth<=1200;
 function selectLink(id){UI.sel={type:'link',id};UI.confirm=null;if(isTablet()||isPhone())UI.leftOpen=false;$('panel').classList.remove('full');renderPanel();renderLeft();}
 // Frame the whole drawn line (cables bend far from the straight one) in the part of the map the panel leaves free:

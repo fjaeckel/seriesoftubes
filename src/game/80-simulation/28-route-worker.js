@@ -32,27 +32,28 @@ function rwStart(){if(RW.w)return RW.w;
 // Gone for good this session: the routing in flight is done here instead, and the day goes on without the worker.
 // (A day resting between steps goes on by itself, on the page from then on.)
 function rwKill(){RW.dead=true;if(RW.w)try{RW.w.terminate();}catch(e){}RW.w=null;rwGzBack();rwSaveBack();const j=RW.job;if(!j||j.rest)return;RW.job=null;
-  if(j.state!==S){rwDayDone();return;}let v;try{if(j.tr)v=dayAgain(j.tr);else compute();}catch(e){tickErr(e);}rwGo(j.g,v);}
+  if(j.state!==S){rwEnd(j.fin);return;}let v;try{if(j.tr)v=dayAgain(j.tr);else compute();}catch(e){tickErr(e);}rwGo(j.g,v,j.fin);}
 // One day in play (dayRun(), 10-day-tick.js): its steps run here, every routing it asks for runs in the worker.
 function rwDay(){rwGo(dayRun());}
 // Runs the day's steps up to the next routing, posts it, and returns: rwDone() picks the day up when R is back. At a
 // DAY_REST, a day that has run RW.budget ms already goes on after the next frame (RW.later), so a phone gets its frames
 // between the steps of a big network's day. The day is still in flight meanwhile: no next day starts, nothing saves.
 // v: what the step it resumes asked for (a sales trial's or the intern's fiber test's answer, dayAnswer()).
-function rwGo(g,v){const t0=performance.now();for(;;){let s;try{s=dayStep(g,v);}catch(e){tickErr(e);s={done:true};}v=undefined;
-  if(s.done){rwDayDone();return;}
-  if(s.value===DAY_REST){if(RW.sync||performance.now()-t0<RW.budget)continue;rwRest(g);return;}
+// fin: what ends it instead of rwDayDone() (a routing that is not a day, rwRouteOff()).
+function rwGo(g,v,fin){const t0=performance.now();for(;;){let s;try{s=dayStep(g,v);}catch(e){tickErr(e);s={done:true};}v=undefined;
+  if(s.done){rwEnd(fin);return;}
+  if(s.value===DAY_REST){if(RW.sync||performance.now()-t0<RW.budget)continue;rwRest(g,undefined,fin);return;}
   // A routing, or a test (a sales trial, the intern's fiber test): the worker routes the game it is sent with the offer
   // added or the fiber dark, and says yes or no.
   const tr=dayAsk(s.value)?s.value:null,here=()=>{if(tr)v=dayAnswer(tr);else compute();};
-  const w=!RW.sync&&rwOn()&&rwStart();if(!w){try{here();}catch(e){tickErr(e);rwDayDone();return;}continue;}
+  const w=!RW.sync&&rwOn()&&rwStart();if(!w){try{here();}catch(e){tickErr(e);rwEnd(fin);return;}continue;}
   const t=performance.now(),seq=++RW.seq;
   // The worker also needs what compute() reads from yesterday's R: link loads, and the scenic circuits' paths.
   // While R is the worker's own last answer (RW.wR), it keeps its R.efg rather than getting it back (efg 0, rwServe()).
   const mine=R===RW.wR;
   try{w.postMessage({seq,S,load:R.load,l2route:R.l2route,efg:mine?0:rwEfgOut(R.efg),wseq:mine?RW.wseq:0,...(tr?{trial:tr.dark?{dark:tr.dark,s0:tr.s0,L0:tr.L0}:{b:tr.trial,hx:tr.hx}}:{})});}
-  catch(e){console.error('[tubes] route worker post',e);rwKill();try{here();}catch(e){tickErr(e);rwDayDone();return;}continue;}
-  const t1=performance.now();RW.stat.post+=t1-t;RW.job={seq,g,gen:RW.gen,t:t1,state:S,tr};return;}}
+  catch(e){console.error('[tubes] route worker post',e);rwKill();try{here();}catch(e){tickErr(e);rwEnd(fin);return;}continue;}
+  const t1=performance.now();RW.stat.post+=t1-t;RW.job={seq,g,gen:RW.gen,t:t1,state:S,tr,fin};return;}}
 /* Where a resting day goes on. A frame drawn moments ago leaves time before the next one: the day goes on in a task of
    its own, and the browser draws the next frame between two tasks when it is due. Otherwise the day waits for that
    frame. (Waiting for a frame every time made a day of many short steps take many frames: a slow phone fell behind.) */
@@ -61,12 +62,12 @@ if(RW_CH)RW_CH.port1.onmessage=()=>{const f=RW_TQ.shift();if(f)f();};
 function rwLater(f){if(RW_CH&&performance.now()-(RW.lf||-1e9)<(RW.fms||16)*0.75){RW_TQ.push(f);RW_CH.port2.postMessage(0);}
   else requestAnimationFrame(()=>setTimeout(f,0));}
 // The day rests: it goes on after the next frame, still in flight meanwhile (no next day, no save).
-function rwRest(g,v){const j=RW.job={rest:true,g,v,state:S};RW.later(()=>{if(RW.job!==j)return;RW.job=null;if(j.state!==S){rwDayDone();return;}rwGo(g,v);});}
+function rwRest(g,v,fin){const j=RW.job={rest:true,g,v,state:S,fin};RW.later(()=>{if(RW.job!==j)return;RW.job=null;if(j.state!==S){rwEnd(fin);return;}rwGo(g,v,fin);});}
 /* The page is going away (hidden, closing) with a day in flight: finish that day here and now, without resting and
    without the worker (a hidden tab draws no frames, so a resting day would never go on, and the OS may discard the tab
    before the worker answers). The worker's late answer is ignored (no job any more); the next day uses it again. */
-function rwFinish(){const j=RW.job;if(!j)return;RW.job=null;if(j.state!==S){rwDayDone();return;}RW.sync=true;
-  try{let v=j.rest?j.v:undefined;if(!j.rest){try{if(j.tr)v=dayAgain(j.tr);else compute();}catch(e){tickErr(e);}}rwGo(j.g,v);}finally{RW.sync=false;}}
+function rwFinish(){const j=RW.job;if(!j)return;RW.job=null;if(j.state!==S){rwEnd(j.fin);return;}RW.sync=true;
+  try{let v=j.rest?j.v:undefined;if(!j.rest){try{if(j.tr)v=dayAgain(j.tr);else compute();}catch(e){tickErr(e);}}rwGo(j.g,v,j.fin);}finally{RW.sync=false;}}
 // Every answer from the worker, in order.
 function rwMsg(m,t0){if(m.gz!==undefined){rwGzDone(m);return;}if(m.sv!==undefined){rwSaveDone(m);return;}if(m.R){const d=m.R.egDesc;if(d===0)m.R.egDesc=RW.desc;else RW.desc=m.R.egDesc=d&&d.dK!==undefined?rwDescIn(d,RW.desc):d;}rwDone(m,t0);}
 /* A changed R.egDesc comes as its keys, in order, and only the entries that changed (rwDescOut()): a few among thousands.
@@ -78,7 +79,7 @@ function rwDescOut(d,old){if(!old)return d;const K=Object.keys(d),O=Object.keys(
 function rwDescIn(m,old){const o={},{ch}=m,K=m.dK||Object.keys(old);for(const k of K)o[k]=Object.prototype.hasOwnProperty.call(ch,k)?ch[k]:old[k];return o;}
 function rwDone(m,t0){const j=RW.job;if(!j||m.seq!==j.seq)return;RW.job=null;const t=performance.now();
   // Another network was loaded meanwhile: the rest of that day belongs to nobody.
-  if(j.state!==S){rwDayDone();return;}
+  if(j.state!==S){rwEnd(j.fin);return;}
   let v;
   // A sales trial: the customer it signed off, or null. Something routed here meanwhile (an action), or the worker
   // failed: the trial runs again here, checks included, on the game as it is now (dayAgain()).
@@ -88,8 +89,24 @@ function rwDone(m,t0){const j=RW.job;if(!j||m.seq!==j.seq)return;RW.job=null;con
   else if(RW.gen===j.gen){R=RW.wR=rwUnpack(m.R,m.ef);RW.wseq=m.seq;UI.hotMap=m.hot||hotByCity();}
   const t1=performance.now(),st=RW.stat;st.n++;st.apply+=t1-t;st.wait+=t-j.t;st.work+=m.ms||0;
   // Reading a big answer takes a few ms already: the day goes on after the next frame then, not in the same task.
-  if(t0!==undefined&&t1-t0>RW.budget/2)rwRest(j.g,v);else rwGo(j.g,v);}
-function rwDayDone(){paceEnd(performance.now());UI.ticking=true;renderHUD();UI.ticking=false;UI.panelsDue=true;if(UI.saveDue){UI.saveDue=false;save();}}
+  if(t0!==undefined&&t1-t0>RW.budget/2)rwRest(j.g,v,j.fin);else rwGo(j.g,v,j.fin);}
+function rwDayDone(){paceEnd(performance.now());UI.ticking=true;renderHUD();UI.ticking=false;UI.panelsDue=true;if(UI.saveDue){UI.saveDue=false;save();}rwOffDue();}
+const rwEnd=fin=>{if(fin)fin();else rwDayDone();};
+/* A routing for a change that did not come from the player's hands (multiplayer's snapshot of other networks, rebuilt
+   after a sync): in the worker like a day's, so a big network's routing does not hold the page. It runs as a day of one
+   routing, so no day starts meanwhile and an action in between routes on the page as always (its R stands, RW.gen).
+   A day in flight goes first; then fin. False when there is no worker: route on the page then. */
+function rwRouteOff(fin){if(!rwOn()||RW.sync||!rwStart())return false;
+  if(RW.job){(RW.off||(RW.off=[])).push(fin);return true;}
+  /* The game as posted, and what routes it: when the worker's R is the one that stands (nothing routed here meanwhile),
+     after() finds the routing done. The page's network list follows the snapshot only with that R (fedNetsSync), so
+     the two always match. */
+  const k=routeKey(),R0=R;
+  rwGo((function*(){yield;})(),undefined,()=>{if(R!==R0&&R===RW.wR){fedNetsSync();UI.rk=k;UI.rkR=R;}fin();});
+  // off: no day is half done, so a save need not wait for it or finish it on the page (91-save.js).
+  if(RW.job)RW.job.off=true;return true;}
+// What waited for a day: the first routing goes now (the others it covers, being of the same game).
+function rwOffDue(){const l=RW.off;if(!l||!l.length||RW.job)return;RW.off=null;if(!rwRouteOff(()=>{for(const f of l)f();}))for(const f of l)f();}
 /* A save's compression (91-save.js) runs in the worker too: deflating a big network held the page about as long as
    writing it plain. The text goes over as it is (a string is copied flat, without walking a game), the compressed
    text comes back. In order with the routings, so a save may wait for one. */

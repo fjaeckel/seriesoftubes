@@ -245,6 +245,11 @@ network does not freeze the page once a day.
 - **Still on the main thread**, because the caller reads R right away: actions (`after()`), loading a game, failures and
   RouteScript what-ifs and the link panel's cut check. Everything a day routes (failures, events, DDoS, the chaos monkey,
   the intern's shift, the sales desk's trials) is a yield of the day, so it goes to the worker.
+- **Routings that are not a day.** Multiplayer's snapshot of other networks, rebuilt after a sync, routes through
+  `afterOff()`: `rwRouteOff()` sends the routing to the worker as a day of one routing (a day in flight goes first),
+  then the rest of `after()` runs and finds the routing done (`UI.rk`). An action meanwhile routes on the page as always.
+  No day is half done in that job (`RW.job.off`), so a save goes ahead without finishing it. Tests:
+  `tests/federation-catchup.test.js`.
 - **A second worker for multiplayer.** A joined save also starts a federation worker made the same way (`rwWorker()`),
   which checks records, receipts and registry entries from relay nodes (`88-fed-worker.js`, see
   [FEDERATION-CLIENT.md](FEDERATION-CLIENT.md#workers-what-runs-where)).

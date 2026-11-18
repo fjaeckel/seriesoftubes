@@ -145,7 +145,7 @@ function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.skip
   /* A page of the subscription: pages are handled one after another, and its cursor is kept only once every record of
      it was handled, so a connection lost in the middle resumes from the last whole page and skips nothing (§9.3). */
   if(f.m==='recs'&&c.sub&&f.id===c.sub){const k=fedCursorKey(c);
-    fedSubQ(c,()=>fedRecs(c,f.items).then(done=>{if(done&&fedCursorOk(f.cursor))return fedPut('kv',k,f.cursor);}));return;}
+    fedSubQ(c,()=>fedRecs(c,f.items,f.more===true).then(done=>{if(done&&fedCursorOk(f.cursor))return fedPut('kv',k,f.cursor);}));return;}
   // The operators' own subscription to the votes (§9.3: only a session that proved an operator key gets them).
   if(f.m==='recs'&&c.vsub&&f.id===c.vsub){const k=fedVcKey(c);
     fedSubQ(c,()=>fedRecs(c,f.items).then(done=>{if(done&&fedCursorOk(f.cursor))return fedVoteCursor(k,f.cursor);}));return;}
@@ -303,11 +303,14 @@ async function fedPlace(c,chk,rcpts,now,srvs){let slot=null,cc=null;
 /* Items [{rec, rcpt}] from a sub or a fetch. Gives true when every item was looked at. Calls run one after another,
    across connections: what they keep is read, changed and written back (votes, a network's servers), and two at once
    would lose one's change (five votes arriving together counted as fewer). Leaderboards never pass through here: the
-   server ranks them (§9.5). */
-function fedRecs(c,items){const p=(FED.recQ||Promise.resolve()).then(()=>fedRecsRun(c,items));FED.recQ=p.catch(()=>false);return p;}
+   server ranks them (§9.5). more: a page of the subscription with more pages behind it (a backlog catching up). */
+function fedRecs(c,items,more=false){const p=(FED.recQ||Promise.resolve()).then(()=>fedRecsRun(c,items,more));FED.recQ=p.catch(()=>false);return p;}
 // The page's records are checked in one batch (the federation worker, 88-fed-worker.js), then kept here one by one.
-async function fedRecsRun(c,items){const now=fedNow(),me=c.M.fed.key.pub,votes=[],reps=[],srvs=await fedServers(),L=Array.isArray(items)?items:[];let n=0,voters=null;
+async function fedRecsRun(c,items,more=false){const now=fedNow(),me=c.M.fed.key.pub,votes=[],reps=[],srvs=await fedServers(),L=Array.isArray(items)?items:[];let n=0,voters=null;
   const ck=L.length&&fedLive(c)?await fedCheckItems(L,now,c,srvs):[];
+  // What the page keeps about each network goes to IndexedDB in one transaction (fedAnnBatch), not one per record.
+  const keys=ck.filter(x=>x&&x.ok&&x.rec).map(x=>x.rec.key);
+  if(!await fedAnnBatch(keys,async()=>{
   for(let i=0;i<L.length;i++){if(!fedLive(c))return false;const chk=ck[i];if(!chk||!chk.ok)continue;n++;const r=chk.rec,heard=chk.slot??fedSlot(now);
     if(['announce','stats','offer','accept','decline'].includes(r.kind))await fedHeard(r.key,heard);
     if(r.kind==='announce')await fedAnnPut(chk,heard,c.srv);
@@ -319,10 +322,11 @@ async function fedRecsRun(c,items){const now=fedNow(),me=c.M.fed.key.pub,votes=[
     // Hide lists only of the joined server this connection is to: others' would only take room (one each, up to 32 KB).
     else if(r.kind==='hide'){if(r.body.server===c.srv&&fedOpOf(srvs,r.body.server,r.key)){const o=await fedGet('kv','hide:'+r.body.server);if(!o||!o.rec||fedNewer(chk,o))await fedHidePut(r.body.server,{rec:r,id:chk.id});}}
     else if((r.kind==='offer'||r.kind==='accept'||r.kind==='decline')&&(r.body.to===me||r.key===me||!!FED.hooks.deal&&FED.hooks.deal(r)))await fedDealIn(c.M.fed,{rec:r,id:chk.id,slot:heard,server:c.srv});}
+  return true;}))return false;
   if(FED.dpend.length&&Array.isArray(items)&&items.some(it=>it&&it.rec&&it.rec.kind==='announce'))await fedDealRetry(c.M.fed);
   if(votes.length)await fedVotesAdd(votes,voters);
   if(reps.length)await fedReportsAdd(reps);
-  if(n)fedEmit('records',{server:c.srv,n});return true;}
+  if(n)fedEmit('records',{server:c.srv,n,more});return true;}
 /* A deal record for this network goes to the gameplay opened (§5.3): sealed ones only once opened, so it reads them
    in clear. One whose sender's box is not known yet (its announce has not come) waits for the next announces, kept
    per network in IndexedDB (kv 'dpend#<key>'), since the sync cursor moves past it: at most FED_DPEND (the oldest go)

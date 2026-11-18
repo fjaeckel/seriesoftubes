@@ -266,6 +266,20 @@ After the change, the same phone profile: the backlog keeps the page busy 1.7 s 
 IndexedDB, frame parsing, and the game routing once when the snapshot changes), and the spot check has no task over
 50 ms (page time 0.1 s instead of 1.0 s).
 
+Catching up after time offline (`node scripts/fed-perf.js`, same profile, 2850 records) also did three things on the
+page that grew with the save: the snapshot was rebuilt about once a second while pages poured in, each time routing the
+whole game on the page; and every record touched IndexedDB in transactions of its own. Now:
+
+- **One rebuild per catch-up.** A sub page with `more` behind it pushes the rebuild back (`fedPlaySoon`): it runs
+  `FEDP_CALM` (3 s) after the last page, at most `FEDP_HOLD` (20 s) after the first.
+- **Routed in the route worker.** The rebuild calls `afterOff()` (see ARCHITECTURE.md, Routing in a worker).
+- **One transaction per page.** `fedRecsRun` keeps a page inside `fedAnnBatch`: the networks it names are read in one
+  transaction, the `ann` store is read and written through memory meanwhile (`FEDDB.ab`: `fedGet`, `fedPut`, `fedDel`
+  and `fedAll` see it), and what changed is written back in one.
+
+The backlog went from 5.7 s to 2.5 s of page time, its longest task from 0.8 s to 0.4 s, and it is kept in 3.5 s instead
+of 9.2 s.
+
 ## Browser storage (IndexedDB `sot-fed`, shared by every slot)
 
 Stores `ann` (other networks' newest announce, `heard`, `fs` (first heard here) and `fd` (the `founded` it first said: an

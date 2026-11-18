@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Coming back online with a big network in Multimode no longer makes the game crawl while it catches up: the catch-up now holds the page for less than half as long, and other players' networks are worked into your routing once it is done instead of every second along the way, off the main thread.
+
 ## [4.8.0] — 2026-11-18
 
 - A Cable broker that drops all transit and peers with every Tier 1 now becomes Tier 1, as any network does, and sees the Road to Tier 1 once it is a Glass Baron (#420).

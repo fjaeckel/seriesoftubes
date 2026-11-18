@@ -8,7 +8,11 @@
    windows), the same calls work from memory for this tab, and the game plays on. */
 const FED_DB_NAME='sot-fed',FED_STORES=['ann','kv','op'],FED_ANN_MAX=5000,FED_FORGET=15552000,FED_VOTES_MAX=4096,FED_RANKS_MAX=48,FED_GOSSIP_MAX=400;
 // catGen counts writes of the registry and gossip; cat is fedServers' answer for one catGen.
-const FEDDB={p:null,mem:null,annN:null,catGen:0,cat:null};
+/* ab: while a page of records is kept (fedAnnBatch), the ann store is read and written through memory, {m: key -> entry
+   or null (none), d: keys written}, and written back in one transaction at the end. A page touched IndexedDB once or twice
+   per record before: thousands of transactions on the page while a big backlog caught up. */
+const FEDDB={p:null,mem:null,annN:null,catGen:0,cat:null,ab:null};
+const fedAb=store=>store==='ann'?FEDDB.ab:null;
 const fedCatKey=(store,key)=>store==='kv'&&(key==='gossip'||key==='registry');
 function fedMem(){if(!FEDDB.mem)FEDDB.mem=Object.fromEntries(FED_STORES.map(s=>[s,new Map()]));return FEDDB.mem;}
 function fedDb(){if(FEDDB.p)return FEDDB.p;
@@ -21,19 +25,39 @@ function fedDb(){if(FEDDB.p)return FEDDB.p;
 function fedReq(store,mode,f){return fedDb().then(d=>{if(!d)return {mem:true};return new Promise(res=>{
   let r;try{const tx=d.transaction(store,mode);r=f(tx.objectStore(store));tx.oncomplete=()=>res({v:r.result});tx.onerror=tx.onabort=()=>res({mem:true});}catch(e){res({mem:true});}});})
   .catch(()=>({mem:true}));}
-async function fedGet(store,key){const r=await fedReq(store,'readonly',o=>o.get(key));if(!r.mem)return r.v===undefined?null:r.v;FEDDB.p=Promise.resolve(null);
+async function fedGet(store,key){const b=fedAb(store);if(b){if(!b.m.has(key))b.m.set(key,await fedGet0(store,key));return b.m.get(key);}return fedGet0(store,key);}
+async function fedGet0(store,key){const r=await fedReq(store,'readonly',o=>o.get(key));if(!r.mem)return r.v===undefined?null:r.v;FEDDB.p=Promise.resolve(null);
   const v=fedMem()[store].get(key);return v===undefined?null:v;}
 // The catalog's generation moves only once a write is done: a read that began before it is not cached.
-async function fedPut(store,key,val){const r=await fedReq(store,'readwrite',o=>o.put(val,key));if(r.mem){FEDDB.p=Promise.resolve(null);fedMem()[store].set(key,val);}if(fedCatKey(store,key))FEDDB.catGen++;}
-async function fedDel(store,key){const r=await fedReq(store,'readwrite',o=>o.delete(key));if(r.mem){FEDDB.p=Promise.resolve(null);fedMem()[store].delete(key);}if(fedCatKey(store,key))FEDDB.catGen++;}
+async function fedPut(store,key,val){const b=fedAb(store);if(b){b.m.set(key,val);b.d.add(key);return;}const r=await fedReq(store,'readwrite',o=>o.put(val,key));if(r.mem){FEDDB.p=Promise.resolve(null);fedMem()[store].set(key,val);}if(fedCatKey(store,key))FEDDB.catGen++;}
+async function fedDel(store,key){const b=fedAb(store);if(b){b.m.set(key,null);b.d.add(key);return;}const r=await fedReq(store,'readwrite',o=>o.delete(key));if(r.mem){FEDDB.p=Promise.resolve(null);fedMem()[store].delete(key);}if(fedCatKey(store,key))FEDDB.catGen++;}
 // How many entries a store has.
 async function fedCount(store){const r=await fedReq(store,'readonly',o=>o.count());if(!r.mem&&Number.isSafeInteger(r.v))return r.v;FEDDB.p=Promise.resolve(null);return fedMem()[store].size;}
 // Every [key, value] of a store.
-async function fedAll(store){const d=await fedDb();
+async function fedAll(store){const l=await fedAll0(store),b=fedAb(store);if(!b||!b.d.size)return l;
+  const m=new Map(l);for(const k of b.d){const v=b.m.get(k);if(v===null)m.delete(k);else m.set(k,v);}return [...m];}
+async function fedAll0(store){const d=await fedDb();
   if(d){const r=await new Promise(res=>{try{const tx=d.transaction(store,'readonly'),o=tx.objectStore(store),ks=o.getAllKeys(),vs=o.getAll();
       tx.oncomplete=()=>res(ks.result.map((k,i)=>[k,vs.result[i]]));tx.onerror=tx.onabort=()=>res(null);}catch(e){res(null);}});
     if(r)return r;FEDDB.p=Promise.resolve(null);}
   return [...fedMem()[store].entries()];}
+
+/* Runs f with the ann store batched (FEDDB.ab): keys are read ahead in one transaction, and what f wrote goes back in
+   one. Calls are already one after another (FED.recQ); a nested one joins the batch it is in. */
+async function fedAnnBatch(keys,f){if(FEDDB.ab)return f();const b=FEDDB.ab={m:new Map(),d:new Set()};
+  try{const want=[...new Set(keys)].filter(k=>typeof k==='string'),got=await fedGetMany('ann',want);for(const k of want)if(!b.m.has(k))b.m.set(k,got.has(k)?got.get(k):null);
+    return await f();}
+  // Still batched while it is written (a read meanwhile sees the new entries); whatever was written meanwhile goes too.
+  finally{while(b.d.size){const kv=[...b.d].map(k=>[k,b.m.get(k)]);b.d.clear();await fedPutMany('ann',kv);}FEDDB.ab=null;}}
+// Several keys in one transaction: key -> value (null: none). From memory once IndexedDB failed.
+async function fedGetMany(store,keys){const out=new Map();if(!keys.length)return out;
+  const r=await fedReq(store,'readonly',o=>{const rq=keys.map(k=>o.get(k));return {get result(){return rq.map(x=>x.result);}};});
+  if(!r.mem){keys.forEach((k,i)=>out.set(k,r.v[i]===undefined?null:r.v[i]));return out;}
+  FEDDB.p=Promise.resolve(null);for(const k of keys){const v=fedMem()[store].get(k);out.set(k,v===undefined?null:v);}return out;}
+// [key, value] pairs written in one transaction; a null value deletes the key.
+async function fedPutMany(store,kv){const r=await fedReq(store,'readwrite',o=>{for(const [k,v] of kv){if(v===null)o.delete(k);else o.put(v,k);}return {result:undefined};});
+  if(r.mem){FEDDB.p=Promise.resolve(null);const m=fedMem()[store];for(const [k,v] of kv){if(v===null)m.delete(k);else m.set(k,v);}}
+  for(const [k] of kv)if(fedCatKey(store,k))FEDDB.catGen++;}
 
 /* ---------- other players' networks: their newest announce and when they were last heard ---------- */
 /* Keeps an announce ({rec, id}, checked) if it is the newest of its key; heard: its board slot (or when we got it). Each

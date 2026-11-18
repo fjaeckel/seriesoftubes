@@ -9,11 +9,11 @@
    A player network sits in NETS with no pops and no exchanges of its own (so computer-run mechanics, from the PNI list
    to exchange members, leave it alone); fpops and fix hold where it really is. Only deals made through the federation
    (S.fed.deals, 89-fedplay-deals.js) reach it directly; otherwise through a founding Tier 1's cone or transit. */
-const FEDP_MAX=48,FEDP_SH=0.012,FEDP_SH_ALL=0.12,FEDP_TICK=3600000,FEDP_UP=['lvl','ntt','tly','cog'],
+const FEDP_MAX=48,FEDP_CALM=3000,FEDP_HOLD=20000,FEDP_SH=0.012,FEDP_SH_ALL=0.12,FEDP_TICK=3600000,FEDP_UP=['lvl','ntt','tly','cog'],
   FEDP_COL=['#8E7DBE','#2E86AB','#E07A5F','#3D9970','#B565A7','#F2A541','#5B8E7D','#C44536','#4F6D7A','#9C6644'],
   FEDP_ST=['active','fading','dark'];
 // Runtime only: what is applied to NETS (h, ids, base shares), the newest announces by key, the timer.
-const FEDN={h:'',ids:[],base:null,ann:new Map(),left:new Set(),cur:Promise.resolve(),pend:null,t:null,on:false,q:Promise.resolve(),rt:null,pin:new Set(),ex:null};
+const FEDN={h:'',ids:[],base:null,ann:new Map(),left:new Set(),cur:Promise.resolve(),pend:null,t:null,on:false,q:Promise.resolve(),rt:null,ht:null,pin:new Set(),ex:null};
 // A player network's id in NET: stable for a key, letters and digits only.
 const fedNetId=k=>'fp'+String(k).slice(0,12).replace(/[-_]/g,'x');
 const fedNetOf=k=>{const n=NET[fedNetId(k)];return n&&n.fed===k?n:null;};
@@ -106,7 +106,8 @@ async function fedPlayRun(){const s=S;if(!s||!s.fed||!s.fed.key||!fedEligible(s)
   if(fedDealsTick(s,now,X.ok,muted,stats))ch=true;
   if(fedMentorTick(s,now,stats,k=>{const a=FEDN.ann.get(k);return a&&a.rec?a.rec.body.founded:null;}))ch=true;
   if(fedStrangers(s,stats))ch=true;
-  if(ch&&S===s)after();
+  // Routed in the worker: a rebuild comes after every sync, and a big network's routing would hold the page each time.
+  if(ch&&S===s)afterOff();
   // Networks new in the snapshot: ask the servers about them, at most every five minutes.
   if(list.some(n=>!stats.has(n.k))&&!(fedNow()-(FED.netsAt||0)<300)){FED.netsAt=fedNow();fedNetsFetch(fedPlayKeys(s)).then(()=>fedPlaySoon()).catch(()=>{});}}
 /* The exclusions as the last look saw them, for what is drawn and decided without waiting (requests, the deals sheet):
@@ -116,14 +117,18 @@ function fedExclKeep(X,srvs){const by=new Map();
   FEDN.ex={any:new Set(X.keys),ok:new Set(X.ok),by};}
 const fedUrlHost=u=>{const m=/^wss:\/\/([^/:]+)/.exec(u||'');return m?m[1]:'?';};
 const fedExcl1=k=>!!FEDN.ex&&FEDN.ex.any.has(k);
-function fedPlaySoon(ms=1000){if(FEDN.rt)return;FEDN.rt=FED.set(()=>{FEDN.rt=null;fedPlayRefresh();},ms);}
+/* A backlog catching up (more pages behind this one) pushes the rebuild back until FEDP_CALM after its last page, at
+   most FEDP_HOLD after its first: one rebuild (and routing) for the whole catch-up, not one a second while it pours in. */
+function fedPlaySoon(ms=1000,more=false){if(FEDN.rt&&!more&&!FEDN.ht)return;FED.clear(FEDN.rt);FEDN.rt=FED.set(fedPlayFire,more?FEDP_CALM:ms);
+  if(more&&!FEDN.ht)FEDN.ht=FED.set(fedPlayFire,FEDP_HOLD);}
+function fedPlayFire(){FED.clear(FEDN.rt);FED.clear(FEDN.ht);FEDN.rt=FEDN.ht=null;fedPlayRefresh();}
 // The hourly look: ask about the networks in play, rebuild, announce when this network changed, depeer drifted ratios, shared leaks.
 async function fedPlayTick(){FEDN.t=null;if(!FEDN.on)return;FEDN.t=FED.set(fedPlayTick,FEDP_TICK);const s=S;if(!s||!s.fed||!s.fed.on)return;
   try{await fedNetsFetch(fedPlayKeys(s));}catch(e){}
   await fedPlayRefresh();if(S!==s)return;
-  try{await fedAnnounceMaybe(false);await fedDepeerDrift(s);if(fedLeakCheck(s,fedNow()))after();}catch(e){console.error('[tubes] federation gameplay',e);}}
+  try{await fedAnnounceMaybe(false);await fedDepeerDrift(s);if(fedLeakCheck(s,fedNow())&&S===s)afterOff();}catch(e){console.error('[tubes] federation gameplay',e);}}
 fedOn('status',st=>{if(st.state==='off'){FEDN.on=false;FED.clear(FEDN.t);FEDN.t=null;return;}
   if(!FEDN.on){FEDN.on=true;FED.clear(FEDN.t);FEDN.t=FED.set(fedPlayTick,2000);}});
-fedOn('records',()=>fedPlaySoon());fedOn('excluded',()=>fedPlaySoon());
+fedOn('records',e=>fedPlaySoon(1000,!!(e&&e.more)));fedOn('excluded',()=>fedPlaySoon());
 fedOn('mute',()=>fedPlaySoon(0));
 fedOn('deal',e=>{FEDN.q=FEDN.q.then(()=>fedPlayDeal(e)).catch(err=>console.error('[tubes] federation deal',err));});
