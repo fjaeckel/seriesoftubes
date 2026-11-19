@@ -51,8 +51,8 @@ function dlConf(){const up=upcomingConfs(75).slice(0,3),cb=S.conf&&S.conf.until>
 function dlSales(){if(!S||!rule('clock'))return '';const p=slP(),L=S.sales||{};
   const sum=p?(L.vp?tr('sales.vp_coming',{n:Math.max(0,L.vp-S.day)}):slCardLine()):salesCanHire()?tr('deals.nobody_at_the_desk'):tr('sales.locked',{lv:SALES_LV});
   return dlLine(p?`${SALES[p].i} ${esc(tr('sales.at_desk',{name:slCap()}))}`:`💼 ${tr('sales.desk')}`,sum,btn(p?tr('sales.desk'):tr('sales.hire_sales'),'salesOpen',{},p?'ghost sm':'pink sm',!p&&!salesCanHire()));}
-function dlLvl(){const lv=S.lvl||1,nx=LEVELS[lv];
-  return dlSec('lvl',tr('hud_and_panels.customer_level_lv_name',{lv,name:LEVELS[lv-1].n}),'','',()=>`<p class="note dl-lv">${nx?tr('hud_and_panels.next_req_unlocks_what',{req:nx.req,what:lc1(nx.unlock)}):tr('common.every_customer_type_is_unlocked_go')}</p>`);}
+function dlLvl(){const lv=S.lvl||1,nx=lvInfo(lv);
+  return dlSec('lvl',content()?tr('streaming_story.audience_level_lv_name',{lv,name:lvInfo(lv-1).n}):tr('hud_and_panels.customer_level_lv_name',{lv,name:LEVELS[lv-1].n}),'','',()=>`<p class="note dl-lv">${content()?cntLvNext(nx):nx?tr('hud_and_panels.next_req_unlocks_what',{req:nx.req,what:lc1(nx.unlock)}):tr('common.every_customer_type_is_unlocked_go')}</p>`);}
 function dealsTab(){const st=custStats();
   // 1. Money at stake with a deadline: unhappy customers, renewals waiting for an answer.
   let h=st.n&&st.unhappy?dlCust(st):'';

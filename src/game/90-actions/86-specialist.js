@@ -8,5 +8,5 @@ Object.assign(ACT,{
    toast(tr('specialist.you_own_n_fiber_pairs_on',{n,name:esc(o.name),a:CITY[o.a].name,b:CITY[o.b].name,d:days}),'goal');sfx('build');after();},
  seatNo:()=>{S.seatOff=null;after();},
  charter:({k})=>{if(!own(CHARTERS,k)||S.chartSet||S.scn||S.mode!=='normal')return;S.charter=k;S.chartSet=true;if(k==='content')S.cnt=cntNew();if($('modal').className==='charter')closeModal();
-   toast(tr('specialist.charter_signed_name',{name:tr(CHARTERS[k].n)}),'good');if(UI.tutLater&&k==='content')UI.tutLater=false;if(UI.tutLater){UI.tutLater=false;tutorialStart();}after();fuInviteGo();},
+   toast(tr('specialist.charter_signed_name',{name:tr(CHARTERS[k].n)}),'good');if(UI.tutLater&&k==='content'){UI.tutLater=false;cntGuideStart();}if(UI.tutLater){UI.tutLater=false;tutorialStart();}after();fuInviteGo();},
 });
