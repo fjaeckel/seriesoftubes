@@ -59,12 +59,12 @@ function compute(){RW.gen++;fedNetsSync();
     let all=set;for(const id of set)if(DOWN[id].length){if(all===set)all=new Set(set);for(const x of DOWN[id])all.add(x);}
     const x=mkEx('ix',c,ct,ixCap(c),2,(S.ixPref&&S.ixPref[c])||'normal',labOf(N_('common.ix_peering'),'ix',ixName(c)),n=>all.has(n),all);x.dir=all===set?null:set;E.push(x);}
   // A streaming service in a dispute gets half of what it has with that network (37-streaming.js).
-  const dsp=S.cnt?disputeNet():null;
+  const dsp=!!S.cnt;
   for(const p of S.pni){if(!pniOn(p)||!popUp(p.city)||!liveN(p.city,p.site,p.n))continue;R2.sessions++;
-    const x=mkEx('p',p.id,p.city,liveCap(pniG(p),p.city,p.site,p.n)*lagF(p)*(p.sacrif?0.5:1)*(p.net===dsp?DISP_CUT:1),2,p.pref||'normal',labOf(N_('common.pni_with_net'),'net',NET[p.net].name),n=>CONE_S[p.net].has(n),CONE[p.net],p.net);x.sac=!!p.sacrif;x.pnc=!!NET[p.net].cn;E.push(x);}
+    const x=mkEx('p',p.id,p.city,liveCap(pniG(p),p.city,p.site,p.n)*lagF(p)*(p.sacrif?0.5:1)*(dsp?cntCut(p.net):1),2,p.pref||'normal',labOf(N_('common.pni_with_net'),'net',NET[p.net].name),n=>CONE_S[p.net].has(n),CONE[p.net],p.net);x.sac=!!p.sacrif;x.pnc=!!NET[p.net].cn;E.push(x);}
   for(const c of S.caches){if(!popUp(c.city)||siteDown(c.city,c.site==='b'?'b':'a'))continue;E.push(mkEx('c',c.id,c.city,cacheG(c),0,'normal',labOf(N_('common.name_cache'),'name',NET[c.net].cache.name),n=>n===c.net,[c.net]));}
   // A streaming service's own boxes inside eyeball networks: the same rank-0 exit, for the network that hosts it.
-  if(S.cnt)for(const b of S.cnt.box){if(!popUp(b.city))continue;E.push(mkEx('c',b.id,b.city,BOX_G*(b.net===dsp?DISP_CUT:1),0,'normal',labOf(N_('streaming.box_in_net'),'net',NET[b.net].name),n=>n===b.net,[b.net]));}
+  if(S.cnt)for(const b of S.cnt.box){if(!popUp(b.city))continue;E.push(mkEx('c',b.id,b.city,BOX_G*cntCut(b.net),0,'normal',labOf(N_('streaming.box_in_net'),'net',NET[b.net].name),n=>n===b.net,[b.net]));}
   if(S.fed)fedExits(E);// deals with other players (89-fedplay-deals.js)
   // After an update adds networks, a free courtesy route reaches the new ones you have no other way to (#46).
   R2.graceNets=0;if(S.grace&&S.grace.until>day){const gs=new Set(S.grace.nets.filter(n=>NET[n]&&!E.some(e=>e.k!=='c'&&e.ok(n)))),hc=popUp(S.home)?S.home:pops.find(popUp);

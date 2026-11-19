@@ -201,3 +201,79 @@ test('home networks on an exchange take a streaming service from the route serve
   assert.ok(ev("R.egT.ix") > 0, 'traffic leaves over the exchange');
   assert.deepEqual(errors, []);
 });
+
+// Frankfurt at level 13 with Germany big enough for Doitsche Telekomm to take a box.
+const withBox = () => {
+  const page = start();
+  page.ev("S.lvl=13;S.cnt.cc.DE.d=300;compute();ACT.cntBox({city:S.home,net:'dtk',d:1});compute()");
+  return page;
+};
+
+test('a new box starts nearly empty and fills overnight; new titles empty it a little', () => {
+  const { ev, errors } = withBox();
+  assert.equal(ev("S.cnt.box[0].f"), ev('FILL_NEW'));
+  const use0 = ev("R.useCache[S.cnt.box[0].id]");
+  ev("for(let i=0;i<4;i++)dayTick()");
+  assert.equal(ev("S.cnt.box[0].f"), 1, 'filled from the origin in its own city');
+  assert.ok(ev("R.useCache[S.cnt.box[0].id]") > use0, 'a full box holds more of the evening');
+  ev("ACT.cntCat({})");
+  assert.ok(ev("S.cnt.box[0].f") < 1);
+  // A box at a POP with no backbone to an origin and no transit never fills.
+  ev("ACT.buildPop({city:'ams'});S.cnt.box.push({id:'far',city:'ams',net:'kpn',day:S.day,f:0.25});compute();cntFillDay(S.day)");
+  assert.equal(ev("S.cnt.box[1].f"), 0.25);
+  ev("ACT.buyTransit({city:'ams',net:'cog',tier:1});cntFillDay(S.day)");
+  assert.ok(Math.abs(ev("S.cnt.box[1].f") - 0.35) < 1e-9, 'over transit only, slowly');
+  assert.deepEqual(errors, []);
+});
+
+test('a full box spills the rest of its network to the next exit', () => {
+  const { ev, errors } = withBox();
+  ev("S.cnt.box[0].f=1;S.cnt.cc.DE.d=2000;S.cnt.dc[S.home].t=3;compute()");
+  assert.ok(ev("R.useCache[S.cnt.box[0].id]") >= ev('BOX_G') - 1e-6, 'the box runs full');
+  assert.ok(ev("(R.egT.t||0)") > 0, 'and the rest leaves elsewhere');
+  assert.deepEqual(errors, []);
+});
+
+test('a live event cannot be pre-filled and lands on the origins', () => {
+  const { ev, errors } = withBox();
+  ev("S.cnt.box[0].f=1;S.cnt.dc[S.home].t=3;compute()");
+  const org = ev("R.cnt.org[S.home]");
+  ev("S.cnt.prem={day:S.day,reg:'EU',n:0,pf:0,w:1,live:1};ACT.cntPrefill({});compute()");
+  assert.equal(ev("S.cnt.prem.pf"), 0, 'nothing to pre-fill');
+  assert.ok(ev("R.cnt.org[S.home]") > org * 3, 'the origin carries the event');
+  ev("S.cnt.prem={day:S.day+5,reg:'EU',n:0,pf:0,w:1,live:0};ACT.cntPrefill({})");
+  assert.equal(ev("S.cnt.prem.pf"), 1, 'a series premiere can be');
+  assert.deepEqual(errors, []);
+});
+
+test('a dispute freezes the ports: worse every evening, then a slow recovery after paying', () => {
+  const { ev, errors } = withBox();
+  ev("S.cnt.box[0].f=1;S.cnt.disp={net:'dtk',fee:20000,day:S.day,camp:0,cut:1};compute()");
+  assert.equal(ev("cntCut('dtk')"), 1);
+  ev("for(let i=0;i<10;i++)cntDispDay(S.day)");
+  assert.ok(Math.abs(ev("cntCut('dtk')") - 0.75) < 1e-9);
+  ev("for(let i=0;i<30;i++)cntDispDay(S.day)");
+  assert.equal(ev("cntCut('dtk')"), ev('DISP_CUT'));
+  ev("compute()");
+  assert.ok(ev("R.useCache[S.cnt.box[0].id]") <= ev("BOX_G*DISP_CUT") + 1e-6);
+  ev("ACT.pni({city:S.home,net:'dtk',tier:1})");
+  assert.equal(ev("S.pni.some(p=>p.net==='dtk')"), false, 'no new PNI during a dispute');
+  ev("ACT.cntPay({})");
+  assert.equal(ev("cntCut('dtk')"), ev('DISP_CUT'), 'paying does not fix the ports at once');
+  ev("cntFillDay(S.day)");
+  assert.ok(ev("cntCut('dtk')") > ev('DISP_CUT'));
+  ev("for(let i=0;i<6;i++)cntFillDay(S.day)");
+  assert.equal(ev("cntCut('dtk')"), 1);
+  assert.deepEqual(errors, []);
+});
+
+test('a paid deal that runs out while traffic flows rolls over at a higher price', () => {
+  const { ev, errors } = withBox();
+  ev("S.cnt.paid.dtk={fee:20000,until:S.day};cntDealDay(S.day)");
+  assert.equal(ev("S.cnt.paid.dtk.fee"), 22000);
+  ev("ACT.cntBox({city:S.home,net:'dtk',d:-1});S.cnt.paid.dtk.until=S.day;cntDealDay(S.day)");
+  assert.equal(ev("S.cnt.paid.dtk"), undefined, 'disconnected in time, it simply ends');
+  // Old saves kept a bare fee per network.
+  assert.equal(ev("(()=>{const s=JSON.parse(JSON.stringify(S));s.cnt.paid={dtk:9000};sanitize(s);return s.cnt.paid.dtk.fee;})()"), 9000);
+  assert.deepEqual(errors, []);
+});

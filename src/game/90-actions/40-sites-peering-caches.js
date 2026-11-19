@@ -16,7 +16,7 @@ Object.assign(ACT,{
  unpeer:({city,net})=>{delete S.peers[net+'@'+city];after();},
  peerAll:({city})=>{if(!isIx(city)||S.ixp[city]===undefined)return;const set=ixSessions(city);let n=0;for(const id of ixMembers(city))if(!set.has(id)&&peerOk(id,'ix',city).ok){S.peers[id+'@'+city]=true;n++;}if(!n)return;toast(trn('sites_peering_caches.n_new_session_at_ix_small',n,{ix:esc(ixName(city))}),'good',[],{a:'city',v:ixCity(city)});sfx('build');after();},
  tailTog:()=>{UI.tailOpen=!UI.tailOpen;renderLeft();},
- pni:({city,net,tier})=>{const q=pniQuote(city,net,tier);if(!q)return;if(q.why){toast(q.why,'bad');sfx('err');after();return;}if(!spend(q.cost))return;const lead=pniPlace(q);
+ pni:({city,net,tier})=>{if(S.cnt&&disputeNet()===net){toast(tr('streaming.not_while_you_are_in_a_dispute'),'bad');sfx('err');return;}const q=pniQuote(city,net,tier);if(!q)return;if(q.why){toast(q.why,'bad');sfx('err');after();return;}if(!spend(q.cost))return;const lead=pniPlace(q);
    toast(lead?tr('sites_peering_caches.pni_with_net_ordered_eta_a',{net:esc(NET[net].name),eta:pniWhen(lead),dc:esc(siteName(city,'a'))}):tr('sites_peering_caches.pni_with_net_is_up_already',{net:esc(NET[net].name),dc:esc(siteName(city,'a'))}),'good');after();},
  pniAllOpen:({net})=>{pniAllModal(net);},
  pniAllSize:({v})=>{if(!UI.pniAll)return;pniAllModal(UI.pniAll.net,+v);$('modalCard').querySelector('[data-chg="pniAllSize"]')?.focus();},
