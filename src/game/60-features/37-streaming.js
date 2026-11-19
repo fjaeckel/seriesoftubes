@@ -33,7 +33,7 @@ const MC_CC=10,MC_REG=5,MC_ON=0.8;
 const LIVE_NAMES=[N_('streaming.live_fight'),N_('streaming.live_final'),N_('streaming.live_concert')];
 const premShow=p=>tr(p.live?LIVE_NAMES[p.n%LIVE_NAMES.length]:PREM_NAMES[p.n]);
 const PREM_NAMES=[N_('streaming.prem_dragons'),N_('streaming.prem_baking'),N_('streaming.prem_heist'),N_('streaming.prem_space'),N_('streaming.prem_crime'),N_('streaming.prem_reality')];
-function cntNew(){return {cc:{},dc:{[S.home]:{t:0,ready:0}},box:[],cat:0,prem:null,premNext:S.day+60,premN:0,premOk:0,premAll:0,disp:null,heal:{},free:{},paid:{},wins:0,won:0};}
+function cntNew(){return {cc:{},dc:{[S.home]:{t:0,ready:0}},box:[],cat:0,prem:null,premNext:S.day+60,premN:0,premOk:0,premAll:0,disp:null,heal:{},free:{},paid:{},boff:[],bund:[],bnext:S.day+90,wins:0,won:0};}
 /* Countries, built once: their eyeball weight, biggest city (where the viewers are said to be), continent and the
    networks that sell to homes there with their shares (W2 promises at least two). */
 let CC_I=null;
@@ -60,7 +60,9 @@ const eyeNet=n=>!!n&&!!n.cc&&!n.fed;
 const homeOf=n=>new Set(Array.isArray(n.cc)?n.cc:[n.cc]);
 const boxMin=n=>n.pol==='open'?5:n.pol==='selective'?10:n.pol==='paid'?15:25;
 const boxLv=n=>n.pol==='paid'?5:n.pol==='restrictive'?8:3;
-const boxFree=n=>n.pol!=='paid'||paidFree(n)||!!(S.cnt&&S.cnt.free[n.id]);
+// Free on its own terms (Must-Carry counts these), or for as long as a bundle with it runs (38-streaming-bundles.js).
+const boxFreeOwn=n=>n.pol!=='paid'||paidFree(n)||!!(S.cnt&&S.cnt.free[n.id]);
+const boxFree=n=>boxFreeOwn(n)||bundWith(n.id);
 const boxHost=n=>boxFree(n)?0:Math.round((n.paidFee||8000)/4);
 const boxNets=c=>{const C=CITY[c];return NETS.filter(n=>eyeNet(n)&&homeOf(n).has(C.cc)&&(n.pops||[]).includes(c));};
 function boxWhy(c,id){const n=NET[id];if(!content()||!n||!eyeNet(n))return tr('streaming.not_an_eyeball_network');if(!S.pops[c])return tr('link_panels.build_a_pop_here_first');
@@ -111,17 +113,22 @@ function cntFlows(R2,flow,DEMTO,reach,NF0){const C=S.cnt;if(!C)return null;const
 // How well a country is served: what reached it from each source, times how far that source is from its viewers.
 // Where it leaves your network counts most; a far origin costs a little more start-up time on top.
 function ccQ(r,cc){const o=r&&r.cnt&&r.cnt.cc[cc];if(!o||o.D<=1e-9)return 1;let q=0;for(const [c,x,km,ko] of o.parts)q+=x*sfOf(r,c)*farF(km)*farO(ko||0);return clamp(q/o.D,0,1);}
-function cntRev(r){const C=S.cnt;if(!C)return 0;let v=0;for(const cc in C.cc)v+=C.cc[cc].d*ccQ(r,cc)*CNT_RATE;return v;}
+// Bundled subscribers pay the ISP's wholesale price: their share of a country earns the bundle's discount less.
+function cntRev(r){const C=S.cnt;if(!C)return 0;let v=0;for(const cc in C.cc){const d=C.cc[cc].d;v+=(d-Math.min(d,bundG(cc))*bundCut(cc))*ccQ(r,cc)*CNT_RATE;}return v;}
 function cntCost(){const C=S.cnt;if(!C)return 0;let m=CAT_T[C.cat].mo;for(const c in C.dc)m+=DC_T[C.dc[c].t].mo;
   for(const b of C.box){const n=NET[b.net];m+=BOX_MO+(n?boxHost(n):0);}for(const k in C.paid)m+=C.paid[k].fee;return m;}
 // On-net: what leaves through your boxes and over PNIs, of everything served.
 const onNet=r=>r&&r.served>1e-6?((r.egT.c||0)+(r.egT.p||0))/r.served:0;
 // Levels count the countries a streaming service is live in where a carrier counts POPs, and their continents.
 const lvPlaces=()=>content()&&S.cnt?Object.keys(S.cnt.cc).length:Object.keys(S.pops).length;
+/* What each level asks. A streaming service counts countries, and grows at home first: a second continent from level 6,
+   the world only late (CNT_LV_REG), where a carrier needs three continents for level 4. */
+const CNT_LV_CC=[0,2,4,6,9,12,15,19,24,30,36,42,48],CNT_LV_REG=[0,0,0,0,0,0,2,2,3,3,4,4,5];
+const lvNeed=i=>{const q=LV_REQ[i];return content()?{pk:q.pk,pops:CNT_LV_CC[i],reg:CNT_LV_REG[i]}:{pk:q.pk,pops:q.pops,reg:lvReg(i)};};
 const lvRegions=()=>content()&&S.cnt?new Set(Object.keys(S.cnt.cc).map(k=>ccInfo(k).reg)).size:regionsCount();
 const subsAll=()=>S.cnt?Object.values(S.cnt.cc).reduce((a,x)=>a+x.d,0):0;
 // Must-Carry: countries and continents where an eyeball network hosts your box for free.
-function mcFree(){const cc=new Set(),reg=new Set();for(const b of S.cnt.box){const n=NET[b.net];if(!n||!boxFree(n)||!S.pops[b.city])continue;cc.add(CITY[b.city].cc);reg.add(CITY[b.city].reg);}return {cc:cc.size,reg:reg.size};}
+function mcFree(){const cc=new Set(),reg=new Set();for(const b of S.cnt.box){const n=NET[b.net];if(!n||!boxFreeOwn(n)||!S.pops[b.city])continue;cc.add(CITY[b.city].cc);reg.add(CITY[b.city].reg);}return {cc:cc.size,reg:reg.size};}
 const mustCarry=()=>{if(!content())return false;const f=mcFree();return f.cc>=MC_CC&&f.reg>=MC_REG&&!!S.cnt.premAll&&onNet(R)>=MC_ON;};
 const disputeNet=()=>{const D=S.cnt&&S.cnt.disp;return D?D.net:null;};
 // A day, after its routing (R is today's): subscribers come and go, origins open, premieres and disputes play out.
@@ -131,7 +138,7 @@ function cntDay(d){const C=S.cnt;if(!content()||!C)return;
   const G=CAT_T[C.cat].grow;
   for(const cc in C.cc){const x=C.cc[cc],q=ccQ(R,cc),P=ccPot(cc);
     if(q>=0.9)x.d+=CNT_GROW*G*q*x.d*Math.max(0,1-x.d/P);else x.d=Math.max(1,x.d*(1-(0.9-q)*0.05));}
-  cntFillDay(d);cntPremDay(d);cntDispDay(d);cntDealDay(d);
+  cntFillDay(d);cntPremDay(d);cntDispDay(d);cntDealDay(d);bundDay(d);
   if(!C.won&&mustCarry()){C.won=d;track('win_mustcarry');toast(`<b>📺 ${tr('streaming.must_carry')}</b><br>${tr('streaming.no_network_can_drop_you_now')}`,'goal');sfx('coin');checkBadges();}}
 function cntPremDay(d){const C=S.cnt,p=C.prem;
   if(!p){if(lvl()>=PREM_LV&&Object.keys(C.cc).length&&d>=C.premNext){const w={};for(const cc in C.cc){const r=ccInfo(cc).reg;w[r]=(w[r]||0)+C.cc[cc].d;}
@@ -155,7 +162,7 @@ function cntPremDay(d){const C=S.cnt,p=C.prem;
 function cntLev(id){const n=NET[id];if(!n)return 0;let d=0,p=0;for(const k of homeOf(n)){if(!ccInfo(k))continue;p+=ccPot(k);if(S.cnt.cc[k])d+=S.cnt.cc[k].d;}return p>0?d/p:0;}
 function cntDispDay(d){const C=S.cnt,D=C.disp;
   if(!D){if(lvl()<DISP_LV||!rule('market')||Math.random()>=1/DISP_ODDS)return;
-    const cs=NETS.filter(n=>eyeNet(n)&&(n.pol==='paid'&&!paidFree(n)||n.pol==='restrictive')&&!C.free[n.id]&&!C.paid[n.id]&&(R.demTo[n.id]||0)>=DISP_MIN);if(!cs.length)return;
+    const cs=NETS.filter(n=>eyeNet(n)&&(n.pol==='paid'&&!paidFree(n)||n.pol==='restrictive')&&!C.free[n.id]&&!C.paid[n.id]&&!bundWith(n.id)&&(R.demTo[n.id]||0)>=DISP_MIN);if(!cs.length)return;
     const n=pick(cs);C.disp={net:n.id,fee:Math.max(5000,Math.round((R.demTo[n.id]||0)*60/1000)*1000),day:d,camp:0,cut:1};
     toast(tr('streaming.net_wants_paying2',{net:esc(n.name),fee:fmt$(C.disp.fee)}),'bad',[{l:tr('common.show_me'),act:'leftTab',args:{t:'goals'}}]);sfx('err');return;}
   // The ports stay as they were while your traffic grows: a little worse every evening.
@@ -183,9 +190,10 @@ const CONTENT_GOALS=[
  {id:'ct_pni',t:tr('streaming.goal_pni'),d:tr('streaming.goal_pni_d'),r:15000,ok:()=>S.pni.some(p=>pniOn(p)&&eyeNet(NET[p.net]))},
  {id:'ct_box',t:tr('streaming.goal_box'),d:tr('streaming.goal_box_d'),r:25000,ok:()=>S.cnt.box.length>0},
  {id:'ct_dc',t:tr('streaming.goal_dc'),d:tr('streaming.goal_dc_d'),r:100000,ok:()=>Object.keys(S.cnt.dc).some(c=>S.cnt.dc[c].t>0&&dcLive(c))},
- {id:'ct_cc5',t:tr('streaming.goal_cc5'),d:tr('streaming.goal_cc5_d'),r:50000,ok:()=>Object.keys(S.cnt.cc).length>=5&&new Set(Object.keys(S.cnt.cc).map(k=>ccInfo(k).reg)).size>=3},
+ {id:'ct_cc5',t:tr('streaming.goal_cc5b'),d:tr('streaming.goal_cc5b_d'),r:50000,ok:()=>Object.keys(S.cnt.cc).length>=5},
  {id:'ct_prem',t:tr('streaming.goal_prem'),d:tr('streaming.goal_prem_d'),r:75000,ok:()=>S.cnt.premOk>0},
  {id:'ct_on50',t:tr('streaming.goal_on50'),d:tr('streaming.goal_on50_d'),r:100000,ok:()=>R.served>=50&&onNet(R)>=0.5},
+ {id:'ct_cont3',t:tr('streaming.goal_cont3'),d:tr('streaming.goal_cont3_d'),r:150000,ok:()=>new Set(Object.keys(S.cnt.cc).filter(k=>ccQ(R,k)>=0.9).map(k=>ccInfo(k).reg)).size>=3},
  {id:'ct_disp',t:tr('streaming.goal_disp'),d:tr('streaming.goal_disp_d'),r:150000,ok:()=>S.cnt.wins>0},
  {id:'ct_mc',t:tr('streaming.must_carry'),d:tr('streaming.goal_mc_d',{cc:MC_CC,reg:MC_REG,p:Math.round(MC_ON*100)+'%'}),r:0,mc:true,ok:()=>mustCarry()},
 ];
@@ -203,4 +211,4 @@ function cntSanitize(s){if(s.charter!=='content'){delete s.cnt;return;}const c0=
   if(c0.paid&&typeof c0.paid==='object')for(const id of Object.keys(c0.paid).slice(0,400)){if(!NET[id])continue;const x=c0.paid[id],fee=typeof x==='object'&&x?x.fee:x;o.paid[id]={fee:clamp(Math.round(n(fee,0)),0,1e8),until:Math.round(n(x&&x.until,(s.day||0)+DEAL_DAYS))};}
   if(c0.heal&&typeof c0.heal==='object')for(const id of Object.keys(c0.heal).slice(0,400))if(NET[id])o.heal[id]=clamp(n(c0.heal[id],1),DISP_CUT,1);
   o.premN=Math.max(0,Math.round(n(c0.premN,0)));
-  o.wins=Math.max(0,Math.round(n(c0.wins,0)));o.won=Math.max(0,Math.round(n(c0.won,0)));s.cnt=o;}
+  o.wins=Math.max(0,Math.round(n(c0.wins,0)));o.won=Math.max(0,Math.round(n(c0.won,0)));bundSanitize(c0,o,s);s.cnt=o;}

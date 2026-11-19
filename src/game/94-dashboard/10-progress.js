@@ -23,8 +23,8 @@ const pRow=x=>`<div class="kv"><span>${esc(x.l)}</span><b>${esc(x.txt)}</b></div
 function scnCard(){const sc=S.scn,P=scnProg();if(!sc||!P)return '';const left=Math.max(0,sc.days-S.day);
   const st=sc.done?`<b style="color:var(--eye)">${tr('progress.done_in_d_days',{d:sc.done})}</b>`:sc.failed?`<b style="color:var(--bad)">${tr('common.time_s_up')}</b>`:tr('common.n_days_left',{n:left});
   return `<div class="pcard"><div class="eyebrow">${tr('common.scenario')} · ${Math.round(P.f*100)}%</div><div class="pt">${esc(sc.name)}</div><div class="meta">🎯 ${esc(P.goal)}</div>${P.items.map(pRow).join('')}<div class="kv"><span>${tr('common.time')}</span><b>${st}</b></div><div class="bar ${!sc.done&&left<sc.days*0.2?'bad':''}"><i style="width:${Math.min(100,S.day/sc.days*100)}%"></i></div></div>`;}
-function lvlItems(){const lv=S.lvl||1,pk=S.stats.peak||0,pops=lvPlaces(),G=(l,v,max,txt)=>({l,v,max,txt}),q=LV_REQ[lv];if(!q)return [];
-  const out=[G(tr('common.peak_traffic'),pk,q.pk,`${fmtG(pk)} / ${fmtG(q.pk)}`),G(content()?tr('streaming.countries'):tr('common.pops'),pops,q.pops,`${pops} / ${q.pops}`)],rg=lvReg(lv);if(rg)out.push(G(tr('common.continents'),lvRegions(),rg,`${lvRegions()} / ${rg}`));return out;}
+function lvlItems(){const lv=S.lvl||1,pk=S.stats.peak||0,pops=lvPlaces(),G=(l,v,max,txt)=>({l,v,max,txt});if(!LV_REQ[lv])return [];const q=lvNeed(lv);
+  const out=[G(tr('common.peak_traffic'),pk,q.pk,`${fmtG(pk)} / ${fmtG(q.pk)}`),G(content()?tr('streaming.countries'):tr('common.pops'),pops,q.pops,`${pops} / ${q.pops}`)],rg=q.reg;if(rg)out.push(G(tr('common.continents'),lvRegions(),rg,`${lvRegions()} / ${rg}`));return out;}
 // Lost Tier 1 status explains itself where you look for it, not only in a toast you may have missed (#73).
 const t1Note=()=>S.won&&!isTier1()?`<p class="why">${tr('progress.not_tier_1_right_now_why',{why:esc(t1Why())})}</p>`:'';
 function lvlCard(){const lv=S.lvl||1,nx=LEVELS[lv];

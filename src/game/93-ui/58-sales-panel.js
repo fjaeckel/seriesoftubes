@@ -8,12 +8,14 @@ function salesModal(){if(!S)return;const p=slP(),L=S.sales||{};
       :btn(UI.confirm==='salesFire'?tr('ops.really_fire'):tr('ops.fire'),'salesFire',{},'ghost sm'))
       :p?'':btn(id==='ceo'?tr('sales.let_ceo'):tr('ops.hire_mo',{price:fmt$(P.mo)}),'salesHire',{id},'pink sm',!salesCanHire()||!rule('clock')||S.cash<P.mo);
     return `<div class="ops-o${here?' on':''}"><div class="ops-h"><span class="ops-i" aria-hidden="true">${P.i}</span><div class="grow"><div class="nm">${tr(P.n)}</div>
-      <div class="meta">${tr(P.d)}</div>${pieOn()?`<div class="meta">🥧 ${tr(SL_SKY[id])}</div>`:''}${here&&id!=='ceo'?`<div class="meta">${tr('ops.salary',{price:fmt$(P.mo),d:dateStr(L.hired||0)})}</div>`:''}${act?`<div class="btns">${act}</div>`:''}</div></div></div>`;}).join('');
+      <div class="meta">${tr(P.d)}</div>${pieOn()?`<div class="meta">🥧 ${tr(SL_SKY[id])}</div>`:''}${content()?`<div class="meta">📦 ${tr(SL_TV[id])}</div>`:''}${here&&id!=='ceo'?`<div class="meta">${tr('ops.salary',{price:fmt$(P.mo),d:dateStr(L.hired||0)})}</div>`:''}${act?`<div class="btns">${act}</div>`:''}</div></div></div>`;}).join('');
   if(p&&p!=='ceo')h+=`<p class="note">${tr('sales.one_at_a_time')}</p>`;
-  h+=p?slAutoHtml(p):rule('clock')?`<p class="note">${tr('sales.by_hand')}</p>`:'';
+  h+=content()?`<p class="note">${tr('streaming.sales_note')}</p>`:p?slAutoHtml(p):rule('clock')?`<p class="note">${tr('sales.by_hand')}</p>`:'';
   openModal(h,'ops');}
 // What each of them does in orbit, shown once there is a rocket company to sell for (99-pie-sales.js).
 const SL_SKY={eng:N_('sales.eng_sky'),shark:N_('sales.shark_sky'),ceo:N_('sales.ceo_sky')};
+// What each of them sells for a Streaming service: bundles with home ISPs (38-streaming-bundles.js).
+const SL_TV={eng:N_('streaming.sales_eng'),shark:N_('streaming.sales_shark'),ceo:N_('streaming.sales_ceo')};
 const SL_AUTO={eng:N_('sales.auto_eng'),shark:N_('sales.auto_shark'),ceo:N_('sales.auto_ceo')};
 const SL_REN={eng:N_('sales.ren_eng'),shark:N_('sales.ren_shark'),ceo:N_('sales.ren_ceo')};
 // Signing for you (39-sales-auto.js): the switch, the minimum, and this week's and last week's tally.

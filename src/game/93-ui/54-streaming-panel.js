@@ -19,6 +19,9 @@ function cntCard(){const C=S.cnt;if(!C)return '';const f=mcFree(),on=onNet(R),cc
     else h+=`<div class="meta">${(p.live?tr('streaming.live_tonight',{show,where}):tr('streaming.premiere_tonight',{show,where}))}</div>`;}
   const D=C.disp;
   if(D){const n=NET[D.net];h+=`<div class="meta" style="color:var(--bad)">${tr('streaming.dispute_line2',{net:esc(n.name),fee:fmt$(D.fee)})} ${tr('streaming.dispute_carrying_p',{p:pct(D.cut)})}</div><div class="btns">${btn(tr('streaming.pay_fee_mo',{fee:fmt$(D.fee)}),'cntPay',{},'sm')}${D.camp?`<span class="tag st on">${tr('streaming.campaign_n_days_left',{n:Math.max(0,D.camp-S.day)})}</span>`:btn(tr('streaming.tell_your_viewers_cost',{cost:fmt$(DISP_CAMP)}),'cntCamp',{},'pink sm',S.cash<DISP_CAMP)}</div>`;}
+  // Bundles (38-streaming-bundles.js): offers waiting for an answer, then the ones running.
+  for(const o of C.boff){const n=NET[o.net];h+=`<div class="meta">📦 ${tr('streaming.bundle_offer',{net:esc(n.name),list:Object.keys(o.g).map(k=>esc(ccName(k))).join(', '),subs:fmtSubs(bundAll(o)),p:pct(o.cut),n:Math.round(o.days/30)})}${o.by?' · '+esc(tr(SALES[o.by].s)):''}</div><div class="btns">${btn(tr('streaming.sign_bundle'),'cntBund',{id:o.id},'pink sm')}${btn(tr('common.decline'),'cntBundNo',{id:o.id},'ghost sm')}</div>`;}
+  for(const b of C.bund)h+=`<div class="meta">📦 ${tr('streaming.bundle_running',{net:esc(NET[b.net].name),subs:fmtSubs(bundAll(b)),date:dateStr(b.until)})}</div>`;
   for(const id of Object.keys(C.paid)){const x=C.paid[id];h+=`<div class="meta">${tr('streaming.deal_line',{net:esc(NET[id].name),fee:fmt$(x.fee),date:dateStr(x.until)})}</div>`;}
   const N=catNext();h+=`<div class="meta">${tr('streaming.catalogue_name',{name:tr(CAT_T[C.cat].n)})}</div>`;
   if(N)h+=`<div class="btns">${btn(N.lv>lvl()?tr('streaming.cat_name_level_lv',{name:tr(N.n),lv:N.lv}):tr('streaming.cat_up_cost_mo',{name:tr(N.n),cost:fmt$(N.cost),mo:fmt$(N.mo)}),'cntCat',{},'sm',N.lv>lvl()||S.cash<N.cost)}</div>`;
