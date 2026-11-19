@@ -5891,6 +5891,8 @@
 "title.as_number":"AS number",
 "title.asia_hub_great_peering_far_from":"Asia hub. Great peering, far from home.",
 "title.asn_not_usable":"That AS number won't route: pick one from 1 to 4294967294 that no network on the map uses (no AS 0, 23456, documentation or private ranges). Leave it empty for a random one.",
+"title.autarky_mode":"Autarky mode",
+"title.autarky_mode_desc":"No leased waves or IRUs.",
 "title.back_to_my_network":"Back to my network",
 "title.big_hungry_market_few_providers":"Big hungry market, few providers.",
 "title.build_an_internet_lay_fiber_between":"Build an internet. Lay fiber between cities, buy transit, peer at exchanges, sign up businesses, and keep the eyeballs happy while backhoes, sharks and route leaks do their best to stop you.",

@@ -5892,6 +5892,8 @@
 "title.as_number":"AS-Nummer",
 "title.asia_hub_great_peering_far_from":"Asien-Drehkreuz. Tolles Peering, weit weg von zu Hause.",
 "title.asn_not_usable":"Diese AS-Nummer routet nicht: Wähle eine von 1 bis 4294967294, die kein Netz auf der Karte nutzt (kein AS 0, 23456, keine Dokumentations- oder privaten Bereiche). Leer lassen für eine zufällige.",
+"title.autarky_mode":"Autarkiemodus",
+"title.autarky_mode_desc":"Keine gemieteten Waves oder IRUs.",
 "title.back_to_my_network":"Zurück zu meinem Netz",
 "title.big_hungry_market_few_providers":"Großer, hungriger Markt, wenige Anbieter.",
 "title.build_an_internet_lay_fiber_between":"Baue deinen eigenen ISP auf. Verlege Glasfaser zwischen Städten, kauf Transit, peere an Exchanges, gewinne Geschäftskunden und halte deine Privatkunden bei Laune, während Bagger, Haie und Route Leaks alles tun, um dich aufzuhalten.",

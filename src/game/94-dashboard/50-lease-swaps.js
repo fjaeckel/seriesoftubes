@@ -17,7 +17,7 @@ function leaseSwaps(){const by={};
     const ws=ls.filter(l=>l.kind!=='df'),wmo=ws.reduce((s,l)=>s+(l.mo||0),0),sc=sub?subDfCable(a,b):null;x.iru=ls.find(l=>l.kind==='df');
     if(ws.length&&x.iru){x.fit=litOn(x.iru,leaseCap(ws));if(x.fit.fits)x.lit=wmo;}
     else if(ws.length&&glassLvl()>=2&&(sub?sc:dfAllowed(a,b))){const km=sc?sc.km:kmBetween(a,b),sys=glassLvl()>=3?'roadm':'lite',wc=leaseCap(ws),op=swapOptics(km,wc,sub,sys);
-      if(op&&op.n<=DF_SYS[sys].max)x.opts.push(swapOpt('iru',DF_SYS[sys].cost+ampCount(km)*AMP_COST+op.up,dfLeaseMo(km)+ampCount(km)*AMP_MO+op.mo,leadDays(IRU_DAYS),wmo));}
+      if(!modeOn('autarky')&&op&&op.n<=DF_SYS[sys].max)x.opts.push(swapOpt('iru',DF_SYS[sys].cost+ampCount(km)*AMP_COST+op.up,dfLeaseMo(km)+ampCount(km)*AMP_MO+op.mo,leadDays(IRU_DAYS),wmo));}
     // Dig on land, lay a cable between landing stations (even ones that share a landmass), or both.
     const whys=[];for(const cab of [false,true]){if(cab?!seaCab(a,b):sub)continue;
       const why=cab?ownCabWhy(a,b):!dfAllowed(a,b)?tr('lease_swaps.nobody_lets_you_dig_on_this'):glassLvl()<2?tr('lease_swaps.digging_your_own_fiber_unlocks_at'):'';

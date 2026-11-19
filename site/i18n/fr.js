@@ -5890,6 +5890,8 @@
 "title.as_number":"Numéro d'AS",
 "title.asia_hub_great_peering_far_from":"Hub de l’Asie. Super peering, loin de chez soi.",
 "title.asn_not_usable":"Ce numéro d'AS ne route pas : choisis-en un de 1 à 4294967294 qu'aucun réseau de la carte n'utilise (pas d'AS 0, 23456, ni de plages de documentation ou privées). Laisse vide pour un numéro au hasard.",
+"title.autarky_mode":"Mode autarcie",
+"title.autarky_mode_desc":"Pas d’ondes louées ni d’IRU.",
 "title.back_to_my_network":"Retour à mon réseau",
 "title.big_hungry_market_few_providers":"Gros marché affamé, peu d’opérateurs.",
 "title.build_an_internet_lay_fiber_between":"Construis un Internet. Pose de la fibre entre les villes, achète du transit, fais du peering aux IX, signe des entreprises et garde les eyeballs contents pendant que pelleteuses, requins et fuites de routes font tout pour t’arrêter.",
