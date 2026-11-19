@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- A vendor demo router that takes 3.2T ports can now upgrade the ports you already have to 3.2T, instead of making you leave an exchange and join again; the fastest waves show up the same way (#435).
 - Coming back online with a big network in Multimode no longer makes the game crawl while it catches up: the catch-up now holds the page for less than half as long, and other players' networks are worked into your routing once it is done instead of every second along the way, off the main thread.
 
 ## [4.8.0] — 2026-11-18

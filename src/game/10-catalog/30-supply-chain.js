@@ -30,5 +30,7 @@ const ROUTER_RESALE=0.3,tradeIn=(g,n)=>Math.round(RG[g].cost*n*ROUTER_RESALE),sw
 const RMAX=16;
 // The plain, badge-less model of each class is the default upgrade path; the others are side-grades.
 const mainRG=k=>RG.findIndex(r=>r.cls===k&&!r.badge);
-// Ports and waves beyond 1.6T / 6.4T only show once a router that takes them is unlocked.
-const portShown=i=>i<=4||RG.some((r,g)=>rgOpen(g)&&r.maxP>=i),waveShown=i=>i<=5||RG.some((r,g)=>rgOpen(g)&&r.maxLT>=i);
+// Ports and waves beyond 1.6T / 6.4T only show once a router that takes them is unlocked, or already runs at a POP:
+// a vendor demo unit arrives a level early (#435).
+const rgRuns=(k,i)=>{for(const c in S&&S.pops){const r=RG[S.pops[c].rgen||0];if(r&&r[k]>=i)return true;}return false;};
+const portShown=i=>i<=4||RG.some((r,g)=>rgOpen(g)&&r.maxP>=i)||rgRuns('maxP',i),waveShown=i=>i<=5||RG.some((r,g)=>rgOpen(g)&&r.maxLT>=i)||rgRuns('maxLT',i);
