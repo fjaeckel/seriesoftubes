@@ -47,6 +47,10 @@ const API_DOMAINS={
   seatPairs:{kind:'enum',values:()=>SEAT_N.slice()},
   callAmount:{kind:'enum',values:()=>CALL_AMTS.slice()},
   charterKey:{table:'CHARTERS',kind:'key'},
+  // The Streaming service's plans and regional licences (cntPrice, cntLic).
+  cntPlan:{kind:'enum',values:()=>PRICE_T.map((x,i)=>i)},
+  regionKey:{kind:'enum',values:()=>Object.keys(REG)},
+  cntLicKind:{kind:'enum',values:['buy','rent','stop']},
   // The link metric editor: a factor or an exact weight (metricMode, metricSet).
   metricKind:{kind:'enum',values:['f','w']},
   // The NOC's auto-mitigation switches (ddosAuto).
