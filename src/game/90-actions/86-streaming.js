@@ -17,6 +17,10 @@ Object.assign(ACT,{
  // A bundle offer: sign it (its subscribers arrive at once) or let it go.
  cntBund:({id})=>{if(!content())return;const o=S.cnt.boff.find(x=>x.id===id);if(!o)return;const n=bundSign(o);toast(tr('streaming.bundle_signed',{net:esc(n.name)}),'good');sfx('coin');after();},
  cntBundNo:({id})=>{if(!content())return;S.cnt.boff=S.cnt.boff.filter(x=>x.id!==id);after();},
+ // Event rights: pay up front and the event goes on your schedule; or pass.
+ cntRights:({id})=>{if(!content())return;const C=S.cnt,o=C.roff.find(x=>x.id===id);if(!o||!spend(o.fee))return;C.roff=C.roff.filter(x=>x!==o);
+   C.evs.push({id:o.id,n:o.n,reg:o.reg,mul:o.mul,gain:o.gain,fee:o.fee,day:o.day,w:1});toast(tr('streaming.rights_bought',{show:tr(EV_NAMES[o.n]),date:dateStr(o.day)}),'good');sfx('coin');after();},
+ cntRightsNo:({id})=>{if(!content())return;S.cnt.roff=S.cnt.roff.filter(x=>x.id!==id);after();},
  cntCat:()=>{if(!content())return;const N=CAT_T[S.cnt.cat+1];if(!N||N.lv>lvl()||!spend(N.cost))return;S.cnt.cat++;for(const b of S.cnt.box)b.f=Math.max(FILL_NEW,b.f*0.6);toast(tr('streaming.catalogue_now_name',{name:tr(N.n)}),'good');sfx('coin');after();},
  cntPrefill:()=>{if(!content())return;const p=S.cnt.prem;if(!p||p.pf||p.live||S.day>=p.day||!S.cnt.box.length||!spend(prefillCost()))return;p.pf=1;for(const b of S.cnt.box)b.f=1;toast(tr('streaming.boxes_pre_filled'),'good');after();},
  // A dispute: pay what they ask every month, or tell your viewers whose fault the buffering is.

@@ -5,6 +5,7 @@ const prefillCost=()=>5000+3000*S.cnt.box.length;
 const catNext=()=>CAT_T[S.cnt.cat+1]||null;
 function cntCard(){const C=S.cnt;if(!C)return '';const f=mcFree(),on=onNet(R),ccs=Object.keys(C.cc);
   let h=`<div class="inc" style="background:#FFF1E6"><div class="nm">📺 ${tr('streaming.must_carry')}</div>`;
+  {const z=cntFrozen();if(z)h+=`<div class="meta" style="color:var(--bad)"><b>🧊 ${tr('streaming.freeze_line',{show:z.show,date:dateStr(z.until)})}</b></div>`;}
   if(C.won)h+=`<div class="meta">${tr('streaming.won_on_date',{date:dateStr(C.won)})}</div>`;
   h+=`<div class="meta">${tr('streaming.subs_in_n_countries',{subs:fmtSubs(subsAll()),n:ccs.length})} · ${tr('streaming.on_net_p',{p:pct(on)})} · ${tr('streaming.origins_n_of_max',{n:dcN(),max:dcMax()})}</div>`;
   if(!C.won)h+=`<div class="meta">${tr('streaming.mc_progress',{a:Math.min(f.cc,MC_CC),cc:MC_CC,b:Math.min(f.reg,MC_REG),reg:MC_REG,prem:C.premAll?'✓':'✗',p:pct(on),need:pct(MC_ON)})}</div>`;
@@ -19,6 +20,9 @@ function cntCard(){const C=S.cnt;if(!C)return '';const f=mcFree(),on=onNet(R),cc
     else h+=`<div class="meta">${(p.live?tr('streaming.live_tonight',{show,where}):tr('streaming.premiere_tonight',{show,where}))}</div>`;}
   const D=C.disp;
   if(D){const n=NET[D.net];h+=`<div class="meta" style="color:var(--bad)">${tr('streaming.dispute_line2',{net:esc(n.name),fee:fmt$(D.fee)})} ${tr('streaming.dispute_carrying_p',{p:pct(D.cut)})}</div><div class="btns">${btn(tr('streaming.pay_fee_mo',{fee:fmt$(D.fee)}),'cntPay',{},'sm')}${D.camp?`<span class="tag st on">${tr('streaming.campaign_n_days_left',{n:Math.max(0,D.camp-S.day)})}</span>`:btn(tr('streaming.tell_your_viewers_cost',{cost:fmt$(DISP_CAMP)}),'cntCamp',{},'pink sm',S.cash<DISP_CAMP)}</div>`;}
+  // Event rights (38-streaming-events.js): offers to buy, then what is on the schedule.
+  for(const o of C.roff)h+=`<div class="meta">🎟️ ${tr('streaming.rights_offer',{show:tr(EV_NAMES[o.n]),where:evWhere(o),date:dateStr(o.day),x:o.mul,p:pct(o.gain)})}</div><div class="btns">${btn(tr('streaming.buy_rights_cost',{cost:fmt$(o.fee)}),'cntRights',{id:o.id},'pink sm',S.cash<o.fee)}${btn(tr('common.decline'),'cntRightsNo',{id:o.id},'ghost sm')}</div>`;
+  for(const e of C.evs)h+=`<div class="meta">🎟️ ${evOn(e,S.day)?tr('streaming.event_live_now',{show:evName(e),where:evWhere(e)}):tr('streaming.event_in_n_days',{show:evName(e),where:evWhere(e),n:e.day-S.day})}</div>`;
   // Bundles (38-streaming-bundles.js): offers waiting for an answer, then the ones running.
   for(const o of C.boff){const n=NET[o.net];h+=`<div class="meta">📦 ${tr('streaming.bundle_offer',{net:esc(n.name),list:Object.keys(o.g).map(k=>esc(ccName(k))).join(', '),subs:fmtSubs(bundAll(o)),p:pct(o.cut),n:Math.round(o.days/30)})}${o.by?' · '+esc(tr(SALES[o.by].s)):''}</div><div class="btns">${btn(tr('streaming.sign_bundle'),'cntBund',{id:o.id},'pink sm')}${btn(tr('common.decline'),'cntBundNo',{id:o.id},'ghost sm')}</div>`;}
   for(const b of C.bund)h+=`<div class="meta">📦 ${tr('streaming.bundle_running',{net:esc(NET[b.net].name),subs:fmtSubs(bundAll(b)),date:dateStr(b.until)})}</div>`;

@@ -33,7 +33,7 @@ const MC_CC=10,MC_REG=5,MC_ON=0.8;
 const LIVE_NAMES=[N_('streaming.live_fight'),N_('streaming.live_final'),N_('streaming.live_concert')];
 const premShow=p=>tr(p.live?LIVE_NAMES[p.n%LIVE_NAMES.length]:PREM_NAMES[p.n]);
 const PREM_NAMES=[N_('streaming.prem_dragons'),N_('streaming.prem_baking'),N_('streaming.prem_heist'),N_('streaming.prem_space'),N_('streaming.prem_crime'),N_('streaming.prem_reality')];
-function cntNew(){return {cc:{},dc:{[S.home]:{t:0,ready:0}},box:[],cat:0,prem:null,premNext:S.day+60,premN:0,premOk:0,premAll:0,disp:null,heal:{},free:{},paid:{},boff:[],bund:[],bnext:S.day+90,wins:0,won:0};}
+function cntNew(){return {cc:{},dc:{[S.home]:{t:0,ready:0}},box:[],cat:0,prem:null,premNext:S.day+60,premN:0,premOk:0,premAll:0,disp:null,heal:{},free:{},paid:{},boff:[],bund:[],bnext:S.day+90,roff:[],evs:[],rnext:S.day+EV_EVERY,evOk:0,wins:0,won:0};}
 /* Countries, built once: their eyeball weight, biggest city (where the viewers are said to be), continent and the
    networks that sell to homes there with their shares (W2 promises at least two). */
 let CC_I=null;
@@ -75,7 +75,7 @@ function boxWhy(c,id){const n=NET[id];if(!content()||!n||!eyeNet(n))return tr('s
 function boxHit(c){const C=S.cnt,reg=CITY[c].reg,near=Object.keys(C.dc).some(o=>dcLive(o)&&CITY[o].reg===reg),pr=premLive();
   return clamp(BOX_HIT+(near?BOX_NEAR:0)-0.03*C.cat+(pr&&pr.pf&&!pr.live?0.15:0),0.4,0.95);}
 // What the box in a city actually holds tonight: its ceiling times how full it is, far less during a live event.
-const boxHeld=(c,bs)=>{const pr=premLive(),f=bs.reduce((a,b)=>a+b.f,0)/bs.length;return boxHit(c)*f*(pr&&pr.live&&premIn(pr,CITY[c].reg)?LIVE_HIT:1);};
+const boxHeld=(c,bs)=>{const pr=premLive(),f=bs.reduce((a,b)=>a+b.f,0)/bs.length,reg=CITY[c].reg;return boxHit(c)*f*(pr&&pr.live&&premIn(pr,reg)||evLiveAt(reg)?LIVE_HIT:1);};
 // A dispute's grip, or its after-effects, on one network.
 const cntCut=id=>{const C=S.cnt;if(!C)return 1;if(C.disp&&C.disp.net===id)return C.disp.cut;const h=C.heal&&C.heal[id];return h?h:1;};
 // Premieres: live on their three nights, for one continent or the whole world.
@@ -98,7 +98,7 @@ function cntFlows(R2,flow,DEMTO,reach,NF0){const C=S.cnt;if(!C)return null;const
   const bx={};for(const b of C.box){if(!popUp(b.city))continue;const k=CITY[b.city].cc+'|'+b.net;(bx[k]=bx[k]||[]).push(b);}
   const add=(c,j,x,ca)=>{if(x<=1e-9)return;flow(CIDX[c],j,x,ca,false);R2.cityDem[c]=(R2.cityDem[c]||0)+x;R2.demand+=x;DEMTO[j]+=x;};
   const need=[],pairs=[];
-  for(const cc in C.cc){const I=ccInfo(cc);if(!I)continue;const D=C.cc[cc].d*(premIn(pr,I.reg)?premMul(pr):1),o={D,parts:[],short:0,miss:[]};out.cc[cc]=o;let rest=0;
+  for(const cc in C.cc){const I=ccInfo(cc);if(!I)continue;const D=C.cc[cc].d*Math.max(premIn(pr,I.reg)?premMul(pr):1,evMulAt(I.reg)),o={D,parts:[],short:0,miss:[]};out.cc[cc]=o;let rest=0;
     for(const [j,w] of I.nets){const x=D*w,bs=bx[cc+'|'+NETS[j].id];if(bs){const h=x*boxHeld(bs[0].city,bs),each=h/bs.length;for(const {city:c} of bs){add(c,j,each,true);o.parts.push([c,each,kmBetween(c,I.main),0]);}o.miss.push([j,x-h]);rest+=x-h;}
       else{o.miss.push([j,x]);rest+=x;}}
     o.rest=rest;need.push(cc);for(const og of org)pairs.push([kmBetween(og,I.main),cc,og]);}
@@ -138,7 +138,7 @@ function cntDay(d){const C=S.cnt;if(!content()||!C)return;
   const G=CAT_T[C.cat].grow;
   for(const cc in C.cc){const x=C.cc[cc],q=ccQ(R,cc),P=ccPot(cc);
     if(q>=0.9)x.d+=CNT_GROW*G*q*x.d*Math.max(0,1-x.d/P);else x.d=Math.max(1,x.d*(1-(0.9-q)*0.05));}
-  cntFillDay(d);cntPremDay(d);cntDispDay(d);cntDealDay(d);bundDay(d);
+  cntFillDay(d);cntPremDay(d);evDay(d);cntDispDay(d);cntDealDay(d);bundDay(d);
   if(!C.won&&mustCarry()){C.won=d;track('win_mustcarry');toast(`<b>📺 ${tr('streaming.must_carry')}</b><br>${tr('streaming.no_network_can_drop_you_now')}`,'goal');sfx('coin');checkBadges();}}
 function cntPremDay(d){const C=S.cnt,p=C.prem;
   if(!p){if(lvl()>=PREM_LV&&Object.keys(C.cc).length&&d>=C.premNext){const w={};for(const cc in C.cc){const r=ccInfo(cc).reg;w[r]=(w[r]||0)+C.cc[cc].d;}
@@ -192,6 +192,7 @@ const CONTENT_GOALS=[
  {id:'ct_dc',t:tr('streaming.goal_dc'),d:tr('streaming.goal_dc_d'),r:100000,ok:()=>Object.keys(S.cnt.dc).some(c=>S.cnt.dc[c].t>0&&dcLive(c))},
  {id:'ct_cc5',t:tr('streaming.goal_cc5b'),d:tr('streaming.goal_cc5b_d'),r:50000,ok:()=>Object.keys(S.cnt.cc).length>=5},
  {id:'ct_prem',t:tr('streaming.goal_prem'),d:tr('streaming.goal_prem_d'),r:75000,ok:()=>S.cnt.premOk>0},
+ {id:'ct_event',t:tr('streaming.goal_event'),d:tr('streaming.goal_event_d'),r:100000,ok:()=>S.cnt.evOk>0},
  {id:'ct_on50',t:tr('streaming.goal_on50'),d:tr('streaming.goal_on50_d'),r:100000,ok:()=>R.served>=50&&onNet(R)>=0.5},
  {id:'ct_cont3',t:tr('streaming.goal_cont3'),d:tr('streaming.goal_cont3_d'),r:150000,ok:()=>new Set(Object.keys(S.cnt.cc).filter(k=>ccQ(R,k)>=0.9).map(k=>ccInfo(k).reg)).size>=3},
  {id:'ct_disp',t:tr('streaming.goal_disp'),d:tr('streaming.goal_disp_d'),r:150000,ok:()=>S.cnt.wins>0},
@@ -211,4 +212,4 @@ function cntSanitize(s){if(s.charter!=='content'){delete s.cnt;return;}const c0=
   if(c0.paid&&typeof c0.paid==='object')for(const id of Object.keys(c0.paid).slice(0,400)){if(!NET[id])continue;const x=c0.paid[id],fee=typeof x==='object'&&x?x.fee:x;o.paid[id]={fee:clamp(Math.round(n(fee,0)),0,1e8),until:Math.round(n(x&&x.until,(s.day||0)+DEAL_DAYS))};}
   if(c0.heal&&typeof c0.heal==='object')for(const id of Object.keys(c0.heal).slice(0,400))if(NET[id])o.heal[id]=clamp(n(c0.heal[id],1),DISP_CUT,1);
   o.premN=Math.max(0,Math.round(n(c0.premN,0)));
-  o.wins=Math.max(0,Math.round(n(c0.wins,0)));o.won=Math.max(0,Math.round(n(c0.won,0)));bundSanitize(c0,o,s);s.cnt=o;}
+  o.wins=Math.max(0,Math.round(n(c0.wins,0)));o.won=Math.max(0,Math.round(n(c0.won,0)));bundSanitize(c0,o,s);evSanitize(c0,o,s);s.cnt=o;}
