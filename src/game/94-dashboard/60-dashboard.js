@@ -1,4 +1,4 @@
-function dashTabs(){const u=custStats().unhappy,dd=ddosLive().length,cur=UI.dtab||'overview',L={overview:tr('common.overview'),cust:tr('common.customers'),conn:tr('common.connections'),traffic:tr('common.traffic'),ddos:tr('ddos_dash.tab'),links:tr('common.links'),routers:tr('common.routers'),pops:tr('unbuilt_pops.no_pop_yet'),lease:tr('common.leased_lines'),market:tr('market.tab')};
+function dashTabs(){dtabSync();const u=custStats().unhappy,dd=ddosLive().length,cur=UI.dtab||'overview',L={overview:tr('common.overview'),cust:tr('common.customers'),conn:tr('common.connections'),traffic:tr('common.traffic'),ddos:tr('ddos_dash.tab'),links:tr('common.links'),routers:tr('common.routers'),pops:tr('unbuilt_pops.no_pop_yet'),lease:tr('common.leased_lines'),market:tr('market.tab'),stream:tr('streaming_noc.tab')};
   return `<nav class="dtabs" role="tablist">${DTABS.map(k=>`<button class="${cur===k?'on':''}" role="tab" aria-selected="${cur===k}" data-act="dashTab" data-args='{"k":"${k}"}'>${L[k]}${k==='cust'&&u?`<span class="cnt red">${u}</span>`:''}${k==='ddos'&&dd?`<span class="cnt red">${dd}</span>`:''}</button>`).join('')}</nav>`;}
 function renderDash(){checkLayer();
   const H=S.hist||[],rows=H.slice(-90),last30=H.slice(-30);
@@ -31,6 +31,7 @@ function renderDash(){checkLayer();
   if(DT==='pops')h+=popsSection();
   if(DT==='lease')h+=leaseTab();
   if(DT==='market')h+=marketTab();
+  if(DT==='stream')h+=cntNocTab();
   if(h!==UI._dh){UI._dh=h;morph($('dashCard'),h);if(DT==='links'||DT==='routers')fitList();}
   // Where the tabs are one scrolling line (a phone on its side), a newly opened tab is brought into view; once per switch.
   if(UI._dt!==DT){UI._dt=DT;const nav=$('dashCard').querySelector('.dhead .dtabs'),on=nav&&nav.querySelector('.on');if(on&&nav.scrollWidth>nav.clientWidth)nav.scrollLeft=on.offsetLeft-nav.offsetLeft-24;}

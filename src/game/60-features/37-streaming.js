@@ -102,7 +102,7 @@ const CNT_POP={k:'',m:new Map()};
 function cntPop(cc,pops){const k=pops.join();if(CNT_POP.k!==k){CNT_POP.k=k;CNT_POP.m=new Map();}let v=CNT_POP.m.get(cc);
   if(v===undefined){const I=ccInfo(cc);v=null;let b=Infinity;for(const p of pops){const km=kmBetween(p,I.main);if(km<b||km===b&&p<v){b=km;v=p;}}CNT_POP.m.set(cc,v);}return v;}
 const farO=km=>1-0.1*clamp((km-2000)/8000,0,1);
-function cntFlows(R2,flow,DEMTO,reach,NF0){const C=S.cnt;if(!C)return null;const out={cc:{},short:0,org:{},haul:{}};R2.cnt=out;const jobs=[],pops=Object.keys(S.pops).filter(popUp).sort();
+function cntFlows(R2,flow,DEMTO,reach,NF0){const C=S.cnt;if(!C)return null;const out={cc:{},short:0,org:{},haul:{}};R2.cnt=out;const jobs=out.hj=[],pops=Object.keys(S.pops).filter(popUp).sort();
   const pr=premLive(),org=Object.keys(C.dc).filter(c=>dcLive(c)&&popUp(c)),room={};for(const o of org){room[o]=dcG(o);out.org[o]=0;}
   const bx={};for(const b of C.box){if(!popUp(b.city))continue;const k=CITY[b.city].cc+'|'+b.net;(bx[k]=bx[k]||[]).push(b);}
   const add=(c,j,x,ca)=>{if(x<=1e-9)return;flow(CIDX[c],j,x,ca,false);R2.cityDem[c]=(R2.cityDem[c]||0)+x;R2.demand+=x;DEMTO[j]+=x;};
