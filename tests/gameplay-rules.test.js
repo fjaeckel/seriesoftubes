@@ -266,7 +266,8 @@ test('M3: every subsystem that can annoy the player reads a rule', () => {
   const reads = [['dayPost', 'chaosMul()'], ['fireEvent', "rule('market')"], ['ddosTick', 'ddosOff()'],
     ['soldOut', "rule('market')"], ['hwMul', "rule('market')"], ['leadDays', "rule('lead')"], ['pniLead', 'leadDays'],
     ['dfBuildDays', 'leadDays'], ['dayPreRun', "rule('clock')"], ['snub', "rule('market')"], ['failureRun', 'shipsOn()'],
-    ['upcomingConfs', 'confsOn()'], ['pniLead', 'pniNow()'], ['dayPost', "rule('broke')"], ['dayPost', "rule('moods')"], ['toast', 'quietOn()']];
+    ['upcomingConfs', 'confsOn()'], ['pniLead', 'pniNow()'], ['dayPost', "rule('broke')"], ['dayPost', "rule('moods')"], ['toast', 'quietOn()'],
+    ['cntIncDay', 'chaosMul()'], ['cntRegDay', "rule('market')"]];
   fail('M3', reads.filter(([f, r]) => !ev(`typeof ${f}==='function'&&${f}.toString().includes(${lit(r)})`)).map(([f, r]) => `${f}() does not read ${r}`), 'gate it on the ruleset (src/game/40-progress/30-rules.js)');
   // and in play: no chaos and no market means a quiet year
   const g = load();
@@ -339,6 +340,20 @@ test('M7: a Streaming service is never Tier 1, sells nothing to homes or custome
   if (notEye.length) bad.push('a Streaming service sends traffic to networks that sell no homes: ' + notEye.join(', '));
   if (g.ev("Object.keys(R.cnt.cc).some(k=>R.cnt.cc[k].parts.some(([c])=>!S.cnt.dc[c]&&!S.cnt.box.some(b=>b.city===c)))")) bad.push('traffic starts somewhere that is neither an origin nor a box');
   assert.deepEqual(bad, []);
+});
+
+test('M8: streaming regulation keeps its thresholds: fair share from 2% of a continent\'s peak, boxes exempt from sending party pays', () => {
+  const bad = [];
+  const g = load();
+  g.ev("beginGame('Streamer','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'content'});S.cash=1e9;S.lvl=8;ACT.cntLaunch({cc:'DE'});ACT.buyTransit({city:S.home,net:'cog',tier:1});S.cnt.dc[S.home].t=3;S.day=100");
+  if (g.ev('FS_SHARE') !== 0.02) bad.push('the fair share threshold is not 2%');
+  g.ev("S.cnt.cc.DE.d=regPeak('EU')*FS_SHARE*0.99;compute();for(let i=0;i<1000;i++){S.day++;cntRegDay(S.day);}");
+  if (g.ev("!!S.cnt.rg.fs.EU")) bad.push('a fair share law came below 2% of the continent\'s peak');
+  g.ev("S.cnt.rg.spp={};sppStart('DE',S.day);S.cnt.box.push({id:'m8',city:S.home,net:boxNets(S.home)[0].id,day:0,f:1});compute()");
+  if (!(g.ev('R.useCache.m8') > 0)) bad.push('the test box serves nothing');
+  else if (Math.abs(g.ev("sppBase(R,'DE')") - (g.ev("R.cnt.cc.DE.D-R.cnt.cc.DE.short") - g.ev('R.useCache.m8'))) > 1e-6) bad.push('sending party pays bills what a box inside the ISP serves');
+  assert.deepEqual(bad, []);
+  assert.deepEqual(g.errors, []);
 });
 
 // ---------- Content ----------

@@ -40,8 +40,9 @@ const PREM_NAMES=[N_('streaming.prem_dragons'),N_('streaming.prem_baking'),N_('s
    repair those fields on load (c0 the saved S.cnt, o the clean one being built). CNT_DAY(d): once a day, after
    routing. CNT_CARD(): extra HTML for the charter card. CNT_CITY(c): extra HTML for a city's Streaming tab. CNT_CC(cc):
    extra HTML inside a launched country's block. CNT_ADD(r,cc): revenue a country earns on top of its subscriptions.
-   CNT_COST(): monthly costs on top. */
-const CNT_MUL={grow:[],pot:[],churn:[],rev:[]},CNT_NEW=[],CNT_SAN=[],CNT_DAY=[],CNT_CARD=[],CNT_CITY=[],CNT_CC=[],CNT_ADD=[],CNT_COST=[];
+   CNT_ORG(c): a multiplier on what the origin in c can serve tonight (outages). CNT_COST(r): extra monthly cost, given
+   the routing being built (regulation, licences). */
+const CNT_MUL={grow:[],pot:[],churn:[],rev:[]},CNT_NEW=[],CNT_SAN=[],CNT_DAY=[],CNT_CARD=[],CNT_CITY=[],CNT_CC=[],CNT_ADD=[],CNT_ORG=[],CNT_COST=[];
 const cntMul=(k,cc)=>{let m=1;for(const f of CNT_MUL[k])m*=f(cc);return m;};
 function cntNew(){const o=cntNew0();for(const f of CNT_NEW)f(o);return o;}
 function cntNew0(){return {cc:{},dc:{[S.home]:{t:0,ready:0}},box:[],cat:0,prem:null,premNext:S.day+60,premN:0,premOk:0,premAll:0,disp:null,heal:{},free:{},paid:{},boff:[],bund:[],bnext:S.day+90,roff:[],evs:[],rnext:S.day+EV_EVERY,evOk:0,wins:0,won:0};}
@@ -63,6 +64,7 @@ const fmtSubs=g=>{const n=subsOf(g);return n>=1e6?(n/1e6).toFixed(n>=1e7?0:1)+'M
 const dcSite=c=>!!(CITY[c]&&CITY[c].dc&&CITY[c].P>=DC_MIN_P&&!CITY[c].cn);
 const dcLive=c=>{const d=S.cnt&&S.cnt.dc[c];return !!d&&d.ready<=S.day&&!!S.pops[c];};
 const dcG=c=>DC_T[S.cnt.dc[c].t].g;
+const dcRoom=c=>{let g=dcG(c);for(const f of CNT_ORG)g*=f(c);return g;};
 const dcMax=()=>1+Math.floor(lvl()/3);
 const dcN=()=>Object.keys(S.cnt.dc).length;
 const farF=km=>km<=CNT_FAR[0]?1:km>=CNT_FAR[1]?CNT_FAR[2]:1-(1-CNT_FAR[2])*(km-CNT_FAR[0])/(CNT_FAR[1]-CNT_FAR[0]);
@@ -107,7 +109,7 @@ function cntPop(cc,pops){const k=pops.join();if(CNT_POP.k!==k){CNT_POP.k=k;CNT_P
   if(v===undefined){const I=ccInfo(cc);v=null;let b=Infinity;for(const p of pops){const km=kmBetween(p,I.main);if(km<b||km===b&&p<v){b=km;v=p;}}CNT_POP.m.set(cc,v);}return v;}
 const farO=km=>1-0.1*clamp((km-2000)/8000,0,1);
 function cntFlows(R2,flow,DEMTO,reach,NF0){const C=S.cnt;if(!C)return null;const out={cc:{},short:0,org:{},haul:{}};R2.cnt=out;const jobs=out.hj=[],pops=Object.keys(S.pops).filter(popUp).sort();
-  const pr=premLive(),org=Object.keys(C.dc).filter(c=>dcLive(c)&&popUp(c)),room={};for(const o of org){room[o]=dcG(o);out.org[o]=0;}
+  const pr=premLive(),org=Object.keys(C.dc).filter(c=>dcLive(c)&&popUp(c)),room={};for(const o of org){room[o]=dcRoom(o);out.org[o]=0;}
   // A box in a city with no POP of yours sits inside the ISP and is served outside routing (IN, 38-streaming-boxes.js).
   const IN=boxInStart(out,DEMTO,R2),bx={};for(const b of C.box){if(S.pops[b.city]&&!popUp(b.city))continue;const k=CITY[b.city].cc+'|'+b.net;(bx[k]=bx[k]||[]).push(b);}
   const add=(c,j,x,ca)=>{if(x<=1e-9)return;flow(CIDX[c],j,x,ca,false);R2.cityDem[c]=(R2.cityDem[c]||0)+x;R2.demand+=x;DEMTO[j]+=x;};
@@ -131,8 +133,8 @@ function ccQ(r,cc){const o=r&&r.cnt&&r.cnt.cc[cc];if(!o||o.D<=1e-9)return 1;let 
 // Bundled subscribers pay the ISP's wholesale price: their share of a country earns the bundle's discount less.
 function ccRev(r,cc){const d=S.cnt.cc[cc].d;let v=(d-Math.min(d,bundG(cc))*bundCut(cc))*ccQ(r,cc)*CNT_RATE*cntMul('rev',cc);for(const f of CNT_ADD)v+=f(r,cc);return v;}
 function cntRev(r){const C=S.cnt;if(!C)return 0;let v=0;for(const cc in C.cc)v+=ccRev(r,cc);return v;}
-function cntCost(){const C=S.cnt;if(!C)return 0;let m=CAT_T[C.cat].mo;for(const c in C.dc)m+=DC_T[C.dc[c].t].mo;
-  for(const b of C.box){const n=NET[b.net];m+=BOX_MO+(n?boxHost(n):0);}m+=xboxMo();for(const k in C.paid)m+=C.paid[k].fee;for(const f of CNT_COST)m+=f();return m;}
+function cntCost(r){const C=S.cnt;if(!C)return 0;let m=CAT_T[C.cat].mo;for(const f of CNT_COST)m+=f(r);for(const c in C.dc)m+=DC_T[C.dc[c].t].mo;
+  for(const b of C.box){const n=NET[b.net];m+=BOX_MO+(n?boxHost(n):0);}m+=xboxMo();for(const k in C.paid)m+=C.paid[k].fee;return m;}
 // On-net: what leaves through your boxes and over PNIs, of everything served.
 const onNet=r=>r&&r.served>1e-6?((r.egT.c||0)+(r.egT.p||0))/r.served:0;
 // Levels count the countries a streaming service is live in where a carrier counts POPs, and their continents.
@@ -191,7 +193,7 @@ function cntEnd(){const C=S.cnt,D=C.disp;if(!D)return;if(D.cut<1)C.heal[D.net]=D
 // Overnight fill: a box reached over your backbone from a live origin fills fast, one fed only by transit slowly, one
 // with no way in not at all (boxes with no POP of yours fill in 38-streaming-boxes.js). Heal: ports freed after a dispute
 // carry more each day.
-function cntFillDay(d){const C=S.cnt,org=Object.keys(C.dc).filter(dcLive);
+function cntFillDay(d){const C=S.cnt,org=Object.keys(C.dc).filter(c=>dcLive(c)&&dcRoom(c)>0);
   for(const b of C.box){if(b.f>=1||!S.pops[b.city])continue;const bb=org.some(o=>o===b.city||linked(o,b.city));b.f=Math.min(1,b.f+(bb?FILL_NET:cntOut(b.city)?FILL_T:0));}
   for(const k of Object.keys(C.heal)){C.heal[k]+=DISP_HEAL;if(C.heal[k]>=1)delete C.heal[k];}}
 // Two POPs your backbone joins (today's routing knows: the origin's traffic reaches it, or it has a path).
