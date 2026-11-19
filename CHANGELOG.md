@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- A dark fiber with managed waves sold now adds up in its panel: lit, less the managed waves, is yours, and of that you see what your traffic uses and what is still free.
+- A peak that rounds to the level's mark no longer looks reached while it is not, and a network capped exactly at the mark levels up.
 - A new charter, the Streaming service: you are the content. Launch in countries, build origin data centers in big metros on every continent, put your own Binge Boxes inside the networks your viewers use, sign bundles with home ISPs, buy the rights to gloriously silly live events (and freeze your network while they stream), survive peering disputes, and win Must-Carry. A streaming service sells no transit, so it never becomes Tier 1.
 - A vendor demo router that takes 3.2T ports can now upgrade the ports you already have to 3.2T, instead of making you leave an exchange and join again; the fastest waves show up the same way (#435).
 - Coming back online with a big network in Multimode no longer makes the game crawl while it catches up: the catch-up now holds the page for less than half as long, and other players' networks are worked into your routing once it is done instead of every second along the way, off the main thread.

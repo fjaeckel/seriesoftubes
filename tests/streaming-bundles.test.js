@@ -77,3 +77,12 @@ test('bundles survive a save and old saves without them load', () => {
   assert.equal(ev("(()=>{const s=JSON.parse(JSON.stringify(S));delete s.cnt.bund;delete s.cnt.boff;sanitize(s);return s.cnt.bund.length+s.cnt.boff.length;})()"), 0);
   assert.deepEqual(errors, []);
 });
+
+test('a peak capped a hair below the level mark still levels up', () => {
+  const { ev, errors } = start();
+  ev("S.lvl=4;for(const k of ['FR','NL','BE','AT','CH','PL','IT','ES'])S.cnt.cc[k]={d:1,since:0};S.stats.peak=LV_REQ[4].pk-1e-6");
+  assert.equal(ev("custLevel()"), 5, '5,999.999999 Gbps of a 6 Tbps mark');
+  ev("S.stats.peak=LV_REQ[4].pk-5");
+  assert.equal(ev("custLevel()"), 4, 'but not 5 Gbps short');
+  assert.deepEqual(errors, []);
+});

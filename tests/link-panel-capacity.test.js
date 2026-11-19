@@ -20,11 +20,13 @@ const json = (ev, code) => JSON.parse(ev(`JSON.stringify(${code})`));
 // The panel's key-value rows for one link, as {label: value}.
 const rows = (ev, i) => json(ev, `(()=>{selectLink(S.links[${i}].id);return Object.fromEntries([...$('panel').querySelectorAll('.kv')].map(k=>[k.children[0].textContent,k.children[1].textContent]));})()`);
 
-test('with managed waves sold: used, left for your traffic and lit, and lit = left + managed', (t) => {
+test('with managed waves sold: lit less managed is yours, and of yours used plus left adds up', (t) => {
   const { ev, errors } = game(t);
   const r = rows(ev, 0), L = 'S.links[0]';
   assert.equal(r['Used by your traffic'], ev(`fmtG(R.load[${L}.id]||0)`));
-  assert.equal(r['Left for your traffic'], ev(`fmtG(dfCap(${L}))`));
+  assert.equal(r['Yours'], ev(`fmtG(dfCap(${L}))`));
+  assert.equal(r['Sold as managed waves'], ev(`'− '+fmtG(800)`));
+  assert.equal(r['Left for your traffic'], ev(`fmtG(Math.max(0,dfCap(${L})-(R.load[${L}.id]||0)))`), 'what your traffic has not used yet');
   assert.ok(ev("$('panel').textContent.includes('800G sold as managed waves')"), 'the managed waves, named once in the capacity line');
   assert.equal(r['Lit on this fiber'], ev(`fmtG(dfLit(${L}))`));
   assert.equal(ev(`dfLit(${L})-dfCap(${L})`), 800, 'managed waves come out of your own lit capacity');
@@ -34,7 +36,7 @@ test('with managed waves sold: used, left for your traffic and lit, and lit = le
 test('without managed waves the capacity line says it all: no split', (t) => {
   const { ev, errors } = game(t);
   const r = rows(ev, 1);
-  for (const k of ['Used by your traffic', 'Left for your traffic', 'Lit on this fiber']) assert.ok(!(k in r), k);
+  for (const k of ['Used by your traffic', 'Left for your traffic', 'Lit on this fiber', 'Yours', 'Sold as managed waves']) assert.ok(!(k in r), k);
   assert.ok(ev("$('panel').textContent.includes(fmtG(R.load[S.links[1].id]||0)+' / '+fmtG(dfLit(S.links[1])))"), 'used / lit in the capacity line');
   assert.deepEqual(errors, []);
 });

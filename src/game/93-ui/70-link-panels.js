@@ -29,11 +29,12 @@ function ixBlock(c,multi){const city=ixCity(c),C=CITY[city],ix=ixName(c),X=XIXM[
 }
 function borderSection(l){const w=borderShut(l);return w?`<section><h3 style="color:var(--bad)">${tr('link_panels.border_closed')}</h3><p class="lead">${w==='gulf'?tr('link_panels.a_diplomatic_spat_has_closed_the')+' '+tr('link_panels.back_in_n_days',{n:S.ev.gulf-S.day}):tr('link_panels.russia_has_unplugged_itself_from_the')}</p></section>`:'';}
 // Both ends of a link in its panel header open that city (#196), say to upgrade the router there for a bigger wave.
-// A dark fiber with managed waves sold, used against lit: your traffic, what is left for it once the managed waves (named
-// in the line above) take their share of the same lit capacity (dfCap0), and everything the optics light. Without
-// managed waves the capacity line above already says all of it.
+// A dark fiber with managed waves sold: everything the optics light, the managed waves' share of it, what is yours (dfCap0),
+// and of that what your traffic uses and what it has left. Without managed waves the capacity line above says all of it.
 function litSplit(l,load,cap){const lit=dfLit(l);if(!lit||!mwG(l))return '';const kv=(k,v)=>`<div class="kv"><span>${k}</span><b>${v}</b></div>`;
-  return kv(tr('link_panels.used_by_your_traffic'),fmtG(load))+kv(tr('link_panels.left_for_your_traffic'),fmtG(cap))+kv(tr('link_panels.lit_on_this_fiber'),fmtG(lit));}
+  // Top down, so it adds up: what the optics light, less the managed waves, is yours; of that, used and still free.
+  return kv(tr('link_panels.lit_on_this_fiber'),fmtG(lit))+kv(tr('link_panels.sold_as_managed_waves'),'− '+fmtG(mwG(l)))+kv(tr('link_panels.yours_on_this_fiber'),fmtG(cap))
+    +kv(tr('link_panels.used_by_your_traffic'),fmtG(load))+kv(tr('link_panels.left_for_your_traffic'),fmtG(Math.max(0,cap-load)));}
 const optShort=k=>OPT[k].n.split(' ').pop();
 const lkEnds=l=>[l.a,l.b].map(c=>cityOn(c)?btn(esc(CITY[c].name),'popGo',{city:c},'clink'):esc(CITY[c].name)).join(' ⇄ ');
 function vxcPanel(l){
