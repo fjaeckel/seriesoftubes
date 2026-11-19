@@ -555,3 +555,4 @@
 :where(:root.dark) [style*="background:#EEF0FF"]{background:#1E2138!important}
 :where(:root.dark) [style*="background:#FFE2E6"]{background:#3C2024!important}
 :where(:root.dark) [style*="background:#FFF1D6"]{background:#403623!important}
+:where(:root.dark) [style*="background:#FFF1E6"]{background:#3B2C20!important}

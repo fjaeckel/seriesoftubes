@@ -68,7 +68,7 @@ const lvReg=i=>Math.max(0,...LV_REQ.slice(1,i+1).map(q=>q.reg||0));
 const lvl=()=>S&&S.rules&&S.rules.gates==='open'?LEVELS.length:(S&&S.lvl)||1;
 // Lower-case just the first word for mid-sentence use, so names like Tel-Mess or AGI keep their capitals.
 const lc1=t=>/^[A-Z][a-z]/.test(t)?t[0].toLowerCase()+t.slice(1):t;
-function custLevel(){const pops=Object.keys(S.pops).length,pk=S.stats.peak,rc=regionsCount();let lv=1;for(let i=1;i<LV_REQ.length;i++){const q=LV_REQ[i];if(pk>=q.pk&&pops>=q.pops&&rc>=lvReg(i))lv=i+1;else break;}return lv;}
+function custLevel(){const pops=lvPlaces(),pk=S.stats.peak,rc=lvRegions();let lv=1;for(let i=1;i<LV_REQ.length;i++){const q=LV_REQ[i];if(pk>=q.pk&&pops>=q.pops&&rc>=lvReg(i))lv=i+1;else break;}return lv;}
 // Traffic eras: some levels bring a new reason to watch more video, and every city's eyeballs grow toward more.
 const eraMul=()=>LEVELS.slice(0,lvl()).reduce((a,L)=>a*(L.era||1),1);
 const eyeP=c=>CITY[c].P*eraMul();

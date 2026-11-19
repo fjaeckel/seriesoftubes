@@ -10,7 +10,8 @@ const API_STATE_DOC={
  priceMul:{type:'number',doc:'Multiplier on transit prices (weekly modifier).'},
  mode:{type:'string',doc:'normal | sandbox | scenario | puzzle.'},
  rules:{type:'map',doc:'The rules this network locked in at its door: preset (soft, freeze, oncall, bgp, sandbox or puzzle), the chaos dial, lead times, the market, and the Best Effort extras (sea, confs, broke, moods, pnis), which are only written where they differ from the classic game. They stay for the network\'s whole life.'},
- charter:{type:'string',doc:'The charter a normal game signed when it started: global | boutique | broker. chartSet is false until one is signed.'},
+ charter:{type:'string',doc:'The charter a normal game signed when it started: global | boutique | broker | content. chartSet is false until one is signed.'},
+ cnt:{type:'map',doc:'A Streaming service only (else null): cc (subscribers per country code, d in Gbps at the evening peak), dc (origin data centers by city: t size, ready day), box (Binge Boxes inside eyeball networks), cat (catalogue tier), prem (the announced premiere), disp (a dispute), free and paid (eyeball networks that host you for free, or that you pay monthly), premOk, premAll, wins, won (Must-Carry day).'},
  baronWon:{type:'number',doc:'The day a broker won Glass Baron, or 0.'},
  chartSet:{type:'boolean',doc:'The charter has been picked; false while the choice is still open.'},
  solWon:{type:'integer',doc:'The day the Speed of Light win landed (boutique charter), or 0.'},
@@ -158,6 +159,7 @@ const API_RESULTS_DOC={
  graceNets:{type:'number',doc:'Networks reached over the courtesy route after a merger wave.'},
  cityBlocked:{type:'map',doc:'Set up per city by the traffic computation; nothing fills it at present.'},
  ddosHot:{type:'map',doc:'Cities whose ports a flood is filling, for the map\'s pulse. Keyed by city id.'},
+ cnt:{type:'map',doc:'A Streaming service only (else null): cc (per country code: D its evening demand, parts [source city, Gbps, km to its viewers], short what no origin had room for), org (Gbps each origin serves), short (all demand no origin had room for).'},
 };
 
 /* The dice rather than the board: in the player's tab (over the relay) state never returns these, and schema says why.

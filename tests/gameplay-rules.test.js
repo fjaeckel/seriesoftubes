@@ -323,6 +323,24 @@ test('M6: a charter changes what you set out to do, never what things cost', () 
   assert.deepEqual(g.errors, []);
 });
 
+test('M7: a Streaming service is never Tier 1, sells nothing to homes or customers, and sends only to eyeball networks', () => {
+  const bad = [];
+  const g = load();
+  g.ev("beginGame('Streamer','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'content'});S.cash=1e9;ACT.cntLaunch({cc:'DE'});ACT.cntLaunch({cc:'US'});ACT.buyTransit({city:S.home,net:'cog',tier:1});compute()");
+  if (!g.ev("!!S.cnt&&charter()==='content'")) bad.push('the content charter does not start a Streaming service');
+  g.ev("S.transit=[];for(const n of t1Need())S.pni.push({id:'t'+n.id,city:S.home,net:n.id,tier:1,n:1});compute()");
+  if (g.ev('isTier1()')) bad.push('a Streaming service peering with every Tier 1 and buying no transit counts as Tier 1');
+  g.ev("ACT.launchBB({city:S.home});for(let i=0;i<20;i++)spawnOffer()");
+  if (g.ev('!!S.pops[S.home].bb')) bad.push('a Streaming service sells home broadband');
+  if (g.ev('S.offers.length')) bad.push('customers call a Streaming service');
+  g.ev("ACT.buyTransit({city:S.home,net:'cog',tier:1});compute()");
+  const to = JSON.parse(g.ev("JSON.stringify(Object.keys(R.demTo).filter(id=>R.demTo[id]>0))"));
+  const notEye = to.filter(id => !g.ev(`eyeNet(NET['${id}'])`));
+  if (notEye.length) bad.push('a Streaming service sends traffic to networks that sell no homes: ' + notEye.join(', '));
+  if (g.ev("Object.keys(R.cnt.cc).some(k=>R.cnt.cc[k].parts.some(([c])=>!S.cnt.dc[c]&&!S.cnt.box.some(b=>b.city===c)))")) bad.push('traffic starts somewhere that is neither an origin nor a box');
+  assert.deepEqual(bad, []);
+});
+
 // ---------- Content ----------
 
 test('C1: every scenario has a goal its card checks, and none is won on day 0', () => {

@@ -21,7 +21,7 @@ test('a new Normal game asks for its charter first, and the popup waits for an a
   ev('window.__TUBES_CHARTER__=true;ACT.start({})');
   assert.equal(modal(ev), 'charter', 'the picker is open, and an open window holds the clock');
   const opts = [...dom.window.document.querySelectorAll('#modalCard .chopt')].map((b) => JSON.parse(b.dataset.args).k);
-  assert.deepEqual(opts, ['global', 'boutique', 'broker']);
+  assert.deepEqual(opts, ['global', 'boutique', 'broker', 'content']);
   assert.match(dom.window.document.getElementById('modalCard').textContent, /Glass Baron/, 'each charter says what it is and how it wins');
   assert.equal(ev('UI.tutLater'), true, 'the tutorial waits for the charter');
   // Escape, or anything that closes the window, does not get past it.

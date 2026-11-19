@@ -51,6 +51,7 @@ These are what the game promises, held up by `tests/gameplay-rules.test.js` (one
 | M4 | Scenarios and the weekly challenge always run On-call plus their own `S.scn.rules`. | Fair scores. |
 | M5 | Sandbox has no locked feature: open gates, every level, own cables, endless money. | It is a sandbox. |
 | M6 | A Normal game picks its charter once, when it starts (sandbox, puzzles and scenarios never do). A charter changes what you set out to do, never what things cost: the Cable broker gets glass (fiber, line systems, optics, own subsea cables and the routers to light them) from day one at the prices everyone pays at the top level, and everything else by level. | Same prices and rules for every charter (#300). |
+| M7 | A Streaming service (the content charter) is never Tier 1, sells no home broadband and gets no customer offers; its traffic starts at its origin data centers or its boxes and goes only to networks that sell to homes (`cc`). | It sells no transit, so Tier 1 is not its game; Must-Carry is (37-streaming.js). |
 
 ## Content
 
