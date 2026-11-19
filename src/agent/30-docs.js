@@ -65,7 +65,7 @@ const API_STATE_DOC={
  pdesk:{type:'map',doc:'This week\'s peering desk summary: sessions accepted and declined at which exchanges.'},
  pdeskRep:{type:'map',doc:'Last week\'s peering desk summary, as the NOC log reported it.'},
  optx:{type:'map',doc:'The optical engineering team: size (s, m, l or null), hired (day), mode (ask or auto), bud (yearly build budget, 0 = no limit), pay (months a route may take to pay back), yr and spent (this year\'s builds), jobs (links it is building), prop (routes it proposes: a, b, sub, km, cost, days, mo, pb) and log. Its orders are the team ones in ops (optics, optup, waveup, decom).'},
- ops:{type:'map',doc:'The NOC intern: who is hired, each standing order\'s on/off switch and settings (network work only: deals belong to the sales desk, slAuto), the monthly budget and what it spent, per-POP exceptions, the new-POP template and the weekly log.'},
+ ops:{type:'map',doc:'The NOC intern: who is hired, each standing order\'s on/off switch and settings (network work only: deals belong to the sales desk, slAuto), the monthly budget and what it spent, per-POP exceptions, the new-POP template and the weekly log. A Streaming service adds boxes (Binge Boxes that pay back, more where full), prefill (premieres) and origin (warns, or builds with grow on, under a 1M/3M/10M budget); during a change freeze the intern does nothing.'},
  core:{type:'map',doc:'Your backbone technology: lv bought, the level it runs at, the interop lab.'},
  ddosAuto:{type:'map',doc:'The NOC\'s auto-mitigation switches: rtbh and scrub.'},
  popStd:{type:'map',doc:'The standard POP: router model and count new POPs start with, or null for none.'},

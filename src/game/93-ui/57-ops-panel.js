@@ -5,7 +5,7 @@ function opsCard(){if(!S)return '';const last=opsHired()&&S.ops.log[0];
     <div class="meta">${opsHired()?esc(last?opsEntry(last):tr('ops.l_quiet',{name:opsName()})):opsCanHire()?tr('ops.hire_pitch_short'):tr('ops.locked',{lv:2})}</div>
     <div class="btns">${btn(opsHired()?tr('ops.standing_orders'):tr('ops.hire_an_intern'),'opsOpen',{},opsHired()?'sm':'pink sm',!opsHired()&&!opsCanHire())}</div></div>`;}
 // Orders for parts of the game not reached yet (launches before the rocket company) stay out of the sheet.
-const opsShow=d=>!d.show||d.show();
+const opsShow=d=>opsUse(d.k);
 const opsEntry=e=>(e.f!==undefined?opsFFLine(e)+' ':'')+(e.r.length||e.f===undefined?opsLine(e):'');
 function opsVal(k,p,v=opsP(k,p)){const P=OPSK[k].p[p];return p==='prov'?(v==='cheap'?tr('ops.cheapest'):v==='have'?tr('ops.already_connected'):NET[v].name):P.f(v);}
 // A setting as a list to pick from: the option values are positions in the list the action reads again.
@@ -35,9 +35,9 @@ function opsModal(){if(!S)return;const hired=opsHired();let h=`<div style="displ
   // Per POP: switch single orders off where the player wants to decide by hand.
   const cities=Object.keys(S.pops).sort((a,b)=>CITY[a].name.localeCompare(CITY[b].name)),c=S.pops[UI.opsCity]?UI.opsCity:cities[0];
   if(c)h+=`<section><h3>${tr('ops.per_pop')}</h3><div class="trsel"><label>${tr('common.your_pop')}<select data-chg="opsCity">${cities.map(x=>`<option value="${x}"${x===c?' selected':''}>${esc(CITY[x].name)}</option>`).join('')}</select></label></div>
-    <div class="ops-p">${OPS_POP.map(k=>{const here=opsHere(k,c);return `<button class="b sm ${here?'green':'ghost'}" data-act="opsPop" data-args="${esc(JSON.stringify({k,city:c}))}" aria-pressed="${here}">${OPSK[k].i} ${tr(OPSK[k].t)}</button>`;}).join('')}</div>
+    <div class="ops-p">${OPS_POP.filter(opsUse).map(k=>{const here=opsHere(k,c);return `<button class="b sm ${here?'green':'ghost'}" data-act="opsPop" data-args="${esc(JSON.stringify({k,city:c}))}" aria-pressed="${here}">${OPSK[k].i} ${tr(OPSK[k].t)}</button>`;}).join('')}</div>
     <p class="meta">${tr('ops.per_pop_note')}</p></section>`;
-  h+=`<section><h3>${tr('ops.template')}</h3><p class="meta">${tr('ops.template_note',{name:opsName()})}</p><div class="ops-p">${OPS_TPL.map(k=>`<button class="b sm ${O.tpl[k]?'green':'ghost'}" data-act="opsTpl" data-args='{"k":"${k}"}' aria-pressed="${O.tpl[k]}">${tr(OPS_TPL_L[k])}</button>`).join('')}</div></section>`;
+  h+=`<section><h3>${tr('ops.template')}</h3><p class="meta">${tr('ops.template_note',{name:opsName()})}</p><div class="ops-p">${OPS_TPL.filter(k=>k!=='bb'||!content()).map(k=>`<button class="b sm ${O.tpl[k]?'green':'ghost'}" data-act="opsTpl" data-args='{"k":"${k}"}' aria-pressed="${O.tpl[k]}">${tr(OPS_TPL_L[k])}</button>`).join('')}</div></section>`;
   h+=opsOnceHtml();openModal(h,'ops');}
 // The shift report: last week in one paragraph, and this week so far. The daily lines below are the detail.
 function opsReportHtml(){const O=S.ops,w=Math.floor(S.day/7),cur=O.wk&&O.wk.w===w&&opsWkAny(O.wk)?O.wk:null,rep=O.rep&&O.rep.w===w-1?O.rep:null;if(!cur&&!rep)return '';
