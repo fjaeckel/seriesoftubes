@@ -122,7 +122,7 @@ function compute(){RW.gen++;fedNetsSync();
       else flow(ci,j,x,false,bz);}}
     R2.bizDem[c]=biz*d/(d0||1);R2.bizSrv[c]=0;
   }})();
-  if(S.cnt)cntFlows(R2,flow,DEMTO);
+  const CH=S.cnt?cntFlows(R2,flow,DEMTO,(a,b)=>!!SPD[b]&&SPD[b][CIDX[a]]<Infinity,()=>FLB.n):null;
   if(Object.keys(S.pops).length)for(let j=0;j<NN;j++)R2.demTo[NETS[j].id]=DEMTO[j];
   // What each flow got by kind of exit (FGT transit, FGI exchange, FGP PNI elsewhere, FGH PNI with that network here) and
   // the last transit and exchange exit it used (FTI, FII: an index into E, -1 for none). Fresh each call: R.fl reads them.
@@ -197,6 +197,12 @@ function compute(){RW.gen++;fedNetsSync();
     if(!R2.egDesc[ek])R2.egDesc[ek]={lab:clean?labOf(N_('compute.scrubbed_traffic_from_city'),'city',CITY[A].name):labOf(N_('compute.attack_entering_in_city'),'city',CITY[from].name),city:B,k:'l2'};
     for(const i of ni)if(HAS[i])nodeTake(i,amt);for(const l of path){l.res-=amt;l.ld+=amt;if(!clean){l.jk=(l.jk||0)+amt;JK=1;}carry(l,ek,clean?NN+2:NN,Bi,amt);}return amt;};
   const DD=ddosLoad({E,okBy,R2,autoBh:!!(TRX&&TRX.blackhole),haul,ms:msOf});
+  // A streaming service's cold potato (37-streaming.js): each origin's share for a country rides the backbone to the POP
+  // nearest its viewers, as far as links and routers have room; its flows there keep only what arrived.
+  if(CH)for(const J of CH){const Vi=CIDX[J.v],{path,ni}=walkI(SPP[J.v],Vi,CIDX[J.o]);let amt=J.x;for(const l of path)amt=Math.min(amt,l.res);for(const i of ni)if(HAS[i])amt=Math.min(amt,NRES[i]);amt=Math.max(0,amt);
+    const f=J.x>0?amt/J.x:0,ek='cnt:'+J.v;if(!R2.egDesc[ek])R2.egDesc[ek]={lab:labOf(N_('streaming.backbone_to_city'),'city',CITY[J.v].name),city:J.v,k:'l2'};
+    for(const i of ni)if(HAS[i])nodeTake(i,amt);for(const l of path){l.res-=amt;l.ld+=amt;}
+    for(let k=J.lo;k<J.hi;k++){const a=FREM[k]*f;if(a>0)for(const l of path)carry(l,ek,FNJ[k],Vi,a);FREM[k]=a;}R2.cnt.haul[J.v].got+=amt;}
   R2.teMoved=R2.teMoved||0;const teCache=new Map(),SPILL=TR&&TR.spill?TR.spill:1,TT=TR&&TR.tiers.length?TR.tiers:null;
   /* A network in a peer's customer cone, reached through that peer (#85): after every network you peer with directly
      (its AS path is one hop longer) and before transit. */

@@ -174,3 +174,30 @@ test('the Streaming tab and card render, also on a phone', () => {
   assert.ok(dom.window.document.body.innerHTML.length > 0);
   assert.deepEqual(errors, []);
 });
+
+test('a new country rides the backbone to your POP near its viewers and leaves there (cold potato)', () => {
+  const { ev, errors } = start();
+  ev("ACT.buildPop({city:'ams'});UI.pending={a:S.home,b:'ams'};ACT.buildLink({tier:1});ACT.buyTransit({city:'ams',net:'cog',tier:1});ACT.cntLaunch({cc:'NL'});compute()");
+  assert.equal(ev("R.cnt.cc.NL.parts[0][0]"), 'ams', 'delivered from Amsterdam, not the Frankfurt origin');
+  assert.equal(ev("R.cnt.org[S.home]>=R.cnt.cc.NL.D"), true, 'still served by the Frankfurt origin');
+  const link = ev("S.links[0].id"), nl = ev("R.cnt.cc.NL.D");
+  assert.ok(ev(`R.load['${link}']`) >= nl - 1e-6, 'the haul loads the backbone');
+  assert.ok(ev("R.useT[S.transit.find(t=>t.city==='ams').id]") > 0, 'and leaves in Amsterdam');
+  assert.ok(ev("Math.abs(R.cnt.haul.ams.got-R.cnt.haul.ams.g)") < 1e-6);
+  // A full backbone loses what it cannot carry.
+  ev("S.cnt.cc.NL.d=200;compute()");
+  assert.ok(ev("R.cnt.haul.ams.got") < ev("R.cnt.haul.ams.g"));
+  assert.ok(ev("ccQ(R,'NL')") < 0.9);
+  assert.deepEqual(errors, []);
+});
+
+test('home networks on an exchange take a streaming service from the route server; paid incumbents still want a PNI', () => {
+  const { ev, errors } = start();
+  ev("ACT.buildPop({city:'ams'});UI.pending={a:S.home,b:'ams'};ACT.buildLink({tier:1});ACT.buyIx({city:'ams',tier:1});ACT.cntLaunch({cc:'NL'});compute()");
+  assert.equal(ev("R.egT.ix||0"), 0, 'no sessions before the route server');
+  ev("ACT.rs({city:'ams'});compute()");
+  assert.equal(ev("ixSessions('ams').has('kpn')"), true);
+  assert.equal(ev("ixSessions('ams').has('vdp')"), false);
+  assert.ok(ev("R.egT.ix") > 0, 'traffic leaves over the exchange');
+  assert.deepEqual(errors, []);
+});

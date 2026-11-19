@@ -12,6 +12,7 @@ function cntCard(){const C=S.cnt;if(!C)return '';const f=mcFree(),on=onNet(R),cc
   const bad=ccs.filter(k=>ccQ(R,k)<0.9);
   if(bad.length)h+=`<div class="meta" style="color:var(--bad)">${tr('streaming.buffering_in_list',{list:bad.slice(0,5).map(k=>esc(ccName(k))).join(', ')})}</div>`;
   if(R.cnt&&R.cnt.short>0.5)h+=`<div class="meta" style="color:var(--bad)">${tr('streaming.origins_full_g',{g:fmtG(R.cnt.short)})}</div>`;
+  for(const v of Object.keys((R.cnt&&R.cnt.haul)||{})){const x=R.cnt.haul[v];if(x.g-x.got>0.5)h+=`<div class="meta" style="color:var(--bad)">${tr('streaming.backbone_to_city_full',{city:esc(CITY[v].name),g:fmtG(x.g-x.got)})}</div>`;}
   const p=C.prem;
   if(p){const where=p.reg==='ALL'?tr('streaming.everywhere'):REG[p.reg],show=tr(PREM_NAMES[p.n]);
     if(S.day<p.day)h+=`<div class="meta">${tr('streaming.premiere_in_n_days',{show,where,n:p.day-S.day})}</div><div class="btns">${p.pf?`<span class="tag st on">${tr('streaming.boxes_pre_filled')}</span>`:btn(tr('streaming.pre_fill_boxes_cost',{cost:fmt$(prefillCost())}),'cntPrefill',{},'sm',!C.box.length||S.cash<prefillCost())}</div>`;
@@ -28,7 +29,7 @@ function ccSection(c){const cc=CITY[c].cc,C=S.cnt,x=C.cc[cc],w=ccWhy(cc);let h=`
     <div class="kv"><span>${tr('streaming.picture_quality')}</span><b style="color:${q<0.9?'var(--bad)':'var(--eye)'}">${pct(q)}</b></div><div class="bar ${q<0.9?'bad':''}"><i style="width:${q*100}%"></i></div>
     <div class="kv"><span>${tr('common.revenue')}</span><b>${tr('common.price_mo',{price:fmt$(x.d*q*CNT_RATE)})}</b></div>
     ${src.length?`<p class="meta">${tr('streaming.served_from_list',{list:src.map(([s,g,km])=>`${esc(CITY[s].name)} ${fmtG(g)} (${km.toLocaleString()} km)`).join(', ')})}</p>`:''}
-    ${o&&o.short>0.5?`<p class="why">${tr('streaming.origins_full_here',{g:fmtG(o.short)})}</p>`:''}${q<0.9?`<p class="why">${tr('streaming.viewers_are_leaving')}</p>`:''}`;}
+    ${o&&o.short>0.5?`<p class="why">${tr('streaming.origins_full_here',{g:fmtG(o.short)})}</p>`:''}${src.filter(([s])=>!cntOut(s)).map(([s])=>`<p class="why">${tr('streaming.pop_has_no_way_out',{city:esc(CITY[s].name)})}</p>`).join('')}${src.some(([s])=>S.cnt.dc[s])&&!S.cnt.box.length&&src.every(([s,,km])=>km>1500)?`<p class="note">${tr('streaming.build_a_pop_near_viewers')}</p>`:''}${q<0.9?`<p class="why">${tr('streaming.viewers_are_leaving')}</p>`:''}`;}
   else if(w)h+=`<p class="why">${w}</p>`;
   else h+=`<p class="lead">${tr('streaming.launch_lead',{subs:fmtSubs(Math.max(1,ccPot(cc)*CNT_START)),max:fmtSubs(ccPot(cc))})}</p>${btn(tr('streaming.launch_in_country_cost',{country:esc(ccName(cc)),cost:fmt$(ccLic(cc))}),'cntLaunch',{cc},'pink',S.cash<ccLic(cc))}`;
   return h+`</section>`;}

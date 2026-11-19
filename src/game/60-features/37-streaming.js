@@ -68,23 +68,35 @@ const premLive=()=>{const p=S.cnt&&S.cnt.prem;return p&&S.day>=p.day&&S.day<p.da
 const premIn=(p,reg)=>!!p&&(p.reg==='ALL'||p.reg===reg);
 /* compute(): the subscribers' evening, as flows. Each country's demand splits over its eyeball networks; the part a box of
    that network in that country holds starts at the box's city, the rest is shared out over the live origins nearest first,
-   each up to its size. What no origin has room for is asked for and lost (R.cnt.short). */
-function cntFlows(R2,flow,DEMTO){const C=S.cnt;if(!C)return;const out={cc:{},short:0,org:{}};R2.cnt=out;
+   each up to its size. What no origin has room for is asked for and lost (R.cnt.short).
+   Cold potato, as content networks run: what an origin serves rides your own backbone to your POP nearest the viewers
+   (cntPop) and leaves the network there. The flows start at that POP; the haul from the origin is returned as jobs that
+   compute() carries over the backbone before routing (cntHaul), and what the backbone has no room for is lost. A POP your
+   backbone does not reach cannot take it: then it leaves at the origin, the long way round. */
+const CNT_POP={k:'',m:new Map()};
+function cntPop(cc,pops){const k=pops.join();if(CNT_POP.k!==k){CNT_POP.k=k;CNT_POP.m=new Map();}let v=CNT_POP.m.get(cc);
+  if(v===undefined){const I=ccInfo(cc);v=null;let b=Infinity;for(const p of pops){const km=kmBetween(p,I.main);if(km<b||km===b&&p<v){b=km;v=p;}}CNT_POP.m.set(cc,v);}return v;}
+const farO=km=>1-0.1*clamp((km-2000)/8000,0,1);
+function cntFlows(R2,flow,DEMTO,reach,NF0){const C=S.cnt;if(!C)return null;const out={cc:{},short:0,org:{},haul:{}};R2.cnt=out;const jobs=[],pops=Object.keys(S.pops).filter(popUp).sort();
   const pr=premLive(),org=Object.keys(C.dc).filter(c=>dcLive(c)&&popUp(c)),room={};for(const o of org){room[o]=dcG(o);out.org[o]=0;}
   const bx={};for(const b of C.box){if(!popUp(b.city))continue;const k=CITY[b.city].cc+'|'+b.net;(bx[k]=bx[k]||[]).push(b.city);}
   const add=(c,j,x,ca)=>{if(x<=1e-9)return;flow(CIDX[c],j,x,ca,false);R2.cityDem[c]=(R2.cityDem[c]||0)+x;R2.demand+=x;DEMTO[j]+=x;};
   const need=[],pairs=[];
   for(const cc in C.cc){const I=ccInfo(cc);if(!I)continue;const D=C.cc[cc].d*(premIn(pr,I.reg)?PREM_MUL:1),o={D,parts:[],short:0,miss:[]};out.cc[cc]=o;let rest=0;
-    for(const [j,w] of I.nets){const x=D*w,bs=bx[cc+'|'+NETS[j].id];if(bs){const h=x*boxHit(bs[0]),each=h/bs.length;for(const c of bs){add(c,j,each,true);o.parts.push([c,each,kmBetween(c,I.main)]);}o.miss.push([j,x-h]);rest+=x-h;}
+    for(const [j,w] of I.nets){const x=D*w,bs=bx[cc+'|'+NETS[j].id];if(bs){const h=x*boxHit(bs[0]),each=h/bs.length;for(const c of bs){add(c,j,each,true);o.parts.push([c,each,kmBetween(c,I.main),0]);}o.miss.push([j,x-h]);rest+=x-h;}
       else{o.miss.push([j,x]);rest+=x;}}
     o.rest=rest;need.push(cc);for(const og of org)pairs.push([kmBetween(og,I.main),cc,og]);}
   pairs.sort((a,b)=>a[0]-b[0]||(a[1]<b[1]?-1:a[1]>b[1]?1:0)||(a[2]<b[2]?-1:1));
   const left={};for(const cc of need)left[cc]=out.cc[cc].rest;
   for(const [km,cc,og] of pairs){const take=Math.min(left[cc],room[og]);if(take<=1e-9)continue;left[cc]-=take;room[og]-=take;out.org[og]+=take;const o=out.cc[cc],f=take/(o.rest||1);
-    for(const [j,x] of o.miss)add(og,j,x*f,false);o.parts.push([og,take,km]);}
-  for(const cc of need){const s=left[cc];if(s>1e-9){out.cc[cc].short=s;out.short+=s;R2.demand+=s;}delete out.cc[cc].miss;}}
+    let v=cntPop(cc,pops);if(!v||v===og||!reach(og,v))v=og;const lo=NF0();
+    for(const [j,x] of o.miss)add(v,j,x*f,false);o.parts.push([v,take,kmBetween(v,ccInfo(cc).main),km]);
+    if(v!==og){jobs.push({o:og,v,x:take,lo,hi:NF0()});const h=out.haul[v]||(out.haul[v]={g:0,got:0});h.g+=take;}}
+  for(const cc of need){const s=left[cc];if(s>1e-9){out.cc[cc].short=s;out.short+=s;R2.demand+=s;}delete out.cc[cc].miss;}
+  return jobs;}
 // How well a country is served: what reached it from each source, times how far that source is from its viewers.
-function ccQ(r,cc){const o=r&&r.cnt&&r.cnt.cc[cc];if(!o||o.D<=1e-9)return 1;let q=0;for(const [c,x,km] of o.parts)q+=x*sfOf(r,c)*farF(km);return clamp(q/o.D,0,1);}
+// Where it leaves your network counts most; a far origin costs a little more start-up time on top.
+function ccQ(r,cc){const o=r&&r.cnt&&r.cnt.cc[cc];if(!o||o.D<=1e-9)return 1;let q=0;for(const [c,x,km,ko] of o.parts)q+=x*sfOf(r,c)*farF(km)*farO(ko||0);return clamp(q/o.D,0,1);}
 function cntRev(r){const C=S.cnt;if(!C)return 0;let v=0;for(const cc in C.cc)v+=C.cc[cc].d*ccQ(r,cc)*CNT_RATE;return v;}
 function cntCost(){const C=S.cnt;if(!C)return 0;let m=CAT_T[C.cat].mo;for(const c in C.dc)m+=DC_T[C.dc[c].t].mo;
   for(const b of C.box){const n=NET[b.net];m+=BOX_MO+(n?boxHost(n):0);}for(const k in C.paid)m+=C.paid[k];return m;}
