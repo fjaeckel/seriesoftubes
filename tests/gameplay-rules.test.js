@@ -107,7 +107,7 @@ const REAL_NAMES = [
   // Tier 1s and carriers
   'AT&T', 'Bell Aliant', 'BICS', 'Cogent', 'GlobalConnect', 'GTT', 'Hurricane Electric', 'Level 3', 'Level3', 'Liquid', 'Liquid Intelligent Technologies', 'Lumen', 'Northwestel', 'NTT', 'Orange', 'PCCW', 'SaskTel', 'Seacom', 'Singtel', 'Sparkle', 'Tata', 'Tata Communications', 'Telia', 'Telxius', 'Tusass', 'Vodafone', 'Zayo',
   // content and clouds
-  'Akamai', 'Alibaba Cloud', 'Amazon', 'Amazon Web Services', 'AWS', 'Baidu', 'ByteDance', 'Cloudflare', 'Facebook', 'Fastly', 'Google', 'Mercado Libre', 'Meta', 'Microsoft', 'Netflix', 'OVH', 'OVHcloud', 'Scaleway', 'Tencent', 'TikTok', 'VK', 'VKontakte', 'Yandex',
+  'Akamai', 'Alibaba Cloud', 'Amazon', 'Amazon Web Services', 'AWS', 'Baidu', 'ByteDance', 'Disney', 'Disney+', 'Cloudflare', 'Facebook', 'Fastly', 'Google', 'Hulu', 'Mercado Libre', 'Meta', 'Microsoft', 'Netflix', 'OVH', 'OVHcloud', 'Scaleway', 'Tencent', 'TikTok', 'VK', 'VKontakte', 'Yandex',
   // eyeballs and incumbents
   ', ', 'A1', 'A1 Telekom Austria', 'Afghan Telecom', 'Africell', 'Airtel', 'AIS', 'Algérie Télécom', 'Altibox', 'Altice', 'America Movil', 'Andorra Telecom', 'Angola Cables', 'Antel', 'Areeba', 'ASTCA', 'ATH Kiribati', 'Aussie Broadband', 'AWCC', 'Azercell', 'Aztelekom', 'Batelco', 'Belize Telemedia', 'Bell', 'Bell Canada', 'Belong', 'Beltelecom', 'Bemobile', 'Bezeq International', 'BH Telecom', 'Bhutan Telecom', 'Bitė', 'Bouygues', 'Bouygues Telecom', 'Brisanet', 'BT', 'BTC', 'Cable & Wireless', 'Cable Bahamas', 'Cablenet', 'Celtiis', 'Cenpac', 'Comores Telecom', 'Congo Telecom', 'Crnogorski Telekom', 'CST', 'Cyta', 'Earthlink', 'Econet', 'EPTC', 'EriTel', 'FL1', 'Free', 'FSM Telecommunications Corporation', 'Gabon Telecom', 'Gamtel', 'GETESA', 'GO', 'Guyana Telephone & Telegraph', 'Hoi Internet', 'Hormuud', 'Hrvatski Telekom', 'Kazakhtelecom', 'Kcell', 'Kyrgyztelecom', 'L", ', 'Lao Telecom', 'Libyana', 'LTT', 'Magticom', 'Mattel', 'Mauritel', 'MCI', 'Melita', 'MobiCom', 'Moldtelecom', 'Monaco Telecom', 'MPT', 'Muni', 'Natcom', 'Ncell', 'Nepal Telecom', 'Niger Telecoms', 'O!', 'Ocean Link', 'Ogero', 'One Albania', 'Partner', 'SAFITEL', 'SBIN', 'SFR', 'Silknet', 'Slovak Telekom', 'SMART', 'Smart Axiata', 'Somtel', 'Speednet', 'Star JV', 'Sudani', 'Sudatel', 'Syrian Telecom', 'Syriatel', 'Tashi InfoComm', 'TashiCell', 'TCI', 'Team Telecom Armenia', 'Telecel', 'Telecom Liechtenstein', 'Telecom Vanuatu', 'Telekom Slovenije', 'Telenet San Marino', 'Telesur', 'Telia Lietuva', 'Timor Telecom', 'TNM', 'Togocom', 'Tojiktelecom', 'touch', 'Turkmentelecom', 'Tuvalu Telecommunications Corporation', 'Ucom', 'Unified National Networks', 'Unitel', 'Univision', 'UNN', 'Uztelecom', 'YemenNet', 'Zain',
   // exchanges and data centers
@@ -182,7 +182,7 @@ test('N2: names are puns: no network, cable, exchange, data center, router, opti
   const norm = (s) => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[’`]/g, "'").replace(/\s+/g, ' ').trim();
   const real = new Set(REAL_NAMES.map(norm));
   const names = J(`[...NETS.map(n=>['network',n.name]),...CABLES.map(c=>['cable',c.name]),...XIX.map(x=>['exchange',x.name]),
-    ...CITIES.flatMap(c=>[['exchange',c.ix],['data center',c.dc],['data center',c.dc2]]),...RG.map(r=>['router',r.n]),...Object.values(OPT).map(o=>['optic',o.n]),...Object.values(SEAT_ROUTES).flat().map(r=>['cable',r[2]]),...SHIPS.map(x=>['cable ship',x.n]),...LAY_SHIPS.map(n=>['cable ship',n]),...Object.values(SHIP_CLUBS).map(c=>['maintenance club',c.n]),...PIE_NAMES.map(n=>['rocket company',tr(n)]),...Object.values(ROCKETS).map(r=>['rocket',tr(r.n)]),...Object.values(CRUSTS).map(c=>['constellation',tr(c.n)])].filter(x=>x[1])`);
+    ...CITIES.flatMap(c=>[['exchange',c.ix],['data center',c.dc],['data center',c.dc2]]),...RG.map(r=>['router',r.n]),...Object.values(OPT).map(o=>['optic',o.n]),...Object.values(SEAT_ROUTES).flat().map(r=>['cable',r[2]]),...SHIPS.map(x=>['cable ship',x.n]),...LAY_SHIPS.map(n=>['cable ship',n]),...Object.values(SHIP_CLUBS).map(c=>['maintenance club',c.n]),...PIE_NAMES.map(n=>['rocket company',tr(n)]),...Object.values(ROCKETS).map(r=>['rocket',tr(r.n)]),...Object.values(CRUSTS).map(c=>['constellation',tr(c.n)]),...RIV.map(r=>['streaming service',rvName(r)])].filter(x=>x[1])`);
   fail('N2', names.filter(([, n]) => real.has(norm(n))).map(([k, n]) => `${k} “${n}” is a real name`), 'find a pun');
   fail('N2', names.filter(([, n]) => /-ish\b/i.test(n)).map(([k, n]) => `${k} “${n}”`), 'no lazy -ish names: find a real pun, or keep the plain word');
 });
@@ -550,6 +550,21 @@ test('F10: growth goes sideways, plus one paid way up (#61, #323)', () => {
   assert.ok(Object.keys(per).length >= 30, `F10: campuses in at least 30 metros (${Object.keys(per).length})`);
   fail('F10', Object.entries(per).filter(([, n]) => n > 2).map(([c]) => c), 'no metro holds more than two campuses');
   fail('F10', J("MEGA.filter(m=>!CITY[m.c]).map(m=>m.c)"), 'campuses sit in real cities');
+});
+
+test('F11: rival streamers are fair: they wait 60 days, act only where you are live, never take what you bought, and roll hashes', () => {
+  const bad = [];
+  const g = load();
+  g.ev("beginGame('Streamer','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'content'});S.cash=1e9;S.lvl=6;for(const c of ['DE','FR','US','BR'])ACT.cntLaunch({cc:c});ACT.buyTransit({city:S.home,net:'cog',tier:1});compute()");
+  if (g.ev('S.cnt.rv.next-S.day') < 60) bad.push('a rival may move in a new network\'s first 60 days');
+  const r = g.ev(`(()=>{const R0=Math.random;let n=0;Math.random=()=>{n++;return R0();};const V=S.cnt.rv,out=[];S.cnt.rnext=S.day;V.next=S.day;
+    try{for(let i=0;i<500;i++){S.day++;evDay(S.day);const mine=S.cnt.roff[0];if(mine&&i%3===0&&V.bid[mine.id]&&V.bid[mine.id].r)ACT.cntRights({id:mine.id});rvDay(S.day);}}finally{Math.random=R0;}
+    if(n)out.push("rival rolls drew "+n+" numbers from the game's random stream");
+    const own=new Set(S.cnt.evs.map(e=>e.id));if(V.evs.some(e=>own.has(e.id)))out.push('a rival streams an event you bought');
+    const notMine=Object.values(V.in).flat().filter(k=>!S.cnt.cc[k]);if(notMine.length)out.push('rivals launched where you are not live: '+notMine.join(', '));return out;})()`);
+  bad.push(...r);
+  assert.deepEqual(bad, []);
+  assert.deepEqual(g.errors, []);
 });
 
 test('D1: attack sizes come from the world, never from your network', () => {
