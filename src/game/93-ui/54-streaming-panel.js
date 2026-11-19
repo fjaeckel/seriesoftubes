@@ -36,7 +36,7 @@ function ccSection(c){const cc=CITY[c].cc,C=S.cnt,x=C.cc[cc],w=ccWhy(cc);let h=`
   if(x){const q=ccQ(R,cc),o=R.cnt&&R.cnt.cc[cc],src=o?[...o.parts.reduce((m,[c,g,km])=>{const x=m.get(c);if(x)x[1]+=g;else m.set(c,[c,g,km]);return m;},new Map()).values()].sort((a,b)=>b[1]-a[1]).slice(0,3):[];
     h+=`<div class="kv"><span>${tr('streaming.subscribers')}</span><b>${tr('city_panel.a_of_b',{a:fmtSubs(x.d),b:fmtSubs(ccPot(cc))})}</b></div><div class="bar me"><i style="width:${Math.min(100,x.d/(ccPot(cc)||1)*100)}%"></i></div>
     <div class="kv"><span>${tr('streaming.picture_quality')}</span><b style="color:${q<0.9?'var(--bad)':'var(--eye)'}">${pct(q)}</b></div><div class="bar ${q<0.9?'bad':''}"><i style="width:${q*100}%"></i></div>
-    <div class="kv"><span>${tr('common.revenue')}</span><b>${tr('common.price_mo',{price:fmt$(x.d*q*CNT_RATE)})}</b></div>
+    <div class="kv"><span>${tr('common.revenue')}</span><b>${tr('common.price_mo',{price:fmt$(ccRev(R,cc))})}</b></div>${CNT_CC.map(f=>f(cc)).join('')}
     ${src.length?`<p class="meta">${tr('streaming.served_from_list',{list:src.map(([s,g,km])=>`${esc(CITY[s].name)} ${fmtG(g)} (${km.toLocaleString()} km)`).join(', ')})}</p>`:''}
     ${o&&o.short>0.5?`<p class="why">${tr('streaming.origins_full_here',{g:fmtG(o.short)})}</p>`:''}${src.filter(([s])=>!cntOut(s)).map(([s])=>`<p class="why">${tr('streaming.pop_has_no_way_out',{city:esc(CITY[s].name)})}</p>`).join('')}${src.some(([s])=>S.cnt.dc[s])&&!S.cnt.box.length&&src.every(([s,,km])=>km>1500)?`<p class="note">${tr('streaming.build_a_pop_near_viewers')}</p>`:''}${q<0.9?`<p class="why">${tr('streaming.viewers_are_leaving')}</p>`:''}`;}
   else if(w)h+=`<p class="why">${w}</p>`;

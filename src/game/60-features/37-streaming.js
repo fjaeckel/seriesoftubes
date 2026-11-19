@@ -38,8 +38,10 @@ const PREM_NAMES=[N_('streaming.prem_dragons'),N_('streaming.prem_baking'),N_('s
    CNT_MUL.grow / .pot / .churn / .rev: multipliers per country code (growth speed, ceiling, cancellations when the
    picture is poor, revenue per subscriber), multiplied together. CNT_NEW(o): fields of a new S.cnt. CNT_SAN(c0,o,s):
    repair those fields on load (c0 the saved S.cnt, o the clean one being built). CNT_DAY(d): once a day, after
-   routing. CNT_CARD(): extra HTML for the charter card. CNT_CITY(c): extra HTML for a city's Streaming tab. */
-const CNT_MUL={grow:[],pot:[],churn:[],rev:[]},CNT_NEW=[],CNT_SAN=[],CNT_DAY=[],CNT_CARD=[],CNT_CITY=[];
+   routing. CNT_CARD(): extra HTML for the charter card. CNT_CITY(c): extra HTML for a city's Streaming tab. CNT_CC(cc):
+   extra HTML inside a launched country's block. CNT_ADD(r,cc): revenue a country earns on top of its subscriptions.
+   CNT_COST(): monthly costs on top. */
+const CNT_MUL={grow:[],pot:[],churn:[],rev:[]},CNT_NEW=[],CNT_SAN=[],CNT_DAY=[],CNT_CARD=[],CNT_CITY=[],CNT_CC=[],CNT_ADD=[],CNT_COST=[];
 const cntMul=(k,cc)=>{let m=1;for(const f of CNT_MUL[k])m*=f(cc);return m;};
 function cntNew(){const o=cntNew0();for(const f of CNT_NEW)f(o);return o;}
 function cntNew0(){return {cc:{},dc:{[S.home]:{t:0,ready:0}},box:[],cat:0,prem:null,premNext:S.day+60,premN:0,premOk:0,premAll:0,disp:null,heal:{},free:{},paid:{},boff:[],bund:[],bnext:S.day+90,roff:[],evs:[],rnext:S.day+EV_EVERY,evOk:0,wins:0,won:0};}
@@ -123,9 +125,10 @@ function cntFlows(R2,flow,DEMTO,reach,NF0){const C=S.cnt;if(!C)return null;const
 // Where it leaves your network counts most; a far origin costs a little more start-up time on top.
 function ccQ(r,cc){const o=r&&r.cnt&&r.cnt.cc[cc];if(!o||o.D<=1e-9)return 1;let q=0;for(const [c,x,km,ko] of o.parts)q+=x*sfOf(r,c)*farF(km)*farO(ko||0);return clamp(q/o.D,0,1);}
 // Bundled subscribers pay the ISP's wholesale price: their share of a country earns the bundle's discount less.
-function cntRev(r){const C=S.cnt;if(!C)return 0;let v=0;for(const cc in C.cc){const d=C.cc[cc].d;v+=(d-Math.min(d,bundG(cc))*bundCut(cc))*ccQ(r,cc)*CNT_RATE*cntMul('rev',cc);}return v;}
+function ccRev(r,cc){const d=S.cnt.cc[cc].d;let v=(d-Math.min(d,bundG(cc))*bundCut(cc))*ccQ(r,cc)*CNT_RATE*cntMul('rev',cc);for(const f of CNT_ADD)v+=f(r,cc);return v;}
+function cntRev(r){const C=S.cnt;if(!C)return 0;let v=0;for(const cc in C.cc)v+=ccRev(r,cc);return v;}
 function cntCost(){const C=S.cnt;if(!C)return 0;let m=CAT_T[C.cat].mo;for(const c in C.dc)m+=DC_T[C.dc[c].t].mo;
-  for(const b of C.box){const n=NET[b.net];m+=BOX_MO+(n?boxHost(n):0);}for(const k in C.paid)m+=C.paid[k].fee;return m;}
+  for(const b of C.box){const n=NET[b.net];m+=BOX_MO+(n?boxHost(n):0);}for(const k in C.paid)m+=C.paid[k].fee;for(const f of CNT_COST)m+=f();return m;}
 // On-net: what leaves through your boxes and over PNIs, of everything served.
 const onNet=r=>r&&r.served>1e-6?((r.egT.c||0)+(r.egT.p||0))/r.served:0;
 // Levels count the countries a streaming service is live in where a carrier counts POPs, and their continents.
