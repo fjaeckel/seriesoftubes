@@ -29,6 +29,7 @@ function cntCard(){const C=S.cnt;if(!C)return '';const f=mcFree(),on=onNet(R),cc
   for(const id of Object.keys(C.paid)){const x=C.paid[id];h+=`<div class="meta">${tr('streaming.deal_line',{net:esc(NET[id].name),fee:fmt$(x.fee),date:dateStr(x.until)})}</div>`;}
   const N=catNext();h+=`<div class="meta">${tr('streaming.catalogue_name',{name:tr(CAT_T[C.cat].n)})}</div>`;
   if(N)h+=`<div class="btns">${btn(N.lv>lvl()?tr('streaming.cat_name_level_lv',{name:tr(N.n),lv:N.lv}):tr('streaming.cat_up_cost_mo',{name:tr(N.n),cost:fmt$(N.cost),mo:fmt$(N.mo)}),'cntCat',{},'sm',N.lv>lvl()||S.cash<N.cost)}</div>`;
+  for(const f of CNT_CARD)h+=f();
   return h+`</div>`;}
 // The country a city is in: its subscribers, how well they are served and from where, or the launch.
 function ccSection(c){const cc=CITY[c].cc,C=S.cnt,x=C.cc[cc],w=ccWhy(cc);let h=`<section><h3>${tr('streaming.viewers_in_country',{country:esc(ccName(cc))})}</h3>`;
@@ -58,4 +59,4 @@ function boxSection(c){const C=S.cnt,nets=boxNets(c);let h=`<section><h3>${tr('s
     h+=`<div class="row">${logo(n)}<div class="grow"><div class="nm">${esc(n.name)}</div><div class="meta">${have.length?`${trn('common.n_box',have.length)} · ${tr('city_panel.serving_v',{v:fmtG(use)})} · ${tr('streaming.hit_p',{p:pct(boxHit(c)*have.reduce((x,b)=>x+b.f,0)/have.length)})}${have.some(b=>b.f<1)?' · '+tr('streaming.filling_p',{p:pct(have.reduce((x,b)=>x+b.f,0)/have.length)}):''}`:tr('streaming.your_traffic_to_net_g',{g:fmtG(R.demTo[n.id]||0)})}${fee?' · '+tr('streaming.hosting_fee_mo',{fee:fmt$(fee)}):' · '+tr('streaming.hosted_free')}</div>${why&&!have.length?`<div class="why">${why}</div>`:''}</div>
     <div class="btns">${btn(tr('streaming.add_box_cost',{cost:fmt$(BOX_COST)}),'cntBox',{city:c,net:n.id,d:1},'sm',!!why||S.cash<BOX_COST)}${have.length?btn(tr('streaming.remove_box'),'cntBox',{city:c,net:n.id,d:-1},'ghost sm'):''}</div></div>`;}
   return h+`</section>`;}
-const streamHere=c=>ccSection(c)+dcSection(c)+boxSection(c);
+const streamHere=c=>ccSection(c)+dcSection(c)+boxSection(c)+CNT_CITY.map(f=>f(c)).join('');
