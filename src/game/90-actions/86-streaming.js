@@ -13,7 +13,7 @@ Object.assign(ACT,{
  cntBox:({city,net,d})=>{if(!content()||!isCity(city)||!NET[net])return;d=+d;const C=S.cnt;
    if(d===-1){const i=C.box.findIndex(b=>b.city===city&&b.net===net);if(i<0)return;C.box.splice(i,1);after();return;}
    if(d!==1)return;const why=boxWhy(city,net);if(why){toast(why,'bad');sfx('err');return;}if(!spend(BOX_COST))return;
-   C.box.push({id:uid(),city,net,day:S.day,f:FILL_NEW});toast(tr('streaming.box_up_in_net',{net:esc(NET[net].name),city:CITY[city].name}),'good');sfx('build');after();},
+   C.box.push({id:uid(),city,net,day:S.day,f:FILL_NEW});{const v={net:esc(NET[net].name),city:CITY[city].name};toast(S.pops[city]?tr('streaming.box_up_in_net',v):tr('streaming_boxes.box_racked_inside',v),'good');}sfx('build');after();},
  // A bundle offer: sign it (its subscribers arrive at once) or let it go.
  cntBund:({id})=>{if(!content())return;const o=S.cnt.boff.find(x=>x.id===id);if(!o)return;const n=bundSign(o);toast(tr('streaming.bundle_signed',{net:esc(n.name)}),'good');sfx('coin');after();},
  cntBundNo:({id})=>{if(!content())return;S.cnt.boff=S.cnt.boff.filter(x=>x.id!==id);after();},
@@ -21,8 +21,8 @@ Object.assign(ACT,{
  cntRights:({id})=>{if(!content())return;const C=S.cnt,o=C.roff.find(x=>x.id===id);if(!o||!spend(o.fee))return;C.roff=C.roff.filter(x=>x!==o);
    C.evs.push({id:o.id,n:o.n,reg:o.reg,mul:o.mul,gain:o.gain,fee:o.fee,day:o.day,w:1});toast(tr('streaming.rights_bought',{show:tr(EV_NAMES[o.n]),date:dateStr(o.day)}),'good');sfx('coin');after();},
  cntRightsNo:({id})=>{if(!content())return;S.cnt.roff=S.cnt.roff.filter(x=>x.id!==id);after();},
- cntCat:()=>{if(!content())return;const N=CAT_T[S.cnt.cat+1];if(!N||N.lv>lvl()||!spend(N.cost))return;S.cnt.cat++;for(const b of S.cnt.box)b.f=Math.max(FILL_NEW,b.f*0.6);toast(tr('streaming.catalogue_now_name',{name:tr(N.n)}),'good');sfx('coin');after();},
- cntPrefill:()=>{if(!content())return;const p=S.cnt.prem;if(!p||p.pf||p.live||S.day>=p.day||!S.cnt.box.length||!spend(prefillCost()))return;p.pf=1;for(const b of S.cnt.box)b.f=1;toast(tr('streaming.boxes_pre_filled'),'good');after();},
+ cntCat:()=>{if(!content())return;const N=CAT_T[S.cnt.cat+1];if(!N||N.lv>lvl()||!spend(N.cost))return;S.cnt.cat++;for(const b of boxAll())b.f=Math.max(FILL_NEW,b.f*0.6);toast(tr('streaming.catalogue_now_name',{name:tr(N.n)}),'good');sfx('coin');after();},
+ cntPrefill:()=>{if(!content())return;const p=S.cnt.prem;if(!p||p.pf||p.live||S.day>=p.day||!boxAll().length||!spend(prefillCost()))return;p.pf=1;for(const b of boxAll())b.f=1;toast(tr('streaming.boxes_pre_filled'),'good');after();},
  // A dispute: pay what they ask every month, or tell your viewers whose fault the buffering is.
  cntPay:()=>{if(!content())return;const D=S.cnt.disp;if(!D)return;S.cnt.paid[D.net]={fee:D.fee,until:S.day+DEAL_DAYS};cntEnd();toast(tr('streaming.you_pay_net2',{net:esc(NET[D.net].name),fee:fmt$(D.fee)}),'good');after();},
  cntCamp:()=>{if(!content())return;const D=S.cnt.disp;if(!D||D.camp||!spend(DISP_CAMP))return;D.camp=S.day+DISP_CAMP_DAYS;toast(tr('streaming.campaign_started',{net:esc(NET[D.net].name)}),'good');after();},
