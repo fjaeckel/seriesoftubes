@@ -37,8 +37,8 @@ Object.assign(ACT,{
    else if(nniUsed(city,prov)>lagCap(NNI[pt.tier].g,n)+1e-9){toast(tr('links.too_many_circuits_for_a_smaller'),'bad');sfx('err');return;}
    if(n>1)pt.n=n;else delete pt.n;sfx('build');after();},
  rmNni:({city,prov})=>{if(nniUsed(city,prov)>0){toast(tr('links.cancel_the_circuits_on_this_port'),'bad');sfx('err');return;}S.nni=S.nni.filter(x=>!(x.city===city&&x.prov===prov));after();},
- openVxc:(a)=>openVxcModal(a),
- buyVxc:({a,b,prov,t})=>{t=+t;if(!CITY[a]||!CITY[b]||noTalk(a,b))return;const g=VXC[t].g,pa=nniPort(a,prov);if(!pa||nniUsed(a,prov)+g>nniCap(pa)+1e-9){toast(tr('links.not_enough_room_on_your_fabric'),'bad');sfx('err');return;}
+ openVxc:(a)=>{if(modeOn('autarky'))return;openVxcModal(a);},
+ buyVxc:({a,b,prov,t})=>{if(modeOn('autarky'))return;t=+t;if(!CITY[a]||!CITY[b]||noTalk(a,b))return;const g=VXC[t].g,pa=nniPort(a,prov);if(!pa||nniUsed(a,prov)+g>nniCap(pa)+1e-9){toast(tr('links.not_enough_room_on_your_fabric'),'bad');sfx('err');return;}
    if(S.pops[b]){const pb=nniPort(b,prov);if(!pb||nniUsed(b,prov)+g>nniCap(pb)+1e-9){toast(tr('links.not_enough_room_on_your_fab',{fab:esc(FAB[prov].name),city:CITY[b].name}),'bad');sfx('err');return;}}
    const km=kmBetween(a,b),sub=isSub(a,b),mo=vxcMo(km,sub,t);if(!spend(mo))return;S.links.push({id:uid(),a,b,kind:'vxc',prov,vt:t,km,sub,mo,cut:0,day:S.day});closeModal();
    toast(tr('links.circuit_up_in_59_seconds_vxc',{vxc:VXC[t].n,fab:esc(FAB[prov].name),a:CITY[a].name,b:CITY[b].name})+(S.pops[b]?'':' '+tr('links.now_grab_an_ix_port_there')),'good');if(!S.pops[b])selectCity(b);after();},

@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
-- Autarky challenge mode: no leased waves or IRUs, only your own fiber and consortium buildouts.
+- Autarky challenge mode: no leased waves, IRUs, or fabric circuits.
 
 - Coming back online with a big network in Multimode no longer makes the game crawl while it catches up: the catch-up now holds the page for less than half as long, and other players' networks are worked into your routing once it is done instead of every second along the way, off the main thread.
 

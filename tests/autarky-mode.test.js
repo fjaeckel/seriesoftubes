@@ -39,6 +39,21 @@ test('Autarky still allows owned subsea cables and consortium seats', () => {
   assert.deepEqual(errors, []);
 });
 
+test('Autarky allows buying NNI ports but blocks virtual circuits over them', () => {
+  const { ev, errors } = load();
+  start(ev);
+  ev("S.cash=1e12;S.lvl=LEVELS.length;ACT.buildPop({city:'ams'})");
+  const fab = ev("FABS.find(f=>f.cities.includes('fra')&&f.cities.includes('ams')).id");
+  ev(`ACT.buyNni({city:'fra',prov:'${fab}',tier:0});ACT.buyNni({city:'ams',prov:'${fab}',tier:0})`);
+  assert.equal(ev(`S.nni.filter(p=>p.prov==='${fab}').length`), 2, 'NNI ports remain purchasable');
+  ev("UI.tab='links'");
+  assert.doesNotMatch(ev("cityPanel('fra')"), /data-act="openVxc"/, 'the city panel hides circuit creation');
+  assert.match(ev("cityPanel('fra')"), /Autarky mode does not allow virtual circuits over fabric ports/);
+  ev(`ACT.openVxc({from:'fra',prov:'${fab}'});ACT.buyVxc({a:'fra',b:'ams',prov:'${fab}',t:0})`);
+  assert.equal(ev("S.links.some(l=>l.kind==='vxc')"), false, 'a direct action cannot create a fabric circuit');
+  assert.deepEqual(errors, []);
+});
+
 test('Autarky hides a remembered Multimode choice and starts solo', () => {
   const { ev, dom, errors } = load();
   ev("FU.can=true;UI.mode='normal';UI.mods=[];UI.fs={on:true,url:'wss://s1.seriesoftub.es/fed',typed:'',inv:null,note:null};showTitle()");
