@@ -202,7 +202,7 @@ function compute(){RW.gen++;fedNetsSync();
   if(CH)for(const J of CH){const Vi=CIDX[J.v],{path,ni}=walkI(SPP[J.v],Vi,CIDX[J.o]);let amt=J.x;for(const l of path)amt=Math.min(amt,l.res);for(const i of ni)if(HAS[i])amt=Math.min(amt,NRES[i]);amt=Math.max(0,amt);
     const f=J.x>0?amt/J.x:0,ek='cnt:'+J.v;if(!R2.egDesc[ek])R2.egDesc[ek]={lab:labOf(N_('streaming.backbone_to_city'),'city',CITY[J.v].name),city:J.v,k:'l2'};
     for(const i of ni)if(HAS[i])nodeTake(i,amt);for(const l of path){l.res-=amt;l.ld+=amt;}
-    for(let k=J.lo;k<J.hi;k++){const a=FREM[k]*f;if(a>0)for(const l of path)carry(l,ek,FNJ[k],Vi,a);FREM[k]=a;}R2.cnt.haul[J.v].got+=amt;}
+    for(let k=J.lo;k<J.hi;k++){const a=FREM[k]*f;if(a>0)for(const l of path)carry(l,ek,FNJ[k],Vi,a);FREM[k]=a;}R2.cnt.haul[J.v].got+=amt;J.got=amt;}
   R2.teMoved=R2.teMoved||0;const teCache=new Map(),SPILL=TR&&TR.spill?TR.spill:1,TT=TR&&TR.tiers.length?TR.tiers:null;
   /* A network in a peer's customer cone, reached through that peer (#85): after every network you peer with directly
      (its AS path is one hop longer) and before transit. */
