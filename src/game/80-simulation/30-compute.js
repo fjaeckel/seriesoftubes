@@ -236,6 +236,8 @@ function compute(){RW.gen++;fedNetsSync();
     TE,SPILL,TT,teCache,adj,CORE,OUT,REACH,DSEL,PREFC,BRJ,COMP,SDi,SPi,ALONE,TR,base,eff},PASSES,RANKS,RSET);
   for(const i of NORD)R2.nodeLoad[CITIES[i].id]=NLOAD[i];
   for(const k of EGO)R2.egT[EXK[k]]=EGT[k];for(const j of NEO){const ne=NEG[j];for(let k=0;k<4;k++)ne[EXK[k]]=NEA[j*4+k];}
+  // Streaming boxes inside ISPs with no POP of yours and at exchanges serve outside routing: added here (38-streaming-boxes.js).
+  if(CH)cntInPost(R2);
   (()=>{
   if(DD){let rem=0,jf=0;for(let i=0;i<NF;i++)if(FREM[i]>1e-6)rem+=FREM[i];if(JK)for(const k in edges){const e=edges[k];if(e.res<=1e-6&&e.jk)jf+=e.jk;}
     ddosAfter(DD,{E,R2,squeeze:Math.min(rem,jf),

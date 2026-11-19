@@ -1,7 +1,7 @@
 /* ---------- The Streaming service in the interface (37-streaming.js) ----------
    The charter card on the left panel (subscribers, Must-Carry, the next premiere, a dispute, the catalogue) and the city
    panel's Streaming tab: the country's viewers, an origin data center, and Binge Boxes with the eyeball networks here. */
-const prefillCost=()=>5000+3000*S.cnt.box.length;
+const prefillCost=()=>5000+3000*boxAll().length;
 const catNext=()=>CAT_T[S.cnt.cat+1]||null;
 function cntCard(){const C=S.cnt;if(!C)return '';const f=mcFree(),on=onNet(R),ccs=Object.keys(C.cc);
   let h=`<div class="inc" style="background:#FFF1E6"><div class="nm">📺 ${tr('streaming.must_carry')}</div>`;
@@ -16,7 +16,7 @@ function cntCard(){const C=S.cnt;if(!C)return '';const f=mcFree(),on=onNet(R),cc
   for(const v of Object.keys((R.cnt&&R.cnt.haul)||{})){const x=R.cnt.haul[v];if(x.g-x.got>0.5)h+=`<div class="meta" style="color:var(--bad)">${tr('streaming.backbone_to_city_full',{city:esc(CITY[v].name),g:fmtG(x.g-x.got)})}</div>`;}
   const p=C.prem;
   if(p){const where=p.reg==='ALL'?tr('streaming.everywhere'):REG[p.reg],show=premShow(p);
-    if(S.day<p.day)h+=`<div class="meta">${(p.live?tr('streaming.live_in_n_days',{show,where,n:p.day-S.day}):tr('streaming.premiere_in_n_days',{show,where,n:p.day-S.day}))}</div>${p.live?`<div class="meta">${tr('streaming.live_hint')}</div>`:`<div class="btns">${p.pf?`<span class="tag st on">${tr('streaming.boxes_pre_filled')}</span>`:btn(tr('streaming.pre_fill_boxes_cost',{cost:fmt$(prefillCost())}),'cntPrefill',{},'sm',!C.box.length||S.cash<prefillCost())}</div>`}`;
+    if(S.day<p.day)h+=`<div class="meta">${(p.live?tr('streaming.live_in_n_days',{show,where,n:p.day-S.day}):tr('streaming.premiere_in_n_days',{show,where,n:p.day-S.day}))}</div>${p.live?`<div class="meta">${tr('streaming.live_hint')}</div>`:`<div class="btns">${p.pf?`<span class="tag st on">${tr('streaming.boxes_pre_filled')}</span>`:btn(tr('streaming.pre_fill_boxes_cost',{cost:fmt$(prefillCost())}),'cntPrefill',{},'sm',!boxAll().length||S.cash<prefillCost())}</div>`}`;
     else h+=`<div class="meta">${(p.live?tr('streaming.live_tonight',{show,where}):tr('streaming.premiere_tonight',{show,where}))}</div>`;}
   const D=C.disp;
   if(D){const n=NET[D.net];h+=`<div class="meta" style="color:var(--bad)">${tr('streaming.dispute_line2',{net:esc(n.name),fee:fmt$(D.fee)})} ${tr('streaming.dispute_carrying_p',{p:pct(D.cut)})}</div><div class="btns">${btn(tr('streaming.pay_fee_mo',{fee:fmt$(D.fee)}),'cntPay',{},'sm')}${D.camp?`<span class="tag st on">${tr('streaming.campaign_n_days_left',{n:Math.max(0,D.camp-S.day)})}</span>`:btn(tr('streaming.tell_your_viewers_cost',{cost:fmt$(DISP_CAMP)}),'cntCamp',{},'pink sm',S.cash<DISP_CAMP)}</div>`;}
@@ -38,7 +38,7 @@ function ccSection(c){const cc=CITY[c].cc,C=S.cnt,x=C.cc[cc],w=ccWhy(cc);let h=`
     <div class="kv"><span>${tr('streaming.picture_quality')}</span><b style="color:${q<0.9?'var(--bad)':'var(--eye)'}">${pct(q)}</b></div><div class="bar ${q<0.9?'bad':''}"><i style="width:${q*100}%"></i></div>
     <div class="kv"><span>${tr('common.revenue')}</span><b>${tr('common.price_mo',{price:fmt$(x.d*q*CNT_RATE)})}</b></div>
     ${src.length?`<p class="meta">${tr('streaming.served_from_list',{list:src.map(([s,g,km])=>`${esc(CITY[s].name)} ${fmtG(g)} (${km.toLocaleString()} km)`).join(', ')})}</p>`:''}
-    ${o&&o.short>0.5?`<p class="why">${tr('streaming.origins_full_here',{g:fmtG(o.short)})}</p>`:''}${src.filter(([s])=>!cntOut(s)).map(([s])=>`<p class="why">${tr('streaming.pop_has_no_way_out',{city:esc(CITY[s].name)})}</p>`).join('')}${src.some(([s])=>S.cnt.dc[s])&&!S.cnt.box.length&&src.every(([s,,km])=>km>1500)?`<p class="note">${tr('streaming.build_a_pop_near_viewers')}</p>`:''}${q<0.9?`<p class="why">${tr('streaming.viewers_are_leaving')}</p>`:''}`;}
+    ${o&&o.short>0.5?`<p class="why">${tr('streaming.origins_full_here',{g:fmtG(o.short)})}</p>`:''}${src.filter(([s])=>S.pops[s]&&!cntOut(s)).map(([s])=>`<p class="why">${tr('streaming.pop_has_no_way_out',{city:esc(CITY[s].name)})}</p>`).join('')}${src.some(([s])=>S.cnt.dc[s])&&!S.cnt.box.length&&src.every(([s,,km])=>km>1500)?`<p class="note">${tr('streaming.build_a_pop_near_viewers')}</p>`:''}${q<0.9?`<p class="why">${tr('streaming.viewers_are_leaving')}</p>`:''}`;}
   else if(w)h+=`<p class="why">${w}</p>`;
   else h+=`<p class="lead">${tr('streaming.launch_lead',{subs:fmtSubs(Math.max(1,ccPot(cc)*CNT_START)),max:fmtSubs(ccPot(cc))})}</p>${btn(tr('streaming.launch_in_country_cost',{country:esc(ccName(cc)),cost:fmt$(ccLic(cc))}),'cntLaunch',{cc},'pink',S.cash<ccLic(cc))}`;
   return h+`</section>`;}
@@ -53,10 +53,12 @@ function dcSection(c){const C=S.cnt,d=C.dc[c];if(!d&&!dcSite(c))return '';let h=
     if(N&&!d.up)h+=`<p class="meta">${tr('streaming.dc_terms',{name:tr(N.n),g:fmtG(N.g),mo:fmt$(N.mo),n:leadDays(N.days)})}</p><div class="btns">${btn(N.lv>lvl()?tr('streaming.cat_name_level_lv',{name:tr(N.n),lv:N.lv}):tr('streaming.grow_origin_cost',{cost:fmt$(N.cost)}),'cntDc',{city:c},'sm',N.lv>lvl()||S.cash<N.cost||d.ready>S.day)}</div>`;}
   else{const N=DC_T[1],full=dcN()>=dcMax();h+=`<p class="lead">${tr('streaming.origin_lead')}</p>${full?`<p class="why">${tr('streaming.your_level_allows_n_origins',{n:dcMax()})}</p>`:''}<p class="meta">${tr('streaming.dc_terms',{name:tr(N.n),g:fmtG(N.g),mo:fmt$(N.mo),n:leadDays(N.days)})}</p>${btn(tr('streaming.build_origin_cost2',{cost:fmt$(N.cost)}),'cntDc',{city:c},'pink',full||S.cash<N.cost)}`;}
   return h+`</section>`;}
-function boxSection(c){const C=S.cnt,nets=boxNets(c);let h=`<section><h3>${tr('streaming.binge_boxes')}</h3><p class="lead">${tr('streaming.boxes_lead',{g:fmtG(BOX_G)})}</p>`;
+function boxSection(c){const C=S.cnt,nets=boxNets(c);let h=`<section><h3>${tr('streaming.binge_boxes')}</h3><p class="lead">${tr('streaming.boxes_lead',{g:fmtG(BOX_G)})}</p>${S.pops[c]?'':boxInLead()}`;
   if(!nets.length)return h+`<p class="empty">${tr('streaming.nobody_sells_to_homes_here')}</p></section>`;
   for(const n of nets){const have=C.box.filter(b=>b.city===c&&b.net===n.id),why=boxWhy(c,n.id),use=have.reduce((a,b)=>a+(R.useCache[b.id]||0),0),fee=boxHost(n);
-    h+=`<div class="row">${logo(n)}<div class="grow"><div class="nm">${esc(n.name)}</div><div class="meta">${have.length?`${trn('common.n_box',have.length)} · ${tr('city_panel.serving_v',{v:fmtG(use)})} · ${tr('streaming.hit_p',{p:pct(boxHit(c)*have.reduce((x,b)=>x+b.f,0)/have.length)})}${have.some(b=>b.f<1)?' · '+tr('streaming.filling_p',{p:pct(have.reduce((x,b)=>x+b.f,0)/have.length)}):''}`:tr('streaming.your_traffic_to_net_g',{g:fmtG(R.demTo[n.id]||0)})}${fee?' · '+tr('streaming.hosting_fee_mo',{fee:fmt$(fee)}):' · '+tr('streaming.hosted_free')}</div>${why&&!have.length?`<div class="why">${why}</div>`:''}</div>
+    h+=`<div class="row">${logo(n)}<div class="grow"><div class="nm">${esc(n.name)}</div><div class="meta">${have.length?`${trn('common.n_box',have.length)} · ${tr('city_panel.serving_v',{v:fmtG(use)})} · ${tr('streaming.hit_p',{p:pct(boxHit(c)*have.reduce((x,b)=>x+b.f,0)/have.length)})}${have.some(b=>b.f<1)?' · '+tr('streaming.filling_p',{p:pct(have.reduce((x,b)=>x+b.f,0)/have.length)}):''}${S.pops[c]?'':' · '+boxInFill(n.id)}`:tr('streaming.your_traffic_to_net_g',{g:fmtG(R.demTo[n.id]||0)})}${fee?' · '+tr('streaming.hosting_fee_mo',{fee:fmt$(fee)}):' · '+tr('streaming.hosted_free')}</div>${why&&!have.length?`<div class="why">${why}</div>`:''}</div>
     <div class="btns">${btn(tr('streaming.add_box_cost',{cost:fmt$(BOX_COST)}),'cntBox',{city:c,net:n.id,d:1},'sm',!!why||S.cash<BOX_COST)}${have.length?btn(tr('streaming.remove_box'),'cntBox',{city:c,net:n.id,d:-1},'ghost sm'):''}</div></div>`;}
   return h+`</section>`;}
-const streamHere=c=>ccSection(c)+dcSection(c)+boxSection(c)+CNT_CITY.map(f=>f(c)).join('');
+const streamHere=c=>ccSection(c)+dcSection(c)+boxSection(c)+xboxSection(c)+CNT_CITY.map(f=>f(c)).join('');
+// A city with no POP of yours: its country, and boxes inside its ISPs or on its exchange (54-streaming-boxes.js).
+const streamNoPop=c=>ccSection(c)+boxSection(c)+xboxSection(c);
