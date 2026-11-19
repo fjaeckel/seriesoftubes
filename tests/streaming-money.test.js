@@ -25,7 +25,7 @@ test('plans: each country gets the plan its wallets suit, and the price trades s
   ev("ACT.cntPrice({cc:'DE',p:2});compute()");
   const after = ev("S.cnt.cc.DE.d");
   assert.ok(after < full * 0.8 && after > full * 0.6, 'a big rise loses viewers at once: ' + after / full);
-  assert.match(ev("S.log[0].t"), /Price rise in Germany/);
+  assert.ok(ev("S.log.slice(0,5).some(x=>/Price rise in Germany/.test(x.t))"), 'the backlash toast (a badge may land right after it)');
   assert.ok(ev("ccPot('DE')") < pot1 * 0.7, 'premium: fewer homes');
   assert.ok(ev("cntMul('churn','DE')") > 1, 'and they leave faster when it buffers');
   // Above the new ceiling the rest drift off at renewal, down to it and no further.
@@ -34,7 +34,8 @@ test('plans: each country gets the plan its wallets suit, and the price trades s
   assert.equal(ev("S.cnt.drift.DE"), undefined, 'and stopped drifting');
   // In a poor country the same premium plan costs far more of the audience.
   ev("S.cnt.pr.IN=2");
-  assert.ok(ev("cntMul('pot','IN')") < ev("cntMul('pot','DE')") * 0.3);
+  // The price's own share of the ceiling (rival streamers move cntMul too, differently per country).
+  assert.ok(ev("CNT_MUL.pot[0]('IN')") < ev("CNT_MUL.pot[0]('DE')") * 0.3);
   assert.deepEqual(errors, []);
 });
 
