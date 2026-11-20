@@ -5,13 +5,13 @@ Object.assign(ACT,{
    if(!spend(hsLic(cc)))return;S.hs.cc[cc]={d:Math.max(1,hsPot(cc)*HS_START),since:S.day};
    toast(tr('hyper.launched',{country:esc(ccName(cc))})+(Object.keys(S.pops).some(hsDoor)?'':`<br>${tr('hyper.launched_no_door')}`),'good');sfx('build');after();},
  // Build a region where none is (a Server Barn), or take the one here a size up. Either way it takes months, and the old
- // one serves all along.
+ // one serves all along. Power (38-hyper-power.js): hsPwGate wants the megawatts free; hsProtRoll may start a protest.
  hsRegion:({city})=>{if(!hyper()||!S.hs||!isCity(city)||!S.pops[city])return;const H=S.hs,d=H.rg[city];
-   if(d){const N=HS_T[d.t+1];if(!N||d.ready>S.day||d.up)return;if(N.lv>lvl()){toast(tr('hyper.tier_needs_level',{name:tr(N.n),lv:N.lv}),'bad');sfx('err');return;}if(!spend(N.cost))return;
-     d.up={t:d.t+1,ready:S.day+leadDays(N.days)};toast(tr('hyper.region_upgrade_started',{name:tr(N.n),city:CITY[city].name,date:dateStr(d.up.ready)}),'good');sfx('build');after();return;}
+   if(d){const N=HS_T[d.t+1];if(!N||d.ready>S.day||d.up)return;if(N.lv>lvl()){toast(tr('hyper.tier_needs_level',{name:tr(N.n),lv:N.lv}),'bad');sfx('err');return;}if(!hsPwGate(city,d.t+1))return;if(!spend(N.cost))return;
+     d.up={t:d.t+1,ready:S.day+leadDays(N.days)};toast(tr('hyper.region_upgrade_started',{name:tr(N.n),city:CITY[city].name,date:dateStr(d.up.ready)}),'good');hsProtRoll(city,'rg');sfx('build');after();return;}
    if(!hsSite(city)){toast(tr('hyper.not_a_region_metro'),'bad');sfx('err');return;}
-   if(hsRgN()>=hsRgMax()){toast(tr('hyper.your_level_allows_n_regions',{n:hsRgMax()}),'bad');sfx('err');return;}const N=HS_T[1];if(!spend(N.cost))return;
-   H.rg[city]={t:1,ready:S.day+leadDays(N.days),mw:N.mw};toast(tr('hyper.region_build_started',{name:tr(N.n),city:CITY[city].name,date:dateStr(H.rg[city].ready)}),'good');sfx('build');after();},
+   if(hsRgN()>=hsRgMax()){toast(tr('hyper.your_level_allows_n_regions',{n:hsRgMax()}),'bad');sfx('err');return;}const N=HS_T[1];if(!hsPwGate(city,1)||!spend(N.cost))return;
+   H.rg[city]={t:1,ready:S.day+leadDays(N.days),mw:N.mw};hsPwMk(city);toast(tr('hyper.region_build_started',{name:tr(N.n),city:CITY[city].name,date:dateStr(H.rg[city].ready)}),'good');hsProtRoll(city,'rg');sfx('build');after();},
  // The edge stack at a front door: TLS ends here, and the static quarter never leaves the building.
  hsEdge:({city})=>{if(!hyper()||!S.hs||!isCity(city)||!S.pops[city]||S.hs.edge[city])return;if(!hsDoor(city)){toast(tr('hyper.edge_needs_a_door'),'bad');sfx('err');return;}
    if(!spend(HS_EDGE_COST))return;S.hs.edge[city]=1;toast(tr('hyper.edge_live',{city:CITY[city].name}),'good');sfx('build');after();},
