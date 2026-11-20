@@ -100,23 +100,29 @@ CX_SAN.push((h0,o,s)=>{const n=(v,d)=>Number.isFinite(+v)?+v:d,I=v=>Math.round(n
   if(obj(L0.eu))L.eu={a:I(L0.eu.a),f:I(L0.eu.f),m:M('eu',L0.eu.m)};
   const E=L0.egr;if(obj(E)&&['open','cut','paid','fined'].includes(E.st))L.egr={a:I(E.a),dl:I(E.dl),st:E.st,u:Math.max(0,I(E.u)),fee:clamp(I(E.fee),0,1e9),m:M('egr',E.m)};
   o.law=L;});
-/* The charter card: laws on their way or in force, with what you can do; the egress answer as two buttons. */
-function hsLawCard(){const L=hsLaw();if(!L||!hyper())return '';let h='';const bad=t=>`<div class="meta" style="color:var(--bad)">${t}</div>`,meta=t=>`<div class="meta">${t}</div>`;
-  for(const cc of Object.keys(L.cc).sort()){const x=L.cc[cc],v={country:esc(ccName(cc)),date:dateStr(x.f)},met=hsLawMet(cc);
-    if(x.f>S.day)h+=(met?meta:bad)(`🏛️ ${met?tr('hyper_reg.card_cc_ok',v):tr('hyper_reg.card_cc_soon',v)}`);
-    else if(!met&&S.hs.cc[cc])h+=bad(`🏛️ ${tr('hyper_reg.card_cc_held',v)}`);}
+/* The charter card (55-hyper-panel.js): what a law asks of you now goes in the ranked alert list (hsLawAlerts: lv 1 a law
+   in force that holds users or the egress answer due, lv 2 a fee or a law coming that you have not met), what is
+   merely so in the stat lines (hsLawStat). */
+function hsLawAlerts(){const L=hsLaw();if(!L||!hyper())return [];const out=[],A=(lv,h)=>out.push({lv,h});
+  for(const cc of Object.keys(L.cc).sort()){const x=L.cc[cc],v={country:esc(ccName(cc)),date:dateStr(x.f)},met=hsLawMet(cc);if(met)continue;
+    if(x.f>S.day)A(2,`🏛️ ${tr('hyper_reg.card_cc_soon',v)}`);else if(S.hs.cc[cc])A(1,`🏛️ ${tr('hyper_reg.card_cc_held',v)}`);}
+  for(const g of Object.keys(L.pue).sort()){const x=L.pue[g];if(x.f>S.day)continue;const rs=hsPueRgs().filter(c=>CITY[c].reg===g);
+    if(rs.length)A(2,`🌡️ ${tr('hyper_reg.card_pue',{reg:WAVE_NAME[g],fee:fmt$(rs.reduce((a,c)=>a+hsPueFee(c),0)),list:rs.slice(0,3).map(c=>esc(CITY[c].name)).join(', ')})} ${btn(tr('common.open'),'popGo',{city:rs[0]},'ghost sm')}`);}
+  if(L.eu&&L.eu.f<=S.day){const rs=hsEuRgs();if(rs.length)A(2,`🇪🇺 ${trn('hyper_reg.card_eu',rs.length,{fee:fmt$(rs.length*HS_EU_MO)})} ${btn(tr('common.open'),'popGo',{city:rs[0]},'ghost sm')}`);}
+  const E=L.egr;if(E&&E.st==='open')A(1,`🏨 ${tr('hyper_reg.card_egr',{date:dateStr(E.dl),fee:fmt$(E.fee)})}<div class="btns">${btn(tr('hyper_reg.egr_cut_btn',{p:pct(HS_EGR_CUT)}),'hsEgress',{v:'cut'},'sm')}${btn(tr('hyper_reg.egr_pay_btn',{fee:fmt$(E.fee)}),'hsEgress',{v:'pay'},'pink sm',S.cash<E.fee)}</div>`);
+  return out;}
+function hsLawStat(){const L=hsLaw();if(!L||!hyper())return '';let h='';const meta=t=>`<div class="meta">${t}</div>`;
+  for(const cc of Object.keys(L.cc).sort()){const x=L.cc[cc];if(x.f>S.day&&hsLawMet(cc))h+=meta(`🏛️ ${tr('hyper_reg.card_cc_ok',{country:esc(ccName(cc)),date:dateStr(x.f)})}`);}
   for(const c of Object.keys(L.mor).sort()){const x=L.mor[c];if(x.u<=S.day)continue;const v={city:esc(CITY[c].name),date:dateStr(x.f),until:dateStr(x.u)};h+=meta(`🔌 ${x.f>S.day?tr('hyper_reg.card_mor_soon',v):tr('hyper_reg.card_mor',v)}`);}
-  for(const g of Object.keys(L.pue).sort()){const x=L.pue[g];if(x.f>S.day){h+=meta(`🌡️ ${tr('hyper_reg.card_pue_soon',{reg:WAVE_NAME[g],date:dateStr(x.f)})}`);continue;}
-    const rs=hsPueRgs().filter(c=>CITY[c].reg===g);if(rs.length)h+=bad(`🌡️ ${tr('hyper_reg.card_pue',{reg:WAVE_NAME[g],fee:fmt$(rs.reduce((a,c)=>a+hsPueFee(c),0)),list:rs.slice(0,3).map(c=>esc(CITY[c].name)).join(', ')})}`);}
-  if(L.eu){const n=hsEuRgs().length;if(L.eu.f>S.day)h+=meta(`🇪🇺 ${tr('hyper_reg.card_eu_soon',{date:dateStr(L.eu.f)})}`);else if(n)h+=bad(`🇪🇺 ${trn('hyper_reg.card_eu',n,{fee:fmt$(n*HS_EU_MO)})}`);}
-  const E=L.egr;if(E&&E.st==='open')h+=bad(`🏨 ${tr('hyper_reg.card_egr',{date:dateStr(E.dl),fee:fmt$(E.fee)})}`)+`<div class="btns">${btn(tr('hyper_reg.egr_cut_btn',{p:pct(HS_EGR_CUT)}),'hsEgress',{v:'cut'},'sm')}${btn(tr('hyper_reg.egr_pay_btn',{fee:fmt$(E.fee)}),'hsEgress',{v:'pay'},'pink sm',S.cash<E.fee)}</div>`;
-  else if(hsEgrCut())h+=meta(`🏨 ${tr('hyper_reg.card_egr_cut',{p:pct(HS_EGR_CUT),date:dateStr(E.u)})}`);
+  for(const g of Object.keys(L.pue).sort())if(L.pue[g].f>S.day)h+=meta(`🌡️ ${tr('hyper_reg.card_pue_soon',{reg:WAVE_NAME[g],date:dateStr(L.pue[g].f)})}`);
+  if(L.eu&&L.eu.f>S.day)h+=meta(`🇪🇺 ${tr('hyper_reg.card_eu_soon',{date:dateStr(L.eu.f)})}`);
+  if(hsEgrCut())h+=meta(`🏨 ${tr('hyper_reg.card_egr_cut',{p:pct(HS_EGR_CUT),date:dateStr(L.egr.u)})}`);
   return h;}
-// The Cloud tab of a city: a law coming for its country, a moratorium in its metro, the energy rule on its region.
-function hsLawCity(c){const L=hsLaw();if(!L||!hyper())return '';const cc=CITY[c].cc,x=L.cc[cc],M=L.mor[c],H=S.hs;let h='';
-  if(x)h+=`<p class="${x.f>S.day&&!hsLawMet(cc)?'why':'meta'}">🏛️ ${tr('hyper_reg.city_cc',{min:esc(hsMin('cc',x.m)),country:esc(ccName(cc)),date:dateStr(x.f)})}</p>`;
-  if(M&&M.u>S.day)h+=`<p class="${M.f<=S.day?'why':'meta'}">🔌 ${tr('hyper_reg.city_mor',{min:esc(hsMin('mor',M.m)),date:dateStr(M.f),until:dateStr(M.u)})}</p>`;
-  if(H.rg[c]&&hsPueRgs().includes(c))h+=`<p class="why">🌡️ ${tr('hyper_reg.city_pue',{fee:fmt$(hsPueFee(c))})}</p>`;
-  if(H.rg[c]&&hsEuOn()&&hsEuRgs().includes(c))h+=`<p class="why">🇪🇺 ${tr('hyper_reg.city_eu',{fee:fmt$(HS_EU_MO),b:esc(CITY[hsRepOf(c)].name)})}</p>`;
-  return h?`<section><h3>🏛️ ${tr('hyper_reg.title')}</h3>${h}</section>`:'';}
-CX_CARD.push(hsLawCard);CX_CITY.push(hsLawCity);
+// The Cloud tab of a city: a folding section (55-hyper-panel.js) for a law coming for its country, a moratorium in its
+// metro, the energy rule or the EU fee on its region; flagged when it costs you or holds users.
+function hsLawSpec(c){const L=hsLaw();if(!L||!hyper())return null;const cc=CITY[c].cc,x=L.cc[cc],M=L.mor[c],H=S.hs;let h='',bad=0;const P=(w,t)=>{if(w)bad++;h+=`<p class="${w?'why':'meta'}">${t}</p>`;};
+  if(x)P(!hsLawMet(cc)&&(x.f>S.day||!!H.cc[cc]),`🏛️ ${tr('hyper_reg.city_cc',{min:esc(hsMin('cc',x.m)),country:esc(ccName(cc)),date:dateStr(x.f)})}`);
+  if(M&&M.u>S.day)P(M.f<=S.day,`🔌 ${tr('hyper_reg.city_mor',{min:esc(hsMin('mor',M.m)),date:dateStr(M.f),until:dateStr(M.u)})}`);
+  if(H.rg[c]&&hsPueRgs().includes(c))P(1,`🌡️ ${tr('hyper_reg.city_pue',{fee:fmt$(hsPueFee(c))})}`);
+  if(H.rg[c]&&hsEuOn()&&hsEuRgs().includes(c))P(1,`🇪🇺 ${tr('hyper_reg.city_eu',{fee:fmt$(HS_EU_MO),b:esc(CITY[hsRepOf(c)].name)})}`);
+  if(!h)return null;return {t:`🏛️ ${tr('hyper_reg.title')}`,sum:'',flags:bad?[['selective',tr('hyper_ui.f_law')]]:[],body:()=>h};}

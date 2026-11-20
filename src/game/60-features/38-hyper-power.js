@@ -71,11 +71,12 @@ function hsPwGate(c,t){const p=hsProt(c);if(p&&p.kind==='block'){toast(tr('hyper
     P.q?[]:[{l:tr('hyper_power.ask_util',{mw:HS_Q_MW,cost:fmt$(HS_Q_FEE)}),act:'hsUtil',args:{city:c}}]);sfx('err');return false;}
 /* Protests. A build that takes your draw in c to HS_PROT_MW or more rolls one: the chance grows with your MW against
    the town's and falls with goodwill. on: 'rg' (the region build there) or 'smr' (the reactor, which always gets one). */
-function hsProtP(c,mw){return clamp(0.25+0.6*mw/Math.max(1,hsTown(c))-(hsPw(c).gw-40)/100,0.05,0.9);}
+// A Server Barn in a big town rarely gets more than a letter to the editor; a campus that doubles the town's draw does.
+function hsProtP(c,mw){return clamp(0.05+0.9*mw/Math.max(1,hsTown(c))-(hsPw(c).gw-40)/100,0.05,0.9);}
 function hsProtRoll(c,on){const H=S.hs;if(!H||hsProt(c))return null;const P=hsPwMk(c),mw=hsMwRes(c);if(on==='rg'&&mw<HS_PROT_MW)return null;
   const p=on==='smr'?1:hsProtP(c,mw),r=hstr(S.asn+'|'+S.day+'|'+c+'|prot')%1000/1000;if(r>=p)return null;
   const u=r/p,g=on==='smr'?3:hsGrpOf(c,S.day),kind=u<(on==='smr'?0.4:p>=0.4?0.15:0)?'block':on!=='smr'&&u<0.45?'cost':'delay',h=hstr(S.asn+'|'+c+'|'+S.day+'|len');
-  const len=kind==='delay'?30+h%61:kind==='cost'?120:150+h%151,x={until:S.day+len,kind,g,on};H.prot[c]=x;P.gw=Math.max(0,P.gw-5);
+  const len=kind==='delay'?20+h%41:kind==='cost'?120:150+h%151,x={until:S.day+len,kind,g,on};H.prot[c]=x;P.gw=Math.max(0,P.gw-5);
   if(kind==='delay')hsProtShift(c,on,len);
   const v={grp:tr(HS_GRP[g]),city:esc(CITY[c].name),n:len};
   toast((kind==='block'?tr('hyper_power.prot_block',v):kind==='cost'?tr('hyper_power.prot_cost',v):tr('hyper_power.prot_delay',v))+`<br><i>${tr(HS_GRP_SAY[g])}</i>`,'bad',[{l:tr('hyper_power.answer'),act:'popGo',args:{city:c}}]);sfx('err');return x;}

@@ -73,10 +73,10 @@ CX_NEW.push(o=>{o.ic={pow:0,storm:0,melt:0,dns:0,cert:0};});
 // Saves: the counters, and only cloud outages that point at a real region (or front door).
 CX_SAN.push((h0,o,s)=>{const x=h0.ic&&typeof h0.ic==='object'&&!Array.isArray(h0.ic)?h0.ic:{},n=k=>Math.max(0,Math.round(Number.isFinite(+x[k])?+x[k]:0));o.ic={pow:n('pow'),storm:n('storm'),melt:n('melt'),dns:n('dns'),cert:n('cert')};
   if(Array.isArray(s.inc))s.inc=s.inc.filter(i=>!i||!HI_T.includes(i.type)||(i.type==='hsdns'?i.ref==='route66':i.type==='hscert'?isCity(i.ref)&&!!s.pops[i.ref]:typeof i.ref==='string'&&own(o.rg,i.ref)));});
-// The city's Cloud tab: an outage here, with its answer.
-function hsIncCity(c){if(!hyper()||!S.hs)return '';const i=S.inc.filter(x=>HI_T.includes(x.type)&&x.ref===c&&x.until>S.day).sort((a,b)=>b.until-a.until)[0];if(!i)return '';
-  return `<section><p class="why">☁️ <b>${hsIncTitle(i.type)}</b> · ${tr('hyper_inc.until_date',{date:dateStr(i.until)})}</p><p class="meta">${esc(i.msg)}</p>${i.cost?`<div class="btns">${btn(`${esc(i.fix)} ${fmt$(i.cost)}`,'fixInc',{id:i.id},'red sm',S.cash<i.cost)}</div>`:''}</section>`;}
-// The charter card: Route 66 down (it has no city of its own).
-function hsIncCard(){if(!hyper()||!S.hs)return '';const i=hiAct('hsdns');if(!i)return '';
-  return `<div class="meta" style="color:var(--bad)">☁️ ${tr('hyper_inc.card_dns',{n:hiDnsTen().length,date:dateStr(i.until)})}</div><div class="btns">${btn(`${esc(i.fix)} ${fmt$(i.cost)}`,'fixInc',{id:i.id},'red sm',S.cash<i.cost)}</div>`;}
-CX_CITY.push(hsIncCity);CX_CARD.push(hsIncCard);
+// The city's Cloud tab: an outage here, with its answer, as a folding section flagged down (55-hyper-panel.js).
+function hsIncSpec(c){if(!hyper()||!S.hs)return null;const i=S.inc.filter(x=>HI_T.includes(x.type)&&x.ref===c&&x.until>S.day).sort((a,b)=>b.until-a.until)[0];if(!i)return null;
+  return {t:`☁️ ${hsIncTitle(i.type)}`,sum:tr('hyper_inc.until_date',{date:dateStr(i.until)}),flags:[['restrictive',tr('hyper_ui.f_down')]],
+    body:()=>`<p class="meta">${esc(i.msg)}</p>${i.cost?`<div class="btns">${btn(`${esc(i.fix)} ${fmt$(i.cost)}`,'fixInc',{id:i.id},'red sm',S.cash<i.cost)}</div>`:''}`};}
+// The charter card's alert list: Route 66 down (it has no city of its own), worst first.
+function hsIncAlerts(){if(!hyper()||!S.hs)return [];const i=hiAct('hsdns');if(!i)return [];
+  return [{lv:0,h:`☁️ ${tr('hyper_inc.card_dns',{n:hiDnsTen().length,date:dateStr(i.until)})}<div class="btns">${btn(`${esc(i.fix)} ${fmt$(i.cost)}`,'fixInc',{id:i.id},'red sm',S.cash<i.cost)}</div>`}];}
