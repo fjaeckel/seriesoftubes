@@ -112,6 +112,8 @@ function opsMood(){const O=S.ops,x=O.wk&&O.wk.w===Math.floor(S.day/7)?O.wk:null,
   const k=S.day-O.hired<7?'new':x&&x.ff?'oops':n.snag?'snag':S.inc.some(i=>i.until>S.day&&i.type!=='ddos')?'outage':n.broke?'broke':jobs>=5?'busy':S.day%2?'quiet':O.intern;
   // A change freeze (37-content-core.js) is all anyone talks about.
   {const z=chFrozen();if(z)return tr('ops.mood_frozen',{name:opsName(),show:z.show});}
+  // A Hyperscaler's intern talks about regions, backlogs and protests on an ordinary day (95-hyper-orders.js).
+  {const x=hsOpsMood(k);if(x)return x;}
   return tr({new:N_('ops.mood_new'),oops:N_('ops.mood_oops'),snag:N_('ops.mood_snag'),outage:N_('ops.mood_outage'),broke:N_('ops.mood_broke'),busy:N_('ops.mood_busy'),quiet:N_('ops.mood_quiet'),
     annie:N_('ops.mood_annie'),kevin:N_('ops.mood_kevin'),tracy:N_('ops.mood_tracy')}[k],{name:opsName()});}
 // "fra +1×100G", "fra|ams", "ams~3", "transit" (an order, for the budget line) or "ggl" (a network).
@@ -418,3 +420,5 @@ function opsTplQuote(c){if(!S||S.pops[c]||!cityOn(c)||(cnCity(c)&&!cnOk()))retur
   try{if(T.ix&&!modeOn('outcast')&&CITY[c].ix&&!isDk(c)&&S.ixp[c]===undefined){ix=c;cost+=ixPortMo(c,0);parts.push(tr('ops.tpl_ix'));}
     if(T.kit){kit=utilityKit(c);if(kit&&kit.cost){cost+=kit.cost;parts.push(tr('ops.tpl_kit'));}}}finally{delete S.pops[c];}
   return {cost,net:net&&net.id,ix,kit:!!(kit&&kit.cost),parts};}
+// The Hyperscaler's own orders (95-hyper-orders.js loads before this file, so it registers them now).
+hsOpsReg();

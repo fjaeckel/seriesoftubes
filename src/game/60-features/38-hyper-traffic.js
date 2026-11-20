@@ -80,7 +80,7 @@ function hsBulk(R2,X){const H=S.hs,out=R2.hs;if(!out)return;const rep={},jobs={}
     for(const [x,a] of got){r.paths.push({ns:hsFrom(x.ni.map(i=>CITIES[i].id),A),share:a/want});r.ms=Math.max(r.ms,x.path.reduce((s,e)=>s+e.lat,0)+x.path.length*0.05);}
     r.got=want-left;return r;};
   // Replication, region by region.
-  for(const a of rgs){const g=out.rg[a],b=g.rep||null,base=HS_REP*(g.u||0)+(g.bt||0)+HS_NIGHT*(g.nt||0);if(!b)continue;
+  for(const a of rgs){const g=out.rg[a],b=g.rep||null,base=(HS_REP*(g.u||0)+(g.bt||0)+HS_NIGHT*(g.nt||0))*hsRepX(a);if(!b)continue;
     const lag=H.lag[hsLk(a,b)]||0,drain=lag/TB_DAY,mode=H.pp[hsPk(a,b)]||'',x=carve(a,b,'hs:'+hsLk(a,b),base+drain,mode,labOf(N_('hyper_traffic.ek_rep'),'city',CITY[b].name));
     rep[a]={b,base,drain,want:base+drain,got:x.got,f:base>1e-9?Math.min(1,x.got/base):1,ms:x.ms,mode,te:x.te,paths:x.paths,lag,u:g.u||0,bt:g.bt||0,nt:g.nt||0};out.btw+=x.got;}
   for(const id in out.ten){const T=out.ten[id];if(T.bt>0&&T.r&&rep[T.r])T.btg=T.bt*rep[T.r].f;}

@@ -8,8 +8,9 @@
    live only in a region in their own country; if theirs fails with nowhere at home to go, they leave at once. */
 const HS_SOV=['ID','IN','NG','RU','SA','TR','VN'];
 const HS_EU=['AT','BE','BG','CY','CZ','DE','DK','EE','ES','FI','FR','GR','HR','HU','IE','IT','LT','LU','LV','MT','NL','PL','PT','RO','SE','SI','SK'];
-// 'cc' (in the country), 'eu' (in the bloc) or '' (anywhere).
-const hsResOf=cc=>HS_SOV.includes(cc)?'cc':HS_EU.includes(cc)?'eu':'';
+// 'cc' (in the country), 'eu' (in the bloc) or '' (anywhere). A country's own new law counts too (hsRegRes,
+// 38-hyper-regulation.js): from the day it is in force, its users are pinned like the countries above.
+const hsResOf=cc=>HS_SOV.includes(cc)?'cc':HS_EU.includes(cc)?'eu':hsRegRes(cc);
 // May users of country cc be homed in the region in city r?
 function hsResOk(cc,r){const k=hsResOf(cc);if(!k)return true;const rc=CITY[r]&&CITY[r].cc;return k==='cc'?rc===cc:HS_EU.includes(rc);}
 // A region they may use is built (live or not): until then they are held at their launch size.

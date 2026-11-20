@@ -42,8 +42,8 @@ const hsGrid=c=>Math.round(clamp(40+CITY[c].P*0.25+hstr('grid|'+c)%120,40,600));
 // The region a tenant in city c is served from: the nearest live one with a free compute slot, else the nearest. p: its
 // products; Very Sovereign Cloud only ever lives in its own country (38-hyper-residency.js).
 function hsRgFor(c,skip,p){const rs=hsRgs().filter(r=>hsTenResOk(p,c,r)).sort((a,b)=>kmBetween(a,c)-kmBetween(b,c)||(a<b?-1:1));return rs.find(r=>r!==skip&&hsSlotsUsed(r)<hsSlots(r))||rs[0]||null;}
-// Front doors: POPs with a way out. hsDoor(c): this one is.
-const hsDoor=c=>!!S.pops[c]&&popUp(c)&&cxOut(c);
+// Front doors: POPs with a way out. hsDoor(c): this one is (and its TLS certificate has not expired, 71-hyper-incidents.js).
+const hsDoor=c=>!!S.pops[c]&&popUp(c)&&cxOut(c)&&!hsCertOut(c);
 const hsLatF=ms=>ms<=HS_MS[0]?1:ms>=HS_MS[1]?HS_MS[2]:1-(1-HS_MS[2])*(ms-HS_MS[0])/(HS_MS[1]-HS_MS[0]);
 // The users' own way to the door, in ms (light in fiber, a little detour).
 const hsAcc=(v,m)=>kmBetween(v,m)*1.25/200;
@@ -111,7 +111,7 @@ const hsRev=(r,cc)=>S.hs.cc[cc].d*hsQ(r,cc)*HS_RATE*cxMul('rev',cc);
 function hsNeedQ(r,b,id){const T=r&&r.hs&&r.hs.ten[b.id],P=CLOUD_PRODUCTS[id];if(!T||!T.v||!P)return 0;const H=S.hs,rg=H.rg[T.r];
   const n=P.need,need=n==='pair'?(T.r2?1:0.8):n==='doors'?(Object.keys(S.pops).filter(hsDoor).length>=2?1:0.9):n==='edge'?(H.edge[T.v]?1:0.8)
     :n==='port'?(T.v===b.city||id==='pc'&&hsfRamp(b.city)?1:0.7):n==='power'?(rg&&rg.t>=2?1:0.85):n==='home'?(CITY[T.r].cc===CITY[b.city].cc?1:0.5):n==='model'?(hsAiOn()?1:0.5):1;
-  return need*(1-P.lat*(1-hsLatF(T.ms)));}
+  return need*(1-P.lat*(1-hsLatF(T.ms)))*hsIncNeed(id);}
 function hsTenQ(r,b){const T=r&&r.hs&&r.hs.ten[b.id];if(!T||!T.v||!Array.isArray(b.p)||!b.p.length)return 0;
   const hw=T.hw+(T.bt||0),hauled=hw>1e-9?clamp((T.got+(T.btg||0))/hw,0,1):1,sv=T.f*sfOf(r,T.v)*hauled,q=b.p.map(id=>hsNeedQ(r,b,id)*sv);
   const lo=Math.min(...q),av=q.reduce((a,x)=>a+x,0)/q.length;return clamp(0.7*lo+0.3*av,0,1);}
