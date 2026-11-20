@@ -150,7 +150,8 @@ function cmList1(r,p,s,d){const c=S.cm.p[p],lk=CM_L[p];if(!cmOn(r.k,p)||S.cm.off
 // The listings as the thresholds want them right now (after you change a setting), without selling anything.
 function cmRelist(){const rs=cmRoutes(),sold=cmSold(rs);for(const r of rs.values())for(const p of CM_P)cmList1(r,p,sold.get(r.k)[p],S.day);cmTidy();}
 const cmTidy=()=>{for(const l of S.links)if(l.list){const L=cmClean(l.list);if(L)l.list=L;else delete l.list;}};
-function cmDay(d=S.day){const C=S.cm;cmShocks(d);const rs=cmRoutes(),sold=cmSold(rs);
+function cmDay(d=S.day){if(hyper())return; // a Hyperscaler resells its own glass at its own desk (38-hyper-resale.js)
+  const C=S.cm;cmShocks(d);const rs=cmRoutes(),sold=cmSold(rs);
   for(const r of rs.values()){const s=sold.get(r.k);
     for(const p of CM_P){const lk=CM_L[p];cmList1(r,p,s[p],d);
       // Room rounds to the nearest unit: a road to nowhere that wants about one wave sells one.

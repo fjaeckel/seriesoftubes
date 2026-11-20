@@ -67,7 +67,8 @@ function hsFlows(R2,flow,DEMTO,X){const H=S.hs;if(!H||!hyper())return null;
   for(const b of S.biz){if(b.type!=='cloud'||!Array.isArray(b.p))continue;const I=ccInfo(CITY[b.city].cc);if(!I)continue;const nets=hsfNets(I,PN);
     const r=hsLive(b.rg)?b.rg:hsRgFor(b.city),T={r,v:null,want:0,f:0,ms:Infinity,r2:null,got:0,hw:0};out.ten[b.id]=T;if(!r)continue;
     const v=doors.includes(b.city)&&ms(r,b.city)<Infinity?b.city:doors.filter(d=>ms(r,d)<Infinity).sort((a,c)=>kmBetween(a,b.city)-kmBetween(c,b.city)||(a<c?-1:1))[0];if(!v)continue;
-    const sh=cloudShape(b.p),es=H.edge[v]?b.bw*sh.eo:0,dyn=b.bw*sh.out-es,inn=b.bw*sh.in,want=dyn+inn,f=want>1e-9?Math.min(1,room[r]/want):1;
+    // A game studio's launch day multiplies its traffic (hsSpike, 38-hyper-freeze.js).
+    const bw=b.bw*hsSpike(b),sh=cloudShape(b.p),es=H.edge[v]?bw*sh.eo:0,dyn=bw*sh.out-es,inn=bw*sh.in,want=dyn+inn,f=want>1e-9?Math.min(1,room[r]/want):1;
     room[r]-=want*f;out.rg[r].load+=want*f;T.v=v;T.want=want;T.f=f;T.ms=ms(r,v)*(H.edge[v]?0.5:1)+hsAcc(v,b.city);T.es=es;
     for(const [j,w] of nets)add(v,j,es*w,true);
     let lo=X.nf();for(const [j,w] of nets)add(v,j,dyn*f*w,true);job(r,v,dyn*f,lo,'out',b.id);if(r!==v)T.hw+=dyn*f;
@@ -75,7 +76,7 @@ function hsFlows(R2,flow,DEMTO,X){const H=S.hs;if(!H||!hyper())return null;
     // copy) go to the region's replica as bulk replication (38-hyper-traffic.js), after every interactive flow.
     lo=X.nf();job(r,v,inn*f,lo,'in',b.id);if(r!==v)T.hw+=inn*f;
     const r2=out.rg[r].rep;T.r2=r2;T.bt=0;T.btg=0;
-    if(r2&&sh.bt>0){const nt=hsNightBt(b.p)*b.bw*f;T.bt=b.bw*sh.bt*f;out.rg[r].bt+=T.bt-nt;out.rg[r].nt+=nt;}}
+    if(r2&&sh.bt>0){const nt=hsNightBt(b.p)*bw*f;T.bt=bw*sh.bt*f;out.rg[r].bt+=T.bt-nt;out.rg[r].nt+=nt;}}
   const pairs=[],left={};
   const NT={},FH={};
   for(const cc of Object.keys(H.cc).sort()){const I=ccInfo(cc);if(!I)continue;const D=H.cc[cc].d,o={D,v:null,st:0,parts:[],home:null,want:0,got:0,short:0,nd:0};out.cc[cc]=o;

@@ -146,7 +146,9 @@ function dfPanel(l){
   ${seatPanel(l)}${l.own&&l.sub?`<div class="kv"><span>${tr('common.cable_design')}</span><b>${tr((SEA_DESIGNS[l.seaDesign]||SEA_DESIGNS.standard).n)}</b></div>`:''}
   ${v?'':`<div class="kv"><span>${tr('common.latency')}</span><b>${lat}</b></div>`}<div class="kv"><span>${l.own?tr('link_panels.right_of_way_upkeep'):tr('common.iru_lease')} + ${tr('link_panels.n_amp_huts',{n:amps})}</span><b title="${fmt$(l.mo)} + ${fmt$(amps*AMP_MO)}">${tr('common.price_mo',{price:fmt$(l.mo+amps*AMP_MO)})}</b></div>${!bld&&!(l.ch||[]).length?`<p class="why">${tr('link_panels.this_fiber_is_dark_add_optics')}</p>`:''}</section>`;
   let sell='';
-  if(!bld){const sold=S.biz.filter(b=>b.link===l.id&&(b.type==='wwave'||b.type==='mwave'||b.type==='dfpair'||b.type==='pairs')),off=S.offers.find(o=>o.link===l.id),fc=freeCh(l);
+  // A Hyperscaler resells only its own glass, at its resale desk (38-hyper-resale.js).
+  if(!bld&&hyper())sell=hsrLink(l);
+  else if(!bld){const sold=S.biz.filter(b=>b.link===l.id&&(b.type==='wwave'||b.type==='mwave'||b.type==='dfpair'||b.type==='pairs')),off=S.offers.find(o=>o.link===l.id),fc=freeCh(l);
     // One line (free channels, what the rentals bring in) that unfolds; an offer waiting opens it by itself.
     const offRow=()=>off?`<div class="row"><div class="grow"><div class="nm">${esc(off.name)}</div><div class="meta">${esc(off.what)} · ${tr('common.price_mo',{price:fmt$(off.rate)})} · ${tr('ui.n_d_left',{n:off.exp-S.day})}${off.broker?' · '+tr('link_panels.via_a_capacity_broker'):''}</div></div>${btn(tr('common.accept'),'accept',{id:off.id},'pink sm')}</div>`:'',inc=sold.reduce((a,b)=>a+(b.rate||0),0);
     sell=pnSec('sell',tr('link_panels.selling_spare_capacity'),{sum:`${tr('common.free_channels')} ${fc}/${chMax(l)}${inc?' · '+tr('common.price_mo',{price:fmt$(inc)}):''}`,flags:off?[['paid',tr('common.offers')]]:[],tot:sold.length+1,lead:`<p class="lead">${tr('link_panels.other_carriers_rent_what_you_do')}</p>`,body:m=>m===1?offRow():`
