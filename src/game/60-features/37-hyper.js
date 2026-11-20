@@ -39,7 +39,8 @@ const hsUsers=()=>S.hs?Object.values(S.hs.cc).reduce((a,x)=>a+x.d,0):0;
 // Regions: where they may go, how many your level allows, which are live.
 const hsSite=c=>c===S.home||siteOk(c,HS_MIN_P);
 const hsRgMax=()=>HS_LV_RG[Math.min(lvl(),HS_LV_RG.length-1)]+1;
-const hsRgN=()=>Object.keys(S.hs.rg).length;
+// Regions held against the level's limit: built or building, at a POP you still have.
+const hsRgN=()=>Object.keys(S.hs.rg).filter(c=>!!S.pops[c]).length;
 // A region that failed or is drained by a drill is not live (38-hyper-failover.js).
 const hsLive=c=>!!S.hs&&siteLive(S.hs.rg,c)&&popUp(c)&&!hsOff(c);
 const hsRgs=()=>S.hs?Object.keys(S.hs.rg).filter(hsLive).sort():[];

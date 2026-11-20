@@ -72,6 +72,8 @@ function seatPanel(l){if(!l.seat)return '';return `<div class="kv"><span>${tr('s
    usual prices, sells it, and has its own goals and win, Glass Baron (37-cable-broker.js). The Hyperscaler (37-hyper.js)
    builds a cloud: users by country, regions, front doors and its own backbone; it sells cloud, never transit. */
 const CHARTERS={global:{i:'🌐',n:N_('specialist.global_backbone'),d:N_('specialist.the_classic_game_grow_everywhere_and')},boutique:{i:'⚡',n:N_('specialist.low_latency_boutique'),d:N_('specialist.trading_firms_and_other_latency_customers')},broker:{i:'🚢',n:N_('specialist.cable_broker'),d:N_('specialist.cable_broker_desc')},hyper:{i:'☁️',n:N_('hyper.hyperscaler'),d:N_('hyper_story.charter_desc')}};
+// The picker's order: the newest charter first, the classic game right after it.
+const CHARTER_ORDER=['hyper','global','boutique','broker'];
 const CHARTER_DAYS=30,LAT_PAY=1.4,SOL_ROUTES=3,SOL_CUST=2;
 const charter=()=>S&&!S.scn&&S.mode==='normal'&&(S.charter==='boutique'||S.charter==='broker'||S.charter==='hyper')?S.charter:'global';
 const broker=()=>charter()==='broker';
@@ -98,7 +100,7 @@ const charterDesc=C=>tr(C.d,{p:Math.round((LAT_PAY-1)*100),r:SOL_ROUTES,c:SOL_CU
    they ask (window.__TUBES_CHARTER__), as they skip the tutorial: they sign a charter with ACT.charter when they need one. */
 const charterDue=()=>!!(S&&UI.started&&!S.lost&&!S.scn&&S.mode==='normal'&&!S.chartSet&&!pzOn());
 function charterPickHtml(){return `<div class="chpick"><div class="eyebrow">${esc(S.name)} · AS${S.asn}</div><h2 style="font-size:26px">${tr('specialist.what_are_you_building')}</h2><p class="tagline">${tr('specialist.your_charter_sets_your_goals')}</p><div class="chopts">`
-  +Object.entries(CHARTERS).map(([k,C])=>`<button class="chopt" data-act="charter" data-args='${JSON.stringify({k})}'><span class="chi" aria-hidden="true">${C.i}</span><span class="cht"><b>${tr(C.n)}</b><span>${charterDesc(C)}</span></span></button>`).join('')+`</div></div>`;}
+  +CHARTER_ORDER.map(k=>[k,CHARTERS[k]]).map(([k,C])=>`<button class="chopt" data-act="charter" data-args='${JSON.stringify({k})}'><span class="chi" aria-hidden="true">${C.i}</span><span class="cht"><b>${tr(C.n)}</b><span>${charterDesc(C)}</span></span></button>`).join('')+`</div></div>`;}
 function charterAsk(){if(!charterDue()||!$('modal').hidden||window.__TUBES_TEST__&&!window.__TUBES_CHARTER__)return;openModal(charterPickHtml(),'charter');}
 function charterCard(){if(S.scn||S.mode!=='normal')return '';
   if(broker())return baronCard();

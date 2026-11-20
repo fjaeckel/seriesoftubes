@@ -37,7 +37,7 @@ for (const [view, width] of Object.entries(VIEWS)) {
     }
     assert.equal(ev("$('modal').className"), 'charter', 'then the charter');
     assert.equal(coach(ev), null, 'no coach over the charter');
-    assert.ok(click(ev, '#modal [data-act="charter"]'));
+    assert.ok(click(ev, '#modal [data-act="charter"][data-args*="global"]'));
     assert.equal(ev("$('modal').hidden"), true);
 
     // 1: Launch broadband, in the open home city.

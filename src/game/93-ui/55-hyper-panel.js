@@ -122,6 +122,7 @@ function hsRgBody(c){const H=S.hs,d=H.rg[c];let h='';
     if(d.up)h+=`<p class="meta">${tr('hyper.being_built',{name:tr(HS_T[d.up.t].n),date:dateStr(d.up.ready)})}</p>`;
     if(!cxOut(c)&&!Object.keys(S.pops).some(hsDoor))h+=`<p class="why">${tr('hyper.region_no_way_out')}</p>`;
     if(N&&!d.up)h+=`<p class="meta">${tr('hyper.tier_terms',{name:tr(N.n),g:fmtG(N.g),mw:N.mw,slots:N.slots,mo:fmt$(N.mo),n:leadDays(N.days)})}</p>${hsBtns(btn(N.lv>lvl()?tr('hyper.tier_needs_level',{name:tr(N.n),lv:N.lv}):tr('hyper.grow_region_cost',{cost:fmt$(N.cost)}),'hsRegion',{city:c},'sm',N.lv>lvl()||S.cash<N.cost||d.ready>S.day))}`;}
+    if(hsRgN()>=2)h+=hsBtns(btn(UI.confirm==='hsrg'+c?tr('hyper.close_region_sure'):tr('hyper.close_region'),'hsRgClose',{city:c},UI.confirm==='hsrg'+c?'sm red':'sm ghost'));
   else{const N=HS_T[1],full=hsRgN()>=hsRgMax();h+=`<p class="lead">${tr('hyper.region_lead')}</p>${full?`<p class="why">${tr('hyper.your_level_allows_n_regions',{n:hsRgMax()})}</p>`:''}
     <p class="meta">${tr('hyper.tier_terms',{name:tr(N.n),g:fmtG(N.g),mw:N.mw,slots:N.slots,mo:fmt$(N.mo),n:leadDays(N.days)})}</p>${hsBtns(btn(tr('hyper.build_region_cost',{cost:fmt$(N.cost)}),'hsRegion',{city:c},'pink',full||S.cash<N.cost))}`;}
   return h;}

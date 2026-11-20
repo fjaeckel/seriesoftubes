@@ -440,6 +440,8 @@ const API_CMD={
  hsLaunch:{args:[['cc','string']],decides:true,watch:['hs'],
    quote:a=>({setup:hsLic(a.cc),blocked:[S&&S.hs?hsWhy(a.cc):tr('hyper.nobody_online_here')].filter(Boolean)}),
    doc:'Hyperscaler only: launch in a country (ISO code, e.g. "DE"). A one-off cost; users there arrive at once (2% of what the country could ever have) and grow while served at 90% or better. They enter at your nearest front door (a POP with transit, an exchange port or a PNI that your backbone joins to a live region) and are served from their home region over your backbone.'},
+ hsRgClose:{args:[['city','cityId']],decides:true,watch:['hs'],
+   doc:'Hyperscaler only: close the region in city and keep the POP. The first call only arms it (the button asks to tap again); the second closes it: its users and tenants move to other regions where there is room, a quarter of the tier\'s price comes back (nothing for a leased cage), and the level\'s region count gets a place back. Not the last region.'},
  hsRegion:{args:[['city','cityId']],decides:true,watch:['hs'],
    quote:a=>{const d=S&&S.hs&&S.hs.rg[a.city],N=d?hsTNext(d):HS_T[1];return N?{setup:N.cost,monthly:N.mo,days:leadDays(N.days)}:{};},
    doc:'Hyperscaler only: build a region (a Server Barn) at your POP in a big data-center metro, or take the region there a size up (Rack Shack, Server Barn, Compute Campus, Gigawatt Gulch: Gbps it can serve, compute slots for tenants, megawatts). Takes months; an upgrade keeps the old one serving. Your level caps how many regions you run.'},

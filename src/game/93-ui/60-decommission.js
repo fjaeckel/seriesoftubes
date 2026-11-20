@@ -18,5 +18,7 @@ function decommission(cities){const set=new Set(cities),im=decomImpact(cities),l
   for(const c of cities){for(const x of ixIdsIn(c)){delete S.ixp[x];delete S.rs[x];if(S.ixn)delete S.ixn[x];if(S.ixSite)delete S.ixSite[x];for(const k in S.peers)if(k.endsWith('@'+x))delete S.peers[k];}delete S.myIx[c];S.scrubs=S.scrubs.filter(x=>x.city!==c);if(S.ops)delete S.ops.skip[c];delete S.pops[c];}
   const rem=remoteCities();for(const x in S.ixp){const c=ixCity(x);if(!S.pops[c]&&!rem.includes(c)){delete S.ixp[x];delete S.rs[x];for(const k in S.peers)if(k.endsWith('@'+x))delete S.peers[k];}}
   if(set.has(S.home))S.home=Object.keys(S.pops)[0];
+  // A Hyperscaler's regions, zones, replicas and the rest at those cities go with them, not only on the next load.
+  if(S.hs)hsSanitize(S);
   purgeInc();S.cash-=im.fee;S.stats.decom=(S.stats.decom||0)+cities.length;
   toast(trn('decommission.n_pop_decommissioned_fee_in_early',cities.length,{fee:fmt$(im.fee),m:im.biz.length}),'bad');if(back)toast(trn('links.n_optic_back_on_the_spares_shelf',back),'good');}

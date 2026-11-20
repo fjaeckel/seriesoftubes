@@ -256,3 +256,34 @@ test('the Cloud tab and the charter card render on a phone and on a desktop', ()
   assert.match(dom.window.document.getElementById('leftBody').textContent, /Cloud Nine/);
   assert.deepEqual(errors, []);
 });
+
+test('a closed or decommissioned region gives its place back at once, and the picker lists the Hyperscaler first', () => {
+  const { ev, errors } = load();
+  ev("beginGame('Cloud','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'hyper'});S.cash=1e9;S.lvl=3;for(const c of ['par','ams','lon','nyc'])ACT.buildPop({city:c});");
+  assert.equal(ev('hsRgMax()'), 3);
+  for (const c of ['par', 'ams']) ev(`ACT.hsRegion({city:'${c}'})`);
+  assert.equal(ev('hsRgN()'), 3);
+  ev("ACT.hsRegion({city:'lon'})");
+  assert.equal(ev('!!S.hs.rg.lon'), false, 'the level holds three');
+  // Decommissioning the POP takes its region with it, without a reload.
+  ev("UI.decom=['ams'];ACT.decomGo({})");
+  assert.equal(ev('!!S.hs.rg.ams'), false);
+  assert.equal(ev('hsRgN()'), 2);
+  ev("ACT.hsRegion({city:'nyc'})");
+  assert.equal(ev('!!S.hs.rg.nyc'), true, 'a region on another continent fits again');
+  // Closing a region keeps the POP: the first tap arms it, the second closes it and pays a quarter back.
+  const cash = ev('S.cash');
+  ev("ACT.hsRgClose({city:'par'})");
+  assert.equal(ev('!!S.hs.rg.par'), true);
+  ev("ACT.hsRgClose({city:'par'})");
+  assert.equal(ev('!!S.hs.rg.par'), false);
+  assert.equal(ev('!!S.pops.par'), true);
+  assert.equal(ev('S.cash') - cash, ev('HS_T[1].cost*0.25'));
+  ev("ACT.hsRegion({city:'lon'})");
+  assert.equal(ev('!!S.hs.rg.lon'), true);
+  // The last region cannot go.
+  ev("for(const c of ['nyc','lon']){ACT.hsRgClose({city:c});ACT.hsRgClose({city:c});}ACT.hsRgClose({city:'fra'});ACT.hsRgClose({city:'fra'})");
+  assert.equal(ev('hsRgN()'), 1);
+  assert.match(ev('charterPickHtml()'), /data-args='\{"k":"hyper"\}'[\s\S]*data-args='\{"k":"global"\}'/);
+  assert.deepEqual(errors, []);
+});
