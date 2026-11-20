@@ -13,7 +13,7 @@
    with HMAP) and strokes on the 2D canvas, so it works the same in both. */
 const HMAP={R:null,S:null,day:-1,ML:null,cc:[],rg:[],mk:[],glow:[],lag:[],lagG:[],gl:null,glN:0,glFor:null,lv:null,vao:null};
 const hmQCol=q=>q>=CX_GOOD?'#22C47A':q>=0.75?'#FFAA1F':'#FF4D5E';
-const HM_REP='rgba(122,92,255,.30)',HM_LAG='rgba(255,77,94,.6)';
+const HM_REP='rgba(150,110,255,.6)',HM_LAG='rgba(255,77,94,.6)';
 // The tube (index into the map's groups) that joins two cities, or -1: the busiest of them when there are several.
 function hmGroupOf(EI,ML,a,b){const L=EI.get(a<b?a+'|'+b:b+'|'+a);if(!L)return -1;let best=-1,bl=-1;for(const gi of L){const v=ML.looks[gi].load;if(v>bl){bl=v;best=gi;}}return best;}
 function hmapGet(ML){if(HMAP.R===R&&HMAP.S===S&&HMAP.day===S.day&&HMAP.ML===ML)return HMAP;
@@ -35,7 +35,7 @@ function hmapGet(ML){if(HMAP.R===R&&HMAP.S===S&&HMAP.day===S.day&&HMAP.ML===ML)r
   if(o&&o.rep)for(const a of Object.keys(o.rep).sort()){const x=o.rep[a];walk(x.paths,x.got,(gi,v)=>G.set(gi,(G.get(gi)||0)+v));
     if((H.lag[hsLk(a,x.b)]||0)>0){let n=0;walk(x.paths,1,gi=>{LG.add(gi);n++;});if(!n&&CITY[a]&&CITY[x.b])HMAP.lag.push([a,x.b]);}}
   if(o&&o.jobs)for(const id of Object.keys(o.jobs).sort()){const x=o.jobs[id];walk(x.paths,x.got,(gi,v)=>G.set(gi,(G.get(gi)||0)+v));}
-  for(const [gi,g] of [...G.entries()].sort((a,b)=>a[0]-b[0]))if(g>0.5)HMAP.glow.push({gi,w:4+Math.min(10,2*Math.log2(1+g/100))});
+  for(const [gi,g] of [...G.entries()].sort((a,b)=>a[0]-b[0]))if(g>0.5)HMAP.glow.push({gi,w:16+Math.min(10,2*Math.log2(1+g/100))});
   HMAP.lagG=[...LG].sort((a,b)=>a-b);
   return HMAP;}
 // Screen point of a city in world copy k, or null when it is off screen by more than m px.
