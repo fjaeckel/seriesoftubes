@@ -3,6 +3,8 @@
 .toast{pointer-events:none;background:var(--paper);border:3px solid var(--edge);border-radius:14px;box-shadow:3px 3px 0 var(--edge);padding:9px 12px;display:flex;gap:10px;align-items:center;animation:pop .25s cubic-bezier(.3,1.6,.6,1)}
 .toast.good{background:#DFFBEA} .toast.bad{background:#FFE1E4} .toast.goal{background:#FFF3C4}
 .toast .b{pointer-events:auto}
+/* A long answer ("Roll back the zone file $15k") wraps in its button instead of squeezing the message to a column. */
+.toast .tx{flex:1 1 auto;min-width:0} .toast>.b{max-width:42%;white-space:normal;line-height:1.15}
 .seg{display:flex;flex-wrap:wrap;gap:6px}
 .seg .b{white-space:normal;text-align:left}
 /* A segmented control: one framed row of equal tabs, the active one filled like the HUD's speed buttons (Pie Control). */

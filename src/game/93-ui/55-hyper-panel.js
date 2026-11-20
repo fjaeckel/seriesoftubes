@@ -29,7 +29,9 @@ const hsCardOpen=k=>k==='hsoff'?!leftFolded(k):leftFolded(k);
 function hsNext(){const H=S.hs,cc=CITY[S.home].cc,doors=Object.keys(S.pops).filter(hsDoor),nx=(t,b,bad)=>`<div class="hsc-nx${bad?' bad':''}"><b>👉 ${t}</b></div>${b?hsBtns(b):''}`;
   if(!H.cc[cc]&&!hsWhy(cc))return nx(tr('hyper.next_launch',{country:esc(ccName(cc))}),btn(tr('hyper.launch_in_cost',{country:esc(ccName(cc)),cost:fmt$(hsLic(cc))}),'hsLaunch',{cc},'pink sm',S.cash<hsLic(cc)));
   if(!doors.length)return nx(tr('hyper.next_door',{city:esc(CITY[S.home].name)}),btn(tr('common.open'),'popGo',{city:S.home},'pink sm'));
-  const R0=R.hs;if(R0&&R0.short>0.5){const c=hsRgs().find(r=>R0.rg[r]&&R0.rg[r].load>=R0.rg[r].g-0.5)||S.home;return nx(tr('hyper.next_full',{g:fmtG(R0.short),city:esc(CITY[c].name)}),btn(tr('common.open'),'popGo',{city:c},'sm'),true);}
+  // A front door whose ports out are full: users cannot get in however big the regions are.
+  const R0=R.hs,dfull=hsDoorsFull();if(dfull.length)return nx(tr('hyper_ui.next_door_full',{city:esc(CITY[dfull[0]].name)}),btn(tr('common.open'),'popGo',{city:dfull[0]},'pink sm'),true);
+  if(R0&&R0.short>0.5){const c=hsRgs().find(r=>R0.rg[r]&&R0.rg[r].load>=R0.rg[r].g-0.5)||S.home;return nx(tr('hyper.next_full',{g:fmtG(R0.short),city:esc(CITY[c].name)}),btn(tr('common.open'),'popGo',{city:c},'sm'),true);}
   if(!doors.some(c=>ixIdsIn(c).some(x=>S.ixp[x]!==undefined)||S.pni.some(p=>p.city===c)))return nx(tr('hyper.next_peer'));
   if(!hsTen().length)return nx(tr('hyper.next_tenant'),btn(tr('common.deals'),'leftTab',{t:'deals'},'sm'));
   if(hsRgN()<2&&hsRgMax()>=2)return nx(tr('hyper.next_region'));
@@ -38,7 +40,10 @@ function hsNext(){const H=S.hs,cc=CITY[S.home].cc,doors=Object.keys(S.pops).filt
 // What needs you now on the card, worst first: [{lv, h}], lv 0 an outage, 1 a cut or a block, 2 money or time running
 // out, 3 worth knowing. Each part's own file says what it knows; this one adds the users and the offers about to end.
 const HS_OFF_SOON=5;
-function hsCoreAlerts(){const H=S.hs,R0=R.hs,out=[];if(!R0)return out;const bad=Object.keys(H.cc).filter(k=>hsQ(R,k)<CX_GOOD).sort();
+// Front doors users come in through whose transit and exchange ports are full (under 95% of what they ask gets out).
+const hsDoorsFull=()=>{const o=R.hs;if(!o)return [];return [...new Set(Object.values(o.cc).filter(x=>x.v&&x.D>1).map(x=>x.v))].filter(v=>sfOf(R,v)<0.95).sort();};
+function hsCoreAlerts(){const H=S.hs,R0=R.hs,out=[];if(!R0)return out;
+  for(const v of hsDoorsFull())out.push({lv:1,h:`🚪 ${tr('hyper_ui.door_full',{city:esc(CITY[v].name),p:pct(sfOf(R,v))})} ${btn(tr('common.open'),'popGo',{city:v},'ghost sm')}`});const bad=Object.keys(H.cc).filter(k=>hsQ(R,k)<CX_GOOD).sort();
   if(bad.length)out.push({lv:2,h:tr('hyper.poor_in_list',{list:bad.slice(0,4).map(k=>esc(ccName(k))).join(', ')})});
   for(const v of Object.keys(R0.door).sort()){const x=R0.door[v];if(x.g-x.got>0.5)out.push({lv:1,h:`${tr('hyper.backbone_full',{city:esc(CITY[v].name),g:fmtG(x.g-x.got)})} ${btn(tr('common.open'),'popGo',{city:v},'ghost sm')}`});}
   // Offers that end within HS_OFF_SOON days: tenants (Deals tab), AI runs and the resale desk (on this card).
@@ -56,7 +61,7 @@ function hsAlertHtml(){const a=hsAlerts();if(!a.length)return '';const open=hsCa
 // The state of things, one short line each.
 function hsStatHtml(){const H=S.hs,ccs=Object.keys(H.cc),doors=Object.keys(S.pops).filter(hsDoor);
   return `<div class="hsc-st">`
-   +`<div class="meta">👥 ${tr('hyper.card_users',{g:fmtG(hsUsers()),n:ccs.length,p:pct(hsServed(R))})}</div>`
+   +`<div class="meta">👥 ${trn('hyper_ui.card_users_n',ccs.length,{g:fmtG(hsUsers()),p:pct(hsServed(R))})}</div>`
    +`<div class="meta">🏢 ${tr('hyper.card_infra',{n:hsRgs().length,max:hsRgMax(),d:doors.length,e:Object.keys(H.edge).length,t:hsTen().length})}</div>`
    +hsPwStat()+hsTrafficStat()+hsDrillStat()+hsMarketStat()+hsLawStat()+`</div>`;}
 // Folded details: the money, the utility's letters, the tightest grid, what the resale desk sold.
@@ -76,7 +81,7 @@ function hsSec(k,s){if(!s)return '';const key='s:hs'+k,v=pnState().open[key],fl=
 // The country a city is in: its users, how well they are served and from where, or the launch; and its law.
 function hsCcSpec(c){const cc=CITY[c].cc,H=S.hs,x=H.cc[cc],w=hsWhy(cc),law=hsLawBody(c),fl=[];let sum='';
   if(x){const q=hsQ(R,cc),o=R.hs&&R.hs.cc[cc];sum=tr('hyper_ui.sum_users',{g:fmtG(x.d),p:pct(q)});
-    if(q<CX_GOOD)fl.push(hsFlag('restrictive',tr('hyper_ui.f_poor')));if(o&&(o.short>0.5||o.want-o.got>0.5))fl.push(hsFlag('restrictive',tr('hyper_ui.f_short')));}
+    if(q<CX_GOOD)fl.push(hsFlag('restrictive',tr('hyper_ui.f_poor')));if(o&&o.v&&(o.short>0.5||o.want-o.got>0.5))fl.push(hsFlag('restrictive',tr('hyper_ui.f_short')));}
   else sum=w?'':tr('hyper_ui.sum_not_launched');
   if(law&&x&&!hsResMet(cc))fl.push(hsFlag('selective',tr('hyper_ui.f_law')));
   return {t:tr('hyper.users_in',{country:esc(ccName(cc))}),sum,flags:fl,open:!x&&!w,body:()=>hsCcBody(c)+law};}
@@ -87,7 +92,8 @@ function hsCcBody(c){const cc=CITY[c].cc,H=S.hs,x=H.cc[cc],w=hsWhy(cc);let h='';
      +hsKv(tr('common.revenue'),tr('common.price_mo',{price:fmt$(hsRev(R,cc))}));
     if(o&&o.v)h+=`<p class="meta">${tr('hyper.enter_at',{door:esc(CITY[o.v].name)})}${o.home?' · '+tr('hyper.home_region',{city:esc(CITY[o.home].name)}):''}${o.st>0?' · '+tr('hyper.edge_serves',{g:fmtG(o.st)}):''}</p>`;
     if(o&&!o.v)h+=`<p class="why">${tr('hyper.no_door_yet')}</p>`;
-    if(o&&o.short>0.5)h+=`<p class="why">${tr('hyper.regions_full_here',{g:fmtG(o.short)})}</p>`;
+    // Without a front door nothing is short of room yet: the door is what is missing.
+    if(o&&o.v&&o.short>0.5)h+=`<p class="why">${tr('hyper.regions_full_here',{g:fmtG(o.short)})}</p>`;
     if(o&&o.want-o.got>0.5)h+=`<p class="why">${tr('hyper.haul_short',{g:fmtG(o.want-o.got)})}</p>`;
     if(o&&o.parts.some(p=>p[2]>HS_MS[0]))h+=`<p class="note">${tr('hyper.far_hint',{ms:Math.round(Math.max(...o.parts.map(p=>p[2])))})}</p>`;
     if(q<CX_GOOD)h+=`<p class="why">${tr('hyper.users_leaving')}</p>`;}
