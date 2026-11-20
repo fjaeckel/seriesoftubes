@@ -45,6 +45,7 @@ const API_DOMAINS={
   popTier:{kind:'enum',values:()=>POP_TIERS.slice()},
   // The specialist's offers: a seat on a consortium cable, the charter, a vendor demo.
   seatPairs:{kind:'enum',values:()=>SEAT_N.slice()},
+  hsGenKey:{kind:'enum',values:()=>Object.keys(HS_GEN)},
   callAmount:{kind:'enum',values:()=>CALL_AMTS.slice()},
   charterKey:{table:'CHARTERS',kind:'key'},
   // The link metric editor: a factor or an exact weight (metricMode, metricSet).

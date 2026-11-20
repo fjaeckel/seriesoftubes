@@ -45,7 +45,7 @@ function hsRgSection(c){const H=S.hs,d=H.rg[c];if(!d&&!hsSite(c))return '';let h
   if(d){const T=HS_T[d.t],N=HS_T[d.t+1],x=R.hs&&R.hs.rg[c],load=x?x.load:0;
     if(d.ready>S.day)h+=`<p class="lead">${tr('hyper.being_built',{name:tr(T.n),date:dateStr(d.ready)})}</p>`;
     else h+=hsKv(tr(T.n),tr('city_panel.a_of_b',{a:fmtG(load),b:fmtG(T.g)}))+hsBar(load/T.g,load>=T.g*0.95);
-    h+=hsKv(tr('hyper.power'),tr('hyper.mw_of_grid',{mw:d.mw,grid:hsGrid(c)}))+hsKv(tr('hyper.slots'),tr('city_panel.a_of_b',{a:hsSlotsUsed(c),b:T.slots}));
+    h+=hsKv(tr('hyper.power'),tr('hyper.mw_of_grid',{mw:Math.round(hsMwRes(c)),grid:hsSupply(c)}))+hsKv(tr('hyper.slots'),tr('city_panel.a_of_b',{a:hsSlotsUsed(c),b:T.slots}));
     if(d.up)h+=`<p class="meta">${tr('hyper.being_built',{name:tr(HS_T[d.up.t].n),date:dateStr(d.up.ready)})}</p>`;
     if(!cxOut(c)&&!Object.keys(S.pops).some(hsDoor))h+=`<p class="why">${tr('hyper.region_no_way_out')}</p>`;
     if(N&&!d.up)h+=`<p class="meta">${tr('hyper.tier_terms',{name:tr(N.n),g:fmtG(N.g),mw:N.mw,slots:N.slots,mo:fmt$(N.mo),n:leadDays(N.days)})}</p><div class="btns">${btn(N.lv>lvl()?tr('hyper.tier_needs_level',{name:tr(N.n),lv:N.lv}):tr('hyper.grow_region_cost',{cost:fmt$(N.cost)}),'hsRegion',{city:c},'sm',N.lv>lvl()||S.cash<N.cost||d.ready>S.day)}</div>`;}

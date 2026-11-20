@@ -105,6 +105,8 @@ const API_STATE_DOC={
  richTold:{type:'boolean',doc:'One-shot flag: the cash milestone toast.'},
 };
 
+// The Hyperscaler's power fields (38-hyper-power.js), on its own line so the charter's phases add theirs without clashing.
+API_STATE_DOC.hs.doc+=' Power: pw (per region metro: cap the grid budget in MW, q the utility request {mw, ready, late} or null, gw goodwill 0 to 100, own your generation [{k sol|sub|smr, ready}], heat the monthly sum of heating the town pool, negative when the town pays), prot (a protest per metro: until, kind delay|cost|block, g the group, on rg|smr, what it holds up), pev (power events per continent: k heat|crunch, reg, until).';
 const API_RESULTS_DOC={
  pie:{type:'map',doc:'Orbit this compute (only with a rocket company): revenue (rev; 0 while the founder has orbit billing down, with billOff what it would have been; including patchy: {mo, cr} from patchy-sky customers who pay from 10% coverage, before a crust carries anything, and fade out between 40% and 60%), service per orbit customer, landing dishes, flows through the sky, backhaul for cut-off POPs (bh), crust and dish load, government money (gov).'},
  nt:{type:'map',doc:'Traffic per network through transit, by net id.'},

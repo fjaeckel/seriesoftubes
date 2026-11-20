@@ -228,6 +228,7 @@ test('a dry run prices every command that has a price, and changes nothing', () 
     opsHire: { id: ev('Object.keys(INTERNS)[0]') }, optxHire: { size: 's' }, opsNewPop: { city: 'nyc' }, pniAll: { net: 'cog', tier: 1 }, seatBuy: { n: 2 }, layShip: { id: df }, seaRush: { id: df },
     utilityKit: { city: 'fra' }, utilityCaches: { city: 'fra' }, acceptFix: { id: 'none' }, ptApply: { city: 'fra', k: 'medium' }, ptAll: { k: 'medium' }, teDeploy: { script: 'spill at 85%' }, upLinkX: {},
     hsLaunch: { cc: 'DE' }, hsRegion: { city: 'fra' }, hsEdge: { city: 'fra' }, pieRd: { k: 'reuse' }, pieAnt: { id: 'none' }, pieTower: { city: 'sin' },
+    hsUtil: { city: 'fra' }, hsFund: { city: 'fra' }, hsHeat: { city: 'fra' }, hsGen: { city: 'fra', k: 'sol' },
   };
   const missing = quoted.filter((n) => !sample[n] && T('schema', { section: 'commands' })[n].args.some((a) => a.required));
   assert.deepEqual(missing, [], 'every priced command with arguments has a sample here');
