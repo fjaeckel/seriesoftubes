@@ -140,8 +140,17 @@ function hsDoorBody(c){const H=S.hs,door=hsDoor(c),x=R.hs&&R.hs.door[c];if(!door
 const hsDoorSection=c=>hsSec('door',hsDoorSpec(c));
 // A tenant's products, each with what it still wants.
 const hsWants=(r,b)=>b.p.filter(id=>CLOUD_PRODUCTS[id]&&hsNeedQ(r,b,id)<0.95).map(id=>tr(CLOUD_NEED[CLOUD_PRODUCTS[id].need]));
-function hsTenSpec(c){const bs=hsTen().filter(b=>b.city===c),sad=bs.filter(b=>b.mood<30).length;
-  return {t:tr('hyper.tenants_here'),sum:bs.length?tr('hyper_ui.sum_tenants',{n:bs.length,mo:fmt$(bs.reduce((a,b)=>a+bizMo(b),0))}):'',flags:sad?[hsFlag('restrictive',trn('hyper_ui.f_unhappy',sad))]:[],body:()=>hsTenBody(c,bs)};}
+/* Tenants have two cities: where they are based (their offices and their own users, b.city) and the region their servers
+   run in (b.rg), as a real cloud customer in Nantes runs in Frankfurt. Every city lists the first; a region city also
+   lists the second, so a POP with no region never looks as if it hosts anyone. */
+function hsTenSpec(c){const bs=hsTen().filter(b=>b.city===c),sad=bs.filter(b=>b.mood<30).length,rg=!!S.hs.rg[c];
+  const away=bs.filter(b=>{const T=R.hs&&R.hs.ten[b.id];return !(T&&T.r===c);}).length;
+  return {t:tr('hyper.based_here'),sum:bs.length?tr('hyper_ui.sum_tenants',{n:bs.length,mo:fmt$(bs.reduce((a,b)=>a+bizMo(b),0))}):'',flags:sad?[hsFlag('restrictive',trn('hyper_ui.f_unhappy',sad))]:[],
+    body:()=>(bs.length&&away?`<p class="lead">${rg?tr('hyper.based_here_lead_rg'):tr('hyper.based_here_lead')}</p>`:'')+hsTenBody(c,bs)};}
+// A region's own guests: tenants whose servers run here, wherever they are based.
+function hsRunSpec(c){if(!S.hs.rg[c])return null;const bs=hsTen().filter(b=>{const T=R.hs&&R.hs.ten[b.id];return T&&T.r===c&&b.city!==c;});if(!bs.length)return null;
+  return {t:tr('hyper.running_here'),sum:tr('hyper_ui.sum_tenants',{n:bs.length,mo:fmt$(bs.reduce((a,b)=>a+bizMo(b),0))}),flags:[],
+    body:()=>bs.map(b=>`<div class="row"><div class="grow"><div class="nm">${esc(b.name)}</div><div class="meta">${tr('hyper.based_in',{city:esc(CITY[b.city].name)})} · ${esc(cloudList(b.p))} · ${tr('hyper.bundle_score',{p:pct(hsTenQ(R,b))})}</div></div></div>`).join('')};}
 function hsTenBody(c,bs){if(!bs.length)return `<p class="empty">${tr('hyper.no_tenants_here')}</p>`;let h='';
   // Unhappy tenants first, so the one about to leave is never under the fold.
   for(const b of bs.filter(b=>b.mood<30).concat(bs.filter(b=>!(b.mood<30)))){const q=hsTenQ(R,b),T=R.hs&&R.hs.ten[b.id],K=CLOUD_TENANTS[b.ck],ws=[...new Set(hsWants(R,b))];
@@ -152,7 +161,7 @@ function hsTenBody(c,bs){if(!bs.length)return `<p class="empty">${tr('hyper.no_t
 const hsTenSection=c=>hsSec('ten',hsTenSpec(c));
 // The whole tab, in the order a player asks. Offers here wait for an answer, so they come right after the users.
 function hsCity(c){return hsSec('inc',hsIncSpec(c))+hsSec('cc',hsCcSpec(c))+hsSec('law',hsLawSpec(c))+offersHere(c)+hsSec('rg',hsRgSpec(c))+hsSec('az',hsAzSpec(c))+hsSec('pw',hsPwSpec(c))+hsSec('bt',hsBtSpec(c))+hsSec('fo',hsFailSpec(c))
-  +hsSec('door',hsDoorSpec(c))+hsSec('ep',hsfEdgeSpec(c))+hsSec('or',hsfRampSpec(c))+hsSec('ten',hsTenSpec(c))+cxHtml(CX_CITY,c);}
+  +hsSec('door',hsDoorSpec(c))+hsSec('ep',hsfEdgeSpec(c))+hsSec('or',hsfRampSpec(c))+hsSec('ten',hsTenSpec(c))+hsSec('run',hsRunSpec(c))+cxHtml(CX_CITY,c);}
 const hsNoPop=c=>hsSec('cc',hsCcSpec(c))+offersHere(c);
 // In an offer's row: what the bundle is and what it would want from you today.
 function hsOfferNote(o){if(o.type!=='cloud'||!Array.isArray(o.p))return '';const K=CLOUD_TENANTS[o.ck];

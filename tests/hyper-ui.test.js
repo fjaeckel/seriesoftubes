@@ -85,7 +85,7 @@ test('the Cloud tab: sections that fold, open when they need you, in the order a
     ev("document.querySelector('#panelBody section[data-sec=\"hspw\"] .psb').click()");
     assert.equal(doc.querySelector('#panelBody section[data-sec="hspw"]').classList.contains('on'), false);
     ev("document.querySelector('#panelBody section[data-sec=\"hsten\"] .psb').click()");
-    assert.match(doc.querySelector('#panelBody section[data-sec="hsten"]').textContent, /No tenants here yet|Tenants here/);
+    assert.match(doc.querySelector('#panelBody section[data-sec="hsten"]').textContent, /No tenants here yet|Customers based here/);
     // Frankfurt: the failover section says ready or not, never drilled.
     ev("selectCity('fra');UI.tab='cust';UI._ph=null;renderAll()");
     assert.match(doc.querySelector('#panelBody section[data-sec="hsfo"] .psb').textContent, /into Amsterdam/);

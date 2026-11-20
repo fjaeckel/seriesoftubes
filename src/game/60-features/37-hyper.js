@@ -144,7 +144,9 @@ function hsDay(d){const H=S.hs;if(!H||!hyper())return;
   for(const f of CX_DAY)f(d);}
 /* Offers: tenants only, of the kinds your level has met, at a POP of yours; the bundle is their usual one, now and then
    with DNS on top. Priced at 1 here; mktPrice() moves it to today's market. */
-function hsOffer(k,city,bw,cheap){const K=CLOUD_TENANTS[k],list=K.names.filter(n=>!S.usedNames.includes(n)),name=list.length?pick(list):pick(K.names);useName(name);
+// Every name taken: the sequel ("Snooze Network 2"), as startups and studios do, so two tenants never share a name.
+function hsSeq(n){const taken=new Set(S.biz.concat(S.offers).map(b=>b.name));for(let i=2;i<99;i++){const v=n+' '+i;if(!taken.has(v))return v;}return n;}
+function hsOffer(k,city,bw,cheap){const K=CLOUD_TENANTS[k],list=K.names.filter(n=>!S.usedNames.includes(n)),name=list.length?pick(list):hsSeq(pick(K.names));useName(name);
   const p=K.p.slice();if(!p.includes('dns')&&hstr(name+'|'+S.day)%10<3)p.push('dns');
   // Once one of your own models shipped, some want Azzure ClosedAI Service on top (38-hyper-traffic.js).
   if(hsAiOn()&&!p.includes('ai')&&hstr(name+'|ai|'+S.day)%10<4)p.push('ai');

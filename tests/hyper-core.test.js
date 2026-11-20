@@ -182,7 +182,7 @@ test('tenants are the only customers: cloud bundles, a compute slot each, traffi
   const q = ev('hsTenQ(R,S.biz[0])');
   assert.ok(q > 0 && q <= 1);
   assert.ok(ev('R.rev.business') > 0);
-  assert.match(ev("cityPanel(S.home)"), /Tenants here/);
+  assert.match(ev("cityPanel(S.home)"), /Customers based here/);
   // The Rack Shack has four compute slots: a fifth tenant waits.
   ev("for(let i=0;i<3;i++){const b=JSON.parse(JSON.stringify(S.biz[0]));b.id='t'+i;S.biz.push(b);}S.offers=[];for(let i=0;i<20&&!S.offers.length;i++)spawnOffer()");
   assert.equal(ev('S.offers.length'), 0, 'no slot, no caller');
@@ -241,7 +241,7 @@ test('the Cloud tab and the charter card render on a phone and on a desktop', ()
     assert.match(panel, /Users in Germany/);
     assert.match(panel, /Region/);
     assert.match(panel, /Front door/);
-    assert.match(panel, /Tenants here/);
+    assert.match(panel, /Customers based here/);
     assert.match(dom.window.document.getElementById('panel').textContent, /Cloud/);
     ev("selectCity('ams');UI.tab='cust';renderAll()");
     const ams = dom.window.document.getElementById('panelBody').textContent;
@@ -285,5 +285,24 @@ test('a closed or decommissioned region gives its place back at once, and the pi
   ev("for(const c of ['nyc','lon']){ACT.hsRgClose({city:c});ACT.hsRgClose({city:c});}ACT.hsRgClose({city:'fra'});ACT.hsRgClose({city:'fra'})");
   assert.equal(ev('hsRgN()'), 1);
   assert.match(ev('charterPickHtml()'), /data-args='\{"k":"hyper"\}'[\s\S]*data-args='\{"k":"global"\}'/);
+  assert.deepEqual(errors, []);
+});
+
+test('a POP with no region lists customers based there, never as hosted; the region lists who runs in it; names are never shared', () => {
+  const { ev, errors } = load();
+  ev("beginGame('Cloud','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'hyper'});S.cash=1e9;S.lvl=3;ACT.buildPop({city:'nte'});ACT.buyTransit({city:'nte',net:'cog',tier:1});ACT.buyTransit({city:'fra',net:'cog',tier:1});" +
+    "S.hs.cc.FR={d:20,since:0};const o=hsOffer('tv','nte',10);S.offers.push(o);ACT.accept({id:o.id});compute()");
+  assert.equal(ev("S.biz.filter(b=>b.type==='cloud'&&b.city==='nte').length"), 1);
+  const nte = ev("cityPanel('nte')");
+  assert.match(nte, /Customers based here/);
+  assert.match(nte, /nobody is hosted in this POP/);
+  assert.doesNotMatch(nte, /Running in this region/);
+  const fra = ev("cityPanel('fra')");
+  assert.match(fra, /Running in this region/);
+  assert.match(fra, /based in Nantes/);
+  // Every name of a kind taken: the next one is a sequel, not a twin.
+  ev("for(const n of CLOUD_TENANTS.tv.names)useName(n);for(let i=0;i<6;i++){const x=hsOffer('tv','nte',10);S.offers.push(x);}");
+  const names = ev("JSON.stringify(S.biz.concat(S.offers).filter(b=>b.type==='cloud').map(b=>b.name))");
+  assert.equal(new Set(JSON.parse(names)).size, JSON.parse(names).length, names);
   assert.deepEqual(errors, []);
 });
