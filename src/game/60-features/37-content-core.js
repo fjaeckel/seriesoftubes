@@ -14,12 +14,15 @@
    CX_FLOW(R2,flow,DEMTO,X): in compute(), adds the charter's flows and returns haul jobs [{o,v,x,lo,hi}] or null. X:
      reach(a,b) (b's backbone reaches a), ms(a,b) (one-way latency of the backbone path from a to b), nf() (flows so far).
    CX_POST(R2,jobs): after routing; each job has got (what arrived at v) and ms (its path's latency).
+   CX_BULK(R2,X): after IP routing, bulk circuits carved like L2 ones on what interactive traffic left. X: edges, adj,
+     SPD, SPP, HAS, NRES, nodeTake, carry, NN, routes(A,B,b) (the L2 path choice), te() (Auto-TE's circuit router, or null).
+     f.on(), if the hook has one, says whether it has anything to carve today.
    CX_MONEY(R2,V,C): adds to the month's revenue (V) and costs (C).
    CX_FREEZE(): {show, until} while the network must not be touched (chFrozen), or null.
    FREEZE_ACTS: action names the freeze blocks (90-actions/99-change-freeze.js wraps them after every action file).
    LV_X: a charter's own ladder, {on(), places(), need(i), regions(), levels, title(lv), eyebrow(lv), toast(lv), next(nx),
      label()}; the first whose on() is true tells the levels, otherwise the classic ladder does. */
-const CX_MUL={grow:[],pot:[],churn:[],rev:[]},CX_NEW=[],CX_SAN=[],CX_DAY=[],CX_CARD=[],CX_CITY=[],CX_ORG=[],CX_COST=[],CX_FLOW=[],CX_POST=[],CX_MONEY=[],CX_FREEZE=[],FREEZE_ACTS=[],LV_X=[];
+const CX_MUL={grow:[],pot:[],churn:[],rev:[]},CX_NEW=[],CX_SAN=[],CX_DAY=[],CX_CARD=[],CX_CITY=[],CX_ORG=[],CX_COST=[],CX_FLOW=[],CX_POST=[],CX_BULK=[],CX_MONEY=[],CX_FREEZE=[],FREEZE_ACTS=[],LV_X=[];
 const cxMul=(k,cc)=>{let m=1;for(const f of CX_MUL[k])m*=f(cc);return m;};
 const cxNew=o=>{for(const f of CX_NEW)f(o);return o;};
 const cxSan=(o0,o,s)=>{for(const f of CX_SAN)f(o0,o,s);return o;};
@@ -58,6 +61,9 @@ function cxPop(cc,pops){const k=pops.join();if(CX_POP.k!==k){CX_POP.k=k;CX_POP.m
 // compute()'s hooks (see the header).
 function cxFlows(R2,flow,DEMTO,X){let J=null;for(const f of CX_FLOW){const j=f(R2,flow,DEMTO,X);if(j&&j.length)J=J?J.concat(j):j;}return J;}
 function cxPost(R2,J){for(const f of CX_POST)f(R2,J);}
+// A bulk hook may say when it has nothing to do (f.on()), so a classic game builds nothing for it.
+const cxBulkOn=()=>CX_BULK.some(f=>!f.on||f.on());
+function cxBulk(R2,X){for(const f of CX_BULK)if(!f.on||f.on())f(R2,X);}
 // Bytes: one Gbps for a whole day is 10.8 TB.
 const TB_DAY=10.8;
 // The change freeze: the first charter part that declares one.

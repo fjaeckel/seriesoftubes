@@ -340,6 +340,30 @@ test('M7: a Hyperscaler sells cloud only, and its state lives only in its charte
   assert.deepEqual(g.errors, []);
 });
 
+test('M8: a Hyperscaler\'s bulk classes never push interactive traffic aside', () => {
+  const bad = [];
+  const g = load();
+  const wave = (id, a, b, tier) => `S.links.push({id:'${id}',a:'${a}',b:'${b}',kind:'wave',tier:${tier},km:Math.round(kmBetween('${a}','${b}')),mo:1,cut:0,ready:0,trench:'${id}'});`;
+  g.ev("beginGame('Cloud','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'hyper'});S.cash=1e12;S.lvl=8;S.nextFail=S.nextEvent=1e9;" +
+    "for(const c of ['par','ams','lon'])ACT.buildPop({city:c});for(const c in S.pops)S.pops[c].rgen=RG_TOP;for(const c of ['fra','par','lon'])ACT.buyTransit({city:c,net:'cog',tier:3});" +
+    "S.hs.rg.par={t:0,ready:0,mw:5};S.hs.rg.lon={t:0,ready:0,mw:5};S.hs.cc.DE={d:300,since:0};S.hs.cc.FR={d:500,since:0};S.hs.cc.GB={d:450,since:0};S.links=[];" +
+    wave('fp', 'fra', 'par', 1) + wave('pl', 'par', 'lon', 1) + wave('fa', 'fra', 'ams', 2) + wave('al', 'ams', 'lon', 1) +
+    "S.hs.jobs.push({id:'big',n:'Overfit and Sons',a:'fra',b:'lon',g:12800,tb:1e7,done:0,due:S.day+40,fee:1,start:S.day});S.hs.own.push({id:'mine',n:0,k:2,a:'par',b:'lon',g:6400,tb:1e7,done:0,mw:16,start:S.day,due:S.day+50});S.hs.lag['fra>par']=5000;");
+  const look = () => g.ev('JSON.stringify({cc:R.hs.cc,ten:R.hs.ten,door:R.hs.door,served:R.served,egT:R.egT,rev:R.rev.business})');
+  for (const te of [false, true]) for (const pp of ['', 'scenic', 'diverse']) {
+    g.ev(`S.te=${te ? "{on:true,l2:false,day:0,script:''}" : 'null'};S.core={lv:2,run:2,legacy:true};S.hs.pp={};${pp ? `S.hs.pp['fra|par']='${pp}';S.hs.pp['fra|lon']='${pp}';` : ''}compute()`);
+    const on = look(), bulk = g.ev('R.hs.btw');
+    g.ev('CX_BULK.length=0;compute()');
+    const off = look();
+    g.ev('CX_BULK.push(hsBulk);compute()');
+    if (on !== off) bad.push(`te ${te}, paths '${pp}': users or tenants got something else with bulk on`);
+    if (!(bulk > 0)) bad.push(`te ${te}, paths '${pp}': no bulk was carved at all`);
+    if (!g.ev('S.links.every(l=>R.load[l.id]<=capOf(l)+1e-6)')) bad.push(`te ${te}, paths '${pp}': a link carries more than it can`);
+  }
+  fail('M8', bad, 'bulk takes only what interactive traffic leaves (38-hyper-traffic.js)');
+  assert.deepEqual(g.errors, []);
+});
+
 // ---------- Content ----------
 
 test('C1: every scenario has a goal its card checks, and none is won on day 0', () => {

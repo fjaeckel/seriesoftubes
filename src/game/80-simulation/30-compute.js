@@ -240,6 +240,9 @@ function compute(){RW.gen++;fedNetsSync();
   if(DD){let rem=0,jf=0;for(let i=0;i<NF;i++)if(FREM[i]>1e-6)rem+=FREM[i];if(JK)for(const k in edges){const e=edges[k];if(e.res<=1e-6&&e.jk)jf+=e.jk;}
     ddosAfter(DD,{E,R2,squeeze:Math.min(rem,jf),
       lost:(ci,x,y,e)=>{SRV[ci]-=x;R2.served-=x;const c=CITIES[ci].id;if(y)R2.bizSrv[c]-=y;R2.egT[e.k]-=x;if(e.rank<=2)R2.peered-=x;}});}
+  // A charter's bulk classes (37-content-core.js): only what every interactive flow left, never pushing one aside.
+  if(CX_BULK.length&&cxBulkOn()){cxBulk(R2,{edges,adj,SPD,SPP,HAS,NRES,nodeTake,carry,NN,routes:l2Routes,
+    te:()=>l2TE||(TE?l2TeRouter({adj,HAS,NRES,CORE,OUT,TR,REACH,SPD,nodeTake,carry,NN,R2}):null)});for(const i of NORD)R2.nodeLoad[CITIES[i].id]=NLOAD[i];}
   for(const c of Object.keys(S.pops)){const i=CIDX[c];R2.citySrv[c]=SRV[i];
     if(LATP[i]>0&&SRV[i]>0)R2.latF[c]=clamp(1-LATP[i]/SRV[i],0,1);}
   // Each city's slowest big exit: (path, source, exit) triples, one per path that went far, in the order they first did.

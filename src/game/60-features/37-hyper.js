@@ -34,7 +34,7 @@ const hsLive=c=>!!S.hs&&siteLive(S.hs.rg,c)&&popUp(c);
 const hsRgs=()=>S.hs?Object.keys(S.hs.rg).filter(hsLive).sort():[];
 const hsSlots=c=>HS_T[S.hs.rg[c].t].slots;
 const hsTen=()=>S.biz.filter(b=>b.type==='cloud');
-const hsSlotsUsed=c=>hsTen().filter(b=>b.rg===c).length;
+const hsSlotsUsed=c=>hsTen().filter(b=>b.rg===c).length+hsTrainSlotsAt(c);
 const hsSlotFree=()=>hsRgs().some(r=>hsSlotsUsed(r)<hsSlots(r));
 // The grid a metro has for everyone, town included (seeded, 40 to 600 MW; power itself comes later).
 const hsGrid=c=>Math.round(clamp(40+CITY[c].P*0.25+hstr('grid|'+c)%120,40,600));
@@ -54,8 +54,10 @@ const hsAcc=(v,m)=>kmBetween(v,m)*1.25/200;
    got), short (users no region had room for). */
 function hsFlows(R2,flow,DEMTO,X){const H=S.hs;if(!H||!hyper())return null;
   const out={cc:{},rg:{},door:{},ten:{},short:0},jobs=[];R2.hs=out;const rgs=hsRgs(),room={};
-  for(const r of rgs){room[r]=siteRoom(HS_T[H.rg[r].t].g,r);out.rg[r]={g:room[r],load:0};}
+  for(const r of rgs){room[r]=siteRoom(HS_T[H.rg[r].t].g,r);out.rg[r]={g:room[r],load:0,u:0,bt:0,nt:0};}
   const MS=new Map(),ms=(a,b)=>{const k=a+'>'+b;let v=MS.get(k);if(v===undefined)MS.set(k,v=X.ms(a,b));return v;};
+  // Each region's replica (38-hyper-traffic.js): where its copies go tonight.
+  for(const r of rgs)out.rg[r].rep=hsRepOf(r,rgs,ms);
   // Front doors your backbone joins to at least one live region.
   const doors=Object.keys(S.pops).filter(hsDoor).sort().filter(d=>rgs.some(r=>ms(r,d)<Infinity));
   const add=(c,j,x,bz)=>{if(x<=1e-9)return;flow(CIDX[c],j,x,false,bz);R2.cityDem[c]=(R2.cityDem[c]||0)+x;R2.demand+=x;DEMTO[j]+=x;};
@@ -67,17 +69,18 @@ function hsFlows(R2,flow,DEMTO,X){const H=S.hs;if(!H||!hyper())return null;
     room[r]-=want*f;out.rg[r].load+=want*f;T.v=v;T.want=want;T.f=f;T.ms=ms(r,v)*(H.edge[v]?0.5:1)+hsAcc(v,b.city);T.es=es;
     for(const [j,w] of I.nets)add(v,j,es*w,true);
     let lo=X.nf();for(const [j,w] of I.nets)add(v,j,dyn*f*w,true);job(r,v,dyn*f,lo,'out',b.id);if(r!==v)T.hw+=dyn*f;
-    // Ingest rides the same path the other way; replicas and clusters between two regions take the backbone too.
+    // Ingest rides the same path the other way. Copies between two regions (databases, clusters, the archive's night
+    // copy) go to the region's replica as bulk replication (38-hyper-traffic.js), after every interactive flow.
     lo=X.nf();job(r,v,inn*f,lo,'in',b.id);if(r!==v)T.hw+=inn*f;
-    const r2=rgs.filter(x=>x!==r&&ms(r,x)<Infinity).sort((a,c)=>ms(r,a)-ms(r,c)||(a<c?-1:1))[0]||null;T.r2=r2;
-    if(r2&&sh.bt>0){lo=X.nf();job(r,r2,b.bw*sh.bt*f,lo,'bt',b.id);T.hw+=b.bw*sh.bt*f;}}
+    const r2=out.rg[r].rep;T.r2=r2;T.bt=0;T.btg=0;
+    if(r2&&sh.bt>0){const nt=hsNightBt(b.p)*b.bw*f;T.bt=b.bw*sh.bt*f;out.rg[r].bt+=T.bt-nt;out.rg[r].nt+=nt;}}
   const pairs=[],left={};
   for(const cc of Object.keys(H.cc).sort()){const I=ccInfo(cc);if(!I)continue;const D=H.cc[cc].d,o={D,v:null,st:0,parts:[],home:null,want:0,got:0,short:0};out.cc[cc]=o;
     const v=cxPop(cc,doors);if(!v){left[cc]=D;continue;}o.v=v;
     if(H.edge[v]){o.st=D*HS_EDGE;for(const [j,w] of I.nets)add(v,j,o.st*w,false);o.parts.push([v,o.st,hsAcc(v,I.main),null]);}
     left[cc]=D-o.st;for(const r of rgs){const m=ms(r,v);if(m<Infinity)pairs.push([m,cc,r]);}}
   pairs.sort((a,b)=>a[0]-b[0]||(a[1]<b[1]?-1:a[1]>b[1]?1:0)||(a[2]<b[2]?-1:1));
-  for(const [m,cc,r] of pairs){const take=Math.min(left[cc],room[r]);if(take<=1e-9)continue;left[cc]-=take;room[r]-=take;out.rg[r].load+=take;
+  for(const [m,cc,r] of pairs){const take=Math.min(left[cc],room[r]);if(take<=1e-9)continue;left[cc]-=take;room[r]-=take;out.rg[r].load+=take;out.rg[r].u+=take;
     const o=out.cc[cc],I=ccInfo(cc);if(!o.home)o.home=r;const lo=X.nf();for(const [j,w] of I.nets)add(o.v,j,take*w,false);
     o.parts.push([o.v,take,hsAcc(o.v,I.main)+(H.edge[o.v]?m*0.5:m),r]);if(r!==o.v){job(r,o.v,take,lo,'u',cc);o.want+=take;}}
   for(const cc in out.cc){const s=left[cc]||0;if(s>1e-9){out.cc[cc].short=s;out.short+=s;R2.demand+=s;}}
@@ -92,10 +95,10 @@ const hsRev=(r,cc)=>S.hs.cc[cc].d*hsQ(r,cc)*HS_RATE*cxMul('rev',cc);
    than to the average (one neglected product sours the lot). */
 function hsNeedQ(r,b,id){const T=r&&r.hs&&r.hs.ten[b.id],P=CLOUD_PRODUCTS[id];if(!T||!T.v||!P)return 0;const H=S.hs,rg=H.rg[T.r];
   const n=P.need,need=n==='pair'?(T.r2?1:0.8):n==='doors'?(Object.keys(S.pops).filter(hsDoor).length>=2?1:0.9):n==='edge'?(H.edge[T.v]?1:0.8)
-    :n==='port'?(T.v===b.city?1:0.7):n==='power'?(rg&&rg.t>=2?1:0.85):n==='home'?(CITY[T.r].cc===CITY[b.city].cc?1:0.5):n==='model'?0.5:1;
+    :n==='port'?(T.v===b.city?1:0.7):n==='power'?(rg&&rg.t>=2?1:0.85):n==='home'?(CITY[T.r].cc===CITY[b.city].cc?1:0.5):n==='model'?(hsAiOn()?1:0.5):1;
   return need*(1-P.lat*(1-hsLatF(T.ms)));}
 function hsTenQ(r,b){const T=r&&r.hs&&r.hs.ten[b.id];if(!T||!T.v||!Array.isArray(b.p)||!b.p.length)return 0;
-  const hauled=T.hw>1e-9?clamp(T.got/T.hw,0,1):1,sv=T.f*sfOf(r,T.v)*hauled,q=b.p.map(id=>hsNeedQ(r,b,id)*sv);
+  const hw=T.hw+(T.bt||0),hauled=hw>1e-9?clamp((T.got+(T.btg||0))/hw,0,1):1,sv=T.f*sfOf(r,T.v)*hauled,q=b.p.map(id=>hsNeedQ(r,b,id)*sv);
   const lo=Math.min(...q),av=q.reduce((a,x)=>a+x,0)/q.length;return clamp(0.7*lo+0.3*av,0,1);}
 // Money (CX_MONEY): users pay for what they get; regions and edge stacks cost every month (the Cost Exploder).
 function hsMoney(R2,V,C){const H=S.hs;if(!H||!R2.hs)return;for(const cc in H.cc)V.eyeballs+=hsRev(R2,cc);
@@ -115,6 +118,8 @@ function hsDay(d){const H=S.hs;if(!H||!hyper())return;
    with DNS on top. Priced at 1 here; mktPrice() moves it to today's market. */
 function hsOffer(k,city,bw,cheap){const K=CLOUD_TENANTS[k],list=K.names.filter(n=>!S.usedNames.includes(n)),name=list.length?pick(list):pick(K.names);useName(name);
   const p=K.p.slice();if(!p.includes('dns')&&hstr(name+'|'+S.day)%10<3)p.push('dns');
+  // Once one of your own models shipped, some want Azzure ClosedAI Service on top (38-hyper-traffic.js).
+  if(hsAiOn()&&!p.includes('ai')&&hstr(name+'|ai|'+S.day)%10<4)p.push('ai');
   return {id:uid(),city,city2:null,name,type:'cloud',bw,rate:Math.round(cloudRate(p)*(cheap||1)),reqs:[],p,ck:k,exp:S.day+40};}
 function hsSpawn(){const mine=Object.keys(S.pops).filter(c=>popUp(c)&&bizCity(c));if(!mine.length||!hsSlotFree())return;
   const ks=Object.keys(CLOUD_TENANTS).filter(k=>CLOUD_TENANTS[k].lv<=lvl());if(!ks.length)return;const k=pick(ks),K=CLOUD_TENANTS[k];

@@ -76,7 +76,8 @@ function spawnMega(t,T,nm,mine){
   if(t==='pairs'){const ls=S.links.filter(l=>l.kind==='df'&&l.own&&l.ready<=S.day&&!S.biz.some(b=>(b.type==='pairs'||b.type==='dfpair')&&b.link===l.id)&&!S.offers.some(o=>o.link===l.id));if(!ls.length)return;const l=pick(ls),n=100+50*Math.floor(Math.random()*7);
     S.offers.push({id:uid(),city:l.a,city2:l.b,link:l.id,what:tr('customers_and_events.n_fiber_pairs_in_your_a',{n,a:CITY[l.a].name,b:CITY[l.b].name}),name:nm(),type:t,bw:1,rate:Math.round(dfLeaseMo(l.km)*n*0.2),reqs:[],exp:S.day+30,mega:true});}
 }
-function spawnSpecial(t){const T=BIZ_T[t],mine=Object.keys(S.pops).filter(bizCity),lv=lvl();
+// A Hyperscaler never takes classic circuits: its AI WANs and training runs are its own (38-hyper-traffic.js).
+function spawnSpecial(t){if(hyper())return;const T=BIZ_T[t],mine=Object.keys(S.pops).filter(bizCity),lv=lvl();
   const nm=(city)=>{const all=city?T.names.filter(n=>nogOk(n,city)):T.names,list=all.filter(n=>!S.usedNames.includes(n));const n=list.length?pick(list):pick(all);useName(n);return n;};
   if(T.mega){spawnMega(t,T,nm,mine);return;}
   if(T.event){const city=Math.random()<0.85&&mine.length?pick(mine):pick(OFFC);const bw=pick(T.opts.slice(0,Math.min(T.opts.length,lv+2)));const dur=3+Math.floor(Math.random()*5),start=S.day+12+Math.floor(Math.random()*14);
