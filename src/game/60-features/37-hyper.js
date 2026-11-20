@@ -164,12 +164,11 @@ const HYPER_GOALS=[
  {id:'hs_survive',t:tr('hyper_win.goal_survive'),d:tr('hyper_win.goal_survive_d'),r:300000,ok:()=>(S.hs.fsv|0)>0},
  {id:'hs_win',t:tr('hyper_win.cloud_nine'),d:tr('hyper_win.goal_win_d'),r:0,win:true,cloud9:true,ok:()=>hsC9Ok()},
 ];
-/* The level ladder (LV_X): peak traffic, live regions, and continents with a live region. The level names are the
-   classic ones until the Hyperscaler's own story arrives. */
+/* The level ladder (LV_X): peak traffic, live regions, and continents with a live region. Its names, quotes, toast and
+   "Next:" line are the Hyperscaler's own story (39-hyper-story.js). */
 const hsCont=()=>new Set(hsRgs().map(c=>CITY[c].reg)).size;
-LV_X.push({on:()=>hyper()&&!!S.hs,places:()=>hsRgs().length,need:i=>({pk:LV_REQ[i].pk,pops:HS_LV_RG[i],reg:HS_LV_CT[i]}),regions:hsCont,label:()=>tr('hyper.regions'),
-  toast:lv=>{const L=lvInfo(lv-1);return tr('hyper.level_up',{lv,name:L.n,n:HS_LV_RG[Math.min(lv,HS_LV_RG.length-1)]+1})+`<br><i>${esc(L.q)}</i>`;},
-  next:nx=>nx?tr('hyper.next_level',{name:esc(nx.n)}):tr('hyper.top_level')});
+const HS_LVX={on:()=>hyper()&&!!S.hs,places:()=>hsRgs().length,need:i=>({pk:LV_REQ[i].pk,pops:HS_LV_RG[i],reg:HS_LV_CT[i]}),regions:hsCont,label:()=>tr('hyper.regions')};
+LV_X.push(HS_LVX);
 CX_FLOW.push(hsFlows);CX_POST.push(hsPost);CX_MONEY.push(hsMoney);
 // Saves: only a Hyperscaler keeps S.hs (and cloud tenants), and every field of it is checked here.
 function hsSanitize(s){if(s.charter!=='hyper'){delete s.hs;s.biz=s.biz.filter(b=>b.type!=='cloud');s.offers=s.offers.filter(o=>o.type!=='cloud');return;}

@@ -150,7 +150,9 @@ test('a protest can be won: goodwill from a community fund and heat reuse ends a
   ev("ACT.hsFund({city:'ams'})");
   assert.equal(ev('S.hs.pw.ams.gw'), 75);
   assert.equal(ev('!!S.hs.prot.ams'), false, 'won');
-  assert.match(lastLog(ev, 1), /won over/);
+  // The headline, and the badge for it right after (26-hyper-badges.js).
+  assert.match(lastLog(ev, 2), /won over/);
+  assert.match(lastLog(ev, 1), /Hearts, Minds and a Heated Pool/);
   assert.deepEqual(errors, []);
 });
 
