@@ -90,6 +90,8 @@ function compute(){RW.gen++;fedNetsSync();
     if(!okBy[n.id].some(e=>(e.k==='p'||e.k==='ix')&&!coneOf(e,n.id)))R2.cone[n.id]=coneBy(okBy[n.id],n.id);}}})();
   const RCH=XK!==null&&!XC?rcReachTake(R2):null;
   const cacheNets=new Set(S.caches.filter(c=>popUp(c.city)).map(c=>c.net));
+  // Edge nodes this network hosts for a Hyperscaler player: their static share may leave there (89-fedplay-hyper.js).
+  const edgeNets=S.fed?hsfEdgeNets():null;
   const viral=(ev.viral>day?1.25:1)*(ev.php&&ev.php>day?0.7:1);
   /* Flows are columns, not objects (tens of thousands of them on a big network): flow F starts in city FCI[F] for network
      index FNJ[F] and has FREM[F] left to place. Gathered in FLB here, then copied into this call's own columns below. */
@@ -113,8 +115,9 @@ function compute(){RW.gen++;fedNetsSync();
     const mtuH=ev.pmtud&&ev.pmtud.until>day?ev.pmtud:null,kr=CITY[c].kr;
     for(let j=0;j<NN;j++){const n=NETS[j],a=(loc&&!R2.reachable[n.id]?0:d0)*ls[j]*thr(n.id)*(mtuH&&mtuH.net===n.id?mtuH.f:1)*(kr&&ev.krroute>day&&n.id==='fbk'?0.8:1);if(a<=0)continue;
       // With `protect customers`, the business part first, then the rest (no arrays: this runs per city and network).
-      const bf=d0>0?biz/d0:0,sp=!!(TRX&&TRX.protect&&bf>0),cn2=cacheNets.has(n.id);
+      const bf=d0>0?biz/d0:0,sp=!!(TRX&&TRX.protect&&bf>0),cn2=cacheNets.has(n.id),ef=edgeNets!==null&&!cn2?edgeNets.get(n.id)||0:0;
       for(let q=0;q<(sp?2:1);q++){const x=sp?(q?a*(1-bf):a*bf):a,bz=sp&&!q;if(x<=0)continue;if(cn2){flow(ci,j,x*0.85,true,bz);flow(ci,j,x*0.15,false,bz);}
+      else if(ef>0){flow(ci,j,x*ef,true,bz);flow(ci,j,x*(1-ef),false,bz);}
       else flow(ci,j,x,false,bz);}}
     R2.bizDem[c]=biz*d/(d0||1);R2.bizSrv[c]=0;
   }})();

@@ -82,8 +82,8 @@ function fedDial(c){if(!fedLive(c))return;fedHang(c);
   try{ws=FED.WS(fedSock(url));}catch(e){fedDrop(c,'open');return;}
   c.ws=ws;c.phase='open';fedSt(c,c.state==='offline'||c.state==='waiting'?'offline':'connecting');
   c.t=FED.set(()=>fedDrop(c,'timeout'),FED.T.open);
-  // feats: this game takes ix2 records (§9.3); an older node ignores the member.
-  ws.onopen=()=>{if(c.ws!==ws)return;c.phase='hello';fedSend(c,{m:'hello',vers:FED_VERS,role:'client',feats:['ix2']});};
+  // feats: this game takes ix2 and cloud records (§9.3); an older node ignores the member.
+  ws.onopen=()=>{if(c.ws!==ws)return;c.phase='hello';fedSend(c,{m:'hello',vers:FED_VERS,role:'client',feats:['ix2','cloud']});};
   ws.onmessage=e=>{if(c.ws===ws)fedIn(c,e.data);};
   ws.onerror=()=>{};// a close follows
   ws.onclose=()=>{if(c.ws===ws)fedDrop(c,'closed');};}
@@ -127,7 +127,7 @@ function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.skip
     // The optional messages the node takes (§9.3 feats): live states and the boards of now only where it lists them.
     c.feats=Array.isArray(f.feats)?f.feats.slice(0,16).filter(x=>typeof x==='string'):[];
     // Whether this server takes ix2 fields, kept past the connection: the announce carries them only while all do (fedIx2).
-    (FED.ix2||(FED.ix2={}))[c.url]=c.feats.includes('ix2');
+    (FED.ix2||(FED.ix2={}))[c.url]=c.feats.includes('ix2');(FED.cloud||(FED.cloud={}))[c.url]=c.feats.includes('cloud');
     // A node that binds auth (§9.3 bind) gives a nonce: our auth then names it and the URL we dialled.
     c.anonce=c.feats.includes('bind')&&typeof f.nonce==='string'&&!FdId(f.nonce)?f.nonce:null;
     c.tick=FED.set(function tk(){if(!fedLive(c)||!c.ws)return;const n=fedNow();

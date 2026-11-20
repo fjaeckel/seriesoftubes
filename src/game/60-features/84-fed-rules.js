@@ -146,7 +146,12 @@ function fedDeal(anns,offer,accept,renews){const b=offer.body,no=fedNo;let mode=
     else if(b.deal==='port'){const r=R.ix;if(!r)return no('no_terms');const p=r.ports.find(x=>x.mbps===T.mbps);
       if(!r.at.includes(T.at)||!p||T.monthly!==P(p.monthly)||T.term<30)return no('bad_terms');}
     else if(b.deal==='wave'){const r=R.wave;if(!r)return no('no_terms');const p=r.sizes.find(x=>x.gbps===T.gbps);
-      if(!r.routes.some(x=>x.a===T.a&&x.b===T.b)||!p||T.monthly!==P(p.monthly)||T.term<r.term)return no('bad_terms');}}
+      if(!r.routes.some(x=>x.a===T.a&&x.b===T.b)||!p||T.monthly!==P(p.monthly)||T.term<r.term)return no('bad_terms');}
+    // cloud: an edge node in a city the host lists, no more nodes than its cap, at its fee; an on-ramp port into a region it lists.
+    else if(b.deal==='edge'){const r=R.edge;if(!r)return no('no_terms');
+      if(!r.at.includes(T.at)||T.nodes>r.cap||T.monthly!==P(r.monthly)||T.term<r.term)return no('bad_terms');}
+    else if(b.deal==='onramp'){const r=R.onramp;if(!r)return no('no_terms');const p=r.ports.find(x=>x.mbps===T.mbps);
+      if(!r.at.includes(T.at)||!p||T.monthly!==P(p.monthly)||T.term<r.term)return no('bad_terms');}}
   const auto=mode==='auto';let start=auto?offer.t:accept?accept.t:null;
   if(start!==null&&renews)start=Math.max(renews.end,start);
   const term=b.terms.term;return {ok:true,auto,start,end:start!==null&&term?start+term*FED_DAY:null};}
