@@ -4234,6 +4234,7 @@
 "ops.w_oops":{"one":"hat sich einmal kurz vertippt","other":"hat sich {n}-mal kurz vertippt"},
 "optic_counts.apply_price":"Übernehmen · {price}",
 "optic_counts.count_for_model":"Anzahl der {model}-Kanäle",
+"optic_counts.managed_waves_need_more":"Du hast auf dieser Glasfaser {g} als Managed Waves verkauft: Lass mehr als das beleuchtet, sonst bleibt deinem eigenen Traffic nichts und die Faser wird dunkel.",
 "optic_counts.only_n_channels_free":"Auf dieser Glasfaser sind nur {n} Kanäle frei.",
 "optic_counts.target_count":"Zielanzahl",
 "optx.bud":"Baubudget",

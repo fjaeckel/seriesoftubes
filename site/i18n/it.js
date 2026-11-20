@@ -4232,6 +4232,7 @@
 "ops.w_oops":{"one":"ha fatto un piccolo pasticcio","other":"ha fatto {n} piccoli pasticci"},
 "optic_counts.apply_price":"Applica · {price}",
 "optic_counts.count_for_model":"Numero di canali {model}",
+"optic_counts.managed_waves_need_more":"Su questa fibra hai venduto {g} di wave gestite: tieni accesa più capacità di così, o al tuo traffico non resta nulla e la fibra si spegne.",
 "optic_counts.only_n_channels_free":"Su questa fibra sono liberi solo {n} canali.",
 "optic_counts.target_count":"Quantità desiderata",
 "optx.bud":"Budget lavori",
