@@ -5,8 +5,8 @@
    per network, opened once a window says hello, so other games' tabs never unpack them. With no window nothing is sent. */
 const NOC_HB=3000,NOC_LOST=10000,NOC_GAP=1000;
 // What a click in the window does: changes only its own view, or runs in the game. Every button the dashboard draws is in one list.
-const NOC_LOCAL=['chartToggle','connCity','connF','connNet','connSort','custCity','custF','custSort','dashClose','dashRow','dashSort','dashTab','ddosF','infraCity','infraF','infraHot','infraSort','listMore','popsReg','popsSort','rtrCity','rtrFs','rtrReg'];
-const NOC_GO=['addCh','addPair','addRouter','buyIx','buyNni','buyTransit','cache','connCancel','custGo','dashLink','dashPop','ddosEngage','downIx','downP','downT','goConn','hackback','lagIx','lagNni','lagP','lagT','leaseSwap','marketOpen','mktCfg','mktFloorLow','mktHold','mktPreset','mktRoute','netFocus','opsOpen','pni','pniAllOpen','pniChase','popGo','rmCh','routingOpen','rtbh','unrtbh','upLink','upRouter'];
+const NOC_LOCAL=['chartToggle','connCity','connF','connNet','connSort','custCity','custF','custSort','dashClose','dashRow','dashSort','dashTab','ddosF','hsNocMore','hsNocSort','infraCity','infraF','infraHot','infraSort','listMore','popsReg','popsSort','rtrCity','rtrFs','rtrReg'];
+const NOC_GO=['addCh','addPair','addRouter','buyIx','buyNni','buyTransit','cache','connCancel','custGo','dashLink','dashPop','ddosEngage','downIx','downP','downT','goConn','hackback','hsNocGo','lagIx','lagNni','lagP','lagT','leaseSwap','marketOpen','mktCfg','mktFloorLow','mktHold','mktPreset','mktRoute','netFocus','opsOpen','pni','pniAllOpen','pniChase','popGo','rmCh','routingOpen','rtbh','unrtbh','upLink','upRouter'];
 const NOC={win:false,id:null,ctl:null,st:null,stId:null,peer:false,until:0,dirty:false,sent:0,speed:1,hid:false,yoAt:0,gone:false};
 {const id=RW_IN?null:new URLSearchParams(location.search).get('noc');if(slotOkId(id)){NOC.win=true;NOC.id=id;}}
 if(!RW_IN)try{if(typeof BroadcastChannel==='function'){NOC.ctl=new BroadcastChannel('sot-noc');NOC.ctl.onmessage=e=>{const m=e.data;if(!m||typeof m!=='object'||!slotOkId(m.id))return;if(NOC.win)nocWinMsg(m);else nocGameMsg(m);};}}catch(e){}

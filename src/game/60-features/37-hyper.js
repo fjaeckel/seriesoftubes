@@ -52,7 +52,7 @@ const hsAcc=(v,m)=>kmBetween(v,m)*1.25/200;
    served from another region than the door is a haul job the backbone carries before routing; the edge stack's static
    quarter starts at the door and is never hauled. R.hs: cc (per country: D demand, v front door, st served by the edge
    stack, parts [door, Gbps, ms, region], home region, want and got of the haul, short), rg (g room, load), door (per
-   front door: g hauled to it, got), ten (per tenant: r region, v door, want, f share placed, ms, r2 second region,
+   front door: g hauled to it, got), hl (per region and door 'r>v': [wanted, got]), ten (per tenant: r region, v door, want, f share placed, ms, r2 second region,
    got), short (users no region had room for). */
 function hsFlows(R2,flow,DEMTO,X){const H=S.hs;if(!H||!hyper())return null;
   const out={cc:{},rg:{},door:{},ten:{},short:0},jobs=[];R2.hs=out;const rgs=hsRgs(),room={};
@@ -97,8 +97,10 @@ function hsFlows(R2,flow,DEMTO,X){const H=S.hs;if(!H||!hyper())return null;
   // Users with nowhere they may be homed are not short of room: they wait for a region they may use (blk).
   for(const cc in out.cc){const s=left[cc]||0;if(s>1e-9){const o=out.cc[cc];o.short=s;if(o.blk)out.blk+=s;else out.short+=s;R2.demand+=s;}}
   return jobs;}
-// After routing (CX_POST): what each haul got.
-function hsPost(R2,J){const out=R2.hs;if(!out)return;for(const x of J){if(!x.k)continue;const d=out.door[x.v]||(out.door[x.v]={g:0,got:0});d.g+=x.x;d.got+=x.got;
+// After routing (CX_POST): what each haul got, by front door, and by region and door (hl['region>door'] = [wanted, got],
+// for the NOC dashboard's Cloud tab).
+function hsPost(R2,J){const out=R2.hs;if(!out)return;const hl=out.hl={};for(const x of J){if(!x.k)continue;const d=out.door[x.v]||(out.door[x.v]={g:0,got:0});d.g+=x.x;d.got+=x.got;
+  const p=hl[x.o+'>'+x.v]||(hl[x.o+'>'+x.v]=[0,0]);p[0]+=x.x;p[1]+=x.got;
   if(x.k==='u'){const o=out.cc[x.id];if(o)o.got+=x.got;}else{const T=out.ten[x.id];if(T)T.got+=x.got;}}}
 // How well a country is served: what reached it from each part, times how its latency feels.
 // A part served in a partner's network (an edge node, p[4]) is served in full.

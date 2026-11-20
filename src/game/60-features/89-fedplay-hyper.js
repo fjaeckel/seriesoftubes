@@ -184,10 +184,12 @@ function hsfTermsHtml(r,inp,sel,yn,terms){const cl=fedCloud()?'':`<p class="note
 // Request modes in your terms: edge hosting for a home ISP, on-ramps for a Hyperscaler, transit never for a Hyperscaler.
 const hsfAutoShown=k=>k==='edge'?fedCloud()&&!hyper():k==='onramp'?fedCloud()&&hyper():k==='transit'?!hyper():true;
 
-/* The city panel's Cloud tab (CX_CITY): edge nodes in partner networks for this city's users, and the on-ramps into the
-   region here. Players first (they are cheaper); computer-run ISPs always answer. */
-function hsfCity(c){const H=S.hs,cc=CITY[c].cc;if(!H)return '';let h='';
-  if(H.cc[cc]){h+=`<section><h3>${tr('hyper_fed.edge_partners')}</h3><p class="lead">${tr('hyper_fed.edge_partners_lead',{p:pct(HS_EDGE)})}</p>`;
+/* The city panel's Cloud tab (93-ui/55-hyper-panel.js puts it together): edge nodes in partner networks for this city's
+   users, and the on-ramps into the region here. Players first (they are cheaper); computer-run ISPs always answer.
+   Each is a section {t, sum, flags, body()} or null. */
+function hsfEdgeSpec(c){const H=S.hs,cc=CITY[c].cc;if(!H||!H.cc[cc])return null;const n=H.ne.filter(x=>x.c===c).length,o=R.hs&&R.hs.cc[cc];
+  return {t:tr('hyper_fed.edge_partners'),sum:n?trn('hyper_fed.n_nodes',n)+(o&&o.nd>0?' · '+tr('hyper_fed.serving',{g:fmtG(o.nd)}):''):'',flags:[],body:()=>hsfEdgeBody(c)};}
+function hsfEdgeBody(c){const H=S.hs,cc=CITY[c].cc;let h=`<p class="lead">${tr('hyper_fed.edge_partners_lead',{p:pct(HS_EDGE)})}</p>`;
     const o=R.hs&&R.hs.cc[cc],fe=R.hs&&R.hs.fe||{};
     // Players that host here: a button to their sheet with the edge request first.
     const pl=S.fed?FEDN.ids.map(id=>NET[id]).filter(n=>n&&n.fst!=='dark'&&(()=>{const a=FEDN.ann.get(n.fed),e=a&&a.rec&&a.rec.body.rates&&a.rec.body.rates.edge;return !!e&&e.at.includes(c);})()):[];
@@ -197,11 +199,9 @@ function hsfCity(c){const H=S.hs,cc=CITY[c].cc;if(!H)return '';let h='';
       h+=`<div class="row"><div class="grow"><div class="nm">${esc(N.name)}</div><div class="meta">${tr('hyper_fed.npc_meta',{p:pct(w),price:fmt$(HSF_NPC_MO),n:leadDays(HSF_NPC_DAYS)})}</div>${n?`<div class="meta">${trn('hyper_fed.n_nodes',n)}${wait?' · '+trn('hyper_fed.n_coming',wait):''}${g>0?' · '+tr('hyper_fed.serving',{g:fmtG(g)}):''}</div>`:''}</div>
         <div class="btns">${n<HSF_NPC_CAP?btn(tr('hyper_fed.add_node'),'hsfNpcEdge',{city:c,net},'sm',S.cash<HSF_NPC_MO):''}${n?btn(tr('hyper_fed.remove_node'),'hsfNpcEdgeOff',{city:c,net},'ghost sm'):''}</div></div>`;}
     if(o&&o.nd>0)h+=`<p class="meta">✅ ${tr('hyper_fed.nodes_serve',{g:fmtG(o.nd)})}</p>`;
-    h+=`</section>`;}
-  if(H.rg[c]&&S.fed){const ds=S.fed.deals.filter(d=>d.deal==='onramp'&&d.role==='sell'&&d.terms.at===c&&d.st!=='over');
-    h+=`<section><h3>${tr('hyper_fed.onramps_here')}</h3>${ds.length?ds.map(d=>`<div class="row"><div class="grow"><div class="nm">${esc(d.name)}</div><div class="meta">${esc(hsfTermsText('onramp',d.terms))}</div>${hsfRepLine(d)}</div></div>`).join(''):`<p class="empty">${tr('hyper_fed.no_onramps')}</p>`}</section>`;}
   return h;}
-CX_CITY.push(c=>hyper()?hsfCity(c):'');
+function hsfRampSpec(c){const H=S.hs;if(!H||!H.rg[c]||!S.fed)return null;const ds=S.fed.deals.filter(d=>d.deal==='onramp'&&d.role==='sell'&&d.terms.at===c&&d.st!=='over');
+  return {t:tr('hyper_fed.onramps_here'),sum:ds.length?String(ds.length):'',flags:[],body:()=>ds.length?ds.map(d=>`<div class="row"><div class="grow"><div class="nm">${esc(d.name)}</div><div class="meta">${esc(hsfTermsText('onramp',d.terms))}</div>${hsfRepLine(d)}</div></div>`).join(''):`<p class="empty">${tr('hyper_fed.no_onramps')}</p>`};}
 /* The Deals tab (a Hyperscaler): partners at a glance. Players who host edge nodes or deal with you, what the
    computer-run stand-ins offer, and the line that never changes. */
 function hsfDealsSec(){if(!hyper()||!S.hs)return '';const pl=S.fed&&S.fed.on?FEDN.ids.map(id=>NET[id]).filter(n=>n&&n.fst!=='dark'):[],run=S.fed?S.fed.deals.filter(d=>d.on).length:0;

@@ -1,0 +1,30 @@
+/* The Hyperscaler's screens (93-ui/55-hyper-panel.js, 94-dashboard/62-hyper-noc.js): the charter card, the Cloud tab's
+   sections and the NOC dashboard's Cloud tab. Phones first: lines wrap, buttons come two to a row. */
+.inc.hsc{background:#E6F4FF}
+.hsc-h{display:flex;align-items:center;gap:8px}.hsc-h .nm{flex:1;min-width:0}
+.hsc-p{flex:none;font:900 11px var(--body);border:1.8px solid var(--edge);border-radius:8px;padding:0 6px;background:var(--paper);color:var(--ink)}
+.hsc-p.won{background:var(--ok);color:#fff}
+/* What needs you: one line each, a bar on the left in the colour of how bad it is. */
+.hsc-al{margin:6px 0 2px}
+.hsa{font-size:12px;line-height:1.35;margin:3px 0;padding:2px 0 2px 7px;border-left:3px solid var(--line);color:var(--ink);overflow-wrap:anywhere}
+.hsa.lv0,.hsa.lv1{border-left-color:var(--bad);color:var(--bad);font-weight:700}
+.hsa.lv2{border-left-color:var(--warn)}
+.hsa .b.sm{margin:2px 0 0;vertical-align:middle}
+.hsa .btns{margin-top:3px}
+.hsc-nx{font-size:12.5px;line-height:1.35;margin:6px 0 2px}.hsc-nx.bad{color:var(--bad)}
+.hsc-st{margin-top:6px;padding-top:4px;border-top:1.5px dashed var(--line)}
+.hsc-st .meta{overflow-wrap:anywhere}
+.hsc .btns{margin-top:3px}
+.hsc .hsc-fold{margin-top:4px}
+/* Cloud Nine's four conditions: two to a row where the card is wide enough. */
+.hsc-c9{margin-top:6px;padding-top:4px;border-top:1.5px dashed var(--line)}
+.hsc-c9g{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0 8px}
+.hsc-c9g .meta.ok{color:var(--ink)}
+.hsc-off,.hsc-more{margin-top:2px}
+/* The Cloud tab: a section's summary and flags wrap under its title on a narrow sheet. */
+.hsec .pss{overflow-wrap:anywhere}
+.hsec h3.sub4{margin-top:8px}
+/* The NOC dashboard's Cloud tab: flags wrap under a row; long lines break anywhere rather than push the sheet wide. */
+.hnocf{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.hnocf .tag{white-space:nowrap}
+.hnocrow .meta{overflow-wrap:anywhere}
+.hnoc-ok{color:var(--eye)}.hnoc-bad{color:var(--bad)}
