@@ -77,7 +77,8 @@ function hsProtRoll(c,on){const H=S.hs;if(!H||hsProt(c))return null;const P=hsPw
   const u=r/p,g=on==='smr'?3:hsGrpOf(c,S.day),kind=u<(on==='smr'?0.4:p>=0.4?0.15:0)?'block':on!=='smr'&&u<0.45?'cost':'delay',h=hstr(S.asn+'|'+c+'|'+S.day+'|len');
   const len=kind==='delay'?30+h%61:kind==='cost'?120:150+h%151,x={until:S.day+len,kind,g,on};H.prot[c]=x;P.gw=Math.max(0,P.gw-5);
   if(kind==='delay')hsProtShift(c,on,len);
-  toast(tr(kind==='block'?'hyper_power.prot_block':kind==='cost'?'hyper_power.prot_cost':'hyper_power.prot_delay',{grp:tr(HS_GRP[g]),city:esc(CITY[c].name),n:len})+`<br><i>${tr(HS_GRP_SAY[g])}</i>`,'bad',[{l:tr('hyper_power.answer'),act:'popGo',args:{city:c}}]);sfx('err');return x;}
+  const v={grp:tr(HS_GRP[g]),city:esc(CITY[c].name),n:len};
+  toast((kind==='block'?tr('hyper_power.prot_block',v):kind==='cost'?tr('hyper_power.prot_cost',v):tr('hyper_power.prot_delay',v))+`<br><i>${tr(HS_GRP_SAY[g])}</i>`,'bad',[{l:tr('hyper_power.answer'),act:'popGo',args:{city:c}}]);sfx('err');return x;}
 // Move what the protest holds up by n days (negative gives days back, never to before tomorrow).
 function hsProtShift(c,on,n){const H=S.hs,lo=S.day+1;if(on==='smr'){for(const x of hsPw(c).own)if(x.k==='smr'&&x.ready>S.day)x.ready=Math.max(lo,x.ready+n);return;}
   const d=H.rg[c];if(!d)return;if(d.up)d.up.ready=Math.max(lo,d.up.ready+n);else if(d.ready>S.day)d.ready=Math.max(lo,d.ready+n);}
@@ -96,11 +97,12 @@ function hsPwDay(d){const H=S.hs;if(!H||!hyper())return;
       if(!q.late&&r<20){q.late=1;q.ready=d+60+hstr(S.asn+'|'+c+'|late')%61;toast(tr('hyper_power.letter_late',{util:U,city,date:dateStr(q.ready)}),'bad',[],{a:'city',v:c});}
       else{const mw=r<45?Math.round(q.mw/2):q.mw;P.cap+=mw;P.q=null;toast(mw<q.mw?tr('hyper_power.letter_less',{util:U,city,mw,ask:q.mw}):tr('hyper_power.letter_full',{util:U,city,mw}),mw<q.mw?'bad':'goal',[],{a:'city',v:c});sfx('coin');}}
     for(const x of P.own)if(x.ready===d)toast(tr('hyper_power.gen_live',{name:tr(HS_GEN[x.k].n),city,mw:HS_GEN[x.k].mw}),'goal',[],{a:'city',v:c});}
-  H.pev=H.pev.filter(e=>{if(e.until>d)return true;toast(tr(e.k==='heat'?'hyper_power.ev_heat_over':'hyper_power.ev_crunch_over',{reg:WAVE_NAME[e.reg]}),'good');return false;});
-  for(const g of [...new Set(Object.keys(H.rg).map(c=>CITY[c].reg))].sort()){if(H.pev.some(e=>e.reg===g))continue;const r=hstr(S.asn+'|'+d+'|'+g+'|pev')%1000;if(r>=6)continue;
-    const k=r<4?'heat':'crunch',until=d+(k==='heat'?7+r*4:30+r*10);H.pev.push({k,reg:g,until});
+  H.pev=H.pev.filter(e=>{if(e.until>d)return true;const v={reg:WAVE_NAME[e.reg]};toast(e.k==='heat'?tr('hyper_power.ev_heat_over',v):tr('hyper_power.ev_crunch_over',v),'good');return false;});
+  for(const g of [...new Set(Object.keys(H.rg).map(c=>CITY[c].reg))].sort()){if(H.pev.some(e=>e.reg===g))continue;const r=hstr(S.asn+'|'+d+'|'+g+'|pev')%1000;if(r>=8)continue;
+    const k=r<5?'heat':'crunch',until=d+(k==='heat'?7+r*4:30+(r-5)*20);H.pev.push({k,reg:g,until});
     const cut=Object.keys(H.rg).filter(c=>CITY[c].reg===g&&hsCut(c)<1);
-    toast(tr(k==='heat'?'hyper_power.ev_heat':'hyper_power.ev_crunch',{reg:WAVE_NAME[g],date:dateStr(until)})+(cut.length?`<br>${tr('hyper_power.ev_cut',{list:cut.map(c=>esc(CITY[c].name)).join(', ')})}`:''),'bad');}}
+    const v={reg:WAVE_NAME[g],date:dateStr(until)};
+    toast((k==='heat'?tr('hyper_power.ev_heat',v):tr('hyper_power.ev_crunch',v))+(cut.length?`<br>${tr('hyper_power.ev_cut',{list:cut.map(c=>esc(CITY[c].name)).join(', ')})}`:''),'bad');}}
 CX_DAY.push(hsPwDay);
 // A new Hyperscaler: power for the home metro, no protests, no events.
 CX_NEW.push(o=>{o.pw={};for(const c in o.rg)o.pw[c]=hsPwDef(c);o.prot={};o.pev=[];});

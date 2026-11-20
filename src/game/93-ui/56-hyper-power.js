@@ -29,7 +29,7 @@ function hsPwSection(c){const H=S.hs;if(!H||!hsSite(c))return '';const P=hsPw(c)
    :`<p class="note">${tr('hyper_power.queue_terms',{util:tr(hsUtil(c))})}</p>${hsPwRow(btn(tr('hyper_power.ask_util',{mw:HS_Q_MW,cost:fmt$(HS_Q_FEE)}),'hsUtil',{city:c},'sm',S.cash<HS_Q_FEE))}`;
   // Goodwill and a protest.
   const p=hsProt(c);h+=hsKv(tr('hyper_power.goodwill'),`${P.gw}/100`)+hsBar(P.gw/100,P.gw<40);
-  if(p){h+=`<p class="why">📣 ${tr(p.kind==='block'?'hyper_power.prot_is_block':p.kind==='cost'?'hyper_power.prot_is_cost':'hyper_power.prot_is_delay',{grp:tr(HS_GRP[p.g]),date:dateStr(p.until)})}<br><i>${tr(HS_GRP_SAY[p.g])}</i></p>`;
+  if(p){const v={grp:tr(HS_GRP[p.g]),date:dateStr(p.until)};h+=`<p class="why">📣 ${p.kind==='block'?tr('hyper_power.prot_is_block',v):p.kind==='cost'?tr('hyper_power.prot_is_cost',v):tr('hyper_power.prot_is_delay',v)}<br><i>${tr(HS_GRP_SAY[p.g])}</i></p>`;
     h+=`<p class="note">${tr('hyper_power.prot_how',{gw:HS_GW_WIN,date:dateStr(p.until)})}</p>`;}
   h+=hsPwRow(btn(tr('hyper_power.fund_cost',{cost:fmt$(HS_FUND),gw:HS_FUND_GW}),'hsFund',{city:c},'sm',P.gw>=100||S.cash<HS_FUND),
     P.heat?'':btn(tr('hyper_power.heat_cost',{cost:fmt$(HS_HEAT),gw:HS_HEAT_GW}),'hsHeat',{city:c},'sm',!hsLive(c)||S.cash<HS_HEAT));

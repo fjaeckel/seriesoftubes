@@ -10,7 +10,7 @@ Object.assign(ACT,{
    toast(tr('hyper_power.fund_done',{city:esc(CITY[city].name),gw:P.gw}),'good');hsProtWin(city);after();},
  // Heat reuse: pipe the region's waste heat to the town pool. Once per metro, with a live region to make the heat.
  hsHeat:({city})=>{if(!hsPwAt(city)||!hsLive(city))return;const P=hsPwMk(city);if(P.heat)return;if(!spend(HS_HEAT))return;P.heat=hsHeatMo(city);P.gw=Math.min(100,P.gw+HS_HEAT_GW);
-   toast(tr(P.heat<0?'hyper_power.heat_pays':'hyper_power.heat_costs',{city:esc(CITY[city].name),mo:fmt$(Math.abs(P.heat))}),'good');hsProtWin(city);after();},
+   const v={city:esc(CITY[city].name),mo:fmt$(Math.abs(P.heat))};toast(P.heat<0?tr('hyper_power.heat_pays',v):tr('hyper_power.heat_costs',v),'good');hsProtWin(city);after();},
  // A smaller build: the region the protest holds up goes one tier down (or the upgrade is called off); 80% of the
  // difference comes back, and the protesters declare victory.
  hsShrink:({city})=>{if(!hsPwAt(city))return;const p=hsProt(city),d=S.hs.rg[city];if(!p||p.on!=='rg'||!hsProtHeld(city)||!d)return;
