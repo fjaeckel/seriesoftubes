@@ -10,15 +10,18 @@
    products, placed at their home city and served from a region (b.rg). A Hyperscaler never sells transit and never
    sells to homes: its offers are cloud bundles only. Its own goals (HYPER_GOALS); levels count peak traffic, regions
    and continents with a region (LV_X). The win, Cloud Nine, comes later (phase 4). */
-const HS_RATE=220,HS_POT=0.4,HS_GROW=0.03,HS_START=0.02,HS_EDGE=0.25,HS_EDGE_COST=150000,HS_EDGE_MO=3000,HS_MIN_P=300;
+const HS_RATE=220,HS_POT=0.4,HS_GROW=0.05,HS_START=0.08,HS_EDGE=0.25,HS_EDGE_COST=150000,HS_EDGE_MO=3000,HS_MIN_P=300;
 // Latency users feel, one way: none up to HS_MS[0] ms, the factor falling to HS_MS[2] at HS_MS[1] ms and beyond.
 const HS_MS=[15,120,0.6];
 // Region tiers: index 0 is the starter every Hyperscaler gets at home; the rest are built (lv: the level that allows it).
 const HS_T=[{n:N_('hyper.t_shack'),g:400,mw:5,slots:4,cost:0,mo:3000,lv:1,days:0},
- {n:N_('hyper.t_barn'),g:1500,mw:20,slots:12,cost:600000,mo:15000,lv:1,days:60},
+ {n:N_('hyper.t_barn'),g:1500,mw:20,slots:12,cost:400000,mo:15000,lv:1,days:60},
  {n:N_('hyper.t_campus'),g:5000,mw:60,slots:40,cost:2500000,mo:45000,lv:4,days:90},
  {n:N_('hyper.t_gulch'),g:15000,mw:200,slots:120,cost:8000000,mo:120000,lv:8,days:120}];
-// What each level asks of a Hyperscaler (index i: to reach level i+1): regions, and continents with a region.
+// What each level asks of a Hyperscaler (index i: to reach level i+1): its own peak (Gbps), regions, and continents with a
+// region. A cloud's peak is what its regions can serve, a few Tbps the first year, not a carrier's whole network: the
+// classic ladder (LV_REQ) asks 6 Tbps for level 5, which a cloud with a Rack Shack and two Server Barns cannot reach.
+const HS_LV_PK=[0,150,600,1200,2000,3500,5000,7000,9500,12500,16000,20000,25000];
 const HS_LV_RG=[0,1,2,2,3,4,5,6,7,8,9,10,12],HS_LV_CT=[0,0,0,1,2,2,3,3,4,4,5,5,5];
 function hsNew(){return cxNew({cc:{},rg:{[S.home]:{t:0,ready:0,mw:HS_T[0].mw}},edge:{},t1:0,won:0});}
 // Countries: how many users they could ever have, what launching costs, and why not.
@@ -169,7 +172,7 @@ const HYPER_GOALS=[
 /* The level ladder (LV_X): peak traffic, live regions, and continents with a live region. Its names, quotes, toast and
    "Next:" line are the Hyperscaler's own story (39-hyper-story.js). */
 const hsCont=()=>new Set(hsRgs().map(c=>CITY[c].reg)).size;
-const HS_LVX={on:()=>hyper()&&!!S.hs,places:()=>hsRgs().length,need:i=>({pk:LV_REQ[i].pk,pops:HS_LV_RG[i],reg:HS_LV_CT[i]}),regions:hsCont,label:()=>tr('hyper.regions')};
+const HS_LVX={on:()=>hyper()&&!!S.hs,places:()=>hsRgs().length,need:i=>({pk:HS_LV_PK[i],pops:HS_LV_RG[i],reg:HS_LV_CT[i]}),regions:hsCont,label:()=>tr('hyper.regions')};
 LV_X.push(HS_LVX);
 CX_FLOW.push(hsFlows);CX_POST.push(hsPost);CX_MONEY.push(hsMoney);
 // Saves: only a Hyperscaler keeps S.hs (and cloud tenants), and every field of it is checked here.

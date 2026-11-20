@@ -50,16 +50,16 @@ test('the unlocks and the Next line come from the code that gates them', (t) => 
   assert.match(L[8].unlock, /small modular reactor.*your own subsea cables|your own subsea cables.*small modular reactor/);
   assert.equal(L[12].unlock, 'nothing new but the view: Cloud Nine is up to you');
   // The Next line asks what lvNeed asks: peak, live regions, continents.
-  assert.equal(ev('lvNext(lvInfo(1),true)'), 'Next: Partly Cloudy, at a 200 Gbps peak with 1 live region. It brings room for 3 regions, enterprises lifting and shifting, and game studios and their launch days.');
-  assert.match(ev('lvNext(lvInfo(4),true)'), /^Next: Fog Computing, at a 6\.00 Tbps peak with 3 live regions on 2 continents\./);
+  assert.equal(ev('lvNext(lvInfo(1),true)'), 'Next: Partly Cloudy, at a 150 Gbps peak with 1 live region. It brings room for 3 regions, enterprises lifting and shifting, and game studios and their launch days.');
+  assert.match(ev('lvNext(lvInfo(4),true)'), /^Next: Fog Computing, at a 2\.00 Tbps peak with 3 live regions on 2 continents\./);
   assert.equal(ev('lvNext(null)'), 'Top of the sky. Only Cloud Nine is higher.');
   // A balance pass that moves a gate moves the story with it.
-  ev('HS_T[2].lv=5;LV_REQ[4].pk=7000;HS_LVS=null');
+  ev('HS_T[2].lv=5;HS_LV_PK[4]=7000;HS_LVS=null');
   assert.doesNotMatch(ev('hsLevels()[3].unlock'), /Compute Campus/);
   assert.match(ev('hsLevels()[4].unlock'), /Compute Campus regions/);
   assert.match(ev('lvNext(lvInfo(4),true)'), /at a 7\.00 Tbps peak/);
   // The card and the Deals tab read the same ladder.
-  ev('HS_T[2].lv=4;LV_REQ[4].pk=6000;HS_LVS=null');
+  ev('HS_T[2].lv=4;HS_LV_PK[4]=2000;HS_LVS=null');
   assert.match(ev('lvlCard()'), /Cloud level 1 of 13.*Rack Under the Stairs/s);
   assert.match(ev('dlLvl()'), /Cloud level 1: Rack Under the Stairs/);
   assert.deepEqual(errors, []);
@@ -101,7 +101,7 @@ test('the first-steps guide: each step glows at its button, waits when it cannot
   assert.equal(step(), 4);
   const c = ev('hsGdRgAt()');
   assert.ok(c && c !== 'fra');
-  assert.match(ev("$('coach').textContent"), /Build a second one, a Server Barn for \$600k/);
+  assert.match(ev("$('coach').textContent"), /Build a second one, a Server Barn for \$400k/);
   assert.match(ev("$('coach').innerHTML"), /data-act="focusCity"/, 'a Show me button opens the city');
   ev("S.offers.push(hsOffer('startup',S.home,5));renderAll()");
   assert.equal(step(), 3);

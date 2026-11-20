@@ -186,7 +186,7 @@ test('answers: build smaller, or take it to another metro', () => {
   let cash = ev('S.cash');
   ev("ACT.hsShrink({city:'ams'})");
   assert.equal(ev('S.hs.rg.ams.t'), 0, 'a Rack Shack instead');
-  assert.equal(ev('S.cash'), cash + 480000, '80% of the difference back');
+  assert.equal(ev('S.cash'), cash + 0.8 * ev('HS_T[1].cost'), '80% of the difference back');
   assert.equal(ev('!!S.hs.prot.ams'), false);
   ev('dayTick();dayTick()');
   assert.equal(ev("hsLive('ams')"), true, 'and it opens');
@@ -196,7 +196,7 @@ test('answers: build smaller, or take it to another metro', () => {
   ev("ACT.hsMove({city:'ams'})");
   assert.equal(ev('!!S.hs.rg.ams.up'), false);
   assert.equal(ev('S.hs.rg.ams.t'), 0, 'the Shack stays');
-  assert.equal(ev('S.cash'), cash + 540000);
+  assert.equal(ev('S.cash'), cash + 0.9 * ev('HS_T[1].cost'));
   assert.equal(ev('!!S.hs.prot.ams'), false);
   // A new region called off is gone altogether.
   ev("delete S.hs.rg.ams");

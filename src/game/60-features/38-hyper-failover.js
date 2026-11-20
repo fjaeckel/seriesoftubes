@@ -11,7 +11,7 @@
    country homed there was served at HS_DRILL_Q or better and the backlog was under HS_RISK; S.hs.drill['a|b'] keeps
    the day a pair passed. S.hs.dx is the drill under way. Real underneath: cloud regions fail as a whole now and then,
    and the operators that cope run region evacuation drills; real chaos tooling once named a region-killer Chaos Kong. */
-const HS_RISK=50,HS_LOSS=0.2,HS_LOSS_FEE=250000,HS_LOSS_TB=1000,HS_LOSS_MAX=2000000,HS_DRILL=20000,HS_DRILL_Q=0.9,HS_FAIL_W=2,HS_FAIL_FIX=40000;
+const HS_RISK=50,HS_LOSS=0.2,HS_LOSS_FEE=250000,HS_LOSS_TB=1000,HS_LOSS_MAX=2000000,HS_LOSS_MO=1,HS_DRILL=20000,HS_DRILL_Q=0.9,HS_FAIL_W=2,HS_FAIL_FIX=40000;
 const HS_FAIL_MSG=[N_('hyper_fail.msg_squirrel'),N_('hyper_fail.msg_cert'),N_('hyper_fail.msg_cooling'),N_('hyper_fail.msg_dns'),N_('hyper_fail.msg_tag'),N_('hyper_fail.msg_ups')];
 const HS_LOSS_NEWS=[N_('hyper_fail.news_cats'),N_('hyper_fail.news_spreadsheet'),N_('hyper_fail.news_wedding'),N_('hyper_fail.news_save')];
 // A failed region (until S.hs.down says), and a region out of play tonight for any reason (failed or drained).
@@ -41,6 +41,10 @@ function hsRegionFail(c,dur,msg,cost){const H=S.hs;H.down[c]=Math.max(H.down[c]|
 // failureRun's region kind: a live region out of several (one region down is a plain outage, not a failover).
 const hsFailOn=()=>hyper()&&!!S.hs&&hsRgs().length>=2;
 function hsFailFire(){const rs=hsRgs();if(rs.length<2)return false;const c=pick(rs);hsRegionFail(c,1+Math.floor(Math.random()*3),tr(pick(HS_FAIL_MSG),{city:CITY[c].name}));return true;}
+// The fine for lost data: a base and a price per TB lost, at most HS_LOSS_MAX, and never more than HS_LOSS_MO months of
+// revenue, and never more than leaves you $50k in the red (a young cloud's lost cat photos make the news, not a
+// bankruptcy court: the users who leave are the real price).
+const hsLossFee=lag=>Math.round(Math.min(HS_LOSS_MAX,HS_LOSS_FEE+lag*HS_LOSS_TB,Math.max(HS_LOSS_FEE,HS_LOSS_MO*(R.revMo||0)),Math.max(0,S.cash+50000)));
 /* The moment of failure: what the region still owed its replica is checked now. Over HS_RISK TB it is gone, and so are
    HS_LOSS of the users homed there. */
 function hsFailStart(c){const H=S.hs;if(H.out[c])return;const lag=hsLagAt(c),lost=lag>HS_RISK,cc=hsHomedAt(c),b=hsRepOf(c);
@@ -49,7 +53,7 @@ function hsFailStart(c){const H=S.hs;if(H.out[c])return;const lag=hsLagAt(c),los
   let gone=0;for(const k of cc){const x=H.cc[k],l=x.d*HS_LOSS;x.d=Math.max(1,x.d-l);gone+=l;}
   for(const k of Object.keys(H.lag))if(k.startsWith(c+'>'))delete H.lag[k];
   for(const t of hsTen())if(t.rg===c)t.mood=Math.max(0,t.mood-25);
-  const fee=Math.min(HS_LOSS_MAX,HS_LOSS_FEE+Math.round(lag*HS_LOSS_TB));S.cash-=fee;H.flost=(H.flost|0)+1;S.stats.hsLost=(S.stats.hsLost||0)+1;
+  const fee=hsLossFee(lag);S.cash-=fee;H.flost=(H.flost|0)+1;S.stats.hsLost=(S.stats.hsLost||0)+1;
   toast(`<b>📰 ${tr(HS_LOSS_NEWS[hstr(S.asn+'|news|'+c+'|'+S.day)%HS_LOSS_NEWS.length],{city:esc(CITY[c].name)})}</b><br>`+tr('hyper_fail.data_lost',{tb:hsTb(lag),city:esc(CITY[c].name),g:fmtG(gone),fee:fmt$(fee)}),'bad',[],{a:'city',v:c});sfx('err');track('hs_data_loss');}
 /* Chaos Kong (40-chaos-monkey.js): on about one snip in four, when there is a region to fail over from, the monkey's
    big cousin evacuates a whole region for two days instead. Seeded on the day, so the dice roll as they would. */

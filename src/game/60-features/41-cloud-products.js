@@ -5,20 +5,20 @@
    edge the share of out an edge stack can serve at the front door, lat how much users feel latency (0 to 1), need what
    it asks of your network (scored in hsNeedQ) and pr its price per Gbps a month. */
 const CLOUD_PRODUCTS={
- ai:{n:N_('cloud.p_ai'),w:1,out:0.8,in:0.2,bt:0,edge:0,lat:0.9,need:'model',pr:300},
- arc:{n:N_('cloud.p_arc'),w:1,out:0,in:0.6,bt:0.4,edge:0,lat:0,need:'pair',pr:30},
- cdn:{n:N_('cloud.p_cdn'),w:4,out:1,in:0,bt:0,edge:0.8,lat:0.3,need:'edge',pr:70},
- db:{n:N_('cloud.p_db'),w:2,out:0.3,in:0.2,bt:0.5,edge:0,lat:0.6,need:'pair',pr:260},
- dns:{n:N_('cloud.p_dns'),w:0.2,out:0.5,in:0.5,bt:0,edge:1,lat:0.8,need:'doors',pr:400},
- fn:{n:N_('cloud.p_fn'),w:1,out:0.6,in:0.4,bt:0,edge:0,lat:1,need:'near',pr:220},
- gpu:{n:N_('cloud.p_gpu'),w:4,out:0.1,in:0.3,bt:0.6,edge:0,lat:0,need:'power',pr:160},
- k8s:{n:N_('cloud.p_k8s'),w:2,out:0.5,in:0.1,bt:0.4,edge:0,lat:0.5,need:'pair',pr:180},
- obj:{n:N_('cloud.p_obj'),w:3,out:0.85,in:0.15,bt:0,edge:0.6,lat:0.1,need:'room',pr:90},
- out:{n:N_('cloud.p_out'),w:1,out:0.5,in:0.5,bt:0,edge:0,lat:0.4,need:'port',pr:240},
- pc:{n:N_('cloud.p_pc'),w:2,out:0.5,in:0.5,bt:0,edge:0,lat:0.4,need:'port',pr:200},
- snow:{n:N_('cloud.p_snow'),w:2,out:0,in:1,bt:0,edge:0,lat:0,need:'room',pr:40},
- sov:{n:N_('cloud.p_sov'),w:2,out:0.6,in:0.3,bt:0.1,edge:0,lat:0.5,need:'home',pr:320},
- vm:{n:N_('cloud.p_vm'),w:3,out:0.7,in:0.2,bt:0.1,edge:0,lat:0.5,need:'near',pr:140},
+ ai:{n:N_('cloud.p_ai'),w:1,out:0.8,in:0.2,bt:0,edge:0,lat:0.9,need:'model',pr:750},
+ arc:{n:N_('cloud.p_arc'),w:1,out:0,in:0.6,bt:0.4,edge:0,lat:0,need:'pair',pr:75},
+ cdn:{n:N_('cloud.p_cdn'),w:4,out:1,in:0,bt:0,edge:0.8,lat:0.3,need:'edge',pr:175},
+ db:{n:N_('cloud.p_db'),w:2,out:0.3,in:0.2,bt:0.5,edge:0,lat:0.6,need:'pair',pr:650},
+ dns:{n:N_('cloud.p_dns'),w:0.2,out:0.5,in:0.5,bt:0,edge:1,lat:0.8,need:'doors',pr:1000},
+ fn:{n:N_('cloud.p_fn'),w:1,out:0.6,in:0.4,bt:0,edge:0,lat:1,need:'near',pr:550},
+ gpu:{n:N_('cloud.p_gpu'),w:4,out:0.1,in:0.3,bt:0.6,edge:0,lat:0,need:'power',pr:400},
+ k8s:{n:N_('cloud.p_k8s'),w:2,out:0.5,in:0.1,bt:0.4,edge:0,lat:0.5,need:'pair',pr:450},
+ obj:{n:N_('cloud.p_obj'),w:3,out:0.85,in:0.15,bt:0,edge:0.6,lat:0.1,need:'room',pr:225},
+ out:{n:N_('cloud.p_out'),w:1,out:0.5,in:0.5,bt:0,edge:0,lat:0.4,need:'port',pr:600},
+ pc:{n:N_('cloud.p_pc'),w:2,out:0.5,in:0.5,bt:0,edge:0,lat:0.4,need:'port',pr:500},
+ snow:{n:N_('cloud.p_snow'),w:2,out:0,in:1,bt:0,edge:0,lat:0,need:'room',pr:100},
+ sov:{n:N_('cloud.p_sov'),w:2,out:0.6,in:0.3,bt:0.1,edge:0,lat:0.5,need:'home',pr:800},
+ vm:{n:N_('cloud.p_vm'),w:3,out:0.7,in:0.2,bt:0.1,edge:0,lat:0.5,need:'near',pr:350},
 };
 // What each need asks, as the Cloud tab and the offers say it.
 const CLOUD_NEED={doors:N_('cloud.need_doors'),edge:N_('cloud.need_edge'),home:N_('cloud.need_home'),model:N_('cloud.need_model'),near:N_('cloud.need_near'),pair:N_('cloud.need_pair'),port:N_('cloud.need_port'),power:N_('cloud.need_power'),room:N_('cloud.need_room')};
