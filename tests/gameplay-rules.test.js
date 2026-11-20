@@ -490,6 +490,46 @@ test('M13: residency never homes users outside their bloc', () => {
   fail('M13', bad, 'users of countries with residency laws are homed only in their country or bloc, and wait while there is none (38-hyper-residency.js)');
 });
 
+test('M14: zones never stand in for a region against metro-wide or legal trouble', () => {
+  const bad = [];
+  const R5 = ['fra', 'par', 'lon', 'ams', 'del'], GJ = (ev, x) => JSON.parse(ev(`JSON.stringify(${x})`));
+  for (const seed of [3, 7, 11]) {
+    const g = hsRules(seed);
+    // Every region gets two live zones; whole-region trouble is let in (the director's gates passed).
+    g.ev("S.day=Math.max(S.day,HS_DIR_BIG);Object.assign(S.hs.dir,{b:99,t:S.day,i:Object.fromEntries(Object.keys(HS_DIR_INTRO).map(k=>[k,0]))});" +
+      "for(const c of Object.keys(S.hs.rg))S.hs.az[c]=[{r:0,n:0},{r:0,n:1}];compute()");
+    for (const c of R5) {
+      const reset = "S.inc=[];S.hs.down={};S.hs.out={};S.hs.dx=null;S.hs.lag={};for(const p in S.pops)delete S.pops[p].down;S.hs.pw[" + lit(c) + "]=hsPwDef(" + lit(c) + ");delete S.hs.law.mor[" + lit(c) + "];compute();";
+      // A local failure: one zone out at most, the region live, no failover.
+      for (const type of ['crash', 'power', 'oops', 'cleaner']) {
+        const x = GJ(g.ev, `(()=>{${reset}S.pops[${lit(c)}].down=S.day+2;addInc({type:${lit(type)},ref:${lit(c)},until:S.day+2,msg:'m',cost:1});hsSoloSoft(S.inc[S.inc.length-1]);compute();return {live:hsLive(${lit(c)}),fo:R.hs.fo[${lit(c)}]||null,g:R.hs.rg[${lit(c)}].g,min:HS_T[S.hs.rg[${lit(c)}].t].g*(1+HS_AZ_G)*hsCut(${lit(c)})}})()`);
+        if (!x.live || x.fo) bad.push(`seed ${seed}, ${c}: a ${type} with zones took the region down`);
+        if (x.g < x.min - 1e-6) bad.push(`seed ${seed}, ${c}: a ${type} cost more than one zone (${x.g} < ${x.min})`);
+      }
+      // A region-wide failure: out, served from its replica only, backlog over the mark lost, zones or not.
+      const f = GJ(g.ev, `(()=>{${reset}S.hs.lag[${lit(c)}+'>'+hsRepOf(${lit(c)})]=HS_RISK*4;const l0=S.hs.flost;hsRegionFail(${lit(c)},2,'rule');compute();return {out:hsOut(${lit(c)}),fo:R.hs.fo[${lit(c)}],rep:hsRepOf(${lit(c)},Object.keys(S.hs.rg)),lost:S.hs.flost-l0,parts:hsHomedAt(${lit(c)}).flatMap(k=>R.hs.cc[k].parts.filter(p=>p[3]).map(p=>p[3]))}})()`);
+      if (!f.out) bad.push(`seed ${seed}, ${c}: zones kept a failed region up`);
+      if (f.parts.some((r) => r !== f.fo)) bad.push(`seed ${seed}, ${c}: users of a failed region with zones served from ${f.parts}`);
+      if (f.lost !== 1) bad.push(`seed ${seed}, ${c}: zones saved backlog lost at a region failure`);
+      // The metro's grid squeezed: every zone shares the cut; a trip takes the region; a moratorium allows no new zone.
+      const m = GJ(g.ev, `(()=>{${reset}S.hs.az[${lit(c)}]=[{r:0,n:0}];S.hs.pw[${lit(c)}].cap=hsTown(${lit(c)})+hsMwUsed(${lit(c)})*0.4;compute();const cut=hsCut(${lit(c)}),g=R.hs.rg[${lit(c)}].g,want=hsRgG(${lit(c)})*cut;
+        S.hs.dir.w={c:${lit(c)},d:S.day,k:'cut',ok:0};S.hs.dir.c=null;hsTripDay(S.day);const trip=S.hs.down[${lit(c)}]>S.day;
+        S.hs.law.mor[${lit(c)}]={a:S.day,f:S.day,u:S.day+100,m:0};ACT.hsZone({city:${lit(c)}});return {cut,g,want,trip,n:S.hs.az[${lit(c)}].length}})()`);
+      if (!(m.cut < 1) || Math.abs(m.g - m.want) > 1e-6) bad.push(`seed ${seed}, ${c}: a grid squeeze spared the zones (${m.g} vs ${m.want})`);
+      if (!m.trip) bad.push(`seed ${seed}, ${c}: a grid trip spared a region with zones`);
+      if (m.n !== 1) bad.push(`seed ${seed}, ${c}: a zone was built during a moratorium`);
+      g.ev(`S.hs.az[${lit(c)}]=[{r:0,n:0},{r:0,n:1}];` + reset);
+    }
+    // Residency and Chaos Kong do not care for zones either.
+    const parts = GJ(g.ev, "(()=>{S.inc=[];S.hs.down={};S.hs.out={};compute();return Object.keys(R.hs.cc).flatMap(k=>R.hs.cc[k].parts.filter(p=>p[3]).map(p=>[k,p[3],hsResOk(k,p[3])]))})()");
+    for (const [k, r, ok] of parts) if (!ok) bad.push(`seed ${seed}: with zones, ${k} homed in ${r}`);
+    if (!g.ev("(()=>{runNow(hsKongRun());return Object.keys(S.hs.down).length===1})()")) bad.push(`seed ${seed}: Chaos Kong spared a region with zones`);
+    assert.deepEqual(g.errors, []);
+    g.dom.window.close();
+  }
+  fail('M14', bad, 'zones protect you from a bad day, regions from a bad year: a zone takes only one building\'s trouble (38-hyper-zones.js)');
+});
+
 // ---------- Content ----------
 
 test('C1: every scenario has a goal its card checks, and none is won on day 0', () => {
