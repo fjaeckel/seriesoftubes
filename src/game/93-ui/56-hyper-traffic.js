@@ -9,7 +9,7 @@ function hsRunRow(j,c){const x=R.hs&&R.hs.jobs&&R.hs.jobs[j.id],own=j.k!==undefi
     <div class="meta"${late?' style="color:var(--bad)"':''}>${tr('hyper_traffic.run_done',{done:hsTb(j.done),tb:hsTb(j.tb),date:dateStr(j.due)})}${own?'':' · '+tr('hyper_traffic.pays',{fee:fmt$(late?Math.round(j.fee/2):j.fee)})}</div>
     ${x&&x.want>1e-9&&x.got<x.want*0.999?`<div class="why">${tr('hyper_traffic.run_short',{g:fmtG(x.want-x.got)})}</div>`:''}</div></div>`;}
 function hsOfferRow(o){const why=hsTrainWhy(o.a,o.b,o.g);
-  return `<div class="meta">🤖 ${tr('hyper_traffic.offer_line',{lab:esc(o.n),g:fmtG(o.g),a:esc(CITY[o.a].name),b:esc(CITY[o.b].name),n:o.wk,fee:fmt$(o.fee)})}</div>
+  return `<div class="meta">🤖 ${tr('hyper_traffic.offer_line',{lab:esc(o.n),g:fmtG(o.g),a:esc(CITY[o.a].name),b:esc(CITY[o.b].name),n:o.wk,fee:fmt$(o.fee)})}</div>${hsRvJobNote(o)}
     ${why?`<div class="why">${why}</div>`:''}<div class="btns">${btn(tr('hyper_traffic.take_job'),'hsJobTake',{id:o.id},'pink sm',!!why)}${btn(tr('hyper_traffic.decline'),'hsJobNo',{id:o.id},'ghost sm')}</div>`;}
 function hsTrafficCard(){const H=S.hs;if(!H||!H.jobs)return '';const o=R.hs,rep=o&&o.rep?Object.values(o.rep):[];let h='';
   if(rep.length){let g=0,w=0;for(const x of rep){g+=x.got;w+=x.want;}const lag=Object.values(H.lag).reduce((a,v)=>a+v,0);

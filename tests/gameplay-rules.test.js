@@ -380,6 +380,64 @@ test('M9: a Hyperscaler\'s bulk classes never push interactive traffic aside', (
   assert.deepEqual(g.errors, []);
 });
 
+test('M10: a Hyperscaler resells only its own glass, to carriers, cheaply, and never counts it toward levels or goals', () => {
+  const bad = [];
+  const g = load();
+  const df = (id, b, own) => `S.links.push({id:'${id}',a:'fra',b:'${b}',kind:'df',own:${own},sys:'roadm',ch:Array(2).fill('zr4'),km:Math.round(kmBetween('fra','${b}')*1.05),ready:0,day:0,cut:0,mo:100,trench:'${id}',pairs:1});`;
+  g.ev("beginGame('Cloud','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'hyper'});S.cash=1e12;S.lvl=8;S.nextFail=S.nextEvent=1e9;" +
+    "for(const c of ['par','ams'])ACT.buildPop({city:c});for(const c in S.pops)S.pops[c].rgen=RG_TOP;ACT.buyTransit({city:'fra',net:'cog',tier:3});S.hs.cc.DE={d:300,since:0};S.links=[];" +
+    df('own1', 'par', true) + df('lease1', 'ams', false) + 'compute()');
+  const lv = g.ev('custLevel()'), gs = g.ev('JSON.stringify(goals().map(x=>!!x.ok()))');
+  for (let d = 0; d < 80; d++) {
+    g.ev(`S.hs.rs.o=[];hsrSpawn(S.day+${d})`);
+    for (const o of JSON.parse(g.ev('JSON.stringify(S.hs.rs.o)'))) {
+      if (o.l !== 'own1') bad.push(`an offer on fiber it did not build (${o.l})`);
+      const cap = g.ev("dfCap(S.links[0])");
+      g.ev(`ACT.hsrTake({id:'${o.id}'});compute()`);
+      if (o.k === 'w' && Math.abs(cap - o.g - g.ev('dfCap(S.links[0])')) > 1e-6) bad.push('a wave sold did not come off its own capacity');
+    }
+  }
+  if (!g.ev("S.biz.length")) bad.push('nothing sold at all');
+  if (!g.ev("S.biz.every(b=>(b.type==='dfpair'||b.type==='mwave')&&b.link==='own1'&&!BIZ_T[b.type].l2)")) bad.push('resale sold something other than a pair or a wave on its own fiber');
+  if (g.ev("hsrWhy({l:'lease1',k:'iru'})") === '') bad.push('leased fiber can be resold');
+  if (!(g.ev("hsrPrice(S.links[0],'w',100).mo/100") < g.ev("Math.min(...Object.values(CLOUD_TENANTS).map(K=>cloudRate(K.p)))") / 4)) bad.push('a wave earns as much as tenants');
+  g.ev('for(const b of S.biz)b.rate*=1e4;compute()');
+  if (g.ev('custLevel()') !== lv || g.ev('JSON.stringify(goals().map(x=>!!x.ok()))') !== gs) bad.push('resale counts toward levels or goals');
+  fail('M10', bad, 'spare glass is a side income (38-hyper-resale.js)');
+  assert.deepEqual(g.errors, []);
+});
+
+test('M11: rival clouds show every move before it lands, and a bid is always yours to win', () => {
+  const bad = [];
+  const g = load();
+  g.ev("beginGame('Cloud','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'hyper'});S.cash=1e12;S.lvl=8;S.nextFail=S.nextEvent=1e9;" +
+    "for(const c of ['par','nyc','sin'])ACT.buildPop({city:c});for(const c in S.pops)S.pops[c].rgen=RG_TOP;ACT.buyTransit({city:'fra',net:'cog',tier:3});S.hs.rg.fra.t=2;S.offers=[];compute()");
+  for (const c of ['fra', 'par', 'nyc', 'sin']) {
+    g.ev(`S.offers=[];for(const k of ['startup','ent','game'])S.offers.push(hsOffer(k,'${c}',10));hsRvDay(S.day)`);
+    for (const o of JSON.parse(g.ev('JSON.stringify(S.offers)'))) {
+      const x = JSON.parse(g.ev(`JSON.stringify(S.hs.rv.of['${o.id}'])`));
+      if (x.w < 0) continue;
+      if (!(x.d > g.ev('S.day'))) bad.push(`${c}: a bid decided the day it appeared`);
+      if (!g.ev(`bRisk(S.offers.find(o=>o.id==='${o.id}')).includes(${lit(g.ev(`hsRvN(${x.w})`))})`)) bad.push(`${c}: a bid is not shown under its offer`);
+      g.ev(`ACT.accept({id:'${o.id}'})`);
+      if (!g.ev(`S.biz.some(b=>b.id==='${o.id}')`)) bad.push(`${c}: a contested offer could not be signed`);
+    }
+  }
+  // Poached only after a warning, at least a few weeks ahead.
+  g.ev("for(const b of hsTen()){b.mood=30;b.te=S.day+40}S.log=[]");
+  let warned = 0;
+  for (let i = 0; i < 40; i++) {
+    g.ev('S.day++;hsRvDay(S.day)');
+    const gone = g.ev('JSON.stringify(Object.keys(S.hs.rv.pc))');
+    if (gone !== '[]' && !warned) bad.push('a tenant poached without a warning');
+    if (g.ev('Object.keys(S.hs.rv.wn).length') && !warned) warned = i + 1;
+  }
+  if (!warned || warned > 15) bad.push('unhappy tenants were not warned weeks before renewal: ' + warned);
+  if (g.ev('hsTen().length')) bad.push('unhappy tenants were never poached');
+  fail('M11', bad, 'rivals make choices matter, never feel random-unfair (38-hyper-rivals.js)');
+  assert.deepEqual(g.errors, []);
+});
+
 // ---------- Content ----------
 
 test('C1: every scenario has a goal its card checks, and none is won on day 0', () => {

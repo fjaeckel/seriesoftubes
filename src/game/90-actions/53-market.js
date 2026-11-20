@@ -10,7 +10,7 @@ const cmUnlist=(ls,p)=>{for(const l of ls)if(l.list&&l.list[CM_L[p]]&&!cmOn(edge
 const CM_PRESET={all:p=>({on:true,min:CM_MIN[p][0],floor:CM_DEF[p].floor}),careful:p=>({on:true,min:CM_MIN[p][Math.min(2,CM_MIN[p].length-1)],floor:p==='iru'?120:100}),stop:p=>({...S.cm.p[p],on:false})};
 Object.assign(ACT,{
  /* Opens the window: on a tab (t), on the routes with a filter (f), or on one route's card, unfolded (k). */
- marketOpen:({t,f,k}={})=>{if(!S||pzOn())return;UI.confirm=null;
+ marketOpen:({t,f,k}={})=>{if(!S||pzOn()||hyper())return;UI.confirm=null;
    if(typeof k==='string'&&cmRoutes().has(k)){UI.bazTab='routes';UI.bazFilt='all';UI.bazOpen=k;const D=bazData(),i=bazRows(D).findIndex(x=>x.k===k);UI.bazN=Math.max(UI.bazN||0,BAZ_PG*Math.ceil((i+1)/BAZ_PG));}
    else if(BAZ_TABS.includes(t)){UI.bazTab=t;if(t==='routes'&&(BAZ_FILT.includes(f)||BAZ_KIND.includes(f))){UI.bazFilt=f;UI.bazN=0;}}
    UI._bazT=null;UI.bazAsk=null;bazModal();
