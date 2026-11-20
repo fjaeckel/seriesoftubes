@@ -38,7 +38,7 @@ function fedDealsOn(s,now){let ch=false;if(!s.fed)return false;
     const on=d.start!==null&&d.start<=now&&!!fedNetOf(d.key);if(on!==d.on){d.on=on;ch=true;}}
   // Waves sold come off the seller's fiber (mwG() caches by CM_V); waves bought are links.
   if(ch)CM_V++;return fedWaveLinks(s)||ch;}
-const FEDP_DN={peering:N_('fedplay.d_peering'),transit:N_('fedplay.d_transit'),pni:N_('fedplay.d_pni'),swap:N_('fedplay.d_swap'),consortium:N_('fedplay.d_consortium'),port:N_('fedplay.d_port'),wave:N_('fedplay.d_wave'),cofound:N_('fedplay.d_cofound')};
+const FEDP_DN={peering:N_('fedplay.d_peering'),transit:N_('fedplay.d_transit'),pni:N_('fedplay.d_pni'),swap:N_('fedplay.d_swap'),consortium:N_('fedplay.d_consortium'),port:N_('fedplay.d_port'),wave:N_('fedplay.d_wave'),cofound:N_('fedplay.d_cofound'),edge:N_('hyper_fed.d_edge'),onramp:N_('hyper_fed.d_onramp')};
 const fedDealName=k=>tr(FEDP_DN[k]||FEDP_DN.peering);
 // Ends a running or waiting deal here and tells the other side (a signed decline; queued, sent when online).
 function fedEnd(s,d,why,reason){d.st='over';d.on=false;d.why=why;const f=s.fed;CM_V++;fedWaveLinks(s);
@@ -58,6 +58,8 @@ function fedOffer(key,deal,o={}){const n=fedNetOf(key),a=FEDN.ann.get(key);if(!n
   if(n.fst==='dark'||FdBox(a.rec.body.box))return {miss:[{l:'quiet'}]};
   const B=a.rec.body,R0=B.rates||{},p=fedPair(n),miss=[];let terms=null;
   if(!FEDP_DEALS.includes(deal)||deal==='consortium')return {miss:[{l:'terms'}]};
+  // Edge nodes and on-ramps travel only where every joined server takes them (feature cloud, 89-fedplay-hyper.js).
+  if((deal==='edge'||deal==='onramp')&&!fedCloud())return {miss:[{l:'cloud'}]};
   if(!B.auto[deal]||B.auto[deal]==='decline')return {miss:[{l:'declines'}]};
   const term=r=>Math.max(r,fedInt(o.term,1,3650,0)),mb=fedInt(o.mbps,1,1e9,0);
   if(deal==='peering'){const via=o.via==='pni'?'pni':'ix';
@@ -82,6 +84,8 @@ function fedOffer(key,deal,o={}){const n=fedNetOf(key),a=FEDN.ann.get(key);if(!n
     if(!at)return {miss:[{l:'myix'}]};if(!fp.includes(at))miss.push({l:'cfpop',n:fpCity(at)});if(!fedP().rates.ix)miss.push({l:'ixsell'});
     if(!fedIx2())miss.push({l:'ix2'});if(fedCofounders(at).length>=FEDX_CO)miss.push({l:'cofull',n:FEDX_CO});
     terms={at,share,...fedCofoundPrice(at,share),term:FEDX_TERMS.includes(+o.term)?+o.term:180};}
+  // An edge node in their network, an on-ramp port into their region (89-fedplay-hyper.js).
+  else if(deal==='edge'||deal==='onramp'){const x=hsfOffer(deal,n,R0,o);if(!x.terms)return {miss:x.miss};miss.push(...x.miss);terms=x.terms;}
   if(B.policy!=='selective'&&B.cond&&!B.cond.ai&&S.fed.ai)miss.push({l:'ai'});
   // A newcomer buying from an established network pays the newcomer price (§10.10, 89-fedplay-mentor.js).
   terms=fedNewTerms(deal,terms,B,fedNow());
@@ -116,6 +120,9 @@ function fedTheirMiss(s,b,from){const P=fedP(s),n=fedNetOf(from),T=b.terms,miss=
   else if(b.deal==='port'){if(!s.myIx[T.at])miss.push({l:'myix'});}
   else if(b.deal==='swap'){if(!s.pops[T.take.a]||!s.pops[T.take.b])miss.push({l:'pop'});}
   else if(b.deal==='wave'){if(!fedWaveRen(s,b,from)&&!fedWaveRoom(T.a,T.b,T.gbps))miss.push({l:'room'});}
+  else if(b.deal==='edge'||b.deal==='onramp')miss.push(...hsfTheirMiss(s,b,from));
+  // A Hyperscaler never sells transit (and never hosts another cloud's edge nodes, nor buys its own on-ramp).
+  if(hsfIs(s)&&(b.deal==='transit'||b.deal==='edge'))miss.push({l:'terms'});
   // Co-founding: a POP there, the founder's newest announce selling ports there, honest shares, the cash for the setup.
   else if(b.deal==='cofound'){if(!s.pops[T.at])miss.push({l:'cfpop',n:fpCity(T.at)});if(fedTheirAbsurd(s,b))miss.push({l:'terms'});const a=FEDN.ann.get(from),r=a&&a.rec&&a.rec.body.rates&&a.rec.body.rates.ix;
     if(!r||!r.at.includes(T.at))miss.push({l:'noix'});if(!fedCofoundFair(T))miss.push({l:'fair'});if(s.cash<T.setup)miss.push({l:'cash'});}
@@ -127,7 +134,7 @@ function fedTheirMiss(s,b,from){const P=fedP(s),n=fedNetOf(from),T=b.terms,miss=
 /* Terms no card of this network gives, whatever mode it reviews in: transit committing past ten times its biggest tier
    (fedTransitMax; billed on that commit), a co-founding share or term off the lists. */
 function fedTheirAbsurd(s,b){const T=b.terms;
-  if(b.deal==='transit')return !Number.isSafeInteger(T.mbps)||T.mbps>fedTransitMax(fedP(s));
+  if(b.deal==='transit')return hsfIs(s)||!Number.isSafeInteger(T.mbps)||T.mbps>fedTransitMax(fedP(s));
   if(b.deal==='cofound')return !FEDX_TERMS.includes(T.term)||!FEDX_SHARES.includes(T.share);
   return false;}
 async function fedPlayDeal(e){const s=S,f=s&&s.fed;if(!f||!f.key||!fedEligible(s))return;const me=f.key.pub,r=e.rec,b=r.body,P=fedP(s);
@@ -135,6 +142,8 @@ async function fedPlayDeal(e){const s=S,f=s&&s.fed;if(!f||!f.key||!fedEligible(s
   if(r.kind==='offer'){
     if(b.deal==='consortium'&&!fedOwn(b,'to')){if(fedConsSeen(s,r,e.id))after();return;}
     if(b.to!==me||f.deals.some(d=>d.id===e.id)||P.rq.some(q=>q.id===e.id)||f.muted.includes(r.key))return;
+    // A Hyperscaler never sells transit: whatever an announce of its said, the request is declined at once.
+    if(hsfIs(s)&&b.deal==='transit'){await fedAnswer(s,r,e.id,'declined');return;}
     if((await fedShunned()).includes(r.key)){await fedAnswer(s,r,e.id,'excluded');return;}
     /* Only the network a deal is with renews it, and only once: a renewal naming a deal with someone else, or a second
        renewal (booked or waiting for review), is declined. */
@@ -173,7 +182,8 @@ async function fedAcceptRq(id){const s=S,f=s&&s.fed,P=s&&s.fedp;if(!f||!P||!fedH
   // A wave needs room on the route when it starts, not only when it was asked for (a renewal takes over its own).
   if(b.deal==='wave'){const T=b.terms;if(!fedWaveRen(s,b,q.rec.key)&&!fedWaveRoom(T.a,T.b,T.gbps))return {miss:[{l:'room'}]};}
   // Co-founding is checked again when accepted: the cash for the setup, and the founder still selling ports there.
-  if(b.deal==='cofound'){const m=fedTheirMiss(s,b,q.rec.key);if(m&&m.length)return {miss:m};}
+  // Edge nodes and on-ramps too: the cap per city and the region may have changed while it waited.
+  if(b.deal==='cofound'||b.deal==='edge'||b.deal==='onramp'){const m=fedTheirMiss(s,b,q.rec.key);if(m&&m.length)return {miss:m};}
   const bx=await fedBoxOf(q.rec.key),r=await fedSignMine('accept',{offer:id,to:q.rec.key},f);if(S!==s)return 'mode';if(!fedQueue(r,f))return 'full';
   const term=b.terms.term,st=fedRenStart(f,b.renews,q.rec.key,r.t),d=fedDealMk(q.rec,id,{start:st,end:term?st+term*FED_DAY:null},false,bx);
   P.rq=P.rq.filter(x=>x!==q);fedDealAdd(f,d);fedDealGo(d);fedDealsOn(s,fedNow());toast(tr('fedplay.deal_started',{net:esc(d.name),deal:fedDealName(d.deal)}),'good');after();return null;}
@@ -191,7 +201,7 @@ function fedDealsTick(s,now,shun,muted,stats){const f=s.fed,me=fedMe(s);let ch=f
     const q=FEDN.left.has(d.key)?'dark':d.heard?fedQuiet(now,d.heard).state:!n?'dark':n.st;
     if(q==='dark'||q==='forgotten'){fedEnd(s,d,'quiet','quiet');ch=true;toast(tr('fedplay.ended_quiet',{net:esc(d.name)}),'bad');continue;}
     if(n&&n.name!==d.name){d.name=n.name;ch=true;}if(n&&!!n.ai!==d.ai){d.ai=!!n.ai;ch=true;}
-    if(d.deal==='transit'&&d.role==='sell'){const st=stats.get(d.key),t=st&&Array.isArray(st.traffic)?st.traffic.find(x=>x.key===me):null,v=t?Math.min(Math.max(t.in,t.out),fedRepMax(d)):0;if(v!==d.rep){d.rep=v;ch=true;}}}
+    if((d.deal==='transit'||d.deal==='edge'||d.deal==='onramp')&&d.role==='sell'){const st=stats.get(d.key),t=st&&Array.isArray(st.traffic)?st.traffic.find(x=>x.key===me):null,v=t?Math.min(Math.max(t.in,t.out),fedRepMax(d)):0;if(v!==d.rep){d.rep=v;ch=true;}}}
   const P=s.fedp;if(P)for(const c of P.cons)if(c.st==='open'&&now-c.t>2592000){c.st='gone';ch=true;}
   return fedDealsOn(s,now)||ch;}
 // Players whose traffic reaches this network with no deal between you: how peers are discovered.
@@ -208,7 +218,8 @@ async function fedDepeerDrift(s){const P=s.fedp,f=s.fed;if(!P||!f||P.pol!=='sele
 /* ---------- routing: the exits deals give (compute() and traceroute) ---------- */
 // Exits for running deals, added to compute()'s list. Peering at an exchange joins that exchange's sessions instead.
 function fedExits(E){const f=S.fed;if(!f||!f.deals.length)return;const lk=S.ev.leak&&S.ev.leak.until>S.day?S.ev.leak.net:null;
-  for(const x of fedDealExits())E.push(x.k==='t'?mkEx('t',x.id,x.city,x.cap,3,'normal',x.lab,n=>n!==lk,null,x.net):mkEx('p',x.id,x.city,x.cap,2,'normal',x.lab,n=>x.set.has(n),[...x.set],x.net));}
+  // An edge node hosted for a Hyperscaler is a rank-0 exit, like an embedded cache (89-fedplay-hyper.js).
+  for(const x of fedDealExits())E.push(x.k==='t'?mkEx('t',x.id,x.city,x.cap,3,'normal',x.lab,n=>n!==lk,null,x.net):x.k==='c'?mkEx('c',x.id,x.city,x.cap,0,'normal',x.lab,n=>n===x.net,[x.net]):mkEx('p',x.id,x.city,x.cap,2,'normal',x.lab,n=>x.set.has(n),[...x.set],x.net));}
 // The same exits as plain descriptions: {k ('t' transit, 'p' private), id, city, cap (Gbps), lab, net (the player), set (reached)}.
 function fedDealExits(){const out=[],f=S.fed;if(!f)return out;
   for(const d of f.deals){if(!d.on)continue;const n=fedNetOf(d.key);if(!n||n.fst==='dark')continue;const T=d.terms,id=n.id,one=new Set([id]),k='fed:'+d.id;
@@ -220,13 +231,15 @@ function fedDealExits(){const out=[],f=S.fed;if(!f)return out;
        and, from the founder's newest announce (ix2), the computer-run networks on it. Sold: that player only. */
     else if((d.deal==='port'||d.deal==='cofound')&&popUp(T.at)){let set=one;if(d.role==='buy'){set=new Set([id]);for(const m of NETS)if(m.fed&&m.fst!=='dark'&&m.fpol==='open'&&(m.fix||[]).includes(T.at))set.add(m.id);
         const xm=n.fxm&&n.fxm[T.at];if(xm)for(const x of xm.n)if(NET[x]&&!NET[x].fed)set.add(x);}
-      out.push({k:'p',id:k,city:T.at,cap:d.deal==='cofound'?FEDP_PNI_G:T.mbps/1000,lab:labOf(d.role==='buy'?N_('fedplay.ex_port'):N_('fedplay.ex_member'),'net',n.name),net:id,set});}}
+      out.push({k:'p',id:k,city:T.at,cap:d.deal==='cofound'?FEDP_PNI_G:T.mbps/1000,lab:labOf(d.role==='buy'?N_('fedplay.ex_port'):N_('fedplay.ex_member'),'net',n.name),net:id,set});}
+    else if((d.deal==='edge'||d.deal==='onramp')&&popUp(T.at))hsfExit(d,n,out,k,one);}
   return out;}
 // Peering sessions at an exchange (ixSessions): players you peer with there.
 function fedIxSes(c,set){const f=S.fed;if(!f)return;for(const d of f.deals)if(d.on&&d.deal==='peering'&&d.terms.via==='ix'&&d.terms.at.includes(c)){const n=fedNetOf(d.key);if(n&&n.fst!=='dark')set.add(n.id);}}
 // The same exits for the traceroute (trExits).
 function fedTrExits(net,out){if(!S.fed)return;const lk=S.ev.leak&&S.ev.leak.until>S.day?S.ev.leak.net:null;
-  for(const x of fedDealExits()){if(x.k==='t'){if(net!==lk)out.push({k:'t',rank:3,city:x.city,pref:'normal',carry:false,lab:x.lab,tnet:x.net,used:R.useT[x.id]||0,cap:x.cap});}
+  for(const x of fedDealExits()){if(x.k==='c'){if(x.net===net)out.push({k:'c',rank:0,city:x.city,pref:'normal',lab:x.lab,used:R.useCache[x.id]||0,cap:x.cap});}
+    else if(x.k==='t'){if(net!==lk)out.push({k:'t',rank:3,city:x.city,pref:'normal',carry:false,lab:x.lab,tnet:x.net,used:R.useT[x.id]||0,cap:x.cap});}
     else if(x.set.has(net))out.push({k:'p',rank:2,via:x.net===net?null:x.net,city:x.city,pref:'normal',lab:x.lab,used:R.usePni[x.id]||0,cap:x.cap});}}
 // Where a network is, for the traceroute's far end: a player network's own POPs.
 const trPops=N=>N.fpops&&N.fpops.length?N.fpops:N.pops;
@@ -242,6 +255,8 @@ const fedStep=v=>{if(!(v>0))return 0;const e=10**Math.floor(Math.log10(v)),m=v/e
 function fedTrafficList(){const out=[],me=fedMe();if(!R||!S.fedn||!me)return out;const m=fedMyMix();
   for(const n of S.fedn.nets){if(n.k===me)continue;const N=fedNetOf(n.k);if(!N)continue;const e=R.netEg[N.id];let inM=e?Math.round(((e.p||0)+(e.ix||0))*1000):0;
     for(const d of S.fed.deals)if(d.on&&d.key===n.k&&d.deal==='transit')inM+=d.role==='buy'?Math.round(fedExUse(d)*1000):(d.rep||0);
+    // What crossed an edge node or an on-ramp port, as the buyer reports it (89-fedplay-hyper.js).
+    inM+=hsfRep(n.k);
     if(inM<=0)continue;const outM=Math.round(inM*(m.content+100)/(n.mix[0]+100));out.push({key:n.k,in:fedStep(inM),out:fedStep(outM)});}
   return out.sort((a,b)=>Math.max(b.in,b.out)-Math.max(a.in,a.out)||fedByStr(a.key,b.key)).slice(0,256);}
 // total: the network's whole traffic, what the HUD shows as traffic served (Gbps), in Mbps (§5.2).
@@ -286,7 +301,7 @@ async function fedConsJoin(id){const s=S,f=s&&s.fed,P=s&&s.fedp;if(!f||!f.on||!P
 
 /* ---------- capacity swaps: a partner carries your traffic while your cable is cut (from the day, dayPost) ---------- */
 // Gives true when a restoration wave came or went (the day routes again).
-function fedPlayDay(){const f=S.fed;if(!f)return false;let ch=fedWaveLinks(S);
+function fedPlayDay(){const f=S.fed;if(!f)return false;let ch=fedWaveLinks(S);hsfRampDay();
   for(const d of f.deals){if(d.deal!=='swap')continue;const T=d.terms.take,has=S.links.find(l=>l.fsw===d.id);
     const mine=S.links.filter(l=>!l.fsw&&(l.a===T.a&&l.b===T.b||l.a===T.b&&l.b===T.a)),cut=d.on&&mine.length>0&&mine.every(linkDown);
     if(cut&&!has&&popUp(T.a)&&popUp(T.b)){let tier=LT.findIndex(x=>x.g*1000>=T.mbps);if(tier<0)tier=LT.length-1;

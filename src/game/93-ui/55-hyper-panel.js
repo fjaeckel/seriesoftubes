@@ -71,7 +71,7 @@ const hsCity=c=>hsCcSection(c)+offersHere(c)+hsRgSection(c)+hsDoorSection(c)+hsT
 const hsNoPop=c=>hsCcSection(c)+offersHere(c);
 // In an offer's row: what the bundle is and what it would want from you today.
 function hsOfferNote(o){if(o.type!=='cloud'||!Array.isArray(o.p))return '';const K=CLOUD_TENANTS[o.ck];
-  const r=hsRgFor(o.city),x=r&&R.hs&&R.hs.rg[r],sh={room:!x||x.g-x.load>=o.bw*cloudShape(o.p).out,pair:hsRgs().length>=2,edge:!!S.hs&&!!S.hs.edge[o.city],port:hsDoor(o.city),power:!!r&&S.hs.rg[r].t>=2,home:hsRgs().some(x=>CITY[x].cc===CITY[o.city].cc),doors:Object.keys(S.pops).filter(hsDoor).length>=2,model:false};
+  const r=hsRgFor(o.city),x=r&&R.hs&&R.hs.rg[r],sh={room:!x||x.g-x.load>=o.bw*cloudShape(o.p).out,pair:hsRgs().length>=2,edge:!!S.hs&&!!S.hs.edge[o.city],port:hsDoor(o.city)||o.p.includes('pc')&&!o.p.includes('out')&&hsfRamp(o.city),power:!!r&&S.hs.rg[r].t>=2,home:hsRgs().some(x=>CITY[x].cc===CITY[o.city].cc),doors:Object.keys(S.pops).filter(hsDoor).length>=2,model:false};
   const ws=[...new Set(o.p.map(id=>CLOUD_PRODUCTS[id]&&CLOUD_PRODUCTS[id].need).filter(n=>n&&own(sh,n)&&!sh[n]).map(n=>tr(CLOUD_NEED[n])))];if(!sh.room&&!ws.includes(tr(CLOUD_NEED.room)))ws.push(tr(CLOUD_NEED.room));
   return `<div class="meta">☁️ ${K?esc(tr(K.n))+': ':''}${esc(cloudList(o.p))}</div>${hsSlotFree()?'':`<div class="why">${tr('hyper.no_slots')}</div>`}${ws.length?`<div class="why">${tr('hyper.tenant_wants',{list:esc(ws.join(', '))})}</div>`:''}`;}
 // Why a tenant is unhappy (the customers list, bizWhy).

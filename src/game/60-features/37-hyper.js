@@ -60,39 +60,45 @@ function hsFlows(R2,flow,DEMTO,X){const H=S.hs;if(!H||!hyper())return null;
   const doors=Object.keys(S.pops).filter(hsDoor).sort().filter(d=>rgs.some(r=>ms(r,d)<Infinity));
   const add=(c,j,x,bz)=>{if(x<=1e-9)return;flow(CIDX[c],j,x,false,bz);R2.cityDem[c]=(R2.cityDem[c]||0)+x;R2.demand+=x;DEMTO[j]+=x;};
   const job=(o,v,x,lo,k,id)=>{if(o!==v&&x>1e-9)jobs.push({o,v,x,lo,hi:X.nf(),k,id});};
-  for(const b of S.biz){if(b.type!=='cloud'||!Array.isArray(b.p))continue;const I=ccInfo(CITY[b.city].cc);if(!I)continue;
+  // Users behind player home ISPs and edge nodes in partner networks (89-fedplay-hyper.js).
+  const PN=hsfPlayers();
+  for(const b of S.biz){if(b.type!=='cloud'||!Array.isArray(b.p))continue;const I=ccInfo(CITY[b.city].cc);if(!I)continue;const nets=hsfNets(I,PN);
     const r=hsLive(b.rg)?b.rg:hsRgFor(b.city),T={r,v:null,want:0,f:0,ms:Infinity,r2:null,got:0,hw:0};out.ten[b.id]=T;if(!r)continue;
     const v=doors.includes(b.city)&&ms(r,b.city)<Infinity?b.city:doors.filter(d=>ms(r,d)<Infinity).sort((a,c)=>kmBetween(a,b.city)-kmBetween(c,b.city)||(a<c?-1:1))[0];if(!v)continue;
     const sh=cloudShape(b.p),es=H.edge[v]?b.bw*sh.eo:0,dyn=b.bw*sh.out-es,inn=b.bw*sh.in,want=dyn+inn,f=want>1e-9?Math.min(1,room[r]/want):1;
     room[r]-=want*f;out.rg[r].load+=want*f;T.v=v;T.want=want;T.f=f;T.ms=ms(r,v)*(H.edge[v]?0.5:1)+hsAcc(v,b.city);T.es=es;
-    for(const [j,w] of I.nets)add(v,j,es*w,true);
-    let lo=X.nf();for(const [j,w] of I.nets)add(v,j,dyn*f*w,true);job(r,v,dyn*f,lo,'out',b.id);if(r!==v)T.hw+=dyn*f;
+    for(const [j,w] of nets)add(v,j,es*w,true);
+    let lo=X.nf();for(const [j,w] of nets)add(v,j,dyn*f*w,true);job(r,v,dyn*f,lo,'out',b.id);if(r!==v)T.hw+=dyn*f;
     // Ingest rides the same path the other way; replicas and clusters between two regions take the backbone too.
     lo=X.nf();job(r,v,inn*f,lo,'in',b.id);if(r!==v)T.hw+=inn*f;
     const r2=rgs.filter(x=>x!==r&&ms(r,x)<Infinity).sort((a,c)=>ms(r,a)-ms(r,c)||(a<c?-1:1))[0]||null;T.r2=r2;
     if(r2&&sh.bt>0){lo=X.nf();job(r,r2,b.bw*sh.bt*f,lo,'bt',b.id);T.hw+=b.bw*sh.bt*f;}}
   const pairs=[],left={};
-  for(const cc of Object.keys(H.cc).sort()){const I=ccInfo(cc);if(!I)continue;const D=H.cc[cc].d,o={D,v:null,st:0,parts:[],home:null,want:0,got:0,short:0};out.cc[cc]=o;
-    const v=cxPop(cc,doors);if(!v){left[cc]=D;continue;}o.v=v;
-    if(H.edge[v]){o.st=D*HS_EDGE;for(const [j,w] of I.nets)add(v,j,o.st*w,false);o.parts.push([v,o.st,hsAcc(v,I.main),null]);}
-    left[cc]=D-o.st;for(const r of rgs){const m=ms(r,v);if(m<Infinity)pairs.push([m,cc,r]);}}
+  const NT={},FH={};
+  for(const cc of Object.keys(H.cc).sort()){const I=ccInfo(cc);if(!I)continue;const D=H.cc[cc].d,o={D,v:null,st:0,parts:[],home:null,want:0,got:0,short:0,nd:0};out.cc[cc]=o;
+    // Edge nodes in partner networks serve the static share of the users behind them; their connections end there.
+    const nets=NT[cc]=hsfNets(I,PN),E=rgs.length?hsfEdgeCut(cc,D,nets,out):null,xs=E?E.st:0,xu=E?E.u:0;FH[cc]=D>0?xu/D:0;if(E){o.nd=xs;o.parts.push(...E.parts);}
+    const v=cxPop(cc,doors);if(!v){left[cc]=D-xs;continue;}o.v=v;
+    if(H.edge[v]){o.st=(D-xu)*HS_EDGE+Math.max(0,xu*HS_EDGE-xs);for(const [j,w] of nets)add(v,j,o.st*w,false);o.parts.push([v,o.st,hsAcc(v,I.main),null]);}
+    left[cc]=D-o.st-xs;for(const r of rgs){const m=ms(r,v);if(m<Infinity)pairs.push([m,cc,r]);}}
   pairs.sort((a,b)=>a[0]-b[0]||(a[1]<b[1]?-1:a[1]>b[1]?1:0)||(a[2]<b[2]?-1:1));
   for(const [m,cc,r] of pairs){const take=Math.min(left[cc],room[r]);if(take<=1e-9)continue;left[cc]-=take;room[r]-=take;out.rg[r].load+=take;
-    const o=out.cc[cc],I=ccInfo(cc);if(!o.home)o.home=r;const lo=X.nf();for(const [j,w] of I.nets)add(o.v,j,take*w,false);
-    o.parts.push([o.v,take,hsAcc(o.v,I.main)+(H.edge[o.v]?m*0.5:m),r]);if(r!==o.v){job(r,o.v,take,lo,'u',cc);o.want+=take;}}
+    const o=out.cc[cc],I=ccInfo(cc);if(!o.home)o.home=r;const lo=X.nf();for(const [j,w] of NT[cc])add(o.v,j,take*w,false);
+    o.parts.push([o.v,take,hsAcc(o.v,I.main)+(H.edge[o.v]?m*0.5:m*(1-0.5*FH[cc])),r]);if(r!==o.v){job(r,o.v,take,lo,'u',cc);o.want+=take;}}
   for(const cc in out.cc){const s=left[cc]||0;if(s>1e-9){out.cc[cc].short=s;out.short+=s;R2.demand+=s;}}
   return jobs;}
 // After routing (CX_POST): what each haul got.
 function hsPost(R2,J){const out=R2.hs;if(!out)return;for(const x of J){if(!x.k)continue;const d=out.door[x.v]||(out.door[x.v]={g:0,got:0});d.g+=x.x;d.got+=x.got;
   if(x.k==='u'){const o=out.cc[x.id];if(o)o.got+=x.got;}else{const T=out.ten[x.id];if(T)T.got+=x.got;}}}
 // How well a country is served: what reached it from each part, times how its latency feels.
-function hsQ(r,cc){const o=r&&r.hs&&r.hs.cc[cc];if(!o||o.D<=1e-9)return 1;let q=0;for(const [c,x,m] of o.parts)q+=x*sfOf(r,c)*hsLatF(m);return clamp(q/o.D,0,1);}
+// A part served in a partner's network (an edge node, p[4]) is served in full.
+function hsQ(r,cc){const o=r&&r.hs&&r.hs.cc[cc];if(!o||o.D<=1e-9)return 1;let q=0;for(const p of o.parts)q+=p[1]*(p[4]?1:sfOf(r,p[0]))*hsLatF(p[2]);return clamp(q/o.D,0,1);}
 const hsRev=(r,cc)=>S.hs.cc[cc].d*hsQ(r,cc)*HS_RATE*cxMul('rev',cc);
 /* A tenant's products, each scored on its own need, times what was served; the bundle sits closer to its worst product
    than to the average (one neglected product sours the lot). */
 function hsNeedQ(r,b,id){const T=r&&r.hs&&r.hs.ten[b.id],P=CLOUD_PRODUCTS[id];if(!T||!T.v||!P)return 0;const H=S.hs,rg=H.rg[T.r];
   const n=P.need,need=n==='pair'?(T.r2?1:0.8):n==='doors'?(Object.keys(S.pops).filter(hsDoor).length>=2?1:0.9):n==='edge'?(H.edge[T.v]?1:0.8)
-    :n==='port'?(T.v===b.city?1:0.7):n==='power'?(rg&&rg.t>=2?1:0.85):n==='home'?(CITY[T.r].cc===CITY[b.city].cc?1:0.5):n==='model'?0.5:1;
+    :n==='port'?(T.v===b.city||id==='pc'&&hsfRamp(b.city)?1:0.7):n==='power'?(rg&&rg.t>=2?1:0.85):n==='home'?(CITY[T.r].cc===CITY[b.city].cc?1:0.5):n==='model'?0.5:1;
   return need*(1-P.lat*(1-hsLatF(T.ms)));}
 function hsTenQ(r,b){const T=r&&r.hs&&r.hs.ten[b.id];if(!T||!T.v||!Array.isArray(b.p)||!b.p.length)return 0;
   const hauled=T.hw>1e-9?clamp(T.got/T.hw,0,1):1,sv=T.f*sfOf(r,T.v)*hauled,q=b.p.map(id=>hsNeedQ(r,b,id)*sv);

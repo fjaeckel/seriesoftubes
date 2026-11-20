@@ -8,13 +8,15 @@
    review: [{id, rec}]), cons (consortium projects seen), str (players whose traffic reaches you without a deal),
    leakD (real day of the last shared-leak look), help (times a swap partner carried your traffic), ment and heard (the
    mentor dividend, 89-fedplay-mentor.js)}. */
-const FEDP_DEALS=['peering','transit','pni','swap','consortium','port','wave','cofound'],FEDP_WG=[100,400,800,1600],FEDP_TERMS=[30,90,180,365],FEDP_RATIO=[100,200,300,500,1000,100000],
+const FEDP_DEALS=['peering','transit','pni','swap','consortium','port','wave','cofound','edge','onramp'],FEDP_WG=[100,400,800,1600],FEDP_TERMS=[30,90,180,365],FEDP_RATIO=[100,200,300,500,1000,100000],
   FEDP_RPKI_MO=1500,FEDP_RQ_MAX=32,FEDP_RQ_PER=4,FEDP_CONS_MAX=24,FEDP_CONS_PER=2,FEDP_STR_MAX=8,FEDP_LEAK=12,FEDP_LEAK_AGE=30,FEDP_SPEEDS=[1000,10000,100000],
   // Business traffic that is content going out (hosting, streaming, games, clouds); the rest is enterprise.
   FEDP_CONTENT=['host','stream','game','cgame','esport','metav','ingest','onramp','gpu','ai','hyper','mtrain','agi'];
-function fedPNew(){return {pol:'open',cond:{minMbps:0,maxRatio:300,minShared:1,rpki:false,tier1:false,ai:true},rates:{},
-  auto:{peering:'auto',transit:'review',pni:'review',swap:'review',consortium:'review',port:'review',wave:'review',cofound:'review'},rpki:false,mine:[],annH:0,annAt:0,annTr:0,rq:[],cons:[],str:[],leakD:0,help:0,ment:[],heard:[]};}
-const fedP=(s=S)=>s.fedp||(s.fedp=fedPNew());
+// s: the save the terms are for; a Hyperscaler's start from its own published policy (89-fedplay-hyper.js).
+function fedPNew(s){const o={pol:'open',cond:{minMbps:0,maxRatio:300,minShared:1,rpki:false,tier1:false,ai:true},rates:{},
+  auto:{peering:'auto',transit:'review',pni:'review',swap:'review',consortium:'review',port:'review',wave:'review',cofound:'review',edge:'review',onramp:'review'},rpki:false,mine:[],annH:0,annAt:0,annTr:0,rq:[],cons:[],str:[],leakD:0,help:0,ment:[],heard:[]};
+  if(s&&hsfIs(s))hsfPDef(o);return o;}
+const fedP=(s=S)=>s.fedp||(s.fedp=fedPNew(s));
 const fedInt=(v,lo,hi,d)=>Number.isSafeInteger(v)&&v>=lo&&v<=hi?v:d;
 // A rate card checked part by part (the same limits as §5.1): what does not check is left out.
 function fedRatesClean(r){const o={};if(!r||typeof r!=='object')return o;const M=v=>fedInt(v,0,1e12,null),D=v=>fedInt(v,1,3650,null);
@@ -29,6 +31,10 @@ function fedRatesClean(r){const o={};if(!r||typeof r!=='object')return o;const M
     const rs=[...new Set(w.routes.filter(x=>x&&fedCityOk(x.a)&&fedCityOk(x.b)&&x.a<x.b).map(x=>x.a+'|'+x.b))].sort().slice(0,32).map(k=>{const [a,b]=k.split('|');return {a,b};});
     const sz=FEDP_WG.map(g=>w.sizes.find(x=>x&&x.gbps===g&&M(x.monthly)!==null)).filter(Boolean).map(x=>({gbps:x.gbps,monthly:x.monthly}));
     if(rs.length&&sz.length)o.wave={routes:rs,sizes:sz,term:w.term};}
+  // cloud (89-fedplay-hyper.js): hosting edge nodes (never dearer than a computer-run ISP), on-ramp ports. Their cities
+  // are filled in when published.
+  const e=r.edge;if(e&&M(e.monthly)!==null&&D(e.term)&&fedInt(e.cap,1,16,0))o.edge={monthly:Math.min(e.monthly,HSF_NPC_MO),cap:e.cap,term:e.term};
+  const q=r.onramp;if(q&&D(q.term)&&ports(q.ports))o.onramp={ports:ports(q.ports),term:q.term};
   return o;}
 function fedCondClean(c){const d=fedPNew().cond;if(!c||typeof c!=='object')return d;
   return {minMbps:fedInt(c.minMbps,0,1e9,0),maxRatio:fedInt(c.maxRatio,100,100000,300),minShared:fedInt(c.minShared,0,64,0),rpki:c.rpki===true,tier1:c.tier1===true,ai:c.ai!==false};}
@@ -39,7 +45,9 @@ function fedAutoClean(a,pol){const o={};for(const k of FEDP_DEALS)o[k]=a&&['auto
 function fedpSanitize(s){s.fedLw=!!s.fedLw;
   s.fedn=s.fedn==null?null:fednClean(s.fedn);
   const v=s.fedp;if(v==null||typeof v!=='object'||Array.isArray(v)){s.fedp=null;fedpLinks(s);return;}
-  const o=fedPNew();o.pol=['open','selective','restrictive'].includes(v.pol)?v.pol:'open';o.cond=fedCondClean(v.cond);o.rates=fedRatesClean(v.rates);o.auto=fedAutoClean(v.auto,o.pol);
+  const o=fedPNew(s);o.pol=['open','selective','restrictive'].includes(v.pol)?v.pol:'open';o.cond=fedCondClean(v.cond);o.rates=fedRatesClean(v.rates);o.auto=fedAutoClean(v.auto,o.pol);
+  // A Hyperscaler never sells transit, whatever a save says.
+  if(hsfIs(s))hsfNoTransit(o);
   o.rpki=v.rpki===true;o.annH=fedInt(v.annH,0,4294967295,0);o.annAt=fedInt(v.annAt,0,1e11,0);o.annTr=fedInt(v.annTr,0,4e9,0);o.leakD=fedInt(v.leakD,0,1e7,0);o.help=fedInt(v.help,0,1e6,0);
   if(Array.isArray(v.mine))o.mine=v.mine.filter(x=>x&&!FdId(x.id)&&fedInt(x.t,0,1e11,null)!==null&&x.body&&typeof x.body==='object'&&!fedValues(x.body)&&fedSize(fedCanon(x.body))<=16384&&!FED_BODY.announce(fedOwn(x.body,'box')?x.body:{...x.body,box:FED_NOBOX},{rec:{t:x.t},asn:x.body.asn})).slice(0,3);
   if(Array.isArray(v.rq))o.rq=v.rq.filter(x=>x&&!FdId(x.id)&&x.rec&&typeof x.rec==='object'&&!fedValues(x.rec)&&!fedEnv(x.rec,{offer:1})&&!FED_OFFER(x.rec.body,{rec:x.rec})).slice(0,FEDP_RQ_MAX).map(x=>({id:x.id,rec:x.rec}));
@@ -61,7 +69,7 @@ function fedpLinks(s){
 /* ---------- this network as others see it ---------- */
 // The share of this network's traffic that is content, eyeballs and enterprise (per mille, summing to 1000).
 function fedMyMix(){if(FEDN.mixR===R&&FEDN.mixS===S&&FEDN.mix)return FEDN.mix;FEDN.mixR=R;FEDN.mixS=S;return FEDN.mix=fedMixNow();}
-function fedMixNow(){const e=Object.values((R&&R.cityEye)||{}).reduce((a,b)=>a+b,0);let c=0,b=0;
+function fedMixNow(){if(hyper())return hsfMix();const e=Object.values((R&&R.cityEye)||{}).reduce((a,b)=>a+b,0);let c=0,b=0;
   for(const x of S.biz){const T=BIZ_T[x.type];if(!T||T.l2||T.fiber)continue;if(FEDP_CONTENT.includes(x.type))c+=x.bw;else b+=x.bw;}
   const t=e+c+b;if(!(t>0))return {content:0,eyeball:1000,enterprise:0};
   const content=Math.round(c*1000/t),eyeball=Math.min(1000-content,Math.round(e*1000/t));return {content,eyeball,enterprise:1000-content-eyeball};}
@@ -74,6 +82,7 @@ function fedRatesOut(P){const r=JSON.parse(JSON.stringify(P.rates||{}));const my
   if(r.ix&&fedIx2())r.ix.members=fedIxMembersOut(r.ix.at);
   // Waves only on routes still lit today.
   if(r.wave){const lit=new Set(fedWaveLit());r.wave.routes=r.wave.routes.filter(x=>lit.has(x.a+'|'+x.b));if(!r.wave.routes.length)delete r.wave;}
+  hsfRatesOut(r);
   return r;}
 // This network's announce body (§5.1) now.
 async function fedAnnBody(s=S){const f=s.fed,P=fedP(s),pops=Object.keys(s.pops).filter(fedCityOk).slice(0,512),m=fedMyMix(),inM=Math.min(FED_TRAFFIC_MAX,Math.round(((R&&R.served)||0)*1000));
@@ -82,8 +91,9 @@ async function fedAnnBody(s=S){const f=s.fed,P=fedP(s),pops=Object.keys(s.pops).
     pops,ix:fedMyIx().filter(c=>pops.includes(c)),cust:Math.min(1e7,s.biz.length),mix:m,
     traffic:{in:inM,out:Math.min(FED_TRAFFIC_MAX,Math.round(inM*(m.content+m.enterprise*0.5+m.eyeball*0.15)/1000))},policy:P.pol,rates:fedRatesOut(P),auto:fedAutoClean(P.auto,P.pol)};
   if(P.pol==='selective')b.cond=fedCondClean(P.cond);
-  // auto.cofound is an ix2 field: older servers refuse the whole announce with it.
-  if(!fedIx2(s))delete b.auto.cofound;
+  // auto.cofound is an ix2 field, auto.edge and auto.onramp cloud fields: older servers refuse the whole announce with them.
+  if(!fedIx2(s))delete b.auto.cofound;if(!fedCloud(s)){delete b.auto.edge;delete b.auto.onramp;}
+  if(hsfIs(s))b.auto.transit='decline';
   // Within the announce's 16384 bytes (§13.2): the longest member lists are cut first, then left out.
   const ms=b.rates.ix&&b.rates.ix.members;
   while(ms&&ms.length&&fedSize(fedCanon(b))>16000){const big=ms.reduce((x,y)=>y.nets.length>x.nets.length?y:x);if(big.nets.length>8)big.nets=big.nets.slice(0,big.nets.length>>1);else ms.pop();}
@@ -115,7 +125,8 @@ function fedCondMiss(cond,o){const m=[];if(!cond)return m;
   return m;}
 const FEDP_MISS={newcomer:N_('fedplay.miss_newcomer'),mbps:N_('fedplay.miss_mbps'),ratio:N_('fedplay.miss_ratio'),shared:N_('fedplay.miss_shared'),rpki:N_('fedplay.miss_rpki'),tier1:N_('fedplay.miss_tier1'),ai:N_('fedplay.miss_ai'),
   ix:N_('fedplay.miss_ix'),pop:N_('fedplay.miss_pop'),ends:N_('fedplay.miss_ends'),gear:N_('fedplay.miss_gear'),room:N_('fedplay.miss_room'),terms:N_('fedplay.miss_terms'),declines:N_('fedplay.miss_declines'),quiet:N_('fedplay.miss_quiet'),link:N_('fedplay.miss_link'),myix:N_('fedplay.miss_myix'),excluded:N_('fedplay.miss_excluded'),
-  cfpop:N_('fedplay.miss_cfpop'),ix2:N_('fedplay.miss_ix2'),ixsell:N_('fedplay.miss_ixsell'),cofull:N_('fedplay.miss_cofull'),cash:N_('fedplay.miss_cash'),fair:N_('fedplay.miss_fair'),noix:N_('fedplay.miss_noix')};
+  cfpop:N_('fedplay.miss_cfpop'),ix2:N_('fedplay.miss_ix2'),ixsell:N_('fedplay.miss_ixsell'),cofull:N_('fedplay.miss_cofull'),cash:N_('fedplay.miss_cash'),fair:N_('fedplay.miss_fair'),noix:N_('fedplay.miss_noix'),
+  bb:N_('hyper_fed.miss_bb'),cap:N_('hyper_fed.miss_cap'),cloud:N_('hyper_fed.miss_cloud'),launch:N_('hyper_fed.miss_launch'),region:N_('hyper_fed.miss_region')};
 const fedMissText=m=>m.map(x=>tr(FEDP_MISS[x.l],{n:x.n})).join(' · ');
 // What this game knows of itself for someone else's conditions.
 const fedMeFor=n=>{const p=fedPair(n);return {mbps:p.mbps,ratio:p.ratio,shared:p.shared,rpki:!!(S.fedp&&S.fedp.rpki),tier1:(()=>{try{return tierLabel()==='Tier 1';}catch(e){return false;}})(),ai:!!S.fed.ai};};
@@ -128,7 +139,7 @@ function fedCeilMine(){let hi=0;for(const c of Object.keys(S.pops)){const v=fedC
 /* The most transit a buyer may commit to on this network's card: ten times its biggest commit tier (at least 10G). */
 const fedTransitMax=P=>10*Math.max(1000,...(P&&P.rates&&P.rates.transit?P.rates.transit.commit.map(c=>c.mbps):[]));
 // The most a seller counts of what a buyer reports (Mbps): what the deal's exits can carry, twice the commit at each city.
-const fedRepMax=d=>Math.max(1,(d.terms.at||[]).length)*Math.max(1000,2*(d.terms.mbps||0));
+const fedRepMax=d=>d.deal==='edge'?d.terms.nodes*HSF_EDGE_G*1000:d.deal==='onramp'?d.terms.mbps:Math.max(1,(d.terms.at||[]).length)*Math.max(1000,2*(d.terms.mbps||0));
 /* What deals with players cost and earn per month (computeMoney): transit at the published price on the committed
    volume or what crossed, whichever is more (a seller counts what the buyer reported, signed, never more than the
    deal's exits carry); PNIs, exchange ports and waves their monthly price; RPKI filtering its upkeep. Setup fees are
@@ -138,7 +149,10 @@ function fedMoney(C,V,R2){const f=S.fed;let c=S.fedp&&S.fedp.rpki?FEDP_RPKI_MO:0
     if(d.deal==='transit'){const use=d.role==='buy'?fedExUse(d,R2):Math.min(d.rep||0,fedRepMax(d))/1000,g=Math.max((T.mbps||0)/1000,use),m=g*(T.perGbps||0);if(d.role==='buy')c+=m;else v+=m;}
     else if(d.deal==='pni'||d.deal==='port'||d.deal==='wave'){const m=T.monthly||0;if(d.role==='buy')c+=m;else if(d.role==='sell')v+=m;}
     // Co-founding: the co-founder pays its monthly share and earns its share of member fees; the founder the other way.
-    else if(d.deal==='cofound'){const fee=fedCofoundFee(d);if(d.role==='buy'){c+=T.monthly;v+=fee;}else{v+=T.monthly;c+=fee;}}}
+    else if(d.deal==='cofound'){const fee=fedCofoundFee(d);if(d.role==='buy'){c+=T.monthly;v+=fee;}else{v+=T.monthly;c+=fee;}}
+    // cloud (89-fedplay-hyper.js): edge nodes a month each; an on-ramp port its monthly, and the buyer's on-ramp
+    // customers through it pay a cloud premium.
+    else if(d.deal==='edge'||d.deal==='onramp'){const m=d.deal==='edge'?T.monthly*T.nodes:T.monthly;if(d.role==='buy'){c+=m;if(d.deal==='onramp')v+=hsfRampPrem(d);}else v+=m;}}
   if(c>0)C.fed=c;if(v>0)V.fed=v;}
 // Gbps a deal's own exits carried (R.useT / R.usePni keys 'fed:<deal id>…').
 function fedExUse(d,R2=R){let g=0;if(!R2)return 0;const k='fed:'+d.id;for(const T of [R2.useT,R2.usePni])for(const x in T)if(x===k||x.startsWith(k+':'))g+=T[x]||0;return g;}

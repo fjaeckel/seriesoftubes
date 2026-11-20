@@ -488,6 +488,34 @@ announce (it must list `auto.cofound`). Missing: `myix`, `cfpop` (a POP there on
 first), `ix2`, `cofull`; the co-founder's game declines or refuses an accept on `noix` (the founder's announce sells no
 ports there), `fair` and `cash`. There is no renewal: the founder invites again.
 
+## A Hyperscaler among players (`60-features/89-fedplay-hyper.js`)
+
+The Hyperscaler charter (`37-hyper.js`) treats other players as partners. Its published policy (`hsfPDef`, the
+defaults of `fedPNew(s)` for a Hyperscaler's save): open peering, free PNIs on 10G and 100G ports, automatic peering and
+PNIs, on-ramps sold automatically, and **never transit**: no `rates.transit`, `auto.transit` always `decline`
+(`hsfNoTransit` in `fedpSanitize`, `fedTermsApply` and `fedAnnBody`), a transit request declined on arrival in
+`fedPlayDeal` and refused in `fedAcceptRq` (`fedTheirAbsurd`). It may buy transit. Its mix (`hsfMix`) keeps the ratio
+with an eyeball network within 3:1, so selective home ISPs peer with it.
+
+Feature `cloud` (§5.1, §9.3; the game lists it in its `hello`, `FED.cloud` per node URL, `fedCloud(s)` true when every
+joined server lists it) carries two deals, each computed on both sides by `fedDeal` (§10.10):
+
+| Deal | Card (`rates`) | Buyer's game | Seller's game |
+| --- | --- | --- | --- |
+| `edge` | `edge` on a home ISP's announce: `at` its broadband cities (filled in by `hsfRatesOut`), `monthly` per node (capped at `HSF_NPC_MO`, the computer-run price), `cap` per city, `term` | The Hyperscaler: the users behind that host in that country (`hsfHostSh` of its eyeball mix, `hsfNets`) get their static share (`HS_EDGE`) served at the node, up to `HSF_EDGE_G` per node, with no haul (`hsfEdgeCut`, `R.hs.fe`); pays `monthly × nodes` | The host: a rank-0 exit at `at` for the Hyperscaler's network (`hsfExit`, kind `c`), and that share of its customers' flows towards it may leave there (`hsfEdgeNets`, read by `compute()`); earns `monthly × nodes` |
+| `onramp` | `onramp` on a Hyperscaler's announce: `at` its live regions, `ports`, `term` | Anyone else: a private exit to the Hyperscaler at the region; its own `onramp` customers ending there pay `HSF_RAMP_PREM` more (`hsfRampPrem`) and new ones call (`hsfRampDay`); pays `monthly` | The Hyperscaler: a private exit to the buyer, `monthly` earned, and the buyer's cities count as reached for Indirect Connect tenants (`hsfRamp`) |
+
+Requests: `fedOffer(key, 'edge', {at, nodes, term})` (misses `cloud`, `launch`, `region`, `cap`) and
+`fedOffer(key, 'onramp', {at, mbps, term})` (`pop`); the seller's game checks `hsfTheirMiss` (`bb`, `cap`, `region`). The
+buyer reports what crossed in its stats traffic with the seller (`hsfRep` in `fedTrafficList`), which the seller keeps
+as `rep` (`fedDealsTick`, at most `fedRepMax`: the nodes' capacity, the port). A game that does not know these kinds
+(before this version) drops such an offer when it opens it; it never sees the cards (§9.3).
+
+Computer-run stand-ins: `S.hs.ne` (`[{c, net, ready}]`, at most `HSF_NE_MAX`, `HSF_NPC_CAP` per city and ISP, repaired
+through `CX_SAN`) are edge nodes at computer-run home ISPs, `HSF_NPC_MO` a month each (`CX_COST`), ready after
+`HSF_NPC_DAYS` (actions `hsfNpcEdge`, `hsfNpcEdgeOff`, the city panel's Cloud tab). Waves come from computer-run
+carriers (leased waves), seats from the seat offers; the Deals tab's "Cloud partners" lists them all.
+
 ## A player's network on a small map, live (`95-modals/49-fed-netmap.js`, `60-features/89-fedplay-live.js`)
 
 A network's card (looking glass, leaderboards) opens on a small map of that network alone, read-only. Where it is

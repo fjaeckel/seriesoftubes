@@ -17,6 +17,7 @@ function fedTermsText(deal,T){if(!T)return '';
   if(deal==='swap')return tr('fedplay.t_swap',{a:fpCity(T.take.a),b:fpCity(T.take.b),g:fpSpeed(T.take.mbps),n:T.term});
   if(deal==='wave')return tr('fedplay.t_wave',{g:fmtCap(T.gbps),a:fpCity(T.a),b:fpCity(T.b),price:fmt$(T.monthly),n:T.term});
   if(deal==='cofound')return tr('fedplay.t_cofound',{pct:Math.round(T.share/10),at:fpCity(T.at),setup:fmt$(T.setup),price:fmt$(T.monthly),n:T.term});
+  if(deal==='edge'||deal==='onramp')return hsfTermsText(deal,T);
   return '';}
 function fedDealState(d){const now=fedNow();
   if(d.st==='wait')return tr('fedplay.s_wait');
@@ -24,7 +25,7 @@ function fedDealState(d){const now=fedNow();
   if(d.start>now)return trn('fedplay.s_from',Math.ceil((d.start-now)/FED_DAY));
   return d.end===null?tr('fedplay.s_open'):trn('fedplay.s_left',Math.max(0,Math.ceil((d.end-now)/FED_DAY)));}
 function fedDealRow(d){const now=fedNow(),soon=d.st==='run'&&d.end!==null&&d.end-now<7*FED_DAY,renew=d.role!=='sell'&&d.deal!=='cofound'&&!fedRenewal(S.fed,d.id,d.key)&&(soon||d.st==='over'&&d.why!=='excluded'&&d.why!=='muted');
-  return `<div class="row"><div class="grow"><div class="nm">${fedDealName(d.deal)}${d.role==='sell'?` <span class="meta">${tr('fedplay.you_sell')}</span>`:''}${d.terms&&fedOwn(d.terms,'founded')?` <span class="tag fp-new">${tr('fedplay.newcomer_price')}</span>`:''}</div><div class="meta">${esc(fedTermsText(d.deal,d.terms))}</div><div class="meta">${esc(fedDealState(d))}</div></div>
+  return `<div class="row"><div class="grow"><div class="nm">${fedDealName(d.deal)}${d.role==='sell'?` <span class="meta">${tr('fedplay.you_sell')}</span>`:''}${d.terms&&fedOwn(d.terms,'founded')?` <span class="tag fp-new">${tr('fedplay.newcomer_price')}</span>`:''}</div><div class="meta">${esc(fedTermsText(d.deal,d.terms))}</div><div class="meta">${esc(fedDealState(d))}</div>${hsfRepLine(d)}</div>
     ${renew?btn(tr('fedplay.renew'),'fpRenew',{id:d.id},'sm'):''}${d.st!=='over'?btn(d.deal==='peering'?tr('fedplay.depeer'):tr('fedplay.end'),'fpEnd',{id:d.id},'ghost sm'):''}</div>`;}
 
 /* ---------- the players card, at the top of the networks tab ---------- */
@@ -84,7 +85,8 @@ function fedNetModal(key){const n=fedNetOf(key);if(!n){closeModal();return;}UI.f
   if(R0.pni)h+=`<p class="meta">${tr('fedplay.rate_pni',{setup:fmt$(R0.pni.setup),n:R0.pni.term})} ${R0.pni.ports.map(x=>`${fpSpeed(x.mbps)} ${tr('common.price_mo',{price:fmt$(x.monthly)})}`).join(' · ')}</p>`;
   if(R0.ix)h+=`<p class="meta">${tr('fedplay.rate_ix',{at:R0.ix.at.map(fpCity).join(', ')})} ${R0.ix.ports.map(x=>`${fpSpeed(x.mbps)} ${tr('common.price_mo',{price:fmt$(x.monthly)})}`).join(' · ')}</p>`;
   if(R0.wave){const rs=R0.wave.routes;h+=`<p class="meta">${tr('fedplay.rate_wave',{routes:rs.slice(0,4).map(x=>fpCity(x.a)+'–'+fpCity(x.b)).join(', ')+(rs.length>4?' …':''),n:R0.wave.term})} ${R0.wave.sizes.map(x=>`${fmtCap(x.gbps)} ${tr('common.price_mo',{price:fmt$(x.monthly)})}`).join(' · ')}</p>`;}
-  if(!R0.transit&&!R0.pni&&!R0.ix&&!R0.wave)h+=`<p class="meta">${tr('fedplay.sells_nothing')}</p>`;
+  h+=hsfCardLines(R0);
+  if(!R0.transit&&!R0.pni&&!R0.ix&&!R0.wave&&!R0.edge&&!R0.onramp)h+=`<p class="meta">${tr('fedplay.sells_nothing')}</p>`;
   // What you can ask for.
   h+=`<h3 class="fp-sub">${tr('fedplay.ask_for')}</h3>`;
   // Each kind of request as a block; the one a button opened this sheet for (UI.fpFocus) comes first, so it is in view on a phone.
@@ -104,6 +106,8 @@ function fedNetModal(key){const n=fedNetOf(key);if(!n){closeModal();return;}UI.f
   if(R0.wave){const W=R0.wave,rk=x=>x.a+'|'+x.b,o={at:sel['wave.at']||rk(W.routes.find(x=>S.pops[x.a]&&S.pops[x.b])||W.routes[0]),mbps:+sel['wave.mbps']||W.sizes[0].gbps*1000},x=fedOffer(key,'wave',o);
     h+=ask('wave',o,fpSel(tr('fedplay.route'),'wave.at',W.routes.map(r=>[rk(r),fpCity(r.a)+'–'+fpCity(r.b)]),o.at)+fpSel(tr('fedplay.capacity'),'wave.mbps',W.sizes.map(z=>[z.gbps*1000,fmtCap(z.gbps)]),o.mbps),
       x.terms?`<p class="meta">${tr('fedplay.wave_computer',{price:fmt$(fedWaveCeil(x.terms.a,x.terms.b,x.terms.gbps))})}</p>`:'');}
+  // An edge node in a home ISP's network (a Hyperscaler asks), an on-ramp into a Hyperscaler's region (89-fedplay-hyper.js).
+  hsfAsks(key,R0,sel,ask);
   {const prs=fedSwapPairs(n),o={at:sel['swap.at']||prs[0],mbps:+sel['swap.mbps']||10000};
     h+=ask('swap',o,(prs.length?fpSel(tr('fedplay.route'),'swap.at',prs.map(k=>[k,k.split('|').map(fpCity).join('–')]),o.at):'')+fpSel(tr('fedplay.capacity'),'swap.mbps',[[10000,'10G'],[100000,'100G'],[400000,'400G']],o.mbps),`<p class="meta">${tr('fedplay.swap_note')}</p>`);}
   // Co-founding one of your exchanges (89-fedplay-ix.js): you invite them; they pay a share and earn a share.
@@ -120,6 +124,8 @@ const FEDP_DEF={transit:()=>({perGbps:Math.max(1,Math.round(fedCeilMine()*0.8)),
   pni:()=>({setup:5000,ports:[{mbps:10000,monthly:1500},{mbps:100000,monthly:9000}],term:180}),wave:()=>fedWaveDef(),ix:()=>({ports:[{mbps:10000,monthly:800},{mbps:100000,monthly:4000}],join:'anyone'})};
 // One field of the draft, from the editor's inputs (a value as typed: checked here and again when saved).
 function fedTermsEdit(f,v){const D=fpDraft(),n=x=>{const k=Math.round(+x);return Number.isFinite(k)?Math.max(0,k):0;},on=v==='1'||v===true||v==='true';f=String(f);
+  // Edge hosting and on-ramps (89-fedplay-hyper.js); a Hyperscaler's transit stays off.
+  if(hsfTermsEdit(D,f,v,on,n))return;
   if(f==='pol'&&fedOwn(FEDP_POL,v)){D.pol=v;if(v==='restrictive'&&D.auto.peering==='auto')D.auto.peering='review';}
   else if(f==='c.minMbps')D.cond.minMbps=Math.min(1e9,n(v)*1000);else if(f==='c.maxRatio'&&FEDP_RATIO.includes(+v))D.cond.maxRatio=+v;else if(f==='c.minShared')D.cond.minShared=Math.min(64,n(v));
   else if(['c.rpki','c.tier1','c.ai'].includes(f))D.cond[f.slice(2)]=on;
@@ -147,7 +153,7 @@ function fedWaveEdit(W,f,v,on,n){const g=+f.slice(4);
 // Saves terms and announces them at once. Running deals keep the terms they were made on (prices change at renewal).
 function fedTermsApply(t){const P=fedP();t=t&&typeof t==='object'?t:{};P.pol=fedOwn(FEDP_POL,t.pol)?t.pol:P.pol;P.cond=fedCondClean(t.cond);P.rates=fedRatesClean(t.rates);
   if(P.rates.transit)P.rates.transit.perGbps=Math.min(fedCeilMine(),P.rates.transit.perGbps);fedWaveCap(P.rates.wave);
-  P.auto=fedAutoClean(t.auto,P.pol);if(P.rates.ix)P.auto.port=P.rates.ix.join==='approval'?'review':P.auto.port==='decline'?'decline':'auto';
+  P.auto=fedAutoClean(t.auto,P.pol);if(hyper())hsfNoTransit(P);if(P.rates.ix)P.auto.port=P.rates.ix.join==='approval'?'review':P.auto.port==='decline'?'decline':'auto';
   return fedAnnounceMaybe(true).then(()=>null);}
 function fedTermsModal(){UI.fpOpen={k:'terms'};const D=fpDraft(),c=D.cond,r=D.rates,inp=(f,v,w=7)=>`<input type="number" min="0" inputmode="numeric" size="${w}" value="${esc(v)}" data-chg="fpEdit" data-args="${esc(JSON.stringify({f}))}">`;
   const sel=(f,vals,cur)=>`<select data-chg="fpEdit" data-args="${esc(JSON.stringify({f}))}">${vals.map(([v,t])=>`<option value="${esc(v)}"${String(v)===String(cur)?' selected':''}>${esc(t)}</option>`).join('')}</select>`;
@@ -158,15 +164,17 @@ function fedTermsModal(){UI.fpOpen={k:'terms'};const D=fpDraft(),c=D.cond,r=D.ra
   if(D.pol==='selective')h+=`<div class="trsel fp-grid"><label>${tr('fedplay.min_traffic')} ${inp('c.minMbps',Math.round(c.minMbps/1000),5)}</label>
     <label>${tr('fedplay.max_ratio')} ${sel('c.maxRatio',FEDP_RATIO.map(x=>[x,x>=100000?'∞':Math.round(x/100)+':1']),c.maxRatio)}</label>
     <label>${tr('fedplay.min_shared')} ${inp('c.minShared',c.minShared,3)}</label><label>RPKI ${yn('c.rpki',c.rpki)}</label><label>${tr('common.tier_1')} ${yn('c.tier1',c.tier1)}</label><label>🤖 ${tr('fedplay.ai_ok')} ${yn('c.ai',c.ai)}</label></div>`;
-  h+=`<h3 class="fp-sub">${tr('fedplay.d_transit')}</h3><div class="trsel fp-grid"><label>${tr('fedplay.sell')} ${yn('tr.on',!!r.transit)}</label>`;
-  if(r.transit)h+=`<label>${tr('fedplay.per_gbps')} ${inp('tr.price',r.transit.perGbps,5)}</label><label>${tr('fedplay.term')} ${sel('tr.term',terms,r.transit.term)}</label>`;
+  // A Hyperscaler never sells transit: the section says so instead.
+  if(hyper())h+=`<h3 class="fp-sub">${tr('fedplay.d_transit')}</h3><p class="meta">🚫 ${tr('hyper_fed.never_transit')}</p><div>`;
+  else{h+=`<h3 class="fp-sub">${tr('fedplay.d_transit')}</h3><div class="trsel fp-grid"><label>${tr('fedplay.sell')} ${yn('tr.on',!!r.transit)}</label>`;
+  if(r.transit)h+=`<label>${tr('fedplay.per_gbps')} ${inp('tr.price',r.transit.perGbps,5)}</label><label>${tr('fedplay.term')} ${sel('tr.term',terms,r.transit.term)}</label>`;}
   h+=`</div>${r.transit?`<p class="meta">${tr('fedplay.ceiling_note',{price:fmt$(fedCeilMine())})}</p>`:''}<h3 class="fp-sub">${tr('fedplay.d_pni')}</h3><div class="trsel fp-grid"><label>${tr('fedplay.sell')} ${yn('pni.on',!!r.pni)}</label>`;
   if(r.pni)h+=`<label>${tr('fedplay.setup')} ${inp('pni.setup',r.pni.setup)}</label>${r.pni.ports.slice(0,2).map((x,i)=>`<label>${fpSpeed(x.mbps)}/${tr('fedplay.month')} ${inp('pni.m'+i,x.monthly)}</label>`).join('')}<label>${tr('fedplay.term')} ${sel('pni.term',terms,r.pni.term)}</label>`;
-  h+=`</div>`+fedWaveTerms(r.wave,inp,sel,yn,terms);
+  h+=`</div>`+fedWaveTerms(r.wave,inp,sel,yn,terms)+hsfTermsHtml(r,inp,sel,yn,terms);
   if(Object.keys(S.myIx).length){h+=`<h3 class="fp-sub">${tr('fedplay.your_exchange')}</h3><div class="trsel fp-grid"><label>${tr('fedplay.sell')} ${yn('ix.on',!!r.ix)}</label>`;
     if(r.ix)h+=`${r.ix.ports.slice(0,2).map((x,i)=>`<label>${fpSpeed(x.mbps)}/${tr('fedplay.month')} ${inp('ix.m'+i,x.monthly)}</label>`).join('')}<label>${tr('fedplay.who_joins')} ${sel('ix.join',[['anyone',tr('fedplay.join_anyone')],['selective',tr('fedplay.join_selective')],['approval',tr('fedplay.join_approval')]],r.ix.join)}</label>`;
     h+=`</div>`;}
-  h+=`<h3 class="fp-sub">${tr('fedplay.requests')}</h3><div class="trsel fp-grid">${FEDP_DEALS.filter(k=>k!=='cofound'||fedIx2()).map(k=>`<label>${fedDealName(k)} ${sel('a.'+k,Object.keys(FEDP_AUTO).map(m=>[m,tr(FEDP_AUTO[m])]),D.auto[k])}</label>`).join('')}</div>
+  h+=`<h3 class="fp-sub">${tr('fedplay.requests')}</h3><div class="trsel fp-grid">${FEDP_DEALS.filter(k=>(k!=='cofound'||fedIx2())&&hsfAutoShown(k)).map(k=>`<label>${fedDealName(k)} ${sel('a.'+k,Object.keys(FEDP_AUTO).map(m=>[m,tr(FEDP_AUTO[m])]),D.auto[k])}</label>`).join('')}</div>
   <h3 class="fp-sub">RPKI</h3><div class="row"><div class="grow"><div class="meta">${tr('fedplay.rpki_note',{price:fmt$(FEDP_RPKI_MO)})}</div></div>${btn(fedP().rpki?tr('common.on'):tr('common.off'),'fpRpki',{on:!fedP().rpki},fedP().rpki?'green sm':'ghost sm')}</div>
   <div class="btns cta">${btn(tr('fedplay.save'),'fpTermsSave',{},'pink')}${btn(tr('common.cancel'),'closeModal',{},'ghost')}</div>`;
   openModal(h);}

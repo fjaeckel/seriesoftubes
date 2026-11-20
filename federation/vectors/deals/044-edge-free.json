@@ -1,0 +1,58 @@
+{
+  "description": "A host that asks nothing for a node (monthly 0): an offer at 0 a month for 180 days (more than the card's 90) binds at once and ends at 1767229200 + 180 * 86400 = 1782781200.",
+  "input": {
+    "announces": [
+      {
+        "id": "E1",
+        "kind": "announce",
+        "key": "kIsp",
+        "t": 1767225600,
+        "body": {
+          "rates": {
+            "edge": {
+              "at": [
+                "ams",
+                "fra"
+              ],
+              "monthly": 0,
+              "cap": 2,
+              "term": 90
+            }
+          },
+          "auto": {
+            "peering": "auto",
+            "transit": "decline",
+            "pni": "review",
+            "swap": "review",
+            "consortium": "review",
+            "port": "review",
+            "edge": "auto"
+          }
+        }
+      }
+    ],
+    "offer": {
+      "id": "O1",
+      "kind": "offer",
+      "key": "kCloud",
+      "t": 1767229200,
+      "body": {
+        "to": "kIsp",
+        "deal": "edge",
+        "basis": "E1",
+        "terms": {
+          "at": "ams",
+          "nodes": 1,
+          "monthly": 0,
+          "term": 180
+        }
+      }
+    }
+  },
+  "expect": {
+    "ok": true,
+    "auto": true,
+    "start": 1767229200,
+    "end": 1782781200
+  }
+}

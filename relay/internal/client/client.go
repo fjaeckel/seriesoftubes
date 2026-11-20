@@ -91,7 +91,7 @@ func Dial(ctx context.Context, url string, o Options) (*Client, error) {
 	hello := map[string]any{"m": "hello", "vers": vl, "role": "client"}
 	feats := o.Feats
 	if feats == nil {
-		feats = []string{wire.FeatIx2}
+		feats = []string{wire.FeatIx2, wire.FeatCloud}
 	}
 	if len(feats) > 0 {
 		fl := make([]any, len(feats))

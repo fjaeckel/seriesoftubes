@@ -50,7 +50,8 @@ function siteUpDay(M,d,on){for(const c in M){const x=M[c];if(x.up&&x.up.ready<=d
 function siteFix(x,n){const v=(a,d)=>Number.isFinite(+a)?+a:d,o={t:clamp(Math.round(v(x.t,0)),0,n-1),ready:Math.round(v(x.ready,0))};
   const u=x.up;if(u&&typeof u==='object'&&o.t<n-1)o.up={t:o.t+1,ready:Math.round(v(u.ready,0))};return o;}
 // Does this POP have a way out (transit, an exchange port or a PNI)? A front door needs one.
-const cxOut=c=>S.transit.some(t=>t.city===c)||ixIdsIn(c).some(x=>S.ixp[x]!==undefined)||S.pni.some(p=>p.city===c);
+// A deal with a player that gives a way out there counts too (a PNI, transit bought, an on-ramp port: 89-fedplay-deals.js).
+const cxOut=c=>S.transit.some(t=>t.city===c)||ixIdsIn(c).some(x=>S.ixp[x]!==undefined)||S.pni.some(p=>p.city===c)||!!S.fed&&fedDealExits().some(x=>x.city===c&&x.k!=='c');
 // The POP among pops nearest a country's users (its biggest city), remembered while the list is the same.
 const CX_POP={k:'',m:new Map()};
 function cxPop(cc,pops){const k=pops.join();if(CX_POP.k!==k){CX_POP.k=k;CX_POP.m=new Map();}let v=CX_POP.m.get(cc);

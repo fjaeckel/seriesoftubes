@@ -1,0 +1,21 @@
+{
+  "description": "bob, a Hyperscaler, asks alice for two edge nodes in her Frankfurt network at 400 a node a month for 90 days, on her edge card.",
+  "input": {
+    "kind": "offer",
+    "author": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+    "body": {
+      "to": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "deal": "edge",
+      "basis": "T1_rSdWo4Mcfsl6YCE3dxT1Q7WMEgJV960BLNsFe8_I",
+      "terms": {
+        "at": "fra",
+        "nodes": 2,
+        "monthly": 400,
+        "term": 90
+      }
+    }
+  },
+  "expect": {
+    "ok": true
+  }
+}

@@ -502,6 +502,16 @@ const SID = rid(genesis);
     bad('key-y-over-p', 'y = 2^255 - 19 + 1: not below the field prime, a non-canonical encoding of y = 1.', { ...st, key: b64(p1) }, 'bad_key');
     ok('announce-box-zero', 'The weak-key rule is for Ed25519 keys: a box (X25519) is checked for its format only, so 32 zero bytes pass here (sealing to it fails).', rec('announce', 'alice', T, { ...announceBody(), box: b64(Buffer.alloc(32)) }));
   }
+  // --- a Hyperscaler's deals (cloud): rates.edge, rates.onramp, auto.edge and auto.onramp (all optional) ---
+  const EDGE = { at: ['ams', 'fra'], monthly: 400, cap: 2, term: 90 }, RAMP = { at: ['fra'], ports: [{ mbps: 10000, monthly: 2500 }, { mbps: 100000, monthly: 15000 }], term: 90 };
+  const annCloud = (rates, auto = {}) => { const b = announceBody(); Object.assign(b.rates, rates); Object.assign(b.auto, auto); return b; };
+  ok('announce-cloud-edge', 'A home ISP hosts edge nodes (cloud): the cities it sells broadband in, a fee per node a month (0: free), at most cap per city, a minimum term; auto.edge set.', rec('announce', 'alice', T, annCloud({ edge: EDGE }, { edge: 'auto' })));
+  ok('announce-cloud-onramp', 'A Hyperscaler sells on-ramp ports into its regions (cloud): where, the ports, a minimum term; auto.onramp set, auto.edge absent (requests declined).', rec('announce', 'alice', T, annCloud({ onramp: RAMP }, { onramp: 'review' })));
+  bad('announce-cloud-edge-cap', 'cap is 1 to 16 nodes per city.', rec('announce', 'alice', T, annCloud({ edge: { ...EDGE, cap: 17 } })), 'bad_field');
+  bad('announce-cloud-edge-city-twice', 'A city once on an edge card.', rec('announce', 'alice', T, annCloud({ edge: { ...EDGE, at: ['fra', 'fra'] } })), 'duplicate');
+  bad('announce-cloud-edge-extra', 'Nothing else on an edge card.', rec('announce', 'alice', T, annCloud({ edge: { ...EDGE, snacks: true } })), 'unknown_field');
+  bad('announce-cloud-onramp-no-ports', 'An on-ramp card sells at least one port.', rec('announce', 'alice', T, annCloud({ onramp: { ...RAMP, ports: [] } })), 'bad_field');
+  bad('announce-auto-onramp', 'auto.onramp is auto, review or decline.', rec('announce', 'alice', T, annCloud({}, { onramp: 'sure' })), 'bad_field');
 }
 
 // ======================================================================================
@@ -570,6 +580,13 @@ const SID = rid(genesis);
   { const envU = { v: 1, kind: 'offer', key: pub('alice'), t: T + 5, body: clear };
     const old = rec('offer', 'alice', T + 5, { ...clear, enc: sealEnc('alice', pub('bob'), boxPub('bob'), envU, plain, vnonce('box offer unpadded'), true) });
     open('open-unpadded', 'An offer sealed by an older game, without padding: openers read both (spaces after JSON are whitespace).', 'bob', 'alice', old, { ok: true, plain }); }
+  // A Hyperscaler's deals (cloud): an edge node in a host's network, an on-ramp port into a Hyperscaler's region.
+  const ED = { at: 'fra', nodes: 2, monthly: 400, term: 90 }, OR = { at: 'fra', mbps: 10000, monthly: 2500, term: 90 };
+  terms('terms-edge', 'bob, a Hyperscaler, asks alice for two edge nodes in her Frankfurt network at 400 a node a month for 90 days, on her edge card.', 'bob', { to: pub('alice'), deal: 'edge', basis: rid(ann), terms: ED }, ok);
+  terms('terms-edge-nodes', 'nodes is 1 to 16.', 'bob', { to: pub('alice'), deal: 'edge', basis: rid(ann), terms: { ...ED, nodes: 17 } }, { ok: false, error: 'bad_field' });
+  terms('terms-edge-no-basis', 'An edge offer needs a basis (the host\'s card).', 'bob', { to: pub('alice'), deal: 'edge', terms: ED }, { ok: false, error: 'missing_field' });
+  terms('terms-onramp', 'bob buys a 10G on-ramp port into alice\'s Frankfurt region, 2500 a month, 90 days, the newcomer price claimed.', 'bob', { to: pub('alice'), deal: 'onramp', basis: rid(ann), terms: { ...OR, founded: 20451 } }, ok);
+  terms('terms-onramp-no-mbps', 'An on-ramp names its port size.', 'bob', { to: pub('alice'), deal: 'onramp', basis: rid(ann), terms: { at: 'fra', monthly: 2500, term: 90 } }, { ok: false, error: 'missing_field' });
 }
 
 // ======================================================================================

@@ -85,7 +85,7 @@ test('player members: ports and co-founders you sell are members of your exchang
 test('ix2: the announce lists who is on your exchange and how you take co-founding, only while every server takes it', async () => {
   const setup = "ACT.buildPop({city:'nte'});ACT.foundIx({city:'nte'});";
   const { p, n } = await game([], { feats: IX2, setup });
-  assert.deepEqual(n.got.find((f) => f.m === 'hello').feats, ['ix2'], 'the game lists ix2 in its hello');
+  assert.deepEqual(n.got.find((f) => f.m === 'hello').feats, ['ix2', 'cloud'], 'the game lists ix2 (and cloud) in its hello');
   const nets = json(p, "NETS.filter(n=>!n.fed&&n.type!=='t1').slice(0,3).map(n=>n.id)");
   p.ev(`S.myIx.nte.members=${JSON.stringify(nets)}`);
   assert.equal(p.ev('fedIx2()'), true);

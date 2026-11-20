@@ -1,0 +1,67 @@
+{
+  "description": "The card of 047, its author founded on day 20000. Offers are at t = 1767229200, UTC day 20454. A newcomer ISP (founded 20451) gets the newcomer price on the 100G port: div(15000 * 750, 1000) = 11250 a month.",
+  "input": {
+    "announces": [
+      {
+        "id": "E1",
+        "kind": "announce",
+        "key": "kCloud",
+        "t": 1767225600,
+        "body": {
+          "rates": {
+            "onramp": {
+              "at": [
+                "fra"
+              ],
+              "ports": [
+                {
+                  "mbps": 10000,
+                  "monthly": 2500
+                },
+                {
+                  "mbps": 100000,
+                  "monthly": 15000
+                }
+              ],
+              "term": 90
+            }
+          },
+          "auto": {
+            "peering": "auto",
+            "transit": "decline",
+            "pni": "review",
+            "swap": "review",
+            "consortium": "review",
+            "port": "review",
+            "onramp": "auto"
+          },
+          "founded": 20000
+        }
+      }
+    ],
+    "offer": {
+      "id": "O1",
+      "kind": "offer",
+      "key": "kIsp",
+      "t": 1767229200,
+      "body": {
+        "to": "kCloud",
+        "deal": "onramp",
+        "basis": "E1",
+        "terms": {
+          "at": "fra",
+          "mbps": 100000,
+          "monthly": 11250,
+          "term": 90,
+          "founded": 20451
+        }
+      }
+    }
+  },
+  "expect": {
+    "ok": true,
+    "auto": true,
+    "start": 1767229200,
+    "end": 1775005200
+  }
+}

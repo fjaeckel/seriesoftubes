@@ -3,7 +3,7 @@
    offers, the ones you can sign today first, each a short card whose fine print unfolds. The rest (a consortium seat,
    conferences, the sales desk, your customer level) is one line each that unfolds. Folds and the offer filter are view
    state (UI.dl), never saved. */
-const DL_PG=5,DL_SOON=5,DL_SECS=['seat','conf','lvl'];
+const DL_PG=5,DL_SOON=5,DL_SECS=['seat','conf','lvl','cloud'];
 function dlState(){if(!UI.dl)UI.dl={f:'all',n:DL_PG,open:{}};return UI.dl;}
 const dlOpen=k=>!!dlState().open[k];
 // An offer's state: 2 ready to sign as it is, 1 signable but a requirement is not met yet, 0 needs a POP first.
@@ -60,7 +60,7 @@ function dealsTab(){const st=custStats();
   // 2. Open offers, the ones you can sign first.
   h+=dlOffers();
   // 3. One line each.
-  h+=`<div class="dl-rest">${dlSeat()}${dlConf()}${dlSales()}${st.n&&!st.unhappy?dlCust(st):''}${dlLvl()}</div>`;
+  h+=`<div class="dl-rest">${dlSeat()}${hsfDealsSec()}${dlConf()}${dlSales()}${st.n&&!st.unhappy?dlCust(st):''}${dlLvl()}</div>`;
   return h;}
 // The desktop tab's count: the same as the phone's.
 const dealsCnt=()=>{const d=dealsBadge();return d.c?`<span class="cnt${d.red?' red':''}">${d.c}</span>`:d.red?`<span class="cnt red dot" aria-hidden="true"></span>`:'';};
