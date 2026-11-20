@@ -21,7 +21,7 @@ test('a new Normal game asks for its charter first, and the popup waits for an a
   ev('window.__TUBES_CHARTER__=true;ACT.start({})');
   assert.equal(modal(ev), 'charter', 'the picker is open, and an open window holds the clock');
   const opts = [...dom.window.document.querySelectorAll('#modalCard .chopt')].map((b) => JSON.parse(b.dataset.args).k);
-  assert.deepEqual(opts, ['global', 'boutique', 'broker', 'content']);
+  assert.deepEqual(opts, ['global', 'boutique', 'broker']);
   assert.match(dom.window.document.getElementById('modalCard').textContent, /Glass Baron/, 'each charter says what it is and how it wins');
   assert.equal(ev('UI.tutLater'), true, 'the tutorial waits for the charter');
   // Escape, or anything that closes the window, does not get past it.
@@ -176,6 +176,19 @@ test('saves keep the broker and its win, and refuse charters that do not exist',
   ev(`S=migrate(${JSON.stringify(s)});S.scn={id:'x'}`);
   assert.equal(ev('charter()'), 'global', 'a scenario plays as the classic game');
   assert.equal(ev('glassLvl()'), ev('lvl()'));
+  assert.deepEqual(errors, []);
+});
+
+test('a save from the deleted Streaming service plays on as Global backbone, without its state', () => {
+  const { ev, errors } = picked('global');
+  const s = JSON.parse(ev('JSON.stringify(S)'));
+  const old = { ...s, charter: 'content', cnt: { cc: { DE: { d: 40, since: 3 } }, dc: { [s.home]: { t: 2, ready: 0 } }, box: [], won: 0 } };
+  ev(`S=migrate(${JSON.stringify(old)})`);
+  assert.deepEqual([ev('S.charter'), ev('charter()'), ev("'cnt' in S"), ev('S.chartSet')], ['global', 'global', false, true]);
+  // Through the file loader too, as a player would open it.
+  const p = JSON.parse(ev(`JSON.stringify((()=>{const r=parseSave(${JSON.stringify(JSON.stringify(old))});if(r.err)return {err:r.err};const m=migrate(r.s);return {charter:m.charter,cnt:'cnt' in m};})())`));
+  assert.deepEqual(p, { charter: 'global', cnt: false });
+  ev('compute();for(let i=0;i<3;i++)dayTick();renderLeft()');
   assert.deepEqual(errors, []);
 });
 

@@ -38,8 +38,6 @@ function ixSessions(c){
   for(const id of ixMembers(c)){const n=NET[id];
     if(S.peers[id+'@'+c]&&!snub(id,c)&&!(isRemote(c)&&noRemote(id)))s.add(id);
     else if(S.rs[c]&&n.pol==='open'&&ppol()==='open')s.add(id);
-    // Home networks want a streaming service's shows: the selective ones take its routes from the route server too.
-    else if(S.rs[c]&&S.cnt&&n.cc&&n.pol==='selective'&&ppol()==='open'&&!snub(id,c))s.add(id);
     else if(S.myIx[c]&&(n.pol==='open'||n.pol==='selective'))s.add(id);}
   if(S.fed)fedIxSes(c,s);
   return s;

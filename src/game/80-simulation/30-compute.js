@@ -58,13 +58,9 @@ function compute(){RW.gen++;fedNetsSync();
     // A peer announces its customers too (#85): the session reaches its cone, after the networks peering directly.
     let all=set;for(const id of set)if(DOWN[id].length){if(all===set)all=new Set(set);for(const x of DOWN[id])all.add(x);}
     const x=mkEx('ix',c,ct,ixCap(c),2,(S.ixPref&&S.ixPref[c])||'normal',labOf(N_('common.ix_peering'),'ix',ixName(c)),n=>all.has(n),all);x.dir=all===set?null:set;E.push(x);}
-  // A streaming service in a dispute gets half of what it has with that network (37-streaming.js).
-  const dsp=!!S.cnt;
   for(const p of S.pni){if(!pniOn(p)||!popUp(p.city)||!liveN(p.city,p.site,p.n))continue;R2.sessions++;
-    const x=mkEx('p',p.id,p.city,liveCap(pniG(p),p.city,p.site,p.n)*lagF(p)*(p.sacrif?0.5:1)*(dsp?cntCut(p.net):1),2,p.pref||'normal',labOf(N_('common.pni_with_net'),'net',NET[p.net].name),n=>CONE_S[p.net].has(n),CONE[p.net],p.net);x.sac=!!p.sacrif;x.pnc=!!NET[p.net].cn;E.push(x);}
+    const x=mkEx('p',p.id,p.city,liveCap(pniG(p),p.city,p.site,p.n)*lagF(p)*(p.sacrif?0.5:1),2,p.pref||'normal',labOf(N_('common.pni_with_net'),'net',NET[p.net].name),n=>CONE_S[p.net].has(n),CONE[p.net],p.net);x.sac=!!p.sacrif;x.pnc=!!NET[p.net].cn;E.push(x);}
   for(const c of S.caches){if(!popUp(c.city)||siteDown(c.city,c.site==='b'?'b':'a'))continue;E.push(mkEx('c',c.id,c.city,cacheG(c),0,'normal',labOf(N_('common.name_cache'),'name',NET[c.net].cache.name),n=>n===c.net,[c.net]));}
-  // A streaming service's own boxes inside eyeball networks: the same rank-0 exit, for the network that hosts it.
-  if(S.cnt)for(const b of S.cnt.box){if(!popUp(b.city))continue;E.push(mkEx('c',b.id,b.city,BOX_G*cntCut(b.net),0,'normal',labOf(N_('streaming.box_in_net'),'net',NET[b.net].name),n=>n===b.net,[b.net]));}
   if(S.fed)fedExits(E);// deals with other players (89-fedplay-deals.js)
   // After an update adds networks, a free courtesy route reaches the new ones you have no other way to (#46).
   R2.graceNets=0;if(S.grace&&S.grace.until>day){const gs=new Set(S.grace.nets.filter(n=>NET[n]&&!E.some(e=>e.k!=='c'&&e.ok(n)))),hc=popUp(S.home)?S.home:pops.find(popUp);
@@ -122,7 +118,9 @@ function compute(){RW.gen++;fedNetsSync();
       else flow(ci,j,x,false,bz);}}
     R2.bizDem[c]=biz*d/(d0||1);R2.bizSrv[c]=0;
   }})();
-  const CH=S.cnt?cntFlows(R2,flow,DEMTO,(a,b)=>!!SPD[b]&&SPD[b][CIDX[a]]<Infinity,()=>FLB.n):null;
+  // A charter's own users and tenants (37-content-core.js): its flows, and the haul jobs that bring them to where they leave.
+  const CH=CX_FLOW.length?cxFlows(R2,flow,DEMTO,{reach:(a,b)=>!!SPD[b]&&SPD[b][CIDX[a]]<Infinity,nf:()=>FLB.n,
+    ms:(a,b)=>a===b?0:SPD[b]&&SPD[b][CIDX[a]]<Infinity?walkI(SPP[b],CIDX[b],CIDX[a]).path.reduce((n,e)=>n+e.lat,0):Infinity}):null;
   if(Object.keys(S.pops).length)for(let j=0;j<NN;j++)R2.demTo[NETS[j].id]=DEMTO[j];
   // What each flow got by kind of exit (FGT transit, FGI exchange, FGP PNI elsewhere, FGH PNI with that network here) and
   // the last transit and exchange exit it used (FTI, FII: an index into E, -1 for none). Fresh each call: R.fl reads them.
@@ -197,12 +195,12 @@ function compute(){RW.gen++;fedNetsSync();
     if(!R2.egDesc[ek])R2.egDesc[ek]={lab:clean?labOf(N_('compute.scrubbed_traffic_from_city'),'city',CITY[A].name):labOf(N_('compute.attack_entering_in_city'),'city',CITY[from].name),city:B,k:'l2'};
     for(const i of ni)if(HAS[i])nodeTake(i,amt);for(const l of path){l.res-=amt;l.ld+=amt;if(!clean){l.jk=(l.jk||0)+amt;JK=1;}carry(l,ek,clean?NN+2:NN,Bi,amt);}return amt;};
   const DD=ddosLoad({E,okBy,R2,autoBh:!!(TRX&&TRX.blackhole),haul,ms:msOf});
-  // A streaming service's cold potato (37-streaming.js): each origin's share for a country rides the backbone to the POP
-  // nearest its viewers, as far as links and routers have room; its flows there keep only what arrived.
-  if(CH)for(const J of CH){const Vi=CIDX[J.v],{path,ni}=walkI(SPP[J.v],Vi,CIDX[J.o]);let amt=J.x;for(const l of path)amt=Math.min(amt,l.res);for(const i of ni)if(HAS[i])amt=Math.min(amt,NRES[i]);amt=Math.max(0,amt);
-    const f=J.x>0?amt/J.x:0,ek='cnt:'+J.v;if(!R2.egDesc[ek])R2.egDesc[ek]={lab:labOf(N_('streaming.backbone_to_city'),'city',CITY[J.v].name),city:J.v,k:'l2'};
+  // The charter's cold potato (37-content-core.js): each job rides the backbone from its site (o) to the POP where it leaves
+  // (v) before IP routing, as far as links and routers have room; its flows there keep only what arrived. J.ms: the path's latency.
+  if(CH)for(const J of CH){const Vi=CIDX[J.v],{path,ni}=walkI(SPP[J.v],Vi,CIDX[J.o]);let amt=J.x,ms=0;for(const l of path){amt=Math.min(amt,l.res);ms+=l.lat;}for(const i of ni)if(HAS[i])amt=Math.min(amt,NRES[i]);amt=Math.max(0,amt);
+    const f=J.x>0?amt/J.x:0,ek='cx:'+J.v;if(!R2.egDesc[ek])R2.egDesc[ek]={lab:labOf(N_('compute.backbone_to_city'),'city',CITY[J.v].name),city:J.v,k:'l2'};
     for(const i of ni)if(HAS[i])nodeTake(i,amt);for(const l of path){l.res-=amt;l.ld+=amt;}
-    for(let k=J.lo;k<J.hi;k++){const a=FREM[k]*f;if(a>0)for(const l of path)carry(l,ek,FNJ[k],Vi,a);FREM[k]=a;}R2.cnt.haul[J.v].got+=amt;J.got=amt;}
+    for(let k=J.lo;k<J.hi;k++){const a=FREM[k]*f;if(a>0)for(const l of path)carry(l,ek,FNJ[k],Vi,a);FREM[k]=a;}J.got=amt;J.ms=ms;}
   R2.teMoved=R2.teMoved||0;const teCache=new Map(),SPILL=TR&&TR.spill?TR.spill:1,TT=TR&&TR.tiers.length?TR.tiers:null;
   /* A network in a peer's customer cone, reached through that peer (#85): after every network you peer with directly
      (its AS path is one hop longer) and before transit. */
@@ -236,8 +234,8 @@ function compute(){RW.gen++;fedNetsSync();
     TE,SPILL,TT,teCache,adj,CORE,OUT,REACH,DSEL,PREFC,BRJ,COMP,SDi,SPi,ALONE,TR,base,eff},PASSES,RANKS,RSET);
   for(const i of NORD)R2.nodeLoad[CITIES[i].id]=NLOAD[i];
   for(const k of EGO)R2.egT[EXK[k]]=EGT[k];for(const j of NEO){const ne=NEG[j];for(let k=0;k<4;k++)ne[EXK[k]]=NEA[j*4+k];}
-  // Streaming boxes inside ISPs with no POP of yours and at exchanges serve outside routing: added here (38-streaming-boxes.js).
-  if(CH)cntInPost(R2);
+  // The charter reads what its hauls got (37-content-core.js).
+  if(CH)cxPost(R2,CH);
   (()=>{
   if(DD){let rem=0,jf=0;for(let i=0;i<NF;i++)if(FREM[i]>1e-6)rem+=FREM[i];if(JK)for(const k in edges){const e=edges[k];if(e.res<=1e-6&&e.jk)jf+=e.jk;}
     ddosAfter(DD,{E,R2,squeeze:Math.min(rem,jf),
@@ -278,8 +276,8 @@ function computeMoney(R2,PX=null){
   C.wholesale=0;C.levy=0;const lev=scnRule('levy');for(const c in S.pops){const sf=sfOf(R2,c)*(R2.bbF[c]??1),v=R2.cityEye[c]*sf*EYE_RATE*arpuOf(c);V.eyeballs+=v;if(CITY[c].au){if(lev)C.levy+=v*AU_LEVY;else C.wholesale+=v*AU_WHOLESALE;}}
   const ids=linkIds();for(const b of S.biz){if(capPend(b)||BIZ_T[b.type].orbit)continue;const sf=BIZ_T[b.type].fiber?(fiberOk(b,ids)?1:0):BIZ_T[b.type].l2?clamp((R2.l2[b.id]||0)/b.bw,0,1):sfOf(R2,b.city)*(R2.tgtF[b.id]??1);V.business+=b.bw*b.rate*Math.min(1,sf/0.95);}
   for(const c in S.myIx)V.ix+=S.myIx[c].members.length*MYIX_FEE;
-  // A streaming service earns from subscribers, as well as it serves them, and pays for origins, boxes and its catalogue.
-  if(S.cnt){V.eyeballs=cntRev(R2);C.content=cntCost(R2);}
+  // A charter's own users and sites (37-content-core.js).
+  for(const f of CX_MONEY)f(R2,V,C);
   if(PX)pieMoney(PX,R2,V);
   // The UK grant for Pitcairn, its satellite tier once orbit is known; the Rural Digital Pie Fund (99-pie-subsidies.js).
   {const on=grantOn(R2),sky=!on&&!!PX&&grantSky(R2);V.grant=on?GRANT_MO:sky?GRANT_SKY_MO:0;if(PX)V.gov=pieGovMo();if(PX)R2.pie.gov={rdf:V.gov||0,sky:sky?GRANT_SKY_MO:0};}

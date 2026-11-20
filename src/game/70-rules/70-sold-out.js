@@ -7,8 +7,7 @@ function soldOut(a,b,tier,via){if(!S||S.day<SOLD_WIN||S.tut||!rule('market'))ret
   if(h%1000>=soldP(tier)*1000)return null;return {why:SOLD_WHY[(h>>>10)%SOLD_WHY.length],until:(ep+1)*SOLD_WIN-off};}
 function snubWhy(sn){const d=Math.max(1,sn.until-S.day);return sn.why+' '+trn('sold_out.they_will_reconsider_in_n_day',d);}
 // Paid-peering giants drop the fee for networks too big to ignore (freeLv: the customer level that does it).
-// A streaming service that won a dispute peers for free too (37-streaming.js).
-const paidFree=n=>!!(n&&(n.freeLv&&lvl()>=n.freeLv||S&&S.cnt&&S.cnt.free[n.id]));
+const paidFree=n=>!!(n&&n.freeLv&&lvl()>=n.freeLv);
 function peerOk(id,via,city){
   const n=NET[id],dem=R.demTo[id]||0;
   if(n.fed)return {ok:false,why:tr('fedplay.by_request')};

@@ -182,7 +182,7 @@ test('N2: names are puns: no network, cable, exchange, data center, router, opti
   const norm = (s) => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[’`]/g, "'").replace(/\s+/g, ' ').trim();
   const real = new Set(REAL_NAMES.map(norm));
   const names = J(`[...NETS.map(n=>['network',n.name]),...CABLES.map(c=>['cable',c.name]),...XIX.map(x=>['exchange',x.name]),
-    ...CITIES.flatMap(c=>[['exchange',c.ix],['data center',c.dc],['data center',c.dc2]]),...RG.map(r=>['router',r.n]),...Object.values(OPT).map(o=>['optic',o.n]),...Object.values(SEAT_ROUTES).flat().map(r=>['cable',r[2]]),...SHIPS.map(x=>['cable ship',x.n]),...LAY_SHIPS.map(n=>['cable ship',n]),...Object.values(SHIP_CLUBS).map(c=>['maintenance club',c.n]),...PIE_NAMES.map(n=>['rocket company',tr(n)]),...Object.values(ROCKETS).map(r=>['rocket',tr(r.n)]),...Object.values(CRUSTS).map(c=>['constellation',tr(c.n)]),...RIV.map(r=>['streaming service',rvName(r)])].filter(x=>x[1])`);
+    ...CITIES.flatMap(c=>[['exchange',c.ix],['data center',c.dc],['data center',c.dc2]]),...RG.map(r=>['router',r.n]),...Object.values(OPT).map(o=>['optic',o.n]),...Object.values(SEAT_ROUTES).flat().map(r=>['cable',r[2]]),...SHIPS.map(x=>['cable ship',x.n]),...LAY_SHIPS.map(n=>['cable ship',n]),...Object.values(SHIP_CLUBS).map(c=>['maintenance club',c.n]),...PIE_NAMES.map(n=>['rocket company',tr(n)]),...Object.values(ROCKETS).map(r=>['rocket',tr(r.n)]),...Object.values(CRUSTS).map(c=>['constellation',tr(c.n)])].filter(x=>x[1])`);
   fail('N2', names.filter(([, n]) => real.has(norm(n))).map(([k, n]) => `${k} “${n}” is a real name`), 'find a pun');
   fail('N2', names.filter(([, n]) => /-ish\b/i.test(n)).map(([k, n]) => `${k} “${n}”`), 'no lazy -ish names: find a real pun, or keep the plain word');
 });
@@ -266,8 +266,7 @@ test('M3: every subsystem that can annoy the player reads a rule', () => {
   const reads = [['dayPost', 'chaosMul()'], ['fireEvent', "rule('market')"], ['ddosTick', 'ddosOff()'],
     ['soldOut', "rule('market')"], ['hwMul', "rule('market')"], ['leadDays', "rule('lead')"], ['pniLead', 'leadDays'],
     ['dfBuildDays', 'leadDays'], ['dayPreRun', "rule('clock')"], ['snub', "rule('market')"], ['failureRun', 'shipsOn()'],
-    ['upcomingConfs', 'confsOn()'], ['pniLead', 'pniNow()'], ['dayPost', "rule('broke')"], ['dayPost', "rule('moods')"], ['toast', 'quietOn()'],
-    ['cntIncDay', 'chaosMul()'], ['cntRegDay', "rule('market')"]];
+    ['upcomingConfs', 'confsOn()'], ['pniLead', 'pniNow()'], ['dayPost', "rule('broke')"], ['dayPost', "rule('moods')"], ['toast', 'quietOn()']];
   fail('M3', reads.filter(([f, r]) => !ev(`typeof ${f}==='function'&&${f}.toString().includes(${lit(r)})`)).map(([f, r]) => `${f}() does not read ${r}`), 'gate it on the ruleset (src/game/40-progress/30-rules.js)');
   // and in play: no chaos and no market means a quiet year
   const g = load();
@@ -321,38 +320,6 @@ test('M6: a charter changes what you set out to do, never what things cost', () 
     if (h.ev('charterDue()')) bad.push(`${o} asks for a charter`);
   }
   fail('M6', bad, 'the broker gets glass early, not cheaper; charters belong to Normal games only');
-  assert.deepEqual(g.errors, []);
-});
-
-test('M7: a Streaming service is never Tier 1, sells nothing to homes or customers, and sends only to eyeball networks', () => {
-  const bad = [];
-  const g = load();
-  g.ev("beginGame('Streamer','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'content'});S.cash=1e9;ACT.cntLaunch({cc:'DE'});ACT.cntLaunch({cc:'US'});ACT.buyTransit({city:S.home,net:'cog',tier:1});compute()");
-  if (!g.ev("!!S.cnt&&charter()==='content'")) bad.push('the content charter does not start a Streaming service');
-  g.ev("S.transit=[];for(const n of t1Need())S.pni.push({id:'t'+n.id,city:S.home,net:n.id,tier:1,n:1});compute()");
-  if (g.ev('isTier1()')) bad.push('a Streaming service peering with every Tier 1 and buying no transit counts as Tier 1');
-  g.ev("ACT.launchBB({city:S.home});for(let i=0;i<20;i++)spawnOffer()");
-  if (g.ev('!!S.pops[S.home].bb')) bad.push('a Streaming service sells home broadband');
-  if (g.ev('S.offers.length')) bad.push('customers call a Streaming service');
-  g.ev("ACT.buyTransit({city:S.home,net:'cog',tier:1});compute()");
-  const to = JSON.parse(g.ev("JSON.stringify(Object.keys(R.demTo).filter(id=>R.demTo[id]>0))"));
-  const notEye = to.filter(id => !g.ev(`eyeNet(NET['${id}'])`));
-  if (notEye.length) bad.push('a Streaming service sends traffic to networks that sell no homes: ' + notEye.join(', '));
-  if (g.ev("Object.keys(R.cnt.cc).some(k=>R.cnt.cc[k].parts.some(([c])=>!S.cnt.dc[c]&&!S.cnt.box.some(b=>b.city===c)))")) bad.push('traffic starts somewhere that is neither an origin nor a box');
-  assert.deepEqual(bad, []);
-});
-
-test('M8: streaming regulation keeps its thresholds: fair share from 2% of a continent\'s peak, boxes exempt from sending party pays', () => {
-  const bad = [];
-  const g = load();
-  g.ev("beginGame('Streamer','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'content'});S.cash=1e9;S.lvl=8;ACT.cntLaunch({cc:'DE'});ACT.buyTransit({city:S.home,net:'cog',tier:1});S.cnt.dc[S.home].t=3;S.day=100");
-  if (g.ev('FS_SHARE') !== 0.02) bad.push('the fair share threshold is not 2%');
-  g.ev("S.cnt.cc.DE.d=regPeak('EU')*FS_SHARE*0.99;compute();for(let i=0;i<1000;i++){S.day++;cntRegDay(S.day);}");
-  if (g.ev("!!S.cnt.rg.fs.EU")) bad.push('a fair share law came below 2% of the continent\'s peak');
-  g.ev("S.cnt.rg.spp={};sppStart('DE',S.day);S.cnt.box.push({id:'m8',city:S.home,net:boxNets(S.home)[0].id,day:0,f:1});compute()");
-  if (!(g.ev('R.useCache.m8') > 0)) bad.push('the test box serves nothing');
-  else if (Math.abs(g.ev("sppBase(R,'DE')") - (g.ev("R.cnt.cc.DE.D-R.cnt.cc.DE.short") - g.ev('R.useCache.m8'))) > 1e-6) bad.push('sending party pays bills what a box inside the ISP serves');
-  assert.deepEqual(bad, []);
   assert.deepEqual(g.errors, []);
 });
 
@@ -565,21 +532,6 @@ test('F10: growth goes sideways, plus one paid way up (#61, #323)', () => {
   assert.ok(Object.keys(per).length >= 30, `F10: campuses in at least 30 metros (${Object.keys(per).length})`);
   fail('F10', Object.entries(per).filter(([, n]) => n > 2).map(([c]) => c), 'no metro holds more than two campuses');
   fail('F10', J("MEGA.filter(m=>!CITY[m.c]).map(m=>m.c)"), 'campuses sit in real cities');
-});
-
-test('F11: rival streamers are fair: they wait 60 days, act only where you are live, never take what you bought, and roll hashes', () => {
-  const bad = [];
-  const g = load();
-  g.ev("beginGame('Streamer','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'content'});S.cash=1e9;S.lvl=6;for(const c of ['DE','FR','US','BR'])ACT.cntLaunch({cc:c});ACT.buyTransit({city:S.home,net:'cog',tier:1});compute()");
-  if (g.ev('S.cnt.rv.next-S.day') < 60) bad.push('a rival may move in a new network\'s first 60 days');
-  const r = g.ev(`(()=>{const R0=Math.random;let n=0;Math.random=()=>{n++;return R0();};const V=S.cnt.rv,out=[];S.cnt.rnext=S.day;V.next=S.day;
-    try{for(let i=0;i<500;i++){S.day++;evDay(S.day);const mine=S.cnt.roff[0];if(mine&&i%3===0&&V.bid[mine.id]&&V.bid[mine.id].r)ACT.cntRights({id:mine.id});rvDay(S.day);}}finally{Math.random=R0;}
-    if(n)out.push("rival rolls drew "+n+" numbers from the game's random stream");
-    const own=new Set(S.cnt.evs.map(e=>e.id));if(V.evs.some(e=>own.has(e.id)))out.push('a rival streams an event you bought');
-    const notMine=Object.values(V.in).flat().filter(k=>!S.cnt.cc[k]);if(notMine.length)out.push('rivals launched where you are not live: '+notMine.join(', '));return out;})()`);
-  bad.push(...r);
-  assert.deepEqual(bad, []);
-  assert.deepEqual(g.errors, []);
 });
 
 test('D1: attack sizes come from the world, never from your network', () => {

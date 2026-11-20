@@ -6,7 +6,7 @@ const ACT={
  help:()=>showHelp(),
  dash:()=>{if(!S||pzOn())return;const d=$('dash');d.hidden=!d.hidden;if(!d.hidden){renderDash();winIn($('dashCard'));}else winBack();},
  dashClose:()=>{$('dash').hidden=true;winBack();},
- dashTab:({k})=>{if(k==='infra')k='links';dtabSync();if(!DTABS.includes(k))return;UI.dtab=k;renderDash();const d=$('dash');if(d)d.scrollTop=0;},
+ dashTab:({k})=>{if(k==='infra')k='links';if(!DTABS.includes(k))return;UI.dtab=k;renderDash();const d=$('dash');if(d)d.scrollTop=0;},
  dashSort:({k})=>{if(!['name','asn','type','traffic','cost','lost'].includes(k))return;listReset('traffic');if(UI.dashSort===k)UI.dashDir=-(UI.dashDir||-1);else{UI.dashSort=k;UI.dashDir=k==='name'||k==='type'||k==='asn'?1:-1;}renderDash();},
  bank:()=>{if(!S||pzOn())return;UI.confirm=null;$('dash').hidden=true;const b=$('bankBox');b.hidden=false;UI._bh=null;UI.bankOpen={};renderBank();winIn($('bankCard'));},
  bankClose:()=>{UI.confirm=null;$('bankBox').hidden=true;winBack();},

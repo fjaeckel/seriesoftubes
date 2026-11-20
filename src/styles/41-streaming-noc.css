@@ -1,3 +1,0 @@
-/* The NOC dashboard's Streaming tab (94-dashboard/61-streaming-noc.js): flags wrap under a row, on a phone too. */
-.cnocf{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.cnocf .tag{white-space:nowrap}
-.cnocrow .meta{overflow-wrap:anywhere}
