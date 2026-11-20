@@ -438,6 +438,56 @@ test('M11: rival clouds show every move before it lands, and a bid is always you
   assert.deepEqual(g.errors, []);
 });
 
+// Hyperscaler setups for M12 and M13: regions in Frankfurt, Paris, London, Amsterdam and Delhi (sizes seeded), users in
+// Europe, Britain, India and the US, waves between them of seeded tiers, then each region taken out in turn.
+function hsRules(seed) {
+  const g = load({ seed });
+  const wave = (id, a, b) => `S.links.push({id:'${id}',a:'${a}',b:'${b}',kind:'wave',tier:1+Math.floor(Math.random()*4),km:Math.round(kmBetween('${a}','${b}')),mo:1,cut:0,ready:0,trench:'${id}'});`;
+  g.ev("beginGame('Cloud','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'hyper'});S.cash=1e12;S.lvl=8;S.nextFail=S.nextEvent=1e9;" +
+    "for(const c of ['par','lon','ams','del'])ACT.buildPop({city:c});for(const c in S.pops){S.pops[c].rgen=RG_TOP;const n=NETS.find(n=>n.price&&sellsAt(n,c));ACT.buyTransit({city:c,net:n.id,tier:3});}" +
+    "for(const c of ['fra','par','lon','ams','del'])S.hs.rg[c]={t:Math.floor(Math.random()*3),ready:0,mw:20};S.links=[];" +
+    wave('fp', 'fra', 'par') + wave('fl', 'fra', 'lon') + wave('pl', 'par', 'lon') + wave('fa', 'fra', 'ams') + wave('al', 'ams', 'lon') + wave('fd', 'fra', 'del') +
+    "for(const cc of ['DE','FR','NL','GB','IN','US','PL','IE'])S.hs.cc[cc]={d:50+Math.random()*900,since:0};S.hs.rep={fra:'lon',par:'ams',lon:'par',ams:'fra',del:'fra'};compute();hsDay(S.day)");
+  return g;
+}
+
+test('M12: a Hyperscaler\'s failover never invents capacity', () => {
+  const bad = [];
+  for (const seed of [3, 7, 11]) {
+    const g = hsRules(seed);
+    for (const c of ['fra', 'par', 'lon', 'ams', 'del']) {
+      g.ev(`S.hs.down={};S.hs.out={};S.hs.dx=null;hsRegionFail('${c}',2,'rule');compute()`);
+      const x = JSON.parse(g.ev(`JSON.stringify({fo:R.hs.fo['${c}'],homed:hsHomedAt('${c}').map(k=>[k,R.hs.cc[k].parts.filter(p=>p[3]).map(p=>p[3])]),rg:R.hs.rg,ten:S.biz.filter(b=>b.rg==='${c}').map(b=>R.hs.ten[b.id].r)})`));
+      for (const [k, rs] of x.homed) if (rs.some((r) => r !== x.fo)) bad.push(`seed ${seed}, ${c} down: ${k} served from ${rs} instead of the replica ${x.fo}`);
+      for (const r of x.ten) if (r && r !== x.fo) bad.push(`seed ${seed}, ${c} down: a tenant moved to ${r}`);
+      for (const [r, o] of Object.entries(x.rg)) if (o.load > o.g + 1e-6) bad.push(`seed ${seed}, ${c} down: ${r} serves ${o.load} with room for ${o.g}`);
+      if (!g.ev('S.links.every(l=>(R.load[l.id]||0)<=capOf(l)+1e-6)')) bad.push(`seed ${seed}, ${c} down: a link carries more than it can`);
+    }
+    assert.deepEqual(g.errors, []);
+    g.dom.window.close();
+  }
+  fail('M12', bad, 'a failed region\'s users go to its replica as far as it has room and the backbone carries them (38-hyper-failover.js)');
+});
+
+test('M13: residency never homes users outside their bloc', () => {
+  const bad = [];
+  for (const seed of [3, 7, 11]) {
+    const g = hsRules(seed);
+    for (const c of ['', 'fra', 'par', 'del']) {
+      g.ev(`S.hs.down={};S.hs.out={};${c ? `hsRegionFail('${c}',2,'rule');` : ''}compute()`);
+      const parts = JSON.parse(g.ev("JSON.stringify(Object.keys(R.hs.cc).flatMap(k=>R.hs.cc[k].parts.filter(p=>p[3]).map(p=>[k,p[3],hsResOk(k,p[3])])))"));
+      for (const [k, r, ok] of parts) if (!ok) bad.push(`seed ${seed}${c ? `, ${c} down` : ''}: ${k} homed in ${r}`);
+      if (g.ev("S.hs.cc.IN&&R.hs.cc.IN.parts.some(p=>p[3]&&CITY[p[3]].cc!=='IN')")) bad.push(`seed ${seed}: Indian users served abroad`);
+    }
+    g.ev("delete S.hs.rg.del;S.hs.down={};S.hs.out={};compute();const d=S.hs.cc.IN.d;for(let i=0;i<5;i++)dayTick();window.__d=[d,S.hs.cc.IN.d]");
+    const [d0, d1] = JSON.parse(g.ev('JSON.stringify(__d)'));
+    if (d0 !== d1) bad.push(`seed ${seed}: Indian users with no region at home grew or shrank (${d0} -> ${d1})`);
+    assert.deepEqual(g.errors, []);
+    g.dom.window.close();
+  }
+  fail('M13', bad, 'users of countries with residency laws are homed only in their country or bloc, and wait while there is none (38-hyper-residency.js)');
+});
+
 // ---------- Content ----------
 
 test('C1: every scenario has a goal its card checks, and none is won on day 0', () => {

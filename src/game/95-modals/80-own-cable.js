@@ -200,7 +200,8 @@ const cabBack=l=>{if(!l||l.kind!=='df'||!l.own||!l.sub)return 0;const c=l.paid>0
 // Your own subsea cable is a Tier 1 privilege, or a sandbox toy (open gates).
 // Your own subsea cable: after the Tier 1 win, from customer level CAB_LV (a big Tier 2 lays cables too, #300), or from
 // day one as a Cable broker.
-const CAB_LV=9,cabOpen=()=>!!S.won||gatesOpen()||broker()||lvl()>=CAB_LV;
+// A Hyperscaler's Tier 1 is a side achievement (S.hs.t1, 38-hyper-win.js), and opens its own cables as a Tier 1 win does.
+const CAB_LV=9,cabOpen=()=>!!S.won||gatesOpen()||broker()||lvl()>=CAB_LV||hyper()&&!!S.hs&&S.hs.t1>0;
 function ownCabWhy(a,b){if(!seaCab(a,b))return tr('own_cable.this_route_is_on_land_build');
   if(!cabOpen())return tr('own_cable.your_own_subsea_cable_needs_level',{n:CAB_LV});
   for(const c of [a,b])if(!landing(c))return tr('own_cable.city_has_no_cable_landing_station',{city:CITY[c].name});
