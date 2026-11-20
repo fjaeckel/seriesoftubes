@@ -1,11 +1,11 @@
 Object.assign(ACT,{
- dfMode:({m})=>{UI.lmode=m;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
+ dfMode:({m})=>{if(modeOn('autarky')&&m==='wave')return;UI.lmode=m;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
  seaPackage:({k})=>{const p=UI.pending;if(!own(SUB_UPGRADES,k)||!p)return;const km=seaQuote(p.a,p.b,own(SEA_DESIGNS,UI.seaDesign)?UI.seaDesign:'standard').km,up=seaUps(km);
    if(!up[k]&&!subHelps(km,k,up[subOther(k)]))return;UI.seaterminal=up.terminal;UI.seaengineering=up.engineering;UI['sea'+k]=!up[k];openLinkModal(p.a,p.b);},
  subUpgrade:({id,k})=>{const l=S.links.find(l=>l.id===id);if(!l||l.kind!=='df'||!l.own||!l.sub||l.seat||!own(SUB_UPGRADES,k)||glassLvl()<4||l['sub'+k]!==undefined||!subHelps(l.km,k,l['sub'+subOther(k)]!==undefined))return;if(!spend(subUpgradeCost(l,k)))return;l.paid=(l.paid>0?l.paid:ownCabCost(l.km))+subUpgradeCost(l,k);l['sub'+k]=Math.max(S.day,l.ready||0)+leadDays(SUB_UPGRADES[k].days);after();},
  seaDesign:({v})=>{if(!own(SEA_DESIGNS,v))return;UI.seaDesign=v;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
  ownCab:()=>{UI.lmode='df';UI.dfSrc='cable';UI.seaDesign='standard';UI.seaterminal=UI.seaengineering=false;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
- dfSrc:({v})=>{UI.dfSrc=v;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
+ dfSrc:({v})=>{if(modeOn('autarky')&&v==='lease')return;UI.dfSrc=v;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
  dfSys:({v})=>{UI.dfSys=v;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
  orderCable:()=>{const p=UI.pending;if(!p||noTalk(p.a,p.b))return;const {a,b}=p;if(ownCabWhy(a,b)||!linkFromOk(a)||!linkToOk(b))return;const design=own(SEA_DESIGNS,UI.seaDesign)?UI.seaDesign:'standard',up=seaUps(seaQuote(a,b,design).km),q=seaQuote(a,b,design,up),km=q.km,cost=q.cost+(S.pops[b]?0:popCost(b));if(seaLack(km,up).length||!spend(cost))return;
    if(!S.pops[b]){S.pops[b]={day:S.day,bb:null,boost:0,down:0,routers:1,gen:false,rgen:0};popStdApply(b);}
@@ -14,7 +14,7 @@ Object.assign(ACT,{
    const laid=S.links[S.links.length-1];laid.paid=q.cost;for(const k of Object.keys(SUB_UPGRADES))if(up[k])laid['sub'+k]=laid.ready;UI.seaDesign='standard';UI.seaterminal=UI.seaengineering=false;
    S.stats.ownCab=(S.stats.ownCab||0)+1;UI.dfSrc='lease';closeModal();UI.sel={type:'link',id};
    toast(tr('fiber_and_hardware.the_ship_sets_sail_name_your',{ship,name:cname,km:km.toLocaleString(),a:CITY[a].name,b:CITY[b].name,n:days}),'goal');sfx('build');after();},
- orderDf:()=>{const p=UI.pending;if(!p||noTalk(p.a,p.b))return;const {a,b}=p;if(!dfAllowed(a,b)||!linkFromOk(a)||!linkToOk(b))return;const sc=isSub(a,b)?subDfCable(a,b):null,km=sc?sc.km:kmBetween(a,b);
+ orderDf:()=>{const p=UI.pending;if(!p||noTalk(p.a,p.b))return;const {a,b}=p;if(modeOn('autarky')&&(UI.dfSrc!=='build'||isSub(a,b)))return;if(!dfAllowed(a,b)||!linkFromOk(a)||!linkToOk(b))return;const sc=isSub(a,b)?subDfCable(a,b):null,km=sc?sc.km:kmBetween(a,b);
    const own=UI.dfSrc==='build'&&!sc,sys=DF_SYS[UI.dfSys]&&techOk('sys',UI.dfSys,DF_SYS[UI.dfSys].lvl)?UI.dfSys:'lite';if(glassLvl()<2)return;
    const up=(own?digCost(km):0)+sysCost(sys)+ampCount(km)*AMP_COST+(S.pops[b]?0:popCost(b));if(!spend(up))return;
    if(!S.pops[b]){S.pops[b]={day:S.day,bb:null,boost:0,down:0,routers:1,gen:false,rgen:0};popStdApply(b);}

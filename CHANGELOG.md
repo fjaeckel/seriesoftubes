@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The project follows
 
 - A dark fiber no longer goes dark when you take out optics its managed waves need: the game now says how much you sold on it and keeps enough lit for your own traffic too (#440).
 - A vendor demo router that takes 3.2T ports can now upgrade the ports you already have to 3.2T, instead of making you leave an exchange and join again; the fastest waves show up the same way (#435).
+- Autarky challenge mode: no leased waves, IRUs, or fabric circuits.
 - Coming back online with a big network in Multimode no longer makes the game crawl while it catches up: the catch-up now holds the page for less than half as long, and other players' networks are worked into your routing once it is done instead of every second along the way, off the main thread.
 
 ## [4.8.0] — 2026-11-18

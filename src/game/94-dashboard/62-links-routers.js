@@ -21,7 +21,7 @@ const hotSeg=(w,all,f)=>{const b=Object.keys(LH).filter(k=>w==='links'||k!=='dow
 function quickOpt(l){if(l.kind!=='df'||l.ready>S.day)return null;const last=(l.ch||[]).at(-1);if(last&&OPT[last]&&!chWhy(l,last))return last;
   let best=null,bg=0;for(const k of Object.keys(OPT))if(!chWhy(l,k)){const g=(optMode(k,l)||{}).g||0;if(g>bg){bg=g;best=k;}}return best;}
 // The next wave size this route sells right now, as the link panel offers it; null when there is none to buy.
-function quickWave(l){if(l.kind!=='wave'||fedWaveDeal(l))return null;for(let i=l.tier+1;i<LT.length;i++)if(waveShown(i)){
+function quickWave(l){if(modeOn('autarky')||l.kind!=='wave'||fedWaveDeal(l))return null;for(let i=l.tier+1;i<LT.length;i++)if(waveShown(i)){
   if(subWaveWhy(i,l.km,l.sub)||soldOut(l.a,l.b,i,l.cable)||!waveOk(l.a,l.b,i))return null;return {i,mo:Math.round(waveMo(l.km,l.sub,i)*(l.mult||1))};}return null;}
 // Each optic type lit here gets − (to the spares shelf) and + (one more, if it fits); fiber with none lit offers quickOpt's.
 function optActs(l){if(l.kind!=='df'||l.ready>S.day)return '';const lit=[...new Set(l.ch||[])].filter(k=>OPT[k]),add=k=>{const c=chCost(l,k),why=chWhy(l,k);return btn('+','addCh',{id:l.id,o:k},'sm',!!why||S.cash<c,why||tr('dashboard.add_one_optic_price',{optic:OPT[k].n,price:fmt$(c)}));};

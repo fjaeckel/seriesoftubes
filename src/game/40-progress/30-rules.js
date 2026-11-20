@@ -8,9 +8,9 @@
 // pnis: PNIs and their augments wait for the other network's team, or (instant) are up the moment they are ordered.
 const RULE_DEF={clock:true,chaos:'normal',lead:'real',market:true,money:'normal',gates:'ladder',sea:'ships',confs:true,broke:'lose',moods:'normal',pnis:'wait',mods:[]};
 // Additional options a Normal game can start with (S.rules.mods), each on its own.
-const GAME_MODS=['outcast'];
-const GAME_MOD_ICON={outcast:'🚫'};
-const GAME_MOD_NAME={outcast:tr('title.outcast_mode')};
+const GAME_MODS=['autarky','outcast'];
+const GAME_MOD_ICON={autarky:'🪨',outcast:'🚫'};
+const GAME_MOD_NAME={autarky:tr('title.autarky_mode'),outcast:tr('title.outcast_mode')};
 const challengeModsOn=s=>!!(s&&s.rules&&Array.isArray(s.rules.mods)&&s.rules.mods.some(m=>GAME_MODS.includes(m)));
 const RULE_LATE=['sea','confs','broke','moods','pnis'];
 const RULE_OK={clock:[true,false],chaos:['none','calm','normal','spicy'],lead:['real','quick'],market:[true,false],money:['normal','infinite'],gates:['ladder','open'],sea:['ships','timer'],confs:[true,false],broke:['lose','rescue'],moods:['normal','patient'],pnis:['wait','instant']};
