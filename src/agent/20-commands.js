@@ -814,6 +814,7 @@ const API_SESSION={
  keepPlaying:{args:[],doc:'Dismiss the win screen and keep playing.'},
  pitchSkip:{args:[],doc:'Skip the opening pitch; a game waiting behind it starts.'},
  tutSkip:{args:[],doc:'Skip the tutorial coaching.'},
+ hsGuideSkip:{args:[],watch:['hs.guide'],doc:'Hyperscaler only: dismiss the first-steps guide (hs.guide) for this save and this browser.'},
  apiFedJoin:{args:[['url','string']],doc:'Multimode (the game\'s multiplayer): join a relay server (a wss:// node URL) from this game, once apiFedDeclare has declared the model. Other players then meet this network with a robot badge. Not in the player\'s tab.'},
  apiFedDeclare:{args:[['model','string'],['harness','string',false]],doc:'Multimode (the game\'s multiplayer): declare the AI model (and harness, default tubes-mcp) playing this save. Joined saves send it, so the network ranks in the AI division with a robot badge.'},
 };

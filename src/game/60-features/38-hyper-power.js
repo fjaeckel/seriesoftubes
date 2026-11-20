@@ -86,7 +86,7 @@ function hsProtShift(c,on,n){const H=S.hs,lo=S.day+1;if(on==='smr'){for(const x 
 function hsProtHeld(c){const p=hsProt(c);if(!p)return false;if(p.on==='smr')return hsPw(c).own.some(x=>x.k==='smr'&&x.ready>S.day);const d=S.hs.rg[c];return !!d&&(!!d.up||d.ready>S.day&&d.t>0);}
 // Goodwill reached the mark: the protest is won; a delayed permit gives its remaining days back.
 function hsProtWin(c){const p=hsProt(c);if(!p||hsPw(c).gw<HS_GW_WIN)return false;if(p.kind==='delay')hsProtShift(c,p.on,-(p.until-S.day));
-  delete S.hs.prot[c];toast(tr('hyper_power.prot_won',{grp:tr(HS_GRP[p.g]),city:esc(CITY[c].name)}),'goal');sfx('coin');return true;}
+  delete S.hs.prot[c];S.stats.hsProt=(S.stats.hsProt||0)+1;toast(tr('hyper_power.prot_won',{grp:tr(HS_GRP[p.g]),city:esc(CITY[c].name)}),'goal');sfx('coin');return true;}
 /* A day: blocked sites wait, protests go home, the utility answers, own generation comes online, power events start
    and end. Everything seeded on the AS number and the day. */
 function hsPwDay(d){const H=S.hs;if(!H||!hyper())return;

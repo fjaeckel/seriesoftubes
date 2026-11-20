@@ -14,6 +14,7 @@ let coachT=null;
 const tutDk=b=>{try{return isDk(JSON.parse(b.dataset.args).city);}catch(e){return false;}};
 function tutorialStart(){let done=false;try{done=!!localStorage.getItem('sot-tut');}catch(e){}if(done||window.__TUBES_TEST__&&!window.__TUBES_TUT__)return;S.tut=0;renderCoach();}
 function renderCoach(){const el=$('coach');if(!el)return;document.querySelectorAll('.coach-glow').forEach(x=>x.classList.remove('coach-glow'));
+  if(S&&hsCoach(el))return;
   if(!S||S.tut===undefined||S.tut===null||S.lost){el.hidden=true;return;}
   while(S.tut<TUT.length){const st=TUT[S.tut];let ok=false;try{ok=st.ok()||(st.skip&&st.skip());}catch(e){}if(!ok)break;S.tut++;}
   if(S.tut>=TUT.length){S.tut=null;el.hidden=true;try{localStorage.setItem('sot-tut','1');}catch(e){}toast(tr('tutorial.you_know_the_basics_your_goals'),'goal');return;}
@@ -21,7 +22,7 @@ function renderCoach(){const el=$('coach');if(!el)return;document.querySelectorA
 /* The glow follows the UI: re-rendering a panel drops the class, so renderLeft and renderPanel call this again. Only
    while the tutorial runs. A glowing button scrolled out of its panel is brought into view, once per button. */
 function coachGlow(){document.querySelectorAll('.coach-glow').forEach(x=>x.classList.remove('coach-glow'));
-  const st=S&&S.tut!=null&&TUT[S.tut];if(!st||!st.sel||$('coach').hidden||st.idle&&st.idle())return;
+  const st=S&&(S.tut!=null?TUT[S.tut]:hsGuideStep());if(!st||!st.sel||$('coach').hidden||st.idle&&st.idle())return;
   // Passes: on screen and not skipped, then loosened (a page without layout, like the tests', has nothing "on screen").
   let t=null;for(const [v,n] of [[1,1],[0,1],[1,0],[0,0]])for(const q of st.sel){if(t)break;for(const x of document.querySelectorAll(q))if((!v||x.getClientRects().length)&&!(n&&st.no&&st.no(x))){t=x;break;}}
   if(!t)return;t.classList.add('coach-glow');if(coachT===t)return;coachT=t;

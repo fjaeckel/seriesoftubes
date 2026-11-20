@@ -38,6 +38,7 @@ const HELP_G=()=>[
  [tr('common.nni_fabrics'),tr('help.megapork_pocketfabric_and')],
  [tr('common.conferences'),tr('help.nanog_ripe_denog_and_friends_come')],
  [tr('common.modes'),tr('help.one_game_four_doors_and_the')],
+ [tr('hyper.hyperscaler'),tr('hyper_story.help',{p:pct(HS_EDGE),ct:HS_C9_CT,g:fmtG(HS_C9_BTW)})],
  [tr('common.traceroute'),tr('help.tap_traceroute_on_any_of_your')],
  [tr('common.badges'),tr('help.below_your_goals_sits_a_wall')],
  [tr('common.the_giants'),tr('help.at_customer_level_3_and_4')],

@@ -77,7 +77,7 @@ function renderLeft(){checkLayer();
     h+=netsTab();
   }
   if(h!==UI._lh){UI._lh=h;morph($('leftBody'),h);}
-  if(S.tut!=null)coachGlow();
+  if(S.tut!=null||hsGuideOn())coachGlow();
 }
 function renderPanel(){checkLayer();
   const P=$('panel');
@@ -88,5 +88,5 @@ function renderPanel(){checkLayer();
   const scrollEl=$('panelBody').querySelector('.scroll');const st=scrollEl?scrollEl.scrollTop:0;
   const html=pzOn()?pzPanel(UI.sel):UI.sel.type==='city'?cityPanel(UI.sel.id):linkPanel(UI.sel.id);if(!html){P.hidden=true;return;}if(html===UI._ph&&!P.hidden&&$('panelBody').firstChild)return;UI._ph=html;morph($('panelBody'),html);
   const ns=$('panelBody').querySelector('.scroll');if(ns)ns.scrollTop=st;
-  if(S.tut!=null)coachGlow();
+  if(S.tut!=null||hsGuideOn())coachGlow();
 }

@@ -111,7 +111,7 @@ function hsTrafficDay(d){const H=S.hs,o=R.hs;if(!H)return;
   if(rs.length>=2&&H.jo.length<2){const labs=hsTen().filter(b=>b.ck==='lab');if((lvl()>=CLOUD_TENANTS.lab.lv||labs.length)&&Math.random()<HS_JOB_ODDS*(labs.length?2:1))hsJobOffer(d,rs,labs);}}
 // A model finishes (fed: the share of its terabytes delivered by its deadline): it ships, or it flops in public.
 function hsShip(m,d){const H=S.hs,fed=clamp(m.done/m.tb,0,1),name=HS_MODELS[m.n],flop=hsFlopRoll(m)<hsFlopP(fed);H.own.splice(H.own.indexOf(m),1);
-  if(flop){if(!(hsBoostF()>0))H.boost={until:d+30,f:-0.05};toast(`🦜 ${tr(HS_FLOPS[hstr(name+'|'+m.start)%HS_FLOPS.length],{name})}<br>${tr('hyper_traffic.flop_fed',{p:pct(fed)})}`,'bad');sfx('err');return;}
+  if(flop){S.stats.hsFlop=(S.stats.hsFlop||0)+1;if(!(hsBoostF()>0))H.boost={until:d+30,f:-0.05};toast(`🦜 ${tr(HS_FLOPS[hstr(name+'|'+m.start)%HS_FLOPS.length],{name})}<br>${tr('hyper_traffic.flop_fed',{p:pct(fed)})}`,'bad');sfx('err');return;}
   const f=HS_OWN[m.k].f*(0.5+0.5*fed);H.boost={until:d+HS_BOOST_D,f:Math.max(f,hsBoostF())};H.ai=(H.ai|0)+1;
   toast(tr('hyper_traffic.model_shipped',{name,p:pct(f),date:dateStr(H.boost.until)}),'goal');sfx('coin');}
 // An AI lab asks for a run between two of your live regions (each pair alike).

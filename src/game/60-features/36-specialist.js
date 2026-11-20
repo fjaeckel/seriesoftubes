@@ -71,7 +71,7 @@ function seatPanel(l){if(!l.seat)return '';return `<div class="kv"><span>${tr('s
    win, Speed of Light; the Cable broker (#300) lays and lights glass on land and under the sea from day one, at the
    usual prices, sells it, and has its own goals and win, Glass Baron (37-cable-broker.js). The Hyperscaler (37-hyper.js)
    builds a cloud: users by country, regions, front doors and its own backbone; it sells cloud, never transit. */
-const CHARTERS={global:{i:'🌐',n:N_('specialist.global_backbone'),d:N_('specialist.the_classic_game_grow_everywhere_and')},boutique:{i:'⚡',n:N_('specialist.low_latency_boutique'),d:N_('specialist.trading_firms_and_other_latency_customers')},broker:{i:'🚢',n:N_('specialist.cable_broker'),d:N_('specialist.cable_broker_desc')},hyper:{i:'☁️',n:N_('hyper.hyperscaler'),d:N_('hyper.charter_desc')}};
+const CHARTERS={global:{i:'🌐',n:N_('specialist.global_backbone'),d:N_('specialist.the_classic_game_grow_everywhere_and')},boutique:{i:'⚡',n:N_('specialist.low_latency_boutique'),d:N_('specialist.trading_firms_and_other_latency_customers')},broker:{i:'🚢',n:N_('specialist.cable_broker'),d:N_('specialist.cable_broker_desc')},hyper:{i:'☁️',n:N_('hyper.hyperscaler'),d:N_('hyper_story.charter_desc')}};
 const CHARTER_DAYS=30,LAT_PAY=1.4,SOL_ROUTES=3,SOL_CUST=2;
 const charter=()=>S&&!S.scn&&S.mode==='normal'&&(S.charter==='boutique'||S.charter==='broker'||S.charter==='hyper')?S.charter:'global';
 const broker=()=>charter()==='broker';
@@ -91,7 +91,8 @@ function solRoutes(){const k=S.day+'|'+S.links.length+'|'+S.links.reduce((n,l)=>
   SOLC={s:S,k,v};return v;}
 const solCust=()=>S.biz.filter(b=>BIZ_T[b.type]&&BIZ_T[b.type].lat&&b.mood>=50&&reqOk(b)).length;
 // What each charter promises, as the picker and the agent's docs say it.
-const charterDesc=C=>tr(C.d,{p:Math.round((LAT_PAY-1)*100),r:SOL_ROUTES,c:SOL_CUST,n:BARON_CONT,m:fmt$(BARON_MO)});
+// C.v(): a charter's own numbers (the Hyperscaler's Cloud Nine, 39-hyper-story.js).
+const charterDesc=C=>tr(C.d,{p:Math.round((LAT_PAY-1)*100),r:SOL_ROUTES,c:SOL_CUST,n:BARON_CONT,m:fmt$(BARON_MO),...(C.v?C.v():{})});
 /* The picker: when a Normal game starts (and when a save that never picked loads), before anything else. It pauses the
    clock like any open window and cannot be closed without a choice; the tutorial waits for it. Seeded tests skip it unless
    they ask (window.__TUBES_CHARTER__), as they skip the tutorial: they sign a charter with ACT.charter when they need one. */

@@ -77,7 +77,7 @@ function hsRvDay(d){const H=S.hs;if(!H||!H.rv)return;const V=H.rv;
       else if(hsRvIgnored(reg)){const P=hsRvWar(reg);b.rate=Math.max(1,Math.round(b.rate*(1-P.f)));toast(tr('hyper_rivals.renewed_cheaper',{rival:esc(hsRvN(w)),name:esc(b.name),p:pct(P.f)}),'warn');}
       else V.bt++;}}
   // A price war ends, or starts where your tenants are.
-  if(V.pw&&V.pw.until<=d){toast(tr('hyper_rivals.war_over',{rival:esc(hsRvN(V.pw.w)),reg:REG[V.pw.reg]}),'good');delete V.pw;}
+  if(V.pw&&V.pw.until<=d){if(V.pw.m)S.stats.hsWar=(S.stats.hsWar||0)+1;toast(tr('hyper_rivals.war_over',{rival:esc(hsRvN(V.pw.w)),reg:REG[V.pw.reg]}),'good');delete V.pw;}
   const ts=hsTen();if(!V.pw&&d>=V.nw&&ts.length>=2){const regs=[...new Set(ts.map(b=>CITY[b.city].reg))].sort(),reg=regs[Math.floor(hsRvU('wr|'+d)*regs.length)],w=hsRvWho(reg,'ww|'+d);
     if(w>=0){const f=Math.round((0.15+0.1*hsRvU('wf|'+d))*100)/100,until=d+45+Math.floor(hsRvU('wu|'+d)*30);V.pw={w,reg,from:d,until,f,m:0};V.nw=until+90+Math.floor(hsRvU('wn|'+d)*90);
       toast(`📉 ${hsRvHead(HS_RV_WARS,'wh|'+d,{rival:esc(hsRvN(w)),reg:REG[reg],p:pct(f)})}<br>${tr('hyper_rivals.war_choice',{p:pct(f),date:dateStr(until)})}`,'warn',[{l:tr('hyper_rivals.match'),act:'hsRvMatch',args:{on:1}}]);}}
