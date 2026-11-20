@@ -63,7 +63,7 @@ function hnocRgSection(){const H=S.hs,o=R.hs,u=c=>{const x=o&&o.rg[c];return x&&
     if(d.up)f.push(hnocTag('st',tr('hyper_ui.sum_building',{name:tr(HS_T[d.up.t].n),date:dateStr(d.up.ready)})));
     if(lag>HS_RISK)f.push(hnocTag('restrictive',tr('hyper_ui.f_backlog')));
     h+=hnocRow(c,`<div class="nm">🏢 ${esc(CITY[c].name)} <span class="meta">${tr(T.n)}</span></div>
-      ${x?`<div class="meta">${tr('city_panel.a_of_b',{a:fmtG(x.load),b:fmtG(x.g)})} · ${tr('hyper.slots')} ${tr('city_panel.a_of_b',{a:hsSlotsUsed(c),b:T.slots})}</div>${hsBar(v,v>=0.95)}`:''}
+      ${x?`<div class="meta">${tr('city_panel.a_of_b',{a:fmtG(x.load),b:fmtG(x.g)})} · ${tr('hyper.slots')} ${tr('city_panel.a_of_b',{a:hsSlotsUsed(c),b:hsSlots(c)})}</div>${hsBar(v,v>=0.95)}`:''}
       <div class="meta">⚡ ${tr('hyper_noc.power_line',{mw:+hsMwUsed(c).toFixed(1),grid:hsSupply(c),free:Math.floor(free)})}</div>
       ${rep?`<div class="meta${lag>0?' hnoc-bad':''}">🔁 ${tr('hyper_noc.backlog_to',{city:esc(CITY[rep].name),tb:hsTb(lag)})}</div>`:''}${hnocFlags(f)}`,live&&x?pct(v):null,v>=0.95);}
   return h+`</div>`+hnocMore('hsrg',cs.length)+`</div>`;}

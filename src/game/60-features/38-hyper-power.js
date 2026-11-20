@@ -40,7 +40,8 @@ const hsTown=c=>Math.round(hsGrid(c)*(0.5+hstr('town|'+c)%21/100)*hsEvF(c,'town'
 const hsGenMw=c=>hsPw(c).own.reduce((a,x)=>a+(x.ready<=S.day?HS_GEN[x.k].mw:0),0);
 const hsSupply=c=>hsPw(c).cap+hsGenMw(c);
 const hsMwX=c=>HS_MW_X.reduce((a,f)=>a+(+f(c)||0),0);
-const hsMwTen=c=>S.hs&&S.hs.rg[c]?hsTen().filter(b=>b.rg===c).length*HS_MW_SLOT:0;
+// Tenants in a leased cage draw on the provider's power, not your grid (38-hyper-zones.js).
+const hsMwTen=c=>S.hs&&S.hs.rg[c]&&S.hs.rg[c].t!==HS_CAGE?hsTen().filter(b=>b.rg===c).length*HS_MW_SLOT:0;
 /* ===== The API phase 3 calls (AI training runs and anything else that wants megawatts) =====
    hsMwUsed(c): the MW you draw in metro c right now: the live region tier, its tenants, HS_MW_X loads, plus the
      cooling a heatwave adds.
@@ -48,8 +49,9 @@ const hsMwTen=c=>S.hs&&S.hs.rg[c]?hsTen().filter(b=>b.rg===c).length*HS_MW_SLOT:
    hsMwFree(c): what is left for you in c (grid plus own generation, minus the town, minus the larger of the two
      above); may be negative when a heatwave or a cut squeezes the metro. Check it before starting a training run.
    hsCut(c): the share of what the region in c can serve tonight (1 unless it draws more than the metro gives). */
-function hsMwUsed(c){const H=S.hs;if(!H)return 0;const d=H.rg[c],live=d&&d.ready<=S.day?HS_T[d.t].mw:0;return (live+hsMwTen(c)+hsMwX(c))*hsEvF(c,'cool');}
-function hsMwRes(c){const H=S.hs;if(!H)return 0;const d=H.rg[c];return (d?HS_T[d.up?d.up.t:d.t].mw:0)+hsMwTen(c)+hsMwX(c);}
+function hsMwUsed(c){const H=S.hs;if(!H)return 0;const d=H.rg[c];if(d&&d.t===HS_CAGE)return 0;const live=d&&d.ready<=S.day?HS_T[d.t].mw:0;return (live+hsMwTen(c)+hsMwX(c))*hsEvF(c,'cool');}
+// A cage holds nothing of your grid until you move out of it; zones being built hold theirs (38-hyper-zones.js).
+function hsMwRes(c){const H=S.hs;if(!H)return 0;const d=H.rg[c];if(d&&d.t===HS_CAGE&&!d.up)return 0;return (d?HS_T[d.up?d.up.t:d.t].mw:0)+hsMwTen(c)+hsMwX(c)+hsAzMwB(c);}
 function hsMwFree(c){if(!S.hs)return 0;return hsSupply(c)-hsTown(c)-Math.max(hsMwRes(c),hsMwUsed(c));}
 function hsCut(c){if(!S.hs)return 1;const u=hsMwUsed(c),a=hsSupply(c)-hsTown(c);return u<=a+1e-9?1:clamp(a/u,0,1);}
 // Price of a MW for a month in c, and the month's bill there (your own cheap generation first; the starter's MW free).

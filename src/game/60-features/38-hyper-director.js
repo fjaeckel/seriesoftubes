@@ -41,7 +41,8 @@ const hsDirCap=()=>1+0.25*lvl();
 const hsDirCm=()=>clamp(chaosMul(),0,2);
 const hsDirQuiet=()=>Math.round(clamp(22-2*lvl(),10,20)/Math.max(0.5,hsDirCm()));
 // Something is on: an incident (any kind, classic ones too).
-const hsDirInc=()=>S.inc.some(i=>i.until>S.day);
+// A zone out (38-hyper-zones.js) is a bad day the region shrugs off, not a crisis.
+const hsDirInc=()=>S.inc.some(i=>i.until>S.day&&i.type!=='hsaz');
 // Whether the crisis granted last is over: by what it was about.
 function hsDirDone(x){const H=S.hs;if(S.day-x.d>=HS_DIR_SPAN)return true;if(hsDirInc())return false;
   if(x.k==='prot')return !hsProt(x.r)||!hsProtHeld(x.r);
@@ -72,7 +73,8 @@ const hsDirBusy=()=>!!S.hs&&(hsDirSettle(),!!hsDir().c||hsDirInc());
    stays up and the incident becomes grid trouble there (71-hyper-incidents.js), with the same repair. */
 const HS_SOFT=['crash','power','oops','cleaner','shutdown'];
 function hsSolo(){const H=S.hs;if(!H||!hyper())return '';const rs=Object.keys(H.rg).filter(c=>H.rg[c].ready<=S.day&&S.pops[c]&&!hsDownAt(c));return rs.length===1?rs[0]:'';}
-function hsSoloSoft(i){if(!i||!HS_SOFT.includes(i.type))return false;const c=hsSolo();if(!c||i.ref!==c)return false;const p=S.pops[c];
+// A region with a zone to spare loses only that zone, alone or not (hsAzSoft, 38-hyper-zones.js).
+function hsSoloSoft(i){if(hsAzSoft(i))return true;if(!i||!HS_SOFT.includes(i.type))return false;const c=hsSolo();if(!c||i.ref!==c)return false;const p=S.pops[c];
   p.down=remainUntil(x=>x!==i&&x.ref===c&&HS_SOFT.includes(x.type))||0;if(!(p.down>S.day))delete p.down;
   i.type='hspow';i.msg+=' '+tr('hyper_dir.solo_soft',{p:pct(HI_POW)});return true;}
 /* World events (85-incidents/30-events.js) a cloud meets: what touches its own network (its waves, POPs, transit, the

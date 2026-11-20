@@ -32,10 +32,11 @@ function hsPwBody(c){const H=S.hs;const P=hsPw(c),d=H.rg[c],sup=hsSupply(c),town
    +hsKv(tr('hyper_power.you_draw'),res>used+0.05?tr('hyper_power.mw_holding',{mw:+used.toFixed(1),res:+res.toFixed(1)}):tr('hyper_power.n_mw',{mw:+used.toFixed(1)}))
    +hsKv(tr('hyper_power.free'),tr('hyper_power.n_mw',{mw:Math.floor(free)}),free<0?'color:var(--bad)':'')+hsBar((town+Math.max(used,res))/(sup||1),free<HS_MW_SLOT);
   h+=hsKv(tr('hyper_power.price'),tr('hyper_power.price_mw_mo',{price:fmt$(hsPwPrice(c))}))+(d?hsKv(tr('hyper_power.bill'),tr('common.price_mo',{price:fmt$(hsPwBill(c))})):'');
+  h+=hsColoPwLine(c);
   for(const e of hsEv(c))h+=`<p class="why">${e.k==='heat'?'🔥 '+tr('hyper_power.ev_heat_here',{date:dateStr(e.until)}):'💸 '+tr('hyper_power.ev_crunch_here',{date:dateStr(e.until)})}</p>`;
   {const f=hsCut(c);if(d&&f<1)h+=`<p class="why">${tr('hyper_power.cut_here',{p:pct(f)})}</p>`;}
   if(!d)h+=`<p class="note">${tr('hyper_power.region_needs',{mw:HS_T[1].mw,free:Math.max(0,Math.floor(free))})}</p>`;
-  else{const N=HS_T[d.t+1];if(N&&!d.up&&d.ready<=S.day){const need=N.mw-HS_T[d.t].mw;h+=`<p class="${need>free?'why':'note'}">${tr('hyper_power.next_needs',{name:tr(N.n),mw:need,free:Math.max(0,Math.floor(free))})}</p>`;}}
+  else{const N=hsTNext(d);if(N&&!d.up&&d.ready<=S.day){const need=N.mw-HS_T[d.t].mw;h+=`<p class="${need>free?'why':'note'}">${tr('hyper_power.next_needs',{name:tr(N.n),mw:need,free:Math.max(0,Math.floor(free))})}</p>`;}}
   // The utility queue.
   h+=P.q?`<p class="meta">⏳ ${tr('hyper_power.queue_pending',{util:tr(hsUtil(c)),mw:P.q.mw,date:dateStr(P.q.ready)})}</p>`
    :`<p class="note">${tr('hyper_power.queue_terms',{util:tr(hsUtil(c))})}</p>${hsPwRow(btn(tr('hyper_power.ask_util',{mw:HS_Q_MW,cost:fmt$(HS_Q_FEE)}),'hsUtil',{city:c},'sm',S.cash<HS_Q_FEE))}`;

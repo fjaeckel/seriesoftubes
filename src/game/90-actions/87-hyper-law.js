@@ -7,6 +7,7 @@ Object.assign(ACT,{
    E.st='cut';E.u=S.day+HS_EGR_DAYS;for(const b of hsEgrTen())b.mood=Math.min(100,(b.mood||0)+10);
    toast(`🏨 ${tr('hyper_reg.egr_cut',{min,p:pct(HS_EGR_CUT),date:dateStr(E.u)})}`,'good');sfx('coin');after();},
 });
-// A moratorium: no new region or upgrade in that metro, and the utility takes no request (your own generation still may).
+// A moratorium: no new region, upgrade, zone or move out of a cage in that metro, and the utility takes no request (your
+// own generation still may, and so may a leased cage: the provider's building is connected already).
 {const say=c=>{const x=hsMorAt(c);toast(`🔌 ${tr('hyper_reg.mor_refused',{city:esc(CITY[c].name),min:hsMin('mor',x.m),until:dateStr(x.u)})}`,'bad');sfx('err');};
-  for(const k of ['hsRegion','hsUtil']){const f=ACT[k];ACT[k]=a=>{const c=a&&a.city;if(hyper()&&S.hs&&isCity(c)&&hsMorAt(c)){say(c);return;}return f(a);};}}
+  for(const k of ['hsRegion','hsUtil','hsZone','hsColoOut']){const f=ACT[k];ACT[k]=a=>{const c=a&&a.city;if(hyper()&&S.hs&&isCity(c)&&hsMorAt(c)){say(c);return;}return f(a);};}}

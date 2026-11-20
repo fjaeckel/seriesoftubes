@@ -17,7 +17,14 @@ const HS_MS=[15,120,0.6];
 const HS_T=[{n:N_('hyper.t_shack'),g:400,mw:5,slots:4,cost:0,mo:3000,lv:1,days:0},
  {n:N_('hyper.t_barn'),g:1500,mw:20,slots:12,cost:400000,mo:15000,lv:1,days:60},
  {n:N_('hyper.t_campus'),g:5000,mw:60,slots:40,cost:2500000,mo:45000,lv:4,days:90},
- {n:N_('hyper.t_gulch'),g:15000,mw:200,slots:120,cost:8000000,mo:120000,lv:8,days:120}];
+ {n:N_('hyper.t_gulch'),g:15000,mw:200,slots:120,cost:8000000,mo:120000,lv:8,days:120},
+ // HS_CAGE: a leased colo cage in someone else's data center (38-hyper-zones.js). Not a step on the ladder above: it is
+ // never grown in place (hsTNext), only moved out of into a Server Barn; cost is the setup fee, mo the lease, and its
+ // megawatts are the provider's (mw 0: none from your grid budget; the provider passes the power bill on).
+ {n:N_('hyper_colo.t_cage'),g:600,mw:0,slots:3,cost:40000,mo:30000,lv:2,days:14}];
+const HS_CAGE=4;
+// The tier a region grows into next, or null (the top of the ladder, or a cage).
+const hsTNext=d=>d&&d.t+1<HS_CAGE?HS_T[d.t+1]:null;
 // What each level asks of a Hyperscaler (index i: to reach level i+1): its own peak (Gbps), regions, and continents with a
 // region. A cloud's peak is what its regions can serve, a few Tbps the first year, not a carrier's whole network: the
 // classic ladder (LV_REQ) asks 6 Tbps for level 5, which a cloud with a Rack Shack and two Server Barns cannot reach.
@@ -36,7 +43,7 @@ const hsRgN=()=>Object.keys(S.hs.rg).length;
 // A region that failed or is drained by a drill is not live (38-hyper-failover.js).
 const hsLive=c=>!!S.hs&&siteLive(S.hs.rg,c)&&popUp(c)&&!hsOff(c);
 const hsRgs=()=>S.hs?Object.keys(S.hs.rg).filter(hsLive).sort():[];
-const hsSlots=c=>HS_T[S.hs.rg[c].t].slots;
+const hsSlots=c=>HS_T[S.hs.rg[c].t].slots+hsAzSlots(c);
 const hsTen=()=>S.biz.filter(b=>b.type==='cloud');
 const hsSlotsUsed=c=>hsTen().filter(b=>b.rg===c).length+hsTrainSlotsAt(c);
 const hsSlotFree=()=>hsRgs().some(r=>hsSlotsUsed(r)<hsSlots(r));
@@ -59,7 +66,7 @@ const hsAcc=(v,m)=>kmBetween(v,m)*1.25/200;
    got), short (users no region had room for). */
 function hsFlows(R2,flow,DEMTO,X){const H=S.hs;if(!H||!hyper())return null;
   const out={cc:{},rg:{},door:{},ten:{},short:0},jobs=[];R2.hs=out;const rgs=hsRgs(),room={};
-  for(const r of rgs){room[r]=siteRoom(HS_T[H.rg[r].t].g,r);out.rg[r]={g:room[r],load:0,u:0,bt:0,nt:0};}
+  for(const r of rgs){room[r]=siteRoom(hsRgG(r),r);out.rg[r]={g:room[r],load:0,u:0,bt:0,nt:0};}
   const MS=new Map(),ms=(a,b)=>{const k=a+'>'+b;let v=MS.get(k);if(v===undefined)MS.set(k,v=X.ms(a,b));return v;};
   // Each region's replica (38-hyper-traffic.js): where its copies go tonight.
   for(const r of rgs)out.rg[r].rep=hsRepOf(r,rgs,ms);
@@ -113,7 +120,7 @@ const hsRev=(r,cc)=>S.hs.cc[cc].d*hsQ(r,cc)*HS_RATE*cxMul('rev',cc);
    than to the average (one neglected product sours the lot). */
 function hsNeedQ(r,b,id){const T=r&&r.hs&&r.hs.ten[b.id],P=CLOUD_PRODUCTS[id];if(!T||!T.v||!P)return 0;const H=S.hs,rg=H.rg[T.r];
   const n=P.need,need=n==='pair'?(T.r2?1:0.8):n==='doors'?(Object.keys(S.pops).filter(hsDoor).length>=2?1:0.9):n==='edge'?(H.edge[T.v]?1:0.8)
-    :n==='port'?(T.v===b.city||id==='pc'&&hsfRamp(b.city)?1:0.7):n==='power'?(rg&&rg.t>=2?1:0.85):n==='home'?(CITY[T.r].cc===CITY[b.city].cc?1:0.5):n==='model'?(hsAiOn()?1:0.5):1;
+    :n==='port'?(T.v===b.city||id==='pc'&&hsfRamp(b.city)?1:0.7):n==='power'?(rg&&rg.t>=2&&rg.t<HS_CAGE?1:0.85):n==='home'?(CITY[T.r].cc===CITY[b.city].cc?1:0.5):n==='model'?(hsAiOn()?1:0.5):1;
   return need*(1-P.lat*(1-hsLatF(T.ms)))*hsIncNeed(id);}
 function hsTenQ(r,b){const T=r&&r.hs&&r.hs.ten[b.id];if(!T||!T.v||!Array.isArray(b.p)||!b.p.length)return 0;
   const hw=T.hw+(T.bt||0),hauled=hw>1e-9?clamp((T.got+(T.btg||0))/hw,0,1):1,sv=T.f*sfOf(r,T.v)*hauled,q=b.p.map(id=>hsNeedQ(r,b,id)*sv);
@@ -179,7 +186,7 @@ CX_FLOW.push(hsFlows);CX_POST.push(hsPost);CX_MONEY.push(hsMoney);
 // Saves: only a Hyperscaler keeps S.hs (and cloud tenants), and every field of it is checked here.
 function hsSanitize(s){if(s.charter!=='hyper'){delete s.hs;s.biz=s.biz.filter(b=>b.type!=='cloud');s.offers=s.offers.filter(o=>o.type!=='cloud');return;}
   const h0=s.hs&&typeof s.hs==='object'&&!Array.isArray(s.hs)?s.hs:{},o={},n=(v,d)=>Number.isFinite(+v)?+v:d,obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
-  o.rg={};if(obj(h0.rg))for(const k of Object.keys(h0.rg).slice(0,40)){const x=h0.rg[k];if(isCity(k)&&s.pops[k]&&obj(x)&&(k===s.home||siteOk(k,HS_MIN_P))){o.rg[k]=siteFix(x,HS_T.length);o.rg[k].mw=HS_T[o.rg[k].t].mw;}}
+  o.rg={};if(obj(h0.rg))for(const k of Object.keys(h0.rg).slice(0,40)){const x=h0.rg[k];if(isCity(k)&&s.pops[k]&&obj(x)&&(k===s.home||siteOk(k,HS_MIN_P))){o.rg[k]=siteFix(x,+x.t===HS_CAGE?HS_T.length:HS_CAGE);o.rg[k].mw=HS_T[o.rg[k].t].mw;}}
   if(s.pops[s.home]&&!o.rg[s.home]&&!Object.keys(o.rg).length)o.rg[s.home]={t:0,ready:0,mw:HS_T[0].mw};
   o.cc={};if(obj(h0.cc))for(const k of Object.keys(h0.cc).slice(0,250)){const x=h0.cc[k];if(ccInfo(k)&&!hsWhy(k)&&obj(x)){o.cc[k]={d:clamp(n(x.d,1),0,1e6),since:Math.round(n(x.since,0))};if(isCity(x.home))o.cc[k].home=x.home;}}
   o.edge={};if(obj(h0.edge))for(const k of Object.keys(h0.edge).slice(0,500))if(isCity(k)&&s.pops[k]&&h0.edge[k])o.edge[k]=1;

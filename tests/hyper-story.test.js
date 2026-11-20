@@ -55,7 +55,9 @@ test('the unlocks and the Next line come from the code that gates them', (t) => 
   assert.match(L[8].unlock, /small modular reactor.*your own subsea cables|your own subsea cables.*small modular reactor/);
   assert.equal(L[12].unlock, 'nothing new but the view: Cloud Nine is up to you');
   // The Next line asks what lvNeed asks: peak, live regions, continents.
-  assert.equal(ev('lvNext(lvInfo(1),true)'), 'Next: Partly Cloudy, at a 150 Gbps peak with 1 live region. It brings room for 3 regions, enterprises lifting and shifting, game studios, heatwaves and energy crunches, and botnets.');
+  assert.equal(ev('lvNext(lvInfo(1),true)'), 'Next: Partly Cloudy, at a 150 Gbps peak with 1 live region. It brings room for 3 regions, leased colo cages (a region in two weeks), a second availability zone per region, enterprises lifting and shifting, game studios, heatwaves and energy crunches, and botnets.');
+  // The middle steps (38-hyper-zones.js): a third zone at level 5.
+  assert.match(L[4].unlock, /a third availability zone per region/);
   assert.match(ev('lvNext(lvInfo(4),true)'), /^Next: Fog Computing, at a 2\.00 Tbps peak with 3 live regions on 2 continents\./);
   assert.equal(ev('lvNext(null)'), 'Top of the sky. Only Cloud Nine is higher.');
   // A balance pass that moves a gate moves the story with it.

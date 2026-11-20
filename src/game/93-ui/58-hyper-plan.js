@@ -11,6 +11,8 @@ const hpFc=()=>{const h=hp();return h?h.F:null;};
 // What runs out, in words.
 function hpWhat(x){const v={city:hpCity(x.c),d:hpDays(x.d)};
   if(x.k==='rg')return x.d>0?tr('hyper_plan.rg_full',v):tr('hyper_plan.rg_full_now',v);
+  if(x.k==='colo'){const w={city:hpCity(x.b),d:v.d};return x.d>0?tr('hyper_plan.rg_full',w):tr('hyper_plan.rg_full_now',w);}
+  if(x.k==='az')return x.o>=2?trn('hyper_plan.az_outages',x.o,{city:v.city}):tr('hyper_plan.az_one',{city:v.city});
   if(x.k==='grid')return tr('hyper_plan.grid_full',{city:v.city,mw:Math.max(0,Math.floor(hsMwFree(x.c)*10)/10)});
   if(x.k==='door')return x.d>0?tr('hyper_plan.door_full',v):tr('hyper_plan.door_full_now',v);
   const ab={a:hpCity(x.c),b:hpCity(x.b),d:v.d,n:HS_RISK};
@@ -30,19 +32,25 @@ function hpFix(x){const c=x.c,util=x.c?tr(hsUtil(c)):'',T=x.t!==undefined?HS_T[x
     case 'pwq':return T?tr('hyper_plan.fix_pwq',{util,date:dateStr(S.day+x.q),name:N,lead:hpLead(x.lead-x.q)}):tr('hyper_plan.fix_pwq_grid',{util,date:dateStr(S.day+x.lead)});
     case 'util':return tr('hyper_plan.fix_util',{util,mw:HS_Q_MW,lead:hpLead(x.lead)});
     case 'port':return tr('hyper_plan.fix_port');
+    case 'move':return tr('hyper_plan.fix_move',{name:N,lead:hpLead(x.lead)});
+    case 'colo':return tr('hyper_plan.fix_colo',{prov:tr(hsColoP(c)),city:hpCity(c),lead:hpLead(x.lead),mo:fmt$(HS_T[HS_CAGE].mo)});
+    case 'zone':return tr('hyper_plan.fix_zone',{cost:fmt$(hsAzCost(c)),lead:hpLead(x.lead)});
     default:return tr('hyper_plan.fix_wave',{a:hpCity(c),b:hpCity(x.b)});}}
 // The fix's button (or ''), and the city's.
 function hpFixBtn(x,cls){const c=x.c;cls=cls||'sm';
   if(x.fix==='up'){const N=HS_T[x.t];return btn(tr('hyper_plan.b_grow',{name:tr(N.n),cost:fmt$(N.cost)}),'hsRegion',{city:c},cls,S.cash<N.cost||chFrozen()!==null);}
   if(x.fix==='pw'||x.fix==='util')return btn(tr('hyper_plan.b_util',{mw:HS_Q_MW,cost:fmt$(HS_Q_FEE)}),'hsUtil',{city:c},cls,S.cash<HS_Q_FEE);
   if(x.fix==='port')return btn(tr('hyper_plan.b_port'),'hsPlanGo',{city:c,k:'up'},cls);
+  if(x.fix==='move'){const N=HS_T[1];return btn(tr('hyper_colo.move_cost',{cost:fmt$(N.cost)}),'hsColoOut',{city:c},cls,S.cash<N.cost||chFrozen()!==null);}
+  if(x.fix==='colo'){const T=HS_T[HS_CAGE];return S.pops[c]?btn(tr('hyper_colo.lease_cost',{cost:fmt$(T.cost)}),'hsColo',{city:c},cls,S.cash<T.cost||chFrozen()!==null||!!hsColoWhy(c)):'';}
+  if(x.fix==='zone'){const k=hsAzCost(c);return btn(tr('hyper_az.add_cost',{cost:fmt$(k)}),'hsZone',{city:c},cls,S.cash<k||chFrozen()!==null||!!hsAzWhy(c));}
   if(x.fix==='wave')return btn(tr('hyper_plan.b_wave'),'hsPlanGo',{city:c,k:'links'},cls);
   if(x.fix==='new')return btn(tr('hyper_plan.b_new'),'hsPlanGo',{city:c,k:'cust'},cls);
   return '';}
 const hpOpenBtn=x=>btn(tr('common.open'),'hsPlanGo',{city:x.c,k:'cust'},'ghost sm');
-const hpIcon={rg:'🏢',grid:'⚡',door:'🚪',lag:'🔁',rep:'🔁',run:'🤖'};
+const hpIcon={rg:'🏢',colo:'🔐',grid:'⚡',door:'🚪',lag:'🔁',rep:'🔁',run:'🤖',az:'🧱'};
 // Time left against the fix's lead time.
-function hpTags(x){const t=[hnocTag('st',x.d>0?tr('hyper_plan.t_left',{d:hpDays(x.d)}):tr('hyper_plan.t_out_now'))];if(x.lead!==null)t.push(hnocTag('st',tr('hyper_plan.t_takes',{d:hpLead(x.lead)})));
+function hpTags(x){if(x.k==='az')return hnocFlags([hnocTag('st',tr('hyper_plan.t_takes',{d:hpLead(x.lead)})),hnocTag('open',tr('hyper_plan.t_az'))]);const t=[hnocTag('st',x.d>0?tr('hyper_plan.t_left',{d:hpDays(x.d)}):tr('hyper_plan.t_out_now'))];if(x.lead!==null)t.push(hnocTag('st',tr('hyper_plan.t_takes',{d:hpLead(x.lead)})));
   t.push(x.red?hnocTag('restrictive',x.lead===null?tr('hyper_plan.t_no_fix'):tr('hyper_plan.t_order_now')):hnocTag('open',tr('hyper_plan.t_in_time')));return hnocFlags(t);}
 const HP_ROWS=12;
 function hpPlanSection(){const h=hp();if(!h)return '';const P=h.P;
@@ -53,13 +61,14 @@ function hpPlanSection(){const h=hp();if(!h)return '';const P=h.P;
   if(P.length>HP_ROWS)s+=`<p class="note">${trn('hyper_plan.n_more',P.length-HP_ROWS)}</p>`;
   return s+`</div>`;}
 /* The calendar. */
-const hpCalIcon={util:'⚡',gen:'☀️',rg:'🏗️',up:'🏗️',link:'🧵',pni:'🔌',law:'🏛️',mor:'🔌',morend:'🔌',pue:'🌡️',eu:'🇪🇺',egr:'🏨',freeze:'🧊',launch:'🚀',run:'🤖',drill:'🧯',prot:'📣',ren:'📝'};
+const hpCalIcon={util:'⚡',gen:'☀️',rg:'🏗️',up:'🏗️',az:'🧱',link:'🧵',pni:'🔌',law:'🏛️',mor:'🔌',morend:'🔌',pue:'🌡️',eu:'🇪🇺',egr:'🏨',freeze:'🧊',launch:'🚀',run:'🤖',drill:'🧯',prot:'📣',ren:'📝'};
 function hpCalText(e){const x=e.x,c=e.c,city=c?hpCity(c):'';
   switch(e.k){
     case 'util':return tr('hyper_plan.cal_util',{util:tr(hsUtil(c)),mw:x.mw,city});
     case 'gen':return tr('hyper_plan.cal_gen',{name:tr(HS_GEN[x.k].n),city});
     case 'rg':return tr('hyper_plan.cal_rg',{name:tr(HS_T[x.t].n),city});
     case 'up':return tr('hyper_plan.cal_up',{name:tr(HS_T[x.t].n),city});
+    case 'az':return tr('hyper_plan.cal_az',{zone:hsAzName(c,x.i),city});
     case 'link':return tr('hyper_plan.cal_link',{a:hpCity(x.a),b:hpCity(x.b)});
     case 'pni':return tr('hyper_plan.cal_pni',{net:esc(NET[x.net].name),city});
     case 'law':return tr('hyper_plan.cal_law',{country:esc(ccName(x.cc))});
@@ -92,6 +101,7 @@ function hpNextHtml(){const x=hpUrgent();if(!x||x.fix==='coming'&&!x.red||x.lead
   if(x.k==='rg'){const N=tr(HS_T[x.t].n);
     t=x.fix==='pw'?tr('hyper_plan.nx_rg_pw',{...v,q:x.q,name:N,lead:x.lead-x.q}):x.fix==='pwq'?tr('hyper_plan.nx_rg_pwq',{...v,date:dateStr(S.day+x.q),name:N})
       :x.fix==='coming'?tr('hyper_plan.nx_rg_coming',{...v,name:N,date:dateStr(S.day+x.lead)}):tr('hyper_plan.nx_rg',{...v,name:N,lead:x.lead});}
+  else if(x.k==='colo')t=tr('hyper_plan.nx_colo',{city:hpCity(x.b),n,at:v.city,prov:tr(hsColoP(c)),lead:x.lead});
   else if(x.k==='grid')t=tr('hyper_plan.nx_grid',{city:v.city});
   else if(x.k==='door')t=tr('hyper_plan.nx_door',v);
   else if(x.k==='lag')t=tr('hyper_plan.nx_lag',{a:v.city,b:hpCity(x.b),n,tb:HS_RISK});
@@ -102,10 +112,10 @@ function hpNextHtml(){const x=hpUrgent();if(!x||x.fix==='coming'&&!x.red||x.lead
 /* The Cloud tab. */
 const hpItem=(k,c)=>{const h=hp();return h?h.P.find(x=>x.k===k&&x.c===c)||null:null;};
 // The region: when it is full, its grid against the next tier, its backlog's direction, and the fix.
-function hpRgLines(c){const F=hpFc(),f=F&&F.rg[c];if(!f)return '';const H=S.hs,rg=H.rg[c],N=HS_T[rg.t+1];let h='';
+function hpRgLines(c){const F=hpFc(),f=F&&F.rg[c];if(!f)return '';const H=S.hs,rg=H.rg[c],N=hsTNext(rg);let h='';
   const g=fmtG(Math.max(0,f.rate)),diff=f.hd!==null&&f.d!==null&&f.d>0&&Math.abs(f.hd-f.d)>0.25*f.d;
   h+=`<p class="meta hpfc">📈 ${f.d===0?tr('hyper_plan.fc_rg_now'):f.d===null?(f.hd!==null?tr('hyper_plan.fc_rg_never_hist',{g,k:(H.lh[c]||[]).length,h:hpDays(f.hd)}):tr('hyper_plan.fc_rg_never',{g})):diff?tr('hyper_plan.fc_rg_hist',{d:hpDays(f.d),g,k:(H.lh[c]||[]).length,h:hpDays(f.hd)}):tr('hyper_plan.fc_rg',{d:hpDays(f.d),g})}</p>`;
-  const free=Math.max(0,Math.floor(f.free));h+=`<p class="meta hpfc">⚡ ${N&&!rg.up?tr('hyper_plan.fc_grid',{free,need:f.need,name:tr(N.n)}):tr('hyper_plan.fc_grid_top',{free})}</p>`;
+  const free=Math.max(0,Math.floor(f.free));if(rg.t!==HS_CAGE)h+=`<p class="meta hpfc">⚡ ${N&&!rg.up?tr('hyper_plan.fc_grid',{free,need:f.need,name:tr(N.n)}):tr('hyper_plan.fc_grid_top',{free})}</p>`;
   const p=F.pair[hsLk(c,hsRepOf(c)||'')];if(p&&(p.tb>0.05||p.lag>0.05))h+=`<p class="meta hpfc${p.tb>0.05?' hnoc-bad':''}">🔁 ${p.tb>0.05?tr('hyper_plan.fc_lag_grows',{b:hpCity(p.b),tb:hsTb(p.tb)}):tr('hyper_plan.fc_lag_drains',{b:hpCity(p.b),tb:hsTb(-p.tb),d:hpDays(p.empty)})}</p>`;
   const x=hpItem('rg',c);if(x&&x.d<=HP_H)h+=`<p class="${x.red?'why':'note'}">${hpFix(x)}${x.red&&x.lead!==null?' · <b>'+tr('hyper_plan.t_order_now')+'</b>':''}</p>`;
   return h;}

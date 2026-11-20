@@ -38,9 +38,9 @@ const hsOpsOn=()=>hyper()&&!!S.hs&&!!R.hs;
 // A note that changes nothing on the network (the weekly "running full"): no routing for it.
 function hsOpsNote(X,k,w){const W=S.ops.wk;if(W&&(W.wh[k]||[]).includes(w))return;const dt=X.dirty;X.did(k,w);X.dirty=dt;}
 // Regions at or over the mark: the next tier up, the utility, or a note. Busiest first.
-function* hsOpsRg(X){if(!hsOpsOn())return;const H=S.hs,at=opsP('hsrg','at')/100,how=opsP('hsrg','how'),ld=c=>R.hs.rg[c]?R.hs.rg[c].load/HS_T[H.rg[c].t].g:0;
+function* hsOpsRg(X){if(!hsOpsOn())return;const H=S.hs,at=opsP('hsrg','at')/100,how=opsP('hsrg','how'),ld=c=>R.hs.rg[c]?R.hs.rg[c].load/hsRgG(c):0;
   for(const c of hsRgs().filter(c=>opsHere('hsrg',c)&&R.hs.rg[c]).sort((a,b)=>ld(b)-ld(a)||(a<b?-1:1))){const d=H.rg[c];if(d.up||d.ready>S.day||ld(c)*opsAhead()<at)continue;
-    const N=HS_T[d.t+1],P=hsPw(c),pr=hsProt(c),mor=hsMorAt(c),need=N?N.mw-HS_T[d.t].mw:0;
+    const N=hsTNext(d),P=hsPw(c),pr=hsProt(c),mor=hsMorAt(c),need=N?N.mw-HS_T[d.t].mw:0;
     if(how==='grow'&&N&&N.lv<=lvl()&&!mor&&!(pr&&pr.kind==='block')&&need<=hsMwFree(c)+1e-9&&X.can('hsrg',N.cost)
       &&X.pay('hsrg',()=>{ACT.hsRegion({city:c});return !!d.up;})){X.book('hsrg',0,N.mo-HS_T[d.t].mo);X.did('hsrg',c+' ⇧');yield;continue;}
     // Short of megawatts for the next tier (or the top tier, and still full): ask the utility early, once per metro.

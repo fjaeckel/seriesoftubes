@@ -16,7 +16,8 @@
    is the region of a region city), and a tap folds or unfolds it while the panel is on screen (panelFold).
    A part of the tab is {t title, sum, flags:[[class,text]], open, body()} or null. Other files may still add whole
    sections through CX_CITY and lines through CX_CARD: they go at the end. The regulators (38-hyper-regulation.js) and
-   the outages (71-hyper-incidents.js) give alerts, stat lines and sections like the others. */
+   the outages (71-hyper-incidents.js) give alerts, stat lines and sections like the others, and so do the zones and
+   leased cages (57-hyper-zones.js). */
 const hsKv=(k,v,st)=>`<div class="kv"><span>${k}</span><b${st?` style="${st}"`:''}>${v}</b></div>`;
 const hsBar=(f,bad)=>`<div class="bar${bad?' bad':''}"><i style="width:${Math.round(clamp(f,0,1)*100)}%"></i></div>`;
 // A row of buttons, two at most (empty strings dropped); more go on further rows.
@@ -36,7 +37,8 @@ function hsNext(){const H=S.hs,cc=CITY[S.home].cc,doors=Object.keys(S.pops).filt
   {const p=hpNextHtml();if(p)return p;}
   if(!doors.some(c=>ixIdsIn(c).some(x=>S.ixp[x]!==undefined)||S.pni.some(p=>p.city===c)))return nx(tr('hyper.next_peer'));
   if(!hsTen().length)return nx(tr('hyper.next_tenant'),btn(tr('common.deals'),'leftTab',{t:'deals'},'sm'));
-  if(hsRgN()<2&&hsRgMax()>=2)return nx(tr('hyper.next_region'));
+  // A second region: a Server Barn, or (from its level) a leased cage while the money for one comes in.
+  if(hsRgN()<2&&hsRgMax()>=2)return nx(HS_T[HS_CAGE].lv<=lvl()?tr('hyper_colo.next_region',{prov:tr(hsColoP(hsGdRgAt()||S.home))}):tr('hyper.next_region'));
   if(!Object.keys(H.edge).length)return nx(tr('hyper.next_edge',{cost:fmt$(HS_EDGE_COST)}));
   return nx(tr('hyper.next_grow'));}
 // What needs you now on the card, worst first: [{lv, h}], lv 0 an outage, 1 a cut or a block, 2 money or time running
@@ -53,7 +55,7 @@ function hsCoreAlerts(){const H=S.hs,R0=R.hs,out=[];if(!R0)return out;
   if(soon)out.push({lv:2,h:`⏳ ${trn('hyper_ui.tenant_offers_ending',soon,{d:HS_OFF_SOON})} ${btn(tr('common.deals'),'leftTab',{t:'deals'},'ghost sm')}`});
   if(mine)out.push({lv:2,h:`⏳ ${trn('hyper_ui.card_offers_ending',mine,{d:HS_OFF_SOON})}`});
   return out;}
-function hsAlerts(){const z=chFrozen(),a=[...hsIncAlerts(),...hsLawAlerts(),...hsFailAlerts(),...hsPwAlerts(),...hsLfAlerts(),...hsRvAlerts(),...hsCoreAlerts()];
+function hsAlerts(){const z=chFrozen(),a=[...hsIncAlerts(),...hsLawAlerts(),...hsFailAlerts(),...hsPwAlerts(),...hsLfAlerts(),...hsRvAlerts(),...hsCoreAlerts(),...hsAzAlerts()];
   if(z)a.push({lv:1,h:`<b>🧊 ${tr('change_freeze.frozen_why',{show:z.show,date:dateStr(z.until)})}</b>`});
   return a.map((x,i)=>[x,i]).sort((p,q)=>p[0].lv-q[0].lv||p[1]-q[1]).map(p=>p[0]);}
 const HS_AL_TOP=4;
@@ -65,7 +67,7 @@ function hsStatHtml(){const H=S.hs,ccs=Object.keys(H.cc),doors=Object.keys(S.pop
   return `<div class="hsc-st">`
    +`<div class="meta">👥 ${trn('hyper_ui.card_users_n',ccs.length,{g:fmtG(hsUsers()),p:pct(hsServed(R))})}</div>`
    +`<div class="meta">🏢 ${tr('hyper.card_infra',{n:hsRgs().length,max:hsRgMax(),d:doors.length,e:Object.keys(H.edge).length,t:hsTen().length})}</div>`
-   +hsPwStat()+hsTrafficStat()+hsDrillStat()+hsMarketStat()+hsLawStat()+`</div>`;}
+   +hsAzStat()+hsPwStat()+hsTrafficStat()+hsDrillStat()+hsMarketStat()+hsLawStat()+`</div>`;}
 // Folded details: the money, the utility's letters, the tightest grid, what the resale desk sold.
 function hsMoreHtml(){const H=S.hs,open=hsCardOpen('hsmore');let rev=0;for(const cc in H.cc)rev+=hsRev(R,cc);
   return foldB(tr('hyper_ui.details'),'leftFold',{k:'hsmore'},open,'ghost sm hsc-fold')+(open?`<div class="hsc-more"><div class="meta">💵 ${tr('hyper.card_money',{rev:fmt$(rev),cost:fmt$((R.cost&&R.cost.cloud)||0)})}</div>${hpCalCard()}${hsPwMore()}${hsrSold()}</div>`:'');}
@@ -105,17 +107,17 @@ function hsCcBody(c){const cc=CITY[c].cc,H=S.hs,x=H.cc[cc],w=hsWhy(cc);let h='';
 const hsCcSection=c=>hsSec('cc',hsCcSpec(c));
 // The region here: build, grow, load, compute slots.
 function hsRgSpec(c){const H=S.hs,d=H.rg[c];if(!d&&!hsSite(c))return null;const fl=[];let sum;
-  if(d){const T=HS_T[d.t],x=R.hs&&R.hs.rg[c],load=x?x.load:0;
+  if(d){const T=HS_T[d.t],G=hsRgG(c),x=R.hs&&R.hs.rg[c],load=x?x.load:0;
     if(d.ready>S.day)sum=tr('hyper_ui.sum_building',{name:tr(T.n),date:dateStr(d.ready)});
-    else{sum=tr('hyper_ui.sum_region',{name:tr(T.n),p:pct(load/(T.g||1))});if(load>=T.g*0.95)fl.push(hsFlag('restrictive',tr('hyper_ui.f_full')));else{const f=hpRgFlag(c);if(f)fl.push(f);}}
+    else{sum=tr('hyper_ui.sum_region',{name:tr(T.n),p:pct(load/(G||1))});if(load>=G*0.95)fl.push(hsFlag('restrictive',tr('hyper_ui.f_full')));else{const f=hpRgFlag(c);if(f)fl.push(f);}}
     if(hsOut(c)&&!(H.dx&&H.dx.c===c))fl.push(hsFlag('restrictive',tr('hyper_ui.f_down')));}
   else sum=tr('hyper_ui.sum_no_region');
   return {t:tr('hyper.region'),sum,flags:fl,open:!!d,body:()=>hsRgBody(c)};}
 function hsRgBody(c){const H=S.hs,d=H.rg[c];let h='';
-  if(d){const T=HS_T[d.t],N=HS_T[d.t+1],x=R.hs&&R.hs.rg[c],load=x?x.load:0;
+  if(d){const T=HS_T[d.t],N=hsTNext(d),G=hsRgG(c),x=R.hs&&R.hs.rg[c],load=x?x.load:0;
     if(d.ready>S.day)h+=`<p class="lead">${tr('hyper.being_built',{name:tr(T.n),date:dateStr(d.ready)})}</p>`;
-    else h+=hsKv(tr(T.n),tr('city_panel.a_of_b',{a:fmtG(load),b:fmtG(T.g)}))+hsBar(load/T.g,load>=T.g*0.95);
-    h+=hsKv(tr('hyper.power'),tr('hyper.mw_of_grid',{mw:Math.round(hsMwRes(c)),grid:hsSupply(c)}))+hsKv(tr('hyper.slots'),tr('city_panel.a_of_b',{a:hsSlotsUsed(c),b:T.slots}));
+    else h+=hsKv(tr(T.n),tr('city_panel.a_of_b',{a:fmtG(load),b:fmtG(G)}))+hsBar(load/G,load>=G*0.95);
+    h+=hsKv(tr('hyper.power'),tr('hyper.mw_of_grid',{mw:Math.round(hsMwRes(c)),grid:hsSupply(c)}))+hsKv(tr('hyper.slots'),tr('city_panel.a_of_b',{a:hsSlotsUsed(c),b:hsSlots(c)}));
     if(d.ready<=S.day)h+=hpRgLines(c);
     if(d.up)h+=`<p class="meta">${tr('hyper.being_built',{name:tr(HS_T[d.up.t].n),date:dateStr(d.up.ready)})}</p>`;
     if(!cxOut(c)&&!Object.keys(S.pops).some(hsDoor))h+=`<p class="why">${tr('hyper.region_no_way_out')}</p>`;
@@ -148,12 +150,12 @@ function hsTenBody(c,bs){if(!bs.length)return `<p class="empty">${tr('hyper.no_t
   return h;}
 const hsTenSection=c=>hsSec('ten',hsTenSpec(c));
 // The whole tab, in the order a player asks. Offers here wait for an answer, so they come right after the users.
-function hsCity(c){return hsSec('inc',hsIncSpec(c))+hsSec('cc',hsCcSpec(c))+hsSec('law',hsLawSpec(c))+offersHere(c)+hsSec('rg',hsRgSpec(c))+hsSec('pw',hsPwSpec(c))+hsSec('bt',hsBtSpec(c))+hsSec('fo',hsFailSpec(c))
+function hsCity(c){return hsSec('inc',hsIncSpec(c))+hsSec('cc',hsCcSpec(c))+hsSec('law',hsLawSpec(c))+offersHere(c)+hsSec('rg',hsRgSpec(c))+hsSec('az',hsAzSpec(c))+hsSec('pw',hsPwSpec(c))+hsSec('bt',hsBtSpec(c))+hsSec('fo',hsFailSpec(c))
   +hsSec('door',hsDoorSpec(c))+hsSec('ep',hsfEdgeSpec(c))+hsSec('or',hsfRampSpec(c))+hsSec('ten',hsTenSpec(c))+cxHtml(CX_CITY,c);}
 const hsNoPop=c=>hsSec('cc',hsCcSpec(c))+offersHere(c);
 // In an offer's row: what the bundle is and what it would want from you today.
 function hsOfferNote(o){if(o.type!=='cloud'||!Array.isArray(o.p))return '';const K=CLOUD_TENANTS[o.ck];
-  const r=hsRgFor(o.city),x=r&&R.hs&&R.hs.rg[r],sh={room:!x||x.g-x.load>=o.bw*cloudShape(o.p).out,pair:hsRgs().length>=2,edge:!!S.hs&&!!S.hs.edge[o.city],port:hsDoor(o.city)||o.p.includes('pc')&&!o.p.includes('out')&&hsfRamp(o.city),power:!!r&&S.hs.rg[r].t>=2,home:hsRgs().some(x=>CITY[x].cc===CITY[o.city].cc),doors:Object.keys(S.pops).filter(hsDoor).length>=2,model:hsAiOn()};
+  const r=hsRgFor(o.city),x=r&&R.hs&&R.hs.rg[r],sh={room:!x||x.g-x.load>=o.bw*cloudShape(o.p).out,pair:hsRgs().length>=2,edge:!!S.hs&&!!S.hs.edge[o.city],port:hsDoor(o.city)||o.p.includes('pc')&&!o.p.includes('out')&&hsfRamp(o.city),power:!!r&&S.hs.rg[r].t>=2&&S.hs.rg[r].t<HS_CAGE,home:hsRgs().some(x=>CITY[x].cc===CITY[o.city].cc),doors:Object.keys(S.pops).filter(hsDoor).length>=2,model:hsAiOn()};
   const ws=[...new Set(o.p.map(id=>CLOUD_PRODUCTS[id]&&CLOUD_PRODUCTS[id].need).filter(n=>n&&own(sh,n)&&!sh[n]).map(n=>tr(CLOUD_NEED[n])))];if(!sh.room&&!ws.includes(tr(CLOUD_NEED.room)))ws.push(tr(CLOUD_NEED.room));
   return `<div class="meta">☁️ ${K?esc(tr(K.n))+': ':''}${esc(cloudList(o.p))}</div>${hsSlotFree()?'':`<div class="why">${tr('hyper.no_slots')}</div>`}${ws.length?`<div class="why">${tr('hyper.tenant_wants',{list:esc(ws.join(', '))})}</div>`:''}`;}
 // Why a tenant is unhappy (the customers list, bizWhy).

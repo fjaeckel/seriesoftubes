@@ -6,7 +6,9 @@
    answer), spicy stretching and the day tick's "resolved" work as for a cable; what one does is read back from S.inc,
    so nothing needs undoing.
    - hspow: grid trouble at a region's metro: it serves HI_POW of its room for a day or two (CX_ORG, as a power squeeze
-     does in 38-hyper-power.js). Answer: truck in diesel.
+     does in 38-hyper-power.js). Answer: truck in diesel. A region with a zone on another feed loses only that zone
+     (hsAzPowF, 38-hyper-zones.js).
+   - hsaz: one building of a region with zones is out (38-hyper-zones.js): it serves a zone's worth less, no failover.
    - hsstorm: a bad push makes a region re-replicate everything: its copies to its replica are HI_STORM times their
      size for a few days (hsRepX, read by hsBulk), so the backlog grows. Answer: roll back.
    - hsmelt: a game studio's launch night on a region too small for it (the launch's served share under HS_LF_OK,
@@ -18,7 +20,7 @@
      round to the next door, if there is one. Answer: renew it (it was free all along).
    They come after the day's routing (CX_DAY), so they show from the next evening. */
 const HI_RATE=1/40,HI_FROM=45,HI_POW=0.5,HI_STORM=3,HI_MELT=0.6,HI_MELT_P=0.6,HI_DNS_MOOD=15;
-const HI_T=['hspow','hsstorm','hsmelt','hsdns','hscert'];
+const HI_T=['hspow','hsstorm','hsmelt','hsdns','hscert','hsaz'];
 const HI_MSG={hspow:[N_('hyper_inc.pow_crane'),N_('hyper_inc.pow_diesel'),N_('hyper_inc.pow_kite')],
  hsstorm:[N_('hyper_inc.storm_flag'),N_('hyper_inc.storm_yaml'),N_('hyper_inc.storm_dedupe')],
  hsmelt:[N_('hyper_inc.melt_queue'),N_('hyper_inc.melt_retry')],
@@ -27,9 +29,9 @@ const HI_MSG={hspow:[N_('hyper_inc.pow_crane'),N_('hyper_inc.pow_diesel'),N_('hy
 const HI_PRESS=[N_('hyper_inc.press_status'),N_('hyper_inc.press_hn'),N_('hyper_inc.press_trend'),N_('hyper_inc.press_postmortem')];
 const hiRoll=(k,d)=>hstr(S.asn+'|hinc|'+k+'|'+d)/4294967296;
 const hiAct=(t,ref)=>S.inc.find(i=>i.type===t&&(ref===undefined||i.ref===ref)&&i.until>S.day)||null;
-function hsIncTitle(t){return t==='hspow'?tr('hyper_inc.t_pow'):t==='hsstorm'?tr('hyper_inc.t_storm'):t==='hsmelt'?tr('hyper_inc.t_melt'):t==='hsdns'?tr('hyper_inc.t_dns'):t==='hscert'?tr('hyper_inc.t_cert'):'';}
+function hsIncTitle(t){return t==='hspow'?tr('hyper_inc.t_pow'):t==='hsstorm'?tr('hyper_inc.t_storm'):t==='hsmelt'?tr('hyper_inc.t_melt'):t==='hsdns'?tr('hyper_inc.t_dns'):t==='hscert'?tr('hyper_inc.t_cert'):t==='hsaz'?tr('hyper_az.t_inc'):'';}
 // What a region can serve tonight: half in grid trouble, less while a launch melts it.
-CX_ORG.push(c=>{if(!S.hs||!S.inc.length||!hyper())return 1;let m=1;for(const i of S.inc)if(i.ref===c&&i.until>S.day){if(i.type==='hspow')m*=HI_POW;else if(i.type==='hsmelt')m*=HI_MELT;}return m;});
+CX_ORG.push(c=>{if(!S.hs||!S.inc.length||!hyper())return 1;let m=1;for(const i of S.inc)if(i.ref===c&&i.until>S.day){if(i.type==='hspow')m*=hsAzPowF(c);else if(i.type==='hsmelt')m*=HI_MELT;}return m;});
 // Hooks read by other files: a region's replication multiplier, a product's score, a front door turning users away.
 function hsRepX(c){return S.inc.length&&hiAct('hsstorm',c)?HI_STORM:1;}
 function hsIncNeed(id){return id==='dns'&&S.inc.length&&hiAct('hsdns')?0:1;}
@@ -48,7 +50,9 @@ const hiDoors=()=>{const ds=Object.keys(S.pops).filter(c=>hsDoor(c)).sort();retu
 // Fires one outage: k 'pow', 'storm', 'dns' or 'cert' (the meltdown waits for a launch, hsMeltDay). Tests call it directly.
 function hsIncFire(k,d=S.day){const H=S.hs;if(!hyper()||!H)return null;const h=hstr(S.asn+'|hincx|'+k+'|'+d);let i=null;
   if(k==='pow'){const cs=hiPows();if(!cs.length)return null;const c=cs[h%cs.length];
-    i=hiAdd({type:'hspow',ref:c,until:d+1+(h>>>4)%2,msg:hiMsg('hspow',h>>>8,{city:CITY[c].name,util:tr(hsUtil(c))}),cost:Math.max(20000,HS_T[H.rg[c].t].mo),fix:tr('hyper_inc.fix_pow')});}
+    // One feed's trouble: with a zone on another feed, the region loses only that zone (38-hyper-zones.js).
+    hsAzLocal(c);const az=hsAzHold(c);
+    i=hiAdd({type:'hspow',ref:c,until:d+1+(h>>>4)%2,msg:az?tr('hyper_az.pow_msg',{city:CITY[c].name,util:tr(hsUtil(c)),zone:hsAzWho(c),p:pct(hsAzLossF(c))}):hiMsg('hspow',h>>>8,{city:CITY[c].name,util:tr(hsUtil(c))}),cost:Math.max(20000,HS_T[H.rg[c].t].mo),fix:tr('hyper_inc.fix_pow')});}
   else if(k==='storm'){const cs=hiStorms();if(!cs.length)return null;const c=cs[h%cs.length],b=R.hs.rep[c].b;
     i=hiAdd({type:'hsstorm',ref:c,until:d+3+(h>>>4)%3,msg:hiMsg('hsstorm',h>>>8,{city:CITY[c].name,b:CITY[b].name,x:HI_STORM}),cost:25000,fix:tr('hyper_inc.fix_storm')});}
   else if(k==='dns'){const ts=hiDnsTen();if(!ts.length||hiAct('hsdns'))return null;for(const b of ts)b.mood=Math.max(1,(b.mood===undefined?70:b.mood)-HI_DNS_MOOD);
@@ -78,7 +82,7 @@ CX_SAN.push((h0,o,s)=>{const x=h0.ic&&typeof h0.ic==='object'&&!Array.isArray(h0
   if(Array.isArray(s.inc))s.inc=s.inc.filter(i=>!i||!HI_T.includes(i.type)||(i.type==='hsdns'?i.ref==='route66':i.type==='hscert'?isCity(i.ref)&&!!s.pops[i.ref]:typeof i.ref==='string'&&own(o.rg,i.ref)));});
 // The city's Cloud tab: an outage here, with its answer, as a folding section flagged down (55-hyper-panel.js).
 function hsIncSpec(c){if(!hyper()||!S.hs)return null;const i=S.inc.filter(x=>HI_T.includes(x.type)&&x.ref===c&&x.until>S.day).sort((a,b)=>b.until-a.until)[0];if(!i)return null;
-  return {t:`☁️ ${hsIncTitle(i.type)}`,sum:tr('hyper_inc.until_date',{date:dateStr(i.until)}),flags:[['restrictive',tr('hyper_ui.f_down')]],
+  return {t:`☁️ ${hsIncTitle(i.type)}`,sum:tr('hyper_inc.until_date',{date:dateStr(i.until)}),flags:[i.type==='hsaz'?['selective',tr('hyper_az.f_zone')]:['restrictive',tr('hyper_ui.f_down')]],
     body:()=>`<p class="meta">${esc(i.msg)}</p>${i.cost?`<div class="btns">${btn(`${esc(i.fix)} ${fmt$(i.cost)}`,'fixInc',{id:i.id},'red sm',S.cash<i.cost)}</div>`:''}`};}
 // The charter card's alert list: Route 66 down (it has no city of its own), worst first.
 function hsIncAlerts(){if(!hyper()||!S.hs)return [];const i=hiAct('hsdns');if(!i)return [];

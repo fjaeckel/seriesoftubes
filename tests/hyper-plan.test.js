@@ -88,7 +88,12 @@ test("the card's next step takes the most urgent forecast when nothing is on fir
   assert.equal(ev('R.hs.short>0.5||hsDoorsFull().length>0'), false, 'nothing on fire');
   const nx = doc.querySelector('#leftBody .hsc .hsc-nx');
   assert.ok(nx);
-  assert.match(nx.textContent, /Paris is full in ~\d+ days; a Server Barn takes 60 days\. Start now\./);
+  // A Barn takes longer than Paris has left, and the level allows another region: a leased cage nearby comes first.
+  assert.match(nx.textContent, /Paris is full in ~\d+ days and a Barn is far off: lease a cage at .+ in (London|Amsterdam|Madrid), live in 14 days\. Start now\./);
+  assert.ok(doc.querySelector('#leftBody .hsc [data-act="hsColo"]'), 'with the button that leases it');
+  // Without room for another region (level 1 runs two), the Barn is the fix.
+  ev("S.lvl=1;HP.k='';renderAll()");
+  assert.match(doc.querySelector('#leftBody .hsc .hsc-nx').textContent, /Paris is full in ~\d+ days; a Server Barn takes 60 days\. Start now\./);
   assert.ok(doc.querySelector('#leftBody .hsc [data-act="hsRegion"]'), 'with the button that fixes it');
   // Once the barn is ordered and arrives in time, the card goes back to its usual advice.
   ev("S.hs.rg.par.up={t:1,ready:S.day+2};HP.k='';renderAll()");

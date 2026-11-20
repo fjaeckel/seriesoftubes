@@ -41,7 +41,10 @@ function hsRegionFail(c,dur,msg,cost){const H=S.hs;H.down[c]=Math.max(H.down[c]|
 // failureRun's region kind: a live region out of several (one region down is a plain outage, not a failover).
 // Only once whole-region failures are on (38-hyper-director.js: two live regions, the level, past day HS_DIR_BIG).
 const hsFailOn=()=>hyper()&&!!S.hs&&hsRgs().length>=2&&hsDirOn('fail');
-function hsFailFire(){const rs=hsRgs();if(rs.length<2)return false;const c=pick(rs);hsRegionFail(c,1+Math.floor(Math.random()*3),tr(pick(HS_FAIL_MSG),{city:CITY[c].name}));return true;}
+// One building's trouble (a squirrel, a certificate...) in a region with a zone to spare takes only that zone (hsAzFail,
+// 38-hyper-zones.js); a change pushed to every building takes the region. The dice roll as they always did.
+function hsFailFire(){const rs=hsRgs();if(rs.length<2)return false;const c=pick(rs),dur=1+Math.floor(Math.random()*3),k=Math.floor(Math.random()*HS_FAIL_MSG.length);
+  if(hsAzFail(c,dur,k))return true;hsRegionFail(c,dur,tr(HS_FAIL_MSG[k],{city:CITY[c].name}));return true;}
 // The fine for lost data: a base and a price per TB lost, at most HS_LOSS_MAX, and never more than HS_LOSS_MO months of
 // revenue, and never more than leaves you $50k in the red (a young cloud's lost cat photos make the news, not a
 // bankruptcy court: the users who leave are the real price).

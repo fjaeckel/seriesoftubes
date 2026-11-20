@@ -12,7 +12,8 @@
      outgrow the spare backbone between the pair (hsWide).
    - Countries: why their growth is capped (region full, residency, front door full, backbone, no door).
    - AI runs: when they finish at tonight's rate, against their deadline.
-   The plan (hpPlan): every one of those that runs out, soonest first, with the fix, how long the fix takes (lead) and
+   The plan (hpPlan): every one of those that runs out, soonest first (a leased cage where a region's own fix is far
+   off, a zone where a region runs in one building), with the fix, how long the fix takes (lead) and
    whether that is longer than the time left (red: order now). The calendar (hpCal): dates already known. */
 const HP_H=365,HP_LH=14,HP_SOON=30,HP_UTIL=180;
 // A region's demand tonight: what it served plus the users homed there it had no room for.
@@ -47,7 +48,7 @@ function hpMake(){const H=S.hs,o=R.hs,F={rg:{},door:{},pair:{},cc:{},run:{}};if(
   for(const cc in o.cc){const y=o.cc[cc];if(y.D>1e-9&&S.hs.cc[cc])T[cc]=hpTraj(cc,y.D,HP_H);}
   for(const c of Object.keys(o.rg).sort()){const x=o.rg[c],L=[];
     for(const cc in T){const y=o.cc[cc],h=y.home||H.cc[cc].home;if(h!==c||y.blk)continue;L.push([T[cc],clamp((y.D-y.st-(y.nd||0))/y.D,0,1)]);}
-    const now=hpDemand(c),d=hpWhen(now,x.g,L),rg=H.rg[c],N=HS_T[rg.t+1];
+    const now=hpDemand(c),d=hpWhen(now,x.g,L),rg=H.rg[c],N=hsTNext(rg);
     F.rg[c]={cap:x.g,now,d,hd:hpHist(c,x.g,now),rate:hpRate(L),free:hsMwFree(c),need:N?N.mw-HS_T[rg.up?rg.up.t:rg.t].mw:0};}
   const dv=new Set();for(const cc in o.cc)if(o.cc[cc].v)dv.add(o.cc[cc].v);
   for(const v of [...dv].sort()){const cap=hpDoorCap(v),now=(R.cityDem&&R.cityDem[v])||0,sf=sfOf(R,v),L=[];
@@ -70,8 +71,11 @@ function hpMake(){const H=S.hs,o=R.hs,F={rg:{},door:{},pair:{},cc:{},run:{}};if(
 /* The plan: what runs out, soonest first. An item: {k kind, c the city it is about, d days left (0 now), lead days the fix
    takes (null: no fix you can order today), red (the fix takes longer than the time left), fix kind, and what the
    interface needs to say it (x)}. */
-function hpRgFix(c){const H=S.hs,rg=H.rg[c],N=HS_T[rg.t+1],P=hsPw(c);
+function hpRgFix(c){const H=S.hs,rg=H.rg[c],N=hsTNext(rg),P=hsPw(c);
   if(rg.up)return {fix:'coming',lead:Math.max(0,rg.up.ready-S.day),t:rg.up.t};
+  // A cage never grows in place: you move out into your own Server Barn there (38-hyper-zones.js), power permitting.
+  if(rg.t===HS_CAGE){const B=HS_T[1];if(B.mw<=hsMwFree(c)+1e-9)return {fix:'move',lead:leadDays(B.days),t:1};if(P.q)return {fix:'pwq',lead:Math.max(0,P.q.ready-S.day)+leadDays(B.days),t:1,q:Math.max(0,P.q.ready-S.day)};
+    if(hsMorAt(c))return {fix:'mor',lead:null,t:1};return {fix:'pw',lead:leadDays(HP_UTIL)+leadDays(B.days),t:1,q:leadDays(HP_UTIL)};}
   if(!N||N.lv>lvl())return hsRgN()<hsRgMax()?{fix:'new',lead:leadDays(HS_T[1].days),t:1}:{fix:'lvl',lead:null};
   const need=N.mw-HS_T[rg.t].mw;if(need<=hsMwFree(c)+1e-9)return {fix:'up',lead:leadDays(N.days),t:rg.t+1};
   if(P.q)return {fix:'pwq',lead:Math.max(0,P.q.ready-S.day)+leadDays(N.days),t:rg.t+1,q:Math.max(0,P.q.ready-S.day)};
@@ -79,18 +83,26 @@ function hpRgFix(c){const H=S.hs,rg=H.rg[c],N=HS_T[rg.t+1],P=hsPw(c);
   return {fix:'pw',lead:leadDays(HP_UTIL)+leadDays(N.days),t:rg.t+1,q:leadDays(HP_UTIL)};}
 function hpPlanMake(F){const H=S.hs,out=[],add=x=>{x.red=x.lead===null||x.lead>=x.d;out.push(x);};
   for(const c in F.rg){const f=F.rg[c];if(f.d===null||!hsLive(c))continue;add({k:'rg',c,d:f.d,...hpRgFix(c)});}
+  // The region filling first whose own fix is far off (slower than the time left, waiting on power or the law, or more
+  // than the cash): a leased cage nearby is a region in two weeks (38-hyper-zones.js). Its region's row steps aside.
+  if(HS_T[HS_CAGE].lv<=lvl()&&hsRgN()<hsRgMax()){const x=out.filter(x=>x.k==='rg'&&x.fix!=='coming'&&(x.red||['pw','pwq','mor'].includes(x.fix)||['up','new','move'].includes(x.fix)&&S.cash<HS_T[x.t].cost)).sort((a,b)=>a.d-b.d||(a.c<b.c?-1:1))[0];
+    const at=x&&hsColoAt(x.c);if(at){x.alt=1;add({k:'colo',c:at,b:x.c,d:x.d,fix:'colo',lead:leadDays(HS_T[HS_CAGE].days)});}}
+  // Zones: a region of yours with none yet once the level allows one, or with local outages behind it (advice: never
+  // urgent, listed last).
+  if(hsAzMax()>0)for(const c of Object.keys(H.rg).sort()){if(!hsLive(c)||!hsAzOk(c))continue;const n=hsAzL(c).length,o=(H.azo&&H.azo[c])|0;
+    if(n<hsAzMax()&&(n===0||o>=2))add({k:'az',c,d:HP_H,o,fix:'zone',lead:leadDays(hsAzDays(c))});}
   // A grid with no room left for another tenant.
   for(const c of Object.keys(H.rg).sort())if(hsLive(c)&&hsMwFree(c)<HS_MW_SLOT){const P=hsPw(c);add({k:'grid',c,d:0,fix:P.q?'pwq':'util',lead:P.q?Math.max(0,P.q.ready-S.day):leadDays(HP_UTIL)});}
   for(const v in F.door){const f=F.door[v];if(f.d!==null)add({k:'door',c:v,d:f.d,fix:'port',lead:1});}
   for(const k in F.pair){const p=F.pair[k];if(p.risk!==null)add({k:'lag',c:p.a,b:p.b,d:p.risk,fix:'wave',lead:1});else if(p.start!==null)add({k:'rep',c:p.a,b:p.b,d:p.start,fix:'wave',lead:1});}
   for(const j of hsRuns()){const r=F.run[j.id];if(!r||!r.late||j.due<S.day)continue;add({k:'run',c:j.a,b:j.b,id:j.id,d:Math.max(0,j.due-S.day),eta:r.eta,fix:'wave',lead:1});}
-  const kk=['rg','grid','door','lag','rep','run'];
+  const kk=['rg','colo','grid','door','lag','rep','run','az'];
   return out.sort((x,y)=>x.d-y.d||(y.red?1:0)-(x.red?1:0)||kk.indexOf(x.k)-kk.indexOf(y.k)||(x.c<y.c?-1:x.c>y.c?1:0));}
 /* The calendar: dates already known, soonest first, from today on: {d day, k kind, c city or null, x what to say}. */
 const HP_BIG=5;
 function hpCalMake(){const H=S.hs,out=[],d0=S.day,add=(d,k,c,x)=>{if(d>=d0)out.push({d,k,c:c||null,x:x||{}});};
   for(const c of Object.keys(H.pw||{}).sort()){const q=H.pw[c].q;if(q)add(q.ready,'util',c,{mw:q.mw});for(const g of H.pw[c].own)if(g.ready>d0)add(g.ready,'gen',c,{k:g.k});}
-  for(const c of Object.keys(H.rg).sort()){const r=H.rg[c];if(r.ready>d0)add(r.ready,'rg',c,{t:r.t});if(r.up)add(r.up.ready,'up',c,{t:r.up.t});}
+  for(const c of Object.keys(H.rg).sort()){const r=H.rg[c];if(r.ready>d0)add(r.ready,'rg',c,{t:r.t});if(r.up)add(r.up.ready,'up',c,{t:r.up.t});hsAzL(c).forEach((z,i)=>{if(z.r>d0)add(z.r,'az',c,{i});});}
   for(const l of S.links)if(l.ready>d0&&CITY[l.a]&&CITY[l.b])add(l.ready,'link',l.a,{a:l.a,b:l.b});
   for(const p of S.pni)if(p.ready>d0&&NET[p.net])add(p.ready,'pni',p.city,{net:p.net});
   const L=H.law;if(L){for(const cc of Object.keys(L.cc).sort())if(ccInfo(cc))add(L.cc[cc].f,'law',null,{cc});
@@ -103,14 +115,15 @@ function hpCalMake(){const H=S.hs,out=[],d0=S.day,add=(d,k,c,x)=>{if(d>=d0)out.p
   for(const c of Object.keys(H.prot||{}).sort()){const p=H.prot[c];if(p.until>d0)add(p.until,'prot',c,{g:p.g});}
   // The biggest tenants' contract ends (renewal or goodbye).
   for(const b of hsTen().filter(b=>b.te>d0).sort((a,b)=>bizMo(b)-bizMo(a)||(a.id<b.id?-1:1)).slice(0,HP_BIG))add(b.te,'ren',b.city,{id:b.id});
-  const kk=['util','rg','up','gen','link','pni','law','mor','morend','pue','eu','egr','freeze','launch','run','drill','prot','ren'];
+  const kk=['util','rg','up','az','gen','link','pni','law','mor','morend','pue','eu','egr','freeze','launch','run','drill','prot','ren'];
   return out.sort((x,y)=>x.d-y.d||kk.indexOf(x.k)-kk.indexOf(y.k)||((x.c||'')<(y.c||'')?-1:1));}
 /* Kept until the day turns or something the forecasts read changes (a region, the grid queue, ports, links, runs):
    hp() is what the interface calls, as often as it likes. */
 const HP={S:null,k:'',F:null,P:null,C:null,ms:0};
 function hpKey(){const H=S.hs;let k=S.day+'|'+(R&&R.hs?1:0);for(const c in H.rg){const r=H.rg[c];k+='|'+c+r.t+(r.up?'u'+r.up.t:'')+(hsLive(c)?'':'x');}
-  for(const c in H.pw)k+=H.pw[c].q?'q'+c:'';return k+'|'+S.transit.reduce((a,t)=>a+t.tier*7+(t.n||1),0)+'|'+Object.keys(S.ixp).length+'|'+S.pni.length+'|'+S.links.length+'|'+hsRuns().length+'|'+S.biz.length+'|'+Object.keys(H.cc).length;}
+  for(const c in H.pw)k+=H.pw[c].q?'q'+c:'';for(const c in H.az||{})k+='|z'+c+hsAzL(c).map(z=>z.r).join(',');return k+'|'+S.transit.reduce((a,t)=>a+t.tier*7+(t.n||1),0)+'|'+Object.keys(S.ixp).length+'|'+S.pni.length+'|'+S.links.length+'|'+hsRuns().length+'|'+S.biz.length+'|'+Object.keys(H.cc).length;}
 function hp(){if(!S||!S.hs||!hyper()||!R||!R.hs)return null;const k=hpKey();
   if(HP.S!==S||HP.k!==k){const t0=performance.now();HP.S=S;HP.k=k;HP.F=hpMake();HP.P=hpPlanMake(HP.F);HP.C=hpCalMake();HP.ms=performance.now()-t0;}return HP;}
 // The plan item worth the card's next step: red, or one to start within HP_SOON days.
-const hpUrgent=()=>{const h=hp();return h?h.P.find(x=>x.d<=HP_H&&(x.red&&x.lead!==null||x.lead!==null&&x.d-x.lead<=HP_SOON))||null:null;};
+// A row a cage stands in for (alt) leaves the next step to the cage.
+const hpUrgent=()=>{const h=hp();return h?h.P.find(x=>!x.alt&&x.d<=HP_H&&(x.red&&x.lead!==null||x.lead!==null&&x.d-x.lead<=HP_SOON))||null:null;};

@@ -1,7 +1,7 @@
 /* ---------- The Hyperscaler's own story (37-hyper.js) ----------
    Its ladder (LV_X): thirteen level names that tell how a cloud grows from a rack under the stairs into a weather system,
    a quote per level, and what each level really unlocks in this charter, read from the code that gates it (region room
-   HS_LV_RG, region tiers HS_T, own generation HS_GEN, tenant kinds CLOUD_TENANTS, your own cable CAB_LV, and the trouble
+   HS_LV_RG, region tiers HS_T, leased cages and zones (38-hyper-zones.js), own generation HS_GEN, tenant kinds CLOUD_TENANTS, your own cable CAB_LV, and the trouble
    the director lets in, HS_DIR_LV), so a balance
    pass that moves a gate moves the text too. The "Next:" line says what the next level asks (lvNeed: peak, live regions,
    continents with one). Built on first use: some of those tables live in later files.
@@ -32,7 +32,9 @@ const hsList=a=>{try{return new Intl.ListFormat(LANG,{type:'conjunction'}).forma
 // What reaching level lv brings a Hyperscaler, as one list.
 function hsUnlocks(lv){const u=[];if(lv===1)u.push(tr('hyper_story.u_shack',{name:tr(HS_T[0].n)}));
   const n=hsRgAt(lv);if(lv===1||n>hsRgAt(lv-1))u.push(trn('hyper_story.u_room',n));
-  HS_T.forEach((T,i)=>{if(i>0&&T.lv===lv)u.push(tr('hyper_story.u_tier',{name:tr(T.n)}));});
+  HS_T.forEach((T,i)=>{if(i>0&&i<HS_CAGE&&T.lv===lv)u.push(tr('hyper_story.u_tier',{name:tr(T.n)}));});
+  // The middle steps (38-hyper-zones.js): leased cages, and a second, then a third, zone per region.
+  if(HS_T[HS_CAGE].lv===lv)u.push(tr('hyper_colo.u_cage'));if(HS_AZ_LV[0]===lv)u.push(tr('hyper_az.u_zone'));if(HS_AZ_LV[1]===lv)u.push(tr('hyper_az.u_zone3'));
   for(const k of Object.keys(HS_GEN))if(HS_GEN[k].lv===lv)u.push(own(HS_ST_GEN,k)?tr(HS_ST_GEN[k]):tr(HS_GEN[k].n));
   for(const k of Object.keys(CLOUD_TENANTS))if(CLOUD_TENANTS[k].lv===lv)u.push(own(HS_ST_TEN,k)?tr(HS_ST_TEN[k]):tr(CLOUD_TENANTS[k].n));
   if(CAB_LV===lv)u.push(tr('hyper_story.u_cable'));
@@ -68,8 +70,9 @@ const HS_GUIDE=[
  {t:()=>tr('hyper_story.g_grow',{p:pct(CX_GOOD)}),sel:['#sp1','[data-act="phoneSpeed"]'],idle:()=>UI.speed>=1,ok:()=>S.day>=5},
  {t:()=>tr('hyper_story.g_tenant'),sel:['#left [data-act="accept"]','#panel [data-act="accept"]','[data-act="leftTab"][data-args*=\'"deals"\']','[data-act="phoneTab"][data-args*=\'"deals"\']'],
   ok:()=>hsTen().length>0,can:()=>S.offers.some(o=>o.type==='cloud')},
- {t:()=>tr('hyper_story.g_region',{name:tr(HS_T[1].n),cost:fmt$(HS_T[1].cost),city:esc(CITY[hsGdRgAt()].name)}),
-  get sel(){const c=hsGdRgAt();return [`[data-act="hsRegion"][data-args*='"${c}"']:not([disabled])`,`[data-act="buildPop"][data-args*='"${c}"']:not([disabled])`,hsGdTab('cust'),HS_GD_FOCUS];},
+ // Once leased cages are allowed, the step offers one too: a region in two weeks while the money for a Barn comes in.
+ {t:()=>{const c=hsGdRgAt(),v={name:tr(HS_T[1].n),cost:fmt$(HS_T[1].cost),city:esc(CITY[c].name)};return HS_T[HS_CAGE].lv<=lvl()?tr('hyper_story.g_region_cage',{...v,prov:tr(hsColoP(c)),mo:fmt$(HS_T[HS_CAGE].mo)}):tr('hyper_story.g_region',v);},
+  get sel(){const c=hsGdRgAt();return [`[data-act="hsRegion"][data-args*='"${c}"']:not([disabled])`,`[data-act="hsColo"][data-args*='"${c}"']:not([disabled])`,`[data-act="buildPop"][data-args*='"${c}"']:not([disabled])`,hsGdTab('cust'),HS_GD_FOCUS];},
   ok:()=>hsRgN()>=2,can:()=>hsRgMax()>=2&&!!hsGdRgAt(),go:()=>hsGdRgAt()},
  {t:()=>tr('hyper_story.g_replica',{city:esc(CITY[hsGdRg1()].name),p:pct(HS_REP)}),sel:['[data-chg="hsReplica"]',hsGdTab('cust'),HS_GD_FOCUS],
   ok:()=>Object.keys(S.hs.rep).length>0,can:()=>hsRgs().length>=2,go:()=>hsGdRg1()},
