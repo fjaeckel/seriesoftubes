@@ -3346,6 +3346,7 @@
 "hyper_badges.survive_t":"Ancora in piedi",
 "hyper_badges.war_d":"Pareggia la guerra dei prezzi di un cloud rivale finché non si arrende.",
 "hyper_badges.war_t":"Corsa al ribasso, vinta",
+"hyper_dir.card_trip":"Domani la rete di {city} potrebbe saltare e portarsi via la region.",
 "hyper_dir.chill_btn":"Noleggia refrigeratori {cost}",
 "hyper_dir.gen_btn":"Fai arrivare generatori {cost}",
 "hyper_dir.held":"🧊 {city} ha superato la notte con l'attrezzatura a noleggio. {util} ti saluta.",

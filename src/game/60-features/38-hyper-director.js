@@ -22,6 +22,9 @@ const HS_DIR_LV={pev:2,ddos:2,rv:3,ai:3,freeze:3,inc:4,law:4,fail:4,monkey:5};
 // What each kind asked for belongs to (its system), and which kinds are opportunities.
 const HS_DIR_K={war:'rv',refugee:'rv',kong:'fail',trip:'fail',snip:'monkey',job:'ai'};
 const HS_DIR_OPPS=['ten','job','resale','refugee'];
+// The classic world's trouble (cuts, crashes, floods, world events, the monkey's snips) asks every day once it is due; from
+// level 3 it leaves HS_DIR_KEEP of the budget to the cloud's own systems, which roll more rarely, so they get their turn.
+const HS_DIR_FILL=['classic','ddos','event','snip'],HS_DIR_KEEP=0.5;
 // Systems introduced when they switch on, in this order, one a day; with how the level-up list names them.
 const HS_DIR_INTRO={pev:[N_('hyper_dir.intro_pev'),N_('hyper_dir.u_pev')],ddos:[N_('hyper_dir.intro_ddos'),N_('hyper_dir.u_ddos')],
  rv:[N_('hyper_dir.intro_rv'),N_('hyper_dir.u_rv')],ai:[N_('hyper_dir.intro_ai'),N_('hyper_dir.u_ai')],freeze:[N_('hyper_dir.intro_freeze'),N_('hyper_dir.u_freeze')],
@@ -60,7 +63,7 @@ const hsDirOpps=()=>S.offers.filter(o=>o.type==='cloud').length+(S.hs.jo||[]).le
    always yes, so classic games never ask anything. */
 function hsDirAsk(k,w,r){if(!hyper()||!S.hs)return true;const D=hsDir();hsDirSettle();if(!hsDirOn(HS_DIR_K[k]||k))return false;
   if(HS_DIR_OPPS.includes(k))return hsDirOpps()<HS_DIR_OPP;
-  w=w||1;if(D.c||hsDirInc()||S.day<D.q||D.b<w)return false;
+  w=w||1;if(D.c||hsDirInc()||S.day<D.q||D.b<w+(lvl()>=3&&HS_DIR_FILL.includes(k)?HS_DIR_KEEP:0))return false;
   D.b-=w;D.c={k,d:S.day,r:r==null?'':String(r)};D.h.push([k,S.day]);if(D.h.length>30)D.h.shift();return true;}
 // Whether a crisis is on (the card and the tests read it).
 const hsDirBusy=()=>!!S.hs&&(hsDirSettle(),!!hsDir().c||hsDirInc());

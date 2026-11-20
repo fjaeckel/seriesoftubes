@@ -3346,6 +3346,7 @@
 "hyper_badges.survive_t":"Ainda de pé",
 "hyper_badges.war_d":"Acompanhe a guerra de preços de uma nuvem rival até ela desistir.",
 "hyper_badges.war_t":"Corrida para o fundo, vencida",
+"hyper_dir.card_trip":"Amanhã a rede de {city} pode cair e levar a região.",
 "hyper_dir.chill_btn":"Alugar chillers {cost}",
 "hyper_dir.gen_btn":"Trazer geradores {cost}",
 "hyper_dir.held":"🧊 {city} aguentou a noite com equipamento alugado. A {util} manda cumprimentos.",

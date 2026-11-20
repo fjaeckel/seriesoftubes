@@ -3346,6 +3346,7 @@
 "hyper_badges.survive_t":"Sigo en pie",
 "hyper_badges.war_d":"Iguala la guerra de precios de una nube rival hasta que se rinda.",
 "hyper_badges.war_t":"Carrera a la baja, ganada",
+"hyper_dir.card_trip":"Mañana la red de {city} puede saltar y llevarse la región.",
 "hyper_dir.chill_btn":"Alquilar enfriadoras {cost}",
 "hyper_dir.gen_btn":"Traer generadores {cost}",
 "hyper_dir.held":"🧊 {city} aguantó la noche con equipo alquilado. {util} te manda saludos.",

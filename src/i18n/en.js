@@ -3347,6 +3347,7 @@
 "hyper_badges.survive_t":"Still Standing",
 "hyper_badges.war_d":"Match a rival cloud’s price war until it gives up.",
 "hyper_badges.war_t":"Race to the Bottom, Won",
+"hyper_dir.card_trip":"The grid in {city} may trip tomorrow and take the region down.",
 "hyper_dir.chill_btn":"Rent chillers {cost}",
 "hyper_dir.gen_btn":"Truck in generators {cost}",
 "hyper_dir.held":"🧊 {city} rode out the night on rented kit. {util} sends its regards.",

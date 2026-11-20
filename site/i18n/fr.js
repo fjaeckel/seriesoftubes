@@ -3346,6 +3346,7 @@
 "hyper_badges.survive_t":"Toujours debout",
 "hyper_badges.war_d":"Suis la guerre des prix d'un cloud rival jusqu'à ce qu'il abandonne.",
 "hyper_badges.war_t":"Course vers le bas, gagnée",
+"hyper_dir.card_trip":"Le réseau de {city} peut disjoncter demain et emporter la région.",
 "hyper_dir.chill_btn":"Louer des refroidisseurs {cost}",
 "hyper_dir.gen_btn":"Groupes électrogènes {cost}",
 "hyper_dir.held":"🧊 {city} a tenu la nuit avec du matériel loué. {util} te salue.",

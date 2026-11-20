@@ -3348,6 +3348,7 @@
 "hyper_badges.survive_t":"Immer noch da",
 "hyper_badges.war_d":"Halt beim Preiskrieg einer rivalisierenden Cloud mit, bis sie aufgibt.",
 "hyper_badges.war_t":"Preiskampf nach unten, gewonnen",
+"hyper_dir.card_trip":"Das Netz in {city} kann morgen ausfallen und die Region mitnehmen.",
 "hyper_dir.chill_btn":"Kältemaschinen mieten {cost}",
 "hyper_dir.gen_btn":"Generatoren holen {cost}",
 "hyper_dir.held":"🧊 {city} hat die Nacht mit Mietgeräten überstanden. {util} lässt grüßen.",
