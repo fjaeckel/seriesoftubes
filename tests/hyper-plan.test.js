@@ -133,6 +133,8 @@ test('plan, calendar and forecast lines render at 360 px and desktop, two button
     assert.match(card.textContent, /Plan: what runs out first[\s\S]*Calendar[\s\S]*Countries[\s\S]*Regions[\s\S]*Region pairs/, name);
     assert.ok(card.querySelectorAll('#hpPlan .hprow').length > 0, `plan rows (${name})`);
     assert.equal(rows2(ev, '#dashCard'), true, `rows of two at most (${name})`);
+    const acts = J(ev, "[...new Set([...document.querySelectorAll('#dashCard [data-act]')].map(e=>e.dataset.act))]"), lists = J(ev, '[...NOC_LOCAL,...NOC_GO]');
+    assert.deepEqual(acts.filter((x) => !lists.includes(x)), [], 'every button on the NOC window\'s lists');
     ev("$('dash').hidden=true;ACT.focusCity({city:'par'});UI.tab='cust';ACT.panelFold({k:'s:hsdoor',o:1});ACT.panelFold({k:'s:hsrg',o:1});renderPanel()");
     const panel = doc.getElementById('panel').textContent;
     assert.match(panel, /Full in ~\d+ days at this growth/, `the region's full-in line (${name})`);
