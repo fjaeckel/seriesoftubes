@@ -159,7 +159,7 @@ const HYPER_GOALS=[
  {id:'hs_cont3',t:tr('hyper.goal_cont3'),d:tr('hyper.goal_cont3_d'),r:150000,ok:()=>new Set(Object.keys(S.hs.cc).filter(k=>hsQ(R,k)>=CX_GOOD).map(k=>ccInfo(k).reg)).size>=3},
  {id:'hs_ai',t:tr('hyper_win.goal_ai'),d:tr('hyper_win.goal_ai_d'),r:150000,ok:()=>(S.hs.jd|0)>0},
  {id:'hs_drill',t:tr('hyper_win.goal_drill'),d:tr('hyper_win.goal_drill_d'),r:100000,ok:()=>Object.keys(S.hs.drill||{}).length>0},
- {id:'hs_cable',t:tr('hyper_win.goal_cable'),d:tr('hyper_win.goal_cable_d'),r:250000,ok:()=>S.links.some(l=>ownGlassL(l)&&l.sub)},
+ {id:'hs_cable',t:tr('hyper_win.goal_cable'),d:tr('hyper_win.goal_cable_d'),r:250000,ok:()=>S.links.some(l=>l.kind==='df'&&l.own&&l.sub&&l.ready<=S.day)},
  {id:'hs_survive',t:tr('hyper_win.goal_survive'),d:tr('hyper_win.goal_survive_d'),r:300000,ok:()=>(S.hs.fsv|0)>0},
  {id:'hs_win',t:tr('hyper_win.cloud_nine'),d:tr('hyper_win.goal_win_d'),r:0,win:true,cloud9:true,ok:()=>hsC9Ok()},
 ];
