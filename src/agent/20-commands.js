@@ -688,6 +688,7 @@ const API_VIEW={
  custCity:{args:[['v','string']],doc:'Filter the customers list by city.'},
  custSort:{args:[['k','custSortKey']],doc:'Flip the customers list sort.'},
  hsNocGo:{args:[['city','cityId']],doc:'Hyperscaler only: from the NOC dashboard\'s Cloud tab, close the dashboard and open a city at its Cloud tab.'},
+ hsPlanGo:{args:[['city','cityId'],['k','string']],doc:'Hyperscaler only: a row of the Cloud tab\'s plan: close the dashboard and open a city at the tab where the fix is: cust (Cloud), up (Transit), peer (Peering) or links (Infra).'},
  hsNocSort:{args:[['k','string']],doc:'Hyperscaler only: order the Cloud tab\'s countries by q (worst served first), users, rev or name; the same key again turns the order round.'},
  hsNocMore:{args:[['k','string']],doc:'Hyperscaler only: show another page of a Cloud tab list: hscc (countries), hsrg (regions), hspr (region pairs) or hshl (hauls).'},
  custOpen:{args:[['sad','boolean',false]],doc:'Open the customers dashboard tab.'},

@@ -28,3 +28,7 @@
 .hnocf{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.hnocf .tag{white-space:nowrap}
 .hnocrow .meta{overflow-wrap:anywhere}
 .hnoc-ok{color:var(--eye)}.hnoc-bad{color:var(--bad)}
+/* The plan (93-ui/58-hyper-plan.js): a row whose fix takes longer than the time left gets a red bar on its left. */
+.hprow{border-left:3px solid var(--line);padding-left:7px}.hprow.red{border-left-color:var(--bad)}
+.hprow .meta,.hprow .nm,.hpcal,.hpfc{overflow-wrap:anywhere}
+.hprow .btns{margin-top:4px}

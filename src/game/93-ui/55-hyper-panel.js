@@ -32,6 +32,8 @@ function hsNext(){const H=S.hs,cc=CITY[S.home].cc,doors=Object.keys(S.pops).filt
   // A front door whose ports out are full: users cannot get in however big the regions are.
   const R0=R.hs,dfull=hsDoorsFull();if(dfull.length)return nx(tr('hyper_ui.next_door_full',{city:esc(CITY[dfull[0]].name)}),btn(tr('common.open'),'popGo',{city:dfull[0]},'pink sm'),true);
   if(R0&&R0.short>0.5){const c=hsRgs().find(r=>R0.rg[r]&&R0.rg[r].load>=R0.rg[r].g-0.5)||S.home;return nx(tr('hyper.next_full',{g:fmtG(R0.short),city:esc(CITY[c].name)}),btn(tr('common.open'),'popGo',{city:c},'sm'),true);}
+  // Nothing on fire: what runs out first, if the fix should start soon (38-hyper-forecast.js).
+  {const p=hpNextHtml();if(p)return p;}
   if(!doors.some(c=>ixIdsIn(c).some(x=>S.ixp[x]!==undefined)||S.pni.some(p=>p.city===c)))return nx(tr('hyper.next_peer'));
   if(!hsTen().length)return nx(tr('hyper.next_tenant'),btn(tr('common.deals'),'leftTab',{t:'deals'},'sm'));
   if(hsRgN()<2&&hsRgMax()>=2)return nx(tr('hyper.next_region'));
@@ -66,7 +68,7 @@ function hsStatHtml(){const H=S.hs,ccs=Object.keys(H.cc),doors=Object.keys(S.pop
    +hsPwStat()+hsTrafficStat()+hsDrillStat()+hsMarketStat()+hsLawStat()+`</div>`;}
 // Folded details: the money, the utility's letters, the tightest grid, what the resale desk sold.
 function hsMoreHtml(){const H=S.hs,open=hsCardOpen('hsmore');let rev=0;for(const cc in H.cc)rev+=hsRev(R,cc);
-  return foldB(tr('hyper_ui.details'),'leftFold',{k:'hsmore'},open,'ghost sm hsc-fold')+(open?`<div class="hsc-more"><div class="meta">💵 ${tr('hyper.card_money',{rev:fmt$(rev),cost:fmt$((R.cost&&R.cost.cloud)||0)})}</div>${hsPwMore()}${hsrSold()}</div>`:'');}
+  return foldB(tr('hyper_ui.details'),'leftFold',{k:'hsmore'},open,'ghost sm hsc-fold')+(open?`<div class="hsc-more"><div class="meta">💵 ${tr('hyper.card_money',{rev:fmt$(rev),cost:fmt$((R.cost&&R.cost.cloud)||0)})}</div>${hpCalCard()}${hsPwMore()}${hsrSold()}</div>`:'');}
 // Offers waiting on this card (AI runs, the resale desk), open until folded.
 function hsOffHtml(){const H=S.hs,n=(H.jo||[]).length+(H.rs?H.rs.o.length:0);if(!n)return '';const open=hsCardOpen('hsoff');
   return `<div class="hsc-off">${foldB(trn('hyper_ui.n_offers_waiting',n),'leftFold',{k:'hsoff'},open,'ghost sm hsc-fold')}${open?hsTrafficOffers()+hsrOffers():''}</div>`;}
@@ -96,7 +98,7 @@ function hsCcBody(c){const cc=CITY[c].cc,H=S.hs,x=H.cc[cc],w=hsWhy(cc);let h='';
     if(o&&o.v&&o.short>0.5)h+=`<p class="why">${tr('hyper.regions_full_here',{g:fmtG(o.short)})}</p>`;
     if(o&&o.want-o.got>0.5)h+=`<p class="why">${tr('hyper.haul_short',{g:fmtG(o.want-o.got)})}</p>`;
     if(o&&o.parts.some(p=>p[2]>HS_MS[0]))h+=`<p class="note">${tr('hyper.far_hint',{ms:Math.round(Math.max(...o.parts.map(p=>p[2])))})}</p>`;
-    if(q<CX_GOOD)h+=`<p class="why">${tr('hyper.users_leaving')}</p>`;}
+    if(q<CX_GOOD)h+=`<p class="why">${tr('hyper.users_leaving')}</p>`;h+=hpCcLine(cc);}
   else if(w)h+=`<p class="why">${w}</p>`;
   else h+=`<p class="lead">${tr('hyper.launch_lead',{g:fmtG(Math.max(1,hsPot(cc)*HS_START)),max:fmtG(hsPot(cc))})}</p>${hsBtns(btn(tr('hyper.launch_in_cost',{country:esc(ccName(cc)),cost:fmt$(hsLic(cc))}),'hsLaunch',{cc},'pink',S.cash<hsLic(cc)))}`;
   return h;}
@@ -105,7 +107,7 @@ const hsCcSection=c=>hsSec('cc',hsCcSpec(c));
 function hsRgSpec(c){const H=S.hs,d=H.rg[c];if(!d&&!hsSite(c))return null;const fl=[];let sum;
   if(d){const T=HS_T[d.t],x=R.hs&&R.hs.rg[c],load=x?x.load:0;
     if(d.ready>S.day)sum=tr('hyper_ui.sum_building',{name:tr(T.n),date:dateStr(d.ready)});
-    else{sum=tr('hyper_ui.sum_region',{name:tr(T.n),p:pct(load/(T.g||1))});if(load>=T.g*0.95)fl.push(hsFlag('restrictive',tr('hyper_ui.f_full')));}
+    else{sum=tr('hyper_ui.sum_region',{name:tr(T.n),p:pct(load/(T.g||1))});if(load>=T.g*0.95)fl.push(hsFlag('restrictive',tr('hyper_ui.f_full')));else{const f=hpRgFlag(c);if(f)fl.push(f);}}
     if(hsOut(c)&&!(H.dx&&H.dx.c===c))fl.push(hsFlag('restrictive',tr('hyper_ui.f_down')));}
   else sum=tr('hyper_ui.sum_no_region');
   return {t:tr('hyper.region'),sum,flags:fl,open:!!d,body:()=>hsRgBody(c)};}
@@ -114,6 +116,7 @@ function hsRgBody(c){const H=S.hs,d=H.rg[c];let h='';
     if(d.ready>S.day)h+=`<p class="lead">${tr('hyper.being_built',{name:tr(T.n),date:dateStr(d.ready)})}</p>`;
     else h+=hsKv(tr(T.n),tr('city_panel.a_of_b',{a:fmtG(load),b:fmtG(T.g)}))+hsBar(load/T.g,load>=T.g*0.95);
     h+=hsKv(tr('hyper.power'),tr('hyper.mw_of_grid',{mw:Math.round(hsMwRes(c)),grid:hsSupply(c)}))+hsKv(tr('hyper.slots'),tr('city_panel.a_of_b',{a:hsSlotsUsed(c),b:T.slots}));
+    if(d.ready<=S.day)h+=hpRgLines(c);
     if(d.up)h+=`<p class="meta">${tr('hyper.being_built',{name:tr(HS_T[d.up.t].n),date:dateStr(d.up.ready)})}</p>`;
     if(!cxOut(c)&&!Object.keys(S.pops).some(hsDoor))h+=`<p class="why">${tr('hyper.region_no_way_out')}</p>`;
     if(N&&!d.up)h+=`<p class="meta">${tr('hyper.tier_terms',{name:tr(N.n),g:fmtG(N.g),mw:N.mw,slots:N.slots,mo:fmt$(N.mo),n:leadDays(N.days)})}</p>${hsBtns(btn(N.lv>lvl()?tr('hyper.tier_needs_level',{name:tr(N.n),lv:N.lv}):tr('hyper.grow_region_cost',{cost:fmt$(N.cost)}),'hsRegion',{city:c},'sm',N.lv>lvl()||S.cash<N.cost||d.ready>S.day))}`;}
@@ -129,7 +132,7 @@ function hsDoorSpec(c){const H=S.hs,door=hsDoor(c),x=R.hs&&R.hs.door[c],fl=[];le
   return {t:tr('hyper.front_door'),sum,flags:fl,body:()=>hsDoorBody(c)};}
 function hsDoorBody(c){const H=S.hs,door=hsDoor(c),x=R.hs&&R.hs.door[c];if(!door)return `<p class="why">${tr('hyper.no_way_out_here')}</p>`;
   let h=`<p class="lead">${tr('hyper.door_lead')}</p>`;if(x&&x.g>0.01)h+=hsKv(tr('hyper.hauled_here'),tr('city_panel.a_of_b',{a:fmtG(x.got),b:fmtG(x.g)}))+hsBar(x.got/x.g,x.got<x.g-0.5);
-  h+=H.edge[c]?`<p class="meta">✅ ${tr('hyper.edge_here',{p:pct(HS_EDGE)})}</p>`:`<p class="meta">${tr('hyper.edge_terms',{p:pct(HS_EDGE),mo:fmt$(HS_EDGE_MO)})}</p>${hsBtns(btn(tr('hyper.buy_edge_cost',{cost:fmt$(HS_EDGE_COST)}),'hsEdge',{city:c},'sm',S.cash<HS_EDGE_COST))}`;
+  h+=hpDoorLine(c);h+=H.edge[c]?`<p class="meta">✅ ${tr('hyper.edge_here',{p:pct(HS_EDGE)})}</p>`:`<p class="meta">${tr('hyper.edge_terms',{p:pct(HS_EDGE),mo:fmt$(HS_EDGE_MO)})}</p>${hsBtns(btn(tr('hyper.buy_edge_cost',{cost:fmt$(HS_EDGE_COST)}),'hsEdge',{city:c},'sm',S.cash<HS_EDGE_COST))}`;
   return h;}
 const hsDoorSection=c=>hsSec('door',hsDoorSpec(c));
 // A tenant's products, each with what it still wants.

@@ -5,7 +5,8 @@
    hauls from regions to front doors (got against wanted), fullest first; and every region pair: replication and AI
    training got against wanted, the backlog, and failover readiness (green when the replica has room and the backbone
    can carry the failover: hsFailInfo). All of it is read from S.hs and today's R.hs; the failover checks (a widest-path
-   search each) are kept for the day's routing. A tap on a row flies to its city's Cloud tab. */
+   search each) are kept for the day's routing. A tap on a row flies to its city's Cloud tab. Above the lists, the plan
+   (what runs out first, with its fix) and the calendar (93-ui/58-hyper-plan.js). */
 Object.assign(LIST_PG,{hscc:[20,40],hsrg:[12,30],hshl:[12,30],hspr:[12,30]});
 // The tab is in DTABS only while a Hyperscaler is open.
 function hsDtabSync(){const i=DTABS.indexOf('cloud'),on=!!(S&&S.hs&&hyper());
@@ -96,4 +97,4 @@ function hnocPairSection(pr){const H=S.hs,bad=p=>p.fo.some(x=>!(x.I&&x.I.ok))||p
     return hnocRow(p.a,`<div class="nm">${esc(CITY[p.a].name)} ⇄ ${esc(CITY[p.b].name)}</div>${b}${hnocFlags([...new Set(f)])}`,null,false);}).join('')+`</div>`;
   return h+hnocMore('hspr',pr.length)+`</div>`;}
 function hsNocTab(){if(!S.hs||!hyper())return '';const rows=hnocCountries(),pr=hnocPairs();
-  return hnocTiles(rows,pr)+`<p class="note">${tr('hyper_noc.map_legend')}</p>`+hnocCcSection(rows)+hnocRgSection()+hnocPairSection(pr)+hnocHaulSection();}
+  return hnocTiles(rows,pr)+`<p class="note">${tr('hyper_noc.map_legend')}</p>`+hpPlanSection()+hpCalSection()+hnocCcSection(rows)+hnocRgSection()+hnocPairSection(pr)+hnocHaulSection();}
