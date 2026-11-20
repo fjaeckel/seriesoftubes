@@ -17,15 +17,16 @@ test('the reference bot plays a Hyperscaler and survives a region loss once it h
   // Day by day until it has two regions with a passed drill (and at most two and a half years).
   const out = JSON.parse(ev(`(()=>{const rows=[];for(let i=0;i<900;i++){__hsBot.day();dayTick();closeModal();if(S.lost)break;
     if(S.day%30===0)rows.push({day:S.day,lv:S.lvl||1,cash:Math.round(S.cash),users:Math.round(hsUsers()),peak:Math.round(S.stats.peak),rg:hsRgs().length,ct:hsCont(),ten:hsTen().length});
-    if(hsRgs().length>=2&&Object.keys(S.hs.drill).length&&Object.keys(S.hs.rep).length>=2&&!S.hs.dx&&!Object.keys(S.hs.out).length&&hsRgs().some(c=>hsFailReady(c)&&hsLagAt(c)<HS_RISK))break;}
+    if(hsRgs().length>=2&&Object.keys(S.hs.drill).length&&Object.keys(S.hs.rep).length>=2&&!S.hs.dx&&!Object.keys(S.hs.out).length&&hsRgs().some(c=>hsFailReady(c)&&hsLagAt(c)<HS_RISK&&hsHomedAt(c).length))break;}
     return JSON.stringify({rows,day:S.day,lost:!!S.lost});})()`));
   t.diagnostic('bot by month: ' + out.rows.map((r) => `d${r.day} lv${r.lv} $${Math.round(r.cash / 1000)}k ${r.users}G users peak ${r.peak}G ${r.rg} regions ${r.ct} cont ${r.ten} tenants`).join(' | '));
   assert.equal(out.lost, false, 'the bot never goes broke');
   assert.ok(out.day < 900, 'two regions, replicas and a passed drill within two and a half years');
   assert.equal(ev('S.hs.flost'), 0, 'no data lost to the failures it met on the way');
   assert.ok(ev("S.offers.concat(S.biz).every(o=>o.type==='cloud')"), 'cloud tenants only, never transit');
-  // A real region failure: the region whose failover holds tonight.
-  const c = ev('hsRgs().find(c=>hsFailReady(c)&&hsLagAt(c)<HS_RISK)');
+  // A real region failure: a region with users at home whose failover holds tonight (with a leased cage early on, the
+  // newest region may not have users of its own yet).
+  const c = ev('hsRgs().find(c=>hsFailReady(c)&&hsLagAt(c)<HS_RISK&&hsHomedAt(c).length)');
   const b = ev(`hsRepOf(${JSON.stringify(c)})`);
   const homed = JSON.parse(ev(`JSON.stringify(Object.fromEntries(hsHomedAt(${JSON.stringify(c)}).map(k=>[k,S.hs.cc[k].d])))`));
   assert.ok(Object.keys(homed).length > 0, 'users call the region home');

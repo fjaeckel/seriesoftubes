@@ -9,6 +9,8 @@
    - hsdrill: a failover drill for a region whose pair was never drilled, or not for a while; only one at a time, only
      where the NOC calls the failover ready if told so, and never right before a launch freeze.
    - hsfund: a protest that a few community funds would win is answered with them, up to a price per protest.
+   - hsaz: a region that met local outages (S.hs.azo, 38-hyper-zones.js) gets another availability zone, where the level,
+     the megawatts and the law allow it: one a shift.
    The classic order with nothing to do here (free caches for your eyeballs: a Hyperscaler has no eyeballs) is hidden.
    The orders are registered by hsOpsReg() at the end of 95-standing-orders.js, which loads after this file. */
 const HS_OPS_RG_CAPS=[1e6,3e6,1e7,25e6];
@@ -25,15 +27,17 @@ function hsOpsReg(){
      days:{d:180,v:[90,180,365],l:N_('hyper_ops.p_days'),f:v=>trn('hyper_ops.n_days',v)},
      ready:{d:true,v:[true,false],l:N_('hyper_ops.p_ready'),f:v=>v?tr('common.on'):tr('common.off')}}},
    {k:'hsfund',i:'📣',cap:1e6,show:()=>hyper()&&!!S.hs,t:N_('hyper_ops.o_fund'),d:N_('hyper_ops.o_fund_d'),p:{
-     max:{d:500000,v:[250000,500000,1000000],l:N_('hyper_ops.p_max'),f:v=>fmt$(v)}}});
-  for(const o of OPS.slice(-4))OPSK[o.k]=o;
+     max:{d:500000,v:[250000,500000,1000000],l:N_('hyper_ops.p_max'),f:v=>fmt$(v)}}},
+   {k:'hsaz',i:'🧱',cap:250000,show:()=>hyper()&&!!S.hs,t:N_('hyper_ops.o_az'),d:N_('hyper_ops.o_az_d'),p:{
+     out:{d:2,v:[1,2,3,5],l:N_('hyper_ops.p_out'),f:v=>trn('hyper_ops.n_outages',v)}}});
+  for(const o of OPS.slice(-5))OPSK[o.k]=o;
   OPS_POP.push('hsrg');
-  Object.assign(OPS_SAY,{hsrg:N_('hyper_ops.l_rg'),hsutil:N_('hyper_ops.l_util'),rgfull:N_('hyper_ops.l_full'),hswave:N_('hyper_ops.l_wave'),hsdrill:N_('hyper_ops.l_drill'),hsfund:N_('hyper_ops.l_fund')});
-  OPS_ORDER.splice(OPS_ORDER.indexOf('repair')+1,0,'hsfund','hsrg');
+  Object.assign(OPS_SAY,{hsrg:N_('hyper_ops.l_rg'),hsutil:N_('hyper_ops.l_util'),rgfull:N_('hyper_ops.l_full'),hswave:N_('hyper_ops.l_wave'),hsdrill:N_('hyper_ops.l_drill'),hsfund:N_('hyper_ops.l_fund'),hsaz:N_('hyper_ops.l_az')});
+  OPS_ORDER.splice(OPS_ORDER.indexOf('repair')+1,0,'hsfund','hsrg','hsaz');
   OPS_ORDER.splice(OPS_ORDER.indexOf('waveup')+1,0,'hswave','hsdrill');
   // Free caches serve your own eyeballs; a Hyperscaler has none.
   {const s=OPSK.caches.show;OPSK.caches.show=()=>!hyper()&&(!s||s());}
-  Object.assign(OPS_RUN,{hsrg:hsOpsRg,hswave:hsOpsWave,hsdrill:hsOpsDrill,hsfund:hsOpsFund});}
+  Object.assign(OPS_RUN,{hsrg:hsOpsRg,hswave:hsOpsWave,hsdrill:hsOpsDrill,hsfund:hsOpsFund,hsaz:hsOpsAz});}
 const hsOpsOn=()=>hyper()&&!!S.hs&&!!R.hs;
 // A note that changes nothing on the network (the weekly "running full"): no routing for it.
 function hsOpsNote(X,k,w){const W=S.ops.wk;if(W&&(W.wh[k]||[]).includes(w))return;const dt=X.dirty;X.did(k,w);X.dirty=dt;}
@@ -76,6 +80,11 @@ function* hsOpsFund(X){if(!hyper()||!S.hs)return;const H=S.hs,max=opsP('hsfund',
     for(let i=0;i<n&&hsProt(c);i++){if(!X.pay('hsfund',()=>{const g=hsPw(c).gw;ACT.hsFund({city:c});return hsPw(c).gw>g;}))break;paid++;}
     // Goodwill moves no traffic: nothing to route again for it.
     if(paid){const dt=X.dirty;X.did('hsfund',c);X.dirty=dt;yield;}}}
+// A zone for the region that met the most local outages (at least the order's mark), one a shift.
+function* hsOpsAz(X){if(!hsOpsOn())return;const H=S.hs,mark=opsP('hsaz','out'),o=c=>(H.azo&&H.azo[c])|0;
+  for(const c of hsRgs().filter(c=>o(c)>=mark&&!hsAzWhy(c)&&!hsMorAt(c)&&hsMwFree(c)>=hsAzMw1(c)).sort((a,b)=>o(b)-o(a)||(a<b?-1:1))){
+    const n=hsAzL(c).length,cost=hsAzCost(c);if(!X.can('hsaz',cost))continue;
+    if(X.pay('hsaz',()=>{ACT.hsZone({city:c});return hsAzL(c).length>n;})){X.book('hsaz',0,hsAzMo(c));X.did('hsaz',c);yield;return;}}}
 // The intern's mood at a cloud (opsMood()): a region down first (in any outage), then on an ordinary day what is going
 // on, then flavour.
 function hsOpsMood(k){if(!hyper()||!S.hs||!S.ops)return '';if(k!=='quiet'&&k!==S.ops.intern&&k!=='outage')return '';const H=S.hs,name=opsName();

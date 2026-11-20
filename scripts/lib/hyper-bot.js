@@ -7,7 +7,8 @@
 // on a level. Every day it signs the cloud tenants and AI runs it has room, power and backbone for, trains a model of its
 // own when the backbone between two regions can feed one, answers protests with a community fund (or heat reuse), asks
 // the utility when a region needs power, grows regions and waves that run hot, pins each region's replica, drills every
-// pair once its failover would hold, answers the regulators and lays its own cable across the Atlantic once it may. It
+// pair once its failover would hold, leases a colo cage for a region while a Server Barn is more than it has (and moves
+// out into one later), adds availability zones to regions that run hot or met local outages, answers the regulators and lays its own cable across the Atlantic once it may. It
 // never reads the goals, so the same seed always plays the same game. play() returns what it reached day by day.
 // lazy (play({lazy:true})): a player who launches at home, opens a front door and then only signs what calls.
 const BOT = String.raw`(()=>{
@@ -51,7 +52,7 @@ function door(c){if(!S.pops[c])return;if(!S.transit.some(t=>t.city===c)){const n
 function routersFor(a,b,t){for(const c of [a,b])for(let k=0;k<4&&S.pops[c]&&!waveOk(a,b,t);k++){const g0=S.pops[c].rgen||0,g=mainRG(RG[g0].cls+1);if(!RG[g]||!can(swapCost(c,g)+waveMo(kmBetween(a,b),isSub(a,b),t)*2))return false;ACT.upRouter({city:c});closeModal();if((S.pops[c].rgen||0)===g0)break;}return waveOk(a,b,t);}
 B.start=()=>{quiet(()=>{const cc=CITY[S.home].cc;ACT.hsLaunch({cc});door(S.home);});B.i=0;};
 // Room the regions have (and will have once what is being built opens).
-function room(){let cap=0;for(const c in H().rg)cap+=HS_T[H().rg[c].up?H().rg[c].up.t:H().rg[c].t].g;
+function room(){let cap=0;for(const c in H().rg)cap+=H().rg[c].up?HS_T[H().rg[c].up.t].g:hsRgG(c);
   // With two regions or more, room for the biggest to fail over (N+1); alone, as full as it gets (the edge stack helps).
   const big=Math.max(...Object.values(H().rg).map(d=>HS_T[d.t].g));return Object.keys(H().rg).length>1?cap-big*0.5:cap*1.3;}
 // Launch the next country of the live regions' lists, one a week, while what is launched could still fit.
@@ -61,18 +62,34 @@ function launches(){if(S.day<(B.nl||0))return;const rs=hsRgs(),rm=room();
 // Transit that runs hot: a bigger port, or a second one beside it.
 function transit(){for(const t of S.transit.slice()){const cap=PORT[t.tier].g*(t.n||1);if((R.useT[t.id]||0)<cap*0.8||S.transit.filter(x=>x.city===t.city).reduce((a,x)=>a+PORT[x.tier].g*(x.n||1),0)>2*hsUsers()+100)continue;
   const N=PORT[t.tier+1];if(N&&N.g<=4*cap&&portOk(t.city,t.tier+1)){if(can(N.setup*(t.n||1)*2))ACT.buyTransit({city:t.city,net:t.net,tier:t.tier+1});}else if(can(PORT[t.tier].setup*2))ACT.lagT({id:t.id,d:1});}}
+// A leased cage instead of a Server Barn: when the Barn is more than the cash, the level allows a cage and the month
+// can carry its lease (38-hyper-zones.js). It moves out into a Barn later (grow).
+// One cage at a time, and only while the regions there are fill up: the next one waits for the move out of the last.
+const cages=()=>Object.keys(H().rg).filter(c=>H().rg[c].t===HS_CAGE&&!H().rg[c].up);
+const busy=()=>{const o=R.hs;if(!o)return 0;let g=0,l=0;for(const c in o.rg){g+=o.rg[c].g;l+=o.rg[c].load;}return g>0?(l+o.short)/g:0;};
+const cageOk=()=>HS_T[HS_CAGE].lv<=lvl()&&!can(HS_T[1].cost)&&net()>HS_T[HS_CAGE].mo*1.2&&!cages().length&&busy()>=0.7;
+const rgCost=()=>cageOk()?HS_T[HS_CAGE].cost+HS_T[HS_CAGE].mo*2:HS_T[1].cost;
 // The plan's next step: a POP joined by a wave, a front door, then the region itself. B.save: saving up for it;
 // B.wait: it waits on a level (more regions than the level allows), so growing the regions there are is the way on.
 function expand(){const P=PLAN[B.i];B.save=false;B.wait=false;if(!P)return;const c=P.c;
   if(P.from){if(!hsRgs().includes(P.from)&&!S.pops[P.from])return;
-    if(!S.pops[c]){const est=popCost(c)+waveMo(kmBetween(P.from,c),isSub(P.from,c),1)*3+40000;if(!P.pop&&hsRgN()>=hsRgMax()){B.wait=true;return;}if(!can(est+(P.pop?0:HS_T[1].cost))){B.save=true;return;}ACT.buildPop({city:c});closeModal();}
+    if(!S.pops[c]){const est=popCost(c)+waveMo(kmBetween(P.from,c),isSub(P.from,c),1)*3+40000;if(!P.pop&&hsRgN()>=hsRgMax()){B.wait=true;return;}if(!can(est+(P.pop?0:rgCost()))){B.save=true;return;}ACT.buildPop({city:c});closeModal();}
     if(!S.pops[c])return;if(!pairOf(P.from,c).length){if(!link(P.from,c,1))return;}
     door(c);}
   if(P.pop){if(hsDoor(c))B.i++;return;}
+  if(!H().rg[c]&&hsRgN()<hsRgMax()&&cageOk()&&!hsColoWhy(c)&&can(rgCost())){ACT.hsColo({city:c});if(!H().rg[c])return;}
   if(!H().rg[c]){if(hsRgN()>=hsRgMax()){B.wait=true;return;}if(!can(HS_T[1].cost)){B.save=true;return;}if(hsMwFree(c)<HS_T[1].mw){if(!hsPw(c).q&&can(HS_Q_FEE))ACT.hsUtil({city:c});return;}ACT.hsRegion({city:c});if(!H().rg[c])return;}
   if(H().rg[c].ready<=S.day)B.i++;}
 // Regions that run hot grow a tier; the utility is asked first when the metro has no megawatts for it.
-function grow(){if(B.save&&!B.wait&&!((R.hs&&R.hs.short)>200))return;for(const c of Object.keys(H().rg).sort()){const d=H().rg[c],x=R.hs&&R.hs.rg[c];if(!x||d.up||d.ready>S.day)continue;const N=HS_T[d.t+1];if(!N||N.lv>lvl())continue;
+function grow(){
+  // A cage running hot moves out into a Server Barn once the money is there (the utility first if the metro is short),
+  // before the next step of the plan: the lease is the dearest room it has.
+  for(const c of cages()){const d=H().rg[c],x=R.hs&&R.hs.rg[c];if(!x||d.ready>S.day||x.load<x.g*0.75&&hsSlotsUsed(c)<hsSlots(c))continue;
+    if(hsMwFree(c)<HS_T[1].mw){if(!hsPw(c).q&&can(HS_Q_FEE))ACT.hsUtil({city:c});continue;}if(can(HS_T[1].cost)){ACT.hsColoOut({city:c});return;}B.out=true;}
+  if(B.save&&!B.wait&&!((R.hs&&R.hs.short)>200))return;for(const c of Object.keys(H().rg).sort()){const d=H().rg[c],x=R.hs&&R.hs.rg[c];if(!x||d.up||d.ready>S.day||d.t===HS_CAGE)continue;
+  // A zone: room and slots for a fifth of the tier, and a bad day survived. Where the region runs hot or has met local outages.
+  if(!hsAzWhy(c)&&(x.load>=x.g*0.7||(H().azo&&H().azo[c])>=1)&&hsMwFree(c)>=hsAzMw1(c)&&can(hsAzCost(c)*2)){ACT.hsZone({city:c});continue;}
+  const N=hsTNext(d);if(!N||N.lv>lvl())continue;
   if(x.load<x.g*(hsRgs().length>1?0.6:0.8)&&hsSlotsUsed(c)<hsSlots(c)-1)continue;const need=N.mw-HS_T[d.t].mw;
   if(hsMwFree(c)<need){if(!hsPw(c).q&&can(HS_Q_FEE))ACT.hsUtil({city:c});continue;}if(hsProt(c)&&hsProt(c).kind==='block')continue;if(can(N.cost))ACT.hsRegion({city:c});}}
 // Waves that run hot (70% or more between two cities): more of them, as widen() picks, while a Gbps of wave costs
@@ -147,7 +164,7 @@ function cable(){const o=S.seatOff;if(o&&o.exp>S.day&&!S.links.some(l=>l.seat)){
   UI.pending={a:best.a,b:best.b};UI.seaDesign='standard';ACT.orderCable();UI.pending=null;B.cab=S.links.some(l=>l.kind==='df'&&l.own&&!l.seat&&l.sub);}
 B.day=()=>{const d=S.day;quiet(()=>{
   if(!opsHired()&&opsCanHire()&&rule('clock')&&can(INTERN_MO)){ACT.opsHire({id:'kevin'});closeModal();if(opsHired())for(const k of ['transit','routers','repair'])if(!S.ops.on[k])ACT.opsToggle({k});closeModal();}
-  deals();failWaves();if(!B.risk)expand();loans();launches();transit();if(d%3===0){grow();waves();model();}if(d%7===0)prune();replicas();cable();});};
+  deals();failWaves();B.out=false;if(d%3===0)grow();if(!B.risk&&!B.out)expand();loans();launches();transit();if(d%3===0){waves();model();}if(d%7===0)prune();replicas();cable();});};
 // The lazy player: home, a front door, and whatever calls.
 B.lazy=()=>{quiet(()=>{for(const o of S.offers.slice())if(o.type==='cloud')ACT.accept({id:o.id});});};
 })()`;

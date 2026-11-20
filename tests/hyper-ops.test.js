@@ -1,5 +1,5 @@
-// The NOC intern at a Hyperscaler (95-hyper-orders.js): four orders only a cloud sees (regions, waves for the backlog,
-// failover drills, protests), run through the player's own clicks within their budgets, never during a launch freeze;
+// The NOC intern at a Hyperscaler (95-hyper-orders.js): five orders only a cloud sees (regions, waves for the backlog,
+// failover drills, protests, zones after local outages), run through the player's own clicks within their budgets, never during a launch freeze;
 // the classic order with nothing to do here hidden, and the classic game's orders untouched; the intern's cloud moods;
 // saves; and the Ops sheet on a phone and a desktop.
 const test = require('node:test');
@@ -175,6 +175,26 @@ test('protests: answered with community funds when cheap enough, through the sam
   assert.ok(ev('hsProt("par")'), 'Paris needs four funds, more than the order may spend on one protest');
   assert.equal(ev('S.hs.pw.par.gw'), 0);
   assert.deepEqual(did(ev, 'hsfund').map(x => x[2]), [['fra']]);
+  assert.deepEqual(errors, []);
+});
+
+test('zones: a region that met local outages gets another zone, one a shift, through the same click', (t) => {
+  const { ev, errors } = cloud(t);
+  on(ev, 'hsaz', { out: 2 });
+  ev('S.hs.azo={par:1};compute()');
+  let c0 = cash(ev); shift(ev);
+  assert.equal(cash(ev), c0, 'one outage is under the mark');
+  ev('S.hs.azo={par:3,ams:2};compute()');
+  c0 = cash(ev); shift(ev);
+  assert.equal(c0 - cash(ev), ev("hsAzCost('par')"), 'the worst first, one a shift');
+  assert.equal(ev('S.hs.az.par.length'), 1);
+  assert.equal(ev('S.hs.az.ams'), undefined);
+  assert.deepEqual(did(ev, 'hsaz').map((x) => x[2]), [['par']]);
+  assert.equal(ev('S.ops.addMo.hsaz'), ev("hsAzMo('par')"), 'its running cost is booked');
+  // A moratorium or a full level stops it.
+  ev("S.hs.law.mor.ams={a:S.day,f:S.day,u:S.day+100,m:0};S.lvl=2;compute()");
+  c0 = cash(ev); shift(ev);
+  assert.equal(cash(ev), c0);
   assert.deepEqual(errors, []);
 });
 
