@@ -30,7 +30,8 @@ const hsUsers=()=>S.hs?Object.values(S.hs.cc).reduce((a,x)=>a+x.d,0):0;
 const hsSite=c=>c===S.home||siteOk(c,HS_MIN_P);
 const hsRgMax=()=>HS_LV_RG[Math.min(lvl(),HS_LV_RG.length-1)]+1;
 const hsRgN=()=>Object.keys(S.hs.rg).length;
-const hsLive=c=>!!S.hs&&siteLive(S.hs.rg,c)&&popUp(c);
+// A region that failed or is drained by a drill is not live (38-hyper-failover.js).
+const hsLive=c=>!!S.hs&&siteLive(S.hs.rg,c)&&popUp(c)&&!hsOff(c);
 const hsRgs=()=>S.hs?Object.keys(S.hs.rg).filter(hsLive).sort():[];
 const hsSlots=c=>HS_T[S.hs.rg[c].t].slots;
 const hsTen=()=>S.biz.filter(b=>b.type==='cloud');
@@ -38,8 +39,9 @@ const hsSlotsUsed=c=>hsTen().filter(b=>b.rg===c).length+hsTrainSlotsAt(c);
 const hsSlotFree=()=>hsRgs().some(r=>hsSlotsUsed(r)<hsSlots(r));
 // The grid a metro has for everyone, town included (seeded, 40 to 600 MW; power itself comes later).
 const hsGrid=c=>Math.round(clamp(40+CITY[c].P*0.25+hstr('grid|'+c)%120,40,600));
-// The region a tenant in city c is served from: the nearest live one with a free compute slot, else the nearest.
-function hsRgFor(c,skip){const rs=hsRgs().sort((a,b)=>kmBetween(a,c)-kmBetween(b,c)||(a<b?-1:1));return rs.find(r=>r!==skip&&hsSlotsUsed(r)<hsSlots(r))||rs[0]||null;}
+// The region a tenant in city c is served from: the nearest live one with a free compute slot, else the nearest. p: its
+// products; Very Sovereign Cloud only ever lives in its own country (38-hyper-residency.js).
+function hsRgFor(c,skip,p){const rs=hsRgs().filter(r=>hsTenResOk(p,c,r)).sort((a,b)=>kmBetween(a,c)-kmBetween(b,c)||(a<b?-1:1));return rs.find(r=>r!==skip&&hsSlotsUsed(r)<hsSlots(r))||rs[0]||null;}
 // Front doors: POPs with a way out. hsDoor(c): this one is.
 const hsDoor=c=>!!S.pops[c]&&popUp(c)&&cxOut(c);
 const hsLatF=ms=>ms<=HS_MS[0]?1:ms>=HS_MS[1]?HS_MS[2]:1-(1-HS_MS[2])*(ms-HS_MS[0])/(HS_MS[1]-HS_MS[0]);
@@ -58,6 +60,9 @@ function hsFlows(R2,flow,DEMTO,X){const H=S.hs;if(!H||!hyper())return null;
   const MS=new Map(),ms=(a,b)=>{const k=a+'>'+b;let v=MS.get(k);if(v===undefined)MS.set(k,v=X.ms(a,b));return v;};
   // Each region's replica (38-hyper-traffic.js): where its copies go tonight.
   for(const r of rgs)out.rg[r].rep=hsRepOf(r,rgs,ms);
+  // Users homed in a region that is out tonight may only go to its replica (38-hyper-failover.js); residency pins
+  // others to their country or bloc (38-hyper-residency.js). fo: each region out tonight and the replica that takes over.
+  const fo=out.fo={};for(const c in H.rg)if(hsOut(c))fo[c]=hsRepOf(c,rgs,ms);out.blk=0;
   // Front doors your backbone joins to at least one live region.
   const doors=Object.keys(S.pops).filter(hsDoor).sort().filter(d=>rgs.some(r=>ms(r,d)<Infinity));
   const add=(c,j,x,bz)=>{if(x<=1e-9)return;flow(CIDX[c],j,x,false,bz);R2.cityDem[c]=(R2.cityDem[c]||0)+x;R2.demand+=x;DEMTO[j]+=x;};
@@ -65,7 +70,7 @@ function hsFlows(R2,flow,DEMTO,X){const H=S.hs;if(!H||!hyper())return null;
   // Users behind player home ISPs and edge nodes in partner networks (89-fedplay-hyper.js).
   const PN=hsfPlayers();
   for(const b of S.biz){if(b.type!=='cloud'||!Array.isArray(b.p))continue;const I=ccInfo(CITY[b.city].cc);if(!I)continue;const nets=hsfNets(I,PN);
-    const r=hsLive(b.rg)?b.rg:hsRgFor(b.city),T={r,v:null,want:0,f:0,ms:Infinity,r2:null,got:0,hw:0};out.ten[b.id]=T;if(!r)continue;
+    const r=hsTenRg(b,fo),T={r,v:null,want:0,f:0,ms:Infinity,r2:null,got:0,hw:0};out.ten[b.id]=T;if(!r)continue;
     const v=doors.includes(b.city)&&ms(r,b.city)<Infinity?b.city:doors.filter(d=>ms(r,d)<Infinity).sort((a,c)=>kmBetween(a,b.city)-kmBetween(c,b.city)||(a<c?-1:1))[0];if(!v)continue;
     const sh=cloudShape(b.p),es=H.edge[v]?b.bw*sh.eo:0,dyn=b.bw*sh.out-es,inn=b.bw*sh.in,want=dyn+inn,f=want>1e-9?Math.min(1,room[r]/want):1;
     room[r]-=want*f;out.rg[r].load+=want*f;T.v=v;T.want=want;T.f=f;T.ms=ms(r,v)*(H.edge[v]?0.5:1)+hsAcc(v,b.city);T.es=es;
@@ -83,12 +88,13 @@ function hsFlows(R2,flow,DEMTO,X){const H=S.hs;if(!H||!hyper())return null;
     const nets=NT[cc]=hsfNets(I,PN),E=rgs.length?hsfEdgeCut(cc,D,nets,out):null,xs=E?E.st:0,xu=E?E.u:0;FH[cc]=D>0?xu/D:0;if(E){o.nd=xs;o.parts.push(...E.parts);}
     const v=cxPop(cc,doors);if(!v){left[cc]=D-xs;continue;}o.v=v;
     if(H.edge[v]){o.st=(D-xu)*HS_EDGE+Math.max(0,xu*HS_EDGE-xs);for(const [j,w] of nets)add(v,j,o.st*w,false);o.parts.push([v,o.st,hsAcc(v,I.main),null]);}
-    left[cc]=D-o.st-xs;for(const r of rgs){const m=ms(r,v);if(m<Infinity)pairs.push([m,cc,r]);}}
+    left[cc]=D-o.st-xs;let ok=false;for(const r of rgs){if(!hsHomeOk(cc,r,fo))continue;ok=true;const m=ms(r,v);if(m<Infinity)pairs.push([m,cc,r]);}if(!ok)o.blk=1;}
   pairs.sort((a,b)=>a[0]-b[0]||(a[1]<b[1]?-1:a[1]>b[1]?1:0)||(a[2]<b[2]?-1:1));
   for(const [m,cc,r] of pairs){const take=Math.min(left[cc],room[r]);if(take<=1e-9)continue;left[cc]-=take;room[r]-=take;out.rg[r].load+=take;out.rg[r].u+=take;
     const o=out.cc[cc],I=ccInfo(cc);if(!o.home)o.home=r;const lo=X.nf();for(const [j,w] of NT[cc])add(o.v,j,take*w,false);
     o.parts.push([o.v,take,hsAcc(o.v,I.main)+(H.edge[o.v]?m*0.5:m*(1-0.5*FH[cc])),r]);if(r!==o.v){job(r,o.v,take,lo,'u',cc);o.want+=take;}}
-  for(const cc in out.cc){const s=left[cc]||0;if(s>1e-9){out.cc[cc].short=s;out.short+=s;R2.demand+=s;}}
+  // Users with nowhere they may be homed are not short of room: they wait for a region they may use (blk).
+  for(const cc in out.cc){const s=left[cc]||0;if(s>1e-9){const o=out.cc[cc];o.short=s;if(o.blk)out.blk+=s;else out.short+=s;R2.demand+=s;}}
   return jobs;}
 // After routing (CX_POST): what each haul got.
 function hsPost(R2,J){const out=R2.hs;if(!out)return;for(const x of J){if(!x.k)continue;const d=out.door[x.v]||(out.door[x.v]={g:0,got:0});d.g+=x.x;d.got+=x.got;
@@ -114,8 +120,10 @@ const hsServed=r=>{const o=r&&r.hs;if(!o)return 1;let d=0,q=0;for(const cc in o.
 /* A day, after its routing: regions open, users come and go, tenants keep a live region, offers stay cloud. */
 function hsDay(d){const H=S.hs;if(!H||!hyper())return;
   siteUpDay(H.rg,d,(c,x)=>{x.mw=HS_T[x.t].mw;toast(tr('hyper.region_live',{name:tr(HS_T[x.t].n),city:CITY[c].name,g:fmtG(HS_T[x.t].g)}),'goal',[],{a:'city',v:c});sfx('coin');});
-  for(const cc in H.cc){const x=H.cc[cc];cxGrow(x,hsQ(R,cc),hsPot(cc),HS_GROW,cc);const o=R.hs&&R.hs.cc[cc];if(o&&o.home)x.home=o.home;}
-  for(const b of hsTen())if(!hsLive(b.rg)){const r=hsRgFor(b.city);if(r)b.rg=r;}
+  // Users whose data must stay in a country or bloc with no region there yet neither grow nor leave (residency); users
+  // of a region that is out keep it as their home until it is back (they are only visiting its replica).
+  for(const cc in H.cc){const x=H.cc[cc];if(hsResMet(cc))cxGrow(x,hsQ(R,cc),hsPot(cc),HS_GROW,cc);const o=R.hs&&R.hs.cc[cc];if(o&&o.home&&!(x.home&&hsOut(x.home)))x.home=o.home;}
+  for(const b of hsTen())if(!hsLive(b.rg)&&!hsOut(b.rg)){const r=hsRgFor(b.city,null,b.p);if(r)b.rg=r;}
   // Never transit, never homes, never a classic deal: whatever else called today hangs up.
   S.offers=S.offers.filter(o=>o.type==='cloud');for(const o of S.offers)o.reqs=[];
   if(!H.t1&&isTier1()){H.t1=d;toast(tr('hyper.tier1_side'),'goal');sfx('coin');}
@@ -129,13 +137,17 @@ function hsOffer(k,city,bw,cheap){const K=CLOUD_TENANTS[k],list=K.names.filter(n
   return {id:uid(),city,city2:null,name,type:'cloud',bw,rate:Math.round(cloudRate(p)*(cheap||1)),reqs:[],p,ck:k,exp:S.day+40};}
 function hsSpawn(){const mine=Object.keys(S.pops).filter(c=>popUp(c)&&bizCity(c));if(!mine.length||!hsSlotFree())return;
   const ks=Object.keys(CLOUD_TENANTS).filter(k=>CLOUD_TENANTS[k].lv<=lvl());if(!ks.length)return;const k=pick(ks),K=CLOUD_TENANTS[k];
-  S.offers.push(hsOffer(k,pick(mine),pick(K.opts)));}
+  // Ministries and central banks call only from a country where you have a region (Very Sovereign Cloud).
+  const at=K.p.includes('sov')?mine.filter(c=>hsRgs().some(r=>CITY[r].cc===CITY[c].cc)):mine;if(!at.length)return;
+  S.offers.push(hsOffer(k,pick(at),pick(K.opts)));}
 // The golf course: the biggest tenant kind your level has met, in your biggest city, at 30% off, signed on the spot.
 function hsGolf(d){const mine=Object.keys(S.pops).filter(c=>popUp(c)&&bizCity(c));if(!mine.length||!hsSlotFree())return;
-  const k=Object.keys(CLOUD_TENANTS).filter(x=>CLOUD_TENANTS[x].lv<=lvl()).pop(),K=CLOUD_TENANTS[k],city=mine.sort((a,b)=>CITY[b].P-CITY[a].P||(a<b?-1:1))[0];
-  const o=hsOffer(k,city,K.opts[K.opts.length-1],0.7*mkt()),b=offerCustomer(o);b.by='ceo';b.mk=mkt();b.rg=hsRgFor(city);S.biz.push(clSign(b));
+  const k=Object.keys(CLOUD_TENANTS).filter(x=>CLOUD_TENANTS[x].lv<=lvl()).pop(),K=CLOUD_TENANTS[k],at=K.p.includes('sov')?mine.filter(c=>hsRgs().some(r=>CITY[r].cc===CITY[c].cc)):mine;
+  const city=at.sort((a,b)=>CITY[b].P-CITY[a].P||(a<b?-1:1))[0];if(!city)return;
+  const o=hsOffer(k,city,K.opts[K.opts.length-1],0.7*mkt()),b=offerCustomer(o);b.by='ceo';b.mk=mkt();b.rg=hsRgFor(city,null,o.p);if(!b.rg)return;S.biz.push(clSign(b));
   toast(tr('hyper.ceo_golf',{name:esc(o.name),city:esc(CITY[city].name),list:esc(cloudList(o.p))}),'goal',[{l:tr('common.show_me'),act:'custGo',args:{id:b.id}}]);sfx('coin');}
-/* Goals: a first draft (phase 4 completes them and adds Cloud Nine). */
+/* Goals: from launching at home to Cloud Nine (38-hyper-win.js), roughly in the order a cloud meets them. The win is
+   its own (cloud9): Tier 1 is only a side achievement here, with a badge, never the win. */
 const HYPER_GOALS=[
  {id:'hs_launch',t:tr('hyper.goal_launch'),d:tr('hyper.goal_launch_d'),r:10000,ok:()=>!!S.hs.cc[CITY[S.home].cc]||Object.keys(S.hs.cc).length>0},
  {id:'hs_door',t:tr('hyper.goal_door'),d:tr('hyper.goal_door_d'),r:15000,ok:()=>Object.keys(S.pops).some(c=>popUp(c)&&(ixIdsIn(c).some(x=>S.ixp[x]!==undefined)||S.pni.some(p=>p.city===c&&pniOn(p))))},
@@ -143,7 +155,13 @@ const HYPER_GOALS=[
  {id:'hs_region',t:tr('hyper.goal_region'),d:tr('hyper.goal_region_d'),r:100000,ok:()=>Object.keys(S.hs.rg).some(c=>S.hs.rg[c].t>0&&hsLive(c))},
  {id:'hs_edge',t:tr('hyper.goal_edge'),d:tr('hyper.goal_edge_d'),r:25000,ok:()=>Object.keys(S.hs.edge).length>0},
  {id:'hs_cc5',t:tr('hyper.goal_cc5'),d:tr('hyper.goal_cc5_d'),r:50000,ok:()=>Object.keys(S.hs.cc).filter(k=>hsQ(R,k)>=CX_GOOD).length>=5},
+ {id:'hs_rep',t:tr('hyper_win.goal_rep'),d:tr('hyper_win.goal_rep_d'),r:75000,ok:()=>!!R.hs&&!!R.hs.rep&&Object.values(R.hs.rep).some(x=>x.got>0.5)},
  {id:'hs_cont3',t:tr('hyper.goal_cont3'),d:tr('hyper.goal_cont3_d'),r:150000,ok:()=>new Set(Object.keys(S.hs.cc).filter(k=>hsQ(R,k)>=CX_GOOD).map(k=>ccInfo(k).reg)).size>=3},
+ {id:'hs_ai',t:tr('hyper_win.goal_ai'),d:tr('hyper_win.goal_ai_d'),r:150000,ok:()=>(S.hs.jd|0)>0},
+ {id:'hs_drill',t:tr('hyper_win.goal_drill'),d:tr('hyper_win.goal_drill_d'),r:100000,ok:()=>Object.keys(S.hs.drill||{}).length>0},
+ {id:'hs_cable',t:tr('hyper_win.goal_cable'),d:tr('hyper_win.goal_cable_d'),r:250000,ok:()=>S.links.some(l=>ownGlassL(l)&&l.sub)},
+ {id:'hs_survive',t:tr('hyper_win.goal_survive'),d:tr('hyper_win.goal_survive_d'),r:300000,ok:()=>(S.hs.fsv|0)>0},
+ {id:'hs_win',t:tr('hyper_win.cloud_nine'),d:tr('hyper_win.goal_win_d'),r:0,win:true,cloud9:true,ok:()=>hsC9Ok()},
 ];
 /* The level ladder (LV_X): peak traffic, live regions, and continents with a live region. The level names are the
    classic ones until the Hyperscaler's own story arrives. */

@@ -33,7 +33,8 @@ function mkArrive(d){const M=S.monkey,cs=Object.keys(S.pops),len=mkSpicy()?rint(
   toast(tr('chaos_monkey.arrived',{n:len}),'bad',[{l:tr('chaos_monkey.banana',{cost:fmt$(mkBananaCost())}),act:'mkBanana',args:{}}],{a:'tab',v:'noc'});sfx('alert');track('monkey_arrive');
   if(typeof mkStart==='function'&&CITY[M.c])mkStart(M.c);}
 function mkSnip(){runNow(mkSnipRun());}
-function* mkSnipRun(){const M=S.monkey,live=S.links.filter(l=>l.kind!=='vxc'&&!linkDown(l));if(!live.length)return;
+function* mkSnipRun(){if(hsKong()){yield* hsKongRun();return;}// a Hyperscaler's regions meet Chaos Kong (38-hyper-failover.js)
+  const M=S.monkey,live=S.links.filter(l=>l.kind!=='vxc'&&!linkDown(l));if(!live.length)return;
   // Weak spots first: a sample keeps this cheap on big networks.
   const smp=live.length>40?Array.from({length:40},()=>pick(live)):live,l=pick(smp.flatMap(x=>mkWeak(x)?[x,x,x,x,x]:[x]));
   const dur=rint(3,4),trc=l.trench||l.id,hit=S.links.filter(x=>(x.trench||x.id)===trc),A=CITY[l.a].name,B=CITY[l.b].name,before=R.served;

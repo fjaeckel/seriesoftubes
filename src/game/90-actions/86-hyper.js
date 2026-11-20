@@ -19,4 +19,4 @@ Object.assign(ACT,{
 FREEZE_ACTS.push('hsRegion','hsEdge');
 // A tenant needs a compute slot in a live region: no slot, no signature (the offer waits until one frees up).
 {const f=ACT.accept;ACT.accept=a=>{const o=hyper()&&a&&S.offers.find(x=>x.id===a.id);if(o&&o.type==='cloud'&&!hsSlotFree()){toast(tr('hyper.no_slots'),'bad');sfx('err');return;}
-  const n=S.biz.length;f(a);if(o&&S.biz.length>n){const b=S.biz[S.biz.length-1];if(b.type==='cloud'){b.rg=hsRgFor(b.city);toast(tr('hyper.tenant_signed',{name:esc(b.name),city:CITY[b.rg].name}),'good');}}};}
+  const n=S.biz.length;f(a);if(o&&S.biz.length>n){const b=S.biz[S.biz.length-1];if(b.type==='cloud'){b.rg=hsRgFor(b.city,null,b.p);if(b.rg)toast(tr('hyper.tenant_signed',{name:esc(b.name),city:CITY[b.rg].name}),'good');}}};}

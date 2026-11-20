@@ -31,6 +31,9 @@ const BADGES=[
  {id:'t1',i:'👑',t:tr('common.tier_1'),d:tr('badges.go_transit_free'),r:'e',ok:()=>!!S.won},
  {id:'sol',i:'⚡',t:tr('specialist.speed_of_light'),d:tr('specialist.win_as_a_low_latency_boutique'),r:'e',ok:()=>!!S.solWon},
  {id:'baron',i:'🌊',t:tr('broker.glass_baron'),d:tr('broker.win_as_a_cable_broker'),r:'e',ok:()=>!!S.baronWon},
+ // The Hyperscaler (38-hyper-win.js): Tier 1 is a side achievement, Cloud Nine the win.
+ {id:'hs_t1',i:'🙅',t:tr('hyper_win.badge_t1'),d:tr('hyper_win.badge_t1_d'),r:'e',ok:()=>!!S.hs&&S.hs.t1>0},
+ {id:'cloud9',i:'☁️',t:tr('hyper_win.cloud_nine'),d:tr('hyper_win.badge_c9_d'),r:'e',ok:()=>!!S.hs&&S.hs.won>0},
  {id:'seat',i:'🚢',t:tr('specialist.part_owner_of_the_sea'),d:tr('specialist.take_a_seat_on_a_consortium'),r:'r',ok:()=>S.links.some(l=>l.seat)},
  {id:'bait',i:'🎣',t:tr('common.shark_bait'),d:tr('badges.get_bitten_by_sharks_3_times'),r:'l',ok:()=>(st().sharks||0)>=3},
  {id:'nines',i:'💎',t:tr('common.five_nines'),d:tr('badges.serve_99_5_of_demand_every'),r:'l',ok:()=>(st().clean||0)>=365},
@@ -126,7 +129,7 @@ function checkGoals(){checkBadges();
     if(ok){S.done[g.id]=S.day;if(g.r&&S.mode!=='sandbox'){S.cash+=g.r;}
       toast(`<b>${tr('badges.goal_complete_name',{name:esc(g.t)})}</b>${g.r?`<br>${tr('badges.reward_amt',{amt:fmt$(g.r)})}`:''}`,'goal',[],{a:'tab',v:'goals'});sfx('coin');
       // Glass Baron is the broker's win; S.won stays Tier 1, which a broker can still become.
-      track('goal_'+g.id);if(g.baron){if(!S.baronWon){S.baronWon=S.day||1;track('win_baron');checkBadges();showBaronWin();}}else if(g.win&&!S.won)t1Win();}}
+      track('goal_'+g.id);if(g.baron){if(!S.baronWon){S.baronWon=S.day||1;track('win_baron');checkBadges();showBaronWin();}}else if(g.cloud9)hsWin();else if(g.win&&!S.won)t1Win();}}
   // The broker's ladder has no Tier 1 goal: going transit-free and peering with every Tier 1 wins it all the same (#420).
   if(broker()&&!S.won&&!S.transit.length&&isTier1())t1Win();
 }
