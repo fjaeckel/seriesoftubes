@@ -5,7 +5,8 @@ function renderHint(){
   if(UI.drag&&UI.drag.mode==='link')t=UI.snap?tr('hint.release_to_plan_a_link'):tr('hint.drag_onto_another_city');
   // From the network itself, not S.done: a goal met on day 0 is stored as 0, and a charter or mode may not have the goal.
   else if(!S.links.length&&(S.transit.length||S.done.tr!==undefined))t=tr('hint.tip_drag_from_your_pink_router');
-  else if(S.done.bb===undefined&&!Object.values(S.pops).some(p=>p.bb))t=tr('hint.tap_your_city_then_launch_broadband');
+  // A Hyperscaler sells no broadband: its charter card says what to do first (55-hyper-panel.js).
+  else if(!hyper()&&S.done.bb===undefined&&!Object.values(S.pops).some(p=>p.bb))t=tr('hint.tap_your_city_then_launch_broadband');
   hn.textContent=t;hn.hidden=!t;
 }
 

@@ -11,7 +11,7 @@ function cityPanel(c){pnState(); // another city or tab starts with short lists 
     ${C.cn?chinaSection(c):''}${C.cn&&!cnOk()?'':`<section><h3>${tr('city_panel.open_a_pop_here')}</h3><p class="lead">${tr('city_panel.a_pop_point_of_presence_is')}</p>
     ${C.ru?`<p class="why">${tr('city_panel.includes_the_mandatory_government',{cost:fmt$(RU_BOX),mo:fmt$(RU_BOX_MO)})}</p>`:''}${(q=>btn(tr('city_panel.build_pop_cost_mo_mo',{cost:fmt$(popCost(c)+(q?q.cost:0)),mo:fmt$(popMo(c)+(q?q.mo:0))}),'buildPop',{city:c},'pink big',S.cash<popCost(c))+(q?`<p class="note">${tr('pop_std.includes_the_standard_n_model',{n:q.rt,model:esc(RG[q.g].n),cost:fmt$(q.cost),mo:fmt$(q.mo)})}</p>`:''))(popStdQuote())}
     <p class="note">${tr('city_panel.or_drag_from_one_of_your')}</p></section>${opsTplHtml(c)}`}`;
-    h+=offersHere(c);
+    h+=hyper()?hsNoPop(c):offersHere(c);
     const trs=NETS.filter(n=>sellsAt(n,c));
     const fh=FABS.filter(f=>f.cities.includes(c));
     if(ix&&fh.length){if(remoteCities().includes(c))h+=ixSection(c).replace('<h3>'+tr('common.internet_exchange')+'</h3>','<h3>'+tr('city_panel.remote_peering_at_the_ix')+'</h3>');
@@ -19,13 +19,15 @@ function cityPanel(c){pnState(); // another city or tab starts with short lists 
     h+=`<section><h3>${tr('city_panel.who_s_here')}</h3><div class="meta" style="font-size:12.5px;line-height:1.6">${MEGA.filter(m=>m.c===c).length?`${tr('city_panel.ai_and_cloud_campuses_nearby_list',{list:MEGA.filter(m=>m.c===c).map(m=>`<b>${esc(m.n)}</b>`).join(', ')})}<br>`:''}${tr('city_panel.transit_sellers_list',{list:trs.map(n=>`<b>${esc(n.name)}</b>`).join(', ')||tr('common.none')})}<br>${tr('city_panel.fabrics_list',{list:fh.map(f=>`<b>${esc(f.name)}</b>`).join(', ')||tr('common.none')})}<br>${ix?ixIdsIn(c).map(x=>tr('city_panel.ix_members_on_ix_n',{ix:esc(ixName(x)),n:ixMembers(x).length})).join('<br>'):tr('city_panel.no_ix_here_yet_you_could')}</div></section></div>`;
     return h;
   }
-  const tabs=[['cust',tr('common.customers')],['up',tr('common.transit')],['peer',tr('common.peering')],['links',tr('common.infra')]];
+  const tabs=[['cust',hyper()?tr('hyper.cloud_tab'):tr('common.customers')],['up',tr('common.transit')],['peer',tr('common.peering')],['links',tr('common.infra')]];
   h+=`<nav class="tabs" role="tablist">${tabs.map(([k,l])=>`<button class="${UI.tab===k?'on':''}" role="tab" aria-selected="${UI.tab===k}" data-act="tab" data-args='{"t":"${k}"}'>${l}</button>`).join('')}</nav><div class="scroll">`;
   if(C.cn&&UI.tab==='cust')h+=chinaSection(c);
   const sf=sfOf(R,c),dem=R.cityDem[c]||0;
   if(down){const i=S.inc.filter(x=>x.ref===c&&POPDOWN.includes(x.type)).sort((a,b)=>b.until-a.until)[0];h+=`<section><h3 style="color:var(--bad)">${tr('city_panel.this_pop_is_down')}</h3><p class="lead">${i?esc(i.msg):''} ${tr('city_panel.customers_here_get_nothing_until_it')}</p>${i&&i.cost?btn(`${esc(i.fix||tr('common.rush_repair'))} ${fmt$(i.cost)}`,'fixInc',{id:i.id},'red'):''}</section>`;}
   if(UI.tab==='cust'){
     {const nl=R.nodeLoad[c]||0,nc=R.nodeCap[c]||1;if(nl>=nc*0.95)h+=`<section><h3 style="color:var(--bad)">${tr('city_panel.router_maxed_out')}</h3><p class="lead">${tr('city_panel.your_routers_here_are_forwarding',{load:fmtG(nl),cap:fmtG(nc)})}</p>${btn(tr('common.open_infra'),'tab',{t:'links'},'pink sm')}</section>`;}
+    // A Hyperscaler has users, a region, a front door and tenants here instead of homes and customers (55-hyper-panel.js).
+    if(hyper())h+=hsCity(c);else{
     // Offers wait for an answer, so once broadband runs they come first; before that the launch button does.
     if(p.bb)h+=offersHere(c);
     h+=`<section><h3>${tr('common.home_broadband')}</h3>`;
@@ -42,7 +44,7 @@ function cityPanel(c){pnState(); // another city or tab starts with short lists 
     const bz0=S.biz.filter(b=>bCities(b).includes(c)),bz=bz0.filter(b=>b.mood<30).concat(bz0.filter(b=>!(b.mood<30))).slice(0,pnN('biz',bz0.length,5));
     if(!bz0.length)h+=`<p class="empty">${tr('city_panel.no_businesses_yet_offers_pop_up')}</p>`;
     for(const b of bz)h+=`<div class="row"><div class="grow"><div class="nm">${esc(b.name)}</div><div class="meta">${esc(BIZ_T[b.type].l)}${b.city2?` ${CITY[b.city].name} ⇄ ${CITY[b.city2].name}`:''} · ${bTerms(b)}${clTermTxt(b)?' · '+clTermTxt(b):''}${BIZ_T[b.type].l2?` · ${b.sites?tr('city_panel.carrying_g_per_site',{g:fmtG(R.l2[b.id]||0)}):tr('city_panel.carrying_g',{g:fmtG(R.l2[b.id]||0)})}`:''}${BIZ_T[b.type].fiber&&!fiberOk(b)?' · <b style="color:var(--bad)">'+tr('city_panel.fiber_is_down')+'</b>':''}${BIZ_T[b.type].event&&eventLive(b)?` · <b>${tr('city_panel.serving_v',{v:pct(sfOf(R,b.city))})}</b>`:''}${b.type==='scrub'&&!hasScrub()?' · <b style="color:var(--bad)">'+tr('common.needs_a_scrubbing_center')+'</b>':''}${S.day-(b.since||0)<15?` · <b>${tr('common.provisioning_n_d_grace',{n:15-(S.day-(b.since||0))})}</b>`:''}</div>${bRisk(b)}${reqList(b)}${BIZ_T[b.type].l2?routeCtl(b):''}${pathCtl(b)}<div class="bar ${b.mood<30?'bad':b.mood<65?'warn':''}"><i style="width:${b.mood}%"></i></div><div class="meta">${tr('common.happiness_p',{p:Math.round(b.mood)})}</div>${(x=>x?`<div class="meta">${pieLandTxt(b)}</div><div class="btns">${x}</div>`:'')(pieXLinks(b,'pop',c))}</div>${btn(UI.confirm===b.id?tr('common.really_drop'):tr('common.drop'),'dropBiz',{id:b.id},'ghost sm')}</div>`;
-    h+=pnMore('biz',bz0.length,n=>trn('customers.n_more_customer',n),5)+`</section>`+pieLandHere(c)+(p.bb?'':offersHere(c));
+    h+=pnMore('biz',bz0.length,n=>trn('customers.n_more_customer',n),5)+`</section>`+pieLandHere(c)+(p.bb?'':offersHere(c));}
   }else if(UI.tab==='up'){
     h+=netFilterHtml()+portNote(c)+latNote(c);
     h+=`<section>${pnHead('up',tr('common.ip_transit'),`<p class="lead">${tr('city_panel.pay_a_bigger_network_per_gbps')}</p>`)}`;

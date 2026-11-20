@@ -323,6 +323,23 @@ test('M6: a charter changes what you set out to do, never what things cost', () 
   assert.deepEqual(g.errors, []);
 });
 
+test('M7: a Hyperscaler sells cloud only, and its state lives only in its charter', () => {
+  const bad = [];
+  const g = load();
+  g.ev("beginGame('Cloud','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'hyper'});S.cash=1e9;S.lvl=8;ACT.hsLaunch({cc:'DE'});ACT.buyTransit({city:S.home,net:'cog',tier:1});ACT.launchBB({city:S.home});compute()");
+  if (g.ev('!!S.pops[S.home].bb')) bad.push('a Hyperscaler sells home broadband');
+  g.ev("for(let i=0;i<60;i++){spawnOffer();dayTick();}");
+  const kinds = JSON.parse(g.ev("JSON.stringify([...new Set(S.offers.concat(S.biz).map(o=>o.type))])"));
+  if (kinds.some((k) => k !== 'cloud')) bad.push('a Hyperscaler is offered or signs classic kinds: ' + kinds.join(', '));
+  if (!g.ev("S.offers.concat(S.biz).every(o=>o.type!=='cloud'||o.p.every(id=>own(CLOUD_PRODUCTS,id)))")) bad.push('a tenant buys a product that is not in the catalogue');
+  if (g.ev("Object.keys(BIZ_T).includes('cloud')")) bad.push('the cloud kind is listed with the classic customer kinds');
+  const c = load();
+  c.ev("beginGame('Classic','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'global'});compute();for(let i=0;i<5;i++)dayTick()");
+  if (c.ev("'hs' in S||'hs' in R")) bad.push('a classic game carries Hyperscaler state');
+  assert.deepEqual(bad, []);
+  assert.deepEqual(g.errors, []);
+});
+
 // ---------- Content ----------
 
 test('C1: every scenario has a goal its card checks, and none is won on day 0', () => {

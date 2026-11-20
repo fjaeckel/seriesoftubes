@@ -95,7 +95,7 @@ function compute(){RW.gen++;fedNetsSync();
      index FNJ[F] and has FREM[F] left to place. Gathered in FLB here, then copied into this call's own columns below. */
   FLB.n=0;const NN=NETS.length,CNB=[],NCN=NETS.map(n=>!!n.cn),flow=(ci,j,rem,cache,bz)=>{const k=FLB.n;if(k===FLB.cap)flbGrow();FLB.rem[k]=rem;FLB.ci[k]=ci;FLB.nj[k]=j;FLB.ca[k]=cache?1:0;FLB.bz[k]=bz?1:0;FLB.n=k+1;};
   // Customer demand per city, added up in S.biz order (what filtering S.biz for each city would give).
-  const bizBw={};for(const b of S.biz){const T=BIZ_T[b.type];if(!T.l2&&!T.fiber&&(!T.event||eventLive(b))){if(T.orbit){const g=PX&&PX.gs[b.id],gx=g&&PX.gx[b.id];if(gx)for(const [c,v] of gx)bizBw[c]=(bizBw[c]||0)+v;else if(g)bizBw[g]=(bizBw[g]||0)+PX.term[b.id];continue;}const v=bizBw[b.city];bizBw[b.city]=(v===undefined?0:v)+b.bw;}}
+  const bizBw={};for(const b of S.biz){const T=BIZ_T[b.type];if(!T.l2&&!T.fiber&&!T.cloud&&(!T.event||eventLive(b))){if(T.orbit){const g=PX&&PX.gs[b.id],gx=g&&PX.gx[b.id];if(gx)for(const [c,v] of gx)bizBw[c]=(bizBw[c]||0)+v;else if(g)bizBw[g]=(bizBw[g]||0)+PX.term[b.id];continue;}const v=bizBw[b.city];bizBw[b.city]=(v===undefined?0:v)+b.bw;}}
   // Traffic shares by network index, and their sums, for each share table (and with Russia's throttle).
   const shArr=new Map(),shSum=new Map(),DEMTO=new Float64Array(NN),loc=scnRule('local');
   (()=>{for(const c of Object.keys(S.pops)){
@@ -274,7 +274,7 @@ function computeMoney(R2,PX=null){
   if(S.pie&&S.mode!=='sandbox')C.pie=pieMo();
   V.eyeballs=0;V.business=0;V.ix=0;
   C.wholesale=0;C.levy=0;const lev=scnRule('levy');for(const c in S.pops){const sf=sfOf(R2,c)*(R2.bbF[c]??1),v=R2.cityEye[c]*sf*EYE_RATE*arpuOf(c);V.eyeballs+=v;if(CITY[c].au){if(lev)C.levy+=v*AU_LEVY;else C.wholesale+=v*AU_WHOLESALE;}}
-  const ids=linkIds();for(const b of S.biz){if(capPend(b)||BIZ_T[b.type].orbit)continue;const sf=BIZ_T[b.type].fiber?(fiberOk(b,ids)?1:0):BIZ_T[b.type].l2?clamp((R2.l2[b.id]||0)/b.bw,0,1):sfOf(R2,b.city)*(R2.tgtF[b.id]??1);V.business+=b.bw*b.rate*Math.min(1,sf/0.95);}
+  const ids=linkIds();for(const b of S.biz){if(capPend(b)||BIZ_T[b.type].orbit)continue;const sf=BIZ_T[b.type].fiber?(fiberOk(b,ids)?1:0):BIZ_T[b.type].l2?clamp((R2.l2[b.id]||0)/b.bw,0,1):BIZ_T[b.type].cloud?hsTenQ(R2,b):sfOf(R2,b.city)*(R2.tgtF[b.id]??1);V.business+=b.bw*b.rate*Math.min(1,sf/0.95);}
   for(const c in S.myIx)V.ix+=S.myIx[c].members.length*MYIX_FEE;
   // A charter's own users and sites (37-content-core.js).
   for(const f of CX_MONEY)f(R2,V,C);

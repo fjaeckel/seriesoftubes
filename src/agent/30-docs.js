@@ -10,7 +10,8 @@ const API_STATE_DOC={
  priceMul:{type:'number',doc:'Multiplier on transit prices (weekly modifier).'},
  mode:{type:'string',doc:'normal | sandbox | scenario | puzzle.'},
  rules:{type:'map',doc:'The rules this network locked in at its door: preset (soft, freeze, oncall, bgp, sandbox or puzzle), the chaos dial, lead times, the market, and the Best Effort extras (sea, confs, broke, moods, pnis), which are only written where they differ from the classic game. They stay for the network\'s whole life.'},
- charter:{type:'string',doc:'The charter a normal game signed when it started: global | boutique | broker. chartSet is false until one is signed.'},
+ charter:{type:'string',doc:'The charter a normal game signed when it started: global | boutique | broker | hyper. chartSet is false until one is signed.'},
+ hs:{type:'map',doc:'A Hyperscaler only (absent otherwise): cc (users per country code: d the evening peak in Gbps, since the launch day, home the region that served them last), rg (regions by city: t tier 0 Rack Shack, 1 Server Barn, 2 Compute Campus, 3 Gigawatt Gulch; ready the day it opens; up {t, ready} while a bigger one is built; mw megawatts drawn), edge (front doors with the edge stack), t1 (the day Tier 1 was first reached, a side achievement), won (the Cloud Nine day, or 0). Its tenants are biz customers of type cloud: p their products (ids from catalog(\'CLOUD_PRODUCTS\')), ck their kind (CLOUD_TENANTS), rg the region serving them.'},
  baronWon:{type:'number',doc:'The day a broker won Glass Baron, or 0.'},
  chartSet:{type:'boolean',doc:'The charter has been picked; false while the choice is still open.'},
  solWon:{type:'integer',doc:'The day the Speed of Light win landed (boutique charter), or 0.'},
@@ -156,6 +157,7 @@ const API_RESULTS_DOC={
  bizDem:{type:'map',doc:'Business customers\' share of each city\'s demand, in Gbps (what RouteScript\'s protect customers serves first).'},
  bizSrv:{type:'map',doc:'Of that business demand, what was served, per city.'},
  graceNets:{type:'number',doc:'Networks reached over the courtesy route after a merger wave.'},
+ hs:{type:'map',doc:'A Hyperscaler only (absent otherwise): cc (per country code: D its evening demand, v the front door its users enter at, st what the edge stack there serves, parts [door, Gbps, latency in ms, region], home its first region, want and got of the haul over your backbone, short what no region had room for), rg (per live region: g its room tonight, load), door (per front door: g hauled to it, got), ten (per tenant id: r region, v front door, want, f share the region had room for, ms latency, r2 second region, hw hauled, got), short (all users no region had room for).'},
  cityBlocked:{type:'map',doc:'Set up per city by the traffic computation; nothing fills it at present.'},
  ddosHot:{type:'map',doc:'Cities whose ports a flood is filling, for the map\'s pulse. Keyed by city id.'},
 };

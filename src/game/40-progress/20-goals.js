@@ -35,4 +35,4 @@ const BROKER_GOALS=[
  {id:'bk_win',t:tr('broker.glass_baron'),d:tr('broker.goal_win_d'),r:0,win:true,baron:true,ok:()=>baronOk()},
 ];
 // The ladder this network runs: the broker's, or the classic one every other charter and mode plays.
-const goals=()=>broker()?BROKER_GOALS:GOALS;
+const goals=()=>broker()?BROKER_GOALS:hyper()?HYPER_GOALS:GOALS;

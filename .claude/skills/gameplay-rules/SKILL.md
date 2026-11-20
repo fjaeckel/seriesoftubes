@@ -51,6 +51,7 @@ These are what the game promises, held up by `tests/gameplay-rules.test.js` (one
 | M4 | Scenarios and the weekly challenge always run On-call plus their own `S.scn.rules`. | Fair scores. |
 | M5 | Sandbox has no locked feature: open gates, every level, own cables, endless money. | It is a sandbox. |
 | M6 | A Normal game picks its charter once, when it starts (sandbox, puzzles and scenarios never do). A charter changes what you set out to do, never what things cost: the Cable broker gets glass (fiber, line systems, optics, own subsea cables and the routers to light them) from day one at the prices everyone pays at the top level, and everything else by level. | Same prices and rules for every charter (#300). |
+| M7 | A Hyperscaler sells cloud only: every offer and customer is a cloud tenant (no transit, no downstream ISPs, no home broadband, no classic kinds), and its state (`S.hs`, cloud tenants) exists only in that charter. | A cloud never sells transit; classic games stay exactly as they were. |
 
 ## Content
 

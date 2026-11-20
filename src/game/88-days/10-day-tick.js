@@ -131,7 +131,7 @@ function* dayPost(d){
   {const c=cal(d);if(c.m===0&&c.d===1&&[2,3,5].includes(c.y))track('game_year_'+c.y,true);}
   if(d%10===0)save();
 }
-function spawnOffer(){
+function spawnOffer(){if(hyper()){hsSpawn();return;} // a Hyperscaler sells cloud bundles, nothing else (37-hyper.js)
   const mine=spMine(Object.keys(S.pops).filter(bizCity)),lv=lvl();
   const types=['dia','dia','game','host'];if(mine.length>=2)types.push('l2vpn','l2vpn');if(S.day>60)types.push('scrub');
   if(lv>=2)types.push('isp','stream','edu','host','hft','bulk','event','event');if(mine.length>=3&&lv>=2)types.push('sdwan','sdwan');

@@ -64,7 +64,7 @@ function salesDay(d){const L=S.sales;if(!L)return;
 // The golf course: the biggest internet customer this network can take, in its biggest city, at 30% off, signed on the spot.
 // With a rocket company, every other game is with the Founder, and in orbit (pieGolf, 99-pie-sales.js).
 const SALES_GOLF=['metav','cgame','gpu','stream','isp','edu','host','dia'];
-function salesGolf(d){if(pieGolf(d))return;const mine=Object.keys(S.pops).filter(c=>popUp(c)&&bizCity(c));if(!mine.length)return;
+function salesGolf(d){if(hyper()){hsGolf(d);return;}if(pieGolf(d))return;const mine=Object.keys(S.pops).filter(c=>popUp(c)&&bizCity(c));if(!mine.length)return;
   const t=SALES_GOLF.find(x=>(BIZ_T[x].lv||1)<=lvl());if(!t)return;const T=BIZ_T[t],city=mine.sort((a,b)=>CITY[b].P-CITY[a].P||(a<b?-1:1))[0];
   const list=(T.names||BIZ_N).filter(n=>!S.usedNames.includes(n));const name=list.length?list[Math.floor(slR('golfn|'+d)*list.length)]:(T.names||BIZ_N)[0];useName(name);
   const o={id:uid(),city,city2:null,name,type:t,bw:T.opts[T.opts.length-1],rate:Math.round((CITY[city].au?T.rate*AU_ARPU:T.rate)*mkt()*0.7),reqs:[],exp:d+40};

@@ -1,6 +1,6 @@
 /* The sales engine of #185: would this offer work if signed now? The sales desk runs it once a day (39-sales-auto.js).
    It trials the new demand on a copy of the game, so a failed trial leaves the live game untouched. */
-function offerCustomer(o){return {id:o.id,city:o.city,city2:o.city2||null,reqs:o.reqs||[],latMax:o.latMax||null,route:BIZ_T[o.type].scenic?'scenic':BIZ_T[o.type].lat?'fast':'normal',name:o.name,type:o.type,bw:o.bw,rate:o.rate,mood:100,since:S.day,sites:o.sites||null,start:o.start,dur:o.dur,fee:o.fee,link:o.link,slots:o.slots||0,what:o.what,prov:o.prov,due:BIZ_T[o.type].cap?S.day+o.win:undefined};}
+function offerCustomer(o){return {id:o.id,city:o.city,city2:o.city2||null,reqs:o.reqs||[],latMax:o.latMax||null,route:BIZ_T[o.type].scenic?'scenic':BIZ_T[o.type].lat?'fast':'normal',name:o.name,type:o.type,bw:o.bw,rate:o.rate,mood:100,since:S.day,sites:o.sites||null,start:o.start,dur:o.dur,fee:o.fee,link:o.link,slots:o.slots||0,what:o.what,prov:o.prov,due:BIZ_T[o.type].cap?S.day+o.win:undefined,...(o.p?{p:o.p.slice(),ck:o.ck}:{})};}
 // OFFER_TRIED: the answer of a trial the intern's sales order already ran for this offer (the customer, or null).
 let OFFER_TRIED=null;
 function autoOffer(o){if(OFFER_TRIED&&OFFER_TRIED.o===o)return OFFER_TRIED.b;const b=offerTrialOf(o);return b?offerTrial(b,offerHealthy(b)):null;}

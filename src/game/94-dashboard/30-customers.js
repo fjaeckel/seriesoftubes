@@ -1,7 +1,7 @@
 /* ---------- customers overview (#13, #14, #15) ---------- */
 const bizMo=b=>{const T=BIZ_T[b.type];return T.event?0:T.fiber?b.rate:b.bw*b.rate;};
 // Why a customer is unhappy, in the same terms the daily mood update uses.
-function bizWhy(b){const T=BIZ_T[b.type],out=[];if(T.event&&!eventLive(b))return out;if(capPend(b))return capWhy(b);
+function bizWhy(b){const T=BIZ_T[b.type],out=[];if(T.event&&!eventLive(b))return out;if(capPend(b))return capWhy(b);if(T.cloud)return bizSf(b)<0.95?hsTenWhy(b):out;
   const sf=bizSf(b);if(sf<0.95){const o=T.orbit?pieShortWhy(b):'',f=fedBlame(b,sf)?tr('customers.p_goes_to_players_not_peered',{p:pct(fedLost())}):'';out.push((T.fiber?tr('customers.their_fiber_is_down'):tr('customers.getting_only_p_of_the_bandwidth',{p:pct(sf)}))+(o?'. '+o:'')+(f?'. '+f:''));}
   if(!(T.l2||T.fiber)&&reachSolo()<=0.99&&!scnRule('local'))out.push(tr('customers.you_cannot_reach_the_whole_internet',{p:pct(reachSolo())}));
   if(b.type==='scrub'&&!hasScrub())out.push(tr('common.needs_a_scrubbing_center'));

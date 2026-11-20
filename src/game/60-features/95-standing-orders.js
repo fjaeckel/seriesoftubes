@@ -409,7 +409,7 @@ function* opsRun(d){if(!opsHired())return;const O=S.ops;opsMonth(d);
   W.up+=e.up||0;W.mo+=e.mo||0;if(e.f!==undefined)W.ff=Math.min(7,W.ff+1);}
 // New POP from the template: price the whole bundle first, then click through it in one go.
 function opsTplQuote(c){if(!S||S.pops[c]||!cityOn(c)||(cnCity(c)&&!cnOk()))return null;const T=S.ops.tpl,parts=[];let cost=popCost(c),net=null,ix=null,kit=null;
-  if(T.bb){cost+=bbCost(c);parts.push(tr('ops.tpl_bb'));}
+  if(T.bb&&!hyper()){cost+=bbCost(c);parts.push(tr('ops.tpl_bb'));}
   if(T.transit&&!scnRule('noTransit')){net=opsProv(c);if(net){cost+=PORT[0].setup;parts.push(tr('ops.tpl_transit'));}}
   // Priced as if the POP were already there (an IX port is dearer from afar). DE-KICKS wants a sales call first, so not those.
   // The standard routers go in first (#261), so they are in the price and the kit is priced for them.
