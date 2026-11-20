@@ -1,0 +1,22 @@
+{
+  "description": "bob buys a 10G on-ramp port into alice's Frankfurt region, 2500 a month, 90 days, the newcomer price claimed.",
+  "input": {
+    "kind": "offer",
+    "author": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+    "body": {
+      "to": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "deal": "onramp",
+      "basis": "T1_rSdWo4Mcfsl6YCE3dxT1Q7WMEgJV960BLNsFe8_I",
+      "terms": {
+        "at": "fra",
+        "mbps": 10000,
+        "monthly": 2500,
+        "term": 90,
+        "founded": 20451
+      }
+    }
+  },
+  "expect": {
+    "ok": true
+  }
+}

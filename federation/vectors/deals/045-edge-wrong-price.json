@@ -1,0 +1,56 @@
+{
+  "description": "A node at 300 a month on a card that asks 400 is bad_terms.",
+  "input": {
+    "announces": [
+      {
+        "id": "E1",
+        "kind": "announce",
+        "key": "kIsp",
+        "t": 1767225600,
+        "body": {
+          "rates": {
+            "edge": {
+              "at": [
+                "ams",
+                "fra"
+              ],
+              "monthly": 400,
+              "cap": 2,
+              "term": 90
+            }
+          },
+          "auto": {
+            "peering": "auto",
+            "transit": "decline",
+            "pni": "review",
+            "swap": "review",
+            "consortium": "review",
+            "port": "review",
+            "edge": "auto"
+          }
+        }
+      }
+    ],
+    "offer": {
+      "id": "O1",
+      "kind": "offer",
+      "key": "kCloud",
+      "t": 1767229200,
+      "body": {
+        "to": "kIsp",
+        "deal": "edge",
+        "basis": "E1",
+        "terms": {
+          "at": "fra",
+          "nodes": 1,
+          "monthly": 300,
+          "term": 90
+        }
+      }
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_terms"
+  }
+}

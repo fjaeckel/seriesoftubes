@@ -1,0 +1,58 @@
+{
+  "description": "An ISP published an edge card at 1767225600 (E1, feature cloud): nodes in ams and fra, 400 a node a month, at most 2 per city, 90 days minimum, taken automatically. A Hyperscaler asks for 2 nodes at fra for 90 days an hour later: binding at once, start = offer.t = 1767229200, end = 1767229200 + 90 * 86400 = 1775005200.",
+  "input": {
+    "announces": [
+      {
+        "id": "E1",
+        "kind": "announce",
+        "key": "kIsp",
+        "t": 1767225600,
+        "body": {
+          "rates": {
+            "edge": {
+              "at": [
+                "ams",
+                "fra"
+              ],
+              "monthly": 400,
+              "cap": 2,
+              "term": 90
+            }
+          },
+          "auto": {
+            "peering": "auto",
+            "transit": "decline",
+            "pni": "review",
+            "swap": "review",
+            "consortium": "review",
+            "port": "review",
+            "edge": "auto"
+          }
+        }
+      }
+    ],
+    "offer": {
+      "id": "O1",
+      "kind": "offer",
+      "key": "kCloud",
+      "t": 1767229200,
+      "body": {
+        "to": "kIsp",
+        "deal": "edge",
+        "basis": "E1",
+        "terms": {
+          "at": "fra",
+          "nodes": 2,
+          "monthly": 400,
+          "term": 90
+        }
+      }
+    }
+  },
+  "expect": {
+    "ok": true,
+    "auto": true,
+    "start": 1767229200,
+    "end": 1775005200
+  }
+}

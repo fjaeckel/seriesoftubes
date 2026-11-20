@@ -1,0 +1,46 @@
+{
+  "description": "auto.onramp is auto but the announce has no on-ramp card: no_terms.",
+  "input": {
+    "announces": [
+      {
+        "id": "E1",
+        "kind": "announce",
+        "key": "kCloud",
+        "t": 1767225600,
+        "body": {
+          "rates": {},
+          "auto": {
+            "peering": "auto",
+            "transit": "decline",
+            "pni": "review",
+            "swap": "review",
+            "consortium": "review",
+            "port": "review",
+            "onramp": "auto"
+          }
+        }
+      }
+    ],
+    "offer": {
+      "id": "O1",
+      "kind": "offer",
+      "key": "kIsp",
+      "t": 1767229200,
+      "body": {
+        "to": "kCloud",
+        "deal": "onramp",
+        "basis": "E1",
+        "terms": {
+          "at": "fra",
+          "mbps": 10000,
+          "monthly": 2500,
+          "term": 90
+        }
+      }
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "no_terms"
+  }
+}

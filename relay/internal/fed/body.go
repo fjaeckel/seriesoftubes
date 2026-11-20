@@ -454,6 +454,10 @@ var rates = obj(
 		req("sizes", ascendingBy(obj(req("gbps", waveGbps), req("monthly", money)), 1, 4, "gbps")),
 		req("term", days),
 	)),
+	// cloud: a home ISP hosting edge nodes in the cities it sells broadband in (a fee per node, a cap
+	// per city), a Hyperscaler selling on-ramp ports into its regions.
+	opt("edge", obj(req("at", list(city, 1, 64, true)), req("monthly", money), req("cap", intIn(1, 16)), req("term", days))),
+	opt("onramp", obj(req("at", cities16), req("ports", ascending(port, 1, 8)), req("term", days))),
 )
 
 // MaxIxNets is how many computer-run members an exchange lists in rates.ix.members (5.1).
@@ -491,13 +495,38 @@ func ixCard(v any) string {
 var auto = func() check {
 	a := oneOf("auto", "review", "decline")
 	// wave is optional: announces from before wave deals (absent: wave requests are declined);
-	// cofound likewise (ix2; absent: co-founding offers are declined).
-	return obj(req("peering", a), req("transit", a), req("pni", a), req("swap", a), req("consortium", a), req("port", a), opt("wave", a), opt("cofound", a))
+	// cofound likewise (ix2; absent: co-founding offers are declined), edge and onramp too (cloud).
+	return obj(req("peering", a), req("transit", a), req("pni", a), req("swap", a), req("consortium", a), req("port", a), opt("wave", a), opt("cofound", a),
+		opt("edge", a), opt("onramp", a))
 }()
 
 // FeatIx2 names the optional feature of players' exchanges (9.3 feats): rates.ix.members and
 // auto.cofound in an announce, and cofound offers.
 const FeatIx2 = "ix2"
+
+// FeatCloud names the optional feature of a Hyperscaler's deals (9.3 feats): rates.edge, rates.onramp,
+// auto.edge and auto.onramp in an announce, and edge and onramp offers.
+const FeatCloud = "cloud"
+
+// Cloud reports whether a record holds what only the cloud feature carries: an announce with an edge
+// or on-ramp card, or saying how it takes those requests. A node passes such a record only to
+// sessions that listed cloud in feats (9.3, 9.4): older ones refuse those fields.
+func Cloud(r *Record) bool {
+	if r.Kind != "announce" {
+		return false
+	}
+	a, _ := r.Body["auto"].(map[string]any)
+	rt, _ := r.Body["rates"].(map[string]any)
+	for _, k := range []string{"edge", "onramp"} {
+		if _, ok := a[k]; ok {
+			return true
+		}
+		if _, ok := rt[k]; ok {
+			return true
+		}
+	}
+	return false
+}
 
 // FeatBind names bound node handshake proofs (6.2, 9.4): a node that lists it in hello or welcome
 // signs and wants proofs that name the checking node and the role.
@@ -665,6 +694,10 @@ var dealTerms = map[string]check{
 	// cofound (ix2): the author, who runs the exchange at at, offers the counterparty share per mille
 	// of it for setup once and monthly a month.
 	"cofound": obj(req("at", city), req("share", intIn(100, 500)), req("setup", money), req("monthly", money), req("term", days)),
+	// cloud: the author (a Hyperscaler) puts nodes edge nodes in the counterparty's network at at, for
+	// monthly a node; or buys an on-ramp port of mbps into the counterparty's region at at.
+	"edge":   obj(req("at", city), req("nodes", intIn(1, 16)), req("monthly", money), req("term", days), opt("founded", count(10000000))),
+	"onramp": obj(req("at", city), req("mbps", mbps), req("monthly", money), req("term", days), opt("founded", count(10000000))),
 }
 
 // Box limits (5.3): a 12-byte AES-GCM nonce, and a ciphertext of at least one byte plus the 16-byte tag.
@@ -753,7 +786,7 @@ func CheckOfferTerms(author string, body map[string]any) string {
 	}
 	return object(body, []field{
 		toField,
-		req("deal", oneOf("peering", "transit", "pni", "swap", "consortium", "port", "wave", "cofound")),
+		req("deal", oneOf("peering", "transit", "pni", "swap", "consortium", "port", "wave", "cofound", "edge", "onramp")),
 		basis,
 		opt("renews", idCheck),
 		req("terms", terms),

@@ -340,6 +340,22 @@ test('M7: a Hyperscaler sells cloud only, and its state lives only in its charte
   assert.deepEqual(g.errors, []);
 });
 
+test('M8: a Hyperscaler never sells transit to players and cannot buy a network; computer-run partners set the price ceiling', () => {
+  const bad = [];
+  const g = load();
+  g.ev("beginGame('Cloud','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'hyper'});fedP();compute()");
+  if (g.ev("!!S.fedp.rates.transit||S.fedp.auto.transit!=='decline'")) bad.push('its published terms sell transit');
+  g.ev("fedTermsApply({pol:'open',rates:{transit:{perGbps:1,commit:[],term:30}},auto:{transit:'auto'}})");
+  if (g.ev("!!S.fedp.rates.transit||S.fedp.auto.transit!=='decline'")) bad.push('saving terms turns transit on');
+  if (!g.ev("fedTheirAbsurd(S,{deal:'transit',terms:{mbps:1000,perGbps:1,term:30,at:['fra']}})")) bad.push('a transit request is not refused');
+  const t = g.ev("JSON.stringify({...S,fedp:{...S.fedp,rates:{transit:{perGbps:5,commit:[],term:30}},auto:{...S.fedp.auto,transit:'auto'}}})");
+  if (g.ev(`(()=>{const s=JSON.parse(${JSON.stringify(t)});migrate(s);return !!s.fedp.rates.transit||s.fedp.auto.transit!=='decline';})()`)) bad.push('a save with a transit card loads with it');
+  if (g.ev("FED_DEALS.join()") !== 'peering,transit,pni,swap,consortium,port,wave,cofound,edge,onramp') bad.push('a deal kind was added: check that none hands a network over');
+  if (g.ev("fedRatesClean({edge:{monthly:1e9,cap:2,term:90}}).edge.monthly") > g.ev('HSF_NPC_MO')) bad.push('a host may charge more for an edge node than a computer-run ISP');
+  fail('M8', bad, 'a cloud buys transit and reach from others, never sells transit, and players undercut the computer-run price');
+  assert.deepEqual(g.errors, []);
+});
+
 // ---------- Content ----------
 
 test('C1: every scenario has a goal its card checks, and none is won on day 0', () => {

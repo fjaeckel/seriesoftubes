@@ -1,0 +1,56 @@
+{
+  "description": "The card of 041 allows 2 nodes per city: an offer for 3 at fra is bad_terms.",
+  "input": {
+    "announces": [
+      {
+        "id": "E1",
+        "kind": "announce",
+        "key": "kIsp",
+        "t": 1767225600,
+        "body": {
+          "rates": {
+            "edge": {
+              "at": [
+                "ams",
+                "fra"
+              ],
+              "monthly": 400,
+              "cap": 2,
+              "term": 90
+            }
+          },
+          "auto": {
+            "peering": "auto",
+            "transit": "decline",
+            "pni": "review",
+            "swap": "review",
+            "consortium": "review",
+            "port": "review",
+            "edge": "auto"
+          }
+        }
+      }
+    ],
+    "offer": {
+      "id": "O1",
+      "kind": "offer",
+      "key": "kCloud",
+      "t": 1767229200,
+      "body": {
+        "to": "kIsp",
+        "deal": "edge",
+        "basis": "E1",
+        "terms": {
+          "at": "fra",
+          "nodes": 3,
+          "monthly": 400,
+          "term": 90
+        }
+      }
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_terms"
+  }
+}

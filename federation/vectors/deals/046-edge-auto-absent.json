@@ -1,0 +1,55 @@
+{
+  "description": "An edge card but no auto.edge (feature cloud absent from how requests are handled): treated as decline.",
+  "input": {
+    "announces": [
+      {
+        "id": "E1",
+        "kind": "announce",
+        "key": "kIsp",
+        "t": 1767225600,
+        "body": {
+          "rates": {
+            "edge": {
+              "at": [
+                "ams",
+                "fra"
+              ],
+              "monthly": 400,
+              "cap": 2,
+              "term": 90
+            }
+          },
+          "auto": {
+            "peering": "auto",
+            "transit": "decline",
+            "pni": "review",
+            "swap": "review",
+            "consortium": "review",
+            "port": "review"
+          }
+        }
+      }
+    ],
+    "offer": {
+      "id": "O1",
+      "kind": "offer",
+      "key": "kCloud",
+      "t": 1767229200,
+      "body": {
+        "to": "kIsp",
+        "deal": "edge",
+        "basis": "E1",
+        "terms": {
+          "at": "fra",
+          "nodes": 1,
+          "monthly": 400,
+          "term": 90
+        }
+      }
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "declined"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "description": "An edge offer needs a basis (the host's card).",
+  "input": {
+    "kind": "offer",
+    "author": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+    "body": {
+      "to": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "deal": "edge",
+      "terms": {
+        "at": "fra",
+        "nodes": 2,
+        "monthly": 400,
+        "term": 90
+      }
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "missing_field"
+  }
+}

@@ -71,6 +71,13 @@ test('two players: a Hyperscaler and a home ISP peer, place an edge node and sel
   assert.deepEqual(json(I, `fedCondMiss(S.fedp.cond,fedMeFor(fedNetOf('${kH}')))`), []);
   assert.deepEqual(json(H, `fedCondMiss(FEDN.ann.get('${kI}').rec.body.cond,fedMeFor(fedNetOf('${kI}')))`), []);
 
+  // The ISP's sheet in the Hyperscaler's game, on a phone: its edge card and the request, first when opened for it.
+  H.ev('innerWidth=360;innerHeight=640');
+  await H.ev(`ACT.fpNet({key:'${kI}',at:'fra',deal:'edge'})`);
+  assert.match(H.ev("$('modal').textContent"), /Edge nodes in Amsterdam, Frankfurt: \$400 a node a month, up to 2 per city/);
+  assert.equal(H.ev("document.querySelector('#modal .fp-ask').dataset.deal"), 'edge');
+  assert.equal(H.ev("[...document.querySelectorAll('#modal .btns')].every(b=>b.querySelectorAll('button').length<=2)"), true);
+  H.ev('closeModal()');
   // Peering over a PNI in Frankfurt, asked by the ISP: the Hyperscaler peers automatically.
   assert.equal(await I.ev(`fedRequest('${kH}','peering',{via:'pni',at:'fra'})`), null);
   // An edge node in the ISP's Frankfurt: the Hyperscaler asks on the ISP's card.
@@ -135,4 +142,146 @@ test('two players: a Hyperscaler and a home ISP peer, place an edge node and sel
   I.ev('closeModal()');
   assert.deepEqual(H.errors, []);
   assert.deepEqual(I.errors, []);
+});
+
+test('a Hyperscaler never sells transit: no card, the editor says so, a transit request is declined on arrival even on a forged basis', async () => {
+  const { net, n, H, I, kH, kI } = await pair();
+  await meet(net, n, H, I);
+  // The buyer's side: nothing to ask for.
+  assert.deepEqual(json(I, `fedOffer('${kH}','transit',{at:'fra'}).miss.map(x=>x.l)`), ['declines']);
+  // The editor: no transit section to switch on, a line instead; turning it on does nothing.
+  H.ev("innerWidth=360;innerHeight=640;UI.fpDraft=null;fedTermsModal()");
+  assert.match(H.ev("$('modal').textContent"), /never sells transit/);
+  assert.equal(H.ev("[...document.querySelectorAll('#modal select')].some(s=>JSON.parse(s.dataset.args).f==='tr.on')"), false);
+  assert.equal(H.ev("[...document.querySelectorAll('#modal select')].some(s=>JSON.parse(s.dataset.args).f==='a.transit')"), false);
+  H.ev("fedTermsEdit('tr.on','1');closeModal()");
+  assert.equal(H.ev('!!UI.fpDraft.rates.transit'), false);
+  H.ev('UI.fpDraft=null');
+  // A forged request: its own last announce hacked to sell transit automatically, an offer on exactly that card.
+  H.ev("S.fedp.mine[0].body.rates.transit={perGbps:100,commit:[],term:30};S.fedp.mine[0].body.auto.transit='auto'");
+  const mine = json(H, 'S.fedp.mine[0]');
+  I.ev(`FEDN.ann.get('${kH}').rec.body.rates.transit={perGbps:100,commit:[],term:30}`);
+  const before = n.puts.length;
+  // Signed by the ISP's game, as a modified client would.
+  const body = { to: kH, deal: 'transit', basis: mine.id, terms: { mbps: 1000, perGbps: 100, term: 30, at: ['fra'] } };
+  I.w.__b = body;
+  const r = await I.ev('fedSignMine("offer",__b,S.fed).then(r=>{fedQueue(r,S.fed);return 1;})');
+  assert.equal(r, 1);
+  await relay(net, n, H, I);
+  for (let i = 0; i < 20; i++) { net.advance(500); await settle(10); }
+  assert.equal(H.ev("S.fed.deals.some(d=>d.deal==='transit')"), false, 'no transit deal in the Hyperscaler\'s game');
+  assert.equal(H.ev("S.fedp.rq.some(q=>q.rec.body.deal==='transit')"), false, 'not even waiting for review');
+  assert.ok(n.puts.slice(before).some((x) => x.kind === 'decline' && x.key === kH), 'declined, so the asker is not left waiting');
+  // Buying transit from a player is fine.
+  await I.ev("fedTermsApply({pol:'open',rates:{transit:{perGbps:500,commit:[],term:30}},auto:{transit:'auto'}})");
+  await settle(10); net.advance(1000);
+  await meet(net, n, H, I);
+  assert.deepEqual(json(H, `fedOffer('${kI}','transit',{at:'fra',mbps:1000}).miss`), []);
+  assert.deepEqual(H.errors, []);
+});
+
+test('servers that do not take cloud deals: no edge or on-ramp terms go out, and requests say why', async () => {
+  const { net, n, H, I, kH, kI } = await pair({ feats: ['state', 'ix2'] });
+  await I.ev("fedTermsApply({pol:'open',rates:{edge:{monthly:0,cap:2,term:90}},auto:{edge:'auto'}})");
+  await settle(10);
+  const ib = json(I, 'S.fedp.mine[0].body'), hb = json(H, 'S.fedp.mine[0].body');
+  assert.equal(ib.rates.edge, undefined); assert.equal(ib.auto.edge, undefined);
+  assert.equal(hb.rates.onramp, undefined); assert.equal(hb.auto.onramp, undefined);
+  assert.equal(I.ev('S.fedp.rates.edge.cap'), 2, 'the card is kept until the servers take it');
+  await meet(net, n, H, I);
+  assert.deepEqual(json(H, `fedOffer('${kI}','edge',{at:'fra'}).miss.map(x=>x.l)`), ['cloud']);
+  assert.match(H.ev(`fedMissText(fedOffer('${kI}','edge',{at:'fra'}).miss)`), /does not carry cloud deals/);
+  // The editor says why.
+  I.ev('innerWidth=360;innerHeight=640;UI.fpDraft=null;fedTermsModal()');
+  assert.match(I.ev("$('modal').textContent"), /every server you joined takes them/);
+  I.ev('closeModal()');
+  assert.deepEqual(I.errors, []);
+});
+
+// ---------- solo: computer-run stand-ins ----------
+function solo() {
+  const p = load({ seed: 5 });
+  p.ev("ACT.start({});ACT.charter({k:'hyper'});S.cash=1e9;ACT.hsLaunch({cc:'DE'});ACT.buyTransit({city:S.home,net:'cog',tier:1});S.hs.cc.DE.d=100;compute()");
+  return p;
+}
+test('solo: computer-run home ISPs host edge nodes on fixed terms; the users behind them get their static share there', () => {
+  const { ev, errors } = solo();
+  const hosts = JSON.parse(ev("JSON.stringify(hsfNpcHosts('fra'))"));
+  assert.ok(hosts.length >= 2, 'the country\'s home ISPs, biggest first');
+  const [net, w] = hosts[0];
+  const cash = ev('S.cash');
+  ev(`ACT.hsfNpcEdge({city:'fra',net:'${net}'})`);
+  assert.equal(ev('S.cash'), cash - ev('HSF_NPC_MO'), 'the first month up front');
+  assert.equal(ev('S.hs.ne.length'), 1);
+  ev('compute()');
+  assert.equal(ev('R.hs.cc.DE.nd'), 0, 'not before it is racked');
+  ev(`S.day=S.hs.ne[0].ready;compute()`);
+  const d = ev('S.hs.cc.DE.d'), nd = ev('R.hs.cc.DE.nd');
+  assert.ok(Math.abs(nd - Math.min(d * w * ev('HS_EDGE'), ev('HSF_EDGE_G'))) < 1e-6, 'the static quarter of the users behind that ISP');
+  assert.ok(Math.abs(ev(`R.hs.fe['npc:fra|${net}']`) - nd) < 1e-9);
+  assert.equal(ev("hsQ(R,'DE')"), 1, 'served in full');
+  assert.equal(ev('R.cost.cloud') - ev('HS_T[0].mo'), ev('HSF_NPC_MO'), 'a month per node on the Cost Exploder');
+  // At most two per city and ISP; launch first; only the country's own ISPs.
+  ev(`ACT.hsfNpcEdge({city:'fra',net:'${net}'});ACT.hsfNpcEdge({city:'fra',net:'${net}'})`);
+  assert.equal(ev('S.hs.ne.length'), 2);
+  ev("ACT.hsfNpcEdge({city:'ams',net:'kpn'})");
+  assert.equal(ev('S.hs.ne.length'), 2, 'no users in the Netherlands yet');
+  ev("ACT.hsfNpcEdge({city:'fra',net:'cog'})");
+  assert.equal(ev('S.hs.ne.length'), 2, 'a transit carrier is no home ISP');
+  ev(`ACT.hsfNpcEdgeOff({city:'fra',net:'${net}'})`);
+  assert.equal(ev('S.hs.ne.length'), 1);
+  // A player host is never dearer: a published fee is capped at the computer-run price.
+  assert.equal(ev('fedRatesClean({edge:{monthly:99999,cap:4,term:90}}).edge.monthly'), ev('HSF_NPC_MO'));
+  assert.deepEqual(errors, []);
+});
+
+test('solo: the Cloud tab and the Deals tab offer the stand-ins, on a phone and on a desktop', () => {
+  for (const [w, h] of [[360, 640], [1280, 800]]) {
+    const { ev, errors } = solo();
+    ev(`innerWidth=${w};innerHeight=${h};UI.sel={type:'city',id:'fra'};renderPanel()`);
+    const panel = ev("$('panel').textContent");
+    assert.match(panel, /Edge nodes in partner networks/);
+    assert.match(panel, /snacks/);
+    // Rows of two buttons at most.
+    assert.equal(ev("[...document.querySelectorAll('#panel .btns')].every(b=>b.querySelectorAll('button').length<=2)"), true);
+    const add = ev("[...document.querySelectorAll('#panel [data-act=\"hsfNpcEdge\"]')].length");
+    assert.ok(add >= 2);
+    ev("document.querySelector('#panel [data-act=\"hsfNpcEdge\"]').click()");
+    assert.equal(ev('S.hs.ne.length'), 1, 'the button places a node');
+    ev("UI.dl={f:'all',n:5,open:{cloud:1}}");
+    const deals = ev('dealsTab()');
+    assert.match(deals, /Cloud partners/);
+    assert.match(deals, /never sells transit/);
+    assert.match(deals, /Edge nodes at computer-run ISPs/);
+    assert.deepEqual(errors, []);
+  }
+});
+
+test('saves: edge nodes and cloud terms repaired, unknown deal kinds dropped, classic games untouched', () => {
+  const { ev, errors } = solo();
+  const net = JSON.parse(ev("JSON.stringify(hsfNpcHosts('fra'))"))[0][0];
+  ev(`ACT.hsfNpcEdge({city:'fra',net:'${net}'})`);
+  const fix = (patch) => JSON.parse(ev(`(()=>{const s=JSON.parse(JSON.stringify(S));${patch};migrate(s);return JSON.stringify({ne:s.hs.ne,fedp:s.fedp});})()`));
+  assert.deepEqual(fix('').ne, [{ c: 'fra', net, ready: ev('S.hs.ne[0].ready') }], 'a round trip keeps it');
+  assert.deepEqual(fix("delete s.hs.ne").ne, [], 'older saves get none');
+  assert.deepEqual(fix("s.hs.ne='junk'").ne, []);
+  const junk = fix(`s.hs.ne=[null,{c:'zzz',net:'${net}'},{c:'fra',net:'cog'},{c:'fra',net:'nope'},{c:'fra',net:'${net}',ready:'x'},{c:'fra',net:'${net}',ready:5},{c:'fra',net:'${net}',ready:6}]`).ne;
+  assert.deepEqual(junk, [{ c: 'fra', net, ready: 0 }, { c: 'fra', net, ready: 5 }], 'bad cities, carriers, unknown networks dropped; at most two per city');
+  // Published terms from a save: junk cards dropped, a Hyperscaler's transit gone.
+  const t = fix("s.fedp={pol:'open',rates:{transit:{perGbps:5,commit:[],term:30},edge:{monthly:-1,cap:99,term:90},onramp:{ports:'x',term:90}},auto:{transit:'auto',edge:'maybe'}}").fedp;
+  assert.equal(t.rates.transit, undefined); assert.equal(t.auto.transit, 'decline');
+  assert.equal(t.rates.edge, undefined); assert.equal(t.rates.onramp, undefined);
+  // Deals: a running edge deal with bad terms is dropped, an unknown kind (from a newer game) is ignored.
+  const D = { id: 'A'.repeat(43), key: key('alice').pub, start: 1, end: 2, role: 'buy', st: 'run' };
+  assert.equal(ev(`fedDealClean(${JSON.stringify({ ...D, deal: 'merger', terms: {} })})`), null);
+  assert.equal(ev(`fedDealClean(${JSON.stringify({ ...D, deal: 'edge', terms: { at: 'fra', nodes: 99, monthly: 1, term: 90 } })})`), null);
+  assert.equal(ev(`fedDealClean(${JSON.stringify({ ...D, deal: 'onramp', terms: { at: 'fra', mbps: 10000, monthly: 1, term: 90 } })}).deal`), 'onramp');
+  // A classic game: no Hyperscaler state, no edge or on-ramp terms.
+  const c = load({ seed: 5 });
+  c.ev("ACT.start({});ACT.charter({k:'global'});fedP();compute()");
+  assert.equal(c.ev("'hs' in S||'hs' in R"), false);
+  assert.equal(c.ev('!!S.fedp.rates.edge||!!S.fedp.rates.onramp'), false);
+  assert.equal(c.ev('S.fedp.auto.transit'), 'review', 'a classic network still sells transit if it wants');
+  assert.deepEqual(errors, []);
+  assert.deepEqual(c.errors, []);
 });

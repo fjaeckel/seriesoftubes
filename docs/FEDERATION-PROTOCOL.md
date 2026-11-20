@@ -290,7 +290,7 @@ another one.
 | `policy` | string | `open`, `selective` or `restrictive` |
 | `cond` | object | Required when `policy` is `selective`, refused (`bad_field`) otherwise. See below |
 | `rates` | object | Rate card, see below; `{}` when it sells nothing |
-| `auto` | object | How requests are handled: `{peering, transit, pni, swap, consortium, port, wave, cofound}`, each `auto`, `review` or `decline`. The first six are required; `wave` is optional (announces from before wave deals) and absent means `decline` (10.10); `cofound` likewise (feature `ix2`, below) |
+| `auto` | object | How requests are handled: `{peering, transit, pni, swap, consortium, port, wave, cofound, edge, onramp}`, each `auto`, `review` or `decline`. The first six are required; `wave` is optional (announces from before wave deals) and absent means `decline` (10.10); `cofound` likewise (feature `ix2`, below), `edge` and `onramp` too (feature `cloud`, below) |
 
 `cond`, the conditions of a selective policy: `{minMbps: Mbps, maxRatio: integer 100 to 100000 (the highest in/out ratio
 accepted, times 100: 300 means 3:1), minShared: Count(64) (shared locations), rpki: Bool, tier1: Bool (Tier 1 only),
@@ -311,6 +311,18 @@ ai: Bool (AI players accepted)}`, all required.
   monthly: Money}] 1 to 4 with strictly ascending gbps, term: Days (minimum term)}`. A route's cities are in byte order
   (`a < b`, `bad_field` otherwise; so a route has one spelling and a city is never paired with itself); routes are unique
   (`duplicate`). Whether the routes are really lit is the seller's game's business, not a rule here.
+- `edge` (feature `cloud`: a home ISP hosting a Hyperscaler's edge nodes): `{at: [City] 1 to 64 unique (the cities it
+  sells broadband in), monthly: Money (per node per month; 0: free), cap: integer 1 to 16 (nodes per city and
+  Hyperscaler), term: Days (minimum term)}`.
+- `onramp` (feature `cloud`: a Hyperscaler selling private ports into its regions): `{at: [City] 1 to 16 unique (its
+  regions), ports: [{mbps: Mbps, monthly: Money}] 1 to 8 with strictly ascending mbps, term: Days}`.
+
+**Feature `cloud`** (a Hyperscaler's deals): `rates.edge`, `rates.onramp`, `auto.edge` and `auto.onramp` are newer than
+the relays that brought `ix2`, which refuse them (`unknown_field`). As with `ix2`, a game puts them in an announce only
+while every server it joined lists `cloud` in `feats` (9.3), and a node passes an announce holding any of them only to
+sessions that listed `cloud` (9.3, 9.4). The `edge` and `onramp` deals (5.3) travel sealed, so relays need not know
+them; a game offers them only on an announce that publishes the card, so only to a game that takes them. A game that
+does not know a deal kind drops the opened offer (7.1, 5.3), as it drops any offer it cannot read.
 
 **Feature `ix2`** (players' exchanges): `rates.ix.members` and `auto.cofound` are newer than this version's first
 relays, which refuse them (`unknown_field`). A game puts them in an announce only while every server it joined lists
@@ -396,8 +408,8 @@ The offer in clear (an open consortium project on the wire, or a sealed offer on
 | Field | Type | Rule |
 | --- | --- | --- |
 | `to` | Key | The counterparty, never the author (`bad_field`). Optional for `consortium` only (absent: open to anyone; present: an invitation, sealed like any offer to someone) |
-| `deal` | string | `peering`, `transit`, `pni`, `swap`, `consortium`, `port`, `wave` or `cofound` |
-| `basis` | Id | The counterparty's `announce` whose terms the offer takes. Required for `peering`, `transit`, `pni`, `port`, `wave`, `cofound`; optional for `swap`; refused for `consortium` (`bad_field`) |
+| `deal` | string | `peering`, `transit`, `pni`, `swap`, `consortium`, `port`, `wave`, `cofound`, `edge` or `onramp` |
+| `basis` | Id | The counterparty's `announce` whose terms the offer takes. Required for `peering`, `transit`, `pni`, `port`, `wave`, `cofound`, `edge`, `onramp`; optional for `swap`; refused for `consortium` (`bad_field`) |
 | `renews` | Id, optional | The offer that started the running deal this one renews |
 | `terms` | object | By `deal`, below |
 
@@ -411,6 +423,8 @@ The offer in clear (an open consortium project on the wire, or a sealed offer on
 | `consortium` | `{name: Name, a: City, b: City, members: integer 2 to 16, share: Money, pairs: integer 1 to 16}` |
 | `wave` | `{a: City, b: City (a < b, as on the card), gbps: 100\|400\|800\|1600, monthly: Money, term: Days, founded?}`: one wave the author buys from `to` |
 | `cofound` | `{at: City, share: integer 100 to 500, setup: Money, monthly: Money, term: Days}`: feature `ix2` (5.1). The author, who runs the exchange at `at`, offers `to` a share of it, in per mille: `to` pays `setup` once and `monthly` a month, gets a port on it, and earns `share` of its members' fees |
+| `edge` | `{at: City, nodes: integer 1 to 16, monthly: Money (per node), term: Days, founded?}`: feature `cloud` (5.1). The author (a Hyperscaler) puts `nodes` edge nodes in `to`'s network at `at` and pays `monthly` a node |
+| `onramp` | `{at: City, mbps: Mbps, monthly: Money, term: Days, founded?}`: feature `cloud`. The author buys a private port of `mbps` into `to`'s region at `at` |
 
 `cofound` turns the usual direction around: the author sells and `to` pays. Each game books only its own side, as with
 every deal: the co-founder pays its `setup` when the deal starts and `monthly` while it runs, and earns
@@ -421,7 +435,7 @@ players at `at`, as a bought `port` does (10.10). A founder has at most two co-f
 the shares are fair (no more than `share` of the game's own founding cost and of its biggest fabric's monthly cost) are
 the co-founder's game's business, which declines (`conditions`) otherwise.
 
-`founded` (optional, Count(10000000), on the four priced deals): the buyer (the offer's author) claims the newcomer
+`founded` (optional, Count(10000000), on the six priced deals: transit, pni, port, wave, edge, onramp): the buyer (the offer's author) claims the newcomer
 price, giving the real day it joined, as its `announce` says (5.1). 10.10 checks it.
 
 `accept`: `{offer: Id, to: Key}` where `to` is the offer's author. `decline` (once opened): `{offer: Id, to: Key,
@@ -924,6 +938,9 @@ it is neither answered nor a reason to close, so an older game keeps working wit
   `hello` (`feats: ["ix2"]`; an older node ignores the member): a node sends a record holding `ix2` fields to a client
   session only when its `hello` listed `ix2`, from `sub` (backlog and live), `fetch` and `rankwhy` alike, and the session
   is not told what it did not get (an older game would refuse the record and drop the whole announce).
+  **`cloud`** likewise, for a Hyperscaler's deals (5.1 `rates.edge`, `rates.onramp`, `auto.edge`, `auto.onramp`): a game
+  lists it in its `hello` (`feats: ["ix2", "cloud"]`), puts those fields in an announce only while every server it joined
+  lists `cloud`, and a node sends a record holding them only to a session whose `hello` listed `cloud`.
 - **`state`** sends a live state (5.11). The node checks it (7.1 steps 2 to 8 for kind `state`, then 5.11's state
   checks); a newer state is kept in memory and passed on to other nodes (9.4). A node limits each connection's states
   on its own: the reference relay allows one every 4 s with a burst of 2, and answers `rate_limited` (with `retry`)
@@ -997,6 +1014,7 @@ Nodes of one server, and nodes of different servers that sync, use the same tran
    **Feature `ix2`:** a record holding `ix2` fields (5.1) is neither listed in an `inv`, nor answered to a `want`, nor
    pushed live to a peer whose `hello` or `welcome` did not list `ix2` in `feats`, nodes of the same server included
    (a server upgrades its nodes one at a time). Such a peer refuses those fields, so it never asks for them again.
+   **Feature `cloud`** the same: a record holding `cloud` fields (5.1) goes only to a peer that listed `cloud`.
 4. Records keep their original signatures and receipts on every hop. Each record is stored once per server, however
    many paths brought it (10.11).
 5. **Pacing.** A node answers `want` with `push` frames one at a time as the peer takes them, and MAY slow down reading
@@ -1401,11 +1419,21 @@ not an `announce` by `to`). It is checked, in this order:
      game, not by these rules.
    - `cofound`: no prices either. The basis is the counterparty's announce (the co-founder's); the founder sets the
      terms, and the co-founder's game judges them (5.3).
-   - **Newcomer price.** When `terms` has `founded` (transit, pni, port, wave), let `d = div(offer.t, 86400)`. It is
+   - `edge`: `terms.at` is in `rates.edge.at`, `terms.nodes <= rates.edge.cap`, `terms.monthly` equals
+     `rates.edge.monthly`, `terms.term >= rates.edge.term`. How many nodes that buyer already has in that city (the cap
+     counts them all) and whether the host still sells broadband there are the host's game's business: it declines
+     (`conditions`) otherwise. While it runs, the host's game has an exit at `at` that reaches the buyer first (rank 0,
+     like an embedded cache) for the static share of what its customers ask of the buyer; the buyer's game serves the
+     users behind the host there. The buyer reports what crossed in its `stats` traffic with the host.
+   - `onramp`: `terms.at` is in `rates.onramp.at`, a port with `mbps == terms.mbps` exists, `terms.monthly` equals its
+     `monthly`, `terms.term >= rates.onramp.term`. Whether `at` is still a live region is the seller's game's business
+     (`conditions`). While it runs, each game has a private exit at `at` to the other; the buyer reports what crossed in
+     its `stats` traffic with the seller.
+   - **Newcomer price.** When `terms` has `founded` (transit, pni, port, wave, edge, onramp), let `d = div(offer.t, 86400)`. It is
      allowed when `d - terms.founded` is 0 to 29 (the buyer joined less than 30 days before the offer) and the basis's
      `founded` gives `d - basis.founded >= 30` (the seller is established); otherwise `bad_terms`. Every price above is
      then `div(p * 750, 1000)` of the card's `p` (the transit price after its commit tier, the PNI's `setup` and
-     `monthly`, the port's and the wave's `monthly`): 25% off, rounded down. Both games compute it from the offer and
+     `monthly`, the port's, the wave's, the edge node's and the on-ramp's `monthly`): 25% off, rounded down. Both games compute it from the offer and
      the basis alone, so they agree on the price. That `terms.founded` is the buyer's real join day is the seller's
      game's business: it declines (`conditions`) when the buyer's newest announce it has says otherwise, or when it
      first heard of the buyer more than a day before `terms.founded`. Two newcomers

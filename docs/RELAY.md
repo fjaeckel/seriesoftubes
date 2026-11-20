@@ -519,6 +519,9 @@ How it works (`relay/internal/rank`):
      relay (it would refuse them); it sees the player's earlier announce, or none, until it is reloaded.
   To check which servers have upgraded: the looking glass shows each node's relay version, and `relay status` each
   peer's (every relay released after 4.0.0 takes `ix2`).
+  The second feature is `cloud` (a Hyperscaler's edge nodes and on-ramps: `rates.edge`, `rates.onramp`, `auto.edge`,
+  `auto.onramp` in an announce, spec 5.1). It rolls out the same way: relays first, then games that use the fields only
+  while every server they joined lists `cloud`; a game that does not list it never gets those announces.
 - **Bound node proofs.** Every relay released after 4.0.0 binds the proof its nodes give in a handshake with another
   node to that node (`bind`, spec 6.2), so a proof cannot be relayed to pass as a node. Such a relay takes an unbound
   proof only from a server that is not in the registry, does not say (in its catalog entry) that it runs a relay

@@ -58,6 +58,8 @@ function fedOffer(key,deal,o={}){const n=fedNetOf(key),a=FEDN.ann.get(key);if(!n
   if(n.fst==='dark'||FdBox(a.rec.body.box))return {miss:[{l:'quiet'}]};
   const B=a.rec.body,R0=B.rates||{},p=fedPair(n),miss=[];let terms=null;
   if(!FEDP_DEALS.includes(deal)||deal==='consortium')return {miss:[{l:'terms'}]};
+  // Edge nodes and on-ramps travel only where every joined server takes them (feature cloud, 89-fedplay-hyper.js).
+  if((deal==='edge'||deal==='onramp')&&!fedCloud())return {miss:[{l:'cloud'}]};
   if(!B.auto[deal]||B.auto[deal]==='decline')return {miss:[{l:'declines'}]};
   const term=r=>Math.max(r,fedInt(o.term,1,3650,0)),mb=fedInt(o.mbps,1,1e9,0);
   if(deal==='peering'){const via=o.via==='pni'?'pni':'ix';

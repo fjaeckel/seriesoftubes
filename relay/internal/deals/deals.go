@@ -215,6 +215,45 @@ func checkTerms(deal string, terms, rates map[string]any, price func(int64) int6
 			}
 		}
 		return fed.BadTerms
+	case "edge":
+		r := obj(rates["edge"])
+		if r == nil {
+			return fed.NoTerms
+		}
+		at, _ := terms["at"].(string)
+		if !hasCity(r["at"], at) || num(terms["nodes"]) > num(r["cap"]) || num(terms["monthly"]) != price(num(r["monthly"])) ||
+			num(terms["term"]) < num(r["term"]) {
+			return fed.BadTerms
+		}
+	case "onramp":
+		r := obj(rates["onramp"])
+		if r == nil {
+			return fed.NoTerms
+		}
+		at, _ := terms["at"].(string)
+		if !hasCity(r["at"], at) {
+			return fed.BadTerms
+		}
+		for _, p := range ports(r["ports"]) {
+			if num(p["mbps"]) == num(terms["mbps"]) {
+				if num(terms["monthly"]) == price(num(p["monthly"])) && num(terms["term"]) >= num(r["term"]) {
+					return ""
+				}
+				return fed.BadTerms
+			}
+		}
+		return fed.BadTerms
 	}
 	return ""
+}
+
+// hasCity: the card's list of cities holds c.
+func hasCity(v any, c string) bool {
+	l, _ := v.([]any)
+	for _, x := range l {
+		if x == c {
+			return true
+		}
+	}
+	return false
 }

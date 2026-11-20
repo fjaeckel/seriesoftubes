@@ -150,6 +150,10 @@ const Feat = "state"
 // 5.3 cofound): records that carry it go only to sessions that list it.
 const FeatIx2 = fed.FeatIx2
 
+// FeatCloud is the optional feature of a Hyperscaler's deals (5.1 rates.edge, rates.onramp, auto.edge,
+// auto.onramp; 5.3 edge, onramp): records that carry it go only to sessions that list it.
+const FeatCloud = fed.FeatCloud
+
 // FeatBind is the feature of bound node handshake proofs (6.2, 9.4).
 const FeatBind = fed.FeatBind
 

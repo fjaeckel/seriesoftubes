@@ -50,6 +50,7 @@ type Entry struct {
 	rc   int32    // the receipts' length (the line is {"rcpt":R,"rec":C,"slot":N})
 	gone bool     // removed; still in the ordered lists until they are compacted
 	ix2  bool     // it carries ix2 fields (fed.Ix2): sent only to sessions that take them
+	cld  bool     // it carries cloud fields (fed.Cloud): likewise
 	x    *held    // what is kept in memory besides: nil for most entries
 }
 
@@ -74,6 +75,9 @@ func (e *Entry) Size() int { return int(e.n) }
 
 // Ix2 reports whether the record carries ix2 fields (fed.Ix2).
 func (e *Entry) Ix2() bool { return e.ix2 }
+
+// Cloud reports whether the record carries cloud fields (fed.Cloud).
+func (e *Entry) Cloud() bool { return e.cld }
 
 // Offer is the offer an accept or decline answers ("" for other kinds).
 func (e *Entry) Offer() string {
@@ -394,7 +398,7 @@ func (s *Store) insert(rec *fed.Record, rcpts []map[string]any, slot, day int64)
 		kl = &keyList{key: rec.Key}
 		s.byKey[rec.Key] = kl
 	}
-	e := &Entry{ID: rec.ID, Key: kl.key, Kind: kind, T: rec.T, Slot: slot, Seq: s.seq, day: i32(day), off: -1, ix2: fed.Ix2(rec)}
+	e := &Entry{ID: rec.ID, Key: kl.key, Kind: kind, T: rec.T, Slot: slot, Seq: s.seq, day: i32(day), off: -1, ix2: fed.Ix2(rec), cld: fed.Cloud(rec)}
 	switch kind {
 	case "offer", "accept", "decline":
 		p := &parties{}

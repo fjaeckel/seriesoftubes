@@ -1,0 +1,22 @@
+{
+  "description": "nodes is 1 to 16.",
+  "input": {
+    "kind": "offer",
+    "author": "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0",
+    "body": {
+      "to": "q6-YSQOwroLpff9kQ8staCV6h0Hy9ioi8qHnRU_PWMw",
+      "deal": "edge",
+      "basis": "T1_rSdWo4Mcfsl6YCE3dxT1Q7WMEgJV960BLNsFe8_I",
+      "terms": {
+        "at": "fra",
+        "nodes": 17,
+        "monthly": 400,
+        "term": 90
+      }
+    }
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

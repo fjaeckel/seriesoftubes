@@ -1137,10 +1137,10 @@ func (s *session) sends(kind string) bool {
 }
 
 // takes reports whether a session may be sent a stored record by what it listed in feats (lock
-// held): a record carrying ix2 fields goes only to a node or game that takes them (9.3, 9.4), since
-// an older one refuses those fields. Nodes of this server too: they may still run an older relay.
+// held): a record carrying ix2 or cloud fields goes only to a node or game that takes them (9.3, 9.4),
+// since an older one refuses those fields. Nodes of this server too: they may still run an older relay.
 func (s *session) takes(e *store.Entry) bool {
-	return !e.Ix2() || slices.Contains(s.feats, fed.FeatIx2)
+	return (!e.Ix2() || slices.Contains(s.feats, fed.FeatIx2)) && (!e.Cloud() || slices.Contains(s.feats, fed.FeatCloud))
 }
 
 // fanout pushes a stored record to node sessions and client subscriptions (lock held).

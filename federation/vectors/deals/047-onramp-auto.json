@@ -1,0 +1,65 @@
+{
+  "description": "A Hyperscaler published an on-ramp card (E1, feature cloud): ports into its region at fra, 10G at 2500 a month and 100G at 15000, 90 days minimum, automatic. An ISP buys a 10G port for 90 days: start 1767229200, end 1775005200.",
+  "input": {
+    "announces": [
+      {
+        "id": "E1",
+        "kind": "announce",
+        "key": "kCloud",
+        "t": 1767225600,
+        "body": {
+          "rates": {
+            "onramp": {
+              "at": [
+                "fra"
+              ],
+              "ports": [
+                {
+                  "mbps": 10000,
+                  "monthly": 2500
+                },
+                {
+                  "mbps": 100000,
+                  "monthly": 15000
+                }
+              ],
+              "term": 90
+            }
+          },
+          "auto": {
+            "peering": "auto",
+            "transit": "decline",
+            "pni": "review",
+            "swap": "review",
+            "consortium": "review",
+            "port": "review",
+            "onramp": "auto"
+          }
+        }
+      }
+    ],
+    "offer": {
+      "id": "O1",
+      "kind": "offer",
+      "key": "kIsp",
+      "t": 1767229200,
+      "body": {
+        "to": "kCloud",
+        "deal": "onramp",
+        "basis": "E1",
+        "terms": {
+          "at": "fra",
+          "mbps": 10000,
+          "monthly": 2500,
+          "term": 90
+        }
+      }
+    }
+  },
+  "expect": {
+    "ok": true,
+    "auto": true,
+    "start": 1767229200,
+    "end": 1775005200
+  }
+}
