@@ -67,3 +67,19 @@ test('Autarky hides a remembered Multimode choice and starts solo', () => {
   assert.equal(ev('fedEligible(S)'), false);
   assert.deepEqual(errors, []);
 });
+
+test('Autarky lets a land route switch to an own subsea cable and back', () => {
+  const { ev, dom, errors } = load();
+  start(ev);
+  ev("S.cash=1e12;S.lvl=LEVELS.length;S.won=true;ACT.buildPop({city:'mia'})");
+  assert.equal(ev("!isSub('mia','pan')&&seaCab('mia','pan')&&!ownCabWhy('mia','pan')"), true, 'Miami to Panama is land with a cable option');
+  ev("openLinkModal('mia','pan');ACT.ownCab()");
+  const doc = dom.window.document;
+  assert.ok(doc.querySelector('#modal [data-act="orderCable"]'), 'the own-cable quote opens');
+  assert.equal(doc.querySelector('#modal [data-act="dfSrc"][data-args*="lease"]'), null, 'Back does not offer an IRU');
+  ev("ACT.dfSrc({v:'build'})");
+  assert.equal(doc.querySelector('#modal [data-act="orderCable"]'), null, 'Back returns to digging');
+  ev("ACT.ownCab();ACT.orderCable()");
+  assert.equal(ev("S.links.some(l=>l.kind==='df'&&l.own&&l.sub&&l.a==='mia')"), true, 'the cable is laid');
+  assert.deepEqual(errors, []);
+});
