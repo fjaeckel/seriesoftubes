@@ -393,7 +393,7 @@ stay in the browser).`);
         await page.evaluate((nm) => { const i = document.getElementById('nmIn'); if (i) i.value = nm; UI.pitched = true; }, name);
         await page.locator('#modalCard .tcta [data-act="start"]').click();
         await page.waitForFunction(() => typeof S !== 'undefined' && S && UI.started);
-        await page.locator('#modalCard [data-act="charter"]').first().click();
+        await page.locator('#modalCard [data-act="charter"][data-args*="global"]').first().click();
       } else {
         await page.evaluate((nm) => { const i = document.getElementById('nmIn'); if (i) i.value = nm; UI.pitched = true; ACT.start({}); }, name);
         await page.waitForFunction(() => typeof S !== 'undefined' && S && UI.started);
@@ -1221,7 +1221,7 @@ async function lanMain() {
       await page.evaluate(() => { const i = document.getElementById('nmIn'); if (i) i.value = 'LAN Net'; UI.pitched = true; });
       await page.locator('#modalCard .tcta [data-act="start"]').click();
       await page.waitForFunction(() => typeof S !== 'undefined' && S && UI.started);
-      await page.locator('#modalCard [data-act="charter"]').first().click();
+      await page.locator('#modalCard [data-act="charter"][data-args*="global"]').first().click();
       await until(() => page.evaluate(() => fedStatus().state === 'connected'), 30000, 'connected');
       const w = frames.find((f) => f.m === 'welcome');
       must(w && w.server === ctl('status').server, 'welcome from another server');
