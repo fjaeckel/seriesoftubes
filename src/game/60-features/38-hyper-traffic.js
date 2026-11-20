@@ -86,7 +86,7 @@ function hsBulk(R2,X){const H=S.hs,out=R2.hs;if(!out)return;const rep={},jobs={}
   // Training, earliest deadline first: tenants' jobs and your own models alike.
   const runs=H.jobs.map(j=>['job',j]).concat(H.own.map(m=>['own',m])).sort((x,y)=>x[1].due-y[1].due||(x[1].id<y[1].id?-1:1));
   for(const [k,j] of runs){const live=rgs.includes(j.a)&&rgs.includes(j.b),want=live?Math.min(j.g,Math.max(0,j.tb-j.done)/TB_DAY):0,mode=H.pp[hsPk(j.a,j.b)]||'';
-    const x=carve(j.a,j.b,'hs:'+j.id,want,mode,labOf(N_('hyper_traffic.ek_train'),'city',CITY[j.b].name));
+    const x=live?carve(j.a,j.b,'hs:'+j.id,want,mode,labOf(N_('hyper_traffic.ek_train'),'city',CITY[j.b].name)):{got:0,ms:0,paths:[],te:false};
     jobs[j.id]={k,a:j.a,b:j.b,want,got:x.got,ms:x.ms,mode,te:x.te,paths:x.paths,due:j.due};out.btw+=x.got;}}
 hsBulk.on=()=>!!S.hs&&hyper();
 // Money: training draws megawatts (a monthly cost); a fresh model of yours sells inference to your users.
