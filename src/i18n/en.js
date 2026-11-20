@@ -4233,6 +4233,7 @@
 "ops.w_oops":{"one":"made one small oops","other":"made {n} small oopses"},
 "optic_counts.apply_price":"Apply · {price}",
 "optic_counts.count_for_model":"Number of {model} channels",
+"optic_counts.managed_waves_need_more":"You sold {g} of managed waves on this fiber: keep more than that lit, or your own traffic has nothing left and the fiber goes dark.",
 "optic_counts.only_n_channels_free":"Only {n} channels are free on this fiber.",
 "optic_counts.target_count":"Target count",
 "optx.bud":"Build budget",
