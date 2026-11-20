@@ -73,7 +73,8 @@ test('Route 66 down: every tenant with DNS loses happiness at once and its bundl
   const q1 = J(ev, "S.biz.map(b=>hsTenQ(R,b))");
   assert.ok(q1[0] < q0[0] * 0.5, 'the DNS tenant\'s bundle sours: ' + q0[0] + ' -> ' + q1[0]);
   assert.ok(Math.abs(q1[1] - q0[1]) < 1e-9, 'the other is untouched');
-  assert.match(ev('cxHtml(CX_CARD)'), /Route 66/);
+  assert.match(ev("hsIncAlerts().map(x=>x.h).join('')"), /Route 66/);
+  assert.match(ev('hsCard()'), /Route 66/, 'at the top of the card');
   ev(`ACT.fixInc({id:${lit(i.id)}});compute()`);
   assert.ok(Math.abs(ev('hsTenQ(R,S.biz[0])') - q0[0]) < 1e-9, 'rolled back');
   assert.deepEqual(errors, []);
@@ -155,10 +156,10 @@ test('the Cloud tab shows an outage here with its fix, on a phone and a desktop'
   ev("S.inc.push({id:'p1',type:'hspow',ref:'fra',until:S.day+2,start:S.day,msg:'A crane',cost:20000,fix:'Truck in diesel'});compute()");
   for (const w of [360, 1280]) {
     ev(`window.innerWidth=${w};selectCity('fra');UI.tab='cust';renderAll()`);
-    assert.match(ev("hsIncCity('fra')"), /Truck in diesel/);
+    assert.match(ev("((x)=>x?x.t+x.body():'')(hsIncSpec('fra'))"), /Truck in diesel/);
     const html = dom.window.document.body.innerHTML;
     assert.ok(html.includes('A crane'), 'shown at ' + w);
   }
-  assert.equal(ev("hsIncCity('par')"), '');
+  assert.equal(ev("((x)=>x?x.t+x.body():'')(hsIncSpec('par'))"), '');
   assert.deepEqual(errors, []);
 });

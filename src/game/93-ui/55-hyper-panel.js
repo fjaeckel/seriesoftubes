@@ -15,7 +15,8 @@
    Early on (pnVet() false) every section is open; later a section opens by itself when a flag says it needs you (or it
    is the region of a region city), and a tap folds or unfolds it while the panel is on screen (panelFold).
    A part of the tab is {t title, sum, flags:[[class,text]], open, body()} or null. Other files may still add whole
-   sections through CX_CITY and lines through CX_CARD (story, intern, outages): they go at the end. */
+   sections through CX_CITY and lines through CX_CARD: they go at the end. The regulators (38-hyper-regulation.js) and
+   the outages (71-hyper-incidents.js) give alerts, stat lines and sections like the others. */
 const hsKv=(k,v,st)=>`<div class="kv"><span>${k}</span><b${st?` style="${st}"`:''}>${v}</b></div>`;
 const hsBar=(f,bad)=>`<div class="bar${bad?' bad':''}"><i style="width:${Math.round(clamp(f,0,1)*100)}%"></i></div>`;
 // A row of buttons, two at most (empty strings dropped); more go on further rows.
@@ -45,7 +46,7 @@ function hsCoreAlerts(){const H=S.hs,R0=R.hs,out=[];if(!R0)return out;const bad=
   if(soon)out.push({lv:2,h:`⏳ ${trn('hyper_ui.tenant_offers_ending',soon,{d:HS_OFF_SOON})} ${btn(tr('common.deals'),'leftTab',{t:'deals'},'ghost sm')}`});
   if(mine)out.push({lv:2,h:`⏳ ${trn('hyper_ui.card_offers_ending',mine,{d:HS_OFF_SOON})}`});
   return out;}
-function hsAlerts(){const z=chFrozen(),a=[...hsFailAlerts(),...hsPwAlerts(),...hsLfAlerts(),...hsRvAlerts(),...hsCoreAlerts()];
+function hsAlerts(){const z=chFrozen(),a=[...hsIncAlerts(),...hsLawAlerts(),...hsFailAlerts(),...hsPwAlerts(),...hsLfAlerts(),...hsRvAlerts(),...hsCoreAlerts()];
   if(z)a.push({lv:1,h:`<b>🧊 ${tr('change_freeze.frozen_why',{show:z.show,date:dateStr(z.until)})}</b>`});
   return a.map((x,i)=>[x,i]).sort((p,q)=>p[0].lv-q[0].lv||p[1]-q[1]).map(p=>p[0]);}
 const HS_AL_TOP=4;
@@ -57,7 +58,7 @@ function hsStatHtml(){const H=S.hs,ccs=Object.keys(H.cc),doors=Object.keys(S.pop
   return `<div class="hsc-st">`
    +`<div class="meta">👥 ${tr('hyper.card_users',{g:fmtG(hsUsers()),n:ccs.length,p:pct(hsServed(R))})}</div>`
    +`<div class="meta">🏢 ${tr('hyper.card_infra',{n:hsRgs().length,max:hsRgMax(),d:doors.length,e:Object.keys(H.edge).length,t:hsTen().length})}</div>`
-   +hsPwStat()+hsTrafficStat()+hsDrillStat()+hsMarketStat()+`</div>`;}
+   +hsPwStat()+hsTrafficStat()+hsDrillStat()+hsMarketStat()+hsLawStat()+`</div>`;}
 // Folded details: the money, the utility's letters, the tightest grid, what the resale desk sold.
 function hsMoreHtml(){const H=S.hs,open=hsCardOpen('hsmore');let rev=0;for(const cc in H.cc)rev+=hsRev(R,cc);
   return foldB(tr('hyper_ui.details'),'leftFold',{k:'hsmore'},open,'ghost sm hsc-fold')+(open?`<div class="hsc-more"><div class="meta">💵 ${tr('hyper.card_money',{rev:fmt$(rev),cost:fmt$((R.cost&&R.cost.cloud)||0)})}</div>${hsPwMore()}${hsrSold()}</div>`:'');}
@@ -138,7 +139,7 @@ function hsTenBody(c,bs){if(!bs.length)return `<p class="empty">${tr('hyper.no_t
   return h;}
 const hsTenSection=c=>hsSec('ten',hsTenSpec(c));
 // The whole tab, in the order a player asks. Offers here wait for an answer, so they come right after the users.
-function hsCity(c){return hsSec('cc',hsCcSpec(c))+offersHere(c)+hsSec('rg',hsRgSpec(c))+hsSec('pw',hsPwSpec(c))+hsSec('bt',hsBtSpec(c))+hsSec('fo',hsFailSpec(c))
+function hsCity(c){return hsSec('inc',hsIncSpec(c))+hsSec('cc',hsCcSpec(c))+hsSec('law',hsLawSpec(c))+offersHere(c)+hsSec('rg',hsRgSpec(c))+hsSec('pw',hsPwSpec(c))+hsSec('bt',hsBtSpec(c))+hsSec('fo',hsFailSpec(c))
   +hsSec('door',hsDoorSpec(c))+hsSec('ep',hsfEdgeSpec(c))+hsSec('or',hsfRampSpec(c))+hsSec('ten',hsTenSpec(c))+cxHtml(CX_CITY,c);}
 const hsNoPop=c=>hsSec('cc',hsCcSpec(c))+offersHere(c);
 // In an offer's row: what the bundle is and what it would want from you today.

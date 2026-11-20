@@ -30,7 +30,7 @@ test('a data localisation law: announced with months of notice, then the country
   const x = J(ev, 'S.hs.law.cc.US');
   assert.ok(x.f - ev('S.day') >= 150 && x.f - ev('S.day') <= 210, 'notice long enough to build a region');
   assert.match(ev('JSON.stringify(S.log)'), /data localisation law/);
-  assert.match(ev('hsLawCard()'), /no region there yet/);
+  assert.match(ev("hsLawAlerts().map(x=>x.h).join('')+hsLawStat()"), /no region there yet/);
   assert.equal(ev("hsResOf('US')"), '', 'not in force yet');
   // In force, with no region in the country: Americans wait, neither growing nor leaving.
   ev("S.day=S.hs.law.cc.US.f;S.log=[];compute();hsDay(S.day)");
@@ -41,7 +41,7 @@ test('a data localisation law: announced with months of notice, then the country
   const d0 = ev('S.hs.cc.US.d');
   ev('for(let i=0;i<5;i++){S.day++;compute();hsDay(S.day)}');
   assert.equal(ev('S.hs.cc.US.d'), d0, 'held');
-  assert.match(ev('hsLawCard()'), /users wait for a region in the country/);
+  assert.match(ev("hsLawAlerts().map(x=>x.h).join('')+hsLawStat()"), /users wait for a region in the country/);
   // A region in New York: they come home to it, and only to it.
   ev("S.hs.rg.nyc={t:1,ready:S.day,mw:20};compute();hsDay(S.day)");
   assert.deepEqual([...new Set(J(ev, 'R.hs.cc.US.parts.filter(p=>p[3]).map(p=>p[3])'))], ['nyc']);
@@ -67,8 +67,8 @@ test('a moratorium: announced ahead, then no new region, upgrade or utility requ
   // Own generation is still allowed; other metros too.
   ev("ACT.hsGen({city:'ams',k:'sol'})");
   assert.equal(ev("S.hs.pw.ams.own.length"), 1);
-  assert.match(ev("hsLawCity('ams')"), /no new data-center grid connections/);
-  assert.equal(ev("hsLawCity('par')"), '');
+  assert.match(ev("((x)=>x?x.t+x.body():'')(hsLawSpec('ams'))"), /no new data-center grid connections/);
+  assert.equal(ev("((x)=>x?x.t+x.body():'')(hsLawSpec('par'))"), '');
   ev("S.day=S.hs.law.mor.ams.u;hsLawDay(S.day);ACT.hsUtil({city:'ams'})");
   assert.ok(J(ev, 'S.hs.pw.ams.q'), 'over: the utility answers again');
   assert.deepEqual(errors, []);
@@ -85,7 +85,7 @@ test('the energy rule bills regions that waste their heat; heat reuse is exempt'
   assert.ok(Math.abs(ev('R.costMo') - c0 - fee) < 1, 'both European regions pay');
   ev("ACT.hsHeat({city:'fra'});compute()");
   assert.deepEqual(J(ev, 'hsPueRgs()'), ['ams'], 'heating the pool exempts Frankfurt');
-  assert.match(ev('hsLawCard()'), /wasted heat/);
+  assert.match(ev("hsLawAlerts().map(x=>x.h).join('')+hsLawStat()"), /wasted heat/);
   assert.deepEqual(errors, []);
 });
 
@@ -122,7 +122,7 @@ test('egress fees investigated: cut them for a year, pay the fine, or ignore it 
       ev("S.day=S.hs.law.egr.dl;hsLawDay(S.day)");
       assert.equal(c0 - ev('S.cash'), E.fee, 'no second fine');
     } else {
-      assert.match(ev('hsLawCard()'), /hsEgress/);
+      assert.match(ev("hsLawAlerts().map(x=>x.h).join('')+hsLawStat()"), /hsEgress/);
       ev("S.day=S.hs.law.egr.dl;hsLawDay(S.day)");
       assert.equal(ev('S.hs.law.egr.st'), 'fined');
       assert.equal(c0 - ev('S.cash'), Math.round(E.fee * ev('HS_EGR_LATE')));
@@ -172,10 +172,10 @@ test('the card and the Cloud tab show the laws on a phone and a desktop', (t) =>
   ev("hsLawStart('cc','US',S.day);hsLawStart('mor','ams',S.day);hsLawStart('pue','EU',S.day);hsLawStart('eu','',S.day);hsLawStart('egr','',S.day);compute()");
   for (const w of [360, 1280]) {
     ev(`window.innerWidth=${w};selectCity('ams');UI.tab='cust';renderAll()`);
-    const card = ev('hsLawCard()');
+    const card = ev("hsLawAlerts().map(x=>x.h).join('')+hsLawStat()");
     for (const re of [/🏛️/, /🔌/, /🌡️/, /🇪🇺/, /🏨/]) assert.match(card, re);
-    assert.match(ev("hsLawCity('ams')"), /🔌/);
-    assert.match(ev("hsLawCity('nyc')"), /🏛️/);
+    assert.match(ev("((x)=>x?x.t+x.body():'')(hsLawSpec('ams'))"), /🔌/);
+    assert.match(ev("((x)=>x?x.t+x.body():'')(hsLawSpec('nyc'))"), /🏛️/);
     assert.equal(ev("(hsCard().match(/data-act=\"hsEgress\"/g)||[]).length"), 2, 'the charter card carries both answers');
     assert.ok(dom.window.document.body.innerHTML.includes(ev("tr('hyper_reg.title')")), 'the Cloud tab shows the regulators at ' + w);
   }
