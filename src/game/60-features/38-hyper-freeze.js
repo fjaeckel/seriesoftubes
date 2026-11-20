@@ -31,6 +31,8 @@ function hsLfDay(d){const H=S.hs;if(!H||!('lfn' in H))return;const L=H.lf;
       else{b.mood=Math.max(1,b.mood-40);toast(`💥 ${tr(HS_LF_FAIL[Math.floor(hsRvU('lff|'+d)*HS_LF_FAIL.length)],v)}<br>${tr('hyper_freeze.failed_p',{p:pct(p),ok:pct(HS_LF_OK)})}`,'bad',[{l:tr('common.show_me'),act:'custGo',args:{id:b.id}}]);sfx('err');}}
     return;}
   if(d<H.lfn)return;const gs=hsTen().filter(b=>b.ck==='game'&&d-(b.since||0)>=20).sort((a,b)=>a.id<b.id?-1:1);if(!gs.length){H.lfn=d+30;return;}
+  // A launch is a crisis: the director (38-hyper-director.js) says when; asked again in a few days if not now.
+  if(!hsDirAsk('freeze',1)){H.lfn=d+3;return;}
   const b=gs[Math.floor(hsRvU('lfb|'+d)*gs.length)],from=d+HS_LF_AHEAD+Math.floor(hsRvU('lfa|'+d)*5),n=2+(hsRvU('lfd|'+d)<0.5?1:0),f=Math.round((3+2*hsRvU('lff|'+b.name+'|'+d))*10)/10,g=Math.floor(hsRvU('lfg|'+d)*HS_GAMES.length);
   H.lf={id:b.id,g,ann:d,from,until:from+n,f,q:0,k:0};
   toast(`📣 ${tr('hyper_freeze.announced',{name:esc(b.name),game:HS_GAMES[g],date:dateStr(from),f,n,a:dateStr(from-1),z:dateStr(from+n)})}`,'warn',[{l:tr('common.show_me'),act:'custGo',args:{id:b.id}}]);}

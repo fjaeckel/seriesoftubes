@@ -10,6 +10,9 @@ const { lit } = require('../scripts/lib/js-literal');
 const wave = (id, a, b, tier) => `S.links.push({id:${lit(id)},a:${lit(a)},b:${lit(b)},kind:'wave',tier:${tier},km:Math.round(kmBetween(${lit(a)},${lit(b)})),mo:1,cut:0,ready:0,trench:${lit(id)}});`;
 // Regions in Frankfurt (a Server Barn), Paris and Amsterdam (Rack Shacks), transit at each, German and French users,
 // Frankfurt replicating to Amsterdam; a startup tenant with DNS and one without.
+// The director (38-hyper-director.js) lets outages in at their level, once introduced, with budget to spend: these tests
+// start with all three.
+const DIR = 'Object.assign(S.hs.dir,{b:9,i:Object.fromEntries(Object.keys(HS_DIR_INTRO).map(k=>[k,0]))});';
 function cloud(t, seed = 7) {
   const h = load({ seed });
   t.after(() => h.dom.window.close());
@@ -18,7 +21,7 @@ function cloud(t, seed = 7) {
     "S.hs.rg.fra={t:1,ready:0,mw:20};S.hs.rg.par={t:0,ready:0,mw:5};S.hs.rg.ams={t:0,ready:0,mw:5};S.hs.cc.DE={d:600,since:0};S.hs.cc.FR={d:150,since:0};S.hs.rep.fra='ams';S.links=[];" +
     wave('fa', 'fra', 'ams', 3) + wave('fp', 'fra', 'par', 3) + wave('ap', 'ams', 'par', 3) +
     "S.offers=[];for(const [id,p] of [['t1',['vm','obj','dns']],['t2',['vm','obj']]]){const o=hsOffer('startup','fra',10);o.id=id;o.p=p;S.offers.push(o);ACT.accept({id})}" +
-    "for(const b of S.biz)b.mood=60;compute();hsDay(S.day);S.log=[]");
+    "for(const b of S.biz)b.mood=60;" + DIR + "compute();hsDay(S.day);S.log=[]");
   return h;
 }
 const J = (ev, c) => JSON.parse(ev(`JSON.stringify(${c})`));
@@ -120,13 +123,14 @@ test('a launch night on a region too small melts it until the launch is over; a 
 test('outages read the chaos rule, wait for day 45, roll on hashes, and never touch a classic game', (t) => {
   const { ev, errors } = cloud(t);
   const run = (chaos, from, to) => ev(`(()=>{S.rules.chaos=${lit(chaos)};S.inc=[];for(const k in S.hs.ic)S.hs.ic[k]=0;window.__n=0;window.__r=Math.random;Math.random=()=>{__n++;return __r()};
-    const d0=S.day;for(let d=${from};d<${to};d++){S.day=d;hsIncDay(d);S.inc=S.inc.filter(i=>i.until>d+1)}S.day=d0;Math.random=__r;
+    const d0=S.day;for(let d=${from};d<${to};d++){S.day=d;Object.assign(S.hs.dir,{c:null,q:0,b:9,t:d,ib:0});hsIncDay(d);S.inc=S.inc.filter(i=>i.until>d+1)}S.day=d0;Math.random=__r;
     return JSON.stringify([Object.values(S.hs.ic).reduce((a,x)=>a+x,0),__n])})()`);
   assert.deepEqual(JSON.parse(run('none', 45, 1045)), [0, 0], 'chaos off: never');
   assert.deepEqual(JSON.parse(run('normal', 0, 45)), [0, 0], 'never before day 45');
   const [n, rnd] = JSON.parse(run('normal', 45, 2045));
   assert.equal(rnd, 0, 'no random numbers drawn');
-  assert.ok(n >= 20 && n <= 110, 'about one in forty days: ' + n);
+  // About one in forty days, with the director held open but for its one crisis at a time (an outage still on waits).
+  assert.ok(n >= 12 && n <= 110, 'about one in forty days: ' + n);
   assert.equal(run('normal', 45, 2045), JSON.stringify([n, 0]), 'the same game rolls the same');
   // A classic game: no hook does anything, the failure kinds are as they were.
   const c = load({ seed: 3 });

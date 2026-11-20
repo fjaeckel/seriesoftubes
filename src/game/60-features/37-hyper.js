@@ -141,7 +141,8 @@ function hsOffer(k,city,bw,cheap){const K=CLOUD_TENANTS[k],list=K.names.filter(n
   // Once one of your own models shipped, some want Azzure ClosedAI Service on top (38-hyper-traffic.js).
   if(hsAiOn()&&!p.includes('ai')&&hstr(name+'|ai|'+S.day)%10<4)p.push('ai');
   return {id:uid(),city,city2:null,name,type:'cloud',bw,rate:Math.round(cloudRate(p)*(cheap||1)),reqs:[],p,ck:k,exp:S.day+40};}
-function hsSpawn(){const mine=Object.keys(S.pops).filter(c=>popUp(c)&&bizCity(c));if(!mine.length||!hsSlotFree())return;
+// The director (38-hyper-director.js) keeps the offers waiting for an answer to a few at once.
+function hsSpawn(){const mine=Object.keys(S.pops).filter(c=>popUp(c)&&bizCity(c));if(!mine.length||!hsSlotFree()||!hsDirAsk('ten'))return;
   const ks=Object.keys(CLOUD_TENANTS).filter(k=>CLOUD_TENANTS[k].lv<=lvl());if(!ks.length)return;const k=pick(ks),K=CLOUD_TENANTS[k];
   // Ministries and central banks call only from a country where you have a region (Very Sovereign Cloud).
   const at=K.p.includes('sov')?mine.filter(c=>hsRgs().some(r=>CITY[r].cc===CITY[c].cc)):mine;if(!at.length)return;

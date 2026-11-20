@@ -123,6 +123,7 @@ function* failureRun(only){
   }
   // This failure's incident, kept before the routing: the player may repair it (or another) while the worker routes.
   const last=S.inc[S.inc.length-1];
+  hsSoloSoft(last);// a Hyperscaler's only region bends instead (38-hyper-director.js)
   yield;
   if(!last)return;
   last.impact=Math.max(0,before-R.served);

@@ -104,7 +104,8 @@ function* dayPost(d){
   let dirty=false;const cm=chaosMul();
   // A visiting chaos monkey does the breaking instead (its snips replace these while it is here).
   yield* mkTickRun(d);
-  if(cm&&d>=S.nextFail&&!mkOn()){dirty=true;yield* failureRun();const size=S.links.length+Object.keys(S.pops).length;S.nextFail=d+Math.round((Math.max(22,50-size*1.5)+Math.floor(Math.random()*25))*(scnRule('chaos')?0.5:1)/cm);}
+  // A Hyperscaler's director (38-hyper-director.js) holds the usual failures back while another crisis is on.
+  if(cm&&d>=S.nextFail&&!mkOn()&&hsDirAsk('classic')){dirty=true;yield* failureRun();const size=S.links.length+Object.keys(S.pops).length;S.nextFail=d+Math.round((Math.max(22,50-size*1.5)+Math.floor(Math.random()*25))*(scnRule('chaos')?0.5:1)/cm);}
   // Anchors Away: on top of the usual failures, ships drag anchors over each Baltic seabed link (about three cuts a link-year).
   if(cm&&d>45&&scnRule('anchors')){const n=S.links.filter(l=>l.kind!=='vxc'&&!linkDown(l)&&anchorProne(l)).length;if(n&&Math.random()<Math.min(5,+S.scn.rules.anchors||1)*n/365){dirty=true;yield* failureRun('cut');}}
   if(cm&&d>=S.nextEvent){dirty=true;yield* eventRun();S.nextEvent=d+Math.round((45+Math.floor(Math.random()*45))/cm);}
@@ -125,7 +126,7 @@ function* dayPost(d){
   confTick(d);
   specDay(d);
   // money trouble
-  if(S.cash<0){S.neg++;if(S.neg===1)toast(tr('day_tick.you_are_in_the_red_cancel'),'bad');}
+  if(S.cash<0){S.neg++;if(S.neg===1)toast(tr('day_tick.you_are_in_the_red_cancel'),'bad',hyper()?[{l:tr('common.open'),act:'bank',args:{}}]:[]);}
   else S.neg=0;
   if(S.cash<-100000){if(rule('broke')==='rescue')rescueLoan();else{S.lost=true;track('bankrupt');showLose();return;}}
   {const c=cal(d);if(c.m===0&&c.d===1&&[2,3,5].includes(c.y))track('game_year_'+c.y,true);}

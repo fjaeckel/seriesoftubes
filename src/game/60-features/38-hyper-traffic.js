@@ -108,7 +108,8 @@ function hsTrafficDay(d){const H=S.hs,o=R.hs;if(!H)return;
   for(const m of H.own.slice()){const x=o&&o.jobs&&o.jobs[m.id];if(x)m.done=Math.min(m.tb,m.done+x.got*TB_DAY);if(m.done>=m.tb-1e-6||d>=m.due)hsShip(m,d);}
   if(H.boost.until&&H.boost.until<=d){H.boost={until:0,f:0};}
   H.jo=H.jo.filter(x=>x.exp>d);const rs=hsRgs();
-  if(rs.length>=2&&H.jo.length<2){const labs=hsTen().filter(b=>b.ck==='lab');if((lvl()>=CLOUD_TENANTS.lab.lv||labs.length)&&Math.random()<HS_JOB_ODDS*(labs.length?2:1))hsJobOffer(d,rs,labs);}}
+  // AI labs call from their level on (38-hyper-director.js), or once one is a tenant; never while the desk is full of offers.
+  if(rs.length>=2&&H.jo.length<2){const labs=hsTen().filter(b=>b.ck==='lab');if((hsDirOn('ai')||labs.length)&&Math.random()<HS_JOB_ODDS*(labs.length?2:1)&&hsDirAsk('job'))hsJobOffer(d,rs,labs);}}
 // A model finishes (fed: the share of its terabytes delivered by its deadline): it ships, or it flops in public.
 function hsShip(m,d){const H=S.hs,fed=clamp(m.done/m.tb,0,1),name=HS_MODELS[m.n],flop=hsFlopRoll(m)<hsFlopP(fed);H.own.splice(H.own.indexOf(m),1);
   if(flop){S.stats.hsFlop=(S.stats.hsFlop||0)+1;if(!(hsBoostF()>0))H.boost={until:d+30,f:-0.05};toast(`🦜 ${tr(HS_FLOPS[hstr(name+'|'+m.start)%HS_FLOPS.length],{name})}<br>${tr('hyper_traffic.flop_fed',{p:pct(fed)})}`,'bad');sfx('err');return;}

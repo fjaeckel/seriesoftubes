@@ -1,7 +1,8 @@
 /* ---------- The Hyperscaler's own story (37-hyper.js) ----------
    Its ladder (LV_X): thirteen level names that tell how a cloud grows from a rack under the stairs into a weather system,
    a quote per level, and what each level really unlocks in this charter, read from the code that gates it (region room
-   HS_LV_RG, region tiers HS_T, own generation HS_GEN, tenant kinds CLOUD_TENANTS, your own cable CAB_LV), so a balance
+   HS_LV_RG, region tiers HS_T, own generation HS_GEN, tenant kinds CLOUD_TENANTS, your own cable CAB_LV, and the trouble
+   the director lets in, HS_DIR_LV), so a balance
    pass that moves a gate moves the text too. The "Next:" line says what the next level asks (lvNeed: peak, live regions,
    continents with one). Built on first use: some of those tables live in later files.
    And its first steps, in the tutorial's coach (40-tutorial.js), which a Hyperscaler skips: S.hs.guide is a bitmask of
@@ -35,6 +36,8 @@ function hsUnlocks(lv){const u=[];if(lv===1)u.push(tr('hyper_story.u_shack',{nam
   for(const k of Object.keys(HS_GEN))if(HS_GEN[k].lv===lv)u.push(own(HS_ST_GEN,k)?tr(HS_ST_GEN[k]):tr(HS_GEN[k].n));
   for(const k of Object.keys(CLOUD_TENANTS))if(CLOUD_TENANTS[k].lv===lv)u.push(own(HS_ST_TEN,k)?tr(HS_ST_TEN[k]):tr(CLOUD_TENANTS[k].n));
   if(CAB_LV===lv)u.push(tr('hyper_story.u_cable'));
+  // The trouble that switches on at this level (the director's gates, 38-hyper-director.js), named as it comes.
+  for(const k of Object.keys(HS_DIR_INTRO))if((HS_DIR_LV[k]||1)===lv)u.push(tr(HS_DIR_INTRO[k][1]));
   return u.length?hsList(u):tr('hyper_story.u_view');}
 let HS_LVS=null;
 const hsLevels=()=>HS_LVS||(HS_LVS=HS_STORY.map(([n,q],i)=>({n,q,unlock:hsUnlocks(i+1)})));

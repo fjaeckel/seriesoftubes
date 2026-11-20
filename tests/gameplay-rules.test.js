@@ -411,7 +411,9 @@ test('M11: rival clouds show every move before it lands, and a bid is always you
   const bad = [];
   const g = load();
   g.ev("beginGame('Cloud','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'hyper'});S.cash=1e12;S.lvl=8;S.nextFail=S.nextEvent=1e9;" +
-    "for(const c of ['par','nyc','sin'])ACT.buildPop({city:c});for(const c in S.pops)S.pops[c].rgen=RG_TOP;ACT.buyTransit({city:'fra',net:'cog',tier:3});S.hs.rg.fra.t=2;S.offers=[];compute()");
+    "for(const c of ['par','nyc','sin'])ACT.buildPop({city:c});for(const c in S.pops)S.pops[c].rgen=RG_TOP;ACT.buyTransit({city:'fra',net:'cog',tier:3});S.hs.rg.fra.t=2;S.offers=[];" +
+    // Rival clouds introduced (the director, 38-hyper-director.js, lets them in once they are).
+    "S.hs.dir.i.rv=0;compute()");
   for (const c of ['fra', 'par', 'nyc', 'sin']) {
     g.ev(`S.offers=[];for(const k of ['startup','ent','game'])S.offers.push(hsOffer(k,'${c}',10));hsRvDay(S.day)`);
     for (const o of JSON.parse(g.ev('JSON.stringify(S.offers)'))) {

@@ -39,7 +39,8 @@ const hsFailReady=(a,b)=>!!S.hs&&!!R.hs&&hsLive(a)&&hsFailInfo(a,b).ok;
 function hsRegionFail(c,dur,msg,cost){const H=S.hs;H.down[c]=Math.max(H.down[c]||0,S.day+dur);
   addInc({type:'region',ref:c,until:H.down[c],msg,cost:cost===undefined?HS_FAIL_FIX:cost,fix:tr('hyper_fail.fix')});hsFailStart(c);}
 // failureRun's region kind: a live region out of several (one region down is a plain outage, not a failover).
-const hsFailOn=()=>hyper()&&!!S.hs&&hsRgs().length>=2;
+// Only once whole-region failures are on (38-hyper-director.js: two live regions, the level, past day HS_DIR_BIG).
+const hsFailOn=()=>hyper()&&!!S.hs&&hsRgs().length>=2&&hsDirOn('fail');
 function hsFailFire(){const rs=hsRgs();if(rs.length<2)return false;const c=pick(rs);hsRegionFail(c,1+Math.floor(Math.random()*3),tr(pick(HS_FAIL_MSG),{city:CITY[c].name}));return true;}
 // The fine for lost data: a base and a price per TB lost, at most HS_LOSS_MAX, and never more than HS_LOSS_MO months of
 // revenue, and never more than leaves you $50k in the red (a young cloud's lost cat photos make the news, not a
@@ -57,7 +58,7 @@ function hsFailStart(c){const H=S.hs;if(H.out[c])return;const lag=hsLagAt(c),los
   toast(`<b>📰 ${tr(HS_LOSS_NEWS[hstr(S.asn+'|news|'+c+'|'+S.day)%HS_LOSS_NEWS.length],{city:esc(CITY[c].name)})}</b><br>`+tr('hyper_fail.data_lost',{tb:hsTb(lag),city:esc(CITY[c].name),g:fmtG(gone),fee:fmt$(fee)}),'bad',[],{a:'city',v:c});sfx('err');track('hs_data_loss');}
 /* Chaos Kong (40-chaos-monkey.js): on about one snip in four, when there is a region to fail over from, the monkey's
    big cousin evacuates a whole region for two days instead. Seeded on the day, so the dice roll as they would. */
-const hsKong=()=>hyper()&&!!S.hs&&hsRgs().length>=2&&hstr(S.asn+'|kong|'+S.day)%4===0;
+const hsKong=()=>hyper()&&!!S.hs&&hsRgs().length>=2&&hsDirOn('fail')&&hstr(S.asn+'|kong|'+S.day)%4===0;
 function* hsKongRun(){const M=S.monkey,rs=hsRgs(),c=rs[hstr(S.asn+'|kongc|'+S.day)%rs.length],before=R.served,v={city:CITY[c].name};M.n++;M.c=c;
   hsRegionFail(c,2,tr('hyper_fail.kong',v),0);const i=S.inc[S.inc.length-1];yield;const imp=Math.max(0,before-R.served);if(i)i.impact=imp;
   const felt=before>1&&imp>=before*0.03;if(felt)M.hurt++;else S.stats.survived++;
@@ -65,15 +66,28 @@ function* hsKongRun(){const M=S.monkey,rs=hsRgs(),c=rs[hstr(S.asn+'|kongc|'+S.da
 /* A day: outages begin (a dark POP, a tripped grid) and end, a drill is judged. Grid trips read the chaos rule. */
 function hsFailDay(d){const H=S.hs;if(!H||!hyper())return;const o=R.hs,drain=H.dx&&H.dx.c;
   for(const c of Object.keys(H.down))if(!(H.down[c]>d)||!H.rg[c])delete H.down[c];
-  const cm=chaosMul();
-  if(cm>0)for(const c of hsRgs()){const r=hstr(S.asn+'|trip|'+c+'|'+d)%1000,heat=hsEv(c).some(e=>e.k==='heat');
-    if(hsCut(c)<0.5&&r<250*cm||heat&&r<4*cm){hsRegionFail(c,1+r%2,tr('hyper_fail.grid_trip',{city:CITY[c].name,util:tr(hsUtil(c))}));toast(`<b>${incTitle('region')}</b><br>${esc(S.inc[S.inc.length-1].msg)}`,'bad',[],{a:'city',v:c});}}
+  if(chaosMul()>0)hsTripDay(d);
   for(const c of Object.keys(H.rg)){if(!hsOut(c)||c===drain)continue;if(!H.out[c])hsFailStart(c);const x=H.out[c];
     for(const k of hsHomedAt(c))x.q=Math.min(x.q,hsQ(R,k));}
   for(const c of Object.keys(H.out)){if(H.rg[c]&&hsOut(c)&&c!==drain)continue;const x=H.out[c];delete H.out[c];if(!H.rg[c])continue;
     const ok=!x.lost&&x.n>0&&x.q>=CX_GOOD,v={city:esc(CITY[c].name),p:pct(x.q)};if(ok)H.fsv=(H.fsv|0)+1;
     toast(ok?tr('hyper_fail.back_ok',v):x.lost?tr('hyper_fail.back_lost',v):x.n?tr('hyper_fail.back_poor',v):tr('hyper_fail.back_empty',v),ok?'goal':'',[],{a:'city',v:c});}
   if(H.dx&&d>=H.dx.d)hsDrillJudge(d);}
+/* Grid trips (a metro squeezed under half of what the region draws, or a heatwave on its continent) take a whole region
+   down, so they are a region failure: only with two live regions (hsFailOn), and announced a day ahead (S.hs.dir.w,
+   38-hyper-director.js) with an answer: rent chillers or generators for the night (hsPrecool), or move load away. With
+   one region the squeeze alone serves less (hsCut), and nothing trips. */
+const hsTripWhy=c=>hsCut(c)<0.5?'cut':hsEv(c).some(e=>e.k==='heat')?'heat':'';
+const hsChillCost=c=>Math.max(HS_DIR_CHILL,Math.round(hsPwBill(c)/2000)*1000);
+function hsTripDay(d){const D=hsDir(),cm=chaosMul(),w=D.w;
+  if(w&&w.d<=d){D.w=null;const c=w.c,v={city:CITY[c].name,util:tr(hsUtil(c))};
+    if(!w.ok&&hsLive(c)&&hsTripWhy(c)&&hsFailOn()){hsRegionFail(c,1+hstr(S.asn+'|tripd|'+c+'|'+d)%2,tr('hyper_fail.grid_trip',v));toast(`<b>${incTitle('region')}</b><br>${esc(S.inc[S.inc.length-1].msg)}`,'bad',[{l:tr('common.open'),act:'popGo',args:{city:c}}],{a:'city',v:c});}
+    else toast(w.ok?tr('hyper_dir.held',v):tr('hyper_dir.passed',v),'good',[],{a:'city',v:c});}
+  if(D.w||!hsFailOn())return;
+  for(const c of hsRgs()){const r=hstr(S.asn+'|trip|'+c+'|'+d)%1000,k=hsTripWhy(c);if(!(k==='cut'&&r<250*cm||k==='heat'&&r<4*cm))continue;if(!hsDirAsk('trip',1.5,c))return;
+    D.w={c,d:d+1,k,ok:0};const used=hsMwUsed(c),give=Math.max(1,hsSupply(c)-hsTown(c)),v={city:esc(CITY[c].name),util:tr(hsUtil(c)),p:clamp(Math.round(100*used/give),1,99)};
+    toast(k==='heat'?tr('hyper_dir.warn_heat',v):tr('hyper_dir.warn_cut',{...v,p:Math.round(100*hsCut(c))}),'bad',
+      [{l:k==='heat'?tr('hyper_dir.chill_btn',{cost:fmt$(hsChillCost(c))}):tr('hyper_dir.gen_btn',{cost:fmt$(hsChillCost(c))}),act:'hsPrecool',args:{city:c}},{l:tr('common.open'),act:'popGo',args:{city:c}}],{a:'city',v:c});sfx('alert');return;}}
 // The drill's verdict, from tonight's routing: why it failed (the first thing wrong), or a pass.
 function hsDrillJudge(d){const H=S.hs,x=H.dx,c=x.c,o=R.hs;H.dx=null;if(!H.rg[c])return;const b=o&&o.fo&&own(o.fo,c)?o.fo[c]:null,cc=hsHomedAt(c).filter(k=>o&&o.cc[k]);
   const q=cc.reduce((m,k)=>Math.min(m,hsQ(R,k)),1),lag=hsLagAt(c),v={a:esc(CITY[c].name),b:b?esc(CITY[b].name):'',p:pct(q),tb:hsTb(lag),n:HS_RISK};

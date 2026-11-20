@@ -158,7 +158,7 @@ test('AI labs call now and then with runs of 3.2 to 12.8 Tbps for 4 to 8 weeks, 
   const { ev, errors } = net(t, 3);
   ev('S.lvl=2;for(let d=0;d<300;d++)hsTrafficDay(S.day)');
   assert.equal(ev('S.hs.jo.length'), 0, 'not before the AI labs\' level, without a lab tenant');
-  ev('S.lvl=4;const seen=[];for(let d=0;d<600;d++){hsTrafficDay(S.day+d);for(const o of S.hs.jo)if(!seen.some(x=>x.id===o.id))seen.push(o);}window.SEEN=seen');
+  ev('S.lvl=4;S.hs.dir.i.ai=0;const seen=[];for(let d=0;d<600;d++){hsTrafficDay(S.day+d);for(const o of S.hs.jo)if(!seen.some(x=>x.id===o.id))seen.push(o);}window.SEEN=seen');
   const seen = J(ev, 'SEEN');
   assert.ok(seen.length >= 5, 'offers come: ' + seen.length);
   for (const o of seen) {

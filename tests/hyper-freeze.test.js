@@ -5,13 +5,16 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
 
+// The director (38-hyper-director.js) lets these systems in at their level, once introduced, with budget to spend: a
+// test of the system itself starts with all three.
+const DIR = 'Object.assign(S.hs.dir,{b:9,i:Object.fromEntries(Object.keys(HS_DIR_INTRO).map(k=>[k,0]))});';
 // A Hyperscaler at home in Frankfurt with a Server Barn (1.5 Tbps) and transit there; a game studio tenant signed a month ago.
 function net(t, seed = 7) {
   const h = load({ seed });
   t.after(() => h.dom.window.close());
   h.ev("ACT.start({});ACT.charter({k:'hyper'});S.cash=1e12;S.lvl=8;S.nextFail=S.nextEvent=1e9;ACT.buildPop({city:'par'});" +
     "for(const c in S.pops)S.pops[c].rgen=RG_TOP;ACT.buyTransit({city:S.home,net:'cog',tier:4});S.hs.rg.fra.t=1;S.offers=[];" +
-    "(()=>{const o=hsOffer('game','fra',40);o.id='g1';S.offers.push(o);ACT.accept({id:'g1'});const b=S.biz.find(b=>b.id==='g1');b.since=S.day-30;b.mood=60})();compute()");
+    "(()=>{const o=hsOffer('game','fra',40);o.id='g1';S.offers.push(o);ACT.accept({id:'g1'});const b=S.biz.find(b=>b.id==='g1');b.since=S.day-30;b.mood=60})();" + DIR + "compute()");
   return h;
 }
 const J = (ev, c) => JSON.parse(ev(`JSON.stringify(${c})`));
@@ -76,8 +79,8 @@ test('a launch the network cannot carry is a disaster; a studio that leaves take
   const log = ev('JSON.stringify(S.log)');
   assert.match(log, /💥/);
   assert.match(log, /it needed 90%/);
-  // Another launch, and the studio leaves before it.
-  ev("S.hs.lfn=S.day;hsLfDay(S.day);S.biz=S.biz.filter(b=>b.id!=='g1');S.log=[];hsLfDay(S.day)");
+  // Another launch (past the director's quiet stretch after the first), and the studio leaves before it.
+  ev("S.hs.dir.c=null;S.hs.dir.q=0;S.hs.lfn=S.day;hsLfDay(S.day);S.biz=S.biz.filter(b=>b.id!=='g1');S.log=[];hsLfDay(S.day)");
   assert.equal(ev('S.hs.lf'), undefined);
   assert.match(ev('JSON.stringify(S.log)'), /change freeze is off/);
   // Without a studio, nothing is announced.

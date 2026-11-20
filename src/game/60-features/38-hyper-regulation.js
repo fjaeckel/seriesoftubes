@@ -16,7 +16,7 @@
      fine; ignore it and the fine is set higher at the deadline.
    New laws need the market rule (rule M3) and wait for day HS_LAW_FROM and level HS_LAW_LV; one at a time, at least
    HS_LAW_GAP days apart. Rolls are hashes of the AS number and the day, never Math.random. */
-const HS_LAW_FROM=60,HS_LAW_LV=3,HS_LAW_GAP=60,HS_LAW_ODDS=0.05,HS_LAW_MAX=3,HS_MOR_AHEAD=30,HS_MOR_MAX=2,HS_PUE_AHEAD=90,HS_PUE_MO=400,HS_EU_AHEAD=60,HS_EU_MO=40000;
+const HS_LAW_FROM=60,HS_LAW_LV=HS_DIR_LV.law,HS_LAW_GAP=60,HS_LAW_ODDS=0.05,HS_LAW_MAX=3,HS_MOR_AHEAD=30,HS_MOR_MAX=2,HS_PUE_AHEAD=90,HS_PUE_MO=400,HS_EU_AHEAD=60,HS_EU_MO=40000;
 const HS_EGR_LV=4,HS_EGR_DL=45,HS_EGR_CUT=0.15,HS_EGR_DAYS=365,HS_EGR_X=3,HS_EGR_MIN=100000,HS_EGR_LATE=1.25;
 // The ministers (proper names, as tenants' are): one list per kind of law, an index kept in the save.
 const HS_MIN={cc:['Minister Ada Localova','Minister Sov E. Reign','Minister Data Stayput','Minister Petra Byte'],
@@ -88,7 +88,8 @@ function hsLawDay(d){const H=S.hs;if(!H||!H.law||!hyper())return;const L=H.law;
   const E=L.egr;if(E&&E.st==='open'&&d>=E.dl){E.st='fined';E.fee=Math.round(E.fee*HS_EGR_LATE);S.cash-=E.fee;toast(`🏨 ${tr('hyper_reg.egr_fined',{min:hsMin('egr',E.m),fee:fmt$(E.fee)})}`,'bad');sfx('err');}
   if(E&&E.st==='cut'&&E.u===d)toast(`🏨 ${tr('hyper_reg.egr_cut_over')}`,'good');
   if(!rule('market')||d<HS_LAW_FROM||lvl()<HS_LAW_LV||d<L.nx||hsLawU('roll|'+d)>=HS_LAW_ODDS)return;
-  const ks=hsLawPick(d);if(!ks.length)return;const [k,x]=ks[Math.floor(hsLawU('kind|'+d)*ks.length)];L.nx=d+HS_LAW_GAP;L.n++;hsLawStart(k,x,d);}
+  // A new law is a crisis: the director (38-hyper-director.js) says when.
+  const ks=hsLawPick(d);if(!ks.length)return;const [k,x]=ks[Math.floor(hsLawU('kind|'+d)*ks.length)];if(!hsDirAsk('law',1,x))return;L.nx=d+HS_LAW_GAP;L.n++;hsLawStart(k,x,d);}
 CX_DAY.push(hsLawDay);
 CX_NEW.push(o=>{o.law={cc:{},mor:{},pue:{},eu:null,egr:null,nx:0,n:0};});
 // Saves: every law repaired; countries, metros and continents checked; unknown kinds dropped.

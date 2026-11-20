@@ -9,10 +9,13 @@ const { load } = require('./harness');
 const J = (ev, c) => JSON.parse(ev(`JSON.stringify(${c})`));
 // A Hyperscaler in Frankfurt with plenty of cash, its home country launched, transit at home and a POP in Amsterdam
 // joined to it (Amsterdam: a small grid, 130 MW, the town drawing 87).
+// Level 3, with the director (38-hyper-director.js) holding budget and every system introduced: protests come in every
+// kind from level 3 (before it, only small ones).
+const DIR = 'S.lvl=3;Object.assign(S.hs.dir,{b:9,i:Object.fromEntries(Object.keys(HS_DIR_INTRO).map(k=>[k,0]))});';
 function start(opts = {}) {
   const page = load({ seed: 5, ...opts });
   page.ev("ACT.start({});ACT.charter({k:'hyper'});S.cash=1e9;ACT.hsLaunch({cc:'DE'});ACT.buyTransit({city:S.home,net:'cog',tier:1});"
-    + "ACT.buildPop({city:'ams'});UI.via=null;UI.route=null;openLinkModal(S.home,'ams');ACT.buildLink({tier:1});closeModal();ACT.buyTransit({city:'ams',net:'cog',tier:1});compute()");
+    + "ACT.buildPop({city:'ams'});UI.via=null;UI.route=null;openLinkModal(S.home,'ams');ACT.buildLink({tier:1});closeModal();ACT.buyTransit({city:'ams',net:'cog',tier:1});" + DIR + "compute()");
   return page;
 }
 const lastLog = (ev, n = 3) => ev(`S.log.slice(0,${n}).map(x=>x.t).join(' | ')`);
@@ -20,12 +23,13 @@ const lastLog = (ev, n = 3) => ev(`S.log.slice(0,${n}).map(x=>x.t).join(' | ')`)
    (null: no protest), found on a copy of the state, so the real build can then be made on that day. */
 function dayFor(ev, kind, gw = 0, city = 'ams') {
   return ev(`(()=>{const s0=JSON.stringify(S.hs),d0=S.day,n0=S.log.length;let f=-1;
-    for(let d=d0;d<d0+4000&&f<0;d++){S.hs=JSON.parse(s0);S.day=d;hsPwMk('${city}').gw=${gw};S.hs.rg['${city}']={t:1,ready:d+60,mw:20};const p=hsProtRoll('${city}','rg');
+    for(let d=d0;d<d0+4000&&f<0;d++){S.hs=JSON.parse(s0);S.day=d;Object.assign(S.hs.dir,{c:null,q:0,b:9,ib:0});hsPwMk('${city}').gw=${gw};S.hs.rg['${city}']={t:1,ready:d+60,mw:20};const p=hsProtRoll('${city}','rg');
       const want=${JSON.stringify(kind)};if(want===null?!p:p&&p.kind===want)f=d;}
     S.hs=JSON.parse(s0);S.day=d0;S.log.splice(0,S.log.length-n0);return f;})()`);
 }
 // Build a Server Barn in Amsterdam on day d with goodwill gw.
-const barnOn = (ev, d, gw = 0) => ev(`S.day=${d};hsPwMk('ams').gw=${gw};ACT.hsRegion({city:'ams'})`);
+// (Past the director's one crisis at a time: these tests are about the protests themselves.)
+const barnOn = (ev, d, gw = 0) => ev(`S.day=${d};Object.assign(S.hs.dir,{c:null,q:0,b:9,ib:0});hsPwMk('ams').gw=${gw};ACT.hsRegion({city:'ams'})`);
 
 test('grid budgets are seeded per metro, 40 to 600 MW, bigger in big metros, shared with the town', () => {
   const { ev, errors } = start();
@@ -228,7 +232,7 @@ test('heat reuse: goodwill, and a monthly saving or cost in the bill', () => {
 test('own generation: solar, a substation, and a reactor that brings its own protest', () => {
   const { ev, errors } = start();
   const sup = ev("hsSupply('fra')");
-  ev("ACT.hsGen({city:'fra',k:'sol'})");
+  ev("S.lvl=2;ACT.hsGen({city:'fra',k:'sol'})");
   assert.equal(ev('S.hs.pw.fra.own.length'), 0, 'level 3');
   ev("S.lvl=3;ACT.hsGen({city:'fra',k:'sol'});ACT.hsGen({city:'ams',k:'sol'})");
   assert.equal(ev('S.hs.pw.fra.own.length'), 1);

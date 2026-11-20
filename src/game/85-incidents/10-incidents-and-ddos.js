@@ -76,7 +76,7 @@ function ddosTick(){if(scnRule('ddos')){if(S.mode==='sandbox')return;let next=+S
     // Unless spicy, floods take turns: the next one waits until the last is over.
     if(!ddosSpicy()&&ddosAll().length)return;
     while(S.day>=next&&n++<2){ddosAttack(false);next+=floodGap();}S.scn.nextDdos=next<S.day?S.day+floodGap():next;return;}
-  if(ddosOff()||S.day<=40)return;if(ddosAll().length>=(ddosSpicy()?3:2))return;if(Math.random()<ddosRate())ddosAttack(false);}
+  if(ddosOff()||S.day<=40)return;if(ddosAll().length>=(ddosSpicy()?3:2))return;if(Math.random()<ddosRate()&&hsDirAsk('ddos',0.5))ddosAttack(false);}
 // A new attack. With recompute, its outcome is worked out and announced now; otherwise after the day's routing.
 function ddosAttack(recompute=true){const fl=scnRule('ddos');ddosExpire();
   S.ddosStarts=(S.ddosStarts||[]).filter(d=>d>S.day-7&&d<=S.day);if(S.ddosStarts.length>=14||!Object.keys(S.pops).length)return null;S.ddosStarts.push(S.day);

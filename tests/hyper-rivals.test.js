@@ -7,11 +7,14 @@ const { load } = require('./harness');
 
 /* A Hyperscaler at home in Frankfurt (its Rack Shack, transit there: a front door), a POP in Paris with transit, and a
    POP in New York with nothing: far from any region, no way out. */
+// The director (38-hyper-director.js) lets rivals in at their level, once introduced, with budget to spend: these tests
+// start with all three.
+const DIR = 'Object.assign(S.hs.dir,{b:9,i:Object.fromEntries(Object.keys(HS_DIR_INTRO).map(k=>[k,0]))});';
 function net(t, seed = 7) {
   const h = load({ seed });
   t.after(() => h.dom.window.close());
   h.ev("ACT.start({});ACT.charter({k:'hyper'});S.cash=1e12;S.lvl=8;S.nextFail=S.nextEvent=1e9;ACT.buildPop({city:'par'});ACT.buildPop({city:'nyc'});" +
-    "for(const c in S.pops)S.pops[c].rgen=RG_TOP;ACT.buyTransit({city:S.home,net:'cog',tier:3});ACT.buyTransit({city:'par',net:'cog',tier:3});S.offers=[];compute()");
+    "for(const c in S.pops)S.pops[c].rgen=RG_TOP;ACT.buyTransit({city:S.home,net:'cog',tier:3});ACT.buyTransit({city:'par',net:'cog',tier:3});S.offers=[];" + DIR + "compute()");
   return h;
 }
 const J = (ev, c) => JSON.parse(ev(`JSON.stringify(${c})`));
