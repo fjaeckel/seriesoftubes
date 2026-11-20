@@ -24,7 +24,7 @@ function* mkTickRun(d){const M=S.monkey;if(!M)return;
   if(!mkElig()){if(M.on)mkLeave('quiet');return;}
   // The first visit is spread by the ASN, not the dice, so a game's other luck stays exactly as it was.
   if(M.next==null)M.next=d+(mkSpicy()?180:270)+(S.asn||0)%120;
-  if(!M.on){if(d<M.next)return;if(S.links.filter(l=>l.kind!=='vxc'&&!linkDown(l)).length<3){M.next=d+30;return;}mkArrive(d);return;}
+  if(!M.on){if(d<M.next)return;if(S.links.filter(l=>l.kind!=='vxc'&&!linkDown(l)).length<3||!hsDirAsk('monkey',2)){M.next=d+30;return;}mkArrive(d);return;}
   if(d>=M.until){mkLeave();return;}
   if(d>=M.snip){yield* mkSnipRun();M.snip=d+(mkSpicy()?rint(9,7):rint(14,11));}}
 function mkArrive(d){const M=S.monkey,cs=Object.keys(S.pops),len=mkSpicy()?rint(180,61):rint(120,121);
@@ -33,7 +33,8 @@ function mkArrive(d){const M=S.monkey,cs=Object.keys(S.pops),len=mkSpicy()?rint(
   toast(tr('chaos_monkey.arrived',{n:len}),'bad',[{l:tr('chaos_monkey.banana',{cost:fmt$(mkBananaCost())}),act:'mkBanana',args:{}}],{a:'tab',v:'noc'});sfx('alert');track('monkey_arrive');
   if(typeof mkStart==='function'&&CITY[M.c])mkStart(M.c);}
 function mkSnip(){runNow(mkSnipRun());}
-function* mkSnipRun(){if(hsKong()){yield* hsKongRun();return;}// a Hyperscaler's regions meet Chaos Kong (38-hyper-failover.js)
+function* mkSnipRun(){if(!hsDirAsk('snip',0.5))return;// a Hyperscaler's director lets a snip through only between crises (38-hyper-director.js)
+  if(hsKong()){yield* hsKongRun();return;}// a Hyperscaler's regions meet Chaos Kong (38-hyper-failover.js)
   const M=S.monkey,live=S.links.filter(l=>l.kind!=='vxc'&&!linkDown(l));if(!live.length)return;
   // Weak spots first: a sample keeps this cheap on big networks.
   const smp=live.length>40?Array.from({length:40},()=>pick(live)):live,l=pick(smp.flatMap(x=>mkWeak(x)?[x,x,x,x,x]:[x]));

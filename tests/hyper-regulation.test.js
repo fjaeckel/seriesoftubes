@@ -9,6 +9,9 @@ const { load } = require('./harness');
 const { lit } = require('../scripts/lib/js-literal');
 
 const wave = (id, a, b, tier) => `S.links.push({id:${lit(id)},a:${lit(a)},b:${lit(b)},kind:'wave',tier:${tier},km:Math.round(kmBetween(${lit(a)},${lit(b)})),mo:1,cut:0,ready:0,trench:${lit(id)}});`;
+// The director (38-hyper-director.js) lets laws in at their level, once introduced, with budget to spend: these tests
+// start with all three.
+const DIR = 'Object.assign(S.hs.dir,{b:9,i:Object.fromEntries(Object.keys(HS_DIR_INTRO).map(k=>[k,0]))});';
 // Regions in Frankfurt and Amsterdam, a POP in New York with transit; German, Dutch and American users; a storage tenant.
 function cloud(t, seed = 7) {
   const h = load({ seed });
@@ -17,7 +20,7 @@ function cloud(t, seed = 7) {
     "for(const c in S.pops)S.pops[c].rgen=RG_TOP;for(const c of ['fra','ams','nyc'])ACT.buyTransit({city:c,net:'cog',tier:3});" +
     "S.hs.rg.fra={t:1,ready:0,mw:20};S.hs.rg.ams={t:1,ready:0,mw:20};S.hs.pw.ams=hsPwDef('ams');S.hs.cc.DE={d:300,since:0};S.hs.cc.NL={d:100,since:0};S.hs.cc.US={d:200,since:0};S.links=[];" +
     wave('fa', 'fra', 'ams', 3) + wave('an', 'ams', 'nyc', 3) +
-    "S.offers=[];const o=hsOffer('tv','fra',50);o.id='tv1';S.offers.push(o);ACT.accept({id:'tv1'});compute();hsDay(S.day);S.log=[]");
+    "S.offers=[];const o=hsOffer('tv','fra',50);o.id='tv1';S.offers.push(o);ACT.accept({id:'tv1'});" + DIR + "compute();hsDay(S.day);S.log=[]");
   return h;
 }
 const J = (ev, c) => JSON.parse(ev(`JSON.stringify(${c})`));
@@ -133,12 +136,12 @@ test('egress fees investigated: cut them for a year, pay the fine, or ignore it 
   }
 });
 
-test('new laws need the market rule, level 3 and day 60, one at a time, and roll on hashes', (t) => {
+test('new laws need the market rule, level 4 and day 60, one at a time, and roll on hashes', (t) => {
   const { ev, errors } = cloud(t);
   const run = (rules, lv, from, to) => ev(`(()=>{S.rules=makeRules(${lit(rules)});S.lvl=${lv};S.hs.law={cc:{},mor:{},pue:{},eu:null,egr:null,nx:0,n:0};window.__n=0;window.__r=Math.random;Math.random=()=>{__n++;return __r()};
-    const d0=S.day;const ds=[];for(let d=${from};d<${to};d++){S.day=d;const n=S.hs.law.n;hsLawDay(d);if(S.hs.law.n>n)ds.push(d)}S.day=d0;Math.random=__r;return JSON.stringify([ds,__n])})()`);
+    const d0=S.day;const ds=[];for(let d=${from};d<${to};d++){S.day=d;const n=S.hs.law.n;Object.assign(S.hs.dir,{c:null,q:0,b:9,t:d,ib:0});hsLawDay(d);if(S.hs.law.n>n)ds.push(d)}S.day=d0;Math.random=__r;return JSON.stringify([ds,__n])})()`);
   assert.deepEqual(JSON.parse(run('freeze', 8, 0, 2000))[0], [], 'Change Freeze has no market rule: no laws');
-  assert.deepEqual(JSON.parse(run('oncall', 2, 0, 2000))[0], [], 'not before level 3');
+  assert.deepEqual(JSON.parse(run('oncall', 3, 0, 2000))[0], [], 'not before level 4 (the director holds them back, 38-hyper-director.js)');
   const [ds, rnd] = JSON.parse(run('oncall', 8, 0, 2000));
   assert.equal(rnd, 0, 'no random numbers drawn');
   assert.ok(ds.length >= 3, 'laws come: ' + ds);

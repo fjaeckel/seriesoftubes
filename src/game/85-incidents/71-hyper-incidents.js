@@ -43,7 +43,8 @@ const hiMsg=(t,h,v)=>tr(HI_MSG[t][h%HI_MSG[t].length],v);
 const hiPows=()=>hsRgs().filter(c=>!hiAct('hspow',c));
 const hiStorms=()=>R.hs&&R.hs.rep?Object.keys(R.hs.rep).filter(c=>hsLive(c)&&!hiAct('hsstorm',c)).sort():[];
 const hiDnsTen=()=>hsTen().filter(b=>Array.isArray(b.p)&&b.p.includes('dns'));
-const hiDoors=()=>Object.keys(S.pops).filter(c=>hsDoor(c)).sort();
+// A front door turns users away only where they have another to go round to (one door alone is never shut).
+const hiDoors=()=>{const ds=Object.keys(S.pops).filter(c=>hsDoor(c)).sort();return ds.length>=2?ds:[];};
 // Fires one outage: k 'pow', 'storm', 'dns' or 'cert' (the meltdown waits for a launch, hsMeltDay). Tests call it directly.
 function hsIncFire(k,d=S.day){const H=S.hs;if(!hyper()||!H)return null;const h=hstr(S.asn+'|hincx|'+k+'|'+d);let i=null;
   if(k==='pow'){const cs=hiPows();if(!cs.length)return null;const c=cs[h%cs.length];
@@ -66,6 +67,8 @@ function hsMeltDay(d,cm){const L=hsLf();if(!L||!hsLfOn(L)||!R.hs)return null;con
 function hsIncDay(d){const H=S.hs;if(!H||!hyper()||!R.hs)return;const cm=chaosMul();if(!cm||d<HI_FROM)return;
   hsMeltDay(d,cm);
   if(hiRoll('rate',d)>=HI_RATE*cm)return;
+  // An outage is a crisis: the director (38-hyper-director.js) says whether one may start today.
+  if(!hsDirAsk('inc',1))return;
   const ks=[];if(hiPows().length)ks.push('pow');if(hiStorms().length)ks.push('storm');if(hiDnsTen().length&&!hiAct('hsdns'))ks.push('dns');if(hiDoors().length)ks.push('cert');
   if(ks.length)hsIncFire(ks[hstr(S.asn+'|hinck|'+d)%ks.length],d);}
 CX_DAY.push(hsIncDay);

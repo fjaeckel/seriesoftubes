@@ -75,8 +75,11 @@ function hsPwGate(c,t){const p=hsProt(c);if(p&&p.kind==='block'){toast(tr('hyper
 function hsProtP(c,mw){return clamp(0.05+0.9*mw/Math.max(1,hsTown(c))-(hsPw(c).gw-40)/100,0.05,0.9);}
 function hsProtRoll(c,on){const H=S.hs;if(!H||hsProt(c))return null;const P=hsPwMk(c),mw=hsMwRes(c);if(on==='rg'&&mw<HS_PROT_MW)return null;
   const p=on==='smr'?1:hsProtP(c,mw),r=hstr(S.asn+'|'+S.day+'|'+c+'|prot')%1000/1000;if(r>=p)return null;
-  const u=r/p,g=on==='smr'?3:hsGrpOf(c,S.day),kind=u<(on==='smr'?0.4:p>=0.4?0.15:0)?'block':on!=='smr'&&u<0.45?'cost':'delay',h=hstr(S.asn+'|'+c+'|'+S.day+'|len');
-  const len=kind==='delay'?20+h%41:kind==='cost'?120:150+h%151,x={until:S.day+len,kind,g,on};H.prot[c]=x;P.gw=Math.max(0,P.gw-5);
+  // The director (38-hyper-director.js) lets one crisis happen at a time; the reactor you chose always gets its protest.
+  if(on!=='smr'&&!hsDirAsk('prot',1,c))return null;
+  // A young cloud's first protests are small: a delayed permit, never a tariff or a blocked site, before level 3.
+  const small=on!=='smr'&&lvl()<3,u=r/p,g=on==='smr'?3:hsGrpOf(c,S.day),kind=small?'delay':u<(on==='smr'?0.4:p>=0.4?0.15:0)?'block':on!=='smr'&&u<0.45?'cost':'delay',h=hstr(S.asn+'|'+c+'|'+S.day+'|len');
+  const len=kind==='delay'?(small?20+h%21:20+h%41):kind==='cost'?120:150+h%151,x={until:S.day+len,kind,g,on};H.prot[c]=x;P.gw=Math.max(0,P.gw-5);
   if(kind==='delay')hsProtShift(c,on,len);
   const v={grp:tr(HS_GRP[g]),city:esc(CITY[c].name),n:len};
   toast((kind==='block'?tr('hyper_power.prot_block',v):kind==='cost'?tr('hyper_power.prot_cost',v):tr('hyper_power.prot_delay',v))+`<br><i>${tr(HS_GRP_SAY[g])}</i>`,'bad',[{l:tr('hyper_power.answer'),act:'popGo',args:{city:c}}]);sfx('err');return x;}
@@ -99,7 +102,7 @@ function hsPwDay(d){const H=S.hs;if(!H||!hyper())return;
       else{const mw=r<45?Math.round(q.mw/2):q.mw;P.cap+=mw;P.q=null;toast(mw<q.mw?tr('hyper_power.letter_less',{util:U,city,mw,ask:q.mw}):tr('hyper_power.letter_full',{util:U,city,mw}),mw<q.mw?'bad':'goal',[],{a:'city',v:c});sfx('coin');}}
     for(const x of P.own)if(x.ready===d)toast(tr('hyper_power.gen_live',{name:tr(HS_GEN[x.k].n),city,mw:HS_GEN[x.k].mw}),'goal',[],{a:'city',v:c});}
   H.pev=H.pev.filter(e=>{if(e.until>d)return true;const v={reg:WAVE_NAME[e.reg]};toast(e.k==='heat'?tr('hyper_power.ev_heat_over',v):tr('hyper_power.ev_crunch_over',v),'good');return false;});
-  for(const g of [...new Set(Object.keys(H.rg).map(c=>CITY[c].reg))].sort()){if(H.pev.some(e=>e.reg===g))continue;const r=hstr(S.asn+'|'+d+'|'+g+'|pev')%1000;if(r>=8)continue;
+  for(const g of [...new Set(Object.keys(H.rg).map(c=>CITY[c].reg))].sort()){if(H.pev.some(e=>e.reg===g))continue;const r=hstr(S.asn+'|'+d+'|'+g+'|pev')%1000;if(r>=8||!hsDirAsk('pev',1,g))continue;
     const k=r<5?'heat':'crunch',until=d+(k==='heat'?7+r*4:30+(r-5)*20);H.pev.push({k,reg:g,until});
     const cut=Object.keys(H.rg).filter(c=>CITY[c].reg===g&&hsCut(c)<1);
     const v={reg:WAVE_NAME[g],date:dateStr(until)};

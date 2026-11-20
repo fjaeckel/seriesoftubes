@@ -48,7 +48,8 @@ function hsRvFit(o,x){const reg=CITY[o.city].reg,Y=hsRvYou(o.city),P=hsRvWar(reg
   return {you:Y.v,them,win:Y.v>=them,miss:Y.miss};}
 // The rival's bid on a tenant offer, decided once (no bid: w -1). Offers from a rival's outage get none.
 function hsRvBid(o){const V=S.hs.rv;if(own(V.of,o.id))return V.of[o.id];const q=o.name+'|'+o.city,reg=CITY[o.city].reg;let x={w:-1};
-  if(hsRvU('bid|'+q)<HS_RV_BID){const w=hsRvWho(reg,'who|'+q);if(w>=0){const P=hsRvWar(reg),cut=P&&P.w===w?1-P.f:1;
+  // Rival clouds notice you at their level (38-hyper-director.js): before that, nobody bids.
+  if(hsDirOn('rv')&&hsRvU('bid|'+q)<HS_RV_BID){const w=hsRvWho(reg,'who|'+q);if(w>=0){const P=hsRvWar(reg),cut=P&&P.w===w?1-P.f:1;
     x={w,bid:Math.max(1,Math.round(o.rate*(0.8+0.12*hsRvU('price|'+q))*cut)),d:Math.min(o.exp-1,S.day+7+Math.floor(hsRvU('d|'+q)*8))};}}
   V.of[o.id]=x;return x;}
 const hsRvOf=o=>{const x=S.hs&&S.hs.rv&&S.hs.rv.of[o.id];return x&&x.w>=0?x:null;};
@@ -64,13 +65,13 @@ function hsRvDay(d){const H=S.hs;if(!H||!H.rv)return;const V=H.rv;
     toast(`🥊 ${hsRvHead(HS_RV_WIN,'won|'+o.name,{rival:esc(hsRvN(x.w)),name:esc(o.name)})}`,'bad');}
   // AI runs on offer: a rival takes some of them if you wait.
   const jo=new Set(H.jo.map(x=>x.id));for(const k of Object.keys(V.jo))if(!jo.has(k))delete V.jo[k];
-  for(const o of H.jo.slice()){if(!own(V.jo,o.id)){const q=o.n+'|'+o.a+'|'+o.b+'|'+o.exp,reg=CITY[o.a].reg,w=hsRvU('job|'+q)<HS_RV_JOB?hsRvWho(reg,'jw|'+q):-1;
+  for(const o of H.jo.slice()){if(!own(V.jo,o.id)){const q=o.n+'|'+o.a+'|'+o.b+'|'+o.exp,reg=CITY[o.a].reg,w=hsDirOn('rv')&&hsRvU('job|'+q)<HS_RV_JOB?hsRvWho(reg,'jw|'+q):-1;
       V.jo[o.id]=w<0?{w:-1}:{w,d:Math.min(o.exp-1,d+6+Math.floor(hsRvU('jd|'+q)*6))};}
     const x=V.jo[o.id];if(x.w<0||d<x.d||hsRvDown(x.w))continue;H.jo=H.jo.filter(y=>y!==o);delete V.jo[o.id];
     toast(`🥊 ${hsRvHead(HS_RV_JOBS,'job|'+o.n+'|'+o.exp,{rival:esc(hsRvN(x.w)),lab:esc(o.n)})}`,'bad');}
   // Renewals: courted under HS_RV_POACH (more in an ignored price war), poached two days before the term ends.
   for(const k of Object.keys(V.wn))if(!S.biz.some(b=>b.id===k))delete V.wn[k];for(const k of Object.keys(V.pc))if(!S.biz.some(b=>b.id===k))delete V.pc[k];
-  for(const b of hsTen()){const te=b.te;if(!(te>d)||te-d>HS_RV_WARN)continue;const w=hsRvFor(b),thr=hsRvThr(b),reg=CITY[b.city].reg;if(w<0)continue;
+  for(const b of hsTen()){const te=b.te;if(!(te>d)||te-d>HS_RV_WARN||!hsDirOn('rv'))continue;const w=hsRvFor(b),thr=hsRvThr(b),reg=CITY[b.city].reg;if(w<0)continue;
     if(V.wn[b.id]!==te&&b.mood<thr){V.wn[b.id]=te;toast(tr('hyper_rivals.courting',{rival:esc(hsRvN(w)),name:esc(b.name),date:dateStr(te),p:thr}),'warn',[{l:tr('common.show_me'),act:'custGo',args:{id:b.id}}]);}
     if(te-d<=2&&V.pc[b.id]!==te){V.pc[b.id]=te;
       if(b.mood<thr){clGone(b,'cheap');V.lt++;toast(`🥊 ${hsRvHead(HS_RV_POACHED,'poach|'+b.name+'|'+te,{rival:esc(hsRvN(w)),name:esc(b.name)})}`,'bad');sfx('err');}
@@ -78,15 +79,16 @@ function hsRvDay(d){const H=S.hs;if(!H||!H.rv)return;const V=H.rv;
       else V.bt++;}}
   // A price war ends, or starts where your tenants are.
   if(V.pw&&V.pw.until<=d){if(V.pw.m)S.stats.hsWar=(S.stats.hsWar||0)+1;toast(tr('hyper_rivals.war_over',{rival:esc(hsRvN(V.pw.w)),reg:REG[V.pw.reg]}),'good');delete V.pw;}
+  // A price war is a crisis: the director (38-hyper-director.js) says when; asked again tomorrow if not now.
   const ts=hsTen();if(!V.pw&&d>=V.nw&&ts.length>=2){const regs=[...new Set(ts.map(b=>CITY[b.city].reg))].sort(),reg=regs[Math.floor(hsRvU('wr|'+d)*regs.length)],w=hsRvWho(reg,'ww|'+d);
-    if(w>=0){const f=Math.round((0.15+0.1*hsRvU('wf|'+d))*100)/100,until=d+45+Math.floor(hsRvU('wu|'+d)*30);V.pw={w,reg,from:d,until,f,m:0};V.nw=until+90+Math.floor(hsRvU('wn|'+d)*90);
+    if(w>=0&&hsDirAsk('war',1,reg)){const f=Math.round((0.15+0.1*hsRvU('wf|'+d))*100)/100,until=d+45+Math.floor(hsRvU('wu|'+d)*30);V.pw={w,reg,from:d,until,f,m:0};V.nw=until+90+Math.floor(hsRvU('wn|'+d)*90);
       toast(`📉 ${hsRvHead(HS_RV_WARS,'wh|'+d,{rival:esc(hsRvN(w)),reg:REG[reg],p:pct(f)})}<br>${tr('hyper_rivals.war_choice',{p:pct(f),date:dateStr(until)})}`,'warn',[{l:tr('hyper_rivals.match'),act:'hsRvMatch',args:{on:1}}]);}}
   // A rival's region goes down: its tenants call you.
   if(V.dn&&V.dn.until<=d)delete V.dn;
-  if(!V.dn&&d>=V.nd&&ts.length){const mine=Object.keys(S.pops).filter(c=>popUp(c)&&bizCity(c)).sort();if(mine.length){const regs=[...new Set(mine.map(c=>CITY[c].reg))].sort(),reg=regs[Math.floor(hsRvU('dr|'+d)*regs.length)],w=hsRvWho(reg,'dw|'+d);
+  if(!V.dn&&d>=V.nd&&ts.length&&hsDirOn('rv')){const mine=Object.keys(S.pops).filter(c=>popUp(c)&&bizCity(c)).sort();if(mine.length){const regs=[...new Set(mine.map(c=>CITY[c].reg))].sort(),reg=regs[Math.floor(hsRvU('dr|'+d)*regs.length)],w=hsRvWho(reg,'dw|'+d);
     if(w>=0){const until=d+1+Math.floor(hsRvU('du|'+d)*3);V.dn={w,reg,until};V.nd=until+150+Math.floor(hsRvU('dn|'+d)*150);hsRvRefugees(d,reg,mine);}}}}
 // Refugees from a rival's outage: two or three tenants call at once, near the outage where you can; ten days to sign.
-function hsRvRefugees(d,reg,mine){const V=S.hs.rv,D=V.dn,cs=mine.filter(c=>CITY[c].reg===reg),at=cs.length?cs:mine,ks=Object.keys(CLOUD_TENANTS).filter(k=>CLOUD_TENANTS[k].lv<=lvl()),n=hsSlotFree()&&ks.length?2+(hsRvU('rn|'+d)<0.5?1:0):0;
+function hsRvRefugees(d,reg,mine){const V=S.hs.rv,D=V.dn,cs=mine.filter(c=>CITY[c].reg===reg),at=cs.length?cs:mine,ks=Object.keys(CLOUD_TENANTS).filter(k=>CLOUD_TENANTS[k].lv<=lvl()),n=hsSlotFree()&&ks.length&&hsDirAsk('refugee')?2+(hsRvU('rn|'+d)<0.5?1:0):0;
   for(let i=0;i<n;i++){const k=ks[Math.floor(hsRvU('rk|'+d+'|'+i)*ks.length)],K=CLOUD_TENANTS[k],c=at[Math.floor(hsRvU('rc|'+d+'|'+i)*at.length)];
     const o=hsOffer(k,c,K.opts[Math.floor(hsRvU('rb|'+d+'|'+i)*K.opts.length)]);o.exp=d+10;S.offers.push(o);V.of[o.id]={w:-1};}
   toast(`🔥 ${hsRvHead(HS_RV_DOWN,'dh|'+d,{rival:esc(hsRvN(D.w)),reg:REG[reg]})}<br>${n?trn('hyper_rivals.refugees',n,{date:dateStr(d+10)}):tr('hyper_rivals.refugees_no_room')}`,n?'goal':'warn');if(n)sfx('coin');}

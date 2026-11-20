@@ -43,14 +43,19 @@ test('the unlocks and the Next line come from the code that gates them', (t) => 
   const { ev, errors } = start(t);
   const L = J(ev, 'hsLevels()');
   assert.match(L[0].unlock, /a free Rack Shack at home, room for 2 regions, Server Barn regions/);
-  assert.match(L[3].unlock, /room for 4 regions.*Compute Campus regions.*AI labs and their training runs/);
+  assert.match(L[3].unlock, /room for 4 regions.*Compute Campus regions.*AI labs as tenants/);
+  // And the trouble the director lets in at each level (38-hyper-director.js, HS_DIR_LV).
+  assert.match(L[1].unlock, /heatwaves and energy crunches, and botnets/);
+  assert.match(L[2].unlock, /rival clouds, AI labs asking for training runs, and launch days for your game studios/);
+  assert.match(L[3].unlock, /cloud-sized outages, regulators, and whole-region failures \(once you run two regions\)/);
+  assert.doesNotMatch(L[0].unlock, /rival|regulators|outages|failures/);
   assert.match(L[2].unlock, /solar farms with batteries/);
   assert.match(L[4].unlock, /your own substation/);
   assert.match(L[7].unlock, /Gigawatt Gulch regions/);
   assert.match(L[8].unlock, /small modular reactor.*your own subsea cables|your own subsea cables.*small modular reactor/);
   assert.equal(L[12].unlock, 'nothing new but the view: Cloud Nine is up to you');
   // The Next line asks what lvNeed asks: peak, live regions, continents.
-  assert.equal(ev('lvNext(lvInfo(1),true)'), 'Next: Partly Cloudy, at a 150 Gbps peak with 1 live region. It brings room for 3 regions, enterprises lifting and shifting, and game studios and their launch days.');
+  assert.equal(ev('lvNext(lvInfo(1),true)'), 'Next: Partly Cloudy, at a 150 Gbps peak with 1 live region. It brings room for 3 regions, enterprises lifting and shifting, game studios, heatwaves and energy crunches, and botnets.');
   assert.match(ev('lvNext(lvInfo(4),true)'), /^Next: Fog Computing, at a 2\.00 Tbps peak with 3 live regions on 2 continents\./);
   assert.equal(ev('lvNext(null)'), 'Top of the sky. Only Cloud Nine is higher.');
   // A balance pass that moves a gate moves the story with it.
@@ -67,7 +72,7 @@ test('the unlocks and the Next line come from the code that gates them', (t) => 
 
 test('the level-up toast names the level, what it unlocks in this charter and the quote', (t) => {
   const { ev, errors } = start(t);
-  assert.equal(ev('lvToast(4)'), '<b>Level 4: Cumulus Incorporated!</b> Unlocked: room for 4 regions, Compute Campus regions, and AI labs and their training runs.<br><i>“I asked engineering for a cost-cutting plan. They sent me a campus with its own postcode.” — your CFO</i>');
+  assert.equal(ev('lvToast(4)'), '<b>Level 4: Cumulus Incorporated!</b> Unlocked: room for 4 regions, Compute Campus regions, AI labs as tenants, cloud-sized outages, regulators, and whole-region failures (once you run two regions).<br><i>“I asked engineering for a cost-cutting plan. They sent me a campus with its own postcode.” — your CFO</i>');
   // Reaching level 2 for real: a 200 Gbps peak with the home region live.
   ev("ACT.hsLaunch({cc:'DE'});ACT.buyTransit({city:S.home,net:'cog',tier:1});S.stats.peak=250;compute();UI.toasts=[];dayTick()");
   assert.equal(ev('S.lvl'), 2);

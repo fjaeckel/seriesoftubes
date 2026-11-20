@@ -12,13 +12,16 @@ const wave = (id, a, b, tier) => `S.links.push({id:${lit(id)},a:${lit(a)},b:${li
 /* Regions in Frankfurt (home, a Server Barn: 1.5T), Paris and Amsterdam (Rack Shacks: 400G each), with transit at
    each. German users (300G) call Frankfurt home, French users (200G) Paris. Waves: Frankfurt–Paris (tier fp),
    Frankfurt–Amsterdam and Amsterdam–Paris 800G. Frankfurt's replica is pinned to Amsterdam. */
+// The director (38-hyper-director.js) lets whole-region failures in from day HS_DIR_BIG, at their level, once introduced,
+// with budget to spend: these tests start past all of it.
+const DIR = 'S.day=Math.max(S.day,HS_DIR_BIG);Object.assign(S.hs.dir,{b:9,t:S.day,i:Object.fromEntries(Object.keys(HS_DIR_INTRO).map(k=>[k,0]))});';
 function net(t, fp = 3) {
   const h = load({ seed: 7 });
   t.after(() => h.dom.window.close());
   h.ev("ACT.start({});ACT.charter({k:'hyper'});S.cash=1e12;S.lvl=8;S.nextFail=S.nextEvent=1e9;ACT.buildPop({city:'par'});ACT.buildPop({city:'ams'});" +
     "for(const c in S.pops)S.pops[c].rgen=RG_TOP;for(const c of ['fra','par','ams'])ACT.buyTransit({city:c,net:'cog',tier:3});" +
     "S.hs.rg.fra={t:1,ready:0,mw:20};S.hs.rg.par={t:0,ready:0,mw:5};S.hs.rg.ams={t:0,ready:0,mw:5};S.hs.cc.DE={d:300,since:0};S.hs.cc.FR={d:200,since:0};S.hs.rep.fra='ams';S.links=[];" +
-    wave('fp', 'fra', 'par', fp) + wave('fa', 'fra', 'ams', 3) + wave('ap', 'ams', 'par', 3) + 'compute();hsDay(S.day);checkGoals();S.log=[]');
+    wave('fp', 'fra', 'par', fp) + wave('fa', 'fra', 'ams', 3) + wave('ap', 'ams', 'par', 3) + DIR + 'compute();hsDay(S.day);checkGoals();S.log=[]');
   return h;
 }
 const J = (ev, c) => JSON.parse(ev(`JSON.stringify(${c})`));
@@ -109,8 +112,8 @@ test('outages are incidents: their own failure kind, a dark POP, a tripped grid,
   assert.ok(ev('!!S.hs.out.fra'));
   ev('S.pops.fra.down=0;compute();hsFailDay(S.day)');
   assert.equal(ev('!!S.hs.out.fra'), false);
-  // A grid cut deep enough trips the region (only with chaos on).
-  const trip = "let d=S.day+1;while(hstr(S.asn+'|trip|ams|'+d)%1000>=250)d++;hsFailDay(d)";
+  // A grid cut deep enough trips the region (only with chaos on), announced the day before (38-hyper-director.js).
+  const trip = "S.hs.dir.c=null;S.hs.dir.q=0;let d=S.day+1;while(hstr(S.asn+'|trip|ams|'+d)%1000>=250)d++;S.day=d;hsFailDay(d);S.day=d+1;hsFailDay(d+1)";
   ev("hsPwMk('ams').cap=1;S.inc=[];" + trip);
   assert.ok(ev("S.inc.some(i=>i.type==='region'&&i.ref==='ams')"), 'a deep cut trips the grid');
   ev("S.hs.down={};S.hs.out={};S.inc=[];S.hs.pw.ams.cap=hsGrid('ams');S.rules.chaos='none';S.hs.pw.ams.cap=1;" + trip);

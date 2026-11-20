@@ -19,6 +19,7 @@ function fireEvent(){
   if(S.transit.some(t=>t.net==='cog'))opts.push('depeer','depeer');
   if(Object.keys(S.peers).some(k=>k.startsWith('drz@'))||Object.keys(S.rs).length)opts.push('cake');
   const e=pick(opts);
+  if(hyper()&&!hsEvOk(e))return;// a Hyperscaler meets only the world events that touch a cloud (38-hyper-director.js)
   if(e==='gulf'){const dur=60+Math.floor(Math.random()*60);S.ev.gulf=S.day+dur;toast(tr('events.the_neighbours_have_fallen_out_a',{n:dur}),'bad');sfx('alert');}
   /* A wave supplier pushes one bad update to its optical control plane, and every wave it sells you in a
      region goes dark for a day or two. Your own dark fiber, subsea waves and fabric circuits keep working. */
@@ -38,10 +39,10 @@ function fireEvent(){
   if(e==='tariff'){S.ev.tariff=S.day+90;toast(tr('events.trade_war_on_optics_two_governments'),'bad');sfx('alert');return;}
   if(e==='hijack'){const nh=NETS.map(n=>n.id).filter(()=>Math.random()<0.6),old=S.ev.rpki&&S.ev.rpki.until>S.day?S.ev.rpki:null;S.ev.rpki=old?{until:Math.max(old.until,S.day+1),nets:[...new Set(old.nets.concat(nh))]}:{until:S.day+1,nets:nh};addInc({type:'hijack',ref:'rpki',until:S.day+1,msg:tr('events.a_big_isp_fat_fingered_your'),cost:1500,fix:tr('events.call_everyone_you_know')});toast(tr('events.bgp_hijack_someone_else_is'),'bad');sfx('alert');return;}
   if(e==='landban'){const lc=[...new Set(CABLE_PAIRS.flatMap(c=>[c.a,c.b]))];const c=pick(lc);S.ev.landban={city:c,until:S.day+45};toast(tr('events.landing_permit_dispute_in_city_two',{city:CITY[c].name}),'bad');return;}
-  if(e==='shutdown'){const ps=Object.keys(S.pops).filter(c=>c!==S.home);if(!ps.length)return;const c=pick(ps);S.pops[c].down=Math.max(S.pops[c].down||0,S.day+1);addInc({type:'shutdown',ref:c,until:S.day+1,msg:tr('events.regulators_ordered_every_network_in',{city:CITY[c].name}),cost:0});toast(tr('events.ordered_offline_in_city_a_government',{city:CITY[c].name}),'bad');sfx('alert');return;}
+  if(e==='shutdown'){const ps=Object.keys(S.pops).filter(c=>c!==S.home);if(!ps.length)return;const c=pick(ps);S.pops[c].down=Math.max(S.pops[c].down||0,S.day+1);addInc({type:'shutdown',ref:c,until:S.day+1,msg:tr('events.regulators_ordered_every_network_in',{city:CITY[c].name}),cost:0});hsSoloSoft(S.inc[S.inc.length-1]);toast(tr('events.ordered_offline_in_city_a_government',{city:CITY[c].name}),'bad');sfx('alert');return;}
   if(e==='typhoon'){const c=pick(['mnl','ceb','hkg','tok','icn','sha','jkt'].filter(x=>S.pops[x])),p=S.pops[c],nm=pick([tr('common.typhoon_bandwidth'),tr('common.typhoon_latency'),tr('common.typhoon_jitter'),tr('events.typhoon_packet_loss')]);
     if(p.gen){S.stats.survived++;toast(tr('events.name_hits_city_the_grid_is',{name:nm,city:CITY[c].name}),'good');sfx('alert');return;}
-    p.down=Math.max(p.down||0,S.day+2);addInc({type:'power',ref:c,until:p.down,msg:tr('events.name_knocked_out_power_in_city',{name:nm,city:CITY[c].name}),cost:7000,fix:tr('incidents.rent_a_generator')});toast(tr('events.name_hits_city_power_is_out',{name:nm,city:CITY[c].name}),'bad');sfx('alert');evRoute();return;}
+    p.down=Math.max(p.down||0,S.day+2);addInc({type:'power',ref:c,until:p.down,msg:tr('events.name_knocked_out_power_in_city',{name:nm,city:CITY[c].name}),cost:7000,fix:tr('incidents.rent_a_generator')});hsSoloSoft(S.inc[S.inc.length-1]);toast(tr('events.name_hits_city_power_is_out',{name:nm,city:CITY[c].name}),'bad');sfx('alert');evRoute();return;}
   if(e==='runet'){S.ev.runet=S.day+1;toast(tr('events.sovereign_internet_drill_moscow'),'bad');sfx('alert');evRoute();return;}
   if(e==='baltic'){const BAL=['clion','havf','danice'];const hit=S.links.filter(l=>l.cable&&BAL.includes(l.cable)&&!(l.cut>S.day));
     if(!hit.length){toast(tr('events.baltic_cable_damaged_a_cargo_ship'),'goal');return;}

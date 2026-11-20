@@ -44,7 +44,7 @@ function hsrSell(o){const l=S.links.find(x=>x.id===o.l),t=o.k==='iru'?'dfpair':'
   if(t==='mwave')b.g=o.g;b.gh=1;S.biz.push(b);CM_V++;if(o.up)S.cash+=o.up;S.hs.rs.o=S.hs.rs.o.filter(x=>x!==o);return b;}
 /* A day: offers expire, now and then a carrier calls, and once a month the intern asks about your Spare Pair Affair. */
 function hsrDay(d){const H=S.hs;if(!H||!H.rs)return;const V=H.rs;V.o=V.o.filter(o=>o.exp>d&&S.links.some(l=>l.id===o.l));
-  if(d>=V.nx&&V.o.length<2){hsrSpawn(d);V.nx=d+45+Math.floor(hsRvU('rsn|'+d)*45);}
+  if(d>=V.nx&&V.o.length<2&&hsDirAsk('resale')){hsrSpawn(d);V.nx=d+45+Math.floor(hsRvU('rsn|'+d)*45);}
   const m=monthIdx(d);if(V.mo!==m){V.mo=m;const b=S.biz.find(x=>x.type==='dfpair'&&x.gh),o=V.o.find(x=>x.k==='iru');
     if(b||o){const l=S.links.find(x=>x.id===(b?b.link:o.l));if(l)toast(`🧑‍💼 ${tr(HSR_ASK[m%HSR_ASK.length],{name:esc(b?b.name:o.n),a:CITY[l.a].name,b:CITY[l.b].name})}`,'');}}}
 // The money resold glass brings in a month (the card), and how much of a fiber's capacity is sold as waves.

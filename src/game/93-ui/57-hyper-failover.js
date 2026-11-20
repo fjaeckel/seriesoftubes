@@ -8,6 +8,8 @@ const hsOkTxt=(ok,txt)=>`${ok?'✅':'▫️'} ${txt}`;
 function hsFailAlerts(){const H=S.hs,out=[];if(!H||!H.down)return out;
   for(const c of Object.keys(H.rg).filter(c=>hsOut(c)&&!(H.dx&&H.dx.c===c)).sort()){const b=R.hs&&R.hs.fo&&R.hs.fo[c],v={city:esc(CITY[c].name),b:b?esc(CITY[b].name):'',date:dateStr(H.down[c]||S.day+1)};
     out.push({lv:0,h:`🔥 ${b?tr('hyper_fail.card_down',v):tr('hyper_fail.card_down_alone',v)}`});}
+  // A grid trip announced for tomorrow (38-hyper-director.js), with its answer.
+  const w=H.dir&&H.dir.w;if(w&&!w.ok&&H.rg[w.c]){const k=hsChillCost(w.c);out.push({lv:0,h:`⚡ ${tr('hyper_dir.card_trip',{city:esc(CITY[w.c].name)})}<div class="btns">${btn(w.k==='heat'?tr('hyper_dir.chill_btn',{cost:fmt$(k)}):tr('hyper_dir.gen_btn',{cost:fmt$(k)}),'hsPrecool',{city:w.c},'red sm',S.cash<k)}</div>`});}
   const held=Object.keys(H.cc).filter(k=>!hsResMet(k)).sort();
   if(held.length)out.push({lv:2,h:`🔒 ${tr('hyper_law.card_held',{list:held.slice(0,4).map(k=>esc(ccName(k))).join(', ')})}`});
   return out;}
