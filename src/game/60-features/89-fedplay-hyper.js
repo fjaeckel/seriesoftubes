@@ -78,7 +78,8 @@ function hsfEdgeCut(cc,D,nets,out){const H=S.hs,by=new Map(),put=(id,c,key,g)=>{
 const hsfNpcCost=()=>S.hs&&S.hs.ne?S.hs.ne.length*HSF_NPC_MO:0;
 
 /* ---------- on-ramps ---------- */
-// The Hyperscaler's game: a player bought an on-ramp into a live region and has a POP in city c.
+// The Hyperscaler's game: a player bought an on-ramp into a live region and has a POP in city c (Indirect Connect
+// tenants there count as reached).
 function hsfRamp(c){const f=S.fed;if(!f)return false;
   for(const d of f.deals){if(!d.on||d.deal!=='onramp'||d.role!=='sell'||!hsLive(d.terms.at))continue;const n=fedNetOf(d.key);if(n&&n.fst!=='dark'&&(n.fpops||[]).includes(c))return true;}return false;}
 // The buyer's game: its on-ramp customers that end at the port's city, as much of them as the port carries.
@@ -96,7 +97,7 @@ function hsfRampDay(){const f=S.fed;if(!f||hyper())return;
   for(const d of f.deals){if(!d.on||d.deal!=='onramp'||d.role!=='buy'||!popUp(d.terms.at))continue;const n=fedNetOf(d.key);if(!n)continue;
     if(hstr(d.id+'|ramp|'+S.day)%HSF_RAMP_ODDS!==0||S.offers.filter(o=>o.type==='onramp'&&o.city2===d.terms.at).length>=HSF_RAMP_MAX)continue;
     const from=Object.keys(S.pops).filter(c=>c!==d.terms.at&&popUp(c)&&bizCity(c)).sort();if(!from.length)continue;
-    const T=BIZ_T.onramp,city=from[hstr(d.id+S.day)%from.length],bw=T.opts.filter(g=>g<=d.terms.mbps/1000)[0]||T.opts[0];
+    const T=BIZ_T.onramp,city=from[hstr(d.id+S.day)%from.length],bw=Math.min(T.opts[0],d.terms.mbps/1000);
     S.offers.push({id:uid(),city,city2:d.terms.at,name:tr('hyper_fed.ramp_name',{net:n.name}),type:'onramp',bw,rate:Math.round((150+kmBetween(city,d.terms.at)*0.08)*T.km),reqs:[],exp:S.day+40});
     toast(tr('hyper_fed.ramp_call',{net:esc(n.name),city:esc(CITY[city].name)}),'goal');}}
 

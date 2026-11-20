@@ -119,11 +119,23 @@ test('two players: a Hyperscaler and a home ISP peer, place an edge node and sel
   H.ev('fedDealsOn(S,fedNow());compute()');
   assert.ok(H.ev(`R.hs.fe['${edge}']`) > 0, 'the node serves the ISP\'s users in the Hyperscaler\'s game');
   assert.ok(H.ev('R.hs.cc.DE.nd') > 0);
+  // Users behind the ISP (its share of Germany, from its eyeball mix) reach the Hyperscaler over the PNI, off transit, in
+  // both games.
+  const peer = dH.find((d) => d.deal === 'peering').id;
+  assert.ok(H.ev(`hsfPlayers().get('DE').length`) === 1);
+  assert.ok(H.ev(`R.usePni['fed:${peer}:fra']`) > 0, 'the Hyperscaler sends the ISP\'s users their traffic over the PNI');
+  assert.ok(I.ev(`R.usePni['fed:${peer}:fra']`) > 0, 'the ISP\'s customers reach the Hyperscaler over the PNI');
   assert.equal(H.ev('R.cost.fed'), 400);
   assert.equal(H.ev('R.rev.fed'), 2500);
   // Indirect Connect tenants in the ISP's cities count as reached through its on-ramp.
   assert.equal(H.ev("hsfRamp('ams')"), true);
   assert.equal(H.ev("hsfRamp('lon')"), false);
+  H.ev("S.biz.push({id:'T1',name:'Federated Sock Wholesalers plc',type:'cloud',ck:'ent',p:['pc'],city:'ams',bw:5,rate:200,mood:80,since:S.day,reqs:[]});compute()");
+  const withRamp = H.ev("hsNeedQ(R,S.biz.find(b=>b.id==='T1'),'pc')");
+  H.ev("S.fed.deals.find(d=>d.deal==='onramp').on=false;compute()");
+  const without = H.ev("hsNeedQ(R,S.biz.find(b=>b.id==='T1'),'pc')");
+  H.ev("S.fed.deals.find(d=>d.deal==='onramp').on=true;S.biz=S.biz.filter(b=>b.id!=='T1');compute()");
+  assert.ok(withRamp > without, 'an Indirect Connect tenant in Amsterdam is better served with the ISP\'s on-ramp');
 
   // Usage: each buyer reports what crossed in its stats; the seller keeps it as the deal's rep.
   const sI = json(I, 'FED.hooks.stats({tier1:false})'), sH = json(H, 'FED.hooks.stats({tier1:false})');
@@ -135,6 +147,11 @@ test('two players: a Hyperscaler and a home ISP peer, place an edge node and sel
   assert.ok(rp >= 5000 && rp <= 10000, 'what the buyer reported, never past the port');
   assert.ok(I.ev("S.fed.deals.find(d=>d.deal==='edge').rep") > 0);
   assert.ok(I.ev("S.fed.deals.find(d=>d.deal==='edge').rep") <= 100000, 'never past the node');
+  // The ISP's own enterprise customers now call for circuits into the Hyperscaler's cloud.
+  I.ev('S.offers=[];for(let i=0;i<60;i++){S.day++;hsfRampDay();}');
+  const calls = json(I, "S.offers.filter(o=>o.type==='onramp')");
+  assert.ok(calls.length >= 1 && calls.length <= 3, 'a few calls, never a flood');
+  assert.ok(calls.every((o) => o.city2 === 'fra' && o.bw <= 10 && o.name.includes(H.ev('S.name'))));
   // The deal rows say it, on a phone.
   I.ev(`innerWidth=360;innerHeight=640;UI.fpSel={};fedNetModal('${kH}')`);
   assert.match(I.ev("$('modal').textContent"), /They report/);
