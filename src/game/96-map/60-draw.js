@@ -44,6 +44,8 @@ function drawFrame(now){
   const far=lodFar(),ML=mapLinks(day),LG=ML.LG,GM=ML.GM,PI=ML.PI,busy=linesOnScreen(GM,ks)>MAP_BUSY;
   // WebGL on: the card draws every line and packet now, and the rest (labels, markers, cities…) goes on the overlay.
   if(G)try{glFrame(ML,ks,far,busy,now,sc);}catch(e){throw glErr(e);}
+  // a Hyperscaler's traffic between regions, a glow under the tubes (87-hyper-layer.js)
+  if(S.hs)hsMapGlow(ML,ks,G,sc,far);
   for(let gi=0;gi<LG.length;gi++){const grp=LG[gi],{l,many,up,cap,load,df,bld,cut,dark,vx,w0,col,dash,pk}=ML.looks[gi],gm=GM[gi];
     const pz=pzOn(),arPz=pz&&!!S.ar,sel=(UI.sel&&UI.sel.type==='link'&&grp.some(x=>x.id===UI.sel.id))||(pz&&pzLinkHot(grp));let lab=null;
     // Only what sits at the middle of a line is still painted here when the card draws the lines.
@@ -118,7 +120,10 @@ function drawFrame(now){
     if(ly===null&&prio(v)===1)for(const y of [below,above]){const r={x:v.sx-tw/2,y:y-10,w:tw,h:21};if(!labs.hits(r)){ly=y;rects.push(r);labs.push(r);break;}}
     if(ly===null&&(prio(v)===0||(prio(v)===1&&(v.C.id===S.home||UI.hover===v.C.id)))){ly=below;const r={x:v.sx-tw/2,y:below-10,w:tw,h:21};rects.push(r);labs.push(r);}
     v.ly=ly;}
+  // a Hyperscaler's users under the cities, its regions and troubled metros over them (87-hyper-layer.js)
+  if(S.hs)hsMapRings(ks,now);
   if(pzOn()){for(let i=vis.length-1;i>=0;i--)pzDrawCity(vis[i],csc,now);pzDrawMarks(ks,now);}else for(let i=vis.length-1;i>=0;i--){const v=vis[i];drawCity(v.C,v.sx,v.sy,csc,now,v.ly,v.dem);}
+  if(S.hs)hsMapBadges(ks,csc,farL);
   // cable ships at sea (88-cable-ships.js), over the city labels so a ship leaving port stays in sight
   drawShips(ks,now);
   // Architect runs: what the tubes between two cities are (one trench, or separate paths), above the cities.

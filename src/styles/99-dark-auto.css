@@ -303,6 +303,15 @@
 :where(:root.dark) .tag.cmhot{background:#402B23;color:#EB9274}
 :where(:root.dark) .tag.cmcool{background:#25353C;color:#8FCCE7}
 :where(:root.dark) textarea.xfer-in{background:var(--soft);color:var(--ink)}
+:where(:root.dark) .inc.hsc{background:#202F3B;color:var(--ink)}
+:where(:root.dark) .hsc-p{background:var(--paper);color:var(--ink)}
+:where(:root.dark) .hsc-p.won{background:var(--ok);color:#fff}
+:where(:root.dark) .hsa{color:var(--ink)}
+:where(:root.dark) .hsa.lv0,:where(:root.dark) .hsa.lv1{color:var(--bad)}
+:where(:root.dark) .hsc-nx.bad{color:var(--bad)}
+:where(:root.dark) .hsc-c9g .meta.ok{color:var(--ink)}
+:where(:root.dark) .hnoc-ok{color:var(--eye)}
+:where(:root.dark) .hnoc-bad{color:var(--bad)}
 :where(:root.dark) .bz-warn{color:var(--bad)}
 :where(:root.dark) .bz-nb{color:var(--ink)}
 :where(:root.dark) .bz-nt small,:where(:root.dark) .bz-w{color:var(--ink2)}

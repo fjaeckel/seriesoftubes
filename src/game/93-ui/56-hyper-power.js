@@ -1,21 +1,33 @@
 /* ---------- The Hyperscaler's power in the interface (38-hyper-power.js) ----------
-   A line on the charter card (what your regions draw against what their metros can give, the bill, and whatever is
-   wrong: a grid cut, a protest, a heatwave, a utility letter due), and a power section in the city panel's Cloud tab:
-   the grid, the town, you, the utility queue, goodwill, a protest with its answers, and your own generation. */
-const hsPwRow=(...b)=>{b=b.filter(Boolean);return b.length?`<div class="btns">${b.join('')}</div>`:'';};
-function hsPwCard(){const H=S.hs;if(!H||!H.pw)return '';const cs=Object.keys(H.rg).sort();if(!cs.length)return '';
+   Parts of the charter card (55-hyper-panel.js puts them together): a line of what your regions draw against what their
+   metros can give and the bill; alerts for a grid cut, a protest, a heatwave or a price spike; in its details the
+   tightest metro and the utility letters due. And the power section of the city panel's Cloud tab: the grid, the town,
+   you, the utility queue, goodwill, a protest with its answers, and your own generation. */
+const hsPwRow=(...b)=>hsBtns(...b);
+// The card: a line of what your regions draw against what their metros can give, and the bill.
+function hsPwStat(){const H=S.hs;if(!H||!H.pw)return '';const cs=Object.keys(H.rg).sort();if(!cs.length)return '';
   let used=0,max=0,bill=0;for(const c of cs){used+=hsMwUsed(c);max+=hsSupply(c)-hsTown(c);bill+=hsPwBill(c);}
-  let h=`<div class="meta">⚡ ${tr('hyper_power.card_line',{used:Math.round(used),max:Math.round(max),bill:fmt$(bill)})}</div>`;
+  return `<div class="meta">⚡ ${tr('hyper_power.card_line',{used:Math.round(used),max:Math.round(max),bill:fmt$(bill)})}</div>`;}
+// What needs you: a grid that cannot feed a region (1), a protest (1), a heatwave or a price spike (2).
+function hsPwAlerts(){const H=S.hs,out=[];if(!H||!H.pw)return out;
+  for(const c of Object.keys(H.rg).sort()){const f=hsCut(c);if(f<1)out.push({lv:1,h:`⚡ ${tr('hyper_power.card_cut',{city:esc(CITY[c].name),p:pct(f)})}`});}
+  for(const c of Object.keys(H.prot).sort()){const p=hsProt(c);if(p)out.push({lv:1,h:`📣 ${tr('hyper_power.card_prot',{grp:tr(HS_GRP[p.g]),city:esc(CITY[c].name)})} ${btn(tr('hyper_power.answer'),'popGo',{city:c},'sm')}`});}
+  for(const e of H.pev)if(e.until>S.day)out.push({lv:2,h:e.k==='heat'?'🔥 '+tr('hyper_power.card_heat',{reg:WAVE_NAME[e.reg],date:dateStr(e.until)}):'💸 '+tr('hyper_power.card_crunch',{reg:WAVE_NAME[e.reg],date:dateStr(e.until)})});
+  return out;}
+// The card's details: the tightest metro, and letters due from the utilities.
+function hsPwMore(){const H=S.hs;if(!H||!H.pw)return '';let h='';const cs=Object.keys(H.rg).sort();
   const tight=cs.filter(c=>hsMwFree(c)<HS_T[1].mw).sort((a,b)=>hsMwFree(a)-hsMwFree(b))[0];
   if(tight&&hsCut(tight)>=1)h+=`<div class="meta">${tr('hyper_power.card_tight',{city:esc(CITY[tight].name),mw:Math.max(0,Math.floor(hsMwFree(tight)))})}</div>`;
-  for(const c of cs){const f=hsCut(c);if(f<1)h+=`<div class="meta" style="color:var(--bad)">${tr('hyper_power.card_cut',{city:esc(CITY[c].name),p:pct(f)})}</div>`;}
-  for(const c of Object.keys(H.prot).sort()){const p=hsProt(c);if(p)h+=`<div class="meta" style="color:var(--bad)">📣 ${tr('hyper_power.card_prot',{grp:tr(HS_GRP[p.g]),city:esc(CITY[c].name)})} ${btn(tr('hyper_power.answer'),'popGo',{city:c},'sm')}</div>`;}
-  for(const e of H.pev)if(e.until>S.day)h+=`<div class="meta">${e.k==='heat'?'🔥 '+tr('hyper_power.card_heat',{reg:WAVE_NAME[e.reg],date:dateStr(e.until)}):'💸 '+tr('hyper_power.card_crunch',{reg:WAVE_NAME[e.reg],date:dateStr(e.until)})}</div>`;
   for(const c of Object.keys(H.pw).sort()){const q=H.pw[c].q;if(q)h+=`<div class="meta">⏳ ${tr('hyper_power.card_queue',{util:tr(hsUtil(c)),mw:q.mw,city:esc(CITY[c].name),date:dateStr(q.ready)})}</div>`;}
   return h;}
-function hsPwSection(c){const H=S.hs;if(!H||!hsSite(c))return '';const P=hsPw(c),d=H.rg[c],sup=hsSupply(c),town=hsTown(c),used=hsMwUsed(c),res=hsMwRes(c),free=hsMwFree(c),gen=hsGenMw(c);
-  let h=`<section><h3>⚡ ${tr('hyper_power.power')}</h3>`;
-  h+=hsKv(tr('hyper_power.grid_of',{util:tr(hsUtil(c))}),gen?tr('hyper_power.mw_plus_own',{mw:P.cap,own:gen}):tr('hyper_power.n_mw',{mw:P.cap}))
+// The Cloud tab's power section: a summary (free megawatts, goodwill) and flags for a protest, a cut or an event.
+function hsPwSpec(c){const H=S.hs;if(!H||!hsSite(c))return null;const P=hsPw(c),d=H.rg[c],fl=[];
+  if(hsProt(c))fl.push(hsFlag('restrictive',tr('hyper_ui.f_protest')));if(d&&hsCut(c)<1)fl.push(hsFlag('restrictive',tr('hyper_ui.f_cut')));
+  if(hsEv(c).length)fl.push(hsFlag('selective',tr('hyper_ui.f_event')));
+  return {t:'⚡ '+tr('hyper_power.power'),sum:tr('hyper_ui.sum_power',{mw:Math.max(0,Math.floor(hsMwFree(c))),gw:P.gw}),flags:fl,body:()=>hsPwBody(c)};}
+const hsPwSection=c=>hsSec('pw',hsPwSpec(c));
+function hsPwBody(c){const H=S.hs;const P=hsPw(c),d=H.rg[c],sup=hsSupply(c),town=hsTown(c),used=hsMwUsed(c),res=hsMwRes(c),free=hsMwFree(c),gen=hsGenMw(c);
+  let h=hsKv(tr('hyper_power.grid_of',{util:tr(hsUtil(c))}),gen?tr('hyper_power.mw_plus_own',{mw:P.cap,own:gen}):tr('hyper_power.n_mw',{mw:P.cap}))
    +hsKv(tr('hyper_power.town_draws'),tr('hyper_power.n_mw',{mw:town}))
    +hsKv(tr('hyper_power.you_draw'),res>used+0.05?tr('hyper_power.mw_holding',{mw:+used.toFixed(1),res:+res.toFixed(1)}):tr('hyper_power.n_mw',{mw:+used.toFixed(1)}))
    +hsKv(tr('hyper_power.free'),tr('hyper_power.n_mw',{mw:Math.floor(free)}),free<0?'color:var(--bad)':'')+hsBar((town+Math.max(used,res))/(sup||1),free<HS_MW_SLOT);
@@ -40,6 +52,4 @@ function hsPwSection(c){const H=S.hs;if(!H||!hsSite(c))return '';const P=hsPw(c)
     const b=k=>{const G=HS_GEN[k];if(P.own.filter(x=>x.k===k).length>=G.max)return '';
       return btn(G.lv>lvl()?tr('hyper_power.gen_needs_level',{name:tr(G.n),lv:G.lv}):tr('hyper_power.gen_buy',{name:tr(G.n),mw:G.mw,cost:fmt$(G.cost)}),'hsGen',{city:c,k},'sm',G.lv>lvl()||S.cash<G.cost);};
     h+=`<h3 class="sub4">${tr('hyper_power.own_gen')}</h3>${L||`<p class="note">${tr('hyper_power.own_gen_lead')}</p>`}${hsPwRow(b('sol'),b('sub'))}${hsPwRow(b('smr'))}`;}
-  return h+`</section>`;}
-CX_CARD.push(()=>hyper()?hsPwCard():'');
-CX_CITY.push(c=>hyper()?hsPwSection(c):'');
+  return h;}
