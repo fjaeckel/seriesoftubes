@@ -9,6 +9,7 @@ All notable changes to this project are documented here. The project follows
 - A dark fiber with managed waves sold now adds up in its panel: lit, less the managed waves, is yours, and of that you see what your traffic uses and what is still free.
 - A peak that rounds to the level's mark no longer looks reached while it is not, and a network capped exactly at the mark levels up.
 - A new charter, the Hyperscaler: build a planet-scale cloud. Launch your services country by country, open front doors at the edge, build regions from a Rack Shack to a Gigawatt Gulch, and haul your users' traffic over your own backbone to the region that holds their data, while startups, game studios, banks and AI labs sign up for bundles of cloud products.
+- In Multimode a Hyperscaler and other players become partners: it publishes an open peering policy, home ISP players can host its edge nodes and save on transit, and anyone can buy a private on-ramp into its regions to sell cloud connectivity to their own customers. Playing alone, computer-run ISPs host edge nodes instead.
 - A vendor demo router that takes 3.2T ports can now upgrade the ports you already have to 3.2T, instead of making you leave an exchange and join again; the fastest waves show up the same way (#435).
 - Coming back online with a big network in Multimode no longer makes the game crawl while it catches up: the catch-up now holds the page for less than half as long, and other players' networks are worked into your routing once it is done instead of every second along the way, off the main thread.
 
