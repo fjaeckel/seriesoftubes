@@ -6,7 +6,9 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
-**Head in the Cloud.** For years you have carried other people's traffic. Now it is yours. The Hyperscaler is a new charter in which you build a planet-scale cloud: users come to you from every country, ride your own backbone to the region that holds their data, and your regions talk to each other more than anyone talks to them. Everything you learned about fiber, waves, subsea cables, peering and traffic engineering is now the heart of the game, because a hyperscaler never sells transit. It sells the cloud.
+## [5.0.0] — 2026-11-21
+
+**Series of Tubes 5.0: Head in the Cloud.** For years you have carried other people's traffic. Now it is yours. The Hyperscaler is a new charter in which you build a planet-scale cloud: users come to you from every country, ride your own backbone to the region that holds their data, and your regions talk to each other more than anyone talks to them. Everything you learned about fiber, waves, subsea cables, peering and traffic engineering is now the heart of the game, because a hyperscaler never sells transit. It sells the cloud.
 
 **How to get there.** Start a new Normal game: the Hyperscaler sits at the top of the charter picker, and a short guide takes you from launching at home to your first failover drill. Your other networks carry on exactly as they were.
 
