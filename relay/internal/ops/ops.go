@@ -150,6 +150,12 @@ func do(r *node.Relay, q Request) Response {
 	case "gc":
 		r.GC()
 		return ok(nil)
+	case "authority":
+		taken, code := r.PushAuthority(q.Rec)
+		if code != "" && code != node.NotNewer {
+			return Response{Error: code}
+		}
+		return ok(map[string]any{"taken": taken})
 	}
 	return Response{Error: "bad_kind"}
 }

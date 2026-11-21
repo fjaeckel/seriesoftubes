@@ -13,6 +13,7 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/canon"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 	rt "github.com/fjaeckel/seriesoftubes/relay/internal/relaytest"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/wire"
 )
 
 // The authority (FEDERATION-PROTOCOL.md 11.5, ADR 0006): seriesoftub.es's signed bans and the oldest relay allowed.
@@ -173,5 +174,78 @@ func TestAuthorityKeysMatchFederation(t *testing.T) {
 	}
 	if !bytes.Equal(a, b) {
 		t.Fatal("relay/internal/authority/keys.json differs from federation/authority-keys.json: run node scripts/authority.js --keygen, never edit one alone")
+	}
+}
+
+// Relays pass the authority file to each other (11.5): a ban pushed into one relay reaches relays two hops away in
+// seconds, without the site. A relay that does not list the authority feature is never sent it.
+func TestAuthorityTravelsBetweenRelays(t *testing.T) {
+	n := authNet(t)
+	a := n.Found("first", "open")
+	b := n.Found("middle", "open")
+	c := n.Found("far", "open")
+	n.Feats = []string{wire.Feat, wire.FeatIx2, wire.FeatCloud} // an older relay: no authority feature
+	old := n.Found("older", "open")
+	n.Feats = nil
+	neighbours(a, b)
+	neighbours(b, c, old)
+	fromC, fromOld := announce(t, c, "sea"), announce(t, old, "old")
+	rt.Eventually(t, "the chain syncs", func() bool { return a.Nodes[0].Has(fromC) && a.Nodes[0].Has(fromOld) })
+
+	mallory := rt.Key("mallory")
+	taken, code := a.Nodes[0].R.PushAuthority(authFile(n.Clock.Unix(), "", 0, []string{mallory.Key}, nil))
+	if !taken || code != "" {
+		t.Fatalf("push: %v %q", taken, code)
+	}
+	rt.Eventually(t, "two hops away, the ban arrived", func() bool {
+		return c.Nodes[0].Put(rt.Announce(mallory, n.Clock.Unix(), "Mallory")) == fed.Banned
+	})
+	if _, err := os.Stat(filepath.Join(c.Nodes[0].Dir, "authority.json")); err != nil {
+		t.Fatalf("kept two hops away: %v", err)
+	}
+	time.Sleep(300 * time.Millisecond)
+	if _, err := os.Stat(filepath.Join(old.Nodes[0].Dir, "authority.json")); err == nil {
+		t.Fatal("sent to a relay that does not take it")
+	}
+	if strings.Contains(b.Nodes[0].Log.String(), "code=bad_frame") || strings.Contains(old.Nodes[0].Log.String(), "code=bad_frame") {
+		t.Fatal("the authority message broke a session")
+	}
+	// The same file again changes nothing and goes nowhere.
+	if taken, code := a.Nodes[0].R.PushAuthority(authFile(n.Clock.Unix(), "", 0, []string{mallory.Key}, nil)); taken || code != "not_newer" {
+		t.Fatalf("same file: %v %q", taken, code)
+	}
+	// A relay that starts later gets it when its session with a holder comes up.
+	d := n.Found("late", "open")
+	neighbours(d, c)
+	ok := false
+	for i := 0; i < 100 && !ok; i++ {
+		ok = d.Nodes[0].Put(rt.Announce(mallory, n.Clock.Unix(), "Mallory")) == fed.Banned
+		time.Sleep(100 * time.Millisecond)
+	}
+	if !ok {
+		t.Fatalf("a late relay did not get it on connect:\n%s", d.Nodes[0].Log.String())
+	}
+}
+
+// Anyone may hand any relay the file over wss:// (relay authority push --via): the signature is the authority.
+func TestAuthorityPushedByAClient(t *testing.T) {
+	n := authNet(t)
+	a := n.Found("open-door", "open")
+	x := a.Nodes[0]
+	mallory := rt.Key("mallory")
+	c := x.Client(nil)
+	f, err := c.Request(ctx(t), map[string]any{"m": "authority", "file": string(authFile(n.Clock.Unix(), "", 0, []string{mallory.Key}, nil))})
+	if err != nil || f.Raw["taken"] != true {
+		t.Fatalf("push: %v %v", err, f)
+	}
+	if code := x.Put(rt.Announce(mallory, n.Clock.Unix(), "Mallory")); code != fed.Banned {
+		t.Fatalf("after a client's push: %q", code)
+	}
+	forged := canon.Encode(rt.Key("impostor").Seal("authority", n.Clock.Unix()+1, map[string]any{"nets": []any{}, "servers": []any{}}))
+	if _, err := c.Request(ctx(t), map[string]any{"m": "authority", "file": string(forged)}); code(err) != fed.NotAuthority {
+		t.Fatalf("an impostor's file: %v", err)
+	}
+	if code := x.Put(rt.Announce(mallory, n.Clock.Unix(), "Mallory")); code != fed.Banned {
+		t.Fatal("an impostor's file undid the ban")
 	}
 }

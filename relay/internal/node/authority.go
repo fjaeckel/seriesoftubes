@@ -12,6 +12,7 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/store"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/update"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/wire"
 )
 
 // The authority file (FEDERATION-PROTOCOL.md 11.5, ADR 0006): read beside the registry like relay.json, kept in the
@@ -64,28 +65,83 @@ func (r *Relay) checkAuthority() {
 	r.SetAuthority(b)
 }
 
-// SetAuthority takes an authority file when it checks and is newer than the one held; it reports whether it did.
+// SetAuthority takes an authority file (the site, the command line, a test) when it checks and is newer than the one
+// held; it reports whether it did.
 func (r *Relay) SetAuthority(b []byte) bool {
+	taken, _ := r.takeAuthority(b, nil)
+	return taken
+}
+
+// PushAuthority is relay authority push: takes the file and passes it on; the code says why it was not taken
+// (not_newer when it checks but is not newer than the one held).
+func (r *Relay) PushAuthority(b []byte) (bool, string) { return r.takeAuthority(b, nil) }
+
+// authEvery: a node session's authority files are checked at most this often (seconds).
+const authEvery = 10
+
+// NotNewer answers a valid authority file that is not newer than the one held.
+const NotNewer = "not_newer"
+
+// takeAuthority checks a file from any source (from: the node session it came from, nil otherwise). A newer one is
+// kept, applied and passed to every node session that takes it but from (11.5): the signature is what counts, never
+// who carried it, and a file only travels while it is news, so it cannot loop.
+func (r *Relay) takeAuthority(b []byte, from *session) (bool, string) {
 	now := r.now()
+	r.mu.Lock()
+	held := r.auth != nil && string(r.auth.Raw) == string(b)
+	busy := from != nil && now-from.authAt < authEvery
+	if from != nil && !held && !busy {
+		from.authAt = now
+	}
+	r.mu.Unlock()
+	if held {
+		if from == nil {
+			r.mu.Lock()
+			r.applyAuthority(now) // the site's or the command line's same file: the clock may have made relayMin due
+			r.mu.Unlock()
+		}
+		return false, NotNewer // the file this side has: nothing to check
+	}
+	if busy {
+		return false, fed.RateLimited // a peer's checks are paced, so it cannot keep this node verifying
+	}
 	a, code := authority.Parse(b, r.authorityKeys(), now)
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if code != "" {
 		r.o.Log.Info("authority: not used", "code", code)
 		r.applyAuthority(now)
-		return false
+		return false, code
 	}
 	if !authority.Newer(r.auth, a) {
 		r.applyAuthority(now) // the clock may have made relayMin due
-		return false
+		return false, NotNewer
 	}
 	r.auth = a
 	if err := store.WriteAtomic(r.authorityPath(), a.Raw, 0o600); err != nil {
 		r.o.Log.Warn("authority: not kept", "err", err)
 	}
-	r.o.Log.Info("authority: taken", "t", a.T, "nets", len(a.Nets), "servers", len(a.Servers), "relayMin", a.RelayMin)
+	via := "site"
+	if from != nil {
+		via = from.peerServer
+	}
+	r.o.Log.Info("authority: taken", "t", a.T, "nets", len(a.Nets), "servers", len(a.Servers), "relayMin", a.RelayMin, "via", via)
+	r.o.Metrics.Inc("relay_authority_taken_total", "")
 	r.applyAuthority(now)
-	return true
+	for s := range r.nodes {
+		if s != from {
+			r.sendAuthority(s)
+		}
+	}
+	return true, ""
+}
+
+// sendAuthority gives a node session the file this side holds, when the peer takes it (lock held).
+func (r *Relay) sendAuthority(s *session) {
+	if r.auth == nil || s.ending.Load() || !slices.Contains(s.feats, wire.FeatAuthority) {
+		return
+	}
+	s.enqueue(map[string]any{"m": "authority", "file": string(r.auth.Raw)})
 }
 
 // bannedNet reports whether the authority bans a network (lock held).

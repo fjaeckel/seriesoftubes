@@ -107,6 +107,7 @@ type session struct {
 	dialing    context.Context // that dialer's lifetime: a session it made after it stopped never comes up
 	impl       *update.Impl    // what the peer node runs, when it said (informational)
 	feats      []string        // optional messages and fields the peer takes (9.3, 9.4 feats)
+	authAt     int64           // when an authority file from this peer was last checked (guarded by r.mu)
 	stPend     map[string]bool // keys whose newest live state goes to this peer next (guarded by r.mu)
 
 	// client: its own token bucket for live states (states.go)
@@ -881,6 +882,19 @@ func (r *Relay) clientFrame(s *session, f *wire.Frame) {
 			return
 		}
 		s.enqueue(map[string]any{"m": "proof", "id": f.ID, "proof": r.o.Node.MakeProof(nonce, r.ServerID(), now)})
+	case "authority":
+		// Anyone may hand a relay the authority file (11.5): its signature is the authority, not the sender.
+		file, _ := f.Raw["file"].(string)
+		if file == "" {
+			s.fail(f.ID, fed.BadFrame, 0)
+			return
+		}
+		taken, code := r.takeAuthority([]byte(file), nil)
+		if code != "" && code != NotNewer {
+			s.fail(f.ID, code, 0)
+			return
+		}
+		s.enqueue(map[string]any{"m": "ack", "id": f.ID, "taken": taken})
 	case "put":
 		rec, code := fed.CheckLoose(f.Raw["rec"], now, fed.Opts{})
 		if code != "" {

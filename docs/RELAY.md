@@ -623,6 +623,13 @@ never takes an older one. A relay with no `registry` reads none. What it does wi
   first: the log says `relay out of date` and `relay status` shows `authority.says` ("…stop syncing with it from …
   Update it.") from the day the file names a newer `relayMin`, so you have the week to update.
 
+**Relays pass it on.** The file is signed, so it does not matter who carries it: your relay sends the file it holds
+to the relays it syncs with (when a session starts, and when it takes a newer one), and takes theirs when it is newer.
+A ban pushed into one relay reaches the federation in seconds. To push one yourself (with a file signed by an
+authority key): `relay authority push authority.json` on your relay, or `relay authority push authority.json --via
+wss://any-node/path` to any relay over the network (up to 64 KiB that way). Relays older than this feature never get
+it this way and keep reading the site's copy.
+
 `relay status` shows the file it holds under `authority` (`t`, the number of banned networks and servers, `relayMin` and
 when it applies), and the network list says `banned` per network. Releases that only change the game never raise
 `relayMin`, so not every release needs your relay updated within the week; one that does says so in its notes.

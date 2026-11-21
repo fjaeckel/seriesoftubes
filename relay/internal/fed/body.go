@@ -532,6 +532,9 @@ func Cloud(r *Record) bool {
 // signs and wants proofs that name the checking node and the role.
 const FeatBind = "bind"
 
+// FeatAuthority: the side takes the authority file in an authority message (11.5): relays pass it to each other.
+const FeatAuthority = "authority"
+
 // Ix2 reports whether a record holds what only the ix2 feature carries: an announce listing its
 // exchanges' members (rates.ix.members) or how it takes co-founding (auto.cofound). A node passes
 // such a record only to sessions that listed ix2 in feats (9.3, 9.4): older ones refuse those fields.

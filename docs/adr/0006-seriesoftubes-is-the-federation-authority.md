@@ -27,13 +27,18 @@ does not know a new rule (a ban among them) cannot apply it, so the federation i
   them out of the catalog they pass on. The game refuses to join a banned or out-of-date server, leaves banned servers
   out of its list, and treats a banned network as excluded and confirmed (running deals with it end).
 - **The shun vote stays**, for what operators decide together; a ban does not need it.
+- **Relays also pass it to each other**, so a ban needs neither GitHub nor a deploy: signed with the key kept on
+  Frederic's machine and pushed into any relay (`relay authority push`), it reaches the connected federation in
+  seconds. Two keys are pinned, the release workflow's secret and the offline one, so either can be dropped if it
+  leaks. The site's copy remains for relays that are not connected and for games.
 - **Relays and games keep the newest file they verified**, so a ban survives the site being unreachable, and an older
   file can never undo a newer one.
 
 ## Consequences
 
-- One signature can remove anyone from multiplayer within a deploy. The key must stay out of the repository and off
-  every machine but the one that makes it and GitHub's secret store.
+- One signature can remove anyone from multiplayer within seconds. Neither key may enter the repository; the offline
+  key stays on Frederic's machine, the other in GitHub's secret store. A ban signed by hand must also be committed to
+  `federation/bans.json`, or the next deploy (signed later, so newer) undoes it.
 - Relay operators must update within a week of a relay release that raises `relayMin`. Releases that only change the
   game do not raise it.
 - A relay reports its own version (`impl`), and nothing proves it: a modified relay can claim any version, and the

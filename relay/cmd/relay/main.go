@@ -3,6 +3,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -69,6 +70,8 @@ Day to day (talks to the running relay over its local socket):
   relay ops pending      relay ops sign ID [--via wss://a-running-node/path]
   relay ops server [--name N] [--sync standalone|selective|open] [--langs en,de] [--desc T] [--no-logs=true]
   relay backup FILE.tar.gz
+  relay authority push FILE [--via wss://any-node/path]   hand a signed authority.json (bans, relayMin) to this relay,
+                                                           or to any relay over wss://; relays pass it on (11.5)
 
 Registry (CI and the site build):
   relay check-registry [--offline] [--base GITREF] FILE...
@@ -111,6 +114,8 @@ func main() {
 		err = cmdOps(args)
 	case "backup":
 		err = cmdBackup(args)
+	case "authority":
+		err = cmdAuthority(args)
 	case "check-registry":
 		os.Exit(cmdCheckRegistry(args, os.Stdout))
 	case "build-servers-json":
@@ -1133,4 +1138,51 @@ func testReleasesURL(s string) bool {
 		return h == "127.0.0.1" || h == "::1" || h == "localhost"
 	}
 	return false
+}
+
+// cmdAuthority is relay authority push FILE: the file goes to the local relay, or with --via to any node as a
+// client would send it (64 KiB at most that way). Relays that take it pass it on to the relays they sync with.
+func cmdAuthority(args []string) error {
+	if len(args) < 1 || args[0] != "push" {
+		return errors.New("usage: relay authority push FILE [--via wss://node]")
+	}
+	fs, dir := flags("authority push")
+	via := fs.String("via", "", "send it to this node over wss:// instead of the local relay")
+	pos := parse(fs, args[1:])
+	if len(pos) != 1 {
+		return errors.New("usage: relay authority push FILE [--via wss://node]")
+	}
+	b, err := os.ReadFile(pos[0])
+	if err != nil {
+		return err
+	}
+	b = bytes.TrimSpace(b)
+	var taken bool
+	if *via != "" {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		cl, err := client.Dial(ctx, *via, client.Options{})
+		if err != nil {
+			return err
+		}
+		defer cl.Close()
+		a, err := cl.Request(ctx, map[string]any{"m": "authority", "file": string(b)})
+		if err != nil {
+			return err
+		}
+		taken, _ = a.Raw["taken"].(bool)
+	} else {
+		v, err := call(*dir, ops.Request{Cmd: "authority", Rec: json.RawMessage(b)})
+		if err != nil {
+			return err
+		}
+		m, _ := v.(map[string]any)
+		taken, _ = m["taken"].(bool)
+	}
+	if taken {
+		fmt.Println("Taken: the relay applies it now and passes it on.")
+	} else {
+		fmt.Println("Not taken: that relay already holds this file or a newer one.")
+	}
+	return nil
 }

@@ -39,12 +39,12 @@ func Closes(code string) bool { return closes(code) }
 // Role-specific message sets.
 var (
 	clientMsgs = map[string]bool{"hello": true, "auth": true, "challenge": true, "put": true, "cosign": true, "sub": true,
-		"unsub": true, "fetch": true, "rank": true, "rankwhy": true, "facets": true, "nets": true, "servers": true, "ping": true, "pong": true, "err": true, "state": true}
+		"unsub": true, "fetch": true, "rank": true, "rankwhy": true, "facets": true, "nets": true, "servers": true, "ping": true, "pong": true, "err": true, "state": true, "authority": true}
 	nodeMsgs = map[string]bool{"hello": true, "welcome": true, "proof": true, "carry": true, "inv": true,
-		"want": true, "push": true, "catalog": true, "err": true, "ping": true, "pong": true, "states": true}
+		"want": true, "push": true, "catalog": true, "err": true, "ping": true, "pong": true, "states": true, "authority": true}
 	// Requests carry an id.
 	requests = map[string]bool{"auth": true, "challenge": true, "put": true, "cosign": true, "sub": true, "unsub": true,
-		"fetch": true, "rank": true, "rankwhy": true, "facets": true, "nets": true, "servers": true, "ping": true, "pong": true}
+		"fetch": true, "rank": true, "rankwhy": true, "facets": true, "nets": true, "servers": true, "ping": true, "pong": true, "authority": true}
 )
 
 // Parse reads frame text, checking the size limit, JSON and the frame's shape.
@@ -156,6 +156,9 @@ const FeatCloud = fed.FeatCloud
 
 // FeatBind is the feature of bound node handshake proofs (6.2, 9.4).
 const FeatBind = fed.FeatBind
+
+// FeatAuthority: takes the authority file (11.5).
+const FeatAuthority = fed.FeatAuthority
 
 // Feats reads a feats member (9.3, 9.4): the strings of a list, anything else none. It is
 // informational: a side sends an optional message only to a peer that listed it.
@@ -294,6 +297,10 @@ func CheckNode(f *Frame) *Error {
 		}
 	case "catalog":
 		if _, ok := f.Raw["entries"].([]any); !ok {
+			return bad(fed.BadFrame)
+		}
+	case "authority":
+		if file, ok := f.Raw["file"].(string); !ok || file == "" || len(file) > fed.AuthorityMax {
 			return bad(fed.BadFrame)
 		}
 	case "ping":

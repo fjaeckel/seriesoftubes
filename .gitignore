@@ -15,5 +15,7 @@ operator.key
 /.dev-certs/
 /.dev-agent/
 
-# The federation authority key (scripts/authority.js --keygen): a GitHub secret only, never a file here
+# Federation authority keys and signed files (scripts/authority.js): never committed
 authority.key
+*.authority.key
+/authority.json

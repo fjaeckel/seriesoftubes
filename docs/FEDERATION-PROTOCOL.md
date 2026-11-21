@@ -865,6 +865,7 @@ it is neither answered nor a reason to close, so an older game keeps working wit
 | `facets` | either | `id`; answering, also `slot`, `models`, `harnesses`, `from`, `homes` | `facets`: the values a filter sheet offers (9.5) |
 | `nets` | client → node | `id`, `keys` ([Key] max 64) | `netstats` `{id, nets, reports}` (9.5) |
 | `servers` | client → node | `id` | `catalog` |
+| `authority` | client → node | `id`, `file` (the authority file's text, 11.5) | `ack` with `taken` (Bool: it was newer and is kept now), or `err` (its check's code). Anyone may send it: the signature is the authority |
 | `recs` | node → client | `id`, `items` ([{rec, rcpt: [receipts]}] max 256), `cursor`, `more` (Bool) | |
 | `catalog` | node → client or node | `id` (when answering), `entries` (10.8), `more` (Bool, see below) | |
 | `err` | either | `id` (when answering a request), `code` (7.2), `retry` (seconds, with `rate_limited`) | |
@@ -935,6 +936,8 @@ it is neither answered nor a reason to close, so an older game keeps working wit
   anything else. A game sends `state` frames, and asks for boards of `now`, only to a node whose `welcome` lists
   `state` (an older node would close the connection on a message it does not know). The same member is in a node's
   `hello` and `welcome` (9.4).
+  **`authority`** in a `hello` or `welcome` (9.4) means that side takes `authority` messages (11.5); in a client
+  `welcome`, that the node takes the `authority` request.
   **`bind`** in a client `welcome` means the node takes bound `auth` (above), when the `welcome` also has a `nonce`.
   **`ix2`** means it takes the fields of players' exchanges (5.1 `rates.ix.members`, `auto.cofound`): a game puts them
   in an announce only while every server it joined lists `ix2` in its `welcome`. A client lists what it takes in its own
@@ -984,6 +987,7 @@ Nodes of one server, and nodes of different servers that sync, use the same tran
 | `want` | `ids` ([Id] max 4096) | Ids it lacks and wants |
 | `push` | `items` ([{rec, rcpt}] max 256) | Records, answering `want` or as they arrive |
 | `states` | `items` ([state] max 256) | Live states (5.11), newer than what this side had sent: below. Only to a peer whose `hello` or `welcome` listed `state` in `feats` |
+| `authority` | `file` (the authority file's text, at most 524288 bytes) | The newest authority file this side holds (11.5): on connect and whenever it takes a newer one. Only to a peer whose `hello` or `welcome` listed `authority` in `feats` |
 | `catalog` | `entries` | Gossip (10.8): its own entry always on connect (below), other entries on connect and whenever an entry changes, at most every 10 minutes |
 | `err`, `ping`, `pong` | | As above |
 
@@ -1708,6 +1712,18 @@ survives a restart without the site. A relay with no registry reads none. With t
    so. A relay does not dial them. Catalog entries (10.8) of a banned server are dropped and not passed on, nor are
    those whose `impl` lists only out-of-date nodes.
 3. Its own operators are told when their own relay is out of date or will be (log, `relay status`).
+
+**Passed between relays.** The file is signed, so whoever carries it does not matter: relays pass it on, and a ban
+reaches the federation in seconds without the site. A relay sends the file it holds in an `authority` message (9.4) to
+each peer that lists `authority` in its `feats`: when the session starts, and when it takes a newer file (to every
+such peer but the one it came from). The receiver checks it as above and takes it only when it is newer, so a file
+travels only while it is news and cannot loop. A file that does not check is answered with `err` and its code (the
+session goes on); one that is not newer is ignored. A relay MAY pace the files it checks from one peer (the reference
+relay: one per 10 s, `rate_limited` otherwise) and skips a file identical to the one it holds without checking it.
+Anyone may also hand a relay the file as a client (`authority`, 9.3), within a client frame, or on its own machine
+(`relay authority push FILE`); a relay that takes it passes it on the same way. The site's copy and a relayed copy are
+the same kind of file: the newest wins, whichever way it came. Two authority keys are pinned so that either can be
+dropped if it leaks: the site's, and one kept offline to sign files pushed straight into relays.
 
 **A game** fetches it (same origin, `federation/authority.json`) while multiplayer is on: when it starts and at most
 once an hour after that, keeping the newest it verified. With the file it holds:

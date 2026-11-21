@@ -126,3 +126,14 @@ test('an older or unsigned file never replaces a newer one, and the newest is ke
   assert.equal(await p.ev("fedGet('kv','authority').then(o=>o&&o.t)"), NOW - 60, 'kept in the store');
   assert.deepEqual(p.errors, []);
 });
+
+test('signing by hand needs a pinned key, and the bans as committed', () => {
+  const { execFileSync } = require('node:child_process');
+  const os = require('node:os'), fs = require('node:fs'), path = require('node:path');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'auth-')), keyFile = path.join(dir, 'x.key');
+  fs.writeFileSync(keyFile, crypto.randomBytes(32).toString('base64url') + '\n');
+  let err = '';
+  try { execFileSync(process.execPath, [require.resolve('../scripts/authority.js'), '--sign', '--key', keyFile, '--out', path.join(dir, 'a.json')], { encoding: 'utf8', stdio: 'pipe' }); } catch (e) { err = String(e.stderr); }
+  assert.match(err, /not one of the keys in federation\/authority-keys\.json|not committed/, 'an unpinned key signs nothing');
+  assert.ok(!fs.existsSync(path.join(dir, 'a.json')));
+});
