@@ -64,3 +64,28 @@ test('every city on the map is either a region metro or says why not', () => {
   assert.deepEqual(bad, []);
   assert.deepEqual(g.errors, []);
 });
+
+// Ashburn has a few hundred thousand people and the world's biggest cluster of data centers: a hub (at least
+// HS_HUB_FAC facilities in PeeringDB) holds a region whatever its size, on a grid built for the data centers.
+test('Ashburn, the data-center capital, holds a region on the biggest spare grid there is', () => {
+  const g = start();
+  assert.ok(g.ev("CITY.ash.P<HS_MIN_P"), 'still a small town by population');
+  assert.equal(g.ev("hsSite('ash')"), true);
+  assert.equal(g.ev("hsNeverWhy('ash')"), '');
+  assert.deepEqual(JSON.parse(g.ev("JSON.stringify(CITIES.filter(c=>hsHub(c.id)&&!siteOk(c.id,HS_MIN_P)).map(c=>c.id))")), ['ash'], 'the only town that is a hub');
+  // The grid is the data centers'; the town draws what a town its size does.
+  assert.ok(g.ev("hsGrid('ash')") >= 500, 'grid ' + g.ev("hsGrid('ash')"));
+  assert.ok(g.ev("hsTown('ash')") < 100);
+  const most = g.ev("CITIES.filter(c=>!c.off&&hsSite(c.id)).sort((a,b)=>(hsGrid(b.id)-hsTown(b.id))-(hsGrid(a.id)-hsTown(a.id))||(a.id<b.id?-1:1))[0].id");
+  assert.equal(most, 'ash', 'the most spare megawatts of any region metro');
+  // Other metros keep their grid.
+  for (const c of ['nyc', 'fra', 'lys']) assert.equal(g.ev(`hsGrid('${c}')`), g.ev(`hsGridP('${c}')`));
+  // A region there, from the Cloud view.
+  for (const w of [1280, 360]) assert.doesNotMatch(rg(g, 'ash', w), /Never a region here/);
+  g.ev("ACT.buildPop({city:'ash'});ACT.buyTransit({city:'ash',net:'cog',tier:1});ACT.hsRegion({city:'ash'})");
+  assert.ok(g.ev("!!S.hs.rg.ash"), 'a region in Ashburn');
+  // It survives a save round trip.
+  g.ev("const t=JSON.parse(JSON.stringify(S));S=sanitize(t);compute()");
+  assert.ok(g.ev("!!S.hs.rg.ash"));
+  assert.deepEqual(g.errors, []);
+});

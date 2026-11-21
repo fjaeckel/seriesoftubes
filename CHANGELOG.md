@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- As the Hyperscaler, Ashburn can now hold a region. It is a small town, but no place has more data centers, so its grid is built for them and has more spare megawatts than any other region metro.
+
 - As the Hyperscaler, an AI lab's training run now pays half its fee as the data moves and the rest on time at the end. Before, the whole fee came at the end while the run's GPUs and power cost every day, which could sink a cloud that served the run just fine.
 - As the Hyperscaler, a training run offer now says what it costs a month while it runs and about how much in all, in red when that is more than your cash. The money breakdown shows training runs on their own line.
 

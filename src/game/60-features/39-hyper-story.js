@@ -58,7 +58,7 @@ const HS_GD_KEY='sot-tut-hs';
 const hsGdTab=t=>`#panel [data-act="tab"][data-args*='"${t}"']`,HS_GD_FOCUS='#coach [data-act="focusCity"]';
 const hsGdCc=()=>CITY[S.home].cc;
 // Where a second region would go: the POP of yours nearest home in a region metro, else such a metro.
-function hsGdRgAt(){const H=S.hs,mine=Object.keys(S.pops).filter(c=>!H.rg[c]&&hsSite(c)),L=mine.length?mine:CITIES.filter(C=>!C.off&&!H.rg[C.id]&&siteOk(C.id,HS_MIN_P)).map(C=>C.id);
+function hsGdRgAt(){const H=S.hs,mine=Object.keys(S.pops).filter(c=>!H.rg[c]&&hsSite(c)),L=mine.length?mine:CITIES.filter(C=>!C.off&&!H.rg[C.id]&&hsMetro(C.id)).map(C=>C.id);
   let b=null,bk=Infinity;for(const c of L){const km=kmBetween(S.home,c);if(km<bk||km===bk&&c<b){bk=km;b=c;}}return b;}
 // The region the replica and the drill are about: home if it is live, else the first live one.
 const hsGdRg1=()=>{const rs=hsRgs();return rs.includes(S.home)?S.home:rs[0]||S.home;};

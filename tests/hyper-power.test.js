@@ -33,11 +33,14 @@ const barnOn = (ev, d, gw = 0) => ev(`S.day=${d};Object.assign(S.hs.dir,{c:null,
 
 test('grid budgets are seeded per metro, 40 to 600 MW, bigger in big metros, shared with the town', () => {
   const { ev, errors } = start();
-  const g = J(ev, "CITIES.filter(c=>!c.off&&hsSite(c.id)).map(c=>[c.id,c.P,hsGrid(c.id),hsTown(c.id)])");
+  const g = J(ev, "CITIES.filter(c=>!c.off&&hsSite(c.id)).map(c=>[c.id,c.P,hsGrid(c.id),hsTown(c.id),hsGridP(c.id)])");
   assert.ok(g.length > 20);
-  for (const [, , cap, town] of g) {
+  for (const [id, , cap, town, capP] of g) {
     assert.ok(cap >= 40 && cap <= 600, `cap ${cap}`);
-    assert.ok(town >= cap * 0.5 - 1 && town <= cap * 0.7 + 1, 'the town draws half to seven tenths');
+    // The town draws half to seven tenths of what a grid for its people would be: the whole grid, except in a
+    // data-center town (Ashburn), whose grid was built for the data centers.
+    assert.ok(town >= capP * 0.5 - 1 && town <= capP * 0.7 + 1, 'the town draws half to seven tenths');
+    if (id !== 'ash') assert.equal(cap, capP);
   }
   const by = g.slice().sort((a, b) => a[1] - b[1]), q = Math.floor(by.length / 4), avg = (L) => L.reduce((a, x) => a + x[2], 0) / L.length;
   assert.ok(avg(by.slice(-q)) > avg(by.slice(0, q)) + 50, 'big metros have bigger grids');

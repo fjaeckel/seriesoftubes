@@ -59,7 +59,7 @@ function hsLawPick(d){const H=S.hs,L=H.law,out=[];
   if(!L.egr&&lvl()>=HS_EGR_LV&&hsEgrTen().length)out.push(['egr','']);
   return out;}
 // A country with users and no localisation law yet can only get one if a region could be built there.
-const hsResSiteCc=cc=>CITIES.some(C=>C.cc===cc&&!C.off&&(C.id===S.home||siteOk(C.id,HS_MIN_P)));
+const hsResSiteCc=cc=>CITIES.some(C=>C.cc===cc&&!C.off&&(C.id===S.home||hsMetro(C.id)));
 // Whether a region in the country is already built or being built (the law would then change nothing worth announcing),
 // and whether one is ready (the law is met).
 const hsResMet0=cc=>Object.keys(S.hs.rg).some(r=>CITY[r].cc===cc);

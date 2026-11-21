@@ -37,7 +37,12 @@ const hsLic=cc=>{const I=ccInfo(cc);return I?Math.round((8000+I.P*6)/1000)*1000:
 const hsWhy=cc=>{const I=ccInfo(cc);if(!I||!I.nets.length)return tr('hyper.nobody_online_here');if(I.cn)return tr('hyper.great_firewall');return '';};
 const hsUsers=()=>S.hs?Object.values(S.hs.cc).reduce((a,x)=>a+x.d,0):0;
 // Regions: where they may go, how many your level allows, which are live.
-const hsSite=c=>c===S.home||siteOk(c,HS_MIN_P);
+/* A region metro: a data-center city big enough (HS_MIN_P), or a data-center hub whatever its size, with at least
+   HS_HUB_FAC carrier-neutral facilities in PeeringDB (CITY_PDB): Ashburn, a town that is the world's biggest cluster. */
+const HS_HUB_FAC=40;
+const hsHub=c=>!!CITY[c]&&!!CITY[c].dc&&!CITY[c].cn&&((CITY_PDB[c]||[0])[0]|0)>=HS_HUB_FAC;
+const hsMetro=c=>siteOk(c,HS_MIN_P)||hsHub(c);
+const hsSite=c=>c===S.home||hsMetro(c);
 // Why a city can never hold a region (its size and country never change), and the nearest that can.
 const hsNeverWhy=c=>hsSite(c)?'':CITY[c].cn?'cn':'small';
 function hsNearSite(c){let b=null,bk=Infinity;for(const C of CITIES){if(C.off||C.id===c||!hsSite(C.id))continue;const k=kmBetween(c,C.id);if(k<bk||k===bk&&C.id<b){bk=k;b=C.id;}}return b;}
@@ -66,7 +71,11 @@ const hsTen=()=>S.biz.filter(b=>b.type==='cloud');
 const hsSlotsUsed=c=>hsTen().filter(b=>b.rg===c).length+hsTrainSlotsAt(c);
 const hsSlotFree=()=>hsRgs().some(r=>hsSlotsUsed(r)<hsSlots(r));
 // The grid a metro has for everyone, town included (seeded, 40 to 600 MW; power itself comes later).
-const hsGrid=c=>Math.round(clamp(40+CITY[c].P*0.25+hstr('grid|'+c)%120,40,600));
+const hsGridP=c=>Math.round(clamp(40+CITY[c].P*0.25+hstr('grid|'+c)%120,40,600));
+// A data-center town (a hub too small to be a metro, hsHub): its grid was built for the data centers, HS_HUB_MW per
+// facility, while the town itself still draws what a town its size does (hsTown reads hsGridP).
+const HS_HUB_MW=6;
+const hsGrid=c=>hsHub(c)&&!siteOk(c,HS_MIN_P)?Math.round(clamp(40+(CITY_PDB[c][0]|0)*HS_HUB_MW,40,600)):hsGridP(c);
 // The region a tenant in city c is served from: the nearest live one with a free compute slot, else the nearest. p: its
 // products; Very Sovereign Cloud only ever lives in its own country (38-hyper-residency.js).
 function hsRgFor(c,skip,p){const rs=hsRgs().filter(r=>hsTenResOk(p,c,r)).sort((a,b)=>kmBetween(a,c)-kmBetween(b,c)||(a<b?-1:1));return rs.find(r=>r!==skip&&hsSlotsUsed(r)<hsSlots(r))||rs[0]||null;}
@@ -206,7 +215,7 @@ CX_FLOW.push(hsFlows);CX_POST.push(hsPost);CX_MONEY.push(hsMoney);
 // Saves: only a Hyperscaler keeps S.hs (and cloud tenants), and every field of it is checked here.
 function hsSanitize(s){if(s.charter!=='hyper'){delete s.hs;s.biz=s.biz.filter(b=>b.type!=='cloud');s.offers=s.offers.filter(o=>o.type!=='cloud');return;}
   const h0=s.hs&&typeof s.hs==='object'&&!Array.isArray(s.hs)?s.hs:{},o={},n=(v,d)=>Number.isFinite(+v)?+v:d,obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
-  o.rg={};if(obj(h0.rg))for(const k of Object.keys(h0.rg).slice(0,40)){const x=h0.rg[k];if(isCity(k)&&s.pops[k]&&obj(x)&&(k===s.home||siteOk(k,HS_MIN_P))){o.rg[k]=siteFix(x,+x.t===HS_CAGE?HS_T.length:HS_CAGE);o.rg[k].mw=HS_T[o.rg[k].t].mw;}}
+  o.rg={};if(obj(h0.rg))for(const k of Object.keys(h0.rg).slice(0,40)){const x=h0.rg[k];if(isCity(k)&&s.pops[k]&&obj(x)&&(k===s.home||hsMetro(k))){o.rg[k]=siteFix(x,+x.t===HS_CAGE?HS_T.length:HS_CAGE);o.rg[k].mw=HS_T[o.rg[k].t].mw;}}
   if(s.pops[s.home]&&!o.rg[s.home]&&!Object.keys(o.rg).length)o.rg[s.home]={t:0,ready:0,mw:HS_T[0].mw};
   o.cc={};if(obj(h0.cc))for(const k of Object.keys(h0.cc).slice(0,250)){const x=h0.cc[k];if(ccInfo(k)&&!hsWhy(k)&&obj(x)){o.cc[k]={d:clamp(n(x.d,1),0,1e6),since:Math.round(n(x.since,0))};if(isCity(x.home))o.cc[k].home=x.home;}}
   o.edge={};if(obj(h0.edge))for(const k of Object.keys(h0.edge).slice(0,500))if(isCity(k)&&s.pops[k]&&h0.edge[k])o.edge[k]=1;

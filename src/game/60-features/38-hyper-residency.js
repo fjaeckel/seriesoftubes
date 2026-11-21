@@ -16,7 +16,7 @@ function hsResOk(cc,r){const k=hsResOf(cc);if(!k)return true;const rc=CITY[r]&&C
 // A region they may use is built (live or not): until then they are held at their launch size.
 function hsResMet(cc){const H=S.hs;if(!H||!hsResOf(cc))return true;return Object.keys(H.rg).some(r=>H.rg[r].ready<=S.day&&hsResOk(cc,r));}
 // Could such a region ever be built in the country (or bloc)? A country with no data-center metro is out of luck.
-const hsResSite=cc=>hsResOf(cc)==='eu'||CITIES.some(C=>C.cc===cc&&!C.off&&(C.id===S.home||siteOk(C.id,HS_MIN_P)));
+const hsResSite=cc=>hsResOf(cc)==='eu'||CITIES.some(C=>C.cc===cc&&!C.off&&(C.id===S.home||hsMetro(C.id)));
 // A tenant's products p in city c, served from region r: Very Sovereign Cloud stays in the country.
 const hsTenResOk=(p,c,r)=>!Array.isArray(p)||!p.includes('sov')||CITY[r].cc===CITY[c].cc;
 /* Homing (hsFlows): a country's users may go to region r if the law allows it and, when their home region is out

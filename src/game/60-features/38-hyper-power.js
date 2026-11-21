@@ -35,7 +35,7 @@ const hsPwMk=c=>S.hs.pw[c]||(S.hs.pw[c]=hsPwDef(c));
 const hsEv=c=>{const H=S.hs,g=CITY[c]&&CITY[c].reg;return H&&Array.isArray(H.pev)?H.pev.filter(e=>e.reg===g&&e.until>S.day):[];};
 const hsEvF=(c,k)=>hsEv(c).reduce((a,e)=>a*HS_PEV[e.k][k],1);
 // The town's own draw, MW: half to seven tenths of the grid it started with, more in a heatwave (air conditioning).
-const hsTown=c=>Math.round(hsGrid(c)*(0.5+hstr('town|'+c)%21/100)*hsEvF(c,'town'));
+const hsTown=c=>Math.round(hsGridP(c)*(0.5+hstr('town|'+c)%21/100)*hsEvF(c,'town'));
 // What the metro can give: the grid plus your own generation that runs.
 const hsGenMw=c=>hsPw(c).own.reduce((a,x)=>a+(x.ready<=S.day?HS_GEN[x.k].mw:0),0);
 const hsSupply=c=>hsPw(c).cap+hsGenMw(c);
@@ -113,7 +113,7 @@ CX_DAY.push(hsPwDay);
 // A new Hyperscaler: power for the home metro, no protests, no events.
 CX_NEW.push(o=>{o.pw={};for(const c in o.rg)o.pw[c]=hsPwDef(c);o.prot={};o.pev=[];});
 // Saves: every power field repaired; old Hyperscaler saves get seeded defaults for every region's metro.
-CX_SAN.push((h0,o,s)=>{const n=(v,d)=>Number.isFinite(+v)?+v:d,obj=v=>v&&typeof v==='object'&&!Array.isArray(v),okC=k=>isCity(k)&&(k===s.home||siteOk(k,HS_MIN_P));
+CX_SAN.push((h0,o,s)=>{const n=(v,d)=>Number.isFinite(+v)?+v:d,obj=v=>v&&typeof v==='object'&&!Array.isArray(v),okC=k=>isCity(k)&&(k===s.home||hsMetro(k));
   o.pw={};if(obj(h0.pw))for(const k of Object.keys(h0.pw).slice(0,200)){const x=h0.pw[k];if(!okC(k)||!obj(x))continue;const D=hsPwDef(k),P=o.pw[k]={cap:clamp(Math.round(n(x.cap,D.cap)),10,5000),q:null,gw:clamp(Math.round(n(x.gw,D.gw)),0,100),own:[]};
     if(obj(x.q))P.q={mw:clamp(Math.round(n(x.q.mw,HS_Q_MW)),1,1000),ready:Math.round(n(x.q.ready,0)),late:x.q.late?1:0};
     if(Array.isArray(x.own))for(const g of x.own.slice(0,8))if(obj(g)&&own(HS_GEN,g.k)&&P.own.filter(y=>y.k===g.k).length<HS_GEN[g.k].max)P.own.push({k:g.k,ready:Math.round(n(g.ready,0))});

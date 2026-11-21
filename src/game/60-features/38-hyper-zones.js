@@ -96,7 +96,7 @@ function hsColoOutWhy(c){const d=S.hs&&S.hs.rg[c];if(!d||d.t!==HS_CAGE)return tr
 // The power line of a cage's city (56-hyper-power.js).
 function hsColoPwLine(c){if(!hsIsCage(c))return '';return `<p class="meta">🔌 ${tr('hyper_colo.pw_line',{prov:tr(hsColoP(c)),mw:+hsColoMw(c).toFixed(1),price:fmt$(hsColoPrice(c)),p:Math.round((HS_COLO_MARK-1)*100),mo:fmt$(hsColoPw(c))})}</p>`;}
 // Where a cage would go to help region c: your POP nearest it in a region metro without a region, else such a metro.
-function hsColoAt(c){const H=S.hs,mine=Object.keys(S.pops).filter(x=>!H.rg[x]&&hsSite(x)),L=mine.length?mine:CITIES.filter(C=>!C.off&&!H.rg[C.id]&&siteOk(C.id,HS_MIN_P)).map(C=>C.id);
+function hsColoAt(c){const H=S.hs,mine=Object.keys(S.pops).filter(x=>!H.rg[x]&&hsSite(x)),L=mine.length?mine:CITIES.filter(C=>!C.off&&!H.rg[C.id]&&hsMetro(C.id)).map(C=>C.id);
   let b=null,bk=Infinity;for(const x of L){const km=kmBetween(c,x);if(km<bk||km===bk&&x<b){bk=km;b=x;}}return b;}
 /* A day: zones open (with the lesson), and zones of a region that is gone go with it. */
 function hsAzDay(d){const H=S.hs;if(!H||!hyper())return;if(!H.az)H.az={};
