@@ -48,7 +48,7 @@ function hsFailFire(){const rs=hsRgs();if(rs.length<2)return false;const c=pick(
 // The fine for lost data: a base and a price per TB lost, at most HS_LOSS_MAX, and never more than HS_LOSS_MO months of
 // revenue, and never more than leaves you $50k in the red (a young cloud's lost cat photos make the news, not a
 // bankruptcy court: the users who leave are the real price).
-const hsLossFee=lag=>Math.round(Math.min(HS_LOSS_MAX,HS_LOSS_FEE+lag*HS_LOSS_TB,Math.max(HS_LOSS_FEE,HS_LOSS_MO*(R.revMo||0)),Math.max(0,S.cash+50000)));
+const hsLossFee=lag=>Math.round(Math.min(HS_LOSS_MAX,HS_LOSS_FEE+lag*HS_LOSS_TB,HS_LOSS_MO*(R.revMo||0),Math.max(0,S.cash+50000)));
 /* The moment of failure: what the region still owed its replica is checked now. Over HS_RISK TB it is gone, and so are
    HS_LOSS of the users homed there. */
 function hsFailStart(c){const H=S.hs;if(H.out[c])return;const lag=hsLagAt(c),lost=lag>HS_RISK,cc=hsHomedAt(c),b=hsRepOf(c);

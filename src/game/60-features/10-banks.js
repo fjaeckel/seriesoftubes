@@ -104,6 +104,8 @@ function rescueLoan(){const amount=niceAmt(Math.max(250000,-S.cash+Math.max(1500
   S.cash+=amount;S.stats.rescues=(S.stats.rescues||0)+1;S.neg=0;
   S.loans.push({id:uid(),bank:'gov',start:S.day,amount,got:amount,bal:amount,apr:RESCUE_APR,apr0:RESCUE_APR,pay:Math.round(annuity(amount,RESCUE_APR,RESCUE_TERM)),left:RESCUE_TERM,term:RESCUE_TERM,share:0,covs:[],base:{sub:S.links.filter(x=>x.sub).length}});
   track('rescue');toast(`<b>${tr('banks.bank_stepped_in',{bank:esc(BANKS.gov.name)})}</b><br>${tr('banks.a_rescue_loan_of_amount_keeps',{amount:fmt$(amount),pay:fmt$(Math.round(annuity(amount,RESCUE_APR,RESCUE_TERM)))})}`,'bad',[{l:tr('common.open_bank'),act:'bank',args:{}}]);sfx('coin');}
+// What the balloon will take on its last statement: the balance after the payments still to come (a transit loan: all of it).
+function balloonDue(l){if(l.model==='transit')return Math.round(l.bal);let b=l.bal;for(let i=0;i<l.left;i++)b=Math.max(0,b*(1+l.apr/12)-l.pay);return Math.round(b);}
 function loanTick(d){
   // conditions: 15-day grace, then a penalty every 30 days while broken
   for(const l of S.loans){const B=BANKS[l.bank];
@@ -115,6 +117,13 @@ function loanTick(d){
       if(B.equity){l.share=+(l.share+0.02).toFixed(3);toast(tr('banks.bank_are_circling_they_now_take',{bank:esc(B.name),pct:pct(l.share)}),'bad');}
       else{const fee=Math.round(l.bal*0.05);l.bal+=fee;l.pay=Math.round(annuity(l.bal,l.apr,Math.max(1,l.left)));S.loanStrikes=(S.loanStrikes||0)+1;toast(tr('banks.penalty_from_bank_fee_added_to',{bank:esc(B.name),fee:fmt$(fee),pay:fmt$(l.pay)}),'bad');if(B.pie)pieEximBreach(l,broken);}
       sfx('err');}}
+  /* A balloon is due all at once, and with it the bankruptcy check the same evening: the bank writes about two months,
+     one month and a week ahead, with what it will take and whether that would sink you. A statement with left===1 is
+     the one that pops (the statements below run after this). */
+  for(const l of S.loans){if(BANKS[l.bank].equity||!(l.model==='balloon'||l.model==='transit'))continue;
+    const mv=monthiversary(l.start,d)&&(l.left===2||l.left===3),wk=l.left===1&&monthiversary(l.start,d+7);if(!mv&&!wk)continue;
+    const due=balloonDue(l),days=wk?7:(l.left-1)*30,bust=S.cash-due<-100000;if(due<1)continue;
+    toast(tr(bust?N_('banks.balloon_due_would_bankrupt'):N_('banks.balloon_due_soon'),{bank:esc(BANKS[l.bank].name),price:fmt$(due),days,cash:fmt$(Math.max(0,S.cash))}),bust?'bad':'',[{l:tr('common.open_bank'),act:'bank',args:{}}]);}
   // monthly statement: payments already leave your cash daily as part of costs
   for(const l of S.loans.slice()){const B0=BANKS[l.bank];if(B0.equity||!monthiversary(l.start,d))continue;
     if(l.model==='transit')l.bal=Math.max(0,l.bal-Math.round(((R.cost&&R.cost.transit)||0)*(l.cut||0.3)));else l.bal=Math.max(0,l.bal*(1+l.apr/12)-l.pay);l.left--;

@@ -86,7 +86,7 @@ test('backlog over the limit at the moment of failure is lost data: users leave,
   assert.equal(ev('S.hs.cc.FR.d'), fr, 'users homed elsewhere stay');
   assert.equal(ev("S.hs.lag['fra>ams']"), undefined, 'the backlog is gone with them');
   assert.equal(ev("S.hs.lag['par>fra']"), 999, 'what Paris owes Frankfurt is not');
-  assert.ok(cash - ev('S.cash') >= ev('HS_LOSS_FEE'), 'a fine');
+  assert.ok(cash - ev('S.cash') >= Math.min(ev('HS_LOSS_FEE'), ev('R.revMo')) - 1, 'a fine: the base, or a month of revenue for a young cloud');
   assert.match(ev("(S.log||[]).map(x=>x.t).join(' ')"), /📰|BREAKING|HEADLINE|SCANDAL|TRAGEDY/);
   // When it is back, it does not count as survived.
   ev('S.hs.down.fra=0;dayTick()');

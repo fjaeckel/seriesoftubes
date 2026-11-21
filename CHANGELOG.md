@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- A balloon loan no longer bankrupts you out of the blue. The bank now writes about two months, one month and a week before it takes the whole balance in one go, and says plainly when that would sink you.
+- The bankruptcy screen now lists what went wrong that day, so you can see what sank you.
+- As the Hyperscaler, losing data in a failover now costs a young cloud at most a month of its revenue, instead of at least $250k.
+
 ## [5.1.1] — 2026-11-21
 
 - As the Hyperscaler, a city's Cloud view now tells you whether a region can ever go there. Cities too small, or behind the Great Firewall, say "Never a region here" and name the nearest city that can hold one, even before you open a POP; cities that fit say a POP comes first.
