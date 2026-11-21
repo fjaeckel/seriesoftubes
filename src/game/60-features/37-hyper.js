@@ -32,7 +32,15 @@ const HS_LV_PK=[0,150,600,1200,2000,3500,5000,7000,9500,12500,16000,20000,25000]
 const HS_LV_RG=[0,1,2,2,3,4,5,6,7,8,9,10,12],HS_LV_CT=[0,0,0,1,2,2,3,3,4,4,5,5,5];
 function hsNew(){return cxNew({cc:{},rg:{[S.home]:{t:0,ready:0,mw:HS_T[0].mw}},edge:{},t1:0,won:0});}
 // Countries: how many users they could ever have, what launching costs, and why not.
-const hsPot=cc=>{const I=ccInfo(cc);return I?I.P*HS_POT*eraMul()*cxMul('pot',cc):0;};
+/* What a country's users could ask for. Clouds grow faster than the internet around them (video, AI apps, everything
+   moving to the cloud): on top of the eras, HS_DEM more of it with every level, about three times as much at the top.
+   hsPotB is the same without that growth: past it, each Gbps pays less (hsRateF), so three times the users bring about
+   1.7 times the money while they need three times the regions and backbone. */
+const HS_DEM=0.175;
+const hsDemF=()=>1+(Math.max(1,lvl())-1)*HS_DEM;
+const hsPotB=cc=>{const I=ccInfo(cc);return I?I.P*HS_POT*eraMul()*cxMul('pot',cc):0;};
+const hsPot=cc=>hsPotB(cc)*hsDemF();
+const hsRateF=cc=>{const d=S.hs.cc[cc].d,B=hsPotB(cc);return d>B&&B>0?Math.sqrt(B/d):1;};
 const hsLic=cc=>{const I=ccInfo(cc);return I?Math.round((8000+I.P*6)/1000)*1000:0;};
 const hsWhy=cc=>{const I=ccInfo(cc);if(!I||!I.nets.length)return tr('hyper.nobody_online_here');if(I.cn)return tr('hyper.great_firewall');return '';};
 const hsUsers=()=>S.hs?Object.values(S.hs.cc).reduce((a,x)=>a+x.d,0):0;
@@ -114,6 +122,15 @@ function hsFlows(R2,flow,DEMTO,X){const H=S.hs;if(!H||!hyper())return null;
   // Users homed in a region that is out tonight may only go to its replica (38-hyper-failover.js); residency pins
   // others to their country or bloc (38-hyper-residency.js). fo: each region out tonight and the replica that takes over.
   const fo=out.fo={};for(const c in H.rg)if(hsOut(c))fo[c]=hsRepOf(c,rgs,ms);out.blk=0;
+  /* Room held for failover (S.hs.hold, the player's choice per region): a region keeps free what the regions that
+     replicate to it carried last evening, so a failover finds room; nobody grows into it. While one of them is failed
+     over, the held room (FOR) goes only to its users and tenants (it is what the room is for). */
+  const FOR={},foIn=r=>Object.values(fo).includes(r);
+  for(const r of rgs){if(!(H.hold&&H.hold[r]))continue;const o=out.rg[r];o.res=0;
+    for(const a of rgs)if(a!==r&&(out.rg[a].rep===r||fo[a]===r))o.res+=(R&&R.hs&&R.hs.rg&&R.hs.rg[a]?R.hs.rg[a].load:0);o.res=Math.min(o.res,room[r]);room[r]-=o.res;
+    if(foIn(r)){FOR[r]=o.res;o.res=0;}}
+  // Room a placement may use: the region's own, and the held room when it comes from a failed-over partner (fx).
+  const avail=(r,fx)=>room[r]+(fx?FOR[r]||0:0),takeRoom=(r,x,fx)=>{if(fx&&FOR[r]){const a=Math.min(FOR[r],x);FOR[r]-=a;x-=a;}room[r]-=x;};
   // Front doors your backbone joins to at least one live region.
   const doors=Object.keys(S.pops).filter(hsDoor).sort().filter(d=>rgs.some(r=>ms(r,d)<Infinity));
   const add=(c,j,x,bz)=>{if(x<=1e-9)return;flow(CIDX[c],j,x,false,bz);R2.cityDem[c]=(R2.cityDem[c]||0)+x;R2.demand+=x;DEMTO[j]+=x;};
@@ -124,8 +141,8 @@ function hsFlows(R2,flow,DEMTO,X){const H=S.hs;if(!H||!hyper())return null;
     const r=hsTenRg(b,fo),T={r,v:null,want:0,f:0,ms:Infinity,r2:null,got:0,hw:0};out.ten[b.id]=T;if(!r)continue;
     const v=doors.includes(b.city)&&ms(r,b.city)<Infinity?b.city:doors.filter(d=>ms(r,d)<Infinity).sort((a,c)=>kmBetween(a,b.city)-kmBetween(c,b.city)||(a<c?-1:1))[0];if(!v)continue;
     // A game studio's launch day multiplies its traffic (hsSpike, 38-hyper-freeze.js).
-    const bw=b.bw*hsSpike(b),sh=cloudShape(b.p),es=H.edge[v]?bw*sh.eo:0,dyn=bw*sh.out-es,inn=bw*sh.in,want=dyn+inn,f=want>1e-9?Math.min(1,room[r]/want):1;
-    room[r]-=want*f;out.rg[r].load+=want*f;T.v=v;T.want=want;T.f=f;T.ms=ms(r,v)*(H.edge[v]?0.5:1)+hsAcc(v,b.city);T.es=es;
+    const bw=b.bw*hsSpike(b),sh=cloudShape(b.p),es=H.edge[v]?bw*sh.eo:0,dyn=bw*sh.out-es,inn=bw*sh.in,want=dyn+inn,fx=!!b.rg&&fo[b.rg]===r,f=want>1e-9?Math.min(1,avail(r,fx)/want):1;
+    takeRoom(r,want*f,fx);out.rg[r].load+=want*f;T.v=v;T.want=want;T.f=f;T.ms=ms(r,v)*(H.edge[v]?0.5:1)+hsAcc(v,b.city);T.es=es;
     for(const [j,w] of nets)add(v,j,es*w,true);
     let lo=X.nf();for(const [j,w] of nets)add(v,j,dyn*f*w,true);job(r,v,dyn*f,lo,'out',b.id);if(r!==v)T.hw+=dyn*f;
     // Ingest rides the same path the other way. Copies between two regions (databases, clusters, the archive's night
@@ -150,7 +167,7 @@ function hsFlows(R2,flow,DEMTO,X){const H=S.hs;if(!H||!hyper())return null;
       for(const r of rgs){if(!hsHomeOk(cc,r,fo))continue;ok=true;const m=ms(r,v);if(m<Infinity)pairs.push([m,cc,r,k]);}}
     if(!ok)o.blk=1;}
   pairs.sort((a,b)=>a[0]-b[0]||(a[3]<b[3]?-1:a[3]>b[3]?1:0)||(a[2]<b[2]?-1:1));
-  for(const [m,cc,r,k] of pairs){const take=Math.min(left[k],room[r]);if(take<=1e-9)continue;left[k]-=take;room[r]-=take;out.rg[r].load+=take;out.rg[r].u+=take;
+  for(const [m,cc,r,k] of pairs){const hm=H.cc[cc].home,fx=!!hm&&fo[hm]===r,take=Math.min(left[k],avail(r,fx));if(take<=1e-9)continue;left[k]-=take;takeRoom(r,take,fx);out.rg[r].load+=take;out.rg[r].u+=take;
     const o=out.cc[cc],x=ZN[k],v=x.v;if(!o.home)o.home=r;const lo=X.nf();for(const [j,w] of NT[cc])add(v,j,take*w,false);
     const bb=H.edge[v]?m*0.5:m*(1-0.5*FH[cc]);for(const [z,f] of x.zs)o.parts.push([v,take*f/x.f,hsAcc(v,z)+bb,r]);if(r!==v){job(r,v,take,lo,'u',cc);o.want+=take;}}
   // Users with nowhere they may be homed are not short of room: they wait for a region they may use (blk).
@@ -164,7 +181,7 @@ function hsPost(R2,J){const out=R2.hs;if(!out)return;const hl=out.hl={};for(cons
 // How well a country is served: what reached it from each part, times how its latency feels.
 // A part served in a partner's network (an edge node, p[4]) is served in full.
 function hsQ(r,cc){const o=r&&r.hs&&r.hs.cc[cc];if(!o||o.D<=1e-9)return 1;let q=0;for(const p of o.parts)q+=p[1]*(p[4]?1:sfOf(r,p[0]))*hsLatF(p[2]);return clamp(q/o.D,0,1);}
-const hsRev=(r,cc)=>S.hs.cc[cc].d*hsQ(r,cc)*HS_RATE*cxMul('rev',cc);
+const hsRev=(r,cc)=>S.hs.cc[cc].d*hsQ(r,cc)*HS_RATE*hsRateF(cc)*cxMul('rev',cc)*hsFreshF(r);
 /* A tenant's products, each scored on its own need, times what was served; the bundle sits closer to its worst product
    than to the average (one neglected product sours the lot). */
 function hsNeedQ(r,b,id){const T=r&&r.hs&&r.hs.ten[b.id],P=CLOUD_PRODUCTS[id];if(!T||!T.v||!P)return 0;const H=S.hs,rg=H.rg[T.r];

@@ -67,6 +67,8 @@ function hsDiverse(X,Ai,Bi){const p1=walkI(X.SPP[CITIES[Ai].id],Ai,Bi),used=new 
   return s2.D[Bi]===Infinity?[{...p1,share:1}]:[{...p1,share:0.5},{...walkI(s2.P,Ai,Bi),share:0.5}];}
 function hsBulk(R2,X){const H=S.hs,out=R2.hs;if(!out)return;const rep={},jobs={};out.rep=rep;out.jobs=jobs;out.btw=0;
   const rgs=Object.keys(out.rg);let TER;const te=()=>TER===undefined?(TER=X.te()):TER;
+  // The data lake's load by link pair (a|b): it pauses in a failover, so the failover's headroom counts it free (hsWide).
+  const LK=out.lakeL={};
   const carve=(A,B,id,want,mode,lab)=>{const r={got:0,ms:0,paths:[],te:false};const Ai=CIDX[A],Bi=CIDX[B];
     if(!(want>1e-9)||A===B||!X.SPD[A]||!(X.SPD[A][Bi]<Infinity))return r;
     const b={id,bw:want,route:mode==='scenic'?'scenic':'normal',latMax:0},routes=mode==='diverse'?hsDiverse(X,Ai,Bi):X.routes(A,B,b),ek='l2:'+id;
@@ -76,7 +78,8 @@ function hsBulk(R2,X){const H=S.hs,out=R2.hs;if(!out)return;const rep={},jobs={}
     let left=want;const got=new Map();
     // Each path takes its share first, then whatever is still wanted where room is left.
     for(const pass of [0,1])for(const x of routes){let a=pass?left:Math.min(left,want*x.share);for(const e of x.path)a=Math.min(a,e.res);for(const i of x.ni)if(X.HAS[i])a=Math.min(a,X.NRES[i]);
-      if(!(a>1e-9))continue;for(const i of x.ni)if(X.HAS[i])X.nodeTake(i,a);for(const e of x.path){e.res-=a;e.ld+=a;X.carry(e,ek,X.NN+1,Bi,a);}left-=a;got.set(x,(got.get(x)||0)+a);}
+      if(!(a>1e-9))continue;for(const i of x.ni)if(X.HAS[i])X.nodeTake(i,a);for(const e of x.path){e.res-=a;e.ld+=a;X.carry(e,ek,X.NN+1,Bi,a);}left-=a;got.set(x,(got.get(x)||0)+a);
+      if(LK&&id.startsWith('hs:lake'))for(let i=1;i<x.ni.length;i++){const p=CITIES[x.ni[i-1]].id,q=CITIES[x.ni[i]].id,k=p<q?p+'|'+q:q+'|'+p;LK[k]=(LK[k]||0)+a;}}
     for(const [x,a] of got){r.paths.push({ns:hsFrom(x.ni.map(i=>CITIES[i].id),A),share:a/want});r.ms=Math.max(r.ms,x.path.reduce((s,e)=>s+e.lat,0)+x.path.length*0.05);}
     r.got=want-left;return r;};
   // Replication, region by region.
@@ -88,8 +91,25 @@ function hsBulk(R2,X){const H=S.hs,out=R2.hs;if(!out)return;const rep={},jobs={}
   const runs=H.jobs.map(j=>['job',j]).concat(H.own.map(m=>['own',m])).sort((x,y)=>x[1].due-y[1].due||(x[1].id<y[1].id?-1:1));
   for(const [k,j] of runs){const live=rgs.includes(j.a)&&rgs.includes(j.b),want=live?Math.min(j.g,Math.max(0,j.tb-j.done)/TB_DAY):0,mode=H.pp[hsPk(j.a,j.b)]||'';
     const x=live?carve(j.a,j.b,'hs:'+j.id,want,mode,labOf(N_('hyper_traffic.ek_train'),'city',CITY[j.b].name)):{got:0,ms:0,paths:[],te:false};
-    jobs[j.id]={k,a:j.a,b:j.b,want,got:x.got,ms:x.ms,mode,te:x.te,paths:x.paths,due:j.due};out.btw+=x.got;}}
+    jobs[j.id]={k,a:j.a,b:j.b,want,got:x.got,ms:x.ms,mode,te:x.te,paths:x.paths,due:j.due};out.btw+=x.got;}
+  // The data lake, last of the bulk classes: every other region ships its logs, analytics and training data there.
+  const L=hsLakeAt(rgs),lf=hsLakeF(),lk=out.lake={c:L,want:0,got:0,rg:{}};
+  // Bulk analytics wait while a region is failed over: everything the backbone has goes to the failover.
+  if(L&&lf>0&&!Object.keys(out.fo||{}).length)for(const a of rgs){if(a===L)continue;const want=(out.rg[a].u||0)*lf;if(!(want>1e-9))continue;
+    const x=carve(a,L,'hs:lake>'+a,want,H.pp[hsPk(a,L)]||'',labOf(N_('hyper_traffic.ek_lake'),'city',CITY[L].name));
+    lk.rg[a]={want,got:x.got,ms:x.ms,paths:x.paths};lk.want+=want;lk.got+=x.got;out.btw+=x.got;}}
 hsBulk.on=()=>!!S.hs&&hyper();
+/* East-west traffic, as real clouds have it: more moves between their own data centers than out to users (Google's B4
+   carries more than its internet-facing B2; Meta split its data-center-to-data-center traffic onto the Express
+   Backbone). Besides replication, every region ships HS_LAKE of its users' traffic, growing with the level, to the
+   data lake: the biggest region (most room, then id). What does not arrive makes recommendations and ads stale:
+   revenue falls by up to HS_LAKE_REV with the share missing (hsFreshF). */
+const HS_LAKE=[3,0.2,0.06,0.8],HS_LAKE_REV=0.1;
+const hsLakeF=()=>{const lv=lvl();return lv<HS_LAKE[0]?0:Math.min(HS_LAKE[3],HS_LAKE[1]+(lv-HS_LAKE[0])*HS_LAKE[2]);};
+const hsLakeAt=rgs=>rgs.length<2?null:rgs.slice().sort((a,b)=>hsRgG(b)-hsRgG(a)||(a<b?-1:1))[0];
+// Data freshness, 0..1, and what it does to revenue.
+const hsFresh=r=>{const k=r&&r.hs&&r.hs.lake;return k&&k.want>1e-9?clamp(k.got/k.want,0,1):1;};
+const hsFreshF=r=>1-HS_LAKE_REV*(1-hsFresh(r));
 // Money: training draws megawatts (a monthly cost); a fresh model of yours sells inference to your users.
 // The GPUs, their cooling and the people who watch the loss curve; the megawatts themselves are on the power bill.
 const hsTrainCost=()=>{let mw=0;for(const j of hsRuns())mw+=2*hsTrainMw(j);return mw*HS_MW_MO;};
@@ -128,11 +148,12 @@ CX_BULK.push(hsBulk);CX_DAY.push(hsTrafficDay);CX_MONEY.push(hsAiMoney);
 // Training runs are their own line in the money breakdown (C.train), not hidden in the Cost Exploder's regions.
 CX_MONEY.push((R2,V,C)=>{if(hyper()&&S.hs)C.train=hsTrainCost();});
 CX_MUL.grow.push(()=>{const f=hsBoostF();return f>0?1+2*f:1+f;});CX_MUL.rev.push(()=>1+hsBoostF());
-CX_NEW.push(o=>{o.rep={};o.lag={};o.jobs=[];o.own=[];o.boost={until:0,f:0};o.jo=[];o.pp={};o.ai=0;o.jd=0;});
+CX_NEW.push(o=>{o.hold={};o.rep={};o.lag={};o.jobs=[];o.own=[];o.boost={until:0,f:0};o.jo=[];o.pp={};o.ai=0;o.jd=0;});
 // Saves: every field repaired against the regions the save still has.
 CX_SAN.push((h0,o)=>{const n=(v,d)=>Number.isFinite(+v)?+v:d,obj=v=>v&&typeof v==='object'&&!Array.isArray(v),rg=c=>typeof c==='string'&&own(o.rg,c),I=v=>Math.round(n(v,0));
   const str=(v,d)=>typeof v==='string'&&v?v.slice(0,40):d;
   o.rep={};if(obj(h0.rep))for(const k of Object.keys(h0.rep))if(rg(k)&&rg(h0.rep[k])&&h0.rep[k]!==k)o.rep[k]=h0.rep[k];
+  o.hold={};if(obj(h0.hold))for(const k of Object.keys(h0.hold))if(rg(k)&&h0.hold[k])o.hold[k]=1;
   o.lag={};if(obj(h0.lag))for(const k of Object.keys(h0.lag)){const [a,b,x]=k.split('>'),v=n(h0.lag[k],0);if(x===undefined&&rg(a)&&rg(b)&&a!==b&&v>0)o.lag[k]=Math.min(1e9,v);}
   o.pp={};if(obj(h0.pp))for(const k of Object.keys(h0.pp)){const [a,b,x]=k.split('|');if(x===undefined&&rg(a)&&rg(b)&&a<b&&HS_PATHS.includes(h0.pp[k]))o.pp[k]=h0.pp[k];}
   const runOk=x=>obj(x)&&rg(x.a)&&rg(x.b)&&x.a!==x.b,ids=new Set(),uniq=x=>{const id=str(x.id,'');if(!id||ids.has(id))return '';ids.add(id);return id;};

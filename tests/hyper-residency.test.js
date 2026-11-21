@@ -1,6 +1,8 @@
 // Data residency, phase 4 (38-hyper-residency.js): users of countries with data localisation laws are homed only in a
 // region in their country, EU members' users only in an EU region; with none built they neither grow nor leave, and the
 // card and Cloud tab say why; a failover never breaks the law; Very Sovereign Cloud signs, lives and leaves by it.
+// These mechanics tests pin each country's users to its main city (one user zone) and keep the data lake out (it has
+// its own test in hyper-traffic.test.js); zones are tested in hyper-zones-users.test.js.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
@@ -11,7 +13,7 @@ const wave = (id, a, b, tier) => `S.links.push({id:${lit(id)},a:${lit(a)},b:${li
 function net(t) {
   const h = load({ seed: 7 });
   t.after(() => h.dom.window.close());
-  h.ev("ACT.start({});ACT.charter({k:'hyper'});S.cash=1e12;S.lvl=8;S.nextFail=S.nextEvent=1e9;for(const c of ['par','lon','del'])ACT.buildPop({city:c});" +
+  h.ev("ACT.start({});ACT.charter({k:'hyper'});HS_ZC.s=S;for(const k of ['DE','FR','NL','GB','US','BE','ES','IN'])if(ccInfo(k))HS_ZC.m.set(k,[[ccInfo(k).main,1]]);HS_LAKE[0]=99;S.cash=1e12;S.lvl=8;S.nextFail=S.nextEvent=1e9;for(const c of ['par','lon','del'])ACT.buildPop({city:c});" +
     "for(const c in S.pops)S.pops[c].rgen=RG_TOP;for(const c of ['fra','par','lon','del'])ACT.buyTransit({city:c,net:NETS.find(n=>n.price&&sellsAt(n,c)).id,tier:3});S.links=[];" +
     wave('fp', 'fra', 'par', 4) + wave('fl', 'fra', 'lon', 4) + wave('pl', 'par', 'lon', 4) + wave('fd', 'fra', 'del', 4) + 'compute();checkGoals();S.log=[]');
   return h;

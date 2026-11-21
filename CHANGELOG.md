@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- As the Hyperscaler, your regions now ship logs, analytics and training data to a data lake in your biggest region, more with every level, like real clouds whose own traffic between data centers outgrows their users'. What does not arrive goes stale and costs up to a tenth of your users' revenue.
+- As the Hyperscaler, your users can ask for about three times as much by the top level, but each extra Gbps pays a little less, so growth takes more regions and backbone than before.
+- As the Hyperscaler, a region can now hold room free for the regions that replicate to it, so a failover finds space while users keep growing. The held room sits idle until a failover needs it.
+
 - As the Hyperscaler, a big country's users now live in its big cities, not just its biggest one. Users in Los Angeles, Chicago or Dallas enter at the front door nearest them, and your backbone hauls their traffic from the region to that door.
 - As the Hyperscaler, distance to your users matters much more. Quality starts falling after about 8 ms one way, so serving a whole continent from one coast costs you; regions, front doors and edge stacks near your users pay off.
 - As the Hyperscaler, other networks' cache boxes are gone from the Peering tab: you are the content, so there is nothing for them to cache.

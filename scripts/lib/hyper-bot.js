@@ -129,6 +129,8 @@ function replicas(){const rs=hsRgs();if(rs.length<2||H().dx||Object.keys(H().out
     const b=L.sort((x,y)=>hops(c,x).length-hops(c,y).length||kmBetween(c,x)-kmBetween(c,y)||(x<y?-1:1))[0];
     // A closer region than the pinned replica (a sibling built next door) takes over, once what is owed is sent.
     if(b&&b!==cur&&(!cur||!H().rg[cur]||hops(c,b).length<hops(c,cur).length&&hsLagAt(c)<1))ACT.hsReplica({city:c,v:b});}
+  // Room held in every replica, so a failover finds it while users keep growing.
+  for(const c of rs){const b=hsRepOf(c);if(b&&H().rg[b]&&!(H().hold&&H().hold[b]))ACT.hsHold({city:b});}
   if(H().dx||!can(HS_DRILL))return;for(const k of hsPairsUndrilled()){const [a,b]=k.split('|'),c=hsRepOf(a)===b?a:b;if(hsLive(c)&&hsFailReady(c)&&hsLagAt(c)<HS_RISK){ACT.hsDrill({city:c});return;}}}
 // A bank loan with sane terms, while a region waits on money: no equity, no sharks, a rate it can carry (or a balloon or
 // a slice of the transit bill, due in a year or more, when it will be bigger), and no condition that would stop the plan

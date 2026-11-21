@@ -501,6 +501,8 @@ const API_CMD={
  hsEgress:{args:[['v','string']],decides:true,watch:['hs.law'],
    quote:a=>{const E=S&&S.hs&&S.hs.law&&S.hs.law.egr;return E&&E.st==='open'?{setup:a.v==='pay'?E.fee:0}:{};},
    doc:'Hyperscaler only: answer a regulator\'s egress-fee investigation (hs.law.egr while st is "open", until its deadline dl): v "cut" takes 15% off what tenants with Snack Storage or CloudFrontal Lobe pay for a year (they like you a little more for it), v "pay" pays the fine (fee) now and keeps the fees. Unanswered at the deadline, the fine is set a quarter higher and taken at once.'},
+ hsHold:{args:[['city','cityId']],decides:true,watch:['hs.hold'],
+   doc:'Hyperscaler only: toggle room held for failover in the region in city (hs.hold). While held, the region keeps free what the regions replicating to it carried last evening (R.hs.rg[city].res), so their failover finds room; users and tenants do not grow into it.'},
  hsDrill:{args:[['city','cityId']],decides:true,watch:['hs.dx','hs.drill'],
    quote:a=>({setup:HS_DRILL,blocked:[S&&S.hs&&isCity(a.city)?hsDrillWhy(a.city):tr('hyper_fail.drill_no_region')].filter(Boolean)}),
    doc:'Hyperscaler only: a failover drill. The region in city is drained into its replica (hs.rep, or the suggestion) for a day, on purpose: its users and tenants are served from the replica as far as it has room and the backbone carries them. Judged the next day: it passes if every country homed there is served at 90% or better and the region owes its replica under 50 TB of backlog; hs.drill["a|b"] then keeps the day. One drill at a time, never while the region is down. A passed drill for every region pair in use is part of Cloud Nine.'},

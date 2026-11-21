@@ -15,7 +15,7 @@ const wave = (id, a, b, tier) => `S.links.push({id:${lit(id)},a:${lit(a)},b:${li
 function cloud(t, { lv = 8, far = 'ams', seed = 7, rich = false } = {}) {
   const h = load({ seed });
   t.after(() => h.dom.window.close());
-  h.ev(`ACT.start({});ACT.charter({k:'hyper'});HS_ZC.s=S;for(const k of ['DE','FR','NL','GB','US','BE'])if(ccInfo(k))HS_ZC.m.set(k,[[ccInfo(k).main,1]]);S.cash=1e12;S.lvl=${lv};S.nextFail=S.nextEvent=1e9;S.rules=makeRules('freeze');ACT.buildPop({city:${lit(far)}});` +
+  h.ev(`ACT.start({});ACT.charter({k:'hyper'});HS_ZC.s=S;for(const k of ['DE','FR','NL','GB','US','BE'])if(ccInfo(k))HS_ZC.m.set(k,[[ccInfo(k).main,1]]);HS_LAKE[0]=99;S.cash=1e12;S.lvl=${lv};S.nextFail=S.nextEvent=1e9;S.rules=makeRules('freeze');ACT.buildPop({city:${lit(far)}});` +
     `for(const c in S.pops)S.pops[c].rgen=RG_TOP;for(const c of ['fra',${lit(far)}])ACT.buyTransit({city:c,net:'cog',tier:3});` +
     `S.hs.rg.fra={t:1,ready:0,mw:20};S.hs.rg[${lit(far)}]={t:0,ready:0,mw:5};S.hs.cc.DE={d:1400,since:0};${rich ? 'S.hs.cc.FR={d:300,since:0};' : ''}S.hs.rep.fra=${lit(far)};S.links=[];` +
     wave('w0', 'fra', far, 0) +
@@ -84,7 +84,7 @@ test('waves count their monthly price: no subsea wave that costs more a month th
 });
 
 test('a wave\'s monthly price counts against the running budget, and one wave a shift', (t) => {
-  const A = cloud(t);
+  const A = cloud(t, { rich: true });
   const q = J(A.ev, "hsOpsWaveQuote('fra','ams',(R.hs.rep.fra.base-R.hs.rep.fra.got+S.hs.lag['fra>ams']/TB_DAY/7)*opsAhead())");
   on(A.ev, 'hswave', { tb: 50 }, 25000);
   assert.ok(q.cost < 25000, 'this wave fits a small budget: ' + q.cost);

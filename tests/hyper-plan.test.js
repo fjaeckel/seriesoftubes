@@ -3,6 +3,8 @@
 // next step takes the most urgent forecast when nothing is on fire, the calendar lists the known dates in order, the
 // NOC's plan and calendar and the Cloud tab's lines render at 360 px and at desktop width, the forecasts cost little
 // and are worked out once, and the load history survives saves with junk repaired.
+// These mechanics tests pin each country's users to its main city (one user zone) and keep the data lake out (it has
+// its own test in hyper-traffic.test.js); zones are tested in hyper-zones-users.test.js.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
@@ -15,7 +17,7 @@ const J = (ev, x) => JSON.parse(ev(`JSON.stringify((${x})??null)`));
 function net(t, seed) {
   const h = load({ seed: seed || 11 });
   t.after(() => h.dom.window.close());
-  h.ev("ACT.start({});ACT.charter({k:'hyper'});S.cash=1e12;S.lvl=3;S.nextFail=S.nextEvent=1e9;for(const c of ['par','ams','lon','mad'])ACT.buildPop({city:c});" +
+  h.ev("ACT.start({});ACT.charter({k:'hyper'});HS_ZC.s=S;for(const k of ['DE','FR','NL','GB','US','BE','ES','IN'])if(ccInfo(k))HS_ZC.m.set(k,[[ccInfo(k).main,1]]);HS_LAKE[0]=99;S.cash=1e12;S.lvl=3;S.nextFail=S.nextEvent=1e9;for(const c of ['par','ams','lon','mad'])ACT.buildPop({city:c});" +
     "for(const c in S.pops)S.pops[c].rgen=RG_TOP;for(const c of ['fra','par'])for(const n of ['cog','lvl'])ACT.buyTransit({city:c,net:n,tier:4});" +
     "S.hs.rg.fra={t:1,ready:0,mw:20};S.hs.rg.par={t:0,ready:0,mw:5};S.hs.cc.DE={d:300,since:0};S.hs.cc.FR={d:250,since:0};S.links=[];" +
     wave('fp', 'fra', 'par', 4) + wave('fp2', 'fra', 'par', 4) + wave('pa', 'par', 'ams', 3) + wave('pl', 'ams', 'lon', 3) + wave('pm', 'par', 'mad', 3) +
@@ -29,7 +31,7 @@ test('a region fills on the day its forecast said, within 10%', (t) => {
   const h = load({ seed: 21 }), { ev } = h;
   t.after(() => h.dom.window.close());
   // The home Rack Shack (400 Gbps) and German users growing into it; ports out far bigger, so the region is what fills.
-  ev("ACT.start({});ACT.charter({k:'hyper'});S.cash=1e12;S.lvl=3;S.nextFail=S.nextEvent=1e9;for(const c in S.pops)S.pops[c].rgen=RG_TOP;" +
+  ev("ACT.start({});ACT.charter({k:'hyper'});HS_ZC.s=S;for(const k of ['DE','FR','NL','GB','US','BE','ES','IN'])if(ccInfo(k))HS_ZC.m.set(k,[[ccInfo(k).main,1]]);HS_LAKE[0]=99;S.cash=1e12;S.lvl=3;S.nextFail=S.nextEvent=1e9;for(const c in S.pops)S.pops[c].rgen=RG_TOP;" +
     "ACT.buyTransit({city:'fra',net:'cog',tier:4});ACT.buyTransit({city:'fra',net:'lvl',tier:4});S.hs.cc.DE={d:120,since:0};compute();for(let i=0;i<4;i++)dayTick()");
   const f = J(ev, 'hp().F.rg.fra'), d0 = ev('S.day');
   assert.ok(f.d > 10 && f.d < 120, `a forecast within reach (${f.d} days)`);

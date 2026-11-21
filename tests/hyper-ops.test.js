@@ -16,7 +16,7 @@ const wave = (id, a, b, tier) => `S.links.push({id:${lit(id)},a:${lit(a)},b:${li
 function cloud(t, seed = 7) {
   const h = load({ seed });
   t.after(() => h.dom.window.close());
-  h.ev("ACT.start({});ACT.charter({k:'hyper'});HS_ZC.s=S;for(const k of ['DE','FR','NL','GB','US','BE'])if(ccInfo(k))HS_ZC.m.set(k,[[ccInfo(k).main,1]]);S.cash=1e12;S.lvl=8;S.nextFail=S.nextEvent=1e9;S.rules=makeRules('freeze');ACT.buildPop({city:'par'});ACT.buildPop({city:'ams'});" +
+  h.ev("ACT.start({});ACT.charter({k:'hyper'});HS_ZC.s=S;for(const k of ['DE','FR','NL','GB','US','BE'])if(ccInfo(k))HS_ZC.m.set(k,[[ccInfo(k).main,1]]);HS_LAKE[0]=99;S.cash=1e12;S.lvl=8;S.nextFail=S.nextEvent=1e9;S.rules=makeRules('freeze');ACT.buildPop({city:'par'});ACT.buildPop({city:'ams'});" +
     "for(const c in S.pops)S.pops[c].rgen=RG_TOP;for(const c of ['fra','par','ams'])ACT.buyTransit({city:c,net:'cog',tier:3});" +
     "S.hs.rg.fra={t:1,ready:0,mw:20};S.hs.rg.par={t:0,ready:0,mw:5};S.hs.rg.ams={t:0,ready:0,mw:5};S.hs.cc.DE={d:1400,since:0};S.hs.cc.FR={d:100,since:0};S.hs.rep.fra='ams';S.links=[];" +
     wave('fa', 'fra', 'ams', 0) + wave('fp', 'fra', 'par', 3) + wave('ap', 'ams', 'par', 3) +

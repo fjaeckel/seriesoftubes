@@ -68,7 +68,7 @@ function hsStatHtml(){const H=S.hs,ccs=Object.keys(H.cc),doors=Object.keys(S.pop
    +`<div class="meta">👥 ${trn('hyper_ui.card_users_n',ccs.length,{g:fmtG(hsUsers()),p:pct(hsServed(R))})}</div>`
    +`<div class="meta">🏢 ${tr('hyper.card_infra',{n:hsRgs().length,max:hsRgMax(),d:doors.length,e:Object.keys(H.edge).length,t:hsTen().length})}</div>`
    +(hsRgOver()?`<div class="meta why">⚠️ ${tr('hyper.over_now',{k:hsRgOver(),n:hsRgMax(),p:Math.round((hsOverF()-1)*100)})}</div>`:'')
-   +hsAzStat()+hsPwStat()+hsTrafficStat()+hsDrillStat()+hsMarketStat()+hsLawStat()+`</div>`;}
+   +hsAzStat()+hsPwStat()+hsTrafficStat()+hsLakeStat()+hsDrillStat()+hsMarketStat()+hsLawStat()+`</div>`;}
 // Folded details: the money, the utility's letters, the tightest grid, what the resale desk sold.
 function hsMoreHtml(){const H=S.hs,open=hsCardOpen('hsmore');let rev=0;for(const cc in H.cc)rev+=hsRev(R,cc);
   return foldB(tr('hyper_ui.details'),'leftFold',{k:'hsmore'},open,'ghost sm hsc-fold')+(open?`<div class="hsc-more"><div class="meta">💵 ${tr('hyper.card_money',{rev:fmt$(rev),cost:fmt$(((R.cost&&R.cost.cloud)||0)+((R.cost&&R.cost.train)||0))})}</div>${hpCalCard()}${hsPwMore()}${hsrSold()}</div>`:'');}

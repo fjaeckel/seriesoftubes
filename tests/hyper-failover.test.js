@@ -215,3 +215,33 @@ test('the failover card and Cloud tab render on a phone and on a desktop', (t) =
   }
   assert.deepEqual(errors, []);
 });
+
+// Users grow into every Gbps a region has, so a replica has room for a failover only if it holds some back: room held
+// for failover (S.hs.hold) keeps free what the regions replicating to it carried, and is released when they fail over.
+test('room held in a replica keeps its partner\'s load free, users never grow into it, and a failover uses it', (t) => {
+  const { ev, errors } = net(t);
+  // Amsterdam full of Dutch users: no room for Frankfurt's failover.
+  ev("S.hs.rg.ams={t:2,ready:0,mw:60};S.hs.pw.ams=hsPwDef('ams');S.hs.pw.ams.cap=1000;S.hs.cc.NL={d:8000,since:0};HS_ZC.m.set('NL',[['ams',1]]);for(const l of S.links)l.tier=LT.length-1;compute();compute()");
+  assert.ok(ev("R.hs.rg.ams.g-R.hs.rg.ams.load") < 1, 'Amsterdam is full');
+  assert.equal(ev("hsFailReady('fra')"), false);
+  ev("ACT.hsHold({city:'ams'});compute()");
+  const need = ev('R.hs.rg.fra.load'), res = ev('R.hs.rg.ams.res');
+  const all = ev("hsRgs().filter(c=>c!=='ams'&&R.hs.rg[c].rep==='ams').reduce((a,c)=>a+R.hs.rg[c].load,0)");
+  assert.ok(Math.abs(res - all) < 1 && res >= need, `Amsterdam holds what replicates to it: ${res} for ${all}`);
+  assert.ok(ev("R.hs.rg.ams.g-R.hs.rg.ams.load") >= need - 0.5, 'the room stays free');
+  assert.equal(ev("hsFailReady('fra')"), true, 'so the failover is ready');
+  assert.ok(ev('R.hs.cc.NL.short') > 0, 'the Dutch users do not grow into it');
+  // Frankfurt fails: the held room is released for it, and its users are served in Amsterdam.
+  ev("hsRegionFail('fra',2,'test');compute()");
+  assert.equal(ev('R.hs.rg.ams.res'), 0, 'released while its partner is failed over');
+  const de = J(ev, 'R.hs.cc.DE');
+  assert.ok(de.parts.every((p) => p[3] === 'ams') && de.short < 0.5, 'every German placed in Amsterdam\'s held room, none short');
+  // The section says so, and the room can be released; saves keep the choice.
+  ev("S.hs.down={};S.hs.out={};compute();window.innerWidth=360;selectCity('fra');UI.tab='cust';renderAll()");
+  assert.match(ev("document.getElementById('panelBody').textContent"), /Amsterdam holds .* free for failover/);
+  ev("const t=JSON.parse(JSON.stringify(S));S=sanitize(t);compute()");
+  assert.equal(ev('S.hs.hold.ams'), 1);
+  ev("ACT.hsHold({city:'ams'})");
+  assert.equal(ev('S.hs.hold.ams'), undefined);
+  assert.deepEqual(errors, []);
+});

@@ -4,6 +4,7 @@ function hsDrillWhy(c){const H=S.hs;if(!H||!H.rg[c])return tr('hyper_fail.drill_
   if(!hsLive(c))return tr('hyper_fail.drill_not_live',{city:CITY[c].name});if(!hsRepOf(c))return tr('hyper_fail.drill_no_replica');return '';}
 Object.assign(ACT,{
  // A failover drill: drain the region into its replica for a day, on purpose, and see who notices.
+ hsHold:({city})=>{const H=hyper()&&S.hs;if(!H||!H.rg[city])return;if(H.hold[city])delete H.hold[city];else H.hold[city]=1;sfx('click');after();},
  hsDrill:({city})=>{if(!hyper()||!S.hs||!isCity(city))return;const w=hsDrillWhy(city);if(w){toast(w,'bad');sfx('err');return;}if(!spend(HS_DRILL))return;
    const b=hsRepOf(city);S.hs.dx={c:city,b,d:S.day+1};toast(tr('hyper_fail.drill_started',{a:esc(CITY[city].name),b:esc(CITY[b].name)}),'good',[],{a:'city',v:city});sfx('build');after();},
  // The answer to a grid trip announced for tomorrow (38-hyper-director.js): rented chillers or generators for the night.

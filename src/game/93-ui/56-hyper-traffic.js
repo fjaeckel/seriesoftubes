@@ -51,3 +51,6 @@ function hsBtBody(c){const H=S.hs;let h='';
   if(!H.own.length){h+=`<p class="meta">${tr('hyper_traffic.own_lead',{b:esc(CITY[b].name)})}</p>`;const bs=HS_OWN.map((P,k)=>{const w=hsTrainWhy(c,b,P.g);return [btn(tr('hyper_traffic.train_size',{size:tr(P.n),g:fmtG(P.g),n:P.wk}),'hsTrain',{city:c,k,to:b},k?'sm':'pink sm',!!w),w];});
     h+=hsBtns(...bs.map(x=>x[0]));const w=bs.find(x=>x[1]);if(w&&bs.every(x=>x[1]))h+=`<p class="why">${w[1]}</p>`;}
   return h;}
+// The data lake on the cloud card: where it is, what arrives, and what stale data costs.
+function hsLakeStat(){const k=R.hs&&R.hs.lake;if(!k||!k.c||!(k.want>1e-9))return '';const f=hsFresh(R),loss=HS_LAKE_REV*(1-f);
+  return `<div class="meta${f<0.9?' why':''}">🗄️ ${tr('hyper_traffic.lake_line',{city:esc(CITY[k.c].name),got:fmtG(k.got),want:fmtG(k.want),p:pct(f)})}${loss>=0.005?' '+tr('hyper_traffic.lake_stale',{p:pct(loss)}):''}</div>`;}

@@ -30,6 +30,7 @@ const inter = (ev) => J(ev, '{cc:R.hs.cc,served:R.served,door:R.hs.door,egT:R.eg
 
 test('replication is carved on what interactive traffic left, and never pushes it aside', (t) => {
   const { ev, errors } = net(t, 1);
+  ev('S.lvl=2'); // no data lake yet: this counts the haul and the copies alone
   cut(ev, ['fa', 'ap']);
   const fr = J(ev, 'R.hs.cc.FR');
   assert.ok(near(fr.want, 100) && near(fr.got, 100), 'the haul fills the 100G wave');
@@ -348,5 +349,36 @@ test('a run pays half its fee as the data moves, the rest on time, and its offer
   // The dashboard names the cost.
   ev(offer() + "ACT.hsJobTake({id:'j1'});compute();ACT.dash({})");
   assert.match(ev("document.getElementById('dash').textContent"), /AI training runs \(GPUs and power\)/);
+  assert.deepEqual(errors, []);
+});
+
+// East-west traffic as real clouds have it: every region ships logs, analytics and training data to the data lake (the
+// biggest region), a share of its users' traffic that grows with the level; what does not arrive costs revenue.
+test('the data lake: regions ship data to the biggest region, more with each level, and stale data costs revenue', (t) => {
+  const { ev, errors } = net(t, 3);
+  ev('S.hs.rg.fra.t=1;compute()');
+  assert.equal(ev('R.hs.lake.c'), 'fra', 'the biggest region holds the lake');
+  const u = ev('R.hs.rg.par.u');
+  assert.ok(u > 100, 'Paris serves its users');
+  assert.equal(ev('hsLakeF()'), 0.5, 'level 8: half of the users\' traffic');
+  assert.ok(near(ev("R.hs.lake.rg.par.want"), u * 0.5));
+  assert.ok(near(ev('R.hs.lake.got'), ev('R.hs.lake.want')), 'a fat backbone carries it all');
+  assert.equal(ev('hsFresh(R)'), 1);
+  assert.ok(ev('R.hs.btw') >= ev('R.hs.lake.got') + ev('R.hs.rep.par.got') - 1e-6, 'it counts between regions');
+  const rev = ev("hsRev(R,'DE')+hsRev(R,'FR')");
+  // Early levels have no lake; the share grows to 80% at the top.
+  ev('S.lvl=2;compute()');
+  assert.equal(ev('R.hs.lake.want'), 0);
+  ev('S.lvl=13;compute()');
+  assert.ok(near(ev('hsLakeF()'), 0.8));
+  // A thin backbone: the lake goes stale, and revenue falls by up to a tenth.
+  ev("S.lvl=8;for(const l of S.links)l.tier=0;compute()");
+  const f = ev('hsFresh(R)');
+  assert.ok(f < 1, 'stale: ' + f);
+  assert.ok(near(ev("hsRev(R,'DE')+hsRev(R,'FR')") / (rev * ev("(hsQ(R,'DE')*S.hs.cc.DE.d+hsQ(R,'FR')*S.hs.cc.FR.d)") / ev("(hsQ(R,'DE')*S.hs.cc.DE.d+hsQ(R,'FR')*S.hs.cc.FR.d)")), ev('hsFreshF(R)'), 0.2));
+  assert.ok(near(ev('hsFreshF(R)'), 1 - 0.1 * (1 - f)));
+  // The cloud card says so.
+  ev('renderAll()');
+  assert.match(ev("document.body.textContent"), /Data lake in Frankfurt: .* arrive · \d+% fresh\. Stale data costs/);
   assert.deepEqual(errors, []);
 });

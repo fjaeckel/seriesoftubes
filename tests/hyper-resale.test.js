@@ -2,6 +2,8 @@
 // spare pair (an IRU: up front, then a little a month) or a managed wave, only on fiber you built; what you sell is gone
 // from your own replication and training; it is priced well below tenants, never IP transit or an L2VPN, never counts
 // toward levels or goals; the capacity market stays out of this charter; the intern asks every month; saves; screens.
+// These mechanics tests pin each country's users to its main city (one user zone) and keep the data lake out (it has
+// its own test in hyper-traffic.test.js); zones are tested in hyper-zones-users.test.js.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
@@ -12,7 +14,7 @@ const df = (id, a, b, own, n) => `S.links.push({id:'${id}',a:'${a}',b:'${b}',kin
 function net(t, seed = 7) {
   const h = load({ seed });
   t.after(() => h.dom.window.close());
-  h.ev("ACT.start({});ACT.charter({k:'hyper'});S.cash=1e12;S.lvl=8;S.nextFail=S.nextEvent=1e9;ACT.buildPop({city:'par'});ACT.buildPop({city:'ams'});" +
+  h.ev("ACT.start({});ACT.charter({k:'hyper'});HS_ZC.s=S;for(const k of ['DE','FR','NL','GB','US','BE','ES','IN'])if(ccInfo(k))HS_ZC.m.set(k,[[ccInfo(k).main,1]]);HS_LAKE[0]=99;S.cash=1e12;S.lvl=8;S.nextFail=S.nextEvent=1e9;ACT.buildPop({city:'par'});ACT.buildPop({city:'ams'});" +
     "for(const c in S.pops)S.pops[c].rgen=RG_TOP;ACT.buyTransit({city:S.home,net:'cog',tier:3});ACT.buyTransit({city:'par',net:'cog',tier:3});S.offers=[];" +
     "S.hs.rg.par={t:0,ready:0,mw:5};S.hs.cc.DE={d:300,since:0};S.hs.cc.FR={d:400,since:0};S.links=[];" + df('df1', 'fra', 'par', true, 2) + df('df2', 'fra', 'ams', false, 2) + 'compute()');
   return h;

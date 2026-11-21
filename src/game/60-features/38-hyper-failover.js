@@ -26,7 +26,9 @@ const hsHomedAt=c=>Object.keys(S.hs.cc).filter(k=>S.hs.cc[k].home===c).sort();
 /* Failover readiness (the NOC, the Cloud tab, read-only): could replica b take region a's users and tenants tonight?
    need: what a serves at the evening peak; room: what b has left; bw: the widest spare path between them on your
    backbone (parallel links added up); law: countries (and sovereign tenants) that may not move to b. */
-function hsWide(a,b){if(a===b)return Infinity;const sp={};for(const l of S.links){if(linkDown(l))continue;const k=l.a<l.b?l.a+'|'+l.b:l.b+'|'+l.a;sp[k]=(sp[k]||0)+Math.max(0,capOf(l)-((R.load&&R.load[l.id])||0));}
+function hsWide(a,b){if(a===b)return Infinity;const sp={},LK=(R.hs&&R.hs.lakeL)||{};for(const l of S.links){if(linkDown(l))continue;const k=l.a<l.b?l.a+'|'+l.b:l.b+'|'+l.a;sp[k]=(sp[k]||0)+Math.max(0,capOf(l)-((R.load&&R.load[l.id])||0));}
+  // The data lake pauses in a failover (38-hyper-traffic.js): its share of each link is free for it.
+  for(const k in sp)if(LK[k])sp[k]+=LK[k];
   const adj={};for(const k in sp){const [x,y]=k.split('|');(adj[x]||(adj[x]=[])).push([y,sp[k]]);(adj[y]||(adj[y]=[])).push([x,sp[k]]);}
   const best={[a]:Infinity},done=new Set();for(;;){let u=null,bv=0;for(const k in best)if(!done.has(k)&&best[k]>bv){bv=best[k];u=k;}if(u===null)return 0;if(u===b)return bv;done.add(u);
     for(const [v,w] of adj[u]||[]){const m=Math.min(bv,w);if(m>(best[v]||0))best[v]=m;}}}

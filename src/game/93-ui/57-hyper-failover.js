@@ -42,6 +42,8 @@ function hsFailBody(c,I0){const H=S.hs;let h='';
   if(!b)return h+`<p class="note">${tr('hyper_fail.need_replica')}</p>`;
   if(hsLive(c)){const I=I0||hsFailInfo(c,b);h+=`<p class="lead">${tr('hyper_fail.lead',{b:esc(CITY[b].name)})}</p>`
     +hsKv(tr('hyper_fail.need'),fmtG(I.need))+hsKv(tr('hyper_fail.room_there',{city:esc(CITY[b].name)}),fmtG(I.room),I.room<I.need-0.5?'color:var(--bad)':'')+hsKv(tr('hyper_fail.backbone'),fmtG(I.bw),I.bw<I.need-0.5?'color:var(--bad)':'');
+    // Room held in the replica: what makes a failover possible while users keep growing (S.hs.hold).
+    {const hb=!!(H.hold&&H.hold[b]),res=(R.hs&&R.hs.rg[b]&&R.hs.rg[b].res)||0;h+=`<p class="meta">${hb?tr('hyper_fail.hold_on',{b:esc(CITY[b].name),g:fmtG(res)}):tr('hyper_fail.hold_off',{b:esc(CITY[b].name)})}</p>${hsBtns(btn(hb?tr('hyper_fail.hold_release'):tr('hyper_fail.hold_set',{b:esc(CITY[b].name)}),'hsHold',{city:b},hb?'ghost sm':'sm'))}`;}
     if(I.law.length)h+=`<p class="why">🔒 ${tr('hyper_fail.law_blocks',{list:esc(I.law.slice(0,4).join(', ')),b:esc(CITY[b].name)})}</p>`;
     h+=`<p class="meta">${I.ok?'✅ '+tr('hyper_fail.ready'):'⚠️ '+tr('hyper_fail.not_ready')}</p>`;}
   const lag=hsLagAt(c);h+=hsKv(tr('hyper_fail.at_risk'),tr('hyper_fail.tb_of',{tb:hsTb(lag),n:HS_RISK}),lag>HS_RISK?'color:var(--bad)':'');
