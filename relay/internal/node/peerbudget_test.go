@@ -38,7 +38,7 @@ func TestForwardedRecordsDoNotDrainNeighbourBudget(t *testing.T) {
 // Servers outside the registry share one budget (their identities cost nothing to make up); what
 // a budget refused is asked for again once it has refilled.
 func TestUnlistedServersShareOneBudgetAndRetry(t *testing.T) {
-	defer node.SetRetryEvery(100 * time.Millisecond)()
+	t.Cleanup(node.SetRetryEvery(100 * time.Millisecond)) // restored after the relays stop (cleanups run last-first)
 	n := rt.New(t)
 	w := n.Found("w", "open")
 	wx := w.Nodes[0]

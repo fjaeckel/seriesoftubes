@@ -9,7 +9,7 @@ const FED={
   now:()=>Math.floor(Date.now()/1000),WS:url=>new WebSocket(url,FED_PROTO),set:(f,ms)=>setTimeout(f,ms),clear:t=>clearTimeout(t),
   rand:()=>{try{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]/4294967296;}catch(e){return 0.5;}},
   visible:()=>{try{return document.visibilityState!=='hidden';}catch(e){return true;}},
-  fetch:(u,o)=>fetch(u,o),idb:()=>indexedDB,registry:'federation/servers.json',
+  fetch:(u,o)=>fetch(u,o),idb:()=>indexedDB,registry:'federation/servers.json',authUrl:'federation/authority.json',
   // ms: opening a socket, a request's answer, ping when idle, give up when silent, the idle check, stats, back-off;
   // live states (§5.11): the check, the keepalive when nothing changed, the least time between two (s: statsMax, stateMin).
   T:{open:15000,req:20000,idle:60000,dead:120000,tick:30000,stats:300000,statsMax:3600,first:5000,base:2000,cap:1800000,fetch:10000,state:10000,stateKeep:180000,stateMin:5,
@@ -20,7 +20,8 @@ const FED={
   upd:{}};
 
 /* ---------- events for the interface and the gameplay ---------- */
-// fedOn(name, fn) gives a function that stops listening. Names: status, records, excluded, deal, catalog, mute, untrusted, update.
+// fedOn(name, fn) gives a function that stops listening. Names: status, records, excluded, deal, catalog, mute, untrusted, update,
+// authority.
 function fedOn(name,fn){(FED.ev[name]||(FED.ev[name]=new Set())).add(fn);return ()=>FED.ev[name].delete(fn);}
 function fedEmit(name,data){const s=FED.ev[name];if(s)for(const fn of [...s])try{fn(data);}catch(e){console.error('[tubes] federation listener',e);}}
 
@@ -32,7 +33,7 @@ const fedMine=M=>!!M&&FED.live===M&&fedCur()===M.fed;
 // Starts, adjusts or stops the session to match the save now open. Safe to call any time; cheap when nothing joined.
 function fedWake(){if(fedWorker())return;const f=fedCur();if(FED.live&&FED.live.fed!==f)fedStop();if(!f)return;
   let M=FED.live;
-  if(!M){M=FED.live={fed:f,conns:new Map(),statsT:null,body:'',bodyAt:0};fedListen();M.cat=fedCatalogLoad().catch(()=>false);M.cat.then(()=>fedLearnAll(M));
+  if(!M){M=FED.live={fed:f,conns:new Map(),statsT:null,body:'',bodyAt:0};fedListen();M.cat=fedCatalogLoad().catch(()=>false);fedAuthority().then(()=>fedAuthLoad()).catch(()=>false);M.cat.then(()=>fedLearnAll(M));
     M.statsT=FED.set(()=>fedStatsTick(M),FED.T.first);M.stateT=FED.set(()=>fedStateTick(M),FED.T.first);fedVotesTidy();fedDpendLoad(M);if(fwOn())fwStart();}
   for(const u of f.servers)if(!M.conns.has(u))fedConnect(M,u);
   for(const [u,c] of M.conns)if(!f.servers.includes(u)){M.conns.delete(u);fedHang(c);delete FED.st[u];}
@@ -124,13 +125,17 @@ async function fedAskRetry(c,m,many){for(let i=0;;i++){const a=await fedAsk(c,m,
 function fedIn(c,text){c.lastIn=fedNow();const r=fedFrame(text,'node');if(r.skip)return;if(r.error){fedDrop(c,r.error);return;}const f=r.f;
   if(f.m==='welcome'){if(c.phase!=='hello'||f.ver!==1||c.srv&&f.server!==c.srv){fedDrop(c,'welcome');return;}
     FED.clear(c.t);c.t=null;c.srv=f.server;c.nodeKey=f.node;c.impl=fedImpl(f.impl);c.phase='check';
+    // The authority (§11.5): a banned server, or an out-of-date relay at a public address, is not joined (an hour apart).
+    {const why=fedAuthRefuse(FED.auth,c);if(why){fedDrop(c,why,3600);const st=FED.st[c.url];if(st)st.cut=why;return;}}
     // The optional messages the node takes (§9.3 feats): live states and the boards of now only where it lists them.
     c.feats=Array.isArray(f.feats)?f.feats.slice(0,16).filter(x=>typeof x==='string'):[];
     // Whether this server takes ix2 fields, kept past the connection: the announce carries them only while all do (fedIx2).
     (FED.ix2||(FED.ix2={}))[c.url]=c.feats.includes('ix2');(FED.cloud||(FED.cloud={}))[c.url]=c.feats.includes('cloud');
     // A node that binds auth (§9.3 bind) gives a nonce: our auth then names it and the URL we dialled.
     c.anonce=c.feats.includes('bind')&&typeof f.nonce==='string'&&!FdId(f.nonce)?f.nonce:null;
-    c.tick=FED.set(function tk(){if(!fedLive(c)||!c.ws)return;const n=fedNow();
+    c.tick=FED.set(function tk(){if(!fedLive(c)||!c.ws)return;const n=fedNow();fedAuthLoad().catch(()=>false);
+      // relayMin falls due while connected (§11.5): the same check as after the welcome.
+      {const why=fedAuthRefuse(FED.auth,c);if(why){fedDrop(c,why,3600);const st=FED.st[c.url];if(st)st.cut=why;return;}}
       if(n-c.lastIn>=FED.T.dead/1000){fedDrop(c,'silent');return;}
       if(n-c.lastOut>=FED.T.idle/1000)fedSend(c,{m:'ping',id:c.nid=c.nid%2147483646+1});c.tick=FED.set(tk,FED.T.tick);},FED.T.tick);
     fedReady(c).catch(e=>{console.error('[tubes] federation sync',e);});return;}
@@ -234,7 +239,7 @@ async function fedOpChanged(){const M=FED.live,k=await fedOpKey();
   await fedVotesTidy();}
 /* The networks a server excludes (§9.3 excluded): pages joined until more is not true, then kept per joined server with
    when it came (and the reasons, which are for this network only). Kept while offline; a new list replaces it. */
-const FED_EXCL_MAX=50000,FED_REASONS=['cheating','offensive_name','spam','abuse'];
+const FED_EXCL_MAX=50000,FED_REASONS=['cheating','offensive_name','spam','abuse','legal'];
 // Per joined URL and per network: IndexedDB is shared by every save slot, and the reasons are for one network only.
 const fedExclKey=(url,pub)=>'excl:'+url+'#'+pub;
 function fedExclIn(c,f){const b=c.exBuf||(c.exBuf={keys:new Set(),reasons:new Set()});
@@ -505,7 +510,9 @@ async function fedExcl(){const f=S&&S.fed,pub=f&&f.key?f.key.pub:'',urls=f?f.ser
     for(const x of o.keys){keys.add(x);const l=by.get(x);if(l)l.push({srv:o.srv,url:u});else by.set(x,[{srv:o.srv,url:u}]);}
     if(typeof o.me==='string'&&Array.isArray(o.reasons)){const w=why.get(o.me)||new Set();for(const r of o.reasons)if(FED_REASONS.includes(r))w.add(r);why.set(o.me,w);}}
   for(const [x,l] of by)if(fedExclConfirmed(l.length,n))ok.add(x);
-  return FED.ex={k,keys,ok,by,n,why};}
+  // The authority's bans (§11.5): listed and confirmed whatever the servers say; banned (Map key -> reason).
+  const A=await fedAuthority(),banned=new Map();if(A)for(const [x,r] of A.nets){keys.add(x);ok.add(x);banned.set(x,r);if(!by.has(x))by.set(x,[]);}
+  return FED.ex={k,keys,ok,by,n,why,banned};}
 // Confirmed: listed by m of the n joined servers that sent a list, a strict majority and at least two (§10.7).
 const fedExclConfirmed=(m,n)=>m>=2&&2*m>n;
 // Keys listed as excluded by any joined server: hidden, and no new deals with them.
@@ -515,7 +522,7 @@ async function fedConfirmed(){return [...(await fedExcl()).ok];}
 /* Whether a network is excluded (by any joined server), whether that is confirmed, the servers that list it ({srv,
    url}), and for this network itself which reasons were given (never counts or voters). */
 async function fedExclInfo(key){const X=await fedExcl(),on=X.keys.has(key);
-  return {shunned:on,confirmed:X.ok.has(key),servers:on?X.by.get(key).slice():[],reasons:on?[...(X.why.get(key)||[])].sort():[]};}
+  return {shunned:on,confirmed:X.ok.has(key),servers:on?X.by.get(key).slice():[],reasons:on?[...(X.why.get(key)||[])].sort():[],banned:X.banned.get(key)||''};}
 /* Operators only: the shun tally of every target, from the registry snapshot and the votes their nodes sent them
    ({targets: Map target -> its votes}), counted on demand and kept until the votes, the registry or the slot change. */
 async function fedShunTally(now){const reg=await fedGet('kv','registry'),k=FED.vgen+'|'+(reg?reg.at+'/'+reg.asOf:'')+'|'+fedSlot(now);

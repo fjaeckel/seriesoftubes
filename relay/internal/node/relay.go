@@ -21,6 +21,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/fjaeckel/seriesoftubes/relay/internal/authority"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/canon"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/chain"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/config"
@@ -52,6 +53,8 @@ type Options struct {
 	Version       string // the relay software version (main.version); "" or "dev": a development build
 	// ReleasesURL replaces GitHub's latest-release API (update.ReleasesURL); tests only.
 	ReleasesURL string
+	// AuthorityKeys replaces the pinned authority keys (authority.Keys); tests only.
+	AuthorityKeys []string
 	// Retry pacing; tests shorten them. Defaults: one minute and one second.
 	BootstrapEvery time.Duration
 	DialBase       time.Duration
@@ -122,6 +125,9 @@ type Relay struct {
 	gossip  int64 // last time the own entry was sent
 	impl    *update.Impl
 	upd     updState
+
+	auth       *authority.Authority // the newest authority file this node verified (11.5), nil when none (guarded by mu)
+	authWarned int64                // when the log last said this relay is out of date
 
 	hand     atomic.Int64 // inbound sessions accepted that have not yet said hello (or proved a node)
 	nodeHand atomic.Int64 // of those, node handshakes before the proof
@@ -207,6 +213,7 @@ func New(o Options) (*Relay, error) {
 	r.loadRegistryCache()
 	r.loadCatalog()
 	r.loadUpdateState()
+	r.loadAuthority()
 	// The leaderboards are built from the store in parallel chunks while the node already serves
 	// (rank answers rate_limited until then); records stored meanwhile are applied after.
 	r.rank = rank.New(0)
@@ -426,7 +433,7 @@ func (r *Relay) party(s *session, e *store.Entry) bool {
 // instead of queueing another.
 func (r *Relay) sendExcluded(s *session, now int64) {
 	r.fresh(now)
-	keys := sortedKeys(r.shunned)
+	keys := sortedKeys(r.excludedNow())
 	var reasons []string
 	for _, k := range s.proved {
 		if !r.shunned[k] || r.counter == nil {
@@ -808,6 +815,9 @@ var operatorKinds = map[string]bool{"genesis": true, "operators": true, "server"
 func (r *Relay) stateCheck(rec *fed.Record, now int64, o origin) string {
 	if t, ok := r.left[rec.Key]; ok && rec.Kind != "leave" && rec.T <= t {
 		return fed.Refused
+	}
+	if r.bannedNet(rec.Key) {
+		return fed.Banned // the authority (11.5): before shunned, whatever the kind
 	}
 	if r.isShunned(rec.Key) {
 		return fed.Shunned
@@ -1249,7 +1259,7 @@ func (r *Relay) rankSnapshot(pre []loaded) ([]rank.Raw, map[string]*rank.Ann) {
 // excludedSets are the networks this server leaves off its boards (shunned, hidden, refused) and
 // those it names by ASN only (lock held).
 func (r *Relay) excludedSets() (map[string]bool, map[string]bool) {
-	ex, names := maps.Clone(r.shunned), map[string]bool{}
+	ex, names := r.excludedNow(), map[string]bool{}
 	if r.hide != nil {
 		for _, k := range r.hide.StrList("hide") {
 			ex[k] = true
@@ -1577,3 +1587,18 @@ func (r *Relay) Reload(c *config.Config) {
 var errClosed = errors.New("relay closed")
 
 func (r *Relay) logf(msg string, args ...any) { r.o.Log.Info(fmt.Sprintf(msg, args...)) }
+
+// excludedNow is what every client is told is excluded (9.3 excluded): the shunned and the authority's banned
+// networks (lock held). A fresh map.
+func (r *Relay) excludedNow() map[string]bool {
+	ex := maps.Clone(r.shunned)
+	if ex == nil {
+		ex = map[string]bool{}
+	}
+	if r.auth != nil {
+		for k := range r.auth.Nets {
+			ex[k] = true
+		}
+	}
+	return ex
+}

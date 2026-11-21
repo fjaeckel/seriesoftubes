@@ -75,6 +75,10 @@ gh api repos/fjaeckel/seriesoftubes/releases/latest --jq '.tag_name+" "+.publish
 3. Bump the version in **both** files:
    - `package.json` → `"version"`
    - `package-lock.json` → top-level `"version"` and `packages[""].version`
+   - Only if the release changes the relay or the federation protocol in a way older relays must not miss (a new rule
+     they would not apply, a ban kind they would not know): set `"relayMin"` in `package.json` to the new version.
+     Seven days after this release, relays older than it are out of date: other relays and games cut them off
+     (ADR 0006). Say so in the release notes, so operators know to update within the week. Game-only releases leave it.
    - Only if the release fixes a security issue in the relay: set `"relaySecurity"` in `package.json` to the new
      version too (leave it alone otherwise); the build then marks `federation/relay.json` security and relays older
      than it warn their operators louder.

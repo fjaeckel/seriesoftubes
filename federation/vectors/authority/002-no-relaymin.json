@@ -1,0 +1,18 @@
+{
+  "description": "No relayMin: nothing is out of date. Empty lists are fine.",
+  "input": {
+    "now": 1767312100,
+    "keys": [
+      "llijPwnI4ROyAxEaB5Fa_hqldxS3b-CKCD_XdIq7bb8"
+    ],
+    "text": "{\"body\":{\"nets\":[],\"servers\":[]},\"key\":\"llijPwnI4ROyAxEaB5Fa_hqldxS3b-CKCD_XdIq7bb8\",\"kind\":\"authority\",\"sig\":\"TG-rCTuGl1UPc0Z-MVx1kOOAYa63-Z336JfNdwbLknPHDnnvLGdUilLXoORcIYkkCBhdzipFNo6bvaqKAQVnCQ\",\"t\":1767312000,\"v\":1}"
+  },
+  "expect": {
+    "ok": true,
+    "t": 1767312000,
+    "relayMin": null,
+    "relayMinFrom": null,
+    "nets": {},
+    "servers": {}
+  }
+}

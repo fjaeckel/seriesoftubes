@@ -1,0 +1,23 @@
+{
+  "description": "An authority file has no maximum age: signed a year before now, it still checks.",
+  "input": {
+    "now": 1767312100,
+    "keys": [
+      "llijPwnI4ROyAxEaB5Fa_hqldxS3b-CKCD_XdIq7bb8"
+    ],
+    "text": "{\"body\":{\"nets\":[{\"key\":\"BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0\",\"reason\":\"spam\"},{\"key\":\"yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI\",\"reason\":\"abuse\"}],\"relayMin\":\"5.2.0\",\"relayMinFrom\":1736380800,\"servers\":[{\"id\":\"Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4\",\"reason\":\"legal\"}]},\"key\":\"llijPwnI4ROyAxEaB5Fa_hqldxS3b-CKCD_XdIq7bb8\",\"kind\":\"authority\",\"sig\":\"MHuCQmv-2eg1uz3RjlMHv_VCUx2OyDJDi8q_mYin8KDUAFTM1dxExhuiDU1sY-mxQzHCchfFnycZAoPDPWg3Dw\",\"t\":1735776000,\"v\":1}"
+  },
+  "expect": {
+    "ok": true,
+    "t": 1735776000,
+    "relayMin": "5.2.0",
+    "relayMinFrom": 1736380800,
+    "nets": {
+      "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0": "spam",
+      "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI": "abuse"
+    },
+    "servers": {
+      "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4": "legal"
+    }
+  }
+}

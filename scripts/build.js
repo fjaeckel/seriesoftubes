@@ -38,6 +38,9 @@ for (const f of ['index.html', 'sitemap.xml', 'llms.txt', 'sw.js']) {
 // so the build needs no Go; CI checks it matches `relay build-servers-json` byte for byte.
 require('./registry').build(path.join(ROOT, 'federation', 'servers'), path.join(OUT, 'federation', 'servers.json'));
 fs.writeFileSync(path.join(OUT, 'federation', 'relay.json'), JSON.stringify(relayFeed()) + '\n');
+// The authority file (docs/FEDERATION-PROTOCOL.md 11.5): bans and the oldest relay allowed, signed with AUTHORITY_KEY
+// (the release workflow's secret). Without the key the inputs are still checked, and no file is written.
+try { require('./authority').build(OUT, VERSION); } catch (e) { if (e instanceof require('./authority').Fault) die(e.message); throw e; }
 
 /* The relay's update feed (docs/RELAY.md "Update notices"): relays read it beside servers.json; the game page never
    asks for it. The relay ships with every release, so its newest version is the game's. A release that fixes a relay

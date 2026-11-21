@@ -47,3 +47,9 @@ test('background refreshes are kept alive until stored (waitUntil)', async () =>
   await w.go('/site.webmanifest', 'cors');
   assert.ok(w.store.has('/site.webmanifest'), 'stored once the worker is allowed to finish');
 });
+
+test('the authority file always comes from the network, never the cache (ADR 0006)', async () => {
+  const w = worker();
+  assert.equal(await w.go('/federation/authority.json', 'cors'), undefined, 'the worker leaves it to the network');
+  assert.ok(!w.store.has('/federation/authority.json'), 'and keeps no copy');
+});

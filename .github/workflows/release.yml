@@ -87,6 +87,8 @@ jobs:
         run: |
           set -euo pipefail
           git fetch --no-tags --depth=1 origin main
+          # The authority's bans (ADR 0006) come from main too: a ban deploys without a release (authority.yml).
+          if git cat-file -e FETCH_HEAD:federation/bans.json 2>/dev/null; then git checkout FETCH_HEAD -- federation/bans.json; fi
           for d in site/puzzles/weekly site/scenarios/weekly site/architect/weekly; do
             if git cat-file -e "FETCH_HEAD:$d" 2>/dev/null; then
               rm -rf "$d"
@@ -120,6 +122,9 @@ jobs:
         if: ${{ hashFiles('scripts/weekly-puzzle.js') != '' && (steps.weekly.outputs.same != 'true' || !(inputs.tested || needs.tests.result == 'success')) }}
         run: npm test -- tests/weekly-puzzle.test.js tests/puzzles.test.js $(ls tests/weekly-scenario.test.js tests/weekly-architect.test.js 2>/dev/null)
       - name: Build site
+        env:
+          # Signs federation/authority.json (scripts/authority.js); without it the file is left out.
+          AUTHORITY_KEY: ${{ secrets.AUTHORITY_KEY }}
         run: VERSION="${TAG#v}" REQUIRE_NOTES=1 npm run build
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:

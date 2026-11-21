@@ -1,0 +1,14 @@
+{
+  "description": "A ban removed after signing: bad_sig.",
+  "input": {
+    "now": 1767312100,
+    "keys": [
+      "llijPwnI4ROyAxEaB5Fa_hqldxS3b-CKCD_XdIq7bb8"
+    ],
+    "text": "{\"body\":{\"nets\":[{\"key\":\"yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI\",\"reason\":\"abuse\"}],\"relayMin\":\"5.2.0\",\"relayMinFrom\":1767916800,\"servers\":[{\"id\":\"Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4\",\"reason\":\"legal\"}]},\"key\":\"llijPwnI4ROyAxEaB5Fa_hqldxS3b-CKCD_XdIq7bb8\",\"kind\":\"authority\",\"sig\":\"8LsgP4k8dparuWrsXCIcuZdq6o2UTkc1dr7rUCEDvF-aBlNZucK_YSQNvR-rQGDygQwGVOVXVjjDlIWw6F1ZAQ\",\"t\":1767312000,\"v\":1}"
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_sig"
+  }
+}

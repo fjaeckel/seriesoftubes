@@ -14,3 +14,6 @@ operator.key
 /docs/plans/
 /.dev-certs/
 /.dev-agent/
+
+# The federation authority key (scripts/authority.js --keygen): a GitHub secret only, never a file here
+authority.key

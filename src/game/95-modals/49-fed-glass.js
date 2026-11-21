@@ -79,7 +79,7 @@ const fuProp=a=>({add_operator:tr('fedui.add_an_operator'),remove_operator:tr('f
 async function fuNetLoad(key){const hides=[];for(const id of new Set([...fuSrvIds(),...FU.srvs.filter(s=>fuOpOf(s.id)).map(s=>s.id)])){const h=await fedHides(id,FU.srvs);if(h){const b=h.rec.body;hides.push({id,hide:b.hide.includes(key),names:b.names.includes(key),refuse:b.refuse.includes(key)});}}
   let ai=false;try{const st=(await fedNetsStats()).get(key);ai=!!(st&&st.ai)||!!(FU.slice&&FU.slice.rows.some(r=>r.key===key&&r.ai));}catch(e){}
   // ai: only whether it is an AI (servers' nets answers and boards rows say no more). The tally only for an operator (from the votes its nodes sent); everyone else knows only excluded or not.
-  const op=!!FU.opKey;FU.netInfo={key,op,shun:op?await fedShunInfo(key):await fedExclInfo(key),hides,ai};}
+  const op=!!FU.opKey;FU.netInfo={key,op,shun:op?await fedShunInfo(key):await fedExclInfo(key),ban:(await fedExcl()).banned.get(key)||'',hides,ai};}
 function fuNetHtml(){const key=UI.fu.key,n=FU.nets.get(key),I=FU.netInfo&&FU.netInfo.key===key?FU.netInfo:null,back={v:UI.fu.back||'glass'},f=S&&S.fed;
   if(!n)return fuHead('🔭 '+tr('fedui.looking_glass'),esc(fuShort(key)),back)+`<p class="meta">${tr('fedui.this_network_is_not_known_here')}</p>`;
   const b=n.rec.body,muted=!!f&&f.muted.includes(key),me=!!(f&&f.key&&f.key.pub===key);
@@ -90,6 +90,7 @@ function fuNetHtml(){const key=UI.fu.key,n=FU.nets.get(key),I=FU.netInfo&&FU.net
   ${I&&I.ai?`<dt>${tr('fedui.ai_setup')}</dt><dd>${tr('fedui.ai_player')}</dd>`:''}
   <dt>${tr('fedui.last_heard')}</dt><dd>${fuWhen(n.heard)} · ${fuQuietName(n.quiet.state)}</dd><dt>${tr('fedui.seen_on')}</dt><dd>${(n.srv||[]).length?n.srv.map(fuSrvName).join(', '):'—'}</dd></dl>`;
   if(I){const sh=I.shun;
+    if(I.ban)h+=`<p class="why">${tr('fedui.banned_by_seriesoftubes',{reason:fuReason(I.ban)})}</p>`;
     if(I.op)h+=`<h3 class="sub4">${tr('fedui.shun_votes')}</h3><p class="meta">${sh.shunned?tr('fedui.excluded_by_the_federation'):tr('fedui.n_of_m_votes_needed',{n:sh.votes,m:sh.need})}</p>`+
       (Object.keys(sh.reasons).length?`<ul class="fu-reasons">${Object.entries(sh.reasons).map(([r,c])=>`<li>${fuReason(r)}: ${trn('fedui.n_servers',c)}</li>`).join('')}</ul>`:'');
     else if(sh.shunned)h+=`<p class="why">${tr('fedui.excluded_by_the_federation')}</p>`;

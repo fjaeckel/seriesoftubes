@@ -211,7 +211,7 @@ Every signed object, stored or not, has this shape:
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `v` | integer | Always `1` in this version. Anything else (a string `"1"` too): `bad_version` |
-| `kind` | string | One of the kinds of section 5 or 6. Unknown: `bad_kind` |
+| `kind` | string | One of the kinds of section 5 or 6, or `authority` where the authority file is read (11.5). Unknown: `bad_kind` |
 | `key` | Key | The author's public key |
 | `t` | integer | The author's clock, unix seconds |
 | `body` | object | Depends on `kind` |
@@ -677,7 +677,7 @@ A received record is checked in this order; the first failing step gives the err
 6. Body (section 5): `missing_field`, `unknown_field`, `bad_field`, `bad_key`, `too_many`, `duplicate`.
 7. Signatures (3.2, 4): `bad_sig`; author not among `sigs`: `bad_field`.
 8. Time (4): `too_old`, `too_new`.
-9. State (relays and games, with what they know): `shunned`, `refused`, `not_operator`, `no_majority`, `bad_chain`,
+9. State (relays and games, with what they know): `banned` (11.5), `shunned`, `refused`, `not_operator`, `no_majority`, `bad_chain`,
    `unknown_server`; for a `report` also `not_node` and `too_many` (5.10).
 
 Steps 1 to 8 depend only on the record and `now`, and are what the `records` vectors test. (The registry check,
@@ -711,6 +711,9 @@ Steps 1 to 8 depend only on the record and `now`, and are what the `records` vec
 | `no_majority` | Not signed by a strict majority of the operators | no |
 | `bad_chain` | Operator chain broken: unknown `prev`/`head`, lists not matching | no |
 | `unknown_server` | A server identity this node does not know | no |
+| `banned` | Banned by the authority (11.5): the author of a record, a session's proved key, or a node's server | records: no; sessions: yes |
+| `outdated` | A node older than the authority's `relayMin` (11.5) | yes |
+| `not_authority` | An `authority` file signed by a key that is not an authority key (11.5) | (file) |
 | `shunned` | The author is shunned by the federation (10.7) | no |
 | `refused` | Refused by this server's moderation, or the author has left | no |
 | `not_found` | A requested record or offer is not here | no |
@@ -988,6 +991,8 @@ Nodes of one server, and nodes of different servers that sync, use the same tran
    server it claims (`not_node`, as far as it knows the server; a server it does not know may be learned from its
    catalog entry). Nodes of the **same server** always sync everything. Between **different servers** each side applies
    its own `sync` policy (10.9); refusing is `err` `policy` and the connection closes.
+   Before the policy, each side refuses a node of a server the authority bans (`err` `banned`) or a node it holds out
+   of date (`err` `outdated`), by the other side's `impl` (11.5); nodes of the same server included.
    - **Own entry first.** When a session between two different servers starts (after the proofs), each side sends a
      `catalog` frame holding its own entry (10.8, `path: [its id]`), whatever its policy and the classes. A side that
      does not know the other server holds the other frames from it (`carry`, `inv`, `push`…; `ping`, `pong` and `err`
@@ -1267,6 +1272,9 @@ servers whose `excluded` list the game has (at least once, kept offline) and `m`
 The excluded network's own game shows the reasons (as above) and the names of the joined servers whose list has it,
 never counts of votes.
 
+A network the authority bans (11.5) is listed and confirmed whatever the joined servers' lists say, its running deals
+end, and its own game is shown the ban's reason and that seriesoftub.es banned it.
+
 ### 10.8 Catalog gossip
 
 An **entry** is `{genesis, chain, server, path, seen}`: the server's `genesis`, its applied `operators` records in order
@@ -1281,7 +1289,7 @@ and `path` it came with: a server passing the entry on forwards the `impl` of th
 an entry for its `seen` (below) it keeps that entry's `impl`. A receiver reads it leniently: a value that is not a list
 or has more than 16 items is ignored, and so is an item for a key that is not one of the server's nodes or with a
 malformed `name` or `version`; none of that refuses the entry. It is for display (a looking glass shows the version per
-node); it never counts for anything else, update hints included (11.4). It is not part of the size check of step 1.
+node) and for the authority's `relayMin` (11.5); it never counts for anything else, update hints included (11.4). It is not part of the size check of step 1.
 
 Receiving an entry from a neighbour, a server with identity `self`:
 
@@ -1649,10 +1657,67 @@ running version `own`:
 A relay with no registry configured (a LAN or offline server) reads no `relay.json` and asks GitHub nothing: it has
 no hint.
 
-Versions other servers report (`impl`, 10.8 and 9.4) are shown and never give a hint, however many report one.
+Versions other servers report (`impl`, 10.8 and 9.4) are shown and never give a hint, however many report one. Only the
+authority's `relayMin` (11.5) acts on them.
 
 How a relay tells its operators is up to it (the reference relay: its log, `relay status`, metrics, the `update` frame
 of 9.3 and an optional webhook; see docs/RELAY.md). It never tells anyone else.
+
+### 11.5 `authority.json`: bans and the oldest relay allowed
+
+seriesoftub.es is the federation's authority (ADR 0006). The site build writes `_site/federation/authority.json`,
+beside `servers.json` and `relay.json`: an envelope (section 4) of kind `authority`, signed by an **authority key**.
+It is no record: never stored, forwarded or sent in a frame (`put` refuses it, `bad_kind`); it is read only as this
+file.
+
+```json
+{"v":1,"kind":"authority","key":"<authority>","t":1767312000,"sig":"…","body":{"relayMin":"5.2.0","relayMinFrom":1767916800,"nets":[{"key":"<mallory>","reason":"abuse"}],"servers":[{"id":"<id>","reason":"legal"}]}}
+```
+
+| Field | Type | Rule |
+| --- | --- | --- |
+| `relayMin` | string | Optional: the oldest relay allowed, `x.y.z` (three integers without leading zeros, nothing else) |
+| `relayMinFrom` | integer | Required with `relayMin`, refused without it (`bad_field`): unix seconds from when `relayMin` applies, at least 1735689600 |
+| `nets` | [{`key`: Key, `reason`}] max 4096 | Banned networks, sorted by `key` in byte order (`bad_field`), each key once (`duplicate`) |
+| `servers` | [{`id`: Id, `reason`}] max 1024 | Banned servers (their identity, 8), sorted by `id` (`bad_field`), each once (`duplicate`) |
+
+A `reason` is `cheating`, `offensive_name`, `spam`, `abuse` or `legal`; an entry has exactly those two fields.
+
+**Authority keys** are pinned: the game and the reference relay carry the list in `federation/authority-keys.json`
+(1 to 4 Keys, sorted; the newest key is added before an old one is dropped). An envelope whose `key` is not one of them
+is `not_authority`, checked before the signature. The checks are those of sections 4 and 7.1 (steps 2 to 8) with this
+kind's limits (13.2): at most 524288 bytes, no maximum age.
+
+**Newest wins.** A reader keeps the valid file with the greatest `t`. A file with a smaller or equal `t` changes
+nothing, so an old file can never undo a newer ban; a file that does not check is ignored and the one held stays.
+
+**Out of date.** At `now`, with `relayMin` set and `now >= relayMinFrom`, a node is out of date when its `impl`
+(9.3, 9.4) is absent, its `name` is not `tubes-relay`, or its `version` is not a semantic version or is lower than
+`relayMin` (semver precedence, build metadata ignored; a pre-release of `relayMin` is lower). The build sets
+`relayMinFrom` to 00:00 UTC on the day `relayMin` was released (its CHANGELOG date) plus 604800 s (7 days).
+
+**A relay** reads it from the folder its registry comes from, like `relay.json` (11.4): at start and on each registry
+refresh, a plain GET that sends nothing about the relay. It keeps the file it holds in its data directory, so a ban
+survives a restart without the site. A relay with no registry reads none. With the file it holds, at `now`:
+
+1. A **banned network**'s records are refused (`banned`, 7.1 step 9, before `shunned`), whatever their kind and
+   wherever they come from. Records held of it are dropped. It is in the `excluded` list the relay sends (9.3) and
+   off its boards; a session that proves its key (`auth`) gets `err` `banned` and is closed.
+2. A node of a **banned server**, or an **out-of-date** node, is refused in the node handshake (9.4): `err` `banned` or
+   `outdated`, and the connection closes; sessions already running are closed when the file or the clock makes them
+   so. A relay does not dial them. Catalog entries (10.8) of a banned server are dropped and not passed on, nor are
+   those whose `impl` lists only out-of-date nodes.
+3. Its own operators are told when their own relay is out of date or will be (log, `relay status`).
+
+**A game** fetches it (same origin, `federation/authority.json`) while multiplayer is on: when it starts and at most
+once an hour after that, keeping the newest it verified. With the file it holds:
+
+1. A **banned server** is left out of the server list, and a node of it is not joined: after its `welcome` the game
+   closes the connection (`banned`) and tries again no sooner than an hour later.
+2. An **out-of-date** node is not joined either (`outdated`), unless the game dialled it at a local address (5,
+   Url); a game does not check the version of a LAN or development relay.
+3. A **banned network** is excluded and confirmed (10.7) whatever the joined servers say: hidden, no new deals, and its
+   running deals end. The game says it was banned by seriesoftub.es, and to the banned network's own game, why.
 
 ## 12. Privacy
 
@@ -1701,6 +1766,7 @@ of 9.3 and an optional webhook; see docs/RELAY.md). It never tells anyone else.
 | Pending proposal life | 1209600 s (14 days) |
 | Vote life | 7776000 s (90 days) |
 | Shun lift delay | 604800 s (7 days) |
+| `relayMin` grace after its release | 604800 s (7 days) |
 | Voter: listed for | 2592000 s (30 days) |
 | Voter: answered within | 1209600 s (14 days) |
 | Gossip expiry | 604800 s (7 days) |
@@ -1732,6 +1798,7 @@ of 9.3 and an optional webhook; see docs/RELAY.md). It never tells anyone else.
 | `leave` | one | 512 | none |
 | `report` | one | 1024 | 2592000 s (30 days) |
 | `state` (5.11, never stored) | one | 40960 | 900 s |
+| `authority` (11.5, a file only) | one (an authority key) | 524288 | none |
 | `receipt` | one (a node) | 1024 | none |
 | `proof` | one (a node) | 1024 | ±300 s |
 

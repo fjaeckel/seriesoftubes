@@ -12,6 +12,8 @@ All notable changes to this project are documented here. The project follows
 - A balloon loan no longer bankrupts you out of the blue. The bank now writes about two months, one month and a week before it takes the whole balance in one go, and says plainly when that would sink you.
 - The bankruptcy screen now lists what went wrong that day, so you can see what sank you.
 - As the Hyperscaler, losing data in a failover now costs a young cloud at most a month of its revenue, instead of at least $250k.
+- seriesoftub.es can now ban a network or a server from multiplayer everywhere. A banned network is hidden and its deals end; a banned server is left out of the server list and the game will not join it; servers that follow the site's list stop syncing with it. A banned network's own game says why.
+- Multiplayer servers must keep their relay up to date: a week after a relay update the site marks as required, games stop joining servers still running an older relay, and other relays stop syncing with them. Relay operators see a warning in the log and in `relay status` as soon as the update is announced.
 
 ## [5.1.1] — 2026-11-21
 

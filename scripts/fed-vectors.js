@@ -17,7 +17,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const DIR = path.join(__dirname, '..', 'federation', 'vectors');
-const GEN = ['signing', 'asn', 'records', 'receipts', 'proofs', 'auth', 'operators', 'registry', 'dedupe', 'rank', 'box'];
+const GEN = ['signing', 'asn', 'records', 'receipts', 'proofs', 'auth', 'operators', 'registry', 'dedupe', 'rank', 'box', 'authority'];
 const NOW = 1767312100;          // 2026-01-02 00:01:40 UTC, the "now" of every generated vector
 const T = NOW - 100;             // 1767312000, 2026-01-02 00:00:00 UTC: when most records were signed
 const DAY = 86400;
@@ -901,6 +901,38 @@ const nodesOf = list => list.map(([n, url]) => ({ key: pub(n), url })).sort((a, 
   for (const x of cs) if (x.expect.error) { delete x.expect.slot; delete x.expect.at; }
   for (const x of cs) for (const r of x.expect.rows || []) for (const k of Object.keys(r)) if (r[k] === undefined) delete r[k];
   putCases(A, 'slices', 'now = 1767398410, so c = 1767398400; one stats record each at slot i = 500 of the windows. POPs: alice 5 (fra, from DE), bob 4 (nyc, an AI on model m1, from US), carol 3 (fra, Tier 1), mallory 2 (fra, no announce: no name or home). Announces: alice home DE, open, founded 3 days ago, game day 40; bob home US, selective, 100 days, day 2000; carol home FR, open, 400 days, day 500. at is the time of the snapshot of live states the ranking reads (here now: none are held, 10.13). me is the key the session proved: its rank in the slice (null when the filters leave it out), none when it is not on the board. excluded: networks the server leaves off; names: networks shown without their name. A filter with a value that is not allowed: bad_field.', cs);
+}
+
+// ---------- authority (11.5) ----------
+// The authority key is "sot" (seriesoftub.es); "dan" signs as an impostor. keys: the pinned authority keys.
+{
+  const A = 'authority', KEYS_ = [pub('sot')];
+  const nets = [['mallory', 'abuse'], ['bob', 'spam']].map(([n, reason]) => ({ key: pub(n), reason })).sort((a, b) => byStr(a.key, b.key));
+  const servers = [{ id: SID, reason: 'legal' }];
+  const body = (o = {}) => ({ relayMin: '5.2.0', relayMinFrom: T + 7 * DAY, nets, servers, ...o });
+  const text = r => canon(r);
+  const ok = r => ({ ok: true, t: r.t, relayMin: r.body.relayMin || null, relayMinFrom: r.body.relayMinFrom || null,
+    nets: Object.fromEntries(r.body.nets.map(x => [x.key, x.reason])), servers: Object.fromEntries(r.body.servers.map(x => [x.id, x.reason])) });
+  const good = rec('authority', 'sot', T, body());
+  put(A, 'valid', 'A file signed by a pinned authority key: two banned networks (sorted by key), one banned server, relayMin 5.2.0 from 7 days after t.', { now: NOW, keys: KEYS_, text: text(good) }, ok(good));
+  const bare = rec('authority', 'sot', T, { nets: [], servers: [] });
+  put(A, 'no-relaymin', 'No relayMin: nothing is out of date. Empty lists are fine.', { now: NOW, keys: KEYS_, text: text(bare) }, ok(bare));
+  put(A, 'not-pinned', 'Signed by a key that is not pinned (dan): not_authority, before the signature is checked.', { now: NOW, keys: KEYS_, text: text(rec('authority', 'dan', T, body())) }, { ok: false, error: 'not_authority' });
+  put(A, 'none-pinned', 'No key pinned yet: every file is not_authority.', { now: NOW, keys: [], text: text(good) }, { ok: false, error: 'not_authority' });
+  const forged = clone(good); forged.body.nets = forged.body.nets.slice(1);
+  put(A, 'altered', 'A ban removed after signing: bad_sig.', { now: NOW, keys: KEYS_, text: text(forged) }, { ok: false, error: 'bad_sig' });
+  put(A, 'future', 'Signed more than 600 s ahead of now: too_new.', { now: NOW, keys: KEYS_, text: text(rec('authority', 'sot', NOW + 601, body())) }, { ok: false, error: 'too_new' });
+  put(A, 'old-is-fine', 'An authority file has no maximum age: signed a year before now, it still checks.', { now: NOW, keys: KEYS_, text: text(rec('authority', 'sot', T - 365 * DAY, body({ relayMinFrom: T - 358 * DAY }))) }, ok(rec('authority', 'sot', T - 365 * DAY, body({ relayMinFrom: T - 358 * DAY }))));
+  put(A, 'unsorted', 'nets not in key order: bad_field.', { now: NOW, keys: KEYS_, text: text(rec('authority', 'sot', T, body({ nets: nets.slice().reverse() }))) }, { ok: false, error: 'bad_field' });
+  put(A, 'duplicate', 'The same network twice: duplicate.', { now: NOW, keys: KEYS_, text: text(rec('authority', 'sot', T, body({ nets: [nets[0], nets[0]] }))) }, { ok: false, error: 'duplicate' });
+  put(A, 'reason', 'A reason that is not one of the five: bad_field.', { now: NOW, keys: KEYS_, text: text(rec('authority', 'sot', T, body({ servers: [{ id: SID, reason: 'because' }] }))) }, { ok: false, error: 'bad_field' });
+  const noFrom = body(); delete noFrom.relayMinFrom;
+  put(A, 'relaymin-alone', 'relayMin without relayMinFrom: missing_field.', { now: NOW, keys: KEYS_, text: text(rec('authority', 'sot', T, noFrom)) }, { ok: false, error: 'missing_field' });
+  const noMin = body(); delete noMin.relayMin;
+  put(A, 'from-alone', 'relayMinFrom without relayMin: bad_field.', { now: NOW, keys: KEYS_, text: text(rec('authority', 'sot', T, noMin)) }, { ok: false, error: 'bad_field' });
+  put(A, 'relaymin-pre', 'relayMin must be three integers and nothing else: a pre-release is bad_field.', { now: NOW, keys: KEYS_, text: text(rec('authority', 'sot', T, body({ relayMin: '5.2.0-rc.1' }))) }, { ok: false, error: 'bad_field' });
+  put(A, 'extra-field', 'A field this version does not define: unknown_field.', { now: NOW, keys: KEYS_, text: text(rec('authority', 'sot', T, body({ note: 'hi' }))) }, { ok: false, error: 'unknown_field' });
+  put(A, 'record-kind', 'An announce is no authority file: bad_kind.', { now: NOW, keys: KEYS_, text: text(rec('announce', 'sot', T, announceBody())) }, { ok: false, error: 'bad_kind' });
 }
 
 // ---------- write or check ----------

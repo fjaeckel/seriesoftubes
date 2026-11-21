@@ -76,6 +76,7 @@ func (r *Relay) checkUpdate() {
 	if offline {
 		return
 	}
+	r.checkAuthority() // authority.json lives beside relay.json (11.5)
 	read := false
 	if src != "" {
 		var b []byte

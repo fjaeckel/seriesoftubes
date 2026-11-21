@@ -61,6 +61,13 @@ func (r *Relay) answerNode(s *session, h *wire.Hello) {
 	}
 	mine := nonce()
 	now := r.now()
+	r.mu.Lock()
+	refuse := r.nodeRefusal(h.Server, h.Impl, now)
+	r.mu.Unlock()
+	if refuse != "" {
+		s.failClose(refuse) // banned or out of date (11.5)
+		return
+	}
 	s.ver, s.impl, s.feats = h.Ver, h.Impl, h.Feats
 	proof := r.o.Node.MakeProof(h.Nonce, own, now)
 	if bind {
@@ -196,7 +203,13 @@ func (r *Relay) dialNode(ctx, live context.Context, dialer, url string) error {
 	s.ver, s.impl, s.feats = ver, update.ReadImpl(f.Raw["impl"]), feats
 	r.mu.Lock()
 	r.urlSrv[url] = server
+	refuse := r.nodeRefusal(server, s.impl, r.now())
 	r.mu.Unlock()
+	if refuse != "" {
+		r.o.Log.Info("sync: not syncing", "url", url, "code", refuse)
+		s.failClose(refuse) // banned or out of date (11.5)
+		return errClosed
+	}
 	proof := r.o.Node.MakeProof(theirs, own, r.now())
 	if bind {
 		proof = r.o.Node.MakeBoundProof(theirs, own, node, fed.RoleCall, r.now())

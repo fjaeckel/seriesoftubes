@@ -848,6 +848,8 @@ func checkBody(r *Record) string {
 			req("langs", list(reCheck(langRe), 0, 8, true)),
 			req("desc", textCheck(0, 280)),
 		})
+	case "authority":
+		return authorityBody(r)
 	case "hide":
 		return hideCheck(r)
 	case "shun":

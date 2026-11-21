@@ -140,7 +140,9 @@ function fuHomeHtml(){const f=S&&S.fed,ok=S&&UI.started&&fedEligible(),on=!!(f&&
   if(!play)h+=`<p class="tagline">${tr('fedui.other_players_networks_become_places_to')}</p>`;h+=fuMsg();
   if(!ok)h+=`<p class="note fu-why">${fuWhyMode()}</p>`;
   // Excluded by the federation: why, and that solo play goes on.
-  if(on&&FU.shun&&FU.shun.shunned)h+=`<div class="fu-box bad"><b>${tr('fedui.the_federation_excluded_your_network')}</b><p class="meta">${FU.shun.reasons.length?tr('fedui.enough_servers_voted_to_shun_it'):tr('fedui.enough_servers_voted_to_exclude_it')}</p>${FU.shun.reasons.length?`<ul class="fu-reasons">${FU.shun.reasons.map(r=>`<li>${fuReason(r)}</li>`).join('')}</ul>`:''}${FU.shun.servers&&FU.shun.servers.length?`<p class="meta">${tr('fedui.listed_by_servers',{servers:[...new Set(FU.shun.servers.map(x=>FU.srvs.some(s=>s.id===x.srv)?fuSrvName(x.srv):esc(fedUrlHost(x.url))))].join(', ')})}</p>`:''}<p class="meta">${tr('fedui.your_game_plays_on_as_always')}</p></div>`;
+  // Banned by the authority (§11.5): said first, with its reason; the shun box is then not needed.
+  if(on&&FU.shun&&FU.shun.banned)h+=`<div class="fu-box bad"><b>${tr('fedui.seriesoftubes_banned_your_network')}</b><ul class="fu-reasons"><li>${fuReason(FU.shun.banned)}</li></ul><p class="meta">${tr('fedui.your_game_plays_on_as_always')}</p></div>`;
+  else if(on&&FU.shun&&FU.shun.shunned)h+=`<div class="fu-box bad"><b>${tr('fedui.the_federation_excluded_your_network')}</b><p class="meta">${FU.shun.reasons.length?tr('fedui.enough_servers_voted_to_shun_it'):tr('fedui.enough_servers_voted_to_exclude_it')}</p>${FU.shun.reasons.length?`<ul class="fu-reasons">${FU.shun.reasons.map(r=>`<li>${fuReason(r)}</li>`).join('')}</ul>`:''}${FU.shun.servers&&FU.shun.servers.length?`<p class="meta">${tr('fedui.listed_by_servers',{servers:[...new Set(FU.shun.servers.map(x=>FU.srvs.some(s=>s.id===x.srv)?fuSrvName(x.srv):esc(fedUrlHost(x.url))))].join(', ')})}</p>`:''}<p class="meta">${tr('fedui.your_game_plays_on_as_always')}</p></div>`;
   // Where you stand: connected or not, as whom, what is queued meanwhile.
   if(on){const q=fuQueued();h+=`<div class="fu-where"><div class="fu-status ${st.state}"><span class="fed-dot ${st.state}" aria-hidden="true"></span><span>${fuStatusText(st)}</span></div>`;
     if(f.key)h+=`<p class="meta fu-id">${tr('fedui.you_are_asn_to_everyone',{asn:FU.asn?'AS'+FU.asn:'AS…',name:esc(S.name)})}</p>`;
@@ -158,7 +160,7 @@ function fuHomeHtml(){const f=S&&S.fed,ok=S&&UI.started&&fedEligible(),on=!!(f&&
   if(play)h+=fedIxListHtml(FU.nets)+fedFoundHtml();
   // Joined servers: one line each.
   if(f&&f.servers.length){h+=`<h3 class="sub4">${tr('fedui.your_servers')}</h3><div class="fu-list">${f.servers.map(u=>{const s=fuSrvOf(u),x=FED.st[u],xs=x?x.state:'offline';
-      return `<div class="fu-item"><span class="fed-dot ${xs}" aria-hidden="true"></span><div class="grow fu-txt"><b>${s?esc(s.name):esc(u)}</b><span class="meta">${fuStatusText({state:xs==='waiting'||xs==='idle'?'offline':xs,since:x&&xs==='offline'?x.since:null})}${s?' · '+fuPolShort(s):''}</span></div>${btn(tr('fedui.leave'),'fuLeave',{url:u},'ghost sm')}</div>`;}).join('')}</div>`;}
+      return `<div class="fu-item"><span class="fed-dot ${xs}" aria-hidden="true"></span><div class="grow fu-txt"><b>${s?esc(s.name):esc(u)}</b><span class="meta">${x&&x.cut&&xs==='offline'?(x.cut==='banned'?tr('fedui.cut_banned'):tr('fedui.cut_outdated')):fuStatusText({state:xs==='waiting'||xs==='idle'?'offline':xs,since:x&&xs==='offline'?x.since:null})}${s?' · '+fuPolShort(s):''}</span></div>${btn(tr('fedui.leave'),'fuLeave',{url:u},'ghost sm')}</div>`;}).join('')}</div>`;}
   if(ok){const full=f&&f.servers.length>=FED_MAX_SERVERS;h+=`<div class="btns">${btn(f&&f.servers.length?tr('fedui.join_another_server'):tr('fedui.join_a_server'),'fuOpen',{v:'join'},f&&f.servers.length?'ghost':'pink',full)}${btn(tr('fedui.looking_glass'),'fuOpen',{v:'glass'},'ghost')}</div>`;
     if(full)h+=`<p class="meta">${tr('fedui.you_are_on_four_servers_already')}</p>`;}
   else h+=`<div class="btns">${btn(tr('fedui.looking_glass'),'fuOpen',{v:'glass'},'ghost')}</div>`;
@@ -176,7 +178,7 @@ function fuHomeHtml(){const f=S&&S.fed,ok=S&&UI.started&&fedEligible(),on=!!(f&&
   if(on)h+=fuFoldBtn('set','⚙️ '+tr('common.settings')+' · '+tr('fedui.privacy'))+(fuOpenK('set')?`<div class="fu-set">${set()}</div>`:'');
   else h+=set();
   return h;}
-const fuReason=r=>({cheating:tr('fedui.reason_cheating'),offensive_name:tr('fedui.reason_offensive_name'),spam:tr('fedui.reason_spam'),abuse:tr('fedui.reason_abuse')}[r]||esc(r));
+const fuReason=r=>({cheating:tr('fedui.reason_cheating'),offensive_name:tr('fedui.reason_offensive_name'),spam:tr('fedui.reason_spam'),abuse:tr('fedui.reason_abuse'),legal:tr('fedui.reason_legal')}[r]||esc(r));
 
 /* ---------- joining: the catalog, policy first; a typed address; an invite ---------- */
 /* A server as a compact card: its policy first (where your network will be seen), then the name (a tap: its details)

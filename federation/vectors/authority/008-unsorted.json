@@ -1,0 +1,14 @@
+{
+  "description": "nets not in key order: bad_field.",
+  "input": {
+    "now": 1767312100,
+    "keys": [
+      "llijPwnI4ROyAxEaB5Fa_hqldxS3b-CKCD_XdIq7bb8"
+    ],
+    "text": "{\"body\":{\"nets\":[{\"key\":\"yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI\",\"reason\":\"abuse\"},{\"key\":\"BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0\",\"reason\":\"spam\"}],\"relayMin\":\"5.2.0\",\"relayMinFrom\":1767916800,\"servers\":[{\"id\":\"Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4\",\"reason\":\"legal\"}]},\"key\":\"llijPwnI4ROyAxEaB5Fa_hqldxS3b-CKCD_XdIq7bb8\",\"kind\":\"authority\",\"sig\":\"45mGbQB2gPaaW8graMOPMP6mD-DaR3o772GGC4frZYUSaveO3jCpsk914H0XRh9uFD4QUkQcjJXe2_7NggwkCw\",\"t\":1767312000,\"v\":1}"
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

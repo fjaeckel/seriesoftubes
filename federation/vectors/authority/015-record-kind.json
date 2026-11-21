@@ -1,0 +1,14 @@
+{
+  "description": "An announce is no authority file: bad_kind.",
+  "input": {
+    "now": 1767312100,
+    "keys": [
+      "llijPwnI4ROyAxEaB5Fa_hqldxS3b-CKCD_XdIq7bb8"
+    ],
+    "text": "{\"body\":{\"asn\":4215690104,\"auto\":{\"consortium\":\"review\",\"peering\":\"auto\",\"pni\":\"review\",\"port\":\"auto\",\"swap\":\"review\",\"transit\":\"auto\"},\"box\":\"tO4Fv_k6I0AaD4GNgg7WfxxSrjMCD6t-aY-ulE4Fi2Y\",\"cond\":{\"ai\":true,\"maxRatio\":300,\"minMbps\":1000,\"minShared\":2,\"rpki\":true,\"tier1\":false},\"cust\":37,\"day\":412,\"founded\":20454,\"home\":\"DE\",\"ix\":[\"fra\",\"ams\"],\"mix\":{\"content\":200,\"enterprise\":100,\"eyeball\":700},\"name\":\"Ping Floyd\",\"policy\":\"selective\",\"pops\":[\"fra\",\"ams\",\"lon\"],\"rates\":{\"ix\":{\"at\":[\"fra\"],\"join\":\"anyone\",\"ports\":[{\"mbps\":1000,\"monthly\":200},{\"mbps\":10000,\"monthly\":800}]},\"pni\":{\"ports\":[{\"mbps\":10000,\"monthly\":1500},{\"mbps\":100000,\"monthly\":9000}],\"setup\":5000,\"term\":180},\"transit\":{\"commit\":[{\"mbps\":10000,\"off\":100},{\"mbps\":100000,\"off\":250}],\"perGbps\":900,\"term\":90}},\"traffic\":{\"in\":42000,\"out\":9000}},\"key\":\"llijPwnI4ROyAxEaB5Fa_hqldxS3b-CKCD_XdIq7bb8\",\"kind\":\"announce\",\"sig\":\"OEo7Ejvb-6Qsa66xny-EegTjemd5valcIuG0bNkSUw4giJkpX5dwO1Cne1mdMOzITiglG5lQws1O4i0Ln1auDw\",\"t\":1767312000,\"v\":1}"
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_kind"
+  }
+}

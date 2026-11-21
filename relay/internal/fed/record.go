@@ -31,6 +31,8 @@ var kinds = map[string]kindInfo{
 	"state":     {false, 40960, StateLife},
 	"receipt":   {false, 1024, 0},
 	"proof":     {false, 1024, 0},
+	// The authority file (11.5): no record, read only as federation/authority.json.
+	"authority": {false, AuthorityMax, 0},
 }
 
 // RecordKinds are the kinds a put may carry (section 5).
@@ -39,7 +41,7 @@ var RecordKinds = []string{"announce", "stats", "offer", "accept", "decline", "g
 // IsRecordKind reports whether k is a section 5 kind (stored records: never a live state).
 func IsRecordKind(k string) bool {
 	switch k {
-	case "receipt", "proof", "state":
+	case "receipt", "proof", "state", "authority":
 		return false
 	}
 	_, ok := kinds[k]

@@ -568,8 +568,8 @@ data folder from earlier builds is read as it is (same day-file format).
 **Every node says what it runs.** Its `welcome` (to games and to other nodes) and its `hello` to other nodes carry
 `impl: {name: "tubes-relay", version: "x.y.z"}`, and your server's catalog entry lists the versions of its nodes as far as
 the emitting node knows them (itself, and the nodes of your server it has a session with). Players see "relay x.y.z" per
-node on your server's page in the looking glass; `relay status` shows yours and each peer's. It is informational: no
-one signs it and nothing but displays uses it, not even the update notices below. A build without a version (`go build` by hand) says
+node on your server's page in the looking glass; `relay status` shows yours and each peer's. No one signs it; displays
+use it, and so does the authority's `relayMin` (below), never the update notices. A build without a version (`go build` by hand) says
 `dev` and is never told to update.
 
 **Where the news comes from.** The site publishes one static file beside the registry,
@@ -605,6 +605,27 @@ such release, so a relay older than it is told "security" even after later, ordi
   `update.json` in the data folder which version it told, so a restart does not repeat it. Point it at your own chat
   webhook or alerting. It carries your server identity and versions only: no addresses, players or keys. Off unless
   you set it, and only `https://` URLs (without a user or password in them) are accepted.
+
+## Bans and the oldest relay allowed (the authority)
+
+seriesoftub.es is the federation's authority (docs/adr/0006-seriesoftubes-is-the-federation-authority.md). The site
+publishes `https://seriesoftub.es/federation/authority.json` beside the registry, signed with a key the relay has
+pinned. Your relay reads it on the same schedule as `relay.json` (at start and every registry refresh), keeps the
+newest one it verified as `authority.json` in its data folder (so bans survive the site being down and a restart), and
+never takes an older one. A relay with no `registry` reads none. What it does with it (FEDERATION-PROTOCOL.md 11.5):
+
+- **Banned networks**: their records are refused (`banned`) and those it holds are dropped; a game that proves such a
+  key is closed; they are off your boards and in the excluded list your players get.
+- **Banned servers**: their nodes are refused in the node handshake (`banned`), running sessions close, and their
+  catalog entries are dropped and not passed on.
+- **`relayMin`**: seven days after a relay release that raises it, nodes older than it (or not saying what they run)
+  are **out of date**: other relays refuse them (`outdated`) and games will not join them. Your own relay warns you
+  first: the log says `relay out of date` and `relay status` shows `authority.says` ("…stop syncing with it from …
+  Update it.") from the day the file names a newer `relayMin`, so you have the week to update.
+
+`relay status` shows the file it holds under `authority` (`t`, the number of banned networks and servers, `relayMin` and
+when it applies), and the network list says `banned` per network. Releases that only change the game never raise
+`relayMin`, so not every release needs your relay updated within the week; one that does says so in its notes.
 
 ## LAN parties: `relay lan`
 

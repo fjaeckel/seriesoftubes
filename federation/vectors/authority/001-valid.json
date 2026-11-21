@@ -1,0 +1,23 @@
+{
+  "description": "A file signed by a pinned authority key: two banned networks (sorted by key), one banned server, relayMin 5.2.0 from 7 days after t.",
+  "input": {
+    "now": 1767312100,
+    "keys": [
+      "llijPwnI4ROyAxEaB5Fa_hqldxS3b-CKCD_XdIq7bb8"
+    ],
+    "text": "{\"body\":{\"nets\":[{\"key\":\"BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0\",\"reason\":\"spam\"},{\"key\":\"yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI\",\"reason\":\"abuse\"}],\"relayMin\":\"5.2.0\",\"relayMinFrom\":1767916800,\"servers\":[{\"id\":\"Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4\",\"reason\":\"legal\"}]},\"key\":\"llijPwnI4ROyAxEaB5Fa_hqldxS3b-CKCD_XdIq7bb8\",\"kind\":\"authority\",\"sig\":\"8LsgP4k8dparuWrsXCIcuZdq6o2UTkc1dr7rUCEDvF-aBlNZucK_YSQNvR-rQGDygQwGVOVXVjjDlIWw6F1ZAQ\",\"t\":1767312000,\"v\":1}"
+  },
+  "expect": {
+    "ok": true,
+    "t": 1767312000,
+    "relayMin": "5.2.0",
+    "relayMinFrom": 1767916800,
+    "nets": {
+      "BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0": "spam",
+      "yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI": "abuse"
+    },
+    "servers": {
+      "Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4": "legal"
+    }
+  }
+}

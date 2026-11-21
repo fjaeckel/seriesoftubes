@@ -172,7 +172,10 @@ func HTTPSURL(s string) bool {
 
 // URLBeside is where relay.json is for a registry source: the same folder as servers.json,
 // whether that is an https:// URL or a file. "" when there is no registry.
-func URLBeside(registry string) string {
+func URLBeside(registry string) string { return FileBeside(registry, "relay.json") }
+
+// FileBeside is where a file named name is for a registry source (relay.json, authority.json).
+func FileBeside(registry, name string) string {
 	if registry == "" {
 		return ""
 	}
@@ -183,14 +186,14 @@ func URLBeside(registry string) string {
 		}
 		u.RawQuery, u.Fragment = "", ""
 		if i := strings.LastIndex(u.Path, "/"); i >= 0 {
-			u.Path = u.Path[:i+1] + "relay.json"
+			u.Path = u.Path[:i+1] + name
 		} else {
-			u.Path = "/relay.json"
+			u.Path = "/" + name
 		}
 		u.RawPath = ""
 		return u.String()
 	}
-	return filepath.Join(filepath.Dir(registry), "relay.json")
+	return filepath.Join(filepath.Dir(registry), name)
 }
 
 // Hint is an update this relay should get.

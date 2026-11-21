@@ -34,13 +34,13 @@ Files are numbered (`001-…`) only to keep a stable order; the number means not
 ## Who writes what
 
 - **Generated** by [`scripts/fed-vectors.js`](../../scripts/fed-vectors.js) from fixed seeds: `signing`, `asn`,
-  `records`, `receipts`, `proofs`, `auth`, `operators`, `registry`, `dedupe`, `rank`, `box`. Never edit these by hand: change the script and
+  `records`, `receipts`, `proofs`, `auth`, `operators`, `registry`, `dedupe`, `rank`, `box`, `authority`. Never edit these by hand: change the script and
   run `node scripts/fed-vectors.js` (CI can run `node scripts/fed-vectors.js --check`). Keys are Ed25519 from the seed
   SHA-256("tubes-fed.1 vector key <name>") for the names alice, bob, carol, mallory (networks), anna, ben, cleo, dan
-  (operators) and node1, node2, node3 (nodes). Ed25519 is deterministic, so the files never change unless the script
+  (operators), node1, node2, node3 (nodes) and sot (the authority key, 11.5). Ed25519 is deterministic, so the files never change unless the script
   does. The script only fills in keys, signatures and ids; which result is expected is written as a literal in it.
 - **Hand-written**, with the working in each `description`: `canonical`, `slots`, `boards`, `now`, `quiet`, `shun`,
-  `catalog`, `deals`, `majority`, `sync`, `autosync`, `wire`, `impl`. Edit these files directly. They use short labels (`kA`, `s01`,
+  `catalog`, `deals`, `majority`, `sync`, `autosync`, `wire`, `impl`, `relaymin`. Edit these files directly. They use short labels (`kA`, `s01`,
   `o01`, `r1`) for keys, server identities, operator keys and record ids: treat them as opaque strings, compared in
   byte order like real ones. Their records are already validated, so only the rule under test applies.
 
@@ -57,6 +57,8 @@ Files are numbered (`001-…`) only to keep a stable order; the number means not
 | `auth` | 9.3 | `now`, `node` (the node's key), `server`, `auth` (the client's `auth` frame); for a bound auth (a frame with `url`) also `urls` (the node's own URLs) and `nonce` (its welcome's, absent when it gave none) | `{ok: true}` or `{ok: false, error}` |
 | `operators` | 8 | `now`, `genesis`, `records` (`operators` proposals); optionally `server` | `{head, operators, nodes, pending}` (lists sorted by key, `pending` as ids); with `server`: `{ok}` or `{ok: false, error}` |
 | `registry` | 11 | `files` (file name → file object, or `{text}` for raw text), `check` (the file to check), optional `base` (that file on the base branch) | `{ok: true}` or `{ok: false, error}`; for the build: `servers_json` |
+| `authority` | 11.5 | `now`, `keys` (the pinned authority keys), `text` (the file) | `{ok: true, t, relayMin, relayMinFrom, nets, servers}` (`nets` key → reason, `servers` id → reason; `relayMin` and `relayMinFrom` null when unset) or `{ok: false, error}` |
+| `relaymin` | 11.5 | cases: `relayMin`, `relayMinFrom`, `now`, `impl` | `{outdated}` |
 | `dedupe` | 10.11 | `now`, `arrivals` (in order, each `{record}` or `{text}`) | `stored` (sorted by id; multi-signer records with their signer keys) and `results` per arrival: `stored`, `duplicate`, `merged` or an error code |
 | `slots` | 10.1, 10.2 | cases: `t` → `slot`; `now` → windows; `receipts` → board slot. Files: `records` (`{id, key, slot, t, mode}`) and `queries` (slots) | as named; `results` per query: `{s, eff (id or null), value}` |
 | `boards` | 10.3–10.5 | `now`, `board` (`pops`, `pies`, `traffic`, `total`, `cone`), `measure` (`total`, `growth`), `division` (`all`, `human`, `ai`), `exclude` (keys), `cities` (region filter or null), `founded` (cone board: key -> founded of its newest announce; a key without one has no announce), `records` (`{id, key, slot, t, body}`, `slot` being the board slot), optional `states` (live states held at `now`, `{id, key, t, body}`: the running slot, 10.13) | `rows`: `[{key, value}]` in board order |

@@ -1,0 +1,42 @@
+name: Authority
+# A ban (federation/bans.json, ADR 0006) deploys without a release: when it changes on main, the live release is
+# redeployed with the bans from main, re-signed into federation/authority.json. release.yml stays the only workflow
+# that writes to Pages; with weekly=true it skips the tag's tests (the tag was tested when it shipped) and still
+# checks the bans before it signs them. Releases from before the authority cannot carry the bans; they ship with the
+# next release.
+on:
+  push:
+    branches: [main]
+    paths: [federation/bans.json]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write    # start release.yml
+
+concurrency:
+  group: authority
+  cancel-in-progress: false
+
+jobs:
+  redeploy:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Check the bans
+        run: node scripts/authority.js --check
+      - name: Redeploy the live release with them
+        run: |
+          set -euo pipefail
+          tag=$(gh release list --repo "$GITHUB_REPOSITORY" --exclude-pre-releases --exclude-drafts --limit 1 --json tagName -q '.[0].tagName')
+          [ -n "$tag" ] || { echo "::error::no release to redeploy"; exit 1; }
+          if ! git fetch --no-tags --depth=1 origin "refs/tags/$tag" || ! git show FETCH_HEAD:scripts/authority.js >/dev/null 2>&1; then
+            echo "::notice::$tag predates the authority; the bans are on main and ship with the next release."; exit 0
+          fi
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$tag" -f tag="$tag" -f weekly=true
+          echo "Redeploying $tag with the bans from main."

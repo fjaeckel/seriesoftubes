@@ -78,6 +78,9 @@ const AREA = {
     return {box:await fedBoxPub(seed)};})()`, { ...i, seed: i.seed ? hexB64(i.seed) : undefined }),
   wire: (run, i) => run(`(()=>{const r=fedFrame(i.frame,i.role,i.state,i.speaks);return r.error?{error:r.error}:{ok:true};})()`, i),
   impl: (run, i) => run(`'welcome' in i?{impl:fedImpl(i.welcome)}:{impl:fedImpls(i.entry,i.nodes.map(key=>({key})))}`, i),
+  authority: (run, i) => run(`fedAuthCheck(i.text,i.now,i.keys).then(r=>r.ok?{ok:true,t:r.a.t,relayMin:r.a.relayMin,relayMinFrom:r.a.from,
+    nets:Object.fromEntries(r.a.nets),servers:Object.fromEntries(r.a.servers)}:r)`, i),
+  relaymin: (run, i) => run(`({outdated:fedOutdated(i.relayMin?{relayMin:i.relayMin,from:i.relayMinFrom}:null,i.impl,i.now)})`, i),
 };
 
 const areas = fs.readdirSync(DIR, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();

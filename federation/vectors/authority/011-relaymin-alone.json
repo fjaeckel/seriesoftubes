@@ -1,0 +1,14 @@
+{
+  "description": "relayMin without relayMinFrom: missing_field.",
+  "input": {
+    "now": 1767312100,
+    "keys": [
+      "llijPwnI4ROyAxEaB5Fa_hqldxS3b-CKCD_XdIq7bb8"
+    ],
+    "text": "{\"body\":{\"nets\":[{\"key\":\"BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0\",\"reason\":\"spam\"},{\"key\":\"yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI\",\"reason\":\"abuse\"}],\"relayMin\":\"5.2.0\",\"servers\":[{\"id\":\"Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4\",\"reason\":\"legal\"}]},\"key\":\"llijPwnI4ROyAxEaB5Fa_hqldxS3b-CKCD_XdIq7bb8\",\"kind\":\"authority\",\"sig\":\"pkcJTfsfshkXeyh-Ee9WBuAk5h7zomoswXZs9inoT6vIFD4SYG1SlADnf2VctPKBSub95ON1CWAIUiYgkWkDDw\",\"t\":1767312000,\"v\":1}"
+  },
+  "expect": {
+    "ok": false,
+    "error": "missing_field"
+  }
+}

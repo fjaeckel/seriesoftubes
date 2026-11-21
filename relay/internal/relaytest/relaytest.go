@@ -105,6 +105,8 @@ type Net struct {
 	Country privacy.Countries
 	// Release is the relay version nodes made from now on run ("": a development build).
 	Release string
+	// AuthorityKeys replace the pinned authority keys for every node (11.5); nil: the pinned ones.
+	AuthorityKeys []string
 	// ReleasesURL stands in for GitHub's releases API for nodes started from now on ("": the
 	// real one, which this net cannot reach).
 	ReleasesURL string
@@ -246,7 +248,7 @@ func (x *Node) options() node.Options {
 		Log:        slog.New(slog.NewTextHandler(x.Log, &slog.HandlerOptions{Level: slog.LevelDebug})),
 		HTTPClient: x.Net.HTTP, AllowInternal: true, Countries: x.Net.Country, Metrics: x.Metrics,
 		BootstrapEvery: 200 * time.Millisecond, DialBase: 50 * time.Millisecond, Versions: x.Versions, Version: x.Release,
-		ReleasesURL: x.Net.ReleasesURL, Feats: x.Feats}
+		ReleasesURL: x.Net.ReleasesURL, Feats: x.Feats, AuthorityKeys: x.Net.AuthorityKeys}
 }
 
 // Stop stops the relay (its URL stays reserved but answers 503).

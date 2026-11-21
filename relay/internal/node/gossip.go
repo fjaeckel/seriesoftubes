@@ -394,6 +394,12 @@ func (r *Relay) receiveEntry(from *session, x any, now int64) string {
 		return "" // full: entries already kept still update, new ones wait for room
 	}
 	impl := readImpls(m["impl"], st)
+	if r.catRefused(g.ID, impl, now) {
+		if old != nil {
+			r.forget(g.ID)
+		}
+		return "" // banned, or only out-of-date nodes (11.5): dropped silently, not passed on
+	}
 	c := &catEntry{ID: g.ID, Genesis: g, Chain: ch, Server: srv, State: st, Path: path, Seen: seen, Impl: impl, via: via, hash: hash,
 		size: size, unseen: unlisted}
 	if old != nil {

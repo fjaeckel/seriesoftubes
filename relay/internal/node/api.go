@@ -116,6 +116,16 @@ func (r *Relay) Status() map[string]any {
 		"clients": len(r.clients), "peers": peers, "records": r.st.Len(), "kinds": kinds,
 		"diskBytes": r.st.Size(), "shunned": len(r.shunned), "catalog": len(r.cat), "catalogForks": r.forks, "registry": len(r.regs),
 		"version": r.impl.Version, "auto": r.autoStatus()}
+	if a := r.auth; a != nil {
+		au := map[string]any{"t": a.T, "nets": len(a.Nets), "servers": len(a.Servers)}
+		if a.RelayMin != "" {
+			au["relayMin"], au["relayMinFrom"] = a.RelayMin, a.From
+			if a.OutOfDate(r.impl, max(now, a.From)) {
+				au["says"] = "This relay is older than relayMin " + a.RelayMin + ": other relays and games stop syncing with it from " + fmtUnix(a.From) + ". Update it."
+			}
+		}
+		out["authority"] = au
+	}
 	if h := r.upd.hint; h != nil {
 		out["update"] = map[string]any{"says": h.Text(), "version": h.Version, "security": h.Security, "notes": h.Notes, "source": h.Source}
 	} else if f := r.latest(); f != nil {
@@ -189,7 +199,7 @@ func (r *Relay) Players() []map[string]any {
 		heard := r.lastHeard(key)
 		state, _ := boards.Quiet(now, heard)
 		out = append(out, map[string]any{"key": key, "name": a.Str("name"), "asn": a.Int("asn"), "lastHeard": heard,
-			"state": state, "hidden": r.hidden(key), "refused": r.refusesKey(key), "shunned": r.shunned[key]})
+			"state": state, "hidden": r.hidden(key), "refused": r.refusesKey(key), "shunned": r.shunned[key], "banned": r.bannedNet(key)})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i]["key"].(string) < out[j]["key"].(string) })
 	return out

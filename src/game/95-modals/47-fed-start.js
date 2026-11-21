@@ -26,7 +26,7 @@ const fsOf=url=>(FS.srvs||[]).find(s=>(s.nodes||[]).some(n=>n.url===url))||null;
 const fsSel=()=>UI.fs?UI.fs.typed.trim()||UI.fs.url:null;
 const fsTyped=()=>{const t=UI.fs?UI.fs.typed.trim():'';return t&&!FdUrl(t)?t:null;};
 // A server's name for a toast: from the catalog (the session's own load of it first, when one runs), else the address.
-async function fsName(url){try{await (FED.live&&FED.live.cat);FS.srvs=await fedServers();}catch(e){}const s=fsOf(url);return s?esc(s.name):esc(url);}
+async function fsName(url){try{await (FED.live&&FED.live.cat);FS.srvs=await fedServersAllowed();}catch(e){}const s=fsOf(url);return s?esc(s.name):esc(url);}
 /* Nothing picked yet: the open registry server whose node answered the registry's liveness check most recently (then
    by name), else any registry server the same way, else (only servers heard of) the game's own first server (FED_FIRST). Never one only heard
    of through gossip: whoever runs a server could otherwise make theirs the default for players with no registry yet. */
@@ -69,9 +69,9 @@ try{addEventListener('online',fsNet);addEventListener('offline',fsNet);}catch(e)
 /* The cached catalog at once, then (when the player asked: net) the registry fetched afresh, once per page unless that
    failed. Asked for while a load runs, the fetch follows it. */
 async function fsLoad(net){if(net)FS.want=true;if(FS.busy)return;FS.busy=true;let said=false;
-  try{FS.srvs=await fedServers();fsPick0();fsPaint();
+  try{FS.srvs=await fedServersAllowed();fsPick0();fsPaint();
     while(FS.want){FS.want=false;if(FS.fetched&&!FS.failed)continue;said=true;FS.fetched=true;
-      FS.failed=!(await fedCatalogLoad().catch(()=>false));FS.srvs=await fedServers();}}
+      FS.failed=!(await fedCatalogLoad().catch(()=>false));await fedAuthLoad().catch(()=>false);FS.srvs=await fedServersAllowed();}}
   catch(e){FS.srvs=FS.srvs||[];}
   FS.busy=false;fsPick0();fsCheck(said);fsPaint();}
 const fsPick0=()=>{if(UI.fs&&!UI.fs.url)UI.fs.url=fsDefault(FS.srvs||[]);};

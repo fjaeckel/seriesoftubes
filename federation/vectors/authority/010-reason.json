@@ -1,0 +1,14 @@
+{
+  "description": "A reason that is not one of the five: bad_field.",
+  "input": {
+    "now": 1767312100,
+    "keys": [
+      "llijPwnI4ROyAxEaB5Fa_hqldxS3b-CKCD_XdIq7bb8"
+    ],
+    "text": "{\"body\":{\"nets\":[{\"key\":\"BydB2y9zLsGpT8g9cHZpqQcvinn8wjSheFzYHQLCSz0\",\"reason\":\"spam\"},{\"key\":\"yHiPTpcceGGXUGrEaQwLvjpSkwI6XnA0vFyJQ7WlgHI\",\"reason\":\"abuse\"}],\"relayMin\":\"5.2.0\",\"relayMinFrom\":1767916800,\"servers\":[{\"id\":\"Ad-XFv7OoQubEHPmzHVAVfuNI7XYUq2yn9IHJ2ZOpU4\",\"reason\":\"because\"}]},\"key\":\"llijPwnI4ROyAxEaB5Fa_hqldxS3b-CKCD_XdIq7bb8\",\"kind\":\"authority\",\"sig\":\"JDA29p8ogxy6_MLFZJ8WgnYxHpuTg9HIyalvJIwxACnNsAOowQreyc8QE-eFQPWcj8peS6N0BMBuS1biaAlyBw\",\"t\":1767312000,\"v\":1}"
+  },
+  "expect": {
+    "ok": false,
+    "error": "bad_field"
+  }
+}

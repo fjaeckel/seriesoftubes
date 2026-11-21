@@ -1,6 +1,7 @@
 # ADR 0005: Multiplayer through servers players run themselves, never through seriesoftub.es
 
-- Status: proposed
+- Status: proposed; amended by [ADR 0006](0006-seriesoftubes-is-the-federation-authority.md) (seriesoftub.es bans and
+  sets the oldest relay allowed)
 - Date: 2026-11-12
 - Amends: [ADR 0001](0001-github-pages-only.md) (one narrow exception, below)
 

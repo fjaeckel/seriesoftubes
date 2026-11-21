@@ -14,12 +14,14 @@ async function run(p, ms = 3000) {
   for (let i = 0; i < 40; i++) { await settle(20); await new Promise((r) => setTimeout(r, 5)); if (!p.ev('FS.busy')) break; }
   await settle(40);
 }
-// A page whose registry fetches are counted (FED.fetch is the only way the game asks for servers.json).
+// A page whose registry fetches are counted (FED.fetch is the only way the game asks for servers.json). The
+// authority file (federation/authority.json, §11.5) is fetched with it when the switch goes on: counted apart.
 function page(o = {}) {
   const p = fedPage({ registry: SERVERS_JSON, ...o });
   p.fetches = 0;
+  p.authFetches = 0;
   const f = p.w.__fetch;
-  p.w.__fetch = (u) => { p.fetches++; return f(u); };
+  p.w.__fetch = (u) => { if (String(u).endsWith('authority.json')) { p.authFetches++; return { ok: false, text: async () => '' }; } p.fetches++; return f(u); };
   return p;
 }
 const sw = (p) => p.ev(`(()=>{const b=document.querySelector('#fsTog');return b?b.getAttribute('aria-checked'):null})()`);
@@ -66,6 +68,7 @@ test('turning the switch on is what fetches the registry; the default is the ope
   click(p, '#fsTog');
   await run(p, 500);
   assert.equal(p.fetches, 1, 'one fetch, when switched on');
+  assert.equal(p.authFetches, 1, 'and the authority file with it');
   assert.equal(sw(p), 'true');
   const r = rows(p);
   assert.deepEqual(r.map((x) => x.name), ['Hop Shop', 'Packet Lunch'], 'registry servers by name');
@@ -260,7 +263,7 @@ test('a server list that cannot be fetched or lists nobody turns the switch back
   await run(r, 500);
   click(r, '#fsTog');
   await run(r, 500);
-  r.w.__fetch = async () => { r.fetches++; return { ok: true, text: async () => JSON.stringify(SERVERS_JSON) }; };
+  r.w.__fetch = async (u) => { if (String(u).endsWith('authority.json')) return { ok: false, text: async () => '' }; r.fetches++; return { ok: true, text: async () => JSON.stringify(SERVERS_JSON) }; };
   click(r, '#fsTog');
   await run(r, 500);
   assert.equal(r.fetches, 2, 'fetched again');

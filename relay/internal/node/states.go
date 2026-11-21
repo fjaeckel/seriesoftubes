@@ -100,6 +100,8 @@ func (r *Relay) takeState(rec *fed.Record, o origin, now int64) (int, string) {
 	var charge func()
 	if t, ok := r.left[rec.Key]; ok && rec.T <= t {
 		code = fed.Refused
+	} else if r.bannedNet(rec.Key) {
+		code = fed.Banned
 	} else if r.isShunned(rec.Key) {
 		code = fed.Shunned
 	} else if r.refusesKey(rec.Key) {

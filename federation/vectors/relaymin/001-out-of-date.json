@@ -1,0 +1,16 @@
+{
+  "description": "Out of date (11.5): with relayMin set and now >= relayMinFrom, a node is out of date when its impl is absent, its name is not tubes-relay, or its version is not a semantic version or is below relayMin (semver precedence, build metadata ignored, a pre-release of relayMin lower). Before relayMinFrom, or without relayMin, nothing is out of date. input: relayMin (null when unset), relayMinFrom, now, impl ({name, version} or null).",
+  "cases": [
+    { "input": { "relayMin": "5.2.0", "relayMinFrom": 1767916800, "now": 1767916800, "impl": { "name": "tubes-relay", "version": "5.2.0" } }, "expect": { "outdated": false } },
+    { "input": { "relayMin": "5.2.0", "relayMinFrom": 1767916800, "now": 1767916800, "impl": { "name": "tubes-relay", "version": "5.10.1" } }, "expect": { "outdated": false } },
+    { "input": { "relayMin": "5.2.0", "relayMinFrom": 1767916800, "now": 1767916800, "impl": { "name": "tubes-relay", "version": "5.2.0+build.7" } }, "expect": { "outdated": false } },
+    { "input": { "relayMin": "5.2.0", "relayMinFrom": 1767916800, "now": 1767916800, "impl": { "name": "tubes-relay", "version": "5.1.9" } }, "expect": { "outdated": true } },
+    { "input": { "relayMin": "5.2.0", "relayMinFrom": 1767916800, "now": 1767916800, "impl": { "name": "tubes-relay", "version": "5.2.0-rc.1" } }, "expect": { "outdated": true } },
+    { "input": { "relayMin": "5.2.0", "relayMinFrom": 1767916800, "now": 1767916800, "impl": { "name": "tubes-relay", "version": "dev" } }, "expect": { "outdated": true } },
+    { "input": { "relayMin": "5.2.0", "relayMinFrom": 1767916800, "now": 1767916800, "impl": { "name": "other-relay", "version": "9.0.0" } }, "expect": { "outdated": true } },
+    { "input": { "relayMin": "5.2.0", "relayMinFrom": 1767916800, "now": 1767916800, "impl": null }, "expect": { "outdated": true } },
+    { "input": { "relayMin": "5.2.0", "relayMinFrom": 1767916800, "now": 1767916799, "impl": { "name": "tubes-relay", "version": "5.1.9" } }, "expect": { "outdated": false } },
+    { "input": { "relayMin": "5.2.0", "relayMinFrom": 1767916800, "now": 1767916799, "impl": null }, "expect": { "outdated": false } },
+    { "input": { "relayMin": null, "relayMinFrom": null, "now": 1767916800, "impl": null }, "expect": { "outdated": false } }
+  ]
+}

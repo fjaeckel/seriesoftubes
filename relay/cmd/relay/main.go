@@ -499,6 +499,11 @@ func cmdShow(cmd string, args []string) error {
 				fmt.Fprintln(os.Stderr, says)
 			}
 		}
+		if a, ok := m["authority"].(map[string]any); ok {
+			if says, ok := a["says"].(string); ok {
+				fmt.Fprintln(os.Stderr, says)
+			}
+		}
 	}
 	return nil
 }

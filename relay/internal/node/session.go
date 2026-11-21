@@ -865,6 +865,10 @@ func (r *Relay) clientFrame(s *session, f *wire.Frame) {
 			}
 			s.proved = append(s.proved, key)
 		}
+		if r.bannedNet(key) {
+			s.failClose(fed.Banned) // the authority banned this network (11.5)
+			return
+		}
 		s.enqueue(map[string]any{"m": "ack", "id": f.ID, "op": r.own != nil && r.own.IsOperator(key)})
 		r.sendUpdate(s) // operators hear of a newer relay right after proving their key
 		if s.exSent && r.isShunned(key) {
