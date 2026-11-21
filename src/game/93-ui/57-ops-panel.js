@@ -15,7 +15,7 @@ function opsOrderHtml(d){const k=d.k,on=S.ops.on[k],cap=d.cap?opsCap(k):0,sp=S.o
   return `<div class="ops-o${on?' on':''}"><div class="ops-h"><span class="ops-i" aria-hidden="true">${d.i}</span><div class="grow"><div class="nm">${tr(d.t)}</div><div class="meta">${tr(d.d)}${k==='caches'?' '+tr('ops.caches_rent',{price:fmt$(CACHE_MO),big:fmt$(CACHE_BIG_MO)}):''}</div></div>
     <button class="b sm ${on?'green':'ghost'}" data-act="opsToggle" data-args='{"k":"${k}"}' aria-pressed="${on}" aria-label="${esc(tr(d.t))}">${on?tr('common.on'):tr('ops.paused')}</button></div>
     ${on?`<div class="ops-p">${Object.keys(d.p).map(p=>opsSel(tr(d.p[p].l),'opsParam',{k,p},opsOpts(k,p),opsP(k,p),v=>opsVal(k,p,v))).join('')}
-    ${d.cap?opsSel(d.mo?tr('ops.budget_running'):tr('ops.budget'),'opsCap',{k},opsCaps(k),cap,v=>opsCapName(k,v)):''}</div>
+    ${d.cap?opsSel(d.mo?tr('ops.budget_running'):tr('ops.budget'),'opsCap',{k},opsCapsNow(k),cap,v=>opsCapName(k,v)):''}</div>
     ${sp||am?`<div class="meta">${tr('ops.spent_and_mo',{price:fmt$(sp),mo:opsMo$(am)})}</div>`:''}
     ${k==='ix'&&ppol()!=='open'?`<p class="why">${tr('link_panels.off_while_your_peering_policy_is',{pol:tr(PPOL_N[ppol()])})}</p>`:''}`:''}</div>`;}
 function opsModal(){if(!S)return;const hired=opsHired();let h=`<div style="display:flex;align-items:center"><div><div class="eyebrow">${tr('ops.ops')}</div><h2 style="font-size:26px">${tr('ops.standing_orders')}</h2></div><button class="x" data-act="closeModal" aria-label="${tr('common.close')}">×</button></div>`;
@@ -30,7 +30,7 @@ function opsModal(){if(!S)return;const hired=opsHired();let h=`<div style="displ
     <p class="ops-mood">${esc(opsMood())}</p>${opsReportHtml()}
     ${O.log.length?`<pre class="term ops-log">${O.log.slice(0,6).map(e=>esc(tr('ops.day_d',{d:e.d})+': '+opsEntry(e))).join('\n')}</pre>`:''}
     <div class="ops-p">${opsSel(tr('ops.floor'),'opsFloor',{},OPS_FLOORS,O.floor,v=>v?fmt$(v):tr('ops.no_cap'))}</div></div>`;
-  h+=`<p class="note">${tr('ops.how_it_works',{name:opsName()})}</p>`+OPS.filter(d=>opsShow(d)&&opsMine(d.k)).map(opsOrderHtml).join('');
+  h+=`<p class="note">${tr('ops.how_it_works',{name:opsName()})}</p>`+OPS.filter(d=>opsShow(d)&&opsMine(d.k)).map(opsOrderHtml).join('')+opsLockedHtml();
   if(optxOn())h+=`<p class="note">${tr('optx.orders_moved',{name:opsName()})} ${btn(tr('optx.title'),'optxOpen',{},'ghost sm')}</p>`;
   // Per POP: switch single orders off where the player wants to decide by hand.
   const cities=Object.keys(S.pops).sort((a,b)=>CITY[a].name.localeCompare(CITY[b].name)),c=S.pops[UI.opsCity]?UI.opsCity:cities[0];
@@ -39,6 +39,8 @@ function opsModal(){if(!S)return;const hired=opsHired();let h=`<div style="displ
     <p class="meta">${tr('ops.per_pop_note')}</p></section>`;
   h+=`<section><h3>${tr('ops.template')}</h3><p class="meta">${tr('ops.template_note',{name:opsName()})}</p><div class="ops-p">${OPS_TPL.filter(k=>k!=='bb'||!hyper()).map(k=>`<button class="b sm ${O.tpl[k]?'green':'ghost'}" data-act="opsTpl" data-args='{"k":"${k}"}' aria-pressed="${O.tpl[k]}">${tr(OPS_TPL_L[k])}</button>`).join('')}</div></section>`;
   h+=opsOnceHtml();openModal(h,'ops');}
+// Orders that come with a later level (a Hyperscaler's, d.lockLv()), named so the player knows they are coming.
+const opsLockedHtml=()=>{const L=OPS.filter(d=>d.lockLv&&!opsShow(d)&&d.lockLv()>lvl());return L.length?`<p class="meta">${L.map(d=>tr('ops.unlocks_at_level',{order:tr(d.t),lv:d.lockLv()})).join(' · ')}</p>`:'';};
 // The shift report: last week in one paragraph, and this week so far. The daily lines below are the detail.
 function opsReportHtml(){const O=S.ops,w=Math.floor(S.day/7),cur=O.wk&&O.wk.w===w&&opsWkAny(O.wk)?O.wk:null,rep=O.rep&&O.rep.w===w-1?O.rep:null;if(!cur&&!rep)return '';
   const row=(t,x)=>`<div class="ops-rep"><div class="eyebrow">${t}</div><div>${esc(opsWeekLine(x))}</div></div>`;

@@ -17,7 +17,7 @@ Object.assign(ACT,{
  opsToggle:({k})=>{if(!opsCtl(k))return;S.ops.on[k]=!S.ops.on[k];sfx('click');after();opsSheet();},
  opsParam:({k,p,v})=>{if(!opsCtl(k)||!own(OPSK[k].p,p))return;const P=OPSK[k].p[p],x=opsPick(opsOpts(k,p),opsP(k,p),v);if(x===undefined||!(P.ok?P.ok(x):P.v.includes(x)))return;
    (S.ops.p[k]||(S.ops.p[k]={}))[p]=x;sfx('click');after();opsRedraw('opsParam',{k,p});},
- opsCap:({k,v})=>{if(!opsCtl(k)||!OPSK[k].cap)return;const x=opsPick(opsCaps(k),opsCap(k),v);if(x===undefined)return;S.ops.cap[k]=x;sfx('click');after();opsRedraw('opsCap',{k});},
+ opsCap:({k,v})=>{if(!opsCtl(k)||!OPSK[k].cap)return;const x=opsPick(opsCapsNow(k),opsCap(k),v);if(x===undefined)return;S.ops.cap[k]=x;sfx('click');after();opsRedraw('opsCap',{k});},
  opsFloor:({v})=>{if(!opsHired()&&!optxOn())return;const x=opsPick(OPS_FLOORS,S.ops.floor,v);if(x===undefined)return;S.ops.floor=x;sfx('click');after();opsRedraw('opsFloor',{});},
  opsCity:({v})=>{if(!S||!S.pops[v])return;UI.opsCity=v;opsModal();},
  opsPop:({k,city})=>{if(!opsHired()||!OPS_POP.includes(k)||!S.pops[city])return;const sk=S.ops.skip,a=sk[city]||[];sk[city]=a.includes(k)?a.filter(x=>x!==k):[...a,k];if(!sk[city].length)delete sk[city];

@@ -66,7 +66,12 @@ function opsOpts(k,p){const cur=opsP(k,p),L=p==='prov'?['cheap','have',...NETS.f
   :p==='model'?['next',...RG.map((r,i)=>i).filter(i=>rgOpen(i)).sort((a,b)=>RG[a].cls-RG[b].cls||RG[a].cap-RG[b].cap||a-b)]:OPSK[k].p[p].v.slice();
   if(!L.includes(cur))L.push(cur);return L;}
 const opsCaps=k=>OPSK[k].caps||(OPSK[k].mo?OPS_CAPS_MO:OPS_CAPS);
-function opsCap(k){const c=S.ops.cap[k];return opsCaps(k).includes(c)?c:OPSK[k].cap||0;}
+// A charter may keep an order's budget under a ceiling that rises with the level (d.capMax(): the largest budget allowed
+// now, Infinity for any, "no limit" included). A saved budget over it is held at the ceiling until the level allows it.
+const opsCapOk=(k,c)=>{const m=OPSK[k].capMax?OPSK[k].capMax():Infinity;return m===Infinity||c>0&&c<=m;};
+const opsCapsNow=k=>opsCaps(k).filter(c=>opsCapOk(k,c));
+function opsCap(k){const c=S.ops.cap[k],want=opsCaps(k).includes(c)?c:OPSK[k].cap||0;if(opsCapOk(k,want))return want;
+  const L=opsCapsNow(k);return L.filter(x=>x<=(want||Infinity)).at(-1)??L[0]??want;}
 const opsHere=(k,c)=>!(S.ops.skip[c]||[]).includes(k);
 const opsPops=k=>Object.keys(S.pops).filter(c=>opsHere(k,c));
 // Saves are untrusted: rebuild ops from known orders, params, cities and log shapes. Runs after the POPs are repaired,
