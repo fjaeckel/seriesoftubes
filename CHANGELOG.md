@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- As the Hyperscaler, decommissioning a POP now tells you what happens to your users: they stay with the country you launched and come in through the nearest front door you have left, or go unserved if there is none. (#448)
+
 - Links and cables that cross the edge of the map, such as Seattle to Singapore over the Pacific, no longer vanish when you zoom in on their far end. Tapping them there works again too. (#446)
 
 ## [5.0.0] — 2026-11-21

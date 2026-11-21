@@ -4,14 +4,22 @@ const DECOM_MONTHS=3;
 function decomImpact(cities){const set=new Set(cities),links=S.links.filter(l=>set.has(l.a)||set.has(l.b)),lids=new Set(links.map(l=>l.id));
   const biz=S.biz.filter(b=>bCities(b).some(c=>set.has(c))||(b.link&&lids.has(b.link)));
   const pen=b=>Math.max(2000,Math.round(b.fee?b.fee*0.5:b.bw*b.rate*DECOM_MONTHS));
-  return {links,biz,pen,fee:biz.reduce((a,b)=>a+pen(b),0),eye:cities.reduce((a,c)=>a+(R.cityEye[c]||0),0)};}
+  return {links,biz,pen,fee:biz.reduce((a,b)=>a+pen(b),0),eye:cities.reduce((a,c)=>a+(R.cityEye[c]||0),0),hs:decomUsers(set)};}
+/* A Hyperscaler's users belong to the country it launched, not to a POP (#448): closing their front door sends them to
+   the nearest door left (cxPop's rule), or leaves them unserved when none is. [{cc, D Gbps, to door or null}]. */
+function decomUsers(set){const o=hyper()&&S.hs&&R.hs;if(!o)return [];
+  const left=Object.keys(S.pops).filter(c=>!set.has(c)&&hsDoor(c)).sort(),out=[];
+  for(const cc of Object.keys(S.hs.cc).sort()){const x=o.cc[cc],I=ccInfo(cc);if(!x||!I||!set.has(x.v))continue;let to=null,b=Infinity;
+    for(const p of left){const km=kmBetween(p,I.main);if(km<b){b=km;to=p;}}out.push({cc,D:x.D,to});}
+  return out;}
 function decomModal(){const sel=[...(UI.decom||[])],im=decomImpact(sel),all=Object.keys(S.pops),left=all.length-sel.length;
   const rows=all.map(c=>`<label class="row" style="cursor:pointer"><input type="checkbox" data-act="decomToggle" data-args='${esc(JSON.stringify({city:c}))}' ${sel.includes(c)?'checked':''}><div class="grow"><div class="nm">${esc(CITY[c].name)}${c===S.home?` <span class="tag st">${tr('common.home')}</span>`:''}</div><div class="meta">${trn('decommission.n_link',S.links.filter(l=>l.a===c||l.b===c).length)} · ${trn('decommission.n_customer',S.biz.filter(b=>bCities(b).includes(c)).length)}</div></div></label>`).join('');
   openModal(`<div style="display:flex;align-items:center"><h2 style="font-size:24px">${tr('common.decommission_pops')}</h2><button class="x" data-act="closeModal" aria-label="${tr('common.close')}">×</button></div>
   <p class="lead" style="margin-top:6px">${tr('decommission.pick_the_pops_to_shut_down')}</p>${rows}
-  ${sel.length?`<div class="kv"><span>${tr('common.links_removed')}</span><b>${im.links.length}</b></div><div class="kv"><span>${tr('decommission.eyeballs_you_stop_serving')}</span><b>${fmtG(im.eye)}</b></div><div class="kv"><span>${trn('decommission.n_customer_let_go',im.biz.length)}</span><b style="color:var(--bad)">${fmt$(im.fee)}</b></div>${im.biz.length?`<p class="meta">${im.biz.map(b=>esc(b.name)+' '+fmt$(im.pen(b))).join(' · ')}</p>`:''}`:''}
+  ${sel.length?`<div class="kv"><span>${tr('common.links_removed')}</span><b>${im.links.length}</b></div>${hyper()?decomUsersHtml(im.hs):`<div class="kv"><span>${tr('decommission.eyeballs_you_stop_serving')}</span><b>${fmtG(im.eye)}</b></div>`}<div class="kv"><span>${trn('decommission.n_customer_let_go',im.biz.length)}</span><b style="color:var(--bad)">${fmt$(im.fee)}</b></div>${im.biz.length?`<p class="meta">${im.biz.map(b=>esc(b.name)+' '+fmt$(im.pen(b))).join(' · ')}</p>`:''}`:''}
   ${left<1?`<p class="why">${tr('decommission.keep_at_least_one_pop')}</p>`:''}
   <div class="btns" style="margin-top:10px">${btn(sel.length?trn('decommission.decommission_n_pop_pay_fee',sel.length,{fee:fmt$(im.fee)}):tr('decommission.pick_a_pop'),'decomGo',{},'red',!sel.length||left<1)}${btn(tr('common.keep_them'),'closeModal',{},'ghost')}</div>`);}
+const decomUsersHtml=u=>u.length?`<div class="kv"><span>${tr('decommission.users_that_move')}</span><b>${fmtG(u.reduce((a,x)=>a+x.D,0))}</b></div><p class="meta">${tr('decommission.users_keep_lead')}</p><p class="meta">${u.map(x=>x.to?tr('decommission.users_move_to',{country:esc(ccName(x.cc)),door:esc(CITY[x.to].name)}):`<span style="color:var(--bad)">${tr('decommission.users_no_door',{country:esc(ccName(x.cc))})}</span>`).join(' · ')}</p>`:'';
 function decommission(cities){const set=new Set(cities),im=decomImpact(cities),lids=new Set(im.links.map(l=>l.id)),bids=new Set(im.biz.map(b=>b.id));
   const back=chBack(im.links);S.links=S.links.filter(l=>!lids.has(l.id));prunePairMet();S.biz=S.biz.filter(b=>!bids.has(b.id));S.offers=S.offers.filter(o=>!bCities(o).some(c=>set.has(c)));
   S.transit=S.transit.filter(t=>!set.has(t.city));S.pni=S.pni.filter(x=>!set.has(x.city));S.caches=S.caches.filter(x=>!set.has(x.city));S.nni=(S.nni||[]).filter(x=>!set.has(x.city));
@@ -21,4 +29,5 @@ function decommission(cities){const set=new Set(cities),im=decomImpact(cities),l
   // A Hyperscaler's regions, zones, replicas and the rest at those cities go with them, not only on the next load.
   if(S.hs)hsSanitize(S);
   purgeInc();S.cash-=im.fee;S.stats.decom=(S.stats.decom||0)+cities.length;
-  toast(trn('decommission.n_pop_decommissioned_fee_in_early',cities.length,{fee:fmt$(im.fee),m:im.biz.length}),'bad');if(back)toast(trn('links.n_optic_back_on_the_spares_shelf',back),'good');}
+  toast(trn('decommission.n_pop_decommissioned_fee_in_early',cities.length,{fee:fmt$(im.fee),m:im.biz.length}),'bad');if(back)toast(trn('links.n_optic_back_on_the_spares_shelf',back),'good');
+  if(im.hs.length)toast(`${tr('decommission.users_keep_lead')}<br>${im.hs.map(x=>x.to?tr('decommission.users_move_to',{country:esc(ccName(x.cc)),door:esc(CITY[x.to].name)}):tr('decommission.users_no_door',{country:esc(ccName(x.cc))})).join(' · ')}`,im.hs.some(x=>!x.to)?'bad':'');}
