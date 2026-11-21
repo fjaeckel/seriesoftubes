@@ -2,6 +2,8 @@
 // the backbone has left, the backlog it leaves and how it drains, Auto-TE and diverse paths for bulk, AI labs' training
 // runs (paid on time, half late, given up), your own models (shipped and boosting, or flopping in public), no classic AI
 // circuits in this charter, saves, and the Cloud tab and charter card on a phone and on a desktop.
+// These mechanics tests pin each country's users to its main city (one user zone); zones have their own test
+// (hyper-zones-users.test.js).
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
@@ -14,7 +16,7 @@ const wave = (id, a, b, tier) => `S.links.push({id:${lit(id)},a:${lit(a)},b:${li
 function net(t, fp = 1) {
   const h = load({ seed: 7 });
   t.after(() => h.dom.window.close());
-  h.ev("ACT.start({});ACT.charter({k:'hyper'});S.cash=1e12;S.lvl=8;S.nextFail=S.nextEvent=1e9;ACT.buildPop({city:'par'});ACT.buildPop({city:'ams'});" +
+  h.ev("ACT.start({});ACT.charter({k:'hyper'});HS_ZC.s=S;for(const k of ['DE','FR','NL','GB','US','BE'])if(ccInfo(k))HS_ZC.m.set(k,[[ccInfo(k).main,1]]);S.cash=1e12;S.lvl=8;S.nextFail=S.nextEvent=1e9;ACT.buildPop({city:'par'});ACT.buildPop({city:'ams'});" +
     "for(const c in S.pops)S.pops[c].rgen=RG_TOP;ACT.buyTransit({city:S.home,net:'cog',tier:3});ACT.buyTransit({city:'par',net:'cog',tier:3});" +
     "S.hs.rg.par={t:0,ready:0,mw:5};S.hs.cc.DE={d:300,since:0};S.hs.cc.FR={d:500,since:0};S.links=[];" +
     wave('fp', 'fra', 'par', fp) + wave('fa', 'fra', 'ams', 3) + wave('ap', 'ams', 'par', 3) + 'compute()');

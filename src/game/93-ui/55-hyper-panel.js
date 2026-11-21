@@ -95,7 +95,7 @@ function hsCcBody(c){const cc=CITY[c].cc,H=S.hs,x=H.cc[cc],w=hsWhy(cc);let h='';
     h+=hsKv(tr('hyper.users'),tr('city_panel.a_of_b',{a:fmtG(x.d),b:fmtG(P)}))+hsBar(x.d/(P||1))
      +hsKv(tr('hyper.quality'),pct(q),`color:${q<CX_GOOD?'var(--bad)':'var(--eye)'}`)+hsBar(q,q<CX_GOOD)
      +hsKv(tr('common.revenue'),tr('common.price_mo',{price:fmt$(hsRev(R,cc))}));
-    if(o&&o.v)h+=`<p class="meta">${tr('hyper.enter_at',{door:esc(CITY[o.v].name)})}${o.home?' · '+tr('hyper.home_region',{city:esc(CITY[o.home].name)}):''}${o.st>0?' · '+tr('hyper.edge_serves',{g:fmtG(o.st)}):''}</p>`;
+    if(o&&o.v)h+=`<p class="meta">${tr('hyper.enter_at',{door:o.vs&&o.vs.length>1?o.vs.map(([d,f])=>`${esc(CITY[d].name)} ${pct(f)}`).join(', '):esc(CITY[o.v].name)})}${o.home?' · '+tr('hyper.home_region',{city:esc(CITY[o.home].name)}):''}${o.st>0?' · '+tr('hyper.edge_serves',{g:fmtG(o.st)}):''}</p>`;
     if(o&&!o.v)h+=`<p class="why">${tr('hyper.no_door_yet')}</p>`;
     // Without a front door nothing is short of room yet: the door is what is missing.
     if(o&&o.v&&o.short>0.5)h+=`<p class="why">${tr('hyper.regions_full_here',{g:fmtG(o.short)})}</p>`;

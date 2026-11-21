@@ -40,5 +40,6 @@ function peerCache(c){const bx=S.caches.filter(x=>x.city===c),cHas=n=>bx.some(x=
     body:m=>m>1?(all.length?all.filter(cHas).concat(off.slice(0,pnN('cache',off.length,4))).map(n=>cacheRow(c,n)).join('')+pnMore('cache',off.length,n=>trn('hud_and_panels.n_more_networks',n),4):netNone()):req.slice(0,3).map(n=>cacheRow(c,n)).join('')};}
 // Short titles once the summaries say the rest.
 // A search that finds nothing in any section says so above them.
-function peerTabHtml(c){const one=ixIdsIn(c).length<2,v=pnVet(),S3=[peerIx(c),peerPni(c),peerCache(c)];
-  return netFilterHtml()+(netFiltered()&&S3.every(s=>!s.hit)?netNone():'')+portNote(c)+pnSec('ix',one?tr('common.internet_exchange'):tr('common.internet_exchanges'),S3[0])+pnSec('pni',v?tr('common.pnis'):tr('city_panel.private_interconnects_pni'),S3[1])+pnSec('cache',v?tr('common.caches'):tr('common.embedded_caches'),S3[2]);}
+// A Hyperscaler is the content: other networks' cache boxes have nothing to cache for it, so it never sees them.
+function peerTabHtml(c){const one=ixIdsIn(c).length<2,v=pnVet(),hc=!hyper(),S3=[peerIx(c),peerPni(c)].concat(hc?[peerCache(c)]:[]);
+  return netFilterHtml()+(netFiltered()&&S3.every(s=>!s.hit)?netNone():'')+portNote(c)+pnSec('ix',one?tr('common.internet_exchange'):tr('common.internet_exchanges'),S3[0])+pnSec('pni',v?tr('common.pnis'):tr('city_panel.private_interconnects_pni'),S3[1])+(hc?pnSec('cache',v?tr('common.caches'):tr('common.embedded_caches'),S3[2]):'');}

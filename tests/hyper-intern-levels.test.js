@@ -2,6 +2,8 @@
 // a ceiling that rises with the level, regions are grown to a tier only two levels after the player could build it and
 // at most one a month, and waves count their monthly price: against the budget, and never into a month at a loss. The
 // intern once leased subsea waves every week on "no limit" and bankrupted the cloud.
+// These mechanics tests pin each country's users to its main city (one user zone); zones have their own test
+// (hyper-zones-users.test.js).
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
@@ -13,7 +15,7 @@ const wave = (id, a, b, tier) => `S.links.push({id:${lit(id)},a:${lit(a)},b:${li
 function cloud(t, { lv = 8, far = 'ams', seed = 7, rich = false } = {}) {
   const h = load({ seed });
   t.after(() => h.dom.window.close());
-  h.ev(`ACT.start({});ACT.charter({k:'hyper'});S.cash=1e12;S.lvl=${lv};S.nextFail=S.nextEvent=1e9;S.rules=makeRules('freeze');ACT.buildPop({city:${lit(far)}});` +
+  h.ev(`ACT.start({});ACT.charter({k:'hyper'});HS_ZC.s=S;for(const k of ['DE','FR','NL','GB','US','BE'])if(ccInfo(k))HS_ZC.m.set(k,[[ccInfo(k).main,1]]);S.cash=1e12;S.lvl=${lv};S.nextFail=S.nextEvent=1e9;S.rules=makeRules('freeze');ACT.buildPop({city:${lit(far)}});` +
     `for(const c in S.pops)S.pops[c].rgen=RG_TOP;for(const c of ['fra',${lit(far)}])ACT.buyTransit({city:c,net:'cog',tier:3});` +
     `S.hs.rg.fra={t:1,ready:0,mw:20};S.hs.rg[${lit(far)}]={t:0,ready:0,mw:5};S.hs.cc.DE={d:1400,since:0};${rich ? 'S.hs.cc.FR={d:300,since:0};' : ''}S.hs.rep.fra=${lit(far)};S.links=[];` +
     wave('w0', 'fra', far, 0) +

@@ -12,7 +12,7 @@
    and continents with a region (LV_X); the region limit is soft (hsRgMax, hsRgCap). The win, Cloud Nine, comes later (phase 4). */
 const HS_RATE=220,HS_POT=0.4,HS_GROW=0.05,HS_START=0.08,HS_EDGE=0.25,HS_EDGE_COST=150000,HS_EDGE_MO=3000,HS_MIN_P=300;
 // Latency users feel, one way: none up to HS_MS[0] ms, the factor falling to HS_MS[2] at HS_MS[1] ms and beyond.
-const HS_MS=[15,120,0.6];
+const HS_MS=[8,60,0.4];
 // Region tiers: index 0 is the starter every Hyperscaler gets at home; the rest are built (lv: the level that allows it).
 const HS_T=[{n:N_('hyper.t_shack'),g:400,mw:5,slots:4,cost:0,mo:3000,lv:1,days:0},
  {n:N_('hyper.t_barn'),g:1500,mw:20,slots:12,cost:400000,mo:15000,lv:1,days:60},
@@ -84,6 +84,20 @@ const hsDoor=c=>!!S.pops[c]&&popUp(c)&&cxOut(c)&&!hsCertOut(c);
 const hsLatF=ms=>ms<=HS_MS[0]?1:ms>=HS_MS[1]?HS_MS[2]:1-(1-HS_MS[2])*(ms-HS_MS[0])/(HS_MS[1]-HS_MS[0]);
 // The users' own way to the door, in ms (light in fiber, a little detour).
 const hsAcc=(v,m)=>kmBetween(v,m)*1.25/200;
+/* Where a country's users are (user zones): its cities by eyeballs, at most HS_ZONES of the biggest, each smaller city's
+   users counted with the nearest of those. A big country is not one city: the US's users are in Los Angeles, Chicago
+   and Dallas too, and enter at the front door nearest them, so a cloud needs doors (and a backbone to haul to them)
+   across a big country. A country with one city has one zone, its main city, as before. [[city, share]], biggest
+   first; built once per game (a scenario may switch cities off). */
+const HS_ZONES=8,HS_ZC={s:null,m:new Map()};
+function hsZones(cc){if(HS_ZC.s!==S){HS_ZC.s=S;HS_ZC.m.clear();}let z=HS_ZC.m.get(cc);if(z)return z;const I=ccInfo(cc);
+  const L=CITIES.filter(c=>c.cc===cc&&!c.off&&c.P>0).sort((a,b)=>b.P-a.P||(a.id<b.id?-1:1));
+  if(L.length<2||!I){z=[[I?I.main:(L[0]&&L[0].id),1]];HS_ZC.m.set(cc,z);return z;}
+  const top=L.slice(0,HS_ZONES),w=new Map(top.map(c=>[c.id,c.P]));
+  for(const c of L.slice(HS_ZONES)){let b=top[0].id,bk=Infinity;for(const t of top){const k=kmBetween(c.id,t.id);if(k<bk){bk=k;b=t.id;}}w.set(b,w.get(b)+c.P);}
+  const sum=[...w.values()].reduce((a,x)=>a+x,0);z=top.map(c=>[c.id,w.get(c.id)/sum]);HS_ZC.m.set(cc,z);return z;}
+// The front door nearest a city (by distance, then id), among doors.
+function hsDoorNear(c,doors){let b=null,bk=Infinity;for(const d of doors){const k=kmBetween(c,d);if(k<bk||k===bk&&d<b){bk=k;b=d;}}return b;}
 /* compute(): the evening, as flows (CX_FLOW). Tenants first (they have contracts), then every country's users, each
    placed in the live regions nearest by backbone latency to its front door, as far as each region has room. A part
    served from another region than the door is a haul job the backbone carries before routing; the edge stack's static
@@ -120,19 +134,27 @@ function hsFlows(R2,flow,DEMTO,X){const H=S.hs;if(!H||!hyper())return null;
     const r2=out.rg[r].rep;T.r2=r2;T.bt=0;T.btg=0;
     if(r2&&sh.bt>0){const nt=hsNightBt(b.p)*bw*f;T.bt=bw*sh.bt*f;out.rg[r].bt+=T.bt-nt;out.rg[r].nt+=nt;}}
   const pairs=[],left={};
-  const NT={},FH={};
+  const NT={},FH={},ZN={};
   for(const cc of Object.keys(H.cc).sort()){const I=ccInfo(cc);if(!I)continue;const D=H.cc[cc].d,o={D,v:null,st:0,parts:[],home:null,want:0,got:0,short:0,nd:0};out.cc[cc]=o;
     // Edge nodes in partner networks serve the static share of the users behind them; their connections end there.
     const nets=NT[cc]=hsfNets(I,PN),E=rgs.length?hsfEdgeCut(cc,D,nets,out):null,xs=E?E.st:0,xu=E?E.u:0;FH[cc]=D>0?xu/D:0;if(E){o.nd=xs;o.parts.push(...E.parts);}
-    const v=cxPop(cc,doors);if(!v){left[cc]=D-xs;continue;}o.v=v;
-    if(H.edge[v]){o.st=(D-xu)*HS_EDGE+Math.max(0,xu*HS_EDGE-xs);for(const [j,w] of nets)add(v,j,o.st*w,false);o.parts.push([v,o.st,hsAcc(v,I.main),null]);}
-    left[cc]=D-o.st-xs;let ok=false;for(const r of rgs){if(!hsHomeOk(cc,r,fo))continue;ok=true;const m=ms(r,v);if(m<Infinity)pairs.push([m,cc,r]);}if(!ok)o.blk=1;}
-  pairs.sort((a,b)=>a[0]-b[0]||(a[1]<b[1]?-1:a[1]>b[1]?1:0)||(a[2]<b[2]?-1:1));
-  for(const [m,cc,r] of pairs){const take=Math.min(left[cc],room[r]);if(take<=1e-9)continue;left[cc]-=take;room[r]-=take;out.rg[r].load+=take;out.rg[r].u+=take;
-    const o=out.cc[cc],I=ccInfo(cc);if(!o.home)o.home=r;const lo=X.nf();for(const [j,w] of NT[cc])add(o.v,j,take*w,false);
-    o.parts.push([o.v,take,hsAcc(o.v,I.main)+(H.edge[o.v]?m*0.5:m*(1-0.5*FH[cc])),r]);if(r!==o.v){job(r,o.v,take,lo,'u',cc);o.want+=take;}}
+    if(!doors.length){left[cc]=D-xs;continue;}
+    // Each user zone enters at the front door nearest it (o.vs: [door, share], o.v the biggest zone's door); the edge
+    // stack serves its static share at that door; a zone's latency is from its own city.
+    // Zones that share a door travel as one flow (x.zs: its zones and their shares), each keeping its own latency.
+    const g=new Map();for(const [z,f] of hsZones(cc)){const v=hsDoorNear(z,doors);let x=g.get(v);if(!x)g.set(v,x={v,f:0,zs:[]});x.f+=f;x.zs.push([z,f]);}
+    const zs=[...g.values()].sort((a,b)=>b.f-a.f||(a.v<b.v?-1:1));o.v=zs[0].v;o.vs=zs.map(x=>[x.v,x.f]);let ok=false;
+    for(const x of zs){const v=x.v;x.st=0;x.acc=x.zs.reduce((a,[z,f])=>a+hsAcc(v,z)*f,0)/x.f;
+      if(H.edge[v]){x.st=(D-xu)*x.f*HS_EDGE+Math.max(0,xu*x.f*HS_EDGE-xs*x.f);o.st+=x.st;for(const [j,w] of nets)add(v,j,x.st*w,false);for(const [z,f] of x.zs)o.parts.push([v,x.st*f/x.f,hsAcc(v,z),null]);}
+      x.left=D*x.f-x.st-xs*x.f;const k=cc+'#'+v;left[k]=x.left;ZN[k]=x;
+      for(const r of rgs){if(!hsHomeOk(cc,r,fo))continue;ok=true;const m=ms(r,v);if(m<Infinity)pairs.push([m,cc,r,k]);}}
+    if(!ok)o.blk=1;}
+  pairs.sort((a,b)=>a[0]-b[0]||(a[3]<b[3]?-1:a[3]>b[3]?1:0)||(a[2]<b[2]?-1:1));
+  for(const [m,cc,r,k] of pairs){const take=Math.min(left[k],room[r]);if(take<=1e-9)continue;left[k]-=take;room[r]-=take;out.rg[r].load+=take;out.rg[r].u+=take;
+    const o=out.cc[cc],x=ZN[k],v=x.v;if(!o.home)o.home=r;const lo=X.nf();for(const [j,w] of NT[cc])add(v,j,take*w,false);
+    const bb=H.edge[v]?m*0.5:m*(1-0.5*FH[cc]);for(const [z,f] of x.zs)o.parts.push([v,take*f/x.f,hsAcc(v,z)+bb,r]);if(r!==v){job(r,v,take,lo,'u',cc);o.want+=take;}}
   // Users with nowhere they may be homed are not short of room: they wait for a region they may use (blk).
-  for(const cc in out.cc){const s=left[cc]||0;if(s>1e-9){const o=out.cc[cc];o.short=s;if(o.blk)out.blk+=s;else out.short+=s;R2.demand+=s;}}
+  for(const k in left){const s=left[k]||0;if(s<=1e-9)continue;const cc=k.split('#')[0],o=out.cc[cc];if(!o)continue;o.short+=s;if(o.blk)out.blk+=s;else out.short+=s;R2.demand+=s;}
   return jobs;}
 // After routing (CX_POST): what each haul got, by front door, and by region and door (hl['region>door'] = [wanted, got],
 // for the NOC dashboard's Cloud tab).
@@ -214,6 +236,8 @@ LV_X.push(HS_LVX);
 CX_FLOW.push(hsFlows);CX_POST.push(hsPost);CX_MONEY.push(hsMoney);
 // Saves: only a Hyperscaler keeps S.hs (and cloud tenants), and every field of it is checked here.
 function hsSanitize(s){if(s.charter!=='hyper'){delete s.hs;s.biz=s.biz.filter(b=>b.type!=='cloud');s.offers=s.offers.filter(o=>o.type!=='cloud');return;}
+  // A Hyperscaler hosts nobody's cache boxes: it is the content (an older save may hold some).
+  if(Array.isArray(s.caches))s.caches=[];
   const h0=s.hs&&typeof s.hs==='object'&&!Array.isArray(s.hs)?s.hs:{},o={},n=(v,d)=>Number.isFinite(+v)?+v:d,obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
   o.rg={};if(obj(h0.rg))for(const k of Object.keys(h0.rg).slice(0,40)){const x=h0.rg[k];if(isCity(k)&&s.pops[k]&&obj(x)&&(k===s.home||hsMetro(k))){o.rg[k]=siteFix(x,+x.t===HS_CAGE?HS_T.length:HS_CAGE);o.rg[k].mw=HS_T[o.rg[k].t].mw;}}
   if(s.pops[s.home]&&!o.rg[s.home]&&!Object.keys(o.rg).length)o.rg[s.home]={t:0,ready:0,mw:HS_T[0].mw};

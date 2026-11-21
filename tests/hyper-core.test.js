@@ -2,6 +2,8 @@
 // going dark, front doors and the edge stack, the haul from region to front door over your own backbone (and what is
 // lost when it is full), quality from the real path latency, cloud tenants as the only customers, saves, and the Cloud
 // tab and charter card on a phone and on a desktop.
+// These mechanics tests pin each country's users to its main city (one user zone); zones have their own test
+// (hyper-zones-users.test.js).
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
@@ -9,7 +11,7 @@ const { load } = require('./harness');
 // A Hyperscaler in Frankfurt with plenty of cash; its home country launched and a transit port at home.
 function start(opts = {}) {
   const page = load({ seed: 5, ...opts });
-  page.ev("ACT.start({});ACT.charter({k:'hyper'});S.cash=1e9;ACT.hsLaunch({cc:'DE'});ACT.buyTransit({city:S.home,net:'cog',tier:1});compute()");
+  page.ev("ACT.start({});ACT.charter({k:'hyper'});HS_ZC.s=S;for(const k of ['DE','FR','NL','GB','US','BE'])if(ccInfo(k))HS_ZC.m.set(k,[[ccInfo(k).main,1]]);S.cash=1e9;ACT.hsLaunch({cc:'DE'});ACT.buyTransit({city:S.home,net:'cog',tier:1});compute()");
   return page;
 }
 const J = (ev, c) => JSON.parse(ev(`JSON.stringify(${c})`));

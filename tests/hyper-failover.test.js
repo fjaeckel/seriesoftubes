@@ -3,6 +3,8 @@
 // limit at the moment of failure is lost data; outages come as incidents (their own kind, a dark POP, a tripped grid,
 // Chaos Kong) and never in a classic game; drills drain a region on purpose and pass or fail with a reason; failover
 // readiness for the NOC; saves; and the card and Cloud tab on a phone and a desktop.
+// These mechanics tests pin each country's users to its main city (one user zone); zones have their own test
+// (hyper-zones-users.test.js).
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
@@ -18,7 +20,7 @@ const DIR = 'S.day=Math.max(S.day,HS_DIR_BIG);Object.assign(S.hs.dir,{b:9,t:S.da
 function net(t, fp = 3) {
   const h = load({ seed: 7 });
   t.after(() => h.dom.window.close());
-  h.ev("ACT.start({});ACT.charter({k:'hyper'});S.cash=1e12;S.lvl=8;S.nextFail=S.nextEvent=1e9;ACT.buildPop({city:'par'});ACT.buildPop({city:'ams'});" +
+  h.ev("ACT.start({});ACT.charter({k:'hyper'});HS_ZC.s=S;for(const k of ['DE','FR','NL','GB','US','BE'])if(ccInfo(k))HS_ZC.m.set(k,[[ccInfo(k).main,1]]);S.cash=1e12;S.lvl=8;S.nextFail=S.nextEvent=1e9;ACT.buildPop({city:'par'});ACT.buildPop({city:'ams'});" +
     "for(const c in S.pops)S.pops[c].rgen=RG_TOP;for(const c of ['fra','par','ams'])ACT.buyTransit({city:c,net:'cog',tier:3});" +
     "S.hs.rg.fra={t:1,ready:0,mw:20};S.hs.rg.par={t:0,ready:0,mw:5};S.hs.rg.ams={t:0,ready:0,mw:5};S.hs.cc.DE={d:300,since:0};S.hs.cc.FR={d:200,since:0};S.hs.rep.fra='ams';S.links=[];" +
     wave('fp', 'fra', 'par', fp) + wave('fa', 'fra', 'ams', 3) + wave('ap', 'ams', 'par', 3) + DIR + 'compute();hsDay(S.day);checkGoals();S.log=[]');

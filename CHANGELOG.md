@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- As the Hyperscaler, a big country's users now live in its big cities, not just its biggest one. Users in Los Angeles, Chicago or Dallas enter at the front door nearest them, and your backbone hauls their traffic from the region to that door.
+- As the Hyperscaler, distance to your users matters much more. Quality starts falling after about 8 ms one way, so serving a whole continent from one coast costs you; regions, front doors and edge stacks near your users pay off.
+- As the Hyperscaler, other networks' cache boxes are gone from the Peering tab: you are the content, so there is nothing for them to cache.
+
 - As the Hyperscaler, Ashburn can now hold a region. It is a small town, but no place has more data centers, so its grid is built for them and has more spare megawatts than any other region metro.
 
 - As the Hyperscaler, an AI lab's training run now pays half its fee as the data moves and the rest on time at the end. Before, the whole fee came at the end while the run's GPUs and power cost every day, which could sink a cloud that served the run just fine.
