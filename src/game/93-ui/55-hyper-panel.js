@@ -71,7 +71,7 @@ function hsStatHtml(){const H=S.hs,ccs=Object.keys(H.cc),doors=Object.keys(S.pop
    +hsAzStat()+hsPwStat()+hsTrafficStat()+hsDrillStat()+hsMarketStat()+hsLawStat()+`</div>`;}
 // Folded details: the money, the utility's letters, the tightest grid, what the resale desk sold.
 function hsMoreHtml(){const H=S.hs,open=hsCardOpen('hsmore');let rev=0;for(const cc in H.cc)rev+=hsRev(R,cc);
-  return foldB(tr('hyper_ui.details'),'leftFold',{k:'hsmore'},open,'ghost sm hsc-fold')+(open?`<div class="hsc-more"><div class="meta">💵 ${tr('hyper.card_money',{rev:fmt$(rev),cost:fmt$((R.cost&&R.cost.cloud)||0)})}</div>${hpCalCard()}${hsPwMore()}${hsrSold()}</div>`:'');}
+  return foldB(tr('hyper_ui.details'),'leftFold',{k:'hsmore'},open,'ghost sm hsc-fold')+(open?`<div class="hsc-more"><div class="meta">💵 ${tr('hyper.card_money',{rev:fmt$(rev),cost:fmt$(((R.cost&&R.cost.cloud)||0)+((R.cost&&R.cost.train)||0))})}</div>${hpCalCard()}${hsPwMore()}${hsrSold()}</div>`:'');}
 // Offers waiting on this card (AI runs, the resale desk), open until folded.
 function hsOffHtml(){const H=S.hs,n=(H.jo||[]).length+(H.rs?H.rs.o.length:0);if(!n)return '';const open=hsCardOpen('hsoff');
   return `<div class="hsc-off">${foldB(trn('hyper_ui.n_offers_waiting',n),'leftFold',{k:'hsoff'},open,'ghost sm hsc-fold')}${open?hsTrafficOffers()+hsrOffers():''}</div>`;}

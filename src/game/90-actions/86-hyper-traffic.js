@@ -10,7 +10,7 @@ Object.assign(ACT,{
  // Take an AI lab's training run: compute slots and megawatts in both regions, paid on completion (half if late).
  hsJobTake:({id})=>{const H=hyper()&&S.hs,o=H&&H.jo.find(x=>x.id===id);if(!o)return;const why=hsTrainWhy(o.a,o.b,o.g);if(why){toast(why,'bad');sfx('err');return;}
    H.jo.splice(H.jo.indexOf(o),1);H.jobs.push({id:o.id,n:o.n,a:o.a,b:o.b,g:o.g,tb:o.tb,done:0,due:S.day+Math.ceil(o.wk*7*HS_SLACK),fee:o.fee,start:S.day});
-   toast(tr('hyper_traffic.job_taken',{lab:esc(o.n),date:dateStr(S.day+Math.ceil(o.wk*7*HS_SLACK)),fee:fmt$(o.fee)}),'good');sfx('build');after();},
+   toast(tr('hyper_traffic.job_taken_paygo',{lab:esc(o.n),date:dateStr(S.day+Math.ceil(o.wk*7*HS_SLACK)),fee:fmt$(o.fee)}),'good');sfx('build');after();},
  hsJobNo:({id})=>{const H=hyper()&&S.hs;if(!H||!H.jo.some(x=>x.id===id))return;H.jo=H.jo.filter(x=>x.id!==id);toast(tr('hyper_traffic.job_declined'),'');after();},
  // Train a model of your own between this region and its replica (or to): k its size. One at a time.
  hsTrain:({city,k,to})=>{const H=hyper()&&S.hs,c=city,P=Number.isInteger(+k)?HS_OWN[+k]:null;k=+k;if(!H||!P||!isCity(c)||!H.rg[c])return;

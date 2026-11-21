@@ -6,6 +6,9 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- As the Hyperscaler, an AI lab's training run now pays half its fee as the data moves and the rest on time at the end. Before, the whole fee came at the end while the run's GPUs and power cost every day, which could sink a cloud that served the run just fine.
+- As the Hyperscaler, a training run offer now says what it costs a month while it runs and about how much in all, in red when that is more than your cash. The money breakdown shows training runs on their own line.
+
 - A balloon loan no longer bankrupts you out of the blue. The bank now writes about two months, one month and a week before it takes the whole balance in one go, and says plainly when that would sink you.
 - The bankruptcy screen now lists what went wrong that day, so you can see what sank you.
 - As the Hyperscaler, losing data in a failover now costs a young cloud at most a month of its revenue, instead of at least $250k.

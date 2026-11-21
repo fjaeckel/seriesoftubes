@@ -111,7 +111,7 @@ test('bulk takes diverse halves when asked, and Auto-TE spills it around a full 
 // A training run offered by an AI lab, between Frankfurt and Paris (both Server Barns, 12 slots).
 const offer = (g = 3200) => `S.hs.rg.fra.t=1;S.hs.rg.par.t=1;S.hs.jo.push({id:'j1',n:'Overfit and Sons',a:'fra',b:'par',g:${g},wk:6,tb:${g}*TB_DAY*42,fee:5000000,exp:S.day+20});`;
 
-test('an AI lab\'s run: needs slots and power, moves its terabytes as bulk, pays on time, half late, nothing when it gives up', (t) => {
+test('an AI lab\'s run: needs slots and power, moves its terabytes as bulk, pays on time, half late, only what it paid along the way when it gives up', (t) => {
   const { ev, errors } = net(t, 6);
   ev(offer(12800) + 'S.hs.rg.par.t=0;compute()');
   assert.match(ev("hsTrainWhy('fra','par',12800)"), /needs 16 free compute slots/);
@@ -124,7 +124,7 @@ test('an AI lab\'s run: needs slots and power, moves its terabytes as bulk, pays
   assert.equal(j.due, ev('S.day') + Math.ceil(42 * 1.25));
   assert.equal(ev("hsSlotsUsed('fra')"), 4, 'the run holds compute slots in both regions');
   assert.equal(ev("hsTrainMwAt('par')"), 8);
-  assert.ok(ev('R.cost.cloud') >= 2 * 8 * ev('HS_MW_MO'), 'its megawatts on the bill');
+  assert.equal(ev('R.cost.train'), 2 * 8 * ev('HS_MW_MO'), 'its megawatts on the bill, on their own line');
   const x = J(ev, 'R.hs.jobs.j1');
   assert.equal(x.k, 'job');
   assert.ok(near(x.want, 3200) && x.got > 0 && x.got <= x.want, `got ${x.got}`);
@@ -142,11 +142,11 @@ test('an AI lab\'s run: needs slots and power, moves its terabytes as bulk, pays
   ev('hsTrafficDay(S.day)');
   assert.equal(ev('S.cash') - cash, 2500000);
   assert.equal(ev('S.hs.jd'), 1);
-  // Far too late: the lab leaves, nothing paid.
-  ev(offer() + "ACT.hsJobTake({id:'j1'});S.hs.jobs[0].due=S.day-31;compute()");
+  // Far too late: the lab leaves; what it paid along the way stays paid, nothing more.
+  ev(offer() + "ACT.hsJobTake({id:'j1'});S.hs.jobs[0].due=S.day-31;S.hs.jobs[0].paid=400000;compute()");
   cash = ev('S.cash');
   ev('hsTrafficDay(S.day)');
-  assert.equal(ev('S.cash'), cash);
+  assert.ok(ev('S.cash') - cash < 2500000 - 400000, 'at most the rest of its first half for today\'s data');
   assert.equal(ev('S.hs.jobs.length'), 0);
   // Declined offers go.
   ev(offer() + "ACT.hsJobNo({id:'j1'})");
@@ -313,5 +313,38 @@ test('between regions in the Cloud tab and on the charter card, on a phone and o
   ev("S.hs.rg.par.t=1;ACT.hsTrain({city:'fra',k:0});selectCity(S.home);renderAll()");
   assert.match(doc.getElementById('panelBody').textContent, /🧠/);
   assert.match(ev('hsCard()'), /Training /);
+  assert.deepEqual(errors, []);
+});
+
+// A run costs its GPUs and power every day; a fee paid only at the end once sank clouds that could serve the run.
+test('a run pays half its fee as the data moves, the rest on time, and its offer says what it costs', (t) => {
+  const { ev, errors } = net(t, 6);
+  ev(offer() + 'compute()');
+  const row = ev("hsOfferRow(S.hs.jo[0])").replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  assert.match(row, /Costs \$400k\/mo in GPUs and power while it runs, about \$553k in all/);
+  ev("ACT.hsJobTake({id:'j1'});compute()");
+  const g = ev('R.hs.jobs.j1.got');
+  assert.ok(g > 0);
+  // A day of data: its share of half the fee.
+  let cash = ev('S.cash');
+  ev('hsTrafficDay(S.day)');
+  const day = ev('S.cash') - cash, want = Math.round(2500000 * g * ev('TB_DAY') / ev('S.hs.jobs[0].tb'));
+  assert.ok(Math.abs(day - want) <= 1, `paid ${day} for a day of data, expected ${want}`);
+  assert.equal(ev('S.hs.jobs[0].paid'), day);
+  // Never more than half before the end, whatever moves.
+  ev('S.hs.jobs[0].done=S.hs.jobs[0].tb*0.5;S.hs.jobs[0].paid=2499000;hsTrafficDay(S.day)');
+  assert.ok(ev('S.hs.jobs[0].paid') <= 2500000);
+  // On time, the rest: five million in all.
+  ev('S.hs.jobs[0].done=S.hs.jobs[0].tb-1');
+  cash = ev('S.cash'); const paid = ev('S.hs.jobs[0].paid');
+  ev('hsTrafficDay(S.day)');
+  assert.equal(ev('S.cash') - cash + paid, 5000000, 'the whole fee, half along the way');
+  // An old save's run (nothing paid yet) still gets its fee.
+  ev(offer() + "ACT.hsJobTake({id:'j1'});delete S.hs.jobs[0].paid;S.hs.jobs[0].done=S.hs.jobs[0].tb-1;compute()");
+  cash = ev('S.cash'); ev('hsTrafficDay(S.day)');
+  assert.equal(ev('S.cash') - cash, 5000000);
+  // The dashboard names the cost.
+  ev(offer() + "ACT.hsJobTake({id:'j1'});compute();ACT.dash({})");
+  assert.match(ev("document.getElementById('dash').textContent"), /AI training runs \(GPUs and power\)/);
   assert.deepEqual(errors, []);
 });

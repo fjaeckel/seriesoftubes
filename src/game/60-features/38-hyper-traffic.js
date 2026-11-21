@@ -100,10 +100,14 @@ function hsTrafficDay(d){const H=S.hs,o=R.hs;if(!H)return;
   if(o&&o.rep){// A region whose replica changed sends what it still owed to the new one.
     for(const k of Object.keys(H.lag)){const [a,b]=k.split('>'),x=o.rep[a];if(!H.rg[a]){delete H.lag[k];continue;}if(x&&x.b!==b){const n=hsLk(a,x.b);H.lag[n]=(H.lag[n]||0)+H.lag[k];delete H.lag[k];}}
     for(const a in o.rep){const x=o.rep[a],k=hsLk(a,x.b),v=(H.lag[k]||0)+(x.base-x.got)*TB_DAY;if(v>0.05)H.lag[k]=Math.min(1e9,v);else delete H.lag[k];}}
-  for(const j of H.jobs.slice()){const x=o&&o.jobs&&o.jobs[j.id];if(x)j.done=Math.min(j.tb,j.done+x.got*TB_DAY);
-    if(j.done>=j.tb-1e-6){const late=d>j.due,fee=late?Math.round(j.fee/2):j.fee;S.cash+=fee;H.jobs.splice(H.jobs.indexOf(j),1);H.jd=(H.jd|0)+(late?0:1);
+  /* The lab pays half the fee as its data moves (j.paid so far) and the rest on time at the end: a run's GPUs and power
+     cost every day (hsTrainCost), and a fee paid only at the end could sink a cloud that can easily serve the run.
+     Late, the total is half the fee, as it always was; a lab that gives up keeps what it paid. */
+  for(const j of H.jobs.slice()){const x=o&&o.jobs&&o.jobs[j.id];
+    if(x){const mv=Math.min(j.tb-j.done,x.got*TB_DAY);j.done+=mv;const half=Math.round(j.fee/2),p=Math.min(Math.max(0,half-(j.paid|0)),Math.round(half*mv/j.tb));if(p>0){S.cash+=p;j.paid=(j.paid|0)+p;}}
+    if(j.done>=j.tb-1e-6){const late=d>j.due,fee=late?Math.round(j.fee/2):j.fee,rest=Math.max(0,fee-(j.paid|0));S.cash+=rest;H.jobs.splice(H.jobs.indexOf(j),1);H.jd=(H.jd|0)+(late?0:1);
       toast(late?tr('hyper_traffic.job_late_paid',{lab:esc(j.n),fee:fmt$(fee)}):tr('hyper_traffic.job_paid',{lab:esc(j.n),tb:hsTb(j.tb),fee:fmt$(fee)}),late?'':'goal');sfx('coin');}
-    else if(d>j.due+HS_GIVEUP){H.jobs.splice(H.jobs.indexOf(j),1);toast(tr('hyper_traffic.job_gave_up',{lab:esc(j.n)}),'bad');sfx('err');}
+    else if(d>j.due+HS_GIVEUP){H.jobs.splice(H.jobs.indexOf(j),1);toast(tr('hyper_traffic.job_gave_up_kept',{lab:esc(j.n),paid:fmt$(j.paid|0)}),'bad');sfx('err');}
     else if(d===j.due+1)toast(tr('hyper_traffic.job_late',{lab:esc(j.n),p:pct(j.done/j.tb)}),'bad');}
   for(const m of H.own.slice()){const x=o&&o.jobs&&o.jobs[m.id];if(x)m.done=Math.min(m.tb,m.done+x.got*TB_DAY);if(m.done>=m.tb-1e-6||d>=m.due)hsShip(m,d);}
   if(H.boost.until&&H.boost.until<=d){H.boost={until:0,f:0};}
@@ -120,7 +124,9 @@ function hsJobOffer(d,rs,labs){const H=S.hs,g=pick(HS_JOB_G),wk=4+Math.floor(Mat
   const ps=[];for(let i=0;i<rs.length;i++)for(let k=i+1;k<rs.length;k++)ps.push([rs[i],rs[k]]);const [a,b]=pick(ps),n=labs.length?pick(labs).name:pick(CLOUD_TENANTS.lab.names);
   H.jo.push({id:uid(),n,a,b,g,wk,tb,fee,exp:d+20});const ra=CITY[a].reg,rb=CITY[b].reg;
   toast(ra!==rb&&[ra,rb].includes('EU')&&[ra,rb].includes('AM')?tr('hyper_traffic.offer_atlantic',{lab:esc(n),n:wk}):tr('hyper_traffic.offer',{lab:esc(n),g:fmtG(g),a:CITY[a].name,b:CITY[b].name,n:wk}),'');}
-CX_BULK.push(hsBulk);CX_DAY.push(hsTrafficDay);CX_MONEY.push(hsAiMoney);CX_COST.push(hsTrainCost);
+CX_BULK.push(hsBulk);CX_DAY.push(hsTrafficDay);CX_MONEY.push(hsAiMoney);
+// Training runs are their own line in the money breakdown (C.train), not hidden in the Cost Exploder's regions.
+CX_MONEY.push((R2,V,C)=>{if(hyper()&&S.hs)C.train=hsTrainCost();});
 CX_MUL.grow.push(()=>{const f=hsBoostF();return f>0?1+2*f:1+f;});CX_MUL.rev.push(()=>1+hsBoostF());
 CX_NEW.push(o=>{o.rep={};o.lag={};o.jobs=[];o.own=[];o.boost={until:0,f:0};o.jo=[];o.pp={};o.ai=0;o.jd=0;});
 // Saves: every field repaired against the regions the save still has.
@@ -131,7 +137,7 @@ CX_SAN.push((h0,o)=>{const n=(v,d)=>Number.isFinite(+v)?+v:d,obj=v=>v&&typeof v=
   o.pp={};if(obj(h0.pp))for(const k of Object.keys(h0.pp)){const [a,b,x]=k.split('|');if(x===undefined&&rg(a)&&rg(b)&&a<b&&HS_PATHS.includes(h0.pp[k]))o.pp[k]=h0.pp[k];}
   const runOk=x=>obj(x)&&rg(x.a)&&rg(x.b)&&x.a!==x.b,ids=new Set(),uniq=x=>{const id=str(x.id,'');if(!id||ids.has(id))return '';ids.add(id);return id;};
   o.jobs=[];if(Array.isArray(h0.jobs))for(const x of h0.jobs.slice(0,12)){if(!runOk(x))continue;const id=uniq(x);if(!id)continue;const g=clamp(n(x.g,3200),100,20000),tb=clamp(n(x.tb,g*TB_DAY*28),1,1e9);
-    o.jobs.push({id,n:str(x.n,CLOUD_TENANTS.lab.names[0]),a:x.a,b:x.b,g,tb,done:clamp(n(x.done,0),0,tb),due:I(x.due),fee:clamp(Math.round(n(x.fee,0)),0,1e9),start:I(x.start)});}
+    o.jobs.push({id,n:str(x.n,CLOUD_TENANTS.lab.names[0]),a:x.a,b:x.b,g,tb,done:clamp(n(x.done,0),0,tb),due:I(x.due),fee:clamp(Math.round(n(x.fee,0)),0,1e9),start:I(x.start)});const j=o.jobs[o.jobs.length-1],pd=clamp(I(x.paid),0,Math.round(j.fee/2));if(pd>0)j.paid=pd;}
   o.own=[];if(Array.isArray(h0.own))for(const x of h0.own.slice(0,1)){if(!runOk(x))continue;const id=uniq(x);if(!id)continue;const k=clamp(I(x.k),0,HS_OWN.length-1),g=clamp(n(x.g,HS_OWN[k].g),100,20000),tb=clamp(n(x.tb,g*TB_DAY*HS_OWN[k].wk*7),1,1e9);
     o.own.push({id,n:clamp(I(x.n),0,HS_MODELS.length-1),k,a:x.a,b:x.b,g,tb,done:clamp(n(x.done,0),0,tb),mw:hsTrainMw({g}),start:I(x.start),due:I(x.due)});}
   o.jo=[];if(Array.isArray(h0.jo))for(const x of h0.jo.slice(0,3)){if(!runOk(x))continue;const id=uniq(x);if(!id)continue;const g=clamp(n(x.g,3200),100,20000),wk=clamp(I(x.wk),4,8);
