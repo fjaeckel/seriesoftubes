@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+## [5.1.1] — 2026-11-21
+
 - As the Hyperscaler, a city's Cloud view now tells you whether a region can ever go there. Cities too small, or behind the Great Firewall, say "Never a region here" and name the nearest city that can hold one, even before you open a POP; cities that fit say a POP comes first.
 
 ## [5.1.0] — 2026-11-21
