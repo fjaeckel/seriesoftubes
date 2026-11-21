@@ -1,11 +1,11 @@
 Object.assign(ACT,{
- dfMode:({m})=>{UI.lmode=m;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
+ dfMode:({m})=>{if(modeOn('autarky')&&m==='wave')return;UI.lmode=m;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
  seaPackage:({k})=>{const p=UI.pending;if(!own(SUB_UPGRADES,k)||!p)return;const km=seaQuote(p.a,p.b,own(SEA_DESIGNS,UI.seaDesign)?UI.seaDesign:'standard').km,up=seaUps(km);
    if(!up[k]&&!subHelps(km,k,up[subOther(k)]))return;UI.seaterminal=up.terminal;UI.seaengineering=up.engineering;UI['sea'+k]=!up[k];openLinkModal(p.a,p.b);},
  subUpgrade:({id,k})=>{const l=S.links.find(l=>l.id===id);if(!l||l.kind!=='df'||!l.own||!l.sub||l.seat||!own(SUB_UPGRADES,k)||glassLvl()<4||l['sub'+k]!==undefined||!subHelps(l.km,k,l['sub'+subOther(k)]!==undefined))return;if(!spend(subUpgradeCost(l,k)))return;l.paid=(l.paid>0?l.paid:ownCabCost(l.km))+subUpgradeCost(l,k);l['sub'+k]=Math.max(S.day,l.ready||0)+leadDays(SUB_UPGRADES[k].days);after();},
  seaDesign:({v})=>{if(!own(SEA_DESIGNS,v))return;UI.seaDesign=v;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
  ownCab:()=>{UI.lmode='df';UI.dfSrc='cable';UI.seaDesign='standard';UI.seaterminal=UI.seaengineering=false;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
- dfSrc:({v})=>{UI.dfSrc=v;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
+ dfSrc:({v})=>{if(modeOn('autarky')&&v==='lease')return;UI.dfSrc=v;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
  dfSys:({v})=>{UI.dfSys=v;if(UI.pending)openLinkModal(UI.pending.a,UI.pending.b);},
  orderCable:()=>{const p=UI.pending;if(!p||noTalk(p.a,p.b))return;const {a,b}=p;if(ownCabWhy(a,b)||!linkFromOk(a)||!linkToOk(b))return;const design=own(SEA_DESIGNS,UI.seaDesign)?UI.seaDesign:'standard',up=seaUps(seaQuote(a,b,design).km),q=seaQuote(a,b,design,up),km=q.km,cost=q.cost+(S.pops[b]?0:popCost(b));if(seaLack(km,up).length||!spend(cost))return;
    if(!S.pops[b]){S.pops[b]={day:S.day,bb:null,boost:0,down:0,routers:1,gen:false,rgen:0};popStdApply(b);}
@@ -14,7 +14,7 @@ Object.assign(ACT,{
    const laid=S.links[S.links.length-1];laid.paid=q.cost;for(const k of Object.keys(SUB_UPGRADES))if(up[k])laid['sub'+k]=laid.ready;UI.seaDesign='standard';UI.seaterminal=UI.seaengineering=false;
    S.stats.ownCab=(S.stats.ownCab||0)+1;UI.dfSrc='lease';closeModal();UI.sel={type:'link',id};
    toast(tr('fiber_and_hardware.the_ship_sets_sail_name_your',{ship,name:cname,km:km.toLocaleString(),a:CITY[a].name,b:CITY[b].name,n:days}),'goal');sfx('build');after();},
- orderDf:()=>{const p=UI.pending;if(!p||noTalk(p.a,p.b))return;const {a,b}=p;if(!dfAllowed(a,b)||!linkFromOk(a)||!linkToOk(b))return;const sc=isSub(a,b)?subDfCable(a,b):null,km=sc?sc.km:kmBetween(a,b);
+ orderDf:()=>{const p=UI.pending;if(!p||noTalk(p.a,p.b))return;const {a,b}=p;if(modeOn('autarky')&&(UI.dfSrc!=='build'||isSub(a,b)))return;if(!dfAllowed(a,b)||!linkFromOk(a)||!linkToOk(b))return;const sc=isSub(a,b)?subDfCable(a,b):null,km=sc?sc.km:kmBetween(a,b);
    const own=UI.dfSrc==='build'&&!sc,sys=DF_SYS[UI.dfSys]&&techOk('sys',UI.dfSys,DF_SYS[UI.dfSys].lvl)?UI.dfSys:'lite';if(glassLvl()<2)return;
    const up=(own?digCost(km):0)+sysCost(sys)+ampCount(km)*AMP_COST+(S.pops[b]?0:popCost(b));if(!spend(up))return;
    if(!S.pops[b]){S.pops[b]={day:S.day,bb:null,boost:0,down:0,routers:1,gen:false,rgen:0};popStdApply(b);}
@@ -26,7 +26,7 @@ Object.assign(ACT,{
    if(d<0&&(l.ch||[]).some(o=>!optMode(o,Object.assign({},l,{regen:n})))){toast(tr('fiber_and_hardware.those_optics_need_the_regen_site'),'bad');sfx('err');return;}
    if(d>0&&!spend(REGEN_COST+Math.round((l.ch||[]).reduce((a,c)=>a+optCost(c),0)*REGEN_CH)))return;l.regen=n;toast(d>0?tr('fiber_and_hardware.regen_site_n_is_up_optical',{n,a:CITY[l.a].name,b:CITY[l.b].name,km:spanKm(l).toLocaleString()}):tr('fiber_and_hardware.regen_site_removed'),'good');sfx('build');after();},
  addCh:({id,o})=>{const l=S.links.find(x=>x.id===id),O=OPT[o];if(!l||!O||l.kind!=='df')return;const why=chWhy(l,o);if(why){toast(tr('fiber_and_hardware.can_t_add_optic_why',{optic:O.n,why:esc(why)}),'bad');sfx('err');return;}if(!portGate(l.a,chPorts(o,l.a))||!portGate(l.b,chPorts(o,l.b)))return;const sp=spareN(o)>0;if(!spend(chCost(l,o)))return;if(sp)S.spares[o]--;(l.ch=l.ch||[]).push(o);floater((CITY[l.a].x+CITY[l.b].x)/2,(CITY[l.a].y+CITY[l.b].y)/2-20,`+${O.n}`,'#FF4F9A');after();},
- rmCh:({id,o})=>{const l=S.links.find(x=>x.id===id);if(!l||!OPT[o])return;const i=(l.ch||[]).lastIndexOf(o);if(i<0)return;l.ch.splice(i,1);S.spares=S.spares||{};S.spares[o]=(S.spares[o]||0)+1;floater((CITY[l.a].x+CITY[l.b].x)/2,(CITY[l.a].y+CITY[l.b].y)/2-20,tr('fiber_and_hardware.optic_to_spares',{optic:OPT[o].n}),'#7B61FF');after();},
+ rmCh:({id,o})=>{const l=S.links.find(x=>x.id===id);if(!l||!OPT[o])return;const i=(l.ch||[]).lastIndexOf(o);if(i<0)return;const why=mwShort(l,l.ch.filter((_,j)=>j!==i));if(why){toast(why,'bad');sfx('err');return;}l.ch.splice(i,1);S.spares=S.spares||{};S.spares[o]=(S.spares[o]||0)+1;floater((CITY[l.a].x+CITY[l.b].x)/2,(CITY[l.a].y+CITY[l.b].y)/2-20,tr('fiber_and_hardware.optic_to_spares',{optic:OPT[o].n}),'#7B61FF');after();},
  hwLock:()=>{if(hwLock())return;const c=hwLockCost();if(!spend(c))return;S.hw=S.hw||{};S.hw.lock={until:S.day+HW_LOCK_DAYS,mul:hwTrend(S.day)};toast(tr('fiber_and_hardware.prices_locked_until_date_your_vendor',{date:dateStr(S.hw.lock.until)}),'good');after();},
  buySpare:({o})=>{if(!OPT[o]||!techOk('opt',o,OPT[o].lvl)||spareN(o)>=64)return;if(!spend(optCost(o)))return;S.spares=S.spares||{};S.spares[o]=(S.spares[o]||0)+1;sfx('build');after();},
  sellSpare:({o})=>{if(!OPT[o]||spareN(o)<1)return;S.spares[o]--;const v=spareValue(o);S.cash+=v;toast(tr('fiber_and_hardware.sold_a_spare_optic_on_ebuy',{optic:OPT[o].n,price:fmt$(v),p:pct(SPARE_RESALE)}),'good');sfx('coin');after();},

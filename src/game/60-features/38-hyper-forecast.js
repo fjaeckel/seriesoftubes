@@ -94,8 +94,10 @@ function hpPlanMake(F){const H=S.hs,out=[],add=x=>{x.red=x.lead===null||x.lead>=
   // A grid with no room left for another tenant.
   for(const c of Object.keys(H.rg).sort())if(hsLive(c)&&hsMwFree(c)<HS_MW_SLOT){const P=hsPw(c);add({k:'grid',c,d:0,fix:P.q?'pwq':'util',lead:P.q?Math.max(0,P.q.ready-S.day):leadDays(HP_UTIL)});}
   for(const v in F.door){const f=F.door[v];if(f.d!==null)add({k:'door',c:v,d:f.d,fix:'port',lead:1});}
-  for(const k in F.pair){const p=F.pair[k];if(p.risk!==null)add({k:'lag',c:p.a,b:p.b,d:p.risk,fix:'wave',lead:1});else if(p.start!==null)add({k:'rep',c:p.a,b:p.b,d:p.start,fix:'wave',lead:1});}
-  for(const j of hsRuns()){const r=F.run[j.id];if(!r||!r.late||j.due<S.day)continue;add({k:'run',c:j.a,b:j.b,id:j.id,d:Math.max(0,j.due-S.day),eta:r.eta,fix:'wave',lead:1});}
+  // Autarky (no leased waves): the fix between regions is glass you dig, and that takes a dig's time, not a day.
+  const wl=(a,b)=>modeOn('autarky')?dfBuildDays(kmBetween(a,b)):1;
+  for(const k in F.pair){const p=F.pair[k];if(p.risk!==null)add({k:'lag',c:p.a,b:p.b,d:p.risk,fix:'wave',lead:wl(p.a,p.b)});else if(p.start!==null)add({k:'rep',c:p.a,b:p.b,d:p.start,fix:'wave',lead:wl(p.a,p.b)});}
+  for(const j of hsRuns()){const r=F.run[j.id];if(!r||!r.late||j.due<S.day)continue;add({k:'run',c:j.a,b:j.b,id:j.id,d:Math.max(0,j.due-S.day),eta:r.eta,fix:'wave',lead:wl(j.a,j.b)});}
   const kk=['rg','colo','grid','door','lag','rep','run','az'];
   return out.sort((x,y)=>x.d-y.d||(y.red?1:0)-(x.red?1:0)||kk.indexOf(x.k)-kk.indexOf(y.k)||(x.c<y.c?-1:x.c>y.c?1:0));}
 /* The calendar: dates already known, soonest first, from today on: {d day, k kind, c city or null, x what to say}. */

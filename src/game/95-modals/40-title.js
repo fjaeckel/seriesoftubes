@@ -46,7 +46,7 @@ const DOORS=[['puzzle','🧩',tr('title.puzzles'),tr('title.one_network_one_knot
 const doorAct={puzzle:'puzzleDoor',sandbox:'modeSet',normal:'modeSet',scn:'scenarios'};
 // The chosen preset in one line: its joke, then what actually changes.
 const presetWhat=k=>`${esc(PRESETS[k].d)} <span class="meta">${esc(PRESETS[k].x)}</span>`;
-const MODE_OPTIONS={outcast:[GAME_MOD_ICON.outcast,GAME_MOD_NAME.outcast,tr('title.outcast_mode_desc')]};
+const MODE_OPTIONS={autarky:[GAME_MOD_ICON.autarky,GAME_MOD_NAME.autarky,tr('title.autarky_mode_desc')],outcast:[GAME_MOD_ICON.outcast,GAME_MOD_NAME.outcast,tr('title.outcast_mode_desc')]};
 function modeOptionsHtml(){return `<details class="add-options"><summary class="f" id="challengeOptionsLabel">${tr('title.challenge_options')}</summary>${GAME_MODS.map(id=>{const [icon,name,desc]=MODE_OPTIONS[id],on=UI.mods.includes(id);
   return `<div class="add-opt${on?' on':''}"><i aria-hidden="true">${icon}</i><div class="add-opt-text"><b id="modeName-${id}">${name}</b><span id="modeDesc-${id}">${desc}</span></div><button class="fs-tog" data-act="modeToggle" data-args='{"id":"${id}"}' data-mode-id="${id}" role="switch" aria-checked="${on}" aria-labelledby="modeName-${id}" aria-describedby="modeDesc-${id}"><span aria-hidden="true"></span></button></div>`;}).join('')}</details>`;}
 function modeToggle(id){if(!GAME_MODS.includes(id))return;UI.mods=UI.mods.includes(id)?UI.mods.filter(m=>m!==id):UI.mods.concat(id);

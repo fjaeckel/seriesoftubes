@@ -44,7 +44,7 @@ function hpFixBtn(x,cls){const c=x.c;cls=cls||'sm';
   if(x.fix==='move'){const N=HS_T[1];return btn(tr('hyper_colo.move_cost',{cost:fmt$(N.cost)}),'hsColoOut',{city:c},cls,S.cash<N.cost||chFrozen()!==null);}
   if(x.fix==='colo'){const T=HS_T[HS_CAGE];return S.pops[c]?btn(tr('hyper_colo.lease_cost',{cost:fmt$(T.cost)}),'hsColo',{city:c},cls,S.cash<T.cost||chFrozen()!==null||!!hsColoWhy(c)):'';}
   if(x.fix==='zone'){const k=hsAzCost(c);return btn(tr('hyper_az.add_cost',{cost:fmt$(k)}),'hsZone',{city:c},cls,S.cash<k||chFrozen()!==null||!!hsAzWhy(c));}
-  if(x.fix==='wave')return btn(tr('hyper_plan.b_wave'),'hsPlanGo',{city:c,k:'links'},cls);
+  if(x.fix==='wave')return btn(modeOn('autarky')?tr('hyper_plan.b_dig'):tr('hyper_plan.b_wave'),'hsPlanGo',{city:c,k:'links'},cls);
   if(x.fix==='new')return btn(tr('hyper_plan.b_new'),'hsPlanGo',{city:c,k:'cust'},cls);
   return '';}
 const hpOpenBtn=x=>btn(tr('common.open'),'hsPlanGo',{city:x.c,k:'cust'},'ghost sm');

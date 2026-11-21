@@ -190,3 +190,16 @@ test('saves: the load history repaired, absent in old saves and classic games', 
   ev(`S=migrate(${JSON.stringify(junk)});compute();for(let i=0;i<3;i++)dayTick()`);
   assert.ok(ev('S.hs.lh.fra.length') <= 14);
 });
+
+test('in Autarky the Hyperscaler plans glass, not waves, and the intern never tries to lease one', () => {
+  const { ev, errors } = load();
+  ev("beginGame('Autarky Cloud','fra',{mode:'normal',preset:'oncall',rules:{mods:['autarky']}});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'hyper'})");
+  assert.equal(ev("modeOn('autarky')&&hyper()"), true);
+  assert.equal(ev("opsCtl('hswave')"), false, 'the wave order is off: there are no waves to lease');
+  // A pair's wave fix now takes a dig's time and says so.
+  ev("S.hs.rg.par={t:1,ready:0,mw:20};S.pops.par=S.pops.par||JSON.parse(JSON.stringify(S.pops.fra));S.hs.rep={fra:'par',par:'fra'}");
+  const x = { fix: 'wave', c: 'fra', b: 'par' };
+  assert.match(ev(`hpFixBtn(${JSON.stringify(x)},'sm')`), /Dig fiber/);
+  assert.ok(ev("dfBuildDays(kmBetween('fra','par'))") > 1);
+  assert.deepEqual(errors, []);
+});

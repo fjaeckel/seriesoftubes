@@ -19,6 +19,11 @@ All notable changes to this project are documented here. The project follows
 - A Hyperscaler can plan ahead: each region says when it will be full, a Plan in the NOC lists what runs out first with the fix and how long it takes, and a calendar shows what is coming. Two new steps sit between one region and two: an extra availability zone in the same metro survives a bad day, and a leased colo cage opens a second region in two weeks without building one.
 - The Hyperscaler comes first in the charter picker, a region can be closed from its Cloud tab without shutting the POP, and a closed or decommissioned region frees its place in your level's region count at once.
 - A Hyperscaler's city panel now says where tenants are based and, in a region, which tenants run there, so a POP without a region no longer looks like it hosts anyone; two tenants never share a name.
+
+## [4.9.0] — 2026-11-20
+
+- New Autarky challenge mode: no leased waves, IRUs or fabric circuits, so every route is glass you dig or lay yourself, or a consortium seat you buy at a capacity conference (#408).
+- A dark fiber no longer goes dark when you take out optics its managed waves need: the game now says how much you sold on it and keeps enough lit for your own traffic too (#440).
 - A vendor demo router that takes 3.2T ports can now upgrade the ports you already have to 3.2T, instead of making you leave an exchange and join again; the fastest waves show up the same way (#435).
 - Coming back online with a big network in Multimode no longer makes the game crawl while it catches up: the catch-up now holds the page for less than half as long, and other players' networks are worked into your routing once it is done instead of every second along the way, off the main thread.
 

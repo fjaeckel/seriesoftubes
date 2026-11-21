@@ -47,7 +47,7 @@ const OPSK=Object.fromEntries(OPS.map(o=>[o.k,o])),OPS_POP=OPS.filter(o=>o.pop).
 const opsTeam=k=>!!OPSK[k].team&&optxOn(),opsMine=k=>!OPSK[k].only&&!opsTeam(k);
 // Orders that belong to another charter or a part of the game not reached yet neither show nor run (d.show).
 const opsUse=k=>{const d=OPSK[k];return !d.show||d.show();};
-const opsCtl=k=>own(OPSK,k)&&(opsTeam(k)?true:opsMine(k)&&opsHired());
+const opsCtl=k=>own(OPSK,k)&&!((k==='waveup'||k==='hswave')&&modeOn('autarky'))&&(opsTeam(k)?true:opsMine(k)&&opsHired());
 const OPS_TPL=['bb','transit','ix','kit'];
 // What the shift log can say. One line per day: "{name} did this, that and the other."
 const OPS_SAY={transit:N_('ops.l_transit'),ports:N_('ops.l_ports'),fabric:N_('ops.l_fabric'),routers:N_('ops.l_routers'),caches:N_('ops.l_caches'),rs:N_('ops.l_rs'),peer:N_('ops.l_peer'),pni:N_('ops.l_pni'),repair:N_('ops.l_repair'),optics:N_('ops.l_optics'),optup:N_('ops.l_optup'),waveup:N_('ops.l_waveup'),build:N_('ops.l_build'),optswap:N_('ops.l_optswap'),decom:N_('ops.l_decom'),broke:N_('ops.l_broke'),snag:N_('ops.l_snag'),freeze:N_('ops.l_freeze')};
@@ -310,7 +310,7 @@ const OPS_RUN={
      const q=pniRequote(q0);if(!q)continue;if(!X.can('pni',q.cost))break;if(X.pay('pni',()=>{if(!spend(q.cost))return false;pniPlace(q);return true;}))X.did('pni',q.city+' '+q.net);yield;}},
  // The next wave size up on a hot leased wave: the same click (upLink) and its price, a month of the new size. Never where
  // dark fiber of your own runs or is being built on the route: that glass takes over, and decommissioning hands it back.
- *waveup(X){const at=opsP('waveup','at')/100,glass=new Set(S.links.filter(l=>l.kind==='df').map(edgeKey));
+ *waveup(X){if(modeOn('autarky'))return;const at=opsP('waveup','at')/100,glass=new Set(S.links.filter(l=>l.kind==='df').map(edgeKey));
    for(const l of S.links.slice()){if(l.kind!=='wave'||l.fwv||linkDown(l)||glass.has(edgeKey(l)))continue;const cap=capOf(l),load=((R.load&&R.load[l.id])||0)*opsAhead();if(!(cap>0)||load<cap*at)continue;
      let t=l.tier+1;while(LT[t]&&(subWaveWhy(t,l.km,l.sub)||soldOut(l.a,l.b,t,l.cable)||!waveOk(l.a,l.b,t)))t++;if(!LT[t])continue;
      const nm=Math.round(waveMo(l.km,l.sub,t)*(l.mult||1));if(!X.can('waveup',nm,nm-(l.mo||0)))continue;

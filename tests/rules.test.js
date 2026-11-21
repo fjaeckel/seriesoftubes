@@ -68,7 +68,9 @@ test('the title screen: four doors, four Normal presets, a chaos picker for Sand
   assert.ok(doc.querySelector('.preset[data-preset=freeze].on'));
   challengeOptions.querySelector('summary').click();
   assert.equal(challengeOptions.open, true);
-  assert.equal(challengeOptions.querySelectorAll('[role=switch]').length, 1);
+  assert.equal(challengeOptions.querySelectorAll('[role=switch]').length, 2);
+  doc.querySelector('[data-mode-id=autarky]').click();
+  assert.equal(doc.querySelector('[data-mode-id=autarky]').getAttribute('aria-checked'), 'true');
   doc.querySelector('[data-mode-id=outcast]').click();
   assert.equal(doc.querySelector('[data-mode-id=outcast]').getAttribute('aria-checked'), 'true');
   doc.querySelector('.door[data-door=sandbox]').click();
@@ -78,7 +80,7 @@ test('the title screen: four doors, four Normal presets, a chaos picker for Sand
   doc.querySelector('.door[data-door=normal]').click();
   ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip()");
   assert.equal(ev('rulePreset()'), 'freeze');
-  assert.deepEqual(JSON.parse(ev('JSON.stringify(S.rules.mods)')), ['outcast']);
+  assert.deepEqual(JSON.parse(ev('JSON.stringify(S.rules.mods)')), ['autarky','outcast']);
   assert.match(ev("document.getElementById('hAsn').textContent"), /Change Freeze/);
   assert.match(ev("document.getElementById('hAsn').title"), /locked/);
   ev('showTitle()');
@@ -116,13 +118,11 @@ test('On-call shows no extra tag; the share card names other presets', () => {
   start(ev, { mode: 'normal', preset: 'bgp' });
   assert.match(ev('ruleTag()'), /BGP at 3/);
   ev('ACT.share()');
-  start(ev, { mode: 'normal', rules: { mods: ['outcast'] } });
-  assert.equal(ev('ruleTag()'), 'Outcast mode 🚫');
+  start(ev, { mode: 'normal', rules: { mods: ['autarky','outcast'] } });
+  assert.equal(ev('ruleTag()'), 'Autarky mode 🪨 Outcast mode 🚫');
   assert.match(ev("document.getElementById('hAsn').textContent"), /🚫/);
   ev('shareCanvas()');
-  ev("GAME_MODS.push('autarky');GAME_MOD_ICON.autarky='🪨';GAME_MOD_NAME.autarky='Autarky mode';S.rules.mods.push('autarky');renderAll()");
-  assert.equal(ev('ruleTag()'), 'Outcast mode 🚫 Autarky mode 🪨');
-  assert.match(ev("document.getElementById('hAsn').textContent"), /Outcast mode 🚫 Autarky mode 🪨/);
+  assert.match(ev("document.getElementById('hAsn').textContent"), /Autarky mode 🪨 Outcast mode 🚫/);
   ev('shareCanvas()');
   assert.deepEqual(errors, []);
 });

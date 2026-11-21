@@ -3,6 +3,9 @@ function opticCountCost(l,o,n){
   const add=Math.max(0,n-(l.ch||[]).filter(k=>k===o).length),sp=Math.min(add,spareN(o)),r=REGEN_CH*(l.regen|0),c=optCost(o);
   return sp*Math.round(c*r)+(add-sp)*Math.round(c*(1+r));
 }
+// Managed waves sold on a fiber ride what its optics light (mwG()): taking optics out must leave more than that, or
+// your own traffic gets nothing and the fiber goes dark (#440). An optic out of service for now does not count.
+function mwShort(l,ch){const w=mwG(l);return w&&dfLit({...l,ch,chFail:null})<=w?tr('optic_counts.managed_waves_need_more',{g:fmtG(w)}):'';}
 Object.assign(ACT,{
  setChCount:({id,o,n})=>{
   const l=S.links.find(x=>x.id===id);
@@ -18,7 +21,9 @@ Object.assign(ACT,{
    const sp=Math.min(d,spareN(o));if(sp)S.spares[o]-=sp;
    (l.ch=l.ch||[]).push(...Array(d).fill(o));
   }else{
-   let left=-d;l.ch=l.ch.filter(k=>k!==o||left--<=0);
+   let left=-d;const ch=l.ch.filter(k=>k!==o||left--<=0),why=mwShort(l,ch);
+   if(why){toast(why,'bad');sfx('err');return;}
+   l.ch=ch;
    S.spares=S.spares||{};S.spares[o]=(S.spares[o]||0)-d;
   }
   if(UI.opticCounts)delete UI.opticCounts[JSON.stringify([id,o])];
