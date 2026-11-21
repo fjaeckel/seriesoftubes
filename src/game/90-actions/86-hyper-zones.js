@@ -8,7 +8,7 @@ Object.assign(ACT,{
    if(!spend(hsAzCost(city)))return;const H=S.hs,L=H.az[city]||(H.az[city]=[]),used=L.map(z=>z.n);let n=hstr(S.asn+'|azn|'+city+'|'+L.length)%HS_AZ_NAMES.length;while(used.includes(n))n=(n+1)%HS_AZ_NAMES.length;
    L.push({r:S.day+leadDays(hsAzDays(city)),n});toast(tr('hyper_az.started',{zone:hsAzName(city,L.length-1),city:esc(CITY[city].name),date:dateStr(L[L.length-1].r)}),'good',[],{a:'city',v:city});sfx('build');after();},
  // Lease a cage at a wholesale colo provider: a region in about two weeks, a setup fee, a big monthly lease.
- hsColo:({city})=>{if(!hyper()||!S.hs||!isCity(city))return;const w=hsColoWhy(city);if(w){toast(w,'bad');sfx('err');return;}const T=HS_T[HS_CAGE];if(!spend(T.cost))return;
+ hsColo:({city})=>{if(!hyper()||!S.hs||!isCity(city))return;const w=hsColoWhy(city);if(w){toast(w,'bad');sfx('err');return;}if(hsOverTap(city))return;const T=HS_T[HS_CAGE];if(!spend(T.cost))return;
    S.hs.rg[city]={t:HS_CAGE,ready:S.day+leadDays(T.days),mw:0};hsPwMk(city);
    toast(tr('hyper_colo.started',{prov:tr(hsColoP(city)),city:esc(CITY[city].name),date:dateStr(S.hs.rg[city].ready),mo:fmt$(T.mo)}),'good',[],{a:'city',v:city});sfx('build');after();},
  // Move out of the cage into your own Server Barn in the same metro: built while the cage serves; the lease ends the

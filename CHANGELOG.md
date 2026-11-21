@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The project follows
 
 - As the Hyperscaler, the NOC intern no longer bankrupts you with waves between regions. A wave's monthly price now counts against its budget, the intern leases at most one a shift, and never one that costs more a month than your cloud earns.
 - As the Hyperscaler, what the intern may do grows with your level. Its orders unlock one by one from level 2 to 5, its budgets have a ceiling that rises with your level, and it grows a region at most once a month, only to a tier you reached two levels ago, and only while the month stays in profit.
+- As the Hyperscaler, a full level no longer stops you from reaching a new continent: you can build up to two regions past what your level allows, but each one makes every region cost 25% more to run until you level up. The region panel warns you before you go past the line, and asks you to tap twice. Also, the Region section of a city without a region shows its build button again once you have two regions. (#449)
 
 - As the Hyperscaler, decommissioning a POP now tells you what happens to your users: they stay with the country you launched and come in through the nearest front door you have left, or go unserved if there is none. (#448)
 

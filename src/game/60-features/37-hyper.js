@@ -9,7 +9,7 @@
    starter Rack Shack at home is free. Tenants (S.biz of type cloud, 41-cloud-products.js) buy bundles of cloud
    products, placed at their home city and served from a region (b.rg). A Hyperscaler never sells transit and never
    sells to homes: its offers are cloud bundles only. Its own goals (HYPER_GOALS); levels count peak traffic, regions
-   and continents with a region (LV_X). The win, Cloud Nine, comes later (phase 4). */
+   and continents with a region (LV_X); the region limit is soft (hsRgMax, hsRgCap). The win, Cloud Nine, comes later (phase 4). */
 const HS_RATE=220,HS_POT=0.4,HS_GROW=0.05,HS_START=0.08,HS_EDGE=0.25,HS_EDGE_COST=150000,HS_EDGE_MO=3000,HS_MIN_P=300;
 // Latency users feel, one way: none up to HS_MS[0] ms, the factor falling to HS_MS[2] at HS_MS[1] ms and beyond.
 const HS_MS=[15,120,0.6];
@@ -38,9 +38,23 @@ const hsWhy=cc=>{const I=ccInfo(cc);if(!I||!I.nets.length)return tr('hyper.nobod
 const hsUsers=()=>S.hs?Object.values(S.hs.cc).reduce((a,x)=>a+x.d,0):0;
 // Regions: where they may go, how many your level allows, which are live.
 const hsSite=c=>c===S.home||siteOk(c,HS_MIN_P);
+// The limit is soft (#449): your level runs hsRgMax() regions at their plain price, and up to HS_OVER_N more past
+// it, each of those adding HS_OVER to the monthly cost of every region you run (an ops team stretched thin). So a
+// region on the continent the next level asks for is never out of reach, only dear; hsRgCap() is the hard ceiling.
+const HS_OVER=0.25,HS_OVER_N=2;
 const hsRgMax=()=>HS_LV_RG[Math.min(lvl(),HS_LV_RG.length-1)]+1;
+const hsRgCap=()=>hsRgMax()+HS_OVER_N;
 // Regions held against the level's limit: built or building, at a POP you still have.
 const hsRgN=()=>Object.keys(S.hs.rg).filter(c=>!!S.pops[c]).length;
+// Regions past the line, and what they do to the running cost of all of them (1: none past it).
+const hsRgOver=()=>S&&S.hs?Math.max(0,hsRgN()-hsRgMax()):0;
+const hsOverF=()=>1+HS_OVER*hsRgOver();
+// A new region (or cage) in c would go past the line: the first tap arms (UI.confirm 'hsnew'+c), the second builds.
+const hsOverArm=c=>hsRgN()>=hsRgMax()&&UI.confirm!=='hsnew'+c;
+function hsOverTap(c){if(hsOverArm(c)){UI.confirm='hsnew'+c;sfx('click');renderPanel();return true;}if(UI.confirm==='hsnew'+c)UI.confirm=null;return false;}
+// What the panel says, and what the button says, before a region that goes past the line.
+const hsOverNote=()=>hsRgN()>=hsRgMax()&&hsRgN()<hsRgCap()?`<p class="why">${tr('hyper.over_warn',{n:hsRgMax(),p:Math.round(HS_OVER*100),max:hsRgCap()})}</p>`:'';
+const hsOverLbl=(c,l)=>UI.confirm==='hsnew'+c?tr('hyper.over_sure',{p:Math.round(HS_OVER*100*(hsRgOver()+1))}):l;
 // A region that failed or is drained by a drill is not live (38-hyper-failover.js).
 const hsLive=c=>!!S.hs&&siteLive(S.hs.rg,c)&&popUp(c)&&!hsOff(c);
 const hsRgs=()=>S.hs?Object.keys(S.hs.rg).filter(hsLive).sort():[];
@@ -128,7 +142,7 @@ function hsTenQ(r,b){const T=r&&r.hs&&r.hs.ten[b.id];if(!T||!T.v||!Array.isArray
   const lo=Math.min(...q),av=q.reduce((a,x)=>a+x,0)/q.length;return clamp(0.7*lo+0.3*av,0,1);}
 // Money (CX_MONEY): users pay for what they get; regions and edge stacks cost every month (the Cost Exploder).
 function hsMoney(R2,V,C){const H=S.hs;if(!H||!R2.hs)return;for(const cc in H.cc)V.eyeballs+=hsRev(R2,cc);
-  let m=0;for(const c in H.rg)m+=HS_T[H.rg[c].t].mo;m+=Object.keys(H.edge).length*HS_EDGE_MO;for(const f of CX_COST)m+=f(R2);C.cloud=m;}
+  let m=0;for(const c in H.rg)m+=HS_T[H.rg[c].t].mo;m=Math.round(m*hsOverF());m+=Object.keys(H.edge).length*HS_EDGE_MO;for(const f of CX_COST)m+=f(R2);C.cloud=m;}
 // Users the same evening, for the card: served share of everything asked.
 const hsServed=r=>{const o=r&&r.hs;if(!o)return 1;let d=0,q=0;for(const cc in o.cc){d+=o.cc[cc].D;q+=o.cc[cc].D*hsQ(r,cc);}return d>1e-9?q/d:1;};
 /* A day, after its routing: regions open, users come and go, tenants keep a live region, offers stay cloud. */

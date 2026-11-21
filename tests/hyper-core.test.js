@@ -264,7 +264,7 @@ test('a closed or decommissioned region gives its place back at once, and the pi
   for (const c of ['par', 'ams']) ev(`ACT.hsRegion({city:'${c}'})`);
   assert.equal(ev('hsRgN()'), 3);
   ev("ACT.hsRegion({city:'lon'})");
-  assert.equal(ev('!!S.hs.rg.lon'), false, 'the level holds three');
+  assert.equal(ev('!!S.hs.rg.lon'), false, 'the level runs three at the plain price: a fourth only arms (hyper-soft-cap.test.js)');
   // Decommissioning the POP takes its region with it, without a reload.
   ev("UI.decom=['ams'];ACT.decomGo({})");
   assert.equal(ev('!!S.hs.rg.ams'), false);

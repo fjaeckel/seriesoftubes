@@ -530,6 +530,38 @@ test('M14: zones never stand in for a region against metro-wide or legal trouble
   fail('M14', bad, 'zones protect you from a bad day, regions from a bad year: a zone takes only one building\'s trouble (38-hyper-zones.js)');
 });
 
+// M15: a level whose regions all sit in Europe, at the line, can still open one on another continent, and pays for it.
+test('M15: a Hyperscaler\'s region limit is soft: a new continent is never out of reach, and never free', () => {
+  const bad = [];
+  const EU = ['fra', 'par', 'ams', 'lon', 'ber', 'dus', 'stg', 'sto', 'bcn', 'mad', 'waw', 'prg', 'vie', 'bud', 'buh'];
+  for (const lv of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]) {
+    const g = load({ seed: 3 + lv });
+    g.ev("beginGame('Cloud','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'hyper'});S.cash=1e12;" +
+      `S.lvl=${lv};S.nextFail=S.nextEvent=1e9;const eu=${JSON.stringify(EU)}.slice(0,hsRgMax());` +
+      "for(const c of eu.concat(['nyc','sao','syd'])){if(c!==S.home)ACT.buildPop({city:c});}for(const c of eu)S.hs.rg[c]={t:c==='fra'?0:1,ready:0,mw:HS_T[c==='fra'?0:1].mw};compute()");
+    const rent = 'Object.values(S.hs.rg).reduce((a,d)=>a+HS_T[d.t].mo,0)', rest = 'CX_COST.reduce((a,f)=>a+f(R),0)+Object.keys(S.hs.edge).length*HS_EDGE_MO';
+    const max = g.ev('hsRgMax()'), cap = g.ev('hsRgCap()');
+    if (g.ev('hsRgN()') !== max) bad.push(`level ${lv}: setup holds ${g.ev('hsRgN()')} of ${max}`);
+    if (cap <= max) bad.push(`level ${lv}: no room past the line (${max}/${cap})`);
+    let n = 0;
+    for (const c of ['nyc', 'sao', 'syd']) {
+      g.ev(`ACT.hsRegion({city:'${c}'})`);
+      if (g.ev(`!!S.hs.rg.${c}`)) bad.push(`level ${lv}: ${c} past the line built on one tap`);
+      g.ev(`ACT.hsRegion({city:'${c}'});compute()`);
+      const built = g.ev(`!!S.hs.rg.${c}`);
+      if (max + n < cap) {
+        if (!built) { bad.push(`level ${lv}: ${c} refused with ${max + n} of ${cap}`); break; }
+        n++;
+        const want = g.ev(`Math.round(${rent}*(1+HS_OVER*${n}))+${rest}`);
+        if (g.ev('R.cost.cloud') !== want) bad.push(`level ${lv}: ${n} past the line costs ${g.ev('R.cost.cloud')}, not ${want}`);
+      } else if (built) bad.push(`level ${lv}: ${c} built past the ceiling ${cap}`);
+    }
+    assert.deepEqual(g.errors, []);
+    g.dom.window.close();
+  }
+  fail('M15', bad, 'past the line a region is allowed and dear: HS_OVER_N regions, HS_OVER on every region\'s rent each (37-hyper.js, #449)');
+});
+
 // ---------- Content ----------
 
 test('C1: every scenario has a goal its card checks, and none is won on day 0', () => {
