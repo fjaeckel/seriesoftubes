@@ -38,6 +38,9 @@ const hsWhy=cc=>{const I=ccInfo(cc);if(!I||!I.nets.length)return tr('hyper.nobod
 const hsUsers=()=>S.hs?Object.values(S.hs.cc).reduce((a,x)=>a+x.d,0):0;
 // Regions: where they may go, how many your level allows, which are live.
 const hsSite=c=>c===S.home||siteOk(c,HS_MIN_P);
+// Why a city can never hold a region (its size and country never change), and the nearest that can.
+const hsNeverWhy=c=>hsSite(c)?'':CITY[c].cn?'cn':'small';
+function hsNearSite(c){let b=null,bk=Infinity;for(const C of CITIES){if(C.off||C.id===c||!hsSite(C.id))continue;const k=kmBetween(c,C.id);if(k<bk||k===bk&&C.id<b){bk=k;b=C.id;}}return b;}
 // The limit is soft (#449): your level runs hsRgMax() regions at their plain price, and up to HS_OVER_N more past
 // it, each of those adding HS_OVER to the monthly cost of every region you run (an ops team stretched thin). So a
 // region on the continent the next level asks for is never out of reach, only dear; hsRgCap() is the hard ceiling.

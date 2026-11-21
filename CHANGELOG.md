@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- As the Hyperscaler, a city's Cloud view now tells you whether a region can ever go there. Cities too small, or behind the Great Firewall, say "Never a region here" and name the nearest city that can hold one, even before you open a POP; cities that fit say a POP comes first.
+
 ## [5.1.0] — 2026-11-21
 
 - As the Hyperscaler, the NOC intern no longer bankrupts you with waves between regions. A wave's monthly price now counts against its budget, the intern leases at most one a shift, and never one that costs more a month than your cloud earns.

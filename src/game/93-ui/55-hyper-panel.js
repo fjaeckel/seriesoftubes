@@ -107,7 +107,12 @@ function hsCcBody(c){const cc=CITY[c].cc,H=S.hs,x=H.cc[cc],w=hsWhy(cc);let h='';
   return h;}
 const hsCcSection=c=>hsSec('cc',hsCcSpec(c));
 // The region here: build, grow, load, compute slots.
-function hsRgSpec(c){const H=S.hs,d=H.rg[c];if(!d&&!hsSite(c))return null;const fl=[];let sum;
+// A city that can never hold one says so, at a glance, with or without a POP; a fitting one without a POP says what
+// comes first.
+function hsRgNever(c){const w=hsNeverWhy(c),n=hsNearSite(c);
+  return {t:tr('hyper.region'),sum:tr('hyper_ui.sum_never'),flags:[],open:false,body:()=>`<p class="why">${w==='cn'?tr('hyper.never_cn'):tr('hyper.never_small',{city:esc(CITY[c].name)})}</p>${n?`<p class="meta">${tr('hyper.never_near',{city:esc(CITY[n].name)})}</p>`:''}`};}
+const hsRgNoPop=c=>hsSite(c)?{t:tr('hyper.region'),sum:tr('hyper_ui.sum_fits_pop'),flags:[],open:false,body:()=>`<p class="lead">${tr('hyper.region_lead')}</p><p class="meta">${tr('hyper.fits_after_pop')}</p>`}:hsRgNever(c);
+function hsRgSpec(c){const H=S.hs,d=H.rg[c];if(!d&&!hsSite(c))return hsRgNever(c);const fl=[];let sum;
   if(d){const T=HS_T[d.t],G=hsRgG(c),x=R.hs&&R.hs.rg[c],load=x?x.load:0;
     if(d.ready>S.day)sum=tr('hyper_ui.sum_building',{name:tr(T.n),date:dateStr(d.ready)});
     else{sum=tr('hyper_ui.sum_region',{name:tr(T.n),p:pct(load/(G||1))});if(load>=G*0.95)fl.push(hsFlag('restrictive',tr('hyper_ui.f_full')));else{const f=hpRgFlag(c);if(f)fl.push(f);}}
@@ -165,7 +170,7 @@ const hsTenSection=c=>hsSec('ten',hsTenSpec(c));
 // The whole tab, in the order a player asks. Offers here wait for an answer, so they come right after the users.
 function hsCity(c){return hsSec('inc',hsIncSpec(c))+hsSec('cc',hsCcSpec(c))+hsSec('law',hsLawSpec(c))+offersHere(c)+hsSec('rg',hsRgSpec(c))+hsSec('az',hsAzSpec(c))+hsSec('pw',hsPwSpec(c))+hsSec('bt',hsBtSpec(c))+hsSec('fo',hsFailSpec(c))
   +hsSec('door',hsDoorSpec(c))+hsSec('ep',hsfEdgeSpec(c))+hsSec('or',hsfRampSpec(c))+hsSec('ten',hsTenSpec(c))+hsSec('run',hsRunSpec(c))+cxHtml(CX_CITY,c);}
-const hsNoPop=c=>hsSec('cc',hsCcSpec(c))+offersHere(c);
+const hsNoPop=c=>hsSec('cc',hsCcSpec(c))+hsSec('rg',hsRgNoPop(c))+offersHere(c);
 // In an offer's row: what the bundle is and what it would want from you today.
 function hsOfferNote(o){if(o.type!=='cloud'||!Array.isArray(o.p))return '';const K=CLOUD_TENANTS[o.ck];
   const r=hsRgFor(o.city),x=r&&R.hs&&R.hs.rg[r],sh={room:!x||x.g-x.load>=o.bw*cloudShape(o.p).out,pair:hsRgs().length>=2,edge:!!S.hs&&!!S.hs.edge[o.city],port:hsDoor(o.city)||o.p.includes('pc')&&!o.p.includes('out')&&hsfRamp(o.city),power:!!r&&S.hs.rg[r].t>=2&&S.hs.rg[r].t<HS_CAGE,home:hsRgs().some(x=>CITY[x].cc===CITY[o.city].cc),doors:Object.keys(S.pops).filter(hsDoor).length>=2,model:hsAiOn()};
