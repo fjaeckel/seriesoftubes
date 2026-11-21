@@ -38,21 +38,21 @@ function drawFrame(now){
   if(!S)return;
   const sc=iconScale(),day=S.day;zoomHold(sc,G);
   // cable systems
-  drawCables(ks);
+  drawCables(cabKs());
   // links
   AR_PILLS.length=0;
-  const far=lodFar(),ML=mapLinks(day),LG=ML.LG,GM=ML.GM,PI=ML.PI,busy=linesOnScreen(GM,ks)>MAP_BUSY;
+  const far=lodFar(),ML=mapLinks(day),LG=ML.LG,GM=ML.GM,PI=ML.PI,lk=spanKs(ML.xs),busy=linesOnScreen(GM,lk)>MAP_BUSY;
   // WebGL on: the card draws every line and packet now, and the rest (labels, markers, cities…) goes on the overlay.
-  if(G)try{glFrame(ML,ks,far,busy,now,sc);}catch(e){throw glErr(e);}
+  if(G)try{glFrame(ML,lk,far,busy,now,sc);}catch(e){throw glErr(e);}
   // a Hyperscaler's traffic between regions, a glow under the tubes (87-hyper-layer.js)
-  if(S.hs)hsMapGlow(ML,ks,G,sc,far);
+  if(S.hs)hsMapGlow(ML,wideKs(),G,sc,far);
   for(let gi=0;gi<LG.length;gi++){const grp=LG[gi],{l,many,up,cap,load,df,bld,cut,dark,vx,w0,col,dash,pk}=ML.looks[gi],gm=GM[gi];
     const pz=pzOn(),arPz=pz&&!!S.ar,sel=(UI.sel&&UI.sel.type==='link'&&grp.some(x=>x.id===UI.sel.id))||(pz&&pzLinkHot(grp));let lab=null;
     // Only what sits at the middle of a line is still painted here when the card draws the lines.
     if(G&&!(bld||cut&&!vx||sel||z>0.9&&!busy))continue;
     const w=w0*sc*(far?0.5:1),np=gm.pts.length;
     if(SX.length<np){SX=new Float64Array(np*2);SY=new Float64Array(np*2);}
-    for(const k of ks){
+    for(const k of lk){
       // Off screen (with room for the widest line and the markers at its middle): nothing of it would show. The line's
       // box is kept on its cached geometry, so a link off screen is skipped without projecting its points.
       const bb=gm.bb||(gm.bb=(()=>{let a=Infinity,b=-Infinity,c=Infinity,d=-Infinity;for(const p of gm.pts){if(p[0]<a)a=p[0];if(p[0]>b)b=p[0];if(p[1]<c)c=p[1];if(p[1]>d)d=p[1];}return [a,b,c,d];})());
@@ -125,11 +125,11 @@ function drawFrame(now){
   if(pzOn()){for(let i=vis.length-1;i>=0;i--)pzDrawCity(vis[i],csc,now);pzDrawMarks(ks,now);}else for(let i=vis.length-1;i>=0;i--){const v=vis[i];drawCity(v.C,v.sx,v.sy,csc,now,v.ly,v.dem);}
   if(S.hs)hsMapBadges(ks,csc,farL);
   // cable ships at sea (88-cable-ships.js), over the city labels so a ship leaving port stays in sight
-  drawShips(ks,now);
+  drawShips(wideKs(),now);
   // Architect runs: what the tubes between two cities are (one trench, or separate paths), above the cities.
   for(const [x,y,t,one] of AR_PILLS){ctx.font='800 11px "Baloo 2", sans-serif';const tw=ctx.measureText(t).width+12;ctx.fillStyle=one?'#FFE3C2':'#DDF7E7';ctx.strokeStyle=one?'#FF8A3D':'#16A866';ctx.lineWidth=2;rr(x-tw/2,y-9,tw,17,8);ctx.fill();ctx.stroke();ctx.fillStyle='#1E2640';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(t,x,y+1);}
   // the chaos monkey (woken here after a reload, wherever it last snipped)
-  if(UI.mk)mkDraw(ks);else if(mkOn()&&!pzOn()&&CITY[S.monkey.c])mkStart(S.monkey.c);
+  if(UI.mk)mkDraw(wideKs());else if(mkOn()&&!pzOn()&&CITY[S.monkey.c])mkStart(S.monkey.c);
   // floaters
   for(let i=FLOATS.length-1;i>=0;i--){const f=FLOATS[i],a=(now-f.t)/1600;if(a>1||f.s!==S){FLOATS.splice(i,1);continue;}
     const font='800 17px "Baloo 2", sans-serif';if(f.w===undefined){ctx.font=font;f.w=ctx.measureText(f.text).width;}

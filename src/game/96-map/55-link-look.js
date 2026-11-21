@@ -15,4 +15,5 @@ let MLK=null;
 function mapLinks(day){const key=[S.links,S.links.length,R,day];
   if(MLK&&key.every((v,i)=>v===MLK.key[i]))return MLK;
   const PI=pairIdx(),LG=linkGroups(),GM=LG.map(g=>linkGeom(g[0],PI.get(edgeKey(g[0]))));
-  return MLK={key,PI,LG,GM,looks:LG.map(g=>linkLook(g,day))};}
+  let x0=0,x1=W;for(const g of GM){const b=g.box||(g.box=ptsBox(g.pts));if(b[0]<x0)x0=b[0];if(b[2]>x1)x1=b[2];}
+  return MLK={key,PI,LG,GM,xs:[x0,x1],looks:LG.map(g=>linkLook(g,day))};}

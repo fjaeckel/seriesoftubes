@@ -30,6 +30,8 @@ function segDist(x,y,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],L=dx*dx+dy*dy||1;const
 // Cable names are drawn in one font, so each width is measured once.
 const LBW=new Map(),labW=t=>{let w=LBW.get(t);if(w===undefined)LBW.set(t,w=ctx.measureText(t).width);return w;};
 try{document.fonts&&document.fonts.ready.then(()=>LBW.clear());}catch(e){}
+// The cables' x span over all their waypoints (they never change), for spanKs(): ocean cables cross the map's edge too.
+let CAB_XS=null;const cabKs=()=>spanKs(CAB_XS||(CAB_XS=(()=>{let a=0,b=W;for(const cp of CABLE_PAIRS)for(const p of cp.pts){if(p[0]<a)a=p[0];if(p[0]>b)b=p[0];}return [a,b];})()));
 function drawCables(ks){const G=glOn(),z=cam.z,selC=UI.drag&&UI.drag.mode==='link'?UI.drag.from:(UI.sel&&UI.sel.type==='city'?UI.sel.id:null),cached=!!(WL.cv&&WL.key&&WL.cab)&&!G;
   // On the card the cables are drawn by glBegin(); here only their labels are left.
   if(!selC&&z<1.7&&cached)return;if(G&&!selC&&z<1.7)return;

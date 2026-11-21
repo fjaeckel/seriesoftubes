@@ -124,6 +124,6 @@ function glBegin(now,ks){const gl=GLX.gl,c=GLX.c,f=GLX.f;glShow(true);GLS.frame=
   glWaves(gl,now,ks);
   glClouds(gl,now,ks);
   const selC=UI.drag&&UI.drag.mode==='link'?UI.drag.from:(UI.sel&&UI.sel.type==='city'?UI.sel.id:null);
-  glCables(gl,ks,selC,arOn());
+  glCables(gl,cabKs(),selC,arOn());
   const fx=GLX.fx;if(GLX.fxUsed){fx.setTransform(1,0,0,1,0,0);fx.clearRect(0,0,f.width,f.height);GLX.fxUsed=false;}
   ctx=fx;ctx.setTransform(DPR,0,0,DPR,0,0);}

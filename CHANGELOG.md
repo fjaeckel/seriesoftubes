@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Links and cables that cross the edge of the map, such as Seattle to Singapore over the Pacific, no longer vanish when you zoom in on their far end. Tapping them there works again too. (#446)
+
 ## [5.0.0] — 2026-11-21
 
 **Series of Tubes 5.0: Head in the Cloud.** For years you have carried other people's traffic. Now it is yours. The Hyperscaler is a new charter in which you build a planet-scale cloud: users come to you from every country, ride your own backbone to the region that holds their data, and your regions talk to each other more than anyone talks to them. Everything you learned about fiber, waves, subsea cables, peering and traffic engineering is now the heart of the game, because a hyperscaler never sells transit. It sells the cloud.

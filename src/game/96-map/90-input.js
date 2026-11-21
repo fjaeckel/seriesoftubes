@@ -5,7 +5,7 @@ function hitCity(x,y,r=28){let best=null,bd=r*iconScale();const KS=visibleKs();c
 // On a city's own marker: that tap is for the city, whatever else is drawn close by.
 const cityCore=(x,y)=>{const h=hitCity(x,y);return !!h&&Math.hypot(h.sx-x,h.sy+4-y)<=16*iconScale();};
 function pickCity(x,y){const h=hitCity(x,y);if(!h)return null;if(Math.hypot(h.sx-x,h.sy+4-y)<=16*iconScale())return h;return hitLink(x,y)?null:h;}
-function hitLink(x,y){if(!S)return null;let best=null,bd=12;const KS=visibleKs(),PI=pairIdx();for(const grp of linkGroups()){const l=grp[0];const g=linkGeom(l,PI.get(edgeKey(l)));for(const k of KS){let prev=null;for(const p of g.pts){const q=toS(p[0],p[1],k);if(prev){const d=segDist(x,y,prev,q);if(d<bd){bd=d;best=l.id;}}prev=q;}}}return best;}
+function hitLink(x,y){if(!S)return null;let best=null,bd=12;const KS=spanKs(mapLinks(S.day).xs),PI=pairIdx();for(const grp of linkGroups()){const l=grp[0];const g=linkGeom(l,PI.get(edgeKey(l)));for(const k of KS){let prev=null;for(const p of g.pts){const q=toS(p[0],p[1],k);if(prev){const d=segDist(x,y,prev,q);if(d<bd){bd=d;best=l.id;}}prev=q;}}}return best;}
 function wrapCam(){cam.x=((cam.x%W)+W)%W;cam.y=clamp(cam.y,0,H);}
 const ptrs=new Map();
 cv.addEventListener('pointerdown',e=>{audioInit();cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
