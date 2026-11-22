@@ -34,7 +34,8 @@ test('the build signs what the game verifies, and the pinned keys agree everywhe
   const text = authority.make('5.1.1', NOW, seed, [pub]);
   const p = page(null);
   const r = await p.ev(`fedAuthCheck(${JSON.stringify(text)},${NOW},[${JSON.stringify(pub)}]).then(r=>r.ok?{t:r.a.t,nets:r.a.nets.size,servers:r.a.servers.size}:r)`);
-  assert.deepEqual(JSON.parse(JSON.stringify(r)), { t: NOW, nets: 0, servers: 0 });
+  const b = authority.bans();
+  assert.deepEqual(JSON.parse(JSON.stringify(r)), { t: NOW, nets: b.nets.length, servers: b.servers.length });
   assert.equal(JSON.parse(JSON.stringify(await p.ev(`fedAuthCheck(${JSON.stringify(text)},${NOW})`))).error, 'not_authority', 'the build key is not the pinned key here');
   assert.deepEqual(p.errors, []);
 });
