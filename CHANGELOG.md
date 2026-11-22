@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Leaving multiplayer no longer keeps other players' networks in your game, so 100% reach is possible again and customers stop leaving over players you cannot reach. Saves that already left are repaired when they load. (#450)
+
 ## [5.2.2] — 2026-11-22
 
 - Multiplayer servers on 5.2.1 stay synced with each other again: the authority file passed between relays broke their sessions. 5.2.1 relays recover without updating; 5.2.2 relays also trim the file themselves.
