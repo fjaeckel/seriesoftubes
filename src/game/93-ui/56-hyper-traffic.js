@@ -54,3 +54,8 @@ function hsBtBody(c){const H=S.hs;let h='';
 // The data lake on the cloud card: where it is, what arrives, and what stale data costs.
 function hsLakeStat(){const k=R.hs&&R.hs.lake;if(!k||!k.c||!(k.want>1e-9))return '';const f=hsFresh(R),loss=HS_LAKE_REV*(1-f);
   return `<div class="meta${f<0.9?' why':''}">🗄️ ${tr('hyper_traffic.lake_line',{city:esc(CITY[k.c].name),got:fmtG(k.got),want:fmtG(k.want),p:pct(f)})}${loss>=0.005?' '+tr('hyper_traffic.lake_stale',{p:pct(loss)}):''}</div>`;}
+// Tubular on the cloud card: the offer from its level on, then its audience and how much of it the edge serves.
+function hsVidStat(){const H=S.hs;if(!H)return '';
+  if(!H.vid){if(lvl()<HS_VID.lv)return '';const w=hsVidWhy();return `<div class="meta">📺 ${tr('hyper_video.offer',{x:HS_VID.max,p:pct(HS_VID.edge),r:pct(HS_VID.rate)})}</div>${hsBtns(btn(tr('hyper_video.launch_cost',{cost:fmt$(HS_VID.cost)}),'hsVidLaunch',{},'pink sm',!!w||S.cash<HS_VID.cost))}`;}
+  const o=R.hs;let D=0,st=0;if(o)for(const cc in o.cc){D+=o.cc[cc].D;st+=o.cc[cc].st+(o.cc[cc].nd||0);}const v=hsVidF(),vd=D*v/(1+v),ve=Math.min(vd,st*(v*HS_VID.edge/(HS_EDGE+v*HS_VID.edge)||0));
+  return `<div class="meta${vd>1&&ve<vd*0.5?' why':''}">📺 ${tr('hyper_video.live',{g:fmtG(vd),p:pct(v/HS_VID.max),e:pct(vd>1e-9?ve/vd:0)})}</div>`;}

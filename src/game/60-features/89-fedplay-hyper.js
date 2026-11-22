@@ -71,7 +71,7 @@ function hsfEdgeCut(cc,D,nets,out){const H=S.hs,by=new Map(),put=(id,c,key,g)=>{
   if(S.fed)for(const d of S.fed.deals){if(!d.on||d.deal!=='edge'||d.role!=='buy'||!CITY[d.terms.at]||CITY[d.terms.at].cc!==cc)continue;const n=fedNetOf(d.key);if(!n||n.fst==='dark')continue;put(n.id,d.terms.at,d.id,d.terms.nodes*HSF_EDGE_G);}
   if(!by.size)return null;const W=new Map();for(const [j,w] of nets)W.set(NETS[j].id,(W.get(NETS[j].id)||0)+w);
   const I=ccInfo(cc),o={st:0,u:0,parts:[]};out.fe=out.fe||{};
-  for(const [id,h] of [...by].sort((a,b)=>a[0]<b[0]?-1:1)){const w=W.get(id)||0;if(w<=0)continue;const U=D*w,x=Math.min(U*HS_EDGE,h.cap);if(x<=1e-9)continue;o.st+=x;o.u+=U;
+  for(const [id,h] of [...by].sort((a,b)=>a[0]<b[0]?-1:1)){const w=W.get(id)||0;if(w<=0)continue;const U=D*w,x=Math.min(U*hsEdgeSh(),h.cap);if(x<=1e-9)continue;o.st+=x;o.u+=U;
     o.parts.push([h.c,x,hsAcc(h.c,I.main),null,1]);for(const [k,g] of h.keys)out.fe[k]=(out.fe[k]||0)+x*g/h.cap;}
   return o.parts.length?o:null;}
 // Computer-run edge nodes cost every month (CX_COST).

@@ -152,7 +152,7 @@ function hsFlows(R2,flow,DEMTO,X){const H=S.hs;if(!H||!hyper())return null;
     if(r2&&sh.bt>0){const nt=hsNightBt(b.p)*bw*f;T.bt=bw*sh.bt*f;out.rg[r].bt+=T.bt-nt;out.rg[r].nt+=nt;}}
   const pairs=[],left={};
   const NT={},FH={},ZN={};
-  for(const cc of Object.keys(H.cc).sort()){const I=ccInfo(cc);if(!I)continue;const D=H.cc[cc].d,o={D,v:null,st:0,parts:[],home:null,want:0,got:0,short:0,nd:0};out.cc[cc]=o;
+  for(const cc of Object.keys(H.cc).sort()){const I=ccInfo(cc);if(!I)continue;const D=hsVidD(H.cc[cc].d),ES=hsEdgeSh(),o={D,v:null,st:0,parts:[],home:null,want:0,got:0,short:0,nd:0};out.cc[cc]=o;
     // Edge nodes in partner networks serve the static share of the users behind them; their connections end there.
     const nets=NT[cc]=hsfNets(I,PN),E=rgs.length?hsfEdgeCut(cc,D,nets,out):null,xs=E?E.st:0,xu=E?E.u:0;FH[cc]=D>0?xu/D:0;if(E){o.nd=xs;o.parts.push(...E.parts);}
     if(!doors.length){left[cc]=D-xs;continue;}
@@ -162,7 +162,7 @@ function hsFlows(R2,flow,DEMTO,X){const H=S.hs;if(!H||!hyper())return null;
     const g=new Map();for(const [z,f] of hsZones(cc)){const v=hsDoorNear(z,doors);let x=g.get(v);if(!x)g.set(v,x={v,f:0,zs:[]});x.f+=f;x.zs.push([z,f]);}
     const zs=[...g.values()].sort((a,b)=>b.f-a.f||(a.v<b.v?-1:1));o.v=zs[0].v;o.vs=zs.map(x=>[x.v,x.f]);let ok=false;
     for(const x of zs){const v=x.v;x.st=0;x.acc=x.zs.reduce((a,[z,f])=>a+hsAcc(v,z)*f,0)/x.f;
-      if(H.edge[v]){x.st=(D-xu)*x.f*HS_EDGE+Math.max(0,xu*x.f*HS_EDGE-xs*x.f);o.st+=x.st;for(const [j,w] of nets)add(v,j,x.st*w,false);for(const [z,f] of x.zs)o.parts.push([v,x.st*f/x.f,hsAcc(v,z),null]);}
+      if(H.edge[v]){x.st=(D-xu)*x.f*ES+Math.max(0,xu*x.f*ES-xs*x.f);o.st+=x.st;for(const [j,w] of nets)add(v,j,x.st*w,false);for(const [z,f] of x.zs)o.parts.push([v,x.st*f/x.f,hsAcc(v,z),null]);}
       x.left=D*x.f-x.st-xs*x.f;const k=cc+'#'+v;left[k]=x.left;ZN[k]=x;
       for(const r of rgs){if(!hsHomeOk(cc,r,fo))continue;ok=true;const m=ms(r,v);if(m<Infinity)pairs.push([m,cc,r,k]);}}
     if(!ok)o.blk=1;}
@@ -181,7 +181,7 @@ function hsPost(R2,J){const out=R2.hs;if(!out)return;const hl=out.hl={};for(cons
 // How well a country is served: what reached it from each part, times how its latency feels.
 // A part served in a partner's network (an edge node, p[4]) is served in full.
 function hsQ(r,cc){const o=r&&r.hs&&r.hs.cc[cc];if(!o||o.D<=1e-9)return 1;let q=0;for(const p of o.parts)q+=p[1]*(p[4]?1:sfOf(r,p[0]))*hsLatF(p[2]);return clamp(q/o.D,0,1);}
-const hsRev=(r,cc)=>S.hs.cc[cc].d*hsQ(r,cc)*HS_RATE*hsRateF(cc)*cxMul('rev',cc)*hsFreshF(r);
+const hsRev=(r,cc)=>hsVidD(S.hs.cc[cc].d)*hsVidRev()*hsQ(r,cc)*HS_RATE*hsRateF(cc)*cxMul('rev',cc)*hsFreshF(r);
 /* A tenant's products, each scored on its own need, times what was served; the bundle sits closer to its worst product
    than to the average (one neglected product sours the lot). */
 function hsNeedQ(r,b,id){const T=r&&r.hs&&r.hs.ten[b.id],P=CLOUD_PRODUCTS[id];if(!T||!T.v||!P)return 0;const H=S.hs,rg=H.rg[T.r];

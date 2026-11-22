@@ -501,6 +501,8 @@ const API_CMD={
  hsEgress:{args:[['v','string']],decides:true,watch:['hs.law'],
    quote:a=>{const E=S&&S.hs&&S.hs.law&&S.hs.law.egr;return E&&E.st==='open'?{setup:a.v==='pay'?E.fee:0}:{};},
    doc:'Hyperscaler only: answer a regulator\'s egress-fee investigation (hs.law.egr while st is "open", until its deadline dl): v "cut" takes 15% off what tenants with Snack Storage or CloudFrontal Lobe pay for a year (they like you a little more for it), v "pay" pays the fine (fee) now and keeps the fees. Unanswered at the deadline, the fine is set a quarter higher and taken at once.'},
+ hsVidLaunch:{args:[],decides:true,watch:['hs.vid'],quote:()=>({setup:HS_VID.cost,blocked:[S&&S.hs?hsVidWhy():''].filter(Boolean)}),
+   doc:'Hyperscaler only: launch Tubular, your own video platform (once, from level 6). Its audience builds up over 180 days to 1.5 times what your users already pull; 80% of video can be served by edge stacks at front doors (and partner edge nodes), the rest comes from the region over the backbone; a Gbps of video earns 30% of other traffic.'},
  hsHold:{args:[['city','cityId']],decides:true,watch:['hs.hold'],
    doc:'Hyperscaler only: toggle room held for failover in the region in city (hs.hold). While held, the region keeps free what the regions replicating to it carried last evening (R.hs.rg[city].res), so their failover finds room; users and tenants do not grow into it.'},
  hsDrill:{args:[['city','cityId']],decides:true,watch:['hs.dx','hs.drill'],
