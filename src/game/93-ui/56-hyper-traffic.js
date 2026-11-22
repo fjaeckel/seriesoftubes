@@ -37,7 +37,7 @@ function hsBtSpec(c){const H=S.hs;if(!H||!H.jobs||!H.rg[c])return null;const x=R
 const hsBtSection=c=>hsSec('bt',hsBtSpec(c));
 function hsBtBody(c){const H=S.hs;let h='';
   if(!hsLive(c))return `<p class="meta">${tr('hyper_traffic.not_live_yet')}</p>`;
-  const others=hsRgs().filter(r=>r!==c);if(!others.length)return `<p class="lead">${tr('hyper_traffic.second_region_lead')}</p>`;
+  const others=hsRgs().filter(r=>r!==c&&!hsWall(c,r));if(!others.length)return `<p class="lead">${tr('hyper_traffic.second_region_lead')}</p>`;
   const x=R.hs&&R.hs.rep&&R.hs.rep[c],b=x?x.b:hsRepOf(c),set=H.rep[c]===b,lag=hsLagAt(c);
   h+=`<p class="lead">${tr('hyper_traffic.rep_lead',{p:pct(HS_REP)})}</p>`;
   h+=`<div class="trsel"><label>${tr('hyper_traffic.replica')} ${hsSel('hsReplica',{city:c},(set?[]:[['',tr('hyper_traffic.suggested',{city:CITY[b].name}),true]]).concat(others.map(r=>[r,CITY[r].name,set&&r===b])))}</label></div>`;

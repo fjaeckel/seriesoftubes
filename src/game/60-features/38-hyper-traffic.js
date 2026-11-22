@@ -34,10 +34,10 @@ const hsTb=tb=>tb>=1e6?tr('hyper_traffic.n_eb',{n:(tb/1e6).toFixed(1)}):tb>=1000
 function hsNightBt(p){let w=0,n=0;for(const id of p){const P=CLOUD_PRODUCTS[id];if(!P)continue;w+=P.w;if(id==='arc')n+=P.w*P.bt;}return w?n/w:0;}
 /* The replica: the player's choice while it is a live region, otherwise the nearest live one (by backbone latency in
    compute(), ms; by distance elsewhere). rgs: the live regions. */
-function hsRepSuggest(c,rgs,ms){const L=(rgs||hsRgs()).filter(r=>r!==c);if(!L.length)return null;
+function hsRepSuggest(c,rgs,ms){const L=(rgs||hsRgs()).filter(r=>r!==c&&!hsWall(c,r));if(!L.length)return null;
   if(ms){const ok=L.filter(r=>ms(c,r)<Infinity);if(ok.length)return ok.sort((a,b)=>ms(c,a)-ms(c,b)||(a<b?-1:1))[0];}
   return L.sort((a,b)=>kmBetween(c,a)-kmBetween(c,b)||(a<b?-1:1))[0];}
-function hsRepOf(c,rgs,ms){const H=S.hs,L=rgs||hsRgs(),x=H&&H.rep?H.rep[c]:undefined;return x&&x!==c&&L.includes(x)?x:hsRepSuggest(c,L,ms);}
+function hsRepOf(c,rgs,ms){const H=S.hs,L=rgs||hsRgs(),x=H&&H.rep?H.rep[c]:undefined;return x&&x!==c&&L.includes(x)&&!hsWall(c,x)?x:hsRepSuggest(c,L,ms);}
 // Backlog at risk in a region: what it still owes its replica, TB (the failover reads it).
 function hsLagAt(c){const H=S.hs;if(!H||!H.lag)return 0;let t=0;const p=c+'>';for(const k in H.lag)if(k.startsWith(p))t+=H.lag[k];return t;}
 // Training runs (tenant jobs and your own models): compute slots and megawatts in each of their two regions.
@@ -93,10 +93,10 @@ function hsBulk(R2,X){const H=S.hs,out=R2.hs;if(!out)return;const rep={},jobs={}
   for(const [k,j] of runs){const live=rgs.includes(j.a)&&rgs.includes(j.b),want=live?Math.min(j.g,Math.max(0,j.tb-j.done)/TB_DAY):0,mode=H.pp[hsPk(j.a,j.b)]||'';
     const x=live?carve(j.a,j.b,'hs:'+j.id,want,mode,labOf(N_('hyper_traffic.ek_train'),'city',CITY[j.b].name)):{got:0,ms:0,paths:[],te:false};
     jobs[j.id]={k,a:j.a,b:j.b,want,got:x.got,ms:x.ms,mode,te:x.te,paths:x.paths,due:j.due};out.btw+=x.got;}
-  // The data lake, last of the bulk classes: every other region ships its logs, analytics and training data there.
+  // The data lake, last of the bulk classes: every other region ships its logs, analytics and training data there (none from behind the wall).
   const L=hsLakeAt(rgs),lf=hsLakeF(),lk=out.lake={c:L,want:0,got:0,rg:{}};
   // Bulk analytics wait while a region is failed over: everything the backbone has goes to the failover.
-  if(L&&lf>0&&!Object.keys(out.fo||{}).length)for(const a of rgs){if(a===L)continue;const want=(out.rg[a].u||0)*lf;if(!(want>1e-9))continue;
+  if(L&&lf>0&&!Object.keys(out.fo||{}).length)for(const a of rgs){if(a===L||hsWall(a,L))continue;const want=(out.rg[a].u||0)*lf;if(!(want>1e-9))continue;
     const x=carve(a,L,'hs:lake>'+a,want,H.pp[hsPk(a,L)]||'',labOf(N_('hyper_traffic.ek_lake'),'city',CITY[L].name));
     lk.rg[a]={want,got:x.got,ms:x.ms,paths:x.paths};lk.want+=want;lk.got+=x.got;out.btw+=x.got;}
   // AI traffic between regions tonight: training runs and the lake (the level bar's measure, S.hs.apk).
@@ -109,7 +109,7 @@ hsBulk.on=()=>!!S.hs&&hyper();
    revenue falls by up to HS_LAKE_REV with the share missing (hsFreshF). */
 const HS_LAKE=[3,0.2,0.06,0.8],HS_LAKE_REV=0.1;
 const hsLakeF=()=>{const lv=lvl();return lv<HS_LAKE[0]?0:Math.min(HS_LAKE[3],HS_LAKE[1]+(lv-HS_LAKE[0])*HS_LAKE[2]);};
-const hsLakeAt=rgs=>rgs.length<2?null:rgs.slice().sort((a,b)=>hsRgG(b)-hsRgG(a)||(a<b?-1:1))[0];
+const hsLakeAt=rgs=>(rgs=rgs.filter(r=>!CITY[r].cn)).length<2?null:rgs.slice().sort((a,b)=>hsRgG(b)-hsRgG(a)||(a<b?-1:1))[0];
 // Data freshness, 0..1, and what it does to revenue.
 const hsFresh=r=>{const k=r&&r.hs&&r.hs.lake;return k&&k.want>1e-9?clamp(k.got/k.want,0,1):1;};
 const hsFreshF=r=>1-HS_LAKE_REV*(1-hsFresh(r));

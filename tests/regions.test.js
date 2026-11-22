@@ -1072,9 +1072,10 @@ test('an old save with Australian POPs is told once that Australia changed', () 
 
 test('city density: no small city crowds a bigger one, Brazil is slimmer than Europe, and old saves keep retired cities', () => {
   const { ev, errors } = load();
-  // A small city (P < 60) never sits within 300 km of a bigger city in the same country, unless it is a cable landing or a capital.
+  // A small city (P < 60) never sits within 300 km of a bigger city in the same country, unless it is a cable landing, a
+  // capital or a data-center campus town (campus: there for its power and land, not its people).
   const bad = JSON.parse(ev(`JSON.stringify((()=>{const ctry=c=>c.cc||(c.br&&'BR')||(c.au&&'AU')||(c.ca&&'CA')||'land:'+c.land,out=[];
-    for(const c of CITIES){if(c.off||c.P>=60||c.capital||landing(c.id))continue;
+    for(const c of CITIES){if(c.off||c.P>=60||c.capital||c.campus||landing(c.id))continue;
       for(const o of CITIES)if(o!==c&&!o.off&&o.P>c.P&&ctry(o)===ctry(c)&&kmBetween(c.id,o.id)<300)out.push(c.id+' near '+o.id+' ('+kmBetween(c.id,o.id)+' km)');}
     return out;})())`));
   assert.deepEqual(bad, [], 'add a bigger city, a capital flag or a cable landing, or mark it off');

@@ -15,7 +15,7 @@ const HS_FRONTIER=['Omniscient Toaster','The Last Autocomplete','Galaxy Brain Ul
 const hsClLim=(a,b)=>Math.round((kmBetween(a,b)*HS_CL.lim[0]/200+HS_CL.lim[1])*10)/10;
 /* Three live regions on two continents or more: the two nearest regions on different continents (a, b), and the region
    nearest either of them (c), joined to whichever is nearer. null when there is no such trio. */
-function hsClPick(rs){let best=null;for(const a of rs)for(const b of rs){if(a>=b||CITY[a].reg===CITY[b].reg)continue;const k=kmBetween(a,b);if(!best||k<best.k)best={a,b,k};}
+function hsClPick(rs){let best=null;for(const a of rs)for(const b of rs){if(a>=b||CITY[a].reg===CITY[b].reg||hsWall(a,b))continue;const k=kmBetween(a,b);if(!best||k<best.k)best={a,b,k};}
   if(!best)return null;const{a,b}=best;let c=null,cj=null,ck=Infinity;for(const x of rs){if(x===a||x===b)continue;for(const y of [a,b]){const k=kmBetween(x,y);if(k<ck||k===ck&&x<c){ck=k;c=x;cj=y;}}}
   return c?{legs:[[a,b],[c,cj]],rgs:[a,b,c]}:null;}
 // Why a supercluster of g Gbps a leg cannot start on these legs, or ''. Each leg needs slots and power at both ends.

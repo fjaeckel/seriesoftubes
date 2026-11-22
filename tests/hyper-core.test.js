@@ -261,7 +261,7 @@ test('the Cloud tab and the charter card render on a phone and on a desktop', ()
 
 test('a closed or decommissioned region gives its place back at once, and the picker lists the Hyperscaler first', () => {
   const { ev, errors } = load();
-  ev("beginGame('Cloud','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'hyper'});S.cash=1e9;S.lvl=3;for(const c of ['par','ams','lon','nyc'])ACT.buildPop({city:c});");
+  ev("beginGame('Cloud','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'hyper'});S.cash=1e9;S.lvl=3;for(const c of ['par','ams','lon','ash'])ACT.buildPop({city:c});");
   assert.equal(ev('hsRgMax()'), 3);
   for (const c of ['par', 'ams']) ev(`ACT.hsRegion({city:'${c}'})`);
   assert.equal(ev('hsRgN()'), 3);
@@ -271,8 +271,8 @@ test('a closed or decommissioned region gives its place back at once, and the pi
   ev("UI.decom=['ams'];ACT.decomGo({})");
   assert.equal(ev('!!S.hs.rg.ams'), false);
   assert.equal(ev('hsRgN()'), 2);
-  ev("ACT.hsRegion({city:'nyc'})");
-  assert.equal(ev('!!S.hs.rg.nyc'), true, 'a region on another continent fits again');
+  ev("ACT.hsRegion({city:'ash'})");
+  assert.equal(ev('!!S.hs.rg.ash'), true, 'a region on another continent fits again');
   // Closing a region keeps the POP: the first tap arms it, the second closes it and pays a quarter back.
   const cash = ev('S.cash');
   ev("ACT.hsRgClose({city:'par'})");

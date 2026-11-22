@@ -538,13 +538,13 @@ test('M15: a Hyperscaler\'s region limit is soft: a new continent is never out o
     const g = load({ seed: 3 + lv });
     g.ev("beginGame('Cloud','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'hyper'});S.cash=1e12;" +
       `S.lvl=${lv};S.nextFail=S.nextEvent=1e9;const eu=${JSON.stringify(EU)}.slice(0,hsRgMax());` +
-      "for(const c of eu.concat(['nyc','sao','syd'])){if(c!==S.home)ACT.buildPop({city:c});}for(const c of eu)S.hs.rg[c]={t:c==='fra'?0:1,ready:0,mw:HS_T[c==='fra'?0:1].mw};compute()");
+      "for(const c of eu.concat(['ash','sao','syd'])){if(c!==S.home)ACT.buildPop({city:c});}for(const c of eu)S.hs.rg[c]={t:c==='fra'?0:1,ready:0,mw:HS_T[c==='fra'?0:1].mw};compute()");
     const rent = 'Object.values(S.hs.rg).reduce((a,d)=>a+HS_T[d.t].mo,0)', rest = 'CX_COST.reduce((a,f)=>a+f(R),0)+Object.keys(S.hs.edge).length*HS_EDGE_MO';
     const max = g.ev('hsRgMax()'), cap = g.ev('hsRgCap()');
     if (g.ev('hsRgN()') !== max) bad.push(`level ${lv}: setup holds ${g.ev('hsRgN()')} of ${max}`);
     if (cap <= max) bad.push(`level ${lv}: no room past the line (${max}/${cap})`);
     let n = 0;
-    for (const c of ['nyc', 'sao', 'syd']) {
+    for (const c of ['ash', 'sao', 'syd']) {
       g.ev(`ACT.hsRegion({city:'${c}'})`);
       if (g.ev(`!!S.hs.rg.${c}`)) bad.push(`level ${lv}: ${c} past the line built on one tap`);
       g.ev(`ACT.hsRegion({city:'${c}'});compute()`);
@@ -560,6 +560,30 @@ test('M15: a Hyperscaler\'s region limit is soft: a new continent is never out o
     g.dom.window.close();
   }
   fail('M15', bad, 'past the line a region is allowed and dear: HS_OVER_N regions, HS_OVER on every region\'s rent each (37-hyper.js, #449)');
+});
+
+// M16: region sites are the real-world list; China only with the licence, and nothing crosses the wall.
+test('M16: Hyperscaler regions go where real clouds build, and nothing crosses the Great Firewall', () => {
+  const bad = [];
+  const g = load({ seed: 16 });
+  g.ev("beginGame('Cloud','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip();ACT.charter({k:'hyper'})");
+  const off = JSON.parse(g.ev("JSON.stringify(CITIES.filter(c=>!c.off&&c.id!==S.home&&hsSite(c.id)&&HS_SITES[c.id]===undefined).map(c=>c.id))"));
+  if (off.length) bad.push('sites off the list: ' + off.join());
+  const cnEarly = JSON.parse(g.ev("JSON.stringify(CITIES.filter(c=>c.cn&&hsSite(c.id)).map(c=>c.id))"));
+  if (cnEarly.length) bad.push('China sites without the licence: ' + cnEarly.join());
+  g.ev("S.cnLic={state:'ok'}");
+  const cnSites = JSON.parse(g.ev("JSON.stringify(CITIES.filter(c=>c.cn&&hsSite(c.id)).map(c=>c.id))"));
+  if (!cnSites.length) bad.push('no China site with the licence');
+  const leak = JSON.parse(g.ev("JSON.stringify(CITIES.filter(c=>hsSite(c.id)).flatMap(r=>[...new Set(CITIES.map(c=>c.cc))].filter(cc=>hsResOk(cc,r.id)&&(cc==='CN')!==!!r.cn).map(cc=>cc+'@'+r.id)).slice(0,5))"));
+  if (leak.length) bad.push('users homed across the wall: ' + leak.join());
+  const rep = g.ev("(()=>{const rs=['pek','sha','icn','tok','sin'];return rs.filter(c=>{const b=hsRepSuggest(c,rs);return b&&hsWall(c,b);}).join();})()");
+  if (rep) bad.push('replica across the wall: ' + rep);
+  g.ev("for(const c of ['pek','sha','zhy','icn','tok'])S.hs.rg[c]=S.hs.rg[c]||{t:1,ready:0,mw:HS_T[1].mw}");
+  if (g.ev("(L=>!L||!!CITY[L].cn)(hsLakeAt(['pek','sha','zhy','icn','tok']))")) bad.push('a data lake behind the wall for regions outside');
+  const leg = g.ev("(p=>p&&hsWall(p.a,p.b))(hsClPick(['pek','sjc','zhy']))");
+  if (leg) bad.push('a training leg across the wall');
+  assert.deepEqual(g.errors, []);
+  fail('M16', bad, 'HS_SITES lists where regions go; hsWall keeps China apart (37-hyper-sites.js, 38-hyper-china.js)');
 });
 
 // ---------- Content ----------

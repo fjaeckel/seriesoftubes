@@ -20,7 +20,9 @@ All notable changes to this project are documented here. The project follows
 - As the Hyperscaler, distance to your users matters much more. Quality starts falling after about 8 ms one way, so serving a whole continent from one coast costs you; regions, front doors and edge stacks near your users pay off.
 - As the Hyperscaler, other networks' cache boxes are gone from the Peering tab: you are the content, so there is nothing for them to cache.
 
-- As the Hyperscaler, Ashburn can now hold a region. It is a small town, but no place has more data centers, so its grid is built for them and has more spare megawatts than any other region metro.
+- As the Hyperscaler, regions now go where real clouds build them, not wherever many people live. Cities with a real region qualify, and so do 18 new campus towns with huge grids and few people, from Boardman, Council Bluffs and Abilene to Luleå, Eemshaven and Johor Bahru. Regions you already have stay where they are.
+- As the Hyperscaler, from level 7 you can run regions in mainland China through a licensed local partner, as foreign clouds really do. Beijing, Shanghai and three Chinese campus towns open up, and the partner keeps 35% of what Chinese users pay. Nothing crosses the wall: Chinese users are served only from Chinese regions, and those regions serve no one else.
+- As the Hyperscaler, Ashburn can now hold a region. It is a small town, but no place has more data centers, so its grid is built for them.
 
 - As the Hyperscaler, an AI lab's training run now pays half its fee as the data moves and the rest on time at the end. Before, the whole fee came at the end while the run's GPUs and power cost every day, which could sink a cloud that served the run just fine.
 - As the Hyperscaler, a training run offer now says what it costs a month while it runs and about how much in all, in red when that is more than your cash. The money breakdown shows training runs on their own line.

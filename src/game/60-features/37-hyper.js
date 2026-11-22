@@ -10,7 +10,7 @@
    products, placed at their home city and served from a region (b.rg). A Hyperscaler never sells transit and never
    sells to homes: its offers are cloud bundles only. Its own goals (HYPER_GOALS); levels count peak traffic, regions
    and continents with a region (LV_X); the region limit is soft (hsRgMax, hsRgCap). The win, Cloud Nine, comes later (phase 4). */
-const HS_RATE=220,HS_POT=0.4,HS_GROW=0.05,HS_START=0.08,HS_EDGE=0.25,HS_EDGE_COST=150000,HS_EDGE_MO=3000,HS_MIN_P=300;
+const HS_RATE=220,HS_POT=0.4,HS_GROW=0.05,HS_START=0.08,HS_EDGE=0.25,HS_EDGE_COST=150000,HS_EDGE_MO=3000;
 // Latency users feel, one way: none up to HS_MS[0] ms, the factor falling to HS_MS[2] at HS_MS[1] ms and beyond.
 const HS_MS=[8,60,0.4];
 // Region tiers: index 0 is the starter every Hyperscaler gets at home; the rest are built (lv: the level that allows it).
@@ -45,14 +45,12 @@ const hsPotB=cc=>{const I=ccInfo(cc);return I?I.P*HS_POT*eraMul()*cxMul('pot',cc
 const hsPot=cc=>hsPotB(cc)*hsDemF();
 const hsRateF=cc=>{const d=S.hs.cc[cc].d,B=hsPotB(cc);return d>B&&B>0?Math.sqrt(B/d):1;};
 const hsLic=cc=>{const I=ccInfo(cc);return I?Math.round((8000+I.P*6)/1000)*1000:0;};
-const hsWhy=cc=>{const I=ccInfo(cc);if(!I||!I.nets.length)return tr('hyper.nobody_online_here');if(I.cn)return tr('hyper.great_firewall');return '';};
+const hsWhy=(cc,s=S)=>{const I=ccInfo(cc);if(!I||!I.nets.length)return tr('hyper.nobody_online_here');if(I.cn&&!hsCnLicOk(s))return tr('hyper.great_firewall');return '';};
 const hsUsers=()=>S.hs?Object.values(S.hs.cc).reduce((a,x)=>a+x.d,0):0;
 // Regions: where they may go, how many your level allows, which are live.
-/* A region metro: a data-center city big enough (HS_MIN_P), or a data-center hub whatever its size, with at least
-   HS_HUB_FAC carrier-neutral facilities in PeeringDB (CITY_PDB): Ashburn, a town that is the world's biggest cluster. */
-const HS_HUB_FAC=40;
-const hsHub=c=>!!CITY[c]&&!!CITY[c].dc&&!CITY[c].cn&&((CITY_PDB[c]||[0])[0]|0)>=HS_HUB_FAC;
-const hsMetro=c=>siteOk(c,HS_MIN_P)||hsHub(c);
+// Where new regions may go: your home, and the real-world sites of 37-hyper-sites.js (hsMetro).
+// A save's regions stay wherever they were legal to build before the list (any data-center city): saves are sacred.
+const hsWasSite=c=>!!CITY[c]&&!!CITY[c].dc&&!CITY[c].cn;
 const hsSite=c=>c===S.home||hsMetro(c);
 // Why a city can never hold a region (its size and country never change), and the nearest that can.
 const hsNeverWhy=c=>hsSite(c)?'':CITY[c].cn?'cn':'small';
@@ -83,10 +81,9 @@ const hsSlotsUsed=c=>hsTen().filter(b=>b.rg===c).length+hsTrainSlotsAt(c);
 const hsSlotFree=()=>hsRgs().some(r=>hsSlotsUsed(r)<hsSlots(r));
 // The grid a metro has for everyone, town included (seeded, 40 to 600 MW; power itself comes later).
 const hsGridP=c=>Math.round(clamp(40+CITY[c].P*0.25+hstr('grid|'+c)%120,40,600));
-// A data-center town (a hub too small to be a metro, hsHub): its grid was built for the data centers, HS_HUB_MW per
-// facility, while the town itself still draws what a town its size does (hsTown reads hsGridP).
-const HS_HUB_MW=6;
-const hsGrid=c=>hsHub(c)&&!siteOk(c,HS_MIN_P)?Math.round(clamp(40+(CITY_PDB[c][0]|0)*HS_HUB_MW,40,600)):hsGridP(c);
+// A campus town's grid was built for its data centers (HS_SITES megawatts), while the town itself still draws what a
+// town its size does (hsTown reads hsGridP).
+const hsGrid=c=>hsCampus(c)?HS_SITES[c]:hsGridP(c);
 // The region a tenant in city c is served from: the nearest live one with a free compute slot, else the nearest. p: its
 // products; Very Sovereign Cloud only ever lives in its own country (38-hyper-residency.js).
 function hsRgFor(c,skip,p){const rs=hsRgs().filter(r=>hsTenResOk(p,c,r)).sort((a,b)=>kmBetween(a,c)-kmBetween(b,c)||(a<b?-1:1));return rs.find(r=>r!==skip&&hsSlotsUsed(r)<hsSlots(r))||rs[0]||null;}
@@ -259,9 +256,9 @@ function hsSanitize(s){if(s.charter!=='hyper'){delete s.hs;s.biz=s.biz.filter(b=
   // A Hyperscaler hosts nobody's cache boxes: it is the content (an older save may hold some).
   if(Array.isArray(s.caches))s.caches=[];
   const h0=s.hs&&typeof s.hs==='object'&&!Array.isArray(s.hs)?s.hs:{},o={},n=(v,d)=>Number.isFinite(+v)?+v:d,obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
-  o.rg={};if(obj(h0.rg))for(const k of Object.keys(h0.rg).slice(0,40)){const x=h0.rg[k];if(isCity(k)&&s.pops[k]&&obj(x)&&(k===s.home||hsMetro(k))){o.rg[k]=siteFix(x,+x.t===HS_CAGE?HS_T.length:HS_CAGE);o.rg[k].mw=HS_T[o.rg[k].t].mw;}}
+  o.rg={};if(obj(h0.rg))for(const k of Object.keys(h0.rg).slice(0,40)){const x=h0.rg[k];if(isCity(k)&&s.pops[k]&&obj(x)&&(k===s.home||hsMetro(k,s)||hsWasSite(k))){o.rg[k]=siteFix(x,+x.t===HS_CAGE?HS_T.length:HS_CAGE);o.rg[k].mw=HS_T[o.rg[k].t].mw;}}
   if(s.pops[s.home]&&!o.rg[s.home]&&!Object.keys(o.rg).length)o.rg[s.home]={t:0,ready:0,mw:HS_T[0].mw};
-  o.cc={};if(obj(h0.cc))for(const k of Object.keys(h0.cc).slice(0,250)){const x=h0.cc[k];if(ccInfo(k)&&!hsWhy(k)&&obj(x)){o.cc[k]={d:clamp(n(x.d,1),0,1e6),since:Math.round(n(x.since,0))};if(isCity(x.home))o.cc[k].home=x.home;}}
+  o.cc={};if(obj(h0.cc))for(const k of Object.keys(h0.cc).slice(0,250)){const x=h0.cc[k];if(ccInfo(k)&&!hsWhy(k,s)&&obj(x)){o.cc[k]={d:clamp(n(x.d,1),0,1e6),since:Math.round(n(x.since,0))};if(isCity(x.home))o.cc[k].home=x.home;}}
   o.edge={};if(obj(h0.edge))for(const k of Object.keys(h0.edge).slice(0,500))if(isCity(k)&&s.pops[k]&&h0.edge[k])o.edge[k]=1;
   o.t1=Math.max(0,Math.round(n(h0.t1,0)));o.won=Math.max(0,Math.round(n(h0.won,0)));
   for(const b of s.biz.concat(s.offers)){if(b.type!=='cloud')continue;if(!own(CLOUD_TENANTS,b.ck))b.ck='startup';if(!Array.isArray(b.p)||!b.p.length)b.p=CLOUD_TENANTS[b.ck].p.slice();if(b.rg!==undefined&&!o.rg[b.rg])delete b.rg;}

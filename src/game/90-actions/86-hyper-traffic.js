@@ -2,7 +2,7 @@
 Object.assign(ACT,{
  // Pick a region's replica (v: a region, or '' for the suggestion; the Cloud tab's list). What it still owed the old one goes to the new one.
  hsReplica:({city,v})=>{const H=hyper()&&S.hs,c=city,to=v;if(!H||!isCity(c)||!H.rg[c]||typeof to!=='string')return;
-   if(to===''||to===c){delete H.rep[c];after();return;}if(!isCity(to)||!H.rg[to])return;H.rep[c]=to;
+   if(to===''||to===c){delete H.rep[c];after();return;}if(!isCity(to)||!H.rg[to]||hsWall(c,to))return;H.rep[c]=to;
    toast(tr('hyper_traffic.replica_set',{a:CITY[c].name,b:CITY[to].name}),'good');after();},
  // How a region pair's bulk traffic travels: the shortest path (v ''), scenic (around busy links) or diverse halves.
  hsPath:({a,b,v})=>{const H=hyper()&&S.hs,m=v;if(!H||!isCity(a)||!isCity(b)||a===b||!H.rg[a]||!H.rg[b])return;

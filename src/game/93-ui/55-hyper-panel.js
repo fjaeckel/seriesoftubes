@@ -104,13 +104,14 @@ function hsCcBody(c){const cc=CITY[c].cc,H=S.hs,x=H.cc[cc],w=hsWhy(cc);let h='';
     if(q<CX_GOOD)h+=`<p class="why">${tr('hyper.users_leaving')}</p>`;h+=hpCcLine(cc);}
   else if(w)h+=`<p class="why">${w}</p>`;
   else h+=`<p class="lead">${tr('hyper.launch_lead',{g:fmtG(Math.max(1,hsPot(cc)*HS_START)),max:fmtG(hsPot(cc))})}</p>${hsBtns(btn(tr('hyper.launch_in_cost',{country:esc(ccName(cc)),cost:fmt$(hsLic(cc))}),'hsLaunch',{cc},'pink',S.cash<hsLic(cc)))}`;
+  if(cc==='CN')h+=hsCnHtml();
   return h;}
 const hsCcSection=c=>hsSec('cc',hsCcSpec(c));
 // The region here: build, grow, load, compute slots.
 // A city that can never hold one says so, at a glance, with or without a POP; a fitting one without a POP says what
 // comes first.
 function hsRgNever(c){const w=hsNeverWhy(c),n=hsNearSite(c);
-  return {t:tr('hyper.region'),sum:tr('hyper_ui.sum_never'),flags:[],open:false,body:()=>`<p class="why">${w==='cn'?tr('hyper.never_cn'):tr('hyper.never_small',{city:esc(CITY[c].name)})}</p>${n?`<p class="meta">${tr('hyper.never_near',{city:esc(CITY[n].name)})}</p>`:''}`};}
+  return {t:tr('hyper.region'),sum:tr('hyper_ui.sum_never'),flags:[],open:false,body:()=>`<p class="why">${w==='cn'?tr('hyper.never_cn'):tr('hyper.never_small',{city:esc(CITY[c].name)})}</p>${w==='cn'?hsCnHtml():''}${n?`<p class="meta">${tr('hyper.never_near',{city:esc(CITY[n].name)})}</p>`:''}`};}
 const hsRgNoPop=c=>hsSite(c)?{t:tr('hyper.region'),sum:tr('hyper_ui.sum_fits_pop'),flags:[],open:false,body:()=>`<p class="lead">${tr('hyper.region_lead')}</p><p class="meta">${tr('hyper.fits_after_pop')}</p>`}:hsRgNever(c);
 function hsRgSpec(c){const H=S.hs,d=H.rg[c];if(!d&&!hsSite(c))return hsRgNever(c);const fl=[];let sum;
   if(d){const T=HS_T[d.t],G=hsRgG(c),x=R.hs&&R.hs.rg[c],load=x?x.load:0;

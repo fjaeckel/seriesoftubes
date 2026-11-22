@@ -5,6 +5,7 @@
    the country's ASN count. A city missing here keeps the plain regional price. One entry per line, sorted by id. */
 const CITY_PDB={
  aas:[0,0,2], // est.
+ abi:[1,3,33300], // est.
  abj:[5,11,32],
  abv:[3,20,274],
  acc:[7,78,124],
@@ -39,6 +40,7 @@ const CITY_PDB={
  bcv:[0,1,38], // est.
  bda:[2,8,25], // est.
  bde:[0,0,4027],
+ bdm:[2,4,33300], // est.
  beg:[7,49,227],
  bel:[3,7,9693],
  ber:[22,351,3705],
@@ -79,6 +81,7 @@ const CITY_PDB={
  cal:[15,127,2595],
  cas:[2,2,39],
  cau:[2,2,9693],
+ cbf:[2,5,33300], // est.
  cbo:[1,0,33],
  cbr:[5,60,3196], // est.
  ccs:[6,32,296],
@@ -128,6 +131,7 @@ const CITY_PDB={
  dyu:[1,3,45],
  ebj:[1,5,529], // est.
  edi:[4,46,4027],
+ ems:[1,3,1827], // est.
  esb:[8,24,1295],
  evn:[7,6,161],
  fdf:[1,5,10], // est.
@@ -152,6 +156,8 @@ const CITY_PDB={
  got:[8,45,1011], // est.
  gua:[5,16,103],
  gum:[6,28,11],
+ gvl:[2,6,1011], // est.
+ gya:[1,3,6717], // est.
  gyd:[7,15,131],
  gyn:[5,28,9693],
  hah:[0,0,4], // est.
@@ -166,6 +172,7 @@ const CITY_PDB={
  hir:[1,0,11],
  hkg:[57,1107,1514],
  hln:[0,0,33300], // est.
+ hmn:[1,3,427], // est.
  hnl:[7,33,33300],
  hou:[21,173,33300],
  hpa:[0,2,1011], // est.
@@ -175,6 +182,7 @@ const CITY_PDB={
  igu:[5,26,124],
  ind:[8,45,33300], // est.
  inu:[1,0,5], // est.
+ inz:[8,40,1330], // est.
  isb:[3,4,488],
  ist:[28,334,1290],
  ivc:[1,2,755], // est.
@@ -183,6 +191,7 @@ const CITY_PDB={
  jed:[5,25,220],
  jef:[0,0,33300], // est.
  jer:[2,10,454], // est.
+ jhb:[6,25,434], // est.
  jib:[3,19,5],
  jkt:[98,3015,4108],
  jnb:[14,561,879],
@@ -215,6 +224,7 @@ const CITY_PDB={
  lit:[2,6,33300], // est.
  ljd:[1,2,9693],
  lju:[9,34,270],
+ lla:[1,4,1011], // est.
  llw:[0,5,36], // est.
  lnk:[1,3,33300], // est.
  lon:[100,2588,4027],
@@ -227,6 +237,7 @@ const CITY_PDB={
  man:[29,353,4027],
  mao:[7,15,9693],
  mba:[4,176,274],
+ mck:[1,3,33300], // est.
  mco:[1,3,4], // est.
  mcp:[2,0,9693],
  mct:[3,25,45], // Equinix MC1 and WCS; presences est.
@@ -254,12 +265,14 @@ const CITY_PDB={
  msq:[2,7,107],
  msu:[0,3,11], // est.
  mtl:[35,283,2595],
+ mtp:[1,3,33300], // est.
  mty:[5,27,814],
  muc:[22,230,3705],
  mvd:[1,2,53],
  nas:[1,4,20], // est.
  nat:[1,3,9693],
  nbo:[9,283,274],
+ ncl:[1,3,33300], // est.
  ndj:[1,1,18],
  nic:[1,3,139],
  nim:[1,3,10], // est.
@@ -310,6 +323,7 @@ const CITY_PDB={
  pvh:[3,4,9693],
  pvs:[0,0,6683], // est.
  qaq:[0,0,2], // est.
+ qcy:[3,6,33300], // est.
  qmn:[0,0,13], // est.
  qro:[11,144,814],
  rai:[1,3,8], // est.
@@ -323,6 +337,7 @@ const CITY_PDB={
  ric:[5,25,33300], // est.
  rio:[33,577,9693],
  rix:[8,60,330], // 8 listed, Perses 2 has 19 networks; presences est.
+ rlp:[1,2,33300], // est.
  rns:[1,3,2249], // est.
  rob:[1,2,18],
  rom:[12,213,1534],
@@ -338,6 +353,7 @@ const CITY_PDB={
  sdq:[4,25,90], // est.
  sea:[37,539,33300],
  sez:[1,4,20], // est.
+ sgh:[1,3,443], // est.
  sgn:[6,36,1068],
  sha:[11,27,6717],
  sin:[58,1271,782],
@@ -418,5 +434,7 @@ const CITY_PDB={
  yyt:[0,0,2595], // est.
  yzf:[0,0,2595], // est.
  zag:[6,59,147],
+ zhy:[1,3,6717], // est.
+ zjk:[2,5,6717], // est.
  zrh:[38,535,1209],
 };

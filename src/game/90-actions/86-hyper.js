@@ -3,6 +3,8 @@ Object.assign(ACT,{
  // Launch in a country: a marketing push and a privacy policy nobody reads; the first users sign up at once.
  hsVidLaunch:()=>{if(!hyper()||!S.hs)return;const w=hsVidWhy();if(w){toast(w,'bad');sfx('err');return;}if(!spend(HS_VID.cost))return;
    S.hs.vid={since:S.day};toast(`📺 ${tr('hyper_video.launched',{days:HS_VID.ramp})}`,'goal');sfx('build');after();},
+ hsCnApply:()=>{if(!hyper()||!S.hs||hsCnWhy())return;if(!spend(HS_CN.lic))return;S.cnLic={state:'pending',ready:S.day+leadDays(HS_CN.days)};
+   toast(tr('hyper_cn.filed'),'goal');after();},
  hsLaunch:({cc})=>{if(!hyper()||!S.hs||typeof cc!=='string'||!ccInfo(cc)||S.hs.cc[cc])return;const w=hsWhy(cc);if(w){toast(w,'bad');sfx('err');return;}
    if(!spend(hsLic(cc)))return;S.hs.cc[cc]={d:Math.max(1,hsPot(cc)*HS_START),since:S.day};
    toast(tr('hyper.launched',{country:esc(ccName(cc))})+(Object.keys(S.pops).some(hsDoor)?'':`<br>${tr('hyper.launched_no_door')}`),'good');sfx('build');after();},
