@@ -2,9 +2,9 @@
    docs/plans/federation.md, "The core hook": in a joined save, other players' networks become networks like the
    computer-run ones (NETS), built from their newest announce, and your customers ask for traffic to them.
    S.fedn = null | {h, nets: [snapshot]} is what routing reads: a compact copy of the players' networks, kept in the save
-   because the route worker gets only S and the game must route the same with IndexedDB empty (a solo save that
-   remembers its neighbours). It is rebuilt from IndexedDB (fedNetworks) only when announces, quiet states, mutes or
-   shuns change, from listeners and an hourly timer, never in the day loop. compute() calls fedNetsSync(), which applies
+   because the route worker gets only S and the game must route the same with IndexedDB empty (an offline joined
+   save remembers its neighbours; one that left drops them, fedOff). It is rebuilt from IndexedDB (fedNetworks) only
+   when announces, quiet states, mutes or shuns change, from listeners and an hourly timer, never in the day loop. compute() calls fedNetsSync(), which applies
    a changed snapshot to NETS and the tables built from it (a string compare when nothing changed).
    A player network sits in NETS with no pops and no exchanges of its own (so computer-run mechanics, from the PNI list
    to exchange members, leave it alone); fpops and fix hold where it really is. Only deals made through the federation
@@ -83,8 +83,8 @@ const fedPlayKeys=s=>[...new Set([...s.fed.deals.filter(d=>d.st!=='over').map(d=
    and every caller gets the promise of the run that will see what it asked for. */
 function fedPlayRefresh(){if(FEDN.pend)return FEDN.pend;
   const p=FEDN.pend=FEDN.cur.then(()=>{FEDN.pend=null;return fedPlayRun();}).catch(e=>console.error('[tubes] federation gameplay',e));FEDN.cur=p;return p;}
-async function fedPlayRun(){const s=S;if(!s||!s.fed||!s.fed.key||!fedEligible(s))return;
-  const now=fedNow(),all=await fedNetworks(now),X=await fedExcl(),stats=await fedPlayStats(),srvs=X.by.size?await fedServers():[];if(S!==s||!s.fed)return;
+async function fedPlayRun(){const s=S;if(!s||!s.fed||!s.fed.on||!s.fed.key||!fedEligible(s))return;
+  const now=fedNow(),all=await fedNetworks(now),X=await fedExcl(),stats=await fedPlayStats(),srvs=X.by.size?await fedServers():[];if(S!==s||!s.fed||!s.fed.on)return;
   const me=s.fed.key.pub,muted=new Set(s.fed.muted);FEDN.ann=new Map(all.map(n=>[n.key,n]));FEDN.left=all.left||new Set();fedExclKeep(X,srvs);
   /* Listed by any joined server: dark (no demand, hidden) unless a deal with it still runs; that goes on, and ends
      only once the exclusion is confirmed (fedDealsTick). */

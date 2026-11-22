@@ -58,8 +58,10 @@ test('an imported save cannot smuggle markup or broken numbers in its player net
     s.fedp={pol:'open',cond:{maxRatio:1e400},rates:{transit:{perGbps:1,term:30,commit:'x'}},auto:{},mine:[{id:'A'.repeat(43),t:5,body:{auto:{}}}],rq:[],
       cons:[{id:'B'.repeat(43),k:'${k}',name:${JSON.stringify(HOSTILE)},a:'fra',b:'ams',m:2,sh:5,pr:1,sg:['${k}'],t:1,st:'open'}],str:[{k:'${k}',mbps:1e400}]};
     const txt=JSON.stringify(s).replace('"extra"','"__proto__"');const r=parseSave(txt);if(r.err)return {err:r.err};
+    // Multiplayer is off in this save, so its player networks are dropped (#450); they are still checked as a joined save would.
+    const fn=fednClean(JSON.parse(txt).fedn);
     try{S=migrate(JSON.parse(JSON.stringify(r.s)));compute();renderAll();}catch(e){return {err:'THROW '+e.message};}
-    return {deals:S.fed.deals.map(d=>[d.id[0],d.name,d.asn,d.rep,Object.keys(d).sort().join()]),net:S.fedn.nets[0].name,tr:S.fedn.nets[0].tr,cons:S.fedp.cons.map(c=>c.name),mine:S.fedp.mine.length,str:S.fedp.str.length,proto:Object.getPrototypeOf(S.fed.deals[0]||{})===Object.prototype};})())`));
+    return {deals:S.fed.deals.map(d=>[d.id[0],d.name,d.asn,d.rep,Object.keys(d).sort().join()]),fedn:S.fedn,net:fn.nets[0].name,tr:fn.nets[0].tr,cons:S.fedp.cons.map(c=>c.name),mine:S.fedp.mine.length,str:S.fedp.str.length,proto:Object.getPrototypeOf(S.fed.deals[0]||{})===Object.prototype};})())`));
   assert.equal(out.err, undefined, out.err);
   assert.deepEqual(out.deals.map((d) => d[0]), ['G'], 'bad terms, a wrong role, a running deal with no start: dropped');
   const [, name, asnV, rep, keys] = out.deals[0];
@@ -68,6 +70,7 @@ test('an imported save cannot smuggle markup or broken numbers in its player net
   assert.equal(rep, 0);
   assert.equal(keys, 'ai,asn,box,deal,end,heard,id,key,name,on,renews,rep,role,st,start,terms,why', 'only the fields a deal has');
   assert.ok(out.proto);
+  assert.equal(out.fedn, null, 'multiplayer off: no player networks');
   assert.doesNotMatch(out.net, /[<>]/);
   assert.equal(out.tr, 0);
   assert.ok(out.cons.every((c) => !/[<>]/.test(c)));

@@ -97,7 +97,7 @@ All return a value (or a promise) and change only `S.fed`; they save, but do not
 | Action | Function | Gives |
 | --- | --- | --- |
 | `fedJoin({url})` | `fedJoin(url)` | `null` when joined, else `'mode'` (not a normal game), `'url'` (not a valid `wss://` node URL, §5), `'full'` (4 servers), `'crypto'` |
-| `fedLeave({url})` | `fedLeave(url)` | Leaves one server (all without `url`); off when none is left; the identity stays |
+| `fedLeave({url})` | `fedLeave(url)` | Leaves one server (all without `url`); off when none is left, and the other players' networks (`S.fedn`) go with it; the identity stays |
 | `fedQuit()` | `fedQuit()` | Sends a signed `leave` (§5.9), waits up to 5 s, then drops the key, servers and queue |
 | `fedMute({key, on})` | `fedMute(key, on)` | Mutes or unmutes a network (emits `mute`) |
 | `fedShare({on})` | `fedShare(on)` | Share my country |

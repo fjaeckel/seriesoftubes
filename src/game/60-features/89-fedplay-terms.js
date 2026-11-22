@@ -43,7 +43,8 @@ function fedAutoClean(a,pol){const o={};for(const k of FEDP_DEALS)o[k]=a&&['auto
   if(pol==='restrictive'&&o.peering==='auto')o.peering='review';return o;}
 // Repairs S.fedp from a save (sanitize). Null stays null: only a save that joined has terms.
 function fedpSanitize(s){s.fedLw=!!s.fedLw;
-  s.fedn=s.fedn==null?null:fednClean(s.fedn);
+  // Only a joined save keeps them (offline it routes the same); one that left before #450 was fixed drops them.
+  s.fedn=s.fedn==null||!(s.fed&&s.fed.on)?null:fednClean(s.fedn);
   const v=s.fedp;if(v==null||typeof v!=='object'||Array.isArray(v)){s.fedp=null;fedpLinks(s);return;}
   const o=fedPNew(s);o.pol=['open','selective','restrictive'].includes(v.pol)?v.pol:'open';o.cond=fedCondClean(v.cond);o.rates=fedRatesClean(v.rates);o.auto=fedAutoClean(v.auto,o.pol);
   // A Hyperscaler never sells transit, whatever a save says.
