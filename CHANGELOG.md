@@ -6,35 +6,17 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
-- As the Hyperscaler, levels 7 to 13 now also ask for AI on your own backbone: a peak of AI traffic between your regions, from training runs and the data lake. Levels you already reached are kept.
-- As the Hyperscaler, AI labs now offer supercluster runs across three of your regions on two continents from level 9, and from level 11 you can train a frontier model of your own the same way. Each leg must stay within its latency limit or the whole run stalls, so direct paths across oceans pay off.
-- As the Hyperscaler, ten new badges to work towards in the late game, from Planet-Scale Training and The AI WAN to A Year Without Transit and Everywhere at Once.
+## [5.2.0] — 2026-11-22
 
-- As the Hyperscaler, you can launch Tubular, your own video platform, from level 6. Its audience builds up to one and a half times what your users pulled before; most of it can be served by edge stacks at your front doors, and since ads pay little per bit, it only pays when you serve it close and cheap.
-
-- As the Hyperscaler, your regions now ship logs, analytics and training data to a data lake in your biggest region, more with every level, like real clouds whose own traffic between data centers outgrows their users'. What does not arrive goes stale and costs up to a tenth of your users' revenue.
-- As the Hyperscaler, your users can ask for about three times as much by the top level, but each extra Gbps pays a little less, so growth takes more regions and backbone than before.
-- As the Hyperscaler, a region can now hold room free for the regions that replicate to it, so a failover finds space while users keep growing. The held room sits idle until a failover needs it.
-
-- As the Hyperscaler, a big country's users now live in its big cities, not just its biggest one. Users in Los Angeles, Chicago or Dallas enter at the front door nearest them, and your backbone hauls their traffic from the region to that door.
-- As the Hyperscaler, distance to your users matters much more. Quality starts falling after about 8 ms one way, so serving a whole continent from one coast costs you; regions, front doors and edge stacks near your users pay off.
-- As the Hyperscaler, other networks' cache boxes are gone from the Peering tab: you are the content, so there is nothing for them to cache.
-
-- As the Hyperscaler, regions now go where real clouds build them, not wherever many people live. Cities with a real region qualify, and so do 18 new campus towns with huge grids and few people, from Boardman, Council Bluffs and Abilene to Luleå, Eemshaven and Johor Bahru. Regions you already have stay where they are.
-- As the Hyperscaler, a new gauge on the Cloud card shows where users want a region: the sites nearest users you serve from too far away, and the countries whose law keeps users waiting for a region at home. It also shows on each city and as your next step.
-- As the Hyperscaler, building and growing regions now costs more from level 7 on, up to about twice the price at the top, as the cheap land and spare power run out. Running costs are unchanged, and calling off a build returns a share of what you actually paid.
-- As the Hyperscaler, from level 7 you can run regions in mainland China through a licensed local partner, as foreign clouds really do. Beijing, Shanghai and three Chinese campus towns open up, and the partner keeps 35% of what Chinese users pay. Nothing crosses the wall: Chinese users are served only from Chinese regions, and those regions serve no one else.
-- As the Hyperscaler, Ashburn can now hold a region. It is a small town, but no place has more data centers, so its grid is built for them.
-
-- As the Hyperscaler, an AI lab's training run now pays half its fee as the data moves and the rest on time at the end. Before, the whole fee came at the end while the run's GPUs and power cost every day, which could sink a cloud that served the run just fine.
-- As the Hyperscaler, a training run offer now says what it costs a month while it runs and about how much in all, in red when that is more than your cash. The money breakdown shows training runs on their own line.
-
-- A balloon loan no longer bankrupts you out of the blue. The bank now writes about two months, one month and a week before it takes the whole balance in one go, and says plainly when that would sink you.
-- The bankruptcy screen now lists what went wrong that day, so you can see what sank you.
-- As the Hyperscaler, losing data in a failover now costs a young cloud at most a month of its revenue, instead of at least $250k.
-- seriesoftub.es can now ban a network or a server from multiplayer everywhere. A banned network is hidden and its deals end; a banned server is left out of the server list and the game will not join it; servers that follow the site's list stop syncing with it. A banned network's own game says why.
-- Bans from seriesoftub.es now spread from relay to relay within seconds, without waiting for the site to update. Relay operators can also hand a signed ban list to any relay with `relay authority push`.
-- Multiplayer servers must keep their relay up to date: a week after a relay update the site marks as required, games stop joining servers still running an older relay, and other relays stop syncing with them. Relay operators see a warning in the log and in `relay status` as soon as the update is announced.
+- Multiplayer servers must update their relay to 5.2.0 by 29 November. After that, games stop joining servers on an older relay and other relays stop syncing with them; operators see a warning in the log and in `relay status` until they update.
+- seriesoftub.es can now ban a network or a server from multiplayer everywhere, and a ban reaches every relay within seconds. A banned network is hidden and its deals end, a banned server leaves the server list, and a banned network's own game says why. Relay operators can also hand a signed ban list to any relay with `relay authority push`.
+- As the Hyperscaler, regions now go where real clouds build them, not wherever many people live. Cities with a real region qualify, and so do 18 campus towns with huge grids and few people, from Ashburn, Boardman and Abilene to Luleå and Johor Bahru; from level 7 a licensed local partner opens mainland China, keeping 35% of what Chinese users pay, and nothing crosses the wall. Regions you already have stay where they are.
+- As the Hyperscaler, where your users are now matters: they live across a country's big cities, enter at the front door nearest them, and quality falls after about 8 ms. A new gauge on the Cloud card shows where users want a region, and other networks' cache boxes are gone, since you are the content.
+- As the Hyperscaler, the late game asks for AI on your own backbone. Your regions feed a data lake, AI labs offer supercluster runs across three regions on two continents, from level 11 you can train a frontier model of your own, levels 7 to 13 ask for a peak of AI traffic between regions, and ten new badges wait. Levels you already reached are kept.
+- As the Hyperscaler, you can launch Tubular, your own video platform, from level 6. It pays only when you serve it close and cheap, from edge stacks at your front doors.
+- As the Hyperscaler, growth asks more of you: users want about three times as much by the top level for a little less per Gbps, and building or growing a region costs up to about twice as much late in the game. A region can hold room free for its failover.
+- As the Hyperscaler, training runs pay half their fee as the data moves and show what they cost a month before you take them, and losing data in a failover costs a young cloud at most a month of its revenue.
+- A balloon loan no longer bankrupts you out of the blue: the bank warns two months, one month and a week ahead. The bankruptcy screen now lists what went wrong that day.
 
 ## [5.1.1] — 2026-11-21
 

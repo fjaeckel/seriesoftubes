@@ -1,6 +1,7 @@
 {
   "name": "seriesoftubes",
-  "version": "5.1.1",
+  "version": "5.2.0",
+  "relayMin": "5.2.0",
   "relaySecurity": "4.1.0",
   "description": "A cartoon browser game about building the internet.",
   "private": true,
