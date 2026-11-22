@@ -14,7 +14,6 @@ Object.assign(ACT,{
    if(d){if(d.t===HS_CAGE){toast(tr('hyper_colo.no_grow',{city:esc(CITY[city].name)}),'bad');sfx('err');return;}const N=hsTNext(d);if(!N||d.ready>S.day||d.up)return;if(N.lv>lvl()){toast(tr('hyper.tier_needs_level',{name:tr(N.n),lv:N.lv}),'bad');sfx('err');return;}if(!hsPwGate(city,d.t+1))return;if(!spend(hsCost(d.t+1)))return;
      d.up={t:d.t+1,ready:S.day+leadDays(N.days)};hsPfSet(d.up);toast(tr('hyper.region_upgrade_started',{name:tr(N.n),city:CITY[city].name,date:dateStr(d.up.ready)}),'good');hsProtRoll(city,'rg');sfx('build');after();return;}
    if(!hsSite(city)){toast(tr('hyper.not_a_region_metro'),'bad');sfx('err');return;}
-   if(hsRgN()>=hsRgCap()){toast(tr('hyper.your_level_allows_n_regions',{n:hsRgCap()}),'bad');sfx('err');return;}
    // Past the line (hsRgMax) the first tap arms: every region will cost more to run.
    if(hsOverTap(city))return;const N=HS_T[1];if(!hsPwGate(city,1)||!spend(hsCost(1)))return;
    H.rg[city]={t:1,ready:S.day+leadDays(N.days),mw:N.mw};hsPfSet(H.rg[city]);hsPwMk(city);toast(tr('hyper.region_build_started',{name:tr(N.n),city:CITY[city].name,date:dateStr(H.rg[city].ready)}),'good');hsProtRoll(city,'rg');sfx('build');after();},

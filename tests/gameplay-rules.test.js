@@ -540,26 +540,22 @@ test('M15: a Hyperscaler\'s region limit is soft: a new continent is never out o
       `S.lvl=${lv};S.nextFail=S.nextEvent=1e9;const eu=${JSON.stringify(EU)}.slice(0,hsRgMax());` +
       "for(const c of eu.concat(['ash','sao','syd'])){if(c!==S.home)ACT.buildPop({city:c});}for(const c of eu)S.hs.rg[c]={t:c==='fra'?0:1,ready:0,mw:HS_T[c==='fra'?0:1].mw};compute()");
     const rent = 'Object.values(S.hs.rg).reduce((a,d)=>a+HS_T[d.t].mo,0)', rest = 'CX_COST.reduce((a,f)=>a+f(R),0)+Object.keys(S.hs.edge).length*HS_EDGE_MO';
-    const max = g.ev('hsRgMax()'), cap = g.ev('hsRgCap()');
+    const max = g.ev('hsRgMax()');
     if (g.ev('hsRgN()') !== max) bad.push(`level ${lv}: setup holds ${g.ev('hsRgN()')} of ${max}`);
-    if (cap <= max) bad.push(`level ${lv}: no room past the line (${max}/${cap})`);
     let n = 0;
     for (const c of ['ash', 'sao', 'syd']) {
       g.ev(`ACT.hsRegion({city:'${c}'})`);
       if (g.ev(`!!S.hs.rg.${c}`)) bad.push(`level ${lv}: ${c} past the line built on one tap`);
       g.ev(`ACT.hsRegion({city:'${c}'});compute()`);
-      const built = g.ev(`!!S.hs.rg.${c}`);
-      if (max + n < cap) {
-        if (!built) { bad.push(`level ${lv}: ${c} refused with ${max + n} of ${cap}`); break; }
-        n++;
-        const want = g.ev(`Math.round(${rent}*(1+HS_OVER*${n}))+${rest}`);
-        if (g.ev('R.cost.cloud') !== want) bad.push(`level ${lv}: ${n} past the line costs ${g.ev('R.cost.cloud')}, not ${want}`);
-      } else if (built) bad.push(`level ${lv}: ${c} built past the ceiling ${cap}`);
+      if (!g.ev(`!!S.hs.rg.${c}`)) { bad.push(`level ${lv}: ${c} refused with ${max + n} regions (no ceiling, #452)`); break; }
+      n++;
+      const want = g.ev(`Math.round(${rent}*(1+HS_OVER*${n}))+${rest}`);
+      if (g.ev('R.cost.cloud') !== want) bad.push(`level ${lv}: ${n} past the line costs ${g.ev('R.cost.cloud')}, not ${want}`);
     }
     assert.deepEqual(g.errors, []);
     g.dom.window.close();
   }
-  fail('M15', bad, 'past the line a region is allowed and dear: HS_OVER_N regions, HS_OVER on every region\'s rent each (37-hyper.js, #449)');
+  fail('M15', bad, 'past the line a region is allowed and dear: no ceiling, HS_OVER on every region\'s rent each (37-hyper.js, #449, #452)');
 });
 
 // M16: region sites are the real-world list; China only with the licence, and nothing crosses the wall.

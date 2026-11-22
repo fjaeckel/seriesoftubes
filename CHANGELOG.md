@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- In Hyperscaler mode there is no longer a cap on how many regions you run: build as many as you can pay for. Your level still sets how many run at the plain price, and each one past that makes every region cost 25% more to run. (#452)
 - In Hyperscaler mode, countries with room for only one region, such as Singapore, Hong Kong and Taipei, may now fail over to a region abroad, so their drills can pass and sovereign customers there stay through an outage (#451).
 - Leaving multiplayer no longer keeps other players' networks in your game, so 100% reach is possible again and customers stop leaving over players you cannot reach. Saves that already left are repaired when they load. (#450)
 - In Hyperscaler mode, Auto-TE now moves "Your backbone to" traffic too: your spill rules shift it onto other paths instead of leaving the shortest link congested. (#453)

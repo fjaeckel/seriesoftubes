@@ -9,7 +9,7 @@
    starter Rack Shack at home is free. Tenants (S.biz of type cloud, 41-cloud-products.js) buy bundles of cloud
    products, placed at their home city and served from a region (b.rg). A Hyperscaler never sells transit and never
    sells to homes: its offers are cloud bundles only. Its own goals (HYPER_GOALS); levels count peak traffic, regions
-   and continents with a region (LV_X); the region limit is soft (hsRgMax, hsRgCap). The win, Cloud Nine, comes later (phase 4). */
+   and continents with a region (LV_X); the region limit is soft (hsRgMax). The win, Cloud Nine, comes later (phase 4). */
 const HS_RATE=220,HS_POT=0.4,HS_GROW=0.05,HS_START=0.08,HS_EDGE=0.25,HS_EDGE_COST=150000,HS_EDGE_MO=3000;
 // Latency users feel, one way: none up to HS_MS[0] ms, the factor falling to HS_MS[2] at HS_MS[1] ms and beyond.
 const HS_MS=[8,60,0.4];
@@ -65,12 +65,11 @@ const hsSite=c=>c===S.home||hsMetro(c);
 // Why a city can never hold a region (its size and country never change), and the nearest that can.
 const hsNeverWhy=c=>hsSite(c)?'':CITY[c].cn?'cn':'small';
 function hsNearSite(c){let b=null,bk=Infinity;for(const C of CITIES){if(C.off||C.id===c||!hsSite(C.id))continue;const k=kmBetween(c,C.id);if(k<bk||k===bk&&C.id<b){bk=k;b=C.id;}}return b;}
-// The limit is soft (#449): your level runs hsRgMax() regions at their plain price, and up to HS_OVER_N more past
-// it, each of those adding HS_OVER to the monthly cost of every region you run (an ops team stretched thin). So a
-// region on the continent the next level asks for is never out of reach, only dear; hsRgCap() is the hard ceiling.
-const HS_OVER=0.25,HS_OVER_N=2;
+// The limit is soft (#449): your level runs hsRgMax() regions at their plain price, and any number past it, each of
+// those adding HS_OVER to the monthly cost of every region you run (an ops team stretched thin). Real clouds run 40 to
+// 70 regions (#452): how many you run is up to your wallet, never a ceiling.
+const HS_OVER=0.25;
 const hsRgMax=()=>HS_LV_RG[Math.min(lvl(),HS_LV_RG.length-1)]+1;
-const hsRgCap=()=>hsRgMax()+HS_OVER_N;
 // Regions held against the level's limit: built or building, at a POP you still have.
 const hsRgN=()=>Object.keys(S.hs.rg).filter(c=>!!S.pops[c]).length;
 // Regions past the line, and what they do to the running cost of all of them (1: none past it).
@@ -80,7 +79,7 @@ const hsOverF=()=>1+HS_OVER*hsRgOver();
 const hsOverArm=c=>hsRgN()>=hsRgMax()&&UI.confirm!=='hsnew'+c;
 function hsOverTap(c){if(hsOverArm(c)){UI.confirm='hsnew'+c;sfx('click');renderPanel();return true;}if(UI.confirm==='hsnew'+c)UI.confirm=null;return false;}
 // What the panel says, and what the button says, before a region that goes past the line.
-const hsOverNote=()=>hsRgN()>=hsRgMax()&&hsRgN()<hsRgCap()?`<p class="why">${tr('hyper.over_warn',{n:hsRgMax(),p:Math.round(HS_OVER*100),max:hsRgCap()})}</p>`:'';
+const hsOverNote=()=>hsRgN()>=hsRgMax()?`<p class="why">${tr('hyper.over_warn_any',{n:hsRgMax(),p:Math.round(HS_OVER*100)})}</p>`:'';
 const hsOverLbl=(c,l)=>UI.confirm==='hsnew'+c?tr('hyper.over_sure',{p:Math.round(HS_OVER*100*(hsRgOver()+1))}):l;
 // A region that failed or is drained by a drill is not live (38-hyper-failover.js).
 const hsLive=c=>!!S.hs&&siteLive(S.hs.rg,c)&&popUp(c)&&!hsOff(c);

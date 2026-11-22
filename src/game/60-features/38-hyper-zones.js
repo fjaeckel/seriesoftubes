@@ -89,7 +89,7 @@ const hsColoPw=c=>{const d=S.hs.rg[c];return d&&d.t===HS_CAGE&&d.ready<=S.day?Ma
 // Why a cage cannot be leased in c now, or ''. A moratorium does not stop one: the building and its power are there.
 function hsColoWhy(c){const H=S.hs,T=HS_T[HS_CAGE];if(!H||!isCity(c))return tr('hyper.not_a_region_metro');if(H.rg[c])return tr('hyper_colo.why_region');
   if(!hsSite(c))return tr('hyper.not_a_region_metro');if(!S.pops[c])return tr('hyper_colo.why_pop',{city:esc(CITY[c].name)});
-  if(T.lv>lvl())return tr('hyper.tier_needs_level',{name:tr(T.n),lv:T.lv});if(hsRgN()>=hsRgCap())return tr('hyper.your_level_allows_n_regions',{n:hsRgCap()});return '';}
+  if(T.lv>lvl())return tr('hyper.tier_needs_level',{name:tr(T.n),lv:T.lv});return '';}
 // Why the cage in c cannot be moved out of now, or ''.
 function hsColoOutWhy(c){const d=S.hs&&S.hs.rg[c];if(!d||d.t!==HS_CAGE)return tr('hyper_colo.why_no_cage');if(d.ready>S.day)return tr('hyper_az.why_building');
   if(d.up)return tr('hyper_colo.why_moving',{date:dateStr(d.up.ready)});return '';}

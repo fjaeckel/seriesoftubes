@@ -36,7 +36,7 @@ function hsNext(){const H=S.hs,cc=CITY[S.home].cc,doors=Object.keys(S.pops).filt
   // Nothing on fire: what runs out first, if the fix should start soon (38-hyper-forecast.js).
   {const p=hpNextHtml();if(p)return p;}
   // Users gathering far from every region (38-hyper-pull.js): build where they are.
-  {const p=hsPull()[0],D=R0?Object.values(R0.cc).reduce((a,x)=>a+x.parts.reduce((b,q)=>b+(q[3]?q[1]:0),0),0):0;if(p&&hsRgN()<hsRgCap()&&p.g>=D*HS_PULL.next)return nx(tr('hyper_pull.next',{g:fmtG(p.g),city:esc(CITY[p.c].name),why:hsPullWhy(p)}),btn(tr('common.open'),'popGo',{city:p.c},'sm'));}
+  {const p=hsPull()[0],D=R0?Object.values(R0.cc).reduce((a,x)=>a+x.parts.reduce((b,q)=>b+(q[3]?q[1]:0),0),0):0;if(p&&p.g>=D*HS_PULL.next)return nx(tr('hyper_pull.next',{g:fmtG(p.g),city:esc(CITY[p.c].name),why:hsPullWhy(p)}),btn(tr('common.open'),'popGo',{city:p.c},'sm'));}
   if(!doors.some(c=>ixIdsIn(c).some(x=>S.ixp[x]!==undefined)||S.pni.some(p=>p.city===c)))return nx(tr('hyper.next_peer'));
   if(!hsTen().length)return nx(tr('hyper.next_tenant'),btn(tr('common.deals'),'leftTab',{t:'deals'},'sm'));
   // A second region: a Server Barn, or (from its level) a leased cage while the money for one comes in.
@@ -130,7 +130,7 @@ function hsRgSpec(c){const H=S.hs,d=H.rg[c];if(!d&&!hsSite(c))return hsRgNever(c
     if(hsOut(c)&&!(H.dx&&H.dx.c===c))fl.push(hsFlag('restrictive',tr('hyper_ui.f_down')));}
   else{sum=tr('hyper_ui.sum_no_region');{const p=hsPullAt(c);if(p)fl.push(hsFlag('open',tr('hyper_pull.f',{g:fmtG(p.g)})));}
     // Past the line (#449) the section opens with what it costs; at the ceiling, that there is no room.
-    if(hsRgN()>=hsRgCap())fl.push(hsFlag('restrictive',tr('hyper_ui.f_no_room')));else if(hsRgN()>=hsRgMax())fl.push(hsFlag('selective',tr('hyper_ui.f_over',{p:Math.round(HS_OVER*100)})));}
+    if(hsRgN()>=hsRgMax())fl.push(hsFlag('selective',tr('hyper_ui.f_over',{p:Math.round(HS_OVER*100)})));}
   return {t:tr('hyper.region'),sum,flags:fl,open:!!d,body:()=>hsRgBody(c)};}
 function hsRgBody(c){const H=S.hs,d=H.rg[c];let h='';
   if(d){const T=HS_T[d.t],N=hsTNext(d),G=hsRgG(c),x=R.hs&&R.hs.rg[c],load=x?x.load:0;
@@ -142,8 +142,8 @@ function hsRgBody(c){const H=S.hs,d=H.rg[c];let h='';
     if(!cxOut(c)&&!Object.keys(S.pops).some(hsDoor))h+=`<p class="why">${tr('hyper.region_no_way_out')}</p>`;
     if(N&&!d.up)h+=`<p class="meta">${tr('hyper.tier_terms',{name:tr(N.n),g:fmtG(N.g),mw:N.mw,slots:N.slots,mo:fmt$(N.mo),n:leadDays(N.days)})}</p>${hsLateNote()}${hsBtns(btn(N.lv>lvl()?tr('hyper.tier_needs_level',{name:tr(N.n),lv:N.lv}):tr('hyper.grow_region_cost',{cost:fmt$(hsCost(d.t+1))}),'hsRegion',{city:c},'sm',N.lv>lvl()||S.cash<hsCost(d.t+1)||d.ready>S.day))}`;
     if(hsRgN()>=2)h+=hsBtns(btn(UI.confirm==='hsrg'+c?tr('hyper.close_region_sure'):tr('hyper.close_region'),'hsRgClose',{city:c},UI.confirm==='hsrg'+c?'sm red':'sm ghost'));}
-  else{const N=HS_T[1],full=hsRgN()>=hsRgCap();h+=`<p class="lead">${tr('hyper.region_lead')}</p>${hsPullLine(c)}${full?`<p class="why">${tr('hyper.your_level_allows_n_regions',{n:hsRgCap()})}</p>`:hsOverNote()}
-    <p class="meta">${tr('hyper.tier_terms',{name:tr(N.n),g:fmtG(N.g),mw:N.mw,slots:N.slots,mo:fmt$(N.mo),n:leadDays(N.days)})}</p>${hsLateNote()}${hsBtns(btn(hsOverLbl(c,tr('hyper.build_region_cost',{cost:fmt$(hsCost(1))})),'hsRegion',{city:c},UI.confirm==='hsnew'+c?'red':'pink',full||S.cash<hsCost(1)))}`;}
+  else{const N=HS_T[1];h+=`<p class="lead">${tr('hyper.region_lead')}</p>${hsPullLine(c)}${hsOverNote()}
+    <p class="meta">${tr('hyper.tier_terms',{name:tr(N.n),g:fmtG(N.g),mw:N.mw,slots:N.slots,mo:fmt$(N.mo),n:leadDays(N.days)})}</p>${hsLateNote()}${hsBtns(btn(hsOverLbl(c,tr('hyper.build_region_cost',{cost:fmt$(hsCost(1))})),'hsRegion',{city:c},UI.confirm==='hsnew'+c?'red':'pink',S.cash<hsCost(1)))}`;}
   return h;}
 const hsRgSection=c=>hsSec('rg',hsRgSpec(c));
 // The front door here and its edge stack.
