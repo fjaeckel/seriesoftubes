@@ -1,4 +1,6 @@
 {
-  "nets": [],
+  "nets": [
+    {"key": "9_IA8_59rbA2V9Ns67LwiMXwaKeGoyTgduuXDcNJOpI", "reason": "offensive_name"}
+  ],
   "servers": []
 }
