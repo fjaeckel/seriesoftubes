@@ -4538,6 +4538,8 @@
 "link_panels.lose_exclusive_benefits":"Lose exclusive benefits?",
 "link_panels.lost_on_the_way":"Lost on the way",
 "link_panels.mainland_china_plays_by_its_own":"Mainland China plays by its own rules. {list} and other foreign services are blocked here, so users mostly reach Chinese networks. Traffic crossing the border loses about {pct} to filtering and congestion, unless it rides a premium route: CN-Too transit or a premium cross-border circuit (both sold only in Hong Kong), or a PNI with a Chinese network. Revenue per user is lower here.",
+"link_panels.market_left_alone_at_handover":"The broker will leave this route alone: nothing on it is sold when the fiber is handed over.",
+"link_panels.market_trades_from_handover":"The broker starts selling spare capacity here the day the fiber is handed over. Keep it off the market now if you need all of it.",
 "link_panels.members_paying_you":"Members paying you",
 "link_panels.multiplier_scales_the_distance_cost":"Multiplier: scales the distance cost, so a longer link still costs more.",
 "link_panels.n_amp_huts":"{n} amp huts",
