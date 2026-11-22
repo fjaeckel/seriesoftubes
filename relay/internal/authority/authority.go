@@ -3,6 +3,7 @@
 package authority
 
 import (
+	"bytes"
 	_ "embed"
 	"encoding/json"
 
@@ -45,6 +46,7 @@ type Authority struct {
 
 // Parse checks an authority file against keys at now.
 func Parse(text []byte, keys []string, now int64) (*Authority, string) {
+	text = Trim(text)
 	r, code := fed.CheckAuthority(text, keys, now)
 	if code != "" {
 		return nil, code
@@ -61,6 +63,9 @@ func Parse(text []byte, keys []string, now int64) (*Authority, string) {
 	}
 	return a, ""
 }
+
+// Trim drops the JSON whitespace around a file (a trailing newline), which a frame's string cannot carry (2.1).
+func Trim(text []byte) []byte { return bytes.Trim(text, " \t\r\n") }
 
 // Newer reports whether b should replace a: the greatest t wins, an equal t changes nothing (11.5).
 func Newer(a, b *Authority) bool { return b != nil && (a == nil || b.T > a.T) }

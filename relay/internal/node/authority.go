@@ -86,6 +86,7 @@ const NotNewer = "not_newer"
 // kept, applied and passed to every node session that takes it but from (11.5): the signature is what counts, never
 // who carried it, and a file only travels while it is news, so it cannot loop.
 func (r *Relay) takeAuthority(b []byte, from *session) (bool, string) {
+	b = authority.Trim(b)
 	now := r.now()
 	r.mu.Lock()
 	held := r.auth != nil && string(r.auth.Raw) == string(b)

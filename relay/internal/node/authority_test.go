@@ -249,3 +249,31 @@ func TestAuthorityPushedByAClient(t *testing.T) {
 		t.Fatal("an impostor's file undid the ban")
 	}
 }
+
+// The site's file ends in a newline: a frame's string cannot carry it, so relays trim it before keeping or passing it.
+func TestAuthorityWithTrailingNewlineTravels(t *testing.T) {
+	n := authNet(t)
+	a := n.Found("first", "open")
+	b := n.Found("far", "open")
+	neighbours(a, b)
+	from := announce(t, b, "sea")
+	rt.Eventually(t, "the pair syncs", func() bool { return a.Nodes[0].Has(from) })
+
+	mallory := rt.Key("mallory")
+	file := append(authFile(n.Clock.Unix(), "", 0, []string{mallory.Key}, nil), '\n')
+	if taken, code := a.Nodes[0].R.PushAuthority(file); !taken || code != "" {
+		t.Fatalf("push: %v %q", taken, code)
+	}
+	rt.Eventually(t, "the ban arrived", func() bool {
+		return b.Nodes[0].Put(rt.Announce(mallory, n.Clock.Unix(), "Mallory")) == fed.Banned
+	})
+	time.Sleep(300 * time.Millisecond)
+	for _, x := range []*rt.Node{a.Nodes[0], b.Nodes[0]} {
+		if l := x.Log.String(); strings.Contains(l, "bad_json") || strings.Contains(l, "session down") {
+			t.Fatalf("the authority message broke a session:\n%s", l)
+		}
+	}
+	if taken, code := a.Nodes[0].R.PushAuthority(file); taken || code != "not_newer" {
+		t.Fatalf("same file: %v %q", taken, code)
+	}
+}

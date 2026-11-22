@@ -93,7 +93,7 @@ function make(version, now, seedText, keys = pinned()) {
 function build(out, version, now = Math.floor(Date.now() / 1000)) {
   const text = make(version, now, process.env.AUTHORITY_KEY);
   if (text === null) { console.log('authority.json: not signed (no AUTHORITY_KEY); relays and games keep the one they hold'); return false; }
-  fs.writeFileSync(path.join(out, 'federation', 'authority.json'), text + '\n');
+  fs.writeFileSync(path.join(out, 'federation', 'authority.json'), text);
   return true;
 }
 
@@ -129,7 +129,7 @@ function sign() {
   if (!seed) fail(`no key: ${keyFile} does not exist and AUTHORITY_KEY is not set`);
   const text = make(require(path.join(ROOT, 'package.json')).version, Math.floor(Date.now() / 1000), seed);
   const out = path.resolve(arg('--out', 'authority.json'));
-  fs.writeFileSync(out, text + '\n');
+  fs.writeFileSync(out, text);
   const b = bans();
   console.log(`Signed ${b.nets.length} banned network(s) and ${b.servers.length} server(s) into ${path.relative(process.cwd(), out)}.`);
   console.log('Push it into any relay (they pass it on):  relay authority push ' + path.relative(process.cwd(), out) + '   [--via wss://any-node/path]');
