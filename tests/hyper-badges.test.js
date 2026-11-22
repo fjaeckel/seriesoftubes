@@ -12,7 +12,7 @@ function start(t, opts = {}) {
   h.ev("ACT.start({});ACT.charter({k:'hyper'});S.cash=1e12;S.lvl=8;S.nextFail=S.nextEvent=1e9;compute()");
   return h;
 }
-const IDS = ['hs_rg1', 'hs_drill1', 'hs_prot', 'hs_ontime', 'hs_ship', 'hs_flop', 'hs_spare', 'hs_lost', 'hs_survive', 'hs_cont', 'hs_war', 'hs_smr'];
+const IDS = ['hs_rg1', 'hs_drill1', 'hs_prot', 'hs_ontime', 'hs_ship', 'hs_flop', 'hs_spare', 'hs_lost', 'hs_survive', 'hs_cont', 'hs_war', 'hs_super', 'hs_aiwan', 'hs_fresh', 'hs_viral', 'hs_edge', 'hs_pond', 'hs_world', 'hs_fabric', 'hs_frontier', 'hs_notransit', 'hs_smr'];
 const ok = (ev, id) => ev(`BADGES.find(b=>b.id==='${id}').ok()`);
 
 test('the Hyperscaler badges: one per milestone, the existing two integrated, no duplicates', (t) => {

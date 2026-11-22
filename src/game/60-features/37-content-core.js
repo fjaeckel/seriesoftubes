@@ -75,6 +75,8 @@ const lvX=()=>{if(!S)return null;for(const x of LV_X)if(x.on())return x;return n
 const lvPlaces=()=>{const x=lvX();return x?x.places():Object.keys(S.pops).length;};
 const lvNeed=i=>{const x=lvX();if(x)return x.need(i);const q=LV_REQ[i];return {pk:q.pk,pops:q.pops,reg:lvReg(i)};};
 const lvRegions=()=>{const x=lvX();return x?x.regions():regionsCount();};
+// A charter's own extra bar (q.ai in need(i)): what it has now. The classic ladder has none.
+const lvAi=()=>{const x=lvX();return x&&x.ai?x.ai():0;};
 const lvPlacesLabel=()=>{const x=lvX();return x?x.label():tr('common.pops');};
 // Level i (0-based) as this charter tells it: {n, q, unlock}.
 const lvInfo=i=>{const x=lvX();return ((x&&x.levels)||LEVELS)[i];};

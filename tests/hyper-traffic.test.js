@@ -268,7 +268,7 @@ test('saves: every field repaired, junk dropped, old Hyperscaler saves load, a r
   assert.equal(m.own.length, 1);
   assert.deepEqual([m.own[0].k, m.own[0].n, m.own[0].done, m.own[0].g], [2, 0, 0, 6400]);
   assert.deepEqual(m.boost, { until: 0, f: 1 });
-  assert.deepEqual(m.jo.map((x) => [x.id, x.wk, x.g]), [['r', 8, 20000]]);
+  assert.deepEqual(m.jo.map((x) => [x.id, x.wk, x.g]), [['r', 8, 30000]], 'capped at 30 Tbps (a supercluster leg runs up to 25.6)');
   assert.deepEqual(m.pp, {});
   assert.deepEqual([m.ai, m.jd], [0, 0]);
   ev(`S=migrate(${JSON.stringify(junk)});compute();for(let i=0;i<3;i++)dayTick()`);

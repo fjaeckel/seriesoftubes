@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- As the Hyperscaler, levels 7 to 13 now also ask for AI on your own backbone: a peak of AI traffic between your regions, from training runs and the data lake. Levels you already reached are kept.
+- As the Hyperscaler, AI labs now offer supercluster runs across three of your regions on two continents from level 9, and from level 11 you can train a frontier model of your own the same way. Each leg must stay within its latency limit or the whole run stalls, so direct paths across oceans pay off.
+- As the Hyperscaler, ten new badges to work towards in the late game, from Planet-Scale Training and The AI WAN to A Year Without Transit and Everywhere at Once.
+
 - As the Hyperscaler, you can launch Tubular, your own video platform, from level 6. Its audience builds up to one and a half times what your users pulled before; most of it can be served by edge stacks at your front doors, and since ads pay little per bit, it only pays when you serve it close and cheap.
 
 - As the Hyperscaler, your regions now ship logs, analytics and training data to a data lake in your biggest region, more with every level, like real clouds whose own traffic between data centers outgrows their users'. What does not arrive goes stale and costs up to a tenth of your users' revenue.

@@ -45,7 +45,7 @@ let HS_LVS=null;
 const hsLevels=()=>HS_LVS||(HS_LVS=HS_STORY.map(([n,q],i)=>({n,q,unlock:hsUnlocks(i+1)})));
 // The "Next:" line: the next level by name, what it asks and what it brings.
 function hsLvNext(nx){if(!nx)return tr('hyper_story.top');const i=hsLevels().indexOf(nx);if(i<1)return tr('hyper_story.top');const q=lvNeed(i),v={name:esc(nx.n),pk:fmtG(q.pk),c:q.reg,unlock:esc(nx.unlock)};
-  return q.reg>=2?trn('hyper_story.next_ct',q.pops,v):trn('hyper_story.next',q.pops,v);}
+  return (q.reg>=2?trn('hyper_story.next_ct',q.pops,v):trn('hyper_story.next',q.pops,v))+(q.ai?' '+tr('hyper_story.next_ai',{g:fmtG(q.ai)}):'');}
 Object.assign(HS_LVX,{title:lv=>tr('hyper_story.title',{lv,name:hsLevels()[lv-1].n}),eyebrow:lv=>tr('hyper_story.eyebrow',{lv,max:HS_STORY.length}),
   toast:lv=>{const L=hsLevels()[lv-1];return tr('hyper_story.level_up',{lv,name:esc(L.n),unlock:esc(L.unlock)})+`<br><i>${esc(L.q)}</i>`;},next:hsLvNext});
 Object.defineProperty(HS_LVX,'levels',{get:hsLevels});

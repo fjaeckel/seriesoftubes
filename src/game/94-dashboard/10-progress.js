@@ -26,7 +26,8 @@ function scnCard(){const sc=S.scn,P=scnProg();if(!sc||!P)return '';const left=Ma
 // Rounded down while short of the mark, so 5,996 Gbps never reads as 6.00 Tbps of a 6 Tbps level.
 const fmtGDown=g=>{const st=g>=1e6?(g>=1e7?1e5:1e4):g>=1000?(g>=1e4?100:10):g>=100?1:0.1;return fmtG(Math.floor(g/st+1e-9)*st);};
 function lvlItems(){const lv=S.lvl||1,pk=(S.stats.peak||0)+LV_EPS,pops=lvPlaces(),G=(l,v,max,txt)=>({l,v,max,txt});if(!LV_REQ[lv])return [];const q=lvNeed(lv);
-  const out=[G(tr('common.peak_traffic'),pk,q.pk,`${pk<q.pk?fmtGDown(pk):fmtG(pk)} / ${fmtG(q.pk)}`),G(lvPlacesLabel(),pops,q.pops,`${pops} / ${q.pops}`)],rg=q.reg;if(rg)out.push(G(tr('common.continents'),lvRegions(),rg,`${lvRegions()} / ${rg}`));return out;}
+  const out=[G(tr('common.peak_traffic'),pk,q.pk,`${pk<q.pk?fmtGDown(pk):fmtG(pk)} / ${fmtG(q.pk)}`),G(lvPlacesLabel(),pops,q.pops,`${pops} / ${q.pops}`)],rg=q.reg;if(rg)out.push(G(tr('common.continents'),lvRegions(),rg,`${lvRegions()} / ${rg}`));
+  if(q.ai){const a=lvAi()+LV_EPS,x=lvX();out.push(G(x.aiLabel(),a,q.ai,`${a<q.ai?fmtGDown(a):fmtG(a)} / ${fmtG(q.ai)}`));}return out;}
 // Lost Tier 1 status explains itself where you look for it, not only in a toast you may have missed (#73).
 const t1Note=()=>S.won&&!isTier1()?`<p class="why">${tr('progress.not_tier_1_right_now_why',{why:esc(t1Why())})}</p>`:'';
 function lvlCard(){const lv=S.lvl||1,nx=lvInfo(lv),L=lvInfo(lv-1);

@@ -17,7 +17,8 @@
    flop in public.
    R.hs.rep[region]: {b replica, base (today's copies, Gbps), drain (backlog sent on top), want, got, f (share of base
    sent), ms, mode, te (Auto-TE placed it), paths [{ns, share}], lag (TB before today), u, bt, nt}. R.hs.jobs[id]: {k job
-   or own, a, b, want, got, ms, mode, te, paths, due}. R.hs.btw: everything between regions tonight, Gbps. */
+   or own, a, b, want, got, ms, mode, te, paths, due}. R.hs.btw: everything between regions tonight, Gbps; R.hs.aiw: the
+   AI share of it (training and the data lake); R.hs.ai is inference revenue (hsAiMoney), not traffic. */
 const HS_REP=0.3,HS_NIGHT=0.25,HS_GIVEUP=30,HS_TB_FEE=2.6,HS_MW_T=2.5,HS_MW_MO=25000,HS_SLOT_G=800,HS_AI_RATE=60,HS_BOOST_D=180,HS_JOB_ODDS=0.05,HS_SLACK=1.25;
 // Your own models' names (proper names, like tenants'), and their sizes: g Gbps between two regions, wk weeks, f the lift.
 const HS_MODELS=['Large Lasagna Model','Stochastic Parrot Pro','AutoComplete Supreme','Hallucinator 9000','Clippy\'s Revenge'];
@@ -97,7 +98,9 @@ function hsBulk(R2,X){const H=S.hs,out=R2.hs;if(!out)return;const rep={},jobs={}
   // Bulk analytics wait while a region is failed over: everything the backbone has goes to the failover.
   if(L&&lf>0&&!Object.keys(out.fo||{}).length)for(const a of rgs){if(a===L)continue;const want=(out.rg[a].u||0)*lf;if(!(want>1e-9))continue;
     const x=carve(a,L,'hs:lake>'+a,want,H.pp[hsPk(a,L)]||'',labOf(N_('hyper_traffic.ek_lake'),'city',CITY[L].name));
-    lk.rg[a]={want,got:x.got,ms:x.ms,paths:x.paths};lk.want+=want;lk.got+=x.got;out.btw+=x.got;}}
+    lk.rg[a]={want,got:x.got,ms:x.ms,paths:x.paths};lk.want+=want;lk.got+=x.got;out.btw+=x.got;}
+  // AI traffic between regions tonight: training runs and the lake (the level bar's measure, S.hs.apk).
+  out.aiw=lk.got;for(const id in jobs)out.aiw+=jobs[id].got;}
 hsBulk.on=()=>!!S.hs&&hyper();
 /* East-west traffic, as real clouds have it: more moves between their own data centers than out to users (Google's B4
    carries more than its internet-facing B2; Meta split its data-center-to-data-center traffic onto the Express
@@ -123,17 +126,20 @@ function hsTrafficDay(d){const H=S.hs,o=R.hs;if(!H)return;
   /* The lab pays half the fee as its data moves (j.paid so far) and the rest on time at the end: a run's GPUs and power
      cost every day (hsTrainCost), and a fee paid only at the end could sink a cloud that can easily serve the run.
      Late, the total is half the fee, as it always was; a lab that gives up keeps what it paid. */
-  for(const j of H.jobs.slice()){const x=o&&o.jobs&&o.jobs[j.id];
+  for(const j of H.jobs.slice()){const x=o&&o.jobs&&o.jobs[j.id];if(j.grp){hsClLeg(j,x);continue;}
     if(x){const mv=Math.min(j.tb-j.done,x.got*TB_DAY);j.done+=mv;const half=Math.round(j.fee/2),p=Math.min(Math.max(0,half-(j.paid|0)),Math.round(half*mv/j.tb));if(p>0){S.cash+=p;j.paid=(j.paid|0)+p;}}
     if(j.done>=j.tb-1e-6){const late=d>j.due,fee=late?Math.round(j.fee/2):j.fee,rest=Math.max(0,fee-(j.paid|0));S.cash+=rest;H.jobs.splice(H.jobs.indexOf(j),1);H.jd=(H.jd|0)+(late?0:1);
       toast(late?tr('hyper_traffic.job_late_paid',{lab:esc(j.n),fee:fmt$(fee)}):tr('hyper_traffic.job_paid',{lab:esc(j.n),tb:hsTb(j.tb),fee:fmt$(fee)}),late?'':'goal');sfx('coin');}
     else if(d>j.due+HS_GIVEUP){H.jobs.splice(H.jobs.indexOf(j),1);toast(tr('hyper_traffic.job_gave_up_kept',{lab:esc(j.n),paid:fmt$(j.paid|0)}),'bad');sfx('err');}
     else if(d===j.due+1)toast(tr('hyper_traffic.job_late',{lab:esc(j.n),p:pct(j.done/j.tb)}),'bad');}
-  for(const m of H.own.slice()){const x=o&&o.jobs&&o.jobs[m.id];if(x)m.done=Math.min(m.tb,m.done+x.got*TB_DAY);if(m.done>=m.tb-1e-6||d>=m.due)hsShip(m,d);}
+  for(const m of H.own.slice()){const x=o&&o.jobs&&o.jobs[m.id];if(m.grp){hsClLeg(m,x);continue;}if(x)m.done=Math.min(m.tb,m.done+x.got*TB_DAY);if(m.done>=m.tb-1e-6||d>=m.due)hsShip(m,d);}
+  hsClDay(d);
   if(H.boost.until&&H.boost.until<=d){H.boost={until:0,f:0};}
   H.jo=H.jo.filter(x=>x.exp>d);const rs=hsRgs();
   // AI labs call from their level on (38-hyper-director.js), or once one is a tenant; never while the desk is full of offers.
-  if(rs.length>=2&&H.jo.length<2){const labs=hsTen().filter(b=>b.ck==='lab');if((hsDirOn('ai')||labs.length)&&Math.random()<HS_JOB_ODDS*(labs.length?2:1)&&hsDirAsk('job'))hsJobOffer(d,rs,labs);}}
+  if(rs.length>=2&&H.jo.length<2){const labs=hsTen().filter(b=>b.ck==='lab');if((hsDirOn('ai')||labs.length)&&Math.random()<HS_JOB_ODDS*(labs.length?2:1)&&hsDirAsk('job'))hsJobOffer(d,rs,labs);
+    // From level HS_CL.lv, now and then a supercluster run across three regions and two continents.
+    else if(lvl()>=HS_CL.lv&&H.jo.length<2&&!H.cl.some(G=>G.k==='job')&&Math.random()<HS_CL.odds&&hsDirAsk('job'))hsClOffer(d,rs,labs);}}
 // A model finishes (fed: the share of its terabytes delivered by its deadline): it ships, or it flops in public.
 function hsShip(m,d){const H=S.hs,fed=clamp(m.done/m.tb,0,1),name=HS_MODELS[m.n],flop=hsFlopRoll(m)<hsFlopP(fed);H.own.splice(H.own.indexOf(m),1);
   if(flop){S.stats.hsFlop=(S.stats.hsFlop||0)+1;if(!(hsBoostF()>0))H.boost={until:d+30,f:-0.05};toast(`🦜 ${tr(HS_FLOPS[hstr(name+'|'+m.start)%HS_FLOPS.length],{name})}<br>${tr('hyper_traffic.flop_fed',{p:pct(fed)})}`,'bad');sfx('err');return;}
@@ -148,20 +154,27 @@ CX_BULK.push(hsBulk);CX_DAY.push(hsTrafficDay);CX_MONEY.push(hsAiMoney);
 // Training runs are their own line in the money breakdown (C.train), not hidden in the Cost Exploder's regions.
 CX_MONEY.push((R2,V,C)=>{if(hyper()&&S.hs)C.train=hsTrainCost();});
 CX_MUL.grow.push(()=>{const f=hsBoostF();return f>0?1+2*f:1+f;});CX_MUL.rev.push(()=>1+hsBoostF());
-CX_NEW.push(o=>{o.hold={};o.rep={};o.lag={};o.jobs=[];o.own=[];o.boost={until:0,f:0};o.jo=[];o.pp={};o.ai=0;o.jd=0;});
+CX_DAY.push(()=>{const H=S.hs;if(H&&R.hs&&R.hs.aiw>(H.apk||0))H.apk=R.hs.aiw;});
+CX_NEW.push(o=>{o.apk=0;o.hold={};o.rep={};o.lag={};o.jobs=[];o.own=[];o.boost={until:0,f:0};o.jo=[];o.pp={};o.ai=0;o.jd=0;});
+// A supercluster leg keeps its group and latency limit (39-hyper-super.js checks the groups afterwards).
+const hsLegKeep=(x,j)=>{if(typeof x.grp==='string'&&Number.isFinite(+x.lim)&&+x.lim>0){j.grp=x.grp.slice(0,40);j.lim=+x.lim;}};
 // Saves: every field repaired against the regions the save still has.
 CX_SAN.push((h0,o)=>{const n=(v,d)=>Number.isFinite(+v)?+v:d,obj=v=>v&&typeof v==='object'&&!Array.isArray(v),rg=c=>typeof c==='string'&&own(o.rg,c),I=v=>Math.round(n(v,0));
   const str=(v,d)=>typeof v==='string'&&v?v.slice(0,40):d;
   o.rep={};if(obj(h0.rep))for(const k of Object.keys(h0.rep))if(rg(k)&&rg(h0.rep[k])&&h0.rep[k]!==k)o.rep[k]=h0.rep[k];
+  o.apk=clamp(Number.isFinite(+h0.apk)?+h0.apk:0,0,1e9);
   o.hold={};if(obj(h0.hold))for(const k of Object.keys(h0.hold))if(rg(k)&&h0.hold[k])o.hold[k]=1;
   o.lag={};if(obj(h0.lag))for(const k of Object.keys(h0.lag)){const [a,b,x]=k.split('>'),v=n(h0.lag[k],0);if(x===undefined&&rg(a)&&rg(b)&&a!==b&&v>0)o.lag[k]=Math.min(1e9,v);}
   o.pp={};if(obj(h0.pp))for(const k of Object.keys(h0.pp)){const [a,b,x]=k.split('|');if(x===undefined&&rg(a)&&rg(b)&&a<b&&HS_PATHS.includes(h0.pp[k]))o.pp[k]=h0.pp[k];}
   const runOk=x=>obj(x)&&rg(x.a)&&rg(x.b)&&x.a!==x.b,ids=new Set(),uniq=x=>{const id=str(x.id,'');if(!id||ids.has(id))return '';ids.add(id);return id;};
-  o.jobs=[];if(Array.isArray(h0.jobs))for(const x of h0.jobs.slice(0,12)){if(!runOk(x))continue;const id=uniq(x);if(!id)continue;const g=clamp(n(x.g,3200),100,20000),tb=clamp(n(x.tb,g*TB_DAY*28),1,1e9);
-    o.jobs.push({id,n:str(x.n,CLOUD_TENANTS.lab.names[0]),a:x.a,b:x.b,g,tb,done:clamp(n(x.done,0),0,tb),due:I(x.due),fee:clamp(Math.round(n(x.fee,0)),0,1e9),start:I(x.start)});const j=o.jobs[o.jobs.length-1],pd=clamp(I(x.paid),0,Math.round(j.fee/2));if(pd>0)j.paid=pd;}
-  o.own=[];if(Array.isArray(h0.own))for(const x of h0.own.slice(0,1)){if(!runOk(x))continue;const id=uniq(x);if(!id)continue;const k=clamp(I(x.k),0,HS_OWN.length-1),g=clamp(n(x.g,HS_OWN[k].g),100,20000),tb=clamp(n(x.tb,g*TB_DAY*HS_OWN[k].wk*7),1,1e9);
-    o.own.push({id,n:clamp(I(x.n),0,HS_MODELS.length-1),k,a:x.a,b:x.b,g,tb,done:clamp(n(x.done,0),0,tb),mw:hsTrainMw({g}),start:I(x.start),due:I(x.due)});}
-  o.jo=[];if(Array.isArray(h0.jo))for(const x of h0.jo.slice(0,3)){if(!runOk(x))continue;const id=uniq(x);if(!id)continue;const g=clamp(n(x.g,3200),100,20000),wk=clamp(I(x.wk),4,8);
-    o.jo.push({id,n:str(x.n,CLOUD_TENANTS.lab.names[0]),a:x.a,b:x.b,g,wk,tb:clamp(n(x.tb,g*TB_DAY*wk*7),1,1e9),fee:clamp(Math.round(n(x.fee,0)),0,1e9),exp:I(x.exp)});}
+  o.jobs=[];if(Array.isArray(h0.jobs))for(const x of h0.jobs.slice(0,12)){if(!runOk(x))continue;const id=uniq(x);if(!id)continue;const g=clamp(n(x.g,3200),100,30000),tb=clamp(n(x.tb,g*TB_DAY*28),1,1e9);
+    o.jobs.push({id,n:str(x.n,CLOUD_TENANTS.lab.names[0]),a:x.a,b:x.b,g,tb,done:clamp(n(x.done,0),0,tb),due:I(x.due),fee:clamp(Math.round(n(x.fee,0)),0,1e9),start:I(x.start)});const j=o.jobs[o.jobs.length-1],pd=clamp(I(x.paid),0,Math.round(j.fee/2));if(pd>0)j.paid=pd;hsLegKeep(x,j);}
+  o.own=[];let plain=0;if(Array.isArray(h0.own))for(const x of h0.own.slice(0,4)){if(!runOk(x))continue;if(!(x&&typeof x.grp==='string')&&plain++)continue;// one plain model at a time; a frontier model's legs besides
+    const id=uniq(x);if(!id)continue;const k=clamp(I(x.k),0,HS_OWN.length-1),g=clamp(n(x.g,HS_OWN[k].g),100,30000),tb=clamp(n(x.tb,g*TB_DAY*HS_OWN[k].wk*7),1,1e9);
+    o.own.push({id,n:clamp(I(x.n),0,HS_MODELS.length-1),k,a:x.a,b:x.b,g,tb,done:clamp(n(x.done,0),0,tb),mw:hsTrainMw({g}),start:I(x.start),due:I(x.due)});hsLegKeep(x,o.own[o.own.length-1]);}
+  o.jo=[];if(Array.isArray(h0.jo))for(const x of h0.jo.slice(0,3)){if(!runOk(x))continue;const id=uniq(x);if(!id)continue;const g=clamp(n(x.g,3200),100,30000),wk=clamp(I(x.wk),4,8);
+    o.jo.push({id,n:str(x.n,CLOUD_TENANTS.lab.names[0]),a:x.a,b:x.b,g,wk,tb:clamp(n(x.tb,g*TB_DAY*wk*7),1,1e9),fee:clamp(Math.round(n(x.fee,0)),0,1e9),exp:I(x.exp)});
+    // A supercluster offer keeps its two legs, each between two of your regions (39-hyper-super.js).
+    if(x.cl&&Array.isArray(x.legs)&&x.legs.length===2&&x.legs.every(L=>Array.isArray(L)&&rg(L[0])&&rg(L[1])&&L[0]!==L[1])){const j=o.jo[o.jo.length-1];j.cl=1;j.legs=x.legs.map(L=>[L[0],L[1]]);}}
   const B=obj(h0.boost)?h0.boost:{};o.boost={until:Math.max(0,I(B.until)),f:clamp(n(B.f,0),-0.5,1)};
   o.ai=Math.max(0,I(h0.ai));o.jd=Math.max(0,I(h0.jd));});

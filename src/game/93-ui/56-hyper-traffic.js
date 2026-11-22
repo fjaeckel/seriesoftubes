@@ -3,7 +3,8 @@
    the next is due, a model in training or its boost (lines), and AI labs' offers to take or decline (the offers fold).
    In the Cloud tab of a region's city: its replica, what replication got tonight, the backlog it owes, how the pair's
    bulk travels, the runs touching it and your own model. */
-const hsRunName=j=>j.k!==undefined?HS_MODELS[j.n]:j.n;
+// A supercluster's leg goes by its run's name (39-hyper-super.js).
+const hsRunName=j=>{const G=hsClOf(j);return G?G.n:j.k!==undefined?HS_MODELS[j.n]:j.n;};
 function hsRunRow(j,c){const x=R.hs&&R.hs.jobs&&R.hs.jobs[j.id],own=j.k!==undefined,late=S.day>j.due,f=j.tb>0?j.done/j.tb:0;
   return `<div class="row"><div class="grow"><div class="nm">${own?'🧠':'🤖'} ${esc(hsRunName(j))}</div>
     <div class="meta">${tr('hyper_traffic.run_line',{a:esc(CITY[j.a].name),b:esc(CITY[j.b].name),g:fmtG(x?x.got:0),want:fmtG(x?x.want:j.g)})}</div>${hsBar(f,late)}
@@ -11,16 +12,17 @@ function hsRunRow(j,c){const x=R.hs&&R.hs.jobs&&R.hs.jobs[j.id],own=j.k!==undefi
     ${x&&x.want>1e-9&&x.got<x.want*0.999?`<div class="why">${tr('hyper_traffic.run_short',{g:fmtG(x.want-x.got)})}</div>`:''}</div></div>`;}
 /* What a run costs while it runs (GPUs and power in both regions, hsTrainCost) and about how much in all, next to what it
    pays: half as the data moves, the rest at the end. Red when the cost of the whole run is more than the cash at hand. */
-function hsOfferCost(o){const mo=2*hsTrainMw(o)*HS_MW_MO,all=Math.round(mo*o.wk*7/30.4);
+function hsOfferCost(o){const mo=2*hsTrainMw(o)*HS_MW_MO*(o.legs?o.legs.length:1),all=Math.round(mo*o.wk*7/30.4);
   return `<div class="meta"${all>S.cash?' style="color:var(--bad)"':''}>${tr('hyper_traffic.offer_cost',{mo:fmt$(mo),all:fmt$(all)})}</div>`;}
-function hsOfferRow(o){const why=hsTrainWhy(o.a,o.b,o.g);
-  return `<div class="meta">🤖 ${tr('hyper_traffic.offer_line',{lab:esc(o.n),g:fmtG(o.g),a:esc(CITY[o.a].name),b:esc(CITY[o.b].name),n:o.wk,fee:fmt$(o.fee)})}</div>${hsOfferCost(o)}${hsRvJobNote(o)}
+function hsOfferRow(o){const why=o.cl?hsClWhy({legs:o.legs},o.g):hsTrainWhy(o.a,o.b,o.g);
+  return `<div class="meta">🤖 ${o.cl?hsClOfferLine(o):tr('hyper_traffic.offer_line',{lab:esc(o.n),g:fmtG(o.g),a:esc(CITY[o.a].name),b:esc(CITY[o.b].name),n:o.wk,fee:fmt$(o.fee)})}</div>${hsOfferCost(o)}${hsRvJobNote(o)}
     ${why?`<div class="why">${why}</div>`:''}<div class="btns">${btn(tr('hyper_traffic.take_job'),'hsJobTake',{id:o.id},'pink sm',!!why)}${btn(tr('hyper_traffic.decline'),'hsJobNo',{id:o.id},'ghost sm')}</div>`;}
 function hsTrafficStat(){const H=S.hs;if(!H||!H.jobs)return '';const o=R.hs,rep=o&&o.rep?Object.values(o.rep):[];let h='';
   if(rep.length){let g=0,w=0;for(const x of rep){g+=x.got;w+=x.want;}const lag=Object.values(H.lag).reduce((a,v)=>a+v,0);
     h+=`<div class="meta"${lag>0?' style="color:var(--bad)"':''}>🔁 ${tr('hyper_traffic.card_rep',{g:fmtG(g),want:fmtG(w)})}${lag>0?' · '+tr('hyper_traffic.card_lag',{tb:hsTb(lag)}):''}</div>`;}
-  if(H.jobs.length){const nx=H.jobs.reduce((a,j)=>j.due<a.due?j:a);h+=`<div class="meta"${S.day>nx.due?' style="color:var(--bad)"':''}>🤖 ${trn('hyper_traffic.card_jobs',H.jobs.length,{date:dateStr(nx.due)})}</div>`;}
-  for(const m of H.own)h+=`<div class="meta">🧠 ${tr('hyper_traffic.card_own',{name:HS_MODELS[m.n],p:pct(m.done/m.tb),date:dateStr(m.due)})}</div>`;
+  // Supercluster legs have their own lines (hsClStat).
+  const JB=H.jobs.filter(j=>!j.grp);if(JB.length){const nx=JB.reduce((a,j)=>j.due<a.due?j:a);h+=`<div class="meta"${S.day>nx.due?' style="color:var(--bad)"':''}>🤖 ${trn('hyper_traffic.card_jobs',JB.length,{date:dateStr(nx.due)})}</div>`;}
+  for(const m of H.own.filter(m=>!m.grp))h+=`<div class="meta">🧠 ${tr('hyper_traffic.card_own',{name:HS_MODELS[m.n],p:pct(m.done/m.tb),date:dateStr(m.due)})}</div>`;
   const f=hsBoostF();if(f)h+=`<div class="meta"${f<0?' style="color:var(--bad)"':''}>${f>0?'✨ '+tr('hyper_traffic.card_boost',{p:pct(f),date:dateStr(H.boost.until)}):tr('hyper_traffic.card_flop',{date:dateStr(H.boost.until)})}</div>`;
   return h;}
 const hsTrafficOffers=()=>S.hs&&S.hs.jo?S.hs.jo.map(hsOfferRow).join(''):'';
@@ -59,3 +61,15 @@ function hsVidStat(){const H=S.hs;if(!H)return '';
   if(!H.vid){if(lvl()<HS_VID.lv)return '';const w=hsVidWhy();return `<div class="meta">📺 ${tr('hyper_video.offer',{x:HS_VID.max,p:pct(HS_VID.edge),r:pct(HS_VID.rate)})}</div>${hsBtns(btn(tr('hyper_video.launch_cost',{cost:fmt$(HS_VID.cost)}),'hsVidLaunch',{},'pink sm',!!w||S.cash<HS_VID.cost))}`;}
   const o=R.hs;let D=0,st=0;if(o)for(const cc in o.cc){D+=o.cc[cc].D;st+=o.cc[cc].st+(o.cc[cc].nd||0);}const v=hsVidF(),vd=D*v/(1+v),ve=Math.min(vd,st*(v*HS_VID.edge/(HS_EDGE+v*HS_VID.edge)||0));
   return `<div class="meta${vd>1&&ve<vd*0.5?' why':''}">📺 ${tr('hyper_video.live',{g:fmtG(vd),p:pct(v/HS_VID.max),e:pct(vd>1e-9?ve/vd:0)})}</div>`;}
+// A supercluster offer: its three regions, the Gbps on each leg, each leg's latency limit, and the fee.
+function hsClOfferLine(o){const r=[...new Set(o.legs.flat())],lim=o.legs.map(([a,b])=>hsClLim(a,b)+' ms').join(' / ');
+  return tr('hyper_super.offer_line',{lab:esc(o.n),a:esc(CITY[r[0]].name),b:esc(CITY[r[1]].name),c:esc(CITY[r[2]].name),g:fmtG(o.g),n:o.wk,lim,fee:fmt$(o.fee)});}
+// Superclusters running on the card (each leg's latency against its limit, a stalled one in red), and from level
+// HS_CL.flv the frontier model's button.
+function hsClStat(){const H=S.hs;if(!H)return '';let h='';
+  for(const G of H.cl||[]){const L=hsClLegs(G),fed=L.length?Math.min(...L.map(j=>j.done/j.tb)):0,x=id=>R.hs&&R.hs.jobs&&R.hs.jobs[id];
+    const legs=L.map(j=>{const v=x(j.id),ms=v&&v.got>1e-9?v.ms:0,slow=ms>j.lim;return `<span${slow?' style="color:var(--bad)"':''}>${esc(CITY[j.a].name)}–${esc(CITY[j.b].name)} ${ms?Math.round(ms*10)/10:'–'}/${j.lim} ms${slow?' ⚠️':''}</span>`;}).join(' · ');
+    h+=`<div class="meta${L.some(j=>hsClSlow(j))?' why':''}">🧠 ${tr(G.k==='own'?N_('hyper_super.frontier_running'):N_('hyper_super.running'),{name:esc(G.n),p:pct(fed),date:dateStr(G.due)})}<br>${legs}</div>`;}
+  if(lvl()>=HS_CL.flv&&!(H.cl||[]).some(G=>G.k==='own')){const P=hsClPick(hsRgs()),w=hsFrontierWhy(),F=HS_CL.frontier;
+    if(P)h+=`<div class="meta">🧠 ${tr('hyper_super.frontier_offer',{a:esc(CITY[P.rgs[0]].name),b:esc(CITY[P.rgs[1]].name),c:esc(CITY[P.rgs[2]].name),g:fmtG(F.g),n:F.wk,mo:fmt$(2*2*hsTrainMw({g:F.g})*HS_MW_MO)})}</div>${w?`<div class="why">${w}</div>`:''}${hsBtns(btn(tr('hyper_super.frontier_go'),'hsFrontier',{},'pink sm',!!w))}`;}
+  return h;}

@@ -30,6 +30,9 @@ const hsTNext=d=>d&&d.t+1<HS_CAGE?HS_T[d.t+1]:null;
 // classic ladder (LV_REQ) asks 6 Tbps for level 5, which a cloud with a Rack Shack and two Server Barns cannot reach.
 const HS_LV_PK=[0,150,600,1200,2000,3500,5000,7000,9500,12500,16000,20000,25000];
 const HS_LV_RG=[0,1,2,2,3,4,5,6,7,8,9,10,12],HS_LV_CT=[0,0,0,1,2,2,3,3,4,4,5,5,5];
+/* AI on your own backbone, from level 7: the peak of AI traffic between regions (training runs and the data lake, Gbps,
+   S.hs.apk). Real clouds' AI has left the single data center; so must yours. Levels already reached are kept. */
+const HS_LV_AI=[0,0,0,0,0,0,1000,2000,3500,5000,7000,9000,12000];
 function hsNew(){return cxNew({cc:{},rg:{[S.home]:{t:0,ready:0,mw:HS_T[0].mw}},edge:{},t1:0,won:0});}
 // Countries: how many users they could ever have, what launching costs, and why not.
 /* What a country's users could ask for. Clouds grow faster than the internet around them (video, AI apps, everything
@@ -248,7 +251,7 @@ const HYPER_GOALS=[
 /* The level ladder (LV_X): peak traffic, live regions, and continents with a live region. Its names, quotes, toast and
    "Next:" line are the Hyperscaler's own story (39-hyper-story.js). */
 const hsCont=()=>new Set(hsRgs().map(c=>CITY[c].reg)).size;
-const HS_LVX={on:()=>hyper()&&!!S.hs,places:()=>hsRgs().length,need:i=>({pk:HS_LV_PK[i],pops:HS_LV_RG[i],reg:HS_LV_CT[i]}),regions:hsCont,label:()=>tr('hyper.regions')};
+const HS_LVX={on:()=>hyper()&&!!S.hs,places:()=>hsRgs().length,need:i=>({pk:HS_LV_PK[i],pops:HS_LV_RG[i],reg:HS_LV_CT[i],ai:HS_LV_AI[i]}),regions:hsCont,ai:()=>(S.hs&&S.hs.apk)||0,aiLabel:()=>tr('hyper.ai_between'),label:()=>tr('hyper.regions')};
 LV_X.push(HS_LVX);
 CX_FLOW.push(hsFlows);CX_POST.push(hsPost);CX_MONEY.push(hsMoney);
 // Saves: only a Hyperscaler keeps S.hs (and cloud tenants), and every field of it is checked here.

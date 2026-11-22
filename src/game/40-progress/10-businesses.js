@@ -71,7 +71,7 @@ const lc1=t=>/^[A-Z][a-z]/.test(t)?t[0].toLowerCase()+t.slice(1):t;
 // A peak within half a gigabit of the mark counts: a network capped exactly at it (origins of 6 Tbps for a 6 Tbps level)
 // peaks a hair below it, and the card would read 6.00 / 6.00 Tbps and never move.
 const LV_EPS=0.5;
-function custLevel(){const pops=lvPlaces(),pk=S.stats.peak+LV_EPS,rc=lvRegions();let lv=1;for(let i=1;i<LV_REQ.length;i++){const q=lvNeed(i);if(pk>=q.pk&&pops>=q.pops&&rc>=q.reg)lv=i+1;else break;}return lv;}
+function custLevel(){const pops=lvPlaces(),pk=S.stats.peak+LV_EPS,rc=lvRegions(),ai=lvAi()+LV_EPS;let lv=1;for(let i=1;i<LV_REQ.length;i++){const q=lvNeed(i);if(pk>=q.pk&&pops>=q.pops&&rc>=q.reg&&!(q.ai>ai))lv=i+1;else break;}return lv;}
 // Traffic eras: some levels bring a new reason to watch more video, and every city's eyeballs grow toward more.
 const eraMul=()=>LEVELS.slice(0,lvl()).reduce((a,L)=>a*(L.era||1),1);
 const eyeP=c=>CITY[c].P*eraMul();
