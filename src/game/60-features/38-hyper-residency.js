@@ -5,7 +5,9 @@
    (gameplay rule M13): none built yet, and they wait at the size they launched with, neither growing nor leaving (the
    card and the Cloud tab say why). A failover never breaks the law either: a region whose replica sits outside the bloc
    leaves those users without service while it is down. Very Sovereign Cloud tenants (Ministries and central banks)
-   live only in a region in their own country; if theirs fails with nowhere at home to go, they leave at once. */
+   live only in a region in their own country; if theirs fails with nowhere at home to go, they leave at once.
+   Unless the country has room for one region only (Singapore, Hong Kong, Taipei...): a second one at home can never be
+   built, so its users and sovereign tenants may fail over to the replica abroad, as the regulators there accept (#451). */
 const HS_SOV=['CN','ID','IN','NG','RU','SA','TR','VN'];
 const HS_EU=['AT','BE','BG','CY','CZ','DE','DK','EE','ES','FI','FR','GR','HR','HU','IE','IT','LT','LU','LV','MT','NL','PL','PT','RO','SE','SI','SK'];
 // 'cc' (in the country), 'eu' (in the bloc) or '' (anywhere). A country's own new law counts too (hsRegRes,
@@ -19,9 +21,14 @@ function hsResMet(cc){const H=S.hs;if(!H||!hsResOf(cc))return true;return Object
 const hsResSite=cc=>hsResOf(cc)==='eu'||CITIES.some(C=>C.cc===cc&&!C.off&&(C.id===S.home||hsMetro(C.id)));
 // A tenant's products p in city c, served from region r: Very Sovereign Cloud stays in the country.
 const hsTenResOk=(p,c,r)=>!hsWall(c,r)&&(!Array.isArray(p)||!p.includes('sov')||CITY[r].cc===CITY[c].cc);
+// A country with at most one possible region site (your home counts): in a failover, the law lets its users go abroad.
+const hsOneSite=cc=>CITIES.filter(C=>C.cc===cc&&!C.off&&(C.id===S.home||hsMetro(C.id))).length<2;
+// The same tests for a failover into replica r (38-hyper-failover.js): the wall still holds.
+const hsResFoOk=(cc,r)=>hsResOk(cc,r)||hsResOf(cc)==='cc'&&!!CITY[r]&&!CITY[r].cn===(cc!=='CN')&&hsOneSite(cc);
+const hsTenFoOk=(p,c,r)=>hsTenResOk(p,c,r)||!hsWall(c,r)&&hsOneSite(CITY[c].cc);
 /* Homing (hsFlows): a country's users may go to region r if the law allows it and, when their home region is out
    tonight (fo: out region -> replica, 38-hyper-failover.js), only to its replica. */
-function hsHomeOk(cc,r,fo){const x=S.hs.cc[cc],h=x&&x.home;if(h&&fo&&own(fo,h)&&fo[h]!==r)return false;return hsResOk(cc,r);}
+function hsHomeOk(cc,r,fo){const x=S.hs.cc[cc],h=x&&x.home;if(h&&fo&&own(fo,h))return fo[h]===r&&hsResFoOk(cc,r);return hsResOk(cc,r);}
 // Why a country's users cannot grow, in words, or ''.
 function hsResWhy(cc){const k=hsResOf(cc);if(!k||hsResMet(cc))return '';const v={country:esc(ccName(cc))};
   if(!hsResSite(cc))return tr('hyper_law.no_site',v);return k==='cc'?tr('hyper_law.held_cc',v):tr('hyper_law.held_eu',v);}
