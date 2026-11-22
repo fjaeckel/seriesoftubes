@@ -20,7 +20,7 @@ function hsOff(c){const H=S&&S.hs;return !!H&&(hsDownAt(c)||!!H.dx&&H.dx.c===c);
 // A built region that is not serving tonight: failed, drained, or its POP is dark. Its users go to its replica.
 function hsOut(c){const H=S&&S.hs,d=H&&H.rg&&H.rg[c];return !!d&&d.ready<=S.day&&!!S.pops[c]&&!hsLive(c);}
 // The region a tenant is served from tonight (hsFlows): its own, its replica while it is out, or a new one.
-function hsTenRg(b,fo){if(hsLive(b.rg))return b.rg;if(fo&&b.rg&&own(fo,b.rg)){const r=fo[b.rg];return r&&hsTenResOk(b.p,b.city,r)?r:null;}return hsRgFor(b.city,null,b.p);}
+function hsTenRg(b,fo){if(hsLive(b.rg))return b.rg;if(fo&&b.rg&&own(fo,b.rg)){const r=fo[b.rg];return r&&hsTenFoOk(b.p,b.city,r)?r:null;}return hsRgFor(b.city,null,b.p);}
 // Countries whose users call region c home.
 const hsHomedAt=c=>Object.keys(S.hs.cc).filter(k=>S.hs.cc[k].home===c).sort();
 /* Failover readiness (the NOC, the Cloud tab, read-only): could replica b take region a's users and tenants tonight?
@@ -33,7 +33,7 @@ function hsWide(a,b){if(a===b)return Infinity;const sp={},LK=(R.hs&&R.hs.lakeL)|
   const best={[a]:Infinity},done=new Set();for(;;){let u=null,bv=0;for(const k in best)if(!done.has(k)&&best[k]>bv){bv=best[k];u=k;}if(u===null)return 0;if(u===b)return bv;done.add(u);
     for(const [v,w] of adj[u]||[]){const m=Math.min(bv,w);if(m>(best[v]||0))best[v]=m;}}}
 function hsFailInfo(a,b){const H=S.hs,o=R.hs;b=b===undefined?hsRepOf(a):b;const xa=o&&o.rg[a],xb=b&&o&&o.rg[b];
-  const law=b?hsHomedAt(a).filter(k=>!hsResOk(k,b)).map(k=>ccName(k)).concat(hsTen().filter(t=>t.rg===a&&!hsTenResOk(t.p,t.city,b)).map(t=>t.name)):[];
+  const law=b?hsHomedAt(a).filter(k=>!hsResFoOk(k,b)).map(k=>ccName(k)).concat(hsTen().filter(t=>t.rg===a&&!hsTenFoOk(t.p,t.city,b)).map(t=>t.name)):[];
   const need=xa?xa.load:0,room=xb?Math.max(0,xb.g-xb.load):0,bw=b?hsWide(a,b):0;
   return {b,need,room,bw,law,ok:!!b&&!!xb&&room>=need-0.5&&bw>=need-0.5&&!law.length};}
 const hsFailReady=(a,b)=>!!S.hs&&!!R.hs&&hsLive(a)&&hsFailInfo(a,b).ok;

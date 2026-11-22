@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- In Hyperscaler mode, countries with room for only one region, such as Singapore, Hong Kong and Taipei, may now fail over to a region abroad, so their drills can pass and sovereign customers there stay through an outage (#451).
 - Leaving multiplayer no longer keeps other players' networks in your game, so 100% reach is possible again and customers stop leaving over players you cannot reach. Saves that already left are repaired when they load. (#450)
 
 ## [5.2.2] — 2026-11-22
