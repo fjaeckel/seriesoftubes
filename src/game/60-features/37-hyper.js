@@ -22,6 +22,16 @@ const HS_T=[{n:N_('hyper.t_shack'),g:400,mw:5,slots:4,cost:0,mo:3000,lv:1,days:0
  // never grown in place (hsTNext), only moved out of into a Server Barn; cost is the setup fee, mo the lease, and its
  // megawatts are the provider's (mw 0: none from your grid budget; the provider passes the power bill on).
  {n:N_('hyper_colo.t_cage'),g:600,mw:0,slots:3,cost:40000,mo:30000,lv:2,days:14}];
+/* Late in the game regions get dearer to build and grow (HS_LATE): the cheap land, the spare substations and the turbines
+   are taken, as real clouds now queue for transformers and pay up for sites with power. From level lv every level adds
+   step to the build price of a tier (hsCost); the monthly running cost stays. An order keeps the factor it was paid at
+   (pf), so calling it off gives back a share of what was paid. */
+const HS_LATE={lv:6,step:0.15,max:3};
+const hsLateF=()=>Math.min(HS_LATE.max,1+HS_LATE.step*Math.max(0,lvl()-HS_LATE.lv));
+const hsCost=t=>Math.round(HS_T[t].cost*hsLateF());
+const hsPf=x=>x&&Number.isFinite(+x.pf)?clamp(+x.pf,1,HS_LATE.max):1;
+// Saves stay as they were until the late price applies: pf only on an order that paid it.
+const hsPfSet=x=>{if(hsLateF()>1)x.pf=hsLateF();};
 const HS_CAGE=4;
 // The tier a region grows into next, or null (the top of the ladder, or a cage).
 const hsTNext=d=>d&&d.t+1<HS_CAGE?HS_T[d.t+1]:null;
@@ -110,7 +120,7 @@ function hsDoorNear(c,doors){let b=null,bk=Infinity;for(const d of doors){const 
    placed in the live regions nearest by backbone latency to its front door, as far as each region has room. A part
    served from another region than the door is a haul job the backbone carries before routing; the edge stack's static
    quarter starts at the door and is never hauled. R.hs: cc (per country: D demand, v front door, st served by the edge
-   stack, parts [door, Gbps, ms, region], home region, want and got of the haul, short), rg (g room, load), door (per
+   stack, parts [door, Gbps, ms, region, edge-cut flag, user zone], home region, want and got of the haul, short), rg (g room, load), door (per
    front door: g hauled to it, got), hl (per region and door 'r>v': [wanted, got]), ten (per tenant: r region, v door, want, f share placed, ms, r2 second region,
    got), short (users no region had room for). */
 function hsFlows(R2,flow,DEMTO,X){const H=S.hs;if(!H||!hyper())return null;
@@ -169,7 +179,7 @@ function hsFlows(R2,flow,DEMTO,X){const H=S.hs;if(!H||!hyper())return null;
   pairs.sort((a,b)=>a[0]-b[0]||(a[3]<b[3]?-1:a[3]>b[3]?1:0)||(a[2]<b[2]?-1:1));
   for(const [m,cc,r,k] of pairs){const hm=H.cc[cc].home,fx=!!hm&&fo[hm]===r,take=Math.min(left[k],avail(r,fx));if(take<=1e-9)continue;left[k]-=take;takeRoom(r,take,fx);out.rg[r].load+=take;out.rg[r].u+=take;
     const o=out.cc[cc],x=ZN[k],v=x.v;if(!o.home)o.home=r;const lo=X.nf();for(const [j,w] of NT[cc])add(v,j,take*w,false);
-    const bb=H.edge[v]?m*0.5:m*(1-0.5*FH[cc]);for(const [z,f] of x.zs)o.parts.push([v,take*f/x.f,hsAcc(v,z)+bb,r]);if(r!==v){job(r,v,take,lo,'u',cc);o.want+=take;}}
+    const bb=H.edge[v]?m*0.5:m*(1-0.5*FH[cc]);for(const [z,f] of x.zs)o.parts.push([v,take*f/x.f,hsAcc(v,z)+bb,r,0,z]);if(r!==v){job(r,v,take,lo,'u',cc);o.want+=take;}}
   // Users with nowhere they may be homed are not short of room: they wait for a region they may use (blk).
   for(const k in left){const s=left[k]||0;if(s<=1e-9)continue;const cc=k.split('#')[0],o=out.cc[cc];if(!o)continue;o.short+=s;if(o.blk)out.blk+=s;else out.short+=s;R2.demand+=s;}
   return jobs;}
@@ -256,7 +266,7 @@ function hsSanitize(s){if(s.charter!=='hyper'){delete s.hs;s.biz=s.biz.filter(b=
   // A Hyperscaler hosts nobody's cache boxes: it is the content (an older save may hold some).
   if(Array.isArray(s.caches))s.caches=[];
   const h0=s.hs&&typeof s.hs==='object'&&!Array.isArray(s.hs)?s.hs:{},o={},n=(v,d)=>Number.isFinite(+v)?+v:d,obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
-  o.rg={};if(obj(h0.rg))for(const k of Object.keys(h0.rg).slice(0,40)){const x=h0.rg[k];if(isCity(k)&&s.pops[k]&&obj(x)&&(k===s.home||hsMetro(k,s)||hsWasSite(k))){o.rg[k]=siteFix(x,+x.t===HS_CAGE?HS_T.length:HS_CAGE);o.rg[k].mw=HS_T[o.rg[k].t].mw;}}
+  o.rg={};if(obj(h0.rg))for(const k of Object.keys(h0.rg).slice(0,40)){const x=h0.rg[k];if(isCity(k)&&s.pops[k]&&obj(x)&&(k===s.home||hsMetro(k,s)||hsWasSite(k))){o.rg[k]=siteFix(x,+x.t===HS_CAGE?HS_T.length:HS_CAGE);o.rg[k].mw=HS_T[o.rg[k].t].mw;if(hsPf(x)>1)o.rg[k].pf=hsPf(x);if(o.rg[k].up&&hsPf(x.up)>1)o.rg[k].up.pf=hsPf(x.up);}}
   if(s.pops[s.home]&&!o.rg[s.home]&&!Object.keys(o.rg).length)o.rg[s.home]={t:0,ready:0,mw:HS_T[0].mw};
   o.cc={};if(obj(h0.cc))for(const k of Object.keys(h0.cc).slice(0,250)){const x=h0.cc[k];if(ccInfo(k)&&!hsWhy(k,s)&&obj(x)){o.cc[k]={d:clamp(n(x.d,1),0,1e6),since:Math.round(n(x.since,0))};if(isCity(x.home))o.cc[k].home=x.home;}}
   o.edge={};if(obj(h0.edge))for(const k of Object.keys(h0.edge).slice(0,500))if(isCity(k)&&s.pops[k]&&h0.edge[k])o.edge[k]=1;

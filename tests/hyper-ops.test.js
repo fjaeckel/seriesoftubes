@@ -49,7 +49,8 @@ test('a cloud\'s intern has four orders of its own and no caches order; a classi
 
 test('regions: a full one gets the next tier when power allows, the same click at the same price; short of power the utility is asked early', (t) => {
   const A = cloud(t), B = cloud(t);
-  on(A.ev, 'hsrg', { at: 85 });
+  // Level 8 builds at the late price (HS_LATE): above the order's default budget, so it gets a bigger one.
+  on(A.ev, 'hsrg', { at: 85 }, 1e7);
   const a0 = cash(A.ev); shift(A.ev); const a1 = cash(A.ev);
   const b0 = cash(B.ev); B.ev("ACT.hsRegion({city:'fra'})"); const b1 = cash(B.ev);
   assert.ok(a0 - a1 > 0);

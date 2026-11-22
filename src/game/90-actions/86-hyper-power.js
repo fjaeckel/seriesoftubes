@@ -14,14 +14,14 @@ Object.assign(ACT,{
  // A smaller build: the region the protest holds up goes one tier down (or the upgrade is called off); 80% of the
  // difference comes back, and the protesters declare victory.
  hsShrink:({city})=>{if(!hsPwAt(city))return;const p=hsProt(city),d=S.hs.rg[city];if(!p||p.on!=='rg'||!hsProtHeld(city)||!d)return;
-   if(d.up){const t=d.up.t-1;S.cash+=Math.round((HS_T[d.up.t].cost-(t>d.t?HS_T[t].cost:0))*0.8);if(t>d.t){d.up.t=t;d.up.ready=Math.min(d.up.ready,S.day+leadDays(HS_T[t].days));}else delete d.up;}
-   else{const t=d.t-1;S.cash+=Math.round((HS_T[d.t].cost-HS_T[t].cost)*0.8);d.t=t;d.mw=HS_T[t].mw;d.ready=Math.min(d.ready,S.day+Math.max(1,leadDays(HS_T[t].days)));}
+   if(d.up){const t=d.up.t-1;S.cash+=Math.round((HS_T[d.up.t].cost-(t>d.t?HS_T[t].cost:0))*0.8*hsPf(d.up));if(t>d.t){d.up.t=t;d.up.ready=Math.min(d.up.ready,S.day+leadDays(HS_T[t].days));}else delete d.up;}
+   else{const t=d.t-1;S.cash+=Math.round((HS_T[d.t].cost-HS_T[t].cost)*0.8*hsPf(d));d.t=t;d.mw=HS_T[t].mw;d.ready=Math.min(d.ready,S.day+Math.max(1,leadDays(HS_T[t].days)));}
    delete S.hs.prot[city];toast(tr('hyper_power.shrunk',{grp:tr(HS_GRP[p.g]),city:esc(CITY[city].name)}),'good');after();},
  // Another metro: call off what the protest holds up here, 90% back, and build somewhere that wants you.
  hsMove:({city})=>{if(!hsPwAt(city))return;const p=hsProt(city),H=S.hs,d=H.rg[city];if(!p||!hsProtHeld(city))return;
    if(p.on==='smr'){const P=hsPw(city),i=P.own.findIndex(x=>x.k==='smr'&&x.ready>S.day);if(i<0)return;P.own.splice(i,1);S.cash+=Math.round(HS_GEN.smr.cost*0.9);}
-   else if(d.up){S.cash+=Math.round(HS_T[d.up.t].cost*0.9);delete d.up;}
-   else{S.cash+=Math.round(HS_T[d.t].cost*0.9);delete H.rg[city];}
+   else if(d.up){S.cash+=Math.round(HS_T[d.up.t].cost*0.9*hsPf(d.up));delete d.up;}
+   else{S.cash+=Math.round(HS_T[d.t].cost*0.9*hsPf(d));delete H.rg[city];}
    delete H.prot[city];hsPwMk(city).gw=Math.min(100,hsPw(city).gw+10);toast(tr('hyper_power.moved',{grp:tr(HS_GRP[p.g]),city:esc(CITY[city].name)}),'good');after();},
  // Own generation next to a region: solar with batteries, a substation of your own, a small modular reactor.
  hsGen:({city,k})=>{if(!hsPwAt(city)||!own(HS_GEN,k)||!S.hs.rg[city])return;const G=HS_GEN[k],P=hsPwMk(city);

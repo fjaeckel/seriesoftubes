@@ -20,7 +20,7 @@
 .hsc-c9{margin-top:6px;padding-top:4px;border-top:1.5px dashed var(--line)}
 .hsc-c9g{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0 8px}
 .hsc-c9g .meta.ok{color:var(--ink)}
-.hsc-off,.hsc-more{margin-top:2px}
+.hsc-off,.hsc-more,.hsc-pull{margin-top:2px}
 /* The Cloud tab: a section's summary and flags wrap under its title on a narrow sheet. */
 .hsec .pss{overflow-wrap:anywhere}
 .hsec h3.sub4{margin-top:8px}

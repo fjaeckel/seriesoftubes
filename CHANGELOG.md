@@ -21,6 +21,8 @@ All notable changes to this project are documented here. The project follows
 - As the Hyperscaler, other networks' cache boxes are gone from the Peering tab: you are the content, so there is nothing for them to cache.
 
 - As the Hyperscaler, regions now go where real clouds build them, not wherever many people live. Cities with a real region qualify, and so do 18 new campus towns with huge grids and few people, from Boardman, Council Bluffs and Abilene to Luleå, Eemshaven and Johor Bahru. Regions you already have stay where they are.
+- As the Hyperscaler, a new gauge on the Cloud card shows where users want a region: the sites nearest users you serve from too far away, and the countries whose law keeps users waiting for a region at home. It also shows on each city and as your next step.
+- As the Hyperscaler, building and growing regions now costs more from level 7 on, up to about twice the price at the top, as the cheap land and spare power run out. Running costs are unchanged, and calling off a build returns a share of what you actually paid.
 - As the Hyperscaler, from level 7 you can run regions in mainland China through a licensed local partner, as foreign clouds really do. Beijing, Shanghai and three Chinese campus towns open up, and the partner keeps 35% of what Chinese users pay. Nothing crosses the wall: Chinese users are served only from Chinese regions, and those regions serve no one else.
 - As the Hyperscaler, Ashburn can now hold a region. It is a small town, but no place has more data centers, so its grid is built for them.
 

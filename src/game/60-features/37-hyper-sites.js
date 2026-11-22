@@ -26,6 +26,7 @@ const HS_SITES={
  cas:'m', // Casablanca: a cloud region for Morocco
  cbf:800, // Council Bluffs, IA: power, land and workers by the Missouri; a central US region
  cbr:'m', // Canberra: government cloud regions
+ chi:'m', // Chicago: a North Central US region and campuses out west of the city
  cmh:900, // Columbus, OH: regions and a gigawatt AI campus in New Albany next door
  cph:'m', // Copenhagen: a Danish region
  cpq:'m', // Campinas: a Brazilian region outside São Paulo

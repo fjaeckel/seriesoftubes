@@ -14,7 +14,7 @@ Object.assign(ACT,{
  // Move out of the cage into your own Server Barn in the same metro: built while the cage serves; the lease ends the
  // day the Barn opens, and users and tenants stay where they are.
  hsColoOut:({city})=>{if(!hyper()||!S.hs||!isCity(city))return;const w=hsColoOutWhy(city);if(w){toast(w,'bad');sfx('err');return;}const N=HS_T[1],d=S.hs.rg[city];
-   if(N.lv>lvl()){toast(tr('hyper.tier_needs_level',{name:tr(N.n),lv:N.lv}),'bad');sfx('err');return;}if(!hsPwGate(city,1)||!spend(N.cost))return;
-   d.up={t:1,ready:S.day+leadDays(N.days)};toast(tr('hyper_colo.moving',{name:tr(N.n),city:esc(CITY[city].name),date:dateStr(d.up.ready),prov:tr(hsColoP(city))}),'good',[],{a:'city',v:city});hsProtRoll(city,'rg');sfx('build');after();},
+   if(N.lv>lvl()){toast(tr('hyper.tier_needs_level',{name:tr(N.n),lv:N.lv}),'bad');sfx('err');return;}if(!hsPwGate(city,1)||!spend(hsCost(1)))return;
+   d.up={t:1,ready:S.day+leadDays(N.days)};hsPfSet(d.up);toast(tr('hyper_colo.moving',{name:tr(N.n),city:esc(CITY[city].name),date:dateStr(d.up.ready),prov:tr(hsColoP(city))}),'good',[],{a:'city',v:city});hsProtRoll(city,'rg');sfx('build');after();},
 });
 FREEZE_ACTS.push('hsZone','hsColo','hsColoOut');

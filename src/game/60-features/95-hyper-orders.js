@@ -60,7 +60,7 @@ function* hsOpsRg(X){if(!hsOpsOn())return;const H=S.hs,at=opsP('hsrg','at')/100,
   for(const c of hsRgs().filter(c=>opsHere('hsrg',c)&&R.hs.rg[c]).sort((a,b)=>ld(b)-ld(a)||(a<b?-1:1))){const d=H.rg[c];if(d.up||d.ready>S.day||ld(c)*opsAhead()<at)continue;
     const N=hsTNext(d),P=hsPw(c),pr=hsProt(c),mor=hsMorAt(c),need=N?N.mw-HS_T[d.t].mw:0;
     const grown=(S.ops.addMo.hsrg||0)>0;
-    if(how==='grow'&&N&&!grown&&N.lv+HS_OPS_TLV<=lvl()&&hsOpsAfford(N.mo-HS_T[d.t].mo)&&!mor&&!(pr&&pr.kind==='block')&&need<=hsMwFree(c)+1e-9&&X.can('hsrg',N.cost)
+    if(how==='grow'&&N&&!grown&&N.lv+HS_OPS_TLV<=lvl()&&hsOpsAfford(N.mo-HS_T[d.t].mo)&&!mor&&!(pr&&pr.kind==='block')&&need<=hsMwFree(c)+1e-9&&X.can('hsrg',hsCost(d.t+1))
       &&X.pay('hsrg',()=>{ACT.hsRegion({city:c});return !!d.up;})){X.book('hsrg',0,N.mo-HS_T[d.t].mo);X.did('hsrg',c+' ⇧');yield;continue;}
     // Short of megawatts for the next tier (or the top tier, and still full): ask the utility early, once per metro.
     if(how!=='warn'&&!mor&&!P.q&&(!N||need>hsMwFree(c))&&X.can('hsrg',HS_Q_FEE)&&X.pay('hsrg',()=>{ACT.hsUtil({city:c});return !!hsPw(c).q;})){const dt=X.dirty;X.did('hsutil',c);X.dirty=dt;yield;continue;}

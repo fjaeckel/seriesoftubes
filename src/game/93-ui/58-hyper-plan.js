@@ -38,10 +38,10 @@ function hpFix(x){const c=x.c,util=x.c?tr(hsUtil(c)):'',T=x.t!==undefined?HS_T[x
     default:return tr('hyper_plan.fix_wave',{a:hpCity(c),b:hpCity(x.b)});}}
 // The fix's button (or ''), and the city's.
 function hpFixBtn(x,cls){const c=x.c;cls=cls||'sm';
-  if(x.fix==='up'){const N=HS_T[x.t];return btn(tr('hyper_plan.b_grow',{name:tr(N.n),cost:fmt$(N.cost)}),'hsRegion',{city:c},cls,S.cash<N.cost||chFrozen()!==null);}
+  if(x.fix==='up'){const N=HS_T[x.t];return btn(tr('hyper_plan.b_grow',{name:tr(N.n),cost:fmt$(hsCost(x.t))}),'hsRegion',{city:c},cls,S.cash<hsCost(x.t)||chFrozen()!==null);}
   if(x.fix==='pw'||x.fix==='util')return btn(tr('hyper_plan.b_util',{mw:HS_Q_MW,cost:fmt$(HS_Q_FEE)}),'hsUtil',{city:c},cls,S.cash<HS_Q_FEE);
   if(x.fix==='port')return btn(tr('hyper_plan.b_port'),'hsPlanGo',{city:c,k:'up'},cls);
-  if(x.fix==='move'){const N=HS_T[1];return btn(tr('hyper_colo.move_cost',{cost:fmt$(N.cost)}),'hsColoOut',{city:c},cls,S.cash<N.cost||chFrozen()!==null);}
+  if(x.fix==='move'){const N=HS_T[1];return btn(tr('hyper_colo.move_cost',{cost:fmt$(hsCost(1))}),'hsColoOut',{city:c},cls,S.cash<hsCost(1)||chFrozen()!==null);}
   if(x.fix==='colo'){const T=HS_T[HS_CAGE];return S.pops[c]?btn(tr('hyper_colo.lease_cost',{cost:fmt$(T.cost)}),'hsColo',{city:c},cls,S.cash<T.cost||chFrozen()!==null||!!hsColoWhy(c)):'';}
   if(x.fix==='zone'){const k=hsAzCost(c);return btn(tr('hyper_az.add_cost',{cost:fmt$(k)}),'hsZone',{city:c},cls,S.cash<k||chFrozen()!==null||!!hsAzWhy(c));}
   if(x.fix==='wave')return btn(modeOn('autarky')?tr('hyper_plan.b_dig'):tr('hyper_plan.b_wave'),'hsPlanGo',{city:c,k:'links'},cls);

@@ -71,7 +71,7 @@ const HS_GUIDE=[
  {t:()=>tr('hyper_story.g_tenant'),sel:['#left [data-act="accept"]','#panel [data-act="accept"]','[data-act="leftTab"][data-args*=\'"deals"\']','[data-act="phoneTab"][data-args*=\'"deals"\']'],
   ok:()=>hsTen().length>0,can:()=>S.offers.some(o=>o.type==='cloud')},
  // Once leased cages are allowed, the step offers one too: a region in two weeks while the money for a Barn comes in.
- {t:()=>{const c=hsGdRgAt(),v={name:tr(HS_T[1].n),cost:fmt$(HS_T[1].cost),city:esc(CITY[c].name)};return HS_T[HS_CAGE].lv<=lvl()?tr('hyper_story.g_region_cage',{...v,prov:tr(hsColoP(c)),mo:fmt$(HS_T[HS_CAGE].mo)}):tr('hyper_story.g_region',v);},
+ {t:()=>{const c=hsGdRgAt(),v={name:tr(HS_T[1].n),cost:fmt$(hsCost(1)),city:esc(CITY[c].name)};return HS_T[HS_CAGE].lv<=lvl()?tr('hyper_story.g_region_cage',{...v,prov:tr(hsColoP(c)),mo:fmt$(HS_T[HS_CAGE].mo)}):tr('hyper_story.g_region',v);},
   get sel(){const c=hsGdRgAt();return [`[data-act="hsRegion"][data-args*='"${c}"']:not([disabled])`,`[data-act="hsColo"][data-args*='"${c}"']:not([disabled])`,`[data-act="buildPop"][data-args*='"${c}"']:not([disabled])`,hsGdTab('cust'),HS_GD_FOCUS];},
   ok:()=>hsRgN()>=2,can:()=>hsRgMax()>=2&&!!hsGdRgAt(),go:()=>hsGdRgAt()},
  {t:()=>tr('hyper_story.g_replica',{city:esc(CITY[hsGdRg1()].name),p:pct(HS_REP)}),sel:['[data-chg="hsReplica"]',hsGdTab('cust'),HS_GD_FOCUS],
