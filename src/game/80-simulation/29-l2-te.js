@@ -19,14 +19,16 @@ function l2TePath(adj,src,dst,skip,reach,lim,fast){
 }
 function l2TeRouter({adj,HAS,NRES,CORE,OUT,TR,REACH,SPD,nodeTake,carry,NN,R2}){
   const latency=e=>e.lat+0.05,spill=TR&&TR.spill||1,tiers=TR?TR.tiers:[];
-  return (A,B,b,routes)=>{
+  // put(r,a), when given, carries a on path r itself (the charter's hauls carry each flow's own network) and nothing is
+  // recorded as a circuit's route.
+  return (A,B,b,routes,put)=>{
     const src=CIDX[A],dst=CIDX[B],ek='l2:'+b.id,placed=new Map();let left=b.bw,maxLat=0;
     const ms=r=>r.path.reduce((s,e)=>s+latency(e),0),baseMs=Math.min(...routes.map(ms)),reach=SPD[A][dst]*REACH+60;
     const preferred=new Set(routes.map(r=>r.path.map(e=>e.id).join(',')));
     const push=(r,want,keep,detour)=>{let a=Math.min(left,want);for(const e of r.path)a=Math.min(a,e.res-e.cap*keep);
       for(const i of r.ni)if(HAS[i])a=Math.min(a,NRES[i]);if(!(a>1e-6))return 0;
       for(const i of r.ni)if(HAS[i])nodeTake(i,a);
-      for(const e of r.path){e.res-=a;e.ld+=a;carry(e,ek,NN+1,dst,a);}left-=a;maxLat=Math.max(maxLat,ms(r));
+      if(put){for(const e of r.path){e.res-=a;e.ld+=a;}put(r,a);}else for(const e of r.path){e.res-=a;e.ld+=a;carry(e,ek,NN+1,dst,a);}left-=a;maxLat=Math.max(maxLat,ms(r));
       const key=r.path.map(e=>e.id).join(','),old=placed.get(key);if(old)old.g+=a;else placed.set(key,{r,g:a});
       if(detour&&!preferred.has(key))R2.teMoved=(R2.teMoved||0)+a;return a;};
     const fill=(keep,lim,byLatency)=>{
@@ -39,6 +41,7 @@ function l2TeRouter({adj,HAS,NRES,CORE,OUT,TR,REACH,SPD,nodeTake,carry,NN,R2}){
     for(const t of tiers){if(left<=1e-6)break;fill(1-t.at,baseMs+t.ms,true);}
     if(left>1e-6&&spill<1)fill(1-spill,Infinity,false);
     if(left>1e-6)fill(0,Infinity,false);
+    if(put)return {amt:b.bw-left,lat:maxLat||baseMs};
     const key=b.id+'>'+A+'>'+B;
     R2.l2route[key]=[...placed.values()].map(({r,g})=>({keys:r.path.map(e=>e.id),ns:r.ni.map(i=>CITIES[i].id),share:g/b.bw,te:true}));
     if(placed.size>1)R2.l2split[b.id]=Math.max(R2.l2split[b.id]||0,placed.size);

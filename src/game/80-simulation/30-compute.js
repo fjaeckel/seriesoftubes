@@ -200,7 +200,15 @@ function compute(){RW.gen++;fedNetsSync();
   const DD=ddosLoad({E,okBy,R2,autoBh:!!(TRX&&TRX.blackhole),haul,ms:msOf});
   // The charter's cold potato (37-content-core.js): each job rides the backbone from its site (o) to the POP where it leaves
   // (v) before IP routing, as far as links and routers have room; its flows there keep only what arrived. J.ms: the path's latency.
-  if(CH)for(const J of CH){const Vi=CIDX[J.v],{path,ni}=walkI(SPP[J.v],Vi,CIDX[J.o]);let amt=J.x,ms=0;for(const l of path){amt=Math.min(amt,l.res);ms+=l.lat;}for(const i of ni)if(HAS[i])amt=Math.min(amt,NRES[i]);amt=Math.max(0,amt);
+  // With Auto-TE, a haul spills like everything else (#453): the circuit router places it, each path carrying its share of every flow.
+  const hTE=CH&&TE?l2TE||l2TeRouter({adj,HAS,NRES,CORE,OUT,TR,REACH,SPD,nodeTake,carry,NN,R2}):null;
+  if(CH)for(const J of CH){const Vi=CIDX[J.v],{path,ni}=walkI(SPP[J.v],Vi,CIDX[J.o]);let amt=J.x,ms=0;
+    if(hTE&&J.x>0&&J.o!==J.v&&path.length&&path.every(e=>e.w!==Infinity)){const ek='cx:'+J.v;if(!R2.egDesc[ek])R2.egDesc[ek]={lab:labOf(N_('compute.backbone_to_city'),'city',CITY[J.v].name),city:J.v,k:'l2'};
+      ms=path.reduce((n,e)=>n+e.lat,0);let far=0;
+      const put=(r,a)=>{const f=a/J.x;let m=0;for(const e of r.path){m+=e.lat;for(let k=J.lo;k<J.hi;k++){const x=FREM[k]*f;if(x>0)carry(e,ek,FNJ[k],Vi,x);}}if(m>far)far=m;};
+      amt=hTE(J.v,J.o,{id:ek,bw:J.x,route:'normal',latMax:0},[{path,ni,share:1}],put).amt;
+      const f=amt/J.x;for(let k=J.lo;k<J.hi;k++)FREM[k]*=f;J.got=amt;J.ms=far||ms;continue;}
+    for(const l of path){amt=Math.min(amt,l.res);ms+=l.lat;}for(const i of ni)if(HAS[i])amt=Math.min(amt,NRES[i]);amt=Math.max(0,amt);
     const f=J.x>0?amt/J.x:0,ek='cx:'+J.v;if(!R2.egDesc[ek])R2.egDesc[ek]={lab:labOf(N_('compute.backbone_to_city'),'city',CITY[J.v].name),city:J.v,k:'l2'};
     for(const i of ni)if(HAS[i])nodeTake(i,amt);for(const l of path){l.res-=amt;l.ld+=amt;}
     for(let k=J.lo;k<J.hi;k++){const a=FREM[k]*f;if(a>0)for(const l of path)carry(l,ek,FNJ[k],Vi,a);FREM[k]=a;}J.got=amt;J.ms=ms;}
