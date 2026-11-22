@@ -82,8 +82,8 @@ function drawFrame(now){
       if(pz&&!cut&&!bld&&(many||arPaths(l)>1)&&(many||lineIdx(l,PI.get(edgeKey(l)))===0))AR_PILLS.push([mxx,my+(sel||!S.ar?19:0),many?tr('architect.n_in_one_trench',{n:grp.length}):'✓ '+tr('architect.n_paths',{n:arPaths(l)}),many]);
     }
   }
-  // drag preview
-  if(UI.drag&&UI.drag.mode==='link'){
+  // drag preview: the line under the cities, its length and price (tip) over everything, drawn last (#454)
+  let tip=null;if(UI.drag&&UI.drag.mode==='link'){
     const A=CITY[UI.drag.from];let tx=UI.drag.cx,ty=UI.drag.cy;
     if(UI.snap){const sv=UI.snap;tx=sv.sx;ty=sv.sy;}
     let [ax,ay]=toS(A.x,A.y,0);if(UI.snap){const B=CITY[UI.snap.id];const bxw=A.x+wrapDx(A.x,B.x);[tx,ty]=toS(bxw,B.y,0);}else{/* nearest copy of origin to cursor */for(const k of [-1,1]){const [px,py]=toS(A.x,A.y,k);if(Math.abs(px-tx)<Math.abs(ax-tx)){ax=px;ay=py;}}}
@@ -94,8 +94,7 @@ function drawFrame(now){
       ctx.strokeStyle='#FF4F9A';ctx.lineWidth=4;ctx.lineDashOffset=-now/30;ctx.stroke();ctx.setLineDash([]);ctx.lineDashOffset=0;}
     if(UI.snap&&UI.snap.id!==UI.drag.from){const b=UI.snap.id,km=kmBetween(UI.drag.from,b),sub=isSub(UI.drag.from,b);
       const t=`${km.toLocaleString()} km${sub?' · '+tr('common.subsea'):''} · ${sub&&!cablesFor(UI.drag.from,b).length?tr('draw.no_cable_lands_here'):tr('draw.from_price_mo',{price:fmt$(waveMo(km,sub,0))})}`;
-      ctx.font='800 13px "Baloo 2", sans-serif';const tw=ctx.measureText(t).width+18;const lx=(ax+tx)/2,ly=(ay+ty)/2-22;
-      pill(t,ctx.font,tw,24,12,'#1E2640','#fff','#1E2640',1,lx,ly,1);}
+      ctx.font='800 13px "Baloo 2", sans-serif';tip=[t,ctx.font,ctx.measureText(t).width+18,(ax+tx)/2,(ay+ty)/2-22];}
   }
   // cities
   UI.feed=null;if(UI.sel&&UI.sel.type==='link'){const sl=S.links.find(x=>x.id===UI.sel.id);const rec=sl&&R.ef[edgeKey(sl)];if(rec){UI.feed=new Set(Object.keys(rec.eg).map(k=>R.egDesc[k].city));UI.dest=new Set(Object.keys(rec.dst));}}
@@ -134,6 +133,7 @@ function drawFrame(now){
   for(let i=FLOATS.length-1;i>=0;i--){const f=FLOATS[i],a=(now-f.t)/1600;if(a>1||f.s!==S){FLOATS.splice(i,1);continue;}
     const font='800 17px "Baloo 2", sans-serif';if(f.w===undefined){ctx.font=font;f.w=ctx.measureText(f.text).width;}
     for(const k of ks){const [sx,sy]=toS(f.x,f.y,k);ctx.globalAlpha=1-a*a;textStamp(f.text,font,17,f.w,f.col,'#fff',4,sx,sy-a*40);ctx.globalAlpha=1;}}
+  if(tip)pill(tip[0],tip[1],tip[2],24,12,'#1E2640','#fff','#1E2640',1,tip[3],tip[4],1);
 }
 /* A map with more than MAP_BUSY lines on screen (huge late-game networks) is a tangle where nobody reads thousands of
    overlapping labels or fiber dots, and painting them took about half of every frame. They come back once fewer lines

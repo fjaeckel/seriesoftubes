@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- The distance and price shown while you drag a new link between two cities now sit on top of city names, so they stay readable. (#454)
+
 ## [5.2.2] — 2026-11-22
 
 - Multiplayer servers on 5.2.1 stay synced with each other again: the authority file passed between relays broke their sessions. 5.2.1 relays recover without updating; 5.2.2 relays also trim the file themselves.
