@@ -16,6 +16,15 @@ Object.assign(ACT,{
    if(S.cash<q.cost){toast(tr('interface.not_enough_cash_wait_for_revenue'),'bad');sfx('err');return;}
    let n=0;opsQuiet(()=>{for(const c of q.cities){const k=utilityKit(c);if(!k||S.cash<k.cost)continue;const c0=S.cash;ACT.utilityKit({city:c,cost:k.cost});if(S.cash<c0||!k.cost)n++;}});
    sfx('build');after();utilitiesModal(city,trn('utilities.kit_all_applied',n));},
+ // Every LAG split across both buildings in one batch, with one recompute: siteSet for each, so prices, PNI lead times and
+ // port limits are the ones the buttons have. add also buys the second member a single port needs, at the quoted price.
+ utilityLagSplit:({add,cost,city})=>{const q=lagSplitAll();if(!q)return;add=add===true||add==='true'||add===1;
+   const L=add?q.free.concat(q.add):q.free;if(!L.length)return;
+   if(add&&q.cost!==+cost){utilitiesModal(city,tr('utilities.quote_changed'));return;}
+   if(add&&S.cash<q.cost){toast(tr('interface.not_enough_cash_wait_for_revenue'),'bad');sfx('err');return;}
+   opsQuiet(()=>{for(const x of L)ACT.siteSet({k:x.k,id:x.id,s:'ab'});});
+   const left=lagSplitAll(),n=L.length-left.free.length-(add?left.add.length:0);
+   sfx('build');after();utilitiesModal(city,trn('utilities.lags_split',n));},
  // The intern's new-POP template with or without the kit, from the Utilities sheet: the same switch as in Ops.
  utilityKitNew:({city})=>{if(!opsHired())return;S.ops.tpl.kit=!S.ops.tpl.kit;sfx('click');after();utilitiesModal(city);},
  utilityCaches:({city,quote,modal})=>{const q=utilityCaches(city);if(!q||!q.add.length)return;
