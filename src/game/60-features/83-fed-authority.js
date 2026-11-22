@@ -1,7 +1,7 @@
 /* ---------- the authority: seriesoftub.es's bans and the oldest relay allowed (§11.5, ADR 0006) ----------
    federation/authority.json, signed by a key pinned here (federation/authority-keys.json; a test checks they match).
    It is no record: checked only as that file, never stored or sent as one. */
-const FED_AUTH_KEYS=[];
+const FED_AUTH_KEYS=["o33GTaxLRt9klJJZrctakB4SUHtiipWdLijGmjsHQV8"];
 const FED_AUTH_MAX=524288,FED_AUTH_NAME='tubes-relay',FED_BAN_REASONS=['cheating','offensive_name','spam','abuse','legal'];
 FED_KIND.authority=[FED_AUTH_MAX,0];
 const FdBanWhy=FdOne(...FED_BAN_REASONS);
