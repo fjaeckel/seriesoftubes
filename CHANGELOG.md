@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- In Hyperscaler mode, countries with room for only one region, such as Singapore, Hong Kong and Taipei, may now fail over to a region abroad, so their drills can pass and sovereign customers there stay through an outage (#451).
+
 ## [5.2.2] — 2026-11-22
 
 - Multiplayer servers on 5.2.1 stay synced with each other again: the authority file passed between relays broke their sessions. 5.2.1 relays recover without updating; 5.2.2 relays also trim the file themselves.
