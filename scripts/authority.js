@@ -60,8 +60,9 @@ function bans() {
 }
 
 // relayMin from package.json, and when it applies: its CHANGELOG date at 00:00 UTC plus 7 days. null when unset.
-function relayMin(version) {
-  const v = require(path.join(ROOT, 'package.json')).relayMin;
+// The guard compares with package.json's version, the one being released: tests build old versions on purpose.
+function relayMin() {
+  const pkg = require(path.join(ROOT, 'package.json')), v = pkg.relayMin, version = pkg.version;
   if (v === undefined) return null;
   if (typeof v !== 'string' || !/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/.test(v)) fail(`package.json relayMin '${v}' is not a version x.y.z`);
   const n = (s) => s.split('.').map(Number), a = n(v), b = n(version);
