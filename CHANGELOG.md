@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+## [5.2.1] — 2026-11-22
+
+- Bans from seriesoftub.es now take effect: the relay and the game trust the authority's signing key, so banned networks are hidden and their deals end everywhere. Multiplayer servers must update their relay to 5.2.1 by 29 November, the same day as 5.2.0; a 5.2.0 relay cannot apply bans.
+
 ## [5.2.0] — 2026-11-22
 
 - Multiplayer servers must update their relay to 5.2.0 by 29 November. After that, games stop joining servers on an older relay and other relays stop syncing with them; operators see a warning in the log and in `relay status` until they update.
