@@ -197,6 +197,10 @@ test('the map is only redrawn when something on it can have changed', () => {
   let T = 100000;
   const frame = (code = '', dt = 16) => { if (code) ev(code); const a = ev('ctx.calls.n'); T += dt; ev(`frame(${T})`); return ev('ctx.calls.n') - a; };
   frame(); frame();
+  // The first draw starts a zoom's rest on the wall clock (zoomMoving, 59-gl-sprites.js); its end redraws once, at a
+  // moment set by how fast the machine runs rather than by T. Nothing here zooms, so end it before measuring.
+  ev('ZH.t=-1e9');
+  frame();
   assert.equal(frame(), 0, 'paused and untouched: nothing is drawn');
   assert.ok(frame('cam.x+=5') > 0, 'moving the map redraws it');
   assert.equal(frame(), 0);

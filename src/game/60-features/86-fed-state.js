@@ -136,10 +136,13 @@ async function fedJoin(url){const why=await fedJoinWhy(url);if(why)return why;co
 function fedLeave(url){const f=S&&S.fed;if(!f)return;const pub=f.key?f.key.pub:'';
   // The excluded lists of servers left go (a rejoin starts from what the server says then).
   for(const u of f.servers)if(pub&&(!url||u===url))fedDel('kv',fedExclKey(u,pub)).catch(()=>{});
-  f.servers=url?f.servers.filter(u=>u!==url):[];if(!f.servers.length)f.on=false;fedSaved();fedWake();}
+  f.servers=url?f.servers.filter(u=>u!==url):[];if(!f.servers.length)f.on=false;fedOff();fedSaved();fedWake();}
 // Leaves the federation for good (§5.9): a signed leave goes out, then multiplayer turns off and the identity is dropped.
 async function fedQuit(){const f=S&&S.fed;if(!fedHasPriv(f))return false;
-  const r=await fedSignMine('leave',{},f);await fedSendNow([r],f);for(const u of f.servers)fedDel('kv',fedExclKey(u,f.key.pub)).catch(()=>{});f.on=false;f.out=[];f.key=null;f.servers=[];fedSaved();fedWake();return true;}
+  const r=await fedSignMine('leave',{},f);await fedSendNow([r],f);for(const u of f.servers)fedDel('kv',fedExclKey(u,f.key.pub)).catch(()=>{});f.on=false;f.out=[];f.key=null;f.servers=[];fedOff();fedSaved();fedWake();return true;}
+/* Off: the other players' networks go too. Kept, nothing would ever refresh or reach them, and customers would keep
+   asking for traffic to them for good (#450). A rejoin rebuilds them from the server. */
+function fedOff(){if(!S||!S.fed||S.fed.on||!S.fedn&&!S.fedLw)return;S.fedn=null;S.fedLw=false;afterOff();}
 function fedMute(key,on){const f=S&&S.fed;if(!f||FdK(key))return;f.muted=f.muted.filter(k=>k!==key);if(on&&f.muted.length<FED_MUTED_MAX)f.muted.push(key);fedSaved();fedEmit('mute',{key,on:!!on});}
 function fedShare(on){const f=S&&S.fed;if(!f)return;f.share=!!on;fedSaved();}
 function fedSaved(){try{if(S)save(true);}catch(e){}}
