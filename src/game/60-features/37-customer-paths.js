@@ -68,7 +68,9 @@ function circuitTargets(b){const G=pathEdges(),sky=pathSky(b),now=pathNow(b,G);i
     const bn=pathBottleneck(b,p,h,own,ownN,got);
     alts.push({p,shared:h.filter(e=>[...e.ts].some(t=>nowT.has(t))).length,km:h.reduce((a,e)=>a+e.km,0),lat:h.reduce((a,e)=>a+e.lat+0.05,0),
       room:Math.max(0,Math.min(bn.length?bn[0].room:Infinity,...h.map(e=>e.cap-e.load+(own.has(e.k)?got:0)))),bn});}
-  alts.sort((x,y)=>x.shared-y.shared||x.lat-y.lat);return {now,sky,alts,bn};}
+  // Today's path, added up as the alternatives are so the two compare; through orbit only routing knows the latency.
+  const km=sky?null:hops.reduce((a,e)=>a+e.km,0),lat=sky?R.l2lat&&R.l2lat[b.id]:hops.reduce((a,e)=>a+e.lat+0.05,0);
+  alts.sort((x,y)=>x.shared-y.shared||x.lat-y.lat);return {now,sky,alts,bn,km,lat};}
 // A bottleneck in words: the span (or the POP's routers) and how much of it is free. Today's path lists the three tightest;
 // on an alternative's line, the two tightest are enough.
 const BN_SHOWN=3,BN_ALT=2;
@@ -88,10 +90,10 @@ function pathModal(b){const a=pathCity(b.city),z=pathCity(b.city2),k=pathKind(b)
     if(cur)h+=`<div class="kv"><span>${tr('customer_paths.now_on')}</span><b>${fibLab(cur)}</b></div>`;
     if(!T.length)h+=`<p class="empty">${tr('customer_paths.no_other_working_fiber',{a,b:z})}</p>`;
     for(const t of T)h+=row(fibLab(t.l),t.no,t.diverse?tr('customer_paths.fully_diverse'):tr('customer_paths.same_trench'),btn(tr('customer_paths.move'),'pathMove',{id:b.id,link:t.l.id},'sm',!!t.no));}
-  else{const {now,sky,alts,bn}=circuitTargets(b);
+  else{const {now,sky,alts,bn,km,lat}=circuitTargets(b);
     h+=`<p class="lead" style="margin-top:6px">${tr('customer_paths.routing_chooses_this_circuit',{a,b:z})}</p>`;
-    if(sky)h+=`<div class="kv"><span>${tr('customer_paths.now_on')}</span><b>${esc(skyStr(sky))}</b></div><p class="meta">${tr('customer_paths.orbit_is_faster')}</p>`;
-    else if(now)h+=`<div class="kv"><span>${tr('customer_paths.now_on')}</span><b>${esc(pathStr(now))}</b></div>`;
+    if(sky)h+=`<div class="kv"><span>${tr('customer_paths.now_on')}</span><b>${esc(skyStr(sky))}</b></div>${isFinite(lat)?`<p class="meta">${tr('common.ms_ms_one_way',{ms:lat.toFixed(1)})}</p>`:''}<p class="meta">${tr('customer_paths.orbit_is_faster')}</p>`;
+    else if(now)h+=`<div class="kv"><span>${tr('customer_paths.now_on')}</span><b>${esc(pathStr(now))}</b></div><p class="meta">${tr('customer_paths.path_facts',{km:Math.round(km).toLocaleString(),ms:lat.toFixed(1)})}</p>`;
     // Where today's path is short of what the customer pays for: the tightest spans and routers, each with a way to open it.
     if(bn.length){h+=`<p class="meta" style="margin:10px 0 0"><b>${tr('customer_paths.bottlenecks')}</b></p>`;
       for(const x of bn.slice(0,BN_SHOWN))h+=row(`<b style="color:var(--bad)">${bnTxt(x)}</b>`,'','',bnBtn(x));}

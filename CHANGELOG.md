@@ -11,6 +11,7 @@ All notable changes to this project are documented here. The project follows
 - Leaving multiplayer no longer keeps other players' networks in your game, so 100% reach is possible again and customers stop leaving over players you cannot reach. Saves that already left are repaired when they load. (#450)
 - In Hyperscaler mode, Auto-TE now moves "Your backbone to" traffic too: your spill rules shift it onto other paths instead of leaving the shortest link congested. (#453)
 - The distance and price shown while you drag a new link between two cities now sit on top of city names, so they stay readable. (#454)
+- The window for moving a circuit to another path now shows the distance and latency of the path it is on, so you can compare it with the others. (#464)
 
 ## [5.2.2] — 2026-11-22
 
