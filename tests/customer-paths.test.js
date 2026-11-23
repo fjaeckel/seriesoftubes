@@ -153,7 +153,11 @@ test('a pinned circuit rides its path, and takes the load off the direct fibers'
   assert.deepEqual(T.now, ['nyc', 'ash']);
   assert.deepEqual(T.alts.map((x) => x.p), [['nyc', 'bos', 'ash']]);
   assert.equal(T.alts[0].shared, 0, 'nothing in common with the direct fibers');
+  // Today's path has its km and latency, added up as the alternatives' are, and the same latency the panel shows.
+  assert.equal(T.km, 350);
+  assert.ok(Math.abs(T.lat - ev("R.l2lat.k")) < 1e-9, 'the same latency as routing');
   ev("ACT.pathOpen({id:'k'})");
+  assert.match(modal(ev), new RegExp(`Now onNew York → Ashburn350 km · ${T.lat.toFixed(1)} ms`));
   assert.match(modal(ev), /Fully diverse/);
   ev("ACT.pathPin({id:'k',via:'nyc,bos,ash'})");
   const on = load();
