@@ -150,7 +150,7 @@ func TestRemoveCompactRestart(t *testing.T) {
 	}
 	keep := raws(t, s)
 	// Untouched days are not rewritten.
-	first := filepath.Join(dir, "log", fmt.Sprint(day0, ".jsonl"))
+	first := filepath.Join(dir, store.RecordsFolder, fmt.Sprint(day0, ".jsonl"))
 	fi1, _ := os.Stat(first)
 	// Remove every other record of the first five days, and one of today's.
 	var drop []string
@@ -169,7 +169,7 @@ func TestRemoveCompactRestart(t *testing.T) {
 	if got := raws(t, s); !slices.Equal(got, kept) {
 		t.Fatal("records read back differently after compaction")
 	}
-	untouched := filepath.Join(dir, "log", fmt.Sprint(day0+7, ".jsonl"))
+	untouched := filepath.Join(dir, store.RecordsFolder, fmt.Sprint(day0+7, ".jsonl"))
 	fi2, _ := os.Stat(untouched)
 	if err := s.Compact(today); err != nil {
 		t.Fatal(err)
@@ -211,7 +211,7 @@ func TestTornLineRepair(t *testing.T) {
 	a := stats(t, key("a"), t0)
 	put(t, s, a, t0)
 	s.Close()
-	path := filepath.Join(dir, "log", fmt.Sprint(day0, ".jsonl"))
+	path := filepath.Join(dir, store.RecordsFolder, fmt.Sprint(day0, ".jsonl"))
 	f, _ := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0)
 	f.WriteString(`{"rcpt":[{"body":{"rec":"x`)
 	f.Close()
@@ -274,7 +274,7 @@ func TestMergedCopyReadBack(t *testing.T) {
 	if signers(s) != want || !slices.Equal(raws(t, s), text) {
 		t.Fatal("the merged copy was lost by compaction")
 	}
-	if _, err := os.Stat(filepath.Join(dir, "log", fmt.Sprint(day0, ".jsonl"))); err == nil {
+	if _, err := os.Stat(filepath.Join(dir, store.RecordsFolder, fmt.Sprint(day0, ".jsonl"))); err == nil {
 		t.Fatal("the first copy's file holds nothing kept and should be gone")
 	}
 }
@@ -285,12 +285,12 @@ func TestMergedCopyReadBack(t *testing.T) {
 // it so.
 func TestOlderLinesLoad(t *testing.T) {
 	dir := t.TempDir()
-	os.MkdirAll(filepath.Join(dir, "log"), 0o700)
+	os.MkdirAll(filepath.Join(dir, store.RecordsFolder), 0o700)
 	a, b := stats(t, key("a"), t0), stats(t, key("b"), t0+60)
 	// The old encoder: canonical JSON of {rec, rcpt, slot}.
 	old := canon.Encode(map[string]any{"rec": canon.Raw(a.Canon()), "rcpt": []any{rcpt(a, t0)[0]}, "slot": fed.Slot(t0)})
 	odd := fmt.Sprintf(`{"slot": %d, "rec": %s, "rcpt": [%s, 7]}`, fed.Slot(t0), b.Canon(), canon.Encode(rcpt(b, t0+60)[0]))
-	path := filepath.Join(dir, "log", fmt.Sprint(day0, ".jsonl"))
+	path := filepath.Join(dir, store.RecordsFolder, fmt.Sprint(day0, ".jsonl"))
 	os.WriteFile(path, []byte(string(old)+"\n"+odd+"\n"), 0o600)
 	s := open(t, dir)
 	want := []string{
@@ -331,7 +331,7 @@ func TestDamagedFile(t *testing.T) {
 	defer s.Close()
 	a := put(t, s, stats(t, key("a"), t0), t0)
 	b := put(t, s, stats(t, key("b"), t0+fed.Day), t0+fed.Day)
-	os.Truncate(filepath.Join(dir, "log", fmt.Sprint(day0, ".jsonl")), 10)
+	os.Truncate(filepath.Join(dir, store.RecordsFolder, fmt.Sprint(day0, ".jsonl")), 10)
 	if _, _, err := s.Raw(a); err == nil {
 		t.Fatal("a truncated line read back")
 	}

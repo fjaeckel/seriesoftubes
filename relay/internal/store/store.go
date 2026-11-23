@@ -1,5 +1,5 @@
 // Package store keeps records as plain files in one data folder: one append-only file per
-// real day (log/<day>.jsonl), each line a record with its receipts. Indexes live in memory
+// real day (records/<day>.jsonl), each line a record with its receipts. Indexes live in memory
 // and are rebuilt on start. Callers serialise access (the relay holds one lock).
 //
 // Memory holds a small fixed entry per record (id, author, kind, t, board slot, where its line
@@ -31,7 +31,7 @@ import (
 
 // DataVersion is the version of the data folder's layout this build writes.
 // A var so tests can play an upgrade through the migration chain.
-var DataVersion = 1
+var DataVersion = 2
 
 // Entry is a stored record: what the indexes and the hot paths need, and where its line is.
 // Exported fields never change after Put.
@@ -128,7 +128,7 @@ const (
 	Dup       = "duplicate"
 	Merged    = "merged"
 	maxLine   = 2 << 20
-	logFolder = "log"
+	logFolder = RecordsFolder
 )
 
 // The layout of a line (canonical JSON of {rec, rcpt, slot}: keys sorted, no spaces).
@@ -1026,9 +1026,14 @@ type versionFile struct {
 	V int `json:"v"`
 }
 
+// RecordsFolder holds the day files: the relay's records, not its log output (that goes to stderr). Until data version
+// 2 it was called log/, and operators cleaning up "logs" deleted their server's records (#447).
+const RecordsFolder = "records"
+
 // Migrations[n] turns a version n folder into version n+1. A new layout adds one here.
 var Migrations = map[int]func(dir string) error{
 	0: migrate0,
+	1: migrate1,
 }
 
 // Migrate brings a data folder to DataVersion; it refuses folders from a newer build.
@@ -1072,3 +1077,22 @@ func Migrate(dir string) error {
 // migrate0: a folder without a VERSION file (made before the first release, or empty)
 // already has the version 1 layout; it only gets stamped.
 func migrate0(string) error { return nil }
+
+// migrate1: log/ becomes records/ (#447). One rename, so a crash leaves either name, never half of each; a folder
+// holding both is left for the operator to look at rather than guessed at.
+func migrate1(dir string) error {
+	from, to := filepath.Join(dir, "log"), filepath.Join(dir, RecordsFolder)
+	_, errFrom := os.Stat(from)
+	_, errTo := os.Stat(to)
+	switch {
+	case errors.Is(errFrom, fs.ErrNotExist):
+		return nil
+	case errFrom != nil:
+		return errFrom
+	case errTo == nil:
+		return fmt.Errorf("both log/ and %s/ exist: move the day files you want to keep into %s/ and remove log/", RecordsFolder, RecordsFolder)
+	case !errors.Is(errTo, fs.ErrNotExist):
+		return errTo
+	}
+	return os.Rename(from, to)
+}

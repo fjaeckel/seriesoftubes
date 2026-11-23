@@ -64,7 +64,7 @@ func TestTornLineKeepsNextRecord(t *testing.T) {
 	a := rt.Announce(rt.Key("alice"), n.Clock.Unix(), "Alice")
 	x.MustPut(a)
 	x.Stop()
-	files, _ := filepath.Glob(filepath.Join(x.Dir, "log", "*.jsonl"))
+	files, _ := filepath.Glob(filepath.Join(x.Dir, store.RecordsFolder, "*.jsonl"))
 	last := files[len(files)-1]
 	f, err := os.OpenFile(last, os.O_APPEND|os.O_WRONLY, 0)
 	if err != nil {

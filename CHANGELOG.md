@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Relay operators: the folder holding your server's records is now called `records/` instead of `log/`, so a log cleanup script no longer wipes your server (#447). It is renamed on the relay's first start after updating; a relay older than this one then refuses the folder, so update rather than roll back.
 - Gin & Transit (AS3257) is a new Tier 1 that sells transit and a clean pipe at half the usual price. New games need a PNI with it to become a Tier 1; saves already under way keep the Tier 1s they were playing for. It sold its fiber long ago, so wavelengths now come from EXAggerated Infrastructure instead.
 
 ## [5.3.0] — 2026-11-23

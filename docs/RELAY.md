@@ -114,6 +114,10 @@ This makes the data folder (mode 0700) with:
 | `node.key` | This node's key. Nodes sign receipts and prove who they are with it. |
 | `operator.key` | Your operator key, separate from any game save: it is your control of the server. **Back it up.** Pass `--operator-key FILE` to use one you already have. |
 | `config.json` | What rarely changes (below). |
+| `records/` | The server's records, one file per day (made on first start). **This is the server's data, not log files: never delete it.** Earlier relays called it `log/`; it is renamed on start. |
+
+The relay writes its log to standard error (journald, `docker logs`), never into the data folder, so a log cleanup
+script has nothing to remove there.
 
 `init` also takes `--listen ADDR`, `--trusted-proxies CIDR,…` (added to loopback), `--tls-cert FILE --tls-key FILE`,
 and `--metrics ADDR [--metrics-public]`; `--listen`, `--metrics` and `--metrics-public` default to `$RELAY_LISTEN`,
@@ -535,7 +539,7 @@ How it works (`relay/internal/rank`):
   out of later backups. The operator key is left out on purpose: keep your own copy of `operator.key` somewhere safe. If a node loses its disk, the
   server's other nodes and the servers it syncs with fill it back in; what nobody else had is only recent stats and
   offers, which players send again.
-- **What is kept:** records go into one file per day under `log/`. Stats are kept 72 hours (plus, for carrying forward,
+- **What is kept:** records go into one file per day under `records/`. Stats are kept 72 hours (plus, for carrying forward,
   each network's newest and the one in force when the previous window starts), offers, answers and players' reports 30 days, votes 97
   days (90 they count, and the 7 a shun takes to lift), announcements until a network has been silent 180 days (one per
 network and 5-minute slot, the newest; at most 4096 offers per network, 128 to any one other). What a

@@ -10,6 +10,7 @@ import (
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/canon"
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/store"
 )
 
 // FolderSpec describes a data folder of a busy server, for memory and load measurements.
@@ -108,7 +109,7 @@ func Folder(dir string, f FolderSpec) (map[string]int, error) {
 	}
 	close(work)
 	wg.Wait()
-	if err := os.MkdirAll(filepath.Join(dir, "log"), 0o700); err != nil {
+	if err := os.MkdirAll(filepath.Join(dir, store.RecordsFolder), 0o700); err != nil {
 		return nil, err
 	}
 	files := map[int64]*bufio.Writer{}
@@ -125,7 +126,7 @@ func Folder(dir string, f FolderSpec) (map[string]int, error) {
 			l := lines[i][pos]
 			w := files[l.day]
 			if w == nil {
-				fh, err := os.Create(filepath.Join(dir, "log", fmt.Sprint(l.day, ".jsonl")))
+				fh, err := os.Create(filepath.Join(dir, store.RecordsFolder, fmt.Sprint(l.day, ".jsonl")))
 				if err != nil {
 					return nil, err
 				}
@@ -148,5 +149,5 @@ func Folder(dir string, f FolderSpec) (map[string]int, error) {
 	for _, fh := range open {
 		fh.Close()
 	}
-	return n, os.WriteFile(filepath.Join(dir, "VERSION"), []byte("{\"v\":1}\n"), 0o600)
+	return n, os.WriteFile(filepath.Join(dir, "VERSION"), fmt.Appendf(nil, "{\"v\":%d}\n", store.DataVersion), 0o600)
 }

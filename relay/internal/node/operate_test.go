@@ -3,6 +3,7 @@ package node_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -221,21 +222,22 @@ func TestDataMigratedOnStart(t *testing.T) {
 		t.Fatalf("unversioned folder: %v", err)
 	}
 	st.Close()
-	if b, _ := os.ReadFile(filepath.Join(dir, "VERSION")); !strings.Contains(string(b), `"v":1`) {
+	cur := store.DataVersion
+	if b, _ := os.ReadFile(filepath.Join(dir, "VERSION")); !strings.Contains(string(b), fmt.Sprintf(`"v":%d`, cur)) {
 		t.Fatalf("VERSION %q", b)
 	}
 	// An upgrade runs each migration in turn and stamps the new version.
 	ran := false
-	store.Migrations[1] = func(d string) error { ran = d == dir; return nil }
-	store.DataVersion = 2
-	defer func() { store.DataVersion = 1; delete(store.Migrations, 1) }()
+	store.Migrations[cur] = func(d string) error { ran = d == dir; return nil }
+	store.DataVersion = cur + 1
+	defer func() { store.DataVersion = cur; delete(store.Migrations, cur) }()
 	st, err = store.Open(dir)
 	if err != nil || !ran || st.Get(rec.ID) == nil {
 		t.Fatalf("migration: %v %v", err, ran)
 	}
 	st.Close()
 	// A folder from a newer relay is refused rather than misread.
-	store.DataVersion = 1
+	store.DataVersion = cur
 	if _, err := node.New(node.Options{Dir: dir, Node: rt.Key("n")}); err == nil || !strings.Contains(err.Error(), "upgrade the relay") {
 		t.Fatalf("newer folder: %v", err)
 	}

@@ -9,6 +9,7 @@ import (
 
 	"github.com/fjaeckel/seriesoftubes/relay/internal/config"
 	rt "github.com/fjaeckel/seriesoftubes/relay/internal/relaytest"
+	"github.com/fjaeckel/seriesoftubes/relay/internal/store"
 )
 
 // neighbours points a server's first node at other servers' first nodes.
@@ -74,7 +75,7 @@ func TestRecordThroughTwoPathsStoredOnce(t *testing.T) {
 	rt.Eventually(t, "record at b", func() bool { return b.Nodes[0].Has(id) })
 	time.Sleep(300 * time.Millisecond)
 	lines := 0
-	files, _ := filepath.Glob(filepath.Join(c.Nodes[0].Dir, "log", "*.jsonl"))
+	files, _ := filepath.Glob(filepath.Join(c.Nodes[0].Dir, store.RecordsFolder, "*.jsonl"))
 	for _, f := range files {
 		data, _ := os.ReadFile(f)
 		lines += strings.Count(string(data), id)
