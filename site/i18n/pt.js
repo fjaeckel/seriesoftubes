@@ -5081,6 +5081,7 @@
 "networks.small_fast_and_always_leaping_to":"Pequeno, rápido e sempre pulando para a próxima oferta. Croac.",
 "networks.social_media_everyone_keeps_falling":"Rede social. Todo mundo continua caindo nessa.",
 "networks.social_network_with_perfect_vision":"Rede social com visão perfeita.",
+"networks.sold_its_fiber_to_stay_in":"Vendeu sua fibra para ficar no negócio de transit. Agora move pacotes e limpa enxurradas, e seu clean pipe custa metade do que os outros carriers cobram. Servido com gelo e uma fatia de limão.",
 "networks.speedy_by_name_owns_a_slice":"Rápido no nome. Tem uma fatia do cabo para Singapura e não para de comprar provedores menores.",
 "networks.started_in_kansas_city_in_2012":"Começou em Kansas City em 2012 e desde então está “chegando em breve na sua cidade”. Faz peering com qualquer um, quase em todo lugar.",
 "networks.stockpiled_bandwidth_in_2020_and":"Estocou banda em 2020 e ainda tem alguns rolos sobrando.",

@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Gin & Transit (AS3257) is a new Tier 1 that sells transit and a clean pipe at half the usual price. New games need a PNI with it to become a Tier 1; saves already under way keep the Tier 1s they were playing for. It sold its fiber long ago, so wavelengths now come from EXAggerated Infrastructure instead.
+
 ## [5.3.0] — 2026-11-23
 
 - In Hyperscaler mode there is no longer a cap on how many regions you run: build as many as you can pay for. Your level still sets how many run at the plain price, and each one past that makes every region cost 25% more to run. (#452)

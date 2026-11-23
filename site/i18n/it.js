@@ -5081,6 +5081,7 @@
 "networks.small_fast_and_always_leaping_to":"Piccolo, veloce e sempre pronto a saltare sull’offerta successiva. Cra cra.",
 "networks.social_media_everyone_keeps_falling":"Social media. Tutti continuano a cascarci.",
 "networks.social_network_with_perfect_vision":"Social network dalla vista perfetta.",
+"networks.sold_its_fiber_to_stay_in":"Ha venduto la sua fibra per restare nel transit. Ora sposta pacchetti e ripulisce le piene, e il suo clean pipe costa la metà di quello degli altri carrier. Servito con ghiaccio e una fetta di limone.",
 "networks.speedy_by_name_owns_a_slice":"Veloce di nome. Ha una fetta del cavo per Singapore e continua a comprarsi ISP più piccoli.",
 "networks.started_in_kansas_city_in_2012":"Partita a Kansas City nel 2012 e da allora “presto nella tua città”. Fa peering con chiunque, quasi ovunque.",
 "networks.stockpiled_bandwidth_in_2020_and":"Ha fatto scorta di banda nel 2020 e ha ancora qualche rotolo.",

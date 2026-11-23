@@ -5082,6 +5082,7 @@
 "networks.small_fast_and_always_leaping_to":"Small, fast and always leaping to the next deal. Ribbit.",
 "networks.social_media_everyone_keeps_falling":"Social media. Everyone keeps falling for it.",
 "networks.social_network_with_perfect_vision":"Social network with perfect vision.",
+"networks.sold_its_fiber_to_stay_in":"Sold its fiber to stay in the transit business. Now it moves packets and scrubs floods, and its clean pipe costs half what other carriers charge. Served with ice and a slice.",
 "networks.speedy_by_name_owns_a_slice":"Speedy by name. Owns a slice of the cable to Singapore and keeps buying smaller ISPs.",
 "networks.started_in_kansas_city_in_2012":"Started in Kansas City in 2012 and has been “coming to your city soon” ever since. Peers with anyone, almost everywhere.",
 "networks.stockpiled_bandwidth_in_2020_and":"Stockpiled bandwidth in 2020 and still has a few rolls left.",

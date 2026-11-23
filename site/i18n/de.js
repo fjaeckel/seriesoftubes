@@ -5083,6 +5083,7 @@
 "networks.small_fast_and_always_leaping_to":"Klein, schnell und springt immer zum nächsten Deal. Quak.",
 "networks.social_media_everyone_keeps_falling":"Social Media. Alle fallen immer wieder darauf rein.",
 "networks.social_network_with_perfect_vision":"Soziales Netzwerk mit perfekter Sicht.",
+"networks.sold_its_fiber_to_stay_in":"Hat seine Glasfaser verkauft, um beim Transit zu bleiben. Jetzt schiebt er Pakete und wäscht Fluten, und seine Clean Pipe kostet die Hälfte von dem, was andere Carrier verlangen. Serviert mit Eis und einer Zitronenscheibe.",
 "networks.speedy_by_name_owns_a_slice":"Heißt schnell. Besitzt ein Stück vom Kabel nach Singapur und kauft laufend kleinere ISPs.",
 "networks.started_in_kansas_city_in_2012":"2012 in Kansas City gestartet und seitdem „bald auch in deiner Stadt“. Peert mit jedem, fast überall.",
 "networks.stockpiled_bandwidth_in_2020_and":"Hat 2020 Bandbreite gehamstert und noch ein paar Rollen übrig.",

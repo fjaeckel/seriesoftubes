@@ -17,7 +17,9 @@ test('#194 new games need both for Tier 1, old saves keep their set', () => {
   const { ev, errors } = load();
   ev("ACT.start({})");
   const need = () => ev("t1Need().map(n=>n.id).sort().join()");
-  assert.equal(need(), 'att,cog,dtk,lvl,ntt,skl,tat,tly,tng', 'new games need all nine');
+  assert.equal(need(), 'att,cog,dtk,gnt,lvl,ntt,skl,tat,tly,tng', 'new games need all ten, Gin & Transit included');
+  ev("S.t1v=4");
+  assert.equal(need(), 'att,cog,dtk,lvl,ntt,skl,tat,tly,tng', 'saves from before Gin & Transit keep nine');
   ev("S.t1v=3");
   assert.equal(need(), 'att,cog,lvl,ntt,skl,tat,tly', 'saves from 1.x and 2.x keep seven');
   ev("S.t1v=4;const o=JSON.parse(JSON.stringify(S));S=migrate(o)");

@@ -5081,6 +5081,7 @@
 "networks.small_fast_and_always_leaping_to":"Petit, rapide et toujours prêt à sauter sur la prochaine offre. Croâ.",
 "networks.social_media_everyone_keeps_falling":"Réseau social. Tout le monde finit par s’y vautrer.",
 "networks.social_network_with_perfect_vision":"Un réseau social à la vision parfaite.",
+"networks.sold_its_fiber_to_stay_in":"A vendu sa fibre pour rester dans le transit. Il achemine désormais des paquets et nettoie les crues, et son clean pipe coûte moitié moins cher que chez les autres opérateurs. Servi avec glaçons et rondelle de citron.",
 "networks.speedy_by_name_owns_a_slice":"Rapide de nom. Possède une part du câble vers Singapour et n’arrête pas de racheter de petits FAI.",
 "networks.started_in_kansas_city_in_2012":"Lancé à Kansas City en 2012 et « bientôt dans ta ville » depuis. Fait du peering avec n’importe qui, presque partout.",
 "networks.stockpiled_bandwidth_in_2020_and":"A fait des stocks de bande passante en 2020 et il lui reste encore quelques rouleaux.",

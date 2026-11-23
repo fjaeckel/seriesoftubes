@@ -191,7 +191,7 @@ test('a customer dropped while a sales trial routes: the trial runs again on the
   let found = false;
   // Played until such a trial comes: on the big save that depends on the offers the seeded game draws and on where
   // each city's traffic goes (#48, #137).
-  for (let d = 0; d < 60 && !found; d++) {
+  for (let d = 0; d < 150 && !found; d++) {
     p.ev('rwDay()');
     for (let k = 0; k < 400 && p.ev('!!RW.job'); k++) {
       if (p.ev('__later.length')) { p.ev('__later.shift()()'); continue; }

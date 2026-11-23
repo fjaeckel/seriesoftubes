@@ -40,7 +40,8 @@ const SCRUB_TIERS=[{n:'100G',g:100,cost:60000,mo:5000,lvl:1},{n:'1T',g:1000,cost
 const SLA_PEN=20000;
 const scrubMo1=x=>Math.round(SCRUB_TIERS[x.tier||0].mo*(S.scrubMode==='ondemand'?0.6:1)),scrubMo=()=>S.scrubs.reduce((a,x)=>a+scrubMo1(x),0);
 const hasScrub=()=>!!(S&&S.scrubs&&S.scrubs.length),SCRUB_FAR_MS=30;
-const cleanMo=t=>Math.round(PORT[t.tier].g*(t.n||1)*5);
+// A carrier that sells DDoS protection as its trade (clean on the network) charges less for its clean pipe.
+const cleanMo=t=>Math.round(PORT[t.tier].g*(t.n||1)*5*(NET[t.net]&&NET[t.net].clean||1));
 /* DDoS (see docs: sizes come from the world, a flood enters on every port it can reach, each tool acts where it does in
    real networks). A vector's `fs` is whether Flowspec has a signature for it: the known volumetric floods, not ACK or
    application floods. Flowspec lives in each router's TCAM: RG[].fsN is how many rules one POP's routers hold; a live
