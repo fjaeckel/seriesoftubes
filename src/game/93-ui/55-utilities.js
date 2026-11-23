@@ -26,7 +26,7 @@ function utilitiesModal(city,message){if(!S)return;const cities=Object.keys(S.po
     ${ppol()!=='open'?`<p class="why">${tr('link_panels.off_while_your_peering_policy_is',{pol:tr(PPOL_N[ppol()])})}</p>${btn(tr('common.peering_policy'),'leftTab',{t:'nets'},'ghost sm')}`:''}
     ${rows.map(r=>`<details><summary>${esc(ixName(r.ix))} · ${tr('utilities.peer_counts',{ready:r.requests.length,existing:r.existing,blocked:r.blocked.length})}</summary>
       ${r.blocked.map(b=>`<p class="meta"><b>${esc(NET[b.id].name)}</b>: ${esc(b.why)}</p>`).join('')}</details>`).join('')}</section>
-    ${utilityKitAllHtml(city)}${popTierAllHtml(city)}
+    ${utilityKitAllHtml(city)}${lagSplitHtml(city)}${popTierAllHtml(city)}
     ${cities.length?`<section><label for="utilityCity">${tr('common.your_pop')}</label><div class="btns"><select id="utilityCity" style="max-width:100%">${cities.map(c=>`<option value="${c}"${c===city?' selected':''}>${esc(CITY[c].name)}</option>`).join('')}</select>${btn(tr('utilities.view_pop'),'utilityPick',{},'sm')}</div></section>${utilityKitHtml(city,true)}`:''}`);
 }
 // The kit everywhere (#317), and where new POPs get it: the intern's template, which the intern clicks through.
@@ -36,3 +36,10 @@ function utilityKitAllHtml(city){const q=utilityKitAll();if(!q)return '';const t
     <div class="btns">${btn(trn('utilities.kit_all_apply',q.cities.length,{cost:fmt$(q.cost)}),'utilityKitAll',{cost:q.cost,city},'pink',S.cash<q.cost)}</div>`:`<p class="meta">${tr('utilities.kit_all_done')}</p>`}
     <p class="note">${opsHired()?(tpl?tr('utilities.kit_new_pops_on',{name:opsName()}):tr('utilities.kit_new_pops_off',{name:opsName()})):tr('utilities.kit_new_pops_hire')}</p>
     ${opsHired()?`<div class="btns">${btn(tpl?tr('utilities.kit_new_pops_stop'):tr('utilities.kit_new_pops_start'),'utilityKitNew',{city},tpl?'ghost sm':'sm')}</div>`:''}</section>`;}
+// Every LAG split across both buildings: bundles move for free, single ports get a second member first (a priced button).
+function lagSplitHtml(city){const q=lagSplitAll();if(!q)return '';const f=q.free.length,a=q.add.length;
+  return `<section><h3>${tr('utilities.split_every_lag')}</h3><p class="lead">${tr('utilities.split_lag_note')}</p>
+    ${f?`<p class="meta">${trn('utilities.split_free_quote',f)}</p><div class="btns">${btn(trn('utilities.split_free',f),'utilityLagSplit',{city},'pink')}</div>`:''}
+    ${a?`<p class="meta">${trn('utilities.split_add_quote',a,{cost:fmt$(q.cost),mo:fmt$(q.mo)})}</p><div class="btns">${btn(trn('utilities.split_add',f+a,{cost:fmt$(q.cost)}),'utilityLagSplit',{city,add:true,cost:q.cost},f?'':'pink',S.cash<q.cost)}</div>`:''}
+    ${f||a?'':`<p class="meta">${tr('utilities.split_all_done')}</p>`}
+    <p class="note">${tr('utilities.split_one_site_note')}</p></section>`;}

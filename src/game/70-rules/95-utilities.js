@@ -47,6 +47,23 @@ const utilityKitAllOn=()=>!!S&&opsCanHire()&&!pzOn();
 function utilityKitAll(){if(!utilityKitAllOn())return null;const cities=[];let cost=0,mo=0,moves=0;
   for(const c of Object.keys(S.pops)){const q=utilityKit(c);if(!q||(!q.cost&&!q.moves.length))continue;cities.push(c);cost+=q.cost;mo+=q.mo;moves+=q.moves.length;}
   return {cities,cost,mo,moves};}
+/* Every LAG split between a POP's two buildings: transit, PNI and IX bundles at POPs with a second site that still sit in
+   one building. A bundle of two or more only moves (free); a single port needs a second member first, at the price
+   siteSet pays for it (lagT, lagP, lagIx). A PNI augment already on order counts by the size it will have. Your own
+   exchanges are a switch, not a port: they stay in their panel. */
+function lagSplitAll(){if(!utilityKitAllOn())return null;const free=[],add=[];let cost=0,mo=0;
+  const two=c=>!!(S.pops[c]&&S.pops[c].site2);
+  for(const t of S.transit){if(t.pz||!two(t.city)||t.site==='ab')continue;
+    if((t.n||1)>=2)free.push({k:'t',id:t.id});
+    else if(portOk(t.city,t.tier)){add.push({k:'t',id:t.id});cost+=PORT[t.tier].setup;mo+=PORT[t.tier].tmo;}}
+  for(const p of S.pni){if(!two(p.city)||p.site==='ab')continue;const n=p.n||1;
+    if(n>=2||(p.up&&p.up.n>=2)){if(n>=2||p.up.site!=='ab')free.push({k:'p',id:p.id});}
+    else if(!p.up&&pniOn(p)&&!msfNope(p.net,p.city)&&pniLagMax(p.city)>=2){add.push({k:'p',id:p.id});cost+=1500+PORT[p.tier].setup/2;mo+=p.g1?Math.round(PORT[0].pni/2):PORT[p.tier].pni;}}
+  const site=S.ixSite||{},ixn=S.ixn||{};
+  for(const x of Object.keys(S.ixp)){if(S.ixp[x]===undefined||S.myIx[x]||!isIx(x)||!two(ixCity(x))||site[x]==='ab')continue;
+    if((ixn[x]||1)>=2)free.push({k:'ix',id:x});
+    else if(!modeOn('outcast')){const m=ixPortMo(x,S.ixp[x]);add.push({k:'ix',id:x});cost+=m;mo+=m;}}
+  return {free,add,cost:Math.round(cost),mo:Math.round(mo)};}
 function utilityPeers(){if(!S)return [];return Object.keys(S.ixp).filter(isIx).map(ix=>{
   const sessions=ixSessions(ix),requests=[],blocked=[];let existing=0;
   for(const id of ixMembers(ix)){
