@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 - Relay operators: the folder holding your server's records is now called `records/` instead of `log/`, so a log cleanup script no longer wipes your server (#447). It is renamed on the relay's first start after updating; a relay older than this one then refuses the folder, so update rather than roll back.
+- The window for moving a circuit to another path now shows the distance and latency of the path it is on, so you can compare it with the others. (#464)
 - Gin & Transit (AS3257) is a new Tier 1 that sells transit and a clean pipe at half the usual price. New games need a PNI with it to become a Tier 1; saves already under way keep the Tier 1s they were playing for. It sold its fiber long ago, so wavelengths now come from EXAggerated Infrastructure instead.
 
 ## [5.3.0] — 2026-11-23
@@ -16,7 +17,6 @@ All notable changes to this project are documented here. The project follows
 - Leaving multiplayer no longer keeps other players' networks in your game, so 100% reach is possible again and customers stop leaving over players you cannot reach. Saves that already left are repaired when they load. (#450)
 - In Hyperscaler mode, Auto-TE now moves "Your backbone to" traffic too: your spill rules shift it onto other paths instead of leaving the shortest link congested. (#453)
 - The distance and price shown while you drag a new link between two cities now sit on top of city names, so they stay readable. (#454)
-- The window for moving a circuit to another path now shows the distance and latency of the path it is on, so you can compare it with the others. (#464)
 
 ## [5.2.2] — 2026-11-22
 

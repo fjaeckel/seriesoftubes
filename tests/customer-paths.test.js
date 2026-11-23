@@ -17,6 +17,7 @@ const circuit = (bw = 100) => `S.biz.push({id:'k',type:'l2vpn',name:'Big Circuit
 function game(t, extra = '') { const h = load({ seed: 777 }); t.after(() => h.dom.window.close());
   h.ev(BASE); assert.equal(hasCities(h.ev), true); h.ev(extra + 'compute();'); return h; }
 const biz = (ev, id, k) => ev(`S.biz.find(b=>b.id===${lit(id)}).${k}`);
+const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const modal = (ev) => ev("document.getElementById('modal').textContent");
 
 test('a wave moves to another fiber: free, its channels go with it, and the first choice is on another trench', (t) => {
@@ -157,7 +158,7 @@ test('a pinned circuit rides its path, and takes the load off the direct fibers'
   assert.equal(T.km, 350);
   assert.ok(Math.abs(T.lat - ev("R.l2lat.k")) < 1e-9, 'the same latency as routing');
   ev("ACT.pathOpen({id:'k'})");
-  assert.match(modal(ev), new RegExp(`Now onNew York → Ashburn350 km · ${T.lat.toFixed(1)} ms`));
+  assert.match(modal(ev), new RegExp(reEsc(`Now onNew York → Ashburn350 km · ${T.lat.toFixed(1)} ms`)));
   assert.match(modal(ev), /Fully diverse/);
   ev("ACT.pathPin({id:'k',via:'nyc,bos,ash'})");
   const on = load();
@@ -252,5 +253,21 @@ test('the buttons are in the panels: under a customer in its city, and on the fi
   // (the fiber's rentals are a folded section: one tap opens it)
   ev("selectLink('a');renderPanel();ACT.panelFold({k:'s:sell',o:1});");
   assert.equal(ev("[...document.querySelectorAll('#panel [data-act=pathOpen]')].length"), 1);
+  assert.deepEqual(errors, []);
+});
+
+test('a circuit split over two paths shows the latency it is held to, its slowest path’s (#464)', (t) => {
+  const { ev, errors } = game(t, circuit(100) + "S.biz[0].route='scenic';");
+  // Scenic: the direct fibers and the way by Boston are equally quiet, so routing sends it over both.
+  assert.equal(ev('R.l2split.k'), 2);
+  const T = JSON.parse(ev("JSON.stringify(circuitTargets(S.biz[0]))"));
+  const direct = ev("pathHops(pathEdges(),['nyc','ash']).reduce((a,e)=>a+e.lat+0.05,0)");
+  assert.equal(T.split, 2);
+  assert.equal(T.lat, ev('R.l2lat.k'), 'routing’s figure, which contracts are held to');
+  // The way by Boston has one more hop: a little slower than the direct fibers, which is all the window used to add up.
+  assert.ok(T.lat > direct, 'slower than the direct path alone');
+  assert.equal(T.km, null, 'no single distance for two paths');
+  ev("ACT.pathOpen({id:'k'})");
+  assert.match(modal(ev), new RegExp(reEsc(`Now onNew York → Ashburn${T.lat.toFixed(1)} ms one-way · split over two equally quiet paths`)));
   assert.deepEqual(errors, []);
 });

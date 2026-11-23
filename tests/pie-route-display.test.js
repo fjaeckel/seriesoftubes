@@ -32,7 +32,7 @@ test('a circuit through orbit shows the sky leg, and the fiber path is offered t
   const now = [...card.querySelectorAll('.kv')].find((k) => k.textContent.startsWith('Now on'));
   assert.equal(now.querySelector('b').textContent, sky);
   // its latency is routing's, the orbit hops included
-  assert.match(card.textContent, new RegExp(`${ev("R.l2lat.h1").toFixed(1)} ms one-way`));
+  assert.match(card.textContent, new RegExp(`${ev("R.l2lat.h1").toFixed(1).replace('.', '\\.')} ms one-way`));
   assert.match(card.textContent, /Orbit is faster than any fiber path here/);
   // the fiber path is a choice of its own, and pinning it keeps the circuit on fiber
   const mv = [...card.querySelectorAll('[data-act="pathPin"]')].map((b) => JSON.parse(b.dataset.args).via);
