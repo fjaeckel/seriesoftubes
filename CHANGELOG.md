@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 - Utilities can now split every LAG across both buildings of your POPs in one go. Bundles of two or more move for free, and single ports can get their second member at one quoted price, so one dark building no longer takes a whole connection down. (#465)
+- A customer who wants two paths that share no trench now says why the requirement fails. Under the red ✗ it names the span or cable every path runs through, and any down link that would pass it again, such as a link closed by a border dispute, with the days left. (#463)
 - Relay operators: the folder holding your server's records is now called `records/` instead of `log/`, so a log cleanup script no longer wipes your server (#447). It is renamed on the relay's first start after updating; a relay older than this one then refuses the folder, so update rather than roll back.
 - The window for moving a circuit to another path now shows the distance and latency of the path it is on, so you can compare it with the others. (#464)
 - Gin & Transit (AS3257) is a new Tier 1 that sells transit and a clean pipe at half the usual price. New games need a PNI with it to become a Tier 1; saves already under way keep the Tier 1s they were playing for. It sold its fiber long ago, so wavelengths now come from EXAggerated Infrastructure instead.
