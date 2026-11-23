@@ -40,7 +40,7 @@ function apiDispatch(name,kind,spec,args,typed){
   let threw=null,report;
   try{
     if(typed&&kind==='game'){
-      if(spec.open){ACT[spec.open]({});apiMarkSheet();}
+      if(spec.open){ACT[spec.open](spec.openArgs?spec.openArgs(args):{});apiMarkSheet();}
       // The custom metric's field lives in the link's panel.
       if(name==='metricSet'&&!$('metIn')){UI.sel={type:'link',id:args.id};renderAll();}
       const gone=(spec.dom||[]).filter(f=>!$(f));

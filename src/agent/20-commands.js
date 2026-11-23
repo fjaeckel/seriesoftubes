@@ -112,6 +112,9 @@ const API_CMD={
  myIxUp:{args:[['city','cityId']],watch:['myIx.#city'],
   quote:a=>{const m=S.myIx[a.city];const f=m?(m.fab|0)+1:0,N=f<MYIX_FAB.length?MYIX_FAB[f]:null;return N?{setup:N.cost,monthly:N.mo}:{};},
   doc:'Upgrade your own exchange\'s switch fabric. Each step has a level gate.'},
+ ixRenameGo:{args:[['city','cityId'],['name','string']],open:'ixRename',openArgs:a=>({city:a.city}),dom:['ixRnIn'],watch:['myIx.#city'],
+  bind:a=>{$('ixRnIn').value=String(a.name).slice(0,40);},
+  doc:'Rename an exchange you founded. act opens the rename sheet from its panel and types the name in; it is trimmed to 40 characters.'},
 /* ---------- peering and PNIs ---------- */
  peer:{args:[['city','ixId'],['net','netId']],
   doc:'Ask one network at an exchange for a session. Rejected with the network\'s own reason if its policy says no.'},
@@ -821,6 +824,7 @@ const API_BOUND={
  modeSet:{command:'start',note:'drafts the game mode; new_game starts games'},
  presetSet:{command:'start',note:'drafts the difficulty preset; new_game starts games'},
  chaosSet:{command:'start',note:'drafts the sandbox chaos dial; new_game starts games'},
+ ixRename:{command:'ixRenameGo',note:'opens the rename sheet; ixRenameGo opens it itself'},
  rename:{command:'renameGo',note:'opens the rename sheet; renameGo opens it itself'},
  pniAllSize:{command:'pniAll',arg:'tier',note:'steps the port size in the bulk sheet'},
  utilityPick:{command:'utilities',note:'the sheet\'s city picker; pass city to utilities itself'},
