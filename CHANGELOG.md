@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+## [5.4.0] — 2026-11-23
+
 - Fiber still being built can now be kept off the capacity market from its panel. The broker used to start selling a new route the day it was handed over, before you could switch it off. (#470)
 - Utilities can now split every LAG across both buildings of your POPs in one go. Bundles of two or more move for free, and single ports can get their second member at one quoted price, so one dark building no longer takes a whole connection down. (#465)
 - A customer who wants two paths that share no trench now says why the requirement fails. Under the red ✗ it names the span or cable every path runs through, and any down link that would pass it again, such as a link closed by a border dispute, with the days left. (#463)
