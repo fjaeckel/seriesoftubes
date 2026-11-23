@@ -4537,6 +4537,8 @@
 "link_panels.lose_exclusive_benefits":"Perdre tes avantages exclusifs ?",
 "link_panels.lost_on_the_way":"Perdu en route",
 "link_panels.mainland_china_plays_by_its_own":"La Chine continentale joue selon ses propres règles. {list} et d’autres services étrangers y sont bloqués, donc les utilisateurs atteignent surtout des réseaux chinois. Le trafic qui passe la frontière perd environ {pct} en filtrage et congestion, sauf s’il emprunte une route premium : du transit CN-Too ou un circuit transfrontalier premium (tous deux vendus uniquement à Hong Kong), ou un PNI avec un réseau chinois. Le revenu par utilisateur est plus faible ici.",
+"link_panels.market_left_alone_at_handover":"Le broker laissera cette route tranquille : rien n’y sera vendu à la livraison de la fibre.",
+"link_panels.market_trades_from_handover":"Le broker commence à vendre la capacité libre ici le jour où la fibre est livrée. Garde-la hors du marché maintenant si tu en as besoin en entier.",
 "link_panels.members_paying_you":"Membres payants",
 "link_panels.multiplier_scales_the_distance_cost":"Multiplicateur : il multiplie le coût de la distance, donc un lien plus long coûte toujours plus.",
 "link_panels.n_amp_huts":"{n} abris d’amplis",

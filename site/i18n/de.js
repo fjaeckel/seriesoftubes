@@ -4539,6 +4539,8 @@
 "link_panels.lose_exclusive_benefits":"Exklusive Vorteile verlieren?",
 "link_panels.lost_on_the_way":"Unterwegs verloren",
 "link_panels.mainland_china_plays_by_its_own":"Festlandchina spielt nach eigenen Regeln. {list} und andere ausländische Dienste sind hier gesperrt, also erreichen Nutzer meist chinesische Netze. Traffic über die Grenze verliert etwa {pct} durch Filter und Überlastung, außer er läuft über eine Premium-Route: CN-Too-Transit oder eine grenzüberschreitende Premium-Verbindung (beides nur in Hongkong zu haben) oder ein PNI mit einem chinesischen Netz. Der Umsatz pro Nutzer ist hier niedriger.",
+"link_panels.market_left_alone_at_handover":"Der Broker lässt diese Route in Ruhe: Bei der Übergabe der Glasfaser wird nichts davon verkauft.",
+"link_panels.market_trades_from_handover":"Der Broker verkauft freie Kapazität hier ab dem Tag, an dem die Glasfaser übergeben wird. Halte sie jetzt vom Markt fern, wenn du alles selbst brauchst.",
 "link_panels.members_paying_you":"Mitglieder, die dich bezahlen",
 "link_panels.multiplier_scales_the_distance_cost":"Faktor: skaliert die Kosten der Strecke, ein längerer Link kostet also weiter mehr.",
 "link_panels.n_amp_huts":"{n} Verstärkerhütten",

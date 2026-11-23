@@ -28,9 +28,11 @@ Object.assign(ACT,{
    if(k==='on'){c.on=!!v;if(!c.on)cmUnlist(S.links,p);}
    else if(k==='min'&&CM_MIN[p].includes(v))c.min=v;else if(k==='floor'&&CM_FLOOR.includes(v))c.floor=v;else return;
    cmAfter();},
- // A route the broker leaves alone keeps nothing listed by the thresholds, only what you listed by hand.
- mktRoute:({k})=>{const r=typeof k==='string'&&cmRoutes().get(k);if(!r)return;if(S.cm.off[k]){delete S.cm.off[k];}else{S.cm.off[k]=1;
-     for(const l of r.ls)if(l.list)for(const p of CM_P)if(cmOn(k,p))l.list[CM_L[p]]=cmHand(l,CM_L[p]);}
+ // A route the broker leaves alone keeps nothing listed by the thresholds, only what you listed by hand. Fiber still
+ // being built can be kept off too: the broker trades on a route the day its fiber is handed over.
+ mktRoute:({k})=>{if(typeof k!=='string')return;const r=cmRoutes().get(k);if(!r&&!S.links.some(l=>l.kind==='df'&&edgeKey(l)===k))return;
+   if(S.cm.off[k]){delete S.cm.off[k];}else{S.cm.off[k]=1;
+     if(r)for(const l of r.ls)if(l.list)for(const p of CM_P)if(cmOn(k,p))l.list[CM_L[p]]=cmHand(l,CM_L[p]);}
    cmAfter();},
  /* A route's own rules: f is hold, floor or a product, v one of the allowed values, or nothing for "as everywhere".
     Rules that say nothing are not kept. */
