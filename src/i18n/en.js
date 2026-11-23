@@ -7123,6 +7123,7 @@
 "utilities.split_free":{"one":"Split {n} LAG","other":"Split {n} LAGs"},
 "utilities.split_free_quote":{"one":"{n} LAG has its members in one building · free to split","other":"{n} LAGs have their members in one building · free to split"},
 "utilities.split_lag_note":"A LAG with members in both buildings keeps half its capacity when one goes dark. This splits every transit, PNI and IX bundle at your POPs with a second site.",
+"utilities.split_no_router_ports":{"one":"{n} single port can't get a second member yet: no free router ports in {cities}. Add a router there first.","other":"{n} single ports can't get a second member yet: no free router ports in {cities}. Add a router there first."},
 "utilities.split_one_site_note":"POPs with one building are skipped: the redundancy kit adds the second. Your own exchanges are a switch, set in their panel.",
 "utilities.title":"Utilities",
 "utilities.two_routers":"At least two routers",

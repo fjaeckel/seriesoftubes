@@ -86,3 +86,24 @@ test('a PNI augment already on order is split when it lands, without buying anot
   assert.deepEqual(JSON.parse(ev("JSON.stringify((({n,site})=>[n,site])(S.pni.find(x=>x.id==='p1')))")), [2, 'ab']);
   assert.deepEqual(errors, []);
 });
+
+test('the quote only prices the members the routers have free ports for, and says where the rest wait', t => {
+  const { ev, errors } = setup(t, "ACT.addSite({city:'fra'});S.pops.fra.routers=2;S.pops.fra.rgen=3;" +
+    "S.transit.push({id:'s1',city:'fra',net:'cog',tier:1,n:1,site:'a'},{id:'s2',city:'fra',net:'drz',tier:1,n:1,site:'a'},{id:'s3',city:'fra',net:'tly',tier:1,n:1,site:'a'});" +
+    // Fill the routers with bundles already split, until one 10G port is left.
+    "for(let i=0;i<500&&portsMax('fra')-portsUsed('fra')>=2*PORT_SLOT(1);i++)S.transit.push({id:'f'+i,city:'fra',net:'cog',tier:1,n:2,site:'ab'});compute();");
+  assert.equal(ev("portsMax('fra')-portsUsed('fra')"), ev('PORT_SLOT(1)'), 'room for one more port');
+  const q = ev("(()=>{const q=lagSplitAll();return {add:q.add.map(x=>x.id).join(),full:q.full.map(x=>x.id+'@'+x.city).join(),cost:q.cost}})()");
+  assert.equal(q.add, 's1', 'the first single port fits');
+  assert.equal(q.full, 's2@fra,s3@fra', 'the others wait for router ports');
+  assert.equal(q.cost, ev('PORT[1].setup'), 'only what fits is priced');
+  ev("utilitiesModal('fra')");
+  assert.match(modal(ev), /2 single ports can't get a second member yet: no free router ports in Frankfurt/);
+  const cash = ev('S.cash');
+  ev(`ACT.utilityLagSplit({add:true,cost:${q.cost},city:'fra'})`);
+  assert.equal(cash - ev('S.cash'), q.cost, 'charged exactly the quote');
+  assert.equal(ev("S.transit.find(t=>t.id==='s1').site"), 'ab');
+  assert.equal(ev("S.transit.filter(t=>/^s/.test(t.id)&&(t.n||1)<2).map(t=>t.id).join()"), 's2,s3');
+  assert.match(modal(ev), /Split 1 LAG across both buildings/);
+  assert.deepEqual(errors, []);
+});

@@ -7122,6 +7122,7 @@
 "utilities.split_free":{"one":"Répartir {n} LAG","other":"Répartir {n} LAG"},
 "utilities.split_free_quote":{"one":"{n} LAG a ses membres dans un seul bâtiment · le répartir est gratuit","other":"{n} LAG ont leurs membres dans un seul bâtiment · les répartir est gratuit"},
 "utilities.split_lag_note":"Un LAG avec des membres dans les deux bâtiments garde la moitié de sa capacité quand l’un s’éteint. Ceci répartit chaque bundle de transit, PNI et IX de tes POP qui ont un second site.",
+"utilities.split_no_router_ports":{"one":"{n} port seul ne peut pas encore avoir de second membre : plus de ports routeur libres à {cities}. Ajoute d'abord un routeur là-bas.","other":"{n} ports seuls ne peuvent pas encore avoir de second membre : plus de ports routeur libres à {cities}. Ajoute d'abord un routeur là-bas."},
 "utilities.split_one_site_note":"Les POP à un seul bâtiment sont ignorés : le kit de redondance ajoute le second. Tes propres exchanges sont un switch, réglé dans leur panneau.",
 "utilities.title":"Utilitaires",
 "utilities.two_routers":"Au moins deux routeurs",

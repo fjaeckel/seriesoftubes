@@ -50,20 +50,25 @@ function utilityKitAll(){if(!utilityKitAllOn())return null;const cities=[];let c
 /* Every LAG split between a POP's two buildings: transit, PNI and IX bundles at POPs with a second site that still sit in
    one building. A bundle of two or more only moves (free); a single port needs a second member first, at the price
    siteSet pays for it (lagT, lagP, lagIx). A PNI augment already on order counts by the size it will have. Your own
-   exchanges are a switch, not a port: they stay in their panel. */
-function lagSplitAll(){if(!utilityKitAllOn())return null;const free=[],add=[];let cost=0,mo=0;
+   exchanges are a switch, not a port: they stay in their panel. A second member also needs a free router port, as
+   portGate asks on the click: the quote fills each POP's free ports in the order the batch buys, and what does not
+   fit waits in full (city by city) instead of being priced and then skipped. */
+function lagSplitAll(){if(!utilityKitAllOn())return null;const free=[],add=[],full=[],room=new Map();let cost=0,mo=0;
   const two=c=>!!(S.pops[c]&&S.pops[c].site2);
+  const fits=(c,tier)=>{let r=room.get(c);if(r===undefined)room.set(c,r=portsMax(c)-portsUsed(c));const need=PORT_SLOT(tier);
+    if(r+1e-9<need)return false;room.set(c,r-need);return true;};
+  const want=(x,c,tier,up,m)=>{if(fits(c,tier)){add.push(x);cost+=up;mo+=m;}else full.push({...x,city:c});};
   for(const t of S.transit){if(t.pz||!two(t.city)||t.site==='ab')continue;
     if((t.n||1)>=2)free.push({k:'t',id:t.id});
-    else if(portOk(t.city,t.tier)){add.push({k:'t',id:t.id});cost+=PORT[t.tier].setup;mo+=PORT[t.tier].tmo;}}
+    else if(portOk(t.city,t.tier))want({k:'t',id:t.id},t.city,t.tier,PORT[t.tier].setup,PORT[t.tier].tmo);}
   for(const p of S.pni){if(!two(p.city)||p.site==='ab')continue;const n=p.n||1;
     if(n>=2||(p.up&&p.up.n>=2)){if(n>=2||p.up.site!=='ab')free.push({k:'p',id:p.id});}
-    else if(!p.up&&pniOn(p)&&!msfNope(p.net,p.city)&&pniLagMax(p.city)>=2){add.push({k:'p',id:p.id});cost+=1500+PORT[p.tier].setup/2;mo+=p.g1?Math.round(PORT[0].pni/2):PORT[p.tier].pni;}}
+    else if(!p.up&&pniOn(p)&&!msfNope(p.net,p.city)&&pniLagMax(p.city)>=2)want({k:'p',id:p.id},p.city,p.tier,1500+PORT[p.tier].setup/2,p.g1?Math.round(PORT[0].pni/2):PORT[p.tier].pni);}
   const site=S.ixSite||{},ixn=S.ixn||{};
   for(const x of Object.keys(S.ixp)){if(S.ixp[x]===undefined||S.myIx[x]||!isIx(x)||!two(ixCity(x))||site[x]==='ab')continue;
     if((ixn[x]||1)>=2)free.push({k:'ix',id:x});
-    else if(!modeOn('outcast')){const m=ixPortMo(x,S.ixp[x]);add.push({k:'ix',id:x});cost+=m;mo+=m;}}
-  return {free,add,cost:Math.round(cost),mo:Math.round(mo)};}
+    else if(!modeOn('outcast')){const m=ixPortMo(x,S.ixp[x]);want({k:'ix',id:x},ixCity(x),S.ixp[x],m,m);}}
+  return {free,add,full,cost:Math.round(cost),mo:Math.round(mo)};}
 function utilityPeers(){if(!S)return [];return Object.keys(S.ixp).filter(isIx).map(ix=>{
   const sessions=ixSessions(ix),requests=[],blocked=[];let existing=0;
   for(const id of ixMembers(ix)){

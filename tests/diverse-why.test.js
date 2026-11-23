@@ -44,3 +44,23 @@ test('in the Gulf spat, the closed border is the reason, with the days left', (t
   assert.match(txt, /Doha – Riyadh \(border closed, 40 days left\)/);
   assert.deepEqual(errors, []);
 });
+
+// On the big network with a third of the links cut: a down link is named as the fix exactly when bringing it back
+// makes diversePaths() pass, so the line never promises what the ✗ will not do (ties broken in list order).
+test('a link named as the fix is one that really passes the requirement once back', t => {
+  const fs = require('node:fs');
+  const h = load();
+  t.after(() => h.dom.window.close());
+  h.ev(`S=migrate(${fs.readFileSync(require.resolve('./fixtures/big-network.json'), 'utf8')});S.links.forEach((l,i)=>{if(i%3===1)l.cut=S.day+30;});compute();DIVWHY=null`);
+  const bad = h.ev(`(()=>{const ps=Object.keys(S.pops),bad=[];let checked=0;
+    for(let i=0;i<60;i++){const a=ps[(i*7)%ps.length],b=ps[(i*13+5)%ps.length];if(a===b||diversePaths(a,b))continue;
+      const w=divWhyOf(a,b),down=S.links.filter(l=>linkDown(l));
+      for(const l of down){const r=l.cut;l.cut=0;const pass=diversePaths(a,b);l.cut=r;checked++;
+        const named=w.back.includes(divDownTxt(l));
+        if(named&&!pass)bad.push(a+'-'+b+': names '+l.id+' but it does not pass');
+        if(!named&&pass&&w.back.length<DIVWHY_MAX)bad.push(a+'-'+b+': '+l.id+' passes but is not named');}}
+    return {bad:bad.slice(0,5).join('; '),checked};})()`);
+  assert.ok(bad.checked > 100, `enough cases (${bad.checked})`);
+  assert.equal(bad.bad, '');
+  assert.deepEqual(h.errors, []);
+});

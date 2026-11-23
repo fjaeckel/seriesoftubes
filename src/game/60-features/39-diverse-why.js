@@ -14,13 +14,14 @@ function divDownTxt(l){const n=d=>Math.max(1,d-S.day),w=borderShut(l),name=esc(d
   if(l.ready>S.day)return trn('diverse_why.link_building',n(l.ready),{link:name});
   if(l.eqDown>S.day)return trn('diverse_why.link_equipment',n(l.eqDown),{link:name});
   return tr('diverse_why.link_dark',{link:name});}
-function divWhyOf(a,b){const rem=remoteCities(),ok=c=>popUp(c)||rem.includes(c),adj=new Map(),down=[];
-  for(const l of S.links){if(!ok(l.a)||!ok(l.b))continue;if(linkDown(l)){down.push(l);continue;}
+function divWhyOf(a,b){const rem=remoteCities(),ok=c=>popUp(c)||rem.includes(c),adj=new Map(),down=[],dn=new Set();
+  // Every link between live cities, in list order; a down one is skipped unless it is the one counted as back (x), so a
+  // link that comes back sits where divGraph() would list it and the search breaks ties the same way.
+  for(const l of S.links){if(!ok(l.a)||!ok(l.b))continue;if(linkDown(l)){down.push(l);dn.add(l);}
     for(const [u,v] of [[l.a,l.b],[l.b,l.a]]){let L=adj.get(u);if(!L)adj.set(u,L=[]);L.push([v,l]);}}
   // Breadth first in list order, as disjointOn() walks; x: one down link counted as up.
-  const walk=(skip,x)=>{const prev=new Map([[a,null]]),q=[a];for(let h=0;h<q.length;h++){const u=q[h];if(u===b)break;let L=adj.get(u)||[];
-      if(x&&(x.a===u||x.b===u))L=L.concat([[x.a===u?x.b:x.a,x]]);
-      for(const [v,l] of L)if(!prev.has(v)&&!(skip&&skip.has(srlgOf(l)))){prev.set(v,l);q.push(v);}}
+  const walk=(skip,x)=>{const prev=new Map([[a,null]]),q=[a];for(let h=0;h<q.length;h++){const u=q[h];if(u===b)break;
+      for(const [v,l] of adj.get(u)||[])if(!prev.has(v)&&(l===x||!dn.has(l))&&!(skip&&skip.has(srlgOf(l)))){prev.set(v,l);q.push(v);}}
     if(!prev.has(b))return null;const p=[];for(let v=b;v!==a;){const l=prev.get(v);p.push(l);v=l.a===v?l.b:l.a;}return p;};
   const two=x=>{const p=walk(null,x);return !!p&&!!walk(new Set(p.map(srlgOf)),x);};
   const p1=walk(null),spof=[],seen=new Set();

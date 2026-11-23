@@ -7124,6 +7124,7 @@
 "utilities.split_free":{"one":"{n} LAG aufteilen","other":"{n} LAGs aufteilen"},
 "utilities.split_free_quote":{"one":"{n} LAG hat seine Member in einem Gebäude · Aufteilen kostet nichts","other":"{n} LAGs haben ihre Member in einem Gebäude · Aufteilen kostet nichts"},
 "utilities.split_lag_note":"Ein LAG mit Membern in beiden Gebäuden behält die Hälfte seiner Kapazität, wenn eins dunkel wird. Das teilt jedes Transit-, PNI- und IX-Bündel in deinen POPs mit zweitem Standort auf.",
+"utilities.split_no_router_ports":{"one":"{n} einzelner Port bekommt noch kein zweites Mitglied: keine freien Router-Ports in {cities}. Stell dort erst einen Router dazu.","other":"{n} einzelne Ports bekommen noch kein zweites Mitglied: keine freien Router-Ports in {cities}. Stell dort erst einen Router dazu."},
 "utilities.split_one_site_note":"POPs mit nur einem Gebäude werden übersprungen: das Redundanz-Kit bringt das zweite. Deine eigenen Exchanges sind ein Switch und werden in ihrem Panel eingestellt.",
 "utilities.title":"Werkzeuge",
 "utilities.two_routers":"Mindestens zwei Router",

@@ -41,5 +41,6 @@ function lagSplitHtml(city){const q=lagSplitAll();if(!q)return '';const f=q.free
   return `<section><h3>${tr('utilities.split_every_lag')}</h3><p class="lead">${tr('utilities.split_lag_note')}</p>
     ${f?`<p class="meta">${trn('utilities.split_free_quote',f)}</p><div class="btns">${btn(trn('utilities.split_free',f),'utilityLagSplit',{city},'pink')}</div>`:''}
     ${a?`<p class="meta">${trn('utilities.split_add_quote',a,{cost:fmt$(q.cost),mo:fmt$(q.mo)})}</p><div class="btns">${btn(trn('utilities.split_add',f+a,{cost:fmt$(q.cost)}),'utilityLagSplit',{city,add:true,cost:q.cost},f?'':'pink',S.cash<q.cost)}</div>`:''}
-    ${f||a?'':`<p class="meta">${tr('utilities.split_all_done')}</p>`}
+    ${q.full.length?`<p class="why">${trn('utilities.split_no_router_ports',q.full.length,{cities:[...new Set(q.full.map(x=>x.city))].map(c=>esc(CITY[c].name)).join(', ')})}</p>`:''}
+    ${f||a||q.full.length?'':`<p class="meta">${tr('utilities.split_all_done')}</p>`}
     <p class="note">${tr('utilities.split_one_site_note')}</p></section>`;}
