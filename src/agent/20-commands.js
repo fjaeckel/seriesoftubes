@@ -259,7 +259,7 @@ const API_CMD={
  mktCfg:{args:[['p','string'],['k','string'],['v','integer']],watch:['cm'],
    doc:'Capacity market: for product p (spec = alien-wave spectrum, w100/w400 = managed 100G/400G waves carved from your lit capacity, iru = dark pairs on fiber you dug), set k: on (v 1 or 0: the broker lists it on every route by your thresholds), min (list only while the route wants at least v units; spec/w400 1,2,4,8, w100 1,4,8,16, iru 1,2) or floor (never sell below v% of list: 60, 80, 100, 120). Demand and prices move every day.'},
  mktRoute:{args:[['k','string']],watch:['cm'],
-   doc:'Capacity market: toggle whether the broker trades on a route (k = the two city ids sorted and joined by |, e.g. ams|fra).'},
+   doc:'Capacity market: toggle whether the broker trades on a route (k = the two city ids sorted and joined by |, e.g. ams|fra). Works while the route\'s fiber is still being built, so nothing sells at handover; one switch per city pair, live fiber included.'},
  mktRt:{args:[['k','string'],['f','string'],['v','integer',false]],watch:['cm'],
    doc:'Capacity market: a rule of its own for one route (k = the two city ids sorted and joined by |). f is hold (v 0, 10, 25 or 50: the share kept back on this route), floor (v 60, 80, 100 or 120: never sell below v% of list here) or a product (spec, w100, w400, w800, w1600, iru; v 1 sells it here, 0 does not). Leave v out for "as everywhere".'},
  mktRtReset:{args:[['k','string']],watch:['cm'],

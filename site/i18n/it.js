@@ -4538,6 +4538,8 @@
 "link_panels.lost_on_the_way":"Perso per strada",
 "link_panels.mainland_china_plays_by_its_own":"La Cina continentale gioca con regole tutte sue. {list} e altri servizi stranieri qui sono bloccati, quindi gli utenti raggiungono soprattutto reti cinesi. Il traffico che attraversa il confine perde circa il {pct} tra filtri e congestione, a meno che non viaggi su una rotta premium: transit CN-Too o un circuito transfrontaliero premium (entrambi venduti solo a Hong Kong), oppure un PNI con una rete cinese. Qui i ricavi per utente sono più bassi.",
 "link_panels.market_left_alone_at_handover":"Il broker lascerà stare questa tratta: alla consegna della fibra non si vende niente.",
+"link_panels.market_route_shared_off":"Il broker lascia stare tutta la rotta tra {a} e {b}: la tua fibra attiva da subito, e questa fibra alla consegna.",
+"link_panels.market_route_shared_on":"Il broker commercia già sulla tua fibra attiva tra {a} e {b} e aggiunge questa fibra il giorno della consegna. L'interruttore vale per tutta la rotta: spento ferma subito anche il commercio sulla fibra attiva.",
 "link_panels.market_trades_from_handover":"Il broker inizia a vendere la capacità libera qui il giorno in cui la fibra viene consegnata. Tienila fuori dal mercato adesso se ti serve tutta.",
 "link_panels.members_paying_you":"Membri paganti",
 "link_panels.multiplier_scales_the_distance_cost":"Moltiplicatore: scala il costo della distanza, così un link più lungo costa comunque di più.",

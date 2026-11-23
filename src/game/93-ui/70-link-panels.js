@@ -158,8 +158,9 @@ function dfPanel(l){
     if(!sell.startsWith('<section class="psec on'))sell+=`<div class="btns" style="margin:-2px 0 8px">${btn(tr('market.open'),'marketOpen',{k:edgeKey(l)},'ghost sm')}</div>`;
   }
   // Still being built: the broker starts trading the day it is handed over, so it can be kept off the market now.
-  else if(!hyper()){const k=edgeKey(l),off=!!S.cm.off[k];
-    sell=`<section><h3>${tr('market.title')}</h3><p class="note">${off?tr('link_panels.market_left_alone_at_handover'):tr('link_panels.market_trades_from_handover')}</p><div class="btns">${btn(off?tr('market.route_off'):tr('market.route_on'),'mktRoute',{k},off?'ghost sm':'pink sm')}</div></section>`;}
+  // When live fiber already joins the two cities, the switch is that route's: it acts on the live fiber now, and says so.
+  else if(!hyper()){const k=edgeKey(l),off=!!S.cm.off[k],live=cmRoutes().has(k);
+    sell=`<section><h3>${tr('market.title')}</h3><p class="note">${live?(off?tr('link_panels.market_route_shared_off',{a:esc(A),b:esc(B)}):tr('link_panels.market_route_shared_on',{a:esc(A),b:esc(B)})):off?tr('link_panels.market_left_alone_at_handover'):tr('link_panels.market_trades_from_handover')}</p><div class="btns">${btn(off?tr('market.route_off'):tr('market.route_on'),'mktRoute',{k},off?'ghost sm':'pink sm')}</div></section>`;}
   // Optics first: adding capacity is what this panel is opened for. One line per model: what is lit, − count + (75-optic-counts.js).
   const ex=!pnVet()||pnOpen('h:opt'),lit=Object.keys(OPT).map(k=>[k,(l.ch||[]).filter(x=>x===k).length]).filter(x=>x[1]);
   h+=`<section>${pnHead('opt',tr('common.optics')+(lit.length?` <span class="meta osum">${lit.map(([k,n])=>n+'× '+optShort(k)).join(', ')}</span>`:''),`<p class="lead">${tr('link_panels.each_channel_is_a_pair_of')}</p>`)}`;

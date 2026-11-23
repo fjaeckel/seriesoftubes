@@ -56,3 +56,18 @@ test('the panel of a fiber being built has the switch', () => {
   assert.match(panel(), /nothing on it is sold/);
   assert.deepEqual(errors, []);
 });
+
+// One switch per city pair: with live fiber already on the route, the new fiber's panel says the switch covers the
+// live fiber now, not only the new one at handover.
+test('next to live fiber on the same route, the switch says it is the whole route\'s', () => {
+  const { ev, errors } = setup();
+  ev("S.links.push({id:'g',a:'lon',b:'nyc',kind:'df',own:true,sys:'cl',ch:[],km:5570,ready:0,day:0,cut:0,mo:1,trench:'own:g',pairs:1});after()");
+  ev("ACT.selLink({id:'f'});renderAll()");
+  const panel = () => ev("document.getElementById('panel').textContent");
+  assert.match(panel(), /already trades on your live fiber between London and New York/);
+  assert.match(panel(), /off stops trading on the live fiber now too/);
+  ev("ACT.mktRoute({k:'lon|nyc'});renderAll()");
+  assert.match(panel(), /leaves the whole route between London and New York alone/);
+  assert.equal(ev("S.cm.off['lon|nyc']"), 1);
+  assert.deepEqual(errors, []);
+});
