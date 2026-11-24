@@ -71,13 +71,13 @@ function hpMake(){const H=S.hs,o=R.hs,F={rg:{},door:{},pair:{},cc:{},run:{}};if(
 /* The plan: what runs out, soonest first. An item: {k kind, c the city it is about, d days left (0 now), lead days the fix
    takes (null: no fix you can order today), red (the fix takes longer than the time left), fix kind, and what the
    interface needs to say it (x)}. */
-function hpRgFix(c){const H=S.hs,rg=H.rg[c],N=hsTNext(rg),P=hsPw(c);
+function hpRgFix(c){const H=S.hs,rg=H.rg[c],N=hsTNext(rg),P=hsPw(c),free=hsMorAt(c)?hsMorFree(c):hsMwFree(c);
   if(rg.up)return {fix:'coming',lead:Math.max(0,rg.up.ready-S.day),t:rg.up.t};
   // A cage never grows in place: you move out into your own Server Barn there (38-hyper-zones.js), power permitting.
-  if(rg.t===HS_CAGE){const B=HS_T[1];if(B.mw<=hsMwFree(c)+1e-9)return {fix:'move',lead:leadDays(B.days),t:1};if(P.q)return {fix:'pwq',lead:Math.max(0,P.q.ready-S.day)+leadDays(B.days),t:1,q:Math.max(0,P.q.ready-S.day)};
+  if(rg.t===HS_CAGE){const B=HS_T[1];if(B.mw<=free+1e-9)return {fix:'move',lead:leadDays(B.days),t:1};if(P.q)return {fix:'pwq',lead:Math.max(0,P.q.ready-S.day)+leadDays(B.days),t:1,q:Math.max(0,P.q.ready-S.day)};
     if(hsMorAt(c))return {fix:'mor',lead:null,t:1};return {fix:'pw',lead:leadDays(HP_UTIL)+leadDays(B.days),t:1,q:leadDays(HP_UTIL)};}
   if(!N||N.lv>lvl())return hsRgN()<hsRgMax()?{fix:'new',lead:leadDays(HS_T[1].days),t:1}:{fix:'lvl',lead:null};
-  const need=N.mw-HS_T[rg.t].mw;if(need<=hsMwFree(c)+1e-9)return {fix:'up',lead:leadDays(N.days),t:rg.t+1};
+  const need=N.mw-HS_T[rg.t].mw;if(need<=free+1e-9)return {fix:'up',lead:leadDays(N.days),t:rg.t+1};
   if(P.q)return {fix:'pwq',lead:Math.max(0,P.q.ready-S.day)+leadDays(N.days),t:rg.t+1,q:Math.max(0,P.q.ready-S.day)};
   if(hsMorAt(c))return {fix:'mor',lead:null,t:rg.t+1};
   return {fix:'pw',lead:leadDays(HP_UTIL)+leadDays(N.days),t:rg.t+1,q:leadDays(HP_UTIL)};}

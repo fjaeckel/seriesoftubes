@@ -6,7 +6,8 @@
      wait, neither growing nor leaving. The notice is long enough to build a Server Barn.
    - A moratorium on new data centers (law.mor[city]): a metro pauses new grid connections for months, as Amsterdam
      (2019), Singapore (2019 to 2022) and Dublin (EirGrid, 2022 to 2028) did: no new region or upgrade there and no
-     utility request; a request already queued waits until it ends. Your own generation is still allowed.
+     utility request; a request already queued waits until it ends. Your own generation is still allowed, and what it
+     makes and you do not use yet can power a new region or an upgrade there (hsMorFree, #474); never a zone (M14).
    - Energy efficiency (law.pue[continent]): PUE and heat reporting, as the EU's Energy Efficiency Directive (2023) asks:
      every region there that wastes its heat pays HS_PUE_MO per megawatt a month; heat reuse (hsHeat) is exempt.
    - The EU tightens (law.eu): copying EU users' data out of the EU needs lawyers and transfer assessments (after the
@@ -33,6 +34,10 @@ const hsLaw=()=>S&&S.hs&&S.hs.law||null;
 function hsRegRes(cc){const L=hsLaw(),x=L&&L.cc[cc];return x&&x.f<=S.day?'cc':'';}
 // A moratorium in force in this metro, or null.
 function hsMorAt(c){const L=hsLaw(),x=L&&L.mor[c];return x&&x.f<=S.day&&S.day<x.u?x:null;}
+// What a build may take in c under a moratorium: only megawatts your own running generation adds, as far as they are free.
+const hsMorFree=c=>Math.min(hsGenMw(c),hsMwFree(c));
+// The megawatts a region build or upgrade in c takes (a cage holds none of your grid, so moving out takes a Barn's).
+const hsRgNeed=c=>{const d=S.hs.rg[c];if(!d||d.t===HS_CAGE&&!d.up)return HS_T[1].mw;const N=hsTNext(d);return N?N.mw-HS_T[d.up?d.up.t:d.t].mw:0;};
 const hsPueOn=reg=>{const L=hsLaw(),x=L&&L.pue[reg];return !!x&&x.f<=S.day;};
 const hsEuOn=()=>{const L=hsLaw();return !!L&&!!L.eu&&L.eu.f<=S.day;};
 // Regions the energy rule bills: in a continent with the rule in force, live, not heating anything.
