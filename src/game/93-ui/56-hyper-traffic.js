@@ -5,11 +5,14 @@
    bulk travels, the runs touching it and your own model. */
 // A supercluster's leg goes by its run's name (39-hyper-super.js).
 const hsRunName=j=>{const G=hsClOf(j);return G?G.n:j.k!==undefined?HS_MODELS[j.n]:j.n;};
-function hsRunRow(j,c){const x=R.hs&&R.hs.jobs&&R.hs.jobs[j.id],own=j.k!==undefined,late=S.day>j.due,f=j.tb>0?j.done/j.tb:0;
+// A supercluster leg over its latency limit tonight (#475): its data moves, none of it counts. The way it goes, and how slow.
+function hsClStallWhy(j,x){if(!hsClOf(j)||!x||!(x.got>1e-9)||!(x.ms>j.lim))return '';const p=(x.paths||[]).slice().sort((a,b)=>b.share-a.share)[0];
+  return tr('hyper_super.leg_stalled',{ms:Math.round(x.ms*10)/10,lim:j.lim,via:p?p.ns.map(c=>esc(CITY[c].name)).join(' → '):'',a:esc(CITY[j.a].name),b:esc(CITY[j.b].name)});}
+function hsRunRow(j,c){const x=R.hs&&R.hs.jobs&&R.hs.jobs[j.id],own=j.k!==undefined,late=S.day>j.due,f=j.tb>0?j.done/j.tb:0,G=hsClOf(j),fee=G?G.fee:j.fee,st=hsClStallWhy(j,x);
   return `<div class="row"><div class="grow"><div class="nm">${own?'🧠':'🤖'} ${esc(hsRunName(j))}</div>
     <div class="meta">${tr('hyper_traffic.run_line',{a:esc(CITY[j.a].name),b:esc(CITY[j.b].name),g:fmtG(x?x.got:0),want:fmtG(x?x.want:j.g)})}</div>${hsBar(f,late)}
-    <div class="meta"${late?' style="color:var(--bad)"':''}>${tr('hyper_traffic.run_done',{done:hsTb(j.done),tb:hsTb(j.tb),date:dateStr(j.due)})}${own?'':' · '+tr('hyper_traffic.pays',{fee:fmt$(late?Math.round(j.fee/2):j.fee)})}</div>
-    ${x&&x.want>1e-9&&x.got<x.want*0.999?`<div class="why">${tr('hyper_traffic.run_short',{g:fmtG(x.want-x.got)})}</div>`:''}</div></div>`;}
+    <div class="meta"${late?' style="color:var(--bad)"':''}>${tr('hyper_traffic.run_done',{done:hsTb(j.done),tb:hsTb(j.tb),date:dateStr(j.due)})}${own?'':' · '+tr('hyper_traffic.pays',{fee:fmt$(late?Math.round(fee/2):fee)})}</div>
+    ${st?`<div class="why">${st}</div>`:''}${x&&x.want>1e-9&&x.got<x.want*0.999?`<div class="why">${tr('hyper_traffic.run_short',{g:fmtG(x.want-x.got)})}</div>`:''}</div></div>`;}
 /* What a run costs while it runs (GPUs and power in both regions, hsTrainCost) and about how much in all, next to what it
    pays: half as the data moves, the rest at the end. Red when the cost of the whole run is more than the cash at hand. */
 function hsOfferCost(o){const mo=2*hsTrainMw(o)*HS_MW_MO*(o.legs?o.legs.length:1),all=Math.round(mo*o.wk*7/30.4);
