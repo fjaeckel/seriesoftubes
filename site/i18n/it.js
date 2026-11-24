@@ -3736,6 +3736,7 @@
 "hyper_noc.t_failover":"Failover",
 "hyper_noc.t_regions":"Regioni",
 "hyper_noc.tab":"Cloud",
+"hyper_ops.drill_wait":{"one":"{name} non rifarà l'esercitazione {a} ⇄ {b} per {n} giorno. Sistema quello che non ha funzionato, poi rifalla tu.","other":"{name} non rifarà l'esercitazione {a} ⇄ {b} per {n} giorni. Sistema quello che non ha funzionato, poi rifalla tu."},
 "hyper_ops.how_ask":"Chiedi solo corrente",
 "hyper_ops.how_grow":"Costruisci più grande",
 "hyper_ops.how_warn":"Avvisami e basta",

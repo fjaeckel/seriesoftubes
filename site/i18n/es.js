@@ -3736,6 +3736,7 @@
 "hyper_noc.t_failover":"Failover",
 "hyper_noc.t_regions":"Regiones",
 "hyper_noc.tab":"Nube",
+"hyper_ops.drill_wait":{"one":"{name} no repetirá el simulacro {a} ⇄ {b} durante {n} día. Arregla lo que falló y luego hazlo tú.","other":"{name} no repetirá el simulacro {a} ⇄ {b} durante {n} días. Arregla lo que falló y luego hazlo tú."},
 "hyper_ops.how_ask":"Solo pedir energía",
 "hyper_ops.how_grow":"Construir más grande",
 "hyper_ops.how_warn":"Solo avísame",
