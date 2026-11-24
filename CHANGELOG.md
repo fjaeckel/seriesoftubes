@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- A supercluster leg that is too slow for its latency limit now says it is stalled. Its run row in the Cloud tab shows the path it takes, how slow it is and what would fix it, the NOC marks the region pair red, and the row shows the whole run's fee instead of $0. (#475)
+
 - Your own power plants now let a cloud region grow during a moratorium on new grid connections. A new region, an upgrade or the move out of a cage goes ahead when your running generation has the megawatts to spare, and the refusal says how many are missing. New zones still wait for the moratorium to end. (#474)
 
 - The NOC intern no longer reruns a failed failover drill every day. A pair whose drill failed now waits the drill order's interval like a passed one, and the failure notice says so, so you can fix the failover and drill it yourself. (#472)

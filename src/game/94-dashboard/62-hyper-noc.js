@@ -90,7 +90,11 @@ function hnocPairSection(pr){const H=S.hs,bad=p=>p.fo.some(x=>!(x.I&&x.I.ok))||p
     for(const r of p.rep){const lag=H.lag[hsLk(r.a,r.b)]||0,sh=r.got<r.want*0.999;
       b+=`<div class="meta${sh?' hnoc-bad':''}">🔁 ${tr('hyper_noc.rep_line',{a:esc(CITY[r.a].name),b:esc(CITY[r.b].name),got:fmtG(r.got),want:fmtG(r.want)})}${lag>0?' · '+tr('hyper_traffic.card_lag',{tb:hsTb(lag)}):''}</div>`;
       if(lag>HS_RISK)f.push(hnocTag('restrictive',tr('hyper_ui.f_backlog')));}
-    if(p.runs.length){let g=0,w=0;for(const r of p.runs){g+=r.got;w+=r.want;}b+=`<div class="meta${g<w*0.999?' hnoc-bad':''}">🤖 ${trn('hyper_noc.runs_line',p.runs.length,{got:fmtG(g),want:fmtG(w)})}</div>`;}
+    if(p.runs.length){let g=0,w=0;for(const r of p.runs){g+=r.got;w+=r.want;}
+      // A supercluster leg over its latency limit moves data that does not count (#475).
+      const st=p.runs.map(r=>({r,j:H.jobs.concat(H.own).find(q=>q.id===r.id)})).find(({r,j})=>j&&j.grp&&r.got>1e-9&&r.ms>j.lim);
+      b+=`<div class="meta${g<w*0.999||st?' hnoc-bad':''}">🤖 ${trn('hyper_noc.runs_line',p.runs.length,{got:fmtG(g),want:fmtG(w)})}${st?' · ⚠️ '+tr('hyper_super.leg_stalled_short',{ms:Math.round(st.r.ms*10)/10,lim:st.j.lim}):''}</div>`;
+      if(st)f.push(hnocTag('restrictive',tr('hyper_super.f_stalled')));}
     for(const x of p.fo){const I=x.I,dd=H.drill[hsPk(x.a,x.b)];
       b+=`<div class="meta">🧯 ${I?(I.ok?`<span class="hnoc-ok">✅ ${tr('hyper_noc.fo_ready',{a:esc(CITY[x.a].name),b:esc(CITY[x.b].name)})}</span>`:`<span class="hnoc-bad">⚠️ ${tr('hyper_noc.fo_not_ready',{a:esc(CITY[x.a].name),b:esc(CITY[x.b].name),need:fmtG(I.need),room:fmtG(I.room),bw:fmtG(I.bw)})}</span>`):tr('hyper_noc.fo_not_live',{a:esc(CITY[x.a].name)})}${dd?' · '+tr('hyper_fail.drilled_on',{date:dateStr(dd)}):''}</div>`;
       f.push(I&&I.ok?hnocTag('open',tr('hyper_ui.f_ready')):hnocTag('restrictive',tr('hyper_ui.f_not_ready')));if(!dd)f.push(hnocTag('selective',tr('hyper_ui.f_undrilled')));}
