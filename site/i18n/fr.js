@@ -3736,6 +3736,7 @@
 "hyper_noc.t_failover":"Bascule",
 "hyper_noc.t_regions":"Régions",
 "hyper_noc.tab":"Cloud",
+"hyper_ops.drill_wait":{"one":"{name} ne refera pas l'exercice {a} ⇄ {b} avant {n} jour. Répare ce qui a échoué, puis relance-le toi-même.","other":"{name} ne refera pas l'exercice {a} ⇄ {b} avant {n} jours. Répare ce qui a échoué, puis relance-le toi-même."},
 "hyper_ops.how_ask":"Demander seulement du courant",
 "hyper_ops.how_grow":"Construire plus grand",
 "hyper_ops.how_warn":"Juste me prévenir",

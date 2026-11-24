@@ -3738,6 +3738,7 @@
 "hyper_noc.t_failover":"Failover",
 "hyper_noc.t_regions":"Regionen",
 "hyper_noc.tab":"Cloud",
+"hyper_ops.drill_wait":{"one":"{name} wiederholt die Übung {a} ⇄ {b} {n} Tag lang nicht. Behebe, was schiefging, und starte sie dann selbst.","other":"{name} wiederholt die Übung {a} ⇄ {b} {n} Tage lang nicht. Behebe, was schiefging, und starte sie dann selbst."},
 "hyper_ops.how_ask":"Nur Strom anfragen",
 "hyper_ops.how_grow":"Größer bauen",
 "hyper_ops.how_warn":"Nur Bescheid sagen",

@@ -3737,6 +3737,7 @@
 "hyper_noc.t_failover":"Failover",
 "hyper_noc.t_regions":"Regions",
 "hyper_noc.tab":"Cloud",
+"hyper_ops.drill_wait":{"one":"{name} won't drill {a} ⇄ {b} again for {n} day. Fix what failed, then drill it yourself.","other":"{name} won't drill {a} ⇄ {b} again for {n} days. Fix what failed, then drill it yourself."},
 "hyper_ops.how_ask":"Only ask for power",
 "hyper_ops.how_grow":"Build bigger",
 "hyper_ops.how_warn":"Only tell me",

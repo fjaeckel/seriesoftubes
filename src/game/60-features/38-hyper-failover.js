@@ -9,7 +9,8 @@
    through without data loss and served well (S.hs.out tracks it) counts as survived (S.hs.fsv).
    Drills: the player drains a region into its replica on purpose for a day (hsDrill, HS_DRILL). It passes if every
    country homed there was served at HS_DRILL_Q or better and the backlog was under HS_RISK; S.hs.drill['a|b'] keeps
-   the day a pair passed. S.hs.dx is the drill under way. Real underneath: cloud regions fail as a whole now and then,
+   the day a pair passed, S.hs.dfail['a|b'] the day its drill last failed (the intern waits before draining it again,
+   #472). S.hs.dx is the drill under way. Real underneath: cloud regions fail as a whole now and then,
    and the operators that cope run region evacuation drills; real chaos tooling once named a region-killer Chaos Kong. */
 const HS_RISK=50,HS_LOSS=0.2,HS_LOSS_FEE=250000,HS_LOSS_TB=1000,HS_LOSS_MAX=2000000,HS_LOSS_MO=1,HS_DRILL=20000,HS_DRILL_Q=0.9,HS_FAIL_W=2,HS_FAIL_FIX=40000;
 const HS_FAIL_MSG=[N_('hyper_fail.msg_squirrel'),N_('hyper_fail.msg_cert'),N_('hyper_fail.msg_cooling'),N_('hyper_fail.msg_dns'),N_('hyper_fail.msg_tag'),N_('hyper_fail.msg_ups')];
@@ -99,13 +100,15 @@ function hsDrillJudge(d){const H=S.hs,x=H.dx,c=x.c,o=R.hs;H.dx=null;if(!H.rg[c])
   const why=!b?'none':cc.some(k=>o.cc[k].blk)?'law':cc.some(k=>o.cc[k].short>0.5)?'room':cc.some(k=>o.cc[k].want-o.cc[k].got>0.5)?'haul':q<HS_DRILL_Q?'slow':lag>=HS_RISK?'lag':'';
   if(!why){H.drill[hsPk(c,b)]=d;toast(tr('hyper_fail.drill_pass',v),'goal',[],{a:'city',v:c});sfx('coin');return;}
   const m={none:tr('hyper_fail.drill_none',v),law:tr('hyper_fail.drill_law',v),room:tr('hyper_fail.drill_room',v),haul:tr('hyper_fail.drill_haul',v),slow:tr('hyper_fail.drill_slow',v),lag:tr('hyper_fail.drill_lag',v)}[why];
-  toast(`<b>${tr('hyper_fail.drill_failed')}</b><br>${m}`,'bad',[],{a:'city',v:c});sfx('err');}
+  // The intern's order would drain it again tomorrow; it waits its interval instead, and says so (#472).
+  if(b)(H.dfail||(H.dfail={}))[hsPk(c,b)]=d;const wait=b&&hsOpsDrilling()?'<br>'+trn('hyper_ops.drill_wait',opsP('hsdrill','days'),{name:esc(opsName()),a:v.a,b:v.b}):'';
+  toast(`<b>${tr('hyper_fail.drill_failed')}</b><br>${m}${wait}`,'bad',[],{a:'city',v:c});sfx('err');}
 CX_DAY.push(hsFailDay);
-CX_NEW.push(o=>{o.down={};o.drill={};o.dx=null;o.out={};o.fsv=0;o.flost=0;});
+CX_NEW.push(o=>{o.down={};o.drill={};o.dfail={};o.dx=null;o.out={};o.fsv=0;o.flost=0;});
 // Saves: outages, drills and their records, against the regions the save still has.
 CX_SAN.push((h0,o)=>{const n=(v,d)=>Number.isFinite(+v)?+v:d,obj=v=>v&&typeof v==='object'&&!Array.isArray(v),rg=c=>typeof c==='string'&&own(o.rg,c),I=v=>Math.round(n(v,0));
   o.down={};if(obj(h0.down))for(const k of Object.keys(h0.down))if(rg(k)&&I(h0.down[k])>0)o.down[k]=I(h0.down[k]);
-  o.drill={};if(obj(h0.drill))for(const k of Object.keys(h0.drill)){const [a,b,x]=k.split('|');if(x===undefined&&rg(a)&&rg(b)&&a<b)o.drill[k]=Math.max(0,I(h0.drill[k]));}
+  for(const f of ['drill','dfail']){o[f]={};if(obj(h0[f]))for(const k of Object.keys(h0[f])){const [a,b,x]=k.split('|');if(x===undefined&&rg(a)&&rg(b)&&a<b)o[f][k]=Math.max(0,I(h0[f][k]));}}
   const x=h0.dx;o.dx=obj(x)&&rg(x.c)&&rg(x.b)&&x.c!==x.b?{c:x.c,b:x.b,d:I(x.d)}:null;
   o.out={};if(obj(h0.out))for(const k of Object.keys(h0.out)){const y=h0.out[k];if(rg(k)&&obj(y))o.out[k]={d:I(y.d),lost:y.lost?1:0,q:clamp(n(y.q,1),0,1),n:Math.max(0,I(y.n))};}
   o.fsv=Math.max(0,I(h0.fsv));o.flost=Math.max(0,I(h0.flost));});

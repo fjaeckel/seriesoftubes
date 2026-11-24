@@ -7,7 +7,8 @@
    - hswave: a region pair whose replication backlog grows (today's copies did not all get through and the backlog is
      over a mark) gets a leased wave between the two regions, the smallest that carries what was missing.
    - hsdrill: a failover drill for a region whose pair was never drilled, or not for a while; only one at a time, only
-     where the NOC calls the failover ready if told so, and never right before a launch freeze.
+     where the NOC calls the failover ready if told so, and never right before a launch freeze. A pair whose drill
+     failed waits the same interval (#472): draining a broken failover every day only takes the region down again.
    - hsfund: a protest that a few community funds would win is answered with them, up to a price per protest.
    - hsaz: a region that met local outages (S.hs.azo, 38-hyper-zones.js) gets another availability zone, where the level,
      the megawatts and the law allow it: one a shift.
@@ -53,6 +54,8 @@ function hsOpsReg(){
   {const s=OPSK.caches.show;OPSK.caches.show=()=>!hyper()&&(!s||s());}
   Object.assign(OPS_RUN,{hsrg:hsOpsRg,hswave:hsOpsWave,hsdrill:hsOpsDrill,hsfund:hsOpsFund,hsaz:hsOpsAz});}
 const hsOpsOn=()=>hyper()&&!!S.hs&&!!R.hs;
+// The intern runs the drill order (hsDrillJudge names the wait after a failed drill).
+const hsOpsDrilling=()=>opsHired()&&!!S.ops.on.hsdrill&&opsMine('hsdrill')&&opsUse('hsdrill');
 // A note that changes nothing on the network (the weekly "running full"): no routing for it.
 function hsOpsNote(X,k,w){const W=S.ops.wk;if(W&&(W.wh[k]||[]).includes(w))return;const dt=X.dirty;X.did(k,w);X.dirty=dt;}
 // Regions at or over the mark: the next tier up, the utility, or a note. Busiest first.
@@ -88,7 +91,7 @@ function hsOpsLease(a,b,t){const ui={p:UI.pending,v:UI.via,c:UI.cnPrem,r:UI.rout
 function* hsOpsDrill(X){if(!hsOpsOn())return;const H=S.hs,days=opsP('hsdrill','days'),ready=opsP('hsdrill','ready'),L=hsLf();if(H.dx||L&&L.from-1-S.day<=1)return;
   // A region already out of service is a real failover, not a drill.
   if(Object.keys(H.rg).some(hsOut))return;
-  const last=c=>{const b=hsRepOf(c);return b?H.drill[hsPk(c,b)]:undefined;},age=c=>{const v=last(c);return v===undefined?-1:v;};
+  const last=c=>{const b=hsRepOf(c);if(!b)return undefined;const k=hsPk(c,b),p=H.drill[k],f=(H.dfail||{})[k];return f===undefined?p:p===undefined?f:Math.max(p,f);},age=c=>{const v=last(c);return v===undefined?-1:v;};
   for(const c of hsRgs().filter(c=>!hsDrillWhy(c)&&(last(c)===undefined||S.day-last(c)>=days)&&(!ready||hsFailReady(c))).sort((a,b)=>age(a)-age(b)||(a<b?-1:1))){
     if(!X.can('hsdrill',HS_DRILL))return;if(X.pay('hsdrill',()=>{ACT.hsDrill({city:c});return !!H.dx;})){X.did('hsdrill',c+'|'+H.dx.b);yield;}return;}}
 // Protests that community funds would win at a price under the order's mark: fund until won.
