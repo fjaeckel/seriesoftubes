@@ -67,5 +67,8 @@ milliseconds on your machine. Never sleep a fixed time and then assert: wait for
 - Listen and connect on `127.0.0.1`, not `localhost` (it can resolve to `::1` only on a CI runner).
 - For HTTP to a test server, pass `agent: false`: a kept-alive socket can be reset by the server's idle timer.
 - A fixed wait is fine only to prove that something does *not* happen.
+- Close everything a test opens: servers, sockets, WebSockets, child processes (`kill(child)`), workers. `npm test` ends each
+  file's process as soon as its tests are done, and `tests/helpers/no-leaks.js` fails a file that leaves one open, naming
+  where it was opened. The page's own timers (a toast fading) are fine: they die with the process.
 
 Hunt a suspected flake before pushing: `npm test -- --stress 8 tests/x.test.js` runs 8 copies at once, busier than CI.

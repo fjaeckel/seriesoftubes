@@ -87,13 +87,14 @@ if (shard && files.length) {
 const jobs = Math.max(1, parseInt(process.env.TEST_JOBS, 10) || os.availableParallelism());
 // A file's process exits as soon as its tests are done. Without this it lingers until the page's own timers run out
 // (a toast alone waits 6.5 s), which was most of the suite's time.
-const EXIT = '--test-force-exit';
+// tests/helpers/no-leaks.js then fails a file that leaves a server, socket or child open, which used to show as a hang.
+const EXIT = ['--test-force-exit', '--require', path.join(dir, 'helpers', 'no-leaks.js')];
 // Stress: N runs of the same files at once, each its own node --test, so they fight for the CPU the way the four
 // CI parts and their own parallel files do (and worse). A test that only passes on a quiet machine fails here.
 if (stress) {
   if (!args.some((a) => a.endsWith('.test.js'))) { console.error('--stress wants the test files to run, like tests/agent-relay.test.js'); process.exit(2); }
   const runs = Array.from({ length: stress }, (_, i) => new Promise((res) => {
-    const c = spawn(process.execPath, ['--test', EXIT, '--test-reporter=dot', ...args], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] });
+    const c = spawn(process.execPath, ['--test', ...EXIT, '--test-reporter=dot', ...args], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] });
     let out = ''; c.stdout.on('data', (d) => { out += d; }); c.stderr.on('data', (d) => { out += d; });
     c.on('close', (code) => res({ i: i + 1, code, out }));
   }));
@@ -108,5 +109,5 @@ if (stress) {
 const rep = timings ? ['--test-reporter=spec', '--test-reporter-destination=stdout',
   `--test-reporter=${path.join(__dirname, 'lib', 'timings-reporter.js')}`, `--test-reporter-destination=${timings}`] : [];
 // Files start in the order given: the longest first, so no long file starts last and runs on alone.
-const r = spawnSync(process.execPath, ['--test', EXIT, `--test-concurrency=${jobs}`, ...rep, ...args, ...longestFirst(files)], { stdio: 'inherit', cwd: root });
+const r = spawnSync(process.execPath, ['--test', ...EXIT, `--test-concurrency=${jobs}`, ...rep, ...args, ...longestFirst(files)], { stdio: 'inherit', cwd: root });
 process.exit(r.status ?? 1);
