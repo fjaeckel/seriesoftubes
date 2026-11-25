@@ -48,7 +48,7 @@ test('every declared argument is one the action really reads', () => {
     const declared = c.args.map((a) => a.name), r = reads[n];
     if (!r) { if (declared.length && !c.opens && !['buildLink', 'orderDf', 'orderCable', 'decomGo', 'metricSet', 'traceRun', 'pzLinkTo', 'openVxc'].includes(n)) bad.push(`${n}: declares ${declared} but takes no {…}`); continue; }
     for (const x of r) if (!declared.includes(x) && !(injected[n] || []).includes(x)) bad.push(`${n} reads {${x}} but declares no such argument`);
-    for (const d of declared) if (!r.includes(d) && !(injected[n] || []).includes(d) && !['buildLink', 'orderDf', 'orderCable', 'decomGo', 'metricSet', 'pzLinkTo'].includes(n)) bad.push(`${n} declares ${d} but does not read it`);
+    for (const d of declared) if (!r.includes(d) && !(injected[n] || []).includes(d) && !['buildLink', 'orderDf', 'orderCable', 'decomGo', 'metricSet', 'pzLinkTo', 'ixRenameGo'].includes(n)) bad.push(`${n} declares ${d} but does not read it`);
   }
   assert.deepEqual(bad, []);
 });

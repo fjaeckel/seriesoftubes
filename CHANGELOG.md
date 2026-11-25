@@ -12,6 +12,8 @@ All notable changes to this project are documented here. The project follows
 
 - The NOC intern no longer reruns a failed failover drill every day. A pair whose drill failed now waits the drill order's interval like a passed one, and the failure notice says so, so you can fix the failover and drill it yourself. (#472)
 
+- You can now rename an exchange you founded from its panel. It kept the name it got on the day you founded it, even after you renamed your network. (#480)
+
 ## [5.4.0] — 2026-11-23
 
 - Fiber still being built can now be kept off the capacity market from its panel. The broker used to start selling a new route the day it was handed over, before you could switch it off. (#470)
