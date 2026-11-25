@@ -14,7 +14,7 @@ createHook({
     if (!KINDS.has(type)) return;
     const e = {};
     Error.captureStackTrace(e);
-    open.set(id, { type, res, stack: e.stack.split('\n').filter((l) => !/node:internal|no-leaks\.js|^Error$/.test(l)).slice(0, 6).join('\n') });
+    open.set(id, { type, res, stack: e.stack.split('\n').filter((l) => !/\(?node:|no-leaks\.js|^Error$/.test(l)).slice(0, 6).join('\n') });
   },
   destroy(id) { open.delete(id); },
 }).enable();
