@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Running more cloud regions than your level allows now costs at most twice the plain price. Each region past the line still adds 25% to the running cost of every region, but it stops at +100%, so a big cloud no longer pays hundreds of percent more.
+
 ## [5.5.0] — 2026-11-25
 
 - A supercluster leg that is too slow for its latency limit now says it is stalled. Its run row in the Cloud tab shows the path it takes, how slow it is and what would fix it, the NOC marks the region pair red, and the row shows the whole run's fee instead of $0. (#475)

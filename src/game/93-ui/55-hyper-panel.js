@@ -130,7 +130,7 @@ function hsRgSpec(c){const H=S.hs,d=H.rg[c];if(!d&&!hsSite(c))return hsRgNever(c
     if(hsOut(c)&&!(H.dx&&H.dx.c===c))fl.push(hsFlag('restrictive',tr('hyper_ui.f_down')));}
   else{sum=tr('hyper_ui.sum_no_region');{const p=hsPullAt(c);if(p)fl.push(hsFlag('open',tr('hyper_pull.f',{g:fmtG(p.g)})));}
     // Past the line (#449) the section opens with what it costs; at the ceiling, that there is no room.
-    if(hsRgN()>=hsRgMax())fl.push(hsFlag('selective',tr('hyper_ui.f_over',{p:Math.round(HS_OVER*100)})));}
+    if(hsRgN()>=hsRgMax())fl.push(hsFlag('selective',tr('hyper_ui.f_over',{p:hsOverNext()})));}
   return {t:tr('hyper.region'),sum,flags:fl,open:!!d,body:()=>hsRgBody(c)};}
 function hsRgBody(c){const H=S.hs,d=H.rg[c];let h='';
   if(d){const T=HS_T[d.t],N=hsTNext(d),G=hsRgG(c),x=R.hs&&R.hs.rg[c],load=x?x.load:0;

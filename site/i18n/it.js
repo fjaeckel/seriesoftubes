@@ -3343,7 +3343,7 @@
 "hyper.not_a_region_metro":"Le region vanno nelle grandi metropoli dei data center. Questa città ha una sola sala server, e puzza di capra.",
 "hyper.over_now":"{k} oltre le {n} region del tuo livello: ogni region costa il {p}% in più da gestire.",
 "hyper.over_sure":"Tocca ancora: ogni region costa il {p}% in più da gestire",
-"hyper.over_warn_any":"Il tuo livello gestisce {n} region al prezzo normale. Ogni region in più rende ogni region più cara da gestire del {p}%.",
+"hyper.over_warn_capped":"Il tuo livello gestisce {n} region al prezzo normale. Ogni region in più rende ogni region più cara da gestire del {p}%, fino al {max}% in più.",
 "hyper.poor_in_list":"Servizio scarso in {list}: gli utenti se ne vanno.",
 "hyper.power":"Energia",
 "hyper.quality":"Qualità",

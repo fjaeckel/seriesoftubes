@@ -66,21 +66,24 @@ const hsSite=c=>c===S.home||hsMetro(c);
 const hsNeverWhy=c=>hsSite(c)?'':CITY[c].cn?'cn':'small';
 function hsNearSite(c){let b=null,bk=Infinity;for(const C of CITIES){if(C.off||C.id===c||!hsSite(C.id))continue;const k=kmBetween(c,C.id);if(k<bk||k===bk&&C.id<b){bk=k;b=C.id;}}return b;}
 // The limit is soft (#449): your level runs hsRgMax() regions at their plain price, and any number past it, each of
-// those adding HS_OVER to the monthly cost of every region you run (an ops team stretched thin). Real clouds run 40 to
-// 70 regions (#452): how many you run is up to your wallet, never a ceiling.
-const HS_OVER=0.25;
+// those adding HS_OVER to the monthly cost of every region you run (an ops team stretched thin), up to HS_OVER_MAX: by
+// then the team has grown into it, and each region past it simply runs at twice the plain price. Real clouds run 40 to
+// 70 regions (#452): how many you run is up to your wallet, never a ceiling, and the surcharge is not one either.
+const HS_OVER=0.25,HS_OVER_MAX=1;
 const hsRgMax=()=>HS_LV_RG[Math.min(lvl(),HS_LV_RG.length-1)]+1;
 // Regions held against the level's limit: built or building, at a POP you still have.
 const hsRgN=()=>Object.keys(S.hs.rg).filter(c=>!!S.pops[c]).length;
 // Regions past the line, and what they do to the running cost of all of them (1: none past it).
 const hsRgOver=()=>S&&S.hs?Math.max(0,hsRgN()-hsRgMax()):0;
-const hsOverF=()=>1+HS_OVER*hsRgOver();
+const hsOverP=k=>Math.min(HS_OVER_MAX,HS_OVER*k),hsOverF=()=>1+hsOverP(hsRgOver());
+// The surcharge on every region once one more is built, in %.
+const hsOverNext=()=>Math.round(hsOverP(hsRgOver()+1)*100);
 // A new region (or cage) in c would go past the line: the first tap arms (UI.confirm 'hsnew'+c), the second builds.
 const hsOverArm=c=>hsRgN()>=hsRgMax()&&UI.confirm!=='hsnew'+c;
 function hsOverTap(c){if(hsOverArm(c)){UI.confirm='hsnew'+c;sfx('click');renderPanel();return true;}if(UI.confirm==='hsnew'+c)UI.confirm=null;return false;}
 // What the panel says, and what the button says, before a region that goes past the line.
-const hsOverNote=()=>hsRgN()>=hsRgMax()?`<p class="why">${tr('hyper.over_warn_any',{n:hsRgMax(),p:Math.round(HS_OVER*100)})}</p>`:'';
-const hsOverLbl=(c,l)=>UI.confirm==='hsnew'+c?tr('hyper.over_sure',{p:Math.round(HS_OVER*100*(hsRgOver()+1))}):l;
+const hsOverNote=()=>hsRgN()>=hsRgMax()?`<p class="why">${tr('hyper.over_warn_capped',{n:hsRgMax(),p:Math.round(HS_OVER*100),max:Math.round(HS_OVER_MAX*100)})}</p>`:'';
+const hsOverLbl=(c,l)=>UI.confirm==='hsnew'+c?tr('hyper.over_sure',{p:hsOverNext()}):l;
 // A region that failed or is drained by a drill is not live (38-hyper-failover.js).
 const hsLive=c=>!!S.hs&&siteLive(S.hs.rg,c)&&popUp(c)&&!hsOff(c);
 const hsRgs=()=>S.hs?Object.keys(S.hs.rg).filter(hsLive).sort():[];

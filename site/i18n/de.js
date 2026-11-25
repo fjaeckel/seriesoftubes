@@ -3345,7 +3345,7 @@
 "hyper.not_a_region_metro":"Regionen kommen in große Rechenzentrums-Metropolen. Dieser Ort hat einen Serverraum, und der riecht nach Ziege.",
 "hyper.over_now":"{k} über den {n} Regionen deines Levels: jede Region kostet {p}% mehr im Betrieb.",
 "hyper.over_sure":"Nochmal tippen: jede Region kostet {p}% mehr im Betrieb",
-"hyper.over_warn_any":"Dein Level betreibt {n} Regionen zum normalen Preis. Jede weitere macht den Betrieb jeder Region {p}% teurer.",
+"hyper.over_warn_capped":"Dein Level betreibt {n} Regionen zum normalen Preis. Jede weitere macht den Betrieb jeder Region {p}% teurer, höchstens {max}%.",
 "hyper.poor_in_list":"Schlechter Dienst in {list}: Nutzer wandern ab.",
 "hyper.power":"Strom",
 "hyper.quality":"Qualität",
