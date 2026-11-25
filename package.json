@@ -31,6 +31,7 @@
   "devDependencies": {
     "@modelcontextprotocol/node": "2.1.2",
     "@modelcontextprotocol/server": "2.4.0",
+    "esbuild": "0.28.2",
     "fake-indexeddb": "6.2.8",
     "jsdom": "31.0.1",
     "playwright-core": "1.65.1",

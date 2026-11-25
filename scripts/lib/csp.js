@@ -28,7 +28,8 @@ function inlineScripts(html) {
   return out;
 }
 // The counter the page appends (src/game/00-core/20-analytics.js), read from the page so the two never disagree.
-const counterOf = (html) => { const m = /\.src='(https:\/\/cdn\.jsdelivr\.net\/npm\/[^']+\.js)'/.exec(html); return m ? m[1] : null; };
+// Either quote: the shipped page is minified (scripts/lib/minify.js), which may swap them.
+const counterOf = (html) => { const m = /\.src=(['"])(https:\/\/cdn\.jsdelivr\.net\/npm\/[^'"]+\.js)\1/.exec(html); return m ? m[2] : null; };
 const sha = (s) => `'sha256-${crypto.createHash('sha256').update(s, 'utf8').digest('base64')}'`;
 
 function policy(html) {

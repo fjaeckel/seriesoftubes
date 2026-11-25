@@ -15,6 +15,9 @@ one, redesign the feature.
 
 - **The output is static files.** `npm run build` writes `_site/`: the assembled page, `site/`'s files,
   `version.json`. No server code, no runtime secrets: everything there is public.
+  The page's inline scripts and styles are minified last, before the CSP hashes them (`scripts/lib/minify.js`,
+  esbuild at build time only: whitespace and syntax, never names). Anything that reads the built page must not
+  depend on its formatting or quote style.
 - **No HTTP headers, redirects or rewrites.** Pages ignores `_headers`, `_redirects`, `.htaccess`,
   `vercel.json`, `netlify.toml`. Need a policy? Use a `<meta>` tag. Need a different URL? Add a
   static file there.
