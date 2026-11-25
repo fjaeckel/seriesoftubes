@@ -14,6 +14,8 @@
    guess (a Chinese font for kanji, a fallback serif). Korean breaks lines between words, not inside them. */
 html:lang(ja){--display:'Baloo 2','Hiragino Sans','Hiragino Kaku Gothic ProN','Yu Gothic UI','Meiryo','Noto Sans JP',system-ui,sans-serif;
   --body:'Nunito','Hiragino Sans','Hiragino Kaku Gothic ProN','Yu Gothic UI','Meiryo','Noto Sans JP',system-ui,sans-serif}
+/* Proportional kana, so six-kana words such as ネットワーク fit the phone's tab bar on one line. */
+html:lang(ja) #tabbar button{font-feature-settings:"palt";letter-spacing:-.03em;white-space:nowrap}
 html:lang(ko){--display:'Baloo 2','Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-ui,sans-serif;
   --body:'Nunito','Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-ui,sans-serif;word-break:keep-all;overflow-wrap:break-word}
 [hidden]{display:none!important}

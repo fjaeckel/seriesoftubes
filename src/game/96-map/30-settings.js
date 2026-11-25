@@ -1,6 +1,8 @@
 // Static markup: elements with data-i18n="label" get their text, and data-i18n-aria-label / data-i18n-title
 // their attribute, from the dictionary once at boot. The English stays in the markup for search engines.
 function i18nDom(){if(LANG==='en')return;for(const el of document.querySelectorAll('[data-i18n]'))el.textContent=tr(el.dataset.i18n);
+  // The top bar's date shows under the title and install screens before a game starts: day 0, in the player's language.
+  const d=document.getElementById('hDate');if(d)d.textContent=dateStr(0);
   for(const a of ['aria-label','title'])for(const el of document.querySelectorAll(`[data-i18n-${a}]`))el.setAttribute(a,tr(el.getAttribute('data-i18n-'+a)));}
 // One button per [value,label] option; the current one is highlighted.
 // One dropdown instead of a button per language: the list keeps growing, and on phones the system picker opens.

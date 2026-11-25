@@ -1521,6 +1521,7 @@
 "common.packet_empire":"Packet empire",
 "common.packet_loss":"Packet loss",
 "common.paid_peering":"paid peering",
+"common.paid_policy":"Paid",
 "common.pause":"Pause",
 "common.peak":"Peak",
 "common.peak_traffic":"Peak traffic",

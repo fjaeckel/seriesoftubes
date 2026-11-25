@@ -1520,6 +1520,7 @@
 "common.packet_empire":"Empire du paquet",
 "common.packet_loss":"Perte de paquets",
 "common.paid_peering":"peering payant",
+"common.paid_policy":"Payante",
 "common.pause":"Pause",
 "common.peak":"Pic",
 "common.peak_traffic":"Pic de trafic",

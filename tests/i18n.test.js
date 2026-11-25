@@ -97,6 +97,18 @@ test('text that old saves stored in English is still translated', () => {
   assert.equal(load().ev("tr('Delivery: 2 to 6 weeks')"), 'Delivery: 2 to 6 weeks');
 });
 
+test('a network\'s peering policy tag is shown in the player\'s language, not as its English id', () => {
+  for (const [lang, want] of [['en', 'Restrictive'], ['de', 'Restriktiv'], ['ja', 'リストリクティブ'], ['ko', '제한형']]) {
+    const { ev, errors } = load(lang === 'en' ? {} : { lang });
+    assert.equal(ev("npolL('restrictive')"), want, lang);
+    assert.equal(ev("npolL('paid')"), ev("tr('common.paid_policy')"), lang);
+    ev('ACT.start({});S.cash=1e8');
+    ev("ACT.leftTab({t:'nets'})");
+    if (lang !== 'en') assert.doesNotMatch(ev("document.getElementById('leftBody').innerHTML"), />(restrictive|selective|paid)</, lang);
+    assert.deepEqual(errors, []);
+  }
+});
+
 test('the static markup is translated by label', () => {
   const { ev } = load({ lang: 'it' });
   ev('ACT.start({})');

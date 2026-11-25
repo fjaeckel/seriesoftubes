@@ -2,13 +2,15 @@
    Three hundred networks late in a game: a search box and type chips find one, rows are one compact header each, and
    the blurb, the price and the buttons that jump to your connections show for the one row you opened (or the one
    network in focus). View state only (UI.nlQ, UI.nlT, UI.nlOpen), never saved. */
+// A network's peering policy as a tag, in the player's language (the id itself is English).
+const NPOL_L={open:N_('fedplay.pol_open'),selective:N_('fedplay.pol_selective'),restrictive:N_('fedplay.pol_restrictive'),paid:N_('common.paid_policy')},npolL=p=>NPOL_L[p]?tr(NPOL_L[p]):p;
 const nlQ=()=>(UI.nlQ||'').trim().toLowerCase().replace(/^as(?=\d)/,'');
 const nlHit=(n,q)=>n.name.toLowerCase().includes(q)||(n.asn&&String(n.asn).startsWith(q));
 // Everything about one network below its header: what the old, long rows always showed.
 function netMore(n,where,foc,out){const far=foc||out;
   return `<div class="netd">${n.price?`<div class="meta">${tr('hud_and_panels.transit_price_gbps',{price:(n.price*S.priceMul).toFixed(2)})}</div>`:''}<div class="meta">${esc(n.blurb)}</div>${netWhere(n,where)}${!R.nt[n.id]?`<p class="why">${esc(offTransitHint(n.id))}</p>`:''}${coneVia(n.id)&&(R.cone[n.id]||!R.nt[n.id])?`<p class="meta">${R.cone[n.id]?tr('hud_and_panels.reached_through_the_customer_cone_of',{net:esc((NET[R.cone[n.id]]||coneVia(n.id)).name)}):tr('hud_and_panels.buys_transit_from_net_peer_with',{net:esc(coneVia(n.id).name)})}</p>`:''}${meetLine(n,foc?24:4)}</div>`;}
 function netRow(n,where,foc,out){const open=!!foc||UI.nlOpen===n.id;
-  const head=`${logo(n)}<span class="grow"><span class="nm">${esc(n.name)} <span class="meta">AS${n.asn}</span></span><span class="meta"><span class="tag ${n.type}">${TYPE_L[n.type]}</span> <span class="tag ${n.pol}">${n.pol}</span> · ${tr('hud_and_panels.p_of_traffic',{p:(NSH[n.id]*100).toFixed(1)})}</span><span class="pchips">${pniChip(n.id,null)}</span></span>`;
+  const head=`${logo(n)}<span class="grow"><span class="nm">${esc(n.name)} <span class="meta">AS${n.asn}</span></span><span class="meta"><span class="tag ${n.type}">${TYPE_L[n.type]}</span> <span class="tag ${n.pol}">${npolL(n.pol)}</span> · ${tr('hud_and_panels.p_of_traffic',{p:(NSH[n.id]*100).toFixed(1)})}</span><span class="pchips">${pniChip(n.id,null)}</span></span>`;
   return `<div class="row netr${open?' open':''}">${foc?`<div class="neth">${head}</div>`:`<button class="neth" data-act="nlOpen" data-args="${esc(JSON.stringify({id:n.id}))}" aria-expanded="${open}">${head}<span class="nchev" aria-hidden="true">${open?'▾':'▸'}</span></button>`}${open?netMore(n,where,foc,out):''}</div>`;}
 function netsTab(){let h='';
   // The introduction is for new players: with a few POPs it only pushes the search box down.

@@ -21,7 +21,7 @@ function ixBlock(c,multi){const city=ixCity(c),C=CITY[city],ix=ixName(c),X=XIXM[
       // then the ones that say no (and why), then the ones you already reach.
       const mk=id=>set.has(id)?2:peerOk(id,'ix',c).ok?0:1,ml=ixMembers(c).filter(id=>netKeep(NET[id],set.has(id))).map(id=>[id,mine?1:mk(id)]).sort((a,b)=>a[1]-b[1]||NSH[b[0]]-NSH[a[0]]).map(x=>x[0]);
       for(const id of ml.slice(0,pnN('ix:'+c,ml.length,4))){const n=NET[id],on=set.has(id),viaRs=on&&!S.peers[id+'@'+c]&&!mine,chk=peerOk(id,'ix',c);
-        h+=`<div class="row">${logo(n)}<div class="grow"><div class="nm">${esc(n.name)}</div><div class="meta"><span class="tag ${n.type}">${TYPE_L[n.type]}</span> <span class="tag ${n.pol}">${n.pol}</span> · ${(NSH[id]*100).toFixed(NSH[id]<0.01?1:0)}%${n.tail?' <span class="tag st">'+tr('common.tiny')+'</span>':''}</div>${!on&&!chk.ok?`<div class="why">${esc(chk.why)}</div>`:''}</div>
+        h+=`<div class="row">${logo(n)}<div class="grow"><div class="nm">${esc(n.name)}</div><div class="meta"><span class="tag ${n.type}">${TYPE_L[n.type]}</span> <span class="tag ${n.pol}">${npolL(n.pol)}</span> · ${(NSH[id]*100).toFixed(NSH[id]<0.01?1:0)}%${n.tail?' <span class="tag st">'+tr('common.tiny')+'</span>':''}</div>${!on&&!chk.ok?`<div class="why">${esc(chk.why)}</div>`:''}</div>
         ${on?(viaRs||mine?`<span class="tag st on">${mine?tr('common.member_fef5'):tr('common.via_rs')}</span>`:btn(tr('common.peered_ce2f'),'unpeer',{city:c,net:id},'green sm',false,tr('link_panels.click_to_tear_down'))):btn(tr('common.request'),'peer',{city:c,net:id},'sm',!chk.ok)}</div>`;}
       h+=pnMore('ix:'+c,ml.length,n=>trn('hud_and_panels.n_more_networks',n),4)+`</div>`;}
   if(ix)h+=fedIxPlayers(c,city);

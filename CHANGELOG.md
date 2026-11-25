@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 - Series of Tubes now speaks Japanese and Korean. The game follows your browser's language the first time, and you can switch under Settings or on the title screen. Acronyms like POP, IX and PNI and the networks' pun names stay as they are, the way they appear everywhere else in the game.
+- A network's peering policy (Open, Selective, Restrictive, Paid) now shows in your language in the network lists, and the date in the top bar no longer flashes in English before a game starts.
 
 ## [5.5.0] — 2026-11-25
 
