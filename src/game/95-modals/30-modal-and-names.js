@@ -1,6 +1,8 @@
+// A dialog needs a name for screen readers and agents: the window's own title. Text, not an id, so re-renders keep it.
+const nameModal=()=>{const m=$('modalCard'),h=m.querySelector('h1,h2,h3,.eyebrow,.mhead'),t=h&&h.textContent.replace(/\s+/g,' ').trim();if(t)m.setAttribute('aria-label',t);else m.removeAttribute('aria-label');};
 // Keyboard focus moves into the modal, so Enter or Space can't keep pressing a hidden button behind it.
 // The link check on phones sits above the tab bar and is not modal, so the tabs stay usable.
-function openModal(html,cls=''){HOOKS.modal?.(true);$('modal').className=cls;$('modalCard').setAttribute('aria-modal',cls==='link-check'&&isPhone()?'false':'true');if($('modal').hidden){markLayer();const f=document.activeElement;UI.modalFrom=f&&f!==document.body&&!f.closest('#modal')?f:null;}$('modalCard').innerHTML=html;$('modal').hidden=false;const a=document.activeElement;if(a&&a!==document.body&&!a.closest('#modal')){a.blur();const m=$('modalCard');m.tabIndex=-1;m.focus({preventScroll:true});}}
+function openModal(html,cls=''){HOOKS.modal?.(true);$('modal').className=cls;$('modalCard').setAttribute('aria-modal',cls==='link-check'&&isPhone()?'false':'true');if($('modal').hidden){markLayer();const f=document.activeElement;UI.modalFrom=f&&f!==document.body&&!f.closest('#modal')?f:null;}$('modalCard').innerHTML=html;nameModal();$('modal').hidden=false;const a=document.activeElement;if(a&&a!==document.body&&!a.closest('#modal')){a.blur();const m=$('modalCard');m.tabIndex=-1;m.focus({preventScroll:true});}}
 // Pie Control is a management panel, like the NOC dashboard: the clock keeps running under it (and it follows the days,
 // pieModal(true)). Every other window stops the clock until it is closed (#376).
 const CLOCK_MODALS={pie:1},modalStops=()=>!$('modal').hidden&&!CLOCK_MODALS[$('modal').className];

@@ -8,6 +8,8 @@ All notable changes to this project are documented here. The project follows
 
 - Search results for the game now describe what you do in it. The text search engines show under the link no longer trails off into "needs JavaScript".
 
+- Screen readers now announce every window by its title, starting with the title screen. Before, they only said "dialog".
+
 - Running more cloud regions than your level allows now costs at most twice the plain price. Each region past the line still adds 25% to the running cost of every region, but it stops at +100%, so a big cloud no longer pays hundreds of percent more.
 
 ## [5.5.0] — 2026-11-25
