@@ -15,7 +15,7 @@ function start(t, opts = {}) {
 }
 const raw = (s) => /hyper_story\.|hyper_badges\.|\{[a-z]+\}|undefined|NaN/.test(s);
 
-for (const lang of ['en', 'it', 'pt', 'fr', 'es', 'de']) {
+for (const lang of ['en', 'it', 'pt', 'fr', 'es', 'de', 'ja', 'ko']) {
   test(`${lang}: every level's name, quote, unlocks, toast and Next line render, as do the guide, picker and help`, (t) => {
     const { ev, errors } = start(t, lang === 'en' ? {} : { lang });
     const L = J(ev, 'hsLevels()');

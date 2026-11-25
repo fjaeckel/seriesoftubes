@@ -157,7 +157,7 @@
 
 <script>
 // Language: the player's saved choice, else the browser's, else English. Non-English dictionaries load before the game.
-(function(){const langs=window.SOT_LANGS={en:'English',it:'Italiano',pt:'Português',fr:'Français',es:'Español',de:'Deutsch'};let l=null;try{l=localStorage.getItem('sot-lang');}catch(e){}
+(function(){const langs=window.SOT_LANGS={en:'English',it:'Italiano',pt:'Português',fr:'Français',es:'Español',de:'Deutsch',ja:'日本語',ko:'한국어'};let l=null;try{l=localStorage.getItem('sot-lang');}catch(e){}
   const b=(navigator.language||'').slice(0,2).toLowerCase();if(!Object.hasOwn(langs,l))l=Object.hasOwn(langs,b)?b:'en';
   window.SOT_LANG=l;document.documentElement.lang=l;if(l!=='en')document.write('<script src="i18n/'+l+'.js?v=__VERSION__"><\/script>');})();
 </script>

@@ -69,7 +69,7 @@ test('the optics list on the cable shows the new hint under the plug-in and none
 });
 
 test('the hint reads right in every language', () => {
-  for (const lang of ['it', 'pt', 'fr', 'es', 'de']) {
+  for (const lang of ['it', 'pt', 'fr', 'es', 'de', 'ja', 'ko']) {
     const { why, errors } = cable({ lang });
     const w = why('zr8');
     assert.ok(!/\{[a-z]+\}|action_helpers\./.test(w), `${lang}: no raw placeholders or labels: ${w}`);

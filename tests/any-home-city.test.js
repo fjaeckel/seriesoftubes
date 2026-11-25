@@ -45,7 +45,7 @@ test('a home that cannot work is refused, and the game falls back to Frankfurt',
 });
 
 test('the title screen works on a phone in every language: language first, the name on top, compact presets', () => {
-  for (const lang of ['en', 'it', 'pt', 'fr', 'es', 'de']) {
+  for (const lang of ['en', 'it', 'pt', 'fr', 'es', 'de', 'ja', 'ko']) {
     const { ev, errors } = load(lang === 'en' ? {} : { lang });
     ev('window.innerWidth=360;showTitle()');
     const order = ev("(()=>{const c=document.getElementById('modalCard');const at=s=>[...c.querySelectorAll('*')].indexOf(c.querySelector(s));return [at('#langTitle'),at('.title-art'),at('#nmIn'),at('.doors'),at('#homeSel')].join(',')})()").split(',').map(Number);

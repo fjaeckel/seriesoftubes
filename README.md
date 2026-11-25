@@ -64,7 +64,7 @@ Progress is saved in your browser's local storage. To try Multimode from a phone
 `npm run dev -- --https --host 0.0.0.0` serves a secure page (browsers only sign Multimode records on one) and prints how to trust
 its certificate.
 
-The game speaks English, Italian, Portuguese, French, Spanish and German. It follows your browser's language the first time
+The game speaks English, Italian, Portuguese, French, Spanish, German, Japanese and Korean. It follows your browser's language the first time
 and remembers the one you pick under Settings or on the title screen.
 
 ## Host your own server

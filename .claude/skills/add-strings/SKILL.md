@@ -77,6 +77,22 @@ Route Server, Line System, LAG, PNI, Fabric, Scrubbing), but plain "fiber" is "G
 "{n} T.", money keeps the game's `$100k` style, quotes are „…“. Translate puns into a German joke
 when one fits; otherwise keep the pun name.
 
+## Japanese style
+
+Friendly polite です・ます in sentences; buttons and short labels are nouns or dictionary-form verbs (閉じる, 設定).
+Networking terms in katakana as Japanese engineers say them (ピアリング, トランジット, ダークファイバー, バックボーン,
+ルーター, ポート, 波長 for waves, 管路 for trenches); acronyms (POP, IX, PNI, LAG, BGP, DDoS) and pun names (Cogentle,
+Goggle) stay in Latin letters. "Eyeballs" are 個人ユーザー, "/mo" is "/月", "{n}d" is "{n}日", months are 1月…12月.
+Sentences use 。、 and 「」. Peering policies are オープン / セレクティブ / クローズド / リストリクティブ / ペイド.
+
+## Korean style
+
+Friendly polite 해요체 in sentences; buttons and short labels are nouns (닫기, 취소, 설정). Networking terms as Korean
+engineers say them (피어링, 트랜짓, 다크 파이버, 백본, 라우터, 포트, 파장 for waves, 관로 for trenches); plain "fiber" is
+광섬유. Acronyms and pun names stay in Latin letters. "Eyeballs" are 개인 사용자, "/mo" is "/월", "{n}d" is "{n}일",
+months are 1월…12월. Avoid 당신. Peering policies are 개방형 / 선별형 / 폐쇄형 / 제한형 / 유료형. A name before a particle
+can end in a vowel or not, so prefer forms that work for both (이(가), 씨:, 의).
+
 ## Check
 
 ```bash
