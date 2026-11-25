@@ -40,7 +40,7 @@ function run() {
   if (next >= files.length) return Promise.resolve();
   const f = files[next++], t = performance.now();
   return new Promise((res) => {
-    const p = spawn(process.execPath, ['--test', f], { cwd: root, stdio: 'ignore' });
+    const p = spawn(process.execPath, ['--test', '--test-force-exit', '--require', path.join(dir, 'helpers', 'no-leaks.js'), f], { cwd: root, stdio: 'ignore' });
     p.on('close', (code) => {
       out[f] = Math.round((performance.now() - t) / 100) / 10;
       if (code) { failed++; console.log(`✗ ${f} failed (timed anyway)`); }

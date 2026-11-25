@@ -53,15 +53,19 @@ if (si >= 0) {
 let files = args.some((a) => a.endsWith('.test.js')) ? [] :
   fs.readdirSync(dir).filter((f) => f.endsWith('.test.js')).sort().map((f) => path.join('tests', f));
 
-// Longest first, each onto the part with the least so far: parts within a file's length of each other.
-function part(list, i, n) {
+// Each file's typical seconds (tests/durations.json); a file missing from it counts as a typical one.
+function weights(list) {
   let dur = {};
   try { dur = JSON.parse(fs.readFileSync(path.join(dir, 'durations.json'), 'utf8')); } catch (e) { /* none yet: by count */ }
   const known = list.map((f) => dur[f.replace(/\\/g, '/')]).filter((s) => s > 0).sort((a, b) => a - b);
   const typical = known.length ? known[known.length >> 1] : 1;
-  const w = (f) => dur[f.replace(/\\/g, '/')] > 0 ? dur[f.replace(/\\/g, '/')] : typical;
-  const load = Array(n).fill(0), out = Array.from({ length: n }, () => []);
-  for (const f of list.slice().sort((a, b) => w(b) - w(a) || a.localeCompare(b))) {
+  return (f) => dur[f.replace(/\\/g, '/')] > 0 ? dur[f.replace(/\\/g, '/')] : typical;
+}
+const longestFirst = (list, w = weights(list)) => list.slice().sort((a, b) => w(b) - w(a) || a.localeCompare(b));
+// Longest first, each onto the part with the least so far: parts within a file's length of each other.
+function part(list, i, n) {
+  const w = weights(list), load = Array(n).fill(0), out = Array.from({ length: n }, () => []);
+  for (const f of longestFirst(list, w)) {
     let k = 0;
     for (let j = 1; j < n; j++) if (load[j] < load[k]) k = j;
     load[k] += w(f); out[k].push(f);
@@ -81,12 +85,16 @@ if (shard && files.length) {
 }
 
 const jobs = Math.max(1, parseInt(process.env.TEST_JOBS, 10) || os.availableParallelism());
+// A file's process exits as soon as its tests are done. Without this it lingers until the page's own timers run out
+// (a toast alone waits 6.5 s), which was most of the suite's time.
+// tests/helpers/no-leaks.js then fails a file that leaves a server, socket or child open, which used to show as a hang.
+const EXIT = ['--test-force-exit', '--require', path.join(dir, 'helpers', 'no-leaks.js')];
 // Stress: N runs of the same files at once, each its own node --test, so they fight for the CPU the way the four
 // CI parts and their own parallel files do (and worse). A test that only passes on a quiet machine fails here.
 if (stress) {
   if (!args.some((a) => a.endsWith('.test.js'))) { console.error('--stress wants the test files to run, like tests/agent-relay.test.js'); process.exit(2); }
   const runs = Array.from({ length: stress }, (_, i) => new Promise((res) => {
-    const c = spawn(process.execPath, ['--test', '--test-reporter=dot', ...args], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] });
+    const c = spawn(process.execPath, ['--test', ...EXIT, '--test-reporter=dot', ...args], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] });
     let out = ''; c.stdout.on('data', (d) => { out += d; }); c.stderr.on('data', (d) => { out += d; });
     c.on('close', (code) => res({ i: i + 1, code, out }));
   }));
@@ -100,5 +108,6 @@ if (stress) {
 }
 const rep = timings ? ['--test-reporter=spec', '--test-reporter-destination=stdout',
   `--test-reporter=${path.join(__dirname, 'lib', 'timings-reporter.js')}`, `--test-reporter-destination=${timings}`] : [];
-const r = spawnSync(process.execPath, ['--test', `--test-concurrency=${jobs}`, ...rep, ...args, ...files], { stdio: 'inherit', cwd: root });
+// Files start in the order given: the longest first, so no long file starts last and runs on alone.
+const r = spawnSync(process.execPath, ['--test', ...EXIT, `--test-concurrency=${jobs}`, ...rep, ...args, ...longestFirst(files)], { stdio: 'inherit', cwd: root });
 process.exit(r.status ?? 1);
