@@ -67,6 +67,8 @@ test('the game starts in English unless the player or the browser asks for anoth
   assert.equal(load({ navigatorLanguage: 'it-IT' }).ev('SOT_LANG'), 'it', 'an Italian browser asks for Italian');
   // One code path for every language: the region is dropped, so a Swiss German browser asks for German.
   assert.equal(load({ navigatorLanguage: 'de-CH' }).ev('SOT_LANG'), 'de', 'a Swiss German browser asks for German');
+  assert.equal(load({ navigatorLanguage: 'ja-JP' }).ev('SOT_LANG'), 'ja', 'a Japanese browser asks for Japanese');
+  assert.equal(load({ navigatorLanguage: 'ko-KR' }).ev('SOT_LANG'), 'ko', 'a Korean browser asks for Korean');
   const it = load({ lang: 'it' });
   assert.equal(it.ev('LANG'), 'it');
   assert.equal(it.ev('document.documentElement.lang'), 'it');
@@ -95,6 +97,18 @@ test('text that old saves stored in English is still translated', () => {
   assert.equal(load().ev("tr('Delivery: 2 to 6 weeks')"), 'Delivery: 2 to 6 weeks');
 });
 
+test('a network\'s peering policy tag is shown in the player\'s language, not as its English id', () => {
+  for (const [lang, want] of [['en', 'Restrictive'], ['de', 'Restriktiv'], ['ja', 'リストリクティブ'], ['ko', '제한형']]) {
+    const { ev, errors } = load(lang === 'en' ? {} : { lang });
+    assert.equal(ev("npolL('restrictive')"), want, lang);
+    assert.equal(ev("npolL('paid')"), ev("tr('common.paid_policy')"), lang);
+    ev('ACT.start({});S.cash=1e8');
+    ev("ACT.leftTab({t:'nets'})");
+    if (lang !== 'en') assert.doesNotMatch(ev("document.getElementById('leftBody').innerHTML"), />(restrictive|selective|paid)</, lang);
+    assert.deepEqual(errors, []);
+  }
+});
+
 test('the static markup is translated by label', () => {
   const { ev } = load({ lang: 'it' });
   ev('ACT.start({})');
@@ -114,7 +128,7 @@ test('a scenario started in English shows its Italian name after switching', () 
 // The whole tour in English and Italian (plural forms): what it finds, a raw label, NaN, a throw, comes from the code, the
 // same in every language, and the dictionaries themselves are checked by tests/gameplay-rules.test.js (C3). The other
 // languages check their own few labels.
-for (const lang of ['en', 'it', 'pt', 'fr', 'es', 'de']) {
+for (const lang of ['en', 'it', 'pt', 'fr', 'es', 'de', 'ja', 'ko']) {
   const full = lang === 'en' || lang === 'it';
   test(full ? `${lang}: every screen, failure and event renders without errors or unfilled placeholders` : `${lang}: How to play and the top bar in ${lang}`, () => {
     const { ev, errors } = load(lang === 'en' ? {} : { lang });
@@ -142,6 +156,15 @@ for (const lang of ['en', 'it', 'pt', 'fr', 'es', 'de']) {
       assert.equal(ev("tr('common.peering')"), 'Peering');
       assert.equal(ev("tr('common.dark_fiber')"), 'Dark Fiber');
       assert.equal(ev("tr('common.terrestrial_fiber')"), 'Terrestrische Glasfaser');
+    }
+    if (lang === 'ja' || lang === 'ko') {
+      // How to play is in kana / hangul, and Cash · Bank stays short enough for the phone's top bar
+      assert.match(ev("document.getElementById('modalCard').textContent"), lang === 'ja' ? /[\u3040-\u30ff]/ : /[\uac00-\ud7af]/);
+      assert.equal(ev("document.querySelector('#hud [data-act=bank] .lbl').textContent"), lang === 'ja' ? '現金 · 銀行' : '현금 · 은행');
+      assert.equal(ev('document.documentElement.lang'), lang);
+      // the glossary: peering in katakana / hangul, acronyms and pun names stay as they are
+      assert.equal(ev("tr('common.peering')"), lang === 'ja' ? 'ピアリング' : '피어링');
+      assert.equal(ev("tr('common.dark_fiber')"), lang === 'ja' ? 'ダークファイバー' : '다크 파이버');
     }
     if (!full) { assert.deepEqual(errors, []); return; }
     const { thrown, leaks, panels, dashSvg, stale } = tour(ev);

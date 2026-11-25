@@ -82,7 +82,7 @@ test('the history is capped, kept in the save, and a tampered one is repaired', 
 });
 
 test('the tab shows attacks under way with their buttons, the totals and the history, on a phone and a wide screen, in every language', () => {
-  for (const lang of ['en', 'it', 'pt', 'fr', 'es', 'de']) {
+  for (const lang of ['en', 'it', 'pt', 'fr', 'es', 'de', 'ja', 'ko']) {
     const { ev, errors } = load(lang === 'en' ? {} : { lang });
     fra(ev);
     ev("for(let i=0;i<30;i++){S.day=40+i;ddosDone({id:'x'+i,city:'fra',tgt:i%2?'g':'bb:fra',vec:i%3?'syn':'dns',gbps:i*7+1,start:S.day,until:S.day,bh:false,sac:i%5===0?1:0,au:i%10===0?1:0,scr:i%4===0?1:0,hk:i===7?1:0,worst:i%3?0.5:1,colMax:i%6===1?0.2:0});}S.day=80;S.stats.hackback=2;S.stats.hackWin=1;");

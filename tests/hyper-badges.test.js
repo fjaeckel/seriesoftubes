@@ -111,7 +111,7 @@ test('the share card: regions, continents, users, the peak between regions and C
   assert.deepEqual(errors, []);
 });
 
-for (const lang of ['it', 'pt', 'fr', 'es', 'de']) {
+for (const lang of ['it', 'pt', 'fr', 'es', 'de', 'ja', 'ko']) {
   test(`${lang}: the badges and share rows render`, (t) => {
     const { ev, errors } = start(t, { lang });
     const raw = (s) => /hyper_badges\.|\{[a-z]+\}|undefined|NaN/.test(s);

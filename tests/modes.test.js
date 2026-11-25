@@ -392,7 +392,7 @@ test('DKNOG in Copenhagen is on the conference calendar', () => {
 });
 
 test('the Signal group is linked from the title screen, the menu and How to play, in every language', () => {
-  for (const lang of ['en', 'it', 'pt', 'fr', 'es', 'de']) {
+  for (const lang of ['en', 'it', 'pt', 'fr', 'es', 'de', 'ja', 'ko']) {
     const { ev, errors } = load(lang === 'en' ? {} : { lang });
     const links = (setup) => ev(`(()=>{${setup};return [...document.querySelectorAll('#modal a[href^="https://signal.group/#"]')].map(a=>a.target+'|'+a.rel+'|'+a.textContent.trim()).join('\\n');})()`);
     const title = links('showTitle()');

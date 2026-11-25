@@ -6,7 +6,7 @@ const pick = (ev, id) => JSON.parse(ev(`(()=>{const s=document.getElementById('$
   opts:[...s.options].map(o=>[o.value,o.textContent,o.lang]),label:(document.querySelector('label[for=${id}]')||{}).textContent});})()`));
 
 test('language is one dropdown on the title screen and in Settings, in every language, with the current one selected', () => {
-  for (const lang of ['en', 'it', 'pt', 'fr', 'es', 'de']) {
+  for (const lang of ['en', 'it', 'pt', 'fr', 'es', 'de', 'ja', 'ko']) {
     const { ev, errors } = load(lang === 'en' ? {} : { lang });
     const langs = JSON.parse(ev('JSON.stringify(Object.entries(LANGS))'));
     const title = pick(ev, 'langTitle');

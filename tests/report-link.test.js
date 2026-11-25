@@ -5,7 +5,7 @@ const { load } = require('./harness');
 const ISSUES = 'https://github.com/fjaeckel/seriesoftubes/issues/new/choose';
 
 test('bugs and ideas point to GitHub from the menu and How to play, and the chat no longer asks for bug reports', () => {
-  for (const lang of ['en', 'it', 'pt', 'fr', 'es', 'de']) {
+  for (const lang of ['en', 'it', 'pt', 'fr', 'es', 'de', 'ja', 'ko']) {
     const { ev, errors } = load(lang === 'en' ? {} : { lang });
     ev('ACT.start({})');
     for (const [where, setup] of [['menu', 'ACT.menu()'], ['help', 'showHelp()']]) {

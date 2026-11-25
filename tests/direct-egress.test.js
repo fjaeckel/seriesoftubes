@@ -178,7 +178,7 @@ test('each port offers the choice when it can matter, on a desktop and a phone',
 });
 
 test('the control reads right in every language', () => {
-  for (const lang of ['it', 'pt', 'fr', 'es', 'de']) {
+  for (const lang of ['it', 'pt', 'fr', 'es', 'de', 'ja', 'ko']) {
     const { ev, dom, errors } = load({ lang });
     ev("ACT.pickStart({city:'nyc'});ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;ACT.buyTransit({city:'nyc',net:'lvl',tier:1});ACT.buildPop({city:'chi'});ACT.buyTransit({city:'chi',net:'tly',tier:1});UI.sel={type:'city',id:'nyc'};UI.tab='up';renderPanel()");
     const text = dom.window.document.getElementById('panelBody').textContent;

@@ -44,7 +44,7 @@ test('Rackstar serves cacheable Crowdflare traffic locally and overflow uses tra
 });
 
 test('Rackstar boxes survive save migration and appear on phone peering panels in every language', () => {
-  for (const lang of ['en', 'it', 'pt', 'fr', 'es', 'de']) {
+  for (const lang of ['en', 'it', 'pt', 'fr', 'es', 'de', 'ja', 'ko']) {
     const { dom, ev, errors } = load(lang === 'en' ? {} : { lang });
     setup(ev);
     ev('window.matchMedia=()=>({matches:true})');
