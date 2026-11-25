@@ -1,1 +1,53 @@
-{"chain":[],"genesis":{"body":{"name":"seriesoftubes.rocketway.it","node":{"key":"-Xqe8MdGQ2p4vZbzsHVKoW5N7ya7tgMqdEupqqyAEyY","url":"wss://seriesoftubes.rocketway.it/fed"}},"key":"sSfjQFe3fCwx47sF3Z4RJ0ZfbnXdLxx31w4aWHduNgI","kind":"genesis","sig":"IVVH22M3-7qsmvbCiIzM1ADu2u5sFkJWaS0qbOO2L6KTaiqAgq7XHTx0AdyublP5dYx-y_snt4VDhs13-ixMAg","t":1794753083,"v":1},"server":{"body":{"desc":"","head":"Rm8ClPdUwJ5D52qmqL6_1UXyjRMIWXxJNWel-40aBko","langs":["en","it"],"name":"seriesoftubes.rocketway.it","noLogs":true,"nodes":[{"key":"-Xqe8MdGQ2p4vZbzsHVKoW5N7ya7tgMqdEupqqyAEyY","url":"wss://seriesoftubes.rocketway.it/fed"}],"operators":["sSfjQFe3fCwx47sF3Z4RJ0ZfbnXdLxx31w4aWHduNgI"],"server":"Rm8ClPdUwJ5D52qmqL6_1UXyjRMIWXxJNWel-40aBko","sync":"open"},"key":"sSfjQFe3fCwx47sF3Z4RJ0ZfbnXdLxx31w4aWHduNgI","kind":"server","sigs":[{"key":"sSfjQFe3fCwx47sF3Z4RJ0ZfbnXdLxx31w4aWHduNgI","sig":"AwFWLDfiCmlWbE7lgWqY0M3atsGJplKHDI1QEg1qgAjS2O1mz8ednmU2-iPZfUvZUTDWXuOQyRnkW_3iSslpCw"}],"t":1794753083,"v":1},"v":1}
+{
+  "chain": [],
+  "genesis": {
+    "body": {
+      "name": "seriesoftubes.rocketway.it",
+      "node": {
+        "key": "-Xqe8MdGQ2p4vZbzsHVKoW5N7ya7tgMqdEupqqyAEyY",
+        "url": "wss://seriesoftubes.rocketway.it/fed"
+      }
+    },
+    "key": "sSfjQFe3fCwx47sF3Z4RJ0ZfbnXdLxx31w4aWHduNgI",
+    "kind": "genesis",
+    "sig": "IVVH22M3-7qsmvbCiIzM1ADu2u5sFkJWaS0qbOO2L6KTaiqAgq7XHTx0AdyublP5dYx-y_snt4VDhs13-ixMAg",
+    "t": 1794753083,
+    "v": 1
+  },
+  "server": {
+    "body": {
+      "desc": "",
+      "head": "Rm8ClPdUwJ5D52qmqL6_1UXyjRMIWXxJNWel-40aBko",
+      "langs": [
+        "en",
+        "it"
+      ],
+      "name": "seriesoftubes.rocketway.it",
+      "noLogs": true,
+      "nodes": [
+        {
+          "key": "-Xqe8MdGQ2p4vZbzsHVKoW5N7ya7tgMqdEupqqyAEyY",
+          "url": "wss://seriesoftubes.rocketway.it/fed"
+        }
+      ],
+      "operators": [
+        "sSfjQFe3fCwx47sF3Z4RJ0ZfbnXdLxx31w4aWHduNgI"
+      ],
+      "server": "Rm8ClPdUwJ5D52qmqL6_1UXyjRMIWXxJNWel-40aBko",
+      "sync": "open"
+    },
+    "key": "sSfjQFe3fCwx47sF3Z4RJ0ZfbnXdLxx31w4aWHduNgI",
+    "kind": "server",
+    "sigs": [
+      {
+        "key": "sSfjQFe3fCwx47sF3Z4RJ0ZfbnXdLxx31w4aWHduNgI",
+        "sig": "AwFWLDfiCmlWbE7lgWqY0M3atsGJplKHDI1QEg1qgAjS2O1mz8ednmU2-iPZfUvZUTDWXuOQyRnkW_3iSslpCw"
+      }
+    ],
+    "t": 1794753083,
+    "v": 1
+  },
+  "v": 1,
+  "listed": 1795564800,
+  "answered": 1795564800
+}
