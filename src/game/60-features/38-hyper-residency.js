@@ -1,7 +1,7 @@
 /* ---------- The Hyperscaler and the law: data residency (37-hyper.js) ----------
    Some countries pin their users' data to a region inside the country (HS_SOV: real data localisation laws, from
    Russia's 2015 personal data law to India's payment data rules, Indonesia's, Vietnam's, Nigeria's, Saudi Arabia's and
-   Turkey's, and China's Cybersecurity Law), and EU members to a region anywhere in the EU (HS_EU). hsFlows homes such users only in a matching region
+   Turkey's, and China's Cybersecurity Law), and EU members to a region anywhere in the EU or a country it trusts (HS_EU_SAFE). hsFlows homes such users only in a matching region
    (gameplay rule M13): none built yet, and they wait at the size they launched with, neither growing nor leaving (the
    card and the Cloud tab say why). A failover never breaks the law either: a region whose replica sits outside the bloc
    leaves those users without service while it is down. Very Sovereign Cloud tenants (Ministries and central banks)
@@ -10,11 +10,16 @@
    built, so its users and sovereign tenants may fail over to the replica abroad, as the regulators there accept (#451). */
 const HS_SOV=['CN','ID','IN','NG','RU','SA','TR','VN'];
 const HS_EU=['AT','BE','BG','CY','CZ','DE','DK','EE','ES','FI','FR','GR','HR','HU','IE','IT','LT','LU','LV','MT','NL','PL','PT','RO','SE','SI','SK'];
+/* Where EU users' data may go (#483): the EU, the rest of the EEA (GDPR applies there too) and the countries with an EU
+   adequacy decision in force (Switzerland, the UK, Japan, Brazil since 2026…). Canada's covers commercial firms, which a
+   cloud is. The US one covers only firms certified under the Data Privacy Framework, the deal a Schrems III may undo:
+   it stays out, as the lawyers' fee for copying there (38-hyper-regulation.js) is about exactly that. */
+const HS_EU_SAFE=[...HS_EU,'AD','AR','BR','CA','CH','FO','GB','GG','IL','IM','IS','JE','JP','KR','LI','NO','NZ','UY'];
 // 'cc' (in the country), 'eu' (in the bloc) or '' (anywhere). A country's own new law counts too (hsRegRes,
 // 38-hyper-regulation.js): from the day it is in force, its users are pinned like the countries above.
 const hsResOf=cc=>HS_SOV.includes(cc)?'cc':HS_EU.includes(cc)?'eu':hsRegRes(cc);
 // May users of country cc be homed in the region in city r?
-function hsResOk(cc,r){if(!!(CITY[r]&&CITY[r].cn)!==(cc==='CN'))return false;const k=hsResOf(cc);if(!k)return true;const rc=CITY[r]&&CITY[r].cc;return k==='cc'?rc===cc:HS_EU.includes(rc);}
+function hsResOk(cc,r){if(!!(CITY[r]&&CITY[r].cn)!==(cc==='CN'))return false;const k=hsResOf(cc);if(!k)return true;const rc=CITY[r]&&CITY[r].cc;return k==='cc'?rc===cc:HS_EU_SAFE.includes(rc);}
 // A region they may use is built (live or not): until then they are held at their launch size.
 function hsResMet(cc){const H=S.hs;if(!H||!hsResOf(cc))return true;return Object.keys(H.rg).some(r=>H.rg[r].ready<=S.day&&hsResOk(cc,r));}
 // Could such a region ever be built in the country (or bloc)? A country with no data-center metro is out of luck.
@@ -31,9 +36,9 @@ const hsTenFoOk=(p,c,r)=>hsTenResOk(p,c,r)||!hsWall(c,r)&&hsOneSite(CITY[c].cc);
 function hsHomeOk(cc,r,fo){const x=S.hs.cc[cc],h=x&&x.home;if(h&&fo&&own(fo,h))return fo[h]===r&&hsResFoOk(cc,r);return hsResOk(cc,r);}
 // Why a country's users cannot grow, in words, or ''.
 function hsResWhy(cc){const k=hsResOf(cc);if(!k||hsResMet(cc))return '';const v={country:esc(ccName(cc))};
-  if(!hsResSite(cc))return tr('hyper_law.no_site',v);return k==='cc'?tr('hyper_law.held_cc',v):tr('hyper_law.held_eu',v);}
+  if(!hsResSite(cc))return tr('hyper_law.no_site',v);return k==='cc'?tr('hyper_law.held_cc',v):tr('hyper_law.held_eu_or_safe',v);}
 // The law in one short line, for the Cloud tab.
-const hsResLine=cc=>{const k=hsResOf(cc),v={country:esc(ccName(cc))};return k==='cc'?tr('hyper_law.rule_cc',v):k==='eu'?tr('hyper_law.rule_eu',v):'';};
+const hsResLine=cc=>{const k=hsResOf(cc),v={country:esc(ccName(cc))};return k==='cc'?tr('hyper_law.rule_cc',v):k==='eu'?tr('hyper_law.rule_eu_or_safe',v):'';};
 /* A day: sovereign tenants whose region failed, with no region at home to take them, leave at once (a drill is
    planned with them, so it never counts). */
 function hsResDay(d){const H=S.hs;if(!H||!hyper())return;const o=R.hs;if(!o)return;

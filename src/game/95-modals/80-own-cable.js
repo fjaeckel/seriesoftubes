@@ -16,8 +16,10 @@ const ownCabDays=km=>leadDays(Math.round(300+km*0.05));
 // Nothing is built until an order is quoted; topology and finished routes are reused.
 const SEA_NAV={step:0.25,nx:1440,ny:641,rows:new Map(),edges:null,tiles:new Map(),fine:new Set(),routes:new Map(),ports:new Map(),pass:null,closed:new Set()};
 // Real Europe–Asia cables land at Port Said and cross Egypt beside the canal to Suez; PAN AM crosses Panama by land.
+// The Bosporus and the Dardanelles are too narrow for the grid: Istanbul's cables reach the Aegean through them and
+// the Sea of Marmara, as KAFOS and MedNautilus do (#484).
 // Each is an overland edge between two sea cells, priced as the distance it covers.
-const SEA_PASS=[{id:'suez',a:[32.30,31.30],b:[32.58,29.85]},{id:'panama',a:[-79.90,9.40],b:[-79.50,8.85]}];
+const SEA_PASS=[{id:'suez',a:[32.30,31.30],b:[32.58,29.85]},{id:'panama',a:[-79.90,9.40],b:[-79.50,8.85]},{id:'straits',a:[29.25,41.50],b:[26.00,40.00]}];
 function seaSnap(p){const cx=Math.round((seaLon(p[0])+180)/SEA_NAV.step)%SEA_NAV.nx,cy=Math.round((p[1]+80)/SEA_NAV.step);let best=null;
   for(let r=0;r<=16&&!best;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;const x=(cx+dx+SEA_NAV.nx)%SEA_NAV.nx,y=cy+dy;if(!seaWater(x,y)||!seaNode(x,y))continue;const id=y*SEA_NAV.nx+x;if(!seaOpen(id))continue;const d=hav(...p,...seaPoint(id));if(!best||d<best.d)best={id,d};}
   return best&&best.id;}
@@ -191,7 +193,18 @@ function seaQuote(a,b,design='standard',upgrades={}){
 const seaUps=km=>{const up={terminal:!!UI.seaterminal,engineering:!!UI.seaengineering};
   for(const k of ['engineering','terminal'])if(up[k]&&!subHelps(km,k,up[subOther(k)]))up[k]=false;return up;};
 // Some pairs share a landmass and still have cables between them (Marseille–Singapore, Cairo–Palermo) (#67).
-const seaCab=(a,b)=>isSub(a,b)||(landing(a)&&landing(b)&&cablesFor(a,b).length>0);
+// May a cable be laid between a and b at all? Across the sea always. Between two landing stations on one landmass, when
+// a real one runs there or the sea lies between them: at least SEA_SHARE of the straight line crosses water (seaBetween) (Jerusalem
+// to Athens, Istanbul to Cairo, Cairo to Singapore), not two inland hubs such as Frankfurt and Paris (#484).
+// ownCabWhy still says no if the sea way round is a detour.
+// 23 points along the line, stopping once the answer is sure: the possible-diversity map asks it of ~2000 pairs.
+const SEA_SHARE=1/3,SEA_SHARES=new Map();
+function seaBetween(a,b){const k=a<b?a+'|'+b:b+'|'+a;if(SEA_SHARES.has(k))return SEA_SHARES.get(k);const A=CITY[a],B=CITY[b],n=24,need=Math.ceil((n-1)*SEA_SHARE);let w=0,d=0;
+  for(let i=1;i<n&&w<need&&d<=n-1-need;i++){const t=i/n;if(seaLand(A.lon+seaLon(B.lon-A.lon)*t,A.lat+(B.lat-A.lat)*t))d++;else w++;}const v=w>=need;SEA_SHARES.set(k,v);return v;}
+const seaCab=(a,b)=>isSub(a,b)||landing(a)&&landing(b)&&(cablesFor(a,b).length>0||seaBetween(a,b));
+// The longest sea route, as a multiple of the straight line, worth laying where fiber could go over land instead:
+// Jerusalem to Athens across the sea, yes; Marseille to Hamburg round Spain, no. A route a real cable takes is always fine.
+const SEA_DETOUR=2;
 // What you get back for giving up your own subsea cable (#88): what you paid for it (design and upgrades included)
 // if no optic can light it even with both upgrades,
 // one still being laid returns most of the part not laid yet, a working one is yours for good.
@@ -208,7 +221,9 @@ function ownCabWhy(a,b){if(!seaCab(a,b))return tr('own_cable.this_route_is_on_la
   if(cnCity(a)||cnCity(b))return tr('own_cable.nobody_gives_a_foreign_network_a');
   if(!seaReady(a,b))return tr('own_cable.surveying_a_sea_route');
   const routes=seaRoutes(a,b);if(!routes.length)return tr('own_cable.no_navigable_sea_route_connects');
-  const km=Math.min(...routes.map(r=>r.km));if(!subNeed(km))return tr('own_cable.km_km_is_more_than_any',{km:km.toLocaleString(),max:Math.round(SUB_MAXKM()).toLocaleString()});
+  const km=Math.min(...routes.map(r=>r.km));
+  if(!isSub(a,b)&&!cablesFor(a,b).length&&km>SEA_DETOUR*kmBetween(a,b))return tr('own_cable.the_sea_way_round_is_a_detour',{km:km.toLocaleString(),land:kmBetween(a,b).toLocaleString()});
+  if(!subNeed(km))return tr('own_cable.km_km_is_more_than_any',{km:km.toLocaleString(),max:Math.round(SUB_MAXKM()).toLocaleString()});
   return '';}
 function ownCabTeaser(a,b){const why=ownCabWhy(a,b);return `<div class="btns" style="margin-top:8px">${btn(cabOpen()?tr('modals.lay_your_own_subsea_cable'):tr('modals.your_own_subsea_cable_level_n',{n:CAB_LV}),'ownCab',{},cabOpen()&&!why?'pink':'ghost',!!why)}</div>${why&&cabOpen()?`<p class="note" ${seaSurveyAttr(a,b)}>${esc(why)}</p>`:''}`;}
 function ownCabBody(a,b,pop){const why=ownCabWhy(a,b);if(why)return `<p class="lead" style="margin-top:10px" ${seaSurveyAttr(a,b)}>${esc(why)}</p>${modeOn('autarky')&&isSub(a,b)?btn(tr('common.back'),'closeModal',{},'ghost sm'):btn(tr('common.back'),'dfSrc',{v:modeOn('autarky')?'build':'lease'},'ghost sm')}`;

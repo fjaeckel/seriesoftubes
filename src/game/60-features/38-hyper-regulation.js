@@ -11,7 +11,7 @@
    - Energy efficiency (law.pue[continent]): PUE and heat reporting, as the EU's Energy Efficiency Directive (2023) asks:
      every region there that wastes its heat pays HS_PUE_MO per megawatt a month; heat reuse (hsHeat) is exempt.
    - The EU tightens (law.eu): copying EU users' data out of the EU needs lawyers and transfer assessments (after the
-     Schrems II ruling): HS_EU_MO a month for every EU region whose replica sits outside the EU. Pick an EU replica.
+     Schrems II ruling): HS_EU_MO a month for every EU region whose replica sits outside the EU and the countries it trusts (HS_EU_SAFE).
    - Egress fees (law.egr): "Hotel California" pricing gets investigated (the UK's cloud market investigation found
      egress fees hurt switching; the EU Data Act ends switching charges): cut them by HS_EGR_CUT for a year, or pay a
      fine; ignore it and the fine is set higher at the deadline.
@@ -44,7 +44,7 @@ const hsEuOn=()=>{const L=hsLaw();return !!L&&!!L.eu&&L.eu.f<=S.day;};
 const hsPueRgs=()=>Object.keys(S.hs.rg).filter(c=>hsPueOn(CITY[c].reg)&&hsLive(c)&&!(hsPw(c).heat)).sort();
 const hsPueFee=c=>Math.round(hsMwUsed(c)*HS_PUE_MO);
 // EU regions copying to a replica outside the EU.
-const hsEuRgs=()=>hsRgs().filter(c=>HS_EU.includes(CITY[c].cc)&&(r=>!!r&&!HS_EU.includes(CITY[r].cc))(hsRepOf(c)));
+const hsEuRgs=()=>hsRgs().filter(c=>HS_EU.includes(CITY[c].cc)&&(r=>!!r&&!HS_EU_SAFE.includes(CITY[r].cc))(hsRepOf(c)));
 // Tenants that pay egress (Snack Storage, CloudFrontal Lobe), and what they pay a month at today's service.
 const hsEgrTen=()=>hsTen().filter(b=>Array.isArray(b.p)&&(b.p.includes('obj')||b.p.includes('cdn')));
 const hsEgrRev=r=>hsEgrTen().reduce((a,b)=>a+b.bw*b.rate*Math.min(1,hsTenQ(r,b)/0.95),0);
@@ -75,7 +75,7 @@ function hsLawStart(k,x,d){const L=S.hs.law,m=Math.floor(hsLawU(k+'|m|'+d)*HS_MI
   else if(k==='mor'){const f=d+HS_MOR_AHEAD,u=f+180+Math.floor(hsLawU('moru|'+d)*181);L.mor[x]={a:d,f,u,m};
     toast(`🔌 ${tr('hyper_reg.mor_ann',{min,city:esc(CITY[x].name),date:dateStr(f),until:dateStr(u)})}`,'warn',hsLawGo(x));}
   else if(k==='pue'){const f=d+HS_PUE_AHEAD;L.pue[x]={a:d,f,m};toast(`🌡️ ${tr('hyper_reg.pue_ann',{min,reg:WAVE_NAME[x],date:dateStr(f),fee:fmt$(HS_PUE_MO)})}`,'warn');}
-  else if(k==='eu'){const f=d+HS_EU_AHEAD;L.eu={a:d,f,m};toast(`🇪🇺 ${tr('hyper_reg.eu_ann',{min,date:dateStr(f),fee:fmt$(HS_EU_MO)})}`,'warn');}
+  else if(k==='eu'){const f=d+HS_EU_AHEAD;L.eu={a:d,f,m};toast(`🇪🇺 ${tr('hyper_reg.eu_ann_safe',{min,date:dateStr(f),fee:fmt$(HS_EU_MO)})}`,'warn');}
   else{const fee=Math.max(HS_EGR_MIN,Math.round(hsEgrRev(R)*HS_EGR_X/1000)*1000);L.egr={a:d,dl:d+HS_EGR_DL,st:'open',u:0,fee,m};
     toast(`🏨 ${tr('hyper_reg.egr_ann',{min,p:pct(HS_EGR_CUT),fee:fmt$(fee),date:dateStr(d+HS_EGR_DL)})}`,'warn',[{l:tr('common.show_me'),act:'leftTab',args:{t:'goals'}}]);}
   sfx('alert');}
@@ -89,7 +89,7 @@ function hsLawDay(d){const H=S.hs;if(!H||!H.law||!hyper())return;const L=H.law;
     // An old moratorium is forgotten a year after it ended: the metro may pause again later.
     else if(d>=x.u+365)delete L.mor[c];}
   for(const g of Object.keys(L.pue).sort())if(L.pue[g].f===d){const n=hsPueRgs().length;toast(`🌡️ ${tr('hyper_reg.pue_live',{min:hsMin('pue',L.pue[g].m),reg:WAVE_NAME[g]})} ${trn('hyper_reg.pue_n',n,{fee:fmt$(HS_PUE_MO)})}`,n?'bad':'good');}
-  if(L.eu&&L.eu.f===d){const n=hsEuRgs().length;toast(`🇪🇺 ${tr('hyper_reg.eu_live',{min:hsMin('eu',L.eu.m)})} ${trn('hyper_reg.eu_n',n,{fee:fmt$(HS_EU_MO)})}`,n?'bad':'good');}
+  if(L.eu&&L.eu.f===d){const n=hsEuRgs().length;toast(`🇪🇺 ${tr('hyper_reg.eu_live',{min:hsMin('eu',L.eu.m)})} ${trn('hyper_reg.eu_n_unsafe',n,{fee:fmt$(HS_EU_MO)})}`,n?'bad':'good');}
   const E=L.egr;if(E&&E.st==='open'&&d>=E.dl){E.st='fined';E.fee=Math.round(E.fee*HS_EGR_LATE);S.cash-=E.fee;toast(`🏨 ${tr('hyper_reg.egr_fined',{min:hsMin('egr',E.m),fee:fmt$(E.fee)})}`,'bad');sfx('err');}
   if(E&&E.st==='cut'&&E.u===d)toast(`🏨 ${tr('hyper_reg.egr_cut_over')}`,'good');
   if(!rule('market')||d<HS_LAW_FROM||lvl()<HS_LAW_LV||d<L.nx||hsLawU('roll|'+d)>=HS_LAW_ODDS)return;
@@ -114,14 +114,14 @@ function hsLawAlerts(){const L=hsLaw();if(!L||!hyper())return [];const out=[],A=
     if(x.f>S.day)A(2,`🏛️ ${tr('hyper_reg.card_cc_soon',v)}`);else if(S.hs.cc[cc])A(1,`🏛️ ${tr('hyper_reg.card_cc_held',v)}`);}
   for(const g of Object.keys(L.pue).sort()){const x=L.pue[g];if(x.f>S.day)continue;const rs=hsPueRgs().filter(c=>CITY[c].reg===g);
     if(rs.length)A(2,`🌡️ ${tr('hyper_reg.card_pue',{reg:WAVE_NAME[g],fee:fmt$(rs.reduce((a,c)=>a+hsPueFee(c),0)),list:rs.slice(0,3).map(c=>esc(CITY[c].name)).join(', ')})} ${btn(tr('common.open'),'popGo',{city:rs[0]},'ghost sm')}`);}
-  if(L.eu&&L.eu.f<=S.day){const rs=hsEuRgs();if(rs.length)A(2,`🇪🇺 ${trn('hyper_reg.card_eu',rs.length,{fee:fmt$(rs.length*HS_EU_MO)})} ${btn(tr('common.open'),'popGo',{city:rs[0]},'ghost sm')}`);}
+  if(L.eu&&L.eu.f<=S.day){const rs=hsEuRgs();if(rs.length)A(2,`🇪🇺 ${trn('hyper_reg.card_eu_unsafe',rs.length,{fee:fmt$(rs.length*HS_EU_MO)})} ${btn(tr('common.open'),'popGo',{city:rs[0]},'ghost sm')}`);}
   const E=L.egr;if(E&&E.st==='open')A(1,`🏨 ${tr('hyper_reg.card_egr',{date:dateStr(E.dl),fee:fmt$(E.fee)})}<div class="btns">${btn(tr('hyper_reg.egr_cut_btn',{p:pct(HS_EGR_CUT)}),'hsEgress',{v:'cut'},'sm')}${btn(tr('hyper_reg.egr_pay_btn',{fee:fmt$(E.fee)}),'hsEgress',{v:'pay'},'pink sm',S.cash<E.fee)}</div>`);
   return out;}
 function hsLawStat(){const L=hsLaw();if(!L||!hyper())return '';let h='';const meta=t=>`<div class="meta">${t}</div>`;
   for(const cc of Object.keys(L.cc).sort()){const x=L.cc[cc];if(x.f>S.day&&hsLawMet(cc))h+=meta(`🏛️ ${tr('hyper_reg.card_cc_ok',{country:esc(ccName(cc)),date:dateStr(x.f)})}`);}
   for(const c of Object.keys(L.mor).sort()){const x=L.mor[c];if(x.u<=S.day)continue;const v={city:esc(CITY[c].name),date:dateStr(x.f),until:dateStr(x.u)};h+=meta(`🔌 ${x.f>S.day?tr('hyper_reg.card_mor_soon',v):tr('hyper_reg.card_mor',v)}`);}
   for(const g of Object.keys(L.pue).sort())if(L.pue[g].f>S.day)h+=meta(`🌡️ ${tr('hyper_reg.card_pue_soon',{reg:WAVE_NAME[g],date:dateStr(L.pue[g].f)})}`);
-  if(L.eu&&L.eu.f>S.day)h+=meta(`🇪🇺 ${tr('hyper_reg.card_eu_soon',{date:dateStr(L.eu.f)})}`);
+  if(L.eu&&L.eu.f>S.day)h+=meta(`🇪🇺 ${tr('hyper_reg.card_eu_soon_safe',{date:dateStr(L.eu.f)})}`);
   if(hsEgrCut())h+=meta(`🏨 ${tr('hyper_reg.card_egr_cut',{p:pct(HS_EGR_CUT),date:dateStr(L.egr.u)})}`);
   return h;}
 // The Cloud tab of a city: a folding section (55-hyper-panel.js) for a law coming for its country, a moratorium in its
@@ -130,5 +130,5 @@ function hsLawSpec(c){const L=hsLaw();if(!L||!hyper())return null;const cc=CITY[
   if(x)P(!hsLawMet(cc)&&(x.f>S.day||!!H.cc[cc]),`🏛️ ${tr('hyper_reg.city_cc',{min:esc(hsMin('cc',x.m)),country:esc(ccName(cc)),date:dateStr(x.f)})}`);
   if(M&&M.u>S.day)P(M.f<=S.day,`🔌 ${tr('hyper_reg.city_mor',{min:esc(hsMin('mor',M.m)),date:dateStr(M.f),until:dateStr(M.u)})}`);
   if(H.rg[c]&&hsPueRgs().includes(c))P(1,`🌡️ ${tr('hyper_reg.city_pue',{fee:fmt$(hsPueFee(c))})}`);
-  if(H.rg[c]&&hsEuOn()&&hsEuRgs().includes(c))P(1,`🇪🇺 ${tr('hyper_reg.city_eu',{fee:fmt$(HS_EU_MO),b:esc(CITY[hsRepOf(c)].name)})}`);
+  if(H.rg[c]&&hsEuOn()&&hsEuRgs().includes(c))P(1,`🇪🇺 ${tr('hyper_reg.city_eu_unsafe',{fee:fmt$(HS_EU_MO),b:esc(CITY[hsRepOf(c)].name)})}`);
   if(!h)return null;return {t:`🏛️ ${tr('hyper_reg.title')}`,sum:'',flags:bad?[['selective',tr('hyper_ui.f_law')]]:[],body:()=>h};}

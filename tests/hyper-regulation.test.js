@@ -101,6 +101,13 @@ test('the EU tightens: an EU region copying outside the EU pays for lawyers unti
   ev("ACT.hsReplica({city:'ams',v:'fra'});compute()");
   assert.deepEqual(J(ev, 'hsEuRgs()'), []);
   assert.equal(c1 - ev('R.costMo'), ev('HS_EU_MO'));
+  // #483: Frankfurt and Zurich backing each other up is no transfer the EU worries about (Switzerland has an
+  // adequacy decision), nor is London; New York still is.
+  ev("S.hs.rg.zrh={t:1,ready:0,mw:20};S.hs.rep.fra='zrh';S.hs.rep.zrh='fra';S.hs.rep.ams='lon';S.hs.rg.lon={t:1,ready:0,mw:20};compute()");
+  assert.deepEqual(J(ev, 'hsEuRgs()'), []);
+  assert.doesNotMatch(ev("hsLawAlerts().map(x=>x.h).join('')"), /lawyers/);
+  ev("S.hs.rep.fra='nyc';compute()");
+  assert.deepEqual(J(ev, 'hsEuRgs()'), ['fra']);
   assert.deepEqual(errors, []);
 });
 

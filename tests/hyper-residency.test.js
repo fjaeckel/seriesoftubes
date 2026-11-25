@@ -25,19 +25,26 @@ test('the law: who is pinned where', (t) => {
   const { ev, errors } = net(t);
   assert.deepEqual(J(ev, "['IN','RU','ID','VN','SA','TR','NG','FR','DE','IE','GB','US','CH','NO'].map(hsResOf)"), ['cc', 'cc', 'cc', 'cc', 'cc', 'cc', 'cc', 'eu', 'eu', 'eu', '', '', '', '']);
   assert.equal(ev("hsResOk('FR','fra')"), true, 'any EU region for an EU member');
-  assert.equal(ev("hsResOk('FR','lon')"), false, 'London is not in the EU');
+  assert.equal(ev("hsResOk('FR','del')"), false, 'Delhi is outside the EU and the countries it trusts');
+  // #483: the EEA and countries with an EU adequacy decision are as good as the EU; the US is not.
+  for (const c of ['lon', 'zrh', 'osl', 'tok', 'tor', 'jer']) assert.equal(ev(`hsResOk('FR','${c}')`), true, c);
+  for (const c of ['nyc', 'sin', 'ist', 'del']) assert.equal(ev(`hsResOk('FR','${c}')`), false, c);
   assert.equal(ev("hsResOk('IN','fra')"), false);
   assert.equal(ev("hsResOk('GB','fra')&&hsResOk('US','del')"), true, 'no law, anywhere');
   assert.equal(ev("hsResSite('IN')"), true);
   assert.deepEqual(errors, []);
 });
 
-test('residency never homes users outside their bloc: a full EU region leaves French users short, not in London', (t) => {
+test('residency never homes users outside their bloc: a full EU region leaves French users short, not in Delhi', (t) => {
   const { ev, errors } = net(t);
-  ev("S.hs.rg.lon={t:1,ready:0,mw:20};S.hs.cc.DE={d:400,since:0};S.hs.cc.FR={d:200,since:0};S.hs.cc.GB={d:100,since:0};compute()");
-  assert.deepEqual(homes(ev, 'FR'), [], 'Frankfurt is full and London is outside the EU');
+  ev("S.hs.rg.del={t:1,ready:0,mw:20};S.hs.cc.DE={d:400,since:0};S.hs.cc.FR={d:200,since:0};S.hs.cc.GB={d:100,since:0};compute()");
+  assert.deepEqual(homes(ev, 'FR'), [], 'Frankfurt is full and Delhi is outside the bloc');
   assert.ok(J(ev, 'R.hs.cc.FR').short > 199);
-  assert.deepEqual(homes(ev, 'GB'), ['lon']);
+  assert.deepEqual(homes(ev, 'GB'), ['del']);
+  // #483: a region in London, which the EU trusts, may take them.
+  ev("S.hs.rg.lon={t:1,ready:0,mw:20};compute()");
+  assert.ok(homes(ev, 'FR').includes('lon'), 'French users in London: ' + homes(ev, 'FR'));
+  ev("delete S.hs.rg.lon;delete S.hs.rg.del;S.hs.rg.lon={t:1,ready:0,mw:20};S.hs.cc.FR.d=200;compute()");
   // A region in Paris: French users are homed there.
   ev("S.hs.rg.par={t:0,ready:0,mw:5};compute()");
   assert.deepEqual(homes(ev, 'FR'), ['par']);
@@ -71,20 +78,22 @@ test('sovereign users wait for an in-country region: no growth, no churn, and th
 
 test('a failover never breaks the law: a replica outside the bloc leaves EU users without service', (t) => {
   const { ev, errors } = net(t);
-  ev("S.hs.rg.par={t:1,ready:0,mw:20};S.hs.rg.lon={t:1,ready:0,mw:20};S.hs.rep.par='lon';S.hs.cc.FR={d:200,since:0};compute();hsDay(S.day)");
+  ev("S.hs.rg.par={t:1,ready:0,mw:20};S.hs.rg.del={t:1,ready:0,mw:20};S.hs.rep.par='del';S.hs.cc.FR={d:200,since:0};compute();hsDay(S.day)");
   assert.equal(ev('S.hs.cc.FR.home'), 'par');
   const I = J(ev, "hsFailInfo('par')");
   assert.deepEqual(I.law, ['France']);
   assert.equal(I.ok, false);
   ev("hsRegionFail('par',2,'test');compute()");
-  assert.equal(ev('R.hs.fo.par'), 'lon');
-  assert.deepEqual(homes(ev, 'FR'), [], 'not to London, and not to Frankfurt either: Paris\'s replica is London');
+  assert.equal(ev('R.hs.fo.par'), 'del');
+  assert.deepEqual(homes(ev, 'FR'), [], 'not to Delhi, and not to Frankfurt either: Paris\'s replica is Delhi');
   assert.equal(J(ev, 'R.hs.cc.FR').blk, 1);
   // A drill says so.
   ev("S.hs.down={};S.hs.out={};S.inc=[];compute();S.log=[];ACT.hsDrill({city:'par'});dayTick()");
   assert.match(ev("S.log.map(x=>x.t).join(' ')"), /The law got in the way/);
-  // With an EU replica it holds.
+  // With an EU replica it holds, and with one in London too (#483).
   ev("S.hs.rep.par='fra';compute()");
+  assert.equal(J(ev, "hsFailInfo('par')").law.length, 0);
+  ev("S.hs.rg.lon={t:1,ready:0,mw:20};S.hs.rep.par='lon';compute()");
   assert.equal(J(ev, "hsFailInfo('par')").law.length, 0);
   assert.deepEqual(errors, []);
 });

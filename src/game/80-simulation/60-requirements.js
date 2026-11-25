@@ -72,7 +72,7 @@ function* diversityBuild(key,rules,won){
       if(noTalk(a,b))continue;
       if(!sub){add(i,j);add(i,j);}
       if(cs)for(const c of cs)if(!ban.some(p=>p===c.cid+':'+a+'-'+b||p===c.cid+':'+b+'-'+a))add(i,j,'cab:'+c.cid);
-      if(won&&land[i]&&land[j]&&(sub||cs)&&!cn[i]&&!cn[j])add(i,j);
+      if(won&&land[i]&&land[j]&&(sub||cs||seaBetween(a,b))&&!cn[i]&&!cn[j])add(i,j);
       if(fab[i].length&&fab[j].length)for(const f of FABS)if(fab[i].includes(f)&&fab[j].includes(f))add(i,j,'fab:'+f.id);
     }}
     return {key,ix,adj,links:n,answers:{}};}

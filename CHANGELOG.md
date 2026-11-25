@@ -14,6 +14,10 @@ All notable changes to this project are documented here. The project follows
 
 - You can now rename an exchange you founded from its panel. It kept the name it got on the day you founded it, even after you renamed your network. (#480)
 
+- EU users' data may now live in a country the EU trusts with it, such as Switzerland, the UK, Norway or Japan. A region in Zurich serves EU users, and a Frankfurt region backed up to Zurich or London no longer pays for transfer lawyers. The US still counts as outside. (#483)
+
+- You can now lay your own subsea cable between two landing cities with sea between them, even on the same landmass, such as Jerusalem or Beirut to Athens, or Cairo to Singapore. Istanbul's cables now reach the Mediterranean through the Bosporus and the Dardanelles. Inland routes still need fiber dug over land, and the window says when the sea way round is too long. (#484)
+
 ## [5.4.0] — 2026-11-23
 
 - Fiber still being built can now be kept off the capacity market from its panel. The broker used to start selling a new route the day it was handed over, before you could switch it off. (#470)
