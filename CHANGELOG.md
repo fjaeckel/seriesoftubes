@@ -6,22 +6,25 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+## [5.6.0] — 2026-11-25
+
 - Series of Tubes now speaks Japanese and Korean. The game follows your browser's language the first time, and you can switch under Settings or on the title screen. Acronyms like POP, IX and PNI and the networks' pun names stay as they are, the way they appear everywhere else in the game.
-- A network's peering policy (Open, Selective, Restrictive, Paid) now shows in your language in the network lists, and the date in the top bar no longer flashes in English before a game starts.
 
 - The game loads faster, especially on phones: the page is about a quarter smaller to download.
 
-- The game's fonts now come from seriesoftub.es itself instead of Google Fonts. The first screen shows sooner, and opening the game no longer contacts Google.
-
-- Screen readers and voice control now name the cash button as it reads on screen.
-
 - The first tap after opening the game answers sooner. The map no longer repaints the whole world twice in the first second for nothing, sound is set up before you tap, and work done ahead in quiet frames stops for your taps more often.
 
-- Search results for the game now describe what you do in it. The text search engines show under the link no longer trails off into "needs JavaScript".
+- Running more cloud regions than your level allows now costs at most twice the plain price. Each region past the line still adds 25% to the running cost of every region, but it stops at +100%, so a big cloud no longer pays hundreds of percent more.
+
+- A network's peering policy (Open, Selective, Restrictive, Paid) now shows in your language in the network lists, and the date in the top bar no longer flashes in English before a game starts.
+
+- The game's fonts now come from seriesoftub.es itself instead of Google Fonts. The first screen shows sooner, and opening the game no longer contacts Google.
 
 - Screen readers now announce every window by its title, starting with the title screen. Before, they only said "dialog".
 
-- Running more cloud regions than your level allows now costs at most twice the plain price. Each region past the line still adds 25% to the running cost of every region, but it stops at +100%, so a big cloud no longer pays hundreds of percent more.
+- Screen readers and voice control now name the cash button as it reads on screen.
+
+- Search results for the game now describe what you do in it. The text search engines show under the link no longer trails off into "needs JavaScript".
 
 ## [5.5.0] — 2026-11-25
 
