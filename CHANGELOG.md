@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- The game loads faster, especially on phones: the page is about a quarter smaller to download.
+
 - Search results for the game now describe what you do in it. The text search engines show under the link no longer trails off into "needs JavaScript".
 
 - Screen readers now announce every window by its title, starting with the title screen. Before, they only said "dialog".

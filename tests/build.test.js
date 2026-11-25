@@ -11,12 +11,22 @@ const root = path.join(__dirname, '..');
 test('build stamps version and date into the site', () => {
   execFileSync(process.execPath, ['scripts/build.js'], { cwd: root, env: { ...process.env, OUT, VERSION: '9.9.9', BUILD_DATE: '2030-01-01' } });
   const html = fs.readFileSync(path.join(OUT, 'index.html'), 'utf8');
-  assert.match(html, /const APP_VERSION='9\.9\.9'/);
+  assert.match(html, /APP_VERSION=(['"])9\.9\.9\1/);
   assert.match(html, /"softwareVersion": "9\.9\.9"/);
   assert.match(fs.readFileSync(path.join(OUT, 'sitemap.xml'), 'utf8'), /<lastmod>2030-01-01<\/lastmod>/);
   for (const f of ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'site.webmanifest', 'robots.txt', 'images/og-image.png', '404.html', 'CNAME', 'version.json', 'federation/servers.json', 'federation/relay.json']) {
     assert.ok(fs.existsSync(path.join(OUT, f)), `${f} is shipped`);
   }
+});
+
+test('the shipped page is minified, and its scripts still compile', () => {
+  execFileSync(process.execPath, ['scripts/build.js'], { cwd: root, env: { ...process.env, OUT, VERSION: '9.9.9', BUILD_DATE: '2030-01-01' } });
+  const html = fs.readFileSync(path.join(OUT, 'index.html'), 'utf8');
+  assert.ok(html.length < 0.85 * require('../scripts/lib/page').assemble().html.length, 'clearly smaller than the assembled page');
+  const { inlineScripts, counterOf } = require('../scripts/lib/csp');
+  for (const s of inlineScripts(html)) new (require('node:vm').Script)(s);
+  assert.ok(counterOf(html), 'the CSP still finds the visit counter');
+  assert.match(html, /\.integrity=/, 'and its SRI');
 });
 
 test('version.json carries the release notes from the changelog', () => {
