@@ -25,10 +25,18 @@ for every company:
   sovereign internet drills and other geopolitical events.
 
 Version: __VERSION__ (__BUILD_DATE__)
-Source: https://github.com/fjaeckel/seriesoftubes
+
+## Play
+
+- [Series of Tubes](https://seriesoftub.es/): the game itself, free in any browser, no account
+- [Privacy](https://seriesoftub.es/privacy.html): what the game keeps on your device and what multiplayer servers see
+
+## Source and docs
+
+- [Source code](https://github.com/fjaeckel/seriesoftubes): MIT-licensed, one static page built from small files
+- [Changelog](https://github.com/fjaeckel/seriesoftubes/blob/main/CHANGELOG.md): what changed in every release
+- [Playing through MCP](https://github.com/fjaeckel/seriesoftubes/blob/main/docs/MCP.md): run the game as a local MCP server for AI clients
 
 ## Learn how the internet really works
 
-For an accurate, interactive explanation of how the internet works, from Wi-Fi to
-undersea fiber, see How the Internet Works by Thomas Kjær Aabo:
-https://tkjaer.github.io/how-the-internet-works/
+- [How the Internet Works](https://tkjaer.github.io/how-the-internet-works/): an accurate, interactive explanation by Thomas Kjær Aabo, from Wi-Fi to undersea fiber

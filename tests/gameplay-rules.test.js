@@ -549,13 +549,13 @@ test('M15: a Hyperscaler\'s region limit is soft: a new continent is never out o
       g.ev(`ACT.hsRegion({city:'${c}'});compute()`);
       if (!g.ev(`!!S.hs.rg.${c}`)) { bad.push(`level ${lv}: ${c} refused with ${max + n} regions (no ceiling, #452)`); break; }
       n++;
-      const want = g.ev(`Math.round(${rent}*(1+HS_OVER*${n}))+${rest}`);
+      const want = g.ev(`Math.round(${rent}*(1+Math.min(HS_OVER_MAX,HS_OVER*${n})))+${rest}`);
       if (g.ev('R.cost.cloud') !== want) bad.push(`level ${lv}: ${n} past the line costs ${g.ev('R.cost.cloud')}, not ${want}`);
     }
     assert.deepEqual(g.errors, []);
     g.dom.window.close();
   }
-  fail('M15', bad, 'past the line a region is allowed and dear: no ceiling, HS_OVER on every region\'s rent each (37-hyper.js, #449, #452)');
+  fail('M15', bad, 'past the line a region is allowed and dear: no ceiling, HS_OVER on every region\'s rent each up to HS_OVER_MAX (37-hyper.js, #449, #452)');
 });
 
 // M16: region sites are the real-world list; China only with the licence, and nothing crosses the wall.

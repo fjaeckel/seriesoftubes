@@ -3345,7 +3345,7 @@
 "hyper.not_a_region_metro":"Regions go in big data-center metros. This town has one server room, and it smells of goats.",
 "hyper.over_now":"{k} past your level's {n} regions: every region costs {p}% more to run.",
 "hyper.over_sure":"Tap again: every region costs {p}% more to run",
-"hyper.over_warn_any":"Your level runs {n} regions at the plain price. Each region past that makes every region cost {p}% more to run.",
+"hyper.over_warn_capped":"Your level runs {n} regions at the plain price. Each region past that makes every region cost {p}% more to run, up to {max}% more.",
 "hyper.poor_in_list":"Poor service in {list}: users are leaving.",
 "hyper.power":"Power",
 "hyper.quality":"Quality",

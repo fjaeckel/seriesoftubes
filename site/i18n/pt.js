@@ -3344,7 +3344,7 @@
 "hyper.not_a_region_metro":"Regiões ficam nas grandes metrópoles de data centers. Esta cidade tem uma sala de servidores, e ela cheira a cabra.",
 "hyper.over_now":"{k} acima das {n} regiões do seu nível: cada região custa {p}% a mais para operar.",
 "hyper.over_sure":"Toque de novo: cada região custa {p}% a mais para operar",
-"hyper.over_warn_any":"Seu nível mantém {n} regiões pelo preço normal. Cada região a mais deixa todas {p}% mais caras de operar.",
+"hyper.over_warn_capped":"Seu nível mantém {n} regiões pelo preço normal. Cada região a mais deixa todas {p}% mais caras de operar, até {max}% a mais.",
 "hyper.poor_in_list":"Serviço ruim em {list}: os usuários estão indo embora.",
 "hyper.power":"Energia",
 "hyper.quality":"Qualidade",

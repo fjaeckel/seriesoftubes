@@ -28,7 +28,7 @@ test('#449: a full level-8 cloud can still open a region on a fourth continent, 
   assert.equal(ev('R.cost.cloud'), ev(`${RENT}+${REST}`), 'at the line nothing extra');
   // The panel says what going past the line costs before anything is spent.
   ev("selectCity('syd');UI.tab='cust';renderAll()");
-  assert.match(dom.window.document.getElementById('panelBody').textContent, /Each region past that makes every region cost 25% more to run\./);
+  assert.match(dom.window.document.getElementById('panelBody').textContent, /Each region past that makes every region cost 25% more to run, up to 100% more\./);
   const cash = ev('S.cash');
   ev("ACT.hsRegion({city:'syd'})");
   assert.equal(ev('!!S.hs.rg.syd'), false, 'the first tap only arms');
@@ -62,7 +62,7 @@ test('#452: no ceiling: the surcharge grows with every region past the line, cag
   ev("ACT.buildPop({city:'ash'});ACT.buildPop({city:'lax'});selectCity('ash');UI.tab='cust';renderAll()");
   const txt = dom.window.document.getElementById('panelBody').textContent;
   assert.doesNotMatch(txt, /No room at your level|allows \d+ regions/);
-  assert.match(txt, /Each region past that makes every region cost 25% more to run\./);
+  assert.match(txt, /Each region past that makes every region cost 25% more to run, up to 100% more\./);
   ev("ACT.hsRegion({city:'ash'})");
   assert.equal(ev('!!S.hs.rg.ash'), false, 'the first tap only arms');
   ev("ACT.hsRegion({city:'ash'})");
@@ -83,6 +83,26 @@ test('#452: no ceiling: the surcharge grows with every region past the line, cag
   ev("ACT.hsRgClose({city:'sao'});ACT.hsRgClose({city:'sao'});compute()");
   assert.equal(ev('hsRgOver()'), 3);
   assert.equal(ev('R.cost.cloud'), ev(`Math.round(${RENT}*1.75)+${REST}`));
+  assert.deepEqual(errors, []);
+});
+
+test('the surcharge stops at double: a cloud far past the line pays twice the plain rent, never more', () => {
+  const { ev, dom, errors } = full();
+  ev('S.lvl=13');
+  const max = ev('hsRgMax()');
+  // Real clouds run 40 to 70 regions (#452): build ours up to 30, far past the level's 13.
+  const more = ev("JSON.stringify(CITIES.filter(c=>!c.off&&hsSite(c.id)&&!S.hs.rg[c.id]).map(c=>c.id).slice(0,30-hsRgN()))");
+  for (const c of JSON.parse(more)) ev(`if(!S.pops['${c}'])ACT.buildPop({city:'${c}'});S.hs.rg['${c}']={t:1,ready:0,mw:HS_T[1].mw}`);
+  ev('compute()');
+  assert.equal(ev('hsRgN()'), 30);
+  assert.equal(ev('hsRgOver()'), 30 - max);
+  assert.equal(ev('hsOverF()'), 2);
+  assert.equal(ev('R.cost.cloud'), ev(`Math.round(${RENT}*2)+${REST}`), 'double rent, not +425%');
+  // The panel and the second tap say +100%, the most it ever is.
+  ev("const c=CITIES.find(c=>!c.off&&hsSite(c.id)&&!S.hs.rg[c.id]).id;ACT.buildPop({city:c});selectCity(c);UI.tab='cust';ACT.hsRegion({city:c});renderAll()");
+  const txt = dom.window.document.getElementById('panelBody').textContent;
+  assert.match(txt, /every region costs 100% more to run/);
+  assert.doesNotMatch(txt, /\b(1[1-9]\d|[2-9]\d\d)% more/);
   assert.deepEqual(errors, []);
 });
 
