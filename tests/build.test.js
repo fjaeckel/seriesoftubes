@@ -43,6 +43,16 @@ test('head carries the SEO and social metadata', () => {
   for (const s of ld) JSON.parse(s.textContent);
 });
 
+test('head names each meta tag once, and the noscript text works as a search snippet', () => {
+  const doc = new JSDOM(require('../scripts/lib/page').assemble().html).window.document;
+  const names = [...doc.querySelectorAll('meta[name], meta[property]')].map((m) => m.getAttribute('name') || m.getAttribute('property'));
+  assert.deepEqual(names.filter((n, i) => names.indexOf(n) !== i), [], 'no meta tag appears twice');
+  // Google shows this paragraph as the result's text, cut at about 155 characters, so it must stand on its own.
+  const p = doc.querySelector('noscript p').textContent.trim();
+  assert.ok(p.length <= 155, `first noscript paragraph is ${p.length} characters`);
+  assert.doesNotMatch(p, /JavaScript/, 'the snippet sells the game, not the requirement');
+});
+
 test('a release build refuses to ship without release notes', () => {
   assert.throws(() => execFileSync(process.execPath, ['scripts/build.js'], { cwd: root, stdio: 'pipe', env: { ...process.env, OUT, VERSION: '9.9.9', REQUIRE_NOTES: '1' } }));
   assert.throws(() => execFileSync(process.execPath, ['scripts/build.js'], { cwd: root, stdio: 'pipe', env: { ...process.env, OUT, VERSION: '1.0; rm -rf /' } }), 'junk versions are rejected');
