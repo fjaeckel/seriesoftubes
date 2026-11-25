@@ -14,5 +14,8 @@ function fixStandaloneHeight(){const R0=document.documentElement;
   R0.classList.toggle('iosfix',on);if(on)R0.style.setProperty('--app-h',sh+'px');else R0.style.removeProperty('--app-h');return on?sh:0;}
 function resize(){const ah=fixStandaloneHeight();DPR=Math.min(2,window.devicePixelRatio||1);CW=innerWidth;CH=ah||innerHeight;cv.width=CW*DPR;cv.height=CH*DPR;}
 addEventListener('resize',()=>{resize();WL.key=null;renderLeft();fitHud();});resize();
-// iOS settles the standalone viewport a moment after launch and after rotating.
-for(const t of [300,1000])setTimeout(()=>{resize();WL.key=null;},t);addEventListener('pageshow',()=>{resize();WL.key=null;});
+// iOS settles the standalone viewport a moment after launch and after rotating, so look again then. Only a size that
+// really changed resets the canvas and the world image: repainting the land takes about 100 ms, and at 300 ms and 1 s
+// after loading it landed right on the player's first tap on every device.
+function resizeSettled(){const ah=fixStandaloneHeight(),d=Math.min(2,window.devicePixelRatio||1);if(innerWidth===CW&&(ah||innerHeight)===CH&&d===DPR)return false;resize();WL.key=null;return true;}
+for(const t of [300,1000])setTimeout(resizeSettled,t);addEventListener('pageshow',resizeSettled);

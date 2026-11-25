@@ -94,8 +94,9 @@ function latRow(u){const n=CITIES.length;if(!LATR){LATR=new Float64Array(n*n);LA
   if(!LATRD[u]){const U=CITIES[u];for(let i=0;i<n;i++){if(i===u){LATR[o+i]=Infinity;continue;}if(LATRD[i]){LATR[o+i]=LATR[i*n+u];continue;}const V=CITIES[i],cw=LATC.get(Math.min(u,i)*4096+Math.max(u,i));
     let w=overland(U,V)&&!noTalk(U.id,V.id)?kmBetween(U.id,V.id)*1.1:Infinity;if(cw<w)w=cw;LATR[o+i]=w;}LATRD[u]=1;}
   return o;}
+// It pauses every 4 steps: a step may work out a whole row (latRow()), and latWarm() gives it a millisecond a frame.
 function* latFloorRun(a){const n=CITIES.length,D=new Float64Array(n).fill(Infinity),done=new Uint8Array(n);let k=0;
   if(!LATC){LATC=new Map();for(const c of CABLE_PAIRS){const k=Math.min(CIDX[c.a],CIDX[c.b])*4096+Math.max(CIDX[c.a],CIDX[c.b]),w=c.km*Math.min(0.9,CAB[c.cid].lat||1);if(!(LATC.get(k)<=w))LATC.set(k,w);}}
-  D[CIDX[a]]=0;for(;;){if((++k&15)===0)yield;let u=-1,ud=Infinity;for(let i=0;i<n;i++)if(!done[i]&&D[i]<ud){u=i;ud=D[i];}if(u<0)break;done[u]=1;const o=latRow(u),W=LATR;
+  D[CIDX[a]]=0;for(;;){if((++k&3)===0)yield;let u=-1,ud=Infinity;for(let i=0;i<n;i++)if(!done[i]&&D[i]<ud){u=i;ud=D[i];}if(u<0)break;done[u]=1;const o=latRow(u),W=LATR;
     for(let i=0;i<n;i++){if(done[i])continue;const w=W[o+i];if(w<Infinity){const d=ud+w/200+0.05;if(d<D[i])D[i]=d;}}}
   return D;}

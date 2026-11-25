@@ -67,7 +67,9 @@ function* diversityBuild(key,rules,won){
     const cab=new Map();for(const c of CABLE_PAIRS){const k=c.a<c.b?c.a+'|'+c.b:c.b+'|'+c.a;let L=cab.get(k);if(!L)cab.set(k,L=[]);L.push(c);}
     const land=cities.map(landing),cn=cities.map(cnCity),fab=cities.map(c=>FABS.filter(f=>f.cities.includes(c))),ban=rules.banPairs||[];
     const adj=cities.map(()=>[]),grp=new Map();let n=0,k=0;const add=(i,j,g)=>{let r;if(g===undefined)r=k++;else{r=grp.get(g);if(r===undefined)grp.set(g,r=k++);}adj[i].push(j,r);adj[j].push(i,r);n++;};
-    for(let i=0;i<N;i++){if(i%8===7)yield;for(let j=i+1;j<N;j++){
+    // A pause after the setup and every row: a row checks the land route to every other city, so eight of them at once
+    // ran 100 ms into the frame after "Start building" instead of the millisecond diversityWarm() gives it.
+    yield;for(let i=0;i<N;i++){if(i)yield;for(let j=i+1;j<N;j++){
       const a=cities[i],b=cities[j],cs=cab.get(a<b?a+'|'+b:b+'|'+a),sub=!overland(CITY[a],CITY[b]);
       if(noTalk(a,b))continue;
       if(!sub){add(i,j);add(i,j);}

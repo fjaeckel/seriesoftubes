@@ -1,6 +1,12 @@
 /* ================= AUDIO ================= */
 let AC=null;
-function audioInit(){if(AC)return;try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}
+/* Making the audio context takes ~40 ms, which made the first tap of every visit slow. It is made ahead, a moment after
+   loading, and starts suspended until a tap resumes it (the browsers' autoplay rule). Muted players never get one. */
+const acNew=()=>{try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}};
+function audioEarly(){if(!AC&&!UI.muted)acNew();}
+// From a tap: make it if it is not there yet, wake it if it is. A touch's pointerdown may not count as a gesture; its click does.
+function audioInit(){if(!AC)acNew();if(AC&&AC.state!=='running'&&AC.state!=='closed')try{AC.resume().catch(()=>{});}catch(e){}}
+if(!self.__TUBES_WORKER__&&!window.__TUBES_TEST__)setTimeout(audioEarly,2500);
 function tone(f,t0,dur,type='square',vol=.05){if(!AC)return;const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(vol,AC.currentTime+t0);g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+t0+dur);o.connect(g).connect(AC.destination);o.start(AC.currentTime+t0);o.stop(AC.currentTime+t0+dur+.02);}
 function sfx(k){if(UI.muted||!AC)return;try{
   if(k==='coin'){tone(988,0,.08);tone(1319,.08,.18);}

@@ -11,6 +11,8 @@ All notable changes to this project are documented here. The project follows
 
 - The game loads faster, especially on phones: the page is about a quarter smaller to download.
 
+- The first tap after opening the game answers sooner. The map no longer repaints the whole world twice in the first second for nothing, sound is set up before you tap, and work done ahead in quiet frames stops for your taps more often.
+
 - Search results for the game now describe what you do in it. The text search engines show under the link no longer trails off into "needs JavaScript".
 
 - Screen readers now announce every window by its title, starting with the title screen. Before, they only said "dialog".
