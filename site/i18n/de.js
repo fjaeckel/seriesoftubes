@@ -5408,7 +5408,6 @@
 "own_cable.your_very_own_subsea_cable_a":"Dein ganz eigenes Seekabel. Ein Schiff verlegt es über den Meeresboden, dir gehört jedes Faserpaar darin, und niemand sonst teilt sich dein Glas mit seinen Waves. Es kostet unverschämt viel Geld und dauert lange.",
 "page.a_free_cartoon_browser_game_about":"Ein kostenloses Cartoon-Browserspiel darüber, wie das Internet funktioniert. Starte als winziges Netz in einer Stadt, bring Breitband in die Haushalte, kauf IP-Transit bei Tier-1- und Tier-2-Carriern, peere an Internet Exchanges, richte Private Interconnects und eingebettete CDN-Caches ein und verlege Glasfaser an Land, Subsea-Waves und deine eigene Dark Fiber mit DWDM- und ZR-Optiken. Gewinne Unternehmens-, Hosting-, Hochfrequenzhandels-, KI-GPU- und Hyperscaler-Kunden und halte sie bei Laune, während Bagger, Haie, Vertipper, Route Leaks, DDoS-Angriffe und Geopolitik alles kaputt machen.",
 "page.breaking_cve_2026_31337_in_php":"🐘 EILMELDUNG: CVE-2026-31337 IN PHP LEGT DAS HALBE INTERNET LAHM",
-"page.cash_and_bank":"Kasse und Bank",
 "page.every_wordpress_ish_site_on_earth":"Jede halbwegs WordPress-artige Website der Welt ist jetzt ein Krypto-Miner",
 "page.eyeball_traffic_down_30":"Privatkunden-Traffic um 30 % gesunken",
 "page.hosting_customers_patching_at_3_a":"Hosting-Kunden patchen um 3 Uhr nachts",

@@ -2,7 +2,7 @@
    The page always comes from the network when there is one, so a new release shows up on the
    next visit; everything else is served from the cache and refreshed in the background. */
 const CACHE = 'sot-__VERSION__';
-const CORE = ['/', '/index.html', '/site.webmanifest', '/favicon.svg', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png', '/i18n/it.js?v=__VERSION__', '/i18n/pt.js?v=__VERSION__', '/i18n/fr.js?v=__VERSION__', '/i18n/es.js?v=__VERSION__', '/i18n/de.js?v=__VERSION__', '/i18n/ja.js?v=__VERSION__', '/i18n/ko.js?v=__VERSION__'];
+const CORE = ['/', '/index.html', '/site.webmanifest', '/favicon.svg', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png', '/i18n/it.js?v=__VERSION__', '/i18n/pt.js?v=__VERSION__', '/i18n/fr.js?v=__VERSION__', '/i18n/es.js?v=__VERSION__', '/i18n/de.js?v=__VERSION__', '/i18n/ja.js?v=__VERSION__', '/i18n/ko.js?v=__VERSION__', '/fonts/nunito-latin.woff2', '/fonts/baloo-2-latin.woff2'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));
@@ -28,8 +28,8 @@ self.addEventListener('fetch', (e) => {
     }).catch(() => caches.match('/').then((r) => r || caches.match('/index.html'))));
     return;
   }
-  const local = url.origin === location.origin, fonts = /fonts\.(googleapis|gstatic)\.com$/.test(url.hostname);
-  if (!local && !fonts) return;
+  const local = url.origin === location.origin;
+  if (!local) return;
   // Weekly puzzles, scenarios and Architect runs are published between releases: ask the network first, and keep a copy for offline.
   if (local && (url.pathname.startsWith('/puzzles/weekly/') || url.pathname.startsWith('/scenarios/weekly/') || url.pathname.startsWith('/architect/weekly/'))) {
     e.respondWith(fetch(req).then((r) => { if (r.ok) { const copy = r.clone(); e.waitUntil(caches.open(CACHE).then((c) => c.put(req, copy))); } return r; })

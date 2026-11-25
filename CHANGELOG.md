@@ -11,6 +11,10 @@ All notable changes to this project are documented here. The project follows
 
 - The game loads faster, especially on phones: the page is about a quarter smaller to download.
 
+- The game's fonts now come from seriesoftub.es itself instead of Google Fonts. The first screen shows sooner, and opening the game no longer contacts Google.
+
+- Screen readers and voice control now name the cash button as it reads on screen.
+
 - The first tap after opening the game answers sooner. The map no longer repaints the whole world twice in the first second for nothing, sound is set up before you tap, and work done ahead in quiet frames stops for your taps more often.
 
 - Search results for the game now describe what you do in it. The text search engines show under the link no longer trails off into "needs JavaScript".

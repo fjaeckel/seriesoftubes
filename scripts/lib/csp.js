@@ -8,7 +8,7 @@
 //                ws://*.localhost:* (a relay on the developer's machine, §9.1) and the counter's collector
 //   default-src  'self': anything not named below (the manifest, media) from the site only
 //   style-src    'self', 'unsafe-inline' (style attributes and the page's <style> are everywhere; styles run no code)
-//                and Google Fonts' stylesheet; font-src its font files
+//   font-src     'self' (our own font files, site/fonts/)
 //   img-src      'self' (icons), data: (the share card, inline SVG in CSS) and the counter's collector (a pixel)
 //   object-src, frame-src, form-action 'none' (no plugin, no frame; the one form is handled in the page), base-uri 'none'
 // The hashes must be taken from the final page, so the build adds the tag last (scripts/build.js).
@@ -39,8 +39,8 @@ function policy(html) {
     `script-src 'self' ${[...new Set(inlineScripts(html).map(sha))].join(' ')}${counter ? ' ' + counter : ''}`,
     "worker-src 'self' blob:",
     `connect-src 'self' wss: ws://*.localhost:* ${STATS}`,
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src https://fonts.gstatic.com",
+    "style-src 'self' 'unsafe-inline'",
+    "font-src 'self'",
     `img-src 'self' data: ${STATS}`,
     "object-src 'none'",
     "frame-src 'none'",

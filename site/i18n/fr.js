@@ -5406,7 +5406,6 @@
 "own_cable.your_very_own_subsea_cable_a":"Ton câble sous-marin rien qu’à toi. Un navire le pose sur le fond marin, tu possèdes chacune de ses paires de fibres, et les longueurs d’onde de personne d’autre ne partagent ton verre. Ça coûte une somme franchement indécente et ça prend longtemps.",
 "page.a_free_cartoon_browser_game_about":"Un jeu de navigateur gratuit et cartoon sur le fonctionnement d’Internet. Commence comme un minuscule réseau dans une seule ville, lance le haut débit grand public, achète du transit IP à des opérateurs Tier 1 et Tier 2, fais du peering sur des points d’échange, monte des interconnexions privées et des caches CDN embarqués, et pose de la fibre terrestre, des longueurs d’onde sous-marines et ta propre fibre noire avec du DWDM et des optiques ZR. Signe des clients entreprise, hébergement, trading haute fréquence, GPU pour l’IA et hyperscalers, et garde-les contents pendant que pelleteuses, requins, fat fingers, fuites de routes, attaques DDoS et géopolitique cassent tout.",
 "page.breaking_cve_2026_31337_in_php":"🐘 FLASH INFO : LA CVE-2026-31337 DE PHP MET LA MOITIÉ D’INTERNET À TERRE",
-"page.cash_and_bank":"Trésorerie et banque",
 "page.every_wordpress_ish_site_on_earth":"Tous les sites WordPress-like de la planète minent désormais de la crypto",
 "page.eyeball_traffic_down_30":"Trafic eyeballs en baisse de 30 %",
 "page.hosting_customers_patching_at_3_a":"Les clients hébergement patchent à 3 h du matin",

@@ -5407,7 +5407,6 @@
 "own_cable.your_very_own_subsea_cable_a":"Your very own subsea cable. A ship lays it across the seabed, you own every fiber pair in it, and nobody else’s waves share your glass. It costs a frankly rude amount of money and takes a long time.",
 "page.a_free_cartoon_browser_game_about":"A free cartoon browser game about how the internet works. Start as a tiny network in one city, launch home broadband, buy IP transit from Tier 1 and Tier 2 carriers, peer at internet exchanges, set up private interconnects and embedded CDN caches, and lay terrestrial fiber, subsea waves and your own dark fiber with DWDM and ZR optics. Sign enterprise, hosting, high-frequency trading, AI GPU and hyperscaler customers, and keep them happy while backhoes, sharks, fat fingers, route leaks, DDoS attacks and geopolitics break things.",
 "page.breaking_cve_2026_31337_in_php":"🐘 BREAKING: CVE-2026-31337 IN PHP TAKES DOWN HALF THE INTERNET",
-"page.cash_and_bank":"Cash and bank",
 "page.every_wordpress_ish_site_on_earth":"Every WordPress-ish site on Earth is now a crypto miner",
 "page.eyeball_traffic_down_30":"Eyeball traffic down 30%",
 "page.hosting_customers_patching_at_3_a":"Hosting customers patching at 3 a.m.",

@@ -65,10 +65,10 @@ test('pages: every local file the site refers to is in the build', () => {
     const p = u.split(/[?#]/)[0].replace(/^\//, '') || 'index.html';
     assert.ok(fs.existsSync(path.join(OUT, p)), `${u} resolves inside the build`);
   }
-  // Same origin for code: the only scripts from elsewhere are the analytics counter, and no stylesheets
-  // but the web fonts (see the ADR).
+  // Same origin for code and looks: the only script from elsewhere is the analytics counter (added at run time),
+  // and no stylesheet or font comes from another host (see the ADR).
   for (const m of html.matchAll(/<script[^>]*\bsrc="(https?:[^"]+)"/g)) assert.fail(`page loads a script from ${m[1]}`);
-  for (const m of html.matchAll(/<link[^>]*rel="stylesheet"[^>]*href="(https?:[^"]+)"/g)) assert.match(m[1], /^https:\/\/fonts\.googleapis\.com\//);
+  for (const m of html.matchAll(/<link[^>]*rel="(?:stylesheet|preload)"[^>]*href="(https?:[^"]+)"/g)) assert.fail(`page loads ${m[1]}`);
 });
 
 test('pages: the build carries no agent code, and is the page assembled without it', () => {
@@ -115,7 +115,8 @@ test('pages: the shipped page and dictionaries, with labels shrunk to ids, still
 test('pages: privacy.html is a plain static page, and the game page only links to it', () => {
   const html = read('privacy.html');
   assert.doesNotMatch(html, /<script/i, 'the privacy page runs no script, no counter');
-  for (const m of html.matchAll(/<link[^>]*rel="stylesheet"[^>]*href="(https?:[^"]+)"/g)) assert.match(m[1], /^https:\/\/fonts\.googleapis\.com\//);
+  for (const m of html.matchAll(/<link[^>]*rel="stylesheet"[^>]*href="(https?:[^"]+)"/g)) assert.fail(`privacy.html loads ${m[1]}`);
+  assert.doesNotMatch(html, /fonts\.(googleapis|gstatic)\.com/, 'its fonts are ours too');
   for (const w of ['IP addresses', '72 hours', '30 days', '180 days', 'stats.seriesoftub.es', 'Share my country', 'Leave for good']) assert.ok(html.includes(w), `privacy.html says ${w}`);
   // The game page refers to it only as a link: nothing fetches or caches it on load.
   const page = read('index.html');

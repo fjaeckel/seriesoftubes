@@ -81,15 +81,17 @@ test('csp: styles, fonts and images the page loads are allowed, and no other hos
   const p = csp(), page = fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8');
   const links = [...page.matchAll(/<link\s[^>]*>/g)].map((m) => ({ rel: /rel="([^"]+)"/.exec(m[0])[1], href: (/href="([^"]+)"/.exec(m[0]) || [])[1] }));
   const sheets = links.filter((l) => l.rel === 'stylesheet'), icons = links.filter((l) => /icon/.test(l.rel));
-  assert.ok(sheets.length && icons.length);
+  assert.ok(icons.length);
   for (const l of sheets) assert.ok(allows(p['style-src'], l.href), `stylesheet ${l.href}`);
   for (const l of icons) assert.ok(allows(p['img-src'], l.href), `icon ${l.href}`);
   for (const l of links.filter((x) => x.rel === 'manifest')) assert.ok(allows(p['default-src'], l.href), `manifest ${l.href}`);
-  assert.ok(allows(p['font-src'], 'https://fonts.gstatic.com/s/nunito/v26/abc.woff2'), 'Google Fonts\' files');
-  // Every url() in the styles is a data: URL (the select arrow), and the share card is a canvas data: URL.
+  assert.ok(allows(p['font-src'], '/fonts/nunito-latin.woff2'), 'our own font files');
+  assert.ok(!allows(p['font-src'], 'https://fonts.gstatic.com/s/nunito/v26/abc.woff2'), 'and no other host\'s');
+  // Every url() in the styles is a data: URL (the select arrow) or one of our font files; the share card is a canvas data: URL.
   const css = fs.readdirSync(path.join(ROOT, 'src', 'styles')).map((f) => fs.readFileSync(path.join(ROOT, 'src', 'styles', f), 'utf8')).join('\n');
   const urls = [...css.matchAll(/url\(\s*["']?([^"')]+)/g)].map((m) => m[1]);
-  assert.ok(urls.length && urls.every((u) => u.startsWith('data:')), 'styles load no file');
+  assert.ok(urls.length && urls.every((u) => u.startsWith('data:') || /^\/fonts\/[a-z0-9-]+\.woff2$/.test(u)), 'styles load no other file');
+  for (const u of urls.filter((x) => x.startsWith('/fonts/'))) assert.ok(fs.existsSync(path.join(ROOT, 'site', u)), `${u} is in site/`);
   assert.ok(p['img-src'].includes('data:'), 'data: images (the share card, the select arrow)');
   assert.ok(allows(p['img-src'], 'https://stats.seriesoftub.es/count?p=x'), 'the counter, should it fall back to a pixel');
   for (const [k, u] of [['img-src', 'https://evil.example/p.gif'], ['style-src', 'https://evil.example/x.css'], ['font-src', 'https://evil.example/f.woff2'], ['font-src', 'data:font/woff2;base64,AA'], ['default-src', 'https://evil.example/']])

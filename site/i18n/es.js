@@ -5406,7 +5406,6 @@
 "own_cable.your_very_own_subsea_cable_a":"Tu propio cable submarino. Un barco lo tiende por el lecho marino, eres dueño de cada par de fibra y las ondas de nadie más comparten tu vidrio. Cuesta una cantidad francamente grosera de dinero y lleva mucho tiempo.",
 "page.a_free_cartoon_browser_game_about":"Un juego de navegador de dibujos animados, gratuito, sobre cómo funciona internet. Empieza como una red diminuta en una ciudad, lanza banda ancha doméstica, compra tránsito IP a operadores Tier 1 y Tier 2, haz peering en puntos de intercambio, monta interconexiones privadas y cachés CDN integradas, y tiende fibra terrestre, ondas submarinas y tu propia fibra oscura con DWDM y ópticas ZR. Firma clientes empresariales, de hosting, de trading de alta frecuencia, de GPU para IA y de hiperescaladores, y mantenlos contentos mientras retroexcavadoras, tiburones, dedazos, fugas de rutas, ataques DDoS y la geopolítica lo rompen todo.",
 "page.breaking_cve_2026_31337_in_php":"🐘 ÚLTIMA HORA: CVE-2026-31337 EN PHP TUMBA MEDIO INTERNET",
-"page.cash_and_bank":"Efectivo y banco",
 "page.every_wordpress_ish_site_on_earth":"Todo sitio tipo WordPress del planeta es ahora un minero de cripto",
 "page.eyeball_traffic_down_30":"Tráfico de eyeballs un 30 % menos",
 "page.hosting_customers_patching_at_3_a":"Clientes de hosting parcheando a las 3 de la madrugada",

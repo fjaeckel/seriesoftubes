@@ -34,8 +34,8 @@ Anything that needs data at runtime fetches it from the same origin as a static 
   The build may get slower; what it produces must stay plain static files. See
   [ADR 0002](0002-one-page-assembled-at-build.md).
 - **Same origin for everything the game loads.** The page, the dictionaries, icons and the service
-  worker all come from seriesoftub.es. The only cross-origin requests are the web fonts and the
-  privacy-friendly analytics counter (its script and its endpoint), and the game works without both.
+  worker all come from seriesoftub.es. The web fonts are ours too (`site/fonts/`). The only cross-origin
+  requests are the privacy-friendly analytics counter (its script and its endpoint), and the game works without it.
   Don't add more: no CDN-hosted libraries, no third-party APIs the game depends on.
 - **The service worker is the cache policy.** Since Pages decides HTTP caching, `site/sw.js` decides
   what is cached for offline play, versioned by the release.

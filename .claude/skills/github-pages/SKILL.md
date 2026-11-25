@@ -23,15 +23,15 @@ one, redesign the feature.
   static file there.
 - **The page's Content Security Policy is a `<meta>` tag** the build adds last (`scripts/lib/csp.js`): inline scripts by
   hash, same-origin and the counter's one file for scripts, `'self'`, `wss:` and the collector for connections; `'self'`
-  by default, Google Fonts for styles and fonts, `'self'`, `data:` and the collector for images, no frames, no form
+  by default, `'self'` for styles and fonts, `'self'`, `data:` and the collector for images, no frames, no form
   submissions. A new kind of request, image, frame or form, or a new third-party file needs it changed;
   `tests/csp.test.js` says when.
 - **Caching is Pages' (short, the same for every file) plus the service worker's.** Offline play and
   updates are `site/sw.js`'s job; its cache name carries the version. When you add a file the game
   needs offline, add it to `CORE` there.
 - **Same origin.** The page, dictionaries, icons and data come from seriesoftub.es. Do not add CDN
-  libraries or third-party APIs the game needs to work; the web fonts and the analytics counter are
-  the only exceptions and the game runs without them.
+  libraries or third-party APIs the game needs to work; the analytics counter is
+  the only exception and the game runs without it. The fonts are served from `site/fonts/` (`src/styles/01-fonts.css`).
 - **More files are fine, from the same origin.** Pages serves many small files well over HTTP/2.
   Still: the game page itself stays one assembled `index.html` (see
   [ADR 0002](../../../docs/adr/0002-one-page-assembled-at-build.md)), and anything the first frame

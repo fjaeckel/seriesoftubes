@@ -5408,7 +5408,6 @@
 "own_cable.your_very_own_subsea_cable_a":"진짜 나만의 해저 케이블. 배가 해저를 가로질러 깔고, 안에 든 광섬유 페어는 전부 내 거예요. 남의 파장이 내 유리를 같이 쓸 일도 없어요. 솔직히 무례할 만큼 돈이 들고, 시간도 오래 걸려요.",
 "page.a_free_cartoon_browser_game_about":"인터넷이 어떻게 돌아가는지에 관한 무료 카툰 브라우저 게임. 한 도시의 작은 네트워크로 시작해서 가정용 브로드밴드를 출시하고, Tier 1·Tier 2 통신사에서 IP 트랜짓을 사고, 인터넷 익스체인지에서 피어링하고, 사설 상호 연결(PNI)과 임베디드 CDN 캐시를 설치하고, DWDM과 ZR 광모듈로 육상 광섬유, 해저 파장, 나만의 다크 파이버를 깔아 보세요. 기업, 호스팅, 초단타 매매, AI GPU, 하이퍼스케일러 고객을 유치하고, 굴착기, 상어, 오타, 경로 유출, DDoS 공격, 지정학이 모든 걸 망가뜨리는 와중에도 고객을 만족시키세요.",
 "page.breaking_cve_2026_31337_in_php":"🐘 속보: PHP의 CVE-2026-31337로 인터넷 절반이 마비",
-"page.cash_and_bank":"현금과 은행",
 "page.every_wordpress_ish_site_on_earth":"지구상의 워드프레스 비슷한 사이트가 전부 암호화폐 채굴기가 됐어요",
 "page.eyeball_traffic_down_30":"개인 사용자 트래픽 30% 감소",
 "page.hosting_customers_patching_at_3_a":"새벽 3시에 패치하는 호스팅 고객들",

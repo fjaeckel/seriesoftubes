@@ -5406,7 +5406,6 @@
 "own_cable.your_very_own_subsea_cable_a":"Il tuo cavo sottomarino personale. Una nave lo posa sul fondale, possiedi ogni coppia di fibre e le onde di nessun altro dividono il tuo vetro. Costa una cifra francamente maleducata e ci vuole parecchio.",
 "page.a_free_cartoon_browser_game_about":"Un gioco gratuito per browser, in stile cartoon, su come funziona internet. Parti come una minuscola rete in una sola città, lancia la banda larga domestica, compra IP transit da carrier Tier 1 e Tier 2, fai peering agli internet exchange, attiva interconnessioni private e cache CDN embedded, e posa fibra terrestre, wave sottomarine e la tua dark fiber con DWDM e ottiche ZR. Firma clienti aziendali, hosting, trading ad alta frequenza, GPU per l’IA e hyperscaler, e tienili contenti mentre ruspe, squali, dita grosse, route leak, attacchi DDoS e geopolitica rompono tutto.",
 "page.breaking_cve_2026_31337_in_php":"🐘 ULTIM’ORA: LA CVE-2026-31337 DI PHP BUTTA GIÙ MEZZA INTERNET",
-"page.cash_and_bank":"Cassa e banca",
 "page.every_wordpress_ish_site_on_earth":"Ogni sito WordPress-ish del pianeta ora mina criptovalute",
 "page.eyeball_traffic_down_30":"Traffico eyeball giù del 30%",
 "page.hosting_customers_patching_at_3_a":"Clienti hosting che patchano alle 3 di notte",
