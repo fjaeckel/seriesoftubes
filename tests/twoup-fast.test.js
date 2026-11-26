@@ -4,6 +4,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 test('twoup answers exactly as the set of providers did', () => {
   const { ev, errors } = load({ seed: 11 });
@@ -19,7 +20,7 @@ test('twoup answers exactly as the set of providers did', () => {
     [...Array.from({ length: 399 }, () => 'cog'), 'lvl'],
   ];
   for (const nets of cases) {
-    const [now, old] = JSON.parse(ev(`(()=>{S.transit=${JSON.stringify(nets)}.map((net,i)=>({id:'t'+i,net,city:'fra',tier:1,n:1}));
+    const [now, old] = JSON.parse(ev(`(()=>{S.transit=${lit(nets)}.map((net,i)=>({id:'t'+i,net,city:'fra',tier:1,n:1}));
       return JSON.stringify([REQS.twoup.ok({}),new Set(S.transit.map(t=>t.net)).size>=2||S.transit.length===0]);})()`));
     assert.equal(now, old, nets.slice(0, 5).join(',') + (nets.length > 5 ? `… (${nets.length})` : ''));
   }

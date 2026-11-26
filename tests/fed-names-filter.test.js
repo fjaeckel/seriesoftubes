@@ -3,10 +3,11 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
+const { lit } = require('../scripts/lib/js-literal');
 
 test('names with slurs or obscenities show as AS?, disguised or not', () => {
   const { ev, errors } = load({ seed: 1 });
-  const shown = (n) => ev(`fedSafeName(${JSON.stringify(n)})`);
+  const shown = (n) => ev(`fedSafeName(${lit(n)})`);
   for (const n of ['FUCK net', 'f.u.c.k networks', 'N1GGER', 'nіgger', 'Hitler Hosting', 'my ass', 'Ass Hat', 'Puta Networks',
     'Porn Peering', 'Shit Happens AS', 'Bullshit Backbone', 'Mierda Telecom', 'Vaffanculo Rete', 'Scheisse Netz', '씨발 네트워크'])
     assert.equal(shown(n), 'AS?', n);
@@ -15,11 +16,11 @@ test('names with slurs or obscenities show as AS?, disguised or not', () => {
 
 test('ordinary names and place names pass untouched', () => {
   const { ev, errors } = load({ seed: 1 });
-  const shown = (n) => ev(`fedSafeName(${JSON.stringify(n)})`);
+  const shown = (n) => ev(`fedSafeName(${lit(n)})`);
   for (const n of ['Scunthorpe Fiber', 'Penistone Peering', 'Pornic Telecom', 'Bitche Backbone', 'Hancock Hosting', 'Peacock Packets',
     'Cockpit Cloud', 'Dickson Data', 'Nazionale Rete', 'Assassin Transit', 'Classic Carrier', 'Grape Networks', 'Therapist Telecom',
     'Shiitake Systems', 'Essex Exchange', 'Hell Hosting', 'Retardant Fire Net', 'Split Horizon & Co.', 'Bogon Voyage', 'Ünïcødé Net'])
-    assert.equal(shown(n), ev(`fedSafeText(${JSON.stringify(n)})`), n);
+    assert.equal(shown(n), ev(`fedSafeText(${lit(n)})`), n);
   assert.deepEqual(errors, []);
 });
 
