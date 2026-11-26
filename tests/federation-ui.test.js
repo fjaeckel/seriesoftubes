@@ -457,9 +457,12 @@ test('the traffic board says what it counts, and a small value reads in Mbps, no
 
 test('closing a modal gives keyboard focus back to what opened it', async () => {
   const p = load();
-  p.ev("ACT.start({});const b=document.createElement('button');b.id='opener';document.body.appendChild(b);b.focus();ACT.menu({})");
+  p.ev("ACT.start({});const b=document.createElement('button');b.id='opener';document.body.appendChild(b);b.focus();document.body.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));ACT.menu({})");
   assert.notEqual(p.ev('document.activeElement.id'), 'opener', 'focus moved into the modal');
   p.ev('closeModal()');
   assert.equal(p.ev('document.activeElement.id'), 'opener');
+  // Closed with a click, focus is not handed back: Space would press the opener again instead of pausing (#381).
+  p.ev("const b=document.getElementById('opener');b.focus();ACT.menu({});document.getElementById('modalCard').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));closeModal()");
+  assert.notEqual(p.ev('document.activeElement.id'), 'opener');
   assert.deepEqual(p.errors, []);
 });

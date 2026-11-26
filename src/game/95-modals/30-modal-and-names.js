@@ -6,13 +6,19 @@ function openModal(html,cls=''){HOOKS.modal?.(true);$('modal').className=cls;$('
 // Pie Control is a management panel, like the NOC dashboard: the clock keeps running under it (and it follows the days,
 // pieModal(true)). Every other window stops the clock until it is closed (#376).
 const CLOCK_MODALS={pie:1},modalStops=()=>!$('modal').hidden&&!CLOCK_MODALS[$('modal').className];
+// Chrome (unlike Safari) focuses a button when it is clicked. Handing focus back to what opened a window is for keyboards:
+// after a click it would leave Space pressing that button again (the bank opening again) instead of pausing (#381).
+let byKeys=false;addEventListener('pointerdown',()=>{byKeys=false;},true);addEventListener('keydown',e=>{if(!['Shift','Control','Alt','Meta'].includes(e.key))byKeys=true;},true);
+// Focus left in a window that just closed sits on a hidden button, which Space would press.
+const focusOut=box=>{const a=document.activeElement;if(box&&a&&a!==document.body&&box.contains(a))a.blur();};
 // Keyboard focus goes back to what opened the modal (screen readers and keyboards keep their place).
 function closeModal(){const was=!$('modal').hidden;if(was)markLayer();pieGlobeClose();if($('modal').className==='pie')UI.piePlan=UI.piePlanAsk=UI.piePlanAll=null;$('modal').hidden=true;UI.pending=null;HOOKS.modal?.(false);
-  const f=UI.modalFrom;UI.modalFrom=null;if(was&&f&&f.isConnected&&!f.closest('#modal'))try{f.focus({preventScroll:true});}catch(e){}}
+  const f=UI.modalFrom;UI.modalFrom=null;if(!was)return;if(byKeys&&f&&f.isConnected&&!f.closest('#modal'))try{f.focus({preventScroll:true});}catch(e){}focusOut($('modal'));}
 // The NOC dashboard and the bank are windows of their own, not modals: a keyboard that opened one lands in it, and goes
-// back to what opened it when it closes. A tap (nothing focused) moves nothing.
+// back to what opened it when it closes (a click only takes focus out of the window, see byKeys).
 function winIn(card){const f=document.activeElement;if(!card||!f||f===document.body||card.contains(f))return;if(!f.closest('#dash,#bankBox,#modal'))UI.winFrom=f;f.blur();card.tabIndex=-1;try{card.focus({preventScroll:true});}catch(e){}}
-function winBack(){const f=UI.winFrom;UI.winFrom=null;if(f&&f.isConnected&&!f.closest('#dash:not([hidden]),#bankBox:not([hidden])'))try{f.focus({preventScroll:true});}catch(e){}}
+function winBack(){const f=UI.winFrom;UI.winFrom=null;if(byKeys&&f&&f.isConnected&&!f.closest('#dash:not([hidden]),#bankBox:not([hidden])'))try{f.focus({preventScroll:true});}catch(e){}
+  for(const id of ['dash','bankBox']){const b=$(id);if(b&&b.hidden)focusOut(b);}}
 const NETWORK_NAMES=[
   'Packet Pals','Shinternet','Post, Telegraph & Tubes','Peering Pressure','Best Effort Telecom',
   'Mostly Online','Buffering & Sons','Lord of the Pings','The Ping Dynasty',

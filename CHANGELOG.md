@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- In Chrome, Space pauses the game again after you close the bank, the NOC dashboard or a window with a click. It used to press the button that had opened it, so the bank popped open again or another router was ordered. Closing with Escape still takes a keyboard back to where it was. (#381)
+
 ## [5.7.0] — 2026-11-26
 
 - In Multimode, other players' network names, server names and server descriptions with a slur or an obscenity in them are no longer shown: such a name reads "AS?", and such a description is left out. Spelling it with digits, dots or look-alike letters doesn't get around it, and reports, mutes and hidden names work as before.

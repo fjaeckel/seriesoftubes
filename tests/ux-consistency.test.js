@@ -141,11 +141,17 @@ test('the same toast again is not read out again, and Z undoes a removal from th
 test('the dashboard and the bank take keyboard focus when opened from a button, and give it back', (t) => {
   const { ev, errors } = big(t, 1440);
   for (const [open, card, close] of [['ACT.dash()', 'dashCard', 'ACT.dashClose()'], ['ACT.bank()', 'bankCard', 'ACT.bankClose()']]) {
-    ev("document.querySelector('[data-act=menu]').focus()");
+    // A keyboard (Enter on the focused button) opens it and gets its place back.
+    ev("document.querySelector('[data-act=menu]').focus();document.body.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}))");
     ev(open);
     assert.equal(ev('document.activeElement.id'), card);
     ev(close);
     assert.equal(ev('document.activeElement.dataset.act'), 'menu');
+    // A click (Chrome focuses the clicked button) does not: Space would press it again instead of pausing (#381).
+    ev("document.querySelector('[data-act=menu]').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));document.querySelector('[data-act=menu]').focus()");
+    ev(open);
+    ev(close);
+    assert.notEqual(ev('document.activeElement.dataset.act'), 'menu');
   }
   assert.deepEqual(errors, []);
 });
