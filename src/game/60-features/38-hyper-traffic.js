@@ -51,10 +51,11 @@ function hsTrainMwAt(c){let n=0;for(const j of hsRuns())if(j.a===c||j.b===c)n+=h
 HS_MW_X.push(hsTrainMwAt);
 function hsMwLeft(c){if(typeof hsMwFree==='function')return hsMwFree(c);const d=S.hs.rg[c];return hsGrid(c)-(d?d.mw:0)-hsTrainMwAt(c);}
 // Why a run of g Gbps between a and b cannot start, or ''.
-function hsTrainWhy(a,b,g){if(!a||!b||a===b||!hsLive(a)||!hsLive(b))return tr('hyper_traffic.need_two_regions');
-  for(const c of [a,b]){const n=hsTrainSlots(g);if(hsSlots(c)-hsSlotsUsed(c)<n)return tr('hyper_traffic.no_slots_in',{city:CITY[c].name,n});}
-  for(const c of [a,b]){const mw=hsTrainMw({g});if(hsMwLeft(c)<mw)return tr('hyper_traffic.no_power_in',{city:CITY[c].name,mw});}
-  return '';}
+// Every reason at once, one per line (#490): fixing one should not reveal the next.
+function hsTrainWhy(a,b,g){if(!a||!b||a===b||!hsLive(a)||!hsLive(b))return tr('hyper_traffic.need_two_regions');const w=[],n=hsTrainSlots(g),mw=hsTrainMw({g});
+  for(const c of [a,b])if(hsSlots(c)-hsSlotsUsed(c)<n)w.push(tr('hyper_traffic.no_slots_in',{city:CITY[c].name,n}));
+  for(const c of [a,b])if(hsMwLeft(c)<mw)w.push(tr('hyper_traffic.no_power_in',{city:CITY[c].name,mw}));
+  return w.join('<br>');}
 const hsBoostF=()=>{const B=S&&S.hs&&S.hs.boost;return B&&B.until>S.day?B.f:0;};
 const hsAiOn=()=>!!S&&!!S.hs&&(S.hs.ai|0)>0;
 // The flop: a seeded roll (from the run itself, not the clock) against odds that grow the worse the model was fed.

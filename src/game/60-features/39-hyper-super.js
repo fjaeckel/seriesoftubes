@@ -19,7 +19,7 @@ function hsClPick(rs){let best=null;for(const a of rs)for(const b of rs){if(a>=b
   if(!best)return null;const{a,b}=best;let c=null,cj=null,ck=Infinity;for(const x of rs){if(x===a||x===b)continue;for(const y of [a,b]){const k=kmBetween(x,y);if(k<ck||k===ck&&x<c){ck=k;c=x;cj=y;}}}
   return c?{legs:[[a,b],[c,cj]],rgs:[a,b,c]}:null;}
 // Why a supercluster of g Gbps a leg cannot start on these legs, or ''. Each leg needs slots and power at both ends.
-function hsClWhy(P,g){if(!P)return tr('hyper_super.need_trio');for(const [a,b] of P.legs){const w=hsTrainWhy(a,b,g);if(w)return w;}return '';}
+function hsClWhy(P,g){if(!P)return tr('hyper_super.need_trio');const w=new Set();for(const [a,b] of P.legs)for(const x of hsTrainWhy(a,b,g).split('<br>'))if(x)w.add(x);return [...w].join('<br>');}
 const hsClOf=j=>j&&j.grp?(S.hs.cl||[]).find(G=>G.id===j.grp):null;
 const hsClLegs=G=>{const H=S.hs,ids=new Set(G.legs);return (G.k==='own'?H.own:H.jobs).filter(j=>ids.has(j.id));};
 // A leg tonight: whether it met its limit (R.hs.jobs[id].ms against j.lim).

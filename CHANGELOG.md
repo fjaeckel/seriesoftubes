@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The project follows
 
 - The intern's "Light more fiber" order now lights one more optic on fiber whose capacity you sold out as managed waves, so the fiber carries your own traffic again instead of staying offline. (#487)
 - As a cloud, the networks list now shows the share of traffic you actually send to each network. Your users reach you through their home ISPs, so content networks like Goggle get almost nothing from a cloud, and the list no longer claims 6% for them while their peering desk says you send 0. (#486)
+- An AI training run you can't take now lists every reason at once, such as compute slots or power in each region, so you no longer fix one only to find the next. (#490)
 
 - New waves can no longer be bought on a cable that is cut. Until the repair is done, the wave sheet shows every size on that cable as sold out, and the waves already on it can't be upgraded; other cables on the route still sell. (#489)
 
