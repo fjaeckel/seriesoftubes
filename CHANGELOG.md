@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- The intern's "Light more fiber" order now lights one more optic on fiber whose capacity you sold out as managed waves, so the fiber carries your own traffic again instead of staying offline. (#487)
+
 - New waves can no longer be bought on a cable that is cut. Until the repair is done, the wave sheet shows every size on that cable as sold out, and the waves already on it can't be upgraded; other cables on the route still sell. (#489)
 
 ## [5.6.0] — 2026-11-25

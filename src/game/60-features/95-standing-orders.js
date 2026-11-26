@@ -242,8 +242,9 @@ const OPS_RUN={
  *optics(X){const at=opsP('optics','at')/100,big=opsP('optics','pick')==='big',fresh=opsP('optics','fresh'),gpd=(o,l)=>optG(o,l)/optCost(o);
    for(const l of S.links){if(l.kind!=='df'||l.ready>S.day||l.eqDown>S.day||l.standby||l.cut>S.day||(!fresh&&!(l.ch||[]).length))continue;
      let cap=dfCap(l);const load=((R.load&&R.load[l.id])||0)*opsAhead();
-     // New fiber gets its first channel; lit fiber gets more while it runs hot.
-     for(let step=0;step<8&&(cap<=0?!(l.ch||[]).length:load>=cap*at);step++){if(chMax(l)-(l.ch||[]).length-soldSlots(l)<=0)break;
+     // New fiber gets its first channel; lit fiber gets more while it runs hot. Lit fiber sold out to managed waves
+     // has nothing left for you (#487): one more optic brings it back.
+     for(let step=0;step<8&&(cap<=0?!(l.ch||[]).length||mwG(l)>0:load>=cap*at);step++){if(chMax(l)-(l.ch||[]).length-soldSlots(l)<=0)break;
        const cnt={};for(const k of l.ch||[])cnt[k]=(cnt[k]||0)+1;
        // More of what is already lit, or else the most Gbps per dollar that reaches. Told to go big (#262), the intern
        // picks the most Gbps per channel it can afford for a new kind of optic, but never swaps what is already lit.
