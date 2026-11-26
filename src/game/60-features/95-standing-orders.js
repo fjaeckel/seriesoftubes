@@ -38,6 +38,9 @@ const OPS=[
  // a chosen line system. A line system swap is a day without that fiber: only where the traffic gets around it.
  {k:'optup',i:'🔭',team:1,cap:250000,t:N_('ops.o_optup'),d:N_('ops.o_optup_d'),p:{at:{d:80,v:[60,70,80,90],l:N_('ops.p_at'),f:v=>v+'%'},
    sys:{d:'next',v:['next','roadm','cl'],l:N_('ops.p_sys'),f:v=>v==='next'?tr('ops.sys_next'):DF_SYS[v].n},swap:{d:true,v:[true,false],l:N_('ops.p_swap'),f:v=>v?tr('common.on'):tr('common.off')}}},
+ // Every lit fiber moved onto newer optics, room to spare or not: the chosen model, or the most that reaches on each
+ // fiber (the optical team only). A model only replaces one that carries less on that fiber.
+ {k:'optmod',i:'✨',team:1,only:1,cap:1e6,t:N_('ops.o_optmod'),d:N_('ops.o_optmod_d'),p:{to:{d:'best',v:['best',...Object.keys(OPT)],l:N_('ops.p_to'),f:v=>v==='best'?tr('ops.to_best'):OPT[v].n}}},
  // Leased waves that run hot move up a size, where no glass of your own is coming on that route (the optical team only).
  {k:'waveup',i:'🌊',team:1,only:1,cap:250000,t:N_('ops.o_waveup'),d:N_('ops.o_waveup_d'),p:{at:{d:80,v:[60,70,80,90],l:N_('ops.p_at'),f:v=>v+'%'}}},
  {k:'decom',i:'🧹',team:1,t:N_('ops.o_decom'),d:N_('ops.o_decom_d'),p:{keep:{d:true,v:[true,false],l:N_('ops.p_keep'),f:v=>v?tr('common.on'):tr('common.off')}}},
@@ -63,6 +66,7 @@ function opsP(k,p){const P=OPSK[k].p[p],v=S.ops.p[k]&&S.ops.p[k][p];return v!==u
 // Every value a setting can take, in the order its list shows them: providers that sell where you have POPs, and router
 // models you can buy, smallest first. The current value is always on the list, so the list can show it.
 function opsOpts(k,p){const cur=opsP(k,p),L=p==='prov'?['cheap','have',...NETS.filter(n=>n.price&&Object.keys(S.pops).some(c=>sellsAt(n,c))).map(n=>n.id)]
+  :p==='to'?['best',...Object.keys(OPT).filter(o=>techOk('opt',o,OPT[o].lvl)).sort((a,b)=>OPT[a].g-OPT[b].g||(a<b?-1:1))]
   :p==='model'?['next',...RG.map((r,i)=>i).filter(i=>rgOpen(i)).sort((a,b)=>RG[a].cls-RG[b].cls||RG[a].cap-RG[b].cap||a-b)]:OPSK[k].p[p].v.slice();
   if(!L.includes(cur))L.push(cur);return L;}
 const opsCaps=k=>OPSK[k].caps||(OPSK[k].mo?OPS_CAPS_MO:OPS_CAPS);
@@ -284,6 +288,24 @@ const OPS_RUN={
        X.pay('optup',()=>{ACT.setChCount({id:l.id,o:o1,n:cnt[o1]-1});ACT.setChCount({id:l.id,o:o2,n:n2});
          if((l.ch||[]).filter(k=>k===o2).length===n2)return true;ACT.setChCount({id:l.id,o:o1,n:cnt[o1]});return false;});
        if(!(dfCap(l)>was))break;X.did('optswap',l.a+'|'+l.b+' '+fmtCap(optG(o1,l))+'→'+fmtCap(optG(o2,l)));yield;}}},
+ // Modernize: on each lit fiber, the smallest optics first, each swapped for the chosen model (or the most Gbps that reaches
+ // there) while it carries more on that fiber. Hitless, as by hand: one out to the spares shelf, the new one in. Capacity
+ // only grows, so one routing a fiber is enough.
+ *optmod(X){const to=opsP('optmod','to');
+   for(const l of S.links){if(l.kind!=='df'||l.seat||l.ready>S.day||l.eqDown>S.day||l.cut>S.day||!(l.ch||[]).length)continue;
+     const ports=(o,c)=>S.pops[c]?chPorts(o,c):0;let n=0;
+     for(let step=0;step<chMax(l);step++){const cnt={};for(const k of l.ch)cnt[k]=(cnt[k]||0)+1;
+       const lit=Object.keys(cnt).sort((a,b)=>optG(a,l)-optG(b,l)),o1=lit[0];if(!o1)break;
+       const room=(o2,c)=>!S.pops[c]||portsUsed(c)+ports(o2,c)-ports(o1,c)<=portsMax(c)+1e-9;
+       // Asked with one channel already out: a fiber with no free channel refuses any optic.
+       const ch0=l.ch,i1=ch0.indexOf(o1);l.ch=ch0.filter((k,i)=>i!==i1);let o2;
+       try{const ok=o=>own(OPT,o)&&optG(o,l)>optG(o1,l)&&!chWhy(l,o)&&room(o,l.a)&&room(o,l.b);
+         o2=to==='best'?Object.keys(OPT).filter(ok).sort((a,b)=>optG(b,l)-optG(a,l)||optCost(a)-optCost(b))[0]:ok(to)?to:null;}finally{l.ch=ch0;}if(!o2)break;
+       const n2=(cnt[o2]||0)+1,cost=opticCountCost(l,o2,n2);if(!X.can('optmod',cost))break;
+       if(!X.pay('optmod',()=>{ACT.setChCount({id:l.id,o:o1,n:cnt[o1]-1});if(l.ch.filter(k=>k===o1).length!==cnt[o1]-1)return false;ACT.setChCount({id:l.id,o:o2,n:n2});
+         if(l.ch.filter(k=>k===o2).length===n2)return true;ACT.setChCount({id:l.id,o:o1,n:cnt[o1]});return false;}))break;
+       n++;X.did('optswap',l.a+'|'+l.b+' '+fmtCap(optG(o1,l))+'→'+fmtCap(optG(o2,l)));}
+     if(n)yield;}},
  // The boxes sorted by POP once: the boxes racked at one POP change no other POP's plan.
  *caches(X){const g=opsP('caches','g'),by=new Map();for(const x of S.caches){const a=by.get(x.city);if(a)a.push(x);else by.set(x.city,[x]);}
    for(const c of opsPops('caches')){const add=cachePlan(c,by.get(c)||[]);if(!add||!add.length)continue;
@@ -367,7 +389,7 @@ function promiseCheck(){let dg=null,ti=null,lg=null;const dv=new Map(),ld=new Ma
 // The links between each pair of cities, VXCs left out.
 function opsPairs(){const by=new Map();for(const l of S.links)if(l.kind!=='vxc'){const k=edgeKey(l);(by.get(k)||by.set(k,[]).get(k)).push(l);}return by;}
 const opsDecomWaits=()=>[...opsPairs().values()].some(ls=>ls.length>1&&ls.some(l=>l.kind==='wave'));
-const OPS_ORDER=['repair','routers','transit','ports','fabric','optup','optics','waveup','caches','ix','pni','decom'];
+const OPS_ORDER=['repair','routers','transit','ports','fabric','optup','optmod','optics','waveup','caches','ix','pni','decom'];
 // The shift: once per game day from dayTick, after outages and events have had their turn.
 // One shift. Like a day (dayRun()), it is a generator: each yield is a compute() it needs, answered by the route worker
 // in play, so the shift never routes on the page. opsDay() runs it in one go.

@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- The optical team has a new order, Modernize optics: it moves every lit fiber onto newer optics even where there is room to spare, to the model you pick or the fastest that reaches on each fiber. It swaps the smallest optics first, one channel at a time and without an outage, puts the old ones on the spares shelf, and stays within the order's monthly budget.
+
 - In Chrome, Space pauses the game again after you close the bank, the NOC dashboard or a window with a click. It used to press the button that had opened it, so the bank popped open again or another router was ordered. Closing with Escape still takes a keyboard back to where it was. (#381)
 
 ## [5.7.0] — 2026-11-26
