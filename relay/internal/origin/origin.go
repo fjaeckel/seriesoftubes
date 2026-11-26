@@ -12,8 +12,10 @@ import (
 	"github.com/fjaeckel/seriesoftubes/relay/internal/fed"
 )
 
-// Game is where the game is served from.
-var Game = []string{"https://seriesoftub.es", "https://www.seriesoftub.es"}
+// Game is where the game is served from: the website, and seriesoftubes://game, the same page served on the device
+// under the game's own URL scheme. No website can have that origin: a browser only gives it to a page that an
+// application on the device serves itself.
+var Game = []string{"https://seriesoftub.es", "https://www.seriesoftub.es", "seriesoftubes://game"}
 
 // OK reports whether a request with this Origin header may connect. extra are the operator's own
 // patterns (Pattern). Not "the relay's own host": with DNS rebinding any website could be that.

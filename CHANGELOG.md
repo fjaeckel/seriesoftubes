@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Multimode servers now also let in the game served from its own `seriesoftubes://game` address.
+
 - In Multimode, other players' network names, server names and server descriptions with a slur or an obscenity in them are no longer shown: such a name reads "AS?", and such a description is left out. Spelling it with digits, dots or look-alike letters doesn't get around it, and reports, mutes and hidden names work as before.
 
 - Very big networks with a NOC intern no longer stall for a moment every game day. Checking which transit providers keep a customer's "two different upstreams" promise took most of the day on networks with hundreds of POPs; it is now several times faster.
