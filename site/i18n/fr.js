@@ -6930,6 +6930,7 @@
 "sold_out.paid_peering_only_over_a_pni":"Peering payant uniquement, via PNI",
 "sold_out.peers_with_you_for_free_now":"Fait du peering gratuit avec toi, mais seulement via un PNI",
 "sold_out.sender_pays_a_paid_pni_only":"Sender pays : uniquement un PNI payant, {fee}/mois plus {g} par Gbps envoyé",
+"sold_out.the_cable_is_cut_nobody_sells":"Le câble est coupé. Personne ne vend de longueurs d’onde dessus avant qu’il soit ressoudé.",
 "sold_out.the_capacity_is_available_in_the":"La capacité est « disponible dans le système ». Personne ne la trouve dans le système.",
 "sold_out.the_carrier_is_out_of_spectrum":"L’opérateur n’a plus de spectre ici jusqu’à la prochaine mise à niveau du système de ligne.",
 "sold_out.the_transponders_for_this_route_are":"Les transpondeurs pour cette route sont sur un porte-conteneurs. Le navire est quelque part près de Singapour.",

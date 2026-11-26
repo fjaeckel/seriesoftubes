@@ -6932,6 +6932,7 @@
 "sold_out.paid_peering_only_over_a_pni":"유료 피어링만, PNI로만",
 "sold_out.peers_with_you_for_free_now":"이제 무료로 피어링해 주지만, PNI로만 가능해요",
 "sold_out.sender_pays_a_paid_pni_only":"발신자 부담: 유료 PNI만 가능, {fee}/월 + 보내는 Gbps당 {g}",
+"sold_out.the_cable_is_cut_nobody_sells":"이 케이블은 절단됐어요. 다시 융착될 때까지 아무도 이 케이블의 파장 서비스를 팔지 않아요.",
 "sold_out.the_capacity_is_available_in_the":"용량은 “시스템상 여유가 있다”고 해요. 시스템에서 찾아낸 사람은 아무도 없어요.",
 "sold_out.the_carrier_is_out_of_spectrum":"이 구간은 통신사의 스펙트럼이 바닥났어요. 다음 라인 시스템 업그레이드까지 기다려야 해요.",
 "sold_out.the_transponders_for_this_route_are":"이 경로용 트랜스폰더는 컨테이너선에 실려 있어요. 배는 싱가포르 근처 어딘가에 있대요.",

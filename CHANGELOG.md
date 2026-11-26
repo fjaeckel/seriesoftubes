@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- New waves can no longer be bought on a cable that is cut. Until the repair is done, the wave sheet shows every size on that cable as sold out, and the waves already on it can't be upgraded; other cables on the route still sell. (#489)
+
 ## [5.6.0] — 2026-11-25
 
 - Series of Tubes now speaks Japanese and Korean. The game follows your browser's language the first time, and you can switch under Settings or on the title screen. Acronyms like POP, IX and PNI and the networks' pun names stay as they are, the way they appear everywhere else in the game.

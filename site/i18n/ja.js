@@ -6933,6 +6933,7 @@
 "sold_out.paid_peering_only_over_a_pni":"ペイドピアリングのみ、PNI経由",
 "sold_out.peers_with_you_for_free_now":"今なら無料でピアリングしてくれますが、PNI経由のみです",
 "sold_out.sender_pays_a_paid_pni_only":"送信側負担：有料PNIのみ、{fee}/月 + 送信1Gbpsあたり{g}",
+"sold_out.the_cable_is_cut_nobody_sells":"このケーブルは切断されています。再び融着されるまで、どこもこのケーブルの波長サービスを売ってくれません。",
 "sold_out.the_capacity_is_available_in_the":"容量は「システム上は空いている」そうです。システムの中で見つけられた人はいません。",
 "sold_out.the_carrier_is_out_of_spectrum":"このキャリアはここでスペクトルを使い切っています。次のラインシステム増強まで空きません。",
 "sold_out.the_transponders_for_this_route_are":"このルート用のトランスポンダーはコンテナ船の上です。船はシンガポール近海のどこかにいます。",

@@ -6931,6 +6931,7 @@
 "sold_out.paid_peering_only_over_a_pni":"Paid peering only, over a PNI",
 "sold_out.peers_with_you_for_free_now":"Peers with you for free now, but only over a PNI",
 "sold_out.sender_pays_a_paid_pni_only":"Sender pays: a paid PNI only, {fee}/mo plus {g} per Gbps you send",
+"sold_out.the_cable_is_cut_nobody_sells":"The cable is cut. Nobody sells waves on it until it is spliced back together.",
 "sold_out.the_capacity_is_available_in_the":"The capacity is “available in the system”. Nobody can find it in the system.",
 "sold_out.the_carrier_is_out_of_spectrum":"The carrier is out of spectrum here until its next line-system upgrade.",
 "sold_out.the_transponders_for_this_route_are":"The transponders for this route are on a container ship. The ship is somewhere near Singapore.",
