@@ -6,25 +6,27 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
-- Multimode servers now also let in the game served from its own `seriesoftubes://game` address.
+## [5.7.0] — 2026-11-26
 
 - In Multimode, other players' network names, server names and server descriptions with a slur or an obscenity in them are no longer shown: such a name reads "AS?", and such a description is left out. Spelling it with digits, dots or look-alike letters doesn't get around it, and reports, mutes and hidden names work as before.
 
 - Very big networks with a NOC intern no longer stall for a moment every game day. Checking which transit providers keep a customer's "two different upstreams" promise took most of the day on networks with hundreds of POPs; it is now several times faster.
 
-- The NOC dashboard keeps up a little better on big networks while the game runs. The Connections tab redraws about a quarter faster, and the other tabs no longer work out the Traffic tab's table every day.
+- As a cloud, you can now see which customers use your compute slots. Every cloud tenant shows the region where it holds its one slot, in the city panel, in the region's list of tenants running there (which now has a Drop button) and in the customers list. A region also says how many of its slots tenants hold and how many go to training runs; other customers hold none. (#491)
+
+- An AI training run you can't take now lists every reason at once, such as compute slots or power in each region, so you no longer fix one only to find the next. (#490)
 
 - With Dave at the sales desk, giant offers now still reach you, so "Sign a giant" can be done without firing him. Dave doesn't bring, sign or decline them: the deal says it's too big for him, and you sign it yourself. (#493)
+
+- The NOC dashboard keeps up a little better on big networks while the game runs. The Connections tab redraws about a quarter faster, and the other tabs no longer work out the Traffic tab's table every day.
 
 - The intern's "Light more fiber" order now lights one more optic on fiber whose capacity you sold out as managed waves, so the fiber carries your own traffic again instead of staying offline. (#487)
 
 - As a cloud, the networks list now shows the share of traffic you actually send to each network. Your users reach you through their home ISPs, so content networks like Goggle get almost nothing from a cloud, and the list no longer claims 6% for them while their peering desk says you send 0. (#486)
 
-- An AI training run you can't take now lists every reason at once, such as compute slots or power in each region, so you no longer fix one only to find the next. (#490)
-
-- As a cloud, you can now see which customers use your compute slots. Every cloud tenant shows the region where it holds its one slot, in the city panel, in the region's list of tenants running there (which now has a Drop button) and in the customers list. A region also says how many of its slots tenants hold and how many go to training runs; other customers hold none. (#491)
-
 - New waves can no longer be bought on a cable that is cut. Until the repair is done, the wave sheet shows every size on that cable as sold out, and the waves already on it can't be upgraded; other cables on the route still sell. (#489)
+
+- Multimode servers now also let in the game served from its own `seriesoftubes://game` address.
 
 ## [5.6.0] — 2026-11-25
 
