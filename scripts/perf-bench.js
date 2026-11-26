@@ -6,7 +6,9 @@
 //   node scripts/perf-bench.js --base OLD.html                  compare a built page (e.g. a release's) with this checkout
 //   node scripts/perf-bench.js --base OLD.html --md out.md --summary "$GITHUB_STEP_SUMMARY"
 //   node scripts/perf-bench.js --save my-export.json --base OLD.html    a player's save (plain or exported from the menu)
+//   node scripts/perf-bench.js --huge --base-ref origin/main             on tests/fixtures/huge-network.json (perf-fixture.js --huge)
 //   node scripts/perf-bench.js --base OLD.html --browser        also in real Chromium, as a desktop and as a phone
+//   node scripts/perf-bench.js --base OLD.html --webkit         also in WebKit (Safari, every iPhone browser)
 //
 // Both versions load the same save in one process and are timed in alternating turns, so a busy machine slows
 // them equally. Each number is the median of several runs. It also says whether both versions route the save's
@@ -31,7 +33,7 @@ const BASE = opt('--base', null) || (opt('--base-ref', null) && (() => {
 })());
 const RUNS = +opt('--runs', 15);
 // A plain save, or a file from the in-game "Export save", which wraps it as {app, version, exported, S}.
-const RAW = JSON.parse(fs.readFileSync(opt('--save', path.join(ROOT, 'tests', 'fixtures', 'big-network.json')), 'utf8'));
+const RAW = JSON.parse(fs.readFileSync(opt('--save', path.join(ROOT, 'tests', 'fixtures', args.includes('--huge') ? 'huge-network.json' : 'big-network.json')), 'utf8'));
 const SAVE = JSON.stringify(RAW && RAW.app === 'series-of-tubes' && RAW.S ? RAW.S : RAW);
 
 // What we time. Each body runs inside the game page; panels render two selections in turn, so nothing can be
@@ -80,6 +82,7 @@ for (const [k, , body, o] of METRICS) {
 }
 const errs = [...head.errors, ...(base ? base.errors : [])];
 const browser = args.includes('--browser') ? await require('./perf-browser').runBrowser({ head: HEAD, base: BASE, save: SAVE, metrics: METRICS, runs: RUNS, exe: opt('--chrome', process.env.PERF_CHROME) }) : null;
+const webkit = args.includes('--webkit') ? await require('./perf-browser').runBrowser({ head: HEAD, base: BASE, save: SAVE, metrics: METRICS, runs: RUNS, engine: 'webkit' }) : null;
 
 const { mannWhitneyP } = require('./perf-stats');
 const pOf = (r) => (r.samples && r.samples.base ? mannWhitneyP(r.samples.head, r.samples.base) : 1);
@@ -103,19 +106,22 @@ const s = head.size;
 let md = `## Performance on a big network\n\n${s.pops} POPs · ${s.links} links · ${s.pni} PNIs · ${s.caches} cache boxes · ${s.ix} IX ports · ${s.customers} customers. Median of ${RUNS} runs, in milliseconds.\n\n`;
 md += `### Headless (jsdom)\n\nOur JavaScript only: jsdom has no layout and its DOM is far slower than a browser's, so trust the routing rows most here. It has no Worker either: a day in play is timed in Chromium only.\n\n` + table(res, 2);
 const slow = base ? slowIn(res, 2) : [];
-const { PROFILES } = browser ? require('./perf-browser') : { PROFILES: [] };
-for (const p of PROFILES) {
+const ENGINES = [['Chromium', browser], ['WebKit', webkit]].filter(([, b]) => b);
+const about = (eng, p) => eng === 'WebKit'
+  ? (p.key === 'phone' ? "A 402×874 iPhone screen at 3× pixel density, at this machine's full CPU speed (WebKit cannot slow it down)." : 'A 1280×800 window at full speed.') + ' The engine of Safari and of every browser on iPhone and iPad; it cannot force a garbage collection between runs and its clock counts whole milliseconds, so expect more noise and trust the bigger rows.'
+  : (p.key === 'phone' ? 'A 390×844 screen at 3× pixel density, with the CPU slowed down 4× like a mid-range Android.' : 'A 1280×800 window at full speed.');
+for (const [eng, browser] of ENGINES) for (const p of require('./perf-browser').profilesFor(browser.engine)) {
   // The map row is the whole frame, up to a pixel read back from the surface that drew it; say which one that was.
   const mp = browser.profiles[p.key].maps, mapName = (m) => (!m || !m.length ? 'no map' : m.map((x) => (x === 'gl' ? 'WebGL' : '2D canvas')).join(' then '));
   const drew = mp ? ` The map was drawn with ${base ? `${mapName(mp.base)} (base) and ${mapName(mp.head)} (this PR)` : mapName(mp.head)}; its row waits for that surface to finish.` : '';
-  md += `\n### Chromium ${browser.version}: ${p.key === 'phone' ? 'phone' : 'desktop'}\n\n${p.key === 'phone' ? 'A 390×844 screen at 3× pixel density, with the CPU slowed down 4× like a mid-range Android.' : 'A 1280×800 window at full speed.'} Real DOM, layout and canvas.${drew}\n\n` + table(browser.profiles[p.key], 2 * p.rate);
-  if (base) slow.push(...slowIn(browser.profiles[p.key], 2 * p.rate).map((l) => `${l} (Chromium ${p.key})`));
+  md += `\n### ${eng} ${browser.version}: ${p.key === 'phone' ? 'phone' : 'desktop'}\n\n${about(eng, p)} Real DOM, layout and canvas.${drew}\n\n` + table(browser.profiles[p.key], 2 * p.rate);
+  if (base) slow.push(...slowIn(browser.profiles[p.key], 2 * p.rate).map((l) => `${l} (${eng} ${p.key})`));
 }
 if (base) {
   md += `\n${sameOutcome ? '✅ Routing results are identical to the base.' : '⚠️ Routing results differ from the base: traffic is carried differently. Expected if this PR changes gameplay; a bug if it only promises to be faster.'}\n`;
   md += slow.length ? `\n**Slower:** ${slow.join(', ')}. Please explain or fix before merging.\n` : '\nNo slowdowns beyond noise.\n';
 }
-for (const [where, list] of [['', errs], [' in Chromium', browser ? browser.errors : []]]) {
+for (const [where, list] of [['', errs], [' in Chromium', browser ? browser.errors : []], [' in WebKit', webkit ? webkit.errors : []]]) {
   if (list.length) md += `\n⚠️ Page errors${where} while benchmarking:\n\n${list.slice(0, 5).map((e) => '- `' + String(e).slice(0, 200).replace(/`/g, "'") + '`').join('\n')}\n`;
 }
 md += `\n<sub>scripts/perf-bench.js · A row only counts as slower or faster when it moved by 15% or more and p &lt; 0.01 (Mann–Whitney U), and by more than 2 ms (8 ms on the phone). Headless Chromium draws the canvas in software; phones usually use the GPU.</sub>\n`;
@@ -123,5 +129,5 @@ md += `\n<sub>scripts/perf-bench.js · A row only counts as slower or faster whe
 console.log(md);
 const out = opt('--md', null); if (out) fs.writeFileSync(out, md);
 const sum = opt('--summary', null); if (sum) fs.appendFileSync(sum, md + '\n');
-const js = opt('--json', null); if (js) fs.writeFileSync(js, JSON.stringify({ size: s, runs: RUNS, results: res, sameOutcome, errors: errs, browser }, null, 2));
+const js = opt('--json', null); if (js) fs.writeFileSync(js, JSON.stringify({ size: s, runs: RUNS, results: res, sameOutcome, errors: errs, browser, webkit }, null, 2));
 })().catch((e) => { console.error(e); process.exit(1); });

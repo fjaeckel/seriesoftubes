@@ -13,7 +13,8 @@ const FED_SAFE={'<':'‹','>':'›','&':'＆','"':'”',"'":'’','`':'‘'};
 // so a name shows what it says, to players and to AI agents alike. Spaces of any width become a plain one.
 const FED_INVIS=/[\p{Cf}\p{Cc}\p{Zl}\p{Zp}\u034f\u115f\u1160\u17b4\u17b5\u2800\u3164\uffa0\ufe00-\ufe0d\u{e0100}-\u{e01ef}]/gu;
 const fedSafeText=v=>String(v).replace(FED_INVIS,'').replace(/\p{Zs}/gu,' ').replace(/[<>&"'`]/g,c=>FED_SAFE[c]);
-const fedSafeName=v=>{const s=fedSafeText(v);return /[^ ]/.test(s)?s:'AS?';};
+// A name with a slur or an obscenity in it shows as "AS?" too (82-fed-words.js).
+const fedSafeName=v=>{const s=fedSafeText(v);return /[^ ]/.test(s)&&!fedBadName(s)?s:'AS?';};
 /* Names are not unique and anyone can type any: two names that read alike (case, accents, width, Cyrillic or Greek
    letters that look Latin, 0/O, 1/l/I, rn/m) fold to the same text here, so the interface can say "same name as". */
 const FED_CONF={'а':'a','в':'b','е':'e','ё':'e','к':'k','м':'m','н':'h','о':'o','р':'p','с':'c','т':'t','у':'y','х':'x','ѕ':'s','і':'l','ї':'l','ј':'j','һ':'h','ԁ':'d','ԛ':'q','ԝ':'w','ӏ':'l','ɡ':'g','ı':'l',

@@ -13,17 +13,10 @@ function renderDash(){checkLayer();
   <h3 style="margin-top:8px">${tr('dashboard.where_the_money_goes')}</h3>${Object.entries(R.cost).filter(([k,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="kv"><span>${{pops:tr('dashboard.pops_and_routers'),links:tr('dashboard.waves_and_fiber'),transit:tr('common.transit'),ix:tr('common.ix_ports'),pni:tr('common.pnis'),caches:tr('common.cache_power'),nni:tr('common.fabric_ports'),optical:tr('dashboard.amp_huts_and_spares'),loans:tr('common.loan_repayments'),revshare:tr('dashboard.investor_revenue_share'),extras:tr('dashboard.licenses_and_scrubbing'),wholesale:tr('dashboard.nearly_broadband_network_wholesale'),levy:tr('dashboard.regional_broadband_levy'),pie:tr('pie.costs_row'),cloud:tr('hyper.cost_row'),train:tr('hyper_traffic.cost_row'),fed:tr('fedplay.cost_row')}[k]||k}</span><b>${tr('common.price_mo',{price:fmt$(v)})}</b></div>`).join('')}</div></div>`;
   if(DT==='overview'&&S.fed)h+=fedPlayDash();
   const tT=(R.egT.t||0)||1;
-  const offMix=(UI.chartOff&&UI.chartOff.mix)||{},filt=Object.keys(offMix).length>0;
-  // The legend above the table picks which ways in count; "lost" still looks at everything the network gets.
-  const row=(n,e0,want)=>{const e={};for(const k of ['c','p','ix','t'])e[k]=offMix[k]?0:e0[k];const t=e.c+e.p+e.ix+e.t,all=e0.c+e0.p+e0.ix+e0.t;return {n,e,t,want,cost:(R.cost.transit||0)*e.t/tT,lost:want>0.01?Math.max(0,1-all/want):0};};
-  const nets=NETS.filter(n=>!n.tail).map(n=>row(n,R.netEg[n.id]||{c:0,p:0,ix:0,t:0},R.demTo[n.id]||0));
-  {const e={c:0,p:0,ix:0,t:0};let w=0;for(const n of NETS)if(n.tail){const x=R.netEg[n.id];if(x)for(const k in e)e[k]+=x[k]||0;w+=R.demTo[n.id]||0;}nets.push(row({id:'_tail',name:tr('dashboard.the_long_tail_n_small_networks',{n:NETS.filter(n=>n.tail).length}),asn:'many',type:'eye',col:'#8A93B8'},e,w));}
-  for(let i=nets.length-1;i>=0;i--)if(!(nets[i].t>0.01||(!filt&&nets[i].want>0.01)))nets.splice(i,1);
-  {const k=UI.dashSort||'traffic',dir=UI.dashDir||-1,val=x=>k==='name'?x.n.name.toLowerCase():k==='asn'?x.n.asn:k==='type'?x.n.type:k==='cost'?x.cost:k==='lost'?x.lost:x.t;nets.sort((a,b)=>{const A=val(a),B=val(b);return (A<B?-1:A>B?1:0)*dir||b.t-a.t;});}
   if(DT==='cust')h+=custSection()+clPanel();
   if(DT==='conn')h+=connSection();
   if(DT==='traffic')h+=`<div class="btns">${btn(tr('ops.standing_orders'),'opsOpen',{},'sm')}</div>`;
-  if(DT==='traffic')h+=trafficTab(nets,tT);
+  if(DT==='traffic')h+=trafficTab(dashNets(tT),tT);
   if(DT==='traffic'){const top=transitTop(S.transit.map(t=>t.id),8);if(top.length)h+=`<div class="panel2" style="margin-top:12px"><h3>${tr('dashboard.who_your_transit_carries')}</h3><p class="note" style="margin-top:0">${tr('dashboard.the_networks_you_pay_transit_to')}</p>${top.map(([id,v])=>`<div class="row">${logo(NET[id])}<div class="grow"><div class="nm">${esc(NET[id].name)} <span class="meta">AS${NET[id].asn} · ${fmtG(v)} · ${tr('dashboard.about_price_mo',{price:fmt$((R.cost.transit||0)*v/tT)})}</span></div><div class="meta">${esc(offTransitHint(id))}</div></div>${btn(tr('common.where_6276'),'netFocus',{id},'ghost sm')}</div>`).join('')}</div>`;}
   if(DT==='ddos')h+=ddosTab();
   if(DT==='links')h+=`<div style="margin-top:12px">${linksTab()}</div>`;
@@ -36,3 +29,14 @@ function renderDash(){checkLayer();
   // Where the tabs are one scrolling line (a phone on its side), a newly opened tab is brought into view; once per switch.
   if(UI._dt!==DT){UI._dt=DT;const nav=$('dashCard').querySelector('.dhead .dtabs'),on=nav&&nav.querySelector('.on');if(on&&nav.scrollWidth>nav.clientWidth)nav.scrollLeft=on.offsetLeft-nav.offsetLeft-24;}
 }
+// The traffic tab's table: every network's traffic, filtered by the legend and sorted. Only that tab shows it, and the
+// dashboard redraws after every day while it is open, so the other tabs never pay for it.
+function dashNets(tT){
+  const offMix=(UI.chartOff&&UI.chartOff.mix)||{},filt=Object.keys(offMix).length>0;
+  // The legend above the table picks which ways in count; "lost" still looks at everything the network gets.
+  const row=(n,e0,want)=>{const e={};for(const k of ['c','p','ix','t'])e[k]=offMix[k]?0:e0[k];const t=e.c+e.p+e.ix+e.t,all=e0.c+e0.p+e0.ix+e0.t;return {n,e,t,want,cost:(R.cost.transit||0)*e.t/tT,lost:want>0.01?Math.max(0,1-all/want):0};};
+  const nets=NETS.filter(n=>!n.tail).map(n=>row(n,R.netEg[n.id]||{c:0,p:0,ix:0,t:0},R.demTo[n.id]||0));
+  {const e={c:0,p:0,ix:0,t:0};let w=0;for(const n of NETS)if(n.tail){const x=R.netEg[n.id];if(x)for(const k in e)e[k]+=x[k]||0;w+=R.demTo[n.id]||0;}nets.push(row({id:'_tail',name:tr('dashboard.the_long_tail_n_small_networks',{n:NETS.filter(n=>n.tail).length}),asn:'many',type:'eye',col:'#8A93B8'},e,w));}
+  for(let i=nets.length-1;i>=0;i--)if(!(nets[i].t>0.01||(!filt&&nets[i].want>0.01)))nets.splice(i,1);
+  {const k=UI.dashSort||'traffic',dir=UI.dashDir||-1,val=x=>k==='name'?x.n.name.toLowerCase():k==='asn'?x.n.asn:k==='type'?x.n.type:k==='cost'?x.cost:k==='lost'?x.lost:x.t;nets.sort((a,b)=>{const A=val(a),B=val(b);return (A<B?-1:A>B?1:0)*dir||b.t-a.t;});}
+  return nets;}
