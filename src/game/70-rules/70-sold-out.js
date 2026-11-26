@@ -2,8 +2,11 @@
    gets a stable verdict from a hash, so asking again does not reroll it, and bigger waves sell out more often. */
 const SOLD_WIN=90,SOLD_WHY=[N_('sold_out.a_hyperscaler_bought_every_wave_of'),N_('sold_out.the_carrier_is_out_of_spectrum'),N_('sold_out.the_transponders_for_this_route_are'),N_('sold_out.the_capacity_is_available_in_the'),N_('sold_out.their_capacity_planner_is_on_holiday'),N_('sold_out.the_upgrade_is_planned_for_q3')];
 const soldP=tier=>Math.min(0.1,0.02+0.012*tier);
+// A cut cable sells nothing until the splice is done (#489): the cut's incident (LINKCUT_TR) is on the cable's trench.
+function cabCut(via){if(!via||!S)return null;const k='cab:'+via;let u=0;for(const i of S.inc)if(i.ref===k&&i.until>u&&LINKCUT_TR.includes(i.type))u=i.until;
+  return u>S.day?{why:N_('sold_out.the_cable_is_cut_nobody_sells'),until:u}:null;}
 // Never in the first 90 days: a new network has enough on its plate. Never in the tutorial or a scenario's first quarter either.
-function soldOut(a,b,tier,via){if(!S||S.day<SOLD_WIN||S.tut||!rule('market'))return null;const k=(a<b?a+b:b+a)+'|'+(via||'')+'|'+tier,off=hstr(k)%SOLD_WIN,ep=Math.floor((S.day+off)/SOLD_WIN),h=hstr(S.asn+'|'+k+'|'+ep);
+function soldOut(a,b,tier,via){const cc=cabCut(via);if(cc)return cc;if(!S||S.day<SOLD_WIN||S.tut||!rule('market'))return null;const k=(a<b?a+b:b+a)+'|'+(via||'')+'|'+tier,off=hstr(k)%SOLD_WIN,ep=Math.floor((S.day+off)/SOLD_WIN),h=hstr(S.asn+'|'+k+'|'+ep);
   if(h%1000>=soldP(tier)*1000)return null;return {why:SOLD_WHY[(h>>>10)%SOLD_WHY.length],until:(ep+1)*SOLD_WIN-off};}
 function snubWhy(sn){const d=Math.max(1,sn.until-S.day);return sn.why+' '+trn('sold_out.they_will_reconsider_in_n_day',d);}
 // Paid-peering giants drop the fee for networks too big to ignore (freeLv: the customer level that does it).
