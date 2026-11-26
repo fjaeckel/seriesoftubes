@@ -136,7 +136,7 @@ function hsRgBody(c){const H=S.hs,d=H.rg[c];let h='';
   if(d){const T=HS_T[d.t],N=hsTNext(d),G=hsRgG(c),x=R.hs&&R.hs.rg[c],load=x?x.load:0;
     if(d.ready>S.day)h+=`<p class="lead">${tr('hyper.being_built',{name:tr(T.n),date:dateStr(d.ready)})}</p>`;
     else h+=hsKv(tr(T.n),tr('city_panel.a_of_b',{a:fmtG(load),b:fmtG(G)}))+hsBar(load/G,load>=G*0.95);
-    h+=hsKv(tr('hyper.power'),tr('hyper.mw_of_grid',{mw:Math.round(hsMwRes(c)),grid:hsSupply(c)}))+hsKv(tr('hyper.slots'),tr('city_panel.a_of_b',{a:hsSlotsUsed(c),b:hsSlots(c)}));
+    h+=hsKv(tr('hyper.power'),tr('hyper.mw_of_grid',{mw:Math.round(hsMwRes(c)),grid:hsSupply(c)}))+hsKv(tr('hyper.slots'),tr('city_panel.a_of_b',{a:hsSlotsUsed(c),b:hsSlots(c)}))+hsSlotSplit(c);
     if(d.ready<=S.day)h+=hpRgLines(c);
     if(d.up)h+=`<p class="meta">${tr('hyper.being_built',{name:tr(HS_T[d.up.t].n),date:dateStr(d.up.ready)})}</p>`;
     if(!cxOut(c)&&!Object.keys(S.pops).some(hsDoor))h+=`<p class="why">${tr('hyper.region_no_way_out')}</p>`;
@@ -157,6 +157,11 @@ function hsDoorBody(c){const H=S.hs,door=hsDoor(c),x=R.hs&&R.hs.door[c];if(!door
   h+=hpDoorLine(c);h+=H.edge[c]?`<p class="meta">✅ ${tr('hyper.edge_here',{p:pct(HS_EDGE)})}</p>`:`<p class="meta">${tr('hyper.edge_terms',{p:pct(HS_EDGE),mo:fmt$(HS_EDGE_MO)})}</p>${hsBtns(btn(tr('hyper.buy_edge_cost',{cost:fmt$(HS_EDGE_COST)}),'hsEdge',{city:c},'sm',S.cash<HS_EDGE_COST))}`;
   return h;}
 const hsDoorSection=c=>hsSec('door',hsDoorSpec(c));
+// Who holds a region's compute slots (#491): one per tenant whose home region it is (b.rg, wherever it is based or served
+// from today), the rest for training runs. Other customers take none.
+const hsSlotRg=b=>b&&b.type==='cloud'&&S.hs&&b.rg&&S.hs.rg[b.rg]?b.rg:null;
+const hsSlotTxt=b=>{const r=hsSlotRg(b);return r?tr('hyper_slots.uses_in',{city:esc(CITY[r].name)}):'';};
+function hsSlotSplit(c){const t=hsTen().filter(b=>b.rg===c).length,r=hsTrainSlotsAt(c);return t||r?`<p class="meta">${tr('hyper_slots.split',{t,r})}</p>`:'';}
 // A tenant's products, each with what it still wants.
 const hsWants=(r,b)=>b.p.filter(id=>CLOUD_PRODUCTS[id]&&hsNeedQ(r,b,id)<0.95).map(id=>tr(CLOUD_NEED[CLOUD_PRODUCTS[id].need]));
 /* Tenants have two cities: where they are based (their offices and their own users, b.city) and the region their servers
@@ -167,14 +172,14 @@ function hsTenSpec(c){const bs=hsTen().filter(b=>b.city===c),sad=bs.filter(b=>b.
   return {t:tr('hyper.based_here'),sum:bs.length?tr('hyper_ui.sum_tenants',{n:bs.length,mo:fmt$(bs.reduce((a,b)=>a+bizMo(b),0))}):'',flags:sad?[hsFlag('restrictive',trn('hyper_ui.f_unhappy',sad))]:[],
     body:()=>(bs.length&&away?`<p class="lead">${rg?tr('hyper.based_here_lead_rg'):tr('hyper.based_here_lead')}</p>`:'')+hsTenBody(c,bs)};}
 // A region's own guests: tenants whose servers run here, wherever they are based.
-function hsRunSpec(c){if(!S.hs.rg[c])return null;const bs=hsTen().filter(b=>{const T=R.hs&&R.hs.ten[b.id];return T&&T.r===c&&b.city!==c;});if(!bs.length)return null;
+function hsRunSpec(c){if(!S.hs.rg[c])return null;const bs=hsTen().filter(b=>{const T=R.hs&&R.hs.ten[b.id];return (T&&T.r===c||b.rg===c)&&b.city!==c;});if(!bs.length)return null;
   return {t:tr('hyper.running_here'),sum:tr('hyper_ui.sum_tenants',{n:bs.length,mo:fmt$(bs.reduce((a,b)=>a+bizMo(b),0))}),flags:[],
-    body:()=>bs.map(b=>`<div class="row"><div class="grow"><div class="nm">${esc(b.name)}</div><div class="meta">${tr('hyper.based_in',{city:esc(CITY[b.city].name)})} · ${esc(cloudList(b.p))} · ${tr('hyper.bundle_score',{p:pct(hsTenQ(R,b))})}</div></div></div>`).join('')};}
+    body:()=>bs.map(b=>`<div class="row"><div class="grow"><div class="nm">${esc(b.name)}</div><div class="meta">${tr('hyper.based_in',{city:esc(CITY[b.city].name)})} · ${esc(cloudList(b.p))} · ${tr('hyper.bundle_score',{p:pct(hsTenQ(R,b))})}</div>${hsSlotTxt(b)?`<div class="meta">${hsSlotTxt(b)}</div>`:''}</div>${btn(UI.confirm===b.id?tr('common.really_drop'):tr('common.drop'),'dropBiz',{id:b.id},'ghost sm')}</div>`).join('')};}
 function hsTenBody(c,bs){if(!bs.length)return `<p class="empty">${tr('hyper.no_tenants_here')}</p>`;let h='';
   // Unhappy tenants first, so the one about to leave is never under the fold.
   for(const b of bs.filter(b=>b.mood<30).concat(bs.filter(b=>!(b.mood<30)))){const q=hsTenQ(R,b),T=R.hs&&R.hs.ten[b.id],K=CLOUD_TENANTS[b.ck],ws=[...new Set(hsWants(R,b))];
     h+=`<div class="row"><div class="grow"><div class="nm">${esc(b.name)}</div><div class="meta">${K?esc(tr(K.n)):''} · ${esc(cloudList(b.p))} · ${tr('common.price_mo',{price:fmt$(bizMo(b))})}</div>
-      <div class="meta">${T&&T.r?tr('hyper.served_from',{city:esc(CITY[T.r].name)}):tr('hyper.no_region')} · ${tr('hyper.bundle_score',{p:pct(q)})}</div>${ws.length?`<div class="why">${tr('hyper.tenant_wants',{list:esc(ws.join(', '))})}</div>`:''}
+      <div class="meta">${T&&T.r?tr('hyper.served_from',{city:esc(CITY[T.r].name)}):tr('hyper.no_region')} · ${tr('hyper.bundle_score',{p:pct(q)})}</div>${hsSlotTxt(b)?`<div class="meta">${hsSlotTxt(b)}</div>`:''}${ws.length?`<div class="why">${tr('hyper.tenant_wants',{list:esc(ws.join(', '))})}</div>`:''}
       ${hsBar(b.mood/100,b.mood<30)}<div class="meta">${tr('common.happiness_p',{p:Math.round(b.mood)})}</div></div>${btn(UI.confirm===b.id?tr('common.really_drop'):tr('common.drop'),'dropBiz',{id:b.id},'ghost sm')}</div>`;}
   return h;}
 const hsTenSection=c=>hsSec('ten',hsTenSpec(c));

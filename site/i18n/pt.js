@@ -4075,6 +4075,8 @@
 "hyper_rivals.win_golf":"{rival} fechou com {name} no campo de golfe. Você não foi convidado.",
 "hyper_rivals.win_slides":"{rival} conquistou {name} com 140 slides e um moletom de brinde.",
 "hyper_rivals.you_fit":"Você combina mais com eles: assina pelo seu preço.",
+"hyper_slots.split":"Os clientes de nuvem ocupam {t}, os treinos {r}. Cada cliente de nuvem ocupa um slot na sua região de origem; os outros clientes, nenhum.",
+"hyper_slots.uses_in":"1 slot de computação em {city}",
 "hyper_story.charter_desc":"Faça uma nuvem crescer de um rack embaixo da escada até um sistema meteorológico. Lance em países, abra portas de entrada, construa regiões onde estão os megawatts e leve cada byte pelo seu próprio backbone. Tenants alugam pacotes com nomes bobos; você compra trânsito, mas nunca vende. Vença Cloud Nine: regiões em {ct} continentes, um simulado aprovado para cada par de regiões, seu próprio cabo atravessando um oceano e {g} entre regiões no pico.",
 "hyper_story.eyebrow":"Nível de nuvem {lv} de {max}",
 "hyper_story.g_done":"A nuvem é isso: usuários entrando, regiões servindo, regiões conversando entre si. Seus objetivos levam a Cloud Nine.",

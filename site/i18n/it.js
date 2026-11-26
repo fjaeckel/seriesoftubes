@@ -4075,6 +4075,8 @@
 "hyper_rivals.win_golf":"{rival} ha firmato con {name} sul campo da golf. Tu non eri invitato.",
 "hyper_rivals.win_slides":"{rival} ha conquistato {name} con 140 slide e una felpa in regalo.",
 "hyper_rivals.you_fit":"Sei tu quello più adatto: firmi al tuo prezzo.",
+"hyper_slots.split":"I clienti cloud ne occupano {t}, i training run {r}. Ogni cliente cloud occupa uno slot nella sua regione di casa; gli altri clienti nessuno.",
+"hyper_slots.uses_in":"1 slot di calcolo a {city}",
 "hyper_story.charter_desc":"Fai crescere un cloud da un rack sotto le scale fino a un sistema meteorologico. Attiva il servizio nei Paesi, apri porte d'ingresso, costruisci regioni dove ci sono i megawatt e porta ogni byte sul tuo backbone. I tenant affittano pacchetti dai nomi assurdi; il transit lo compri ma non lo vendi mai. Vinci Cloud Nine: regioni su {ct} continenti, un'esercitazione superata per ogni coppia di regioni, il tuo cavo attraverso un oceano e {g} tra regioni al picco.",
 "hyper_story.eyebrow":"Livello cloud {lv} di {max}",
 "hyper_story.g_done":"Il cloud è tutto qui: utenti dentro, regioni fuori, regioni che parlano tra loro. I tuoi obiettivi ti portano a Cloud Nine.",

@@ -4076,6 +4076,8 @@
 "hyper_rivals.win_golf":"{rival} signed {name} on the golf course. You were not invited.",
 "hyper_rivals.win_slides":"{rival} won {name} with a 140-slide deck and a free hoodie.",
 "hyper_rivals.you_fit":"You fit them better: you sign at your price.",
+"hyper_slots.split":"Tenants hold {t}, training runs {r}. Each tenant takes one slot in its home region; other customers take none.",
+"hyper_slots.uses_in":"1 compute slot in {city}",
 "hyper_story.charter_desc":"Grow a cloud from a rack under the stairs into a weather system. Launch in countries, open front doors, build regions where the megawatts are and haul every byte over your own backbone. Tenants rent bundles with silly names; you buy transit but never sell it. Win Cloud Nine: regions on {ct} continents, a passed drill for every region pair, your own cable across an ocean and {g} between regions at peak.",
 "hyper_story.eyebrow":"Cloud level {lv} of {max}",
 "hyper_story.g_done":"That’s the whole cloud, really: users in, regions out, regions talking to each other. Your goals lead the way to Cloud Nine.",

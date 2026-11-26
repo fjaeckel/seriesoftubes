@@ -4075,6 +4075,8 @@
 "hyper_rivals.win_golf":"{rival} a signé {name} sur le terrain de golf. Tu n'étais pas invité.",
 "hyper_rivals.win_slides":"{rival} a remporté {name} avec 140 diapos et un sweat offert.",
 "hyper_rivals.you_fit":"Tu leur conviens mieux : tu signes à ton prix.",
+"hyper_slots.split":"Les clients cloud en occupent {t}, les entraînements {r}. Chaque client cloud prend un emplacement dans sa région d’origine ; les autres clients aucun.",
+"hyper_slots.uses_in":"1 emplacement de calcul à {city}",
 "hyper_story.charter_desc":"Fais grandir un cloud, d'un rack sous l'escalier jusqu'à un système météo. Lance-toi dans des pays, ouvre des portes d'entrée, construis des régions là où sont les mégawatts et transporte chaque octet sur ton propre backbone. Des locataires louent des offres aux noms absurdes ; tu achètes du transit mais tu n'en vends jamais. Gagne Cloud Nine : des régions sur {ct} continents, un exercice réussi pour chaque paire de régions, ton propre câble à travers un océan et {g} entre régions à la pointe.",
 "hyper_story.eyebrow":"Niveau cloud {lv} sur {max}",
 "hyper_story.g_done":"Le cloud, c'est tout ça : les utilisateurs entrent, les régions servent, les régions se parlent. Tes objectifs mènent à Cloud Nine.",
