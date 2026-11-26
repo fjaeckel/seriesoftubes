@@ -3,12 +3,12 @@ package origin
 import "testing"
 
 func TestOK(t *testing.T) {
-	for _, o := range []string{"", "https://seriesoftub.es", "http://localhost:8080", "https://box.local:8080", "https://10.0.0.5:8443", "http://[::1]:8080", "https://x.localhost"} {
+	for _, o := range []string{"", "https://seriesoftub.es", "seriesoftubes://game", "http://localhost:8080", "https://box.local:8080", "https://10.0.0.5:8443", "http://[::1]:8080", "https://x.localhost"} {
 		if !OK(o, nil) {
 			t.Errorf("%q refused", o)
 		}
 	}
-	for _, o := range []string{"null", "https://evil.example", "https://seriesoftub.es.evil.example", "https://203.0.113.1", "file://", "https://localhost.evil.example"} {
+	for _, o := range []string{"null", "seriesoftubes://evil", "seriesoftubes://game.evil.example", "https://evil.example", "https://seriesoftub.es.evil.example", "https://203.0.113.1", "file://", "https://localhost.evil.example"} {
 		if OK(o, nil) {
 			t.Errorf("%q let in", o)
 		}

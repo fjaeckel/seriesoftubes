@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Multimode servers now also let in the game served from its own `seriesoftubes://game` address.
+
 - With Dave at the sales desk, giant offers now still reach you, so "Sign a giant" can be done without firing him. Dave doesn't bring, sign or decline them: the deal says it's too big for him, and you sign it yourself. (#493)
 
 - The intern's "Light more fiber" order now lights one more optic on fiber whose capacity you sold out as managed waves, so the fiber carries your own traffic again instead of staying offline. (#487)
