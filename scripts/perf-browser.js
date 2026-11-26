@@ -1,14 +1,27 @@
 // The perf-bench workloads in real Chromium, for what jsdom cannot show: real DOM speed (jsdom is about 30×
 // slower at it), layout (jsdom has none, so it cannot see a forced reflow) and canvas drawing. Two profiles: a
 // desktop at full speed, and a phone (390×844, 3× pixel density, CPU slowed 4× like a mid-range Android).
-// Used by scripts/perf-bench.js --browser. Needs Chromium: a local `playwright` with its browser, or
+// Used by scripts/perf-bench.js --browser. --webkit runs the same in Playwright's WebKit, the engine of Safari and of the
+// browsers on iPhone and iPad: WebKit has no CPU throttling and no way to force a garbage collection, so its phone is an
+// iPhone-sized screen at the machine's full speed, and its runs are a little noisier. Needs Chromium: a local `playwright` with its browser, or
 // `playwright-core` (a dev dependency) plus a Chrome binary in PERF_CHROME or --chrome (CI uses the runner's Chrome).
 const { pathToFileURL } = require('node:url');
 
-const PROFILES = [
+const CHROMIUM = [
   { key: 'desktop', label: 'Desktop', rate: 1, ctx: { viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 } },
   { key: 'phone', label: 'Phone (4× slower CPU)', rate: 4, ctx: { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true } },
 ];
+const WEBKIT = [
+  { key: 'desktop', label: 'Desktop', rate: 1, ctx: CHROMIUM[0].ctx },
+  { key: 'phone', label: 'iPhone screen (full CPU speed)', rate: 1, ctx: { viewport: { width: 402, height: 874 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true } },
+];
+const PROFILES = CHROMIUM;
+const profilesFor = (engine) => (engine === 'webkit' ? WEBKIT : CHROMIUM);
+
+function webkit() {
+  for (const m of ['playwright', 'playwright-core']) { try { return require(m).webkit; } catch (e) { /* try the next one */ } }
+  throw new Error('--webkit needs playwright-core (npm ci) and its WebKit: npx playwright-core install webkit');
+}
 
 function chromium(exe) {
   // With a Chrome binary given, playwright-core is enough; without one, a full playwright brings its own browser.
@@ -20,26 +33,30 @@ function chromium(exe) {
 
 const median = (a) => { const s = [...a].sort((x, y) => x - y); return s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2; };
 
-async function openPage(browser, profile, file, save, errors) {
-  const ctx = await browser.newContext(profile.ctx);
-  const page = await ctx.newPage();
+async function openPage(browser, profile, file, save, errors, engine) {
   // Nothing from the network (fonts, stats): both versions see exactly the same page, and no request adds noise.
-  await page.route('**/*', (r) => (r.request().url().startsWith('file:') ? r.continue() : r.abort()));
+  // In WebKit any request interception breaks the workers' blob: scripts, so there the whole context is offline instead.
+  const ctx = await browser.newContext(engine === 'webkit' ? { ...profile.ctx, offline: true } : profile.ctx);
+  const page = await ctx.newPage();
+  if (engine !== 'webkit') await page.route('**/*', (r) => (r.request().url().startsWith('file:') ? r.continue() : r.abort()));
   // Same as the tests: no animation loop or update checks running between measurements, and seeded randomness.
   await page.addInitScript(() => { window.__TUBES_TEST__ = true; let r = 777; Math.random = () => { r = (r * 16807) % 2147483647; return r / 2147483647; }; });
   page.on('pageerror', (e) => errors.push(String(e.message || e)));
+  // The game reports a failed worker with console.error('[tubes] …') and carries on without it: that is an error here.
+  page.on('console', (m) => { if (m.type() === 'error' && m.text().startsWith('[tubes]')) errors.push(m.text()); });
   await page.goto(pathToFileURL(file).href, { waitUntil: 'load' });
   await page.evaluate((s) => { S = migrate(JSON.parse(s)); UI.started = true; UI.pitched = true; UI.speed = 0; closeModal(); compute(); renderAll(); }, save);
-  const cdp = await ctx.newCDPSession(page);
-  if (profile.rate > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: profile.rate });
-  await cdp.send('HeapProfiler.enable');
+  const cdp = engine === 'webkit' ? null : await ctx.newCDPSession(page);
+  if (cdp && profile.rate > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: profile.rate });
+  if (cdp) await cdp.send('HeapProfiler.enable');
+  const gc = () => (cdp ? cdp.send('HeapProfiler.collectGarbage') : Promise.resolve());
   // One run of a workload, timed inside the page so the round trip to Node does not count. Garbage is collected
   // first, so a run never pays for the one before it (its own garbage still costs it, as in the game).
   // The browser leaves layout and canvas drawing for the next frame, so code that changes the DOM or draws the map
   // would look free: each run ends by forcing both (reading a size, and one pixel back from the surface the map was
   // last drawn on: the WebGL canvas when the card drew it, which waits for the card to finish, else the 2D canvas).
   // A run also says which map drew (gl, 2d, or none when it drew nothing).
-  const time = async (k, body) => { await cdp.send('HeapProfiler.collectGarbage'); return page.evaluate(([k, body]) => {
+  const time = async (k, body) => { await gc(); return page.evaluate(([k, body]) => {
     const F = window.__fx || (window.__fx = {}); const f = F[k] || (F[k] = new Function(body)); const map = document.getElementById('map').getContext('2d');
     const G = typeof GLX === 'object' ? GLX : null, px = window.__px || (window.__px = new Uint8Array(4));
     const t = performance.now(); f(); void document.documentElement.offsetHeight;
@@ -49,7 +66,7 @@ async function openPage(browser, profile, file, save, errors) {
   // see 28-route-worker.js). Only the time it holds the page counts: starting the day, each answer from the worker and
   // each step that waited for a frame. Waiting for the worker does not count; the page is free meanwhile.
   // null when this page has no worker to play with.
-  const play = async () => { await cdp.send('HeapProfiler.collectGarbage'); return page.evaluate(async () => {
+  const play = async () => { await gc(); return page.evaluate(async () => {
     window.__TUBES_TEST__ = false;
     try {
       const w = typeof rwOn === 'function' && rwOn() && rwStart(); if (!w) return null;
@@ -65,15 +82,15 @@ async function openPage(browser, profile, file, save, errors) {
 }
 
 // Returns {version, profiles: {desktop: {compute: {head, base}, ...}, phone: {...}}, errors}.
-async function runBrowser({ head, base, save, metrics, runs, exe }) {
+async function runBrowser({ head, base, save, metrics, runs, exe, engine = 'chromium' }) {
   // One browser per version: pages of one browser can share a renderer process and its heap, and then one
   // version's garbage is collected while the other one is being timed.
-  const launch = () => chromium(exe).launch(exe ? { executablePath: exe } : {});
+  const launch = () => (engine === 'webkit' ? webkit().launch() : chromium(exe).launch(exe ? { executablePath: exe } : {}));
   const hb = await launch(), bb = base ? await launch() : null;
-  const errors = [], out = { version: hb.version(), profiles: {}, errors };
+  const errors = [], out = { engine, version: hb.version(), profiles: {}, errors };
   try {
-    for (const p of PROFILES) {
-      const h = await openPage(hb, p, head, save, errors), b = base ? await openPage(bb, p, base, save, errors) : null;
+    for (const p of profilesFor(engine)) {
+      const h = await openPage(hb, p, head, save, errors, engine), b = base ? await openPage(bb, p, base, save, errors, engine) : null;
       const res = out.profiles[p.key] = {};
       // Which map each version drew with, over all the runs that drew one (a version falling back mid-run shows both).
       const maps = res.maps = { head: new Set(), base: new Set() };
@@ -96,4 +113,4 @@ async function runBrowser({ head, base, save, metrics, runs, exe }) {
   return out;
 }
 
-module.exports = { runBrowser, PROFILES };
+module.exports = { runBrowser, PROFILES, profilesFor };

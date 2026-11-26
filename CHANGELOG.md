@@ -8,6 +8,12 @@ All notable changes to this project are documented here. The project follows
 
 - Multimode servers now also let in the game served from its own `seriesoftubes://game` address.
 
+- In Multimode, other players' network names, server names and server descriptions with a slur or an obscenity in them are no longer shown: such a name reads "AS?", and such a description is left out. Spelling it with digits, dots or look-alike letters doesn't get around it, and reports, mutes and hidden names work as before.
+
+- Very big networks with a NOC intern no longer stall for a moment every game day. Checking which transit providers keep a customer's "two different upstreams" promise took most of the day on networks with hundreds of POPs; it is now several times faster.
+
+- The NOC dashboard keeps up a little better on big networks while the game runs. The Connections tab redraws about a quarter faster, and the other tabs no longer work out the Traffic tab's table every day.
+
 - With Dave at the sales desk, giant offers now still reach you, so "Sign a giant" can be done without firing him. Dave doesn't bring, sign or decline them: the deal says it's too big for him, and you sign it yourself. (#493)
 
 - The intern's "Light more fiber" order now lights one more optic on fiber whose capacity you sold out as managed waves, so the fiber carries your own traffic again instead of staying offline. (#487)

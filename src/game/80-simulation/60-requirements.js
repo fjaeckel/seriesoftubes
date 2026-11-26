@@ -11,7 +11,9 @@ const REQS={
  routers:{l:tr('requirements.insists_on_two_routers_in_their'),bonus:.15,ok:b=>((S.pops[b.city]&&S.pops[b.city].routers)||1)>=2},
  local:{l:tr('requirements.local_breakout_transit_or_an_ix'),bonus:.2,ip:true,ok:b=>S.transit.some(t=>t.city===b.city)||hasIxAt(b.city)||(isTier1()&&S.pni.some(p=>p.city===b.city))},
  metro:{l:tr('requirements.two_data_centers_in_every_metro'),bonus:.2,only:true,ok:b=>[b.city,b.city2].filter(Boolean).every(c=>S.pops[c]&&S.pops[c].site2)},
- twoup:{l:tr('requirements.wants_two_different_transit'),bonus:.15,ip:true,ok:()=>new Set(S.transit.map(t=>t.net)).size>=2||S.transit.length===0},
+ // Two providers or more (or no transit at all): any port from another provider than the first. The intern asks this for
+  // every seller in every city it shops in, so it must not build a set of all transit each time.
+  twoup:{l:tr('requirements.wants_two_different_transit'),bonus:.15,ip:true,ok:()=>{const T=S.transit;if(!T.length)return true;const n0=T[0].net;for(let i=1;i<T.length;i++)if(T[i].net!==n0)return true;return false;}},
  china:{l:tr('requirements.needs_low_loss_reach_into_china'),bonus:.3,ip:true,ok:()=>S.transit.some(premOn)||S.links.some(l=>l.premium)||S.pni.some(p=>NET[p.net].cn&&pniOn(p))},
  scrubbed:{l:tr('requirements.will_only_sign_with_a_network'),bonus:.15,ok:()=>hasScrub()},
  scrubnear:{l:tr('requirements.wants_a_scrubbing_center_on_its'),bonus:.15,ip:true,ok:b=>S.scrubs.some(x=>CITY[x.city].reg===CITY[b.city].reg)},

@@ -2,6 +2,7 @@
    Every transit port, PNI, IX port, cache and fabric port in one list, filterable by type, city and
    network, with a jump to the POP that holds it. The Networks tab shows the same per network. */
 const CONN_K={t:N_('common.transit'),p:'PNI',ix:'IX',c:N_('common.cache'),nni:'NNI'},CONN_ORD=['t','p','ix','c','nni'],CONN_COL={t:'#FF8A3D',p:'#7B61FF',ix:'#2DB7F5',c:'#16A866',nni:'#1E2640'};
+let connColl=null;const connCmp=()=>connColl||(connColl=typeof Intl==='object'&&Intl.Collator?new Intl.Collator().compare:(a,b)=>a.localeCompare(b));
 const connTab=k=>k==='t'?'up':k==='nni'?'links':'peer';
 // How many rows conns() gives, without building them (the Networks tab only shows the count).
 const connsN=()=>S.transit.length+S.pni.length+Object.keys(S.ixp).length+new Set(S.caches.map(x=>x.city+'|'+x.net)).size+(S.nni||[]).filter(x=>FAB[x.prov]&&NNI[x.tier]).length;
@@ -54,9 +55,11 @@ function connSection(){const all=conns(),F=UI.cf||{};
   const cities=[...new Set(all.map(r=>r.city))].sort((a,b)=>CITY[a].name.localeCompare(CITY[b].name));
   const nets=[...new Set(all.flatMap(r=>r.net?[r.net]:(r.nets||[])))].filter(id=>NET[id]&&!NET[id].tail).sort((a,b)=>NET[a].name.localeCompare(NET[b].name));
   h+=`<div class="trsel" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px"><label>${tr('common.city_906b')} <select data-chg="connCity"><option value="">${tr('common.all_cities')}</option>${cities.map(c=>`<option value="${c}"${F.city===c?' selected':''}>${esc(CITY[c].name)}</option>`).join('')}</select></label><label>${tr('common.network_6974')} <select data-chg="connNet"><option value="">${tr('common.all_networks')}</option>${nets.map(id=>`<option value="${id}"${F.net===id?' selected':''}>${esc(NET[id].name)}</option>`).join('')}</select></label>${F.k||F.city||F.net?btn(tr('common.clear_filters'),'connF',{f:'all',v:''},'ghost sm'):''}</div>`;
-  const rows=all.filter(r=>connMatch(r,F));
   const sk=UI.connSort||'k',dir=UI.connDir||1,val=r=>sk==='city'?CITY[r.city].name:sk==='name'?r.name.toLowerCase():sk==='use'?(r.cap?r.use/r.cap:0):sk==='mo'?r.mo:CONN_ORD.indexOf(r.k);
-  rows.sort((a,b)=>{const A=val(a),B=val(b);return (A<B?-1:A>B?1:0)*dir||CONN_ORD.indexOf(a.k)-CONN_ORD.indexOf(b.k)||CITY[a.city].name.localeCompare(CITY[b.city].name)||a.name.localeCompare(b.name);});
+  // Sorted on keys worked out once per row, names compared by one collator: a big network has a thousand rows, and
+  // localeCompare inside the comparator was most of this tab's time. Same order: localeCompare is a default collator.
+  const cmp=connCmp(),rows=all.filter(r=>connMatch(r,F)).map(r=>({r,v:val(r),o:CONN_ORD.indexOf(r.k),c:CITY[r.city].name}))
+    .sort((a,b)=>(a.v<b.v?-1:a.v>b.v?1:0)*dir||a.o-b.o||cmp(a.c,b.c)||cmp(a.r.name,b.r.name)).map(x=>x.r);
   const tc=rows.reduce((a,r)=>a+r.cap,0),tu=rows.reduce((a,r)=>a+r.use,0),tm=rows.reduce((a,r)=>a+r.mo,0);
   // A row says what the port is and how full; its buttons (bigger, smaller, cancel) unfold under it, one row at a time:
   // on a phone as a card, on a wide screen as a table row one line high.

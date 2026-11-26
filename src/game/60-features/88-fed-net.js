@@ -409,7 +409,7 @@ async function fedFacets(urls){const f=S&&S.fed,sets={models:new Set(),harnesses
   for(const u of urls||f.servers){const c=fedReadyConn(u);let a=null;
     if(c){const x=await fedAskRetry(c,{m:'facets'});if(x&&x.m==='facets'){a=x;await fedPut('kv','facets:'+u,{at:fedNow(),a:{models:x.models,harnesses:x.harnesses,from:x.from,homes:x.homes}});}}
     if(!a){const o=await fedGet('kv','facets:'+u);a=o&&o.a;}
-    if(a)for(const [k,ok] of [['models',v=>!FdText(1,64)(v)],['harnesses',v=>!FdText(1,64)(v)],['from',v=>!FdCC(v)],['homes',v=>!FdCC(v)]])
+    if(a)for(const [k,ok] of [['models',v=>!FdText(1,64)(v)&&!fedBadName(v)],['harnesses',v=>!FdText(1,64)(v)&&!fedBadName(v)],['from',v=>!FdCC(v)],['homes',v=>!FdCC(v)]])
       if(Array.isArray(a[k]))for(const v of a[k].slice(0,256))if(ok(v))sets[k].add(v);}
   return Object.fromEntries(Object.entries(sets).map(([k,s])=>[k,[...s].sort()]));}
 /* For the gameplay (§9.5 nets): of the networks keys (at most 64), whether each is an AI and Tier 1, and what other
@@ -444,7 +444,7 @@ async function fedCatalogLoad(){let txt=null;
     out.push({...r.sum,listed:Number.isSafeInteger(e.listed)?e.listed:null,answered:Number.isSafeInteger(e.answered)?e.answered:null});}
   await fedPut('kv','registry',{asOf:j.asOf,at:now,servers:out});fedEmit('catalog',{source:'registry'});return true;}
 // Names and descriptions as the game shows them: no markup, no invisible characters (fedSafeName).
-const fedSum=r=>({id:r.id,rid:r.srvId,t:r.srv.t,name:fedSafeName(r.name),nodes:r.nodes,operators:r.ops,sync:r.sync,noLogs:r.noLogs,langs:r.srv.body.langs,desc:typeof r.srv.body.desc==='string'?fedSafeText(r.srv.body.desc):'',chain:r.chain.applied});
+const fedSum=r=>({id:r.id,rid:r.srvId,t:r.srv.t,name:fedSafeName(r.name),nodes:r.nodes,operators:r.ops,sync:r.sync,noLogs:r.noLogs,langs:r.srv.body.langs,desc:typeof r.srv.body.desc==='string'?fedSafeDesc(r.srv.body.desc):'',chain:r.chain.applied});
 // Gossip entries from a node ({genesis, chain, server, path, seen}): checked, then kept (a few per server).
 /* via: the server whose node sent the entries. A node gives clients an entry with the path it came by, which ends
    before that node's own server (§10.8 adds it only when passing on to servers): the game adds it, so the looking
@@ -482,7 +482,7 @@ async function fedServersRead(now){const reg=(await fedGet('kv','registry'))||{s
   // The descriptive fields from the server record the merge chose (the newest at the final head of the chain held).
   return fedCatalogMerge(reg.servers.map(s=>({id:s.id,server:s})),gos,now).map(row=>{const i=info.get(row.id)||byRid.get(row.id+' '+row.rid)||{};
     // Cleaned again on reading: entries cached before fedSum cleaned them.
-    return {...row,name:fedSafeName(row.name),sync:i.sync,noLogs:i.noLogs,langs:i.langs||[],desc:i.desc?fedSafeText(i.desc):'',listed:i.listed??null,answered:i.answered??null,relays:rel.has(row.id)?rel.get(row.id).impl:{}};});}
+    return {...row,name:fedSafeName(row.name),sync:i.sync,noLogs:i.noLogs,langs:i.langs||[],desc:i.desc?fedSafeDesc(i.desc):'',listed:i.listed??null,answered:i.answered??null,relays:rel.has(row.id)?rel.get(row.id).impl:{}};});}
 /* Who may vote and hide, at the head of each server's chain as the catalog has it. fedVoters: the voting registry
    servers (§10.7) as Map id -> operator keys; fedOpOf: whether key operates server id. */
 async function fedVoters(){const reg=await fedGet('kv','registry'),m=new Map();if(!reg||!Array.isArray(reg.servers))return m;

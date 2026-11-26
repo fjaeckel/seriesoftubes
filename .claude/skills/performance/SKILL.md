@@ -15,6 +15,7 @@ have huge late-game networks, and most of them are on phones.
 ```bash
 npm run perf -- --base-ref origin/main            # headless only, a few minutes
 npm run perf -- --base-ref origin/main --browser  # plus real Chromium, desktop and phone (what CI runs)
+npm run perf -- --base-ref origin/main --webkit   # plus WebKit: the engine of Safari and every iPhone browser
 ```
 
 `--base-ref` assembles that commit's page with its own scripts (`node scripts/lib/page.js --ref REF`;
@@ -23,7 +24,15 @@ instead. The head is always this checkout's `src/`, assembled the way the build 
 
 `scripts/perf-bench.js` loads `tests/fixtures/big-network.json` (about 100 POPs, 150 links,
 950 PNIs, 830 cache boxes, 110 IX ports, 170 customers) into the base and into this checkout and
-times them in alternating turns, 15 runs each. It prints one table per environment:
+times them in alternating turns, 15 runs each.
+
+`--huge` loads `tests/fixtures/huge-network.json` instead: every city the game has (about 400 POPs),
+about 1,050 links, 3,500 PNIs, 3,400 cache boxes, 415 transit ports and 816 customers, the very end of a long
+game. Run it as well for anything in the day, the intern, sales, customers or routing: costs that grow faster
+than the network only show there (the intern's shift once took 265 ms of every day on it, and 5 ms on the big
+save). It is slow, so CI does not run it.
+
+It prints one table per environment:
 
 - **Headless (jsdom):** our JavaScript. The most stable numbers for routing and simulation, but jsdom's
   DOM is about 30× slower than a browser's and it has no layout, so its panel and dashboard rows say
@@ -48,6 +57,13 @@ Each table has these rows:
 - Map at three zoom levels
 
 and it says whether both versions route the save's traffic identically.
+
+- **WebKit, desktop** and **WebKit, phone** (`--webkit`): the same workloads in Playwright's WebKit, the
+  engine of Safari and of every browser on iPhone and iPad. Use it for anything iPhone players report, and for map and
+  canvas changes, where WebKit and Chromium differ most. WebKit cannot slow its CPU down or force a garbage
+  collection between runs, so its phone is an iPhone-sized screen at the machine's full speed; its clock
+  counts whole milliseconds, so its numbers are noisier and its small rows read 0 or 1: compare its two columns with each other, not with Chromium's. It needs Playwright's
+  WebKit (`npx playwright-core install webkit`, once). CI does not run it.
 
 `--browser` needs Chromium: a local `playwright` with its browser works as is; otherwise
 `playwright-core` (a dev dependency, installed by `npm ci`) drives the Chrome in `PERF_CHROME` or
@@ -99,6 +115,8 @@ incidents and failures).
 ## Keeping the fixture useful
 
 The save loads through `migrate()` like any player's save, so new state gets its defaults. Only
-regenerate it (`node scripts/perf-fixture.js`, several minutes) when the save format changes in a
-way old saves cannot load, or the game grows new heavy systems the save does not exercise. Say in
+regenerate it (`node scripts/perf-fixture.js`, several minutes; `--huge` for the huge one, about ten) when the save format changes in a
+way old saves cannot load, or the game grows new heavy systems the save does not exercise. The big save
+predates most of today's cities (104 POPs where the script now builds about 400); it stays as it is so numbers
+stay comparable, and the huge save covers the bigger game. Say in
 the commit that the baseline changed, because numbers before and after are no longer comparable.
