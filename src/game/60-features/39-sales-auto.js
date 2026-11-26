@@ -2,7 +2,8 @@
    Deals belong to Sales, not to the NOC intern. With someone at the desk, the player can let them sign offers once a
    game day (S.slAuto.on) and decline the ones that pay less than a minimum (S.slAuto.min). How they sign is who they are:
    - the engineer signs only what the network can serve: #185's trial (autoOffer, a full routing pass), at most
-     SL_TRIALS a day, and an offer that did not fit waits SL_RETRY days;
+     SL_TRIALS a day, and an offer that did not fit waits SL_RETRY days. The huge deals (salesBig) are not theirs to
+     sign or decline: those wait for the player (#493);
    - the shark signs every offer whose POPs are up the moment it lands, promises and all: no trial, an unkept promise is
      the customer's problem. The commission is paid as on any shark deal, so only while the cash covers it;
    - the CEO signs like the engineer, and a decline is a handshake away (salesOverride: about one in three he signs anyway).
@@ -33,7 +34,7 @@ function* slAutoRun(d){if(!slAutoOn())return;const A=S.slAuto,p=slP(),w=Math.flo
   const won=o=>{if(S.offers.includes(o))return false;W.n++;W.rev+=Math.round(bizMo(o));dirty=true;return true;};
   for(const o of S.offers.slice()){
     // What this offer needs, muted: nothing, or a routing trial (b), which the day answers between the two quiet steps.
-    let b;const todo=opsQuiet(()=>{if(!S.offers.includes(o))return;const T=BIZ_T[o.type];if(!T||!(o.exp>d))return;const v=T.event?(o.fee||0):bizMo(o);
+    let b;const todo=opsQuiet(()=>{if(!S.offers.includes(o))return;const T=BIZ_T[o.type];if(!T||!(o.exp>d)||(p==='eng'&&salesBig(o.type)))return;const v=T.event?(o.fee||0):bizMo(o);
       if(A.min&&v<A.min){const b0=S.biz.length;ACT.decline({id:o.id});W.x++;if(S.biz.length>b0){W.y++;W.rev+=Math.round(bizMo(o));dirty=true;}return;}
       if(!A.on)return;
       if(T.orbit){const f=pieOfferFit(o,used),k=f.key;if((f.w&&!(p==='shark'&&f.w.k==='room'))||(p==='shark'&&S.cash<bizMo(o)))return;ACT.accept({id:o.id});if(won(o))used.set(k,(used.get(k)||0)+o.bw);return;}

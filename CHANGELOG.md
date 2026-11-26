@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- With Dave at the sales desk, giant offers now still reach you, so "Sign a giant" can be done without firing him. Dave doesn't bring, sign or decline them: the deal says it's too big for him, and you sign it yourself. (#493)
+
 - The intern's "Light more fiber" order now lights one more optic on fiber whose capacity you sold out as managed waves, so the fiber carries your own traffic again instead of staying offline. (#487)
 
 - As a cloud, the networks list now shows the share of traffic you actually send to each network. Your users reach you through their home ISPs, so content networks like Goggle get almost nothing from a cloud, and the list no longer claims 6% for them while their peering desk says you send 0. (#486)

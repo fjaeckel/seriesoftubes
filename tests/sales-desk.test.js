@@ -36,14 +36,16 @@ test('one salesperson at a time, from customer level 2, with a salary; the CEO i
   assert.deepEqual(errors, []);
 });
 
-test('the engineer: more offers, never the huge deals, books every NOG at the usual price, and their customers stay', () => {
+test('the engineer: more offers, never brings the huge deals, books every NOG at the usual price, and their customers stay', () => {
   const { ev, errors } = load();
   ev(start);
   ev("ACT.salesHire({id:'eng'})");
   const o = offers(ev);
   assert.ok(o.length > 300);
-  assert.ok(o.every(x => !ev(`salesBig('${x.t}')`)), 'no mega AI, hyperscaler or AGI deals');
-  assert.ok(o.every(x => x.by === 'eng'), 'every offer is theirs');
+  // #493: the huge deals still come in on their own, but they are not the engineer's.
+  const big = o.filter(x => ev(`salesBig('${x.t}')`));
+  assert.ok(big.every(x => x.by === null), 'no mega AI, hyperscaler or AGI deal is theirs');
+  assert.ok(o.filter(x => !big.includes(x)).every(x => x.by === 'eng'), 'every other offer is theirs');
   assert.ok(ev('salesSpawn()') > 1, 'more offers come in');
   // A meeting 30 days out: they register you and you pay the ticket.
   const r = JSON.parse(ev(`(()=>{const cf=upcomingConfs(400).find(c=>!c.cap);S.day=cf.day-30;const cash=S.cash;salesDay(S.day);const n=upcomingConfs(30).filter(c=>!c.cap&&c.day===cf.day).length;return JSON.stringify({reg:!!S.confReg[cf.key],paid:cash-S.cash,n});})()`));

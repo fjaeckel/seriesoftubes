@@ -3,7 +3,8 @@
    their mark on the customers they sign (b.by), which the contracts (75-customer-lifecycle.js) remember at renewal.
    - The engineer turned salesdroid goes to every network operators' meeting (you pay the ticket), brings plenty of
      small and mid deals and never the huge ones, and only sells what the network can do: their customers stay longer,
-     the nerdy ones most of all. They haggle badly.
+     the nerdy ones most of all. They haggle badly. The huge ones still come in on their own (#493: the giant goal needs
+     one), unattributed, and only the player signs them.
    - The shark brings the biggest deals at a higher price and takes a commission, but oversells: many come with a
      promise your network does not keep yet. Ignores the nerds: no technical customers, no meetings, and peering desks
      want more traffic from you. Wins most haggles.
@@ -12,7 +13,7 @@
      be asked for a VP of Sales instead.
    Every roll is a hash of the day and the deal, so a game without a salesperson keeps its random stream. */
 const SALES={
-  eng:{i:'🤓',n:N_('sales.eng_n'),s:N_('sales.eng_s'),d:N_('sales.eng_d'),mo:9000},
+  eng:{i:'🤓',n:N_('sales.eng_n'),s:N_('sales.eng_s'),d:N_('sales.eng_desc'),mo:9000},
   shark:{i:'🦈',n:N_('sales.shark_n'),s:N_('sales.shark_s'),d:N_('sales.shark_d'),mo:15000},
   ceo:{i:'👔',n:N_('sales.ceo_n'),s:N_('sales.ceo_s'),d:N_('sales.ceo_d'),mo:0},
 };
@@ -35,7 +36,7 @@ function salesSpawn(){const p=slP();if(p==='eng')return 1.4*(S.conf&&S.conf.unti
 // What the salesperson does to the offers that just came in (from index n0): who brought them, which they drop,
 // and how the shark dresses them up.
 function salesShape(n0){const p=slP();if(!p)return;for(let i=S.offers.length-1;i>=n0;i--){const o=S.offers[i],T=BIZ_T[o.type];if(!T||o.ref)continue;
-  if(p==='eng'&&salesBig(o.type)){S.offers.splice(i,1);continue;}
+  if(p==='eng'&&salesBig(o.type))continue;
   if(p==='shark'&&SALES_NERDS.includes(o.type)){S.offers.splice(i,1);continue;}
   o.by=p;
   if(p==='shark'&&!T.event&&!T.cap){const up=(T.opts||[]).find(x=>x>o.bw);if(up&&!T.fiber)o.bw=up;o.rate=Math.round(o.rate*1.25);
