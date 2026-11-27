@@ -8,8 +8,9 @@
 const BAZ_TABS=['home','routes','prod','news','scout'],BAZ_SORT=['mo','held','val','heat','name'],BAZ_FILT=['all','bad','hot','off'],BAZ_KIND=['floor','room','optic'],BAZ_PG=12;
 const bazIsOpen=()=>!$('modal').hidden&&$('modal').className==='baz';
 function bazRefresh(){if(S&&bazIsOpen())bazModal();}
-// The way in from the NOC tab: only once there is dark fiber to trade on.
-function bazNocBtn(){if(!S.links.some(l=>l.kind==='df'))return '';return btn(`🛒 ${tr('market.open')}`,'marketOpen',{},'');}
+// The way in from the NOC tab: only once there is dark fiber to trade on, and never for a Hyperscaler (its own desk
+// resells its glass, 38-hyper-resale.js, and marketOpen stays shut).
+function bazNocBtn(){if(hyper()||!S.links.some(l=>l.kind==='df'))return '';return btn(`🛒 ${tr('market.open')}`,'marketOpen',{},'');}
 const bazSel=(act,args,opts,cur,lab)=>`<select class="bz-s" data-chg="${act}" data-args="${esc(JSON.stringify(args))}" aria-label="${esc(lab)}">${opts.map(([v,l])=>`<option value="${v}"${v===cur?' selected':''}>${esc(l)}</option>`).join('')}</select>`;
 const bazChips=(act,vals,cur,L)=>vals.map(v=>`<button class="bz-chip${v===cur?' on':''}" data-act="${act}" data-args='{"v":"${v}"}' aria-pressed="${v===cur}">${L[v]}</button>`).join('');
 function bazModal(){if(!S||pzOn())return;const card=$('modalCard'),was=bazIsOpen(),top=was?card.scrollTop:0,T=UI.bazTab=BAZ_TABS.includes(UI.bazTab)?UI.bazTab:'home',D=bazData();
