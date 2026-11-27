@@ -3,6 +3,7 @@
 // rank. Each test is a regression test for one finding of the multiplayer review.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const fs = require('fs');
 const path = require('path');
 const { fedPage, joinGame, settle, until, URL1, NOW, PL, PL_ENTRY, rec, key, asn, box, b64, sha } = require('./helpers/fed');
@@ -124,7 +125,7 @@ test('a game works out any one network\'s value exactly as every-slot counting d
     w.__recs = recs;
     for (const board of ['traffic', 'total', 'pops', 'pies']) for (const measure of ['total', 'growth']) for (const division of ['all', 'ai']) for (const exclude of [[], [keys[0]]]) for (const cities of [null, ['fra']]) {
       const q = { now, board, measure, division, exclude, cities };
-      const got = ev(`JSON.stringify((q=>{const rows=[];for(const k of new Set(__recs.map(r=>r.key))){const x=fedRankOne(q,k,__recs,null);if(x.listed&&x.kept)rows.push({key:k,value:x.value});}return rows.sort((a,b)=>b.value-a.value||fedByStr(a.key,b.key));})({...${JSON.stringify(q)},filters:{}}))`);
+      const got = ev(`JSON.stringify((q=>{const rows=[];for(const k of new Set(__recs.map(r=>r.key))){const x=fedRankOne(q,k,__recs,null);if(x.listed&&x.kept)rows.push({key:k,value:x.value});}return rows.sort((a,b)=>b.value-a.value||fedByStr(a.key,b.key));})({...${lit(q)},filters:{}}))`);
       const want = JSON.stringify(fedBoardRef({ ...q, records: JSON.parse(JSON.stringify(recs)), ctx }));
       assert.equal(got, want, JSON.stringify({ round, ...q }));
       rows += JSON.parse(got).length;
@@ -195,7 +196,7 @@ test('a hide list counts only when an operator of its own server signed it', asy
   const ex = JSON.parse(await p.ev(`fedHides(${JSON.stringify(PL.id)}).then(h=>JSON.stringify(h?h.rec.body.hide:[]))`));
   assert.ok(ex.includes(key('bob').pub));
   // A list kept before this check (a stranger's) is not used.
-  await p.ev(`(async()=>{const r=${JSON.stringify(hide('mallory', 'carol'))};await fedPut('kv','hide:'+${JSON.stringify(PL.id)},{rec:r,id:await fedId(r)});})()`);
+  await p.ev(`(async()=>{const r=${lit(hide('mallory', 'carol'))};await fedPut('kv','hide:'+${lit(PL.id)},{rec:r,id:await fedId(r)});})()`);
   const ex2 = JSON.parse(await p.ev(`fedHides(${JSON.stringify(PL.id)}).then(h=>JSON.stringify(h?h.rec.body.hide:[]))`));
   assert.ok(!ex2.includes(key('carol').pub));
   assert.deepEqual(p.errors, []);
@@ -235,8 +236,8 @@ test('only receipts of registry servers and the connected one set a board slot, 
   const R = (node, server, at) => rec(node, 'receipt', at, { rec: id, server });
   const fake = b64(sha('a server made up in gossip')), here = b64(sha('the server we are on'));
   const srvs = [{ id: PL.id, source: 'registry', nodes: [{ key: key('node1').pub }] }, { id: fake, source: 'gossip', nodes: [{ key: key('node9').pub }] }];
-  const place = (rcpts) => ev(`(async()=>{const c=await fedCheck(${JSON.stringify(st)},${NOW});
-    return fedPlace({srv:${JSON.stringify(here)},nodeKey:${JSON.stringify(key('node5').pub)}},c,${JSON.stringify(rcpts)},${NOW},${JSON.stringify(srvs)});})()`);
+  const place = (rcpts) => ev(`(async()=>{const c=await fedCheck(${lit(st)},${NOW});
+    return fedPlace({srv:${lit(here)},nodeKey:${lit(key('node5').pub)}},c,${lit(rcpts)},${NOW},${lit(srvs)});})()`);
   const slot = t - (t % 300);
   assert.equal((await place([R('node1', PL.id, slot)])).slot, slot, 'a registry server\'s receipt counts');
   assert.equal((await place([R('node5', here, slot)])).slot, slot, 'so does the connected server\'s');
@@ -268,7 +269,7 @@ test('a sealed deal whose plain text has a __proto__ member is not opened: nothi
   await settle();
   const bob = key('bob').pub;
   await p.ev(`fedPut('ann','${bob}',{rec:${JSON.stringify(ann('bob'))},id:'x',heard:${NOW},srv:[]})`);
-  const open = (extra) => p.ev(`(async()=>{const me=S.fed.key.pub,plain=JSON.parse(${JSON.stringify(JSON.stringify({ deal: 'peering', basis: 'A'.repeat(43), terms: { at: ['fra'], via: 'ix' } }).slice(0, -1))}+${JSON.stringify(extra)}+'}');
+  const open = (extra) => p.ev(`(async()=>{const me=S.fed.key.pub,plain=JSON.parse(${lit(JSON.stringify({ deal: 'peering', basis: 'A'.repeat(43), terms: { at: ['fra'], via: 'ix' } }).slice(0, -1))}+${lit(extra)}+'}');
     const env={v:1,kind:'offer',key:me,t:${NOW},body:{to:'${bob}'}},enc=await fedSeal(S.fed.key.priv,me,'${bob}',await fedBoxOf('${bob}'),env,plain);
     const o=await fedOpenRec(S.fed,await fedSignRec(S.fed.key.priv,'offer',{to:'${bob}',enc},${NOW}));return JSON.stringify(o?{renews:o.body.renews||null,own:Object.keys(o.body).sort()}:null);})()`).then(JSON.parse);
   assert.deepEqual(await open(''), { renews: null, own: ['basis', 'deal', 'terms', 'to'] }, 'the same offer without it opens');

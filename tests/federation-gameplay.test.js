@@ -3,6 +3,7 @@
 // networks go dark with their deals ended; deals book money only in their own game. Fake nodes, a virtual clock.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { advanceUntil, fedPage, joinGame, settle, until, URL1, NOW, rec, rid, key, asn, box, sealRec, openRec } = require('./helpers/fed');
 
 const DAY = 86400;
@@ -171,10 +172,10 @@ test('the snapshot is in the save: an old save loads, a broken one is repaired, 
   const { p } = await game([ann('alice')]);
   const id = pid('alice');
   const txt = p.ev('JSON.stringify(S)');
-  p.ev(`(()=>{const s=JSON.parse(${JSON.stringify(txt)});s.fedn.nets.push({k:'nope'},null);s.fedp.rq=[{id:'x'}];s.fed.deals.push({id:'bad'});migrate(s);window.__s=s;})()`);
+  p.ev(`(()=>{const s=JSON.parse(${lit(txt)});s.fedn.nets.push({k:'nope'},null);s.fedp.rq=[{id:'x'}];s.fed.deals.push({id:'bad'});migrate(s);window.__s=s;})()`);
   assert.equal(p.ev('__s.fedn.nets.length'), 1);
   assert.equal(p.ev('__s.fedp.rq.length'), 0);
-  const old = p.ev(`(()=>{const s=JSON.parse(${JSON.stringify(txt)});delete s.fedn;delete s.fedp;migrate(s);return s.fedn===null&&s.fedp===null;})()`);
+  const old = p.ev(`(()=>{const s=JSON.parse(${lit(txt)});delete s.fedn;delete s.fedp;migrate(s);return s.fedn===null&&s.fedp===null;})()`);
   assert.equal(old, true, 'a save from before stays without');
   p.ev('S.fedn=null;compute()');
   assert.equal(p.ev(`!!NET['${id}']`), false, 'gone from routing with the snapshot');

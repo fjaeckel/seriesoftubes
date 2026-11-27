@@ -4,6 +4,7 @@
 // on 3 UTC days, at most 5 newcomers in 14 days, once per milestone). Fake nodes, a virtual clock.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { fedPage, joinGame, settle, until, URL1, NOW, rec, rid, key, asn, box, sealRec, openRec } = require('./helpers/fed');
 
 const DAY = 86400, TODAY = Math.floor(NOW / DAY);
@@ -98,7 +99,7 @@ const NK = (i) => key('new' + i).pub;
 // A running deal with newcomer i, started at `start`; its announce says it joined on `founded`.
 const deal = (i, start) => ({ id: 'd' + i, deal: 'peering', key: NK(i), name: 'Newbie ' + i, asn: 1, start, end: null, terms: { at: ['fra'], via: 'ix' }, role: 'peer', st: 'run', on: true, rep: 0, why: '', ai: false });
 function tick(p, now, stats, founded) {
-  return p.ev(`(()=>{const st=new Map(${JSON.stringify(Object.entries(stats))}.map(([k,v])=>[k,{seen:true,...v}]));const f=${JSON.stringify(founded)};
+  return p.ev(`(()=>{const st=new Map(${lit(Object.entries(stats))}.map(([k,v])=>[k,{seen:true,...v}]));const f=${lit(founded)};
     return fedMentorTick(S,${now},st,k=>f[k]??null);})()`);
 }
 

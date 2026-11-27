@@ -2,6 +2,7 @@
 // catalog read again only when it changed, and hide lists kept and applied only for the servers a save joined.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { fedPage, joinGame, settle, until, NOW, PL, URL1, key, rec } = require('./helpers/fed');
 
 const ID = (i) => ('x' + i).padEnd(43, 'A'); // server-id shaped (43 base64url characters, the last one A)
@@ -86,7 +87,7 @@ test('hide lists: kept only from the joined server, dropped when it leaves the c
   await settle(20);
   assert.equal(await p.ev(`fedGet('kv','hide:'+${JSON.stringify(other)})`), null, 'another server\'s list is not kept');
   // One kept anyway (from before): its names are not applied for this player.
-  await p.ev(`(async()=>{const r=${JSON.stringify(hide('op9', other, [key('bob').pub]))};await fedHidePut(${JSON.stringify(other)},{rec:r,id:await fedId(r)});})()`);
+  await p.ev(`(async()=>{const r=${lit(hide('op9', other, [key('bob').pub]))};await fedHidePut(${lit(other)},{rec:r,id:await fedId(r)});})()`);
   await p.ev("(async()=>{UI.fu={v:'glass'};await fuLoadRun();})()");
   const names = JSON.parse(p.ev('JSON.stringify([...FU.hideNames])'));
   assert.ok(names.includes(key('alice').pub), 'the joined server\'s list hides names');

@@ -245,7 +245,7 @@ test('saves: every field repaired, junk dropped, old Hyperscaler saves load, a r
   const { ev, errors } = net(t, 3);
   ev("S.hs.rg.fra.t=1;S.hs.rg.par.t=1;" + offer() + "S.hs.jo.push({id:'j2',n:'DeepThink Tank',a:'par',b:'fra',g:6400,wk:5,tb:1e6,fee:3e6,exp:S.day+5});ACT.hsJobTake({id:'j1'});ACT.hsTrain({city:'par',k:1});ACT.hsReplica({city:'fra',v:'par'});ACT.hsPath({a:'fra',b:'par',v:'scenic'});S.hs.lag['fra>par']=42;S.hs.boost={until:S.day+9,f:0.2};S.hs.ai=2;compute()");
   const s = J(ev, 'S');
-  const back = J(ev, `(()=>{const r=parseSave(${JSON.stringify(JSON.stringify(s))});return migrate(r.s);})()`);
+  const back = J(ev, `(()=>{const r=parseSave(${lit(JSON.stringify(s))});return migrate(r.s);})()`);
   for (const k of ['rep', 'lag', 'jobs', 'own', 'boost', 'jo', 'pp', 'ai', 'jd']) assert.deepEqual(back.hs[k], s.hs[k], k);
   // An old Hyperscaler save from before phase 3: none of these fields.
   const old = { ...s, hs: { cc: s.hs.cc, rg: s.hs.rg, edge: {}, t1: 0, won: 0 } };
@@ -273,7 +273,7 @@ test('saves: every field repaired, junk dropped, old Hyperscaler saves load, a r
   assert.deepEqual([m.ai, m.jd], [0, 0]);
   ev(`S=migrate(${JSON.stringify(junk)});compute();for(let i=0;i<3;i++)dayTick()`);
   // Outside the charter none of it exists.
-  assert.equal(ev(`(()=>{const x=migrate(${JSON.stringify({ ...s, charter: 'global' })});return x.hs===undefined})()`), true);
+  assert.equal(ev(`(()=>{const x=migrate(${lit({ ...s, charter: 'global' })});return x.hs===undefined})()`), true);
   assert.deepEqual(errors, []);
 });
 

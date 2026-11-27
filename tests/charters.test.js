@@ -4,6 +4,7 @@
 // may lay their own subsea cable from customer level 9 as well as after the Tier 1 win.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { load } = require('./harness');
 
 const modal = (ev) => ev("document.getElementById('modal').hidden?'':document.getElementById('modal').className");
@@ -186,7 +187,7 @@ test('a save from the deleted Streaming service plays on as Global backbone, wit
   ev(`S=migrate(${JSON.stringify(old)})`);
   assert.deepEqual([ev('S.charter'), ev('charter()'), ev("'cnt' in S"), ev('S.chartSet')], ['global', 'global', false, true]);
   // Through the file loader too, as a player would open it.
-  const p = JSON.parse(ev(`JSON.stringify((()=>{const r=parseSave(${JSON.stringify(JSON.stringify(old))});if(r.err)return {err:r.err};const m=migrate(r.s);return {charter:m.charter,cnt:'cnt' in m};})())`));
+  const p = JSON.parse(ev(`JSON.stringify((()=>{const r=parseSave(${lit(JSON.stringify(old))});if(r.err)return {err:r.err};const m=migrate(r.s);return {charter:m.charter,cnt:'cnt' in m};})())`));
   assert.deepEqual(p, { charter: 'global', cnt: false });
   ev('compute();for(let i=0;i<3;i++)dayTick();renderLeft()');
   assert.deepEqual(errors, []);

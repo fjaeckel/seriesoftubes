@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { load } = require('./harness');
 
 // A line takes the short way round the map, so Seattle to Singapore runs off the left edge of Seattle's world copy.
@@ -11,7 +12,7 @@ function game() {
   return t;
 }
 // Copies -3..3 in which some point of pts lands on screen.
-const onScreen = (ev, pts) => JSON.parse(ev(`(()=>{const P=${JSON.stringify(pts)},on=[];for(let k=-3;k<=3;k++)if(P.some(p=>{const [x,y]=toS(p[0],p[1],k);return x>=0&&x<=CW&&y>=0&&y<=CH;}))on.push(k);return JSON.stringify(on);})()`));
+const onScreen = (ev, pts) => JSON.parse(ev(`(()=>{const P=${lit(pts)},on=[];for(let k=-3;k<=3;k++)if(P.some(p=>{const [x,y]=toS(p[0],p[1],k);return x>=0&&x<=CW&&y>=0&&y<=CH;}))on.push(k);return JSON.stringify(on);})()`));
 const views = ['CITY.sin.x+60,CITY.sin.y,3', 'CITY.sin.x-200,CITY.sin.y,1.5', 'CITY.sea.x,CITY.sea.y,3', 'CITY.sin.x+300,CITY.sin.y-100,6', 'CITY.sin.x,CITY.sin.y,0.5'];
 
 test('#446 a line across the map edge is drawn in every copy where it shows', () => {

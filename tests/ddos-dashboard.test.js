@@ -91,7 +91,7 @@ test('the tab shows attacks under way with their buttons, the totals and the his
       ev(`window.innerWidth=${w};$('dash').hidden=true;ACT.ddosOpen()`);
       assert.equal(ev("$('dash').hidden"), false, 'the dashboard opens');
       assert.equal(ev('UI.dtab'), 'ddos');
-      const has = (sel) => ev(`!!document.querySelector('#dashCard ${sel.replace(/'/g, "\\'")}')`);
+      const has = (sel) => ev(`!!document.querySelector(${lit('#dashCard ' + sel)})`);
       assert.ok(has('.dtabs [data-args*="ddos"] .cnt.red'), 'the tab shows the attack count');
       assert.ok(has(`[data-act="rtbh"][data-args*="${live}"]`), `${lang} ${w}: RTBH button for the live attack`);
       assert.ok(has('[data-act="hackback"]') && has('[data-act="dashPop"]'), 'hack back and the POP');

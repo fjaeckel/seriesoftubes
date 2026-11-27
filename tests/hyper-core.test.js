@@ -6,6 +6,7 @@
 // (hyper-zones-users.test.js).
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { load } = require('./harness');
 
 // A Hyperscaler in Frankfurt with plenty of cash; its home country launched and a transit port at home.
@@ -210,7 +211,7 @@ test('saves: junk repaired, S.hs and tenants only in the charter, a round trip t
   const { ev, errors } = start();
   ev("S.offers.push(hsOffer('game',S.home,20));ACT.accept({id:S.offers[0].id});ACT.hsEdge({city:S.home});compute()");
   const s = J(ev, 'S');
-  const back = J(ev, `(()=>{const r=parseSave(${JSON.stringify(JSON.stringify(s))});return migrate(r.s);})()`);
+  const back = J(ev, `(()=>{const r=parseSave(${lit(JSON.stringify(s))});return migrate(r.s);})()`);
   assert.deepEqual(back.hs, s.hs);
   assert.deepEqual(back.biz.map((b) => [b.type, b.p, b.ck, b.rg]), s.biz.map((b) => [b.type, b.p, b.ck, b.rg]));
   const junk = { ...s, hs: { cc: { DE: { d: 'x', since: null }, XX: { d: 5 }, US: 7 }, rg: { fra: { t: 99, ready: 'soon', up: { t: 1 } }, zzz: { t: 1 }, nyc: { t: 1, ready: 0 } }, edge: { fra: 1, nyc: 1, zzz: 1 }, t1: 'no', won: -4 },
@@ -224,7 +225,7 @@ test('saves: junk repaired, S.hs and tenants only in the charter, a round trip t
   assert.deepEqual(m.biz[0].p, ['vm']);
   assert.equal(m.biz[0].ck, 'startup');
   assert.equal(m.biz[0].rg, undefined);
-  assert.equal(ev(`(()=>{const x=migrate(${JSON.stringify({ ...junk, hs: 'nonsense' })});return JSON.stringify(x.hs.rg)})()`), '{"fra":{"t":0,"ready":0,"mw":5}}');
+  assert.equal(ev(`(()=>{const x=migrate(${lit({ ...junk, hs: 'nonsense' })});return JSON.stringify(x.hs.rg)})()`), '{"fra":{"t":0,"ready":0,"mw":5}}');
   // Outside the charter there is no S.hs and no cloud tenant.
   const g = J(ev, `migrate(${JSON.stringify({ ...s, charter: 'global' })})`);
   assert.equal(g.hs, undefined);

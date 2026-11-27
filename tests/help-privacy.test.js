@@ -3,12 +3,13 @@
 // Back returns to the sheet they were opened from. Fake relay nodes on a virtual clock, no network.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { load } = require('./harness');
 const { fedPage, settle, SERVERS_JSON } = require('./helpers/fed');
 
 const txt = (p) => p.ev("$('modalCard').textContent");
 const info = (p) => p.ev("(document.querySelector('#modalCard [data-info]')||{dataset:{}}).dataset.info||null");
-const click = (p, sel) => p.ev(`(()=>{const b=document.querySelector(${JSON.stringify(sel)});if(!b)throw new Error('no '+${JSON.stringify(sel)});b.click();})()`);
+const click = (p, sel) => p.ev(`(()=>{const b=document.querySelector(${lit(sel)});if(!b)throw new Error('no '+${lit(sel)});b.click();})()`);
 
 for (const lang of ['en', 'de', 'es', 'fr', 'it', 'pt']) {
   test(`help and privacy sheets in ${lang}: every label translated, nothing unfilled`, () => {

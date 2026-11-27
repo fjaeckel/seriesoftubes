@@ -18,7 +18,7 @@ const STATS = 'https://stats.seriesoftub.es';
 // Inline scripts the browser runs: no src, and no type or a JavaScript one (JSON-LD is data, never run or checked).
 function inlineScripts(html) {
   const out = [];
-  for (const m of html.matchAll(/<script(\s[^>]*)?>([\s\S]*?)<\/script>/gi)) {
+  for (const m of html.matchAll(/<script(\s[^>]*)?>([\s\S]*?)<\/script[^>]*>/gi)) {
     const attrs = m[1] || '';
     if (/\ssrc\s*=/i.test(attrs)) continue;
     const type = /\stype\s*=\s*["']?([^"'\s>]+)/i.exec(attrs);

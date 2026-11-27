@@ -3,6 +3,7 @@
 // them, and only its import carries the identity over. Everything else imports detached.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { fedPage, joinGame, settle, URL1 } = require('./helpers/fed');
 
 async function joined() {
@@ -57,7 +58,7 @@ test('importing an ordinary export gives a detached save; joining it makes a new
   // The same file even with the key pasted back in by hand: only a move file carries an identity over.
   const forged = JSON.stringify({ ...JSON.parse(txt), S: { ...JSON.parse(txt).S, fed: { ...JSON.parse(txt).S.fed, key: { pub, priv: p.ev('S.fed.key.priv') } } } });
   for (const t of [txt, forged]) {
-    p.ev(`(()=>{const r=parseSave(${JSON.stringify(t)});UI.importing=r.s;ACT.importGo();})()`);
+    p.ev(`(()=>{const r=parseSave(${lit(t)});UI.importing=r.s;ACT.importGo();})()`);
     await settle();
     assert.equal(p.ev('S.fed.on'), false);
     assert.equal(p.ev('S.fed.key.priv'), undefined);
@@ -77,7 +78,7 @@ test('importing the move file carries the identity and the queue over, offline: 
   assert.equal(JSON.parse(txt).S.fed.on, true, 'the file says it was on');
   const q = fedPage();
   q.net.node(URL1).up = false;
-  q.ev(`(()=>{const r=parseSave(${JSON.stringify(txt)});importAsk(r);ACT.importGo();})()`);
+  q.ev(`(()=>{const r=parseSave(${lit(txt)});importAsk(r);ACT.importGo();})()`);
   await settle();
   assert.equal(q.ev('S.fed.key.priv'), priv);
   assert.equal(q.ev('S.fed.out.length'), 1);
@@ -96,7 +97,7 @@ test('a crafted move file or link never connects to the servers it names: they a
   const evil = ['wss://evil.example/fed', 'wss://10.0.0.5:8443/fed'];
   s0.fed = { on: true, key: { pub: q.ev('S.fed?S.fed.key.pub:null') }, servers: [...evil, 'not a url'], out: [], muted: [], deals: [], share: true, joined: 0, last: 0 };
   const txt = JSON.stringify({ app: 'series-of-tubes', version: '9', move: true, S: s0 });
-  const r = JSON.parse(q.ev(`(()=>{const r=parseSave(${JSON.stringify(txt)});importAsk(r);return JSON.stringify({was:r.was,on:r.s.fed.on,servers:r.s.fed.servers});})()`));
+  const r = JSON.parse(q.ev(`(()=>{const r=parseSave(${lit(txt)});importAsk(r);return JSON.stringify({was:r.was,on:r.s.fed.on,servers:r.s.fed.servers});})()`));
   assert.deepEqual(r.was, evil, 'the servers the file names, checked, for the prompt only');
   assert.equal(r.on, false);
   assert.deepEqual(r.servers, []);

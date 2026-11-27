@@ -3,6 +3,7 @@
 // served at least 90% the studio is delighted, less is a funny disaster; saves; the card's banner on a phone and desktop.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { load } = require('./harness');
 
 // The director (38-hyper-director.js) lets these systems in at their level, once introduced, with budget to spend: a
@@ -94,7 +95,7 @@ test('saves keep a launch; junk is repaired; the banner on a phone and a desktop
   const { ev, dom, errors } = net(t);
   announce(ev);
   const s = J(ev, 'S');
-  const back = J(ev, `(()=>{const r=parseSave(${JSON.stringify(JSON.stringify(s))});return migrate(r.s);})()`);
+  const back = J(ev, `(()=>{const r=parseSave(${lit(JSON.stringify(s))});return migrate(r.s);})()`);
   assert.deepEqual([back.hs.lf, back.hs.lfn], [s.hs.lf, s.hs.lfn]);
   const old = { ...s, hs: { ...s.hs } };
   delete old.hs.lf; delete old.hs.lfn;

@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Behind the scenes: code scanning findings fixed, so the test pages, the build and the federation test runs never paste text into code without escaping it, and the federation test runs verify every TLS connection again.
+
 ## [5.8.0] — 2026-11-27
 
 - Notifications come one at a time: a single toast shows the current notice and counts the ones waiting behind it (1/3 ›, tap for the next). Trouble and anything that needs an answer goes first, other news moves on sooner while others wait, and the NOC log still keeps every notice. (#498)

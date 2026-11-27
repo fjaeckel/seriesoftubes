@@ -233,7 +233,7 @@ async function main() {
     const srv = [];
     await step(TWO ? 'found five servers (relay init, genesis; server 2 with a second node) and build servers.json' : 'found five servers (relay init, genesis) and build servers.json', async () => {
       if (!PLAY) execFileSync('openssl', ['req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:prime256v1', '-nodes', '-days', '2', '-subj', `/CN=${HOST}`,
-        '-addext', `subjectAltName=${[HOST, ...HOSTS2, 'game.test'].map((h) => 'DNS:' + h).join(',')}`, '-keyout', TLS.tlsKey, '-out', TLS.tlsCert], { stdio: 'ignore' });
+        '-addext', `subjectAltName=${[...[HOST, ...HOSTS2, 'game.test'].map((h) => 'DNS:' + h), 'IP:127.0.0.1'].join(',')}`, '-keyout', TLS.tlsKey, '-out', TLS.tlsCert], { stdio: 'ignore' });
       for (let i = 1; i <= 5; i++) {
         const d = path.join(tmp, 'd' + i), url = i === 1 ? URL1 : i === 2 && TWO ? URL2 : `wss://vote${i}.localhost:9/fed`;
         relay(d, 'init', '--url', url);
@@ -324,7 +324,8 @@ async function main() {
     const fakes = [];
     let raw = null;
     await step(`put ${FAKES} made-up networks (announce + stats) through a raw client`, async () => {
-      if (!PLAY) process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'; // the run's own self-signed certificate, loopback only
+      // The run's own self-signed certificate (for 127.0.0.1 too) is trusted, so Node's clients still verify every connection.
+      if (!PLAY) { const tls = require('node:tls'); tls.setDefaultCACertificates([...tls.getCACertificates('default'), fs.readFileSync(TLS.tlsCert, 'utf8')]); }
       raw = new Raw(`${PLAY ? 'ws' : 'wss'}://127.0.0.1:${port}/fed`);
       const w = await raw.open();
       must(w.server === srv[0].id, 'welcome names another server');
@@ -1154,11 +1155,10 @@ async function lanMain() {
     });
 
     await step('its certificate: self-signed, for 127.0.0.1 and localhost, a year', async () => {
-      const tls = require('node:tls');
-      cert = await new Promise((res, rej) => {
-        const s = tls.connect({ host: '127.0.0.1', port, rejectUnauthorized: false }, () => { const c = s.getPeerCertificate(); const why = s.authorizationError; s.end(); res({ c, why }); });
-        s.on('error', rej);
-      });
+      // A connection that verifies, as any client does by default, is refused; the certificate itself is in the data folder.
+      const why = await new Promise((res) => { const s = require('node:tls').connect({ host: '127.0.0.1', port }, () => { s.end(); res('accepted'); }); s.on('error', (e) => res(e.code || e.message)); });
+      const x = new (require('node:crypto').X509Certificate)(fs.readFileSync(path.join(data, 'lan-cert.pem')));
+      cert = { c: { subjectaltname: x.subjectAltName, valid_to: x.validTo }, why };
       must(/SELF_SIGNED/.test(String(cert.why)), `not refused as self-signed by default (${cert.why})`);
       const san = cert.c.subjectaltname || '';
       must(/IP Address:127\.0\.0\.1/.test(san) && /DNS:localhost/.test(san), `SANs ${san}`);

@@ -3,6 +3,7 @@
 // outage sending refugees, all seeded; saves; the Market line on the charter card and the bid under an offer.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { load } = require('./harness');
 
 /* A Hyperscaler at home in Frankfurt (its Rack Shack, transit there: a front door), a POP in Paris with transit, and a
@@ -143,7 +144,7 @@ test('saves: rival state repaired, junk dropped, an old save gets the defaults; 
   ev(tenant('fra'));
   ev("S.offers.push(Object.assign(hsOffer('startup','fra',10),{id:'o9'}));S.hs.rv.of.o9={w:2,bid:99,d:S.day+9};S.hs.rv.pw={w:1,reg:'EU',from:S.day,until:S.day+50,f:0.2,m:1};S.hs.rv.lt=2;compute()");
   const s = J(ev, 'S');
-  const back = J(ev, `(()=>{const r=parseSave(${JSON.stringify(JSON.stringify(s))});return migrate(r.s);})()`);
+  const back = J(ev, `(()=>{const r=parseSave(${lit(JSON.stringify(s))});return migrate(r.s);})()`);
   assert.deepEqual(back.hs.rv, s.hs.rv);
   const old = { ...s, hs: { ...s.hs } };
   delete old.hs.rv;
@@ -168,6 +169,6 @@ test('saves: rival state repaired, junk dropped, an old save gets the defaults; 
     for (const b of doc.querySelectorAll('#panelBody .btns')) assert.ok(b.querySelectorAll('button').length <= 2, 'rows of two at most');
   }
   // Outside the charter none of it exists.
-  assert.equal(ev(`(()=>{const x=migrate(${JSON.stringify({ ...s, charter: 'global' })});return x.hs===undefined})()`), true);
+  assert.equal(ev(`(()=>{const x=migrate(${lit({ ...s, charter: 'global' })});return x.hs===undefined})()`), true);
   assert.deepEqual(errors, []);
 });

@@ -199,3 +199,12 @@ test('the traceroute shows a circuit through orbit hop by hop', () => {
   ev('closeModal()');
   assert.deepEqual(errors, []);
 });
+
+test('a dish line\'s hover text is plain text: tags come off, and so does any < or > a broken tag left behind', () => {
+  const { load } = require('./harness');
+  const { ev, errors } = load();
+  assert.equal(ev("untag('<b>Backhaul full</b> at <i>Frankfurt</i>')"), 'Backhaul full at Frankfurt');
+  assert.equal(ev("untag('<<b>script>alert(1)<</b>/script>')"), 'scriptalert(1)/script');
+  assert.equal(ev("untag('a < b')"), 'a  b', 'a lone < goes too');
+  assert.deepEqual(errors, []);
+});

@@ -3,6 +3,7 @@
 // rendered button that does the step, so the coach never points at something that is not there.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { load } = require('./harness');
 
 const VIEWS = { phone: 390, desktop: 1440 };
@@ -21,7 +22,7 @@ function glow(ev) {
     let hid=false;for(let e=b;e;e=e.parentElement)if(e.hidden)hid=true;
     return {n:1,act:b.dataset.act||b.id,args:b.dataset.args||'',hid,id:b.id||''};})()`);
 }
-const click = (ev, sel) => ev(`(()=>{const b=document.querySelector(${JSON.stringify(sel)});if(!b)return false;b.click();return true;})()`);
+const click = (ev, sel) => ev(`(()=>{const b=document.querySelector(${lit(sel)});if(!b)return false;b.click();return true;})()`);
 const step = (ev) => ev("S.tut");
 const coach = (ev) => ev("document.getElementById('coach').hidden?null:document.getElementById('coach').textContent");
 

@@ -2,6 +2,7 @@
 // to the panels (.dark on <html>, 98-dark.css and the generated 99-dark-auto.css) and the map's sea, land and clouds.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const fs = require('node:fs');
 const { load: load0 } = require('./harness');
 const { generate, OUT } = require('../scripts/dark-css');
@@ -62,7 +63,7 @@ test('HUD chips set their own text colour in both themes, the cash button too', 
   const { ev, errors } = load(t);
   ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();closeModal();renderAll()");
   const ink = () => ev("getComputedStyle(document.documentElement).getPropertyValue('--ink').trim()");
-  const rgb = h => ev(`(()=>{const d=document.createElement('div');d.style.color=${JSON.stringify(h)};document.body.appendChild(d);const c=getComputedStyle(d).color;d.remove();return c;})()`);
+  const rgb = h => ev(`(()=>{const d=document.createElement('div');d.style.color=${lit(h)};document.body.appendChild(d);const c=getComputedStyle(d).color;d.remove();return c;})()`);
   for (const theme of ['light', 'dark']) {
     ev(`ACT.themeSet({v:'${theme}'})`);
     ev("document.getElementById('hud').style.color='rgb(1, 2, 3)'");

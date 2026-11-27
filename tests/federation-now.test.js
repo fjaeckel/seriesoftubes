@@ -4,6 +4,7 @@
 // it shows, and stops when it closes; a row of now is spot-checked against the signed states of the same snapshot.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { advanceUntil, fedPage, joinGame, settle, until, URL1, NOW, SERVERS_JSON, PL, rec, key } = require('./helpers/fed');
 
 async function joined(o) {
@@ -106,7 +107,7 @@ async function nowCheck(rows, states, whyAt) {
   const at = p.net.now();
   n.ranks = { slot: at - (at % 300), at, n: rows.length, rows, me: null };
   n.why = (f) => ({ slot: at - (at % 300), at: whyAt ?? f.at, items: (states[f.key] || []).map((r) => ({ rec: r, rcpt: [] })) });
-  const r = await p.ev(`(async()=>{const c=FED.live.conns.get(${JSON.stringify(URL1)}),req=fedRankReq({board:'traffic',measure:'now'},[]);
+  const r = await p.ev(`(async()=>{const c=FED.live.conns.get(${lit(URL1)}),req=fedRankReq({board:'traffic',measure:'now'},[]);
     return fedRankCheck(c,req,fedRanksOk(await fedAskRetry(c,req)));})()`);
   return { p, n, r };
 }

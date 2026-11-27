@@ -4,11 +4,12 @@
 // Fake relay nodes on a virtual clock, no network.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { load } = require('./harness');
 const { fedPage, settle, URL1, URL2, SERVERS_JSON } = require('./helpers/fed');
 
 const val = (p, x) => JSON.parse(p.ev(`JSON.stringify(${x})`));
-const click = (p, sel) => p.ev(`(()=>{const b=document.querySelector(${JSON.stringify(sel)});if(!b)throw new Error('no '+${JSON.stringify(sel)});b.click();})()`);
+const click = (p, sel) => p.ev(`(()=>{const b=document.querySelector(${lit(sel)});if(!b)throw new Error('no '+${lit(sel)});b.click();})()`);
 async function run(p, ms = 3000) {
   for (let t = 0; t < ms; t += 500) { p.net.advance(500); await settle(); await new Promise((r) => setTimeout(r, 5)); }
   for (let i = 0; i < 40; i++) { await settle(20); await new Promise((r) => setTimeout(r, 5)); if (!p.ev('FS.busy')) break; }

@@ -179,7 +179,7 @@ test('saves: outages and drills repaired against the regions the save has; class
   const { ev, errors } = net(t);
   ev("ACT.hsDrill({city:'fra'});S.hs.drill['ams|par']=3;hsRegionFail('par',3,'test');S.hs.bpk=1234;compute()");
   const s = J(ev, 'S');
-  const back = J(ev, `(()=>{const r=parseSave(${JSON.stringify(JSON.stringify(s))});return migrate(r.s);})()`);
+  const back = J(ev, `(()=>{const r=parseSave(${lit(JSON.stringify(s))});return migrate(r.s);})()`);
   for (const k of ['down', 'drill', 'dx', 'out', 'fsv', 'flost', 'bpk']) assert.deepEqual(back.hs[k], s.hs[k], k);
   const junk = { ...s, hs: { ...s.hs, down: { par: 'x', zzz: 9, ams: 7 }, drill: { 'par|ams': 1, 'ams|par': 'y', 'ams|fra|x': 2, 'fra|nyc': 3 }, dx: { c: 'fra', b: 'fra', d: 1 }, out: { fra: 'z', ams: { d: 'q', lost: 'yes', q: 7, n: -2 } }, fsv: -1, flost: 'many', bpk: 'lots' } };
   const m = J(ev, `migrate(${JSON.stringify(junk)})`);

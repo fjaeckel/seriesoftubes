@@ -5,10 +5,11 @@
 // stub, so nothing here opens a socket or reads a server.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const crypto = require('node:crypto');
 const { load } = require('./harness');
 
-const J = JSON.stringify;
+const J = lit;
 const K = (n) => crypto.createHash('sha256').update('fed-review-flow ' + n).digest('base64url');
 // Hop Along and Hop Scotch share an ASN on purpose (§3.4: the key is who a network is, not its number).
 const NETS = ['Ping Floyd', 'Packet Shakur', 'Hop Along', 'Hop Scotch', 'Routing Stones', 'Byte Club', 'Tubular Bells', 'Fiber Optimist']

@@ -3,6 +3,7 @@
 // a classic game, and the share card's rows for the charter, in every language.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { load } = require('./harness');
 
 const J = (ev, c) => JSON.parse(ev(`JSON.stringify(${c})`));
@@ -77,7 +78,7 @@ test('the counters: a protest won, a model that hallucinated in public, a price 
   assert.equal(ev('S.stats.hsWar'), 1);
   assert.equal(ok(ev, 'hs_war'), true);
   // The counters survive a save.
-  const back = J(ev, `(()=>{const r=parseSave(${JSON.stringify(ev('JSON.stringify(S)'))});const s=migrate(r.s);return [s.stats.hsProt,s.stats.hsFlop,s.stats.hsWar];})()`);
+  const back = J(ev, `(()=>{const r=parseSave(${lit(ev('JSON.stringify(S)'))});const s=migrate(r.s);return [s.stats.hsProt,s.stats.hsFlop,s.stats.hsWar];})()`);
   assert.deepEqual(back, [1, 1, 1]);
   assert.deepEqual(errors, []);
 });

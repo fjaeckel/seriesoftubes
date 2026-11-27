@@ -4,6 +4,7 @@
 // later task, like a real one. Without it (every other test) the same functions run on the page.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { fedPage, joinGame, settle, until, URL1, NOW, SERVERS_JSON, PL, rec, rid, key, asn, box, canon, signText, sealRec } = require('./helpers/fed');
 
 const slotOf = (t) => t - (t % 300);
@@ -88,7 +89,7 @@ test('a worker that fails: its batch and every one after are checked on the page
 test('a ranking spot check works its row out in the worker, with the same verdict', async () => {
   const t0 = NOW - 3600, A = key('alice').pub, recs = { [A]: stats('alice', t0, { fra: 2 }) };
   const row = (k, value, rank) => ({ rank, key: k, value, asn: 4200000001, ai: false });
-  const check = (p) => p.ev(`(async()=>{const c=FED.live.conns.get(${JSON.stringify(URL1)}),req=fedRankReq({board:'pops'},[]);
+  const check = (p) => p.ev(`(async()=>{const c=FED.live.conns.get(${lit(URL1)}),req=fedRankReq({board:'pops'},[]);
     return fedRankCheck(c,req,fedRanksOk(await fedAskRetry(c,req)));})()`);
   for (const [value, want] of [[2, true], [9, false]]) {
     const p = fedPage({ registry: SERVERS_JSON }), n = p.net.node(URL1);

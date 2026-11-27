@@ -8,7 +8,7 @@ const opts = (loader) => ({ loader, minifyWhitespace: true, minifySyntax: true, 
 
 function minifyPage(html) {
   html = html.replace(/(<style>)([\s\S]*?)(<\/style>)/g, (_, a, css, b) => a + esbuild.transformSync(css, opts('css')).code.trim() + b);
-  return html.replace(/(<script(\s[^>]*)?>)([\s\S]*?)(<\/script>)/gi, (all, open, attrs, js, close) => {
+  return html.replace(/(<script(\s[^>]*)?>)([\s\S]*?)(<\/script[^>]*>)/gi, (all, open, attrs, js, close) => {
     if (/\ssrc=/i.test(attrs || '') || /type=["']?application\/ld\+json/i.test(attrs || '') || !js.trim()) return all;
     const code = esbuild.transformSync(js, opts('js')).code.trim();
     if (/<\/script/i.test(code)) throw new Error('minified script would close its own <script> tag');

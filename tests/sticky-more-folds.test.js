@@ -29,7 +29,7 @@ test('the Change of a transit port follows you: the first port of this POP opens
   // Two POPs with two ports each, one with a single port.
   assert.deepEqual(['ams', 'ash', 'rek'].map((c) => ev(`S.transit.filter(t=>t.city==='${c}').length`)), [2, 2, 1]);
   at(g, 'ams', 'up');
-  assert.deepEqual(kinds(g, 't:').map((x) => x.replace('*', '')).sort(), ['t0', 't1'], 'a port is told apart by its place among the ones you hold');
+  assert.deepEqual(kinds(g, 't:').map((x) => x.replace(/\*/g, '')).sort(), ['t0', 't1'], 'a port is told apart by its place among the ones you hold');
   assert.ok(!kinds(g, 't:').some((x) => x.endsWith('*')), 'folded to start with');
   rows(g, 't:').find((r) => ev(`pnKind('${r.k}')`) === 't0').b.click();
   assert.deepEqual(kinds(g, 't:').filter((x) => x.endsWith('*')), ['t0*'], 'one port open here');

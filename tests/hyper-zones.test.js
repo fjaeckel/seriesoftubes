@@ -28,7 +28,7 @@ const J = (ev, c) => JSON.parse(ev(`JSON.stringify(${c})`));
 // An outage at Frankfurt's POP as failureRun makes one (85-incidents/20-failures.js), then the soft landing it asks for.
 const popInc = (type) => `S.pops.fra.down=S.day+2;addInc({type:${lit(type)},ref:'fra',until:S.day+2,msg:'Boom.',cost:1500,fix:'Fix'});hsSoloSoft(S.inc[S.inc.length-1]);compute()`;
 // The dice a region failure rolls (hsFailFire): which region, how long, which message.
-const dice = (...q) => `(()=>{const q=${JSON.stringify(q)},m=Math.random;Math.random=()=>q.length?q.shift():m();try{return hsFailFire();}finally{Math.random=m;}})()`;
+const dice = (...q) => `(()=>{const q=${lit(q)},m=Math.random;Math.random=()=>q.length?q.shift():m();try{return hsFailFire();}finally{Math.random=m;}})()`;
 
 test('a zone costs a fifth of its tier, builds in weeks, adds room, slots and megawatts from the same grid, and bills monthly', (t) => {
   const { ev, errors } = net(t, false);
@@ -161,7 +161,7 @@ test('the plan suggests a zone where a region runs in one building or keeps meet
 test('saves: zones repaired against the regions, old saves load', (t) => {
   const { ev, errors } = net(t);
   const s = J(ev, 'S');
-  const back = J(ev, `(()=>{const r=parseSave(${JSON.stringify(JSON.stringify(s))});return migrate(r.s);})()`);
+  const back = J(ev, `(()=>{const r=parseSave(${lit(JSON.stringify(s))});return migrate(r.s);})()`);
   assert.deepEqual(back.hs.az, s.hs.az);
   const junk = { ...s, hs: { ...s.hs, az: { fra: [{ r: 'x', n: 99 }, 7, { r: 3, n: 1 }, { r: 4, n: 2 }], zzz: [{ r: 1, n: 0 }], par: 'no' }, azo: { fra: -3, ams: 'x', zzz: 4, par: 2 } } };
   const m = J(ev, `migrate(${JSON.stringify(junk)})`);

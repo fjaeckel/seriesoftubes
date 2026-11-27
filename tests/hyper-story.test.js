@@ -3,6 +3,7 @@
 // waits when it cannot be played, can be dismissed, is kept in the save), the charter picker and the help entry.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { load } = require('./harness');
 
 const J = (ev, c) => JSON.parse(ev(`JSON.stringify(${c})`));
@@ -147,7 +148,7 @@ test('the guide can be dismissed, never blocks, is remembered in the save and on
   // Kept in the save, junk repaired.
   ev('S.hs.guide=1');
   const s = ev('JSON.stringify(S)');
-  assert.equal(J(ev, `(()=>{const r=parseSave(${JSON.stringify(s)});return migrate(r.s).hs.guide;})()`), 1);
+  assert.equal(J(ev, `(()=>{const r=parseSave(${lit(s)});return migrate(r.s).hs.guide;})()`), 1);
   for (const [junk, want] of [[-1, null], [1e9, null], ['3', null], [2.5, null], [127, 127], [null, null]]) {
     const o = JSON.parse(s); o.hs.guide = junk;
     assert.equal(J(ev, `migrate(${JSON.stringify(o)}).hs.guide`), want, `guide ${junk}`);

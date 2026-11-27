@@ -6,6 +6,7 @@
 // its own test in hyper-traffic.test.js); zones are tested in hyper-zones-users.test.js.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { load } = require('./harness');
 
 /* Regions in Frankfurt and Paris (Rack Shacks, 400 Gbps each), German and French users at home in each. Your own dark
@@ -144,7 +145,7 @@ test('the intern asks about the Spare Pair Affair every month; a launch freeze h
   assert.match(ev("$('panel').textContent"), /Leased glass is not yours to resell/);
   // Saves: a round trip keeps it; junk is repaired; an old save gets the defaults.
   const s = J(ev, 'S');
-  const back = J(ev, `(()=>{const r=parseSave(${JSON.stringify(JSON.stringify(s))});return migrate(r.s);})()`);
+  const back = J(ev, `(()=>{const r=parseSave(${lit(JSON.stringify(s))});return migrate(r.s);})()`);
   assert.deepEqual(back.hs.rs, s.hs.rs);
   assert.equal(back.biz.find((b) => b.type === 'dfpair').gh, 1);
   const old = { ...s, hs: { ...s.hs } };

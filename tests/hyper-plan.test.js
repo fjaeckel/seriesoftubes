@@ -186,7 +186,7 @@ test('saves: the load history repaired, absent in old saves and classic games', 
   const old = { ...s, hs: { ...s.hs } };
   delete old.hs.lh;
   assert.deepEqual(J(ev, `migrate(${JSON.stringify(old)}).hs.lh`), {});
-  const back = J(ev, `(()=>{const r=parseSave(${JSON.stringify(JSON.stringify(s))});return migrate(r.s).hs.lh;})()`);
+  const back = J(ev, `(()=>{const r=parseSave(${lit(JSON.stringify(s))});return migrate(r.s).hs.lh;})()`);
   assert.deepEqual(back, s.hs.lh);
   assert.equal(ev(`migrate(${JSON.stringify({ ...s, charter: 'global' })}).hs`), undefined, 'no S.hs outside the charter');
   ev(`S=migrate(${JSON.stringify(junk)});compute();for(let i=0;i<3;i++)dayTick()`);

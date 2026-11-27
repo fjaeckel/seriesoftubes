@@ -5,18 +5,19 @@
 // federation's reads are replaced by fixed answers, so nothing here opens a socket or reads a server.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const crypto = require('node:crypto');
 const { load } = require('./harness');
 
 // Keys that pass the record checks, the same every run.
 const K = (n) => crypto.createHash('sha256').update('fed-ux ' + n).digest('base64url');
 const NAMES = Array.from({ length: 52 }, (_, i) => 'Player Net ' + i);
-const STUBS = `(()=>{const now=FED.now(),K=${JSON.stringify(NAMES.map((n, i) => K(i)))},U1='wss://a.example/fed',U2='wss://b.example/fed';
-  const SRVS=[{id:'sA',name:'Packet Lunch',source:'registry',sync:'open',nodes:[{url:U1,key:${JSON.stringify(K('nA'))}}],operators:[${JSON.stringify(K('oA'))}],langs:['en'],noLogs:true,desc:'',answered:now-60},
-    {id:'sB',name:'Hop Shop',source:'registry',sync:'open',nodes:[{url:U2,key:${JSON.stringify(K('nB'))}}],operators:[${JSON.stringify(K('oB'))}],langs:['fr'],noLogs:false,desc:'',answered:now-3600},
-    {id:'sC',name:'Lag Lagoon',source:'registry',sync:'selective',nodes:[{url:'wss://c.example/fed',key:${JSON.stringify(K('nC'))}}],operators:[${JSON.stringify(K('oC'))}],langs:['it'],noLogs:false,desc:'',answered:now-86400},
-    {id:'sE',name:'Ping Pong Palace',source:'gossip',sync:'open',nodes:[{url:'wss://e.example/fed',key:${JSON.stringify(K('nE'))}}],operators:[${JSON.stringify(K('oE'))}],langs:[],noLogs:false,desc:'',seen:now-60}];
-  const N=${JSON.stringify(NAMES)}.map((name,i)=>({key:K[i],name,asn:4200000100+i,home:'DE'}));
+const STUBS = `(()=>{const now=FED.now(),K=${lit(NAMES.map((n, i) => K(i)))},U1='wss://a.example/fed',U2='wss://b.example/fed';
+  const SRVS=[{id:'sA',name:'Packet Lunch',source:'registry',sync:'open',nodes:[{url:U1,key:${lit(K('nA'))}}],operators:[${lit(K('oA'))}],langs:['en'],noLogs:true,desc:'',answered:now-60},
+    {id:'sB',name:'Hop Shop',source:'registry',sync:'open',nodes:[{url:U2,key:${lit(K('nB'))}}],operators:[${lit(K('oB'))}],langs:['fr'],noLogs:false,desc:'',answered:now-3600},
+    {id:'sC',name:'Lag Lagoon',source:'registry',sync:'selective',nodes:[{url:'wss://c.example/fed',key:${lit(K('nC'))}}],operators:[${lit(K('oC'))}],langs:['it'],noLogs:false,desc:'',answered:now-86400},
+    {id:'sE',name:'Ping Pong Palace',source:'gossip',sync:'open',nodes:[{url:'wss://e.example/fed',key:${lit(K('nE'))}}],operators:[${lit(K('oE'))}],langs:[],noLogs:false,desc:'',seen:now-60}];
+  const N=${lit(NAMES)}.map((name,i)=>({key:K[i],name,asn:4200000100+i,home:'DE'}));
   window.UX={SRVS,N,U1,U2,slice:null};FU.can=true;FED.set=()=>0;FED.clear=()=>{};// no timers: nothing refreshes on its own
   Object.assign(window,{fedServers:async()=>SRVS.slice(),fedOpKey:async()=>null,fedGet:async()=>null,fedVotesTidy:async()=>{},fedShunned:async()=>[],fedHides:async()=>null,
     fedExclInfo:async()=>({shunned:false,confirmed:false,servers:[],reasons:[]}),fedAsn:async()=>4200000999,fedCatalogLoad:async()=>true,fedNetsStats:async()=>new Map(),
@@ -29,8 +30,8 @@ function joined(o = {}) {
   const p = load();
   p.ev("ACT.start({});S.cash=1e8;ACT.launchBB({city:'fra'})");
   p.ev(STUBS);
-  p.ev(`(()=>{const now=FED.now(),me=${JSON.stringify(K('me'))},rank=${o.rank || 63};
-    S.fed={...fedNewState(),on:true,key:{pub:me,priv:${JSON.stringify(K('priv'))}},servers:[UX.U1,UX.U2],joined:Math.floor(now/86400)-40,deals:[]};
+  p.ev(`(()=>{const now=FED.now(),me=${lit(K('me'))},rank=${o.rank || 63};
+    S.fed={...fedNewState(),on:true,key:{pub:me,priv:${lit(K('priv'))}},servers:[UX.U1,UX.U2],joined:Math.floor(now/86400)-40,deals:[]};
     FED.live={fed:S.fed,conns:new Map()};FED.st={[UX.U1]:{state:'connected',since:now-60,server:'sA',node:UX.U1},[UX.U2]:{state:'offline',since:now-600,server:'sB',node:UX.U2}};
     const rows=UX.N.slice(0,50).map((n,i)=>({key:n.key,rank:i+1,value:5e6-i*1000,asn:n.asn,name:n.name,home:'DE'}));
     if(rank<=50)rows[rank-1]={...rows[rank-1],key:me,name:S.name};

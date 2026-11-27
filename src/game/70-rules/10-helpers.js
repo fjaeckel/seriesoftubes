@@ -10,6 +10,8 @@ const pick=a=>a[Math.floor(Math.random()*a.length)];
 // used, the same names were added again every day (half a million entries, half of a late-game save).
 const useName=n=>{if(!S.usedNames.includes(n))S.usedNames.push(n);};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// Our own markup off a line, for plain text (a title): tags first, then any < or > a broken tag left behind.
+const untag=s=>String(s).replace(/<[^>]*>/g,'').replace(/[<>]/g,'');
 /* A real calendar (#257): months of 28 to 31 days and Gregorian leap years, counted from Y1 (Y4 is a leap year,
    Y100 is not). Day 0 is 1 January Y1. Monthly prices are per calendar month. */
 const leapY=y=>y%4===0&&(y%100!==0||y%400===0),MDAYS=[31,28,31,30,31,30,31,31,30,31,30,31],monDays=(y,m)=>m===1&&leapY(y)?29:MDAYS[m];

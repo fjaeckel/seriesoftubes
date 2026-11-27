@@ -52,7 +52,7 @@ test('csp: the built page carries a policy before anything it governs, and nothi
   for (const k of ['style-src', 'font-src', 'img-src', 'default-src']) for (const bad of ['*', 'https:', 'http:']) assert.ok(!p[k].includes(bad), `${k} has no ${bad}`);
   for (const k of ['script-src', 'worker-src', 'connect-src']) for (const bad of ["'unsafe-inline'", "'unsafe-eval'", '*', 'https:', 'data:']) assert.ok(!p[k].includes(bad), `${k} has no ${bad}`);
   assert.ok(!p['script-src'].includes('blob:'), 'no script from a blob: in the page itself');
-  assert.ok(!p['script-src'].includes('https://cdn.jsdelivr.net'), 'not all of jsDelivr: the counter\'s one file');
+  assert.ok(!p['script-src'].some((s) => s === 'https://cdn.jsdelivr.net'), 'not all of jsDelivr: the counter\'s one file');
 });
 
 test('csp: every inline script of the finished page runs (by its hash), and no other inline script would', () => {

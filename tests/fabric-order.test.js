@@ -41,7 +41,7 @@ test('traffic past Headroom gets the next fabric, at exactly what the click cost
   assert.equal(a0 - A.ev('S.cash'), b0 - B.ev('S.cash'), 'same price as the button');
   assert.ok(a0 - A.ev('S.cash') > 0);
   assert.match(A.ev('opsLine(S.ops.log[0])'), /upgraded the fabric of /);
-  assert.match(A.ev('opsLine(S.ops.log[0])'), new RegExp(A.ev('S.myIx.nte.name').replace(/[-]/g, '\\-')));
+  assert.match(A.ev('opsLine(S.ops.log[0])'), new RegExp(A.ev('S.myIx.nte.name').replace(/[.*+?^${}()|[\]\\-]/g, '\\$&')));
   // One step a night: 1.6T carries 300G with room to spare, so nothing more.
   shift(A.ev);
   assert.equal(fab(A.ev), 1);

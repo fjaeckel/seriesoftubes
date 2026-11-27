@@ -2,9 +2,10 @@
 // by heading or text as you type; the network menu keeps How to play and Export save one tap away as tiles.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { load } = require('./harness');
 
-const type = (p, q) => p.ev(`(()=>{const i=$('helpQ');i.value=${JSON.stringify(q)};i.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+const type = (p, q) => p.ev(`(()=>{const i=$('helpQ');i.value=${lit(q)};i.dispatchEvent(new Event('input',{bubbles:true}));})()`);
 const shown = (p) => JSON.parse(p.ev("JSON.stringify([...document.querySelectorAll('#helpGl details')].filter(d=>!d.hidden).map(d=>d.querySelector('summary').textContent))"));
 const open = (p) => JSON.parse(p.ev("JSON.stringify([...document.querySelectorAll('#helpGl details')].filter(d=>d.open&&!d.hidden).map(d=>d.querySelector('summary').textContent))"));
 

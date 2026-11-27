@@ -44,7 +44,7 @@ test('relayMin applies seven days after its release, from the CHANGELOG date', (
   const pkg = require('../package.json');
   assert.equal(pkg.relayMin === undefined ? null : typeof authority.relayMin(pkg.version).relayMinFrom, pkg.relayMin === undefined ? null : 'number');
   if (pkg.relayMin) {
-    const m = require('node:fs').readFileSync(require.resolve('../CHANGELOG.md'), 'utf8').match(new RegExp(`^## \\[${pkg.relayMin.replace(/\./g, '\\.')}\\] — (\\d{4}-\\d{2}-\\d{2})`, 'm'));
+    const m = require('node:fs').readFileSync(require.resolve('../CHANGELOG.md'), 'utf8').match(new RegExp(`^## \\[${pkg.relayMin.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\] — (\\d{4}-\\d{2}-\\d{2})`, 'm'));
     assert.equal(authority.relayMin(pkg.version).relayMinFrom, Date.parse(m[1] + 'T00:00:00Z') / 1000 + 604800);
   }
   assert.doesNotThrow(() => authority.bans(), 'federation/bans.json checks');

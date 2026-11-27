@@ -791,7 +791,7 @@ const nodesOf = list => list.map(([n, url]) => ({ key: pub(n), url })).sort((a, 
   go('genesis-tampered', 'The genesis name changed after signing.', { [F1]: { ...file1, genesis: { ...genesis, body: { ...genesis.body, name: 'Packet Brunch' } } } }, F1, { ok: false, error: 'bad_sig' });
   go('unknown-field', 'Only v, genesis, chain, server, listed and answered.', { [F2]: { ...file2, contact: 'dan@example.org' } }, F2, { ok: false, error: 'unknown_field' });
   go('bad-json', 'The file is not JSON.', { [F2]: { text: '{"v":1,' } }, F2, { ok: false, error: 'bad_json' });
-  go('too-big', 'Over 65536 bytes (a description padded with spaces outside the records).', { [F2]: { text: JSON.stringify(file2).replace('{', '{' + ' '.repeat(65536)) } }, F2, { ok: false, error: 'too_big' });
+  go('too-big', 'Over 65536 bytes (a description padded with spaces outside the records).', { [F2]: { text: '{' + ' '.repeat(65536) + JSON.stringify(file2).slice(1) } }, F2, { ok: false, error: 'too_big' });
   go('stamp-changed', 'listed and answered are written only by the weekly job: an operator\'s pull request may not change them (compared with the file on the base branch).',
     { [F1]: { ...file1, answered: 1767312000 } }, F1, { ok: false, error: 'bad_field' }, file1);
   go('stamp-kept', 'The same change with the stamps untouched passes.',

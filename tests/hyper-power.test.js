@@ -4,6 +4,7 @@
 // serves less when a heatwave squeezes its grid, saves, and the power section on a phone and on a desktop.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { load } = require('./harness');
 
 const J = (ev, c) => JSON.parse(ev(`JSON.stringify(${c})`));
@@ -313,7 +314,7 @@ test('saves: power fields repaired, old Hyperscaler saves get seeded defaults, c
   const { ev, errors } = start();
   ev("S.hs.rg.ams={t:1,ready:0,mw:20};ACT.hsUtil({city:'ams'});S.lvl=3;ACT.hsGen({city:'fra',k:'sol'});S.hs.prot.ams={until:S.day+50,kind:'cost',g:2,on:'rg'};S.hs.pev.push({k:'heat',reg:'EU',until:S.day+9});ACT.hsHeat({city:'ams'})");
   const s = J(ev, 'S');
-  const back = J(ev, `(()=>{const r=parseSave(${JSON.stringify(JSON.stringify(s))});return migrate(r.s);})()`);
+  const back = J(ev, `(()=>{const r=parseSave(${lit(JSON.stringify(s))});return migrate(r.s);})()`);
   assert.deepEqual(back.hs, s.hs, 'a round trip keeps everything');
   const junk = { ...s, hs: { ...s.hs,
     pw: { fra: { cap: 'lots', q: { mw: -5, ready: 'soon' }, gw: 500, own: [{ k: 'sol', ready: 3 }, { k: 'sol' }, { k: 'sol' }, { k: 'fusion' }, 7], heat: 'warm' }, zzz: { cap: 5 }, ams: 'x' },

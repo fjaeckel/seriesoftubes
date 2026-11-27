@@ -4,12 +4,13 @@
 // co-founding terms off the lists. Fake nodes, a virtual clock; seeded, nothing left to luck.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { fedPage, joinGame, settle, until, URL1, NOW, rec, rid, key, asn, box, sealRec } = require('./helpers/fed');
 const { load } = require('./harness');
 
 const DAY = 86400;
 const AUTO = { peering: 'auto', transit: 'auto', pni: 'review', swap: 'review', consortium: 'review', port: 'auto', wave: 'auto' };
-const J = JSON.stringify;
+const J = lit;
 function ann(name, over = {}, t = NOW - 60) {
   const k = key(name);
   return rec(name, 'announce', t, { name: over.name || 'Ping Floyd', asn: asn(k.pub), box: box(name), home: 'DE', day: 400, founded: 20000, pops: ['fra', 'ams', 'lon'], ix: ['fra', 'ams'], cust: 30,

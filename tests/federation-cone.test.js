@@ -4,6 +4,7 @@
 // shows (fedRankOne, in the federation worker), announces included for their founded.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { load } = require('./harness');
 const { advanceUntil, fedPage, joinGame, settle, until, URL1, NOW, SERVERS_JSON, PL, rec, rid, key, asn, box, canon, signText } = require('./helpers/fed');
 
@@ -61,7 +62,7 @@ async function setup(bobFounded, value) {
   assert.ok(await until(async () => (await settle(5), p.ev('fedStatus().state') === 'connected')));
   return { p, n };
 }
-const check = (p) => p.ev(`(async()=>{const c=FED.live.conns.get(${JSON.stringify(URL1)}),req=fedRankReq({board:'cone'},[]);
+const check = (p) => p.ev(`(async()=>{const c=FED.live.conns.get(${lit(URL1)}),req=fedRankReq({board:'cone'},[]);
   return fedRankCheck(c,req,fedRanksOk(await fedAskRetry(c,req)));})()`);
 
 test('a cone row checks out from rankwhy\'s records, the customers\' announces giving who is established', async () => {

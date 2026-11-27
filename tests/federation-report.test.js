@@ -4,10 +4,11 @@
 // network. Fake relay nodes on a virtual clock, no network.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { fedPage, joinGame, settle, URL1, SERVERS_JSON, PL, NOW, key, rec, rid, box, asn } = require('./helpers/fed');
 
 const txt = (p) => p.ev("$('modalCard').textContent");
-const click = (p, sel) => p.ev(`(()=>{const b=document.querySelector(${JSON.stringify(sel)});if(!b)throw new Error('no '+${JSON.stringify(sel)});b.click();})()`);
+const click = (p, sel) => p.ev(`(()=>{const b=document.querySelector(${lit(sel)});if(!b)throw new Error('no '+${lit(sel)});b.click();})()`);
 const val = (p, x) => JSON.parse(p.ev(`JSON.stringify(${x})`));
 const aval = async (p, x) => JSON.parse(await p.ev(`(async()=>JSON.stringify(await (${x})))()`));
 // The core's timers and the sheets' async loads run, then the page is quiet (as in federation-ui.test.js).
@@ -69,16 +70,16 @@ test('a player reports a network to its server\'s operators: a reason, the serve
   // Never about oneself, only pre-made reasons, only joined and connected servers.
   assert.equal((await p.ev(`fedReport(S.fed.key.pub,'spam',[${JSON.stringify(PL.id)}])`)).error, 'bad_field');
   assert.equal((await p.ev(`fedReport(${JSON.stringify(M)},'he is rude',[${JSON.stringify(PL.id)}])`)).error, 'bad_field');
-  assert.deepEqual(await aval(p, `fedReport(${JSON.stringify(M)},'spam',['${'A'.repeat(43)}'])`), { ok: [], failed: [{ srv: 'A'.repeat(43), error: 'offline' }] });
+  assert.deepEqual(await aval(p, `fedReport(${lit(M)},'spam',['${'A'.repeat(43)}'])`), { ok: [], failed: [{ srv: 'A'.repeat(43), error: 'offline' }] });
   assert.deepEqual(p.errors, []);
 });
 
 test('the game stops a player at ten networks a day, and says what a server refused', async () => {
   const { p, n } = await joined();
-  for (let i = 0; i < 9; i++) assert.deepEqual((await aval(p, `fedReport(${JSON.stringify(key('t' + i).pub)},'spam',[${JSON.stringify(PL.id)}])`)).ok, [PL.id]);
+  for (let i = 0; i < 9; i++) assert.deepEqual((await aval(p, `fedReport(${lit(key('t' + i).pub)},'spam',[${lit(PL.id)}])`)).ok, [PL.id]);
   // The same network again replaces the report: it is not one more.
-  assert.deepEqual((await aval(p, `fedReport(${JSON.stringify(key('t0').pub)},'abuse',[${JSON.stringify(PL.id)}])`)).ok, [PL.id]);
-  assert.deepEqual((await aval(p, `fedReport(${JSON.stringify(M)},'spam',[${JSON.stringify(PL.id)}])`)).ok, [PL.id]);
+  assert.deepEqual((await aval(p, `fedReport(${lit(key('t0').pub)},'abuse',[${lit(PL.id)}])`)).ok, [PL.id]);
+  assert.deepEqual((await aval(p, `fedReport(${lit(M)},'spam',[${lit(PL.id)}])`)).ok, [PL.id]);
   assert.equal((await p.ev(`fedReport(${JSON.stringify(key('t10').pub)},'spam',[${JSON.stringify(PL.id)}])`)).error, 'too_many');
   // A day later it may report again; what the server refuses is shown in the sheet.
   p.net.t0 += 86401;
@@ -111,7 +112,7 @@ test('only an operator\'s game follows reports, keeps those of its own server an
   assert.ok(n.got.some((f) => f.m === 'sub' && f.kinds.join() === 'report'), 'reports followed from their own cursor');
   const kept = await aval(p, "fedGet('kv','reports')");
   assert.deepEqual(kept.map((x) => x.rec.body.reason).sort(), ['abuse', 'spam'], 'the newest per reporter and network; another server\'s are not kept');
-  assert.deepEqual(await aval(p, `fedReportsFor(${JSON.stringify(PL.id)})`), [{ target: M, reasons: { abuse: 1, spam: 1 }, reporters: [key('carol').pub, key('bob').pub], t: t + 60 }]);
+  assert.deepEqual(await aval(p, `fedReportsFor(${lit(PL.id)})`), [{ target: M, reasons: { abuse: 1, spam: 1 }, reporters: [key('carol').pub, key('bob').pub], t: t + 60 }]);
   // The operator panel: counts, the reporters' network names only on demand, and the existing actions.
   p.ev(`ACT.fuOpen({v:'server',id:${JSON.stringify(PL.id)}})`);
   await run(p, 500);

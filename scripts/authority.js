@@ -67,7 +67,7 @@ function relayMin() {
   if (typeof v !== 'string' || !/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/.test(v)) fail(`package.json relayMin '${v}' is not a version x.y.z`);
   const n = (s) => s.split('.').map(Number), a = n(v), b = n(version);
   if (a[0] > b[0] || a[0] === b[0] && (a[1] > b[1] || a[1] === b[1] && a[2] > b[2])) fail(`package.json relayMin ${v} is newer than this version ${version}`);
-  const m = fs.readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8').match(new RegExp(`^## \\[${v.replace(/\./g, '\\.')}\\] — (\\d{4}-\\d{2}-\\d{2})`, 'm'));
+  const m = fs.readFileSync(path.join(ROOT, 'CHANGELOG.md'), 'utf8').match(new RegExp(`^## \\[${v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\] — (\\d{4}-\\d{2}-\\d{2})`, 'm'));
   if (!m) fail(`package.json relayMin ${v} has no released section in CHANGELOG.md`);
   return { relayMin: v, relayMinFrom: Date.parse(m[1] + 'T00:00:00Z') / 1000 + GRACE };
 }

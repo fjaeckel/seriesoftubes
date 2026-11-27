@@ -3,6 +3,7 @@
 // Fake nodes, a virtual clock.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { fedPage, joinGame, settle, until, URL1, NOW, rec, rid, key, asn, box, sealRec } = require('./helpers/fed');
 
 const DAY = 86400;
@@ -75,9 +76,9 @@ test('a wave bought from a player: what is missing, then a link that routes, bil
   assert.ok(p.ev(`S.links.some(l=>l.id==='${l.id}')`), 'not handed back from the panel');
   // A save keeps it; an old save without the deal loses the link with it.
   const txt = p.ev('JSON.stringify(S)');
-  assert.equal(p.ev(`(()=>{const s=JSON.parse(${JSON.stringify(txt)});migrate(s);return s.links.filter(l=>l.fwv).length;})()`), 1);
-  assert.equal(p.ev(`(()=>{const s=JSON.parse(${JSON.stringify(txt)});s.fed.deals=s.fed.deals.filter(d=>d.deal!=='wave');migrate(s);return s.links.filter(l=>l.fwv).length;})()`), 0);
-  assert.equal(p.ev(`(()=>{const s=JSON.parse(${JSON.stringify(txt)});delete s.fedp;migrate(s);return s.fedp===null&&s.links.filter(l=>l.fwv).length;})()`), 1, 'deals kept without terms');
+  assert.equal(p.ev(`(()=>{const s=JSON.parse(${lit(txt)});migrate(s);return s.links.filter(l=>l.fwv).length;})()`), 1);
+  assert.equal(p.ev(`(()=>{const s=JSON.parse(${lit(txt)});s.fed.deals=s.fed.deals.filter(d=>d.deal!=='wave');migrate(s);return s.links.filter(l=>l.fwv).length;})()`), 0);
+  assert.equal(p.ev(`(()=>{const s=JSON.parse(${lit(txt)});delete s.fedp;migrate(s);return s.fedp===null&&s.links.filter(l=>l.fwv).length;})()`), 1, 'deals kept without terms');
   // The term runs out: the deal is over and the link gone.
   p.ev(`fedDealsOn(S,${d.end})`);
   assert.equal(p.ev("S.fed.deals.find(x=>x.deal==='wave').why"), 'term');

@@ -3,6 +3,7 @@
 // lies about a value or about the own row is caught, left out of the boards for a day, and named in the sheet.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { fedPage, joinGame, settle, until, URL1, NOW, SERVERS_JSON, PL, rec, rid, key, canon, signText } = require('./helpers/fed');
 
 const slotOf = (t) => t - (t % 300);
@@ -31,7 +32,7 @@ async function setup(ranks) {
   await p.ev("fedPut('kv','untrusted',{})");
   return { p, n };
 }
-const check = (p) => p.ev(`(async()=>{const c=FED.live.conns.get(${JSON.stringify(URL1)}),req=fedRankReq({board:'pops'},[]);
+const check = (p) => p.ev(`(async()=>{const c=FED.live.conns.get(${lit(URL1)}),req=fedRankReq({board:'pops'},[]);
   return fedRankCheck(c,req,fedRanksOk(await fedAskRetry(c,req)));})()`);
 const bad = (p) => p.ev("fedUntrusted().then(b=>JSON.stringify(Object.values(b).map(x=>x.srv)))").then(JSON.parse);
 

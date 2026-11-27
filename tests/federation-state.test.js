@@ -2,6 +2,7 @@
 // by sanitize() like everything else from a save, joining only normal games, and the AI declaration only from the agent.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { load } = require('./harness');
 const { fedPage, joinGame, settle, URL1, key, NOW } = require('./helpers/fed');
 
@@ -21,7 +22,7 @@ test('sanitize() drops what is malformed, caps every list, and a broken key turn
   const { ev, errors } = load();
   ev('ACT.start({})');
   const pub = key('alice').pub, seed = key('alice').seed, bob = key('bob').pub;
-  const fix = (fed) => J(ev, `(()=>{const s=JSON.parse(JSON.stringify(S));s.fed=${JSON.stringify(fed)};globalThis.__TUBES_WORKER__=1;sanitize(s);delete globalThis.__TUBES_WORKER__;return s.fed;})()`);
+  const fix = (fed) => J(ev, `(()=>{const s=JSON.parse(JSON.stringify(S));s.fed=${lit(fed)};globalThis.__TUBES_WORKER__=1;sanitize(s);delete globalThis.__TUBES_WORKER__;return s.fed;})()`);
   for (const junk of ['yes', 7, [], true]) assert.equal(fix(junk), null);
   const urls = ['wss://a.example.net', 'http://b.example.net', 'wss://1.2.3.4', 'wss://a.example.net', 'wss://c.example.net', 'wss://d.example.net', 'wss://e.example.net', 'wss://f.example.net'];
   const muted = Array.from({ length: 600 }, (_, i) => i % 2 ? bob : 'nope' + i).concat([key('carol').pub]);
@@ -52,8 +53,8 @@ test('queued records survive only with their key, only this network\'s own, one 
   p.net.node(URL1).up = false;
   await joinGame(p);
   const out = await p.ev(`(async()=>{const a=await fedSignMine('stats',fedStatsBody());FED.now=()=>${NOW + 300};const b=await fedSignMine('stats',fedStatsBody());
-    const other=${JSON.stringify(key('bob'))};return [a,b];})()`);
-  const s = J(p.ev, `(()=>{const s=JSON.parse(JSON.stringify(S));s.fed.out=${JSON.stringify(out)}.concat([{v:1,kind:'stats',key:'${key('bob').pub}',t:1,body:{},sig:'x'},{nope:1}]);sanitize(s);return s.fed.out.map(r=>r.t);})()`);
+    const other=${lit(key('bob'))};return [a,b];})()`);
+  const s = J(p.ev, `(()=>{const s=JSON.parse(JSON.stringify(S));s.fed.out=${lit(out)}.concat([{v:1,kind:'stats',key:'${key('bob').pub}',t:1,body:{},sig:'x'},{nope:1}]);sanitize(s);return s.fed.out.map(r=>r.t);})()`);
   assert.deepEqual(s, [NOW + 300]);
   assert.deepEqual(p.errors, []);
 });
@@ -80,9 +81,9 @@ test('only normal games may join: never a sandbox or open gates, a puzzle, a sce
   assert.equal(p.ev('fedEligible(S)'), false, 'a challenge save cannot join Multimode');
   assert.equal(p.ev('fuWhyMode()'), p.ev("tr('fedui.challenge_modes_are_played_alone')"));
   // A sandbox save that says it joined is off after loading.
-  const s = J(p.ev, `(()=>{const s=JSON.parse(JSON.stringify(S));s.mode='sandbox';s.fed={on:true,key:${JSON.stringify({ pub: key('alice').pub, priv: key('alice').seed })},servers:['${URL1}']};sanitize(s);return s.fed;})()`);
+  const s = J(p.ev, `(()=>{const s=JSON.parse(JSON.stringify(S));s.mode='sandbox';s.fed={on:true,key:${lit({ pub: key('alice').pub, priv: key('alice').seed })},servers:['${URL1}']};sanitize(s);return s.fed;})()`);
   assert.equal(s.on, false);
-  const challenge = J(p.ev, `(()=>{const s=JSON.parse(JSON.stringify(S));s.scn=null;s.rules=makeRules('oncall',{mods:['outcast']});s.fed={on:true,key:${JSON.stringify({ pub: key('alice').pub, priv: key('alice').seed })},servers:['${URL1}']};sanitize(s);return s.fed;})()`);
+  const challenge = J(p.ev, `(()=>{const s=JSON.parse(JSON.stringify(S));s.scn=null;s.rules=makeRules('oncall',{mods:['outcast']});s.fed={on:true,key:${lit({ pub: key('alice').pub, priv: key('alice').seed })},servers:['${URL1}']};sanitize(s);return s.fed;})()`);
   assert.equal(challenge.on, false, 'sanitize turns off a hand-edited joined challenge save');
   assert.deepEqual(p.errors, []);
 });

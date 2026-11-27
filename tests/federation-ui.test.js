@@ -3,11 +3,12 @@
 // glass and the operator panel, and every sheet at 360 px on a phone. Fake relay nodes on a virtual clock, no network.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { load } = require('./harness');
 const { fedPage, joinGame, settle, URL1, URL2, SERVERS_JSON, PL, key, rec, rid, canon, signText, box } = require('./helpers/fed');
 
 const txt = (p) => p.ev("$('modalCard').textContent");
-const click = (p, sel) => p.ev(`(()=>{const b=document.querySelector(${JSON.stringify(sel)});if(!b)throw new Error('no '+${JSON.stringify(sel)});b.click();})()`);
+const click = (p, sel) => p.ev(`(()=>{const b=document.querySelector(${lit(sel)});if(!b)throw new Error('no '+${lit(sel)});b.click();})()`);
 // Lets the core's timers and the sheets' async loads run, then waits until the page is quiet: no sheet load queued or
 // running, no action busy, and the sheet unchanged over several checks. WebCrypto and IndexedDB answer on their own
 // time, so real milliseconds go by while waiting (up to a few seconds, never a fixed guess).
@@ -295,7 +296,7 @@ test('looking glass: servers, policies, players; votes and the tally only for an
   assert.match(txt(p), /syncs openly · 2 players · 3 operators/);
   assert.doesNotMatch(txt(p), /Shun votes/, 'players see no votes');
   // A network's read-only status: no tally for a player.
-  click(p, `#modalCard [data-act="fuOpen"][data-args*=${JSON.stringify(JSON.stringify(target).slice(1, -1))}]`);
+  click(p, `#modalCard [data-act="fuOpen"][data-args*=${lit(JSON.stringify(target).slice(1, -1))}]`);
   await run(p, 500);
   assert.match(txt(p), /AS4200000001/);
   assert.doesNotMatch(txt(p), /votes needed|Shun votes|Excluded by the federation/);

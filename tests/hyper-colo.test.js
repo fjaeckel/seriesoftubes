@@ -142,7 +142,7 @@ test('saves: a cage and its move out survive a round trip, nothing on the ladder
   days(ev, ev('leadDays(14)'));
   ev("ACT.hsColoOut({city:'par'})");
   const s = J(ev, 'S');
-  const back = J(ev, `(()=>{const r=parseSave(${JSON.stringify(JSON.stringify(s))});return migrate(r.s);})()`);
+  const back = J(ev, `(()=>{const r=parseSave(${lit(JSON.stringify(s))});return migrate(r.s);})()`);
   assert.deepEqual(back.hs.rg, s.hs.rg);
   assert.equal(back.hs.rg.par.up.t, 1);
   const junk = { ...s, hs: { ...s.hs, rg: { fra: { t: 3, ready: 0, up: { t: 4, ready: 9 } }, par: { t: 4, ready: 'x', up: { t: 3, ready: 7 } } } } };

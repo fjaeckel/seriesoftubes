@@ -3,6 +3,7 @@
 // under that server's name, and is never a reason to dial that server's nodes. Fake nodes, no network.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { fedPage, joinGame, settle, SERVERS_JSON, PL, URL1, URL2, key, rec, rid, box } = require('./helpers/fed');
 const ann = (name, t, body) => rec(name, 'announce', t, { name: 'Net ' + name, asn: 4200000001, box: box(name), home: 'DE', day: 120, founded: 20000, pops: ['fra', 'ams'], ix: ['fra'], cust: 7,
   mix: { content: 200, eyeball: 700, enterprise: 100 }, traffic: { in: 1000, out: 900 }, policy: 'open', rates: {}, auto: { peering: 'auto', transit: 'auto', pni: 'review', swap: 'review', consortium: 'review', port: 'auto' }, ...body });
@@ -150,7 +151,7 @@ test('names: invisible characters never show, look-alike names are marked, and A
   p.ev("ACT.fuOpen({v:'glass'})");
   await run(p, 20);
   assert.doesNotMatch(p.ev("$('modalCard').innerHTML"), /[​‏]/, 'no invisible characters in the sheet');
-  const item = (k) => p.ev(`(()=>{const b=document.querySelector('#modalCard [data-act="fuOpen"][data-args*=${JSON.stringify(JSON.stringify(k).slice(1, -1))}]');return b.closest('li').textContent})()`);
+  const item = (k) => p.ev(`(()=>{const b=document.querySelector('#modalCard [data-act="fuOpen"][data-args*=${lit(JSON.stringify(k).slice(1, -1))}]');return b.closest('li').textContent})()`);
   const fp = (k) => p.ev(`fedFp(${JSON.stringify(k)})`);
   assert.match(fp(bob), /^[0-9a-f]{6}$/);
   assert.match(item(bob), new RegExp(`TubeWorks[\\s\\S]*AS4200000001 #${fp(bob)}[\\s\\S]*same name as another network`));
@@ -166,8 +167,8 @@ test('names: invisible characters never show, look-alike names are marked, and A
   assert.match(row, /same name as another network/);
   // A server only heard of whose name reads like a registry server's; names and descriptions lose invisible characters.
   const gid = key('zed').pub;
-  await p.ev(`(async()=>{const r=await fedGet('kv','registry');r.servers=r.servers.map(s=>s.id===${JSON.stringify(PL.id)}?{...s,desc:'Small\\u2028friendly\\u200e'}:s);await fedPut('kv','registry',r);
-    await fedPut('kv','gossip',[{id:${JSON.stringify(gid)},server:{id:${JSON.stringify(gid)},rid:'x',t:1,name:'Pаcket\\u200bLunch',nodes:[{key:${JSON.stringify(gid)},url:'wss://lookalike.example.org/fed'}],operators:[],sync:'open',desc:'hi\\u202e'},path:[],seen:FED.now()}]);})()`);
+  await p.ev(`(async()=>{const r=await fedGet('kv','registry');r.servers=r.servers.map(s=>s.id===${lit(PL.id)}?{...s,desc:'Small\\u2028friendly\\u200e'}:s);await fedPut('kv','registry',r);
+    await fedPut('kv','gossip',[{id:${lit(gid)},server:{id:${lit(gid)},rid:'x',t:1,name:'Pаcket\\u200bLunch',nodes:[{key:${lit(gid)},url:'wss://lookalike.example.org/fed'}],operators:[],sync:'open',desc:'hi\\u202e'},path:[],seen:FED.now()}]);})()`);
   const srvs = JSON.parse(await p.ev('fedServers().then(l=>JSON.stringify(l))'));
   const g = srvs.find((s) => s.id === gid), pl = srvs.find((s) => s.id === PL.id);
   assert.equal(g.name, 'Pаcket' + 'Lunch');

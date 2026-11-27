@@ -3,6 +3,7 @@
 // and the day loop does the same work whatever the connection does. Fake nodes and a virtual clock: no network.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { lit } = require('../scripts/lib/js-literal');
 const { fedPage, joinGame, settle, until, URL1, URL2, NOW, SERVERS_JSON, rec, key, box } = require('./helpers/fed');
 const { load } = require('./harness');
 
@@ -124,7 +125,7 @@ test('the queue is capped: an older stats is replaced by the newest, offers beyo
   assert.equal(out.refused, 6);
   // Kept in the save: still there after a reload.
   const txt = p.ev('save(true);JSON.stringify(packSave(S))');
-  const q = p.ev(`(()=>{const s=JSON.parse(${JSON.stringify(txt)});sanitize(s);return s.fed.out.length;})()`);
+  const q = p.ev(`(()=>{const s=JSON.parse(${lit(txt)});sanitize(s);return s.fed.out.length;})()`);
   assert.equal(q, 65);
   assert.deepEqual(p.errors, []);
 });
