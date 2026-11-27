@@ -36,8 +36,8 @@ CX_ORG.push(c=>{if(!S.hs||!S.inc.length||!hyper())return 1;let m=1;for(const i o
 function hsRepX(c){return S.inc.length&&hiAct('hsstorm',c)?HI_STORM:1;}
 function hsIncNeed(id){return id==='dns'&&S.inc.length&&hiAct('hsdns')?0:1;}
 function hsCertOut(c){return S.inc.length>0&&!!S.hs&&!!hiAct('hscert',c);}
-function hiToast(i){const paused=pref('pauseIncident')&&autoPause(),h=hstr(i.id+'|press');
-  toast(`<b>☁️ ${hsIncTitle(i.type)}</b><br>${esc(i.msg)}<br><i>📰 ${tr(HI_PRESS[h%HI_PRESS.length])}</i>${paused?`<br><b>${tr('common.game_paused')}</b>`:''}`,'bad',
+function hiToast(i){const paused=ncPause('inc')&&autoPause(),h=hstr(i.id+'|press');
+  ntc('inc',`<b>☁️ ${hsIncTitle(i.type)}</b><br>${esc(i.msg)}<br><i>📰 ${tr(HI_PRESS[h%HI_PRESS.length])}</i>${paused?`<br><b>${tr('common.game_paused')}</b>`:''}`,'bad',
     (i.cost?[{l:`${i.fix} ${fmt$(i.cost)}`,act:'fixInc',args:{id:i.id}}]:[]).concat(paused?[resumeAct()]:[]),incOpen(i));sfx('alert');}
 const hiAdd=o=>{addInc(o);const i=S.inc[S.inc.length-1];S.hs.ic[o.type.slice(2)]=(S.hs.ic[o.type.slice(2)]|0)+1;return i;};
 const hiMsg=(t,h,v)=>tr(HI_MSG[t][h%HI_MSG[t].length],v);

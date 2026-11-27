@@ -424,12 +424,12 @@ test('#13 #15 unhappy customers warn early, furious ones pause the game (optiona
   assert.match(toasts(), /Game paused/);
   assert.equal(ev('UI.resumeSpeed'), 4, 'Resume goes back to the old speed');
   // the setting turns it off
-  ev("setPref('pauseFurious',false);setPref('warnUnhappy',false);S.biz.push({id:'b2',city:'fra',city2:null,reqs:[],name:'Snack Overflow',type:'dia',bw:5,rate:100,mood:100,since:-100});ACT.speed({v:2})");
+  ev("ACT.ncSet({v:'z:cust'});setPref('warnUnhappy',false);S.biz.push({id:'b2',city:'fra',city2:null,reqs:[],name:'Snack Overflow',type:'dia',bw:5,rate:100,mood:100,since:-100});ACT.speed({v:2})");
   for (let i = 0; i < 5; i++) ev('dayTick()');
   assert.ok(ev("S.biz.find(b=>b.id==='b2').mood") < 30);
   assert.equal(ev('UI.speed'), 2, 'no pause with the setting off');
   assert.doesNotMatch(toasts(), /Snack Overflow is getting unhappy/);
-  assert.equal(ev("JSON.parse(localStorage.getItem('sot-prefs')).pauseFurious"), false, 'stored per device');
+  assert.equal(ev("JSON.parse(localStorage.getItem('sot-prefs')).npz.cust"), false, 'stored per device');
   assert.deepEqual(errors, []);
 });
 
@@ -467,9 +467,11 @@ test('settings screen holds every option and opens from the menu and the title s
   const { ev, errors } = load();
   ev('showTitle();ACT.settings()');
   const card = () => ev("document.getElementById('modalCard').textContent");
-  for (const t of [/Pause when a customer is furious/, /Warn when a customer gets unhappy/, /Pause on outages/, /Animations/, /Sound/, /Language/]) assert.match(card(), t);
-  ev("ACT.prefSet({v:'pauseIncident:1'})");
-  assert.equal(ev("pref('pauseIncident')"), true);
+  for (const t of [/Pop-ups/, /Per topic/, /Warn when a customer gets unhappy/, /Animations/, /Sound/, /Language/]) assert.match(card(), t);
+  ev("ACT.ncSet({v:'z:inc'})");
+  assert.equal(ev("ncPause('inc')"), true);
+  ev("ACT.ncSet({v:'z:constructor'});ACT.ncSet({v:'p:__proto__'})");
+  assert.equal(ev("ncPreset()"), 'all', 'unknown topics and presets are ignored');
   ev("ACT.prefSet({v:'nope:1'})");
   assert.equal(ev("'nope' in PREFS"), false, 'unknown settings are ignored');
   ev('ACT.settingsClose()');

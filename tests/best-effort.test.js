@@ -105,11 +105,11 @@ test('quiet notifications: on by default in Best Effort, a setting everywhere, a
   dom.window.innerWidth = 360;
   ev('UI.setOpen=true;openModal(settingsHtml())');
   const doc = dom.window.document;
-  assert.match(doc.getElementById('modalCard').textContent, /Quiet notifications/);
-  doc.querySelector('#modalCard [data-act="prefSet"][data-args*="quiet:1"]').click();
+  assert.match(doc.getElementById('modalCard').textContent, /Pop-ups/);
+  doc.querySelector('#modalCard [data-act="ncSet"][data-args*="p:quiet"]').click();
   assert.equal(ev('quietOn()'), true, 'chosen on, on in every mode');
   start(ev, 'soft');
-  ev("ACT.prefSet({v:'quiet:0'})");
+  ev("ACT.ncSet({v:'p:all'})");
   assert.equal(ev('quietOn()'), false, 'chosen off, off even in Best Effort');
   assert.deepEqual(errors, []);
 });

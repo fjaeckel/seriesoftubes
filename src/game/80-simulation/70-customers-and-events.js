@@ -13,7 +13,7 @@ function bTerms(o){const T=BIZ_T[o.type];if(T.cap)return capTerms(o);
   return fmtG(o.bw)+' · '+tr('common.price_mo',{price:fmt$(o.bw*o.rate)});}
 // Events are paid once at the end, prorated by how much of the crowd you served.
 function eventTick(b,d){if(!BIZ_T[b.type].event)return false;if(d<b.start)return true;
-  if(d<b.start+b.dur){b.srv=(b.srv||0)+sfOf(R,b.city);b.srvDays=(b.srvDays||0)+1;if(d===b.start)toast(tr('customers_and_events.name_starts_today_bw_of_extra',{name:esc(b.name),bw:fmtG(b.bw),city:CITY[b.city].name,d:b.dur}),'goal',[{l:tr('common.show_me'),act:'focusCity',args:{city:b.city}}]);return true;}
+  if(d<b.start+b.dur){b.srv=(b.srv||0)+sfOf(R,b.city);b.srvDays=(b.srvDays||0)+1;if(d===b.start)toast(tr('customers_and_events.name_starts_today_bw_of_extra',{name:esc(b.name),bw:fmtG(b.bw),city:CITY[b.city].name,d:b.dur}),'',[{l:tr('common.show_me'),act:'focusCity',args:{city:b.city}}]);return true;}
   const avg=b.srvDays?b.srv/b.srvDays:0;if(avg>=0.95)S.stats.evFull=(S.stats.evFull||0)+1;const pay=avg>=0.95?b.fee:avg>=0.7?Math.round(b.fee*avg):-Math.round(b.fee*0.2);S.cash+=pay;S.biz=S.biz.filter(x=>x!==b);
   toast(pay>=0?tr('customers_and_events.name_is_over_pay_you_delivered',{name:esc(b.name),pay:fmt$(pay),pct:pct(avg)})+(avg>=0.95?' '+tr('common.flawless'):''):tr('customers_and_events.name_was_a_disaster_only_pct',{name:esc(b.name),pct:pct(avg),pay:fmt$(-pay)}),pay>=0?'good':'bad');sfx(pay>=0?'coin':'err');return true;}
 /* Where the giants actually build: gigawatt AI campuses and cloud regions, mapped to the nearest city on the map (#61:

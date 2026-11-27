@@ -19,10 +19,15 @@
 
 #hint{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 76px);background:var(--ink);color:#fff;border-radius:12px;padding:6px 12px;font-weight:800;font-size:12.5px;z-index:3;pointer-events:none;max-width:min(440px,calc(100% - 32px));text-align:center;box-shadow:3px 3px 0 rgba(30,38,64,.25)}
 
-/* A toast that points somewhere opens it on a tap; repeats show a count; the "+N" pill opens the NOC log. */
+/* A toast that points somewhere opens it on a tap; repeats show a count. One shows at a time: the others wait hidden
+   behind it (.tq), counted on its 1/N › button; 🔕 sends that topic to the NOC log from now on. */
 .toast.tgo{pointer-events:auto;cursor:pointer}
 .toast.tgo:hover{transform:translateY(-1px)}
 .toast .tn{margin-right:2px;vertical-align:1px}
-.tmore{pointer-events:auto;align-self:center;border:2.5px solid var(--edge);border-radius:999px;background:var(--paper);color:var(--ink);box-shadow:2px 2px 0 var(--edge);padding:3px 12px;font:800 12px var(--body);cursor:pointer}
+.toast.tq{display:none}
+.toast .tnav:empty{display:none}
+.tnext{pointer-events:auto;flex:none;border:2.5px solid var(--edge);border-radius:999px;background:var(--paper);color:var(--ink);box-shadow:2px 2px 0 var(--edge);padding:3px 9px;min-height:30px;font:800 12px var(--body);cursor:pointer;white-space:nowrap}
+.toast .tmute{pointer-events:auto;flex:none;min-width:32px;padding:2px 6px;opacity:.75}
+.toast .tmute:hover,.toast .tmute:focus-visible{opacity:1}
 .toast.undo{background:var(--ink);color:var(--paper)}
 .toast.undo .b{background:var(--sun);color:var(--on)}

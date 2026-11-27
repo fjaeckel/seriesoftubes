@@ -30,4 +30,4 @@ const sideSheets=()=>isPhone()&&innerHeight<=500&&innerWidth>=innerHeight;
   document.addEventListener('scroll',e=>{const t=e.target;if(t.classList&&t.classList.contains('scroll'))pos.set(t,t.scrollTop);},{capture:true,passive:true});
   addEventListener('resize',()=>{const l=innerWidth>innerHeight;if(l===land)return;land=l;requestAnimationFrame(()=>{for(const t of document.querySelectorAll('#left>.scroll,#panel .scroll')){const y=pos.get(t);if(y&&!t.scrollTop)t.scrollTop=y;}});});})();
 // Toasts can be tapped away on touch screens.
-document.addEventListener('click',e=>{const t=e.target.closest('.toast');if(t&&!e.target.closest('[data-act]')&&isPhone())t.remove();});
+document.addEventListener('click',e=>{const t=e.target.closest('.toast');if(t&&!e.target.closest('[data-act]')&&isPhone())toastDrop(t);});

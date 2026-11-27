@@ -216,7 +216,9 @@
     for (const k of ['biz', 'offers']) if (Array.isArray(o[k])) o[k] = o[k].map((x) => { const y = {}; for (const f of Object.keys(x)) if (!drop.items.includes(f)) y[f] = x[f]; return y; });
     return o; };
   // A badge's note in the log opens the wall of badges now; on older pages it opened the Goals tab. Same note, same game.
-  const jz = (v) => JSON.stringify(v).split('"o":{"a":"badges"}').join('"o":{"a":"tab","v":"goals"}');
+  // A notice's kind is its colour and whether Quiet pops it up (#498 took offers and reminders off 'goal'): same note too.
+  const jz = (v) => JSON.stringify(v, (k, x) => (k === 'log' && Array.isArray(x) ? x.map((e) => (e && typeof e === 'object' ? { ...e, k: undefined } : e)) : x))
+    .split('"o":{"a":"badges"}').join('"o":{"a":"tab","v":"goals"}');
   const sDigest = (drop) => jz(sDrop(drop));
   const sParts = (drop) => { const s = sDrop(drop), o = {}; for (const k of Object.keys(s)) o[k] = jz(s[k]); return o; };
   /* After a move: what the move routed (a), routing again from the same state (b: on this checkout's page the kept

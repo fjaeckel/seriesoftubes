@@ -183,7 +183,7 @@ test('in the player\'s tab the player owns the game, their windows, their settin
     }
     assert.equal(a.ev('S.mode'), 'normal');
     // So are their settings, agent mode's own switch included: it is no game action, so no tool can find or press it.
-    assert.match((await t.call('act', { action: 'prefSet', args: { v: 'pauseFurious:0' } })).error, /not available here/);
+    assert.match((await t.call('act', { action: 'prefSet', args: { v: 'warnUnhappy:0' } })).error, /not available here/);
     assert.match((await t.call('act', { action: 'agentSet', args: {} })).error, /no action/);
     assert.equal(a.ev('API_AGENT_PREFS.on'), true);
     // A window the player opened by hand stays theirs: the agent plays behind it, and never closes or replaces it.
@@ -298,7 +298,7 @@ test('a paced clock holds while no tool is connected, and runs when one arrives'
     assert.ok(a.ev('UI.speed') > 0, 'and a tool arriving runs it again');
     // An unrelated preference change does not drop the connection or hold the clock.
     a.ev('window.__w0=API_RELAY.ws');
-    a.ev("ACT.prefSet({v:'pauseFurious:0'})");
+    a.ev("ACT.prefSet({v:'warnUnhappy:0'})");
     a.ev("apiAgentSet('ms',300000)");
     assert.equal(a.ev('API_RELAY.ws===window.__w0'), true, 'the same socket survived both');
     assert.equal(a.ev('UI.speed'), a.ev('DAY_MS/300000'), 'the clock never held for them, and runs at the new pace');

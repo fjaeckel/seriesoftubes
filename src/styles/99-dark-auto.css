@@ -101,7 +101,7 @@
 :where(:root.dark) .segc button:hover{background:var(--paper);color:var(--ink)}
 :where(:root.dark) .segc button.on{background:var(--sun);color:var(--on)}
 :where(:root.dark) #hint{background:var(--on);color:#fff}
-:where(:root.dark) .tmore{background:var(--paper);color:var(--ink)}
+:where(:root.dark) .tnext{background:var(--paper);color:var(--ink)}
 :where(:root.dark) .toast.undo{background:var(--on);color:var(--paper)}
 :where(:root.dark) .toast.undo .b{background:var(--sun);color:var(--on)}
 :where(:root.dark) .osum{color:var(--ink2)}

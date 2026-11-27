@@ -242,7 +242,7 @@ test('payday money floaters fade after a long pause instead of piling up', () =>
   const { ev, errors } = load();
   bigNet(ev);
   // a fake clock, so a ten-minute pause takes no time; no auto-pause in the middle
-  ev("closeModal();ACT.animSet({v:'on'});setPref('pauseFurious',false);setPref('pauseIncident',false);window.__clk=5000;performance.now=()=>__clk;last=__clk;UI.speed=1");
+  ev("closeModal();ACT.animSet({v:'on'});PREFS.npz={cust:false,inc:false};window.__clk=5000;performance.now=()=>__clk;last=__clk;UI.speed=1");
   const run = (ms) => { for (let t = 0; t < ms; t += 16) ev('__clk+=16;frame(__clk)'); };
   ev("ACT.buildPop({city:'mad'})");
   assert.ok(ev('FLOATS.length') > 0, 'building shows the money');
@@ -261,7 +261,7 @@ test('payday money floaters fade after a long pause instead of piling up', () =>
 test("a new network starts without the last one's money floating over its map", () => {
   const { ev, errors } = load();
   bigNet(ev);
-  ev("closeModal();ACT.animSet({v:'on'});setPref('pauseFurious',false);setPref('pauseIncident',false);window.__clk=5000;performance.now=()=>__clk;last=__clk;UI.speed=1");
+  ev("closeModal();ACT.animSet({v:'on'});PREFS.npz={cust:false,inc:false};window.__clk=5000;performance.now=()=>__clk;last=__clk;UI.speed=1");
   const run = (ms) => { for (let t = 0; t < ms; t += 16) ev('__clk+=16;frame(__clk)'); };
   run(2000);
   ev('while(cal(S.day+1).d!==1)dayTick();acc=DAY_MS');
@@ -277,7 +277,7 @@ test("a new network starts without the last one's money floating over its map", 
 test('the map is not drawn while the dashboard covers the whole screen', () => {
   const { ev, errors } = load();
   bigNet(ev);
-  ev("closeModal();ACT.animSet({v:'on'});setPref('pauseFurious',false);setPref('pauseIncident',false);window.__clk=5000;performance.now=()=>__clk;last=__clk;UI.speed=1");
+  ev("closeModal();ACT.animSet({v:'on'});PREFS.npz={cust:false,inc:false};window.__clk=5000;performance.now=()=>__clk;last=__clk;UI.speed=1");
   const frame = () => { const a = ev('ctx.calls.n'); ev('__clk+=16;frame(__clk)'); return ev('ctx.calls.n') - a; };
   // jsdom has no layout, so the card says where it is: on a phone, scrolled down, it fills the screen
   const at = (top) => ev(`$('dashCard').getBoundingClientRect=()=>({top:${top},left:0,right:innerWidth,bottom:innerHeight+900})`);

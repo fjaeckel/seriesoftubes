@@ -33,7 +33,7 @@ function fireEvent(){
     toast(tr('events.glitch_is_leaving_korea_the_game'),'bad');sfx('alert');return;}
   if(e==='krroute'){S.ev.krroute=S.day+20;addInc({type:'krroute',ref:'icn',until:S.day+20,msg:tr('events.faceplant_got_tired_of_korean_usage'),cost:0},'krroute');
     toast(tr('events.faceplant_rerouted_korea_via_hong'),'bad');sfx('alert');return;}
-  if(e==='mega'){const c=pick(Object.keys(S.pops).filter(x=>CITY[x].saudi)),bw=pick([800,1600,3200]),start=S.day+15;S.offers.push({id:uid(),city:c,city2:null,name:tr('events.a_futuristic_city_that_is_not',{city:CITY[c].name}),type:'event',bw,rate:0,reqs:[],start,dur:4,fee:bw*4*90,exp:start-2});toast(tr('events.a_gigaproject_wants_a_demo_bw',{bw:fmtG(bw),city:CITY[c].name}),'goal');}
+  if(e==='mega'){const c=pick(Object.keys(S.pops).filter(x=>CITY[x].saudi)),bw=pick([800,1600,3200]),start=S.day+15;S.offers.push({id:uid(),city:c,city2:null,name:tr('events.a_futuristic_city_that_is_not',{city:CITY[c].name}),type:'event',bw,rate:0,reqs:[],start,dur:4,fee:bw*4*90,exp:start-2});toast(tr('events.a_gigaproject_wants_a_demo_bw',{bw:fmtG(bw),city:CITY[c].name}),'');}
   if(e==='sanction'){S.ev.sanction=S.day+60;toast(tr('events.sanctions_the_republic_of'),'bad');sfx('alert');return;}
   if(e==='hwshock'){hwShockStart();return;}
   if(e==='tariff'){S.ev.tariff=S.day+90;toast(tr('events.trade_war_on_optics_two_governments'),'bad');sfx('alert');return;}
@@ -45,16 +45,16 @@ function fireEvent(){
     p.down=Math.max(p.down||0,S.day+2);addInc({type:'power',ref:c,until:p.down,msg:tr('events.name_knocked_out_power_in_city',{name:nm,city:CITY[c].name}),cost:7000,fix:tr('incidents.rent_a_generator')});hsSoloSoft(S.inc[S.inc.length-1]);toast(tr('events.name_hits_city_power_is_out',{name:nm,city:CITY[c].name}),'bad');sfx('alert');evRoute();return;}
   if(e==='runet'){S.ev.runet=S.day+1;toast(tr('events.sovereign_internet_drill_moscow'),'bad');sfx('alert');evRoute();return;}
   if(e==='baltic'){const BAL=['clion','havf','danice'];const hit=S.links.filter(l=>l.cable&&BAL.includes(l.cable)&&!(l.cut>S.day));
-    if(!hit.length){toast(tr('events.baltic_cable_damaged_a_cargo_ship'),'goal');return;}
+    if(!hit.length){toast(tr('events.baltic_cable_damaged_a_cargo_ship'),'good');return;}
     const dur=15+Math.floor(Math.random()*15),en=N_('events.a_cargo_ship_dragged_its_anchor');for(const tk of new Set(hit.map(l=>l.trench||l.id))){S.links.filter(l=>(l.trench||l.id)===tk).forEach(l=>l.cut=Math.max(l.cut||0,S.day+dur));addInc({type:'redsea',ref:tk,until:S.day+dur,msg:tr(en),cost:0},en);}
     toast(tr('events.baltic_cable_damaged_n_of_your',{n:hit.length,d:dur}),'bad');sfx('alert');evRoute();return;}
   if(e==='redsea'){const RED=['twoaf','smw6','peace','aae','eig','eassy'];const hit=S.links.filter(l=>l.cable&&RED.includes(l.cable)&&!(l.cut>S.day));
-    if(!hit.length){toast(tr('events.cables_cut_in_the_red_sea'),'goal');return;}
+    if(!hit.length){toast(tr('events.cables_cut_in_the_red_sea'),'good');return;}
     const dur=20+Math.floor(Math.random()*15),en=N_('events.a_ship_drifting_without_power');for(const tk of new Set(hit.map(l=>l.trench||l.id))){S.links.filter(l=>(l.trench||l.id)===tk).forEach(l=>l.cut=Math.max(l.cut||0,S.day+dur));addInc({type:'redsea',ref:tk,until:S.day+dur,msg:tr(en),cost:0},en);}
     toast(tr('events.cables_cut_in_the_red_sea_03e8',{n:hit.length,d:dur}),'bad');sfx('alert');evRoute();return;}
-  if(e==='golden'){S.ev.golden=S.day+7;toast(tr('events.golden_week_demand_in_mainland_china'),'goal');return;}
+  if(e==='golden'){S.ev.golden=S.day+7;toast(tr('events.golden_week_demand_in_mainland_china'),'');return;}
   if(e==='gfw'){S.ev.gfw=S.day+10;toast(tr('events.border_stricter_loss_p',{p:Math.round(gfwLoss(false,true)*100),n:10}),'bad');sfx('alert');return;}
-  if(e==='viral'){S.ev.viral=S.day+8;toast(tr('events.new_season_of_stranger_pings_just'),'goal');}
+  if(e==='viral'){S.ev.viral=S.day+8;toast(tr('events.new_season_of_stranger_pings_just'),'');}
   else if(e==='price'){S.priceMul*=0.92;toast(tr('events.transit_prices_fell_8_they_do'),'good');}
   else if(e==='grant'){S.cash+=30000;toast(tr('events.rural_broadband_grant_30k_the'),'good');sfx('coin');}
   else if(e==='depeer'){S.ev.depeer=S.day+20;addInc({type:'depeer',ref:'cog',until:S.day+20,msg:tr('events.cogentle_and_goggle_are_in_a'),cost:0});if(toastT1(tr('events.peering_spat_cogentle_de_peered'),'bad'))sfx('alert');}

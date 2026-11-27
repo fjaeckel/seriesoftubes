@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Notifications now come one at a time: instead of stacks of one, two or three toasts, a single toast shows the current notice and counts the ones waiting behind it (1/3 ›, tap to see the next). Trouble and anything that needs an answer goes ahead of chatter, chatter moves on sooner while others wait, and the NOC log still keeps every notice. (#498)
+
+- Settings has a new Notifications section: choose Everything or Quiet, or set each topic yourself (outages, customers, bank and money, construction, peering, deals, world news, conferences, your staff, milestones) to pop up all of it, only what is important, or nothing at all, and pick which topics pause the game when there is trouble. Your old Quiet notifications and pause settings carry over. (#498)
+
+- Quiet notifications are quieter: loan offers, conference reminders and world news such as Golden Week no longer pop up (they are in the NOC log), while trouble, milestones and new deals such as consortium cable seats still do. (#498)
+
+- Construction delays are no longer treated as trouble: with Quiet on they stay in the NOC log, and in each topic's settings you can keep construction news off the screen altogether. (#443)
+
+- A 🔕 button on each notice from the day sends that whole topic to the NOC log from now on, with Undo right there; change it back any time in Settings. (#498)
+
 - You can now choose which kinds of deal the sales desk signs for you. Leave it on All, or pick Custom to switch off whole categories (internet access, private circuits, gaming, events, fibre and capacity, orbit) or single kinds: those offers wait for you, never signed or declined by the desk (#497).
 
 - Links into mainland China now start only in Hong Kong or Seoul, where Chinese carriers really meet foreign networks. Links you already have into China keep working.

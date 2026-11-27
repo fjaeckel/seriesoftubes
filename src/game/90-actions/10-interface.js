@@ -55,7 +55,7 @@ const ACT={
   if(o.a==='badges'){ACT.badgesOpen();return;}
   if(o.a==='tab'&&LOG_TABS.includes(o.v))ACT.leftTab({t:o.v});},
  // A badge (its toast, or its note in the NOC log) opens the wall of badges itself: unfolded and scrolled to, not just the Goals tab above it.
- badgesOpen:()=>{if(!S)return;for(const t of document.querySelectorAll('#toasts .btoast'))t.remove();$('dash').hidden=true;UI.fold=UI.fold||{};UI.fold.badges=true;
+ badgesOpen:()=>{if(!S)return;for(const t of document.querySelectorAll('#toasts .btoast'))toastDrop(t);$('dash').hidden=true;UI.fold=UI.fold||{};UI.fold.badges=true;
   if(isPhone()){UI.sel=null;renderPanel();$('left').classList.remove('full');}ACT.leftTab({t:'goals'});const h=document.querySelector('#leftBody .bhead');if(h&&h.scrollIntoView)h.scrollIntoView({block:'start'});},
  logAll:()=>{UI.logAll=!UI.logAll;renderLeft();},
  logKind:({k})=>{UI.logKind=k==='all'?null:k==='info'?'':LOG_KINDS.includes(k)?k:null;renderLeft();},

@@ -19,13 +19,15 @@ function undoDo(fn,keys,html){if(!S)return fn();const u={S,day:S.day,keys,b:keys
   undoEnd();UI.undo=u;const el=toastShow(html,'',[{l:'↶ '+tr('puzzles.undo'),act:'undo',args:{}}],null,UNDO_MS);if(el)el.classList.add('undo','imp');
   // The day moving on (or another network) ends it at once, toast and all.
   u.w=setInterval(()=>{if(UI.undo!==u||!undoLive(u))undoEnd(u);},300);}
-function undoEnd(u=UI.undo){if(!u)return;clearInterval(u.w);if(UI.undo===u)UI.undo=null;for(const t of document.querySelectorAll('#toasts .toast.undo'))t.remove();toastPill();}
+function undoEnd(u=UI.undo){if(!u)return;clearInterval(u.w);if(UI.undo===u)UI.undo=null;for(const t of document.querySelectorAll('#toasts .toast.undo'))toastDrop(t);}
 Object.assign(ACT,{
  undo:()=>{const u=UI.undo;if(!u)return;const ok=undoLive(u);undoEnd(u);if(!ok){toast(tr('undo.too_late'),'');return;}
    u.keys.forEach((k,i)=>{S[k]=undoCopy(u.b[i]);});sfx('click');after();},
  // A toast that points somewhere: tapping it goes there, as its line in the NOC log would, and puts it away.
- toastGo:({id})=>{if(!S)return;for(const t of document.querySelectorAll('#toasts .toast.tgo'))if(t.dataset.args===JSON.stringify({id}))t.remove();toastPill();ACT.logOpen({id});},
+ toastGo:({id})=>{if(!S)return;for(const t of document.querySelectorAll('#toasts .toast.tgo'))if(t.dataset.args===JSON.stringify({id}))toastDrop(t);ACT.logOpen({id});},
+ // The counter on the toast: this one goes, the next one waiting shows.
+ toastNext:()=>{toastDrop(toastCur());},
  // The "+N" pill: every notice is in the NOC log; open it there, all of it.
- toastsMore:()=>{if(!S)return;UI.toastOff=null;for(const t of document.querySelectorAll('#toasts .toast:not(.undo)'))t.remove();toastPill();$('dash').hidden=true;closeModal();
+ toastsMore:()=>{if(!S)return;toastClear();$('dash').hidden=true;closeModal();
    UI.logAll=true;if(isPhone()){UI.sel=null;renderPanel();}ACT.leftTab({t:'noc'});const h=$('noteLog');if(h&&h.scrollIntoView)h.scrollIntoView({block:'start'});},
 });

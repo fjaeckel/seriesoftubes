@@ -342,7 +342,7 @@ test('a brand-new phone player can click through the install pitch and the title
   assert.equal(ev('S'), null, 'no game yet');
   const click = (sel) => { const el = doc.querySelector(sel); assert.ok(el, sel); el.dispatchEvent(new w.MouseEvent('click', { bubbles: true })); };
   click('#modal [data-act="settings"]');
-  assert.match(doc.getElementById('modal').textContent, /Pause when a customer is furious/, 'Settings opens before any game exists');
+  assert.match(doc.getElementById('modal').textContent, /Pop-ups/, 'Settings opens before any game exists');
   click('#modal [data-act="settingsClose"]');
   click('#modal [data-act="start"]');
   assert.match(doc.getElementById('modal').textContent, /Play it as an app/);

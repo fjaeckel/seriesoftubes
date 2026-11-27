@@ -29,7 +29,7 @@ function* failureRun(only){
   if(only)type=only;
   if(type==='funny'){const f=['oops','cleaner','harmless','harmless','harmless','ac'];if(live.length)f.push('fatwave','fatwave','mtu','label','loss','loss');if(lagsN().length)f.push('lacp','lacp');if(R.demand>1)f.push('pmtud');if(S.transit.length)f.push('prepend');if(S.day>30)f.push('rpki');if(lit.length)f.push('roadmff');type=pick(f);}
   const before=R.served;
-  if(type==='harmless'){const m=pick(HARMLESS);S.stats.incidents++;S.stats.survived++;toast(`<b>${m[0]}</b><br>${m[1]}`,'goal');sfx('alert');return;}
+  if(type==='harmless'){const m=pick(HARMLESS);S.stats.incidents++;S.stats.survived++;toast(`<b>${m[0]}</b><br>${m[1]}`,'good');sfx('alert');return;}
   if(type==='ring'){const cs=Object.keys(S.pops).filter(c=>S.pops[c].site2),c=pick(cs),pp=S.pops[c],dur=2+Math.floor(Math.random()*3);pp.ringcut=S.day+dur;
     addInc({type,ref:c,until:pp.ringcut,msg:pick([tr('failures.a_backhoe_cut_the_metro_ring',{city:CITY[c].name}),tr('failures.someone_pulled_the_wrong_cross',{city:CITY[c].name,siteB:siteName(c,'b'),siteA:siteName(c,'a')}),tr('failures.a_tram_line_construction_project_in',{city:CITY[c].name})]),cost:3000,fix:tr('failures.splice_it_tonight')});}
   else if(type==='ac'){const c=pick(Object.keys(S.pops)),pp=S.pops[c];pp.hot=S.day+2;
@@ -128,7 +128,7 @@ function* failureRun(only){
   if(!last)return;
   last.impact=Math.max(0,before-R.served);
   if(before>1&&last.impact<before*0.03&&type!=='ddos'){S.stats.survived++;toast(`<b>${incTitle(type)}</b><br>${esc(last.msg)} ${tr('failures.traffic_rerouted_customers_barely')}`,'good',[],incOpen(last));}
-  else{const paused=pref('pauseIncident')&&autoPause();toast(`<b>${incTitle(type)}</b><br>${esc(last.msg)}${paused?`<br><b>${tr('common.game_paused')}</b>`:''}`,'bad',(last.cost&&S.inc.includes(last)?[{l:`${last.fix||tr('common.rush_repair')} ${fmt$(last.cost)}`,act:'fixInc',args:{id:last.id}}]:[]).concat(paused?[resumeAct()]:[]),incOpen(last));}
+  else toast(`<b>${incTitle(type)}</b><br>${esc(last.msg)}`,'bad',last.cost&&S.inc.includes(last)?[{l:`${last.fix||tr('common.rush_repair')} ${fmt$(last.cost)}`,act:'fixInc',args:{id:last.id}}]:[],incOpen(last));
   sfx('alert');
 }
 const gamingCount=()=>S.biz.reduce((n,b)=>n+(BIZ_T[b.type]?.gaming?1:0),0);

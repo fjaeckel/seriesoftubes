@@ -188,7 +188,7 @@ test('the eyeball world\'s events stay out of the charter, and only out of it', 
   assert.deepEqual(c.errors, []);
 });
 
-test('toasts in the charter: decisions and milestones pop up, the rest goes to the NOC log, two at most', (t) => {
+test('toasts in the charter: decisions and milestones pop up, the rest goes to the NOC log, one at a time', (t) => {
   const { ev, dom, errors } = cloud(t);
   ev("$('toasts').innerHTML='';S.log=[];UI.tick=true;toast('chatter','');toast('news','bad');toast('needs you','bad',[{l:'Open',act:'popGo',args:{city:'fra'}}]);toast('milestone','goal');UI.tick=false");
   const txt = ev("$('toasts').textContent");
@@ -197,7 +197,7 @@ test('toasts in the charter: decisions and milestones pop up, the rest goes to t
   assert.match(txt, /milestone/);
   assert.equal(ev('S.log.length'), 4, 'every one is in the log');
   ev("UI.tick=true;for(let i=0;i<6;i++)toast('decide '+'abcdef'[i],'bad',[{l:'Open',act:'popGo',args:{city:'fra'}}]);UI.tick=false");
-  assert.ok(ev("$('toasts').querySelectorAll('.toast').length") <= 2, 'two on screen at most');
+  assert.equal(ev("$('toasts').querySelectorAll('.toast:not(.tq)').length"), 1, 'one on screen, the rest wait behind it');
   // What the player does still answers at once.
   ev("$('toasts').innerHTML='';toast('done','good')");
   assert.match(ev("$('toasts').textContent"), /done/);

@@ -39,6 +39,17 @@ Object.assign(ACT,{
  settings:()=>{UI.setOpen=true;openModal(settingsHtml());},
  settingsClose:()=>{UI.setOpen=false;if(!S||!UI.started)showTitle();else closeModal();},
  prefSet:({v})=>{const [k,b]=String(v).split(':');if(!own(PREF_DEF,k))return;setPref(k,b==='1');sfx('click');refreshSettings();},
+ // Notifications: f folds the topics open, p:preset, c:topic:level, z:topic (pause on trouble), m:topic (only log these,
+ // from the toast itself: its toasts go, and an Undo puts the topic back as it was).
+ ncSet:({v})=>{const [t,c,l]=String(v).split(':');
+   if(t==='f')UI.ncOpen=!UI.ncOpen;
+   else if(t==='p'&&own(NC_PRE,c)){PREFS.np=c;delete PREFS.nc;prefSave();}
+   else if(t==='c'&&NCATS.includes(c))ncSetLevel(c,+l);
+   else if(t==='z'&&NCATS.includes(c)){const z=!ncPause(c);PREFS.npz=PREFS.npz&&typeof PREFS.npz==='object'?PREFS.npz:{};PREFS.npz[c]=z;prefSave();}
+   else if(t==='m'&&NCATS.includes(c)){const was=ncLevel(c);ncSetLevel(c,0);for(const e of document.querySelectorAll('#toasts .toast'))if(e.dataset.cat===c)toastDrop(e);
+     toastShow(tr('toasts.nc_muted',{topic:esc(ncName(c))}),'',[{l:'↶ '+tr('puzzles.undo'),act:'ncSet',args:{v:'c:'+c+':'+was}}],null,6000);}
+   else return;
+   sfx('click');refreshSettings();},
  vpSet:({v})=>{diagOn(v==='on');refreshSettings();},
  resetAsk:()=>openModal(`<h2 style="font-size:26px">${tr('game_and_settings.start_a_new_network')}</h2><p class="tagline">${tr('game_and_settings.name_and_everything_it_owns_will',{name:esc(S?S.name:tr('common.your_network'))})}</p><div class="btns">${btn(tr('game_and_settings.delete_and_start_over'),'newgame',{},'red big')}${btn(tr('common.keep_playing'),'closeModal',{},'ghost big')}</div>`),
  whatsNewShow:()=>whatsNew(true,true),

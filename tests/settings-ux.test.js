@@ -7,7 +7,7 @@ test('Settings come in sections, language first, every setting one line with its
   const { ev, errors } = load();
   ev("ACT.start({});window.innerWidth=360;window.innerHeight=640;ACT.settings({})");
   const secs = JSON.parse(ev("JSON.stringify([...document.querySelectorAll('#modal h3.sets')].map(h=>h.textContent.trim()))"));
-  assert.deepEqual(secs, ['Display and sound', 'Customers and alerts', 'Data and saves', 'Advanced']);
+  assert.deepEqual(secs, ['Display and sound', 'Notifications', 'Data and saves', 'Advanced']);
   assert.equal(ev("document.querySelector('#modal .setline select#langSel')&&document.querySelector('#modal .setline').contains($('langSel'))"), true, 'language is the first line');
   const lines = JSON.parse(ev(`JSON.stringify([...document.querySelectorAll('#modal .setline')].map(l=>[l.firstElementChild.className,l.children.length]))`));
   assert.ok(lines.length >= 10);
@@ -16,9 +16,9 @@ test('Settings come in sections, language first, every setting one line with its
   assert.equal(ev("document.querySelectorAll('#modal .setline+p.meta').length"), 0);
   assert.ok(ev("document.querySelectorAll('#modal .setl small').length") >= 7);
   // Each control still works from its line.
-  ev("document.querySelector('#modal [data-act=\"prefSet\"][data-args*=\"quiet:1\"]').click()");
+  ev("document.querySelector('#modal [data-act=\"ncSet\"][data-args*=\"p:quiet\"]').click()");
   assert.equal(ev('quietOn()'), true);
-  assert.ok(ev("document.querySelector('#modal [data-act=\"prefSet\"][data-args*=\"quiet:1\"]').classList.contains('pink')"), 'the line shows what is on');
+  assert.ok(ev("document.querySelector('#modal [data-act=\"ncSet\"][data-args*=\"p:quiet\"]').classList.contains('pink')"), 'the line shows what is on');
   assert.match(ev("$('modal').textContent"), /Diagnostic info/);
   assert.deepEqual(errors, []);
 });
@@ -31,7 +31,7 @@ test('every control works from its line at 360 px, the line shows what is on, an
   const on = (act, v) => ev(`(()=>{const b=document.querySelector('#modal [data-act="${act}"][data-args*=\\'"${v}"\\']');return !!b&&b.classList.contains('pink');})()`);
   const tap = (act, v) => ev(`document.querySelector('#modal [data-act="${act}"][data-args*=\\'"${v}"\\']').click()`);
   for (const [act, v, check] of [['soundSet', 'off', 'UI.muted===true'], ['themeSet', 'dark', "UI.theme==='dark'"], ['animSet', 'off', "UI.anim==='off'"],
-    ['mapSet', '2d', '!GLX.want'], ['vpSet', 'on', 'DIAG.on'], ['prefSet', 'pauseIncident:1', "pref('pauseIncident')"]]) {
+    ['mapSet', '2d', '!GLX.want'], ['vpSet', 'on', 'DIAG.on'], ['prefSet', 'warnUnhappy:0', "!pref('warnUnhappy')"], ['ncSet', 'p:quiet', 'quietOn()']]) {
     tap(act, v);
     assert.equal(ev(check), true, `${act} ${v}`);
     assert.equal(ev('UI.setOpen&&!$("modal").hidden'), true, 'Settings stay open');

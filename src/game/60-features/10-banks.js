@@ -81,7 +81,7 @@ function spawnLoanOffer(emergency){
   else{o.apr=+(ra(B.apr)+(RATE_PREM[rt]||0)).toFixed(3);o.term=Math.round(ra(B.term)/6)*6||6;o.pay=B.model==='balloon'?0:Math.round(annuity(amount,o.apr,o.term));if(B.model)o.model=B.model;}
   if(!B.equity&&amount>BIG_LOAN*base)o.share=+Math.min(0.08,0.02+0.01*(amount/base-BIG_LOAN)).toFixed(3);
   S.loanOffers.push(o);
-  toast(tr('banks.bank_would_like_to_lend_you',{bank:esc(B.name),amount:fmt$(amount)})+'<br>'+(emergency?tr('banks.they_heard_you_might_be_in'):tr('banks.terms_apply_several_terms')),emergency?'bad':'goal',[{l:tr('common.open_bank'),act:'bank',args:{}}]);
+  toast(tr('banks.bank_would_like_to_lend_you',{bank:esc(B.name),amount:fmt$(amount)})+'<br>'+(emergency?tr('banks.they_heard_you_might_be_in'):tr('banks.terms_apply_several_terms')),emergency?'bad':'',[{l:tr('common.open_bank'),act:'bank',args:{}}]);
 }
 /* Good credit can pick up the phone (#251), from AA up. The rate and the limit follow from the rating alone, so calling again
    gets nothing better and rolls no dice. Bankers being bankers, weird conditions apply: this week's quirk (CALL_ODD, turning
