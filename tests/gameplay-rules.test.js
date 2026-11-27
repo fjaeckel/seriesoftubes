@@ -169,6 +169,13 @@ test('W5: every island city can be reached: it shares its land, has a cable, or 
   fail('W5', bad, 'land a cable there or give it beach:true');
 });
 
+test('W6: mainland China is reached only through Hong Kong and Seoul, and nobody digs fiber inside it', () => {
+  fail('W6', J("CN_GATE.filter(g=>!CITY[g]||cnCity(g)||CITY[g].off)"), 'a gateway is a city on the map outside mainland China');
+  fail('W6', J("CN_GATE.filter(g=>!CITIES.some(c=>cnCity(c.id)&&waveRoute(g,c.id,3,true)))"), 'every gateway reaches a Chinese city by some route');
+  fail('W6', J("CITIES.filter(c=>!cnCity(c.id)&&!CN_GATE.includes(c.id)&&CITIES.some(x=>cnCity(x.id)&&(cnGateOk(c.id,x.id)||cnGateOk(x.id,c.id)))).map(c=>c.id)"), 'only a gateway links into mainland China');
+  fail('W6', J("CITIES.filter(c=>cnCity(c.id)&&CITIES.some(x=>!cnNoDig(c.id,x.id))).map(c=>c.id)"), 'no fiber is dug to or inside mainland China');
+});
+
 // ---------- Networks ----------
 
 test('N1: network ids and ASNs are unique, ASNs are valid', () => {

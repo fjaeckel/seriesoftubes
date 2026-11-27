@@ -210,6 +210,10 @@ const bizCity=c=>CITY[c].cc!=='KP';
 const OFFC=ALLC.filter(c=>!CITY[c].off&&bizCity(c));
 const ruCity=c=>!!CITY[c].ru;
 const cnCity=c=>!!CITY[c].cn;
+/* Mainland China meets the world only at its gateways: Chinese carriers hand circuits over at the border, and they
+   meet foreign networks in Hong Kong and Seoul, so a new link into it starts there (links a save already has stay).
+   Inside it only the state carriers dig: a foreign network leases its glass (cnNoDig). */
+const CN_GATE=['hkg','icn'],cnGateOk=(a,b)=>cnCity(a)===cnCity(b)||CN_GATE.includes(cnCity(a)?b:a),cnNoDig=(a,b)=>cnCity(a)||cnCity(b);
 // What crossing into mainland China loses: a premium route little, the regular border a fifth, more while it is stricter
 // (S.ev.gfw). Routing and every panel that names the loss read it here.
 const gfwLoss=(prem,strict)=>prem?0.03:strict?0.35:0.2;

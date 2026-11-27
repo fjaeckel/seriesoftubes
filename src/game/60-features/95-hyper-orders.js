@@ -80,7 +80,7 @@ function* hsOpsWave(X){if(!hsOpsOn()||!R.hs.rep)return;const H=S.hs,tb=opsP('hsw
     // One wave a shift: the backlog gets the evening to show what it did.
     const n=S.links.length;if(X.pay('hswave',()=>hsOpsLease(a,b,q.t)&&S.links.length>n)){X.did('hswave',hsPk(a,b)+' '+LT[q.t].n);yield;return;}}}
 // The wave the order would lease between a and b: the smallest size over need that can be had, else the biggest.
-function hsOpsWaveQuote(a,b,need){if(noTalk(a,b))return null;const ui=UI.via,cp=UI.cnPrem;UI.via='';UI.cnPrem=false;
+function hsOpsWaveQuote(a,b,need){if(noTalk(a,b)||!cnGateOk(a,b))return null;const ui=UI.via,cp=UI.cnPrem;UI.via='';UI.cnPrem=false;
   try{const border=cnCity(a)!==cnCity(b),sib=pairLinks(a,b).filter(l=>l.kind!=='vxc'),jn=sib.length?routeJoin(a,b):null,mult=(sib.length&&!(jn&&jn.k===(landTrenches(a,b)[0]||{}).k)?DIVERSE:1)*(border?3:1),wr=waveRoute(a,b,mult,border);if(!wr)return null;
     const ok=LT.map((x,t)=>t).filter(t=>waveOk(a,b,t)&&!subWaveWhy(t,wr.km,wr.sub)&&!soldOut(a,b,t,wr.cab));if(!ok.length)return null;
     const t=ok.find(t=>LT[t].g>=need)??ok.at(-1);return {t,cost:Math.round(waveMo(wr.km,wr.sub,t)*wr.wm)};}finally{UI.via=ui;UI.cnPrem=cp;}}

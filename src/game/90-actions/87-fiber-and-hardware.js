@@ -15,7 +15,8 @@ Object.assign(ACT,{
    S.stats.ownCab=(S.stats.ownCab||0)+1;UI.dfSrc='lease';closeModal();UI.sel={type:'link',id};
    toast(tr('fiber_and_hardware.the_ship_sets_sail_name_your',{ship,name:cname,km:km.toLocaleString(),a:CITY[a].name,b:CITY[b].name,n:days}),'goal');sfx('build');after();},
  orderDf:()=>{const p=UI.pending;if(!p||noTalk(p.a,p.b))return;const {a,b}=p;if(modeOn('autarky')&&(UI.dfSrc!=='build'||isSub(a,b)))return;if(!dfAllowed(a,b)||!linkFromOk(a)||!linkToOk(b))return;const sc=isSub(a,b)?subDfCable(a,b):null,km=sc?sc.km:kmBetween(a,b);
-   const own=UI.dfSrc==='build'&&!sc,sys=DF_SYS[UI.dfSys]&&techOk('sys',UI.dfSys,DF_SYS[UI.dfSys].lvl)?UI.dfSys:'lite';if(glassLvl()<2)return;
+   const own=UI.dfSrc==='build'&&!sc;if(own&&cnNoDig(a,b)){toast(tr('fiber_modals.only_state_carriers_dig_in'),'bad');sfx('err');return;}
+   const sys=DF_SYS[UI.dfSys]&&techOk('sys',UI.dfSys,DF_SYS[UI.dfSys].lvl)?UI.dfSys:'lite';if(glassLvl()<2)return;
    const up=(own?digCost(km):0)+sysCost(sys)+ampCount(km)*AMP_COST+(S.pops[b]?0:popCost(b));if(!spend(up))return;
    if(!S.pops[b]){S.pops[b]={day:S.day,bb:null,boost:0,down:0,routers:1,gen:false,rgen:0};popStdApply(b);}
    const sib=pairLinks(a,b).filter(l=>l.kind!=='vxc'),id=uid();
