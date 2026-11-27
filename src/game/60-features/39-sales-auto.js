@@ -9,6 +9,8 @@
    - the CEO signs like the engineer, and a decline is a handshake away (salesOverride: about one in three he signs anyway).
    Orbit offers need no routing pass: like the player's offer card, the desk passes on what the sky cannot deliver today
    (pieOfferFit: a crust over the city, a dish to land it, room on both for all of it). The shark only needs the landing.
+   The player can take kinds of deal off the desk (S.slAuto.no, #497): some networks sell only transit, some only transport.
+   Those offers wait for the player, neither signed nor declined, as the huge ones wait for the engineer.
    Nobody at the desk, nothing automatic: every deal is signed by hand. No random numbers are drawn here. */
 const SL_MINS=[0,2000,5000,10000,25000,50000],SL_TRIALS=1,SL_RETRY=7;
 const slAutoNew=()=>({on:false,min:0,wk:null,rep:null});
@@ -18,7 +20,13 @@ const slAutoOn=()=>!!(S&&S.slAuto&&slP()&&(S.slAuto.on||S.slAuto.min));
 function slWkOk(x){if(!x||typeof x!=='object'||Array.isArray(x)||!own(SALES,x.p))return null;const n=v=>int(v,0,1e6,0);return {w:n(x.w),p:x.p,n:n(x.n),rev:int(x.rev,0,1e10,0),x:n(x.x),y:n(x.y)};}
 const slWkAny=x=>!!x&&(x.n>0||x.x>0);
 function slAutoFix(s){const a=s.slAuto&&typeof s.slAuto==='object'&&!Array.isArray(s.slAuto)?s.slAuto:{};
-  s.slAuto={on:a.on===true,min:SL_MINS.includes(a.min)?a.min:0,wk:slWkOk(a.wk),rep:slWkOk(a.rep)};if(a.ren===true)s.slAuto.ren=true;}
+  s.slAuto={on:a.on===true,min:SL_MINS.includes(a.min)?a.min:0,wk:slWkOk(a.wk),rep:slWkOk(a.rep)};if(a.ren===true)s.slAuto.ren=true;
+  const no=Array.isArray(a.no)?[...new Set(a.no.filter(t=>typeof t==='string'&&own(BIZ_T,t)))].sort():[];if(no.length)s.slAuto.no=no;}
+// The kinds of deal the desk leaves to the player (#497), and the kinds the sheet lists: what your level brings, plus any
+// kind you have been offered, sold or switched off. Special kinds (fabric, fibre, mega, orbit, provedores) show once seen.
+const slNo=t=>!!(S.slAuto&&S.slAuto.no&&S.slAuto.no.includes(t));
+function slKinds(){const L=lvl(),seen=new Set([...S.offers,...S.biz].map(x=>x.type).concat((S.slAuto&&S.slAuto.no)||[]));
+  return Object.keys(BIZ_T).filter(t=>{const T=BIZ_T[t];return seen.has(t)||((T.lv||1)<=L&&!T.nni&&!T.fiber&&!T.mega&&!T.orbit&&!T.br);});}
 // An old save whose intern ran the sales order: the same switch and minimum, now at the sales desk (they run once someone is there).
 function slAutoFrom(s,on,p){if(!on||(s.slAuto&&typeof s.slAuto==='object'))return;s.slAuto={on:p.acc!==false,min:SL_MINS.includes(p.min)?p.min:0,wk:null,rep:null};}
 // "This week Dave signed 3 customers (+$41k/mo), declined 17 tiny offers."
@@ -34,7 +42,7 @@ function* slAutoRun(d){if(!slAutoOn())return;const A=S.slAuto,p=slP(),w=Math.flo
   const won=o=>{if(S.offers.includes(o))return false;W.n++;W.rev+=Math.round(bizMo(o));dirty=true;return true;};
   for(const o of S.offers.slice()){
     // What this offer needs, muted: nothing, or a routing trial (b), which the day answers between the two quiet steps.
-    let b;const todo=opsQuiet(()=>{if(!S.offers.includes(o))return;const T=BIZ_T[o.type];if(!T||!(o.exp>d)||(p==='eng'&&salesBig(o.type)))return;const v=T.event?(o.fee||0):bizMo(o);
+    let b;const todo=opsQuiet(()=>{if(!S.offers.includes(o))return;const T=BIZ_T[o.type];if(!T||!(o.exp>d)||(p==='eng'&&salesBig(o.type))||slNo(o.type))return;const v=T.event?(o.fee||0):bizMo(o);
       if(A.min&&v<A.min){const b0=S.biz.length;ACT.decline({id:o.id});W.x++;if(S.biz.length>b0){W.y++;W.rev+=Math.round(bizMo(o));dirty=true;}return;}
       if(!A.on)return;
       if(T.orbit){const f=pieOfferFit(o,used),k=f.key;if((f.w&&!(p==='shark'&&f.w.k==='room'))||(p==='shark'&&S.cash<bizMo(o)))return;ACT.accept({id:o.id});if(won(o))used.set(k,(used.get(k)||0)+o.bw);return;}

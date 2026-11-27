@@ -12,5 +12,9 @@ Object.assign(ACT,{
  salesAuto:()=>{if(!slP())return;const A=S.slAuto||(S.slAuto=slAutoNew());A.on=!A.on;sfx('click');after();salesModal();},
  salesRen:()=>{if(!slP())return;const A=S.slAuto||(S.slAuto=slAutoNew());if(A.ren)delete A.ren;else A.ren=true;sfx('click');after();salesModal();},
  salesMin:()=>{if(!slP())return;const A=S.slAuto||(S.slAuto=slAutoNew());A.min=opsCycle(SL_MINS,A.min);sfx('click');after();salesModal();},
+ // Which kinds of deal the desk may sign (#497): one kind on or off, and the fold that lists them.
+ salesKind:({t})=>{if(!slP()||!own(BIZ_T,t))return;const A=S.slAuto||(S.slAuto=slAutoNew()),no=new Set(A.no||[]);if(no.has(t))no.delete(t);else no.add(t);
+   if(no.size)A.no=[...no].sort();else delete A.no;sfx('click');after();salesModal();},
+ salesKinds:()=>{UI.slKinds=!UI.slKinds;if(S)salesModal();},
  salesVp:()=>{if(slP()!=='ceo'||S.sales.vp)return;if(!spend(SALES_VP))return;S.sales.vp=S.day+SALES_VP_DAYS;toast(tr('sales.vp_asked',{n:SALES_VP_DAYS}),'');after();salesModal();},
 });

@@ -22,8 +22,13 @@ function slAutoHtml(p){const A=S.slAuto||slAutoNew(),w=Math.floor(S.day/7),cur=A
   return `<section class="sl-auto"><h3>${tr('sales.auto')}</h3><p class="meta">${tr(SL_AUTO[p],{name:esc(slCap())})}</p>
     <div class="ops-p"><button class="b sm ${A.on?'green':'ghost'}" data-act="salesAuto" data-args='{}' aria-pressed="${A.on}">${tr('sales.p_sign')}: <b>${A.on?tr('common.on'):tr('common.off')}</b></button>
     ${btn(`${tr('sales.decline_below')}: <b>${A.min?tr('common.price_mo',{price:fmt$(A.min)}):tr('sales.never')}</b>`,'salesMin',{},'ghost sm')}</div>
-    ${rep?row(rep,true):''}${cur?row(cur,false):''}</section>
+    ${slKindsHtml(A)}${rep?row(rep,true):''}${cur?row(cur,false):''}</section>
     <section class="sl-auto"><h3>${tr('sales.ren')}</h3><p class="meta">${tr(SL_REN[p],{name:esc(slCap())})}</p>
     <div class="ops-p"><button class="b sm ${A.ren?'green':'ghost'}" data-act="salesRen" data-args='{}' aria-pressed="${!!A.ren}">${tr('sales.p_ren')}: <b>${A.ren?tr('common.on'):tr('common.off')}</b></button></div></section>`;}
+// Which kinds of deal the desk may sign (#497): a fold, one button per kind, green while the desk may sign it.
+function slKindsHtml(A){const ks=slKinds(),off=ks.filter(slNo).length;
+  const sum=off?trn('sales.kinds_off',off):tr('sales.kinds_all');
+  return `<details class="sl-kinds"${UI.slKinds?' open':''}><summary data-act="salesKinds" data-args='{}'>${sum}</summary><p class="meta">${tr('sales.kinds_help',{name:esc(slCap())})}</p>
+    <div class="ops-p">${ks.map(t=>{const on=!slNo(t);return `<button class="b sm ${on?'green':'ghost'}" data-act="salesKind" data-args='${JSON.stringify({t})}' aria-pressed="${on}">${esc(BIZ_T[t].l)}</button>`;}).join('')}</div></details>`;}
 // On the card in Deals: this week's tally, once there is one.
 function slCardLine(){if(!slAutoOn())return '';const A=S.slAuto,x=A.wk&&A.wk.w===Math.floor(S.day/7)&&slWkAny(A.wk)?A.wk:null;return x?esc(slWeekLine(x,false)):'';}

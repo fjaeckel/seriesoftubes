@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- You can now choose which kinds of deal the sales desk signs for you. Switch a kind off in the sales desk, and its offers wait for you instead: the desk neither signs nor declines them, so a network can sell only transit, only circuits, or both (#497).
+
 - Links into mainland China now start only in Hong Kong or Seoul, where Chinese carriers really meet foreign networks. Links you already have into China keep working.
 
 - Mainland China sells foreign networks waves, never dark fiber: only the state carriers own fiber there, so there is no pair to dig or lease to or inside China. Fiber you already have there stays.
