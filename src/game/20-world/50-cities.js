@@ -314,6 +314,9 @@ const CITIES=[
  {id:'yxy',name:'Whitehorse',x:0,y:0,land:'am',reg:'AM',cc:'CA',ca:true,capital:true,P:3,blackout:true,ix:'',dc:'Midnight Sun Colo',note:tr('cities.the_yukon_s_capital_on_one')},
  {id:'yzf',name:'Yellowknife',x:0,y:0,land:'am',reg:'AM',cc:'CA',ca:true,capital:true,P:2,blackout:true,ix:'',dc:'Ice Road Rack',note:tr('cities.the_northwest_territories_capital_at_the')},
  {id:'yfb',name:'Iqaluit',x:0,y:0,land:'baf',reg:'AM',cc:'CA',ca:true,capital:true,P:0.8,blackout:true,beach:true,ix:'',dc:'Satellite Dish Shed',note:tr('cities.nunavut_s_capital_has_no_fiber')},
+ {id:'yyq',name:'Churchill',x:0,y:0,land:'am',reg:'AM',cc:'CA',P:0.3,blackout:true,ix:'',dc:'Churchill Grain Elevator'},
+ {id:'ymo',name:'Moosonee',x:0,y:0,land:'am',reg:'AM',cc:'CA',P:0.3,blackout:true,ix:'',dc:'Revillon Fr├¿res Museum'},
+ {id:'yub',name:'Tuktoyaktuk',x:0,y:0,land:'am',reg:'AM',cc:'CA',P:0.3,blackout:true,ix:'',dc:'Tuktoyaktuk Community Freezer'},
  // Greenland: the capital and the towns on its cables
  {id:'nuk',name:'Nuuk',x:0,y:0,land:'gln',reg:'AM',cc:'GL',capital:true,P:2,blackout:true,ix:'',dc:'Northern Lights Rack',note:tr('cities.greenland_s_capital_lands_the_cable')},
  {id:'qaq',name:'Qaqortoq',x:0,y:0,land:'glq',reg:'AM',cc:'GL',P:0.3,blackout:true,ix:'',dc:'Cable Landing Shed'},

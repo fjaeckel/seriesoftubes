@@ -4738,6 +4738,7 @@
 "long_tail.korea_s_incumbent_sender_pays_every":"Korea’s incumbent. Sender pays: every gigabit you hand it is billed, on top of the port.",
 "long_tail.latvia_s_incumbent_peers_face_to":"Latvia’s incumbent. Peers face to face, on its own exchange in Riga.",
 "long_tail.lyrics_servers_low_latency_high":"Lyrics servers, low latency, high pitch.",
+"long_tail.manitoba_bell":"Bell Canada's operating name in Manitoba. Not afraid to go where even roads don't.",
 "long_tail.madagascar_s_incumbent_and_the_only":"Madagascar’s incumbent and the only local member of its exchange, so every meeting is quorate.",
 "long_tail.mauritius_number_two_telling_everyone":"Mauritius’ number two, telling everyone about its open peering policy.",
 "long_tail.mobile_and_broadband_on_r_union":"Mobile and broadband on Réunion since the days of the old French brand.",
