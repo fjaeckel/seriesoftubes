@@ -18,8 +18,9 @@
 .ops-mood{margin:6px 0 0;font-style:italic;font-size:13px;color:var(--ink2)}
 .ops-rep{border-left:3px solid #8E5CF7;background:#F7F2FF;border-radius:0 8px 8px 0;padding:6px 8px;margin:6px 0;font-size:13px;line-height:1.35;overflow-wrap:anywhere}
 .ops-rep .eyebrow{margin-bottom:2px}
-/* The kinds of deal the sales desk may sign (#497): a fold whose heading is big enough to tap. */
-.sl-kinds{margin-top:8px}.sl-kinds summary{cursor:pointer;font-weight:800;font-size:13px;padding:8px 0;min-height:24px}.sl-kinds .ops-p .b{min-height:32px}
+/* The kinds of deal the sales desk may sign (#497): All or Custom, then a row per category and its kinds folded under it. */
+.sl-kinds{margin-top:10px}.sl-seg{align-items:center}.sl-k{font-weight:800;font-size:13px;margin-right:2px}
+.sl-cat{margin-top:4px}.sl-ks{margin:2px 0 8px 14px}.sl-ks .b{min-height:32px}
 /* Pie Control's Company tab ends with the Founder's feed: a quiet section, older posts folded away. */
 .pie-feed{border-top:2px solid var(--line);margin-top:12px;padding-top:4px}
 .pie-feed h3{font-size:15px;margin:8px 0 4px}

@@ -71,29 +71,67 @@ test('saves: the kinds that are off survive a reload, junk is repaired, and an o
   assert.deepEqual(errors, []);
 });
 
-test('the sheet on a phone: a fold with one button per kind, which switches the kind and stays open', t => {
+test('a whole category goes off and comes back, with the kinds the level brings later', t => {
+  const { ev, errors } = game(t, 'shark');
+  ev("ACT.salesAuto();ACT.salesCat({c:'circ'});closeModal()");
+  const no = JSON.parse(ev('JSON.stringify(S.slAuto.no)'));
+  for (const k of ['l2vpn', 'hft', 'sdwan', 'ai', 'agi', 'mars', 'l3vpn']) assert.ok(no.includes(k), k);
+  for (const k of ['dia', 'game', 'event', 'wwave', 'pizza']) assert.ok(!no.includes(k), k);
+  offer(ev, 'office'); offer(ev, 'wire', { type: 'l2vpn', city2: 'ams', rate: 9000 });
+  ev('slAutoDay(S.day)');
+  assert.deepEqual(ids(ev, 'biz'), ['office']);
+  assert.deepEqual(ids(ev, 'offers'), ['wire'], 'circuits wait for you');
+  // One circuit back on: the category is partly on, so the next press switches it all off again.
+  ev("ACT.salesKind({t:'l2vpn'});closeModal()");
+  assert.equal(ev("S.slAuto.no.includes('l2vpn')"), false);
+  ev("ACT.salesCat({c:'circ'});closeModal()");
+  assert.equal(ev("S.slAuto.no.includes('l2vpn')"), true);
+  ev("ACT.salesCat({c:'circ'});closeModal()");
+  assert.equal(ev("'no' in S.slAuto"), false, 'all off, then all on');
+  // All puts every kind back at once.
+  ev("ACT.salesCat({c:'game'});ACT.salesKind({t:'dia'});ACT.salesKinds({m:'all'});closeModal()");
+  assert.equal(ev("'no' in S.slAuto"), false);
+  ev("ACT.salesCat({c:'pirate'});ACT.salesKinds({m:'pirate'});closeModal()");
+  assert.equal(ev("'no' in S.slAuto"), false);
+  assert.deepEqual(errors, []);
+});
+
+test('the sheet on a phone: All by default, Custom fans the kinds out in categories', t => {
   const { ev, dom, errors } = game(t, 'eng');
   dom.window.innerWidth = 360; dom.window.innerHeight = 640;
   const doc = dom.window.document, card = () => doc.getElementById('modalCard');
-  ev("S.offers.push({id:'w',city:'fra',name:'w',type:'wwave',bw:1,rate:0,reqs:[],exp:60})");
+  const q = (sel) => card().querySelector(sel), qa = (sel) => [...card().querySelectorAll(sel)];
   ev('salesModal()');
-  const fold = () => card().querySelector('details.sl-kinds');
-  assert.ok(fold(), 'the fold is in the sheet');
-  assert.equal(fold().open, false, 'folded at first');
-  assert.match(fold().querySelector('summary').textContent, /all/);
-  const kinds = () => [...card().querySelectorAll('[data-act="salesKind"]')].map(b => JSON.parse(b.dataset.args).t);
-  const ks = kinds();
-  for (const k of ['dia', 'game', 'host', 'l2vpn', 'isp', 'gpu', 'ai', 'wwave']) assert.ok(ks.includes(k), k);
-  for (const k of ['cgame', 'agi', 'pizza', 'pairs', 'provedor']) assert.ok(!ks.includes(k), `${k} is not on offer yet`);
-  fold().querySelector('summary').click();
-  assert.equal(fold().open, true);
-  card().querySelector('[data-act="salesKind"][data-args*="l2vpn"]').click();
+  assert.equal(q('[data-act="salesKinds"][data-args*="all"]').getAttribute('aria-pressed'), 'true', 'All is picked');
+  assert.equal(qa('[data-act="salesCat"]').length, 0, 'and nothing else is shown');
+  assert.equal(qa('[data-act="salesKind"]').length, 0);
+  q('[data-act="salesKinds"][data-args*="custom"]').click();
+  assert.equal(q('[data-act="salesKinds"][data-args*="custom"]').getAttribute('aria-pressed'), 'true');
+  const cats = () => qa('[data-act="salesCat"]').map(b => JSON.parse(b.dataset.args).c);
+  // Level 4 without any special offers: no fibre, capacity or orbit yet.
+  assert.deepEqual(cats(), ['net', 'circ', 'game', 'event']);
+  assert.equal(qa('[data-act="salesKind"]').length, 0, 'kinds stay folded');
+  // A wave offer brings its category.
+  ev("S.offers.push({id:'w',city:'fra',name:'w',type:'wwave',bw:1,rate:0,reqs:[],exp:60});salesModal()");
+  assert.deepEqual(cats(), ['net', 'circ', 'game', 'event', 'cap']);
+  q('[data-act="salesCatOpen"][data-args*="circ"]').click();
+  const kinds = qa('[data-act="salesKind"]').map(b => JSON.parse(b.dataset.args).t);
+  assert.ok(kinds.includes('l2vpn') && kinds.includes('hft') && !kinds.includes('dia'), kinds.join());
+  q('[data-act="salesKind"][data-args*="l2vpn"]').click();
   assert.equal(ev('JSON.stringify(S.slAuto.no)'), '["l2vpn"]');
-  assert.equal(fold().open, true, 'still open after the redraw');
-  const b = card().querySelector('[data-act="salesKind"][data-args*="l2vpn"]');
-  assert.equal(b.getAttribute('aria-pressed'), 'false');
-  assert.match(b.className, /ghost/);
-  assert.match(fold().querySelector('summary').textContent, /1 left to you/);
-  assert.ok(kinds().includes('l2vpn'), 'a kind that is off stays listed');
+  assert.equal(q('[data-act="salesKind"][data-args*="l2vpn"]').getAttribute('aria-pressed'), 'false', 'still unfolded after the redraw');
+  assert.match(q('[data-act="salesCat"][data-args*="circ"]').textContent, /Private circuits: \d+ of \d+/);
+  assert.match(q('[data-act="salesCat"][data-args*="net"]').textContent, /Internet access: all/);
+  // A category switched off lists only the kinds the level has: cloud gaming (level 8) is off, but not shown.
+  q('[data-act="salesCat"][data-args*="game"]').click();
+  assert.equal(ev("S.slAuto.no.includes('cgame')"), true);
+  assert.match(q('[data-act="salesCatOpen"][data-args*="game"]').textContent, /1 kind$/);
+  assert.match(q('[data-act="salesCat"][data-args*="game"]').textContent, /Gaming: none/);
+  // A reload with a kind off opens on Custom; All puts everything back and folds the categories away.
+  ev('S=migrate(JSON.parse(JSON.stringify(S)));UI.slCust=null;salesModal()');
+  assert.equal(q('[data-act="salesKinds"][data-args*="custom"]').getAttribute('aria-pressed'), 'true');
+  q('[data-act="salesKinds"][data-args*="all"]').click();
+  assert.equal(ev("'no' in S.slAuto"), false);
+  assert.equal(qa('[data-act="salesCat"]').length, 0);
   assert.deepEqual(errors, []);
 });

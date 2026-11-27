@@ -25,10 +25,18 @@ function slAutoHtml(p){const A=S.slAuto||slAutoNew(),w=Math.floor(S.day/7),cur=A
     ${slKindsHtml(A)}${rep?row(rep,true):''}${cur?row(cur,false):''}</section>
     <section class="sl-auto"><h3>${tr('sales.ren')}</h3><p class="meta">${tr(SL_REN[p],{name:esc(slCap())})}</p>
     <div class="ops-p"><button class="b sm ${A.ren?'green':'ghost'}" data-act="salesRen" data-args='{}' aria-pressed="${!!A.ren}">${tr('sales.p_ren')}: <b>${A.ren?tr('common.on'):tr('common.off')}</b></button></div></section>`;}
-// Which kinds of deal the desk may sign (#497): a fold, one button per kind, green while the desk may sign it.
-function slKindsHtml(A){const ks=slKinds(),off=ks.filter(slNo).length;
-  const sum=off?trn('sales.kinds_off',off):tr('sales.kinds_all');
-  return `<details class="sl-kinds"${UI.slKinds?' open':''}><summary data-act="salesKinds" data-args='{}'>${sum}</summary><p class="meta">${tr('sales.kinds_help',{name:esc(slCap())})}</p>
-    <div class="ops-p">${ks.map(t=>{const on=!slNo(t);return `<button class="b sm ${on?'green':'ghost'}" data-act="salesKind" data-args='${JSON.stringify({t})}' aria-pressed="${on}">${esc(BIZ_T[t].l)}</button>`;}).join('')}</div></details>`;}
+// Which kinds of deal the desk may sign (#497): All or Custom; Custom lists the categories your level has, each with one
+// switch for the whole category (green: all on, white: some or none) and a fold with its kinds.
+const SL_CAT_N={net:N_('sales.cat_net'),circ:N_('sales.cat_circ'),game:N_('sales.cat_game'),event:N_('sales.cat_event'),cap:N_('sales.cat_cap'),orbit:N_('sales.cat_orbit')};
+function slKindsHtml(A){const cu=slCustom(),seg=(m,on,l)=>`<button class="b sm ${on?'green':'ghost'}" data-act="salesKinds" data-args='{"m":"${m}"}' aria-pressed="${on}">${l}</button>`;
+  let h=`<div class="sl-kinds"><div class="ops-p sl-seg"><span class="sl-k">${tr('sales.kinds')}</span>${seg('all',!cu,tr('sales.kinds_all'))}${seg('custom',cu,tr('sales.kinds_custom'))}</div>`;
+  if(!cu)return h+'</div>';
+  const ks=slKinds();h+=`<p class="meta">${tr('sales.kinds_help',{name:esc(slCap())})}</p>`;
+  for(const c of SL_CATS){const in_=ks.filter(t=>slCat(t)===c);if(!in_.length)continue;const on=in_.filter(t=>!slNo(t)).length,op=UI.slCat===c;
+    const st=on===in_.length?tr('sales.cat_all'):on?tr('sales.cat_some',{n:on,m:in_.length}):tr('sales.cat_none');
+    h+=`<div class="sl-cat"><div class="ops-p"><button class="b sm ${on===in_.length?'green':'ghost'}" data-act="salesCat" data-args='{"c":"${c}"}' aria-pressed="${on===in_.length}">${tr(SL_CAT_N[c])}: <b>${st}</b></button>`
+      +`<button class="b sm ghost" data-act="salesCatOpen" data-args='{"c":"${c}"}' aria-expanded="${op}">${op?'▾':'▸'} ${trn('sales.cat_kinds',in_.length)}</button></div>`
+      +(op?`<div class="ops-p sl-ks">${in_.map(t=>{const y=!slNo(t);return `<button class="b sm ${y?'green':'ghost'}" data-act="salesKind" data-args='${JSON.stringify({t})}' aria-pressed="${y}">${esc(BIZ_T[t].l)}</button>`;}).join('')}</div>`:'')+'</div>';}
+  return h+'</div>';}
 // On the card in Deals: this week's tally, once there is one.
 function slCardLine(){if(!slAutoOn())return '';const A=S.slAuto,x=A.wk&&A.wk.w===Math.floor(S.day/7)&&slWkAny(A.wk)?A.wk:null;return x?esc(slWeekLine(x,false)):'';}

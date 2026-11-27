@@ -28,6 +28,9 @@ const API_DOMAINS={
   egress:{table:'PREF',kind:'key'},
   routeMode:{table:'RT',kind:'key'},
   salesPersona:{table:'SALES',kind:'key'},
+  // Which kinds of deal the sales desk may sign (#497).
+  salesKindsMode:{kind:'enum',values:['all','custom']},
+  salesCat:{kind:'enum',values:()=>SL_CATS.slice()},
   site:{kind:'enum',values:['a','b','ab']},
   step:{kind:'enum',values:[1,-1]},
   connKind:{kind:'enum',values:['t','p','ix','c','nni']},
