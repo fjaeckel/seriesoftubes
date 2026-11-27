@@ -6,33 +6,21 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
-- Notifications now come one at a time: instead of stacks of one, two or three toasts, a single toast shows the current notice and counts the ones waiting behind it (1/3 ›, tap to see the next). Trouble and anything that needs an answer goes ahead of chatter, chatter moves on sooner while others wait, and the NOC log still keeps every notice. (#498)
+## [5.8.0] — 2026-11-27
 
-- Settings has a new Notifications section: choose Everything or Quiet, or set each topic yourself (outages, customers, bank and money, construction, peering, deals, world news, conferences, your staff, milestones) to pop up all of it, only what is important, or nothing at all, and pick which topics pause the game when there is trouble. Your old Quiet notifications and pause settings carry over. (#498)
+- Notifications come one at a time: a single toast shows the current notice and counts the ones waiting behind it (1/3 ›, tap for the next). Trouble and anything that needs an answer goes first, other news moves on sooner while others wait, and the NOC log still keeps every notice. (#498)
 
-- Quiet notifications are quieter: loan offers, conference reminders and world news such as Golden Week no longer pop up (they are in the NOC log), while trouble, milestones and new deals such as consortium cable seats still do. (#498)
+- Choose what pops up, topic by topic, in Settings → Notifications. Pick Everything or Quiet, or set each topic (outages, customers, bank and money, construction, peering, deals, world news, conferences, your staff, milestones) to show all of it, only trouble and milestones, or nothing but the NOC log, and choose which topics pause the game when there is trouble. A 🔕 on each notice sends its topic to the log, with Undo. Quiet is quieter too: loan offers, conference reminders, construction delays and news like Golden Week stay in the log, while trouble, milestones and deals such as consortium cable seats still pop up. Your old Quiet and pause settings carry over. (#498, #443)
 
-- Construction delays are no longer treated as trouble: with Quiet on they stay in the NOC log, and in each topic's settings you can keep construction news off the screen altogether. (#443)
+- Choose which kinds of deal the sales desk signs for you. Leave it on All, or pick Custom to switch off whole categories (internet access, private circuits, gaming, events, fibre and capacity, orbit) or single kinds: those offers wait for you, never signed or declined by the desk. (#497)
 
-- A 🔕 button on each notice from the day sends that whole topic to the NOC log from now on, with Undo right there; change it back any time in Settings. (#498)
+- Mainland China now works like the real thing for foreign networks. Links into China start only in Hong Kong or Seoul, China sells you waves but never dark fiber, and your POPs there stand in Beijing and Shanghai (the campus towns are for the Hyperscaler's licensed partner). The border crossing loses about 10% of traffic (30% while the border is stricter), mostly at the evening peak, and the licence costs what a real joint venture does: $1.5M up front, $30k a month and about 180 days of paperwork. Links, fiber and POPs you already have there keep working, and a licence you hold pays the new monthly fee.
 
-- You can now choose which kinds of deal the sales desk signs for you. Leave it on All, or pick Custom to switch off whole categories (internet access, private circuits, gaming, events, fibre and capacity, orbit) or single kinds: those offers wait for you, never signed or declined by the desk (#497).
+- The optical team has a new order, Modernize optics, that moves every lit fiber onto newer optics. Pick a model or let it choose the fastest that reaches on each fiber: it swaps the smallest optics first, one channel at a time and without an outage, puts the old ones on the spares shelf, and stays within the order's monthly budget.
 
-- Links into mainland China now start only in Hong Kong or Seoul, where Chinese carriers really meet foreign networks. Links you already have into China keep working.
+- In Chrome, Space pauses the game again after you close a window with a click, instead of pressing the button that opened it. Closing with Escape still takes a keyboard back to where it was. (#381)
 
-- Mainland China sells foreign networks waves, never dark fiber: only the state carriers own fiber there, so there is no pair to dig or lease to or inside China. Fiber you already have there stays.
-
-- A carrier's POPs in mainland China stand in Beijing and Shanghai. The campus towns of Gui'an, Zhongwei and Zhangjiakou are for the Hyperscaler's licensed partner; POPs you already have there stay.
-
-- The regular China border crossing now loses about 10% of traffic on average (30% while the border is stricter), most of it at the evening peak, instead of 20% (35%) all day.
-
-- The China licence now costs what a real joint venture does: $1.5M up front, $30k a month and about 180 days of paperwork (the Hyperscaler's partner takes as long). A licence you already hold now pays the new monthly fee.
-
-- The optical team has a new order, Modernize optics: it moves every lit fiber onto newer optics even where there is room to spare, to the model you pick or the fastest that reaches on each fiber. It swaps the smallest optics first, one channel at a time and without an outage, puts the old ones on the spares shelf, and stays within the order's monthly budget.
-
-- In Chrome, Space pauses the game again after you close the bank, the NOC dashboard or a window with a click. It used to press the button that had opened it, so the bank popped open again or another router was ordered. Closing with Escape still takes a keyboard back to where it was. (#381)
-
-- A Hyperscaler's NOC tab no longer shows a Lambda Bazaar button that did nothing: the capacity market is for carriers, and a Hyperscaler sells its spare fiber at its own resale desk. (#501)
+- A Hyperscaler's NOC tab no longer shows a Lambda Bazaar button that did nothing: a Hyperscaler sells its spare fiber at its own resale desk. (#501)
 
 ## [5.7.0] — 2026-11-26
 
