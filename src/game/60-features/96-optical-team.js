@@ -36,7 +36,7 @@ const optxUps=km=>{const n=subNeed(km);return n?{terminal:n.includes('terminal')
 function optxQuote(a,b){if(noTalk(a,b))return null;const sub=isSub(a,b),k=a<b?a+'|'+b:b+'|'+a;
   let cost,days,km,up0,u=null;
   if(sub){if(ownCabWhy(a,b))return null;u=optxUps(seaQuote(a,b,'standard').km);if(!u)return null;const q=seaQuote(a,b,'standard',u);cost=q.cost;days=q.days;km=q.km;up0=Math.round(km*OWNCAB_OM);}
-  else{km=kmBetween(a,b);if(km>1500||!dfAllowed(a,b)||cnNoDig(a,b)||glassLvl()<2)return null;const sys=techOk('sys','roadm',DF_SYS.roadm.lvl)?'roadm':'lite';
+  else{km=kmBetween(a,b);if(km>1500||!dfAllowed(a,b)||glassLvl()<2)return null;const sys=techOk('sys','roadm',DF_SYS.roadm.lvl)?'roadm':'lite';
     cost=digCost(km)+sysCost(sys)+ampCount(km)*AMP_COST;days=dfBuildDays(km);up0=Math.round(km*0.15);}
   // Only what the cable can carry: managed waves no optic lights this far are never sold there (#424).
   const r=cmRoute(a,b),sell=cmBuildVal(r,cmBuildG(km,sub,u))*mkt()*cmCut();

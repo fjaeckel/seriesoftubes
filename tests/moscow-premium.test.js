@@ -50,7 +50,7 @@ test('#195 European traffic hauled to Moscow crosses into China with far less lo
   const p = lost(true), plain = lost(false);
   assert.ok(p.cross > 0, 'traffic for China goes out through Moscow');
   assert.ok(Math.abs(p.lost / p.cross - 0.03) < 0.005, `about 3% lost on the premium crossing (${(p.lost / p.cross * 100).toFixed(1)}%)`);
-  assert.ok(plain.lost / plain.cross > 0.15, 'against about 20% without it');
+  assert.ok(Math.abs(plain.lost / plain.cross - 0.1) < 0.01, `against about 10% without it (${(plain.lost / plain.cross * 100).toFixed(1)}%)`);
 });
 
 test('#195 Hong Kong still works as before, and premium is not offered where it is not sold', () => {

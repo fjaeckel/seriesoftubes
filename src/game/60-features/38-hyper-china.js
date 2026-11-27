@@ -5,7 +5,7 @@
    granted after its wait). Then Beijing, Shanghai and the campus towns may hold regions, Chinese users may be launched,
    and the partner keeps HS_CN.share of what they pay. Nothing crosses the wall (hsWall): Chinese users only in Chinese
    regions (38-hyper-residency.js), those regions for no one else, and no replica, lake or training run across. */
-const HS_CN={lv:7,lic:2000000,share:0.35,days:45};
+const HS_CN={lv:7,lic:2000000,share:0.35,days:CN_LIC_DAYS};
 CX_MUL.rev.push(cc=>cc==='CN'&&hyper()?1-HS_CN.share:1);
 // Why a licence cannot be filed now, or ''.
 const hsCnWhy=()=>!S||!S.hs?'':S.cnLic&&S.cnLic.state!=='none'?tr('hyper_cn.filed_already'):lvl()<HS_CN.lv?tr('hyper_cn.need_lv',{lv:HS_CN.lv}):'';

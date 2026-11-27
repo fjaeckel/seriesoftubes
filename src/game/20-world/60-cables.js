@@ -204,7 +204,7 @@ const ALLC=CITIES.filter(c=>!c.cn&&!c.ru&&!c.ixOnly).map(c=>c.id);
 /* City density: a small city (P under 60) does not sit within 300 km of a bigger city in the same country, unless it
    is a cable landing or a capital (tests/regions.test.js enforces it). Cities retired by that rule are marked off:
    they stay in the data so old saves keep their POPs there, but new games never see them. */
-const cityOn=id=>{const c=CITY[id];return !!c&&(!c.off||!!(S&&(S.pops[id]||S.ixp[id]!==undefined)));};
+const cityOn=id=>{const c=CITY[id];return !!c&&(!(c.off||cnPark(c)&&!hyper())||!!(S&&(S.pops[id]||S.ixp[id]!==undefined)));};
 // No customer of any kind calls from North Korea: sanctions, and the whole country moves well under 1 Gbps.
 const bizCity=c=>CITY[c].cc!=='KP';
 const OFFC=ALLC.filter(c=>!CITY[c].off&&bizCity(c));
@@ -212,11 +212,12 @@ const ruCity=c=>!!CITY[c].ru;
 const cnCity=c=>!!CITY[c].cn;
 /* Mainland China meets the world only at its gateways: Chinese carriers hand circuits over at the border, and they
    meet foreign networks in Hong Kong and Seoul, so a new link into it starts there (links a save already has stay).
-   Inside it only the state carriers dig: a foreign network leases its glass (cnNoDig). */
-const CN_GATE=['hkg','icn'],cnGateOk=(a,b)=>cnCity(a)===cnCity(b)||CN_GATE.includes(cnCity(a)?b:a),cnNoDig=(a,b)=>cnCity(a)||cnCity(b);
-// What crossing into mainland China loses: a premium route little, the regular border a fifth, more while it is stricter
-// (S.ev.gfw). Routing and every panel that names the loss read it here.
-const gfwLoss=(prem,strict)=>prem?0.03:strict?0.35:0.2;
+   Inside it only the state carriers own fiber (dfAllowed), and a foreign carrier's POPs stand in Beijing and Shanghai:
+   the campus towns' data center parks are for the clouds' licensed partners (cnPark), so only a Hyperscaler builds there. */
+const CN_GATE=['hkg','icn'],cnGateOk=(a,b)=>cnCity(a)===cnCity(b)||CN_GATE.includes(cnCity(a)?b:a),cnPark=C=>!!C.cn&&!!C.campus;
+// What crossing into mainland China loses, as a day's average: a premium route little; the regular border a tenth (bad at
+// the evening peak, clean overnight), more while it is stricter (S.ev.gfw). Routing and every panel that names it read it here.
+const gfwLoss=(prem,strict)=>prem?0.03:strict?0.3:0.1;
 const BIGC=['man','edi','bcn','mil','rom','lis','ath','atn','den','phx','bos','hou','ruh','jed','doh','kyv','mel','bne','osa','kul','bkk','sgn','khi','dac','waw','prg','vie','bud','buh','ist','rio','bue','scl','bog','lim','del','maa','blr','hyd','tpe','cpt','auh','ber','zrh','nbo','cai','jkt','mnl','per','akl','dub','lax','tor','mex','dxb','cph','icn','sjc','dal','chi','ash','nyc','mia','sao','lon','ams','fra','par','mrs','mad','sto','bom','sin','hkg','tok','syd','jnb','lag','lys'];
 const MIDC=['man','bcn','mil','lis','atn','den','phx','bos','hou','mel','osa','kul','bkk','waw','vie','ist','rio','bue','scl','bog','del','maa','blr','tpe','auh','ber','zrh','jkt','mnl','dub','lax','tor','dxb','icn','sjc','ash','nyc','chi','dal','mia','lon','ams','fra','par','mad','sin','hkg','tok','syd','bom','sao','lys'];
 

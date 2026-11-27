@@ -1,6 +1,7 @@
-// Mainland China meets the world only at its gateways (CN_GATE): a new link into it starts in Hong Kong or Seoul, and
-// inside it only the state carriers dig, so dark fiber there is leased (an IRU), never built, by you or your optical
-// team. Links a save already has into China from elsewhere keep loading and carrying traffic.
+// Mainland China, closer to how it works: a new link into it starts at a gateway (CN_GATE: Hong Kong or Seoul); only
+// the state carriers own fiber there, so foreign networks lease waves; a carrier's POPs stand in Beijing and Shanghai,
+// the campus towns being for the Hyperscaler's partners; the licence is a real joint venture's price and wait; the
+// regular border loses a tenth on average. Links a save already has into China keep loading and carrying traffic.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
@@ -38,20 +39,50 @@ test('a wave into mainland China is leased only from Hong Kong or Seoul', (t) =>
   assert.deepEqual(errors, []);
 });
 
-test('dark fiber inside mainland China is leased, never dug, by you or your optical team', (t) => {
+test('mainland China sells foreign networks waves, never fiber: no pair to dig or lease, for you or your optical team', (t) => {
   const { ev, errors } = game(t);
   ev("UI.lmode='df';UI.dfSrc='build';openLinkModal('pek','sha')");
-  assert.match(modal(ev), /only the state carriers dig fiber/);
-  assert.equal(ev("document.querySelector('#modal [data-act=\"dfSrc\"][data-args*=\"build\"]').disabled"), true);
-  assert.match(ev("document.querySelector('#modal [data-act=\"orderDf\"]').textContent"), /IRU/, 'the order is a lease');
-  ev("UI.pending={a:'pek',b:'sha'};UI.dfSrc='build';ACT.orderDf()");
-  assert.equal(links(ev, 'pek', 'sha'), 0, 'digging is refused');
-  ev("UI.pending={a:'pek',b:'sha'};UI.dfSrc='lease';ACT.orderDf()");
-  assert.equal(ev("(S.links.find(l=>l.kind==='df'&&[l.a,l.b].sort().join()==='pek,sha')||{}).own"), false, 'a leased pair');
+  assert.match(modal(ev), /only the state carriers own fiber/);
+  assert.equal(ev("!!document.querySelector('#modal [data-act=\"orderDf\"]')"), false, 'nothing to order');
+  for (const src of ['build', 'lease']) {
+    ev(`UI.pending={a:'pek',b:'sha'};UI.dfSrc='${src}';ACT.orderDf()`);
+    assert.equal(links(ev, 'pek', 'sha'), 0, `${src} is refused`);
+  }
+  assert.equal(ev("dfAllowed('hkg','pek')"), false, 'nor across the border');
   assert.equal(ev("optxQuote('pek','sha')"), null);
-  // Elsewhere you still dig.
-  ev("UI.pending={a:'hkg',b:'sin'}");
-  assert.equal(ev("cnNoDig('hkg','sin')"), false);
+  assert.equal(ev("dfAllowed('hkg','sin')||dfAllowed('fra','par')"), true, 'elsewhere fiber is still for sale');
+  wave(ev, 'pek', 'sha');
+  assert.equal(links(ev, 'pek', 'sha'), 1, 'a wave inside China is fine');
+  assert.deepEqual(errors, []);
+});
+
+test("China's campus towns are for the Hyperscaler's partners: a carrier builds in Beijing and Shanghai", (t) => {
+  const { ev, errors } = game(t);
+  for (const c of ['gya', 'zhy', 'zjk']) {
+    assert.equal(ev(`cityOn('${c}')`), false, c);
+    ev(`ACT.buildPop({city:'${c}'})`);
+    assert.equal(ev(`!!S.pops.${c}`), false, `no POP in ${c}`);
+    wave(ev, 'pek', c);
+    assert.equal(links(ev, 'pek', c), 0, `no link to ${c}`);
+  }
+  assert.match(ev("popOffWhy('zjk')"), /Beijing and Shanghai/);
+  assert.equal(ev("cityOn('pek')&&cityOn('sha')"), true);
+  // A save that already has a POP there keeps it on the map.
+  ev(pop('zjk'));
+  assert.equal(ev("cityOn('zjk')"), true);
+  assert.deepEqual(errors, []);
+});
+
+test('the China licence costs what a real joint venture does, takes about half a year, and the border loses a tenth', (t) => {
+  const { ev, errors } = game(t);
+  ev("S.cnLic={state:'none'};S.cash=2e6;ACT.applyCn()");
+  assert.equal(ev("S.cash"), 2e6 - 1500000);
+  assert.equal(ev("S.cnLic.ready-S.day"), ev("leadDays(180)"));
+  assert.equal(ev("gfwLoss(false,false)"), 0.1);
+  assert.equal(ev("gfwLoss(false,true)"), 0.3);
+  assert.equal(ev("gfwLoss(true,false)"), 0.03);
+  ev("S.cnLic={state:'ok'};UI.lmode='wave';openLinkModal('hkg','pek')");
+  assert.match(modal(ev), /lose about 10% of traffic at the border/);
   assert.deepEqual(errors, []);
 });
 

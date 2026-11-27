@@ -79,7 +79,7 @@ const pzNewPop=c=>{const g=pzEye(c);return {day:0,bb:g?{d:g}:null,boost:0,down:0
 // What each flow gets from the last compute(): Gbps delivered, and a circuit's latency.
 // Eyeball traffic to networks behind the Great Firewall loses a fifth at the border, as in the main game; that is not
 // the player's doing, so a puzzle counts what crosses the border as delivered (pzGfw: the share that arrives).
-let PZ_GFW=null;const pzGfw=()=>PZ_GFW||(PZ_GFW=1-0.2*NETS.filter(n=>n.cn).reduce((a,n)=>a+(NSH[n.id]||0),0));
+let PZ_GFW=null;const pzGfw=()=>PZ_GFW||(PZ_GFW=1-gfwLoss(false,false)*NETS.filter(n=>n.cn).reduce((a,n)=>a+(NSH[n.id]||0),0));
 function pzGot(){return S.pz.dem.map((f,i)=>f.t==='l2'?{g:R.l2[pzFlowId(i)]||0,ms:isFinite(R.l2lat[pzFlowId(i)])?R.l2lat[pzFlowId(i)]:null}:{g:S.pops[f.a]?(R.citySrv[f.a]||0)/pzGfw():0,ms:null});}
 const pzFull=(f,x)=>x.g>=f.g*0.999-1e-6;
 const pzFast=(f,x)=>!f.ms||(x.ms!=null&&x.ms<=f.ms+1e-9);

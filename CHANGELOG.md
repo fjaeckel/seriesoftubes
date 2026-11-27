@@ -6,7 +6,15 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
-- Links into mainland China now start only in Hong Kong or Seoul, where Chinese carriers really meet foreign networks, and dark fiber inside China can only be leased, never dug: only the state carriers build fiber there. Links you already have into China keep working.
+- Links into mainland China now start only in Hong Kong or Seoul, where Chinese carriers really meet foreign networks. Links you already have into China keep working.
+
+- Mainland China sells foreign networks waves, never dark fiber: only the state carriers own fiber there, so there is no pair to dig or lease to or inside China. Fiber you already have there stays.
+
+- A carrier's POPs in mainland China stand in Beijing and Shanghai. The campus towns of Gui'an, Zhongwei and Zhangjiakou are for the Hyperscaler's licensed partner; POPs you already have there stay.
+
+- The regular China border crossing now loses about 10% of traffic on average (30% while the border is stricter), most of it at the evening peak, instead of 20% (35%) all day.
+
+- The China licence now costs what a real joint venture does: $1.5M up front, $30k a month and about 180 days of paperwork (the Hyperscaler's partner takes as long). A licence you already hold now pays the new monthly fee.
 
 - The optical team has a new order, Modernize optics: it moves every lit fiber onto newer optics even where there is room to spare, to the model you pick or the fastest that reaches on each fiber. It swaps the smallest optics first, one channel at a time and without an outage, puts the old ones on the spares shelf, and stays within the order's monthly budget.
 

@@ -27,7 +27,7 @@ These are what the game promises, held up by `tests/gameplay-rules.test.js` (one
 | W3 | Every city can buy transit from someone, or is a documented exception (Pitcairn: land your own cable, or reach it through a pie dish; Stuttgart: peering only). | A start or an expansion must never be a dead end by accident. |
 | W4 | Cable pairs join two distinct real cities, have a length, and cable ids are unique. | Broken landings break routing and the own-cable planner. |
 | W5 | A city alone on its landmass has a cable or a beach to land one. | Islands are reachable. |
-| W6 | Mainland China is reached only through its gateways (`CN_GATE`: Hong Kong and Seoul): a new link with one end in mainland China has its other end there, and no fiber is dug inside it (`cnNoDig`: dark fiber there is a leased IRU). Links a save already has are kept. | Mimics reality: Chinese carriers hand cross-border circuits over at the border and meet foreign networks in Hong Kong and Seoul, and only the state carriers own the fiber. |
+| W6 | Mainland China is reached only through its gateways (`CN_GATE`: Hong Kong and Seoul): a new link with one end in mainland China has its other end there. No dark fiber is sold or dug to or inside it (`dfAllowed`), only waves, and a carrier's POPs there stand in Beijing and Shanghai: the campus towns (`cnPark`) are for the Hyperscaler's licensed partner. Links and POPs a save already has are kept. | Mimics reality: Chinese carriers hand cross-border circuits over at the border and meet foreign networks in Hong Kong and Seoul, only the state carriers own fiber, and foreign carriers sit in licensed data centers in the big cities. |
 
 ## Networks
 

@@ -29,9 +29,9 @@ test('a regular crossing says so, with the loss of a stricter border, and other 
   ev("S.links.push({id:'r1',a:'hkg',b:'sha',kind:'wave',border:true,premium:false,tier:0,km:1200,sub:false,mo:1,mult:3,cut:0,day:0})");
   ev("S.links.push({id:'n1',a:'hkg',b:'sin',kind:'wave',border:false,premium:false,tier:0,km:2600,sub:true,mo:1,mult:1,cut:0,day:0});compute()");
   ev("selectLink('r1')");
-  assert.match(panel(ev), /Regular · ~20% loss/);
+  assert.match(panel(ev), /Regular · ~10% loss/);
   ev("S.ev.gfw=S.day+10;selectLink('r1')");
-  assert.match(panel(ev), /Regular · ~35% loss/);
+  assert.match(panel(ev), /Regular · ~30% loss/);
   ev("selectLink('n1')");
   assert.doesNotMatch(panel(ev), /China border crossing/);
   ev("UI.tab='links';selectCity('hkg')");

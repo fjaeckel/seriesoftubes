@@ -8,14 +8,15 @@ function pairLinks(a,b){return S.links.filter(l=>(l.a===a&&l.b===b)||(l.a===b&&l
 function prunePairMet(){const m=S.pairMet;if(!m)return;const k=new Set(S.links.map(edgeKey));for(const x of Object.keys(m))if(!k.has(x))delete m[x];}
 // Short, busy subsea routes (London–Amsterdam, London–Paris) sell dark fiber pairs too.
 function subDfCable(a,b){return cablesOk(a,b).filter(c=>CAB[c.cid].df).sort((x,y)=>x.km-y.km)[0]||null;}
-function dfAllowed(a,b){if(noTalk(a,b))return false;if(isSub(a,b))return !!subDfCable(a,b);return cnCity(a)===cnCity(b)&&!uaePair(a,b)&&!landX(a,b);}
+// Mainland China sells foreign networks waves, never glass: only the state carriers own fiber there.
+function dfAllowed(a,b){if(noTalk(a,b)||cnCity(a)||cnCity(b))return false;if(isSub(a,b))return !!subDfCable(a,b);return cnCity(a)===cnCity(b)&&!uaePair(a,b)&&!landX(a,b);}
 // A link starts at one of your POPs. The map only drags one from a POP, but a typed order (the agent API) names both ends.
 function linkFromWhy(a){return S.pops[a]?'':tr('action_helpers.you_have_no_pop_in_city',{city:CITY[a].name});}
 function linkFromOk(a){const w=linkFromWhy(a);if(w){toast(w,'bad');sfx('err');}return !w;}
 // ...and ends at a city you could build a POP in (#203): a typed order can name one the map does not show.
 function linkToOk(b){if(S.pops[b]||cityOn(b))return true;toast(popOffWhy(b),'bad');sfx('err');return false;}
 // A retired small city (off: true) takes no new POP; the nearest open city in its country stands in for it.
-function popOffWhy(c){const C=CITY[c],near=CITIES.filter(o=>!o.off&&o.cc===C.cc).sort((x,y)=>kmBetween(c,x.id)-kmBetween(c,y.id))[0];
+function popOffWhy(c){if(cnPark(CITY[c]))return tr('action_helpers.city_s_data_center_parks_are',{city:CITY[c].name});const C=CITY[c],near=CITIES.filter(o=>!o.off&&o.cc===C.cc).sort((x,y)=>kmBetween(c,x.id)-kmBetween(c,y.id))[0];
   return tr('action_helpers.city_is_off_the_map_small',{city:C.name,near:near?near.name:''});}
 // Why a city takes no exchange of your own. The reasons a POP would not fix come first.
 function foundIxWhy(c){const C=CITY[c];if(C.cn)return tr('link_panels.running_an_exchange_in_mainland');

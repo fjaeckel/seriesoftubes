@@ -31,7 +31,9 @@ const siteNo=(name,n)=>name.replace('#',1+((S&&S.asn)|0)%(n||1));
 const siteName=(c,s)=>s==='b'?CITY[c].dc2?siteNo(CITY[c].dc2,CITY[c].dc2N):SITE2_N[hstr(c)%SITE2_N.length]:siteNo(CITY[c].dc,CITY[c].dcN);
 const BE_TAPE=30000;
 const popCost=c=>Math.round(POP_COST*colo(c))+(c&&CITY[c]&&CITY[c].tape?BE_TAPE:0)+(c&&CITY[c]&&CITY[c].ru?RU_BOX:0)+(c&&CITY[c]&&CITY[c].uae?UAE_LIC:0)+(c&&CITY[c]&&CITY[c].saudi?KSA_LIC:0);
-const CN_LIC=150000, CN_JV_MO=6000;
+// A foreign network in mainland China runs through a joint venture that holds the licence: the registered capital a
+// cross-regional licence asks for, the partner's monthly cut, and about half a year of paperwork.
+const CN_LIC=1500000, CN_JV_MO=30000, CN_LIC_DAYS=180;
 // Scrubbing centers come in tiers by clean bandwidth, and each brings its own dirty-side ingress of that size: when
 // engaged it announces the target's prefix more specifically, so the flood comes to it instead of your ports (a
 // magnet) and it cleans up to its tier (a sponge). Always-on is engaged from the first minute; on-demand is cheaper

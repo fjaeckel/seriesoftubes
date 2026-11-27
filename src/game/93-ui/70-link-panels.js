@@ -111,7 +111,7 @@ function metricSection(l){const key=edgeKey(l),cur=pairMet(key),pl=pairLinks(l.a
   return h;}});}
 function chinaSection(c){const st=S.cnLic?S.cnLic.state:'none',loss=gfwLoss(false,S.ev.gfw>S.day);
   let h=`<section><h3>${tr('link_panels.behind_the_great_firewall')}</h3><p class="lead">${tr('link_panels.mainland_china_plays_by_its_own',{list:CN_BLOCKED.slice(0,4).map(esc).join(', '),pct:pct(loss)})}</p>`;
-  if(st==='none')h+=`<p class="lead">${tr('link_panels.foreign_networks_need_a_local_joint')}</p>${btn(tr('link_panels.apply_for_a_license_price_mo_n_days',{price:fmt$(CN_LIC),mo:fmt$(CN_JV_MO),n:leadDays(45)}),'applyCn',{},'pink',S.cash<CN_LIC)}`;
+  if(st==='none')h+=`<p class="lead">${tr('link_panels.foreign_networks_run_pops_here')}</p>${btn(tr('link_panels.apply_for_a_license_price_mo_n_days',{price:fmt$(CN_LIC),mo:fmt$(CN_JV_MO),n:leadDays(CN_LIC_DAYS)}),'applyCn',{},'pink',S.cash<CN_LIC)}`;
   else if(st==='pending')h+=`<p class="note">${tr('link_panels.license_paperwork_in_progress_n_days',{n:Math.max(0,S.cnLic.ready-S.day)})}</p>`;
   else h+=`<p class="note">${tr('link_panels.your_joint_venture_holds_an')}</p>`;
   if(R.gfwCross>0.5)h+=`<div class="kv"><span>${tr('link_panels.your_traffic_crossing_the_border')}</span><b>${fmtG(R.gfwCross)}</b></div><div class="kv"><span>${tr('link_panels.lost_on_the_way')}</span><b style="color:var(--bad)">${fmtG(R.gfwLost)}</b></div>`;

@@ -53,7 +53,7 @@ function fireEvent(){
     const dur=20+Math.floor(Math.random()*15),en=N_('events.a_ship_drifting_without_power');for(const tk of new Set(hit.map(l=>l.trench||l.id))){S.links.filter(l=>(l.trench||l.id)===tk).forEach(l=>l.cut=Math.max(l.cut||0,S.day+dur));addInc({type:'redsea',ref:tk,until:S.day+dur,msg:tr(en),cost:0},en);}
     toast(tr('events.cables_cut_in_the_red_sea_03e8',{n:hit.length,d:dur}),'bad');sfx('alert');evRoute();return;}
   if(e==='golden'){S.ev.golden=S.day+7;toast(tr('events.golden_week_demand_in_mainland_china'),'goal');return;}
-  if(e==='gfw'){S.ev.gfw=S.day+10;toast(tr('events.the_border_got_stricter_cross_border'),'bad');sfx('alert');return;}
+  if(e==='gfw'){S.ev.gfw=S.day+10;toast(tr('events.border_stricter_loss_p',{p:Math.round(gfwLoss(false,true)*100),n:10}),'bad');sfx('alert');return;}
   if(e==='viral'){S.ev.viral=S.day+8;toast(tr('events.new_season_of_stranger_pings_just'),'goal');}
   else if(e==='price'){S.priceMul*=0.92;toast(tr('events.transit_prices_fell_8_they_do'),'good');}
   else if(e==='grant'){S.cash+=30000;toast(tr('events.rural_broadband_grant_30k_the'),'good');sfx('coin');}
