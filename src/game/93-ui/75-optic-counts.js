@@ -17,5 +17,5 @@ document.addEventListener('input',e=>{
 document.addEventListener('submit',e=>{
  const f=e.target.closest('form.optic-count');if(!f)return;e.preventDefault();
  if(!S||!f.reportValidity()||!$('modal').hidden)return;
- ACT.setChCount({id:f.dataset.link,o:f.dataset.optic,n:f.elements.count.valueAsNumber});
+ tapRun(()=>ACT.setChCount({id:f.dataset.link,o:f.dataset.optic,n:f.elements.count.valueAsNumber}));
 });

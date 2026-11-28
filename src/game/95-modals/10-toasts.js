@@ -16,7 +16,10 @@ function toast(html,kind='',actions=[],open=null){
   if(c&&!paused){const lv=ncLevel(c);if(lv===0||(lv===1&&kind!=='bad'&&kind!=='goal'))return null;}
   // A Hyperscaler's day pops up only decisions (a button) and milestones (38-hyper-director.js).
   if(kind!=='goal'&&!actions.length&&hsQuiet())return null;
-  return toastShow(html,kind,actions,e,0,c,paused);}
+  // The answer to the player's own tap (a full port, no money) shows at once, ahead of the day's queue (#505).
+  return toastShow(html,kind,actions,e,0,c,paused||(!c&&!!UI.tap));}
+// Runs what a tap, a typed value or a picked option asked for, so its toasts know they answer the player (#505).
+function tapRun(fn){const was=UI.tap;UI.tap=true;try{return fn();}finally{UI.tap=was;}}
 // Once you have made Tier 1, conference news (#101) and de-peerings are routine: they are kept in the NOC log like any
 // notice, and nothing pops up. Says whether it popped up, for the sound that goes with it.
 const t1Quiet=()=>!!(S&&S.done&&S.done.t1!==undefined);
@@ -40,9 +43,9 @@ function toastShow(html,kind='',actions=[],e=null,ms=0,cat=null,now=false){
   if(go){el.dataset.act='toastGo';el.dataset.args=JSON.stringify({id:e.id});el.setAttribute('role','button');}else{delete el.dataset.act;delete el.dataset.args;el.removeAttribute('role');}
   const cur=toastCur(box);
   if(old&&cur===el)toastUp(el);// showing already: its new count, and its time starts again
-  else if(!old){
+  else if(!old||now){
     // Now: nothing showing, a toast that matters only now, or trouble over chatter (which waits again, first in line).
-    if(!cur||ms||now||(imp&&!cur.classList.contains('imp')&&!cur.dataset.ms)){if(cur){clearTimeout(cur._t);cur.classList.add('tq');}toastUp(el);}
+    if(!cur||ms||now||(imp&&!cur.classList.contains('imp')&&!cur.dataset.ms)){if(cur){clearTimeout(cur._t);cur.classList.add('tq');}if(old)box.prepend(el);toastUp(el);}
     else{el.classList.add('tq');const w=toastWaiting(box),after=imp?w.filter(t=>t.classList.contains('imp')).pop()||cur:w[w.length-1]||cur;after.after(el);
       // Too many waiting: the oldest chatter is left to the NOC log.
       const ws=toastWaiting(box);if(ws.length>TOAST_WAIT){const x=ws.find(t=>!t.classList.contains('imp'))||ws[0];x.remove();}
