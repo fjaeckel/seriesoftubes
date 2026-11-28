@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- The answer to your own tap shows at once again: "no free router ports" when adding optics, and other replies to what you just did, now go ahead of the notices waiting in line instead of hiding behind them. (#505)
+
 - Behind the scenes: code scanning findings fixed, so the test pages, the build and the federation test runs never paste text into code without escaping it, and the federation test runs verify every TLS connection again.
 
 ## [5.8.0] — 2026-11-27
